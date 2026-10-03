@@ -68,7 +68,7 @@ func safeVaultError(err error) error {
 	case errors.Is(err, vault.ErrVaultMismatch):
 		message = "The database and security files belong to different vaults."
 	case errors.Is(err, vault.ErrDPAPIUnavailable):
-		message = "Windows automatic unlock is unavailable for this user. Enter the master password."
+		message = "Automatic unlock is unavailable for this user. Enter the master password."
 	}
 	return &roblox.Error{
 		Kind:     roblox.KindProtocol,

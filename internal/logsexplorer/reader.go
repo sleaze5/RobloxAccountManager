@@ -15,48 +15,32 @@ import (
 )
 
 type Reader struct {
-	directory func() (string, error)
-	logger    *slog.Logger
-	operation atomic.Uint64
+	directories func() ([]string, error)
+	logger      *slog.Logger
+	operation   atomic.Uint64
 }
 
-func NewReader(directory func() (string, error), logger *slog.Logger) *Reader {
-	return &Reader{directory: directory, logger: logger}
+func NewReader(directories func() ([]string, error), logger *slog.Logger) *Reader {
+	return &Reader{directories: directories, logger: logger}
 }
 
 func (reader *Reader) ReadAll(ctx context.Context) (Snapshot, error) {
 	logger := reader.operationLogger("refresh-all")
 	snapshot := Snapshot{Sessions: []Session{}}
-	root, err := reader.openRoot()
-	if errors.Is(err, os.ErrNotExist) {
-		return snapshot, nil
-	}
+	directories, err := reader.directories()
 	if err != nil {
-		logger.Warn("could not open Roblox logs folder", "error", err)
+		logger.Warn("could not locate Roblox logs folders", "error", err)
 		return snapshot, errors.New("could not open Roblox logs folder")
 	}
-	defer root.Close()
-	entries, err := fs.ReadDir(root.FS(), ".")
-	if err != nil {
-		logger.Warn("could not list Roblox logs", "error", err)
-		return snapshot, errors.New("could not list Roblox logs")
-	}
-	for _, entry := range entries {
-		if err := ctx.Err(); err != nil {
-			return Snapshot{}, err
-		}
-		if !entry.Type().IsRegular() || !validFileName(entry.Name()) {
-			continue
-		}
-		session, err := readFile(ctx, root, entry.Name())
+	for _, directory := range directories {
+		sessions, err := readDirectory(ctx, logger, directory)
 		if ctx.Err() != nil {
 			return Snapshot{}, ctx.Err()
 		}
 		if err != nil {
-			logger.Warn("could not fully parse Roblox log", "file", entry.Name(), "error", err)
-			session.Issue = "This log could not be fully read. Refresh this session to try again."
+			return snapshot, err
 		}
-		snapshot.Sessions = append(snapshot.Sessions, session)
+		snapshot.Sessions = append(snapshot.Sessions, sessions...)
 	}
 	slices.SortFunc(snapshot.Sessions, func(a, b Session) int {
 		if a.StartedAtMs > b.StartedAtMs {
@@ -76,13 +60,12 @@ func (reader *Reader) ReadFile(ctx context.Context, name string) (Session, error
 		return Session{}, errors.New("invalid Roblox Player log filename")
 	}
 	logger := reader.operationLogger("refresh-log").With("file", name)
-	root, err := reader.openRoot()
+	directories, err := reader.directories()
 	if err != nil {
-		logger.Warn("could not open Roblox logs folder", "error", err)
+		logger.Warn("could not locate Roblox logs folders", "error", err)
 		return Session{}, errors.New("could not open Roblox logs folder")
 	}
-	defer root.Close()
-	session, err := readFile(ctx, root, name)
+	session, err := readFromDirectories(ctx, directories, name)
 	if err != nil {
 		logger.Warn("could not refresh Roblox log", "error", err)
 		return Session{}, errors.New("could not read Roblox log")
@@ -91,12 +74,61 @@ func (reader *Reader) ReadFile(ctx context.Context, name string) (Session, error
 	return session, nil
 }
 
-func (reader *Reader) openRoot() (*os.Root, error) {
-	directory, err := reader.directory()
-	if err != nil {
-		return nil, err
+// readDirectory lists the sessions of one logs folder. A missing folder means that client never ran.
+func readDirectory(ctx context.Context, logger *slog.Logger, directory string) ([]Session, error) {
+	root, err := os.OpenRoot(directory)
+	if errors.Is(err, os.ErrNotExist) {
+		return nil, nil
 	}
-	return os.OpenRoot(directory)
+	if err != nil {
+		logger.Warn("could not open Roblox logs folder", "error", err)
+		return nil, errors.New("could not open Roblox logs folder")
+	}
+	defer root.Close()
+	entries, err := fs.ReadDir(root.FS(), ".")
+	if err != nil {
+		logger.Warn("could not list Roblox logs", "error", err)
+		return nil, errors.New("could not list Roblox logs")
+	}
+	var sessions []Session
+	for _, entry := range entries {
+		if err := ctx.Err(); err != nil {
+			return nil, err
+		}
+		if !entry.Type().IsRegular() || !validFileName(entry.Name()) {
+			continue
+		}
+		session, err := readFile(ctx, root, entry.Name())
+		if ctx.Err() != nil {
+			return nil, ctx.Err()
+		}
+		if err != nil {
+			logger.Warn("could not fully parse Roblox log", "file", entry.Name(), "error", err)
+			session.Issue = "This log could not be fully read. Refresh this session to try again."
+		}
+		sessions = append(sessions, session)
+	}
+	return sessions, nil
+}
+
+// readFromDirectories reads the named log from the first folder that holds it.
+func readFromDirectories(ctx context.Context, directories []string, name string) (Session, error) {
+	for _, directory := range directories {
+		root, err := os.OpenRoot(directory)
+		if errors.Is(err, os.ErrNotExist) {
+			continue
+		}
+		if err != nil {
+			return Session{}, err
+		}
+		session, err := readFile(ctx, root, name)
+		root.Close()
+		if errors.Is(err, os.ErrNotExist) {
+			continue
+		}
+		return session, err
+	}
+	return Session{}, os.ErrNotExist
 }
 
 func (reader *Reader) operationLogger(operation string) *slog.Logger {

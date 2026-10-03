@@ -85,11 +85,7 @@ func (service *Service) confirmBatchLaunch(ctx context.Context, count int) (bool
 func (service *Service) launchAccount(ctx context.Context, accountID int64, input gamelaunch.Input) error {
 	return service.runLaunchOperation(ctx, accountID, input, "game-launch", func(ctx context.Context, ticket, browserID string, target gamelaunch.Request) error {
 		if err := service.launcher.Launch(ctx, ticket, browserID, target); err != nil {
-			message := "Roblox Player could not be started. Check that Roblox is installed and try again."
-			if errors.Is(err, gamelaunch.ErrDesktopUnavailable) {
-				message = "Roblox could not be launched without administrator permissions. Restart Windows Explorer normally and try again."
-			}
-			return &roblox.Error{Kind: roblox.KindProtocol, Endpoint: "game-launch", Message: message, Cause: err}
+			return &roblox.Error{Kind: roblox.KindProtocol, Endpoint: "game-launch", Message: userLaunchMessage(err, "Roblox Player could not be started. Check that Roblox is installed and try again."), Cause: err}
 		}
 		service.multiInstance.AfterLaunch()
 		return nil
@@ -132,7 +128,7 @@ func (service *Service) accountLaunchOptions(ctx context.Context, accountID int6
 		var err error
 		command, err = service.launcher.CommandLine(ctx, ticket, browserID, target)
 		if err != nil {
-			return &roblox.Error{Kind: roblox.KindProtocol, Endpoint: "copy-launch-options", Message: "Launch options could not be prepared. Check that Roblox is installed and try again.", Cause: err}
+			return &roblox.Error{Kind: roblox.KindProtocol, Endpoint: "copy-launch-options", Message: userLaunchMessage(err, "Launch options could not be prepared. Check that Roblox is installed and try again."), Cause: err}
 		}
 		if ctx.Err() != nil {
 			return launchError(roblox.KindCancelled, "The account session changed. Try again.")
@@ -277,6 +273,18 @@ func (service *Service) resolveLaunchUser(ctx context.Context, accountID int64, 
 		return gamelaunch.Request{}, launchError(roblox.KindProtocol, "Roblox returned an invalid server for this user. Try again.")
 	}
 	return resolved, nil
+}
+
+func userLaunchMessage(err error, fallback string) string {
+	var clientErr *gamelaunch.ClientError
+	if errors.As(err, &clientErr) && strings.TrimSpace(clientErr.Message) != "" {
+		message := strings.TrimSpace(clientErr.Message)
+		return strings.ToUpper(message[:1]) + message[1:] + "."
+	}
+	if errors.Is(err, gamelaunch.ErrDesktopUnavailable) {
+		return "Roblox could not be launched without administrator permissions. Restart Windows Explorer normally and try again."
+	}
+	return fallback
 }
 
 func launchError(kind roblox.ErrorKind, message string) error {

@@ -1,0 +1,26 @@
+version: "3"
+
+tasks:
+    internal:compile:
+        internal: true
+        dir: "{{.ROOT_DIR}}"
+        env:
+            GOOS: "linux"
+            GOARCH: "amd64"
+            CGO_ENABLED: "1"
+        cmds:
+            - cmd: |
+                set -eu
+                output="{{.DIST_DIR}}/linux-amd64/{{.APP_NAME}}"
+                mkdir -p "$(dirname "$output")"
+                ldflags="-X github.com/sleaze5/RobloxAccountManager/internal/appmeta.buildTime=$(date +%s)"
+                if [ "{{.DEV}}" != "true" ]; then
+                  go build -buildvcs=false -tags production -trimpath -ldflags="-w -s $ldflags" -o "$output" .
+                else
+                  go build -buildvcs=false -ldflags="$ldflags" -o "$output" .
+                fi
+    internal:run:
+        internal: true
+        dir: "{{.ROOT_DIR}}"
+        cmds:
+            - '"{{.DIST_DIR}}/linux-amd64/{{.APP_NAME}}"'

@@ -118,11 +118,7 @@ func (service *Service) LaunchBrowserGame(ctx context.Context, sessionID, protoc
 		if ctx.Err() != nil {
 			return
 		}
-		message := "Roblox could not be started. Check that Roblox is installed and try joining again."
-		if errors.Is(err, gamelaunch.ErrDesktopUnavailable) {
-			message = "Roblox could not be launched without administrator permissions. Restart Windows Explorer normally and try again."
-		}
-		service.events.BrowserLaunchFailed(sessionID, message)
+		service.events.BrowserLaunchFailed(sessionID, userLaunchMessage(err, "Roblox could not be started. Check that Roblox is installed and try joining again."))
 		return
 	}
 	service.multiInstance.AfterLaunch()

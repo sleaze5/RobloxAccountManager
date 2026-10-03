@@ -20,7 +20,3 @@ type BrowserProcess interface {
 	Terminate() error
 	Close() error
 }
-
-func startBrowserProcess(options ProcessOptions) (BrowserProcess, error) {
-	return startWindowsBrowserProcess(options)
-}

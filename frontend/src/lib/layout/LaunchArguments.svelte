@@ -1,9 +1,19 @@
 <script lang="ts">
 	import Settings2 from "@lucide/svelte/icons/settings-2"
+	import { onMount } from "svelte"
 	import type { AccountStore } from "../accounts/account-store.svelte"
+	import { accountBackend } from "../backend/bridge"
 	import { menuIn, menuOut } from "../shared/presence"
 
 	let { store }: { store: AccountStore } = $props()
+	let directLaunch = $state(true)
+	onMount(() => {
+		void (async () => {
+			const state = await accountBackend.GetRobloxClients()
+			directLaunch = state.directLaunch
+			if (!state.directLaunch) store.launchInput.directLaunch = false
+		})()
+	})
 	let open = $state(false),
 		root = $state<HTMLDivElement>(),
 		trigger = $state<HTMLButtonElement>()
@@ -47,17 +57,19 @@
 			in:menuIn
 			out:menuOut>
 			<strong>Additional launch options</strong>
-			<label class="launch-option">
-				<input
-					type="checkbox"
-					bind:checked={store.launchInput.directLaunch}
-					disabled={store.launching} />
-				<span
-					><strong>Launch binary directly</strong><small
-						>Find and launch RobloxPlayerBeta.exe directly instead of using
-						the registered Roblox launcher.</small
-					></span>
-			</label>
+			{#if directLaunch}
+				<label class="launch-option">
+					<input
+						type="checkbox"
+						bind:checked={store.launchInput.directLaunch}
+						disabled={store.launching} />
+					<span
+						><strong>Launch binary directly</strong><small
+							>Find and launch RobloxPlayerBeta.exe directly instead of
+							using the registered Roblox launcher.</small
+						></span>
+				</label>
+			{/if}
 			<label class="launch-option">
 				<input
 					type="checkbox"

@@ -175,6 +175,14 @@ func (service *Service) SetMultiInstanceEnabled(enabled bool) (robloxmulti.Snaps
 	return service.core.SetMultiInstanceEnabled(enabled)
 }
 
+func (service *Service) GetRobloxClients() gamelaunch.ClientState {
+	return service.core.GetRobloxClients()
+}
+
+func (service *Service) SetLinuxClient(client string) (gamelaunch.ClientState, error) {
+	return service.core.SetLinuxClient(client)
+}
+
 func (service *Service) SetLoggingLevelEnabled(level string, enabled bool) error {
 	return service.core.SetLoggingLevelEnabled(level, enabled)
 }
