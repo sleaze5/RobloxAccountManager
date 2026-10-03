@@ -1,0 +1,39 @@
+{
+	"$schema": "./node_modules/oxlint/configuration_schema.json",
+	"categories": {
+		"correctness": "error",
+		"perf": "warn",
+		"suspicious": "error"
+	},
+	"plugins": ["eslint", "typescript", "oxc", "import", "promise"],
+	"env": {
+		"browser": true,
+		"builtin": true
+	},
+	"ignorePatterns": [
+		"bindings/**",
+		"dist/**",
+		"node_modules/**",
+		"frontend/**",
+		".bindings-tmp-*/**",
+		".svelte-check/**"
+	],
+	"options": {
+		"typeAware": true,
+		"typeCheck": false
+	},
+	"rules": {
+		"complexity": ["error", 15],
+		"import/no-unassigned-import": "off",
+		"typescript/no-unsafe-type-assertion": "off"
+	},
+	"overrides": [
+		{
+			"files": ["vite.config.ts", "svelte.config.js"],
+			"env": {
+				"browser": false,
+				"node": true
+			}
+		}
+	]
+}

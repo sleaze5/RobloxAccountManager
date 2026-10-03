@@ -1,0 +1,170 @@
+.account-menu {
+	width: 190px;
+	padding: var(--space-1);
+	overflow: visible;
+	border: 1px solid var(--color-border-strong);
+	border-radius: var(--radius-surface);
+	background: var(--color-overlay);
+	box-shadow: var(--shadow-float);
+}
+
+.add-account-menu {
+	position: absolute;
+	top: calc(100% + 2px);
+	right: 0;
+	z-index: 20;
+	width: 156px;
+}
+
+.account-context-menu {
+	position: fixed;
+	z-index: 80;
+}
+
+.account-menu button {
+	display: flex;
+	width: 100%;
+	height: var(--control-height-md);
+	align-items: center;
+	gap: var(--space-2);
+	padding: 0 var(--space-2);
+	border: 0;
+	border-radius: var(--radius-control);
+	background: transparent;
+	color: var(--color-text-muted);
+	font-size: var(--text-12);
+	font-weight: var(--font-semibold);
+	cursor: pointer;
+}
+
+.account-menu button span {
+	min-width: 0;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+.account-menu button svg {
+	flex: 0 0 auto;
+}
+
+.account-menu button[aria-pressed="true"] {
+	background: var(--color-active);
+	color: var(--color-accent-strong);
+}
+
+.account-menu button:hover,
+.account-menu button.active {
+	background: var(--color-hover);
+	color: var(--color-accent-strong);
+}
+
+.account-menu button:disabled {
+	background: transparent;
+	color: var(--color-text-faint);
+	cursor: not-allowed;
+	opacity: 0.45;
+}
+
+.account-menu .menu-check {
+	flex: 0 0 auto;
+	margin-left: auto;
+}
+
+.tag-submenu-host {
+	position: relative;
+}
+
+.tag-submenu-trigger .submenu-chevron {
+	flex: 0 0 auto;
+	margin-left: auto;
+}
+
+.tag-submenu {
+	position: absolute;
+	top: -5px;
+	left: calc(100% + 2px);
+	z-index: 3;
+	visibility: hidden;
+	opacity: 0;
+	pointer-events: none;
+	transform: translateY(var(--motion-distance)) scale(var(--motion-scale));
+	transform-origin: top left;
+	transition:
+		opacity var(--duration-exit) var(--ease-standard),
+		transform var(--duration-exit) var(--ease-standard),
+		visibility 0s linear var(--duration-exit);
+}
+
+.tag-submenu.open-left {
+	right: calc(100% + 2px);
+	left: auto;
+	transform-origin: top right;
+}
+
+.tag-submenu-host:hover > .tag-submenu,
+.tag-submenu-host:focus-within > .tag-submenu {
+	visibility: visible;
+	opacity: 1;
+	pointer-events: auto;
+	transform: translateY(0) scale(1);
+	transition:
+		opacity var(--duration-ui) var(--ease-sharp),
+		transform var(--duration-ui) var(--ease-sharp),
+		visibility 0s linear 0s;
+}
+
+.tag-picker-list {
+	max-height: min(210px, calc(100vh - 190px));
+	overflow-y: auto;
+}
+
+.tag-picker-empty {
+	padding: var(--space-2);
+	color: var(--color-text-faint);
+	font-size: var(--text-12);
+}
+
+.account-menu-separator {
+	height: 1px;
+	margin: var(--space-1) var(--space-1);
+	background: var(--color-border-subtle);
+}
+
+.account-menu-heading {
+	display: flex;
+	align-items: center;
+	gap: var(--space-2);
+	margin: var(--space-2) var(--space-1) var(--space-1);
+	color: var(--color-text-faint);
+	font-size: var(--text-10);
+	font-weight: var(--font-semibold);
+	text-transform: uppercase;
+}
+
+.account-menu-heading::before,
+.account-menu-heading::after {
+	content: "";
+	height: 1px;
+	background: var(--color-border-subtle);
+}
+
+.account-menu-heading::before {
+	width: var(--space-2);
+}
+
+.account-menu-heading::after {
+	flex: 1;
+}
+
+.account-menu button.danger-action {
+	color: var(--color-danger);
+}
+
+.account-menu button.warning-action:not(:disabled) {
+	color: var(--color-warning);
+}
+
+.account-menu button.game-action:not(:disabled) {
+	color: var(--color-presence-game);
+}

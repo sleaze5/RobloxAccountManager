@@ -1,0 +1,204 @@
+.browser-import-card {
+	width: min(680px, calc(100vw - 32px));
+}
+
+.browser-session-toolbar,
+.settings-row-actions,
+.browser-session-row > div {
+	display: flex;
+	align-items: center;
+	gap: var(--space-2);
+}
+
+.browser-session-toolbar {
+	justify-content: space-between;
+	margin-top: var(--space-3);
+}
+
+.browser-session-toolbar .danger-button,
+.browser-session-row button {
+	display: inline-flex;
+	min-height: var(--control-height-md);
+	align-items: center;
+	gap: 5px;
+	padding: 0 var(--space-2);
+	border: 1px solid var(--color-border);
+	border-radius: var(--radius-control);
+	background: transparent;
+	color: var(--color-text-muted);
+	font-size: var(--text-12);
+}
+
+.browser-session-summary {
+	display: flex;
+	width: 100%;
+	min-height: var(--control-height-md);
+	align-items: center;
+	justify-content: space-between;
+	margin-top: var(--space-2);
+	padding: 0 var(--space-2);
+	border: 1px solid var(--color-border);
+	border-radius: var(--radius-control);
+	background: var(--color-fill-subtle);
+	color: var(--color-text-muted);
+	font-size: var(--text-12);
+}
+
+.browser-session-summary svg {
+	transition: transform var(--duration-fast) var(--ease-standard);
+}
+
+.browser-session-summary svg.open {
+	transform: rotate(180deg);
+}
+
+.browser-session-list {
+	margin-top: var(--space-1);
+	overflow: hidden;
+	border: 1px solid var(--color-border);
+	border-radius: var(--radius-control);
+}
+
+.browser-session-row {
+	display: flex;
+	min-height: 42px;
+	align-items: center;
+	justify-content: space-between;
+	gap: var(--space-3);
+	padding: 6px var(--space-2);
+}
+
+.browser-session-row + .browser-session-row {
+	border-top: 1px solid var(--color-border-subtle);
+}
+
+.browser-session-row > span {
+	display: flex;
+	min-width: 0;
+	flex-direction: column;
+}
+
+.browser-session-row strong {
+	color: var(--color-text);
+	font-size: var(--text-12);
+}
+
+.browser-session-row small {
+	color: var(--color-text-faint);
+	font-family: var(--font-mono);
+	font-size: var(--text-10);
+}
+
+.runtime-card {
+	width: min(440px, calc(100vw - 32px));
+}
+
+.runtime-card .primary-action {
+	display: inline-flex;
+	align-items: center;
+	gap: 6px;
+}
+
+.runtime-details {
+	display: grid;
+	grid-template-columns: minmax(0, 1fr) auto;
+	gap: var(--space-2);
+	margin-top: var(--space-3);
+	color: var(--color-text-muted);
+	font-size: var(--text-12);
+}
+
+.runtime-activity {
+	display: flex;
+	min-width: 0;
+	flex-direction: column;
+	gap: var(--space-1);
+	color: var(--color-text-muted);
+}
+
+.runtime-card > .runtime-activity {
+	margin-top: var(--space-3);
+}
+
+.runtime-activity strong {
+	color: var(--color-text);
+	font-size: var(--text-13);
+	font-weight: var(--font-semibold);
+}
+
+.runtime-activity span {
+	font-family: var(--font-mono);
+	font-size: var(--text-11);
+	font-variant-numeric: tabular-nums;
+}
+
+.runtime-transfer {
+	display: flex;
+	flex-wrap: wrap;
+	gap: var(--space-1) 1ch;
+	font-family: var(--font-mono);
+	font-size: var(--text-11);
+}
+
+.runtime-transfer span {
+	white-space: nowrap;
+}
+
+/* Progress events arrive every 500ms; glide between them on the compositor. */
+.runtime-progress {
+	width: 100%;
+	height: 6px;
+	margin-top: var(--space-1);
+	overflow: hidden;
+	border-radius: var(--radius-chip);
+	background: var(--color-surface-raised);
+}
+
+.runtime-progress > div {
+	height: 100%;
+	background: var(--color-accent);
+	transform-origin: left;
+	transition: transform 500ms linear;
+}
+
+/* Busy indicator: diagonal stripes scroll sideways like a barber pole. The
+   stripe tile repeats every 12px, so shifting by one tile loops seamlessly. */
+.runtime-progress.indeterminate > div {
+	width: calc(100% + 12px);
+	margin-left: -12px;
+	background-color: var(--color-text-faint);
+	background-image: linear-gradient(
+		45deg,
+		var(--color-accent) 25%,
+		transparent 25% 50%,
+		var(--color-accent) 50% 75%,
+		transparent 75%
+	);
+	background-size: 12px 12px;
+	animation: runtime-progress-stripes 600ms linear infinite;
+	will-change: transform;
+}
+
+@keyframes runtime-progress-stripes {
+	from {
+		transform: translateX(0);
+	}
+
+	to {
+		transform: translateX(12px);
+	}
+}
+
+.settings-row > .runtime-activity {
+	width: 100%;
+}
+
+.confirmation-effects {
+	display: flex;
+	flex-direction: column;
+	gap: var(--space-1);
+	margin: var(--space-3) 0 0;
+	padding-left: 20px;
+	color: var(--color-warning);
+	font-size: var(--text-12);
+}

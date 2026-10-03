@@ -1,0 +1,337 @@
+::selection {
+	background: var(--color-solid);
+	color: var(--color-on-solid);
+}
+
+*,
+::before,
+::after {
+	box-sizing: border-box;
+	margin: 0;
+	padding: 0;
+}
+
+html {
+	line-height: 1.5;
+}
+
+img,
+svg {
+	display: block;
+	max-width: 100%;
+	height: auto;
+	vertical-align: middle;
+}
+
+body {
+	margin: 0;
+	min-width: 760px;
+	min-height: 100vh;
+	overflow: hidden;
+	background: var(--color-base);
+	color: var(--color-text);
+	font-family: var(--font-sans);
+	font-size: var(--text-13);
+	font-weight: var(--font-normal);
+	font-synthesis: none;
+	text-rendering: optimizeLegibility;
+}
+
+h1,
+h2,
+p {
+	margin: 0;
+}
+
+h1,
+h2 {
+	font-size: inherit;
+	font-weight: inherit;
+}
+
+h1 {
+	font-size: var(--text-15);
+	font-weight: var(--font-semibold);
+	letter-spacing: -0.01em;
+}
+
+button,
+input,
+textarea {
+	font: inherit;
+	color: inherit;
+	border-radius: 0;
+	background-color: transparent;
+	background-image: none;
+}
+
+button {
+	cursor: pointer;
+}
+
+input[type="checkbox"],
+input[type="radio"] {
+	accent-color: var(--color-accent);
+}
+
+/* WebView2 adds its own reveal and clear buttons. Password fields have custom ones. */
+input::-ms-reveal,
+input::-ms-clear {
+	display: none;
+}
+
+button:disabled {
+	opacity: 0.42;
+	cursor: not-allowed;
+}
+
+button:focus-visible,
+input:focus-visible,
+textarea:focus-visible,
+select:focus-visible {
+	outline: 1px solid var(--color-focus-ring);
+	outline-offset: -1px;
+}
+
+.search-field {
+	display: flex;
+	min-width: 0;
+	min-height: var(--control-height-lg);
+	flex: 1;
+	align-items: center;
+	gap: 7px;
+	padding: 0 var(--space-2);
+	border: 1px solid var(--color-border);
+	border-radius: var(--radius-control);
+	background: var(--color-input);
+	color: var(--color-text-faint);
+}
+
+.search-field:focus-within {
+	border-color: var(--color-border-focus);
+}
+
+.search-field input {
+	width: 100%;
+	min-width: 0;
+	border: 0;
+	outline: 0;
+	background: transparent;
+	color: var(--color-text);
+	font-size: var(--text-12);
+}
+
+.search-field input::placeholder {
+	color: var(--color-text-faint);
+}
+
+.search-field input::-webkit-search-cancel-button {
+	display: none;
+}
+
+.search-clear {
+	display: grid;
+	width: 20px;
+	height: 20px;
+	flex: 0 0 auto;
+	place-items: center;
+	padding: 0;
+	border: 0;
+	border-radius: var(--radius-control);
+	background: transparent;
+	color: var(--color-text-muted);
+	cursor: pointer;
+}
+
+.search-clear:hover {
+	background: var(--color-hover);
+	color: var(--color-accent-strong);
+}
+
+.app-tooltip {
+	position: fixed;
+	top: 0;
+	left: 0;
+	z-index: 200;
+	padding: 5px 7px;
+	border: 1px solid var(--color-border);
+	border-radius: var(--radius-surface);
+	background: var(--color-surface-raised);
+	box-shadow: var(--shadow-float);
+	color: var(--color-text);
+	font-size: var(--text-10);
+	font-weight: var(--font-medium);
+	line-height: 1;
+	pointer-events: none;
+	white-space: nowrap;
+}
+
+.app-tooltip-inner {
+	display: block;
+}
+
+.app-tooltip-multiline {
+	white-space: pre-line;
+	line-height: 1.4;
+}
+
+:where(
+	.icon-action,
+	.control-button,
+	.account-row,
+	.game-row,
+	.games-views button,
+	.account-menu button,
+	.settings-header button,
+	.settings-row-action,
+	.settings-select-trigger,
+	.settings-select-menu button,
+	.place-suggestion,
+	.notification-actions button,
+	.notification-dismiss,
+	.operation-error button,
+	.modal-heading > button,
+	.modal-actions button,
+	.primary-action,
+	.danger-button,
+	.tag-manager-row button,
+	.visibility-control,
+	.automatic-unlock-info,
+	.drawer-toggle,
+	.launch-control,
+	.search-clear,
+	.page-tabs button,
+	.account-title button,
+	.collapsed-sidebar button,
+	.tag-filter-trigger,
+	.settings-sidebar nav button
+) {
+	transition:
+		background-color var(--duration-fast) var(--ease-standard),
+		border-color var(--duration-fast) var(--ease-standard),
+		color var(--duration-fast) var(--ease-standard);
+}
+
+:where(
+	.search-field,
+	.settings-format-input,
+	.modal-field input,
+	.modal-field textarea,
+	.modal-field select,
+	.tag-manager-create-row input,
+	.drawer-content input
+) {
+	transition:
+		background-color var(--duration-fast) var(--ease-standard),
+		border-color var(--duration-fast) var(--ease-standard),
+		color var(--duration-fast) var(--ease-standard);
+}
+
+@keyframes content-enter {
+	from {
+		opacity: 0;
+		transform: translateY(var(--motion-distance));
+	}
+
+	to {
+		opacity: 1;
+		transform: translateY(0);
+	}
+}
+
+@keyframes icon-enter {
+	from {
+		opacity: 0;
+		transform: scale(var(--motion-scale));
+	}
+
+	to {
+		opacity: 1;
+		transform: scale(1);
+	}
+}
+
+.page-actions button > svg,
+.visibility-control > svg,
+.password-checklist li > svg,
+.account-menu button > svg,
+.favorite-name-star,
+.menu-check {
+	animation: icon-enter var(--duration-fast) var(--ease-standard);
+}
+
+.profile-image-fallback {
+	width: 45%;
+	height: 45%;
+	color: var(--color-text-faint);
+}
+
+::-webkit-scrollbar {
+	width: 8px;
+	height: 8px;
+}
+
+::-webkit-scrollbar-track,
+::-webkit-scrollbar-corner {
+	background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+	border: 2px solid transparent;
+	background: var(--color-scrollbar-thumb);
+	background-clip: padding-box;
+}
+
+/* lib/shared/motion.ts sets data-reduced-motion from the motion setting and the system preference. */
+:root[data-reduced-motion],
+:root[data-reduced-motion] *,
+:root[data-reduced-motion] *::before,
+:root[data-reduced-motion] *::after {
+	animation-duration: 0.01ms !important;
+	animation-iteration-count: 1 !important;
+	scroll-behavior: auto !important;
+	transition-duration: 0.01ms !important;
+}
+
+:root[data-reduced-motion] .spinner {
+	animation: none !important;
+	transform: rotate(45deg);
+}
+
+.text-block {
+	max-width: 640px;
+	margin: 0;
+	padding: 10px 12px;
+	overflow-wrap: anywhere;
+	border: 1px solid var(--color-border);
+	border-radius: var(--radius-panel);
+	background: var(--color-fill-subtle);
+	color: var(--color-text);
+	font-family: var(--font-mono);
+	font-size: var(--text-11-5);
+	line-height: 1.55;
+	white-space: pre-wrap;
+	user-select: text;
+}
+
+.hover-value {
+	padding: 0;
+	border: 0;
+	border-radius: var(--radius-control);
+	background: transparent;
+	color: inherit;
+	font: inherit;
+	font-variant-numeric: tabular-nums;
+	cursor: help;
+}
+
+.hover-value:focus-visible {
+	outline: 1px solid var(--color-focus-ring);
+	outline-offset: 2px;
+}
+
+.creator-verified {
+	display: inline-block;
+	margin-left: 4px;
+	vertical-align: -2px;
+}

@@ -1,0 +1,129 @@
+@font-face {
+	font-family: "Nunito Sans";
+	src: url("../assets/fonts/NunitoSans-Variable.woff2") format("woff2");
+	font-weight: 400 700;
+	font-style: normal;
+	font-display: swap;
+}
+
+@font-face {
+	font-family: "JetBrains Mono";
+	src: url("../assets/fonts/JetBrainsMono-Variable.woff2") format("woff2");
+	font-weight: 400 600;
+	font-style: normal;
+	font-display: swap;
+}
+
+:root {
+	color-scheme: dark;
+
+	--color-base: #111111;
+	--color-bg: #131313;
+	--color-surface: #171717;
+	--color-surface-raised: #242424;
+	--color-surface-raised-hover: #292929;
+	--color-dialog: #131313;
+	--color-overlay: rgb(23 23 23 / 98%);
+	--color-input: #131313;
+	--color-scrim: rgb(0 0 0 / 72%);
+	--color-scrim-vault: rgb(10 10 10 / 90%);
+	--color-fill-subtle: rgb(255 255 255 / 3%);
+	--color-hover-overlay: rgb(255 255 255 / 7%);
+
+	--color-text: #cccccc;
+	--color-text-muted: #a3a3a3;
+	--color-text-faint: #737373;
+	--color-text-bright: #ffffff;
+
+	--color-solid: #ffffff;
+	--color-on-solid: #000000;
+
+	--color-accent: #c7c7c7;
+	--color-accent-strong: #d4d4d4;
+
+	--color-border-subtle: rgb(255 255 255 / 6%);
+	--color-border: #262626;
+	--color-border-strong: #363636;
+	--color-border-focus: rgb(255 255 255 / 22%);
+	--color-hover: #292929;
+	--color-active: rgb(255 255 255 / 4.5%);
+	--color-focus-ring: rgb(255 255 255 / 24%);
+	--color-scrollbar-thumb: rgb(163 163 163 / 22%);
+
+	--color-success: #66a978;
+	--color-warning: #d2a15a;
+	--color-warning-border: rgb(210 161 90 / 30%);
+	--color-warning-wash: rgb(210 161 90 / 7%);
+	--color-danger: #c95c54;
+	--color-danger-muted: #dfaaa6;
+	--color-danger-border: rgb(201 92 84 / 40%);
+	--color-danger-wash: rgb(201 92 84 / 7%);
+	--color-danger-tint: rgb(201 92 84 / 12%);
+	--color-danger-tint-hover: rgb(201 92 84 / 20%);
+	--color-danger-toast: rgb(38 25 24 / 97%);
+
+	--color-presence-online: #7d9fb5;
+	--color-presence-game: #70a981;
+	--color-presence-studio: #b99a69;
+
+	--shadow-float: 0 4px 12px rgb(0 0 0 / 24%);
+
+	--font-sans: "Nunito Sans", sans-serif;
+	--font-mono: "JetBrains Mono", monospace;
+
+	--font-normal: 400;
+	--font-medium: 500;
+	--font-semibold: 600;
+	--font-bold: 700;
+
+	--text-10: 10px;
+	--text-10-5: 10.5px;
+	--text-11: 11px;
+	--text-11-5: 11.5px;
+	--text-12: 12px;
+	--text-12-5: 12.5px;
+	--text-13: 13px;
+	--text-13-5: 13.5px;
+	--text-14: 14px;
+	--text-15: 15px;
+	--text-16: 16px;
+
+	--space-1: 4px;
+	--space-2: 8px;
+	--space-3: 12px;
+	--space-4: 16px;
+	--edge-padding: var(--space-3);
+
+	--control-height-sm: 24px;
+	--control-height-md: 28px;
+	--control-height-lg: 32px;
+	--control-padding-sm: 6px;
+	--control-padding-md: 8px;
+	--surface-padding-sm: 8px;
+	--surface-padding-md: 12px;
+	--surface-padding-lg: 16px;
+
+	--radius-chip: 4px;
+	--radius-control: 6px;
+	--radius-panel: 8px;
+	--radius-surface: 10px;
+	--radius-large: 12px;
+
+	--duration-instant: 70ms;
+	--duration-exit: 80ms;
+	--duration-fast: 90ms;
+	--duration-ui: 110ms;
+	--duration-dialog: 130ms;
+	--duration-enter: 140ms;
+
+	--ease-sharp: cubic-bezier(0.16, 1, 0.3, 1);
+	--ease-standard: cubic-bezier(0.4, 0, 0.2, 1);
+	--motion-distance: 2px;
+	--motion-scale: 0.99;
+
+	--titlebar-height: 38px;
+	--header-height: 38px;
+	--status-strip-height: 24px;
+	--sidebar-width: 220px;
+	--settings-sidebar-width: 240px;
+}

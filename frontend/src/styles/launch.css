@@ -1,0 +1,384 @@
+.launch-drawer {
+	height: var(--launch-height);
+	display: grid;
+	grid-template-rows: 2px 34px minmax(0, 1fr);
+	border-top: 1px solid var(--color-border-subtle);
+	background: var(--color-surface);
+}
+
+.launch-drawer.collapsed {
+	height: 34px;
+	display: block;
+}
+
+.launch-resizer {
+	display: grid;
+	width: 100%;
+	height: 2px;
+	place-items: center;
+	padding: 0;
+	border: 0;
+	background: var(--color-surface);
+	cursor: row-resize;
+	touch-action: none;
+}
+
+.drawer-header {
+	display: flex;
+	width: 100%;
+	height: 34px;
+	align-items: center;
+	justify-content: space-between;
+	padding: 0 var(--edge-padding);
+	border-bottom: 1px solid var(--color-border-subtle);
+	color: var(--color-text-muted);
+	user-select: none;
+}
+
+.launch-drawer.collapsed .drawer-header {
+	border-bottom: 0;
+}
+
+.drawer-header > span {
+	display: flex;
+	align-items: center;
+	gap: 7px;
+}
+
+.drawer-header strong {
+	color: var(--color-accent-strong);
+	font-size: var(--text-11);
+	font-weight: var(--font-semibold);
+}
+
+.drawer-toggle {
+	display: grid;
+	width: var(--control-height-sm);
+	height: var(--control-height-sm);
+	place-items: center;
+	padding: 0;
+	border: 0;
+	border-radius: var(--radius-control);
+	background: transparent;
+	color: var(--color-text-muted);
+	cursor: pointer;
+}
+
+.drawer-toggle:hover {
+	background: var(--color-hover);
+	color: var(--color-accent-strong);
+}
+
+.drawer-toggle svg.open {
+	transform: rotate(180deg);
+}
+
+.drawer-toggle svg {
+	transition: transform var(--duration-fast) var(--ease-standard);
+}
+
+.drawer-content {
+	display: flex;
+	min-height: 0;
+	flex-direction: column;
+}
+
+.launch-body {
+	display: flex;
+	min-height: 0;
+	flex: 1;
+	flex-direction: column;
+	gap: var(--space-2);
+	padding: var(--space-3);
+	overflow: auto;
+}
+
+.launch-body > * {
+	flex-shrink: 0;
+}
+
+.launch-fields label:not(.launch-option) > span {
+	display: block;
+	margin-bottom: var(--space-1);
+	color: var(--color-text-muted);
+	font-size: var(--text-12);
+}
+
+.launch-body label,
+.launch-fields {
+	min-width: 0;
+}
+
+.launch-fields {
+	display: flex;
+	width: min(100%, 480px);
+	flex-direction: column;
+	gap: var(--space-2);
+}
+
+.launch-method {
+	display: flex;
+	flex: 0 0 auto;
+	margin-right: auto;
+	align-items: center;
+	gap: var(--space-2);
+	color: var(--color-text-muted);
+	font-size: var(--text-12);
+}
+
+.launch-method .settings-select {
+	width: 148px;
+}
+
+.launch-fields.launch-place {
+	display: grid;
+	width: min(100%, 520px);
+	grid-template-columns: minmax(0, 180px) minmax(0, 1fr);
+}
+
+.launch-job {
+	display: flex;
+	min-width: 0;
+	align-items: flex-end;
+	gap: var(--space-1);
+}
+
+.launch-job > label {
+	flex: 1;
+}
+
+.nearest-server {
+	display: flex;
+	flex: 0 0 auto;
+}
+
+.nearest-server .icon-action {
+	width: var(--control-height-lg);
+	height: var(--control-height-lg);
+}
+
+.place-suggestions {
+	position: fixed;
+	z-index: 30;
+	display: flex;
+	flex-direction: column;
+	gap: 2px;
+	max-height: min(238px, var(--place-menu-space, 238px));
+	padding: var(--space-1);
+	overflow-y: auto;
+	border: 1px solid var(--color-border-strong);
+	border-radius: var(--radius-surface);
+	background: var(--color-overlay);
+	box-shadow: var(--shadow-float);
+}
+
+.place-suggestion {
+	display: flex;
+	min-height: 44px;
+	flex: 0 0 44px;
+	align-items: center;
+	gap: var(--space-2);
+	padding: var(--space-1) var(--space-2) var(--space-1) var(--space-1);
+	border-radius: var(--radius-control);
+	color: var(--color-text-muted);
+	font-size: var(--text-12);
+	font-weight: var(--font-semibold);
+	cursor: pointer;
+}
+
+.place-suggestion-empty {
+	padding: var(--space-2);
+	color: var(--color-text-muted);
+	font-size: var(--text-12);
+}
+
+.place-suggestion[aria-selected="true"] {
+	background: var(--color-hover);
+	color: var(--color-text);
+}
+
+.place-suggestion .game-icon {
+	width: 24px;
+	height: 24px;
+	border-radius: var(--radius-chip);
+}
+
+.place-suggestion-copy {
+	display: flex;
+	min-width: 0;
+	flex: 1;
+	flex-direction: column;
+}
+
+.place-suggestion-copy > span {
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+.place-suggestion-copy small {
+	color: var(--color-text-faint);
+	font-family: var(--font-mono);
+	font-size: var(--text-10-5);
+	font-weight: var(--font-normal);
+}
+
+.place-suggestion kbd {
+	padding: 2px var(--space-1);
+	border: 1px solid var(--color-border-strong);
+	border-radius: var(--radius-chip);
+	color: var(--color-text-faint);
+	font-family: var(--font-mono);
+	font-size: var(--text-10);
+	font-weight: var(--font-medium);
+	line-height: 1;
+}
+
+.launch-fields.launch-user {
+	display: grid;
+	grid-template-columns: minmax(0, 1fr) auto;
+	align-items: end;
+}
+
+.launch-option {
+	display: flex;
+	align-items: flex-start;
+	gap: var(--space-2);
+	color: var(--color-text);
+	font-size: var(--text-12);
+	cursor: pointer;
+}
+
+.launch-resolve {
+	height: var(--control-height-lg);
+	align-items: center;
+	white-space: nowrap;
+}
+
+.launch-option input {
+	width: 14px;
+	height: 14px;
+	flex: 0 0 14px;
+	margin: 2px 0 0;
+}
+
+.launch-resolve input {
+	margin: 0;
+}
+
+.launch-fields small {
+	font-size: inherit;
+	color: var(--color-text-faint);
+}
+
+.launch-fields input:not([type="checkbox"]) {
+	width: 100%;
+	min-height: var(--control-height-lg);
+	border: 1px solid var(--color-border);
+	border-radius: var(--radius-control);
+	background: var(--color-input);
+	padding: 0 var(--space-2);
+	outline: 0;
+	color: var(--color-accent-strong);
+	font-family: var(--font-mono);
+	font-size: var(--text-11);
+}
+
+.launch-fields input::placeholder {
+	color: var(--color-text-faint);
+}
+
+.launch-fields input:focus {
+	border-color: var(--color-border-focus);
+}
+
+.drawer-content input:disabled {
+	color: var(--color-text-faint);
+	cursor: not-allowed;
+}
+
+.launch-footer {
+	display: flex;
+	flex: 0 0 auto;
+	height: calc(var(--control-height-md) + var(--space-2) + 1px);
+	align-items: center;
+	justify-content: flex-end;
+	gap: var(--space-2);
+	padding: var(--space-1) var(--space-3);
+	border-top: 1px solid var(--color-border-subtle);
+}
+
+.launch-footer .icon-action.active {
+	color: var(--color-accent-strong);
+}
+
+.launch-arguments {
+	position: relative;
+}
+
+.launch-arguments-menu {
+	--menu-origin: bottom right;
+	position: absolute;
+	bottom: calc(100% + var(--space-2));
+	right: 0;
+	z-index: 20;
+	display: flex;
+	width: min(340px, calc(100vw - 48px));
+	flex-direction: column;
+	gap: var(--space-3);
+	padding: var(--space-3);
+	border: 1px solid var(--color-border-strong);
+	border-radius: var(--radius-surface);
+	background: var(--color-overlay);
+	box-shadow: var(--shadow-float);
+}
+
+.launch-arguments-menu strong {
+	color: var(--color-text);
+	font-size: var(--text-12);
+	font-weight: var(--font-semibold);
+}
+
+.launch-option > span {
+	display: flex;
+	flex-direction: column;
+	gap: var(--space-1);
+}
+
+.launch-option small {
+	color: var(--color-text-muted);
+	font-size: var(--text-11);
+	line-height: 1.45;
+}
+
+.launch-option:has(input:disabled) {
+	cursor: not-allowed;
+}
+
+.launch-option:has(input:disabled) strong,
+.launch-option:has(input:disabled) small,
+.launch-option:has(input:disabled) > span {
+	color: var(--color-text-faint);
+}
+
+.launch-control {
+	display: flex;
+	min-width: 100px;
+	min-height: var(--control-height-md);
+	align-items: center;
+	justify-content: center;
+	gap: var(--space-2);
+	padding: 0 var(--space-3);
+	border: 1px solid var(--color-border-strong);
+	border-radius: var(--radius-control);
+	background: var(--color-surface-raised);
+	color: var(--color-text);
+	font-size: var(--text-12);
+	font-weight: var(--font-semibold);
+	cursor: pointer;
+}
+
+.launch-control:hover {
+	border-color: var(--color-border-focus);
+	background: var(--color-surface-raised-hover);
+}

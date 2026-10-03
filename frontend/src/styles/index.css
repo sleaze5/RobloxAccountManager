@@ -1,0 +1,14 @@
+@import "./tokens.css";
+@import "./base.css";
+@import "./shell.css";
+@import "./notifications.css";
+@import "./settings.css";
+@import "./accounts.css";
+@import "./account-menus.css";
+@import "./profile.css";
+@import "./chats.css";
+@import "./launch.css";
+@import "./dialogs.css";
+@import "./browser.css";
+@import "./logs-explorer.css";
+@import "./games.css";

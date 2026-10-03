@@ -1,0 +1,13 @@
+{
+	"schemaVersion": 1,
+	"version": "154.0.8037.92",
+	"sourceUrl": "https://googlechromelabs.github.io/chrome-for-testing/last-known-good-versions-with-downloads.json",
+	"generatedAt": "2026-10-01T18:31:51.043Z",
+	"downloads": {
+		"linux64": "https://storage.googleapis.com/chrome-for-testing-public/154.0.8037.92/linux64/chrome-linux64.zip",
+		"mac-arm64": "https://storage.googleapis.com/chrome-for-testing-public/154.0.8037.92/mac-arm64/chrome-mac-arm64.zip",
+		"mac-x64": "https://storage.googleapis.com/chrome-for-testing-public/154.0.8037.92/mac-x64/chrome-mac-x64.zip",
+		"win32": "https://storage.googleapis.com/chrome-for-testing-public/154.0.8037.92/win32/chrome-win32.zip",
+		"win64": "https://storage.googleapis.com/chrome-for-testing-public/154.0.8037.92/win64/chrome-win64.zip"
+	}
+}

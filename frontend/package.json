@@ -1,0 +1,51 @@
+{
+	"name": "RobloxAccountManager",
+	"private": true,
+	"version": "0.0.0-alpha.0",
+	"description": "A portable desktop application for storing and managing Roblox accounts.",
+	"author": {
+		"name": "sleaze5",
+		"displayName": "sleaze",
+		"url": "https://github.com/sleaze5"
+	},
+	"license": "MIT",
+	"repository": {
+		"type": "git",
+		"url": "git+https://github.com/sleaze5/RobloxAccountManager.git"
+	},
+	"homepage": "https://github.com/sleaze5/RobloxAccountManager#readme",
+	"bugs": {
+		"url": "https://github.com/sleaze5/RobloxAccountManager/issues"
+	},
+	"type": "module",
+	"engines": {
+		"bun": ">=1.3.0"
+	},
+	"scripts": {
+		"dev": "bun --bun vite",
+		"build:dev": "bun --bun vite build --minify false --mode development",
+		"build": "bun --bun vite build --mode production",
+		"check": "bun --bun svelte-check --tsconfig ./tsconfig.json --fail-on-warnings --tsgo",
+		"lint": "bun --bun oxlint --deny-warnings .",
+		"lint:fix": "bun --bun oxlint --fix --deny-warnings .",
+		"format": "bun --bun oxfmt --write .",
+		"format:check": "bun --bun oxfmt --check ."
+	},
+	"dependencies": {
+		"@lucide/svelte": "^1.37.0",
+		"@wailsio/runtime": "3.0.0-beta.27",
+		"moment": "^2.30.1"
+	},
+	"devDependencies": {
+		"@sveltejs/vite-plugin-svelte": "^7.3.0",
+		"@tsconfig/svelte": "^5.0.8",
+		"@typescript/native": "npm:typescript@7.0.2",
+		"oxfmt": "0.65.0",
+		"oxlint": "1.80.0",
+		"oxlint-tsgolint": "7.0.2001",
+		"svelte": "^5.57.0",
+		"svelte-check": "^4.7.6",
+		"typescript": "6.0.3",
+		"vite": "^8.2.2"
+	}
+}
