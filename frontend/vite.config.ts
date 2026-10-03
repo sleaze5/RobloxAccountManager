@@ -28,6 +28,12 @@ function installedVersion(name: string): string {
 
 export default defineConfig({
 	define: {
+		APP_VERSION: JSON.stringify(
+			readFileSync(
+				new URL("../internal/appmeta/VERSION", import.meta.url),
+				"utf8",
+			).trim(),
+		),
 		FRONTEND_DEPENDENCIES: JSON.stringify({
 			runtime: [{ name: "svelte", version: installedVersion("svelte") }],
 			build: [

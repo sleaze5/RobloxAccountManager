@@ -1,7 +1,6 @@
 {
 	"name": "RobloxAccountManager",
 	"private": true,
-	"version": "0.0.0-alpha.0",
 	"description": "A portable desktop application for storing and managing Roblox accounts.",
 	"author": {
 		"name": "sleaze5",

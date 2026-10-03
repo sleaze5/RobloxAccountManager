@@ -31,7 +31,7 @@ Organize the backend by capability. Each package owns one responsibility and exp
 - **Game launching:** `internal/gamelaunch` handles launch preparation, command construction, process start, and launch results.
 - **Managed browser:** `internal/browser` handles Chrome for Testing runtime installation and isolated, CDP-controlled browser sessions.
 - **Roblox Player logs:** `internal/logsexplorer`.
-- **Configuration and paths:** `internal/appdata` (portable paths and private files), `internal/appsettings` (`settings.json`), `internal/appmeta` (application identity).
+- **Configuration and paths:** `internal/appdata` (portable paths and private files), `internal/appsettings` (`settings.json`), `internal/appmeta` (application identity). `internal/appmeta/VERSION` is the only source of the application version.
 - **Logging:** `internal/logging`.
 - **Native capabilities:** `internal/platform/*`. See [PLATFORM.md](./PLATFORM.md).
 

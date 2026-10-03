@@ -59,7 +59,7 @@ try {
 }
 
 for (const entry of await readdir(root, { withFileTypes: true })) {
-	if (entry.isFile() && entry.name.startsWith("wails_windows_") && entry.name.endsWith(".syso")) {
+	if (entry.isFile() && entry.name.startsWith("wails_windows_") && /\.(syso|json)$/.test(entry.name)) {
 		await removeTarget(entry.name)
 	}
 }

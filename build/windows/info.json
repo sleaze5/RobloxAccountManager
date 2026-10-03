@@ -1,12 +1,6 @@
 {
-	"fixed": {
-		"file_version": "0.0.0.0",
-		"flags": "Prerelease"
-	},
 	"info": {
 		"0409": {
-			"FileVersion": "0.0.0-alpha.0",
-			"ProductVersion": "0.0.0-alpha.0",
 			"CompanyName": "sleaze",
 			"FileDescription": "A portable desktop application for storing and managing Roblox accounts.",
 			"InternalName": "RobloxAccountManager",

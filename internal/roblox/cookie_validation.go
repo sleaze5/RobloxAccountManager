@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/sleaze5/RobloxAccountManager/internal/accounts"
+	"github.com/sleaze5/RobloxAccountManager/internal/appmeta"
 )
 
 type CookieValidation struct {
@@ -43,7 +44,7 @@ func (client *Client) ValidateCookie(ctx context.Context, cookie, browserID stri
 		if err != nil {
 			return CookieValidation{}, &Error{Kind: KindProtocol, Endpoint: "cookie-import", Message: "The cookie validation request is invalid.", Cause: err}
 		}
-		request.Header.Set("User-Agent", userAgent)
+		request.Header.Set("User-Agent", appmeta.UserAgent)
 		request.Header.Set("Accept", "application/json")
 		request.Header.Set("Cookie", formatAuthCookie(currentCookie, browserID))
 		release, err := client.limits.acquire(requestContext, request.URL.Hostname(), 0)

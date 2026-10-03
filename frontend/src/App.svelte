@@ -1,6 +1,5 @@
 <script lang="ts">
 	import { onMount, tick, untrack } from "svelte"
-	import { version } from "../package.json"
 	import AccountProfile from "./lib/accounts/AccountProfile.svelte"
 	import AccountImageMenu from "./lib/accounts/AccountImageMenu.svelte"
 	import AccountContextMenu from "./lib/accounts/AccountContextMenu.svelte"
@@ -340,7 +339,7 @@
 </script>
 
 <svelte:head>
-	<title>Roblox Account Manager: {version}</title>
+	<title>Roblox Account Manager: {APP_VERSION}</title>
 </svelte:head>
 
 <svelte:window
@@ -354,7 +353,7 @@
 	class:games-open={activePage === "games"}
 	class="app-frame">
 	<WindowTitleBar
-		{version}
+		version={APP_VERSION}
 		pageTitle={activePage === "settings" ? "Settings" : undefined} />
 
 	{#if activePage === "settings"}

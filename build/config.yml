@@ -7,7 +7,6 @@ info:
     description: "A portable desktop application for storing and managing Roblox accounts."
     copyright: "Copyright (c) 2026 sleaze"
     comments: "A portable desktop application for storing and managing Roblox accounts."
-    version: "0.0.0-alpha.0"
 
 dev_mode:
     root_path: "."

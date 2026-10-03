@@ -24,7 +24,6 @@ import (
 )
 
 const (
-	userAgent            = appmeta.UserAgent
 	requestTimeout       = 30 * time.Second
 	csrfHeader           = "X-CSRF-TOKEN"
 	challengeTypeHeader  = "Rblx-Challenge-Type"
@@ -366,7 +365,7 @@ func (client *Client) sendAttempt(ctx context.Context, contract Request, snapsho
 		return nil, err
 	}
 	request.Header = contract.Headers.Clone()
-	request.Header.Set("User-Agent", userAgent)
+	request.Header.Set("User-Agent", appmeta.UserAgent)
 	if request.Header.Get("Accept") == "" {
 		request.Header.Set("Accept", "application/json")
 	}
@@ -528,7 +527,7 @@ func (client *Client) probeAuthenticated(ctx context.Context, snapshot SessionSn
 	if err != nil {
 		return 0, err
 	}
-	request.Header.Set("User-Agent", userAgent)
+	request.Header.Set("User-Agent", appmeta.UserAgent)
 	request.Header.Set("Accept", "application/json")
 	request.Header.Set("Cookie", formatAuthCookie(snapshot.Cookie, snapshot.BrowserID))
 	release, err := client.limits.acquire(merged, request.URL.Hostname(), snapshot.AccountID)

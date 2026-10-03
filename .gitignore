@@ -12,6 +12,7 @@
 /build/windows/icon.ico
 /RobloxAccountManager.exe
 /wails_windows_*.syso
+/wails_windows_*.json
 
 # Generated frontend files
 /frontend/.bindings-tmp-*/
