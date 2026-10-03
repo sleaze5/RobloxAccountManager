@@ -16,6 +16,31 @@ dist/
 
 Add a future target through its own platform tasks and modules. Keep the shared application and frontend task graph.
 
+## Releases
+
+`internal/appmeta/VERSION` is the only source of the application version. It uses `MAJOR.MINOR.PATCH` with an optional `-PRERELEASE` suffix. Go embeds it, the frontend reads it as `APP_VERSION`, and the build writes it into the Windows version resource. Do not write the version anywhere else.
+
+To release, change `VERSION`, run `task fix`, push to `main`, and run the manual "Release" workflow in `.github/workflows/release.yml`. The workflow fails when tag `v<version>` exists or when the build changes source files. It publishes:
+
+- `RobloxAccountManager.exe`: the executable for manual download.
+- `RobloxAccountManager-windows-x64.zip`: the updater artifact. It must contain only the executable, because the updater accepts exactly one top-level entry.
+- `manifest.json`: the signed Wails update manifest. List only archives in it, because Wails treats every `.exe` as a Windows artifact.
+
+The application reads `releases/latest/download/manifest.json`, so it never offers a prerelease.
+
+### Update signing
+
+- The `UPDATER_PRIVATE_KEY` repository secret signs `manifest.json`. Never commit the private key.
+- `internal/appmeta/updater.key.pub` is the public key that every build embeds. The workflow verifies each manifest with it before it publishes.
+- `internal/appupdate` rejects updates without a signature. Keep this check, because the Wails updater installs unsigned manifest entries.
+- Replace `updater.key.pub` only to rotate a lost or exposed key. Installed copies with the old key cannot verify later updates.
+
+### In-place updates
+
+- `updater.HandleHelperMode()` must run first in `main()`, before the single-instance check. The update helper is this executable, and it starts while the old version still runs.
+- The updater replaces only the executable. `storage/` and `logs/` stay unchanged.
+- `internal/appupdate` removes `RobloxAccountManager.exe.old.*` and the helper's `wails-update-*.log` when the new version starts. It deletes a downloaded update that was not installed when the application closes.
+
 ## Platform isolation
 
 Keep a clear line between OS-specific code and shared code. A reader must be able to tell from the file name or package path whether code is OS-specific.

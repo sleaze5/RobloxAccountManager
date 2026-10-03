@@ -23,3 +23,9 @@ var (
 	Version   = strings.TrimSpace(version)
 	UserAgent = Name + "/" + Version
 )
+
+// UpdaterPublicKey verifies the signature of every downloaded update. The
+// matching private key signs releases and never enters the repository.
+//
+//go:embed updater.key.pub
+var UpdaterPublicKey []byte

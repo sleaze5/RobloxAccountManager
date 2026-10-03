@@ -16,6 +16,7 @@
 	import IntegrationsSettings from "./IntegrationsSettings.svelte"
 	import RobloxSettings from "./RobloxSettings.svelte"
 	import { appSettings } from "./settings-store.svelte"
+	import UpdateSettings from "./UpdateSettings.svelte"
 	import UserInterfaceSettings from "./UserInterfaceSettings.svelte"
 	import VaultSettings from "./VaultSettings.svelte"
 
@@ -54,7 +55,7 @@
 			icon: Info,
 			id: "about",
 			label: "About",
-			search: "about version build time timestamp unix platform architecture arch os go wails revision commit launch id startup stages timings duration ready loaded components schema format version settings vault database sqlite sqlcipher key file automatic unlock browser runtime manifest log created loaded recovered",
+			search: "about updates update check latest download install restart new release version build time timestamp unix platform architecture arch os go wails revision commit launch id startup stages timings duration ready loaded components schema format version settings vault database sqlite sqlcipher key file automatic unlock browser runtime manifest log created loaded recovered",
 		},
 	] as const
 
@@ -161,6 +162,7 @@
 						<BrowserSettings {browser} {query} />
 						<IntegrationsSettings store={appSettings} {query} />
 					{:else if activeCategory.id === "about"}
+						<UpdateSettings />
 						<AboutSettings />
 					{:else if activeCategory.id === "user-interface"}
 						<UserInterfaceSettings store={appSettings} {query} />

@@ -49,6 +49,10 @@ func (events *Events) BrowserLaunchFailed(sessionID, message string) {
 	}{SessionID: sessionID, Message: message})
 }
 
+func (events *Events) UpdateChanged() {
+	events.send("update:state-changed", struct{}{})
+}
+
 func (events *Events) LaunchConfirmationChanged() {
 	events.send("game:launch-confirmation-changed", struct{}{})
 }

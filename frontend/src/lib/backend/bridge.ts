@@ -16,6 +16,8 @@ export type {
 	LaunchResult,
 	VaultState,
 } from "../../../bindings/github.com/sleaze5/RobloxAccountManager/internal/appservice/index.js"
+export type { State as UpdateState } from "../../../bindings/github.com/sleaze5/RobloxAccountManager/internal/appupdate/index.js"
+export { Status as UpdateStatus } from "../../../bindings/github.com/sleaze5/RobloxAccountManager/internal/appupdate/index.js"
 export {
 	MotionPreference,
 	PresenceScope,

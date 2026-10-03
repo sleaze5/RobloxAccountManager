@@ -33,6 +33,7 @@
 	import { appSettings } from "./lib/settings/settings-store.svelte"
 	import OperationError from "./lib/shared/OperationError.svelte"
 	import Tooltip from "./lib/shared/Tooltip.svelte"
+	import { updateStore } from "./lib/updates/update-store.svelte"
 
 	type ActiveDialog =
 		| "add-account"
@@ -84,11 +85,13 @@
 	onMount(() => {
 		void appSettings.initialize(notificationCenter)
 		const unmountAccounts = store.mount(),
-			unmountBrowser = browserStore.mount(notificationCenter)
+			unmountBrowser = browserStore.mount(notificationCenter),
+			unmountUpdates = updateStore.mount(notificationCenter)
 		return () => {
 			games.reset()
 			unmountAccounts()
 			unmountBrowser()
+			unmountUpdates()
 			notificationCenter.dispose()
 		}
 	})

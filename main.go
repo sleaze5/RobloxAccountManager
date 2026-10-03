@@ -10,6 +10,7 @@ import (
 	"github.com/sleaze5/RobloxAccountManager/internal/appmeta"
 	"github.com/sleaze5/RobloxAccountManager/internal/appservice"
 	"github.com/sleaze5/RobloxAccountManager/internal/appsettings"
+	"github.com/sleaze5/RobloxAccountManager/internal/appupdate"
 	"github.com/sleaze5/RobloxAccountManager/internal/bindings"
 	"github.com/sleaze5/RobloxAccountManager/internal/browser"
 	"github.com/sleaze5/RobloxAccountManager/internal/gamelaunch"
@@ -27,12 +28,17 @@ import (
 	"github.com/sleaze5/RobloxAccountManager/internal/storage/vault"
 	"github.com/wailsapp/wails/v3/pkg/application"
 	wailevents "github.com/wailsapp/wails/v3/pkg/events"
+	"github.com/wailsapp/wails/v3/pkg/updater"
 )
 
 //go:embed all:frontend/dist
 var assets embed.FS
 
 func main() {
+	// An update relaunches this executable as a helper that replaces it. The
+	// helper must run before the single-instance check, because the
+	// application it replaces is still running.
+	updater.HandleHelperMode()
 	if monitor, err := logging.RunCrashMonitor(); monitor {
 		if err != nil {
 			logging.NewConsole(os.Stderr, logging.LevelError).Error("crash monitor failed", "module", "logging", "error", err)
@@ -143,7 +149,8 @@ func run() (runErr error) {
 	}
 	browserCoordinator := browser.NewCoordinator(dataPaths, runtimeManager, coreService, logSystem.Module("browser.coordinator"), events.BrowserChanged)
 	coreService.AttachBrowser(browserCoordinator, runtimeManager)
-	bindingService := bindings.NewService(coreService, events, launch)
+	updates := appupdate.New(logSystem.Module("application.updates"), events.UpdateChanged)
+	bindingService := bindings.NewService(coreService, updates, events, launch)
 
 	launch.Begin("desktop-shell")
 	app := application.New(application.Options{

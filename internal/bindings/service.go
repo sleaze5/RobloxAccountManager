@@ -8,6 +8,7 @@ import (
 	"github.com/sleaze5/RobloxAccountManager/internal/accounts"
 	"github.com/sleaze5/RobloxAccountManager/internal/appservice"
 	"github.com/sleaze5/RobloxAccountManager/internal/appsettings"
+	"github.com/sleaze5/RobloxAccountManager/internal/appupdate"
 	"github.com/sleaze5/RobloxAccountManager/internal/browser"
 	"github.com/sleaze5/RobloxAccountManager/internal/gamelaunch"
 	"github.com/sleaze5/RobloxAccountManager/internal/logging"
@@ -19,13 +20,14 @@ import (
 )
 
 type Service struct {
-	core   *appservice.Service
-	events *appservice.Events
-	launch *logging.Launch
+	core    *appservice.Service
+	updates *appupdate.Service
+	events  *appservice.Events
+	launch  *logging.Launch
 }
 
-func NewService(core *appservice.Service, events *appservice.Events, launch *logging.Launch) *Service {
-	return &Service{core: core, events: events, launch: launch}
+func NewService(core *appservice.Service, updates *appupdate.Service, events *appservice.Events, launch *logging.Launch) *Service {
+	return &Service{core: core, updates: updates, events: events, launch: launch}
 }
 
 func (service *Service) ServiceStartup(ctx context.Context, _ application.ServiceOptions) error {
@@ -49,18 +51,34 @@ func (service *Service) ServiceStartup(ctx context.Context, _ application.Servic
 	if err := service.core.Start(ctx); err != nil {
 		return err
 	}
+	if app := application.Get(); app != nil {
+		service.updates.Start(ctx, app)
+	}
 	service.launch.WaitForWebview()
 	return nil
 }
 
 func (service *Service) ServiceShutdown() error {
 	service.events.SetEmitter(nil)
+	service.updates.Shutdown()
 	return service.core.Shutdown()
 }
 
 func (service *Service) GetLaunchReport() logging.LaunchReport { return service.launch.Report() }
 
 func (service *Service) GetVaultState() appservice.VaultState { return service.core.GetVaultState() }
+
+func (service *Service) GetUpdateState() appupdate.State { return service.updates.State() }
+
+func (service *Service) CheckForUpdate(ctx context.Context) error { return service.updates.Check(ctx) }
+
+func (service *Service) InstallUpdate(ctx context.Context) error { return service.updates.Install(ctx) }
+
+func (service *Service) CancelUpdateDownload() { service.updates.CancelDownload() }
+
+func (service *Service) RestartToUpdate(ctx context.Context) error {
+	return service.updates.Restart(ctx)
+}
 
 func (service *Service) GetAccountProfile(ctx context.Context, accountID int64) (appservice.AccountProfileSnapshot, error) {
 	if err := positiveID(accountID, "account-profile"); err != nil {

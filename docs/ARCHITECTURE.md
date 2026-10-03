@@ -29,9 +29,10 @@ Organize the backend by capability. Each package owns one responsibility and exp
 - **Roblox integration:** `internal/roblox` (HTTP client, sessions, rate limits, error translation), `internal/roblox/services` (endpoint clients).
 - **Other external services:** `internal/integration/rovalra`.
 - **Game launching:** `internal/gamelaunch` handles launch preparation, command construction, process start, and launch results.
+- **Application updates:** `internal/appupdate` checks, downloads, verifies, and installs updates through the Wails updater. See [PLATFORM.md](./PLATFORM.md#releases).
 - **Managed browser:** `internal/browser` handles Chrome for Testing runtime installation and isolated, CDP-controlled browser sessions.
 - **Roblox Player logs:** `internal/logsexplorer`.
-- **Configuration and paths:** `internal/appdata` (portable paths and private files), `internal/appsettings` (`settings.json`), `internal/appmeta` (application identity). `internal/appmeta/VERSION` is the only source of the application version.
+- **Configuration and paths:** `internal/appdata` (portable paths and private files), `internal/appsettings` (`settings.json`), `internal/appmeta` (application identity, `VERSION`, and the update public key).
 - **Logging:** `internal/logging`.
 - **Native capabilities:** `internal/platform/*`. See [PLATFORM.md](./PLATFORM.md).
 
