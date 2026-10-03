@@ -57,17 +57,11 @@ func applySchemaMigrations(ctx context.Context, db *sql.DB, from int) error {
 		return fmt.Errorf("begin vault schema migration: %w", err)
 	}
 	defer tx.Rollback()
-	// Table rebuilds can break references until the transaction finishes.
-	if _, err := tx.ExecContext(ctx, `PRAGMA defer_foreign_keys = ON`); err != nil {
-		return fmt.Errorf("defer vault foreign key checks: %w", err)
+	if err := runSchemaMigrations(ctx, tx, from); err != nil {
+		return err
 	}
-	for version := from; version < schemaVersion; version++ {
-		if err := schemaMigrations[version-1](ctx, tx); err != nil {
-			return fmt.Errorf("migrate vault schema from version %d: %w", version, err)
-		}
-	}
-	if _, err := tx.ExecContext(ctx, `UPDATE vault_state SET schema_version = ?, storage_revision = storage_revision + 1 WHERE singleton = 1`, schemaVersion); err != nil {
-		return fmt.Errorf("record vault schema version: %w", err)
+	if _, err := tx.ExecContext(ctx, `UPDATE vault_state SET storage_revision = storage_revision + 1 WHERE singleton = 1`); err != nil {
+		return fmt.Errorf("record vault storage revision: %w", err)
 	}
 	var violations int
 	if err := tx.QueryRowContext(ctx, `SELECT count(*) FROM pragma_foreign_key_check`).Scan(&violations); err != nil || violations != 0 {
@@ -79,6 +73,24 @@ func applySchemaMigrations(ctx context.Context, db *sql.DB, from int) error {
 	}
 	if err := tx.Commit(); err != nil {
 		return fmt.Errorf("commit vault schema migration: %w", err)
+	}
+	return nil
+}
+
+// runSchemaMigrations migrates the schema in tx from version from to
+// schemaVersion and records schemaVersion.
+func runSchemaMigrations(ctx context.Context, tx *sql.Tx, from int) error {
+	// Table rebuilds can break references until the transaction finishes.
+	if _, err := tx.ExecContext(ctx, `PRAGMA defer_foreign_keys = ON`); err != nil {
+		return fmt.Errorf("defer vault foreign key checks: %w", err)
+	}
+	for version := from; version < schemaVersion; version++ {
+		if err := schemaMigrations[version-1](ctx, tx); err != nil {
+			return fmt.Errorf("migrate vault schema from version %d: %w", version, err)
+		}
+	}
+	if _, err := tx.ExecContext(ctx, `UPDATE vault_state SET schema_version = ? WHERE singleton = 1`, schemaVersion); err != nil {
+		return fmt.Errorf("record vault schema version: %w", err)
 	}
 	return nil
 }
