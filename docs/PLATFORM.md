@@ -24,7 +24,7 @@ A Linux build links the system GTK 4 and WebKitGTK 6 libraries. Release builds c
 
 `internal/appmeta/VERSION` is the only source of the application version. It uses `MAJOR.MINOR.PATCH` with an optional `-PRERELEASE` suffix. Go embeds it, the frontend reads it as `APP_VERSION`, and the build writes it into the Windows version resource. Do not write the version anywhere else.
 
-To release, change `VERSION`, run `task fix`, push to `main`, and run the manual "Release" workflow in `.github/workflows/release.yml`. The workflow builds Linux on Ubuntu 24.04 and Windows on Windows Server 2025. It fails when tag `v<version>` exists or when either build changes source files. It publishes:
+To release, change `VERSION`, run `task fix`, push to `main`, and run the manual "Release" workflow in `.github/workflows/release.yml`. The workflow first checks that it runs on `main` and that tag `v<version>` does not exist. Then it builds Linux on Ubuntu 24.04 and Windows on Windows Server 2025 in parallel. A build fails when it changes source files. The publish job signs the manifest and creates the release only after both builds succeed. The Windows jobs pause Defender real-time scanning, because it slows builds on the disposable runners. The workflow publishes:
 
 - `RobloxAccountManager.exe`: the Windows executable for manual download.
 - `RobloxAccountManager-windows-x64.zip`: the Windows updater artifact.
