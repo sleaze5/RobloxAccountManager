@@ -37,7 +37,7 @@
 			icon: MonitorCog,
 			id: "user-interface",
 			label: "User Interface",
-			search: "user interface motion animations animation reduce reduced full system operating system effects timestamps timestamp date time display format hover tooltip relative preview moment reset defaults save",
+			search: "user interface motion animations animation reduce reduced full system operating system effects timestamps timestamp date time display format hover tooltip relative preview tokens token reference dollar reset defaults save",
 		},
 		{
 			icon: Gamepad2,

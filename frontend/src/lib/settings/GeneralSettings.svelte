@@ -120,7 +120,7 @@
 						max={900}
 						step={5}
 						defaultValue={scope.id === PresenceScope.PresenceAccounts
-							? 120
+							? 300
 							: 60}
 						disabled={!store.initialized ||
 							store.busyPresence ||

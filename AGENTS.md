@@ -2,10 +2,6 @@
 
 A portable Windows desktop application that stores Roblox accounts in an encrypted, password-protected vault, manages them, and joins games with them.
 
-## Pre-development
-
-The project has not had its first release. [docs/PRE_DEVELOPMENT.md](./docs/PRE_DEVELOPMENT.md) overrides every other document where they conflict. Nothing needs backward compatibility yet.
-
 ## Project metadata
 
 ```yaml
@@ -43,7 +39,6 @@ Do not trade correctness, account safety, or maintainability for a speculative p
 - Vite 8 with Lightning CSS for frontend builds
 - Svelte 5 with TypeScript 7 in strict mode
 - Lucide for icons
-- `moment` for relative times
 - SQLite through SQLCipher (`go-sqlcipher`) for the encrypted vault
 - Type-aware Oxlint, `svelte-check`, and Oxfmt for frontend validation and formatting
 
@@ -74,7 +69,7 @@ The project has no tests. Do not add tests.
 
 ## Documentation
 
-Read [docs/PRE_DEVELOPMENT.md](./docs/PRE_DEVELOPMENT.md) for every change. Also read each document that matches the change:
+Read each document that matches the change:
 
 - [docs/DESIGN.md](./docs/DESIGN.md): frontend UI, styling, interaction, and motion
 - [docs/ARCHITECTURE.md](./docs/ARCHITECTURE.md): module boundaries, data flow, Wails bindings, persisted formats, logging, and new backend capabilities

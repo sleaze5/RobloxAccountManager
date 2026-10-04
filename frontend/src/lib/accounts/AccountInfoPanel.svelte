@@ -27,7 +27,6 @@
 	import Phone from "@lucide/svelte/icons/phone"
 	import UserRound from "@lucide/svelte/icons/user-round"
 	import Globe2 from "@lucide/svelte/icons/earth"
-	import moment from "moment"
 	import SensitiveValue from "../shared/SensitiveValue.svelte"
 	import { AgeVerification } from "../backend/bridge"
 	import type { AccountInfoState } from "./account-info-state.svelte"
@@ -45,15 +44,31 @@
 
 	const firstAccountHint =
 			"Whether Roblox thinks this is the owner's first account. It may not be accurate.",
-		genders: Record<string, string> = { male: "Male", female: "Female" }
+		genders: Record<string, string> = { male: "Male", female: "Female" },
+		birthdayFormat = new Intl.DateTimeFormat("en-US", {
+			month: "long",
+			day: "2-digit",
+			year: "numeric",
+		})
 
 	const snapshot = $derived(info.snapshot),
-		birthday = $derived.by(() => {
-			const date = moment(snapshot?.birthdate ?? "", "YYYY-MM-DD", true)
-			return date.isValid()
-				? `${date.format("MMMM DD, YYYY")} (${moment().diff(date, "years")}y)`
-				: ""
-		})
+		birthday = $derived(formatBirthday(snapshot?.birthdate ?? ""))
+
+	// The backend sends birthdates as YYYY-MM-DD.
+	function formatBirthday(birthdate: string): string {
+		const [year = 0, month = 0, day = 0] = birthdate.split("-").map(Number),
+			date = new Date(year, month - 1, day)
+		if (!year || date.getMonth() !== month - 1 || date.getDate() !== day) {
+			return ""
+		}
+		const today = new Date(),
+			birthdayPassed =
+				today.getMonth() > date.getMonth() ||
+				(today.getMonth() === date.getMonth() &&
+					today.getDate() >= date.getDate()),
+			age = today.getFullYear() - year - (birthdayPassed ? 0 : 1)
+		return `${birthdayFormat.format(date)} (${age}y)`
+	}
 
 	function missing(source: string): boolean {
 		return snapshot?.unavailable?.includes(source) ?? false

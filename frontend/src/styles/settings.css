@@ -182,6 +182,89 @@
 	text-decoration-color: currentColor;
 }
 
+.settings-section-help code,
+.settings-token-reference code {
+	padding: 0 3px;
+	border-radius: var(--radius-chip);
+	background: var(--color-fill-subtle);
+	color: var(--color-text-muted);
+	font-family: var(--font-mono);
+	font-size: var(--text-11);
+}
+
+.settings-token-reference {
+	padding: 0 var(--space-1) var(--space-2);
+	color: var(--color-text-faint);
+	font-size: var(--text-12);
+}
+
+.settings-token-reference summary {
+	display: inline-flex;
+	align-items: center;
+	gap: var(--space-1);
+	border-radius: var(--radius-chip);
+	color: var(--color-text-muted);
+	cursor: pointer;
+	list-style: none;
+	transition: color var(--duration-fast) var(--ease-standard);
+}
+
+.settings-token-reference summary::-webkit-details-marker {
+	display: none;
+}
+
+.settings-token-reference summary:hover,
+.settings-token-reference summary:focus-visible {
+	color: var(--color-text);
+}
+
+.settings-token-reference summary:focus-visible {
+	outline: 1px solid var(--color-focus-ring);
+	outline-offset: 2px;
+}
+
+.settings-token-reference summary svg {
+	transition: transform var(--duration-fast) var(--ease-standard);
+}
+
+.settings-token-reference[open] summary svg {
+	transform: rotate(90deg);
+}
+
+.settings-token-reference p {
+	margin: var(--space-2) 0 var(--space-1);
+}
+
+.settings-token-reference dl {
+	display: grid;
+	grid-template-columns: repeat(2, minmax(0, 1fr));
+	gap: 2px var(--space-4);
+	margin: 0;
+}
+
+.settings-token-reference dl > div {
+	display: grid;
+	grid-template-columns: 72px minmax(0, 1fr);
+	align-items: baseline;
+	gap: var(--space-2);
+}
+
+.settings-token-reference dd {
+	display: flex;
+	min-width: 0;
+	justify-content: space-between;
+	gap: var(--space-2);
+	margin: 0;
+	color: var(--color-text-muted);
+}
+
+.settings-token-reference dd span {
+	color: var(--color-text-faint);
+	font-family: var(--font-mono);
+	font-size: var(--text-11);
+	white-space: nowrap;
+}
+
 .settings-inline-error {
 	padding: var(--space-2);
 	border: 1px solid var(--color-danger-border);

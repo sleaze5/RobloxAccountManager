@@ -12,10 +12,10 @@
 	import ShieldOff from "@lucide/svelte/icons/shield-off"
 	import UserRound from "@lucide/svelte/icons/user-round"
 	import UsersRound from "@lucide/svelte/icons/users-round"
-	import moment from "moment"
 	import { AgeVerification, SessionState } from "../backend/bridge"
 	import type { AccountProfileSnapshot } from "../backend/bridge"
 	import Timestamp from "../shared/Timestamp.svelte"
+	import { relativeTime } from "../shared/timestamp"
 	import { ageVerificationLabels } from "./account-model"
 	import type { Account } from "./account-model"
 
@@ -57,7 +57,9 @@
 				.join(", ") ?? "",
 		),
 		accountAge = $derived(
-			account.createdAtMs ? moment(account.createdAtMs).fromNow(true) : "",
+			account.createdAtMs
+				? relativeTime(account.createdAtMs, Date.now(), false)
+				: "",
 		),
 		session = $derived.by(() => {
 			switch (account.state) {
@@ -190,7 +192,7 @@
 				<dt><Cookie size={14} aria-hidden="true" />Cookie expires</dt>
 				<dd>
 					<Timestamp value={account.cookieExpiresAtMs} />
-					<small>{moment(account.cookieExpiresAtMs).fromNow()}</small>
+					<small>{relativeTime(account.cookieExpiresAtMs)}</small>
 				</dd>
 			</div>
 		{/if}
@@ -199,7 +201,7 @@
 				<dt><CircleCheck size={14} aria-hidden="true" />Validated</dt>
 				<dd>
 					<Timestamp value={account.lastValidatedAtMs} />
-					<small>{moment(account.lastValidatedAtMs).fromNow()}</small>
+					<small>{relativeTime(account.lastValidatedAtMs)}</small>
 				</dd>
 			</div>
 		{/if}
@@ -208,7 +210,7 @@
 				<dt><RefreshCw size={14} aria-hidden="true" />Cookie renewed</dt>
 				<dd>
 					<Timestamp value={account.rotatedAtMs} />
-					<small>{moment(account.rotatedAtMs).fromNow()}</small>
+					<small>{relativeTime(account.rotatedAtMs)}</small>
 				</dd>
 			</div>
 		{/if}
@@ -217,7 +219,7 @@
 				<dt><DatabaseZap size={14} aria-hidden="true" />Added</dt>
 				<dd>
 					<Timestamp value={account.importedAtMs} />
-					<small>{moment(account.importedAtMs).fromNow()}</small>
+					<small>{relativeTime(account.importedAtMs)}</small>
 				</dd>
 			</div>
 		{/if}
