@@ -74,7 +74,6 @@ func (reader *Reader) ReadFile(ctx context.Context, name string) (Session, error
 	return session, nil
 }
 
-// readDirectory lists the sessions of one logs folder. A missing folder means that client never ran.
 func readDirectory(ctx context.Context, logger *slog.Logger, directory string) ([]Session, error) {
 	root, err := os.OpenRoot(directory)
 	if errors.Is(err, os.ErrNotExist) {
@@ -111,7 +110,6 @@ func readDirectory(ctx context.Context, logger *slog.Logger, directory string) (
 	return sessions, nil
 }
 
-// readFromDirectories reads the named log from the first folder that holds it.
 func readFromDirectories(ctx context.Context, directories []string, name string) (Session, error) {
 	for _, directory := range directories {
 		root, err := os.OpenRoot(directory)

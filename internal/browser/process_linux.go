@@ -124,8 +124,6 @@ func (process *linuxBrowserProcess) Terminate() error {
 	return err
 }
 
-// Focus does nothing. Linux desktops do not let an application raise another
-// process's window, and the coordinator already activates the CDP target.
 func (process *linuxBrowserProcess) Focus() error { return nil }
 
 func (process *linuxBrowserProcess) Close() error {

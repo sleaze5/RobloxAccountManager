@@ -25,7 +25,6 @@ const (
 
 type linuxProtector struct{}
 
-// New returns the Linux data protector.
 func New() Protector {
 	return linuxProtector{}
 }

@@ -8,7 +8,6 @@ import (
 	"path/filepath"
 )
 
-// Directories returns the Player log folders of Sober and Mocktail, which both run as Flatpaks.
 func Directories() ([]string, error) {
 	home, err := os.UserHomeDir()
 	if err != nil || !filepath.IsAbs(home) {

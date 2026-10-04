@@ -30,7 +30,6 @@ func restrictDirectory(path string) error {
 	return restrictACL(path, true)
 }
 
-// ReplaceFile atomically publishes a prepared file on the same filesystem.
 func ReplaceFile(source, destination string) error {
 	if err := os.Rename(source, destination); err != nil {
 		return fmt.Errorf("replace %q: %w", filepath.Base(destination), err)

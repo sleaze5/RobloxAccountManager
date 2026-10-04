@@ -68,9 +68,8 @@ type PresenceUpdateSettings struct {
 }
 
 type RobloxSettings struct {
-	MultiInstance bool `json:"multiInstance"`
-	// LinuxClient is empty for automatic selection, or "sober" or "mocktail".
-	LinuxClient string `json:"linuxClient"`
+	MultiInstance bool   `json:"multiInstance"`
+	LinuxClient   string `json:"linuxClient"`
 }
 
 type IntegrationSettings struct {

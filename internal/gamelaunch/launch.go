@@ -7,7 +7,6 @@ import (
 
 var ErrDesktopUnavailable = errors.New("a non-admin Windows desktop is unavailable")
 
-// ClientError is a launch failure the user can act on, such as a missing Linux client.
 type ClientError struct {
 	Message string
 }
