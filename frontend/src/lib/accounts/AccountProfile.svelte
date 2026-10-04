@@ -9,17 +9,15 @@
 	import Star from "@lucide/svelte/icons/star"
 	import Tags from "@lucide/svelte/icons/tags"
 	import { tick, untrack } from "svelte"
-	import { PresenceType } from "../backend/bridge"
 	import ChatsPage from "../chats/ChatsPage.svelte"
 	import type { WorkspaceState } from "../layout/workspace-state.svelte"
 	import type { NotificationCenter } from "../notifications/notification-center.svelte"
 	import CompactNumber from "../shared/CompactNumber.svelte"
-	import Timestamp from "../shared/Timestamp.svelte"
 	import { appSettings } from "../settings/settings-store.svelte"
 	import { menuIn, menuOut } from "../shared/presence"
 	import AccountAvatar from "./AccountAvatar.svelte"
 	import AccountMembershipBadges from "./AccountMembershipBadges.svelte"
-	import AccountPresenceCard from "./AccountPresenceCard.svelte"
+	import AccountPresence from "./AccountPresence.svelte"
 	import AccountProfileBalance from "./AccountProfileBalance.svelte"
 	import AccountProfileDetails from "./AccountProfileDetails.svelte"
 	import AccountSettingsPage from "./AccountSettingsPage.svelte"
@@ -136,8 +134,7 @@
 						)}>
 					<AccountAvatar
 						account={selectedAccount}
-						className="selected-avatar"
-						showPresence={true} />
+						className="selected-avatar" />
 				</button>
 				<div class="identity-copy">
 					<h2 id="account-name" class="account-display-name">
@@ -159,6 +156,10 @@
 							<span>ID: {selectedAccount.userId}</span>
 						</div>
 						{#if store.vault.unlocked}
+							<AccountPresence
+								presence={selectedAccount.presence}
+								updatesEnabled={appSettings.presence.profile.enabled}
+								onJoin={onJoinServer} />
 							<div class="profile-balance-row">
 								<AccountProfileBalance
 									snapshot={profile}
@@ -283,22 +284,6 @@
 				</dl>
 			{/if}
 
-			{#if store.vault.unlocked && selectedAccount.presence.userPresenceType !== PresenceType.PresenceTypeOffline}
-				<AccountPresenceCard
-					presence={selectedAccount.presence}
-					updatesEnabled={appSettings.presence.profile.enabled}
-					onJoin={onJoinServer} />
-			{/if}
-
-			<AccountProfileDetails account={selectedAccount} snapshot={profile} />
-			{#if profileVisible && profileState?.error}
-				<p class="profile-read-error" role="alert">{profileState.error}</p>
-			{:else if (profile?.unavailable?.length ?? 0) > 0}
-				<p class="profile-read-error" role="alert">
-					Some profile details could not be refreshed. Refresh to retry.
-				</p>
-			{/if}
-
 			{#if profile?.description}
 				<section
 					class="profile-section"
@@ -308,6 +293,15 @@
 					</h3>
 					<pre class="text-block">{profile.description}</pre>
 				</section>
+			{/if}
+
+			<AccountProfileDetails account={selectedAccount} snapshot={profile} />
+			{#if profileVisible && profileState?.error}
+				<p class="profile-read-error" role="alert">{profileState.error}</p>
+			{:else if (profile?.unavailable?.length ?? 0) > 0}
+				<p class="profile-read-error" role="alert">
+					Some profile details could not be refreshed. Refresh to retry.
+				</p>
 			{/if}
 		{/if}
 	</section>

@@ -40,7 +40,7 @@
 .account-settings-layout {
 	height: 100%;
 	min-height: 0;
-	grid-template-columns: var(--settings-sidebar-width) minmax(0, 1fr);
+	grid-template-columns: var(--account-settings-sidebar-width) minmax(0, 1fr);
 }
 
 .account-settings-loading {
@@ -49,6 +49,60 @@
 	gap: var(--space-2);
 	color: var(--color-text-muted);
 	font-size: var(--text-12);
+}
+
+.settings-subpages {
+	display: flex;
+	flex-direction: column;
+	border-top: 1px solid var(--color-border-subtle);
+}
+
+.settings-subpages button {
+	display: grid;
+	min-height: 44px;
+	grid-template-columns: 15px minmax(0, 1fr) 15px;
+	align-items: center;
+	gap: var(--space-3);
+	padding: 0 var(--space-2);
+	border: 0;
+	border-bottom: 1px solid var(--color-border-subtle);
+	background: transparent;
+	color: var(--color-text);
+	font-size: var(--text-13);
+	font-weight: var(--font-medium);
+	text-align: left;
+	transition:
+		background-color var(--duration-fast) var(--ease-standard),
+		color var(--duration-fast) var(--ease-standard);
+}
+
+.settings-subpages button > svg {
+	color: var(--color-text-muted);
+}
+
+.settings-subpages button:hover {
+	background: var(--color-hover);
+}
+
+.settings-subpages button:focus-visible {
+	outline: 1px solid var(--color-focus-ring);
+	outline-offset: -1px;
+}
+
+.settings-subpage-heading {
+	display: flex;
+	align-items: center;
+	gap: var(--space-2);
+}
+
+.settings-subpage-heading h3 {
+	color: var(--color-text);
+	font-size: var(--text-13);
+	font-weight: var(--font-semibold);
+}
+
+.account-info-missing {
+	color: var(--color-text-faint);
 }
 
 .profile-page {
@@ -60,9 +114,9 @@
 }
 
 .profile-head {
-	display: flex;
+	display: grid;
+	grid-template-columns: minmax(0, 1fr) auto;
 	align-items: flex-start;
-	justify-content: space-between;
 	gap: var(--space-3);
 }
 
@@ -70,13 +124,12 @@
 	display: flex;
 	min-width: 0;
 	align-items: center;
-	gap: var(--space-3);
+	gap: var(--space-4);
 }
 
 .selected-avatar {
-	--avatar-presence-ring: var(--color-bg);
-	width: 64px;
-	height: 64px;
+	width: var(--profile-avatar-size);
+	height: var(--profile-avatar-size);
 	font-size: var(--text-16);
 }
 
@@ -93,12 +146,12 @@
 	display: flex;
 	min-width: 0;
 	flex-direction: column;
-	gap: 3px;
+	gap: var(--space-1);
 }
 
 .identity-copy h2 {
 	color: var(--color-accent-strong);
-	font-size: var(--text-15);
+	font-size: var(--text-16);
 	font-weight: var(--font-semibold);
 	letter-spacing: -0.01em;
 	line-height: 1.3;
@@ -110,9 +163,10 @@
 	align-items: center;
 	flex-wrap: wrap;
 	gap: 6px;
-	color: var(--color-text-faint);
+	color: var(--color-text-muted);
 	font-family: var(--font-mono);
 	font-size: var(--text-11);
+	overflow-wrap: anywhere;
 }
 
 .identity-meta .meta-separator {
@@ -223,7 +277,6 @@
 	align-items: center;
 	flex-wrap: wrap;
 	gap: var(--space-2);
-	margin-top: var(--space-1);
 }
 
 .profile-balance {
@@ -310,141 +363,123 @@
 	text-transform: uppercase;
 }
 
-.presence-card {
-	display: flex;
-	max-width: 380px;
-	flex-direction: column;
-	gap: var(--space-2);
-	padding: var(--surface-padding-sm);
-	border: 1px solid var(--color-border);
-	border-radius: var(--radius-surface);
-	background: var(--color-surface);
-}
-
-.presence-card > .profile-section-label {
-	padding: 2px 2px 0;
-	line-height: 1;
-}
-
-.presence-body {
-	display: grid;
-	grid-template-columns: 48px minmax(0, 1fr);
-	align-items: center;
-	gap: var(--space-2);
-}
-
-.presence-art {
-	display: grid;
-	width: 48px;
-	height: 48px;
-	place-items: center;
-	overflow: hidden;
-	border: 1px solid var(--color-border-strong);
-	border-radius: var(--radius-control);
-	background: var(--color-surface-raised);
-	color: var(--color-text-muted);
-}
-
-.presence-join {
-	width: 100%;
-}
-
-.presence-art img {
-	width: 100%;
-	height: 100%;
-	object-fit: cover;
-}
-
-.presence-card:not(.active) .presence-art {
-	color: var(--color-text-faint);
-}
-
-.presence-copy {
+.profile-presence {
 	display: flex;
 	min-width: 0;
-	flex-direction: column;
-	gap: 2px;
-	line-height: 1.35;
-}
-
-.presence-copy > strong,
-.presence-detail {
-	overflow: hidden;
-	text-overflow: ellipsis;
-	white-space: nowrap;
-}
-
-.presence-copy > strong {
-	color: var(--color-text);
-	font-size: var(--text-13);
-	font-weight: var(--font-semibold);
-}
-
-.presence-detail {
-	color: var(--color-text-muted);
+	min-height: var(--control-height-sm);
+	align-items: center;
+	gap: var(--space-1);
 	font-size: var(--text-12);
 }
 
-.presence-status {
-	display: inline-flex;
+.profile-presence-copy {
+	display: flex;
+	min-width: 0;
 	align-items: center;
-	gap: 6px;
-	color: var(--color-text-muted);
-	font-size: var(--text-11);
+	gap: var(--space-1);
+	text-align: left;
 }
 
-.presence-server {
-	margin-left: var(--space-1);
-	color: var(--color-text-faint);
-	font-family: var(--font-mono);
-	font-size: var(--text-10-5);
-	cursor: help;
+.profile-presence-label {
+	display: inline-flex;
+	flex: 0 0 auto;
+	align-items: center;
+	gap: var(--space-1);
+	color: var(--color-text-muted);
+	font-weight: var(--font-medium);
+}
+
+.profile-presence-label.presence-online {
+	color: var(--color-presence-online);
+}
+
+.profile-presence-label.presence-in-game {
+	color: var(--color-presence-game);
+}
+
+.profile-presence-label.presence-in-studio {
+	color: var(--color-presence-studio);
+}
+
+.profile-presence-join {
+	width: var(--control-height-sm);
+	height: var(--control-height-sm);
+	flex: 0 0 auto;
+}
+
+@container (max-width: 560px) {
+	.profile-head {
+		grid-template-columns: minmax(0, 1fr);
+	}
+
+	.profile-head > .header-actions {
+		justify-self: end;
+	}
 }
 
 .profile-facts {
-	display: grid;
 	max-width: 640px;
-	grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
-	align-items: start;
-	gap: var(--space-3) var(--space-4);
-	list-style: none;
+	font-size: var(--text-12);
+	line-height: 1.5;
 }
 
-.profile-facts li {
+.profile-facts > div {
 	display: grid;
 	min-width: 0;
-	grid-template-columns: 14px minmax(0, 1fr);
-	align-items: center;
-	column-gap: var(--space-2);
-	row-gap: 1px;
-	color: var(--color-text);
-	font-size: var(--text-12);
-	line-height: 1.4;
+	grid-template-columns: minmax(0, 160px) minmax(0, 1fr);
+	align-items: start;
+	gap: var(--space-4);
+	padding: var(--space-2) 0;
 }
 
-.profile-facts li > svg {
+.profile-facts > div + div {
+	border-top: 1px solid var(--color-border-subtle);
+}
+
+.profile-facts dt {
+	display: flex;
+	min-width: 0;
+	align-items: center;
+	gap: var(--space-2);
+	color: var(--color-text-muted);
+}
+
+.profile-facts dt > svg {
+	flex: 0 0 auto;
 	color: var(--color-text-faint);
 }
 
-.profile-facts li > small {
-	grid-column: 2;
-	overflow: hidden;
-	color: var(--color-text-muted);
-	font-size: var(--text-11);
-	text-overflow: ellipsis;
-	white-space: nowrap;
+.profile-facts dd {
+	display: flex;
+	min-width: 0;
+	align-items: baseline;
+	flex-wrap: wrap;
+	gap: var(--space-1) var(--space-3);
+	color: var(--color-text);
+	overflow-wrap: anywhere;
 }
 
-.profile-facts li.success > svg {
+.profile-facts dd > * {
+	min-width: 0;
+	max-width: 100%;
+	text-align: left;
+}
+
+.profile-facts dd > small {
+	color: var(--color-text-muted);
+	font-size: var(--text-11);
+}
+
+.profile-facts .success dt > svg {
 	color: var(--color-success);
 }
 
-.profile-facts li.warning > svg,
-.profile-facts li.warning > span {
+.profile-facts .warning dt > svg,
+.profile-facts .warning dd > span:first-child {
 	color: var(--color-warning);
 }
 
-.profile-facts li.muted > span {
+.profile-facts .muted dd > span:first-child {
 	color: var(--color-text-muted);
 }
 

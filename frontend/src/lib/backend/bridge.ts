@@ -1,6 +1,7 @@
 import { Service } from "../../../bindings/github.com/sleaze5/RobloxAccountManager/internal/bindings/index.js"
 
 export type {
+	AccountInfoSnapshot,
 	AccountProfileSnapshot,
 	AccountSettingChange,
 	AccountSettingOption,
@@ -26,6 +27,7 @@ export type { PresenceSettings } from "../../../bindings/github.com/sleaze5/Robl
 export {
 	AccountCopyField,
 	AccountSettingKey,
+	AgeVerification,
 	ImportStatus,
 } from "../../../bindings/github.com/sleaze5/RobloxAccountManager/internal/appservice/index.js"
 export {

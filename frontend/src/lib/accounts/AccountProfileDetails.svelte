@@ -13,9 +13,10 @@
 	import UserRound from "@lucide/svelte/icons/user-round"
 	import UsersRound from "@lucide/svelte/icons/users-round"
 	import moment from "moment"
-	import { SessionState } from "../backend/bridge"
+	import { AgeVerification, SessionState } from "../backend/bridge"
 	import type { AccountProfileSnapshot } from "../backend/bridge"
 	import Timestamp from "../shared/Timestamp.svelte"
+	import { ageVerificationLabels } from "./account-model"
 	import type { Account } from "./account-model"
 
 	let {
@@ -28,12 +29,6 @@
 			notation: "compact",
 			maximumFractionDigits: 1,
 		}),
-		ageGroups: Record<string, string> = {
-			AgeUnder9: "Under 9",
-			Age9To12: "9–12",
-			AgeUnder13To17: "13–17",
-			Age18OrOver: "18+",
-		},
 		verificationMethods: Record<string, string> = {
 			email: "Email",
 			authenticator: "Authenticator app",
@@ -48,18 +43,13 @@
 		),
 		age = $derived.by(() => {
 			if (!snapshot) return ""
-			const checked = ageGroups[snapshot.ageGroup]
-			if (checked) return checked
+			if (snapshot.ageGroup) return snapshot.ageGroup
 			if (snapshot.ageBracket === 0) return "13+"
 			if (snapshot.ageBracket === 1) return "Under 13"
 			return ""
 		}),
 		ageVerification = $derived(
-			snapshot?.ageVerified === true
-				? "Age verified"
-				: snapshot?.ageVerified === false
-					? "Not age verified"
-					: "",
+			snapshot ? (ageVerificationLabels[snapshot.ageVerification] ?? "") : "",
 		),
 		methods = $derived(
 			snapshot?.twoStepMethods
@@ -69,15 +59,10 @@
 		accountAge = $derived(
 			account.createdAtMs ? moment(account.createdAtMs).fromNow(true) : "",
 		),
-		cookieExpiry = $derived(
-			account.cookieExpiresAtMs
-				? moment(account.cookieExpiresAtMs).fromNow()
-				: "",
-		),
 		session = $derived.by(() => {
 			switch (account.state) {
 				case SessionState.StateActive:
-					return { tone: "success", label: "Session active", detail: "" }
+					return { tone: "success", label: "Active", detail: "" }
 				case SessionState.StateReauthRequired:
 					return {
 						tone: "warning",
@@ -95,7 +80,7 @@
 				case SessionState.StateDisabled:
 					return {
 						tone: "muted",
-						label: "Session disabled",
+						label: "Disabled",
 						detail: account.stateReason,
 					}
 				default:
@@ -110,104 +95,131 @@
 
 <section class="profile-section" aria-labelledby="profile-account-heading">
 	<h3 id="profile-account-heading" class="profile-section-label">Account</h3>
-	<ul class="profile-facts">
+	<dl class="profile-facts">
 		{#if account.createdAtMs}
-			<li>
-				<CalendarDays size={14} aria-hidden="true" />
-				<span>Joined <Timestamp value={account.createdAtMs} /></span>
-				<small>{accountAge} old</small>
-			</li>
+			<div>
+				<dt><CalendarDays size={14} aria-hidden="true" />Joined</dt>
+				<dd>
+					<Timestamp value={account.createdAtMs} />
+					<small>{accountAge} old</small>
+				</dd>
+			</div>
 		{/if}
 		{#if country}
-			<li>
-				<Globe2 size={14} aria-hidden="true" />
-				<span>{country}</span>
-				<small class="mono">{snapshot?.countryCode}</small>
-			</li>
+			<div>
+				<dt><Globe2 size={14} aria-hidden="true" />Country</dt>
+				<dd>
+					<span>{country}</span>
+					<small class="mono">{snapshot?.countryCode}</small>
+				</dd>
+			</div>
 		{/if}
 		{#if age || ageVerification}
-			<li>
-				{#if snapshot?.ageVerified}<BadgeCheck
-						size={14}
-						aria-hidden="true" />{:else}<UserRound
-						size={14}
-						aria-hidden="true" />{/if}
-				<span>{age ? `Age ${age}` : "Age unavailable"}</span>
-				{#if ageVerification}<small>{ageVerification}</small>{/if}
-			</li>
+			<div>
+				<dt>
+					{#if snapshot?.ageVerification === AgeVerification.AgeVerifiedFaceScan || snapshot?.ageVerification === AgeVerification.AgeVerifiedID}<BadgeCheck
+							size={14}
+							aria-hidden="true" />{:else}<UserRound
+							size={14}
+							aria-hidden="true" />{/if}
+					Age group
+				</dt>
+				<dd>
+					<span>{age || "Unavailable"}</span>
+					{#if ageVerification}<small>{ageVerification}</small>{/if}
+				</dd>
+			</div>
 		{/if}
 		{#if snapshot && snapshot.twoStepEnabled !== null}
-			<li class:warning={!snapshot.twoStepEnabled}>
-				{#if snapshot.twoStepEnabled}<ShieldCheck
-						size={14}
-						aria-hidden="true" />{:else}<ShieldOff
-						size={14}
-						aria-hidden="true" />{/if}
-				<span
-					>{snapshot.twoStepEnabled
-						? "2-step verification on"
-						: "2-step verification off"}</span>
-				{#if methods}<small>{methods}</small>{/if}
-			</li>
+			<div class:warning={!snapshot.twoStepEnabled}>
+				<dt>
+					{#if snapshot.twoStepEnabled}<ShieldCheck
+							size={14}
+							aria-hidden="true" />{:else}<ShieldOff
+							size={14}
+							aria-hidden="true" />{/if}
+					2-step verification
+				</dt>
+				<dd>
+					<span>{snapshot.twoStepEnabled ? "On" : "Off"}</span>
+					{#if methods}<small>{methods}</small>{/if}
+				</dd>
+			</div>
 		{/if}
 		{#if snapshot?.primaryGroup}
 			{@const group = snapshot.primaryGroup}
-			<li>
-				<UsersRound size={14} aria-hidden="true" />
-				<span class="profile-fact-name"
-					>{group.name}{#if group.verified}<BadgeCheck
-							size={12}
-							aria-label="Verified group" />{/if}</span>
-				<small
-					>{group.role ? `${group.role} · ` : ""}{numbers.format(
-						group.members,
-					)}
-					{group.members === 1 ? "member" : "members"}</small>
-			</li>
+			<div>
+				<dt><UsersRound size={14} aria-hidden="true" />Primary group</dt>
+				<dd>
+					<span class="profile-fact-name"
+						>{group.name}{#if group.verified}<BadgeCheck
+								size={12}
+								aria-label="Verified group" />{/if}</span>
+					<small
+						>{group.role ? `${group.role} · ` : ""}{numbers.format(
+							group.members,
+						)}
+						{group.members === 1 ? "member" : "members"}</small>
+				</dd>
+			</div>
 		{/if}
-	</ul>
+	</dl>
 </section>
 
 <section class="profile-section" aria-labelledby="profile-vault-heading">
 	<h3 id="profile-vault-heading" class="profile-section-label">Vault</h3>
-	<ul class="profile-facts">
-		<li class={session.tone}>
-			{#if session.tone === "success"}<CircleCheck
-					size={14}
-					aria-hidden="true" />{:else if session.tone === "warning"}<CircleAlert
-					size={14}
-					aria-hidden="true" />{:else}<CircleDashed
-					size={14}
-					aria-hidden="true" />{/if}
-			<span>{session.label}</span>
-			{#if session.detail}<small>{session.detail}</small>{/if}
-		</li>
+	<dl class="profile-facts">
+		<div class={session.tone}>
+			<dt>
+				{#if session.tone === "success"}<CircleCheck
+						size={14}
+						aria-hidden="true" />{:else if session.tone === "warning"}<CircleAlert
+						size={14}
+						aria-hidden="true" />{:else}<CircleDashed
+						size={14}
+						aria-hidden="true" />{/if}
+				Session
+			</dt>
+			<dd>
+				<span>{session.label}</span>
+				{#if session.detail}<small>{session.detail}</small>{/if}
+			</dd>
+		</div>
 		{#if account.cookieExpiresAtMs}
-			<li>
-				<Cookie size={14} aria-hidden="true" />
-				<span
-					>Cookie expires <Timestamp
-						value={account.cookieExpiresAtMs} /></span>
-				<small>{cookieExpiry}</small>
-			</li>
+			<div>
+				<dt><Cookie size={14} aria-hidden="true" />Cookie expires</dt>
+				<dd>
+					<Timestamp value={account.cookieExpiresAtMs} />
+					<small>{moment(account.cookieExpiresAtMs).fromNow()}</small>
+				</dd>
+			</div>
 		{/if}
 		{#if account.lastValidatedAtMs}
-			<li>
-				<CircleCheck size={14} aria-hidden="true" />
-				<span>Validated <Timestamp value={account.lastValidatedAtMs} /></span>
-			</li>
+			<div>
+				<dt><CircleCheck size={14} aria-hidden="true" />Validated</dt>
+				<dd>
+					<Timestamp value={account.lastValidatedAtMs} />
+					<small>{moment(account.lastValidatedAtMs).fromNow()}</small>
+				</dd>
+			</div>
 		{/if}
 		{#if account.rotatedAtMs}
-			<li>
-				<RefreshCw size={14} aria-hidden="true" />
-				<span>Cookie renewed <Timestamp value={account.rotatedAtMs} /></span>
-			</li>
+			<div>
+				<dt><RefreshCw size={14} aria-hidden="true" />Cookie renewed</dt>
+				<dd>
+					<Timestamp value={account.rotatedAtMs} />
+					<small>{moment(account.rotatedAtMs).fromNow()}</small>
+				</dd>
+			</div>
 		{/if}
 		{#if account.importedAtMs}
-			<li>
-				<DatabaseZap size={14} aria-hidden="true" />
-				<span>Added <Timestamp value={account.importedAtMs} /></span>
-			</li>
+			<div>
+				<dt><DatabaseZap size={14} aria-hidden="true" />Added</dt>
+				<dd>
+					<Timestamp value={account.importedAtMs} />
+					<small>{moment(account.importedAtMs).fromNow()}</small>
+				</dd>
+			</div>
 		{/if}
-	</ul>
+	</dl>
 </section>

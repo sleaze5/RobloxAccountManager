@@ -18,7 +18,8 @@ export type ActiveAccountMenu = "add-account" | "profile-tags" | "tag-filter" | 
 
 export class WorkspaceState {
 	accountPage = $state<"profile" | "settings" | "chats">("profile")
-	accountSettingsCategory = $state("content-maturity")
+	accountSettingsPage = $state<"info" | "privacy">("info")
+	accountSettingsCategory = $state<string | null>(null)
 	accountSettingsQuery = $state("")
 	accountSettingsScrollTop = 0
 	accountSettingsScrollAnchor: { key: string; offset: number } | null = null

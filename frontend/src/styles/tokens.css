@@ -120,10 +120,13 @@
 	--ease-standard: cubic-bezier(0.4, 0, 0.2, 1);
 	--motion-distance: 2px;
 	--motion-scale: 0.99;
+	--blur-sensitive: 7px;
 
 	--titlebar-height: 38px;
 	--header-height: 38px;
 	--status-strip-height: 24px;
 	--sidebar-width: 220px;
+	--profile-avatar-size: 80px;
 	--settings-sidebar-width: 240px;
+	--account-settings-sidebar-width: 192px;
 }

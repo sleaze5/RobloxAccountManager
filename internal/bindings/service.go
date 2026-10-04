@@ -86,6 +86,13 @@ func (service *Service) GetAccountProfile(ctx context.Context, accountID int64) 
 	return service.core.GetAccountProfile(ctx, accountID)
 }
 
+func (service *Service) GetAccountInfo(ctx context.Context, accountID int64) (appservice.AccountInfoSnapshot, error) {
+	if err := positiveID(accountID, "account-info"); err != nil {
+		return appservice.AccountInfoSnapshot{}, err
+	}
+	return service.core.GetAccountInfo(ctx, accountID)
+}
+
 func (service *Service) GetAccountSettings(ctx context.Context, accountID int64) (appservice.AccountSettingsSnapshot, error) {
 	if err := positiveID(accountID, "account-settings"); err != nil {
 		return appservice.AccountSettingsSnapshot{}, err
