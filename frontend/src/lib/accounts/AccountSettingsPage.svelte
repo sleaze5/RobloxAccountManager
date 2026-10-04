@@ -1,20 +1,26 @@
 <script lang="ts">
-	import BadgeDollarSign from "@lucide/svelte/icons/badge-dollar-sign"
-	import ChevronLeft from "@lucide/svelte/icons/chevron-left"
-	import Eye from "@lucide/svelte/icons/eye"
-	import LoaderCircle from "@lucide/svelte/icons/loader-circle"
-	import MessageCircle from "@lucide/svelte/icons/message-circle"
-	import RefreshCw from "@lucide/svelte/icons/refresh-cw"
-	import Search from "@lucide/svelte/icons/search"
-	import ShieldCheck from "@lucide/svelte/icons/shield-check"
-	import SlidersHorizontal from "@lucide/svelte/icons/sliders-horizontal"
-	import X from "@lucide/svelte/icons/x"
+	import CurrencyCircleDollarIcon from "phosphor-svelte/lib/CurrencyCircleDollarIcon"
+	import CaretLeftIcon from "phosphor-svelte/lib/CaretLeftIcon"
+	import CaretRightIcon from "phosphor-svelte/lib/CaretRightIcon"
+	import EyeIcon from "phosphor-svelte/lib/EyeIcon"
+	import CircleNotchIcon from "phosphor-svelte/lib/CircleNotchIcon"
+	import LockKeyIcon from "phosphor-svelte/lib/LockKeyIcon"
+	import ChatCircleIcon from "phosphor-svelte/lib/ChatCircleIcon"
+	import ArrowsClockwiseIcon from "phosphor-svelte/lib/ArrowsClockwiseIcon"
+	import MagnifyingGlassIcon from "phosphor-svelte/lib/MagnifyingGlassIcon"
+	import ShieldCheckIcon from "phosphor-svelte/lib/ShieldCheckIcon"
+	import SlidersHorizontalIcon from "phosphor-svelte/lib/SlidersHorizontalIcon"
+	import UserCircleIcon from "phosphor-svelte/lib/UserCircleIcon"
+	import XIcon from "phosphor-svelte/lib/XIcon"
 	import { onMount, tick, untrack } from "svelte"
 	import type { WorkspaceState } from "../layout/workspace-state.svelte"
 	import { AccountSettingKey as Key } from "../backend/bridge"
 	import type { AccountSettingOption, AccountSettingView } from "../backend/bridge"
 	import type { NotificationCenter } from "../notifications/notification-center.svelte"
 	import type { AccountStore } from "./account-store.svelte"
+	import AccountInfoPanel, { accountInfoFields } from "./AccountInfoPanel.svelte"
+	import type { AccountInfoFieldId } from "./AccountInfoPanel.svelte"
+	import { AccountInfoState } from "./account-info-state.svelte"
 	import AccountSettingRow from "./AccountSettingRow.svelte"
 	import type { SettingRadioOption } from "./AccountSettingRow.svelte"
 	import { AccountSettingsState } from "./account-settings-state.svelte"
@@ -36,7 +42,7 @@
 	interface CategoryDef {
 		id: string
 		label: string
-		icon: typeof ShieldCheck
+		icon: typeof ShieldCheckIcon
 		search: string
 		sections: SectionDef[]
 	}
@@ -102,7 +108,7 @@
 		{
 			id: "content-maturity",
 			label: "Content maturity",
-			icon: ShieldCheck,
+			icon: ShieldCheckIcon,
 			search: "content maturity minimal mild moderate restricted sensitive issues",
 			sections: [
 				{
@@ -132,7 +138,7 @@
 		{
 			id: "communication",
 			label: "Communication",
-			icon: MessageCircle,
+			icon: ChatCircleIcon,
 			search: "communication experience direct chat party friends voice data product improvements camera input gameplay coordination quick words",
 			sections: [
 				{
@@ -239,7 +245,7 @@
 		{
 			id: "visibility-private-servers",
 			label: "Visibility & private servers",
-			icon: Eye,
+			icon: EyeIcon,
 			search: "visibility private servers online status current game activity updates social links who can add friend suggestions contacts phone",
 			sections: [
 				{
@@ -328,7 +334,7 @@
 		{
 			id: "trading-inventory",
 			label: "Trading & inventory",
-			icon: BadgeDollarSign,
+			icon: CurrencyCircleDollarIcon,
 			search: "trading inventory visibility trade audience quality filter",
 			sections: [
 				{
@@ -364,7 +370,7 @@
 		{
 			id: "ads-preferences",
 			label: "Ads preferences",
-			icon: SlidersHorizontal,
+			icon: SlidersHorizontalIcon,
 			search: "ads preferences personalize advertising data selling sharing",
 			sections: [
 				{
@@ -393,6 +399,24 @@
 		},
 	]
 
+	const privacyLabel = "Privacy & content restrictions",
+		pages = [
+			{
+				id: "info",
+				label: "Account info",
+				icon: UserCircleIcon,
+				search: "account info",
+			},
+			{
+				id: "privacy",
+				label: privacyLabel,
+				icon: LockKeyIcon,
+				search: "privacy content restrictions",
+			},
+		] as const
+
+	type PageId = (typeof pages)[number]["id"]
+
 	let {
 			store,
 			workspace,
@@ -404,50 +428,87 @@
 			notifications: NotificationCenter
 			onBack: () => void
 		} = $props(),
-		activeCategory = $derived(
-			categories.find(
-				(category) => category.id === workspace.accountSettingsCategory,
-			) ?? categories[0],
-		),
 		restoringScroll = $state(true),
 		heading = $state<HTMLHeadingElement | undefined>(undefined),
 		contentElement = $state<HTMLElement | undefined>(undefined),
 		settingsState = $state<AccountSettingsState | null>(null),
+		infoState = $state<AccountInfoState | null>(null),
 		normalizedQuery = $derived(workspace.accountSettingsQuery.trim().toLowerCase()),
 		searchTerms = $derived(normalizedQuery.split(/\s+/).filter(Boolean)),
 		visibleCategories = $derived(
-			categories.filter((cat) => {
-				if (searchTerms.length === 0) return true
-				const catText = `${cat.label} ${cat.search}`.toLowerCase()
-				if (searchTerms.every((term) => catText.includes(term))) return true
-				return cat.sections.some((sec) =>
-					sec.fields.some((f) => {
-						const fieldText =
-							`${f.label} ${f.description} ${f.section}`.toLowerCase()
-						return searchTerms.every((term) => fieldText.includes(term))
-					}),
-				)
-			}),
+			categories.filter(
+				(cat) =>
+					filterFields(
+						cat,
+						cat.sections.flatMap((sec) => sec.fields),
+					).length > 0,
+			),
+		),
+		visibleInfoFields = $derived(
+			new Set<AccountInfoFieldId>(
+				accountInfoFields
+					.filter(
+						(field) =>
+							searchTerms.length === 0 ||
+							matches(`${pages[0].search} ${field.search}`),
+					)
+					.map((field) => field.id),
+			),
+		),
+		visiblePages = $derived(
+			pages.filter((page) =>
+				page.id === "info"
+					? visibleInfoFields.size > 0
+					: visibleCategories.length > 0,
+			),
+		),
+		activePage = $derived(
+			visiblePages.find((page) => page.id === workspace.accountSettingsPage) ??
+				visiblePages[0],
+		),
+		activeCategory = $derived(
+			visibleCategories.find(
+				(category) => category.id === workspace.accountSettingsCategory,
+			) ?? null,
 		),
 		sectionErrors = $derived(settingsState?.snapshot?.sectionErrors ?? []),
 		busy = $derived(
 			!settingsState || settingsState.loading || settingsState.saving !== null,
+		),
+		refreshing = $derived(
+			activePage?.id === "info" ? (infoState?.loading ?? false) : busy,
 		)
 
 	$effect(() => {
-		if (
-			visibleCategories.length > 0 &&
-			!visibleCategories.some((cat) => cat.id === activeCategory.id)
-		) {
-			selectCategory(visibleCategories[0])
+		if (activePage && activePage.id !== workspace.accountSettingsPage) {
+			workspace.accountSettingsPage = activePage.id
+		}
+		if (workspace.accountSettingsCategory && !activeCategory) {
+			workspace.accountSettingsCategory = null
 		}
 	})
 
 	$effect(() => {
-		void activeCategory.id
+		const page = activePage?.id,
+			info = infoState,
+			settings = settingsState
+		untrack(() => {
+			if (page === "info" && info && !info.snapshot) void info.refresh()
+			if (page === "privacy" && settings && !settings.snapshot) {
+				void settings.refresh()
+			}
+		})
+	})
+
+	$effect(() => {
+		void activePage?.id
+		void activeCategory?.id
 		void normalizedQuery
 		const element = contentElement,
-			ready = !!settingsState?.snapshot,
+			ready =
+				activePage?.id === "info"
+					? !!infoState?.snapshot
+					: !!settingsState?.snapshot,
 			scrollTop = untrack(() => workspace.accountSettingsScrollTop),
 			anchor = untrack(() => workspace.accountSettingsScrollAnchor)
 		let cancelled = false
@@ -474,10 +535,43 @@
 		}
 	})
 
-	function selectCategory(category: CategoryDef): void {
-		if (workspace.accountSettingsCategory === category.id) return
+	function matches(text: string): boolean {
+		const lower = text.toLowerCase()
+		return searchTerms.every((term) => lower.includes(term))
+	}
+
+	function selectPage(page: PageId): void {
+		if (
+			workspace.accountSettingsPage === page &&
+			!workspace.accountSettingsCategory
+		) {
+			return
+		}
+		resetScroll()
+		workspace.accountSettingsPage = page
+		workspace.accountSettingsCategory = null
+	}
+
+	async function openCategory(category: CategoryDef): Promise<void> {
 		resetScroll()
 		workspace.accountSettingsCategory = category.id
+		await tick()
+		contentElement?.querySelector<HTMLElement>(".settings-subpage-back")?.focus()
+	}
+
+	async function closeCategory(): Promise<void> {
+		const previous = workspace.accountSettingsCategory
+		resetScroll()
+		workspace.accountSettingsCategory = null
+		await tick()
+		contentElement
+			?.querySelector<HTMLElement>(`[data-settings-subpage="${previous}"]`)
+			?.focus()
+	}
+
+	function refresh(): void {
+		if (activePage?.id === "info") void infoState?.refresh()
+		else void settingsState?.refresh()
 	}
 
 	function resetScroll(): void {
@@ -602,12 +696,14 @@
 		await settingsState.save(view, option)
 	}
 
-	function filterFields(fields: FieldDef[]): FieldDef[] {
-		if (searchTerms.length === 0) return fields
-		return fields.filter((f) => {
-			const text = `${f.label} ${f.description} ${f.section}`.toLowerCase()
-			return searchTerms.every((term) => text.includes(term))
-		})
+	function filterFields(category: CategoryDef, fields: FieldDef[]): FieldDef[] {
+		if (
+			searchTerms.length === 0 ||
+			matches(`${privacyLabel} ${category.label} ${category.search}`)
+		) {
+			return fields
+		}
+		return fields.filter((f) => matches(`${f.label} ${f.description} ${f.section}`))
 	}
 
 	onMount(() => {
@@ -616,11 +712,15 @@
 			store,
 			notifications,
 		)
+		const info = new AccountInfoState(store.selectedAccount.id, store)
 		settingsState = settings
+		infoState = info
 		heading?.closest(".workspace-scroll")?.scrollTo({ top: 0 })
 		heading?.focus({ preventScroll: true })
-		void settings.refresh()
-		return () => settings.dispose()
+		return () => {
+			settings.dispose()
+			info.dispose()
+		}
 	})
 </script>
 
@@ -631,22 +731,22 @@
 			aria-label="Back to profile"
 			data-tooltip="Back to profile"
 			onclick={onBack}>
-			<ChevronLeft size={16} aria-hidden="true" />
+			<CaretLeftIcon size={18} aria-hidden="true" />
 		</button>
 		<h1 id="account-settings-title" tabindex="-1" bind:this={heading}>
-			Privacy &amp; content restrictions
+			Account settings
 		</h1>
 		<span class="account-settings-identity">@{store.selectedAccount.username}</span>
 		<button
 			type="button"
 			aria-label="Refresh settings"
 			data-tooltip="Refresh settings"
-			disabled={busy}
-			onclick={() => void settingsState?.refresh()}>
-			{#if settingsState?.loading}
-				<LoaderCircle class="spinner" size={15} aria-hidden="true" />
+			disabled={refreshing}
+			onclick={refresh}>
+			{#if refreshing}
+				<CircleNotchIcon class="spinner" size={17} aria-hidden="true" />
 			{:else}
-				<RefreshCw size={15} aria-hidden="true" />
+				<ArrowsClockwiseIcon size={17} aria-hidden="true" />
 			{/if}
 		</button>
 	</header>
@@ -654,7 +754,7 @@
 	<div class="settings-layout account-settings-layout">
 		<aside class="settings-sidebar">
 			<div class="search-field">
-				<Search size={15} aria-hidden="true" />
+				<MagnifyingGlassIcon size={17} aria-hidden="true" />
 				<input
 					bind:value={workspace.accountSettingsQuery}
 					oninput={resetScroll}
@@ -670,22 +770,24 @@
 							resetScroll()
 							workspace.accountSettingsQuery = ""
 						}}>
-						<X size={12} aria-hidden="true" />
+						<XIcon size={14} aria-hidden="true" />
 					</button>
 				{/if}
 			</div>
-			<nav aria-label="Account settings categories">
-				{#each visibleCategories as cat (cat.id)}
+			<nav aria-label="Account settings pages">
+				{#each visiblePages as page (page.id)}
 					<button
 						type="button"
-						aria-current={activeCategory.id === cat.id ? "page" : undefined}
-						onclick={() => selectCategory(cat)}>
-						<cat.icon size={15} aria-hidden="true" />
-						<span>{cat.label}</span>
+						aria-current={activePage?.id === page.id ? "page" : undefined}
+						data-tooltip={page.label}
+						data-tooltip-side="right"
+						onclick={() => selectPage(page.id)}>
+						<page.icon size={17} aria-hidden="true" />
+						<span>{page.label}</span>
 					</button>
 				{/each}
 			</nav>
-			{#if visibleCategories.length === 0}
+			{#if visiblePages.length === 0}
 				<p class="settings-search-empty">No settings found.</p>
 			{/if}
 		</aside>
@@ -695,9 +797,21 @@
 			onscroll={rememberScroll}
 			class="settings-content"
 			aria-label="Account settings content">
-			{#key `${activeCategory.id}:${normalizedQuery}`}
-				{#if visibleCategories.length > 0}
-					<h2>{activeCategory.label}</h2>
+			{#key `${activePage?.id}:${activeCategory?.id}:${normalizedQuery}`}
+				{#if !activePage}
+					<p class="settings-content-empty">
+						No settings match “{workspace.accountSettingsQuery}”.
+					</p>
+				{:else if activePage.id === "info"}
+					<h2>Account info</h2>
+					{#if infoState}
+						<AccountInfoPanel
+							info={infoState}
+							username={store.selectedAccount.username}
+							visible={visibleInfoFields} />
+					{/if}
+				{:else}
+					<h2>{privacyLabel}</h2>
 					{#if settingsState?.error}
 						<div class="settings-inline-error" role="alert">
 							{settingsState.error}
@@ -709,74 +823,101 @@
 						</div>
 					{/each}
 
-					{#if !settingsState || (settingsState.loading && !settingsState.snapshot)}
-						<div class="account-settings-loading" role="status">
-							<LoaderCircle
-								class="spinner"
-								size={14}
-								aria-hidden="true" />
-							Loading settings
-						</div>
+					{#if !activeCategory}
+						<nav class="settings-subpages" aria-label={privacyLabel}>
+							{#each visibleCategories as cat (cat.id)}
+								<button
+									type="button"
+									data-settings-subpage={cat.id}
+									onclick={() => void openCategory(cat)}>
+									<cat.icon size={17} aria-hidden="true" />
+									<span>{cat.label}</span>
+									<CaretRightIcon size={17} aria-hidden="true" />
+								</button>
+							{/each}
+						</nav>
 					{:else}
-						{#each activeCategory.sections as section (section.id)}
-							{@const matchingFields = filterFields(section.fields)}
-							{#if matchingFields.length > 0}
-								<section
-									class="settings-section"
-									aria-labelledby={section.title !==
-									activeCategory.label
-										? `section-title-${section.id}`
-										: undefined}>
-									{#if section.title !== activeCategory.label}
-										<h3 id={`section-title-${section.id}`}>
-											{section.title}
-										</h3>
-									{/if}
-									<div class="settings-rows">
-										{#each matchingFields as field (field.key)}
-											{@const view = getSettingView(field.key)}
-											{@const fieldDisabled =
-												computeFieldDisabled(field)}
-											{@const fieldOptions =
-												computeRadioOptions(field)}
-											{@const isSaving =
-												settingsState.saving === field.key}
-											{@const fieldError =
-												settingsState.feedback?.key ===
-													field.key &&
-												!settingsState.feedback.success
-													? settingsState.feedback.message
-													: ""}
-											<AccountSettingRow
-												id={field.key}
-												label={field.label}
-												description={field.description}
-												type={field.type}
-												{view}
-												disabled={fieldDisabled}
-												saving={isSaving}
-												radioOptions={fieldOptions}
-												error={fieldError}
-												onToggle={(checked) =>
-													void handleToggle(
-														field.key,
-														checked,
-													)}
-												onRadioSelect={(value) =>
-													void handleRadioSelect(
-														field.key,
-														value,
-													)} />
-										{/each}
-									</div>
-								</section>
-							{/if}
-						{/each}
+						<div class="settings-subpage-heading">
+							<button
+								class="icon-action settings-subpage-back"
+								type="button"
+								aria-label={`Back to ${privacyLabel}`}
+								data-tooltip={`Back to ${privacyLabel}`}
+								onclick={() => void closeCategory()}>
+								<CaretLeftIcon size={18} aria-hidden="true" />
+							</button>
+							<h3>{activeCategory.label}</h3>
+						</div>
+						{#if !settingsState || (settingsState.loading && !settingsState.snapshot)}
+							<div class="account-settings-loading" role="status">
+								<CircleNotchIcon
+									class="spinner"
+									size={16}
+									aria-hidden="true" />
+								Loading settings
+							</div>
+						{:else}
+							{#each activeCategory.sections as section (section.id)}
+								{@const matchingFields = filterFields(
+									activeCategory,
+									section.fields,
+								)}
+								{#if matchingFields.length > 0}
+									<section
+										class="settings-section"
+										aria-labelledby={section.title !==
+										activeCategory.label
+											? `section-title-${section.id}`
+											: undefined}>
+										{#if section.title !== activeCategory.label}
+											<h3 id={`section-title-${section.id}`}>
+												{section.title}
+											</h3>
+										{/if}
+										<div class="settings-rows">
+											{#each matchingFields as field (field.key)}
+												{@const view = getSettingView(
+													field.key,
+												)}
+												{@const fieldDisabled =
+													computeFieldDisabled(field)}
+												{@const fieldOptions =
+													computeRadioOptions(field)}
+												{@const isSaving =
+													settingsState.saving === field.key}
+												{@const fieldError =
+													settingsState.feedback?.key ===
+														field.key &&
+													!settingsState.feedback.success
+														? settingsState.feedback.message
+														: ""}
+												<AccountSettingRow
+													id={field.key}
+													label={field.label}
+													description={field.description}
+													type={field.type}
+													{view}
+													disabled={fieldDisabled}
+													saving={isSaving}
+													radioOptions={fieldOptions}
+													error={fieldError}
+													onToggle={(checked) =>
+														void handleToggle(
+															field.key,
+															checked,
+														)}
+													onRadioSelect={(value) =>
+														void handleRadioSelect(
+															field.key,
+															value,
+														)} />
+											{/each}
+										</div>
+									</section>
+								{/if}
+							{/each}
+						{/if}
 					{/if}
-				{:else}
-					<p class="settings-content-empty">
-						No settings match “{workspace.accountSettingsQuery}”.
-					</p>
 				{/if}
 			{/key}
 		</main>

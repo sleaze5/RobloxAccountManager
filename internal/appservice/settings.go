@@ -1,35 +1,45 @@
 package appservice
 
 import (
+	"fmt"
+
 	"github.com/sleaze5/RobloxAccountManager/internal/appsettings"
 	"github.com/sleaze5/RobloxAccountManager/internal/logging"
+	"github.com/sleaze5/RobloxAccountManager/internal/timestampformat"
 )
 
 type AppSettingsState struct {
 	Presence             appsettings.PresenceSettings `json:"presence"`
 	EnabledLoggingLevels map[string]bool              `json:"enabledLoggingLevels"`
-	TimestampFormat      string                       `json:"timestampFormat"`
-	TimestampHoverFormat string                       `json:"timestampHoverFormat"`
+	TimestampFormats     TimestampFormats             `json:"timestampFormats"`
 	Motion               appsettings.MotionPreference `json:"motion"`
 	RoValraEnabled       bool                         `json:"roValraEnabled"`
 	RoValraRegion        string                       `json:"roValraRegion"`
 	SettingsRecovered    bool                         `json:"settingsRecovered"`
 }
 
-func (service *Service) GetAppSettings() AppSettingsState {
+type TimestampFormats struct {
+	Shown timestampformat.Format `json:"shown"`
+	Hover timestampformat.Format `json:"hover"`
+}
+
+func (service *Service) GetAppSettings() (AppSettingsState, error) {
 	loggingSettings := service.settings.Logging()
 	userInterfaceSettings := service.settings.UserInterface()
 	presenceSettings := service.settings.Presence()
+	timestampFormats, err := parseTimestampFormats(userInterfaceSettings.TimestampFormat, userInterfaceSettings.TimestampHoverFormat)
+	if err != nil {
+		return AppSettingsState{}, err
+	}
 	return AppSettingsState{
 		Presence:             presenceSettings,
 		EnabledLoggingLevels: loggingSettings.EnabledLevels,
-		TimestampFormat:      userInterfaceSettings.TimestampFormat,
-		TimestampHoverFormat: userInterfaceSettings.TimestampHoverFormat,
+		TimestampFormats:     timestampFormats,
 		Motion:               userInterfaceSettings.Motion,
 		RoValraEnabled:       service.settings.Integrations().RoValra,
 		RoValraRegion:        service.settings.Integrations().RoValraRegion,
 		SettingsRecovered:    service.settings.RecoveryError() != nil,
-	}
+	}, nil
 }
 
 func (service *Service) SetPresenceUpdates(scope appsettings.PresenceScope, enabled bool, intervalSeconds int) error {
@@ -72,8 +82,27 @@ func (service *Service) applyLoggingSettings() error {
 	return service.logs.SetEnabledLevels(levels)
 }
 
-func (service *Service) SetTimestampFormats(timestampFormat, timestampHoverFormat string) error {
-	return service.settings.SetTimestampFormats(timestampFormat, timestampHoverFormat)
+func (service *Service) ParseTimestampFormat(source string) (timestampformat.Format, error) {
+	return timestampformat.Parse(source)
+}
+
+func (service *Service) SetTimestampFormats(timestampFormat, timestampHoverFormat string) (TimestampFormats, error) {
+	if err := service.settings.SetTimestampFormats(timestampFormat, timestampHoverFormat); err != nil {
+		return TimestampFormats{}, err
+	}
+	return parseTimestampFormats(timestampFormat, timestampHoverFormat)
+}
+
+func parseTimestampFormats(timestampFormat, timestampHoverFormat string) (TimestampFormats, error) {
+	shown, err := timestampformat.Parse(timestampFormat)
+	if err != nil {
+		return TimestampFormats{}, fmt.Errorf("parse timestamp format: %w", err)
+	}
+	hover, err := timestampformat.Parse(timestampHoverFormat)
+	if err != nil {
+		return TimestampFormats{}, fmt.Errorf("parse timestamp hover format: %w", err)
+	}
+	return TimestampFormats{Shown: shown, Hover: hover}, nil
 }
 
 func (service *Service) SetMotion(motion appsettings.MotionPreference) error {

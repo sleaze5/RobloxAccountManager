@@ -1,12 +1,11 @@
 <script lang="ts">
-	import Hash from "@lucide/svelte/icons/hash"
-	import ListPlus from "@lucide/svelte/icons/list-plus"
-	import PencilLine from "@lucide/svelte/icons/pencil-line"
-	import Star from "@lucide/svelte/icons/star"
-	import StarOff from "@lucide/svelte/icons/star-off"
-	import Type from "@lucide/svelte/icons/type"
-	import UserRound from "@lucide/svelte/icons/user-round"
-	import UsersRound from "@lucide/svelte/icons/users-round"
+	import HashIcon from "phosphor-svelte/lib/HashIcon"
+	import ListPlusIcon from "phosphor-svelte/lib/ListPlusIcon"
+	import PencilLineIcon from "phosphor-svelte/lib/PencilLineIcon"
+	import StarIcon from "phosphor-svelte/lib/StarIcon"
+	import TextTIcon from "phosphor-svelte/lib/TextTIcon"
+	import UserCircleIcon from "phosphor-svelte/lib/UserCircleIcon"
+	import UsersThreeIcon from "phosphor-svelte/lib/UsersThreeIcon"
 	import { menuIn, menuOut } from "../shared/presence"
 	import type { GameMenu, GamesStore } from "./games-store.svelte"
 
@@ -92,14 +91,15 @@
 			store.savingNickname ||
 			!store.favoritesLoaded}
 		onclick={() => void store.toggleFavorite(place)}>
-		{#if favorite}<StarOff size={14} aria-hidden="true" /><span
+		{#if favorite}<StarIcon weight="fill" size={16} aria-hidden="true" /><span
 				>Remove from favorites</span
-			>{:else}<Star size={14} aria-hidden="true" /><span>Add to favorites</span
+			>{:else}<StarIcon size={16} aria-hidden="true" /><span
+				>Add to favorites</span
 			>{/if}
 	</button>
 	{#if favorite}
 		<button type="button" onclick={() => store.editNickname(place)}
-			><PencilLine size={14} aria-hidden="true" /><span
+			><PencilLineIcon size={16} aria-hidden="true" /><span
 				>{store.nicknameFor(place.placeId)
 					? "Edit nickname"
 					: "Add nickname"}</span
@@ -112,7 +112,7 @@
 			store.closeMenu()
 			onFillLaunch(placeId)
 		}}
-		><ListPlus size={14} aria-hidden="true" /><span>Fill launch options</span
+		><ListPlusIcon size={16} aria-hidden="true" /><span>Fill launch options</span
 		></button>
 
 	<div role="group" aria-label="Copy game details">
@@ -121,24 +121,26 @@
 			type="button"
 			aria-label="Copy game name"
 			onclick={() => void store.copy(place.name, "Game name")}
-			><Type size={14} aria-hidden="true" /><span>Name</span></button>
+			><TextTIcon size={16} aria-hidden="true" /><span>Name</span></button>
 		<button
 			type="button"
 			aria-label="Copy place ID"
 			onclick={() => void store.copy(place.placeId, "Place ID")}
-			><Hash size={14} aria-hidden="true" /><span>Place ID</span></button>
+			><HashIcon size={16} aria-hidden="true" /><span>Place ID</span></button>
 		<button
 			type="button"
 			aria-label="Copy universe ID"
 			onclick={() => void store.copy(place.universeId, "Universe ID")}
-			><Hash size={14} aria-hidden="true" /><span>Universe ID</span></button>
+			><HashIcon size={16} aria-hidden="true" /><span>Universe ID</span></button>
 		<button
 			type="button"
 			aria-label={`Copy ${owner.toLowerCase()} name`}
 			disabled={!place.creatorName}
 			onclick={() => void store.copy(place.creatorName, `${owner} name`)}>
-			{#if group}<UsersRound size={14} aria-hidden="true" />{:else}<UserRound
-					size={14}
+			{#if group}<UsersThreeIcon
+					size={16}
+					aria-hidden="true" />{:else}<UserCircleIcon
+					size={16}
 					aria-hidden="true" />{/if}
 			<span>{owner} name</span>
 		</button>
@@ -147,6 +149,6 @@
 			aria-label={`Copy ${owner.toLowerCase()} ID`}
 			disabled={!place.creatorId}
 			onclick={() => void store.copy(place.creatorId, `${owner} ID`)}
-			><Hash size={14} aria-hidden="true" /><span>{owner} ID</span></button>
+			><HashIcon size={16} aria-hidden="true" /><span>{owner} ID</span></button>
 	</div>
 </div>

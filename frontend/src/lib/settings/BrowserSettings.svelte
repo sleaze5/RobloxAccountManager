@@ -1,7 +1,7 @@
 <script lang="ts">
-	import Download from "@lucide/svelte/icons/download"
-	import RotateCcw from "@lucide/svelte/icons/rotate-ccw"
-	import Trash2 from "@lucide/svelte/icons/trash-2"
+	import DownloadSimpleIcon from "phosphor-svelte/lib/DownloadSimpleIcon"
+	import ArrowCounterClockwiseIcon from "phosphor-svelte/lib/ArrowCounterClockwiseIcon"
+	import TrashIcon from "phosphor-svelte/lib/TrashIcon"
 	import BrowserRuntimeActivity from "../browser/BrowserRuntimeActivity.svelte"
 	import type { BrowserStore } from "../browser/browser-store.svelte"
 	import { RuntimeStatus } from "../backend/bridge"
@@ -134,17 +134,23 @@
 								class="settings-row-action"
 								type="button"
 								onclick={() => void browser.download()}
-								><Download size={14} />Download</button
+								><DownloadSimpleIcon
+									size={16}
+									aria-hidden="true" />Download</button
 							>{:else}<button
 								class="settings-row-action"
 								type="button"
 								onclick={() => void requestAction("redownload")}
-								><RotateCcw size={14} />Redownload</button
+								><ArrowCounterClockwiseIcon
+									size={16}
+									aria-hidden="true" />Redownload</button
 							><button
 								class="settings-row-action danger-action"
 								type="button"
 								onclick={() => void requestAction("remove")}
-								><Trash2 size={14} />Remove</button
+								><TrashIcon
+									size={16}
+									aria-hidden="true" />Remove</button
 							>{/if}
 					</div>
 				</div>

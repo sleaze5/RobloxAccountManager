@@ -1,16 +1,16 @@
 <script lang="ts">
-	import AtSign from "@lucide/svelte/icons/at-sign"
-	import ChevronRight from "@lucide/svelte/icons/chevron-right"
-	import Focus from "@lucide/svelte/icons/focus"
-	import Gamepad2 from "@lucide/svelte/icons/gamepad-2"
-	import Globe2 from "@lucide/svelte/icons/earth"
-	import Hash from "@lucide/svelte/icons/hash"
-	import KeyRound from "@lucide/svelte/icons/key-round"
-	import RefreshCw from "@lucide/svelte/icons/refresh-cw"
-	import Tags from "@lucide/svelte/icons/tags"
-	import Trash2 from "@lucide/svelte/icons/trash-2"
-	import UserRound from "@lucide/svelte/icons/user-round"
-	import X from "@lucide/svelte/icons/x"
+	import AtIcon from "phosphor-svelte/lib/AtIcon"
+	import CaretRightIcon from "phosphor-svelte/lib/CaretRightIcon"
+	import CornersOutIcon from "phosphor-svelte/lib/CornersOutIcon"
+	import GameControllerIcon from "phosphor-svelte/lib/GameControllerIcon"
+	import GlobeHemisphereWestIcon from "phosphor-svelte/lib/GlobeHemisphereWestIcon"
+	import HashIcon from "phosphor-svelte/lib/HashIcon"
+	import KeyIcon from "phosphor-svelte/lib/KeyIcon"
+	import ArrowsClockwiseIcon from "phosphor-svelte/lib/ArrowsClockwiseIcon"
+	import TagIcon from "phosphor-svelte/lib/TagIcon"
+	import TrashIcon from "phosphor-svelte/lib/TrashIcon"
+	import UserCircleIcon from "phosphor-svelte/lib/UserCircleIcon"
+	import XIcon from "phosphor-svelte/lib/XIcon"
 	import { browserStore } from "../browser/browser-store.svelte"
 	import type { AccountStore } from "./account-store.svelte"
 	import type { Account } from "./account-model"
@@ -43,10 +43,10 @@
 		{
 			field: AccountCopyField.CopyDisplayName,
 			label: "Display name",
-			icon: UserRound,
+			icon: UserCircleIcon,
 		},
-		{ field: AccountCopyField.CopyUsername, label: "Username", icon: AtSign },
-		{ field: AccountCopyField.CopyUserID, label: "User ID", icon: Hash },
+		{ field: AccountCopyField.CopyUsername, label: "Username", icon: AtIcon },
+		{ field: AccountCopyField.CopyUserID, label: "User ID", icon: HashIcon },
 	]
 
 	async function copyField(field: AccountCopyField): Promise<void> {
@@ -74,9 +74,9 @@
 
 <div class="tag-submenu-host">
 	<button class="tag-submenu-trigger" type="button">
-		<Tags size={14} aria-hidden="true" />
+		<TagIcon size={16} aria-hidden="true" />
 		<span>Edit tags</span>
-		<ChevronRight size={13} class="submenu-chevron" aria-hidden="true" />
+		<CaretRightIcon size={15} class="submenu-chevron" aria-hidden="true" />
 	</button>
 	<div
 		class:open-left={submenuLeft}
@@ -94,12 +94,15 @@
 		class="danger-action"
 		type="button"
 		onclick={() => void browserStore.close(sessionId)}
-		><X size={14} aria-hidden="true" /><span>Close browser</span></button>
+		><XIcon size={16} aria-hidden="true" /><span>Close browser</span></button>
 	<button type="button" onclick={() => void browserStore.focus(sessionId)}
-		><Focus size={14} aria-hidden="true" /><span>Focus browser</span></button>
+		><CornersOutIcon size={16} aria-hidden="true" /><span>Focus browser</span
+		></button>
 {:else}
 	<button type="button" onclick={() => onBrowser(account.id)}
-		><Globe2 size={14} aria-hidden="true" /><span>Open in browser</span></button>
+		><GlobeHemisphereWestIcon size={16} aria-hidden="true" /><span
+			>Open in browser</span
+		></button>
 {/if}
 
 <div role="group" aria-label="Copy account details">
@@ -110,7 +113,7 @@
 			aria-label={`Copy ${item.label}`}
 			disabled={store.copying}
 			onclick={() => void copyField(item.field)}>
-			<item.icon size={14} aria-hidden="true" /><span>{item.label}</span>
+			<item.icon size={16} aria-hidden="true" /><span>{item.label}</span>
 		</button>
 	{/each}
 </div>
@@ -128,7 +131,8 @@
 				? "Roblox has not shared this account's place."
 				: undefined}
 			onclick={fillJoinOptions}>
-			<Gamepad2 size={14} aria-hidden="true" /><span>Fill join options</span>
+			<GameControllerIcon size={16} aria-hidden="true" /><span
+				>Fill join options</span>
 		</button>
 	</div>
 {/if}
@@ -140,14 +144,14 @@
 		type="button"
 		disabled={store.copying}
 		onclick={() => void copyField(AccountCopyField.CopyCookie)}>
-		<KeyRound size={14} aria-hidden="true" /><span>Copy cookie</span>
+		<KeyIcon size={16} aria-hidden="true" /><span>Copy cookie</span>
 	</button>
 	<button
 		class="warning-action"
 		type="button"
 		disabled={store.busy}
 		onclick={() => onRenewCookie(account.id)}>
-		<RefreshCw size={14} aria-hidden="true" /><span>Renew cookie</span>
+		<ArrowsClockwiseIcon size={16} aria-hidden="true" /><span>Renew cookie</span>
 	</button>
 </div>
 <div class="account-menu-separator"></div>
@@ -156,6 +160,6 @@
 	type="button"
 	disabled={store.busy}
 	onclick={() => onRemove(account.id)}>
-	<Trash2 size={14} aria-hidden="true" />
+	<TrashIcon size={16} aria-hidden="true" />
 	<span>Remove account</span>
 </button>

@@ -1,8 +1,8 @@
 <script lang="ts">
-	import Download from "@lucide/svelte/icons/download"
-	import LoaderCircle from "@lucide/svelte/icons/loader-circle"
-	import RefreshCw from "@lucide/svelte/icons/refresh-cw"
-	import RotateCcw from "@lucide/svelte/icons/rotate-ccw"
+	import DownloadSimpleIcon from "phosphor-svelte/lib/DownloadSimpleIcon"
+	import CircleNotchIcon from "phosphor-svelte/lib/CircleNotchIcon"
+	import ArrowsClockwiseIcon from "phosphor-svelte/lib/ArrowsClockwiseIcon"
+	import ArrowCounterClockwiseIcon from "phosphor-svelte/lib/ArrowCounterClockwiseIcon"
 	import { UpdateStatus } from "../backend/bridge"
 	import { formatCompactBytes } from "../shared/bytes"
 	import { updateStore } from "../updates/update-store.svelte"
@@ -73,7 +73,8 @@
 						class="settings-row-action"
 						type="button"
 						onclick={() => void updateStore.install()}
-						><Download size={14} aria-hidden="true" />Download update</button
+						><DownloadSimpleIcon size={16} aria-hidden="true" />Download
+						update</button
 					>{:else if update.status === UpdateStatus.StatusDownloading}<button
 						class="settings-row-action"
 						type="button"
@@ -83,28 +84,31 @@
 						class="settings-row-action"
 						type="button"
 						onclick={() => void updateStore.restart()}
-						><RotateCcw size={14} aria-hidden="true" />Restart to update</button
+						><ArrowCounterClockwiseIcon
+							size={16}
+							aria-hidden="true" />Restart to update</button
 					>{:else if update.status === UpdateStatus.StatusRestarting}<button
 						class="settings-row-action"
 						type="button"
 						disabled
-						><LoaderCircle
+						><CircleNotchIcon
 							class="spinner"
-							size={14}
+							size={16}
 							aria-hidden="true" />Restarting</button
 					>{:else if update.status === UpdateStatus.StatusChecking}<button
 						class="settings-row-action"
 						type="button"
 						disabled
-						><LoaderCircle
+						><CircleNotchIcon
 							class="spinner"
-							size={14}
+							size={16}
 							aria-hidden="true" />Checking</button
 					>{:else}<button
 						class="settings-row-action"
 						type="button"
 						onclick={() => void updateStore.check()}
-						><RefreshCw size={14} aria-hidden="true" />Check for updates</button
+						><ArrowsClockwiseIcon size={16} aria-hidden="true" />Check for
+						updates</button
 					>{/if}
 			</div>
 		</div>

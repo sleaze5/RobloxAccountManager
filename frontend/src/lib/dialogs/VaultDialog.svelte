@@ -1,12 +1,12 @@
 <script lang="ts">
 	import { automaticUnlockDialogDescription } from "../shared/automatic-unlock"
 	import { onMount } from "svelte"
-	import Check from "@lucide/svelte/icons/check"
-	import Eye from "@lucide/svelte/icons/eye"
-	import EyeOff from "@lucide/svelte/icons/eye-off"
-	import Info from "@lucide/svelte/icons/info"
-	import LockKeyhole from "@lucide/svelte/icons/lock-keyhole"
-	import X from "@lucide/svelte/icons/x"
+	import CheckIcon from "phosphor-svelte/lib/CheckIcon"
+	import EyeIcon from "phosphor-svelte/lib/EyeIcon"
+	import EyeSlashIcon from "phosphor-svelte/lib/EyeSlashIcon"
+	import InfoIcon from "phosphor-svelte/lib/InfoIcon"
+	import LockKeyIcon from "phosphor-svelte/lib/LockKeyIcon"
+	import XIcon from "phosphor-svelte/lib/XIcon"
 	import { FileState } from "../backend/bridge"
 	import type { BackupInfo } from "../backend/bridge"
 	import type { AccountStore } from "../accounts/account-store.svelte"
@@ -113,7 +113,7 @@
 			event.preventDefault()
 			void submit()
 		}}>
-		<div class="modal-icon"><LockKeyhole size={18} /></div>
+		<div class="modal-icon"><LockKeyIcon size={20} aria-hidden="true" /></div>
 		<h2>
 			{creating
 				? "Create account vault"
@@ -216,8 +216,9 @@
 				class="visibility-control"
 				type="button"
 				onclick={() => (visible = !visible)}>
-				{#if visible}<EyeOff size={14} /> Hide passwords{:else}<Eye size={14} /> Show
-					passwords{/if}
+				{#if visible}<EyeSlashIcon size={16} aria-hidden="true" /> Hide passwords{:else}<EyeIcon
+						size={16}
+						aria-hidden="true" /> Show passwords{/if}
 			</button>
 			{#if !creating && !incomplete && store.vault.passwordHint}
 				<div class="modal-note">Hint: {store.vault.passwordHint}</div>
@@ -234,14 +235,20 @@
 				<ul class="password-checklist" aria-label="Password requirements">
 					{#each [[rules.length, "8-128 characters long"], [rules.uppercase, "At least one upper-case letter"], [rules.lowercase, "At least one lower-case letter"], [rules.digit, "At least one number"], [rules.special, "At least one special character"]] as requirement}
 						<li class:valid={requirement[0]}>
-							{#if requirement[0]}<Check size={12} />{:else}<X
-									size={12} />{/if}
+							{#if requirement[0]}<CheckIcon
+									size={14}
+									aria-hidden="true" />{:else}<XIcon
+									size={14}
+									aria-hidden="true" />{/if}
 							{requirement[1]}
 						</li>
 					{/each}
 					<li class:valid={password !== "" && password === confirmation}>
-						{#if password !== "" && password === confirmation}<Check
-								size={12} />{:else}<X size={12} />{/if}
+						{#if password !== "" && password === confirmation}<CheckIcon
+								size={14}
+								aria-hidden="true" />{:else}<XIcon
+								size={14}
+								aria-hidden="true" />{/if}
 						Passwords match
 					</li>
 				</ul>
@@ -259,7 +266,10 @@
 					<span class="cookie-selection">
 						<input bind:checked={automaticUnlock} type="checkbox" />
 						<span aria-hidden="true"
-							><Check size={10} strokeWidth={2.4} /></span>
+							><CheckIcon
+								size={11}
+								weight="bold"
+								aria-hidden="true" /></span>
 					</span>
 					Enable automatic unlock
 				</label>
@@ -268,7 +278,7 @@
 					type="button"
 					aria-label="About automatic unlock"
 					data-tooltip={automaticUnlockDialogDescription}>
-					<Info size={13} />
+					<InfoIcon size={15} aria-hidden="true" />
 				</button>
 			</div>
 			<button

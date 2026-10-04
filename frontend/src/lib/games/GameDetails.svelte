@@ -1,34 +1,33 @@
 <script lang="ts">
-	import Activity from "@lucide/svelte/icons/activity"
-	import AlertTriangle from "@lucide/svelte/icons/triangle-alert"
-	import BadgeCheck from "@lucide/svelte/icons/badge-check"
-	import CalendarDays from "@lucide/svelte/icons/calendar-days"
-	import Copy from "@lucide/svelte/icons/copy"
-	import Eye from "@lucide/svelte/icons/eye"
-	import Footprints from "@lucide/svelte/icons/footprints"
-	import GitCommitHorizontal from "@lucide/svelte/icons/git-commit-horizontal"
-	import History from "@lucide/svelte/icons/rotate-ccw-clock"
-	import LoaderCircle from "@lucide/svelte/icons/loader-circle"
-	import Mic from "@lucide/svelte/icons/mic"
-	import MoreHorizontal from "@lucide/svelte/icons/ellipsis"
-	import Network from "@lucide/svelte/icons/network"
-	import Pencil from "@lucide/svelte/icons/pencil"
-	import PersonStanding from "@lucide/svelte/icons/person-standing"
-	import RefreshCw from "@lucide/svelte/icons/refresh-cw"
-	import Server from "@lucide/svelte/icons/server"
-	import ShieldCheck from "@lucide/svelte/icons/shield-check"
-	import Shapes from "@lucide/svelte/icons/shapes"
-	import Shirt from "@lucide/svelte/icons/shirt"
-	import Star from "@lucide/svelte/icons/star"
-	import ThumbsDown from "@lucide/svelte/icons/thumbs-down"
-	import ThumbsUp from "@lucide/svelte/icons/thumbs-up"
-	import Ticket from "@lucide/svelte/icons/ticket"
-	import Upload from "@lucide/svelte/icons/upload"
-	import UsersRound from "@lucide/svelte/icons/users-round"
-	import Video from "@lucide/svelte/icons/video"
+	import PulseIcon from "phosphor-svelte/lib/PulseIcon"
+	import WarningIcon from "phosphor-svelte/lib/WarningIcon"
+	import SealCheckIcon from "phosphor-svelte/lib/SealCheckIcon"
+	import CalendarDotsIcon from "phosphor-svelte/lib/CalendarDotsIcon"
+	import CopyIcon from "phosphor-svelte/lib/CopyIcon"
+	import EyeIcon from "phosphor-svelte/lib/EyeIcon"
+	import FootprintsIcon from "phosphor-svelte/lib/FootprintsIcon"
+	import GitCommitIcon from "phosphor-svelte/lib/GitCommitIcon"
+	import ClockCounterClockwiseIcon from "phosphor-svelte/lib/ClockCounterClockwiseIcon"
+	import CircleNotchIcon from "phosphor-svelte/lib/CircleNotchIcon"
+	import MicrophoneIcon from "phosphor-svelte/lib/MicrophoneIcon"
+	import DotsThreeIcon from "phosphor-svelte/lib/DotsThreeIcon"
+	import TreeStructureIcon from "phosphor-svelte/lib/TreeStructureIcon"
+	import PencilIcon from "phosphor-svelte/lib/PencilIcon"
+	import PersonArmsSpreadIcon from "phosphor-svelte/lib/PersonArmsSpreadIcon"
+	import ArrowsClockwiseIcon from "phosphor-svelte/lib/ArrowsClockwiseIcon"
+	import HardDrivesIcon from "phosphor-svelte/lib/HardDrivesIcon"
+	import ShieldCheckIcon from "phosphor-svelte/lib/ShieldCheckIcon"
+	import ShapesIcon from "phosphor-svelte/lib/ShapesIcon"
+	import TShirtIcon from "phosphor-svelte/lib/TShirtIcon"
+	import StarIcon from "phosphor-svelte/lib/StarIcon"
+	import ThumbsUpIcon from "phosphor-svelte/lib/ThumbsUpIcon"
+	import TicketIcon from "phosphor-svelte/lib/TicketIcon"
+	import UploadSimpleIcon from "phosphor-svelte/lib/UploadSimpleIcon"
+	import UsersThreeIcon from "phosphor-svelte/lib/UsersThreeIcon"
+	import VideoCameraIcon from "phosphor-svelte/lib/VideoCameraIcon"
 	import { untrack } from "svelte"
-	import CompactNumber from "../shared/CompactNumber.svelte"
 	import Timestamp from "../shared/Timestamp.svelte"
+	import { relativeTime } from "../shared/timestamp"
 	import { creatorByline, type GamesStore } from "./games-store.svelte"
 	import GameIcon from "./GameIcon.svelte"
 
@@ -37,11 +36,31 @@
 		percent = new Intl.NumberFormat(undefined, {
 			style: "percent",
 			maximumFractionDigits: 1,
-		})
+		}),
+		graphemes = new Intl.Segmenter(undefined, { granularity: "grapheme" })
+
+	type Fact = {
+		label: string
+		icon: typeof PulseIcon
+		value: string | undefined
+		detail?: string
+	}
+
+	const exact = (value: number | undefined) =>
+			value === undefined ? undefined : numbers.format(value),
+		count = (value: number, one: string, many: string) =>
+			`${numbers.format(value)} ${value === 1 ? one : many}`
 	const place = $derived(store.selected),
 		game = $derived(store.game),
 		favorite = $derived(place ? store.isFavorite(place.placeId) : false),
 		nickname = $derived(place ? store.nicknameFor(place.placeId) : ""),
+		// Keep the final character and star together, even when a long word wraps.
+		nameSplit = $derived(
+			Array.from(graphemes.segment(place?.name.trimEnd() ?? "")).at(-1)?.index ??
+				0,
+		),
+		nameStart = $derived(place?.name.slice(0, nameSplit) ?? ""),
+		nameEnd = $derived(place?.name.slice(nameSplit).trimEnd() ?? ""),
 		menuOpen = $derived(!!place && store.menu?.place.placeId === place.placeId),
 		rootPlace = $derived(game?.rootPlace ?? null),
 		votes = $derived(game ? game.upVotes + game.downVotes : 0),
@@ -57,32 +76,83 @@
 					"; ",
 				),
 		),
-		activity = $derived([
-			{ label: "Playing", icon: Activity, value: game?.playing },
-			{ label: "Visits", icon: Eye, value: game?.visits },
-			{ label: "Favorites", icon: Star, value: game?.favorites },
-			{ label: "Server capacity", icon: UsersRound, value: game?.maxPlayers },
+		details = $derived<Fact[]>([
+			{ label: "Genre", icon: ShapesIcon, value: genre || undefined },
+			{
+				label: "Content rating",
+				icon: ShieldCheckIcon,
+				value: contentRating || undefined,
+			},
+			...(rootPlace
+				? []
+				: [
+						{
+							label: "Rating",
+							icon: ThumbsUpIcon,
+							value: game
+								? votes
+									? `${percent.format(likeShare)} liked`
+									: "No votes"
+								: undefined,
+							detail:
+								game && votes
+									? `${count(game.upVotes, "like", "likes")} · ${count(game.downVotes, "dislike", "dislikes")}`
+									: "",
+						},
+						{ label: "Visits", icon: EyeIcon, value: exact(game?.visits) },
+						{
+							label: "Favorites",
+							icon: StarIcon,
+							value: exact(game?.favorites),
+						},
+						{
+							label: "Server capacity",
+							icon: UsersThreeIcon,
+							value:
+								game?.maxPlayers === undefined
+									? undefined
+									: count(game.maxPlayers, "player", "players"),
+						},
+					]),
+		]),
+		dates = $derived([
+			{
+				label: "Updated",
+				icon: ClockCounterClockwiseIcon,
+				value: game?.updatedAtMs,
+			},
+			{ label: "Created", icon: CalendarDotsIcon, value: game?.createdAtMs },
 		]),
 		supported = (value: boolean | undefined) =>
-			value === undefined ? "Unavailable" : value ? "Supported" : "Not supported",
-		versions = $derived([
+			value === undefined ? undefined : value ? "Supported" : "Not supported",
+		versions = $derived<Fact[]>([
 			{
 				label: "Saved version",
-				icon: GitCommitHorizontal,
-				value: game?.versions?.saved,
+				icon: GitCommitIcon,
+				value: game?.versions?.saved?.toString(),
 			},
 			{
 				label: "Published version",
-				icon: Upload,
-				value: game?.versions?.published,
+				icon: UploadSimpleIcon,
+				value: game?.versions?.published?.toString(),
 			},
 		]),
-		restrictions = $derived(
+		features = $derived<Fact[]>(
 			game
 				? [
 						{
+							label: "Voice chat",
+							icon: MicrophoneIcon,
+							value: supported(game.communication?.voiceChat),
+						},
+						{
+							label: "Camera",
+							icon: VideoCameraIcon,
+							value: supported(game.communication?.camera),
+						},
+						{
 							label: "Access",
-							icon: Ticket,
+							icon: TicketIcon,
 							value:
 								game.price > 0
 									? `Paid access · R$ ${numbers.format(game.price)}`
@@ -90,12 +160,12 @@
 						},
 						{
 							label: "Avatar type",
-							icon: PersonStanding,
+							icon: PersonArmsSpreadIcon,
 							value: game.avatarType || "Unknown",
 						},
 						{
 							label: "Animations",
-							icon: Footprints,
+							icon: FootprintsIcon,
 							value: game.avatarRules
 								? game.avatarRules.customAnimationsAllowed
 									? "Custom allowed"
@@ -106,14 +176,14 @@
 							? [
 									{
 										label: "Avatar items",
-										icon: Shirt,
+										icon: TShirtIcon,
 										value: `${numbers.format(game.avatarRules.itemOverrides)} replaced by the game`,
 									},
 								]
 							: []),
 						{
 							label: "Private servers",
-							icon: Server,
+							icon: HardDrivesIcon,
 							value: game.privateServersAllowed
 								? "Allowed"
 								: "Not allowed",
@@ -123,7 +193,7 @@
 							: [
 									{
 										label: "Copying",
-										icon: Copy,
+										icon: CopyIcon,
 										value: game.copyingAllowed
 											? "Allowed"
 											: "Not allowed",
@@ -160,6 +230,21 @@
 	}
 </script>
 
+{#snippet row(fact: Fact, mono = false)}
+	<div>
+		<dt><fact.icon size={16} aria-hidden="true" />{fact.label}</dt>
+		<dd>
+			{#if fact.value}
+				<span class:mono class:game-fact-copyable={mono}>{fact.value}</span>
+				{#if fact.detail}<small>{fact.detail}</small>{/if}
+			{:else}
+				<span class="profile-value-unavailable"
+					>{game ? "Unavailable" : "—"}</span>
+			{/if}
+		</dd>
+	</div>
+{/snippet}
+
 {#if place}
 	<section
 		class="game-details"
@@ -167,16 +252,18 @@
 		aria-busy={store.loadingDetails}>
 		<div class="game-details-content">
 			<div class="profile-head">
-				<div class="selected-identity">
+				<div class="selected-identity game-identity">
 					<GameIcon url={place.iconUrl} large />
 					<div class="identity-copy">
 						<div class="game-title">
-							<h2 class="game-name">{place.name}</h2>
-							{#if favorite}<Star
-									class="favorite-name-star"
-									size={13}
-									fill="currentColor"
-									aria-label="Favorite" />{/if}
+							<h2 class="game-name">
+								{nameStart}<span class="game-name-end"
+									>{nameEnd}{#if favorite}<StarIcon
+											class="favorite-name-star"
+											size={15}
+											weight="fill"
+											aria-label="Favorite" />{/if}</span>
+							</h2>
 							{#if favorite}
 								<span
 									class="game-nickname"
@@ -215,7 +302,9 @@
 												: "Add nickname"}
 											disabled={store.savingNickname}
 											onclick={startEditing}
-											><Pencil size={13} /></button>
+											><PencilIcon
+												size={15}
+												aria-hidden="true" /></button>
 									{/if}
 								</span>
 							{/if}
@@ -229,14 +318,20 @@
 							<span class="game-creator"
 								>{creatorByline(
 									place,
-								)}{#if place.creatorVerified}<BadgeCheck
-										size={12}
+								)}{#if place.creatorVerified}<SealCheckIcon
+										size={14}
 										aria-label="Verified creator" />{/if}</span>
 							{#if place.creatorId}
 								<span class="meta-separator" aria-hidden="true">-</span>
 								<span>{place.creatorType} ID: {place.creatorId}</span>
 							{/if}
 						</div>
+						{#if game && !rootPlace}
+							<p class="game-playing" class:active={game.playing > 0}>
+								<PulseIcon size={15} aria-hidden="true" />
+								{numbers.format(game.playing)} playing
+							</p>
+						{/if}
 					</div>
 				</div>
 				<div class="header-actions">
@@ -250,11 +345,11 @@
 						data-tooltip="Refresh game details"
 						disabled={store.loadingDetails}
 						onclick={() => void store.refreshDetails()}>
-						{#if store.loadingDetails}<LoaderCircle
+						{#if store.loadingDetails}<CircleNotchIcon
 								class="spinner"
-								size={15}
-								aria-hidden="true" />{:else}<RefreshCw
-								size={15}
+								size={17}
+								aria-hidden="true" />{:else}<ArrowsClockwiseIcon
+								size={17}
 								aria-hidden="true" />{/if}
 					</button>
 					<button
@@ -267,7 +362,7 @@
 							store.closeMenu()
 							store.detailsPage = "servers"
 						}}>
-						<Server size={15} aria-hidden="true" />
+						<HardDrivesIcon size={17} aria-hidden="true" />
 					</button>
 					<button
 						class:open={menuOpen}
@@ -283,7 +378,7 @@
 							if (menuOpen) store.closeMenu()
 							else store.openMenu(event, place)
 						}}>
-						<MoreHorizontal size={18} />
+						<DotsThreeIcon size={20} aria-hidden="true" />
 					</button>
 				</div>
 			</div>
@@ -291,7 +386,7 @@
 			{#if favorite}
 				<div class="identity-section">
 					<span class="tag-pill favorite">
-						<Star size={11} fill="currentColor" aria-hidden="true" />
+						<StarIcon size={12} weight="fill" aria-hidden="true" />
 						<span>Favorite</span>
 					</span>
 				</div>
@@ -299,7 +394,7 @@
 
 			{#if rootPlace}
 				<p class="game-subplace-note" role="note">
-					<Network size={12} aria-hidden="true" />
+					<TreeStructureIcon size={14} aria-hidden="true" />
 					<span
 						>Subplace of <button
 							class="game-subplace-link"
@@ -314,142 +409,50 @@
 
 			{#if store.detailsError}
 				<p class="game-details-error" role="alert">
-					<AlertTriangle size={14} aria-hidden="true" />
+					<WarningIcon size={16} aria-hidden="true" />
 					<span>{store.detailsError}</span>
 				</p>
 			{/if}
 
 			<section class="game-section" aria-labelledby="game-information">
 				<h3 id="game-information">Details</h3>
-				<div class="game-summary">
-					<dl class="game-facts">
-						<div>
-							<dt><Shapes size={12} aria-hidden="true" />Genre</dt>
-							<dd class="game-fact-wrap">{genre || "—"}</dd>
-						</div>
-						<div>
-							<dt>
-								<ShieldCheck size={12} aria-hidden="true" />Content
-								rating
-							</dt>
-							<dd class="game-fact-wrap">{contentRating || "—"}</dd>
-						</div>
-					</dl>
-
+				<dl class="profile-facts">
+					{#each details as fact (fact.label)}{@render row(fact)}{/each}
 					{#if !rootPlace}
-						<div
-							class="game-rating"
-							class:empty={!votes}
-							role="group"
-							aria-label={game
-								? votes
-									? `${percent.format(likeShare)} of ${numbers.format(votes)} votes are likes`
-									: "No votes"
-								: "Loading votes"}>
-							<span class="game-rating-count">
-								<ThumbsUp size={14} aria-hidden="true" />
-								{#if game}<CompactNumber
-										value={game.upVotes}
-										unit={game.upVotes === 1
-											? "like"
-											: "likes"} />{:else}—{/if}
-							</span>
-							<span class="game-rating-bar">
-								<span class="game-rating-track" aria-hidden="true"
-									><span
-										style:width={`${Math.min(likeShare, 0.5) * 200}%`}
-									></span
-									></span>
-								<span class="game-rating-percent">
-									{#if game && votes}
-										{@const total = `${numbers.format(votes)} ${votes === 1 ? "vote" : "votes"}`}
-										<button
-											class="hover-value"
-											type="button"
-											aria-label={total}
-											data-tooltip={total}
-											data-tooltip-side="top"
-											>{percent.format(likeShare)}</button>
-									{:else}{game ? "No votes" : "—"}{/if}
-								</span>
-								<span class="game-rating-track" aria-hidden="true"
-									><span
-										style:width={`${Math.max(likeShare - 0.5, 0) * 200}%`}
-									></span
-									></span>
-							</span>
-							<span class="game-rating-count">
-								<ThumbsDown size={14} aria-hidden="true" />
-								{#if game}<CompactNumber
-										value={game.downVotes}
-										unit={game.downVotes === 1
-											? "dislike"
-											: "dislikes"} />{:else}—{/if}
-							</span>
-						</div>
-					{/if}
-				</div>
-
-				<dl class="game-facts">
-					{#if !rootPlace}
-						{#each activity as fact (fact.label)}
+						{#each dates as fact (fact.label)}
 							<div>
 								<dt>
 									<fact.icon
-										size={12}
+										size={16}
 										aria-hidden="true" />{fact.label}
 								</dt>
-								<dd class="game-fact-number">
-									{#if fact.value !== undefined}<CompactNumber
-											value={fact.value} />{:else}—{/if}
+								<dd>
+									{#if fact.value}
+										<Timestamp value={fact.value} />
+										<small>{relativeTime(fact.value)}</small>
+									{:else}
+										<span class="profile-value-unavailable"
+											>{game ? "Unavailable" : "—"}</span>
+									{/if}
 								</dd>
 							</div>
 						{/each}
-						<div>
-							<dt><History size={12} aria-hidden="true" />Updated</dt>
-							<dd>
-								{#if game?.updatedAtMs}<Timestamp
-										value={game.updatedAtMs} />{:else}—{/if}
-							</dd>
-						</div>
-						<div>
-							<dt>
-								<CalendarDays size={12} aria-hidden="true" />Created
-							</dt>
-							<dd>
-								{#if game?.createdAtMs}<Timestamp
-										value={game.createdAtMs} />{:else}—{/if}
-							</dd>
-						</div>
 					{/if}
-					<div>
-						<dt><Mic size={12} aria-hidden="true" />Voice chat</dt>
-						<dd>{game ? supported(game.communication?.voiceChat) : "—"}</dd>
-					</div>
-					<div>
-						<dt><Video size={12} aria-hidden="true" />Camera</dt>
-						<dd>{game ? supported(game.communication?.camera) : "—"}</dd>
-					</div>
-					{#each restrictions as fact (fact.label)}
-						<div>
-							<dt>
-								<fact.icon size={12} aria-hidden="true" />{fact.label}
-							</dt>
-							<dd>{fact.value}</dd>
-						</div>
-					{/each}
-					{#each versions as fact (fact.label)}
-						<div>
-							<dt>
-								<fact.icon size={12} aria-hidden="true" />{fact.label}
-							</dt>
-							<dd class="game-fact-number game-fact-copyable">
-								{fact.value ?? (game ? "Unavailable" : "—")}
-							</dd>
-						</div>
-					{/each}
+					{#each versions as fact (fact.label)}{@render row(
+							fact,
+							true,
+						)}{/each}
 				</dl>
 			</section>
+
+			{#if game}
+				<section class="game-section" aria-labelledby="game-features">
+					<h3 id="game-features">Access &amp; features</h3>
+					<dl class="profile-facts">
+						{#each features as fact (fact.label)}{@render row(fact)}{/each}
+					</dl>
+				</section>
+			{/if}
 
 			{#if game}
 				<section class="game-section" aria-labelledby="game-description">

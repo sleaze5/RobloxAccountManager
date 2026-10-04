@@ -1,5 +1,5 @@
 <script lang="ts">
-	import LoaderCircle from "@lucide/svelte/icons/loader-circle"
+	import CircleNotchIcon from "phosphor-svelte/lib/CircleNotchIcon"
 	import ChatAvatar from "./ChatAvatar.svelte"
 	import type { ChatState } from "./chat-state.svelte"
 	import { chatListTime } from "./chat-time"
@@ -31,7 +31,7 @@
 
 {#if chat.loading && chat.conversations.length === 0}
 	<p class="chat-list-status" role="status">
-		<LoaderCircle class="spinner" size={14} aria-hidden="true" />
+		<CircleNotchIcon class="spinner" size={16} aria-hidden="true" />
 		Loading chats
 	</p>
 {:else if chat.conversations.length === 0 && !chat.error}
@@ -83,9 +83,9 @@
 					Load more chats
 				</button>
 			{:else}
-				<LoaderCircle
+				<CircleNotchIcon
 					class="spinner"
-					size={14}
+					size={16}
 					aria-label="Loading more chats" />
 			{/if}
 		</div>

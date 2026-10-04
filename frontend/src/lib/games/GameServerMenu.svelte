@@ -1,6 +1,6 @@
 <script lang="ts">
-	import Hash from "@lucide/svelte/icons/hash"
-	import ListPlus from "@lucide/svelte/icons/list-plus"
+	import HashIcon from "phosphor-svelte/lib/HashIcon"
+	import ListPlusIcon from "phosphor-svelte/lib/ListPlusIcon"
 	import { menuIn, menuOut } from "../shared/presence"
 
 	let {
@@ -124,11 +124,11 @@
 	in:menuIn|global
 	out:menuOut|global>
 	<button type="button" role="menuitem" onclick={onFillLaunch}>
-		<ListPlus size={14} aria-hidden="true" />
+		<ListPlusIcon size={16} aria-hidden="true" />
 		<span>Fill launch options</span>
 	</button>
 	<button type="button" role="menuitem" onclick={onCopyJobId}>
-		<Hash size={14} aria-hidden="true" />
+		<HashIcon size={16} aria-hidden="true" />
 		<span>Copy job ID</span>
 	</button>
 </div>

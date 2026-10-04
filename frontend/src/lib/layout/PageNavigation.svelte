@@ -1,10 +1,10 @@
 <script lang="ts">
-	import FileSearch from "@lucide/svelte/icons/file-search"
-	import Gamepad2 from "@lucide/svelte/icons/gamepad-2"
-	import LoaderCircle from "@lucide/svelte/icons/loader-circle"
-	import LockKeyhole from "@lucide/svelte/icons/lock-keyhole"
-	import Settings from "@lucide/svelte/icons/settings"
-	import Users from "@lucide/svelte/icons/users"
+	import FileMagnifyingGlassIcon from "phosphor-svelte/lib/FileMagnifyingGlassIcon"
+	import GameControllerIcon from "phosphor-svelte/lib/GameControllerIcon"
+	import CircleNotchIcon from "phosphor-svelte/lib/CircleNotchIcon"
+	import LockKeyIcon from "phosphor-svelte/lib/LockKeyIcon"
+	import GearIcon from "phosphor-svelte/lib/GearIcon"
+	import UsersIcon from "phosphor-svelte/lib/UsersIcon"
 	import type { AccountStore } from "../accounts/account-store.svelte"
 
 	let {
@@ -29,7 +29,7 @@
 			type="button"
 			aria-current={activePage === "accounts" ? "page" : undefined}
 			onclick={() => onPage("accounts")}>
-			<Users size={15} aria-hidden="true" />
+			<UsersIcon size={17} aria-hidden="true" />
 			<span>Accounts</span>
 		</button>
 		<button
@@ -37,7 +37,7 @@
 			type="button"
 			aria-current={activePage === "games" ? "page" : undefined}
 			onclick={() => onPage("games")}>
-			<Gamepad2 size={15} aria-hidden="true" />
+			<GameControllerIcon size={17} aria-hidden="true" />
 			<span>Games</span>
 		</button>
 		<button
@@ -45,7 +45,7 @@
 			type="button"
 			aria-current={activePage === "logs-explorer" ? "page" : undefined}
 			onclick={() => onPage("logs-explorer")}>
-			<FileSearch size={15} aria-hidden="true" />
+			<FileMagnifyingGlassIcon size={17} aria-hidden="true" />
 			<span>Logs Explorer</span>
 		</button>
 	</nav>
@@ -58,9 +58,12 @@
 			data-tooltip-side="bottom-end"
 			disabled={!store.vault.unlocked || store.busy}
 			onclick={onLock}>
-			{#if store.busy}<LoaderCircle
+			{#if store.busy}<CircleNotchIcon
 					class="spinner"
-					size={15} />{:else}<LockKeyhole size={15} />{/if}
+					size={17}
+					aria-hidden="true" />{:else}<LockKeyIcon
+					size={17}
+					aria-hidden="true" />{/if}
 		</button>
 		<button
 			type="button"
@@ -68,7 +71,7 @@
 			data-tooltip="Settings"
 			data-tooltip-side="bottom-end"
 			onclick={onSettings}>
-			<Settings size={15} aria-hidden="true" />
+			<GearIcon size={17} aria-hidden="true" />
 		</button>
 	</div>
 </header>

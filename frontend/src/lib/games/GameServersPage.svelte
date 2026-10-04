@@ -1,7 +1,7 @@
 <script lang="ts">
-	import ChevronLeft from "@lucide/svelte/icons/chevron-left"
-	import LoaderCircle from "@lucide/svelte/icons/loader-circle"
-	import RefreshCw from "@lucide/svelte/icons/refresh-cw"
+	import CaretLeftIcon from "phosphor-svelte/lib/CaretLeftIcon"
+	import CircleNotchIcon from "phosphor-svelte/lib/CircleNotchIcon"
+	import ArrowsClockwiseIcon from "phosphor-svelte/lib/ArrowsClockwiseIcon"
 	import { onMount, untrack } from "svelte"
 	import { appSettings } from "../settings/settings-store.svelte"
 	import GameServerMenu from "./GameServerMenu.svelte"
@@ -113,7 +113,7 @@
 			aria-label="Back to game details"
 			data-tooltip="Back to game details"
 			onclick={onBack}>
-			<ChevronLeft size={16} aria-hidden="true" />
+			<CaretLeftIcon size={18} aria-hidden="true" />
 		</button>
 		<h1 id="game-servers-title" tabindex="-1" bind:this={heading}>Servers</h1>
 		<span class="account-settings-identity">{store.displayName(place)}</span>
@@ -141,9 +141,9 @@
 			disabled={active.loading}
 			onclick={refresh}>
 			{#if active.loading}
-				<LoaderCircle class="spinner" size={15} aria-hidden="true" />
+				<CircleNotchIcon class="spinner" size={17} aria-hidden="true" />
 			{:else}
-				<RefreshCw size={15} aria-hidden="true" />
+				<ArrowsClockwiseIcon size={17} aria-hidden="true" />
 			{/if}
 		</button>
 	</header>

@@ -1,6 +1,6 @@
 <script lang="ts">
-	import Download from "@lucide/svelte/icons/download"
-	import X from "@lucide/svelte/icons/x"
+	import DownloadSimpleIcon from "phosphor-svelte/lib/DownloadSimpleIcon"
+	import XIcon from "phosphor-svelte/lib/XIcon"
 	import BrowserRuntimeActivity from "../browser/BrowserRuntimeActivity.svelte"
 	import type { BrowserStore } from "../browser/browser-store.svelte"
 	import { RuntimeStatus } from "../backend/bridge"
@@ -46,7 +46,7 @@
 			<button
 				type="button"
 				aria-label="Dismiss browser download"
-				onclick={onDismiss}><X size={15} /></button>
+				onclick={onDismiss}><XIcon size={17} aria-hidden="true" /></button>
 		</div>
 		<div class="runtime-details">
 			<span>Version</span><code>{runtime.requiredVersion}</code><span
@@ -74,7 +74,7 @@
 						void browser.download(
 							runtime.status === RuntimeStatus.RuntimeDamaged,
 						)}
-					><Download size={14} />{damaged
+					><DownloadSimpleIcon size={16} aria-hidden="true" />{damaged
 						? "Redownload browser"
 						: "Download browser"}</button
 				>{/if}

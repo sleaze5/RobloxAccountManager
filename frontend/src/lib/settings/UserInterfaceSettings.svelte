@@ -1,16 +1,42 @@
 <script lang="ts">
-	import ExternalLink from "@lucide/svelte/icons/external-link"
-	import Info from "@lucide/svelte/icons/info"
-	import RotateCcw from "@lucide/svelte/icons/rotate-ccw"
-	import Save from "@lucide/svelte/icons/save"
-	import { Browser } from "@wailsio/runtime"
-	import { MotionPreference } from "../backend/bridge"
+	import CaretRightIcon from "phosphor-svelte/lib/CaretRightIcon"
+	import InfoIcon from "phosphor-svelte/lib/InfoIcon"
+	import ArrowCounterClockwiseIcon from "phosphor-svelte/lib/ArrowCounterClockwiseIcon"
+	import FloppyDiskIcon from "phosphor-svelte/lib/FloppyDiskIcon"
+	import { accountBackend, MotionPreference } from "../backend/bridge"
+	import type { TimestampFormat } from "../backend/bridge"
 	import Select from "../shared/Select.svelte"
-	import { formatTimestamp, timestampFormats } from "../shared/timestamp"
+	import { defaultTimestampFormats, formatTimestamp } from "../shared/timestamp"
 	import type { SettingsStore } from "./settings-store.svelte"
 
+	type DraftFormat = { format: TimestampFormat | null; error: string }
+
 	const maxFormatLength = 256,
-		momentFormatDocsURL = "https://momentjs.com/docs/#/displaying/format/",
+		tokenReference = [
+			{ token: "$YYYY", label: "Year", example: "2026" },
+			{ token: "$YY", label: "Year, two digits", example: "26" },
+			{ token: "$MMMM", label: "Month name", example: "March" },
+			{ token: "$MMM", label: "Short month name", example: "Mar" },
+			{ token: "$MM", label: "Month, two digits", example: "03" },
+			{ token: "$M", label: "Month", example: "3" },
+			{ token: "$DD", label: "Day, two digits", example: "04" },
+			{ token: "$D", label: "Day", example: "4" },
+			{ token: "$dddd", label: "Weekday", example: "Wednesday" },
+			{ token: "$ddd", label: "Short weekday", example: "Wed" },
+			{ token: "$HH", label: "24-hour hour, two digits", example: "21" },
+			{ token: "$H", label: "24-hour hour", example: "21" },
+			{ token: "$hh", label: "12-hour hour, two digits", example: "09" },
+			{ token: "$h", label: "12-hour hour", example: "9" },
+			{ token: "$mm", label: "Minute, two digits", example: "05" },
+			{ token: "$m", label: "Minute", example: "5" },
+			{ token: "$ss", label: "Second, two digits", example: "07" },
+			{ token: "$s", label: "Second", example: "7" },
+			{ token: "$SSS", label: "Millisecond, three digits", example: "042" },
+			{ token: "$A", label: "AM or PM", example: "PM" },
+			{ token: "$a", label: "am or pm", example: "pm" },
+			{ token: "$relative", label: "Relative time", example: "4 hours ago" },
+			{ token: "$$", label: "Dollar sign", example: "$" },
+		],
 		motionOptions = [
 			{
 				value: MotionPreference.MotionSystem,
@@ -30,28 +56,30 @@
 		]
 
 	let { store, query = "" }: { store: SettingsStore; query?: string } = $props(),
-		timestampFormat = $state<string>(timestampFormats.shown),
-		timestampHoverFormat = $state<string>(timestampFormats.tooltip),
+		timestampFormat = $state<string>(defaultTimestampFormats.shown),
+		timestampHoverFormat = $state<string>(defaultTimestampFormats.hover),
+		shownDraft = $state<DraftFormat>({ format: null, error: "" }),
+		hoverDraft = $state<DraftFormat>({ format: null, error: "" }),
 		previewValue = $state(Date.now() - 16 * 60 * 60 * 1_000),
 		previewNow = $state(Date.now()),
 		normalizedQuery = $derived(query.trim().toLowerCase()),
 		searchTerms = $derived(normalizedQuery.split(/\s+/).filter(Boolean)),
 		previewDateTime = $derived(new Date(previewValue).toISOString()),
-		preview = $derived(formatTimestamp(previewValue, timestampFormat, previewNow)),
-		previewHover = $derived(
-			formatTimestamp(previewValue, timestampHoverFormat, previewNow),
+		preview = $derived(
+			formatTimestamp(previewValue, shownDraft.format, previewNow),
 		),
-		validationError = $derived(
-			!timestampFormat.trim() || !timestampHoverFormat.trim()
-				? "Enter both timestamp formats."
-				: timestampFormat.length > maxFormatLength ||
-					  timestampHoverFormat.length > maxFormatLength
-					? "Timestamp formats cannot exceed 256 characters."
-					: "",
+		previewHover = $derived(
+			formatTimestamp(previewValue, hoverDraft.format, previewNow),
+		),
+		validationErrors = $derived(
+			[
+				shownDraft.error && `Timestamp format: ${shownDraft.error}`,
+				hoverDraft.error && `Hover format: ${hoverDraft.error}`,
+			].filter(Boolean),
 		),
 		changed = $derived(
-			timestampFormat !== store.timestampFormat ||
-				timestampHoverFormat !== store.timestampHoverFormat,
+			timestampFormat !== store.timestampFormat?.source ||
+				timestampHoverFormat !== store.timestampHoverFormat?.source,
 		),
 		showMotion = $derived(
 			matches(
@@ -61,10 +89,16 @@
 			),
 		),
 		showTimestampFormat = $derived(
-			matches("Timestamp format", "Moment.js tokens date time display format"),
+			matches(
+				"Timestamp format",
+				"tokens token reference dollar date time display format",
+			),
 		),
 		showHoverFormat = $derived(
-			matches("Hover format", "Moment.js tokens tooltip relative time"),
+			matches(
+				"Hover format",
+				"tokens token reference dollar tooltip relative time",
+			),
 		),
 		showPreview = $derived(
 			matches("Preview", "display hover tooltip formatted timestamp"),
@@ -74,12 +108,44 @@
 		)
 
 	$effect(() => {
-		if (!store.initialized) {
+		if (!store.timestampFormat || !store.timestampHoverFormat) {
 			return
 		}
-		timestampFormat = store.timestampFormat
-		timestampHoverFormat = store.timestampHoverFormat
+		timestampFormat = store.timestampFormat.source
+		timestampHoverFormat = store.timestampHoverFormat.source
 	})
+
+	$effect(() => parseDraft(timestampFormat, (draft) => (shownDraft = draft)))
+	$effect(() => parseDraft(timestampHoverFormat, (draft) => (hoverDraft = draft)))
+
+	// The backend owns the format syntax. The returned cleanup ignores results for outdated input.
+	function parseDraft(
+		source: string,
+		apply: (draft: DraftFormat) => void,
+	): () => void {
+		let current = true
+		void (async () => {
+			let draft: DraftFormat
+			try {
+				draft = {
+					format: await accountBackend.ParseTimestampFormat(source),
+					error: "",
+				}
+			} catch (error) {
+				draft = {
+					format: null,
+					error:
+						error instanceof Error
+							? error.message
+							: "The format could not be read.",
+				}
+			}
+			if (current) apply(draft)
+		})()
+		return () => {
+			current = false
+		}
+	}
 
 	function matches(
 		name: string,
@@ -91,8 +157,8 @@
 	}
 
 	function restoreDefaults(): void {
-		timestampFormat = timestampFormats.shown
-		timestampHoverFormat = timestampFormats.tooltip
+		timestampFormat = defaultTimestampFormats.shown
+		timestampHoverFormat = defaultTimestampFormats.hover
 	}
 
 	function refreshPreview(): void {
@@ -100,12 +166,8 @@
 		previewNow = previewValue
 	}
 
-	function openMomentFormatDocs(): void {
-		void Browser.OpenURL(momentFormatDocsURL)
-	}
-
 	function saveFormats(): void {
-		if (validationError || !changed) {
+		if (validationErrors.length > 0 || !changed) {
 			return
 		}
 		void store.setTimestampFormats(timestampFormat, timestampHoverFormat)
@@ -141,27 +203,35 @@
 	<section class="settings-section" aria-labelledby="timestamps-title">
 		<h3 id="timestamps-title">Timestamps</h3>
 		<div class="settings-section-help">
-			<Info size={13} aria-hidden="true" />
+			<InfoIcon size={15} aria-hidden="true" />
 			<p>
-				Format dates with
-				<button type="button" onclick={openMomentFormatDocs}
-					>Moment.js tokens<ExternalLink
-						size={10}
-						aria-hidden="true" /></button
-				>. This app also supports <code>[relative]</code> for values such as “4 hours
-				ago.”
+				Start each token with <code>$</code>, such as <code>$YYYY</code>. Other
+				text appears as typed. Use <code>$$</code> to show a <code>$</code> sign.
 			</p>
 		</div>
+		<details class="settings-token-reference">
+			<summary
+				><CaretRightIcon size={14} aria-hidden="true" />Token reference</summary>
+			<p>Examples use Wednesday, March 4, 2026, at 9:05:07.042 PM.</p>
+			<dl>
+				{#each tokenReference as item (item.token)}
+					<div>
+						<dt><code>{item.token}</code></dt>
+						<dd>{item.label}<span>{item.example}</span></dd>
+					</div>
+				{/each}
+			</dl>
+		</details>
 		{#if store.error && !showMotion}
 			<div class="settings-inline-error" role="alert">
 				{store.error}
 			</div>
 		{/if}
-		{#if validationError}
+		{#each validationErrors as error (error)}
 			<div class="settings-inline-error" role="alert">
-				{validationError}
+				{error}
 			</div>
-		{/if}
+		{/each}
 		<form
 			novalidate
 			onsubmit={(event) => {
@@ -174,8 +244,7 @@
 						<div class="settings-row-copy">
 							<strong id="timestamp-format-label"
 								>Timestamp format</strong>
-							<span
-								>Use Moment.js tokens such as YYYY, MMMM, and HH:mm.</span>
+							<span>Use tokens such as $YYYY, $MMMM, and $HH:$mm.</span>
 						</div>
 						<input
 							class="settings-format-input"
@@ -194,7 +263,9 @@
 						<div class="settings-row-copy">
 							<strong id="timestamp-hover-format-label"
 								>Hover format</strong>
-							<span>Use [relative] to insert relative time.</span>
+							<span
+								>Use $relative to show relative time, such as “4 hours
+								ago”.</span>
 						</div>
 						<input
 							class="settings-format-input"
@@ -235,10 +306,10 @@
 						class="settings-row-action"
 						type="button"
 						disabled={store.busyTimestampFormats ||
-							(timestampFormat === timestampFormats.shown &&
-								timestampHoverFormat === timestampFormats.tooltip)}
+							(timestampFormat === defaultTimestampFormats.shown &&
+								timestampHoverFormat === defaultTimestampFormats.hover)}
 						onclick={restoreDefaults}>
-						<RotateCcw size={13} aria-hidden="true" />
+						<ArrowCounterClockwiseIcon size={15} aria-hidden="true" />
 						Restore defaults
 					</button>
 					<button
@@ -247,8 +318,8 @@
 						disabled={!store.initialized ||
 							store.busyTimestampFormats ||
 							!changed ||
-							Boolean(validationError)}>
-						<Save size={13} aria-hidden="true" />
+							validationErrors.length > 0}>
+						<FloppyDiskIcon size={15} aria-hidden="true" />
 						{store.busyTimestampFormats ? "Saving..." : "Save changes"}
 					</button>
 				</div>

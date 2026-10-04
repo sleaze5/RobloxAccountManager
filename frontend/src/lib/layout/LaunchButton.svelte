@@ -1,7 +1,7 @@
 <script lang="ts">
-	import Check from "@lucide/svelte/icons/check"
-	import LoaderCircle from "@lucide/svelte/icons/loader-circle"
-	import Play from "@lucide/svelte/icons/play"
+	import CheckIcon from "phosphor-svelte/lib/CheckIcon"
+	import CircleNotchIcon from "phosphor-svelte/lib/CircleNotchIcon"
+	import PlayIcon from "phosphor-svelte/lib/PlayIcon"
 	import { onDestroy, tick } from "svelte"
 	import type { AccountStore } from "../accounts/account-store.svelte"
 	import { menuIn, menuOut } from "../shared/presence"
@@ -105,12 +105,12 @@
 				void showMenu(bounds.left, bounds.bottom)
 			}
 		}}>
-		{#if store.launching}<LoaderCircle
+		{#if store.launching}<CircleNotchIcon
 				class="spinner"
-				size={14}
+				size={16}
 				aria-hidden="true" />
-		{:else if copied}<Check size={14} aria-hidden="true" />
-		{:else}<Play size={14} fill="currentColor" aria-hidden="true" />{/if}
+		{:else if copied}<CheckIcon size={16} aria-hidden="true" />
+		{:else}<PlayIcon size={16} weight="fill" aria-hidden="true" />{/if}
 		{store.copyingLaunchOptions
 			? "Copying"
 			: store.launching

@@ -442,14 +442,6 @@
 	cursor: help;
 }
 
-.selected-avatar .presence-dot {
-	right: -3px;
-	bottom: -3px;
-	width: 17px;
-	height: 17px;
-	border-width: 3px;
-}
-
 .presence-dot.presence-online,
 .status-dot.presence-online {
 	background: var(--color-presence-online);

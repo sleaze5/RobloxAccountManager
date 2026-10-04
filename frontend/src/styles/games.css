@@ -177,8 +177,8 @@
 }
 
 .game-icon.large {
-	width: 64px;
-	height: 64px;
+	width: var(--game-icon-size-large);
+	height: var(--game-icon-size-large);
 }
 
 .game-icon img {
@@ -239,18 +239,52 @@
 	color: var(--color-text-muted);
 }
 
-.game-title {
-	display: flex;
-	min-width: 0;
-	min-height: var(--control-height-md);
+.game-playing {
+	display: inline-flex;
 	align-items: center;
 	gap: var(--space-1);
+	color: var(--color-text-muted);
+	font-size: var(--text-12);
+	font-weight: var(--font-medium);
+	font-variant-numeric: tabular-nums;
+}
+
+.game-playing.active {
+	color: var(--color-presence-game);
+}
+
+.game-identity {
+	align-items: flex-start;
+}
+
+/* Inline flow keeps the star and nickname after the last word of a wrapped name. */
+.game-title {
+	min-width: 0;
+	line-height: var(--control-height-sm);
+}
+
+.game-title > .game-name {
+	display: inline;
+	margin-right: var(--space-1);
+	line-height: inherit;
+}
+
+.game-name-end {
+	white-space: nowrap;
+}
+
+.game-name .favorite-name-star {
+	display: inline-block;
+	margin-left: var(--space-1);
+	vertical-align: -1px;
 }
 
 .game-nickname {
-	display: flex;
+	display: inline-flex;
+	max-width: 100%;
 	min-width: 0;
 	align-items: center;
+	vertical-align: top;
 	gap: 2px;
 	color: var(--color-text-muted);
 	font-size: var(--text-13);
@@ -321,121 +355,8 @@
 	text-transform: uppercase;
 }
 
-.game-facts {
-	display: grid;
-	grid-template-columns: repeat(4, minmax(0, 1fr));
-	gap: var(--space-2) var(--space-3);
-}
-
-.game-facts > div {
-	min-width: 0;
-}
-
-.game-facts dt {
-	display: flex;
-	align-items: center;
-	gap: 5px;
-	color: var(--color-text-muted);
-	font-size: var(--text-10-5);
-	line-height: var(--space-4);
-}
-
-.game-facts dt > svg {
-	flex: 0 0 auto;
-	color: var(--color-text-faint);
-}
-
-.game-facts dd {
-	overflow: hidden;
-	color: var(--color-text);
-	font-size: var(--text-12);
-	line-height: 20px;
-	text-overflow: ellipsis;
-	white-space: nowrap;
-}
-
-.game-facts dd.game-fact-number {
-	font-family: var(--font-mono);
-	font-size: var(--text-11-5);
-}
-
-.game-facts dd.game-fact-copyable {
+.game-fact-copyable {
 	user-select: text;
-}
-
-.game-facts dd.game-fact-wrap {
-	white-space: normal;
-}
-
-.game-summary {
-	display: grid;
-	grid-template-columns: repeat(4, minmax(0, 1fr));
-	align-items: center;
-	gap: var(--space-2) var(--space-3);
-}
-
-.game-summary > .game-facts {
-	grid-column: span 2;
-	grid-template-columns: repeat(2, minmax(0, 1fr));
-}
-
-.game-rating {
-	display: flex;
-	grid-column: span 2;
-	align-items: center;
-	gap: var(--space-2);
-	font-family: var(--font-mono);
-	font-size: var(--text-11);
-}
-
-.game-rating-count {
-	display: flex;
-	min-width: 32px;
-	flex-direction: column;
-	align-items: center;
-	gap: 2px;
-	color: var(--color-text);
-}
-
-.game-rating-count > svg {
-	color: var(--color-text-faint);
-}
-
-.game-rating-bar {
-	display: flex;
-	flex: 0 0 auto;
-	align-items: center;
-}
-
-.game-rating-track {
-	display: block;
-	width: 40px;
-	height: 4px;
-	overflow: hidden;
-	border-radius: 999px;
-	background: var(--color-border-strong);
-}
-
-.game-rating-track > span {
-	display: block;
-	height: 100%;
-	border-radius: inherit;
-	background: var(--color-text-muted);
-	transition: width var(--duration-enter) var(--ease-standard);
-}
-
-.game-rating-percent {
-	min-width: 7ch;
-	flex: 0 0 auto;
-	padding: 0 6px;
-	text-align: center;
-	color: var(--color-text);
-	font-weight: var(--font-semibold);
-}
-
-.game-rating.empty .game-rating-percent {
-	color: var(--color-text-muted);
-	font-weight: var(--font-normal);
 }
 
 .game-description-empty {

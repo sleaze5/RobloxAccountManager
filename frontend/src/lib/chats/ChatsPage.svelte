@@ -1,9 +1,9 @@
 <script lang="ts">
-	import CheckCheck from "@lucide/svelte/icons/check-check"
-	import ChevronLeft from "@lucide/svelte/icons/chevron-left"
-	import LoaderCircle from "@lucide/svelte/icons/loader-circle"
-	import RefreshCw from "@lucide/svelte/icons/refresh-cw"
-	import SquarePen from "@lucide/svelte/icons/square-pen"
+	import ChecksIcon from "phosphor-svelte/lib/ChecksIcon"
+	import CaretLeftIcon from "phosphor-svelte/lib/CaretLeftIcon"
+	import CircleNotchIcon from "phosphor-svelte/lib/CircleNotchIcon"
+	import ArrowsClockwiseIcon from "phosphor-svelte/lib/ArrowsClockwiseIcon"
+	import NotePencilIcon from "phosphor-svelte/lib/NotePencilIcon"
 	import { onMount, tick, untrack } from "svelte"
 	import type { AccountStore } from "../accounts/account-store.svelte"
 	import ChatList from "./ChatList.svelte"
@@ -51,7 +51,7 @@
 			aria-label="Back to profile"
 			data-tooltip="Back to profile"
 			onclick={onBack}>
-			<ChevronLeft size={16} aria-hidden="true" />
+			<CaretLeftIcon size={18} aria-hidden="true" />
 		</button>
 		<h1 id="chats-title" tabindex="-1" bind:this={heading}>Chats</h1>
 		<span class="account-settings-identity">@{account.username}</span>
@@ -61,7 +61,7 @@
 			aria-expanded={creatingOpen}
 			data-tooltip="New chat"
 			onclick={() => void toggleNewChat()}>
-			<SquarePen size={15} aria-hidden="true" />
+			<NotePencilIcon size={17} aria-hidden="true" />
 		</button>
 		<button
 			type="button"
@@ -71,9 +71,9 @@
 			disabled={chat.markingAll || chat.loading}
 			onclick={() => void chat.markAllRead()}>
 			{#if chat.markingAll}
-				<LoaderCircle class="spinner" size={15} aria-hidden="true" />
+				<CircleNotchIcon class="spinner" size={17} aria-hidden="true" />
 			{:else}
-				<CheckCheck size={15} aria-hidden="true" />
+				<ChecksIcon size={17} aria-hidden="true" />
 			{/if}
 		</button>
 		<button
@@ -84,9 +84,9 @@
 			disabled={chat.loading}
 			onclick={() => void chat.refresh()}>
 			{#if chat.loading}
-				<LoaderCircle class="spinner" size={15} aria-hidden="true" />
+				<CircleNotchIcon class="spinner" size={17} aria-hidden="true" />
 			{:else}
-				<RefreshCw size={15} aria-hidden="true" />
+				<ArrowsClockwiseIcon size={17} aria-hidden="true" />
 			{/if}
 		</button>
 	</header>
@@ -121,9 +121,9 @@
 						aria-busy={chat.creating}
 						disabled={chat.creating || !username.trim()}>
 						{#if chat.creating}
-							<LoaderCircle
+							<CircleNotchIcon
 								class="spinner"
-								size={13}
+								size={15}
 								aria-hidden="true" />
 						{/if}
 						Start

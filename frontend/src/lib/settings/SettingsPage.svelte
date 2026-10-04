@@ -1,13 +1,13 @@
 <script lang="ts">
-	import ChevronLeft from "@lucide/svelte/icons/chevron-left"
-	import Gamepad2 from "@lucide/svelte/icons/gamepad-2"
-	import Info from "@lucide/svelte/icons/info"
-	import KeyRound from "@lucide/svelte/icons/key-round"
-	import MonitorCog from "@lucide/svelte/icons/monitor-cog"
-	import Plug from "@lucide/svelte/icons/plug"
-	import Search from "@lucide/svelte/icons/search"
-	import SlidersHorizontal from "@lucide/svelte/icons/sliders-horizontal"
-	import X from "@lucide/svelte/icons/x"
+	import CaretLeftIcon from "phosphor-svelte/lib/CaretLeftIcon"
+	import GameControllerIcon from "phosphor-svelte/lib/GameControllerIcon"
+	import InfoIcon from "phosphor-svelte/lib/InfoIcon"
+	import KeyIcon from "phosphor-svelte/lib/KeyIcon"
+	import MonitorIcon from "phosphor-svelte/lib/MonitorIcon"
+	import PlugIcon from "phosphor-svelte/lib/PlugIcon"
+	import MagnifyingGlassIcon from "phosphor-svelte/lib/MagnifyingGlassIcon"
+	import SlidersHorizontalIcon from "phosphor-svelte/lib/SlidersHorizontalIcon"
+	import XIcon from "phosphor-svelte/lib/XIcon"
 	import type { AccountStore } from "../accounts/account-store.svelte"
 	import type { BrowserStore } from "../browser/browser-store.svelte"
 	import AboutSettings from "./AboutSettings.svelte"
@@ -22,37 +22,37 @@
 
 	const categories = [
 		{
-			icon: KeyRound,
+			icon: KeyIcon,
 			id: "vault",
 			label: "Vault",
 			search: "vault security vault status unlocked automatic unlock without master password when the app starts enable disable on off operating system user account lock vault test master password last tested not tested change master password rotate encryption key update password test reminder choose how often asks confirm",
 		},
 		{
-			icon: SlidersHorizontal,
+			icon: SlidersHorizontalIcon,
 			id: "general",
 			label: "General",
 			search: "general presence updates automatic enabled disabled interval seconds minutes online offline in game accounts bar all stored accounts batches active profile selected account while its profile is open logging all log levels enable disable every level trace detailed requests internal operations debug diagnostic information development info normal application activity completed operations warning recoverable problems need attention error failed operations critical problems",
 		},
 		{
-			icon: MonitorCog,
+			icon: MonitorIcon,
 			id: "user-interface",
 			label: "User Interface",
-			search: "user interface motion animations animation reduce reduced full system operating system effects timestamps timestamp date time display format hover tooltip relative preview moment reset defaults save",
+			search: "user interface motion animations animation reduce reduced full system operating system effects timestamps timestamp date time display format hover tooltip relative preview tokens token reference dollar reset defaults save",
 		},
 		{
-			icon: Gamepad2,
+			icon: GameControllerIcon,
 			id: "roblox",
 			label: "Roblox",
 			search: "roblox multi instance multi-instance launch multiple games same time windows processes close ready status enabled disabled account manager open linux client sober mocktail automatic desktop default join",
 		},
 		{
-			icon: Plug,
+			icon: PlugIcon,
 			id: "integrations",
 			label: "Integrations",
 			search: "integrations rovalra api server browser servers information features enabled disabled on off browser chrome testing runtime version download redownload remove disk usage installed invalid manage",
 		},
 		{
-			icon: Info,
+			icon: InfoIcon,
 			id: "about",
 			label: "About",
 			search: "about updates update check latest download install restart new release version build time timestamp unix platform architecture arch os go wails revision commit launch id startup stages timings duration ready loaded components schema format version settings vault database sqlite sqlcipher key file automatic unlock browser runtime manifest log created loaded recovered",
@@ -105,7 +105,7 @@
 			aria-label="Back to accounts"
 			data-tooltip="Back to accounts"
 			onclick={onBack}>
-			<ChevronLeft size={16} aria-hidden="true" />
+			<CaretLeftIcon size={18} aria-hidden="true" />
 		</button>
 		<h1 id="settings-title">Settings</h1>
 	</header>
@@ -113,7 +113,7 @@
 	<div class="settings-layout">
 		<aside class="settings-sidebar">
 			<div class="search-field">
-				<Search size={15} aria-hidden="true" />
+				<MagnifyingGlassIcon size={17} aria-hidden="true" />
 				<input
 					bind:value={query}
 					type="search"
@@ -125,7 +125,7 @@
 						type="button"
 						aria-label="Clear settings search"
 						onclick={() => (query = "")}>
-						<X size={12} aria-hidden="true" />
+						<XIcon size={14} aria-hidden="true" />
 					</button>
 				{/if}
 			</div>
@@ -137,7 +137,7 @@
 							? "page"
 							: undefined}
 						onclick={() => (activeCategory = category)}>
-						<category.icon size={15} aria-hidden="true" />
+						<category.icon size={17} aria-hidden="true" />
 						<span>{category.label}</span>
 					</button>
 				{/each}

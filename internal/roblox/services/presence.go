@@ -11,10 +11,7 @@ import (
 	"github.com/sleaze5/RobloxAccountManager/internal/roblox"
 )
 
-const (
-	presenceWorkerLimit        = 4
-	maxPresenceUsersPerRequest = 50
-)
+const presenceWorkerLimit = 4
 
 type PresenceType int
 
@@ -52,6 +49,10 @@ func NewPresence(client *roblox.Client) *Presence {
 	return &Presence{client: client, endpoint: endpoint}
 }
 
+// AccountPresences reads each account's presence with that account's own session.
+// Roblox reports a user as offline to viewers excluded by the user's online-status
+// privacy, so a batch read through one account can hide the others' real presence.
+// Accounts whose read fails are omitted so callers keep their last known presence.
 func (service *Presence) AccountPresences(ctx context.Context, targets []PresenceTarget) ([]UserPresence, error) {
 	targets, err := normalizePresenceTargets(targets)
 	if err != nil {
@@ -61,68 +62,36 @@ func (service *Presence) AccountPresences(ctx context.Context, targets []Presenc
 		return []UserPresence{}, nil
 	}
 
-	type job struct {
-		start   int
-		targets []PresenceTarget
-	}
-	type result struct {
-		start int
-		views []UserPresence
-		err   error
-	}
-
-	batchCount := (len(targets) + maxPresenceUsersPerRequest - 1) / maxPresenceUsersPerRequest
-	jobs := make(chan job, batchCount)
-	results := make(chan result, batchCount)
-	for start := 0; start < len(targets); start += maxPresenceUsersPerRequest {
-		end := min(start+maxPresenceUsersPerRequest, len(targets))
-		jobs <- job{start: start, targets: targets[start:end]}
+	views := make([]UserPresence, len(targets))
+	failures := make([]error, len(targets))
+	jobs := make(chan int, len(targets))
+	for index := range targets {
+		jobs <- index
 	}
 	close(jobs)
-
 	var workers sync.WaitGroup
-	for range min(presenceWorkerLimit, batchCount) {
-		workers.Add(1)
-		go func() {
-			defer workers.Done()
-			for job := range jobs {
-				views, err := service.requestPresences(ctx, job.targets)
-				results <- result{start: job.start, views: views, err: err}
+	for range min(presenceWorkerLimit, len(targets)) {
+		workers.Go(func() {
+			for index := range jobs {
+				views[index], failures[index] = service.requestPresence(ctx, targets[index])
 			}
-		}()
+		})
 	}
 	workers.Wait()
-	close(results)
 
-	ordered := make([]UserPresence, len(targets))
-	available := make([]bool, len(targets))
-	availableCount := 0
+	available := make([]UserPresence, 0, len(targets))
 	var firstError error
-	for result := range results {
-		if result.err != nil {
-			if firstError == nil {
-				firstError = result.err
-			}
-			continue
-		}
-		for index, view := range result.views {
-			position := result.start + index
-			ordered[position] = view
-			available[position] = true
-			availableCount++
+	for index, failure := range failures {
+		if failure == nil {
+			available = append(available, views[index])
+		} else if firstError == nil {
+			firstError = failure
 		}
 	}
-	if firstError != nil && (availableCount == 0 || ctx.Err() != nil) {
+	if firstError != nil && (len(available) == 0 || ctx.Err() != nil) {
 		return nil, firstError
 	}
-
-	views := make([]UserPresence, 0, availableCount)
-	for index, view := range ordered {
-		if available[index] {
-			views = append(views, view)
-		}
-	}
-	return views, nil
+	return available, nil
 }
 
 func normalizePresenceTargets(targets []PresenceTarget) ([]PresenceTarget, error) {
@@ -145,16 +114,12 @@ func normalizePresenceTargets(targets []PresenceTarget) ([]PresenceTarget, error
 	return unique, nil
 }
 
-func (service *Presence) requestPresences(ctx context.Context, targets []PresenceTarget) ([]UserPresence, error) {
-	userIDs := make([]int64, len(targets))
-	for index, target := range targets {
-		userIDs[index] = target.RobloxUserID
-	}
+func (service *Presence) requestPresence(ctx context.Context, target PresenceTarget) (UserPresence, error) {
 	body, err := json.Marshal(struct {
 		UserIDs []int64 `json:"userIds"`
-	}{UserIDs: userIDs})
+	}{UserIDs: []int64{target.RobloxUserID}})
 	if err != nil {
-		return nil, &roblox.Error{
+		return UserPresence{}, &roblox.Error{
 			Kind:     roblox.KindProtocol,
 			Endpoint: "user-presences",
 			Message:  "The presence request could not be created.",
@@ -163,14 +128,14 @@ func (service *Presence) requestPresences(ctx context.Context, targets []Presenc
 	}
 	response, err := service.client.Do(ctx, roblox.Request{
 		Endpoint:        "user-presences",
-		AccountID:       targets[0].AccountID,
+		AccountID:       target.AccountID,
 		Authenticated:   true,
 		Method:          http.MethodPost,
 		URL:             service.endpoint,
 		Body:            body,
 		ContentType:     "application/json",
 		RequiresCSRF:    true,
-		MaxResponseSize: 512 << 10,
+		MaxResponseSize: 64 << 10,
 		Retry: roblox.RetryPolicy{
 			MaxAttempts:       3,
 			Idempotent:        true,
@@ -179,7 +144,7 @@ func (service *Presence) requestPresences(ctx context.Context, targets []Presenc
 		},
 	})
 	if err != nil {
-		return nil, err
+		return UserPresence{}, err
 	}
 	var payload struct {
 		UserPresences []struct {
@@ -193,42 +158,32 @@ func (service *Presence) requestPresences(ctx context.Context, targets []Presenc
 		} `json:"userPresences"`
 	}
 	if err := json.Unmarshal(response.Body, &payload); err != nil {
-		return nil, &roblox.Error{
-			Kind:     roblox.KindProtocol,
-			Endpoint: "user-presences",
-			Status:   response.Status,
-			Message:  "Roblox returned invalid presence data.",
-			Cause:    err,
-		}
+		return UserPresence{}, invalidPresence(response.Status, err)
 	}
-	requested := make(map[int64]struct{}, len(targets))
-	for _, target := range targets {
-		requested[target.RobloxUserID] = struct{}{}
-	}
-	byUserID := make(map[int64]UserPresence, len(payload.UserPresences))
 	for _, item := range payload.UserPresences {
-		if _, expected := requested[item.UserID]; !expected {
-			continue
-		}
-		byUserID[item.UserID] = UserPresence{
-			UserID:           item.UserID,
-			UserPresenceType: presenceType(item.Type),
-			LastLocation:     strings.TrimSpace(item.LastLocation),
-			PlaceID:          item.PlaceID,
-			RootPlaceID:      item.RootPlaceID,
-			GameID:           strings.TrimSpace(item.GameID),
-			UniverseID:       item.UniverseID,
+		if item.UserID == target.RobloxUserID {
+			return UserPresence{
+				UserID:           item.UserID,
+				UserPresenceType: presenceType(item.Type),
+				LastLocation:     strings.TrimSpace(item.LastLocation),
+				PlaceID:          item.PlaceID,
+				RootPlaceID:      item.RootPlaceID,
+				GameID:           strings.TrimSpace(item.GameID),
+				UniverseID:       item.UniverseID,
+			}, nil
 		}
 	}
-	views := make([]UserPresence, len(targets))
-	for index, target := range targets {
-		view, exists := byUserID[target.RobloxUserID]
-		if !exists {
-			view = UserPresence{UserID: target.RobloxUserID, UserPresenceType: PresenceTypeUnknown}
-		}
-		views[index] = view
+	return UserPresence{}, invalidPresence(response.Status, nil)
+}
+
+func invalidPresence(status int, cause error) error {
+	return &roblox.Error{
+		Kind:     roblox.KindProtocol,
+		Endpoint: "user-presences",
+		Status:   status,
+		Message:  "Roblox returned invalid presence data.",
+		Cause:    cause,
 	}
-	return views, nil
 }
 
 func presenceType(value int) PresenceType {

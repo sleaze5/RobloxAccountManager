@@ -1,6 +1,6 @@
 <script lang="ts">
-	import ClipboardPaste from "@lucide/svelte/icons/clipboard-paste"
-	import Globe2 from "@lucide/svelte/icons/earth"
+	import ClipboardTextIcon from "phosphor-svelte/lib/ClipboardTextIcon"
+	import GlobeHemisphereWestIcon from "phosphor-svelte/lib/GlobeHemisphereWestIcon"
 	import { menuIn, menuOut } from "../shared/presence"
 
 	let {
@@ -13,11 +13,11 @@
 
 <div class="add-account-menu account-menu" data-account-menu in:menuIn out:menuOut>
 	<button type="button" {disabled} onclick={onPasteCookie}>
-		<ClipboardPaste size={14} />
+		<ClipboardTextIcon size={16} aria-hidden="true" />
 		<span>Paste cookie</span>
 	</button>
 	<button type="button" {disabled} onclick={onBrowser}>
-		<Globe2 size={14} />
+		<GlobeHemisphereWestIcon size={16} aria-hidden="true" />
 		<span>Browser</span>
 	</button>
 </div>

@@ -1,14 +1,18 @@
 import { accountBackend, MotionPreference } from "../backend/bridge"
-import type { GameRegion, PresenceScope, PresenceSettings } from "../backend/bridge"
+import type {
+	GameRegion,
+	PresenceScope,
+	PresenceSettings,
+	TimestampFormat,
+} from "../backend/bridge"
 import { setMotionPreference } from "../shared/motion"
-import { timestampFormats } from "../shared/timestamp"
 import type { NotificationCenter } from "../notifications/notification-center.svelte"
 
 export type LoggingLevel = "trace" | "debug" | "info" | "warn" | "error"
 
 export class SettingsStore {
 	presence = $state<PresenceSettings>({
-		accounts: { enabled: true, intervalSeconds: 120 },
+		accounts: { enabled: true, intervalSeconds: 300 },
 		profile: { enabled: true, intervalSeconds: 60 },
 	})
 	busyPresence = $state(false)
@@ -19,8 +23,8 @@ export class SettingsStore {
 		trace: false,
 		warn: true,
 	})
-	timestampFormat = $state<string>(timestampFormats.shown)
-	timestampHoverFormat = $state<string>(timestampFormats.tooltip)
+	timestampFormat = $state<TimestampFormat | null>(null)
+	timestampHoverFormat = $state<TimestampFormat | null>(null)
 	busyLevel = $state<LoggingLevel | "all" | null>(null)
 	busyTimestampFormats = $state(false)
 	motion = $state(MotionPreference.MotionSystem)
@@ -46,8 +50,8 @@ export class SettingsStore {
 				LoggingLevel,
 				boolean
 			>
-			this.timestampFormat = settings.timestampFormat
-			this.timestampHoverFormat = settings.timestampHoverFormat
+			this.timestampFormat = settings.timestampFormats.shown
+			this.timestampHoverFormat = settings.timestampFormats.hover
 			this.motion = settings.motion
 			setMotionPreference(settings.motion)
 			this.roValraEnabled = settings.roValraEnabled
@@ -254,12 +258,12 @@ export class SettingsStore {
 		this.busyTimestampFormats = true
 		this.error = ""
 		try {
-			await accountBackend.SetTimestampFormats(
+			const formats = await accountBackend.SetTimestampFormats(
 				timestampFormat,
 				timestampHoverFormat,
 			)
-			this.timestampFormat = timestampFormat
-			this.timestampHoverFormat = timestampHoverFormat
+			this.timestampFormat = formats.shown
+			this.timestampHoverFormat = formats.hover
 			return true
 		} catch (error) {
 			this.error =

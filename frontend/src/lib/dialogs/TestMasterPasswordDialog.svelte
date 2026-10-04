@@ -1,7 +1,7 @@
 <script lang="ts">
-	import Eye from "@lucide/svelte/icons/eye"
-	import EyeOff from "@lucide/svelte/icons/eye-off"
-	import ShieldCheck from "@lucide/svelte/icons/shield-check"
+	import EyeIcon from "phosphor-svelte/lib/EyeIcon"
+	import EyeSlashIcon from "phosphor-svelte/lib/EyeSlashIcon"
+	import ShieldCheckIcon from "phosphor-svelte/lib/ShieldCheckIcon"
 	import type { AccountStore } from "../accounts/account-store.svelte"
 	import {
 		modalBackdropIn,
@@ -38,7 +38,7 @@
 			event.preventDefault()
 			void testPassword()
 		}}>
-		<div class="modal-icon"><ShieldCheck size={18} /></div>
+		<div class="modal-icon"><ShieldCheckIcon size={20} aria-hidden="true" /></div>
 		<h2>Test master password</h2>
 		<p>Confirm that you still know the portable vault password.</p>
 		{#if store.error}<div class="modal-error" role="alert">
@@ -57,7 +57,9 @@
 			class="visibility-control"
 			type="button"
 			onclick={() => (visible = !visible)}>
-			{#if visible}<EyeOff size={14} /> Hide password{:else}<Eye size={14} /> Show password{/if}
+			{#if visible}<EyeSlashIcon size={16} aria-hidden="true" /> Hide password{:else}<EyeIcon
+					size={16}
+					aria-hidden="true" /> Show password{/if}
 		</button>
 		{#if store.vault.passwordHint}
 			<div class="modal-note">Hint: {store.vault.passwordHint}</div>

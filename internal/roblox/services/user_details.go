@@ -60,26 +60,6 @@ func (service *Users) PendingRobux(ctx context.Context, accountID, version, user
 	return result.PendingRobux, err
 }
 
-func (service *Users) AgeGroup(ctx context.Context, accountID, version, userID int64) (string, error) {
-	var result struct {
-		PlayerInfo *struct {
-			UserID     string `json:"userId"`
-			AgeBracket string `json:"ageBracket"`
-		} `json:"playerInfo"`
-	}
-	err := service.readAccountDetails(ctx, accountID, version, "profile-age-group", "https://apis.roblox.com/player-hydration-service/v1/players/signed", &result)
-	if err != nil {
-		return "", err
-	}
-	if result.PlayerInfo == nil || result.PlayerInfo.UserID == "" || result.PlayerInfo.AgeBracket == "" || len(result.PlayerInfo.AgeBracket) > 64 {
-		return "", invalidProfileDetails("profile-age-group")
-	}
-	if result.PlayerInfo.UserID != strconv.FormatInt(userID, 10) {
-		return "", profileIdentityError()
-	}
-	return result.PlayerInfo.AgeBracket, nil
-}
-
 func (service *Users) AgeVerified(ctx context.Context, accountID, version int64) (*bool, error) {
 	var result struct {
 		IsVerified *bool `json:"isVerified"`

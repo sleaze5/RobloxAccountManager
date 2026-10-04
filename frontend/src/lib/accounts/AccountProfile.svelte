@@ -1,25 +1,23 @@
 <script lang="ts">
-	import BadgeCheck from "@lucide/svelte/icons/badge-check"
-	import Settings from "@lucide/svelte/icons/settings"
-	import Hash from "@lucide/svelte/icons/hash"
-	import LoaderCircle from "@lucide/svelte/icons/loader-circle"
-	import MoreHorizontal from "@lucide/svelte/icons/ellipsis"
-	import MessagesSquare from "@lucide/svelte/icons/messages-square"
-	import RefreshCw from "@lucide/svelte/icons/refresh-cw"
-	import Star from "@lucide/svelte/icons/star"
-	import Tags from "@lucide/svelte/icons/tags"
+	import SealCheckIcon from "phosphor-svelte/lib/SealCheckIcon"
+	import GearIcon from "phosphor-svelte/lib/GearIcon"
+	import HashIcon from "phosphor-svelte/lib/HashIcon"
+	import CircleNotchIcon from "phosphor-svelte/lib/CircleNotchIcon"
+	import DotsThreeIcon from "phosphor-svelte/lib/DotsThreeIcon"
+	import ChatsIcon from "phosphor-svelte/lib/ChatsIcon"
+	import ArrowsClockwiseIcon from "phosphor-svelte/lib/ArrowsClockwiseIcon"
+	import StarIcon from "phosphor-svelte/lib/StarIcon"
+	import TagIcon from "phosphor-svelte/lib/TagIcon"
 	import { tick, untrack } from "svelte"
-	import { PresenceType } from "../backend/bridge"
 	import ChatsPage from "../chats/ChatsPage.svelte"
 	import type { WorkspaceState } from "../layout/workspace-state.svelte"
 	import type { NotificationCenter } from "../notifications/notification-center.svelte"
 	import CompactNumber from "../shared/CompactNumber.svelte"
-	import Timestamp from "../shared/Timestamp.svelte"
 	import { appSettings } from "../settings/settings-store.svelte"
 	import { menuIn, menuOut } from "../shared/presence"
 	import AccountAvatar from "./AccountAvatar.svelte"
 	import AccountMembershipBadges from "./AccountMembershipBadges.svelte"
-	import AccountPresenceCard from "./AccountPresenceCard.svelte"
+	import AccountPresence from "./AccountPresence.svelte"
 	import AccountProfileBalance from "./AccountProfileBalance.svelte"
 	import AccountProfileDetails from "./AccountProfileDetails.svelte"
 	import AccountSettingsPage from "./AccountSettingsPage.svelte"
@@ -136,20 +134,19 @@
 						)}>
 					<AccountAvatar
 						account={selectedAccount}
-						className="selected-avatar"
-						showPresence={true} />
+						className="selected-avatar" />
 				</button>
 				<div class="identity-copy">
 					<h2 id="account-name" class="account-display-name">
 						<span>{selectedAccount.displayName}</span>
-						{#if selectedAccount.favorite}<Star
+						{#if selectedAccount.favorite}<StarIcon
 								class="favorite-name-star"
-								size={13}
-								fill="currentColor"
-								aria-hidden="true" />{/if}
-						{#if profile?.verifiedBadge}<BadgeCheck
-								class="profile-verified-badge"
 								size={15}
+								weight="fill"
+								aria-hidden="true" />{/if}
+						{#if profile?.verifiedBadge}<SealCheckIcon
+								class="profile-verified-badge"
+								size={17}
 								aria-label="Verified" />{/if}
 					</h2>
 					{#if hasAccount}
@@ -159,6 +156,10 @@
 							<span>ID: {selectedAccount.userId}</span>
 						</div>
 						{#if store.vault.unlocked}
+							<AccountPresence
+								presence={selectedAccount.presence}
+								updatesEnabled={appSettings.presence.profile.enabled}
+								onJoin={onJoinServer} />
 							<div class="profile-balance-row">
 								<AccountProfileBalance
 									snapshot={profile}
@@ -185,9 +186,9 @@
 						profileState?.loading}
 					onclick={() => void profileState?.refresh(true)}>
 					{#if profileState?.loading}
-						<LoaderCircle class="spinner" size={15} aria-hidden="true" />
+						<CircleNotchIcon class="spinner" size={17} aria-hidden="true" />
 					{:else}
-						<RefreshCw size={15} aria-hidden="true" />
+						<ArrowsClockwiseIcon size={17} aria-hidden="true" />
 					{/if}
 				</button>
 				<button
@@ -198,7 +199,7 @@
 					disabled={!hasAccount || !store.vault.unlocked}
 					bind:this={chatsButton}
 					onclick={() => openPage("chats")}>
-					<MessagesSquare size={15} />
+					<ChatsIcon size={17} aria-hidden="true" />
 				</button>
 				<button
 					class="control-button"
@@ -208,7 +209,7 @@
 					disabled={!hasAccount || !store.vault.unlocked}
 					bind:this={settingsButton}
 					onclick={() => openPage("settings")}>
-					<Settings size={15} />
+					<GearIcon size={17} aria-hidden="true" />
 				</button>
 				<button
 					class="icon-action bordered"
@@ -224,7 +225,7 @@
 						if (workspace.accountContextMenu) workspace.closeAccountMenus()
 						else workspace.openAccountContextMenu(event, selectedAccount.id)
 					}}>
-					<MoreHorizontal size={18} />
+					<DotsThreeIcon size={20} aria-hidden="true" />
 				</button>
 			</div>
 		</div>
@@ -233,13 +234,13 @@
 			<div class="identity-section">
 				{#if selectedAccount.favorite}
 					<span class="tag-pill favorite">
-						<Star size={11} fill="currentColor" />
+						<StarIcon size={12} weight="fill" aria-hidden="true" />
 						<span>Favorite</span>
 					</span>
 				{/if}
 				{#each selectedCustomTags as tag (tag.id)}
 					<span class="tag-pill">
-						<Hash size={11} aria-hidden="true" />
+						<HashIcon size={12} aria-hidden="true" />
 						<span>{tag.name}</span>
 					</span>
 				{/each}
@@ -253,7 +254,7 @@
 						data-tooltip="Edit account tags"
 						disabled={store.busy}
 						onclick={() => workspace.toggleAccountMenu("profile-tags")}>
-						<Tags size={13} />
+						<TagIcon size={15} aria-hidden="true" />
 					</button>
 					{#if workspace.activeAccountMenu === "profile-tags"}
 						<div
@@ -283,22 +284,6 @@
 				</dl>
 			{/if}
 
-			{#if store.vault.unlocked && selectedAccount.presence.userPresenceType !== PresenceType.PresenceTypeOffline}
-				<AccountPresenceCard
-					presence={selectedAccount.presence}
-					updatesEnabled={appSettings.presence.profile.enabled}
-					onJoin={onJoinServer} />
-			{/if}
-
-			<AccountProfileDetails account={selectedAccount} snapshot={profile} />
-			{#if profileVisible && profileState?.error}
-				<p class="profile-read-error" role="alert">{profileState.error}</p>
-			{:else if (profile?.unavailable?.length ?? 0) > 0}
-				<p class="profile-read-error" role="alert">
-					Some profile details could not be refreshed. Refresh to retry.
-				</p>
-			{/if}
-
 			{#if profile?.description}
 				<section
 					class="profile-section"
@@ -308,6 +293,15 @@
 					</h3>
 					<pre class="text-block">{profile.description}</pre>
 				</section>
+			{/if}
+
+			<AccountProfileDetails account={selectedAccount} snapshot={profile} />
+			{#if profileVisible && profileState?.error}
+				<p class="profile-read-error" role="alert">{profileState.error}</p>
+			{:else if (profile?.unavailable?.length ?? 0) > 0}
+				<p class="profile-read-error" role="alert">
+					Some profile details could not be refreshed. Refresh to retry.
+				</p>
 			{/if}
 		{/if}
 	</section>

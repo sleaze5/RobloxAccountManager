@@ -1,6 +1,6 @@
 <script lang="ts">
-	import BadgeCheck from "@lucide/svelte/icons/badge-check"
-	import Star from "@lucide/svelte/icons/star"
+	import SealCheckIcon from "phosphor-svelte/lib/SealCheckIcon"
+	import StarIcon from "phosphor-svelte/lib/StarIcon"
 	import type { GamePlace } from "../backend/bridge"
 	import GameIcon from "../games/GameIcon.svelte"
 	import { loadGamePlace } from "../games/game-place-cache"
@@ -36,15 +36,15 @@
 			{#if place}
 				<strong class="game-display-name"
 					><span>{games.displayName(place)}</span
-					>{#if games.isFavorite(place.placeId)}<Star
+					>{#if games.isFavorite(place.placeId)}<StarIcon
 							class="favorite-name-star"
-							size={11}
-							fill="currentColor"
+							size={12}
+							weight="fill"
 							aria-label="Favorite" />{/if}</strong>
 				<span
-					>{creatorByline(place)}{#if place.creatorVerified}<BadgeCheck
+					>{creatorByline(place)}{#if place.creatorVerified}<SealCheckIcon
 							class="creator-verified"
-							size={12}
+							size={14}
 							aria-label="Verified creator" />{/if}</span>
 			{:else}
 				<strong class="loading">Loading game…</strong>

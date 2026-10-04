@@ -30,6 +30,7 @@ To release, change `VERSION`, run `task fix`, push to `main`, and run the manual
 - `RobloxAccountManager-windows-x64.zip`: the Windows updater artifact.
 - `RobloxAccountManager-linux-x64.tar.gz`: the Linux updater artifact and manual download. The archive keeps the executable permission that a bare download loses.
 - `manifest.json`: the signed Wails update manifest. List only archives in it, because Wails treats every `.exe` as a Windows artifact.
+- `THIRD_PARTY_LICENSES.txt`: the license texts of the bundled third-party works. It ships as its own asset, because each archive must contain only the executable.
 
 Each archive must contain only the executable, because the updater accepts exactly one top-level entry. Wails reads the platform and architecture from each archive name, so keep the `<os>-x64` part.
 

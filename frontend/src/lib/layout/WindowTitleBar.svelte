@@ -1,8 +1,8 @@
 <script lang="ts">
-	import GitBranch from "@lucide/svelte/icons/git-branch"
-	import Minus from "@lucide/svelte/icons/minus"
-	import Square from "@lucide/svelte/icons/square"
-	import X from "@lucide/svelte/icons/x"
+	import GitBranchIcon from "phosphor-svelte/lib/GitBranchIcon"
+	import MinusIcon from "phosphor-svelte/lib/MinusIcon"
+	import SquareIcon from "phosphor-svelte/lib/SquareIcon"
+	import XIcon from "phosphor-svelte/lib/XIcon"
 	import { Browser, Window } from "@wailsio/runtime"
 	import { repository } from "../../../package.json"
 
@@ -29,21 +29,21 @@
 			aria-label="Open repository"
 			data-tooltip="Open repository"
 			onclick={() => void Browser.OpenURL(repositoryURL)}>
-			<GitBranch size={15} strokeWidth={1.6} />
+			<GitBranchIcon size={17} weight="light" aria-hidden="true" />
 		</button>
 		<button
 			type="button"
 			aria-label="Minimize window"
 			data-tooltip="Minimize window"
 			onclick={() => void Window.Minimise()}>
-			<Minus size={15} strokeWidth={1.6} />
+			<MinusIcon size={17} weight="light" aria-hidden="true" />
 		</button>
 		<button
 			type="button"
 			aria-label="Maximize or restore window"
 			data-tooltip="Maximize or restore window"
 			onclick={() => void Window.ToggleMaximise()}>
-			<Square size={12} strokeWidth={1.6} />
+			<SquareIcon size={14} weight="light" aria-hidden="true" />
 		</button>
 		<button
 			class="close-window"
@@ -52,7 +52,7 @@
 			data-tooltip="Close window"
 			data-tooltip-side="bottom-end"
 			onclick={() => void Window.Close()}>
-			<X size={16} strokeWidth={1.6} />
+			<XIcon size={18} weight="light" aria-hidden="true" />
 		</button>
 	</div>
 </header>

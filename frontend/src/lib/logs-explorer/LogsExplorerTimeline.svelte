@@ -1,5 +1,5 @@
 <script lang="ts">
-	import MoreHorizontal from "@lucide/svelte/icons/ellipsis"
+	import DotsThreeIcon from "phosphor-svelte/lib/DotsThreeIcon"
 	import { VisitKind } from "../backend/bridge"
 	import type { LogsExplorerVisit } from "../backend/bridge"
 	import Timestamp from "../shared/Timestamp.svelte"
@@ -93,7 +93,7 @@
 								activeMenu = { visit, trigger: event.currentTarget }
 							}
 						}}>
-						<MoreHorizontal size={16} aria-hidden="true" />
+						<DotsThreeIcon size={18} aria-hidden="true" />
 					</button>
 				</div>
 				<LogsExplorerVisitDetails {visit} />

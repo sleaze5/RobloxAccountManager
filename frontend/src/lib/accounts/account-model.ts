@@ -1,4 +1,10 @@
-import { PresenceType, SessionState, TagKind } from "../backend/bridge"
+import CircleDashedIcon from "phosphor-svelte/lib/CircleDashedIcon"
+import CodeIcon from "phosphor-svelte/lib/CodeIcon"
+import EyeSlashIcon from "phosphor-svelte/lib/EyeSlashIcon"
+import GameControllerIcon from "phosphor-svelte/lib/GameControllerIcon"
+import GlobeIcon from "phosphor-svelte/lib/GlobeIcon"
+import GlobeXIcon from "phosphor-svelte/lib/GlobeXIcon"
+import { AgeVerification, PresenceType, SessionState, TagKind } from "../backend/bridge"
 import type { AccountView, TagView, UserPresence } from "../backend/bridge"
 
 export interface Account {
@@ -18,6 +24,12 @@ export interface Account {
 	importedAtMs: number
 	lastValidatedAtMs: number | null
 	rotatedAtMs: number | null
+}
+
+export const ageVerificationLabels: Partial<Record<AgeVerification, string>> = {
+	[AgeVerification.AgeUnverified]: "Unverified",
+	[AgeVerification.AgeVerifiedFaceScan]: "Verified (facial scan)",
+	[AgeVerification.AgeVerifiedID]: "Verified (ID)",
 }
 
 export const emptyAccount: Account = {
@@ -105,13 +117,42 @@ export function presenceClass(presence: UserPresence): string {
 	}
 }
 
+export function presenceIcon(presence: UserPresence): typeof GlobeIcon {
+	switch (presence.userPresenceType) {
+		case PresenceType.PresenceTypeOffline:
+			return GlobeXIcon
+		case PresenceType.PresenceTypeOnline:
+			return GlobeIcon
+		case PresenceType.PresenceTypeInGame:
+			return GameControllerIcon
+		case PresenceType.PresenceTypeInStudio:
+			return CodeIcon
+		case PresenceType.PresenceTypeInvisible:
+			return EyeSlashIcon
+		default:
+			return CircleDashedIcon
+	}
+}
+
+// presenceDetail is the text after the label, such as the experience or Roblox's
+// last location. Roblox reports "Website" for plain online presence, which adds nothing.
+export function presenceDetail(presence: UserPresence, experience = ""): string {
+	const location = presence.lastLocation?.trim() ?? ""
+	switch (presence.userPresenceType) {
+		case PresenceType.PresenceTypeInGame:
+		case PresenceType.PresenceTypeInStudio:
+			return experience || location
+		case PresenceType.PresenceTypeOnline:
+			return location.toLowerCase() === "website" ? "" : location
+		default:
+			return ""
+	}
+}
+
 export function presenceTooltip(presence: UserPresence): string {
 	const label = presenceLabel(presence),
-		location = presence.lastLocation?.trim()
-
-	return location && location.toLowerCase() !== label.toLowerCase()
-		? `${label}: ${location}`
-		: label
+		detail = presenceDetail(presence)
+	return detail ? `${label}: ${detail}` : label
 }
 
 export function isOnlinePresence(type: PresenceType): boolean {

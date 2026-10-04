@@ -1,11 +1,11 @@
 <script lang="ts">
 	import { automaticUnlockDialogDescription } from "../shared/automatic-unlock"
-	import Check from "@lucide/svelte/icons/check"
-	import Eye from "@lucide/svelte/icons/eye"
-	import EyeOff from "@lucide/svelte/icons/eye-off"
-	import Info from "@lucide/svelte/icons/info"
-	import KeyRound from "@lucide/svelte/icons/key-round"
-	import X from "@lucide/svelte/icons/x"
+	import CheckIcon from "phosphor-svelte/lib/CheckIcon"
+	import EyeIcon from "phosphor-svelte/lib/EyeIcon"
+	import EyeSlashIcon from "phosphor-svelte/lib/EyeSlashIcon"
+	import InfoIcon from "phosphor-svelte/lib/InfoIcon"
+	import KeyIcon from "phosphor-svelte/lib/KeyIcon"
+	import XIcon from "phosphor-svelte/lib/XIcon"
 	import type { AccountStore } from "../accounts/account-store.svelte"
 	import {
 		modalBackdropIn,
@@ -55,7 +55,7 @@
 			event.preventDefault()
 			void changePassword()
 		}}>
-		<div class="modal-icon"><KeyRound size={18} /></div>
+		<div class="modal-icon"><KeyIcon size={20} aria-hidden="true" /></div>
 		<h2>Change master password</h2>
 		<p>
 			Changing the password rotates the database encryption key and removes
@@ -100,19 +100,26 @@
 			class="visibility-control"
 			type="button"
 			onclick={() => (visible = !visible)}>
-			{#if visible}<EyeOff size={14} /> Hide passwords{:else}<Eye size={14} /> Show
-				passwords{/if}
+			{#if visible}<EyeSlashIcon size={16} aria-hidden="true" /> Hide passwords{:else}<EyeIcon
+					size={16}
+					aria-hidden="true" /> Show passwords{/if}
 		</button>
 		<ul class="password-checklist">
 			{#each [[rules.length, "8-128 characters long"], [rules.uppercase, "At least one upper-case letter"], [rules.lowercase, "At least one lower-case letter"], [rules.digit, "At least one number"], [rules.special, "At least one special character"]] as requirement}
 				<li class:valid={requirement[0]}>
-					{#if requirement[0]}<Check size={12} />{:else}<X
-							size={12} />{/if}{requirement[1]}
+					{#if requirement[0]}<CheckIcon
+							size={14}
+							aria-hidden="true" />{:else}<XIcon
+							size={14}
+							aria-hidden="true" />{/if}{requirement[1]}
 				</li>
 			{/each}
 			<li class:valid={newPassword !== "" && newPassword === confirmation}>
-				{#if newPassword !== "" && newPassword === confirmation}<Check
-						size={12} />{:else}<X size={12} />{/if}Passwords match
+				{#if newPassword !== "" && newPassword === confirmation}<CheckIcon
+						size={14}
+						aria-hidden="true" />{:else}<XIcon
+						size={14}
+						aria-hidden="true" />{/if}Passwords match
 			</li>
 		</ul>
 		<label class="modal-field"
@@ -128,7 +135,7 @@
 				<span class="cookie-selection">
 					<input bind:checked={automaticUnlock} type="checkbox" />
 					<span aria-hidden="true"
-						><Check size={10} strokeWidth={2.4} /></span>
+						><CheckIcon size={11} weight="bold" aria-hidden="true" /></span>
 				</span>
 				Enable automatic unlock
 			</label>
@@ -137,7 +144,7 @@
 				type="button"
 				aria-label="About automatic unlock"
 				data-tooltip={automaticUnlockDialogDescription}>
-				<Info size={13} />
+				<InfoIcon size={15} aria-hidden="true" />
 			</button>
 		</div>
 		<div class="modal-actions">

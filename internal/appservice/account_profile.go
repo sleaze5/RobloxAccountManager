@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"log/slog"
 	"slices"
 	"strings"
 	"sync"
@@ -17,25 +18,25 @@ import (
 var accountProfileOperationID atomic.Uint64
 
 type AccountProfileSnapshot struct {
-	AccountID      int64                            `json:"accountId"`
-	FetchedAtMs    int64                            `json:"fetchedAtMs"`
-	Robux          *int64                           `json:"robux"`
-	PendingRobux   *int64                           `json:"pendingRobux"`
-	AgeBracket     *int                             `json:"ageBracket"`
-	AgeGroup       string                           `json:"ageGroup"`
-	AgeVerified    *bool                            `json:"ageVerified"`
-	CountryCode    string                           `json:"countryCode"`
-	Premium        *bool                            `json:"premium"`
-	Plus           *bool                            `json:"plus"`
-	TwoStepEnabled *bool                            `json:"twoStepEnabled"`
-	TwoStepMethods []string                         `json:"twoStepMethods"`
-	Description    string                           `json:"description"`
-	VerifiedBadge  *bool                            `json:"verifiedBadge"`
-	FriendCount    *int64                           `json:"friendCount"`
-	FollowerCount  *int64                           `json:"followerCount"`
-	FollowingCount *int64                           `json:"followingCount"`
-	PrimaryGroup   *robloxservices.UserPrimaryGroup `json:"primaryGroup"`
-	Unavailable    []string                         `json:"unavailable"`
+	AccountID       int64                            `json:"accountId"`
+	FetchedAtMs     int64                            `json:"fetchedAtMs"`
+	Robux           *int64                           `json:"robux"`
+	PendingRobux    *int64                           `json:"pendingRobux"`
+	AgeBracket      *int                             `json:"ageBracket"`
+	AgeGroup        string                           `json:"ageGroup"`
+	AgeVerification AgeVerification                  `json:"ageVerification"`
+	CountryCode     string                           `json:"countryCode"`
+	Premium         *bool                            `json:"premium"`
+	Plus            *bool                            `json:"plus"`
+	TwoStepEnabled  *bool                            `json:"twoStepEnabled"`
+	TwoStepMethods  []string                         `json:"twoStepMethods"`
+	Description     string                           `json:"description"`
+	VerifiedBadge   *bool                            `json:"verifiedBadge"`
+	FriendCount     *int64                           `json:"friendCount"`
+	FollowerCount   *int64                           `json:"followerCount"`
+	FollowingCount  *int64                           `json:"followingCount"`
+	PrimaryGroup    *robloxservices.UserPrimaryGroup `json:"primaryGroup"`
+	Unavailable     []string                         `json:"unavailable"`
 }
 
 func (service *Service) GetAccountProfile(ctx context.Context, accountID int64) (AccountProfileSnapshot, error) {
@@ -63,16 +64,37 @@ func (service *Service) GetAccountProfile(ctx context.Context, accountID int64) 
 	logger := service.logger.With("operation_id", fmt.Sprintf("profile-%d", accountProfileOperationID.Add(1)), "operation", "profile-read")
 	started := time.Now()
 	profile := AccountProfileSnapshot{AccountID: accountID, TwoStepMethods: []string{}, Unavailable: []string{}}
-	reads := service.profileReads(ctx, accountID, session.SecretVersion, account.RobloxUserID, &profile)
+	var age accountAge
+	reads := append(service.profileReads(ctx, accountID, session.SecretVersion, account.RobloxUserID, &profile), service.ageReads(ctx, accountID, session.SecretVersion, &age)...)
+	unavailable, err := service.runAccountReads(ctx, accountID, session.SecretVersion, "account-profile", logger, reads)
+	if err != nil {
+		return AccountProfileSnapshot{}, err
+	}
+	profile.Unavailable = unavailable
+	profile.AgeGroup, profile.AgeVerification = age.group, age.verification()
+	profile.FetchedAtMs = time.Now().UnixMilli()
+	logger.Debug("account profile read finished", "duration_ms", time.Since(started).Milliseconds(), "failed_sections", len(profile.Unavailable))
+	return profile, nil
+}
+
+type accountRead struct {
+	source string
+	fetch  func() error
+}
+
+// runAccountReads runs reads concurrently and returns the sources that failed.
+// Session failures end the whole read because no section can succeed.
+func (service *Service) runAccountReads(ctx context.Context, accountID, version int64, endpoint string, logger *slog.Logger, reads []accountRead) ([]string, error) {
 	failures := make([]error, len(reads))
 	var group sync.WaitGroup
 	for index, read := range reads {
 		group.Go(func() { failures[index] = read.fetch() })
 	}
 	group.Wait()
-	if ctx.Err() != nil || !service.vault.Unlocked() || !service.sessions.VersionCurrent(accountID, session.SecretVersion) {
-		return AccountProfileSnapshot{}, profileError(roblox.KindCancelled, "The profile request ended or the account session changed. Refresh to retry.")
+	if ctx.Err() != nil || !service.vault.Unlocked() || !service.sessions.VersionCurrent(accountID, version) {
+		return nil, &roblox.Error{Kind: roblox.KindCancelled, Endpoint: endpoint, Message: "The request ended or the account session changed. Refresh to retry."}
 	}
+	unavailable := []string{}
 	for index, failure := range failures {
 		if failure == nil {
 			continue
@@ -82,24 +104,17 @@ func (service *Service) GetAccountProfile(ctx context.Context, accountID int64) 
 		if errors.As(failure, &remote) {
 			kind, status = remote.Kind, remote.Status
 		}
-		logger.Warn("account profile section unavailable", "source", reads[index].source, "error_kind", kind, "status", status)
+		logger.Warn("account section unavailable", "source", reads[index].source, "error_kind", kind, "status", status)
 		if kind == roblox.KindReauthRequired || kind == roblox.KindInvalidSession || kind == roblox.KindVaultLocked {
-			return AccountProfileSnapshot{}, failure
+			return nil, failure
 		}
-		profile.Unavailable = append(profile.Unavailable, reads[index].source)
+		unavailable = append(unavailable, reads[index].source)
 	}
-	profile.FetchedAtMs = time.Now().UnixMilli()
-	logger.Debug("account profile read finished", "duration_ms", time.Since(started).Milliseconds(), "failed_sections", len(profile.Unavailable))
-	return profile, nil
+	return unavailable, nil
 }
 
-type accountProfileRead struct {
-	source string
-	fetch  func() error
-}
-
-func (service *Service) profileReads(ctx context.Context, accountID, version, userID int64, profile *AccountProfileSnapshot) []accountProfileRead {
-	return []accountProfileRead{
+func (service *Service) profileReads(ctx context.Context, accountID, version, userID int64, profile *AccountProfileSnapshot) []accountRead {
+	return []accountRead{
 		{"account", func() error {
 			info, err := service.users.AccountInfo(ctx, accountID, version, userID)
 			if err == nil {
@@ -125,20 +140,6 @@ func (service *Service) profileReads(ctx context.Context, accountID, version, us
 			value, err := service.users.PendingRobux(ctx, accountID, version, userID)
 			if err == nil {
 				profile.PendingRobux = value
-			}
-			return err
-		}},
-		{"ageGroup", func() error {
-			value, err := service.users.AgeGroup(ctx, accountID, version, userID)
-			if err == nil {
-				profile.AgeGroup = value
-			}
-			return err
-		}},
-		{"ageVerification", func() error {
-			value, err := service.users.AgeVerified(ctx, accountID, version)
-			if err == nil {
-				profile.AgeVerified = value
 			}
 			return err
 		}},

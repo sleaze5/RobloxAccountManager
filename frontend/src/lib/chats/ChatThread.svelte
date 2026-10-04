@@ -1,7 +1,7 @@
 <script lang="ts">
-	import Eye from "@lucide/svelte/icons/eye"
-	import LoaderCircle from "@lucide/svelte/icons/loader-circle"
-	import SendHorizontal from "@lucide/svelte/icons/send-horizontal"
+	import EyeIcon from "phosphor-svelte/lib/EyeIcon"
+	import CircleNotchIcon from "phosphor-svelte/lib/CircleNotchIcon"
+	import PaperPlaneRightIcon from "phosphor-svelte/lib/PaperPlaneRightIcon"
 	import { tick } from "svelte"
 	import type { ChatConversationView } from "../backend/bridge"
 	import ChatAvatar from "./ChatAvatar.svelte"
@@ -150,7 +150,7 @@
 				aria-busy={chat.olderLoading}
 				onclick={() => void loadOlder()}>
 				{#if chat.olderLoading}
-					<LoaderCircle class="spinner" size={13} aria-hidden="true" />
+					<CircleNotchIcon class="spinner" size={15} aria-hidden="true" />
 				{/if}
 				Load older messages
 			</button>
@@ -165,7 +165,7 @@
 		{/if}
 		{#if chat.messagesLoading && chat.messages.length === 0}
 			<p class="chat-list-status" role="status">
-				<LoaderCircle class="spinner" size={14} aria-hidden="true" />
+				<CircleNotchIcon class="spinner" size={16} aria-hidden="true" />
 				Loading messages
 			</p>
 		{:else if timeline.length === 0 && !chat.messagesError}
@@ -242,9 +242,9 @@
 			disabled={chat.markingRead}
 			onclick={() => void chat.markRead()}>
 			{#if chat.markingRead}
-				<LoaderCircle class="spinner" size={15} aria-hidden="true" />
+				<CircleNotchIcon class="spinner" size={17} aria-hidden="true" />
 			{:else}
-				<Eye size={15} aria-hidden="true" />
+				<EyeIcon size={17} aria-hidden="true" />
 			{/if}
 		</button>
 		<button
@@ -253,7 +253,7 @@
 			aria-label="Send message"
 			data-tooltip="Send message"
 			disabled={!draft.trim()}>
-			<SendHorizontal size={15} aria-hidden="true" />
+			<PaperPlaneRightIcon size={17} aria-hidden="true" />
 		</button>
 	</form>
 </section>

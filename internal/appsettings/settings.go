@@ -13,25 +13,43 @@ import (
 	"unicode/utf8"
 
 	"github.com/sleaze5/RobloxAccountManager/internal/appdata"
+	"github.com/sleaze5/RobloxAccountManager/internal/timestampformat"
 )
 
 const (
-	FormatVersion                          = 1
+	FormatVersion                          = 2
 	DefaultPasswordTestIntervalDays        = 30
-	DefaultTimestampFormat                 = "MMM D YYYY, h:mm:ss A"
-	DefaultTimestampHoverFormat            = "dddd, MMMM DD YYYY, hh:mm:ss A ([relative])"
-	DefaultAccountsPresenceIntervalSeconds = 120
+	DefaultTimestampFormat                 = "$MMM $D $YYYY, $h:$mm:$ss $A"
+	DefaultTimestampHoverFormat            = "$dddd, $MMMM $DD $YYYY, $hh:$mm:$ss $A ($relative)"
+	DefaultAccountsPresenceIntervalSeconds = 300
 	DefaultProfilePresenceIntervalSeconds  = 60
-	maxTimestampFormatLength               = 256
 )
 
 var loggingLevels = []string{"trace", "debug", "info", "warn", "error"}
 
 type object = map[string]json.RawMessage
 
-var migrations = [...]func(object) (object, error){}
+var migrations = [...]func(object) (object, error){resetTimestampFormats}
 
 var _ = [1]struct{}{}[len(migrations)-(FormatVersion-1)]
+
+// resetTimestampFormats removes the version 1 timestamp formats, whose syntax
+// version 2 no longer reads, so decoding applies the version 2 defaults.
+func resetTimestampFormats(document object) (object, error) {
+	document["version"] = json.RawMessage("2")
+	var userInterface object
+	if json.Unmarshal(document["userInterface"], &userInterface) != nil || userInterface == nil {
+		return document, nil
+	}
+	delete(userInterface, "timestampFormat")
+	delete(userInterface, "timestampHoverFormat")
+	encoded, err := json.Marshal(userInterface)
+	if err != nil {
+		return nil, err
+	}
+	document["userInterface"] = encoded
+	return document, nil
+}
 
 type VaultSettings struct {
 	PasswordTestIntervalDays      int    `json:"passwordTestIntervalDays"`
@@ -597,11 +615,8 @@ func validateUserInterfaceSettings(settings UserInterfaceSettings) error {
 		"timestampFormat":      settings.TimestampFormat,
 		"timestampHoverFormat": settings.TimestampHoverFormat,
 	} {
-		if strings.TrimSpace(value) == "" {
-			return fmt.Errorf("%s must not be empty", name)
-		}
-		if utf8.RuneCountInString(value) > maxTimestampFormatLength {
-			return fmt.Errorf("%s must not exceed %d characters", name, maxTimestampFormatLength)
+		if _, err := timestampformat.Parse(value); err != nil {
+			return fmt.Errorf("%s: %w", name, err)
 		}
 	}
 	return nil

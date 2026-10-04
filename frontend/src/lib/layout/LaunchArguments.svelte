@@ -1,5 +1,5 @@
 <script lang="ts">
-	import Settings2 from "@lucide/svelte/icons/settings-2"
+	import SlidersIcon from "phosphor-svelte/lib/SlidersIcon"
 	import { onMount } from "svelte"
 	import type { AccountStore } from "../accounts/account-store.svelte"
 	import { accountBackend } from "../backend/bridge"
@@ -47,7 +47,7 @@
 		data-tooltip-side="top"
 		disabled={store.launching}
 		onclick={() => (open = !open)}>
-		<Settings2 size={15} aria-hidden="true" />
+		<SlidersIcon size={17} aria-hidden="true" />
 	</button>
 	{#if open}
 		<section

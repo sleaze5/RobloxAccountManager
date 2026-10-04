@@ -33,6 +33,7 @@ Organize the backend by capability. Each package owns one responsibility and exp
 - **Managed browser:** `internal/browser` handles Chrome for Testing runtime installation and isolated, CDP-controlled browser sessions.
 - **Roblox Player logs:** `internal/logsexplorer`.
 - **Configuration and paths:** `internal/appdata` (portable paths and private files), `internal/appsettings` (`settings.json`), `internal/appmeta` (application identity, `VERSION`, and the update public key).
+- **Timestamp formats:** `internal/timestampformat` parses the `$` token syntax of the timestamp format settings. The frontend renders the parsed segments.
 - **Logging:** `internal/logging`.
 - **Native capabilities:** `internal/platform/*`. See [PLATFORM.md](./PLATFORM.md).
 

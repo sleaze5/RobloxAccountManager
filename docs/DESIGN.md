@@ -10,7 +10,9 @@ The interface is quiet, precise, technical, dense, and fast. It is a near-black,
 - `frontend/src/styles/base.css` holds global element styles and the reduced-motion guard. Each feature has its own stylesheet in `frontend/src/styles/`, imported by `index.css`.
 - `frontend/src/lib/shared/presence.ts` defines the enter and exit transitions for menus, dialogs, tooltips, and notifications. Reuse them.
 - [`assets/icon.svg`](../assets/icon.svg) is the editable source of the application icon.
-- Use Lucide icons when an appropriate icon exists.
+- Use Phosphor icons when an appropriate icon exists. Import each component directly, for example `import GearIcon from "phosphor-svelte/lib/GearIcon"`. Do not use barrel imports or an icon registry.
+- Use the default `regular` icon weight, `light` for title-bar controls, `bold` for compact checkbox marks, and `fill` for filled states such as favorites. Use the `weight` prop instead of SVG `fill` or `strokeWidth` overrides.
+- Add `aria-hidden="true"` to decorative icons. Keep accessible names on icon-only controls and meaningful standalone icons.
 
 Reuse shared styles and components. Keep component-specific styles local only when they cannot be shared. Keep similar components visually and behaviorally consistent.
 
@@ -36,8 +38,8 @@ The user must never see UI that looks or behaves like an exposed embedded browse
 
 ## Typography
 
-- Use Nunito Sans Variable (`--font-sans`) for interface text and JetBrains Mono Variable (`--font-mono`) for technical text such as paths, values, IDs, and measurements.
-- Bundle both fonts as local, normal-style WOFF2 variable fonts. Subset Nunito Sans to weights 400 through 700 and JetBrains Mono to weights 400 through 600. Keep the font licenses and pinned upstream sources in `THIRD_PARTY_NOTICES.md`.
+- Use Geist (`--font-sans`) for interface text and Geist Mono (`--font-mono`) for technical text such as paths, values, IDs, and measurements.
+- Bundle both fonts as local, normal-style WOFF2 variable fonts from Vercel's pinned release, with weights 100 through 900. Preload Geist in `frontend/index.html`. Do not fetch fonts at runtime. Keep the pinned upstream sources in `THIRD_PARTY_NOTICES.md` and the font license in `THIRD_PARTY_LICENSES.txt`.
 - Keep text between 10px and 16px. Use 13px for body text, 12px for compact labels and helper text, 15px semibold for page headings, and 10px to 12px monospace for technical text.
 - Use weight 400 for body text, 500 for selected navigation, compact emphasis, and control labels, and 600 for headings and strong labels. Use 700 rarely.
 - Create hierarchy with weight, color, spacing, and grouping, not oversized text.

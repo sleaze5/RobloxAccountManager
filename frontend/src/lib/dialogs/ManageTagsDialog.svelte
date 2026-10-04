@@ -1,7 +1,7 @@
 <script lang="ts">
-	import Hash from "@lucide/svelte/icons/hash"
-	import Trash2 from "@lucide/svelte/icons/trash-2"
-	import X from "@lucide/svelte/icons/x"
+	import HashIcon from "phosphor-svelte/lib/HashIcon"
+	import TrashIcon from "phosphor-svelte/lib/TrashIcon"
+	import XIcon from "phosphor-svelte/lib/XIcon"
 	import type { AccountStore } from "../accounts/account-store.svelte"
 	import { TagNameInputState } from "../accounts/tag-name-input.svelte"
 	import {
@@ -88,7 +88,7 @@
 				aria-label="Close manage tags dialog"
 				disabled={store.busy}
 				onclick={close}>
-				<X size={15} />
+				<XIcon size={17} aria-hidden="true" />
 			</button>
 		</div>
 		{#if store.error}
@@ -142,7 +142,7 @@
 		<div class="tag-manager-list">
 			{#each store.customTags as tag (tag.id)}
 				<div class="tag-manager-row">
-					<Hash size={14} aria-hidden="true" />
+					<HashIcon size={16} aria-hidden="true" />
 					<span>{tag.name}</span>
 					<button
 						type="button"
@@ -151,7 +151,7 @@
 						data-tooltip-side="left"
 						disabled={store.busy}
 						onclick={() => void store.removeTag(tag.id)}>
-						<Trash2 size={14} />
+						<TrashIcon size={16} aria-hidden="true" />
 					</button>
 				</div>
 			{:else}

@@ -1,5 +1,5 @@
 <script lang="ts">
-	import LoaderCircle from "@lucide/svelte/icons/loader-circle"
+	import CircleNotchIcon from "phosphor-svelte/lib/CircleNotchIcon"
 	import type { AccountSettingView } from "../backend/bridge"
 
 	export type SettingRadioOption = {
@@ -78,7 +78,10 @@
 
 	{#if saving}
 		<span class="settings-row-detail" role="status"
-			><LoaderCircle class="spinner" size={12} aria-hidden="true" />Saving</span>
+			><CircleNotchIcon
+				class="spinner"
+				size={14}
+				aria-hidden="true" />Saving</span>
 	{/if}
 	{#if error}<div class="settings-inline-error" role="alert">{error}</div>{/if}
 {/snippet}

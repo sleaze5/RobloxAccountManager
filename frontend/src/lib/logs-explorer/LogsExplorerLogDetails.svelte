@@ -1,6 +1,6 @@
 <script lang="ts">
-	import LoaderCircle from "@lucide/svelte/icons/loader-circle"
-	import RefreshCw from "@lucide/svelte/icons/refresh-cw"
+	import CircleNotchIcon from "phosphor-svelte/lib/CircleNotchIcon"
+	import ArrowsClockwiseIcon from "phosphor-svelte/lib/ArrowsClockwiseIcon"
 	import { ClientLaunchMode, ClientLaunchSource } from "../backend/bridge"
 	import type { LogsExplorerSession } from "../backend/bridge"
 	import Timestamp from "../shared/Timestamp.svelte"
@@ -56,11 +56,11 @@
 			onclick={onRefresh}
 			aria-label={refreshing ? "Refreshing log" : "Refresh log"}
 			data-tooltip="Refresh log">
-			{#if refreshing}<LoaderCircle
+			{#if refreshing}<CircleNotchIcon
 					class="spinner"
-					size={14}
-					aria-hidden="true" />{:else}<RefreshCw
-					size={14}
+					size={16}
+					aria-hidden="true" />{:else}<ArrowsClockwiseIcon
+					size={16}
 					aria-hidden="true" />{/if}
 		</button>
 	</div>

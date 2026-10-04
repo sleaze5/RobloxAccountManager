@@ -15,6 +15,7 @@ import (
 	"github.com/sleaze5/RobloxAccountManager/internal/roblox"
 	robloxservices "github.com/sleaze5/RobloxAccountManager/internal/roblox/services"
 	"github.com/sleaze5/RobloxAccountManager/internal/storage/vault"
+	"github.com/sleaze5/RobloxAccountManager/internal/timestampformat"
 	"github.com/wailsapp/wails/v3/pkg/application"
 )
 
@@ -86,6 +87,13 @@ func (service *Service) GetAccountProfile(ctx context.Context, accountID int64) 
 	return service.core.GetAccountProfile(ctx, accountID)
 }
 
+func (service *Service) GetAccountInfo(ctx context.Context, accountID int64) (appservice.AccountInfoSnapshot, error) {
+	if err := positiveID(accountID, "account-info"); err != nil {
+		return appservice.AccountInfoSnapshot{}, err
+	}
+	return service.core.GetAccountInfo(ctx, accountID)
+}
+
 func (service *Service) GetAccountSettings(ctx context.Context, accountID int64) (appservice.AccountSettingsSnapshot, error) {
 	if err := positiveID(accountID, "account-settings"); err != nil {
 		return appservice.AccountSettingsSnapshot{}, err
@@ -142,7 +150,7 @@ func (service *Service) SendChatMessage(ctx context.Context, accountID int64, co
 	return service.core.SendChatMessage(ctx, accountID, conversationID, text)
 }
 
-func (service *Service) GetAppSettings() appservice.AppSettingsState {
+func (service *Service) GetAppSettings() (appservice.AppSettingsState, error) {
 	return service.core.GetAppSettings()
 }
 
@@ -195,7 +203,11 @@ func (service *Service) SetRoValraEnabled(enabled bool) error {
 	return service.core.SetRoValraEnabled(enabled)
 }
 
-func (service *Service) SetTimestampFormats(timestampFormat, timestampHoverFormat string) error {
+func (service *Service) ParseTimestampFormat(source string) (timestampformat.Format, error) {
+	return service.core.ParseTimestampFormat(source)
+}
+
+func (service *Service) SetTimestampFormats(timestampFormat, timestampHoverFormat string) (appservice.TimestampFormats, error) {
 	return service.core.SetTimestampFormats(timestampFormat, timestampHoverFormat)
 }
 
