@@ -92,7 +92,7 @@ func (service *Service) Shutdown() {
 	service.mu.Lock()
 	cancel, removeProgress := service.cancel, service.progress
 	staged := ""
-	if service.updater != nil && service.state.Status == StatusReady {
+	if status := service.state.Status; service.updater != nil && (status == StatusReady || status == StatusRestarting && helperCopiedUpdate()) {
 		staged = service.updater.DownloadedPath()
 	}
 	service.mu.Unlock()
@@ -102,7 +102,7 @@ func (service *Service) Shutdown() {
 	if removeProgress != nil {
 		removeProgress()
 	}
-	if dir := filepath.Dir(staged); staged != "" && strings.HasPrefix(filepath.Base(dir), "wails-update-") {
+	if dir := filepath.Dir(staged); staged != "" && strings.HasPrefix(filepath.Base(dir), wailsUpdatePrefix) {
 		if err := os.RemoveAll(dir); err != nil {
 			service.logger.Warn("downloaded update could not be removed", "operation", "update-cleanup", "path", dir, "error", err)
 		}

@@ -18,7 +18,7 @@ dist/
 
 Add another target through its own platform tasks and modules. Keep the shared application and frontend task graph.
 
-A Linux build links the system GTK 4 and WebKitGTK 6 libraries. Automatic unlock stores its encryption key in the Secret Service. The vault, settings, and logs stay in the application directory. Joining a game opens a `roblox-player:` link in Sober or Mocktail through that client's desktop entry. The Roblox setting chooses the client when both are installed. Automatic uses the only installed client, or the desktop default for `roblox-player` when both are installed. The managed browser runs Chrome for Testing from `storage/runtime/`. It needs the system libraries that Chrome requires and unprivileged user namespaces for the Chrome sandbox. Controlling Roblox processes is unavailable on Linux.
+A Linux build links the system GTK 4 and WebKitGTK 6 libraries. Release builds come from Ubuntu 24.04 and need glibc 2.38 or later. Automatic unlock stores its encryption key in the Secret Service. The vault, settings, and logs stay in the application directory. Joining a game opens a `roblox-player:` link in Sober or Mocktail through that client's desktop entry. The Roblox setting chooses the client when both are installed. Automatic uses the only installed client, or the desktop default for `roblox-player` when both are installed. The managed browser runs Chrome for Testing from `storage/runtime/`. It needs the system libraries that Chrome requires and unprivileged user namespaces for the Chrome sandbox. Controlling Roblox processes is unavailable on Linux.
 
 ## Releases
 
@@ -46,8 +46,8 @@ The application reads `releases/latest/download/manifest.json`, so it never offe
 
 - `appupdate.HandleHelperMode()` must run first in `main()`, before the single-instance check. The update helper is this executable, and it starts while the old version still runs.
 - The updater replaces only the executable. `storage/` and `logs/` stay unchanged.
-- On Linux, the helper copies the downloaded update into a `wails-update-*` directory next to the executable before the swap. The Wails helper renames the update over the executable, and a rename fails across filesystems.
-- `internal/appupdate` removes `RobloxAccountManager.exe.old.*`, `wails-update-*` directories next to the executable, and the helper's `wails-update-*.log` when the new version starts. It deletes a downloaded update that was not installed when the application closes.
+- On Linux, the helper copies the downloaded update into a `wails-update-robloxaccountmanager-*` directory next to the executable before the swap. The Wails helper renames the update over the executable, and a rename fails across filesystems. The application removes the original download when it quits for the update.
+- `internal/appupdate` removes `RobloxAccountManager.exe.old.*`, `wails-update-robloxaccountmanager-*` directories next to the executable, and the helper's `wails-update-*.log` when the new version starts. It deletes a downloaded update that was not installed when the application closes.
 
 ## Platform isolation
 

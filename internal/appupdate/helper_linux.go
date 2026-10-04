@@ -6,11 +6,10 @@ import (
 	"io"
 	"os"
 	"path/filepath"
-	"strings"
 )
 
 // The Wails helper renames the staged update over the executable, which fails
-// when the temporary directory is on another filesystem. Move the update next
+// when the temporary directory is on another filesystem. Copy the update next
 // to the executable first.
 func stageHelperArtifact() {
 	if os.Getenv("WAILS_UPDATER_HELPER") != "1" {
@@ -30,9 +29,17 @@ func stageHelperArtifact() {
 		return
 	}
 	_ = os.Setenv("WAILS_UPDATER_HELPER_NEW", local)
-	if source := filepath.Dir(staged); strings.HasPrefix(filepath.Base(source), stagingPrefix) {
-		_ = os.RemoveAll(source)
+}
+
+// helperCopiedUpdate reports whether the helper owns a copy of the update, so
+// the application can remove the original download when it quits.
+func helperCopiedUpdate() bool {
+	executable, err := os.Executable()
+	if err != nil {
+		return false
 	}
+	staged, _ := filepath.Glob(filepath.Join(filepath.Dir(executable), stagingPrefix+"*"))
+	return len(staged) > 0
 }
 
 func copyFile(source, destination string) error {
