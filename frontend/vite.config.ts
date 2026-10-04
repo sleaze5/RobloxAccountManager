@@ -47,7 +47,7 @@ export default defineConfig({
 		}),
 	},
 	css: { transformer: "lightningcss" },
-	build: { target: "esnext" },
+	build: { target: "esnext", chunkSizeWarningLimit: 1024 },
 	optimizeDeps: { exclude: ["svelte", "@lucide/svelte"] },
 	plugins: [
 		svelteRuntimeCompatibility,

@@ -25,7 +25,24 @@
 	"rules": {
 		"complexity": ["error", 15],
 		"import/no-unassigned-import": "off",
-		"typescript/no-unsafe-type-assertion": "off"
+		"typescript/no-unsafe-type-assertion": "off",
+		"no-restricted-imports": [
+			"error",
+			{
+				"paths": [
+					{
+						"name": "@lucide/svelte",
+						"message": "Import icons from @lucide/svelte/icons/<name>."
+					}
+				],
+				"patterns": [
+					{
+						"regex": "(^|/)bindings/",
+						"message": "Import generated bindings through src/lib/backend/bridge.ts."
+					}
+				]
+			}
+		]
 	},
 	"overrides": [
 		{
@@ -33,6 +50,12 @@
 			"env": {
 				"browser": false,
 				"node": true
+			}
+		},
+		{
+			"files": ["src/lib/backend/bridge.ts"],
+			"rules": {
+				"no-restricted-imports": "off"
 			}
 		}
 	]

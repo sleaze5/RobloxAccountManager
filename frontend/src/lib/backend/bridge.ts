@@ -1,4 +1,4 @@
-import { Service } from "../../../bindings/github.com/sleaze5/RobloxAccountManager/internal/bindings/index.js"
+import * as Service from "../../../bindings/github.com/sleaze5/RobloxAccountManager/internal/bindings/service.js"
 
 export type {
 	AccountInfoSnapshot,
@@ -16,49 +16,49 @@ export type {
 	LaunchConfirmation,
 	LaunchResult,
 	VaultState,
-} from "../../../bindings/github.com/sleaze5/RobloxAccountManager/internal/appservice/index.js"
-export type { State as UpdateState } from "../../../bindings/github.com/sleaze5/RobloxAccountManager/internal/appupdate/index.js"
-export { Status as UpdateStatus } from "../../../bindings/github.com/sleaze5/RobloxAccountManager/internal/appupdate/index.js"
+} from "../../../bindings/github.com/sleaze5/RobloxAccountManager/internal/appservice/models.js"
+export type { State as UpdateState } from "../../../bindings/github.com/sleaze5/RobloxAccountManager/internal/appupdate/models.js"
+export { Status as UpdateStatus } from "../../../bindings/github.com/sleaze5/RobloxAccountManager/internal/appupdate/models.js"
 export {
 	MotionPreference,
 	PresenceScope,
-} from "../../../bindings/github.com/sleaze5/RobloxAccountManager/internal/appsettings/index.js"
-export type { PresenceSettings } from "../../../bindings/github.com/sleaze5/RobloxAccountManager/internal/appsettings/index.js"
+} from "../../../bindings/github.com/sleaze5/RobloxAccountManager/internal/appsettings/models.js"
+export type { PresenceSettings } from "../../../bindings/github.com/sleaze5/RobloxAccountManager/internal/appsettings/models.js"
 export {
 	AccountCopyField,
 	AccountSettingKey,
 	AgeVerification,
 	ImportStatus,
-} from "../../../bindings/github.com/sleaze5/RobloxAccountManager/internal/appservice/index.js"
+} from "../../../bindings/github.com/sleaze5/RobloxAccountManager/internal/appservice/models.js"
 export {
 	SessionState,
 	TagKind,
-} from "../../../bindings/github.com/sleaze5/RobloxAccountManager/internal/accounts/index.js"
-export { PresenceType } from "../../../bindings/github.com/sleaze5/RobloxAccountManager/internal/roblox/services/index.js"
+} from "../../../bindings/github.com/sleaze5/RobloxAccountManager/internal/accounts/models.js"
+export { PresenceType } from "../../../bindings/github.com/sleaze5/RobloxAccountManager/internal/roblox/services/models.js"
 export type {
 	AccountCursor,
 	AccountView,
 	TagView,
-} from "../../../bindings/github.com/sleaze5/RobloxAccountManager/internal/accounts/index.js"
-export { FileState } from "../../../bindings/github.com/sleaze5/RobloxAccountManager/internal/storage/vault/index.js"
-export type { BackupInfo } from "../../../bindings/github.com/sleaze5/RobloxAccountManager/internal/storage/vault/index.js"
+} from "../../../bindings/github.com/sleaze5/RobloxAccountManager/internal/accounts/models.js"
+export { FileState } from "../../../bindings/github.com/sleaze5/RobloxAccountManager/internal/storage/vault/models.js"
+export type { BackupInfo } from "../../../bindings/github.com/sleaze5/RobloxAccountManager/internal/storage/vault/models.js"
 export type {
 	AvatarHeadshotView,
 	UserPresence,
-} from "../../../bindings/github.com/sleaze5/RobloxAccountManager/internal/roblox/services/index.js"
+} from "../../../bindings/github.com/sleaze5/RobloxAccountManager/internal/roblox/services/models.js"
 export type {
 	CandidateState,
 	RuntimeState,
 	SaveResult,
 	ShutdownEffects,
 	Snapshot as BrowserSnapshot,
-} from "../../../bindings/github.com/sleaze5/RobloxAccountManager/internal/browser/index.js"
+} from "../../../bindings/github.com/sleaze5/RobloxAccountManager/internal/browser/models.js"
 export {
 	Lifecycle,
 	Mode,
 	RuntimeStatus,
 	SaveStatus,
-} from "../../../bindings/github.com/sleaze5/RobloxAccountManager/internal/browser/index.js"
+} from "../../../bindings/github.com/sleaze5/RobloxAccountManager/internal/browser/models.js"
 
 export const accountBackend = Service
 
@@ -72,36 +72,36 @@ export type {
 	ServerRecord as GameServerRecord,
 	ServerRegion as GameServerRegion,
 	ServerStats as GameServerStats,
-} from "../../../bindings/github.com/sleaze5/RobloxAccountManager/internal/games/index.js"
+} from "../../../bindings/github.com/sleaze5/RobloxAccountManager/internal/games/models.js"
 export {
 	RecordOrder as GameServerRecordOrder,
 	ServerOrder as GameServerOrder,
-} from "../../../bindings/github.com/sleaze5/RobloxAccountManager/internal/games/index.js"
+} from "../../../bindings/github.com/sleaze5/RobloxAccountManager/internal/games/models.js"
 
 export type {
 	Process as RobloxProcess,
 	ProcessSnapshot as RobloxProcessSnapshot,
 	Snapshot as MultiInstanceSnapshot,
-} from "../../../bindings/github.com/sleaze5/RobloxAccountManager/internal/platform/robloxmulti/index.js"
+} from "../../../bindings/github.com/sleaze5/RobloxAccountManager/internal/platform/robloxmulti/models.js"
 
 export {
 	LaunchMode as ClientLaunchMode,
 	LaunchSource as ClientLaunchSource,
 	VisitKind,
-} from "../../../bindings/github.com/sleaze5/RobloxAccountManager/internal/logsexplorer/index.js"
+} from "../../../bindings/github.com/sleaze5/RobloxAccountManager/internal/logsexplorer/models.js"
 export type {
 	Session as LogsExplorerSession,
 	Visit as LogsExplorerVisit,
-} from "../../../bindings/github.com/sleaze5/RobloxAccountManager/internal/logsexplorer/index.js"
+} from "../../../bindings/github.com/sleaze5/RobloxAccountManager/internal/logsexplorer/models.js"
 
-export { Method as LaunchMethod } from "../../../bindings/github.com/sleaze5/RobloxAccountManager/internal/gamelaunch/index.js"
+export { Method as LaunchMethod } from "../../../bindings/github.com/sleaze5/RobloxAccountManager/internal/gamelaunch/models.js"
 export type {
 	ClientState as RobloxClientState,
 	Input as LaunchInput,
-} from "../../../bindings/github.com/sleaze5/RobloxAccountManager/internal/gamelaunch/index.js"
+} from "../../../bindings/github.com/sleaze5/RobloxAccountManager/internal/gamelaunch/models.js"
 
 export type {
 	ComponentRecord,
 	LaunchReport,
 	LaunchStage,
-} from "../../../bindings/github.com/sleaze5/RobloxAccountManager/internal/logging/index.js"
+} from "../../../bindings/github.com/sleaze5/RobloxAccountManager/internal/logging/models.js"
