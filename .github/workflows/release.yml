@@ -11,8 +11,48 @@ concurrency:
     cancel-in-progress: false
 
 jobs:
+    check:
+        name: "Check"
+        runs-on: "ubuntu-24.04"
+        timeout-minutes: 5
+        env:
+            GH_TOKEN: "${{ github.token }}"
+        outputs:
+            version: "${{ steps.version.outputs.version }}"
+            tag: "${{ steps.version.outputs.tag }}"
+            prerelease: "${{ steps.version.outputs.prerelease }}"
+        steps:
+            - name: "Check out"
+              uses: "actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1"
+              with:
+                  persist-credentials: false
+
+            - name: "Read version"
+              id: "version"
+              run: |
+                  if [ "$GITHUB_REF" != "refs/heads/main" ]; then
+                      echo "Run the release from the main branch." >&2
+                      exit 1
+                  fi
+                  version=$(tr -d '[:space:]' < internal/appmeta/VERSION)
+                  tag="v$version"
+                  if gh api "repos/$GITHUB_REPOSITORY/git/ref/tags/$tag" --silent 2>/dev/null; then
+                      echo "Tag $tag already exists. Change internal/appmeta/VERSION before you release." >&2
+                      exit 1
+                  fi
+                  case "$version" in
+                      *-*) prerelease=true ;;
+                      *) prerelease=false ;;
+                  esac
+                  {
+                      echo "version=$version"
+                      echo "tag=$tag"
+                      echo "prerelease=$prerelease"
+                  } >> "$GITHUB_OUTPUT"
+
     linux:
         name: "Build Linux"
+        needs: "check"
         runs-on: "ubuntu-24.04"
         timeout-minutes: 30
         env:
@@ -66,41 +106,29 @@ jobs:
                   if-no-files-found: "error"
                   retention-days: 1
 
-    release:
-        name: "Build and publish"
-        needs: "linux"
+    windows:
+        name: "Build Windows"
+        needs: "check"
         runs-on: "windows-2025"
         timeout-minutes: 30
-        permissions:
-            contents: "write"
         env:
             CGO_ENABLED: "1"
-            GH_TOKEN: "${{ github.token }}"
         defaults:
             run:
                 shell: "pwsh"
         steps:
+            - name: "Pause Defender scanning"
+              run: |
+                  try {
+                      Set-MpPreference -DisableRealtimeMonitoring $true -ErrorAction Stop
+                  } catch {
+                      Write-Warning "Defender scanning could not be paused: $_"
+                  }
+
             - name: "Check out"
               uses: "actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1"
               with:
                   persist-credentials: false
-
-            - name: "Read version"
-              id: "version"
-              run: |
-                  if ($env:GITHUB_REF -ne "refs/heads/main") {
-                      throw "Run the release from the main branch."
-                  }
-                  $version = (Get-Content -LiteralPath "internal/appmeta/VERSION" -Raw).Trim()
-                  $tag = "v$version"
-                  gh api "repos/$env:GITHUB_REPOSITORY/git/ref/tags/$tag" --silent 2>$null
-                  if ($LASTEXITCODE -eq 0) {
-                      throw "Tag $tag already exists. Change internal/appmeta/VERSION before you release."
-                  }
-                  "version=$version" >> $env:GITHUB_OUTPUT
-                  "tag=$tag" >> $env:GITHUB_OUTPUT
-                  "prerelease=$($version.Contains('-'))" >> $env:GITHUB_OUTPUT
-                  exit 0
 
             - name: "Set up Go"
               uses: "actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e"
@@ -128,11 +156,59 @@ jobs:
                       throw "The build changed source files. Run task fix, commit, and release again.`n$($changes -join "`n")"
                   }
 
-            - name: "Download Linux build"
+            - name: "Package"
+              run: |
+                  $package = Join-Path $env:RUNNER_TEMP "windows"
+                  New-Item -ItemType Directory -Force -Path $package | Out-Null
+                  $executable = "dist/windows-amd64/RobloxAccountManager.exe"
+                  Copy-Item -LiteralPath $executable -Destination $package
+                  Compress-Archive -LiteralPath $executable -DestinationPath (Join-Path $package "RobloxAccountManager-windows-x64.zip")
+
+            - name: "Upload"
+              uses: "actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a"
+              with:
+                  name: "windows"
+                  path: "${{ runner.temp }}/windows"
+                  if-no-files-found: "error"
+                  retention-days: 1
+
+    publish:
+        name: "Publish"
+        needs: ["check", "linux", "windows"]
+        runs-on: "windows-2025"
+        timeout-minutes: 15
+        permissions:
+            contents: "write"
+        env:
+            GH_TOKEN: "${{ github.token }}"
+        defaults:
+            run:
+                shell: "pwsh"
+        steps:
+            - name: "Pause Defender scanning"
+              run: |
+                  try {
+                      Set-MpPreference -DisableRealtimeMonitoring $true -ErrorAction Stop
+                  } catch {
+                      Write-Warning "Defender scanning could not be paused: $_"
+                  }
+
+            - name: "Check out"
+              uses: "actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1"
+              with:
+                  persist-credentials: false
+
+            - name: "Set up Go"
+              uses: "actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e"
+              with:
+                  go-version-file: "go.mod"
+                  cache-dependency-path: "go.sum"
+
+            - name: "Download builds"
               uses: "actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c"
               with:
-                  name: "linux"
-                  path: "${{ runner.temp }}/linux"
+                  path: "${{ runner.temp }}/release"
+                  merge-multiple: true
 
             - name: "Package and sign"
               id: "package"
@@ -147,19 +223,14 @@ jobs:
                       throw "WAILS_CLI was not found in Taskfile.yml."
                   }
                   $release = Join-Path $env:RUNNER_TEMP "release"
-                  New-Item -ItemType Directory -Force -Path $release | Out-Null
-                  $executable = "dist/windows-amd64/RobloxAccountManager.exe"
-                  Copy-Item -LiteralPath $executable -Destination $release
                   $archive = Join-Path $release "RobloxAccountManager-windows-x64.zip"
-                  Compress-Archive -LiteralPath $executable -DestinationPath $archive
                   $linuxArchive = Join-Path $release "RobloxAccountManager-linux-x64.tar.gz"
-                  Copy-Item -LiteralPath (Join-Path $env:RUNNER_TEMP "linux/RobloxAccountManager-linux-x64.tar.gz") -Destination $linuxArchive
                   $manifest = Join-Path $release "manifest.json"
                   $key = Join-Path $env:RUNNER_TEMP "updater.key"
                   try {
                       [IO.File]::WriteAllText($key, $env:UPDATER_PRIVATE_KEY)
-                      go run $wails updater manifest -version "${{ steps.version.outputs.version }}" -key $key `
-                          -url-prefix "https://github.com/$env:GITHUB_REPOSITORY/releases/download/${{ steps.version.outputs.tag }}/" `
+                      go run $wails updater manifest -version "${{ needs.check.outputs.version }}" -key $key `
+                          -url-prefix "https://github.com/$env:GITHUB_REPOSITORY/releases/download/${{ needs.check.outputs.tag }}/" `
                           -output $manifest $archive $linuxArchive
                       if ($LASTEXITCODE -ne 0) {
                           throw "Manifest generation failed with exit code $LASTEXITCODE."
@@ -177,16 +248,16 @@ jobs:
               run: |
                   $release = "${{ steps.package.outputs.directory }}"
                   $arguments = @(
-                      "release", "create", "${{ steps.version.outputs.tag }}",
+                      "release", "create", "${{ needs.check.outputs.tag }}",
                       (Join-Path $release "RobloxAccountManager.exe"),
                       (Join-Path $release "RobloxAccountManager-windows-x64.zip"),
                       (Join-Path $release "RobloxAccountManager-linux-x64.tar.gz"),
                       (Join-Path $release "manifest.json"),
                       "--target", $env:GITHUB_SHA,
-                      "--title", "${{ steps.version.outputs.tag }}",
+                      "--title", "${{ needs.check.outputs.tag }}",
                       "--generate-notes"
                   )
-                  if ("${{ steps.version.outputs.prerelease }}" -eq "True") {
+                  if ("${{ needs.check.outputs.prerelease }}" -eq "true") {
                       $arguments += "--prerelease"
                   }
                   gh @arguments
