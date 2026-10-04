@@ -1,6 +1,6 @@
 <script lang="ts">
-	import Bell from "@lucide/svelte/icons/bell"
-	import X from "@lucide/svelte/icons/x"
+	import BellIcon from "phosphor-svelte/lib/BellIcon"
+	import XIcon from "phosphor-svelte/lib/XIcon"
 	import { toastIn, toastOut } from "../shared/presence"
 	import type {
 		NotificationAction,
@@ -30,7 +30,9 @@
 <section class="notification-region" aria-label="Notifications" aria-live="polite">
 	{#each center.items as notification (notification.id)}
 		<article class="notification-toast" role="status" in:toastIn out:toastOut>
-			<div class="notification-icon"><Bell size={15} aria-hidden="true" /></div>
+			<div class="notification-icon">
+				<BellIcon size={17} aria-hidden="true" />
+			</div>
 			<div class="notification-content">
 				<strong>{notification.title}</strong>
 				<p>{notification.message}</p>
@@ -56,7 +58,7 @@
 					aria-label={`Dismiss ${notification.title}`}
 					disabled={runningAction !== ""}
 					onclick={() => center.dismiss(notification.id)}>
-					<X size={14} aria-hidden="true" />
+					<XIcon size={16} aria-hidden="true" />
 				</button>
 			{/if}
 		</article>

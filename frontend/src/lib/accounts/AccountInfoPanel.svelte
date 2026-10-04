@@ -16,17 +16,17 @@
 </script>
 
 <script lang="ts">
-	import AtSign from "@lucide/svelte/icons/at-sign"
-	import Cake from "@lucide/svelte/icons/cake"
-	import CalendarRange from "@lucide/svelte/icons/calendar-range"
-	import Flag from "@lucide/svelte/icons/flag"
-	import Languages from "@lucide/svelte/icons/languages"
-	import LoaderCircle from "@lucide/svelte/icons/loader-circle"
-	import Mail from "@lucide/svelte/icons/mail"
-	import MapPin from "@lucide/svelte/icons/map-pin"
-	import Phone from "@lucide/svelte/icons/phone"
-	import UserRound from "@lucide/svelte/icons/user-round"
-	import Globe2 from "@lucide/svelte/icons/earth"
+	import AtIcon from "phosphor-svelte/lib/AtIcon"
+	import CakeIcon from "phosphor-svelte/lib/CakeIcon"
+	import CalendarIcon from "phosphor-svelte/lib/CalendarIcon"
+	import FlagIcon from "phosphor-svelte/lib/FlagIcon"
+	import TranslateIcon from "phosphor-svelte/lib/TranslateIcon"
+	import CircleNotchIcon from "phosphor-svelte/lib/CircleNotchIcon"
+	import EnvelopeIcon from "phosphor-svelte/lib/EnvelopeIcon"
+	import MapPinIcon from "phosphor-svelte/lib/MapPinIcon"
+	import PhoneIcon from "phosphor-svelte/lib/PhoneIcon"
+	import UserCircleIcon from "phosphor-svelte/lib/UserCircleIcon"
+	import GlobeHemisphereWestIcon from "phosphor-svelte/lib/GlobeHemisphereWestIcon"
 	import SensitiveValue from "../shared/SensitiveValue.svelte"
 	import { AgeVerification } from "../backend/bridge"
 	import type { AccountInfoState } from "./account-info-state.svelte"
@@ -90,7 +90,7 @@
 {#if !snapshot}
 	{#if info.loading}
 		<div class="account-settings-loading" role="status">
-			<LoaderCircle class="spinner" size={14} aria-hidden="true" />
+			<CircleNotchIcon class="spinner" size={16} aria-hidden="true" />
 			Loading account info
 		</div>
 	{/if}
@@ -101,13 +101,13 @@
 			<dl class="profile-facts">
 				{#if visible.has("username")}
 					<div>
-						<dt><AtSign size={14} aria-hidden="true" />Username</dt>
+						<dt><AtIcon size={16} aria-hidden="true" />Username</dt>
 						<dd><span>{username}</span></dd>
 					</div>
 				{/if}
 				{#if visible.has("gender")}
 					<div>
-						<dt><UserRound size={14} aria-hidden="true" />Gender</dt>
+						<dt><UserCircleIcon size={16} aria-hidden="true" />Gender</dt>
 						<dd>
 							{#if missing("gender")}
 								<span class="account-info-missing">Unavailable</span>
@@ -121,7 +121,7 @@
 				{/if}
 				{#if visible.has("ageGroup")}
 					<div>
-						<dt><CalendarRange size={14} aria-hidden="true" />Age group</dt>
+						<dt><CalendarIcon size={16} aria-hidden="true" />Age group</dt>
 						<dd>
 							{#if snapshot.ageGroup}
 								<span>{snapshot.ageGroup}</span>
@@ -138,7 +138,7 @@
 				{/if}
 				{#if visible.has("birthday")}
 					<div>
-						<dt><Cake size={14} aria-hidden="true" />Birthday</dt>
+						<dt><CakeIcon size={16} aria-hidden="true" />Birthday</dt>
 						<dd>
 							{#if birthday}
 								<SensitiveValue label="Birthday"
@@ -156,7 +156,7 @@
 				{/if}
 				{#if visible.has("firstAccount")}
 					<div>
-						<dt><Flag size={14} aria-hidden="true" />First account</dt>
+						<dt><FlagIcon size={16} aria-hidden="true" />First account</dt>
 						<dd>
 							{#if snapshot.firstAccount == null}
 								<span class="account-info-missing">Unavailable</span>
@@ -181,7 +181,7 @@
 			<dl class="profile-facts">
 				{#if visible.has("email")}
 					<div>
-						<dt><Mail size={14} aria-hidden="true" />Email</dt>
+						<dt><EnvelopeIcon size={16} aria-hidden="true" />Email</dt>
 						<dd>
 							{#if missing("email")}
 								<span class="account-info-missing">Unavailable</span>
@@ -200,7 +200,7 @@
 				{/if}
 				{#if visible.has("phone")}
 					<div>
-						<dt><Phone size={14} aria-hidden="true" />Phone number</dt>
+						<dt><PhoneIcon size={16} aria-hidden="true" />Phone number</dt>
 						<dd>
 							{#if missing("phone")}
 								<span class="account-info-missing">Unavailable</span>
@@ -227,7 +227,7 @@
 			<dl class="profile-facts">
 				{#if visible.has("language")}
 					<div>
-						<dt><Languages size={14} aria-hidden="true" />Language</dt>
+						<dt><TranslateIcon size={16} aria-hidden="true" />Language</dt>
 						<dd>
 							{#if snapshot.language}
 								<span>{snapshot.language}</span>
@@ -240,8 +240,9 @@
 				{#if visible.has("translations")}
 					<div>
 						<dt>
-							<Globe2 size={14} aria-hidden="true" />Automatic
-							translations
+							<GlobeHemisphereWestIcon
+								size={16}
+								aria-hidden="true" />Automatic translations
 						</dt>
 						<dd>
 							{#if snapshot.autoTranslations == null}
@@ -254,7 +255,9 @@
 				{/if}
 				{#if visible.has("location")}
 					<div>
-						<dt><MapPin size={14} aria-hidden="true" />Account location</dt>
+						<dt>
+							<MapPinIcon size={16} aria-hidden="true" />Account location
+						</dt>
 						<dd>
 							{#if missing("location")}
 								<span class="account-info-missing">Unavailable</span>

@@ -1,7 +1,7 @@
 <script lang="ts">
-	import Check from "@lucide/svelte/icons/check"
-	import LoaderCircle from "@lucide/svelte/icons/loader-circle"
-	import X from "@lucide/svelte/icons/x"
+	import CheckIcon from "phosphor-svelte/lib/CheckIcon"
+	import CircleNotchIcon from "phosphor-svelte/lib/CircleNotchIcon"
+	import XIcon from "phosphor-svelte/lib/XIcon"
 	import type { Account } from "../accounts/account-model"
 	import type { AccountStore } from "../accounts/account-store.svelte"
 	import { accountBackend } from "../backend/bridge"
@@ -72,7 +72,7 @@
 				aria-label="Close cookie renewal"
 				disabled={pending}
 				onclick={onClose}>
-				<X size={14} />
+				<XIcon size={16} aria-hidden="true" />
 			</button>
 		</div>
 		{#if phase === "confirm"}
@@ -87,12 +87,12 @@
 				role="status"
 				aria-live="polite">
 				{#if pending}
-					<LoaderCircle size={16} class="spinner" aria-hidden="true" />
+					<CircleNotchIcon size={18} class="spinner" aria-hidden="true" />
 					<span>Renewing the cookie and saving it…</span>
 				{:else if error}
 					<span>Renewal could not be confirmed.</span>
 				{:else}
-					<Check size={16} class="renewal-success" aria-hidden="true" />
+					<CheckIcon size={18} class="renewal-success" aria-hidden="true" />
 					<span>The renewed cookie is saved.</span>
 				{/if}
 			</div>

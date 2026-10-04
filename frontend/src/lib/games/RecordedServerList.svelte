@@ -1,7 +1,7 @@
 <script lang="ts">
-	import AlertTriangle from "@lucide/svelte/icons/triangle-alert"
-	import LoaderCircle from "@lucide/svelte/icons/loader-circle"
-	import Server from "@lucide/svelte/icons/server"
+	import WarningIcon from "phosphor-svelte/lib/WarningIcon"
+	import CircleNotchIcon from "phosphor-svelte/lib/CircleNotchIcon"
+	import HardDrivesIcon from "phosphor-svelte/lib/HardDrivesIcon"
 	import { untrack } from "svelte"
 	import { GameServerRecordOrder } from "../backend/bridge"
 	import Select from "../shared/Select.svelte"
@@ -105,7 +105,7 @@
 
 	{#if servers.error}
 		<div class="games-empty" role="alert">
-			<AlertTriangle size={24} aria-hidden="true" />
+			<WarningIcon size={27} aria-hidden="true" />
 			<h2>RoValra servers are unavailable</h2>
 			<p>{servers.error}</p>
 			<button
@@ -115,12 +115,12 @@
 		</div>
 	{:else if !servers.page}
 		<div class="games-empty" role="status">
-			<LoaderCircle class="spinner" size={24} aria-hidden="true" />
+			<CircleNotchIcon class="spinner" size={27} aria-hidden="true" />
 			<h2>Loading servers…</h2>
 		</div>
 	{:else if !shown.length}
 		<div class="games-empty" role="status">
-			<Server size={24} aria-hidden="true" />
+			<HardDrivesIcon size={27} aria-hidden="true" />
 			{#if servers.pageNumber > 1}
 				<h2>No more servers</h2>
 				<p>RoValra has no more servers for this list.</p>

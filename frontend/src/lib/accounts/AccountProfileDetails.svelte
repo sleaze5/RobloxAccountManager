@@ -1,17 +1,17 @@
 <script lang="ts">
-	import BadgeCheck from "@lucide/svelte/icons/badge-check"
-	import CalendarDays from "@lucide/svelte/icons/calendar-days"
-	import CircleAlert from "@lucide/svelte/icons/circle-alert"
-	import CircleCheck from "@lucide/svelte/icons/circle-check"
-	import CircleDashed from "@lucide/svelte/icons/circle-dashed"
-	import Cookie from "@lucide/svelte/icons/cookie"
-	import DatabaseZap from "@lucide/svelte/icons/database-zap"
-	import Globe2 from "@lucide/svelte/icons/earth"
-	import RefreshCw from "@lucide/svelte/icons/refresh-cw"
-	import ShieldCheck from "@lucide/svelte/icons/shield-check"
-	import ShieldOff from "@lucide/svelte/icons/shield-off"
-	import UserRound from "@lucide/svelte/icons/user-round"
-	import UsersRound from "@lucide/svelte/icons/users-round"
+	import SealCheckIcon from "phosphor-svelte/lib/SealCheckIcon"
+	import CalendarDotsIcon from "phosphor-svelte/lib/CalendarDotsIcon"
+	import WarningCircleIcon from "phosphor-svelte/lib/WarningCircleIcon"
+	import CheckCircleIcon from "phosphor-svelte/lib/CheckCircleIcon"
+	import CircleDashedIcon from "phosphor-svelte/lib/CircleDashedIcon"
+	import CookieIcon from "phosphor-svelte/lib/CookieIcon"
+	import DatabaseIcon from "phosphor-svelte/lib/DatabaseIcon"
+	import GlobeHemisphereWestIcon from "phosphor-svelte/lib/GlobeHemisphereWestIcon"
+	import ArrowsClockwiseIcon from "phosphor-svelte/lib/ArrowsClockwiseIcon"
+	import ShieldCheckIcon from "phosphor-svelte/lib/ShieldCheckIcon"
+	import ShieldSlashIcon from "phosphor-svelte/lib/ShieldSlashIcon"
+	import UserCircleIcon from "phosphor-svelte/lib/UserCircleIcon"
+	import UsersThreeIcon from "phosphor-svelte/lib/UsersThreeIcon"
 	import { AgeVerification, SessionState } from "../backend/bridge"
 	import type { AccountProfileSnapshot } from "../backend/bridge"
 	import Timestamp from "../shared/Timestamp.svelte"
@@ -100,7 +100,7 @@
 	<dl class="profile-facts">
 		{#if account.createdAtMs}
 			<div>
-				<dt><CalendarDays size={14} aria-hidden="true" />Joined</dt>
+				<dt><CalendarDotsIcon size={16} aria-hidden="true" />Joined</dt>
 				<dd>
 					<Timestamp value={account.createdAtMs} />
 					<small>{accountAge} old</small>
@@ -109,7 +109,7 @@
 		{/if}
 		{#if country}
 			<div>
-				<dt><Globe2 size={14} aria-hidden="true" />Country</dt>
+				<dt><GlobeHemisphereWestIcon size={16} aria-hidden="true" />Country</dt>
 				<dd>
 					<span>{country}</span>
 					<small class="mono">{snapshot?.countryCode}</small>
@@ -119,10 +119,10 @@
 		{#if age || ageVerification}
 			<div>
 				<dt>
-					{#if snapshot?.ageVerification === AgeVerification.AgeVerifiedFaceScan || snapshot?.ageVerification === AgeVerification.AgeVerifiedID}<BadgeCheck
-							size={14}
-							aria-hidden="true" />{:else}<UserRound
-							size={14}
+					{#if snapshot?.ageVerification === AgeVerification.AgeVerifiedFaceScan || snapshot?.ageVerification === AgeVerification.AgeVerifiedID}<SealCheckIcon
+							size={16}
+							aria-hidden="true" />{:else}<UserCircleIcon
+							size={16}
 							aria-hidden="true" />{/if}
 					Age group
 				</dt>
@@ -135,10 +135,10 @@
 		{#if snapshot && snapshot.twoStepEnabled !== null}
 			<div class:warning={!snapshot.twoStepEnabled}>
 				<dt>
-					{#if snapshot.twoStepEnabled}<ShieldCheck
-							size={14}
-							aria-hidden="true" />{:else}<ShieldOff
-							size={14}
+					{#if snapshot.twoStepEnabled}<ShieldCheckIcon
+							size={16}
+							aria-hidden="true" />{:else}<ShieldSlashIcon
+							size={16}
 							aria-hidden="true" />{/if}
 					2-step verification
 				</dt>
@@ -151,11 +151,11 @@
 		{#if snapshot?.primaryGroup}
 			{@const group = snapshot.primaryGroup}
 			<div>
-				<dt><UsersRound size={14} aria-hidden="true" />Primary group</dt>
+				<dt><UsersThreeIcon size={16} aria-hidden="true" />Primary group</dt>
 				<dd>
 					<span class="profile-fact-name"
-						>{group.name}{#if group.verified}<BadgeCheck
-								size={12}
+						>{group.name}{#if group.verified}<SealCheckIcon
+								size={14}
 								aria-label="Verified group" />{/if}</span>
 					<small
 						>{group.role ? `${group.role} · ` : ""}{numbers.format(
@@ -173,12 +173,12 @@
 	<dl class="profile-facts">
 		<div class={session.tone}>
 			<dt>
-				{#if session.tone === "success"}<CircleCheck
-						size={14}
-						aria-hidden="true" />{:else if session.tone === "warning"}<CircleAlert
-						size={14}
-						aria-hidden="true" />{:else}<CircleDashed
-						size={14}
+				{#if session.tone === "success"}<CheckCircleIcon
+						size={16}
+						aria-hidden="true" />{:else if session.tone === "warning"}<WarningCircleIcon
+						size={16}
+						aria-hidden="true" />{:else}<CircleDashedIcon
+						size={16}
 						aria-hidden="true" />{/if}
 				Session
 			</dt>
@@ -189,7 +189,7 @@
 		</div>
 		{#if account.cookieExpiresAtMs}
 			<div>
-				<dt><Cookie size={14} aria-hidden="true" />Cookie expires</dt>
+				<dt><CookieIcon size={16} aria-hidden="true" />Cookie expires</dt>
 				<dd>
 					<Timestamp value={account.cookieExpiresAtMs} />
 					<small>{relativeTime(account.cookieExpiresAtMs)}</small>
@@ -198,7 +198,7 @@
 		{/if}
 		{#if account.lastValidatedAtMs}
 			<div>
-				<dt><CircleCheck size={14} aria-hidden="true" />Validated</dt>
+				<dt><CheckCircleIcon size={16} aria-hidden="true" />Validated</dt>
 				<dd>
 					<Timestamp value={account.lastValidatedAtMs} />
 					<small>{relativeTime(account.lastValidatedAtMs)}</small>
@@ -207,7 +207,9 @@
 		{/if}
 		{#if account.rotatedAtMs}
 			<div>
-				<dt><RefreshCw size={14} aria-hidden="true" />Cookie renewed</dt>
+				<dt>
+					<ArrowsClockwiseIcon size={16} aria-hidden="true" />Cookie renewed
+				</dt>
 				<dd>
 					<Timestamp value={account.rotatedAtMs} />
 					<small>{relativeTime(account.rotatedAtMs)}</small>
@@ -216,7 +218,7 @@
 		{/if}
 		{#if account.importedAtMs}
 			<div>
-				<dt><DatabaseZap size={14} aria-hidden="true" />Added</dt>
+				<dt><DatabaseIcon size={16} aria-hidden="true" />Added</dt>
 				<dd>
 					<Timestamp value={account.importedAtMs} />
 					<small>{relativeTime(account.importedAtMs)}</small>

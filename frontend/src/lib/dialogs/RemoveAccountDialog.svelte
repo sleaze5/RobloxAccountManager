@@ -1,6 +1,6 @@
 <script lang="ts">
-	import Star from "@lucide/svelte/icons/star"
-	import X from "@lucide/svelte/icons/x"
+	import StarIcon from "phosphor-svelte/lib/StarIcon"
+	import XIcon from "phosphor-svelte/lib/XIcon"
 	import type { AccountStore } from "../accounts/account-store.svelte"
 	import type { Account } from "../accounts/account-model"
 	import {
@@ -45,10 +45,10 @@
 			<div>
 				<h2 class="account-display-name">
 					<span>Remove {account.displayName}</span>
-					{#if account.favorite}<Star
+					{#if account.favorite}<StarIcon
 							class="favorite-name-star"
-							size={12}
-							fill="currentColor"
+							size={14}
+							weight="fill"
 							aria-hidden="true" />{/if}
 					<span>?</span>
 				</h2>
@@ -59,7 +59,7 @@
 				aria-label="Close remove account dialog"
 				disabled={store.busy}
 				onclick={close}>
-				<X size={14} />
+				<XIcon size={16} aria-hidden="true" />
 			</button>
 		</div>
 		{#if store.error}

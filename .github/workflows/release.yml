@@ -182,6 +182,7 @@ jobs:
                       (Join-Path $release "RobloxAccountManager-windows-x64.zip"),
                       (Join-Path $release "RobloxAccountManager-linux-x64.tar.gz"),
                       (Join-Path $release "manifest.json"),
+                      "THIRD_PARTY_LICENSES.txt",
                       "--target", $env:GITHUB_SHA,
                       "--title", "${{ steps.version.outputs.tag }}",
                       "--generate-notes"

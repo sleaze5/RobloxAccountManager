@@ -1,5 +1,5 @@
 <script lang="ts">
-	import Users from "@lucide/svelte/icons/users"
+	import UsersIcon from "phosphor-svelte/lib/UsersIcon"
 	import type { ChatConversationView } from "../backend/bridge"
 	import ProfileImage from "../shared/ProfileImage.svelte"
 
@@ -8,7 +8,7 @@
 
 <span class="chat-avatar avatar-image" aria-hidden="true">
 	{#if conversation.group}
-		<Users class="profile-image-fallback" />
+		<UsersIcon class="profile-image-fallback" aria-hidden="true" />
 	{:else}
 		<ProfileImage url={conversation.imageUrl} />
 	{/if}

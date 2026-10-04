@@ -1,9 +1,9 @@
 <script lang="ts">
-	import Check from "@lucide/svelte/icons/check"
-	import Hash from "@lucide/svelte/icons/hash"
-	import Minus from "@lucide/svelte/icons/minus"
-	import Settings2 from "@lucide/svelte/icons/settings-2"
-	import Star from "@lucide/svelte/icons/star"
+	import CheckIcon from "phosphor-svelte/lib/CheckIcon"
+	import HashIcon from "phosphor-svelte/lib/HashIcon"
+	import MinusIcon from "phosphor-svelte/lib/MinusIcon"
+	import SlidersIcon from "phosphor-svelte/lib/SlidersIcon"
+	import StarIcon from "phosphor-svelte/lib/StarIcon"
 	import type { TagView } from "../backend/bridge"
 	import type { AccountStore } from "./account-store.svelte"
 	import { hasTag } from "./account-model"
@@ -38,9 +38,9 @@
 
 {#snippet mark(state: TagState)}
 	{#if state === "on"}
-		<Check size={13} class="menu-check" aria-hidden="true" />
+		<CheckIcon size={15} class="menu-check" aria-hidden="true" />
 	{:else if state === "mixed"}
-		<Minus size={13} class="menu-check" aria-hidden="true" />
+		<MinusIcon size={15} class="menu-check" aria-hidden="true" />
 	{/if}
 {/snippet}
 
@@ -53,10 +53,10 @@
 			aria-pressed={state === "mixed" ? "mixed" : state === "on"}
 			disabled={store.busy}
 			onclick={() => toggle(favorite)}>
-			<Star
-				size={14}
+			<StarIcon
+				size={16}
 				aria-hidden="true"
-				fill={state === "on" ? "currentColor" : "none"} />
+				weight={state === "on" ? "fill" : "regular"} />
 			<span>Favorite</span>
 			{@render mark(state)}
 		</button>
@@ -70,7 +70,7 @@
 				aria-pressed={state === "mixed" ? "mixed" : state === "on"}
 				disabled={store.busy}
 				onclick={() => toggle(tag)}>
-				<Hash size={14} aria-hidden="true" />
+				<HashIcon size={16} aria-hidden="true" />
 				<span>{tag.name}</span>
 				{@render mark(state)}
 			</button>
@@ -80,6 +80,6 @@
 	</div>
 	<div class="account-menu-separator"></div>
 	<button type="button" disabled={store.busy} onclick={onManageTags}>
-		<Settings2 size={14} aria-hidden="true" /><span>Manage tags</span>
+		<SlidersIcon size={16} aria-hidden="true" /><span>Manage tags</span>
 	</button>
 </div>

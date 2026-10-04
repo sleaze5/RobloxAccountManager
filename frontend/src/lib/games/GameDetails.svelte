@@ -1,30 +1,30 @@
 <script lang="ts">
-	import Activity from "@lucide/svelte/icons/activity"
-	import AlertTriangle from "@lucide/svelte/icons/triangle-alert"
-	import BadgeCheck from "@lucide/svelte/icons/badge-check"
-	import CalendarDays from "@lucide/svelte/icons/calendar-days"
-	import Copy from "@lucide/svelte/icons/copy"
-	import Eye from "@lucide/svelte/icons/eye"
-	import Footprints from "@lucide/svelte/icons/footprints"
-	import GitCommitHorizontal from "@lucide/svelte/icons/git-commit-horizontal"
-	import History from "@lucide/svelte/icons/rotate-ccw-clock"
-	import LoaderCircle from "@lucide/svelte/icons/loader-circle"
-	import Mic from "@lucide/svelte/icons/mic"
-	import MoreHorizontal from "@lucide/svelte/icons/ellipsis"
-	import Network from "@lucide/svelte/icons/network"
-	import Pencil from "@lucide/svelte/icons/pencil"
-	import PersonStanding from "@lucide/svelte/icons/person-standing"
-	import RefreshCw from "@lucide/svelte/icons/refresh-cw"
-	import Server from "@lucide/svelte/icons/server"
-	import ShieldCheck from "@lucide/svelte/icons/shield-check"
-	import Shapes from "@lucide/svelte/icons/shapes"
-	import Shirt from "@lucide/svelte/icons/shirt"
-	import Star from "@lucide/svelte/icons/star"
-	import ThumbsUp from "@lucide/svelte/icons/thumbs-up"
-	import Ticket from "@lucide/svelte/icons/ticket"
-	import Upload from "@lucide/svelte/icons/upload"
-	import UsersRound from "@lucide/svelte/icons/users-round"
-	import Video from "@lucide/svelte/icons/video"
+	import PulseIcon from "phosphor-svelte/lib/PulseIcon"
+	import WarningIcon from "phosphor-svelte/lib/WarningIcon"
+	import SealCheckIcon from "phosphor-svelte/lib/SealCheckIcon"
+	import CalendarDotsIcon from "phosphor-svelte/lib/CalendarDotsIcon"
+	import CopyIcon from "phosphor-svelte/lib/CopyIcon"
+	import EyeIcon from "phosphor-svelte/lib/EyeIcon"
+	import FootprintsIcon from "phosphor-svelte/lib/FootprintsIcon"
+	import GitCommitIcon from "phosphor-svelte/lib/GitCommitIcon"
+	import ClockCounterClockwiseIcon from "phosphor-svelte/lib/ClockCounterClockwiseIcon"
+	import CircleNotchIcon from "phosphor-svelte/lib/CircleNotchIcon"
+	import MicrophoneIcon from "phosphor-svelte/lib/MicrophoneIcon"
+	import DotsThreeIcon from "phosphor-svelte/lib/DotsThreeIcon"
+	import TreeStructureIcon from "phosphor-svelte/lib/TreeStructureIcon"
+	import PencilIcon from "phosphor-svelte/lib/PencilIcon"
+	import PersonArmsSpreadIcon from "phosphor-svelte/lib/PersonArmsSpreadIcon"
+	import ArrowsClockwiseIcon from "phosphor-svelte/lib/ArrowsClockwiseIcon"
+	import HardDrivesIcon from "phosphor-svelte/lib/HardDrivesIcon"
+	import ShieldCheckIcon from "phosphor-svelte/lib/ShieldCheckIcon"
+	import ShapesIcon from "phosphor-svelte/lib/ShapesIcon"
+	import TShirtIcon from "phosphor-svelte/lib/TShirtIcon"
+	import StarIcon from "phosphor-svelte/lib/StarIcon"
+	import ThumbsUpIcon from "phosphor-svelte/lib/ThumbsUpIcon"
+	import TicketIcon from "phosphor-svelte/lib/TicketIcon"
+	import UploadSimpleIcon from "phosphor-svelte/lib/UploadSimpleIcon"
+	import UsersThreeIcon from "phosphor-svelte/lib/UsersThreeIcon"
+	import VideoCameraIcon from "phosphor-svelte/lib/VideoCameraIcon"
 	import { untrack } from "svelte"
 	import Timestamp from "../shared/Timestamp.svelte"
 	import { relativeTime } from "../shared/timestamp"
@@ -41,7 +41,7 @@
 
 	type Fact = {
 		label: string
-		icon: typeof Activity
+		icon: typeof PulseIcon
 		value: string | undefined
 		detail?: string
 	}
@@ -77,10 +77,10 @@
 				),
 		),
 		details = $derived<Fact[]>([
-			{ label: "Genre", icon: Shapes, value: genre || undefined },
+			{ label: "Genre", icon: ShapesIcon, value: genre || undefined },
 			{
 				label: "Content rating",
-				icon: ShieldCheck,
+				icon: ShieldCheckIcon,
 				value: contentRating || undefined,
 			},
 			...(rootPlace
@@ -88,7 +88,7 @@
 				: [
 						{
 							label: "Rating",
-							icon: ThumbsUp,
+							icon: ThumbsUpIcon,
 							value: game
 								? votes
 									? `${percent.format(likeShare)} liked`
@@ -99,15 +99,15 @@
 									? `${count(game.upVotes, "like", "likes")} · ${count(game.downVotes, "dislike", "dislikes")}`
 									: "",
 						},
-						{ label: "Visits", icon: Eye, value: exact(game?.visits) },
+						{ label: "Visits", icon: EyeIcon, value: exact(game?.visits) },
 						{
 							label: "Favorites",
-							icon: Star,
+							icon: StarIcon,
 							value: exact(game?.favorites),
 						},
 						{
 							label: "Server capacity",
-							icon: UsersRound,
+							icon: UsersThreeIcon,
 							value:
 								game?.maxPlayers === undefined
 									? undefined
@@ -116,20 +116,24 @@
 					]),
 		]),
 		dates = $derived([
-			{ label: "Updated", icon: History, value: game?.updatedAtMs },
-			{ label: "Created", icon: CalendarDays, value: game?.createdAtMs },
+			{
+				label: "Updated",
+				icon: ClockCounterClockwiseIcon,
+				value: game?.updatedAtMs,
+			},
+			{ label: "Created", icon: CalendarDotsIcon, value: game?.createdAtMs },
 		]),
 		supported = (value: boolean | undefined) =>
 			value === undefined ? undefined : value ? "Supported" : "Not supported",
 		versions = $derived<Fact[]>([
 			{
 				label: "Saved version",
-				icon: GitCommitHorizontal,
+				icon: GitCommitIcon,
 				value: game?.versions?.saved?.toString(),
 			},
 			{
 				label: "Published version",
-				icon: Upload,
+				icon: UploadSimpleIcon,
 				value: game?.versions?.published?.toString(),
 			},
 		]),
@@ -138,17 +142,17 @@
 				? [
 						{
 							label: "Voice chat",
-							icon: Mic,
+							icon: MicrophoneIcon,
 							value: supported(game.communication?.voiceChat),
 						},
 						{
 							label: "Camera",
-							icon: Video,
+							icon: VideoCameraIcon,
 							value: supported(game.communication?.camera),
 						},
 						{
 							label: "Access",
-							icon: Ticket,
+							icon: TicketIcon,
 							value:
 								game.price > 0
 									? `Paid access · R$ ${numbers.format(game.price)}`
@@ -156,12 +160,12 @@
 						},
 						{
 							label: "Avatar type",
-							icon: PersonStanding,
+							icon: PersonArmsSpreadIcon,
 							value: game.avatarType || "Unknown",
 						},
 						{
 							label: "Animations",
-							icon: Footprints,
+							icon: FootprintsIcon,
 							value: game.avatarRules
 								? game.avatarRules.customAnimationsAllowed
 									? "Custom allowed"
@@ -172,14 +176,14 @@
 							? [
 									{
 										label: "Avatar items",
-										icon: Shirt,
+										icon: TShirtIcon,
 										value: `${numbers.format(game.avatarRules.itemOverrides)} replaced by the game`,
 									},
 								]
 							: []),
 						{
 							label: "Private servers",
-							icon: Server,
+							icon: HardDrivesIcon,
 							value: game.privateServersAllowed
 								? "Allowed"
 								: "Not allowed",
@@ -189,7 +193,7 @@
 							: [
 									{
 										label: "Copying",
-										icon: Copy,
+										icon: CopyIcon,
 										value: game.copyingAllowed
 											? "Allowed"
 											: "Not allowed",
@@ -228,7 +232,7 @@
 
 {#snippet row(fact: Fact, mono = false)}
 	<div>
-		<dt><fact.icon size={14} aria-hidden="true" />{fact.label}</dt>
+		<dt><fact.icon size={16} aria-hidden="true" />{fact.label}</dt>
 		<dd>
 			{#if fact.value}
 				<span class:mono class:game-fact-copyable={mono}>{fact.value}</span>
@@ -254,10 +258,10 @@
 						<div class="game-title">
 							<h2 class="game-name">
 								{nameStart}<span class="game-name-end"
-									>{nameEnd}{#if favorite}<Star
+									>{nameEnd}{#if favorite}<StarIcon
 											class="favorite-name-star"
-											size={13}
-											fill="currentColor"
+											size={15}
+											weight="fill"
 											aria-label="Favorite" />{/if}</span>
 							</h2>
 							{#if favorite}
@@ -298,7 +302,9 @@
 												: "Add nickname"}
 											disabled={store.savingNickname}
 											onclick={startEditing}
-											><Pencil size={13} /></button>
+											><PencilIcon
+												size={15}
+												aria-hidden="true" /></button>
 									{/if}
 								</span>
 							{/if}
@@ -312,8 +318,8 @@
 							<span class="game-creator"
 								>{creatorByline(
 									place,
-								)}{#if place.creatorVerified}<BadgeCheck
-										size={12}
+								)}{#if place.creatorVerified}<SealCheckIcon
+										size={14}
 										aria-label="Verified creator" />{/if}</span>
 							{#if place.creatorId}
 								<span class="meta-separator" aria-hidden="true">-</span>
@@ -322,7 +328,7 @@
 						</div>
 						{#if game && !rootPlace}
 							<p class="game-playing" class:active={game.playing > 0}>
-								<Activity size={13} aria-hidden="true" />
+								<PulseIcon size={15} aria-hidden="true" />
 								{numbers.format(game.playing)} playing
 							</p>
 						{/if}
@@ -339,11 +345,11 @@
 						data-tooltip="Refresh game details"
 						disabled={store.loadingDetails}
 						onclick={() => void store.refreshDetails()}>
-						{#if store.loadingDetails}<LoaderCircle
+						{#if store.loadingDetails}<CircleNotchIcon
 								class="spinner"
-								size={15}
-								aria-hidden="true" />{:else}<RefreshCw
-								size={15}
+								size={17}
+								aria-hidden="true" />{:else}<ArrowsClockwiseIcon
+								size={17}
 								aria-hidden="true" />{/if}
 					</button>
 					<button
@@ -356,7 +362,7 @@
 							store.closeMenu()
 							store.detailsPage = "servers"
 						}}>
-						<Server size={15} aria-hidden="true" />
+						<HardDrivesIcon size={17} aria-hidden="true" />
 					</button>
 					<button
 						class:open={menuOpen}
@@ -372,7 +378,7 @@
 							if (menuOpen) store.closeMenu()
 							else store.openMenu(event, place)
 						}}>
-						<MoreHorizontal size={18} />
+						<DotsThreeIcon size={20} aria-hidden="true" />
 					</button>
 				</div>
 			</div>
@@ -380,7 +386,7 @@
 			{#if favorite}
 				<div class="identity-section">
 					<span class="tag-pill favorite">
-						<Star size={11} fill="currentColor" aria-hidden="true" />
+						<StarIcon size={12} weight="fill" aria-hidden="true" />
 						<span>Favorite</span>
 					</span>
 				</div>
@@ -388,7 +394,7 @@
 
 			{#if rootPlace}
 				<p class="game-subplace-note" role="note">
-					<Network size={12} aria-hidden="true" />
+					<TreeStructureIcon size={14} aria-hidden="true" />
 					<span
 						>Subplace of <button
 							class="game-subplace-link"
@@ -403,7 +409,7 @@
 
 			{#if store.detailsError}
 				<p class="game-details-error" role="alert">
-					<AlertTriangle size={14} aria-hidden="true" />
+					<WarningIcon size={16} aria-hidden="true" />
 					<span>{store.detailsError}</span>
 				</p>
 			{/if}
@@ -417,7 +423,7 @@
 							<div>
 								<dt>
 									<fact.icon
-										size={14}
+										size={16}
 										aria-hidden="true" />{fact.label}
 								</dt>
 								<dd>

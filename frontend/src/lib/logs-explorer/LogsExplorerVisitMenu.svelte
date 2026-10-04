@@ -1,5 +1,5 @@
 <script lang="ts">
-	import ListPlus from "@lucide/svelte/icons/list-plus"
+	import ListPlusIcon from "phosphor-svelte/lib/ListPlusIcon"
 	import { menuIn, menuOut } from "../shared/presence"
 
 	let {
@@ -100,7 +100,7 @@
 	in:menuIn|global
 	out:menuOut|global>
 	<button type="button" role="menuitem" onclick={onFillLaunch}>
-		<ListPlus size={14} aria-hidden="true" />
+		<ListPlusIcon size={16} aria-hidden="true" />
 		<span>Fill launch options</span>
 	</button>
 </div>

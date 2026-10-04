@@ -1,6 +1,6 @@
 <script lang="ts">
-	import LogIn from "@lucide/svelte/icons/log-in"
-	import Star from "@lucide/svelte/icons/star"
+	import SignInIcon from "phosphor-svelte/lib/SignInIcon"
+	import StarIcon from "phosphor-svelte/lib/StarIcon"
 	import { PresenceType } from "../backend/bridge"
 	import type { GamePlace, UserPresence } from "../backend/bridge"
 	import { loadGamePlace } from "../games/game-place-cache"
@@ -84,15 +84,15 @@
 		aria-label={tooltip}
 		data-tooltip={tooltip}>
 		<span class={`profile-presence-label ${presenceClass(presence)}`}
-			><Icon size={13} aria-hidden="true" />{label}{detail ? ":" : ""}</span>
+			><Icon size={15} aria-hidden="true" />{label}{detail ? ":" : ""}</span>
 		{#if detail}
 			<span class="game-display-name">
 				<span>{detail}</span>
 				{#if inExperience && place && games.isFavorite(place.placeId)}
-					<Star
+					<StarIcon
 						class="favorite-name-star"
-						size={11}
-						fill="currentColor"
+						size={12}
+						weight="fill"
 						aria-label="Favorite" />
 				{/if}
 			</span>
@@ -105,7 +105,7 @@
 			aria-label="Fill launch options"
 			data-tooltip="Fill launch options with this place and server"
 			onclick={() => onJoin(joinPlaceId, presence.gameId ?? "")}>
-			<LogIn size={14} aria-hidden="true" />
+			<SignInIcon size={16} aria-hidden="true" />
 		</button>
 	{/if}
 </div>

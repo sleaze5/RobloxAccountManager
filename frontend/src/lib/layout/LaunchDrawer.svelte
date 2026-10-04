@@ -1,9 +1,9 @@
 <script lang="ts">
-	import Ban from "@lucide/svelte/icons/ban"
-	import ChevronDown from "@lucide/svelte/icons/chevron-down"
-	import FileUp from "@lucide/svelte/icons/file-up"
-	import Gamepad2 from "@lucide/svelte/icons/gamepad-2"
-	import Trash2 from "@lucide/svelte/icons/trash-2"
+	import ProhibitIcon from "phosphor-svelte/lib/ProhibitIcon"
+	import CaretDownIcon from "phosphor-svelte/lib/CaretDownIcon"
+	import FileArrowUpIcon from "phosphor-svelte/lib/FileArrowUpIcon"
+	import GameControllerIcon from "phosphor-svelte/lib/GameControllerIcon"
+	import TrashIcon from "phosphor-svelte/lib/TrashIcon"
 	import type { AccountStore } from "../accounts/account-store.svelte"
 	import { LaunchMethod } from "../backend/bridge"
 	import Select from "../shared/Select.svelte"
@@ -105,7 +105,7 @@
 	{/if}
 	<div class="drawer-header">
 		<span>
-			<Gamepad2 size={16} />
+			<GameControllerIcon size={18} aria-hidden="true" />
 			<strong id="launch-title">Launch options</strong>
 		</span>
 		<div class="drawer-header-actions">
@@ -122,7 +122,7 @@
 					workspace.closeAccountMenus()
 					processesOpen = true
 				}}>
-				<Ban size={14} aria-hidden="true" />
+				<ProhibitIcon size={16} aria-hidden="true" />
 			</button>
 			<button
 				class="drawer-toggle"
@@ -136,9 +136,10 @@
 					: "Expand the launch panel"}
 				data-tooltip-side="top-end"
 				onclick={() => (workspace.launchOpen = !workspace.launchOpen)}>
-				<ChevronDown
+				<CaretDownIcon
 					class={workspace.launchOpen ? "open" : undefined}
-					size={16} />
+					size={18}
+					aria-hidden="true" />
 			</button>
 		</div>
 	</div>
@@ -222,7 +223,7 @@
 						data-tooltip-side="top"
 						disabled={store.launching || !hasJoinTarget}
 						onclick={() => store.clearJoinTarget()}>
-						<Trash2 size={15} aria-hidden="true" />
+						<TrashIcon size={17} aria-hidden="true" />
 					</button>
 				</div>
 				<button
@@ -236,7 +237,7 @@
 					data-tooltip-side="top"
 					disabled={store.launching}
 					onclick={() => (launchDataOpen = true)}>
-					<FileUp size={15} aria-hidden="true" />
+					<FileArrowUpIcon size={17} aria-hidden="true" />
 				</button>
 				<LaunchArguments {store} />
 				<LaunchButton {store} {workspace} />

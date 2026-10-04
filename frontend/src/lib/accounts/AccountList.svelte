@@ -1,7 +1,7 @@
 <script lang="ts">
-	import Check from "@lucide/svelte/icons/check"
-	import GripVertical from "@lucide/svelte/icons/grip-vertical"
-	import Star from "@lucide/svelte/icons/star"
+	import CheckIcon from "phosphor-svelte/lib/CheckIcon"
+	import DotsSixVerticalIcon from "phosphor-svelte/lib/DotsSixVerticalIcon"
+	import StarIcon from "phosphor-svelte/lib/StarIcon"
 	import type { WorkspaceState } from "../layout/workspace-state.svelte"
 	import AccountAvatar from "./AccountAvatar.svelte"
 	import type { AccountStore } from "./account-store.svelte"
@@ -137,7 +137,7 @@
 							}
 						}} />
 					<span aria-hidden="true"
-						><Check size={10} strokeWidth={2.4} /></span>
+						><CheckIcon size={11} weight="bold" aria-hidden="true" /></span>
 				</span>
 			{:else}
 				<span
@@ -146,7 +146,7 @@
 					aria-hidden="true"
 					ondragstart={(event) => startDrag(event, account.id)}
 					ondragend={finishDrag}>
-					<GripVertical size={12} />
+					<DotsSixVerticalIcon size={14} aria-hidden="true" />
 				</span>
 			{/if}
 			<button
@@ -174,10 +174,10 @@
 				<span class="account-name">
 					<strong class="account-display-name">
 						<span>{account.displayName}</span>
-						{#if account.favorite}<Star
+						{#if account.favorite}<StarIcon
 								class="favorite-name-star"
-								size={11}
-								fill="currentColor"
+								size={12}
+								weight="fill"
 								aria-hidden="true" />{/if}
 					</strong>
 					<small>@{account.username}</small>

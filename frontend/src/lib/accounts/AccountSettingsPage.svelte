@@ -1,17 +1,17 @@
 <script lang="ts">
-	import BadgeDollarSign from "@lucide/svelte/icons/badge-dollar-sign"
-	import ChevronLeft from "@lucide/svelte/icons/chevron-left"
-	import ChevronRight from "@lucide/svelte/icons/chevron-right"
-	import Eye from "@lucide/svelte/icons/eye"
-	import LoaderCircle from "@lucide/svelte/icons/loader-circle"
-	import LockKeyhole from "@lucide/svelte/icons/lock-keyhole"
-	import MessageCircle from "@lucide/svelte/icons/message-circle"
-	import RefreshCw from "@lucide/svelte/icons/refresh-cw"
-	import Search from "@lucide/svelte/icons/search"
-	import ShieldCheck from "@lucide/svelte/icons/shield-check"
-	import SlidersHorizontal from "@lucide/svelte/icons/sliders-horizontal"
-	import UserRound from "@lucide/svelte/icons/user-round"
-	import X from "@lucide/svelte/icons/x"
+	import CurrencyCircleDollarIcon from "phosphor-svelte/lib/CurrencyCircleDollarIcon"
+	import CaretLeftIcon from "phosphor-svelte/lib/CaretLeftIcon"
+	import CaretRightIcon from "phosphor-svelte/lib/CaretRightIcon"
+	import EyeIcon from "phosphor-svelte/lib/EyeIcon"
+	import CircleNotchIcon from "phosphor-svelte/lib/CircleNotchIcon"
+	import LockKeyIcon from "phosphor-svelte/lib/LockKeyIcon"
+	import ChatCircleIcon from "phosphor-svelte/lib/ChatCircleIcon"
+	import ArrowsClockwiseIcon from "phosphor-svelte/lib/ArrowsClockwiseIcon"
+	import MagnifyingGlassIcon from "phosphor-svelte/lib/MagnifyingGlassIcon"
+	import ShieldCheckIcon from "phosphor-svelte/lib/ShieldCheckIcon"
+	import SlidersHorizontalIcon from "phosphor-svelte/lib/SlidersHorizontalIcon"
+	import UserCircleIcon from "phosphor-svelte/lib/UserCircleIcon"
+	import XIcon from "phosphor-svelte/lib/XIcon"
 	import { onMount, tick, untrack } from "svelte"
 	import type { WorkspaceState } from "../layout/workspace-state.svelte"
 	import { AccountSettingKey as Key } from "../backend/bridge"
@@ -42,7 +42,7 @@
 	interface CategoryDef {
 		id: string
 		label: string
-		icon: typeof ShieldCheck
+		icon: typeof ShieldCheckIcon
 		search: string
 		sections: SectionDef[]
 	}
@@ -108,7 +108,7 @@
 		{
 			id: "content-maturity",
 			label: "Content maturity",
-			icon: ShieldCheck,
+			icon: ShieldCheckIcon,
 			search: "content maturity minimal mild moderate restricted sensitive issues",
 			sections: [
 				{
@@ -138,7 +138,7 @@
 		{
 			id: "communication",
 			label: "Communication",
-			icon: MessageCircle,
+			icon: ChatCircleIcon,
 			search: "communication experience direct chat party friends voice data product improvements camera input gameplay coordination quick words",
 			sections: [
 				{
@@ -245,7 +245,7 @@
 		{
 			id: "visibility-private-servers",
 			label: "Visibility & private servers",
-			icon: Eye,
+			icon: EyeIcon,
 			search: "visibility private servers online status current game activity updates social links who can add friend suggestions contacts phone",
 			sections: [
 				{
@@ -334,7 +334,7 @@
 		{
 			id: "trading-inventory",
 			label: "Trading & inventory",
-			icon: BadgeDollarSign,
+			icon: CurrencyCircleDollarIcon,
 			search: "trading inventory visibility trade audience quality filter",
 			sections: [
 				{
@@ -370,7 +370,7 @@
 		{
 			id: "ads-preferences",
 			label: "Ads preferences",
-			icon: SlidersHorizontal,
+			icon: SlidersHorizontalIcon,
 			search: "ads preferences personalize advertising data selling sharing",
 			sections: [
 				{
@@ -404,13 +404,13 @@
 			{
 				id: "info",
 				label: "Account info",
-				icon: UserRound,
+				icon: UserCircleIcon,
 				search: "account info",
 			},
 			{
 				id: "privacy",
 				label: privacyLabel,
-				icon: LockKeyhole,
+				icon: LockKeyIcon,
 				search: "privacy content restrictions",
 			},
 		] as const
@@ -731,7 +731,7 @@
 			aria-label="Back to profile"
 			data-tooltip="Back to profile"
 			onclick={onBack}>
-			<ChevronLeft size={16} aria-hidden="true" />
+			<CaretLeftIcon size={18} aria-hidden="true" />
 		</button>
 		<h1 id="account-settings-title" tabindex="-1" bind:this={heading}>
 			Account settings
@@ -744,9 +744,9 @@
 			disabled={refreshing}
 			onclick={refresh}>
 			{#if refreshing}
-				<LoaderCircle class="spinner" size={15} aria-hidden="true" />
+				<CircleNotchIcon class="spinner" size={17} aria-hidden="true" />
 			{:else}
-				<RefreshCw size={15} aria-hidden="true" />
+				<ArrowsClockwiseIcon size={17} aria-hidden="true" />
 			{/if}
 		</button>
 	</header>
@@ -754,7 +754,7 @@
 	<div class="settings-layout account-settings-layout">
 		<aside class="settings-sidebar">
 			<div class="search-field">
-				<Search size={15} aria-hidden="true" />
+				<MagnifyingGlassIcon size={17} aria-hidden="true" />
 				<input
 					bind:value={workspace.accountSettingsQuery}
 					oninput={resetScroll}
@@ -770,7 +770,7 @@
 							resetScroll()
 							workspace.accountSettingsQuery = ""
 						}}>
-						<X size={12} aria-hidden="true" />
+						<XIcon size={14} aria-hidden="true" />
 					</button>
 				{/if}
 			</div>
@@ -782,7 +782,7 @@
 						data-tooltip={page.label}
 						data-tooltip-side="right"
 						onclick={() => selectPage(page.id)}>
-						<page.icon size={15} aria-hidden="true" />
+						<page.icon size={17} aria-hidden="true" />
 						<span>{page.label}</span>
 					</button>
 				{/each}
@@ -830,9 +830,9 @@
 									type="button"
 									data-settings-subpage={cat.id}
 									onclick={() => void openCategory(cat)}>
-									<cat.icon size={15} aria-hidden="true" />
+									<cat.icon size={17} aria-hidden="true" />
 									<span>{cat.label}</span>
-									<ChevronRight size={15} aria-hidden="true" />
+									<CaretRightIcon size={17} aria-hidden="true" />
 								</button>
 							{/each}
 						</nav>
@@ -844,15 +844,15 @@
 								aria-label={`Back to ${privacyLabel}`}
 								data-tooltip={`Back to ${privacyLabel}`}
 								onclick={() => void closeCategory()}>
-								<ChevronLeft size={16} aria-hidden="true" />
+								<CaretLeftIcon size={18} aria-hidden="true" />
 							</button>
 							<h3>{activeCategory.label}</h3>
 						</div>
 						{#if !settingsState || (settingsState.loading && !settingsState.snapshot)}
 							<div class="account-settings-loading" role="status">
-								<LoaderCircle
+								<CircleNotchIcon
 									class="spinner"
-									size={14}
+									size={16}
 									aria-hidden="true" />
 								Loading settings
 							</div>

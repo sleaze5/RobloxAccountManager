@@ -1,5 +1,5 @@
 <script lang="ts">
-	import RefreshCw from "@lucide/svelte/icons/refresh-cw"
+	import ArrowsClockwiseIcon from "phosphor-svelte/lib/ArrowsClockwiseIcon"
 	import { untrack } from "svelte"
 	import Select from "../shared/Select.svelte"
 	import type { SettingsStore } from "./settings-store.svelte"
@@ -107,11 +107,11 @@
 								store.busyRoValraRegion ||
 								store.busyRoValra}
 							onclick={() => void store.loadServerRegions(true)}>
-							<RefreshCw
+							<ArrowsClockwiseIcon
 								class={store.loadingServerRegions
 									? "spinner"
 									: undefined}
-								size={14}
+								size={16}
 								aria-hidden="true" />
 							Refresh regions
 						</button>

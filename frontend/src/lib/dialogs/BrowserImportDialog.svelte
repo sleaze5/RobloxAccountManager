@@ -1,9 +1,9 @@
 <script lang="ts">
-	import ChevronDown from "@lucide/svelte/icons/chevron-down"
-	import ExternalLink from "@lucide/svelte/icons/external-link"
-	import Focus from "@lucide/svelte/icons/focus"
-	import Trash2 from "@lucide/svelte/icons/trash-2"
-	import X from "@lucide/svelte/icons/x"
+	import CaretDownIcon from "phosphor-svelte/lib/CaretDownIcon"
+	import ArrowSquareOutIcon from "phosphor-svelte/lib/ArrowSquareOutIcon"
+	import CornersOutIcon from "phosphor-svelte/lib/CornersOutIcon"
+	import TrashIcon from "phosphor-svelte/lib/TrashIcon"
+	import XIcon from "phosphor-svelte/lib/XIcon"
 	import { onMount, untrack } from "svelte"
 	import CandidateList from "../accounts/CandidateList.svelte"
 	import type { AccountStore } from "../accounts/account-store.svelte"
@@ -228,12 +228,12 @@
 				class="settings-row-action"
 				disabled={browser.loading}
 				onclick={() => void browser.startLogin()}
-				><ExternalLink size={14} />Open another browser</button>
+				><ArrowSquareOutIcon size={16} aria-hidden="true" />Open another browser</button>
 			{#if activeLoginSessions.length > 0}<button
 					type="button"
 					class="danger-button"
 					onclick={() => void browser.closeAllLogin()}
-					><Trash2 size={14} />Close all</button
+					><TrashIcon size={16} aria-hidden="true" />Close all</button
 				>{/if}
 		</div>
 		<button
@@ -246,7 +246,10 @@
 				1
 					? "session"
 					: "sessions"}</span
-			><ChevronDown class={sessionsExpanded ? "open" : undefined} size={14} />
+			><CaretDownIcon
+				class={sessionsExpanded ? "open" : undefined}
+				size={16}
+				aria-hidden="true" />
 		</button>
 		{#if sessionsExpanded && sessions.length > 0}
 			<div class="browser-session-list">
@@ -263,7 +266,9 @@
 								disabled={session.lifecycle ===
 									Lifecycle.LifecycleFailed}
 								onclick={() => void browser.focus(session.id)}
-								><Focus size={13} />Focus</button
+								><CornersOutIcon
+									size={15}
+									aria-hidden="true" />Focus</button
 							><button
 								type="button"
 								class="danger-action"
@@ -272,7 +277,7 @@
 									Lifecycle.LifecycleClosing ||
 									session.lifecycle === Lifecycle.LifecycleValidating}
 								onclick={() => void browser.close(session.id)}
-								><X size={13} />Close</button>
+								><XIcon size={15} aria-hidden="true" />Close</button>
 						</div>
 					</div>
 					{#if session.checkpointWarning}<div class="modal-warning">

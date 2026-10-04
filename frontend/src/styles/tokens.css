@@ -1,15 +1,15 @@
 @font-face {
-	font-family: "Nunito Sans";
-	src: url("../assets/fonts/NunitoSans-Variable.woff2") format("woff2");
-	font-weight: 400 700;
+	font-family: "Geist";
+	src: url("../assets/fonts/Geist-Variable.woff2") format("woff2");
+	font-weight: 100 900;
 	font-style: normal;
 	font-display: swap;
 }
 
 @font-face {
-	font-family: "JetBrains Mono";
-	src: url("../assets/fonts/JetBrainsMono-Variable.woff2") format("woff2");
-	font-weight: 400 600;
+	font-family: "Geist Mono";
+	src: url("../assets/fonts/GeistMono-Variable.woff2") format("woff2");
+	font-weight: 100 900;
 	font-style: normal;
 	font-display: swap;
 }
@@ -68,8 +68,8 @@
 
 	--shadow-float: 0 4px 12px rgb(0 0 0 / 24%);
 
-	--font-sans: "Nunito Sans", sans-serif;
-	--font-mono: "JetBrains Mono", monospace;
+	--font-sans: "Geist", sans-serif;
+	--font-mono: "Geist Mono", monospace;
 
 	--font-normal: 400;
 	--font-medium: 500;

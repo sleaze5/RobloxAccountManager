@@ -1,5 +1,5 @@
 <script lang="ts">
-	import Gamepad2 from "@lucide/svelte/icons/gamepad-2"
+	import GameControllerIcon from "phosphor-svelte/lib/GameControllerIcon"
 	let { url, large = false }: { url: string; large?: boolean } = $props()
 	let failed = $state("")
 </script>
@@ -15,6 +15,6 @@
 			referrerpolicy="no-referrer"
 			onerror={() => (failed = url)} />
 	{:else}
-		<Gamepad2 size={large ? 32 : 16} />
+		<GameControllerIcon size={large ? 36 : 18} aria-hidden="true" />
 	{/if}
 </span>

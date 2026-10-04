@@ -1,7 +1,7 @@
 <script lang="ts">
-	import AlertTriangle from "@lucide/svelte/icons/triangle-alert"
-	import ArrowDownNarrowWide from "@lucide/svelte/icons/arrow-down-narrow-wide"
-	import ArrowDownWideNarrow from "@lucide/svelte/icons/arrow-down-wide-narrow"
+	import WarningIcon from "phosphor-svelte/lib/WarningIcon"
+	import SortAscendingIcon from "phosphor-svelte/lib/SortAscendingIcon"
+	import SortDescendingIcon from "phosphor-svelte/lib/SortDescendingIcon"
 	import type { LogsExplorerSession, LogsExplorerVisit } from "../backend/bridge"
 	import LogsExplorerTimeline from "./LogsExplorerTimeline.svelte"
 	import LogsExplorerLogDetails from "./LogsExplorerLogDetails.svelte"
@@ -31,7 +31,7 @@
 			<LogsExplorerLogDetails {session} {refreshing} {onRefresh} />
 			{#if session.issue}
 				<p class="logs-explorer-warning" role="status">
-					<AlertTriangle size={14} aria-hidden="true" />{session.issue}
+					<WarningIcon size={16} aria-hidden="true" />{session.issue}
 				</p>
 			{/if}
 			<div class="logs-explorer-timeline-heading">
@@ -46,9 +46,9 @@
 						: "Oldest first. Switch to newest first"}
 					onclick={() => (newestFirst = !newestFirst)}>
 					{#if newestFirst}
-						<ArrowDownWideNarrow size={14} aria-hidden="true" />
+						<SortDescendingIcon size={16} aria-hidden="true" />
 					{:else}
-						<ArrowDownNarrowWide size={14} aria-hidden="true" />
+						<SortAscendingIcon size={16} aria-hidden="true" />
 					{/if}
 				</button>
 			</div>

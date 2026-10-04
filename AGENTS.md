@@ -38,7 +38,8 @@ Do not trade correctness, account safety, or maintainability for a speculative p
 - Bun as the only JavaScript runtime and package manager
 - Vite 8 with Lightning CSS for frontend builds
 - Svelte 5 with TypeScript 7 in strict mode
-- Lucide for icons
+- Geist and Geist Mono for fonts, bundled locally
+- Phosphor for icons, with direct imports from `phosphor-svelte/lib/<Name>Icon`
 - SQLite through SQLCipher (`go-sqlcipher`) for the encrypted vault
 - Type-aware Oxlint, `svelte-check`, and Oxfmt for frontend validation and formatting
 

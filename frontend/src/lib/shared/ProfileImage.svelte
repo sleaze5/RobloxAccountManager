@@ -1,5 +1,5 @@
 <script lang="ts">
-	import User from "@lucide/svelte/icons/user"
+	import UserIcon from "phosphor-svelte/lib/UserIcon"
 
 	let { url }: { url: string } = $props()
 	let failed = $state("")
@@ -14,5 +14,5 @@
 		referrerpolicy="no-referrer"
 		onerror={() => (failed = url)} />
 {:else}
-	<User class="profile-image-fallback" aria-hidden="true" />
+	<UserIcon class="profile-image-fallback" aria-hidden="true" />
 {/if}

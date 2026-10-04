@@ -1,5 +1,5 @@
 <script lang="ts">
-	import X from "@lucide/svelte/icons/x"
+	import XIcon from "phosphor-svelte/lib/XIcon"
 	import { untrack } from "svelte"
 	import type { AccountStore } from "../accounts/account-store.svelte"
 	import { formatCompactBytes } from "../shared/bytes"
@@ -78,7 +78,7 @@
 				type="button"
 				aria-label="Close launch data dialog"
 				onclick={onClose}>
-				<X size={15} />
+				<XIcon size={17} aria-hidden="true" />
 			</button>
 		</div>
 		<label class="modal-field launch-data-field">

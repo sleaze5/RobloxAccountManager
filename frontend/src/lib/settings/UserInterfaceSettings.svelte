@@ -1,8 +1,8 @@
 <script lang="ts">
-	import ChevronRight from "@lucide/svelte/icons/chevron-right"
-	import Info from "@lucide/svelte/icons/info"
-	import RotateCcw from "@lucide/svelte/icons/rotate-ccw"
-	import Save from "@lucide/svelte/icons/save"
+	import CaretRightIcon from "phosphor-svelte/lib/CaretRightIcon"
+	import InfoIcon from "phosphor-svelte/lib/InfoIcon"
+	import ArrowCounterClockwiseIcon from "phosphor-svelte/lib/ArrowCounterClockwiseIcon"
+	import FloppyDiskIcon from "phosphor-svelte/lib/FloppyDiskIcon"
 	import { accountBackend, MotionPreference } from "../backend/bridge"
 	import type { TimestampFormat } from "../backend/bridge"
 	import Select from "../shared/Select.svelte"
@@ -203,7 +203,7 @@
 	<section class="settings-section" aria-labelledby="timestamps-title">
 		<h3 id="timestamps-title">Timestamps</h3>
 		<div class="settings-section-help">
-			<Info size={13} aria-hidden="true" />
+			<InfoIcon size={15} aria-hidden="true" />
 			<p>
 				Start each token with <code>$</code>, such as <code>$YYYY</code>. Other
 				text appears as typed. Use <code>$$</code> to show a <code>$</code> sign.
@@ -211,7 +211,7 @@
 		</div>
 		<details class="settings-token-reference">
 			<summary
-				><ChevronRight size={12} aria-hidden="true" />Token reference</summary>
+				><CaretRightIcon size={14} aria-hidden="true" />Token reference</summary>
 			<p>Examples use Wednesday, March 4, 2026, at 9:05:07.042 PM.</p>
 			<dl>
 				{#each tokenReference as item (item.token)}
@@ -309,7 +309,7 @@
 							(timestampFormat === defaultTimestampFormats.shown &&
 								timestampHoverFormat === defaultTimestampFormats.hover)}
 						onclick={restoreDefaults}>
-						<RotateCcw size={13} aria-hidden="true" />
+						<ArrowCounterClockwiseIcon size={15} aria-hidden="true" />
 						Restore defaults
 					</button>
 					<button
@@ -319,7 +319,7 @@
 							store.busyTimestampFormats ||
 							!changed ||
 							validationErrors.length > 0}>
-						<Save size={13} aria-hidden="true" />
+						<FloppyDiskIcon size={15} aria-hidden="true" />
 						{store.busyTimestampFormats ? "Saving..." : "Save changes"}
 					</button>
 				</div>

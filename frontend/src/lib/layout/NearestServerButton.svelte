@@ -1,6 +1,6 @@
 <script lang="ts">
-	import LoaderCircle from "@lucide/svelte/icons/loader-circle"
-	import LocateFixed from "@lucide/svelte/icons/locate-fixed"
+	import CircleNotchIcon from "phosphor-svelte/lib/CircleNotchIcon"
+	import CrosshairIcon from "phosphor-svelte/lib/CrosshairIcon"
 	import type { AccountStore } from "../accounts/account-store.svelte"
 	import { appSettings } from "../settings/settings-store.svelte"
 
@@ -29,9 +29,9 @@
 		disabled={!region || !hasPlace || store.launching || store.findingServer}
 		onclick={() => void store.fillNearestServer()}>
 		{#if store.findingServer}
-			<LoaderCircle class="spinner" size={15} aria-hidden="true" />
+			<CircleNotchIcon class="spinner" size={17} aria-hidden="true" />
 		{:else}
-			<LocateFixed size={15} aria-hidden="true" />
+			<CrosshairIcon size={17} aria-hidden="true" />
 		{/if}
 	</button>
 </span>

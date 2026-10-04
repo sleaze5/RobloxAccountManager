@@ -1,10 +1,10 @@
 <script lang="ts">
-	import AtSign from "@lucide/svelte/icons/at-sign"
-	import ChevronRight from "@lucide/svelte/icons/chevron-right"
-	import Hash from "@lucide/svelte/icons/hash"
-	import KeyRound from "@lucide/svelte/icons/key-round"
-	import Tags from "@lucide/svelte/icons/tags"
-	import UserRound from "@lucide/svelte/icons/user-round"
+	import AtIcon from "phosphor-svelte/lib/AtIcon"
+	import CaretRightIcon from "phosphor-svelte/lib/CaretRightIcon"
+	import HashIcon from "phosphor-svelte/lib/HashIcon"
+	import KeyIcon from "phosphor-svelte/lib/KeyIcon"
+	import TagIcon from "phosphor-svelte/lib/TagIcon"
+	import UserCircleIcon from "phosphor-svelte/lib/UserCircleIcon"
 	import { AccountCopyField } from "../backend/bridge"
 	import type { WorkspaceState } from "../layout/workspace-state.svelte"
 	import type { AccountStore } from "./account-store.svelte"
@@ -25,11 +25,11 @@
 		{
 			field: AccountCopyField.CopyDisplayName,
 			label: "Display names",
-			icon: UserRound,
+			icon: UserCircleIcon,
 		},
-		{ field: AccountCopyField.CopyUsername, label: "Usernames", icon: AtSign },
-		{ field: AccountCopyField.CopyUserID, label: "User IDs", icon: Hash },
-		{ field: AccountCopyField.CopyCookie, label: "Cookies", icon: KeyRound },
+		{ field: AccountCopyField.CopyUsername, label: "Usernames", icon: AtIcon },
+		{ field: AccountCopyField.CopyUserID, label: "User IDs", icon: HashIcon },
+		{ field: AccountCopyField.CopyCookie, label: "Cookies", icon: KeyIcon },
 	]
 
 	async function copyField(field: AccountCopyField): Promise<void> {
@@ -45,9 +45,9 @@
 </div>
 <div class="tag-submenu-host">
 	<button class="tag-submenu-trigger" type="button">
-		<Tags size={14} aria-hidden="true" />
+		<TagIcon size={16} aria-hidden="true" />
 		<span>Edit tags</span>
-		<ChevronRight size={13} class="submenu-chevron" aria-hidden="true" />
+		<CaretRightIcon size={15} class="submenu-chevron" aria-hidden="true" />
 	</button>
 	<div
 		class:open-left={submenuLeft}
@@ -65,7 +65,7 @@
 			aria-label={`Copy ${item.label.toLowerCase()}`}
 			disabled={store.copying}
 			onclick={() => void copyField(item.field)}>
-			<item.icon size={14} aria-hidden="true" /><span>{item.label}</span>
+			<item.icon size={16} aria-hidden="true" /><span>{item.label}</span>
 		</button>
 	{/each}
 </div>

@@ -1,14 +1,14 @@
 <script lang="ts">
 	import { onMount } from "svelte"
-	import AlertTriangle from "@lucide/svelte/icons/triangle-alert"
-	import ChevronLeft from "@lucide/svelte/icons/chevron-left"
-	import ChevronRight from "@lucide/svelte/icons/chevron-right"
-	import FileSearch from "@lucide/svelte/icons/file-search"
-	import FileText from "@lucide/svelte/icons/file-text"
-	import LoaderCircle from "@lucide/svelte/icons/loader-circle"
-	import RefreshCw from "@lucide/svelte/icons/refresh-cw"
-	import Search from "@lucide/svelte/icons/search"
-	import X from "@lucide/svelte/icons/x"
+	import WarningIcon from "phosphor-svelte/lib/WarningIcon"
+	import CaretLeftIcon from "phosphor-svelte/lib/CaretLeftIcon"
+	import CaretRightIcon from "phosphor-svelte/lib/CaretRightIcon"
+	import FileMagnifyingGlassIcon from "phosphor-svelte/lib/FileMagnifyingGlassIcon"
+	import FileTextIcon from "phosphor-svelte/lib/FileTextIcon"
+	import CircleNotchIcon from "phosphor-svelte/lib/CircleNotchIcon"
+	import ArrowsClockwiseIcon from "phosphor-svelte/lib/ArrowsClockwiseIcon"
+	import MagnifyingGlassIcon from "phosphor-svelte/lib/MagnifyingGlassIcon"
+	import XIcon from "phosphor-svelte/lib/XIcon"
 	import { appSettings } from "../settings/settings-store.svelte"
 	import type { LogsExplorerVisit } from "../backend/bridge"
 	import SidebarResizer from "../layout/SidebarResizer.svelte"
@@ -45,8 +45,8 @@
 						data-tooltip="Expand the logs sidebar"
 						data-tooltip-side="right"
 						onclick={() => (store.sidebarCollapsed = false)}
-						><ChevronRight size={16} /></button>
-					<FileSearch size={16} aria-hidden="true" />
+						><CaretRightIcon size={18} aria-hidden="true" /></button>
+					<FileMagnifyingGlassIcon size={18} aria-hidden="true" />
 					<span>{store.sessions.length}</span>
 				</div>
 			{:else}
@@ -64,11 +64,11 @@
 									: "Refresh all logs"}
 								data-tooltip="Refresh all logs"
 								data-tooltip-side="bottom-end">
-								{#if store.refreshing}<LoaderCircle
+								{#if store.refreshing}<CircleNotchIcon
 										class="spinner"
-										size={14}
-										aria-hidden="true" />{:else}<RefreshCw
-										size={14}
+										size={16}
+										aria-hidden="true" />{:else}<ArrowsClockwiseIcon
+										size={16}
 										aria-hidden="true" />{/if}
 							</button>
 							<button
@@ -77,12 +77,12 @@
 								data-tooltip="Collapse the logs sidebar"
 								data-tooltip-side="bottom-end"
 								onclick={() => (store.sidebarCollapsed = true)}
-								><ChevronLeft size={15} /></button>
+								><CaretLeftIcon size={17} aria-hidden="true" /></button>
 						</div>
 					</div>
 					<div class="account-filters">
 						<div class="search-field">
-							<Search size={14} aria-hidden="true" /><input
+							<MagnifyingGlassIcon size={16} aria-hidden="true" /><input
 								type="text"
 								placeholder="Search logs or IDs"
 								aria-label="Search logs, user IDs, place IDs, or job IDs"
@@ -91,7 +91,7 @@
 									type="button"
 									aria-label="Clear logs search"
 									onclick={() => (store.query = "")}
-									><X size={12} /></button
+									><XIcon size={14} aria-hidden="true" /></button
 								>{/if}
 						</div>
 					</div>
@@ -110,16 +110,16 @@
 							data-tooltip={session.fileName}
 							data-tooltip-side="right">
 							<span class="logs-explorer-row-title"
-								><FileText size={14} aria-hidden="true" /><span
+								><FileTextIcon size={16} aria-hidden="true" /><span
 									>{session.startedAtMs
 										? formatTimestamp(
 												session.startedAtMs,
 												appSettings.timestampFormat,
 											)
 										: "Unknown start time"}</span
-								>{#if session.issue}<AlertTriangle
+								>{#if session.issue}<WarningIcon
 										class="logs-explorer-issue-icon"
-										size={13}
+										size={15}
 										aria-label="Incomplete log" />{/if}</span>
 							<span class="logs-explorer-row-meta"
 								>{visitCount}
@@ -152,24 +152,26 @@
 			{/key}
 		{:else}
 			<div class="logs-explorer-empty" role="status">
-				{#if store.refreshing}<LoaderCircle
+				{#if store.refreshing}<CircleNotchIcon
 						class="spinner"
-						size={24}
+						size={27}
 						aria-hidden="true" />
 					<h2>Reading Roblox logs…</h2>
-				{:else if store.error && !store.loaded}<AlertTriangle
-						size={24}
+				{:else if store.error && !store.loaded}<WarningIcon
+						size={27}
 						aria-hidden="true" />
 					<h2>Logs are unavailable</h2>
 					<p>Refresh all to try reading the logs again.</p>
-				{:else if !store.sessions.length}<FileSearch
-						size={24}
+				{:else if !store.sessions.length}<FileMagnifyingGlassIcon
+						size={27}
 						aria-hidden="true" />
 					<h2>No Roblox sessions found</h2>
-				{:else if !sessions.length}<Search size={24} aria-hidden="true" />
+				{:else if !sessions.length}<MagnifyingGlassIcon
+						size={27}
+						aria-hidden="true" />
 					<h2>No matching sessions</h2>
 					<p>Try a different file name, user ID, or place ID.</p>
-				{:else}<FileSearch size={24} aria-hidden="true" />
+				{:else}<FileMagnifyingGlassIcon size={27} aria-hidden="true" />
 					<h2>Select a launch session</h2>
 					<p>Choose a log to explore its game timeline.</p>{/if}
 			</div>

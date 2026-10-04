@@ -1,6 +1,6 @@
 <script lang="ts">
-	import Minus from "@lucide/svelte/icons/minus"
-	import Plus from "@lucide/svelte/icons/plus"
+	import MinusIcon from "phosphor-svelte/lib/MinusIcon"
+	import PlusIcon from "phosphor-svelte/lib/PlusIcon"
 	import { tick } from "svelte"
 
 	let {
@@ -98,13 +98,13 @@
 		aria-label={`Decrease ${label.toLowerCase()}`}
 		disabled={disabled || saving || normalized(draft ?? value) <= min}
 		onclick={() => adjust(-1)}>
-		<Minus size={14} aria-hidden="true" />
+		<MinusIcon size={16} aria-hidden="true" />
 	</button>
 	<button
 		type="button"
 		aria-label={`Increase ${label.toLowerCase()}`}
 		disabled={disabled || saving || normalized(draft ?? value) >= max}
 		onclick={() => adjust(1)}>
-		<Plus size={14} aria-hidden="true" />
+		<PlusIcon size={16} aria-hidden="true" />
 	</button>
 </div>

@@ -1,17 +1,17 @@
 <script lang="ts">
-	import Check from "@lucide/svelte/icons/check"
-	import ChevronLeft from "@lucide/svelte/icons/chevron-left"
-	import ChevronRight from "@lucide/svelte/icons/chevron-right"
-	import Hash from "@lucide/svelte/icons/hash"
-	import ListFilter from "@lucide/svelte/icons/list-filter"
-	import LoaderCircle from "@lucide/svelte/icons/loader-circle"
-	import Plus from "@lucide/svelte/icons/plus"
-	import RefreshCw from "@lucide/svelte/icons/refresh-cw"
-	import Search from "@lucide/svelte/icons/search"
-	import Settings2 from "@lucide/svelte/icons/settings-2"
-	import Star from "@lucide/svelte/icons/star"
-	import Users from "@lucide/svelte/icons/users"
-	import X from "@lucide/svelte/icons/x"
+	import CheckIcon from "phosphor-svelte/lib/CheckIcon"
+	import CaretLeftIcon from "phosphor-svelte/lib/CaretLeftIcon"
+	import CaretRightIcon from "phosphor-svelte/lib/CaretRightIcon"
+	import HashIcon from "phosphor-svelte/lib/HashIcon"
+	import FunnelIcon from "phosphor-svelte/lib/FunnelIcon"
+	import CircleNotchIcon from "phosphor-svelte/lib/CircleNotchIcon"
+	import PlusIcon from "phosphor-svelte/lib/PlusIcon"
+	import ArrowsClockwiseIcon from "phosphor-svelte/lib/ArrowsClockwiseIcon"
+	import MagnifyingGlassIcon from "phosphor-svelte/lib/MagnifyingGlassIcon"
+	import SlidersIcon from "phosphor-svelte/lib/SlidersIcon"
+	import StarIcon from "phosphor-svelte/lib/StarIcon"
+	import UsersIcon from "phosphor-svelte/lib/UsersIcon"
+	import XIcon from "phosphor-svelte/lib/XIcon"
 	import type { WorkspaceState } from "../layout/workspace-state.svelte"
 	import SidebarResizer from "../layout/SidebarResizer.svelte"
 	import { menuIn, menuOut } from "../shared/presence"
@@ -73,9 +73,9 @@
 				data-tooltip="Expand the account sidebar"
 				data-tooltip-side="right"
 				onclick={() => (workspace.sidebarCollapsed = false)}>
-				<ChevronRight size={16} />
+				<CaretRightIcon size={18} aria-hidden="true" />
 			</button>
-			<Users size={16} />
+			<UsersIcon size={18} aria-hidden="true" />
 			<span>{store.accounts.length}</span>
 		</div>
 	{:else}
@@ -94,7 +94,7 @@
 							data-tooltip-side="bottom-end"
 							disabled={store.busy}
 							onclick={() => workspace.toggleAccountMenu("add-account")}>
-							<Plus size={14} />
+							<PlusIcon size={16} aria-hidden="true" />
 						</button>
 					</div>
 					<button
@@ -108,12 +108,12 @@
 						disabled={!store.vault.unlocked || store.refreshing}
 						onclick={() => void store.refreshAccountList()}>
 						{#if store.refreshing}
-							<LoaderCircle
+							<CircleNotchIcon
 								class="spinner"
-								size={14}
+								size={16}
 								aria-hidden="true" />
 						{:else}
-							<RefreshCw size={14} aria-hidden="true" />
+							<ArrowsClockwiseIcon size={16} aria-hidden="true" />
 						{/if}
 					</button>
 					<button
@@ -122,7 +122,7 @@
 						data-tooltip="Collapse the account sidebar"
 						data-tooltip-side="bottom-end"
 						onclick={() => (workspace.sidebarCollapsed = true)}>
-						<ChevronLeft size={15} />
+						<CaretLeftIcon size={17} aria-hidden="true" />
 					</button>
 				</div>
 				{#if workspace.activeAccountMenu === "add-account"}
@@ -134,7 +134,7 @@
 			</div>
 			<div class="account-filters">
 				<div class="search-field">
-					<Search size={15} />
+					<MagnifyingGlassIcon size={17} aria-hidden="true" />
 					<input
 						value={store.query}
 						oninput={(event) =>
@@ -150,7 +150,7 @@
 							type="button"
 							aria-label="Clear account search"
 							onclick={() => store.setQuery("")}>
-							<X size={12} />
+							<XIcon size={14} aria-hidden="true" />
 						</button>
 					{/if}
 				</div>
@@ -170,7 +170,7 @@
 							: `${store.selectedTagIds.length} tag filters`}
 						data-tooltip-side="bottom-end"
 						onclick={() => workspace.toggleAccountMenu("tag-filter")}>
-						<ListFilter size={14} />
+						<FunnelIcon size={16} aria-hidden="true" />
 						{#if store.selectedTagIds.length > 0}
 							<span class="tag-filter-count"
 								>{store.selectedTagIds.length}</span>
@@ -195,7 +195,7 @@
 											store.clearSelectedTags()
 											filterTrigger?.focus()
 										}}>
-										<X size={12} aria-hidden="true" /><span
+										<XIcon size={14} aria-hidden="true" /><span
 											>Clear</span>
 									</button>
 								{/if}
@@ -208,16 +208,16 @@
 								onclick={() =>
 									store.favoriteTag &&
 									store.toggleSelectedTag(store.favoriteTag.id)}>
-								<Star
-									size={14}
+								<StarIcon
+									size={16}
 									aria-hidden="true"
-									fill={store.favoriteTag &&
+									weight={store.favoriteTag &&
 									store.selectedTagIds.includes(store.favoriteTag.id)
-										? "currentColor"
-										: "none"} />
+										? "fill"
+										: "regular"} />
 								<span>Favorites</span>
-								{#if store.favoriteTag && store.selectedTagIds.includes(store.favoriteTag.id)}<Check
-										size={13}
+								{#if store.favoriteTag && store.selectedTagIds.includes(store.favoriteTag.id)}<CheckIcon
+										size={15}
 										aria-hidden="true"
 										class="menu-check" />{/if}
 							</button>
@@ -232,10 +232,10 @@
 											tag.id,
 										)}
 										onclick={() => store.toggleSelectedTag(tag.id)}>
-										<Hash size={14} aria-hidden="true" />
+										<HashIcon size={16} aria-hidden="true" />
 										<span>{tag.name}</span>
-										{#if store.selectedTagIds.includes(tag.id)}<Check
-												size={13}
+										{#if store.selectedTagIds.includes(tag.id)}<CheckIcon
+												size={15}
 												aria-hidden="true"
 												class="menu-check" />{/if}
 									</button>
@@ -245,7 +245,7 @@
 							</div>
 							<div class="account-menu-separator"></div>
 							<button type="button" onclick={() => onManageTags()}>
-								<Settings2 size={14} aria-hidden="true" /><span
+								<SlidersIcon size={16} aria-hidden="true" /><span
 									>Manage tags</span>
 							</button>
 						</div>
@@ -272,7 +272,7 @@
 								.querySelector<HTMLButtonElement>(".account-row-select")
 								?.focus()
 						}}>
-						<X size={12} aria-hidden="true" />
+						<XIcon size={14} aria-hidden="true" />
 						<span>Unselect all</span>
 					</button>
 				</div>

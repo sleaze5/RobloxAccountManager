@@ -1,9 +1,9 @@
-import CircleDashed from "@lucide/svelte/icons/circle-dashed"
-import Code from "@lucide/svelte/icons/code"
-import EyeOff from "@lucide/svelte/icons/eye-off"
-import Gamepad2 from "@lucide/svelte/icons/gamepad-2"
-import Globe from "@lucide/svelte/icons/globe"
-import GlobeOff from "@lucide/svelte/icons/globe-off"
+import CircleDashedIcon from "phosphor-svelte/lib/CircleDashedIcon"
+import CodeIcon from "phosphor-svelte/lib/CodeIcon"
+import EyeSlashIcon from "phosphor-svelte/lib/EyeSlashIcon"
+import GameControllerIcon from "phosphor-svelte/lib/GameControllerIcon"
+import GlobeIcon from "phosphor-svelte/lib/GlobeIcon"
+import GlobeXIcon from "phosphor-svelte/lib/GlobeXIcon"
 import { AgeVerification, PresenceType, SessionState, TagKind } from "../backend/bridge"
 import type { AccountView, TagView, UserPresence } from "../backend/bridge"
 
@@ -117,20 +117,20 @@ export function presenceClass(presence: UserPresence): string {
 	}
 }
 
-export function presenceIcon(presence: UserPresence): typeof Globe {
+export function presenceIcon(presence: UserPresence): typeof GlobeIcon {
 	switch (presence.userPresenceType) {
 		case PresenceType.PresenceTypeOffline:
-			return GlobeOff
+			return GlobeXIcon
 		case PresenceType.PresenceTypeOnline:
-			return Globe
+			return GlobeIcon
 		case PresenceType.PresenceTypeInGame:
-			return Gamepad2
+			return GameControllerIcon
 		case PresenceType.PresenceTypeInStudio:
-			return Code
+			return CodeIcon
 		case PresenceType.PresenceTypeInvisible:
-			return EyeOff
+			return EyeSlashIcon
 		default:
-			return CircleDashed
+			return CircleDashedIcon
 	}
 }
 

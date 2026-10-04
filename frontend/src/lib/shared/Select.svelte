@@ -1,6 +1,6 @@
 <script lang="ts" generics="T extends string | number">
-	import Check from "@lucide/svelte/icons/check"
-	import ChevronDown from "@lucide/svelte/icons/chevron-down"
+	import CheckIcon from "phosphor-svelte/lib/CheckIcon"
+	import CaretDownIcon from "phosphor-svelte/lib/CaretDownIcon"
 	import { tick } from "svelte"
 	import { menuIn, menuOut } from "./presence"
 
@@ -132,9 +132,9 @@
 				void show()
 			}
 		}}>
-		<span>{selectedLabel}</span><ChevronDown
+		<span>{selectedLabel}</span><CaretDownIcon
 			class={open ? "open" : undefined}
-			size={14}
+			size={16}
 			aria-hidden="true" />
 	</button>
 	{#if open}
@@ -178,8 +178,8 @@
 									id={`${menuID}-${index}-description`}
 									>{option.description}</small
 								>{/if}
-						</span>{#if option.value === value}<Check
-								size={13}
+						</span>{#if option.value === value}<CheckIcon
+								size={15}
 								aria-hidden="true" />{/if}
 					</button>
 				{/each}

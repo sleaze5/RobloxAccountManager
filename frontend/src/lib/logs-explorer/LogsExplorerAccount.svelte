@@ -1,5 +1,5 @@
 <script lang="ts">
-	import Star from "@lucide/svelte/icons/star"
+	import StarIcon from "phosphor-svelte/lib/StarIcon"
 	import ProfileImage from "../shared/ProfileImage.svelte"
 	import { accountBackend, TagKind } from "../backend/bridge"
 
@@ -76,10 +76,10 @@
 		<div class="logs-explorer-profile-copy">
 			<strong class="account-display-name"
 				><span>{user.displayName || user.username}</span
-				>{#if user.favorite}<Star
+				>{#if user.favorite}<StarIcon
 						class="favorite-name-star"
-						size={11}
-						fill="currentColor"
+						size={12}
+						weight="fill"
 						aria-label="Favorite" />{/if}</strong>
 			<span
 				>@{user.username}{user.inVault === false

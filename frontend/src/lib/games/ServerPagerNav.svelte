@@ -1,7 +1,7 @@
 <script lang="ts">
-	import ChevronLeft from "@lucide/svelte/icons/chevron-left"
-	import ChevronRight from "@lucide/svelte/icons/chevron-right"
-	import ChevronsLeft from "@lucide/svelte/icons/chevrons-left"
+	import CaretLeftIcon from "phosphor-svelte/lib/CaretLeftIcon"
+	import CaretRightIcon from "phosphor-svelte/lib/CaretRightIcon"
+	import CaretDoubleLeftIcon from "phosphor-svelte/lib/CaretDoubleLeftIcon"
 
 	let {
 		pager,
@@ -25,14 +25,14 @@
 		data-tooltip="First page"
 		disabled={pager.loading || pager.pageNumber < 2}
 		onclick={() => pager.first()}>
-		<ChevronsLeft size={15} aria-hidden="true" />
+		<CaretDoubleLeftIcon size={17} aria-hidden="true" />
 	</button>
 	<button
 		class="control-button games-text-button"
 		type="button"
 		disabled={pager.loading || pager.pageNumber < 2}
 		onclick={() => pager.previous()}>
-		<ChevronLeft size={14} aria-hidden="true" />Previous
+		<CaretLeftIcon size={16} aria-hidden="true" />Previous
 	</button>
 	<span class="game-servers-page-number" aria-current="page"
 		>Page {pager.pageNumber}</span>
@@ -41,6 +41,6 @@
 		type="button"
 		disabled={pager.loading || !pager.hasNext}
 		onclick={() => pager.next()}>
-		Next<ChevronRight size={14} aria-hidden="true" />
+		Next<CaretRightIcon size={16} aria-hidden="true" />
 	</button>
 </nav>

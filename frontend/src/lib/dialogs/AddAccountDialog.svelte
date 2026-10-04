@@ -1,5 +1,5 @@
 <script lang="ts">
-	import X from "@lucide/svelte/icons/x"
+	import XIcon from "phosphor-svelte/lib/XIcon"
 	import CandidateList from "../accounts/CandidateList.svelte"
 	import type { CandidateListItem } from "../accounts/candidate-model"
 	import type { AccountStore } from "../accounts/account-store.svelte"
@@ -257,7 +257,7 @@
 				aria-label="Close add account dialog"
 				disabled={store.busy}
 				onclick={close}>
-				<X size={15} />
+				<XIcon size={17} aria-hidden="true" />
 			</button>
 		</div>
 		{#if store.error}

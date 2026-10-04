@@ -1,6 +1,6 @@
 <script lang="ts">
-	import Check from "@lucide/svelte/icons/check"
-	import Minus from "@lucide/svelte/icons/minus"
+	import CheckIcon from "phosphor-svelte/lib/CheckIcon"
+	import MinusIcon from "phosphor-svelte/lib/MinusIcon"
 	import ProfileImage from "../shared/ProfileImage.svelte"
 	import type { CandidateListItem } from "./candidate-model"
 
@@ -40,9 +40,13 @@
 					disabled={disabled || selectableCount === 0}
 					onchange={onToggleAll} />
 				<span aria-hidden="true">
-					{#if someSelected}<Minus size={10} strokeWidth={2.4} />{:else}<Check
-							size={10}
-							strokeWidth={2.4} />{/if}
+					{#if someSelected}<MinusIcon
+							size={11}
+							weight="bold"
+							aria-hidden="true" />{:else}<CheckIcon
+							size={11}
+							weight="bold"
+							aria-hidden="true" />{/if}
 				</span>
 			</span>
 			<span>{allSelected ? "Unselect all" : "Select all"}</span>
@@ -64,7 +68,7 @@
 						onchange={(event) =>
 							onToggle(item.id, event.currentTarget.checked)} />
 					<span aria-hidden="true"
-						><Check size={10} strokeWidth={2.4} /></span>
+						><CheckIcon size={11} weight="bold" aria-hidden="true" /></span>
 				</label>
 				{#if item.indexLabel}<span class="cookie-result-index"
 						>{item.indexLabel}</span

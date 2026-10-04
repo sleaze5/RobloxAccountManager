@@ -1,9 +1,9 @@
 <script lang="ts">
-	import Check from "@lucide/svelte/icons/check"
-	import LoaderCircle from "@lucide/svelte/icons/loader-circle"
-	import Minus from "@lucide/svelte/icons/minus"
-	import RefreshCw from "@lucide/svelte/icons/refresh-cw"
-	import X from "@lucide/svelte/icons/x"
+	import CheckIcon from "phosphor-svelte/lib/CheckIcon"
+	import CircleNotchIcon from "phosphor-svelte/lib/CircleNotchIcon"
+	import MinusIcon from "phosphor-svelte/lib/MinusIcon"
+	import ArrowsClockwiseIcon from "phosphor-svelte/lib/ArrowsClockwiseIcon"
+	import XIcon from "phosphor-svelte/lib/XIcon"
 	import { onMount, tick } from "svelte"
 	import {
 		accountBackend,
@@ -130,18 +130,18 @@
 					data-tooltip="Refresh process list"
 					disabled={loading || killing || snapshot?.supported === false}
 					onclick={() => void refresh()}>
-					{#if loading}<LoaderCircle
+					{#if loading}<CircleNotchIcon
 							class="spinner"
-							size={14}
+							size={16}
 							aria-hidden="true" />
-					{:else}<RefreshCw size={14} aria-hidden="true" />{/if}
+					{:else}<ArrowsClockwiseIcon size={16} aria-hidden="true" />{/if}
 				</button>
 				<button
 					class="icon-action"
 					type="button"
 					aria-label="Cancel"
 					disabled={killing}
-					onclick={dismiss}><X size={15} aria-hidden="true" /></button>
+					onclick={dismiss}><XIcon size={17} aria-hidden="true" /></button>
 			</div>
 		</div>
 		<div class="process-results">
@@ -155,8 +155,14 @@
 							disabled={loading || killing || processes.length === 0}
 							onchange={toggleAll} />
 						<span aria-hidden="true">
-							{#if someSelected}<Minus size={10} strokeWidth={2.4} />
-							{:else}<Check size={10} strokeWidth={2.4} />{/if}
+							{#if someSelected}<MinusIcon
+									size={11}
+									weight="bold"
+									aria-hidden="true" />
+							{:else}<CheckIcon
+									size={11}
+									weight="bold"
+									aria-hidden="true" />{/if}
 						</span>
 					</span>
 					<span>{allSelected ? "Deselect all" : "Select all"}</span>
@@ -184,9 +190,10 @@
 													event.currentTarget.checked,
 												)} />
 										<span aria-hidden="true"
-											><Check
-												size={10}
-												strokeWidth={2.4} /></span>
+											><CheckIcon
+												size={11}
+												weight="bold"
+												aria-hidden="true" /></span>
 									</label>
 								</td>
 								<td class="process-name">{process.name}</td>

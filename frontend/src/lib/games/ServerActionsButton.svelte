@@ -1,5 +1,5 @@
 <script lang="ts">
-	import MoreHorizontal from "@lucide/svelte/icons/ellipsis"
+	import DotsThreeIcon from "phosphor-svelte/lib/DotsThreeIcon"
 
 	let {
 		open,
@@ -32,5 +32,5 @@
 			onMenu(event.currentTarget, false)
 		}
 	}}>
-	<MoreHorizontal size={16} aria-hidden="true" />
+	<DotsThreeIcon size={18} aria-hidden="true" />
 </button>
