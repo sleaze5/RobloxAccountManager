@@ -1,5 +1,3 @@
-// Package rovalra reads the server records that RoValra, a community browser extension, collects from its users.
-// Requests carry only place IDs, server IDs, and region codes, and never account credentials.
 package rovalra
 
 import (
@@ -24,8 +22,7 @@ import (
 )
 
 const (
-	maxResponseSize = 1 << 20
-	// RoValra rejects detail requests for more than 50 servers.
+	maxResponseSize  = 1 << 20
 	detailsBatchSize = 50
 	maxTextLength    = 100
 )
@@ -59,7 +56,6 @@ type record struct {
 	IPAddress    string `json:"ip_address"`
 }
 
-// Records returns RoValra's records of the given servers, keyed by job ID. Servers RoValra has not seen are absent.
 func (client *Client) Records(ctx context.Context, placeID int64, jobIDs []string) (map[string]games.ServerRecord, error) {
 	result := make(map[string]games.ServerRecord, len(jobIDs))
 	for start := 0; start < len(jobIDs); start += detailsBatchSize {
@@ -82,7 +78,6 @@ func (client *Client) Records(ctx context.Context, placeID int64, jobIDs []strin
 	return result, nil
 }
 
-// Servers returns one page of the servers RoValra has recorded for a place.
 func (client *Client) Servers(ctx context.Context, query games.RecordQuery) (games.RecordPage, error) {
 	parameters := url.Values{
 		"place_id": {strconv.FormatInt(query.PlaceID, 10)},
@@ -118,7 +113,6 @@ func (client *Client) Servers(ctx context.Context, query games.RecordQuery) (gam
 	return page, nil
 }
 
-// Stats returns the regions and newest version of the servers RoValra has recorded for a place.
 func (client *Client) Stats(ctx context.Context, placeID int64) (games.ServerStats, error) {
 	var payload struct {
 		Counts struct {
@@ -158,7 +152,6 @@ func (client *Client) Stats(ctx context.Context, placeID int64) (games.ServerSta
 	return stats, nil
 }
 
-// get reads an endpoint that wraps its data in a success status.
 func (client *Client) get(ctx context.Context, path string, parameters url.Values, target any) error {
 	code, body, err := client.fetch(ctx, path, parameters)
 	if err != nil {
@@ -218,7 +211,6 @@ func (item record) convert() (games.ServerRecord, bool) {
 	if address := net.ParseIP(item.IPAddress); address != nil {
 		converted.Address = address.String()
 	}
-	// RoValra omits the zone designator from some timestamps, which are UTC.
 	firstSeen := item.FirstSeen
 	if firstSeen != "" && !strings.HasSuffix(firstSeen, "Z") {
 		firstSeen += "Z"
@@ -232,7 +224,6 @@ func (item record) convert() (games.ServerRecord, bool) {
 	return converted, true
 }
 
-// ValidRegionCode accepts RoValra region codes such as "SG" and "US-NEW YORK".
 func ValidRegionCode(code string) bool {
 	if len(code) < 2 || len(code) > 64 {
 		return false

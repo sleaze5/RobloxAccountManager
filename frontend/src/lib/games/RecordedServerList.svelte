@@ -10,11 +10,11 @@
 	import ServerUptime from "./ServerUptime.svelte"
 	import ServerVersion from "./ServerVersion.svelte"
 	import {
+		type RecordedServers,
 		recordLocation,
+		type RecordPageSize,
 		recordPlace,
 		regionLabel,
-		type RecordedServers,
-		type RecordPageSize,
 		type ServerStatsLoader,
 	} from "./game-servers-state.svelte"
 

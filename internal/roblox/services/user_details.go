@@ -61,7 +61,6 @@ func (service *Users) PendingRobux(ctx context.Context, accountID, version, user
 }
 
 func (service *Users) AgeGroup(ctx context.Context, accountID, version, userID int64) (string, error) {
-	// Deliberately exclude the hydration signature and unrelated player data.
 	var result struct {
 		PlayerInfo *struct {
 			UserID     string `json:"userId"`
@@ -140,7 +139,6 @@ func (service *Users) About(ctx context.Context, accountID, version, userID int6
 	return UserAbout{Description: strings.TrimSpace(*result.Description), VerifiedBadge: result.HasVerifiedBadge}, nil
 }
 
-// SocialCount reads one of the friends, followers, or followings counters.
 func (service *Users) SocialCount(ctx context.Context, accountID, version, userID int64, counter string) (*int64, error) {
 	switch counter {
 	case "friends", "followers", "followings":
@@ -159,7 +157,6 @@ func (service *Users) SocialCount(ctx context.Context, accountID, version, userI
 	return result.Count, err
 }
 
-// PrimaryGroup returns nil when the user has not chosen a primary group.
 func (service *Users) PrimaryGroup(ctx context.Context, accountID, version, userID int64) (*UserPrimaryGroup, error) {
 	var result *struct {
 		Group *struct {
@@ -195,7 +192,6 @@ func (service *Users) readAccountDetails(ctx context.Context, accountID, version
 	response, err := service.client.Do(ctx, roblox.Request{
 		Endpoint: endpoint, AccountID: accountID, ExpectedSecretVersion: version,
 		Authenticated: true, Method: http.MethodGet, URL: uri,
-		// Hydration requires this header even for its GET request.
 		ContentType: "application/json", MaxResponseSize: 64 << 10,
 		Retry: roblox.RetryPolicy{MaxAttempts: 2, RetryServerErrors: true, RetryRateLimit: true},
 	})

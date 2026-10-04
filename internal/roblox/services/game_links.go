@@ -37,7 +37,6 @@ type experienceInvite struct {
 }
 
 var privateAccessPatterns = []*regexp.Regexp{
-	// joinPrivateGame takes the place ID before the access code and link code.
 	regexp.MustCompile(`(?i)Roblox\.GameLauncher\.joinPrivateGame\s*\(\s*(?:[0-9]+|"[0-9]+"|'[0-9]+')\s*,\s*["']([a-z0-9_-]{1,512})["']`),
 	regexp.MustCompile(`(?i)["']accessCode["']\s*:\s*["']([a-z0-9_-]{1,512})["']`),
 	regexp.MustCompile(`(?i)\baccessCode\s*=\s*["']([a-z0-9_-]{1,512})["']`),
@@ -132,7 +131,6 @@ func (service *GameLinks) resolvePrivateInvite(ctx context.Context, invite *priv
 			return gamelaunch.Request{}, err
 		}
 	}
-	// Reuse launch validation before using remote data in another request.
 	link := url.URL{Scheme: "https", Host: "www.roblox.com", Path: "/games/" + strconv.FormatInt(invite.PlaceID, 10)}
 	link.RawQuery = url.Values{"privateServerLinkCode": {strings.TrimSpace(invite.LinkCode)}}.Encode()
 	target, err := gamelaunch.Parse(gamelaunch.Input{Method: gamelaunch.MethodLink, Link: link.String()})

@@ -35,9 +35,6 @@ import (
 var assets embed.FS
 
 func main() {
-	// An update relaunches this executable as a helper that replaces it. The
-	// helper must run before the single-instance check, because the
-	// application it replaces is still running.
 	updater.HandleHelperMode()
 	if monitor, err := logging.RunCrashMonitor(); monitor {
 		if err != nil {

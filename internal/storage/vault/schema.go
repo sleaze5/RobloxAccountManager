@@ -12,14 +12,10 @@ import (
 
 const schemaVersion = 1
 
-// schemaMigrations[i] migrates a version i+1 vault database to version i+2.
 var schemaMigrations = [...]func(context.Context, *sql.Tx) error{}
 
-// This fails to compile unless every earlier schemaVersion has one migration.
 var _ = [1]struct{}{}[len(schemaMigrations)-(schemaVersion-1)]
 
-// initialSchema is the version 1 schema. Do not change it. Change the schema
-// through schemaMigrations.
 const initialSchema = `
 CREATE TABLE vault_state (
     singleton                               INTEGER PRIMARY KEY CHECK (singleton = 1),
@@ -99,8 +95,6 @@ func initializeSchema(ctx context.Context, db *sql.DB, vaultID [vaultIDBytes]byt
 	if _, err := tx.ExecContext(ctx, initialSchema); err != nil {
 		return fmt.Errorf("initialize vault schema: %w", err)
 	}
-	// A new vault starts as version 1 and reaches schemaVersion through the same
-	// migrations as an existing vault.
 	if _, err := tx.ExecContext(ctx, `INSERT INTO vault_state(singleton, vault_id, schema_version) VALUES(1, ?, 1)`, vaultID[:]); err != nil {
 		return fmt.Errorf("initialize vault state: %w", err)
 	}

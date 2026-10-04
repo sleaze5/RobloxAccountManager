@@ -10,8 +10,8 @@
 	import {
 		GameServers,
 		RecordedServers,
-		ServerStatsLoader,
 		type ServerSource,
+		ServerStatsLoader,
 	} from "./game-servers-state.svelte"
 	import type { GamesStore } from "./games-store.svelte"
 
@@ -38,7 +38,6 @@
 		},
 	]
 
-	// GamesPage remounts this page when the selected place changes.
 	const place = untrack(() => store.selected!),
 		robloxServers = untrack(
 			() =>
@@ -81,7 +80,6 @@
 		untrack(() => (activeMenu = null))
 	})
 
-	// Reload the Roblox list when the integration changes, since its pages carry RoValra records.
 	$effect(() => {
 		void appSettings.roValraEnabled
 		untrack(() => {
@@ -89,12 +87,12 @@
 		})
 	})
 
-	// RoValra's regions and newest version serve both lists while the integration is on.
 	$effect(() => {
-		if (appSettings.roValraEnabled)
+		if (appSettings.roValraEnabled) {
 			untrack(() => {
 				if (!stats.stats && !stats.loading) void stats.load()
 			})
+		}
 	})
 
 	function openMenu(jobId: string, trigger: HTMLElement, toggle: boolean): void {

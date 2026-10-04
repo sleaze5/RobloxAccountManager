@@ -19,8 +19,7 @@ import (
 )
 
 const (
-	gameBatchSize = 50
-	// maxUniversePlacePages bounds universe place listings to 1,000 places.
+	gameBatchSize         = 50
 	maxUniversePlacePages = 10
 )
 
@@ -91,7 +90,6 @@ func (service *Games) Search(ctx context.Context, query games.SearchQuery) (game
 	return page, nil
 }
 
-// Place returns the stored identity of a universe without its extended details.
 func (service *Games) Place(ctx context.Context, universeID int64) (games.Place, error) {
 	details, err := service.details(ctx, []int64{universeID})
 	if err != nil {
@@ -104,7 +102,6 @@ func (service *Games) Place(ctx context.Context, universeID int64) (games.Place,
 	return game.Place, nil
 }
 
-// PlaceByID returns a root place or subplace, or false when Roblox has no such public place.
 func (service *Games) PlaceByID(ctx context.Context, placeID int64) (games.Place, bool, error) {
 	var payload struct {
 		UniverseID int64 `json:"universeId"`
@@ -147,8 +144,6 @@ func (service *Games) PlaceByID(ctx context.Context, placeID int64) (games.Place
 	return subplace, true, nil
 }
 
-// UniversePlaces returns the root place of a universe followed by its other places,
-// or false when Roblox has no such public universe.
 func (service *Games) UniversePlaces(ctx context.Context, universeID int64) ([]games.Place, bool, error) {
 	details, err := service.details(ctx, []int64{universeID})
 	if err != nil {
@@ -187,8 +182,6 @@ func (service *Games) UniversePlaces(ctx context.Context, universeID int64) ([]g
 	return places, true, nil
 }
 
-// subplaces visits the places of a universe other than its root place until visit returns false.
-// Each place inherits the root place's universe and creator and comes with its description.
 func (service *Games) subplaces(ctx context.Context, root games.Place, visit func(games.Place, string) bool) error {
 	path := "/v1/universes/" + strconv.FormatInt(root.UniverseID, 10) + "/places"
 	cursor := ""
@@ -227,9 +220,6 @@ func (service *Games) subplaces(ctx context.Context, root games.Place, visit fun
 	return nil
 }
 
-// Get returns a universe with best-effort votes, content maturity, and avatar rules.
-// A positive accountID also reads communication features and place versions, which Roblox only shows to signed-in users.
-// For a subplace, the game describes that place and links its root place; universe values stay as reported for the universe.
 func (service *Games) Get(ctx context.Context, universeID, placeID, accountID int64) (games.Game, error) {
 	details, err := service.details(ctx, []int64{universeID})
 	if err != nil {
@@ -561,7 +551,6 @@ func (service *Games) do(ctx context.Context, operation, method string, endpoint
 	return nil
 }
 
-// account sends a read-only request as a stored account for details Roblox hides from signed-out users.
 func (service *Games) account(ctx context.Context, operation string, accountID int64, method string, endpoint *url.URL, body []byte, target any) error {
 	request := roblox.Request{
 		Endpoint: operation, AccountID: accountID, Authenticated: true, Method: method, URL: endpoint,

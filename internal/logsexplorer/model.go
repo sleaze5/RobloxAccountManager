@@ -1,4 +1,3 @@
-// Package logsexplorer reads on-demand snapshots of Roblox Player logs.
 package logsexplorer
 
 type VisitKind string

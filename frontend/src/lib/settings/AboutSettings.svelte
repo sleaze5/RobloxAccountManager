@@ -86,7 +86,9 @@
 			<dt>launch id</dt>
 			<dd>{report.launchId}</dd>
 			<dt>started</dt>
-			<dd><Timestamp value={report.startedAt} /></dd>
+			<dd>
+				<Timestamp value={report.startedAt} />
+			</dd>
 			<dt>ready</dt>
 			<dd>{report.ready ? formatCompactDuration(report.readyMs) : "starting"}</dd>
 		</dl>

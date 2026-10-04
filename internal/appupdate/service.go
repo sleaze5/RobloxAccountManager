@@ -1,4 +1,3 @@
-// Package appupdate checks for, downloads, and installs signed application updates.
 package appupdate
 
 import (
@@ -18,7 +17,6 @@ import (
 	"github.com/wailsapp/wails/v3/pkg/updater/providers/endpoint"
 )
 
-// manifestURL always resolves to the signed manifest of the newest published release.
 const manifestURL = "https://github.com/sleaze5/RobloxAccountManager/releases/latest/download/manifest.json"
 
 const checkTimeout = 30 * time.Second
@@ -46,8 +44,6 @@ type State struct {
 
 var errUnavailable = errors.New("updates are unavailable")
 
-// Service drives the Wails updater without its built-in window and reports
-// progress through State.
 type Service struct {
 	logger  *slog.Logger
 	changed func()
@@ -63,14 +59,9 @@ func New(logger *slog.Logger, changed func()) *Service {
 	return &Service{logger: logger, changed: changed, state: State{Status: StatusIdle, CurrentVersion: appmeta.Version}}
 }
 
-// Start configures the updater, removes files left by the previous update, and
-// checks for an update in the background. Updates stay unavailable when the
-// updater cannot be configured.
 func (service *Service) Start(ctx context.Context, app *application.App) {
 	provider, err := endpoint.New(endpoint.Config{
 		URL: manifestURL,
-		// The default client limits the whole download to 30 seconds. Bound
-		// only the wait for each response and let the context cancel downloads.
 		HTTPClient: &http.Client{Transport: &http.Transport{
 			Proxy:                 http.ProxyFromEnvironment,
 			TLSHandshakeTimeout:   10 * time.Second,
@@ -97,8 +88,6 @@ func (service *Service) Start(ctx context.Context, app *application.App) {
 	go func() { _ = service.Check(ctx) }()
 }
 
-// Shutdown stops an active download and removes a downloaded update that was
-// not installed.
 func (service *Service) Shutdown() {
 	service.mu.Lock()
 	cancel, removeProgress := service.cancel, service.progress
@@ -113,7 +102,6 @@ func (service *Service) Shutdown() {
 	if removeProgress != nil {
 		removeProgress()
 	}
-	// The Wails updater stages downloads in "wails-update-*" temporary directories.
 	if dir := filepath.Dir(staged); staged != "" && strings.HasPrefix(filepath.Base(dir), "wails-update-") {
 		if err := os.RemoveAll(dir); err != nil {
 			service.logger.Warn("downloaded update could not be removed", "operation", "update-cleanup", "path", dir, "error", err)
@@ -127,7 +115,6 @@ func (service *Service) State() State {
 	return service.state
 }
 
-// Check looks for a newer release. It does nothing while another update step runs.
 func (service *Service) Check(ctx context.Context) error {
 	service.mu.Lock()
 	if service.updater == nil {
@@ -181,7 +168,6 @@ func (service *Service) finishCheck(release *updater.Release, err error) {
 	service.changed()
 }
 
-// Install downloads and verifies the available update in the background.
 func (service *Service) Install(ctx context.Context) error {
 	service.mu.Lock()
 	if service.updater == nil {
@@ -235,8 +221,6 @@ func (service *Service) CancelDownload() {
 	}
 }
 
-// Restart closes the application, replaces the executable with the
-// downloaded update, and starts the new version.
 func (service *Service) Restart(ctx context.Context) error {
 	service.mu.Lock()
 	if service.updater == nil {

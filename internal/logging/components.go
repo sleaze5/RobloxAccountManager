@@ -7,13 +7,11 @@ import (
 	"time"
 )
 
-// ComponentAttribute is one redacted component record attribute rendered as text.
 type ComponentAttribute struct {
 	Key   string `json:"key"`
 	Value string `json:"value"`
 }
 
-// ComponentRecord is the latest diagnostic record for one module and message.
 type ComponentRecord struct {
 	Module     string               `json:"module"`
 	Message    string               `json:"message"`
@@ -21,9 +19,6 @@ type ComponentRecord struct {
 	Attributes []ComponentAttribute `json:"attributes"`
 }
 
-// componentRegistry keeps the latest component record per module and message
-// regardless of the enabled log levels. Diagnostic records are emitted only by
-// load and create paths, so the set stays small.
 type componentRegistry struct {
 	mu      sync.Mutex
 	order   []string
@@ -54,8 +49,6 @@ func (registry *componentRegistry) snapshot() []ComponentRecord {
 	return result
 }
 
-// componentHandler copies diagnostic records into the registry before level
-// filtering. It sits behind the redacting handler, so it only sees cleaned values.
 type componentHandler struct {
 	next       slog.Handler
 	registry   *componentRegistry

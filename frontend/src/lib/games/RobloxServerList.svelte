@@ -11,9 +11,9 @@
 	import ServerUptime from "./ServerUptime.svelte"
 	import ServerVersion from "./ServerVersion.svelte"
 	import {
+		type GameServers,
 		recordLocation,
 		recordPlace,
-		type GameServers,
 		type ServerPageSize,
 	} from "./game-servers-state.svelte"
 
@@ -26,7 +26,6 @@
 		onMenu,
 	}: {
 		servers: GameServers
-		// records reports whether the RoValra integration adds region, version, and uptime columns.
 		records: boolean
 		newestVersion: number
 		activeJobId: string | undefined

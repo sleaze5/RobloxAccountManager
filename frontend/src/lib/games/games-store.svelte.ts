@@ -16,14 +16,11 @@ export interface GameMenu {
 	y: number
 }
 
-// Pages outside Games read favorite nicknames through this context.
-/** Returns the creator name with an @ for users, matching how Roblox shows usernames. */
 export function creatorLabel(place: GamePlace): string {
 	if (!place.creatorName) return ""
 	return place.creatorType === "User" ? `@${place.creatorName}` : place.creatorName
 }
 
-/** Returns the "by creator" line shown under game names. */
 export function creatorByline(place: GamePlace): string {
 	const creator = creatorLabel(place)
 	return creator ? `by ${creator}` : "Unknown creator"
@@ -42,9 +39,7 @@ export class GamesStore {
 	favorites = $state<GamePlace[]>([])
 	selected = $state<GamePlace | null>(null)
 	game = $state<Game | null>(null)
-	// The view shown for the selected place.
 	detailsPage = $state<"details" | "servers">("details")
-	// The server list shown by the server browser, kept while switching places.
 	serverSource = $state<ServerSource>("roblox")
 	menu = $state<GameMenu | null>(null)
 	searching = $state(false)
@@ -54,7 +49,6 @@ export class GamesStore {
 	favoritesLoaded = $state(false)
 	savingFavorite = $state(false)
 	savingNickname = $state(false)
-	// The favorite place whose nickname field should take focus once shown.
 	nicknameRequest = $state<number | null>(null)
 	nextPageToken = $state("")
 	error = $state("")
@@ -64,7 +58,6 @@ export class GamesStore {
 	#epoch = 0
 	#searchRequest: ReturnType<typeof accountBackend.SearchGames> | null = null
 	#detailsRequest: ReturnType<typeof accountBackend.GetGame> | null = null
-	// Loaded details by place ID, kept so revisited games show at once.
 	readonly #details = new Map<number, { game: Game; fetchedAt: number }>()
 	readonly serverPages = new ServerPageCache<GameServerPage>()
 	readonly recordPages = new ServerPageCache<GameServerRecordPage>()
@@ -97,7 +90,6 @@ export class GamesStore {
 		)
 	}
 
-	// Favorites are saved by root place, so a universe has at most one nickname.
 	nicknameFor(placeId: number): string {
 		return this.#nicknames.get(placeId) ?? ""
 	}
@@ -106,7 +98,6 @@ export class GamesStore {
 		return this.nicknameFor(place.placeId) || place.name
 	}
 
-	// Favorites can be reordered only while every favorite is listed.
 	get canReorder(): boolean {
 		return (
 			this.mode === "favorites" &&
@@ -264,7 +255,6 @@ export class GamesStore {
 		this.revalidate()
 	}
 
-	// revalidate loads the selected game again once its details are no longer fresh.
 	revalidate(): void {
 		const place = this.selected,
 			cached = place && this.#details.get(place.placeId)
@@ -347,7 +337,6 @@ export class GamesStore {
 		}
 	}
 
-	// moveFavorite places a favorite next to another one and saves the new order.
 	async moveFavorite(
 		placeId: number,
 		targetId: number,
@@ -395,7 +384,6 @@ export class GamesStore {
 		this.nicknameRequest = place.placeId
 	}
 
-	// saveNickname resolves false when the nickname could not be saved.
 	async saveNickname(place: GamePlace, nickname: string): Promise<boolean> {
 		const epoch = this.#epoch,
 			current = this.favorites.find((item) => item.placeId === place.placeId)

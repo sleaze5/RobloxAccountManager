@@ -15,8 +15,6 @@ const logFormatVersion = 1
 
 type diagnosticContextKey struct{}
 
-// Diagnostic records essential component metadata whenever any logging is on.
-// These records describe the file and loaded formats, not severity-filtered events.
 func Diagnostic(logger *slog.Logger, message string, attributes ...any) {
 	ctx := context.WithValue(context.Background(), diagnosticContextKey{}, true)
 	logger.InfoContext(ctx, message, append([]any{"record_type", "component"}, attributes...)...)

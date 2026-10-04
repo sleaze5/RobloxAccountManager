@@ -17,8 +17,6 @@ import (
 )
 
 const (
-	// PROC_THREAD_ATTRIBUTE_JOB_LIST is available on supported Windows versions
-	// but is not currently exported by x/sys/windows.
 	procThreadAttributeJobList = 0x0002000d
 	waitObjectZero             = 0
 	windowCloseGrace           = time.Second
@@ -180,15 +178,11 @@ func startWindowsBrowserProcess(options ProcessOptions) (BrowserProcess, error) 
 	if information.Process == 0 {
 		return nil, errors.New("start Chrome for Testing: process handle is unavailable")
 	}
-	// The job-list creation attribute placed Chrome in this session's Job
-	// Object before its first instruction ran, so no suspended-process handoff
-	// or parent development-runner job is required here.
 	if err := verifyProcessInJob(information.Process, job); err != nil {
 		windows.TerminateProcess(information.Process, 1)
 		windows.CloseHandle(information.Process)
 		return nil, fmt.Errorf("contain browser process: %w", err)
 	}
-	// The child owns these copies after process creation.
 	windows.CloseHandle(commandRead)
 	commandRead = 0
 	windows.CloseHandle(commandWrite)
@@ -267,8 +261,6 @@ func (process *windowsBrowserProcess) Exited() <-chan error { return process.exi
 
 func (process *windowsBrowserProcess) waitLoop() {
 	_, err := windows.WaitForSingleObject(process.process, windows.INFINITE)
-	// Let native-window monitoring classify a normal final-window close before
-	// exposing process exit to the coordinator.
 	<-process.windowMonitorDone
 	process.exited <- err
 	close(process.exited)
@@ -322,7 +314,6 @@ func (process *windowsBrowserProcess) exitedNormally() bool {
 }
 
 func (process *windowsBrowserProcess) ExitError() error {
-	// Pipe closure can arrive just before Windows signals process exit.
 	if !process.Wait(200 * time.Millisecond) {
 		return nil
 	}

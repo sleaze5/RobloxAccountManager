@@ -6,8 +6,6 @@ import (
 	"strings"
 )
 
-// Browser launch URLs carry the browser account's ticket. Validate the handoff
-// without rebuilding it or substituting the account stored in the vault.
 func ValidateBrowserProtocolURL(value string) error {
 	const prefix = "roblox-player:1+"
 	if len(value) > 30000 || !strings.HasPrefix(strings.ToLower(value), prefix) || strings.IndexFunc(value, func(character rune) bool {

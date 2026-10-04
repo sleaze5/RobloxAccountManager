@@ -108,7 +108,6 @@
 	<button
 		type="button"
 		onclick={() => {
-			// Closing the menu clears the props this component reads from.
 			const { placeId } = place
 			store.closeMenu()
 			onFillLaunch(placeId)

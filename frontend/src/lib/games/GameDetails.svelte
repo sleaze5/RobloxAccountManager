@@ -43,7 +43,6 @@
 		favorite = $derived(place ? store.isFavorite(place.placeId) : false),
 		nickname = $derived(place ? store.nicknameFor(place.placeId) : ""),
 		menuOpen = $derived(!!place && store.menu?.place.placeId === place.placeId),
-		// Subplaces share universe settings but not the root place's stats.
 		rootPlace = $derived(game?.rootPlace ?? null),
 		votes = $derived(game ? game.upVotes + game.downVotes : 0),
 		likeShare = $derived(game && votes ? game.upVotes / votes : 0),

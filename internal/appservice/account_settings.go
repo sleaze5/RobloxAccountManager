@@ -37,7 +37,6 @@ func (service *Service) GetAccountSettings(ctx context.Context, accountID int64)
 	return service.readAccountSettings(ctx, accountID, version, logger)
 }
 
-// beginAccountSession pins a multi-request account workflow to the current session.
 func (service *Service) beginAccountSession(parent context.Context, accountID int64, endpoint string) (context.Context, int64, func(), error) {
 	if accountID <= 0 {
 		return nil, 0, nil, &roblox.Error{Kind: roblox.KindProtocol, Endpoint: endpoint, Message: "Select an account first."}

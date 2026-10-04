@@ -37,8 +37,6 @@ export class AccountProfileState {
 		return this.#active && this.#store.vault.unlocked
 	}
 
-	// enter loads the profile when it is shown and its details are no longer fresh.
-	// Older details stay visible until the new ones arrive.
 	enter(): void {
 		if (isFresh(this.#fetchedAt)) return
 		if (Date.now() - this.#fetchedAt >= detailsKeepMs) this.snapshot = null

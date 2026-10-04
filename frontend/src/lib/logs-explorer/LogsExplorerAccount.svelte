@@ -7,7 +7,6 @@
 		username: string
 		displayName: string
 		favorite: boolean
-		// null when the vault could not be checked, such as while it is locked.
 		inVault: boolean | null
 	}
 
@@ -47,9 +46,7 @@
 				return
 			}
 			inVault = false
-		} catch {
-			// The public profile below still identifies the user.
-		}
+		} catch {}
 		try {
 			const found = await accountBackend.GetRobloxUser(id)
 			if (state.current) {
@@ -60,18 +57,14 @@
 					inVault,
 				}
 			}
-		} catch {
-			// The log still shows the raw user ID when the lookup is unavailable.
-		}
+		} catch {}
 	}
 
 	async function loadAvatar(id: number, state: { current: boolean }): Promise<void> {
 		try {
 			const [headshot] = (await accountBackend.GetAvatarHeadshots([id])) ?? []
 			if (state.current) avatarUrl = headshot?.imageUrl ?? ""
-		} catch {
-			// The placeholder icon stays when the headshot is unavailable.
-		}
+		} catch {}
 	}
 </script>
 

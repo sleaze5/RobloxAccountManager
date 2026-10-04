@@ -27,8 +27,6 @@ const (
 	PresenceTypeInvisible PresenceType = 4
 )
 
-// UserPresence mirrors the public Roblox presence response. Presentation text
-// and styles are derived by the frontend.
 type UserPresence struct {
 	UserID           int64        `json:"userId"`
 	UserPresenceType PresenceType `json:"userPresenceType"`

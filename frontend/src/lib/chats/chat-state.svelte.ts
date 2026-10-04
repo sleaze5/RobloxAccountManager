@@ -65,7 +65,6 @@ export class ChatState {
 			if (!this.#current() || generation !== this.#listGeneration) return
 			const conversations = page.conversations ?? [],
 				open = this.openConversation
-			// A newly created conversation may not be listed yet; keep it open.
 			if (open && !conversations.some((item) => item.id === open.id)) {
 				conversations.unshift(open)
 			}
@@ -100,7 +99,6 @@ export class ChatState {
 				this.conversationsCursor,
 			)
 			if (!this.#current() || generation !== this.#listGeneration) return
-			// Recent activity can move a conversation onto a later page; the newest copy wins.
 			const incoming = page.conversations ?? [],
 				ids = new Set(incoming.map((item) => item.id))
 			this.conversations = [
@@ -247,7 +245,6 @@ export class ChatState {
 				username,
 			)
 			if (!this.#current()) return false
-			// New conversations may not be listed yet, so show the returned one now.
 			this.conversations = [
 				conversation,
 				...this.conversations.filter((item) => item.id !== conversation.id),

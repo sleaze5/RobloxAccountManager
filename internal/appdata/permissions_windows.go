@@ -29,7 +29,6 @@ func restrictDirectory(path string) error {
 	return restrictACL(path, true)
 }
 
-// ReplaceFile atomically publishes a prepared file on Windows.
 func ReplaceFile(source, destination string) error {
 	from, err := windows.UTF16PtrFromString(source)
 	if err != nil {

@@ -26,11 +26,9 @@ export class SettingsStore {
 	motion = $state(MotionPreference.MotionSystem)
 	busyMotion = $state(false)
 	roValraEnabled = $state(true)
-	// The server-browser region code used by the launch panel, or empty before one is chosen.
 	roValraRegion = $state("")
 	busyRoValra = $state(false)
 	busyRoValraRegion = $state(false)
-	// The RoValra region catalog, loaded at startup and refreshed on request.
 	serverRegions = $state<GameRegion[] | null>(null)
 	serverRegionsFailed = $state(false)
 	loadingServerRegions = $state(false)
@@ -79,14 +77,14 @@ export class SettingsStore {
 		)
 	}
 
-	// loadServerRegions refreshes the catalog without replacing a saved region that is no longer listed.
 	async loadServerRegions(refresh = false): Promise<void> {
 		if (
 			!this.roValraEnabled ||
 			this.loadingServerRegions ||
 			(!refresh && this.serverRegions)
-		)
+		) {
 			return
+		}
 		this.loadingServerRegions = true
 		this.serverRegionsFailed = false
 		if (refresh) this.error = ""

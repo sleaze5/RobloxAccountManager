@@ -124,7 +124,6 @@ func readFile(ctx context.Context, root *os.Root, name string) (Session, error) 
 		return session, errors.New("not a regular log file")
 	}
 	session.SizeBytes = info.Size()
-	// A running Player may keep appending; read only the size captured at refresh.
 	err = parse(ctx, io.LimitReader(file, info.Size()), &session)
 	return session, err
 }

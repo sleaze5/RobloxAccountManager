@@ -918,9 +918,6 @@ func (coordinator *Coordinator) watchProcess(current *session) {
 				exited = nil
 				continue
 			}
-			// Process exit is published only after native-window monitoring has
-			// finished, so a normal final-window close can still be handled as a
-			// graceful close even when Chrome exits on its own.
 			if windowsClosed != nil {
 				select {
 				case _, closedByUser := <-windowsClosed:
@@ -1180,7 +1177,6 @@ func newCleanupQueue(root string, logger *slog.Logger, changed func()) *cleanupQ
 	return queue
 }
 func (queue *cleanupQueue) createDirectory(id string) (string, error) {
-	// Keep root cleanup from racing with creation of a new session directory.
 	queue.mu.Lock()
 	defer queue.mu.Unlock()
 	if err := os.MkdirAll(queue.root, 0o755); err != nil {

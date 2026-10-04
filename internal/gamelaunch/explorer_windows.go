@@ -70,7 +70,7 @@ func desktopShell() (*ole.IDispatch, windows.HWND, error) {
 		return nil, 0, fmt.Errorf("query shell windows: %w", err)
 	}
 	defer shellWindows.Release()
-	location := ole.NewVariant(ole.VT_I4, 0) // CSIDL_DESKTOP
+	location := ole.NewVariant(ole.VT_I4, 0)
 	root := ole.NewVariant(ole.VT_EMPTY, 0)
 	var handle int32
 	desktop, err := shellWindows.CallMethod("FindWindowSW", &location, &root, shellWindowDesktop, &handle, shellWindowNeedDispatch)
@@ -83,8 +83,6 @@ func desktopShell() (*ole.IDispatch, windows.HWND, error) {
 	if desktop == nil || desktop.ToIDispatch() == nil || handle == 0 {
 		return nil, 0, fmt.Errorf("desktop window automation is unavailable")
 	}
-	// Obtain Shell.Application from the desktop view, not a new COM instance
-	// that could run inside the elevated caller.
 	view, err := shellDispatchProperty(desktop.ToIDispatch(), "Document")
 	if err != nil {
 		return nil, 0, err

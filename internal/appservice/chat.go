@@ -60,7 +60,6 @@ type ChatConversationPage struct {
 	NextCursor    string                 `json:"nextCursor"`
 }
 
-// ChatMessagePage lists messages oldest first; NextCursor loads older history.
 type ChatMessagePage struct {
 	Messages   []ChatMessageView `json:"messages"`
 	NextCursor string            `json:"nextCursor"`
@@ -129,9 +128,6 @@ func (service *Service) MarkChatConversationRead(ctx context.Context, accountID 
 	return service.markChatRead(ctx, logger, accountID, version, []string{conversationID})
 }
 
-// MarkAllChatConversationsRead marks every conversation with unread messages and
-// returns how many were marked. Roblox's global unread metadata can report zero
-// while conversations still have unread messages, so every page is checked.
 func (service *Service) MarkAllChatConversationsRead(ctx context.Context, accountID int64) (int, error) {
 	ctx, version, logger, done, err := service.beginChat(ctx, accountID, "mark-all-read")
 	if err != nil {
@@ -290,8 +286,6 @@ func (service *Service) chatConversationViews(ctx context.Context, logger *slog.
 	return views
 }
 
-// chatConversationView lists the other participants first so a direct chat's
-// partner is always Participants[0].
 func chatConversationView(selfID int64, conversation robloxservices.ChatConversation) ChatConversationView {
 	view := ChatConversationView{
 		ID:           conversation.ID,
@@ -354,9 +348,6 @@ func chatPreviewText(message robloxservices.ChatMessage) string {
 	return chatMessageText(message)
 }
 
-// chatMessageVisible drops moderated ("hidden") and placeholder ("invalid")
-// history entries. Send responses report "invalid" for messages that later
-// appear as visible, so they are not filtered.
 func chatMessageVisible(message robloxservices.ChatMessage) bool {
 	return message.Visibility != "hidden" && message.Visibility != "invalid"
 }
@@ -402,8 +393,6 @@ func chatTime(value string) int64 {
 	return parsed.UnixMilli()
 }
 
-// realChatConversation excludes the friend placeholders Roblox lists before a
-// conversation with that friend exists; they have a null or "friends-" ID.
 func realChatConversation(id string) bool {
 	return id != "" && !strings.HasPrefix(id, "friends-")
 }

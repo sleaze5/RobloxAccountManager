@@ -61,7 +61,6 @@ func (manager *Manager) CreateBackup(ctx context.Context) error {
 	return manager.writeBackup(ctx, db)
 }
 
-// writeBackup snapshots db while the caller holds a lease or exclusive access.
 func (manager *Manager) writeBackup(ctx context.Context, db *sql.DB) error {
 	manager.mu.Lock()
 	dek := append([]byte(nil), manager.dek...)

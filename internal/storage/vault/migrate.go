@@ -11,8 +11,6 @@ import (
 	"github.com/sleaze5/RobloxAccountManager/internal/appdata"
 )
 
-// completeUnlock finishes an interrupted key rotation and upgrades older vault
-// formats. It closes the vault when the database cannot reach schemaVersion.
 func (manager *Manager) completeUnlock(ctx context.Context, usedNext bool, password string) error {
 	err := manager.promoteOrDiscardRotation(usedNext)
 	if err == nil {
@@ -26,8 +24,6 @@ func (manager *Manager) completeUnlock(ctx context.Context, usedNext bool, passw
 	return nil
 }
 
-// migrateSchema backs up the vault and then runs every schema migration in one
-// transaction. A failed step leaves the database unchanged.
 func (manager *Manager) migrateSchema(ctx context.Context) error {
 	db, finish, err := manager.beginExclusive(ctx)
 	if err != nil {
@@ -77,10 +73,7 @@ func applySchemaMigrations(ctx context.Context, db *sql.DB, from int) error {
 	return nil
 }
 
-// runSchemaMigrations migrates the schema in tx from version from to
-// schemaVersion and records schemaVersion.
 func runSchemaMigrations(ctx context.Context, tx *sql.Tx, from int) error {
-	// Table rebuilds can break references until the transaction finishes.
 	if _, err := tx.ExecContext(ctx, `PRAGMA defer_foreign_keys = ON`); err != nil {
 		return fmt.Errorf("defer vault foreign key checks: %w", err)
 	}
@@ -95,8 +88,6 @@ func runSchemaMigrations(ctx context.Context, tx *sql.Tx, from int) error {
 	return nil
 }
 
-// upgradeKeyFiles rewrites key files that use an older format version. The
-// older files stay readable, so a failed upgrade is logged and unlock continues.
 func (manager *Manager) upgradeKeyFiles(password string) {
 	if err := manager.upgradeAutoUnlock(); err != nil {
 		manager.logger.Warn("automatic unlock file upgrade failed", "operation", "vault-migrate", "error", err)
@@ -109,8 +100,6 @@ func (manager *Manager) upgradeKeyFiles(password string) {
 	}
 }
 
-// upgradeKeyFile needs the master password because the key file version is
-// authenticated together with the wrapped database key.
 func (manager *Manager) upgradeKeyFile(password string) error {
 	key, err := readKeyFile(manager.paths.VaultKey)
 	if err != nil || key.Version == keyFormatVersion {
@@ -165,7 +154,6 @@ func (manager *Manager) upgradeAutoUnlock() error {
 	return nil
 }
 
-// currentKey returns a copy of the unlocked database key that the caller must wipe.
 func (manager *Manager) currentKey() ([]byte, [vaultIDBytes]byte) {
 	manager.mu.Lock()
 	defer manager.mu.Unlock()

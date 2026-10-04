@@ -1,4 +1,3 @@
-// Package appmeta defines the canonical application identity used by Go code.
 package appmeta
 
 import (
@@ -13,9 +12,6 @@ const (
 	Identifier  = "com.github.sleaze5.robloxaccountmanager"
 )
 
-// version is the only source of the application version. The frontend and
-// the Windows version resource read the same file at build time.
-//
 //go:embed VERSION
 var version string
 
@@ -24,8 +20,5 @@ var (
 	UserAgent = Name + "/" + Version
 )
 
-// UpdaterPublicKey verifies the signature of every downloaded update. The
-// matching private key signs releases and never enters the repository.
-//
 //go:embed updater.key.pub
 var UpdaterPublicKey []byte

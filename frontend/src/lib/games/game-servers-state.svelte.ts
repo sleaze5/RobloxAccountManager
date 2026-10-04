@@ -16,14 +16,12 @@ export type ServerSource = "roblox" | "rovalra"
 export type ServerPageSize = 10 | 25 | 50 | 100
 export type RecordPageSize = 10 | 50 | 100
 
-// Servers open, fill, and close quickly, so pages are reused only briefly.
 const serverPageFreshMs = 30_000,
 	maxCachedServerPages = 50
 
 type PageKey = { placeId: number } & Record<string, string | number | boolean>
 type CancellableRequest<T> = Promise<T> & { cancel(): unknown }
 
-// ServerPageCache keeps recently loaded server pages so paging back and reopening a place is instant.
 export class ServerPageCache<Page> {
 	readonly #pages = new Map<
 		string,
@@ -47,7 +45,6 @@ export class ServerPageCache<Page> {
 		const id = JSON.stringify(key)
 		this.#pages.delete(id)
 		this.#pages.set(id, { placeId: key.placeId, page, fetchedAt: now })
-		// Maps iterate in insertion order, so the first entry is the oldest.
 		while (this.#pages.size > maxCachedServerPages) {
 			const oldest = this.#pages.keys().next().value
 			if (oldest === undefined) break
@@ -66,7 +63,6 @@ export class ServerPageCache<Page> {
 	}
 }
 
-// ServerPager pages through the servers of one place, remembering the cursors visited so far.
 abstract class ServerPager<Cursor extends string | number, Page> {
 	page = $state<Page | null>(null)
 	loading = $state(false)
@@ -108,13 +104,11 @@ abstract class ServerPager<Cursor extends string | number, Page> {
 		void this.load()
 	}
 
-	// first returns to the first page with the current options.
 	first(): void {
 		this.#cursors = [this.firstCursor]
 		void this.load()
 	}
 
-	// refresh drops every cached page of this place and reloads the current page.
 	refresh(): void {
 		this.cache.invalidate(this.placeId)
 		void this.load()
@@ -161,19 +155,15 @@ abstract class ServerPager<Cursor extends string | number, Page> {
 	}
 }
 
-// GameServers pages through the public servers Roblox lists for a place.
 export class GameServers extends ServerPager<string, GameServerPage> {
 	order = $state(GameServerOrder.ServerOrderRecommended)
 	excludeFull = $state(false)
 	limit = $state<ServerPageSize>(50)
-	// maxPing filters the loaded page only, because Roblox cannot filter by ping.
-	// Servers without a reported ping never pass a ping limit.
 	maxPing = $state(0)
 
 	constructor(
 		placeId: number,
 		cache: ServerPageCache<GameServerPage>,
-		// records reports whether pages include RoValra records, which belong in the cache key.
 		private readonly records: () => boolean,
 	) {
 		super(placeId, "", cache)
@@ -225,10 +215,8 @@ export class GameServers extends ServerPager<string, GameServerPage> {
 	}
 }
 
-// RecordedServers pages through the servers RoValra has recorded for a place.
 export class RecordedServers extends ServerPager<number, GameServerRecordPage> {
 	order = $state(GameServerRecordOrder.RecordOrderNewest)
-	// region is a GameServerRegion code, or empty for every region.
 	region = $state("")
 	limit = $state<RecordPageSize>(50)
 
@@ -242,7 +230,6 @@ export class RecordedServers extends ServerPager<number, GameServerRecordPage> {
 		limit?: RecordPageSize
 	}): void {
 		this.region = options.region ?? this.region
-		// RoValra lists a region's servers newest first only.
 		this.order = this.region
 			? GameServerRecordOrder.RecordOrderNewest
 			: (options.order ?? this.order)
@@ -275,7 +262,6 @@ export class RecordedServers extends ServerPager<number, GameServerRecordPage> {
 	}
 }
 
-// ServerStatsLoader loads the regions and newest version RoValra has recorded for a place.
 export class ServerStatsLoader {
 	stats = $state<GameServerStats | null>(null)
 	loading = $state(false)
@@ -309,7 +295,6 @@ export class ServerStatsLoader {
 	}
 }
 
-// formatUptime shortens the time since a server started, such as "3h 12m" or "2d 4h".
 export function formatUptime(startedMs: number, now = Date.now()): string {
 	const minutes = Math.max(0, Math.floor((now - startedMs) / 60_000)),
 		days = Math.floor(minutes / 1440),
@@ -329,14 +314,12 @@ function countryName(code: string): string {
 	}
 }
 
-// recordPlace names where a server runs, such as "Amsterdam, Netherlands".
 export function recordPlace(record: GameServerRecord): string {
 	const place = record.city || record.region,
 		country = record.country || countryName(record.countryCode)
 	return [...new Set([place, country].filter(Boolean))].join(", ")
 }
 
-// recordLocation names where a server runs in full, such as "Amsterdam, North Holland, Netherlands".
 export function recordLocation(record: GameServerRecord): string {
 	return [
 		...new Set([record.city, record.region, record.country].filter(Boolean)),
@@ -349,7 +332,6 @@ export function regionLabel(region: GameServerRegion): string {
 	return cities ? `${cities}, ${country}` : country
 }
 
-// outdated reports whether a server runs an older version than the newest one RoValra has seen.
 export function outdated(version: number, newestVersion: number): boolean {
 	return version > 0 && newestVersion > 0 && version < newestVersion
 }

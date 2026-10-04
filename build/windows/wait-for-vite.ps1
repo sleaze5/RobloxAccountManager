@@ -17,7 +17,7 @@ do {
         }
     }
     catch {
-        # Vite may still be starting. Retry until the deadline.
+
     }
 
     Start-Sleep -Milliseconds 100

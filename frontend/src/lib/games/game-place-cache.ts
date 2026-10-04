@@ -3,7 +3,6 @@ import type { GamePlace } from "../backend/bridge"
 
 const places = new Map<number, Promise<GamePlace | null>>()
 
-// loadGamePlace shares one request per universe and forgets failures so they can be retried.
 export function loadGamePlace(universeId: number): Promise<GamePlace | null> {
 	let request = places.get(universeId)
 	if (!request) {

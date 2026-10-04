@@ -104,7 +104,6 @@ func (repository *Repository) ListTags(ctx context.Context) ([]TagView, error) {
 	return tags, rows.Err()
 }
 
-// SetAccountsTag adds or removes one tag on every listed account in a single transaction.
 func (repository *Repository) SetAccountsTag(ctx context.Context, accountIDs []int64, tagID int64, selected bool) ([]AccountView, error) {
 	if len(accountIDs) == 0 {
 		return nil, ErrNotFound

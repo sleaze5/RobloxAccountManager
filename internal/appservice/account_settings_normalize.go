@@ -16,8 +16,6 @@ func normalizeAccountSetting(definition accountSettingDefinition, reads accountS
 	plain, optionsRaw, present := accountSettingDocuments(definition.key, reads)
 	if definition.optionsV2 {
 		v2, found := reads.optionsV2[string(definition.key)]
-		// V1 communication values can describe the retired chat controls rather
-		// than the current age-checked V2 permissions.
 		plain = nil
 		optionsRaw = v2
 		present = present || found
@@ -216,7 +214,6 @@ func settingOptionReason(definition accountSettingDefinition, value AccountSetti
 	if !settingKnownValue(value) {
 		return "This option is not supported for editing."
 	}
-	// The website's v1 editor defaults omitted requirements to None.
 	if requirement != nil && *requirement != "None" && *requirement != "SelfUpdateSetting" {
 		return "Roblox has not confirmed that this option can be changed here."
 	}
@@ -296,8 +293,6 @@ func settingValuesConflict(definition accountSettingDefinition, plain, options j
 	}
 	left, right := settingValueView(definition, plain), settingValueView(definition, options)
 	if definition.key == SettingTradeAudience || definition.key == SettingExperienceJoins {
-		// The plain endpoint uses All/Following/Followers while the options
-		// endpoint can return the equivalent longer privacy tokens.
 		if rank := settingAudienceRank(left.StringValue); rank >= 0 && rank == settingAudienceRank(right.StringValue) {
 			return false
 		}

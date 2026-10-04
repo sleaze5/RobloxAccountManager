@@ -37,7 +37,6 @@ func (state *parseState) readJoinContext(line string, session *Session) {
 		visit.JoinSource, visit.RequestType = source, request
 		return
 	}
-	// Teleport payloads describe the destination, not the connection being left.
 	state.pending.placeID = capture(metadataPlacePattern, line)
 	state.pending.joinSource, state.pending.requestType = source, request
 }
@@ -51,7 +50,6 @@ func readMetadataObject(line string) string {
 	if end == nil {
 		return ""
 	}
-	// Other URL fields can contain malformed escapes; only decode the metadata object.
 	decoded, err := url.QueryUnescape("GameJoinMetadata" + tail[:end[1]])
 	if err != nil {
 		return ""

@@ -1,4 +1,3 @@
-// Package appdata resolves every persistent path from the portable application directory.
 package appdata
 
 import (
@@ -12,7 +11,6 @@ const (
 	logsDirectory    = "logs"
 )
 
-// Paths contains the directories and files owned by the portable application.
 type Paths struct {
 	VaultRoot       string
 	LogsRoot        string
@@ -28,7 +26,6 @@ type Paths struct {
 	BrowserTempRoot string
 }
 
-// Resolve anchors all application paths to the executable directory.
 func Resolve() (Paths, error) {
 	executable, err := os.Executable()
 	if err != nil {
@@ -37,7 +34,6 @@ func Resolve() (Paths, error) {
 	return resolveFromExecutable(executable)
 }
 
-// ExecutableDirectory resolves the portable root without creating or opening data.
 func ExecutableDirectory() (string, error) {
 	executable, err := os.Executable()
 	if err != nil {
@@ -58,7 +54,6 @@ func resolveFromExecutable(executable string) (Paths, error) {
 	return At(applicationRoot)
 }
 
-// At creates a path set rooted at an application directory.
 func At(applicationDirectory string) (Paths, error) {
 	applicationRoot, err := filepath.Abs(applicationDirectory)
 	if err != nil {
@@ -89,8 +84,6 @@ func At(applicationDirectory string) (Paths, error) {
 	}, nil
 }
 
-// PreparePrivateDirectory creates an application-owned directory and limits it
-// to the current Windows user.
 func PreparePrivateDirectory(directory string) error {
 	if err := os.MkdirAll(directory, 0o700); err != nil {
 		return fmt.Errorf("create application directory %q: %w", filepath.Base(directory), err)
@@ -98,7 +91,6 @@ func PreparePrivateDirectory(directory string) error {
 	return restrictDirectory(directory)
 }
 
-// RestrictFile limits a portable data file to the current Windows user.
 func RestrictFile(path string) error {
 	if err := os.Chmod(path, 0o600); err != nil {
 		return fmt.Errorf("restrict file permissions: %w", err)
@@ -106,8 +98,6 @@ func RestrictFile(path string) error {
 	return restrictACL(path, false)
 }
 
-// WritePrivateFile atomically replaces path with data that is flushed to disk
-// and limited to the current Windows user.
 func WritePrivateFile(path string, data []byte) error {
 	temporary := path + ".tmp"
 	file, err := os.OpenFile(temporary, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0o600)

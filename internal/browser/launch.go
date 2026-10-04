@@ -15,8 +15,6 @@ const launchBinding = "__ramLaunchRoblox"
 //go:embed launch_bridge.js
 var launchBridgeScript string
 
-// The launch bridge uses auto-attached sessions so new tabs cannot execute their
-// launch scripts before interception is installed. Cookie access shares them.
 type launchBridge struct {
 	client   *CDPClient
 	events   chan cdpMessage
@@ -78,7 +76,6 @@ func (client *CDPClient) routeLaunchEvent(message cdpMessage) bool {
 	case bridge.events <- message:
 		return true
 	default:
-		// Never silently lose a paused tab or an account-bearing launch request.
 		client.fail(errors.New("browser launch event queue overflow"))
 		return false
 	}
@@ -190,8 +187,6 @@ func (bridge *launchBridge) attach(targetID, sessionID string) {
 }
 
 func (bridge *launchBridge) handleAttachFailure(targetID string, cause error) {
-	// A tab can be closed while its bridge is being installed. Otherwise fail
-	// the session: resuming an unprotected tab would restore browser-owned games.
 	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
 	defer cancel()
 	targets, err := bridge.client.Targets(ctx)

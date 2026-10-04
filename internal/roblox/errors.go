@@ -25,8 +25,6 @@ const (
 	KindCancelled          ErrorKind = "cancelled"
 )
 
-// Error carries protocol state without including request credentials or raw
-// response bodies.
 type Error struct {
 	Kind          ErrorKind
 	Endpoint      string

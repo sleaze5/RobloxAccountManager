@@ -13,7 +13,6 @@
 	}: {
 		label: string
 		value: T
-		// Consecutive options with the same group are listed under one heading.
 		options: { value: T; label: string; description?: string; group?: string }[]
 		disabled?: boolean
 		onChange: (value: T) => void
@@ -22,7 +21,6 @@
 		root = $state<HTMLDivElement>(),
 		menu = $state<HTMLDivElement>(),
 		trigger = $state<HTMLButtonElement>()
-	// Long lists scroll inside a menu of at most this height.
 	const maxMenuHeight = 280
 	let menuPosition = $state("")
 	const menuID = $props.id()

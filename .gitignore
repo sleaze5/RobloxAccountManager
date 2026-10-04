@@ -1,11 +1,9 @@
-# Local reference material
 /AGENTS_EXPLORE/
 /PLAN_*.md
 /PLAN.md
 /REPORT_*.md
 /REPORT.md
 
-# Build caches and outputs
 /.task/
 /dist/
 /build/appicon.png
@@ -14,25 +12,20 @@
 /wails_windows_*.syso
 /wails_windows_*.json
 
-# Generated frontend files
 /frontend/.bindings-tmp-*/
 /frontend/.svelte-check/
 /frontend/bindings/
 /frontend/dist/
 /frontend/frontend/
 
-# Frontend dependencies
 /frontend/node_modules/
 
-# Local runtime data
 /storage/
 /logs/
 
-# Local environment overrides
 /.env
 /.env.*
 !/.env.example
 
-# OS metadata
 .DS_Store
 Thumbs.db

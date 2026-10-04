@@ -7,11 +7,8 @@ import (
 	"time"
 )
 
-// buildTime is the Unix build time in seconds. The build task sets it with
-// -ldflags "-X github.com/sleaze5/RobloxAccountManager/internal/appmeta.buildTime=<seconds>".
 var buildTime string
 
-// reportedModules are the major Go modules compiled into the application.
 var reportedModules = []string{
 	"github.com/wailsapp/wails/v3",
 }

@@ -21,9 +21,8 @@ type RetryPolicy struct {
 }
 
 type Request struct {
-	Endpoint  string
-	AccountID int64
-	// ExpectedSecretVersion pins a multi-request workflow to its initiating session.
+	Endpoint                  string
+	AccountID                 int64
 	ExpectedSecretVersion     int64
 	Authenticated             bool
 	Method                    string
@@ -35,18 +34,14 @@ type Request struct {
 	RequiresCSRF              bool
 	AuthenticationNegotiation bool
 	Referer                   string
-	// FollowRedirects permits up to five same-host HTTPS redirects for GET requests.
-	FollowRedirects bool
-	Retry           RetryPolicy
+	FollowRedirects           bool
+	Retry                     RetryPolicy
 }
 
-// Response is internal and intentionally has no JSON tags. Headers can contain
-// short-lived secrets such as an authentication ticket.
 type Response struct {
-	Status int
-	Header http.Header
-	Body   []byte
-	// RotatedSecretVersion is nonzero only after a replacement cookie was saved.
+	Status               int
+	Header               http.Header
+	Body                 []byte
 	RotatedSecretVersion int64
 }
 

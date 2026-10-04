@@ -1,4 +1,3 @@
-// Package robloxmulti owns Roblox's session-local multi-instance support.
 package robloxmulti
 
 import (
@@ -62,8 +61,6 @@ func (manager *Manager) Snapshot() Snapshot {
 	return manager.snapshotLocked()
 }
 
-// PrepareForLaunch prevents a new launch from replacing a running client when
-// the requested multi-instance protection could not be established.
 func (manager *Manager) PrepareForLaunch(ctx context.Context, confirm func(context.Context, int, bool) (bool, error)) error {
 	manager.mu.Lock()
 	defer manager.mu.Unlock()
@@ -86,15 +83,12 @@ func (manager *Manager) PrepareForLaunch(ctx context.Context, confirm func(conte
 		if err := manager.replacePlayersLocked(ctx, players, confirm); err != nil {
 			return err
 		}
-		// Check again after closure so a newly started process is never killed
-		// under consent for the previous set of process objects.
 	}
 }
 
 func (manager *Manager) replacePlayersLocked(ctx context.Context, players *playerProcesses, confirm func(context.Context, int, bool) (bool, error)) error {
 	defer players.close()
 	multiInstance := manager.enabled
-	// Keep runtime status reads and shutdown responsive while awaiting a decision.
 	manager.mu.Unlock()
 	approved, err := confirm(ctx, players.count(), multiInstance)
 	manager.mu.Lock()

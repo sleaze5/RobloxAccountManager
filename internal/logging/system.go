@@ -1,4 +1,3 @@
-// Package logging provides redacted, structured, module-aware application logs.
 package logging
 
 import (

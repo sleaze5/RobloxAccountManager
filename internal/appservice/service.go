@@ -20,7 +20,6 @@ import (
 	"github.com/sleaze5/RobloxAccountManager/internal/storage/vault"
 )
 
-// Service coordinates account, vault, Roblox, and launch workflows.
 type Service struct {
 	vault           Vault
 	repo            AccountRepository

@@ -6,7 +6,6 @@
 
 	let { chat }: { chat: ChatState } = $props()
 
-	// Re-observing after each page makes a sentinel that stays visible load the next page too.
 	function loadMoreWhenVisible(node: HTMLElement, _cursor: string) {
 		const observer = new IntersectionObserver(
 			(entries) => {

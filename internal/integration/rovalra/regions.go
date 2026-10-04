@@ -17,7 +17,6 @@ import (
 
 const regionsKeep = 24 * time.Hour
 
-// Region groups the datacenters covered by a server-browser region code.
 type Region struct {
 	games.Region
 	Coordinates []Coordinates
@@ -28,8 +27,6 @@ type Coordinates struct {
 	Longitude float64
 }
 
-// Regions returns US states first, then other countries, with both groups sorted alphabetically.
-// Refresh bypasses the cached list without discarding it if the request fails.
 func (client *Client) Regions(ctx context.Context, refresh bool) ([]Region, error) {
 	client.mu.Lock()
 	defer client.mu.Unlock()

@@ -16,7 +16,6 @@ var applicationEntropy = []byte(appmeta.Identifier + "/autounlock/v1")
 
 type windowsProtector struct{}
 
-// New returns the Windows data protector.
 func New() Protector {
 	return windowsProtector{}
 }

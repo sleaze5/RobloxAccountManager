@@ -1,7 +1,5 @@
 import { MotionPreference } from "../backend/bridge"
 
-// The data-reduced-motion attribute on the root element drives the
-// reduced-motion guard in base.css and the transitions in presence.ts.
 const systemReducedMotion = window.matchMedia?.("(prefers-reduced-motion: reduce)")
 let preference = MotionPreference.MotionSystem
 

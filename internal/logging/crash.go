@@ -28,9 +28,6 @@ type crashCapture struct {
 	command  *exec.Cmd
 }
 
-// CaptureCrashes uses a separate process because a fatal Go runtime error cannot
-// run deferred cleanup. Raw panic values and stack arguments stay in the pipe;
-// only a safe reason and source locations are persisted by the monitor.
 func (system *System) CaptureCrashes(launchID string) error {
 	system.mu.Lock()
 	defer system.mu.Unlock()
@@ -85,8 +82,6 @@ func (capture *crashCapture) close() error {
 	return errors.Join(writeErr, closeErr, waitErr)
 }
 
-// RunCrashMonitor handles only the private subprocess entry point, before the
-// single-instance guard or any vault, settings, or Wails initialization.
 func RunCrashMonitor() (bool, error) {
 	if len(os.Args) != 3 || os.Args[1] != crashMonitorArgument {
 		return false, nil

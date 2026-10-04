@@ -1,4 +1,3 @@
-// Package gamelaunch prepares and starts Roblox Player sessions.
 package gamelaunch
 
 import (

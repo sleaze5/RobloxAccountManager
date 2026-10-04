@@ -80,7 +80,6 @@ func killProcess(ctx context.Context, process Process, logger *slog.Logger) erro
 	if err != nil {
 		return err
 	}
-	// Selection applies to the listed process object, not a recycled PID.
 	if startTime != process.StartTime {
 		return nil
 	}

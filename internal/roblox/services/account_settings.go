@@ -15,8 +15,6 @@ type AccountSettings struct {
 	client *roblox.Client
 }
 
-// SettingsDocument retains presence and null separately. Only allowlisted fields
-// are decoded by the application workflow; this document never crosses Wails.
 type SettingsDocument map[string]json.RawMessage
 
 type SettingOptions struct {

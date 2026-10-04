@@ -10,7 +10,6 @@ export interface NotificationInput {
 	message: string
 	actions?: NotificationAction[]
 	dismissible?: boolean
-	/** Defaults to 5000 ms. Notifications with actions never auto-dismiss. */
 	durationMs?: number
 }
 

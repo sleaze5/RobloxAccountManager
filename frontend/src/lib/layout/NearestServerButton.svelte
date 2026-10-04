@@ -20,7 +20,6 @@
 		)
 </script>
 
-<!-- The wrapper shows the tooltip while the button is disabled. -->
 <span class="nearest-server" data-tooltip={tooltip} data-tooltip-side="top-end">
 	<button
 		class="icon-action bordered"

@@ -16,7 +16,6 @@
 		list = $state<HTMLDivElement>(),
 		open = $state(false),
 		active = $state(0),
-		// Enter launches unless the user picked a suggestion with the arrow keys.
 		navigated = $state(false),
 		listStyle = $state("")
 	const favorites = $derived(indexPlaces(games.favorites)),
@@ -26,7 +25,6 @@
 		),
 		activeIndex = $derived(Math.min(active, suggestions.length - 1))
 
-	// position places the list under the field, or above it when the window has more room there.
 	function position(): void {
 		const bounds = input?.getBoundingClientRect()
 		if (!bounds) return

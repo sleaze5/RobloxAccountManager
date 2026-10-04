@@ -582,7 +582,6 @@
 	font-size: var(--text-11);
 }
 
-/* Each table sets its columns and the width below which it scrolls sideways. */
 .game-servers-table {
 	--server-columns: 104px minmax(118px, 1fr) 56px 32px 64px 52px minmax(100px, 1fr)
 		var(--control-height-md);
@@ -761,8 +760,6 @@
 	white-space: nowrap;
 }
 
-/* The actions stay in view while the table scrolls sideways. */
-/* Numbers align right and text aligns left, as in a spreadsheet. */
 .game-servers-columns > .numeric,
 .game-server-row > .numeric {
 	justify-self: end;

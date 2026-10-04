@@ -1,6 +1,5 @@
 import { formatTimestamp } from "../shared/timestamp"
 
-// Roblox's web client starts a new timestamp group after this gap.
 export const chatTimestampBreakMs = 30_000
 
 function isToday(value: number): boolean {

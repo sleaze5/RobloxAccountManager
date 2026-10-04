@@ -658,9 +658,8 @@ func responseError(request Request, response *Response) error {
 	var body struct {
 		Code    int    `json:"code"`
 		Message string `json:"message"`
-		// Some apis.roblox.com services reply with {"Error": "..."}.
-		Error  string `json:"Error"`
-		Errors []struct {
+		Error   string `json:"Error"`
+		Errors  []struct {
 			Code    int    `json:"code"`
 			Message string `json:"message"`
 		} `json:"errors"`

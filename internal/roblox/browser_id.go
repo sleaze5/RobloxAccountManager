@@ -10,7 +10,6 @@ import (
 
 const EventTrackerCookieName = "RBXEventTrackerV2"
 
-// NewBrowserID creates a positive decimal ID that is exactly representable in JavaScript.
 func NewBrowserID() string {
 	for {
 		var data [8]byte
@@ -29,15 +28,12 @@ func formatAuthCookie(cookie, browserID string) string {
 	return accounts.RoblosecurityCookieName + "=" + cookie + "; " + EventTrackerCookieName + "=" + EventTrackerCookieValue(browserID)
 }
 
-// BrowserID is retained in memory across cookie rotations and vault locks, but
-// never persisted. Each application run starts with a fresh set of account IDs.
 func (manager *SessionManager) BrowserID(accountID int64) string {
 	manager.mu.Lock()
 	defer manager.mu.Unlock()
 	return manager.browserIDLocked(accountID, "")
 }
 
-// ResetBrowserIDs drops local account mappings when the locked vault is replaced.
 func (manager *SessionManager) ResetBrowserIDs() {
 	manager.mu.Lock()
 	defer manager.mu.Unlock()

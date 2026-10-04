@@ -46,7 +46,6 @@ func (service *Service) BrowserCandidateAccount(ctx context.Context, robloxUserI
 	return view, err == nil
 }
 
-// FindAccountByRobloxUserID returns nil when no stored account uses the Roblox user ID.
 func (service *Service) FindAccountByRobloxUserID(ctx context.Context, robloxUserID int64) (*accounts.AccountView, error) {
 	view, err := service.repo.FindByRobloxUserID(ctx, robloxUserID)
 	if errors.Is(err, accounts.ErrNotFound) {
@@ -58,7 +57,6 @@ func (service *Service) FindAccountByRobloxUserID(ctx context.Context, robloxUse
 	return &view, nil
 }
 
-// GetRobloxUser returns the public identity of a Roblox user who may not be in the vault.
 func (service *Service) GetRobloxUser(ctx context.Context, robloxUserID int64) (robloxservices.UserView, error) {
 	identity, err := service.users.Profile(ctx, robloxUserID)
 	if err != nil {

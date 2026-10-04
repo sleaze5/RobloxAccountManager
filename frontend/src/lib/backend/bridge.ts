@@ -64,10 +64,10 @@ export type {
 	Game,
 	Place as GamePlace,
 	RecordPage as GameServerRecordPage,
+	Region as GameRegion,
 	Server as GameServer,
 	ServerPage as GameServerPage,
 	ServerRecord as GameServerRecord,
-	Region as GameRegion,
 	ServerRegion as GameServerRegion,
 	ServerStats as GameServerStats,
 } from "../../../bindings/github.com/sleaze5/RobloxAccountManager/internal/games/index.js"

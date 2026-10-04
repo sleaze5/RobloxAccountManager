@@ -14,7 +14,6 @@ import (
 	"github.com/sleaze5/RobloxAccountManager/internal/roblox"
 )
 
-// UserView is the public identity of any Roblox user.
 type UserView struct {
 	UserID      int64  `json:"userId"`
 	Username    string `json:"username"`

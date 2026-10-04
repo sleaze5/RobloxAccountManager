@@ -13,13 +13,10 @@ import (
 )
 
 const (
-	// Join checks are bounded like RoValra's own server finder, so a place full of closed records cannot stall a search.
 	nearestServerChecksPerRegion = 5
 	nearestServerChecks          = 15
 )
 
-// ListServerRegions returns RoValra's server-browser regions, grouped by country with the US first.
-// They hold no account data, so they are available while the vault is locked.
 func (service *Service) ListServerRegions(ctx context.Context, refresh bool) ([]games.Region, error) {
 	ctx = logging.WithOperation(ctx, "rovalra-"+rand.Text())
 	regions, err := service.serverRegions(ctx, refresh)
@@ -39,7 +36,6 @@ func (service *Service) ListServerRegions(ctx context.Context, refresh bool) ([]
 	return result, nil
 }
 
-// SetRoValraRegion saves a region code shared with the server browser.
 func (service *Service) SetRoValraRegion(ctx context.Context, code string) error {
 	ctx = logging.WithOperation(ctx, "rovalra-"+rand.Text())
 	regions, err := service.serverRegions(ctx, false)
@@ -68,8 +64,6 @@ func (service *Service) serverRegions(ctx context.Context, refresh bool) ([]rova
 	return regions, nil
 }
 
-// FindNearestGameServer returns the newest server RoValra recorded for a place in the preferred region, or else in the closest region
-// that has one. A positive accountID skips servers that do not accept that account.
 func (service *Service) FindNearestGameServer(ctx context.Context, placeID, accountID int64) (games.NearestServer, error) {
 	if err := validGameID(placeID); err != nil {
 		return games.NearestServer{}, err
@@ -98,7 +92,6 @@ func (service *Service) FindNearestGameServer(ctx context.Context, placeID, acco
 	return service.nearestServer(ctx, placeID, accountID, regionsByDistance(regions, regions[origin], stats))
 }
 
-// nearestServer searches regions in order and returns the first server found.
 func (service *Service) nearestServer(ctx context.Context, placeID, accountID int64, regions []rovalra.Region) (games.NearestServer, error) {
 	checksLeft := nearestServerChecks
 	for searched, region := range regions {
@@ -123,7 +116,6 @@ func (service *Service) nearestServer(ctx context.Context, placeID, accountID in
 	return games.NearestServer{}, gamesInputError("No open server of this place was found. Try again later.")
 }
 
-// firstJoinable returns the newest server that accepts the account, or the newest server when no account checks them.
 func (service *Service) firstJoinable(ctx context.Context, placeID, accountID int64, servers []games.ServerRecord, checksLeft *int) (string, error) {
 	if accountID == 0 {
 		if len(servers) == 0 {
@@ -144,7 +136,6 @@ func (service *Service) firstJoinable(ctx context.Context, placeID, accountID in
 	return "", nil
 }
 
-// regionsByDistance prioritizes the preferred region, then the nearest regions with recorded servers.
 func regionsByDistance(regions []rovalra.Region, origin rovalra.Region, stats games.ServerStats) []rovalra.Region {
 	distances := make(map[string]float64, len(stats.Regions))
 	for _, region := range stats.Regions {
@@ -164,7 +155,6 @@ func regionsByDistance(regions []rovalra.Region, origin rovalra.Region, stats ga
 	return available
 }
 
-// Region proximity uses the nearest pair of datacenters across the two regions.
 func regionDistanceKm(a, b rovalra.Region) float64 {
 	distance := math.Inf(1)
 	for _, left := range a.Coordinates {
@@ -175,7 +165,6 @@ func regionDistanceKm(a, b rovalra.Region) float64 {
 	return distance
 }
 
-// distanceKm returns the great-circle distance between two locations with the haversine formula.
 func distanceKm(a, b rovalra.Coordinates) float64 {
 	const earthRadiusKm = 6371
 	radians := math.Pi / 180

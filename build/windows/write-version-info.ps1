@@ -11,8 +11,7 @@ if (-not ($version -match '^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)(-[0-9A-Za-z
     throw "Version '$version' in $versionPath is not MAJOR.MINOR.PATCH with an optional -PRERELEASE suffix."
 }
 
-# Windows stores the numeric version as four 16-bit parts and cannot hold a prerelease suffix.
-$parts = @($Matches[1], $Matches[2], $Matches[3])
+$parts = @( $Matches[1], $Matches[2], $Matches[3] )
 foreach ($part in $parts) {
     if ([long] $part -gt 65535) {
         throw "Version '$version' in $versionPath has a part above 65535, which Windows cannot store."
@@ -20,7 +19,7 @@ foreach ($part in $parts) {
 }
 $numeric = ($parts + "0") -join "."
 
-$fixed = [ordered]@{ file_version = $numeric; product_version = $numeric }
+$fixed = [ordered] @{ file_version = $numeric; product_version = $numeric; }
 if ($Matches[4]) {
     $fixed.flags = "Prerelease"
 }
@@ -31,5 +30,4 @@ $strings = $info.info."0409"
 $strings | Add-Member -NotePropertyName "FileVersion" -NotePropertyValue $version
 $strings | Add-Member -NotePropertyName "ProductVersion" -NotePropertyValue $version
 
-# WriteAllText writes UTF-8 without a byte order mark, which the JSON decoder requires.
-[IO.File]::WriteAllText($Output, ($info | ConvertTo-Json -Depth 5))
+[IO.File]::WriteAllText( $Output, ($info | ConvertTo-Json -Depth 5) )

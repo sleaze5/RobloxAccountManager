@@ -41,7 +41,6 @@ func (ending *visitEndState) record(line string, timestamp, startedAt int64) {
 	case strings.Contains(line, "Teleported."):
 		ending.teleported = true
 	case strings.Contains(line, "leaveUGCGameInternal"):
-		// Cleanup after a disconnect is not evidence that the user chose to leave.
 		if !ending.disconnected || timestamp <= ending.confirmedAt {
 			ending.left = true
 		}

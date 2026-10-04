@@ -39,10 +39,10 @@
 			})),
 		])
 
-	// The list loads at startup; this retries it when that load failed.
 	$effect(() => {
-		if (store.initialized && store.roValraEnabled && visible)
+		if (store.initialized && store.roValraEnabled && visible) {
 			untrack(() => void store.loadServerRegions())
+		}
 	})
 </script>
 

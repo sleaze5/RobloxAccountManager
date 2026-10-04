@@ -59,7 +59,6 @@ func (service *Service) SearchGames(ctx context.Context, query games.SearchQuery
 	return page, service.gamesError(ctx, "game-search", err)
 }
 
-// gameIDQuery reports whether text uses an ID search syntax such as "id:<place ID>".
 func gameIDQuery(text, prefix, invalid string) (int64, bool, error) {
 	if len(text) < len(prefix) || !strings.EqualFold(text[:len(prefix)], prefix) {
 		return 0, false, nil
@@ -90,7 +89,6 @@ func (service *Service) GetGame(ctx context.Context, universeID, placeID int64) 
 	return game, service.gamesError(ctx, "game-details", err)
 }
 
-// ListGameServers returns one page of a place's public servers, read as a stored account when one is active.
 func (service *Service) ListGameServers(ctx context.Context, query games.ServerQuery) (games.ServerPage, error) {
 	if err := validGameID(query.PlaceID); err != nil {
 		return games.ServerPage{}, err
@@ -123,8 +121,6 @@ func (service *Service) ListGameServers(ctx context.Context, query games.ServerQ
 	return page, nil
 }
 
-// addServerRecords attaches RoValra's records to servers when the integration is on.
-// The servers are still useful without records, so a RoValra failure only logs a warning.
 func (service *Service) addServerRecords(ctx context.Context, placeID int64, servers []games.Server) {
 	if !service.settings.Integrations().RoValra || len(servers) == 0 {
 		return
@@ -146,7 +142,6 @@ func (service *Service) addServerRecords(ctx context.Context, placeID int64, ser
 	}
 }
 
-// ListRecordedGameServers returns one page of the servers RoValra has recorded for a place.
 func (service *Service) ListRecordedGameServers(ctx context.Context, query games.RecordQuery) (games.RecordPage, error) {
 	if err := validGameID(query.PlaceID); err != nil {
 		return games.RecordPage{}, err
@@ -172,7 +167,6 @@ func (service *Service) ListRecordedGameServers(ctx context.Context, query games
 	return page, service.rovalraError(ctx, "rovalra-servers", query.PlaceID, err)
 }
 
-// GetGameServerStats returns the regions and newest version of the servers RoValra has recorded for a place.
 func (service *Service) GetGameServerStats(ctx context.Context, placeID int64) (games.ServerStats, error) {
 	if err := validGameID(placeID); err != nil {
 		return games.ServerStats{}, err
@@ -204,7 +198,6 @@ func (service *Service) rovalraError(ctx context.Context, operation string, plac
 	return &roblox.Error{Kind: roblox.KindServer, Endpoint: operation, Message: "RoValra could not be reached. Try again later.", Cause: err}
 }
 
-// gameAccount returns the first active stored account, or zero when no account can read signed-in game details.
 func (service *Service) gameAccount(ctx context.Context) (int64, error) {
 	var cursor *accounts.AccountCursor
 	for {
@@ -223,7 +216,6 @@ func (service *Service) gameAccount(ctx context.Context) (int64, error) {
 	}
 }
 
-// GetGamePlace returns only the identity and icon of a universe.
 func (service *Service) GetGamePlace(ctx context.Context, universeID int64) (games.Place, error) {
 	if err := validGameID(universeID); err != nil {
 		return games.Place{}, err
@@ -247,7 +239,6 @@ func (service *Service) ListFavoritePlaces(ctx context.Context) ([]games.Place, 
 	return places, service.gamesError(ctx, "favorite-places-list", err)
 }
 
-// AddFavoritePlace saves a root place or subplace as Roblox currently describes it.
 func (service *Service) AddFavoritePlace(ctx context.Context, placeID int64) (games.Place, error) {
 	if err := validGameID(placeID); err != nil {
 		return games.Place{}, err
@@ -270,7 +261,6 @@ func (service *Service) AddFavoritePlace(ctx context.Context, placeID int64) (ga
 	return place, nil
 }
 
-// SetFavoritePlaceNickname saves the trimmed nickname of a favorite place and returns it.
 func (service *Service) SetFavoritePlaceNickname(ctx context.Context, placeID int64, nickname string) (string, error) {
 	if err := validGameID(placeID); err != nil {
 		return "", err
@@ -292,7 +282,6 @@ func (service *Service) SetFavoritePlaceNickname(ctx context.Context, placeID in
 	return nickname, nil
 }
 
-// ReorderFavoritePlaces saves placeIDs, which must list every favorite once, as the favorite order.
 func (service *Service) ReorderFavoritePlaces(ctx context.Context, placeIDs []int64) error {
 	seen := make(map[int64]bool, len(placeIDs))
 	for _, placeID := range placeIDs {

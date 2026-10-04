@@ -16,7 +16,6 @@ const playerName = "RobloxPlayerBeta.exe"
 
 var compareObjectHandles = windows.NewLazySystemDLL("kernelbase.dll").NewProc("CompareObjectHandles")
 
-// SYSTEM_HANDLE_TABLE_ENTRY_INFO_EX, used only on the supported Windows AMD64 target.
 type systemHandle struct {
 	Object           uintptr
 	ProcessID        uintptr
@@ -81,7 +80,7 @@ func runningProcesses(names []string) ([]Process, error) {
 		var playerSession uint32
 		if sessionErr := windows.ProcessIdToSessionId(entry.ProcessID, &playerSession); sessionErr != nil {
 			if errors.Is(sessionErr, windows.ERROR_INVALID_PARAMETER) {
-				continue // The process exited after the snapshot.
+				continue
 			}
 			return processes, fmt.Errorf("get Roblox session for process %d: %w", entry.ProcessID, sessionErr)
 		}
@@ -198,7 +197,7 @@ func verifyProcess(process windows.Handle, expectedName string) error {
 func clearEventHandle(process, handle, event windows.Handle) (bool, error) {
 	var duplicate windows.Handle
 	if err := windows.DuplicateHandle(process, handle, windows.CurrentProcess(), &duplicate, 0, false, windows.DUPLICATE_SAME_ACCESS); err != nil {
-		return false, nil // Handles can disappear while Roblox is starting or exiting.
+		return false, nil
 	}
 	defer windows.CloseHandle(duplicate)
 	// Compare against the exact named Event in our session. Unlike querying the

@@ -17,26 +17,25 @@ import (
 var accountProfileOperationID atomic.Uint64
 
 type AccountProfileSnapshot struct {
-	AccountID      int64    `json:"accountId"`
-	FetchedAtMs    int64    `json:"fetchedAtMs"`
-	Robux          *int64   `json:"robux"`
-	PendingRobux   *int64   `json:"pendingRobux"`
-	AgeBracket     *int     `json:"ageBracket"`
-	AgeGroup       string   `json:"ageGroup"`
-	AgeVerified    *bool    `json:"ageVerified"`
-	CountryCode    string   `json:"countryCode"`
-	Premium        *bool    `json:"premium"`
-	Plus           *bool    `json:"plus"`
-	TwoStepEnabled *bool    `json:"twoStepEnabled"`
-	TwoStepMethods []string `json:"twoStepMethods"`
-	Description    string   `json:"description"`
-	VerifiedBadge  *bool    `json:"verifiedBadge"`
-	FriendCount    *int64   `json:"friendCount"`
-	FollowerCount  *int64   `json:"followerCount"`
-	FollowingCount *int64   `json:"followingCount"`
-	// PrimaryGroup is nil when the account has no primary group or it is unavailable.
-	PrimaryGroup *robloxservices.UserPrimaryGroup `json:"primaryGroup"`
-	Unavailable  []string                         `json:"unavailable"`
+	AccountID      int64                            `json:"accountId"`
+	FetchedAtMs    int64                            `json:"fetchedAtMs"`
+	Robux          *int64                           `json:"robux"`
+	PendingRobux   *int64                           `json:"pendingRobux"`
+	AgeBracket     *int                             `json:"ageBracket"`
+	AgeGroup       string                           `json:"ageGroup"`
+	AgeVerified    *bool                            `json:"ageVerified"`
+	CountryCode    string                           `json:"countryCode"`
+	Premium        *bool                            `json:"premium"`
+	Plus           *bool                            `json:"plus"`
+	TwoStepEnabled *bool                            `json:"twoStepEnabled"`
+	TwoStepMethods []string                         `json:"twoStepMethods"`
+	Description    string                           `json:"description"`
+	VerifiedBadge  *bool                            `json:"verifiedBadge"`
+	FriendCount    *int64                           `json:"friendCount"`
+	FollowerCount  *int64                           `json:"followerCount"`
+	FollowingCount *int64                           `json:"followingCount"`
+	PrimaryGroup   *robloxservices.UserPrimaryGroup `json:"primaryGroup"`
+	Unavailable    []string                         `json:"unavailable"`
 }
 
 func (service *Service) GetAccountProfile(ctx context.Context, accountID int64) (AccountProfileSnapshot, error) {

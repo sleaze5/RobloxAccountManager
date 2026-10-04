@@ -12,7 +12,6 @@
 
 	let { store, onBack }: { store: AccountStore; onBack: () => void } = $props()
 
-	// App remounts this page when the selected account changes.
 	const account = untrack(() => store.selectedAccount),
 		chat = untrack(() => new ChatState(account.id, store))
 

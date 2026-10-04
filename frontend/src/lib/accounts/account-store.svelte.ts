@@ -258,7 +258,6 @@ export class AccountStore {
 		this.error = ""
 	}
 
-	// clearJoinTarget resets the join method fields without touching launch data or arguments.
 	clearJoinTarget(): void {
 		Object.assign(this.launchInput, {
 			method: LaunchMethod.MethodPlace,
@@ -772,9 +771,7 @@ export class AccountStore {
 		}
 		try {
 			await accountBackend.DiscardValidatedCookies(batchId)
-		} catch {
-			// Validated cookies also expire automatically in the backend.
-		}
+		} catch {}
 	}
 
 	async createTag(name: string, accountId: number | null): Promise<TagView | null> {
@@ -864,7 +861,6 @@ export class AccountStore {
 		}
 	}
 
-	// fillNearestServer fills the Job ID with a RoValra server near the preferred region, checked as the selected account when there is one.
 	async fillNearestServer(): Promise<void> {
 		const placeInput = this.launchInput.placeId.trim(),
 			placeId = Number(placeInput),
@@ -877,8 +873,9 @@ export class AccountStore {
 			!/^\d+$/.test(placeInput) ||
 			!Number.isSafeInteger(placeId) ||
 			placeId <= 0
-		)
+		) {
 			return
+		}
 		this.findingServer = true
 		this.error = ""
 		try {
@@ -891,8 +888,9 @@ export class AccountStore {
 				this.launchInput.placeId.trim() !== placeInput ||
 				(this.selectedAccountId ?? 0) !== accountId ||
 				appSettings.roValraRegion !== region
-			)
+			) {
 				return
+			}
 			this.launchInput.jobId = server.jobId
 			if (server.region.code !== region) {
 				this.notifications.show({

@@ -1,4 +1,3 @@
-// Package appsettings owns portable application settings outside the account vault.
 package appsettings
 
 import (
@@ -28,13 +27,10 @@ const (
 
 var loggingLevels = []string{"trace", "debug", "info", "warn", "error"}
 
-// object is a settings document before it is decoded into the current schema.
 type object = map[string]json.RawMessage
 
-// migrations[i] migrates a version i+1 settings object to version i+2.
 var migrations = [...]func(object) (object, error){}
 
-// This fails to compile unless every earlier FormatVersion has one migration.
 var _ = [1]struct{}{}[len(migrations)-(FormatVersion-1)]
 
 type VaultSettings struct {
@@ -76,8 +72,7 @@ type RobloxSettings struct {
 }
 
 type IntegrationSettings struct {
-	RoValra bool `json:"rovalra"`
-	// RoValraRegion is a server-browser region code, or empty before one is chosen.
+	RoValra       bool   `json:"rovalra"`
 	RoValraRegion string `json:"rovalraRegion"`
 }
 
@@ -85,8 +80,6 @@ type LoggingSettings struct {
 	EnabledLevels map[string]bool `json:"enabledLevels"`
 }
 
-// MotionPreference controls interface animation. MotionSystem follows the
-// operating system's reduced-motion preference.
 type MotionPreference string
 
 const (
@@ -111,8 +104,6 @@ type Store struct {
 	recoveryError  error
 }
 
-// ReadLogging reads only the logging preference, before writable storage and the
-// rest of the settings are initialized. It does not write the settings file.
 func ReadLogging(path string) (LoggingSettings, error) {
 	data, err := os.ReadFile(path)
 	if errors.Is(err, os.ErrNotExist) {
@@ -168,9 +159,6 @@ func load(path string) (loadResult, error) {
 	return decode(data)
 }
 
-// decode parses a settings document, migrates it to FormatVersion, and decodes
-// it into the current schema. Invalid known fields fall back to their defaults
-// and unknown fields are dropped.
 func decode(data []byte) (loadResult, error) {
 	var document object
 	if err := decodeJSON(data, &document); err != nil {
@@ -225,8 +213,6 @@ func decodeCurrent(document object) (Settings, []string) {
 	return settings, fields.replaced
 }
 
-// fieldDecoder records the paths of present fields that were replaced with
-// their defaults. Missing fields use their defaults without being recorded.
 type fieldDecoder struct {
 	replaced []string
 }
@@ -249,8 +235,6 @@ func (fields *fieldDecoder) presence(document object, path string, target *Prese
 	decodeField(fields, document, path+".intervalSeconds", &target.IntervalSeconds, validPresenceInterval)
 }
 
-// decodeField keeps target unchanged unless the field holds a non-null value of
-// the expected type that also passes valid.
 func decodeField[T any](fields *fieldDecoder, document object, path string, target *T, valid func(T) bool) {
 	raw, ok := document[fieldName(path)]
 	if !ok {
@@ -564,8 +548,6 @@ func (store *Store) saveLocked() error {
 	return nil
 }
 
-// JSON whitespace is handled by encoding/json. Accept a UTF-8 BOM from Windows
-// editors as well; saveLocked always writes UTF-8 without a BOM, two spaces, LF.
 func decodeJSON(data []byte, value any) error {
 	data = bytes.TrimPrefix(data, []byte{0xef, 0xbb, 0xbf})
 	if !utf8.Valid(data) {
@@ -574,17 +556,12 @@ func decodeJSON(data []byte, value any) error {
 	return json.Unmarshal(data, value)
 }
 
-// SourceVersion reports the format version read from settings.json, or 0 when
-// this launch created or replaced the file.
 func (store *Store) SourceVersion() int { return store.sourceVersion }
 
-// ReplacedFields lists invalid settings that were replaced with defaults.
 func (store *Store) ReplacedFields() []string { return store.replacedFields }
 
 func (store *Store) RecoveryError() error { return store.recoveryError }
 
-// Origin reports whether this launch loaded settings.json, created it, or
-// replaced an unreadable file with defaults.
 func (store *Store) Origin() string { return store.origin }
 
 func validatePresenceSettings(settings PresenceUpdateSettings) error {

@@ -144,7 +144,6 @@
 	white-space: nowrap;
 }
 
-/* Progress events arrive every 500ms; glide between them on the compositor. */
 .runtime-progress {
 	width: 100%;
 	height: 6px;
@@ -161,8 +160,6 @@
 	transition: transform 500ms linear;
 }
 
-/* Busy indicator: diagonal stripes scroll sideways like a barber pole. The
-   stripe tile repeats every 12px, so shifting by one tile loops seamlessly. */
 .runtime-progress.indeterminate > div {
 	width: calc(100% + 12px);
 	margin-left: -12px;

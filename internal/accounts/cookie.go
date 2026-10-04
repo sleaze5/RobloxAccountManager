@@ -14,7 +14,6 @@ const (
 
 var ErrInvalidCookieInput = errors.New("invalid cookie input")
 
-// SplitCookieInputs returns trimmed, non-empty cookie lines in display order.
 func SplitCookieInputs(input string) []string {
 	lines := strings.FieldsFunc(input, func(character rune) bool {
 		return character == '\r' || character == '\n'
@@ -28,8 +27,6 @@ func SplitCookieInputs(input string) []string {
 	return result
 }
 
-// NormalizeCookie accepts a raw value, a named pair, or a Cookie header and
-// returns only the exact .ROBLOSECURITY value.
 func NormalizeCookie(input string) (string, error) {
 	if len(input) > maxCookieInputBytes {
 		return "", fmt.Errorf("%w: input is too large", ErrInvalidCookieInput)
@@ -81,8 +78,6 @@ func NormalizeCookie(input string) (string, error) {
 	return found, nil
 }
 
-// ValidateCookieValue validates one raw RFC 6265 cookie value. It does not
-// accept a named pair or a Cookie header.
 func ValidateCookieValue(value string) error {
 	if value == "" {
 		return fmt.Errorf("%w: cookie is empty", ErrInvalidCookieInput)

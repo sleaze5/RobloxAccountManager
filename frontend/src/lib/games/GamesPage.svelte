@@ -38,7 +38,6 @@
 		draggedPlaceId = $state<number | null>(null),
 		dropTarget = $state<{ placeId: number; after: boolean } | null>(null)
 
-	// Rows are buttons, so dragging starts only when the pointer went down on the handle.
 	function grab(event: PointerEvent, placeId: number): void {
 		grabbedPlaceId =
 			event.target instanceof Element && event.target.closest(".game-drag-handle")
@@ -96,7 +95,6 @@
 	onMount(() => store.revalidate())
 	onDestroy(() => store.closeMenu())
 
-	// Re-observing after each page makes a sentinel that stays visible load the next page too.
 	function loadMoreWhenVisible(node: HTMLElement, _pageToken: string) {
 		const observer = new IntersectionObserver(
 			(entries) => {

@@ -2,7 +2,6 @@
 	import User from "@lucide/svelte/icons/user"
 
 	let { url }: { url: string } = $props()
-	// Remembering the failed URL lets a new URL load again.
 	let failed = $state("")
 </script>
 

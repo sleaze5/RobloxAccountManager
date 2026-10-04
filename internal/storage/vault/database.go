@@ -44,7 +44,6 @@ const (
 
 const lockTimeout = 5 * time.Second
 
-// Manager owns the SQLCipher handle and all database-use leases.
 type Manager struct {
 	mu                sync.Mutex
 	paths             appdata.Paths
@@ -370,7 +369,6 @@ func (manager *Manager) install(db *sql.DB, dek []byte, identifier [vaultIDBytes
 	manager.mu.Unlock()
 }
 
-// Lease holds the vault open for one complete storage operation.
 func (manager *Manager) Lease(_ context.Context) (*sql.DB, func(), error) {
 	manager.mu.Lock()
 	if manager.db == nil || manager.closing {
@@ -395,10 +393,8 @@ func (manager *Manager) Lease(_ context.Context) (*sql.DB, func(), error) {
 	return db, release, nil
 }
 
-// Lock closes the vault and revokes automatic unlock.
 func (manager *Manager) Lock() error { return manager.close(true) }
 
-// Close closes the vault while preserving automatic unlock for normal shutdown.
 func (manager *Manager) Close() error { return manager.close(false) }
 
 func (manager *Manager) close(manual bool) error {

@@ -40,14 +40,10 @@ var (
 	calibrateKDF   = calibrateArgon2
 )
 
-// keyFileDecoders[i] decodes version i+1 of vault.key. Keep every decoder
-// because backups can hold older key files.
 var keyFileDecoders = [...]func([]byte) (keyFile, error){decodeKeyFileV1}
 
-// autoUnlockDecoders[i] decodes the protected payload of autounlock.key version i+1.
 var autoUnlockDecoders = [...]func([]byte) ([vaultIDBytes]byte, []byte, error){decodeAutoUnlockV1}
 
-// These fail to compile unless every format version has one decoder.
 var (
 	_ = [1]struct{}{}[len(keyFileDecoders)-int(keyFormatVersion)]
 	_ = [1]struct{}{}[len(autoUnlockDecoders)-int(autoFormatVersion)]

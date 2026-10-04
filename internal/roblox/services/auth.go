@@ -25,8 +25,6 @@ func NewAuth(client *roblox.Client) *Auth {
 	return &Auth{client: client, endpoint: endpoint}
 }
 
-// RefreshCookie replaces only the current session. The shared client persists
-// Set-Cookie with a version check; an ambiguous POST is never retried automatically.
 func (service *Auth) RefreshCookie(ctx context.Context, accountID, version int64) error {
 	endpoint, _ := url.Parse("https://auth.roblox.com/v2/session/refresh")
 	response, err := service.client.Do(ctx, roblox.Request{

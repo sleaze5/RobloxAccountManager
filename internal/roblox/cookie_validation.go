@@ -21,8 +21,6 @@ type CookieValidation struct {
 	ExpiresAt *time.Time
 }
 
-// ValidateCookie validates an unpersisted cookie without creating a runtime
-// session. It returns a server-rotated value when Roblox supplies one.
 func (client *Client) ValidateCookie(ctx context.Context, cookie, browserID string) (CookieValidation, error) {
 	normalized, err := accounts.NormalizeCookie(cookie)
 	if err != nil {

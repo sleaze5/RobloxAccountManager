@@ -41,8 +41,6 @@ type TagView struct {
 	Kind TagKind `json:"kind"`
 }
 
-// SessionRecord transfers a stored session between persistence and the runtime
-// session manager. It has no JSON tags because it contains a password-equivalent cookie.
 type SessionRecord struct {
 	AccountID         int64
 	Roblosecurity     string
@@ -59,7 +57,6 @@ type SessionRecord struct {
 	UpdatedAt         time.Time
 }
 
-// AccountView is the only account representation exposed through Wails.
 type AccountView struct {
 	ID                int64        `json:"id"`
 	RobloxUserID      int64        `json:"robloxUserId"`

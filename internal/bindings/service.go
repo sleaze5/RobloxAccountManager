@@ -1,4 +1,3 @@
-// Package bindings exposes narrow, UI-safe Wails adapters.
 package bindings
 
 import (

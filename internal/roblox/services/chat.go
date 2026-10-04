@@ -10,8 +10,6 @@ import (
 	"github.com/sleaze5/RobloxAccountManager/internal/roblox"
 )
 
-// Platform Chat is an internal Roblox web API; shapes follow the current
-// website client and only the fields the application uses are decoded.
 const (
 	chatBaseURL      = "https://apis.roblox.com/platform-chat-api/v1/"
 	ChatPageSize     = 20
@@ -104,7 +102,6 @@ func (service *Chat) MarkRead(ctx context.Context, accountID, version int64, con
 	return result.Results, err
 }
 
-// CreateDirect may resolve to an existing conversation; the returned ID is authoritative.
 func (service *Chat) CreateDirect(ctx context.Context, accountID, version, userID int64) (ChatConversation, error) {
 	var result struct {
 		Conversations []ChatConversation `json:"conversations"`

@@ -14,12 +14,9 @@ import (
 
 const (
 	maxServerCursorLength = 2048
-	// Roblox reveals at most five player tokens per server.
 	maxServerPlayerImages = 5
 )
 
-// Servers returns one page of a place's public servers.
-// A positive accountID reads the page as that account, which reveals the details Roblox hides from signed-out users.
 func (service *Games) Servers(ctx context.Context, query games.ServerQuery, accountID int64) (games.ServerPage, error) {
 	parameters := url.Values{
 		"orderBy":          {string(query.Order)},
@@ -77,7 +74,6 @@ func (service *Games) Servers(ctx context.Context, query games.ServerQuery, acco
 			FPS: max(fps, 0), PingMS: nonNegative(item.Ping), PlayerImages: []string{},
 			LanguageMatches: nonNegative(item.LanguageMatchCount),
 		})
-		// Signed-out reads report zero friends, which says nothing about the user's friends.
 		if accountID > 0 {
 			page.Servers[len(page.Servers)-1].Friends = nonNegative(item.FriendCount)
 		}
@@ -100,8 +96,6 @@ func (service *Games) Servers(ctx context.Context, query games.ServerQuery, acco
 	return page, nil
 }
 
-// Joinable reports whether a public server would accept the account now.
-// Roblox answers with a join script only for running servers with a free slot; the script is discarded unread.
 func (service *Games) Joinable(ctx context.Context, accountID, placeID int64, jobID string) (bool, error) {
 	body, err := json.Marshal(struct {
 		PlaceID int64  `json:"placeId"`
@@ -120,7 +114,6 @@ func (service *Games) Joinable(ctx context.Context, accountID, placeID int64, jo
 	return payload.JoinScript != nil, nil
 }
 
-// playerImages resolves player tokens to avatar headshot URLs.
 func (service *Games) playerImages(ctx context.Context, servers [][]string) (map[string]string, error) {
 	type item struct {
 		RequestID string `json:"requestId"`

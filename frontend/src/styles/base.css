@@ -74,7 +74,6 @@ input[type="radio"] {
 	accent-color: var(--color-accent);
 }
 
-/* WebView2 adds its own reveal and clear buttons. Password fields have custom ones. */
 input::-ms-reveal,
 input::-ms-clear {
 	display: none;
@@ -282,7 +281,6 @@ select:focus-visible {
 	background-clip: padding-box;
 }
 
-/* lib/shared/motion.ts sets data-reduced-motion from the motion setting and the system preference. */
 :root[data-reduced-motion],
 :root[data-reduced-motion] *,
 :root[data-reduced-motion] *::before,

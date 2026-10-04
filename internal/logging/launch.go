@@ -15,14 +15,11 @@ import (
 	"github.com/sleaze5/RobloxAccountManager/internal/appsettings"
 )
 
-// LaunchStage is one completed startup stage and its wall-clock duration.
 type LaunchStage struct {
 	Name       string  `json:"name"`
 	DurationMS float64 `json:"duration_ms"`
 }
 
-// Launch tracks startup independently of log initialization, so even an early
-// failure reports its stage and timings through the central logging system.
 type Launch struct {
 	mu             sync.Mutex
 	id             string
@@ -136,8 +133,6 @@ func (launch *Launch) Ready() {
 	launch.logger.Info("application backend and webview runtime ready", "elapsed_ms", milliseconds(time.Since(launch.started)), "stages", launch.stages)
 }
 
-// LaunchReport describes the running build, its startup timings, and the
-// latest component records loaded during this launch.
 type LaunchReport struct {
 	LaunchID   string            `json:"launchId"`
 	StartedAt  int64             `json:"startedAt"`

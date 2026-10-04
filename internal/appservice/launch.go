@@ -218,8 +218,6 @@ func (service *Service) runLaunchOperation(ctx context.Context, accountID int64,
 			if err != nil || !approved {
 				return approved, err
 			}
-			// Obtain a fresh ticket before closing games, so an expired or invalid
-			// account session cannot leave the user without a running game.
 			err = loadTicket()
 			if err == nil {
 				stage = "prepare-launch"
