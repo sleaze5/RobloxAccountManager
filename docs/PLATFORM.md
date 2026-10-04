@@ -24,11 +24,14 @@ A Linux build links the system GTK 4 and WebKitGTK 6 libraries. Automatic unlock
 
 `internal/appmeta/VERSION` is the only source of the application version. It uses `MAJOR.MINOR.PATCH` with an optional `-PRERELEASE` suffix. Go embeds it, the frontend reads it as `APP_VERSION`, and the build writes it into the Windows version resource. Do not write the version anywhere else.
 
-To release, change `VERSION`, run `task fix`, push to `main`, and run the manual "Release" workflow in `.github/workflows/release.yml`. The workflow fails when tag `v<version>` exists or when the build changes source files. It publishes:
+To release, change `VERSION`, run `task fix`, push to `main`, and run the manual "Release" workflow in `.github/workflows/release.yml`. The workflow builds Linux on Ubuntu 24.04 and Windows on Windows Server 2025. It fails when tag `v<version>` exists or when either build changes source files. It publishes:
 
-- `RobloxAccountManager.exe`: the executable for manual download.
-- `RobloxAccountManager-windows-x64.zip`: the updater artifact. It must contain only the executable, because the updater accepts exactly one top-level entry.
+- `RobloxAccountManager.exe`: the Windows executable for manual download.
+- `RobloxAccountManager-windows-x64.zip`: the Windows updater artifact.
+- `RobloxAccountManager-linux-x64.tar.gz`: the Linux updater artifact and manual download. The archive keeps the executable permission that a bare download loses.
 - `manifest.json`: the signed Wails update manifest. List only archives in it, because Wails treats every `.exe` as a Windows artifact.
+
+Each archive must contain only the executable, because the updater accepts exactly one top-level entry. Wails reads the platform and architecture from each archive name, so keep the `<os>-x64` part.
 
 The application reads `releases/latest/download/manifest.json`, so it never offers a prerelease.
 
@@ -41,9 +44,10 @@ The application reads `releases/latest/download/manifest.json`, so it never offe
 
 ### In-place updates
 
-- `updater.HandleHelperMode()` must run first in `main()`, before the single-instance check. The update helper is this executable, and it starts while the old version still runs.
+- `appupdate.HandleHelperMode()` must run first in `main()`, before the single-instance check. The update helper is this executable, and it starts while the old version still runs.
 - The updater replaces only the executable. `storage/` and `logs/` stay unchanged.
-- `internal/appupdate` removes `RobloxAccountManager.exe.old.*` and the helper's `wails-update-*.log` when the new version starts. It deletes a downloaded update that was not installed when the application closes.
+- On Linux, the helper copies the downloaded update into a `wails-update-*` directory next to the executable before the swap. The Wails helper renames the update over the executable, and a rename fails across filesystems.
+- `internal/appupdate` removes `RobloxAccountManager.exe.old.*`, `wails-update-*` directories next to the executable, and the helper's `wails-update-*.log` when the new version starts. It deletes a downloaded update that was not installed when the application closes.
 
 ## Platform isolation
 

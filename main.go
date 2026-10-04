@@ -28,14 +28,13 @@ import (
 	"github.com/sleaze5/RobloxAccountManager/internal/storage/vault"
 	"github.com/wailsapp/wails/v3/pkg/application"
 	wailevents "github.com/wailsapp/wails/v3/pkg/events"
-	"github.com/wailsapp/wails/v3/pkg/updater"
 )
 
 //go:embed all:frontend/dist
 var assets embed.FS
 
 func main() {
-	updater.HandleHelperMode()
+	appupdate.HandleHelperMode()
 	if monitor, err := logging.RunCrashMonitor(); monitor {
 		if err != nil {
 			logging.NewConsole(os.Stderr, logging.LevelError).Error("crash monitor failed", "module", "logging", "error", err)
