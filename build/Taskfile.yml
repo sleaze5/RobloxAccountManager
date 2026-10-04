@@ -72,6 +72,22 @@ tasks:
                   \    if (Test-Path -LiteralPath $cache) { Remove-Item -LiteralPath $cache -Recurse -Force -ErrorAction Stop }
 
                   } exit $exitCode }'"
+              platforms: [windows]
+            - cmd: |
+                set -eu
+                root=$(readlink -f "{{.ROOT_DIR}}/frontend")
+                cache="$root/.svelte-check"
+                case "$cache" in
+                  "$root"/*) ;;
+                  *) echo "Refusing to delete Svelte check cache outside frontend: $cache" >&2; exit 1 ;;
+                esac
+                status=0
+                bun run check || status=$?
+                if [ -e "$cache" ]; then
+                  rm -rf -- "$cache"
+                fi
+                exit "$status"
+              platforms: [linux]
 
     internal:frontend:update:
         internal: true
@@ -109,19 +125,36 @@ tasks:
         internal: true
         dir: "{{.ROOT_DIR}}"
         cmds:
-            - "powershell -NoProfile -File ./build/windows/wait-for-vite.ps1 -Port {{.VITE_PORT}}"
+            - cmd: "powershell -NoProfile -File ./build/windows/wait-for-vite.ps1 -Port {{.VITE_PORT}}"
+              platforms: [windows]
+            - cmd: "sh ./build/linux/wait-for-vite.sh {{.VITE_PORT}}"
+              platforms: [linux]
 
     internal:go:format:
         internal: true
         dir: "{{.ROOT_DIR}}"
         cmds:
             - cmd: 'powershell -NoProfile -Command ''& { $files = @("main.go") + @(Get-ChildItem -LiteralPath "internal" -Recurse -File -Filter "*.go" | ForEach-Object FullName); & gofmt -w @files; if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE } }'''
+              platforms: [windows]
+            - cmd: |
+                set -eu
+                find main.go internal -type f -name '*.go' -exec gofmt -w {} +
+              platforms: [linux]
 
     internal:go:format:check:
         internal: true
         dir: "{{.ROOT_DIR}}"
         cmds:
             - cmd: 'powershell -NoProfile -Command ''& { $files = @("main.go") + @(Get-ChildItem -LiteralPath "internal" -Recurse -File -Filter "*.go" | ForEach-Object FullName); $unformatted = @(& gofmt -l @files); if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE } if ($unformatted.Count -ne 0) { Write-Error ("Go files are not formatted:" + [Environment]::NewLine + ($unformatted -join [Environment]::NewLine)); exit 1 } }'''
+              platforms: [windows]
+            - cmd: |
+                set -eu
+                unformatted=$(find main.go internal -type f -name '*.go' -exec gofmt -l {} +)
+                if [ -n "$unformatted" ]; then
+                  printf 'Go files are not formatted:\n%s\n' "$unformatted" >&2
+                  exit 1
+                fi
+              platforms: [linux]
 
     internal:go:tidy:
         internal: true

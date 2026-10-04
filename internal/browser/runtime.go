@@ -16,7 +16,6 @@ import (
 	"net/url"
 	"os"
 	"path/filepath"
-	"runtime"
 	"strings"
 	"sync"
 	"time"
@@ -105,7 +104,7 @@ func NewRuntimeManager(paths appdata.Paths, logger *slog.Logger, changed func())
 	if err := validateManifestDownload(manifest); err != nil {
 		return nil, err
 	}
-	if runtime.GOOS != "windows" || runtime.GOARCH != "amd64" || manifest.Downloads["win64"] == "" {
+	if manifest.Downloads[runtimeDownloadKey] == "" {
 		return nil, fmt.Errorf("managed browser is unavailable on this platform")
 	}
 	manager := &RuntimeManager{
@@ -159,7 +158,7 @@ func (manager *RuntimeManager) Executable() (string, error) {
 	if manager.state.Status != RuntimeReady {
 		return "", errors.New("managed browser runtime is not installed or is damaged")
 	}
-	return filepath.Join(manager.installDirectory(), "chrome-win64", "chrome.exe"), nil
+	return filepath.Join(manager.installDirectory(), runtimeArchiveRoot, runtimeExecutableName), nil
 }
 
 func (manager *RuntimeManager) Download(parent context.Context, replace bool) error {
@@ -224,7 +223,7 @@ func (manager *RuntimeManager) install(ctx context.Context) error {
 	if err := os.Mkdir(stage, 0o755); err != nil {
 		return fmt.Errorf("create installation staging directory: %w", err)
 	}
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, manager.manifest.Downloads["win64"], nil)
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, manager.manifest.Downloads[runtimeDownloadKey], nil)
 	if err != nil {
 		return err
 	}
@@ -544,7 +543,7 @@ func extractRuntime(ctx context.Context, archive, destination string) error {
 		if name == "." || filepath.IsAbs(name) || strings.HasPrefix(name, ".."+string(filepath.Separator)) {
 			return errors.New("browser archive contains an unsafe path")
 		}
-		if name != "chrome-win64" && !strings.HasPrefix(name, "chrome-win64"+string(filepath.Separator)) {
+		if name != runtimeArchiveRoot && !strings.HasPrefix(name, runtimeArchiveRoot+string(filepath.Separator)) {
 			return errors.New("browser archive has an unexpected structure")
 		}
 		target := filepath.Join(destination, name)
@@ -564,7 +563,7 @@ func extractRuntime(ctx context.Context, archive, destination string) error {
 		if err != nil {
 			return err
 		}
-		output, err := os.OpenFile(target, os.O_CREATE|os.O_EXCL|os.O_WRONLY, 0o644)
+		output, err := os.OpenFile(target, os.O_CREATE|os.O_EXCL|os.O_WRONLY, entry.Mode().Perm()|0o600)
 		if err != nil {
 			source.Close()
 			return err
@@ -583,9 +582,8 @@ func extractRuntime(ctx context.Context, archive, destination string) error {
 }
 
 func validateRuntimeFiles(root string) error {
-	required := []string{"chrome.exe", "chrome.dll", "icudtl.dat", "resources.pak", filepath.Join("locales", "en-US.pak")}
-	for _, relative := range required {
-		info, err := os.Stat(filepath.Join(root, "chrome-win64", relative))
+	for _, relative := range requiredRuntimeFiles {
+		info, err := os.Stat(filepath.Join(root, runtimeArchiveRoot, relative))
 		if err != nil || !info.Mode().IsRegular() {
 			return fmt.Errorf("browser runtime is missing %s", relative)
 		}
@@ -674,13 +672,13 @@ func validRandomID(value string, bytes int) bool {
 }
 
 func validateManifestDownload(manifest Manifest) error {
-	parsed, err := url.Parse(manifest.Downloads["win64"])
+	parsed, err := url.Parse(manifest.Downloads[runtimeDownloadKey])
 	if err != nil || parsed.Scheme != "https" || parsed.Hostname() != "storage.googleapis.com" {
-		return errors.New("embedded CfT manifest has an invalid win64 URL")
+		return fmt.Errorf("embedded CfT manifest has an invalid %s URL", runtimeDownloadKey)
 	}
-	expected := "/chrome-for-testing-public/" + manifest.Version + "/win64/"
+	expected := "/chrome-for-testing-public/" + manifest.Version + "/" + runtimeDownloadKey + "/"
 	if !strings.HasPrefix(parsed.Path, expected) {
-		return errors.New("embedded CfT manifest has a mismatched win64 URL")
+		return fmt.Errorf("embedded CfT manifest has a mismatched %s URL", runtimeDownloadKey)
 	}
 	return nil
 }

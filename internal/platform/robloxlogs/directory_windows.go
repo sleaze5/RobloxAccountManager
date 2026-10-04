@@ -6,10 +6,10 @@ import (
 	"path/filepath"
 )
 
-func Directory() (string, error) {
+func Directories() ([]string, error) {
 	localAppData := os.Getenv("LOCALAPPDATA")
 	if localAppData == "" || !filepath.IsAbs(localAppData) {
-		return "", errors.New("local application data folder is unavailable")
+		return nil, errors.New("local application data folder is unavailable")
 	}
-	return filepath.Join(localAppData, "Roblox", "logs"), nil
+	return []string{filepath.Join(localAppData, "Roblox", "logs")}, nil
 }

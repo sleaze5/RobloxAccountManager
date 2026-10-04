@@ -4,7 +4,7 @@ Architecture rules are in [ARCHITECTURE.md](./ARCHITECTURE.md). They also apply 
 
 ## Platform support
 
-Support only Windows AMD64. Do not expose other architectures or operating systems as build targets.
+Support Windows AMD64 and Linux AMD64. Do not expose other architectures.
 
 Name each build target `<os>-<arch>` with Go's `GOOS` and `GOARCH` values. Expose it as `task build:<os>-<arch>` and write its output to a matching subdirectory of `dist/`. Development and production builds share the target directory:
 
@@ -12,9 +12,13 @@ Name each build target `<os>-<arch>` with Go's `GOOS` and `GOARCH` values. Expos
 dist/
     windows-amd64/
         RobloxAccountManager.exe
+    linux-amd64/
+        RobloxAccountManager
 ```
 
-Add a future target through its own platform tasks and modules. Keep the shared application and frontend task graph.
+Add another target through its own platform tasks and modules. Keep the shared application and frontend task graph.
+
+A Linux build links the system GTK 4 and WebKitGTK 6 libraries. Automatic unlock stores its encryption key in the Secret Service. The vault, settings, and logs stay in the application directory. Joining a game opens a `roblox-player:` link in Sober or Mocktail through that client's desktop entry. The Roblox setting chooses the client when both are installed. Automatic uses the only installed client, or the desktop default for `roblox-player` when both are installed. The managed browser runs Chrome for Testing from `storage/runtime/`. It needs the system libraries that Chrome requires and unprivileged user namespaces for the Chrome sandbox. Controlling Roblox processes is unavailable on Linux.
 
 ## Releases
 
@@ -47,8 +51,8 @@ Keep a clear line between OS-specific code and shared code. A reader must be abl
 
 OS-specific code lives in one of two places:
 
-- **OS-specific files in a feature package.** When a feature package needs native behavior for its own work, put that behavior in `<name>_windows.go` files in the same package. Expose it to the rest of the package through package-private functions with platform-neutral signatures. Examples: `internal/appdata/permissions_windows.go`, `internal/browser/process_windows.go`, `internal/gamelaunch/launch_windows.go`, `internal/logging/crash_windows.go`.
-- **Packages under `internal/platform/`.** A native capability that the application uses as a feature of its own goes in `internal/platform/<capability>/`, with a platform-neutral API. Current packages: `protection` (protects data for the current Windows user), `singleinstance`, `robloxmulti` (Roblox multi-instance support and process control), and `robloxlogs` (Roblox Player log directory).
+- **OS-specific files in a feature package.** When a feature package needs native behavior for its own work, put that behavior in `<name>_<os>.go` files in the same package. Expose it to the rest of the package through package-private functions with platform-neutral signatures. Examples: `internal/appdata/permissions_windows.go`, `internal/appdata/permissions_linux.go`, `internal/browser/process_windows.go`, `internal/browser/process_linux.go`, `internal/gamelaunch/launch_windows.go`, `internal/gamelaunch/launch_linux.go`, `internal/logging/crash_windows.go`, `internal/logging/crash_linux.go`.
+- **Packages under `internal/platform/`.** A native capability that the application uses as a feature of its own goes in `internal/platform/<capability>/`, with a platform-neutral API. Current packages: `protection` (protects data for the current user), `singleinstance`, `robloxmulti` (Roblox multi-instance support and process control), and `robloxlogs` (Roblox Player log directories).
 
 Rules:
 

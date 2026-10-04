@@ -93,7 +93,10 @@ export type {
 } from "../../../bindings/github.com/sleaze5/RobloxAccountManager/internal/logsexplorer/index.js"
 
 export { Method as LaunchMethod } from "../../../bindings/github.com/sleaze5/RobloxAccountManager/internal/gamelaunch/index.js"
-export type { Input as LaunchInput } from "../../../bindings/github.com/sleaze5/RobloxAccountManager/internal/gamelaunch/index.js"
+export type {
+	ClientState as RobloxClientState,
+	Input as LaunchInput,
+} from "../../../bindings/github.com/sleaze5/RobloxAccountManager/internal/gamelaunch/index.js"
 
 export type {
 	ComponentRecord,

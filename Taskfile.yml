@@ -5,11 +5,12 @@ vars:
     DIST_DIR: "dist"
     VITE_PORT: "{{.WAILS_VITE_PORT | default 9245}}"
     WAILS_CLI: "github.com/wailsapp/wails/v3/cmd/wails3@v3.0.0-beta.27"
-    STATICCHECK: "honnef.co/go/tools/cmd/staticcheck@v0.7.0"
+    STATICCHECK: "honnef.co/go/tools/cmd/staticcheck@v0.8.1"
 
 includes:
     common: "./build/Taskfile.yml"
     windows: "./build/windows/Taskfile.yml"
+    linux: "./build/linux/Taskfile.yml"
 
 tasks:
     update-cft-manifest:
@@ -41,9 +42,14 @@ tasks:
         deps:
             - task: "common:internal:frontend:build:development"
         cmds:
-            - task: "windows:internal:compile"
+            - task: "{{OS}}:internal:compile"
               vars:
                   DEV: "true"
+
+    internal:run:
+        internal: true
+        cmds:
+            - task: "{{OS}}:internal:run"
 
     check:
         desc: "Validate frontend and backend source"
@@ -92,6 +98,16 @@ tasks:
         cmds:
             - task: "common:internal:frontend:build:production"
             - task: "windows:internal:compile"
+              vars:
+                  DEV: "false"
+
+    build:linux-amd64:
+        desc: "Fix, validate, and build the Linux AMD64 application"
+        deps:
+            - task: "fix"
+        cmds:
+            - task: "common:internal:frontend:build:production"
+            - task: "linux:internal:compile"
               vars:
                   DEV: "false"
 

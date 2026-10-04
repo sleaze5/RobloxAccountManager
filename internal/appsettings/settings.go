@@ -68,7 +68,8 @@ type PresenceUpdateSettings struct {
 }
 
 type RobloxSettings struct {
-	MultiInstance bool `json:"multiInstance"`
+	MultiInstance bool   `json:"multiInstance"`
+	LinuxClient   string `json:"linuxClient"`
 }
 
 type IntegrationSettings struct {
@@ -193,6 +194,7 @@ func decodeCurrent(document object) (Settings, []string) {
 	fields.presence(fields.object(presence, "presence.profile"), "presence.profile", &settings.Presence.Profile)
 	roblox := fields.object(document, "roblox")
 	decodeField(fields, roblox, "roblox.multiInstance", &settings.Roblox.MultiInstance, nil)
+	decodeField(fields, roblox, "roblox.linuxClient", &settings.Roblox.LinuxClient, validLinuxClient)
 	integrations := fields.object(document, "integrations")
 	decodeField(fields, integrations, "integrations.rovalra", &settings.Integrations.RoValra, nil)
 	decodeField(fields, integrations, "integrations.rovalraRegion", &settings.Integrations.RoValraRegion, nil)
@@ -348,6 +350,21 @@ func (store *Store) SetMultiInstance(enabled bool) error {
 	defer store.mu.Unlock()
 	previous := store.settings.Roblox
 	store.settings.Roblox.MultiInstance = enabled
+	if err := store.saveLocked(); err != nil {
+		store.settings.Roblox = previous
+		return err
+	}
+	return nil
+}
+
+func (store *Store) SetLinuxClient(client string) error {
+	if !validLinuxClient(client) {
+		return fmt.Errorf("unknown linux client %q", client)
+	}
+	store.mu.Lock()
+	defer store.mu.Unlock()
+	previous := store.settings.Roblox
+	store.settings.Roblox.LinuxClient = client
 	if err := store.saveLocked(); err != nil {
 		store.settings.Roblox = previous
 		return err
@@ -595,6 +612,15 @@ func validTimestampFormat(format string) bool {
 }
 
 func validTimestamp(milliseconds int64) bool { return milliseconds >= 0 }
+
+func validLinuxClient(client string) bool {
+	switch client {
+	case "", "sober", "mocktail":
+		return true
+	default:
+		return false
+	}
+}
 
 func validMotion(motion MotionPreference) bool {
 	return motion == MotionSystem || motion == MotionReduced || motion == MotionFull

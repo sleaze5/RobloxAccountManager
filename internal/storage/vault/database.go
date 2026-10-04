@@ -29,7 +29,7 @@ var (
 	ErrUnsupportedVersion = errors.New("unsupported key-file version")
 	ErrUnsupportedSchema  = errors.New("unsupported vault schema")
 	ErrVaultMismatch      = errors.New("database and key identifiers do not match")
-	ErrDPAPIUnavailable   = errors.New("automatic unlock is unavailable for this Windows user")
+	ErrDPAPIUnavailable   = errors.New("automatic unlock is unavailable for this user")
 	ErrIncomplete         = errors.New("vault files are incomplete")
 	ErrLockTimeout        = errors.New("vault operations did not stop before the lock timeout")
 )

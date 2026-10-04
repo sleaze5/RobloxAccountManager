@@ -43,7 +43,7 @@ type windowsBrowserProcess struct {
 	closeOnce         sync.Once
 }
 
-func startWindowsBrowserProcess(options ProcessOptions) (BrowserProcess, error) {
+func startBrowserProcess(options ProcessOptions) (BrowserProcess, error) {
 	if options.Executable == "" || options.UserDataPath == "" {
 		return nil, errors.New("invalid browser process options")
 	}

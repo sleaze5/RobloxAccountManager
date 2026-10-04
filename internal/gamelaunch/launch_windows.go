@@ -18,7 +18,7 @@ type preparedLaunch struct {
 	arguments   []string
 }
 
-func New() Launcher {
+func New(func() string) Launcher {
 	return windowsLauncher{}
 }
 

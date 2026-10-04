@@ -7,6 +7,17 @@ import (
 
 var ErrDesktopUnavailable = errors.New("a non-admin Windows desktop is unavailable")
 
+type ClientError struct {
+	Message string
+}
+
+func (err *ClientError) Error() string {
+	if err == nil {
+		return ""
+	}
+	return err.Message
+}
+
 type ShareType string
 
 const (
