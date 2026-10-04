@@ -1,5 +1,8 @@
 version: "3"
 
+vars:
+    OUTPUT: "{{.DIST_DIR}}/windows-amd64/{{.APP_NAME}}.exe"
+
 tasks:
     internal:compile:
         internal: true
@@ -13,4 +16,4 @@ tasks:
         internal: true
         dir: "{{.ROOT_DIR}}"
         cmds:
-            - '"{{.DIST_DIR}}/windows-amd64/{{.APP_NAME}}.exe"'
+            - '"{{.OUTPUT}}"'
