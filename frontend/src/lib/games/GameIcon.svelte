@@ -15,6 +15,6 @@
 			referrerpolicy="no-referrer"
 			onerror={() => (failed = url)} />
 	{:else}
-		<Gamepad2 size={large ? 24 : 16} />
+		<Gamepad2 size={large ? 32 : 16} />
 	{/if}
 </span>
