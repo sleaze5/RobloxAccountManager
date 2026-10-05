@@ -7,7 +7,6 @@ import (
 	"sync"
 )
 
-// maxHeldBytes bounds the entries kept in memory while a writer is held.
 const maxHeldBytes = 1 << 20
 
 type rotatingWriter struct {
@@ -46,7 +45,6 @@ func (writer *rotatingWriter) ensureOpen() error {
 	return writer.open()
 }
 
-// release opens the log file and writes the entries kept while the writer was held.
 func (writer *rotatingWriter) release(open bool) error {
 	writer.mu.Lock()
 	defer writer.mu.Unlock()

@@ -213,7 +213,6 @@ func run() (runErr error) {
 	return nil
 }
 
-// resolvePaths creates the storage directories only for a location that is already in use.
 func resolvePaths(location appdata.Location) (appdata.Paths, error) {
 	paths, err := appdata.Resolve()
 	if err != nil || !location.Initialized {
@@ -222,7 +221,6 @@ func resolvePaths(location appdata.Location) (appdata.Paths, error) {
 	return paths, paths.Prepare()
 }
 
-// openSettings keeps defaults in memory until the location is confirmed.
 func openSettings(path string, location appdata.Location) (*appsettings.Store, error) {
 	if !location.Initialized {
 		return appsettings.New(path), nil

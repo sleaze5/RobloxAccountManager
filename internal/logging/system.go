@@ -126,7 +126,6 @@ func (system *System) SetEnabledLevels(levels []Level) error {
 	return nil
 }
 
-// Release creates the log directory and writes the entries kept by Config.Hold.
 func (system *System) Release() error {
 	system.mu.Lock()
 	defer system.mu.Unlock()

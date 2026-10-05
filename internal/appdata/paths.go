@@ -14,8 +14,7 @@ const (
 	maxListedItems   = 3
 )
 
-// Location describes the executable directory before the application writes to it.
-// OtherItems lists at most maxListedItems names of entries other than the executable.
+// OtherItems lists at most maxListedItems names. OtherItemCount counts every entry except the executable.
 type Location struct {
 	Directory      string   `json:"directory"`
 	Initialized    bool     `json:"initialized"`
@@ -54,8 +53,6 @@ func ExecutableDirectory() (string, error) {
 	return filepath.Dir(executable), nil
 }
 
-// InspectLocation reports whether the executable directory already holds application
-// data. A directory without storage/ has never been used and needs confirmation.
 func InspectLocation() (Location, error) {
 	executable, err := os.Executable()
 	if err != nil {
@@ -141,7 +138,7 @@ func At(applicationDirectory string) (Paths, error) {
 	}, nil
 }
 
-// Prepare creates the storage directories. Call it only for a confirmed location.
+// Prepare must run only for a confirmed location.
 func (paths Paths) Prepare() error {
 	return PreparePrivateDirectory(paths.VaultRoot)
 }

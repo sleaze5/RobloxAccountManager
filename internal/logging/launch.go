@@ -47,8 +47,6 @@ func NewLaunch() *Launch {
 	}
 }
 
-// Open starts the launch log. With hold, entries stay in memory until Release, so an
-// unconfirmed application directory is left unchanged.
 func (launch *Launch) Open(hold bool) (*System, error) {
 	root, err := appdata.ExecutableDirectory()
 	if err != nil {
@@ -88,7 +86,6 @@ func (launch *Launch) Open(hold bool) (*System, error) {
 	return system, nil
 }
 
-// Release writes the entries held by Open and starts crash capture.
 func (launch *Launch) Release() error {
 	if err := launch.system.Release(); err != nil {
 		return err

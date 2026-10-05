@@ -9,8 +9,6 @@ import (
 	"github.com/sleaze5/RobloxAccountManager/internal/logging"
 )
 
-// Location holds the first-launch confirmation of the application directory. Until
-// Confirm succeeds, the application writes no storage or log files there.
 type Location struct {
 	mu     sync.Mutex
 	state  appdata.Location
