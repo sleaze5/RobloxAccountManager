@@ -4,13 +4,15 @@ Architecture rules are in [ARCHITECTURE.md](./ARCHITECTURE.md). They also apply 
 
 ## Platform support
 
-Support Windows AMD64, Linux AMD64, macOS ARM64 (Apple silicon), and macOS AMD64 (Intel). Do not expose other architectures.
+Support Windows AMD64, Windows ARM64, Linux AMD64, macOS ARM64 (Apple silicon), and macOS AMD64 (Intel). Do not expose other architectures.
 
 Name each build target `<os>-<arch>` with Go's `GOOS` and `GOARCH` values. Expose it as `task build:<os>-<arch>` and write its output to a matching subdirectory of `dist/`. Development and production builds share the target directory:
 
 ```text
 dist/
     windows-amd64/
+        RobloxAccountManager.exe
+    windows-arm64/
         RobloxAccountManager.exe
     linux-amd64/
         RobloxAccountManager
@@ -25,6 +27,8 @@ Add another target through its own platform tasks and modules. Keep the shared a
 ### Windows
 
 Automatic unlock protects its key with DPAPI for the current Windows user. Joining a game can start the Roblox Player directly or through its protocol. Multi-instance support and Roblox process control are available.
+
+The ARM64 build is cross-compiled on x64 Windows. SQLCipher needs cgo, so `task build:windows-arm64` needs `aarch64-w64-mingw32-clang` from [llvm-mingw](https://github.com/mstorsjo/llvm-mingw) on `PATH`. Put it after the x64 MinGW, because llvm-mingw also ships a `gcc`. Chrome for Testing has no Windows ARM64 build, so the managed browser runs the x64 Chrome through the emulation of Windows 11.
 
 ### Linux
 
@@ -48,16 +52,18 @@ Release bundles carry an ad hoc signature and are not notarized. Gatekeeper bloc
 
 `internal/appmeta/VERSION` is the only source of the application version. It uses `MAJOR.MINOR.PATCH` with an optional `-PRERELEASE` suffix. Go embeds it, the frontend reads it as `APP_VERSION`, and the build writes it into the Windows version resource. Do not write the version anywhere else.
 
-To release, change `VERSION`, run `task fix`, push to `main`, and run the manual "Release" workflow in `.github/workflows/release.yml`. The workflow first checks that it runs on `main` and that tag `v<version>` does not exist. Then it builds Linux on Ubuntu 24.04, macOS on macOS 15, and Windows on Windows Server 2025 in parallel. The macOS job builds both architectures on Apple silicon. A build fails when it changes source files. The publish job signs the manifest and creates the release only after every build succeeds. The Windows jobs pause Defender real-time scanning, because it slows builds on the disposable runners. The workflow publishes:
+To release, change `VERSION`, run `task fix`, push to `main`, and run the manual "Release" workflow in `.github/workflows/release.yml`. The workflow first checks that it runs on `main` and that tag `v<version>` does not exist. Then it builds Linux on Ubuntu 24.04, macOS on macOS 15, and Windows on Windows Server 2025 in parallel. The macOS job builds both architectures on Apple silicon. The Windows job builds x64 and cross-compiles ARM64 with a pinned, checksum-verified llvm-mingw release. A build fails when it changes source files. The publish job signs the manifest and creates the release only after every build succeeds. The Windows jobs pause Defender real-time scanning, because it slows builds on the disposable runners. The workflow publishes:
 
 - `RobloxAccountManager.exe`: the Windows executable for manual download.
 - `RobloxAccountManager-windows-x64.zip`: the Windows updater artifact.
+- `RobloxAccountManager-arm64.exe`: the Windows ARM64 executable for manual download.
+- `RobloxAccountManager-windows-arm64.zip`: the Windows ARM64 updater artifact.
 - `RobloxAccountManager-linux-x64.tar.gz`: the Linux updater artifact and manual download. The archive keeps the executable permission that a bare download loses.
 - `RobloxAccountManager-macos-arm64.zip` and `RobloxAccountManager-macos-x64.zip`: the macOS updater artifacts and manual downloads. Each contains `RobloxAccountManager.app`, packed with `ditto` to keep modes, links, and the signature.
 - `manifest.json`: the signed Wails update manifest. List only archives in it, because Wails treats every `.exe` as a Windows artifact.
 - `THIRD_PARTY_LICENSES.txt`: the license texts of the bundled third-party works. It ships as its own asset, because each archive must contain only the executable.
 
-Each archive must contain only the executable, or on macOS only the application bundle, because the updater accepts exactly one top-level entry. Wails reads the platform and architecture from each archive name, so keep the `<os>-x64` and `macos-<arch>` parts.
+Each archive must contain only the executable, or on macOS only the application bundle, because the updater accepts exactly one top-level entry. Wails reads the platform and architecture from each archive name, so keep the `<os>-x64`, `windows-arm64`, and `macos-<arch>` parts. Each installed copy updates within its own architecture. An x64 copy that runs through emulation on ARM64 keeps updating to x64.
 
 The application reads `releases/latest/download/manifest.json`, so it never offers a prerelease.
 

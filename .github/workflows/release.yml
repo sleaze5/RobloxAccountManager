@@ -167,7 +167,7 @@ jobs:
         name: "Build Windows"
         needs: "check"
         runs-on: "windows-2025"
-        timeout-minutes: 30
+        timeout-minutes: 45
         env:
             CGO_ENABLED: "1"
         defaults:
@@ -203,8 +203,35 @@ jobs:
               with:
                   version: "3.x"
 
-            - name: "Build"
+            - name: "Set up ARM64 compiler"
+              env:
+                  LLVM_MINGW_VERSION: "20260922"
+                  LLVM_MINGW_SHA256: "e3ad77d117a4bea19a7a3b333341824d79a5a371004a10e25b8504e7b3047666"
+              run: |
+                  $name = "llvm-mingw-$env:LLVM_MINGW_VERSION-ucrt-x86_64"
+                  $archive = Join-Path $env:RUNNER_TEMP "$name.zip"
+                  Invoke-WebRequest -Uri "https://github.com/mstorsjo/llvm-mingw/releases/download/$env:LLVM_MINGW_VERSION/$name.zip" -OutFile $archive
+                  $hash = (Get-FileHash -LiteralPath $archive -Algorithm SHA256).Hash
+                  if ($hash -ne $env:LLVM_MINGW_SHA256) {
+                      throw "llvm-mingw checksum mismatch: $hash"
+                  }
+                  tar -xf $archive -C $env:RUNNER_TEMP
+                  if ($LASTEXITCODE -ne 0) {
+                      throw "llvm-mingw extraction failed with exit code $LASTEXITCODE"
+                  }
+                  "LLVM_MINGW_BIN=$(Join-Path $env:RUNNER_TEMP "$name\bin")" >> $env:GITHUB_ENV
+
+            - name: "Build x64"
               run: "task build:windows-amd64"
+
+            - name: "Build ARM64"
+              run: |
+                  # Append, so gcc still resolves to the runner's x64 MinGW.
+                  $env:PATH = "$env:PATH;$env:LLVM_MINGW_BIN"
+                  task build:windows-arm64
+                  if ($LASTEXITCODE -ne 0) {
+                      throw "ARM64 build failed with exit code $LASTEXITCODE"
+                  }
 
             - name: "Check that the build did not change source files"
               run: |
@@ -220,6 +247,9 @@ jobs:
                   $executable = "dist/windows-amd64/RobloxAccountManager.exe"
                   Copy-Item -LiteralPath $executable -Destination $package
                   Compress-Archive -LiteralPath $executable -DestinationPath (Join-Path $package "RobloxAccountManager-windows-x64.zip")
+                  $arm64 = "dist/windows-arm64/RobloxAccountManager.exe"
+                  Copy-Item -LiteralPath $arm64 -Destination (Join-Path $package "RobloxAccountManager-arm64.exe")
+                  Compress-Archive -LiteralPath $arm64 -DestinationPath (Join-Path $package "RobloxAccountManager-windows-arm64.zip")
 
             - name: "Upload"
               uses: "actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a"
@@ -281,6 +311,7 @@ jobs:
                   }
                   $release = Join-Path $env:RUNNER_TEMP "release"
                   $archive = Join-Path $release "RobloxAccountManager-windows-x64.zip"
+                  $arm64Archive = Join-Path $release "RobloxAccountManager-windows-arm64.zip"
                   $linuxArchive = Join-Path $release "RobloxAccountManager-linux-x64.tar.gz"
                   $macArchives = @(
                       (Join-Path $release "RobloxAccountManager-macos-arm64.zip"),
@@ -292,7 +323,7 @@ jobs:
                       [IO.File]::WriteAllText($key, $env:UPDATER_PRIVATE_KEY)
                       go run $wails updater manifest -version "${{ needs.check.outputs.version }}" -key $key `
                           -url-prefix "https://github.com/$env:GITHUB_REPOSITORY/releases/download/${{ needs.check.outputs.tag }}/" `
-                          -output $manifest $archive $linuxArchive @macArchives
+                          -output $manifest $archive $arm64Archive $linuxArchive @macArchives
                       if ($LASTEXITCODE -ne 0) {
                           throw "Manifest generation failed with exit code $LASTEXITCODE."
                       }
@@ -312,6 +343,8 @@ jobs:
                       "release", "create", "${{ needs.check.outputs.tag }}",
                       (Join-Path $release "RobloxAccountManager.exe"),
                       (Join-Path $release "RobloxAccountManager-windows-x64.zip"),
+                      (Join-Path $release "RobloxAccountManager-arm64.exe"),
+                      (Join-Path $release "RobloxAccountManager-windows-arm64.zip"),
                       (Join-Path $release "RobloxAccountManager-linux-x64.tar.gz"),
                       (Join-Path $release "RobloxAccountManager-macos-arm64.zip"),
                       (Join-Path $release "RobloxAccountManager-macos-x64.zip"),

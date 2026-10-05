@@ -104,6 +104,18 @@ tasks:
             - task: "windows:internal:compile"
               vars:
                   DEV: "false"
+                  ARCH: "amd64"
+
+    build:windows-arm64:
+        desc: "Fix, validate, and build the Windows ARM64 application"
+        deps:
+            - task: "fix"
+        cmds:
+            - task: "common:internal:frontend:build:production"
+            - task: "windows:internal:compile"
+              vars:
+                  DEV: "false"
+                  ARCH: "arm64"
 
     build:linux-amd64:
         desc: "Fix, validate, and build the Linux AMD64 application"
