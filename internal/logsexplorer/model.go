@@ -67,6 +67,7 @@ type Session struct {
 	LaunchSource LaunchSource `json:"launchSource"`
 	SizeBytes    int64        `json:"sizeBytes"`
 	Version      string       `json:"version"`
+	VersionHash  string       `json:"versionHash"`
 	Channel      string       `json:"channel"`
 	UserID       string       `json:"userId"`
 	Visits       []Visit      `json:"visits"`

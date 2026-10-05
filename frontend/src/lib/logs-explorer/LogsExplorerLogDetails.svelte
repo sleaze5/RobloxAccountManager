@@ -18,18 +18,23 @@
 		onRefresh: () => void
 	} = $props()
 	const modes: Record<ClientLaunchMode, string> = {
-		[ClientLaunchMode.$zero]: "Not recorded",
+		[ClientLaunchMode.$zero]: "",
 		[ClientLaunchMode.LaunchCold]: "Cold start",
 		[ClientLaunchMode.LaunchWarm]: "Warm start",
 		[ClientLaunchMode.LaunchTray]: "Tray startup",
 		[ClientLaunchMode.LaunchTrayResume]: "Resumed from tray",
 	}
 	const sources: Record<ClientLaunchSource, string> = {
-		[ClientLaunchSource.$zero]: "Not recorded",
+		[ClientLaunchSource.$zero]: "",
 		[ClientLaunchSource.SourceWebsite]: "Website",
 		[ClientLaunchSource.SourceExistingClient]: "Existing client",
 		[ClientLaunchSource.SourceTray]: "Tray",
 	}
+	const launch = $derived(
+		[sources[session.launchSource], modes[session.launchMode]]
+			.filter(Boolean)
+			.join("; ") || "Not recorded",
+	)
 </script>
 
 <div class="logs-explorer-details">
@@ -80,10 +85,16 @@
 				{session.channel || "Not recorded"}
 			</dd>
 		</div>
-		<div class="logs-explorer-detail-pair">
+		<div>
 			<dt>Client version</dt>
 			<dd class="logs-explorer-detail-mono">
 				{session.version || "Not recorded"}
+			</dd>
+		</div>
+		<div>
+			<dt>Version hash</dt>
+			<dd class="logs-explorer-detail-mono">
+				{session.versionHash || "Not recorded"}
 			</dd>
 		</div>
 	</dl>
@@ -91,12 +102,15 @@
 		class="logs-explorer-detail-grid logs-explorer-client-metadata"
 		aria-label="Client lifecycle">
 		<div>
-			<dt>Launch mode</dt>
-			<dd>{modes[session.launchMode]}</dd>
+			<dt>Launch</dt>
+			<dd>{launch}</dd>
 		</div>
 		<div>
-			<dt>Launch source</dt>
-			<dd>{sources[session.launchSource]}</dd>
+			<dt>Client start</dt>
+			<dd>
+				{#if session.startedAtMs}<Timestamp
+						value={session.startedAtMs} />{:else}Not recorded{/if}
+			</dd>
 		</div>
 		<div>
 			<dt>

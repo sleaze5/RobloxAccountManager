@@ -136,7 +136,8 @@ func (reader *Reader) operationLogger(operation string) *slog.Logger {
 func validFileName(name string) bool {
 	lower := strings.ToLower(name)
 	return filepath.IsLocal(name) && !strings.ContainsAny(name, `/\:`) &&
-		strings.Contains(lower, "_player_") && strings.HasSuffix(lower, ".log")
+		strings.Contains(lower, "_player_") && !strings.Contains(lower, "_crashhandler") &&
+		strings.HasSuffix(lower, ".log")
 }
 
 func readFile(ctx context.Context, root *os.Root, name string) (Session, error) {

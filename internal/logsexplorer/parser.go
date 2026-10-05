@@ -21,6 +21,7 @@ type parseState struct {
 var (
 	joinPattern     = regexp.MustCompile(`Joining game '([0-9a-fA-F]{8}-(?:[0-9a-fA-F]{4}-){3}[0-9a-fA-F]{12})' place ([0-9]+)`)
 	versionPattern  = regexp.MustCompile(`"version"\s*:\s*"([0-9.]+)"`)
+	hashPattern     = regexp.MustCompile(`"clientVersionUpload"\s*:\s*"version-([0-9a-f]+)"`)
 	channelPattern  = regexp.MustCompile(`(?:The channel is |RobloxChannel has been set to )([a-zA-Z0-9_-]+)`)
 	userPattern     = regexp.MustCompile(`(?:userId = |userid:)([0-9]+)`)
 	universePattern = regexp.MustCompile(`universeid:([0-9]+)`)
@@ -146,6 +147,9 @@ func parseMetadata(line string, session *Session) {
 		if value := capture(versionPattern, line); value != "" {
 			session.Version = value
 		}
+	}
+	if session.VersionHash == "" && strings.Contains(line, `"clientVersionUpload"`) {
+		session.VersionHash = capture(hashPattern, line)
 	}
 	if session.UserID == "" && (strings.Contains(line, "userId = ") || strings.Contains(line, "[FLog::GameJoinLoadTime]")) {
 		session.UserID = capture(userPattern, line)

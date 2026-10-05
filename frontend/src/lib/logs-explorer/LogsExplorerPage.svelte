@@ -181,7 +181,10 @@
 		<span>User ID: {selected?.userId || "Not recorded"}</span>
 		<div>
 			<span>Channel: {selected?.channel || "Not recorded"}</span>
-			<span>Client version: {selected?.version || "Not recorded"}</span>
+			<span
+				>Client version: {selected?.versionHash && selected.version
+					? `${selected.versionHash} (${selected.version})`
+					: selected?.version || "Not recorded"}</span>
 		</div>
 	</footer>
 </main>
