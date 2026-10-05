@@ -45,7 +45,7 @@ func (writer *rotatingWriter) ensureOpen() error {
 	return writer.open()
 }
 
-func (writer *rotatingWriter) release(open bool) error {
+func (writer *rotatingWriter) release(directory string, open bool) error {
 	writer.mu.Lock()
 	defer writer.mu.Unlock()
 	if writer.closed {
@@ -54,6 +54,7 @@ func (writer *rotatingWriter) release(open bool) error {
 	if !writer.held {
 		return nil
 	}
+	writer.path = filepath.Join(directory, filepath.Base(writer.path))
 	if !open && len(writer.pending) == 0 {
 		writer.held = false
 		return nil

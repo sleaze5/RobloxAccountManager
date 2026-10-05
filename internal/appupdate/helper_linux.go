@@ -38,9 +38,12 @@ func helperCopiedUpdate() bool {
 	if err != nil {
 		return false
 	}
-	staged, _ := filepath.Glob(filepath.Join(filepath.Dir(executable), stagingPrefix+"*"))
+	staged, _ := filepath.Glob(filepath.Join(filepath.Dir(installTarget(executable)), stagingPrefix+"*"))
 	return len(staged) > 0
 }
+
+// installTarget returns the path that an update replaces.
+func installTarget(executable string) string { return executable }
 
 func copyFile(source, destination string) error {
 	input, err := os.Open(source)

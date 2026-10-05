@@ -13,6 +13,8 @@ type ProcessOptions struct {
 type BrowserProcess interface {
 	CDPPipes() (io.WriteCloser, io.ReadCloser)
 	AllWindowsClosed() <-chan struct{}
+	// PagesClosed tells the process that the browser has no open pages left.
+	PagesClosed()
 	Focus() error
 	Exited() <-chan error
 	ExitError() error

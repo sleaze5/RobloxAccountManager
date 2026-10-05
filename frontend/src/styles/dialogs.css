@@ -48,19 +48,54 @@
 }
 
 .location-card {
-	width: min(400px, 100%);
+	width: min(440px, 100%);
 	text-align: left;
 }
 
-.location-path {
-	padding: var(--space-2) 9px;
+.location-options {
+	display: flex;
+	flex-direction: column;
+	gap: var(--space-1);
+}
+
+.settings-radio-option.location-option {
+	align-items: flex-start;
+	padding: var(--space-2);
 	border: 1px solid var(--color-border);
-	border-radius: var(--radius-control);
-	background: var(--color-fill-subtle);
+}
+
+.location-option .settings-radio {
+	margin-top: 1px;
+}
+
+.location-option:has(input:checked) {
+	border-color: var(--color-border-strong);
+}
+
+.location-option-text {
+	display: flex;
+	min-width: 0;
+	flex-direction: column;
+	gap: 2px;
+}
+
+.location-option-text .settings-radio-label {
+	font-weight: var(--font-medium);
+}
+
+.location-option-description {
+	display: flex;
+	flex-direction: column;
+	gap: 2px;
+	color: var(--color-text-muted);
+	font-size: var(--text-12);
+	line-height: 1.4;
+}
+
+.location-option-path {
 	color: var(--color-text-faint);
 	font-family: var(--font-mono);
 	font-size: var(--text-11);
-	text-align: left;
 	overflow-wrap: anywhere;
 }
 

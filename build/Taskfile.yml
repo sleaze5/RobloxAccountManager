@@ -87,7 +87,7 @@ tasks:
                   rm -rf -- "$cache"
                 fi
                 exit "$status"
-              platforms: [linux]
+              platforms: [linux, darwin]
 
     internal:frontend:update:
         internal: true
@@ -128,7 +128,7 @@ tasks:
             - cmd: "powershell -NoProfile -File ./build/windows/wait-for-vite.ps1 -Port {{.VITE_PORT}}"
               platforms: [windows]
             - cmd: "sh ./build/linux/wait-for-vite.sh {{.VITE_PORT}}"
-              platforms: [linux]
+              platforms: [linux, darwin]
 
     internal:go:format:
         internal: true
@@ -139,7 +139,7 @@ tasks:
             - cmd: |
                 set -eu
                 find main.go internal -type f -name '*.go' -exec gofmt -w {} +
-              platforms: [linux]
+              platforms: [linux, darwin]
 
     internal:go:format:check:
         internal: true
@@ -154,7 +154,7 @@ tasks:
                   printf 'Go files are not formatted:\n%s\n' "$unformatted" >&2
                   exit 1
                 fi
-              platforms: [linux]
+              platforms: [linux, darwin]
 
     internal:go:tidy:
         internal: true

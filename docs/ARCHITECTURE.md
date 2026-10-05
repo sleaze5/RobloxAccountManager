@@ -32,7 +32,7 @@ Organize the backend by capability. Each package owns one responsibility and exp
 - **Application updates:** `internal/appupdate` checks, downloads, verifies, and installs updates through the Wails updater. See [PLATFORM.md](./PLATFORM.md#releases).
 - **Managed browser:** `internal/browser` handles Chrome for Testing runtime installation and isolated, CDP-controlled browser sessions.
 - **Roblox Player logs:** `internal/logsexplorer`.
-- **Configuration and paths:** `internal/appdata` (portable paths and private files), `internal/appsettings` (`settings.json`), `internal/appmeta` (application identity, `VERSION`, and the update public key).
+- **Configuration and paths:** `internal/appdata` (Portable and Standard data roots, paths, and private files), `internal/appsettings` (`settings.json`), `internal/appmeta` (application identity, `VERSION`, and the update public key).
 - **Timestamp formats:** `internal/timestampformat` parses the `$` token syntax of the timestamp format settings. The frontend renders the parsed segments.
 - **Logging:** `internal/logging`.
 - **Native capabilities:** `internal/platform/*`. See [PLATFORM.md](./PLATFORM.md).
@@ -83,7 +83,7 @@ Backups keep the format versions that existed when they were created. A restored
 
 All application logs go through `internal/logging`. Do not create independent loggers or write log files directly.
 
-- Each launch writes one JSON log file, `<launch_id>.log`, to `logs/` in the portable application directory. The file rotates at 5 MiB and keeps 5 files.
+- Each launch writes one JSON log file, `<launch_id>.log`, to `logs/` in the selected data root. See [PLATFORM.md](./PLATFORM.md#data-storage). The file rotates at 5 MiB and keeps 5 files.
 - Every entry records its timestamp, level, module, and message, plus error details when they apply. Get a module logger from `System.Module`. Do not log without a module.
 - Add an `operation` attribute to entries. Use one stable operation ID when one user action produces work in several modules.
 - Never log credentials, authentication tokens, cookies, account secrets, or other sensitive account data. The redacting handler masks known sensitive keys, but it is a safety net, not permission.

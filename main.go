@@ -5,6 +5,8 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"os/exec"
+	"time"
 
 	"github.com/sleaze5/RobloxAccountManager/internal/appdata"
 	"github.com/sleaze5/RobloxAccountManager/internal/appmeta"
@@ -60,7 +62,11 @@ func run() (runErr error) {
 		_ = instance.Close()
 	}()
 	launch.Begin("single-instance")
-	instance, acquired, err := singleinstance.Acquire(appmeta.Identifier)
+	requested, err := appdata.RequestedMode(os.Args[1:])
+	if err != nil {
+		return err
+	}
+	instance, acquired, err := acquireInstance(requested != "")
 	if err != nil {
 		return err
 	}
@@ -69,19 +75,19 @@ func run() (runErr error) {
 		return nil
 	}
 	launch.Begin("application-location")
-	location, err := appdata.InspectLocation()
+	location, err := appdata.Inspect(requested)
 	if err != nil {
 		return fmt.Errorf("inspect application location: %w", err)
 	}
 	launch.Begin("logging")
-	logSystem, err := launch.Open(!location.Initialized)
+	logSystem, err := launch.Open(location.Directory, !location.Initialized)
 	if err != nil {
 		return fmt.Errorf("initialize launch diagnostics: %w", err)
 	}
-	launch.Begin("portable-paths")
+	launch.Begin("data-paths")
 	dataPaths, err := resolvePaths(location)
 	if err != nil {
-		return fmt.Errorf("initialize portable application paths: %w", err)
+		return fmt.Errorf("initialize application data paths: %w", err)
 	}
 	launch.Begin("settings")
 	logging.Diagnostic(logSystem.Module("settings"), "loading application settings", "operation", "settings-load", "supported_format_version", appsettings.FormatVersion)
@@ -151,11 +157,25 @@ func run() (runErr error) {
 	browserCoordinator := browser.NewCoordinator(dataPaths, runtimeManager, coreService, logSystem.Module("browser.coordinator"), events.BrowserChanged)
 	coreService.AttachBrowser(browserCoordinator, runtimeManager)
 	updates := appupdate.New(logSystem.Module("application.updates"), events.UpdateChanged)
-	appLocation := appservice.NewLocation(location, dataPaths, launch, logSystem.Module("application.location"))
+	var app *application.App
+	relaunch := func(mode appdata.Mode) error {
+		executable, err := os.Executable()
+		if err != nil {
+			return err
+		}
+		command := exec.Command(executable, appdata.RestartArguments(mode)...)
+		if err := command.Start(); err != nil {
+			return err
+		}
+		_ = command.Process.Release()
+		go app.Quit()
+		return nil
+	}
+	appLocation := appservice.NewLocation(location, dataPaths, launch, relaunch, logSystem.Module("application.location"))
 	bindingService := bindings.NewService(coreService, appLocation, updates, events, launch)
 
 	launch.Begin("desktop-shell")
-	app := application.New(application.Options{
+	app = application.New(application.Options{
 		Name:        appmeta.DisplayName,
 		Description: appmeta.Description,
 		Logger:      logSystem.Module("wails"),
@@ -176,6 +196,15 @@ func run() (runErr error) {
 		},
 		Services: []application.Service{
 			application.NewService(bindingService),
+		},
+		Mac: application.MacOptions{
+			ApplicationShouldTerminateAfterLastWindowClosed: true,
+		},
+		// WebKitGTK keeps its data in $XDG_DATA_HOME/<program name>. The
+		// default program name is the executable name, which is the Standard
+		// data root.
+		Linux: application.LinuxOptions{
+			ProgramName: appmeta.Identifier,
 		},
 	})
 
@@ -213,16 +242,31 @@ func run() (runErr error) {
 	return nil
 }
 
+// acquireInstance waits for the previous process to quit when the
+// application restarts itself to use another data root.
+func acquireInstance(restarted bool) (*singleinstance.Instance, bool, error) {
+	deadline := time.Now().Add(15 * time.Second)
+	for {
+		instance, acquired, err := singleinstance.Acquire(appmeta.Identifier)
+		if err != nil || acquired || !restarted || time.Now().After(deadline) {
+			return instance, acquired, err
+		}
+		time.Sleep(200 * time.Millisecond)
+	}
+}
+
 func resolvePaths(location appdata.Location) (appdata.Paths, error) {
-	paths, err := appdata.Resolve()
+	paths, err := appdata.At(location.Directory)
 	if err != nil || !location.Initialized {
 		return paths, err
 	}
 	return paths, paths.Prepare()
 }
 
+// openSettings reads settings.json from a root that already has a storage
+// folder. A new root starts with defaults in memory until the user confirms it.
 func openSettings(path string, location appdata.Location) (*appsettings.Store, error) {
-	if !location.Initialized {
+	if candidate, ok := location.Candidate(location.Mode); !location.Initialized && (!ok || candidate.State == appdata.RootEmpty) {
 		return appsettings.New(path), nil
 	}
 	return appsettings.Open(path)

@@ -5,6 +5,7 @@ import "path/filepath"
 const (
 	runtimeDownloadKey    = "win64"
 	runtimeArchiveRoot    = "chrome-win64"
+	runtimeArchiveLinks   = false
 	runtimeExecutableName = "chrome.exe"
 )
 

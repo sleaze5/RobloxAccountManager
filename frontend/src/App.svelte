@@ -464,6 +464,7 @@
 		location={appLocation}
 		onConfirm={() => {
 			if (appLocation) appLocation = { ...appLocation, initialized: true }
+			void store.initialize()
 		}} />
 {:else if !store.vault.unlocked || store.vault.fileState === FileState.FileStateIncomplete}
 	<VaultDialog {store} />

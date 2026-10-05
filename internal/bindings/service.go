@@ -3,6 +3,7 @@ package bindings
 import (
 	"context"
 	"errors"
+	"sync"
 
 	"github.com/sleaze5/RobloxAccountManager/internal/accounts"
 	"github.com/sleaze5/RobloxAccountManager/internal/appdata"
@@ -26,6 +27,10 @@ type Service struct {
 	updates  *appupdate.Service
 	events   *appservice.Events
 	launch   *logging.Launch
+
+	startMu  sync.Mutex
+	startCtx context.Context
+	started  bool
 }
 
 func NewService(core *appservice.Service, location *appservice.Location, updates *appupdate.Service, events *appservice.Events, launch *logging.Launch) *Service {
@@ -50,7 +55,10 @@ func (service *Service) ServiceStartup(ctx context.Context, _ application.Servic
 			}
 		})
 	}
-	if err := service.core.Start(ctx); err != nil {
+	service.startMu.Lock()
+	service.startCtx = ctx
+	service.startMu.Unlock()
+	if err := service.startCore(); err != nil {
 		return err
 	}
 	if app := application.Get(); app != nil {
@@ -70,7 +78,30 @@ func (service *Service) GetLaunchReport() logging.LaunchReport { return service.
 
 func (service *Service) GetAppLocation() appdata.Location { return service.location.State() }
 
-func (service *Service) ConfirmAppLocation() error { return service.location.Confirm() }
+// ConfirmAppLocation sets up the data root of mode. It reports whether the
+// application restarts to use it.
+func (service *Service) ConfirmAppLocation(mode appdata.Mode) (bool, error) {
+	restarting, err := service.location.Confirm(mode)
+	if err != nil || restarting {
+		return restarting, err
+	}
+	return false, service.startCore()
+}
+
+// startCore starts vault startup only for a confirmed data root, so automatic
+// unlock and migrations never touch a vault that the user has not chosen.
+func (service *Service) startCore() error {
+	service.startMu.Lock()
+	defer service.startMu.Unlock()
+	if service.started || service.startCtx == nil || !service.location.State().Initialized {
+		return nil
+	}
+	if err := service.core.Start(service.startCtx); err != nil {
+		return err
+	}
+	service.started = true
+	return nil
+}
 
 func (service *Service) GetVaultState() appservice.VaultState { return service.core.GetVaultState() }
 

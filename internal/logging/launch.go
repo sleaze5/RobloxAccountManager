@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"log/slog"
 	"os"
-	"path/filepath"
 	"runtime"
 	"sync"
 	"time"
@@ -47,18 +46,16 @@ func NewLaunch() *Launch {
 	}
 }
 
-func (launch *Launch) Open(hold bool) (*System, error) {
-	root, err := appdata.ExecutableDirectory()
-	if err != nil {
-		return nil, err
-	}
-	settings, settingsErr := appsettings.ReadLogging(filepath.Join(root, "storage", "settings.json"))
+// Open writes the launch log to the logs folder of root. With hold, entries
+// stay in memory until Release names the confirmed data root.
+func (launch *Launch) Open(root string, hold bool) (*System, error) {
+	settings, settingsErr := appsettings.ReadLogging(appdata.SettingsFile(root))
 	launch.consoleEnabled = settings.EnabledLevels["error"]
 	levels, err := ParseLevels(settings.EnabledLevelNames())
 	if err != nil {
 		return nil, err
 	}
-	system, err := Open(Config{Directory: filepath.Join(root, "logs"), LaunchID: launch.id, EnabledLevels: levels, AddSource: true, Hold: hold, components: launch.components})
+	system, err := Open(Config{Directory: appdata.LogsDirectory(root), LaunchID: launch.id, EnabledLevels: levels, AddSource: true, Hold: hold, components: launch.components})
 	if err != nil {
 		return nil, err
 	}
@@ -86,8 +83,8 @@ func (launch *Launch) Open(hold bool) (*System, error) {
 	return system, nil
 }
 
-func (launch *Launch) Release() error {
-	if err := launch.system.Release(); err != nil {
+func (launch *Launch) Release(root string) error {
+	if err := launch.system.Release(appdata.LogsDirectory(root)); err != nil {
 		return err
 	}
 	launch.captureCrashes()
@@ -188,7 +185,11 @@ func (launch *Launch) Error(message string, err error, attributes ...any) {
 
 func (launch *Launch) Finish(err error, attributes ...any) {
 	if launch.system == nil && err != nil {
-		if _, openErr := launch.Open(false); openErr != nil && launch.system == nil {
+		root, openErr := appdata.FallbackRoot()
+		if openErr == nil {
+			_, openErr = launch.Open(root, false)
+		}
+		if openErr != nil && launch.system == nil {
 			if launch.consoleEnabled {
 				NewConsole(os.Stderr, LevelError).Error("startup diagnostics unavailable", "module", "startup",
 					"launch_id", launch.id, "stage", launch.stage, "error", errors.Join(err, openErr))

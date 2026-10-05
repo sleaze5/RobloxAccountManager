@@ -1,0 +1,47 @@
+version: "3"
+
+tasks:
+    internal:compile:
+        internal: true
+        dir: "{{.ROOT_DIR}}"
+        requires:
+            vars: ["ARCH"]
+        vars:
+            APP_BUNDLE: "{{.DIST_DIR}}/darwin-{{.ARCH}}/{{.APP_NAME}}.app"
+        env:
+            GOOS: "darwin"
+            GOARCH: "{{.ARCH}}"
+            CGO_ENABLED: "1"
+            CGO_CFLAGS: "-mmacosx-version-min=12.0"
+            CGO_LDFLAGS: "-mmacosx-version-min=12.0"
+            MACOSX_DEPLOYMENT_TARGET: "12.0"
+        cmds:
+            - cmd: |
+                set -eu
+                bundle="{{.APP_BUNDLE}}"
+                version=$(tr -d '[:space:]' < internal/appmeta/VERSION)
+                case "$version" in
+                  '' | *[!0-9A-Za-z.-]*) echo "invalid version in internal/appmeta/VERSION" >&2; exit 1 ;;
+                esac
+                # Rebuild the bundle from scratch. User data lives outside it.
+                rm -rf -- "$bundle"
+                mkdir -p "$bundle/Contents/MacOS" "$bundle/Contents/Resources"
+                ldflags="-X github.com/sleaze5/RobloxAccountManager/internal/appmeta.buildTime=$(date +%s)"
+                if [ "{{.DEV}}" != "true" ]; then
+                  go build -buildvcs=false -tags production -trimpath -ldflags="-w -s $ldflags" -o "$bundle/Contents/MacOS/{{.APP_NAME}}" .
+                else
+                  go build -buildvcs=false -ldflags="$ldflags" -o "$bundle/Contents/MacOS/{{.APP_NAME}}" .
+                fi
+                sed "s/@VERSION@/$version/g" build/darwin/Info.plist > "$bundle/Contents/Info.plist"
+                cp assets/icon.icns "$bundle/Contents/Resources/icon.icns"
+                # An ad-hoc signature lets the bundle run on Apple silicon. A
+                # Developer ID signature replaces it for notarized releases.
+                codesign --force --deep --sign - "$bundle"
+
+    internal:run:
+        internal: true
+        dir: "{{.ROOT_DIR}}"
+        vars:
+            APP_BUNDLE: "{{.DIST_DIR}}/darwin-{{.ARCH}}/{{.APP_NAME}}.app"
+        cmds:
+            - '"{{.APP_BUNDLE}}/Contents/MacOS/{{.APP_NAME}}"'
