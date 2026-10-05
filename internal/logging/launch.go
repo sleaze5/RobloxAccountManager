@@ -47,7 +47,9 @@ func NewLaunch() *Launch {
 	}
 }
 
-func (launch *Launch) Open() (*System, error) {
+// Open starts the launch log. With hold, entries stay in memory until Release, so an
+// unconfirmed application directory is left unchanged.
+func (launch *Launch) Open(hold bool) (*System, error) {
 	root, err := appdata.ExecutableDirectory()
 	if err != nil {
 		return nil, err
@@ -58,7 +60,7 @@ func (launch *Launch) Open() (*System, error) {
 	if err != nil {
 		return nil, err
 	}
-	system, err := Open(Config{Directory: filepath.Join(root, "logs"), LaunchID: launch.id, EnabledLevels: levels, AddSource: true, components: launch.components})
+	system, err := Open(Config{Directory: filepath.Join(root, "logs"), LaunchID: launch.id, EnabledLevels: levels, AddSource: true, Hold: hold, components: launch.components})
 	if err != nil {
 		return nil, err
 	}
@@ -75,13 +77,30 @@ func (launch *Launch) Open() (*System, error) {
 	logFile := "created"
 	if len(levels) == 0 {
 		logFile = "disabled"
+	} else if hold {
+		logFile = "held"
 	}
 	Diagnostic(system.Module("logging"), "launch log opened", "operation", "logging-load",
 		"log_format_version", logFormatVersion, "file", logFile, "enabled_levels", len(levels))
-	if err := system.CaptureCrashes(launch.id); err != nil {
-		launch.Error("could not enable runtime crash capture", err)
+	if !hold {
+		launch.captureCrashes()
 	}
 	return system, nil
+}
+
+// Release writes the entries held by Open and starts crash capture.
+func (launch *Launch) Release() error {
+	if err := launch.system.Release(); err != nil {
+		return err
+	}
+	launch.captureCrashes()
+	return nil
+}
+
+func (launch *Launch) captureCrashes() {
+	if err := launch.system.CaptureCrashes(launch.id); err != nil {
+		launch.Error("could not enable runtime crash capture", err)
+	}
 }
 
 func (launch *Launch) Begin(stage string) {
@@ -172,7 +191,7 @@ func (launch *Launch) Error(message string, err error, attributes ...any) {
 
 func (launch *Launch) Finish(err error, attributes ...any) {
 	if launch.system == nil && err != nil {
-		if _, openErr := launch.Open(); openErr != nil && launch.system == nil {
+		if _, openErr := launch.Open(false); openErr != nil && launch.system == nil {
 			if launch.consoleEnabled {
 				NewConsole(os.Stderr, LevelError).Error("startup diagnostics unavailable", "module", "startup",
 					"launch_id", launch.id, "stage", launch.stage, "error", errors.Join(err, openErr))

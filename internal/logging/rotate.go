@@ -7,6 +7,9 @@ import (
 	"sync"
 )
 
+// maxHeldBytes bounds the entries kept in memory while a writer is held.
+const maxHeldBytes = 1 << 20
+
 type rotatingWriter struct {
 	mu       sync.Mutex
 	path     string
@@ -17,6 +20,8 @@ type rotatingWriter struct {
 	header   []byte
 	resume   bool
 	closed   bool
+	held     bool
+	pending  []byte
 }
 
 func newRotatingWriter(path string, maxBytes int64, retained int, header []byte, resume bool) (*rotatingWriter, error) {
@@ -35,15 +40,48 @@ func (writer *rotatingWriter) ensureOpen() error {
 	if writer.closed {
 		return os.ErrClosed
 	}
-	if writer.file != nil {
+	if writer.file != nil || writer.held {
 		return nil
 	}
 	return writer.open()
 }
 
+// release opens the log file and writes the entries kept while the writer was held.
+func (writer *rotatingWriter) release(open bool) error {
+	writer.mu.Lock()
+	defer writer.mu.Unlock()
+	if writer.closed {
+		return os.ErrClosed
+	}
+	if !writer.held {
+		return nil
+	}
+	if !open && len(writer.pending) == 0 {
+		writer.held = false
+		return nil
+	}
+	if err := writer.open(); err != nil {
+		return err
+	}
+	pending := writer.pending
+	writer.held, writer.pending = false, nil
+	written, err := writer.file.Write(pending)
+	writer.size += int64(written)
+	if err != nil {
+		return fmt.Errorf("write held log entries: %w", err)
+	}
+	return nil
+}
+
 func (writer *rotatingWriter) Write(data []byte) (int, error) {
 	writer.mu.Lock()
 	defer writer.mu.Unlock()
+	if writer.held && !writer.closed {
+		if len(writer.pending)+len(data) <= maxHeldBytes {
+			writer.pending = append(writer.pending, data...)
+		}
+		return len(data), nil
+	}
 	if writer.file == nil {
 		return 0, os.ErrClosed
 	}

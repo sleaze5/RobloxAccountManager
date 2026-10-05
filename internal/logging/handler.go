@@ -63,6 +63,12 @@ func (filter *levelFilter) includes(level slog.Level) bool {
 	return filter.enabled[level]
 }
 
+func (filter *levelFilter) any() bool {
+	filter.mu.RLock()
+	defer filter.mu.RUnlock()
+	return len(filter.enabled) > 0
+}
+
 func (filter *levelFilter) allows(ctx context.Context, level slog.Level) bool {
 	if metadata, _ := ctx.Value(diagnosticContextKey{}).(bool); metadata {
 		filter.mu.RLock()

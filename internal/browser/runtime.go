@@ -112,9 +112,6 @@ func NewRuntimeManager(paths appdata.Paths, logger *slog.Logger, changed func())
 		client: &http.Client{Timeout: 30 * time.Minute}, logger: logger, changed: changed,
 		state: RuntimeState{RequiredVersion: manifest.Version, ApproximateBytes: approximateSize},
 	}
-	if err := os.MkdirAll(paths.CfTRuntimeRoot, 0o755); err != nil {
-		return nil, fmt.Errorf("create CfT runtime root: %w", err)
-	}
 	manager.cleanupStaging()
 	manager.refreshLocked()
 	logging.Diagnostic(logger, "browser runtime inspected", "operation", "browser-runtime-load",
@@ -215,6 +212,9 @@ func (manager *RuntimeManager) install(ctx context.Context) error {
 	stageID, err := randomID(18)
 	if err != nil {
 		return err
+	}
+	if err := os.MkdirAll(manager.paths.CfTRuntimeRoot, 0o755); err != nil {
+		return fmt.Errorf("create CfT runtime root: %w", err)
 	}
 	if err := os.MkdirAll(manager.paths.CfTInstallRoot, 0o755); err != nil {
 		return fmt.Errorf("create CfT staging root: %w", err)

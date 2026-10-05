@@ -138,6 +138,11 @@ func ReadLogging(path string) (LoggingSettings, error) {
 	return loaded.settings.Logging, nil
 }
 
+// New returns default settings without writing them. The first change saves the file.
+func New(path string) *Store {
+	return &Store{path: path, settings: defaults(), origin: "created"}
+}
+
 func Open(path string) (*Store, error) {
 	loaded, loadErr := load(path)
 	store := &Store{

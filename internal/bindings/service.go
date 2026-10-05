@@ -5,6 +5,7 @@ import (
 	"errors"
 
 	"github.com/sleaze5/RobloxAccountManager/internal/accounts"
+	"github.com/sleaze5/RobloxAccountManager/internal/appdata"
 	"github.com/sleaze5/RobloxAccountManager/internal/appservice"
 	"github.com/sleaze5/RobloxAccountManager/internal/appsettings"
 	"github.com/sleaze5/RobloxAccountManager/internal/appupdate"
@@ -20,14 +21,15 @@ import (
 )
 
 type Service struct {
-	core    *appservice.Service
-	updates *appupdate.Service
-	events  *appservice.Events
-	launch  *logging.Launch
+	core     *appservice.Service
+	location *appservice.Location
+	updates  *appupdate.Service
+	events   *appservice.Events
+	launch   *logging.Launch
 }
 
-func NewService(core *appservice.Service, updates *appupdate.Service, events *appservice.Events, launch *logging.Launch) *Service {
-	return &Service{core: core, updates: updates, events: events, launch: launch}
+func NewService(core *appservice.Service, location *appservice.Location, updates *appupdate.Service, events *appservice.Events, launch *logging.Launch) *Service {
+	return &Service{core: core, location: location, updates: updates, events: events, launch: launch}
 }
 
 func (service *Service) ServiceStartup(ctx context.Context, _ application.ServiceOptions) error {
@@ -65,6 +67,10 @@ func (service *Service) ServiceShutdown() error {
 }
 
 func (service *Service) GetLaunchReport() logging.LaunchReport { return service.launch.Report() }
+
+func (service *Service) GetAppLocation() appdata.Location { return service.location.State() }
+
+func (service *Service) ConfirmAppLocation() error { return service.location.Confirm() }
 
 func (service *Service) GetVaultState() appservice.VaultState { return service.core.GetVaultState() }
 

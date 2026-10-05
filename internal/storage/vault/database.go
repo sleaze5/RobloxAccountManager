@@ -133,6 +133,9 @@ func (manager *Manager) Create(ctx context.Context, password, hint string, autom
 	if manager.FileState() != FileStateEmpty {
 		return ErrAlreadyExists
 	}
+	if _, err := os.Stat(manager.paths.VaultRoot); err != nil {
+		return fmt.Errorf("vault directory is unavailable: %w", err)
+	}
 	if err := ValidatePassword(password); err != nil {
 		return err
 	}

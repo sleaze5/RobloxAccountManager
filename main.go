@@ -68,19 +68,24 @@ func run() (runErr error) {
 		singleinstance.ShowAlreadyRunning()
 		return nil
 	}
+	launch.Begin("application-location")
+	location, err := appdata.InspectLocation()
+	if err != nil {
+		return fmt.Errorf("inspect application location: %w", err)
+	}
 	launch.Begin("logging")
-	logSystem, err := launch.Open()
+	logSystem, err := launch.Open(!location.Initialized)
 	if err != nil {
 		return fmt.Errorf("initialize launch diagnostics: %w", err)
 	}
 	launch.Begin("portable-paths")
-	dataPaths, err := appdata.Resolve()
+	dataPaths, err := resolvePaths(location)
 	if err != nil {
 		return fmt.Errorf("initialize portable application paths: %w", err)
 	}
 	launch.Begin("settings")
 	logging.Diagnostic(logSystem.Module("settings"), "loading application settings", "operation", "settings-load", "supported_format_version", appsettings.FormatVersion)
-	settingsStore, err := appsettings.Open(dataPaths.Settings)
+	settingsStore, err := openSettings(dataPaths.Settings, location)
 	if err != nil {
 		return fmt.Errorf("initialize application settings: %w", err)
 	}
@@ -146,7 +151,8 @@ func run() (runErr error) {
 	browserCoordinator := browser.NewCoordinator(dataPaths, runtimeManager, coreService, logSystem.Module("browser.coordinator"), events.BrowserChanged)
 	coreService.AttachBrowser(browserCoordinator, runtimeManager)
 	updates := appupdate.New(logSystem.Module("application.updates"), events.UpdateChanged)
-	bindingService := bindings.NewService(coreService, updates, events, launch)
+	appLocation := appservice.NewLocation(location, dataPaths, launch, logSystem.Module("application.location"))
+	bindingService := bindings.NewService(coreService, appLocation, updates, events, launch)
 
 	launch.Begin("desktop-shell")
 	app := application.New(application.Options{
@@ -205,4 +211,21 @@ func run() (runErr error) {
 		return fmt.Errorf("run application: %w", err)
 	}
 	return nil
+}
+
+// resolvePaths creates the storage directories only for a location that is already in use.
+func resolvePaths(location appdata.Location) (appdata.Paths, error) {
+	paths, err := appdata.Resolve()
+	if err != nil || !location.Initialized {
+		return paths, err
+	}
+	return paths, paths.Prepare()
+}
+
+// openSettings keeps defaults in memory until the location is confirmed.
+func openSettings(path string, location appdata.Location) (*appsettings.Store, error) {
+	if !location.Initialized {
+		return appsettings.New(path), nil
+	}
+	return appsettings.Open(path)
 }

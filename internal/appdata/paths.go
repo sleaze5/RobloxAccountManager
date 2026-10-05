@@ -1,15 +1,27 @@
 package appdata
 
 import (
+	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 )
 
 const (
 	storageDirectory = "storage"
 	logsDirectory    = "logs"
+	maxListedItems   = 3
 )
+
+// Location describes the executable directory before the application writes to it.
+// OtherItems lists at most maxListedItems names of entries other than the executable.
+type Location struct {
+	Directory      string   `json:"directory"`
+	Initialized    bool     `json:"initialized"`
+	OtherItems     []string `json:"otherItems"`
+	OtherItemCount int      `json:"otherItemCount"`
+}
 
 type Paths struct {
 	VaultRoot       string
@@ -42,6 +54,54 @@ func ExecutableDirectory() (string, error) {
 	return filepath.Dir(executable), nil
 }
 
+// InspectLocation reports whether the executable directory already holds application
+// data. A directory without storage/ has never been used and needs confirmation.
+func InspectLocation() (Location, error) {
+	executable, err := os.Executable()
+	if err != nil {
+		return Location{}, fmt.Errorf("resolve executable path: %w", err)
+	}
+	executable, err = filepath.Abs(executable)
+	if err != nil {
+		return Location{}, fmt.Errorf("resolve absolute executable path: %w", err)
+	}
+	location := Location{Directory: filepath.Dir(executable), OtherItems: []string{}}
+	info, err := os.Stat(filepath.Join(location.Directory, storageDirectory))
+	if err == nil && info.IsDir() {
+		location.Initialized = true
+		return location, nil
+	}
+	if err != nil && !errors.Is(err, os.ErrNotExist) {
+		return Location{}, fmt.Errorf("inspect application storage: %w", err)
+	}
+	entries, err := os.ReadDir(location.Directory)
+	if err != nil {
+		return Location{}, fmt.Errorf("list application directory: %w", err)
+	}
+	for _, entry := range entries {
+		if isExecutable(executable, entry) {
+			continue
+		}
+		location.OtherItemCount++
+		if len(location.OtherItems) < maxListedItems {
+			location.OtherItems = append(location.OtherItems, entry.Name())
+		}
+	}
+	return location, nil
+}
+
+func isExecutable(executable string, entry os.DirEntry) bool {
+	if !strings.EqualFold(entry.Name(), filepath.Base(executable)) {
+		return false
+	}
+	executableInfo, err := os.Stat(executable)
+	if err != nil {
+		return false
+	}
+	entryInfo, err := os.Stat(filepath.Join(filepath.Dir(executable), entry.Name()))
+	return err == nil && os.SameFile(executableInfo, entryInfo)
+}
+
 func resolveFromExecutable(executable string) (Paths, error) {
 	absoluteExecutable, err := filepath.Abs(executable)
 	if err != nil {
@@ -65,9 +125,6 @@ func At(applicationDirectory string) (Paths, error) {
 	storageRoot := filepath.Join(applicationRoot, storageDirectory)
 	vaultRoot := filepath.Join(storageRoot, "vault")
 	logsRoot := filepath.Join(applicationRoot, logsDirectory)
-	if err := PreparePrivateDirectory(vaultRoot); err != nil {
-		return Paths{}, err
-	}
 	return Paths{
 		VaultRoot:       vaultRoot,
 		LogsRoot:        logsRoot,
@@ -82,6 +139,11 @@ func At(applicationDirectory string) (Paths, error) {
 		CfTInstallRoot:  filepath.Join(storageRoot, "temp", "cft-install"),
 		BrowserTempRoot: filepath.Join(storageRoot, "temp", "browser"),
 	}, nil
+}
+
+// Prepare creates the storage directories. Call it only for a confirmed location.
+func (paths Paths) Prepare() error {
+	return PreparePrivateDirectory(paths.VaultRoot)
 }
 
 func PreparePrivateDirectory(directory string) error {

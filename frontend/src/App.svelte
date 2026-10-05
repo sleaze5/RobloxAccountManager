@@ -6,6 +6,7 @@
 	import AccountSidebar from "./lib/accounts/AccountSidebar.svelte"
 	import { AccountStore } from "./lib/accounts/account-store.svelte"
 	import AddAccountDialog from "./lib/dialogs/AddAccountDialog.svelte"
+	import AppLocationDialog from "./lib/dialogs/AppLocationDialog.svelte"
 	import BrowserImportDialog from "./lib/dialogs/BrowserImportDialog.svelte"
 	import BrowserRuntimeDialog from "./lib/dialogs/BrowserRuntimeDialog.svelte"
 	import LockVaultDialog from "./lib/dialogs/LockVaultDialog.svelte"
@@ -15,8 +16,13 @@
 	import RenewCookieDialog from "./lib/dialogs/RenewCookieDialog.svelte"
 	import TestMasterPasswordDialog from "./lib/dialogs/TestMasterPasswordDialog.svelte"
 	import VaultDialog from "./lib/dialogs/VaultDialog.svelte"
-	import { FileState, LaunchMethod, RuntimeStatus } from "./lib/backend/bridge"
-	import type { ShutdownEffects } from "./lib/backend/bridge"
+	import {
+		accountBackend,
+		FileState,
+		LaunchMethod,
+		RuntimeStatus,
+	} from "./lib/backend/bridge"
+	import type { AppLocation, ShutdownEffects } from "./lib/backend/bridge"
 	import { browserStore } from "./lib/browser/browser-store.svelte"
 	import LogsExplorerPage from "./lib/logs-explorer/LogsExplorerPage.svelte"
 	import GamesPage from "./lib/games/GamesPage.svelte"
@@ -53,7 +59,8 @@
 		games = new GamesStore(notificationCenter),
 		workspace = new WorkspaceState(),
 		passwordReminderNotificationId = "password-test-reminder"
-	let activePage = $state<ActivePage>("accounts"),
+	let appLocation = $state<AppLocation | null>(null),
+		activePage = $state<ActivePage>("accounts"),
 		settingsReturnPage = $state<Exclude<ActivePage, "settings">>("accounts"),
 		activeDialog = $state<ActiveDialog>(null),
 		passwordReminderNotified = $state(false),
@@ -83,6 +90,9 @@
 	})
 
 	onMount(() => {
+		void accountBackend
+			.GetAppLocation()
+			.then((location) => (appLocation = location))
 		void appSettings.initialize(notificationCenter)
 		const unmountAccounts = store.mount(),
 			unmountBrowser = browserStore.mount(notificationCenter),
@@ -449,7 +459,13 @@
 	<AccountImageMenu {store} {workspace} menu={workspace.imageContextMenu} />
 {/if}
 
-{#if !store.vault.unlocked || store.vault.fileState === FileState.FileStateIncomplete}
+{#if appLocation && !appLocation.initialized}
+	<AppLocationDialog
+		location={appLocation}
+		onConfirm={() => {
+			if (appLocation) appLocation = { ...appLocation, initialized: true }
+		}} />
+{:else if !store.vault.unlocked || store.vault.fileState === FileState.FileStateIncomplete}
 	<VaultDialog {store} />
 {/if}
 

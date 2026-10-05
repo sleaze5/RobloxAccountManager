@@ -25,7 +25,9 @@ type Config struct {
 	MaxBytes      int64
 	RetainedFiles int
 	AddSource     bool
-	components    *componentRegistry
+	// Hold keeps entries in memory and leaves Directory untouched until Release.
+	Hold       bool
+	components *componentRegistry
 }
 
 type System struct {
@@ -62,13 +64,16 @@ func Open(config Config) (*System, error) {
 	if strings.TrimSpace(config.Directory) == "" {
 		return nil, fmt.Errorf("log directory is required")
 	}
-	if err := appdata.PreparePrivateDirectory(config.Directory); err != nil {
-		return nil, err
+	if !config.Hold {
+		if err := appdata.PreparePrivateDirectory(config.Directory); err != nil {
+			return nil, err
+		}
 	}
 	writer, err := newRotatingWriter(filepath.Join(config.Directory, config.LaunchID+".log"), config.MaxBytes, config.RetainedFiles, header, config.Resume)
 	if err != nil {
 		return nil, err
 	}
+	writer.held = config.Hold
 	if len(levels) > 0 {
 		if err := writer.ensureOpen(); err != nil {
 			return nil, err
@@ -119,6 +124,16 @@ func (system *System) SetEnabledLevels(levels []Level) error {
 	}
 	system.filter.set(levels)
 	return nil
+}
+
+// Release creates the log directory and writes the entries kept by Config.Hold.
+func (system *System) Release() error {
+	system.mu.Lock()
+	defer system.mu.Unlock()
+	if err := appdata.PreparePrivateDirectory(filepath.Dir(system.writer.path)); err != nil {
+		return err
+	}
+	return system.writer.release(system.filter.any())
 }
 
 func (system *System) Close() error {
