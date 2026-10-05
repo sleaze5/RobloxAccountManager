@@ -1,4 +1,5 @@
 <script lang="ts">
+	import CheckIcon from "phosphor-svelte/lib/CheckIcon"
 	import { Application } from "@wailsio/runtime"
 	import {
 		accountBackend,
@@ -52,7 +53,6 @@
 
 	$effect.pre(() => {
 		if (selected !== null || conflict) return
-		// The first run prefers Portable only in a folder that holds just the app.
 		selected =
 			portable &&
 			(location.choice === ChoiceReason.ChoicePortableWithoutVault ||
@@ -118,21 +118,19 @@
 			aria-labelledby="app-location-title">
 			{#each candidates as candidate (candidate.mode)}
 				<label
-					class="settings-radio-option location-option"
+					class="location-option"
+					class:selected={selected === candidate.mode}
 					class:disabled={busy}>
-					<span class="settings-radio">
-						<input
-							type="radio"
-							name="app-location"
-							value={candidate.mode}
-							checked={selected === candidate.mode}
-							disabled={busy}
-							aria-describedby={`app-location-${candidate.mode}`}
-							onchange={() => (selected = candidate.mode)} />
-						<span aria-hidden="true"></span>
-					</span>
+					<input
+						type="radio"
+						name="app-location"
+						value={candidate.mode}
+						checked={selected === candidate.mode}
+						disabled={busy}
+						aria-describedby={`app-location-${candidate.mode}`}
+						onchange={() => (selected = candidate.mode)} />
 					<span class="location-option-text">
-						<span class="settings-radio-label">{title(candidate)}</span>
+						<span class="location-option-title">{title(candidate)}</span>
 						<span
 							class="location-option-description"
 							id={`app-location-${candidate.mode}`}>
@@ -140,6 +138,11 @@
 							<span class="location-option-path"
 								>{candidate.directory}</span>
 						</span>
+					</span>
+					<span class="location-option-check" aria-hidden="true">
+						{#if selected === candidate.mode}
+							<CheckIcon size={14} weight="bold" />
+						{/if}
 					</span>
 				</label>
 			{/each}

@@ -259,7 +259,6 @@ func (process *windowsBrowserProcess) AllWindowsClosed() <-chan struct{} {
 }
 func (process *windowsBrowserProcess) Exited() <-chan error { return process.exited }
 
-// PagesClosed does nothing, because watchWindows tracks the browser windows.
 func (process *windowsBrowserProcess) PagesClosed() {}
 
 func (process *windowsBrowserProcess) waitLoop() {

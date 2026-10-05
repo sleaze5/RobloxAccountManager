@@ -55,8 +55,6 @@ func startBrowserProcess(options ProcessOptions) (BrowserProcess, error) {
 	command.Dir = options.UserDataPath
 	// Chrome reads CDP commands from descriptor 3 and writes responses to 4.
 	command.ExtraFiles = []*os.File{commandRead, commandWrite}
-	// A separate process group lets Terminate stop Chrome and its helpers
-	// together.
 	command.SysProcAttr = &syscall.SysProcAttr{Setpgid: true}
 	if err := command.Start(); err != nil {
 		closeAll()
@@ -81,8 +79,7 @@ func (process *darwinBrowserProcess) AllWindowsClosed() <-chan struct{} {
 }
 func (process *darwinBrowserProcess) Exited() <-chan error { return process.exited }
 
-// PagesClosed reports a user close. Chrome on macOS keeps running after its
-// last window closes, so the process exit cannot signal it.
+// Chrome on macOS keeps running after its last window closes.
 func (process *darwinBrowserProcess) PagesClosed() {
 	process.mu.Lock()
 	defer process.mu.Unlock()

@@ -86,8 +86,6 @@ func KillProcesses(ctx context.Context, processes []Process, logger *slog.Logger
 	return killErr
 }
 
-// killProcess asks the process to quit, then forces it. It acts only while
-// the PID still belongs to the selected process.
 func killProcess(ctx context.Context, process Process, logger *slog.Logger) error {
 	signal := syscall.SIGTERM
 	ticker := time.NewTicker(100 * time.Millisecond)

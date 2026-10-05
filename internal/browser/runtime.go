@@ -604,8 +604,8 @@ type archiveLink struct {
 	target string
 }
 
-// readArchiveLink accepts only relative link targets without parent
-// references, so a link and any chain of links stay inside the runtime.
+// Without absolute targets or parent references, no chain of links can leave
+// the runtime.
 func readArchiveLink(entry *zip.File) (string, error) {
 	if entry.UncompressedSize64 == 0 || entry.UncompressedSize64 > 4096 {
 		return "", errors.New("browser archive contains an invalid link")
@@ -683,8 +683,7 @@ func removeManagedDirectory(root, target string) error {
 		if walkErr != nil {
 			return walkErr
 		}
-		// RemoveAll removes a link without following it. Only runtimes that
-		// ship links may contain them.
+		// RemoveAll removes a link without following it.
 		if entry.Type()&os.ModeSymlink != 0 && !runtimeArchiveLinks {
 			return errors.New("refusing managed-directory cleanup containing a link")
 		}

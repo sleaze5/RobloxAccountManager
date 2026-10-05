@@ -46,8 +46,6 @@ func NewLaunch() *Launch {
 	}
 }
 
-// Open writes the launch log to the logs folder of root. With hold, entries
-// stay in memory until Release names the confirmed data root.
 func (launch *Launch) Open(root string, hold bool) (*System, error) {
 	settings, settingsErr := appsettings.ReadLogging(appdata.SettingsFile(root))
 	launch.consoleEnabled = settings.EnabledLevels["error"]

@@ -13,7 +13,6 @@ import (
 
 const portableSupported = true
 
-// StandardRoot returns %LOCALAPPDATA%\RobloxAccountManager.
 func StandardRoot() (string, error) {
 	localAppData := os.Getenv("LOCALAPPDATA")
 	if localAppData == "" || !filepath.IsAbs(localAppData) {

@@ -9,8 +9,6 @@ import (
 	"github.com/sleaze5/RobloxAccountManager/internal/logging"
 )
 
-// Relaunch starts the application again with the chosen storage mode and
-// quits the running process.
 type Relaunch func(appdata.Mode) error
 
 type Location struct {
@@ -32,11 +30,8 @@ func (location *Location) State() appdata.Location {
 	return location.state
 }
 
-// Confirm sets up the data root of mode. The running process already uses
-// the provisional root, so choosing it continues in place. Choosing the other
-// root restarts the application, because settings, the vault, and the
-// browser runtime were opened for the provisional root. It reports whether the
-// application is restarting.
+// Choosing the other root restarts the application, because settings, the
+// vault, and the browser runtime were opened for the provisional root.
 func (location *Location) Confirm(mode appdata.Mode) (bool, error) {
 	location.mu.Lock()
 	defer location.mu.Unlock()

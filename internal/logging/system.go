@@ -126,7 +126,6 @@ func (system *System) SetEnabledLevels(levels []Level) error {
 	return nil
 }
 
-// Release writes held entries to directory and continues the log there.
 func (system *System) Release(directory string) error {
 	system.mu.Lock()
 	defer system.mu.Unlock()

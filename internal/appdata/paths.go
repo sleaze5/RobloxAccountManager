@@ -38,12 +38,10 @@ func ExecutableDirectory() (string, error) {
 	return filepath.Dir(executable), nil
 }
 
-// LogsDirectory returns the logs folder of a data root.
 func LogsDirectory(root string) string {
 	return filepath.Join(root, logsDirectory)
 }
 
-// SettingsFile returns the settings file of a data root.
 func SettingsFile(root string) string {
 	return filepath.Join(root, storageDirectory, "settings.json")
 }
@@ -78,8 +76,8 @@ func layout(root string) Paths {
 	}
 }
 
-// existingAncestor returns the closest existing folder, so a Standard root
-// that has not been created yet can be checked for its filesystem.
+// A Standard root may not exist yet, so check the filesystem of its closest
+// existing parent.
 func existingAncestor(path string) string {
 	for {
 		if _, err := os.Stat(path); err == nil {

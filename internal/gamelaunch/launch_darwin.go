@@ -16,7 +16,6 @@ import (
 
 const robloxBundleID = "com.roblox.RobloxPlayer"
 
-// darwinLauncher opens roblox-player: links in the installed Roblox app.
 type darwinLauncher struct{}
 
 func New(func() string) Launcher {
@@ -68,8 +67,7 @@ func (darwinLauncher) open(ctx context.Context, protocolURL string) error {
 		return &ClientError{Message: "the stored Roblox login could not be cleared"}
 	}
 	arguments := []string{protocolURL}
-	// Name the Roblox app explicitly, so a bootstrapper that registered
-	// roblox-player: does not receive the authentication ticket.
+	// A bootstrapper that registered roblox-player: must not receive the ticket.
 	if app := findRoblox(home); app != "" {
 		arguments = []string{"-a", app, protocolURL}
 	}
@@ -89,9 +87,8 @@ func (darwinLauncher) open(ctx context.Context, protocolURL string) error {
 	return nil
 }
 
-// removeStoredLogin deletes the Roblox app's saved web session. Roblox uses
-// that session instead of the launch ticket, which would join with the last
-// account that signed in to the Roblox app.
+// Roblox prefers its saved session over the launch ticket, which would join
+// with the account that last signed in to the Roblox app.
 func removeStoredLogin(home string) error {
 	if home == "" || !filepath.IsAbs(home) {
 		return nil

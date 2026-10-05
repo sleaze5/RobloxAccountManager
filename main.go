@@ -200,9 +200,8 @@ func run() (runErr error) {
 		Mac: application.MacOptions{
 			ApplicationShouldTerminateAfterLastWindowClosed: true,
 		},
-		// WebKitGTK keeps its data in $XDG_DATA_HOME/<program name>. The
-		// default program name is the executable name, which is the Standard
-		// data root.
+		// WebKitGTK keeps its data in $XDG_DATA_HOME/<program name>, and the
+		// default program name would place it in the Standard root.
 		Linux: application.LinuxOptions{
 			ProgramName: appmeta.Identifier,
 		},
@@ -242,8 +241,7 @@ func run() (runErr error) {
 	return nil
 }
 
-// acquireInstance waits for the previous process to quit when the
-// application restarts itself to use another data root.
+// After a storage choice, the previous process may still hold the lock.
 func acquireInstance(restarted bool) (*singleinstance.Instance, bool, error) {
 	deadline := time.Now().Add(15 * time.Second)
 	for {
@@ -263,8 +261,6 @@ func resolvePaths(location appdata.Location) (appdata.Paths, error) {
 	return paths, paths.Prepare()
 }
 
-// openSettings reads settings.json from a root that already has a storage
-// folder. A new root starts with defaults in memory until the user confirms it.
 func openSettings(path string, location appdata.Location) (*appsettings.Store, error) {
 	if candidate, ok := location.Candidate(location.Mode); !location.Initialized && (!ok || candidate.State == appdata.RootEmpty) {
 		return appsettings.New(path), nil

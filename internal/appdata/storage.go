@@ -10,9 +10,6 @@ import (
 
 const maxListedItems = 3
 
-// Mode names where the data root lives. Portable keeps it beside the
-// executable. Standard keeps it in the per-user application data folder of the
-// operating system.
 type Mode string
 
 const (
@@ -20,41 +17,25 @@ const (
 	ModeStandard Mode = "standard"
 )
 
-// RootState describes what a candidate data root already holds. It is
-// detected from the existing folder layout and vault files.
 type RootState string
 
 const (
-	// RootEmpty has no storage folder.
-	RootEmpty RootState = "empty"
-	// RootStructure has a storage folder but no vault files. Settings, logs,
-	// backups, and runtime data can be re-created, so they do not count as a
-	// vault.
-	RootStructure RootState = "structure"
-	// RootIncomplete has some vault files, but not a complete vault.
+	RootEmpty      RootState = "empty"
+	RootStructure  RootState = "structure"
 	RootIncomplete RootState = "incomplete"
-	// RootVault has vault.db and vault.key and no unfinished vault creation.
-	RootVault RootState = "vault"
+	RootVault      RootState = "vault"
 )
 
-// ChoiceReason says why the user must choose a data root before the
-// application can continue. An empty reason means no choice is needed.
 type ChoiceReason string
 
 const (
-	ChoiceNone ChoiceReason = ""
-	// ChoiceFirstRun means that no data root exists yet.
-	ChoiceFirstRun ChoiceReason = "first-run"
-	// ChoicePortableWithoutVault means that the Portable root has data but
-	// no usable vault.
+	ChoiceNone                 ChoiceReason = ""
+	ChoiceFirstRun             ChoiceReason = "first-run"
 	ChoicePortableWithoutVault ChoiceReason = "portable-without-vault"
-	// ChoiceConflict means that both roots hold vault data.
-	ChoiceConflict ChoiceReason = "conflict"
+	ChoiceConflict             ChoiceReason = "conflict"
 )
 
-// Candidate is one possible data root. OtherItems lists at most
-// maxListedItems names of unrelated entries in an empty Portable folder.
-// OtherItemCount counts every such entry.
+// OtherItems lists at most maxListedItems names. OtherItemCount counts every entry except the executable.
 type Candidate struct {
 	Mode           Mode      `json:"mode"`
 	Directory      string    `json:"directory"`
@@ -63,10 +44,7 @@ type Candidate struct {
 	OtherItemCount int       `json:"otherItemCount"`
 }
 
-// Location is the resolved data root. Until Initialized is true, Mode and
-// Directory name the provisional root that the running process uses, and
-// Choice says why the user must confirm a root. Candidates lists the roots
-// that this platform offers.
+// Until Initialized is true, Mode and Directory name the provisional root.
 type Location struct {
 	Mode        Mode         `json:"mode"`
 	Directory   string       `json:"directory"`
@@ -75,7 +53,6 @@ type Location struct {
 	Candidates  []Candidate  `json:"candidates"`
 }
 
-// Candidate returns the candidate for mode.
 func (location Location) Candidate(mode Mode) (Candidate, bool) {
 	for _, candidate := range location.Candidates {
 		if candidate.Mode == mode {
@@ -85,7 +62,6 @@ func (location Location) Candidate(mode Mode) (Candidate, bool) {
 	return Candidate{}, false
 }
 
-// ParseMode accepts only the storage modes that this platform supports.
 func ParseMode(value string) (Mode, error) {
 	switch mode := Mode(value); mode {
 	case ModeStandard:
@@ -98,10 +74,6 @@ func ParseMode(value string) (Mode, error) {
 	return "", fmt.Errorf("storage mode %q is not supported", value)
 }
 
-// Inspect finds the data root. A non-empty requested mode selects that root
-// without asking, which is how the application restarts after the user
-// chooses a root. Inspect also makes the executable folder the working
-// directory, so no code depends on where the application was started from.
 func Inspect(requested Mode) (Location, error) {
 	executableDirectory, err := ExecutableDirectory()
 	if err != nil {
@@ -157,7 +129,10 @@ func resolve(portable, standard *Candidate, requested Mode) (Location, error) {
 		return use(standard, true, ChoiceNone)
 	}
 	if standard == nil {
-		return use(portable, portable.State != RootEmpty, choiceFor(portable.State == RootEmpty, ChoiceFirstRun))
+		if portable.State == RootEmpty {
+			return use(portable, false, ChoiceFirstRun)
+		}
+		return use(portable, true, ChoiceNone)
 	}
 	portableVault, standardVault := hasVaultData(portable.State), hasVaultData(standard.State)
 	switch {
@@ -174,13 +149,6 @@ func resolve(portable, standard *Candidate, requested Mode) (Location, error) {
 	default:
 		return use(portable, false, ChoiceFirstRun)
 	}
-}
-
-func choiceFor(needed bool, reason ChoiceReason) ChoiceReason {
-	if needed {
-		return reason
-	}
-	return ChoiceNone
 }
 
 func hasVaultData(state RootState) bool {
@@ -217,9 +185,8 @@ func inspectCandidate(mode Mode, directory string) (Candidate, error) {
 	return candidate, nil
 }
 
-// inspectRoot mirrors the vault file states of internal/storage/vault, so a
-// root whose vault is incomplete is kept for recovery instead of being
-// treated as unused.
+// inspectRoot mirrors vault.FileState, so an incomplete vault is kept for
+// recovery instead of being treated as unused.
 func inspectRoot(root string) (RootState, error) {
 	paths := layout(root)
 	info, err := os.Stat(filepath.Join(root, storageDirectory))
@@ -249,9 +216,8 @@ func inspectRoot(root string) (RootState, error) {
 	}
 }
 
-// hasKnownStorage ignores a storage folder that holds none of this
-// application's entries. Earlier Linux versions let WebKitGTK write its own
-// storage folder into the Standard root.
+// Earlier Linux versions let WebKitGTK write its own storage folder into the
+// Standard root.
 func hasKnownStorage(paths Paths) bool {
 	for _, path := range []string{paths.Settings, paths.VaultRoot, paths.BackupsRoot, filepath.Dir(paths.CfTRuntimeRoot), filepath.Dir(paths.CfTInstallRoot)} {
 		if _, err := os.Lstat(path); err == nil {
@@ -295,9 +261,6 @@ func sameDirectory(first, second string) bool {
 	return err == nil && os.SameFile(firstInfo, secondInfo)
 }
 
-// FallbackRoot is where startup diagnostics go when the application fails
-// before it resolves a data root: the executable folder on platforms with
-// Portable storage, otherwise the Standard root.
 func FallbackRoot() (string, error) {
 	if portableSupported {
 		return ExecutableDirectory()
@@ -305,16 +268,12 @@ func FallbackRoot() (string, error) {
 	return StandardRoot()
 }
 
-// storageArgument selects a storage mode when the application restarts after
-// the user chose a data root.
 const storageArgument = "--storage="
 
-// RestartArguments returns the arguments that make a new process use mode.
 func RestartArguments(mode Mode) []string {
 	return []string{storageArgument + string(mode)}
 }
 
-// RequestedMode returns the storage mode that the arguments select, if any.
 func RequestedMode(arguments []string) (Mode, error) {
 	for _, argument := range arguments {
 		if value, ok := strings.CutPrefix(argument, storageArgument); ok {

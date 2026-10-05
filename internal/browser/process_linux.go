@@ -77,7 +77,6 @@ func (process *linuxBrowserProcess) AllWindowsClosed() <-chan struct{} {
 }
 func (process *linuxBrowserProcess) Exited() <-chan error { return process.exited }
 
-// PagesClosed does nothing, because Chrome exits when its last window closes.
 func (process *linuxBrowserProcess) PagesClosed() {}
 
 func (process *linuxBrowserProcess) waitLoop() {

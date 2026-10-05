@@ -13,8 +13,6 @@ import (
 	"golang.org/x/sys/unix"
 )
 
-// Instance holds an exclusive lock on a file in the per-user temporary
-// folder. The system releases the lock when the process exits.
 type Instance struct {
 	file *os.File
 }

@@ -23,7 +23,6 @@ tasks:
                 case "$version" in
                   '' | *[!0-9A-Za-z.-]*) echo "invalid version in internal/appmeta/VERSION" >&2; exit 1 ;;
                 esac
-                # Rebuild the bundle from scratch. User data lives outside it.
                 rm -rf -- "$bundle"
                 mkdir -p "$bundle/Contents/MacOS" "$bundle/Contents/Resources"
                 ldflags="-X github.com/sleaze5/RobloxAccountManager/internal/appmeta.buildTime=$(date +%s)"
@@ -34,8 +33,7 @@ tasks:
                 fi
                 sed "s/@VERSION@/$version/g" build/darwin/Info.plist > "$bundle/Contents/Info.plist"
                 cp assets/icon.icns "$bundle/Contents/Resources/icon.icns"
-                # An ad-hoc signature lets the bundle run on Apple silicon. A
-                # Developer ID signature replaces it for notarized releases.
+                # Apple silicon runs only signed code.
                 codesign --force --deep --sign - "$bundle"
 
     internal:run:

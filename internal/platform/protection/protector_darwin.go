@@ -19,9 +19,6 @@ const (
 	protectedVersion     = 1
 )
 
-// darwinProtector seals data with a random key that it keeps in the login
-// Keychain, so a copied autounlock.key cannot be opened on another Mac or by
-// another user.
 type darwinProtector struct{}
 
 func New() Protector {
@@ -84,7 +81,6 @@ func newGCM(key []byte) (cipher.AEAD, error) {
 	return cipher.NewGCM(block)
 }
 
-// encryptionKey returns the Keychain key and creates it on first use.
 func encryptionKey() ([]byte, error) {
 	key, err := existingKey()
 	if !errors.Is(err, keyring.ErrNotFound) {
@@ -101,8 +97,6 @@ func encryptionKey() ([]byte, error) {
 	return key, nil
 }
 
-// existingKey never creates a key, so a missing Keychain item makes an
-// existing autounlock.key fail instead of being replaced.
 func existingKey() ([]byte, error) {
 	encoded, err := keyring.Get(appmeta.Identifier, autoUnlockKeyAccount)
 	if err != nil {

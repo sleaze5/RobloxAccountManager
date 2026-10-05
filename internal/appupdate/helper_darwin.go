@@ -34,8 +34,6 @@ func stageHelperArtifact() {
 	_ = os.Setenv("WAILS_UPDATER_HELPER_NEW", local)
 }
 
-// helperCopiedUpdate reports whether the helper owns a copy of the update, so
-// the application can remove the original download when it quits.
 func helperCopiedUpdate() bool {
 	executable, err := os.Executable()
 	if err != nil {
@@ -45,8 +43,6 @@ func helperCopiedUpdate() bool {
 	return len(staged) > 0
 }
 
-// installTarget returns the application bundle that contains the executable,
-// which is what an update replaces.
 func installTarget(executable string) string {
 	for directory := filepath.Dir(executable); directory != filepath.Dir(directory); directory = filepath.Dir(directory) {
 		if strings.HasSuffix(directory, ".app") {
@@ -56,7 +52,6 @@ func installTarget(executable string) string {
 	return executable
 }
 
-// copyTree copies a file or a bundle with its modes and relative links.
 func copyTree(source, destination string) error {
 	return filepath.WalkDir(source, func(path string, entry fs.DirEntry, err error) error {
 		if err != nil {

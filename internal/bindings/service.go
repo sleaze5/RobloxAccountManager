@@ -78,8 +78,6 @@ func (service *Service) GetLaunchReport() logging.LaunchReport { return service.
 
 func (service *Service) GetAppLocation() appdata.Location { return service.location.State() }
 
-// ConfirmAppLocation sets up the data root of mode. It reports whether the
-// application restarts to use it.
 func (service *Service) ConfirmAppLocation(mode appdata.Mode) (bool, error) {
 	restarting, err := service.location.Confirm(mode)
 	if err != nil || restarting {
@@ -88,8 +86,8 @@ func (service *Service) ConfirmAppLocation(mode appdata.Mode) (bool, error) {
 	return false, service.startCore()
 }
 
-// startCore starts vault startup only for a confirmed data root, so automatic
-// unlock and migrations never touch a vault that the user has not chosen.
+// Automatic unlock and migrations must never touch a vault that the user has
+// not chosen.
 func (service *Service) startCore() error {
 	service.startMu.Lock()
 	defer service.startMu.Unlock()

@@ -4,8 +4,6 @@ package browser
 
 import "path/filepath"
 
-// The macOS runtime is an application bundle. Its framework uses relative
-// links, so the archive may contain links.
 const macRuntimeBundle = "Google Chrome for Testing.app"
 
 var macRequiredRuntimeFiles = []string{

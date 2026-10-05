@@ -42,7 +42,6 @@ func helperCopiedUpdate() bool {
 	return len(staged) > 0
 }
 
-// installTarget returns the path that an update replaces.
 func installTarget(executable string) string { return executable }
 
 func copyFile(source, destination string) error {
