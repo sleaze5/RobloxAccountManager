@@ -5,6 +5,9 @@ inputs:
     bun:
         description: Set up Bun for frontend tasks.
         default: "true"
+    system-libraries:
+        description: Install the system libraries that the application build needs on Linux.
+        default: "true"
 
 runs:
     using: composite
@@ -20,7 +23,7 @@ runs:
               }
 
         - name: Install system libraries
-          if: runner.os == 'Linux'
+          if: runner.os == 'Linux' && inputs.system-libraries == 'true'
           shell: bash
           run: |
               sudo apt-get update
