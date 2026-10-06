@@ -1,32 +1,32 @@
-version: "3"
+version: '3'
 
 info:
-    companyName: "sleaze"
-    productName: "Roblox Account Manager"
-    productIdentifier: "com.github.sleaze5.robloxaccountmanager"
-    description: "A portable desktop application for storing and managing Roblox accounts."
-    copyright: "Copyright (c) 2026 sleaze"
-    comments: "A portable desktop application for storing and managing Roblox accounts."
+    companyName: sleaze
+    productName: Roblox Account Manager
+    productIdentifier: com.github.sleaze5.robloxaccountmanager
+    description: A portable desktop application for storing and managing Roblox accounts.
+    copyright: Copyright (c) 2026 sleaze
+    comments: A portable desktop application for storing and managing Roblox accounts.
 
 dev_mode:
-    root_path: "."
-    log_level: "warn"
+    root_path: .
+    log_level: warn
     debounce: 1000
     ignore:
         dir:
-            - ".git"
-            - "dist"
-            - "frontend"
-            - "node_modules"
+            - .git
+            - dist
+            - frontend
+            - node_modules
         watched_extension:
-            - "*.go"
+            - '*.go'
     git_ignore: true
     executes:
-        - cmd: "go run github.com/wailsapp/wails/v3/cmd/wails3@v3.0.0-beta.27 task internal:dev:build"
-          type: "blocking"
-        - cmd: "go run github.com/wailsapp/wails/v3/cmd/wails3@v3.0.0-beta.27 task common:internal:frontend:dev"
-          type: "background"
-        - cmd: "go run github.com/wailsapp/wails/v3/cmd/wails3@v3.0.0-beta.27 task common:internal:frontend:wait"
-          type: "blocking"
-        - cmd: "go run github.com/wailsapp/wails/v3/cmd/wails3@v3.0.0-beta.27 task internal:run"
-          type: "primary"
+        - cmd: go run github.com/wailsapp/wails/v3/cmd/wails3@v3.0.0-beta.27 task internal:dev:build
+          type: blocking
+        - cmd: go run github.com/wailsapp/wails/v3/cmd/wails3@v3.0.0-beta.27 task common:internal:frontend:dev
+          type: background
+        - cmd: go run github.com/wailsapp/wails/v3/cmd/wails3@v3.0.0-beta.27 task common:internal:frontend:wait
+          type: blocking
+        - cmd: go run github.com/wailsapp/wails/v3/cmd/wails3@v3.0.0-beta.27 task internal:run
+          type: primary

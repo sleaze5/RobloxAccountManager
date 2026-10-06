@@ -1,118 +1,134 @@
-version: "3"
+version: '3'
 
 vars:
-    APP_NAME: "RobloxAccountManager"
-    DIST_DIR: "dist"
-    VITE_PORT: "{{.WAILS_VITE_PORT | default 9245}}"
-    WAILS_CLI: "github.com/wailsapp/wails/v3/cmd/wails3@v3.0.0-beta.27"
-    STATICCHECK: "honnef.co/go/tools/cmd/staticcheck@v0.8.1"
+    APP_NAME: RobloxAccountManager
+    DIST_DIR: dist
+    VITE_PORT: '{{.WAILS_VITE_PORT | default 9245}}'
+    WAILS_CLI: github.com/wailsapp/wails/v3/cmd/wails3@v3.0.0-beta.27
+    STATICCHECK: honnef.co/go/tools/cmd/staticcheck@v0.8.1
 
 includes:
-    common: "./build/Taskfile.yml"
-    windows: "./build/windows/Taskfile.yml"
-    linux: "./build/linux/Taskfile.yml"
+    common: ./build/Taskfile.yml
+    windows: ./build/windows/Taskfile.yml
+    linux: ./build/linux/Taskfile.yml
 
 tasks:
     update-cft-manifest:
-        desc: "Update the pinned Chrome for Testing manifest"
+        desc: Update the pinned Chrome for Testing manifest
         deps:
-            - task: "internal:validate-tools"
+            - task: internal:validate-tools
         cmds:
-            - "bun run ./scripts/update-cft-manifest.ts"
+            - bun run ./scripts/update-cft-manifest.ts
 
     internal:validate-tools:
         internal: true
-        run: "once"
+        run: once
         cmds:
-            - "go version"
-            - "bun --version"
-            - "task --version"
+            - go version
+            - bun --version
+            - task --version
 
     internal:setup:
         internal: true
-        run: "once"
+        run: once
         deps:
-            - task: "internal:validate-tools"
+            - task: internal:validate-tools
         cmds:
-            - task: "common:internal:frontend:deps"
-            - task: "common:internal:generate:bindings"
+            - task: common:internal:frontend:deps
+            - task: common:internal:generate:bindings
 
     internal:dev:build:
         internal: true
         deps:
-            - task: "common:internal:frontend:build:development"
+            - task: common:internal:frontend:build:development
         cmds:
-            - task: "{{OS}}:internal:compile"
+            - task: '{{OS}}:internal:compile'
               vars:
-                  DEV: "true"
+                  DEV: 'true'
 
     internal:run:
         internal: true
         cmds:
-            - task: "{{OS}}:internal:run"
+            - task: '{{OS}}:internal:run'
 
     check:
-        desc: "Validate frontend and backend source"
+        desc: Validate frontend and backend source
         deps:
-            - task: "internal:setup"
+            - task: check:common
+            - task: check:native
+
+    check:common:
+        desc: Validate source that does not depend on the operating system
+        deps:
+            - task: internal:setup
         cmds:
-            - task: "common:internal:frontend:format:check"
-            - task: "common:internal:frontend:lint"
-            - task: "common:internal:frontend:check"
-            - task: "common:internal:go:format:check"
-            - task: "common:internal:go:vet"
-            - task: "common:internal:go:staticcheck"
-            - task: "common:internal:go:build"
+            - task: internal:check:common
+
+    internal:check:common:
+        internal: true
+        deps:
+            - task: common:internal:frontend:format:check
+            - task: common:internal:frontend:lint
+            - task: common:internal:frontend:check
+            - task: common:internal:go:format:check
+            - task: common:internal:go:tidy:check
+
+    check:native:
+        desc: Validate and compile backend source for this operating system
+        deps:
+            - task: common:internal:go:vet
+            - task: common:internal:go:staticcheck
+            - task: common:internal:go:build
 
     fix:
-        desc: "Apply safe fixes, then validate the repository"
+        desc: Apply safe fixes, then validate the repository
         deps:
-            - task: "internal:setup"
+            - task: internal:setup
         cmds:
-            - task: "common:internal:frontend:format"
-            - task: "common:internal:frontend:lint:fix"
-            - task: "common:internal:go:format"
-            - task: "common:internal:go:tidy"
-            - task: "check"
+            - task: common:internal:frontend:format
+            - task: common:internal:frontend:lint:fix
+            - task: common:internal:go:format
+            - task: common:internal:go:tidy
+            - task: check
 
     update:
-        desc: "Update compatible unpinned dependencies, then fix and validate"
+        desc: Update compatible unpinned dependencies, then fix and validate
         deps:
-            - task: "internal:validate-tools"
+            - task: internal:validate-tools
         cmds:
-            - task: "common:internal:frontend:update"
-            - task: "common:internal:go:update"
-            - task: "fix"
+            - task: common:internal:frontend:update
+            - task: common:internal:go:update
+            - task: fix
 
     dev:
-        desc: "Fix, validate, and start Wails development mode"
+        desc: Fix, validate, and start Wails development mode
         deps:
-            - task: "fix"
+            - task: fix
         cmds:
-            - "go run {{.WAILS_CLI}} dev -config ./build/config.yml -port {{.VITE_PORT}}"
+            - go run {{.WAILS_CLI}} dev -config ./build/config.yml -port {{.VITE_PORT}}
 
     build:windows-amd64:
-        desc: "Fix, validate, and build the Windows AMD64 application"
+        desc: Fix, validate, and build the Windows AMD64 application
         deps:
-            - task: "fix"
+            - task: fix
         cmds:
-            - task: "common:internal:frontend:build:production"
-            - task: "windows:internal:compile"
+            - task: common:internal:frontend:build:production
+            - task: windows:internal:compile
               vars:
-                  DEV: "false"
+                  DEV: 'false'
 
     build:linux-amd64:
-        desc: "Fix, validate, and build the Linux AMD64 application"
+        desc: Fix, validate, and build the Linux AMD64 application
         deps:
-            - task: "fix"
+            - task: fix
         cmds:
-            - task: "common:internal:frontend:build:production"
-            - task: "linux:internal:compile"
+            - task: common:internal:frontend:build:production
+            - task: linux:internal:compile
               vars:
-                  DEV: "false"
+                  DEV: 'false'
 
     clean:
-        desc: "Delete generated files, dependencies, builds, logs, and portable data"
-        prompt: "This deletes all portable data and logs, including the account vault. Continue?"
+        desc: Delete generated files, dependencies, builds, logs, and portable data
+        prompt: This deletes all portable data and logs, including the account vault. Continue?
         cmds:
-            - 'bun run ./scripts/clean.ts "{{.ROOT_DIR}}"'
+            - bun run ./scripts/clean.ts "{{.ROOT_DIR}}"
