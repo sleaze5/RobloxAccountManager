@@ -9,7 +9,7 @@ import (
 	"github.com/sleaze5/RobloxAccountManager/internal/logging"
 )
 
-type Relaunch func(appdata.Mode) error
+type Relaunch func(arguments []string) error
 
 type Location struct {
 	mu       sync.Mutex
@@ -62,7 +62,7 @@ func (location *Location) Confirm(mode appdata.Mode) (bool, error) {
 	location.logger.Info("data folder set up", "operation", "location-setup", "mode", mode,
 		"choice", location.state.Choice, "state", candidate.State, "other_items", candidate.OtherItemCount, "restart", restart)
 	if restart {
-		if err := location.relaunch(mode); err != nil {
+		if err := location.relaunch(appdata.RestartArguments(mode)); err != nil {
 			location.logger.Error("application restart failed", "operation", "location-setup", "mode", mode, "error", err)
 			return false, errors.New("the app could not restart. Open it again")
 		}
@@ -70,4 +70,26 @@ func (location *Location) Confirm(mode appdata.Mode) (bool, error) {
 	}
 	location.state.Initialized, location.state.Choice = true, appdata.ChoiceNone
 	return false, nil
+}
+
+func (location *Location) Move(mode appdata.Mode) error {
+	location.mu.Lock()
+	defer location.mu.Unlock()
+	if !location.state.Initialized || mode == location.state.Mode {
+		return errors.New("this storage option is unavailable")
+	}
+	if err := appdata.CheckMove(mode); err != nil {
+		location.logger.Warn("data move rejected", "operation", "data-move", "target", mode, "error", err)
+		var moveError *appdata.MoveError
+		if errors.As(err, &moveError) {
+			return errors.New(moveError.Message)
+		}
+		return errors.New("the data could not be moved")
+	}
+	if err := location.relaunch(appdata.MoveArguments(mode)); err != nil {
+		location.logger.Error("application restart failed", "operation", "data-move", "target", mode, "error", err)
+		return errors.New("the app could not restart. Try again")
+	}
+	location.logger.Info("data move requested", "operation", "data-move", "target", mode)
+	return nil
 }

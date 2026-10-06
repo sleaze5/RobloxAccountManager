@@ -150,6 +150,18 @@ Deleting `settings.json` resets settings to their defaults. Deleting `autounlock
 
 The vault is portable. `vault.db` and `vault.key` work in either mode and on any supported operating system, so moving `storage/` between roots or computers keeps the accounts. Automatic unlock is bound to the device and user. `autounlock.key` is sealed with DPAPI, the Secret Service, or the Keychain, so a copied `autounlock.key` fails, and the vault asks for the master password until automatic unlock is turned on again.
 
+On Windows and Linux, Settings → Vault → Storage moves the data to the other root. It is a move, not a copy, because a vault left in both roots makes the application ask which one to use on every launch.
+
+1. `appdata.CheckMove` requires a complete vault in the current root and no vault files in the target root.
+2. The application restarts with `--move-storage=<mode>`. The previous process closes the vault and releases the single-instance lock, so nothing holds files in either root.
+3. Before it opens settings, logs, or the vault, the new process copies `settings.json`, `vault/`, and `backups/` into a staging folder in the target `storage/` and verifies each file with SHA-256.
+4. It renames the staged backups, settings, and finally the vault into place. A backup that already exists in the target keeps its copy there.
+5. It deletes the source vault first, then the source settings, backups, browser runtime, and temporary files. Logs stay where they are.
+
+If a step before the vault rename fails, the data stays in the source root and the application starts from there. If only the deletion fails, the application starts from the target and asks the user to delete the old copy. The result is shown as a notification. Automatic unlock keeps working, because the device and user do not change.
+
+The About page shows the storage mode and data folder. Every launch records the mode, root state, and the reason for any storage question in the `application.location` component record. The record never contains the folder path, because paths usually contain the user name.
+
 ### Rules
 
 - Resolve every data path through `internal/appdata`. Do not depend on the current working directory, and do not assume that the executable folder or the data root has a fixed name or location.

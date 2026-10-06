@@ -1,11 +1,12 @@
 <script lang="ts">
 	import { onMount } from "svelte"
-	import { accountBackend } from "../backend/bridge"
-	import type { LaunchReport } from "../backend/bridge"
+	import { accountBackend, StorageMode } from "../backend/bridge"
+	import type { AppLocation, LaunchReport } from "../backend/bridge"
 	import { formatCompactDuration } from "../shared/duration"
 	import Timestamp from "../shared/Timestamp.svelte"
 
 	let report = $state<LaunchReport | null>(null),
+		location = $state<AppLocation | null>(null),
 		error = $state("")
 	const build = $derived(report?.build),
 		stages = $derived(report?.stages ?? []),
@@ -26,8 +27,14 @@
 		let disposed = false
 		void (async () => {
 			try {
-				const next = await accountBackend.GetLaunchReport()
-				if (!disposed) report = next
+				const [next, nextLocation] = await Promise.all([
+					accountBackend.GetLaunchReport(),
+					accountBackend.GetAppLocation(),
+				])
+				if (!disposed) {
+					report = next
+					location = nextLocation
+				}
 			} catch {
 				if (!disposed) error = "Build and launch details could not be loaded."
 			}
@@ -91,6 +98,16 @@
 			</dd>
 			<dt>ready</dt>
 			<dd>{report.ready ? formatCompactDuration(report.readyMs) : "starting"}</dd>
+			{#if location}
+				<dt>storage</dt>
+				<dd>
+					{location.mode === StorageMode.ModePortable
+						? "portable"
+						: "standard"}
+				</dd>
+				<dt>data folder</dt>
+				<dd>{location.directory}</dd>
+			{/if}
 		</dl>
 		<table class="about-table">
 			<thead>

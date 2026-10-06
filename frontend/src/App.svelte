@@ -89,10 +89,25 @@
 		} else untrack(() => games.initialize())
 	})
 
+	async function loadAppLocation(): Promise<void> {
+		const location = await accountBackend.GetAppLocation()
+		appLocation = location
+		if (location.moveError) {
+			notificationCenter.show({
+				title: location.moved ? "Old data not removed" : "Data not moved",
+				message: location.moveError,
+				durationMs: 0,
+			})
+		} else if (location.moved) {
+			notificationCenter.show({
+				title: "Data moved",
+				message: "The vault, backups, and settings are in the new folder.",
+			})
+		}
+	}
+
 	onMount(() => {
-		void accountBackend
-			.GetAppLocation()
-			.then((location) => (appLocation = location))
+		void loadAppLocation()
 		void appSettings.initialize(notificationCenter)
 		const unmountAccounts = store.mount(),
 			unmountBrowser = browserStore.mount(notificationCenter),
@@ -373,6 +388,7 @@
 		<SettingsPage
 			{store}
 			browser={browserStore}
+			notifications={notificationCenter}
 			onBack={() => (activePage = settingsReturnPage)}
 			onLock={() => void openLockVault()} />
 	{:else}

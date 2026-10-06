@@ -86,6 +86,10 @@ func (service *Service) ConfirmAppLocation(mode appdata.Mode) (bool, error) {
 	return false, service.startCore()
 }
 
+func (service *Service) MoveAppData(mode appdata.Mode) error {
+	return service.location.Move(mode)
+}
+
 // Automatic unlock and migrations must never touch a vault that the user has
 // not chosen.
 func (service *Service) startCore() error {

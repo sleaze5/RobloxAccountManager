@@ -10,12 +10,14 @@
 	import XIcon from "phosphor-svelte/lib/XIcon"
 	import type { AccountStore } from "../accounts/account-store.svelte"
 	import type { BrowserStore } from "../browser/browser-store.svelte"
+	import type { NotificationCenter } from "../notifications/notification-center.svelte"
 	import AboutSettings from "./AboutSettings.svelte"
 	import BrowserSettings from "./BrowserSettings.svelte"
 	import GeneralSettings from "./GeneralSettings.svelte"
 	import IntegrationsSettings from "./IntegrationsSettings.svelte"
 	import RobloxSettings from "./RobloxSettings.svelte"
 	import { appSettings } from "./settings-store.svelte"
+	import StorageSettings from "./StorageSettings.svelte"
 	import UpdateSettings from "./UpdateSettings.svelte"
 	import UserInterfaceSettings from "./UserInterfaceSettings.svelte"
 	import VaultSettings from "./VaultSettings.svelte"
@@ -25,7 +27,7 @@
 			icon: KeyIcon,
 			id: "vault",
 			label: "Vault",
-			search: "vault security vault status unlocked automatic unlock without master password when the app starts enable disable on off operating system user account lock vault test master password last tested not tested change master password rotate encryption key update password test reminder choose how often asks confirm",
+			search: "vault security vault status unlocked automatic unlock without master password when the app starts enable disable on off operating system user account lock vault test master password last tested not tested change master password rotate encryption key update password test reminder choose how often asks confirm storage location data folder path copy portable standard move data backups settings restart",
 		},
 		{
 			icon: SlidersHorizontalIcon,
@@ -55,7 +57,7 @@
 			icon: InfoIcon,
 			id: "about",
 			label: "About",
-			search: "about updates update check latest download install restart new release version build time timestamp unix platform architecture arch os go wails revision commit launch id startup stages timings duration ready loaded components schema format version settings vault database sqlite sqlcipher key file automatic unlock browser runtime manifest log created loaded recovered",
+			search: "about updates update check latest download install restart new release version build time timestamp unix platform architecture arch os go wails revision commit launch id startup stages timings duration ready storage data folder loaded components schema format version settings vault database sqlite sqlcipher key file automatic unlock browser runtime manifest log created loaded recovered",
 		},
 	] as const
 
@@ -64,11 +66,13 @@
 	let {
 			store,
 			browser,
+			notifications,
 			onBack,
 			onLock,
 		}: {
 			store: AccountStore
 			browser: BrowserStore
+			notifications: NotificationCenter
 			onBack: () => void
 			onLock: () => void
 		} = $props(),
@@ -156,6 +160,7 @@
 					<h2>{activeCategory.label}</h2>
 					{#if activeCategory.id === "vault"}
 						<VaultSettings {store} {query} {onLock} />
+						<StorageSettings {store} {notifications} {query} />
 					{:else if activeCategory.id === "roblox"}
 						<RobloxSettings />
 					{:else if activeCategory.id === "integrations"}

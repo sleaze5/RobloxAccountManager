@@ -4,6 +4,7 @@ import (
 	"embed"
 	"errors"
 	"fmt"
+	"log/slog"
 	"os"
 	"os/exec"
 	"time"
@@ -66,7 +67,11 @@ func run() (runErr error) {
 	if err != nil {
 		return err
 	}
-	instance, acquired, err := acquireInstance(requested != "")
+	moveTarget, err := appdata.RequestedMove(os.Args[1:])
+	if err != nil {
+		return err
+	}
+	instance, acquired, err := acquireInstance(requested != "" || moveTarget != "")
 	if err != nil {
 		return err
 	}
@@ -74,10 +79,23 @@ func run() (runErr error) {
 		singleinstance.ShowAlreadyRunning()
 		return nil
 	}
+	var moved bool
+	var moveErr error
+	if moveTarget != "" {
+		launch.Begin("data-move")
+		if moved, moveErr = appdata.Move(moveTarget); moved {
+			requested = moveTarget
+		}
+	}
 	launch.Begin("application-location")
 	location, err := appdata.Inspect(requested)
 	if err != nil {
 		return fmt.Errorf("inspect application location: %w", err)
+	}
+	location.Moved = moved
+	var moveError *appdata.MoveError
+	if errors.As(moveErr, &moveError) {
+		location.MoveError = moveError.Message
 	}
 	launch.Begin("logging")
 	logSystem, err := launch.Open(location.Directory, !location.Initialized)
@@ -110,6 +128,7 @@ func run() (runErr error) {
 	if fields := settingsStore.ReplacedFields(); len(fields) > 0 {
 		logSystem.Module("settings").Warn("invalid settings replaced with defaults", "operation", "settings-load", "fields", fields)
 	}
+	logLocation(logSystem.Module("application.location"), location, requested, moveTarget, moveErr)
 	launch.Begin("roblox-multi-instance")
 	multiInstance := robloxmulti.New(logSystem.Module("platform.roblox-multi-instance"))
 	defer multiInstance.Close()
@@ -158,12 +177,12 @@ func run() (runErr error) {
 	coreService.AttachBrowser(browserCoordinator, runtimeManager)
 	updates := appupdate.New(logSystem.Module("application.updates"), events.UpdateChanged)
 	var app *application.App
-	relaunch := func(mode appdata.Mode) error {
+	relaunch := func(arguments []string) error {
 		executable, err := os.Executable()
 		if err != nil {
 			return err
 		}
-		command := exec.Command(executable, appdata.RestartArguments(mode)...)
+		command := exec.Command(executable, arguments...)
 		if err := command.Start(); err != nil {
 			return err
 		}
@@ -239,6 +258,28 @@ func run() (runErr error) {
 		return fmt.Errorf("run application: %w", err)
 	}
 	return nil
+}
+
+func logLocation(logger *slog.Logger, location appdata.Location, requested, moveTarget appdata.Mode, moveErr error) {
+	state := appdata.RootEmpty
+	if candidate, ok := location.Candidate(location.Mode); ok {
+		state = candidate.State
+	}
+	attributes := []any{"operation", "location-load", "mode", location.Mode, "state", state, "confirmed", location.Initialized}
+	if location.Choice != appdata.ChoiceNone {
+		attributes = append(attributes, "choice", location.Choice)
+	}
+	if requested != "" {
+		attributes = append(attributes, "requested", requested)
+	}
+	logging.Diagnostic(logger, "data folder resolved", attributes...)
+	switch {
+	case moveTarget == "":
+	case moveErr != nil:
+		logger.Error("data move failed", "operation", "data-move", "target", moveTarget, "moved", location.Moved, "error", moveErr)
+	default:
+		logger.Info("data moved", "operation", "data-move", "target", moveTarget)
+	}
 }
 
 // After a storage choice, the previous process may still hold the lock.

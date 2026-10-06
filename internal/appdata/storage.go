@@ -51,6 +51,8 @@ type Location struct {
 	Initialized bool         `json:"initialized"`
 	Choice      ChoiceReason `json:"choice"`
 	Candidates  []Candidate  `json:"candidates"`
+	Moved       bool         `json:"moved"`
+	MoveError   string       `json:"moveError"`
 }
 
 func (location Location) Candidate(mode Mode) (Candidate, bool) {
@@ -82,7 +84,7 @@ func Inspect(requested Mode) (Location, error) {
 	if err := os.Chdir(executableDirectory); err != nil {
 		return Location{}, fmt.Errorf("set executable working directory: %w", err)
 	}
-	standardDirectory, standardErr := StandardRoot()
+	portableDirectory, standardDirectory, standardErr := candidateDirectories(executableDirectory)
 	var portable, standard *Candidate
 	if standardErr == nil {
 		candidate, err := inspectCandidate(ModeStandard, standardDirectory)
@@ -91,8 +93,8 @@ func Inspect(requested Mode) (Location, error) {
 		}
 		standard = &candidate
 	}
-	if portableSupported && (standard == nil || !sameDirectory(executableDirectory, standardDirectory)) {
-		candidate, err := inspectCandidate(ModePortable, executableDirectory)
+	if portableDirectory != "" {
+		candidate, err := inspectCandidate(ModePortable, portableDirectory)
 		if err != nil {
 			return Location{}, err
 		}
@@ -102,6 +104,14 @@ func Inspect(requested Mode) (Location, error) {
 		return Location{}, fmt.Errorf("resolve standard data folder: %w", standardErr)
 	}
 	return resolve(portable, standard, requested)
+}
+
+func candidateDirectories(executableDirectory string) (string, string, error) {
+	standard, err := StandardRoot()
+	if !portableSupported || err == nil && sameDirectory(executableDirectory, standard) {
+		return "", standard, err
+	}
+	return executableDirectory, standard, err
 }
 
 func resolve(portable, standard *Candidate, requested Mode) (Location, error) {
@@ -268,15 +278,30 @@ func FallbackRoot() (string, error) {
 	return StandardRoot()
 }
 
-const storageArgument = "--storage="
+const (
+	storageArgument = "--storage="
+	moveArgument    = "--move-storage="
+)
 
 func RestartArguments(mode Mode) []string {
 	return []string{storageArgument + string(mode)}
 }
 
+func MoveArguments(target Mode) []string {
+	return []string{moveArgument + string(target)}
+}
+
 func RequestedMode(arguments []string) (Mode, error) {
+	return argumentMode(arguments, storageArgument)
+}
+
+func RequestedMove(arguments []string) (Mode, error) {
+	return argumentMode(arguments, moveArgument)
+}
+
+func argumentMode(arguments []string, prefix string) (Mode, error) {
 	for _, argument := range arguments {
-		if value, ok := strings.CutPrefix(argument, storageArgument); ok {
+		if value, ok := strings.CutPrefix(argument, prefix); ok {
 			return ParseMode(value)
 		}
 	}
