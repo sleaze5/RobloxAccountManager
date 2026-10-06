@@ -313,6 +313,37 @@
 	gap: var(--space-3);
 }
 
+.logs-explorer-game-icon {
+	position: relative;
+	flex: 0 0 auto;
+}
+
+.logs-explorer-game-icon > .game-icon {
+	display: grid;
+	width: 40px;
+	height: 40px;
+}
+
+.logs-explorer-root-icon {
+	position: absolute;
+	right: -6px;
+	bottom: -6px;
+	display: block;
+	border-radius: var(--radius-chip);
+	box-shadow: 0 0 0 2px var(--color-bg);
+}
+
+.logs-explorer-root-icon .game-icon {
+	width: 20px;
+	height: 20px;
+	border-radius: var(--radius-chip);
+}
+
+.logs-explorer-root-icon .game-icon svg {
+	width: 14px;
+	height: 14px;
+}
+
 .logs-explorer-avatar {
 	width: 40px;
 	height: 40px;

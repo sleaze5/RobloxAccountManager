@@ -158,7 +158,6 @@
 						{#if store.vault.unlocked}
 							<AccountPresence
 								presence={selectedAccount.presence}
-								updatesEnabled={appSettings.presence.profile.enabled}
 								onJoin={onJoinServer} />
 							<div class="profile-balance-row">
 								<AccountProfileBalance

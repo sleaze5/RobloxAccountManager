@@ -216,16 +216,18 @@ func (service *Service) gameAccount(ctx context.Context) (int64, error) {
 	}
 }
 
-func (service *Service) GetGamePlace(ctx context.Context, universeID int64) (games.Place, error) {
-	if err := validGameID(universeID); err != nil {
-		return games.Place{}, err
+func (service *Service) GetGamePlace(ctx context.Context, universeID, placeID int64) (games.PlaceSummary, error) {
+	for _, id := range []int64{universeID, placeID} {
+		if err := validGameID(id); err != nil {
+			return games.PlaceSummary{}, err
+		}
 	}
 	ctx, done, err := service.beginGames(ctx)
 	if err != nil {
-		return games.Place{}, err
+		return games.PlaceSummary{}, err
 	}
 	defer done()
-	place, err := service.games.Place(ctx, universeID)
+	place, err := service.games.Place(ctx, universeID, placeID)
 	return place, service.gamesError(ctx, "game-place", err)
 }
 

@@ -4,12 +4,15 @@
 
 	let { visit }: { visit: LogsExplorerVisit } = $props()
 
-	const universeId = $derived(Number(visit.universeId))
+	const universeId = $derived(Number(visit.universeId)),
+		placeId = $derived(Number(visit.placeId))
+	const validId = (id: number) => Number.isSafeInteger(id) && id > 0
 </script>
 
 <div class="logs-explorer-details">
-	{#if Number.isSafeInteger(universeId) && universeId > 0}<LogsExplorerGame
-			{universeId} />{/if}
+	{#if validId(universeId) && validId(placeId)}<LogsExplorerGame
+			{universeId}
+			{placeId} />{/if}
 	<dl class="logs-explorer-detail-grid" aria-label="Game identifiers">
 		<div>
 			<dt>Place ID</dt>

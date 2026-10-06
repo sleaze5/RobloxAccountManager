@@ -16,7 +16,6 @@ const presenceWorkerLimit = 4
 type PresenceType int
 
 const (
-	PresenceTypeUnknown   PresenceType = -1
 	PresenceTypeOffline   PresenceType = 0
 	PresenceTypeOnline    PresenceType = 1
 	PresenceTypeInGame    PresenceType = 2
@@ -188,8 +187,6 @@ func invalidPresence(status int, cause error) error {
 
 func presenceType(value int) PresenceType {
 	switch value {
-	case 0:
-		return PresenceTypeOffline
 	case 1:
 		return PresenceTypeOnline
 	case 2:
@@ -199,6 +196,6 @@ func presenceType(value int) PresenceType {
 	case 4:
 		return PresenceTypeInvisible
 	default:
-		return PresenceTypeUnknown
+		return PresenceTypeOffline
 	}
 }

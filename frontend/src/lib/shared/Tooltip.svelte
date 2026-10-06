@@ -13,6 +13,7 @@
 	}
 
 	let text = $state(""),
+		strong = $state(""),
 		left = $state(0),
 		top = $state(0),
 		visible = $state(false),
@@ -23,6 +24,7 @@
 		openTimer = 0,
 		requestedSide: Side = "bottom",
 		tip: HTMLDivElement | undefined = $state()
+	const strongAt = $derived(strong ? text.indexOf(strong) : -1)
 
 	function placementOf(element: HTMLElement): Placement {
 		switch (element.dataset.tooltipSide) {
@@ -65,6 +67,7 @@
 		requestedSide = placement.side
 		alignEnd = placement.alignEnd
 		text = element.dataset.tooltip.trim()
+		strong = element.dataset.tooltipStrong?.trim() ?? ""
 		openTimer = window.setTimeout(() => {
 			openTimer = 0
 			if (!anchor) {
@@ -138,6 +141,7 @@
 		visible = false
 		anchor = null
 		text = ""
+		strong = ""
 	}
 
 	function leave(event: PointerEvent): void {
@@ -168,7 +172,10 @@
 		role="tooltip"
 		bind:this={tip}
 		style="transform: translate({left}px, {top}px);">
-		<span class="app-tooltip-inner" in:tooltipIn out:tooltipOut>{text}</span>
+		<span class="app-tooltip-inner" in:tooltipIn out:tooltipOut
+			>{#if strongAt < 0}{text}{:else}{text.slice(0, strongAt)}<strong
+					>{strong}</strong
+				>{text.slice(strongAt + strong.length)}{/if}</span>
 	</div>
 {/if}
 

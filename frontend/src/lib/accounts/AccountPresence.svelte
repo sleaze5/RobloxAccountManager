@@ -14,11 +14,9 @@
 
 	let {
 		presence,
-		updatesEnabled,
 		onJoin,
 	}: {
 		presence: UserPresence
-		updatesEnabled: boolean
 		onJoin: (placeId: number, jobId: string) => void
 	} = $props()
 
@@ -52,23 +50,19 @@
 					? "On the website or app"
 					: "",
 				joinable ? `Job ID: ${presence.gameId}` : "",
-				type === PresenceType.PresenceTypeUnknown
-					? updatesEnabled
-						? "Waiting for the next presence update."
-						: "Turn on profile presence updates in Settings."
-					: "",
 			]
 				.filter(Boolean)
 				.join("\n"),
 		)
 
 	$effect(() => {
-		const id = inExperience ? universeId : 0
+		const id = inExperience ? universeId : 0,
+			placeId = joinPlaceId
 		place = null
-		if (id <= 0) return
+		if (id <= 0 || placeId <= 0) return
 		let current = true
-		void loadGamePlace(id).then((result) => {
-			if (current) place = result
+		void loadGamePlace(id, placeId).then((result) => {
+			if (current) place = result?.place ?? null
 			return result
 		})
 		return () => {

@@ -14,6 +14,11 @@ type Place struct {
 	Nickname        string `json:"nickname"`
 }
 
+type PlaceSummary struct {
+	Place     Place  `json:"place"`
+	RootPlace *Place `json:"rootPlace"`
+}
+
 type Game struct {
 	Place                 Place          `json:"place"`
 	RootPlace             *Place         `json:"rootPlace"`

@@ -38,8 +38,8 @@ func (service *Service) FindNearestGameServer(ctx context.Context, placeID, acco
 	return service.core.FindNearestGameServer(ctx, placeID, accountID)
 }
 
-func (service *Service) GetGamePlace(ctx context.Context, universeID int64) (games.Place, error) {
-	return service.core.GetGamePlace(ctx, universeID)
+func (service *Service) GetGamePlace(ctx context.Context, universeID, placeID int64) (games.PlaceSummary, error) {
+	return service.core.GetGamePlace(ctx, universeID, placeID)
 }
 
 func (service *Service) ListFavoritePlaces(ctx context.Context) ([]games.Place, error) {

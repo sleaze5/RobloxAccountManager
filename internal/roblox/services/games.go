@@ -90,16 +90,27 @@ func (service *Games) Search(ctx context.Context, query games.SearchQuery) (game
 	return page, nil
 }
 
-func (service *Games) Place(ctx context.Context, universeID int64) (games.Place, error) {
+func (service *Games) Place(ctx context.Context, universeID, placeID int64) (games.PlaceSummary, error) {
 	details, err := service.details(ctx, []int64{universeID})
 	if err != nil {
-		return games.Place{}, err
+		return games.PlaceSummary{}, err
 	}
 	game, exists := details[universeID]
 	if !exists {
-		return games.Place{}, gameUnavailableError()
+		return games.PlaceSummary{}, gameUnavailableError()
 	}
-	return game.Place, nil
+	root := game.Place
+	if root.PlaceID == placeID {
+		return games.PlaceSummary{Place: root}, nil
+	}
+	place, _, found, err := service.subplace(ctx, root, placeID)
+	if err != nil {
+		return games.PlaceSummary{}, err
+	}
+	if !found {
+		return games.PlaceSummary{}, gameUnavailableError()
+	}
+	return games.PlaceSummary{Place: place, RootPlace: &root}, nil
 }
 
 func (service *Games) PlaceByID(ctx context.Context, placeID int64) (games.Place, bool, error) {
@@ -124,24 +135,32 @@ func (service *Games) PlaceByID(ctx context.Context, placeID int64) (games.Place
 	if root, exists := details[payload.UniverseID]; !exists || root.Place.PlaceID == placeID {
 		return root.Place, exists, nil
 	}
-	var subplace games.Place
-	found := false
-	err = service.subplaces(ctx, details[payload.UniverseID].Place, func(place games.Place, _ string) bool {
-		subplace, found = place, place.PlaceID == placeID
-		return !found
+	place, _, found, err := service.subplace(ctx, details[payload.UniverseID].Place, placeID)
+	return place, found, err
+}
+
+func (service *Games) subplace(ctx context.Context, root games.Place, placeID int64) (games.Place, string, bool, error) {
+	var place games.Place
+	description, found := "", false
+	err := service.subplaces(ctx, root, func(item games.Place, text string) bool {
+		if item.PlaceID != placeID {
+			return true
+		}
+		place, description, found = item, text, true
+		return false
 	})
 	if err != nil || !found {
-		return games.Place{}, false, err
+		return games.Place{}, "", false, err
 	}
 	icons, err := service.placeIcons(ctx, []int64{placeID})
 	if ctx.Err() != nil {
-		return games.Place{}, false, ctx.Err()
+		return games.Place{}, "", false, ctx.Err()
 	}
 	if err != nil {
 		service.logger.WarnContext(ctx, "place icons unavailable", "operation", "place-icons", "error", err)
 	}
-	subplace.IconURL = icons[placeID]
-	return subplace, true, nil
+	place.IconURL = icons[placeID]
+	return place, description, true, nil
 }
 
 func (service *Games) UniversePlaces(ctx context.Context, universeID int64) ([]games.Place, bool, error) {
@@ -230,28 +249,15 @@ func (service *Games) Get(ctx context.Context, universeID, placeID, accountID in
 		return games.Game{}, gameUnavailableError()
 	}
 	if placeID != game.Place.PlaceID {
-		root, found := game.Place, false
-		err := service.subplaces(ctx, root, func(place games.Place, description string) bool {
-			if place.PlaceID != placeID {
-				return true
-			}
-			game.Place, game.Description, game.RootPlace, found = place, description, &root, true
-			return false
-		})
+		root := game.Place
+		place, description, found, err := service.subplace(ctx, root, placeID)
 		if err != nil {
 			return games.Game{}, err
 		}
 		if !found {
 			return games.Game{}, gameUnavailableError()
 		}
-		icons, err := service.placeIcons(ctx, []int64{placeID})
-		if ctx.Err() != nil {
-			return games.Game{}, ctx.Err()
-		}
-		if err != nil {
-			service.logger.WarnContext(ctx, "place icons unavailable", "operation", "place-icons", "error", err)
-		}
-		game.Place.IconURL = icons[placeID]
+		game.Place, game.Description, game.RootPlace = place, description, &root
 	}
 	var group sync.WaitGroup
 	group.Go(func() {
