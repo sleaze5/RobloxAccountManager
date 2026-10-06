@@ -76,6 +76,10 @@ jobs:
         permissions:
             contents: write
         env:
+            # The Wails CLI links WebKitGTK when cgo is on, and this job skips
+            # those libraries. Without cgo, Go also never reuses a cgo build of
+            # the CLI from the shared build cache.
+            CGO_ENABLED: "0"
             GH_TOKEN: ${{ github.token }}
             VERSION: ${{ needs.check.outputs.version }}
             TAG: ${{ needs.check.outputs.tag }}
