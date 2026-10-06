@@ -1,23 +1,24 @@
-version: "3"
+version: '3'
 
 tasks:
     internal:compile:
         internal: true
-        dir: "{{.ROOT_DIR}}"
+        dir: '{{.ROOT_DIR}}'
         requires:
-            vars: ["ARCH"]
+            vars:
+                - ARCH
         vars:
-            OUTPUT: "{{.DIST_DIR}}/windows-{{.ARCH}}/{{.APP_NAME}}.exe"
+            OUTPUT: '{{.DIST_DIR}}/windows-{{.ARCH}}/{{.APP_NAME}}.exe'
         env:
-            GOOS: "windows"
-            GOARCH: "{{.ARCH}}"
-            CGO_ENABLED: "1"
+            GOOS: windows
+            GOARCH: '{{.ARCH}}'
+            CGO_ENABLED: '1'
         cmds:
-            - cmd: 'powershell -NoProfile -ExecutionPolicy Bypass -Command ''& { $syso = [IO.Path]::GetFullPath((Join-Path "{{.ROOT_DIR}}" "wails_windows_{{.ARCH}}.syso")); $info = [IO.Path]::GetFullPath((Join-Path "{{.ROOT_DIR}}" "wails_windows_{{.ARCH}}.json")); $output = [IO.Path]::GetFullPath((Join-Path "{{.ROOT_DIR}}" "{{.OUTPUT}}")); try {     & ./build/windows/write-version-info.ps1 -Output $info;     & go run "{{.WAILS_CLI}}" generate syso -arch {{.ARCH}} -icon assets/icon.ico -manifest build/windows/wails.exe.manifest -info $info -out $syso;     if ($LASTEXITCODE -ne 0) { throw "Windows resource generation failed with exit code $LASTEXITCODE" }     New-Item -ItemType Directory -Force -Path (Split-Path -Parent $output) | Out-Null;     if ("{{.ARCH}}" -eq "arm64") { $env:CC = "aarch64-w64-mingw32-clang" };     $arguments = @("build", "-buildvcs=false");     $ldflags = "-X github.com/sleaze5/RobloxAccountManager/internal/appmeta.buildTime=$([DateTimeOffset]::UtcNow.ToUnixTimeSeconds())";     if ("{{.DEV}}" -ne "true") { $arguments += @("-tags", "production", "-trimpath"); $ldflags = "-w -s -H windowsgui $ldflags" }     $arguments += @("-ldflags=$ldflags", "-o", $output, ".");     & go @arguments;     if ($LASTEXITCODE -ne 0) { throw "Windows build failed with exit code $LASTEXITCODE" } } finally {     foreach ($generated in @($syso, $info)) { if (Test-Path -LiteralPath $generated) { Remove-Item -LiteralPath $generated -Force -ErrorAction Stop } } } }'''
+            - cmd: powershell -NoProfile -ExecutionPolicy Bypass -Command '& { $syso = [IO.Path]::GetFullPath((Join-Path "{{.ROOT_DIR}}" "wails_windows_{{.ARCH}}.syso")); $info = [IO.Path]::GetFullPath((Join-Path "{{.ROOT_DIR}}" "wails_windows_{{.ARCH}}.json")); $output = [IO.Path]::GetFullPath((Join-Path "{{.ROOT_DIR}}" "{{.OUTPUT}}")); try {     & ./build/windows/write-version-info.ps1 -Output $info;     & go run "{{.WAILS_CLI}}" generate syso -arch {{.ARCH}} -icon assets/icon.ico -manifest build/windows/wails.exe.manifest -info $info -out $syso;     if ($LASTEXITCODE -ne 0) { throw "Windows resource generation failed with exit code $LASTEXITCODE" }     New-Item -ItemType Directory -Force -Path (Split-Path -Parent $output) | Out-Null;     if ("{{.ARCH}}" -eq "arm64") { $env:CC = "aarch64-w64-mingw32-clang" };     $arguments = @("build", "-buildvcs=false");     $ldflags = "-X github.com/sleaze5/RobloxAccountManager/internal/appmeta.buildTime=$([DateTimeOffset]::UtcNow.ToUnixTimeSeconds())";     if ("{{.DEV}}" -ne "true") { $arguments += @("-tags", "production", "-trimpath"); $ldflags = "-w -s -H windowsgui $ldflags" }     $arguments += @("-ldflags=$ldflags", "-o", $output, ".");     & go @arguments;     if ($LASTEXITCODE -ne 0) { throw "Windows build failed with exit code $LASTEXITCODE" } } finally {     foreach ($generated in @($syso, $info)) { if (Test-Path -LiteralPath $generated) { Remove-Item -LiteralPath $generated -Force -ErrorAction Stop } } } }'
     internal:run:
         internal: true
-        dir: "{{.ROOT_DIR}}"
+        dir: '{{.ROOT_DIR}}'
         vars:
-            OUTPUT: "{{.DIST_DIR}}/windows-{{.ARCH}}/{{.APP_NAME}}.exe"
+            OUTPUT: '{{.DIST_DIR}}/windows-{{.ARCH}}/{{.APP_NAME}}.exe'
         cmds:
             - '"{{.OUTPUT}}"'
