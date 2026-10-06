@@ -55,6 +55,7 @@ Use only these commands:
 - `task update-cft-manifest`: update the pinned Chrome for Testing manifest
 - `task dev`: start Wails development mode
 - `task build:windows-amd64`: build `dist/windows-amd64/RobloxAccountManager.exe`
+- `task release:prepare`: sign and verify the update manifest for downloaded release archives. The "Release" workflow runs it; see `docs/PLATFORM.md`.
 - `task clean`: delete generated files, builds, logs, and all portable data, including the vault
 
 The commands prepare their own dependencies and generated bindings. Do not run frontend tools, Wails binding generation, or Go formatting, validation, or builds directly.

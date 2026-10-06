@@ -127,6 +127,21 @@ tasks:
               vars:
                   DEV: "false"
 
+    release:prepare:
+        desc: Sign and verify the update manifest for the release archives in RELEASE_DIR
+        deps:
+            - task: internal:validate-tools
+        requires:
+            vars:
+                - RELEASE_DIR
+                - TARGETS
+                - REPOSITORY
+                - SIGNING
+        env:
+            CGO_ENABLED: "0"
+        cmds:
+            - 'bun run ./scripts/release-prepare.ts "{{.WAILS_CLI}}" "{{.RELEASE_DIR}}" "{{.TARGETS}}" "{{.REPOSITORY}}" "{{.SIGNING}}"'
+
     clean:
         desc: Delete generated files, dependencies, builds, logs, and portable data
         prompt: This deletes all portable data and logs, including the account vault. Continue?
