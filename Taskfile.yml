@@ -58,12 +58,28 @@ tasks:
     check:
         desc: "Validate frontend and backend source"
         deps:
+            - task: "check:common"
+            - task: "check:native"
+
+    check:common:
+        desc: "Validate source that does not depend on the operating system"
+        deps:
             - task: "internal:setup"
         cmds:
+            - task: "internal:check:common"
+
+    internal:check:common:
+        internal: true
+        deps:
             - task: "common:internal:frontend:format:check"
             - task: "common:internal:frontend:lint"
             - task: "common:internal:frontend:check"
             - task: "common:internal:go:format:check"
+            - task: "common:internal:go:tidy:check"
+
+    check:native:
+        desc: "Validate and compile backend source for this operating system"
+        deps:
             - task: "common:internal:go:vet"
             - task: "common:internal:go:staticcheck"
             - task: "common:internal:go:build"

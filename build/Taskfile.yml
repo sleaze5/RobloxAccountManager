@@ -162,6 +162,12 @@ tasks:
         cmds:
             - "go mod tidy"
 
+    internal:go:tidy:check:
+        internal: true
+        dir: "{{.ROOT_DIR}}"
+        cmds:
+            - "go mod tidy -diff"
+
     internal:go:vet:
         internal: true
         dir: "{{.ROOT_DIR}}"
