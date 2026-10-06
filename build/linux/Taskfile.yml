@@ -1,13 +1,13 @@
-version: '3'
+version: "3"
 
 tasks:
     internal:compile:
         internal: true
-        dir: '{{.ROOT_DIR}}'
+        dir: "{{.ROOT_DIR}}"
         env:
             GOOS: linux
             GOARCH: amd64
-            CGO_ENABLED: '1'
+            CGO_ENABLED: "1"
         cmds:
             - cmd: |
                   set -eu
@@ -21,6 +21,6 @@ tasks:
                   fi
     internal:run:
         internal: true
-        dir: '{{.ROOT_DIR}}'
+        dir: "{{.ROOT_DIR}}"
         cmds:
             - '"{{.DIST_DIR}}/linux-amd64/{{.APP_NAME}}"'

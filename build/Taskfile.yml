@@ -1,10 +1,10 @@
-version: '3'
+version: "3"
 
 tasks:
     internal:frontend:deps:
         internal: true
         run: once
-        dir: '{{.ROOT_DIR}}/frontend'
+        dir: "{{.ROOT_DIR}}/frontend"
         sources:
             - package.json
             - bun.lock
@@ -19,7 +19,7 @@ tasks:
     internal:generate:bindings:
         internal: true
         run: once
-        dir: '{{.ROOT_DIR}}'
+        dir: "{{.ROOT_DIR}}"
         sources:
             - main.go
             - go.mod
@@ -32,31 +32,31 @@ tasks:
 
     internal:frontend:format:
         internal: true
-        dir: '{{.ROOT_DIR}}/frontend'
+        dir: "{{.ROOT_DIR}}/frontend"
         cmds:
             - bun run format
 
     internal:frontend:format:check:
         internal: true
-        dir: '{{.ROOT_DIR}}/frontend'
+        dir: "{{.ROOT_DIR}}/frontend"
         cmds:
             - bun run format:check
 
     internal:frontend:lint:
         internal: true
-        dir: '{{.ROOT_DIR}}/frontend'
+        dir: "{{.ROOT_DIR}}/frontend"
         cmds:
             - bun run lint
 
     internal:frontend:lint:fix:
         internal: true
-        dir: '{{.ROOT_DIR}}/frontend'
+        dir: "{{.ROOT_DIR}}/frontend"
         cmds:
             - bun run lint:fix
 
     internal:frontend:check:
         internal: true
-        dir: '{{.ROOT_DIR}}/frontend'
+        dir: "{{.ROOT_DIR}}/frontend"
         cmds:
             - cmd: |-
                   powershell -NoProfile -ExecutionPolicy Bypass -Command '& { $root = [IO.Path]::GetFullPath("{{.ROOT_DIR}}/frontend"); $prefix = $root.TrimEnd([IO.Path]::DirectorySeparatorChar, [IO.Path]::AltDirectorySeparatorChar) + [IO.Path]::DirectorySeparatorChar; $cache = [IO.Path]::GetFullPath([IO.Path]::Combine($root, ".svelte-check")); $exitCode = 1; try {
@@ -88,13 +88,13 @@ tasks:
 
     internal:frontend:update:
         internal: true
-        dir: '{{.ROOT_DIR}}/frontend'
+        dir: "{{.ROOT_DIR}}/frontend"
         cmds:
             - bun update
 
     internal:frontend:build:development:
         internal: true
-        dir: '{{.ROOT_DIR}}/frontend'
+        dir: "{{.ROOT_DIR}}/frontend"
         deps:
             - task: internal:frontend:deps
             - task: internal:generate:bindings
@@ -103,7 +103,7 @@ tasks:
 
     internal:frontend:build:production:
         internal: true
-        dir: '{{.ROOT_DIR}}/frontend'
+        dir: "{{.ROOT_DIR}}/frontend"
         deps:
             - task: internal:frontend:deps
             - task: internal:generate:bindings
@@ -112,7 +112,7 @@ tasks:
 
     internal:frontend:dev:
         internal: true
-        dir: '{{.ROOT_DIR}}/frontend'
+        dir: "{{.ROOT_DIR}}/frontend"
         deps:
             - task: internal:frontend:deps
         cmds:
@@ -120,7 +120,7 @@ tasks:
 
     internal:frontend:wait:
         internal: true
-        dir: '{{.ROOT_DIR}}'
+        dir: "{{.ROOT_DIR}}"
         cmds:
             - cmd: powershell -NoProfile -File ./build/windows/wait-for-vite.ps1 -Port {{.VITE_PORT}}
               platforms:
@@ -132,7 +132,7 @@ tasks:
 
     internal:go:format:
         internal: true
-        dir: '{{.ROOT_DIR}}'
+        dir: "{{.ROOT_DIR}}"
         cmds:
             - cmd: powershell -NoProfile -Command '& { $files = @("main.go") + @(Get-ChildItem -LiteralPath "internal" -Recurse -File -Filter "*.go" | ForEach-Object FullName); & gofmt -w @files; if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE } }'
               platforms:
@@ -146,7 +146,7 @@ tasks:
 
     internal:go:format:check:
         internal: true
-        dir: '{{.ROOT_DIR}}'
+        dir: "{{.ROOT_DIR}}"
         cmds:
             - cmd: powershell -NoProfile -Command '& { $files = @("main.go") + @(Get-ChildItem -LiteralPath "internal" -Recurse -File -Filter "*.go" | ForEach-Object FullName); $unformatted = @(& gofmt -l @files); if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE } if ($unformatted.Count -ne 0) { Write-Error ("Go files are not formatted:" + [Environment]::NewLine + ($unformatted -join [Environment]::NewLine)); exit 1 } }'
               platforms:
@@ -164,36 +164,36 @@ tasks:
 
     internal:go:tidy:
         internal: true
-        dir: '{{.ROOT_DIR}}'
+        dir: "{{.ROOT_DIR}}"
         cmds:
             - go mod tidy
 
     internal:go:tidy:check:
         internal: true
-        dir: '{{.ROOT_DIR}}'
+        dir: "{{.ROOT_DIR}}"
         cmds:
             - go mod tidy -diff
 
     internal:go:vet:
         internal: true
-        dir: '{{.ROOT_DIR}}'
+        dir: "{{.ROOT_DIR}}"
         cmds:
             - go vet ./internal/...
 
     internal:go:staticcheck:
         internal: true
-        dir: '{{.ROOT_DIR}}'
+        dir: "{{.ROOT_DIR}}"
         cmds:
             - go run {{.STATICCHECK}} ./internal/...
 
     internal:go:build:
         internal: true
-        dir: '{{.ROOT_DIR}}'
+        dir: "{{.ROOT_DIR}}"
         cmds:
             - go build ./internal/...
 
     internal:go:update:
         internal: true
-        dir: '{{.ROOT_DIR}}'
+        dir: "{{.ROOT_DIR}}"
         cmds:
             - go get -u github.com/mutecomm/go-sqlcipher/v4 golang.org/x/crypto golang.org/x/sync golang.org/x/sys

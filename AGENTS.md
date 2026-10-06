@@ -5,18 +5,18 @@ A portable Windows desktop application that stores Roblox accounts in an encrypt
 ## Project metadata
 
 ```yaml
-displayName: "Roblox Account Manager"
-name: "RobloxAccountManager"
-description: "A portable desktop application for storing and managing Roblox accounts."
-url: "https://github.com/sleaze5/RobloxAccountManager"
-identifier: "com.github.sleaze5.robloxaccountmanager"
-license: "MIT"
-copyright: "Copyright (c) 2026 sleaze"
+displayName: Roblox Account Manager
+name: RobloxAccountManager
+description: A portable desktop application for storing and managing Roblox accounts.
+url: https://github.com/sleaze5/RobloxAccountManager
+identifier: com.github.sleaze5.robloxaccountmanager
+license: MIT
+copyright: Copyright (c) 2026 sleaze
 
 author:
-    displayName: "sleaze"
-    username: "sleaze5"
-    url: "https://github.com/sleaze5"
+    displayName: sleaze
+    username: sleaze5
+    url: https://github.com/sleaze5
 ```
 
 ## Priorities

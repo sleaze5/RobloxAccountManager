@@ -81,7 +81,7 @@ jobs:
             - name: Set up
               uses: ./.github/actions/setup
               with:
-                  bun: 'false'
+                  bun: "false"
 
             - name: Check
               run: task check:native

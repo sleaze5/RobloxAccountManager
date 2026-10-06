@@ -91,7 +91,7 @@ jobs:
             - name: Set up
               uses: ./.github/actions/setup
               with:
-                  bun: 'false'
+                  bun: "false"
 
             - name: Download builds
               uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c

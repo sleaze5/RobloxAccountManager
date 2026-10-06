@@ -25,7 +25,7 @@ jobs:
         runs-on: ${{ startsWith(inputs.targets, 'windows-') && 'windows-2025' || startsWith(inputs.targets, 'darwin-') && 'macos-15' || 'ubuntu-24.04' }}
         timeout-minutes: 45
         env:
-            CGO_ENABLED: '1'
+            CGO_ENABLED: "1"
             TARGETS: ${{ inputs.targets }}
         steps:
             - name: Check out
