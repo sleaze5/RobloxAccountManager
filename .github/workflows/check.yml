@@ -1,36 +1,37 @@
-name: "Check"
+name: Check
 
 on:
     pull_request:
     push:
-        branches: ["main"]
+        branches:
+            - main
 
 permissions:
-    contents: "read"
+    contents: read
 
 concurrency:
-    group: "check-${{ github.event.pull_request.number || github.ref }}"
+    group: check-${{ github.event.pull_request.number || github.ref }}
     cancel-in-progress: true
 
 jobs:
     scope:
-        name: "Scope"
-        runs-on: "ubuntu-24.04"
+        name: Scope
+        runs-on: ubuntu-24.04
         timeout-minutes: 5
         outputs:
-            native: "${{ steps.scope.outputs.native }}"
+            native: ${{ steps.scope.outputs.native }}
         steps:
-            - name: "Check out"
-              uses: "actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1"
+            - name: Check out
+              uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
               with:
                   fetch-depth: 0
                   persist-credentials: false
 
-            - name: "Find changed scopes"
-              id: "scope"
+            - name: Find changed scopes
+              id: scope
               env:
-                  BASE: "${{ github.event.pull_request.base.sha || github.event.before }}"
-                  HEAD: "${{ github.event.pull_request.head.sha || github.sha }}"
+                  BASE: ${{ github.event.pull_request.base.sha || github.event.before }}
+                  HEAD: ${{ github.event.pull_request.head.sha || github.sha }}
               run: |
                   set -eu
                   native=true
@@ -43,55 +44,60 @@ jobs:
                   echo "native=$native" >> "$GITHUB_OUTPUT"
 
     common:
-        name: "Common"
-        runs-on: "ubuntu-24.04"
+        name: Common
+        runs-on: ubuntu-24.04
         timeout-minutes: 20
         steps:
-            - name: "Check out"
-              uses: "actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1"
+            - name: Check out
+              uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
               with:
                   persist-credentials: false
 
-            - name: "Set up"
-              uses: "./.github/actions/setup"
+            - name: Set up
+              uses: ./.github/actions/setup
 
-            - name: "Check"
-              run: "task check:common"
+            - name: Check
+              run: task check:common
 
     native:
-        name: "Native (${{ matrix.os }})"
-        needs: "scope"
-        if: "needs.scope.outputs.native == 'true'"
+        name: Native (${{ matrix.os }})
+        needs: scope
+        if: needs.scope.outputs.native == 'true'
         strategy:
             fail-fast: false
             matrix:
-                os: ["ubuntu-24.04", "windows-2025"]
-        runs-on: "${{ matrix.os }}"
+                os:
+                    - ubuntu-24.04
+                    - windows-2025
+        runs-on: ${{ matrix.os }}
         timeout-minutes: 20
         steps:
-            - name: "Check out"
-              uses: "actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1"
+            - name: Check out
+              uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
               with:
                   persist-credentials: false
 
-            - name: "Set up"
-              uses: "./.github/actions/setup"
+            - name: Set up
+              uses: ./.github/actions/setup
               with:
-                  bun: "false"
+                  bun: 'false'
 
-            - name: "Check"
-              run: "task check:native"
+            - name: Check
+              run: task check:native
 
     ci:
-        name: "CI"
-        needs: ["scope", "common", "native"]
-        if: "always()"
-        runs-on: "ubuntu-24.04"
+        name: CI
+        needs:
+            - scope
+            - common
+            - native
+        if: always()
+        runs-on: ubuntu-24.04
         timeout-minutes: 5
         steps:
-            - name: "Require every check to pass or be skipped"
+            - name: Require every check to pass or be skipped
               env:
-                  RESULTS: "${{ toJSON(needs) }}"
+                  RESULTS: ${{ toJSON(needs) }}
               run: |
                   echo "$RESULTS" | jq -e 'all(.[]; .result == "success" or .result == "skipped")' > /dev/null || {
                       echo "$RESULTS" | jq -r 'to_entries[] | "\(.key): \(.value.result)"' >&2

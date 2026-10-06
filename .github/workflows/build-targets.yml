@@ -1,44 +1,44 @@
-name: "Build targets"
+name: Build targets
 
 on:
     workflow_call:
         inputs:
             targets:
-                description: "Space-separated build targets of one operating system"
+                description: Space-separated build targets of one operating system
                 required: true
-                type: "string"
+                type: string
             artifact:
-                description: "Name of the uploaded artifact"
+                description: Name of the uploaded artifact
                 required: true
-                type: "string"
+                type: string
             retention-days:
-                description: "Days to keep the artifact"
+                description: Days to keep the artifact
                 required: true
-                type: "number"
+                type: number
 
 permissions:
-    contents: "read"
+    contents: read
 
 jobs:
     build:
-        name: "Build"
-        runs-on: "${{ startsWith(inputs.targets, 'windows-') && 'windows-2025' || 'ubuntu-24.04' }}"
+        name: Build
+        runs-on: ${{ startsWith(inputs.targets, 'windows-') && 'windows-2025' || 'ubuntu-24.04' }}
         timeout-minutes: 30
         env:
-            CGO_ENABLED: "1"
-            TARGETS: "${{ inputs.targets }}"
+            CGO_ENABLED: '1'
+            TARGETS: ${{ inputs.targets }}
         steps:
-            - name: "Check out"
-              uses: "actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1"
+            - name: Check out
+              uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
               with:
                   persist-credentials: false
 
-            - name: "Set up"
-              uses: "./.github/actions/setup"
+            - name: Set up
+              uses: ./.github/actions/setup
 
-            - name: "Build"
-              if: "runner.os == 'Windows'"
-              shell: "pwsh"
+            - name: Build
+              if: runner.os == 'Windows'
+              shell: pwsh
               run: |
                   foreach ($target in $env:TARGETS -split " ") {
                       task "build:$target"
@@ -47,16 +47,16 @@ jobs:
                       }
                   }
 
-            - name: "Build"
-              if: "runner.os != 'Windows'"
+            - name: Build
+              if: runner.os != 'Windows'
               run: |
                   set -eu
                   for target in $TARGETS; do
                       task "build:$target"
                   done
 
-            - name: "Check that the build did not change source files"
-              shell: "bash"
+            - name: Check that the build did not change source files
+              shell: bash
               run: |
                   changes=$(git status --porcelain)
                   if [ -n "$changes" ]; then
@@ -64,9 +64,9 @@ jobs:
                       exit 1
                   fi
 
-            - name: "Package"
-              if: "runner.os == 'Windows'"
-              shell: "pwsh"
+            - name: Package
+              if: runner.os == 'Windows'
+              shell: pwsh
               run: |
                   $package = Join-Path $env:RUNNER_TEMP "package"
                   New-Item -ItemType Directory -Force -Path $package | Out-Null
@@ -81,8 +81,8 @@ jobs:
                       }
                   }
 
-            - name: "Package"
-              if: "runner.os != 'Windows'"
+            - name: Package
+              if: runner.os != 'Windows'
               run: |
                   set -eu
                   package="$RUNNER_TEMP/package"
@@ -94,10 +94,10 @@ jobs:
                       esac
                   done
 
-            - name: "Upload"
-              uses: "actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a"
+            - name: Upload
+              uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
               with:
-                  name: "${{ inputs.artifact }}"
-                  path: "${{ runner.temp }}/package"
-                  if-no-files-found: "error"
-                  retention-days: "${{ inputs.retention-days }}"
+                  name: ${{ inputs.artifact }}
+                  path: ${{ runner.temp }}/package
+                  if-no-files-found: error
+                  retention-days: ${{ inputs.retention-days }}
