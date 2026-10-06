@@ -1,9 +1,9 @@
-version: '3'
+version: "3"
 
 vars:
     APP_NAME: RobloxAccountManager
     DIST_DIR: dist
-    VITE_PORT: '{{.WAILS_VITE_PORT | default 9245}}'
+    VITE_PORT: "{{.WAILS_VITE_PORT | default 9245}}"
     WAILS_CLI: github.com/wailsapp/wails/v3/cmd/wails3@v3.0.0-beta.27
     STATICCHECK: honnef.co/go/tools/cmd/staticcheck@v0.8.1
 
@@ -42,14 +42,14 @@ tasks:
         deps:
             - task: common:internal:frontend:build:development
         cmds:
-            - task: '{{OS}}:internal:compile'
+            - task: "{{OS}}:internal:compile"
               vars:
-                  DEV: 'true'
+                  DEV: "true"
 
     internal:run:
         internal: true
         cmds:
-            - task: '{{OS}}:internal:run'
+            - task: "{{OS}}:internal:run"
 
     check:
         desc: Validate frontend and backend source
@@ -115,7 +115,7 @@ tasks:
             - task: common:internal:frontend:build:production
             - task: windows:internal:compile
               vars:
-                  DEV: 'false'
+                  DEV: "false"
 
     build:linux-amd64:
         desc: Fix, validate, and build the Linux AMD64 application
@@ -125,7 +125,7 @@ tasks:
             - task: common:internal:frontend:build:production
             - task: linux:internal:compile
               vars:
-                  DEV: 'false'
+                  DEV: "false"
 
     clean:
         desc: Delete generated files, dependencies, builds, logs, and portable data

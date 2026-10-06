@@ -4,12 +4,11 @@ description: "Prepare a checked-out runner for task commands: Go, Task, and opti
 inputs:
     bun:
         description: Set up Bun for frontend tasks.
-        default: 'true'
+        default: "true"
 
 runs:
     using: composite
     steps:
-        # Defender real-time scanning slows builds on the disposable runners.
         - name: Pause Defender scanning
           if: runner.os == 'Windows'
           shell: pwsh
