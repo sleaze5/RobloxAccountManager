@@ -302,8 +302,10 @@ func resolvePaths(location appdata.Location) (appdata.Paths, error) {
 	return paths, paths.Prepare()
 }
 
+// appsettings.Open rewrites settings.json, so an unconfirmed root keeps
+// defaults in memory and is never written.
 func openSettings(path string, location appdata.Location) (*appsettings.Store, error) {
-	if candidate, ok := location.Candidate(location.Mode); !location.Initialized && (!ok || candidate.State == appdata.RootEmpty) {
+	if !location.Initialized {
 		return appsettings.New(path), nil
 	}
 	return appsettings.Open(path)

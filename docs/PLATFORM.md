@@ -164,11 +164,11 @@ At startup on Windows and Linux:
 2. Only one root has a vault: that root is used without a question. A Standard root with only an incomplete vault is also used, so the vault dialog can recover it.
 3. The Portable root has data but no usable vault: the dialog offers to continue there, to create or recover a vault, or to start using Standard storage.
 4. Only the Standard root has data without a vault: the Standard root is used.
-5. Both roots hold vault data, complete or incomplete: the application never chooses. The dialog asks every launch until the user moves or deletes one copy. The other copy stays unchanged.
+5. Both roots hold vault data, complete or incomplete: the application never chooses. The dialog asks every launch until the user moves or deletes one copy. The vault and settings of the other copy stay unchanged.
 
 macOS always uses the Standard root and creates it on first launch without a question.
 
-Until the user confirms a root, the application uses the Portable root provisionally. It holds log entries in memory, keeps default settings in memory when the root is empty, and does not start vault startup, so automatic unlock and migrations never touch a vault that the user has not chosen. Choosing the provisional root continues in the same process. Choosing the other root writes the held log entries to that root, starts a new process with `--storage=<mode>`, and quits. The new process waits for the single-instance lock and uses that root without a question.
+Until the user confirms a root, the application uses the Portable root provisionally. It holds log entries in memory, keeps default settings in memory without reading or writing `settings.json`, and does not start vault startup, so automatic unlock, migrations, and settings recovery never touch a root that the user has not chosen. Only the stale temporary browser files of `storage/temp/` may be removed. Choosing an empty provisional root continues in the same process. Any other choice writes the held log entries to the chosen root, starts a new process with `--storage=<mode>`, and quits. The new process waits for the single-instance lock and opens that root normally, without a question.
 
 Deleting `settings.json` resets settings to their defaults. Deleting `autounlock.key` turns off automatic unlock, and the vault asks for the master password. Logs, backups, runtime data, and temporary data are re-created when needed.
 

@@ -30,8 +30,9 @@ func (location *Location) State() appdata.Location {
 	return location.state
 }
 
-// Choosing the other root restarts the application, because settings, the
-// vault, and the browser runtime were opened for the provisional root.
+// The provisional process runs with default settings and without vault
+// startup, so only an empty provisional root continues in place. Any other
+// choice restarts, and the new process opens that root normally.
 func (location *Location) Confirm(mode appdata.Mode) (bool, error) {
 	location.mu.Lock()
 	defer location.mu.Unlock()
@@ -42,7 +43,7 @@ func (location *Location) Confirm(mode appdata.Mode) (bool, error) {
 	if !ok {
 		return false, errors.New("this storage option is unavailable")
 	}
-	restart := mode != location.state.Mode
+	restart := mode != location.state.Mode || candidate.State != appdata.RootEmpty
 	paths := location.paths
 	if restart {
 		var err error
