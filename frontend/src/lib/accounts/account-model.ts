@@ -1,4 +1,3 @@
-import CircleDashedIcon from "phosphor-svelte/lib/CircleDashedIcon"
 import CodeIcon from "phosphor-svelte/lib/CodeIcon"
 import EyeSlashIcon from "phosphor-svelte/lib/EyeSlashIcon"
 import GameControllerIcon from "phosphor-svelte/lib/GameControllerIcon"
@@ -42,7 +41,7 @@ export const emptyAccount: Account = {
 	importedAtMs: 0,
 	lastValidatedAtMs: null,
 	needsAttention: false,
-	presence: unknownPresence(0),
+	presence: offlinePresence(0),
 	rotatedAtMs: null,
 	state: SessionState.StateUnknown,
 	stateReason: "",
@@ -69,7 +68,7 @@ export function accountFromView(
 		importedAtMs: record.importedAtMs,
 		lastValidatedAtMs: record.lastValidatedAtMs ?? null,
 		needsAttention: sessionNeedsAttention(record.state),
-		presence: presence ?? unknownPresence(record.robloxUserId),
+		presence: presence ?? offlinePresence(record.robloxUserId),
 		rotatedAtMs: record.rotatedAtMs ?? null,
 		state: record.state,
 		stateReason: record.stateReason ?? "",
@@ -85,8 +84,6 @@ export function accountWithPresence(account: Account, presence: UserPresence): A
 
 export function presenceLabel(presence: UserPresence): string {
 	switch (presence.userPresenceType) {
-		case PresenceType.PresenceTypeOffline:
-			return "Offline"
 		case PresenceType.PresenceTypeOnline:
 			return "Online"
 		case PresenceType.PresenceTypeInGame:
@@ -96,7 +93,7 @@ export function presenceLabel(presence: UserPresence): string {
 		case PresenceType.PresenceTypeInvisible:
 			return "Invisible"
 		default:
-			return "Unknown"
+			return "Offline"
 	}
 }
 
@@ -110,17 +107,13 @@ export function presenceClass(presence: UserPresence): string {
 			return "presence-in-studio"
 		case PresenceType.PresenceTypeInvisible:
 			return "presence-invisible"
-		case PresenceType.PresenceTypeOffline:
-			return "presence-offline"
 		default:
-			return "presence-unknown"
+			return "presence-offline"
 	}
 }
 
 export function presenceIcon(presence: UserPresence): typeof GlobeIcon {
 	switch (presence.userPresenceType) {
-		case PresenceType.PresenceTypeOffline:
-			return GlobeXIcon
 		case PresenceType.PresenceTypeOnline:
 			return GlobeIcon
 		case PresenceType.PresenceTypeInGame:
@@ -130,7 +123,7 @@ export function presenceIcon(presence: UserPresence): typeof GlobeIcon {
 		case PresenceType.PresenceTypeInvisible:
 			return EyeSlashIcon
 		default:
-			return CircleDashedIcon
+			return GlobeXIcon
 	}
 }
 
@@ -171,8 +164,8 @@ export function getCustomTags(account: Account): TagView[] {
 	return account.tags.filter((tag) => tag.kind === TagKind.TagKindCustom)
 }
 
-function unknownPresence(userId: number): UserPresence {
-	return { userId, userPresenceType: PresenceType.PresenceTypeUnknown }
+function offlinePresence(userId: number): UserPresence {
+	return { userId, userPresenceType: PresenceType.PresenceTypeOffline }
 }
 
 function sessionNeedsAttention(state: SessionState): boolean {

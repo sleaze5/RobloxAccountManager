@@ -14,11 +14,9 @@
 
 	let {
 		presence,
-		updatesEnabled,
 		onJoin,
 	}: {
 		presence: UserPresence
-		updatesEnabled: boolean
 		onJoin: (placeId: number, jobId: string) => void
 	} = $props()
 
@@ -52,11 +50,6 @@
 					? "On the website or app"
 					: "",
 				joinable ? `Job ID: ${presence.gameId}` : "",
-				type === PresenceType.PresenceTypeUnknown
-					? updatesEnabled
-						? "Waiting for the next presence update."
-						: "Turn on profile presence updates in Settings."
-					: "",
 			]
 				.filter(Boolean)
 				.join("\n"),
