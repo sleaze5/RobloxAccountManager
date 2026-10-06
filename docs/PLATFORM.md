@@ -67,6 +67,12 @@ Each archive must contain only the executable, or on macOS only the application 
 
 The application reads `releases/latest/download/manifest.json`, so it never offers a prerelease.
 
+### Test builds
+
+The manual "Build" workflow in `.github/workflows/build.yml` builds one target from any branch without a release. Choose the branch and the target in the Actions tab. It runs `task build:<target>` and attaches the result to the run for 7 days: the Windows executable, a Linux `.tar.gz`, or a zipped macOS bundle. Archives keep the executable permission that artifact uploads drop. Test builds are not signed for updates and do not appear in the update manifest. GitHub shows the workflow only after it is on the default branch.
+
+The pinned llvm-mingw release for Windows ARM64 is set up by `.github/actions/setup-llvm-mingw`, which both workflows use. Change its version and checksum there.
+
 ### Update signing
 
 - The `UPDATER_PRIVATE_KEY` repository secret signs `manifest.json`. Never commit the private key.
