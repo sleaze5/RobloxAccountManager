@@ -67,6 +67,7 @@ export const accountBackend = Service
 export type {
 	Game,
 	Place as GamePlace,
+	PlaceSummary as GamePlaceSummary,
 	RecordPage as GameServerRecordPage,
 	Region as GameRegion,
 	Server as GameServer,

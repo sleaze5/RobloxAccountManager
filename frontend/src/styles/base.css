@@ -169,6 +169,10 @@ select:focus-visible {
 	display: block;
 }
 
+.app-tooltip-inner strong {
+	font-weight: var(--font-semibold);
+}
+
 .app-tooltip-multiline {
 	white-space: pre-line;
 	line-height: 1.4;

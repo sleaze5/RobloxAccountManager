@@ -22,7 +22,7 @@ The user must never see UI that looks or behaves like an exposed embedded browse
 
 - After the frontend is ready, keep every user-facing interaction inside the WebView UI. Native operating-system UI is acceptable only during startup, before the frontend can show its own UI.
 - Do not use `alert()`, `confirm()`, or `prompt()`. Use the application's dialogs and notifications.
-- Do not use the `title` attribute for tooltips. Use `data-tooltip` (and optionally `data-tooltip-side`), which `lib/shared/Tooltip.svelte` renders.
+- Do not use the `title` attribute for tooltips. Use `data-tooltip` (and optionally `data-tooltip-side`, and `data-tooltip-strong` to bold one part of the text), which `lib/shared/Tooltip.svelte` renders.
 - Add `novalidate` to every `<form>`. Show validation errors in the application UI, not in browser validation popups.
 - The default context menu is disabled for the whole application. Show a context menu only where a custom one is implemented, such as the account list.
 - Standard HTML controls are allowed only when they are styled to match the design. Replace a control that cannot be fully restyled. Use `lib/shared/Select.svelte` instead of `<select>`, and the `.cookie-selection` checkbox markup instead of a native checkbox.

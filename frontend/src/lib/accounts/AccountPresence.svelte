@@ -56,12 +56,13 @@
 		)
 
 	$effect(() => {
-		const id = inExperience ? universeId : 0
+		const id = inExperience ? universeId : 0,
+			placeId = joinPlaceId
 		place = null
-		if (id <= 0) return
+		if (id <= 0 || placeId <= 0) return
 		let current = true
-		void loadGamePlace(id).then((result) => {
-			if (current) place = result
+		void loadGamePlace(id, placeId).then((result) => {
+			if (current) place = result?.place ?? null
 			return result
 		})
 		return () => {
