@@ -79,24 +79,15 @@ jobs:
             run:
                 shell: "pwsh"
         steps:
-            - name: "Pause Defender scanning"
-              run: |
-                  try {
-                      Set-MpPreference -DisableRealtimeMonitoring $true -ErrorAction Stop
-                  } catch {
-                      Write-Warning "Defender scanning could not be paused: $_"
-                  }
-
             - name: "Check out"
               uses: "actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1"
               with:
                   persist-credentials: false
 
-            - name: "Set up Go"
-              uses: "actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e"
+            - name: "Set up"
+              uses: "./.github/actions/setup"
               with:
-                  go-version-file: "go.mod"
-                  cache-dependency-path: "go.sum"
+                  bun: "false"
 
             - name: "Download builds"
               uses: "actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c"

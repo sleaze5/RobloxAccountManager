@@ -42,6 +42,24 @@ The application reads `releases/latest/download/manifest.json`, so it never offe
 
 To test a build without a release, run the "Build" workflow from the Actions tab and choose the branch and the target. The run keeps the packaged files for 7 days, with the same names as release assets. Test builds are not added to the update manifest.
 
+### Checks
+
+`task check` runs two scopes in parallel, and each runs its own steps in parallel:
+
+- `task check:common` validates what does not depend on the operating system: frontend formatting, lint, and `svelte-check`, Go formatting, and whether `go.mod` and `go.sum` are tidy.
+- `task check:native` runs `go vet`, staticcheck, and `go build`. Go compiles only the files of the current operating system, so this scope must run on each one.
+
+`task fix` still applies every fix and then runs `task check`.
+
+The "Check" workflow in `.github/workflows/check.yml` runs on every pull request and every push to `main`. A newer run cancels an older one for the same pull request or branch.
+
+- **Scope** finds the changed files. The native scope runs only when Go files, `go.mod`, `go.sum`, a Taskfile, or `.github/` changed, or when there is no base to compare with.
+- **Common** runs `task check:common` once on Linux.
+- **Native** runs `task check:native` on each supported operating system at the same time, when the native scope runs.
+- **CI** passes only when every other job passed or was skipped. Require only this check in branch protection.
+
+`.github/actions/setup` is the only definition of how a runner is prepared for task commands. The check, build, and release workflows all use it.
+
 ### Update signing
 
 - The `UPDATER_PRIVATE_KEY` repository secret signs `manifest.json`. Never commit the private key.
