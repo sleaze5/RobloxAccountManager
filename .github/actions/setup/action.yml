@@ -9,7 +9,6 @@ inputs:
 runs:
     using: composite
     steps:
-        # Defender real-time scanning slows builds on the disposable runners.
         - name: Pause Defender scanning
           if: runner.os == 'Windows'
           shell: pwsh
