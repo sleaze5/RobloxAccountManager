@@ -105,7 +105,7 @@ jobs:
                   if (-not $env:UPDATER_PRIVATE_KEY) {
                       throw "Add the UPDATER_PRIVATE_KEY repository secret before you release."
                   }
-                  $wails = [regex]::Match((Get-Content -LiteralPath "Taskfile.yml" -Raw), 'WAILS_CLI: "([^"]+)"').Groups[1].Value
+                  $wails = [regex]::Match((Get-Content -LiteralPath "Taskfile.yml" -Raw), '(?m)^\s*WAILS_CLI:\s*["'']?([^"''\s]+)').Groups[1].Value
                   if (-not $wails) {
                       throw "WAILS_CLI was not found in Taskfile.yml."
                   }
