@@ -1,0 +1,133 @@
+name: "Build targets"
+
+on:
+    workflow_call:
+        inputs:
+            targets:
+                description: "Space-separated build targets of one operating system"
+                required: true
+                type: "string"
+            artifact:
+                description: "Name of the uploaded artifact"
+                required: true
+                type: "string"
+            retention-days:
+                description: "Days to keep the artifact"
+                required: true
+                type: "number"
+
+permissions:
+    contents: "read"
+
+jobs:
+    build:
+        name: "Build"
+        runs-on: "${{ startsWith(inputs.targets, 'windows-') && 'windows-2025' || 'ubuntu-24.04' }}"
+        timeout-minutes: 30
+        env:
+            CGO_ENABLED: "1"
+            TARGETS: "${{ inputs.targets }}"
+        steps:
+            # Defender real-time scanning slows builds on the disposable runners.
+            - name: "Pause Defender scanning"
+              if: "runner.os == 'Windows'"
+              shell: "pwsh"
+              run: |
+                  try {
+                      Set-MpPreference -DisableRealtimeMonitoring $true -ErrorAction Stop
+                  } catch {
+                      Write-Warning "Defender scanning could not be paused: $_"
+                  }
+
+            - name: "Check out"
+              uses: "actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1"
+              with:
+                  persist-credentials: false
+
+            - name: "Install system libraries"
+              if: "runner.os == 'Linux'"
+              run: |
+                  sudo apt-get update
+                  sudo apt-get install -y --no-install-recommends libgtk-4-dev libwebkitgtk-6.0-dev
+
+            - name: "Set up Go"
+              uses: "actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e"
+              with:
+                  go-version-file: "go.mod"
+                  cache-dependency-path: "go.sum"
+
+            - name: "Set up Bun"
+              uses: "oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6"
+              with:
+                  bun-version: "1.3.x"
+
+            - name: "Set up Task"
+              uses: "go-task/setup-task@a00fbb05ce67b35648be3c78cbc9fd85354c757e"
+              with:
+                  version: "3.x"
+
+            - name: "Build"
+              if: "runner.os == 'Windows'"
+              shell: "pwsh"
+              run: |
+                  foreach ($target in $env:TARGETS -split " ") {
+                      task "build:$target"
+                      if ($LASTEXITCODE -ne 0) {
+                          throw "Build $target failed with exit code $LASTEXITCODE"
+                      }
+                  }
+
+            - name: "Build"
+              if: "runner.os != 'Windows'"
+              run: |
+                  set -eu
+                  for target in $TARGETS; do
+                      task "build:$target"
+                  done
+
+            - name: "Check that the build did not change source files"
+              shell: "bash"
+              run: |
+                  changes=$(git status --porcelain)
+                  if [ -n "$changes" ]; then
+                      printf 'The build changed source files. Run task fix, commit, and build again.\n%s\n' "$changes" >&2
+                      exit 1
+                  fi
+
+            - name: "Package"
+              if: "runner.os == 'Windows'"
+              shell: "pwsh"
+              run: |
+                  $package = Join-Path $env:RUNNER_TEMP "package"
+                  New-Item -ItemType Directory -Force -Path $package | Out-Null
+                  foreach ($target in $env:TARGETS -split " ") {
+                      $executable = "dist/$target/RobloxAccountManager.exe"
+                      switch ($target) {
+                          "windows-amd64" {
+                              Copy-Item -LiteralPath $executable -Destination $package
+                              Compress-Archive -LiteralPath $executable -DestinationPath (Join-Path $package "RobloxAccountManager-windows-x64.zip")
+                          }
+                          default { throw "No package is defined for $target" }
+                      }
+                  }
+
+            - name: "Package"
+              if: "runner.os != 'Windows'"
+              run: |
+                  set -eu
+                  package="$RUNNER_TEMP/package"
+                  mkdir -p "$package"
+                  for target in $TARGETS; do
+                      case "$target" in
+                          linux-amd64) tar -czf "$package/RobloxAccountManager-linux-x64.tar.gz" -C "dist/$target" RobloxAccountManager ;;
+                          *) echo "No package is defined for $target" >&2; exit 1 ;;
+                      esac
+                  done
+
+            - name: "Upload"
+              uses: "actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a"
+              with:
+                  name: "${{ inputs.artifact }}"
+                  path: "${{ runner.temp }}/package"
+                  if-no-files-found: "error"
+                  retention-days: "${{ inputs.retention-days }}"

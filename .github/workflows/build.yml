@@ -1,0 +1,24 @@
+name: "Build"
+
+on:
+    workflow_dispatch:
+        inputs:
+            target:
+                description: "Target to build"
+                required: true
+                type: "choice"
+                options:
+                    - "windows-amd64"
+                    - "linux-amd64"
+
+permissions:
+    contents: "read"
+
+jobs:
+    build:
+        name: "Build ${{ inputs.target }}"
+        uses: "./.github/workflows/build-targets.yml"
+        with:
+            targets: "${{ inputs.target }}"
+            artifact: "RobloxAccountManager-${{ inputs.target }}-build-${{ github.run_number }}"
+            retention-days: 7
