@@ -24,7 +24,7 @@ A Linux build links the system GTK 4 and WebKitGTK 6 libraries. Release builds c
 
 `internal/appmeta/VERSION` is the only source of the application version. It uses `MAJOR.MINOR.PATCH` with an optional `-PRERELEASE` suffix. Go embeds it, the frontend reads it as `APP_VERSION`, and the build writes it into the Windows version resource. Do not write the version anywhere else.
 
-To release, change `VERSION`, run `task fix`, push to `main`, and run the manual "Release" workflow in `.github/workflows/release.yml`. The workflow first checks that it runs on `main` and that tag `v<version>` does not exist. Then it builds Linux on Ubuntu 24.04 and Windows on Windows Server 2025 in parallel. A build fails when it changes source files. The publish job signs the manifest and creates the release only after both builds succeed. The Windows jobs pause Defender real-time scanning, because it slows builds on the disposable runners. The workflow publishes:
+To release, change `VERSION`, run `task fix`, push to `main`, and run the manual "Release" workflow in `.github/workflows/release.yml`. The workflow first checks that it runs on `main` and that tag `v<version>` does not exist. Then it builds Linux on Ubuntu 24.04 and Windows on Windows Server 2025 in parallel, through the reusable `.github/workflows/build-targets.yml`. A build fails when it changes source files. The publish job signs the manifest and creates the release only after both builds succeed. The Windows jobs pause Defender real-time scanning, because it slows builds on the disposable runners. The workflow publishes:
 
 - `RobloxAccountManager.exe`: the Windows executable for manual download.
 - `RobloxAccountManager-windows-x64.zip`: the Windows updater artifact.
@@ -35,6 +35,12 @@ To release, change `VERSION`, run `task fix`, push to `main`, and run the manual
 Each archive must contain only the executable, because the updater accepts exactly one top-level entry. Wails reads the platform and architecture from each archive name, so keep the `<os>-x64` part.
 
 The application reads `releases/latest/download/manifest.json`, so it never offers a prerelease.
+
+### Test builds
+
+`.github/workflows/build-targets.yml` is the only definition of how a target is set up, built, checked, and packaged. The "Release" workflow calls it for each operating system, and the manual "Build" workflow in `.github/workflows/build.yml` calls it for one target. Add a target there once, and both workflows build it the same way.
+
+To test a build without a release, run the "Build" workflow from the Actions tab and choose the branch and the target. The run keeps the packaged files for 7 days, with the same names as release assets. Test builds are not added to the update manifest.
 
 ### Update signing
 
