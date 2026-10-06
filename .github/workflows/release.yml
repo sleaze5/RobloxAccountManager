@@ -2,6 +2,11 @@ name: Release
 
 on:
     workflow_dispatch:
+        inputs:
+            rehearsal:
+                description: Rehearse release preparation with a throwaway signing key. Nothing is published.
+                type: boolean
+                default: false
 
 permissions:
     contents: read
@@ -17,10 +22,13 @@ jobs:
         timeout-minutes: 5
         env:
             GH_TOKEN: ${{ github.token }}
+            REHEARSAL: ${{ inputs.rehearsal }}
         outputs:
             version: ${{ steps.version.outputs.version }}
             tag: ${{ steps.version.outputs.tag }}
             prerelease: ${{ steps.version.outputs.prerelease }}
+            matrix: ${{ steps.targets.outputs.matrix }}
+            targets: ${{ steps.targets.outputs.targets }}
         steps:
             - name: Check out
               uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
@@ -30,15 +38,23 @@ jobs:
             - name: Read version
               id: version
               run: |
-                  if [ "$GITHUB_REF" != "refs/heads/main" ]; then
-                      echo "Run the release from the main branch." >&2
-                      exit 1
-                  fi
+                  set -euo pipefail
                   version=$(tr -d '[:space:]' < internal/appmeta/VERSION)
                   tag="v$version"
-                  if gh api "repos/$GITHUB_REPOSITORY/git/ref/tags/$tag" --silent 2>/dev/null; then
-                      echo "Tag $tag already exists. Change internal/appmeta/VERSION before you release." >&2
-                      exit 1
+                  if [ "$REHEARSAL" != "true" ]; then
+                      if [ "$GITHUB_REF" != "refs/heads/main" ]; then
+                          echo "Run the release from the main branch." >&2
+                          exit 1
+                      fi
+                      # Only a confirmed 404 means the tag is free. gh release create
+                      # would attach the release to an existing tag and ignore --target.
+                      if output=$(gh api "repos/$GITHUB_REPOSITORY/git/ref/tags/$tag" 2>&1); then
+                          echo "Tag $tag already exists. Change internal/appmeta/VERSION before you release." >&2
+                          exit 1
+                      elif ! grep -q "HTTP 404" <<< "$output"; then
+                          printf 'Could not check whether tag %s exists:\n%s\n' "$tag" "$output" >&2
+                          exit 1
+                      fi
                   fi
                   case "$version" in
                       *-*) prerelease=true ;;
@@ -50,24 +66,33 @@ jobs:
                       echo "prerelease=$prerelease"
                   } >> "$GITHUB_OUTPUT"
 
+            - name: Define targets
+              id: targets
+              run: |
+                  set -euo pipefail
+                  matrix='[
+                      {"name": "linux", "targets": "linux-amd64"},
+                      {"name": "windows", "targets": "windows-amd64"}
+                  ]'
+                  {
+                      echo "matrix=$(jq -c . <<< "$matrix")"
+                      echo "targets=$(jq -r '[.[].targets] | join(" ")' <<< "$matrix")"
+                  } >> "$GITHUB_OUTPUT"
+
     build:
         name: Build ${{ matrix.name }}
         needs: check
         strategy:
             matrix:
-                include:
-                    - name: linux
-                      targets: linux-amd64
-                    - name: windows
-                      targets: windows-amd64
+                include: ${{ fromJSON(needs.check.outputs.matrix) }}
         uses: ./.github/workflows/build-targets.yml
         with:
             targets: ${{ matrix.targets }}
             artifact: ${{ matrix.name }}
-            retention-days: 1
+            retention-days: 7
 
     publish:
-        name: Publish
+        name: ${{ inputs.rehearsal && 'Rehearse' || 'Publish' }}
         needs:
             - check
             - build
@@ -76,15 +101,13 @@ jobs:
         permissions:
             contents: write
         env:
-            # The Wails CLI links WebKitGTK when cgo is on, and this job skips
-            # those libraries. Without cgo, Go also never reuses a cgo build of
-            # the CLI from the shared build cache.
-            CGO_ENABLED: "0"
             GH_TOKEN: ${{ github.token }}
-            VERSION: ${{ needs.check.outputs.version }}
             TAG: ${{ needs.check.outputs.tag }}
             PRERELEASE: ${{ needs.check.outputs.prerelease }}
         steps:
+            - name: Choose the release folder
+              run: echo "RELEASE=$RUNNER_TEMP/release" >> "$GITHUB_ENV"
+
             - name: Check out
               uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
               with:
@@ -93,55 +116,38 @@ jobs:
             - name: Set up
               uses: ./.github/actions/setup
               with:
-                  bun: "false"
                   system-libraries: "false"
 
             - name: Download builds
               uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c
               with:
-                  path: ${{ runner.temp }}/release
+                  path: ${{ env.RELEASE }}
                   merge-multiple: true
 
-            - name: Package and sign
-              id: package
+            - name: Prepare release
               env:
-                  UPDATER_PRIVATE_KEY: ${{ secrets.UPDATER_PRIVATE_KEY }}
-              run: |
-                  set -euo pipefail
-                  if [ -z "${UPDATER_PRIVATE_KEY:-}" ]; then
-                      echo "Add the UPDATER_PRIVATE_KEY repository secret before you release." >&2
-                      exit 1
-                  fi
-                  wails=$(sed -nE "s/^[[:space:]]*WAILS_CLI:[[:space:]]*[\"']?([^\"'[:space:]]+).*/\1/p" Taskfile.yml | head -n 1)
-                  if [ -z "$wails" ]; then
-                      echo "WAILS_CLI was not found in Taskfile.yml." >&2
-                      exit 1
-                  fi
-                  release="$RUNNER_TEMP/release"
-                  manifest="$release/manifest.json"
-                  key="$RUNNER_TEMP/updater.key"
-                  trap 'rm -f "$key"' EXIT
-                  (umask 077 && printf '%s' "$UPDATER_PRIVATE_KEY" > "$key")
-                  go run "$wails" updater manifest -version "$VERSION" -key "$key" \
-                      -url-prefix "https://github.com/$GITHUB_REPOSITORY/releases/download/$TAG/" \
-                      -output "$manifest" \
-                      "$release/RobloxAccountManager-windows-x64.zip" \
-                      "$release/RobloxAccountManager-linux-x64.tar.gz"
-                  rm -f "$key"
-                  go run "$wails" updater verify -manifest "$manifest" -publickey internal/appmeta/updater.key.pub
-                  echo "directory=$release" >> "$GITHUB_OUTPUT"
+                  SIGNING: ${{ inputs.rehearsal && 'rehearsal' || 'production' }}
+                  TARGETS: ${{ needs.check.outputs.targets }}
+                  UPDATER_PRIVATE_KEY: ${{ !inputs.rehearsal && secrets.UPDATER_PRIVATE_KEY || '' }}
+              run: task release:prepare RELEASE_DIR="$RELEASE" TARGETS="$TARGETS" REPOSITORY="$GITHUB_REPOSITORY" SIGNING="$SIGNING"
+
+            - name: Upload rehearsal
+              if: inputs.rehearsal
+              uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+              with:
+                  name: release-rehearsal
+                  path: ${{ env.RELEASE }}
+                  if-no-files-found: error
+                  retention-days: 7
 
             - name: Publish release
-              env:
-                  RELEASE: ${{ steps.package.outputs.directory }}
+              if: ${{ !inputs.rehearsal }}
               run: |
                   set -euo pipefail
+                  mapfile -t assets < <(find "$RELEASE" -maxdepth 1 -type f \( -name '*.zip' -o -name '*.tar.gz' -o -name '*.exe' -o -name manifest.json \) | sort)
                   arguments=(
                       release create "$TAG"
-                      "$RELEASE/RobloxAccountManager.exe"
-                      "$RELEASE/RobloxAccountManager-windows-x64.zip"
-                      "$RELEASE/RobloxAccountManager-linux-x64.tar.gz"
-                      "$RELEASE/manifest.json"
+                      "${assets[@]}"
                       THIRD_PARTY_LICENSES.txt
                       --target "$GITHUB_SHA"
                       --title "$TAG"
