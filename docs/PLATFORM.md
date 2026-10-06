@@ -52,7 +52,7 @@ Release bundles carry an ad hoc signature and are not notarized. Gatekeeper bloc
 
 `internal/appmeta/VERSION` is the only source of the application version. It uses `MAJOR.MINOR.PATCH` with an optional `-PRERELEASE` suffix. Go embeds it, the frontend reads it as `APP_VERSION`, and the build writes it into the Windows version resource. Do not write the version anywhere else.
 
-To release, change `VERSION`, run `task fix`, push to `main`, and run the manual "Release" workflow in `.github/workflows/release.yml`. The workflow first checks that it runs on `main` and that tag `v<version>` does not exist. Then it builds Linux on Ubuntu 24.04, macOS on macOS 15, and Windows on Windows Server 2025 in parallel. The macOS job builds both architectures on Apple silicon. The Windows job builds x64 and cross-compiles ARM64 with a pinned, checksum-verified llvm-mingw release. A build fails when it changes source files. The publish job signs the manifest and creates the release only after every build succeeds. The Windows jobs pause Defender real-time scanning, because it slows builds on the disposable runners. The workflow publishes:
+To release, change `VERSION`, run `task fix`, push to `main`, and run the manual "Release" workflow in `.github/workflows/release.yml`. The workflow first checks that it runs on `main` and that tag `v<version>` does not exist. Then it builds Linux on Ubuntu 24.04, macOS on macOS 15, and Windows on Windows Server 2025 in parallel, through the reusable `.github/workflows/build-targets.yml`. The macOS job builds both architectures on Apple silicon. The Windows job builds x64 and cross-compiles ARM64 with a pinned, checksum-verified llvm-mingw release. A build fails when it changes source files. The publish job signs the manifest and creates the release only after every build succeeds. The Windows jobs pause Defender real-time scanning, because it slows builds on the disposable runners. The workflow publishes:
 
 - `RobloxAccountManager.exe`: the Windows executable for manual download.
 - `RobloxAccountManager-windows-x64.zip`: the Windows updater artifact.
@@ -69,9 +69,11 @@ The application reads `releases/latest/download/manifest.json`, so it never offe
 
 ### Test builds
 
-The manual "Build" workflow in `.github/workflows/build.yml` builds one target from any branch without a release. Choose the branch and the target in the Actions tab. It runs `task build:<target>` and attaches the result to the run for 7 days: the Windows executable, a Linux `.tar.gz`, or a zipped macOS bundle. Archives keep the executable permission that artifact uploads drop. Test builds are not signed for updates and do not appear in the update manifest. GitHub shows the workflow only after it is on the default branch.
+`.github/workflows/build-targets.yml` is the only definition of how a target is set up, built, checked, and packaged. The "Release" workflow calls it for each operating system, and the manual "Build" workflow in `.github/workflows/build.yml` calls it for one target. Add a target there once, and both workflows build it the same way.
 
-The pinned llvm-mingw release for Windows ARM64 is set up by `.github/actions/setup-llvm-mingw`, which both workflows use. Change its version and checksum there.
+To test a build without a release, run the "Build" workflow from the Actions tab and choose the branch and the target. The run keeps the packaged files for 7 days, with the same names as release assets. Test builds are not added to the update manifest.
+
+The pinned llvm-mingw release for Windows ARM64 is set up by `.github/actions/setup-llvm-mingw`. Change its version and checksum there.
 
 ### Update signing
 
