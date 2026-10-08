@@ -204,8 +204,8 @@
 								><td colspan="3" class="process-empty">
 									<span role="status">
 										{#if loading}Loading processes…
-										{:else if snapshot?.supported === false}Available
-											on Windows only.
+										{:else if snapshot?.supported === false}Not
+											available on this system.
 										{:else if loadError}Process list unavailable.
 										{:else}No Roblox processes are running.{/if}
 									</span>

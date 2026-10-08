@@ -26,7 +26,7 @@ func (service *Service) removeLeftovers() {
 	var paths []string
 	if executable, err := os.Executable(); err == nil {
 		paths, _ = filepath.Glob(executable + ".old.*")
-		service.removeStaging(filepath.Dir(executable))
+		service.removeStaging(filepath.Dir(installTarget(executable)))
 	}
 	if log := os.Getenv(helperLogVariable); log != "" {
 		_ = os.Unsetenv(helperLogVariable)

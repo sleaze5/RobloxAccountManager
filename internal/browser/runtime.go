@@ -535,6 +535,8 @@ func extractRuntime(ctx context.Context, archive, destination string) error {
 	if err := os.Mkdir(destination, 0o755); err != nil {
 		return err
 	}
+	// Links are created after every file, so no file is written through one.
+	var links []archiveLink
 	for _, entry := range reader.File {
 		if err := ctx.Err(); err != nil {
 			return err
@@ -548,7 +550,15 @@ func extractRuntime(ctx context.Context, archive, destination string) error {
 		}
 		target := filepath.Join(destination, name)
 		if entry.FileInfo().Mode()&os.ModeSymlink != 0 {
-			return errors.New("browser archive contains a link")
+			if !runtimeArchiveLinks {
+				return errors.New("browser archive contains a link")
+			}
+			link, err := readArchiveLink(entry)
+			if err != nil {
+				return err
+			}
+			links = append(links, archiveLink{path: target, target: link})
+			continue
 		}
 		if entry.FileInfo().IsDir() {
 			if err := os.MkdirAll(target, 0o755); err != nil {
@@ -578,7 +588,47 @@ func extractRuntime(ctx context.Context, archive, destination string) error {
 			return closeErr
 		}
 	}
+	for _, link := range links {
+		if err := os.MkdirAll(filepath.Dir(link.path), 0o755); err != nil {
+			return err
+		}
+		if err := os.Symlink(link.target, link.path); err != nil {
+			return err
+		}
+	}
 	return nil
+}
+
+type archiveLink struct {
+	path   string
+	target string
+}
+
+// Without absolute targets or parent references, no chain of links can leave
+// the runtime.
+func readArchiveLink(entry *zip.File) (string, error) {
+	if entry.UncompressedSize64 == 0 || entry.UncompressedSize64 > 4096 {
+		return "", errors.New("browser archive contains an invalid link")
+	}
+	source, err := entry.Open()
+	if err != nil {
+		return "", err
+	}
+	defer source.Close()
+	data, err := io.ReadAll(io.LimitReader(source, 4097))
+	if err != nil {
+		return "", err
+	}
+	target := string(data)
+	if len(data) > 4096 || strings.ContainsRune(target, 0) || strings.HasPrefix(target, "/") || filepath.IsAbs(target) {
+		return "", errors.New("browser archive contains an unsafe link")
+	}
+	for _, part := range strings.Split(target, "/") {
+		if part == ".." {
+			return "", errors.New("browser archive contains an unsafe link")
+		}
+	}
+	return target, nil
 }
 
 func validateRuntimeFiles(root string) error {
@@ -633,7 +683,8 @@ func removeManagedDirectory(root, target string) error {
 		if walkErr != nil {
 			return walkErr
 		}
-		if entry.Type()&os.ModeSymlink != 0 {
+		// RemoveAll removes a link without following it.
+		if entry.Type()&os.ModeSymlink != 0 && !runtimeArchiveLinks {
 			return errors.New("refusing managed-directory cleanup containing a link")
 		}
 		return nil

@@ -259,6 +259,8 @@ func (process *windowsBrowserProcess) AllWindowsClosed() <-chan struct{} {
 }
 func (process *windowsBrowserProcess) Exited() <-chan error { return process.exited }
 
+func (process *windowsBrowserProcess) PagesClosed() {}
+
 func (process *windowsBrowserProcess) waitLoop() {
 	_, err := windows.WaitForSingleObject(process.process, windows.INFINITE)
 	<-process.windowMonitorDone

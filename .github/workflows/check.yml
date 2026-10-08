@@ -69,6 +69,7 @@ jobs:
                 os:
                     - ubuntu-24.04
                     - windows-2025
+                    - macos-15
         runs-on: ${{ matrix.os }}
         timeout-minutes: 20
         steps:

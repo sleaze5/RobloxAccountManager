@@ -47,8 +47,11 @@ for (const platform of platforms) {
 		urls[platform] = validateURL(download.url, stable.version, platform)
 	}
 }
-if (!urls.win64) {
-	throw new Error("The Stable channel has no win64 Chrome download")
+// The application refuses to start on a platform without a download.
+for (const platform of ["linux64", "mac-arm64", "mac-x64", "win64"] as const) {
+	if (!urls[platform]) {
+		throw new Error(`The Stable channel has no ${platform} Chrome download`)
+	}
 }
 
 const manifest = {

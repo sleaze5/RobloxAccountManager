@@ -9,16 +9,19 @@ import (
 	"github.com/sleaze5/RobloxAccountManager/internal/logging"
 )
 
+type Relaunch func(arguments []string) error
+
 type Location struct {
-	mu     sync.Mutex
-	state  appdata.Location
-	paths  appdata.Paths
-	launch *logging.Launch
-	logger *slog.Logger
+	mu       sync.Mutex
+	state    appdata.Location
+	paths    appdata.Paths
+	launch   *logging.Launch
+	relaunch Relaunch
+	logger   *slog.Logger
 }
 
-func NewLocation(state appdata.Location, paths appdata.Paths, launch *logging.Launch, logger *slog.Logger) *Location {
-	return &Location{state: state, paths: paths, launch: launch, logger: logger}
+func NewLocation(state appdata.Location, paths appdata.Paths, launch *logging.Launch, relaunch Relaunch, logger *slog.Logger) *Location {
+	return &Location{state: state, paths: paths, launch: launch, relaunch: relaunch, logger: logger}
 }
 
 func (location *Location) State() appdata.Location {
@@ -27,21 +30,67 @@ func (location *Location) State() appdata.Location {
 	return location.state
 }
 
-func (location *Location) Confirm() error {
+// The provisional process runs with default settings and without vault
+// startup, so only an empty provisional root continues in place. Any other
+// choice restarts, and the new process opens that root normally.
+func (location *Location) Confirm(mode appdata.Mode) (bool, error) {
 	location.mu.Lock()
 	defer location.mu.Unlock()
 	if location.state.Initialized {
-		return nil
+		return false, nil
 	}
-	if err := location.paths.Prepare(); err != nil {
-		location.logger.Error("application folder setup failed", "operation", "location-setup", "error", err)
-		return errors.New("the storage folder could not be created")
+	candidate, ok := location.state.Candidate(mode)
+	if !ok {
+		return false, errors.New("this storage option is unavailable")
 	}
-	if err := location.launch.Release(); err != nil {
-		location.logger.Error("application log setup failed", "operation", "location-setup", "error", err)
-		return errors.New("the logs folder could not be created")
+	restart := mode != location.state.Mode || candidate.State != appdata.RootEmpty
+	paths := location.paths
+	if restart {
+		var err error
+		if paths, err = appdata.At(candidate.Directory); err != nil {
+			location.logger.Error("data folder rejected", "operation", "location-setup", "mode", mode, "error", err)
+			return false, errors.New("the storage folder cannot be on a network drive")
+		}
 	}
-	location.logger.Info("application folder set up", "operation", "location-setup", "other_items", location.state.OtherItemCount)
-	location.state = appdata.Location{Directory: location.state.Directory, Initialized: true, OtherItems: []string{}}
+	if err := paths.Prepare(); err != nil {
+		location.logger.Error("data folder setup failed", "operation", "location-setup", "mode", mode, "error", err)
+		return false, errors.New("the storage folder could not be created")
+	}
+	if err := location.launch.Release(candidate.Directory); err != nil {
+		location.logger.Error("application log setup failed", "operation", "location-setup", "mode", mode, "error", err)
+		return false, errors.New("the logs folder could not be created")
+	}
+	location.logger.Info("data folder set up", "operation", "location-setup", "mode", mode,
+		"choice", location.state.Choice, "state", candidate.State, "other_items", candidate.OtherItemCount, "restart", restart)
+	if restart {
+		if err := location.relaunch(appdata.RestartArguments(mode)); err != nil {
+			location.logger.Error("application restart failed", "operation", "location-setup", "mode", mode, "error", err)
+			return false, errors.New("the app could not restart. Open it again")
+		}
+		return true, nil
+	}
+	location.state.Initialized, location.state.Choice = true, appdata.ChoiceNone
+	return false, nil
+}
+
+func (location *Location) Move(mode appdata.Mode) error {
+	location.mu.Lock()
+	defer location.mu.Unlock()
+	if !location.state.Initialized || mode == location.state.Mode {
+		return errors.New("this storage option is unavailable")
+	}
+	if err := appdata.CheckMove(mode); err != nil {
+		location.logger.Warn("data move rejected", "operation", "data-move", "target", mode, "error", err)
+		var moveError *appdata.MoveError
+		if errors.As(err, &moveError) {
+			return errors.New(moveError.Message)
+		}
+		return errors.New("the data could not be moved")
+	}
+	if err := location.relaunch(appdata.MoveArguments(mode)); err != nil {
+		location.logger.Error("application restart failed", "operation", "data-move", "target", mode, "error", err)
+		return errors.New("the app could not restart. Try again")
+	}
+	location.logger.Info("data move requested", "operation", "data-move", "target", mode)
 	return nil
 }

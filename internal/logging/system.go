@@ -126,13 +126,13 @@ func (system *System) SetEnabledLevels(levels []Level) error {
 	return nil
 }
 
-func (system *System) Release() error {
+func (system *System) Release(directory string) error {
 	system.mu.Lock()
 	defer system.mu.Unlock()
-	if err := appdata.PreparePrivateDirectory(filepath.Dir(system.writer.path)); err != nil {
+	if err := appdata.PreparePrivateDirectory(directory); err != nil {
 		return err
 	}
-	return system.writer.release(system.filter.any())
+	return system.writer.release(directory, system.filter.any())
 }
 
 func (system *System) Close() error {

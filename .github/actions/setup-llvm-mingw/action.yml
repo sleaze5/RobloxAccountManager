@@ -1,0 +1,24 @@
+name: Set up llvm-mingw
+description: Download the pinned llvm-mingw release and set LLVM_MINGW_BIN to its bin folder.
+
+runs:
+    using: composite
+    steps:
+        - name: Download and verify llvm-mingw
+          shell: pwsh
+          env:
+              LLVM_MINGW_VERSION: "20260922"
+              LLVM_MINGW_SHA256: e3ad77d117a4bea19a7a3b333341824d79a5a371004a10e25b8504e7b3047666
+          run: |
+              $name = "llvm-mingw-$env:LLVM_MINGW_VERSION-ucrt-x86_64"
+              $archive = Join-Path $env:RUNNER_TEMP "$name.zip"
+              Invoke-WebRequest -Uri "https://github.com/mstorsjo/llvm-mingw/releases/download/$env:LLVM_MINGW_VERSION/$name.zip" -OutFile $archive
+              $hash = (Get-FileHash -LiteralPath $archive -Algorithm SHA256).Hash
+              if ($hash -ne $env:LLVM_MINGW_SHA256) {
+                  throw "llvm-mingw checksum mismatch: $hash"
+              }
+              tar -xf $archive -C $env:RUNNER_TEMP
+              if ($LASTEXITCODE -ne 0) {
+                  throw "llvm-mingw extraction failed with exit code $LASTEXITCODE"
+              }
+              "LLVM_MINGW_BIN=$(Join-Path $env:RUNNER_TEMP "$name\bin")" >> $env:GITHUB_ENV

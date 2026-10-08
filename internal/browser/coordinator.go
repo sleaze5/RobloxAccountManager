@@ -113,6 +113,7 @@ type session struct {
 	directory           string
 	targetID            string
 	targetSessions      map[string]string
+	pages               map[string]struct{}
 	secretVersion       int64
 	robloxUserID        int64
 	browserID           string
@@ -256,7 +257,7 @@ func (coordinator *Coordinator) start(ctx context.Context, mode Mode, accountID 
 	currentCtx, cancel := context.WithCancel(coordinator.root)
 	checkpointGate := make(chan struct{}, 1)
 	checkpointGate <- struct{}{}
-	current := &session{state: state, process: process, directory: directory, secretVersion: record.SecretVersion, robloxUserID: account.RobloxUserID, browserID: record.BrowserID, trigger: make(chan struct{}, 1), checkpointGate: checkpointGate, ctx: currentCtx, cancel: cancel, downloads: make(map[string]struct{}), targetSessions: make(map[string]string)}
+	current := &session{state: state, process: process, directory: directory, secretVersion: record.SecretVersion, robloxUserID: account.RobloxUserID, browserID: record.BrowserID, trigger: make(chan struct{}, 1), checkpointGate: checkpointGate, ctx: currentCtx, cancel: cancel, downloads: make(map[string]struct{}), targetSessions: make(map[string]string), pages: make(map[string]struct{})}
 	input, output := process.CDPPipes()
 	current.cdp = NewCDPClient(input, output, func(failure error) { coordinator.failSession(id, failure) })
 	coordinator.mu.Lock()
@@ -443,6 +444,7 @@ func (coordinator *Coordinator) handleSessionEvent(current *session, event cdpMe
 		if json.Unmarshal(event.Params, &params) == nil && params.TargetInfo.Type == "page" {
 			coordinator.mu.Lock()
 			current.targetID = params.TargetInfo.TargetID
+			current.pages[params.TargetInfo.TargetID] = struct{}{}
 			coordinator.mu.Unlock()
 		}
 	case "Target.targetDestroyed":
@@ -455,7 +457,13 @@ func (coordinator *Coordinator) handleSessionEvent(current *session, event cdpMe
 			if current.targetID == params.TargetID {
 				current.targetID = ""
 			}
+			_, page := current.pages[params.TargetID]
+			delete(current.pages, params.TargetID)
+			lastPage := page && len(current.pages) == 0
 			coordinator.mu.Unlock()
+			if lastPage {
+				current.process.PagesClosed()
+			}
 		}
 	case "Target.detachedFromTarget":
 		var params struct {

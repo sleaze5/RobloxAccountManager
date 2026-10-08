@@ -13,7 +13,6 @@ import (
 	"runtime/debug"
 	"strings"
 
-	"github.com/sleaze5/RobloxAccountManager/internal/appdata"
 	"github.com/sleaze5/RobloxAccountManager/internal/appmeta"
 )
 
@@ -23,15 +22,16 @@ const (
 )
 
 type crashCapture struct {
-	launchID string
-	pipe     *os.File
-	command  *exec.Cmd
+	launchID  string
+	directory string
+	pipe      *os.File
+	command   *exec.Cmd
 }
 
 func (system *System) CaptureCrashes(launchID string) error {
 	system.mu.Lock()
 	defer system.mu.Unlock()
-	capture := &crashCapture{launchID: launchID}
+	capture := &crashCapture{launchID: launchID, directory: filepath.Dir(system.writer.path)}
 	if err := capture.setEnabled(system.filter.includes(slog.LevelError)); err != nil {
 		return err
 	}
@@ -50,7 +50,7 @@ func (capture *crashCapture) setEnabled(enabled bool) error {
 	if err != nil {
 		return err
 	}
-	command := exec.Command(executable, crashMonitorArgument, capture.launchID)
+	command := exec.Command(executable, crashMonitorArgument, capture.launchID, capture.directory)
 	hideCrashMonitor(command)
 	pipe, err := command.StdinPipe()
 	if err != nil {
@@ -83,8 +83,12 @@ func (capture *crashCapture) close() error {
 }
 
 func RunCrashMonitor() (bool, error) {
-	if len(os.Args) != 3 || os.Args[1] != crashMonitorArgument {
+	if len(os.Args) != 4 || os.Args[1] != crashMonitorArgument {
 		return false, nil
+	}
+	directory := os.Args[3]
+	if !filepath.IsAbs(directory) {
+		return true, errors.New("crash monitor log directory must be absolute")
 	}
 	data, err := io.ReadAll(io.LimitReader(os.Stdin, 1<<20))
 	if err != nil {
@@ -96,12 +100,8 @@ func RunCrashMonitor() (bool, error) {
 	if string(data) == cleanShutdownRecord {
 		return true, nil
 	}
-	root, err := appdata.ExecutableDirectory()
-	if err != nil {
-		return true, err
-	}
 	system, err := Open(Config{
-		Directory: filepath.Join(root, "logs"), LaunchID: os.Args[2], Resume: true,
+		Directory: directory, LaunchID: os.Args[2], Resume: true,
 		EnabledLevels: []Level{LevelError},
 	})
 	if err != nil {

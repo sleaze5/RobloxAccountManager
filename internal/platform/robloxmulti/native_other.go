@@ -32,11 +32,3 @@ func capturePlayers() (*playerProcesses, error)                        { return 
 func (*playerProcesses) count() int                                    { return 0 }
 func (*playerProcesses) close()                                        {}
 func (*playerProcesses) terminate(context.Context, *slog.Logger) error { return nil }
-
-func ListProcesses() (ProcessSnapshot, error) {
-	return ProcessSnapshot{Processes: []Process{}}, nil
-}
-
-func KillProcesses(context.Context, []Process, *slog.Logger) error {
-	return errors.New("killing Roblox processes is only available on Windows")
-}

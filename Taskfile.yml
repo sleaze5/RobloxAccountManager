@@ -11,6 +11,7 @@ includes:
     common: ./build/Taskfile.yml
     windows: ./build/windows/Taskfile.yml
     linux: ./build/linux/Taskfile.yml
+    darwin: ./build/darwin/Taskfile.yml
 
 tasks:
     update-cft-manifest:
@@ -45,11 +46,14 @@ tasks:
             - task: "{{OS}}:internal:compile"
               vars:
                   DEV: "true"
+                  ARCH: "{{ARCH}}"
 
     internal:run:
         internal: true
         cmds:
             - task: "{{OS}}:internal:run"
+              vars:
+                  ARCH: "{{ARCH}}"
 
     check:
         desc: Validate frontend and backend source
@@ -116,6 +120,18 @@ tasks:
             - task: windows:internal:compile
               vars:
                   DEV: "false"
+                  ARCH: amd64
+
+    build:windows-arm64:
+        desc: Fix, validate, and build the Windows ARM64 application
+        deps:
+            - task: fix
+        cmds:
+            - task: common:internal:frontend:build:production
+            - task: windows:internal:compile
+              vars:
+                  DEV: "false"
+                  ARCH: arm64
 
     build:linux-amd64:
         desc: Fix, validate, and build the Linux AMD64 application
@@ -126,6 +142,28 @@ tasks:
             - task: linux:internal:compile
               vars:
                   DEV: "false"
+
+    build:darwin-arm64:
+        desc: Fix, validate, and build the macOS Apple silicon application bundle
+        deps:
+            - task: fix
+        cmds:
+            - task: common:internal:frontend:build:production
+            - task: darwin:internal:compile
+              vars:
+                  DEV: "false"
+                  ARCH: arm64
+
+    build:darwin-amd64:
+        desc: Fix, validate, and build the macOS Intel application bundle
+        deps:
+            - task: fix
+        cmds:
+            - task: common:internal:frontend:build:production
+            - task: darwin:internal:compile
+              vars:
+                  DEV: "false"
+                  ARCH: amd64
 
     release:prepare:
         desc: Sign and verify the update manifest for the release archives in RELEASE_DIR

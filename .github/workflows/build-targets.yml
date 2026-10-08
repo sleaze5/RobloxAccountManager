@@ -22,8 +22,8 @@ permissions:
 jobs:
     build:
         name: Build
-        runs-on: ${{ startsWith(inputs.targets, 'windows-') && 'windows-2025' || 'ubuntu-24.04' }}
-        timeout-minutes: 30
+        runs-on: ${{ startsWith(inputs.targets, 'windows-') && 'windows-2025' || startsWith(inputs.targets, 'darwin-') && 'macos-15' || 'ubuntu-24.04' }}
+        timeout-minutes: 45
         env:
             CGO_ENABLED: "1"
             TARGETS: ${{ inputs.targets }}
@@ -36,11 +36,18 @@ jobs:
             - name: Set up
               uses: ./.github/actions/setup
 
+            - name: Set up ARM64 compiler
+              if: contains(inputs.targets, 'windows-arm64')
+              uses: ./.github/actions/setup-llvm-mingw
+
             - name: Build
               if: runner.os == 'Windows'
               shell: pwsh
               run: |
+                  $path = $env:PATH
                   foreach ($target in $env:TARGETS -split " ") {
+                      # Append, so gcc still resolves to the runner's x64 MinGW.
+                      $env:PATH = if ($target -eq "windows-arm64") { "$path;$env:LLVM_MINGW_BIN" } else { $path }
                       task "build:$target"
                       if ($LASTEXITCODE -ne 0) {
                           throw "Build $target failed with exit code $LASTEXITCODE"
@@ -77,6 +84,10 @@ jobs:
                               Copy-Item -LiteralPath $executable -Destination $package
                               Compress-Archive -LiteralPath $executable -DestinationPath (Join-Path $package "RobloxAccountManager-windows-x64.zip")
                           }
+                          "windows-arm64" {
+                              Copy-Item -LiteralPath $executable -Destination (Join-Path $package "RobloxAccountManager-arm64.exe")
+                              Compress-Archive -LiteralPath $executable -DestinationPath (Join-Path $package "RobloxAccountManager-windows-arm64.zip")
+                          }
                           default { throw "No package is defined for $target" }
                       }
                   }
@@ -90,6 +101,8 @@ jobs:
                   for target in $TARGETS; do
                       case "$target" in
                           linux-amd64) tar -czf "$package/RobloxAccountManager-linux-x64.tar.gz" -C "dist/$target" RobloxAccountManager ;;
+                          darwin-arm64) ditto -c -k --sequesterRsrc --keepParent "dist/$target/RobloxAccountManager.app" "$package/RobloxAccountManager-macos-arm64.zip" ;;
+                          darwin-amd64) ditto -c -k --sequesterRsrc --keepParent "dist/$target/RobloxAccountManager.app" "$package/RobloxAccountManager-macos-x64.zip" ;;
                           *) echo "No package is defined for $target" >&2; exit 1 ;;
                       esac
                   done

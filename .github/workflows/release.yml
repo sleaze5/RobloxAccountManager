@@ -72,7 +72,8 @@ jobs:
                   set -euo pipefail
                   matrix='[
                       {"name": "linux", "targets": "linux-amd64"},
-                      {"name": "windows", "targets": "windows-amd64"}
+                      {"name": "macos", "targets": "darwin-arm64 darwin-amd64"},
+                      {"name": "windows", "targets": "windows-amd64 windows-arm64"}
                   ]'
                   {
                       echo "matrix=$(jq -c . <<< "$matrix")"

@@ -84,6 +84,7 @@ tasks:
                   exit "$status"
               platforms:
                   - linux
+                  - darwin
 
     internal:frontend:update:
         internal: true
@@ -127,6 +128,7 @@ tasks:
             - cmd: sh ./build/linux/wait-for-vite.sh {{.VITE_PORT}}
               platforms:
                   - linux
+                  - darwin
 
     internal:go:format:
         internal: true
@@ -140,6 +142,7 @@ tasks:
                   find main.go internal -type f -name '*.go' -exec gofmt -w {} +
               platforms:
                   - linux
+                  - darwin
 
     internal:go:format:check:
         internal: true
@@ -157,6 +160,7 @@ tasks:
                   fi
               platforms:
                   - linux
+                  - darwin
 
     internal:go:tidy:
         internal: true

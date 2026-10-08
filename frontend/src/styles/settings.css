@@ -306,6 +306,13 @@
 	font-size: var(--text-12);
 }
 
+.settings-row-copy > .settings-row-path {
+	color: var(--color-text-faint);
+	font-family: var(--font-mono);
+	font-size: var(--text-11);
+	overflow-wrap: anywhere;
+}
+
 .settings-row-detail {
 	display: flex;
 	align-items: center;

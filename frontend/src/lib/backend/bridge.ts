@@ -18,7 +18,15 @@ export type {
 	TimestampFormats,
 	VaultState,
 } from "../../../bindings/github.com/sleaze5/RobloxAccountManager/internal/appservice/models.js"
-export type { Location as AppLocation } from "../../../bindings/github.com/sleaze5/RobloxAccountManager/internal/appdata/models.js"
+export type {
+	Candidate as StorageCandidate,
+	Location as AppLocation,
+} from "../../../bindings/github.com/sleaze5/RobloxAccountManager/internal/appdata/models.js"
+export {
+	ChoiceReason,
+	Mode as StorageMode,
+	RootState,
+} from "../../../bindings/github.com/sleaze5/RobloxAccountManager/internal/appdata/models.js"
 export type { State as UpdateState } from "../../../bindings/github.com/sleaze5/RobloxAccountManager/internal/appupdate/models.js"
 export { Status as UpdateStatus } from "../../../bindings/github.com/sleaze5/RobloxAccountManager/internal/appupdate/models.js"
 export {

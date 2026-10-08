@@ -4,7 +4,10 @@ import (
 	"embed"
 	"errors"
 	"fmt"
+	"log/slog"
 	"os"
+	"os/exec"
+	"time"
 
 	"github.com/sleaze5/RobloxAccountManager/internal/appdata"
 	"github.com/sleaze5/RobloxAccountManager/internal/appmeta"
@@ -60,7 +63,15 @@ func run() (runErr error) {
 		_ = instance.Close()
 	}()
 	launch.Begin("single-instance")
-	instance, acquired, err := singleinstance.Acquire(appmeta.Identifier)
+	requested, err := appdata.RequestedMode(os.Args[1:])
+	if err != nil {
+		return err
+	}
+	moveTarget, err := appdata.RequestedMove(os.Args[1:])
+	if err != nil {
+		return err
+	}
+	instance, acquired, err := acquireInstance(requested != "" || moveTarget != "")
 	if err != nil {
 		return err
 	}
@@ -68,20 +79,33 @@ func run() (runErr error) {
 		singleinstance.ShowAlreadyRunning()
 		return nil
 	}
+	var moved bool
+	var moveErr error
+	if moveTarget != "" {
+		launch.Begin("data-move")
+		if moved, moveErr = appdata.Move(moveTarget); moved {
+			requested = moveTarget
+		}
+	}
 	launch.Begin("application-location")
-	location, err := appdata.InspectLocation()
+	location, err := appdata.Inspect(requested)
 	if err != nil {
 		return fmt.Errorf("inspect application location: %w", err)
 	}
+	location.Moved = moved
+	var moveError *appdata.MoveError
+	if errors.As(moveErr, &moveError) {
+		location.MoveError = moveError.Message
+	}
 	launch.Begin("logging")
-	logSystem, err := launch.Open(!location.Initialized)
+	logSystem, err := launch.Open(location.Directory, !location.Initialized)
 	if err != nil {
 		return fmt.Errorf("initialize launch diagnostics: %w", err)
 	}
-	launch.Begin("portable-paths")
+	launch.Begin("data-paths")
 	dataPaths, err := resolvePaths(location)
 	if err != nil {
-		return fmt.Errorf("initialize portable application paths: %w", err)
+		return fmt.Errorf("initialize application data paths: %w", err)
 	}
 	launch.Begin("settings")
 	logging.Diagnostic(logSystem.Module("settings"), "loading application settings", "operation", "settings-load", "supported_format_version", appsettings.FormatVersion)
@@ -104,6 +128,7 @@ func run() (runErr error) {
 	if fields := settingsStore.ReplacedFields(); len(fields) > 0 {
 		logSystem.Module("settings").Warn("invalid settings replaced with defaults", "operation", "settings-load", "fields", fields)
 	}
+	logLocation(logSystem.Module("application.location"), location, requested, moveTarget, moveErr)
 	launch.Begin("roblox-multi-instance")
 	multiInstance := robloxmulti.New(logSystem.Module("platform.roblox-multi-instance"))
 	defer multiInstance.Close()
@@ -151,11 +176,25 @@ func run() (runErr error) {
 	browserCoordinator := browser.NewCoordinator(dataPaths, runtimeManager, coreService, logSystem.Module("browser.coordinator"), events.BrowserChanged)
 	coreService.AttachBrowser(browserCoordinator, runtimeManager)
 	updates := appupdate.New(logSystem.Module("application.updates"), events.UpdateChanged)
-	appLocation := appservice.NewLocation(location, dataPaths, launch, logSystem.Module("application.location"))
+	var app *application.App
+	relaunch := func(arguments []string) error {
+		executable, err := os.Executable()
+		if err != nil {
+			return err
+		}
+		command := exec.Command(executable, arguments...)
+		if err := command.Start(); err != nil {
+			return err
+		}
+		_ = command.Process.Release()
+		go app.Quit()
+		return nil
+	}
+	appLocation := appservice.NewLocation(location, dataPaths, launch, relaunch, logSystem.Module("application.location"))
 	bindingService := bindings.NewService(coreService, appLocation, updates, events, launch)
 
 	launch.Begin("desktop-shell")
-	app := application.New(application.Options{
+	app = application.New(application.Options{
 		Name:        appmeta.DisplayName,
 		Description: appmeta.Description,
 		Logger:      logSystem.Module("wails"),
@@ -176,6 +215,14 @@ func run() (runErr error) {
 		},
 		Services: []application.Service{
 			application.NewService(bindingService),
+		},
+		Mac: application.MacOptions{
+			ApplicationShouldTerminateAfterLastWindowClosed: true,
+		},
+		// WebKitGTK keeps its data in $XDG_DATA_HOME/<program name>, and the
+		// default program name would place it in the Standard root.
+		Linux: application.LinuxOptions{
+			ProgramName: appmeta.Identifier,
 		},
 	})
 
@@ -213,14 +260,50 @@ func run() (runErr error) {
 	return nil
 }
 
+func logLocation(logger *slog.Logger, location appdata.Location, requested, moveTarget appdata.Mode, moveErr error) {
+	state := appdata.RootEmpty
+	if candidate, ok := location.Candidate(location.Mode); ok {
+		state = candidate.State
+	}
+	attributes := []any{"operation", "location-load", "mode", location.Mode, "state", state, "confirmed", location.Initialized}
+	if location.Choice != appdata.ChoiceNone {
+		attributes = append(attributes, "choice", location.Choice)
+	}
+	if requested != "" {
+		attributes = append(attributes, "requested", requested)
+	}
+	logging.Diagnostic(logger, "data folder resolved", attributes...)
+	switch {
+	case moveTarget == "":
+	case moveErr != nil:
+		logger.Error("data move failed", "operation", "data-move", "target", moveTarget, "moved", location.Moved, "error", moveErr)
+	default:
+		logger.Info("data moved", "operation", "data-move", "target", moveTarget)
+	}
+}
+
+// After a storage choice, the previous process may still hold the lock.
+func acquireInstance(restarted bool) (*singleinstance.Instance, bool, error) {
+	deadline := time.Now().Add(15 * time.Second)
+	for {
+		instance, acquired, err := singleinstance.Acquire(appmeta.Identifier)
+		if err != nil || acquired || !restarted || time.Now().After(deadline) {
+			return instance, acquired, err
+		}
+		time.Sleep(200 * time.Millisecond)
+	}
+}
+
 func resolvePaths(location appdata.Location) (appdata.Paths, error) {
-	paths, err := appdata.Resolve()
+	paths, err := appdata.At(location.Directory)
 	if err != nil || !location.Initialized {
 		return paths, err
 	}
 	return paths, paths.Prepare()
 }
 
+// appsettings.Open rewrites settings.json, so an unconfirmed root keeps
+// defaults in memory and is never written.
 func openSettings(path string, location appdata.Location) (*appsettings.Store, error) {
 	if !location.Initialized {
 		return appsettings.New(path), nil

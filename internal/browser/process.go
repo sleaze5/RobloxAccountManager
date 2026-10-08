@@ -13,6 +13,7 @@ type ProcessOptions struct {
 type BrowserProcess interface {
 	CDPPipes() (io.WriteCloser, io.ReadCloser)
 	AllWindowsClosed() <-chan struct{}
+	PagesClosed()
 	Focus() error
 	Exited() <-chan error
 	ExitError() error

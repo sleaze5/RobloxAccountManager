@@ -9,7 +9,10 @@ on:
                 type: choice
                 options:
                     - windows-amd64
+                    - windows-arm64
                     - linux-amd64
+                    - darwin-arm64
+                    - darwin-amd64
 
 permissions:
     contents: read
