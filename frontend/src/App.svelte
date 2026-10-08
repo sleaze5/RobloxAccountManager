@@ -186,6 +186,15 @@
 		document.querySelector<HTMLInputElement>(".launch-place input")?.focus()
 	}
 
+	async function searchGames(text: string): Promise<void> {
+		void games.searchFor(text)
+		activePage = "games"
+		await tick()
+		document
+			.querySelector<HTMLInputElement>(".games-page .search-field input")
+			?.focus()
+	}
+
 	function openRenewCookie(accountId: number): void {
 		if (store.busy) return
 		store.clearError()
@@ -414,7 +423,8 @@
 		{:else if activePage === "logs-explorer"}
 			<LogsExplorerPage
 				store={logsExplorer}
-				onFillLaunch={(visit) => void fillLaunchOptions(visit)} />
+				onFillLaunch={(visit) => void fillLaunchOptions(visit)}
+				onSearchPlace={(placeId) => void searchGames(`id:${placeId}`)} />
 		{:else}
 			<div
 				class:sidebar-collapsed={workspace.sidebarCollapsed}
@@ -441,7 +451,9 @@
 											void fillLaunchOptions({
 												placeId: String(placeId),
 												jobId,
-											})} />
+											})}
+										onSearchPlace={(placeId) =>
+											void searchGames(`id:${placeId}`)} />
 								</div>
 							{/key}
 						{/if}

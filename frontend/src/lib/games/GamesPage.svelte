@@ -92,6 +92,12 @@
 		document.querySelector<HTMLButtonElement>("[data-game-servers]")?.focus()
 	}
 
+	async function searchUniverse(universeId: number): Promise<void> {
+		void store.searchFor(`universe:${universeId}`)
+		await tick()
+		searchInput?.focus()
+	}
+
 	onMount(() => store.revalidate())
 	onDestroy(() => store.closeMenu())
 
@@ -350,7 +356,10 @@
 						onBack={() => void closeServers()}
 						{onFillLaunch} />
 				{:else}
-					<GameDetails {store} />
+					<GameDetails
+						{store}
+						onSearchUniverse={(universeId) =>
+							void searchUniverse(universeId)} />
 				{/if}
 			{/key}
 		{:else}

@@ -401,7 +401,8 @@
 	color: var(--color-presence-studio);
 }
 
-.profile-presence-join {
+.profile-presence-join,
+.profile-presence-search {
 	width: var(--control-height-sm);
 	height: var(--control-height-sm);
 	flex: 0 0 auto;

@@ -9,6 +9,7 @@
 	import GitCommitIcon from "phosphor-svelte/lib/GitCommitIcon"
 	import ClockCounterClockwiseIcon from "phosphor-svelte/lib/ClockCounterClockwiseIcon"
 	import CircleNotchIcon from "phosphor-svelte/lib/CircleNotchIcon"
+	import MagnifyingGlassIcon from "phosphor-svelte/lib/MagnifyingGlassIcon"
 	import MicrophoneIcon from "phosphor-svelte/lib/MicrophoneIcon"
 	import DotsThreeIcon from "phosphor-svelte/lib/DotsThreeIcon"
 	import TreeStructureIcon from "phosphor-svelte/lib/TreeStructureIcon"
@@ -31,7 +32,13 @@
 	import { creatorByline, type GamesStore } from "./games-store.svelte"
 	import GameIcon from "./GameIcon.svelte"
 
-	let { store }: { store: GamesStore } = $props()
+	let {
+		store,
+		onSearchUniverse,
+	}: {
+		store: GamesStore
+		onSearchUniverse: (universeId: number) => void
+	} = $props()
 	const numbers = new Intl.NumberFormat(),
 		percent = new Intl.NumberFormat(undefined, {
 			style: "percent",
@@ -313,6 +320,15 @@
 							<span>ID: {place.placeId}</span>
 							<span class="meta-separator" aria-hidden="true">-</span>
 							<span>Universe ID: {place.universeId}</span>
+							<button
+								class="icon-action game-universe-search"
+								type="button"
+								aria-label="Search places in this universe"
+								data-tooltip="Search places in this universe"
+								onclick={() => onSearchUniverse(place.universeId)}
+								><MagnifyingGlassIcon
+									size={13}
+									aria-hidden="true" /></button>
 						</div>
 						<div class="identity-meta">
 							<span class="game-creator"

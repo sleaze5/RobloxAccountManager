@@ -30,12 +30,14 @@
 		workspace,
 		onManageTags,
 		onJoinServer,
+		onSearchPlace,
 		notifications,
 	}: {
 		store: AccountStore
 		workspace: WorkspaceState
 		onManageTags: (accountId: number) => void
 		onJoinServer: (placeId: number, jobId: string) => void
+		onSearchPlace: (placeId: number) => void
 		notifications: NotificationCenter
 	} = $props()
 
@@ -158,7 +160,8 @@
 						{#if store.vault.unlocked}
 							<AccountPresence
 								presence={selectedAccount.presence}
-								onJoin={onJoinServer} />
+								onJoin={onJoinServer}
+								{onSearchPlace} />
 							<div class="profile-balance-row">
 								<AccountProfileBalance
 									snapshot={profile}

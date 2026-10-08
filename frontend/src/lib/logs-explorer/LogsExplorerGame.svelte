@@ -1,12 +1,17 @@
 <script lang="ts">
 	import SealCheckIcon from "phosphor-svelte/lib/SealCheckIcon"
+	import MagnifyingGlassIcon from "phosphor-svelte/lib/MagnifyingGlassIcon"
 	import StarIcon from "phosphor-svelte/lib/StarIcon"
 	import type { GamePlaceSummary } from "../backend/bridge"
 	import GameIcon from "../games/GameIcon.svelte"
 	import { loadGamePlace } from "../games/game-place-cache"
 	import { creatorByline, getGamesStore } from "../games/games-store.svelte"
 
-	let { universeId, placeId }: { universeId: number; placeId: number } = $props()
+	let {
+		universeId,
+		placeId,
+		onSearch,
+	}: { universeId: number; placeId: number; onSearch: () => void } = $props()
 	const games = getGamesStore()
 
 	let summary = $state<GamePlaceSummary | null>(null),
@@ -63,5 +68,13 @@
 				<strong class="loading">Loading game…</strong>
 			{/if}
 		</div>
+		{#if place}<button
+				class="icon-action logs-explorer-game-search"
+				type="button"
+				aria-label="Find this place in Games"
+				data-tooltip="Find this place in Games"
+				onclick={onSearch}
+				><MagnifyingGlassIcon size={15} aria-hidden="true" /></button
+			>{/if}
 	</div>
 {/if}

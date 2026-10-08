@@ -12,11 +12,13 @@
 		logStartedAtMs,
 		newestFirst,
 		onFillLaunch,
+		onSearchPlace,
 	}: {
 		visits: LogsExplorerVisit[]
 		logStartedAtMs: number
 		newestFirst: boolean
 		onFillLaunch: (visit: LogsExplorerVisit) => void
+		onSearchPlace: (placeId: number) => void
 	} = $props()
 	let activeMenu = $state<{ visit: LogsExplorerVisit; trigger: HTMLElement } | null>(
 		null,
@@ -96,7 +98,7 @@
 						<DotsThreeIcon size={18} aria-hidden="true" />
 					</button>
 				</div>
-				<LogsExplorerVisitDetails {visit} />
+				<LogsExplorerVisitDetails {visit} {onSearchPlace} />
 				<div class="logs-explorer-visit-time">
 					{#if visit.startedAtMs}<Timestamp
 							value={visit.startedAtMs} />{:else}Time unavailable{/if}

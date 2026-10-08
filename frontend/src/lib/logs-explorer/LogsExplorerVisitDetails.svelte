@@ -2,7 +2,10 @@
 	import type { LogsExplorerVisit } from "../backend/bridge"
 	import LogsExplorerGame from "./LogsExplorerGame.svelte"
 
-	let { visit }: { visit: LogsExplorerVisit } = $props()
+	let {
+		visit,
+		onSearchPlace,
+	}: { visit: LogsExplorerVisit; onSearchPlace: (placeId: number) => void } = $props()
 
 	const universeId = $derived(Number(visit.universeId)),
 		placeId = $derived(Number(visit.placeId))
@@ -12,7 +15,8 @@
 <div class="logs-explorer-details">
 	{#if validId(universeId) && validId(placeId)}<LogsExplorerGame
 			{universeId}
-			{placeId} />{/if}
+			{placeId}
+			onSearch={() => onSearchPlace(placeId)} />{/if}
 	<dl class="logs-explorer-detail-grid" aria-label="Game identifiers">
 		<div>
 			<dt>Place ID</dt>

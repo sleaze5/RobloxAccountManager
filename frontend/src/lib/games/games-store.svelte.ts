@@ -216,6 +216,12 @@ export class GamesStore {
 		}
 	}
 
+	searchFor(text: string): Promise<void> {
+		this.query = text
+		this.sidebarCollapsed = false
+		return this.search()
+	}
+
 	async loadFavorites(): Promise<void> {
 		if (this.loadingFavorites || this.savingFavorite || this.savingNickname) return
 		this.loadingFavorites = true

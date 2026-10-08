@@ -311,6 +311,13 @@
 	height: var(--control-height-sm);
 }
 
+.game-universe-search {
+	width: 20px;
+	height: 20px;
+	margin-block: -4px;
+	margin-inline-start: -4px;
+}
+
 .game-nickname-input {
 	width: 180px;
 	min-width: 0;

@@ -1,4 +1,5 @@
 <script lang="ts">
+	import MagnifyingGlassIcon from "phosphor-svelte/lib/MagnifyingGlassIcon"
 	import SignInIcon from "phosphor-svelte/lib/SignInIcon"
 	import StarIcon from "phosphor-svelte/lib/StarIcon"
 	import { PresenceType } from "../backend/bridge"
@@ -15,9 +16,11 @@
 	let {
 		presence,
 		onJoin,
+		onSearchPlace,
 	}: {
 		presence: UserPresence
 		onJoin: (placeId: number, jobId: string) => void
+		onSearchPlace: (placeId: number) => void
 	} = $props()
 
 	const games = getGamesStore()
@@ -100,6 +103,16 @@
 			data-tooltip="Fill launch options with this place and server"
 			onclick={() => onJoin(joinPlaceId, presence.gameId ?? "")}>
 			<SignInIcon size={16} aria-hidden="true" />
+		</button>
+	{/if}
+	{#if inExperience && joinPlaceId > 0}
+		<button
+			class="icon-action profile-presence-search"
+			type="button"
+			aria-label="Find this place in Games"
+			data-tooltip="Find this place in Games"
+			onclick={() => onSearchPlace(joinPlaceId)}>
+			<MagnifyingGlassIcon size={16} aria-hidden="true" />
 		</button>
 	{/if}
 </div>
