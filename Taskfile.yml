@@ -178,7 +178,7 @@ tasks:
         env:
             CGO_ENABLED: "0"
         cmds:
-            - 'bun run ./scripts/release-prepare.ts "{{.WAILS_CLI}}" "{{.RELEASE_DIR}}" "{{.TARGETS}}" "{{.REPOSITORY}}" "{{.SIGNING}}"'
+            - bun run ./scripts/release-prepare.ts "{{.WAILS_CLI}}" "{{.RELEASE_DIR}}" "{{.TARGETS}}" "{{.REPOSITORY}}" "{{.SIGNING}}"
 
     clean:
         desc: Delete generated files, dependencies, builds, logs, and portable data
