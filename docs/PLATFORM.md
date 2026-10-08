@@ -1,161 +1,44 @@
 # Platform and portability
 
-Architecture rules are in [ARCHITECTURE.md](./ARCHITECTURE.md). They also apply to platform code.
+The rules in [ARCHITECTURE.md](./ARCHITECTURE.md) also apply to platform code. Release rules are in [RELEASE.md](./RELEASE.md).
 
-## Platform support
+## Supported platforms
 
-Support Windows AMD64, Windows ARM64, Linux AMD64, macOS ARM64 (Apple silicon), and macOS AMD64 (Intel). Do not expose other architectures.
+- Windows 10 or later: AMD64 and ARM64
+- Linux AMD64 with glibc 2.38 or later
+- macOS 12 or later: ARM64 (Apple silicon) and AMD64 (Intel)
 
-Name each build target `<os>-<arch>` with Go's `GOOS` and `GOARCH` values. Expose it as `task build:<os>-<arch>` and write its output to a matching subdirectory of `dist/`. Development and production builds share the target directory:
+Do not expose other architectures.
 
-```text
-dist/
-    windows-amd64/
-        RobloxAccountManager.exe
-    windows-arm64/
-        RobloxAccountManager.exe
-    linux-amd64/
-        RobloxAccountManager
-    darwin-arm64/
-        RobloxAccountManager.app
-    darwin-amd64/
-        RobloxAccountManager.app
-```
+## Build targets
 
-Add another target through its own platform tasks and modules. Keep the shared application and frontend task graph.
-
-### Windows
-
-Automatic unlock protects its key with DPAPI for the current Windows user. Joining a game can start the Roblox Player directly or through its protocol. Multi-instance support and Roblox process control are available.
-
-The ARM64 build is cross-compiled on x64 Windows. SQLCipher needs cgo, so `task build:windows-arm64` needs `aarch64-w64-mingw32-clang` from [llvm-mingw](https://github.com/mstorsjo/llvm-mingw) on `PATH`. Put it after the x64 MinGW, because llvm-mingw also ships a `gcc`. Chrome for Testing has no Windows ARM64 build, so the managed browser runs the x64 Chrome through the emulation of Windows 11.
-
-### Linux
-
-A Linux build links the system GTK 4 and WebKitGTK 6 libraries. Release builds come from Ubuntu 24.04 and need glibc 2.38 or later. Automatic unlock stores its encryption key in the Secret Service. Joining a game opens a `roblox-player:` link in Sober or Mocktail through that client's desktop entry. The Roblox setting chooses the client when both are installed. Automatic uses the only installed client, or the desktop default for `roblox-player` when both are installed. The managed browser runs Chrome for Testing from `storage/runtime/`. It needs the system libraries that Chrome requires and unprivileged user namespaces for the Chrome sandbox. Multi-instance support and Roblox process control are unavailable on Linux. The GTK program name is the application identifier, because WebKitGTK keeps its own data in `$XDG_DATA_HOME/<program name>`, and the executable name would place it in the Standard root.
-
-### macOS
-
-The application is a normal `.app` bundle and needs macOS 12 or later. Builds run on macOS with Xcode command line tools, because the Wails runtime and SQLCipher use cgo. `build/darwin/Info.plist` is the bundle template. The build writes the version from `VERSION` into it, copies `assets/icon.icns`, and signs the bundle ad hoc. `assets/icon.icns` is generated from `assets/icon.svg`. Regenerate it when the icon changes.
-
-- Data always uses Standard storage in `~/Library/Application Support/RobloxAccountManager`. macOS does not offer Portable storage and never writes data into the bundle, so the bundle stays replaceable and signable.
-- Automatic unlock stores its encryption key in the login Keychain. The key never leaves that Keychain.
-- Joining a game opens a `roblox-player:` link with `open -a` in `Roblox.app` from `/Applications` or `~/Applications`, so a bootstrapper that registered the scheme does not receive the authentication ticket. Without a known installation, Launch Services chooses the app. Before each launch, the application deletes `~/Library/HTTPStorages/com.roblox.RobloxPlayer.binarycookies`. Roblox otherwise joins with the account that last signed in to the Roblox app instead of the selected account. This signs the Roblox app itself out.
-- Roblox Player logs are read from `~/Library/Logs/Roblox`.
-- Roblox process control lists and closes the current user's `RobloxPlayer`, `RobloxCrashHandler`, and `RobloxStudio` processes. Multi-instance support is unavailable.
-- The managed browser runs the macOS Chrome for Testing bundle from `storage/runtime/`. Its archive contains relative links inside the bundle. Extraction accepts only relative link targets without `..`, and creates them after all files. Chrome on macOS keeps running after its last window closes, so the browser coordinator treats the close of the last page as a user close. An application crash does not stop a running managed browser.
-- Single-instance handling holds an exclusive lock on a file in the per-user temporary folder.
-
-Release bundles carry an ad hoc signature and are not notarized. Gatekeeper blocks the first launch of a downloaded bundle until the user allows it in System Settings → Privacy & Security, or opens it from the Finder context menu. Updates installed by the application are not quarantined. A Developer ID signature and notarization can replace the ad hoc signature without other changes, because the bundle never contains user data.
-
-## Releases
-
-`internal/appmeta/VERSION` is the only source of the application version. It uses `MAJOR.MINOR.PATCH` with an optional `-PRERELEASE` suffix. Go embeds it, the frontend reads it as `APP_VERSION`, and the build writes it into the Windows version resource. Do not write the version anywhere else.
-
-To release, change `VERSION`, run `task fix`, push to `main`, and run the manual "Release" workflow in `.github/workflows/release.yml`. The workflow first checks that it runs on `main` and that tag `v<version>` does not exist. Only a confirmed "not found" answer passes the tag check. Any other error stops the release, because `gh release create` attaches a release to an existing tag and ignores `--target`. The check job defines the release targets once. They drive the build matrix and the targets that release preparation expects. The workflow builds Linux on Ubuntu 24.04, macOS on macOS 15, and Windows on Windows Server 2025 in parallel, through the reusable `.github/workflows/build-targets.yml`, and keeps the builds for 7 days. The macOS job builds both architectures on Apple silicon. The Windows job builds x64 and cross-compiles ARM64 with a pinned, checksum-verified llvm-mingw release. A build fails when it changes source files. The Windows job pauses Defender real-time scanning, because it slows builds on the disposable runners. After every build succeeds, the publish job on Ubuntu 24.04 runs `task release:prepare` and creates the release. The workflow publishes:
-
-- `RobloxAccountManager.exe`: the Windows executable for manual download.
-- `RobloxAccountManager-windows-x64.zip`: the Windows updater artifact.
-- `RobloxAccountManager-arm64.exe`: the Windows ARM64 executable for manual download.
-- `RobloxAccountManager-windows-arm64.zip`: the Windows ARM64 updater artifact.
-- `RobloxAccountManager-linux-x64.tar.gz`: the Linux updater artifact and manual download. The archive keeps the executable permission that a bare download loses.
-- `RobloxAccountManager-macos-arm64.zip` and `RobloxAccountManager-macos-x64.zip`: the macOS updater artifacts and manual downloads. Each contains `RobloxAccountManager.app`, packed with `ditto` to keep modes, links, and the signature.
-- `manifest.json`: the signed Wails update manifest. List only archives in it, because Wails treats every `.exe` as a Windows artifact.
-- `THIRD_PARTY_LICENSES.txt`: the license texts of the bundled third-party works. It ships as its own asset, because each archive must contain only the executable.
-
-Each archive must contain only the executable, or on macOS only the application bundle, because the updater accepts exactly one top-level entry. Wails reads the platform and architecture from each archive name, so keep the `<os>-x64`, `windows-arm64`, and `macos-<arch>` parts. Each installed copy updates within its own architecture. An x64 copy that runs through emulation on ARM64 keeps updating to x64.
-
-The application reads `releases/latest/download/manifest.json`, so it never offers a prerelease.
-
-### Release preparation
-
-`task release:prepare` is the only definition of how release archives become a signed update manifest. It runs `scripts/release-prepare.ts` with these variables:
-
-- `RELEASE_DIR`: the folder with the downloaded builds.
-- `TARGETS`: the expected targets, such as `linux-amd64 windows-amd64`.
-- `REPOSITORY`: the GitHub repository, for the download URLs.
-- `SIGNING`: `production` or `rehearsal`.
-
-The task reads the version from `VERSION` and the Wails CLI from `WAILS_CLI`. It builds the CLI without cgo, so it needs no system libraries. It finds every `.zip` and `.tar.gz` archive in `RELEASE_DIR` and generates the manifest. Wails reads each archive's platform and architecture from its name. The task fails unless each expected target has exactly one archive, and no archive belongs to another target or to no target. Then it verifies every signature.
-
-- **Production** signing reads the private key from `UPDATER_PRIVATE_KEY` and verifies against `internal/appmeta/updater.key.pub`, the key that the application embeds.
-- **Rehearsal** signing generates a throwaway key pair and verifies against its public key. It proves that preparation works, not that the production secret matches the embedded key.
-
-The publish job uploads every archive, `.exe`, and `manifest.json` from `RELEASE_DIR`, plus `THIRD_PARTY_LICENSES.txt`. Asset names are defined only by the packaging in `build-targets.yml`.
-
-To rehearse a release, run the "Release" workflow with **Rehearse** selected, from any branch. It builds every target and runs `task release:prepare` with rehearsal signing. It never reads `UPDATER_PRIVATE_KEY`, skips the branch and tag checks, and uploads the prepared files as the `release-rehearsal` artifact instead of creating a release.
-
-A re-run of a workflow run uses that run's commit and workflow files. After a workflow fix, start a new run with **Run workflow**.
-
-### Test builds
-
-`.github/workflows/build-targets.yml` is the only definition of how a target is set up, built, checked, and packaged. The "Release" workflow calls it for each operating system, and the manual "Build" workflow in `.github/workflows/build.yml` calls it for one target. Add a target there once, and both workflows build it the same way.
-
-To test a build without a release, run the "Build" workflow from the Actions tab and choose the branch and the target. The run keeps the packaged files for 7 days, with the same names as release assets. Test builds are not added to the update manifest.
-
-The pinned llvm-mingw release for Windows ARM64 is set up by `.github/actions/setup-llvm-mingw`. Change its version and checksum there.
-
-### Checks
-
-`task check` runs two scopes in parallel, and each runs its own steps in parallel:
-
-- `task check:common` validates what does not depend on the operating system: frontend formatting, lint, and `svelte-check`, Go formatting, and whether `go.mod` and `go.sum` are tidy.
-- `task check:native` runs `go vet`, staticcheck, and `go build`. Go compiles only the files of the current operating system, so this scope must run on each one.
-
-`task fix` still applies every fix and then runs `task check`.
-
-The "Check" workflow in `.github/workflows/check.yml` runs on every pull request and every push to `main`. A newer run cancels an older one for the same pull request or branch.
-
-- **Scope** finds the changed files. The native scope runs only when Go files, `go.mod`, `go.sum`, a Taskfile, or `.github/` changed, or when there is no base to compare with.
-- **Common** runs `task check:common` once on Linux.
-- **Native** runs `task check:native` on each supported operating system at the same time, when the native scope runs.
-- **CI** passes only when every other job passed or was skipped. Require only this check in branch protection.
-
-`.github/actions/setup` is the only definition of how a runner is prepared for task commands. The check, build, and release workflows all use it.
-
-### Update signing
-
-- The `UPDATER_PRIVATE_KEY` repository secret signs `manifest.json`. Never commit the private key.
-- `internal/appmeta/updater.key.pub` is the public key that every build embeds. The workflow verifies each manifest with it before it publishes.
-- `internal/appupdate` rejects updates without a signature. Keep this check, because the Wails updater installs unsigned manifest entries.
-- Replace `updater.key.pub` only to rotate a lost or exposed key. Installed copies with the old key cannot verify later updates.
-
-### In-place updates
-
-- `appupdate.HandleHelperMode()` must run first in `main()`, before the single-instance check. The update helper is this executable, and it starts while the old version still runs.
-- The updater replaces only the executable, or on macOS only the application bundle. The data root stays unchanged in both storage modes, because it is never inside what the updater replaces.
-- On Linux, the helper copies the downloaded update into a `wails-update-robloxaccountmanager-*` directory next to the executable before the swap. The Wails helper renames the update over the executable, and a rename fails across filesystems. The application removes the original download when it quits for the update.
-- On macOS, the helper copies the extracted bundle into a `wails-update-robloxaccountmanager-*` directory next to the installed bundle for the same reason.
-- `internal/appupdate` removes `RobloxAccountManager.exe.old.*`, `wails-update-robloxaccountmanager-*` directories next to the executable or bundle, and the helper's `wails-update-*.log` when the new version starts. It deletes a downloaded update that was not installed when the application closes.
+- Name each target `<os>-<arch>` after Go's `GOOS` and `GOARCH` values.
+- Write each target's output to `dist/<os>-<arch>/`. Development and production builds share this folder.
+- Add a new target through its own platform modules. Do not change the shared application and frontend build.
 
 ## Platform isolation
 
-Keep a clear line between OS-specific code and shared code. A reader must be able to tell from the file name or package path whether code is OS-specific.
+A file name or package path must show whether its code is OS-specific. Put OS-specific code in one of two places:
 
-OS-specific code lives in one of two places:
-
-- **OS-specific files in a feature package.** When a feature package needs native behavior for its own work, put that behavior in `<name>_<os>.go` files in the same package. Expose it to the rest of the package through package-private functions with platform-neutral signatures. Examples: `internal/appdata/permissions_windows.go`, `internal/appdata/permissions_linux.go`, `internal/appdata/standard_darwin.go`, `internal/browser/process_windows.go`, `internal/browser/process_linux.go`, `internal/gamelaunch/launch_windows.go`, `internal/gamelaunch/launch_linux.go`, `internal/logging/crash_windows.go`, `internal/logging/crash_linux.go`.
-- **Packages under `internal/platform/`.** A native capability that the application uses as a feature of its own goes in `internal/platform/<capability>/`, with a platform-neutral API. Current packages: `protection` (protects data for the current user with DPAPI, the Secret Service, or the Keychain), `singleinstance`, `robloxmulti` (Roblox multi-instance support and process control), and `robloxlogs` (Roblox Player log directories).
+- **`<name>_<os>.go` files in a feature package:** for native behavior that the package needs for its own work. Expose it through package-private functions with platform-neutral signatures. Example: `internal/gamelaunch/launch_windows.go`.
+- **`internal/platform/<capability>/`:** for a native capability that the application uses as a feature of its own. Give it a platform-neutral API. Current packages: `protection`, `singleinstance`, `robloxmulti`, and `robloxlogs`.
 
 Rules:
 
-- Keep OS APIs out of shared files. `golang.org/x/sys/windows`, registry access, Win32 calls, and Windows path assumptions belong only in `_windows.go` files.
-- To support another OS, add `_<os>.go` files that implement the same package-private functions and platform package APIs. Do not change shared code to do it.
+- Keep OS APIs out of shared files.
+- To support another OS, add `_<os>.go` files that implement the same package-private functions and platform APIs. Do not change shared code.
 - Platform code must not bypass the application service, storage, Roblox integration, or Wails binding boundaries.
 
 ## Data storage
 
-The application needs no installer. It keeps all of its data in one data root, in one of two storage modes:
+The application needs no installer. It keeps all of its data in one data root:
 
-- **Portable:** the data root is the folder that contains the executable. Moving the folder moves the application and its data.
-- **Standard:** the data root is the per-user application data folder of the operating system:
-    - Windows: `%LOCALAPPDATA%\RobloxAccountManager`
-    - Linux: `$XDG_DATA_HOME/RobloxAccountManager`, or `~/.local/share/RobloxAccountManager` when `XDG_DATA_HOME` is unset or not absolute
-    - macOS: `~/Library/Application Support/RobloxAccountManager`
+- **Portable:** the folder that contains the executable. `storage/` and `logs/` sit next to the executable, so moving the folder, for example to a USB drive or another computer, moves the vault too.
+- **Standard:** the per-user application data folder of the OS, defined by `StandardRoot` in `internal/appdata/standard_<os>.go`. The executable can live anywhere.
 
-Windows and Linux offer both modes. macOS offers only Standard storage. When the executable folder is the Standard root, only Standard storage is offered.
+Windows and Linux offer both modes. macOS offers only Standard storage. See [macOS](#macos). If the executable folder is the Standard root, only Standard storage is offered.
 
-Both modes use the same layout, relative to the data root:
+Both modes use this layout:
 
 ```text
 storage/
@@ -167,53 +50,93 @@ storage/
 logs/
 ```
 
-Managed subdirectories are created when needed.
+Missing subdirectories are created when needed.
 
 ### Choosing the data root
 
-There is no marker file. `internal/appdata` detects each candidate root from its existing layout and vault files:
+`internal/appdata` classifies each root by its contents. There is no marker file.
 
-- **Empty:** no `storage/` folder, or one that contains none of `settings.json`, `vault/`, `backups/`, `runtime/`, and `temp/`.
-- **Structure:** a `storage/` folder with at least one of those entries, but without vault files. `settings.json`, `autounlock.key`, logs, backups, runtime data, and temporary data are optional and are re-created when needed, so they do not make a vault.
-- **Incomplete:** some vault files, but not a usable vault. This is only one of `vault.db` and `vault.key`, or files in the vault creation staging folder. An incomplete vault is kept for recovery and is never replaced by a new vault in another root.
-- **Vault:** `vault.db` and `vault.key` without unfinished vault creation.
+- **Empty:** no `storage/` folder, or none of `settings.json`, `vault/`, `backups/`, `runtime/`, and `temp/` in it.
+- **Structure:** at least one of those entries, but no vault files. `settings.json` and `autounlock.key` do not count as vault files.
+- **Incomplete:** only one of `vault.db` and `vault.key`, or files in the vault creation staging folder. Keep it for recovery. Never replace it with a new vault in another root.
+- **Vault:** `vault.db` and `vault.key`, with no unfinished vault creation.
 
-At startup on Windows and Linux:
+At startup, when the OS offers both modes:
 
 1. Neither root has data: the first-run dialog offers Portable or Standard storage.
-2. Only one root has a vault: that root is used without a question. A Standard root with only an incomplete vault is also used, so the vault dialog can recover it.
-3. The Portable root has data but no usable vault: the dialog offers to continue there, to create or recover a vault, or to start using Standard storage.
-4. Only the Standard root has data without a vault: the Standard root is used.
-5. Both roots hold vault data, complete or incomplete: the application never chooses. The dialog asks every launch until the user moves or deletes one copy. The vault and settings of the other copy stay unchanged.
+2. Only one root has a vault: use it without asking. Also use a Standard root that has only an incomplete vault, so the vault dialog can recover it.
+3. The Portable root has data but no usable vault: offer to continue there, to create or recover a vault, or to switch to Standard storage.
+4. Only the Standard root has data, without a vault: use it.
+5. Both roots have vault data, complete or incomplete: never choose. Ask on every launch until the user moves or deletes one copy. Do not change either copy.
 
-macOS always uses the Standard root and creates it on first launch without a question.
+Until the user confirms a root:
 
-Until the user confirms a root, the application uses the Portable root provisionally. It holds log entries in memory, keeps default settings in memory without reading or writing `settings.json`, and does not start vault startup, so automatic unlock, migrations, and settings recovery never touch a root that the user has not chosen. Only the stale temporary browser files of `storage/temp/` may be removed. Choosing an empty provisional root continues in the same process. Any other choice writes the held log entries to the chosen root, starts a new process with `--storage=<mode>`, and quits. The new process waits for the single-instance lock and opens that root normally, without a question.
+- The application uses the Portable root provisionally.
+- Log entries and default settings stay in memory. `settings.json` is not read or written.
+- Vault startup does not run, so automatic unlock, migrations, and settings recovery never touch an unconfirmed root.
+- Only stale temporary browser files in `storage/temp/` may be removed.
 
-Deleting `settings.json` resets settings to their defaults. Deleting `autounlock.key` turns off automatic unlock, and the vault asks for the master password. Logs, backups, runtime data, and temporary data are re-created when needed.
+Choosing an empty provisional root continues in the same process. Any other choice writes the held log entries to the chosen root and restarts with `--storage=<mode>`. The new process waits for the single-instance lock and opens that root without asking.
+
+Deleting `settings.json` resets settings to their defaults. Deleting `autounlock.key` turns off automatic unlock. Logs, backups, runtime data, and temporary data are re-created when needed.
 
 ### Moving data
 
-The vault is portable. `vault.db` and `vault.key` work in either mode and on any supported operating system, so moving `storage/` between roots or computers keeps the accounts. Automatic unlock is bound to the device and user. `autounlock.key` is sealed with DPAPI, the Secret Service, or the Keychain, so a copied `autounlock.key` fails, and the vault asks for the master password until automatic unlock is turned on again.
+- `vault.db` and `vault.key` work in either mode and on any supported OS. Moving `storage/` keeps the accounts.
+- `autounlock.key` is sealed to the device and OS user. A copied `autounlock.key` fails, and the vault asks for the master password until automatic unlock is turned on again.
 
-On Windows and Linux, Settings → Vault → Storage moves the data to the other root. It is a move, not a copy, because a vault left in both roots makes the application ask which one to use on every launch.
+When the OS offers both modes, Settings → Vault → Storage moves the data to the other root. It moves instead of copying, because a vault in both roots triggers the storage question on every launch.
 
 1. `appdata.CheckMove` requires a complete vault in the current root and no vault files in the target root.
-2. The application restarts with `--move-storage=<mode>`. The previous process closes the vault and releases the single-instance lock, so nothing holds files in either root.
-3. Before it opens settings, logs, or the vault, the new process copies `settings.json`, `vault/`, and `backups/` into a staging folder in the target `storage/` and verifies each file with SHA-256.
-4. It renames the staged backups, settings, and finally the vault into place. A backup that already exists in the target keeps its copy there.
-5. It deletes the source vault first, then the source settings, backups, browser runtime, and temporary files. Logs stay where they are.
+2. The old process closes the vault and releases the single-instance lock. The application restarts with `--move-storage=<mode>`.
+3. Before it opens settings, logs, or the vault, the new process copies `settings.json`, `vault/`, and `backups/` to a staging folder in the target `storage/`. It verifies each file with SHA-256.
+4. It renames the staged backups, settings, and finally the vault into place. Backups that already exist in the target keep their target copy.
+5. It deletes the source vault, then the source settings, backups, browser runtime, and temporary files. Logs stay where they are.
 
-If a step before the vault rename fails, the data stays in the source root and the application starts from there. If only the deletion fails, the application starts from the target and asks the user to delete the old copy. The result is shown as a notification. Automatic unlock keeps working, because the device and user do not change.
+If a step before the vault rename fails, the data stays in the source root and the application starts there. If only the deletion fails, the application starts from the target and asks the user to delete the old copy. A notification shows the result. Automatic unlock keeps working, because the device and user stay the same.
 
-The About page shows the storage mode and data folder. Every launch records the mode, root state, and the reason for any storage question in the `application.location` component record. The record never contains the folder path, because paths usually contain the user name.
+The About page shows the storage mode and data folder. Each launch records the mode, root state, and reason for any storage question in the `application.location` component record. The record never contains the folder path, because paths usually contain the user name.
 
 ### Rules
 
-- Resolve every data path through `internal/appdata`. Do not depend on the current working directory, and do not assume that the executable folder or the data root has a fixed name or location.
-- Do not require machine-wide installation, global environment variables, system services, or persistent registry entries. Reading existing registry values is allowed.
-- Outside the data root, write only where the operating system or Roblox requires it for a specific operation. If such an operation creates temporary data, remove the data when the operation finishes or during the next safe cleanup.
-- Never write data into the macOS application bundle.
-- Keep the live vault on a local or removable drive. The application rejects network data roots. Cloud-synchronized directories are unsupported, because another process can replace vault files outside the application lock.
+- Resolve every data path through `internal/appdata`. Do not rely on the working directory or on a fixed name or location for the executable folder or data root.
+- Do not require machine-wide installation, global environment variables, or system services.
+- Write outside the data root only where the OS or Roblox requires it. Remove any temporary data when the operation finishes or at the next safe cleanup.
+- Keep the live vault on a local or removable drive. The application rejects network data roots. Cloud-synchronized folders are unsupported, because another process can replace vault files outside the application lock.
 
-`task clean` is destructive. It deletes generated files, dependencies, build outputs, and all portable `storage/` and `logs/` data in the repository and in `dist/`, including the account vault. It never deletes a Standard data root. The task asks for confirmation before it deletes anything. It must keep every path that it does not list.
+## Windows
+
+- Put `golang.org/x/sys/windows`, registry access, Win32 calls, and Windows path assumptions only in `_windows.go` files.
+- Do not create persistent registry entries. Reading existing registry values is allowed.
+- Automatic unlock protects its key with DPAPI for the current user.
+- Joining a game starts the Roblox Player directly or through its protocol.
+- Multi-instance support and Roblox process control are available.
+- ARM64 is cross-compiled on x64 Windows. SQLCipher needs cgo, so the build needs `aarch64-w64-mingw32-clang` from [llvm-mingw](https://github.com/mstorsjo/llvm-mingw) on `PATH`. Put it after the x64 MinGW, because llvm-mingw also ships a `gcc`.
+- Chrome for Testing has no ARM64 build. On ARM64, the managed browser runs x64 Chrome through Windows 11 emulation.
+
+## Linux
+
+- The build links the system GTK 4 and WebKitGTK 6 libraries. Release builds come from Ubuntu 24.04 and need glibc 2.38 or later.
+- The GTK program name is the application identifier. WebKitGTK stores its data in `$XDG_DATA_HOME/<program name>`, and the executable name would put that data inside the Standard root.
+- Automatic unlock stores its key in the Secret Service.
+- Joining a game opens a `roblox-player:` link in Sober or Mocktail through its desktop entry. The Roblox setting chooses the client. Automatic uses the only installed client, or the desktop default for `roblox-player` if both are installed.
+- Multi-instance support and Roblox process control are unavailable.
+- The managed browser runs Chrome for Testing from `storage/runtime/`. It needs Chrome's system libraries and unprivileged user namespaces for the Chrome sandbox.
+
+## macOS
+
+- The application is a `.app` bundle. Build it on macOS with Xcode command line tools, because the Wails runtime and SQLCipher use cgo.
+- `build/darwin/Info.plist` is the bundle template. The build adds the version from `VERSION` and `assets/icon.icns`, then signs the bundle ad hoc.
+- Regenerate `assets/icon.icns` from `assets/icon.svg` when the icon changes.
+- Portable storage is unavailable (`portableSupported` is `false` in `internal/appdata/standard_darwin.go`). The executable is in `RobloxAccountManager.app/Contents/MacOS/`, so a Portable vault would sit inside the bundle. Writing there breaks the bundle signature, and an in-place update replaces the bundle and would delete the vault.
+- The application creates the Standard root on first launch without asking.
+- Never write data into the bundle.
+- Automatic unlock stores its key in the login Keychain. The key never leaves the Keychain.
+- Joining a game opens a `roblox-player:` link with `open -a` in `Roblox.app` from `/Applications` or `~/Applications`. This keeps the authentication ticket away from a bootstrapper that registered the scheme. Without a known installation, Launch Services chooses the app.
+- Before each launch, the application deletes the Roblox Player's cookie file. Otherwise, Roblox joins with the account that last signed in to the Roblox app. This signs the Roblox app out.
+- Roblox process control lists and closes the current user's `RobloxPlayer`, `RobloxCrashHandler`, and `RobloxStudio` processes. Multi-instance support is unavailable.
+- The managed browser runs the macOS Chrome for Testing bundle from `storage/runtime/`. Extraction accepts only relative link targets without `..`, and creates links after all files.
+- Chrome keeps running after its last window closes, so the browser coordinator treats closing the last page as a user close. An application crash does not stop the managed browser.
+- Single-instance handling locks a file in the per-user temporary folder.
+- Release bundles are signed ad hoc and are not notarized. Gatekeeper blocks the first launch until the user allows it in System Settings → Privacy & Security, or opens the bundle from the Finder context menu. Updates installed by the application are not quarantined.
+- Developer ID signing and notarization can replace the ad hoc signature without other changes, because the bundle never contains user data.

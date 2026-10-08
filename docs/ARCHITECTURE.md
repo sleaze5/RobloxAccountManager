@@ -1,91 +1,52 @@
 # Architecture
 
-Platform and portability rules are in [PLATFORM.md](./PLATFORM.md). UI rules are in [DESIGN.md](./DESIGN.md).
-
-## System boundary
+Platform rules are in [PLATFORM.md](./PLATFORM.md). UI rules are in [DESIGN.md](./DESIGN.md).
 
 The Svelte frontend is a presentation layer. The Go backend owns application logic, sensitive operations, persistence, Roblox communication, process control, and operating-system integration.
 
 ## Frontend
 
-The frontend renders the interface and collects user input.
-
-- Organize code by feature under `frontend/src/lib/<feature>/`. Each feature holds its components and any feature state in `*-store.svelte.ts` or `*-state.svelte.ts` files. Shared UI primitives and helpers are in `lib/shared/`.
-- Build small, focused components with one clear responsibility.
+- Keep frontend state to presentation and interaction state, such as open dialogs, selected items, form values, loading indicators, and display errors.
+- Do not put business rules, credential handling, database access, Roblox API calls, launch logic, filesystem access, or operating-system behavior in the frontend.
+- Do not duplicate backend validation. Add lightweight input feedback only when it improves usability.
 - Import backend bindings only through `frontend/src/lib/backend/bridge.ts`.
-- Do not place business rules, credential handling, database access, Roblox API calls, launch logic, filesystem access, or operating-system behavior in the frontend.
-- Keep frontend state limited to presentation and interaction state, such as open dialogs, selected items, form values, loading indicators, and display errors.
-- Do not duplicate backend validation or business logic. Add lightweight input feedback only when it improves usability.
-- Show user notifications through `lib/notifications/notification-center.svelte.ts`.
+- Show notifications only through `frontend/src/lib/notifications/notification-center.svelte.ts`.
+- Build small components with one responsibility.
 
 ## Backend
 
-Organize the backend by capability. Each package owns one responsibility and exposes a small, explicit interface.
-
-- **Wails bindings:** `internal/bindings` holds thin, typed adapters that validate UI input, call application services, and return UI-safe results.
-- **Application services:** `internal/appservice` holds account workflows, vault behavior, validation, orchestration, and events sent to the frontend.
-- **Domain models:** `internal/accounts`, `internal/games`.
-- **Storage:** `internal/storage/vault` (SQLCipher database, keys, backups, migrations), `internal/storage/accounts`, `internal/storage/games`.
-- **Roblox integration:** `internal/roblox` (HTTP client, sessions, rate limits, error translation), `internal/roblox/services` (endpoint clients).
-- **Other external services:** `internal/integration/rovalra`.
-- **Game launching:** `internal/gamelaunch` handles launch preparation, command construction, process start, and launch results.
-- **Application updates:** `internal/appupdate` checks, downloads, verifies, and installs updates through the Wails updater. See [PLATFORM.md](./PLATFORM.md#releases).
-- **Managed browser:** `internal/browser` handles Chrome for Testing runtime installation and isolated, CDP-controlled browser sessions.
-- **Roblox Player logs:** `internal/logsexplorer`.
-- **Configuration and paths:** `internal/appdata` (Portable and Standard data roots, paths, and private files), `internal/appsettings` (`settings.json`), `internal/appmeta` (application identity, `VERSION`, and the update public key).
-- **Timestamp formats:** `internal/timestampformat` parses the `$` token syntax of the timestamp format settings. The frontend renders the parsed segments.
-- **Logging:** `internal/logging`.
-- **Native capabilities:** `internal/platform/*`. See [PLATFORM.md](./PLATFORM.md).
-
-A new feature should have an obvious home in this list. Changing one subsystem should not require changes to unrelated frontend, storage, Roblox, or platform code.
-
-## Dependency rules
-
-- Wails bindings must not contain SQL.
-- Storage code must not launch Roblox.
-- Roblox API clients must not manipulate UI state.
-- Platform code must not spread into account or persistence logic.
-- Shared business logic depends on platform-neutral interfaces when practical.
+- Give each package one capability and a small, explicit interface. A new feature needs an obvious home.
+- A change to one subsystem must not require changes to unrelated frontend, storage, Roblox, or platform code.
+- Keep Wails bindings thin. They validate UI input, call application services, and return UI-safe results. They contain no SQL.
+- Storage code does not launch Roblox.
+- Roblox API clients do not manipulate UI state.
+- Keep platform code out of account and persistence logic. Shared business logic depends on platform-neutral interfaces when practical.
 
 ## Persisted formats
 
-Every persisted format stores a format version. The package that owns a format also owns its current version constant and its version scaffolding. A compile-time check fails when the number of migrations or decoders does not match the current version.
-
-- `settings.json`: version constant `appsettings.FormatVersion`, scaffolding `migrations` in `internal/appsettings`
-- `vault.db`: version constant `schemaVersion`, scaffolding `schemaMigrations` in `internal/storage/vault`
-- `vault.key`: version constant `keyFormatVersion`, scaffolding `keyFileDecoders` in `internal/storage/vault`
-- `autounlock.key`: version constant `autoFormatVersion`, scaffolding `autoUnlockDecoders` in `internal/storage/vault`
-
-To change a persisted format, increase its version and add one migration or decoder for the previous version. Keep every decoder and migration for as long as an older backup can exist.
+- Every persisted format stores a format version. The package that owns the format owns its version constant and its migrations or decoders. A compile-time check fails when their count does not match the version.
+- To change a format, increase its version and add one migration or decoder for the previous version.
+- Keep every migration and decoder for as long as an older backup can exist. A restored backup migrates on the next unlock.
 
 ### Settings
 
-The application loads `settings.json` in this order:
-
-1. Read the file and parse it as a JSON object.
-2. Read `version`. Reject a missing version, a version below 1, and a version above `FormatVersion`.
-3. Run each migration in order, from the stored version to `FormatVersion`. Each migration receives the raw JSON object of one version and returns the raw JSON object of the next version.
-4. Decode every known field into the current schema. Replace a field with its default when the field has the wrong type, is `null`, or fails validation. Drop unknown fields.
-5. Write the canonical result atomically. Write a temporary file, flush it to disk, and replace `settings.json`.
-
-If step 1, 2, or 3 fails, the application logs a warning, moves the file to `settings.json.bak`, and creates `settings.json` with the defaults. Replaced fields are logged as a warning. `appsettings.ReadLogging` runs steps 1 to 4 and does not write the file.
+- Each migration transforms the raw JSON object of one version into the raw JSON object of the next version.
+- Replace a field with its default when the field has the wrong type, is `null`, or fails validation. Drop unknown fields.
+- If the file cannot be parsed, has an unsupported version, or fails a migration, log a warning, move the file to `settings.json.bak`, and start from the defaults.
+- Write `settings.json` atomically. Write a temporary file, flush it to disk, and replace the original.
 
 ### Vault
 
-The vault holds account data. Never replace vault data with defaults or delete it after a load failure. If a vault file is damaged or has an unsupported version, refuse to unlock, leave every file unchanged, and tell the user to restore a backup.
+The vault holds account data. Never replace vault data with defaults or delete it after a load failure.
 
-- **`vault.db`:** Unlock accepts schema versions from 1 to `schemaVersion`. After an unlock, if the stored version is older, the application creates a backup in `backups/`. It then runs every migration in one transaction, records the new version, runs a foreign key check and an integrity check, and commits. If a step fails, the transaction rolls back and the vault closes.
-- **`vault.key` and `autounlock.key`:** Each format version has its own decoder. After an unlock, the application rewrites an older `autounlock.key` at the current version. It rewrites an older `vault.key` only after a password unlock, because the key file version is authenticated together with the wrapped database key. The older files stay readable, so a failed rewrite is logged and does not stop the unlock.
-
-Backups keep the format versions that existed when they were created. A restored backup is migrated on the next unlock.
+- If a vault file is damaged or has an unsupported version, refuse to unlock, leave every file unchanged, and tell the user to restore a backup.
+- Before `vault.db` migrates, create a backup in `backups/`. Run every migration in one transaction, then run a foreign key check and an integrity check. If a step fails, roll back and close the vault.
+- Rewrite an older `vault.key` only after a password unlock, because the key file version is authenticated together with the wrapped database key.
+- If a key file rewrite fails, log it and continue the unlock. The older file stays readable.
 
 ## Logging
 
-All application logs go through `internal/logging`. Do not create independent loggers or write log files directly.
-
-- Each launch writes one JSON log file, `<launch_id>.log`, to `logs/` in the selected data root. See [PLATFORM.md](./PLATFORM.md#data-storage). The file rotates at 5 MiB and keeps 5 files.
-- Every entry records its timestamp, level, module, and message, plus error details when they apply. Get a module logger from `System.Module`. Do not log without a module.
-- Add an `operation` attribute to entries. Use one stable operation ID when one user action produces work in several modules.
-- Never log credentials, authentication tokens, cookies, account secrets, or other sensitive account data. The redacting handler masks known sensitive keys, but it is a safety net, not permission.
-
-The levels are `trace`, `debug`, `info`, `warn`, and `error`. `settings.json` stores each level as a boolean in `logging.enabledLevels`, so the configuration can enable all levels, any subset, or none. No enabled level means no log output. The defaults enable only `warn` and `error`. The settings UI controls each level and all levels together.
+- Log only through `internal/logging`. Do not create independent loggers or write log files directly.
+- Get a module logger from `System.Module`. Do not log without a module.
+- Add an `operation` attribute to entries. When one user action produces work in several modules, use one stable operation ID.
+- Never log credentials, authentication tokens, cookies, account secrets, or other sensitive account data. The redacting handler is a safety net, not permission.
