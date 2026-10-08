@@ -85,7 +85,7 @@ Deleting `settings.json` resets settings to their defaults. Deleting `autounlock
 - `vault.db` and `vault.key` work in either mode and on any supported OS. Moving `storage/` keeps the accounts.
 - `autounlock.key` is sealed to the device and OS user. A copied `autounlock.key` fails, and the vault asks for the master password until automatic unlock is turned on again.
 
-When the OS offers both modes, Settings → Vault → Storage moves the data to the other root. It moves instead of copying, because a vault in both roots triggers the storage question on every launch.
+When the OS offers both modes, Settings > Vault > Storage moves the data to the other root. It moves instead of copying, because a vault in both roots triggers the storage question on every launch.
 
 1. `appdata.CheckMove` requires a complete vault in the current root and no vault files in the target root.
 2. The old process closes the vault and releases the single-instance lock. The application restarts with `--move-storage=<mode>`.
@@ -138,5 +138,5 @@ The About page shows the storage mode and data folder. Each launch records the m
 - The managed browser runs the macOS Chrome for Testing bundle from `storage/runtime/`. Extraction accepts only relative link targets without `..`, and creates links after all files.
 - Chrome keeps running after its last window closes, so the browser coordinator treats closing the last page as a user close. An application crash does not stop the managed browser.
 - Single-instance handling locks a file in the per-user temporary folder.
-- Release bundles are signed ad hoc and are not notarized. Gatekeeper blocks the first launch until the user allows it in System Settings → Privacy & Security, or opens the bundle from the Finder context menu. Updates installed by the application are not quarantined.
+- Release bundles are signed ad hoc and are not notarized. Gatekeeper blocks the first launch until the user allows it in System Settings > Privacy & Security, or opens the bundle from the Finder context menu. Updates installed by the application are not quarantined.
 - Developer ID signing and notarization can replace the ad hoc signature without other changes, because the bundle never contains user data.

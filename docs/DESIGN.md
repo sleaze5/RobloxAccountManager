@@ -90,7 +90,7 @@ Use these durations and easings:
 
 ## Reduced motion
 
-The Animations setting in Settings → User Interface chooses System (the default), Reduced, or Full. System follows the operating system's `prefers-reduced-motion` preference.
+The Animations setting in Settings > User Interface chooses System (the default), Reduced, or Full. System follows the operating system's `prefers-reduced-motion` preference.
 
 `lib/shared/motion.ts` resolves the setting and sets the `data-reduced-motion` attribute on the root element. `base.css` defines the reduced-motion guard for that attribute, and `presence.ts` reads it through `reducedMotion()`. Define the guard only once, and do not query `prefers-reduced-motion` anywhere else. Under reduced motion:
 
