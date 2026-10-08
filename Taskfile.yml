@@ -14,13 +14,6 @@ includes:
     darwin: ./build/darwin/Taskfile.yml
 
 tasks:
-    update-cft-manifest:
-        desc: Update the pinned Chrome for Testing manifest
-        deps:
-            - task: internal:validate-tools
-        cmds:
-            - bun run ./scripts/update-cft-manifest.ts
-
     internal:validate-tools:
         internal: true
         run: once
@@ -55,14 +48,21 @@ tasks:
               vars:
                   ARCH: "{{ARCH}}"
 
+    dev:
+        desc: Run fix, then start Wails development mode with hot reload. Keeps running until stopped.
+        deps:
+            - task: fix
+        cmds:
+            - go run {{.WAILS_CLI}} dev -config ./build/config.yml -port {{.VITE_PORT}}
+
     check:
-        desc: Validate frontend and backend source
+        desc: Validate all source without changing files. Runs check:common and check:native.
         deps:
             - task: check:common
             - task: check:native
 
     check:common:
-        desc: Validate source that does not depend on the operating system
+        desc: Validate source that does not depend on the operating system.
         deps:
             - task: internal:setup
         cmds:
@@ -78,14 +78,14 @@ tasks:
             - task: common:internal:go:tidy:check
 
     check:native:
-        desc: Validate and compile backend source for this operating system
+        desc: Validate and compile backend source for the current operating system.
         deps:
             - task: common:internal:go:vet
             - task: common:internal:go:staticcheck
             - task: common:internal:go:build
 
     fix:
-        desc: Apply safe fixes, then validate the repository
+        desc: Apply safe formatting and lint fixes, then run check.
         deps:
             - task: internal:setup
         cmds:
@@ -96,7 +96,7 @@ tasks:
             - task: check
 
     update:
-        desc: Update compatible unpinned dependencies, then fix and validate
+        desc: Update compatible unpinned dependencies, then run fix.
         deps:
             - task: internal:validate-tools
         cmds:
@@ -104,15 +104,15 @@ tasks:
             - task: common:internal:go:update
             - task: fix
 
-    dev:
-        desc: Fix, validate, and start Wails development mode
+    update-cft-manifest:
+        desc: Pin the latest Stable Chrome for Testing release for the managed browser. Needs network access.
         deps:
-            - task: fix
+            - task: internal:validate-tools
         cmds:
-            - go run {{.WAILS_CLI}} dev -config ./build/config.yml -port {{.VITE_PORT}}
+            - bun run ./scripts/update-cft-manifest.ts
 
     build:windows-amd64:
-        desc: Fix, validate, and build the Windows AMD64 application
+        desc: Run fix, then build the Windows x64 executable. Runs on Windows.
         deps:
             - task: fix
         cmds:
@@ -123,7 +123,7 @@ tasks:
                   ARCH: amd64
 
     build:windows-arm64:
-        desc: Fix, validate, and build the Windows ARM64 application
+        desc: Run fix, then cross-compile the Windows ARM64 executable. Runs on x64 Windows with llvm-mingw.
         deps:
             - task: fix
         cmds:
@@ -134,7 +134,7 @@ tasks:
                   ARCH: arm64
 
     build:linux-amd64:
-        desc: Fix, validate, and build the Linux AMD64 application
+        desc: Run fix, then build the Linux x64 executable. Runs on Linux.
         deps:
             - task: fix
         cmds:
@@ -144,7 +144,7 @@ tasks:
                   DEV: "false"
 
     build:darwin-arm64:
-        desc: Fix, validate, and build the macOS Apple silicon application bundle
+        desc: Run fix, then build the macOS Apple silicon app bundle. Runs on macOS.
         deps:
             - task: fix
         cmds:
@@ -155,7 +155,7 @@ tasks:
                   ARCH: arm64
 
     build:darwin-amd64:
-        desc: Fix, validate, and build the macOS Intel application bundle
+        desc: Run fix, then build the macOS Intel app bundle. Runs on macOS.
         deps:
             - task: fix
         cmds:
@@ -166,7 +166,7 @@ tasks:
                   ARCH: amd64
 
     release:prepare:
-        desc: Sign and verify the update manifest for the release archives in RELEASE_DIR
+        desc: Sign and verify the update manifest for the release archives. The Release workflow runs it.
         deps:
             - task: internal:validate-tools
         requires:
@@ -181,7 +181,7 @@ tasks:
             - bun run ./scripts/release-prepare.ts "{{.WAILS_CLI}}" "{{.RELEASE_DIR}}" "{{.TARGETS}}" "{{.REPOSITORY}}" "{{.SIGNING}}"
 
     clean:
-        desc: Delete generated files, dependencies, builds, logs, and portable data
+        desc: Destructive and irreversible. Delete builds, dependencies, generated files, logs, and all portable data, including the account vault. Standard data roots are not touched. Asks for confirmation, and -y skips it.
         prompt: This deletes all portable data and logs, including the account vault. Continue?
         cmds:
             - bun run ./scripts/clean.ts "{{.ROOT_DIR}}"
