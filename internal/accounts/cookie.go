@@ -87,6 +87,7 @@ func ValidateCookieValue(value string) error {
 	}
 	for index := 0; index < len(value); index++ {
 		character := value[index]
+		// 0x21 to 0x7e is printable ASCII without the space.
 		if character < 0x21 || character > 0x7e || character == '"' || character == ',' || character == ';' || character == '\\' {
 			return fmt.Errorf("%w: cookie contains a character that Roblox cookies do not use", ErrInvalidCookieInput)
 		}

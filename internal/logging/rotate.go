@@ -120,6 +120,7 @@ func (writer *rotatingWriter) open() error {
 	if !writer.resume {
 		flags |= os.O_EXCL
 	}
+	// Only the owner can read and write the file.
 	file, err := os.OpenFile(writer.path, flags, 0o600)
 	if err != nil {
 		return fmt.Errorf("open log file: %w", err)

@@ -65,7 +65,6 @@ const dateParts: Record<
 	[Kind.KindMeridiemLower]: (date) => (date.getHours() < 12 ? "am" : "pm"),
 }
 
-// Renders a format that the backend parsed. Returns an empty string until the format loads.
 export function formatTimestamp(
 	value: number | Date,
 	format: TimestampFormat | null,
@@ -88,7 +87,6 @@ export function formatTimestamp(
 
 const dayMs = 86_400_000
 
-// Rounds to the largest fitting unit, such as "a few seconds", "a minute", or "3 hours".
 function relativeDuration(milliseconds: number): string {
 	if (Math.round(milliseconds / 1_000) < 45) {
 		return "a few seconds"

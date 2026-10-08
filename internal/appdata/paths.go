@@ -97,6 +97,7 @@ func (paths Paths) Prepare() error {
 }
 
 func PreparePrivateDirectory(directory string) error {
+	// Only the owner can read, write, and enter the directory.
 	if err := os.MkdirAll(directory, 0o700); err != nil {
 		return fmt.Errorf("create application directory %q: %w", filepath.Base(directory), err)
 	}
@@ -104,6 +105,7 @@ func PreparePrivateDirectory(directory string) error {
 }
 
 func RestrictFile(path string) error {
+	// Only the owner can read and write the file.
 	if err := os.Chmod(path, 0o600); err != nil {
 		return fmt.Errorf("restrict file permissions: %w", err)
 	}
@@ -112,6 +114,7 @@ func RestrictFile(path string) error {
 
 func WritePrivateFile(path string, data []byte) error {
 	temporary := path + ".tmp"
+	// Only the owner can read and write the file.
 	file, err := os.OpenFile(temporary, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0o600)
 	if err != nil {
 		return fmt.Errorf("create %q: %w", filepath.Base(path), err)

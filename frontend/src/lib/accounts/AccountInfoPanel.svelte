@@ -54,7 +54,6 @@
 	const snapshot = $derived(info.snapshot),
 		birthday = $derived(formatBirthday(snapshot?.birthdate ?? ""))
 
-	// The backend sends birthdates as YYYY-MM-DD.
 	function formatBirthday(birthdate: string): string {
 		const [year = 0, month = 0, day = 0] = birthdate.split("-").map(Number),
 			date = new Date(year, month - 1, day)

@@ -1187,6 +1187,7 @@ func newCleanupQueue(root string, logger *slog.Logger, changed func()) *cleanupQ
 func (queue *cleanupQueue) createDirectory(id string) (string, error) {
 	queue.mu.Lock()
 	defer queue.mu.Unlock()
+	// The owner can write. Everyone can read and enter these directories.
 	if err := os.MkdirAll(queue.root, 0o755); err != nil {
 		return "", fmt.Errorf("create browser temporary root: %w", err)
 	}

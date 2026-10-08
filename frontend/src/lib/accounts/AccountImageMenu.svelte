@@ -21,6 +21,7 @@
 		const previousFocus = document.activeElement
 		let current = position
 		const place = () => {
+			// Keep the menu 8 px inside the window and at least 42 px from the top, below the title bar.
 			const x = Math.max(
 					8,
 					Math.min(current.x, window.innerWidth - node.offsetWidth - 8),

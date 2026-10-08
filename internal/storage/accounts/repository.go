@@ -234,6 +234,7 @@ func (repository *Repository) Remove(ctx context.Context, accountID int64) error
 	if err := tx.QueryRowContext(ctx, `SELECT count(*) FROM accounts`).Scan(&remaining); err != nil {
 		return err
 	}
+	// Two shifts keep display_order unique: move later rows above every existing value, then back down to one below their old value.
 	if _, err := tx.ExecContext(ctx, `UPDATE accounts SET display_order = display_order + ? WHERE display_order > ?`, remaining+2, order); err != nil {
 		return err
 	}

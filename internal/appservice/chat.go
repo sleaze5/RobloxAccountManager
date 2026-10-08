@@ -210,6 +210,7 @@ func (service *Service) SendChatMessage(ctx context.Context, accountID int64, co
 		if errors.As(err, &remote) && strings.Contains(strings.ToLower(remote.Message), "too long") {
 			return ChatMessageView{}, chatInputError("This message is too long.")
 		}
+		// 409 Conflict
 		if errors.As(err, &remote) && remote.Status == 409 {
 			return ChatMessageView{}, chatInputError("This chat changed. Refresh it and try again.")
 		}
@@ -398,6 +399,7 @@ func realChatConversation(id string) bool {
 }
 
 func validateChatConversationID(id string) error {
+	// 0x7f is the DEL control character.
 	if !realChatConversation(id) || len(id) > 256 || !utf8.ValidString(id) || strings.ContainsFunc(id, func(r rune) bool { return r <= ' ' || r == 0x7f }) {
 		return chatInputError("This chat is unavailable. Refresh chats.")
 	}

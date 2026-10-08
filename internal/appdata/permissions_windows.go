@@ -23,6 +23,7 @@ func rejectNetworkPath(path string) error {
 }
 
 func restrictDirectory(path string) error {
+	// On Windows, Chmod only clears the read-only attribute. restrictACL limits access to the current user.
 	if err := os.Chmod(path, 0o700); err != nil {
 		return fmt.Errorf("restrict directory permissions: %w", err)
 	}

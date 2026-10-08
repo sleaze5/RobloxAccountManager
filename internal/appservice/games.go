@@ -365,6 +365,7 @@ func (service *Service) gamesError(ctx context.Context, operation string, err er
 }
 
 func validGameID(id int64) error {
+	// 1<<53-1 is the largest integer that a JavaScript number holds exactly.
 	if id <= 0 || id > 1<<53-1 {
 		return gamesInputError("The game identifier is invalid.")
 	}

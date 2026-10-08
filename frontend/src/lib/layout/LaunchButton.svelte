@@ -38,6 +38,7 @@
 
 	function positionMenu(node: HTMLElement, position: { x: number; y: number }) {
 		const place = (next: { x: number; y: number }) => {
+			// Keep the menu 8 px inside the window and at least 42 px from the top, below the title bar.
 			const x = Math.max(
 					8,
 					Math.min(next.x, window.innerWidth - node.offsetWidth - 8),

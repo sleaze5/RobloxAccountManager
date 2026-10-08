@@ -14,6 +14,7 @@ func NewBrowserID() string {
 	for {
 		var data [8]byte
 		_, _ = rand.Read(data[:])
+		// Keep 53 bits, so the ID fits in a JavaScript number.
 		if value := binary.BigEndian.Uint64(data[:]) >> 11; value != 0 {
 			return strconv.FormatUint(value, 10)
 		}

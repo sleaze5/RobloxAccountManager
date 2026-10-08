@@ -24,6 +24,7 @@ func rejectNetworkPath(path string) error {
 }
 
 func restrictDirectory(path string) error {
+	// Only the owner can read, write, and enter the directory.
 	if err := os.Chmod(path, 0o700); err != nil {
 		return fmt.Errorf("restrict directory permissions: %w", err)
 	}
@@ -38,6 +39,7 @@ func ReplaceFile(source, destination string) error {
 }
 
 func restrictACL(path string, directory bool) error {
+	// Only the owner has access. Directories also need the execute bit to be entered.
 	mode := os.FileMode(0o600)
 	if directory {
 		mode = 0o700

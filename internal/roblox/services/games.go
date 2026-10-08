@@ -36,6 +36,7 @@ func (service *Games) Search(ctx context.Context, query games.SearchQuery) (game
 	if query.SessionID == "" {
 		var id [16]byte
 		rand.Read(id[:])
+		// Mark the ID as a random (version 4) UUID with the RFC 4122 variant.
 		id[6], id[8] = id[6]&0x0f|0x40, id[8]&0x3f|0x80
 		query.SessionID = fmt.Sprintf("%x-%x-%x-%x-%x", id[:4], id[4:6], id[6:8], id[8:10], id[10:])
 	}
@@ -62,6 +63,7 @@ func (service *Games) Search(ctx context.Context, query games.SearchQuery) (game
 			continue
 		}
 		for _, item := range section.Contents {
+			// 1<<53-1 is the largest integer that a JavaScript number holds exactly.
 			if item.ContentID > 0 && item.ContentID <= 1<<53-1 && !seen[item.ContentID] {
 				seen[item.ContentID] = true
 				ids = append(ids, item.ContentID)
@@ -125,6 +127,7 @@ func (service *Games) PlaceByID(ctx context.Context, placeID int64) (games.Place
 	if err != nil {
 		return games.Place{}, false, err
 	}
+	// 1<<53-1 is the largest integer that a JavaScript number holds exactly.
 	if payload.UniverseID <= 0 || payload.UniverseID > 1<<53-1 {
 		return games.Place{}, false, nil
 	}
@@ -222,6 +225,7 @@ func (service *Games) subplaces(ctx context.Context, root games.Place, visit fun
 			return err
 		}
 		for _, item := range payload.Data {
+			// 1<<53-1 is the largest integer that a JavaScript number holds exactly.
 			if item.UniverseID != root.UniverseID || item.ID <= 0 || item.ID > 1<<53-1 || item.ID == root.PlaceID || strings.TrimSpace(item.Name) == "" {
 				continue
 			}
@@ -465,6 +469,7 @@ func (service *Games) details(ctx context.Context, ids []int64) (map[int64]games
 	}
 	result := make(map[int64]games.Game, len(payload.Data))
 	for _, item := range payload.Data {
+		// 1<<53-1 is the largest integer that a JavaScript number holds exactly.
 		if !requested[item.ID] || item.RootPlaceID <= 0 || item.RootPlaceID > 1<<53-1 || strings.TrimSpace(item.Name) == "" {
 			continue
 		}

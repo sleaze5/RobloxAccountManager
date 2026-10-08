@@ -548,6 +548,7 @@ func openDatabase(ctx context.Context, path string, dek []byte, logger *slog.Log
 	if err := db.QueryRowContext(openCtx, `PRAGMA foreign_keys`).Scan(&foreignKeys); err != nil || foreignKeys != 1 {
 		return closeOnError(fmt.Errorf("foreign key enforcement is unavailable"))
 	}
+	// The vault uses the SQLCipher 4 default page size of 4096 bytes.
 	if err := db.QueryRowContext(openCtx, `PRAGMA cipher_page_size`).Scan(&pageSize); err != nil || pageSize != 4096 {
 		return closeOnError(fmt.Errorf("SQLCipher page size is unsupported"))
 	}

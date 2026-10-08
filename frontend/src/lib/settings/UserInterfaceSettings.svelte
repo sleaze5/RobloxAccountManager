@@ -118,7 +118,6 @@
 	$effect(() => parseDraft(timestampFormat, (draft) => (shownDraft = draft)))
 	$effect(() => parseDraft(timestampHoverFormat, (draft) => (hoverDraft = draft)))
 
-	// The backend owns the format syntax. The returned cleanup ignores results for outdated input.
 	function parseDraft(
 		source: string,
 		apply: (draft: DraftFormat) => void,

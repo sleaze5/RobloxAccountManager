@@ -19,6 +19,7 @@
 	function positionMenu(node: HTMLElement, trigger: HTMLElement) {
 		const place = (current: HTMLElement) => {
 			restoreFocus = false
+			// Keep the menu 8 px inside the window and at least 42 px from the top, below the title bar.
 			const bounds = current.getBoundingClientRect(),
 				opensUp =
 					bounds.bottom + 4 + node.offsetHeight > window.innerHeight - 8,

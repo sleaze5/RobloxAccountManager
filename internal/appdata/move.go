@@ -163,6 +163,7 @@ func copyVerified(source, destination string) error {
 	}
 	switch {
 	case info.IsDir():
+		// Only the owner can read, write, and enter the directory.
 		if err := os.Mkdir(destination, 0o700); err != nil {
 			return err
 		}
@@ -192,6 +193,7 @@ func copyFile(source, destination string) error {
 		return err
 	}
 	defer input.Close()
+	// Only the owner can read and write the file.
 	output, err := os.OpenFile(destination, os.O_WRONLY|os.O_CREATE|os.O_EXCL, 0o600)
 	if err != nil {
 		return err

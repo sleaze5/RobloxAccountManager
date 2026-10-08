@@ -35,7 +35,6 @@ const (
 	ChoiceConflict             ChoiceReason = "conflict"
 )
 
-// OtherItems lists at most maxListedItems names. OtherItemCount counts every entry except the executable.
 type Candidate struct {
 	Mode           Mode      `json:"mode"`
 	Directory      string    `json:"directory"`

@@ -40,6 +40,7 @@ func (service *Users) Email(ctx context.Context, accountID, version int64) (User
 	if err := service.readAccountDetails(ctx, accountID, version, "account-info-email", "https://accountsettings.roblox.com/v1/email", &result); err != nil {
 		return UserEmail{}, err
 	}
+	// 320 bytes is the longest valid email address.
 	if result.EmailAddress != nil && len(*result.EmailAddress) > 320 {
 		return UserEmail{}, invalidProfileDetails("account-info-email")
 	}
@@ -72,7 +73,6 @@ func (service *Users) Phone(ctx context.Context, accountID, version int64) (User
 	return UserPhone{Number: number, Verified: result.IsVerified}, nil
 }
 
-// Gender returns "male", "female", or "" when the account has not set one.
 func (service *Users) Gender(ctx context.Context, accountID, version int64) (string, error) {
 	var result struct {
 		Gender *int `json:"gender"`
@@ -120,7 +120,6 @@ var ageGroupLabels = map[string]string{
 	"Label.AgeGroupOver25": "25+",
 }
 
-// CheckedAgeGroup returns the account's age group and whether Roblox checked it with a face scan or an ID.
 // The age group can differ from the birthday unless the birthday was verified with an ID.
 func (service *Users) CheckedAgeGroup(ctx context.Context, accountID, version int64) (UserAgeGroup, error) {
 	var result struct {

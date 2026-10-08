@@ -213,6 +213,7 @@ func (manager *RuntimeManager) install(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
+	// The owner can write. Everyone can read and enter these directories.
 	if err := os.MkdirAll(manager.paths.CfTRuntimeRoot, 0o755); err != nil {
 		return fmt.Errorf("create CfT runtime root: %w", err)
 	}
@@ -237,6 +238,7 @@ func (manager *RuntimeManager) install(ctx context.Context) error {
 	}
 	manager.setDownloadTotal(response.ContentLength)
 	archive := filepath.Join(stage, archiveName)
+	// Only the owner can read and write the file.
 	file, err := os.OpenFile(archive, os.O_CREATE|os.O_EXCL|os.O_WRONLY, 0o600)
 	if err != nil {
 		return err
@@ -258,6 +260,7 @@ func (manager *RuntimeManager) install(ctx context.Context) error {
 		return err
 	}
 	metadata, _ := json.MarshalIndent(runtimeMetadata{SchemaVersion: runtimeMetadataVersion, Version: manager.manifest.Version, InstalledAtMs: time.Now().UnixMilli()}, "", "  ")
+	// Only the owner can read and write the file.
 	if err := os.WriteFile(filepath.Join(extracted, runtimeMetadataName), append(metadata, '\n'), 0o600); err != nil {
 		return err
 	}
@@ -532,6 +535,7 @@ func extractRuntime(ctx context.Context, archive, destination string) error {
 		return fmt.Errorf("open browser archive: %w", err)
 	}
 	defer reader.Close()
+	// The owner can write, and everyone can read and enter directories. Files keep their archive permissions, and the owner can always read and write them.
 	if err := os.Mkdir(destination, 0o755); err != nil {
 		return err
 	}
@@ -607,6 +611,7 @@ type archiveLink struct {
 // Without absolute targets or parent references, no chain of links can leave
 // the runtime.
 func readArchiveLink(entry *zip.File) (string, error) {
+	// Link targets are paths of at most 4096 bytes. Reading one extra byte detects a longer target.
 	if entry.UncompressedSize64 == 0 || entry.UncompressedSize64 > 4096 {
 		return "", errors.New("browser archive contains an invalid link")
 	}

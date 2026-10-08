@@ -141,6 +141,7 @@ func snapshotDatabase(ctx context.Context, source *sql.DB, destinationPath strin
 				return fmt.Errorf("start SQLite backup: %w", err)
 			}
 			for {
+				// Copy 128 pages per step.
 				done, stepErr := backup.Step(128)
 				if stepErr != nil {
 					_ = backup.Close()
@@ -197,6 +198,7 @@ func (manager *Manager) trimBackups() error {
 	if err != nil {
 		return err
 	}
+	// Keep the 3 newest backups.
 	if len(backups) <= 3 {
 		return nil
 	}

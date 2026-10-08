@@ -127,8 +127,6 @@ export function presenceIcon(presence: UserPresence): typeof GlobeIcon {
 	}
 }
 
-// presenceDetail is the text after the label, such as the experience or Roblox's
-// last location. Roblox reports "Website" for plain online presence, which adds nothing.
 export function presenceDetail(presence: UserPresence, experience = ""): string {
 	const location = presence.lastLocation?.trim() ?? ""
 	switch (presence.userPresenceType) {

@@ -141,6 +141,7 @@ func calibrateArgon2(password string) (argon2Parameters, error) {
 	wipe(key)
 	elapsed := time.Since(started)
 	if elapsed > 0 {
+		// Aim for about 500 ms per key derivation.
 		params.Time = min(uint32((500*time.Millisecond+elapsed-1)/elapsed), uint32(maxArgonTime))
 		if params.Time == 0 {
 			params.Time = 1
@@ -248,6 +249,7 @@ func (key keyFile) additionalData() []byte {
 }
 
 func encodeKeyFile(key keyFile) ([]byte, error) {
+	// 16-byte salt, 12-byte AES-GCM nonce, and a 48-byte wrapped key: a 32-byte key plus a 16-byte GCM tag.
 	if key.Version != keyFormatVersion || len(key.Salt) != 16 || len(key.Nonce) != 12 || len(key.WrappedDEK) != 48 {
 		return nil, fmt.Errorf("invalid vault key fields")
 	}
@@ -318,6 +320,7 @@ func decodeKeyFileV1(data []byte) (keyFile, error) {
 	if err := validateArgon2(key.KDF); err != nil {
 		return keyFile{}, err
 	}
+	// 16-byte salt, 12-byte AES-GCM nonce, and a 48-byte wrapped key: a 32-byte key plus a 16-byte GCM tag.
 	if saltLength != 16 || nonceLength != 12 || wrappedLength != 48 || hintLength > maxHintBytes {
 		return keyFile{}, fmt.Errorf("vault key file has invalid lengths")
 	}
@@ -354,6 +357,7 @@ func encodeAutoUnlock(protector protection.Protector, vaultID [vaultIDBytes]byte
 		return nil, err
 	}
 	defer wipe(ciphertext)
+	// The 14-byte header holds an 8-byte magic, a 2-byte version, and a 4-byte length.
 	if len(ciphertext) == 0 || len(ciphertext) > autoFileLimit-14 {
 		return nil, fmt.Errorf("automatic unlock data is too large")
 	}
@@ -366,6 +370,7 @@ func encodeAutoUnlock(protector protection.Protector, vaultID [vaultIDBytes]byte
 
 func decodeAutoUnlock(data []byte, protector protection.Protector) ([vaultIDBytes]byte, []byte, error) {
 	var vaultID [vaultIDBytes]byte
+	// The 14-byte header holds an 8-byte magic, a 2-byte version, and a 4-byte length.
 	if len(data) < 14 || len(data) > autoFileLimit || !bytes.Equal(data[:8], autoMagic[:]) {
 		return vaultID, nil, fmt.Errorf("automatic unlock file is corrupted")
 	}
@@ -387,6 +392,7 @@ func decodeAutoUnlock(data []byte, protector protection.Protector) ([vaultIDByte
 
 func decodeAutoUnlockV1(plain []byte) ([vaultIDBytes]byte, []byte, error) {
 	var vaultID [vaultIDBytes]byte
+	// 8-byte magic and 2-byte version, then the vault ID and the key.
 	if len(plain) != 8+2+vaultIDBytes+dekBytes || !bytes.Equal(plain[:8], autoPlainMagic[:]) || binary.BigEndian.Uint16(plain[8:10]) != 1 {
 		return vaultID, nil, fmt.Errorf("automatic unlock file is corrupted")
 	}

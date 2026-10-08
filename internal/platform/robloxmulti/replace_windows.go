@@ -108,6 +108,7 @@ func (players *playerProcesses) terminate(ctx context.Context, logger *slog.Logg
 			if err := ctx.Err(); err != nil {
 				return err
 			}
+			// Wait 50 ms.
 			result, err := windows.WaitForSingleObject(handle, 50)
 			if err != nil {
 				return err

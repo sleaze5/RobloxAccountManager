@@ -220,6 +220,7 @@ func settingOptionReason(definition accountSettingDefinition, value AccountSetti
 	return ""
 }
 
+// Options without a known order return 10, so they sort last.
 func settingOptionOrder(key AccountSettingKey, option AccountSettingOption) int {
 	if option.StringValue == nil {
 		return 10

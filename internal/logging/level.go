@@ -68,6 +68,7 @@ func (level Level) slogLevel() slog.Level {
 	case LevelTrace:
 		return traceSlogLevel
 	default:
+		// Above every level, so nothing is logged.
 		return slog.LevelError + 100
 	}
 }

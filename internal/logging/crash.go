@@ -83,6 +83,7 @@ func (capture *crashCapture) close() error {
 }
 
 func RunCrashMonitor() (bool, error) {
+	// Arguments: executable, crashMonitorArgument, launch ID, log directory.
 	if len(os.Args) != 4 || os.Args[1] != crashMonitorArgument {
 		return false, nil
 	}

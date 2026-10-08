@@ -167,6 +167,7 @@ func clearPlayerSingleton(playerID uint32, handles []windows.Handle, event windo
 }
 
 func verifyProcess(process windows.Handle, expectedName string) error {
+	// 32768 UTF-16 units is the longest Windows path.
 	var path [32768]uint16
 	size := uint32(len(path))
 	if err := windows.QueryFullProcessImageName(process, 0, &path[0], &size); err != nil {

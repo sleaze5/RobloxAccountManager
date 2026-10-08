@@ -77,6 +77,7 @@ func copyTree(source, destination string) error {
 			}
 			return os.Symlink(link, target)
 		case entry.IsDir():
+			// Keep the bundle's permissions, and let the owner read, write, and enter every directory.
 			return os.Mkdir(target, info.Mode().Perm()|0o700)
 		case info.Mode().IsRegular():
 			return copyFile(path, target, info.Mode().Perm())

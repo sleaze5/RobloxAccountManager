@@ -404,6 +404,7 @@ func (client *Client) sendAttempt(ctx context.Context, contract Request, snapsho
 	}
 	defer release()
 	started := client.now()
+	// slog.LevelDebug-4 is the trace level.
 	client.logger.Log(ctx, slog.LevelDebug-4, "Roblox request started",
 		"endpoint", contract.Endpoint,
 		"account_id", contract.AccountID,
@@ -435,6 +436,7 @@ func (client *Client) sendAttempt(ctx context.Context, contract Request, snapsho
 		}
 		return result, err
 	}
+	// slog.LevelDebug-4 is the trace level.
 	client.logger.Log(ctx, slog.LevelDebug-4, "Roblox response received",
 		"endpoint", contract.Endpoint,
 		"account_id", contract.AccountID,

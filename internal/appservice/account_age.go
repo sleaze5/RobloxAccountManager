@@ -2,7 +2,6 @@ package appservice
 
 import "context"
 
-// AgeVerification is how Roblox confirmed an account's age group.
 type AgeVerification string
 
 const (
@@ -16,7 +15,6 @@ type accountAge struct {
 	idVerified, checked *bool
 }
 
-// verification returns "" when a read it depends on failed.
 // An ID check also marks the age group as checked, so ID wins.
 func (age accountAge) verification() AgeVerification {
 	switch {

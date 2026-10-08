@@ -589,6 +589,7 @@ func (store *Store) saveLocked() error {
 }
 
 func decodeJSON(data []byte, value any) error {
+	// UTF-8 byte order mark
 	data = bytes.TrimPrefix(data, []byte{0xef, 0xbb, 0xbf})
 	if !utf8.Valid(data) {
 		return errors.New("settings must use valid UTF-8 encoding")
@@ -647,6 +648,7 @@ func validMotion(motion MotionPreference) bool {
 }
 
 func validPasswordTestInterval(days int) bool {
+	// 0 turns the reminder off.
 	return days == 0 || days == 7 || days == 30 || days == 90
 }
 

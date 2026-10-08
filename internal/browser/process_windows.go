@@ -419,6 +419,7 @@ func (process *windowsBrowserProcess) Focus() error {
 
 func processIDsInJob(job windows.Handle) (map[uint32]struct{}, error) {
 	const capacity = 256
+	// JOBOBJECT_BASIC_PROCESS_ID_LIST: two uint32 counts, then one ULONG_PTR per process ID.
 	buffer := make([]byte, 8+capacity*int(unsafe.Sizeof(uintptr(0))))
 	if err := windows.QueryInformationJobObject(job, windows.JobObjectBasicProcessIdList, uintptr(unsafe.Pointer(&buffer[0])), uint32(len(buffer)), nil); err != nil {
 		return nil, err

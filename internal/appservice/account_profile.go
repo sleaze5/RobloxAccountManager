@@ -82,7 +82,6 @@ type accountRead struct {
 	fetch  func() error
 }
 
-// runAccountReads runs reads concurrently and returns the sources that failed.
 // Session failures end the whole read because no section can succeed.
 func (service *Service) runAccountReads(ctx context.Context, accountID, version int64, endpoint string, logger *slog.Logger, reads []accountRead) ([]string, error) {
 	failures := make([]error, len(reads))

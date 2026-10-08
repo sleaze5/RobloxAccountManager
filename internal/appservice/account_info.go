@@ -9,8 +9,7 @@ import (
 
 var accountInfoOperationID atomic.Uint64
 
-// AccountInfoSnapshot holds the personal details shown on the Account info settings page.
-// It is never persisted or logged.
+// AccountInfoSnapshot is never persisted or logged.
 type AccountInfoSnapshot struct {
 	AccountID        int64           `json:"accountId"`
 	FetchedAtMs      int64           `json:"fetchedAtMs"`
@@ -26,8 +25,7 @@ type AccountInfoSnapshot struct {
 	Language         string          `json:"language"`
 	AutoTranslations *bool           `json:"autoTranslations"`
 	Location         string          `json:"location"`
-	// Unavailable lists the sources that failed: email, phone, gender, birthdate, ageGroup, ageVerification, firstAccount, locale, location.
-	Unavailable []string `json:"unavailable"`
+	Unavailable      []string        `json:"unavailable"`
 }
 
 func (service *Service) GetAccountInfo(ctx context.Context, accountID int64) (AccountInfoSnapshot, error) {

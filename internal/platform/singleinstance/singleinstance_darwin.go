@@ -21,6 +21,7 @@ func Acquire(applicationID string) (*Instance, bool, error) {
 	if applicationID == "" || strings.ContainsAny(applicationID, "/\x00") {
 		return nil, false, errors.New("invalid single-instance name")
 	}
+	// Only the owner can read and write the file.
 	file, err := os.OpenFile(filepath.Join(os.TempDir(), applicationID+".lock"), os.O_RDWR|os.O_CREATE, 0o600)
 	if err != nil {
 		return nil, false, fmt.Errorf("open single-instance lock: %w", err)
