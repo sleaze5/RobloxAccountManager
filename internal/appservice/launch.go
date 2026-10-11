@@ -195,6 +195,7 @@ func (service *Service) runLaunchOperation(ctx context.Context, accountID int64,
 	}
 	target.Teleport = input.Teleport
 	target.DirectLaunch = input.DirectLaunch
+	target.PlayerPath = input.PlayerPath
 	if launchData := strings.TrimSpace(input.LaunchData); launchData != "" {
 		target.LaunchData = launchData
 	}

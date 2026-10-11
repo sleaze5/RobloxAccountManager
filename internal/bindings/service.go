@@ -222,6 +222,18 @@ func (service *Service) SetMultiInstanceEnabled(enabled bool) (robloxmulti.Snaps
 	return service.core.SetMultiInstanceEnabled(enabled)
 }
 
+func (service *Service) GetRobloxPlayers() appservice.RobloxPlayers {
+	return service.core.GetRobloxPlayers()
+}
+
+func (service *Service) CheckRobloxPlayerPath(path string) appservice.RobloxPlayerPathCheck {
+	return service.core.CheckRobloxPlayerPath(path)
+}
+
+func (service *Service) SetRobloxPlayerPath(path string) error {
+	return service.core.SetRobloxPlayerPath(path)
+}
+
 func (service *Service) GetRobloxClients() gamelaunch.ClientState {
 	return service.core.GetRobloxClients()
 }

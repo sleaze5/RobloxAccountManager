@@ -15,6 +15,7 @@ export type {
 	ImportPreviewItem,
 	LaunchConfirmation,
 	LaunchResult,
+	RobloxPlayerPathCheck,
 	TimestampFormats,
 	VaultState,
 } from "../../../bindings/github.com/sleaze5/RobloxAccountManager/internal/appservice/models.js"
@@ -109,6 +110,7 @@ export { Method as LaunchMethod } from "../../../bindings/github.com/sleaze5/Rob
 export type {
 	ClientState as RobloxClientState,
 	Input as LaunchInput,
+	PlayerVersion as RobloxPlayerVersion,
 } from "../../../bindings/github.com/sleaze5/RobloxAccountManager/internal/gamelaunch/models.js"
 
 export type {

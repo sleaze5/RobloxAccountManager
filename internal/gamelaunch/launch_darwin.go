@@ -80,7 +80,7 @@ func (darwinLauncher) open(ctx context.Context, protocolURL string) error {
 		}
 		var exit *exec.ExitError
 		if errors.As(err, &exit) {
-			return &ClientError{Message: "install Roblox to join a game"}
+			return &ClientError{Message: protocolUnavailable}
 		}
 		return &ClientError{Message: "roblox could not be started"}
 	}

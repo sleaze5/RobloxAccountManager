@@ -8,6 +8,12 @@ type ClientInfo struct {
 	Installed bool   `json:"installed"`
 }
 
+type PlayerVersion struct {
+	Name        string `json:"name"`
+	Path        string `json:"path"`
+	DisplayPath string `json:"displayPath"`
+}
+
 type ClientState struct {
 	ChoiceSupported bool         `json:"choiceSupported"`
 	DirectLaunch    bool         `json:"directLaunch"`

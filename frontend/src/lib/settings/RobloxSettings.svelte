@@ -6,6 +6,7 @@
 		type RobloxClientState,
 	} from "../backend/bridge"
 	import Select from "../shared/Select.svelte"
+	import { linuxClientOptions } from "./linux-clients"
 	import SettingsStatus from "./SettingsStatus.svelte"
 
 	let snapshot = $state<MultiInstanceSnapshot | null>(null),
@@ -17,39 +18,7 @@
 		clientsLoading = $state(true),
 		clientsSaving = $state(false),
 		clientsError = $state("")
-	const clientOptions = $derived.by(() => {
-			const state = clients
-			if (!state) return []
-			const options = [
-				{
-					value: "",
-					label: "Automatic",
-					description:
-						"Use the installed client, or the desktop default when both are installed.",
-				},
-			]
-			for (const client of state.clients ?? []) {
-				if (!client.installed && client.id !== state.selected) continue
-				options.push({
-					value: client.id,
-					label: client.installed
-						? client.name
-						: `${client.name} (not installed)`,
-					description: "",
-				})
-			}
-			if (
-				state.selected &&
-				!options.some((option) => option.value === state.selected)
-			) {
-				options.push({
-					value: state.selected,
-					label: "Selected client (not installed)",
-					description: "",
-				})
-			}
-			return options
-		}),
+	const clientOptions = $derived(clients ? linuxClientOptions(clients) : []),
 		installedClients = $derived(
 			(clients?.clients ?? []).filter((client) => client.installed).length,
 		)

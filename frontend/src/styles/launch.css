@@ -339,13 +339,49 @@
 	font-weight: var(--font-semibold);
 }
 
-.launch-option > span {
+.launch-option-group {
+	display: flex;
+	flex-direction: column;
+	align-items: flex-start;
+	gap: var(--space-2);
+}
+
+.launch-option-action {
+	display: inline-flex;
+	align-items: center;
+	gap: var(--space-1);
+	padding: 0;
+	border: 0;
+	background: none;
+	color: var(--color-text);
+	font-size: var(--text-12);
+	font-weight: var(--font-semibold);
+	cursor: pointer;
+	transition: color 80ms var(--ease-standard);
+}
+
+.launch-option + .launch-option-action {
+	margin-left: calc(14px + var(--space-2));
+}
+
+.launch-option-action:hover {
+	color: var(--color-text-bright);
+}
+
+.launch-option-action:disabled {
+	color: var(--color-text-faint);
+	cursor: not-allowed;
+}
+
+.launch-option > span,
+.launch-option-copy {
 	display: flex;
 	flex-direction: column;
 	gap: var(--space-1);
 }
 
-.launch-option small {
+.launch-option small,
+.launch-option-copy small {
 	color: var(--color-text-muted);
 	font-size: var(--text-11);
 	line-height: 1.45;

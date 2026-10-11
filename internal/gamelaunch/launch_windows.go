@@ -39,7 +39,7 @@ func (windowsLauncher) Launch(ctx context.Context, ticket, browserTrackerID stri
 		return err
 	}
 	if prepared.executable == "" {
-		return launchFromExplorer(ctx, prepared.protocolURL, "", "")
+		return launchProtocolFromExplorer(ctx, prepared.protocolURL)
 	}
 	arguments := make([]string, len(prepared.arguments))
 	for index, argument := range prepared.arguments {
@@ -50,6 +50,13 @@ func (windowsLauncher) Launch(ctx context.Context, ticket, browserTrackerID stri
 
 func (windowsLauncher) LaunchProtocol(ctx context.Context, protocolURL string) error {
 	if err := ValidateBrowserProtocolURL(protocolURL); err != nil {
+		return err
+	}
+	return launchProtocolFromExplorer(ctx, protocolURL)
+}
+
+func launchProtocolFromExplorer(ctx context.Context, protocolURL string) error {
+	if err := requireProtocolHandler(); err != nil {
 		return err
 	}
 	return launchFromExplorer(ctx, protocolURL, "", "")

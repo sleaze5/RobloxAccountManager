@@ -7,6 +7,8 @@ import (
 
 var ErrDesktopUnavailable = errors.New("a non-admin Windows desktop is unavailable")
 
+const protocolUnavailable = "the Roblox launch protocol is not registered. Check that Roblox is installed"
+
 type ClientError struct {
 	Message string
 }
@@ -36,6 +38,7 @@ type Request struct {
 	AccessCode   string
 	Teleport     bool
 	DirectLaunch bool
+	PlayerPath   string
 	LaunchData   string
 }
 

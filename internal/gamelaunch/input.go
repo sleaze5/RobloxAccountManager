@@ -25,6 +25,7 @@ type Input struct {
 	ResolveCurrentGame bool   `json:"resolveCurrentGame"`
 	Teleport           bool   `json:"teleport"`
 	DirectLaunch       bool   `json:"directLaunch"`
+	PlayerPath         string `json:"playerPath"`
 	LaunchData         string `json:"launchData"`
 }
 

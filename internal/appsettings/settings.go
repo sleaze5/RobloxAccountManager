@@ -88,6 +88,7 @@ type PresenceUpdateSettings struct {
 type RobloxSettings struct {
 	MultiInstance bool   `json:"multiInstance"`
 	LinuxClient   string `json:"linuxClient"`
+	PlayerPath    string `json:"playerPath"`
 }
 
 type IntegrationSettings struct {
@@ -218,6 +219,7 @@ func decodeCurrent(document object) (Settings, []string) {
 	roblox := fields.object(document, "roblox")
 	decodeField(fields, roblox, "roblox.multiInstance", &settings.Roblox.MultiInstance, nil)
 	decodeField(fields, roblox, "roblox.linuxClient", &settings.Roblox.LinuxClient, validLinuxClient)
+	decodeField(fields, roblox, "roblox.playerPath", &settings.Roblox.PlayerPath, validPlayerPath)
 	integrations := fields.object(document, "integrations")
 	decodeField(fields, integrations, "integrations.rovalra", &settings.Integrations.RoValra, nil)
 	decodeField(fields, integrations, "integrations.rovalraRegion", &settings.Integrations.RoValraRegion, nil)
@@ -388,6 +390,21 @@ func (store *Store) SetLinuxClient(client string) error {
 	defer store.mu.Unlock()
 	previous := store.settings.Roblox
 	store.settings.Roblox.LinuxClient = client
+	if err := store.saveLocked(); err != nil {
+		store.settings.Roblox = previous
+		return err
+	}
+	return nil
+}
+
+func (store *Store) SetPlayerPath(path string) error {
+	if !validPlayerPath(path) {
+		return fmt.Errorf("the Roblox Player path is not valid UTF-8 or is longer than 4096 bytes")
+	}
+	store.mu.Lock()
+	defer store.mu.Unlock()
+	previous := store.settings.Roblox
+	store.settings.Roblox.PlayerPath = path
 	if err := store.saveLocked(); err != nil {
 		store.settings.Roblox = previous
 		return err
@@ -641,6 +658,10 @@ func validLinuxClient(client string) bool {
 	default:
 		return false
 	}
+}
+
+func validPlayerPath(path string) bool {
+	return len(path) <= 4096 && utf8.ValidString(path)
 }
 
 func validMotion(motion MotionPreference) bool {

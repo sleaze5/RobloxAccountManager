@@ -1131,6 +1131,7 @@ function emptyLaunchInput(): LaunchInput {
 		resolveCurrentGame: false,
 		teleport: false,
 		directLaunch: false,
+		playerPath: "",
 		launchData: "",
 	}
 }

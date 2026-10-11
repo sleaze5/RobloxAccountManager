@@ -62,7 +62,7 @@ func resolveLinuxClient(preferred string) (knownClient, string, error) {
 	}
 	switch len(installed) {
 	case 0:
-		return knownClient{}, "", &ClientError{Message: "install Sober or Mocktail to join a game"}
+		return knownClient{}, "", &ClientError{Message: protocolUnavailable}
 	case 1:
 		return installed[0].client, installed[0].path, nil
 	}
@@ -136,4 +136,12 @@ func defaultRobloxDesktop() string {
 		return ""
 	}
 	return name
+}
+
+func PlayerVersions() []PlayerVersion {
+	return []PlayerVersion{}
+}
+
+func CheckPlayerPath(string) (string, bool, error) {
+	return "", false, &ClientError{Message: "custom Roblox Player paths are only available on Windows"}
 }

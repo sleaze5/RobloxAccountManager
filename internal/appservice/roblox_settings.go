@@ -1,6 +1,8 @@
 package appservice
 
 import (
+	"strings"
+
 	"github.com/sleaze5/RobloxAccountManager/internal/gamelaunch"
 	"github.com/sleaze5/RobloxAccountManager/internal/platform/robloxmulti"
 	"github.com/sleaze5/RobloxAccountManager/internal/roblox"
@@ -22,6 +24,43 @@ func (service *Service) SetMultiInstanceEnabled(enabled bool) (robloxmulti.Snaps
 	}
 	service.multiInstance.SetEnabled(enabled)
 	return service.multiInstance.Snapshot(), nil
+}
+
+type RobloxPlayers struct {
+	Versions   []gamelaunch.PlayerVersion `json:"versions"`
+	CustomPath string                     `json:"customPath"`
+}
+
+func (service *Service) GetRobloxPlayers() RobloxPlayers {
+	return RobloxPlayers{Versions: gamelaunch.PlayerVersions(), CustomPath: service.settings.Roblox().PlayerPath}
+}
+
+type RobloxPlayerPathCheck struct {
+	Path    string `json:"path"`
+	Found   bool   `json:"found"`
+	Problem string `json:"problem"`
+}
+
+func (service *Service) CheckRobloxPlayerPath(path string) RobloxPlayerPathCheck {
+	parsed, found, err := gamelaunch.CheckPlayerPath(path)
+	if err != nil {
+		return RobloxPlayerPathCheck{Problem: userLaunchMessage(err, "The custom path could not be read.")}
+	}
+	return RobloxPlayerPathCheck{Path: parsed, Found: found}
+}
+
+func (service *Service) SetRobloxPlayerPath(path string) error {
+	path = strings.TrimSpace(path)
+	if path != "" {
+		if _, _, err := gamelaunch.CheckPlayerPath(path); err != nil {
+			return &roblox.Error{Kind: roblox.KindProtocol, Endpoint: "roblox-player-path", Message: userLaunchMessage(err, "The custom path could not be read."), Cause: err}
+		}
+	}
+	if err := service.settings.SetPlayerPath(path); err != nil {
+		service.logger.Warn("could not save Roblox Player path", "operation", "roblox-player-path", "error", err)
+		return &roblox.Error{Kind: roblox.KindProtocol, Endpoint: "roblox-player-path", Message: "The custom Roblox Player path could not be saved. Try again."}
+	}
+	return nil
 }
 
 func (service *Service) GetRobloxClients() gamelaunch.ClientState {
