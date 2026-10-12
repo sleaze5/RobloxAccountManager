@@ -1,13 +1,11 @@
 <script lang="ts">
 	import ProhibitIcon from "phosphor-svelte/lib/ProhibitIcon"
 	import CaretDownIcon from "phosphor-svelte/lib/CaretDownIcon"
-	import FileArrowUpIcon from "phosphor-svelte/lib/FileArrowUpIcon"
 	import GameControllerIcon from "phosphor-svelte/lib/GameControllerIcon"
 	import TrashIcon from "phosphor-svelte/lib/TrashIcon"
 	import type { AccountStore } from "../accounts/account-store.svelte"
 	import { LaunchMethod } from "../backend/bridge"
 	import Select from "../shared/Select.svelte"
-	import LaunchDataDialog from "../dialogs/LaunchDataDialog.svelte"
 	import RobloxProcessesDialog from "../dialogs/RobloxProcessesDialog.svelte"
 	import { appSettings } from "../settings/settings-store.svelte"
 	import LaunchArguments from "./LaunchArguments.svelte"
@@ -19,7 +17,6 @@
 	let { store, workspace }: { store: AccountStore; workspace: WorkspaceState } =
 		$props()
 	let drawer = $state<HTMLElement>()
-	let launchDataOpen = $state(false)
 	let processesOpen = $state(false)
 	let measuredMethod: LaunchMethod | undefined
 	const hasJoinTarget = $derived.by(() => {
@@ -76,7 +73,6 @@
 	})
 
 	$effect(() => {
-		if (!workspace.launchOpen || !store.vault.unlocked) launchDataOpen = false
 		if (!store.vault.unlocked) processesOpen = false
 	})
 </script>
@@ -226,26 +222,10 @@
 						<TrashIcon size={17} aria-hidden="true" />
 					</button>
 				</div>
-				<button
-					class="icon-action"
-					class:active={store.launchInput.launchData.trim().length > 0}
-					type="button"
-					aria-label="Launch data"
-					aria-haspopup="dialog"
-					aria-expanded={launchDataOpen}
-					data-tooltip="Launch data"
-					data-tooltip-side="top"
-					disabled={store.launching}
-					onclick={() => (launchDataOpen = true)}>
-					<FileArrowUpIcon size={17} aria-hidden="true" />
-				</button>
 				<LaunchArguments {store} />
 				<LaunchButton {store} {workspace} />
 			</div>
 		</form>
-	{/if}
-	{#if launchDataOpen}
-		<LaunchDataDialog {store} onClose={() => (launchDataOpen = false)} />
 	{/if}
 	{#if processesOpen}
 		<RobloxProcessesDialog onClose={() => (processesOpen = false)} />

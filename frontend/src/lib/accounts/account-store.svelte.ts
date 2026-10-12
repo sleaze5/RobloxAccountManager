@@ -53,6 +53,7 @@ export class AccountStore {
 	busy = $state(false)
 	copying = $state(false)
 	launchInput = $state<LaunchInput>(emptyLaunchInput())
+	launchDataEnabled = $state(false)
 	launching = $state(false)
 	copyingLaunchOptions = $state(false)
 	findingServer = $state(false)
@@ -925,7 +926,10 @@ export class AccountStore {
 		this.copyingLaunchOptions = copyOptions
 		this.error = ""
 		try {
-			const input = { ...this.launchInput }
+			const input = {
+				...this.launchInput,
+				launchData: this.launchDataEnabled ? this.launchInput.launchData : "",
+			}
 			if (copyOptions) await accountBackend.CopyLaunchOptions(accountIds, input)
 			else {
 				const result = await accountBackend.LaunchAccounts(accountIds, input)
@@ -1092,6 +1096,7 @@ export class AccountStore {
 		this.#remoteDataVersion++
 		this.vault.unlocked = false
 		this.launchInput = emptyLaunchInput()
+		this.launchDataEnabled = false
 		this.#clearProfiles()
 		this.accounts = []
 		this.tags = []

@@ -4,6 +4,7 @@
 	import { onMount } from "svelte"
 	import type { AccountStore } from "../accounts/account-store.svelte"
 	import { accountBackend, type RobloxClientState } from "../backend/bridge"
+	import LaunchDataDialog from "../dialogs/LaunchDataDialog.svelte"
 	import LinuxClientDialog from "../dialogs/LinuxClientDialog.svelte"
 	import RobloxPlayerPathDialog from "../dialogs/RobloxPlayerPathDialog.svelte"
 	import { linuxClientOptions } from "../settings/linux-clients"
@@ -27,6 +28,7 @@
 	let open = $state(false),
 		pathOpen = $state(false),
 		clientOpen = $state(false),
+		launchDataOpen = $state(false),
 		root = $state<HTMLDivElement>(),
 		trigger = $state<HTMLButtonElement>()
 	const panelID = $props.id()
@@ -37,6 +39,7 @@
 		if (!store.vault.unlocked) {
 			pathOpen = false
 			clientOpen = false
+			launchDataOpen = false
 		}
 	})
 </script>
@@ -136,11 +139,39 @@
 						teleport.</small
 					></span>
 			</label>
+			<div class="launch-option-group">
+				<label class="launch-option">
+					<input
+						type="checkbox"
+						bind:checked={store.launchDataEnabled}
+						disabled={store.launching} />
+					<span
+						><strong>Use custom launch data</strong><small
+							>Set the launchData flag to pass custom data to the game.</small
+						></span>
+				</label>
+				<button
+					class="launch-option-action"
+					type="button"
+					aria-haspopup="dialog"
+					disabled={store.launching}
+					onclick={() => {
+						trigger?.focus()
+						open = false
+						launchDataOpen = true
+					}}>
+					Set data
+					<ArrowRightIcon size={12} aria-hidden="true" />
+				</button>
+			</div>
 		</section>
 	{/if}
 </div>
 {#if pathOpen}
 	<RobloxPlayerPathDialog {store} onClose={() => (pathOpen = false)} />
+{/if}
+{#if launchDataOpen}
+	<LaunchDataDialog {store} onClose={() => (launchDataOpen = false)} />
 {/if}
 {#if clientOpen && clients}
 	<LinuxClientDialog
