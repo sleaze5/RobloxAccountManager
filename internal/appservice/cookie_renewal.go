@@ -5,7 +5,6 @@ import (
 	"errors"
 	"fmt"
 	"sync/atomic"
-	"time"
 
 	"github.com/sleaze5/RobloxAccountManager/internal/roblox"
 )
@@ -48,16 +47,7 @@ func (service *Service) RenewCookie(ctx context.Context, accountID int64) (Cooki
 		service.browser.DetachAccount(accountID, "The saved cookie was renewed. Reopen this account's browser to use the new session.")
 	}
 	service.events.SessionChanged(accountID)
-	result := CookieRenewalResult{}
-	backupCtx, cancel := context.WithTimeout(context.WithoutCancel(ctx), 10*time.Second)
-	defer cancel()
-	if err := service.vault.PurgeBackups(); err != nil {
-		logger.Warn("renewed cookie saved but old backups could not be removed", "error", err)
-		result.Warning = "The renewed cookie is saved, but old backups could not be removed."
-	} else if err := service.vault.CreateBackup(backupCtx); err != nil {
-		logger.Warn("renewed cookie saved but backup failed", "error", err)
-		result.Warning = "The renewed cookie is saved, but a fresh backup could not be created."
-	}
+	result := CookieRenewalResult{Warning: service.refreshCredentialBackup(ctx, logger, true)}
 	logger.Info("cookie renewal completed", "backup_warning", result.Warning != "")
 	return result, nil
 }

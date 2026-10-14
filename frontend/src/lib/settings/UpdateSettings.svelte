@@ -115,7 +115,16 @@
 		{#if update.status === UpdateStatus.StatusDownloading}
 			<div class="settings-row">
 				<div class="runtime-activity">
-					<strong>Downloading update</strong>
+					<strong>
+						{#if !determinate}
+							<CircleNotchIcon
+								class="spinner"
+								size={14}
+								role="progressbar"
+								aria-label="Update download progress" />
+						{/if}
+						Downloading update
+					</strong>
 					<div class="runtime-transfer">
 						<span
 							>{formatCompactBytes(update.downloadedBytes)}/{determinate
@@ -131,13 +140,6 @@
 							aria-valuemax={100}
 							aria-valuenow={Math.round(progress)}>
 							<div style:transform="scaleX({progress / 100})"></div>
-						</div>
-					{:else}
-						<div
-							class="runtime-progress indeterminate"
-							role="progressbar"
-							aria-label="Update download progress">
-							<div></div>
 						</div>
 					{/if}
 				</div>

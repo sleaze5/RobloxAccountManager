@@ -2,6 +2,7 @@ import { accountBackend } from "../backend/bridge"
 import type { AccountProfileSnapshot } from "../backend/bridge"
 import { detailsKeepMs, isFresh } from "../shared/freshness"
 import type { AccountStore } from "./account-store.svelte"
+import { errorMessage } from "../shared/errors"
 
 const fieldsBySource = {
 	account: ["ageBracket", "countryCode", "premium", "plus"],
@@ -65,10 +66,10 @@ export class AccountProfileState {
 			if (identity.status === "rejected") throw identity.reason
 		} catch (error) {
 			if (!this.#current()) return
-			this.error =
-				error instanceof Error && error.message.trim()
-					? error.message
-					: "Could not refresh profile details. Refresh to retry."
+			this.error = errorMessage(
+				error,
+				"Could not refresh profile details. Refresh to retry.",
+			)
 		} finally {
 			this.#request = null
 			this.#validationRequest = null

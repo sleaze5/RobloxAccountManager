@@ -55,11 +55,7 @@ type Repository struct {
 	logger   *slog.Logger
 }
 
-func NewRepository(provider DatabaseProvider, loggers ...*slog.Logger) *Repository {
-	logger := slog.New(slog.DiscardHandler)
-	if len(loggers) > 0 && loggers[0] != nil {
-		logger = loggers[0]
-	}
+func NewRepository(provider DatabaseProvider, logger *slog.Logger) *Repository {
 	return &Repository{provider: provider, now: time.Now, logger: logger}
 }
 
@@ -160,15 +156,22 @@ replaced_at_ms = ?, last_validated_at_ms = ?, last_success_at_ms = ?, last_auth_
 	if err := bumpRevision(ctx, tx); err != nil {
 		return AccountView{}, SessionRecord{}, err
 	}
-	if err := tx.Commit(); err != nil {
-		return AccountView{}, SessionRecord{}, err
-	}
-	view, err := repository.GetView(ctx, accountID)
+	view, err := scanView(tx.QueryRowContext(ctx, viewQuery+` WHERE a.id = ?`, accountID))
 	if err != nil {
-		return AccountView{}, SessionRecord{}, err
+		return AccountView{}, SessionRecord{}, fmt.Errorf("read replacement account: %w", err)
 	}
-	session, err := repository.GetSession(ctx, accountID)
-	return view, session, err
+	view.Tags, err = listAccountTags(ctx, tx, accountID)
+	if err != nil {
+		return AccountView{}, SessionRecord{}, fmt.Errorf("read replacement account tags: %w", err)
+	}
+	session, err := scanSession(tx.QueryRowContext(ctx, sessionQuery+` WHERE account_id = ?`, accountID))
+	if err != nil {
+		return AccountView{}, SessionRecord{}, fmt.Errorf("read replacement session: %w", err)
+	}
+	if err := tx.Commit(); err != nil {
+		return AccountView{}, SessionRecord{}, fmt.Errorf("commit cookie replacement: %w", err)
+	}
+	return view, session, nil
 }
 
 func (repository *Repository) RotateCookie(ctx context.Context, accountID, expectedVersion int64, cookie string, expiresAt *time.Time) (SessionRecord, bool, error) {

@@ -63,8 +63,7 @@ func (service *Games) Search(ctx context.Context, query games.SearchQuery) (game
 			continue
 		}
 		for _, item := range section.Contents {
-			// 1<<53-1 is the largest integer that a JavaScript number holds exactly.
-			if item.ContentID > 0 && item.ContentID <= 1<<53-1 && !seen[item.ContentID] {
+			if games.ValidID(item.ContentID) && !seen[item.ContentID] {
 				seen[item.ContentID] = true
 				ids = append(ids, item.ContentID)
 			}
@@ -127,8 +126,7 @@ func (service *Games) PlaceByID(ctx context.Context, placeID int64) (games.Place
 	if err != nil {
 		return games.Place{}, false, err
 	}
-	// 1<<53-1 is the largest integer that a JavaScript number holds exactly.
-	if payload.UniverseID <= 0 || payload.UniverseID > 1<<53-1 {
+	if !games.ValidID(payload.UniverseID) {
 		return games.Place{}, false, nil
 	}
 	details, err := service.details(ctx, []int64{payload.UniverseID})
@@ -225,8 +223,7 @@ func (service *Games) subplaces(ctx context.Context, root games.Place, visit fun
 			return err
 		}
 		for _, item := range payload.Data {
-			// 1<<53-1 is the largest integer that a JavaScript number holds exactly.
-			if item.UniverseID != root.UniverseID || item.ID <= 0 || item.ID > 1<<53-1 || item.ID == root.PlaceID || strings.TrimSpace(item.Name) == "" {
+			if item.UniverseID != root.UniverseID || !games.ValidID(item.ID) || item.ID == root.PlaceID || strings.TrimSpace(item.Name) == "" {
 				continue
 			}
 			place := root
@@ -469,8 +466,7 @@ func (service *Games) details(ctx context.Context, ids []int64) (map[int64]games
 	}
 	result := make(map[int64]games.Game, len(payload.Data))
 	for _, item := range payload.Data {
-		// 1<<53-1 is the largest integer that a JavaScript number holds exactly.
-		if !requested[item.ID] || item.RootPlaceID <= 0 || item.RootPlaceID > 1<<53-1 || strings.TrimSpace(item.Name) == "" {
+		if !requested[item.ID] || !games.ValidID(item.RootPlaceID) || strings.TrimSpace(item.Name) == "" {
 			continue
 		}
 		place := games.Place{PlaceID: item.RootPlaceID, UniverseID: item.ID, Name: item.Name, CreatorName: item.Creator.Name, CreatorVerified: item.Creator.Verified}

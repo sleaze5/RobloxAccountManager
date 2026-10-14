@@ -8,6 +8,7 @@
 		modalCardOut,
 		modalFocus,
 	} from "../shared/presence"
+	import { errorMessage } from "../shared/errors"
 
 	let {
 			target,
@@ -24,8 +25,7 @@
 		try {
 			await accountBackend.MoveAppData(target.mode)
 		} catch (cause) {
-			error =
-				cause instanceof Error ? cause.message : "The data could not be moved."
+			error = errorMessage(cause, "The data could not be moved.")
 			busy = false
 		}
 	}
@@ -69,7 +69,7 @@
 				type="button"
 				disabled={busy}
 				onclick={() => void move()}
-				>{busy ? "Restarting..." : "Move and restart"}</button>
+				>{busy ? "Restarting…" : "Move and restart"}</button>
 		</div>
 	</div>
 </div>

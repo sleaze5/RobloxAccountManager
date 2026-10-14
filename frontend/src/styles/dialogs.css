@@ -172,7 +172,7 @@
 .modal-card > p,
 .modal-heading p {
 	margin-top: 6px;
-	color: var(--color-text-faint);
+	color: var(--color-text-muted);
 	font-size: var(--text-13);
 	line-height: 1.5;
 }
@@ -457,7 +457,7 @@
 .modal-note {
 	border: 1px solid var(--color-border);
 	background: var(--color-fill-subtle);
-	color: var(--color-text-faint);
+	color: var(--color-text-muted);
 }
 
 .cookie-import-results {

@@ -7,6 +7,9 @@ import type {
 	SaveResult,
 	ShutdownEffects,
 } from "../backend/bridge"
+import { errorMessage } from "../shared/errors"
+
+const browserOperationError = "The browser operation failed."
 
 const emptySnapshot = {
 	candidates: [],
@@ -130,7 +133,7 @@ export class BrowserStore {
 			this.snapshot = next
 			this.#updateNotifications(next)
 		} catch (error) {
-			this.error = errorMessage(error)
+			this.error = errorMessage(error, browserOperationError)
 		}
 		if (this.#queued) {
 			await this.#refreshQueued()
@@ -249,7 +252,7 @@ export class BrowserStore {
 			await this.refresh()
 			return true
 		} catch (error) {
-			this.error = errorMessage(error)
+			this.error = errorMessage(error, browserOperationError)
 			return false
 		} finally {
 			this.loading = false
@@ -264,7 +267,7 @@ export class BrowserStore {
 		} catch (error) {
 			this.#notifications?.show({
 				id: `browser-account-${accountId}`,
-				message: errorMessage(error),
+				message: errorMessage(error, browserOperationError),
 				title: "Browser could not open",
 			})
 		}
@@ -297,7 +300,7 @@ export class BrowserStore {
 		} catch (error) {
 			this.#notifications?.show({
 				id: `browser-focus-${id}`,
-				message: errorMessage(error),
+				message: errorMessage(error, browserOperationError),
 				title: "Browser could not be focused",
 			})
 		}
@@ -308,7 +311,7 @@ export class BrowserStore {
 			await accountBackend.CloseBrowserSession(id)
 			await this.refresh()
 		} catch (error) {
-			this.error = errorMessage(error)
+			this.error = errorMessage(error, browserOperationError)
 		}
 	}
 
@@ -324,7 +327,7 @@ export class BrowserStore {
 			await this.refresh()
 			return result
 		} catch (error) {
-			this.error = errorMessage(error)
+			this.error = errorMessage(error, browserOperationError)
 			return null
 		} finally {
 			this.loading = false
@@ -348,7 +351,7 @@ export class BrowserStore {
 		} catch (error) {
 			this.#runtimeDownloadPending = false
 			this.#runtimeDownloadReplacing = false
-			this.error = errorMessage(error)
+			this.error = errorMessage(error, browserOperationError)
 		}
 	}
 
@@ -361,7 +364,7 @@ export class BrowserStore {
 			await accountBackend.RemoveBrowserRuntime()
 			await this.refresh()
 		} catch (error) {
-			this.error = errorMessage(error)
+			this.error = errorMessage(error, browserOperationError)
 		}
 	}
 
@@ -376,7 +379,3 @@ export class BrowserStore {
 }
 
 export const browserStore = new BrowserStore()
-
-function errorMessage(error: unknown): string {
-	return error instanceof Error ? error.message : "The browser operation failed."
-}

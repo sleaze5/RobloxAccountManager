@@ -3,7 +3,7 @@
 		AccountContextMenu,
 		WorkspaceState,
 	} from "../layout/workspace-state.svelte"
-	import { menuIn, menuOut } from "../shared/presence"
+	import { menuIn, menuOut, placeMenuAtPoint } from "../shared/presence"
 	import AccountActionsMenu from "./AccountActionsMenu.svelte"
 	import MultiAccountActionsMenu from "./MultiAccountActionsMenu.svelte"
 	import type { AccountStore } from "./account-store.svelte"
@@ -30,18 +30,8 @@
 		const previousFocus = document.activeElement
 		let current = position
 		const place = () => {
-			// Keep the menu 8 px inside the window and at least 42 px from the top, below the title bar.
-			const width = node.offsetWidth,
-				height = node.offsetHeight,
-				x = Math.max(8, Math.min(current.x, window.innerWidth - width - 8)),
-				y = Math.max(42, Math.min(current.y, window.innerHeight - height - 8))
-			node.style.left = `${x}px`
-			node.style.top = `${y}px`
-			node.style.setProperty(
-				"--menu-origin",
-				`${y < current.y ? "bottom" : "top"} ${x < current.x ? "right" : "left"}`,
-			)
-			current.submenuLeft = x + width * 2 + 12 > window.innerWidth
+			const { x } = placeMenuAtPoint(node, current)
+			current.submenuLeft = x + node.offsetWidth * 2 + 12 > window.innerWidth
 		}
 		place()
 		node.focus({ preventScroll: true })

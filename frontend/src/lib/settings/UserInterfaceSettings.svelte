@@ -8,6 +8,7 @@
 	import Select from "../shared/Select.svelte"
 	import { defaultTimestampFormats, formatTimestamp } from "../shared/timestamp"
 	import type { SettingsStore } from "./settings-store.svelte"
+	import { errorMessage } from "../shared/errors"
 
 	type DraftFormat = { format: TimestampFormat | null; error: string }
 
@@ -133,10 +134,7 @@
 			} catch (error) {
 				draft = {
 					format: null,
-					error:
-						error instanceof Error
-							? error.message
-							: "The format could not be read.",
+					error: errorMessage(error, "The format could not be read."),
 				}
 			}
 			if (current) apply(draft)
@@ -319,7 +317,7 @@
 							!changed ||
 							validationErrors.length > 0}>
 						<FloppyDiskIcon size={15} aria-hidden="true" />
-						{store.busyTimestampFormats ? "Saving..." : "Save changes"}
+						{store.busyTimestampFormats ? "Saving…" : "Save changes"}
 					</button>
 				</div>
 			{/if}

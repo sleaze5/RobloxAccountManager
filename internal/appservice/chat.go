@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"log/slog"
+	"net/http"
 	"regexp"
 	"slices"
 	"strconv"
@@ -210,8 +211,7 @@ func (service *Service) SendChatMessage(ctx context.Context, accountID int64, co
 		if errors.As(err, &remote) && strings.Contains(strings.ToLower(remote.Message), "too long") {
 			return ChatMessageView{}, chatInputError("This message is too long.")
 		}
-		// 409 Conflict
-		if errors.As(err, &remote) && remote.Status == 409 {
+		if errors.As(err, &remote) && remote.Status == http.StatusConflict {
 			return ChatMessageView{}, chatInputError("This chat changed. Refresh it and try again.")
 		}
 		return ChatMessageView{}, chatFailure(logger, err)

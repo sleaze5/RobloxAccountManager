@@ -10,6 +10,7 @@
 		modalCardOut,
 		modalFocus,
 	} from "../shared/presence"
+	import { errorMessage } from "../shared/errors"
 
 	let {
 		clients,
@@ -47,10 +48,10 @@
 			onSaved(await accountBackend.SetLinuxClient(selection))
 			onClose()
 		} catch (cause) {
-			error =
-				cause instanceof Error
-					? cause.message
-					: "The Linux client could not be saved. Try again."
+			error = errorMessage(
+				cause,
+				"The Linux client could not be saved. Try again.",
+			)
 		} finally {
 			saving = false
 		}

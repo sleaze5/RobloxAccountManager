@@ -9,6 +9,7 @@ import type {
 import type { NotificationCenter } from "../notifications/notification-center.svelte"
 import { detailsKeepMs, isFresh } from "../shared/freshness"
 import { ServerPageCache, type ServerSource } from "./game-servers-state.svelte"
+import { errorMessage } from "../shared/errors"
 
 export interface GameMenu {
 	place: GamePlace
@@ -202,7 +203,10 @@ export class GamesStore {
 			this.#sessionId = page.sessionId
 		} catch (error) {
 			if (this.#searchRequest === request) {
-				const reason = message(error, "Games could not be loaded. Try again.")
+				const reason = errorMessage(
+					error,
+					"Games could not be loaded. Try again.",
+				)
 				if (more) {
 					this.error = reason
 					this.loadMoreFailed = true
@@ -235,7 +239,10 @@ export class GamesStore {
 			this.favoritesLoaded = true
 		} catch (error) {
 			if (this.#favoritesRequest === request) {
-				this.error = message(error, "Favorites could not be loaded. Try again.")
+				this.error = errorMessage(
+					error,
+					"Favorites could not be loaded. Try again.",
+				)
 			}
 		} finally {
 			if (this.#favoritesRequest === request) {
@@ -282,7 +289,7 @@ export class GamesStore {
 			this.selected = game.place
 		} catch (error) {
 			if (this.#detailsRequest === request) {
-				this.detailsError = message(
+				this.detailsError = errorMessage(
 					error,
 					"Game details are unavailable. Try again.",
 				)
@@ -330,7 +337,7 @@ export class GamesStore {
 			}
 		} catch (error) {
 			if (this.#epoch === epoch) {
-				this.error = message(
+				this.error = errorMessage(
 					error,
 					"Favorites could not be updated. Try again.",
 				)
@@ -371,7 +378,7 @@ export class GamesStore {
 		} catch (error) {
 			if (this.#epoch === epoch) {
 				this.favorites = previous
-				this.error = message(
+				this.error = errorMessage(
 					error,
 					"Favorites could not be reordered. Try again.",
 				)
@@ -411,7 +418,7 @@ export class GamesStore {
 			return true
 		} catch (error) {
 			if (this.#epoch === epoch) {
-				this.error = message(
+				this.error = errorMessage(
 					error,
 					"The nickname could not be saved. Try again.",
 				)
@@ -456,8 +463,4 @@ export class GamesStore {
 		this.serverSource = "roblox"
 		this.error = this.searchError = this.detailsError = ""
 	}
-}
-
-function message(error: unknown, fallback: string): string {
-	return error instanceof Error && error.message.trim() ? error.message : fallback
 }

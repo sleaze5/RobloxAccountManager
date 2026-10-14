@@ -4,6 +4,7 @@
 	import EyeSlashIcon from "phosphor-svelte/lib/EyeSlashIcon"
 	import { onDestroy } from "svelte"
 	import { accountBackend } from "../backend/bridge"
+	import { errorMessage } from "../shared/errors"
 
 	let { accountId }: { accountId: number } = $props()
 
@@ -30,10 +31,7 @@
 			if (request === current) password = value
 		} catch (cause) {
 			if (request === current) {
-				error =
-					cause instanceof Error && cause.message.trim()
-						? cause.message
-						: "Could not show the password."
+				error = errorMessage(cause, "Could not show the password.")
 			}
 		} finally {
 			if (request === current) {

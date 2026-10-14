@@ -124,7 +124,7 @@
 					class="primary-action"
 					type="submit"
 					disabled={store.busy || !isValidTagName(nameInput.value)}>
-					{creating ? "Creating..." : "Create tag"}
+					{creating ? "Creating…" : "Create tag"}
 				</button>
 			</div>
 		</form>

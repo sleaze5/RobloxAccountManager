@@ -298,7 +298,7 @@
 				onToggle={toggleCandidate}
 				onToggleAll={toggleAll} />
 		{:else if launchingInitial}
-			<div class="modal-note">Starting browser...</div>
+			<div class="modal-note">Starting browser…</div>
 		{:else if activeLoginSessions.length === 0}
 			<div class="modal-note">No account candidates are waiting to be saved.</div>
 		{:else}
@@ -318,7 +318,7 @@
 					class="primary-action"
 					disabled={!canCommit || selected.length === 0 || browser.loading}
 					onclick={() => void save()}
-					>{browser.loading ? "Saving..." : "Save selected"}</button
+					>{browser.loading ? "Saving…" : "Save selected"}</button
 				>{/if}
 		</div>
 	</div>

@@ -74,7 +74,7 @@
 				type="button"
 				disabled={store.busy}
 				onclick={() => void remove()}>
-				{store.busy ? "Removing..." : "Remove"}
+				{store.busy ? "Removing…" : "Remove"}
 			</button>
 		</div>
 	</div>

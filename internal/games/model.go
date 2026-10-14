@@ -163,6 +163,12 @@ type NearestServer struct {
 	Region Region `json:"region"`
 }
 
+const javaScriptMaxSafeInteger = 1<<53 - 1
+
+func ValidID(id int64) bool {
+	return id > 0 && id <= javaScriptMaxSafeInteger
+}
+
 func ValidJobID(value string) bool {
 	// Canonical UUID: 36 characters with dashes at 8, 13, 18, and 23.
 	if len(value) != 36 {

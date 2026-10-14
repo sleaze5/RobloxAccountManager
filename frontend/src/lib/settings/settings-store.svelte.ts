@@ -7,6 +7,7 @@ import type {
 } from "../backend/bridge"
 import { setMotionPreference } from "../shared/motion"
 import type { NotificationCenter } from "../notifications/notification-center.svelte"
+import { errorMessage } from "../shared/errors"
 
 export type LoggingLevel = "trace" | "debug" | "info" | "warn" | "error"
 
@@ -66,8 +67,7 @@ export class SettingsStore {
 				})
 			}
 		} catch (error) {
-			this.error =
-				error instanceof Error ? error.message : "Settings could not be loaded."
+			this.error = errorMessage(error, "Settings could not be loaded.")
 		} finally {
 			this.initialized = true
 		}
@@ -111,10 +111,10 @@ export class SettingsStore {
 		} catch (error) {
 			this.serverRegionsFailed = true
 			if (refresh) {
-				this.error =
-					error instanceof Error
-						? error.message
-						: "Regions could not be refreshed. Try again."
+				this.error = errorMessage(
+					error,
+					"Regions could not be refreshed. Try again.",
+				)
 			}
 		} finally {
 			this.loadingServerRegions = false
@@ -133,10 +133,7 @@ export class SettingsStore {
 			await accountBackend.SetPresenceUpdates(scope, enabled, intervalSeconds)
 			this.presence = { ...this.presence, [scope]: { enabled, intervalSeconds } }
 		} catch (error) {
-			this.error =
-				error instanceof Error
-					? error.message
-					: "Presence settings could not be saved."
+			this.error = errorMessage(error, "Presence settings could not be saved.")
 		} finally {
 			this.busyPresence = false
 		}
@@ -151,10 +148,7 @@ export class SettingsStore {
 			this.roValraEnabled = enabled
 			if (enabled) void this.loadServerRegions()
 		} catch (error) {
-			this.error =
-				error instanceof Error
-					? error.message
-					: "The RoValra setting could not be saved."
+			this.error = errorMessage(error, "The RoValra setting could not be saved.")
 		} finally {
 			this.busyRoValra = false
 		}
@@ -169,10 +163,7 @@ export class SettingsStore {
 			this.roValraRegion = code
 			this.#notifications?.dismiss("rovalra-region-missing")
 		} catch (error) {
-			this.error =
-				error instanceof Error
-					? error.message
-					: "The preferred region could not be saved."
+			this.error = errorMessage(error, "The preferred region could not be saved.")
 		} finally {
 			this.busyRoValraRegion = false
 		}
@@ -198,10 +189,7 @@ export class SettingsStore {
 			await accountBackend.SetLoggingLevelEnabled(level, enabled)
 		} catch (error) {
 			this.enabledLoggingLevels = previous
-			this.error =
-				error instanceof Error
-					? error.message
-					: "The logging setting could not be saved."
+			this.error = errorMessage(error, "The logging setting could not be saved.")
 		} finally {
 			this.busyLevel = null
 		}
@@ -221,10 +209,7 @@ export class SettingsStore {
 			await accountBackend.SetAllLoggingLevelsEnabled(enabled)
 		} catch (error) {
 			this.enabledLoggingLevels = previous
-			this.error =
-				error instanceof Error
-					? error.message
-					: "The logging settings could not be saved."
+			this.error = errorMessage(error, "The logging settings could not be saved.")
 		} finally {
 			this.busyLevel = null
 		}
@@ -239,10 +224,7 @@ export class SettingsStore {
 			this.motion = motion
 			setMotionPreference(motion)
 		} catch (error) {
-			this.error =
-				error instanceof Error
-					? error.message
-					: "The motion setting could not be saved."
+			this.error = errorMessage(error, "The motion setting could not be saved.")
 		} finally {
 			this.busyMotion = false
 		}
@@ -266,10 +248,10 @@ export class SettingsStore {
 			this.timestampHoverFormat = formats.hover
 			return true
 		} catch (error) {
-			this.error =
-				error instanceof Error
-					? error.message
-					: "The timestamp formats could not be saved."
+			this.error = errorMessage(
+				error,
+				"The timestamp formats could not be saved.",
+			)
 			return false
 		} finally {
 			this.busyTimestampFormats = false

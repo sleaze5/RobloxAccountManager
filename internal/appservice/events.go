@@ -36,6 +36,12 @@ func (events *Events) SessionChanged(accountID int64) {
 	}{AccountID: accountID})
 }
 
+func (events *Events) CredentialBackupChanged(message string) {
+	events.send("vault:credential-backup-changed", struct {
+		Message string `json:"message"`
+	}{Message: message})
+}
+
 func (events *Events) BrowserChanged(revision uint64) {
 	events.send("browser:state-changed", struct {
 		Revision uint64 `json:"revision"`

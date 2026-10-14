@@ -105,7 +105,10 @@
 	}
 </script>
 
-<div class="account-list" onscroll={loadNearEnd}>
+<div
+	class="account-list"
+	aria-busy={store.loadingAccounts || store.loadingMore}
+	onscroll={loadNearEnd}>
 	{#each store.filteredAccounts as account (account.id)}
 		<div
 			class:selected={store.selectedAccountIds.includes(account.id)}
@@ -186,7 +189,9 @@
 		</div>
 	{:else}
 		<div class="empty-list">
-			{#if store.accounts.length === 0}
+			{#if store.loadingAccounts}
+				<span>Loading accounts…</span>
+			{:else if !store.query && store.selectedTagIds.length === 0}
 				<strong>No accounts yet</strong>
 				<span>Use the plus button to add one.</span>
 			{:else}
@@ -196,6 +201,6 @@
 		</div>
 	{/each}
 	{#if store.loadingMore}
-		<div class="empty-list"><span>Loading more accounts...</span></div>
+		<div class="empty-list"><span>Loading more accounts…</span></div>
 	{/if}
 </div>

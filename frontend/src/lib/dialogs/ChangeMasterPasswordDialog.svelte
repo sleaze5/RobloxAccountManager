@@ -67,8 +67,8 @@
 
 		{#if store.vault.validAutomaticUnlock}
 			<div class="modal-note">
-				Windows automatic unlock has verified your access. You can change your
-				master password without entering the current one.
+				Automatic unlock has verified your access. You can change your master
+				password without entering the current one.
 			</div>
 		{:else}
 			<label class="modal-field">

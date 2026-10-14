@@ -12,6 +12,7 @@
 		modalCardOut,
 		modalFocus,
 	} from "../shared/presence"
+	import { errorMessage } from "../shared/errors"
 
 	let {
 		store,
@@ -37,7 +38,7 @@
 			const result = await accountBackend.RenewCookie(account.id)
 			warning = result.warning ?? ""
 		} catch (cause) {
-			error = cause instanceof Error ? cause.message : "The renewal failed."
+			error = errorMessage(cause, "The renewal failed.")
 		} finally {
 			phase = "complete"
 			store.busy = false

@@ -1,6 +1,7 @@
 import { SvelteSet } from "svelte/reactivity"
 import { accountBackend } from "../backend/bridge"
 import type { LogsExplorerSession } from "../backend/bridge"
+import { errorMessage } from "../shared/errors"
 
 export class LogsExplorerStore {
 	sessions = $state<LogsExplorerSession[]>([])
@@ -75,10 +76,10 @@ export class LogsExplorerStore {
 				this.selectedFile = this.filteredSessions[0]?.fileName ?? ""
 			}
 		} catch (error) {
-			this.error =
-				error instanceof Error
-					? error.message
-					: "Logs could not be loaded. Try refreshing again."
+			this.error = errorMessage(
+				error,
+				"Logs could not be loaded. Try refreshing again.",
+			)
 		} finally {
 			this.refreshing = false
 		}
@@ -97,10 +98,10 @@ export class LogsExplorerStore {
 				current.fileName === fileName ? session : current,
 			)
 		} catch (error) {
-			this.error =
-				error instanceof Error
-					? error.message
-					: "This session could not be refreshed. Try refreshing all logs."
+			this.error = errorMessage(
+				error,
+				"This session could not be refreshed. Try refreshing all logs.",
+			)
 		} finally {
 			this.refreshingFiles.delete(fileName)
 		}

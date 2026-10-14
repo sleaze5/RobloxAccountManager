@@ -30,8 +30,10 @@ import { AccountProfileState } from "./account-profile-state.svelte"
 import { isValidTagName, tagNameError } from "./tag-name"
 import { appSettings } from "../settings/settings-store.svelte"
 import type { NotificationCenter } from "../notifications/notification-center.svelte"
+import { errorMessage } from "../shared/errors"
 
-const presenceRefreshError = "Account presence could not be refreshed."
+const operationError = "The operation failed.",
+	presenceRefreshError = "Account presence could not be refreshed."
 
 export class AccountStore {
 	accounts = $state<Account[]>([])
@@ -41,7 +43,7 @@ export class AccountStore {
 	selectedTagIds = $state<number[]>([])
 	vault = $state<VaultState>({
 		automaticUnlock: false,
-		dpapiRecovery: false,
+		automaticUnlockRecovery: false,
 		fileState: FileState.$zero,
 		initialized: false,
 		lastPasswordTestedAt: "",
@@ -61,6 +63,7 @@ export class AccountStore {
 	presenceRefreshing = $state(false)
 	error = $state("")
 	nextCursor = $state<AccountCursor | null>(null)
+	loadingAccounts = $state(false)
 	loadingMore = $state(false)
 
 	readonly #avatarUrls = new Map<number, string>()
@@ -75,6 +78,7 @@ export class AccountStore {
 		ReturnType<typeof accountBackend.GetAvatarHeadshots>
 	>()
 	#remoteDataVersion = 0
+	#accountListVersion = 0
 	readonly #profiles = new Map<number, AccountProfileState>()
 	#refreshPromise: Promise<void> | null = null
 	#refreshQueued = false
@@ -146,7 +150,7 @@ export class AccountStore {
 			this.notifications.show({ id: "clipboard-copy", title: "Copied", message })
 			return true
 		} catch (error) {
-			if (this.vault.unlocked) this.error = getErrorMessage(error)
+			if (this.vault.unlocked) this.error = errorMessage(error, operationError)
 			return false
 		} finally {
 			this.copying = false
@@ -215,6 +219,20 @@ export class AccountStore {
 				}),
 				Events.On("account:session-state-changed", refresh),
 				Events.On("tag:changed", refresh),
+				Events.On("vault:credential-backup-changed", (event) => {
+					if (!this.vault.unlocked) return
+					const message: string = event.data.message
+					if (message) {
+						this.notifications.show({
+							id: "credential-backup",
+							title: "Cookie saved; backup needs attention",
+							message,
+							durationMs: 0,
+						})
+					} else {
+						this.notifications.dismiss("credential-backup")
+					}
+				}),
 				Events.On("vault:locked", () => {
 					this.resetLockedState()
 				}),
@@ -232,7 +250,9 @@ export class AccountStore {
 	}
 
 	setQuery(value: string): void {
+		if (this.query === value) return
 		this.query = value
+		this.invalidateAccountList()
 		window.clearTimeout(this.#filterTimer)
 		this.#filterTimer = window.setTimeout(() => void this.refreshAccounts(), 150)
 	}
@@ -244,6 +264,7 @@ export class AccountStore {
 		this.selectedTagIds = this.selectedTagIds.includes(tagId)
 			? this.selectedTagIds.filter((selectedTagId) => selectedTagId !== tagId)
 			: [...this.selectedTagIds, tagId]
+		this.invalidateAccountList()
 		void this.refreshAccounts()
 	}
 
@@ -252,7 +273,15 @@ export class AccountStore {
 			return
 		}
 		this.selectedTagIds = []
+		this.invalidateAccountList()
 		void this.refreshAccounts()
+	}
+
+	private invalidateAccountList(): void {
+		this.#accountListVersion++
+		this.nextCursor = null
+		this.loadingMore = false
+		this.loadingAccounts = this.vault.unlocked
 	}
 
 	clearError(): void {
@@ -294,7 +323,7 @@ export class AccountStore {
 				await this.refreshAccounts()
 			}
 		} catch (error) {
-			this.error = getErrorMessage(error)
+			this.error = errorMessage(error, operationError)
 		}
 	}
 
@@ -313,7 +342,7 @@ export class AccountStore {
 			this.vault = await accountBackend.GetVaultState()
 			return true
 		} catch (error) {
-			this.error = getErrorMessage(error)
+			this.error = errorMessage(error, operationError)
 			return false
 		} finally {
 			this.busy = false
@@ -342,7 +371,7 @@ export class AccountStore {
 			await this.refreshAccounts()
 			return true
 		} catch (error) {
-			this.error = getErrorMessage(error)
+			this.error = errorMessage(error, operationError)
 			return false
 		} finally {
 			this.busy = false
@@ -360,7 +389,7 @@ export class AccountStore {
 			await accountBackend.LockVault()
 			this.resetLockedState()
 		} catch (error) {
-			this.error = getErrorMessage(error)
+			this.error = errorMessage(error, operationError)
 		} finally {
 			this.busy = false
 		}
@@ -377,7 +406,7 @@ export class AccountStore {
 			this.vault = await accountBackend.GetVaultState()
 			return true
 		} catch (error) {
-			this.error = getErrorMessage(error)
+			this.error = errorMessage(error, operationError)
 			return false
 		} finally {
 			this.busy = false
@@ -395,7 +424,7 @@ export class AccountStore {
 			this.vault = await accountBackend.GetVaultState()
 			return true
 		} catch (error) {
-			this.error = getErrorMessage(error)
+			this.error = errorMessage(error, operationError)
 			return false
 		} finally {
 			this.busy = false
@@ -412,7 +441,7 @@ export class AccountStore {
 			await accountBackend.SetPasswordTestIntervalDays(days)
 			this.vault = await accountBackend.GetVaultState()
 		} catch (error) {
-			this.error = getErrorMessage(error)
+			this.error = errorMessage(error, operationError)
 		} finally {
 			this.busy = false
 		}
@@ -428,7 +457,7 @@ export class AccountStore {
 			await accountBackend.SetAutomaticUnlock(enabled)
 			this.vault = await accountBackend.GetVaultState()
 		} catch (error) {
-			this.error = getErrorMessage(error)
+			this.error = errorMessage(error, operationError)
 		} finally {
 			this.busy = false
 		}
@@ -460,7 +489,7 @@ export class AccountStore {
 			}
 			return true
 		} catch (error) {
-			this.error = getErrorMessage(error)
+			this.error = errorMessage(error, operationError)
 			return false
 		} finally {
 			this.busy = false
@@ -471,7 +500,7 @@ export class AccountStore {
 		try {
 			return (await accountBackend.ListBackups()) ?? []
 		} catch (error) {
-			this.error = getErrorMessage(error)
+			this.error = errorMessage(error, operationError)
 			return []
 		}
 	}
@@ -487,7 +516,7 @@ export class AccountStore {
 			this.vault = await accountBackend.GetVaultState()
 			return true
 		} catch (error) {
-			this.error = getErrorMessage(error)
+			this.error = errorMessage(error, operationError)
 			return false
 		} finally {
 			this.busy = false
@@ -505,7 +534,7 @@ export class AccountStore {
 			this.vault = await accountBackend.GetVaultState()
 			return true
 		} catch (error) {
-			this.error = getErrorMessage(error)
+			this.error = errorMessage(error, operationError)
 			return false
 		} finally {
 			this.busy = false
@@ -549,24 +578,27 @@ export class AccountStore {
 	}
 
 	private async performRefresh(): Promise<void> {
-		const version = this.#remoteDataVersion
+		this.invalidateAccountList()
+		const version = this.#accountListVersion,
+			search = this.query,
+			selectedTagIds = [...this.selectedTagIds]
 		try {
 			const targetCount = Math.max(this.accounts.length, 10),
 				tagRecords = await accountBackend.ListTags()
-			if (version !== this.#remoteDataVersion || !this.vault.unlocked) return
+			if (version !== this.#accountListVersion || !this.vault.unlocked) return
 			this.tags = [...(tagRecords ?? [])].sort(compareTags)
 			const availableTagIds = new Set(this.tags.map((tag) => tag.id))
-			this.selectedTagIds = this.selectedTagIds.filter((tagId) =>
-				availableTagIds.has(tagId),
-			)
+			const tagIds = selectedTagIds.filter((tagId) => availableTagIds.has(tagId))
+			this.selectedTagIds = tagIds
 			let cursor: AccountCursor | null = null
 			const records: AccountView[] = []
 			const loadPage = async (): Promise<void> => {
 				const page = await accountBackend.ListAccounts({
 					cursor,
-					search: this.query,
-					tagIds: this.selectedTagIds,
+					search,
+					tagIds,
 				})
+				if (version !== this.#accountListVersion || !this.vault.unlocked) return
 				records.push(...(page.accounts ?? []))
 				cursor = page.nextCursor ?? null
 				if (cursor && records.length < targetCount) {
@@ -574,7 +606,7 @@ export class AccountStore {
 				}
 			}
 			await loadPage()
-			if (version !== this.#remoteDataVersion || !this.vault.unlocked) return
+			if (version !== this.#accountListVersion || !this.vault.unlocked) return
 			const selectFirst =
 				this.accounts.length === 0 || this.selectedAccountIds.length > 0
 			this.nextCursor = cursor
@@ -590,8 +622,10 @@ export class AccountStore {
 			const userIDs = records.map((record) => record.robloxUserId)
 			void this.refreshAvatarHeadshots(userIDs)
 		} catch (error) {
-			if (version !== this.#remoteDataVersion || !this.vault.unlocked) return
-			this.error = getErrorMessage(error)
+			if (version !== this.#accountListVersion || !this.vault.unlocked) return
+			this.error = errorMessage(error, operationError)
+		} finally {
+			if (version === this.#accountListVersion) this.loadingAccounts = false
 		}
 	}
 
@@ -600,15 +634,21 @@ export class AccountStore {
 			return
 		}
 		this.loadingMore = true
-		const version = this.#remoteDataVersion
+		const version = this.#accountListVersion,
+			cursor = this.nextCursor
 		try {
 			const page = await accountBackend.ListAccounts({
-					cursor: this.nextCursor,
+					cursor,
 					search: this.query,
-					tagIds: this.selectedTagIds,
+					tagIds: [...this.selectedTagIds],
 				}),
 				records = page.accounts ?? []
-			if (version !== this.#remoteDataVersion || !this.vault.unlocked) return
+			if (
+				version !== this.#accountListVersion ||
+				cursor !== this.nextCursor ||
+				!this.vault.unlocked
+			)
+				return
 			this.accounts = [
 				...this.accounts,
 				...records.map((record) => this.createAccount(record)),
@@ -618,10 +658,10 @@ export class AccountStore {
 				records.map((record) => record.robloxUserId),
 			)
 		} catch (error) {
-			if (version !== this.#remoteDataVersion || !this.vault.unlocked) return
-			this.error = getErrorMessage(error)
+			if (version !== this.#accountListVersion || !this.vault.unlocked) return
+			this.error = errorMessage(error, operationError)
 		} finally {
-			this.loadingMore = false
+			if (version === this.#accountListVersion) this.loadingMore = false
 		}
 	}
 
@@ -666,7 +706,7 @@ export class AccountStore {
 			await this.refreshAccounts()
 		} catch (error) {
 			this.accounts = previous
-			this.error = getErrorMessage(error)
+			this.error = errorMessage(error, operationError)
 		} finally {
 			this.busy = false
 		}
@@ -689,7 +729,7 @@ export class AccountStore {
 			preview.items = items
 			return preview
 		} catch (error) {
-			this.error = getErrorMessage(error)
+			this.error = errorMessage(error, operationError)
 			return null
 		} finally {
 			this.busy = false
@@ -740,7 +780,7 @@ export class AccountStore {
 			}
 			return false
 		} catch (error) {
-			this.error = getErrorMessage(error)
+			this.error = errorMessage(error, operationError)
 			return false
 		} finally {
 			this.busy = false
@@ -794,7 +834,7 @@ export class AccountStore {
 			await this.refreshAccounts()
 			return tag
 		} catch (error) {
-			this.error = getErrorMessage(error)
+			this.error = errorMessage(error, operationError)
 			return null
 		} finally {
 			this.busy = false
@@ -813,9 +853,10 @@ export class AccountStore {
 			this.selectedTagIds = this.selectedTagIds.filter(
 				(selectedTagId) => selectedTagId !== tagId,
 			)
+			this.invalidateAccountList()
 			await this.refreshAccounts()
 		} catch (error) {
-			this.error = getErrorMessage(error)
+			this.error = errorMessage(error, operationError)
 		} finally {
 			this.busy = false
 		}
@@ -836,7 +877,7 @@ export class AccountStore {
 			await accountBackend.SetAccountsTag(accountIds, tag.id, selected)
 			await this.refreshAccounts()
 		} catch (error) {
-			this.error = getErrorMessage(error)
+			this.error = errorMessage(error, operationError)
 		} finally {
 			this.busy = false
 		}
@@ -855,7 +896,7 @@ export class AccountStore {
 			await this.refreshAccounts()
 			return true
 		} catch (error) {
-			this.error = getErrorMessage(error)
+			this.error = errorMessage(error, operationError)
 			return false
 		} finally {
 			this.busy = false
@@ -901,7 +942,7 @@ export class AccountStore {
 				})
 			}
 		} catch (error) {
-			if (this.vault.unlocked) this.error = getErrorMessage(error)
+			if (this.vault.unlocked) this.error = errorMessage(error, operationError)
 		} finally {
 			this.findingServer = false
 		}
@@ -938,7 +979,7 @@ export class AccountStore {
 			}
 			return this.vault.unlocked
 		} catch (error) {
-			if (this.vault.unlocked) this.error = getErrorMessage(error)
+			if (this.vault.unlocked) this.error = errorMessage(error, operationError)
 			return false
 		} finally {
 			this.launching = false
@@ -1093,8 +1134,11 @@ export class AccountStore {
 	}
 
 	private resetLockedState(): void {
+		this.notifications.dismiss("credential-backup")
 		this.#remoteDataVersion++
 		this.vault.unlocked = false
+		window.clearTimeout(this.#filterTimer)
+		this.invalidateAccountList()
 		this.launchInput = emptyLaunchInput()
 		this.launchDataEnabled = false
 		this.#clearProfiles()
@@ -1147,8 +1191,4 @@ function compareTags(left: TagView, right: TagView): number {
 	}
 
 	return left.name.localeCompare(right.name)
-}
-
-function getErrorMessage(error: unknown): string {
-	return error instanceof Error ? error.message : "The operation failed."
 }

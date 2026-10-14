@@ -62,7 +62,7 @@
 			}
 			return
 		}
-		if (incomplete && store.vault.unlocked && store.vault.dpapiRecovery) {
+		if (incomplete && store.vault.unlocked && store.vault.automaticUnlockRecovery) {
 			if (
 				!(await store.changeVaultPassword(
 					"",
@@ -288,7 +288,7 @@
 					? !canCreate
 					: !password || store.busy}>
 				{store.busy
-					? "Working..."
+					? "Working…"
 					: creating
 						? "Create vault"
 						: incomplete

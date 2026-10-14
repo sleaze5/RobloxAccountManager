@@ -3,7 +3,7 @@
 		ImageContextMenu,
 		WorkspaceState,
 	} from "../layout/workspace-state.svelte"
-	import { menuIn, menuOut } from "../shared/presence"
+	import { menuIn, menuOut, placeMenuAtPoint } from "../shared/presence"
 	import type { AccountStore } from "./account-store.svelte"
 
 	let {
@@ -21,21 +21,7 @@
 		const previousFocus = document.activeElement
 		let current = position
 		const place = () => {
-			// Keep the menu 8 px inside the window and at least 42 px from the top, below the title bar.
-			const x = Math.max(
-					8,
-					Math.min(current.x, window.innerWidth - node.offsetWidth - 8),
-				),
-				y = Math.max(
-					42,
-					Math.min(current.y, window.innerHeight - node.offsetHeight - 8),
-				)
-			node.style.left = `${x}px`
-			node.style.top = `${y}px`
-			node.style.setProperty(
-				"--menu-origin",
-				`${y < current.y ? "bottom" : "top"} ${x < current.x ? "right" : "left"}`,
-			)
+			placeMenuAtPoint(node, current)
 		}
 		place()
 		node.querySelector<HTMLButtonElement>("button")?.focus({ preventScroll: true })

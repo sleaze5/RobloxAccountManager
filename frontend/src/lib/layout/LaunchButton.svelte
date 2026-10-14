@@ -4,7 +4,7 @@
 	import PlayIcon from "phosphor-svelte/lib/PlayIcon"
 	import { onDestroy, tick } from "svelte"
 	import type { AccountStore } from "../accounts/account-store.svelte"
-	import { menuIn, menuOut } from "../shared/presence"
+	import { menuIn, menuOut, placeMenuAtPoint } from "../shared/presence"
 	import type { WorkspaceState } from "./workspace-state.svelte"
 
 	let { store, workspace }: { store: AccountStore; workspace: WorkspaceState } =
@@ -38,21 +38,7 @@
 
 	function positionMenu(node: HTMLElement, position: { x: number; y: number }) {
 		const place = (next: { x: number; y: number }) => {
-			// Keep the menu 8 px inside the window and at least 42 px from the top, below the title bar.
-			const x = Math.max(
-					8,
-					Math.min(next.x, window.innerWidth - node.offsetWidth - 8),
-				),
-				y = Math.max(
-					42,
-					Math.min(next.y, window.innerHeight - node.offsetHeight - 8),
-				)
-			node.style.left = `${x}px`
-			node.style.top = `${y}px`
-			node.style.setProperty(
-				"--menu-origin",
-				`${y < next.y ? "bottom" : "top"} ${x < next.x ? "right" : "left"}`,
-			)
+			placeMenuAtPoint(node, next)
 		}
 		place(position)
 		return { update: place }

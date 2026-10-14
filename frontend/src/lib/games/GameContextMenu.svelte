@@ -6,7 +6,7 @@
 	import TextTIcon from "phosphor-svelte/lib/TextTIcon"
 	import UserCircleIcon from "phosphor-svelte/lib/UserCircleIcon"
 	import UsersThreeIcon from "phosphor-svelte/lib/UsersThreeIcon"
-	import { menuIn, menuOut } from "../shared/presence"
+	import { menuIn, menuOut, placeMenuAtPoint } from "../shared/presence"
 	import type { GameMenu, GamesStore } from "./games-store.svelte"
 
 	let {
@@ -27,17 +27,7 @@
 		const previousFocus = document.activeElement
 		let current = position
 		const reposition = () => {
-			// Keep the menu 8 px inside the window and at least 42 px from the top, below the title bar.
-			const width = node.offsetWidth,
-				height = node.offsetHeight,
-				x = Math.max(8, Math.min(current.x, window.innerWidth - width - 8)),
-				y = Math.max(42, Math.min(current.y, window.innerHeight - height - 8))
-			node.style.left = `${x}px`
-			node.style.top = `${y}px`
-			node.style.setProperty(
-				"--menu-origin",
-				`${y < current.y ? "bottom" : "top"} ${x < current.x ? "right" : "left"}`,
-			)
+			placeMenuAtPoint(node, current)
 		}
 		reposition()
 		node.focus({ preventScroll: true })

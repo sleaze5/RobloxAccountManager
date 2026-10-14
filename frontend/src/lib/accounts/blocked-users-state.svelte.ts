@@ -1,6 +1,7 @@
 import { accountBackend } from "../backend/bridge"
 import type { BlockedUser } from "../backend/bridge"
 import type { AccountStore } from "./account-store.svelte"
+import { errorMessage } from "../shared/errors"
 
 export class BlockedUsersState {
 	users = $state<BlockedUser[] | null>(null)
@@ -36,7 +37,7 @@ export class BlockedUsersState {
 			this.users = users
 		} catch (error) {
 			if (!this.#current()) return
-			this.error = message(
+			this.error = errorMessage(
 				error,
 				"Could not load blocked users. Refresh to retry.",
 			)
@@ -58,7 +59,7 @@ export class BlockedUsersState {
 			)
 		} catch (error) {
 			if (!this.#current()) return
-			this.error = message(
+			this.error = errorMessage(
 				error,
 				"Could not unblock this user. Refresh to check.",
 			)
@@ -76,8 +77,4 @@ export class BlockedUsersState {
 		this.unblocking = null
 		this.error = ""
 	}
-}
-
-function message(error: unknown, fallback: string): string {
-	return error instanceof Error && error.message.trim() ? error.message : fallback
 }

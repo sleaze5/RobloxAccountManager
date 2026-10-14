@@ -17,7 +17,7 @@ type VaultState struct {
 	PasswordReminderDue      bool            `json:"passwordReminderDue"`
 	PasswordTestIntervalDays int             `json:"passwordTestIntervalDays"`
 	LastPasswordTestedAt     string          `json:"lastPasswordTestedAt,omitempty"`
-	DPAPIRecovery            bool            `json:"dpapiRecovery"`
+	AutomaticUnlockRecovery  bool            `json:"automaticUnlockRecovery"`
 	AutomaticUnlock          bool            `json:"automaticUnlock"`
 	ValidAutomaticUnlock     bool            `json:"validAutomaticUnlock"`
 	StartupError             string          `json:"startupError,omitempty"`
@@ -35,7 +35,7 @@ func (service *Service) GetVaultState() VaultState {
 		PasswordReminderDue:      service.reminderDue,
 		PasswordTestIntervalDays: settings.PasswordTestIntervalDays,
 		LastPasswordTestedAt:     settings.LastPasswordTestedAt,
-		DPAPIRecovery:            service.vault.UnlockedWithDPAPI(),
+		AutomaticUnlockRecovery:  service.vault.UnlockedAutomatically(),
 		AutomaticUnlock:          service.vault.AutomaticUnlockEnabled(),
 		ValidAutomaticUnlock:     service.vault.ValidAutomaticUnlock(),
 		StartupError:             service.startupError,
@@ -116,6 +116,9 @@ func (service *Service) LockVault() error {
 	if err := service.vault.Lock(); err != nil {
 		if service.vault.Unlocked() {
 			service.startBackground()
+			if service.browser != nil {
+				service.browser.AllowLaunches()
+			}
 		} else {
 			service.finishLocked()
 		}

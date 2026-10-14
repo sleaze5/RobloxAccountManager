@@ -60,6 +60,7 @@
 }
 
 .sidebar-resizer.disabled {
+	opacity: 1;
 	cursor: default;
 }
 

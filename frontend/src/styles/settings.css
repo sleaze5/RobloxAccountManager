@@ -152,7 +152,7 @@
 	align-items: flex-start;
 	gap: 6px;
 	padding: 0 var(--space-1) var(--space-1);
-	color: var(--color-text-faint);
+	color: var(--color-text-muted);
 	font-size: var(--text-12);
 	line-height: 1.45;
 }
@@ -194,7 +194,7 @@
 
 .settings-token-reference {
 	padding: 0 var(--space-1) var(--space-2);
-	color: var(--color-text-faint);
+	color: var(--color-text-muted);
 	font-size: var(--text-12);
 }
 
@@ -302,7 +302,7 @@
 }
 
 .settings-row-copy > span {
-	color: var(--color-text-faint);
+	color: var(--color-text-muted);
 	font-size: var(--text-12);
 }
 
@@ -666,7 +666,7 @@
 }
 
 .settings-radio-group-header span {
-	color: var(--color-text-faint);
+	color: var(--color-text-muted);
 	font-size: var(--text-12);
 }
 

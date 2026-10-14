@@ -34,40 +34,68 @@ func (service *Service) LaunchAccounts(ctx context.Context, accountIDs []int64, 
 	if _, err := gamelaunch.Parse(input); err != nil {
 		return result, launchPreparationError(err)
 	}
+	err := service.serializeLaunch(ctx, func() error {
+		if len(accountIDs) > 1 {
+			approved, err := service.confirmBatchLaunch(ctx, len(accountIDs))
+			if err != nil || !approved {
+				result.Cancelled = true
+				return err
+			}
+		}
+		for _, accountID := range accountIDs {
+			if ctx.Err() != nil || !service.vault.Unlocked() {
+				result.Cancelled = true
+				break
+			}
+			err := service.launchAccount(ctx, accountID, input)
+			if errors.Is(err, robloxmulti.ErrLaunchCancelled) {
+				result.Cancelled = true
+				break
+			}
+			if err != nil {
+				message := "The account could not be launched. Try again."
+				var failure *roblox.Error
+				if errors.As(err, &failure) {
+					message = failure.Message
+				}
+				result.Failures = append(result.Failures, AccountLaunchFailure{AccountID: accountID, Message: message})
+				continue
+			}
+			result.Launched = append(result.Launched, accountID)
+		}
+		return nil
+	})
+	return result, err
+}
+
+func (service *Service) serializeLaunch(ctx context.Context, action func() error) error {
 	service.launchMu.Lock()
 	defer service.launchMu.Unlock()
 	if ctx.Err() != nil || !service.vault.Unlocked() {
-		return result, launchError(roblox.KindCancelled, "The launch was cancelled or the vault is locked.")
+		return launchError(roblox.KindCancelled, "The launch was cancelled or the vault is locked.")
 	}
-	if len(accountIDs) > 1 {
-		approved, err := service.confirmBatchLaunch(ctx, len(accountIDs))
-		if err != nil || !approved {
-			result.Cancelled = true
-			return result, err
-		}
-	}
-	for _, accountID := range accountIDs {
-		if ctx.Err() != nil || !service.vault.Unlocked() {
-			result.Cancelled = true
-			break
-		}
-		err := service.launchAccount(ctx, accountID, input)
+	return action()
+}
+
+func (service *Service) executeLaunch(ctx context.Context, confirm func(context.Context, int, bool) (bool, error), action func() error) error {
+	if err := service.multiInstance.PrepareForLaunch(ctx, confirm); err != nil {
 		if errors.Is(err, robloxmulti.ErrLaunchCancelled) {
-			result.Cancelled = true
-			break
+			return err
 		}
-		if err != nil {
-			message := "The account could not be launched. Try again."
-			var failure *roblox.Error
-			if errors.As(err, &failure) {
-				message = failure.Message
-			}
-			result.Failures = append(result.Failures, AccountLaunchFailure{AccountID: accountID, Message: message})
-			continue
+		var failure *roblox.Error
+		if errors.As(err, &failure) {
+			return failure
 		}
-		result.Launched = append(result.Launched, accountID)
+		return launchPreparationError(err)
 	}
-	return result, nil
+	if ctx.Err() != nil || !service.vault.Unlocked() {
+		return launchError(roblox.KindCancelled, "The launch was cancelled or the vault is locked.")
+	}
+	if err := action(); err != nil {
+		return err
+	}
+	service.multiInstance.AfterLaunch()
+	return nil
 }
 
 func (service *Service) confirmBatchLaunch(ctx context.Context, count int) (bool, error) {
@@ -83,12 +111,25 @@ func (service *Service) confirmBatchLaunch(ctx context.Context, count int) (bool
 }
 
 func (service *Service) launchAccount(ctx context.Context, accountID int64, input gamelaunch.Input) error {
-	return service.runLaunchOperation(ctx, accountID, input, "game-launch", func(ctx context.Context, ticket, browserID string, target gamelaunch.Request) error {
-		if err := service.launcher.Launch(ctx, ticket, browserID, target); err != nil {
-			return &roblox.Error{Kind: roblox.KindProtocol, Endpoint: "game-launch", Message: userLaunchMessage(err, "Roblox Player could not be started. Check that Roblox is installed and try again."), Cause: err}
+	return service.runLaunchOperation(ctx, accountID, input, "game-launch", func(ctx context.Context, ticket func() (string, error), browserID string, target gamelaunch.Request) error {
+		confirm := func(ctx context.Context, count int, multiInstance bool) (bool, error) {
+			approved, err := service.confirmRobloxReplacement(ctx, count, multiInstance)
+			if err != nil || !approved {
+				return approved, err
+			}
+			_, err = ticket()
+			return true, err
 		}
-		service.multiInstance.AfterLaunch()
-		return nil
+		return service.executeLaunch(ctx, confirm, func() error {
+			value, err := ticket()
+			if err != nil {
+				return err
+			}
+			if err := service.launcher.Launch(ctx, value, browserID, target); err != nil {
+				return &roblox.Error{Kind: roblox.KindProtocol, Endpoint: "game-launch", Message: userLaunchMessage(err, "Roblox Player could not be started. Check that Roblox is installed and try again."), Cause: err}
+			}
+			return nil
+		})
 	})
 }
 
@@ -124,9 +165,12 @@ func (service *Service) CopyLaunchOptions(ctx context.Context, accountIDs []int6
 
 func (service *Service) accountLaunchOptions(ctx context.Context, accountID int64, input gamelaunch.Input) (string, error) {
 	var command string
-	err := service.runLaunchOperation(ctx, accountID, input, "copy-launch-options", func(ctx context.Context, ticket, browserID string, target gamelaunch.Request) error {
-		var err error
-		command, err = service.launcher.CommandLine(ctx, ticket, browserID, target)
+	err := service.runLaunchOperation(ctx, accountID, input, "copy-launch-options", func(ctx context.Context, ticket func() (string, error), browserID string, target gamelaunch.Request) error {
+		value, err := ticket()
+		if err != nil {
+			return err
+		}
+		command, err = service.launcher.CommandLine(ctx, value, browserID, target)
 		if err != nil {
 			return &roblox.Error{Kind: roblox.KindProtocol, Endpoint: "copy-launch-options", Message: userLaunchMessage(err, "Launch options could not be prepared. Check that Roblox is installed and try again."), Cause: err}
 		}
@@ -138,12 +182,11 @@ func (service *Service) accountLaunchOptions(ctx context.Context, accountID int6
 	return command, err
 }
 
-func (service *Service) runLaunchOperation(ctx context.Context, accountID int64, input gamelaunch.Input, operation string, action func(context.Context, string, string, gamelaunch.Request) error) (result error) {
+func (service *Service) runLaunchOperation(ctx context.Context, accountID int64, input gamelaunch.Input, operation string, action func(context.Context, func() (string, error), string, gamelaunch.Request) error) (result error) {
 	logger := service.logger.With("operation_id", fmt.Sprintf("launch-%d", launchOperationID.Add(1)), "operation", operation, "account_id", accountID)
 	stage := "parse-input"
-	cancelled := false
 	defer func() {
-		if cancelled {
+		if errors.Is(result, robloxmulti.ErrLaunchCancelled) {
 			logger.Info("Roblox launch cancelled")
 			return
 		}
@@ -200,50 +243,24 @@ func (service *Service) runLaunchOperation(ctx context.Context, accountID int64,
 		target.LaunchData = launchData
 	}
 	var ticketValue string
-	loadTicket := func() error {
-		stage = "authentication-ticket"
-		ticket, err := service.auth.AuthenticationTicket(ctx, accountID)
-		if err == nil {
+	loadTicket := func() (string, error) {
+		if ticketValue == "" {
+			stage = "authentication-ticket"
+			ticket, err := service.auth.AuthenticationTicket(ctx, accountID)
+			if err != nil {
+				return "", err
+			}
 			ticketValue = ticket.Value()
 		}
-		return err
-	}
-	if operation == "game-launch" {
-		stage = "prepare-launch"
-		confirm := func(ctx context.Context, count int, multiInstance bool) (bool, error) {
-			approved, err := service.confirmRobloxReplacement(ctx, count, multiInstance)
-			if err != nil || !approved {
-				return approved, err
-			}
-			err = loadTicket()
-			if err == nil {
-				stage = "prepare-launch"
-			}
-			return true, err
+		stage = "validate-session"
+		if ctx.Err() != nil || !service.vault.Unlocked() || !service.sessions.VersionCurrent(accountID, session.SecretVersion) {
+			return "", launchError(roblox.KindCancelled, "The launch ended or the account session changed. Try again.")
 		}
-		if err := service.multiInstance.PrepareForLaunch(ctx, confirm); err != nil {
-			if errors.Is(err, robloxmulti.ErrLaunchCancelled) {
-				cancelled = true
-				return err
-			}
-			var failure *roblox.Error
-			if errors.As(err, &failure) {
-				return failure
-			}
-			return launchPreparationError(err)
-		}
+		stage = operation
+		return ticketValue, nil
 	}
-	if ticketValue == "" {
-		if err := loadTicket(); err != nil {
-			return err
-		}
-	}
-	stage = "validate-session"
-	if ctx.Err() != nil || !service.vault.Unlocked() || !service.sessions.VersionCurrent(accountID, session.SecretVersion) {
-		return launchError(roblox.KindCancelled, "The launch ended or the account session changed. Try again.")
-	}
-	stage = operation
-	return action(ctx, ticketValue, session.BrowserID, target)
+	stage = "prepare-launch"
+	return action(ctx, loadTicket, session.BrowserID, target)
 }
 
 func (service *Service) resolveLaunchUser(ctx context.Context, accountID int64, target gamelaunch.Request, resolveCurrentGame bool) (gamelaunch.Request, error) {

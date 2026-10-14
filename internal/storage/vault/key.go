@@ -384,7 +384,7 @@ func decodeAutoUnlock(data []byte, protector protection.Protector) ([vaultIDByte
 	}
 	plain, err := protector.Unprotect(data[14:])
 	if err != nil {
-		return vaultID, nil, fmt.Errorf("%w: %v", ErrDPAPIUnavailable, err)
+		return vaultID, nil, fmt.Errorf("%w: %v", ErrAutomaticUnlockUnavailable, err)
 	}
 	defer wipe(plain)
 	return autoUnlockDecoders[version-1](plain)

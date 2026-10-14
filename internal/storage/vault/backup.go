@@ -17,7 +17,10 @@ import (
 	"github.com/sleaze5/RobloxAccountManager/internal/appdata"
 )
 
-const backupTimeFormat = "20060102T150405.000000000Z"
+const (
+	backupTimeFormat = "20060102T150405.000000000Z"
+	retainedBackups  = 3
+)
 
 type BackupInfo struct {
 	Name        string `json:"name"`
@@ -141,7 +144,6 @@ func snapshotDatabase(ctx context.Context, source *sql.DB, destinationPath strin
 				return fmt.Errorf("start SQLite backup: %w", err)
 			}
 			for {
-				// Copy 128 pages per step.
 				done, stepErr := backup.Step(128)
 				if stepErr != nil {
 					_ = backup.Close()
@@ -198,11 +200,10 @@ func (manager *Manager) trimBackups() error {
 	if err != nil {
 		return err
 	}
-	// Keep the 3 newest backups.
-	if len(backups) <= 3 {
+	if len(backups) <= retainedBackups {
 		return nil
 	}
-	for _, backup := range backups[3:] {
+	for _, backup := range backups[retainedBackups:] {
 		if err := manager.removeManaged(filepath.Join(manager.paths.BackupsRoot, backup.Name), manager.paths.BackupsRoot); err != nil {
 			return err
 		}

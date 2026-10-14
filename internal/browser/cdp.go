@@ -197,7 +197,7 @@ func (client *CDPClient) VerifyVersion(ctx context.Context, expected string) err
 		return err
 	}
 	if result.Product != "Chrome/"+expected {
-		return fmt.Errorf("browser product version %q does not match %q", result.Product, expected)
+		return fmt.Errorf("%w: got %q, want %q", errBrowserVersionMismatch, result.Product, expected)
 	}
 	return nil
 }

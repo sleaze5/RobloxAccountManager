@@ -32,7 +32,7 @@
 
 	--color-text: #cccccc;
 	--color-text-muted: #a3a3a3;
-	--color-text-faint: #737373;
+	--color-text-faint: #808080;
 	--color-text-bright: #ffffff;
 
 	--color-solid: #ffffff;
@@ -83,7 +83,6 @@
 	--text-12: 12px;
 	--text-12-5: 12.5px;
 	--text-13: 13px;
-	--text-13-5: 13.5px;
 	--text-14: 14px;
 	--text-15: 15px;
 	--text-16: 16px;
@@ -99,9 +98,6 @@
 	--control-height-lg: 32px;
 	--control-padding-sm: 6px;
 	--control-padding-md: 8px;
-	--surface-padding-sm: 8px;
-	--surface-padding-md: 12px;
-	--surface-padding-lg: 16px;
 
 	--radius-chip: 4px;
 	--radius-control: 6px;

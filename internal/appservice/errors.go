@@ -67,7 +67,7 @@ func safeVaultError(err error) error {
 		message = "The vault database schema is unsupported. Restore a compatible backup."
 	case errors.Is(err, vault.ErrVaultMismatch):
 		message = "The database and security files belong to different vaults."
-	case errors.Is(err, vault.ErrDPAPIUnavailable):
+	case errors.Is(err, vault.ErrAutomaticUnlockUnavailable):
 		message = "Automatic unlock is unavailable for this user. Enter the master password."
 	}
 	return &roblox.Error{

@@ -109,7 +109,9 @@ func (service *Service) CommitBrowserCandidate(ctx context.Context, validation r
 		return accounts.AccountView{}, browser.SaveFailed, mapRepositoryError(err)
 	}
 	if err := service.sessions.Put(record, validation.BrowserID); err != nil {
-		_ = service.repo.Remove(context.WithoutCancel(ctx), view.ID)
+		if removeErr := service.repo.Remove(context.WithoutCancel(ctx), view.ID); removeErr != nil {
+			service.logger.Error("browser account rollback failed", "operation", "browser-account-save", "account_id", view.ID, "error", removeErr)
+		}
 		return accounts.AccountView{}, browser.SaveFailed, err
 	}
 	service.events.send("account:added", view)
@@ -126,15 +128,12 @@ func (service *Service) SynchronizeBrowserCookie(ctx context.Context, accountID,
 		return 0, err
 	}
 	if err := service.sessions.ApplyRotation(record); err != nil {
+		service.events.SessionChanged(accountID)
 		return 0, err
 	}
-	if err := service.vault.PurgeBackups(); err != nil {
-		return 0, err
-	}
-	if err := service.vault.CreateBackup(ctx); err != nil {
-		return 0, err
-	}
-	service.events.send("account:updated", view)
+	service.events.SessionChanged(accountID)
+	logger := service.logger.With("operation", "browser-cookie-synchronization", "account_id", accountID)
+	service.events.CredentialBackupChanged(service.refreshCredentialBackup(ctx, logger, true))
 	return record.SecretVersion, nil
 }
 
@@ -153,16 +152,15 @@ func (service *Service) replaceValidatedCookie(ctx context.Context, accountID in
 	if err != nil {
 		return accounts.AccountView{}, mapRepositoryError(err)
 	}
+	logger := service.logger.With("operation", "cookie-replacement", "account_id", accountID)
 	if err := service.sessions.ApplyRotation(session); err != nil {
-		return accounts.AccountView{}, err
-	}
-	if err := service.vault.CreateBackup(ctx); err != nil {
-		return view, fmt.Errorf("the cookie was replaced, but the fresh backup failed: %w", err)
+		logger.Warn("cookie saved but runtime session changed before reconciliation", "error", err)
 	}
 	service.events.send("account:updated", view)
 	if service.browser != nil {
 		service.browser.DetachAccount(accountID, "The saved cookie changed elsewhere. This browser is no longer synchronized.")
 	}
+	service.events.CredentialBackupChanged(service.refreshCredentialBackup(ctx, logger, false))
 	return view, nil
 }
 
@@ -303,7 +301,9 @@ func (service *Service) ValidateAccount(ctx context.Context, accountID int64) (a
 		return accounts.AccountView{}, snapshotErr
 	}
 	if identity.RobloxUserID != current.RobloxUserID {
-		_ = service.repo.MarkState(context.WithoutCancel(ctx), accountID, snapshot.SecretVersion, accounts.StateReauthRequired, "Roblox returned a different account identity.")
+		if err := service.repo.MarkState(context.WithoutCancel(ctx), accountID, snapshot.SecretVersion, accounts.StateReauthRequired, "Roblox returned a different account identity."); err != nil && !errors.Is(err, accounts.ErrStaleSecret) {
+			service.logger.Warn("account reauthentication state could not be saved", "operation", "account-validation", "account_id", accountID, "error", err)
+		}
 		service.sessions.UpdateState(accountID, snapshot.SecretVersion, accounts.StateReauthRequired)
 		return accounts.AccountView{}, &roblox.Error{Kind: roblox.KindReauthRequired, Endpoint: "authenticated-user", Message: "The session identity changed. Replace the cookie."}
 	}

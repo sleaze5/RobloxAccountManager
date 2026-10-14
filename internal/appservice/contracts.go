@@ -12,7 +12,7 @@ type Vault interface {
 	Initialized() bool
 	FileState() vault.FileState
 	Unlocked() bool
-	UnlockedWithDPAPI() bool
+	UnlockedAutomatically() bool
 	AutomaticUnlockEnabled() bool
 	ValidAutomaticUnlock() bool
 	PasswordHint() string

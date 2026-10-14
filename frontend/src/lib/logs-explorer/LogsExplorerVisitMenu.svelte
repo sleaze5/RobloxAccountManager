@@ -1,6 +1,6 @@
 <script lang="ts">
 	import ListPlusIcon from "phosphor-svelte/lib/ListPlusIcon"
-	import { menuIn, menuOut } from "../shared/presence"
+	import { menuIn, menuOut, placeMenuAtAnchor } from "../shared/presence"
 
 	let {
 		id,
@@ -19,27 +19,7 @@
 	function positionMenu(node: HTMLElement, trigger: HTMLElement) {
 		const place = (current: HTMLElement) => {
 			restoreFocus = false
-			// Keep the menu 8 px inside the window and at least 42 px from the top, below the title bar.
-			const bounds = current.getBoundingClientRect(),
-				opensUp =
-					bounds.bottom + 4 + node.offsetHeight > window.innerHeight - 8,
-				x = Math.max(
-					8,
-					Math.min(
-						bounds.right - node.offsetWidth,
-						window.innerWidth - node.offsetWidth - 8,
-					),
-				),
-				y = Math.max(
-					42,
-					opensUp ? bounds.top - node.offsetHeight - 4 : bounds.bottom + 4,
-				)
-			node.style.left = `${x}px`
-			node.style.top = `${y}px`
-			node.style.setProperty(
-				"--menu-origin",
-				`${opensUp ? "bottom" : "top"} right`,
-			)
+			placeMenuAtAnchor(node, current)
 			node.querySelector<HTMLButtonElement>("button")?.focus({
 				preventScroll: true,
 			})

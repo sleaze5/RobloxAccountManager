@@ -4,11 +4,11 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"time"
 
 	"github.com/sleaze5/RobloxAccountManager/internal/browser"
 	"github.com/sleaze5/RobloxAccountManager/internal/gamelaunch"
 	"github.com/sleaze5/RobloxAccountManager/internal/platform/robloxmulti"
+	"github.com/sleaze5/RobloxAccountManager/internal/roblox"
 )
 
 func (service *Service) GetBrowserState() browser.Snapshot {
@@ -26,10 +26,10 @@ func (service *Service) GetBrowserShutdownEffects() browser.ShutdownEffects {
 }
 
 func (service *Service) DownloadBrowserRuntime(ctx context.Context) error {
-	if service.runtime == nil {
+	if service.browser == nil {
 		return errors.New("browser runtime management is unavailable")
 	}
-	return service.runtime.Download(context.WithoutCancel(ctx), false)
+	return service.browser.DownloadRuntime(context.WithoutCancel(ctx), false)
 }
 
 func (service *Service) CancelBrowserRuntimeDownload() {
@@ -39,29 +39,17 @@ func (service *Service) CancelBrowserRuntimeDownload() {
 }
 
 func (service *Service) RedownloadBrowserRuntime(ctx context.Context) error {
-	if service.browser == nil || service.runtime == nil {
+	if service.browser == nil {
 		return errors.New("browser runtime management is unavailable")
 	}
-	service.browser.ForceShutdown()
-	if err := service.runtime.StopDownload(30 * time.Second); err != nil {
-		return err
-	}
-	if service.vault.Unlocked() {
-		service.browser.AllowLaunches()
-	}
-	return service.runtime.Download(context.WithoutCancel(ctx), true)
+	return service.browser.DownloadRuntime(context.WithoutCancel(ctx), true)
 }
 
 func (service *Service) RemoveBrowserRuntime() error {
-	if service.browser == nil || service.runtime == nil {
+	if service.browser == nil {
 		return errors.New("browser runtime management is unavailable")
 	}
-	service.browser.ForceShutdown()
-	err := service.runtime.Remove()
-	if service.vault.Unlocked() {
-		service.browser.AllowLaunches()
-	}
-	return err
+	return service.browser.RemoveRuntime()
 }
 
 func (service *Service) StartLoginBrowser(ctx context.Context) (browser.SessionState, error) {
@@ -101,26 +89,27 @@ func (service *Service) LaunchBrowserGame(ctx context.Context, sessionID, protoc
 		service.events.BrowserLaunchFailed(sessionID, "The browser supplied an invalid game launch. Try joining again.")
 		return
 	}
-	service.launchMu.Lock()
-	defer service.launchMu.Unlock()
-	if err := service.multiInstance.PrepareForLaunch(ctx, service.confirmRobloxReplacement); err != nil {
-		if errors.Is(err, robloxmulti.ErrLaunchCancelled) || ctx.Err() != nil {
+	err := service.serializeLaunch(ctx, func() error {
+		return service.executeLaunch(ctx, service.confirmRobloxReplacement, func() error {
+			if err := service.launcher.LaunchProtocol(ctx, protocolURL); err != nil {
+				return &roblox.Error{Kind: roblox.KindProtocol, Endpoint: "browser-game-launch", Message: userLaunchMessage(err, "Roblox could not be started. Check that Roblox is installed and try joining again."), Cause: err}
+			}
+			return nil
+		})
+	})
+	if err != nil {
+		var failure *roblox.Error
+		if errors.Is(err, robloxmulti.ErrLaunchCancelled) || ctx.Err() != nil || errors.As(err, &failure) && failure.Kind == roblox.KindCancelled {
 			logger.Info("browser game launch cancelled")
 			return
 		}
-		failure := launchPreparationError(err)
-		logger.Warn("browser game launch preparation failed", "error_message", failure.Message)
-		service.events.BrowserLaunchFailed(sessionID, failure.Message)
-		return
-	}
-	if err := service.launcher.LaunchProtocol(ctx, protocolURL); err != nil {
-		logger.Warn("browser game launch failed", "error", err)
-		if ctx.Err() != nil {
-			return
+		message := "Roblox could not be started. Try joining again."
+		if errors.As(err, &failure) {
+			message = failure.Message
 		}
-		service.events.BrowserLaunchFailed(sessionID, userLaunchMessage(err, "Roblox could not be started. Check that Roblox is installed and try joining again."))
+		logger.Warn("browser game launch failed", "error_message", message)
+		service.events.BrowserLaunchFailed(sessionID, message)
 		return
 	}
-	service.multiInstance.AfterLaunch()
-	logger.Info("browser game launched through desktop Explorer")
+	logger.Info("browser game launched")
 }

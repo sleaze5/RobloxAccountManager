@@ -194,8 +194,8 @@ func inspectCandidate(mode Mode, directory string) (Candidate, error) {
 	return candidate, nil
 }
 
-// inspectRoot mirrors vault.FileState, so an incomplete vault is kept for
-// recovery instead of being treated as unused.
+// Root selection preserves incomplete vaults, but an automatic-unlock key
+// alone does not compete with a vault in another root.
 func inspectRoot(root string) (RootState, error) {
 	paths := layout(root)
 	info, err := os.Stat(filepath.Join(root, storageDirectory))
@@ -213,12 +213,11 @@ func inspectRoot(root string) (RootState, error) {
 	}
 	database := regularFile(paths.Vault)
 	key := regularFile(paths.VaultKey)
-	automatic := regularFile(paths.AutoUnlockKey)
 	staged := hasEntries(paths.CreateStaging)
 	switch {
 	case database && key && !staged:
 		return RootVault, nil
-	case database || key || automatic || staged:
+	case database || key || staged:
 		return RootIncomplete, nil
 	default:
 		return RootStructure, nil

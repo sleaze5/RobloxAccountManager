@@ -151,6 +151,9 @@ func (manager *RuntimeManager) State() RuntimeState {
 func (manager *RuntimeManager) Executable() (string, error) {
 	manager.mu.Lock()
 	defer manager.mu.Unlock()
+	if manager.cancel != nil {
+		return "", errors.New("wait for the browser runtime download to finish")
+	}
 	manager.refreshLocked()
 	if manager.state.Status != RuntimeReady {
 		return "", errors.New("managed browser runtime is not installed or is damaged")

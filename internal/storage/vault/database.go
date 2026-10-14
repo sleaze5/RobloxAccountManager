@@ -22,16 +22,16 @@ import (
 )
 
 var (
-	ErrLocked             = errors.New("vault is locked")
-	ErrAlreadyExists      = errors.New("vault already exists")
-	ErrNotInitialized     = errors.New("vault is not initialized")
-	ErrInvalidPassword    = errors.New("master password or vault key data is incorrect")
-	ErrUnsupportedVersion = errors.New("unsupported key-file version")
-	ErrUnsupportedSchema  = errors.New("unsupported vault schema")
-	ErrVaultMismatch      = errors.New("database and key identifiers do not match")
-	ErrDPAPIUnavailable   = errors.New("automatic unlock is unavailable for this user")
-	ErrIncomplete         = errors.New("vault files are incomplete")
-	ErrLockTimeout        = errors.New("vault operations did not stop before the lock timeout")
+	ErrLocked                     = errors.New("vault is locked")
+	ErrAlreadyExists              = errors.New("vault already exists")
+	ErrNotInitialized             = errors.New("vault is not initialized")
+	ErrInvalidPassword            = errors.New("master password or vault key data is incorrect")
+	ErrUnsupportedVersion         = errors.New("unsupported key-file version")
+	ErrUnsupportedSchema          = errors.New("unsupported vault schema")
+	ErrVaultMismatch              = errors.New("database and key identifiers do not match")
+	ErrAutomaticUnlockUnavailable = errors.New("automatic unlock is unavailable for this user")
+	ErrIncomplete                 = errors.New("vault files are incomplete")
+	ErrLockTimeout                = errors.New("vault operations did not stop before the lock timeout")
 )
 
 type FileState string
@@ -45,24 +45,20 @@ const (
 const lockTimeout = 5 * time.Second
 
 type Manager struct {
-	mu                sync.Mutex
-	paths             appdata.Paths
-	protector         protection.Protector
-	db                *sql.DB
-	dek               []byte
-	vaultID           [vaultIDBytes]byte
-	active            int
-	closing           bool
-	drained           chan struct{}
-	unlockedWithDPAPI bool
-	logger            *slog.Logger
+	mu                    sync.Mutex
+	paths                 appdata.Paths
+	protector             protection.Protector
+	db                    *sql.DB
+	dek                   []byte
+	vaultID               [vaultIDBytes]byte
+	active                int
+	closing               bool
+	drained               chan struct{}
+	unlockedAutomatically bool
+	logger                *slog.Logger
 }
 
-func NewManager(paths appdata.Paths, protector protection.Protector, loggers ...*slog.Logger) *Manager {
-	logger := slog.New(slog.DiscardHandler)
-	if len(loggers) > 0 && loggers[0] != nil {
-		logger = loggers[0]
-	}
+func NewManager(paths appdata.Paths, protector protection.Protector, logger *slog.Logger) *Manager {
 	logging.Diagnostic(logger, "vault formats supported", "operation", "vault-load",
 		"supported_schema_version", schemaVersion, "supported_key_file_version", keyFormatVersion,
 		"supported_auto_unlock_version", autoFormatVersion)
@@ -94,10 +90,10 @@ func (manager *Manager) Unlocked() bool {
 	return manager.db != nil && !manager.closing
 }
 
-func (manager *Manager) UnlockedWithDPAPI() bool {
+func (manager *Manager) UnlockedAutomatically() bool {
 	manager.mu.Lock()
 	defer manager.mu.Unlock()
-	return manager.db != nil && manager.unlockedWithDPAPI
+	return manager.db != nil && manager.unlockedAutomatically
 }
 
 func (manager *Manager) AutomaticUnlockEnabled() bool { return fileExists(manager.paths.AutoUnlockKey) }
@@ -319,7 +315,7 @@ func (manager *Manager) AutoUnlock(ctx context.Context) error {
 	if err := manager.completeUnlock(ctx, usedNext, ""); err != nil {
 		return err
 	}
-	manager.logger.Info("vault unlocked with Windows protection")
+	manager.logger.Info("vault unlocked with automatic unlock")
 	return nil
 }
 
@@ -356,7 +352,7 @@ func (manager *Manager) installUnlocked(ctx context.Context, dek []byte, identif
 	manager.db = db
 	manager.dek = dek
 	manager.vaultID = identifier
-	manager.unlockedWithDPAPI = automatic
+	manager.unlockedAutomatically = automatic
 	manager.closing = false
 	manager.mu.Unlock()
 	return nil
@@ -367,7 +363,7 @@ func (manager *Manager) install(db *sql.DB, dek []byte, identifier [vaultIDBytes
 	manager.db = db
 	manager.dek = dek
 	manager.vaultID = identifier
-	manager.unlockedWithDPAPI = automatic
+	manager.unlockedAutomatically = automatic
 	manager.closing = false
 	manager.mu.Unlock()
 }
@@ -430,7 +426,7 @@ func (manager *Manager) close(manual bool) error {
 	manager.db = nil
 	manager.dek = nil
 	manager.vaultID = [vaultIDBytes]byte{}
-	manager.unlockedWithDPAPI = false
+	manager.unlockedAutomatically = false
 	manager.closing = false
 	manager.mu.Unlock()
 	if err := db.Close(); err != nil {

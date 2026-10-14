@@ -17,6 +17,7 @@
 		modalFocus,
 		replayValidationNudge,
 	} from "../shared/presence"
+	import { errorMessage } from "../shared/errors"
 
 	let {
 		account,
@@ -108,10 +109,10 @@
 			onSaved()
 			onClose()
 		} catch (cause) {
-			error =
-				cause instanceof Error && cause.message.trim()
-					? cause.message
-					: "Roblox did not confirm the change. Refresh to check."
+			error = errorMessage(
+				cause,
+				"Roblox did not confirm the change. Refresh to check.",
+			)
 			pending = false
 			phase = "edit"
 			replayValidationNudge(form)

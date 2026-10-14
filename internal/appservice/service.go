@@ -85,12 +85,8 @@ func New(
 	settings *appsettings.Store,
 	logs *logging.System,
 	events *Events,
-	loggers ...*slog.Logger,
+	logger *slog.Logger,
 ) *Service {
-	logger := slog.New(slog.DiscardHandler)
-	if len(loggers) > 0 && loggers[0] != nil {
-		logger = loggers[0]
-	}
 	return &Service{
 		vault:                vaultManager,
 		repo:                 repository,

@@ -19,6 +19,7 @@
 		modalCardOut,
 		modalFocus,
 	} from "../shared/presence"
+	import { errorMessage } from "../shared/errors"
 
 	let {
 		store,
@@ -123,10 +124,10 @@
 			check = { text: result.path, result }
 			validated = true
 		} catch (cause) {
-			error =
-				cause instanceof Error
-					? cause.message
-					: "The custom Roblox Player path could not be saved. Try again."
+			error = errorMessage(
+				cause,
+				"The custom Roblox Player path could not be saved. Try again.",
+			)
 		} finally {
 			validating = false
 		}
@@ -149,10 +150,10 @@
 			store.launchInput.playerPath = selection === custom ? path : selection
 			onClose()
 		} catch (cause) {
-			error =
-				cause instanceof Error
-					? cause.message
-					: "The custom Roblox Player path could not be saved. Try again."
+			error = errorMessage(
+				cause,
+				"The custom Roblox Player path could not be saved. Try again.",
+			)
 		} finally {
 			saving = false
 		}

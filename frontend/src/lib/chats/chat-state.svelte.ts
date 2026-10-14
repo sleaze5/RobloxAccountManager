@@ -1,6 +1,7 @@
 import { accountBackend } from "../backend/bridge"
 import type { ChatConversationView, ChatMessageView } from "../backend/bridge"
 import type { AccountStore } from "../accounts/account-store.svelte"
+import { errorMessage } from "../shared/errors"
 
 export interface PendingChatMessage {
 	key: number
@@ -72,7 +73,7 @@ export class ChatState {
 			this.conversationsCursor = page.nextCursor
 		} catch (error) {
 			if (this.#current() && generation === this.#listGeneration) {
-				this.error = message(error, "Could not load chats. Try again.")
+				this.error = errorMessage(error, "Could not load chats. Try again.")
 			}
 		} finally {
 			if (generation === this.#listGeneration) this.loading = false
@@ -108,7 +109,10 @@ export class ChatState {
 			this.conversationsCursor = page.nextCursor
 		} catch (error) {
 			if (this.#current() && generation === this.#listGeneration) {
-				this.error = message(error, "Could not load more chats. Try again.")
+				this.error = errorMessage(
+					error,
+					"Could not load more chats. Try again.",
+				)
 				this.loadMoreFailed = true
 			}
 		} finally {
@@ -141,7 +145,7 @@ export class ChatState {
 			this.messagesCursor = page.nextCursor
 		} catch (error) {
 			if (this.#current() && generation === this.#messagesGeneration) {
-				this.messagesError = message(
+				this.messagesError = errorMessage(
 					error,
 					"Could not load this chat. Try again.",
 				)
@@ -185,7 +189,10 @@ export class ChatState {
 			this.messagesCursor = page.nextCursor
 		} catch (error) {
 			if (this.#current() && generation === this.#messagesGeneration) {
-				this.messagesError = message(error, "Could not load older messages.")
+				this.messagesError = errorMessage(
+					error,
+					"Could not load older messages.",
+				)
 			}
 		} finally {
 			if (generation === this.#messagesGeneration) this.olderLoading = false
@@ -205,7 +212,10 @@ export class ChatState {
 			if (this.#current()) this.#clearUnread(new Set([conversationId]))
 		} catch (error) {
 			if (this.#current()) {
-				this.actionError = message(error, "Could not mark this chat as read.")
+				this.actionError = errorMessage(
+					error,
+					"Could not mark this chat as read.",
+				)
 			}
 		} finally {
 			this.markingRead = false
@@ -222,7 +232,10 @@ export class ChatState {
 			this.#clearUnread(null)
 		} catch (error) {
 			if (this.#current()) {
-				this.error = message(error, "Could not mark chats as read. Try again.")
+				this.error = errorMessage(
+					error,
+					"Could not mark chats as read. Try again.",
+				)
 			}
 		} finally {
 			this.markingAll = false
@@ -253,7 +266,7 @@ export class ChatState {
 			return true
 		} catch (error) {
 			if (this.#current()) {
-				this.createError = message(
+				this.createError = errorMessage(
 					error,
 					"Could not start this chat. Try again.",
 				)
@@ -311,7 +324,7 @@ export class ChatState {
 			if (this.#current()) {
 				this.#updatePending(pending.key, {
 					failed: true,
-					error: message(error, "Message not sent."),
+					error: errorMessage(error, "Message not sent."),
 				})
 			}
 		}
@@ -328,8 +341,4 @@ export class ChatState {
 		this.#listGeneration++
 		this.#messagesGeneration++
 	}
-}
-
-function message(error: unknown, fallback: string): string {
-	return error instanceof Error && error.message.trim() ? error.message : fallback
 }

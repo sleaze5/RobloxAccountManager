@@ -9,6 +9,7 @@ import type {
 } from "../backend/bridge"
 import type { NotificationCenter } from "../notifications/notification-center.svelte"
 import type { AccountStore } from "./account-store.svelte"
+import { errorMessage } from "../shared/errors"
 
 export class AccountSettingsState {
 	snapshot = $state<AccountSettingsSnapshot | null>(null)
@@ -61,10 +62,10 @@ export class AccountSettingsState {
 			this.refreshRequired = false
 		} catch (error) {
 			if (!this.#current(generation)) return
-			this.error =
-				error instanceof Error && error.message.trim()
-					? error.message
-					: "Could not load account settings. Try again."
+			this.error = errorMessage(
+				error,
+				"Could not load account settings. Try again.",
+			)
 			this.refreshRequired = true
 		} finally {
 			if (this.#current(generation)) this.loading = false
@@ -132,10 +133,10 @@ export class AccountSettingsState {
 		this.refreshRequired = true
 		this.feedback = {
 			key,
-			message:
-				error instanceof Error && error.message.trim()
-					? error.message
-					: "Could not save this setting. Refresh settings to check.",
+			message: errorMessage(
+				error,
+				"Could not save this setting. Refresh settings to check.",
+			),
 			success: false,
 		}
 	}

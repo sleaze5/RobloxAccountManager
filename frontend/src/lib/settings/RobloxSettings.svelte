@@ -8,6 +8,7 @@
 	import Select from "../shared/Select.svelte"
 	import { linuxClientOptions } from "./linux-clients"
 	import SettingsStatus from "./SettingsStatus.svelte"
+	import { errorMessage } from "../shared/errors"
 
 	let snapshot = $state<MultiInstanceSnapshot | null>(null),
 		loading = $state(true),
@@ -72,10 +73,10 @@
 			statusError = ""
 		} catch (cause) {
 			snapshot = previous
-			error =
-				cause instanceof Error
-					? cause.message
-					: "The multi-instance setting could not be saved. Try again."
+			error = errorMessage(
+				cause,
+				"The multi-instance setting could not be saved. Try again.",
+			)
 		} finally {
 			saving = false
 		}
@@ -103,10 +104,10 @@
 			clients = await accountBackend.SetLinuxClient(client)
 		} catch (cause) {
 			clients = previous
-			clientsError =
-				cause instanceof Error
-					? cause.message
-					: "The Linux client could not be saved. Try again."
+			clientsError = errorMessage(
+				cause,
+				"The Linux client could not be saved. Try again.",
+			)
 		} finally {
 			clientsSaving = false
 		}

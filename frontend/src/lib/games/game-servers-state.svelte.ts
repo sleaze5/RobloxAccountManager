@@ -11,6 +11,7 @@ import type {
 	GameServerRegion,
 	GameServerStats,
 } from "../backend/bridge"
+import { errorMessage } from "../shared/errors"
 
 export type ServerSource = "roblox" | "rovalra"
 export type ServerPageSize = 10 | 25 | 50 | 100
@@ -136,10 +137,10 @@ abstract class ServerPager<Cursor extends string | number, Page> {
 			this.page = page
 		} catch (error) {
 			if (this.#request === request) {
-				this.error =
-					error instanceof Error && error.message.trim()
-						? error.message
-						: "Servers could not be loaded. Try again."
+				this.error = errorMessage(
+					error,
+					"Servers could not be loaded. Try again.",
+				)
 			}
 		} finally {
 			if (this.#request === request) {

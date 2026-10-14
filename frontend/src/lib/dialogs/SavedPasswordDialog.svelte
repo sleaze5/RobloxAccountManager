@@ -19,6 +19,7 @@
 		modalFocus,
 		replayValidationNudge,
 	} from "../shared/presence"
+	import { errorMessage } from "../shared/errors"
 
 	let {
 		account,
@@ -52,10 +53,6 @@
 			| null = null
 	const busy = $derived(loading || pending !== null)
 
-	function message(cause: unknown, fallback: string): string {
-		return cause instanceof Error && cause.message.trim() ? cause.message : fallback
-	}
-
 	async function focusInput(): Promise<void> {
 		await tick()
 		if (active) input?.focus()
@@ -70,7 +67,7 @@
 			password = value
 		} catch (cause) {
 			if (!active) return
-			error = message(cause, "Could not load the saved password.")
+			error = errorMessage(cause, "Could not load the saved password.")
 		} finally {
 			request = null
 			loading = false
@@ -94,7 +91,10 @@
 			if (!valid) replayValidationNudge(form)
 		} catch (cause) {
 			if (!active) return
-			error = message(cause, "Could not validate the password. Try again later.")
+			error = errorMessage(
+				cause,
+				"Could not validate the password. Try again later.",
+			)
 		} finally {
 			request = null
 			pending = null
@@ -119,7 +119,7 @@
 			return
 		} catch (cause) {
 			if (!active) return
-			error = message(cause, "Could not save the password. Try again.")
+			error = errorMessage(cause, "Could not save the password. Try again.")
 			replayValidationNudge(form)
 		} finally {
 			request = null
@@ -205,17 +205,12 @@
 
 		<div class="password-validation">
 			{#if validation === "valid"}
-				<span role="status"
-					><CheckCircleIcon
-						class="password-valid"
-						size={16}
-						aria-hidden="true" />Password is correct</span>
+				<span class="password-valid" role="status"
+					><CheckCircleIcon size={16} aria-hidden="true" />Password is correct</span>
 			{:else if validation === "invalid"}
-				<span role="status"
-					><WarningCircleIcon
-						class="password-invalid"
-						size={16}
-						aria-hidden="true" />Password is incorrect</span>
+				<span class="password-invalid" role="status"
+					><WarningCircleIcon size={16} aria-hidden="true" />Password is
+					incorrect</span>
 			{:else}
 				<button
 					class="visibility-control"
@@ -291,11 +286,11 @@
 		margin-top: 0;
 	}
 
-	.password-validation :global(.password-valid) {
+	.password-validation > .password-valid {
 		color: var(--color-success);
 	}
 
-	.password-validation :global(.password-invalid) {
+	.password-validation > .password-invalid {
 		color: var(--color-warning);
 	}
 </style>

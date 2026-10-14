@@ -2,7 +2,7 @@
 	import FloppyDiskIcon from "phosphor-svelte/lib/FloppyDiskIcon"
 	import KeyIcon from "phosphor-svelte/lib/KeyIcon"
 	import PencilSimpleIcon from "phosphor-svelte/lib/PencilSimpleIcon"
-	import { menuIn, menuOut } from "../shared/presence"
+	import { menuIn, menuOut, placeMenuAtAnchor } from "../shared/presence"
 
 	let {
 		hasSavedPassword,
@@ -19,23 +19,8 @@
 	const menuId = $props.id()
 
 	function placeMenu(node: HTMLElement): void {
-		const bounds = trigger?.getBoundingClientRect()
-		if (!bounds) return
-		const opensUp = bounds.bottom + 4 + node.offsetHeight > window.innerHeight - 8,
-			x = Math.max(
-				8,
-				Math.min(
-					bounds.right - node.offsetWidth,
-					window.innerWidth - node.offsetWidth - 8,
-				),
-			),
-			y = Math.max(
-				42,
-				opensUp ? bounds.top - node.offsetHeight - 4 : bounds.bottom + 4,
-			)
-		node.style.left = `${x}px`
-		node.style.top = `${y}px`
-		node.style.setProperty("--menu-origin", `${opensUp ? "bottom" : "top"} right`)
+		if (!trigger) return
+		placeMenuAtAnchor(node, trigger)
 		node.querySelector<HTMLButtonElement>("button")?.focus({ preventScroll: true })
 	}
 

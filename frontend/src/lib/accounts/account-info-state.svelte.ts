@@ -1,6 +1,7 @@
 import { accountBackend } from "../backend/bridge"
 import type { AccountInfoSnapshot } from "../backend/bridge"
 import type { AccountStore } from "./account-store.svelte"
+import { errorMessage } from "../shared/errors"
 
 export class AccountInfoState {
 	snapshot = $state<AccountInfoSnapshot | null>(null)
@@ -35,10 +36,10 @@ export class AccountInfoState {
 			this.snapshot = snapshot
 		} catch (error) {
 			if (!this.#current()) return
-			this.error =
-				error instanceof Error && error.message.trim()
-					? error.message
-					: "Could not load account info. Refresh to retry."
+			this.error = errorMessage(
+				error,
+				"Could not load account info. Refresh to retry.",
+			)
 		} finally {
 			this.#request = null
 			if (this.#current()) this.loading = false

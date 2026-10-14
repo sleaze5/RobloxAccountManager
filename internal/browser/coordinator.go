@@ -18,6 +18,11 @@ import (
 	"github.com/sleaze5/RobloxAccountManager/internal/roblox"
 )
 
+var (
+	errLaunchesBlocked        = errors.New("browser launches are unavailable while the browser is stopping")
+	errBrowserVersionMismatch = errors.New("browser product version does not match the runtime manifest")
+)
+
 type Mode string
 
 const (
@@ -144,11 +149,15 @@ type Coordinator struct {
 	cleanup *cleanupQueue
 
 	mu              sync.Mutex
+	lifecycleMu     sync.Mutex
 	savedStartMu    sync.Mutex
+	starts          sync.WaitGroup
+	pendingStarts   int
 	revision        uint64
 	sessions        map[string]*session
 	candidates      map[string]*candidate
 	launchesBlocked bool
+	stopped         bool
 	validationCount int
 	root            context.Context
 	cancel          context.CancelFunc
@@ -183,7 +192,7 @@ func (coordinator *Coordinator) Snapshot() Snapshot {
 func (coordinator *Coordinator) Effects() ShutdownEffects {
 	coordinator.mu.Lock()
 	defer coordinator.mu.Unlock()
-	effects := ShutdownEffects{AccountCandidates: len(coordinator.candidates), AccountChecks: coordinator.validationCount > 0}
+	effects := ShutdownEffects{BrowserSessions: coordinator.pendingStarts, AccountCandidates: len(coordinator.candidates), AccountChecks: coordinator.validationCount > 0}
 	for _, current := range coordinator.sessions {
 		if current.state.Lifecycle != LifecycleClosed && current.state.Lifecycle != LifecycleFailed {
 			effects.BrowserSessions++
@@ -220,10 +229,31 @@ func (coordinator *Coordinator) OpenAccount(ctx context.Context, accountID int64
 
 func (coordinator *Coordinator) start(ctx context.Context, mode Mode, accountID int64) (SessionState, error) {
 	coordinator.mu.Lock()
-	blocked := coordinator.launchesBlocked
+	if coordinator.launchesBlocked || coordinator.stopped {
+		coordinator.mu.Unlock()
+		return SessionState{}, errLaunchesBlocked
+	}
+	lifetime := coordinator.root
+	coordinator.starts.Add(1)
+	coordinator.pendingStarts++
+	coordinator.bumpLocked()
 	coordinator.mu.Unlock()
-	if blocked {
-		return SessionState{}, errors.New("browser launches are unavailable while the vault is locking")
+	registered := false
+	defer func() {
+		coordinator.mu.Lock()
+		if !registered {
+			coordinator.pendingStarts--
+			coordinator.bumpLocked()
+		}
+		coordinator.mu.Unlock()
+		coordinator.starts.Done()
+	}()
+	ctx, cancelStart := context.WithCancel(ctx)
+	stop := context.AfterFunc(lifetime, cancelStart)
+	defer stop()
+	defer cancelStart()
+	if lifetime.Err() != nil {
+		return SessionState{}, errLaunchesBlocked
 	}
 	executable, err := coordinator.runtime.Executable()
 	if err != nil {
@@ -249,19 +279,30 @@ func (coordinator *Coordinator) start(ctx context.Context, mode Mode, accountID 
 		}
 		state.Title = "Roblox - @" + account.Username
 	}
+	if err := ctx.Err(); err != nil {
+		coordinator.cleanup.enqueue(id)
+		return SessionState{}, err
+	}
 	process, err := startBrowserProcess(ProcessOptions{Executable: executable, UserDataPath: directory})
 	if err != nil {
 		coordinator.cleanup.enqueue(id)
 		return SessionState{}, err
 	}
-	currentCtx, cancel := context.WithCancel(coordinator.root)
+	currentCtx, cancel := context.WithCancel(lifetime)
 	checkpointGate := make(chan struct{}, 1)
 	checkpointGate <- struct{}{}
 	current := &session{state: state, process: process, directory: directory, secretVersion: record.SecretVersion, robloxUserID: account.RobloxUserID, browserID: record.BrowserID, trigger: make(chan struct{}, 1), checkpointGate: checkpointGate, ctx: currentCtx, cancel: cancel, downloads: make(map[string]struct{}), targetSessions: make(map[string]string), pages: make(map[string]struct{})}
 	input, output := process.CDPPipes()
 	current.cdp = NewCDPClient(input, output, func(failure error) { coordinator.failSession(id, failure) })
 	coordinator.mu.Lock()
+	if coordinator.launchesBlocked || currentCtx.Err() != nil || ctx.Err() != nil {
+		coordinator.mu.Unlock()
+		coordinator.finishSession(current, false, "")
+		return SessionState{}, errLaunchesBlocked
+	}
 	coordinator.sessions[id] = current
+	registered = true
+	coordinator.pendingStarts--
 	coordinator.bumpLocked()
 	coordinator.mu.Unlock()
 	coordinator.logger.Info("managed browser session starting", "session_id", id, "session_mode", mode, "account_id", accountID)
@@ -294,6 +335,9 @@ func (coordinator *Coordinator) start(ctx context.Context, mode Mode, accountID 
 		return SessionState{}, err
 	}
 	state = coordinator.activateSession(current)
+	if state.Lifecycle != LifecycleActive {
+		return SessionState{}, errLaunchesBlocked
+	}
 	go coordinator.observe(currentCtx, current)
 	go coordinator.watchProcess(current)
 	_ = coordinator.Focus(id)
@@ -337,7 +381,7 @@ func (coordinator *Coordinator) initializeLogin(ctx context.Context, current *se
 
 func (coordinator *Coordinator) initializeCDP(ctx context.Context, current *session) error {
 	if err := current.cdp.VerifyVersion(ctx, coordinator.runtime.Manifest().Version); err != nil {
-		if strings.Contains(err.Error(), "does not match") {
+		if errors.Is(err, errBrowserVersionMismatch) {
 			coordinator.runtime.MarkDamaged()
 		}
 		return fmt.Errorf("verify managed browser: %w", err)
@@ -1098,8 +1142,17 @@ func (coordinator *Coordinator) DiscardCandidates() {
 }
 
 func (coordinator *Coordinator) ForceShutdown() {
+	coordinator.lifecycleMu.Lock()
+	defer coordinator.lifecycleMu.Unlock()
+	if err := coordinator.forceShutdown(); err != nil {
+		coordinator.logger.Warn("browser runtime did not stop", "operation", "browser-shutdown", "error", err)
+	}
+}
+
+func (coordinator *Coordinator) forceShutdown() error {
 	coordinator.mu.Lock()
 	coordinator.launchesBlocked = true
+	coordinator.cancel()
 	sessions := make([]*session, 0, len(coordinator.sessions))
 	for _, current := range coordinator.sessions {
 		if current.state.Lifecycle != LifecycleClosed && current.state.Lifecycle != LifecycleFailed {
@@ -1117,24 +1170,92 @@ func (coordinator *Coordinator) ForceShutdown() {
 		current.cancel()
 		coordinator.finishSession(current, false, "")
 	}
-	_ = coordinator.runtime.StopDownload(30 * time.Second)
+	coordinator.starts.Wait()
+	err := coordinator.runtime.StopDownload(30 * time.Second)
 	coordinator.mu.Lock()
 	for id := range coordinator.sessions {
 		delete(coordinator.sessions, id)
 	}
 	coordinator.bumpLocked()
 	coordinator.mu.Unlock()
+	return err
 }
 
 func (coordinator *Coordinator) AllowLaunches() {
+	coordinator.lifecycleMu.Lock()
+	defer coordinator.lifecycleMu.Unlock()
+	coordinator.allowLaunches()
+}
+
+func (coordinator *Coordinator) allowLaunches() {
 	coordinator.mu.Lock()
+	defer coordinator.mu.Unlock()
+	if coordinator.stopped || !coordinator.launchesBlocked {
+		return
+	}
+	coordinator.root, coordinator.cancel = context.WithCancel(context.Background())
 	coordinator.launchesBlocked = false
 	coordinator.bumpLocked()
-	coordinator.mu.Unlock()
 }
+
+func (coordinator *Coordinator) DownloadRuntime(ctx context.Context, replace bool) error {
+	coordinator.lifecycleMu.Lock()
+	defer coordinator.lifecycleMu.Unlock()
+	coordinator.mu.Lock()
+	blocked, stopped := coordinator.launchesBlocked, coordinator.stopped
+	coordinator.mu.Unlock()
+	if stopped {
+		return errLaunchesBlocked
+	}
+	if !replace {
+		state := coordinator.runtime.State()
+		if state.Status == RuntimeDownloading || state.Status == RuntimeInstalling {
+			return errors.New("a browser runtime download is already active")
+		}
+		if _, err := coordinator.runtime.Executable(); err == nil {
+			return nil
+		}
+	}
+	if !blocked {
+		defer coordinator.allowLaunches()
+	}
+	if err := coordinator.forceShutdown(); err != nil {
+		return fmt.Errorf("stop browser before runtime installation: %w", err)
+	}
+	return coordinator.runtime.Download(ctx, replace)
+}
+
+func (coordinator *Coordinator) RemoveRuntime() error {
+	coordinator.lifecycleMu.Lock()
+	defer coordinator.lifecycleMu.Unlock()
+	coordinator.mu.Lock()
+	blocked, stopped := coordinator.launchesBlocked, coordinator.stopped
+	coordinator.mu.Unlock()
+	if stopped {
+		return errLaunchesBlocked
+	}
+	if !blocked {
+		defer coordinator.allowLaunches()
+	}
+	if err := coordinator.forceShutdown(); err != nil {
+		return fmt.Errorf("stop browser before runtime removal: %w", err)
+	}
+	return coordinator.runtime.Remove()
+}
+
 func (coordinator *Coordinator) Shutdown() {
-	coordinator.ForceShutdown()
-	coordinator.cancel()
+	coordinator.lifecycleMu.Lock()
+	defer coordinator.lifecycleMu.Unlock()
+	coordinator.mu.Lock()
+	if coordinator.stopped {
+		coordinator.mu.Unlock()
+		return
+	}
+	coordinator.stopped = true
+	coordinator.mu.Unlock()
+	if err := coordinator.forceShutdown(); err != nil {
+		coordinator.logger.Warn("browser runtime did not stop", "operation", "browser-shutdown", "error", err)
+	}
 	coordinator.cleanup.close()
 }
 func (coordinator *Coordinator) RetryCleanup() { coordinator.cleanup.retry() }

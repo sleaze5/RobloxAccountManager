@@ -1,4 +1,5 @@
 <script lang="ts">
+	import CircleNotchIcon from "phosphor-svelte/lib/CircleNotchIcon"
 	import { RuntimeStatus } from "../backend/bridge"
 	import type { RuntimeState } from "../backend/bridge"
 	import { formatCompactBytes } from "../shared/bytes"
@@ -25,7 +26,18 @@
 </script>
 
 <div class="runtime-activity">
-	<strong>{installing ? "Installing browser" : "Downloading browser"}</strong>
+	<strong>
+		{#if installing || !determinate}
+			<CircleNotchIcon
+				class="spinner"
+				size={14}
+				role="progressbar"
+				aria-label={installing
+					? "Browser installation progress"
+					: "Browser download progress"} />
+		{/if}
+		{installing ? "Installing browser" : "Downloading browser"}
+	</strong>
 	{#if installing}
 		<span>Preparing Chrome for Testing for use.</span>
 	{:else}
@@ -47,15 +59,6 @@
 			aria-valuemax={100}
 			aria-valuenow={Math.round(progress)}>
 			<div style:transform="scaleX({progress / 100})"></div>
-		</div>
-	{:else}
-		<div
-			class="runtime-progress indeterminate"
-			role="progressbar"
-			aria-label={installing
-				? "Browser installation progress"
-				: "Browser download progress"}>
-			<div></div>
 		</div>
 	{/if}
 </div>

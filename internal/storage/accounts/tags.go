@@ -210,7 +210,9 @@ ORDER BY account_tags.account_id, CASE tags.kind WHEN 'favorite' THEN 0 ELSE 1 E
 	return rows.Err()
 }
 
-func listAccountTags(ctx context.Context, db *sql.DB, accountID int64) ([]TagView, error) {
+func listAccountTags(ctx context.Context, db interface {
+	QueryContext(context.Context, string, ...any) (*sql.Rows, error)
+}, accountID int64) ([]TagView, error) {
 	rows, err := db.QueryContext(ctx, `SELECT tags.id, tags.name, tags.kind FROM account_tags JOIN tags ON tags.id = account_tags.tag_id WHERE account_tags.account_id = ? ORDER BY CASE tags.kind WHEN 'favorite' THEN 0 ELSE 1 END, tags.name COLLATE NOCASE, tags.id`, accountID)
 	if err != nil {
 		return nil, err

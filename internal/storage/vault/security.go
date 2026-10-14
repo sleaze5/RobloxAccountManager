@@ -25,7 +25,7 @@ func (manager *Manager) ChangePassword(ctx context.Context, currentPassword, new
 			return err
 		}
 	} else if !manager.ValidAutomaticUnlock() {
-		return fmt.Errorf("the current password or Windows automatic unlock is required")
+		return fmt.Errorf("the current password or automatic unlock is required")
 	}
 	return manager.rotateDatabaseKey(ctx, newPassword, hint, automaticUnlock)
 }
@@ -135,7 +135,7 @@ func (manager *Manager) rotateDatabaseKey(ctx context.Context, password, hint st
 		return err
 	}
 	manager.mu.Lock()
-	manager.unlockedWithDPAPI = automaticUnlock
+	manager.unlockedAutomatically = automaticUnlock
 	manager.mu.Unlock()
 	finish()
 	finished = true

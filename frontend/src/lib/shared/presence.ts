@@ -150,6 +150,65 @@ export function replayValidationNudge(element: HTMLElement | undefined): void {
 	)
 }
 
+const menuEdge = 8,
+	menuGap = 4
+
+export function placeMenuAtPoint(
+	node: HTMLElement,
+	point: { x: number; y: number },
+): { x: number; y: number } {
+	const x = Math.max(
+			menuEdge,
+			Math.min(point.x, window.innerWidth - node.offsetWidth - menuEdge),
+		),
+		y = Math.max(
+			menuTop(node),
+			Math.min(point.y, window.innerHeight - node.offsetHeight - menuEdge),
+		)
+	setMenuPosition(
+		node,
+		x,
+		y,
+		`${y < point.y ? "bottom" : "top"} ${x < point.x ? "right" : "left"}`,
+	)
+	return { x, y }
+}
+
+export function placeMenuAtAnchor(node: HTMLElement, anchor: Element): void {
+	const bounds = anchor.getBoundingClientRect(),
+		opensUp =
+			bounds.bottom + menuGap + node.offsetHeight > window.innerHeight - menuEdge,
+		x = Math.max(
+			menuEdge,
+			Math.min(
+				bounds.right - node.offsetWidth,
+				window.innerWidth - node.offsetWidth - menuEdge,
+			),
+		),
+		y = Math.max(
+			menuTop(node),
+			opensUp
+				? bounds.top - node.offsetHeight - menuGap
+				: bounds.bottom + menuGap,
+		)
+	setMenuPosition(node, x, y, `${opensUp ? "bottom" : "top"} right`)
+}
+
+function menuTop(node: Element): number {
+	return tokenNumber(node, "--titlebar-height", 38) + menuGap
+}
+
+function setMenuPosition(
+	node: HTMLElement,
+	x: number,
+	y: number,
+	origin: string,
+): void {
+	node.style.left = `${x}px`
+	node.style.top = `${y}px`
+	node.style.setProperty("--menu-origin", origin)
+}
+
 function tokenDuration(node: Element, token: string, fallback: number): number {
 	return tokenNumber(node, token, fallback)
 }
