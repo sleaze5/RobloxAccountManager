@@ -8,6 +8,7 @@ export type {
 	AccountSettingsSnapshot,
 	AccountSettingUpdateResult,
 	AccountSettingView,
+	BlockedUser,
 	ChatConversationView,
 	ChatMessageView,
 	ChatParticipant,
@@ -40,6 +41,7 @@ export {
 	AccountSettingKey,
 	AgeVerification,
 	ImportStatus,
+	PinState,
 } from "../../../bindings/github.com/sleaze5/RobloxAccountManager/internal/appservice/models.js"
 export {
 	SessionState,

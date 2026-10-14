@@ -8,6 +8,7 @@
 	import ChatCircleIcon from "phosphor-svelte/lib/ChatCircleIcon"
 	import ArrowsClockwiseIcon from "phosphor-svelte/lib/ArrowsClockwiseIcon"
 	import MagnifyingGlassIcon from "phosphor-svelte/lib/MagnifyingGlassIcon"
+	import ProhibitIcon from "phosphor-svelte/lib/ProhibitIcon"
 	import ShieldCheckIcon from "phosphor-svelte/lib/ShieldCheckIcon"
 	import SlidersHorizontalIcon from "phosphor-svelte/lib/SlidersHorizontalIcon"
 	import UserCircleIcon from "phosphor-svelte/lib/UserCircleIcon"
@@ -16,6 +17,9 @@
 	import type { WorkspaceState } from "../layout/workspace-state.svelte"
 	import { AccountSettingKey as Key } from "../backend/bridge"
 	import type { AccountSettingOption, AccountSettingView } from "../backend/bridge"
+	import AccountEditDialog from "../dialogs/AccountEditDialog.svelte"
+	import SavedPasswordDialog from "../dialogs/SavedPasswordDialog.svelte"
+	import type { AccountEditKind } from "../dialogs/AccountEditDialog.svelte"
 	import type { NotificationCenter } from "../notifications/notification-center.svelte"
 	import type { AccountStore } from "./account-store.svelte"
 	import AccountInfoPanel, { accountInfoFields } from "./AccountInfoPanel.svelte"
@@ -24,6 +28,8 @@
 	import AccountSettingRow from "./AccountSettingRow.svelte"
 	import type { SettingRadioOption } from "./AccountSettingRow.svelte"
 	import { AccountSettingsState } from "./account-settings-state.svelte"
+	import BlockedUsersList from "./BlockedUsersList.svelte"
+	import { BlockedUsersState } from "./blocked-users-state.svelte"
 
 	interface FieldDef {
 		key: Key
@@ -399,7 +405,12 @@
 		},
 	]
 
-	const privacyLabel = "Privacy & content restrictions",
+	const blockedUsersPage = {
+			id: "blocked-users",
+			label: "Blocked users",
+			search: "blocked users block unblock",
+		},
+		privacyLabel = "Privacy & content restrictions",
 		pages = [
 			{
 				id: "info",
@@ -433,6 +444,9 @@
 		contentElement = $state<HTMLElement | undefined>(undefined),
 		settingsState = $state<AccountSettingsState | null>(null),
 		infoState = $state<AccountInfoState | null>(null),
+		blockedState = $state<BlockedUsersState | null>(null),
+		editing = $state<AccountEditKind | null>(null),
+		savedPasswordOpen = $state(false),
 		normalizedQuery = $derived(workspace.accountSettingsQuery.trim().toLowerCase()),
 		searchTerms = $derived(normalizedQuery.split(/\s+/).filter(Boolean)),
 		visibleCategories = $derived(
@@ -455,11 +469,17 @@
 					.map((field) => field.id),
 			),
 		),
+		showBlockedUsers = $derived(
+			searchTerms.length === 0 ||
+				matches(
+					`${privacyLabel} ${blockedUsersPage.label} ${blockedUsersPage.search}`,
+				),
+		),
 		visiblePages = $derived(
 			pages.filter((page) =>
 				page.id === "info"
 					? visibleInfoFields.size > 0
-					: visibleCategories.length > 0,
+					: visibleCategories.length > 0 || showBlockedUsers,
 			),
 		),
 		activePage = $derived(
@@ -471,19 +491,30 @@
 				(category) => category.id === workspace.accountSettingsCategory,
 			) ?? null,
 		),
+		blockedUsersOpen = $derived(
+			showBlockedUsers &&
+				workspace.accountSettingsCategory === blockedUsersPage.id,
+		),
+		openSubpage = $derived(
+			activeCategory?.id ?? (blockedUsersOpen ? blockedUsersPage.id : null),
+		),
 		sectionErrors = $derived(settingsState?.snapshot?.sectionErrors ?? []),
 		busy = $derived(
 			!settingsState || settingsState.loading || settingsState.saving !== null,
 		),
 		refreshing = $derived(
-			activePage?.id === "info" ? (infoState?.loading ?? false) : busy,
+			activePage?.id === "info"
+				? (infoState?.loading ?? false)
+				: blockedUsersOpen
+					? (blockedState?.loading ?? false)
+					: busy,
 		)
 
 	$effect(() => {
 		if (activePage && activePage.id !== workspace.accountSettingsPage) {
 			workspace.accountSettingsPage = activePage.id
 		}
-		if (workspace.accountSettingsCategory && !activeCategory) {
+		if (workspace.accountSettingsCategory && !openSubpage) {
 			workspace.accountSettingsCategory = null
 		}
 	})
@@ -491,24 +522,28 @@
 	$effect(() => {
 		const page = activePage?.id,
 			info = infoState,
-			settings = settingsState
+			settings = settingsState,
+			blocked = blockedUsersOpen ? blockedState : null
 		untrack(() => {
 			if (page === "info" && info && !info.snapshot) void info.refresh()
 			if (page === "privacy" && settings && !settings.snapshot) {
 				void settings.refresh()
 			}
+			if (blocked && !blocked.users) void blocked.refresh()
 		})
 	})
 
 	$effect(() => {
 		void activePage?.id
-		void activeCategory?.id
+		void openSubpage
 		void normalizedQuery
 		const element = contentElement,
 			ready =
 				activePage?.id === "info"
 					? !!infoState?.snapshot
-					: !!settingsState?.snapshot,
+					: blockedUsersOpen
+						? !!blockedState?.users
+						: !!settingsState?.snapshot,
 			scrollTop = untrack(() => workspace.accountSettingsScrollTop),
 			anchor = untrack(() => workspace.accountSettingsScrollAnchor)
 		let cancelled = false
@@ -552,9 +587,9 @@
 		workspace.accountSettingsCategory = null
 	}
 
-	async function openCategory(category: CategoryDef): Promise<void> {
+	async function openCategory(id: string): Promise<void> {
 		resetScroll()
-		workspace.accountSettingsCategory = category.id
+		workspace.accountSettingsCategory = id
 		await tick()
 		contentElement?.querySelector<HTMLElement>(".settings-subpage-back")?.focus()
 	}
@@ -571,6 +606,7 @@
 
 	function refresh(): void {
 		if (activePage?.id === "info") void infoState?.refresh()
+		else if (blockedUsersOpen) void blockedState?.refresh()
 		else void settingsState?.refresh()
 	}
 
@@ -712,14 +748,17 @@
 			store,
 			notifications,
 		)
-		const info = new AccountInfoState(store.selectedAccount.id, store)
+		const info = new AccountInfoState(store.selectedAccount.id, store),
+			blocked = new BlockedUsersState(store.selectedAccount.id, store)
 		settingsState = settings
 		infoState = info
+		blockedState = blocked
 		heading?.closest(".workspace-scroll")?.scrollTo({ top: 0 })
 		heading?.focus({ preventScroll: true })
 		return () => {
 			settings.dispose()
 			info.dispose()
+			blocked.dispose()
 		}
 	})
 </script>
@@ -797,7 +836,7 @@
 			onscroll={rememberScroll}
 			class="settings-content"
 			aria-label="Account settings content">
-			{#key `${activePage?.id}:${activeCategory?.id}:${normalizedQuery}`}
+			{#key `${activePage?.id}:${openSubpage}:${normalizedQuery}`}
 				{#if !activePage}
 					<p class="settings-content-empty">
 						No settings match “{workspace.accountSettingsQuery}”.
@@ -807,34 +846,49 @@
 					{#if infoState}
 						<AccountInfoPanel
 							info={infoState}
-							username={store.selectedAccount.username}
-							visible={visibleInfoFields} />
+							account={store.selectedAccount}
+							visible={visibleInfoFields}
+							onSavedPassword={() => (savedPasswordOpen = true)}
+							onEdit={(kind) => (editing = kind)} />
 					{/if}
 				{:else}
 					<h2>{privacyLabel}</h2>
-					{#if settingsState?.error}
-						<div class="settings-inline-error" role="alert">
-							{settingsState.error}
-						</div>
+					{#if !blockedUsersOpen}
+						{#if settingsState?.error}
+							<div class="settings-inline-error" role="alert">
+								{settingsState.error}
+							</div>
+						{/if}
+						{#each sectionErrors as error}
+							<div class="settings-inline-error" role="alert">
+								{error.message}
+							</div>
+						{/each}
 					{/if}
-					{#each sectionErrors as error}
-						<div class="settings-inline-error" role="alert">
-							{error.message}
-						</div>
-					{/each}
 
-					{#if !activeCategory}
+					{#if !openSubpage}
 						<nav class="settings-subpages" aria-label={privacyLabel}>
 							{#each visibleCategories as cat (cat.id)}
 								<button
 									type="button"
 									data-settings-subpage={cat.id}
-									onclick={() => void openCategory(cat)}>
+									onclick={() => void openCategory(cat.id)}>
 									<cat.icon size={17} aria-hidden="true" />
 									<span>{cat.label}</span>
 									<CaretRightIcon size={17} aria-hidden="true" />
 								</button>
 							{/each}
+							{#if showBlockedUsers}
+								<button
+									type="button"
+									data-settings-subpage={blockedUsersPage.id}
+									onclick={() =>
+										void openCategory(blockedUsersPage.id)}>
+									<ProhibitIcon size={17} aria-hidden="true" />
+									<span>{blockedUsersPage.label}</span>
+									<CaretRightIcon size={17} aria-hidden="true" />
+								</button>
+							{/if}
 						</nav>
 					{:else}
 						<div class="settings-subpage-heading">
@@ -846,9 +900,13 @@
 								onclick={() => void closeCategory()}>
 								<CaretLeftIcon size={18} aria-hidden="true" />
 							</button>
-							<h3>{activeCategory.label}</h3>
+							<h3>{activeCategory?.label ?? blockedUsersPage.label}</h3>
 						</div>
-						{#if !settingsState || (settingsState.loading && !settingsState.snapshot)}
+						{#if !activeCategory}
+							{#if blockedState}
+								<BlockedUsersList blocked={blockedState} />
+							{/if}
+						{:else if !settingsState || (settingsState.loading && !settingsState.snapshot)}
 							<div class="account-settings-loading" role="status">
 								<CircleNotchIcon
 									class="spinner"
@@ -923,3 +981,21 @@
 		</main>
 	</div>
 </section>
+
+{#if editing}
+	<AccountEditDialog
+		account={store.selectedAccount}
+		kind={editing}
+		{notifications}
+		onSaved={() => void infoState?.refresh()}
+		onClose={() => (editing = null)} />
+{/if}
+
+{#if savedPasswordOpen && store.vault.unlocked}
+	{#key store.selectedAccount.id}
+		<SavedPasswordDialog
+			account={store.selectedAccount}
+			{notifications}
+			onClose={() => (savedPasswordOpen = false)} />
+	{/key}
+{/if}

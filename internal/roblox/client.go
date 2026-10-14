@@ -328,7 +328,7 @@ func (client *Client) Do(ctx context.Context, request Request) (*Response, error
 				kind = KindCSRFRejected
 				message = "Roblox rejected the CSRF token."
 			}
-			return nil, &Error{Kind: kind, Endpoint: request.Endpoint, Status: response.Status, Message: message}
+			return nil, &Error{Kind: kind, Endpoint: request.Endpoint, Status: response.Status, RobloxCode: responseError(request, response).RobloxCode, Message: message}
 		}
 
 		if response.Status == http.StatusTooManyRequests {
@@ -649,7 +649,7 @@ func readLimited(reader io.Reader, limit int64) ([]byte, error) {
 	return data, nil
 }
 
-func responseError(request Request, response *Response) error {
+func responseError(request Request, response *Response) *Error {
 	kind := KindProtocol
 	message := "Roblox returned an unexpected response."
 	if response.Status >= 500 {

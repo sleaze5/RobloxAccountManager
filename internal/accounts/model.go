@@ -62,6 +62,7 @@ type AccountView struct {
 	RobloxUserID      int64        `json:"robloxUserId"`
 	Username          string       `json:"username"`
 	DisplayName       string       `json:"displayName"`
+	HasSavedPassword  bool         `json:"hasSavedPassword"`
 	Tags              []TagView    `json:"tags"`
 	State             SessionState `json:"state"`
 	StateReason       string       `json:"stateReason,omitempty"`

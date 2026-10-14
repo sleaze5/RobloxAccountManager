@@ -505,14 +505,14 @@ const viewQuery = `
 SELECT a.id, a.roblox_user_id, a.username, a.display_name,
        s.state, s.state_reason, s.secret_version, s.cookie_expires_at_ms,
 	   a.created_at_ms, s.imported_at_ms, s.rotated_at_ms, s.last_validated_at_ms,
-	   s.updated_at_ms
+	   s.updated_at_ms, s.password <> ''
 FROM accounts a JOIN account_sessions s ON s.account_id = a.id`
 
 const pageViewQuery = `
 SELECT a.id, a.roblox_user_id, a.username, a.display_name,
        s.state, s.state_reason, s.secret_version, s.cookie_expires_at_ms,
 	   a.created_at_ms, s.imported_at_ms, s.rotated_at_ms, s.last_validated_at_ms,
-	   s.updated_at_ms, a.display_order
+	   s.updated_at_ms, s.password <> '', a.display_order
 FROM accounts a JOIN account_sessions s ON s.account_id = a.id`
 
 const sessionQuery = `
@@ -526,7 +526,7 @@ type scanner interface{ Scan(...any) error }
 func scanView(row scanner) (AccountView, error) {
 	var view AccountView
 	var expires, rotated, validated sql.NullInt64
-	err := row.Scan(&view.ID, &view.RobloxUserID, &view.Username, &view.DisplayName, &view.State, &view.StateReason, &view.SecretVersion, &expires, &view.CreatedAtMS, &view.ImportedAtMS, &rotated, &validated, &view.UpdatedAtMS)
+	err := row.Scan(&view.ID, &view.RobloxUserID, &view.Username, &view.DisplayName, &view.State, &view.StateReason, &view.SecretVersion, &expires, &view.CreatedAtMS, &view.ImportedAtMS, &rotated, &validated, &view.UpdatedAtMS, &view.HasSavedPassword)
 	if errors.Is(err, sql.ErrNoRows) {
 		return AccountView{}, ErrNotFound
 	}
@@ -544,7 +544,7 @@ func scanPageView(row scanner) (AccountView, int64, error) {
 	var view AccountView
 	var order int64
 	var expires, rotated, validated sql.NullInt64
-	err := row.Scan(&view.ID, &view.RobloxUserID, &view.Username, &view.DisplayName, &view.State, &view.StateReason, &view.SecretVersion, &expires, &view.CreatedAtMS, &view.ImportedAtMS, &rotated, &validated, &view.UpdatedAtMS, &order)
+	err := row.Scan(&view.ID, &view.RobloxUserID, &view.Username, &view.DisplayName, &view.State, &view.StateReason, &view.SecretVersion, &expires, &view.CreatedAtMS, &view.ImportedAtMS, &rotated, &validated, &view.UpdatedAtMS, &view.HasSavedPassword, &order)
 	if err != nil {
 		return AccountView{}, 0, fmt.Errorf("scan account page: %w", err)
 	}

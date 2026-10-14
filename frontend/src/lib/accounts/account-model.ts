@@ -10,6 +10,7 @@ export interface Account {
 	id: number
 	username: string
 	displayName: string
+	hasSavedPassword: boolean
 	avatarUrl: string
 	presence: UserPresence
 	userId: string
@@ -37,6 +38,7 @@ export const emptyAccount: Account = {
 	createdAtMs: 0,
 	displayName: "No account selected",
 	favorite: false,
+	hasSavedPassword: false,
 	id: 0,
 	importedAtMs: 0,
 	lastValidatedAtMs: null,
@@ -64,6 +66,7 @@ export function accountFromView(
 		createdAtMs: record.createdAtMs,
 		displayName,
 		favorite: tags.some((tag) => tag.kind === TagKind.TagKindFavorite),
+		hasSavedPassword: record.hasSavedPassword,
 		id: record.id,
 		importedAtMs: record.importedAtMs,
 		lastValidatedAtMs: record.lastValidatedAtMs ?? null,

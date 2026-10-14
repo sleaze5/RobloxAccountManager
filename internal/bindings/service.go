@@ -147,6 +147,72 @@ func (service *Service) UpdateAccountSetting(ctx context.Context, accountID int6
 	return service.core.UpdateAccountSetting(ctx, accountID, change)
 }
 
+func (service *Service) ChangeDisplayName(ctx context.Context, accountID int64, displayName string) error {
+	if err := positiveID(accountID, "display-name-update"); err != nil {
+		return err
+	}
+	return service.core.ChangeDisplayName(ctx, accountID, displayName)
+}
+
+func (service *Service) ChangeAccountEmail(ctx context.Context, accountID int64, password, email string) error {
+	if err := positiveID(accountID, "email-update"); err != nil {
+		return err
+	}
+	return service.core.ChangeAccountEmail(ctx, accountID, password, email)
+}
+
+func (service *Service) ChangeAccountPassword(ctx context.Context, accountID int64, currentPassword, newPassword string) error {
+	if err := positiveID(accountID, "password-change"); err != nil {
+		return err
+	}
+	return service.core.ChangeAccountPassword(ctx, accountID, currentPassword, newPassword)
+}
+
+func (service *Service) SaveAccountPassword(ctx context.Context, accountID int64, password string) error {
+	if err := positiveID(accountID, "password-save"); err != nil {
+		return err
+	}
+	return service.core.SaveAccountPassword(ctx, accountID, password)
+}
+
+func (service *Service) GetAccountPassword(ctx context.Context, accountID int64) (string, error) {
+	if err := positiveID(accountID, "password-read"); err != nil {
+		return "", err
+	}
+	return service.core.GetAccountPassword(ctx, accountID)
+}
+
+func (service *Service) ValidateAccountPassword(ctx context.Context, accountID int64, password string) (bool, error) {
+	if err := positiveID(accountID, "password-validate"); err != nil {
+		return false, err
+	}
+	return service.core.ValidateAccountPassword(ctx, accountID, password)
+}
+
+func (service *Service) UnlockAccountPin(ctx context.Context, accountID int64, pin string) error {
+	if err := positiveID(accountID, "account-pin-unlock"); err != nil {
+		return err
+	}
+	return service.core.UnlockAccountPin(ctx, accountID, pin)
+}
+
+func (service *Service) GetBlockedUsers(ctx context.Context, accountID int64) ([]appservice.BlockedUser, error) {
+	if err := positiveID(accountID, "blocked-users"); err != nil {
+		return nil, err
+	}
+	return service.core.GetBlockedUsers(ctx, accountID)
+}
+
+func (service *Service) UnblockUser(ctx context.Context, accountID, userID int64) error {
+	if err := positiveID(accountID, "user-unblock"); err != nil {
+		return err
+	}
+	if err := positiveID(userID, "user-unblock"); err != nil {
+		return err
+	}
+	return service.core.UnblockUser(ctx, accountID, userID)
+}
+
 func (service *Service) GetChatConversations(ctx context.Context, accountID int64, cursor string) (appservice.ChatConversationPage, error) {
 	if err := positiveID(accountID, "chat"); err != nil {
 		return appservice.ChatConversationPage{}, err

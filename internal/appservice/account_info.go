@@ -25,6 +25,7 @@ type AccountInfoSnapshot struct {
 	Language         string          `json:"language"`
 	AutoTranslations *bool           `json:"autoTranslations"`
 	Location         string          `json:"location"`
+	Pin              PinState        `json:"pin"`
 	Unavailable      []string        `json:"unavailable"`
 }
 
@@ -101,6 +102,13 @@ func (service *Service) accountInfoReads(ctx context.Context, accountID, version
 			location, err := service.users.AccountLocation(ctx, accountID, version)
 			if err == nil {
 				info.Location = location
+			}
+			return err
+		}},
+		{"pin", func() error {
+			pin, err := service.users.Pin(ctx, accountID, version)
+			if err == nil {
+				info.Pin = pinState(pin)
 			}
 			return err
 		}},

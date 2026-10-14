@@ -46,6 +46,8 @@ type AccountRepository interface {
 	SetAccountsTag(context.Context, []int64, int64, bool) ([]accounts.AccountView, error)
 	GetSession(context.Context, int64) (accounts.SessionRecord, error)
 	GetView(context.Context, int64) (accounts.AccountView, error)
+	GetPassword(context.Context, int64) (string, error)
+	SetPassword(context.Context, int64, string) error
 	MarkState(context.Context, int64, int64, accounts.SessionState, string) error
 	RecordValidation(context.Context, int64, int64, accounts.Identity) error
 }

@@ -10,11 +10,18 @@ import (
 	"github.com/sleaze5/RobloxAccountManager/internal/logging"
 )
 
-const schemaVersion = 1
+const schemaVersion = 2
 
-var schemaMigrations = [...]func(context.Context, *sql.Tx) error{}
+var schemaMigrations = [...]func(context.Context, *sql.Tx) error{addAccountPasswords}
 
 var _ = [1]struct{}{}[len(schemaMigrations)-(schemaVersion-1)]
+
+func addAccountPasswords(ctx context.Context, tx *sql.Tx) error {
+	if _, err := tx.ExecContext(ctx, `ALTER TABLE account_sessions ADD COLUMN password TEXT NOT NULL DEFAULT ''`); err != nil {
+		return fmt.Errorf("add saved account passwords: %w", err)
+	}
+	return nil
+}
 
 const initialSchema = `
 CREATE TABLE vault_state (
