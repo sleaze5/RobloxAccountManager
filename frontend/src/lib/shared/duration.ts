@@ -10,3 +10,19 @@ export function formatCompactDuration(milliseconds: number): string {
 	}
 	return `${Number(value.toFixed(1))} ${durationUnits[unit]}`
 }
+
+export function formatClock(
+	seconds: number,
+	largestUnit: "hours" | "days" = "hours",
+): string {
+	const total = Math.max(0, Math.floor(seconds)),
+		days = largestUnit === "days" ? Math.floor(total / 86_400) : 0,
+		hours = Math.floor((total - days * 86_400) / 3600),
+		minutes = Math.floor((total % 3600) / 60),
+		rest = String(total % 60).padStart(2, "0"),
+		clock =
+			days || hours
+				? `${hours}:${String(minutes).padStart(2, "0")}:${rest}`
+				: `${minutes}:${rest}`
+	return days ? `${days}d ${clock}` : clock
+}

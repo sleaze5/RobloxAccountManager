@@ -6,7 +6,7 @@
 	import Timestamp from "../shared/Timestamp.svelte"
 	import { formatCompactBytes } from "../shared/bytes"
 	import LogsExplorerAccount from "./LogsExplorerAccount.svelte"
-	import { formatElapsed } from "./logs-explorer-time"
+	import { formatClock } from "../shared/duration"
 
 	let {
 		session,
@@ -126,7 +126,8 @@
 			<dd class="logs-explorer-detail-mono">
 				{#if session.startedAtMs && session.endedAtMs}{session.endEstimated
 						? "≈"
-						: ""}{formatElapsed(session.lifetimeMs)}{:else}Not recorded{/if}
+						: ""}{formatClock(session.lifetimeMs / 1000, "days")}{:else}Not
+					recorded{/if}
 			</dd>
 		</div>
 	</dl>

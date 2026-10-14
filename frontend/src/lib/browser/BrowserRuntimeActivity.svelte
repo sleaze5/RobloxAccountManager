@@ -3,6 +3,7 @@
 	import { RuntimeStatus } from "../backend/bridge"
 	import type { RuntimeState } from "../backend/bridge"
 	import { formatCompactBytes } from "../shared/bytes"
+	import { formatClock } from "../shared/duration"
 
 	let { runtime }: { runtime: RuntimeState } = $props()
 	const installing = $derived(runtime.status === RuntimeStatus.RuntimeInstalling),
@@ -15,14 +16,6 @@
 					)
 				: 0,
 		)
-
-	function formatETA(seconds: number | null): string {
-		if (seconds === null) return "--:--"
-		const hours = Math.floor(seconds / 3600),
-			minutes = String(Math.floor((seconds % 3600) / 60)).padStart(2, "0"),
-			remainder = String(seconds % 60).padStart(2, "0")
-		return `${hours > 0 ? `${hours}:` : ""}${minutes}:${remainder}`
-	}
 </script>
 
 <div class="runtime-activity">
@@ -47,7 +40,10 @@
 					? formatCompactBytes(runtime.downloadTotalBytes)
 					: "--"}</span>
 			<span>@ {formatCompactBytes(runtime.downloadBytesPerSecond)}/s</span>
-			<span>ETA: {formatETA(runtime.downloadEtaSeconds)}</span>
+			<span
+				>ETA: {runtime.downloadEtaSeconds === null
+					? "--:--"
+					: formatClock(runtime.downloadEtaSeconds, "days")}</span>
 		</div>
 	{/if}
 	{#if determinate && !installing}

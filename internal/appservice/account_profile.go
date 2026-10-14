@@ -30,6 +30,7 @@ type AccountProfileSnapshot struct {
 	Plus            *bool                            `json:"plus"`
 	TwoStepEnabled  *bool                            `json:"twoStepEnabled"`
 	TwoStepMethods  []string                         `json:"twoStepMethods"`
+	VoiceChat       *VoiceChat                       `json:"voiceChat"`
 	Description     string                           `json:"description"`
 	VerifiedBadge   *bool                            `json:"verifiedBadge"`
 	FriendCount     *int64                           `json:"friendCount"`
@@ -149,6 +150,7 @@ func (service *Service) profileReads(ctx context.Context, accountID, version, us
 			}
 			return err
 		}},
+		service.voiceChatRead(ctx, accountID, version, &profile.VoiceChat),
 		{"about", func() error {
 			about, err := service.users.About(ctx, accountID, version, userID)
 			if err == nil {

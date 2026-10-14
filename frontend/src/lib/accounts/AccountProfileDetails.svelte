@@ -18,6 +18,7 @@
 	import { relativeTime } from "../shared/timestamp"
 	import { ageVerificationLabels } from "./account-model"
 	import type { Account } from "./account-model"
+	import AccountVoiceChat from "./AccountVoiceChat.svelte"
 
 	let {
 		account,
@@ -147,6 +148,9 @@
 					{#if methods}<small>{methods}</small>{/if}
 				</dd>
 			</div>
+		{/if}
+		{#if snapshot?.voiceChat}
+			<AccountVoiceChat voiceChat={snapshot.voiceChat} label="Voice chat" />
 		{/if}
 		{#if snapshot?.primaryGroup}
 			{@const group = snapshot.primaryGroup}

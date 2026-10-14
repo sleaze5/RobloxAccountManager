@@ -90,6 +90,39 @@ func (service *Users) TwoStepVerification(ctx context.Context, accountID, versio
 	return *result.Methods, nil
 }
 
+type UserVoiceChat struct {
+	OptedIn, Verified, CanVerifyAge, OptInDisabled, Suspended bool
+	SuspendedUntil                                            time.Time
+}
+
+// Shape verified against signed-in responses on 2026-10-14. bannedUntil matches RoSeal and Altman.
+func (service *Users) VoiceChat(ctx context.Context, accountID, version int64) (UserVoiceChat, error) {
+	var result struct {
+		OptedIn       *bool `json:"isUserOptIn"`
+		Verified      bool  `json:"isVerifiedForVoice"`
+		CanVerifyAge  bool  `json:"canVerifyAgeForVoice"`
+		OptInDisabled bool  `json:"isOptInDisabled"`
+		Banned        *bool `json:"isBanned"`
+		BannedUntil   *struct {
+			Seconds int64 `json:"Seconds"`
+		} `json:"bannedUntil"`
+	}
+	if err := service.readAccountDetails(ctx, accountID, version, "profile-voice-chat", "https://voice.roblox.com/v1/settings", &result); err != nil {
+		return UserVoiceChat{}, err
+	}
+	if result.OptedIn == nil || result.Banned == nil {
+		return UserVoiceChat{}, invalidProfileDetails("profile-voice-chat")
+	}
+	voice := UserVoiceChat{
+		OptedIn: *result.OptedIn, Verified: result.Verified, CanVerifyAge: result.CanVerifyAge,
+		OptInDisabled: result.OptInDisabled, Suspended: *result.Banned,
+	}
+	if voice.Suspended && result.BannedUntil != nil && result.BannedUntil.Seconds > 0 {
+		voice.SuspendedUntil = time.Unix(result.BannedUntil.Seconds, 0)
+	}
+	return voice, nil
+}
+
 type UserAbout struct {
 	Description   string
 	VerifiedBadge bool

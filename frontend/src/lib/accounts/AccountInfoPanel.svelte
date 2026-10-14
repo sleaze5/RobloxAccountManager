@@ -13,6 +13,18 @@
 		{ id: "language", search: "language locale" },
 		{ id: "translations", search: "automatic translations experience" },
 		{ id: "location", search: "account location country region" },
+		{
+			id: "voiceChat",
+			search: "voice chat microphone status suspended suspension banned",
+		},
+		{
+			id: "voiceOptIn",
+			search: "voice chat opted in enrollment microphone setting",
+		},
+		{
+			id: "voiceVerification",
+			search: "voice chat verification verified age check",
+		},
 	] as const
 
 	export type AccountInfoFieldId = (typeof accountInfoFields)[number]["id"]
@@ -34,13 +46,18 @@
 	import PhoneIcon from "phosphor-svelte/lib/PhoneIcon"
 	import UserCircleIcon from "phosphor-svelte/lib/UserCircleIcon"
 	import GlobeHemisphereWestIcon from "phosphor-svelte/lib/GlobeHemisphereWestIcon"
+	import HourglassIcon from "phosphor-svelte/lib/HourglassIcon"
+	import ToggleRightIcon from "phosphor-svelte/lib/ToggleRightIcon"
+	import UserCheckIcon from "phosphor-svelte/lib/UserCheckIcon"
+	import Timestamp from "../shared/Timestamp.svelte"
 	import SensitiveValue from "../shared/SensitiveValue.svelte"
-	import { AgeVerification, PinState } from "../backend/bridge"
+	import { AgeVerification, PinState, VoiceChatState } from "../backend/bridge"
 	import type { AccountEditKind } from "../dialogs/AccountEditDialog.svelte"
 	import type { AccountInfoState } from "./account-info-state.svelte"
 	import { ageVerificationLabels } from "./account-model"
 	import type { Account } from "./account-model"
 	import AccountPasswordMenu from "./AccountPasswordMenu.svelte"
+	import AccountVoiceChat from "./AccountVoiceChat.svelte"
 	import SavedPasswordValue from "./SavedPasswordValue.svelte"
 
 	let {
@@ -366,6 +383,65 @@
 									>{snapshot.location}</SensitiveValue>
 							{:else}
 								<span class="account-info-missing">Not set</span>
+							{/if}
+						</dd>
+					</div>
+				{/if}
+			</dl>
+		</section>
+	{/if}
+
+	{#if any("voiceChat", "voiceOptIn", "voiceVerification")}
+		{@const voice = snapshot.voiceChat}
+		<section class="settings-section" aria-labelledby="account-info-voice">
+			<h3 id="account-info-voice">Voice chat</h3>
+			<dl class="profile-facts">
+				{#if visible.has("voiceChat")}
+					<AccountVoiceChat voiceChat={voice} label="Status" />
+					{#if voice?.state === VoiceChatState.VoiceChatSuspended && voice.suspendedUntilMs}
+						<div>
+							<dt>
+								<HourglassIcon size={16} aria-hidden="true" />Suspension
+								ends
+							</dt>
+							<dd><Timestamp value={voice.suspendedUntilMs} /></dd>
+						</div>
+					{/if}
+				{/if}
+				{#if visible.has("voiceOptIn")}
+					<div>
+						<dt>
+							<ToggleRightIcon size={16} aria-hidden="true" />Opted in
+						</dt>
+						<dd>
+							{#if voice}
+								<span>{voice.optedIn ? "Yes" : "No"}</span>
+								{#if voice.enrollmentDisabled}<small
+										>Enrollment disabled</small
+									>{/if}
+							{:else}
+								<span class="account-info-missing">Unavailable</span>
+							{/if}
+						</dd>
+					</div>
+				{/if}
+				{#if visible.has("voiceVerification")}
+					<div>
+						<dt>
+							<UserCheckIcon size={16} aria-hidden="true" />Voice
+							verification
+						</dt>
+						<dd>
+							{#if voice}
+								<span
+									>{voice.verified
+										? "Verified"
+										: "Not verified"}</span>
+								{#if !voice.verified && voice.canVerifyAge}<small
+										>Age check available</small
+									>{/if}
+							{:else}
+								<span class="account-info-missing">Unavailable</span>
 							{/if}
 						</dd>
 					</div>

@@ -26,6 +26,7 @@ type AccountInfoSnapshot struct {
 	AutoTranslations *bool           `json:"autoTranslations"`
 	Location         string          `json:"location"`
 	Pin              PinState        `json:"pin"`
+	VoiceChat        *VoiceChat      `json:"voiceChat"`
 	Unavailable      []string        `json:"unavailable"`
 }
 
@@ -112,5 +113,6 @@ func (service *Service) accountInfoReads(ctx context.Context, accountID, version
 			}
 			return err
 		}},
+		service.voiceChatRead(ctx, accountID, version, &info.VoiceChat),
 	}
 }

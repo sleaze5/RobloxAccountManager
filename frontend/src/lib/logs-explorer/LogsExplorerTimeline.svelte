@@ -5,7 +5,7 @@
 	import Timestamp from "../shared/Timestamp.svelte"
 	import LogsExplorerVisitMenu from "./LogsExplorerVisitMenu.svelte"
 	import LogsExplorerVisitDetails from "./LogsExplorerVisitDetails.svelte"
-	import { formatElapsed } from "./logs-explorer-time"
+	import { formatClock } from "../shared/duration"
 
 	let {
 		visits,
@@ -48,7 +48,7 @@
 					class="logs-explorer-timeline-marker"
 					aria-label="Time from log start">
 					{#if logStartedAtMs && visit.startedAtMs}
-						+{formatElapsed(visit.startedAtMs - logStartedAtMs)}
+						+{formatClock((visit.startedAtMs - logStartedAtMs) / 1000)}
 					{:else}--:--{/if}
 				</span>
 			</div>
@@ -69,8 +69,8 @@
 							data-tooltip={visit.endEstimated
 								? "Estimated duration"
 								: "Duration"}>
-							{visit.endEstimated ? "≈" : ""}{formatElapsed(
-								visit.durationMs,
+							{visit.endEstimated ? "≈" : ""}{formatClock(
+								visit.durationMs / 1000,
 							)}
 						</span>
 					{/if}

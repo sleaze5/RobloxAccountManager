@@ -11,6 +11,7 @@ const fieldsBySource = {
 	ageGroup: ["ageGroup", "ageVerification"],
 	ageVerification: ["ageVerification"],
 	twoStep: ["twoStepEnabled", "twoStepMethods"],
+	voiceChat: ["voiceChat"],
 	about: ["description", "verifiedBadge"],
 	friends: ["friendCount"],
 	followers: ["followerCount"],

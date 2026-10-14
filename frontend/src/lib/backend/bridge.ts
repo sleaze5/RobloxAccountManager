@@ -19,6 +19,7 @@ export type {
 	RobloxPlayerPathCheck,
 	TimestampFormats,
 	VaultState,
+	VoiceChat,
 } from "../../../bindings/github.com/sleaze5/RobloxAccountManager/internal/appservice/models.js"
 export type {
 	Candidate as StorageCandidate,
@@ -42,6 +43,7 @@ export {
 	AgeVerification,
 	ImportStatus,
 	PinState,
+	VoiceChatState,
 } from "../../../bindings/github.com/sleaze5/RobloxAccountManager/internal/appservice/models.js"
 export {
 	SessionState,
