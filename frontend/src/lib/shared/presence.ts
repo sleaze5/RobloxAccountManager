@@ -273,12 +273,16 @@ export function modalFocus(node: HTMLElement): { destroy: () => void } {
 				? document.activeElement
 				: null,
 		focusableSelector =
-			'button:not(:disabled), input:not(:disabled), textarea:not(:disabled), select:not(:disabled), [tabindex]:not([tabindex="-1"])'
+			'button:not(:disabled), input:not(:disabled), textarea:not(:disabled), select:not(:disabled), [tabindex]:not([tabindex="-1"])',
+		fieldSelector =
+			'input:not(:disabled):not([type="checkbox"], [type="radio"], [type="hidden"]), textarea:not(:disabled)'
 
 	queueMicrotask(() => {
-		if (!node.contains(document.activeElement)) {
-			node.querySelector<HTMLElement>(focusableSelector)?.focus()
-		}
+		if (node.contains(document.activeElement)) return
+		const target =
+			node.querySelector<HTMLElement>(fieldSelector) ??
+			node.querySelector<HTMLElement>(focusableSelector)
+		target?.focus()
 	})
 
 	const trapFocus = (event: KeyboardEvent) => {

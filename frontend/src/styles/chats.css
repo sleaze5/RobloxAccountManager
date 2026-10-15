@@ -34,32 +34,22 @@
 .chat-list {
 	display: flex;
 	flex-direction: column;
-	gap: var(--space-half);
+	margin-inline: calc(var(--space-2) * -1);
 	list-style: none;
 }
 
 .chat-row {
 	display: flex;
 	width: 100%;
+	min-height: var(--list-row-height);
 	align-items: center;
 	gap: var(--space-2);
-	padding: var(--space-2);
-	border: 1px solid transparent;
-	border-radius: var(--radius-panel);
+	padding: var(--space-2) var(--edge-padding);
+	border: 0;
+	border-bottom: 1px solid var(--color-border-subtle);
 	background: transparent;
 	text-align: left;
-	transition:
-		background-color var(--duration-fast) var(--ease-standard),
-		border-color var(--duration-fast) var(--ease-standard);
-}
-
-.chat-row:hover {
-	background: var(--color-hover);
-}
-
-.chat-row[aria-current="true"] {
-	border-color: var(--color-border);
-	background: var(--color-active);
+	transition: background-color var(--duration-fast) var(--ease-standard);
 }
 
 .chat-avatar {
@@ -112,7 +102,9 @@
 	font-weight: var(--font-semibold);
 }
 
-.chat-row.unread .chat-row-preview {
+.chat-row.unread .chat-row-preview,
+.chat-row:hover :is(.chat-row-preview, .chat-row-time),
+.chat-row.selected :is(.chat-row-preview, .chat-row-time) {
 	color: var(--color-text-muted);
 }
 

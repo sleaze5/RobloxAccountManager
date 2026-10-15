@@ -100,7 +100,8 @@ Stack floating layers in this order, from lowest to highest. Define each layer a
 5. Notifications
 6. Dialogs
 7. The vault lock screen
-8. Tooltips
+
+Menus, dropdowns, and tooltips open in the browser's top layer, above every layer in this list, so that a scroll area or the launch panel never cuts them off. Position a menu with `placeMenuAtAnchor`, `placeMenuAtPoint`, or the `floatMenu` action from `presence.ts`, which lift it automatically. Use `liftToTopLayer` for a floating surface that positions itself. Do not use `position: fixed` alone for a menu inside a scroll area, because `container-type` on an ancestor clips it.
 
 ## Typography
 
@@ -108,7 +109,7 @@ Stack floating layers in this order, from lowest to highest. Define each layer a
 - Bundle both fonts as local, normal-style WOFF2 variable fonts from Vercel's pinned release, with weights 100 through 900. Preload Geist in `frontend/index.html`. Do not fetch fonts at runtime. Keep the pinned upstream sources in `THIRD_PARTY_NOTICES.md` and the font license in `THIRD_PARTY_LICENSES.txt`.
 - Keep text between 10px and 16px.
 - Use 13px for body text and list-row titles, and 12px for controls, compact labels, and helper text. Use 10px to 12px monospace for technical text.
-- Use 15px semibold for page titles, pane titles, and dialog titles. Use 12px semibold `--color-text-muted` for section headings inside a page or pane. Use 16px semibold only for the name of the selected account or game in its detail header.
+- Use 15px semibold for page titles, pane titles, and dialog titles. Use 13px semibold `--color-text` for subheadings: sub-page titles, card titles, chat thread titles, and empty-state titles. Use 12px semibold `--color-text-muted` for section headings inside a page or pane. Use 16px semibold only for the name of the selected account or game in its detail header. Do not use other heading sizes.
 - Use weight 400 for body text. Use 500 for buttons, menu items, control labels, selected navigation, and compact emphasis. Use 600 for headings, names, and strong labels. Use 700 only for numeric count badges.
 - Create hierarchy with weight, color, spacing, and grouping, not oversized text.
 
@@ -185,7 +186,7 @@ Color:
 
 ### Lists
 
-- Give list rows `--list-row-height` and a 1px `--color-border-subtle` separator. Use the selection treatment from [Controls and states](#controls-and-states).
+- Give list rows the shared `.list-row` class, `--list-row-height`, and a 1px `--color-border-subtle` separator. Add the `selected` class to the selected row. `.list-row` draws the hover and selection treatment from [Controls and states](#controls-and-states).
 - When a list can be reordered, support dragging and `Ctrl+Shift+ArrowUp` and `Ctrl+Shift+ArrowDown`. Announce the new position through a polite live region.
 - Distinguish an empty list ("No accounts yet") from a list with no matches ("No matching accounts"). Tell the user how to change each state.
 
@@ -199,7 +200,7 @@ Color:
 
 ### Dialogs
 
-1. Render the dialog as a `.modal-card` inside a `.modal-backdrop`. Use `modalFocus` and the dialog transitions from `presence.ts`.
+1. Render the dialog as a `.modal-card` inside a `.modal-backdrop`. Use `modalFocus` and the dialog transitions from `presence.ts`. `modalFocus` moves focus to the first text field, or to the first control when the dialog has no text field.
 2. Use `role="dialog"`. Use `role="alertdialog"` for a confirmation.
 3. Put the title and an optional one-sentence description at the top.
 4. Put a 24px close button in the top-right corner. Omit the close button only when the user must complete the dialog, such as the vault lock screen.

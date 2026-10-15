@@ -42,7 +42,8 @@
 			<li>
 				<button
 					type="button"
-					class="chat-row"
+					class="chat-row list-row"
+					class:selected={chat.openId === conversation.id}
 					class:unread={conversation.unreadCount > 0}
 					aria-current={chat.openId === conversation.id ? "true" : undefined}
 					onclick={() => void chat.open(conversation.id)}>
