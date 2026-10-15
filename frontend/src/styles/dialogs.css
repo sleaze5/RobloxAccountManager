@@ -170,6 +170,7 @@
 }
 
 .modal-card > p,
+.modal-card > form > p,
 .modal-heading p {
 	margin-top: 6px;
 	color: var(--color-text-muted);
@@ -326,7 +327,6 @@
 	color: var(--color-warning);
 	font-size: var(--text-10);
 	font-weight: var(--font-semibold);
-	text-transform: uppercase;
 }
 
 .modal-field input,
@@ -699,13 +699,13 @@
 	color: var(--color-text-muted);
 }
 
-.vault-card > .primary-action {
+.vault-card > form > .primary-action {
 	width: 100%;
 	min-height: var(--control-height-lg);
 	margin-top: var(--space-3);
 }
 
-.vault-card > .vault-danger {
+.vault-card > form > .vault-danger {
 	width: 100%;
 	margin-top: var(--space-3);
 }

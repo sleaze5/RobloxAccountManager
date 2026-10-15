@@ -1,5 +1,6 @@
 <script lang="ts">
 	import ArrowRightIcon from "phosphor-svelte/lib/ArrowRightIcon"
+	import CheckIcon from "phosphor-svelte/lib/CheckIcon"
 	import SlidersIcon from "phosphor-svelte/lib/SlidersIcon"
 	import { onMount } from "svelte"
 	import type { AccountStore } from "../accounts/account-store.svelte"
@@ -84,10 +85,17 @@
 			{#if directLaunch}
 				<div class="launch-option-group">
 					<label class="launch-option">
-						<input
-							type="checkbox"
-							bind:checked={store.launchInput.directLaunch}
-							disabled={store.launching} />
+						<span class="cookie-selection">
+							<input
+								type="checkbox"
+								bind:checked={store.launchInput.directLaunch}
+								disabled={store.launching} />
+							<span aria-hidden="true"
+								><CheckIcon
+									size={11}
+									weight="bold"
+									aria-hidden="true" /></span>
+						</span>
 						<span
 							><strong>Launch binary directly</strong><small
 								>Find and launch RobloxPlayerBeta.exe directly instead
@@ -129,10 +137,14 @@
 				</div>
 			{/if}
 			<label class="launch-option">
-				<input
-					type="checkbox"
-					bind:checked={store.launchInput.teleport}
-					disabled={store.launching} />
+				<span class="cookie-selection">
+					<input
+						type="checkbox"
+						bind:checked={store.launchInput.teleport}
+						disabled={store.launching} />
+					<span aria-hidden="true"
+						><CheckIcon size={11} weight="bold" aria-hidden="true" /></span>
+				</span>
 				<span
 					><strong>Mark launch as a teleport</strong><small
 						>Set the isTeleport flag to launch the game as an in-game
@@ -141,10 +153,17 @@
 			</label>
 			<div class="launch-option-group">
 				<label class="launch-option">
-					<input
-						type="checkbox"
-						bind:checked={store.launchDataEnabled}
-						disabled={store.launching} />
+					<span class="cookie-selection">
+						<input
+							type="checkbox"
+							bind:checked={store.launchDataEnabled}
+							disabled={store.launching} />
+						<span aria-hidden="true"
+							><CheckIcon
+								size={11}
+								weight="bold"
+								aria-hidden="true" /></span>
+					</span>
 					<span
 						><strong>Use custom launch data</strong><small
 							>Set the launchData flag to pass custom data to the game.</small

@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { onMount, tick, untrack } from "svelte"
+	import AccountPlaceholder from "./lib/accounts/AccountPlaceholder.svelte"
 	import AccountProfile from "./lib/accounts/AccountProfile.svelte"
 	import AccountImageMenu from "./lib/accounts/AccountImageMenu.svelte"
 	import AccountContextMenu from "./lib/accounts/AccountContextMenu.svelte"
@@ -439,7 +440,12 @@
 
 				<main class="account-workspace">
 					<div class="workspace-scroll">
-						{#if !store.multipleSelected}
+						{#if store.multipleSelected || store.selectedAccount.id === 0}
+							<AccountPlaceholder
+								{store}
+								{workspace}
+								onAddAccount={openAddAccount} />
+						{:else}
 							{#key store.selectedAccountId}
 								<div class="account-content">
 									<AccountProfile

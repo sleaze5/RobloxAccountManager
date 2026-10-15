@@ -104,35 +104,35 @@
 	</div>
 
 	{#if servers.error}
-		<div class="games-empty" role="alert">
+		<div class="empty-state" role="alert">
 			<WarningIcon size={27} aria-hidden="true" />
 			<h2>RoValra servers are unavailable</h2>
 			<p>{servers.error}</p>
 			<button
-				class="control-button games-text-button"
+				class="control-button text-button"
 				type="button"
 				onclick={() => void servers.load()}>Try again</button>
 		</div>
 	{:else if !servers.page}
-		<div class="games-empty" role="status">
+		<div class="empty-state" role="status">
 			<CircleNotchIcon class="spinner" size={27} aria-hidden="true" />
 			<h2>Loading servers…</h2>
 		</div>
 	{:else if !shown.length}
-		<div class="games-empty" role="status">
+		<div class="empty-state" role="status">
 			<HardDrivesIcon size={27} aria-hidden="true" />
 			{#if servers.pageNumber > 1}
 				<h2>No more servers</h2>
 				<p>RoValra has no more servers for this list.</p>
 				<button
-					class="control-button games-text-button"
+					class="control-button text-button"
 					type="button"
 					onclick={() => servers.first()}>First page</button>
 			{:else if servers.region}
 				<h2>No servers in this region</h2>
 				<p>RoValra has not seen a server of this place in this region.</p>
 				<button
-					class="control-button games-text-button"
+					class="control-button text-button"
 					type="button"
 					onclick={() => servers.setOptions({ region: "" })}
 					>Any region</button>

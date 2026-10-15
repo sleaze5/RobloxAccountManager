@@ -26,8 +26,10 @@
 </script>
 
 <div class="modal-backdrop" in:modalBackdropIn out:modalBackdropOut>
-	<section
+	<div
 		class="modal-card runtime-card"
+		role="dialog"
+		aria-modal="true"
 		use:modalFocus
 		in:modalCardIn
 		out:modalCardOut
@@ -79,5 +81,5 @@
 						: "Download browser"}</button
 				>{/if}
 		</div>
-	</section>
+	</div>
 </div>

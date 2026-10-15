@@ -43,7 +43,7 @@
 		pending = $state<"validate" | "save" | null>(null),
 		validation = $state<"unchecked" | "valid" | "invalid">("unchecked"),
 		error = $state(""),
-		form = $state<HTMLFormElement>(),
+		card = $state<HTMLDivElement>(),
 		input = $state<HTMLInputElement>()
 	let active = true,
 		request:
@@ -88,7 +88,7 @@
 			const valid = await request
 			if (!active) return
 			validation = valid ? "valid" : "invalid"
-			if (!valid) replayValidationNudge(form)
+			if (!valid) replayValidationNudge(card)
 		} catch (cause) {
 			if (!active) return
 			error = errorMessage(
@@ -120,7 +120,7 @@
 		} catch (cause) {
 			if (!active) return
 			error = errorMessage(cause, "Could not save the password. Try again.")
-			replayValidationNudge(form)
+			replayValidationNudge(card)
 		} finally {
 			request = null
 			pending = null
@@ -147,106 +147,111 @@
 	}} />
 
 <div class="modal-backdrop" in:modalBackdropIn out:modalBackdropOut>
-	<form
-		novalidate
+	<div
 		class="modal-card confirm-card"
+		role="dialog"
+		aria-modal="true"
 		aria-labelledby="saved-password-title"
-		bind:this={form}
+		bind:this={card}
 		use:modalFocus
 		in:modalCardIn
-		out:modalCardOut
-		onsubmit={(event) => {
-			event.preventDefault()
-			void save()
-		}}>
-		<div class="modal-heading compact-heading">
-			<div>
-				<h2 id="saved-password-title">{title}</h2>
-				<p>@{account.username}</p>
+		out:modalCardOut>
+		<form
+			novalidate
+			onsubmit={(event) => {
+				event.preventDefault()
+				void save()
+			}}>
+			<div class="modal-heading compact-heading">
+				<div>
+					<h2 id="saved-password-title">{title}</h2>
+					<p>@{account.username}</p>
+				</div>
+				<button
+					type="button"
+					aria-label={`Close ${title.toLowerCase()}`}
+					disabled={pending !== null}
+					onclick={close}>
+					<XIcon size={16} aria-hidden="true" />
+				</button>
 			</div>
-			<button
-				type="button"
-				aria-label={`Close ${title.toLowerCase()}`}
-				disabled={pending !== null}
-				onclick={close}>
-				<XIcon size={16} aria-hidden="true" />
-			</button>
-		</div>
 
-		<div class="password-field">
-			<label class="modal-field">
-				<span>Roblox password</span>
-				<input
-					bind:this={input}
-					bind:value={password}
-					type={visible ? "text" : "password"}
-					placeholder={loading ? "Loading…" : ""}
-					autocomplete="off"
-					spellcheck="false"
-					disabled={busy}
-					oninput={() => {
-						validation = "unchecked"
-						error = ""
-					}} />
-			</label>
-			<button
-				class="icon-action"
-				type="button"
-				aria-label={visible ? "Hide password" : "Show password"}
-				data-tooltip={visible ? "Hide password" : "Show password"}
-				onclick={() => (visible = !visible)}>
-				{#if visible}<EyeSlashIcon
-						size={16}
-						aria-hidden="true" />{:else}<EyeIcon
-						size={16}
-						aria-hidden="true" />{/if}
-			</button>
-		</div>
-
-		<div class="password-validation">
-			{#if validation === "valid"}
-				<span class="password-valid" role="status"
-					><CheckCircleIcon size={16} aria-hidden="true" />Password is correct</span>
-			{:else if validation === "invalid"}
-				<span class="password-invalid" role="status"
-					><WarningCircleIcon size={16} aria-hidden="true" />Password is
-					incorrect</span>
-			{:else}
+			<div class="password-field">
+				<label class="modal-field">
+					<span>Roblox password</span>
+					<input
+						bind:this={input}
+						bind:value={password}
+						type={visible ? "text" : "password"}
+						placeholder={loading ? "Loading…" : ""}
+						autocomplete="off"
+						spellcheck="false"
+						disabled={busy}
+						oninput={() => {
+							validation = "unchecked"
+							error = ""
+						}} />
+				</label>
 				<button
-					class="visibility-control"
+					class="icon-action"
 					type="button"
-					disabled={busy || !password}
-					onclick={() => void validate()}>
-					{#if pending === "validate"}<CircleNotchIcon
-							class="spinner"
+					aria-label={visible ? "Hide password" : "Show password"}
+					data-tooltip={visible ? "Hide password" : "Show password"}
+					onclick={() => (visible = !visible)}>
+					{#if visible}<EyeSlashIcon
 							size={16}
-							aria-hidden="true" /> Validating…{:else}<ShieldCheckIcon
+							aria-hidden="true" />{:else}<EyeIcon
 							size={16}
-							aria-hidden="true" /> Validate with Roblox{/if}
+							aria-hidden="true" />{/if}
 				</button>
+			</div>
+
+			<div class="password-validation">
+				{#if validation === "valid"}
+					<span class="password-valid" role="status"
+						><CheckCircleIcon size={16} aria-hidden="true" />Password is
+						correct</span>
+				{:else if validation === "invalid"}
+					<span class="password-invalid" role="status"
+						><WarningCircleIcon size={16} aria-hidden="true" />Password is
+						incorrect</span>
+				{:else}
+					<button
+						class="visibility-control"
+						type="button"
+						disabled={busy || !password}
+						onclick={() => void validate()}>
+						{#if pending === "validate"}<CircleNotchIcon
+								class="spinner"
+								size={16}
+								aria-hidden="true" /> Validating…{:else}<ShieldCheckIcon
+								size={16}
+								aria-hidden="true" /> Validate with Roblox{/if}
+					</button>
+					<button
+						class="automatic-unlock-info"
+						type="button"
+						aria-label={validationHint}
+						data-tooltip={validationHint}>
+						<InfoIcon size={15} aria-hidden="true" />
+					</button>
+				{/if}
+			</div>
+
+			{#if error}<div class="modal-error" role="alert">{error}</div>{/if}
+
+			<div class="modal-actions">
+				<button type="button" disabled={pending !== null} onclick={close}
+					>Cancel</button>
 				<button
-					class="automatic-unlock-info"
-					type="button"
-					aria-label={validationHint}
-					data-tooltip={validationHint}>
-					<InfoIcon size={15} aria-hidden="true" />
+					class="primary-action"
+					type="submit"
+					disabled={busy || !password || password === saved}>
+					{pending === "save" ? "Saving…" : "Save"}
 				</button>
-			{/if}
-		</div>
-
-		{#if error}<div class="modal-error" role="alert">{error}</div>{/if}
-
-		<div class="modal-actions">
-			<button type="button" disabled={pending !== null} onclick={close}
-				>Cancel</button>
-			<button
-				class="primary-action"
-				type="submit"
-				disabled={busy || !password || password === saved}>
-				{pending === "save" ? "Saving…" : "Save"}
-			</button>
-		</div>
-	</form>
+			</div>
+		</form>
+	</div>
 </div>
 
 <style>

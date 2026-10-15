@@ -117,7 +117,7 @@
 	background: transparent;
 	color: var(--color-text-muted);
 	font-size: var(--text-12);
-	font-weight: var(--font-semibold);
+	font-weight: var(--font-medium);
 	cursor: pointer;
 }
 
@@ -185,6 +185,70 @@
 
 .icon-action.bordered {
 	border: 1px solid var(--color-border);
+}
+
+.segmented-control {
+	display: grid;
+	grid-auto-columns: minmax(0, 1fr);
+	grid-auto-flow: column;
+	gap: 2px;
+	padding: 2px;
+	border: 1px solid var(--color-border);
+	border-radius: var(--radius-control);
+	background: var(--color-input);
+}
+
+.segmented-control button {
+	display: flex;
+	height: var(--control-height-sm);
+	align-items: center;
+	justify-content: center;
+	gap: 6px;
+	padding: 0 var(--space-2);
+	border: 0;
+	border-radius: var(--radius-chip);
+	color: var(--color-text-faint);
+	font-size: var(--text-11-5);
+	font-weight: var(--font-medium);
+	white-space: nowrap;
+}
+
+.segmented-control button:hover {
+	color: var(--color-text);
+}
+
+.segmented-control button[aria-pressed="true"] {
+	background: var(--color-surface-raised);
+	color: var(--color-text);
+}
+
+.segmented-control button > span {
+	color: var(--color-text-faint);
+	font-family: var(--font-mono);
+	font-size: var(--text-10);
+}
+
+.empty-state {
+	display: flex;
+	min-width: 0;
+	align-items: center;
+	justify-content: center;
+	flex-direction: column;
+	gap: var(--space-2);
+	padding: var(--space-4);
+	color: var(--color-text-muted);
+	text-align: center;
+}
+
+.empty-state h2 {
+	color: var(--color-text);
+	font-size: var(--text-13);
+	font-weight: var(--font-semibold);
+}
+
+.empty-state p {
+	max-width: 360px;
+	font-size: var(--text-12);
 }
 
 .workbench {

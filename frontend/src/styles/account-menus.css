@@ -139,7 +139,6 @@
 	color: var(--color-text-faint);
 	font-size: var(--text-10);
 	font-weight: var(--font-semibold);
-	text-transform: uppercase;
 }
 
 .account-menu-heading::before,

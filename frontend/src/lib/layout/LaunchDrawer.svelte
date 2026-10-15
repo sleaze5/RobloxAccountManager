@@ -1,11 +1,11 @@
 <script lang="ts">
 	import ProhibitIcon from "phosphor-svelte/lib/ProhibitIcon"
 	import CaretDownIcon from "phosphor-svelte/lib/CaretDownIcon"
+	import CheckIcon from "phosphor-svelte/lib/CheckIcon"
 	import GameControllerIcon from "phosphor-svelte/lib/GameControllerIcon"
 	import TrashIcon from "phosphor-svelte/lib/TrashIcon"
 	import type { AccountStore } from "../accounts/account-store.svelte"
 	import { LaunchMethod } from "../backend/bridge"
-	import Select from "../shared/Select.svelte"
 	import RobloxProcessesDialog from "../dialogs/RobloxProcessesDialog.svelte"
 	import { appSettings } from "../settings/settings-store.svelte"
 	import LaunchArguments from "./LaunchArguments.svelte"
@@ -192,25 +192,43 @@
 								required
 								disabled={store.launching} />
 						</label>
-						<label class="launch-option launch-resolve"
-							><input
-								bind:checked={store.launchInput.resolveCurrentGame}
-								type="checkbox"
-								disabled={store.launching} /><span
-								>Resolve current game</span
-							></label>
+						<label class="launch-option launch-resolve">
+							<span class="cookie-selection">
+								<input
+									bind:checked={store.launchInput.resolveCurrentGame}
+									type="checkbox"
+									disabled={store.launching} />
+								<span aria-hidden="true"
+									><CheckIcon
+										size={11}
+										weight="bold"
+										aria-hidden="true" /></span>
+							</span>
+							<span>Resolve current game</span>
+						</label>
 					{/if}
 				</div>
 			</div>
 			<div class="launch-footer">
 				<div class="launch-method">
-					<span>Method:</span>
-					<Select
-						label="Launch method"
-						value={store.launchInput.method}
-						options={methods}
-						disabled={store.launching}
-						onChange={(method) => (store.launchInput.method = method)} />
+					<span id="launch-method-label">Method:</span>
+					<div
+						class="segmented-control"
+						role="group"
+						aria-labelledby="launch-method-label">
+						{#each methods as method (method.value)}
+							<button
+								type="button"
+								aria-pressed={store.launchInput.method === method.value}
+								data-tooltip={method.description}
+								data-tooltip-side="top"
+								disabled={store.launching}
+								onclick={() =>
+									(store.launchInput.method = method.value)}>
+								{method.label}
+							</button>
+						{/each}
+					</div>
 					<button
 						class="icon-action"
 						type="button"

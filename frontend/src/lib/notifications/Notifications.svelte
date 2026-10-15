@@ -29,7 +29,25 @@
 
 <section class="notification-region" aria-label="Notifications" aria-live="polite">
 	{#each center.items as notification (notification.id)}
-		<article class="notification-toast" role="status" in:toastIn out:toastOut>
+		<article
+			class="notification-toast"
+			role="status"
+			in:toastIn
+			out:toastOut
+			onpointerenter={() => center.pause(notification.id)}
+			onpointerleave={(event) => {
+				if (!event.currentTarget.contains(document.activeElement))
+					center.resume(notification.id)
+			}}
+			onfocusin={() => center.pause(notification.id)}
+			onfocusout={(event) => {
+				const next = event.relatedTarget
+				if (
+					!(next instanceof Node && event.currentTarget.contains(next)) &&
+					!event.currentTarget.matches(":hover")
+				)
+					center.resume(notification.id)
+			}}>
 			<div class="notification-icon">
 				<BellIcon size={17} aria-hidden="true" />
 			</div>

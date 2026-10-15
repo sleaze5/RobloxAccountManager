@@ -15,12 +15,15 @@
 		{/if}
 	</span>
 	<div>
-		<span>{store.accounts.length} accounts</span>
+		<span
+			>{store.accounts.length}
+			{store.accounts.length === 1 ? "account" : "accounts"}</span>
 		<span
 			><i class="status-dot presence-online"></i>{store.onlineCount} online</span>
 		<span>
-			<i class="status-dot warning"></i>
-			{store.attentionCount} needs attention
+			{#if store.attentionCount > 0}<i class="status-dot warning"></i>{/if}
+			{store.attentionCount}
+			{store.attentionCount === 1 ? "needs" : "need"} attention
 		</span>
 	</div>
 </footer>

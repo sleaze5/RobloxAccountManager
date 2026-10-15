@@ -38,12 +38,13 @@
 		class="modal-card confirm-card"
 		role="alertdialog"
 		aria-modal="true"
+		aria-labelledby="remove-account-title"
 		use:modalFocus
 		in:modalCardIn
 		out:modalCardOut>
 		<div class="modal-heading compact-heading">
 			<div>
-				<h2 class="account-display-name">
+				<h2 id="remove-account-title" class="account-display-name">
 					<span>Remove {account.displayName}</span>
 					{#if account.favorite}<StarIcon
 							class="favorite-name-star"

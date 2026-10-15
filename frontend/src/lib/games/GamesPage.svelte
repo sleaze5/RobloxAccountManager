@@ -221,7 +221,7 @@
 							</div>
 						{/if}
 					</form>
-					<div class="games-views" role="group" aria-label="Show games">
+					<div class="segmented-control" role="group" aria-label="Show games">
 						<button
 							type="button"
 							aria-pressed={favoritesMode}
@@ -312,7 +312,7 @@
 								use:loadMoreWhenVisible={store.nextPageToken}>
 								{#if store.loadMoreFailed}
 									<button
-										class="control-button games-text-button"
+										class="control-button text-button"
 										type="button"
 										onclick={() => void store.search(true)}
 										>Load more results</button>
@@ -363,7 +363,7 @@
 				{/if}
 			{/key}
 		{:else}
-			<div class="games-empty" role="status">
+			<div class="empty-state" role="status">
 				{#if favoritesMode}
 					{#if store.loadingFavorites}<CircleNotchIcon
 							class="spinner"
@@ -375,7 +375,7 @@
 							aria-hidden="true" />
 						<h2>Favorites are unavailable</h2>
 						<button
-							class="control-button games-text-button"
+							class="control-button text-button"
 							type="button"
 							onclick={() => void store.loadFavorites()}
 							>Try again</button>

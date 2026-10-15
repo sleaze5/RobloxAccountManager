@@ -54,7 +54,7 @@
 		confirmation = $state(""),
 		visible = $state(false),
 		error = $state(""),
-		form = $state<HTMLFormElement>()
+		card = $state<HTMLDivElement>()
 	const ready = $derived(
 		{
 			displayName: value.trim() !== "",
@@ -71,7 +71,7 @@
 
 	function submit(): void {
 		if (!ready || pending) {
-			replayValidationNudge(form)
+			replayValidationNudge(card)
 		} else if (phase === "edit" && kind !== "pin") {
 			phase = "confirm"
 		} else {
@@ -115,7 +115,7 @@
 			)
 			pending = false
 			phase = "edit"
-			replayValidationNudge(form)
+			replayValidationNudge(card)
 		}
 	}
 </script>
@@ -126,152 +126,159 @@
 	}} />
 
 <div class="modal-backdrop" in:modalBackdropIn out:modalBackdropOut>
-	<form
-		novalidate
+	<div
 		class="modal-card confirm-card"
 		role={phase === "confirm" ? "alertdialog" : "dialog"}
 		aria-modal="true"
 		aria-labelledby="account-edit-title"
-		bind:this={form}
+		bind:this={card}
 		use:modalFocus
 		in:modalCardIn
-		out:modalCardOut
-		onsubmit={(event) => {
-			event.preventDefault()
-			submit()
-		}}>
-		<div class="modal-heading compact-heading">
-			<div>
-				<h2 id="account-edit-title">
-					{phase === "confirm" ? `${titles[kind]}?` : titles[kind]}
-				</h2>
-				<p>@{account.username}</p>
-			</div>
-			<button
-				type="button"
-				aria-label={`Close ${titles[kind].toLowerCase()}`}
-				disabled={pending}
-				onclick={close}>
-				<XIcon size={16} aria-hidden="true" />
-			</button>
-		</div>
-
-		{#if phase === "confirm"}
-			{#if kind === "displayName"}
-				<p>The new display name will be “{value.trim()}”.</p>
-				<div class="modal-warning">
-					You can't change the display name again for 7 days.
+		out:modalCardOut>
+		<form
+			novalidate
+			onsubmit={(event) => {
+				event.preventDefault()
+				submit()
+			}}>
+			<div class="modal-heading compact-heading">
+				<div>
+					<h2 id="account-edit-title">
+						{phase === "confirm" ? `${titles[kind]}?` : titles[kind]}
+					</h2>
+					<p>@{account.username}</p>
 				</div>
-			{:else if kind === "email"}
-				<p>The new email will be {value.trim()}.</p>
-				<div class="modal-note">
-					Roblox sends a verification email to the new address.
-				</div>
-			{:else}
-				<div class="modal-warning">
-					{account.hasSavedPassword
-						? "The saved password in your vault will also be updated."
-						: "The new password will not be saved in the vault. Store it somewhere safe before you continue."}
-				</div>
-			{/if}
-		{:else}
-			{#if kind === "displayName"}
-				<label class="modal-field">
-					<span>New display name</span>
-					<input
-						bind:value
-						autocomplete="off"
-						spellcheck="false"
-						disabled={pending} />
-				</label>
-				<div class="modal-warning">
-					After you change it, you can't change it again for 7 days.
-				</div>
-			{:else if kind === "email"}
-				<label class="modal-field">
-					<span>New email</span>
-					<input
-						bind:value
-						type="email"
-						autocomplete="off"
-						spellcheck="false"
-						disabled={pending} />
-				</label>
-			{:else if kind === "pin"}
-				<label class="modal-field">
-					<span>PIN</span>
-					<input
-						bind:value
-						inputmode="numeric"
-						maxlength="4"
-						autocomplete="off"
-						disabled={pending} />
-				</label>
-			{/if}
-			{#if kind === "email" || kind === "password"}
-				<label class="modal-field">
-					<span>{kind === "email" ? "Password" : "Current password"}</span>
-					<input
-						bind:value={password}
-						type={visible ? "text" : "password"}
-						autocomplete="off"
-						disabled={pending} />
-				</label>
-			{/if}
-			{#if kind === "password"}
-				<label class="modal-field">
-					<span>New password</span>
-					<input
-						bind:value={newPassword}
-						type={visible ? "text" : "password"}
-						autocomplete="off"
-						disabled={pending} />
-				</label>
-				<label class="modal-field">
-					<span>Confirm new password</span>
-					<input
-						bind:value={confirmation}
-						type={visible ? "text" : "password"}
-						autocomplete="off"
-						aria-invalid={confirmation !== "" &&
-							confirmation !== newPassword}
-						disabled={pending} />
-				</label>
-			{/if}
-			{#if kind === "email" || kind === "password"}
-				<button
-					class="visibility-control"
-					type="button"
-					onclick={() => (visible = !visible)}>
-					{#if visible}<EyeSlashIcon size={16} aria-hidden="true" /> Hide passwords{:else}<EyeIcon
-							size={16}
-							aria-hidden="true" /> Show passwords{/if}
-				</button>
-			{/if}
-		{/if}
-
-		{#if error}
-			<div class="modal-error" role="alert">{error}</div>
-		{/if}
-
-		<div class="modal-actions">
-			{#if phase === "confirm"}
 				<button
 					type="button"
+					aria-label={`Close ${titles[kind].toLowerCase()}`}
 					disabled={pending}
-					onclick={() => (phase = "edit")}>Back</button>
-			{:else}
-				<button type="button" disabled={pending} onclick={close}>Cancel</button>
-			{/if}
-			<button class="primary-action" type="submit" disabled={!ready || pending}>
-				{#if pending}
-					{kind === "pin" ? "Unlocking…" : "Saving…"}
-				{:else if phase === "confirm" || kind === "pin"}
-					{kind === "pin" ? "Unlock" : titles[kind]}
+					onclick={close}>
+					<XIcon size={16} aria-hidden="true" />
+				</button>
+			</div>
+
+			{#if phase === "confirm"}
+				{#if kind === "displayName"}
+					<p>The new display name will be “{value.trim()}”.</p>
+					<div class="modal-warning">
+						You can't change the display name again for 7 days.
+					</div>
+				{:else if kind === "email"}
+					<p>The new email will be {value.trim()}.</p>
+					<div class="modal-note">
+						Roblox sends a verification email to the new address.
+					</div>
 				{:else}
-					Continue
+					<div class="modal-warning">
+						{account.hasSavedPassword
+							? "The saved password in your vault will also be updated."
+							: "The new password will not be saved in the vault. Store it somewhere safe before you continue."}
+					</div>
 				{/if}
-			</button>
-		</div>
-	</form>
+			{:else}
+				{#if kind === "displayName"}
+					<label class="modal-field">
+						<span>New display name</span>
+						<input
+							bind:value
+							autocomplete="off"
+							spellcheck="false"
+							disabled={pending} />
+					</label>
+					<div class="modal-warning">
+						After you change it, you can't change it again for 7 days.
+					</div>
+				{:else if kind === "email"}
+					<label class="modal-field">
+						<span>New email</span>
+						<input
+							bind:value
+							type="email"
+							autocomplete="off"
+							spellcheck="false"
+							disabled={pending} />
+					</label>
+				{:else if kind === "pin"}
+					<label class="modal-field">
+						<span>PIN</span>
+						<input
+							bind:value
+							inputmode="numeric"
+							maxlength="4"
+							autocomplete="off"
+							disabled={pending} />
+					</label>
+				{/if}
+				{#if kind === "email" || kind === "password"}
+					<label class="modal-field">
+						<span
+							>{kind === "email" ? "Password" : "Current password"}</span>
+						<input
+							bind:value={password}
+							type={visible ? "text" : "password"}
+							autocomplete="off"
+							disabled={pending} />
+					</label>
+				{/if}
+				{#if kind === "password"}
+					<label class="modal-field">
+						<span>New password</span>
+						<input
+							bind:value={newPassword}
+							type={visible ? "text" : "password"}
+							autocomplete="off"
+							disabled={pending} />
+					</label>
+					<label class="modal-field">
+						<span>Confirm new password</span>
+						<input
+							bind:value={confirmation}
+							type={visible ? "text" : "password"}
+							autocomplete="off"
+							aria-invalid={confirmation !== "" &&
+								confirmation !== newPassword}
+							disabled={pending} />
+					</label>
+				{/if}
+				{#if kind === "email" || kind === "password"}
+					<button
+						class="visibility-control"
+						type="button"
+						onclick={() => (visible = !visible)}>
+						{#if visible}<EyeSlashIcon size={16} aria-hidden="true" /> Hide passwords{:else}<EyeIcon
+								size={16}
+								aria-hidden="true" /> Show passwords{/if}
+					</button>
+				{/if}
+			{/if}
+
+			{#if error}
+				<div class="modal-error" role="alert">{error}</div>
+			{/if}
+
+			<div class="modal-actions">
+				{#if phase === "confirm"}
+					<button
+						type="button"
+						disabled={pending}
+						onclick={() => (phase = "edit")}>Back</button>
+				{:else}
+					<button type="button" disabled={pending} onclick={close}
+						>Cancel</button>
+				{/if}
+				<button
+					class="primary-action"
+					type="submit"
+					disabled={!ready || pending}>
+					{#if pending}
+						{kind === "pin" ? "Unlocking…" : "Saving…"}
+					{:else if phase === "confirm" || kind === "pin"}
+						{kind === "pin" ? "Unlock" : titles[kind]}
+					{:else}
+						Continue
+					{/if}
+				</button>
+			</div>
+		</form>
+	</div>
 </div>

@@ -18,7 +18,7 @@
 		preview = $state<ImportPreview | null>(null),
 		selectedIndexes = $state<number[]>([]),
 		operation = $state<"validate" | "save" | null>(null),
-		form = $state<HTMLFormElement>(),
+		card = $state<HTMLDivElement>(),
 		selectedCount = $derived(selectedIndexes.length),
 		selectedUpdateCount = $derived(
 			selectedIndexes.filter((index) =>
@@ -101,7 +101,7 @@
 			preview = await store.validateCookies(cookieInput)
 			selectedIndexes = defaultSelectedIndexes(preview)
 			if (!preview) {
-				replayValidationNudge(form)
+				replayValidationNudge(card)
 			}
 		} finally {
 			operation = null
@@ -233,79 +233,86 @@
 </script>
 
 <div class="modal-backdrop" in:modalBackdropIn out:modalBackdropOut>
-	<form
-		novalidate
+	<div
 		class="modal-card cookie-card"
-		bind:this={form}
+		role="dialog"
+		aria-modal="true"
+		aria-labelledby="add-account-title"
+		bind:this={card}
 		use:modalFocus
 		in:modalCardIn
-		out:modalCardOut
-		onsubmit={(event) => {
-			event.preventDefault()
-			void validate()
-		}}>
-		<div class="modal-heading">
-			<div>
-				<h2>Paste cookies</h2>
-				<p>
-					Paste one .ROBLOSECURITY cookie per line. Each line can contain a
-					raw value, cookie pair, or Cookie header.
-				</p>
-			</div>
-			<button
-				type="button"
-				aria-label="Close add account dialog"
-				disabled={store.busy}
-				onclick={close}>
-				<XIcon size={17} aria-hidden="true" />
-			</button>
-		</div>
-		{#if store.error}
-			<div class="modal-error" role="alert">
-				{store.error}
-			</div>
-		{/if}
-		<label class="modal-field">
-			<span>.ROBLOSECURITY cookies <b>Required</b></span>
-			<textarea
-				value={cookieInput}
-				autocomplete="off"
-				spellcheck="false"
-				placeholder="Paste one cookie per line"
-				disabled={store.busy}
-				required
-				oninput={(event) => updateInput(event.currentTarget.value)}></textarea>
-		</label>
-		{#if preview}
-			<CandidateList
-				items={candidateItems}
-				selected={selectedIndexes.map(String)}
-				selectionTotal={preview.readyCount}
-				disabled={store.busy}
-				onToggle={(id, selected) => toggleAccount(Number(id), selected)}
-				onToggleAll={toggleAllAccounts} />
-		{/if}
-		<div class="modal-actions">
-			<button type="button" disabled={store.busy} onclick={close}>Cancel</button>
-			{#if preview?.batchId && preview.readyCount > 0}
-				<button type="submit" disabled={store.busy}>
-					{operation === "validate" ? "Validating…" : "Validate"}
-				</button>
+		out:modalCardOut>
+		<form
+			novalidate
+			onsubmit={(event) => {
+				event.preventDefault()
+				void validate()
+			}}>
+			<div class="modal-heading">
+				<div>
+					<h2 id="add-account-title">Paste cookies</h2>
+					<p>
+						Paste one .ROBLOSECURITY cookie per line. Each line can contain
+						a raw value, cookie pair, or Cookie header.
+					</p>
+				</div>
 				<button
-					class="primary-action"
 					type="button"
-					disabled={store.busy || selectedCount === 0}
-					onclick={() => void addValidated()}>
-					{saveActionLabel()}
+					aria-label="Close add account dialog"
+					disabled={store.busy}
+					onclick={close}>
+					<XIcon size={17} aria-hidden="true" />
 				</button>
-			{:else}
-				<button
-					class="primary-action"
-					type="submit"
-					disabled={store.busy || !cookieInput.trim()}>
-					{operation === "validate" ? "Validating…" : "Validate"}
-				</button>
+			</div>
+			{#if store.error}
+				<div class="modal-error" role="alert">
+					{store.error}
+				</div>
 			{/if}
-		</div>
-	</form>
+			<label class="modal-field">
+				<span>.ROBLOSECURITY cookies <b>Required</b></span>
+				<textarea
+					value={cookieInput}
+					autocomplete="off"
+					spellcheck="false"
+					placeholder="Paste one cookie per line"
+					disabled={store.busy}
+					required
+					oninput={(event) => updateInput(event.currentTarget.value)}
+				></textarea>
+			</label>
+			{#if preview}
+				<CandidateList
+					items={candidateItems}
+					selected={selectedIndexes.map(String)}
+					selectionTotal={preview.readyCount}
+					disabled={store.busy}
+					onToggle={(id, selected) => toggleAccount(Number(id), selected)}
+					onToggleAll={toggleAllAccounts} />
+			{/if}
+			<div class="modal-actions">
+				<button type="button" disabled={store.busy} onclick={close}
+					>Cancel</button>
+				{#if preview?.batchId && preview.readyCount > 0}
+					<button type="submit" disabled={store.busy}>
+						{operation === "validate" ? "Validating…" : "Validate"}
+					</button>
+					<button
+						class="primary-action"
+						type="button"
+						disabled={store.busy || selectedCount === 0}
+						onclick={() => void addValidated()}>
+						{saveActionLabel()}
+					</button>
+				{:else}
+					<button
+						class="primary-action"
+						type="submit"
+						disabled={store.busy || !cookieInput.trim()}>
+						{operation === "validate" ? "Validating…" : "Validate"}
+					</button>
+				{/if}
+			</div>
+		</form>
+	</div>
 </div>

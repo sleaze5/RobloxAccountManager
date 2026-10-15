@@ -34,8 +34,10 @@
 </script>
 
 <div class="modal-backdrop" in:modalBackdropIn out:modalBackdropOut>
-	<section
+	<div
 		class="modal-card confirm-card"
+		role="alertdialog"
+		aria-modal="true"
 		use:modalFocus
 		in:modalCardIn
 		out:modalCardOut
@@ -64,5 +66,5 @@
 				onclick={() => void lock()}
 				>{store.busy ? "Locking…" : "Lock vault"}</button>
 		</div>
-	</section>
+	</div>
 </div>

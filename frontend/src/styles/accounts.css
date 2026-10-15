@@ -320,12 +320,12 @@
 	top: 0;
 	bottom: 0;
 	left: 0;
-	width: 2px;
+	width: 3px;
 	background: transparent;
 }
 
 .account-row.selected .selection-mark {
-	background: var(--color-text-muted);
+	background: var(--color-accent-strong);
 }
 
 .account-drag-handle {
@@ -427,6 +427,11 @@
 .account-name small {
 	color: var(--color-text-faint);
 	font-size: var(--text-11);
+}
+
+.account-row:hover .account-name small,
+.account-row.selected .account-name small {
+	color: var(--color-text-muted);
 }
 
 .presence-dot {

@@ -112,28 +112,28 @@
 	</div>
 
 	{#if servers.error}
-		<div class="games-empty" role="alert">
+		<div class="empty-state" role="alert">
 			<WarningIcon size={27} aria-hidden="true" />
 			<h2>Servers are unavailable</h2>
 			<p>{servers.error}</p>
 			<button
-				class="control-button games-text-button"
+				class="control-button text-button"
 				type="button"
 				onclick={() => void servers.load()}>Try again</button>
 		</div>
 	{:else if !servers.page}
-		<div class="games-empty" role="status">
+		<div class="empty-state" role="status">
 			<CircleNotchIcon class="spinner" size={27} aria-hidden="true" />
 			<h2>Loading servers…</h2>
 		</div>
 	{:else if !loaded.length}
-		<div class="games-empty" role="status">
+		<div class="empty-state" role="status">
 			<HardDrivesIcon size={27} aria-hidden="true" />
 			{#if servers.pageNumber > 1}
 				<h2>No more servers</h2>
 				<p>The servers on this page closed. Go back to the first page.</p>
 				<button
-					class="control-button games-text-button"
+					class="control-button text-button"
 					type="button"
 					onclick={() => servers.first()}>First page</button>
 			{:else if servers.excludeFull}
@@ -291,14 +291,14 @@
 				</ol>
 			</div>
 		{:else}
-			<div class="games-empty" role="status">
+			<div class="empty-state" role="status">
 				<HardDrivesIcon size={27} aria-hidden="true" />
 				<h2>No servers on this page match</h2>
 				<p>
 					No server on this page reports a ping of {servers.maxPing} ms or less.
 				</p>
 				<button
-					class="control-button games-text-button"
+					class="control-button text-button"
 					type="button"
 					onclick={() => (servers.maxPing = 0)}>Show any ping</button>
 			</div>

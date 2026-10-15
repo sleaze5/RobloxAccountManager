@@ -16,9 +16,8 @@
 		copied = $state(false)
 	let copiedTimer = 0
 	const disabled = $derived(
-			store.selectedAccount.id === 0 || store.launching || !store.vault.unlocked,
-		),
-		menuID = $props.id()
+		store.selectedAccount.id === 0 || store.launching || !store.vault.unlocked,
+	)
 
 	$effect(() => {
 		if (disabled) {
@@ -74,9 +73,7 @@
 		type="submit"
 		bind:this={trigger}
 		{disabled}
-		aria-haspopup="menu"
-		aria-expanded={point !== null}
-		aria-controls={point ? menuID : undefined}
+		aria-keyshortcuts="Shift+F10"
 		oncontextmenu={(event) => {
 			event.preventDefault()
 			event.stopPropagation()
@@ -113,7 +110,6 @@
 			class="account-context-menu account-menu"
 			data-account-menu
 			bind:this={menu}
-			id={menuID}
 			role="menu"
 			tabindex="-1"
 			aria-label="Launch actions"

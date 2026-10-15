@@ -4,7 +4,8 @@
 
 	const gap = 6,
 		margin = 8,
-		openDelayMs = 90
+		openDelayMs = 500,
+		skipDelayMs = 300
 
 	type Side = "top" | "bottom" | "left" | "right"
 	interface Placement {
@@ -21,6 +22,7 @@
 		anchor: HTMLElement | null = null,
 		frame = 0,
 		ignoreFocusUntil = 0,
+		skipDelayUntil = 0,
 		openTimer = 0,
 		requestedSide: Side = "bottom",
 		tip: HTMLDivElement | undefined = $state()
@@ -68,6 +70,7 @@
 		alignEnd = placement.alignEnd
 		text = element.dataset.tooltip.trim()
 		strong = element.dataset.tooltipStrong?.trim() ?? ""
+		const delayMs = performance.now() < skipDelayUntil ? 0 : openDelayMs
 		openTimer = window.setTimeout(() => {
 			openTimer = 0
 			if (!anchor) {
@@ -77,7 +80,7 @@
 			visible = true
 			cancelAnimationFrame(frame)
 			frame = requestAnimationFrame(place)
-		}, openDelayMs)
+		}, delayMs)
 	}
 
 	function place(): void {
@@ -135,6 +138,7 @@
 	}
 
 	function hide(): void {
+		if (visible) skipDelayUntil = performance.now() + skipDelayMs
 		window.clearTimeout(openTimer)
 		openTimer = 0
 		cancelAnimationFrame(frame)
@@ -160,6 +164,7 @@
 	function handlePointerDown(): void {
 		ignoreFocusUntil = performance.now() + openDelayMs
 		hide()
+		skipDelayUntil = 0
 	}
 
 	onDestroy(hide)

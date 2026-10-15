@@ -161,8 +161,10 @@
 
 {#if pendingAction && effects}
 	<div class="modal-backdrop" in:modalBackdropIn out:modalBackdropOut>
-		<section
+		<div
 			class="modal-card confirm-card"
+			role="alertdialog"
+			aria-modal="true"
 			use:modalFocus
 			in:modalCardIn
 			out:modalCardOut
@@ -209,6 +211,6 @@
 					onclick={() => void runAction(pendingAction!)}
 					>{pendingAction === "remove" ? "Remove" : "Redownload"}</button>
 			</div>
-		</section>
+		</div>
 	</div>
 {/if}

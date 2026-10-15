@@ -71,7 +71,7 @@
 	background: transparent;
 	color: var(--color-text-muted);
 	font-size: var(--text-12);
-	font-weight: var(--font-semibold);
+	font-weight: var(--font-normal);
 	text-align: left;
 	transition:
 		background-color var(--duration-fast) var(--ease-standard),
@@ -938,8 +938,6 @@
 	color: var(--color-text-faint);
 	font-size: var(--text-10-5);
 	font-weight: var(--font-semibold);
-	letter-spacing: 0.04em;
-	text-transform: uppercase;
 }
 
 .settings-region .settings-select {

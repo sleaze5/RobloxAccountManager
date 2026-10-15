@@ -55,59 +55,66 @@
 		if (event.target === event.currentTarget) onClose()
 	}}
 	role="presentation">
-	<form
-		novalidate
+	<div
 		class="modal-card launch-data-card"
+		role="dialog"
+		aria-modal="true"
 		use:modalFocus
 		in:modalCardIn
 		out:modalCardOut
-		aria-labelledby="launch-data-title"
-		onsubmit={(event) => {
-			event.preventDefault()
-			handleSave()
-		}}>
-		<div class="modal-heading compact-heading">
-			<div>
-				<h2 id="launch-data-title">Launch data</h2>
-				<p>
-					Custom launch data overrides data in the link. Leave empty to use
-					the link's data.
-				</p>
-			</div>
-			<button
-				type="button"
-				aria-label="Close launch data dialog"
-				onclick={onClose}>
-				<XIcon size={17} aria-hidden="true" />
-			</button>
-		</div>
-		<label class="modal-field launch-data-field">
-			<span>Launch data</span>
-			<textarea
-				bind:this={textarea}
-				bind:value={draft}
-				class="launch-data-textarea"
-				placeholder="Enter launch data…"
-				wrap="soft"
-				spellcheck="false"
-				autocomplete="off"
-				disabled={store.launching}></textarea>
-		</label>
-		<div class="launch-data-footer">
-			<span class="launch-data-size" aria-live="polite">
-				{formatCompactBytes(byteSize)}
-			</span>
-			<div class="modal-actions">
+		aria-labelledby="launch-data-title">
+		<form
+			novalidate
+			onsubmit={(event) => {
+				event.preventDefault()
+				handleSave()
+			}}>
+			<div class="modal-heading compact-heading">
+				<div>
+					<h2 id="launch-data-title">Launch data</h2>
+					<p>
+						Custom launch data overrides data in the link. Leave empty to
+						use the link's data.
+					</p>
+				</div>
 				<button
 					type="button"
-					disabled={draft.length === 0 || store.launching}
-					onclick={handleClear}>
-					Clear
-				</button>
-				<button class="primary-action" type="submit" disabled={store.launching}>
-					Save
+					aria-label="Close launch data dialog"
+					onclick={onClose}>
+					<XIcon size={17} aria-hidden="true" />
 				</button>
 			</div>
-		</div>
-	</form>
+			<label class="modal-field launch-data-field">
+				<span>Launch data</span>
+				<textarea
+					bind:this={textarea}
+					bind:value={draft}
+					class="launch-data-textarea"
+					placeholder="Enter launch data…"
+					wrap="soft"
+					spellcheck="false"
+					autocomplete="off"
+					disabled={store.launching}></textarea>
+			</label>
+			<div class="launch-data-footer">
+				<span class="launch-data-size" aria-live="polite">
+					{formatCompactBytes(byteSize)}
+				</span>
+				<div class="modal-actions">
+					<button
+						type="button"
+						disabled={draft.length === 0 || store.launching}
+						onclick={handleClear}>
+						Clear
+					</button>
+					<button
+						class="primary-action"
+						type="submit"
+						disabled={store.launching}>
+						Save
+					</button>
+				</div>
+			</div>
+		</form>
+	</div>
 </div>

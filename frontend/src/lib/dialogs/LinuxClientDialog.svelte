@@ -74,69 +74,74 @@
 		if (event.target === event.currentTarget) onClose()
 	}}
 	role="presentation">
-	<form
-		novalidate
+	<div
 		class="modal-card launch-data-card"
+		role="dialog"
+		aria-modal="true"
 		use:modalFocus
 		in:modalCardIn
 		out:modalCardOut
 		aria-labelledby="linux-client-dialog-title"
-		aria-busy={saving}
-		onsubmit={(event) => {
-			event.preventDefault()
-			void save()
-		}}>
-		<div class="modal-heading compact-heading">
-			<div>
-				<h2 id="linux-client-dialog-title">Linux client</h2>
-				<p>Choose the client that joins games.</p>
+		aria-busy={saving}>
+		<form
+			novalidate
+			onsubmit={(event) => {
+				event.preventDefault()
+				void save()
+			}}>
+			<div class="modal-heading compact-heading">
+				<div>
+					<h2 id="linux-client-dialog-title">Linux client</h2>
+					<p>Choose the client that joins games.</p>
+				</div>
+				<button
+					class="icon-action"
+					type="button"
+					aria-label="Close Linux client dialog"
+					onclick={onClose}>
+					<XIcon size={17} aria-hidden="true" />
+				</button>
 			</div>
-			<button
-				class="icon-action"
-				type="button"
-				aria-label="Close Linux client dialog"
-				onclick={onClose}>
-				<XIcon size={17} aria-hidden="true" />
-			</button>
-		</div>
-		<div
-			class="settings-radio-options"
-			role="radiogroup"
-			aria-labelledby="linux-client-dialog-title">
-			{#each options as option (option.value)}
-				<label
-					class="settings-radio-option"
-					class:disabled={saving || !option.installed}
-					data-tooltip={option.description || undefined}>
-					<span class="settings-radio">
-						<input
-							type="radio"
-							name={radioName}
-							bind:group={selection}
-							value={option.value}
-							disabled={saving || !option.installed} />
-						<span aria-hidden="true"></span>
-					</span>
-					<span class="settings-radio-label">{option.label}</span>
-					{#if !option.installed}
-						<small class="linux-client-missing">Not installed</small>
-					{/if}
-				</label>
-			{/each}
-		</div>
-		{#if !installed}
-			<div class="modal-note">Install Sober or Mocktail to join games.</div>
-		{/if}
-		{#if error}
-			<div class="modal-error" role="alert">{error}</div>
-		{/if}
-		<div class="modal-actions">
-			<button type="button" disabled={saving} onclick={onClose}>Cancel</button>
-			<button class="primary-action" type="submit" disabled={saving}>
-				Save
-			</button>
-		</div>
-	</form>
+			<div
+				class="settings-radio-options"
+				role="radiogroup"
+				aria-labelledby="linux-client-dialog-title">
+				{#each options as option (option.value)}
+					<label
+						class="settings-radio-option"
+						class:disabled={saving || !option.installed}
+						data-tooltip={option.description || undefined}>
+						<span class="settings-radio">
+							<input
+								type="radio"
+								name={radioName}
+								bind:group={selection}
+								value={option.value}
+								disabled={saving || !option.installed} />
+							<span aria-hidden="true"></span>
+						</span>
+						<span class="settings-radio-label">{option.label}</span>
+						{#if !option.installed}
+							<small class="linux-client-missing">Not installed</small>
+						{/if}
+					</label>
+				{/each}
+			</div>
+			{#if !installed}
+				<div class="modal-note">Install Sober or Mocktail to join games.</div>
+			{/if}
+			{#if error}
+				<div class="modal-error" role="alert">{error}</div>
+			{/if}
+			<div class="modal-actions">
+				<button type="button" disabled={saving} onclick={onClose}
+					>Cancel</button>
+				<button class="primary-action" type="submit" disabled={saving}>
+					Save
+				</button>
+			</div>
+		</form>
+	</div>
 </div>
 
 <style>

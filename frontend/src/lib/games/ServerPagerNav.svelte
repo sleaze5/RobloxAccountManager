@@ -28,7 +28,7 @@
 		<CaretDoubleLeftIcon size={17} aria-hidden="true" />
 	</button>
 	<button
-		class="control-button games-text-button"
+		class="control-button text-button"
 		type="button"
 		disabled={pager.loading || pager.pageNumber < 2}
 		onclick={() => pager.previous()}>
@@ -37,7 +37,7 @@
 	<span class="game-servers-page-number" aria-current="page"
 		>Page {pager.pageNumber}</span>
 	<button
-		class="control-button games-text-button"
+		class="control-button text-button"
 		type="button"
 		disabled={pager.loading || !pager.hasNext}
 		onclick={() => pager.next()}>
