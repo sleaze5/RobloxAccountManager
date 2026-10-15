@@ -26,7 +26,7 @@
 		balance = $derived(
 			robux === null || robux === undefined
 				? loading
-					? "…"
+					? "..."
 					: "Unavailable"
 				: amount(robux),
 		),

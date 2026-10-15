@@ -48,7 +48,7 @@
 {#if error}
 	<div class="settings-inline-error" role="alert">{error}</div>
 {:else if !report || !build}
-	<p class="about-empty" role="status">Loading…</p>
+	<p class="about-empty" role="status">Loading...</p>
 {:else}
 	<section class="settings-section" aria-labelledby="about-build-title">
 		<h3 id="about-build-title">Build</h3>

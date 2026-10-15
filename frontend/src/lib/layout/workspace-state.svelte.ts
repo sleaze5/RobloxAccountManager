@@ -8,7 +8,6 @@ export interface AccountContextMenu {
 }
 
 export interface ImageContextMenu {
-	accountId: number
 	imageUrl: string
 	x: number
 	y: number
@@ -60,22 +59,25 @@ export class WorkspaceState {
 		}
 	}
 
-	openImageContextMenu(
-		event: MouseEvent | KeyboardEvent,
-		accountId: number,
-		imageUrl: string,
-	): void {
+	openImageContextMenu(event: MouseEvent | KeyboardEvent, imageUrl: string): void {
 		event.preventDefault()
 		event.stopPropagation()
 		this.closeAccountMenus()
-		if (!imageUrl || accountId === 0) return
+		if (!imageUrl) return
 		const bounds = (event.currentTarget as HTMLElement).getBoundingClientRect(),
 			atPointer = event instanceof MouseEvent && event.type === "contextmenu"
 		this.imageContextMenu = {
-			accountId,
 			imageUrl,
 			x: atPointer ? event.clientX : bounds.left,
 			y: atPointer ? event.clientY : bounds.bottom,
+		}
+	}
+
+	toggleImageContextMenu(event: MouseEvent, imageUrl: string): void {
+		if (this.imageContextMenu?.imageUrl === imageUrl) {
+			this.closeAccountMenus()
+		} else {
+			this.openImageContextMenu(event, imageUrl)
 		}
 	}
 

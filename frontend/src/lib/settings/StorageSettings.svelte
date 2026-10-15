@@ -62,6 +62,7 @@
 			notifications.show({
 				id: "clipboard-copy",
 				title: "Copied",
+				tone: "success",
 				message: "Data folder path copied to clipboard.",
 			})
 		} catch {

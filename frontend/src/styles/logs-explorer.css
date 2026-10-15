@@ -23,6 +23,7 @@
 .logs-explorer-session-list {
 	min-height: 0;
 	overflow-y: auto;
+	scrollbar-gutter: stable;
 }
 
 .logs-explorer-session-row {

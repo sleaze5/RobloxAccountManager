@@ -110,12 +110,12 @@ func (service *Users) Birthdate(ctx context.Context, accountID, version int64) (
 
 // Labels from Roblox's account settings translations for Label.AgeGroup* keys.
 var ageGroupLabels = map[string]string{
-	"Label.AgeGroupUnder9": "5–8",
-	"Label.AgeGroup9To12":  "9–12",
-	"Label.AgeGroup13To15": "13–15",
-	"Label.AgeGroup16To17": "16–17",
-	"Label.AgeGroup18To20": "18–20",
-	"Label.AgeGroup18To24": "18–24",
+	"Label.AgeGroupUnder9": "5-8",
+	"Label.AgeGroup9To12":  "9-12",
+	"Label.AgeGroup13To15": "13-15",
+	"Label.AgeGroup16To17": "16-17",
+	"Label.AgeGroup18To20": "18-20",
+	"Label.AgeGroup18To24": "18-24",
 	"Label.AgeGroupOver21": "21+",
 	"Label.AgeGroupOver25": "25+",
 }

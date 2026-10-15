@@ -40,7 +40,7 @@
 			{
 				value: "",
 				label: stats.loading
-					? "Loading regions…"
+					? "Loading regions..."
 					: stats.failed
 						? "Regions unavailable"
 						: "Any region",
@@ -116,7 +116,7 @@
 	{:else if !servers.page}
 		<div class="empty-state" role="status">
 			<CircleNotchIcon class="spinner" size={27} aria-hidden="true" />
-			<h2>Loading servers…</h2>
+			<h2>Loading servers...</h2>
 		</div>
 	{:else if !shown.length}
 		<div class="empty-state" role="status">
@@ -144,15 +144,15 @@
 	{:else}
 		<p class="game-servers-summary" role="status">
 			<span>Page {servers.pageNumber}</span>
-			<span aria-hidden="true">·</span>
+			<span aria-hidden="true">-</span>
 			<span
 				>{numbers.format(shown.length)}
 				{shown.length === 1 ? "server" : "servers"}</span>
 			{#if stats.stats?.totalServers}
-				<span aria-hidden="true">·</span>
+				<span aria-hidden="true">-</span>
 				<span>{numbers.format(stats.stats.totalServers)} recorded</span>
 			{/if}
-			<span aria-hidden="true">·</span>
+			<span aria-hidden="true">-</span>
 			<span>Some may have closed</span>
 		</p>
 		<div
@@ -191,14 +191,14 @@
 						{:else}
 							<span
 								class="game-server-faint numeric"
-								aria-label="Datacenter unknown">—</span>
+								aria-label="Datacenter unknown">-</span>
 						{/if}
 						{#if server.address}
 							<span class="game-server-job">{server.address}</span>
 						{:else}
 							<span
 								class="game-server-faint"
-								aria-label="IP address unknown">—</span>
+								aria-label="IP address unknown">-</span>
 						{/if}
 						<ServerVersion version={server.placeVersion} {newestVersion} />
 						<ServerUptime firstSeenMs={server.firstSeenMs} />

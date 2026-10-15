@@ -17,7 +17,6 @@ export interface Account {
 	tags: TagView[]
 	createdAtMs: number
 	favorite: boolean
-	needsAttention: boolean
 	state: SessionState
 	stateReason: string
 	cookieExpiresAtMs: number | null
@@ -42,7 +41,6 @@ export const emptyAccount: Account = {
 	id: 0,
 	importedAtMs: 0,
 	lastValidatedAtMs: null,
-	needsAttention: false,
 	presence: offlinePresence(0),
 	rotatedAtMs: null,
 	state: SessionState.StateUnknown,
@@ -70,7 +68,6 @@ export function accountFromView(
 		id: record.id,
 		importedAtMs: record.importedAtMs,
 		lastValidatedAtMs: record.lastValidatedAtMs ?? null,
-		needsAttention: sessionNeedsAttention(record.state),
 		presence: presence ?? offlinePresence(record.robloxUserId),
 		rotatedAtMs: record.rotatedAtMs ?? null,
 		state: record.state,
@@ -149,14 +146,6 @@ export function presenceTooltip(presence: UserPresence): string {
 	return detail ? `${label}: ${detail}` : label
 }
 
-export function isOnlinePresence(type: PresenceType): boolean {
-	return (
-		type === PresenceType.PresenceTypeOnline ||
-		type === PresenceType.PresenceTypeInGame ||
-		type === PresenceType.PresenceTypeInStudio
-	)
-}
-
 export function hasTag(account: Account, tagId: number): boolean {
 	return account.tags.some((tag) => tag.id === tagId)
 }
@@ -167,12 +156,4 @@ export function getCustomTags(account: Account): TagView[] {
 
 function offlinePresence(userId: number): UserPresence {
 	return { userId, userPresenceType: PresenceType.PresenceTypeOffline }
-}
-
-function sessionNeedsAttention(state: SessionState): boolean {
-	return !(
-		state === SessionState.StateActive ||
-		state === SessionState.StateUnknown ||
-		state === SessionState.StateDisabled
-	)
 }

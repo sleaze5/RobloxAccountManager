@@ -317,7 +317,7 @@
 							!changed ||
 							validationErrors.length > 0}>
 						<FloppyDiskIcon size={15} aria-hidden="true" />
-						{store.busyTimestampFormats ? "Saving…" : "Save changes"}
+						{store.busyTimestampFormats ? "Saving..." : "Save changes"}
 					</button>
 				</div>
 			{/if}

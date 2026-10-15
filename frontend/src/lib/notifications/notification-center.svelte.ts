@@ -4,8 +4,11 @@ export interface NotificationAction {
 	onClick: () => void | Promise<void>
 }
 
+export type NotificationTone = "info" | "success" | "warning" | "error"
+
 export interface NotificationInput {
 	id?: string
+	tone?: NotificationTone
 	title: string
 	message: string
 	actions?: NotificationAction[]
@@ -15,6 +18,7 @@ export interface NotificationInput {
 
 export interface AppNotification {
 	id: string
+	tone: NotificationTone
 	title: string
 	message: string
 	actions: NotificationAction[]
@@ -36,6 +40,7 @@ export class NotificationCenter {
 				id,
 				message: input.message,
 				title: input.title,
+				tone: input.tone ?? "info",
 			}
 		this.items = [...this.items.filter((item) => item.id !== id), notification]
 		this.#clearTimer(id)

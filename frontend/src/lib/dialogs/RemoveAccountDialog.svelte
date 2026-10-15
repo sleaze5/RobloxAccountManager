@@ -51,7 +51,7 @@
 							size={14}
 							weight="fill"
 							aria-hidden="true" />{/if}
-					<span>?</span>
+					<span>(@{account.username})?</span>
 				</h2>
 				<p>This removes the account and its encrypted session.</p>
 			</div>
@@ -75,7 +75,7 @@
 				type="button"
 				disabled={store.busy}
 				onclick={() => void remove()}>
-				{store.busy ? "Removing…" : "Remove"}
+				{store.busy ? "Removing..." : "Remove"}
 			</button>
 		</div>
 	</div>

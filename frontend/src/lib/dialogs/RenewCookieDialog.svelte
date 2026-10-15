@@ -89,7 +89,7 @@
 				aria-live="polite">
 				{#if pending}
 					<CircleNotchIcon size={18} class="spinner" aria-hidden="true" />
-					<span>Renewing the cookie and saving it…</span>
+					<span>Renewing the cookie and saving it...</span>
 				{:else if error}
 					<span>Renewal could not be confirmed.</span>
 				{:else}
@@ -114,7 +114,7 @@
 					onclick={() => void renew()}>Renew cookie</button>
 			{:else}
 				<button type="button" disabled={pending} onclick={onClose}
-					>{pending ? "Renewing…" : "Close"}</button>
+					>{pending ? "Renewing..." : "Close"}</button>
 			{/if}
 		</div>
 	</div>

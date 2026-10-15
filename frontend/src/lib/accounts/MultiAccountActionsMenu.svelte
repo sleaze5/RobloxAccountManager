@@ -57,7 +57,7 @@
 	</div>
 </div>
 <div role="group" aria-label="Copy selected account details">
-	<div class="account-menu-heading" aria-hidden="true">Copy · one per line</div>
+	<div class="account-menu-heading" aria-hidden="true">Copy - one per line</div>
 	{#each copyFields as item (item.field)}
 		<button
 			type="button"

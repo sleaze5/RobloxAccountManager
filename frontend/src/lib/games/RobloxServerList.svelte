@@ -124,7 +124,7 @@
 	{:else if !servers.page}
 		<div class="empty-state" role="status">
 			<CircleNotchIcon class="spinner" size={27} aria-hidden="true" />
-			<h2>Loading servers…</h2>
+			<h2>Loading servers...</h2>
 		</div>
 	{:else if !loaded.length}
 		<div class="empty-state" role="status">
@@ -147,13 +147,13 @@
 	{:else}
 		<p class="game-servers-summary" role="status">
 			<span>Page {servers.pageNumber}</span>
-			<span aria-hidden="true">·</span>
+			<span aria-hidden="true">-</span>
 			<span
 				>{shown.length === loaded.length
 					? numbers.format(loaded.length)
 					: `${numbers.format(shown.length)} of ${numbers.format(loaded.length)}`}
 				{loaded.length === 1 ? "server" : "servers"}</span>
-			<span aria-hidden="true">·</span>
+			<span aria-hidden="true">-</span>
 			<span
 				>{numbers.format(players)}
 				{players === 1 ? "player" : "players"}</span>
@@ -221,13 +221,13 @@
 								{#if images.length && hidden > 0}
 									<span class="game-server-more">+{hidden}</span>
 								{:else if !images.length}
-									<span class="game-server-faint">—</span>
+									<span class="game-server-faint">-</span>
 								{/if}
 							</div>
 							{#if server.pingMs === null}
 								<span
 									class="game-server-faint numeric"
-									aria-label="Ping unavailable">—</span>
+									aria-label="Ping unavailable">-</span>
 							{:else}
 								<span
 									class="game-server-number numeric"
@@ -242,7 +242,7 @@
 							{#if server.languageMatches === null}
 								<span
 									class="game-server-faint numeric"
-									aria-label="Language matches unavailable">—</span>
+									aria-label="Language matches unavailable">-</span>
 							{:else}
 								{@const speakers = `${server.languageMatches} ${server.languageMatches === 1 ? "player speaks" : "players speak"} your language`}
 								<span
@@ -254,7 +254,7 @@
 							{#if server.friends === null}
 								<span
 									class="game-server-faint numeric"
-									aria-label="Friends unavailable">—</span>
+									aria-label="Friends unavailable">-</span>
 							{:else}
 								<span
 									class="game-server-number numeric"
@@ -271,7 +271,7 @@
 									<span
 										class="game-server-faint"
 										data-tooltip="RoValra has not seen this server yet"
-										>—</span>
+										>-</span>
 								{/if}
 								<ServerVersion
 									version={server.record?.placeVersion ?? 0}

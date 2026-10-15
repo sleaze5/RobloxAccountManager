@@ -12,6 +12,8 @@
 }
 
 .launch-resizer {
+	position: relative;
+	z-index: 3;
 	display: grid;
 	width: 100%;
 	height: var(--resizer-size);
@@ -21,6 +23,12 @@
 	background: var(--color-surface);
 	cursor: row-resize;
 	touch-action: none;
+}
+
+.launch-resizer::before {
+	position: absolute;
+	inset: calc(var(--resizer-size) - var(--resizer-hit-size)) 0 0;
+	content: "";
 }
 
 .drawer-header {

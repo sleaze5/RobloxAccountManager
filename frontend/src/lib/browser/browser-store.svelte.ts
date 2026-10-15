@@ -103,6 +103,7 @@ export class BrowserStore {
 			notifications.show({
 				id: `browser-launch-${sessionId}`,
 				title: "Game launch failed",
+				tone: "error",
 				message,
 			})
 		})
@@ -165,6 +166,7 @@ export class BrowserStore {
 				id: "browser-runtime-download",
 				message: "Chrome for Testing is installed and ready to use.",
 				title: "Browser ready",
+				tone: "success",
 			})
 		} else if (
 			next.runtime.error &&
@@ -180,6 +182,7 @@ export class BrowserStore {
 				id: "browser-runtime-download",
 				message: next.runtime.error,
 				title: "Browser download failed",
+				tone: "error",
 			})
 		}
 	}
@@ -204,6 +207,7 @@ export class BrowserStore {
 					id: `browser-detached-${session.id}`,
 					message: session.error,
 					title: "Account browser detached",
+					tone: "warning",
 				})
 			}
 		}
@@ -220,6 +224,7 @@ export class BrowserStore {
 				id: "browser-runtime-damaged",
 				message: "The installed browser is invalid and must be redownloaded.",
 				title: "Browser needs repair",
+				tone: "warning",
 			})
 		} else if (next.runtime.status !== RuntimeStatus.RuntimeDamaged) {
 			this.#runtimeDamageNotified = false
@@ -237,6 +242,7 @@ export class BrowserStore {
 				id: "browser-cleanup",
 				message: "A temporary browser profile could not be removed.",
 				title: "Browser cleanup needed",
+				tone: "warning",
 			})
 		} else if ((next.cleanup ?? []).length === 0) {
 			this.#cleanupNotified = false
@@ -269,6 +275,7 @@ export class BrowserStore {
 				id: `browser-account-${accountId}`,
 				message: errorMessage(error, browserOperationError),
 				title: "Browser could not open",
+				tone: "error",
 			})
 		}
 	}
@@ -302,6 +309,7 @@ export class BrowserStore {
 				id: `browser-focus-${id}`,
 				message: errorMessage(error, browserOperationError),
 				title: "Browser could not be focused",
+				tone: "error",
 			})
 		}
 	}

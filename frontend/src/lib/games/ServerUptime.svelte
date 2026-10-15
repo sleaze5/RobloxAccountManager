@@ -14,5 +14,5 @@
 	<span class="game-server-number numeric" aria-label={tooltip} data-tooltip={tooltip}
 		>{uptime}</span>
 {:else}
-	<span class="game-server-faint numeric" aria-label="Uptime unknown">—</span>
+	<span class="game-server-faint numeric" aria-label="Uptime unknown">-</span>
 {/if}

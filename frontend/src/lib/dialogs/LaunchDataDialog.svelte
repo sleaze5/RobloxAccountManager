@@ -90,7 +90,7 @@
 					bind:this={textarea}
 					bind:value={draft}
 					class="launch-data-textarea"
-					placeholder="Enter launch data…"
+					placeholder="Enter launch data..."
 					wrap="soft"
 					spellcheck="false"
 					autocomplete="off"

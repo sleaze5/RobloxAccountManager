@@ -96,12 +96,14 @@
 		if (location.moveError) {
 			notificationCenter.show({
 				title: location.moved ? "Old data not removed" : "Data not moved",
+				tone: location.moved ? "warning" : "error",
 				message: location.moveError,
 				durationMs: 0,
 			})
 		} else if (location.moved) {
 			notificationCenter.show({
 				title: "Data moved",
+				tone: "success",
 				message: "The vault, backups, and settings are in the new folder.",
 			})
 		}
@@ -328,10 +330,15 @@
 		} else {
 			message = `Updated ${summary.updated} saved account ${summary.updated === 1 ? "cookie" : "cookies"}.`
 		}
-		notificationCenter.show({ message, title: "Accounts saved" })
+		notificationCenter.show({ message, title: "Accounts saved", tone: "success" })
 	}
 
 	const pageOrder = ["accounts", "games", "logs-explorer"] as const
+	const pageLabels = {
+		"accounts": "Accounts",
+		"games": "Games",
+		"logs-explorer": "Logs Explorer",
+	} satisfies Record<(typeof pageOrder)[number], string>
 
 	function cyclePage(step: 1 | -1): void {
 		if (activeDialog !== null || activePage === "settings") return
@@ -399,6 +406,7 @@
 			{store}
 			browser={browserStore}
 			notifications={notificationCenter}
+			backLabel={`Back to ${pageLabels[settingsReturnPage]}`}
 			onBack={() => (activePage = settingsReturnPage)}
 			onLock={() => void openLockVault()} />
 	{:else}
@@ -419,6 +427,7 @@
 		{#if activePage === "games"}
 			<GamesPage
 				store={games}
+				{workspace}
 				onFillLaunch={(placeId, jobId) =>
 					void fillGameLaunchOptions(placeId, jobId)} />
 		{:else if activePage === "logs-explorer"}
@@ -459,7 +468,8 @@
 												jobId,
 											})}
 										onSearchPlace={(placeId) =>
-											void searchGames(`id:${placeId}`)} />
+											void searchGames(`id:${placeId}`)}
+										onReplaceCookie={openAddAccount} />
 								</div>
 							{/key}
 						{/if}

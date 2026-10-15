@@ -76,12 +76,12 @@
 				<CaretRightIcon size={18} aria-hidden="true" />
 			</button>
 			<UsersIcon size={18} aria-hidden="true" />
-			<span>{store.accounts.length}</span>
+			<span>{store.accountTotal}</span>
 		</div>
 	{:else}
 		<div class="explorer-controls">
 			<div class="account-title">
-				<h1>Accounts <span>({store.accounts.length})</span></h1>
+				<h1>Accounts <span>({store.accountTotal})</span></h1>
 				<div class="account-title-actions">
 					<div class="add-account-host" data-account-menu>
 						<button

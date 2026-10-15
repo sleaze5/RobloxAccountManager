@@ -59,6 +59,12 @@
 	touch-action: none;
 }
 
+.sidebar-resizer::before {
+	position: absolute;
+	inset: 0 calc(var(--resizer-size) - var(--resizer-hit-size)) 0 0;
+	content: "";
+}
+
 .sidebar-resizer.disabled {
 	opacity: 1;
 	cursor: default;
@@ -249,6 +255,7 @@
 .account-list {
 	min-height: 0;
 	overflow-y: auto;
+	scrollbar-gutter: stable;
 }
 
 .account-row {
@@ -273,6 +280,15 @@
 
 .account-row.selected {
 	background: var(--color-active);
+}
+
+.account-row:has(.account-row-select:focus-visible) {
+	outline: var(--focus-ring-width) solid var(--color-focus-ring);
+	outline-offset: -1px;
+}
+
+.account-row-select:focus-visible {
+	outline: none;
 }
 
 .account-row-select {
@@ -447,35 +463,20 @@
 	cursor: help;
 }
 
-.presence-dot.presence-online,
-.status-dot.presence-online {
+.presence-dot.presence-online {
 	background: var(--color-presence-online);
 }
 
-.presence-dot.presence-in-game,
-.status-dot.presence-in-game {
+.presence-dot.presence-in-game {
 	background: var(--color-presence-game);
 }
 
-.presence-dot.presence-in-studio,
-.status-dot.presence-in-studio {
+.presence-dot.presence-in-studio {
 	background: var(--color-presence-studio);
 }
 
 .presence-dot.presence-invisible {
 	background: var(--color-text-faint);
-}
-
-.status-dot {
-	display: inline-block;
-	width: 6px;
-	height: 6px;
-	border-radius: 50%;
-	background: var(--color-text-faint);
-}
-
-.status-dot.warning {
-	background: var(--color-warning);
 }
 
 .empty-list {

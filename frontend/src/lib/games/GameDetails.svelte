@@ -27,6 +27,7 @@
 	import UsersThreeIcon from "phosphor-svelte/lib/UsersThreeIcon"
 	import VideoCameraIcon from "phosphor-svelte/lib/VideoCameraIcon"
 	import { untrack } from "svelte"
+	import type { WorkspaceState } from "../layout/workspace-state.svelte"
 	import Timestamp from "../shared/Timestamp.svelte"
 	import { relativeTime } from "../shared/timestamp"
 	import { creatorByline, type GamesStore } from "./games-store.svelte"
@@ -34,9 +35,11 @@
 
 	let {
 		store,
+		workspace,
 		onSearchUniverse,
 	}: {
 		store: GamesStore
+		workspace: WorkspaceState
 		onSearchUniverse: (universeId: number) => void
 	} = $props()
 	const numbers = new Intl.NumberFormat(),
@@ -103,7 +106,7 @@
 								: undefined,
 							detail:
 								game && votes
-									? `${count(game.upVotes, "like", "likes")} · ${count(game.downVotes, "dislike", "dislikes")}`
+									? `${count(game.upVotes, "like", "likes")} - ${count(game.downVotes, "dislike", "dislikes")}`
 									: "",
 						},
 						{ label: "Visits", icon: EyeIcon, value: exact(game?.visits) },
@@ -162,7 +165,7 @@
 							icon: TicketIcon,
 							value:
 								game.price > 0
-									? `Paid access · R$ ${numbers.format(game.price)}`
+									? `Paid access - R$ ${numbers.format(game.price)}`
 									: "Free",
 						},
 						{
@@ -246,7 +249,7 @@
 				{#if fact.detail}<small>{fact.detail}</small>{/if}
 			{:else}
 				<span class="profile-value-unavailable"
-					>{game ? "Unavailable" : "—"}</span>
+					>{game ? "Unavailable" : "-"}</span>
 			{/if}
 		</dd>
 	</div>
@@ -260,7 +263,28 @@
 		<div class="game-details-content">
 			<div class="profile-head">
 				<div class="selected-identity game-identity">
-					<GameIcon url={place.iconUrl} large />
+					<button
+						type="button"
+						class="profile-image-trigger"
+						aria-label="Game icon"
+						aria-haspopup="menu"
+						aria-expanded={workspace.imageContextMenu?.imageUrl ===
+							place.iconUrl}
+						disabled={!place.iconUrl}
+						onkeydown={(event) => {
+							if (
+								event.key === "ContextMenu" ||
+								(event.shiftKey && event.key === "F10")
+							) {
+								workspace.openImageContextMenu(event, place.iconUrl)
+							}
+						}}
+						onclick={(event) =>
+							workspace.toggleImageContextMenu(event, place.iconUrl)}
+						oncontextmenu={(event) =>
+							workspace.openImageContextMenu(event, place.iconUrl)}>
+						<GameIcon url={place.iconUrl} large />
+					</button>
 					<div class="identity-copy">
 						<div class="game-title">
 							<h2 class="game-name">
@@ -419,7 +443,7 @@
 							>{store.displayName(rootPlace)}</button
 						></span>
 					<span class="game-subplace-hint"
-						>{" · Main game stats are hidden"}</span>
+						>{" - Main game stats are hidden"}</span>
 				</p>
 			{/if}
 
@@ -448,7 +472,7 @@
 										<small>{relativeTime(fact.value)}</small>
 									{:else}
 										<span class="profile-value-unavailable"
-											>{game ? "Unavailable" : "—"}</span>
+											>{game ? "Unavailable" : "-"}</span>
 									{/if}
 								</dd>
 							</div>

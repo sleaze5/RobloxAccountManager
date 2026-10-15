@@ -8,7 +8,9 @@
 	import ArrowsClockwiseIcon from "phosphor-svelte/lib/ArrowsClockwiseIcon"
 	import StarIcon from "phosphor-svelte/lib/StarIcon"
 	import TagIcon from "phosphor-svelte/lib/TagIcon"
+	import WarningCircleIcon from "phosphor-svelte/lib/WarningCircleIcon"
 	import { tick, untrack } from "svelte"
+	import { SessionState } from "../backend/bridge"
 	import ChatsPage from "../chats/ChatsPage.svelte"
 	import type { WorkspaceState } from "../layout/workspace-state.svelte"
 	import type { NotificationCenter } from "../notifications/notification-center.svelte"
@@ -31,6 +33,7 @@
 		onManageTags,
 		onJoinServer,
 		onSearchPlace,
+		onReplaceCookie,
 		notifications,
 	}: {
 		store: AccountStore
@@ -38,6 +41,7 @@
 		onManageTags: (accountId: number) => void
 		onJoinServer: (placeId: number, jobId: string) => void
 		onSearchPlace: (placeId: number) => void
+		onReplaceCookie: () => void
 		notifications: NotificationCenter
 	} = $props()
 
@@ -113,8 +117,8 @@
 					class="profile-image-trigger"
 					aria-label="Profile image"
 					aria-haspopup="menu"
-					aria-expanded={workspace.imageContextMenu?.accountId ===
-						selectedAccount.id}
+					aria-expanded={workspace.imageContextMenu?.imageUrl ===
+						selectedAccount.avatarUrl}
 					disabled={!selectedAccount.avatarUrl}
 					onkeydown={(event) => {
 						if (
@@ -123,15 +127,18 @@
 						) {
 							workspace.openImageContextMenu(
 								event,
-								selectedAccount.id,
 								selectedAccount.avatarUrl,
 							)
 						}
 					}}
+					onclick={(event) =>
+						workspace.toggleImageContextMenu(
+							event,
+							selectedAccount.avatarUrl,
+						)}
 					oncontextmenu={(event) =>
 						workspace.openImageContextMenu(
 							event,
-							selectedAccount.id,
 							selectedAccount.avatarUrl,
 						)}>
 					<AccountAvatar
@@ -157,6 +164,23 @@
 							<span class="meta-separator" aria-hidden="true">-</span>
 							<span>ID: {selectedAccount.userId}</span>
 						</div>
+						{#if selectedAccount.state === SessionState.StateReauthRequired || selectedAccount.state === SessionState.StateChallenged}
+							<div class="session-warning">
+								<WarningCircleIcon size={14} aria-hidden="true" />
+								<span
+									>{selectedAccount.state ===
+									SessionState.StateReauthRequired
+										? "Sign-in required"
+										: "Security challenge"}</span>
+								<button
+									class="control-button text-button"
+									type="button"
+									disabled={store.busy}
+									onclick={onReplaceCookie}>
+									Replace cookie
+								</button>
+							</div>
+						{/if}
 						{#if store.vault.unlocked}
 							<AccountPresence
 								presence={selectedAccount.presence}

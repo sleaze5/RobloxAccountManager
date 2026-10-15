@@ -2,6 +2,8 @@
 	import CheckIcon from "phosphor-svelte/lib/CheckIcon"
 	import DotsSixVerticalIcon from "phosphor-svelte/lib/DotsSixVerticalIcon"
 	import StarIcon from "phosphor-svelte/lib/StarIcon"
+	import { tick } from "svelte"
+	import { isMoveShortcut } from "../shared/move-shortcut"
 	import type { WorkspaceState } from "../layout/workspace-state.svelte"
 	import AccountAvatar from "./AccountAvatar.svelte"
 	import type { AccountStore } from "./account-store.svelte"
@@ -20,7 +22,8 @@
 			workspace: WorkspaceState
 		} = $props(),
 		draggedAccountId = $state<number | null>(null),
-		dropTarget = $state<DropTarget | null>(null)
+		dropTarget = $state<DropTarget | null>(null),
+		moveAnnouncement = $state("")
 
 	function selectAccount(accountId: number, toggle = false): void {
 		if (toggle) store.toggleAccount(accountId)
@@ -97,6 +100,29 @@
 		void store.moveAccount(sourceID, accountId, after)
 	}
 
+	async function moveWithKeyboard(
+		event: KeyboardEvent,
+		accountId: number,
+	): Promise<void> {
+		if (!isMoveShortcut(event)) return
+		event.preventDefault()
+		if (store.busy || store.multipleSelected) return
+		const button = event.currentTarget as HTMLElement,
+			down = event.key === "ArrowDown",
+			index = store.accounts.findIndex((account) => account.id === accountId),
+			target = store.accounts[index + (down ? 1 : -1)]
+		if (!target) return
+		const moving = store.moveAccount(accountId, target.id, down)
+		await tick()
+		button.focus()
+		await moving
+		const position =
+			store.accounts.findIndex((account) => account.id === accountId) + 1
+		if (position > 0) {
+			moveAnnouncement = `Moved to position ${position} of ${store.accountTotal}`
+		}
+	}
+
 	function loadNearEnd(event: Event): void {
 		const list = event.currentTarget as HTMLElement
 		if (list.scrollHeight - list.scrollTop - list.clientHeight < 120) {
@@ -156,11 +182,13 @@
 				class="account-row-select"
 				type="button"
 				aria-pressed={store.selectedAccountIds.includes(account.id)}
+				aria-keyshortcuts="Control+Shift+ArrowUp Control+Shift+ArrowDown"
 				aria-label={`${account.displayName} (@${account.username}), ${presenceLabel(account.presence)}${account.favorite ? ", favorite" : ""}`}
 				onclick={(event) =>
 					selectAccount(account.id, event.ctrlKey || event.metaKey)}
 				onkeydown={(event) => {
 					handleContextKey(event, account.id)
+					void moveWithKeyboard(event, account.id)
 					if (
 						(event.key === " " || event.key === "Enter") &&
 						(event.ctrlKey || event.metaKey)
@@ -190,7 +218,7 @@
 	{:else}
 		<div class="empty-list">
 			{#if store.loadingAccounts}
-				<span>Loading accounts…</span>
+				<span>Loading accounts...</span>
 			{:else if !store.query && store.selectedTagIds.length === 0}
 				<strong>No accounts yet</strong>
 				<span>Use the plus button to add one.</span>
@@ -201,6 +229,7 @@
 		</div>
 	{/each}
 	{#if store.loadingMore}
-		<div class="empty-list"><span>Loading more accounts…</span></div>
+		<div class="empty-list"><span>Loading more accounts...</span></div>
 	{/if}
+	<span class="visually-hidden" aria-live="polite">{moveAnnouncement}</span>
 </div>

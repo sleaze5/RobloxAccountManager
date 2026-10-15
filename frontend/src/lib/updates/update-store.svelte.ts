@@ -61,6 +61,7 @@ export class UpdateStore {
 				id: notificationId,
 				message: next.error,
 				title: "Update failed",
+				tone: "error",
 			})
 		} else if (next.status === UpdateStatus.StatusAvailable) {
 			this.#notifications?.show({

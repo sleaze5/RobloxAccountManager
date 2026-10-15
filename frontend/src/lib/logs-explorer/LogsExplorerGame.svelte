@@ -65,7 +65,7 @@
 							size={14}
 							aria-label="Verified creator" />{/if}</span>
 			{:else}
-				<strong class="loading">Loading game…</strong>
+				<strong class="loading">Loading game...</strong>
 			{/if}
 		</div>
 		{#if place}<button

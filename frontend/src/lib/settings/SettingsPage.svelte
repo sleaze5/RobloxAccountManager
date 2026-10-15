@@ -38,7 +38,7 @@
 		{
 			icon: MonitorIcon,
 			id: "user-interface",
-			label: "User Interface",
+			label: "User interface",
 			search: "user interface motion animations animation reduce reduced full system operating system effects timestamps timestamp date time display format hover tooltip relative preview tokens token reference dollar reset defaults save",
 		},
 		{
@@ -67,12 +67,14 @@
 			store,
 			browser,
 			notifications,
+			backLabel,
 			onBack,
 			onLock,
 		}: {
 			store: AccountStore
 			browser: BrowserStore
 			notifications: NotificationCenter
+			backLabel: string
 			onBack: () => void
 			onLock: () => void
 		} = $props(),
@@ -106,8 +108,8 @@
 	<header class="settings-header">
 		<button
 			type="button"
-			aria-label="Back to accounts"
-			data-tooltip="Back to accounts"
+			aria-label={backLabel}
+			data-tooltip={backLabel}
 			onclick={onBack}>
 			<CaretLeftIcon size={18} aria-hidden="true" />
 		</button>
@@ -155,7 +157,7 @@
 			bind:this={contentElement}
 			class="settings-content"
 			aria-label="Settings content">
-			{#key `${activeCategory.id}:${normalizedQuery}`}
+			{#key activeCategory.id}
 				{#if visibleCategories.length > 0}
 					<h2>{activeCategory.label}</h2>
 					{#if activeCategory.id === "vault"}

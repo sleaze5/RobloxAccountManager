@@ -104,6 +104,7 @@
 			notifications.show({
 				id: `account-edit-${account.id}-${kind}`,
 				title: successes[kind],
+				tone: "success",
 				message: `@${account.username}`,
 			})
 			onSaved()
@@ -271,7 +272,7 @@
 					type="submit"
 					disabled={!ready || pending}>
 					{#if pending}
-						{kind === "pin" ? "Unlocking…" : "Saving…"}
+						{kind === "pin" ? "Unlocking..." : "Saving..."}
 					{:else if phase === "confirm" || kind === "pin"}
 						{kind === "pin" ? "Unlock" : titles[kind]}
 					{:else}

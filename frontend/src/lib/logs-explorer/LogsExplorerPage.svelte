@@ -131,7 +131,7 @@
 						</button>
 					{:else}
 						{#if store.refreshing}
-							<p class="logs-explorer-list-empty">Loading sessions…</p>
+							<p class="logs-explorer-list-empty">Loading sessions...</p>
 						{:else if store.query}
 							<p class="logs-explorer-list-empty">
 								No matching sessions.
@@ -161,7 +161,7 @@
 						class="spinner"
 						size={27}
 						aria-hidden="true" />
-					<h2>Reading Roblox logs…</h2>
+					<h2>Reading Roblox logs...</h2>
 				{:else if store.error && !store.loaded}<WarningIcon
 						size={27}
 						aria-hidden="true" />
@@ -183,13 +183,17 @@
 		{/if}
 	</div>
 	<footer class="status-bar" aria-label="Log details">
-		<span>User ID: {selected?.userId || "Not recorded"}</span>
-		<div>
-			<span>Channel: {selected?.channel || "Not recorded"}</span>
-			<span
-				>Client version: {selected?.versionHash && selected.version
-					? `${selected.versionHash} (${selected.version})`
-					: selected?.version || "Not recorded"}</span>
-		</div>
+		{#if selected}
+			<span>User ID: {selected.userId || "Not recorded"}</span>
+			<div>
+				<span>Channel: {selected.channel || "Not recorded"}</span>
+				<span
+					>Client version: {selected.versionHash && selected.version
+						? `${selected.versionHash} (${selected.version})`
+						: selected.version || "Not recorded"}</span>
+			</div>
+		{:else}
+			<span>Session: None</span>
+		{/if}
 	</footer>
 </main>

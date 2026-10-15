@@ -260,11 +260,11 @@
 	.close-roblox-action {
 		width: var(--control-height-sm);
 		height: var(--control-height-sm);
-		color: var(--color-danger);
 	}
 
-	.close-roblox-action:hover {
+	.close-roblox-action:not(:disabled):hover,
+	.close-roblox-action[aria-expanded="true"] {
 		background: var(--color-danger-wash);
-		color: var(--color-danger-muted);
+		color: var(--color-danger);
 	}
 </style>

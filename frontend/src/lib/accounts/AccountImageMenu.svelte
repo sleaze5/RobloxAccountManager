@@ -75,7 +75,7 @@
 	class="account-context-menu account-menu"
 	data-account-menu
 	role="menu"
-	aria-label="Profile image actions"
+	aria-label="Image actions"
 	tabindex="-1"
 	onkeydown={handleKeydown}
 	use:placeMenu={menu}
@@ -86,7 +86,7 @@
 		role="menuitem"
 		disabled={store.copying}
 		onclick={() => void copy(false)}>
-		<span>{copyingImage ? "Copying image…" : "Copy image"}</span>
+		<span>{copyingImage ? "Copying image..." : "Copy image"}</span>
 	</button>
 	<button
 		type="button"

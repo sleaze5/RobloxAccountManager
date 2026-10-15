@@ -278,6 +278,10 @@ func (repository *Repository) Page(ctx context.Context, query AccountQuery) (Acc
 		where = append(where, `EXISTS (SELECT 1 FROM account_tags filter_tags WHERE filter_tags.account_id = a.id AND filter_tags.tag_id = ?)`)
 		arguments = append(arguments, tagID)
 	}
+	var total int64
+	if err := db.QueryRowContext(ctx, `SELECT count(*) FROM accounts a JOIN account_sessions s ON s.account_id = a.id WHERE `+strings.Join(where, " AND "), arguments...).Scan(&total); err != nil {
+		return AccountPage{}, fmt.Errorf("count account page: %w", err)
+	}
 	if query.Cursor != nil {
 		where = append(where, `(a.display_order > ? OR (a.display_order = ? AND a.id > ?))`)
 		arguments = append(arguments, query.Cursor.DisplayOrder, query.Cursor.DisplayOrder, query.Cursor.AccountID)
@@ -301,7 +305,7 @@ func (repository *Repository) Page(ctx context.Context, query AccountQuery) (Acc
 	if err := rows.Close(); err != nil {
 		return AccountPage{}, err
 	}
-	page := AccountPage{Accounts: views}
+	page := AccountPage{Accounts: views, Total: total}
 	if len(views) > accountPageSize {
 		page.Accounts = views[:accountPageSize]
 		page.NextCursor = &accountdomain.AccountCursor{DisplayOrder: orders[accountPageSize-1], AccountID: views[accountPageSize-1].ID}

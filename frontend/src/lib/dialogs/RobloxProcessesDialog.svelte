@@ -203,7 +203,7 @@
 							<tr
 								><td colspan="3" class="process-empty">
 									<span role="status">
-										{#if loading}Loading processes…
+										{#if loading}Loading processes...
 										{:else if snapshot?.supported === false}Not
 											available on this system.
 										{:else if loadError}Process list unavailable.
@@ -232,7 +232,7 @@
 					selectedProcesses.length === 0 ||
 					!snapshot?.supported}
 				onclick={() => void killSelected()}
-				>{killing ? "Killing…" : "Kill selected"}</button>
+				>{killing ? "Killing..." : "Kill selected"}</button>
 		</div>
 	</div>
 </div>

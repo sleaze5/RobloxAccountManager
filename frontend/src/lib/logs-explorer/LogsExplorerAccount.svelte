@@ -83,7 +83,7 @@
 						aria-label="Favorite" />{/if}</strong>
 			<span
 				>@{user.username}{user.inVault === false
-					? " · Not in your vault"
+					? " - Not in your vault"
 					: ""}</span>
 		</div>
 	</div>

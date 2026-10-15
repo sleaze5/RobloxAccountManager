@@ -19,12 +19,7 @@ import type {
 	UserPresence,
 	VaultState,
 } from "../backend/bridge"
-import {
-	accountFromView,
-	accountWithPresence,
-	emptyAccount,
-	isOnlinePresence,
-} from "./account-model"
+import { accountFromView, accountWithPresence, emptyAccount } from "./account-model"
 import type { Account } from "./account-model"
 import { AccountProfileState } from "./account-profile-state.svelte"
 import { isValidTagName, tagNameError } from "./tag-name"
@@ -63,6 +58,7 @@ export class AccountStore {
 	presenceRefreshing = $state(false)
 	error = $state("")
 	nextCursor = $state<AccountCursor | null>(null)
+	accountTotal = $state(0)
 	loadingAccounts = $state(false)
 	loadingMore = $state(false)
 
@@ -127,11 +123,11 @@ export class AccountStore {
 			signal: AbortSignal.timeout(15_000),
 		})
 		if (!response.ok) {
-			throw new Error("The profile image could not be loaded. Try again.")
+			throw new Error("The image could not be loaded. Try again.")
 		}
 		const image = await response.blob()
 		if (image.type !== "image/png") {
-			throw new Error("The profile image is not a PNG.")
+			throw new Error("The image is not a PNG.")
 		}
 		if (!this.vault.unlocked) throw new Error("The vault is locked.")
 		return image
@@ -147,7 +143,12 @@ export class AccountStore {
 		try {
 			await action()
 			if (!this.vault.unlocked) return false
-			this.notifications.show({ id: "clipboard-copy", title: "Copied", message })
+			this.notifications.show({
+				id: "clipboard-copy",
+				title: "Copied",
+				message,
+				tone: "success",
+			})
 			return true
 		} catch (error) {
 			if (this.vault.unlocked) this.error = errorMessage(error, operationError)
@@ -189,16 +190,6 @@ export class AccountStore {
 		return this.accounts
 	}
 
-	get onlineCount(): number {
-		return this.accounts.filter((account) =>
-			isOnlinePresence(account.presence.userPresenceType),
-		).length
-	}
-
-	get attentionCount(): number {
-		return this.accounts.filter((account) => account.needsAttention).length
-	}
-
 	getAccountProfile(accountId: number): AccountProfileState {
 		let profile = this.#profiles.get(accountId)
 		if (!profile) {
@@ -226,6 +217,7 @@ export class AccountStore {
 						this.notifications.show({
 							id: "credential-backup",
 							title: "Cookie saved; backup needs attention",
+							tone: "warning",
 							message,
 							durationMs: 0,
 						})
@@ -590,7 +582,8 @@ export class AccountStore {
 			const availableTagIds = new Set(this.tags.map((tag) => tag.id))
 			const tagIds = selectedTagIds.filter((tagId) => availableTagIds.has(tagId))
 			this.selectedTagIds = tagIds
-			let cursor: AccountCursor | null = null
+			let cursor: AccountCursor | null = null,
+				total = 0
 			const records: AccountView[] = []
 			const loadPage = async (): Promise<void> => {
 				const page = await accountBackend.ListAccounts({
@@ -601,6 +594,7 @@ export class AccountStore {
 				if (version !== this.#accountListVersion || !this.vault.unlocked) return
 				records.push(...(page.accounts ?? []))
 				cursor = page.nextCursor ?? null
+				total = page.total
 				if (cursor && records.length < targetCount) {
 					await loadPage()
 				}
@@ -610,6 +604,7 @@ export class AccountStore {
 			const selectFirst =
 				this.accounts.length === 0 || this.selectedAccountIds.length > 0
 			this.nextCursor = cursor
+			this.accountTotal = total
 			this.accounts = records.map((record) => this.createAccount(record))
 			const availableIds = new Set(this.accounts.map((account) => account.id))
 			this.selectedAccountIds = this.selectedAccountIds.filter((id) =>
@@ -654,6 +649,7 @@ export class AccountStore {
 				...records.map((record) => this.createAccount(record)),
 			]
 			this.nextCursor = page.nextCursor ?? null
+			this.accountTotal = page.total
 			void this.refreshAvatarHeadshots(
 				records.map((record) => record.robloxUserId),
 			)
@@ -1000,6 +996,12 @@ export class AccountStore {
 			this.notifications.show({
 				id: "batch-launch",
 				title: result.cancelled ? "Launch stopped" : "Account launch complete",
+				tone:
+					failures.length > 0
+						? "error"
+						: result.cancelled
+							? "warning"
+							: "success",
 				message: `Launch requested for ${launched} of ${selected.length} accounts.${failures.length > 0 ? ` ${failures.length} failed. See the error details.` : ""}`,
 			})
 		}
@@ -1147,6 +1149,7 @@ export class AccountStore {
 		this.selectedTagIds = []
 		this.selectedAccountIds = []
 		this.nextCursor = null
+		this.accountTotal = 0
 		this.#avatarUrls.clear()
 		this.#presences.clear()
 		this.#presenceVersions.clear()

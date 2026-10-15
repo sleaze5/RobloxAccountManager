@@ -181,7 +181,7 @@
 
 	function saveActionLabel(): string {
 		if (operation === "save") {
-			return "Saving…"
+			return "Saving..."
 		}
 		if (selectedUpdateCount > 0 && selectedCreateCount > 0) {
 			return `Apply ${selectedCount} changes`
@@ -295,7 +295,7 @@
 					>Cancel</button>
 				{#if preview?.batchId && preview.readyCount > 0}
 					<button type="submit" disabled={store.busy}>
-						{operation === "validate" ? "Validating…" : "Validate"}
+						{operation === "validate" ? "Validating..." : "Validate"}
 					</button>
 					<button
 						class="primary-action"
@@ -309,7 +309,7 @@
 						class="primary-action"
 						type="submit"
 						disabled={store.busy || !cookieInput.trim()}>
-						{operation === "validate" ? "Validating…" : "Validate"}
+						{operation === "validate" ? "Validating..." : "Validate"}
 					</button>
 				{/if}
 			</div>

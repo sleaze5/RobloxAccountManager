@@ -12,6 +12,8 @@
 	import StarIcon from "phosphor-svelte/lib/StarIcon"
 	import XIcon from "phosphor-svelte/lib/XIcon"
 	import SidebarResizer from "../layout/SidebarResizer.svelte"
+	import type { WorkspaceState } from "../layout/workspace-state.svelte"
+	import { isMoveShortcut } from "../shared/move-shortcut"
 	import OperationError from "../shared/OperationError.svelte"
 	import { menuIn, menuOut } from "../shared/presence"
 	import GameContextMenu from "./GameContextMenu.svelte"
@@ -22,9 +24,11 @@
 
 	let {
 		store,
+		workspace,
 		onFillLaunch,
 	}: {
 		store: GamesStore
+		workspace: WorkspaceState
 		onFillLaunch: (placeId: number, jobId?: string) => void
 	} = $props()
 	const favoritesMode = $derived(store.mode === "favorites"),
@@ -36,7 +40,31 @@
 	let searchInput = $state<HTMLInputElement | undefined>(undefined),
 		grabbedPlaceId: number | null = null,
 		draggedPlaceId = $state<number | null>(null),
-		dropTarget = $state<{ placeId: number; after: boolean } | null>(null)
+		dropTarget = $state<{ placeId: number; after: boolean } | null>(null),
+		moveAnnouncement = $state("")
+
+	async function moveWithKeyboard(
+		event: KeyboardEvent,
+		placeId: number,
+	): Promise<void> {
+		if (!favoritesMode || !isMoveShortcut(event)) return
+		event.preventDefault()
+		if (!store.canReorder) return
+		const button = event.currentTarget as HTMLElement,
+			down = event.key === "ArrowDown",
+			index = store.favorites.findIndex((place) => place.placeId === placeId),
+			target = store.favorites[index + (down ? 1 : -1)]
+		if (!target) return
+		const moving = store.moveFavorite(placeId, target.placeId, down)
+		await tick()
+		button.focus()
+		await moving
+		const position =
+			store.favorites.findIndex((place) => place.placeId === placeId) + 1
+		if (position > 0) {
+			moveAnnouncement = `Moved to position ${position} of ${store.favorites.length}`
+		}
+	}
 
 	function grab(event: PointerEvent, placeId: number): void {
 		grabbedPlaceId =
@@ -270,6 +298,9 @@
 								type="button"
 								aria-current={active ? "true" : undefined}
 								aria-haspopup="menu"
+								aria-keyshortcuts={favoritesMode
+									? "Control+Shift+ArrowUp Control+Shift+ArrowDown"
+									: undefined}
 								onclick={() => store.select(place)}
 								oncontextmenu={(event) => store.openMenu(event, place)}
 								onkeydown={(event) => {
@@ -278,6 +309,7 @@
 										(event.shiftKey && event.key === "F10")
 									)
 										store.openMenu(event, place)
+									void moveWithKeyboard(event, place.placeId)
 								}}>
 								{#if favoritesMode}<span
 										class="game-drag-handle"
@@ -324,6 +356,8 @@
 								{/if}
 							</div>
 						{/if}
+						<span class="visually-hidden" aria-live="polite"
+							>{moveAnnouncement}</span>
 					</div>
 					{#if hasSearch}
 						<div class="account-selection-actions">
@@ -358,6 +392,7 @@
 				{:else}
 					<GameDetails
 						{store}
+						{workspace}
 						onSearchUniverse={(universeId) =>
 							void searchUniverse(universeId)} />
 				{/if}
@@ -369,7 +404,7 @@
 							class="spinner"
 							size={27}
 							aria-hidden="true" />
-						<h2>Loading favorites…</h2>
+						<h2>Loading favorites...</h2>
 					{:else if !store.favoritesLoaded}<WarningIcon
 							size={27}
 							aria-hidden="true" />
@@ -394,7 +429,7 @@
 						class="spinner"
 						size={27}
 						aria-hidden="true" />
-					<h2>Searching Roblox…</h2>
+					<h2>Searching Roblox...</h2>
 				{:else if store.searchError}<WarningIcon size={27} aria-hidden="true" />
 					<h2>Search is unavailable</h2>
 					<p>{store.searchError}</p>

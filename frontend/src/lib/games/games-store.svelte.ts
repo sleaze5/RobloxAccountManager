@@ -151,6 +151,7 @@ export class GamesStore {
 			this.notifications.show({
 				id: "clipboard-copy",
 				title: "Copied",
+				tone: "success",
 				message: `${label} copied to clipboard.`,
 			})
 		} catch {

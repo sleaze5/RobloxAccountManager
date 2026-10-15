@@ -147,6 +147,7 @@ export class AccountSettingsState {
 		this.#notifications.show({
 			id: `account-setting-${this.#accountId}-${key}`,
 			title: "Check account settings",
+			tone: "warning",
 			message: `A setting change for @${account.username} could not be confirmed. Open that account's settings and refresh before trying again.`,
 		})
 	}

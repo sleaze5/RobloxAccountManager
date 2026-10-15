@@ -291,12 +291,16 @@
 					disabled={creating || incomplete
 						? !canCreate
 						: !password || store.busy}>
-					{store.busy
-						? "Working…"
-						: creating
-							? "Create vault"
-							: incomplete
-								? "Repair portable key"
+					{creating
+						? store.busy
+							? "Creating vault..."
+							: "Create vault"
+						: incomplete
+							? store.busy
+								? "Repairing portable key..."
+								: "Repair portable key"
+							: store.busy
+								? "Unlocking..."
 								: "Unlock"}
 				</button>
 			{/if}

@@ -29,7 +29,7 @@
 									? "Regions unavailable"
 									: regions
 										? "Choose a region"
-										: "Loading regions…",
+										: "Loading regions...",
 						},
 					]),
 			...(regions ?? []).map((region) => ({

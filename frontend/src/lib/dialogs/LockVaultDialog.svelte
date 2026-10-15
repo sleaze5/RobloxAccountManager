@@ -64,7 +64,7 @@
 				type="button"
 				disabled={store.busy}
 				onclick={() => void lock()}
-				>{store.busy ? "Locking…" : "Lock vault"}</button>
+				>{store.busy ? "Locking..." : "Lock vault"}</button>
 		</div>
 	</div>
 </div>

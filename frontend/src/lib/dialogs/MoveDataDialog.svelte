@@ -69,7 +69,7 @@
 				type="button"
 				disabled={busy}
 				onclick={() => void move()}
-				>{busy ? "Restarting…" : "Move and restart"}</button>
+				>{busy ? "Restarting..." : "Move and restart"}</button>
 		</div>
 	</div>
 </div>

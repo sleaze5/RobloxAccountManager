@@ -24,8 +24,8 @@
 			(clients?.clients ?? []).filter((client) => client.installed).length,
 		)
 	const statusText = $derived.by(() => {
-			if (loading) return "Checking…"
-			if (saving) return "Saving…"
+			if (loading) return "Checking..."
+			if (saving) return "Saving..."
 			if (!snapshot) return "Not checked"
 			if (!snapshot.supported) return "Unavailable - Windows only"
 			if (!snapshot.enabled) return "Off"

@@ -2,6 +2,16 @@
 	import type { AccountStore } from "../accounts/account-store.svelte"
 
 	let { store }: { store: AccountStore } = $props()
+
+	const selectedPosition = $derived(
+		store.accounts.findIndex((account) => account.id === store.selectedAccount.id) +
+			1,
+	)
+	const accountName = $derived(
+		store.selectedAccount.displayName === store.selectedAccount.username
+			? store.selectedAccount.username
+			: `${store.selectedAccount.displayName} @${store.selectedAccount.username}`,
+	)
 </script>
 
 <footer class="status-bar">
@@ -9,21 +19,14 @@
 		{#if store.multipleSelected}
 			Accounts: {store.selectedAccountIds.length} selected
 		{:else}
-			Account: {store.selectedAccount.id === 0
-				? "None"
-				: `@${store.selectedAccount.username}`}
+			{store.selectedAccount.id === 0
+				? "Account: None"
+				: `Account #${selectedPosition}: ${accountName}`}
 		{/if}
 	</span>
 	<div>
 		<span
-			>{store.accounts.length}
-			{store.accounts.length === 1 ? "account" : "accounts"}</span>
-		<span
-			><i class="status-dot presence-online"></i>{store.onlineCount} online</span>
-		<span>
-			{#if store.attentionCount > 0}<i class="status-dot warning"></i>{/if}
-			{store.attentionCount}
-			{store.attentionCount === 1 ? "needs" : "need"} attention
-		</span>
+			>{store.accountTotal}
+			{store.accountTotal === 1 ? "account" : "accounts"}</span>
 	</div>
 </footer>

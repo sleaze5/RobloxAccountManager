@@ -70,7 +70,7 @@
 					return {
 						tone: "warning",
 						label: "Sign-in required",
-						detail: account.stateReason || "Replace or renew the cookie.",
+						detail: account.stateReason || "Replace the cookie.",
 					}
 				case SessionState.StateChallenged:
 					return {
@@ -162,7 +162,7 @@
 								size={14}
 								aria-label="Verified group" />{/if}</span>
 					<small
-						>{group.role ? `${group.role} · ` : ""}{numbers.format(
+						>{group.role ? `${group.role} - ` : ""}{numbers.format(
 							group.members,
 						)}
 						{group.members === 1 ? "member" : "members"}</small>

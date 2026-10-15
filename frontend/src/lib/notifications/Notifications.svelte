@@ -1,11 +1,21 @@
 <script lang="ts">
 	import BellIcon from "phosphor-svelte/lib/BellIcon"
+	import CheckCircleIcon from "phosphor-svelte/lib/CheckCircleIcon"
+	import WarningCircleIcon from "phosphor-svelte/lib/WarningCircleIcon"
+	import WarningIcon from "phosphor-svelte/lib/WarningIcon"
 	import XIcon from "phosphor-svelte/lib/XIcon"
 	import { toastIn, toastOut } from "../shared/presence"
 	import type {
 		NotificationAction,
 		NotificationCenter,
 	} from "./notification-center.svelte"
+
+	const toneIcons = {
+		error: WarningCircleIcon,
+		info: BellIcon,
+		success: CheckCircleIcon,
+		warning: WarningIcon,
+	}
 
 	let { center }: { center: NotificationCenter } = $props(),
 		runningAction = $state("")
@@ -29,6 +39,7 @@
 
 <section class="notification-region" aria-label="Notifications" aria-live="polite">
 	{#each center.items as notification (notification.id)}
+		{@const ToneIcon = toneIcons[notification.tone]}
 		<article
 			class="notification-toast"
 			role="status"
@@ -48,8 +59,8 @@
 				)
 					center.resume(notification.id)
 			}}>
-			<div class="notification-icon">
-				<BellIcon size={17} aria-hidden="true" />
+			<div class="notification-icon {notification.tone}">
+				<ToneIcon size={17} aria-hidden="true" />
 			</div>
 			<div class="notification-content">
 				<strong>{notification.title}</strong>

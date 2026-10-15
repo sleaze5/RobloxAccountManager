@@ -123,6 +123,7 @@
 	--status-strip-height: 24px;
 	--indicator-size: 2px;
 	--resizer-size: 2px;
+	--resizer-hit-size: 8px;
 	--drawer-header-height: 34px;
 	--list-row-height: 52px;
 	--thumb-size: 36px;

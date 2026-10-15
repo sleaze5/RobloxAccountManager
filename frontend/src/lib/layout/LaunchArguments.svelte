@@ -9,6 +9,7 @@
 	import LinuxClientDialog from "../dialogs/LinuxClientDialog.svelte"
 	import RobloxPlayerPathDialog from "../dialogs/RobloxPlayerPathDialog.svelte"
 	import { linuxClientOptions } from "../settings/linux-clients"
+	import { formatCompactBytes } from "../shared/bytes"
 	import { menuIn, menuOut } from "../shared/presence"
 
 	let { store }: { store: AccountStore } = $props()
@@ -20,6 +21,23 @@
 						(option) => option.value === clients?.selected,
 					)?.label ?? "Automatic")
 				: "",
+		)
+	const launchDataSize = $derived(
+			formatCompactBytes(
+				new TextEncoder().encode(store.launchInput.launchData).length,
+			),
+		),
+		activeOptions = $derived(
+			[
+				directLaunch && store.launchInput.directLaunch && "Direct launch",
+				store.launchInput.teleport && "Teleport",
+				store.launchDataEnabled && `Custom launch data (${launchDataSize})`,
+			].filter((option) => typeof option === "string"),
+		),
+		triggerLabel = $derived(
+			activeOptions.length > 0
+				? `Launch options: ${activeOptions.join(", ")}`
+				: "Additional launch options",
 		)
 	async function loadClients(): Promise<void> {
 		clients = await accountBackend.GetRobloxClients()
@@ -60,12 +78,13 @@
 <div class="launch-arguments" bind:this={root}>
 	<button
 		class="icon-action"
+		class:active={activeOptions.length > 0}
 		type="button"
 		bind:this={trigger}
-		aria-label="Additional launch options"
+		aria-label={triggerLabel}
 		aria-expanded={open}
 		aria-controls={open ? panelID : undefined}
-		data-tooltip="Additional launch options"
+		data-tooltip={triggerLabel}
 		data-tooltip-side="top"
 		disabled={store.launching}
 		onclick={() => {

@@ -61,6 +61,7 @@ export class SettingsStore {
 				notifications.show({
 					id: "settings-recovered",
 					title: "Settings reset",
+					tone: "warning",
 					message:
 						"settings.json was corrupted or could not be loaded. A new file was created with default values, and the old file was renamed to ./storage/settings.json.bak.",
 					durationMs: 0,
@@ -101,6 +102,7 @@ export class SettingsStore {
 				this.#notifications?.show({
 					id: "rovalra-region-missing",
 					title: "Preferred region unavailable",
+					tone: "warning",
 					message:
 						"Your saved region is no longer listed by RoValra. Choose another one in Settings under Integrations.",
 					durationMs: 0,

@@ -83,6 +83,7 @@ type AccountCursor struct {
 type AccountPage struct {
 	Accounts   []AccountView  `json:"accounts"`
 	NextCursor *AccountCursor `json:"nextCursor,omitempty"`
+	Total      int64          `json:"total"`
 }
 
 type AccountQuery struct {

@@ -33,6 +33,18 @@
 	color: var(--color-text-muted);
 }
 
+.notification-icon.success {
+	color: var(--color-success);
+}
+
+.notification-icon.warning {
+	color: var(--color-warning);
+}
+
+.notification-icon.error {
+	color: var(--color-danger);
+}
+
 .notification-content {
 	min-width: 0;
 }

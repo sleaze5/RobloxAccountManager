@@ -178,9 +178,9 @@
 				disabled={busy || !selected}
 				onclick={() => void confirm()}>
 				{restarting
-					? "Restarting…"
+					? "Restarting..."
 					: busy
-						? "Setting up…"
+						? "Setting up..."
 						: otherItemCount > 0
 							? "Use anyway"
 							: "Continue"}
