@@ -119,7 +119,7 @@ func startBrowserProcess(options ProcessOptions) (BrowserProcess, error) {
 		"--user-data-dir=" + options.UserDataPath, "--remote-debugging-pipe",
 		"--remote-debugging-io-pipes=" + inheritedPipeHandles(commandRead, commandWrite),
 		"--no-first-run", "--no-default-browser-check", "--disable-background-mode",
-		"--disable-infobars", "--incognito", "about:blank"}
+		"--disable-infobars", "--window-size=1080,600", "--incognito", "about:blank"}
 	if launchToken != 0 {
 		// The restricted, medium-integrity token retains its original elevation
 		// type. Prevent Chrome from relaunching and losing the inherited CDP pipes;

@@ -51,7 +51,7 @@ func startBrowserProcess(options ProcessOptions) (BrowserProcess, error) {
 	command := exec.Command(options.Executable,
 		"--user-data-dir="+options.UserDataPath, "--remote-debugging-pipe",
 		"--no-first-run", "--no-default-browser-check", "--disable-background-mode",
-		"--disable-infobars", "--use-mock-keychain", "--incognito", "about:blank")
+		"--disable-infobars", "--window-size=1080,600", "--use-mock-keychain", "--incognito", "about:blank")
 	command.Dir = options.UserDataPath
 	// Chrome reads CDP commands from descriptor 3 and writes responses to 4.
 	command.ExtraFiles = []*os.File{commandRead, commandWrite}
