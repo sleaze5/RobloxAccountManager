@@ -169,7 +169,7 @@
 }
 
 .identity-copy h2 {
-	color: var(--color-accent-strong);
+	color: var(--color-text);
 	font-size: var(--text-16);
 	font-weight: var(--font-semibold);
 	letter-spacing: -0.01em;
@@ -205,34 +205,6 @@
 	display: flex;
 	align-items: center;
 	gap: var(--space-1);
-}
-
-.control-button {
-	display: flex;
-	width: var(--control-height-md);
-	height: var(--control-height-md);
-	align-items: center;
-	justify-content: center;
-	padding: 0;
-	border: 1px solid var(--color-border);
-	border-radius: var(--radius-control);
-	background: transparent;
-	color: var(--color-text-muted);
-	font-size: var(--text-12);
-	font-weight: var(--font-semibold);
-	cursor: pointer;
-}
-
-.control-button:hover {
-	background: var(--color-hover);
-	color: var(--color-text);
-}
-
-.control-button.text-button {
-	width: auto;
-	gap: var(--space-1);
-	padding-inline: var(--space-2);
-	white-space: nowrap;
 }
 
 .identity-section {
@@ -284,21 +256,11 @@
 	display: inline-flex;
 }
 
-.edit-tags-host > .icon-action {
-	width: var(--control-height-sm);
-	height: var(--control-height-sm);
-}
-
-.icon-action.bordered.open {
-	background: var(--color-hover);
-	color: var(--color-text);
-}
-
 .profile-tag-menu {
 	position: absolute;
 	top: calc(100% + var(--space-1));
 	left: 0;
-	z-index: 22;
+	z-index: var(--layer-menu);
 }
 
 .profile-verified-badge {
@@ -349,7 +311,7 @@
 	background: var(--color-surface-raised);
 	color: var(--color-accent-strong);
 	font-size: var(--text-11);
-	font-weight: var(--font-semibold);
+	font-weight: var(--font-medium);
 	cursor: help;
 }
 
@@ -433,13 +395,6 @@
 	color: var(--color-presence-studio);
 }
 
-.profile-presence-join,
-.profile-presence-search {
-	width: var(--control-height-sm);
-	height: var(--control-height-sm);
-	flex: 0 0 auto;
-}
-
 @container (max-width: 560px) {
 	.profile-head {
 		grid-template-columns: minmax(0, 1fr);
@@ -508,11 +463,6 @@
 	margin-block: -5px;
 }
 
-.profile-facts dd > .icon-action.profile-fact-action {
-	width: var(--control-height-sm);
-	height: var(--control-height-sm);
-}
-
 .profile-facts .success dt > svg {
 	color: var(--color-success);
 }
@@ -539,7 +489,7 @@
 
 .profile-fact-name > svg {
 	flex: 0 0 auto;
-	color: var(--color-accent-strong);
+	color: var(--color-text-muted);
 }
 
 .profile-read-error {

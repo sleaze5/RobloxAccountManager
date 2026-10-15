@@ -97,6 +97,7 @@
 		<label class="settings-toggle">
 			<input
 				type="checkbox"
+				role="switch"
 				aria-labelledby={`setting-label-${id}`}
 				aria-describedby={`setting-description-${id}`}
 				checked={isChecked}

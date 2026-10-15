@@ -32,5 +32,5 @@
 			onMenu(event.currentTarget, false)
 		}
 	}}>
-	<DotsThreeIcon size={18} aria-hidden="true" />
+	<DotsThreeIcon size={16} aria-hidden="true" />
 </button>

@@ -17,7 +17,7 @@
 			type="button"
 			aria-label="Dismiss error"
 			onclick={() => store.clearError()}>
-			<XIcon size={15} aria-hidden="true" />
+			<XIcon size={14} aria-hidden="true" />
 		</button>
 	</div>
 {/if}

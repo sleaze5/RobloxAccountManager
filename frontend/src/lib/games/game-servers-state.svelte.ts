@@ -339,6 +339,6 @@ export function outdated(version: number, newestVersion: number): boolean {
 
 export function versionTooltip(version: number, newestVersion: number): string {
 	return outdated(version, newestVersion)
-		? `Place version ${version}. The newest running version is ${newestVersion}.`
+		? `Place version ${version}. The newest running version is ${newestVersion}`
 		: `Place version ${version}`
 }

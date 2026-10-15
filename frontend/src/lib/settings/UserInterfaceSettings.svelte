@@ -200,7 +200,7 @@
 	<section class="settings-section" aria-labelledby="timestamps-title">
 		<h3 id="timestamps-title">Timestamps</h3>
 		<div class="settings-section-help">
-			<InfoIcon size={15} aria-hidden="true" />
+			<InfoIcon size={14} aria-hidden="true" />
 			<p>
 				Start each token with <code>$</code>, such as <code>$YYYY</code>. Other
 				text appears as typed. Use <code>$$</code> to show a <code>$</code> sign.
@@ -300,24 +300,24 @@
 			{#if showTimestampActions}
 				<div class="settings-form-actions">
 					<button
-						class="settings-row-action"
+						class="control-button text-button"
 						type="button"
 						disabled={store.busyTimestampFormats ||
 							(timestampFormat === defaultTimestampFormats.shown &&
 								timestampHoverFormat === defaultTimestampFormats.hover)}
 						onclick={restoreDefaults}>
-						<ArrowCounterClockwiseIcon size={15} aria-hidden="true" />
+						<ArrowCounterClockwiseIcon size={16} aria-hidden="true" />
 						Restore defaults
 					</button>
 					<button
-						class="settings-row-action settings-save-action"
+						class="primary-action"
 						type="submit"
 						disabled={!store.initialized ||
 							store.busyTimestampFormats ||
 							!changed ||
 							validationErrors.length > 0}>
-						<FloppyDiskIcon size={15} aria-hidden="true" />
-						{store.busyTimestampFormats ? "Saving..." : "Save changes"}
+						<FloppyDiskIcon size={16} aria-hidden="true" />
+						{store.busyTimestampFormats ? "Saving…" : "Save changes"}
 					</button>
 				</div>
 			{/if}

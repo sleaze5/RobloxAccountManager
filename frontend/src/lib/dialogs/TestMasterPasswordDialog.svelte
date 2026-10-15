@@ -43,7 +43,7 @@
 				void testPassword()
 			}}>
 			<div class="modal-icon">
-				<ShieldCheckIcon size={20} aria-hidden="true" />
+				<ShieldCheckIcon size={16} aria-hidden="true" />
 			</div>
 			<h2 id="test-password-title">Test master password</h2>
 			<p>Confirm that you still know the portable vault password.</p>
@@ -71,8 +71,11 @@
 				<div class="modal-note">Hint: {store.vault.passwordHint}</div>
 			{/if}
 			<div class="modal-actions">
-				<button type="button" disabled={store.busy} onclick={onClose}
-					>Cancel</button>
+				<button
+					class="control-button text-button"
+					type="button"
+					disabled={store.busy}
+					onclick={onClose}>Cancel</button>
 				<button
 					class="primary-action"
 					type="submit"

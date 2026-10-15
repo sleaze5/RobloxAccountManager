@@ -60,7 +60,7 @@
 					center.resume(notification.id)
 			}}>
 			<div class="notification-icon {notification.tone}">
-				<ToneIcon size={17} aria-hidden="true" />
+				<ToneIcon size={16} aria-hidden="true" />
 			</div>
 			<div class="notification-content">
 				<strong>{notification.title}</strong>
@@ -69,7 +69,9 @@
 					<div class="notification-actions">
 						{#each notification.actions as action, index}
 							<button
-								class:primary-action={action.emphasis}
+								class={action.emphasis
+									? "primary-action compact"
+									: "control-button text-button compact"}
 								type="button"
 								disabled={runningAction !== ""}
 								onclick={() =>
@@ -87,7 +89,7 @@
 					aria-label={`Dismiss ${notification.title}`}
 					disabled={runningAction !== ""}
 					onclick={() => center.dismiss(notification.id)}>
-					<XIcon size={16} aria-hidden="true" />
+					<XIcon size={14} aria-hidden="true" />
 				</button>
 			{/if}
 		</article>

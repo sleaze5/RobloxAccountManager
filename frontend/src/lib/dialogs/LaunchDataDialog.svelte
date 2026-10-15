@@ -81,7 +81,7 @@
 					type="button"
 					aria-label="Close launch data dialog"
 					onclick={onClose}>
-					<XIcon size={17} aria-hidden="true" />
+					<XIcon size={14} aria-hidden="true" />
 				</button>
 			</div>
 			<label class="modal-field launch-data-field">
@@ -90,7 +90,7 @@
 					bind:this={textarea}
 					bind:value={draft}
 					class="launch-data-textarea"
-					placeholder="Enter launch data..."
+					placeholder="Enter launch data…"
 					wrap="soft"
 					spellcheck="false"
 					autocomplete="off"
@@ -102,6 +102,7 @@
 				</span>
 				<div class="modal-actions">
 					<button
+						class="control-button text-button"
 						type="button"
 						disabled={draft.length === 0 || store.launching}
 						onclick={handleClear}>

@@ -12,13 +12,13 @@
 	position: absolute;
 	top: calc(100% + 2px);
 	right: 0;
-	z-index: 20;
+	z-index: var(--layer-menu);
 	width: 156px;
 }
 
 .account-context-menu {
 	position: fixed;
-	z-index: 80;
+	z-index: var(--layer-context-menu);
 }
 
 .account-menu button {
@@ -33,7 +33,7 @@
 	background: transparent;
 	color: var(--color-text-muted);
 	font-size: var(--text-12);
-	font-weight: var(--font-semibold);
+	font-weight: var(--font-medium);
 	cursor: pointer;
 }
 
@@ -50,20 +50,19 @@
 
 .account-menu button[aria-pressed="true"] {
 	background: var(--color-active);
-	color: var(--color-accent-strong);
+	color: var(--color-text);
 }
 
 .account-menu button:hover,
 .account-menu button.active {
 	background: var(--color-hover);
-	color: var(--color-accent-strong);
+	color: var(--color-text);
 }
 
 .account-menu button:disabled {
 	background: transparent;
-	color: var(--color-text-faint);
 	cursor: not-allowed;
-	opacity: 0.45;
+	opacity: var(--opacity-disabled);
 }
 
 .account-menu .menu-check {
@@ -162,8 +161,4 @@
 
 .account-menu button.warning-action:not(:disabled) {
 	color: var(--color-warning);
-}
-
-.account-menu button.game-action:not(:disabled) {
-	color: var(--color-presence-game);
 }

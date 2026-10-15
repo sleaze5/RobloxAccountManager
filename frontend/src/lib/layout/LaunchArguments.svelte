@@ -91,7 +91,7 @@
 			open = !open
 			if (open) void loadClients()
 		}}>
-		<SlidersIcon size={17} aria-hidden="true" />
+		<SlidersIcon size={16} aria-hidden="true" />
 	</button>
 	{#if open}
 		<section

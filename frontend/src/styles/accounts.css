@@ -66,7 +66,6 @@
 }
 
 .sidebar-resizer.disabled {
-	opacity: 1;
 	cursor: default;
 }
 
@@ -164,7 +163,7 @@
 	color: var(--color-bg);
 	font-family: var(--font-mono);
 	font-size: var(--text-10);
-	font-weight: var(--font-semibold);
+	font-weight: var(--font-bold);
 }
 
 .tag-filter-menu {
@@ -174,7 +173,7 @@
 	max-height: var(--tag-filter-height);
 	top: calc(100% + var(--space-1));
 	right: 0;
-	z-index: 30;
+	z-index: var(--layer-menu);
 }
 
 .tag-filter-menu > :not(.tag-filter-list) {
@@ -274,14 +273,6 @@
 	cursor: pointer;
 }
 
-.account-row:hover {
-	background: var(--color-hover);
-}
-
-.account-row.selected {
-	background: var(--color-active);
-}
-
 .account-row:has(.account-row-select:focus-visible) {
 	outline: var(--focus-ring-width) solid var(--color-focus-ring);
 	outline-offset: -1px;
@@ -308,7 +299,7 @@
 }
 
 .account-row.dragging {
-	opacity: 0.45;
+	opacity: var(--opacity-dragging);
 }
 
 .account-row.drop-before::before,
@@ -328,19 +319,6 @@
 
 .account-row.drop-after::after {
 	bottom: 0;
-}
-
-.selection-mark {
-	position: absolute;
-	top: 0;
-	bottom: 0;
-	left: 0;
-	width: var(--indicator-size);
-	background: transparent;
-}
-
-.account-row.selected .selection-mark {
-	background: var(--color-accent);
 }
 
 .account-drag-handle {
@@ -363,7 +341,7 @@
 	position: relative;
 	display: block;
 	flex: 0 0 auto;
-	color: var(--color-accent-strong);
+	color: var(--color-text);
 	font-family: var(--font-mono);
 	font-weight: var(--font-semibold);
 }
@@ -412,7 +390,7 @@
 
 .account-name strong {
 	margin-bottom: 2px;
-	color: var(--color-accent-strong);
+	color: var(--color-text);
 	font-size: var(--text-13);
 	font-weight: var(--font-semibold);
 }

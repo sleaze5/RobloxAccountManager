@@ -24,9 +24,4 @@
 				: `Account #${selectedPosition}: ${accountName}`}
 		{/if}
 	</span>
-	<div>
-		<span
-			>{store.accountTotal}
-			{store.accountTotal === 1 ? "account" : "accounts"}</span>
-	</div>
 </footer>

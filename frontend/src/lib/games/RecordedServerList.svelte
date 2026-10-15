@@ -40,7 +40,7 @@
 			{
 				value: "",
 				label: stats.loading
-					? "Loading regions..."
+					? "Loading regions…"
 					: stats.failed
 						? "Regions unavailable"
 						: "Any region",
@@ -105,7 +105,7 @@
 
 	{#if servers.error}
 		<div class="empty-state" role="alert">
-			<WarningIcon size={27} aria-hidden="true" />
+			<WarningIcon size={28} aria-hidden="true" />
 			<h2>RoValra servers are unavailable</h2>
 			<p>{servers.error}</p>
 			<button
@@ -115,12 +115,12 @@
 		</div>
 	{:else if !servers.page}
 		<div class="empty-state" role="status">
-			<CircleNotchIcon class="spinner" size={27} aria-hidden="true" />
-			<h2>Loading servers...</h2>
+			<CircleNotchIcon class="spinner" size={28} aria-hidden="true" />
+			<h2>Loading servers…</h2>
 		</div>
 	{:else if !shown.length}
 		<div class="empty-state" role="status">
-			<HardDrivesIcon size={27} aria-hidden="true" />
+			<HardDrivesIcon size={28} aria-hidden="true" />
 			{#if servers.pageNumber > 1}
 				<h2>No more servers</h2>
 				<p>RoValra has no more servers for this list.</p>

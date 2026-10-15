@@ -73,7 +73,7 @@
 				aria-label="Close cookie renewal"
 				disabled={pending}
 				onclick={onClose}>
-				<XIcon size={16} aria-hidden="true" />
+				<XIcon size={14} aria-hidden="true" />
 			</button>
 		</div>
 		{#if phase === "confirm"}
@@ -88,12 +88,12 @@
 				role="status"
 				aria-live="polite">
 				{#if pending}
-					<CircleNotchIcon size={18} class="spinner" aria-hidden="true" />
-					<span>Renewing the cookie and saving it...</span>
+					<CircleNotchIcon size={16} class="spinner" aria-hidden="true" />
+					<span>Renewing the cookie and saving it…</span>
 				{:else if error}
 					<span>Renewal could not be confirmed.</span>
 				{:else}
-					<CheckIcon size={18} class="renewal-success" aria-hidden="true" />
+					<CheckIcon size={16} class="renewal-success" aria-hidden="true" />
 					<span>The renewed cookie is saved.</span>
 				{/if}
 			</div>
@@ -106,15 +106,21 @@
 		{/if}
 		<div class="modal-actions">
 			{#if phase === "confirm"}
-				<button type="button" onclick={onClose}>Cancel</button>
+				<button
+					class="control-button text-button"
+					type="button"
+					onclick={onClose}>Cancel</button>
 				<button
 					class="warning-button"
 					type="button"
 					disabled={store.busy}
 					onclick={() => void renew()}>Renew cookie</button>
 			{:else}
-				<button type="button" disabled={pending} onclick={onClose}
-					>{pending ? "Renewing..." : "Close"}</button>
+				<button
+					class="control-button text-button"
+					type="button"
+					disabled={pending}
+					onclick={onClose}>{pending ? "Renewing…" : "Close"}</button>
 			{/if}
 		</div>
 	</div>

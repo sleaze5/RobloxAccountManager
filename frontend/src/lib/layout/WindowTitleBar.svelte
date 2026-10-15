@@ -29,14 +29,14 @@
 			aria-label="Open repository"
 			data-tooltip="Open repository"
 			onclick={() => void Browser.OpenURL(repositoryURL)}>
-			<GitBranchIcon size={17} weight="light" aria-hidden="true" />
+			<GitBranchIcon size={18} weight="light" aria-hidden="true" />
 		</button>
 		<button
 			type="button"
 			aria-label="Minimize window"
 			data-tooltip="Minimize window"
 			onclick={() => void Window.Minimise()}>
-			<MinusIcon size={17} weight="light" aria-hidden="true" />
+			<MinusIcon size={18} weight="light" aria-hidden="true" />
 		</button>
 		<button
 			type="button"

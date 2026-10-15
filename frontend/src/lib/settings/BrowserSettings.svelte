@@ -2,6 +2,7 @@
 	import DownloadSimpleIcon from "phosphor-svelte/lib/DownloadSimpleIcon"
 	import ArrowCounterClockwiseIcon from "phosphor-svelte/lib/ArrowCounterClockwiseIcon"
 	import TrashIcon from "phosphor-svelte/lib/TrashIcon"
+	import XIcon from "phosphor-svelte/lib/XIcon"
 	import BrowserRuntimeActivity from "../browser/BrowserRuntimeActivity.svelte"
 	import type { BrowserStore } from "../browser/browser-store.svelte"
 	import { RuntimeStatus } from "../backend/bridge"
@@ -116,7 +117,7 @@
 				<div class="settings-row">
 					<BrowserRuntimeActivity {runtime} />
 					{#if runtime.canCancel}<button
-							class="settings-row-action"
+							class="control-button text-button"
 							type="button"
 							onclick={() => void browser.cancelDownload()}
 							>Cancel download</button
@@ -131,21 +132,21 @@
 					</div>
 					<div class="settings-row-actions">
 						{#if runtime.status === RuntimeStatus.RuntimeMissing}<button
-								class="settings-row-action"
+								class="control-button text-button"
 								type="button"
 								onclick={() => void browser.download()}
 								><DownloadSimpleIcon
 									size={16}
 									aria-hidden="true" />Download</button
 							>{:else}<button
-								class="settings-row-action"
+								class="control-button text-button"
 								type="button"
 								onclick={() => void requestAction("redownload")}
 								><ArrowCounterClockwiseIcon
 									size={16}
 									aria-hidden="true" />Redownload</button
 							><button
-								class="settings-row-action danger-action"
+								class="control-button text-button"
 								type="button"
 								onclick={() => void requestAction("remove")}
 								><TrashIcon
@@ -178,6 +179,15 @@
 					</h2>
 					<p>This will stop browser work that is currently active.</p>
 				</div>
+				<button
+					type="button"
+					aria-label="Close browser confirmation"
+					onclick={() => {
+						pendingAction = null
+						effects = null
+					}}>
+					<XIcon size={14} aria-hidden="true" />
+				</button>
 			</div>
 			<ul class="confirmation-effects">
 				{#if effects.browserSessions}<li>
@@ -200,16 +210,21 @@
 			</ul>
 			<div class="modal-actions">
 				<button
+					class="control-button text-button"
 					type="button"
 					onclick={() => {
 						pendingAction = null
 						effects = null
 					}}>Cancel</button
 				><button
-					class="danger-button"
+					class={pendingAction === "remove"
+						? "danger-button"
+						: "primary-action"}
 					type="button"
 					onclick={() => void runAction(pendingAction!)}
-					>{pendingAction === "remove" ? "Remove" : "Redownload"}</button>
+					>{pendingAction === "remove"
+						? "Remove browser"
+						: "Redownload browser"}</button>
 			</div>
 		</div>
 	</div>

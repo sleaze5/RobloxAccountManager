@@ -2,7 +2,7 @@
 	position: fixed;
 	top: calc(var(--titlebar-height) + var(--space-2));
 	right: var(--space-2);
-	z-index: 80;
+	z-index: var(--layer-notification);
 	display: flex;
 	width: min(320px, calc(100vw - var(--space-4)));
 	flex-direction: column;
@@ -68,33 +68,6 @@
 	justify-content: flex-end;
 	gap: var(--space-2);
 	margin-top: var(--space-1);
-}
-
-.notification-actions button {
-	min-height: var(--control-height-sm);
-	padding: 0 var(--space-2);
-	border: 1px solid var(--color-border);
-	border-radius: var(--radius-control);
-	background: transparent;
-	color: var(--color-text-muted);
-	font-size: var(--text-12);
-	font-weight: var(--font-semibold);
-	transition:
-		background-color var(--duration-fast) var(--ease-standard),
-		border-color var(--duration-fast) var(--ease-standard),
-		color var(--duration-fast) var(--ease-standard);
-}
-
-.notification-actions button.primary-action {
-	border-color: var(--color-border-strong);
-	background: var(--color-surface-raised);
-	color: var(--color-text);
-}
-
-.notification-actions button:hover {
-	border-color: var(--color-border-focus);
-	background: var(--color-surface-raised-hover);
-	color: var(--color-text);
 }
 
 .notification-dismiss {

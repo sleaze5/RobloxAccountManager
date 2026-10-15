@@ -48,7 +48,7 @@
 			<button
 				type="button"
 				aria-label="Dismiss browser download"
-				onclick={onDismiss}><XIcon size={17} aria-hidden="true" /></button>
+				onclick={onDismiss}><XIcon size={14} aria-hidden="true" /></button>
 		</div>
 		<div class="runtime-details">
 			<span>Version</span><code>{runtime.requiredVersion}</code><span
@@ -63,9 +63,10 @@
 			</div>{/if}
 		{#if active}<BrowserRuntimeActivity {runtime} />{/if}
 		<div class="modal-actions">
-			<button type="button" onclick={onDismiss}
+			<button class="control-button text-button" type="button" onclick={onDismiss}
 				>{active ? "Continue in background" : "Not now"}</button
 			>{#if runtime.canCancel}<button
+					class="control-button text-button"
 					type="button"
 					onclick={() => void browser.cancelDownload()}
 					>Cancel download</button

@@ -95,11 +95,11 @@
 					<p>Choose the client that joins games.</p>
 				</div>
 				<button
-					class="icon-action"
+					class="icon-action compact"
 					type="button"
 					aria-label="Close Linux client dialog"
 					onclick={onClose}>
-					<XIcon size={17} aria-hidden="true" />
+					<XIcon size={14} aria-hidden="true" />
 				</button>
 			</div>
 			<div
@@ -134,8 +134,11 @@
 				<div class="modal-error" role="alert">{error}</div>
 			{/if}
 			<div class="modal-actions">
-				<button type="button" disabled={saving} onclick={onClose}
-					>Cancel</button>
+				<button
+					class="control-button text-button"
+					type="button"
+					disabled={saving}
+					onclick={onClose}>Cancel</button>
 				<button class="primary-action" type="submit" disabled={saving}>
 					Save
 				</button>

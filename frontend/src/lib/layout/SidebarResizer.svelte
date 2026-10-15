@@ -11,11 +11,15 @@
 		collapsed: boolean
 		name: string
 	} = $props()
-	let stopResize: (() => void) | undefined
+	const minimumWidth = 220
+	let stopResize: (() => void) | undefined,
+		viewportWidth = $state(window.innerWidth)
+	const maximumWidth = $derived(
+		Math.max(minimumWidth, Math.min(420, viewportWidth - 500)),
+	)
 
 	function resize(nextWidth: number): void {
-		const maximumWidth = Math.max(220, Math.min(420, window.innerWidth - 500))
-		width = Math.min(maximumWidth, Math.max(220, nextWidth))
+		width = Math.min(maximumWidth, Math.max(minimumWidth, nextWidth))
 	}
 
 	function startResize(event: PointerEvent): void {
@@ -39,7 +43,8 @@
 	}
 
 	function handleKeydown(event: KeyboardEvent): void {
-		if (event.key !== "ArrowLeft" && event.key !== "ArrowRight") return
+		if (collapsed || (event.key !== "ArrowLeft" && event.key !== "ArrowRight"))
+			return
 		event.preventDefault()
 		resize(width + (event.key === "ArrowLeft" ? -16 : 16))
 	}
@@ -47,13 +52,21 @@
 	onDestroy(() => stopResize?.())
 </script>
 
-<button
+<svelte:window bind:innerWidth={viewportWidth} />
+
+<div
 	class:disabled={collapsed}
 	class="sidebar-resizer"
-	type="button"
-	disabled={collapsed}
+	role="slider"
+	tabindex={collapsed ? -1 : 0}
+	aria-disabled={collapsed}
 	aria-label={`Resize ${name} sidebar`}
+	aria-orientation="vertical"
+	aria-valuenow={width}
+	aria-valuemin={minimumWidth}
+	aria-valuemax={maximumWidth}
 	data-tooltip={`Drag to resize the ${name} sidebar`}
 	data-tooltip-side="right"
 	onpointerdown={startResize}
-	onkeydown={handleKeydown}></button>
+	onkeydown={handleKeydown}>
+</div>

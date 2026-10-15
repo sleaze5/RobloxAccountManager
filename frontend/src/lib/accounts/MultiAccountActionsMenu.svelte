@@ -47,7 +47,7 @@
 	<button class="tag-submenu-trigger" type="button">
 		<TagIcon size={16} aria-hidden="true" />
 		<span>Edit tags</span>
-		<CaretRightIcon size={15} class="submenu-chevron" aria-hidden="true" />
+		<CaretRightIcon size={16} class="submenu-chevron" aria-hidden="true" />
 	</button>
 	<div
 		class:open-left={submenuLeft}

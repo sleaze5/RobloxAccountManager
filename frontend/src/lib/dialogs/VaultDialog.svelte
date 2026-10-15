@@ -117,7 +117,7 @@
 				event.preventDefault()
 				void submit()
 			}}>
-			<div class="modal-icon"><LockKeyIcon size={20} aria-hidden="true" /></div>
+			<div class="modal-icon"><LockKeyIcon size={16} aria-hidden="true" /></div>
 			<h2 id="vault-title">
 				{creating
 					? "Create account vault"
@@ -236,7 +236,10 @@
 							autocomplete="new-password"
 							required />
 					</label>
-					<ul class="password-checklist" aria-label="Password requirements">
+					<ul
+						class="password-checklist"
+						class:touched={password !== ""}
+						aria-label="Password requirements">
 						{#each [[rules.length, "8-128 characters long"], [rules.uppercase, "At least one upper-case letter"], [rules.lowercase, "At least one lower-case letter"], [rules.digit, "At least one number"], [rules.special, "At least one special character"]] as requirement}
 							<li class:valid={requirement[0]}>
 								{#if requirement[0]}<CheckIcon
@@ -282,7 +285,7 @@
 						type="button"
 						aria-label="About automatic unlock"
 						data-tooltip={automaticUnlockDialogDescription}>
-						<InfoIcon size={15} aria-hidden="true" />
+						<InfoIcon size={14} aria-hidden="true" />
 					</button>
 				</div>
 				<button
@@ -293,14 +296,14 @@
 						: !password || store.busy}>
 					{creating
 						? store.busy
-							? "Creating vault..."
+							? "Creating vault…"
 							: "Create vault"
 						: incomplete
 							? store.busy
-								? "Repairing portable key..."
+								? "Repairing portable key…"
 								: "Repair portable key"
 							: store.busy
-								? "Unlocking..."
+								? "Unlocking…"
 								: "Unlock"}
 				</button>
 			{/if}

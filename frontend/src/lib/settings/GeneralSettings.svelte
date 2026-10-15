@@ -150,6 +150,7 @@
 					<label class="settings-toggle">
 						<input
 							type="checkbox"
+							role="switch"
 							aria-label="Enable all log levels"
 							checked={store.areAllLoggingLevelsEnabled()}
 							disabled={store.busyLevel !== null}
@@ -170,6 +171,7 @@
 					<label class="settings-toggle">
 						<input
 							type="checkbox"
+							role="switch"
 							aria-label={`Enable ${level.name} logs`}
 							checked={store.isLoggingLevelEnabled(level.id)}
 							disabled={store.busyLevel !== null}

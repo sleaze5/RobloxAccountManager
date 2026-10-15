@@ -78,7 +78,7 @@
 			{#if chat.loadMoreFailed}
 				<button
 					type="button"
-					class="chat-load-more"
+					class="control-button text-button chat-load-more"
 					onclick={() => void chat.loadMore()}>
 					Load more chats
 				</button>

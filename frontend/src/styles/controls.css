@@ -1,0 +1,115 @@
+.primary-action,
+.control-button,
+.danger-button,
+.warning-button {
+	display: inline-flex;
+	min-height: var(--control-height-md);
+	align-items: center;
+	justify-content: center;
+	gap: var(--space-1);
+	padding: 0 var(--space-3);
+	border: 1px solid var(--color-border);
+	border-radius: var(--radius-control);
+	background: transparent;
+	color: var(--color-text-muted);
+	font-size: var(--text-12);
+	font-weight: var(--font-medium);
+	white-space: nowrap;
+	cursor: pointer;
+}
+
+.primary-action {
+	border-color: var(--color-border-strong);
+	background: var(--color-surface-raised);
+	color: var(--color-text-bright);
+}
+
+.primary-action:hover:not(:disabled) {
+	border-color: var(--color-border-focus);
+	background: var(--color-surface-raised-hover);
+}
+
+.control-button {
+	width: var(--control-height-md);
+	height: var(--control-height-md);
+	padding: 0;
+}
+
+.control-button.text-button {
+	width: auto;
+	padding: 0 var(--space-2);
+}
+
+.control-button:hover:not(:disabled),
+.control-button.open {
+	background: var(--color-hover);
+	color: var(--color-text);
+}
+
+.danger-button {
+	border-color: var(--color-danger-border);
+	background: var(--color-danger-tint);
+	color: var(--color-danger-muted);
+}
+
+.danger-button:hover:not(:disabled) {
+	background: var(--color-danger-tint-hover);
+}
+
+.warning-button {
+	border-color: var(--color-warning-border);
+	background: var(--color-warning-wash);
+	color: var(--color-warning);
+}
+
+.warning-button:hover:not(:disabled) {
+	border-color: var(--color-warning);
+}
+
+.icon-action {
+	display: grid;
+	width: var(--control-height-md);
+	height: var(--control-height-md);
+	flex: 0 0 auto;
+	place-items: center;
+	padding: 0;
+	border: 0;
+	border-radius: var(--radius-control);
+	background: transparent;
+	color: var(--color-text-muted);
+	cursor: pointer;
+}
+
+.icon-action:hover:not(:disabled),
+.icon-action.open {
+	background: var(--color-hover);
+	color: var(--color-text);
+}
+
+.icon-action.compact,
+.control-button.compact,
+.primary-action.compact {
+	width: var(--control-height-sm);
+	height: var(--control-height-sm);
+	min-height: var(--control-height-sm);
+}
+
+.control-button.text-button.compact,
+.primary-action.compact {
+	width: auto;
+	padding: 0 var(--space-2);
+}
+
+.list-row:hover,
+.list-row.menu-open {
+	background: var(--color-hover);
+}
+
+.list-row.selected {
+	background: var(--color-active);
+	box-shadow: inset var(--indicator-size) 0 0 var(--color-accent);
+}
+
+.list-row.selected:hover {
+	background: var(--color-hover);
+}

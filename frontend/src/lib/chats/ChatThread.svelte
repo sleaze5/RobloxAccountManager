@@ -145,12 +145,12 @@
 		{#if chat.messagesCursor && !chat.messagesLoading}
 			<button
 				type="button"
-				class="chat-load-more"
+				class="control-button text-button chat-load-more"
 				disabled={chat.olderLoading}
 				aria-busy={chat.olderLoading}
 				onclick={() => void loadOlder()}>
 				{#if chat.olderLoading}
-					<CircleNotchIcon class="spinner" size={15} aria-hidden="true" />
+					<CircleNotchIcon class="spinner" size={16} aria-hidden="true" />
 				{/if}
 				Load older messages
 			</button>
@@ -242,9 +242,9 @@
 			disabled={chat.markingRead}
 			onclick={() => void chat.markRead()}>
 			{#if chat.markingRead}
-				<CircleNotchIcon class="spinner" size={17} aria-hidden="true" />
+				<CircleNotchIcon class="spinner" size={16} aria-hidden="true" />
 			{:else}
-				<EyeIcon size={17} aria-hidden="true" />
+				<EyeIcon size={16} aria-hidden="true" />
 			{/if}
 		</button>
 		<button
@@ -253,7 +253,7 @@
 			aria-label="Send message"
 			data-tooltip="Send message"
 			disabled={!draft.trim()}>
-			<PaperPlaneRightIcon size={17} aria-hidden="true" />
+			<PaperPlaneRightIcon size={16} aria-hidden="true" />
 		</button>
 	</form>
 </section>

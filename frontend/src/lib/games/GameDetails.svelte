@@ -289,7 +289,7 @@
 								{nameStart}<span class="game-name-end"
 									>{nameEnd}{#if favorite}<StarIcon
 											class="favorite-name-star"
-											size={15}
+											size={16}
 											weight="fill"
 											aria-label="Favorite" />{/if}</span>
 							</h2>
@@ -321,7 +321,7 @@
 												>{nickname}</span
 											>{/if}
 										<button
-											class="icon-action game-nickname-edit"
+											class="icon-action compact game-nickname-edit"
 											type="button"
 											aria-label={nickname
 												? "Edit nickname"
@@ -332,7 +332,7 @@
 											disabled={store.savingNickname}
 											onclick={startEditing}
 											><PencilIcon
-												size={15}
+												size={14}
 												aria-hidden="true" /></button>
 									{/if}
 								</span>
@@ -349,7 +349,7 @@
 								data-tooltip="Search places in this universe"
 								onclick={() => onSearchUniverse(place.universeId)}
 								><MagnifyingGlassIcon
-									size={13}
+									size={14}
 									aria-hidden="true" /></button>
 						</div>
 						<div class="identity-meta">
@@ -366,7 +366,7 @@
 						</div>
 						{#if game && !rootPlace}
 							<p class="game-playing" class:active={game.playing > 0}>
-								<PulseIcon size={15} aria-hidden="true" />
+								<PulseIcon size={14} aria-hidden="true" />
 								{numbers.format(game.playing)} playing
 							</p>
 						{/if}
@@ -385,9 +385,9 @@
 						onclick={() => void store.refreshDetails()}>
 						{#if store.loadingDetails}<CircleNotchIcon
 								class="spinner"
-								size={17}
+								size={16}
 								aria-hidden="true" />{:else}<ArrowsClockwiseIcon
-								size={17}
+								size={16}
 								aria-hidden="true" />{/if}
 					</button>
 					<button
@@ -400,11 +400,11 @@
 							store.closeMenu()
 							store.detailsPage = "servers"
 						}}>
-						<HardDrivesIcon size={17} aria-hidden="true" />
+						<HardDrivesIcon size={16} aria-hidden="true" />
 					</button>
 					<button
 						class:open={menuOpen}
-						class="icon-action bordered"
+						class="control-button"
 						type="button"
 						aria-label="More game actions"
 						aria-haspopup="menu"
@@ -416,7 +416,7 @@
 							if (menuOpen) store.closeMenu()
 							else store.openMenu(event, place)
 						}}>
-						<DotsThreeIcon size={20} aria-hidden="true" />
+						<DotsThreeIcon size={16} aria-hidden="true" />
 					</button>
 				</div>
 			</div>

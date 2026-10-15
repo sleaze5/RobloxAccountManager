@@ -75,7 +75,7 @@
 						</span>
 					{/if}
 					<button
-						class="logs-explorer-visit-actions icon-action"
+						class="logs-explorer-visit-actions icon-action compact"
 						type="button"
 						aria-label="Event actions"
 						aria-haspopup="menu"
@@ -95,7 +95,7 @@
 								activeMenu = { visit, trigger: event.currentTarget }
 							}
 						}}>
-						<DotsThreeIcon size={18} aria-hidden="true" />
+						<DotsThreeIcon size={14} aria-hidden="true" />
 					</button>
 				</div>
 				<LogsExplorerVisitDetails {visit} {onSearchPlace} />

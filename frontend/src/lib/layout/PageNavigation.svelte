@@ -29,7 +29,7 @@
 			type="button"
 			aria-current={activePage === "accounts" ? "page" : undefined}
 			onclick={() => onPage("accounts")}>
-			<UsersIcon size={17} aria-hidden="true" />
+			<UsersIcon size={16} aria-hidden="true" />
 			<span>Accounts</span>
 		</button>
 		<button
@@ -37,7 +37,7 @@
 			type="button"
 			aria-current={activePage === "games" ? "page" : undefined}
 			onclick={() => onPage("games")}>
-			<GameControllerIcon size={17} aria-hidden="true" />
+			<GameControllerIcon size={16} aria-hidden="true" />
 			<span>Games</span>
 		</button>
 		<button
@@ -45,7 +45,7 @@
 			type="button"
 			aria-current={activePage === "logs-explorer" ? "page" : undefined}
 			onclick={() => onPage("logs-explorer")}>
-			<FileMagnifyingGlassIcon size={17} aria-hidden="true" />
+			<FileMagnifyingGlassIcon size={16} aria-hidden="true" />
 			<span>Logs Explorer</span>
 		</button>
 	</nav>
@@ -60,9 +60,9 @@
 			onclick={onLock}>
 			{#if store.busy}<CircleNotchIcon
 					class="spinner"
-					size={17}
+					size={16}
 					aria-hidden="true" />{:else}<LockKeyIcon
-					size={17}
+					size={16}
 					aria-hidden="true" />{/if}
 		</button>
 		<button
@@ -71,7 +71,7 @@
 			data-tooltip="Settings"
 			data-tooltip-side="bottom-end"
 			onclick={onSettings}>
-			<GearIcon size={17} aria-hidden="true" />
+			<GearIcon size={16} aria-hidden="true" />
 		</button>
 	</div>
 </header>

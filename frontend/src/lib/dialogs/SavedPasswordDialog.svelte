@@ -173,7 +173,7 @@
 					aria-label={`Close ${title.toLowerCase()}`}
 					disabled={pending !== null}
 					onclick={close}>
-					<XIcon size={16} aria-hidden="true" />
+					<XIcon size={14} aria-hidden="true" />
 				</button>
 			</div>
 
@@ -184,7 +184,7 @@
 						bind:this={input}
 						bind:value={password}
 						type={visible ? "text" : "password"}
-						placeholder={loading ? "Loading..." : ""}
+						placeholder={loading ? "Loading…" : ""}
 						autocomplete="off"
 						spellcheck="false"
 						disabled={busy}
@@ -225,7 +225,7 @@
 						{#if pending === "validate"}<CircleNotchIcon
 								class="spinner"
 								size={16}
-								aria-hidden="true" /> Validating...{:else}<ShieldCheckIcon
+								aria-hidden="true" /> Validating…{:else}<ShieldCheckIcon
 								size={16}
 								aria-hidden="true" /> Validate with Roblox{/if}
 					</button>
@@ -234,7 +234,7 @@
 						type="button"
 						aria-label={validationHint}
 						data-tooltip={validationHint}>
-						<InfoIcon size={15} aria-hidden="true" />
+						<InfoIcon size={14} aria-hidden="true" />
 					</button>
 				{/if}
 			</div>
@@ -242,13 +242,16 @@
 			{#if error}<div class="modal-error" role="alert">{error}</div>{/if}
 
 			<div class="modal-actions">
-				<button type="button" disabled={pending !== null} onclick={close}
-					>Cancel</button>
+				<button
+					class="control-button text-button"
+					type="button"
+					disabled={pending !== null}
+					onclick={close}>Cancel</button>
 				<button
 					class="primary-action"
 					type="submit"
 					disabled={busy || !password || password === saved}>
-					{pending === "save" ? "Saving..." : "Save"}
+					{pending === "save" ? "Saving…" : "Save"}
 				</button>
 			</div>
 		</form>

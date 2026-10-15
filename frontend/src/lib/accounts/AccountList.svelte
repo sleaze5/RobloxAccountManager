@@ -142,13 +142,12 @@
 			class:drop-before={dropTarget?.accountId === account.id &&
 				!dropTarget.after}
 			class:drop-after={dropTarget?.accountId === account.id && dropTarget.after}
-			class="account-row"
+			class="account-row list-row"
 			role="group"
 			aria-label={`@${account.username}`}
 			oncontextmenu={(event) => openContextMenu(event, account.id)}
 			ondragover={(event) => updateDropTarget(event, account.id)}
 			ondrop={(event) => dropAccount(event, account.id)}>
-			<span class="selection-mark"></span>
 			{#if store.multipleSelected}
 				<span class="cookie-selection account-checkbox">
 					<input
@@ -218,7 +217,7 @@
 	{:else}
 		<div class="empty-list">
 			{#if store.loadingAccounts}
-				<span>Loading accounts...</span>
+				<span>Loading accounts…</span>
 			{:else if !store.query && store.selectedTagIds.length === 0}
 				<strong>No accounts yet</strong>
 				<span>Use the plus button to add one.</span>
@@ -229,7 +228,7 @@
 		</div>
 	{/each}
 	{#if store.loadingMore}
-		<div class="empty-list"><span>Loading more accounts...</span></div>
+		<div class="empty-list"><span>Loading more accounts…</span></div>
 	{/if}
 	<span class="visually-hidden" aria-live="polite">{moveAnnouncement}</span>
 </div>

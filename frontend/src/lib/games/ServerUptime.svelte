@@ -6,7 +6,7 @@
 	let { firstSeenMs }: { firstSeenMs: number } = $props()
 	const uptime = $derived(formatUptime(firstSeenMs)),
 		tooltip = $derived(
-			`Up about ${uptime}. First seen by RoValra ${formatTimestamp(firstSeenMs, appSettings.timestampHoverFormat)}.`,
+			`Up about ${uptime}. First seen by RoValra ${formatTimestamp(firstSeenMs, appSettings.timestampHoverFormat)}`,
 		)
 </script>
 

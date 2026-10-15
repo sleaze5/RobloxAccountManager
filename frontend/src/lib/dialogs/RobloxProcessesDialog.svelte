@@ -79,7 +79,7 @@
 			await accountBackend.KillRobloxProcesses(targets)
 		} catch {
 			if (!disposed) {
-				error = "Some Roblox processes could not be killed. Try again."
+				error = "Some Roblox processes could not be closed. Try again."
 			}
 		} finally {
 			if (!disposed) {
@@ -121,10 +121,10 @@
 			}
 		}}>
 		<div class="modal-heading">
-			<h2 id="roblox-process-title">Kill Roblox processes</h2>
+			<h2 id="roblox-process-title">Close Roblox processes</h2>
 			<div class="process-heading-actions">
 				<button
-					class="icon-action"
+					class="icon-action compact"
 					type="button"
 					aria-label="Refresh process list"
 					data-tooltip="Refresh process list"
@@ -132,16 +132,16 @@
 					onclick={() => void refresh()}>
 					{#if loading}<CircleNotchIcon
 							class="spinner"
-							size={16}
+							size={14}
 							aria-hidden="true" />
-					{:else}<ArrowsClockwiseIcon size={16} aria-hidden="true" />{/if}
+					{:else}<ArrowsClockwiseIcon size={14} aria-hidden="true" />{/if}
 				</button>
 				<button
-					class="icon-action"
+					class="icon-action compact"
 					type="button"
 					aria-label="Cancel"
 					disabled={killing}
-					onclick={dismiss}><XIcon size={17} aria-hidden="true" /></button>
+					onclick={dismiss}><XIcon size={14} aria-hidden="true" /></button>
 			</div>
 		</div>
 		<div class="process-results">
@@ -203,7 +203,7 @@
 							<tr
 								><td colspan="3" class="process-empty">
 									<span role="status">
-										{#if loading}Loading processes...
+										{#if loading}Loading processes…
 										{:else if snapshot?.supported === false}Not
 											available on this system.
 										{:else if loadError}Process list unavailable.
@@ -220,6 +220,7 @@
 			</div>{/if}
 		<div class="modal-actions">
 			<button
+				class="control-button text-button"
 				bind:this={cancelButton}
 				type="button"
 				disabled={killing}
@@ -232,7 +233,7 @@
 					selectedProcesses.length === 0 ||
 					!snapshot?.supported}
 				onclick={() => void killSelected()}
-				>{killing ? "Killing..." : "Kill selected"}</button>
+				>{killing ? "Closing…" : "Close selected"}</button>
 		</div>
 	</div>
 </div>

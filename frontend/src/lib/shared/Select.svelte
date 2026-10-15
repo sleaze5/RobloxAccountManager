@@ -179,7 +179,7 @@
 									>{option.description}</small
 								>{/if}
 						</span>{#if option.value === value}<CheckIcon
-								size={15}
+								size={16}
 								aria-hidden="true" />{/if}
 					</button>
 				{/each}

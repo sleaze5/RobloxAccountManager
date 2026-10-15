@@ -2,8 +2,8 @@
 	import ProhibitIcon from "phosphor-svelte/lib/ProhibitIcon"
 	import CaretDownIcon from "phosphor-svelte/lib/CaretDownIcon"
 	import CheckIcon from "phosphor-svelte/lib/CheckIcon"
+	import EraserIcon from "phosphor-svelte/lib/EraserIcon"
 	import GameControllerIcon from "phosphor-svelte/lib/GameControllerIcon"
-	import TrashIcon from "phosphor-svelte/lib/TrashIcon"
 	import type { AccountStore } from "../accounts/account-store.svelte"
 	import { LaunchMethod } from "../backend/bridge"
 	import RobloxProcessesDialog from "../dialogs/RobloxProcessesDialog.svelte"
@@ -77,16 +77,23 @@
 	})
 </script>
 
+<svelte:window bind:innerHeight={workspace.viewportHeight} />
+
 <section
 	bind:this={drawer}
 	class:collapsed={!workspace.launchOpen}
 	class="launch-drawer"
 	aria-labelledby="launch-title">
 	{#if workspace.launchOpen}
-		<button
+		<div
 			class="launch-resizer"
-			type="button"
+			role="slider"
+			tabindex="0"
 			aria-label="Resize launch panel"
+			aria-orientation="horizontal"
+			aria-valuenow={workspace.launchHeight}
+			aria-valuemin={workspace.launchMinimumHeight}
+			aria-valuemax={workspace.launchMaximumHeight}
 			data-tooltip="Drag to resize the launch panel"
 			data-tooltip-side="top"
 			onkeydown={(event) => {
@@ -97,21 +104,22 @@
 					)
 				}
 			}}
-			onpointerdown={(event) => workspace.startLaunchResize(event)}></button>
+			onpointerdown={(event) => workspace.startLaunchResize(event)}>
+		</div>
 	{/if}
 	<div class="drawer-header">
 		<span>
-			<GameControllerIcon size={18} aria-hidden="true" />
+			<GameControllerIcon size={16} aria-hidden="true" />
 			<strong id="launch-title">Launch options</strong>
 		</span>
 		<div class="drawer-header-actions">
 			<button
 				class="icon-action close-roblox-action"
 				type="button"
-				aria-label="Kill Roblox processes"
+				aria-label="Close Roblox processes"
 				aria-haspopup="dialog"
 				aria-expanded={processesOpen}
-				data-tooltip="Kill Roblox processes"
+				data-tooltip="Close Roblox processes"
 				data-tooltip-side="top"
 				disabled={!store.vault.unlocked}
 				onclick={() => {
@@ -121,7 +129,7 @@
 				<ProhibitIcon size={16} aria-hidden="true" />
 			</button>
 			<button
-				class="drawer-toggle"
+				class="icon-action compact drawer-toggle"
 				type="button"
 				aria-label={workspace.launchOpen
 					? "Collapse the launch panel"
@@ -134,7 +142,7 @@
 				onclick={() => (workspace.launchOpen = !workspace.launchOpen)}>
 				<CaretDownIcon
 					class={workspace.launchOpen ? "open" : undefined}
-					size={18}
+					size={14}
 					aria-hidden="true" />
 			</button>
 		</div>
@@ -237,7 +245,7 @@
 						data-tooltip-side="top"
 						disabled={store.launching || !hasJoinTarget}
 						onclick={() => store.clearJoinTarget()}>
-						<TrashIcon size={17} aria-hidden="true" />
+						<EraserIcon size={16} aria-hidden="true" />
 					</button>
 				</div>
 				<LaunchArguments {store} />

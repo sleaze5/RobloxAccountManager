@@ -24,8 +24,8 @@
 			(clients?.clients ?? []).filter((client) => client.installed).length,
 		)
 	const statusText = $derived.by(() => {
-			if (loading) return "Checking..."
-			if (saving) return "Saving..."
+			if (loading) return "Checking…"
+			if (saving) return "Saving…"
 			if (!snapshot) return "Not checked"
 			if (!snapshot.supported) return "Unavailable - Windows only"
 			if (!snapshot.enabled) return "Off"
@@ -161,7 +161,7 @@
 		{#if !snapshot}
 			<div class="settings-form-actions">
 				<button
-					class="settings-row-action"
+					class="control-button text-button"
 					type="button"
 					disabled={loading}
 					onclick={() => void load()}>Retry</button>
@@ -199,7 +199,7 @@
 	<div class="settings-inline-error" role="alert">{clientsError}</div>
 	<div class="settings-form-actions">
 		<button
-			class="settings-row-action"
+			class="control-button text-button"
 			type="button"
 			disabled={clientsLoading}
 			onclick={() => void loadClients()}>Retry</button>

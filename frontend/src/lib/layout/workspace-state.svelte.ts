@@ -26,7 +26,11 @@ export class WorkspaceState {
 	sidebarWidth = $state(220)
 	launchOpen = $state(true)
 	launchHeight = $state(180)
-	#launchMinimumHeight = 0
+	launchMinimumHeight = $state(0)
+	viewportHeight = $state(window.innerHeight)
+	launchMaximumHeight = $derived(
+		Math.max(this.launchMinimumHeight, this.viewportHeight - 180),
+	)
 	activeAccountMenu = $state<ActiveAccountMenu>(null)
 	accountContextMenu = $state<AccountContextMenu | null>(null)
 	imageContextMenu = $state<ImageContextMenu | null>(null)
@@ -101,18 +105,14 @@ export class WorkspaceState {
 	}
 
 	resizeLaunch(height: number): void {
-		const maximumHeight = Math.max(
-			this.#launchMinimumHeight,
-			window.innerHeight - 180,
-		)
 		this.launchHeight = Math.min(
-			maximumHeight,
-			Math.max(this.#launchMinimumHeight, height),
+			this.launchMaximumHeight,
+			Math.max(this.launchMinimumHeight, height),
 		)
 	}
 
 	setLaunchMinimumHeight(height: number, fitToContent: boolean): void {
-		this.#launchMinimumHeight = height
+		this.launchMinimumHeight = height
 		this.resizeLaunch(fitToContent ? height : this.launchHeight)
 	}
 }

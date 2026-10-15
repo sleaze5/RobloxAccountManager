@@ -65,16 +65,16 @@
 							size={14}
 							aria-label="Verified creator" />{/if}</span>
 			{:else}
-				<strong class="loading">Loading game...</strong>
+				<strong class="loading">Loading game…</strong>
 			{/if}
 		</div>
 		{#if place}<button
-				class="icon-action logs-explorer-game-search"
+				class="icon-action compact logs-explorer-game-search"
 				type="button"
 				aria-label="Find this place in Games"
 				data-tooltip="Find this place in Games"
 				onclick={onSearch}
-				><MagnifyingGlassIcon size={15} aria-hidden="true" /></button
+				><MagnifyingGlassIcon size={14} aria-hidden="true" /></button
 			>{/if}
 	</div>
 {/if}

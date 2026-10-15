@@ -118,6 +118,17 @@
 	--motion-scale: 0.99;
 	--blur-sensitive: 7px;
 
+	--opacity-disabled: 0.45;
+	--opacity-dragging: 0.45;
+
+	--layer-menu: 20;
+	--layer-operation-error: 30;
+	--layer-context-menu: 40;
+	--layer-notification: 50;
+	--layer-dialog: 60;
+	--layer-vault: 70;
+	--layer-tooltip: 80;
+
 	--titlebar-height: 38px;
 	--header-height: 38px;
 	--status-strip-height: 24px;

@@ -111,7 +111,7 @@
 			aria-label={backLabel}
 			data-tooltip={backLabel}
 			onclick={onBack}>
-			<CaretLeftIcon size={18} aria-hidden="true" />
+			<CaretLeftIcon size={16} aria-hidden="true" />
 		</button>
 		<h1 id="settings-title">Settings</h1>
 	</header>
@@ -119,7 +119,7 @@
 	<div class="settings-layout">
 		<aside class="settings-sidebar">
 			<div class="search-field">
-				<MagnifyingGlassIcon size={17} aria-hidden="true" />
+				<MagnifyingGlassIcon size={16} aria-hidden="true" />
 				<input
 					bind:value={query}
 					type="search"
@@ -143,7 +143,7 @@
 							? "page"
 							: undefined}
 						onclick={() => (activeCategory = category)}>
-						<category.icon size={17} aria-hidden="true" />
+						<category.icon size={16} aria-hidden="true" />
 						<span>{category.label}</span>
 					</button>
 				{/each}

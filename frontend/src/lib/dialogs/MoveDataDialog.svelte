@@ -1,4 +1,5 @@
 <script lang="ts">
+	import XIcon from "phosphor-svelte/lib/XIcon"
 	import { accountBackend } from "../backend/bridge"
 	import type { StorageCandidate } from "../backend/bridge"
 	import {
@@ -55,6 +56,13 @@
 					folder:
 				</p>
 			</div>
+			<button
+				type="button"
+				aria-label="Close move data dialog"
+				disabled={busy}
+				onclick={onClose}>
+				<XIcon size={14} aria-hidden="true" />
+			</button>
 		</div>
 		<div class="location-option-path">{target.directory}</div>
 		<ul class="confirmation-effects">
@@ -63,13 +71,17 @@
 		</ul>
 		{#if error}<div class="modal-error" role="alert">{error}</div>{/if}
 		<div class="modal-actions">
-			<button type="button" disabled={busy} onclick={onClose}>Cancel</button
+			<button
+				class="control-button text-button"
+				type="button"
+				disabled={busy}
+				onclick={onClose}>Cancel</button
 			><button
-				class="danger-button"
+				class="primary-action"
 				type="button"
 				disabled={busy}
 				onclick={() => void move()}
-				>{busy ? "Restarting..." : "Move and restart"}</button>
+				>{busy ? "Restarting…" : "Move and restart"}</button>
 		</div>
 	</div>
 </div>

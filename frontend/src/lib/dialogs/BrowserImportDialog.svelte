@@ -2,7 +2,6 @@
 	import CaretDownIcon from "phosphor-svelte/lib/CaretDownIcon"
 	import ArrowSquareOutIcon from "phosphor-svelte/lib/ArrowSquareOutIcon"
 	import CornersOutIcon from "phosphor-svelte/lib/CornersOutIcon"
-	import TrashIcon from "phosphor-svelte/lib/TrashIcon"
 	import XIcon from "phosphor-svelte/lib/XIcon"
 	import { onMount, untrack } from "svelte"
 	import CandidateList from "../accounts/CandidateList.svelte"
@@ -226,15 +225,15 @@
 		<div class="browser-session-toolbar">
 			<button
 				type="button"
-				class="settings-row-action"
+				class="control-button text-button"
 				disabled={browser.loading}
 				onclick={() => void browser.startLogin()}
 				><ArrowSquareOutIcon size={16} aria-hidden="true" />Open another browser</button>
 			{#if activeLoginSessions.length > 0}<button
 					type="button"
-					class="danger-button"
+					class="control-button text-button"
 					onclick={() => void browser.closeAllLogin()}
-					><TrashIcon size={16} aria-hidden="true" />Close all</button
+					><XIcon size={16} aria-hidden="true" />Close all browsers</button
 				>{/if}
 		</div>
 		<button
@@ -262,23 +261,24 @@
 							></span>
 						<div>
 							<button
+								class="control-button text-button"
 								type="button"
 								aria-label="Focus browser"
 								disabled={session.lifecycle ===
 									Lifecycle.LifecycleFailed}
 								onclick={() => void browser.focus(session.id)}
 								><CornersOutIcon
-									size={15}
+									size={16}
 									aria-hidden="true" />Focus</button
 							><button
 								type="button"
-								class="danger-action"
+								class="control-button text-button"
 								aria-label="Close browser"
 								disabled={session.lifecycle ===
 									Lifecycle.LifecycleClosing ||
 									session.lifecycle === Lifecycle.LifecycleValidating}
 								onclick={() => void browser.close(session.id)}
-								><XIcon size={15} aria-hidden="true" />Close</button>
+								><XIcon size={16} aria-hidden="true" />Close</button>
 						</div>
 					</div>
 					{#if session.checkpointWarning}<div class="modal-warning">
@@ -299,7 +299,7 @@
 				onToggle={toggleCandidate}
 				onToggleAll={toggleAll} />
 		{:else if launchingInitial}
-			<div class="modal-note">Starting browser...</div>
+			<div class="modal-note">Starting browser…</div>
 		{:else if activeLoginSessions.length === 0}
 			<div class="modal-note">No account candidates are waiting to be saved.</div>
 		{:else}
@@ -309,17 +309,21 @@
 		{/if}
 		<div class="modal-actions">
 			{#if candidates.length > 0 && activeLoginSessions.length === 0}<button
+					class="control-button text-button"
 					type="button"
 					onclick={() => void browser.discard()}>Discard</button
 				>{/if}
-			{#if canClose}<button type="button" onclick={closeDialog}>Close</button
+			{#if canClose}<button
+					class="control-button text-button"
+					type="button"
+					onclick={closeDialog}>Close</button
 				>{/if}
 			{#if candidates.length > 0}<button
 					type="button"
 					class="primary-action"
 					disabled={!canCommit || selected.length === 0 || browser.loading}
 					onclick={() => void save()}
-					>{browser.loading ? "Saving..." : "Save selected"}</button
+					>{browser.loading ? "Saving…" : "Save selected"}</button
 				>{/if}
 		</div>
 	</div>

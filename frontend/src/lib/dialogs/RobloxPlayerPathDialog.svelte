@@ -2,7 +2,6 @@
 	import ArrowsClockwiseIcon from "phosphor-svelte/lib/ArrowsClockwiseIcon"
 	import CheckCircleIcon from "phosphor-svelte/lib/CheckCircleIcon"
 	import CircleNotchIcon from "phosphor-svelte/lib/CircleNotchIcon"
-	import TrashIcon from "phosphor-svelte/lib/TrashIcon"
 	import WarningCircleIcon from "phosphor-svelte/lib/WarningCircleIcon"
 	import XIcon from "phosphor-svelte/lib/XIcon"
 	import { onMount } from "svelte"
@@ -213,11 +212,11 @@
 						{:else}<ArrowsClockwiseIcon size={16} aria-hidden="true" />{/if}
 					</button>
 					<button
-						class="icon-action"
+						class="icon-action compact"
 						type="button"
 						aria-label="Close Roblox Player location dialog"
 						onclick={onClose}>
-						<XIcon size={17} aria-hidden="true" />
+						<XIcon size={14} aria-hidden="true" />
 					</button>
 				</div>
 			</div>
@@ -321,7 +320,7 @@
 							checkSequence++
 							if (selection === custom) selection = automatic
 						}}>
-						<TrashIcon size={17} aria-hidden="true" />
+						<XIcon size={16} aria-hidden="true" />
 					</button>
 				</div>
 				<div class="player-path-status" aria-live="polite">
@@ -345,7 +344,11 @@
 				<div class="modal-error" role="alert">{error}</div>
 			{/if}
 			<div class="modal-actions">
-				<button type="button" disabled={busy} onclick={onClose}>Cancel</button>
+				<button
+					class="control-button text-button"
+					type="button"
+					disabled={busy}
+					onclick={onClose}>Cancel</button>
 				<button class="primary-action" type="submit" disabled={busy || !parses}>
 					Save
 				</button>

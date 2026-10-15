@@ -80,14 +80,15 @@ input::-ms-clear {
 }
 
 button:disabled {
-	opacity: 0.42;
+	opacity: var(--opacity-disabled);
 	cursor: not-allowed;
 }
 
 button:focus-visible,
 input:focus-visible,
 textarea:focus-visible,
-select:focus-visible {
+select:focus-visible,
+[role="slider"]:focus-visible {
 	outline: var(--focus-ring-width) solid var(--color-focus-ring);
 	outline-offset: -1px;
 }
@@ -153,17 +154,17 @@ select:focus-visible {
 
 .search-clear:hover {
 	background: var(--color-hover);
-	color: var(--color-accent-strong);
+	color: var(--color-text);
 }
 
 .app-tooltip {
 	position: fixed;
 	top: 0;
 	left: 0;
-	z-index: 200;
+	z-index: var(--layer-tooltip);
 	padding: var(--space-1) var(--space-2);
 	border: 1px solid var(--color-border);
-	border-radius: var(--radius-surface);
+	border-radius: var(--radius-control);
 	background: var(--color-surface-raised);
 	box-shadow: var(--shadow-float);
 	color: var(--color-text);
@@ -195,22 +196,18 @@ select:focus-visible {
 	.segmented-control button,
 	.account-menu button,
 	.settings-header button,
-	.settings-row-action,
 	.settings-select-trigger,
 	.settings-select-menu button,
 	.place-suggestion,
-	.notification-actions button,
 	.notification-dismiss,
 	.operation-error button,
 	.modal-heading > button,
-	.modal-actions button,
 	.primary-action,
 	.danger-button,
+	.warning-button,
 	.tag-manager-row button,
 	.visibility-control,
 	.automatic-unlock-info,
-	.drawer-toggle,
-	.launch-control,
 	.search-clear,
 	.page-tabs button,
 	.account-title button,

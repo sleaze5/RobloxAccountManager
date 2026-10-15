@@ -29,7 +29,7 @@
 									? "Regions unavailable"
 									: regions
 										? "Choose a region"
-										: "Loading regions...",
+										: "Loading regions…",
 						},
 					]),
 			...(regions ?? []).map((region) => ({
@@ -99,7 +99,7 @@
 									void store.setRoValraRegion(region)
 							}} />
 						<button
-							class="settings-row-action"
+							class="control-button text-button"
 							type="button"
 							aria-busy={store.loadingServerRegions}
 							disabled={!store.initialized ||

@@ -49,8 +49,8 @@
 						data-tooltip="Expand the logs sidebar"
 						data-tooltip-side="right"
 						onclick={() => (store.sidebarCollapsed = false)}
-						><CaretRightIcon size={18} aria-hidden="true" /></button>
-					<FileMagnifyingGlassIcon size={18} aria-hidden="true" />
+						><CaretRightIcon size={16} aria-hidden="true" /></button>
+					<FileMagnifyingGlassIcon size={16} aria-hidden="true" />
 					<span>{store.sessions.length}</span>
 				</div>
 			{:else}
@@ -81,7 +81,7 @@
 								data-tooltip="Collapse the logs sidebar"
 								data-tooltip-side="bottom-end"
 								onclick={() => (store.sidebarCollapsed = true)}
-								><CaretLeftIcon size={17} aria-hidden="true" /></button>
+								><CaretLeftIcon size={16} aria-hidden="true" /></button>
 						</div>
 					</div>
 					<div class="account-filters">
@@ -104,8 +104,8 @@
 					{#each sessions as session (session.fileName)}
 						{@const visitCount = session.visits?.length ?? 0}
 						<button
-							class="logs-explorer-session-row"
-							class:active={store.selectedFile === session.fileName}
+							class="logs-explorer-session-row list-row"
+							class:selected={store.selectedFile === session.fileName}
 							type="button"
 							aria-current={store.selectedFile === session.fileName
 								? "true"
@@ -123,7 +123,7 @@
 										: "Unknown start time"}</span
 								>{#if session.issue}<WarningIcon
 										class="logs-explorer-issue-icon"
-										size={15}
+										size={14}
 										aria-label="Incomplete log" />{/if}</span>
 							<span class="logs-explorer-row-meta"
 								>{visitCount}
@@ -131,7 +131,7 @@
 						</button>
 					{:else}
 						{#if store.refreshing}
-							<p class="logs-explorer-list-empty">Loading sessions...</p>
+							<p class="logs-explorer-list-empty">Loading sessions…</p>
 						{:else if store.query}
 							<p class="logs-explorer-list-empty">
 								No matching sessions.
@@ -159,24 +159,24 @@
 			<div class="logs-explorer-empty" role="status">
 				{#if store.refreshing}<CircleNotchIcon
 						class="spinner"
-						size={27}
+						size={28}
 						aria-hidden="true" />
-					<h2>Reading Roblox logs...</h2>
+					<h2>Reading Roblox logs…</h2>
 				{:else if store.error && !store.loaded}<WarningIcon
-						size={27}
+						size={28}
 						aria-hidden="true" />
 					<h2>Logs are unavailable</h2>
 					<p>Refresh all to try reading the logs again.</p>
 				{:else if !store.sessions.length}<FileMagnifyingGlassIcon
-						size={27}
+						size={28}
 						aria-hidden="true" />
 					<h2>No Roblox sessions found</h2>
 				{:else if !sessions.length}<MagnifyingGlassIcon
-						size={27}
+						size={28}
 						aria-hidden="true" />
 					<h2>No matching sessions</h2>
 					<p>Try a different file name, user ID, or place ID.</p>
-				{:else}<FileMagnifyingGlassIcon size={27} aria-hidden="true" />
+				{:else}<FileMagnifyingGlassIcon size={28} aria-hidden="true" />
 					<h2>Select a launch session</h2>
 					<p>Choose a log to explore its game timeline.</p>{/if}
 			</div>

@@ -170,13 +170,16 @@
 						data-tooltip="Expand the games sidebar"
 						data-tooltip-side="right"
 						onclick={() => (store.sidebarCollapsed = false)}
-						><CaretRightIcon size={18} aria-hidden="true" /></button>
-					<GameControllerIcon size={18} aria-hidden="true" />
+						><CaretRightIcon size={16} aria-hidden="true" /></button>
+					<GameControllerIcon size={16} aria-hidden="true" />
 				</div>
 			{:else}
 				<div class="explorer-controls">
 					<div class="account-title">
-						<h1>Games</h1>
+						<h1>
+							Games{#if favoritesMode}
+								<span>({store.favorites.length})</span>{/if}
+						</h1>
 						<div class="account-title-actions">
 							<button
 								type="button"
@@ -184,7 +187,7 @@
 								data-tooltip="Collapse the games sidebar"
 								data-tooltip-side="bottom-end"
 								onclick={() => (store.sidebarCollapsed = true)}
-								><CaretLeftIcon size={17} aria-hidden="true" /></button>
+								><CaretLeftIcon size={16} aria-hidden="true" /></button>
 						</div>
 					</div>
 					<form
@@ -278,8 +281,8 @@
 						{#each store.places as place (place.placeId)}
 							{@const active = store.selected?.placeId === place.placeId}
 							<button
-								class="game-row"
-								class:active
+								class="game-row list-row"
+								class:selected={active}
 								class:menu-open={store.menu?.place.placeId ===
 									place.placeId}
 								class:dragging={draggedPlaceId === place.placeId}
@@ -402,11 +405,11 @@
 				{#if favoritesMode}
 					{#if store.loadingFavorites}<CircleNotchIcon
 							class="spinner"
-							size={27}
+							size={28}
 							aria-hidden="true" />
-						<h2>Loading favorites...</h2>
+						<h2>Loading favorites…</h2>
 					{:else if !store.favoritesLoaded}<WarningIcon
-							size={27}
+							size={28}
 							aria-hidden="true" />
 						<h2>Favorites are unavailable</h2>
 						<button
@@ -415,33 +418,33 @@
 							onclick={() => void store.loadFavorites()}
 							>Try again</button>
 					{:else if !count && store.favorites.length}<MagnifyingGlassIcon
-							size={27}
+							size={28}
 							aria-hidden="true" />
 						<h2>No matching favorites</h2>
 						<p>Try a different nickname, name, or creator.</p>
-					{:else if !count}<StarIcon size={27} aria-hidden="true" />
+					{:else if !count}<StarIcon size={28} aria-hidden="true" />
 						<h2>No favorite places yet</h2>
 						<p>Right-click a game and add it to your favorites.</p>
-					{:else}<StarIcon size={27} aria-hidden="true" />
+					{:else}<StarIcon size={28} aria-hidden="true" />
 						<h2>Select a favorite place</h2>
 						<p>Choose a place to see its details.</p>{/if}
 				{:else if store.searching}<CircleNotchIcon
 						class="spinner"
-						size={27}
+						size={28}
 						aria-hidden="true" />
-					<h2>Searching Roblox...</h2>
-				{:else if store.searchError}<WarningIcon size={27} aria-hidden="true" />
+					<h2>Searching Roblox…</h2>
+				{:else if store.searchError}<WarningIcon size={28} aria-hidden="true" />
 					<h2>Search is unavailable</h2>
 					<p>{store.searchError}</p>
 				{:else if store.searchedText && !count}<MagnifyingGlassIcon
-						size={27}
+						size={28}
 						aria-hidden="true" />
 					<h2>No games found</h2>
 					<p>Try a different name or place ID.</p>
-				{:else if count}<GameControllerIcon size={27} aria-hidden="true" />
+				{:else if count}<GameControllerIcon size={28} aria-hidden="true" />
 					<h2>Select a game</h2>
 					<p>Choose a game to see its details.</p>
-				{:else}<GameControllerIcon size={27} aria-hidden="true" />
+				{:else}<GameControllerIcon size={28} aria-hidden="true" />
 					<h2>Search Roblox games</h2>
 					<p>
 						Enter a game name, a place ID like id:1818, or a universe ID
@@ -451,14 +454,13 @@
 		{/if}
 	</div>
 	<footer class="status-bar" aria-label="Game list">
-		<span
-			>{store.favorites.length}
-			{store.favorites.length === 1 ? "favorite place" : "favorite places"}</span>
 		{#if store.selected}
+			<span>Place ID: {store.selected.placeId}</span>
 			<div>
-				<span>Place ID: {store.selected.placeId}</span>
 				<span>Universe ID: {store.selected.universeId}</span>
 			</div>
+		{:else}
+			<span>Place: None</span>
 		{/if}
 	</footer>
 </main>

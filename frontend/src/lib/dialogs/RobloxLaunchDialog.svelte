@@ -107,6 +107,7 @@
 			{#if error}<div class="modal-error" role="alert">{error}</div>{/if}
 			<div class="modal-actions">
 				<button
+					class="control-button text-button"
 					type="button"
 					disabled={submitting}
 					onclick={() => void respond(false)}>Cancel</button>

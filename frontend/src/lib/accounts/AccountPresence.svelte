@@ -81,7 +81,7 @@
 		aria-label={tooltip}
 		data-tooltip={tooltip}>
 		<span class={`profile-presence-label ${presenceClass(presence)}`}
-			><Icon size={15} aria-hidden="true" />{label}{detail ? ":" : ""}</span>
+			><Icon size={14} aria-hidden="true" />{label}{detail ? ":" : ""}</span>
 		{#if detail}
 			<span class="game-display-name">
 				<span>{detail}</span>
@@ -97,22 +97,22 @@
 	</button>
 	{#if joinable}
 		<button
-			class="icon-action profile-presence-join"
+			class="icon-action compact profile-presence-join"
 			type="button"
 			aria-label="Fill launch options"
 			data-tooltip="Fill launch options with this place and server"
 			onclick={() => onJoin(joinPlaceId, presence.gameId ?? "")}>
-			<SignInIcon size={16} aria-hidden="true" />
+			<SignInIcon size={14} aria-hidden="true" />
 		</button>
 	{/if}
 	{#if inExperience && joinPlaceId > 0}
 		<button
-			class="icon-action profile-presence-search"
+			class="icon-action compact profile-presence-search"
 			type="button"
 			aria-label="Find this place in Games"
 			data-tooltip="Find this place in Games"
 			onclick={() => onSearchPlace(joinPlaceId)}>
-			<MagnifyingGlassIcon size={16} aria-hidden="true" />
+			<MagnifyingGlassIcon size={14} aria-hidden="true" />
 		</button>
 	{/if}
 </div>

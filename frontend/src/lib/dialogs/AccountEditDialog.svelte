@@ -154,7 +154,7 @@
 					aria-label={`Close ${titles[kind].toLowerCase()}`}
 					disabled={pending}
 					onclick={close}>
-					<XIcon size={16} aria-hidden="true" />
+					<XIcon size={14} aria-hidden="true" />
 				</button>
 			</div>
 
@@ -260,19 +260,23 @@
 			<div class="modal-actions">
 				{#if phase === "confirm"}
 					<button
+						class="control-button text-button"
 						type="button"
 						disabled={pending}
 						onclick={() => (phase = "edit")}>Back</button>
 				{:else}
-					<button type="button" disabled={pending} onclick={close}
-						>Cancel</button>
+					<button
+						class="control-button text-button"
+						type="button"
+						disabled={pending}
+						onclick={close}>Cancel</button>
 				{/if}
 				<button
 					class="primary-action"
 					type="submit"
 					disabled={!ready || pending}>
 					{#if pending}
-						{kind === "pin" ? "Unlocking..." : "Saving..."}
+						{kind === "pin" ? "Unlocking…" : "Saving…"}
 					{:else if phase === "confirm" || kind === "pin"}
 						{kind === "pin" ? "Unlock" : titles[kind]}
 					{:else}

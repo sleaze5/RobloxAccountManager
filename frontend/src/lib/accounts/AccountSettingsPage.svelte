@@ -770,7 +770,7 @@
 			aria-label="Back to profile"
 			data-tooltip="Back to profile"
 			onclick={onBack}>
-			<CaretLeftIcon size={18} aria-hidden="true" />
+			<CaretLeftIcon size={16} aria-hidden="true" />
 		</button>
 		<h1 id="account-settings-title" tabindex="-1" bind:this={heading}>
 			Account settings
@@ -783,9 +783,9 @@
 			disabled={refreshing}
 			onclick={refresh}>
 			{#if refreshing}
-				<CircleNotchIcon class="spinner" size={17} aria-hidden="true" />
+				<CircleNotchIcon class="spinner" size={16} aria-hidden="true" />
 			{:else}
-				<ArrowsClockwiseIcon size={17} aria-hidden="true" />
+				<ArrowsClockwiseIcon size={16} aria-hidden="true" />
 			{/if}
 		</button>
 	</header>
@@ -793,7 +793,7 @@
 	<div class="settings-layout account-settings-layout">
 		<aside class="settings-sidebar">
 			<div class="search-field">
-				<MagnifyingGlassIcon size={17} aria-hidden="true" />
+				<MagnifyingGlassIcon size={16} aria-hidden="true" />
 				<input
 					bind:value={workspace.accountSettingsQuery}
 					oninput={resetScroll}
@@ -821,7 +821,7 @@
 						data-tooltip={page.label}
 						data-tooltip-side="right"
 						onclick={() => selectPage(page.id)}>
-						<page.icon size={17} aria-hidden="true" />
+						<page.icon size={16} aria-hidden="true" />
 						<span>{page.label}</span>
 					</button>
 				{/each}
@@ -873,9 +873,9 @@
 									type="button"
 									data-settings-subpage={cat.id}
 									onclick={() => void openCategory(cat.id)}>
-									<cat.icon size={17} aria-hidden="true" />
+									<cat.icon size={16} aria-hidden="true" />
 									<span>{cat.label}</span>
-									<CaretRightIcon size={17} aria-hidden="true" />
+									<CaretRightIcon size={16} aria-hidden="true" />
 								</button>
 							{/each}
 							{#if showBlockedUsers}
@@ -884,9 +884,9 @@
 									data-settings-subpage={blockedUsersPage.id}
 									onclick={() =>
 										void openCategory(blockedUsersPage.id)}>
-									<ProhibitIcon size={17} aria-hidden="true" />
+									<ProhibitIcon size={16} aria-hidden="true" />
 									<span>{blockedUsersPage.label}</span>
-									<CaretRightIcon size={17} aria-hidden="true" />
+									<CaretRightIcon size={16} aria-hidden="true" />
 								</button>
 							{/if}
 						</nav>
@@ -898,7 +898,7 @@
 								aria-label={`Back to ${privacyLabel}`}
 								data-tooltip={`Back to ${privacyLabel}`}
 								onclick={() => void closeCategory()}>
-								<CaretLeftIcon size={18} aria-hidden="true" />
+								<CaretLeftIcon size={16} aria-hidden="true" />
 							</button>
 							<h3>{activeCategory?.label ?? blockedUsersPage.label}</h3>
 						</div>

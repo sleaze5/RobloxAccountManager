@@ -169,6 +169,7 @@
 
 		<div class="modal-actions">
 			<button
+				class="control-button text-button"
 				type="button"
 				disabled={busy}
 				onclick={() => void Application.Quit()}>Quit</button>
@@ -178,9 +179,9 @@
 				disabled={busy || !selected}
 				onclick={() => void confirm()}>
 				{restarting
-					? "Restarting..."
+					? "Restarting…"
 					: busy
-						? "Setting up..."
+						? "Setting up…"
 						: otherItemCount > 0
 							? "Use anyway"
 							: "Continue"}

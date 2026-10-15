@@ -88,7 +88,7 @@
 				aria-label="Close manage tags dialog"
 				disabled={store.busy}
 				onclick={close}>
-				<XIcon size={17} aria-hidden="true" />
+				<XIcon size={14} aria-hidden="true" />
 			</button>
 		</div>
 		{#if store.error}
@@ -124,7 +124,7 @@
 					class="primary-action"
 					type="submit"
 					disabled={store.busy || !isValidTagName(nameInput.value)}>
-					{creating ? "Creating..." : "Create tag"}
+					{creating ? "Creating…" : "Create tag"}
 				</button>
 			</div>
 		</form>
@@ -159,7 +159,11 @@
 			{/each}
 		</div>
 		<div class="modal-actions">
-			<button type="button" disabled={store.busy} onclick={close}>Done</button>
+			<button
+				class="control-button text-button"
+				type="button"
+				disabled={store.busy}
+				onclick={close}>Done</button>
 		</div>
 	</div>
 </div>

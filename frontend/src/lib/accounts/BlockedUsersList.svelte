@@ -36,7 +36,7 @@
 					<span>{user.username ? `@${user.username}` : user.userId}</span>
 				</div>
 				<button
-					class="settings-row-action"
+					class="control-button text-button"
 					type="button"
 					aria-label={`Unblock ${name(user)}`}
 					disabled={blocked.loading || blocked.unblocking !== null}

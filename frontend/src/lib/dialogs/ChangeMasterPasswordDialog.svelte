@@ -59,7 +59,7 @@
 				event.preventDefault()
 				void changePassword()
 			}}>
-			<div class="modal-icon"><KeyIcon size={20} aria-hidden="true" /></div>
+			<div class="modal-icon"><KeyIcon size={16} aria-hidden="true" /></div>
 			<h2 id="change-password-title">Change master password</h2>
 			<p>
 				Changing the password rotates the database encryption key and removes
@@ -108,7 +108,7 @@
 						size={16}
 						aria-hidden="true" /> Show passwords{/if}
 			</button>
-			<ul class="password-checklist">
+			<ul class="password-checklist" class:touched={newPassword !== ""}>
 				{#each [[rules.length, "8-128 characters long"], [rules.uppercase, "At least one upper-case letter"], [rules.lowercase, "At least one lower-case letter"], [rules.digit, "At least one number"], [rules.special, "At least one special character"]] as requirement}
 					<li class:valid={requirement[0]}>
 						{#if requirement[0]}<CheckIcon
@@ -151,12 +151,15 @@
 					type="button"
 					aria-label="About automatic unlock"
 					data-tooltip={automaticUnlockDialogDescription}>
-					<InfoIcon size={15} aria-hidden="true" />
+					<InfoIcon size={14} aria-hidden="true" />
 				</button>
 			</div>
 			<div class="modal-actions">
-				<button type="button" disabled={store.busy} onclick={onClose}
-					>Cancel</button>
+				<button
+					class="control-button text-button"
+					type="button"
+					disabled={store.busy}
+					onclick={onClose}>Cancel</button>
 				<button
 					class="primary-action"
 					type="submit"

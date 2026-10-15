@@ -60,7 +60,7 @@
 				aria-label="Close remove account dialog"
 				disabled={store.busy}
 				onclick={close}>
-				<XIcon size={16} aria-hidden="true" />
+				<XIcon size={14} aria-hidden="true" />
 			</button>
 		</div>
 		{#if store.error}
@@ -69,13 +69,17 @@
 			</div>
 		{/if}
 		<div class="modal-actions">
-			<button type="button" disabled={store.busy} onclick={close}>Cancel</button>
+			<button
+				class="control-button text-button"
+				type="button"
+				disabled={store.busy}
+				onclick={close}>Cancel</button>
 			<button
 				class="danger-button"
 				type="button"
 				disabled={store.busy}
 				onclick={() => void remove()}>
-				{store.busy ? "Removing..." : "Remove"}
+				{store.busy ? "Removing…" : "Remove account"}
 			</button>
 		</div>
 	</div>

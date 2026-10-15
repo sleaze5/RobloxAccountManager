@@ -1,4 +1,5 @@
 <script lang="ts">
+	import XIcon from "phosphor-svelte/lib/XIcon"
 	import type { AccountStore } from "../accounts/account-store.svelte"
 	import type { ShutdownEffects } from "../backend/bridge"
 	import {
@@ -52,19 +53,30 @@
 						: ""}
 				</p>
 			</div>
+			<button
+				type="button"
+				aria-label="Close lock vault dialog"
+				disabled={store.busy}
+				onclick={onClose}>
+				<XIcon size={14} aria-hidden="true" />
+			</button>
 		</div>
 		{#if store.error}<div class="modal-error" role="alert">{store.error}</div>{/if}
 		{#if effectLines.length > 0}<ul class="confirmation-effects">
 				{#each effectLines as effect}<li>{effect}</li>{/each}
 			</ul>{/if}
 		<div class="modal-actions">
-			<button type="button" disabled={store.busy} onclick={onClose}>Cancel</button
+			<button
+				class="control-button text-button"
+				type="button"
+				disabled={store.busy}
+				onclick={onClose}>Cancel</button
 			><button
-				class="danger-button"
+				class="primary-action"
 				type="button"
 				disabled={store.busy}
 				onclick={() => void lock()}
-				>{store.busy ? "Locking..." : "Lock vault"}</button>
+				>{store.busy ? "Locking…" : "Lock vault"}</button>
 		</div>
 	</div>
 </div>

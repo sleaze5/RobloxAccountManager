@@ -33,24 +33,11 @@
 	justify-content: center;
 	flex-direction: column;
 	padding: var(--space-2) var(--edge-padding);
-	padding-left: calc(var(--edge-padding) - var(--indicator-size));
 	line-height: 1.35;
 	border: 0;
 	border-bottom: 1px solid var(--color-border-subtle);
-	border-left: var(--indicator-size) solid transparent;
 	text-align: left;
-	transition:
-		background-color var(--duration-fast) var(--ease-standard),
-		border-color var(--duration-fast) var(--ease-standard);
-}
-
-.logs-explorer-session-row:hover {
-	background: var(--color-hover);
-}
-
-.logs-explorer-session-row.active {
-	border-left-color: var(--color-accent);
-	background: var(--color-active);
+	transition: background-color var(--duration-fast) var(--ease-standard);
 }
 
 .logs-explorer-row-title,
@@ -105,7 +92,7 @@
 
 .logs-explorer-session h2 {
 	color: var(--color-text);
-	font-size: var(--text-14);
+	font-size: var(--text-15);
 	font-weight: var(--font-semibold);
 }
 
@@ -257,9 +244,6 @@
 }
 
 .logs-explorer-visit-actions {
-	width: var(--control-height-sm);
-	height: var(--control-height-sm);
-	flex-shrink: 0;
 	margin-left: auto;
 }
 
@@ -412,7 +396,5 @@
 .logs-explorer-game-search {
 	flex: 0 0 auto;
 	align-self: flex-start;
-	width: var(--control-height-sm);
-	height: var(--control-height-sm);
 	margin-inline-start: calc(var(--space-1) - var(--space-3));
 }

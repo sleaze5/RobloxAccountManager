@@ -99,6 +99,7 @@
 			<label class="settings-toggle">
 				<input
 					type="checkbox"
+					role="switch"
 					aria-labelledby={`${filterID}-full`}
 					checked={servers.excludeFull}
 					onchange={(event) =>
@@ -113,7 +114,7 @@
 
 	{#if servers.error}
 		<div class="empty-state" role="alert">
-			<WarningIcon size={27} aria-hidden="true" />
+			<WarningIcon size={28} aria-hidden="true" />
 			<h2>Servers are unavailable</h2>
 			<p>{servers.error}</p>
 			<button
@@ -123,12 +124,12 @@
 		</div>
 	{:else if !servers.page}
 		<div class="empty-state" role="status">
-			<CircleNotchIcon class="spinner" size={27} aria-hidden="true" />
-			<h2>Loading servers...</h2>
+			<CircleNotchIcon class="spinner" size={28} aria-hidden="true" />
+			<h2>Loading servers…</h2>
 		</div>
 	{:else if !loaded.length}
 		<div class="empty-state" role="status">
-			<HardDrivesIcon size={27} aria-hidden="true" />
+			<HardDrivesIcon size={28} aria-hidden="true" />
 			{#if servers.pageNumber > 1}
 				<h2>No more servers</h2>
 				<p>The servers on this page closed. Go back to the first page.</p>
@@ -292,7 +293,7 @@
 			</div>
 		{:else}
 			<div class="empty-state" role="status">
-				<HardDrivesIcon size={27} aria-hidden="true" />
+				<HardDrivesIcon size={28} aria-hidden="true" />
 				<h2>No servers on this page match</h2>
 				<p>
 					No server on this page reports a ping of {servers.maxPing} ms or less.

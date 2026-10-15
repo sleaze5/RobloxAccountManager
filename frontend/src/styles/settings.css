@@ -342,7 +342,6 @@
 	color: var(--color-danger);
 }
 
-.settings-row-action,
 .settings-select-trigger {
 	min-height: var(--control-height-md);
 	border: 1px solid var(--color-border);
@@ -350,17 +349,9 @@
 	background: transparent;
 	color: var(--color-text-muted);
 	font-size: var(--text-12);
-	font-weight: var(--font-semibold);
+	font-weight: var(--font-medium);
 }
 
-.settings-row-action {
-	display: flex;
-	align-items: center;
-	gap: var(--space-1);
-	padding: 0 var(--space-3);
-}
-
-.settings-row-action:hover,
 .settings-select-trigger:hover,
 .settings-select-trigger[aria-expanded="true"] {
 	border-color: var(--color-border-strong);
@@ -440,8 +431,9 @@
 	outline-offset: -1px;
 }
 
-.settings-number-stepper :disabled {
-	color: var(--color-text-faint);
+.settings-number-stepper input:disabled {
+	cursor: not-allowed;
+	opacity: var(--opacity-disabled);
 }
 
 .settings-timestamp-preview {
@@ -474,11 +466,6 @@
 	justify-content: flex-end;
 	gap: var(--space-2);
 	padding: var(--space-2) var(--space-1) 0;
-}
-
-.settings-save-action {
-	border-color: var(--color-border-strong);
-	color: var(--color-text);
 }
 
 .settings-select {
@@ -515,7 +502,7 @@
 	position: absolute;
 	top: calc(100% + var(--space-1));
 	right: 0;
-	z-index: 20;
+	z-index: var(--layer-menu);
 	width: 100%;
 	overflow: hidden;
 	border: 1px solid var(--color-border-strong);
@@ -544,7 +531,7 @@
 	background: transparent;
 	color: var(--color-text-muted);
 	font-size: var(--text-12);
-	font-weight: var(--font-semibold);
+	font-weight: var(--font-medium);
 	text-align: left;
 }
 
@@ -641,8 +628,8 @@
 }
 
 .settings-toggle:has(input:disabled) {
-	cursor: default;
-	opacity: 0.5;
+	cursor: not-allowed;
+	opacity: var(--opacity-disabled);
 }
 
 .settings-radio-group {
@@ -693,8 +680,8 @@
 }
 
 .settings-radio-option.disabled {
-	cursor: default;
-	opacity: 0.45;
+	cursor: not-allowed;
+	opacity: var(--opacity-disabled);
 }
 
 .settings-radio-option input[type="radio"] {
@@ -755,10 +742,6 @@
 .settings-radio-label {
 	color: var(--color-text);
 	font-size: var(--text-12);
-}
-
-.settings-radio-option.disabled .settings-radio-label {
-	color: var(--color-text-faint);
 }
 
 .about-empty {

@@ -51,7 +51,7 @@
 			aria-label="Back to profile"
 			data-tooltip="Back to profile"
 			onclick={onBack}>
-			<CaretLeftIcon size={18} aria-hidden="true" />
+			<CaretLeftIcon size={16} aria-hidden="true" />
 		</button>
 		<h1 id="chats-title" tabindex="-1" bind:this={heading}>Chats</h1>
 		<span class="account-settings-identity">@{account.username}</span>
@@ -61,7 +61,7 @@
 			aria-expanded={creatingOpen}
 			data-tooltip="New chat"
 			onclick={() => void toggleNewChat()}>
-			<NotePencilIcon size={17} aria-hidden="true" />
+			<NotePencilIcon size={16} aria-hidden="true" />
 		</button>
 		<button
 			type="button"
@@ -71,9 +71,9 @@
 			disabled={chat.markingAll || chat.loading}
 			onclick={() => void chat.markAllRead()}>
 			{#if chat.markingAll}
-				<CircleNotchIcon class="spinner" size={17} aria-hidden="true" />
+				<CircleNotchIcon class="spinner" size={16} aria-hidden="true" />
 			{:else}
-				<ChecksIcon size={17} aria-hidden="true" />
+				<ChecksIcon size={16} aria-hidden="true" />
 			{/if}
 		</button>
 		<button
@@ -84,9 +84,9 @@
 			disabled={chat.loading}
 			onclick={() => void chat.refresh()}>
 			{#if chat.loading}
-				<CircleNotchIcon class="spinner" size={17} aria-hidden="true" />
+				<CircleNotchIcon class="spinner" size={16} aria-hidden="true" />
 			{:else}
-				<ArrowsClockwiseIcon size={17} aria-hidden="true" />
+				<ArrowsClockwiseIcon size={16} aria-hidden="true" />
 			{/if}
 		</button>
 	</header>
@@ -123,7 +123,7 @@
 						{#if chat.creating}
 							<CircleNotchIcon
 								class="spinner"
-								size={15}
+								size={16}
 								aria-hidden="true" />
 						{/if}
 						Start

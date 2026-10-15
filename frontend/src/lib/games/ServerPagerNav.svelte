@@ -25,7 +25,7 @@
 		data-tooltip="First page"
 		disabled={pager.loading || pager.pageNumber < 2}
 		onclick={() => pager.first()}>
-		<CaretDoubleLeftIcon size={17} aria-hidden="true" />
+		<CaretDoubleLeftIcon size={16} aria-hidden="true" />
 	</button>
 	<button
 		class="control-button text-button"

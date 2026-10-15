@@ -113,7 +113,7 @@
 			aria-label="Back to game details"
 			data-tooltip="Back to game details"
 			onclick={onBack}>
-			<CaretLeftIcon size={18} aria-hidden="true" />
+			<CaretLeftIcon size={16} aria-hidden="true" />
 		</button>
 		<h1 id="game-servers-title" tabindex="-1" bind:this={heading}>Servers</h1>
 		<span class="account-settings-identity">{store.displayName(place)}</span>
@@ -141,9 +141,9 @@
 			disabled={active.loading}
 			onclick={refresh}>
 			{#if active.loading}
-				<CircleNotchIcon class="spinner" size={17} aria-hidden="true" />
+				<CircleNotchIcon class="spinner" size={16} aria-hidden="true" />
 			{:else}
-				<ArrowsClockwiseIcon size={17} aria-hidden="true" />
+				<ArrowsClockwiseIcon size={16} aria-hidden="true" />
 			{/if}
 		</button>
 	</header>

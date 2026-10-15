@@ -25,7 +25,7 @@
 
 {#if store.multipleSelected}
 	<div class="account-content empty-state">
-		<UsersThreeIcon size={27} aria-hidden="true" />
+		<UsersThreeIcon size={28} aria-hidden="true" />
 		<h2>{store.selectedAccountIds.length} accounts selected</h2>
 		<p>Launch starts every selected account.</p>
 		<div class="account-placeholder-actions">
@@ -51,14 +51,14 @@
 {:else if store.vault.unlocked && !store.loadingAccounts}
 	<div class="account-content empty-state">
 		{#if noAccounts}
-			<UserPlusIcon size={27} aria-hidden="true" />
+			<UserPlusIcon size={28} aria-hidden="true" />
 			<h2>No accounts yet</h2>
 			<p>Add an account with its .ROBLOSECURITY cookie to get started.</p>
 			<button class="primary-action" type="button" onclick={onAddAccount}>
 				<PlusIcon size={14} aria-hidden="true" />Add account
 			</button>
 		{:else}
-			<CursorClickIcon size={27} aria-hidden="true" />
+			<CursorClickIcon size={28} aria-hidden="true" />
 			<h2>No account selected</h2>
 			<p>Select an account in the list to see its profile.</p>
 		{/if}

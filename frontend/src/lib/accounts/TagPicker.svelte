@@ -38,9 +38,9 @@
 
 {#snippet mark(state: TagState)}
 	{#if state === "on"}
-		<CheckIcon size={15} class="menu-check" aria-hidden="true" />
+		<CheckIcon size={16} class="menu-check" aria-hidden="true" />
 	{:else if state === "mixed"}
-		<MinusIcon size={15} class="menu-check" aria-hidden="true" />
+		<MinusIcon size={16} class="menu-check" aria-hidden="true" />
 	{/if}
 {/snippet}
 

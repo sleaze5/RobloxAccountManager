@@ -76,7 +76,7 @@
 	<button class="tag-submenu-trigger" type="button">
 		<TagIcon size={16} aria-hidden="true" />
 		<span>Edit tags</span>
-		<CaretRightIcon size={15} class="submenu-chevron" aria-hidden="true" />
+		<CaretRightIcon size={16} class="submenu-chevron" aria-hidden="true" />
 	</button>
 	<div
 		class:open-left={submenuLeft}
@@ -122,13 +122,12 @@
 	<div role="group" aria-label="Game">
 		<div class="account-menu-heading" aria-hidden="true">Game</div>
 		<button
-			class="game-action"
 			type="button"
 			disabled={store.launching ||
 				!account.presence.placeId ||
 				account.presence.placeId <= 0}
 			data-tooltip={!account.presence.placeId || account.presence.placeId <= 0
-				? "Roblox has not shared this account's place."
+				? "Roblox has not shared this account's place"
 				: undefined}
 			onclick={fillJoinOptions}>
 			<GameControllerIcon size={16} aria-hidden="true" /><span

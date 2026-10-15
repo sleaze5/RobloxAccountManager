@@ -73,7 +73,7 @@
 				</div>
 				<div class="settings-row-actions">
 					<button
-						class="settings-row-action"
+						class="control-button text-button"
 						type="button"
 						disabled={store.busy}
 						onclick={() => openDialog("test")}>
@@ -81,7 +81,7 @@
 						Test password
 					</button>
 					<button
-						class="settings-row-action"
+						class="control-button text-button"
 						type="button"
 						disabled={store.busy || !store.vault.unlocked}
 						onclick={onLock}>
@@ -128,7 +128,7 @@
 						>Rotate the vault encryption key and update automatic unlock.</span>
 				</div>
 				<button
-					class="settings-row-action"
+					class="control-button text-button"
 					type="button"
 					disabled={store.busy}
 					onclick={() => openDialog("change")}>

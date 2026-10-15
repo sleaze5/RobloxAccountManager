@@ -145,12 +145,12 @@
 						<span>{selectedAccount.displayName}</span>
 						{#if selectedAccount.favorite}<StarIcon
 								class="favorite-name-star"
-								size={15}
+								size={16}
 								weight="fill"
 								aria-hidden="true" />{/if}
 						{#if profile?.verifiedBadge}<SealCheckIcon
 								class="profile-verified-badge"
-								size={17}
+								size={16}
 								aria-label="Verified" />{/if}
 					</h2>
 					{#if hasAccount}
@@ -207,9 +207,9 @@
 						profileState?.loading}
 					onclick={() => void profileState?.refresh(true)}>
 					{#if profileState?.loading}
-						<CircleNotchIcon class="spinner" size={17} aria-hidden="true" />
+						<CircleNotchIcon class="spinner" size={16} aria-hidden="true" />
 					{:else}
-						<ArrowsClockwiseIcon size={17} aria-hidden="true" />
+						<ArrowsClockwiseIcon size={16} aria-hidden="true" />
 					{/if}
 				</button>
 				<button
@@ -220,7 +220,7 @@
 					disabled={!hasAccount || !store.vault.unlocked}
 					bind:this={chatsButton}
 					onclick={() => openPage("chats")}>
-					<ChatsIcon size={17} aria-hidden="true" />
+					<ChatsIcon size={16} aria-hidden="true" />
 				</button>
 				<button
 					class="control-button"
@@ -230,10 +230,10 @@
 					disabled={!hasAccount || !store.vault.unlocked}
 					bind:this={settingsButton}
 					onclick={() => openPage("settings")}>
-					<GearIcon size={17} aria-hidden="true" />
+					<GearIcon size={16} aria-hidden="true" />
 				</button>
 				<button
-					class="icon-action bordered"
+					class="control-button"
 					data-account-menu
 					type="button"
 					aria-label="More account actions"
@@ -246,7 +246,7 @@
 						if (workspace.accountContextMenu) workspace.closeAccountMenus()
 						else workspace.openAccountContextMenu(event, selectedAccount.id)
 					}}>
-					<DotsThreeIcon size={20} aria-hidden="true" />
+					<DotsThreeIcon size={16} aria-hidden="true" />
 				</button>
 			</div>
 		</div>
@@ -268,14 +268,14 @@
 				<div class="edit-tags-host" data-account-menu>
 					<button
 						class:open={workspace.activeAccountMenu === "profile-tags"}
-						class="icon-action bordered"
+						class="control-button compact"
 						type="button"
 						aria-label="Edit account tags"
 						aria-expanded={workspace.activeAccountMenu === "profile-tags"}
 						data-tooltip="Edit account tags"
 						disabled={store.busy}
 						onclick={() => workspace.toggleAccountMenu("profile-tags")}>
-						<TagIcon size={15} aria-hidden="true" />
+						<TagIcon size={14} aria-hidden="true" />
 					</button>
 					{#if workspace.activeAccountMenu === "profile-tags"}
 						<div

@@ -119,7 +119,7 @@
 
 {#snippet edit(kind: AccountEditKind, label: string)}
 	<button
-		class="icon-action profile-fact-action"
+		class="icon-action compact profile-fact-action"
 		type="button"
 		aria-label={label}
 		data-tooltip={label}
@@ -211,7 +211,7 @@
 								<span>{pinLabels[snapshot.pin]}</span>
 								{#if snapshot.pin === PinState.PinLocked}
 									<button
-										class="settings-row-action profile-fact-action"
+										class="control-button text-button compact profile-fact-action"
 										type="button"
 										onclick={() => onEdit("pin")}>Unlock</button>
 								{/if}

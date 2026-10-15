@@ -189,7 +189,7 @@
 		{:else}
 			<div class="place-suggestion-empty" role="status">
 				{games.loadingFavorites
-					? "Loading favorite games..."
+					? "Loading favorite games…"
 					: games.favoritesLoaded
 						? "No favorite games yet"
 						: "Favorite games unavailable"}

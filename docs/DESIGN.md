@@ -250,7 +250,7 @@ Color:
 - Do not rely on color alone. Pair semantic color with text, an icon, or another cue.
 - Make every action available from the keyboard. Keep a visible focus indicator, and keep the focus order the same as the visual order.
 - Give a switch input `role="switch"`.
-- Give a resizer `role="separator"`, `aria-orientation`, `aria-valuenow`, `aria-valuemin`, and `aria-valuemax`. Resize it with the arrow keys.
+- Give a resizer `role="slider"`, `tabindex="0"`, `aria-orientation`, `aria-valuenow`, `aria-valuemin`, and `aria-valuemax`. Resize it with the arrow keys. Do not use `role="separator"`, because the Svelte checker rejects a focusable separator.
 - Announce notifications through one polite live region. Use `role="alert"` for an error that blocks the current task.
 
 ## Writing

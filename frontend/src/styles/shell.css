@@ -165,28 +165,6 @@
 	}
 }
 
-.icon-action {
-	display: grid;
-	width: var(--control-height-md);
-	height: var(--control-height-md);
-	place-items: center;
-	padding: 0;
-	border: 0;
-	border-radius: var(--radius-control);
-	background: transparent;
-	color: var(--color-text-muted);
-	cursor: pointer;
-}
-
-.icon-action:hover {
-	background: var(--color-hover);
-	color: var(--color-text);
-}
-
-.icon-action.bordered {
-	border: 1px solid var(--color-border);
-}
-
 .segmented-control {
 	display: grid;
 	grid-auto-columns: minmax(0, 1fr);
@@ -289,7 +267,7 @@
 	position: fixed;
 	top: calc(var(--titlebar-height) + var(--header-height) + var(--space-2));
 	right: var(--space-2);
-	z-index: 40;
+	z-index: var(--layer-operation-error);
 	display: flex;
 	max-width: min(440px, calc(100vw - 20px));
 	align-items: center;

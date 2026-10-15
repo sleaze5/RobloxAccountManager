@@ -73,9 +73,9 @@
 				data-tooltip="Expand the account sidebar"
 				data-tooltip-side="right"
 				onclick={() => (workspace.sidebarCollapsed = false)}>
-				<CaretRightIcon size={18} aria-hidden="true" />
+				<CaretRightIcon size={16} aria-hidden="true" />
 			</button>
-			<UsersIcon size={18} aria-hidden="true" />
+			<UsersIcon size={16} aria-hidden="true" />
 			<span>{store.accountTotal}</span>
 		</div>
 	{:else}
@@ -122,7 +122,7 @@
 						data-tooltip="Collapse the account sidebar"
 						data-tooltip-side="bottom-end"
 						onclick={() => (workspace.sidebarCollapsed = true)}>
-						<CaretLeftIcon size={17} aria-hidden="true" />
+						<CaretLeftIcon size={16} aria-hidden="true" />
 					</button>
 				</div>
 				{#if workspace.activeAccountMenu === "add-account"}
@@ -134,7 +134,7 @@
 			</div>
 			<div class="account-filters">
 				<div class="search-field">
-					<MagnifyingGlassIcon size={17} aria-hidden="true" />
+					<MagnifyingGlassIcon size={16} aria-hidden="true" />
 					<input
 						value={store.query}
 						oninput={(event) =>
@@ -217,7 +217,7 @@
 										: "regular"} />
 								<span>Favorites</span>
 								{#if store.favoriteTag && store.selectedTagIds.includes(store.favoriteTag.id)}<CheckIcon
-										size={15}
+										size={16}
 										aria-hidden="true"
 										class="menu-check" />{/if}
 							</button>
@@ -235,7 +235,7 @@
 										<HashIcon size={16} aria-hidden="true" />
 										<span>{tag.name}</span>
 										{#if store.selectedTagIds.includes(tag.id)}<CheckIcon
-												size={15}
+												size={16}
 												aria-hidden="true"
 												class="menu-check" />{/if}
 									</button>

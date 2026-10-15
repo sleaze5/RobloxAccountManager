@@ -15,20 +15,6 @@
 	margin-top: var(--space-3);
 }
 
-.browser-session-toolbar .danger-button,
-.browser-session-row button {
-	display: inline-flex;
-	min-height: var(--control-height-md);
-	align-items: center;
-	gap: var(--space-1);
-	padding: 0 var(--space-2);
-	border: 1px solid var(--color-border);
-	border-radius: var(--radius-control);
-	background: transparent;
-	color: var(--color-text-muted);
-	font-size: var(--text-12);
-}
-
 .browser-session-summary {
 	display: flex;
 	width: 100%;
@@ -91,12 +77,6 @@
 
 .runtime-card {
 	width: min(440px, calc(100vw - 32px));
-}
-
-.runtime-card .primary-action {
-	display: inline-flex;
-	align-items: center;
-	gap: var(--space-1);
 }
 
 .runtime-details {

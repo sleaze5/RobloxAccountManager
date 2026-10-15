@@ -88,7 +88,7 @@
 						<SettingsStatus value={currentLabel} />
 					</div>
 					<button
-						class="settings-row-action"
+						class="control-button text-button"
 						type="button"
 						onclick={() => void copyPath()}>
 						<CopyIcon size={16} aria-hidden="true" />
@@ -108,7 +108,7 @@
 								: "to your user folder"}. The app restarts.</span>
 					</div>
 					<button
-						class="settings-row-action"
+						class="control-button text-button"
 						type="button"
 						disabled={store.busy ||
 							store.vault.fileState !== FileState.FileStateReady}

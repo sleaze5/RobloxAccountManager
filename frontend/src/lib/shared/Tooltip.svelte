@@ -167,6 +167,17 @@
 		skipDelayUntil = 0
 	}
 
+	function handleKeydown(event: KeyboardEvent): void {
+		if (event.key !== "Escape" || (!visible && openTimer === 0)) {
+			return
+		}
+
+		if (visible) {
+			event.stopPropagation()
+		}
+		hide()
+	}
+
 	onDestroy(hide)
 </script>
 
@@ -190,4 +201,5 @@
 	onpointerout={leave}
 	onfocusout={hide}
 	onpointerdown={handlePointerDown}
+	onkeydowncapture={handleKeydown}
 	onscrollcapture={hide} />

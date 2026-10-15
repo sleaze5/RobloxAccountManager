@@ -22,16 +22,16 @@
 
 <span class="nearest-server" data-tooltip={tooltip} data-tooltip-side="top-end">
 	<button
-		class="icon-action bordered"
+		class="control-button"
 		type="button"
 		aria-label="Fill nearest server"
 		aria-busy={store.findingServer}
 		disabled={!region || !hasPlace || store.launching || store.findingServer}
 		onclick={() => void store.fillNearestServer()}>
 		{#if store.findingServer}
-			<CircleNotchIcon class="spinner" size={17} aria-hidden="true" />
+			<CircleNotchIcon class="spinner" size={16} aria-hidden="true" />
 		{:else}
-			<CrosshairIcon size={17} aria-hidden="true" />
+			<CrosshairIcon size={16} aria-hidden="true" />
 		{/if}
 	</button>
 </span>
