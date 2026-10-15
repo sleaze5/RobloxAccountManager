@@ -73,14 +73,6 @@ export class WorkspaceState {
 		}
 	}
 
-	toggleImageContextMenu(event: MouseEvent, imageUrl: string): void {
-		if (this.imageContextMenu?.imageUrl === imageUrl) {
-			this.closeAccountMenus()
-		} else {
-			this.openImageContextMenu(event, imageUrl)
-		}
-	}
-
 	handleWindowClick(event: MouseEvent): void {
 		const { target } = event
 		if (target instanceof Element && target.closest("[data-account-menu]")) {

@@ -279,8 +279,6 @@
 								workspace.openImageContextMenu(event, place.iconUrl)
 							}
 						}}
-						onclick={(event) =>
-							workspace.toggleImageContextMenu(event, place.iconUrl)}
 						oncontextmenu={(event) =>
 							workspace.openImageContextMenu(event, place.iconUrl)}>
 						<GameIcon url={place.iconUrl} large />

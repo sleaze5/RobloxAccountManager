@@ -131,11 +131,6 @@
 							)
 						}
 					}}
-					onclick={(event) =>
-						workspace.toggleImageContextMenu(
-							event,
-							selectedAccount.avatarUrl,
-						)}
 					oncontextmenu={(event) =>
 						workspace.openImageContextMenu(
 							event,
