@@ -16,7 +16,7 @@
 	align-items: center;
 	flex-direction: column;
 	gap: var(--space-3);
-	padding-top: 6px;
+	padding-top: var(--space-2);
 	color: var(--color-text-faint);
 }
 
@@ -49,12 +49,12 @@
 .sidebar-resizer {
 	position: relative;
 	z-index: 3;
-	width: 2px;
+	width: var(--resizer-size);
 	height: 100%;
 	padding: 0;
 	border: 0;
-	border-right: 1px solid var(--color-border);
-	background: var(--color-surface);
+	border-left: 1px solid var(--color-border);
+	background: var(--color-bg);
 	cursor: col-resize;
 	touch-action: none;
 }
@@ -68,8 +68,7 @@
 	display: flex;
 	flex-direction: column;
 	gap: var(--space-1);
-	padding: var(--space-1) calc(var(--edge-padding) - 2px) var(--space-2)
-		var(--edge-padding);
+	padding: var(--space-1) var(--edge-padding) var(--space-2);
 }
 
 .account-title {
@@ -152,7 +151,7 @@
 	min-width: 14px;
 	height: 14px;
 	place-items: center;
-	padding: 0 3px;
+	padding: 0 var(--space-half);
 	border: 1px solid var(--color-surface);
 	border-radius: var(--radius-chip);
 	background: var(--color-accent-strong);
@@ -256,10 +255,10 @@
 	position: relative;
 	display: grid;
 	width: 100%;
-	height: 52px;
+	height: var(--list-row-height);
 	grid-template-columns: 20px minmax(0, 1fr);
 	align-items: center;
-	gap: 8px;
+	gap: var(--space-2);
 	padding: 0;
 	border: 0;
 	border-bottom: 1px solid var(--color-border-subtle);
@@ -278,7 +277,7 @@
 
 .account-row-select {
 	display: grid;
-	grid-template-columns: 36px minmax(0, 1fr);
+	grid-template-columns: var(--thumb-size) minmax(0, 1fr);
 	align-items: center;
 	gap: var(--space-2);
 	min-width: 0;
@@ -320,18 +319,18 @@
 	top: 0;
 	bottom: 0;
 	left: 0;
-	width: 3px;
+	width: var(--indicator-size);
 	background: transparent;
 }
 
 .account-row.selected .selection-mark {
-	background: var(--color-accent-strong);
+	background: var(--color-accent);
 }
 
 .account-drag-handle {
 	display: grid;
 	width: 20px;
-	height: 28px;
+	height: var(--control-height-md);
 	place-items: center;
 	padding-left: var(--control-padding-md);
 	color: var(--color-text-faint);
@@ -376,8 +375,8 @@
 }
 
 .account-avatar {
-	width: 36px;
-	height: 36px;
+	width: var(--thumb-size);
+	height: var(--thumb-size);
 	font-size: var(--text-12);
 }
 
@@ -485,7 +484,7 @@
 	align-items: center;
 	justify-content: center;
 	flex-direction: column;
-	gap: 3px;
+	gap: var(--space-half);
 	color: var(--color-text-faint);
 	font-size: var(--text-12);
 }

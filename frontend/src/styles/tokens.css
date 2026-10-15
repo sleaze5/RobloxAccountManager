@@ -22,7 +22,7 @@
 	--color-surface: #171717;
 	--color-surface-raised: #242424;
 	--color-surface-raised-hover: #292929;
-	--color-dialog: #131313;
+	--color-dialog: #171717;
 	--color-overlay: rgb(23 23 23 / 98%);
 	--color-input: #131313;
 	--color-scrim: rgb(0 0 0 / 72%);
@@ -77,11 +77,8 @@
 	--font-bold: 700;
 
 	--text-10: 10px;
-	--text-10-5: 10.5px;
 	--text-11: 11px;
-	--text-11-5: 11.5px;
 	--text-12: 12px;
-	--text-12-5: 12.5px;
 	--text-13: 13px;
 	--text-14: 14px;
 	--text-15: 15px;
@@ -91,6 +88,7 @@
 	--space-2: 8px;
 	--space-3: 12px;
 	--space-4: 16px;
+	--space-half: 2px;
 	--edge-padding: var(--space-3);
 
 	--control-height-sm: 24px;
@@ -98,6 +96,8 @@
 	--control-height-lg: 32px;
 	--control-padding-sm: 6px;
 	--control-padding-md: 8px;
+	--checkbox-size: 14px;
+	--focus-ring-width: 1px;
 
 	--radius-chip: 4px;
 	--radius-control: 6px;
@@ -121,6 +121,12 @@
 	--titlebar-height: 38px;
 	--header-height: 38px;
 	--status-strip-height: 24px;
+	--indicator-size: 2px;
+	--resizer-size: 2px;
+	--drawer-header-height: 34px;
+	--list-row-height: 52px;
+	--thumb-size: 36px;
+	--thumb-size-sm: 24px;
 	--sidebar-width: 220px;
 	--profile-avatar-size: 80px;
 	--game-icon-size-large: 96px;

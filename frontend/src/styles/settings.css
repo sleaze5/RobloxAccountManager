@@ -65,7 +65,7 @@
 	min-height: var(--control-height-md);
 	align-items: center;
 	gap: var(--space-2);
-	padding: 0 10px;
+	padding: 0 var(--space-2);
 	border: 1px solid transparent;
 	border-radius: var(--radius-control);
 	background: transparent;
@@ -150,7 +150,7 @@
 .settings-section-help {
 	display: flex;
 	align-items: flex-start;
-	gap: 6px;
+	gap: var(--space-1);
 	padding: 0 var(--space-1) var(--space-1);
 	color: var(--color-text-muted);
 	font-size: var(--text-12);
@@ -165,7 +165,7 @@
 .settings-section-help button {
 	display: inline-flex;
 	align-items: center;
-	gap: 3px;
+	gap: var(--space-half);
 	padding: 0;
 	border: 0;
 	background: transparent;
@@ -184,7 +184,7 @@
 
 .settings-section-help code,
 .settings-token-reference code {
-	padding: 0 3px;
+	padding: 0 var(--space-half);
 	border-radius: var(--radius-chip);
 	background: var(--color-fill-subtle);
 	color: var(--color-text-muted);
@@ -219,7 +219,7 @@
 }
 
 .settings-token-reference summary:focus-visible {
-	outline: 1px solid var(--color-focus-ring);
+	outline: var(--focus-ring-width) solid var(--color-focus-ring);
 	outline-offset: 2px;
 }
 
@@ -238,7 +238,7 @@
 .settings-token-reference dl {
 	display: grid;
 	grid-template-columns: repeat(2, minmax(0, 1fr));
-	gap: 2px var(--space-4);
+	gap: var(--space-half) var(--space-4);
 	margin: 0;
 }
 
@@ -284,7 +284,7 @@
 	grid-template-columns: minmax(0, 1fr) auto;
 	align-items: center;
 	gap: var(--space-4);
-	padding: 6px var(--space-1);
+	padding: var(--space-2) var(--space-1);
 	border-bottom: 1px solid var(--color-border-subtle);
 }
 
@@ -292,7 +292,7 @@
 	display: flex;
 	min-width: 0;
 	flex-direction: column;
-	gap: 2px;
+	gap: var(--space-half);
 }
 
 .settings-row-copy strong {
@@ -356,8 +356,8 @@
 .settings-row-action {
 	display: flex;
 	align-items: center;
-	gap: 6px;
-	padding: 0 10px;
+	gap: var(--space-1);
+	padding: 0 var(--space-3);
 }
 
 .settings-row-action:hover,
@@ -383,7 +383,7 @@
 
 .settings-format-input:focus-visible {
 	border-color: var(--color-border-focus);
-	outline: 1px solid var(--color-focus-ring);
+	outline: var(--focus-ring-width) solid var(--color-focus-ring);
 	outline-offset: -1px;
 }
 
@@ -436,7 +436,7 @@
 
 .settings-number-stepper :is(input, button):focus-visible {
 	border-color: var(--color-border-focus);
-	outline: 1px solid var(--color-focus-ring);
+	outline: var(--focus-ring-width) solid var(--color-focus-ring);
 	outline-offset: -1px;
 }
 
@@ -498,7 +498,7 @@
 
 .settings-select-trigger:focus-visible {
 	border-color: var(--color-border-focus);
-	outline: 1px solid var(--color-focus-ring);
+	outline: var(--focus-ring-width) solid var(--color-focus-ring);
 	outline-offset: -1px;
 }
 
@@ -579,7 +579,7 @@
 }
 
 .settings-select-menu button:focus-visible {
-	outline: 1px solid var(--color-focus-ring);
+	outline: var(--focus-ring-width) solid var(--color-focus-ring);
 	outline-offset: -1px;
 }
 
@@ -587,7 +587,7 @@
 	position: relative;
 	display: inline-flex;
 	width: 34px;
-	height: 28px;
+	height: var(--control-height-md);
 	align-items: center;
 	cursor: pointer;
 }
@@ -636,7 +636,7 @@
 }
 
 .settings-toggle input:focus-visible + span {
-	outline: 2px solid var(--color-focus-ring);
+	outline: var(--focus-ring-width) solid var(--color-focus-ring);
 	outline-offset: 2px;
 }
 
@@ -649,14 +649,14 @@
 	display: flex;
 	flex-direction: column;
 	gap: var(--space-2);
-	padding: 10px var(--space-1);
+	padding: var(--space-2) var(--space-1);
 	border-bottom: 1px solid var(--color-border-subtle);
 }
 
 .settings-radio-group-header {
 	display: flex;
 	flex-direction: column;
-	gap: 2px;
+	gap: var(--space-half);
 }
 
 .settings-radio-group-header strong {
@@ -673,7 +673,7 @@
 .settings-radio-options {
 	display: flex;
 	flex-direction: column;
-	gap: 2px;
+	gap: var(--space-half);
 	padding-left: var(--space-1);
 }
 
@@ -748,7 +748,7 @@
 }
 
 .settings-radio-option input:focus-visible + span {
-	outline: 2px solid var(--color-focus-ring);
+	outline: var(--focus-ring-width) solid var(--color-focus-ring);
 	outline-offset: 2px;
 }
 
@@ -786,7 +786,7 @@
 	min-width: 0;
 	align-items: center;
 	gap: var(--space-2);
-	padding: 5px var(--space-1);
+	padding: var(--space-1);
 	border-bottom: 1px solid var(--color-border-subtle);
 	overflow-wrap: anywhere;
 }
@@ -814,7 +814,7 @@
 
 .about-table th,
 .about-table td {
-	padding: 5px var(--space-1);
+	padding: var(--space-1);
 	border-bottom: 1px solid var(--color-border-subtle);
 	text-align: left;
 }
@@ -845,7 +845,7 @@
 	min-width: 0;
 	align-items: center;
 	gap: var(--space-2);
-	padding: 5px var(--space-1);
+	padding: var(--space-1);
 	border-bottom: 1px solid var(--color-border-subtle);
 	overflow-wrap: anywhere;
 }
@@ -873,7 +873,7 @@
 
 .about-table th,
 .about-table td {
-	padding: 5px var(--space-1);
+	padding: var(--space-1);
 	border-bottom: 1px solid var(--color-border-subtle);
 	text-align: left;
 }
@@ -898,7 +898,7 @@
 	display: flex;
 	flex-direction: column;
 	gap: var(--space-1);
-	padding: 6px var(--space-1);
+	padding: var(--space-1);
 	border-bottom: 1px solid var(--color-border-subtle);
 }
 
@@ -921,7 +921,7 @@
 .about-attributes {
 	display: flex;
 	flex-wrap: wrap;
-	gap: 2px var(--space-3);
+	gap: var(--space-half) var(--space-3);
 }
 
 .about-attributes > div {
@@ -936,7 +936,7 @@
 .settings-select-group {
 	padding: var(--space-2) var(--space-2) var(--space-1);
 	color: var(--color-text-faint);
-	font-size: var(--text-10-5);
+	font-size: var(--text-11);
 	font-weight: var(--font-semibold);
 }
 

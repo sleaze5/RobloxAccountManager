@@ -74,6 +74,6 @@
 	.primary-action {
 		display: flex;
 		align-items: center;
-		gap: 6px;
+		gap: var(--space-1);
 	}
 </style>

@@ -18,20 +18,20 @@
 	position: relative;
 	display: grid;
 	width: 100%;
-	height: 52px;
-	grid-template-columns: 36px minmax(0, 1fr);
+	height: var(--list-row-height);
+	grid-template-columns: var(--thumb-size) minmax(0, 1fr);
 	align-items: center;
 	gap: var(--space-2);
-	padding: 0 var(--edge-padding) 0 calc(var(--edge-padding) - 2px);
+	padding: 0 var(--edge-padding) 0 calc(var(--edge-padding) - var(--indicator-size));
 	border: 0;
 	border-bottom: 1px solid var(--color-border-subtle);
-	border-left: 2px solid transparent;
+	border-left: var(--indicator-size) solid transparent;
 	text-align: left;
 }
 
 .game-row.reorderable {
-	grid-template-columns: 12px 36px minmax(0, 1fr);
-	padding-left: calc(var(--control-padding-md) - 2px);
+	grid-template-columns: 12px var(--thumb-size) minmax(0, 1fr);
+	padding-left: calc(var(--control-padding-md) - var(--indicator-size));
 }
 
 .game-drag-handle {
@@ -110,7 +110,7 @@
 
 .games-list-footer {
 	display: flex;
-	min-height: 52px;
+	min-height: var(--list-row-height);
 	align-items: center;
 	justify-content: center;
 	color: var(--color-text-faint);
@@ -118,8 +118,8 @@
 
 .game-icon {
 	display: grid;
-	width: 36px;
-	height: 36px;
+	width: var(--thumb-size);
+	height: var(--thumb-size);
 	flex: 0 0 auto;
 	place-items: center;
 	overflow: hidden;
@@ -215,7 +215,7 @@
 	min-width: 0;
 	align-items: center;
 	vertical-align: top;
-	gap: 2px;
+	gap: var(--space-half);
 	color: var(--color-text-muted);
 	font-size: var(--text-13);
 }
@@ -304,13 +304,13 @@
 	max-width: 100%;
 	align-items: center;
 	align-self: flex-start;
-	gap: 6px;
-	padding: 3px var(--space-2);
+	gap: var(--space-1);
+	padding: var(--space-half) var(--space-2);
 	border: 1px solid var(--color-border);
 	border-radius: var(--radius-control);
 	background: var(--color-surface-raised);
 	color: var(--color-text);
-	font-size: var(--text-11-5);
+	font-size: var(--text-12);
 }
 
 .game-subplace-note > svg {
@@ -342,7 +342,7 @@
 }
 
 .game-subplace-link:focus-visible {
-	outline: 1px solid var(--color-focus-ring);
+	outline: var(--focus-ring-width) solid var(--color-focus-ring);
 	outline-offset: 2px;
 }
 
@@ -370,7 +370,7 @@
 	flex-direction: column;
 	gap: var(--space-1);
 	color: var(--color-text-muted);
-	font-size: var(--text-10-5);
+	font-size: var(--text-11);
 }
 
 .game-servers-filter .settings-select {
@@ -387,8 +387,8 @@
 
 .game-servers-source {
 	display: flex;
-	gap: 2px;
-	padding: 2px;
+	gap: var(--space-half);
+	padding: var(--space-half);
 	border: 1px solid var(--color-border);
 	border-radius: var(--radius-panel);
 }
@@ -397,7 +397,7 @@
 	display: grid;
 	height: var(--control-height-sm);
 	place-items: center;
-	padding-inline: 10px;
+	padding-inline: var(--space-2);
 	border-radius: var(--radius-control);
 	color: var(--color-text-muted);
 	font-size: var(--text-12);
@@ -419,7 +419,7 @@
 }
 
 .game-servers-source label:has(input:focus-visible) {
-	outline: 1px solid var(--color-focus-ring);
+	outline: var(--focus-ring-width) solid var(--color-focus-ring);
 	outline-offset: 1px;
 }
 
@@ -431,7 +431,7 @@
 
 .game-servers-summary {
 	display: flex;
-	gap: 6px;
+	gap: var(--space-1);
 	padding: var(--space-2) var(--edge-padding) 0;
 	color: var(--color-text-faint);
 	font-family: var(--font-mono);
@@ -478,11 +478,11 @@
 	position: sticky;
 	z-index: 1;
 	top: 0;
-	padding-block: var(--space-2) 6px;
+	padding-block: var(--space-2);
 	background: var(--color-bg);
 	border-bottom: 1px solid var(--color-border-subtle);
 	color: var(--color-text-faint);
-	font-size: var(--text-10-5);
+	font-size: var(--text-11);
 	font-weight: var(--font-semibold);
 }
 
@@ -501,13 +501,13 @@
 .game-server-capacity {
 	display: flex;
 	flex-direction: column;
-	gap: 5px;
+	gap: var(--space-1);
 }
 
 .game-server-count {
 	display: flex;
 	align-items: center;
-	gap: 2px;
+	gap: var(--space-half);
 	color: var(--color-text-muted);
 	font-family: var(--font-mono);
 	font-size: var(--text-11);
@@ -519,7 +519,7 @@
 }
 
 .game-server-tag {
-	margin-right: 4px;
+	margin-right: var(--space-1);
 	padding: 0 var(--space-1);
 	border: 1px solid var(--color-border-strong);
 	border-radius: var(--radius-chip);
@@ -554,8 +554,8 @@
 
 .game-server-avatar {
 	display: grid;
-	width: 24px;
-	height: 24px;
+	width: var(--thumb-size-sm);
+	height: var(--thumb-size-sm);
 	flex: 0 0 auto;
 	place-items: center;
 	overflow: hidden;
@@ -576,10 +576,10 @@
 }
 
 .game-server-more {
-	margin-left: 6px;
+	margin-left: var(--space-1);
 	color: var(--color-text-muted);
 	font-family: var(--font-mono);
-	font-size: var(--text-10-5);
+	font-size: var(--text-11);
 }
 
 .game-server-faint {
@@ -589,7 +589,7 @@
 .game-server-number {
 	display: flex;
 	align-items: center;
-	gap: 5px;
+	gap: var(--space-1);
 	color: var(--color-text);
 	font-family: var(--font-mono);
 	font-size: var(--text-11);
@@ -600,7 +600,7 @@
 	overflow: hidden;
 	color: var(--color-text-faint);
 	font-family: var(--font-mono);
-	font-size: var(--text-10-5);
+	font-size: var(--text-11);
 	text-overflow: ellipsis;
 	white-space: nowrap;
 	user-select: text;

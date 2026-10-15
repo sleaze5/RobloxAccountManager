@@ -275,7 +275,7 @@
 		display: flex;
 		min-height: var(--control-height-sm);
 		align-items: center;
-		gap: 6px;
+		gap: var(--space-1);
 		margin-top: var(--space-2);
 		color: var(--color-text);
 		font-size: var(--text-12);
@@ -284,7 +284,7 @@
 	.password-validation > span {
 		display: flex;
 		align-items: center;
-		gap: 6px;
+		gap: var(--space-1);
 	}
 
 	.password-validation > .visibility-control {

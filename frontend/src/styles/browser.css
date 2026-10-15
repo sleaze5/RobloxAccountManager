@@ -20,7 +20,7 @@
 	display: inline-flex;
 	min-height: var(--control-height-md);
 	align-items: center;
-	gap: 5px;
+	gap: var(--space-1);
 	padding: 0 var(--space-2);
 	border: 1px solid var(--color-border);
 	border-radius: var(--radius-control);
@@ -65,7 +65,7 @@
 	align-items: center;
 	justify-content: space-between;
 	gap: var(--space-3);
-	padding: 6px var(--space-2);
+	padding: var(--space-1) var(--space-2);
 }
 
 .browser-session-row + .browser-session-row {
@@ -96,7 +96,7 @@
 .runtime-card .primary-action {
 	display: inline-flex;
 	align-items: center;
-	gap: 6px;
+	gap: var(--space-1);
 }
 
 .runtime-details {
@@ -123,7 +123,7 @@
 .runtime-activity strong {
 	display: flex;
 	align-items: center;
-	gap: 6px;
+	gap: var(--space-1);
 	color: var(--color-text);
 	font-size: var(--text-13);
 	font-weight: var(--font-semibold);

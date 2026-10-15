@@ -376,6 +376,8 @@
 	.player-path-custom input {
 		flex: 1;
 		min-width: 0;
+		font-family: var(--font-mono);
+		font-size: var(--text-11);
 	}
 
 	.player-path-validate {

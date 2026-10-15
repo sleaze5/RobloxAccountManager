@@ -4,7 +4,7 @@
 	z-index: 90;
 	display: grid;
 	place-items: center;
-	padding: 14px;
+	padding: var(--space-4);
 	background: var(--color-scrim);
 }
 
@@ -63,7 +63,7 @@
 	display: flex;
 	align-items: flex-start;
 	gap: var(--space-2);
-	padding: var(--space-2) 10px;
+	padding: var(--space-2) var(--space-3);
 	border: 1px solid var(--color-border);
 	border-radius: var(--radius-control);
 	cursor: pointer;
@@ -87,7 +87,7 @@
 }
 
 .location-option:has(input:focus-visible) {
-	outline: 1px solid var(--color-focus-ring);
+	outline: var(--focus-ring-width) solid var(--color-focus-ring);
 	outline-offset: 1px;
 }
 
@@ -102,7 +102,7 @@
 	min-width: 0;
 	flex: 1;
 	flex-direction: column;
-	gap: 2px;
+	gap: var(--space-half);
 }
 
 .location-option-title {
@@ -114,7 +114,7 @@
 .location-option-description {
 	display: flex;
 	flex-direction: column;
-	gap: 2px;
+	gap: var(--space-half);
 	color: var(--color-text-muted);
 	font-size: var(--text-12);
 	line-height: 1.4;
@@ -122,9 +122,9 @@
 
 .location-option-check {
 	display: inline-flex;
-	width: 14px;
+	width: var(--checkbox-size);
 	height: 18px;
-	flex: 0 0 14px;
+	flex: 0 0 var(--checkbox-size);
 	align-items: center;
 	color: var(--color-text);
 }
@@ -138,7 +138,7 @@
 
 .location-items {
 	display: grid;
-	gap: 2px;
+	gap: var(--space-half);
 	margin-top: var(--space-2);
 	padding-left: var(--space-4);
 	font-family: var(--font-mono);
@@ -172,7 +172,7 @@
 .modal-card > p,
 .modal-card > form > p,
 .modal-heading p {
-	margin-top: 6px;
+	margin-top: var(--space-1);
 	color: var(--color-text-muted);
 	font-size: var(--text-13);
 	line-height: 1.5;
@@ -213,14 +213,13 @@
 	width: 100%;
 	min-width: 0;
 	min-height: var(--control-height-lg);
-	padding: 0 9px;
+	padding: 0 var(--space-2);
 	border: 1px solid var(--color-border);
 	border-radius: var(--radius-control);
 	outline: 0;
 	background: var(--color-input);
 	color: var(--color-accent-strong);
-	font-family: var(--font-mono);
-	font-size: var(--text-11);
+	font-size: var(--text-13);
 }
 
 .tag-manager-create-row input:focus {
@@ -240,7 +239,7 @@
 	align-items: center;
 	justify-content: space-between;
 	margin-top: var(--space-4);
-	padding-bottom: 6px;
+	padding-bottom: var(--space-2);
 	color: var(--color-text-muted);
 	font-size: var(--text-12);
 }
@@ -268,7 +267,7 @@
 	min-height: var(--control-height-lg);
 	align-items: center;
 	gap: var(--space-2);
-	padding-left: 9px;
+	padding-left: var(--space-2);
 	color: var(--color-text);
 	font-size: var(--text-12);
 }
@@ -307,7 +306,7 @@
 }
 
 .tag-manager-empty {
-	padding: var(--space-3) 9px;
+	padding: var(--space-3) var(--space-2);
 	color: var(--color-text-faint);
 	font-size: var(--text-12);
 	text-align: center;
@@ -317,7 +316,7 @@
 	display: flex;
 	align-items: center;
 	justify-content: space-between;
-	margin-bottom: 5px;
+	margin-bottom: var(--space-1);
 	color: var(--color-text-muted);
 	font-size: var(--text-12);
 	font-weight: var(--font-semibold);
@@ -337,8 +336,7 @@
 	outline: 0;
 	background: var(--color-input);
 	color: var(--color-accent-strong);
-	font-family: var(--font-mono);
-	font-size: var(--text-11);
+	font-size: var(--text-13);
 }
 
 .modal-field .settings-select {
@@ -347,12 +345,14 @@
 
 .modal-field input {
 	min-height: var(--control-height-lg);
-	padding: 0 9px;
+	padding: 0 var(--space-2);
 }
 
 .modal-field textarea {
 	height: 96px;
-	padding: var(--space-2) 9px;
+	padding: var(--space-2);
+	font-family: var(--font-mono);
+	font-size: var(--text-11);
 	overflow-x: hidden;
 	line-height: 1.45;
 	resize: none;
@@ -372,7 +372,7 @@
 .launch-data-textarea {
 	width: 100%;
 	height: 140px;
-	padding: var(--space-2) 9px;
+	padding: var(--space-2);
 	border: 1px solid var(--color-border);
 	border-radius: var(--radius-control);
 	outline: 0;
@@ -408,7 +408,7 @@
 .launch-data-size {
 	color: var(--color-text-faint);
 	font-family: var(--font-mono);
-	font-size: var(--text-11-5);
+	font-size: var(--text-12);
 	user-select: none;
 }
 
@@ -421,21 +421,21 @@
 }
 
 .tag-name-validation {
-	margin-top: 6px;
+	margin-top: var(--space-1);
 	color: var(--color-danger-muted);
 	font-size: var(--text-12);
 	line-height: 1.4;
 }
 
 .modal-card > p.tag-name-hint {
-	margin-top: 6px;
+	margin-top: var(--space-1);
 }
 
 .modal-warning,
 .modal-error,
 .modal-note {
 	margin-top: var(--space-3);
-	padding: var(--space-2) 9px;
+	padding: var(--space-2);
 	border-radius: var(--radius-control);
 	font-size: var(--text-12);
 	line-height: 1.45;
@@ -484,7 +484,7 @@
 .cookie-select-all {
 	display: flex;
 	align-items: center;
-	gap: 6px;
+	gap: var(--space-1);
 	cursor: pointer;
 	font-weight: var(--font-medium);
 }
@@ -497,9 +497,9 @@
 .cookie-selection {
 	position: relative;
 	display: grid;
-	width: 14px;
-	height: 14px;
-	flex: 0 0 14px;
+	width: var(--checkbox-size);
+	height: var(--checkbox-size);
+	flex: 0 0 var(--checkbox-size);
 	place-items: center;
 }
 
@@ -507,16 +507,16 @@
 	position: absolute;
 	inset: 0;
 	z-index: 1;
-	width: 14px;
-	height: 14px;
+	width: var(--checkbox-size);
+	height: var(--checkbox-size);
 	appearance: none;
 	cursor: pointer;
 }
 
 .cookie-selection > span {
 	display: grid;
-	width: 14px;
-	height: 14px;
+	width: var(--checkbox-size);
+	height: var(--checkbox-size);
 	place-items: center;
 	border: 1px solid var(--color-border-strong);
 	border-radius: var(--radius-chip);
@@ -549,7 +549,7 @@
 }
 
 .cookie-selection input:focus-visible + span {
-	outline: 1px solid var(--color-focus-ring);
+	outline: var(--focus-ring-width) solid var(--color-focus-ring);
 	outline-offset: 2px;
 }
 
@@ -578,11 +578,14 @@
 
 .cookie-import-results li {
 	display: grid;
-	grid-template-columns: 14px 20px 24px minmax(0, 1fr) auto;
+	grid-template-columns: var(--checkbox-size) 20px var(--thumb-size-sm) minmax(
+			0,
+			1fr
+		) auto;
 	align-items: center;
 	gap: var(--space-2);
 	min-height: 38px;
-	padding: 6px var(--space-2);
+	padding: var(--space-1) var(--space-2);
 	color: var(--color-text-muted);
 	font-size: var(--text-12);
 	line-height: 1.35;
@@ -594,7 +597,7 @@
 
 .cookie-import-results li.cookie-result-failed,
 .cookie-import-results li.cookie-result-duplicate {
-	grid-template-columns: 14px 20px minmax(0, 1fr);
+	grid-template-columns: var(--checkbox-size) 20px minmax(0, 1fr);
 }
 
 .cookie-import-results li.cookie-result-failed {
@@ -619,8 +622,8 @@
 .cookie-result-avatar {
 	position: relative;
 	display: grid;
-	width: 24px;
-	height: 24px;
+	width: var(--thumb-size-sm);
+	height: var(--thumb-size-sm);
 	place-items: center;
 	overflow: hidden;
 	border: 1px solid var(--color-border);
@@ -641,7 +644,7 @@
 	display: flex;
 	min-width: 0;
 	align-items: baseline;
-	gap: 5px;
+	gap: var(--space-1);
 	overflow: hidden;
 	white-space: nowrap;
 }
@@ -661,7 +664,7 @@
 }
 
 .cookie-result-status {
-	padding: 2px 5px;
+	padding: var(--space-half) var(--space-1);
 	border: 1px solid var(--color-warning-border);
 	border-radius: var(--radius-chip);
 	color: var(--color-warning);
@@ -714,14 +717,14 @@
 .automatic-unlock {
 	display: flex;
 	align-items: center;
-	gap: 6px;
+	gap: var(--space-1);
 	margin-top: var(--space-2);
 	color: var(--color-text-muted);
 	font-size: var(--text-12);
 }
 
 .visibility-control {
-	padding: 4px 0;
+	padding: var(--space-1) 0;
 	border: 0;
 	background: transparent;
 	cursor: pointer;
@@ -734,7 +737,7 @@
 .automatic-unlock label {
 	display: flex;
 	align-items: center;
-	gap: 6px;
+	gap: var(--space-1);
 }
 
 .automatic-unlock-info {
@@ -758,7 +761,7 @@
 .password-checklist {
 	display: grid;
 	grid-template-columns: 1fr 1fr;
-	gap: 5px var(--space-2);
+	gap: var(--space-1) var(--space-2);
 	margin-top: var(--space-3);
 	padding: 0;
 	list-style: none;
@@ -768,7 +771,7 @@
 .password-checklist li {
 	display: flex;
 	align-items: center;
-	gap: 5px;
+	gap: var(--space-1);
 	color: var(--color-danger-muted);
 	font-size: var(--text-12);
 }
@@ -786,7 +789,7 @@
 .modal-actions {
 	display: flex;
 	justify-content: flex-end;
-	gap: 6px;
+	gap: var(--space-2);
 	margin-top: var(--space-3);
 }
 

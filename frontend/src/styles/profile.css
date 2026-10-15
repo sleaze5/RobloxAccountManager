@@ -85,7 +85,7 @@
 }
 
 .settings-subpages button:focus-visible {
-	outline: 1px solid var(--color-focus-ring);
+	outline: var(--focus-ring-width) solid var(--color-focus-ring);
 	outline-offset: -1px;
 }
 
@@ -181,7 +181,7 @@
 	min-width: 0;
 	align-items: center;
 	flex-wrap: wrap;
-	gap: 6px;
+	gap: var(--space-1);
 	color: var(--color-text-muted);
 	font-family: var(--font-mono);
 	font-size: var(--text-11);
@@ -222,7 +222,7 @@
 
 .control-button.text-button {
 	width: auto;
-	gap: 6px;
+	gap: var(--space-1);
 	padding-inline: var(--space-2);
 	white-space: nowrap;
 }
@@ -231,7 +231,7 @@
 	display: flex;
 	align-items: center;
 	flex-wrap: wrap;
-	gap: 6px;
+	gap: var(--space-1);
 }
 
 .tag-pill {
@@ -239,7 +239,7 @@
 	max-width: 220px;
 	min-height: var(--control-height-sm);
 	align-items: center;
-	gap: 5px;
+	gap: var(--space-1);
 	padding: 0 var(--space-2);
 	border: 1px solid var(--color-border-subtle);
 	border-radius: var(--radius-chip);
@@ -288,7 +288,7 @@
 
 .profile-tag-menu {
 	position: absolute;
-	top: calc(100% + 4px);
+	top: calc(100% + var(--space-1));
 	left: 0;
 	z-index: 22;
 }
@@ -322,7 +322,7 @@
 }
 
 .profile-balance:focus-visible {
-	outline: 1px solid var(--color-focus-ring);
+	outline: var(--focus-ring-width) solid var(--color-focus-ring);
 	outline-offset: 3px;
 }
 
@@ -335,7 +335,7 @@
 	height: 20px;
 	align-items: center;
 	gap: var(--space-1);
-	padding: 0 6px;
+	padding: 0 var(--space-1);
 	border: 1px solid var(--color-border-strong);
 	border-radius: var(--radius-chip);
 	background: var(--color-surface-raised);

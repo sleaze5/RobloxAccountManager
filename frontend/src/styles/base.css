@@ -88,7 +88,7 @@ button:focus-visible,
 input:focus-visible,
 textarea:focus-visible,
 select:focus-visible {
-	outline: 1px solid var(--color-focus-ring);
+	outline: var(--focus-ring-width) solid var(--color-focus-ring);
 	outline-offset: -1px;
 }
 
@@ -98,7 +98,7 @@ select:focus-visible {
 	min-height: var(--control-height-lg);
 	flex: 1;
 	align-items: center;
-	gap: 7px;
+	gap: var(--space-2);
 	padding: 0 var(--space-2);
 	border: 1px solid var(--color-border);
 	border-radius: var(--radius-control);
@@ -152,7 +152,7 @@ select:focus-visible {
 	top: 0;
 	left: 0;
 	z-index: 200;
-	padding: 5px 7px;
+	padding: var(--space-1) var(--space-2);
 	border: 1px solid var(--color-border);
 	border-radius: var(--radius-surface);
 	background: var(--color-surface-raised);
@@ -303,14 +303,14 @@ select:focus-visible {
 .text-block {
 	max-width: 640px;
 	margin: 0;
-	padding: 10px 12px;
+	padding: var(--space-2) var(--space-3);
 	overflow-wrap: anywhere;
 	border: 1px solid var(--color-border);
 	border-radius: var(--radius-panel);
 	background: var(--color-fill-subtle);
 	color: var(--color-text);
 	font-family: var(--font-mono);
-	font-size: var(--text-11-5);
+	font-size: var(--text-12);
 	line-height: 1.55;
 	white-space: pre-wrap;
 	user-select: text;
@@ -328,12 +328,12 @@ select:focus-visible {
 }
 
 .hover-value:focus-visible {
-	outline: 1px solid var(--color-focus-ring);
+	outline: var(--focus-ring-width) solid var(--color-focus-ring);
 	outline-offset: 2px;
 }
 
 .creator-verified {
 	display: inline-block;
-	margin-left: 4px;
+	margin-left: var(--space-1);
 	vertical-align: -2px;
 }

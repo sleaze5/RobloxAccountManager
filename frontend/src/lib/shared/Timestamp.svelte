@@ -49,7 +49,7 @@
 	}
 
 	.timestamp:focus-visible {
-		outline: 1px solid var(--color-focus-ring);
+		outline: var(--focus-ring-width) solid var(--color-focus-ring);
 		outline-offset: 2px;
 	}
 </style>

@@ -1,20 +1,20 @@
 .launch-drawer {
 	height: var(--launch-height);
 	display: grid;
-	grid-template-rows: 2px 34px minmax(0, 1fr);
+	grid-template-rows: var(--resizer-size) var(--drawer-header-height) minmax(0, 1fr);
 	border-top: 1px solid var(--color-border-subtle);
 	background: var(--color-surface);
 }
 
 .launch-drawer.collapsed {
-	height: 34px;
+	height: var(--drawer-header-height);
 	display: block;
 }
 
 .launch-resizer {
 	display: grid;
 	width: 100%;
-	height: 2px;
+	height: var(--resizer-size);
 	place-items: center;
 	padding: 0;
 	border: 0;
@@ -26,7 +26,7 @@
 .drawer-header {
 	display: flex;
 	width: 100%;
-	height: 34px;
+	height: var(--drawer-header-height);
 	align-items: center;
 	justify-content: space-between;
 	padding: 0 var(--edge-padding);
@@ -42,7 +42,7 @@
 .drawer-header > span {
 	display: flex;
 	align-items: center;
-	gap: 7px;
+	gap: var(--space-2);
 }
 
 .drawer-header strong {
@@ -158,7 +158,7 @@
 	z-index: 30;
 	display: flex;
 	flex-direction: column;
-	gap: 2px;
+	gap: var(--space-half);
 	max-height: min(238px, var(--place-menu-space, 238px));
 	padding: var(--space-1);
 	overflow-y: auto;
@@ -194,8 +194,8 @@
 }
 
 .place-suggestion .game-icon {
-	width: 24px;
-	height: 24px;
+	width: var(--thumb-size-sm);
+	height: var(--thumb-size-sm);
 	border-radius: var(--radius-chip);
 }
 
@@ -215,12 +215,12 @@
 .place-suggestion-copy small {
 	color: var(--color-text-faint);
 	font-family: var(--font-mono);
-	font-size: var(--text-10-5);
+	font-size: var(--text-11);
 	font-weight: var(--font-normal);
 }
 
 .place-suggestion kbd {
-	padding: 2px var(--space-1);
+	padding: var(--space-half) var(--space-1);
 	border: 1px solid var(--color-border-strong);
 	border-radius: var(--radius-chip);
 	color: var(--color-text-faint);
@@ -354,7 +354,7 @@
 }
 
 .launch-option + .launch-option-action {
-	margin-left: calc(14px + var(--space-2));
+	margin-left: calc(var(--checkbox-size) + var(--space-2));
 }
 
 .launch-option-action:hover {
