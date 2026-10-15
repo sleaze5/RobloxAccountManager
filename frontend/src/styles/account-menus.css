@@ -13,7 +13,7 @@
 	top: calc(100% + 2px);
 	right: 0;
 	z-index: var(--layer-menu);
-	width: 156px;
+	width: 184px;
 }
 
 .account-context-menu {

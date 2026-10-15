@@ -13,7 +13,12 @@ export interface ImageContextMenu {
 	y: number
 }
 
-export type ActiveAccountMenu = "add-account" | "profile-tags" | "tag-filter" | null
+export type ActiveAccountMenu =
+	| "add-account"
+	| "empty-add-account"
+	| "profile-tags"
+	| "tag-filter"
+	| null
 
 export class WorkspaceState {
 	accountPage = $state<"profile" | "settings" | "chats">("profile")

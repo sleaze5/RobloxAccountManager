@@ -30,8 +30,15 @@
 }
 
 .vault-card {
+	position: relative;
 	width: min(360px, 100%);
 	text-align: center;
+}
+
+.modal-close {
+	position: absolute;
+	top: var(--space-3);
+	right: var(--space-3);
 }
 
 .launch-data-card {

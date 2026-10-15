@@ -53,6 +53,14 @@
 		use:modalFocus
 		in:modalCardIn
 		out:modalCardOut>
+		<button
+			class="modal-close"
+			type="button"
+			aria-label="Close change master password dialog"
+			disabled={store.busy}
+			onclick={onClose}>
+			<XIcon size={14} aria-hidden="true" />
+		</button>
 		<form
 			novalidate
 			onsubmit={(event) => {

@@ -93,6 +93,13 @@ select:focus-visible,
 	outline-offset: -1px;
 }
 
+[popover]:popover-open {
+	position: fixed;
+	inset: auto;
+	margin: 0;
+	color: inherit;
+}
+
 .visually-hidden {
 	position: absolute;
 	width: 1px;
@@ -202,6 +209,7 @@ select:focus-visible,
 	.notification-dismiss,
 	.operation-error button,
 	.modal-heading > button,
+	.modal-close,
 	.primary-action,
 	.danger-button,
 	.warning-button,

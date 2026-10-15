@@ -6,16 +6,31 @@
 	import UsersThreeIcon from "phosphor-svelte/lib/UsersThreeIcon"
 	import type { WorkspaceState } from "../layout/workspace-state.svelte"
 	import type { AccountStore } from "./account-store.svelte"
+	import AddAccountMenu from "./AddAccountMenu.svelte"
 
 	let {
 		store,
 		workspace,
 		onAddAccount,
+		onBrowser,
 	}: {
 		store: AccountStore
 		workspace: WorkspaceState
 		onAddAccount: () => void
+		onBrowser: () => void
 	} = $props()
+	const menuOpen = $derived(workspace.activeAccountMenu === "empty-add-account")
+	let trigger = $state<HTMLButtonElement>()
+
+	function pasteCookie(): void {
+		workspace.closeAccountMenus()
+		onAddAccount()
+	}
+
+	function openBrowser(): void {
+		workspace.closeAccountMenus()
+		onBrowser()
+	}
 	const noAccounts = $derived(
 		store.accounts.length === 0 &&
 			!store.query &&
@@ -53,10 +68,25 @@
 		{#if noAccounts}
 			<UserPlusIcon size={28} aria-hidden="true" />
 			<h2>No accounts yet</h2>
-			<p>Add an account with its .ROBLOSECURITY cookie to get started.</p>
-			<button class="primary-action" type="button" onclick={onAddAccount}>
-				<PlusIcon size={14} aria-hidden="true" />Add account
-			</button>
+			<p>Sign in with a browser or paste a cookie.</p>
+			<div class="add-account-host" data-account-menu>
+				<button
+					bind:this={trigger}
+					class="primary-action"
+					type="button"
+					aria-expanded={menuOpen}
+					disabled={store.busy}
+					onclick={() => workspace.toggleAccountMenu("empty-add-account")}>
+					<PlusIcon size={16} aria-hidden="true" />Add account
+				</button>
+				{#if menuOpen}
+					<AddAccountMenu
+						disabled={store.busy}
+						anchor={trigger}
+						onPasteCookie={pasteCookie}
+						onBrowser={openBrowser} />
+				{/if}
+			</div>
 		{:else}
 			<CursorClickIcon size={28} aria-hidden="true" />
 			<h2>No account selected</h2>
@@ -69,11 +99,5 @@
 	.account-placeholder-actions {
 		display: flex;
 		gap: var(--space-2);
-	}
-
-	.primary-action {
-		display: flex;
-		align-items: center;
-		gap: var(--space-1);
 	}
 </style>

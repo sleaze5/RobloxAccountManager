@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { onDestroy } from "svelte"
-	import { tooltipIn, tooltipOut } from "./presence"
+	import { liftToTopLayer, tooltipIn, tooltipOut } from "./presence"
 
 	const gap = 6,
 		margin = 8,
@@ -187,7 +187,8 @@
 		class:app-tooltip-multiline={text.includes("\n")}
 		role="tooltip"
 		bind:this={tip}
-		style="transform: translate({left}px, {top}px);">
+		use:liftToTopLayer
+		style="top: 0; left: 0; transform: translate({left}px, {top}px);">
 		<span class="app-tooltip-inner" in:tooltipIn out:tooltipOut
 			>{#if strongAt < 0}{text}{:else}{text.slice(0, strongAt)}<strong
 					>{strong}</strong

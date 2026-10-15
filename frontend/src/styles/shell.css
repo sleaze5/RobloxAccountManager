@@ -289,7 +289,8 @@
 }
 
 .operation-error button,
-.modal-heading > button {
+.modal-heading > button,
+.modal-close {
 	display: grid;
 	width: var(--control-height-sm);
 	height: var(--control-height-sm);
@@ -304,6 +305,7 @@
 }
 
 .operation-error button:hover,
-.modal-heading > button:hover {
+.modal-heading > button:hover,
+.modal-close:hover {
 	background: var(--color-hover-overlay);
 }

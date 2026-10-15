@@ -2,6 +2,7 @@
 	import EyeIcon from "phosphor-svelte/lib/EyeIcon"
 	import EyeSlashIcon from "phosphor-svelte/lib/EyeSlashIcon"
 	import ShieldCheckIcon from "phosphor-svelte/lib/ShieldCheckIcon"
+	import XIcon from "phosphor-svelte/lib/XIcon"
 	import type { AccountStore } from "../accounts/account-store.svelte"
 	import {
 		modalBackdropIn,
@@ -36,6 +37,14 @@
 		use:modalFocus
 		in:modalCardIn
 		out:modalCardOut>
+		<button
+			class="modal-close"
+			type="button"
+			aria-label="Close test master password dialog"
+			disabled={store.busy}
+			onclick={onClose}>
+			<XIcon size={14} aria-hidden="true" />
+		</button>
 		<form
 			novalidate
 			onsubmit={(event) => {

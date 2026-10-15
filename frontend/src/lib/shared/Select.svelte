@@ -2,7 +2,7 @@
 	import CheckIcon from "phosphor-svelte/lib/CheckIcon"
 	import CaretDownIcon from "phosphor-svelte/lib/CaretDownIcon"
 	import { tick } from "svelte"
-	import { menuIn, menuOut } from "./presence"
+	import { liftToTopLayer, menuIn, menuOut } from "./presence"
 
 	let {
 		label,
@@ -141,6 +141,7 @@
 		<div
 			class="settings-select-menu"
 			bind:this={menu}
+			use:liftToTopLayer
 			style={menuPosition}
 			id={menuID}
 			role="listbox"

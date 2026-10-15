@@ -16,7 +16,7 @@
 	import type { NotificationCenter } from "../notifications/notification-center.svelte"
 	import CompactNumber from "../shared/CompactNumber.svelte"
 	import { appSettings } from "../settings/settings-store.svelte"
-	import { menuIn, menuOut } from "../shared/presence"
+	import { floatMenu, menuIn, menuOut } from "../shared/presence"
 	import AccountAvatar from "./AccountAvatar.svelte"
 	import AccountMembershipBadges from "./AccountMembershipBadges.svelte"
 	import AccountPresence from "./AccountPresence.svelte"
@@ -54,7 +54,8 @@
 		)
 
 	let settingsButton = $state<HTMLButtonElement | undefined>(undefined),
-		chatsButton = $state<HTMLButtonElement | undefined>(undefined)
+		chatsButton = $state<HTMLButtonElement | undefined>(undefined),
+		tagsButton = $state<HTMLButtonElement | undefined>(undefined)
 	const profileState = $derived(
 			profileVisible ? store.getAccountProfile(profileAccountId) : null,
 		),
@@ -267,6 +268,7 @@
 				{/each}
 				<div class="edit-tags-host" data-account-menu>
 					<button
+						bind:this={tagsButton}
 						class:open={workspace.activeAccountMenu === "profile-tags"}
 						class="control-button compact"
 						type="button"
@@ -281,6 +283,7 @@
 						<div
 							class="profile-tag-menu account-menu"
 							data-account-menu
+							use:floatMenu={{ anchor: tagsButton, align: "start" }}
 							in:menuIn
 							out:menuOut>
 							<TagPicker

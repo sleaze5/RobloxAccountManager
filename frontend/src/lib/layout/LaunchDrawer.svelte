@@ -19,16 +19,6 @@
 	let drawer = $state<HTMLElement>()
 	let processesOpen = $state(false)
 	let measuredMethod: LaunchMethod | undefined
-	const hasJoinTarget = $derived.by(() => {
-		const input = store.launchInput
-		return (
-			input.method !== LaunchMethod.MethodPlace ||
-			input.resolveCurrentGame ||
-			[input.placeId, input.jobId, input.link, input.user].some(
-				(value) => value.trim().length > 0,
-			)
-		)
-	})
 	const methods = [
 		{
 			value: LaunchMethod.MethodPlace,
@@ -243,7 +233,7 @@
 						aria-label="Clear join fields"
 						data-tooltip="Clear join fields and reset to Place ID"
 						data-tooltip-side="top"
-						disabled={store.launching || !hasJoinTarget}
+						disabled={store.launching}
 						onclick={() => store.clearJoinTarget()}>
 						<EraserIcon size={16} aria-hidden="true" />
 					</button>

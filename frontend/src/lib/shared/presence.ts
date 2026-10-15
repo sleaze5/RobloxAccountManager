@@ -153,10 +153,46 @@ export function replayValidationNudge(element: HTMLElement | undefined): void {
 const menuEdge = 8,
 	menuGap = 4
 
+type MenuAlign = "start" | "center" | "end"
+
+export function liftToTopLayer(node: HTMLElement): void {
+	if (typeof node.showPopover !== "function" || node.matches(":popover-open")) {
+		return
+	}
+	node.popover = "manual"
+	node.showPopover()
+}
+
+export function floatMenu(
+	node: HTMLElement,
+	options: { anchor: Element | undefined; align?: MenuAlign },
+): { update: (next: typeof options) => void; destroy: () => void } {
+	let current = options
+	const place = () => {
+		if (current.anchor?.isConnected) {
+			placeMenuAtAnchor(node, current.anchor, current.align)
+		}
+	}
+	place()
+	window.addEventListener("resize", place)
+	window.addEventListener("scroll", place, true)
+	return {
+		update: (next) => {
+			current = next
+			place()
+		},
+		destroy: () => {
+			window.removeEventListener("resize", place)
+			window.removeEventListener("scroll", place, true)
+		},
+	}
+}
+
 export function placeMenuAtPoint(
 	node: HTMLElement,
 	point: { x: number; y: number },
 ): { x: number; y: number } {
+	liftToTopLayer(node)
 	const x = Math.max(
 			menuEdge,
 			Math.min(point.x, window.innerWidth - node.offsetWidth - menuEdge),
@@ -174,16 +210,24 @@ export function placeMenuAtPoint(
 	return { x, y }
 }
 
-export function placeMenuAtAnchor(node: HTMLElement, anchor: Element): void {
+export function placeMenuAtAnchor(
+	node: HTMLElement,
+	anchor: Element,
+	align: MenuAlign = "end",
+): void {
+	liftToTopLayer(node)
 	const bounds = anchor.getBoundingClientRect(),
 		opensUp =
 			bounds.bottom + menuGap + node.offsetHeight > window.innerHeight - menuEdge,
+		preferredX =
+			align === "start"
+				? bounds.left
+				: align === "center"
+					? bounds.left + bounds.width / 2 - node.offsetWidth / 2
+					: bounds.right - node.offsetWidth,
 		x = Math.max(
 			menuEdge,
-			Math.min(
-				bounds.right - node.offsetWidth,
-				window.innerWidth - node.offsetWidth - menuEdge,
-			),
+			Math.min(preferredX, window.innerWidth - node.offsetWidth - menuEdge),
 		),
 		y = Math.max(
 			menuTop(node),
@@ -191,7 +235,12 @@ export function placeMenuAtAnchor(node: HTMLElement, anchor: Element): void {
 				? bounds.top - node.offsetHeight - menuGap
 				: bounds.bottom + menuGap,
 		)
-	setMenuPosition(node, x, y, `${opensUp ? "bottom" : "top"} right`)
+	setMenuPosition(
+		node,
+		x,
+		y,
+		`${opensUp ? "bottom" : "top"} ${align === "start" ? "left" : align === "center" ? "center" : "right"}`,
+	)
 }
 
 function menuTop(node: Element): number {

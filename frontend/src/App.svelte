@@ -453,7 +453,8 @@
 							<AccountPlaceholder
 								{store}
 								{workspace}
-								onAddAccount={openAddAccount} />
+								onAddAccount={openAddAccount}
+								onBrowser={() => void openManagedBrowser(null)} />
 						{:else}
 							{#key store.selectedAccountId}
 								<div class="account-content">
