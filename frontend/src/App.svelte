@@ -406,6 +406,7 @@
 			{store}
 			browser={browserStore}
 			notifications={notificationCenter}
+			{workspace}
 			backLabel={`Back to ${pageLabels[settingsReturnPage]}`}
 			onBack={() => (activePage = settingsReturnPage)}
 			onLock={() => void openLockVault()} />

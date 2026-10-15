@@ -21,6 +21,8 @@
 	import UpdateSettings from "./UpdateSettings.svelte"
 	import UserInterfaceSettings from "./UserInterfaceSettings.svelte"
 	import VaultSettings from "./VaultSettings.svelte"
+	import SidebarResizer from "../layout/SidebarResizer.svelte"
+	import type { WorkspaceState } from "../layout/workspace-state.svelte"
 
 	const categories = [
 		{
@@ -67,6 +69,7 @@
 			store,
 			browser,
 			notifications,
+			workspace,
 			backLabel,
 			onBack,
 			onLock,
@@ -74,6 +77,7 @@
 			store: AccountStore
 			browser: BrowserStore
 			notifications: NotificationCenter
+			workspace: WorkspaceState
 			backLabel: string
 			onBack: () => void
 			onLock: () => void
@@ -116,7 +120,9 @@
 		<h1 id="settings-title">Settings</h1>
 	</header>
 
-	<div class="settings-layout">
+	<div
+		class="settings-layout"
+		style={`--settings-sidebar-width: ${workspace.settingsSidebarWidth}px;`}>
 		<aside class="settings-sidebar">
 			<div class="search-field">
 				<MagnifyingGlassIcon size={16} aria-hidden="true" />
@@ -152,6 +158,7 @@
 					No settings found.
 				</p>{/if}
 		</aside>
+		<SidebarResizer bind:width={workspace.settingsSidebarWidth} name="settings" />
 
 		<main
 			bind:this={contentElement}

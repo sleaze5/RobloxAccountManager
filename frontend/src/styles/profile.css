@@ -40,7 +40,9 @@
 .account-settings-layout {
 	height: 100%;
 	min-height: 0;
-	grid-template-columns: var(--account-settings-sidebar-width) minmax(0, 1fr);
+	grid-template-columns:
+		var(--account-settings-sidebar-width) var(--resizer-size)
+		minmax(0, 1fr);
 }
 
 .account-settings-loading {

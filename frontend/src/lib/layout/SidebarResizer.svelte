@@ -4,19 +4,31 @@
 
 	let {
 		width = $bindable(),
-		collapsed,
+		collapsed = false,
 		name,
+		minimumWidth = 220,
 	}: {
 		width: number
-		collapsed: boolean
+		collapsed?: boolean
 		name: string
+		minimumWidth?: number
 	} = $props()
-	const minimumWidth = 220
 	let stopResize: (() => void) | undefined,
-		viewportWidth = $state(window.innerWidth)
+		resizer = $state<HTMLDivElement>(),
+		availableWidth = $state(window.innerWidth)
 	const maximumWidth = $derived(
-		Math.max(minimumWidth, Math.min(420, viewportWidth - 500)),
+		Math.max(minimumWidth, Math.min(420, availableWidth - 500)),
 	)
+
+	$effect(() => {
+		const container = resizer?.parentElement
+		if (!container) return
+		const observer = new ResizeObserver(() => {
+			availableWidth = container.clientWidth
+		})
+		observer.observe(container)
+		return () => observer.disconnect()
+	})
 
 	function resize(nextWidth: number): void {
 		width = Math.min(maximumWidth, Math.max(minimumWidth, nextWidth))
@@ -52,9 +64,8 @@
 	onDestroy(() => stopResize?.())
 </script>
 
-<svelte:window bind:innerWidth={viewportWidth} />
-
 <div
+	bind:this={resizer}
 	class:disabled={collapsed}
 	class="sidebar-resizer"
 	role="slider"

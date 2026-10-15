@@ -37,14 +37,15 @@
 	display: grid;
 	height: 100%;
 	min-height: 0;
-	grid-template-columns: var(--settings-sidebar-width) minmax(0, 1fr);
+	grid-template-columns:
+		var(--settings-sidebar-width) var(--resizer-size)
+		minmax(0, 1fr);
 }
 
 .settings-sidebar {
 	height: 100%;
 	min-height: 0;
 	overflow-y: auto;
-	border-right: 1px solid var(--color-border-subtle);
 	background: var(--color-surface);
 }
 

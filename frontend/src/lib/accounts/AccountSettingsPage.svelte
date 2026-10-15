@@ -14,6 +14,7 @@
 	import UserCircleIcon from "phosphor-svelte/lib/UserCircleIcon"
 	import XIcon from "phosphor-svelte/lib/XIcon"
 	import { onMount, tick, untrack } from "svelte"
+	import SidebarResizer from "../layout/SidebarResizer.svelte"
 	import type { WorkspaceState } from "../layout/workspace-state.svelte"
 	import { AccountSettingKey as Key } from "../backend/bridge"
 	import type { AccountSettingOption, AccountSettingView } from "../backend/bridge"
@@ -790,7 +791,9 @@
 		</button>
 	</header>
 
-	<div class="settings-layout account-settings-layout">
+	<div
+		class="settings-layout account-settings-layout"
+		style={`--account-settings-sidebar-width: ${workspace.accountSettingsSidebarWidth}px;`}>
 		<aside class="settings-sidebar">
 			<div class="search-field">
 				<MagnifyingGlassIcon size={16} aria-hidden="true" />
@@ -830,6 +833,10 @@
 				<p class="settings-search-empty">No settings found.</p>
 			{/if}
 		</aside>
+		<SidebarResizer
+			bind:width={workspace.accountSettingsSidebarWidth}
+			name="account settings"
+			minimumWidth={192} />
 
 		<main
 			bind:this={contentElement}

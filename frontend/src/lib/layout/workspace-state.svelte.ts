@@ -29,6 +29,8 @@ export class WorkspaceState {
 	accountSettingsScrollAnchor: { key: string; offset: number } | null = null
 	sidebarCollapsed = $state(false)
 	sidebarWidth = $state(220)
+	settingsSidebarWidth = $state(240)
+	accountSettingsSidebarWidth = $state(192)
 	launchOpen = $state(true)
 	launchHeight = $state(180)
 	launchMinimumHeight = $state(0)
