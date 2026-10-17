@@ -32,6 +32,8 @@ type AccountProfileSnapshot struct {
 	TwoStepMethods  []string                         `json:"twoStepMethods"`
 	VoiceChat       *VoiceChat                       `json:"voiceChat"`
 	Description     string                           `json:"description"`
+	SocialLinks     []robloxservices.UserSocialLink  `json:"socialLinks"`
+	PreviousNames   []string                         `json:"previousNames"`
 	VerifiedBadge   *bool                            `json:"verifiedBadge"`
 	FriendCount     *int64                           `json:"friendCount"`
 	FollowerCount   *int64                           `json:"followerCount"`
@@ -155,6 +157,20 @@ func (service *Service) profileReads(ctx context.Context, accountID, version, us
 			about, err := service.users.About(ctx, accountID, version, userID)
 			if err == nil {
 				profile.Description, profile.VerifiedBadge = about.Description, &about.VerifiedBadge
+			}
+			return err
+		}},
+		{"socialLinks", func() error {
+			links, err := service.users.SocialLinks(ctx, accountID, version)
+			if err == nil {
+				profile.SocialLinks = links
+			}
+			return err
+		}},
+		{"previousNames", func() error {
+			names, err := service.users.PreviousNames(ctx, accountID, version, userID)
+			if err == nil {
+				profile.PreviousNames = names
 			}
 			return err
 		}},

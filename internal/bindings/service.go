@@ -154,6 +154,20 @@ func (service *Service) ChangeDisplayName(ctx context.Context, accountID int64, 
 	return service.core.ChangeDisplayName(ctx, accountID, displayName)
 }
 
+func (service *Service) ValidateAccountDescription(ctx context.Context, accountID int64, description string) (robloxservices.TextFilter, error) {
+	if err := positiveID(accountID, "description-validate"); err != nil {
+		return robloxservices.TextFilter{}, err
+	}
+	return service.core.ValidateAccountDescription(ctx, accountID, description)
+}
+
+func (service *Service) ChangeAccountDescription(ctx context.Context, accountID int64, description string) (string, error) {
+	if err := positiveID(accountID, "description-update"); err != nil {
+		return "", err
+	}
+	return service.core.ChangeAccountDescription(ctx, accountID, description)
+}
+
 func (service *Service) ChangeAccountEmail(ctx context.Context, accountID int64, password, email string) error {
 	if err := positiveID(accountID, "email-update"); err != nil {
 		return err

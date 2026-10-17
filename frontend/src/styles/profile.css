@@ -359,6 +359,12 @@
 	font-weight: var(--font-semibold);
 }
 
+.profile-section-heading {
+	display: flex;
+	align-items: center;
+	gap: var(--space-1);
+}
+
 .profile-presence {
 	display: flex;
 	min-width: 0;

@@ -6,10 +6,13 @@
 	import AccountContextMenu from "./lib/accounts/AccountContextMenu.svelte"
 	import AccountSidebar from "./lib/accounts/AccountSidebar.svelte"
 	import { AccountStore } from "./lib/accounts/account-store.svelte"
+	import type { Account } from "./lib/accounts/account-model"
+	import type { AccountProfileState } from "./lib/accounts/account-profile-state.svelte"
 	import AddAccountDialog from "./lib/dialogs/AddAccountDialog.svelte"
 	import AppLocationDialog from "./lib/dialogs/AppLocationDialog.svelte"
 	import BrowserImportDialog from "./lib/dialogs/BrowserImportDialog.svelte"
 	import BrowserRuntimeDialog from "./lib/dialogs/BrowserRuntimeDialog.svelte"
+	import DescriptionEditDialog from "./lib/dialogs/DescriptionEditDialog.svelte"
 	import LockVaultDialog from "./lib/dialogs/LockVaultDialog.svelte"
 	import ManageTagsDialog from "./lib/dialogs/ManageTagsDialog.svelte"
 	import RemoveAccountDialog from "./lib/dialogs/RemoveAccountDialog.svelte"
@@ -44,6 +47,7 @@
 
 	type ActiveDialog =
 		| "add-account"
+		| "edit-description"
 		| "browser-import"
 		| "browser-runtime"
 		| "lock-vault"
@@ -68,6 +72,11 @@
 		tagAccountId = $state<number | null>(null),
 		removeAccountId = $state<number | null>(null),
 		renewAccountId = $state<number | null>(null)
+	let descriptionEditor = $state<{
+		account: Account
+		state: AccountProfileState
+		description: string
+	} | null>(null)
 	let pendingBrowserAccountId = $state<number | null | undefined>(undefined),
 		lockEffects = $state<ShutdownEffects>({
 			accountCandidates: 0,
@@ -207,6 +216,22 @@
 		activeDialog = "renew-cookie"
 	}
 
+	function openDescriptionEditor(description: string): void {
+		if (store.busy || !store.vault.unlocked) return
+		workspace.closeAccountMenus()
+		descriptionEditor = {
+			account: store.selectedAccount,
+			state: store.getAccountProfile(store.selectedAccount.id),
+			description,
+		}
+		activeDialog = "edit-description"
+	}
+
+	function closeDescriptionEditor(): void {
+		activeDialog = null
+		descriptionEditor = null
+	}
+
 	async function openManagedBrowser(accountId: number | null): Promise<void> {
 		workspace.closeAccountMenus()
 		await browserStore.refresh()
@@ -283,6 +308,7 @@
 	$effect(() => {
 		if (!store.vault.unlocked && activeDialog !== null) {
 			activeDialog = null
+			descriptionEditor = null
 			pendingBrowserAccountId = undefined
 		}
 	})
@@ -367,7 +393,10 @@
 
 		if (activeDialog === "test-password") {
 			closePasswordTest()
-		} else if (activeDialog === "browser-import") {
+		} else if (
+			activeDialog === "browser-import" ||
+			activeDialog === "edit-description"
+		) {
 			return
 		} else if (activeDialog === "browser-runtime") {
 			dismissBrowserRuntime()
@@ -471,7 +500,8 @@
 											})}
 										onSearchPlace={(placeId) =>
 											void searchGames(`id:${placeId}`)}
-										onReplaceCookie={openAddAccount} />
+										onReplaceCookie={openAddAccount}
+										onEditDescription={openDescriptionEditor} />
 								</div>
 							{/key}
 						{/if}
@@ -518,6 +548,16 @@
 
 {#if activeDialog === "add-account"}
 	<AddAccountDialog {store} onClose={closePasteDialog} />
+{/if}
+
+{#if activeDialog === "edit-description" && descriptionEditor}
+	{@const editor = descriptionEditor}
+	<DescriptionEditDialog
+		account={editor.account}
+		description={editor.description}
+		notifications={notificationCenter}
+		onSaved={(description) => editor.state.setDescription(description)}
+		onClose={closeDescriptionEditor} />
 {/if}
 
 {#if activeDialog === "manage-tags"}

@@ -12,6 +12,11 @@ import (
 	"github.com/sleaze5/RobloxAccountManager/internal/roblox"
 )
 
+const (
+	usernameHistoryPageSize = 100
+	maxUsernameHistoryPages = 20
+)
+
 type UserAccountInfo struct {
 	ID                    int64  `json:"id"`
 	AgeBracket            *int   `json:"ageBracket"`
@@ -126,6 +131,106 @@ func (service *Users) VoiceChat(ctx context.Context, accountID, version int64) (
 type UserAbout struct {
 	Description   string
 	VerifiedBadge bool
+}
+
+type UserSocialLink struct {
+	Name string `json:"name"`
+	URL  string `json:"url"`
+}
+
+func (service *Users) SocialLinks(ctx context.Context, accountID, version int64) ([]UserSocialLink, error) {
+	var result *struct {
+		Facebook string `json:"facebook"`
+		Twitter  string `json:"twitter"`
+		YouTube  string `json:"youtube"`
+		Twitch   string `json:"twitch"`
+	}
+	if err := service.readAccountDetails(ctx, accountID, version, "profile-social-links", "https://accountinformation.roblox.com/v1/promotion-channels?alwaysReturnUrls=true", &result); err != nil {
+		return nil, err
+	}
+	if result == nil {
+		return nil, invalidProfileDetails("profile-social-links")
+	}
+	channels := []struct {
+		name, address string
+		hosts         []string
+	}{
+		{"Facebook", result.Facebook, []string{"facebook.com"}},
+		{"X", result.Twitter, []string{"twitter.com", "x.com"}},
+		{"YouTube", result.YouTube, []string{"youtube.com", "youtu.be"}},
+		{"Twitch", result.Twitch, []string{"twitch.tv"}},
+	}
+	links := make([]UserSocialLink, 0, len(channels))
+	for _, channel := range channels {
+		address := strings.TrimSpace(channel.address)
+		if address == "" {
+			continue
+		}
+		uri, err := url.Parse(address)
+		if err != nil || len(address) > 2048 || uri.Scheme != "https" || uri.User != nil || (uri.Port() != "" && uri.Port() != "443") {
+			return nil, invalidProfileDetails("profile-social-links")
+		}
+		host := strings.ToLower(uri.Hostname())
+		allowed := false
+		for _, domain := range channel.hosts {
+			if host == domain || strings.HasSuffix(host, "."+domain) {
+				allowed = true
+				break
+			}
+		}
+		if !allowed {
+			return nil, invalidProfileDetails("profile-social-links")
+		}
+		links = append(links, UserSocialLink{Name: channel.name, URL: uri.String()})
+	}
+	return links, nil
+}
+
+func (service *Users) PreviousNames(ctx context.Context, accountID, version, userID int64) ([]string, error) {
+	ctx, cancel := context.WithTimeout(ctx, 30*time.Second)
+	defer cancel()
+	names := []string{}
+	seenNames, seenCursors := map[string]bool{}, map[string]bool{}
+	cursor := ""
+	for range maxUsernameHistoryPages {
+		var result struct {
+			Data *[]struct {
+				Name string `json:"name"`
+			} `json:"data"`
+			NextPageCursor *string `json:"nextPageCursor"`
+		}
+		query := url.Values{"limit": {strconv.Itoa(usernameHistoryPageSize)}, "sortOrder": {"Desc"}}
+		if cursor != "" {
+			query.Set("cursor", cursor)
+		}
+		address := "https://users.roblox.com/v1/users/" + strconv.FormatInt(userID, 10) + "/username-history?" + query.Encode()
+		if err := service.readAccountDetails(ctx, accountID, version, "profile-previous-names", address, &result); err != nil {
+			return nil, err
+		}
+		if result.Data == nil || len(*result.Data) > usernameHistoryPageSize {
+			return nil, invalidProfileDetails("profile-previous-names")
+		}
+		for _, entry := range *result.Data {
+			name := strings.TrimSpace(entry.Name)
+			if name == "" || len(name) > 64 {
+				return nil, invalidProfileDetails("profile-previous-names")
+			}
+			key := strings.ToLower(name)
+			if !seenNames[key] {
+				seenNames[key] = true
+				names = append(names, name)
+			}
+		}
+		if result.NextPageCursor == nil || *result.NextPageCursor == "" {
+			return names, nil
+		}
+		cursor = *result.NextPageCursor
+		if len(cursor) > 4096 || seenCursors[cursor] {
+			return nil, invalidProfileDetails("profile-previous-names")
+		}
+		seenCursors[cursor] = true
+	}
+	return nil, &roblox.Error{Kind: roblox.KindProtocol, Endpoint: "profile-previous-names", Message: "Roblox returned too many previous names to list."}
 }
 
 type UserPrimaryGroup struct {

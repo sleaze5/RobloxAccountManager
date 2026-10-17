@@ -13,6 +13,8 @@ const fieldsBySource = {
 	twoStep: ["twoStepEnabled", "twoStepMethods"],
 	voiceChat: ["voiceChat"],
 	about: ["description", "verifiedBadge"],
+	socialLinks: ["socialLinks"],
+	previousNames: ["previousNames"],
 	friends: ["friendCount"],
 	followers: ["followerCount"],
 	following: ["followingCount"],
@@ -105,6 +107,10 @@ export class AccountProfileState {
 			}
 		}
 		return next
+	}
+
+	setDescription(description: string): void {
+		if (this.#current() && this.snapshot) this.snapshot.description = description
 	}
 
 	dispose(): void {

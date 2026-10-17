@@ -49,7 +49,10 @@ export {
 	SessionState,
 	TagKind,
 } from "../../../bindings/github.com/sleaze5/RobloxAccountManager/internal/accounts/models.js"
-export { PresenceType } from "../../../bindings/github.com/sleaze5/RobloxAccountManager/internal/roblox/services/models.js"
+export {
+	PresenceType,
+	TextModeration,
+} from "../../../bindings/github.com/sleaze5/RobloxAccountManager/internal/roblox/services/models.js"
 export type {
 	AccountCursor,
 	AccountView,
@@ -59,7 +62,9 @@ export { FileState } from "../../../bindings/github.com/sleaze5/RobloxAccountMan
 export type { BackupInfo } from "../../../bindings/github.com/sleaze5/RobloxAccountManager/internal/storage/vault/models.js"
 export type {
 	AvatarHeadshotView,
+	TextFilter,
 	UserPresence,
+	UserSocialLink,
 } from "../../../bindings/github.com/sleaze5/RobloxAccountManager/internal/roblox/services/models.js"
 export type {
 	CandidateState,

@@ -360,6 +360,7 @@
 	padding: var(--space-2);
 	font-family: var(--font-mono);
 	font-size: var(--text-11);
+	font-variant-ligatures: none;
 	overflow-x: hidden;
 	line-height: 1.45;
 	resize: none;
@@ -775,6 +776,10 @@
 	justify-content: flex-end;
 	gap: var(--space-2);
 	margin-top: var(--space-3);
+}
+
+.modal-actions .validation-passed {
+	color: var(--color-success);
 }
 
 .renewal-status {

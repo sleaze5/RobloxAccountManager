@@ -21,6 +21,7 @@
 	import AccountMembershipBadges from "./AccountMembershipBadges.svelte"
 	import AccountPresence from "./AccountPresence.svelte"
 	import AccountProfileBalance from "./AccountProfileBalance.svelte"
+	import AccountProfileAbout from "./AccountProfileAbout.svelte"
 	import AccountProfileDetails from "./AccountProfileDetails.svelte"
 	import AccountSettingsPage from "./AccountSettingsPage.svelte"
 	import type { AccountStore } from "./account-store.svelte"
@@ -34,6 +35,7 @@
 		onJoinServer,
 		onSearchPlace,
 		onReplaceCookie,
+		onEditDescription,
 		notifications,
 	}: {
 		store: AccountStore
@@ -42,6 +44,7 @@
 		onJoinServer: (placeId: number, jobId: string) => void
 		onSearchPlace: (placeId: number) => void
 		onReplaceCookie: () => void
+		onEditDescription: (description: string) => void
 		notifications: NotificationCenter
 	} = $props()
 
@@ -308,15 +311,14 @@
 				</dl>
 			{/if}
 
-			{#if profile?.description}
-				<section
-					class="profile-section"
-					aria-labelledby="profile-description-heading">
-					<h3 id="profile-description-heading" class="profile-section-label">
-						Description
-					</h3>
-					<pre class="text-block">{profile.description}</pre>
-				</section>
+			{#if profile}
+				<AccountProfileAbout
+					snapshot={profile}
+					disabled={store.busy ||
+						!!profileState?.loading ||
+						!store.vault.unlocked}
+					{notifications}
+					{onEditDescription} />
 			{/if}
 
 			<AccountProfileDetails account={selectedAccount} snapshot={profile} />

@@ -18,6 +18,7 @@ import (
 
 const (
 	maxDisplayNameLength = 64
+	maxDescriptionLength = 1000
 	maxEmailLength       = 320
 	maxPasswordLength    = 200
 )
@@ -85,6 +86,41 @@ func (service *Service) ChangeAccountEmail(ctx context.Context, accountID int64,
 	return service.editAccount(ctx, accountID, "email-update", "Roblox rejected the change. Check the password and try again.", func(ctx context.Context, version int64) error {
 		return service.users.SetEmail(ctx, accountID, version, password, email)
 	})
+}
+
+func (service *Service) ValidateAccountDescription(ctx context.Context, accountID int64, description string) (robloxservices.TextFilter, error) {
+	description, err := normalizeDescription("description-validate", description)
+	if err != nil {
+		return robloxservices.TextFilter{}, err
+	}
+	ctx, version, done, err := service.beginAccountSession(ctx, accountID, "description-validate")
+	if err != nil {
+		return robloxservices.TextFilter{}, err
+	}
+	defer done()
+	return service.users.FilterText(ctx, accountID, version, description)
+}
+
+func (service *Service) ChangeAccountDescription(ctx context.Context, accountID int64, description string) (string, error) {
+	description, err := normalizeDescription("description-update", description)
+	if err != nil {
+		return "", err
+	}
+	var saved string
+	err = service.editAccount(ctx, accountID, "description-update", "The account PIN is locked. Unlock it in account settings and try again.", func(ctx context.Context, version int64) error {
+		var err error
+		saved, err = service.users.SetDescription(ctx, accountID, version, description)
+		return err
+	})
+	return saved, err
+}
+
+func normalizeDescription(operation, description string) (string, error) {
+	description = strings.TrimSpace(description)
+	if utf8.RuneCountInString(description) > maxDescriptionLength {
+		return "", accountEditError(operation, fmt.Sprintf("Shorten the description to %d characters or fewer.", maxDescriptionLength))
+	}
+	return description, nil
 }
 
 func (service *Service) ChangeAccountPassword(ctx context.Context, accountID int64, currentPassword, newPassword string) error {
