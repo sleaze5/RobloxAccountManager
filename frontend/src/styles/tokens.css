@@ -67,6 +67,7 @@
 	--color-presence-studio: #b99a69;
 
 	--shadow-float: 0 4px 12px rgb(0 0 0 / 24%);
+	--shadow-menu: 0 2px 6px rgb(0 0 0 / 16%);
 
 	--font-sans: "Geist", sans-serif;
 	--font-mono: "Geist Mono", monospace;
@@ -115,6 +116,7 @@
 	--ease-standard: cubic-bezier(0.4, 0, 0.2, 1);
 	--motion-distance: 2px;
 	--motion-scale: 0.99;
+	--press-scale: 0.97;
 	--blur-sensitive: 7px;
 
 	--opacity-disabled: 0.45;

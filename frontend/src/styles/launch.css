@@ -155,7 +155,7 @@
 	border: 1px solid var(--color-border-strong);
 	border-radius: var(--radius-surface);
 	background: var(--color-overlay);
-	box-shadow: var(--shadow-float);
+	box-shadow: var(--shadow-menu);
 }
 
 .place-suggestion {
@@ -313,7 +313,7 @@
 	border: 1px solid var(--color-border-strong);
 	border-radius: var(--radius-surface);
 	background: var(--color-overlay);
-	box-shadow: var(--shadow-float);
+	box-shadow: var(--shadow-menu);
 }
 
 .launch-arguments-menu strong {

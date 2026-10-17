@@ -86,6 +86,16 @@
 	color: var(--color-text);
 }
 
+:is(
+		.primary-action,
+		.control-button,
+		.icon-action,
+		.danger-button,
+		.warning-button
+	):active:not(:disabled) {
+	transform: scale(var(--press-scale));
+}
+
 .icon-action.compact,
 .control-button.compact,
 .primary-action.compact {

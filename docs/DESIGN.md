@@ -287,9 +287,11 @@ Use these durations and easings:
 - Dialog enter: `--duration-dialog` (130ms), `--ease-sharp`
 - Dialog exit: `--duration-exit` (80ms), `--ease-standard`
 - Small panel enter: `--duration-enter` (140ms) maximum, `--ease-sharp`
+- Notification reflow: `--duration-enter` (140ms), `--ease-standard`
 
 - No normal transition exceeds `160ms`.
-- Animate movement only with `transform` and `opacity`, over small distances (`--motion-distance`, `--motion-scale`). Do not use bounce, spring overshoot, slow fades, or decorative loops.
+- Animate movement only with `transform` and `opacity`, over small distances (`--motion-distance`, `--motion-scale`, `--press-scale`). Do not use bounce, spring overshoot, slow fades, or decorative loops.
+- Notifications may slide to their new positions with `toastMove` from `presence.ts` when another notification enters or leaves. This slide is the only movement larger than `--motion-distance`.
 - Direct hover and focus feedback may also transition `color`, `background-color`, and `border-color`.
 - Do not animate layout properties, `filter`, `backdrop-filter`, blur, or `box-shadow`. Never use `transition: all`. List each transitioned property.
 - The only continuous animation is a functional busy spinner. Do not run an idle `requestAnimationFrame` loop. Apply `will-change` only to an element that is about to animate.

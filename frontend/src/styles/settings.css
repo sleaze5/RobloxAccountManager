@@ -509,7 +509,7 @@
 	border: 1px solid var(--color-border-strong);
 	border-radius: var(--radius-surface);
 	background: var(--color-overlay);
-	box-shadow: var(--shadow-float);
+	box-shadow: var(--shadow-menu);
 }
 
 .settings-select-options {
@@ -722,8 +722,11 @@
 	border-radius: 50%;
 	background: var(--color-bg);
 	content: "";
-	transform: scale(0);
-	transition: transform var(--duration-fast) var(--ease-standard);
+	opacity: 0;
+	transform: scale(var(--motion-scale));
+	transition:
+		opacity var(--duration-fast) var(--ease-standard),
+		transform var(--duration-fast) var(--ease-standard);
 }
 
 .settings-radio-option input:checked + span {
@@ -732,6 +735,7 @@
 }
 
 .settings-radio-option input:checked + span::after {
+	opacity: 1;
 	transform: scale(1);
 }
 

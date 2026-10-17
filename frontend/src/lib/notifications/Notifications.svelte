@@ -4,7 +4,7 @@
 	import WarningCircleIcon from "phosphor-svelte/lib/WarningCircleIcon"
 	import WarningIcon from "phosphor-svelte/lib/WarningIcon"
 	import XIcon from "phosphor-svelte/lib/XIcon"
-	import { toastIn, toastOut } from "../shared/presence"
+	import { toastIn, toastMove, toastOut } from "../shared/presence"
 	import type {
 		NotificationAction,
 		NotificationCenter,
@@ -45,6 +45,7 @@
 			role="status"
 			in:toastIn
 			out:toastOut
+			animate:toastMove
 			onpointerenter={() => center.pause(notification.id)}
 			onpointerleave={(event) => {
 				if (!event.currentTarget.contains(document.activeElement))

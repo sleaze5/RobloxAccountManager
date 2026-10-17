@@ -1,3 +1,4 @@
+import { type AnimationConfig, flip } from "svelte/animate"
 import type { EasingFunction, TransitionConfig } from "svelte/transition"
 import { reducedMotion } from "./motion"
 
@@ -127,6 +128,16 @@ export function toastOut(node: Element): TransitionConfig {
 	})
 }
 
+export function toastMove(
+	node: Element,
+	positions: { from: DOMRect; to: DOMRect },
+): AnimationConfig {
+	return flip(node, positions, {
+		duration: reducedMotion() ? 0 : tokenDuration(node, "--duration-enter", 140),
+		easing: standard,
+	})
+}
+
 export { toastIn as errorIn, toastOut as errorOut }
 
 export function replayValidationNudge(element: HTMLElement | undefined): void {
@@ -175,7 +186,6 @@ export function floatMenu(
 	}
 	place()
 	window.addEventListener("resize", place)
-	window.addEventListener("scroll", place, true)
 	return {
 		update: (next) => {
 			current = next
@@ -183,7 +193,6 @@ export function floatMenu(
 		},
 		destroy: () => {
 			window.removeEventListener("resize", place)
-			window.removeEventListener("scroll", place, true)
 		},
 	}
 }

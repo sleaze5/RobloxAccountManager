@@ -226,7 +226,8 @@ select:focus-visible,
 	transition:
 		background-color var(--duration-fast) var(--ease-standard),
 		border-color var(--duration-fast) var(--ease-standard),
-		color var(--duration-fast) var(--ease-standard);
+		color var(--duration-fast) var(--ease-standard),
+		transform var(--duration-instant) var(--ease-standard);
 }
 
 :where(
@@ -274,7 +275,7 @@ select:focus-visible,
 .account-menu button > svg,
 .favorite-name-star,
 .menu-check {
-	animation: icon-enter var(--duration-fast) var(--ease-standard);
+	animation: icon-enter var(--duration-fast) var(--ease-sharp);
 }
 
 .profile-image-fallback {

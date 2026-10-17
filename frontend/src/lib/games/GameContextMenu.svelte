@@ -21,7 +21,10 @@
 	const place = $derived(menu.place),
 		favorite = $derived(store.isFavorite(place.placeId)),
 		group = $derived(place.creatorType === "Group"),
-		owner = $derived(group ? "Group" : "Creator")
+		owner = $derived(group ? "Group" : "Creator"),
+		favoriteBusy = $derived(
+			store.savingFavorite || store.savingNickname || !store.favoritesLoaded,
+		)
 
 	function positionMenu(node: HTMLElement, position: GameMenu) {
 		const previousFocus = document.activeElement
@@ -78,26 +81,6 @@
 	out:menuOut>
 	<button
 		type="button"
-		disabled={store.savingFavorite ||
-			store.savingNickname ||
-			!store.favoritesLoaded}
-		onclick={() => void store.toggleFavorite(place)}>
-		{#if favorite}<StarIcon weight="fill" size={16} aria-hidden="true" /><span
-				>Remove from favorites</span
-			>{:else}<StarIcon size={16} aria-hidden="true" /><span
-				>Add to favorites</span
-			>{/if}
-	</button>
-	{#if favorite}
-		<button type="button" onclick={() => store.editNickname(place)}
-			><PencilLineIcon size={16} aria-hidden="true" /><span
-				>{store.nicknameFor(place.placeId)
-					? "Edit nickname"
-					: "Add nickname"}</span
-			></button>
-	{/if}
-	<button
-		type="button"
 		onclick={() => {
 			const { placeId } = place
 			store.closeMenu()
@@ -105,6 +88,21 @@
 		}}
 		><ListPlusIcon size={16} aria-hidden="true" /><span>Fill launch options</span
 		></button>
+	{#if favorite}
+		<button type="button" onclick={() => store.editNickname(place)}
+			><PencilLineIcon size={16} aria-hidden="true" /><span
+				>{store.nicknameFor(place.placeId)
+					? "Edit nickname"
+					: "Add nickname"}</span
+			></button>
+	{:else}
+		<button
+			type="button"
+			disabled={favoriteBusy}
+			onclick={() => void store.toggleFavorite(place)}
+			><StarIcon size={16} aria-hidden="true" /><span>Add to favorites</span
+			></button>
+	{/if}
 
 	<div role="group" aria-label="Copy game details">
 		<div class="account-menu-heading" aria-hidden="true">Copy</div>
@@ -142,4 +140,15 @@
 			onclick={() => void store.copy(place.creatorId, `${owner} ID`)}
 			><HashIcon size={16} aria-hidden="true" /><span>{owner} ID</span></button>
 	</div>
+	{#if favorite}
+		<div class="account-menu-separator"></div>
+		<button
+			class="danger-action"
+			type="button"
+			disabled={favoriteBusy}
+			onclick={() => void store.toggleFavorite(place)}
+			><StarIcon weight="fill" size={16} aria-hidden="true" /><span
+				>Remove from favorites</span
+			></button>
+	{/if}
 </div>
