@@ -1,6 +1,11 @@
 name: Release
 
 on:
+    push:
+        branches:
+            - main
+        paths:
+            - internal/appmeta/VERSION
     workflow_dispatch:
         inputs:
             rehearsal:
