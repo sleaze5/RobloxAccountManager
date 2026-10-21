@@ -1,0 +1,51 @@
+version: 2
+
+updates:
+    - package-ecosystem: gomod
+      directory: /
+      schedule:
+          interval: weekly
+      cooldown:
+          default-days: 7
+      ignore:
+          - dependency-name: github.com/wailsapp/wails/v3
+          - dependency-name: "*"
+            update-types:
+                - version-update:semver-major
+      groups:
+          go:
+              patterns:
+                  - "*"
+
+    - package-ecosystem: bun
+      directory: /frontend
+      schedule:
+          interval: weekly
+      cooldown:
+          default-days: 7
+      ignore:
+          - dependency-name: "@wailsio/runtime"
+          - dependency-name: "*"
+            update-types:
+                - version-update:semver-major
+      groups:
+          frontend:
+              patterns:
+                  - "*"
+
+    - package-ecosystem: github-actions
+      directories:
+          - /
+          - /.github/actions/*
+      schedule:
+          interval: weekly
+      cooldown:
+          default-days: 7
+      ignore:
+          - dependency-name: "*"
+            update-types:
+                - version-update:semver-major
+      groups:
+          actions:
+              patterns:
+                  - "*"
