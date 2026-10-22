@@ -90,6 +90,7 @@ tasks:
         internal: true
         dir: "{{.ROOT_DIR}}/frontend"
         cmds:
+            - bun upgrade
             - bun update
 
     internal:frontend:build:development:
@@ -184,7 +185,7 @@ tasks:
         internal: true
         dir: "{{.ROOT_DIR}}"
         cmds:
-            - go run {{.STATICCHECK}} ./internal/...
+            - go tool staticcheck ./internal/...
 
     internal:go:build:
         internal: true
@@ -195,5 +196,9 @@ tasks:
     internal:go:update:
         internal: true
         dir: "{{.ROOT_DIR}}"
+        vars:
+            MODULES:
+                sh: go list -m -f '{{`{{if not (or .Main .Indirect (eq .Path "github.com/wailsapp/wails/v3"))}}{{.Path}}{{end}}`}}' all
         cmds:
-            - go get -u github.com/mutecomm/go-sqlcipher/v4 golang.org/x/crypto golang.org/x/sync golang.org/x/sys
+            - go get toolchain@latest
+            - go get -u tool {{.MODULES | catLines}}
