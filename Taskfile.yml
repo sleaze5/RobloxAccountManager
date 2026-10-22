@@ -110,6 +110,14 @@ tasks:
         cmds:
             - bun run ./scripts/update-cft-manifest.ts
 
+    update-wails:
+        desc: Pin Wails and its frontend runtime to the latest release, then run fix. Needs network access.
+        deps:
+            - task: internal:validate-tools
+        cmds:
+            - bun run ./scripts/update-wails.ts
+            - "{{.TASK_EXE}} fix"
+
     build:windows-amd64:
         desc: Run fix, then build the Windows x64 executable. Runs on Windows.
         deps:
