@@ -6,11 +6,17 @@
 	import NotePencilIcon from "phosphor-svelte/lib/NotePencilIcon"
 	import { onMount, tick, untrack } from "svelte"
 	import type { AccountStore } from "../accounts/account-store.svelte"
+	import SidebarResizer from "../layout/SidebarResizer.svelte"
+	import type { WorkspaceState } from "../layout/workspace-state.svelte"
 	import ChatList from "./ChatList.svelte"
 	import ChatThread from "./ChatThread.svelte"
 	import { ChatState } from "./chat-state.svelte"
 
-	let { store, onBack }: { store: AccountStore; onBack: () => void } = $props()
+	let {
+		store,
+		workspace,
+		onBack,
+	}: { store: AccountStore; workspace: WorkspaceState; onBack: () => void } = $props()
 
 	const account = untrack(() => store.selectedAccount),
 		chat = untrack(() => new ChatState(account.id, store))
@@ -91,7 +97,9 @@
 		</button>
 	</header>
 
-	<div class="settings-layout account-settings-layout">
+	<div
+		class="settings-layout account-settings-layout"
+		style={`--account-settings-sidebar-width: ${workspace.accountSettingsSidebarWidth}px;`}>
 		<aside class="settings-sidebar chat-sidebar">
 			{#if creatingOpen}
 				<form
@@ -140,6 +148,10 @@
 			{/if}
 			<ChatList {chat} />
 		</aside>
+		<SidebarResizer
+			bind:width={workspace.accountSettingsSidebarWidth}
+			name="chats"
+			minimumWidth={192} />
 
 		<main class="chat-main" aria-label="Chat">
 			{#if openConversation}

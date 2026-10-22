@@ -111,7 +111,7 @@
 		{notifications}
 		onBack={() => void backToProfile()} />
 {:else if workspace.accountPage === "chats" && hasAccount && store.vault.unlocked}
-	<ChatsPage {store} onBack={() => void backToProfile()} />
+	<ChatsPage {store} {workspace} onBack={() => void backToProfile()} />
 {:else}
 	<section class="profile-page" aria-labelledby="account-name">
 		<div class="profile-head">
