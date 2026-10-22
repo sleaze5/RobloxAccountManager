@@ -172,13 +172,15 @@
 						onclick={() => (store.sidebarCollapsed = false)}
 						><CaretRightIcon size={16} aria-hidden="true" /></button>
 					<GameControllerIcon size={16} aria-hidden="true" />
+					{#if favoritesMode}<span>{store.favorites.length}</span>{/if}
 				</div>
 			{:else}
 				<div class="explorer-controls">
 					<div class="account-title">
 						<h1>
-							Games{#if favoritesMode}
-								<span>({store.favorites.length})</span>{/if}
+							Games
+							{#if favoritesMode}<span>({store.favorites.length})</span
+								>{/if}
 						</h1>
 						<div class="account-title-actions">
 							<button
