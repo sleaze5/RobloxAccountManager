@@ -4,7 +4,7 @@ vars:
     APP_NAME: RobloxAccountManager
     DIST_DIR: dist
     VITE_PORT: "{{.WAILS_VITE_PORT | default 9245}}"
-    WAILS_CLI: github.com/wailsapp/wails/v3/cmd/wails3@v3.0.0-beta.27
+    WAILS_CLI: github.com/wailsapp/wails/v3/cmd/wails3@v3.0.0-beta.34
 
 includes:
     common: ./build/Taskfile.yml

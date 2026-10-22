@@ -5,7 +5,7 @@
     "": {
       "name": "RobloxAccountManager",
       "dependencies": {
-        "@wailsio/runtime": "3.0.0-beta.27",
+        "@wailsio/runtime": "3.0.0-beta.34",
         "phosphor-svelte": "^3.1.1",
       },
       "devDependencies": {
@@ -207,7 +207,7 @@
 
     "@typescript/typescript-win32-x64": ["@typescript/typescript-win32-x64@7.0.2", "", { "os": "win32", "cpu": "x64" }, "sha512-0BQ3HkAHHlKLSp1qRvf3SUhGpGsDuhB/jgFw75guyqbxJqEaS0Cw/VFO8i2nHglJUzQCRtMMR/IBAKE3ETMC4g=="],
 
-    "@wailsio/runtime": ["@wailsio/runtime@3.0.0-beta.27", "", {}, "sha512-QUXfpr04hXzQa/yGavoJTP1UAwpGzvwysoKGwdMIEmyHgwSHtF+k4MfHbV0olRdw0+nbDQtcBM/SkKqb8tvQsw=="],
+    "@wailsio/runtime": ["@wailsio/runtime@3.0.0-beta.34", "", {}, "sha512-uchPkqqbH+yAweQh4J0y0G1NRE6ILcas6huNTruTVU84aWqCFanlpdVM/KYJdcNzWKhdHGcGGBJYCUYn3ualoQ=="],
 
     "acorn": ["acorn@8.19.0", "", { "bin": { "acorn": "bin/acorn" } }, "sha512-oJlA3XiRm7Cyk6qFD2Jn8ak9B7jSy0qy00ADO3+8dpT0LSjFihQYv4C02LFCSYJV3Q37xYwwRy5m+IpIiUzqWw=="],
 
