@@ -37,6 +37,33 @@ This app is built primarily for Windows but also works on Linux and macOS. Some 
 
 RoValra features are on by default. Turn them off in Settings > Integrations.
 
+## Showcase
+
+Select a screenshot to view it at full size.
+
+<table>
+<tr>
+<td width="50%"><a href="assets/showcase/01-accounts.png"><img src="assets/showcase/01-accounts.png" alt="Account profile with presence, Robux balance, tags, and launch options" width="100%"></a><br><sub><b>Accounts:</b> profiles, presence, and launch options</sub></td>
+<td width="50%"><a href="assets/showcase/02-multi-launch.png"><img src="assets/showcase/02-multi-launch.png" alt="Several selected accounts with additional launch options open" width="100%"></a><br><sub><b>Multi-account launch:</b> join with several accounts at once</sub></td>
+</tr>
+<tr>
+<td width="50%"><a href="assets/showcase/03-processes.png"><img src="assets/showcase/03-processes.png" alt="Dialog that lists running Roblox processes to close" width="100%"></a><br><sub><b>Process control:</b> close running Roblox clients</sub></td>
+<td width="50%"><a href="assets/showcase/04-add-account.png"><img src="assets/showcase/04-add-account.png" alt="Paste cookies dialog with a validated preview of three accounts" width="100%"></a><br><sub><b>Account import:</b> validate cookies before saving</sub></td>
+</tr>
+<tr>
+<td width="50%"><a href="assets/showcase/05-account-settings.png"><img src="assets/showcase/05-account-settings.png" alt="Account communication and privacy settings" width="100%"></a><br><sub><b>Account settings:</b> Roblox privacy and communication</sub></td>
+<td width="50%"><a href="assets/showcase/06-chats.png"><img src="assets/showcase/06-chats.png" alt="Chat list and an open conversation" width="100%"></a><br><sub><b>Chats:</b> read and send Roblox messages</sub></td>
+</tr>
+<tr>
+<td width="50%"><a href="assets/showcase/07-game-details.png"><img src="assets/showcase/07-game-details.png" alt="Favorite games list and game details" width="100%"></a><br><sub><b>Games:</b> favorites and game details</sub></td>
+<td width="50%"><a href="assets/showcase/08-servers.png"><img src="assets/showcase/08-servers.png" alt="Server browser with player counts, ping, region, and uptime" width="100%"></a><br><sub><b>Servers:</b> browse by ping, region, and player count</sub></td>
+</tr>
+<tr>
+<td width="50%"><a href="assets/showcase/09-logs-explorer.png"><img src="assets/showcase/09-logs-explorer.png" alt="Logs Explorer with a session timeline of game visits" width="100%"></a><br><sub><b>Logs Explorer:</b> sessions, visits, and rejoins</sub></td>
+<td width="50%"><a href="assets/showcase/10-unlock.png"><img src="assets/showcase/10-unlock.png" alt="Unlock vault dialog asking for the master password" width="100%"></a><br><sub><b>Encrypted vault:</b> unlock with your master password</sub></td>
+</tr>
+</table>
+
 ## Installation
 
 Download for your system using the buttons above or the [latest release](https://github.com/sleaze5/RobloxAccountManager/releases/latest).
