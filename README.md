@@ -64,6 +64,8 @@ Select a screenshot to view it at full size.
 </tr>
 </table>
 
+The screenshots use sample data. The accounts, chats, and logs shown are fictional and do not represent real Roblox users.
+
 ## Installation
 
 Download for your system using the buttons above or the [latest release](https://github.com/sleaze5/RobloxAccountManager/releases/latest).
