@@ -96,12 +96,11 @@ tasks:
             - task: check
 
     update:
-        desc: Upgrade Bun and Go, update every dependency except Wails to its latest minor or patch version, then run fix.
+        desc: Update the pinned Bun version, the Go toolchain, and every dependency except Wails to its latest minor or patch version, then run fix. Pass -- --uncovered to update only what Dependabot cannot. Needs network access.
         deps:
             - task: internal:validate-tools
         cmds:
-            - task: common:internal:frontend:update
-            - task: common:internal:go:update
+            - bun run ./scripts/update-dependencies.ts {{.CLI_ARGS}}
             - task: fix
 
     update-cft-manifest:
