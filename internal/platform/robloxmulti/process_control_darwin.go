@@ -99,7 +99,7 @@ func killProcess(ctx context.Context, process Process, logger *slog.Logger) erro
 			if errors.Is(err, syscall.ESRCH) {
 				return nil
 			}
-			return err
+			return fmt.Errorf("signal Roblox process: %w", err)
 		}
 		select {
 		case <-ctx.Done():

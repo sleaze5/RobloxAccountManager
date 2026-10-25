@@ -21,6 +21,7 @@ func applyAccountSettingDependencies(snapshot *AccountSettingsSnapshot) {
 			if settingAudienceRank(parent.StringValue) < 2 || !settingKnownValue(parent) || parent.UnavailableReason == conflictingSettingReason {
 				view.UnavailableReason = "Show current game must include Friends before sharing activity updates."
 			}
+		default:
 		}
 		finishSettingCapability(view)
 	}

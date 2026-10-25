@@ -33,8 +33,7 @@ func (service *Service) RenewCookie(ctx context.Context, accountID int64) (Cooki
 	logger.Debug("cookie renewal started")
 	if err := service.auth.RefreshCookie(ctx, accountID, snapshot.SecretVersion); err != nil {
 		kind, status := roblox.KindProtocol, 0
-		var remote *roblox.Error
-		if errors.As(err, &remote) {
+		if remote, ok := errors.AsType[*roblox.Error](err); ok {
 			kind, status = remote.Kind, remote.Status
 		}
 		logger.Warn("cookie renewal failed", "error_kind", kind, "status", status)

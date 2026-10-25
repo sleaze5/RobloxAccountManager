@@ -16,6 +16,7 @@ import (
 	"net/url"
 	"os"
 	"path/filepath"
+	"slices"
 	"strings"
 	"sync"
 	"time"
@@ -94,7 +95,7 @@ func NewRuntimeManager(paths appdata.Paths, logger *slog.Logger, changed func())
 	}
 	var manifest Manifest
 	if err := json.Unmarshal(data, &manifest); err != nil {
-		return nil, fmt.Errorf("invalid embedded CfT manifest")
+		return nil, errors.New("invalid embedded CfT manifest")
 	}
 	logging.Diagnostic(logger, "browser manifest loaded", "operation", "browser-runtime-load",
 		"schema_version", manifest.SchemaVersion, "supported_schema_version", runtimeManifestVersion, "browser_version", manifest.Version)
@@ -105,7 +106,7 @@ func NewRuntimeManager(paths appdata.Paths, logger *slog.Logger, changed func())
 		return nil, err
 	}
 	if manifest.Downloads[runtimeDownloadKey] == "" {
-		return nil, fmt.Errorf("managed browser is unavailable on this platform")
+		return nil, errors.New("managed browser is unavailable on this platform")
 	}
 	manager := &RuntimeManager{
 		paths: paths, manifest: manifest,
@@ -227,13 +228,13 @@ func (manager *RuntimeManager) install(ctx context.Context) error {
 	if err := os.Mkdir(stage, 0o755); err != nil {
 		return fmt.Errorf("create installation staging directory: %w", err)
 	}
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, manager.manifest.Downloads[runtimeDownloadKey], nil)
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, manager.manifest.Downloads[runtimeDownloadKey], http.NoBody)
 	if err != nil {
-		return err
+		return fmt.Errorf("create browser download request: %w", err)
 	}
 	response, err := manager.client.Do(req)
 	if err != nil {
-		return err
+		return fmt.Errorf("download browser: %w", err)
 	}
 	defer response.Body.Close()
 	if response.StatusCode != http.StatusOK {
@@ -244,15 +245,15 @@ func (manager *RuntimeManager) install(ctx context.Context) error {
 	// Only the owner can read and write the file.
 	file, err := os.OpenFile(archive, os.O_CREATE|os.O_EXCL|os.O_WRONLY, 0o600)
 	if err != nil {
-		return err
+		return fmt.Errorf("create browser archive: %w", err)
 	}
 	_, copyErr := io.Copy(file, &progressReader{reader: response.Body, update: manager.addProgress})
 	closeErr := file.Close()
 	if copyErr != nil {
-		return copyErr
+		return fmt.Errorf("write browser archive: %w", copyErr)
 	}
 	if closeErr != nil {
-		return closeErr
+		return fmt.Errorf("close browser archive: %w", closeErr)
 	}
 	manager.setInstalling()
 	extracted := filepath.Join(stage, "extracted")
@@ -262,10 +263,13 @@ func (manager *RuntimeManager) install(ctx context.Context) error {
 	if err := validateRuntimeFiles(extracted); err != nil {
 		return err
 	}
-	metadata, _ := json.MarshalIndent(runtimeMetadata{SchemaVersion: runtimeMetadataVersion, Version: manager.manifest.Version, InstalledAtMs: time.Now().UnixMilli()}, "", "  ")
+	metadata, err := json.MarshalIndent(runtimeMetadata{SchemaVersion: runtimeMetadataVersion, Version: manager.manifest.Version, InstalledAtMs: time.Now().UnixMilli()}, "", "  ")
+	if err != nil {
+		return fmt.Errorf("encode browser runtime metadata: %w", err)
+	}
 	// Only the owner can read and write the file.
 	if err := os.WriteFile(filepath.Join(extracted, runtimeMetadataName), append(metadata, '\n'), 0o600); err != nil {
-		return err
+		return fmt.Errorf("write browser runtime metadata: %w", err)
 	}
 	if err := manager.replaceRuntime(extracted, stage); err != nil {
 		return err
@@ -339,7 +343,7 @@ func (manager *RuntimeManager) replaceRuntime(extracted, stage string) error {
 		}
 		hadPrevious = true
 	} else if !errors.Is(err, os.ErrNotExist) {
-		return err
+		return fmt.Errorf("inspect installed runtime: %w", err)
 	}
 	if err := renameRuntimeDirectory(extracted, destination); err != nil {
 		if hadPrevious {
@@ -450,7 +454,7 @@ func renameRuntimeDirectory(source, destination string) error {
 			time.Sleep(time.Duration(attempt) * 100 * time.Millisecond)
 		}
 	}
-	return err
+	return fmt.Errorf("rename browser runtime directory: %w", err)
 }
 
 func (manager *RuntimeManager) installDirectory() string {
@@ -537,10 +541,10 @@ func extractRuntime(ctx context.Context, archive, destination string) error {
 	if err != nil {
 		return fmt.Errorf("open browser archive: %w", err)
 	}
-	defer reader.Close()
+	defer func() { _ = reader.Close() }()
 	// The owner can write, and everyone can read and enter directories. Files keep their archive permissions, and the owner can always read and write them.
 	if err := os.Mkdir(destination, 0o755); err != nil {
-		return err
+		return fmt.Errorf("create browser extraction directory: %w", err)
 	}
 	// Links are created after every file, so no file is written through one.
 	var links []archiveLink
@@ -569,38 +573,38 @@ func extractRuntime(ctx context.Context, archive, destination string) error {
 		}
 		if entry.FileInfo().IsDir() {
 			if err := os.MkdirAll(target, 0o755); err != nil {
-				return err
+				return fmt.Errorf("create browser archive directory: %w", err)
 			}
 			continue
 		}
 		if err := os.MkdirAll(filepath.Dir(target), 0o755); err != nil {
-			return err
+			return fmt.Errorf("create browser file directory: %w", err)
 		}
 		source, err := entry.Open()
 		if err != nil {
-			return err
+			return fmt.Errorf("open browser archive entry: %w", err)
 		}
 		output, err := os.OpenFile(target, os.O_CREATE|os.O_EXCL|os.O_WRONLY, entry.Mode().Perm()|0o600)
 		if err != nil {
 			source.Close()
-			return err
+			return fmt.Errorf("create browser file: %w", err)
 		}
 		_, copyErr := io.Copy(output, io.LimitReader(source, int64(entry.UncompressedSize64)+1))
 		closeErr := output.Close()
 		source.Close()
 		if copyErr != nil {
-			return copyErr
+			return fmt.Errorf("extract browser archive entry: %w", copyErr)
 		}
 		if closeErr != nil {
-			return closeErr
+			return fmt.Errorf("close extracted browser file: %w", closeErr)
 		}
 	}
 	for _, link := range links {
 		if err := os.MkdirAll(filepath.Dir(link.path), 0o755); err != nil {
-			return err
+			return fmt.Errorf("create browser link directory: %w", err)
 		}
 		if err := os.Symlink(link.target, link.path); err != nil {
-			return err
+			return fmt.Errorf("create browser archive link: %w", err)
 		}
 	}
 	return nil
@@ -620,21 +624,19 @@ func readArchiveLink(entry *zip.File) (string, error) {
 	}
 	source, err := entry.Open()
 	if err != nil {
-		return "", err
+		return "", fmt.Errorf("open browser archive link: %w", err)
 	}
 	defer source.Close()
 	data, err := io.ReadAll(io.LimitReader(source, 4097))
 	if err != nil {
-		return "", err
+		return "", fmt.Errorf("read browser archive link: %w", err)
 	}
 	target := string(data)
 	if len(data) > 4096 || strings.ContainsRune(target, 0) || strings.HasPrefix(target, "/") || filepath.IsAbs(target) {
 		return "", errors.New("browser archive contains an unsafe link")
 	}
-	for _, part := range strings.Split(target, "/") {
-		if part == ".." {
-			return "", errors.New("browser archive contains an unsafe link")
-		}
+	if slices.Contains(strings.Split(target, "/"), "..") {
+		return "", errors.New("browser archive contains an unsafe link")
 	}
 	return target, nil
 }
@@ -658,23 +660,26 @@ func directorySize(root string) (int64, error) {
 		if !entry.IsDir() {
 			info, infoErr := entry.Info()
 			if infoErr != nil {
-				return infoErr
+				return fmt.Errorf("inspect browser runtime file: %w", infoErr)
 			}
 			size += info.Size()
 		}
 		return nil
 	})
-	return size, err
+	if err != nil {
+		return size, fmt.Errorf("measure browser runtime: %w", err)
+	}
+	return size, nil
 }
 
 func removeManagedDirectory(root, target string) error {
 	rootAbs, err := filepath.Abs(root)
 	if err != nil {
-		return err
+		return fmt.Errorf("resolve managed root: %w", err)
 	}
 	targetAbs, err := filepath.Abs(target)
 	if err != nil {
-		return err
+		return fmt.Errorf("resolve managed directory: %w", err)
 	}
 	relative, err := filepath.Rel(rootAbs, targetAbs)
 	if err != nil || relative == "." || relative == "" || strings.HasPrefix(relative, ".."+string(filepath.Separator)) || filepath.IsAbs(relative) || strings.Contains(relative, string(filepath.Separator)) {
@@ -682,7 +687,7 @@ func removeManagedDirectory(root, target string) error {
 	}
 	info, err := os.Lstat(targetAbs)
 	if err != nil {
-		return err
+		return fmt.Errorf("inspect managed directory: %w", err)
 	}
 	if info.Mode()&os.ModeSymlink != 0 {
 		return errors.New("refusing linked managed-directory cleanup")
@@ -697,9 +702,12 @@ func removeManagedDirectory(root, target string) error {
 		}
 		return nil
 	}); err != nil {
-		return err
+		return fmt.Errorf("check managed directory: %w", err)
 	}
-	return os.RemoveAll(targetAbs)
+	if err := os.RemoveAll(targetAbs); err != nil {
+		return fmt.Errorf("remove managed directory: %w", err)
+	}
+	return nil
 }
 
 func removeEmptyDirectory(directory string) error {
@@ -708,19 +716,18 @@ func removeEmptyDirectory(directory string) error {
 		return nil
 	}
 	if err != nil {
-		return err
+		return fmt.Errorf("read directory: %w", err)
 	}
-	err = os.Remove(directory)
-	if errors.Is(err, os.ErrNotExist) {
-		return nil
+	if err := os.Remove(directory); err != nil && !errors.Is(err, os.ErrNotExist) {
+		return fmt.Errorf("remove empty directory: %w", err)
 	}
-	return err
+	return nil
 }
 
 func randomID(bytes int) (string, error) {
 	value := make([]byte, bytes)
 	if _, err := rand.Read(value); err != nil {
-		return "", err
+		return "", fmt.Errorf("generate random ID: %w", err)
 	}
 	return base64.RawURLEncoding.EncodeToString(value), nil
 }

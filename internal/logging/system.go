@@ -1,7 +1,7 @@
 package logging
 
 import (
-	"fmt"
+	"errors"
 	"io"
 	"log/slog"
 	"os"
@@ -45,7 +45,7 @@ func Open(config Config) (*System, error) {
 	}
 	for _, level := range levels {
 		if level == LevelOff {
-			return nil, fmt.Errorf("off is not an individual log level")
+			return nil, errors.New("off is not an individual log level")
 		}
 		if _, err := ParseLevel(string(level)); err != nil {
 			return nil, err
@@ -62,7 +62,7 @@ func Open(config Config) (*System, error) {
 		config.RetainedFiles = defaultRetained
 	}
 	if strings.TrimSpace(config.Directory) == "" {
-		return nil, fmt.Errorf("log directory is required")
+		return nil, errors.New("log directory is required")
 	}
 	if !config.Hold {
 		if err := appdata.PreparePrivateDirectory(config.Directory); err != nil {
@@ -106,7 +106,7 @@ func (system *System) SetEnabledLevels(levels []Level) error {
 	defer system.mu.Unlock()
 	for _, level := range levels {
 		if level == LevelOff {
-			return fmt.Errorf("off is not an individual log level")
+			return errors.New("off is not an individual log level")
 		}
 		if _, err := ParseLevel(string(level)); err != nil {
 			return err

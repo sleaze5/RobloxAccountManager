@@ -2,6 +2,7 @@ package roblox
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"sync"
 )
@@ -72,7 +73,7 @@ func contextError(endpoint string, err error) error {
 	}
 	kind := KindCancelled
 	message := "The request was cancelled."
-	if err == context.DeadlineExceeded {
+	if errors.Is(err, context.DeadlineExceeded) {
 		kind = KindTimeout
 		message = "The request timed out."
 	}

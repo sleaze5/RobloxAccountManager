@@ -84,7 +84,7 @@ func (holder *mutexHolder) run(ready chan<- error, logger *slog.Logger) {
 }
 
 func (holder *mutexHolder) close() {
-	windows.SetEvent(holder.stop)
+	_ = windows.SetEvent(holder.stop)
 	<-holder.done
 	windows.CloseHandle(holder.stop)
 }

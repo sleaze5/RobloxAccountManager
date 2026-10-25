@@ -6,6 +6,7 @@ import (
 	"crypto/cipher"
 	"crypto/rand"
 	"encoding/binary"
+	"errors"
 	"fmt"
 	"io"
 	"os"
@@ -98,14 +99,14 @@ func CheckPassword(password string) PasswordRequirements {
 
 func ValidatePassword(password string) error {
 	if !utf8.ValidString(password) || !CheckPassword(password).Valid() {
-		return fmt.Errorf("master password does not meet every requirement")
+		return errors.New("master password does not meet every requirement")
 	}
 	return nil
 }
 
 func validateHint(hint string) error {
 	if !utf8.ValidString(hint) || utf8.RuneCountInString(hint) > maxHintRunes || len(hint) > maxHintBytes {
-		return fmt.Errorf("password hint is too long")
+		return errors.New("password hint is too long")
 	}
 	return nil
 }
@@ -130,10 +131,7 @@ func newVaultID() ([vaultIDBytes]byte, error) {
 }
 
 func calibrateArgon2(password string) (argon2Parameters, error) {
-	threads := min(runtime.NumCPU(), 4)
-	if threads < 1 {
-		threads = 1
-	}
+	threads := max(min(runtime.NumCPU(), 4), 1)
 	params := argon2Parameters{Time: 1, MemoryKiB: minArgonMemoryKiB, Threads: uint8(threads)}
 	salt := make([]byte, 16)
 	started := time.Now()
@@ -152,7 +150,7 @@ func calibrateArgon2(password string) (argon2Parameters, error) {
 
 func validateArgon2(params argon2Parameters) error {
 	if params.Time == 0 || params.Time > maxArgonTime || params.MemoryKiB < minArgonMemoryKiB || params.MemoryKiB > maxArgonMemoryKiB || params.Threads == 0 || params.Threads > maxArgonThreads {
-		return fmt.Errorf("invalid vault password derivation parameters")
+		return errors.New("invalid vault password derivation parameters")
 	}
 	return nil
 }
@@ -165,7 +163,7 @@ func deriveKEK(password string, params argon2Parameters, salt []byte) ([]byte, e
 		return nil, err
 	}
 	if len(salt) != 16 {
-		return nil, fmt.Errorf("invalid vault password salt")
+		return nil, errors.New("invalid vault password salt")
 	}
 	return argon2.IDKey([]byte(password), salt, params.Time, params.MemoryKiB, params.Threads, argonKeyBytes), nil
 }
@@ -181,7 +179,7 @@ func createKeyFile(password, hint string, vaultID [vaultIDBytes]byte, dek []byte
 		return keyFile{}, err
 	}
 	if len(dek) != dekBytes {
-		return keyFile{}, fmt.Errorf("invalid database key length")
+		return keyFile{}, errors.New("invalid database key length")
 	}
 	salt, err := newRandomBytes(16, "password salt")
 	if err != nil {
@@ -224,7 +222,7 @@ func (key keyFile) unwrap(password string) ([]byte, error) {
 		return nil, fmt.Errorf("create authenticated key unwrapper: %w", err)
 	}
 	if len(key.Nonce) != aead.NonceSize() || len(key.WrappedDEK) != dekBytes+aead.Overhead() {
-		return nil, fmt.Errorf("invalid wrapped database key")
+		return nil, errors.New("invalid wrapped database key")
 	}
 	dek, err := aead.Open(nil, key.Nonce, key.WrappedDEK, key.additionalData())
 	if err != nil {
@@ -251,7 +249,7 @@ func (key keyFile) additionalData() []byte {
 func encodeKeyFile(key keyFile) ([]byte, error) {
 	// 16-byte salt, 12-byte AES-GCM nonce, and a 48-byte wrapped key: a 32-byte key plus a 16-byte GCM tag.
 	if key.Version != keyFormatVersion || len(key.Salt) != 16 || len(key.Nonce) != 12 || len(key.WrappedDEK) != 48 {
-		return nil, fmt.Errorf("invalid vault key fields")
+		return nil, errors.New("invalid vault key fields")
 	}
 	if err := validateArgon2(key.KDF); err != nil {
 		return nil, err
@@ -275,7 +273,7 @@ func encodeKeyFile(key keyFile) ([]byte, error) {
 	buffer.Write(key.WrappedDEK)
 	buffer.WriteString(key.Hint)
 	if buffer.Len() > keyFileLimit {
-		return nil, fmt.Errorf("vault key file is too large")
+		return nil, errors.New("vault key file is too large")
 	}
 	return buffer.Bytes(), nil
 }
@@ -290,13 +288,13 @@ func readKeyFile(path string) (keyFile, error) {
 
 func decodeKeyFile(data []byte) (keyFile, error) {
 	if len(data) > keyFileLimit {
-		return keyFile{}, fmt.Errorf("vault key file is too large")
+		return keyFile{}, errors.New("vault key file is too large")
 	}
 	if len(data) < len(keyMagic)+2 {
-		return keyFile{}, fmt.Errorf("vault key file is truncated")
+		return keyFile{}, errors.New("vault key file is truncated")
 	}
 	if !bytes.Equal(data[:len(keyMagic)], keyMagic[:]) {
-		return keyFile{}, fmt.Errorf("vault key file has invalid magic")
+		return keyFile{}, errors.New("vault key file has invalid magic")
 	}
 	version := binary.BigEndian.Uint16(data[len(keyMagic):])
 	if version == 0 || version > keyFormatVersion {
@@ -314,7 +312,7 @@ func decodeKeyFileV1(data []byte) (keyFile, error) {
 	fields := []any{&magic, &key.Version, &key.VaultID, &key.KDF.Time, &key.KDF.MemoryKiB, &key.KDF.Threads, &saltLength, &nonceLength, &wrappedLength, &hintLength}
 	for _, field := range fields {
 		if err := binary.Read(reader, binary.BigEndian, field); err != nil {
-			return keyFile{}, fmt.Errorf("vault key file is truncated")
+			return keyFile{}, errors.New("vault key file is truncated")
 		}
 	}
 	if err := validateArgon2(key.KDF); err != nil {
@@ -322,7 +320,7 @@ func decodeKeyFileV1(data []byte) (keyFile, error) {
 	}
 	// 16-byte salt, 12-byte AES-GCM nonce, and a 48-byte wrapped key: a 32-byte key plus a 16-byte GCM tag.
 	if saltLength != 16 || nonceLength != 12 || wrappedLength != 48 || hintLength > maxHintBytes {
-		return keyFile{}, fmt.Errorf("vault key file has invalid lengths")
+		return keyFile{}, errors.New("vault key file has invalid lengths")
 	}
 	key.Salt = make([]byte, saltLength)
 	key.Nonce = make([]byte, nonceLength)
@@ -330,11 +328,11 @@ func decodeKeyFileV1(data []byte) (keyFile, error) {
 	hint := make([]byte, hintLength)
 	for _, value := range [][]byte{key.Salt, key.Nonce, key.WrappedDEK, hint} {
 		if _, err := io.ReadFull(reader, value); err != nil {
-			return keyFile{}, fmt.Errorf("vault key file is truncated")
+			return keyFile{}, errors.New("vault key file is truncated")
 		}
 	}
 	if reader.Len() != 0 {
-		return keyFile{}, fmt.Errorf("vault key file has trailing data")
+		return keyFile{}, errors.New("vault key file has trailing data")
 	}
 	key.Hint = string(hint)
 	if err := validateHint(key.Hint); err != nil {
@@ -345,7 +343,7 @@ func decodeKeyFileV1(data []byte) (keyFile, error) {
 
 func encodeAutoUnlock(protector protection.Protector, vaultID [vaultIDBytes]byte, dek []byte) ([]byte, error) {
 	if protector == nil || len(dek) != dekBytes {
-		return nil, fmt.Errorf("automatic unlock is unavailable")
+		return nil, errors.New("automatic unlock is unavailable")
 	}
 	plain := append([]byte(nil), autoPlainMagic[:]...)
 	plain = binary.BigEndian.AppendUint16(plain, autoFormatVersion)
@@ -359,7 +357,7 @@ func encodeAutoUnlock(protector protection.Protector, vaultID [vaultIDBytes]byte
 	defer wipe(ciphertext)
 	// The 14-byte header holds an 8-byte magic, a 2-byte version, and a 4-byte length.
 	if len(ciphertext) == 0 || len(ciphertext) > autoFileLimit-14 {
-		return nil, fmt.Errorf("automatic unlock data is too large")
+		return nil, errors.New("automatic unlock data is too large")
 	}
 	result := append([]byte(nil), autoMagic[:]...)
 	result = binary.BigEndian.AppendUint16(result, autoFormatVersion)
@@ -372,7 +370,7 @@ func decodeAutoUnlock(data []byte, protector protection.Protector) ([vaultIDByte
 	var vaultID [vaultIDBytes]byte
 	// The 14-byte header holds an 8-byte magic, a 2-byte version, and a 4-byte length.
 	if len(data) < 14 || len(data) > autoFileLimit || !bytes.Equal(data[:8], autoMagic[:]) {
-		return vaultID, nil, fmt.Errorf("automatic unlock file is corrupted")
+		return vaultID, nil, errors.New("automatic unlock file is corrupted")
 	}
 	version := binary.BigEndian.Uint16(data[8:10])
 	if version == 0 || version > autoFormatVersion {
@@ -380,11 +378,11 @@ func decodeAutoUnlock(data []byte, protector protection.Protector) ([vaultIDByte
 	}
 	length := binary.BigEndian.Uint32(data[10:14])
 	if length == 0 || int(length) != len(data)-14 || protector == nil {
-		return vaultID, nil, fmt.Errorf("automatic unlock file is corrupted")
+		return vaultID, nil, errors.New("automatic unlock file is corrupted")
 	}
 	plain, err := protector.Unprotect(data[14:])
 	if err != nil {
-		return vaultID, nil, fmt.Errorf("%w: %v", ErrAutomaticUnlockUnavailable, err)
+		return vaultID, nil, fmt.Errorf("%w: %w", ErrAutomaticUnlockUnavailable, err)
 	}
 	defer wipe(plain)
 	return autoUnlockDecoders[version-1](plain)
@@ -394,7 +392,7 @@ func decodeAutoUnlockV1(plain []byte) ([vaultIDBytes]byte, []byte, error) {
 	var vaultID [vaultIDBytes]byte
 	// 8-byte magic and 2-byte version, then the vault ID and the key.
 	if len(plain) != 8+2+vaultIDBytes+dekBytes || !bytes.Equal(plain[:8], autoPlainMagic[:]) || binary.BigEndian.Uint16(plain[8:10]) != 1 {
-		return vaultID, nil, fmt.Errorf("automatic unlock file is corrupted")
+		return vaultID, nil, errors.New("automatic unlock file is corrupted")
 	}
 	copy(vaultID[:], plain[10:10+vaultIDBytes])
 	dek := append([]byte(nil), plain[10+vaultIDBytes:]...)
@@ -404,9 +402,9 @@ func decodeAutoUnlockV1(plain []byte) ([vaultIDBytes]byte, []byte, error) {
 func readBounded(path string, limit int64) ([]byte, error) {
 	file, err := os.Open(path)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("open vault file: %w", err)
 	}
-	defer file.Close()
+	defer func() { _ = file.Close() }()
 	data, err := io.ReadAll(io.LimitReader(file, limit+1))
 	if err != nil {
 		return nil, fmt.Errorf("read %q: %w", fileName(path), err)

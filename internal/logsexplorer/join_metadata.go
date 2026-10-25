@@ -7,7 +7,7 @@ import (
 )
 
 var (
-	datacenterPattern    = regexp.MustCompile(`DatacenterId=([0-9]+)`)
+	datacenterPattern    = regexp.MustCompile(`DatacenterId=(\d+)`)
 	referralPattern      = regexp.MustCompile(`referral_page:\s*([A-Za-z0-9_-]+)`)
 	metadataPattern      = regexp.MustCompile(`(?i)"?GameJoinMetadata"?\s*[:=]\s*(\{[^}]*\})`)
 	metadataEndPattern   = regexp.MustCompile(`(?i)}|%7d`)

@@ -15,7 +15,7 @@ import (
 
 func (manager *Manager) ChangePassword(ctx context.Context, currentPassword, newPassword, confirmation, hint string, automaticUnlock bool) error {
 	if newPassword != confirmation {
-		return fmt.Errorf("new passwords do not match")
+		return errors.New("new passwords do not match")
 	}
 	if err := ValidatePassword(newPassword); err != nil {
 		return err
@@ -25,7 +25,7 @@ func (manager *Manager) ChangePassword(ctx context.Context, currentPassword, new
 			return err
 		}
 	} else if !manager.ValidAutomaticUnlock() {
-		return fmt.Errorf("the current password or automatic unlock is required")
+		return errors.New("the current password or automatic unlock is required")
 	}
 	return manager.rotateDatabaseKey(ctx, newPassword, hint, automaticUnlock)
 }
@@ -197,7 +197,7 @@ func (manager *Manager) promoteOrDiscardRotation(useNext bool) error {
 				wipe(dek)
 				if !matches {
 					if err := os.Remove(manager.paths.AutoUnlockKey); err != nil && !errors.Is(err, os.ErrNotExist) {
-						return err
+						return fmt.Errorf("remove automatic unlock file: %w", err)
 					}
 				}
 			}
@@ -209,7 +209,7 @@ func (manager *Manager) promoteOrDiscardRotation(useNext bool) error {
 	}
 	for _, path := range []string{manager.paths.VaultKey + ".next", manager.paths.AutoUnlockKey + ".next"} {
 		if err := os.Remove(path); err != nil && !errors.Is(err, os.ErrNotExist) {
-			return err
+			return fmt.Errorf("remove rotated key file: %w", err)
 		}
 	}
 	return nil

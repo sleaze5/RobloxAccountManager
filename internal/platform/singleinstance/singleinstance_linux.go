@@ -3,6 +3,7 @@
 package singleinstance
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"net"
@@ -35,7 +36,7 @@ func Acquire(applicationID string) (*Instance, bool, error) {
 }
 
 func ShowAlreadyRunning() {
-	command := exec.Command("notify-send", "--app-name", "Roblox Account Manager", "Roblox Account Manager", "Roblox Account Manager is already running.")
+	command := exec.CommandContext(context.Background(), "notify-send", "--app-name", "Roblox Account Manager", "Roblox Account Manager", "Roblox Account Manager is already running.")
 	if err := command.Run(); err != nil {
 		fmt.Fprintln(os.Stderr, "Roblox Account Manager is already running.")
 	}
@@ -47,5 +48,8 @@ func (instance *Instance) Close() error {
 	}
 	err := instance.listener.Close()
 	instance.listener = nil
-	return err
+	if err != nil {
+		return fmt.Errorf("close single-instance socket: %w", err)
+	}
+	return nil
 }

@@ -44,7 +44,7 @@ func restrictedBrowserToken(current windows.Token) (windows.Token, error) {
 	if result == 0 {
 		return 0, fmt.Errorf("prepare normal-user browser restrictions: %w", err)
 	}
-	defer saferCloseLevel.Call(uintptr(level))
+	defer func() { _, _, _ = saferCloseLevel.Call(uintptr(level)) }()
 	var restricted windows.Token
 	result, _, err = saferComputeTokenFromLevel.Call(uintptr(level), uintptr(current), uintptr(unsafe.Pointer(&restricted)), 0, 0)
 	if result == 0 {

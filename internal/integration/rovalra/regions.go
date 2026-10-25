@@ -19,6 +19,7 @@ const regionsKeep = 24 * time.Hour
 
 type Region struct {
 	games.Region
+
 	Coordinates []Coordinates
 }
 

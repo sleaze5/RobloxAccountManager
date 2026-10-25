@@ -1,9 +1,11 @@
 package gamelaunch
 
 import (
+	"errors"
 	"fmt"
 	"net/url"
 	"regexp"
+	"slices"
 	"strconv"
 	"strings"
 )
@@ -45,7 +47,7 @@ func Parse(input Input) (Request, error) {
 	case MethodUser:
 		return parseUser(input.User)
 	default:
-		return Request{}, fmt.Errorf("choose a launch method")
+		return Request{}, errors.New("choose a launch method")
 	}
 }
 
@@ -68,7 +70,7 @@ func placeRequest(place, job string) (Request, error) {
 	}
 	job = strings.TrimSpace(job)
 	if job != "" && !jobIDPattern.MatchString(job) {
-		return Request{}, fmt.Errorf("enter a valid Job ID (UUID), or leave it empty for a public server")
+		return Request{}, errors.New("enter a valid Job ID (UUID), or leave it empty for a public server")
 	}
 	return Request{PlaceID: id, JobID: job}, nil
 }
@@ -80,7 +82,7 @@ func parseUser(value string) (Request, error) {
 		return Request{UserID: id}, err
 	}
 	if !usernamePattern.MatchString(value) {
-		return Request{}, fmt.Errorf("enter a username, or use id=123 for a User ID")
+		return Request{}, errors.New("enter a username, or use id=123 for a User ID")
 	}
 	return Request{Username: value}, nil
 }
@@ -88,7 +90,7 @@ func parseUser(value string) (Request, error) {
 func parseLink(value string) (Request, error) {
 	value = strings.TrimSpace(value)
 	if len(value) > 8192 {
-		return Request{}, fmt.Errorf("the Roblox link is too long")
+		return Request{}, errors.New("the Roblox link is too long")
 	}
 	if shareCodePattern.MatchString(value) {
 		return Request{ShareCode: value, ShareType: ShareServer}, nil
@@ -101,7 +103,7 @@ func parseLink(value string) (Request, error) {
 	}
 	link, err := url.Parse(value)
 	if err != nil || !allowedWebLink(link) {
-		return Request{}, fmt.Errorf("enter a Roblox game, private-server, or experience-invite link, or a 32-character server-share code")
+		return Request{}, errors.New("enter a Roblox game, private-server, or experience-invite link, or a 32-character server-share code")
 	}
 	query, err := launchQuery(link.RawQuery)
 	if err != nil {
@@ -115,10 +117,10 @@ func parseLink(value string) (Request, error) {
 	}
 	parts := strings.Split(strings.Trim(link.Path, "/"), "/")
 	if len(parts) < 2 || parts[0] != "games" {
-		return Request{}, fmt.Errorf("this Roblox link is not a supported game or server link")
+		return Request{}, errors.New("this Roblox link is not a supported game or server link")
 	}
 	if query.Has("placeId") && query.Get("placeId") != parts[1] {
-		return Request{}, fmt.Errorf("the link contains conflicting Place IDs")
+		return Request{}, errors.New("the link contains conflicting Place IDs")
 	}
 	return queryRequest(parts[1], query)
 }
@@ -140,7 +142,7 @@ func allowedWebLink(link *url.URL) bool {
 
 func parseDeepLink(body string) (Request, error) {
 	if strings.Contains(body, "#") {
-		return Request{}, fmt.Errorf("the Roblox deep link must not contain a fragment")
+		return Request{}, errors.New("the Roblox deep link must not contain a fragment")
 	}
 	path, rawQuery, hasQuery := strings.Cut(body, "?")
 	if !hasQuery {
@@ -156,25 +158,25 @@ func parseDeepLink(body string) (Request, error) {
 	case "", "experiences/start":
 		return queryRequest(query.Get("placeId"), query)
 	default:
-		return Request{}, fmt.Errorf("this Roblox deep link is not a supported game or server link")
+		return Request{}, errors.New("this Roblox deep link is not a supported game or server link")
 	}
 }
 
 func launchQuery(raw string) (url.Values, error) {
 	query, err := url.ParseQuery(raw)
 	if err != nil {
-		return nil, fmt.Errorf("the Roblox link has invalid URL parameters")
+		return nil, errors.New("the Roblox link has invalid URL parameters")
 	}
 	for _, key := range []string{"placeId", "gameInstanceId", "privateServerLinkCode", "linkCode", "accessCode", "code", "type"} {
 		if values, exists := query[key]; exists && (len(values) != 1 || strings.TrimSpace(values[0]) == "") {
-			return nil, fmt.Errorf("the Roblox link has empty or repeated launch parameters")
+			return nil, errors.New("the Roblox link has empty or repeated launch parameters")
 		}
 	}
 	if len(query["launchData"]) > 1 {
-		return nil, fmt.Errorf("the Roblox link has repeated launch data")
+		return nil, errors.New("the Roblox link has repeated launch data")
 	}
 	if query.Has("userId") {
-		return nil, fmt.Errorf("use the User method to join a user")
+		return nil, errors.New("use the User method to join a user")
 	}
 	return query, nil
 }
@@ -187,22 +189,20 @@ func shareRequest(query url.Values) (Request, error) {
 	case strings.EqualFold(query.Get("type"), string(ShareExperienceInvite)):
 		shareType = ShareExperienceInvite
 	default:
-		return Request{}, fmt.Errorf("use a share link with type=Server or type=ExperienceInvite")
+		return Request{}, errors.New("use a share link with type=Server or type=ExperienceInvite")
 	}
 	if !codePattern.MatchString(query.Get("code")) {
-		return Request{}, fmt.Errorf("the share link contains an invalid code")
+		return Request{}, errors.New("the share link contains an invalid code")
 	}
-	for _, key := range []string{"placeId", "gameInstanceId", "privateServerLinkCode", "linkCode", "accessCode"} {
-		if query.Has(key) {
-			return Request{}, fmt.Errorf("the share link contains conflicting launch parameters")
-		}
+	if slices.ContainsFunc([]string{"placeId", "gameInstanceId", "privateServerLinkCode", "linkCode", "accessCode"}, query.Has) {
+		return Request{}, errors.New("the share link contains conflicting launch parameters")
 	}
 	return Request{ShareCode: query.Get("code"), ShareType: shareType, LaunchData: query.Get("launchData")}, nil
 }
 
 func queryRequest(place string, query url.Values) (Request, error) {
 	if query.Has("code") || query.Has("type") {
-		return Request{}, fmt.Errorf("use a full Roblox share link for a share code")
+		return Request{}, errors.New("use a full Roblox share link for a share code")
 	}
 	request, err := placeRequest(place, query.Get("gameInstanceId"))
 	if err != nil {
@@ -211,7 +211,7 @@ func queryRequest(place string, query url.Values) (Request, error) {
 	request.LinkCode = query.Get("privateServerLinkCode")
 	if code := query.Get("linkCode"); code != "" {
 		if request.LinkCode != "" && request.LinkCode != code {
-			return Request{}, fmt.Errorf("the link contains conflicting private-server codes")
+			return Request{}, errors.New("the link contains conflicting private-server codes")
 		}
 		request.LinkCode = code
 	}
@@ -226,11 +226,11 @@ func queryRequest(place string, query url.Values) (Request, error) {
 func validatePrivateCodes(request Request) error {
 	for _, code := range []string{request.LinkCode, request.AccessCode} {
 		if code != "" && (!codePattern.MatchString(code) || strings.EqualFold(code, "null") || strings.EqualFold(code, "undefined")) {
-			return fmt.Errorf("the private-server link contains an invalid code")
+			return errors.New("the private-server link contains an invalid code")
 		}
 	}
 	if request.JobID != "" && (request.LinkCode != "" || request.AccessCode != "") {
-		return fmt.Errorf("a link cannot target both a Job ID and a private server")
+		return errors.New("a link cannot target both a Job ID and a private server")
 	}
 	return nil
 }

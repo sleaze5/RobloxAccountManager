@@ -62,7 +62,7 @@ func (service *Auth) AuthenticationTicket(ctx context.Context, accountID int64) 
 	if err != nil {
 		return AuthenticationTicket{}, err
 	}
-	value := strings.TrimSpace(response.Header.Get("rbx-authentication-ticket"))
+	value := strings.TrimSpace(response.Header.Get("Rbx-Authentication-Ticket"))
 	if value == "" {
 		return AuthenticationTicket{}, &roblox.Error{Kind: roblox.KindProtocol, Endpoint: "authentication-ticket", Status: response.Status, Message: "Roblox did not return an authentication ticket."}
 	}

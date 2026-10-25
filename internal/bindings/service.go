@@ -544,8 +544,7 @@ func (service *Service) LaunchAccounts(ctx context.Context, accountIDs []int64, 
 		return appservice.LaunchResult{}, err
 	}
 	result, err := service.core.LaunchAccounts(ctx, accountIDs, input)
-	var failure *roblox.Error
-	if errors.As(err, &failure) {
+	if failure, ok := errors.AsType[*roblox.Error](err); ok {
 		return result, errors.New(failure.Message)
 	}
 	return result, err

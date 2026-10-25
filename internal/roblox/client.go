@@ -25,7 +25,7 @@ import (
 
 const (
 	requestTimeout       = 30 * time.Second
-	csrfHeader           = "X-CSRF-TOKEN"
+	csrfHeader           = "X-Csrf-Token"
 	challengeTypeHeader  = "Rblx-Challenge-Type"
 	robloxDefaultOrigin  = "https://www.roblox.com"
 	robloxDefaultReferer = "https://www.roblox.com/"
@@ -141,13 +141,7 @@ func (client *Client) Do(ctx context.Context, request Request) (*Response, error
 	if request.RequiresCSRF && !requiresCSRF(request.Method) {
 		return nil, &Error{Kind: KindProtocol, Endpoint: request.Endpoint, Message: "CSRF was requested for a safe HTTP method."}
 	}
-	maxAttempts := request.Retry.MaxAttempts
-	if maxAttempts < 1 {
-		maxAttempts = 1
-	}
-	if maxAttempts > 3 {
-		maxAttempts = 3
-	}
+	maxAttempts := min(max(request.Retry.MaxAttempts, 1), 3)
 	if !safeToRetryRequest(request) {
 		maxAttempts = 1
 	}
@@ -224,8 +218,7 @@ func (client *Client) Do(ctx context.Context, request Request) (*Response, error
 			}
 		}
 		if sendErr != nil {
-			var typed *Error
-			if errors.As(sendErr, &typed) {
+			if typed, ok := errors.AsType[*Error](sendErr); ok {
 				return response, typed
 			}
 			if errors.Is(sendErr, accounts.ErrStaleSecret) {
@@ -362,7 +355,7 @@ func (client *Client) sendAttempt(ctx context.Context, contract Request, snapsho
 	}
 	request, err := http.NewRequestWithContext(ctx, contract.Method, contract.URL.String(), bytes.NewReader(contract.Body))
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("create Roblox request: %w", err)
 	}
 	request.Header = contract.Headers.Clone()
 	request.Header.Set("User-Agent", appmeta.UserAgent)
@@ -376,14 +369,14 @@ func (client *Client) sendAttempt(ctx context.Context, contract Request, snapsho
 		request.Header.Set("Referer", contract.Referer)
 	}
 	if contract.AuthenticationNegotiation {
-		request.Header.Set("RBXAuthenticationNegotiation", "1")
+		request.Header.Set("Rbxauthenticationnegotiation", "1")
 	}
 	if contract.Retry.IdempotencyKey != "" {
 		request.Header.Set("Idempotency-Key", contract.Retry.IdempotencyKey)
 	}
 	if contract.Authenticated {
 		if !client.credentialPolicy(request.URL) {
-			return nil, fmt.Errorf("credential host failed final validation")
+			return nil, errors.New("credential host failed final validation")
 		}
 		request.Header.Set("Cookie", formatAuthCookie(snapshot.Cookie, snapshot.BrowserID))
 		if contract.RequiresCSRF {
@@ -414,8 +407,7 @@ func (client *Client) sendAttempt(ctx context.Context, contract Request, snapsho
 	response, err := client.http.Do(request)
 	if err != nil {
 		// net/http wraps transport errors with the full URL, including invite codes.
-		var urlError *url.Error
-		if errors.As(err, &urlError) {
+		if urlError, ok := errors.AsType[*url.Error](err); ok {
 			err = urlError.Err
 		}
 		client.logger.Debug("Roblox request transport failed",
@@ -521,13 +513,13 @@ func (client *Client) confirmSessionInvalid(ctx context.Context, snapshot Sessio
 func (client *Client) probeAuthenticated(ctx context.Context, snapshot SessionSnapshot) (int, error) {
 	probeURL := cloneURL(client.authenticatedUserURL)
 	if !client.credentialPolicy(probeURL) {
-		return 0, fmt.Errorf("authenticated-user URL is outside the credential policy")
+		return 0, errors.New("authenticated-user URL is outside the credential policy")
 	}
 	merged, stop := mergeContext(ctx, snapshot.Context)
 	defer stop()
-	request, err := http.NewRequestWithContext(merged, http.MethodGet, probeURL.String(), nil)
+	request, err := http.NewRequestWithContext(merged, http.MethodGet, probeURL.String(), http.NoBody)
 	if err != nil {
-		return 0, err
+		return 0, fmt.Errorf("create authenticated-user request: %w", err)
 	}
 	request.Header.Set("User-Agent", appmeta.UserAgent)
 	request.Header.Set("Accept", "application/json")
@@ -539,14 +531,13 @@ func (client *Client) probeAuthenticated(ctx context.Context, snapshot SessionSn
 	defer release()
 	response, err := client.http.Do(request)
 	if err != nil {
-		return 0, err
+		return 0, fmt.Errorf("send authenticated-user request: %w", err)
 	}
 	defer response.Body.Close()
 	if _, err := io.Copy(io.Discard, io.LimitReader(response.Body, defaultResponseLimit)); err != nil {
-		return 0, err
+		return 0, fmt.Errorf("read authenticated-user response: %w", err)
 	}
-	internalResponse := &Response{Status: response.StatusCode, Header: response.Header.Clone()}
-	rotated, deleted, err := client.processSetCookie(ctx, Request{Endpoint: "authenticated-user-probe", AccountID: snapshot.AccountID, Authenticated: true}, snapshot, internalResponse.Header)
+	rotated, deleted, err := client.processSetCookie(ctx, Request{Endpoint: "authenticated-user-probe", AccountID: snapshot.AccountID, Authenticated: true}, snapshot, response.Header.Clone())
 	if err != nil {
 		return 0, err
 	}
@@ -641,7 +632,7 @@ func waitForRetry(ctx context.Context, delay time.Duration) error {
 func readLimited(reader io.Reader, limit int64) ([]byte, error) {
 	data, err := io.ReadAll(io.LimitReader(reader, limit+1))
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("read Roblox response: %w", err)
 	}
 	if int64(len(data)) > limit {
 		return nil, fmt.Errorf("%w: %d bytes", errResponseTooLarge, limit)
@@ -668,14 +659,15 @@ func responseError(request Request, response *Response) *Error {
 	}
 	if json.Unmarshal(response.Body, &body) == nil {
 		robloxCode = body.Code
-		if len(body.Errors) > 0 {
+		switch {
+		case len(body.Errors) > 0:
 			robloxCode = body.Errors[0].Code
 			if body.Errors[0].Message != "" {
 				message = body.Errors[0].Message
 			}
-		} else if body.Message != "" {
+		case body.Message != "":
 			message = body.Message
-		} else if body.Error != "" {
+		case body.Error != "":
 			message = body.Error
 		}
 	} else {

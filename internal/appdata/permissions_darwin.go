@@ -3,6 +3,7 @@
 package appdata
 
 import (
+	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -16,7 +17,7 @@ func rejectNetworkPath(path string) error {
 		return fmt.Errorf("inspect application filesystem: %w", err)
 	}
 	if stat.Flags&unix.MNT_LOCAL == 0 {
-		return fmt.Errorf("network application paths are unsupported")
+		return errors.New("network application paths are unsupported")
 	}
 	return nil
 }

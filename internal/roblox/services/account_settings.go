@@ -99,7 +99,6 @@ func (service *AccountSettings) UpdateBool(ctx context.Context, accountID, versi
 	case "isAvatarVideoOptIn":
 		address, payloadKey = "https://voice.roblox.com/v1/settings/user-opt-in/avatarvideo", "isUserOptIn"
 	case "canUploadContacts":
-		address, payloadKey = userSettingsURL, "canUploadContacts"
 	default:
 		return &roblox.Error{Kind: roblox.KindForbidden, Endpoint: "account-settings-update", Message: "This boolean setting is not supported."}
 	}

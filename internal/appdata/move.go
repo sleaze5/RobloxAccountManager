@@ -87,7 +87,7 @@ func copyStorage(source, destination Paths) error {
 	if err != nil {
 		return moveError("The storage folder could not be created.", err)
 	}
-	defer os.RemoveAll(staging)
+	defer func() { _ = os.RemoveAll(staging) }()
 	if err := restrictDirectory(staging); err != nil {
 		return moveError("The storage folder could not be created.", err)
 	}
@@ -126,7 +126,7 @@ func commitBackups(staged, destination string) error {
 		return nil
 	}
 	if err != nil {
-		return err
+		return fmt.Errorf("read staged backups: %w", err)
 	}
 	if err := PreparePrivateDirectory(destination); err != nil {
 		return err
@@ -137,7 +137,7 @@ func commitBackups(staged, destination string) error {
 			continue
 		}
 		if err := os.Rename(filepath.Join(staged, entry.Name()), target); err != nil {
-			return err
+			return fmt.Errorf("publish staged backup: %w", err)
 		}
 	}
 	return nil
@@ -146,7 +146,7 @@ func commitBackups(staged, destination string) error {
 // The vault goes first, so a later failure never leaves a vault in both roots.
 func removeStorage(source Paths) error {
 	if err := os.RemoveAll(source.VaultRoot); err != nil {
-		return err
+		return fmt.Errorf("remove source vault: %w", err)
 	}
 	var err error
 	for _, path := range []string{source.Settings, source.BackupsRoot, filepath.Dir(source.CfTRuntimeRoot), filepath.Dir(source.CfTInstallRoot)} {
@@ -159,20 +159,20 @@ func removeStorage(source Paths) error {
 func copyVerified(source, destination string) error {
 	info, err := os.Lstat(source)
 	if err != nil {
-		return err
+		return fmt.Errorf("inspect source path: %w", err)
 	}
 	switch {
 	case info.IsDir():
 		// Only the owner can read, write, and enter the directory.
 		if err := os.Mkdir(destination, 0o700); err != nil {
-			return err
+			return fmt.Errorf("create destination directory: %w", err)
 		}
 		if err := restrictDirectory(destination); err != nil {
 			return err
 		}
 		entries, err := os.ReadDir(source)
 		if err != nil {
-			return err
+			return fmt.Errorf("read source directory: %w", err)
 		}
 		for _, entry := range entries {
 			if err := copyVerified(filepath.Join(source, entry.Name()), filepath.Join(destination, entry.Name())); err != nil {
@@ -190,13 +190,13 @@ func copyVerified(source, destination string) error {
 func copyFile(source, destination string) error {
 	input, err := os.Open(source)
 	if err != nil {
-		return err
+		return fmt.Errorf("open source file: %w", err)
 	}
-	defer input.Close()
+	defer func() { _ = input.Close() }()
 	// Only the owner can read and write the file.
 	output, err := os.OpenFile(destination, os.O_WRONLY|os.O_CREATE|os.O_EXCL, 0o600)
 	if err != nil {
-		return err
+		return fmt.Errorf("create destination file: %w", err)
 	}
 	expected := sha256.New()
 	_, copyErr := io.Copy(output, io.TeeReader(input, expected))
@@ -221,12 +221,12 @@ func copyFile(source, destination string) error {
 func fileHash(path string) ([]byte, error) {
 	file, err := os.Open(path)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("open file to hash: %w", err)
 	}
-	defer file.Close()
+	defer func() { _ = file.Close() }()
 	hash := sha256.New()
 	if _, err := io.Copy(hash, file); err != nil {
-		return nil, err
+		return nil, fmt.Errorf("hash file: %w", err)
 	}
 	return hash.Sum(nil), nil
 }

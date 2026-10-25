@@ -354,8 +354,7 @@ func (service *Service) gamesError(ctx context.Context, operation string, err er
 	}
 	logger := service.logs.Module("application.games")
 	logger.WarnContext(ctx, "game operation failed", "operation", operation, "error", err)
-	var remote *roblox.Error
-	if errors.As(err, &remote) {
+	if _, ok := errors.AsType[*roblox.Error](err); ok {
 		return err
 	}
 	if errors.Is(err, context.DeadlineExceeded) {

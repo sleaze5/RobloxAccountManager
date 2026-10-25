@@ -35,7 +35,7 @@ func (manager *Manager) MaybeCreateBackup(ctx context.Context) error {
 	var revision int64
 	if err := db.QueryRowContext(ctx, `SELECT storage_revision FROM vault_state WHERE singleton = 1`).Scan(&revision); err != nil {
 		release()
-		return err
+		return fmt.Errorf("read storage revision: %w", err)
 	}
 	release()
 	backups, err := manager.ListBackups()
@@ -118,26 +118,26 @@ func snapshotDatabase(ctx context.Context, source *sql.DB, destinationPath strin
 	if err != nil {
 		return err
 	}
-	defer destination.Close()
+	defer func() { _ = destination.Close() }()
 	sourceConn, err := source.Conn(ctx)
 	if err != nil {
 		return fmt.Errorf("open backup source: %w", err)
 	}
-	defer sourceConn.Close()
+	defer func() { _ = sourceConn.Close() }()
 	destinationConn, err := destination.Conn(ctx)
 	if err != nil {
 		return fmt.Errorf("open backup destination: %w", err)
 	}
-	defer destinationConn.Close()
-	return sourceConn.Raw(func(sourceDriver any) error {
+	defer func() { _ = destinationConn.Close() }()
+	err = sourceConn.Raw(func(sourceDriver any) error {
 		sourceSQLite, ok := sourceDriver.(*sqlite3.SQLiteConn)
 		if !ok {
-			return fmt.Errorf("SQLCipher backup source is unavailable")
+			return errors.New("SQLCipher backup source is unavailable")
 		}
 		return destinationConn.Raw(func(destinationDriver any) error {
 			destinationSQLite, ok := destinationDriver.(*sqlite3.SQLiteConn)
 			if !ok {
-				return fmt.Errorf("SQLCipher backup destination is unavailable")
+				return errors.New("SQLCipher backup destination is unavailable")
 			}
 			backup, err := destinationSQLite.Backup("main", sourceSQLite, "main")
 			if err != nil {
@@ -161,6 +161,10 @@ func snapshotDatabase(ctx context.Context, source *sql.DB, destinationPath strin
 			}
 		})
 	})
+	if err != nil {
+		return fmt.Errorf("copy vault snapshot: %w", err)
+	}
+	return nil
 }
 
 func (manager *Manager) ListBackups() ([]BackupInfo, error) {
@@ -217,7 +221,7 @@ func (manager *Manager) PurgeBackups() error {
 		return nil
 	}
 	if err != nil {
-		return err
+		return fmt.Errorf("read backups: %w", err)
 	}
 	for _, entry := range entries {
 		if !entry.IsDir() {
@@ -237,9 +241,12 @@ func (manager *Manager) PurgeBackups() error {
 func (manager *Manager) removeManaged(path, root string) error {
 	relative, err := filepath.Rel(root, path)
 	if err != nil || relative == "." || relative == ".." || filepath.IsAbs(relative) || len(relative) >= 3 && relative[:3] == ".."+string(os.PathSeparator) {
-		return fmt.Errorf("refusing to remove an unmanaged path")
+		return errors.New("refusing to remove an unmanaged path")
 	}
-	return os.RemoveAll(path)
+	if err := os.RemoveAll(path); err != nil {
+		return fmt.Errorf("remove managed path: %w", err)
+	}
+	return nil
 }
 
 func (manager *Manager) backupRevision(ctx context.Context, name string) (int64, error) {
@@ -256,15 +263,17 @@ func (manager *Manager) backupRevision(ctx context.Context, name string) (int64,
 	if err != nil {
 		return 0, err
 	}
-	defer db.Close()
+	defer func() { _ = db.Close() }()
 	var revision int64
-	err = db.QueryRowContext(ctx, `SELECT storage_revision FROM vault_state WHERE singleton = 1`).Scan(&revision)
-	return revision, err
+	if err := db.QueryRowContext(ctx, `SELECT storage_revision FROM vault_state WHERE singleton = 1`).Scan(&revision); err != nil {
+		return 0, fmt.Errorf("read backup storage revision: %w", err)
+	}
+	return revision, nil
 }
 
 func (manager *Manager) RestoreBackup(ctx context.Context, name, password string) error {
 	if manager.Unlocked() {
-		return fmt.Errorf("lock the vault before restoring a backup")
+		return errors.New("lock the vault before restoring a backup")
 	}
 	backup, err := manager.backupPath(name)
 	if err != nil {
@@ -284,7 +293,7 @@ func (manager *Manager) RestoreBackup(ctx context.Context, name, password string
 		return err
 	}
 	if err := db.Close(); err != nil {
-		return err
+		return fmt.Errorf("close restored vault: %w", err)
 	}
 	if err := os.Remove(manager.paths.AutoUnlockKey); err != nil && !errors.Is(err, os.ErrNotExist) {
 		return fmt.Errorf("remove automatic unlock file: %w", err)
@@ -315,12 +324,12 @@ func (manager *Manager) RestoreBackup(ctx context.Context, name, password string
 
 func (manager *Manager) backupPath(name string) (string, error) {
 	if _, err := time.Parse(backupTimeFormat, name); err != nil {
-		return "", fmt.Errorf("invalid backup selection")
+		return "", errors.New("invalid backup selection")
 	}
 	path := filepath.Join(manager.paths.BackupsRoot, name)
 	relative, err := filepath.Rel(manager.paths.BackupsRoot, path)
 	if err != nil || relative != name {
-		return "", fmt.Errorf("invalid backup selection")
+		return "", errors.New("invalid backup selection")
 	}
 	return path, nil
 }
@@ -328,12 +337,12 @@ func (manager *Manager) backupPath(name string) (string, error) {
 func copyPrivateFile(source, destination string) error {
 	input, err := os.Open(source)
 	if err != nil {
-		return err
+		return fmt.Errorf("open backup file: %w", err)
 	}
-	defer input.Close()
+	defer func() { _ = input.Close() }()
 	output, err := os.CreateTemp(filepath.Dir(destination), "."+filepath.Base(destination)+".restore-*")
 	if err != nil {
-		return err
+		return fmt.Errorf("create restore file: %w", err)
 	}
 	temporary := output.Name()
 	ok := false
@@ -347,13 +356,13 @@ func copyPrivateFile(source, destination string) error {
 		return err
 	}
 	if _, err := io.Copy(output, input); err != nil {
-		return err
+		return fmt.Errorf("copy backup file: %w", err)
 	}
 	if err := output.Sync(); err != nil {
-		return err
+		return fmt.Errorf("flush restore file: %w", err)
 	}
 	if err := output.Close(); err != nil {
-		return err
+		return fmt.Errorf("close restore file: %w", err)
 	}
 	if err := appdata.ReplaceFile(temporary, destination); err != nil {
 		return err

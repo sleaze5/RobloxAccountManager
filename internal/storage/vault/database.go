@@ -204,7 +204,7 @@ func (manager *Manager) Create(ctx context.Context, password, hint string, autom
 		storedID, storedDEK, err := decodeAutoUnlock(encodedAuto, manager.protector)
 		if err != nil || storedID != identifier || subtle.ConstantTimeCompare(storedDEK, dek) != 1 {
 			wipe(storedDEK)
-			return fmt.Errorf("verify automatic unlock file")
+			return errors.New("verify automatic unlock file")
 		}
 		wipe(storedDEK)
 	}
@@ -335,7 +335,7 @@ func (manager *Manager) unlockAutoCandidate(ctx context.Context, path string) er
 func (manager *Manager) installUnlocked(ctx context.Context, dek []byte, identifier [vaultIDBytes]byte, automatic bool) error {
 	if len(dek) != dekBytes {
 		wipe(dek)
-		return fmt.Errorf("invalid database key length")
+		return errors.New("invalid database key length")
 	}
 	db, err := openAndVerify(ctx, manager.paths.Vault, dek, identifier, manager.logger)
 	if err != nil {
@@ -464,7 +464,7 @@ func (manager *Manager) TestPassword(ctx context.Context, password string) error
 
 func (manager *Manager) ResetVault() error {
 	if manager.Unlocked() {
-		return fmt.Errorf("lock the vault before resetting it")
+		return errors.New("lock the vault before resetting it")
 	}
 	for _, path := range []string{manager.paths.Vault, manager.paths.VaultKey, manager.paths.AutoUnlockKey, manager.paths.VaultKey + ".next", manager.paths.AutoUnlockKey + ".next"} {
 		if err := os.Remove(path); err != nil && !errors.Is(err, os.ErrNotExist) {
@@ -508,7 +508,7 @@ func verifyOpenDatabase(ctx context.Context, db *sql.DB, identifier [vaultIDByte
 	}
 	var integrity string
 	if err := db.QueryRowContext(ctx, `PRAGMA quick_check`).Scan(&integrity); err != nil || integrity != "ok" {
-		return fmt.Errorf("vault integrity check failed")
+		return errors.New("vault integrity check failed")
 	}
 	return nil
 }
@@ -529,7 +529,7 @@ func openDatabase(ctx context.Context, path string, dek []byte, logger *slog.Log
 	defer cancel()
 	var cipherVersion string
 	if err := db.QueryRowContext(openCtx, `PRAGMA cipher_version`).Scan(&cipherVersion); err != nil || cipherVersion == "" {
-		return closeOnError(fmt.Errorf("SQLCipher support is unavailable"))
+		return closeOnError(errors.New("SQLCipher support is unavailable"))
 	}
 	var sqliteVersion string
 	if err := db.QueryRowContext(openCtx, `SELECT sqlite_version()`).Scan(&sqliteVersion); err != nil {
@@ -542,17 +542,17 @@ func openDatabase(ctx context.Context, path string, dek []byte, logger *slog.Log
 	var foreignKeys, pageSize, secureDelete int
 	var journalMode string
 	if err := db.QueryRowContext(openCtx, `PRAGMA foreign_keys`).Scan(&foreignKeys); err != nil || foreignKeys != 1 {
-		return closeOnError(fmt.Errorf("foreign key enforcement is unavailable"))
+		return closeOnError(errors.New("foreign key enforcement is unavailable"))
 	}
 	// The vault uses the SQLCipher 4 default page size of 4096 bytes.
 	if err := db.QueryRowContext(openCtx, `PRAGMA cipher_page_size`).Scan(&pageSize); err != nil || pageSize != 4096 {
-		return closeOnError(fmt.Errorf("SQLCipher page size is unsupported"))
+		return closeOnError(errors.New("SQLCipher page size is unsupported"))
 	}
 	if err := db.QueryRowContext(openCtx, `PRAGMA secure_delete`).Scan(&secureDelete); err != nil || secureDelete != 1 {
-		return closeOnError(fmt.Errorf("secure deletion is unavailable"))
+		return closeOnError(errors.New("secure deletion is unavailable"))
 	}
 	if err := db.QueryRowContext(openCtx, `PRAGMA journal_mode`).Scan(&journalMode); err != nil || !strings.EqualFold(journalMode, "delete") {
-		return closeOnError(fmt.Errorf("portable journal mode is unavailable"))
+		return closeOnError(errors.New("portable journal mode is unavailable"))
 	}
 	return db, nil
 }

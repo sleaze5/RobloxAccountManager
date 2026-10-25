@@ -4,6 +4,7 @@ package appdata
 
 import (
 	"errors"
+	"fmt"
 	"os"
 	"path/filepath"
 
@@ -18,7 +19,7 @@ func StandardRoot() (string, error) {
 	if localAppData == "" || !filepath.IsAbs(localAppData) {
 		folder, err := windows.KnownFolderPath(windows.FOLDERID_LocalAppData, 0)
 		if err != nil {
-			return "", err
+			return "", fmt.Errorf("find the local application data folder: %w", err)
 		}
 		localAppData = folder
 	}

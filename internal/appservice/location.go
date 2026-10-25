@@ -81,8 +81,7 @@ func (location *Location) Move(mode appdata.Mode) error {
 	}
 	if err := appdata.CheckMove(mode); err != nil {
 		location.logger.Warn("data move rejected", "operation", "data-move", "target", mode, "error", err)
-		var moveError *appdata.MoveError
-		if errors.As(err, &moveError) {
+		if moveError, ok := errors.AsType[*appdata.MoveError](err); ok {
 			return errors.New(moveError.Message)
 		}
 		return errors.New("the data could not be moved")

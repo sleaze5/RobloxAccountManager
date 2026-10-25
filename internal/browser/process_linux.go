@@ -3,6 +3,7 @@
 package browser
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"io"
@@ -29,22 +30,22 @@ func startBrowserProcess(options ProcessOptions) (BrowserProcess, error) {
 	}
 	commandRead, parentWrite, err := os.Pipe()
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("create browser command pipe: %w", err)
 	}
 	parentRead, commandWrite, err := os.Pipe()
 	if err != nil {
-		commandRead.Close()
-		parentWrite.Close()
-		return nil, err
+		_ = commandRead.Close()
+		_ = parentWrite.Close()
+		return nil, fmt.Errorf("create browser response pipe: %w", err)
 	}
 	closeAll := func() {
-		commandRead.Close()
-		parentWrite.Close()
-		parentRead.Close()
-		commandWrite.Close()
+		_ = commandRead.Close()
+		_ = parentWrite.Close()
+		_ = parentRead.Close()
+		_ = commandWrite.Close()
 	}
 
-	command := exec.Command(options.Executable,
+	command := exec.CommandContext(context.Background(), options.Executable,
 		"--user-data-dir="+options.UserDataPath, "--remote-debugging-pipe",
 		"--no-first-run", "--no-default-browser-check", "--disable-background-mode",
 		"--disable-infobars", "--window-size=1080,600", "--password-store=basic", "--incognito", "about:blank")
@@ -58,8 +59,8 @@ func startBrowserProcess(options ProcessOptions) (BrowserProcess, error) {
 		closeAll()
 		return nil, fmt.Errorf("start browser: %w", err)
 	}
-	commandRead.Close()
-	commandWrite.Close()
+	_ = commandRead.Close()
+	_ = commandWrite.Close()
 
 	process := &linuxBrowserProcess{
 		command: command, input: parentWrite, output: parentRead,
@@ -119,11 +120,10 @@ func (process *linuxBrowserProcess) Wait(timeout time.Duration) bool {
 }
 
 func (process *linuxBrowserProcess) Terminate() error {
-	err := syscall.Kill(-process.command.Process.Pid, syscall.SIGKILL)
-	if errors.Is(err, syscall.ESRCH) {
-		return nil
+	if err := syscall.Kill(-process.command.Process.Pid, syscall.SIGKILL); err != nil && !errors.Is(err, syscall.ESRCH) {
+		return fmt.Errorf("stop browser process: %w", err)
 	}
-	return err
+	return nil
 }
 
 func (process *linuxBrowserProcess) Focus() error { return nil }

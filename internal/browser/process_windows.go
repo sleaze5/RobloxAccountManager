@@ -57,7 +57,7 @@ func startBrowserProcess(options ProcessOptions) (BrowserProcess, error) {
 	var commandRead, parentWrite, parentRead, commandWrite windows.Handle
 	security := windows.SecurityAttributes{Length: uint32(unsafe.Sizeof(windows.SecurityAttributes{})), InheritHandle: 1}
 	if err := windows.CreatePipe(&commandRead, &parentWrite, &security, 0); err != nil {
-		return nil, err
+		return nil, fmt.Errorf("create browser command pipe: %w", err)
 	}
 	defer func() {
 		if commandRead != 0 {
@@ -68,10 +68,10 @@ func startBrowserProcess(options ProcessOptions) (BrowserProcess, error) {
 		}
 	}()
 	if err := windows.SetHandleInformation(parentWrite, windows.HANDLE_FLAG_INHERIT, 0); err != nil {
-		return nil, err
+		return nil, fmt.Errorf("protect browser command pipe: %w", err)
 	}
 	if err := windows.CreatePipe(&parentRead, &commandWrite, &security, 0); err != nil {
-		return nil, err
+		return nil, fmt.Errorf("create browser response pipe: %w", err)
 	}
 	defer func() {
 		if parentRead != 0 {
@@ -82,7 +82,7 @@ func startBrowserProcess(options ProcessOptions) (BrowserProcess, error) {
 		}
 	}()
 	if err := windows.SetHandleInformation(parentRead, windows.HANDLE_FLAG_INHERIT, 0); err != nil {
-		return nil, err
+		return nil, fmt.Errorf("protect browser response pipe: %w", err)
 	}
 	standardInput, err := openInheritableNull(windows.GENERIC_READ, &security)
 	if err != nil {
@@ -102,7 +102,7 @@ func startBrowserProcess(options ProcessOptions) (BrowserProcess, error) {
 
 	job, err := windows.CreateJobObject(nil, nil)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("create browser job: %w", err)
 	}
 	defer func() {
 		if job != 0 {
@@ -112,7 +112,7 @@ func startBrowserProcess(options ProcessOptions) (BrowserProcess, error) {
 	limits := windows.JOBOBJECT_EXTENDED_LIMIT_INFORMATION{}
 	limits.BasicLimitInformation.LimitFlags = windows.JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE
 	if _, err := windows.SetInformationJobObject(job, windows.JobObjectExtendedLimitInformation, uintptr(unsafe.Pointer(&limits)), uint32(unsafe.Sizeof(limits))); err != nil {
-		return nil, err
+		return nil, fmt.Errorf("configure browser job: %w", err)
 	}
 
 	arguments := []string{options.Executable,
@@ -128,25 +128,25 @@ func startBrowserProcess(options ProcessOptions) (BrowserProcess, error) {
 	}
 	commandLine, err := windows.UTF16PtrFromString(windows.ComposeCommandLine(arguments))
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("encode browser path: %w", err)
 	}
 	executable, err := windows.UTF16PtrFromString(options.Executable)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("encode browser command line: %w", err)
 	}
 	directory, err := windows.UTF16PtrFromString(options.UserDataPath)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("encode browser directory: %w", err)
 	}
 
 	attributes, err := windows.NewProcThreadAttributeList(2)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("create browser process attributes: %w", err)
 	}
 	defer attributes.Delete()
 	handles := []windows.Handle{standardInput, standardOutput, standardError, commandRead, commandWrite}
 	if err := attributes.Update(windows.PROC_THREAD_ATTRIBUTE_HANDLE_LIST, unsafe.Pointer(&handles[0]), uintptr(len(handles))*unsafe.Sizeof(handles[0])); err != nil {
-		return nil, err
+		return nil, fmt.Errorf("set inherited browser handles: %w", err)
 	}
 	jobs := []windows.Handle{job}
 	if err := attributes.Update(procThreadAttributeJobList, unsafe.Pointer(&jobs[0]), unsafe.Sizeof(jobs[0])); err != nil {
@@ -179,7 +179,7 @@ func startBrowserProcess(options ProcessOptions) (BrowserProcess, error) {
 		return nil, errors.New("start Chrome for Testing: process handle is unavailable")
 	}
 	if err := verifyProcessInJob(information.Process, job); err != nil {
-		windows.TerminateProcess(information.Process, 1)
+		_ = windows.TerminateProcess(information.Process, 1)
 		windows.CloseHandle(information.Process)
 		return nil, fmt.Errorf("contain browser process: %w", err)
 	}
@@ -216,8 +216,8 @@ func verifyProcessInJob(process, job windows.Handle) error {
 	var result int32
 	r1, _, callErr := isProcessInJob.Call(uintptr(process), uintptr(job), uintptr(unsafe.Pointer(&result)))
 	if r1 == 0 {
-		if callErr != windows.ERROR_SUCCESS {
-			return callErr
+		if !errors.Is(callErr, windows.ERROR_SUCCESS) {
+			return fmt.Errorf("check browser job membership: %w", callErr)
 		}
 		return errors.New("could not verify session containment")
 	}
@@ -238,9 +238,9 @@ func inheritedPipeHandles(input, output windows.Handle) string {
 func openInheritableNull(access uint32, security *windows.SecurityAttributes) (windows.Handle, error) {
 	name, err := windows.UTF16PtrFromString("NUL")
 	if err != nil {
-		return 0, err
+		return 0, fmt.Errorf("encode null device name: %w", err)
 	}
-	return windows.CreateFile(
+	handle, err := windows.CreateFile(
 		name,
 		access,
 		windows.FILE_SHARE_READ|windows.FILE_SHARE_WRITE,
@@ -249,6 +249,10 @@ func openInheritableNull(access uint32, security *windows.SecurityAttributes) (w
 		windows.FILE_ATTRIBUTE_NORMAL,
 		0,
 	)
+	if err != nil {
+		return 0, fmt.Errorf("open null device: %w", err)
+	}
+	return handle, nil
 }
 
 func (process *windowsBrowserProcess) CDPPipes() (io.WriteCloser, io.ReadCloser) {
@@ -339,7 +343,10 @@ func (process *windowsBrowserProcess) Terminate() error {
 	if process.job == 0 {
 		return nil
 	}
-	return windows.TerminateJobObject(process.job, 1)
+	if err := windows.TerminateJobObject(process.job, 1); err != nil {
+		return fmt.Errorf("stop browser job: %w", err)
+	}
+	return nil
 }
 
 func (process *windowsBrowserProcess) Close() error {
@@ -376,7 +383,9 @@ var browserWindowCallback = syscall.NewCallback(func(window windows.HWND, search
 		return 1
 	}
 	var processID uint32
-	windows.GetWindowThreadProcessId(window, &processID)
+	if _, err := windows.GetWindowThreadProcessId(window, &processID); err != nil {
+		return 1
+	}
 	if _, owned := search.processIDs[processID]; !owned {
 		return 1
 	}
@@ -394,7 +403,7 @@ func visibleWindowInJob(job windows.Handle) (windows.HWND, error) {
 	}
 	search := browserWindowSearch{processIDs: processIDs}
 	if err := windows.EnumWindows(browserWindowCallback, unsafe.Pointer(&search)); err != nil {
-		return 0, err
+		return 0, fmt.Errorf("enumerate browser windows: %w", err)
 	}
 	return search.window, nil
 }
@@ -409,8 +418,8 @@ func (process *windowsBrowserProcess) Focus() error {
 	}
 	result, _, callErr := setForegroundWindow.Call(uintptr(target))
 	if result == 0 {
-		if callErr != windows.ERROR_SUCCESS {
-			return callErr
+		if !errors.Is(callErr, windows.ERROR_SUCCESS) {
+			return fmt.Errorf("focus browser window: %w", callErr)
 		}
 		return errors.New("windows refused to focus the browser")
 	}
@@ -422,7 +431,7 @@ func processIDsInJob(job windows.Handle) (map[uint32]struct{}, error) {
 	// JOBOBJECT_BASIC_PROCESS_ID_LIST: two uint32 counts, then one ULONG_PTR per process ID.
 	buffer := make([]byte, 8+capacity*int(unsafe.Sizeof(uintptr(0))))
 	if err := windows.QueryInformationJobObject(job, windows.JobObjectBasicProcessIdList, uintptr(unsafe.Pointer(&buffer[0])), uint32(len(buffer)), nil); err != nil {
-		return nil, err
+		return nil, fmt.Errorf("list browser processes: %w", err)
 	}
 	assigned := binary.LittleEndian.Uint32(buffer[0:4])
 	listed := binary.LittleEndian.Uint32(buffer[4:8])

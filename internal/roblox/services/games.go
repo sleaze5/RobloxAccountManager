@@ -354,7 +354,7 @@ func (service *Games) versions(ctx context.Context, accountID int64, game *games
 	latest := func(status string) (int64, error) {
 		body, err := json.Marshal(map[string]any{"assetIds": []int64{game.Place.PlaceID}, "versionStatus": status})
 		if err != nil {
-			return 0, err
+			return 0, fmt.Errorf("encode game version request: %w", err)
 		}
 		var payload struct {
 			Results []struct {
@@ -387,7 +387,7 @@ func (service *Games) versions(ctx context.Context, accountID int64, game *games
 func (service *Games) maturity(ctx context.Context, game *games.Game) error {
 	body, err := json.Marshal(map[string][]int64{"universeIds": {game.Place.UniverseID}})
 	if err != nil {
-		return err
+		return fmt.Errorf("encode game maturity request: %w", err)
 	}
 	var payload struct {
 		Universes []struct {

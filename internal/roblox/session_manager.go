@@ -2,7 +2,7 @@ package roblox
 
 import (
 	"context"
-	"fmt"
+	"errors"
 	"sync"
 	"time"
 
@@ -61,7 +61,7 @@ func (manager *SessionManager) Unlock() {
 
 func (manager *SessionManager) Put(record accounts.SessionRecord, browserID string) error {
 	if record.AccountID <= 0 || record.SecretVersion <= 0 {
-		return fmt.Errorf("load invalid account session")
+		return errors.New("load invalid account session")
 	}
 	manager.mu.Lock()
 	if manager.locked {

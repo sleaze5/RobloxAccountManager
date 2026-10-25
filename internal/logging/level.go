@@ -1,6 +1,7 @@
 package logging
 
 import (
+	"errors"
 	"fmt"
 	"log/slog"
 	"strings"
@@ -40,7 +41,7 @@ func ParseLevels(values []string) ([]Level, error) {
 			return nil, err
 		}
 		if level == LevelOff {
-			return nil, fmt.Errorf("off is not an individual log level")
+			return nil, errors.New("off is not an individual log level")
 		}
 		if seen[level] {
 			return nil, fmt.Errorf("duplicate log level %q", level)

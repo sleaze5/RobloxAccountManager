@@ -1,6 +1,7 @@
 package roblox
 
 import (
+	"errors"
 	"fmt"
 	"net/http"
 	"net/url"
@@ -47,7 +48,7 @@ type Response struct {
 
 func (request Request) validate(policy func(*url.URL) bool) error {
 	if request.Endpoint == "" {
-		return fmt.Errorf("request endpoint name is empty")
+		return errors.New("request endpoint name is empty")
 	}
 	if request.URL == nil || !request.URL.IsAbs() {
 		return fmt.Errorf("%s: URL must be absolute", request.Endpoint)

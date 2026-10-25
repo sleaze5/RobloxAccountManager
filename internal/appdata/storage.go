@@ -203,7 +203,7 @@ func inspectRoot(root string) (RootState, error) {
 		return RootEmpty, nil
 	}
 	if err != nil {
-		return "", err
+		return "", fmt.Errorf("inspect data root: %w", err)
 	}
 	if !info.IsDir() {
 		return "", fmt.Errorf("%q is not a folder", filepath.Join(root, storageDirectory))

@@ -107,9 +107,7 @@ func (service *Service) ValidateCookies(ctx context.Context, input string) (Impo
 
 	var workers sync.WaitGroup
 	for range min(importValidationWorkers, len(inputs)) {
-		workers.Add(1)
-		go func() {
-			defer workers.Done()
+		workers.Go(func() {
 			for index := range jobs {
 				cookie, err := accounts.NormalizeCookie(inputs[index])
 				if err != nil {
@@ -118,7 +116,7 @@ func (service *Service) ValidateCookies(ctx context.Context, input string) (Impo
 				}
 				outcomes[index].validation, outcomes[index].err = service.users.ValidateCookie(ctx, cookie, "")
 			}
-		}()
+		})
 	}
 	workers.Wait()
 
@@ -392,14 +390,13 @@ func clearPendingImportBatch(batch *pendingImportBatch) {
 func newImportBatchID() (string, error) {
 	value := make([]byte, 24)
 	if _, err := rand.Read(value); err != nil {
-		return "", err
+		return "", fmt.Errorf("generate import batch ID: %w", err)
 	}
 	return base64.RawURLEncoding.EncodeToString(value), nil
 }
 
 func importErrorDetails(err error) (string, string) {
-	var robloxErr *roblox.Error
-	if errors.As(err, &robloxErr) {
+	if robloxErr, ok := errors.AsType[*roblox.Error](err); ok {
 		status := strings.ReplaceAll(string(robloxErr.Kind), "_", " ")
 		if robloxErr.Status > 0 {
 			status = fmt.Sprintf("%d %s", robloxErr.Status, http.StatusText(robloxErr.Status))

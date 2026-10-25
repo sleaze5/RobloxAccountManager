@@ -3,7 +3,7 @@ package logging
 import (
 	"context"
 	"encoding/json"
-	"fmt"
+	"errors"
 	"log/slog"
 	"strconv"
 	"strings"
@@ -25,7 +25,7 @@ func launchHeader(id string) ([]byte, error) {
 	started, err := strconv.ParseInt(stamp, 10, 64)
 	pid, pidErr := strconv.Atoi(process)
 	if !ok || err != nil || started <= 0 || strconv.FormatInt(started, 10) != stamp || pidErr != nil || pid <= 0 || strconv.Itoa(pid) != process {
-		return nil, fmt.Errorf("invalid launch identifier")
+		return nil, errors.New("invalid launch identifier")
 	}
 	header := struct {
 		Time          int64         `json:"time"`

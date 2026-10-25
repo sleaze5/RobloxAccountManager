@@ -7,7 +7,7 @@ import (
 
 var (
 	disconnectPattern = regexp.MustCompile(`^\s*(?:Player:\s*)?([0-9]+)(?:\s*\(([A-Za-z][A-Za-z0-9_]*)\))?`)
-	ackTimeoutPattern = regexp.MustCompile(`AckTimeout\s+([0-9]+)`)
+	ackTimeoutPattern = regexp.MustCompile(`AckTimeout\s+(\d+)`)
 )
 
 type visitEndState struct {

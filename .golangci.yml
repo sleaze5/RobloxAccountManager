@@ -1,0 +1,125 @@
+version: "2"
+
+linters:
+    default: all
+    disable:
+        - containedctx
+        - contextcheck
+        - cyclop
+        - depguard
+        - dogsled
+        - err113
+        - exhaustruct
+        - exhaustruct_v5
+        - funcorder
+        - funlen
+        - gochecknoglobals
+        - gocognit
+        - goconst
+        - gocyclo
+        - gomodguard
+        - inamedparam
+        - interfacebloat
+        - ireturn
+        - lll
+        - maintidx
+        - mnd
+        - nestif
+        - nilnil
+        - nlreturn
+        - noinlineerr
+        - nonamedreturns
+        - prealloc
+        - recvcheck
+        - tagliatelle
+        - varnamelen
+        - wsl
+        - wsl_v5
+    exclusions:
+        rules:
+            - path: internal/appupdate/helper_darwin.go
+              linters:
+                  - gosec
+              text: G122
+    settings:
+        errcheck:
+            check-type-assertions: true
+            exclude-functions:
+                - (*database/sql.Rows).Close
+                - (*database/sql.Tx).Rollback
+                - (io.ReadCloser).Close
+                - (*github.com/go-ole/go-ole.VARIANT).Clear
+                - (golang.org/x/sys/windows.Token).Close
+                - golang.org/x/sys/windows.CloseHandle
+                - golang.org/x/sys/windows.LocalFree
+        exhaustive:
+            default-signifies-exhaustive: true
+        forbidigo:
+            analyze-types: true
+            forbid:
+                - pattern: ^(fmt\.Print(|f|ln)|print|println)$
+                  msg: Remove debug output.
+                - pattern: ^log\.
+                  pkg: ^log$
+                  msg: Log through internal/logging.
+                - pattern: ^slog\.(Debug|Info|Warn|Error|Log|LogAttrs|Default|SetDefault)(Context)?$
+                  pkg: ^log/slog$
+                  msg: Log through a module logger from internal/logging.
+        gocritic:
+            enable-all: true
+            disabled-checks:
+                - hugeParam
+                - rangeValCopy
+                - unnamedResult
+        godoclint:
+            disable:
+                - start-with-name
+        gosec:
+            excludes:
+                - G103
+                - G104
+                - G115
+                - G204
+                - G301
+                - G302
+                - G304
+                - G703
+        govet:
+            enable-all: true
+            disable:
+                - fieldalignment
+                - shadow
+        nolintlint:
+            require-explanation: true
+            require-specific: true
+        perfsprint:
+            strconcat: false
+        revive:
+            rules:
+                - name: exported
+                  disabled: true
+                - name: package-comments
+                  disabled: true
+        staticcheck:
+            checks:
+                - all
+                - -ST1000
+                - -ST1020
+                - -ST1021
+                - -ST1022
+        wrapcheck:
+            ignore-package-globs:
+                - github.com/sleaze5/RobloxAccountManager/*
+            ignore-sigs:
+                - .Errorf(
+                - errors.New(
+                - errors.Join(
+                - (*golang.org/x/sync/singleflight.Group).Do(
+                - (context.Context).Err()
+                - (io.Reader).Read(
+                - (log/slog.Handler).Handle(
+
+issues:
+    max-issues-per-linter: 0
+    max-same-issues: 0
+    uniq-by-line: false

@@ -3,6 +3,7 @@
 package protection
 
 import (
+	"errors"
 	"fmt"
 	"unsafe"
 
@@ -22,7 +23,7 @@ func New() Protector {
 
 func (windowsProtector) Protect(plaintext []byte) ([]byte, error) {
 	if len(plaintext) == 0 {
-		return nil, fmt.Errorf("protect data: plaintext is empty")
+		return nil, errors.New("protect data: plaintext is empty")
 	}
 	in := dataBlob(plaintext)
 	entropy := dataBlob(applicationEntropy)
@@ -36,7 +37,7 @@ func (windowsProtector) Protect(plaintext []byte) ([]byte, error) {
 
 func (windowsProtector) Unprotect(ciphertext []byte) ([]byte, error) {
 	if len(ciphertext) == 0 {
-		return nil, fmt.Errorf("unprotect data: ciphertext is empty")
+		return nil, errors.New("unprotect data: ciphertext is empty")
 	}
 	in := dataBlob(ciphertext)
 	entropy := dataBlob(applicationEntropy)

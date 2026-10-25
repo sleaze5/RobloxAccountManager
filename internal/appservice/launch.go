@@ -54,8 +54,7 @@ func (service *Service) LaunchAccounts(ctx context.Context, accountIDs []int64, 
 			}
 			if err != nil {
 				message := "The account could not be launched. Try again."
-				var failure *roblox.Error
-				if errors.As(err, &failure) {
+				if failure, ok := errors.AsType[*roblox.Error](err); ok {
 					message = failure.Message
 				}
 				result.Failures = append(result.Failures, AccountLaunchFailure{AccountID: accountID, Message: message})
@@ -82,8 +81,7 @@ func (service *Service) executeLaunch(ctx context.Context, confirm func(context.
 		if errors.Is(err, robloxmulti.ErrLaunchCancelled) {
 			return err
 		}
-		var failure *roblox.Error
-		if errors.As(err, &failure) {
+		if failure, ok := errors.AsType[*roblox.Error](err); ok {
 			return failure
 		}
 		return launchPreparationError(err)
@@ -194,10 +192,9 @@ func (service *Service) runLaunchOperation(ctx context.Context, accountID int64,
 			logger.Info("Roblox launch operation completed")
 			return
 		}
-		var remote *roblox.Error
 		kind, status, code := roblox.KindProtocol, 0, 0
 		endpoint, message := operation, "The launch failed before a Roblox response was available."
-		if errors.As(result, &remote) {
+		if remote, ok := errors.AsType[*roblox.Error](result); ok {
 			kind, status, code = remote.Kind, remote.Status, remote.RobloxCode
 			endpoint, message = remote.Endpoint, remote.Message
 		}

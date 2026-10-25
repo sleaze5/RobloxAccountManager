@@ -23,7 +23,7 @@ func (repository *Repository) CreateTag(ctx context.Context, input string) (TagV
 	now := repository.now().UTC().UnixMilli()
 	tx, err := db.BeginTx(ctx, nil)
 	if err != nil {
-		return TagView{}, err
+		return TagView{}, fmt.Errorf("begin tag creation: %w", err)
 	}
 	defer tx.Rollback()
 	result, err := tx.ExecContext(ctx, `INSERT INTO tags(name, kind, created_at_ms, updated_at_ms) VALUES(?, 'custom', ?, ?)`, name, now, now)
@@ -35,13 +35,13 @@ func (repository *Repository) CreateTag(ctx context.Context, input string) (TagV
 	}
 	id, err := result.LastInsertId()
 	if err != nil {
-		return TagView{}, err
+		return TagView{}, fmt.Errorf("read created tag ID: %w", err)
 	}
 	if err := bumpRevision(ctx, tx); err != nil {
 		return TagView{}, err
 	}
 	if err := tx.Commit(); err != nil {
-		return TagView{}, err
+		return TagView{}, fmt.Errorf("commit tag creation: %w", err)
 	}
 	repository.logger.Info("account tag created", "tag_id", id)
 	return TagView{ID: id, Name: name, Kind: TagKindCustom}, nil
@@ -58,7 +58,7 @@ func (repository *Repository) RemoveTag(ctx context.Context, tagID int64) error 
 	defer release()
 	tx, err := db.BeginTx(ctx, nil)
 	if err != nil {
-		return err
+		return fmt.Errorf("begin tag removal: %w", err)
 	}
 	defer tx.Rollback()
 	result, err := tx.ExecContext(ctx, `DELETE FROM tags WHERE id = ? AND kind = 'custom'`, tagID)
@@ -67,7 +67,7 @@ func (repository *Repository) RemoveTag(ctx context.Context, tagID int64) error 
 	}
 	changed, err := result.RowsAffected()
 	if err != nil {
-		return err
+		return fmt.Errorf("count removed tags: %w", err)
 	}
 	if changed == 0 {
 		return ErrTagNotFound
@@ -76,7 +76,7 @@ func (repository *Repository) RemoveTag(ctx context.Context, tagID int64) error 
 		return err
 	}
 	if err := tx.Commit(); err != nil {
-		return err
+		return fmt.Errorf("commit tag removal: %w", err)
 	}
 	repository.logger.Info("account tag removed", "tag_id", tagID)
 	return nil
@@ -90,18 +90,21 @@ func (repository *Repository) ListTags(ctx context.Context) ([]TagView, error) {
 	defer release()
 	rows, err := db.QueryContext(ctx, `SELECT id, name, kind FROM tags ORDER BY CASE kind WHEN 'favorite' THEN 0 ELSE 1 END, name COLLATE NOCASE, id`)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("list tags: %w", err)
 	}
 	defer rows.Close()
 	tags := []TagView{}
 	for rows.Next() {
 		var tag TagView
 		if err := rows.Scan(&tag.ID, &tag.Name, &tag.Kind); err != nil {
-			return nil, err
+			return nil, fmt.Errorf("read tag: %w", err)
 		}
 		tags = append(tags, tag)
 	}
-	return tags, rows.Err()
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("read tags: %w", err)
+	}
+	return tags, nil
 }
 
 func (repository *Repository) SetAccountsTag(ctx context.Context, accountIDs []int64, tagID int64, selected bool) ([]AccountView, error) {
@@ -123,14 +126,14 @@ func (repository *Repository) SetAccountsTag(ctx context.Context, accountIDs []i
 	defer release()
 	tx, err := db.BeginTx(ctx, nil)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("begin tag assignment: %w", err)
 	}
 	defer tx.Rollback()
 	var exists int
 	if err := tx.QueryRowContext(ctx, `SELECT 1 FROM tags WHERE id = ?`, tagID).Scan(&exists); errors.Is(err, sql.ErrNoRows) {
 		return nil, ErrTagNotFound
 	} else if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("find tag: %w", err)
 	}
 	now := repository.now().UTC().UnixMilli()
 	anyChanged := false
@@ -138,7 +141,7 @@ func (repository *Repository) SetAccountsTag(ctx context.Context, accountIDs []i
 		if err := tx.QueryRowContext(ctx, `SELECT 1 FROM accounts WHERE id = ?`, accountID).Scan(&exists); errors.Is(err, sql.ErrNoRows) {
 			return nil, ErrNotFound
 		} else if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("find tagged account: %w", err)
 		}
 		var result sql.Result
 		if selected {
@@ -147,12 +150,12 @@ func (repository *Repository) SetAccountsTag(ctx context.Context, accountIDs []i
 			result, err = tx.ExecContext(ctx, `DELETE FROM account_tags WHERE account_id = ? AND tag_id = ?`, accountID, tagID)
 		}
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("update account tag: %w", err)
 		}
 		if changed, _ := result.RowsAffected(); changed > 0 {
 			anyChanged = true
 			if _, err := tx.ExecContext(ctx, `UPDATE accounts SET updated_at_ms = ? WHERE id = ?`, now, accountID); err != nil {
-				return nil, err
+				return nil, fmt.Errorf("update tagged account: %w", err)
 			}
 		}
 	}
@@ -162,7 +165,7 @@ func (repository *Repository) SetAccountsTag(ctx context.Context, accountIDs []i
 		}
 	}
 	if err := tx.Commit(); err != nil {
-		return nil, err
+		return nil, fmt.Errorf("commit tag assignment: %w", err)
 	}
 	views := make([]AccountView, 0, len(accountIDs))
 	for _, accountID := range accountIDs {
@@ -188,26 +191,27 @@ func loadAccountTags(ctx context.Context, db *sql.DB, views []AccountView) error
 		placeholders[index] = "?"
 		arguments[index] = views[index].ID
 	}
-	rows, err := db.QueryContext(ctx, `
-SELECT account_tags.account_id, tags.id, tags.name, tags.kind
-FROM account_tags JOIN tags ON tags.id = account_tags.tag_id
+	rows, err := db.QueryContext(ctx, accountTagsQuery+`
 WHERE account_tags.account_id IN (`+strings.Join(placeholders, ",")+`)
 ORDER BY account_tags.account_id, CASE tags.kind WHEN 'favorite' THEN 0 ELSE 1 END, tags.name COLLATE NOCASE, tags.id`, arguments...)
 	if err != nil {
-		return err
+		return fmt.Errorf("list account tags: %w", err)
 	}
 	defer rows.Close()
 	for rows.Next() {
 		var accountID int64
 		var tag TagView
 		if err := rows.Scan(&accountID, &tag.ID, &tag.Name, &tag.Kind); err != nil {
-			return err
+			return fmt.Errorf("read account tag: %w", err)
 		}
 		if index, ok := indices[accountID]; ok {
 			views[index].Tags = append(views[index].Tags, tag)
 		}
 	}
-	return rows.Err()
+	if err := rows.Err(); err != nil {
+		return fmt.Errorf("read account tags: %w", err)
+	}
+	return nil
 }
 
 func listAccountTags(ctx context.Context, db interface {
@@ -222,9 +226,16 @@ func listAccountTags(ctx context.Context, db interface {
 	for rows.Next() {
 		var tag TagView
 		if err := rows.Scan(&tag.ID, &tag.Name, &tag.Kind); err != nil {
-			return nil, err
+			return nil, fmt.Errorf("read account tag: %w", err)
 		}
 		tags = append(tags, tag)
 	}
-	return tags, rows.Err()
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("read account tags: %w", err)
+	}
+	return tags, nil
 }
+
+const accountTagsQuery = `
+SELECT account_tags.account_id, tags.id, tags.name, tags.kind
+FROM account_tags JOIN tags ON tags.id = account_tags.tag_id`

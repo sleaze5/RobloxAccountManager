@@ -2,6 +2,7 @@ package appservice
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"time"
 
@@ -44,7 +45,7 @@ func (service *Service) GetVaultState() VaultState {
 
 func (service *Service) CreateVault(ctx context.Context, password, confirmation, hint string, automaticUnlock bool) error {
 	if password != confirmation {
-		return fmt.Errorf("master passwords do not match")
+		return errors.New("master passwords do not match")
 	}
 	if err := service.vault.Create(ctx, password, hint, automaticUnlock); err != nil {
 		return safeVaultError(err)
@@ -187,9 +188,9 @@ func (service *Service) SetAutomaticUnlock(enabled bool) error {
 	if err := service.vault.SetAutomaticUnlock(enabled); err != nil {
 		service.logger.Error("automatic unlock update failed", "enabled", enabled, "error", err)
 		if enabled {
-			return fmt.Errorf("automatic unlock could not be turned on")
+			return errors.New("automatic unlock could not be turned on")
 		}
-		return fmt.Errorf("automatic unlock could not be turned off")
+		return errors.New("automatic unlock could not be turned off")
 	}
 	service.logger.Info("automatic unlock updated", "enabled", enabled)
 	return nil

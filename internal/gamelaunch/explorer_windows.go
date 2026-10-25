@@ -29,17 +29,17 @@ func launchFromExplorer(ctx context.Context, target, arguments, directory string
 	defer runtime.UnlockOSThread()
 	// S_FALSE still initializes COM and must be balanced by CoUninitialize.
 	if err := windows.CoInitializeEx(0, windows.COINIT_APARTMENTTHREADED|windows.COINIT_DISABLE_OLE1DDE); err != nil && !errors.Is(err, syscall.Errno(1)) {
-		return fmt.Errorf("%w: initialize desktop automation: %v", ErrDesktopUnavailable, err)
+		return fmt.Errorf("%w: initialize desktop automation: %w", ErrDesktopUnavailable, err)
 	}
 	defer windows.CoUninitialize()
 
 	shell, window, err := desktopShell()
 	if err != nil {
-		return fmt.Errorf("%w: %v", ErrDesktopUnavailable, err)
+		return fmt.Errorf("%w: %w", ErrDesktopUnavailable, err)
 	}
 	defer shell.Release()
 	if err := verifyDesktopShell(window); err != nil {
-		return fmt.Errorf("%w: %v", ErrDesktopUnavailable, err)
+		return fmt.Errorf("%w: %w", ErrDesktopUnavailable, err)
 	}
 	if err := ctx.Err(); err != nil {
 		return err
@@ -58,7 +58,7 @@ func launchFromExplorer(ctx context.Context, target, arguments, directory string
 
 func desktopShell() (*ole.IDispatch, windows.HWND, error) {
 	if windows.GetShellWindow() == 0 {
-		return nil, 0, fmt.Errorf("desktop Explorer is not running")
+		return nil, 0, errors.New("desktop Explorer is not running")
 	}
 	unknown, err := ole.CreateInstance(shellWindowsClass, ole.IID_IUnknown)
 	if err != nil {
@@ -81,7 +81,7 @@ func desktopShell() (*ole.IDispatch, windows.HWND, error) {
 		return nil, 0, fmt.Errorf("find desktop window: %w", err)
 	}
 	if desktop == nil || desktop.ToIDispatch() == nil || handle == 0 {
-		return nil, 0, fmt.Errorf("desktop window automation is unavailable")
+		return nil, 0, errors.New("desktop window automation is unavailable")
 	}
 	view, err := shellDispatchProperty(desktop.ToIDispatch(), "Document")
 	if err != nil {
@@ -110,7 +110,7 @@ func shellDispatchProperty(object *ole.IDispatch, name string) (*ole.IDispatch, 
 
 func verifyDesktopShell(window windows.HWND) error {
 	if window == 0 || window != windows.GetShellWindow() {
-		return fmt.Errorf("the Windows desktop changed during launch")
+		return errors.New("the Windows desktop changed during launch")
 	}
 	var processID uint32
 	if _, err := windows.GetWindowThreadProcessId(window, &processID); err != nil {
@@ -135,13 +135,17 @@ func verifyShellToken(token windows.Token) error {
 		return fmt.Errorf("read desktop elevation: %w", err)
 	}
 	if elevated != 0 {
-		return fmt.Errorf("desktop Explorer is running as administrator")
+		return errors.New("desktop Explorer is running as administrator")
 	}
-	if err := windows.GetTokenInformation(token, windows.TokenIntegrityLevel, nil, 0, &returned); !errors.Is(err, windows.ERROR_INSUFFICIENT_BUFFER) {
-		return fmt.Errorf("measure desktop integrity: %v", err)
+	err := windows.GetTokenInformation(token, windows.TokenIntegrityLevel, nil, 0, &returned)
+	if err == nil {
+		return errors.New("measure desktop integrity: no size was reported")
+	}
+	if !errors.Is(err, windows.ERROR_INSUFFICIENT_BUFFER) {
+		return fmt.Errorf("measure desktop integrity: %w", err)
 	}
 	if returned < uint32(unsafe.Sizeof(windows.Tokenmandatorylabel{})) {
-		return fmt.Errorf("desktop integrity information is incomplete")
+		return errors.New("desktop integrity information is incomplete")
 	}
 	integrity := make([]byte, returned)
 	if err := windows.GetTokenInformation(token, windows.TokenIntegrityLevel, &integrity[0], uint32(len(integrity)), &returned); err != nil {
@@ -149,7 +153,7 @@ func verifyShellToken(token windows.Token) error {
 	}
 	label := (*windows.Tokenmandatorylabel)(unsafe.Pointer(&integrity[0]))
 	if label.Label.Sid == nil || !label.Label.Sid.IsWellKnown(windows.WinMediumLabelSid) {
-		return fmt.Errorf("desktop Explorer is not running at normal-user integrity")
+		return errors.New("desktop Explorer is not running at normal-user integrity")
 	}
 	return nil
 }

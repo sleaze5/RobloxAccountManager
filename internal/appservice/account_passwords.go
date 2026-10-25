@@ -68,8 +68,7 @@ func (service *Service) ValidateAccountPassword(ctx context.Context, accountID i
 	}
 	message := "Could not validate the password. Check the account on the Roblox website."
 	kind := roblox.KindProtocol
-	var remote *roblox.Error
-	if errors.As(err, &remote) {
+	if remote, ok := errors.AsType[*roblox.Error](err); ok {
 		kind = remote.Kind
 		service.logger.Warn("account password validation unavailable", "operation", "password-validate", "account_id", accountID, "error_kind", remote.Kind, "status", remote.Status, "roblox_code", remote.RobloxCode)
 		switch remote.Kind {
@@ -85,6 +84,7 @@ func (service *Service) ValidateAccountPassword(ctx context.Context, accountID i
 			message = "Password validation was cancelled because the account session changed."
 		case roblox.KindTransport, roblox.KindTimeout, roblox.KindServer:
 			message = "Could not validate: Roblox could not be reached. Try again later."
+		default:
 		}
 	}
 	return false, &roblox.Error{Kind: kind, Endpoint: "password-validate", Message: message, Cause: err}

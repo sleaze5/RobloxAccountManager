@@ -33,7 +33,9 @@ runs:
           uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e
           with:
               go-version-file: go.mod
-              cache-dependency-path: go.sum
+              cache-dependency-path: |
+                  go.sum
+                  build/tools/go.sum
 
         - name: Set up Bun
           if: inputs.bun == 'true'

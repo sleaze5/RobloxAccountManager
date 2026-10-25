@@ -125,6 +125,7 @@ func (service *Service) Check(ctx context.Context) error {
 	case StatusChecking, StatusDownloading, StatusReady, StatusRestarting:
 		service.mu.Unlock()
 		return nil
+	case StatusIdle, StatusUpToDate, StatusAvailable:
 	}
 	service.state = State{Status: StatusChecking, CurrentVersion: appmeta.Version}
 	current := service.updater

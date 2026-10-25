@@ -91,18 +91,18 @@ func (service *Service) readAccountSettings(ctx context.Context, accountID, vers
 	}{
 		{"settings", reads.settingsErr}, {"options", reads.optionsErr}, {"communication", reads.optionsV2Err}, {"voice", reads.voiceErr},
 	} {
-		if section.err != nil {
-			failure := accountSettingsSectionError(section.source, section.err)
-			snapshot.SectionErrors = append(snapshot.SectionErrors, failure)
-			status := 0
-			code := 0
-			var remote *roblox.Error
-			if errors.As(section.err, &remote) {
-				status = remote.Status
-				code = remote.RobloxCode
-			}
-			logger.Warn("account settings section unavailable", "source", section.source, "error_kind", failure.Kind, "status", status, "roblox_code", code)
+		if section.err == nil {
+			continue
 		}
+		failure := accountSettingsSectionError(section.source, section.err)
+		snapshot.SectionErrors = append(snapshot.SectionErrors, failure)
+		status := 0
+		code := 0
+		if remote, ok := errors.AsType[*roblox.Error](section.err); ok {
+			status = remote.Status
+			code = remote.RobloxCode
+		}
+		logger.Warn("account settings section unavailable", "source", section.source, "error_kind", failure.Kind, "status", status, "roblox_code", code)
 	}
 	for _, definition := range accountSettingDefinitions {
 		if view, present := normalizeAccountSetting(definition, reads); present {
@@ -116,8 +116,7 @@ func (service *Service) readAccountSettings(ctx context.Context, accountID, vers
 
 func accountSettingsSectionError(source string, err error) AccountSettingsSectionError {
 	failure := AccountSettingsSectionError{Source: source, Kind: string(roblox.KindProtocol), Message: "Could not load these settings. Refresh settings to retry."}
-	var remote *roblox.Error
-	if errors.As(err, &remote) {
+	if remote, ok := errors.AsType[*roblox.Error](err); ok {
 		failure.Kind = string(remote.Kind)
 		if remote.Message != "" {
 			failure.Message = remote.Message
