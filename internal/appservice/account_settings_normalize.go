@@ -39,17 +39,7 @@ func normalizeAccountSetting(definition accountSettingDefinition, reads accountS
 		view.UnavailableReason = "Communication permissions could not be refreshed. Refresh settings before editing."
 	}
 	if metadataOK {
-		for _, choice := range metadata.Options {
-			value := settingValueView(definition, choice.Option.Value)
-			reason := settingOptionReason(definition, value, choice.Requirement)
-			if definition.optionsV2 {
-				reason = settingRequiredActionsReason(definition, value, choice.RequiredActions)
-			}
-			view.Options = append(view.Options, AccountSettingOption{
-				StringValue: value.StringValue, BoolValue: value.BoolValue, Label: value.ValueLabel,
-				Enabled: reason == "", Reason: reason,
-			})
-		}
+		appendSettingOptions(definition, metadata, &view)
 	}
 	if settingValuesConflict(definition, plain, metadata.CurrentValue) {
 		view.ValueState = "unavailable"
@@ -397,5 +387,19 @@ func finishSettingCapability(view *AccountSettingView) {
 				view.Options[index].Reason = view.UnavailableReason
 			}
 		}
+	}
+}
+
+func appendSettingOptions(definition accountSettingDefinition, metadata robloxservices.SettingOptions, view *AccountSettingView) {
+	for _, choice := range metadata.Options {
+		value := settingValueView(definition, choice.Option.Value)
+		reason := settingOptionReason(definition, value, choice.Requirement)
+		if definition.optionsV2 {
+			reason = settingRequiredActionsReason(definition, value, choice.RequiredActions)
+		}
+		view.Options = append(view.Options, AccountSettingOption{
+			StringValue: value.StringValue, BoolValue: value.BoolValue, Label: value.ValueLabel,
+			Enabled: reason == "", Reason: reason,
+		})
 	}
 }

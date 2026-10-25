@@ -62,13 +62,12 @@ func launchParameters(request Request) (url.Values, error) {
 	}
 	query := url.Values{}
 	if request.UserID != 0 {
-		if request.UserID < 0 || request.PlaceID != 0 || request.JobID != "" || request.LinkCode != "" || request.AccessCode != "" {
-			return nil, errors.New("user target is invalid")
-		}
-		query.Set("request", "RequestFollowUser")
-		query.Set("userId", strconv.FormatInt(request.UserID, 10))
-		return query, nil
+		return followUserParameters(request, query)
 	}
+	return placeLaunchParameters(request, query)
+}
+
+func placeLaunchParameters(request Request, query url.Values) (url.Values, error) {
 	if request.PlaceID <= 0 {
 		return nil, errors.New("place ID must be positive")
 	}
@@ -93,5 +92,14 @@ func launchParameters(request Request) (url.Values, error) {
 		query.Set("request", "RequestGame")
 		query.Set("isPlayTogetherGame", "false")
 	}
+	return query, nil
+}
+
+func followUserParameters(request Request, query url.Values) (url.Values, error) {
+	if request.UserID < 0 || request.PlaceID != 0 || request.JobID != "" || request.LinkCode != "" || request.AccessCode != "" {
+		return nil, errors.New("user target is invalid")
+	}
+	query.Set("request", "RequestFollowUser")
+	query.Set("userId", strconv.FormatInt(request.UserID, 10))
 	return query, nil
 }

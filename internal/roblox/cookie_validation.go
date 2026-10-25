@@ -35,110 +35,137 @@ func (client *Client) ValidateCookie(ctx context.Context, cookie, browserID stri
 	}
 	requestContext, cancel := context.WithTimeout(ctx, requestTimeout)
 	defer cancel()
-	currentCookie := cookie
-	var expires *time.Time
+	validation := CookieValidation{Cookie: cookie, BrowserID: browserID}
 	for attempt := 1; attempt <= 3; attempt++ {
-		request, err := http.NewRequestWithContext(requestContext, http.MethodGet, client.authenticatedUserURL.String(), http.NoBody)
+		response, retry, err := client.sendCookieValidation(requestContext, validation, attempt)
 		if err != nil {
-			return CookieValidation{}, &Error{Kind: KindProtocol, Endpoint: "cookie-import", Message: "The cookie validation request is invalid.", Cause: err}
+			return CookieValidation{}, err
 		}
-		request.Header.Set("User-Agent", appmeta.UserAgent)
-		request.Header.Set("Accept", "application/json")
-		request.Header.Set("Cookie", formatAuthCookie(currentCookie, browserID))
-		release, err := client.limits.acquire(requestContext, request.URL.Hostname(), 0)
-		if err != nil {
-			return CookieValidation{}, contextError("cookie-import", err)
+		if retry {
+			continue
 		}
-		response, err := client.http.Do(request)
-		if err != nil {
-			release()
-			if requestContext.Err() != nil {
-				return CookieValidation{}, contextError("cookie-import", requestContext.Err())
-			}
-			if attempt < 3 && retryableTransport(err) {
-				if err := waitForRetry(requestContext, backoff(attempt, secureSample())); err != nil {
-					return CookieValidation{}, contextError("cookie-import", err)
-				}
-				continue
-			}
-			return CookieValidation{}, &Error{Kind: KindTransport, Endpoint: "cookie-import", Message: "Roblox could not be reached. The cookie was not stored.", Cause: err, SafeToRetry: true}
+		if err := client.applyValidationCookies(response, &validation); err != nil {
+			return CookieValidation{}, err
 		}
-		body, readErr := readLimited(response.Body, defaultResponseLimit)
-		response.Body.Close()
-		release()
-		if readErr != nil {
-			if requestContext.Err() != nil {
-				return CookieValidation{}, contextError("cookie-import", requestContext.Err())
-			}
-			if errors.Is(readErr, errResponseTooLarge) {
-				return CookieValidation{}, &Error{Kind: KindResponseTooLarge, Endpoint: "cookie-import", Status: response.StatusCode, Message: "The cookie validation response was too large.", Cause: readErr}
-			}
-			return CookieValidation{}, &Error{Kind: KindTransport, Endpoint: "cookie-import", Status: response.StatusCode, Message: "The cookie validation response could not be read. The cookie was not stored.", Cause: readErr, SafeToRetry: true}
+		result, retry, err := client.cookieValidationResponse(requestContext, response, validation, attempt)
+		if retry {
+			continue
 		}
-		for _, replacement := range response.Cookies() {
-			if replacement.Name != accounts.RoblosecurityCookieName {
-				continue
-			}
-			if replacement.Value == "" || replacement.MaxAge < 0 {
-				return CookieValidation{}, &Error{Kind: KindInvalidSession, Endpoint: "cookie-import", Status: response.StatusCode, Message: "Roblox rejected this cookie."}
-			}
-			if err := accounts.ValidateCookieValue(replacement.Value); err != nil {
-				return CookieValidation{}, &Error{Kind: KindProtocol, Endpoint: "cookie-import", Message: "Roblox returned an invalid replacement cookie.", Cause: err}
-			}
-			currentCookie = replacement.Value
-			if !replacement.Expires.IsZero() {
-				value := replacement.Expires.UTC()
-				if !value.After(client.now()) {
-					return CookieValidation{}, &Error{Kind: KindInvalidSession, Endpoint: "cookie-import", Status: response.StatusCode, Message: "Roblox returned an expired session cookie."}
-				}
-				expires = &value
-			}
-		}
-		switch {
-		case response.StatusCode >= 200 && response.StatusCode < 300:
-			var identity struct {
-				ID          int64  `json:"id"`
-				Name        string `json:"name"`
-				DisplayName string `json:"displayName"`
-			}
-			if err := json.Unmarshal(body, &identity); err != nil || identity.ID <= 0 || strings.TrimSpace(identity.Name) == "" {
-				return CookieValidation{}, &Error{Kind: KindProtocol, Endpoint: "cookie-import", Status: response.StatusCode, Message: "Roblox returned an invalid account identity."}
-			}
-			return CookieValidation{
-				Identity:  accounts.Identity{RobloxUserID: identity.ID, Username: identity.Name, DisplayName: identity.DisplayName},
-				Cookie:    currentCookie,
-				BrowserID: browserID,
-				ExpiresAt: expires,
-			}, nil
-		case response.StatusCode == http.StatusUnauthorized:
-			return CookieValidation{}, &Error{Kind: KindInvalidSession, Endpoint: "cookie-import", Status: response.StatusCode, Message: "Roblox rejected this cookie."}
-		case response.StatusCode == http.StatusForbidden:
-			challengeType := strings.TrimSpace(response.Header.Get(challengeTypeHeader))
-			if challengeType != "" {
-				message := "Roblox requires user interaction before this cookie can be used."
-				return CookieValidation{}, &Error{Kind: KindChallengeRequired, Endpoint: "cookie-import", Status: response.StatusCode, ChallengeType: challengeType, Message: message}
-			}
-			return CookieValidation{}, &Error{Kind: KindForbidden, Endpoint: "cookie-import", Status: response.StatusCode, Message: "Roblox rejected cookie validation."}
-		case response.StatusCode == http.StatusTooManyRequests:
-			delay := retryDelay(response.Header, attempt, client.now())
-			if attempt < 3 {
-				if err := waitForRetry(requestContext, delay); err != nil {
-					return CookieValidation{}, contextError("cookie-import", err)
-				}
-				continue
-			}
-			return CookieValidation{}, &Error{Kind: KindRateLimited, Endpoint: "cookie-import", Status: response.StatusCode, RetryAt: client.now().Add(delay), Message: "Roblox is rate limiting cookie validation.", SafeToRetry: true}
-		case response.StatusCode >= 500:
-			if attempt < 3 {
-				if err := waitForRetry(requestContext, retryDelay(response.Header, attempt, client.now())); err != nil {
-					return CookieValidation{}, contextError("cookie-import", err)
-				}
-				continue
-			}
-			return CookieValidation{}, &Error{Kind: KindServer, Endpoint: "cookie-import", Status: response.StatusCode, Message: "Roblox is temporarily unavailable. The cookie was not stored.", SafeToRetry: true}
-		default:
-			return CookieValidation{}, &Error{Kind: KindProtocol, Endpoint: "cookie-import", Status: response.StatusCode, Message: fmt.Sprintf("Roblox returned status %d. The cookie was not stored.", response.StatusCode)}
-		}
+		return result, err
 	}
 	return CookieValidation{}, &Error{Kind: KindProtocol, Endpoint: "cookie-import", Message: "Cookie validation stopped unexpectedly.", Cause: io.EOF}
+}
+
+func (client *Client) sendCookieValidation(ctx context.Context, validation CookieValidation, attempt int) (*Response, bool, error) {
+	request, err := http.NewRequestWithContext(ctx, http.MethodGet, client.authenticatedUserURL.String(), http.NoBody)
+	if err != nil {
+		return nil, false, &Error{Kind: KindProtocol, Endpoint: "cookie-import", Message: "The cookie validation request is invalid.", Cause: err}
+	}
+	request.Header.Set("User-Agent", appmeta.UserAgent)
+	request.Header.Set("Accept", "application/json")
+	request.Header.Set("Cookie", formatAuthCookie(validation.Cookie, validation.BrowserID))
+	release, err := client.limits.acquire(ctx, request.URL.Hostname(), 0)
+	if err != nil {
+		return nil, false, contextError("cookie-import", err)
+	}
+	response, err := client.http.Do(request)
+	if err != nil {
+		release()
+		if ctx.Err() != nil {
+			return nil, false, contextError("cookie-import", ctx.Err())
+		}
+		if attempt < 3 && retryableTransport(err) {
+			if err := waitForRetry(ctx, backoff(attempt, secureSample())); err != nil {
+				return nil, false, contextError("cookie-import", err)
+			}
+			return nil, true, nil
+		}
+		return nil, false, &Error{Kind: KindTransport, Endpoint: "cookie-import", Message: "Roblox could not be reached. The cookie was not stored.", Cause: err, SafeToRetry: true}
+	}
+	body, readErr := readLimited(response.Body, defaultResponseLimit)
+	response.Body.Close()
+	release()
+	if readErr != nil {
+		if ctx.Err() != nil {
+			return nil, false, contextError("cookie-import", ctx.Err())
+		}
+		if errors.Is(readErr, errResponseTooLarge) {
+			return nil, false, &Error{Kind: KindResponseTooLarge, Endpoint: "cookie-import", Status: response.StatusCode, Message: "The cookie validation response was too large.", Cause: readErr}
+		}
+		return nil, false, &Error{Kind: KindTransport, Endpoint: "cookie-import", Status: response.StatusCode, Message: "The cookie validation response could not be read. The cookie was not stored.", Cause: readErr, SafeToRetry: true}
+	}
+	return &Response{Status: response.StatusCode, Header: response.Header, Body: body}, false, nil
+}
+
+func (client *Client) applyValidationCookies(response *Response, validation *CookieValidation) error {
+	cookies := (&http.Response{Header: response.Header}).Cookies()
+	for _, replacement := range cookies {
+		if replacement.Name != accounts.RoblosecurityCookieName {
+			continue
+		}
+		if replacement.Value == "" || replacement.MaxAge < 0 {
+			return &Error{Kind: KindInvalidSession, Endpoint: "cookie-import", Status: response.Status, Message: "Roblox rejected this cookie."}
+		}
+		if err := accounts.ValidateCookieValue(replacement.Value); err != nil {
+			return &Error{Kind: KindProtocol, Endpoint: "cookie-import", Message: "Roblox returned an invalid replacement cookie.", Cause: err}
+		}
+		validation.Cookie = replacement.Value
+		if !replacement.Expires.IsZero() {
+			value := replacement.Expires.UTC()
+			if !value.After(client.now()) {
+				return &Error{Kind: KindInvalidSession, Endpoint: "cookie-import", Status: response.Status, Message: "Roblox returned an expired session cookie."}
+			}
+			validation.ExpiresAt = &value
+		}
+	}
+	return nil
+}
+
+func (client *Client) cookieValidationResponse(ctx context.Context, response *Response, validation CookieValidation, attempt int) (CookieValidation, bool, error) {
+	switch {
+	case response.Status >= 200 && response.Status < 300:
+		result, err := cookieValidationIdentity(response, validation)
+		return result, false, err
+	case response.Status == http.StatusUnauthorized:
+		return CookieValidation{}, false, &Error{Kind: KindInvalidSession, Endpoint: "cookie-import", Status: response.Status, Message: "Roblox rejected this cookie."}
+	case response.Status == http.StatusForbidden:
+		challengeType := strings.TrimSpace(response.Header.Get(challengeTypeHeader))
+		if challengeType != "" {
+			message := "Roblox requires user interaction before this cookie can be used."
+			return CookieValidation{}, false, &Error{Kind: KindChallengeRequired, Endpoint: "cookie-import", Status: response.Status, ChallengeType: challengeType, Message: message}
+		}
+		return CookieValidation{}, false, &Error{Kind: KindForbidden, Endpoint: "cookie-import", Status: response.Status, Message: "Roblox rejected cookie validation."}
+	case response.Status == http.StatusTooManyRequests:
+		delay := retryDelay(response.Header, attempt, client.now())
+		if attempt < 3 {
+			if err := waitForRetry(ctx, delay); err != nil {
+				return CookieValidation{}, false, contextError("cookie-import", err)
+			}
+			return CookieValidation{}, true, nil
+		}
+		return CookieValidation{}, false, &Error{Kind: KindRateLimited, Endpoint: "cookie-import", Status: response.Status, RetryAt: client.now().Add(delay), Message: "Roblox is rate limiting cookie validation.", SafeToRetry: true}
+	case response.Status >= 500:
+		if attempt < 3 {
+			if err := waitForRetry(ctx, retryDelay(response.Header, attempt, client.now())); err != nil {
+				return CookieValidation{}, false, contextError("cookie-import", err)
+			}
+			return CookieValidation{}, true, nil
+		}
+		return CookieValidation{}, false, &Error{Kind: KindServer, Endpoint: "cookie-import", Status: response.Status, Message: "Roblox is temporarily unavailable. The cookie was not stored.", SafeToRetry: true}
+	default:
+		return CookieValidation{}, false, &Error{Kind: KindProtocol, Endpoint: "cookie-import", Status: response.Status, Message: fmt.Sprintf("Roblox returned status %d. The cookie was not stored.", response.Status)}
+	}
+}
+
+func cookieValidationIdentity(response *Response, validation CookieValidation) (CookieValidation, error) {
+	var identity struct {
+		ID          int64  `json:"id"`
+		Name        string `json:"name"`
+		DisplayName string `json:"displayName"`
+	}
+	if err := json.Unmarshal(response.Body, &identity); err != nil || identity.ID <= 0 || strings.TrimSpace(identity.Name) == "" {
+		return CookieValidation{}, &Error{Kind: KindProtocol, Endpoint: "cookie-import", Status: response.Status, Message: "Roblox returned an invalid account identity."}
+	}
+	validation.Identity = accounts.Identity{RobloxUserID: identity.ID, Username: identity.Name, DisplayName: identity.DisplayName}
+	return validation, nil
 }

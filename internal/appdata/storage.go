@@ -126,12 +126,11 @@ func resolve(portable, standard *Candidate, requested Mode) (Location, error) {
 		return location, nil
 	}
 	if requested != "" {
-		for _, candidate := range []*Candidate{portable, standard} {
-			if candidate != nil && candidate.Mode == requested {
-				return use(candidate, true, ChoiceNone)
-			}
+		candidate, err := requestedCandidate(portable, standard, requested)
+		if err != nil {
+			return Location{}, err
 		}
-		return Location{}, fmt.Errorf("storage mode %q is unavailable", requested)
+		return use(candidate, true, ChoiceNone)
 	}
 	if portable == nil {
 		// macOS, or a Portable root that is the Standard root.
@@ -304,4 +303,13 @@ func argumentMode(arguments []string, prefix string) (Mode, error) {
 		}
 	}
 	return "", nil
+}
+
+func requestedCandidate(portable, standard *Candidate, requested Mode) (*Candidate, error) {
+	for _, candidate := range []*Candidate{portable, standard} {
+		if candidate != nil && candidate.Mode == requested {
+			return candidate, nil
+		}
+	}
+	return nil, fmt.Errorf("storage mode %q is unavailable", requested)
 }

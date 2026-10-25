@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"log/slog"
 	"strconv"
 	"strings"
 	"sync/atomic"
@@ -184,22 +185,7 @@ func (service *Service) runLaunchOperation(ctx context.Context, accountID int64,
 	logger := service.logger.With("operation_id", fmt.Sprintf("launch-%d", launchOperationID.Add(1)), "operation", operation, "account_id", accountID)
 	stage := "parse-input"
 	defer func() {
-		if errors.Is(result, robloxmulti.ErrLaunchCancelled) {
-			logger.Info("Roblox launch cancelled")
-			return
-		}
-		if result == nil {
-			logger.Info("Roblox launch operation completed")
-			return
-		}
-		kind, status, code := roblox.KindProtocol, 0, 0
-		endpoint, message := operation, "The launch failed before a Roblox response was available."
-		if remote, ok := errors.AsType[*roblox.Error](result); ok {
-			kind, status, code = remote.Kind, remote.Status, remote.RobloxCode
-			endpoint, message = remote.Endpoint, remote.Message
-		}
-		// Do not log Cause: transport and process errors can include secret URLs.
-		logger.Warn("Roblox launch operation failed", "stage", stage, "endpoint", endpoint, "error_kind", kind, "status", status, "roblox_code", code, "error_message", message)
+		logLaunchResult(logger, operation, stage, result)
 	}()
 	target, err := gamelaunch.Parse(input)
 	if err != nil {
@@ -312,4 +298,23 @@ func launchPreparationError(err error) *roblox.Error {
 	}
 	message := err.Error()
 	return &roblox.Error{Kind: roblox.KindProtocol, Endpoint: "game-launch", Message: strings.ToUpper(message[:1]) + message[1:] + "."}
+}
+
+func logLaunchResult(logger *slog.Logger, operation, stage string, result error) {
+	if errors.Is(result, robloxmulti.ErrLaunchCancelled) {
+		logger.Info("Roblox launch cancelled")
+		return
+	}
+	if result == nil {
+		logger.Info("Roblox launch operation completed")
+		return
+	}
+	kind, status, code := roblox.KindProtocol, 0, 0
+	endpoint, message := operation, "The launch failed before a Roblox response was available."
+	if remote, ok := errors.AsType[*roblox.Error](result); ok {
+		kind, status, code = remote.Kind, remote.Status, remote.RobloxCode
+		endpoint, message = remote.Endpoint, remote.Message
+	}
+	// Do not log Cause: transport and process errors can include secret URLs.
+	logger.Warn("Roblox launch operation failed", "stage", stage, "endpoint", endpoint, "error_kind", kind, "status", status, "roblox_code", code, "error_message", message)
 }

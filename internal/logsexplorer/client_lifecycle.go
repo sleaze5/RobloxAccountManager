@@ -50,18 +50,26 @@ func parseLaunch(line string, session *Session) {
 			session.LaunchMode = LaunchWarm
 		}
 	case strings.Contains(lower, "noreload") && strings.Contains(lower, "warm start"):
-		if session.LaunchMode == "" || session.LaunchMode == LaunchTray {
-			session.LaunchMode = LaunchWarm
-		}
-		if session.LaunchSource != SourceWebsite {
-			session.LaunchSource = SourceExistingClient
-		}
+		parseWarmResume(session)
 	case strings.Contains(lower, "appstate/traymode"):
-		if session.LaunchMode == "" {
-			session.LaunchMode = LaunchTray
-		}
-		if session.LaunchSource == "" {
-			session.LaunchSource = SourceTray
-		}
+		parseTrayLaunch(session)
+	}
+}
+
+func parseWarmResume(session *Session) {
+	if session.LaunchMode == "" || session.LaunchMode == LaunchTray {
+		session.LaunchMode = LaunchWarm
+	}
+	if session.LaunchSource != SourceWebsite {
+		session.LaunchSource = SourceExistingClient
+	}
+}
+
+func parseTrayLaunch(session *Session) {
+	if session.LaunchMode == "" {
+		session.LaunchMode = LaunchTray
+	}
+	if session.LaunchSource == "" {
+		session.LaunchSource = SourceTray
 	}
 }

@@ -241,13 +241,7 @@ func (coordinator *Coordinator) start(ctx context.Context, mode Mode, accountID 
 	coordinator.mu.Unlock()
 	registered := false
 	defer func() {
-		coordinator.mu.Lock()
-		if !registered {
-			coordinator.pendingStarts--
-			coordinator.bumpLocked()
-		}
-		coordinator.mu.Unlock()
-		coordinator.starts.Done()
+		coordinator.finishStart(registered)
 	}()
 	ctx, cancelStart := context.WithCancel(ctx)
 	stop := context.AfterFunc(lifetime, cancelStart)
@@ -311,39 +305,7 @@ func (coordinator *Coordinator) start(ctx context.Context, mode Mode, accountID 
 		go coordinator.initializeLogin(currentCtx, current)
 		return state, nil
 	}
-	startupCtx, startupCancel := context.WithTimeout(ctx, 12*time.Second)
-	defer startupCancel()
-	if err := coordinator.initializeCDP(startupCtx, current); err != nil {
-		coordinator.abortStartup(current, err)
-		return SessionState{}, err
-	}
-	sessionID, err := coordinator.targetSession(startupCtx, current)
-	if err != nil {
-		coordinator.abortStartup(current, err)
-		return SessionState{}, err
-	}
-	if err := current.cdp.SetBrowserID(startupCtx, sessionID, current.browserID); err != nil {
-		coordinator.abortStartup(current, err)
-		return SessionState{}, err
-	}
-	if err := current.cdp.SetRobloxCookie(startupCtx, sessionID, record.Cookie); err != nil {
-		coordinator.abortStartup(current, err)
-		return SessionState{}, errors.New("the saved account cookie could not be prepared in the browser")
-	}
-	current.lastCookie = record.Cookie
-	if err := current.cdp.Navigate(startupCtx, sessionID, "https://www.roblox.com/home"); err != nil {
-		coordinator.abortStartup(current, err)
-		return SessionState{}, err
-	}
-	state = coordinator.activateSession(current)
-	if state.Lifecycle != LifecycleActive {
-		return SessionState{}, errLaunchesBlocked
-	}
-	go coordinator.observe(currentCtx, current)
-	go coordinator.watchProcess(current)
-	_ = coordinator.Focus(id)
-	coordinator.logger.Info("managed browser session started", "session_id", id, "session_mode", mode, "account_id", accountID)
-	return state, nil
+	return coordinator.initializeSavedSession(ctx, current, state, record.Cookie)
 }
 
 func (coordinator *Coordinator) initializeLogin(ctx context.Context, current *session) {
@@ -493,36 +455,9 @@ func (coordinator *Coordinator) handleSessionEvent(current *session, event cdpMe
 			coordinator.mu.Unlock()
 		}
 	case "Target.targetDestroyed":
-		var params struct {
-			TargetID string `json:"targetId"`
-		}
-		if json.Unmarshal(event.Params, &params) == nil && params.TargetID != "" {
-			coordinator.mu.Lock()
-			delete(current.targetSessions, params.TargetID)
-			if current.targetID == params.TargetID {
-				current.targetID = ""
-			}
-			_, page := current.pages[params.TargetID]
-			delete(current.pages, params.TargetID)
-			lastPage := page && len(current.pages) == 0
-			coordinator.mu.Unlock()
-			if lastPage {
-				current.process.PagesClosed()
-			}
-		}
+		coordinator.handleTargetDestroyed(current, event.Params)
 	case "Target.detachedFromTarget":
-		var params struct {
-			SessionID string `json:"sessionId"`
-		}
-		if json.Unmarshal(event.Params, &params) == nil && params.SessionID != "" {
-			coordinator.mu.Lock()
-			for targetID, sessionID := range current.targetSessions {
-				if sessionID == params.SessionID {
-					delete(current.targetSessions, targetID)
-				}
-			}
-			coordinator.mu.Unlock()
-		}
+		coordinator.handleTargetDetached(current, event.Params)
 	case "Browser.downloadWillBegin":
 		var params struct {
 			GUID string `json:"guid"`
@@ -598,82 +533,7 @@ func (coordinator *Coordinator) checkpoint(ctx context.Context, current *session
 		}
 	}
 	value := selectedCookie.Value
-	coordinator.mu.Lock()
-	if value == current.lastCookie && current.validatedGeneration == current.generation {
-		coordinator.mu.Unlock()
-		return
-	}
-	if value != current.lastCookie {
-		current.lastCookie = value
-		current.generation++
-	}
-	generation := current.generation
-	browserID, robloxUserID := current.browserID, current.robloxUserID
-	coordinator.validationCount++
-	coordinator.bumpLocked()
-	coordinator.mu.Unlock()
-	validation, err := coordinator.backend.ValidateBrowserCookie(ctx, value, browserID)
-	if err != nil && ctx.Err() == nil {
-		coordinator.setCheckpointWarning(current, "The browser cookie could not be validated. Sign in again and retry.")
-		coordinator.logger.Warn("browser cookie validation failed", "session_id", current.state.ID, "session_mode", current.state.Mode, "account_id", current.state.AccountID, "error", err)
-	} else if err == nil {
-		coordinator.setCheckpointWarning(current, "")
-	}
-	coordinator.mu.Lock()
-	coordinator.validationCount--
-	allowed := current.state.Lifecycle == LifecycleActive || final && current.state.Lifecycle == LifecycleValidating
-	stale := current.generation != generation || coordinator.sessions[current.state.ID] != current || !allowed
-	if !stale && err != nil && ctx.Err() == nil {
-		current.validatedGeneration = generation
-	}
-	coordinator.bumpLocked()
-	coordinator.mu.Unlock()
-	if stale || err != nil {
-		validation.Cookie = ""
-		return
-	}
-	if robloxUserID != 0 && robloxUserID != validation.Identity.RobloxUserID && validation.BrowserID == browserID {
-		validation.BrowserID = roblox.NewBrowserID()
-	}
-	if err := current.cdp.SetBrowserID(ctx, sessionID, validation.BrowserID); err != nil {
-		coordinator.setCheckpointWarning(current, "The account browser ID could not be synchronized.")
-		return
-	}
-	coordinator.mu.Lock()
-	current.browserID = validation.BrowserID
-	current.validatedGeneration = generation
-	if current.state.Mode == ModeLogin {
-		current.robloxUserID = validation.Identity.RobloxUserID
-	}
-	coordinator.mu.Unlock()
-	if validation.Cookie != value {
-		if injectionErr := current.cdp.SetRobloxCookie(ctx, sessionID, validation.Cookie); injectionErr != nil {
-			coordinator.setCheckpointWarning(current, "A rotated browser cookie could not be returned to the browser.")
-		} else {
-			coordinator.mu.Lock()
-			current.lastCookie = validation.Cookie
-			coordinator.mu.Unlock()
-		}
-	}
-	if current.state.Mode == ModeLogin {
-		coordinator.installCandidate(ctx, current, validation)
-		return
-	}
-	if validation.Identity.RobloxUserID != current.robloxUserID {
-		validation.Cookie = ""
-		coordinator.detach(current, "This browser signed in to a different Roblox account and is no longer synchronized.")
-		return
-	}
-	newVersion, err := coordinator.backend.SynchronizeBrowserCookie(ctx, current.state.AccountID, current.secretVersion, validation)
-	validation.Cookie = ""
-	if err != nil {
-		coordinator.detach(current, "The saved account changed elsewhere. This browser is no longer synchronized.")
-		return
-	}
-	coordinator.mu.Lock()
-	current.secretVersion = newVersion
-	coordinator.bumpLocked()
-	coordinator.mu.Unlock()
+	coordinator.checkpointCookie(ctx, current, final, sessionID, value)
 }
 
 func (coordinator *Coordinator) recordCheckpointFailure(current *session, cause error) {
@@ -1394,4 +1254,174 @@ func (queue *cleanupQueue) process() {
 func (queue *cleanupQueue) close() {
 	close(queue.done)
 	<-queue.stopped
+}
+
+func (coordinator *Coordinator) finishStart(registered bool) {
+	coordinator.mu.Lock()
+	if !registered {
+		coordinator.pendingStarts--
+		coordinator.bumpLocked()
+	}
+	coordinator.mu.Unlock()
+	coordinator.starts.Done()
+}
+
+func (coordinator *Coordinator) initializeSavedSession(ctx context.Context, current *session, state SessionState, cookie string) (SessionState, error) {
+	id, mode, accountID := state.ID, state.Mode, state.AccountID
+	startupCtx, startupCancel := context.WithTimeout(ctx, 12*time.Second)
+	defer startupCancel()
+	if err := coordinator.initializeCDP(startupCtx, current); err != nil {
+		coordinator.abortStartup(current, err)
+		return SessionState{}, err
+	}
+	sessionID, err := coordinator.targetSession(startupCtx, current)
+	if err != nil {
+		coordinator.abortStartup(current, err)
+		return SessionState{}, err
+	}
+	if err := current.cdp.SetBrowserID(startupCtx, sessionID, current.browserID); err != nil {
+		coordinator.abortStartup(current, err)
+		return SessionState{}, err
+	}
+	if err := current.cdp.SetRobloxCookie(startupCtx, sessionID, cookie); err != nil {
+		coordinator.abortStartup(current, err)
+		return SessionState{}, errors.New("the saved account cookie could not be prepared in the browser")
+	}
+	current.lastCookie = cookie
+	if err := current.cdp.Navigate(startupCtx, sessionID, "https://www.roblox.com/home"); err != nil {
+		coordinator.abortStartup(current, err)
+		return SessionState{}, err
+	}
+	state = coordinator.activateSession(current)
+	if state.Lifecycle != LifecycleActive {
+		return SessionState{}, errLaunchesBlocked
+	}
+	go coordinator.observe(current.ctx, current)
+	go coordinator.watchProcess(current)
+	_ = coordinator.Focus(id)
+	coordinator.logger.Info("managed browser session started", "session_id", id, "session_mode", mode, "account_id", accountID)
+	return state, nil
+}
+
+func (coordinator *Coordinator) handleTargetDestroyed(current *session, paramsData json.RawMessage) {
+	var params struct {
+		TargetID string `json:"targetId"`
+	}
+	if json.Unmarshal(paramsData, &params) == nil && params.TargetID != "" {
+		coordinator.mu.Lock()
+		delete(current.targetSessions, params.TargetID)
+		if current.targetID == params.TargetID {
+			current.targetID = ""
+		}
+		_, page := current.pages[params.TargetID]
+		delete(current.pages, params.TargetID)
+		lastPage := page && len(current.pages) == 0
+		coordinator.mu.Unlock()
+		if lastPage {
+			current.process.PagesClosed()
+		}
+	}
+}
+
+func (coordinator *Coordinator) handleTargetDetached(current *session, paramsData json.RawMessage) {
+	var params struct {
+		SessionID string `json:"sessionId"`
+	}
+	if json.Unmarshal(paramsData, &params) == nil && params.SessionID != "" {
+		coordinator.mu.Lock()
+		for targetID, sessionID := range current.targetSessions {
+			if sessionID == params.SessionID {
+				delete(current.targetSessions, targetID)
+			}
+		}
+		coordinator.mu.Unlock()
+	}
+}
+
+func (coordinator *Coordinator) completeCheckpointValidation(ctx context.Context, current *session, final bool, generation uint64, err error) bool {
+	if err != nil && ctx.Err() == nil {
+		coordinator.setCheckpointWarning(current, "The browser cookie could not be validated. Sign in again and retry.")
+		coordinator.logger.Warn("browser cookie validation failed", "session_id", current.state.ID, "session_mode", current.state.Mode, "account_id", current.state.AccountID, "error", err)
+	} else if err == nil {
+		coordinator.setCheckpointWarning(current, "")
+	}
+	coordinator.mu.Lock()
+	coordinator.validationCount--
+	allowed := current.state.Lifecycle == LifecycleActive || final && current.state.Lifecycle == LifecycleValidating
+	stale := current.generation != generation || coordinator.sessions[current.state.ID] != current || !allowed
+	if !stale && err != nil && ctx.Err() == nil {
+		current.validatedGeneration = generation
+	}
+	coordinator.bumpLocked()
+	coordinator.mu.Unlock()
+	return stale
+}
+
+func (coordinator *Coordinator) checkpointCookie(ctx context.Context, current *session, final bool, sessionID, value string) {
+	coordinator.mu.Lock()
+	if value == current.lastCookie && current.validatedGeneration == current.generation {
+		coordinator.mu.Unlock()
+		return
+	}
+	if value != current.lastCookie {
+		current.lastCookie = value
+		current.generation++
+	}
+	generation := current.generation
+	browserID, robloxUserID := current.browserID, current.robloxUserID
+	coordinator.validationCount++
+	coordinator.bumpLocked()
+	coordinator.mu.Unlock()
+	validation, err := coordinator.backend.ValidateBrowserCookie(ctx, value, browserID)
+	stale := coordinator.completeCheckpointValidation(ctx, current, final, generation, err)
+	if stale || err != nil {
+		validation.Cookie = ""
+		return
+	}
+	if robloxUserID != 0 && robloxUserID != validation.Identity.RobloxUserID && validation.BrowserID == browserID {
+		validation.BrowserID = roblox.NewBrowserID()
+	}
+	if err := current.cdp.SetBrowserID(ctx, sessionID, validation.BrowserID); err != nil {
+		coordinator.setCheckpointWarning(current, "The account browser ID could not be synchronized.")
+		return
+	}
+	coordinator.mu.Lock()
+	current.browserID = validation.BrowserID
+	current.validatedGeneration = generation
+	if current.state.Mode == ModeLogin {
+		current.robloxUserID = validation.Identity.RobloxUserID
+	}
+	coordinator.mu.Unlock()
+	if validation.Cookie != value {
+		if injectionErr := current.cdp.SetRobloxCookie(ctx, sessionID, validation.Cookie); injectionErr != nil {
+			coordinator.setCheckpointWarning(current, "A rotated browser cookie could not be returned to the browser.")
+		} else {
+			coordinator.mu.Lock()
+			current.lastCookie = validation.Cookie
+			coordinator.mu.Unlock()
+		}
+	}
+	coordinator.synchronizeCheckpoint(ctx, current, &validation)
+}
+
+func (coordinator *Coordinator) synchronizeCheckpoint(ctx context.Context, current *session, validation *roblox.CookieValidation) {
+	if current.state.Mode == ModeLogin {
+		coordinator.installCandidate(ctx, current, *validation)
+		return
+	}
+	if validation.Identity.RobloxUserID != current.robloxUserID {
+		validation.Cookie = ""
+		coordinator.detach(current, "This browser signed in to a different Roblox account and is no longer synchronized.")
+		return
+	}
+	newVersion, err := coordinator.backend.SynchronizeBrowserCookie(ctx, current.state.AccountID, current.secretVersion, *validation)
+	validation.Cookie = ""
+	if err != nil {
+		coordinator.detach(current, "The saved account changed elsewhere. This browser is no longer synchronized.")
+		return
+	}
+	coordinator.mu.Lock()
+	current.secretVersion = newVersion
+	coordinator.bumpLocked()
+	coordinator.mu.Unlock()
 }

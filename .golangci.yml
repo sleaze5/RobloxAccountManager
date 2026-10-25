@@ -5,7 +5,6 @@ linters:
     disable:
         - containedctx
         - contextcheck
-        - cyclop
         - depguard
         - dogsled
         - err113
@@ -42,6 +41,8 @@ linters:
                   - gosec
               text: G122
     settings:
+        cyclop:
+            max-complexity: 15
         errcheck:
             check-type-assertions: true
             exclude-functions:

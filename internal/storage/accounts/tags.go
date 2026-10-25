@@ -136,28 +136,9 @@ func (repository *Repository) SetAccountsTag(ctx context.Context, accountIDs []i
 		return nil, fmt.Errorf("find tag: %w", err)
 	}
 	now := repository.now().UTC().UnixMilli()
-	anyChanged := false
-	for _, accountID := range accountIDs {
-		if err := tx.QueryRowContext(ctx, `SELECT 1 FROM accounts WHERE id = ?`, accountID).Scan(&exists); errors.Is(err, sql.ErrNoRows) {
-			return nil, ErrNotFound
-		} else if err != nil {
-			return nil, fmt.Errorf("find tagged account: %w", err)
-		}
-		var result sql.Result
-		if selected {
-			result, err = tx.ExecContext(ctx, `INSERT INTO account_tags(account_id, tag_id, created_at_ms) VALUES(?, ?, ?) ON CONFLICT(account_id, tag_id) DO NOTHING`, accountID, tagID, now)
-		} else {
-			result, err = tx.ExecContext(ctx, `DELETE FROM account_tags WHERE account_id = ? AND tag_id = ?`, accountID, tagID)
-		}
-		if err != nil {
-			return nil, fmt.Errorf("update account tag: %w", err)
-		}
-		if changed, _ := result.RowsAffected(); changed > 0 {
-			anyChanged = true
-			if _, err := tx.ExecContext(ctx, `UPDATE accounts SET updated_at_ms = ? WHERE id = ?`, now, accountID); err != nil {
-				return nil, fmt.Errorf("update tagged account: %w", err)
-			}
-		}
+	anyChanged, err := assignAccountsTag(ctx, tx, accountIDs, tagID, selected, now)
+	if err != nil {
+		return nil, err
 	}
 	if anyChanged {
 		if err := bumpRevision(ctx, tx); err != nil {
@@ -239,3 +220,32 @@ func listAccountTags(ctx context.Context, db interface {
 const accountTagsQuery = `
 SELECT account_tags.account_id, tags.id, tags.name, tags.kind
 FROM account_tags JOIN tags ON tags.id = account_tags.tag_id`
+
+func assignAccountsTag(ctx context.Context, tx *sql.Tx, accountIDs []int64, tagID int64, selected bool, now int64) (bool, error) {
+	var exists int
+	var err error
+	anyChanged := false
+	for _, accountID := range accountIDs {
+		if err := tx.QueryRowContext(ctx, `SELECT 1 FROM accounts WHERE id = ?`, accountID).Scan(&exists); errors.Is(err, sql.ErrNoRows) {
+			return false, ErrNotFound
+		} else if err != nil {
+			return false, fmt.Errorf("find tagged account: %w", err)
+		}
+		var result sql.Result
+		if selected {
+			result, err = tx.ExecContext(ctx, `INSERT INTO account_tags(account_id, tag_id, created_at_ms) VALUES(?, ?, ?) ON CONFLICT(account_id, tag_id) DO NOTHING`, accountID, tagID, now)
+		} else {
+			result, err = tx.ExecContext(ctx, `DELETE FROM account_tags WHERE account_id = ? AND tag_id = ?`, accountID, tagID)
+		}
+		if err != nil {
+			return false, fmt.Errorf("update account tag: %w", err)
+		}
+		if changed, _ := result.RowsAffected(); changed > 0 {
+			anyChanged = true
+			if _, err := tx.ExecContext(ctx, `UPDATE accounts SET updated_at_ms = ? WHERE id = ?`, now, accountID); err != nil {
+				return false, fmt.Errorf("update tagged account: %w", err)
+			}
+		}
+	}
+	return anyChanged, nil
+}

@@ -75,15 +75,7 @@ func parse(ctx context.Context, input io.Reader, session *Session) error {
 }
 
 func (state *parseState) parseLine(line string, session *Session) {
-	if prefix, _, ok := strings.Cut(line, ","); ok {
-		if parsed, err := time.Parse(time.RFC3339Nano, prefix); err == nil {
-			if state.timestamp == 0 {
-				session.StartedAtMs = parsed.UnixMilli()
-			}
-			state.timestamp = parsed.UnixMilli()
-			state.client.record(line, state.timestamp)
-		}
-	}
+	state.parseTimestamp(line, session)
 	parseMetadata(line, session)
 	if len(session.Visits) == 0 {
 		parseLaunch(line, session)
@@ -162,4 +154,16 @@ func capture(pattern *regexp.Regexp, line string) string {
 		return match[1]
 	}
 	return ""
+}
+
+func (state *parseState) parseTimestamp(line string, session *Session) {
+	if prefix, _, ok := strings.Cut(line, ","); ok {
+		if parsed, err := time.Parse(time.RFC3339Nano, prefix); err == nil {
+			if state.timestamp == 0 {
+				session.StartedAtMs = parsed.UnixMilli()
+			}
+			state.timestamp = parsed.UnixMilli()
+			state.client.record(line, state.timestamp)
+		}
+	}
 }

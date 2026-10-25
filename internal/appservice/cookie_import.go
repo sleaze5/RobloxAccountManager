@@ -98,27 +98,7 @@ func (service *Service) ValidateCookies(ctx context.Context, input string) (Impo
 		return ImportPreview{}, &roblox.Error{Kind: roblox.KindProtocol, Endpoint: "cookie-import", Message: "Cookie validation is unavailable."}
 	}
 
-	outcomes := make([]importValidationOutcome, len(inputs))
-	jobs := make(chan int, len(inputs))
-	for index := range inputs {
-		jobs <- index
-	}
-	close(jobs)
-
-	var workers sync.WaitGroup
-	for range min(importValidationWorkers, len(inputs)) {
-		workers.Go(func() {
-			for index := range jobs {
-				cookie, err := accounts.NormalizeCookie(inputs[index])
-				if err != nil {
-					outcomes[index].err = &roblox.Error{Kind: roblox.KindInvalidCookieInput, Endpoint: "cookie-import", Message: err.Error()}
-					continue
-				}
-				outcomes[index].validation, outcomes[index].err = service.users.ValidateCookie(ctx, cookie, "")
-			}
-		})
-	}
-	workers.Wait()
+	outcomes := service.validateImportInputs(ctx, inputs)
 
 	preview := ImportPreview{Items: make([]ImportPreviewItem, len(inputs))}
 	pending := pendingImportBatch{}
@@ -173,19 +153,7 @@ func (service *Service) ValidateCookies(ctx context.Context, input string) (Impo
 		preview.Items[index] = item
 	}
 
-	if service.avatars != nil && len(userIDs) > 0 {
-		if headshots, err := service.avatars.AvatarHeadshots(ctx, userIDs); err == nil {
-			images := make(map[int64]string, len(headshots))
-			for _, headshot := range headshots {
-				images[headshot.RobloxUserID] = headshot.ImageURL
-			}
-			for index := range preview.Items {
-				preview.Items[index].AvatarURL = images[preview.Items[index].RobloxUserID]
-			}
-		} else {
-			service.logger.Debug("import preview headshots unavailable", "error", err)
-		}
-	}
+	service.loadImportAvatars(ctx, userIDs, &preview)
 
 	if len(pending.items) == 0 {
 		return preview, nil
@@ -283,19 +251,8 @@ func retainSelectedImports(batch *pendingImportBatch, selectedIndexes []int) boo
 			return false
 		}
 	}
-	selectedUsers := make(map[int64]struct{}, len(selected))
-	for _, item := range batch.items {
-		if _, keep := selected[item.index]; !keep {
-			continue
-		}
-		userID := item.validation.Identity.RobloxUserID
-		if userID <= 0 {
-			return false
-		}
-		if _, duplicate := selectedUsers[userID]; duplicate {
-			return false
-		}
-		selectedUsers[userID] = struct{}{}
+	if !uniqueSelectedImportUsers(batch, selected) {
+		return false
 	}
 
 	retained := batch.items[:0]
@@ -413,4 +370,63 @@ func importErrorDetails(err error) (string, string) {
 
 func failedImportBatchItem(index int, status, message string) ImportBatchItem {
 	return ImportBatchItem{Index: index, Status: ImportFailed, ErrorStatus: status, ErrorMessage: message}
+}
+
+func (service *Service) validateImportInputs(ctx context.Context, inputs []string) []importValidationOutcome {
+	outcomes := make([]importValidationOutcome, len(inputs))
+	jobs := make(chan int, len(inputs))
+	for index := range inputs {
+		jobs <- index
+	}
+	close(jobs)
+
+	var workers sync.WaitGroup
+	for range min(importValidationWorkers, len(inputs)) {
+		workers.Go(func() {
+			for index := range jobs {
+				cookie, err := accounts.NormalizeCookie(inputs[index])
+				if err != nil {
+					outcomes[index].err = &roblox.Error{Kind: roblox.KindInvalidCookieInput, Endpoint: "cookie-import", Message: err.Error()}
+					continue
+				}
+				outcomes[index].validation, outcomes[index].err = service.users.ValidateCookie(ctx, cookie, "")
+			}
+		})
+	}
+	workers.Wait()
+	return outcomes
+}
+
+func (service *Service) loadImportAvatars(ctx context.Context, userIDs []int64, preview *ImportPreview) {
+	if service.avatars != nil && len(userIDs) > 0 {
+		if headshots, err := service.avatars.AvatarHeadshots(ctx, userIDs); err == nil {
+			images := make(map[int64]string, len(headshots))
+			for _, headshot := range headshots {
+				images[headshot.RobloxUserID] = headshot.ImageURL
+			}
+			for index := range preview.Items {
+				preview.Items[index].AvatarURL = images[preview.Items[index].RobloxUserID]
+			}
+		} else {
+			service.logger.Debug("import preview headshots unavailable", "error", err)
+		}
+	}
+}
+
+func uniqueSelectedImportUsers(batch *pendingImportBatch, selected map[int]struct{}) bool {
+	selectedUsers := make(map[int64]struct{}, len(selected))
+	for _, item := range batch.items {
+		if _, keep := selected[item.index]; !keep {
+			continue
+		}
+		userID := item.validation.Identity.RobloxUserID
+		if userID <= 0 {
+			return false
+		}
+		if _, duplicate := selectedUsers[userID]; duplicate {
+			return false
+		}
+		selectedUsers[userID] = struct{}{}
+	}
+	return true
 }

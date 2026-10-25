@@ -298,20 +298,8 @@ func (manager *Manager) RestoreBackup(ctx context.Context, name, password string
 	if err := os.Remove(manager.paths.AutoUnlockKey); err != nil && !errors.Is(err, os.ErrNotExist) {
 		return fmt.Errorf("remove automatic unlock file: %w", err)
 	}
-	if err := appdata.PreparePrivateDirectory(manager.paths.RecoveryRoot); err != nil {
+	if err := manager.quarantineCurrentVault(); err != nil {
 		return err
-	}
-	recovery := filepath.Join(manager.paths.RecoveryRoot, time.Now().UTC().Format(backupTimeFormat))
-	if err := appdata.PreparePrivateDirectory(recovery); err != nil {
-		return err
-	}
-	for _, source := range []string{manager.paths.Vault, manager.paths.VaultKey} {
-		if !fileExists(source) {
-			continue
-		}
-		if err := os.Rename(source, filepath.Join(recovery, filepath.Base(source))); err != nil {
-			return fmt.Errorf("quarantine current %q: %w", filepath.Base(source), err)
-		}
 	}
 	if err := copyPrivateFile(filepath.Join(backup, "vault.db"), manager.paths.Vault); err != nil {
 		return err
@@ -369,4 +357,23 @@ func copyPrivateFile(source, destination string) error {
 	}
 	ok = true
 	return appdata.RestrictFile(destination)
+}
+
+func (manager *Manager) quarantineCurrentVault() error {
+	if err := appdata.PreparePrivateDirectory(manager.paths.RecoveryRoot); err != nil {
+		return err
+	}
+	recovery := filepath.Join(manager.paths.RecoveryRoot, time.Now().UTC().Format(backupTimeFormat))
+	if err := appdata.PreparePrivateDirectory(recovery); err != nil {
+		return err
+	}
+	for _, source := range []string{manager.paths.Vault, manager.paths.VaultKey} {
+		if !fileExists(source) {
+			continue
+		}
+		if err := os.Rename(source, filepath.Join(recovery, filepath.Base(source))); err != nil {
+			return fmt.Errorf("quarantine current %q: %w", filepath.Base(source), err)
+		}
+	}
+	return nil
 }

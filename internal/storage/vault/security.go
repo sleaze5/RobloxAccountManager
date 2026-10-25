@@ -85,20 +85,8 @@ func (manager *Manager) rotateDatabaseKey(ctx context.Context, password, hint st
 			return err
 		}
 	}
-	if err := manager.PurgeBackups(); err != nil {
+	if err := manager.stageRotatedKeys(keyData, autoData, automaticUnlock); err != nil {
 		return err
-	}
-	if err := appdata.WritePrivateFile(manager.paths.VaultKey+".next", keyData); err != nil {
-		return err
-	}
-	if automaticUnlock {
-		if err := appdata.WritePrivateFile(manager.paths.AutoUnlockKey+".next", autoData); err != nil {
-			return err
-		}
-	} else {
-		if err := os.Remove(manager.paths.AutoUnlockKey + ".next"); err != nil && !errors.Is(err, os.ErrNotExist) {
-			return fmt.Errorf("remove stale automatic unlock candidate: %w", err)
-		}
 	}
 	db, finish, err := manager.beginExclusive(ctx)
 	if err != nil {
@@ -110,33 +98,17 @@ func (manager *Manager) rotateDatabaseKey(ctx context.Context, password, hint st
 			finish()
 		}
 	}()
-	if _, err := db.ExecContext(ctx, `PRAGMA rekey = "x'`+hex.EncodeToString(newDEK)+`'"`); err != nil {
-		return fmt.Errorf("rekey vault database: %w", err)
-	}
-	if err := verifyOpenDatabase(ctx, db, identifier, manager.logger); err != nil {
-		return fmt.Errorf("verify rekeyed vault database: %w", err)
-	}
-	if _, err := db.ExecContext(ctx, `UPDATE vault_state SET storage_revision = storage_revision + 1 WHERE singleton = 1`); err != nil {
-		return fmt.Errorf("record new master password: %w", err)
+	if err := manager.rekeyDatabase(ctx, db, newDEK, identifier); err != nil {
+		return err
 	}
 	manager.mu.Lock()
 	oldDEK := manager.dek
 	manager.dek = append([]byte(nil), newDEK...)
 	manager.mu.Unlock()
 	wipe(oldDEK)
-	if automaticUnlock {
-		if err := appdata.ReplaceFile(manager.paths.AutoUnlockKey+".next", manager.paths.AutoUnlockKey); err != nil {
-			return err
-		}
-	} else if err := os.Remove(manager.paths.AutoUnlockKey); err != nil && !errors.Is(err, os.ErrNotExist) {
-		return fmt.Errorf("remove automatic unlock file: %w", err)
-	}
-	if err := appdata.ReplaceFile(manager.paths.VaultKey+".next", manager.paths.VaultKey); err != nil {
+	if err := manager.publishRotatedKeys(automaticUnlock); err != nil {
 		return err
 	}
-	manager.mu.Lock()
-	manager.unlockedAutomatically = automaticUnlock
-	manager.mu.Unlock()
 	finish()
 	finished = true
 	if err := manager.CreateBackup(ctx); err != nil {
@@ -212,5 +184,54 @@ func (manager *Manager) promoteOrDiscardRotation(useNext bool) error {
 			return fmt.Errorf("remove rotated key file: %w", err)
 		}
 	}
+	return nil
+}
+
+func (manager *Manager) stageRotatedKeys(keyData, autoData []byte, automaticUnlock bool) error {
+	if err := manager.PurgeBackups(); err != nil {
+		return err
+	}
+	if err := appdata.WritePrivateFile(manager.paths.VaultKey+".next", keyData); err != nil {
+		return err
+	}
+	if automaticUnlock {
+		if err := appdata.WritePrivateFile(manager.paths.AutoUnlockKey+".next", autoData); err != nil {
+			return err
+		}
+	} else {
+		if err := os.Remove(manager.paths.AutoUnlockKey + ".next"); err != nil && !errors.Is(err, os.ErrNotExist) {
+			return fmt.Errorf("remove stale automatic unlock candidate: %w", err)
+		}
+	}
+	return nil
+}
+
+func (manager *Manager) rekeyDatabase(ctx context.Context, db *sql.DB, newDEK []byte, identifier [vaultIDBytes]byte) error {
+	if _, err := db.ExecContext(ctx, `PRAGMA rekey = "x'`+hex.EncodeToString(newDEK)+`'"`); err != nil {
+		return fmt.Errorf("rekey vault database: %w", err)
+	}
+	if err := verifyOpenDatabase(ctx, db, identifier, manager.logger); err != nil {
+		return fmt.Errorf("verify rekeyed vault database: %w", err)
+	}
+	if _, err := db.ExecContext(ctx, `UPDATE vault_state SET storage_revision = storage_revision + 1 WHERE singleton = 1`); err != nil {
+		return fmt.Errorf("record new master password: %w", err)
+	}
+	return nil
+}
+
+func (manager *Manager) publishRotatedKeys(automaticUnlock bool) error {
+	if automaticUnlock {
+		if err := appdata.ReplaceFile(manager.paths.AutoUnlockKey+".next", manager.paths.AutoUnlockKey); err != nil {
+			return err
+		}
+	} else if err := os.Remove(manager.paths.AutoUnlockKey); err != nil && !errors.Is(err, os.ErrNotExist) {
+		return fmt.Errorf("remove automatic unlock file: %w", err)
+	}
+	if err := appdata.ReplaceFile(manager.paths.VaultKey+".next", manager.paths.VaultKey); err != nil {
+		return err
+	}
+	manager.mu.Lock()
+	manager.unlockedAutomatically = automaticUnlock
+	manager.mu.Unlock()
 	return nil
 }

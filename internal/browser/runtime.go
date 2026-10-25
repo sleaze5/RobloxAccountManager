@@ -242,18 +242,8 @@ func (manager *RuntimeManager) install(ctx context.Context) error {
 	}
 	manager.setDownloadTotal(response.ContentLength)
 	archive := filepath.Join(stage, archiveName)
-	// Only the owner can read and write the file.
-	file, err := os.OpenFile(archive, os.O_CREATE|os.O_EXCL|os.O_WRONLY, 0o600)
-	if err != nil {
-		return fmt.Errorf("create browser archive: %w", err)
-	}
-	_, copyErr := io.Copy(file, &progressReader{reader: response.Body, update: manager.addProgress})
-	closeErr := file.Close()
-	if copyErr != nil {
-		return fmt.Errorf("write browser archive: %w", copyErr)
-	}
-	if closeErr != nil {
-		return fmt.Errorf("close browser archive: %w", closeErr)
+	if err := manager.writeRuntimeArchive(archive, response.Body); err != nil {
+		return err
 	}
 	manager.setInstalling()
 	extracted := filepath.Join(stage, "extracted")
@@ -552,12 +542,9 @@ func extractRuntime(ctx context.Context, archive, destination string) error {
 		if err := ctx.Err(); err != nil {
 			return err
 		}
-		name := filepath.Clean(filepath.FromSlash(entry.Name))
-		if name == "." || filepath.IsAbs(name) || strings.HasPrefix(name, ".."+string(filepath.Separator)) {
-			return errors.New("browser archive contains an unsafe path")
-		}
-		if name != runtimeArchiveRoot && !strings.HasPrefix(name, runtimeArchiveRoot+string(filepath.Separator)) {
-			return errors.New("browser archive has an unexpected structure")
+		name, err := runtimeEntryPath(entry.Name)
+		if err != nil {
+			return err
 		}
 		target := filepath.Join(destination, name)
 		if entry.FileInfo().Mode()&os.ModeSymlink != 0 {
@@ -577,26 +564,8 @@ func extractRuntime(ctx context.Context, archive, destination string) error {
 			}
 			continue
 		}
-		if err := os.MkdirAll(filepath.Dir(target), 0o755); err != nil {
-			return fmt.Errorf("create browser file directory: %w", err)
-		}
-		source, err := entry.Open()
-		if err != nil {
-			return fmt.Errorf("open browser archive entry: %w", err)
-		}
-		output, err := os.OpenFile(target, os.O_CREATE|os.O_EXCL|os.O_WRONLY, entry.Mode().Perm()|0o600)
-		if err != nil {
-			source.Close()
-			return fmt.Errorf("create browser file: %w", err)
-		}
-		_, copyErr := io.Copy(output, io.LimitReader(source, int64(entry.UncompressedSize64)+1))
-		closeErr := output.Close()
-		source.Close()
-		if copyErr != nil {
-			return fmt.Errorf("extract browser archive entry: %w", copyErr)
-		}
-		if closeErr != nil {
-			return fmt.Errorf("close extracted browser file: %w", closeErr)
+		if err := extractRuntimeFile(entry, target); err != nil {
+			return err
 		}
 	}
 	for _, link := range links {
@@ -692,16 +661,7 @@ func removeManagedDirectory(root, target string) error {
 	if info.Mode()&os.ModeSymlink != 0 {
 		return errors.New("refusing linked managed-directory cleanup")
 	}
-	if err := filepath.WalkDir(targetAbs, func(_ string, entry os.DirEntry, walkErr error) error {
-		if walkErr != nil {
-			return walkErr
-		}
-		// RemoveAll removes a link without following it.
-		if entry.Type()&os.ModeSymlink != 0 && !runtimeArchiveLinks {
-			return errors.New("refusing managed-directory cleanup containing a link")
-		}
-		return nil
-	}); err != nil {
+	if err := filepath.WalkDir(targetAbs, checkManagedEntry); err != nil {
 		return fmt.Errorf("check managed directory: %w", err)
 	}
 	if err := os.RemoveAll(targetAbs); err != nil {
@@ -768,4 +728,68 @@ func (manager *RuntimeManager) cleanupStaging() {
 	if err := removeEmptyDirectory(manager.paths.CfTInstallRoot); err != nil {
 		manager.logger.Warn("CfT staging root cleanup failed", "error", err)
 	}
+}
+
+func (manager *RuntimeManager) writeRuntimeArchive(archive string, body io.Reader) error {
+	// Only the owner can read and write the file.
+	file, err := os.OpenFile(archive, os.O_CREATE|os.O_EXCL|os.O_WRONLY, 0o600)
+	if err != nil {
+		return fmt.Errorf("create browser archive: %w", err)
+	}
+	_, copyErr := io.Copy(file, &progressReader{reader: body, update: manager.addProgress})
+	closeErr := file.Close()
+	if copyErr != nil {
+		return fmt.Errorf("write browser archive: %w", copyErr)
+	}
+	if closeErr != nil {
+		return fmt.Errorf("close browser archive: %w", closeErr)
+	}
+	return nil
+}
+
+func runtimeEntryPath(entryName string) (string, error) {
+	name := filepath.Clean(filepath.FromSlash(entryName))
+	if name == "." || filepath.IsAbs(name) || strings.HasPrefix(name, ".."+string(filepath.Separator)) {
+		return "", errors.New("browser archive contains an unsafe path")
+	}
+	if name != runtimeArchiveRoot && !strings.HasPrefix(name, runtimeArchiveRoot+string(filepath.Separator)) {
+		return "", errors.New("browser archive has an unexpected structure")
+	}
+	return name, nil
+}
+
+func extractRuntimeFile(entry *zip.File, target string) error {
+	if err := os.MkdirAll(filepath.Dir(target), 0o755); err != nil {
+		return fmt.Errorf("create browser file directory: %w", err)
+	}
+	source, err := entry.Open()
+	if err != nil {
+		return fmt.Errorf("open browser archive entry: %w", err)
+	}
+	output, err := os.OpenFile(target, os.O_CREATE|os.O_EXCL|os.O_WRONLY, entry.Mode().Perm()|0o600)
+	if err != nil {
+		source.Close()
+		return fmt.Errorf("create browser file: %w", err)
+	}
+	_, copyErr := io.Copy(output, io.LimitReader(source, int64(entry.UncompressedSize64)+1))
+	closeErr := output.Close()
+	source.Close()
+	if copyErr != nil {
+		return fmt.Errorf("extract browser archive entry: %w", copyErr)
+	}
+	if closeErr != nil {
+		return fmt.Errorf("close extracted browser file: %w", closeErr)
+	}
+	return nil
+}
+
+func checkManagedEntry(_ string, entry os.DirEntry, walkErr error) error {
+	if walkErr != nil {
+		return walkErr
+	}
+	// RemoveAll removes a link without following it.
+	if entry.Type()&os.ModeSymlink != 0 && !runtimeArchiveLinks {
+		return errors.New("refusing managed-directory cleanup containing a link")
+	}
+	return nil
 }

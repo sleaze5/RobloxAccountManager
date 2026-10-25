@@ -117,18 +117,7 @@ func (service *Service) runAccountReads(ctx context.Context, accountID, version 
 func (service *Service) profileReads(ctx context.Context, accountID, version, userID int64, profile *AccountProfileSnapshot) []accountRead {
 	return []accountRead{
 		{"account", func() error {
-			info, err := service.users.AccountInfo(ctx, accountID, version, userID)
-			if err == nil {
-				profile.Premium, profile.Plus = info.IsPremium, info.HasRobloxSubscription
-				if info.AgeBracket != nil && (*info.AgeBracket == 0 || *info.AgeBracket == 1) {
-					profile.AgeBracket = info.AgeBracket
-				}
-				country := strings.ToUpper(strings.TrimSpace(info.CountryCode))
-				if len(country) == 2 && country[0] >= 'A' && country[0] <= 'Z' && country[1] >= 'A' && country[1] <= 'Z' {
-					profile.CountryCode = country
-				}
-			}
-			return err
+			return service.readProfileAccount(ctx, accountID, version, userID, profile)
 		}},
 		{"robux", func() error {
 			value, err := service.users.Robux(ctx, accountID, version)
@@ -215,4 +204,19 @@ func applyProfileVerification(profile *AccountProfileSnapshot, methods []robloxs
 
 func profileError(kind roblox.ErrorKind, message string) error {
 	return &roblox.Error{Kind: kind, Endpoint: "account-profile", Message: message}
+}
+
+func (service *Service) readProfileAccount(ctx context.Context, accountID, version, userID int64, profile *AccountProfileSnapshot) error {
+	info, err := service.users.AccountInfo(ctx, accountID, version, userID)
+	if err == nil {
+		profile.Premium, profile.Plus = info.IsPremium, info.HasRobloxSubscription
+		if info.AgeBracket != nil && (*info.AgeBracket == 0 || *info.AgeBracket == 1) {
+			profile.AgeBracket = info.AgeBracket
+		}
+		country := strings.ToUpper(strings.TrimSpace(info.CountryCode))
+		if len(country) == 2 && country[0] >= 'A' && country[0] <= 'Z' && country[1] >= 'A' && country[1] <= 'Z' {
+			profile.CountryCode = country
+		}
+	}
+	return err
 }

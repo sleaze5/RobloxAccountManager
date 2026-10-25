@@ -83,7 +83,7 @@ func newRegion(name, country, countryCode string, latLong []string) (Region, boo
 	}
 	latitude, latErr := strconv.ParseFloat(latLong[0], 64)
 	longitude, lonErr := strconv.ParseFloat(latLong[1], 64)
-	if latErr != nil || lonErr != nil || math.IsNaN(latitude) || math.IsNaN(longitude) || latitude < -90 || latitude > 90 || longitude < -180 || longitude > 180 {
+	if latErr != nil || lonErr != nil || !validCoordinates(latitude, longitude) {
 		return Region{}, false
 	}
 	if country = text(country); country == "" {
@@ -103,6 +103,10 @@ func newRegion(name, country, countryCode string, latLong []string) (Region, boo
 		Region:      games.Region{Code: code, Name: name, Country: country, CountryCode: countryCode},
 		Coordinates: []Coordinates{{Latitude: latitude, Longitude: longitude}},
 	}, true
+}
+
+func validCoordinates(latitude, longitude float64) bool {
+	return !math.IsNaN(latitude) && !math.IsNaN(longitude) && latitude >= -90 && latitude <= 90 && longitude >= -180 && longitude <= 180
 }
 
 func countryRank(region Region) int {
