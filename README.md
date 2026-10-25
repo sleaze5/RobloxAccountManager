@@ -145,7 +145,7 @@ logs/
 ### Requirements
 
 - [Go](https://go.dev) 1.26 or later
-- [Bun](https://bun.sh) 1.3.11 or later
+- [Bun](https://bun.sh)
 - [Task](https://taskfile.dev) 3
 - A C compiler for cgo, because SQLCipher needs cgo:
     - **Windows x64:** MinGW-w64 GCC on `PATH`.
