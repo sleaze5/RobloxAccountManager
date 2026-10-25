@@ -43,6 +43,7 @@ updates:
       cooldown:
           default-days: 7
       ignore:
+          - dependency-name: "@typescript/native"
           - dependency-name: "@wailsio/runtime"
           - dependency-name: "*"
             update-types:

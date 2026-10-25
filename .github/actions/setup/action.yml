@@ -37,11 +37,17 @@ runs:
                   go.sum
                   build/tools/go.sum
 
+        - name: Read the Bun version
+          id: bun
+          if: inputs.bun == 'true'
+          shell: bash
+          run: echo "version=$(jq -r .devEngines.packageManager.version frontend/package.json)" >> "$GITHUB_OUTPUT"
+
         - name: Set up Bun
           if: inputs.bun == 'true'
           uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6
           with:
-              bun-version: 1.x
+              bun-version: ${{ steps.bun.outputs.version }}
 
         - name: Set up Task
           uses: go-task/setup-task@a00fbb05ce67b35648be3c78cbc9fd85354c757e

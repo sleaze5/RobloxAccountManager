@@ -17,32 +17,36 @@
 		"url": "https://github.com/sleaze5/RobloxAccountManager/issues"
 	},
 	"type": "module",
-	"engines": {
-		"bun": ">=1.4.4"
-	},
 	"scripts": {
-		"dev": "bun --bun vite",
-		"build:dev": "bun --bun vite build --minify false --mode development",
-		"build": "bun --bun vite build --mode production",
-		"check": "bun --bun svelte-check --tsconfig ./tsconfig.json --fail-on-warnings --tsgo",
-		"lint": "bun --bun oxlint --deny-warnings .",
-		"lint:fix": "bun --bun oxlint --fix --deny-warnings .",
+		"dev": "vite",
+		"build:dev": "vite build --minify false --mode development",
+		"build": "vite build --mode production",
+		"check": "svelte-check --tsconfig ./tsconfig.json --fail-on-warnings --tsgo",
+		"lint": "oxlint --deny-warnings .",
+		"lint:fix": "oxlint --fix --deny-warnings .",
 		"format": "bun fmt",
 		"format:check": "bun fmt --check"
 	},
 	"dependencies": {
 		"@wailsio/runtime": "3.0.0-beta.34",
-		"phosphor-svelte": "^3.1.1"
+		"phosphor-svelte": "3.1.1"
 	},
 	"devDependencies": {
-		"@sveltejs/vite-plugin-svelte": "^7.3.1",
-		"@tsconfig/svelte": "^5.0.8",
-		"@typescript/native": "npm:typescript@^7.0.2",
-		"oxlint": "^1.89.0",
-		"oxlint-tsgolint": "^7.0.2004",
-		"svelte": "^5.57.2",
-		"svelte-check": "^4.7.7",
-		"typescript": "^6.0.3",
-		"vite": "^8.3.5"
+		"@sveltejs/vite-plugin-svelte": "7.3.1",
+		"@tsconfig/svelte": "5.0.8",
+		"@typescript/native": "npm:typescript@7.0.2",
+		"oxlint": "1.89.0",
+		"oxlint-tsgolint": "7.0.2004",
+		"svelte": "5.57.2",
+		"svelte-check": "4.7.7",
+		"typescript": "6.0.3",
+		"vite": "8.3.5"
+	},
+	"devEngines": {
+		"packageManager": {
+			"name": "bun",
+			"version": "1.4.4",
+			"onFail": "download"
+		}
 	}
 }

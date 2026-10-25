@@ -85,13 +85,6 @@ tasks:
                   - linux
                   - darwin
 
-    internal:frontend:update:
-        internal: true
-        dir: "{{.ROOT_DIR}}/frontend"
-        cmds:
-            - bun upgrade
-            - bun update
-
     internal:frontend:build:development:
         internal: true
         dir: "{{.ROOT_DIR}}/frontend"
@@ -193,14 +186,3 @@ tasks:
         dir: "{{.ROOT_DIR}}"
         cmds:
             - go build ./internal/...
-
-    internal:go:update:
-        internal: true
-        dir: "{{.ROOT_DIR}}"
-        vars:
-            MODULES:
-                sh: go list -m -f '{{`{{if not (or .Main .Indirect (eq .Path "github.com/wailsapp/wails/v3"))}}{{.Path}}{{end}}`}}' all
-        cmds:
-            - go get toolchain@latest
-            - go get -u {{.MODULES | catLines}}
-            - go -C build/tools get tool
