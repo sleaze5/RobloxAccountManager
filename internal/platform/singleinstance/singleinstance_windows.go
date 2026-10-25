@@ -34,7 +34,7 @@ func Acquire(applicationID string) (*Instance, bool, error) {
 	if err != nil {
 		return nil, false, fmt.Errorf("create single-instance mutex: %w", err)
 	}
-	if windows.GetLastError() == windows.ERROR_ALREADY_EXISTS {
+	if errors.Is(windows.GetLastError(), windows.ERROR_ALREADY_EXISTS) {
 		windows.CloseHandle(mutex)
 		return nil, false, nil
 	}
@@ -51,5 +51,8 @@ func (instance *Instance) Close() error {
 	}
 	err := windows.CloseHandle(instance.mutex)
 	instance.mutex = 0
-	return err
+	if err != nil {
+		return fmt.Errorf("close single-instance mutex: %w", err)
+	}
+	return nil
 }

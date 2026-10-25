@@ -175,9 +175,9 @@ func (client *Client) get(ctx context.Context, path string, parameters url.Value
 
 func (client *Client) fetch(ctx context.Context, path string, parameters url.Values) (int, []byte, error) {
 	endpoint := &url.URL{Scheme: "https", Host: "apis.rovalra.com", Path: path, RawQuery: parameters.Encode()}
-	request, err := http.NewRequestWithContext(ctx, http.MethodGet, endpoint.String(), nil)
+	request, err := http.NewRequestWithContext(ctx, http.MethodGet, endpoint.String(), http.NoBody)
 	if err != nil {
-		return 0, nil, err
+		return 0, nil, fmt.Errorf("create RoValra request: %w", err)
 	}
 	request.Header.Set("Accept", "application/json")
 	request.Header.Set("User-Agent", appmeta.UserAgent)

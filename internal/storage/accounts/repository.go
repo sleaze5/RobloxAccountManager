@@ -65,7 +65,7 @@ func (repository *Repository) database(ctx context.Context) (*sql.DB, func(), er
 
 func (repository *Repository) Create(ctx context.Context, identity Identity, cookie string, expiresAt *time.Time) (AccountView, SessionRecord, error) {
 	if identity.RobloxUserID <= 0 || identity.Username == "" || cookie == "" {
-		return AccountView{}, SessionRecord{}, fmt.Errorf("invalid account record")
+		return AccountView{}, SessionRecord{}, errors.New("invalid account record")
 	}
 	db, release, err := repository.database(ctx)
 	if err != nil {
@@ -123,7 +123,7 @@ func (repository *Repository) FindByRobloxUserID(ctx context.Context, userID int
 
 func (repository *Repository) ReplaceCookie(ctx context.Context, accountID int64, identity Identity, cookie string, expiresAt *time.Time) (AccountView, SessionRecord, error) {
 	if accountID <= 0 || identity.RobloxUserID <= 0 || identity.Username == "" || cookie == "" {
-		return AccountView{}, SessionRecord{}, fmt.Errorf("invalid replacement account record")
+		return AccountView{}, SessionRecord{}, errors.New("invalid replacement account record")
 	}
 	db, release, err := repository.database(ctx)
 	if err != nil {
@@ -133,25 +133,25 @@ func (repository *Repository) ReplaceCookie(ctx context.Context, accountID int64
 	now := repository.now().UTC().Truncate(time.Millisecond)
 	tx, err := db.BeginTx(ctx, nil)
 	if err != nil {
-		return AccountView{}, SessionRecord{}, err
+		return AccountView{}, SessionRecord{}, fmt.Errorf("begin cookie replacement: %w", err)
 	}
 	defer tx.Rollback()
 	var storedUserID int64
 	if err := tx.QueryRowContext(ctx, `SELECT roblox_user_id FROM accounts WHERE id = ?`, accountID).Scan(&storedUserID); errors.Is(err, sql.ErrNoRows) {
 		return AccountView{}, SessionRecord{}, ErrNotFound
 	} else if err != nil {
-		return AccountView{}, SessionRecord{}, err
+		return AccountView{}, SessionRecord{}, fmt.Errorf("read replaced account: %w", err)
 	}
 	if storedUserID != identity.RobloxUserID {
-		return AccountView{}, SessionRecord{}, fmt.Errorf("replacement cookie belongs to a different Roblox account")
+		return AccountView{}, SessionRecord{}, errors.New("replacement cookie belongs to a different Roblox account")
 	}
 	if _, err := tx.ExecContext(ctx, `UPDATE accounts SET username = ?, display_name = ?, created_at_ms = ?, updated_at_ms = ? WHERE id = ?`, identity.Username, identity.DisplayName, identity.CreatedAt.UTC().UnixMilli(), now.UnixMilli(), accountID); err != nil {
-		return AccountView{}, SessionRecord{}, err
+		return AccountView{}, SessionRecord{}, fmt.Errorf("update replaced account: %w", err)
 	}
 	if _, err := tx.ExecContext(ctx, `
 UPDATE account_sessions SET roblosecurity = ?, cookie_expires_at_ms = ?, state = ?, state_reason = '', secret_version = secret_version + 1,
 replaced_at_ms = ?, last_validated_at_ms = ?, last_success_at_ms = ?, last_auth_failure_at_ms = NULL, updated_at_ms = ? WHERE account_id = ?`, cookie, nullableMillis(expiresAt), StateActive, now.UnixMilli(), now.UnixMilli(), now.UnixMilli(), now.UnixMilli(), accountID); err != nil {
-		return AccountView{}, SessionRecord{}, err
+		return AccountView{}, SessionRecord{}, fmt.Errorf("update replaced session: %w", err)
 	}
 	if err := bumpRevision(ctx, tx); err != nil {
 		return AccountView{}, SessionRecord{}, err
@@ -176,7 +176,7 @@ replaced_at_ms = ?, last_validated_at_ms = ?, last_success_at_ms = ?, last_auth_
 
 func (repository *Repository) RotateCookie(ctx context.Context, accountID, expectedVersion int64, cookie string, expiresAt *time.Time) (SessionRecord, bool, error) {
 	if cookie == "" {
-		return SessionRecord{}, false, fmt.Errorf("rotated cookie is empty")
+		return SessionRecord{}, false, errors.New("rotated cookie is empty")
 	}
 	db, release, err := repository.database(ctx)
 	if err != nil {
@@ -186,7 +186,7 @@ func (repository *Repository) RotateCookie(ctx context.Context, accountID, expec
 	now := repository.now().UTC().Truncate(time.Millisecond)
 	tx, err := db.BeginTx(ctx, nil)
 	if err != nil {
-		return SessionRecord{}, false, err
+		return SessionRecord{}, false, fmt.Errorf("begin cookie rotation: %w", err)
 	}
 	defer tx.Rollback()
 	result, err := tx.ExecContext(ctx, `UPDATE account_sessions SET roblosecurity = ?, cookie_expires_at_ms = ?, secret_version = secret_version + 1, rotated_at_ms = ?, updated_at_ms = ? WHERE account_id = ? AND secret_version = ?`, cookie, nullableMillis(expiresAt), now.UnixMilli(), now.UnixMilli(), accountID, expectedVersion)
@@ -195,7 +195,7 @@ func (repository *Repository) RotateCookie(ctx context.Context, accountID, expec
 	}
 	changed, err := result.RowsAffected()
 	if err != nil {
-		return SessionRecord{}, false, err
+		return SessionRecord{}, false, fmt.Errorf("count rotated sessions: %w", err)
 	}
 	if changed == 0 {
 		return SessionRecord{}, false, ErrStaleSecret
@@ -208,7 +208,7 @@ func (repository *Repository) RotateCookie(ctx context.Context, accountID, expec
 		return SessionRecord{}, false, err
 	}
 	if err := tx.Commit(); err != nil {
-		return SessionRecord{}, false, err
+		return SessionRecord{}, false, fmt.Errorf("commit cookie rotation: %w", err)
 	}
 	return current, true, nil
 }
@@ -221,34 +221,34 @@ func (repository *Repository) Remove(ctx context.Context, accountID int64) error
 	defer release()
 	tx, err := db.BeginTx(ctx, nil)
 	if err != nil {
-		return err
+		return fmt.Errorf("begin account removal: %w", err)
 	}
 	defer tx.Rollback()
 	var order int64
 	if err := tx.QueryRowContext(ctx, `SELECT display_order FROM accounts WHERE id = ?`, accountID).Scan(&order); errors.Is(err, sql.ErrNoRows) {
 		return ErrNotFound
 	} else if err != nil {
-		return err
+		return fmt.Errorf("read removed account: %w", err)
 	}
 	if _, err := tx.ExecContext(ctx, `DELETE FROM accounts WHERE id = ?`, accountID); err != nil {
-		return err
+		return fmt.Errorf("delete account: %w", err)
 	}
 	var remaining int64
 	if err := tx.QueryRowContext(ctx, `SELECT count(*) FROM accounts`).Scan(&remaining); err != nil {
-		return err
+		return fmt.Errorf("count remaining accounts: %w", err)
 	}
 	// Two shifts keep display_order unique: move later rows above every existing value, then back down to one below their old value.
 	if _, err := tx.ExecContext(ctx, `UPDATE accounts SET display_order = display_order + ? WHERE display_order > ?`, remaining+2, order); err != nil {
-		return err
+		return fmt.Errorf("shift account order: %w", err)
 	}
 	if _, err := tx.ExecContext(ctx, `UPDATE accounts SET display_order = display_order - ? WHERE display_order > ?`, remaining+3, remaining); err != nil {
-		return err
+		return fmt.Errorf("compact account order: %w", err)
 	}
 	if err := bumpRevision(ctx, tx); err != nil {
 		return err
 	}
 	if err := tx.Commit(); err != nil {
-		return err
+		return fmt.Errorf("commit account removal: %w", err)
 	}
 	repository.logger.Info("account removed", "account_id", accountID)
 	return nil
@@ -291,19 +291,22 @@ func (repository *Repository) Page(ctx context.Context, query AccountQuery) (Acc
 	if err != nil {
 		return AccountPage{}, fmt.Errorf("list account page: %w", err)
 	}
+	defer rows.Close()
 	views := make([]AccountView, 0, accountPageSize+1)
 	orders := make([]int64, 0, accountPageSize+1)
 	for rows.Next() {
 		view, order, err := scanPageView(rows)
 		if err != nil {
-			rows.Close()
 			return AccountPage{}, err
 		}
 		views = append(views, view)
 		orders = append(orders, order)
 	}
+	if err := rows.Err(); err != nil {
+		return AccountPage{}, fmt.Errorf("read account page: %w", err)
+	}
 	if err := rows.Close(); err != nil {
-		return AccountPage{}, err
+		return AccountPage{}, fmt.Errorf("close account page: %w", err)
 	}
 	page := AccountPage{Accounts: views, Total: total}
 	if len(views) > accountPageSize {
@@ -327,7 +330,7 @@ func (repository *Repository) Move(ctx context.Context, accountID int64, beforeI
 	defer release()
 	tx, err := db.BeginTx(ctx, nil)
 	if err != nil {
-		return err
+		return fmt.Errorf("begin account move: %w", err)
 	}
 	defer tx.Rollback()
 	var oldOrder, count int64
@@ -335,7 +338,7 @@ func (repository *Repository) Move(ctx context.Context, accountID int64, beforeI
 		return ErrInvalidOrder
 	}
 	if err := tx.QueryRowContext(ctx, `SELECT count(*) FROM accounts`).Scan(&count); err != nil {
-		return err
+		return fmt.Errorf("count accounts: %w", err)
 	}
 	newOrder := count - 1
 	if afterID != nil {
@@ -365,30 +368,33 @@ func (repository *Repository) Move(ctx context.Context, accountID int64, beforeI
 		return nil
 	}
 	if _, err := tx.ExecContext(ctx, `UPDATE accounts SET display_order = ? WHERE id = ?`, count, accountID); err != nil {
-		return err
+		return fmt.Errorf("park moved account: %w", err)
 	}
 	if newOrder < oldOrder {
 		if _, err := tx.ExecContext(ctx, `UPDATE accounts SET display_order = display_order + ? WHERE display_order >= ? AND display_order < ?`, count+1, newOrder, oldOrder); err != nil {
-			return err
+			return fmt.Errorf("shift accounts down: %w", err)
 		}
 		if _, err := tx.ExecContext(ctx, `UPDATE accounts SET display_order = display_order - ? WHERE display_order > ?`, count, count); err != nil {
-			return err
+			return fmt.Errorf("compact accounts down: %w", err)
 		}
 	} else {
 		if _, err := tx.ExecContext(ctx, `UPDATE accounts SET display_order = display_order + ? WHERE display_order > ? AND display_order <= ?`, count+1, oldOrder, newOrder); err != nil {
-			return err
+			return fmt.Errorf("shift accounts up: %w", err)
 		}
 		if _, err := tx.ExecContext(ctx, `UPDATE accounts SET display_order = display_order - ? WHERE display_order > ?`, count+2, count); err != nil {
-			return err
+			return fmt.Errorf("compact accounts up: %w", err)
 		}
 	}
 	if _, err := tx.ExecContext(ctx, `UPDATE accounts SET display_order = ?, updated_at_ms = ? WHERE id = ?`, newOrder, repository.now().UTC().UnixMilli(), accountID); err != nil {
-		return err
+		return fmt.Errorf("place moved account: %w", err)
 	}
 	if err := bumpRevision(ctx, tx); err != nil {
 		return err
 	}
-	return tx.Commit()
+	if err := tx.Commit(); err != nil {
+		return fmt.Errorf("commit account move: %w", err)
+	}
+	return nil
 }
 
 func (repository *Repository) GetView(ctx context.Context, accountID int64) (AccountView, error) {
@@ -416,7 +422,7 @@ func (repository *Repository) GetSession(ctx context.Context, accountID int64) (
 
 func (repository *Repository) MarkState(ctx context.Context, accountID, expectedVersion int64, state SessionState, reason string) error {
 	if !state.Valid() {
-		return fmt.Errorf("invalid session state")
+		return errors.New("invalid session state")
 	}
 	db, release, err := repository.database(ctx)
 	if err != nil {
@@ -426,7 +432,7 @@ func (repository *Repository) MarkState(ctx context.Context, accountID, expected
 	now := repository.now().UTC().UnixMilli()
 	tx, err := db.BeginTx(ctx, nil)
 	if err != nil {
-		return err
+		return fmt.Errorf("begin session state update: %w", err)
 	}
 	defer tx.Rollback()
 	var failure any
@@ -435,7 +441,7 @@ func (repository *Repository) MarkState(ctx context.Context, accountID, expected
 	}
 	result, err := tx.ExecContext(ctx, `UPDATE account_sessions SET state = ?, state_reason = ?, last_auth_failure_at_ms = COALESCE(?, last_auth_failure_at_ms), updated_at_ms = ? WHERE account_id = ? AND secret_version = ?`, state, safeReason(reason), failure, now, accountID, expectedVersion)
 	if err != nil {
-		return err
+		return fmt.Errorf("update session state: %w", err)
 	}
 	changed, _ := result.RowsAffected()
 	if changed == 0 {
@@ -444,7 +450,10 @@ func (repository *Repository) MarkState(ctx context.Context, accountID, expected
 	if err := bumpRevision(ctx, tx); err != nil {
 		return err
 	}
-	return tx.Commit()
+	if err := tx.Commit(); err != nil {
+		return fmt.Errorf("commit session state: %w", err)
+	}
+	return nil
 }
 
 func (repository *Repository) RecordValidation(ctx context.Context, accountID, expectedVersion int64, identity Identity) error {
@@ -456,31 +465,34 @@ func (repository *Repository) RecordValidation(ctx context.Context, accountID, e
 	now := repository.now().UTC().UnixMilli()
 	tx, err := db.BeginTx(ctx, nil)
 	if err != nil {
-		return err
+		return fmt.Errorf("begin validation record: %w", err)
 	}
 	defer tx.Rollback()
 	var userID int64
 	if err := tx.QueryRowContext(ctx, `SELECT roblox_user_id FROM accounts WHERE id = ?`, accountID).Scan(&userID); err != nil {
-		return err
+		return fmt.Errorf("read validated account: %w", err)
 	}
 	if userID != identity.RobloxUserID {
-		return fmt.Errorf("validated identity does not match the stored account")
+		return errors.New("validated identity does not match the stored account")
 	}
 	result, err := tx.ExecContext(ctx, `UPDATE account_sessions SET state = CASE WHEN state = ? THEN state ELSE ? END, state_reason = CASE WHEN state = ? THEN state_reason ELSE '' END, last_validated_at_ms = ?, last_success_at_ms = ?, updated_at_ms = ? WHERE account_id = ? AND secret_version = ?`, StateDisabled, StateActive, StateDisabled, now, now, now, accountID, expectedVersion)
 	if err != nil {
-		return err
+		return fmt.Errorf("record validation: %w", err)
 	}
 	changed, _ := result.RowsAffected()
 	if changed == 0 {
 		return ErrStaleSecret
 	}
 	if _, err := tx.ExecContext(ctx, `UPDATE accounts SET username = ?, display_name = ?, created_at_ms = ?, updated_at_ms = ? WHERE id = ?`, identity.Username, identity.DisplayName, identity.CreatedAt.UTC().UnixMilli(), now, accountID); err != nil {
-		return err
+		return fmt.Errorf("update validated account: %w", err)
 	}
 	if err := bumpRevision(ctx, tx); err != nil {
 		return err
 	}
-	return tx.Commit()
+	if err := tx.Commit(); err != nil {
+		return fmt.Errorf("commit validation record: %w", err)
+	}
+	return nil
 }
 
 func (repository *Repository) RecordSuccess(ctx context.Context, accountID, expectedVersion int64) error {
@@ -492,12 +504,12 @@ func (repository *Repository) RecordSuccess(ctx context.Context, accountID, expe
 	now := repository.now().UTC().UnixMilli()
 	tx, err := db.BeginTx(ctx, nil)
 	if err != nil {
-		return err
+		return fmt.Errorf("begin success record: %w", err)
 	}
 	defer tx.Rollback()
 	result, err := tx.ExecContext(ctx, `UPDATE account_sessions SET state = CASE WHEN state = ? THEN state ELSE ? END, state_reason = CASE WHEN state = ? THEN state_reason ELSE '' END, last_success_at_ms = ?, updated_at_ms = ? WHERE account_id = ? AND secret_version = ? AND (state != ? OR last_success_at_ms IS NULL OR last_success_at_ms < ?)`, StateDisabled, StateActive, StateDisabled, now, now, accountID, expectedVersion, StateActive, now-int64(time.Minute/time.Millisecond))
 	if err != nil {
-		return err
+		return fmt.Errorf("record success: %w", err)
 	}
 	changed, _ := result.RowsAffected()
 	if changed > 0 {
@@ -505,7 +517,10 @@ func (repository *Repository) RecordSuccess(ctx context.Context, accountID, expe
 			return err
 		}
 	}
-	return tx.Commit()
+	if err := tx.Commit(); err != nil {
+		return fmt.Errorf("commit success record: %w", err)
+	}
+	return nil
 }
 
 const viewQuery = `
@@ -589,8 +604,10 @@ func viewFrom(identity Identity, accountID int64, session SessionRecord, updated
 }
 
 func bumpRevision(ctx context.Context, tx *sql.Tx) error {
-	_, err := tx.ExecContext(ctx, `UPDATE vault_state SET storage_revision = storage_revision + 1 WHERE singleton = 1`)
-	return err
+	if _, err := tx.ExecContext(ctx, `UPDATE vault_state SET storage_revision = storage_revision + 1 WHERE singleton = 1`); err != nil {
+		return fmt.Errorf("update storage revision: %w", err)
+	}
+	return nil
 }
 
 func nullableMillis(value *time.Time) any {

@@ -147,7 +147,7 @@ func clearPlayerSingleton(playerID uint32, handles []windows.Handle, event windo
 		return nil
 	}
 	if err != nil {
-		return err
+		return fmt.Errorf("open Roblox process: %w", err)
 	}
 	defer windows.CloseHandle(process)
 	if err := verifyProcess(process, playerName); err != nil {
@@ -171,23 +171,23 @@ func verifyProcess(process windows.Handle, expectedName string) error {
 	var path [32768]uint16
 	size := uint32(len(path))
 	if err := windows.QueryFullProcessImageName(process, 0, &path[0], &size); err != nil {
-		return err
+		return fmt.Errorf("read Roblox process path: %w", err)
 	}
 	if !strings.EqualFold(filepath.Base(windows.UTF16ToString(path[:size])), expectedName) {
 		return errors.New("process name no longer matches")
 	}
 	var token windows.Token
 	if err := windows.OpenProcessToken(process, windows.TOKEN_QUERY, &token); err != nil {
-		return err
+		return fmt.Errorf("open Roblox process token: %w", err)
 	}
 	defer token.Close()
 	owner, err := token.GetTokenUser()
 	if err != nil {
-		return err
+		return fmt.Errorf("read Roblox process user: %w", err)
 	}
 	current, err := windows.GetCurrentProcessToken().GetTokenUser()
 	if err != nil {
-		return err
+		return fmt.Errorf("read current user: %w", err)
 	}
 	if !owner.User.Sid.Equals(current.User.Sid) {
 		return errors.New("roblox process belongs to another Windows user")

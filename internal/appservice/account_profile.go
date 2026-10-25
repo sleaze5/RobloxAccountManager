@@ -101,9 +101,8 @@ func (service *Service) runAccountReads(ctx context.Context, accountID, version 
 		if failure == nil {
 			continue
 		}
-		var remote *roblox.Error
 		kind, status := roblox.KindProtocol, 0
-		if errors.As(failure, &remote) {
+		if remote, ok := errors.AsType[*roblox.Error](failure); ok {
 			kind, status = remote.Kind, remote.Status
 		}
 		logger.Warn("account section unavailable", "source", reads[index].source, "error_kind", kind, "status", status)

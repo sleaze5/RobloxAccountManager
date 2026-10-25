@@ -14,7 +14,7 @@ func ValidateBrowserProtocolURL(value string) error {
 		return errors.New("the browser supplied an invalid Roblox launch URL")
 	}
 	parameters := make(map[string]string)
-	for _, part := range strings.Split(value[len(prefix):], "+") {
+	for part := range strings.SplitSeq(value[len(prefix):], "+") {
 		name, raw, found := strings.Cut(part, ":")
 		name = strings.ToLower(name)
 		if _, duplicate := parameters[name]; !found || name == "" || duplicate {

@@ -6,6 +6,7 @@ import (
 	"bytes"
 	"context"
 	"errors"
+	"fmt"
 	"io"
 	"os"
 	"os/exec"
@@ -78,8 +79,7 @@ func (darwinLauncher) open(ctx context.Context, protocolURL string) error {
 		if ctx.Err() != nil {
 			return ctx.Err()
 		}
-		var exit *exec.ExitError
-		if errors.As(err, &exit) {
+		if _, ok := errors.AsType[*exec.ExitError](err); ok {
 			return &ClientError{Message: protocolUnavailable}
 		}
 		return &ClientError{Message: "roblox could not be started"}
@@ -93,15 +93,14 @@ func removeStoredLogin(home string) error {
 	if home == "" || !filepath.IsAbs(home) {
 		return nil
 	}
-	err := os.Remove(filepath.Join(home, "Library", "HTTPStorages", robloxBundleID+".binarycookies"))
-	if errors.Is(err, os.ErrNotExist) {
-		return nil
+	if err := os.Remove(filepath.Join(home, "Library", "HTTPStorages", robloxBundleID+".binarycookies")); err != nil && !errors.Is(err, os.ErrNotExist) {
+		return fmt.Errorf("remove stored Roblox login: %w", err)
 	}
-	return err
+	return nil
 }
 
 func findRoblox(home string) string {
-	candidates := []string{filepath.Join("/Applications", "Roblox.app")}
+	candidates := []string{"/Applications/Roblox.app"}
 	if home != "" && filepath.IsAbs(home) {
 		candidates = append(candidates, filepath.Join(home, "Applications", "Roblox.app"))
 	}

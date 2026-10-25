@@ -51,7 +51,7 @@ func (manager *Manager) SetEnabled(enabled bool) {
 		return
 	}
 	manager.logger.Info("multi-instance enabled")
-	manager.cleanupLocked()
+	_, _ = manager.cleanupLocked()
 	manager.scheduleLocked()
 }
 
@@ -244,7 +244,7 @@ func (manager *Manager) sweep(stop chan struct{}) {
 				manager.mu.Unlock()
 				return
 			}
-			manager.cleanupLocked()
+			_, _ = manager.cleanupLocked()
 			manager.mu.Unlock()
 		}
 	}

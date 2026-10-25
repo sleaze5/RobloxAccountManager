@@ -1,6 +1,7 @@
 package logging
 
 import (
+	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -25,10 +26,10 @@ type rotatingWriter struct {
 
 func newRotatingWriter(path string, maxBytes int64, retained int, header []byte, resume bool) (*rotatingWriter, error) {
 	if maxBytes <= 0 {
-		return nil, fmt.Errorf("log size limit must be positive")
+		return nil, errors.New("log size limit must be positive")
 	}
 	if retained < 1 {
-		return nil, fmt.Errorf("retained log count must be positive")
+		return nil, errors.New("retained log count must be positive")
 	}
 	return &rotatingWriter{path: path, maxBytes: maxBytes, retained: retained, header: header, resume: resume}, nil
 }
@@ -91,7 +92,10 @@ func (writer *rotatingWriter) Write(data []byte) (int, error) {
 	}
 	written, err := writer.file.Write(data)
 	writer.size += int64(written)
-	return written, err
+	if err != nil {
+		return written, fmt.Errorf("write log file: %w", err)
+	}
+	return written, nil
 }
 
 func (writer *rotatingWriter) Close() error {
@@ -103,7 +107,10 @@ func (writer *rotatingWriter) Close() error {
 	}
 	err := writer.file.Close()
 	writer.file = nil
-	return err
+	if err != nil {
+		return fmt.Errorf("close log file: %w", err)
+	}
+	return nil
 }
 
 func (writer *rotatingWriter) Sync() error {
@@ -112,7 +119,10 @@ func (writer *rotatingWriter) Sync() error {
 	if writer.file == nil {
 		return nil
 	}
-	return writer.file.Sync()
+	if err := writer.file.Sync(); err != nil {
+		return fmt.Errorf("flush log file: %w", err)
+	}
+	return nil
 }
 
 func (writer *rotatingWriter) open() error {

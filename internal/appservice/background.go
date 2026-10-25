@@ -46,9 +46,7 @@ func (service *Service) backgroundValidation(ctx context.Context) {
 	jobs := make(chan int64)
 	var workers sync.WaitGroup
 	for range backgroundWorkers {
-		workers.Add(1)
-		go func() {
-			defer workers.Done()
+		workers.Go(func() {
 			for {
 				select {
 				case <-ctx.Done():
@@ -62,7 +60,7 @@ func (service *Service) backgroundValidation(ctx context.Context) {
 					}
 				}
 			}
-		}()
+		})
 	}
 	defer func() {
 		close(jobs)

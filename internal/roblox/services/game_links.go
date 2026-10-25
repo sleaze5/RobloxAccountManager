@@ -3,6 +3,7 @@ package services
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"html"
 	"net/http"
 	"net/url"
@@ -86,7 +87,7 @@ func (service *GameLinks) resolveShare(ctx context.Context, accountID, version i
 		LinkType gamelaunch.ShareType `json:"linkType"`
 	}{LinkID: code, LinkType: shareType})
 	if err != nil {
-		return gamelaunch.Request{}, err
+		return gamelaunch.Request{}, fmt.Errorf("encode share link request: %w", err)
 	}
 	endpoint, _ := url.Parse("https://apis.roblox.com/sharelinks/v1/resolve-link")
 	response, err := service.client.Do(ctx, roblox.Request{

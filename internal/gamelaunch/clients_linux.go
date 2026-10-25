@@ -116,7 +116,7 @@ func applicationDirectories() []string {
 	if home != "" {
 		add(filepath.Join(home, ".local", "share", "flatpak", "exports", "share", "applications"))
 	}
-	add(filepath.Join("/var", "lib", "flatpak", "exports", "share", "applications"))
+	add("/var/lib/flatpak/exports/share/applications")
 	return dirs
 }
 

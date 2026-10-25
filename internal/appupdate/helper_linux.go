@@ -3,6 +3,7 @@
 package appupdate
 
 import (
+	"fmt"
 	"io"
 	"os"
 	"path/filepath"
@@ -47,21 +48,24 @@ func installTarget(executable string) string { return executable }
 func copyFile(source, destination string) error {
 	input, err := os.Open(source)
 	if err != nil {
-		return err
+		return fmt.Errorf("open staged update: %w", err)
 	}
-	defer input.Close()
+	defer func() { _ = input.Close() }()
 	// Only the owner can read, write, and run the executable.
 	output, err := os.OpenFile(destination, os.O_CREATE|os.O_EXCL|os.O_WRONLY, 0o700)
 	if err != nil {
-		return err
+		return fmt.Errorf("create update copy: %w", err)
 	}
 	if _, err := io.Copy(output, input); err != nil {
-		output.Close()
-		return err
+		_ = output.Close()
+		return fmt.Errorf("copy update: %w", err)
 	}
 	if err := output.Sync(); err != nil {
-		output.Close()
-		return err
+		_ = output.Close()
+		return fmt.Errorf("flush update copy: %w", err)
 	}
-	return output.Close()
+	if err := output.Close(); err != nil {
+		return fmt.Errorf("close update copy: %w", err)
+	}
+	return nil
 }

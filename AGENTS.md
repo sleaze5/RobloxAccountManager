@@ -26,7 +26,7 @@ author:
 - Desktop: Go, Wails `3` beta
 - Frontend: Svelte `5`, TypeScript `7`
 - Database: SQLite with SQLCipher
-- Tooling: Bun, Vite, Oxlint, Oxfmt, svelte-check
+- Tooling: Bun, Vite, Oxlint, Oxfmt, svelte-check, golangci-lint
 - Design: Geist, Geist Mono, Phosphor icons
 
 Use this stack. Do not add a framework, library, or runtime dependency when the stack can solve the problem. Justify any necessary addition in the change summary.

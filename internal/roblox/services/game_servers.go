@@ -3,6 +3,7 @@ package services
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"math"
 	"net/http"
 	"net/url"
@@ -102,7 +103,7 @@ func (service *Games) Joinable(ctx context.Context, accountID, placeID int64, jo
 		GameID  string `json:"gameId"`
 	}{placeID, jobID})
 	if err != nil {
-		return false, err
+		return false, fmt.Errorf("encode join request: %w", err)
 	}
 	var payload struct {
 		JoinScript *struct{} `json:"joinScript"`
@@ -135,7 +136,7 @@ func (service *Games) playerImages(ctx context.Context, servers [][]string) (map
 	for start := 0; start < len(requests); start += headshotBatchSize {
 		body, err := json.Marshal(requests[start:min(start+headshotBatchSize, len(requests))])
 		if err != nil {
-			return result, err
+			return result, fmt.Errorf("encode player thumbnail request: %w", err)
 		}
 		var payload struct {
 			Data []struct {

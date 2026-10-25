@@ -37,7 +37,7 @@ jobs:
                   native=true
                   # A new branch or a rewritten base has nothing to compare with, so everything runs.
                   if git cat-file -e "$BASE^{commit}" 2>/dev/null; then
-                      if ! git diff --name-only "$BASE...$HEAD" | grep -Eq '\.go$|^go\.(mod|sum)$|Taskfile\.yml$|^\.github/'; then
+                      if ! git diff --name-only "$BASE...$HEAD" | grep -Eq '\.go$|(^|/)go\.(mod|sum)$|^\.golangci\.yml$|Taskfile\.yml$|^\.github/'; then
                           native=false
                       fi
                   fi

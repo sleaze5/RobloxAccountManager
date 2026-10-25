@@ -3,6 +3,7 @@
 package singleinstance
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"os"
@@ -37,7 +38,7 @@ func Acquire(applicationID string) (*Instance, bool, error) {
 }
 
 func ShowAlreadyRunning() {
-	command := exec.Command("/usr/bin/osascript", "-e",
+	command := exec.CommandContext(context.Background(), "/usr/bin/osascript", "-e",
 		`display alert "Roblox Account Manager is already running." as informational`)
 	if err := command.Run(); err != nil {
 		fmt.Fprintln(os.Stderr, "Roblox Account Manager is already running.")
@@ -50,5 +51,8 @@ func (instance *Instance) Close() error {
 	}
 	err := instance.file.Close()
 	instance.file = nil
-	return err
+	if err != nil {
+		return fmt.Errorf("close single-instance lock: %w", err)
+	}
+	return nil
 }

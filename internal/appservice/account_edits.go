@@ -25,7 +25,7 @@ const (
 
 var (
 	accountEditOperationID atomic.Uint64
-	accountPinPattern      = regexp.MustCompile(`^[0-9]{4}$`)
+	accountPinPattern      = regexp.MustCompile(`^\d{4}$`)
 )
 
 type PinState string

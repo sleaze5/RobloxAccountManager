@@ -45,12 +45,15 @@ func (repository *Repository) List(ctx context.Context) ([]games.Place, error) {
 		}
 		places = append(places, place)
 	}
-	return places, rows.Err()
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("read favorite places: %w", err)
+	}
+	return places, nil
 }
 
 func (repository *Repository) Save(ctx context.Context, place games.Place) error {
 	if place.PlaceID <= 0 || place.UniverseID <= 0 || place.Name == "" {
-		return fmt.Errorf("invalid favorite place")
+		return errors.New("invalid favorite place")
 	}
 	return repository.write(ctx, place.PlaceID, "favorite-place-save", false, `INSERT INTO favorite_places(place_id, universe_id, name, creator_id, creator_name, creator_type, creator_verified, icon_url, display_order, created_at_ms)
 		VALUES(?, ?, ?, ?, ?, ?, ?, ?, (SELECT COALESCE(MIN(display_order) - 1, 0) FROM favorite_places), ?) ON CONFLICT(place_id) DO UPDATE SET
@@ -71,12 +74,12 @@ func (repository *Repository) Reorder(ctx context.Context, placeIDs []int64) err
 	defer release()
 	tx, err := db.BeginTx(ctx, nil)
 	if err != nil {
-		return err
+		return fmt.Errorf("begin favorite reorder: %w", err)
 	}
 	defer tx.Rollback()
 	var count int
 	if err := tx.QueryRowContext(ctx, `SELECT COUNT(*) FROM favorite_places`).Scan(&count); err != nil {
-		return err
+		return fmt.Errorf("count favorite places: %w", err)
 	}
 	if count != len(placeIDs) {
 		return ErrNotFavorite
@@ -84,19 +87,19 @@ func (repository *Repository) Reorder(ctx context.Context, placeIDs []int64) err
 	for order, placeID := range placeIDs {
 		result, err := tx.ExecContext(ctx, `UPDATE favorite_places SET display_order = ? WHERE place_id = ?`, order, placeID)
 		if err != nil {
-			return err
+			return fmt.Errorf("reorder favorite place: %w", err)
 		}
 		if changed, err := result.RowsAffected(); err != nil {
-			return err
+			return fmt.Errorf("count reordered favorite places: %w", err)
 		} else if changed == 0 {
 			return ErrNotFavorite
 		}
 	}
 	if _, err := tx.ExecContext(ctx, `UPDATE vault_state SET storage_revision = storage_revision + 1 WHERE singleton = 1`); err != nil {
-		return err
+		return fmt.Errorf("update storage revision: %w", err)
 	}
 	if err := tx.Commit(); err != nil {
-		return err
+		return fmt.Errorf("commit favorite reorder: %w", err)
 	}
 	repository.logger.InfoContext(ctx, "favorite places reordered", "operation", "favorite-places-reorder", "count", len(placeIDs))
 	return nil
@@ -114,25 +117,25 @@ func (repository *Repository) write(ctx context.Context, placeID int64, operatio
 	defer release()
 	tx, err := db.BeginTx(ctx, nil)
 	if err != nil {
-		return err
+		return fmt.Errorf("begin favorite update: %w", err)
 	}
 	defer tx.Rollback()
 	result, err := tx.ExecContext(ctx, query, args...)
 	if err != nil {
-		return err
+		return fmt.Errorf("update favorite place: %w", err)
 	}
 	if existing {
 		if changed, err := result.RowsAffected(); err != nil {
-			return err
+			return fmt.Errorf("count updated favorite places: %w", err)
 		} else if changed == 0 {
 			return ErrNotFavorite
 		}
 	}
 	if _, err := tx.ExecContext(ctx, `UPDATE vault_state SET storage_revision = storage_revision + 1 WHERE singleton = 1`); err != nil {
-		return err
+		return fmt.Errorf("update storage revision: %w", err)
 	}
 	if err := tx.Commit(); err != nil {
-		return err
+		return fmt.Errorf("commit favorite update: %w", err)
 	}
 	repository.logger.InfoContext(ctx, "favorite places updated", "operation", operation, "place_id", placeID)
 	return nil

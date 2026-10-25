@@ -3,6 +3,7 @@
 package appdata
 
 import (
+	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -13,11 +14,11 @@ import (
 
 func rejectNetworkPath(path string) error {
 	if strings.HasPrefix(path, `\\`) {
-		return fmt.Errorf("network application paths are unsupported")
+		return errors.New("network application paths are unsupported")
 	}
 	volume := filepath.VolumeName(path)
 	if volume != "" && windows.GetDriveType(windows.StringToUTF16Ptr(volume+`\`)) == windows.DRIVE_REMOTE {
-		return fmt.Errorf("network application paths are unsupported")
+		return errors.New("network application paths are unsupported")
 	}
 	return nil
 }

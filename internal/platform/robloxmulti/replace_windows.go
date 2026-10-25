@@ -33,17 +33,22 @@ func capturePlayers() (*playerProcesses, error) {
 	return players, nil
 }
 
-func openProcess(pid uint32, access uint32, expectedName string) (windows.Handle, error) {
+func openProcess(pid, access uint32, expectedName string) (windows.Handle, error) {
 	handle, err := windows.OpenProcess(access|windows.PROCESS_QUERY_LIMITED_INFORMATION|windows.SYNCHRONIZE, false, pid)
 	if errors.Is(err, windows.ERROR_INVALID_PARAMETER) {
 		return 0, nil
 	}
 	if err != nil {
-		return 0, err
+		return 0, fmt.Errorf("open Roblox process: %w", err)
 	}
-	if result, err := windows.WaitForSingleObject(handle, 0); err != nil || result == windows.WAIT_OBJECT_0 {
+	result, err := windows.WaitForSingleObject(handle, 0)
+	switch {
+	case err != nil:
 		windows.CloseHandle(handle)
-		return 0, err
+		return 0, fmt.Errorf("check Roblox process state: %w", err)
+	case result == windows.WAIT_OBJECT_0:
+		windows.CloseHandle(handle)
+		return 0, nil
 	}
 	if err := verifyProcess(handle, expectedName); err != nil {
 		if result, _ := windows.WaitForSingleObject(handle, 0); result == windows.WAIT_OBJECT_0 {
@@ -61,7 +66,7 @@ func openProcess(pid uint32, access uint32, expectedName string) (windows.Handle
 	if err != nil || session != currentSession {
 		windows.CloseHandle(handle)
 		if err != nil {
-			return 0, err
+			return 0, fmt.Errorf("read Roblox process session: %w", err)
 		}
 		return 0, errors.New("roblox process belongs to another Windows session")
 	}
@@ -87,19 +92,19 @@ func (players *playerProcesses) terminate(ctx context.Context, logger *slog.Logg
 		}
 		result, err := windows.WaitForSingleObject(handle, 0)
 		if err != nil {
-			return err
+			return fmt.Errorf("check Roblox process state: %w", err)
 		}
 		if result == windows.WAIT_OBJECT_0 {
 			continue
 		}
 		if err := windows.TerminateProcess(handle, 0); err != nil {
 			if result, _ := windows.WaitForSingleObject(handle, 0); result != windows.WAIT_OBJECT_0 {
-				return err
+				return fmt.Errorf("close Roblox process: %w", err)
 			}
 		}
 		pid, err := windows.GetProcessId(handle)
 		if err != nil {
-			return err
+			return fmt.Errorf("read Roblox process ID: %w", err)
 		}
 		logger.Info("closed Roblox process after confirmation", "process_id", pid)
 	}
@@ -110,7 +115,7 @@ func (players *playerProcesses) terminate(ctx context.Context, logger *slog.Logg
 			}
 			result, err := windows.WaitForSingleObject(handle, 50)
 			if err != nil {
-				return err
+				return fmt.Errorf("wait for Roblox process: %w", err)
 			}
 			if result == windows.WAIT_OBJECT_0 {
 				break

@@ -3,6 +3,7 @@ package services
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net/http"
 	"net/url"
@@ -64,7 +65,7 @@ func (service *Users) Authenticated(ctx context.Context, accountID int64) (accou
 		DisplayName string `json:"displayName"`
 	}
 	if err := json.Unmarshal(response.Body, &identity); err != nil || identity.ID <= 0 || strings.TrimSpace(identity.Name) == "" {
-		return accounts.Identity{}, &roblox.Error{Kind: roblox.KindProtocol, Endpoint: "authenticated-user", Status: response.Status, Message: "Roblox returned an invalid account identity.", Cause: fmt.Errorf("invalid authenticated-user response")}
+		return accounts.Identity{}, &roblox.Error{Kind: roblox.KindProtocol, Endpoint: "authenticated-user", Status: response.Status, Message: "Roblox returned an invalid account identity.", Cause: errors.New("invalid authenticated-user response")}
 	}
 	profile, err := service.Profile(ctx, identity.ID)
 	if err != nil {
@@ -115,7 +116,7 @@ func (service *Users) UserIDFromUsername(ctx context.Context, username string) (
 		ExcludeBannedUsers bool     `json:"excludeBannedUsers"`
 	}{Usernames: []string{username}, ExcludeBannedUsers: true})
 	if err != nil {
-		return 0, err
+		return 0, fmt.Errorf("encode username lookup: %w", err)
 	}
 	endpoint, _ := url.Parse("https://users.roblox.com/v1/usernames/users")
 	response, err := service.client.Do(ctx, roblox.Request{

@@ -5,8 +5,10 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"maps"
 	"os"
 	"path/filepath"
+	"slices"
 	"strings"
 	"sync"
 	"time"
@@ -37,15 +39,15 @@ var _ = [1]struct{}{}[len(migrations)-(FormatVersion-1)]
 // version 2 no longer reads, so decoding applies the version 2 defaults.
 func resetTimestampFormats(document object) (object, error) {
 	document["version"] = json.RawMessage("2")
-	var userInterface object
-	if json.Unmarshal(document["userInterface"], &userInterface) != nil || userInterface == nil {
+	userInterface := (&fieldDecoder{}).object(document, "userInterface")
+	if userInterface == nil {
 		return document, nil
 	}
 	delete(userInterface, "timestampFormat")
 	delete(userInterface, "timestampHoverFormat")
 	encoded, err := json.Marshal(userInterface)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("encode user interface settings: %w", err)
 	}
 	document["userInterface"] = encoded
 	return document, nil
@@ -399,7 +401,7 @@ func (store *Store) SetLinuxClient(client string) error {
 
 func (store *Store) SetPlayerPath(path string) error {
 	if !validPlayerPath(path) {
-		return fmt.Errorf("the Roblox Player path is not valid UTF-8 or is longer than 4096 bytes")
+		return errors.New("the Roblox Player path is not valid UTF-8 or is longer than 4096 bytes")
 	}
 	store.mu.Lock()
 	defer store.mu.Unlock()
@@ -502,7 +504,7 @@ func (store *Store) SetMotion(motion MotionPreference) error {
 
 func (store *Store) SetPasswordTestIntervalDays(days int) error {
 	if !validPasswordTestInterval(days) {
-		return fmt.Errorf("password test interval must be 0, 7, 30, or 90 days")
+		return errors.New("password test interval must be 0, 7, 30, or 90 days")
 	}
 	store.mu.Lock()
 	defer store.mu.Unlock()
@@ -585,7 +587,7 @@ func archiveSettingsBackup(backup string) error {
 	}
 	if err := archive.Close(); err != nil {
 		_ = os.Remove(archive.Name())
-		return err
+		return fmt.Errorf("reserve previous settings backup: %w", err)
 	}
 	if err := appdata.ReplaceFile(backup, archive.Name()); err != nil {
 		_ = os.Remove(archive.Name())
@@ -611,7 +613,10 @@ func decodeJSON(data []byte, value any) error {
 	if !utf8.Valid(data) {
 		return errors.New("settings must use valid UTF-8 encoding")
 	}
-	return json.Unmarshal(data, value)
+	if err := json.Unmarshal(data, value); err != nil {
+		return fmt.Errorf("parse JSON: %w", err)
+	}
+	return nil
 }
 
 func (store *Store) SourceVersion() int { return store.sourceVersion }
@@ -624,7 +629,7 @@ func (store *Store) Origin() string { return store.origin }
 
 func validatePresenceSettings(settings PresenceUpdateSettings) error {
 	if !validPresenceInterval(settings.IntervalSeconds) {
-		return fmt.Errorf("presence update interval must be between 30 and 900 seconds in steps of 5")
+		return errors.New("presence update interval must be between 30 and 900 seconds in steps of 5")
 	}
 	return nil
 }
@@ -674,12 +679,7 @@ func validPasswordTestInterval(days int) bool {
 }
 
 func validLoggingLevel(level string) bool {
-	for _, value := range loggingLevels {
-		if level == value {
-			return true
-		}
-	}
-	return false
+	return slices.Contains(loggingLevels, level)
 }
 
 func defaultEnabledLoggingLevels() map[string]bool {
@@ -692,9 +692,7 @@ func defaultEnabledLoggingLevels() map[string]bool {
 
 func cloneLoggingLevels(levels map[string]bool) map[string]bool {
 	cloned := make(map[string]bool, len(levels))
-	for level, enabled := range levels {
-		cloned[level] = enabled
-	}
+	maps.Copy(cloned, levels)
 	return cloned
 }
 

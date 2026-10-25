@@ -31,7 +31,7 @@ func New() Protector {
 
 func (linuxProtector) Protect(plaintext []byte) ([]byte, error) {
 	if len(plaintext) == 0 {
-		return nil, fmt.Errorf("protect data: plaintext is empty")
+		return nil, errors.New("protect data: plaintext is empty")
 	}
 	key, err := encryptionKey()
 	if err != nil {
@@ -51,7 +51,7 @@ func (linuxProtector) Protect(plaintext []byte) ([]byte, error) {
 
 func (linuxProtector) Unprotect(ciphertext []byte) ([]byte, error) {
 	if len(ciphertext) == 0 {
-		return nil, fmt.Errorf("unprotect data: ciphertext is empty")
+		return nil, errors.New("unprotect data: ciphertext is empty")
 	}
 	if ciphertext[0] != protectedVersion {
 		return nil, fmt.Errorf("unprotect data with the Secret Service: protected data version %d is unsupported", ciphertext[0])
@@ -70,7 +70,7 @@ func (linuxProtector) Unprotect(ciphertext []byte) ([]byte, error) {
 		return nil, fmt.Errorf("unprotect data with the Secret Service: %w", err)
 	}
 	if len(ciphertext) < 1+gcm.NonceSize()+gcm.Overhead() {
-		return nil, fmt.Errorf("unprotect data with the Secret Service: protected data is truncated")
+		return nil, errors.New("unprotect data with the Secret Service: protected data is truncated")
 	}
 	nonce := ciphertext[1 : 1+gcm.NonceSize()]
 	sealed := ciphertext[1+gcm.NonceSize():]
@@ -84,15 +84,15 @@ func (linuxProtector) Unprotect(ciphertext []byte) ([]byte, error) {
 func seal(key, plaintext []byte) (sealed, nonce []byte, err error) {
 	block, err := aes.NewCipher(key)
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, fmt.Errorf("create automatic unlock cipher: %w", err)
 	}
 	gcm, err := cipher.NewGCM(block)
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, fmt.Errorf("create automatic unlock cipher mode: %w", err)
 	}
 	nonce = make([]byte, gcm.NonceSize())
 	if _, err := rand.Read(nonce); err != nil {
-		return nil, nil, err
+		return nil, nil, fmt.Errorf("generate automatic unlock nonce: %w", err)
 	}
 	sealed = gcm.Seal(nil, nonce, plaintext, []byte(appmeta.Identifier+"/autounlock/v1"))
 	return sealed, nonce, nil
@@ -106,21 +106,21 @@ func encryptionKey() ([]byte, error) {
 	if errors.Is(err, keyring.ErrNotFound) {
 		key := make([]byte, 32)
 		if _, err := rand.Read(key); err != nil {
-			return nil, err
+			return nil, fmt.Errorf("generate automatic unlock key: %w", err)
 		}
 		if err := keyring.Set(appmeta.Identifier, autoUnlockKeyAccount, base64.StdEncoding.EncodeToString(key)); err != nil {
 			wipe(key)
-			return nil, err
+			return nil, fmt.Errorf("store automatic unlock key in the Secret Service: %w", err)
 		}
 		return key, nil
 	}
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("read automatic unlock key from the Secret Service: %w", err)
 	}
 	key, err := base64.StdEncoding.DecodeString(encoded)
 	if err != nil || len(key) != 32 {
 		wipe(key)
-		return nil, fmt.Errorf("automatic unlock key is invalid")
+		return nil, errors.New("automatic unlock key is invalid")
 	}
 	return key, nil
 }
@@ -136,10 +136,10 @@ func rejectLockedKeyring() error {
 	}
 	locked, ok := value.Value().(bool)
 	if !ok {
-		return fmt.Errorf("read the Secret Service collection lock state")
+		return errors.New("read the Secret Service collection lock state")
 	}
 	if locked {
-		return fmt.Errorf("the Secret Service collection is locked")
+		return errors.New("the Secret Service collection is locked")
 	}
 	return nil
 }

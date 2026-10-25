@@ -71,7 +71,7 @@ func (client *CDPClient) Call(ctx context.Context, method string, params any, se
 	}{ID: id, Method: method, Params: params, SessionID: sessionID})
 	if err != nil {
 		client.removePending(id)
-		return err
+		return fmt.Errorf("encode CDP command: %w", err)
 	}
 	client.writeMu.Lock()
 	_, err = client.input.Write(append(payload, 0))

@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"context"
 	"errors"
+	"fmt"
 	"io"
 	"net"
 	"regexp"
@@ -23,10 +24,10 @@ var (
 	versionPattern  = regexp.MustCompile(`"version"\s*:\s*"([0-9.]+)"`)
 	hashPattern     = regexp.MustCompile(`"clientVersionUpload"\s*:\s*"version-([0-9a-f]+)"`)
 	channelPattern  = regexp.MustCompile(`(?:The channel is |RobloxChannel has been set to )([a-zA-Z0-9_-]+)`)
-	userPattern     = regexp.MustCompile(`(?:userId = |userid:)([0-9]+)`)
-	universePattern = regexp.MustCompile(`universeid:([0-9]+)`)
-	serverPattern   = regexp.MustCompile(`UDMUX Address = ([0-9a-fA-F.:]+), Port = ([0-9]+)`)
-	filePattern     = regexp.MustCompile(`(?i)^([0-9.]+)_([0-9]{8}T[0-9]{6}Z)_Player_`)
+	userPattern     = regexp.MustCompile(`(?:userId = |userid:)(\d+)`)
+	universePattern = regexp.MustCompile(`universeid:(\d+)`)
+	serverPattern   = regexp.MustCompile(`UDMUX Address = ([0-9a-fA-F.:]+), Port = (\d+)`)
+	filePattern     = regexp.MustCompile(`(?i)^([0-9.]+)_(\d{8}T\d{6}Z)_Player_`)
 )
 
 func newSession(name string) Session {
@@ -68,7 +69,7 @@ func parse(ctx context.Context, input io.Reader, session *Session) error {
 			return nil
 		}
 		if err != nil {
-			return err
+			return fmt.Errorf("read Roblox log: %w", err)
 		}
 	}
 }

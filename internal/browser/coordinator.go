@@ -8,6 +8,7 @@ import (
 	"log/slog"
 	"os"
 	"path/filepath"
+	"slices"
 	"sort"
 	"strings"
 	"sync"
@@ -628,7 +629,6 @@ func (coordinator *Coordinator) checkpoint(ctx context.Context, current *session
 	coordinator.bumpLocked()
 	coordinator.mu.Unlock()
 	if stale || err != nil {
-		value = ""
 		validation.Cookie = ""
 		return
 	}
@@ -655,7 +655,6 @@ func (coordinator *Coordinator) checkpoint(ctx context.Context, current *session
 			coordinator.mu.Unlock()
 		}
 	}
-	value = ""
 	if current.state.Mode == ModeLogin {
 		coordinator.installCandidate(ctx, current, validation)
 		return
@@ -726,19 +725,20 @@ func (coordinator *Coordinator) installCandidate(ctx context.Context, current *s
 		return
 	}
 	for _, existing := range coordinator.candidates {
-		if existing.state.SessionID == current.state.ID && existing.state.RobloxUserID == validation.Identity.RobloxUserID {
-			existing.validation.Cookie = ""
-			existing.validation = validation
-			existing.state.Username = validation.Identity.Username
-			existing.state.DisplayName = validation.Identity.DisplayName
-			existing.state.AvatarURL = avatar
-			existing.state.UpdatesExisting = updatesExisting && existingAccount.ID > 0
-			updatesSavedAccount := existing.state.UpdatesExisting
-			coordinator.bumpLocked()
-			coordinator.mu.Unlock()
-			coordinator.logger.Info("browser account candidate updated", "session_id", current.state.ID, "session_mode", current.state.Mode, "roblox_user_id", validation.Identity.RobloxUserID, "updates_existing", updatesSavedAccount)
-			return
+		if existing.state.SessionID != current.state.ID || existing.state.RobloxUserID != validation.Identity.RobloxUserID {
+			continue
 		}
+		existing.validation.Cookie = ""
+		existing.validation = validation
+		existing.state.Username = validation.Identity.Username
+		existing.state.DisplayName = validation.Identity.DisplayName
+		existing.state.AvatarURL = avatar
+		existing.state.UpdatesExisting = updatesExisting && existingAccount.ID > 0
+		updatesSavedAccount := existing.state.UpdatesExisting
+		coordinator.bumpLocked()
+		coordinator.mu.Unlock()
+		coordinator.logger.Info("browser account candidate updated", "session_id", current.state.ID, "session_mode", current.state.Mode, "roblox_user_id", validation.Identity.RobloxUserID, "updates_existing", updatesSavedAccount)
+		return
 	}
 	state := CandidateState{ID: id, SessionID: current.state.ID, RobloxUserID: validation.Identity.RobloxUserID, Username: validation.Identity.Username, DisplayName: validation.Identity.DisplayName, AvatarURL: avatar, UpdatesExisting: updatesExisting && existingAccount.ID > 0}
 	for _, existing := range coordinator.candidates {
@@ -767,9 +767,9 @@ func (coordinator *Coordinator) Focus(id string) error {
 	if target == "" {
 		targets, err := current.cdp.Targets(ctx)
 		if err == nil {
-			for index := len(targets) - 1; index >= 0; index-- {
-				if targets[index].Type == "page" {
-					target = targets[index].TargetID
+			for _, candidate := range slices.Backward(targets) {
+				if candidate.Type == "page" {
+					target = candidate.TargetID
 					break
 				}
 			}
@@ -797,9 +797,9 @@ func (coordinator *Coordinator) targetSession(ctx context.Context, current *sess
 			if err != nil {
 				return "", err
 			}
-			for index := len(targets) - 1; index >= 0; index-- {
-				if targets[index].Type == "page" {
-					targetID = targets[index].TargetID
+			for _, target := range slices.Backward(targets) {
+				if target.Type == "page" {
+					targetID = target.TargetID
 					break
 				}
 			}
@@ -855,11 +855,11 @@ func (coordinator *Coordinator) sessionCookies(ctx context.Context, current *ses
 	}
 	var firstSession string
 	var lastErr error
-	for index := len(targets) - 1; index >= 0; index-- {
-		if targets[index].Type != "page" {
+	for _, target := range slices.Backward(targets) {
+		if target.Type != "page" {
 			continue
 		}
-		sessionID, attachErr := coordinator.targetSessionFor(ctx, current, targets[index].TargetID)
+		sessionID, attachErr := coordinator.targetSessionFor(ctx, current, target.TargetID)
 		if attachErr != nil {
 			lastErr = attachErr
 			continue

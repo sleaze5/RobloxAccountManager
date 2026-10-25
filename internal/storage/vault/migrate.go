@@ -61,11 +61,11 @@ func applySchemaMigrations(ctx context.Context, db *sql.DB, from int) error {
 	}
 	var violations int
 	if err := tx.QueryRowContext(ctx, `SELECT count(*) FROM pragma_foreign_key_check`).Scan(&violations); err != nil || violations != 0 {
-		return fmt.Errorf("migrated vault schema failed the foreign key check")
+		return errors.New("migrated vault schema failed the foreign key check")
 	}
 	var integrity string
 	if err := tx.QueryRowContext(ctx, `PRAGMA quick_check`).Scan(&integrity); err != nil || integrity != "ok" {
-		return fmt.Errorf("migrated vault schema failed the integrity check")
+		return errors.New("migrated vault schema failed the integrity check")
 	}
 	if err := tx.Commit(); err != nil {
 		return fmt.Errorf("commit vault schema migration: %w", err)
@@ -135,7 +135,7 @@ func (manager *Manager) upgradeAutoUnlock() error {
 		return err
 	}
 	if len(data) < len(autoMagic)+2 {
-		return fmt.Errorf("automatic unlock file is corrupted")
+		return errors.New("automatic unlock file is corrupted")
 	}
 	version := binary.BigEndian.Uint16(data[len(autoMagic):])
 	if version >= autoFormatVersion {

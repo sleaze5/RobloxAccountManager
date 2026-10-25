@@ -80,7 +80,7 @@ func parsePlayerPath(path string) (string, error) {
 func expandEnvironment(path string) (string, error) {
 	source, err := windows.UTF16PtrFromString(path)
 	if err != nil {
-		return "", err
+		return "", fmt.Errorf("encode environment string: %w", err)
 	}
 	size, err := windows.ExpandEnvironmentStrings(source, nil, 0)
 	if err != nil {

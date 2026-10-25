@@ -167,24 +167,26 @@ tasks:
         dir: "{{.ROOT_DIR}}"
         cmds:
             - go mod tidy
+            - go -C build/tools mod tidy
 
     internal:go:tidy:check:
         internal: true
         dir: "{{.ROOT_DIR}}"
         cmds:
             - go mod tidy -diff
+            - go -C build/tools mod tidy -diff
 
-    internal:go:vet:
+    internal:go:lint:
         internal: true
         dir: "{{.ROOT_DIR}}"
         cmds:
-            - go vet ./internal/...
+            - "{{.GOLANGCI_LINT}} run ./internal/..."
 
-    internal:go:staticcheck:
+    internal:go:lint:fix:
         internal: true
         dir: "{{.ROOT_DIR}}"
         cmds:
-            - go tool staticcheck ./internal/...
+            - "{{.GOLANGCI_LINT}} run --fix ./internal/..."
 
     internal:go:build:
         internal: true
@@ -200,4 +202,5 @@ tasks:
                 sh: go list -m -f '{{`{{if not (or .Main .Indirect (eq .Path "github.com/wailsapp/wails/v3"))}}{{.Path}}{{end}}`}}' all
         cmds:
             - go get toolchain@latest
-            - go get -u tool {{.MODULES | catLines}}
+            - go get -u {{.MODULES | catLines}}
+            - go -C build/tools get tool

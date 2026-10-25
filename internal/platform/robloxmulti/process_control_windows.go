@@ -90,7 +90,7 @@ func killProcess(ctx context.Context, process Process, logger *slog.Logger) erro
 func processStartTime(handle windows.Handle) (string, error) {
 	var created, exited, kernel, user windows.Filetime
 	if err := windows.GetProcessTimes(handle, &created, &exited, &kernel, &user); err != nil {
-		return "", err
+		return "", fmt.Errorf("read Roblox process times: %w", err)
 	}
 	return strconv.FormatUint(uint64(created.HighDateTime)<<32|uint64(created.LowDateTime), 10), nil
 }

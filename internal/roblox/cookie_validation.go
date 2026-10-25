@@ -38,7 +38,7 @@ func (client *Client) ValidateCookie(ctx context.Context, cookie, browserID stri
 	currentCookie := cookie
 	var expires *time.Time
 	for attempt := 1; attempt <= 3; attempt++ {
-		request, err := http.NewRequestWithContext(requestContext, http.MethodGet, client.authenticatedUserURL.String(), nil)
+		request, err := http.NewRequestWithContext(requestContext, http.MethodGet, client.authenticatedUserURL.String(), http.NoBody)
 		if err != nil {
 			return CookieValidation{}, &Error{Kind: KindProtocol, Endpoint: "cookie-import", Message: "The cookie validation request is invalid.", Cause: err}
 		}

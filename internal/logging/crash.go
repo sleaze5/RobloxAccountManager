@@ -1,6 +1,7 @@
 package logging
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"io"
@@ -48,22 +49,27 @@ func (capture *crashCapture) setEnabled(enabled bool) error {
 	}
 	executable, err := os.Executable()
 	if err != nil {
-		return err
+		return fmt.Errorf("find executable for crash monitor: %w", err)
 	}
-	command := exec.Command(executable, crashMonitorArgument, capture.launchID, capture.directory)
+	command := exec.CommandContext(context.Background(), executable, crashMonitorArgument, capture.launchID, capture.directory)
 	hideCrashMonitor(command)
 	pipe, err := command.StdinPipe()
 	if err != nil {
-		return err
+		return fmt.Errorf("create crash monitor input: %w", err)
+	}
+	file, ok := pipe.(*os.File)
+	if !ok {
+		_ = pipe.Close()
+		return errors.New("crash monitor input is not a file")
 	}
 	if err := command.Start(); err != nil {
-		_ = pipe.Close()
-		return err
+		_ = file.Close()
+		return fmt.Errorf("start crash monitor: %w", err)
 	}
-	capture.pipe, capture.command = pipe.(*os.File), command
+	capture.pipe, capture.command = file, command
 	if err := debug.SetCrashOutput(capture.pipe, debug.CrashOptions{}); err != nil {
 		_ = capture.close()
-		return err
+		return fmt.Errorf("redirect crash output: %w", err)
 	}
 	return nil
 }
@@ -73,9 +79,9 @@ func (capture *crashCapture) close() error {
 		return nil
 	}
 	if err := debug.SetCrashOutput(nil, debug.CrashOptions{}); err != nil {
-		return err
+		return fmt.Errorf("stop crash output: %w", err)
 	}
-	_, writeErr := io.WriteString(capture.pipe, cleanShutdownRecord)
+	_, writeErr := capture.pipe.WriteString(cleanShutdownRecord)
 	closeErr := capture.pipe.Close()
 	waitErr := capture.command.Wait()
 	capture.pipe, capture.command = nil, nil
@@ -93,10 +99,10 @@ func RunCrashMonitor() (bool, error) {
 	}
 	data, err := io.ReadAll(io.LimitReader(os.Stdin, 1<<20))
 	if err != nil {
-		return true, err
+		return true, fmt.Errorf("read crash output: %w", err)
 	}
 	if _, err := io.Copy(io.Discard, os.Stdin); err != nil {
-		return true, err
+		return true, fmt.Errorf("drain crash output: %w", err)
 	}
 	if string(data) == cleanShutdownRecord {
 		return true, nil
@@ -147,8 +153,8 @@ func crashReason(line string) string {
 }
 
 var (
-	crashGoroutine = regexp.MustCompile(`^goroutine [0-9]+ \[[^\r\n]+\]:$`)
-	crashLocation  = regexp.MustCompile(`^\t([^\r\n]+\.go:[0-9]+)(?: \+0x[0-9a-f]+.*)?$`)
+	crashGoroutine = regexp.MustCompile(`^goroutine \d+ \[[^\r\n]+\]:$`)
+	crashLocation  = regexp.MustCompile(`^\t([^\r\n]+\.go:\d+)(?: \+0x[0-9a-f]+.*)?$`)
 	crashFunction  = regexp.MustCompile(`^[A-Za-z0-9_./\\@*()\[\]{}·-]+$`)
 )
 

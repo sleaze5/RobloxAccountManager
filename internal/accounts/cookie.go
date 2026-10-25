@@ -54,7 +54,7 @@ func NormalizeCookie(input string) (string, error) {
 	}
 	var found string
 	count := 0
-	for _, part := range strings.Split(trimmed, ";") {
+	for part := range strings.SplitSeq(trimmed, ";") {
 		pair := strings.TrimSpace(part)
 		name, value, ok := strings.Cut(pair, "=")
 		if !ok || !strings.EqualFold(strings.TrimSpace(name), RoblosecurityCookieName) {
@@ -85,7 +85,7 @@ func ValidateCookieValue(value string) error {
 	if len(value) > maxCookieInputBytes {
 		return fmt.Errorf("%w: input is too large", ErrInvalidCookieInput)
 	}
-	for index := 0; index < len(value); index++ {
+	for index := range len(value) {
 		character := value[index]
 		// 0x21 to 0x7e is printable ASCII without the space.
 		if character < 0x21 || character > 0x7e || character == '"' || character == ',' || character == ';' || character == '\\' {

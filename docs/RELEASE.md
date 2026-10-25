@@ -51,14 +51,16 @@ The pinned llvm-mingw release for Windows ARM64 is set up by `.github/actions/se
 
 `task check` runs two scopes in parallel, and each runs its own steps in parallel:
 
-- `task check:common` validates what does not depend on the operating system: frontend formatting, lint, and `svelte-check`, Go formatting, and whether `go.mod` and `go.sum` are tidy.
-- `task check:native` runs `go vet`, staticcheck, and `go build`. Go compiles only the files of the current operating system, so this scope must run on each one.
+- `task check:common` validates what does not depend on the operating system: frontend formatting, lint, and `svelte-check`, Go formatting, and whether the `go.mod` and `go.sum` files of the application and of `build/tools` are tidy.
+- `task check:native` runs golangci-lint and `go build`. Go compiles only the files of the current operating system, so this scope must run on each one.
 
-`task fix` still applies every fix and then runs `task check`.
+`task fix` still applies every fix, including golangci-lint fixes, and then runs `task check`.
+
+golangci-lint runs the `go vet` analyzers, staticcheck, and the other linters that `.golangci.yml` enables. Its version is pinned in the separate tool module `build/tools`, and the tasks run it with `go tool -modfile=build/tools/go.mod`. The separate module keeps the linter's dependencies out of the application's `go.mod`, so they cannot change the dependency versions of the application. Dependabot updates golangci-lint, and `task update` upgrades it.
 
 The "Check" workflow in `.github/workflows/check.yml` runs on every pull request and every push to `main`. A newer run cancels an older one for the same pull request or branch.
 
-- **Scope** finds the changed files. The native scope runs only when Go files, `go.mod`, `go.sum`, a Taskfile, or `.github/` changed, or when there is no base to compare with.
+- **Scope** finds the changed files. The native scope runs only when Go files, a `go.mod` or `go.sum` file, `.golangci.yml`, a Taskfile, or `.github/` changed, or when there is no base to compare with.
 - **Common** runs `task check:common` once on Linux.
 - **Native** runs `task check:native` on each supported operating system at the same time, when the native scope runs.
 - **CI** passes only when every other job passed or was skipped. Require only this check in branch protection.

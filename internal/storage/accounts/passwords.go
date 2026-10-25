@@ -25,7 +25,7 @@ func (repository *Repository) GetPassword(ctx context.Context, accountID int64) 
 
 func (repository *Repository) SetPassword(ctx context.Context, accountID int64, password string) error {
 	if password == "" {
-		return fmt.Errorf("saved account password cannot be empty")
+		return errors.New("saved account password cannot be empty")
 	}
 	db, release, err := repository.database(ctx)
 	if err != nil {

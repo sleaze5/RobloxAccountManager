@@ -5,6 +5,7 @@ vars:
     DIST_DIR: dist
     VITE_PORT: "{{.WAILS_VITE_PORT | default 9245}}"
     WAILS_CLI: github.com/wailsapp/wails/v3/cmd/wails3@v3.0.0-beta.34
+    GOLANGCI_LINT: go tool -modfile=build/tools/go.mod golangci-lint
 
 includes:
     common: ./build/Taskfile.yml
@@ -79,8 +80,7 @@ tasks:
     check:native:
         desc: Validate and compile backend source for the current operating system.
         deps:
-            - task: common:internal:go:vet
-            - task: common:internal:go:staticcheck
+            - task: common:internal:go:lint
             - task: common:internal:go:build
 
     fix:
@@ -91,6 +91,7 @@ tasks:
             - task: common:internal:frontend:format
             - task: common:internal:frontend:lint:fix
             - task: common:internal:go:format
+            - task: common:internal:go:lint:fix
             - task: common:internal:go:tidy
             - task: check
 

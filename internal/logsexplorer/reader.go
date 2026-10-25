@@ -83,7 +83,7 @@ func readDirectory(ctx context.Context, logger *slog.Logger, directory string) (
 		logger.Warn("could not open Roblox logs folder", "error", err)
 		return nil, errors.New("could not open Roblox logs folder")
 	}
-	defer root.Close()
+	defer func() { _ = root.Close() }()
 	entries, err := fs.ReadDir(root.FS(), ".")
 	if err != nil {
 		logger.Warn("could not list Roblox logs", "error", err)
@@ -117,10 +117,10 @@ func readFromDirectories(ctx context.Context, directories []string, name string)
 			continue
 		}
 		if err != nil {
-			return Session{}, err
+			return Session{}, fmt.Errorf("open Roblox logs folder: %w", err)
 		}
 		session, err := readFile(ctx, root, name)
-		root.Close()
+		_ = root.Close()
 		if errors.Is(err, os.ErrNotExist) {
 			continue
 		}
@@ -144,12 +144,12 @@ func readFile(ctx context.Context, root *os.Root, name string) (Session, error) 
 	session := newSession(name)
 	file, err := root.Open(name)
 	if err != nil {
-		return session, err
+		return session, fmt.Errorf("open Roblox log: %w", err)
 	}
-	defer file.Close()
+	defer func() { _ = file.Close() }()
 	info, err := file.Stat()
 	if err != nil {
-		return session, err
+		return session, fmt.Errorf("inspect Roblox log: %w", err)
 	}
 	if !info.Mode().IsRegular() {
 		return session, errors.New("not a regular log file")
