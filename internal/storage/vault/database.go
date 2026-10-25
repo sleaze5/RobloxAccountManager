@@ -167,62 +167,10 @@ func (manager *Manager) Create(ctx context.Context, password, hint string, autom
 			return err
 		}
 	}
-	if err := appdata.PreparePrivateDirectory(manager.paths.CreateStaging); err != nil {
+	if err := manager.stageCreatedVault(ctx, identifier, dek, encodedKey, encodedAuto, automaticUnlock); err != nil {
 		return err
 	}
-	stagedDatabase := filepath.Join(manager.paths.CreateStaging, "vault.db")
-	stagedKey := filepath.Join(manager.paths.CreateStaging, "vault.key")
-	stagedAuto := filepath.Join(manager.paths.CreateStaging, "autounlock.key")
-	if fileExists(stagedDatabase) || fileExists(stagedKey) || fileExists(stagedAuto) {
-		return ErrIncomplete
-	}
-	db, err := openDatabase(ctx, stagedDatabase, dek, manager.logger)
-	if err != nil {
-		return err
-	}
-	if err := initializeSchema(ctx, db, identifier); err != nil {
-		_ = db.Close()
-		return err
-	}
-	if err := verifyOpenDatabase(ctx, db, identifier, manager.logger); err != nil {
-		_ = db.Close()
-		return err
-	}
-	if err := db.Close(); err != nil {
-		return fmt.Errorf("close staged vault: %w", err)
-	}
-	if err := appdata.RestrictFile(stagedDatabase); err != nil {
-		return err
-	}
-	if err := appdata.WritePrivateFile(stagedKey, encodedKey); err != nil {
-		return err
-	}
-	if automaticUnlock {
-		if err := appdata.WritePrivateFile(stagedAuto, encodedAuto); err != nil {
-			return err
-		}
-		storedID, storedDEK, err := decodeAutoUnlock(encodedAuto, manager.protector)
-		if err != nil || storedID != identifier || subtle.ConstantTimeCompare(storedDEK, dek) != 1 {
-			wipe(storedDEK)
-			return errors.New("verify automatic unlock file")
-		}
-		wipe(storedDEK)
-	}
-	if err := os.Rename(stagedDatabase, manager.paths.Vault); err != nil {
-		return fmt.Errorf("publish vault database: %w", err)
-	}
-	if automaticUnlock {
-		if err := os.Rename(stagedAuto, manager.paths.AutoUnlockKey); err != nil {
-			return fmt.Errorf("publish automatic unlock file: %w", err)
-		}
-	}
-	if err := os.Rename(stagedKey, manager.paths.VaultKey); err != nil {
-		return fmt.Errorf("publish vault key file: %w", err)
-	}
-	if err := os.Remove(manager.paths.CreateStaging); err != nil {
-		return fmt.Errorf("remove vault staging directory: %w", err)
-	}
-	db, err = openAndVerify(ctx, manager.paths.Vault, dek, identifier, manager.logger)
+	db, err := openAndVerify(ctx, manager.paths.Vault, dek, identifier, manager.logger)
 	if err != nil {
 		return err
 	}
@@ -301,16 +249,7 @@ func (manager *Manager) AutoUnlock(ctx context.Context) error {
 		return err
 	}
 	if !usedNext && fileExists(manager.paths.VaultKey+".next") {
-		if !fileExists(manager.paths.AutoUnlockKey + ".next") {
-			usedNext = true
-		} else if data, readErr := readBounded(manager.paths.AutoUnlockKey+".next", autoFileLimit); readErr == nil {
-			_, nextDEK, decodeErr := decodeAutoUnlock(data, manager.protector)
-			manager.mu.Lock()
-			matches := decodeErr == nil && len(nextDEK) == len(manager.dek) && subtle.ConstantTimeCompare(nextDEK, manager.dek) == 1
-			manager.mu.Unlock()
-			wipe(nextDEK)
-			usedNext = matches
-		}
+		usedNext = manager.rotationMatchesUnlockedKey()
 	}
 	if err := manager.completeUnlock(ctx, usedNext, ""); err != nil {
 		return err
@@ -574,4 +513,91 @@ func databaseDSN(path string, dek []byte) string {
 	query.Set("_secure_delete", "on")
 	u.RawQuery = query.Encode()
 	return u.String()
+}
+
+func (manager *Manager) stageCreatedVault(ctx context.Context, identifier [vaultIDBytes]byte, dek, encodedKey, encodedAuto []byte, automaticUnlock bool) error {
+	if err := appdata.PreparePrivateDirectory(manager.paths.CreateStaging); err != nil {
+		return err
+	}
+	stagedDatabase := filepath.Join(manager.paths.CreateStaging, "vault.db")
+	stagedKey := filepath.Join(manager.paths.CreateStaging, "vault.key")
+	stagedAuto := filepath.Join(manager.paths.CreateStaging, "autounlock.key")
+	if fileExists(stagedDatabase) || fileExists(stagedKey) || fileExists(stagedAuto) {
+		return ErrIncomplete
+	}
+	if err := manager.initializeStagedDatabase(ctx, stagedDatabase, dek, identifier); err != nil {
+		return err
+	}
+	if err := appdata.WritePrivateFile(stagedKey, encodedKey); err != nil {
+		return err
+	}
+	if automaticUnlock {
+		if err := manager.writeStagedAutomaticUnlock(stagedAuto, encodedAuto, identifier, dek); err != nil {
+			return err
+		}
+	}
+	if err := os.Rename(stagedDatabase, manager.paths.Vault); err != nil {
+		return fmt.Errorf("publish vault database: %w", err)
+	}
+	if automaticUnlock {
+		if err := os.Rename(stagedAuto, manager.paths.AutoUnlockKey); err != nil {
+			return fmt.Errorf("publish automatic unlock file: %w", err)
+		}
+	}
+	if err := os.Rename(stagedKey, manager.paths.VaultKey); err != nil {
+		return fmt.Errorf("publish vault key file: %w", err)
+	}
+	if err := os.Remove(manager.paths.CreateStaging); err != nil {
+		return fmt.Errorf("remove vault staging directory: %w", err)
+	}
+	return nil
+}
+
+func (manager *Manager) initializeStagedDatabase(ctx context.Context, stagedDatabase string, dek []byte, identifier [vaultIDBytes]byte) error {
+	db, err := openDatabase(ctx, stagedDatabase, dek, manager.logger)
+	if err != nil {
+		return err
+	}
+	if err := initializeSchema(ctx, db, identifier); err != nil {
+		_ = db.Close()
+		return err
+	}
+	if err := verifyOpenDatabase(ctx, db, identifier, manager.logger); err != nil {
+		_ = db.Close()
+		return err
+	}
+	if err := db.Close(); err != nil {
+		return fmt.Errorf("close staged vault: %w", err)
+	}
+	if err := appdata.RestrictFile(stagedDatabase); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (manager *Manager) writeStagedAutomaticUnlock(stagedAuto string, encodedAuto []byte, identifier [vaultIDBytes]byte, dek []byte) error {
+	if err := appdata.WritePrivateFile(stagedAuto, encodedAuto); err != nil {
+		return err
+	}
+	storedID, storedDEK, err := decodeAutoUnlock(encodedAuto, manager.protector)
+	if err != nil || storedID != identifier || subtle.ConstantTimeCompare(storedDEK, dek) != 1 {
+		wipe(storedDEK)
+		return errors.New("verify automatic unlock file")
+	}
+	wipe(storedDEK)
+	return nil
+}
+
+func (manager *Manager) rotationMatchesUnlockedKey() bool {
+	if !fileExists(manager.paths.AutoUnlockKey + ".next") {
+		return true
+	} else if data, readErr := readBounded(manager.paths.AutoUnlockKey+".next", autoFileLimit); readErr == nil {
+		_, nextDEK, decodeErr := decodeAutoUnlock(data, manager.protector)
+		manager.mu.Lock()
+		matches := decodeErr == nil && len(nextDEK) == len(manager.dek) && subtle.ConstantTimeCompare(nextDEK, manager.dek) == 1
+		manager.mu.Unlock()
+		wipe(nextDEK)
+		return matches
+	}
+	return false
 }

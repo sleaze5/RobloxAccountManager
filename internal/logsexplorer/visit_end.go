@@ -27,34 +27,7 @@ func (ending *visitEndState) record(line string, timestamp, startedAt int64) {
 	if timestamp < startedAt {
 		return
 	}
-	switch {
-	case strings.Contains(line, "Disconnected from server for reason:"):
-		if !ending.disconnected {
-			ending.disconnected = true
-			ending.confirmedAt = timestamp
-			ending.readReason(line, "Disconnected from server for reason:")
-		}
-	case strings.Contains(line, "Sending disconnect with reason:"):
-		if !ending.disconnected {
-			ending.readReason(line, "Sending disconnect with reason:")
-		}
-	case strings.Contains(line, "Teleported."):
-		ending.teleported = true
-	case strings.Contains(line, "leaveUGCGameInternal"):
-		if !ending.disconnected || timestamp <= ending.confirmedAt {
-			ending.left = true
-		}
-	case strings.Contains(line, "shutDown: (stage:UGCGame)"):
-		if !ending.disconnected || timestamp <= ending.confirmedAt {
-			ending.shutdown = true
-		}
-	case strings.Contains(line, "Connection lost"):
-		if timeout := capture(ackTimeoutPattern, line); timeout != "" && strings.TrimLeft(timeout, "0") != "" {
-			ending.timedOut = true
-		}
-	case strings.Contains(line, "DisconnectClientInitiated"):
-		ending.clientInitiated = true
-	default:
+	if !ending.recordEvent(line, timestamp) {
 		return
 	}
 	if ending.candidateAt == 0 {
@@ -115,4 +88,42 @@ func (ending visitEndState) endReason(place, nextPlace string) EndReason {
 	default:
 		return ""
 	}
+}
+
+func (ending *visitEndState) recordEvent(line string, timestamp int64) bool {
+	switch {
+	case strings.Contains(line, "Disconnected from server for reason:"):
+		if !ending.disconnected {
+			ending.disconnected = true
+			ending.confirmedAt = timestamp
+			ending.readReason(line, "Disconnected from server for reason:")
+		}
+	case strings.Contains(line, "Sending disconnect with reason:"):
+		if !ending.disconnected {
+			ending.readReason(line, "Sending disconnect with reason:")
+		}
+	case strings.Contains(line, "Teleported."):
+		ending.teleported = true
+	case strings.Contains(line, "leaveUGCGameInternal"):
+		if ending.beforeDisconnect(timestamp) {
+			ending.left = true
+		}
+	case strings.Contains(line, "shutDown: (stage:UGCGame)"):
+		if ending.beforeDisconnect(timestamp) {
+			ending.shutdown = true
+		}
+	case strings.Contains(line, "Connection lost"):
+		if timeout := capture(ackTimeoutPattern, line); timeout != "" && strings.TrimLeft(timeout, "0") != "" {
+			ending.timedOut = true
+		}
+	case strings.Contains(line, "DisconnectClientInitiated"):
+		ending.clientInitiated = true
+	default:
+		return false
+	}
+	return true
+}
+
+func (ending *visitEndState) beforeDisconnect(timestamp int64) bool {
+	return !ending.disconnected || timestamp <= ending.confirmedAt
 }

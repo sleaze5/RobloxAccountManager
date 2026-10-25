@@ -5,7 +5,6 @@ linters:
     disable:
         - containedctx
         - contextcheck
-        - cyclop
         - depguard
         - dogsled
         - err113
@@ -35,13 +34,9 @@ linters:
         - varnamelen
         - wsl
         - wsl_v5
-    exclusions:
-        rules:
-            - path: internal/appupdate/helper_darwin.go
-              linters:
-                  - gosec
-              text: G122
     settings:
+        cyclop:
+            max-complexity: 15
         errcheck:
             check-type-assertions: true
             exclude-functions:

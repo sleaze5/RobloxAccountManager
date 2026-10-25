@@ -136,14 +136,8 @@ func (repository *Repository) ReplaceCookie(ctx context.Context, accountID int64
 		return AccountView{}, SessionRecord{}, fmt.Errorf("begin cookie replacement: %w", err)
 	}
 	defer tx.Rollback()
-	var storedUserID int64
-	if err := tx.QueryRowContext(ctx, `SELECT roblox_user_id FROM accounts WHERE id = ?`, accountID).Scan(&storedUserID); errors.Is(err, sql.ErrNoRows) {
-		return AccountView{}, SessionRecord{}, ErrNotFound
-	} else if err != nil {
-		return AccountView{}, SessionRecord{}, fmt.Errorf("read replaced account: %w", err)
-	}
-	if storedUserID != identity.RobloxUserID {
-		return AccountView{}, SessionRecord{}, errors.New("replacement cookie belongs to a different Roblox account")
+	if err := validateReplacementIdentity(ctx, tx, accountID, identity); err != nil {
+		return AccountView{}, SessionRecord{}, err
 	}
 	if _, err := tx.ExecContext(ctx, `UPDATE accounts SET username = ?, display_name = ?, created_at_ms = ?, updated_at_ms = ? WHERE id = ?`, identity.Username, identity.DisplayName, identity.CreatedAt.UTC().UnixMilli(), now.UnixMilli(), accountID); err != nil {
 		return AccountView{}, SessionRecord{}, fmt.Errorf("update replaced account: %w", err)
@@ -255,13 +249,8 @@ func (repository *Repository) Remove(ctx context.Context, accountID int64) error
 }
 
 func (repository *Repository) Page(ctx context.Context, query AccountQuery) (AccountPage, error) {
-	if query.Cursor != nil && (query.Cursor.DisplayOrder < 0 || query.Cursor.AccountID <= 0) {
-		return AccountPage{}, ErrInvalidOrder
-	}
-	for _, tagID := range query.TagIDs {
-		if tagID <= 0 {
-			return AccountPage{}, ErrTagNotFound
-		}
+	if err := validatePageQuery(query); err != nil {
+		return AccountPage{}, err
 	}
 	db, release, err := repository.database(ctx)
 	if err != nil {
@@ -320,8 +309,8 @@ func (repository *Repository) Page(ctx context.Context, query AccountQuery) (Acc
 }
 
 func (repository *Repository) Move(ctx context.Context, accountID int64, beforeID, afterID *int64) error {
-	if accountID <= 0 || beforeID != nil && *beforeID <= 0 || afterID != nil && *afterID <= 0 || beforeID != nil && *beforeID == accountID || afterID != nil && *afterID == accountID {
-		return ErrInvalidOrder
+	if err := validateMove(accountID, beforeID, afterID); err != nil {
+		return err
 	}
 	db, release, err := repository.database(ctx)
 	if err != nil {
@@ -340,29 +329,9 @@ func (repository *Repository) Move(ctx context.Context, accountID int64, beforeI
 	if err := tx.QueryRowContext(ctx, `SELECT count(*) FROM accounts`).Scan(&count); err != nil {
 		return fmt.Errorf("count accounts: %w", err)
 	}
-	newOrder := count - 1
-	if afterID != nil {
-		if err := tx.QueryRowContext(ctx, `SELECT display_order FROM accounts WHERE id = ?`, *afterID).Scan(&newOrder); err != nil {
-			return ErrInvalidOrder
-		}
-		if oldOrder < newOrder {
-			newOrder--
-		}
-	}
-	if beforeID != nil {
-		var beforeOrder int64
-		if err := tx.QueryRowContext(ctx, `SELECT display_order FROM accounts WHERE id = ?`, *beforeID).Scan(&beforeOrder); err != nil {
-			return ErrInvalidOrder
-		}
-		expected := newOrder - 1
-		if oldOrder < beforeOrder {
-			beforeOrder--
-		}
-		if beforeOrder != expected {
-			return ErrInvalidOrder
-		}
-	} else if newOrder != 0 && count > 1 {
-		return ErrInvalidOrder
+	newOrder, err := moveDestination(ctx, tx, oldOrder, count, beforeID, afterID)
+	if err != nil {
+		return err
 	}
 	if newOrder == oldOrder {
 		return nil
@@ -370,20 +339,8 @@ func (repository *Repository) Move(ctx context.Context, accountID int64, beforeI
 	if _, err := tx.ExecContext(ctx, `UPDATE accounts SET display_order = ? WHERE id = ?`, count, accountID); err != nil {
 		return fmt.Errorf("park moved account: %w", err)
 	}
-	if newOrder < oldOrder {
-		if _, err := tx.ExecContext(ctx, `UPDATE accounts SET display_order = display_order + ? WHERE display_order >= ? AND display_order < ?`, count+1, newOrder, oldOrder); err != nil {
-			return fmt.Errorf("shift accounts down: %w", err)
-		}
-		if _, err := tx.ExecContext(ctx, `UPDATE accounts SET display_order = display_order - ? WHERE display_order > ?`, count, count); err != nil {
-			return fmt.Errorf("compact accounts down: %w", err)
-		}
-	} else {
-		if _, err := tx.ExecContext(ctx, `UPDATE accounts SET display_order = display_order + ? WHERE display_order > ? AND display_order <= ?`, count+1, oldOrder, newOrder); err != nil {
-			return fmt.Errorf("shift accounts up: %w", err)
-		}
-		if _, err := tx.ExecContext(ctx, `UPDATE accounts SET display_order = display_order - ? WHERE display_order > ?`, count+2, count); err != nil {
-			return fmt.Errorf("compact accounts up: %w", err)
-		}
+	if err := shiftMovedAccounts(ctx, tx, oldOrder, newOrder, count); err != nil {
+		return err
 	}
 	if _, err := tx.ExecContext(ctx, `UPDATE accounts SET display_order = ?, updated_at_ms = ? WHERE id = ?`, newOrder, repository.now().UTC().UnixMilli(), accountID); err != nil {
 		return fmt.Errorf("place moved account: %w", err)
@@ -661,4 +618,83 @@ func safeReason(reason string) string {
 func isConstraint(err error) bool {
 	var sqliteErr sqlite3.Error
 	return errors.As(err, &sqliteErr) && sqliteErr.Code == sqlite3.ErrConstraint
+}
+
+func validateReplacementIdentity(ctx context.Context, tx *sql.Tx, accountID int64, identity Identity) error {
+	var storedUserID int64
+	if err := tx.QueryRowContext(ctx, `SELECT roblox_user_id FROM accounts WHERE id = ?`, accountID).Scan(&storedUserID); errors.Is(err, sql.ErrNoRows) {
+		return ErrNotFound
+	} else if err != nil {
+		return fmt.Errorf("read replaced account: %w", err)
+	}
+	if storedUserID != identity.RobloxUserID {
+		return errors.New("replacement cookie belongs to a different Roblox account")
+	}
+	return nil
+}
+
+func validatePageQuery(query AccountQuery) error {
+	if query.Cursor != nil && (query.Cursor.DisplayOrder < 0 || query.Cursor.AccountID <= 0) {
+		return ErrInvalidOrder
+	}
+	for _, tagID := range query.TagIDs {
+		if tagID <= 0 {
+			return ErrTagNotFound
+		}
+	}
+	return nil
+}
+
+func validateMove(accountID int64, beforeID, afterID *int64) error {
+	if accountID <= 0 || beforeID != nil && *beforeID <= 0 || afterID != nil && *afterID <= 0 || beforeID != nil && *beforeID == accountID || afterID != nil && *afterID == accountID {
+		return ErrInvalidOrder
+	}
+	return nil
+}
+
+func moveDestination(ctx context.Context, tx *sql.Tx, oldOrder, count int64, beforeID, afterID *int64) (int64, error) {
+	newOrder := count - 1
+	if afterID != nil {
+		if err := tx.QueryRowContext(ctx, `SELECT display_order FROM accounts WHERE id = ?`, *afterID).Scan(&newOrder); err != nil {
+			return 0, ErrInvalidOrder
+		}
+		if oldOrder < newOrder {
+			newOrder--
+		}
+	}
+	if beforeID != nil {
+		var beforeOrder int64
+		if err := tx.QueryRowContext(ctx, `SELECT display_order FROM accounts WHERE id = ?`, *beforeID).Scan(&beforeOrder); err != nil {
+			return 0, ErrInvalidOrder
+		}
+		expected := newOrder - 1
+		if oldOrder < beforeOrder {
+			beforeOrder--
+		}
+		if beforeOrder != expected {
+			return 0, ErrInvalidOrder
+		}
+	} else if newOrder != 0 && count > 1 {
+		return 0, ErrInvalidOrder
+	}
+	return newOrder, nil
+}
+
+func shiftMovedAccounts(ctx context.Context, tx *sql.Tx, oldOrder, newOrder, count int64) error {
+	if newOrder < oldOrder {
+		if _, err := tx.ExecContext(ctx, `UPDATE accounts SET display_order = display_order + ? WHERE display_order >= ? AND display_order < ?`, count+1, newOrder, oldOrder); err != nil {
+			return fmt.Errorf("shift accounts down: %w", err)
+		}
+		if _, err := tx.ExecContext(ctx, `UPDATE accounts SET display_order = display_order - ? WHERE display_order > ?`, count, count); err != nil {
+			return fmt.Errorf("compact accounts down: %w", err)
+		}
+	} else {
+		if _, err := tx.ExecContext(ctx, `UPDATE accounts SET display_order = display_order + ? WHERE display_order > ? AND display_order <= ?`, count+1, oldOrder, newOrder); err != nil {
+			return fmt.Errorf("shift accounts up: %w", err)
+		}
+		if _, err := tx.ExecContext(ctx, `UPDATE accounts SET display_order = display_order - ? WHERE display_order > ?`, count+2, count); err != nil {
+			return fmt.Errorf("compact accounts up: %w", err)
+		}
+	}
+	return nil
 }

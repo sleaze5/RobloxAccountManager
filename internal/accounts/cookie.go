@@ -52,9 +52,13 @@ func NormalizeCookie(input string) (string, error) {
 		}
 		return trimmed, nil
 	}
+	return cookieFieldValue(trimmed)
+}
+
+func cookieFieldValue(input string) (string, error) {
 	var found string
 	count := 0
-	for part := range strings.SplitSeq(trimmed, ";") {
+	for part := range strings.SplitSeq(input, ";") {
 		pair := strings.TrimSpace(part)
 		name, value, ok := strings.Cut(pair, "=")
 		if !ok || !strings.EqualFold(strings.TrimSpace(name), RoblosecurityCookieName) {

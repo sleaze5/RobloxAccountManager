@@ -73,17 +73,8 @@ func (service *Games) Search(ctx context.Context, query games.SearchQuery) (game
 		return games.SearchPage{}, gameDataError("Roblox returned an oversized search page.")
 	}
 	page := games.SearchPage{Places: []games.Place{}, SessionID: query.SessionID, NextPageToken: payload.NextPageToken}
-	for start := 0; start < len(ids); start += gameBatchSize {
-		batch := ids[start:min(start+gameBatchSize, len(ids))]
-		details, err := service.details(ctx, batch)
-		if err != nil {
-			return games.SearchPage{}, err
-		}
-		for _, id := range batch {
-			if game, exists := details[id]; exists {
-				page.Places = append(page.Places, game.Place)
-			}
-		}
+	if err := service.loadSearchPlaces(ctx, ids, &page); err != nil {
+		return games.SearchPage{}, err
 	}
 	if page.NextPageToken == query.PageToken {
 		page.NextPageToken = ""
@@ -260,35 +251,7 @@ func (service *Games) Get(ctx context.Context, universeID, placeID, accountID in
 		}
 		game.Place, game.Description, game.RootPlace = place, description, &root
 	}
-	var group sync.WaitGroup
-	group.Go(func() {
-		if err := service.votes(ctx, &game); err != nil && ctx.Err() == nil {
-			service.logger.WarnContext(ctx, "game votes unavailable", "operation", "game-votes", "error", err)
-		}
-	})
-	group.Go(func() {
-		if err := service.maturity(ctx, &game); err != nil && ctx.Err() == nil {
-			service.logger.WarnContext(ctx, "game maturity unavailable", "operation", "game-maturity", "error", err)
-		}
-	})
-	group.Go(func() {
-		if err := service.avatarRules(ctx, &game); err != nil && ctx.Err() == nil {
-			service.logger.WarnContext(ctx, "game avatar rules unavailable", "operation", "game-avatar-rules", "error", err)
-		}
-	})
-	if accountID > 0 {
-		group.Go(func() {
-			if err := service.communication(ctx, accountID, &game); err != nil && ctx.Err() == nil {
-				service.logger.WarnContext(ctx, "game communication unavailable", "operation", "game-communication", "error", err)
-			}
-		})
-		group.Go(func() {
-			if err := service.versions(ctx, accountID, &game); err != nil && ctx.Err() == nil {
-				service.logger.WarnContext(ctx, "game versions unavailable", "operation", "game-versions", "error", err)
-			}
-		})
-	}
-	group.Wait()
+	service.loadGameExtras(ctx, accountID, &game)
 	if ctx.Err() != nil {
 		return games.Game{}, ctx.Err()
 	}
@@ -470,7 +433,7 @@ func (service *Games) details(ctx context.Context, ids []int64) (map[int64]games
 			continue
 		}
 		place := games.Place{PlaceID: item.RootPlaceID, UniverseID: item.ID, Name: item.Name, CreatorName: item.Creator.Name, CreatorVerified: item.Creator.Verified}
-		if item.Creator.ID > 0 && item.Creator.ID <= 1<<53-1 && (item.Creator.Type == "User" || item.Creator.Type == "Group") {
+		if validGameCreator(item.Creator.ID, item.Creator.Type) {
 			place.CreatorID, place.CreatorType = item.Creator.ID, item.Creator.Type
 		}
 		game := games.Game{
@@ -618,4 +581,56 @@ func gameUnavailableError() error {
 
 func gameDataError(message string) error {
 	return &roblox.Error{Kind: roblox.KindProtocol, Endpoint: "games", Message: message}
+}
+
+func (service *Games) loadSearchPlaces(ctx context.Context, ids []int64, page *games.SearchPage) error {
+	for start := 0; start < len(ids); start += gameBatchSize {
+		batch := ids[start:min(start+gameBatchSize, len(ids))]
+		details, err := service.details(ctx, batch)
+		if err != nil {
+			return err
+		}
+		for _, id := range batch {
+			if game, exists := details[id]; exists {
+				page.Places = append(page.Places, game.Place)
+			}
+		}
+	}
+	return nil
+}
+
+func (service *Games) loadGameExtras(ctx context.Context, accountID int64, game *games.Game) {
+	var group sync.WaitGroup
+	group.Go(func() {
+		if err := service.votes(ctx, game); err != nil && ctx.Err() == nil {
+			service.logger.WarnContext(ctx, "game votes unavailable", "operation", "game-votes", "error", err)
+		}
+	})
+	group.Go(func() {
+		if err := service.maturity(ctx, game); err != nil && ctx.Err() == nil {
+			service.logger.WarnContext(ctx, "game maturity unavailable", "operation", "game-maturity", "error", err)
+		}
+	})
+	group.Go(func() {
+		if err := service.avatarRules(ctx, game); err != nil && ctx.Err() == nil {
+			service.logger.WarnContext(ctx, "game avatar rules unavailable", "operation", "game-avatar-rules", "error", err)
+		}
+	})
+	if accountID > 0 {
+		group.Go(func() {
+			if err := service.communication(ctx, accountID, game); err != nil && ctx.Err() == nil {
+				service.logger.WarnContext(ctx, "game communication unavailable", "operation", "game-communication", "error", err)
+			}
+		})
+		group.Go(func() {
+			if err := service.versions(ctx, accountID, game); err != nil && ctx.Err() == nil {
+				service.logger.WarnContext(ctx, "game versions unavailable", "operation", "game-versions", "error", err)
+			}
+		})
+	}
+	group.Wait()
+}
+
+func validGameCreator(id int64, kind string) bool {
+	return id > 0 && id < 1<<53 && (kind == "User" || kind == "Group")
 }

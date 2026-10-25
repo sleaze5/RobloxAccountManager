@@ -47,19 +47,7 @@ func (service *Service) backgroundValidation(ctx context.Context) {
 	var workers sync.WaitGroup
 	for range backgroundWorkers {
 		workers.Go(func() {
-			for {
-				select {
-				case <-ctx.Done():
-					return
-				case accountID, ok := <-jobs:
-					if !ok {
-						return
-					}
-					if _, err := service.ValidateAccount(ctx, accountID); err != nil && ctx.Err() == nil {
-						service.logger.Warn("background account validation failed", "account_id", accountID, "error", err)
-					}
-				}
-			}
+			service.validateBackgroundJobs(ctx, jobs)
 		})
 	}
 	defer func() {
@@ -77,37 +65,60 @@ func (service *Service) backgroundValidation(ctx context.Context) {
 		}
 
 		if !service.events.BackgroundPaused(time.Now()) {
-			nowMS := time.Now().UTC().UnixMilli()
-			var cursor *accounts.AccountCursor
-			for {
-				page, err := service.repo.Page(ctx, accounts.AccountQuery{Cursor: cursor})
-				if err != nil {
-					service.logger.Error("background account list failed", "error", err)
-					return
-				}
-				for _, view := range page.Accounts {
-					if view.State == accounts.StateDisabled || view.State == accounts.StateReauthRequired || view.LastValidatedAtMS != nil && nowMS-*view.LastValidatedAtMS < staleValidationInterval.Milliseconds() {
-						continue
-					}
-					jitter := time.NewTimer(time.Duration(secureUint64()%1500) * time.Millisecond)
-					select {
-					case <-ctx.Done():
-						jitter.Stop()
-						return
-					case <-jitter.C:
-					}
-					select {
-					case jobs <- view.ID:
-					case <-ctx.Done():
-						return
-					}
-				}
-				if page.NextCursor == nil {
-					break
-				}
-				cursor = page.NextCursor
+			if !service.enqueueBackgroundValidation(ctx, jobs) {
+				return
 			}
 		}
 		timer.Reset(time.Minute)
 	}
+}
+
+func (service *Service) validateBackgroundJobs(ctx context.Context, jobs <-chan int64) {
+	for {
+		select {
+		case <-ctx.Done():
+			return
+		case accountID, ok := <-jobs:
+			if !ok {
+				return
+			}
+			if _, err := service.ValidateAccount(ctx, accountID); err != nil && ctx.Err() == nil {
+				service.logger.Warn("background account validation failed", "account_id", accountID, "error", err)
+			}
+		}
+	}
+}
+
+func (service *Service) enqueueBackgroundValidation(ctx context.Context, jobs chan<- int64) bool {
+	nowMS := time.Now().UTC().UnixMilli()
+	var cursor *accounts.AccountCursor
+	for {
+		page, err := service.repo.Page(ctx, accounts.AccountQuery{Cursor: cursor})
+		if err != nil {
+			service.logger.Error("background account list failed", "error", err)
+			return false
+		}
+		for _, view := range page.Accounts {
+			if view.State == accounts.StateDisabled || view.State == accounts.StateReauthRequired || view.LastValidatedAtMS != nil && nowMS-*view.LastValidatedAtMS < staleValidationInterval.Milliseconds() {
+				continue
+			}
+			jitter := time.NewTimer(time.Duration(secureUint64()%1500) * time.Millisecond)
+			select {
+			case <-ctx.Done():
+				jitter.Stop()
+				return false
+			case <-jitter.C:
+			}
+			select {
+			case jobs <- view.ID:
+			case <-ctx.Done():
+				return false
+			}
+		}
+		if page.NextCursor == nil {
+			break
+		}
+		cursor = page.NextCursor
+	}
+	return true
 }

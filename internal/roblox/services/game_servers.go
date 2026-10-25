@@ -80,19 +80,8 @@ func (service *Games) Servers(ctx context.Context, query games.ServerQuery, acco
 		}
 		tokens = append(tokens, item.PlayerTokens[:min(len(item.PlayerTokens), maxServerPlayerImages)])
 	}
-	images, err := service.playerImages(ctx, tokens)
-	if ctx.Err() != nil {
-		return games.ServerPage{}, ctx.Err()
-	}
-	if err != nil {
-		service.logger.WarnContext(ctx, "server player images unavailable", "operation", "game-server-players", "error", err)
-	}
-	for index, server := range tokens {
-		for _, token := range server {
-			if image := images[token]; image != "" {
-				page.Servers[index].PlayerImages = append(page.Servers[index].PlayerImages, image)
-			}
-		}
+	if err := service.loadServerPlayerImages(ctx, tokens, &page); err != nil {
+		return games.ServerPage{}, err
 	}
 	return page, nil
 }
@@ -179,4 +168,22 @@ func validPlayerToken(value string) bool {
 
 func isHex(char rune) bool {
 	return '0' <= char && char <= '9' || 'a' <= char && char <= 'f' || 'A' <= char && char <= 'F'
+}
+
+func (service *Games) loadServerPlayerImages(ctx context.Context, tokens [][]string, page *games.ServerPage) error {
+	images, err := service.playerImages(ctx, tokens)
+	if ctx.Err() != nil {
+		return ctx.Err()
+	}
+	if err != nil {
+		service.logger.WarnContext(ctx, "server player images unavailable", "operation", "game-server-players", "error", err)
+	}
+	for index, server := range tokens {
+		for _, token := range server {
+			if image := images[token]; image != "" {
+				page.Servers[index].PlayerImages = append(page.Servers[index].PlayerImages, image)
+			}
+		}
+	}
+	return nil
 }

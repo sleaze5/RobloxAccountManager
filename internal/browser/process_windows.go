@@ -43,6 +43,13 @@ type windowsBrowserProcess struct {
 	closeOnce         sync.Once
 }
 
+type browserProcessPipes struct {
+	commandRead  windows.Handle
+	parentWrite  windows.Handle
+	parentRead   windows.Handle
+	commandWrite windows.Handle
+}
+
 func startBrowserProcess(options ProcessOptions) (BrowserProcess, error) {
 	if options.Executable == "" || options.UserDataPath == "" {
 		return nil, errors.New("invalid browser process options")
@@ -54,36 +61,41 @@ func startBrowserProcess(options ProcessOptions) (BrowserProcess, error) {
 	if launchToken != 0 {
 		defer launchToken.Close()
 	}
-	var commandRead, parentWrite, parentRead, commandWrite windows.Handle
+	var pipes browserProcessPipes
 	security := windows.SecurityAttributes{Length: uint32(unsafe.Sizeof(windows.SecurityAttributes{})), InheritHandle: 1}
-	if err := windows.CreatePipe(&commandRead, &parentWrite, &security, 0); err != nil {
+	if err := windows.CreatePipe(&pipes.commandRead, &pipes.parentWrite, &security, 0); err != nil {
 		return nil, fmt.Errorf("create browser command pipe: %w", err)
 	}
 	defer func() {
-		if commandRead != 0 {
-			windows.CloseHandle(commandRead)
+		if pipes.commandRead != 0 {
+			windows.CloseHandle(pipes.commandRead)
 		}
-		if parentWrite != 0 {
-			windows.CloseHandle(parentWrite)
+		if pipes.parentWrite != 0 {
+			windows.CloseHandle(pipes.parentWrite)
 		}
 	}()
-	if err := windows.SetHandleInformation(parentWrite, windows.HANDLE_FLAG_INHERIT, 0); err != nil {
+	if err := windows.SetHandleInformation(pipes.parentWrite, windows.HANDLE_FLAG_INHERIT, 0); err != nil {
 		return nil, fmt.Errorf("protect browser command pipe: %w", err)
 	}
-	if err := windows.CreatePipe(&parentRead, &commandWrite, &security, 0); err != nil {
+	if err := windows.CreatePipe(&pipes.parentRead, &pipes.commandWrite, &security, 0); err != nil {
 		return nil, fmt.Errorf("create browser response pipe: %w", err)
 	}
 	defer func() {
-		if parentRead != 0 {
-			windows.CloseHandle(parentRead)
+		if pipes.parentRead != 0 {
+			windows.CloseHandle(pipes.parentRead)
 		}
-		if commandWrite != 0 {
-			windows.CloseHandle(commandWrite)
+		if pipes.commandWrite != 0 {
+			windows.CloseHandle(pipes.commandWrite)
 		}
 	}()
-	if err := windows.SetHandleInformation(parentRead, windows.HANDLE_FLAG_INHERIT, 0); err != nil {
+	if err := windows.SetHandleInformation(pipes.parentRead, windows.HANDLE_FLAG_INHERIT, 0); err != nil {
 		return nil, fmt.Errorf("protect browser response pipe: %w", err)
 	}
+	return startBrowserWithPipes(options, launchToken, &pipes)
+}
+
+func startBrowserWithPipes(options ProcessOptions, launchToken windows.Token, pipes *browserProcessPipes) (BrowserProcess, error) {
+	security := windows.SecurityAttributes{Length: uint32(unsafe.Sizeof(windows.SecurityAttributes{})), InheritHandle: 1}
 	standardInput, err := openInheritableNull(windows.GENERIC_READ, &security)
 	if err != nil {
 		return nil, fmt.Errorf("open browser standard input: %w", err)
@@ -115,36 +127,16 @@ func startBrowserProcess(options ProcessOptions) (BrowserProcess, error) {
 		return nil, fmt.Errorf("configure browser job: %w", err)
 	}
 
-	arguments := []string{options.Executable,
-		"--user-data-dir=" + options.UserDataPath, "--remote-debugging-pipe",
-		"--remote-debugging-io-pipes=" + inheritedPipeHandles(commandRead, commandWrite),
-		"--no-first-run", "--no-default-browser-check", "--disable-background-mode",
-		"--disable-infobars", "--window-size=1080,600", "--incognito", "about:blank"}
-	if launchToken != 0 {
-		// The restricted, medium-integrity token retains its original elevation
-		// type. Prevent Chrome from relaunching and losing the inherited CDP pipes;
-		// privileges have already been reduced before process creation.
-		arguments = append(arguments, "--do-not-de-elevate")
-	}
-	commandLine, err := windows.UTF16PtrFromString(windows.ComposeCommandLine(arguments))
+	commandLine, executable, directory, err := browserCommand(options, launchToken, pipes)
 	if err != nil {
-		return nil, fmt.Errorf("encode browser path: %w", err)
+		return nil, err
 	}
-	executable, err := windows.UTF16PtrFromString(options.Executable)
-	if err != nil {
-		return nil, fmt.Errorf("encode browser command line: %w", err)
-	}
-	directory, err := windows.UTF16PtrFromString(options.UserDataPath)
-	if err != nil {
-		return nil, fmt.Errorf("encode browser directory: %w", err)
-	}
-
 	attributes, err := windows.NewProcThreadAttributeList(2)
 	if err != nil {
 		return nil, fmt.Errorf("create browser process attributes: %w", err)
 	}
 	defer attributes.Delete()
-	handles := []windows.Handle{standardInput, standardOutput, standardError, commandRead, commandWrite}
+	handles := []windows.Handle{standardInput, standardOutput, standardError, pipes.commandRead, pipes.commandWrite}
 	if err := attributes.Update(windows.PROC_THREAD_ATTRIBUTE_HANDLE_LIST, unsafe.Pointer(&handles[0]), uintptr(len(handles))*unsafe.Sizeof(handles[0])); err != nil {
 		return nil, fmt.Errorf("set inherited browser handles: %w", err)
 	}
@@ -183,24 +175,52 @@ func startBrowserProcess(options ProcessOptions) (BrowserProcess, error) {
 		windows.CloseHandle(information.Process)
 		return nil, fmt.Errorf("contain browser process: %w", err)
 	}
-	windows.CloseHandle(commandRead)
-	commandRead = 0
-	windows.CloseHandle(commandWrite)
-	commandWrite = 0
+	windows.CloseHandle(pipes.commandRead)
+	pipes.commandRead = 0
+	windows.CloseHandle(pipes.commandWrite)
+	pipes.commandWrite = 0
 	process := &windowsBrowserProcess{
 		process:           information.Process,
 		job:               job,
-		input:             os.NewFile(uintptr(parentWrite), "cft-cdp-input"),
-		output:            os.NewFile(uintptr(parentRead), "cft-cdp-output"),
+		input:             os.NewFile(uintptr(pipes.parentWrite), "cft-cdp-input"),
+		output:            os.NewFile(uintptr(pipes.parentRead), "cft-cdp-output"),
 		exited:            make(chan error, 1),
 		windowsClosed:     make(chan struct{}, 1),
 		windowMonitorStop: make(chan struct{}),
 		windowMonitorDone: make(chan struct{}),
 	}
-	parentWrite, parentRead, job = 0, 0, 0
+	pipes.parentWrite, pipes.parentRead, job = 0, 0, 0
 	go process.waitLoop()
 	go process.watchWindows()
 	return process, nil
+}
+
+func browserCommand(options ProcessOptions, launchToken windows.Token, pipes *browserProcessPipes) (*uint16, *uint16, *uint16, error) {
+	arguments := []string{options.Executable,
+		"--user-data-dir=" + options.UserDataPath, "--remote-debugging-pipe",
+		"--remote-debugging-io-pipes=" + inheritedPipeHandles(pipes.commandRead, pipes.commandWrite),
+		"--no-first-run", "--no-default-browser-check", "--disable-background-mode",
+		"--disable-infobars", "--window-size=1080,600", "--incognito", "about:blank"}
+	if launchToken != 0 {
+		// The restricted, medium-integrity token retains its original elevation
+		// type. Prevent Chrome from relaunching and losing the inherited CDP pipes;
+		// privileges have already been reduced before process creation.
+		arguments = append(arguments, "--do-not-de-elevate")
+	}
+	commandLine, err := windows.UTF16PtrFromString(windows.ComposeCommandLine(arguments))
+	if err != nil {
+		return nil, nil, nil, fmt.Errorf("encode browser path: %w", err)
+	}
+	executable, err := windows.UTF16PtrFromString(options.Executable)
+	if err != nil {
+		return nil, nil, nil, fmt.Errorf("encode browser command line: %w", err)
+	}
+	directory, err := windows.UTF16PtrFromString(options.UserDataPath)
+	if err != nil {
+		return nil, nil, nil, fmt.Errorf("encode browser directory: %w", err)
+	}
+
+	return commandLine, executable, directory, nil
 }
 
 func browserCreationFlags() uint32 {
