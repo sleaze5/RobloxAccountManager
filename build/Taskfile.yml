@@ -9,7 +9,6 @@ tasks:
             - package.json
             - bun.lock
         generates:
-            - node_modules/.bin/oxfmt.exe
             - node_modules/.bin/oxlint.exe
             - node_modules/.bin/svelte-check.exe
             - node_modules/.bin/vite.exe
