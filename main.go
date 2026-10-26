@@ -23,6 +23,7 @@ import (
 	"github.com/sleaze5/RobloxAccountManager/internal/platform/protection"
 	"github.com/sleaze5/RobloxAccountManager/internal/platform/robloxlogs"
 	"github.com/sleaze5/RobloxAccountManager/internal/platform/robloxmulti"
+	"github.com/sleaze5/RobloxAccountManager/internal/platform/shellidentity"
 	"github.com/sleaze5/RobloxAccountManager/internal/platform/singleinstance"
 	"github.com/sleaze5/RobloxAccountManager/internal/roblox"
 	robloxservices "github.com/sleaze5/RobloxAccountManager/internal/roblox/services"
@@ -194,6 +195,10 @@ func run() (runErr error) {
 	bindingService := bindings.NewService(coreService, appLocation, updates, events, launch)
 
 	launch.Begin("desktop-shell")
+	windowProc, err := shellidentity.New(logSystem.Module("platform.shell"))
+	if err != nil {
+		return fmt.Errorf("initialize desktop identity: %w", err)
+	}
 	app = application.New(application.Options{
 		Name:        appmeta.DisplayName,
 		Description: appmeta.Description,
@@ -218,6 +223,9 @@ func run() (runErr error) {
 		},
 		Mac: application.MacOptions{
 			ApplicationShouldTerminateAfterLastWindowClosed: true,
+		},
+		Windows: application.WindowsOptions{
+			WndProcInterceptor: windowProc,
 		},
 		// WebKitGTK keeps its data in $XDG_DATA_HOME/<program name>, and the
 		// default program name would place it in the Standard root.
