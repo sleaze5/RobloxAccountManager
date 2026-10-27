@@ -60,7 +60,11 @@ func NewRepository(provider DatabaseProvider, logger *slog.Logger) *Repository {
 }
 
 func (repository *Repository) database(ctx context.Context) (*sql.DB, func(), error) {
-	return repository.provider.Lease(ctx)
+	db, release, err := repository.provider.Lease(ctx)
+	if err != nil {
+		return nil, nil, fmt.Errorf("%w: %w", accountdomain.ErrUnavailable, err)
+	}
+	return db, release, nil
 }
 
 func (repository *Repository) Create(ctx context.Context, identity Identity, cookie string, expiresAt *time.Time) (AccountView, SessionRecord, error) {

@@ -603,7 +603,7 @@ func (client *Client) recordSuccess(ctx context.Context, snapshot SessionSnapsho
 }
 
 func (client *Client) logStoreFailure(ctx context.Context, message string, snapshot SessionSnapshot, err error) {
-	if ctx.Err() != nil || snapshot.Context.Err() != nil || errors.Is(err, accounts.ErrStaleSecret) {
+	if ctx.Err() != nil || snapshot.Context.Err() != nil || errors.Is(err, accounts.ErrStaleSecret) || errors.Is(err, accounts.ErrUnavailable) {
 		return
 	}
 	client.logger.Warn(message, "operation", "session-state", "account_id", snapshot.AccountID, "error", err)
