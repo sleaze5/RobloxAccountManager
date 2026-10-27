@@ -71,54 +71,54 @@
 	}
 </script>
 
-{#if location && (matches("Storage location", "data folder path portable standard copy") || (other && matches(`Move to ${otherLabel} storage`, "move data vault backups settings restart")))}
+{#if (location || error) && (matches("Storage location", "data folder path portable standard copy") || (other && matches(`Move to ${otherLabel} storage`, "move data vault backups settings restart")))}
 	<section class="settings-section" aria-labelledby="vault-storage-title">
 		<h3 id="vault-storage-title">Storage</h3>
 		{#if error}<div class="settings-inline-error" role="alert">{error}</div>{/if}
-		<div class="settings-rows">
-			{#if matches("Storage location", "data folder path portable standard copy")}
-				<div class="settings-row">
-					<div class="settings-row-copy">
-						<strong>Storage location</strong>
-						<span
-							>{location.mode === StorageMode.ModePortable
-								? "Next to the app."
-								: "In your user folder."}</span>
-						<span class="settings-row-path">{location.directory}</span>
-						<SettingsStatus value={currentLabel} />
+		{#if location}<div class="settings-rows">
+				{#if matches("Storage location", "data folder path portable standard copy")}
+					<div class="settings-row">
+						<div class="settings-row-copy">
+							<strong>Storage location</strong>
+							<span
+								>{location.mode === StorageMode.ModePortable
+									? "Next to the app."
+									: "In your user folder."}</span>
+							<span class="settings-row-path">{location.directory}</span>
+							<SettingsStatus value={currentLabel} />
+						</div>
+						<button
+							class="control-button text-button"
+							type="button"
+							onclick={() => void copyPath()}>
+							<CopyIcon size={16} aria-hidden="true" />
+							Copy path
+						</button>
 					</div>
-					<button
-						class="control-button text-button"
-						type="button"
-						onclick={() => void copyPath()}>
-						<CopyIcon size={16} aria-hidden="true" />
-						Copy path
-					</button>
-				</div>
-			{/if}
+				{/if}
 
-			{#if other && matches(`Move to ${otherLabel} storage`, "move data vault backups settings restart")}
-				<div class="settings-row">
-					<div class="settings-row-copy">
-						<strong>Move to {otherLabel} storage</strong>
-						<span
-							>Move the vault, backups, and settings {other.mode ===
-							StorageMode.ModePortable
-								? "next to the app"
-								: "to your user folder"}. The app restarts.</span>
+				{#if other && matches(`Move to ${otherLabel} storage`, "move data vault backups settings restart")}
+					<div class="settings-row">
+						<div class="settings-row-copy">
+							<strong>Move to {otherLabel} storage</strong>
+							<span
+								>Move the vault, backups, and settings {other.mode ===
+								StorageMode.ModePortable
+									? "next to the app"
+									: "to your user folder"}. The app restarts.</span>
+						</div>
+						<button
+							class="control-button text-button"
+							type="button"
+							disabled={store.busy ||
+								store.vault.fileState !== FileState.FileStateReady}
+							onclick={() => (moving = true)}>
+							<ArrowsLeftRightIcon size={16} aria-hidden="true" />
+							Move data
+						</button>
 					</div>
-					<button
-						class="control-button text-button"
-						type="button"
-						disabled={store.busy ||
-							store.vault.fileState !== FileState.FileStateReady}
-						onclick={() => (moving = true)}>
-						<ArrowsLeftRightIcon size={16} aria-hidden="true" />
-						Move data
-					</button>
-				</div>
-			{/if}
-		</div>
+				{/if}
+			</div>{/if}
 	</section>
 
 	{#if moving && other}

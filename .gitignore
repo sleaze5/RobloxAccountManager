@@ -23,9 +23,11 @@
 /storage/
 /logs/
 
-/.env
-/.env.*
-!/.env.example
+.env
+.env.*
+!.env.example
+
+updater.key
 
 .DS_Store
 Thumbs.db
