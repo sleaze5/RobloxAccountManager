@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"embed"
 	"errors"
 	"fmt"
@@ -80,22 +81,14 @@ func run() (runErr error) {
 		singleinstance.ShowAlreadyRunning()
 		return nil
 	}
-	var moved bool
-	var moveErr error
-	if moveTarget != "" {
-		launch.Begin("data-move")
-		if moved, moveErr = appdata.Move(moveTarget); moved {
-			requested = moveTarget
-		}
-	}
+	requested, moved, moveErr := moveData(launch, requested, moveTarget)
 	launch.Begin("application-location")
 	location, err := appdata.Inspect(requested)
 	if err != nil {
 		return fmt.Errorf("inspect application location: %w", err)
 	}
 	location.Moved = moved
-	var moveError *appdata.MoveError
-	if errors.As(moveErr, &moveError) {
+	if moveError, ok := errors.AsType[*appdata.MoveError](moveErr); ok {
 		location.MoveError = moveError.Message
 	}
 	launch.Begin("logging")
@@ -109,25 +102,9 @@ func run() (runErr error) {
 		return fmt.Errorf("initialize application data paths: %w", err)
 	}
 	launch.Begin("settings")
-	logging.Diagnostic(logSystem.Module("settings"), "loading application settings", "operation", "settings-load", "supported_format_version", appsettings.FormatVersion)
-	settingsStore, err := openSettings(dataPaths.Settings, location)
+	settingsStore, err := loadSettings(logSystem, dataPaths.Settings, location)
 	if err != nil {
-		return fmt.Errorf("initialize application settings: %w", err)
-	}
-	enabledLogLevels, err := logging.ParseLevels(settingsStore.Logging().EnabledLevelNames())
-	if err != nil {
-		return fmt.Errorf("initialize logging settings: %w", err)
-	}
-	if err := logSystem.SetEnabledLevels(enabledLogLevels); err != nil {
-		return fmt.Errorf("apply logging settings: %w", err)
-	}
-	logging.Diagnostic(logSystem.Module("settings"), "application settings loaded and normalized", "operation", "settings-load", "format_version", appsettings.FormatVersion, "source_format_version", settingsStore.SourceVersion(), "origin", settingsStore.Origin())
-	if err := settingsStore.RecoveryError(); err != nil {
-		logSystem.Module("settings").Warn("settings could not be loaded; preserved backup and created defaults",
-			"operation", "settings-recovery", "backup", "./storage/settings.json.bak", "error", err)
-	}
-	if fields := settingsStore.ReplacedFields(); len(fields) > 0 {
-		logSystem.Module("settings").Warn("invalid settings replaced with defaults", "operation", "settings-load", "fields", fields)
+		return err
 	}
 	logLocation(logSystem.Module("application.location"), location, requested, moveTarget, moveErr)
 	launch.Begin("roblox-multi-instance")
@@ -178,20 +155,10 @@ func run() (runErr error) {
 	coreService.AttachBrowser(browserCoordinator, runtimeManager)
 	updates := appupdate.New(logSystem.Module("application.updates"), events.UpdateChanged)
 	var app *application.App
-	relaunch := func(arguments []string) error {
-		executable, err := os.Executable()
-		if err != nil {
-			return err
-		}
-		command := exec.Command(executable, arguments...)
-		if err := command.Start(); err != nil {
-			return err
-		}
-		_ = command.Process.Release()
-		go app.Quit()
-		return nil
+	relaunchApp := func(arguments []string) error {
+		return relaunch(arguments, func() { app.Quit() })
 	}
-	appLocation := appservice.NewLocation(location, dataPaths, launch, relaunch, logSystem.Module("application.location"))
+	appLocation := appservice.NewLocation(location, dataPaths, launch, relaunchApp, logSystem.Module("application.location"))
 	bindingService := bindings.NewService(coreService, appLocation, updates, events, launch)
 
 	launch.Begin("desktop-shell")
@@ -200,17 +167,10 @@ func run() (runErr error) {
 		return fmt.Errorf("initialize desktop identity: %w", err)
 	}
 	app = application.New(application.Options{
-		Name:        appmeta.DisplayName,
-		Description: appmeta.Description,
-		Logger:      logSystem.Module("wails"),
-		ErrorHandler: func(err error) {
-			var fatal *application.FatalError
-			if errors.As(err, &fatal) {
-				launch.Error("desktop runtime fatal error", fatal.Unwrap())
-				return
-			}
-			launch.Error("desktop runtime error", err)
-		},
+		Name:         appmeta.DisplayName,
+		Description:  appmeta.Description,
+		Logger:       logSystem.Module("wails"),
+		ErrorHandler: runtimeErrorHandler(launch),
 		PanicHandler: func(details *application.PanicDetails) {
 			launch.Error("desktop runtime panic", errors.New(logging.PanicReason(details.Error)), "stack", details.StackTrace)
 			os.Exit(2)
@@ -266,6 +226,67 @@ func run() (runErr error) {
 		return fmt.Errorf("run application: %w", err)
 	}
 	return nil
+}
+
+func moveData(launch *logging.Launch, requested, moveTarget appdata.Mode) (appdata.Mode, bool, error) {
+	if moveTarget == "" {
+		return requested, false, nil
+	}
+	launch.Begin("data-move")
+	moved, err := appdata.Move(moveTarget)
+	if moved {
+		requested = moveTarget
+	}
+	return requested, moved, err
+}
+
+func loadSettings(logSystem *logging.System, path string, location appdata.Location) (*appsettings.Store, error) {
+	logger := logSystem.Module("settings")
+	logging.Diagnostic(logger, "loading application settings", "operation", "settings-load", "supported_format_version", appsettings.FormatVersion)
+	settingsStore, err := openSettings(path, location)
+	if err != nil {
+		return nil, fmt.Errorf("initialize application settings: %w", err)
+	}
+	enabledLogLevels, err := logging.ParseLevels(settingsStore.Logging().EnabledLevelNames())
+	if err != nil {
+		return nil, fmt.Errorf("initialize logging settings: %w", err)
+	}
+	if err := logSystem.SetEnabledLevels(enabledLogLevels); err != nil {
+		return nil, fmt.Errorf("apply logging settings: %w", err)
+	}
+	logging.Diagnostic(logger, "application settings loaded and normalized", "operation", "settings-load", "format_version", appsettings.FormatVersion, "source_format_version", settingsStore.SourceVersion(), "origin", settingsStore.Origin())
+	if err := settingsStore.RecoveryError(); err != nil {
+		logger.Warn("settings could not be loaded; preserved backup and created defaults",
+			"operation", "settings-recovery", "backup", "./storage/settings.json.bak", "error", err)
+	}
+	if fields := settingsStore.ReplacedFields(); len(fields) > 0 {
+		logger.Warn("invalid settings replaced with defaults", "operation", "settings-load", "fields", fields)
+	}
+	return settingsStore, nil
+}
+
+func relaunch(arguments []string, quit func()) error {
+	executable, err := os.Executable()
+	if err != nil {
+		return fmt.Errorf("find application executable: %w", err)
+	}
+	command := exec.CommandContext(context.Background(), executable, arguments...)
+	if err := command.Start(); err != nil {
+		return fmt.Errorf("start relaunched application: %w", err)
+	}
+	_ = command.Process.Release()
+	go quit()
+	return nil
+}
+
+func runtimeErrorHandler(launch *logging.Launch) func(error) {
+	return func(err error) {
+		if fatal, ok := errors.AsType[*application.FatalError](err); ok {
+			launch.Error("desktop runtime fatal error", fatal.Unwrap())
+			return
+		}
+		launch.Error("desktop runtime error", err)
+	}
 }
 
 func logLocation(logger *slog.Logger, location appdata.Location, requested, moveTarget appdata.Mode, moveErr error) {

@@ -28,7 +28,10 @@ if (values.all && values.uncovered) {
 
 async function run(cwd: string, ...command: string[]): Promise<string> {
 	const child = Bun.spawn(command, { cwd, stdout: "pipe", stderr: "inherit" })
-	const [output, code] = await Promise.all([new Response(child.stdout).text(), child.exited])
+	const [output, code] = await Promise.all([
+		new Response(child.stdout).text(),
+		child.exited,
+	])
 	if (code !== 0) {
 		throw new Error(`${command.join(" ")} failed with exit code ${code}`)
 	}
@@ -37,11 +40,15 @@ async function run(cwd: string, ...command: string[]): Promise<string> {
 
 async function fetchVersions(name: string): Promise<string[]> {
 	const url = `https://registry.npmjs.org/${name.replace("/", "%2f")}`
-	const response = await fetch(url, { headers: { Accept: "application/vnd.npm.install-v1+json" } })
+	const response = await fetch(url, {
+		headers: { Accept: "application/vnd.npm.install-v1+json" },
+	})
 	if (!response.ok) {
 		throw new Error(`Request to ${url} failed with ${response.status}`)
 	}
-	const { versions } = (await response.json()) as { versions: Record<string, { deprecated?: string }> }
+	const { versions } = (await response.json()) as {
+		versions: Record<string, { deprecated?: string }>
+	}
 	return Object.entries(versions)
 		.filter(([, metadata]) => metadata.deprecated === undefined)
 		.map(([version]) => version)
@@ -52,14 +59,21 @@ function parseVersion(text: string): Version | undefined {
 	if (!match) {
 		return undefined
 	}
-	return { major: Number(match[1]), minor: Number(match[2]), patch: Number(match[3]), prerelease: match[4] }
+	return {
+		major: Number(match[1]),
+		minor: Number(match[2]),
+		patch: Number(match[3]),
+		prerelease: match[4],
+	}
 }
 
 function compareRelease(a: Version, b: Version): number {
 	return a.major - b.major || a.minor - b.minor || a.patch - b.patch
 }
 
-function prereleaseLine(prerelease: string | undefined): { tag: string; number: number } | undefined {
+function prereleaseLine(
+	prerelease: string | undefined,
+): { tag: string; number: number } | undefined {
 	const match = /^([A-Za-z-]+)\.(\d+)$/.exec(prerelease ?? "")
 	return match ? { tag: match[1] ?? "", number: Number(match[2]) } : undefined
 }
@@ -108,7 +122,9 @@ function newestCompatible(current: string, candidates: string[]): string | undef
 
 function goVersions(text: string): Map<string, string> {
 	const versions = new Map<string, string>()
-	for (const [, name, version] of text.matchAll(/^\s*(?:require\s+)?(toolchain|[\w.-]+\.[\w./-]+)\s+(\S+)/gm)) {
+	for (const [, name, version] of text.matchAll(
+		/^\s*(?:require\s+)?(toolchain|[\w.-]+\.[\w./-]+)\s+(\S+)/gm,
+	)) {
 		if (name && version) {
 			versions.set(name, version)
 		}
@@ -119,25 +135,41 @@ function goVersions(text: string): Map<string, string> {
 const changes: string[] = []
 const manifest = (await Bun.file(manifestPath).json()) as Manifest
 
-for (const section of [manifest.dependencies, manifest.devDependencies]) {
-	for (const [key, spec] of Object.entries(section ?? {})) {
-		const alias = /^npm:(@?[^@]+)@(.+)$/.exec(spec)
-		if (key === wailsRuntime || (values.uncovered && !alias)) {
-			continue
-		}
-		const name = alias?.[1] ?? key
-		const current = alias?.[2] ?? spec
-		const next = newestCompatible(current, await fetchVersions(name))
-		if (section && next) {
-			section[key] = alias ? `npm:${name}@${next}` : next
-			changes.push(`- \`${key}\` ${current} → ${next}`)
-		}
+const packageUpdates = await Promise.all(
+	[manifest.dependencies, manifest.devDependencies].flatMap((section) =>
+		Object.entries(section ?? {}).map(async ([key, spec]) => {
+			const alias = /^npm:(@?[^@]+)@(.+)$/.exec(spec)
+			if (!section || key === wailsRuntime || (values.uncovered && !alias)) {
+				return undefined
+			}
+			const name = alias?.[1] ?? key
+			const current = alias?.[2] ?? spec
+			const next = newestCompatible(current, await fetchVersions(name))
+			return next
+				? {
+						section,
+						key,
+						current,
+						next,
+						spec: alias ? `npm:${name}@${next}` : next,
+					}
+				: undefined
+		}),
+	),
+)
+for (const update of packageUpdates) {
+	if (update) {
+		update.section[update.key] = update.spec
+		changes.push(`- \`${update.key}\` ${update.current} → ${update.next}`)
 	}
 }
 
 const packageManager = manifest.devEngines?.packageManager
 if (packageManager) {
-	const next = newestCompatible(packageManager.version, await fetchVersions(packageManager.name))
+	const next = newestCompatible(
+		packageManager.version,
+		await fetchVersions(packageManager.name),
+	)
 	if (next) {
 		changes.push(`- \`${packageManager.name}\` ${packageManager.version} → ${next}`)
 		packageManager.version = next
@@ -147,10 +179,22 @@ if (packageManager) {
 await writeFile(manifestPath, `${JSON.stringify(manifest, null, "\t")}\n`)
 await run(frontend, "bun", "install")
 
-const goBefore = await Promise.all(goModPaths.map(async (path) => goVersions(await readFile(path, "utf8"))))
+const goBefore = await Promise.all(
+	goModPaths.map(async (path) => goVersions(await readFile(path, "utf8"))),
+)
 await run(root, "go", "get", "toolchain@latest")
 if (!values.uncovered) {
-	const modules = (await run(root, "go", "list", "-m", "-f", "{{if not (or .Main .Indirect)}}{{.Path}}{{end}}", "all"))
+	const modules = (
+		await run(
+			root,
+			"go",
+			"list",
+			"-m",
+			"-f",
+			"{{if not (or .Main .Indirect)}}{{.Path}}{{end}}",
+			"all",
+		)
+	)
 		.split("\n")
 		.filter((path) => path !== "" && path !== wailsModule)
 	if (modules.length > 0) {
@@ -158,8 +202,10 @@ if (!values.uncovered) {
 	}
 	await run(root, "go", "-C", "build/tools", "get", "tool")
 }
-for (const [index, path] of goModPaths.entries()) {
-	const after = goVersions(await readFile(path, "utf8"))
+const goAfter = await Promise.all(
+	goModPaths.map(async (path) => goVersions(await readFile(path, "utf8"))),
+)
+for (const [index, after] of goAfter.entries()) {
 	for (const [name, version] of after) {
 		const previous = goBefore[index]?.get(name)
 		if (previous !== undefined && previous !== version) {
@@ -168,7 +214,8 @@ for (const [index, path] of goModPaths.entries()) {
 	}
 }
 
-const summary = changes.length === 0 ? "Every dependency is up to date." : changes.join("\n")
+const summary =
+	changes.length === 0 ? "Every dependency is up to date." : changes.join("\n")
 console.log(summary)
 const summaryFile = process.env["DEPS_SUMMARY_FILE"]
 if (summaryFile) {

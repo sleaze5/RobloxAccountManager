@@ -95,8 +95,11 @@ func (service *Service) enqueueBackgroundValidation(ctx context.Context, jobs ch
 	for {
 		page, err := service.repo.Page(ctx, accounts.AccountQuery{Cursor: cursor})
 		if err != nil {
+			if ctx.Err() != nil {
+				return false
+			}
 			service.logger.Error("background account list failed", "error", err)
-			return false
+			return true
 		}
 		for _, view := range page.Accounts {
 			if view.State == accounts.StateDisabled || view.State == accounts.StateReauthRequired || view.LastValidatedAtMS != nil && nowMS-*view.LastValidatedAtMS < staleValidationInterval.Milliseconds() {

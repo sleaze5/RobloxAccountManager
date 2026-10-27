@@ -10,4 +10,5 @@ var (
 	ErrInvalidTagName   = errors.New("invalid account tag name")
 	ErrInvalidOrder     = errors.New("invalid account order")
 	ErrStaleSecret      = errors.New("session secret changed")
+	ErrUnavailable      = errors.New("account storage is unavailable")
 )

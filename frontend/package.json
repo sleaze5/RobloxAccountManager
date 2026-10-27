@@ -21,11 +21,11 @@
 		"dev": "vite",
 		"build:dev": "vite build --minify false --mode development",
 		"build": "vite build --mode production",
-		"check": "svelte-check --tsconfig ./tsconfig.json --fail-on-warnings --tsgo",
-		"lint": "oxlint --deny-warnings .",
-		"lint:fix": "oxlint --fix --deny-warnings .",
-		"format": "bun fmt",
-		"format:check": "bun fmt --check"
+		"check": "svelte-check --tsconfig ./tsconfig.json --fail-on-warnings --tsgo && tsc -p ../scripts",
+		"lint": "oxlint --deny-warnings . && cd .. && oxlint -c frontend/.oxlintrc.json --deny-warnings scripts",
+		"lint:fix": "oxlint --fix --deny-warnings . && cd .. && oxlint -c frontend/.oxlintrc.json --fix --deny-warnings scripts",
+		"format": "bun fmt && bun fmt --config .oxfmtrc.json ../scripts",
+		"format:check": "bun fmt --check && bun fmt --config .oxfmtrc.json --check ../scripts"
 	},
 	"dependencies": {
 		"@wailsio/runtime": "3.0.0-beta.34",
@@ -34,6 +34,7 @@
 	"devDependencies": {
 		"@sveltejs/vite-plugin-svelte": "7.3.1",
 		"@tsconfig/svelte": "5.0.8",
+		"@types/bun": "1.4.4",
 		"@typescript/native": "npm:typescript@7.0.2",
 		"oxlint": "1.89.0",
 		"oxlint-tsgolint": "7.0.2004",

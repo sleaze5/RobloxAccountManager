@@ -581,6 +581,7 @@ func (client *Client) setState(ctx context.Context, snapshot SessionSnapshot, st
 		return
 	}
 	if err := client.store.MarkState(ctx, snapshot.AccountID, snapshot.SecretVersion, state, reason); err != nil {
+		client.logStoreFailure(ctx, "Roblox session state could not be saved", snapshot, err)
 		return
 	}
 	client.sessions.UpdateState(snapshot.AccountID, snapshot.SecretVersion, state)
@@ -595,9 +596,17 @@ func (client *Client) recordSuccess(ctx context.Context, snapshot SessionSnapsho
 		return
 	}
 	if err := client.store.RecordSuccess(ctx, snapshot.AccountID, snapshot.SecretVersion); err != nil {
+		client.logStoreFailure(ctx, "Roblox session success could not be saved", snapshot, err)
 		return
 	}
 	client.sessions.UpdateState(snapshot.AccountID, snapshot.SecretVersion, accounts.StateActive)
+}
+
+func (client *Client) logStoreFailure(ctx context.Context, message string, snapshot SessionSnapshot, err error) {
+	if ctx.Err() != nil || snapshot.Context.Err() != nil || errors.Is(err, accounts.ErrStaleSecret) || errors.Is(err, accounts.ErrUnavailable) {
+		return
+	}
+	client.logger.Warn(message, "operation", "session-state", "account_id", snapshot.AccountID, "error", err)
 }
 
 func safeToRetryRequest(request Request) bool {
