@@ -1,0 +1,12 @@
+{
+	"compilerOptions": {
+		"strict": true,
+		"target": "ESNext",
+		"module": "ESNext",
+		"moduleResolution": "bundler",
+		"noEmit": true,
+		"typeRoots": ["../frontend/node_modules/@types"],
+		"types": ["bun"]
+	},
+	"include": ["*.ts"]
+}

@@ -44,18 +44,17 @@ if (latest === current) {
 	process.exit(0)
 }
 
-const updates: { path: string; text: string }[] = []
-for (const { path, count } of cliPins) {
-	const text = await readFile(path, "utf8")
-	const pins = text.split(`wails3@${current}`).length - 1
-	if (pins !== count) {
-		throw new Error(`Expected ${count} Wails CLI pins in ${path}, found ${pins}`)
-	}
-	updates.push({ path, text: text.replaceAll(`wails3@${current}`, `wails3@${latest}`) })
-}
-for (const { path, text } of updates) {
-	await writeFile(path, text)
-}
+const updates = await Promise.all(
+	cliPins.map(async ({ path, count }) => {
+		const text = await readFile(path, "utf8")
+		const pins = text.split(`wails3@${current}`).length - 1
+		if (pins !== count) {
+			throw new Error(`Expected ${count} Wails CLI pins in ${path}, found ${pins}`)
+		}
+		return { path, text: text.replaceAll(`wails3@${current}`, `wails3@${latest}`) }
+	}),
+)
+await Promise.all(updates.map(({ path, text }) => writeFile(path, text)))
 await run(root, "go", "get", `${goModule}@${latest}`)
 await run(join(root, "frontend"), "bun", "add", "--exact", `${npmPackage}@${runtime}`)
 console.log(`Pinned Wails ${current} -> ${latest}`)

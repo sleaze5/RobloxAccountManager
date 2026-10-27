@@ -119,19 +119,24 @@ function goVersions(text: string): Map<string, string> {
 const changes: string[] = []
 const manifest = (await Bun.file(manifestPath).json()) as Manifest
 
-for (const section of [manifest.dependencies, manifest.devDependencies]) {
-	for (const [key, spec] of Object.entries(section ?? {})) {
-		const alias = /^npm:(@?[^@]+)@(.+)$/.exec(spec)
-		if (key === wailsRuntime || (values.uncovered && !alias)) {
-			continue
-		}
-		const name = alias?.[1] ?? key
-		const current = alias?.[2] ?? spec
-		const next = newestCompatible(current, await fetchVersions(name))
-		if (section && next) {
-			section[key] = alias ? `npm:${name}@${next}` : next
-			changes.push(`- \`${key}\` ${current} → ${next}`)
-		}
+const packageUpdates = await Promise.all(
+	[manifest.dependencies, manifest.devDependencies].flatMap((section) =>
+		Object.entries(section ?? {}).map(async ([key, spec]) => {
+			const alias = /^npm:(@?[^@]+)@(.+)$/.exec(spec)
+			if (!section || key === wailsRuntime || (values.uncovered && !alias)) {
+				return undefined
+			}
+			const name = alias?.[1] ?? key
+			const current = alias?.[2] ?? spec
+			const next = newestCompatible(current, await fetchVersions(name))
+			return next ? { section, key, current, next, spec: alias ? `npm:${name}@${next}` : next } : undefined
+		}),
+	),
+)
+for (const update of packageUpdates) {
+	if (update) {
+		update.section[update.key] = update.spec
+		changes.push(`- \`${update.key}\` ${update.current} → ${update.next}`)
 	}
 }
 
@@ -158,8 +163,8 @@ if (!values.uncovered) {
 	}
 	await run(root, "go", "-C", "build/tools", "get", "tool")
 }
-for (const [index, path] of goModPaths.entries()) {
-	const after = goVersions(await readFile(path, "utf8"))
+const goAfter = await Promise.all(goModPaths.map(async (path) => goVersions(await readFile(path, "utf8"))))
+for (const [index, after] of goAfter.entries()) {
 	for (const [name, version] of after) {
 		const previous = goBefore[index]?.get(name)
 		if (previous !== undefined && previous !== version) {
