@@ -41,7 +41,7 @@ async function removeTarget(relativePath: string): Promise<void> {
 
 const targets = [".task", "dist", "frontend/node_modules", "frontend/bindings", "frontend/dist", "frontend/frontend", "build/appicon.png", "build/windows/icon.ico", "RobloxAccountManager.exe", "storage", "logs"]
 
-await Promise.all(targets.map(removeTarget))
+await targets.reduce((previous, target) => previous.then(() => removeTarget(target)), Promise.resolve())
 
 const frontend = resolve(root, "frontend")
 try {
