@@ -85,6 +85,14 @@ tasks:
                   - linux
                   - darwin
 
+    internal:frontend:audit:
+        internal: true
+        dir: "{{.ROOT_DIR}}/frontend"
+        deps:
+            - task: internal:frontend:deps
+        cmds:
+            - bun audit
+
     internal:frontend:build:development:
         internal: true
         dir: "{{.ROOT_DIR}}/frontend"
@@ -169,20 +177,52 @@ tasks:
             - go mod tidy -diff
             - go -C build/tools mod tidy -diff
 
+    internal:go:embed:placeholder:
+        internal: true
+        run: once
+        dir: "{{.ROOT_DIR}}"
+        cmds:
+            - cmd: powershell -NoProfile -Command '& { $dist = "frontend/dist"; if (-not (Test-Path -LiteralPath $dist) -or -not (Get-ChildItem -LiteralPath $dist -Force | Select-Object -First 1)) { New-Item -ItemType Directory -Force -Path $dist | Out-Null; New-Item -ItemType File -Force -Path "$dist/.placeholder" | Out-Null } }'
+              platforms:
+                  - windows
+            - cmd: |
+                  set -eu
+                  if [ -z "$(ls -A frontend/dist 2>/dev/null)" ]; then
+                    mkdir -p frontend/dist
+                    : > frontend/dist/.placeholder
+                  fi
+              platforms:
+                  - linux
+                  - darwin
+
     internal:go:lint:
         internal: true
         dir: "{{.ROOT_DIR}}"
+        deps:
+            - task: internal:go:embed:placeholder
         cmds:
-            - "{{.GOLANGCI_LINT}} run ./internal/..."
+            - "{{.GOLANGCI_LINT}} run ./..."
 
     internal:go:lint:fix:
         internal: true
         dir: "{{.ROOT_DIR}}"
+        deps:
+            - task: internal:go:embed:placeholder
         cmds:
-            - "{{.GOLANGCI_LINT}} run --fix ./internal/..."
+            - "{{.GOLANGCI_LINT}} run --fix ./..."
 
     internal:go:build:
         internal: true
         dir: "{{.ROOT_DIR}}"
+        deps:
+            - task: internal:go:embed:placeholder
         cmds:
-            - go build ./internal/...
+            - go build ./...
+
+    internal:go:audit:
+        internal: true
+        dir: "{{.ROOT_DIR}}"
+        deps:
+            - task: internal:go:embed:placeholder
+        cmds:
+            - "{{.GOVULNCHECK}} ./..."
