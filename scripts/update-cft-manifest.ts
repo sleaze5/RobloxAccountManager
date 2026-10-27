@@ -1,8 +1,12 @@
 import { rename, rm } from "node:fs/promises"
 
-const sourceURL = "https://googlechromelabs.github.io/chrome-for-testing/last-known-good-versions-with-downloads.json"
+const sourceURL =
+	"https://googlechromelabs.github.io/chrome-for-testing/last-known-good-versions-with-downloads.json"
 const outputPath = new URL("../internal/browser/runtime_manifest.json", import.meta.url)
-const temporaryOutputPath = new URL("../internal/browser/.runtime_manifest.json.tmp", import.meta.url)
+const temporaryOutputPath = new URL(
+	"../internal/browser/.runtime_manifest.json.tmp",
+	import.meta.url,
+)
 const officialHost = "storage.googleapis.com"
 const officialPrefix = "/chrome-for-testing-public/"
 const platforms = ["linux64", "mac-arm64", "mac-x64", "win32", "win64"] as const
@@ -24,7 +28,11 @@ interface SourceManifest {
 function validateURL(value: string, version: string, platform: string): string {
 	const url = new URL(value)
 	const expectedPrefix = `${officialPrefix}${version}/${platform}/`
-	if (url.protocol !== "https:" || url.hostname !== officialHost || !url.pathname.startsWith(expectedPrefix)) {
+	if (
+		url.protocol !== "https:" ||
+		url.hostname !== officialHost ||
+		!url.pathname.startsWith(expectedPrefix)
+	) {
 		throw new Error(`Unexpected Chrome download URL: ${value}`)
 	}
 	return value

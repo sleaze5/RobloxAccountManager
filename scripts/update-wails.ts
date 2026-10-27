@@ -31,11 +31,21 @@ if (!current) {
 	throw new Error(`go.mod does not require ${goModule}`)
 }
 
-const latest = (await fetchJSON<{ Version?: string }>(`https://proxy.golang.org/${goModule}/@latest`)).Version
+const latest = (
+	await fetchJSON<{ Version?: string }>(
+		`https://proxy.golang.org/${goModule}/@latest`,
+	)
+).Version
 if (!latest || !/^v3\.\d+\.\d+(-beta\.\d+)?$/.test(latest)) {
-	throw new Error(`The Go proxy returned an unexpected ${goModule} version: ${latest}`)
+	throw new Error(
+		`The Go proxy returned an unexpected ${goModule} version: ${latest}`,
+	)
 }
-const runtime = (await fetchJSON<{ "dist-tags"?: { latest?: string } }>(`https://registry.npmjs.org/${npmPackage}`))["dist-tags"]?.latest
+const runtime = (
+	await fetchJSON<{ "dist-tags"?: { latest?: string } }>(
+		`https://registry.npmjs.org/${npmPackage}`,
+	)
+)["dist-tags"]?.latest
 if (runtime !== latest.slice(1)) {
 	throw new Error(`${npmPackage} ${runtime} does not match ${goModule} ${latest}`)
 }
@@ -49,7 +59,9 @@ const updates = await Promise.all(
 		const text = await readFile(path, "utf8")
 		const pins = text.split(`wails3@${current}`).length - 1
 		if (pins !== count) {
-			throw new Error(`Expected ${count} Wails CLI pins in ${path}, found ${pins}`)
+			throw new Error(
+				`Expected ${count} Wails CLI pins in ${path}, found ${pins}`,
+			)
 		}
 		return { path, text: text.replaceAll(`wails3@${current}`, `wails3@${latest}`) }
 	}),

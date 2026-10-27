@@ -24,8 +24,8 @@
 		"check": "svelte-check --tsconfig ./tsconfig.json --fail-on-warnings --tsgo && tsc -p ../scripts",
 		"lint": "oxlint --deny-warnings . && cd .. && oxlint -c frontend/.oxlintrc.json --deny-warnings scripts",
 		"lint:fix": "oxlint --fix --deny-warnings . && cd .. && oxlint -c frontend/.oxlintrc.json --fix --deny-warnings scripts",
-		"format": "bun fmt",
-		"format:check": "bun fmt --check"
+		"format": "bun fmt && bun fmt --config .oxfmtrc.json ../scripts",
+		"format:check": "bun fmt --check && bun fmt --config .oxfmtrc.json --check ../scripts"
 	},
 	"dependencies": {
 		"@wailsio/runtime": "3.0.0-beta.34",
