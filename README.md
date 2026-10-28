@@ -165,22 +165,22 @@ Run every command from the repository root. Go runs the [Task](https://taskfile.
 
 Run the build task for your target:
 
-- `go tool -modfile=build/tools/go.mod task build:windows-amd64`: Windows x64. Runs on Windows.
-- `go tool -modfile=build/tools/go.mod task build:windows-arm64`: Windows ARM64. Cross-compiles on x64 Windows with llvm-mingw.
-- `go tool -modfile=build/tools/go.mod task build:linux-amd64`: Linux x64. Runs on Linux.
-- `go tool -modfile=build/tools/go.mod task build:darwin-arm64`: macOS app bundle for Apple silicon. Runs on macOS.
-- `go tool -modfile=build/tools/go.mod task build:darwin-amd64`: macOS app bundle for Intel. Runs on macOS.
+- `go tool -modfile build/tools/go.mod task build:windows-amd64`: Windows x64. Runs on Windows.
+- `go tool -modfile build/tools/go.mod task build:windows-arm64`: Windows ARM64. Cross-compiles on x64 Windows with llvm-mingw.
+- `go tool -modfile build/tools/go.mod task build:linux-amd64`: Linux x64. Runs on Linux.
+- `go tool -modfile build/tools/go.mod task build:darwin-arm64`: macOS app bundle for Apple silicon. Runs on macOS.
+- `go tool -modfile build/tools/go.mod task build:darwin-amd64`: macOS app bundle for Intel. Runs on macOS.
 
-Each build first runs `go tool -modfile=build/tools/go.mod task fix` to format, apply lint fixes, and validate the source. Output goes to `dist/<os>-<arch>/`.
+Each build first runs `go tool -modfile build/tools/go.mod task fix` to format, apply lint fixes, and validate the source. Output goes to `dist/<os>-<arch>/`.
 
 Other tasks:
 
-- `go tool -modfile=build/tools/go.mod task dev`: Start development mode with hot reload.
-- `go tool -modfile=build/tools/go.mod task check`: Validate the source without changing files.
-- `go tool -modfile=build/tools/go.mod task --list --sort none`: List every task.
+- `go tool -modfile build/tools/go.mod task dev`: Start development mode with hot reload.
+- `go tool -modfile build/tools/go.mod task check`: Validate the source without changing files.
+- `go tool -modfile build/tools/go.mod task --list --sort none`: List every task.
 
 > [!WARNING]\
-> `go tool -modfile=build/tools/go.mod task clean` deletes builds, dependencies, generated files, logs, and all portable data, including any account vault in `dist/`. This cannot be undone. The task asks for confirmation, and `-y` skips it.
+> `go tool -modfile build/tools/go.mod task clean` deletes builds, dependencies, generated files, logs, and all portable data, including any account vault in `dist/`. This cannot be undone. The task asks for confirmation, and `-y` skips it.
 
 ## License
 
