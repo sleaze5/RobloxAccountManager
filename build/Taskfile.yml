@@ -27,7 +27,7 @@ tasks:
         generates:
             - frontend/bindings/github.com/sleaze5/RobloxAccountManager/internal/bindings/service.ts
         cmds:
-            - go run {{.WAILS_CLI}} generate bindings -clean=true -ts -i
+            - go tool wails3 generate bindings -clean=true -ts -i
 
     internal:frontend:format:
         internal: true

@@ -2,11 +2,10 @@ import { mkdtemp, readdir, readFile, rm, writeFile } from "node:fs/promises"
 import { tmpdir } from "node:os"
 import { join, resolve } from "node:path"
 
-const [wailsCLI, directoryArgument, targetsArgument, repository, signing] =
-	process.argv.slice(2)
-if (!wailsCLI || !directoryArgument || !targetsArgument || !repository || !signing) {
+const [directoryArgument, targetsArgument, repository, signing] = process.argv.slice(2)
+if (!directoryArgument || !targetsArgument || !repository || !signing) {
 	throw new Error(
-		"Usage: release-prepare.ts <wails-cli> <release-directory> <targets> <repository> <production|rehearsal>",
+		"Usage: release-prepare.ts <release-directory> <targets> <repository> <production|rehearsal>",
 	)
 }
 if (signing !== "production" && signing !== "rehearsal") {
@@ -38,7 +37,7 @@ if (archives.length === 0) {
 }
 
 async function wails(...args: string[]): Promise<void> {
-	const child = Bun.spawn(["go", "run", wailsCLI, "updater", ...args], {
+	const child = Bun.spawn(["go", "tool", "wails3", "updater", ...args], {
 		stdout: "inherit",
 		stderr: "inherit",
 	})

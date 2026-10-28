@@ -4,7 +4,6 @@ vars:
     APP_NAME: RobloxAccountManager
     DIST_DIR: dist
     VITE_PORT: "{{.WAILS_VITE_PORT | default 9245}}"
-    WAILS_CLI: github.com/wailsapp/wails/v3/cmd/wails3@v3.0.0
     GOLANGCI_LINT: go tool -modfile=build/tools/go.mod golangci-lint
     GOVULNCHECK: go tool -modfile=build/tools/go.mod govulncheck
 
@@ -54,7 +53,7 @@ tasks:
         deps:
             - task: fix
         cmds:
-            - go run {{.WAILS_CLI}} dev -config ./build/config.yml -port {{.VITE_PORT}}
+            - go tool wails3 dev -config ./build/config.yml -port {{.VITE_PORT}}
 
     check:
         desc: Validate all source without changing files. Runs check:common and check:native.
@@ -105,7 +104,7 @@ tasks:
             - task: check
 
     update:
-        desc: Update the pinned Bun version, the Go toolchain, and every dependency except Wails to its latest minor or patch version, then run fix. Pass -- --uncovered to update only what Dependabot cannot. Needs network access.
+        desc: Update the pinned Bun version, the Go toolchain, and every dependency to its latest minor or patch version, then run fix. Pass -- --uncovered to update only what Dependabot cannot. Needs network access.
         deps:
             - task: internal:validate-tools
         cmds:
@@ -118,14 +117,6 @@ tasks:
             - task: internal:validate-tools
         cmds:
             - bun run ./scripts/update-cft-manifest.ts
-
-    update-wails:
-        desc: Pin Wails and its frontend runtime to the latest release, then run fix. Needs network access.
-        deps:
-            - task: internal:validate-tools
-        cmds:
-            - bun run ./scripts/update-wails.ts
-            - "{{.TASK_EXE}} fix"
 
     build:windows-amd64:
         desc: Run fix, then build the Windows x64 executable. Runs on Windows.
@@ -194,7 +185,7 @@ tasks:
         env:
             CGO_ENABLED: "0"
         cmds:
-            - bun run ./scripts/release-prepare.ts "{{.WAILS_CLI}}" "{{.RELEASE_DIR}}" "{{.TARGETS}}" "{{.REPOSITORY}}" "{{.SIGNING}}"
+            - bun run ./scripts/release-prepare.ts "{{.RELEASE_DIR}}" "{{.TARGETS}}" "{{.REPOSITORY}}" "{{.SIGNING}}"
 
     clean:
         desc: Destructive and irreversible. Delete builds, dependencies, generated files, logs, and all portable data, including the account vault. Standard data roots are not touched. Asks for confirmation, and -y skips it.

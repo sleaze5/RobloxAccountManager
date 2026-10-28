@@ -28,7 +28,7 @@ The `release:prepare` task is the only definition of how release archives become
 - `REPOSITORY`: the GitHub repository, for the download URLs.
 - `SIGNING`: `production` or `rehearsal`.
 
-The task reads the version from `VERSION` and the Wails CLI from `WAILS_CLI`. It builds the CLI without cgo, so it needs no system libraries. It finds every `.zip` and `.tar.gz` archive in `RELEASE_DIR` and generates the manifest. Wails reads each archive's platform and architecture from its name. The task fails unless each expected target has exactly one archive, and no archive belongs to another target or to no target. Then it verifies every signature.
+The task reads the version from `VERSION` and runs the Wails CLI with `go tool wails3`, which `go.mod` pins to the same Wails version as the application. It builds the CLI without cgo, so it needs no system libraries. It finds every `.zip` and `.tar.gz` archive in `RELEASE_DIR` and generates the manifest. Wails reads each archive's platform and architecture from its name. The task fails unless each expected target has exactly one archive, and no archive belongs to another target or to no target. Then it verifies every signature.
 
 - **Production** signing reads the private key from `UPDATER_PRIVATE_KEY` and verifies against `internal/appmeta/updater.key.pub`, the key that the application embeds.
 - **Rehearsal** signing generates a throwaway key pair and verifies against its public key. It proves that preparation works, not that the production secret matches the embedded key.

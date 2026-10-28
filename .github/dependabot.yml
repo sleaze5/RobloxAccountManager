@@ -10,7 +10,6 @@ updates:
       allow:
           - dependency-type: direct
       ignore:
-          - dependency-name: github.com/wailsapp/wails/v3
           - dependency-name: "*"
             update-types:
                 - version-update:semver-major
@@ -46,7 +45,6 @@ updates:
           default-days: 7
       ignore:
           - dependency-name: "@typescript/native"
-          - dependency-name: "@wailsio/runtime"
           - dependency-name: "*"
             update-types:
                 - version-update:semver-major
