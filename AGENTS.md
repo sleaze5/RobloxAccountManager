@@ -23,7 +23,7 @@ author:
 
 ## Technology stack
 
-- Desktop: Go, Wails `3` beta
+- Desktop: Go, Wails `3`
 - Frontend: Svelte `5`, TypeScript `7`
 - Database: SQLite with SQLCipher
 - Tooling: Bun, Vite, Oxlint, Oxfmt, svelte-check, golangci-lint

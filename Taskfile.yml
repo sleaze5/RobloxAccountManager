@@ -4,7 +4,7 @@ vars:
     APP_NAME: RobloxAccountManager
     DIST_DIR: dist
     VITE_PORT: "{{.WAILS_VITE_PORT | default 9245}}"
-    WAILS_CLI: github.com/wailsapp/wails/v3/cmd/wails3@v3.0.0-beta.34
+    WAILS_CLI: github.com/wailsapp/wails/v3/cmd/wails3@v3.0.0
     GOLANGCI_LINT: go tool -modfile=build/tools/go.mod golangci-lint
     GOVULNCHECK: go tool -modfile=build/tools/go.mod govulncheck
 
