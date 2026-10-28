@@ -51,10 +51,10 @@ The pinned llvm-mingw release for Windows ARM64 is set up by `.github/actions/se
 
 The `check` task runs two scopes in parallel, and each runs its own steps in parallel:
 
-- `check:common` validates what does not depend on the operating system: frontend formatting, lint, and `svelte-check`, Go formatting, and whether the `go.mod` and `go.sum` files of the application and of `build/tools` are tidy.
+- `check:common` validates what does not depend on the operating system: frontend formatting, lint, and `svelte-check`, Go formatting, whether the `go.mod` and `go.sum` files of the application and of `build/tools` are tidy, and whether `@wailsio/runtime` in `frontend/package.json` matches the Wails version in `go.mod`.
 - `check:native` runs golangci-lint and `go build`. Go compiles only the files of the current operating system, so this scope must run on each one.
 
-The `fix` task still applies every fix, including golangci-lint fixes, and then runs the `check` task.
+The `fix` task still applies every fix, including golangci-lint fixes, and then runs the `check` task. It first sets `@wailsio/runtime` to the Wails version in `go.mod`, so `go.mod` is the only place to change the Wails version. Dependabot and the `update` task update Wails only in `go.mod`.
 
 golangci-lint runs the `go vet` analyzers, staticcheck, and the other linters that `.golangci.yml` enables. Its version is pinned in the separate tool module `build/tools`, and the tasks run it with `go tool -modfile=build/tools/go.mod`. The separate module keeps the linter's dependencies out of the application's `go.mod`, so they cannot change the dependency versions of the application. Dependabot updates golangci-lint, and the `update` task upgrades it.
 

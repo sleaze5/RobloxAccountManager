@@ -13,6 +13,7 @@ const root = resolve(import.meta.dir, "..")
 const frontend = join(root, "frontend")
 const manifestPath = join(frontend, "package.json")
 const goModPaths = [join(root, "go.mod"), join(root, "build", "tools", "go.mod")]
+const wailsRuntime = "@wailsio/runtime"
 
 const { values } = parseArgs({
 	options: {
@@ -137,7 +138,7 @@ const packageUpdates = await Promise.all(
 	[manifest.dependencies, manifest.devDependencies].flatMap((section) =>
 		Object.entries(section ?? {}).map(async ([key, spec]) => {
 			const alias = /^npm:(@?[^@]+)@(.+)$/.exec(spec)
-			if (!section || (values.uncovered && !alias)) {
+			if (!section || key === wailsRuntime || (values.uncovered && !alias)) {
 				return undefined
 			}
 			const name = alias?.[1] ?? key

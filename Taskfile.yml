@@ -71,6 +71,7 @@ tasks:
     internal:check:common:
         internal: true
         deps:
+            - task: common:internal:frontend:runtime:check
             - task: common:internal:frontend:format:check
             - task: common:internal:frontend:lint
             - task: common:internal:frontend:check
@@ -96,6 +97,7 @@ tasks:
         deps:
             - task: internal:setup
         cmds:
+            - task: common:internal:frontend:runtime:sync
             - task: common:internal:frontend:format
             - task: common:internal:frontend:lint:fix
             - task: common:internal:go:format

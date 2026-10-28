@@ -29,6 +29,18 @@ tasks:
         cmds:
             - go tool wails3 generate bindings -clean=true -ts -i
 
+    internal:frontend:runtime:sync:
+        internal: true
+        dir: "{{.ROOT_DIR}}"
+        cmds:
+            - bun run ./scripts/sync-wails-runtime.ts
+
+    internal:frontend:runtime:check:
+        internal: true
+        dir: "{{.ROOT_DIR}}"
+        cmds:
+            - bun run ./scripts/sync-wails-runtime.ts --check
+
     internal:frontend:format:
         internal: true
         dir: "{{.ROOT_DIR}}/frontend"
