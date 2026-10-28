@@ -10,7 +10,6 @@ updates:
       allow:
           - dependency-type: direct
       ignore:
-          - dependency-name: github.com/wailsapp/wails/v3
           - dependency-name: "*"
             update-types:
                 - version-update:semver-major
@@ -26,6 +25,7 @@ updates:
       cooldown:
           default-days: 7
       allow:
+          - dependency-name: github.com/go-task/task/v3
           - dependency-name: github.com/golangci/golangci-lint/v2
           - dependency-name: golang.org/x/vuln
       ignore:

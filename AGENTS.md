@@ -23,7 +23,7 @@ author:
 
 ## Technology stack
 
-- Desktop: Go, Wails `3` beta
+- Desktop: Go, Wails `3`
 - Frontend: Svelte `5`, TypeScript `7`
 - Database: SQLite with SQLCipher
 - Tooling: Bun, Vite, Oxlint, Oxfmt, svelte-check, golangci-lint
@@ -33,7 +33,7 @@ Use this stack. Do not add a framework, library, or runtime dependency when the 
 
 ## Commands
 
-Interact with the project only through `task`. Run `task --list --sort none` to see the available tasks. Do not run frontend, Wails, or Go tools directly.
+Interact with the project only through Task, which Go runs from the version pinned in `build/tools/go.mod`: `go tool -modfile build/tools/go.mod task <name>`. Run `go tool -modfile build/tools/go.mod task --list --sort none` to see the available tasks. Do not run frontend, Wails, or Go tools directly.
 
 Do not add or remove tasks unless the request requires it. If it does, state the pros and cons.
 

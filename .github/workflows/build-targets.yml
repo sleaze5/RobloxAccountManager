@@ -48,7 +48,7 @@ jobs:
                   foreach ($target in $env:TARGETS -split " ") {
                       # Append, so gcc still resolves to the runner's x64 MinGW.
                       $env:PATH = if ($target -eq "windows-arm64") { "$path;$env:LLVM_MINGW_BIN" } else { $path }
-                      task "build:$target"
+                      go tool -modfile build/tools/go.mod task "build:$target"
                       if ($LASTEXITCODE -ne 0) {
                           throw "Build $target failed with exit code $LASTEXITCODE"
                       }
@@ -59,7 +59,7 @@ jobs:
               run: |
                   set -eu
                   for target in $TARGETS; do
-                      task "build:$target"
+                      go tool -modfile build/tools/go.mod task "build:$target"
                   done
 
             - name: Check that the build did not change source files
@@ -67,7 +67,7 @@ jobs:
               run: |
                   changes=$(git status --porcelain)
                   if [ -n "$changes" ]; then
-                      printf 'The build changed source files. Run task fix, commit, and build again.\n%s\n' "$changes" >&2
+                      printf 'The build changed source files. Run go tool -modfile build/tools/go.mod task fix, commit, and build again.\n%s\n' "$changes" >&2
                       exit 1
                   fi
 

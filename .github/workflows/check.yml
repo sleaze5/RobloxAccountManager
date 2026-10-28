@@ -58,7 +58,7 @@ jobs:
               uses: ./.github/actions/setup
 
             - name: Check
-              run: task check:common
+              run: go tool -modfile build/tools/go.mod task check:common
 
     native:
         name: Native (${{ matrix.os }})
@@ -85,7 +85,7 @@ jobs:
                   bun: "false"
 
             - name: Check
-              run: task check:native
+              run: go tool -modfile build/tools/go.mod task check:native
 
     ci:
         name: CI

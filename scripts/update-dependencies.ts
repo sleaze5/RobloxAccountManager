@@ -14,7 +14,6 @@ const frontend = join(root, "frontend")
 const manifestPath = join(frontend, "package.json")
 const goModPaths = [join(root, "go.mod"), join(root, "build", "tools", "go.mod")]
 const wailsRuntime = "@wailsio/runtime"
-const wailsModule = "github.com/wailsapp/wails/v3"
 
 const { values } = parseArgs({
 	options: {
@@ -196,7 +195,7 @@ if (!values.uncovered) {
 		)
 	)
 		.split("\n")
-		.filter((path) => path !== "" && path !== wailsModule)
+		.filter((path) => path !== "")
 	if (modules.length > 0) {
 		await run(root, "go", "get", "-u", ...modules)
 	}

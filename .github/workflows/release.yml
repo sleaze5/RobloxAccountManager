@@ -135,7 +135,7 @@ jobs:
                   SIGNING: ${{ inputs.rehearsal && 'rehearsal' || 'production' }}
                   TARGETS: ${{ needs.check.outputs.targets }}
                   UPDATER_PRIVATE_KEY: ${{ !inputs.rehearsal && secrets.UPDATER_PRIVATE_KEY || '' }}
-              run: task release:prepare RELEASE_DIR="$RELEASE" TARGETS="$TARGETS" REPOSITORY="$GITHUB_REPOSITORY" SIGNING="$SIGNING"
+              run: go tool -modfile build/tools/go.mod task release:prepare RELEASE_DIR="$RELEASE" TARGETS="$TARGETS" REPOSITORY="$GITHUB_REPOSITORY" SIGNING="$SIGNING"
 
             - name: Upload rehearsal
               if: inputs.rehearsal

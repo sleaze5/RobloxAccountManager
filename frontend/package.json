@@ -28,7 +28,7 @@
 		"format:check": "bun fmt --check && bun fmt --config .oxfmtrc.json --check ../scripts"
 	},
 	"dependencies": {
-		"@wailsio/runtime": "3.0.0-beta.34",
+		"@wailsio/runtime": "3.0.0",
 		"phosphor-svelte": "3.1.1"
 	},
 	"devDependencies": {
@@ -36,9 +36,9 @@
 		"@tsconfig/svelte": "5.0.8",
 		"@types/bun": "1.4.4",
 		"@typescript/native": "npm:typescript@7.0.2",
-		"oxlint": "1.89.0",
-		"oxlint-tsgolint": "7.0.2004",
-		"svelte": "5.57.2",
+		"oxlint": "1.90.0",
+		"oxlint-tsgolint": "7.0.2005",
+		"svelte": "5.57.3",
 		"svelte-check": "4.7.7",
 		"typescript": "6.0.3",
 		"vite": "8.3.5"
