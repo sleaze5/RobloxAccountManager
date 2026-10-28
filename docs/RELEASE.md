@@ -4,7 +4,7 @@ Platform rules are in [PLATFORM.md](./PLATFORM.md).
 
 `internal/appmeta/VERSION` is the only source of the application version. It uses `MAJOR.MINOR.PATCH` with an optional `-PRERELEASE` suffix. Go embeds it, the frontend reads it as `APP_VERSION`, and the build writes it into the Windows version resource. Do not write the version anywhere else.
 
-To release, change `VERSION`, run `task fix`, push to `main`, and run the manual "Release" workflow in `.github/workflows/release.yml`. The workflow first checks that it runs on `main` and that tag `v<version>` does not exist. Only a confirmed "not found" answer passes the tag check. Any other error stops the release, because `gh release create` attaches a release to an existing tag and ignores `--target`. The check job defines the release targets once. They drive the build matrix and the targets that release preparation expects. The workflow builds Linux on Ubuntu 24.04, macOS on macOS 15, and Windows on Windows Server 2025 in parallel, through the reusable `.github/workflows/build-targets.yml`, and keeps the builds for 7 days. The macOS job builds both architectures on Apple silicon. The Windows job builds x64 and cross-compiles ARM64 with a pinned, checksum-verified llvm-mingw release. A build fails when it changes source files. The Windows job pauses Defender real-time scanning, because it slows builds on the disposable runners. After every build succeeds, the publish job on Ubuntu 24.04 runs `task release:prepare` and creates the release. The workflow publishes:
+To release, change `VERSION`, run `go tool -modfile=build/tools/go.mod task fix`, push to `main`, and run the manual "Release" workflow in `.github/workflows/release.yml`. The workflow first checks that it runs on `main` and that tag `v<version>` does not exist. Only a confirmed "not found" answer passes the tag check. Any other error stops the release, because `gh release create` attaches a release to an existing tag and ignores `--target`. The check job defines the release targets once. They drive the build matrix and the targets that release preparation expects. The workflow builds Linux on Ubuntu 24.04, macOS on macOS 15, and Windows on Windows Server 2025 in parallel, through the reusable `.github/workflows/build-targets.yml`, and keeps the builds for 7 days. The macOS job builds both architectures on Apple silicon. The Windows job builds x64 and cross-compiles ARM64 with a pinned, checksum-verified llvm-mingw release. A build fails when it changes source files. The Windows job pauses Defender real-time scanning, because it slows builds on the disposable runners. After every build succeeds, the publish job on Ubuntu 24.04 runs the `release:prepare` task and creates the release. The workflow publishes:
 
 - `RobloxAccountManager.exe`: the Windows executable for manual download.
 - `RobloxAccountManager-windows-x64.zip`: the Windows updater artifact.
@@ -21,7 +21,7 @@ The application reads `releases/latest/download/manifest.json`, so it never offe
 
 ## Release preparation
 
-`task release:prepare` is the only definition of how release archives become a signed update manifest. It runs `scripts/release-prepare.ts` with these variables:
+The `release:prepare` task is the only definition of how release archives become a signed update manifest. It runs `scripts/release-prepare.ts` with these variables:
 
 - `RELEASE_DIR`: the folder with the downloaded builds.
 - `TARGETS`: the expected targets, such as `linux-amd64 windows-amd64`.
@@ -35,7 +35,7 @@ The task reads the version from `VERSION` and the Wails CLI from `WAILS_CLI`. It
 
 The publish job uploads every archive, `.exe`, and `manifest.json` from `RELEASE_DIR`, plus `THIRD_PARTY_LICENSES.txt`. Asset names are defined only by the packaging in `build-targets.yml`.
 
-To rehearse a release, run the "Release" workflow with **Rehearse** selected, from any branch. It builds every target and runs `task release:prepare` with rehearsal signing. It never reads `UPDATER_PRIVATE_KEY`, skips the branch and tag checks, and uploads the prepared files as the `release-rehearsal` artifact instead of creating a release.
+To rehearse a release, run the "Release" workflow with **Rehearse** selected, from any branch. It builds every target and runs the `release:prepare` task with rehearsal signing. It never reads `UPDATER_PRIVATE_KEY`, skips the branch and tag checks, and uploads the prepared files as the `release-rehearsal` artifact instead of creating a release.
 
 A re-run of a workflow run uses that run's commit and workflow files. After a workflow fix, start a new run with **Run workflow**.
 
@@ -49,23 +49,25 @@ The pinned llvm-mingw release for Windows ARM64 is set up by `.github/actions/se
 
 ## Checks
 
-`task check` runs two scopes in parallel, and each runs its own steps in parallel:
+The `check` task runs two scopes in parallel, and each runs its own steps in parallel:
 
-- `task check:common` validates what does not depend on the operating system: frontend formatting, lint, and `svelte-check`, Go formatting, and whether the `go.mod` and `go.sum` files of the application and of `build/tools` are tidy.
-- `task check:native` runs golangci-lint and `go build`. Go compiles only the files of the current operating system, so this scope must run on each one.
+- `check:common` validates what does not depend on the operating system: frontend formatting, lint, and `svelte-check`, Go formatting, and whether the `go.mod` and `go.sum` files of the application and of `build/tools` are tidy.
+- `check:native` runs golangci-lint and `go build`. Go compiles only the files of the current operating system, so this scope must run on each one.
 
-`task fix` still applies every fix, including golangci-lint fixes, and then runs `task check`.
+The `fix` task still applies every fix, including golangci-lint fixes, and then runs the `check` task.
 
-golangci-lint runs the `go vet` analyzers, staticcheck, and the other linters that `.golangci.yml` enables. Its version is pinned in the separate tool module `build/tools`, and the tasks run it with `go tool -modfile=build/tools/go.mod`. The separate module keeps the linter's dependencies out of the application's `go.mod`, so they cannot change the dependency versions of the application. Dependabot updates golangci-lint, and `task update` upgrades it.
+golangci-lint runs the `go vet` analyzers, staticcheck, and the other linters that `.golangci.yml` enables. Its version is pinned in the separate tool module `build/tools`, and the tasks run it with `go tool -modfile=build/tools/go.mod`. The separate module keeps the linter's dependencies out of the application's `go.mod`, so they cannot change the dependency versions of the application. Dependabot updates golangci-lint, and the `update` task upgrades it.
+
+Task is pinned in `build/tools` the same way and runs with `go tool -modfile=build/tools/go.mod task`, so contributors and runners need Go but not a separate Task installation. Dependabot updates Task, and the `update` task upgrades it.
 
 The "Check" workflow in `.github/workflows/check.yml` runs on every pull request and every push to `main`. A newer run cancels an older one for the same pull request or branch.
 
 - **Scope** finds the changed files. The native scope runs only when Go files, a `go.mod` or `go.sum` file, `.golangci.yml`, a Taskfile, or `.github/` changed, or when there is no base to compare with.
-- **Common** runs `task check:common` once on Linux.
-- **Native** runs `task check:native` on each supported operating system at the same time, when the native scope runs.
+- **Common** runs the `check:common` task once on Linux.
+- **Native** runs the `check:native` task on each supported operating system at the same time, when the native scope runs.
 - **CI** passes only when every other job passed or was skipped. Require only this check in branch protection.
 
-`.github/actions/setup` is the only definition of how a runner is prepared for task commands. The check, build, and release workflows all use it.
+`.github/actions/setup` is the only definition of how a runner is prepared for tasks. It sets up Go, Bun, and the operating system's build requirements. It does not install Task, because Go runs the pinned version. The check, build, and release workflows all use it.
 
 ## Update signing
 

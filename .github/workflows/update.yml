@@ -41,7 +41,7 @@ jobs:
                   SCOPE: ${{ inputs.scope || 'uncovered' }}
                   DEPS_SUMMARY_FILE: ${{ runner.temp }}/dependencies.md
               run: |
-                  task update -- "--$SCOPE"
+                  go tool -modfile=build/tools/go.mod task update -- "--$SCOPE"
                   echo "bun=$(jq -r .devEngines.packageManager.version frontend/package.json)" >> "$GITHUB_OUTPUT"
 
             - name: Set up the updated Bun

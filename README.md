@@ -146,7 +146,6 @@ logs/
 
 - [Go](https://go.dev) 1.26 or later
 - [Bun](https://bun.sh)
-- [Task](https://taskfile.dev) 3
 - A C compiler for cgo, because SQLCipher needs cgo:
     - **Windows x64:** MinGW-w64 GCC on `PATH`.
     - **Windows ARM64:** MinGW-w64 GCC and `aarch64-w64-mingw32-clang` from [llvm-mingw](https://github.com/mstorsjo/llvm-mingw) on `PATH`. Put llvm-mingw after the x64 MinGW on `PATH`, because llvm-mingw also ships a `gcc`.
@@ -162,24 +161,26 @@ git clone https://github.com/sleaze5/RobloxAccountManager.git
 cd RobloxAccountManager
 ```
 
+Run every command from the repository root. Go runs the [Task](https://taskfile.dev) version pinned in `build/tools/go.mod`, so you do not install Task yourself.
+
 Run the build task for your target:
 
-- `task build:windows-amd64`: Windows x64. Runs on Windows.
-- `task build:windows-arm64`: Windows ARM64. Cross-compiles on x64 Windows with llvm-mingw.
-- `task build:linux-amd64`: Linux x64. Runs on Linux.
-- `task build:darwin-arm64`: macOS app bundle for Apple silicon. Runs on macOS.
-- `task build:darwin-amd64`: macOS app bundle for Intel. Runs on macOS.
+- `go tool -modfile=build/tools/go.mod task build:windows-amd64`: Windows x64. Runs on Windows.
+- `go tool -modfile=build/tools/go.mod task build:windows-arm64`: Windows ARM64. Cross-compiles on x64 Windows with llvm-mingw.
+- `go tool -modfile=build/tools/go.mod task build:linux-amd64`: Linux x64. Runs on Linux.
+- `go tool -modfile=build/tools/go.mod task build:darwin-arm64`: macOS app bundle for Apple silicon. Runs on macOS.
+- `go tool -modfile=build/tools/go.mod task build:darwin-amd64`: macOS app bundle for Intel. Runs on macOS.
 
-Each build first runs `task fix` to format, apply lint fixes, and validate the source. Output goes to `dist/<os>-<arch>/`.
+Each build first runs `go tool -modfile=build/tools/go.mod task fix` to format, apply lint fixes, and validate the source. Output goes to `dist/<os>-<arch>/`.
 
 Other tasks:
 
-- `task dev`: Start development mode with hot reload.
-- `task check`: Validate the source without changing files.
-- `task --list --sort none`: List every task.
+- `go tool -modfile=build/tools/go.mod task dev`: Start development mode with hot reload.
+- `go tool -modfile=build/tools/go.mod task check`: Validate the source without changing files.
+- `go tool -modfile=build/tools/go.mod task --list --sort none`: List every task.
 
 > [!WARNING]\
-> `task clean` deletes builds, dependencies, generated files, logs, and all portable data, including any account vault in `dist/`. This cannot be undone. The task asks for confirmation, and `-y` skips it.
+> `go tool -modfile=build/tools/go.mod task clean` deletes builds, dependencies, generated files, logs, and all portable data, including any account vault in `dist/`. This cannot be undone. The task asks for confirmation, and `-y` skips it.
 
 ## License
 
