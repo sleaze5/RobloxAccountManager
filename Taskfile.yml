@@ -21,7 +21,7 @@ tasks:
         cmds:
             - go version
             - bun --version
-            - task --version
+            - "{{.TASK_EXE}} --version"
 
     internal:setup:
         internal: true
