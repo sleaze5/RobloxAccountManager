@@ -96,3 +96,12 @@
 		}
 	}
 }
+
+:root {
+	--duration-instant: 75ms;
+	--duration-fast: 100ms;
+	--duration-exit: 75ms;
+	--duration-enter: 150ms;
+	--motion-distance: 2px;
+	--motion-scale: 0.99;
+}
