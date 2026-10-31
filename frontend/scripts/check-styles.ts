@@ -17,7 +17,6 @@ const legacyStyleBlocks = new Set([
 	"lib/dialogs/RobloxPlayerPathDialog.svelte",
 	"lib/dialogs/RobloxProcessesDialog.svelte",
 	"lib/dialogs/SavedPasswordDialog.svelte",
-	"lib/layout/LaunchDrawer.svelte",
 	"lib/shared/SensitiveValue.svelte",
 	"lib/shared/Timestamp.svelte",
 ])

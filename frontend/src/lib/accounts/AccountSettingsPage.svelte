@@ -754,7 +754,7 @@
 		settingsState = settings
 		infoState = info
 		blockedState = blocked
-		heading?.closest(".workspace-scroll")?.scrollTo({ top: 0 })
+		heading?.closest("[data-workspace-scroll]")?.scrollTo({ top: 0 })
 		heading?.focus({ preventScroll: true })
 		return () => {
 			settings.dispose()

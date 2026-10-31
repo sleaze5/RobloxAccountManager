@@ -189,7 +189,7 @@
 		workspace.launchOpen = true
 		activePage = "accounts"
 		await tick()
-		document.querySelector<HTMLInputElement>(".launch-place input")?.focus()
+		document.querySelector<HTMLInputElement>("[data-place-input]")?.focus()
 	}
 
 	async function fillGameLaunchOptions(placeId: number, jobId = ""): Promise<void> {
@@ -200,16 +200,14 @@
 		workspace.launchOpen = true
 		activePage = "accounts"
 		await tick()
-		document.querySelector<HTMLInputElement>(".launch-place input")?.focus()
+		document.querySelector<HTMLInputElement>("[data-place-input]")?.focus()
 	}
 
 	async function searchGames(text: string): Promise<void> {
 		void games.searchFor(text)
 		activePage = "games"
 		await tick()
-		document
-			.querySelector<HTMLInputElement>(".games-page .search-field input")
-			?.focus()
+		document.querySelector<HTMLInputElement>("[data-games-search]")?.focus()
 	}
 
 	function openRenewCookie(accountId: number): void {
@@ -484,7 +482,8 @@
 							accountSubpage
 								? "overflow-hidden"
 								: "overflow-x-hidden overflow-y-auto",
-						]}>
+						]}
+						data-workspace-scroll>
 						{#if store.multipleSelected || store.selectedAccount.id === 0}
 							<AccountPlaceholder
 								{store}

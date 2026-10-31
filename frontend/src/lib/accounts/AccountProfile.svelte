@@ -99,7 +99,7 @@
 		const opener = workspace.accountPage === "chats" ? chatsButton : settingsButton
 		workspace.accountPage = "profile"
 		await tick()
-		opener?.closest(".workspace-scroll")?.scrollTo({ top: 0 })
+		opener?.closest("[data-workspace-scroll]")?.scrollTo({ top: 0 })
 		opener?.focus({ preventScroll: true })
 	}
 </script>

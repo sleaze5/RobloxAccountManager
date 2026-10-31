@@ -20,7 +20,7 @@
 		)
 </script>
 
-<span class="nearest-server" data-tooltip={tooltip} data-tooltip-side="top-end">
+<span class="flex shrink-0" data-tooltip={tooltip} data-tooltip-side="top-end">
 	<button
 		class="btn-icon size-8"
 		type="button"

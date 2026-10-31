@@ -10,7 +10,6 @@
 @import "./legacy/base.css" layer(legacy);
 @import "./legacy/controls.css" layer(legacy);
 @import "./legacy/accounts.css" layer(legacy);
-@import "./legacy/launch.css" layer(legacy);
 @import "./legacy/dialogs.css" layer(legacy);
 @import "./legacy/browser.css" layer(legacy);
 @import "./legacy/logs-explorer.css" layer(legacy);

@@ -42,8 +42,8 @@
 		if (!workspace.launchOpen || !drawer) return
 		const method = store.launchInput.method,
 			panel = drawer,
-			body = panel.querySelector<HTMLElement>(".launch-body"),
-			content = panel.querySelector<HTMLElement>(".launch-fields")
+			body = panel.querySelector<HTMLElement>("[data-launch-body]"),
+			content = panel.querySelector<HTMLElement>("[data-launch-fields]")
 		if (!body || !content) return
 		const observer = new ResizeObserver(() => {
 			const style = getComputedStyle(body),
@@ -71,12 +71,14 @@
 
 <section
 	bind:this={drawer}
-	class:collapsed={!workspace.launchOpen}
-	class="launch-drawer"
+	class={[
+		"shrink-0 border-t border-line-subtle bg-surface",
+		workspace.launchOpen ? "flex h-(--launch-height) flex-col" : "h-9",
+	]}
 	aria-labelledby="launch-title">
 	{#if workspace.launchOpen}
 		<div
-			class="launch-resizer"
+			class="relative z-10 h-0.5 w-full shrink-0 cursor-row-resize touch-none bg-surface before:absolute before:inset-x-0 before:-top-1.5 before:bottom-0"
 			role="slider"
 			tabindex="0"
 			aria-label="Resize launch panel"
@@ -97,14 +99,19 @@
 			onpointerdown={(event) => workspace.startLaunchResize(event)}>
 		</div>
 	{/if}
-	<div class="drawer-header">
-		<span>
+	<div
+		class={[
+			"flex h-9 w-full shrink-0 items-center justify-between px-3 text-fg-muted select-none",
+			workspace.launchOpen && "border-b border-line-subtle",
+		]}>
+		<span class="flex items-center gap-2">
 			<GameControllerIcon size={16} aria-hidden="true" />
-			<strong id="launch-title">Launch options</strong>
+			<strong id="launch-title" class="text-2xs font-semibold text-fg"
+				>Launch options</strong>
 		</span>
-		<div class="drawer-header-actions">
+		<div class="flex items-center gap-1">
 			<button
-				class="close-roblox-action btn-ghost"
+				class="btn-ghost-sm hover:bg-danger/5 hover:text-danger aria-expanded:bg-danger/5 aria-expanded:text-danger"
 				type="button"
 				aria-label="Close Roblox processes"
 				aria-haspopup="dialog"
@@ -119,7 +126,7 @@
 				<ProhibitIcon size={16} aria-hidden="true" />
 			</button>
 			<button
-				class="drawer-toggle btn-ghost-sm"
+				class="btn-ghost-sm"
 				type="button"
 				aria-label={workspace.launchOpen
 					? "Collapse the launch panel"
@@ -131,7 +138,10 @@
 				data-tooltip-side="top-end"
 				onclick={() => (workspace.launchOpen = !workspace.launchOpen)}>
 				<CaretDownIcon
-					class={workspace.launchOpen ? "open" : undefined}
+					class={[
+						"transition-transform duration-100",
+						workspace.launchOpen && "rotate-180",
+					]}
 					size={14}
 					aria-hidden="true" />
 			</button>
@@ -139,26 +149,34 @@
 	</div>
 	{#if workspace.launchOpen}
 		<form
-			class="drawer-content"
+			class="flex min-h-0 flex-1 flex-col"
 			novalidate
 			aria-busy={store.launching}
 			onsubmit={(event) => {
 				event.preventDefault()
 				void store.launchSelectedAccounts()
 			}}>
-			<div class="launch-body">
+			<div
+				class="flex min-h-0 flex-1 flex-col gap-2 overflow-auto p-3 *:shrink-0"
+				data-launch-body>
 				<div
-					class="launch-fields"
-					class:launch-user={store.launchInput.method ===
-						LaunchMethod.MethodUser}
-					class:launch-place={store.launchInput.method ===
-						LaunchMethod.MethodPlace}>
+					data-launch-fields
+					class={[
+						"flex w-full min-w-0",
+						store.launchInput.method === LaunchMethod.MethodLink
+							? "max-w-md flex-col gap-2"
+							: "max-w-lg items-end gap-2",
+					]}>
 					{#if store.launchInput.method === LaunchMethod.MethodPlace}
 						<PlaceIdInput {store} />
-						<div class="launch-job">
-							<label
-								><span>Job ID <small>(optional)</small></span>
+						<div class="flex min-w-0 flex-1 items-end gap-1">
+							<label class="min-w-0 flex-1"
+								><span class="mb-1 block text-xs text-fg-muted"
+									>Job ID <small class="text-xs text-fg-faint"
+										>(optional)</small
+									></span>
 								<input
+									class="field font-mono text-2xs"
 									bind:value={store.launchInput.jobId}
 									type="text"
 									placeholder="Server UUID"
@@ -169,9 +187,11 @@
 							{/if}
 						</div>
 					{:else if store.launchInput.method === LaunchMethod.MethodLink}
-						<label
-							><span>Roblox links</span>
+						<label class="min-w-0"
+							><span class="mb-1 block text-xs text-fg-muted"
+								>Roblox links</span>
 							<input
+								class="field font-mono text-2xs"
 								bind:value={store.launchInput.link}
 								type="text"
 								placeholder="Paste link here"
@@ -181,16 +201,18 @@
 								disabled={store.launching} />
 						</label>
 					{:else}
-						<label
-							><span>Username / User ID</span>
+						<label class="min-w-0 flex-1"
+							><span class="mb-1 block text-xs text-fg-muted"
+								>Username / User ID</span>
 							<input
+								class="field font-mono text-2xs"
 								bind:value={store.launchInput.user}
 								type="text"
 								placeholder="Username or id=123"
 								required
 								disabled={store.launching} />
 						</label>
-						<label class="launch-option launch-resolve">
+						<label class="check-option h-8 items-center whitespace-nowrap">
 							<span class="checkbox">
 								<input
 									bind:checked={store.launchInput.resolveCurrentGame}
@@ -207,8 +229,10 @@
 					{/if}
 				</div>
 			</div>
-			<div class="launch-footer">
-				<div class="launch-method">
+			<div
+				class="flex h-10 shrink-0 items-center justify-end gap-2 border-t border-line-subtle px-3 py-1">
+				<div
+					class="mr-auto flex shrink-0 items-center gap-2 text-xs text-fg-muted">
 					<span id="launch-method-label">Method:</span>
 					<div
 						class="segmented"
@@ -247,22 +271,3 @@
 		<RobloxProcessesDialog onClose={() => (processesOpen = false)} />
 	{/if}
 </section>
-
-<style>
-	.drawer-header-actions {
-		display: flex;
-		align-items: center;
-		gap: var(--space-1);
-	}
-
-	.close-roblox-action {
-		width: var(--control-height-sm);
-		height: var(--control-height-sm);
-	}
-
-	.close-roblox-action:not(:disabled):hover,
-	.close-roblox-action[aria-expanded="true"] {
-		background: var(--color-danger-wash);
-		color: var(--color-danger);
-	}
-</style>

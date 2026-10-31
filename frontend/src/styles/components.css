@@ -6,7 +6,7 @@
 		var(--duration-instant);
 	transition-timing-function: var(--ease-in-out);
 
-	&:active:not(:disabled) {
+	&:active:where(:not(:disabled)) {
 		@apply scale-95;
 	}
 }
@@ -14,7 +14,7 @@
 @utility btn-primary {
 	@apply btn-base border-line-strong bg-raised text-fg-bright;
 
-	&:hover:not(:disabled) {
+	&:hover:where(:not(:disabled)) {
 		@apply border-line-focus bg-raised-hover;
 	}
 }
@@ -22,7 +22,7 @@
 @utility btn {
 	@apply btn-base px-2;
 
-	&:hover:not(:disabled),
+	&:hover:where(:not(:disabled)),
 	&[data-open] {
 		@apply bg-hover text-fg;
 	}
@@ -43,7 +43,7 @@
 @utility btn-danger {
 	@apply btn-base border-danger/40 bg-danger/10 text-danger-muted;
 
-	&:hover:not(:disabled) {
+	&:hover:where(:not(:disabled)) {
 		@apply bg-danger/20;
 	}
 }
@@ -51,7 +51,7 @@
 @utility btn-warning {
 	@apply btn-base border-warning/30 bg-warning/5 text-warning;
 
-	&:hover:not(:disabled) {
+	&:hover:where(:not(:disabled)) {
 		@apply border-warning;
 	}
 }
@@ -438,5 +438,33 @@
 
 	:where(&) > h2 {
 		@apply px-1 text-base font-semibold;
+	}
+}
+
+@utility check-option {
+	@apply flex cursor-pointer items-start gap-2 text-xs text-fg;
+
+	:where(&) > .checkbox {
+		@apply mt-0.5;
+	}
+
+	:where(&) > span:not(.checkbox) {
+		@apply flex flex-col gap-1;
+	}
+
+	:where(&) strong {
+		@apply text-xs font-semibold text-fg;
+	}
+
+	:where(&) small {
+		@apply text-2xs leading-normal text-fg-muted;
+	}
+
+	&:has(input:disabled) {
+		@apply cursor-not-allowed;
+	}
+
+	&:has(input:disabled) > :not(.checkbox) {
+		@apply opacity-45;
 	}
 }

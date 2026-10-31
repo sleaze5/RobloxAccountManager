@@ -75,7 +75,7 @@
 		}
 	}} />
 
-<div class="launch-arguments" bind:this={root}>
+<div class="relative" bind:this={root}>
 	<button
 		class={["btn-ghost", activeOptions.length > 0 && "text-accent-strong"]}
 		type="button"
@@ -94,15 +94,17 @@
 	</button>
 	{#if open}
 		<section
-			class="launch-arguments-menu"
+			class="absolute right-0 bottom-full z-10 mb-2 flex w-80 flex-col gap-3 rounded-xl border border-line-strong bg-overlay p-3 shadow-menu"
+			style="--menu-origin: bottom right"
 			id={panelID}
 			aria-label="Additional launch options"
 			in:menuIn
 			out:menuOut>
-			<strong>Additional launch options</strong>
+			<strong class="text-xs font-semibold text-fg"
+				>Additional launch options</strong>
 			{#if directLaunch}
-				<div class="launch-option-group">
-					<label class="launch-option">
+				<div class="flex flex-col items-start gap-2">
+					<label class="check-option">
 						<span class="checkbox">
 							<input
 								type="checkbox"
@@ -121,7 +123,7 @@
 							></span>
 					</label>
 					<button
-						class="launch-option-action"
+						class="ml-5 inline-flex items-center gap-1 text-xs font-medium text-fg transition-colors duration-100 enabled:hover:text-fg-bright"
 						type="button"
 						aria-haspopup="dialog"
 						disabled={store.launching}
@@ -135,12 +137,15 @@
 					</button>
 				</div>
 			{:else if clients?.choiceSupported}
-				<div class="launch-option-group">
-					<span class="launch-option-copy"
-						><strong>Linux client</strong><small>{clientLabel}</small
+				<div class="flex flex-col items-start gap-2">
+					<span class="flex flex-col gap-1"
+						><strong class="text-xs font-semibold text-fg"
+							>Linux client</strong
+						><small class="text-2xs leading-normal text-fg-muted"
+							>{clientLabel}</small
 						></span>
 					<button
-						class="launch-option-action"
+						class="inline-flex items-center gap-1 text-xs font-medium text-fg transition-colors duration-100 enabled:hover:text-fg-bright"
 						type="button"
 						aria-haspopup="dialog"
 						disabled={store.launching}
@@ -154,7 +159,7 @@
 					</button>
 				</div>
 			{/if}
-			<label class="launch-option">
+			<label class="check-option">
 				<span class="checkbox">
 					<input
 						type="checkbox"
@@ -169,8 +174,8 @@
 						teleport.</small
 					></span>
 			</label>
-			<div class="launch-option-group">
-				<label class="launch-option">
+			<div class="flex flex-col items-start gap-2">
+				<label class="check-option">
 					<span class="checkbox">
 						<input
 							type="checkbox"
@@ -188,7 +193,7 @@
 						></span>
 				</label>
 				<button
-					class="launch-option-action"
+					class="ml-5 inline-flex items-center gap-1 text-xs font-medium text-fg transition-colors duration-100 enabled:hover:text-fg-bright"
 					type="button"
 					aria-haspopup="dialog"
 					disabled={store.launching}

@@ -1,6 +1,5 @@
 :where(
 	.game-row,
-	.place-suggestion,
 	.modal-heading > button,
 	.modal-close,
 	.tag-manager-row button,
@@ -18,8 +17,7 @@
 	.modal-field input,
 	.modal-field textarea,
 	.modal-field select,
-	.tag-manager-create-row input,
-	.drawer-content input
+	.tag-manager-create-row input
 ) {
 	transition:
 		background-color var(--duration-fast) var(--ease-standard),

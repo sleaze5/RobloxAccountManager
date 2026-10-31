@@ -218,6 +218,7 @@
 									: "Search Roblox games by name, by place ID with id:, or by universe ID with universe:"}
 								maxlength={100}
 								bind:this={searchInput}
+								data-games-search
 								bind:value={
 									() =>
 										favoritesMode
