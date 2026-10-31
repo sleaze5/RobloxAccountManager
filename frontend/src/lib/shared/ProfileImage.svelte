@@ -14,5 +14,5 @@
 		referrerpolicy="no-referrer"
 		onerror={() => (failed = url)} />
 {:else}
-	<UserIcon class="profile-image-fallback" aria-hidden="true" />
+	<UserIcon class="size-1/2 text-fg-faint" aria-hidden="true" />
 {/if}

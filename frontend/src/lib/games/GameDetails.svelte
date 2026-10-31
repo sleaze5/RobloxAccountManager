@@ -321,7 +321,7 @@
 												>{nickname}</span
 											>{/if}
 										<button
-											class="icon-action compact game-nickname-edit"
+											class="game-nickname-edit btn-ghost-sm"
 											type="button"
 											aria-label={nickname
 												? "Edit nickname"
@@ -343,7 +343,7 @@
 							<span class="meta-separator" aria-hidden="true">-</span>
 							<span>Universe ID: {place.universeId}</span>
 							<button
-								class="icon-action game-universe-search"
+								class="game-universe-search btn-ghost"
 								type="button"
 								aria-label="Search places in this universe"
 								data-tooltip="Search places in this universe"
@@ -374,7 +374,7 @@
 				</div>
 				<div class="header-actions">
 					<button
-						class="control-button"
+						class="btn-icon"
 						type="button"
 						aria-label={store.loadingDetails
 							? "Refreshing game details"
@@ -391,7 +391,7 @@
 								aria-hidden="true" />{/if}
 					</button>
 					<button
-						class="control-button"
+						class="btn-icon"
 						type="button"
 						aria-label="Servers"
 						data-tooltip="Servers"
@@ -403,8 +403,7 @@
 						<HardDrivesIcon size={16} aria-hidden="true" />
 					</button>
 					<button
-						class:open={menuOpen}
-						class="control-button"
+						class="btn-icon"
 						type="button"
 						aria-label="More game actions"
 						aria-haspopup="menu"
@@ -423,7 +422,7 @@
 
 			{#if favorite}
 				<div class="identity-section">
-					<span class="tag-pill favorite">
+					<span class="tag-pill-favorite">
 						<StarIcon size={12} weight="fill" aria-hidden="true" />
 						<span>Favorite</span>
 					</span>

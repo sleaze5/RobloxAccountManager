@@ -44,7 +44,7 @@
 	<div class="profile-section-heading">
 		<h3 id="profile-about-heading" class="profile-section-label">About</h3>
 		<button
-			class="icon-action compact"
+			class="btn-ghost-sm"
 			type="button"
 			aria-label="Edit description"
 			data-tooltip="Edit description"
@@ -68,7 +68,7 @@
 					<dd>
 						{#each snapshot.socialLinks as link (link.name)}
 							<button
-								class="control-button text-button"
+								class="btn"
 								type="button"
 								aria-label={`Open ${link.name} (${link.url})`}
 								data-tooltip={link.url}

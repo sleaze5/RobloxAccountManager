@@ -1,0 +1,289 @@
+@utility btn-base {
+	@apply inline-flex h-7 shrink-0 items-center justify-center gap-1 rounded-md border border-line bg-transparent px-3 text-xs font-medium whitespace-nowrap text-fg-muted;
+	transition-property: color, background-color, border-color, scale;
+	transition-duration:
+		var(--duration-fast), var(--duration-fast), var(--duration-fast),
+		var(--duration-instant);
+	transition-timing-function: var(--ease-in-out);
+
+	&:active:not(:disabled) {
+		@apply scale-95;
+	}
+}
+
+@utility btn-primary {
+	@apply btn-base border-line-strong bg-raised text-fg-bright;
+
+	&:hover:not(:disabled) {
+		@apply border-line-focus bg-raised-hover;
+	}
+}
+
+@utility btn {
+	@apply btn-base px-2;
+
+	&:hover:not(:disabled),
+	&[aria-expanded="true"] {
+		@apply bg-hover text-fg;
+	}
+}
+
+@utility btn-icon {
+	@apply btn size-7 px-0;
+}
+
+@utility btn-ghost {
+	@apply btn-icon border-0;
+}
+
+@utility btn-ghost-sm {
+	@apply btn-ghost size-6;
+}
+
+@utility btn-danger {
+	@apply btn-base border-danger/40 bg-danger/10 text-danger-muted;
+
+	&:hover:not(:disabled) {
+		@apply bg-danger/20;
+	}
+}
+
+@utility btn-warning {
+	@apply btn-base border-warning/30 bg-warning/5 text-warning;
+
+	&:hover:not(:disabled) {
+		@apply border-warning;
+	}
+}
+
+@utility btn-close {
+	@apply grid size-6 shrink-0 place-items-center rounded-md text-inherit transition-colors duration-100;
+
+	&:hover {
+		@apply bg-hover-overlay;
+	}
+}
+
+@utility field {
+	@apply h-8 w-full min-w-0 rounded-md border border-line bg-canvas px-2 text-sm text-fg outline-0 transition-colors duration-100 placeholder:text-fg-faint focus:border-line-focus disabled:cursor-not-allowed disabled:opacity-45 aria-invalid:border-danger/40;
+}
+
+@utility search-field {
+	@apply flex h-8 min-w-0 flex-1 items-center gap-2 rounded-md border border-line bg-canvas px-2 text-fg-faint transition-colors duration-100 focus-within:border-line-focus;
+
+	& input {
+		@apply w-full min-w-0 bg-transparent text-xs text-fg outline-0 placeholder:text-fg-faint;
+	}
+
+	& input::-webkit-search-cancel-button {
+		@apply hidden;
+	}
+
+	& > button {
+		@apply grid size-5 shrink-0 place-items-center rounded-md text-fg-muted transition-colors duration-100 hover:bg-hover hover:text-fg;
+	}
+}
+
+@utility checkbox {
+	@apply relative grid size-3.5 shrink-0 place-items-center;
+
+	& input {
+		@apply absolute inset-0 z-10 size-3.5 cursor-pointer appearance-none outline-0 disabled:cursor-not-allowed;
+	}
+
+	& > span {
+		@apply grid size-3.5 place-items-center rounded-sm border border-line-strong bg-canvas text-on-solid transition-colors duration-100;
+	}
+
+	& svg {
+		@apply scale-95 opacity-0;
+		transition-property: opacity, scale;
+		transition-duration: var(--duration-fast);
+	}
+
+	& input:is(:checked, :indeterminate) + span {
+		@apply border-solid bg-solid;
+	}
+
+	& input:is(:checked, :indeterminate) + span svg {
+		@apply scale-100 opacity-100;
+	}
+
+	& input:focus-visible + span {
+		@apply outline-1 outline-offset-2 outline-focus;
+	}
+
+	& input:disabled + span {
+		@apply opacity-45;
+	}
+}
+
+@utility switch {
+	@apply relative inline-flex h-7 w-9 shrink-0 cursor-pointer items-center;
+
+	& input {
+		@apply pointer-events-none absolute opacity-0;
+	}
+
+	& > span {
+		@apply relative h-5 w-full rounded-full border border-line-strong bg-raised transition-colors duration-100;
+	}
+
+	& > span::after {
+		@apply absolute top-0.5 left-1 size-3.5 rounded-full bg-fg-muted;
+		content: "";
+		transition-property: translate, background-color;
+		transition-duration: var(--duration-fast);
+	}
+
+	& input:checked + span {
+		@apply bg-fg;
+	}
+
+	& input:checked + span::after {
+		@apply translate-x-3 bg-canvas;
+	}
+
+	& input:focus-visible + span {
+		@apply outline-1 outline-offset-2 outline-focus;
+	}
+
+	&:has(input:disabled) {
+		@apply cursor-not-allowed opacity-45;
+	}
+}
+
+@utility radio {
+	@apply relative inline-flex size-4 shrink-0 items-center justify-center;
+
+	& input {
+		@apply pointer-events-none absolute opacity-0;
+	}
+
+	& > span {
+		@apply relative size-4 rounded-full border border-line-strong bg-raised transition-colors duration-100;
+	}
+
+	& > span::after {
+		@apply absolute top-0.5 left-0.5 size-2.5 scale-95 rounded-full bg-canvas opacity-0;
+		content: "";
+		transition-property: opacity, scale;
+		transition-duration: var(--duration-fast);
+	}
+
+	& input:checked + span {
+		@apply border-fg bg-fg;
+	}
+
+	& input:checked + span::after {
+		@apply scale-100 opacity-100;
+	}
+
+	& input:focus-visible + span {
+		@apply outline-1 outline-offset-2 outline-focus;
+	}
+}
+
+@utility segmented {
+	@apply grid auto-cols-fr grid-flow-col gap-0.5 rounded-md border border-line bg-canvas p-0.5;
+
+	& > button {
+		@apply flex h-6 items-center justify-center gap-1 rounded-sm px-2 text-xs font-medium whitespace-nowrap text-fg-faint transition-colors duration-100 hover:text-fg aria-pressed:bg-raised aria-pressed:text-fg;
+	}
+}
+
+@utility list-row {
+	@apply transition-colors duration-100 hover:bg-hover data-open:bg-hover;
+
+	&:is([aria-selected="true"], [data-selected]) {
+		@apply bg-active shadow-selected hover:bg-hover;
+	}
+}
+
+@utility menu {
+	@apply w-48 rounded-xl border border-line-strong bg-overlay p-1.5 shadow-menu;
+}
+
+@utility menu-item {
+	@apply flex h-7 w-full items-center gap-2 rounded-md px-2 text-xs font-medium text-fg-muted transition-colors duration-100 hover:bg-hover hover:text-fg disabled:bg-transparent aria-pressed:bg-active aria-pressed:text-fg;
+
+	& > span {
+		@apply min-w-0 truncate;
+	}
+
+	& > svg {
+		@apply shrink-0;
+	}
+}
+
+@utility menu-heading {
+	@apply mx-1 mt-2 mb-1 flex items-center gap-2 text-2xs font-semibold text-fg-faint;
+}
+
+@utility menu-separator {
+	@apply mx-1 my-1 h-px bg-line-subtle;
+}
+
+@utility dialog-backdrop {
+	@apply fixed inset-x-0 top-9 bottom-0 z-40 grid place-items-center bg-scrim p-4;
+}
+
+@utility dialog-card {
+	@apply max-h-full w-full max-w-sm overflow-x-hidden overflow-y-auto rounded-xl border border-line bg-surface p-4 shadow-float;
+}
+
+@utility notice {
+	@apply mt-3 rounded-md border p-2 text-left text-xs;
+}
+
+@utility notice-note {
+	@apply notice border-line bg-fill text-fg-muted;
+}
+
+@utility notice-warning {
+	@apply notice border-warning/30 bg-warning/5 text-warning;
+}
+
+@utility notice-error {
+	@apply notice border-danger/40 bg-danger/5 text-danger-muted;
+}
+
+@utility empty-state {
+	@apply flex min-w-0 flex-col items-center justify-center gap-2 p-4 text-center text-fg-muted;
+
+	& h2 {
+		@apply text-sm font-semibold text-fg;
+	}
+
+	& p {
+		@apply max-w-sm text-xs;
+	}
+}
+
+@utility tag-pill {
+	@apply inline-flex h-6 max-w-56 items-center gap-1 rounded-sm border border-line-subtle bg-fill px-2 text-xs font-medium whitespace-nowrap text-fg-muted;
+
+	& > span {
+		@apply min-w-0 truncate;
+	}
+
+	& > svg {
+		@apply shrink-0 text-fg-faint;
+	}
+}
+
+@utility tag-pill-favorite {
+	@apply tag-pill border-line-strong bg-raised text-accent-strong;
+
+	& > svg {
+		@apply text-accent-strong;
+	}
+}
+
+@utility text-block {
+	@apply max-w-2xl rounded-lg border border-line bg-fill px-3 py-2 font-mono text-xs leading-5 wrap-anywhere whitespace-pre-wrap text-fg select-text;
+}
+
+@utility spinner {
+	@apply animate-spin motion-reduce:rotate-45 motion-reduce:animate-none;
+}

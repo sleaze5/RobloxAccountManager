@@ -79,7 +79,7 @@
 	onresize={() => close()} />
 
 <button
-	class="icon-action compact profile-fact-action"
+	class="profile-fact-action btn-ghost-sm"
 	type="button"
 	bind:this={trigger}
 	aria-label="Password options"

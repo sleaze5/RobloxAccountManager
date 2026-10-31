@@ -155,16 +155,6 @@
 	padding: 0;
 }
 
-.spinner {
-	animation: spin 700ms linear infinite;
-}
-
-@keyframes spin {
-	to {
-		transform: rotate(360deg);
-	}
-}
-
 .segmented-control {
 	display: grid;
 	grid-auto-columns: minmax(0, 1fr);
@@ -204,29 +194,6 @@
 	color: var(--color-text-faint);
 	font-family: var(--font-mono);
 	font-size: var(--text-10);
-}
-
-.empty-state {
-	display: flex;
-	min-width: 0;
-	align-items: center;
-	justify-content: center;
-	flex-direction: column;
-	gap: var(--space-2);
-	padding: var(--space-4);
-	color: var(--color-text-muted);
-	text-align: center;
-}
-
-.empty-state h2 {
-	color: var(--color-text);
-	font-size: var(--text-13);
-	font-weight: var(--font-semibold);
-}
-
-.empty-state p {
-	max-width: 360px;
-	font-size: var(--text-12);
 }
 
 .workbench {

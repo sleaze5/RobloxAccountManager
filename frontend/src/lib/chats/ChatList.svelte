@@ -79,7 +79,7 @@
 			{#if chat.loadMoreFailed}
 				<button
 					type="button"
-					class="control-button text-button chat-load-more"
+					class="chat-load-more btn"
 					onclick={() => void chat.loadMore()}>
 					Load more chats
 				</button>

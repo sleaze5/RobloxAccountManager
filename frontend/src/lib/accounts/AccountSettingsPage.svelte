@@ -805,7 +805,6 @@
 					placeholder="Search settings" />
 				{#if workspace.accountSettingsQuery}
 					<button
-						class="search-clear"
 						type="button"
 						aria-label="Clear settings search"
 						onclick={() => {
@@ -900,7 +899,7 @@
 					{:else}
 						<div class="settings-subpage-heading">
 							<button
-								class="icon-action settings-subpage-back"
+								class="settings-subpage-back btn-ghost"
 								type="button"
 								aria-label={`Back to ${privacyLabel}`}
 								data-tooltip={`Back to ${privacyLabel}`}

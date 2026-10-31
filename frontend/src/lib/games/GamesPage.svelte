@@ -223,7 +223,6 @@
 										else store.query = value
 									}
 								} />{#if favoritesMode ? store.favoritesQuery : store.query}<button
-									class="search-clear"
 									type="button"
 									aria-label={favoritesMode
 										? "Clear favorites filter"
@@ -337,7 +336,7 @@
 										>{creatorByline(
 											place,
 										)}{#if place.creatorVerified}<SealCheckIcon
-												class="creator-verified"
+												class="relative top-0.5 ml-1 inline-block"
 												size={14}
 												aria-label="Verified creator" />{/if}</span>
 								</span>
@@ -349,7 +348,7 @@
 								use:loadMoreWhenVisible={store.nextPageToken}>
 								{#if store.loadMoreFailed}
 									<button
-										class="control-button text-button"
+										class="btn"
 										type="button"
 										onclick={() => void store.search(true)}
 										>Load more results</button>
@@ -361,13 +360,13 @@
 								{/if}
 							</div>
 						{/if}
-						<span class="visually-hidden" aria-live="polite"
+						<span class="sr-only" aria-live="polite"
 							>{moveAnnouncement}</span>
 					</div>
 					{#if hasSearch}
 						<div class="account-selection-actions">
 							<button
-								class="control-button"
+								class="btn-icon"
 								type="button"
 								in:menuIn
 								out:menuOut
@@ -415,7 +414,7 @@
 							aria-hidden="true" />
 						<h2>Favorites are unavailable</h2>
 						<button
-							class="control-button text-button"
+							class="btn"
 							type="button"
 							onclick={() => void store.loadFavorites()}
 							>Try again</button>

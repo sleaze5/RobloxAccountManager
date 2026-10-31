@@ -194,7 +194,7 @@
 						}} />
 				</label>
 				<button
-					class="icon-action"
+					class="btn-ghost"
 					type="button"
 					aria-label={visible ? "Hide password" : "Show password"}
 					data-tooltip={visible ? "Hide password" : "Show password"}
@@ -243,12 +243,12 @@
 
 			<div class="modal-actions">
 				<button
-					class="control-button text-button"
+					class="btn"
 					type="button"
 					disabled={pending !== null}
 					onclick={close}>Cancel</button>
 				<button
-					class="primary-action"
+					class="btn-primary"
 					type="submit"
 					disabled={busy || !password || password === saved}>
 					{pending === "save" ? "Saving…" : "Save"}

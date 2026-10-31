@@ -291,20 +291,14 @@
 					onToggleAll={toggleAllAccounts} />
 			{/if}
 			<div class="modal-actions">
-				<button
-					class="control-button text-button"
-					type="button"
-					disabled={store.busy}
-					onclick={close}>Cancel</button>
+				<button class="btn" type="button" disabled={store.busy} onclick={close}
+					>Cancel</button>
 				{#if preview?.batchId && preview.readyCount > 0}
-					<button
-						class="control-button text-button"
-						type="submit"
-						disabled={store.busy}>
+					<button class="btn" type="submit" disabled={store.busy}>
 						{operation === "validate" ? "Validating…" : "Validate"}
 					</button>
 					<button
-						class="primary-action"
+						class="btn-primary"
 						type="button"
 						disabled={store.busy || selectedCount === 0}
 						onclick={() => void addValidated()}>
@@ -312,7 +306,7 @@
 					</button>
 				{:else}
 					<button
-						class="primary-action"
+						class="btn-primary"
 						type="submit"
 						disabled={store.busy || !cookieInput.trim()}>
 						{operation === "validate" ? "Validating…" : "Validate"}

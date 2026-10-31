@@ -70,25 +70,25 @@
 			</div>
 			<div class="settings-row-actions">
 				{#if update.status === UpdateStatus.StatusAvailable}<button
-						class="control-button text-button"
+						class="btn"
 						type="button"
 						onclick={() => void updateStore.install()}
 						><DownloadSimpleIcon size={16} aria-hidden="true" />Download
 						update</button
 					>{:else if update.status === UpdateStatus.StatusDownloading}<button
-						class="control-button text-button"
+						class="btn"
 						type="button"
 						onclick={() => void updateStore.cancelDownload()}
 						>Cancel download</button
 					>{:else if update.status === UpdateStatus.StatusReady}<button
-						class="control-button text-button"
+						class="btn"
 						type="button"
 						onclick={() => void updateStore.restart()}
 						><ArrowCounterClockwiseIcon
 							size={16}
 							aria-hidden="true" />Restart to update</button
 					>{:else if update.status === UpdateStatus.StatusRestarting}<button
-						class="control-button text-button"
+						class="btn"
 						type="button"
 						disabled
 						><CircleNotchIcon
@@ -96,7 +96,7 @@
 							size={16}
 							aria-hidden="true" />Restarting</button
 					>{:else if update.status === UpdateStatus.StatusChecking}<button
-						class="control-button text-button"
+						class="btn"
 						type="button"
 						disabled
 						><CircleNotchIcon
@@ -104,7 +104,7 @@
 							size={16}
 							aria-hidden="true" />Checking</button
 					>{:else}<button
-						class="control-button text-button"
+						class="btn"
 						type="button"
 						onclick={() => void updateStore.check()}
 						><ArrowsClockwiseIcon size={16} aria-hidden="true" />Check for

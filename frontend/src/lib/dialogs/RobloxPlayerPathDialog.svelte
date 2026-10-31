@@ -199,7 +199,7 @@
 				</div>
 				<div class="player-path-actions">
 					<button
-						class="icon-action"
+						class="btn-ghost"
 						type="button"
 						aria-label="Reload Roblox versions"
 						data-tooltip="Reload Roblox versions"
@@ -212,7 +212,7 @@
 						{:else}<ArrowsClockwiseIcon size={16} aria-hidden="true" />{/if}
 					</button>
 					<button
-						class="icon-action compact"
+						class="btn-ghost-sm"
 						type="button"
 						aria-label="Close Roblox Player location dialog"
 						onclick={onClose}>
@@ -308,7 +308,7 @@
 						Validate
 					</button>
 					<button
-						class="icon-action"
+						class="btn-ghost"
 						type="button"
 						aria-label="Clear custom path"
 						data-tooltip="Clear custom path"
@@ -344,12 +344,9 @@
 				<div class="modal-error" role="alert">{error}</div>
 			{/if}
 			<div class="modal-actions">
-				<button
-					class="control-button text-button"
-					type="button"
-					disabled={busy}
-					onclick={onClose}>Cancel</button>
-				<button class="primary-action" type="submit" disabled={busy || !parses}>
+				<button class="btn" type="button" disabled={busy} onclick={onClose}
+					>Cancel</button>
+				<button class="btn-primary" type="submit" disabled={busy || !parses}>
 					Save
 				</button>
 			</div>

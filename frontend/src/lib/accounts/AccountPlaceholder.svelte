@@ -45,7 +45,7 @@
 		<p>Launch starts every selected account.</p>
 		<div class="account-placeholder-actions">
 			<button
-				class="control-button text-button"
+				class="btn"
 				type="button"
 				aria-expanded={workspace.accountContextMenu !== null}
 				onclick={(event) =>
@@ -55,10 +55,7 @@
 					)}>
 				<DotsThreeIcon size={16} aria-hidden="true" />Edit tags or copy
 			</button>
-			<button
-				class="control-button text-button"
-				type="button"
-				onclick={() => store.clearSelection()}>
+			<button class="btn" type="button" onclick={() => store.clearSelection()}>
 				Clear selection
 			</button>
 		</div>
@@ -72,7 +69,7 @@
 			<div class="add-account-host" data-account-menu>
 				<button
 					bind:this={trigger}
-					class="primary-action"
+					class="btn-primary"
 					type="button"
 					aria-expanded={menuOpen}
 					disabled={store.busy}

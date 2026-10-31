@@ -237,10 +237,6 @@
 	border-color: var(--color-danger-border);
 }
 
-.tag-manager-create-row .primary-action {
-	flex: 0 0 auto;
-}
-
 .tag-manager-heading {
 	display: flex;
 	align-items: center;
@@ -683,12 +679,6 @@
 .cookie-result-error {
 	min-width: 0;
 	overflow-wrap: anywhere;
-}
-
-.vault-card > form > .primary-action {
-	width: 100%;
-	min-height: var(--control-height-lg);
-	margin-top: var(--space-3);
 }
 
 .vault-card > form > .vault-danger {

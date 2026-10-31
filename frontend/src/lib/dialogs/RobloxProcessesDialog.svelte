@@ -124,7 +124,7 @@
 			<h2 id="roblox-process-title">Close Roblox processes</h2>
 			<div class="process-heading-actions">
 				<button
-					class="icon-action compact"
+					class="btn-ghost-sm"
 					type="button"
 					aria-label="Refresh process list"
 					data-tooltip="Refresh process list"
@@ -137,7 +137,7 @@
 					{:else}<ArrowsClockwiseIcon size={14} aria-hidden="true" />{/if}
 				</button>
 				<button
-					class="icon-action compact"
+					class="btn-ghost-sm"
 					type="button"
 					aria-label="Cancel"
 					disabled={killing}
@@ -220,13 +220,13 @@
 			</div>{/if}
 		<div class="modal-actions">
 			<button
-				class="control-button text-button"
+				class="btn"
 				bind:this={cancelButton}
 				type="button"
 				disabled={killing}
 				onclick={dismiss}>Cancel</button>
 			<button
-				class="danger-button"
+				class="btn-danger"
 				type="button"
 				disabled={loading ||
 					killing ||

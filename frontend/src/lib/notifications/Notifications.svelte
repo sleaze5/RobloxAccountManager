@@ -71,8 +71,8 @@
 						{#each notification.actions as action, index}
 							<button
 								class={action.emphasis
-									? "primary-action compact"
-									: "control-button text-button compact"}
+									? "btn-primary h-6 px-2"
+									: "btn h-6"}
 								type="button"
 								disabled={runningAction !== ""}
 								onclick={() =>

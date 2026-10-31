@@ -77,8 +77,7 @@
 
 <div class="launch-arguments" bind:this={root}>
 	<button
-		class="icon-action"
-		class:active={activeOptions.length > 0}
+		class={["btn-ghost", activeOptions.length > 0 && "text-accent-strong"]}
 		type="button"
 		bind:this={trigger}
 		aria-label={triggerLabel}

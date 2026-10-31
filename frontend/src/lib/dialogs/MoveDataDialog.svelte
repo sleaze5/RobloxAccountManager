@@ -71,13 +71,10 @@
 		</ul>
 		{#if error}<div class="modal-error" role="alert">{error}</div>{/if}
 		<div class="modal-actions">
-			<button
-				class="control-button text-button"
-				type="button"
-				disabled={busy}
-				onclick={onClose}>Cancel</button
+			<button class="btn" type="button" disabled={busy} onclick={onClose}
+				>Cancel</button
 			><button
-				class="primary-action"
+				class="btn-primary"
 				type="button"
 				disabled={busy}
 				onclick={() => void move()}

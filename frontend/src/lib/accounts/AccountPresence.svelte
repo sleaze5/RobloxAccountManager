@@ -77,7 +77,7 @@
 <div class="profile-presence">
 	<button
 		type="button"
-		class="hover-value profile-presence-copy"
+		class="profile-presence-copy cursor-help rounded-md tabular-nums focus-visible:outline-offset-2"
 		aria-label={tooltip}
 		data-tooltip={tooltip}>
 		<span class={`profile-presence-label ${presenceClass(presence)}`}
@@ -97,7 +97,7 @@
 	</button>
 	{#if joinable}
 		<button
-			class="icon-action compact profile-presence-join"
+			class="profile-presence-join btn-ghost-sm"
 			type="button"
 			aria-label="Fill launch options"
 			data-tooltip="Fill launch options with this place and server"
@@ -107,7 +107,7 @@
 	{/if}
 	{#if inExperience && joinPlaceId > 0}
 		<button
-			class="icon-action compact profile-presence-search"
+			class="profile-presence-search btn-ghost-sm"
 			type="button"
 			aria-label="Find this place in Games"
 			data-tooltip="Find this place in Games"

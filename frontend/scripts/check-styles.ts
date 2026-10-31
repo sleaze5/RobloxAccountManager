@@ -199,6 +199,9 @@ const arbitraryVariantRoots = new Set([
 	"peer-aria",
 ])
 
+const themeNamespace =
+	/^var\(--(color|font|text|tracking|leading|spacing|radius|shadow|inset-shadow|drop-shadow|blur|ease|animate|container|breakpoint|perspective|aspect|default)\b/
+
 function isStep(value: string): boolean {
 	const number = Number(value)
 	return Number.isInteger(number) && number >= 0 && number <= 100 && number % 5 === 0
@@ -241,6 +244,15 @@ function valueProblem(root: string, value: string): string | null {
 	return steps && !steps.has(value) ? `Use one of ${[...steps].join(", ")}.` : null
 }
 
+function runtimeProblem(value: string): string | null {
+	if (!/^var\(--[a-z][a-z0-9-]*\)$/.test(value)) {
+		return "Read only a runtime variable, such as w-(--sidebar-width)."
+	}
+	return themeNamespace.test(value)
+		? "Use the theme utility instead of reading a theme variable."
+		: null
+}
+
 function utilityProblem(candidate: Candidate, text: string): string | null {
 	const banned = bannedUtilities.get(
 		text.split(":").at(-1)?.replaceAll("!", "") ?? "",
@@ -248,6 +260,9 @@ function utilityProblem(candidate: Candidate, text: string): string | null {
 	if (banned) return banned
 	if (candidate.kind === "arbitrary") return "Arbitrary properties are not allowed."
 	if (candidate.kind !== "functional" || !candidate.value) return null
+	if (candidate.value.kind === "arbitrary" && text.includes("-(--")) {
+		return runtimeProblem(candidate.value.value)
+	}
 	if (
 		candidate.value.kind === "arbitrary" ||
 		candidate.modifier?.kind === "arbitrary"

@@ -180,7 +180,7 @@
 							autocomplete="current-password" />
 					</label>
 					<button
-						class="primary-action"
+						class="mt-3 btn-primary h-8 w-full"
 						type="button"
 						disabled={!password || store.busy}
 						onclick={() => void restore()}>
@@ -196,7 +196,7 @@
 					<input bind:value={resetConfirmation} autocomplete="off" />
 				</label>
 				<button
-					class="danger-button vault-danger"
+					class="vault-danger btn-danger"
 					type="button"
 					disabled={resetConfirmation !== "RESET" || store.busy}
 					onclick={() => void reset()}>
@@ -289,7 +289,7 @@
 					</button>
 				</div>
 				<button
-					class="primary-action"
+					class="mt-3 btn-primary h-8 w-full"
 					type="submit"
 					disabled={creating || incomplete
 						? !canCreate

@@ -133,7 +133,6 @@
 					placeholder="Search settings" />
 				{#if query}
 					<button
-						class="search-clear"
 						type="button"
 						aria-label="Clear settings search"
 						onclick={() => (query = "")}>

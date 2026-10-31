@@ -225,13 +225,13 @@
 		<div class="browser-session-toolbar">
 			<button
 				type="button"
-				class="control-button text-button"
+				class="btn"
 				disabled={browser.loading}
 				onclick={() => void browser.startLogin()}
 				><ArrowSquareOutIcon size={16} aria-hidden="true" />Open another browser</button>
 			{#if activeLoginSessions.length > 0}<button
 					type="button"
-					class="control-button text-button"
+					class="btn"
 					onclick={() => void browser.closeAllLogin()}
 					><XIcon size={16} aria-hidden="true" />Close all browsers</button
 				>{/if}
@@ -261,7 +261,7 @@
 							></span>
 						<div>
 							<button
-								class="control-button text-button"
+								class="btn"
 								type="button"
 								aria-label="Focus browser"
 								disabled={session.lifecycle ===
@@ -272,7 +272,7 @@
 									aria-hidden="true" />Focus</button
 							><button
 								type="button"
-								class="control-button text-button"
+								class="btn"
 								aria-label="Close browser"
 								disabled={session.lifecycle ===
 									Lifecycle.LifecycleClosing ||
@@ -309,18 +309,16 @@
 		{/if}
 		<div class="modal-actions">
 			{#if candidates.length > 0 && activeLoginSessions.length === 0}<button
-					class="control-button text-button"
+					class="btn"
 					type="button"
 					onclick={() => void browser.discard()}>Discard</button
 				>{/if}
-			{#if canClose}<button
-					class="control-button text-button"
-					type="button"
-					onclick={closeDialog}>Close</button
+			{#if canClose}<button class="btn" type="button" onclick={closeDialog}
+					>Close</button
 				>{/if}
 			{#if candidates.length > 0}<button
 					type="button"
-					class="primary-action"
+					class="btn-primary"
 					disabled={!canCommit || selected.length === 0 || browser.loading}
 					onclick={() => void save()}
 					>{browser.loading ? "Saving…" : "Save selected"}</button

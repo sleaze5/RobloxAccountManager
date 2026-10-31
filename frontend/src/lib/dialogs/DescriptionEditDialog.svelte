@@ -168,14 +168,11 @@
 						This removes the description from @{account.username}'s profile.
 					</div>
 				{:else if clean}
-					<span class="visually-hidden"
-						>Roblox's filter won't tag this text.</span>
+					<span class="sr-only">Roblox's filter won't tag this text.</span>
 				{:else if result?.filter?.moderation === TextModeration.TextModerationPartial}
-					<span class="visually-hidden"
-						>Roblox will tag part of this text.</span>
+					<span class="sr-only">Roblox will tag part of this text.</span>
 				{:else if result?.filter?.moderation === TextModeration.TextModerationFull}
-					<span class="visually-hidden"
-						>Roblox will tag all of this text.</span>
+					<span class="sr-only">Roblox will tag all of this text.</span>
 				{/if}
 			</div>
 
@@ -185,12 +182,12 @@
 
 			<div class="modal-actions">
 				<button
-					class="control-button text-button"
+					class="btn"
 					type="button"
 					disabled={pending !== null}
 					onclick={close}>Cancel</button>
 				<button
-					class="control-button text-button"
+					class="btn"
 					type="button"
 					aria-busy={pending === "validate"}
 					disabled={pending !== null ||
@@ -210,7 +207,7 @@
 					{/if}
 				</button>
 				<button
-					class={tagged ? "warning-button" : "primary-action"}
+					class={tagged ? "btn-warning" : "btn-primary"}
 					type="submit"
 					aria-busy={pending === "submit" || pending === "save"}
 					disabled={!changed || pending !== null}>

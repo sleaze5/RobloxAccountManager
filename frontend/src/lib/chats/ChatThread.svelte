@@ -145,7 +145,7 @@
 		{#if chat.messagesCursor && !chat.messagesLoading}
 			<button
 				type="button"
-				class="control-button text-button chat-load-more"
+				class="chat-load-more btn"
 				disabled={chat.olderLoading}
 				aria-busy={chat.olderLoading}
 				onclick={() => void loadOlder()}>
@@ -235,7 +235,7 @@
 			onkeydown={handleKeydown}></textarea>
 		<button
 			type="button"
-			class="icon-action"
+			class="btn-ghost size-8"
 			aria-label="Mark as read"
 			data-tooltip="Mark as read"
 			aria-busy={chat.markingRead}
@@ -249,7 +249,7 @@
 		</button>
 		<button
 			type="submit"
-			class="icon-action"
+			class="btn-ghost size-8"
 			aria-label="Send message"
 			data-tooltip="Send message"
 			disabled={!draft.trim()}>

@@ -164,12 +164,12 @@
 			</div>
 			<div class="modal-actions">
 				<button
-					class="control-button text-button"
+					class="btn"
 					type="button"
 					disabled={store.busy}
 					onclick={onClose}>Cancel</button>
 				<button
-					class="primary-action"
+					class="btn-primary"
 					type="submit"
 					disabled={!passwordValid(newPassword) ||
 						newPassword !== confirmation ||

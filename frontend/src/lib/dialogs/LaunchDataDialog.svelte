@@ -102,14 +102,14 @@
 				</span>
 				<div class="modal-actions">
 					<button
-						class="control-button text-button"
+						class="btn"
 						type="button"
 						disabled={draft.length === 0 || store.launching}
 						onclick={handleClear}>
 						Clear
 					</button>
 					<button
-						class="primary-action"
+						class="btn-primary"
 						type="submit"
 						disabled={store.launching}>
 						Save

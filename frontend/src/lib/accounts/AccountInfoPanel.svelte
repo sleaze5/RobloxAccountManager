@@ -119,7 +119,7 @@
 
 {#snippet edit(kind: AccountEditKind, label: string)}
 	<button
-		class="icon-action compact profile-fact-action"
+		class="profile-fact-action btn-ghost-sm"
 		type="button"
 		aria-label={label}
 		data-tooltip={label}
@@ -211,7 +211,7 @@
 								<span>{pinLabels[snapshot.pin]}</span>
 								{#if snapshot.pin === PinState.PinLocked}
 									<button
-										class="control-button text-button compact profile-fact-action"
+										class="profile-fact-action btn h-6"
 										type="button"
 										onclick={() => onEdit("pin")}>Unlock</button>
 								{/if}
@@ -276,7 +276,7 @@
 								<span class="account-info-missing">Unavailable</span>
 							{:else}
 								<button
-									class="hover-value"
+									class="cursor-help rounded-md tabular-nums focus-visible:outline-offset-2"
 									type="button"
 									aria-label={`${snapshot.firstAccount ? "Yes" : "No"}. ${firstAccountHint}`}
 									data-tooltip={firstAccountHint}

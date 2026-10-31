@@ -11,7 +11,7 @@
 </script>
 
 <button
-	class="hover-value"
+	class="cursor-help rounded-md tabular-nums focus-visible:outline-offset-2"
 	type="button"
 	aria-label={tooltip}
 	data-tooltip={tooltip}

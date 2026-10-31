@@ -106,21 +106,15 @@
 		{/if}
 		<div class="modal-actions">
 			{#if phase === "confirm"}
+				<button class="btn" type="button" onclick={onClose}>Cancel</button>
 				<button
-					class="control-button text-button"
-					type="button"
-					onclick={onClose}>Cancel</button>
-				<button
-					class="warning-button"
+					class="btn-warning"
 					type="button"
 					disabled={store.busy}
 					onclick={() => void renew()}>Renew cookie</button>
 			{:else}
-				<button
-					class="control-button text-button"
-					type="button"
-					disabled={pending}
-					onclick={onClose}>{pending ? "Renewing…" : "Close"}</button>
+				<button class="btn" type="button" disabled={pending} onclick={onClose}
+					>{pending ? "Renewing…" : "Close"}</button>
 			{/if}
 		</div>
 	</div>

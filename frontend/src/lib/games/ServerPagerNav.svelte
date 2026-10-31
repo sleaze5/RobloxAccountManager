@@ -19,7 +19,7 @@
 
 <nav class="game-servers-pager" aria-label="Server pages">
 	<button
-		class="control-button"
+		class="btn-icon"
 		type="button"
 		aria-label="First page"
 		data-tooltip="First page"
@@ -28,7 +28,7 @@
 		<CaretDoubleLeftIcon size={16} aria-hidden="true" />
 	</button>
 	<button
-		class="control-button text-button"
+		class="btn"
 		type="button"
 		disabled={pager.loading || pager.pageNumber < 2}
 		onclick={() => pager.previous()}>
@@ -37,7 +37,7 @@
 	<span class="game-servers-page-number" aria-current="page"
 		>Page {pager.pageNumber}</span>
 	<button
-		class="control-button text-button"
+		class="btn"
 		type="button"
 		disabled={pager.loading || !pager.hasNext}
 		onclick={() => pager.next()}>

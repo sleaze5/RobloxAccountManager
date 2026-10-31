@@ -70,7 +70,7 @@
 <div bind:this={root}>
 	<!-- Copy launch options is a developer feature. It is intentionally reachable only from this context menu, with no visible control. -->
 	<button
-		class="primary-action launch-control"
+		class="launch-control btn-primary"
 		type="submit"
 		bind:this={trigger}
 		{disabled}

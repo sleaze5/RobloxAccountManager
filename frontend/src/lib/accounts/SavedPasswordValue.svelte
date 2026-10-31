@@ -46,7 +46,7 @@
 
 <span>{password || "••••••••••"}</span>
 <button
-	class="icon-action compact profile-fact-action"
+	class="profile-fact-action btn-ghost-sm"
 	type="button"
 	aria-label={password ? "Hide password" : "Show password"}
 	data-tooltip={password ? "Hide password" : "Show password"}

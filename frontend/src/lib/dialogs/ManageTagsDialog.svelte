@@ -121,7 +121,7 @@
 					aria-invalid={invalid}
 					aria-describedby={invalid ? "managed-tag-validation" : undefined} />
 				<button
-					class="primary-action"
+					class="btn-primary"
 					type="submit"
 					disabled={store.busy || !isValidTagName(nameInput.value)}>
 					{creating ? "Creating…" : "Create tag"}
@@ -159,11 +159,8 @@
 			{/each}
 		</div>
 		<div class="modal-actions">
-			<button
-				class="control-button text-button"
-				type="button"
-				disabled={store.busy}
-				onclick={close}>Done</button>
+			<button class="btn" type="button" disabled={store.busy} onclick={close}
+				>Done</button>
 		</div>
 	</div>
 </div>

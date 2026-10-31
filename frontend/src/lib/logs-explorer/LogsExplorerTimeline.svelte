@@ -75,7 +75,7 @@
 						</span>
 					{/if}
 					<button
-						class="logs-explorer-visit-actions icon-action compact"
+						class="logs-explorer-visit-actions btn-ghost-sm"
 						type="button"
 						aria-label="Event actions"
 						aria-haspopup="menu"

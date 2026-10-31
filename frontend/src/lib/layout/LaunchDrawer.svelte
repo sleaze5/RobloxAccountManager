@@ -104,7 +104,7 @@
 		</span>
 		<div class="drawer-header-actions">
 			<button
-				class="icon-action close-roblox-action"
+				class="close-roblox-action btn-ghost"
 				type="button"
 				aria-label="Close Roblox processes"
 				aria-haspopup="dialog"
@@ -119,7 +119,7 @@
 				<ProhibitIcon size={16} aria-hidden="true" />
 			</button>
 			<button
-				class="icon-action compact drawer-toggle"
+				class="drawer-toggle btn-ghost-sm"
 				type="button"
 				aria-label={workspace.launchOpen
 					? "Collapse the launch panel"
@@ -228,7 +228,7 @@
 						{/each}
 					</div>
 					<button
-						class="icon-action"
+						class="btn-ghost"
 						type="button"
 						aria-label="Clear join fields"
 						data-tooltip="Clear join fields and reset to Place ID"

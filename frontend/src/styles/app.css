@@ -4,6 +4,7 @@
 @source "../";
 @import "./theme.css";
 @import "./base.css";
+@import "./components.css";
 
 @import "./legacy/tokens.css" layer(legacy);
 @import "./legacy/base.css" layer(legacy);

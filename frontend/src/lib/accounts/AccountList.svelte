@@ -230,5 +230,5 @@
 	{#if store.loadingMore}
 		<div class="empty-list"><span>Loading more accounts…</span></div>
 	{/if}
-	<span class="visually-hidden" aria-live="polite">{moveAnnouncement}</span>
+	<span class="sr-only" aria-live="polite">{moveAnnouncement}</span>
 </div>

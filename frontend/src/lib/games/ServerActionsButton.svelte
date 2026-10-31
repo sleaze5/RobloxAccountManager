@@ -13,7 +13,7 @@
 </script>
 
 <button
-	class="game-server-actions icon-action"
+	class="game-server-actions btn-ghost"
 	type="button"
 	aria-label="Server actions"
 	aria-haspopup="menu"

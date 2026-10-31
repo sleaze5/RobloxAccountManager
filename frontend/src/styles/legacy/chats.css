@@ -12,10 +12,6 @@
 	animation: content-enter var(--duration-ui) var(--ease-sharp);
 }
 
-.chat-new .primary-action {
-	min-height: var(--control-height-lg);
-}
-
 .chat-new-error {
 	grid-column: 1 / -1;
 	color: var(--color-danger-muted);
@@ -327,9 +323,4 @@
 .chat-bar textarea:focus-visible {
 	outline: none;
 	border-color: var(--color-border-strong);
-}
-
-.chat-bar .icon-action {
-	width: var(--control-height-lg);
-	height: var(--control-height-lg);
 }

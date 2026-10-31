@@ -183,15 +183,19 @@
 
 {#if visible && text}
 	<div
-		class="app-tooltip"
-		class:app-tooltip-multiline={text.includes("\n")}
+		class={[
+			"pointer-events-none fixed top-0 left-0 rounded-md border border-line bg-raised px-2 py-1 text-2xs font-medium text-fg shadow-float",
+			text.includes("\n")
+				? "leading-snug whitespace-pre-line"
+				: "leading-none whitespace-nowrap",
+		]}
 		role="tooltip"
 		bind:this={tip}
 		use:liftToTopLayer
 		style="top: 0; left: 0; transform: translate({left}px, {top}px);">
-		<span class="app-tooltip-inner" in:tooltipIn out:tooltipOut
+		<span class="block" in:tooltipIn out:tooltipOut
 			>{#if strongAt < 0}{text}{:else}{text.slice(0, strongAt)}<strong
-					>{strong}</strong
+					class="font-semibold">{strong}</strong
 				>{text.slice(strongAt + strong.length)}{/if}</span>
 	</div>
 {/if}

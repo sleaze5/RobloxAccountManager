@@ -161,7 +161,7 @@
 		{#if !snapshot}
 			<div class="settings-form-actions">
 				<button
-					class="control-button text-button"
+					class="btn"
 					type="button"
 					disabled={loading}
 					onclick={() => void load()}>Retry</button>
@@ -199,7 +199,7 @@
 	<div class="settings-inline-error" role="alert">{clientsError}</div>
 	<div class="settings-form-actions">
 		<button
-			class="control-button text-button"
+			class="btn"
 			type="button"
 			disabled={clientsLoading}
 			onclick={() => void loadClients()}>Retry</button>

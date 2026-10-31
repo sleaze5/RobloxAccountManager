@@ -125,7 +125,7 @@
 					</div>
 					<button
 						type="submit"
-						class="primary-action"
+						class="btn-primary h-8"
 						aria-busy={chat.creating}
 						disabled={chat.creating || !username.trim()}>
 						{#if chat.creating}

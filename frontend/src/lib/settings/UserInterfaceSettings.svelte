@@ -300,7 +300,7 @@
 			{#if showTimestampActions}
 				<div class="settings-form-actions">
 					<button
-						class="control-button text-button"
+						class="btn"
 						type="button"
 						disabled={store.busyTimestampFormats ||
 							(timestampFormat === defaultTimestampFormats.shown &&
@@ -310,7 +310,7 @@
 						Restore defaults
 					</button>
 					<button
-						class="primary-action"
+						class="btn-primary"
 						type="submit"
 						disabled={!store.initialized ||
 							store.busyTimestampFormats ||

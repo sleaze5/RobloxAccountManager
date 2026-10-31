@@ -657,10 +657,6 @@
 	margin-left: auto;
 }
 
-.game-servers-pager .text-button {
-	gap: var(--space-1);
-}
-
 .game-servers-page-number {
 	min-width: 7ch;
 	color: var(--color-text-muted);

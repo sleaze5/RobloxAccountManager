@@ -26,7 +26,7 @@ During the migration to Tailwind, `frontend/src/styles/legacy/` holds the styles
 - Style an element with utility classes in its `class` attribute. Write each class name in full, never built from parts, so that Tailwind can find it.
 - Toggle classes with Svelte's array and object form, such as `class={["list-row", selected && "selected"]}`.
 - Do not write `<style>` blocks in components. Do not write arbitrary values (`p-[13px]`), arbitrary properties (`[mask:none]`), or arbitrary variants (`[&>svg]:size-4`). Arbitrary values are allowed only inside `data-[…]` and `aria-[…]` variants.
-- Pass only runtime values through inline styles, as a CSS variable or with `style:`, such as a sidebar width that the user drags. Do not write literal sizes, colors, or durations in `style`.
+- Pass only runtime values through inline styles, such as a sidebar width that the user drags. Set them with `style:` or as a CSS variable, and read a variable with Tailwind's parenthesized form, such as `w-(--sidebar-width)`. Do not read theme variables this way, and do not write literal sizes, colors, or durations in `style`.
 - Put a repeated group of utilities that defines a role into a Svelte component when it has structure, or into an `@utility` in `components.css` when it styles a single element. Name a building block by its role, such as `list-row`, never by the feature that first used it.
 - Write `@utility` blocks with theme variables and `--spacing(n)`. Do not write raw colors, pixel values above 2px, or durations in stylesheets other than `theme.css` and `base.css`.
 - Add a theme token only for a value that defines the design and that the stock scales cannot express. Name tokens by role.

@@ -39,7 +39,7 @@
 			<div class="logs-explorer-timeline-heading">
 				<h2>Timeline</h2>
 				<button
-					class="control-button"
+					class="btn-icon"
 					type="button"
 					aria-label="Newest visits first"
 					aria-pressed={newestFirst}

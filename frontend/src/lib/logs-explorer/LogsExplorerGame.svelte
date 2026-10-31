@@ -42,7 +42,7 @@
 		<span class="logs-explorer-game-icon">
 			<GameIcon url={place?.iconUrl ?? ""} />
 			{#if rootPlace}<button
-					class="hover-value logs-explorer-root-icon"
+					class="logs-explorer-root-icon cursor-help rounded-md tabular-nums focus-visible:outline-offset-2"
 					type="button"
 					aria-label={`Subplace of ${rootName}`}
 					data-tooltip={`Subplace of ${rootName}`}
@@ -61,7 +61,7 @@
 							aria-label="Favorite" />{/if}</strong>
 				<span
 					>{creatorByline(place)}{#if place.creatorVerified}<SealCheckIcon
-							class="creator-verified"
+							class="relative top-0.5 ml-1 inline-block"
 							size={14}
 							aria-label="Verified creator" />{/if}</span>
 			{:else}
@@ -69,7 +69,7 @@
 			{/if}
 		</div>
 		{#if place}<button
-				class="icon-action compact logs-explorer-game-search"
+				class="logs-explorer-game-search btn-ghost-sm"
 				type="button"
 				aria-label="Find this place in Games"
 				data-tooltip="Find this place in Games"

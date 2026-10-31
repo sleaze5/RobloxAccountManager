@@ -75,6 +75,8 @@
 
 	--shadow-menu: 0 2px 6px rgb(0 0 0 / 16%);
 	--shadow-float: 0 4px 12px rgb(0 0 0 / 24%);
+	--shadow-selected: inset 2px 0 0 var(--color-accent);
+	--shadow-tab: inset 0 -2px 0 var(--color-accent);
 
 	--ease-out: cubic-bezier(0.16, 1, 0.3, 1);
 	--ease-in-out: cubic-bezier(0.4, 0, 0.2, 1);

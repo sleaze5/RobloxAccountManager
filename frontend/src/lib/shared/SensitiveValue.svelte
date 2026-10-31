@@ -7,7 +7,7 @@
 </script>
 
 <button
-	class="hover-value sensitive-value"
+	class="sensitive-value cursor-help rounded-md tabular-nums focus-visible:outline-offset-2"
 	class:revealed
 	type="button"
 	aria-pressed={revealed}

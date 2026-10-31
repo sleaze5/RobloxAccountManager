@@ -169,12 +169,12 @@
 
 		<div class="modal-actions">
 			<button
-				class="control-button text-button"
+				class="btn"
 				type="button"
 				disabled={busy}
 				onclick={() => void Application.Quit()}>Quit</button>
 			<button
-				class="primary-action"
+				class="btn-primary"
 				type="button"
 				disabled={busy || !selected}
 				onclick={() => void confirm()}>

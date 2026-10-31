@@ -146,7 +146,6 @@
 						aria-label="Search accounts" />
 					{#if store.query}
 						<button
-							class="search-clear"
 							type="button"
 							aria-label="Clear account search"
 							onclick={() => store.setQuery("")}>
@@ -261,7 +260,7 @@
 			{#if store.multipleSelected}
 				<div class="account-selection-actions">
 					<button
-						class="control-button"
+						class="btn-icon"
 						type="button"
 						in:menuIn
 						out:menuOut

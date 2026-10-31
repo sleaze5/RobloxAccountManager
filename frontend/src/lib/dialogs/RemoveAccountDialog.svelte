@@ -69,13 +69,10 @@
 			</div>
 		{/if}
 		<div class="modal-actions">
+			<button class="btn" type="button" disabled={store.busy} onclick={close}
+				>Cancel</button>
 			<button
-				class="control-button text-button"
-				type="button"
-				disabled={store.busy}
-				onclick={close}>Cancel</button>
-			<button
-				class="danger-button"
+				class="btn-danger"
 				type="button"
 				disabled={store.busy}
 				onclick={() => void remove()}>

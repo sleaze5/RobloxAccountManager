@@ -172,7 +172,7 @@
 										? "Sign-in required"
 										: "Security challenge"}</span>
 								<button
-									class="control-button text-button"
+									class="btn"
 									type="button"
 									disabled={store.busy}
 									onclick={onReplaceCookie}>
@@ -199,7 +199,7 @@
 			</div>
 			<div class="header-actions">
 				<button
-					class="control-button"
+					class="btn-icon"
 					type="button"
 					data-tooltip="Refresh account data"
 					aria-label={profileState?.loading
@@ -217,7 +217,7 @@
 					{/if}
 				</button>
 				<button
-					class="control-button"
+					class="btn-icon"
 					type="button"
 					aria-label="Chats"
 					data-tooltip="Chats"
@@ -227,7 +227,7 @@
 					<ChatsIcon size={16} aria-hidden="true" />
 				</button>
 				<button
-					class="control-button"
+					class="btn-icon"
 					type="button"
 					aria-label="Account settings"
 					data-tooltip="Account settings"
@@ -237,7 +237,7 @@
 					<GearIcon size={16} aria-hidden="true" />
 				</button>
 				<button
-					class="control-button"
+					class="btn-icon"
 					data-account-menu
 					type="button"
 					aria-label="More account actions"
@@ -258,7 +258,7 @@
 		{#if hasAccount}
 			<div class="identity-section">
 				{#if selectedAccount.favorite}
-					<span class="tag-pill favorite">
+					<span class="tag-pill-favorite">
 						<StarIcon size={12} weight="fill" aria-hidden="true" />
 						<span>Favorite</span>
 					</span>
@@ -272,8 +272,7 @@
 				<div class="edit-tags-host" data-account-menu>
 					<button
 						bind:this={tagsButton}
-						class:open={workspace.activeAccountMenu === "profile-tags"}
-						class="control-button compact"
+						class="btn-icon size-6"
 						type="button"
 						aria-label="Edit account tags"
 						aria-expanded={workspace.activeAccountMenu === "profile-tags"}

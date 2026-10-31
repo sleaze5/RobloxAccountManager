@@ -91,7 +91,6 @@
 								placeholder="Search logs or IDs"
 								aria-label="Search logs, user IDs, place IDs, or job IDs"
 								bind:value={store.query} />{#if store.query}<button
-									class="search-clear"
 									type="button"
 									aria-label="Clear logs search"
 									onclick={() => (store.query = "")}

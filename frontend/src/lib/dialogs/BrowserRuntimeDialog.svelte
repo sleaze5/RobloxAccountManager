@@ -63,15 +63,15 @@
 			</div>{/if}
 		{#if active}<BrowserRuntimeActivity {runtime} />{/if}
 		<div class="modal-actions">
-			<button class="control-button text-button" type="button" onclick={onDismiss}
+			<button class="btn" type="button" onclick={onDismiss}
 				>{active ? "Continue in background" : "Not now"}</button
 			>{#if runtime.canCancel}<button
-					class="control-button text-button"
+					class="btn"
 					type="button"
 					onclick={() => void browser.cancelDownload()}
 					>Cancel download</button
 				>{:else if !active}<button
-					class="primary-action"
+					class="btn-primary"
 					type="button"
 					onclick={() =>
 						void browser.download(

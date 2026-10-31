@@ -8,7 +8,7 @@
 
 <span class="chat-avatar avatar-image" aria-hidden="true">
 	{#if conversation.group}
-		<UsersIcon class="profile-image-fallback" aria-hidden="true" />
+		<UsersIcon class="size-1/2 text-fg-faint" aria-hidden="true" />
 	{:else}
 		<ProfileImage url={conversation.imageUrl} />
 	{/if}

@@ -117,7 +117,7 @@
 				<div class="settings-row">
 					<BrowserRuntimeActivity {runtime} />
 					{#if runtime.canCancel}<button
-							class="control-button text-button"
+							class="btn"
 							type="button"
 							onclick={() => void browser.cancelDownload()}
 							>Cancel download</button
@@ -132,21 +132,21 @@
 					</div>
 					<div class="settings-row-actions">
 						{#if runtime.status === RuntimeStatus.RuntimeMissing}<button
-								class="control-button text-button"
+								class="btn"
 								type="button"
 								onclick={() => void browser.download()}
 								><DownloadSimpleIcon
 									size={16}
 									aria-hidden="true" />Download</button
 							>{:else}<button
-								class="control-button text-button"
+								class="btn"
 								type="button"
 								onclick={() => void requestAction("redownload")}
 								><ArrowCounterClockwiseIcon
 									size={16}
 									aria-hidden="true" />Redownload</button
 							><button
-								class="control-button text-button"
+								class="btn"
 								type="button"
 								onclick={() => void requestAction("remove")}
 								><TrashIcon
@@ -210,16 +210,14 @@
 			</ul>
 			<div class="modal-actions">
 				<button
-					class="control-button text-button"
+					class="btn"
 					type="button"
 					onclick={() => {
 						pendingAction = null
 						effects = null
 					}}>Cancel</button
 				><button
-					class={pendingAction === "remove"
-						? "danger-button"
-						: "primary-action"}
+					class={pendingAction === "remove" ? "btn-danger" : "btn-primary"}
 					type="button"
 					onclick={() => void runAction(pendingAction!)}
 					>{pendingAction === "remove"
