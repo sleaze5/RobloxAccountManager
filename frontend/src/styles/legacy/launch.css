@@ -236,11 +236,11 @@
 	white-space: nowrap;
 }
 
-.launch-option .cookie-selection {
+.launch-option .checkbox {
 	margin-top: 2px;
 }
 
-.launch-resolve .cookie-selection {
+.launch-resolve .checkbox {
 	margin-top: 0;
 }
 
@@ -342,7 +342,7 @@
 	color: var(--color-text-bright);
 }
 
-.launch-option > span:not(.cookie-selection),
+.launch-option > span:not(.checkbox),
 .launch-option-copy {
 	display: flex;
 	flex-direction: column;
@@ -360,7 +360,7 @@
 	cursor: not-allowed;
 }
 
-.launch-option:has(input:disabled) > :not(.cookie-selection) {
+.launch-option:has(input:disabled) > :not(.checkbox) {
 	opacity: var(--opacity-disabled);
 }
 

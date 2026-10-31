@@ -288,7 +288,7 @@
 							<h2 class="game-name">
 								{nameStart}<span class="game-name-end"
 									>{nameEnd}{#if favorite}<StarIcon
-											class="favorite-name-star"
+											class="shrink-0 animate-pop text-accent-strong"
 											size={16}
 											weight="fill"
 											aria-label="Favorite" />{/if}</span>
@@ -408,6 +408,7 @@
 						aria-label="More game actions"
 						aria-haspopup="menu"
 						aria-expanded={menuOpen}
+						data-open={menuOpen || undefined}
 						data-tooltip="Show more game actions"
 						data-tooltip-side="bottom-end"
 						data-game-menu

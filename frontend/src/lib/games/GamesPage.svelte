@@ -153,13 +153,13 @@
 	}
 </script>
 
-<main class="games-page" aria-label="Games">
+<main class="flex min-h-0 flex-1 flex-col bg-canvas" aria-label="Games">
 	<OperationError {store} />
 	<div
-		class="workbench"
-		style={`--sidebar-width: ${store.sidebarCollapsed ? 42 : store.sidebarWidth}px;`}>
+		class="flex min-h-0 flex-1"
+		style={`--sidebar-width: ${store.sidebarCollapsed ? 44 : store.sidebarWidth}px;`}>
 		<aside
-			class="account-explorer"
+			class="account-explorer w-(--sidebar-width) shrink-0"
 			class:collapsed={store.sidebarCollapsed}
 			aria-label="Game browser">
 			{#if store.sidebarCollapsed}
@@ -253,7 +253,7 @@
 							</div>
 						{/if}
 					</form>
-					<div class="segmented-control" role="group" aria-label="Show games">
+					<div class="segmented" role="group" aria-label="Show games">
 						<button
 							type="button"
 							aria-pressed={favoritesMode}
@@ -328,7 +328,7 @@
 									<strong class="game-display-name"
 										><span>{store.displayName(place)}</span
 										>{#if store.isFavorite(place.placeId)}<StarIcon
-												class="favorite-name-star"
+												class="shrink-0 animate-pop text-accent-strong"
 												size={12}
 												weight="fill"
 												aria-label="Favorite" />{/if}</strong>
@@ -364,9 +364,10 @@
 							>{moveAnnouncement}</span>
 					</div>
 					{#if hasSearch}
-						<div class="account-selection-actions">
+						<div
+							class="pointer-events-none absolute inset-x-0 bottom-2 flex justify-center">
 							<button
-								class="btn-icon"
+								class="pointer-events-auto btn bg-raised shadow-float hover:bg-raised-hover"
 								type="button"
 								in:menuIn
 								out:menuOut
@@ -386,78 +387,84 @@
 			bind:width={store.sidebarWidth}
 			collapsed={store.sidebarCollapsed}
 			name="games" />
-		{#if store.selected}
-			{#key store.selected.placeId}
-				{#if store.detailsPage === "servers"}
-					<GameServersPage
-						{store}
-						onBack={() => void closeServers()}
-						{onFillLaunch} />
-				{:else}
-					<GameDetails
-						{store}
-						{workspace}
-						onSearchUniverse={(universeId) =>
-							void searchUniverse(universeId)} />
-				{/if}
-			{/key}
-		{:else}
-			<div class="empty-state" role="status">
-				{#if favoritesMode}
-					{#if store.loadingFavorites}<CircleNotchIcon
+		<div class="grid min-w-0 flex-1 grid-rows-1">
+			{#if store.selected}
+				{#key store.selected.placeId}
+					{#if store.detailsPage === "servers"}
+						<GameServersPage
+							{store}
+							onBack={() => void closeServers()}
+							{onFillLaunch} />
+					{:else}
+						<GameDetails
+							{store}
+							{workspace}
+							onSearchUniverse={(universeId) =>
+								void searchUniverse(universeId)} />
+					{/if}
+				{/key}
+			{:else}
+				<div class="empty-state" role="status">
+					{#if favoritesMode}
+						{#if store.loadingFavorites}<CircleNotchIcon
+								class="spinner"
+								size={28}
+								aria-hidden="true" />
+							<h2>Loading favorites…</h2>
+						{:else if !store.favoritesLoaded}<WarningIcon
+								size={28}
+								aria-hidden="true" />
+							<h2>Favorites are unavailable</h2>
+							<button
+								class="btn"
+								type="button"
+								onclick={() => void store.loadFavorites()}
+								>Try again</button>
+						{:else if !count && store.favorites.length}<MagnifyingGlassIcon
+								size={28}
+								aria-hidden="true" />
+							<h2>No matching favorites</h2>
+							<p>Try a different nickname, name, or creator.</p>
+						{:else if !count}<StarIcon size={28} aria-hidden="true" />
+							<h2>No favorite places yet</h2>
+							<p>Right-click a game and add it to your favorites.</p>
+						{:else}<StarIcon size={28} aria-hidden="true" />
+							<h2>Select a favorite place</h2>
+							<p>Choose a place to see its details.</p>{/if}
+					{:else if store.searching}<CircleNotchIcon
 							class="spinner"
 							size={28}
 							aria-hidden="true" />
-						<h2>Loading favorites…</h2>
-					{:else if !store.favoritesLoaded}<WarningIcon
+						<h2>Searching Roblox…</h2>
+					{:else if store.searchError}<WarningIcon
 							size={28}
 							aria-hidden="true" />
-						<h2>Favorites are unavailable</h2>
-						<button
-							class="btn"
-							type="button"
-							onclick={() => void store.loadFavorites()}
-							>Try again</button>
-					{:else if !count && store.favorites.length}<MagnifyingGlassIcon
+						<h2>Search is unavailable</h2>
+						<p>{store.searchError}</p>
+					{:else if store.searchedText && !count}<MagnifyingGlassIcon
 							size={28}
 							aria-hidden="true" />
-						<h2>No matching favorites</h2>
-						<p>Try a different nickname, name, or creator.</p>
-					{:else if !count}<StarIcon size={28} aria-hidden="true" />
-						<h2>No favorite places yet</h2>
-						<p>Right-click a game and add it to your favorites.</p>
-					{:else}<StarIcon size={28} aria-hidden="true" />
-						<h2>Select a favorite place</h2>
-						<p>Choose a place to see its details.</p>{/if}
-				{:else if store.searching}<CircleNotchIcon
-						class="spinner"
-						size={28}
-						aria-hidden="true" />
-					<h2>Searching Roblox…</h2>
-				{:else if store.searchError}<WarningIcon size={28} aria-hidden="true" />
-					<h2>Search is unavailable</h2>
-					<p>{store.searchError}</p>
-				{:else if store.searchedText && !count}<MagnifyingGlassIcon
-						size={28}
-						aria-hidden="true" />
-					<h2>No games found</h2>
-					<p>Try a different name or place ID.</p>
-				{:else if count}<GameControllerIcon size={28} aria-hidden="true" />
-					<h2>Select a game</h2>
-					<p>Choose a game to see its details.</p>
-				{:else}<GameControllerIcon size={28} aria-hidden="true" />
-					<h2>Search Roblox games</h2>
-					<p>
-						Enter a game name, a place ID like id:1818, or a universe ID
-						like universe:13058 to list its places.
-					</p>{/if}
-			</div>
-		{/if}
+						<h2>No games found</h2>
+						<p>Try a different name or place ID.</p>
+					{:else if count}<GameControllerIcon size={28} aria-hidden="true" />
+						<h2>Select a game</h2>
+						<p>Choose a game to see its details.</p>
+					{:else}<GameControllerIcon size={28} aria-hidden="true" />
+						<h2>Search Roblox games</h2>
+						<p>
+							Enter a game name, a place ID like id:1818, or a universe ID
+							like universe:13058 to list its places.
+						</p>{/if}
+				</div>
+			{/if}
+		</div>
 	</div>
-	<footer class="status-bar" aria-label="Game list">
+	<footer
+		class="flex h-6 shrink-0 items-center justify-between border-t border-line-subtle bg-surface pl-3 font-mono text-2xs text-fg-faint"
+		aria-label="Game list">
 		{#if store.selected}
 			<span>Place ID: {store.selected.placeId}</span>
-			<div>
+			<div class="flex items-center gap-4 pr-3">
 				<span>Universe ID: {store.selected.universeId}</span>
 			</div>
 		{:else}

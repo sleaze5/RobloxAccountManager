@@ -28,7 +28,9 @@
 	<ul class="settings-rows blocked-users" aria-label="Blocked users">
 		{#each blocked.users as user (user.userId)}
 			<li class="settings-row blocked-user">
-				<span class="blocked-user-avatar avatar-image" aria-hidden="true">
+				<span
+					class="blocked-user-avatar relative grid place-items-center overflow-hidden rounded-md border border-line-strong bg-raised"
+					aria-hidden="true">
 					<ProfileImage url={user.imageUrl} />
 				</span>
 				<div class="settings-row-copy">

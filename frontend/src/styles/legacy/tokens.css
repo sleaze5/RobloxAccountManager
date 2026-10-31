@@ -1,14 +1,14 @@
 :root {
 	color-scheme: dark;
 
-	--color-base: #111111;
-	--color-bg: #131313;
-	--color-surface: #171717;
-	--color-surface-raised: #242424;
-	--color-surface-raised-hover: #292929;
-	--color-dialog: #171717;
-	--color-overlay: rgb(23 23 23 / 98%);
-	--color-input: #131313;
+	--color-base: #0a0a0a;
+	--color-bg: #0d0d0d;
+	--color-surface: #111111;
+	--color-surface-raised: #1c1c1c;
+	--color-surface-raised-hover: #222222;
+	--color-dialog: #111111;
+	--color-overlay: rgb(17 17 17 / 98%);
+	--color-input: #0d0d0d;
 	--color-scrim: rgb(0 0 0 / 72%);
 	--color-scrim-vault: rgb(10 10 10 / 90%);
 	--color-fill-subtle: rgb(255 255 255 / 3%);
@@ -26,10 +26,10 @@
 	--color-accent-strong: #d4d4d4;
 
 	--color-border-subtle: rgb(255 255 255 / 6%);
-	--color-border: #262626;
-	--color-border-strong: #363636;
+	--color-border: #1f1f1f;
+	--color-border-strong: #2c2c2c;
 	--color-border-focus: rgb(255 255 255 / 22%);
-	--color-hover: #292929;
+	--color-hover: #1f1f1f;
 	--color-active: rgb(255 255 255 / 4.5%);
 	--color-focus-ring: rgb(255 255 255 / 40%);
 	--color-scrollbar-thumb: rgb(163 163 163 / 22%);
@@ -44,7 +44,7 @@
 	--color-danger-wash: rgb(201 92 84 / 7%);
 	--color-danger-tint: rgb(201 92 84 / 12%);
 	--color-danger-tint-hover: rgb(201 92 84 / 20%);
-	--color-danger-toast: rgb(38 25 24 / 97%);
+	--color-danger-toast: rgb(30 20 19 / 97%);
 
 	--color-presence-online: #7d9fb5;
 	--color-presence-game: #70a981;

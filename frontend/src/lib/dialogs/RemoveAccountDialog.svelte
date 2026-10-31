@@ -47,7 +47,7 @@
 				<h2 id="remove-account-title" class="account-display-name">
 					<span>Remove {account.displayName}</span>
 					{#if account.favorite}<StarIcon
-							class="favorite-name-star"
+							class="shrink-0 animate-pop text-accent-strong"
 							size={14}
 							weight="fill"
 							aria-hidden="true" />{/if}

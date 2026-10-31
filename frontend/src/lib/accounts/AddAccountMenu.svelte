@@ -17,16 +17,16 @@
 </script>
 
 <div
-	class="add-account-menu account-menu"
+	class="absolute top-full right-0 z-10 mt-0.5 menu w-48"
 	data-account-menu
 	use:floatMenu={{ anchor, align: "center" }}
 	in:menuIn
 	out:menuOut>
-	<button type="button" {disabled} onclick={onBrowser}>
+	<button class="menu-item" type="button" {disabled} onclick={onBrowser}>
 		<GlobeHemisphereWestIcon size={16} aria-hidden="true" />
 		<span>Sign in with browser</span>
 	</button>
-	<button type="button" {disabled} onclick={onPasteCookie}>
+	<button class="menu-item" type="button" {disabled} onclick={onPasteCookie}>
 		<ClipboardTextIcon size={16} aria-hidden="true" />
 		<span>Paste cookie</span>
 	</button>

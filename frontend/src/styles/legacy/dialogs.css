@@ -498,77 +498,6 @@
 	font-family: var(--font-mono);
 }
 
-.cookie-selection {
-	position: relative;
-	display: grid;
-	width: var(--checkbox-size);
-	height: var(--checkbox-size);
-	flex: 0 0 var(--checkbox-size);
-	place-items: center;
-}
-
-.cookie-selection input {
-	position: absolute;
-	inset: 0;
-	z-index: 1;
-	width: var(--checkbox-size);
-	height: var(--checkbox-size);
-	appearance: none;
-	cursor: pointer;
-}
-
-.cookie-selection > span {
-	display: grid;
-	width: var(--checkbox-size);
-	height: var(--checkbox-size);
-	place-items: center;
-	border: 1px solid var(--color-border-strong);
-	border-radius: var(--radius-chip);
-	background: var(--color-input);
-	color: var(--color-on-solid);
-	transition:
-		background-color var(--duration-fast) var(--ease-standard),
-		border-color var(--duration-fast) var(--ease-standard),
-		opacity var(--duration-fast) var(--ease-standard);
-}
-
-.cookie-selection svg {
-	opacity: 0;
-	transform: scale(var(--motion-scale));
-	transition:
-		opacity var(--duration-fast) var(--ease-standard),
-		transform var(--duration-fast) var(--ease-standard);
-}
-
-.cookie-selection input:checked + span,
-.cookie-selection input:indeterminate + span {
-	border-color: var(--color-solid);
-	background: var(--color-solid);
-}
-
-.cookie-selection input:checked + span svg,
-.cookie-selection input:indeterminate + span svg {
-	opacity: 1;
-	transform: scale(1);
-}
-
-.cookie-selection input:focus-visible + span {
-	outline: var(--focus-ring-width) solid var(--color-focus-ring);
-	outline-offset: 2px;
-}
-
-.cookie-selection input:focus-visible {
-	outline: 0;
-}
-
-.cookie-selection input:disabled {
-	cursor: not-allowed;
-}
-
-.cookie-selection input:disabled + span {
-	opacity: var(--opacity-disabled);
-}
-
 .cookie-import-results ol {
 	display: flex;
 	max-height: 168px;
@@ -790,4 +719,24 @@
 
 .modal-card > .renewal-warning {
 	color: var(--color-warning);
+}
+
+.modal-heading > button,
+.modal-close {
+	display: grid;
+	width: var(--control-height-sm);
+	height: var(--control-height-sm);
+	flex: 0 0 auto;
+	place-items: center;
+	padding: 0;
+	border: 0;
+	border-radius: var(--radius-control);
+	background: transparent;
+	color: inherit;
+	cursor: pointer;
+}
+
+.modal-heading > button:hover,
+.modal-close:hover {
+	background: var(--color-hover-overlay);
 }

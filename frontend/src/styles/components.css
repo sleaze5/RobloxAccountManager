@@ -23,7 +23,7 @@
 	@apply btn-base px-2;
 
 	&:hover:not(:disabled),
-	&[aria-expanded="true"] {
+	&[data-open] {
 		@apply bg-hover text-fg;
 	}
 }
@@ -190,6 +190,9 @@
 	& > button {
 		@apply flex h-6 items-center justify-center gap-1 rounded-sm px-2 text-xs font-medium whitespace-nowrap text-fg-faint transition-colors duration-100 hover:text-fg aria-pressed:bg-raised aria-pressed:text-fg;
 	}
+	& > button > span {
+		@apply font-mono text-2xs text-fg-faint;
+	}
 }
 
 @utility list-row {
@@ -286,4 +289,8 @@
 
 @utility spinner {
 	@apply animate-spin motion-reduce:rotate-45 motion-reduce:animate-none;
+}
+
+@utility scrollbar-stable {
+	scrollbar-gutter: stable;
 }

@@ -77,7 +77,7 @@
 			<strong class="account-display-name"
 				><span>{user.displayName || user.username}</span
 				>{#if user.favorite}<StarIcon
-						class="favorite-name-star"
+						class="shrink-0 animate-pop text-accent-strong"
 						size={12}
 						weight="fill"
 						aria-label="Favorite" />{/if}</strong>

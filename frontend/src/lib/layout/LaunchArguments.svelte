@@ -103,7 +103,7 @@
 			{#if directLaunch}
 				<div class="launch-option-group">
 					<label class="launch-option">
-						<span class="cookie-selection">
+						<span class="checkbox">
 							<input
 								type="checkbox"
 								bind:checked={store.launchInput.directLaunch}
@@ -155,7 +155,7 @@
 				</div>
 			{/if}
 			<label class="launch-option">
-				<span class="cookie-selection">
+				<span class="checkbox">
 					<input
 						type="checkbox"
 						bind:checked={store.launchInput.teleport}
@@ -171,7 +171,7 @@
 			</label>
 			<div class="launch-option-group">
 				<label class="launch-option">
-					<span class="cookie-selection">
+					<span class="checkbox">
 						<input
 							type="checkbox"
 							bind:checked={store.launchDataEnabled}

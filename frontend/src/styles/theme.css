@@ -19,16 +19,16 @@
 	--shadow-*: initial;
 	--text-*: initial;
 
-	--color-base: #111111;
-	--color-canvas: #131313;
-	--color-surface: #171717;
-	--color-raised: #242424;
-	--color-raised-hover: #292929;
-	--color-overlay: rgb(23 23 23 / 98%);
+	--color-base: #0a0a0a;
+	--color-canvas: #0d0d0d;
+	--color-surface: #111111;
+	--color-raised: #1c1c1c;
+	--color-raised-hover: #222222;
+	--color-overlay: rgb(17 17 17 / 98%);
 	--color-scrim: rgb(0 0 0 / 72%);
 	--color-scrim-strong: rgb(10 10 10 / 90%);
 	--color-fill: rgb(255 255 255 / 3%);
-	--color-hover: #292929;
+	--color-hover: #1f1f1f;
 	--color-hover-overlay: rgb(255 255 255 / 7%);
 	--color-active: rgb(255 255 255 / 4.5%);
 
@@ -43,8 +43,8 @@
 	--color-accent-strong: #d4d4d4;
 
 	--color-line-subtle: rgb(255 255 255 / 6%);
-	--color-line: #262626;
-	--color-line-strong: #363636;
+	--color-line: #1f1f1f;
+	--color-line-strong: #2c2c2c;
 	--color-line-focus: rgb(255 255 255 / 22%);
 	--color-focus: rgb(255 255 255 / 40%);
 	--color-scrollbar: rgb(163 163 163 / 22%);
@@ -53,7 +53,7 @@
 	--color-warning: #d2a15a;
 	--color-danger: #c95c54;
 	--color-danger-muted: #dfaaa6;
-	--color-toast-danger: rgb(38 25 24 / 97%);
+	--color-toast-danger: rgb(30 20 19 / 97%);
 
 	--color-presence-online: #7d9fb5;
 	--color-presence-game: #70a981;

@@ -7,7 +7,7 @@
 	import { loadGamePlace } from "../games/game-place-cache"
 	import { creatorByline, getGamesStore } from "../games/games-store.svelte"
 	import {
-		presenceClass,
+		presenceTextClass,
 		presenceDetail,
 		presenceIcon,
 		presenceLabel,
@@ -80,14 +80,17 @@
 		class="profile-presence-copy cursor-help rounded-md tabular-nums focus-visible:outline-offset-2"
 		aria-label={tooltip}
 		data-tooltip={tooltip}>
-		<span class={`profile-presence-label ${presenceClass(presence)}`}
-			><Icon size={14} aria-hidden="true" />{label}{detail ? ":" : ""}</span>
+		<span
+			class={[
+				"inline-flex shrink-0 items-center gap-1 font-medium",
+				presenceTextClass(presence),
+			]}><Icon size={14} aria-hidden="true" />{label}{detail ? ":" : ""}</span>
 		{#if detail}
 			<span class="game-display-name">
 				<span>{detail}</span>
 				{#if inExperience && place && games.isFavorite(place.placeId)}
 					<StarIcon
-						class="favorite-name-star"
+						class="shrink-0 animate-pop text-accent-strong"
 						size={12}
 						weight="fill"
 						aria-label="Favorite" />

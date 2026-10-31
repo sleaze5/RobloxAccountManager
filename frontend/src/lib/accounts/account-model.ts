@@ -97,18 +97,29 @@ export function presenceLabel(presence: UserPresence): string {
 	}
 }
 
-export function presenceClass(presence: UserPresence): string {
+export function presenceDotClass(presence: UserPresence): string {
 	switch (presence.userPresenceType) {
 		case PresenceType.PresenceTypeOnline:
-			return "presence-online"
+			return "bg-presence-online"
 		case PresenceType.PresenceTypeInGame:
-			return "presence-in-game"
+			return "bg-presence-game"
 		case PresenceType.PresenceTypeInStudio:
-			return "presence-in-studio"
-		case PresenceType.PresenceTypeInvisible:
-			return "presence-invisible"
+			return "bg-presence-studio"
 		default:
-			return "presence-offline"
+			return "bg-fg-faint"
+	}
+}
+
+export function presenceTextClass(presence: UserPresence): string {
+	switch (presence.userPresenceType) {
+		case PresenceType.PresenceTypeOnline:
+			return "text-presence-online"
+		case PresenceType.PresenceTypeInGame:
+			return "text-presence-game"
+		case PresenceType.PresenceTypeInStudio:
+			return "text-presence-studio"
+		default:
+			return "text-fg-muted"
 	}
 }
 

@@ -132,24 +132,31 @@
 </script>
 
 <div
-	class="account-list"
+	class={[
+		"min-h-0 scrollbar-stable overflow-y-auto",
+		store.multipleSelected && "pb-12",
+	]}
 	aria-busy={store.loadingAccounts || store.loadingMore}
 	onscroll={loadNearEnd}>
 	{#each store.filteredAccounts as account (account.id)}
 		<div
-			class:selected={store.selectedAccountIds.includes(account.id)}
-			class:dragging={draggedAccountId === account.id}
-			class:drop-before={dropTarget?.accountId === account.id &&
-				!dropTarget.after}
-			class:drop-after={dropTarget?.accountId === account.id && dropTarget.after}
-			class="account-row list-row"
+			class={[
+				"group/row relative flex h-12 w-full items-center gap-2 border-b border-line-subtle list-row text-left",
+				draggedAccountId === account.id && "opacity-45",
+				dropTarget?.accountId === account.id &&
+					(dropTarget.after
+						? "after:absolute after:inset-x-1 after:bottom-0 after:z-10 after:h-px after:bg-fg-muted"
+						: "before:absolute before:inset-x-1 before:top-0 before:z-10 before:h-px before:bg-fg-muted"),
+			]}
+			data-selected={store.selectedAccountIds.includes(account.id) || undefined}
+			data-account-row
 			role="group"
 			aria-label={`@${account.username}`}
 			oncontextmenu={(event) => openContextMenu(event, account.id)}
 			ondragover={(event) => updateDropTarget(event, account.id)}
 			ondrop={(event) => dropAccount(event, account.id)}>
 			{#if store.multipleSelected}
-				<span class="cookie-selection account-checkbox">
+				<span class="checkbox ml-2">
 					<input
 						type="checkbox"
 						aria-label={`Select @${account.username}`}
@@ -159,7 +166,7 @@
 							selectAccount(account.id, true)
 							if (!store.multipleSelected) {
 								event.currentTarget
-									.closest(".account-row")
+									.closest("[data-account-row]")
 									?.querySelector<HTMLButtonElement>("button")
 									?.focus()
 							}
@@ -169,7 +176,7 @@
 				</span>
 			{:else}
 				<span
-					class="account-drag-handle"
+					class="grid h-7 w-5 shrink-0 cursor-grab place-items-center pl-2 text-fg-faint active:cursor-grabbing"
 					draggable={!store.busy && store.accounts.length > 1}
 					aria-hidden="true"
 					ondragstart={(event) => startDrag(event, account.id)}
@@ -178,7 +185,8 @@
 				</span>
 			{/if}
 			<button
-				class="account-row-select"
+				class="flex h-full min-w-0 flex-1 items-center gap-2 pr-2 text-left"
+				data-account-select
 				type="button"
 				aria-pressed={store.selectedAccountIds.includes(account.id)}
 				aria-keyshortcuts="Control+Shift+ArrowUp Control+Shift+ArrowDown"
@@ -199,36 +207,42 @@
 				ondragstart={(event) => event.preventDefault()}>
 				<AccountAvatar
 					{account}
-					className="account-avatar"
+					className="size-9 text-xs"
 					showPresence={true} />
-				<span class="account-name">
-					<strong class="account-display-name">
-						<span>{account.displayName}</span>
+				<span class="block min-w-0">
+					<strong
+						class="mb-0.5 flex min-w-0 items-center gap-1 text-sm font-semibold text-fg">
+						<span class="truncate">{account.displayName}</span>
 						{#if account.favorite}<StarIcon
-								class="favorite-name-star"
+								class="shrink-0 animate-pop text-accent-strong"
 								size={12}
 								weight="fill"
 								aria-hidden="true" />{/if}
 					</strong>
-					<small>@{account.username}</small>
+					<small
+						class="block truncate text-2xs text-fg-faint group-hover/row:text-fg-muted group-data-selected/row:text-fg-muted"
+						>@{account.username}</small>
 				</span>
 			</button>
 		</div>
 	{:else}
-		<div class="empty-list">
+		<div
+			class="flex h-24 flex-col items-center justify-center gap-0.5 text-xs text-fg-faint">
 			{#if store.loadingAccounts}
 				<span>Loading accounts…</span>
 			{:else if !store.query && store.selectedTagIds.length === 0}
-				<strong>No accounts yet</strong>
+				<strong class="font-medium text-fg-muted">No accounts yet</strong>
 				<span>Use the plus button to add one.</span>
 			{:else}
-				<strong>No matching accounts</strong>
+				<strong class="font-medium text-fg-muted">No matching accounts</strong>
 				<span>Change the search or tag filter.</span>
 			{/if}
 		</div>
 	{/each}
 	{#if store.loadingMore}
-		<div class="empty-list"><span>Loading more accounts…</span></div>
+		<div class="flex h-24 items-center justify-center text-xs text-fg-faint">
+			<span>Loading more accounts…</span>
+		</div>
 	{/if}
 	<span class="sr-only" aria-live="polite">{moveAnnouncement}</span>
 </div>

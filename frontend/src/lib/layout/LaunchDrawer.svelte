@@ -191,7 +191,7 @@
 								disabled={store.launching} />
 						</label>
 						<label class="launch-option launch-resolve">
-							<span class="cookie-selection">
+							<span class="checkbox">
 								<input
 									bind:checked={store.launchInput.resolveCurrentGame}
 									type="checkbox"
@@ -211,7 +211,7 @@
 				<div class="launch-method">
 					<span id="launch-method-label">Method:</span>
 					<div
-						class="segmented-control"
+						class="segmented"
 						role="group"
 						aria-labelledby="launch-method-label">
 						{#each methods as method (method.value)}

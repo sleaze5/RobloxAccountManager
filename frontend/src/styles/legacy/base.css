@@ -1,20 +1,17 @@
 :where(
 	.account-row,
 	.game-row,
-	.segmented-control button,
 	.account-menu button,
 	.settings-header button,
 	.settings-select-trigger,
 	.settings-select-menu button,
 	.place-suggestion,
 	.notification-dismiss,
-	.operation-error button,
 	.modal-heading > button,
 	.modal-close,
 	.tag-manager-row button,
 	.visibility-control,
 	.automatic-unlock-info,
-	.page-tabs button,
 	.account-title button,
 	.collapsed-sidebar button,
 	.tag-filter-trigger,
@@ -65,11 +62,9 @@
 	}
 }
 
-.page-actions button > svg,
 .visibility-control > svg,
 .password-checklist li > svg,
 .account-menu button > svg,
-.favorite-name-star,
 .menu-check {
 	animation: icon-enter var(--duration-fast) var(--ease-sharp);
 }

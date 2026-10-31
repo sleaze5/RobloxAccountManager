@@ -32,7 +32,7 @@
 <div class="cookie-import-results" aria-live="polite">
 	<div class="cookie-results-toolbar">
 		<label class="cookie-select-all">
-			<span class="cookie-selection">
+			<span class="checkbox">
 				<input
 					type="checkbox"
 					checked={allSelected}
@@ -59,7 +59,7 @@
 			<li
 				class:cookie-result-failed={!!item.error}
 				class:cookie-result-duplicate={!!item.duplicateText}>
-				<label class="cookie-selection">
+				<label class="checkbox">
 					<input
 						type="checkbox"
 						checked={selected.includes(item.id)}

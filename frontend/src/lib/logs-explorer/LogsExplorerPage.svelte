@@ -32,13 +32,13 @@
 	onMount(() => store.initialize())
 </script>
 
-<main class="logs-explorer-page" aria-label="Logs Explorer">
+<main class="flex min-h-0 flex-1 flex-col bg-canvas" aria-label="Logs Explorer">
 	<OperationError {store} />
 	<div
-		class="workbench"
-		style={`--sidebar-width: ${store.sidebarCollapsed ? 42 : store.sidebarWidth}px;`}>
+		class="flex min-h-0 flex-1"
+		style={`--sidebar-width: ${store.sidebarCollapsed ? 44 : store.sidebarWidth}px;`}>
 		<aside
-			class="account-explorer"
+			class="account-explorer w-(--sidebar-width) shrink-0"
 			class:collapsed={store.sidebarCollapsed}
 			aria-label="Launch sessions">
 			{#if store.sidebarCollapsed}
@@ -144,47 +144,52 @@
 			bind:width={store.sidebarWidth}
 			collapsed={store.sidebarCollapsed}
 			name="logs" />
-		{#if selected}
-			{#key selected.fileName}
-				<LogsExplorerSession
-					session={selected}
-					bind:newestFirst={store.timelineNewestFirst}
-					refreshing={store.refreshingFiles.has(selected.fileName)}
-					{onFillLaunch}
-					{onSearchPlace}
-					onRefresh={() => void store.refreshSession(selected.fileName)} />
-			{/key}
-		{:else}
-			<div class="logs-explorer-empty" role="status">
-				{#if store.refreshing}<CircleNotchIcon
-						class="spinner"
-						size={28}
-						aria-hidden="true" />
-					<h2>Reading Roblox logs…</h2>
-				{:else if store.error && !store.loaded}<WarningIcon
-						size={28}
-						aria-hidden="true" />
-					<h2>Logs are unavailable</h2>
-					<p>Refresh all to try reading the logs again.</p>
-				{:else if !store.sessions.length}<FileMagnifyingGlassIcon
-						size={28}
-						aria-hidden="true" />
-					<h2>No Roblox sessions found</h2>
-				{:else if !sessions.length}<MagnifyingGlassIcon
-						size={28}
-						aria-hidden="true" />
-					<h2>No matching sessions</h2>
-					<p>Try a different file name, user ID, or place ID.</p>
-				{:else}<FileMagnifyingGlassIcon size={28} aria-hidden="true" />
-					<h2>Select a launch session</h2>
-					<p>Choose a log to explore its game timeline.</p>{/if}
-			</div>
-		{/if}
+		<div class="grid min-w-0 flex-1 grid-rows-1">
+			{#if selected}
+				{#key selected.fileName}
+					<LogsExplorerSession
+						session={selected}
+						bind:newestFirst={store.timelineNewestFirst}
+						refreshing={store.refreshingFiles.has(selected.fileName)}
+						{onFillLaunch}
+						{onSearchPlace}
+						onRefresh={() =>
+							void store.refreshSession(selected.fileName)} />
+				{/key}
+			{:else}
+				<div class="logs-explorer-empty" role="status">
+					{#if store.refreshing}<CircleNotchIcon
+							class="spinner"
+							size={28}
+							aria-hidden="true" />
+						<h2>Reading Roblox logs…</h2>
+					{:else if store.error && !store.loaded}<WarningIcon
+							size={28}
+							aria-hidden="true" />
+						<h2>Logs are unavailable</h2>
+						<p>Refresh all to try reading the logs again.</p>
+					{:else if !store.sessions.length}<FileMagnifyingGlassIcon
+							size={28}
+							aria-hidden="true" />
+						<h2>No Roblox sessions found</h2>
+					{:else if !sessions.length}<MagnifyingGlassIcon
+							size={28}
+							aria-hidden="true" />
+						<h2>No matching sessions</h2>
+						<p>Try a different file name, user ID, or place ID.</p>
+					{:else}<FileMagnifyingGlassIcon size={28} aria-hidden="true" />
+						<h2>Select a launch session</h2>
+						<p>Choose a log to explore its game timeline.</p>{/if}
+				</div>
+			{/if}
+		</div>
 	</div>
-	<footer class="status-bar" aria-label="Log details">
+	<footer
+		class="flex h-6 shrink-0 items-center justify-between border-t border-line-subtle bg-surface pl-3 font-mono text-2xs text-fg-faint"
+		aria-label="Log details">
 		{#if selected}
 			<span>User ID: {selected.userId || "Not recorded"}</span>
-			<div>
+			<div class="flex items-center gap-4 pr-3">
 				<span>Channel: {selected.channel || "Not recorded"}</span>
 				<span
 					>Client version: {selected.versionHash && selected.version

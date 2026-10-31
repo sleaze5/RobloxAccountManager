@@ -207,7 +207,7 @@ export function placeMenuAtPoint(
 			Math.min(point.x, window.innerWidth - node.offsetWidth - menuEdge),
 		),
 		y = Math.max(
-			menuTop(node),
+			menuTop(),
 			Math.min(point.y, window.innerHeight - node.offsetHeight - menuEdge),
 		)
 	setMenuPosition(
@@ -239,7 +239,7 @@ export function placeMenuAtAnchor(
 			Math.min(preferredX, window.innerWidth - node.offsetWidth - menuEdge),
 		),
 		y = Math.max(
-			menuTop(node),
+			menuTop(),
 			opensUp
 				? bounds.top - node.offsetHeight - menuGap
 				: bounds.bottom + menuGap,
@@ -252,8 +252,9 @@ export function placeMenuAtAnchor(
 	)
 }
 
-function menuTop(node: Element): number {
-	return tokenNumber(node, "--titlebar-height", 38) + menuGap
+function menuTop(): number {
+	const titleBar = document.querySelector("[data-window-titlebar]")
+	return (titleBar?.getBoundingClientRect().bottom ?? 0) + menuGap
 }
 
 function setMenuPosition(

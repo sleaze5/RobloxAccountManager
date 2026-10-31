@@ -66,8 +66,10 @@
 
 <div
 	bind:this={resizer}
-	class:disabled={collapsed}
-	class="sidebar-resizer"
+	class={[
+		"relative z-10 h-full w-0.5 shrink-0 touch-none border-l border-line bg-canvas before:absolute before:inset-y-0 before:-right-1.5 before:left-0",
+		collapsed ? "cursor-default" : "cursor-col-resize",
+	]}
 	role="slider"
 	tabindex={collapsed ? -1 : 0}
 	aria-disabled={collapsed}

@@ -421,11 +421,7 @@
 	oncontextmenu={(event) => event.preventDefault()}
 	onkeydown={handleWindowKeydown} />
 
-<div
-	class:settings-open={activePage === "settings"}
-	class:logs-explorer-open={activePage === "logs-explorer"}
-	class:games-open={activePage === "games"}
-	class="app-frame">
+<div class="flex h-screen flex-col bg-canvas">
 	<WindowTitleBar
 		version={APP_VERSION}
 		pageTitle={activePage === "settings" ? "Settings" : undefined} />
@@ -467,9 +463,8 @@
 				onSearchPlace={(placeId) => void searchGames(`id:${placeId}`)} />
 		{:else}
 			<div
-				class:sidebar-collapsed={workspace.sidebarCollapsed}
-				class="workbench"
-				style={`--sidebar-width: ${workspace.sidebarCollapsed ? 42 : workspace.sidebarWidth}px; --launch-height: ${workspace.launchHeight}px;`}>
+				class="flex min-h-0 flex-1"
+				style={`--sidebar-width: ${workspace.sidebarCollapsed ? 44 : workspace.sidebarWidth}px; --launch-height: ${workspace.launchHeight}px;`}>
 				<AccountSidebar
 					{store}
 					{workspace}
@@ -477,7 +472,7 @@
 					onManageTags={openManageTags}
 					onBrowser={(accountId) => void openManagedBrowser(accountId)} />
 
-				<main class="account-workspace">
+				<main class="account-workspace min-w-0 flex-1">
 					<div class="workspace-scroll">
 						{#if store.multipleSelected || store.selectedAccount.id === 0}
 							<AccountPlaceholder

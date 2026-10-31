@@ -148,7 +148,7 @@
 					<h2 id="account-name" class="account-display-name">
 						<span>{selectedAccount.displayName}</span>
 						{#if selectedAccount.favorite}<StarIcon
-								class="favorite-name-star"
+								class="shrink-0 animate-pop text-accent-strong"
 								size={16}
 								weight="fill"
 								aria-hidden="true" />{/if}
@@ -276,6 +276,8 @@
 						type="button"
 						aria-label="Edit account tags"
 						aria-expanded={workspace.activeAccountMenu === "profile-tags"}
+						data-open={workspace.activeAccountMenu === "profile-tags" ||
+							undefined}
 						data-tooltip="Edit account tags"
 						disabled={store.busy}
 						onclick={() => workspace.toggleAccountMenu("profile-tags")}>

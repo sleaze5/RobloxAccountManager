@@ -7,6 +7,7 @@
 
 {#if url && failed !== url}
 	<img
+		class="block size-full bg-raised object-cover"
 		src={url}
 		alt=""
 		decoding="async"

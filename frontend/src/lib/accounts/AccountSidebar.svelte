@@ -39,8 +39,8 @@
 			const host = node.parentElement
 			if (!host) return
 			const styles = getComputedStyle(node),
-				gap = Number.parseFloat(styles.getPropertyValue("--space-1")),
-				margin = Number.parseFloat(styles.getPropertyValue("--space-2")),
+				gap = Number.parseFloat(styles.getPropertyValue("--spacing")),
+				margin = gap * 2,
 				top = host.getBoundingClientRect().bottom + gap
 			node.style.setProperty(
 				"--tag-filter-height",
@@ -62,12 +62,12 @@
 </script>
 
 <aside
-	class:collapsed={workspace.sidebarCollapsed}
-	class="account-explorer"
+	class="flex min-h-0 w-(--sidebar-width) shrink-0 flex-col bg-surface"
 	aria-label="Account explorer">
 	{#if workspace.sidebarCollapsed}
-		<div class="collapsed-sidebar">
+		<div class="flex h-full flex-col items-center gap-3 pt-2 text-fg-faint">
 			<button
+				class="btn-ghost"
 				type="button"
 				aria-label="Expand account sidebar"
 				data-tooltip="Expand the account sidebar"
@@ -76,16 +76,21 @@
 				<CaretRightIcon size={16} aria-hidden="true" />
 			</button>
 			<UsersIcon size={16} aria-hidden="true" />
-			<span>{store.accountTotal}</span>
+			<span class="font-mono text-2xs">{store.accountTotal}</span>
 		</div>
 	{:else}
-		<div class="explorer-controls">
-			<div class="account-title">
-				<h1>Accounts <span>({store.accountTotal})</span></h1>
-				<div class="account-title-actions">
-					<div class="add-account-host" data-account-menu>
+		<div class="flex shrink-0 flex-col gap-1 px-3 pt-1 pb-2">
+			<div class="relative flex h-7 items-center">
+				<h1>
+					Accounts <span class="font-mono text-2xs font-normal text-fg-faint"
+						>({store.accountTotal})</span>
+				</h1>
+				<div class="ml-auto flex items-center gap-px">
+					<div class="relative" data-account-menu>
 						<button
-							class:active={workspace.activeAccountMenu === "add-account"}
+							class="btn-ghost"
+							data-open={workspace.activeAccountMenu === "add-account" ||
+								undefined}
 							type="button"
 							aria-label="Add account"
 							aria-expanded={workspace.activeAccountMenu ===
@@ -98,6 +103,7 @@
 						</button>
 					</div>
 					<button
+						class="btn-ghost"
 						type="button"
 						aria-label={store.refreshing
 							? "Refreshing accounts"
@@ -117,6 +123,7 @@
 						{/if}
 					</button>
 					<button
+						class="btn-ghost"
 						type="button"
 						aria-label="Collapse account sidebar"
 						data-tooltip="Collapse the account sidebar"
@@ -132,7 +139,7 @@
 						onBrowser={openBrowser} />
 				{/if}
 			</div>
-			<div class="account-filters">
+			<div class="flex items-center gap-1">
 				<div class="search-field">
 					<MagnifyingGlassIcon size={16} aria-hidden="true" />
 					<input
@@ -153,11 +160,16 @@
 						</button>
 					{/if}
 				</div>
-				<div class="tag-filter-host" data-account-menu>
+				<div class="relative shrink-0" data-account-menu>
 					<button
-						class:active={workspace.activeAccountMenu === "tag-filter"}
-						class:filtered={store.selectedTagIds.length > 0}
-						class="tag-filter-trigger"
+						class={[
+							"relative flex size-8 items-center justify-center rounded-md border bg-canvas text-2xs transition-colors duration-100 hover:border-line-focus hover:bg-hover hover:text-accent-strong data-open:border-line-focus data-open:bg-hover data-open:text-accent-strong",
+							store.selectedTagIds.length > 0
+								? "border-line-strong text-accent-strong"
+								: "border-line text-fg-muted",
+						]}
+						data-open={workspace.activeAccountMenu === "tag-filter" ||
+							undefined}
 						bind:this={filterTrigger}
 						type="button"
 						aria-label={store.selectedTagIds.length === 0
@@ -171,23 +183,26 @@
 						onclick={() => workspace.toggleAccountMenu("tag-filter")}>
 						<FunnelIcon size={16} aria-hidden="true" />
 						{#if store.selectedTagIds.length > 0}
-							<span class="tag-filter-count"
+							<span
+								class="absolute -top-1 -right-1 grid h-3.5 min-w-3.5 place-items-center rounded-sm border border-surface bg-accent-strong px-0.5 font-mono text-2xs font-bold text-canvas"
 								>{store.selectedTagIds.length}</span>
 						{/if}
 					</button>
 					{#if workspace.activeAccountMenu === "tag-filter"}
 						<div
-							class="tag-filter-menu account-menu"
+							class="absolute top-full right-0 z-10 mt-1 flex max-h-(--tag-filter-height) menu flex-col"
 							use:constrainTagFilter
 							role="group"
 							aria-label="Filter accounts by tag"
 							in:menuIn
 							out:menuOut>
-							<div class="tag-filter-heading">
-								<strong>Filter by tags</strong>
+							<div
+								class="flex h-8 shrink-0 items-center justify-between gap-2 px-2 py-1">
+								<strong class="text-xs font-semibold text-fg"
+									>Filter by tags</strong>
 								{#if store.selectedTagIds.length > 0}
 									<button
-										class="clear-tag-filters"
+										class="flex h-6 items-center gap-1 rounded-sm border border-line-strong bg-raised px-1 text-2xs font-medium text-fg transition-colors duration-100 hover:bg-raised-hover hover:text-fg-bright"
 										type="button"
 										aria-label="Clear filters"
 										onclick={() => {
@@ -200,6 +215,7 @@
 								{/if}
 							</div>
 							<button
+								class="menu-item shrink-0"
 								type="button"
 								aria-pressed={store.favoriteTag !== null &&
 									store.selectedTagIds.includes(store.favoriteTag.id)}
@@ -218,14 +234,15 @@
 								{#if store.favoriteTag && store.selectedTagIds.includes(store.favoriteTag.id)}<CheckIcon
 										size={16}
 										aria-hidden="true"
-										class="menu-check" />{/if}
+										class="ml-auto shrink-0 animate-pop" />{/if}
 							</button>
-							<div class="account-menu-heading" aria-hidden="true">
+							<div class="menu-heading shrink-0" aria-hidden="true">
 								Tags
 							</div>
-							<div class="tag-filter-list">
+							<div class="max-h-52 min-h-0 overflow-y-auto">
 								{#each store.customTags as tag (tag.id)}
 									<button
+										class="menu-item"
 										type="button"
 										aria-pressed={store.selectedTagIds.includes(
 											tag.id,
@@ -236,14 +253,19 @@
 										{#if store.selectedTagIds.includes(tag.id)}<CheckIcon
 												size={16}
 												aria-hidden="true"
-												class="menu-check" />{/if}
+												class="ml-auto shrink-0 animate-pop" />{/if}
 									</button>
 								{:else}
-									<div class="tag-picker-empty">No custom tags</div>
+									<div class="p-2 text-xs text-fg-faint">
+										No custom tags
+									</div>
 								{/each}
 							</div>
-							<div class="account-menu-separator"></div>
-							<button type="button" onclick={() => onManageTags()}>
+							<div class="menu-separator shrink-0"></div>
+							<button
+								class="menu-item shrink-0"
+								type="button"
+								onclick={() => onManageTags()}>
 								<SlidersIcon size={16} aria-hidden="true" /><span
 									>Manage tags</span>
 							</button>
@@ -253,14 +275,13 @@
 			</div>
 		</div>
 
-		<div
-			class="account-list-region"
-			class:multiple-selected={store.multipleSelected}>
+		<div class="relative grid min-h-0 flex-1 grid-rows-1">
 			<AccountList {store} {workspace} />
 			{#if store.multipleSelected}
-				<div class="account-selection-actions">
+				<div
+					class="pointer-events-none absolute inset-x-0 bottom-2 flex justify-center">
 					<button
-						class="btn-icon"
+						class="pointer-events-auto btn bg-raised shadow-float hover:bg-raised-hover"
 						type="button"
 						in:menuIn
 						out:menuOut
@@ -268,7 +289,9 @@
 							store.clearSelection()
 							workspace.closeAccountMenus()
 							document
-								.querySelector<HTMLButtonElement>(".account-row-select")
+								.querySelector<HTMLButtonElement>(
+									"[data-account-select]",
+								)
 								?.focus()
 						}}>
 						<XIcon size={14} aria-hidden="true" />

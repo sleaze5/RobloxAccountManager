@@ -270,7 +270,7 @@
 				{/if}
 				<div class="automatic-unlock">
 					<label>
-						<span class="cookie-selection">
+						<span class="checkbox">
 							<input bind:checked={automaticUnlock} type="checkbox" />
 							<span aria-hidden="true"
 								><CheckIcon

@@ -147,7 +147,7 @@
 		<div class="process-results">
 			<div class="cookie-results-toolbar">
 				<label class="cookie-select-all">
-					<span class="cookie-selection">
+					<span class="checkbox">
 						<input
 							type="checkbox"
 							checked={allSelected}
@@ -176,7 +176,7 @@
 						{#each processes as process (processKey(process))}
 							<tr class:selected={selected.includes(processKey(process))}>
 								<td class="selection-column">
-									<label class="cookie-selection">
+									<label class="checkbox">
 										<input
 											type="checkbox"
 											checked={selected.includes(

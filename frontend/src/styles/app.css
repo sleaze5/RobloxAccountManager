@@ -9,7 +9,6 @@
 @import "./legacy/tokens.css" layer(legacy);
 @import "./legacy/base.css" layer(legacy);
 @import "./legacy/controls.css" layer(legacy);
-@import "./legacy/shell.css" layer(legacy);
 @import "./legacy/notifications.css" layer(legacy);
 @import "./legacy/settings.css" layer(legacy);
 @import "./legacy/accounts.css" layer(legacy);
