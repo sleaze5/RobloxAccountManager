@@ -38,17 +38,18 @@
 
 {#snippet mark(state: TagState)}
 	{#if state === "on"}
-		<CheckIcon size={16} class="menu-check" aria-hidden="true" />
+		<CheckIcon size={16} class="ml-auto shrink-0 animate-pop" aria-hidden="true" />
 	{:else if state === "mixed"}
-		<MinusIcon size={16} class="menu-check" aria-hidden="true" />
+		<MinusIcon size={16} class="ml-auto shrink-0 animate-pop" aria-hidden="true" />
 	{/if}
 {/snippet}
 
-<div class="tag-picker" role="group" aria-label="Account tags">
+<div class="flex flex-col" role="group" aria-label="Account tags">
 	{#if store.favoriteTag}
 		{@const favorite = store.favoriteTag}
 		{@const state = tagState(favorite)}
 		<button
+			class="menu-item"
 			type="button"
 			aria-pressed={state === "mixed" ? "mixed" : state === "on"}
 			disabled={store.busy}
@@ -61,11 +62,12 @@
 			{@render mark(state)}
 		</button>
 	{/if}
-	<div class="account-menu-heading" aria-hidden="true">Tags</div>
-	<div class="tag-picker-list">
+	<div class="menu-heading" aria-hidden="true">Tags</div>
+	<div class="max-h-52 overflow-y-auto">
 		{#each store.customTags as tag (tag.id)}
 			{@const state = tagState(tag)}
 			<button
+				class="menu-item"
 				type="button"
 				aria-pressed={state === "mixed" ? "mixed" : state === "on"}
 				disabled={store.busy}
@@ -75,11 +77,15 @@
 				{@render mark(state)}
 			</button>
 		{:else}
-			<div class="tag-picker-empty">No custom tags</div>
+			<div class="p-2 text-xs text-fg-faint">No custom tags</div>
 		{/each}
 	</div>
-	<div class="account-menu-separator"></div>
-	<button type="button" disabled={store.busy} onclick={onManageTags}>
+	<div class="menu-separator"></div>
+	<button
+		class="menu-item"
+		type="button"
+		disabled={store.busy}
+		onclick={onManageTags}>
 		<SlidersIcon size={16} aria-hidden="true" /><span>Manage tags</span>
 	</button>
 </div>

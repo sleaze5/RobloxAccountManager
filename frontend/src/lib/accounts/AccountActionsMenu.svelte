@@ -72,16 +72,13 @@
 	}
 </script>
 
-<div class="tag-submenu-host">
-	<button class="tag-submenu-trigger" type="button">
+<div class="relative">
+	<button class="menu-item" type="button">
 		<TagIcon size={16} aria-hidden="true" />
 		<span>Edit tags</span>
-		<CaretRightIcon size={16} class="submenu-chevron" aria-hidden="true" />
+		<CaretRightIcon size={16} class="ml-auto shrink-0" aria-hidden="true" />
 	</button>
-	<div
-		class:open-left={submenuLeft}
-		class="tag-submenu account-menu"
-		data-account-menu>
+	<div class="submenu" data-side={submenuLeft ? "left" : undefined} data-account-menu>
 		<TagPicker
 			{store}
 			accounts={[account]}
@@ -91,24 +88,28 @@
 
 {#if browserOpen}
 	<button
-		class="danger-action"
+		class="menu-item-danger"
 		type="button"
 		onclick={() => void browserStore.close(sessionId)}
 		><XIcon size={16} aria-hidden="true" /><span>Close browser</span></button>
-	<button type="button" onclick={() => void browserStore.focus(sessionId)}
+	<button
+		class="menu-item"
+		type="button"
+		onclick={() => void browserStore.focus(sessionId)}
 		><CornersOutIcon size={16} aria-hidden="true" /><span>Focus browser</span
 		></button>
 {:else}
-	<button type="button" onclick={() => onBrowser(account.id)}
+	<button class="menu-item" type="button" onclick={() => onBrowser(account.id)}
 		><GlobeHemisphereWestIcon size={16} aria-hidden="true" /><span
 			>Open in browser</span
 		></button>
 {/if}
 
 <div role="group" aria-label="Copy account details">
-	<div class="account-menu-heading" aria-hidden="true">Copy</div>
+	<div class="menu-heading" aria-hidden="true">Copy</div>
 	{#each copyFields as item (item.field)}
 		<button
+			class="menu-item"
 			type="button"
 			aria-label={`Copy ${item.label}`}
 			disabled={store.copying}
@@ -120,8 +121,9 @@
 
 {#if account.presence.userPresenceType === PresenceType.PresenceTypeInGame}
 	<div role="group" aria-label="Game">
-		<div class="account-menu-heading" aria-hidden="true">Game</div>
+		<div class="menu-heading" aria-hidden="true">Game</div>
 		<button
+			class="menu-item"
 			type="button"
 			disabled={store.launching ||
 				!account.presence.placeId ||
@@ -137,25 +139,25 @@
 {/if}
 
 <div role="group" aria-label="Session">
-	<div class="account-menu-heading" aria-hidden="true">Session</div>
+	<div class="menu-heading" aria-hidden="true">Session</div>
 	<button
-		class="warning-action"
+		class="menu-item-warning"
 		type="button"
 		disabled={store.copying}
 		onclick={() => void copyField(AccountCopyField.CopyCookie)}>
 		<KeyIcon size={16} aria-hidden="true" /><span>Copy cookie</span>
 	</button>
 	<button
-		class="warning-action"
+		class="menu-item-warning"
 		type="button"
 		disabled={store.busy}
 		onclick={() => onRenewCookie(account.id)}>
 		<ArrowsClockwiseIcon size={16} aria-hidden="true" /><span>Renew cookie</span>
 	</button>
 </div>
-<div class="account-menu-separator"></div>
+<div class="menu-separator"></div>
 <button
-	class="danger-action"
+	class="menu-item-danger"
 	type="button"
 	disabled={store.busy}
 	onclick={() => onRemove(account.id)}>

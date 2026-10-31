@@ -70,7 +70,7 @@
 	onresize={onClose} />
 
 <div
-	class="account-context-menu account-menu"
+	class="fixed menu"
 	bind:this={menu}
 	{id}
 	role="menu"
@@ -80,7 +80,7 @@
 	use:positionMenu={anchor}
 	in:menuIn|global
 	out:menuOut|global>
-	<button type="button" role="menuitem" onclick={onFillLaunch}>
+	<button class="menu-item" type="button" role="menuitem" onclick={onFillLaunch}>
 		<ListPlusIcon size={16} aria-hidden="true" />
 		<span>Fill launch options</span>
 	</button>

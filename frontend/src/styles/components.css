@@ -65,11 +65,11 @@
 }
 
 @utility field {
-	@apply h-8 w-full min-w-0 rounded-md border border-line bg-canvas px-2 text-sm text-fg outline-0 transition-colors duration-100 placeholder:text-fg-faint focus:border-line-focus disabled:cursor-not-allowed disabled:opacity-45 aria-invalid:border-danger/40;
+	@apply h-8 w-full min-w-0 rounded-md border border-line bg-base px-2 text-sm text-fg outline-0 transition-colors duration-100 placeholder:text-fg-faint focus:border-line-focus disabled:cursor-not-allowed disabled:opacity-45 aria-invalid:border-danger/40;
 }
 
 @utility search-field {
-	@apply flex h-8 min-w-0 flex-1 items-center gap-2 rounded-md border border-line bg-canvas px-2 text-fg-faint transition-colors duration-100 focus-within:border-line-focus;
+	@apply flex h-8 min-w-0 flex-1 items-center gap-2 rounded-md border border-line bg-base px-2 text-fg-faint transition-colors duration-100 focus-within:border-line-focus;
 
 	& input {
 		@apply w-full min-w-0 bg-transparent text-xs text-fg outline-0 placeholder:text-fg-faint;
@@ -92,7 +92,7 @@
 	}
 
 	& > span {
-		@apply grid size-3.5 place-items-center rounded-sm border border-line-strong bg-canvas text-on-solid transition-colors duration-100;
+		@apply grid size-3.5 place-items-center rounded-sm border border-line-strong bg-base text-on-solid transition-colors duration-100;
 	}
 
 	& svg {
@@ -185,7 +185,7 @@
 }
 
 @utility segmented {
-	@apply grid auto-cols-fr grid-flow-col gap-0.5 rounded-md border border-line bg-canvas p-0.5;
+	@apply grid auto-cols-fr grid-flow-col gap-0.5 rounded-md border border-line bg-base p-0.5;
 
 	& > button {
 		@apply flex h-6 items-center justify-center gap-1 rounded-sm px-2 text-xs font-medium whitespace-nowrap text-fg-faint transition-colors duration-100 hover:text-fg aria-pressed:bg-raised aria-pressed:text-fg;
@@ -215,12 +215,40 @@
 	}
 
 	& > svg {
-		@apply shrink-0;
+		@apply shrink-0 animate-pop;
 	}
 }
 
+@utility menu-item-danger {
+	@apply menu-item text-danger hover:text-danger;
+}
+
+@utility menu-item-warning {
+	@apply menu-item enabled:text-warning enabled:hover:text-warning;
+}
+
 @utility menu-heading {
-	@apply mx-1 mt-2 mb-1 flex items-center gap-2 text-2xs font-semibold text-fg-faint;
+	@apply mx-1 mt-2 mb-1 flex items-center gap-2 text-2xs font-semibold text-fg-faint before:h-px before:w-2 before:bg-line-subtle after:h-px after:flex-1 after:bg-line-subtle;
+}
+
+@utility submenu {
+	@apply pointer-events-none invisible absolute -top-1.5 left-full z-10 ml-0.5 menu origin-top-left translate-y-0.5 opacity-0;
+	transition:
+		opacity var(--duration-exit) var(--ease-in-out),
+		translate var(--duration-exit) var(--ease-in-out),
+		visibility 0s linear var(--duration-exit);
+
+	&[data-side="left"] {
+		@apply right-full left-auto mr-0.5 ml-0 origin-top-right;
+	}
+
+	:where(:hover, :focus-within) > & {
+		@apply pointer-events-auto visible translate-y-0 opacity-100;
+		transition:
+			opacity var(--duration-fast) var(--ease-out),
+			translate var(--duration-fast) var(--ease-out),
+			visibility 0s;
+	}
 }
 
 @utility menu-separator {
@@ -232,7 +260,7 @@
 }
 
 @utility dialog-card {
-	@apply max-h-full w-full max-w-sm overflow-x-hidden overflow-y-auto rounded-xl border border-line bg-surface p-4 shadow-float;
+	@apply max-h-full w-full max-w-sm overflow-x-hidden overflow-y-auto rounded-xl border border-line bg-overlay p-4 shadow-float;
 }
 
 @utility notice {

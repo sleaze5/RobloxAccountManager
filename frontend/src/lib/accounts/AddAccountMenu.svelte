@@ -17,7 +17,7 @@
 </script>
 
 <div
-	class="absolute top-full right-0 z-10 mt-0.5 menu w-48"
+	class={["menu", !anchor && "absolute top-full right-0 z-10 mt-0.5"]}
 	data-account-menu
 	use:floatMenu={{ anchor, align: "center" }}
 	in:menuIn

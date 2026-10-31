@@ -12,7 +12,6 @@
 @import "./legacy/notifications.css" layer(legacy);
 @import "./legacy/settings.css" layer(legacy);
 @import "./legacy/accounts.css" layer(legacy);
-@import "./legacy/account-menus.css" layer(legacy);
 @import "./legacy/profile.css" layer(legacy);
 @import "./legacy/chats.css" layer(legacy);
 @import "./legacy/launch.css" layer(legacy);

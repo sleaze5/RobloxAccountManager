@@ -99,7 +99,7 @@
 
 {#if open}
 	<div
-		class="account-context-menu account-menu"
+		class="fixed menu"
 		bind:this={menu}
 		id={menuId}
 		role="menu"
@@ -110,6 +110,7 @@
 		in:menuIn
 		out:menuOut>
 		<button
+			class="menu-item"
 			type="button"
 			role="menuitem"
 			tabindex="-1"
@@ -118,6 +119,7 @@
 			<span>{hasSavedPassword ? "Update saved password" : "Save password"}</span>
 		</button>
 		<button
+			class="menu-item"
 			type="button"
 			role="menuitem"
 			tabindex="-1"

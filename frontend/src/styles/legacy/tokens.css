@@ -2,13 +2,13 @@
 	color-scheme: dark;
 
 	--color-base: #0a0a0a;
-	--color-bg: #0d0d0d;
+	--color-bg: #0f0f0f;
 	--color-surface: #111111;
-	--color-surface-raised: #1c1c1c;
-	--color-surface-raised-hover: #222222;
-	--color-dialog: #111111;
-	--color-overlay: rgb(17 17 17 / 98%);
-	--color-input: #0d0d0d;
+	--color-surface-raised: #1a1a1a;
+	--color-surface-raised-hover: #1f1f1f;
+	--color-dialog: rgb(20 20 20 / 98%);
+	--color-overlay: rgb(20 20 20 / 98%);
+	--color-input: #0a0a0a;
 	--color-scrim: rgb(0 0 0 / 72%);
 	--color-scrim-vault: rgb(10 10 10 / 90%);
 	--color-fill-subtle: rgb(255 255 255 / 3%);
@@ -26,10 +26,10 @@
 	--color-accent-strong: #d4d4d4;
 
 	--color-border-subtle: rgb(255 255 255 / 6%);
-	--color-border: #1f1f1f;
-	--color-border-strong: #2c2c2c;
+	--color-border: #1c1c1c;
+	--color-border-strong: #282828;
 	--color-border-focus: rgb(255 255 255 / 22%);
-	--color-hover: #1f1f1f;
+	--color-hover: #1a1a1a;
 	--color-active: rgb(255 255 255 / 4.5%);
 	--color-focus-ring: rgb(255 255 255 / 40%);
 	--color-scrollbar-thumb: rgb(163 163 163 / 22%);

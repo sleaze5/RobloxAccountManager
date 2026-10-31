@@ -38,12 +38,12 @@
 		class="flex min-h-0 flex-1"
 		style={`--sidebar-width: ${store.sidebarCollapsed ? 44 : store.sidebarWidth}px;`}>
 		<aside
-			class="account-explorer w-(--sidebar-width) shrink-0"
-			class:collapsed={store.sidebarCollapsed}
+			class="flex min-h-0 w-(--sidebar-width) shrink-0 flex-col bg-surface"
 			aria-label="Launch sessions">
 			{#if store.sidebarCollapsed}
-				<div class="collapsed-sidebar">
+				<div class="flex h-full flex-col items-center gap-3 pt-2 text-fg-faint">
 					<button
+						class="btn-ghost"
 						type="button"
 						aria-label="Expand logs sidebar"
 						data-tooltip="Expand the logs sidebar"
@@ -51,14 +51,19 @@
 						onclick={() => (store.sidebarCollapsed = false)}
 						><CaretRightIcon size={16} aria-hidden="true" /></button>
 					<FileMagnifyingGlassIcon size={16} aria-hidden="true" />
-					<span>{store.sessions.length}</span>
+					<span class="font-mono text-2xs">{store.sessions.length}</span>
 				</div>
 			{:else}
-				<div class="explorer-controls">
-					<div class="account-title">
-						<h1>Logs <span>({store.sessions.length})</span></h1>
-						<div class="account-title-actions">
+				<div class="flex shrink-0 flex-col gap-1 px-3 pt-1 pb-2">
+					<div class="relative flex h-7 items-center">
+						<h1>
+							Logs <span
+								class="font-mono text-2xs font-normal text-fg-faint"
+								>({store.sessions.length})</span>
+						</h1>
+						<div class="ml-auto flex items-center gap-px">
 							<button
+								class="btn-ghost"
 								type="button"
 								disabled={store.refreshing}
 								aria-busy={store.refreshing}
@@ -76,6 +81,7 @@
 										aria-hidden="true" />{/if}
 							</button>
 							<button
+								class="btn-ghost"
 								type="button"
 								aria-label="Collapse logs sidebar"
 								data-tooltip="Collapse the logs sidebar"
@@ -84,7 +90,7 @@
 								><CaretLeftIcon size={16} aria-hidden="true" /></button>
 						</div>
 					</div>
-					<div class="account-filters">
+					<div class="flex items-center gap-1">
 						<div class="search-field">
 							<MagnifyingGlassIcon size={16} aria-hidden="true" /><input
 								type="text"
@@ -99,7 +105,9 @@
 						</div>
 					</div>
 				</div>
-				<div class="logs-explorer-session-list" aria-busy={store.refreshing}>
+				<div
+					class="logs-explorer-session-list flex-1"
+					aria-busy={store.refreshing}>
 					{#each sessions as session (session.fileName)}
 						{@const visitCount = session.visits?.length ?? 0}
 						<button

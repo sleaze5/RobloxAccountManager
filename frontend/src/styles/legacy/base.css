@@ -1,7 +1,6 @@
 :where(
 	.account-row,
 	.game-row,
-	.account-menu button,
 	.settings-header button,
 	.settings-select-trigger,
 	.settings-select-menu button,
@@ -63,8 +62,6 @@
 }
 
 .visibility-control > svg,
-.password-checklist li > svg,
-.account-menu button > svg,
-.menu-check {
+.password-checklist li > svg {
 	animation: icon-enter var(--duration-fast) var(--ease-sharp);
 }

@@ -285,7 +285,7 @@
 					</button>
 					{#if workspace.activeAccountMenu === "profile-tags"}
 						<div
-							class="profile-tag-menu account-menu"
+							class="menu"
 							data-account-menu
 							use:floatMenu={{ anchor: tagsButton, align: "start" }}
 							in:menuIn

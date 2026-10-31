@@ -108,7 +108,7 @@
 	</button>
 	{#if point}
 		<div
-			class="account-context-menu account-menu"
+			class="fixed menu"
 			data-account-menu
 			bind:this={menu}
 			role="menu"
@@ -130,6 +130,7 @@
 			in:menuIn
 			out:menuOut>
 			<button
+				class="menu-item"
 				type="button"
 				role="menuitem"
 				tabindex="-1"

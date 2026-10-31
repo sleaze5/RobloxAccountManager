@@ -66,7 +66,7 @@
 			<UserPlusIcon size={28} aria-hidden="true" />
 			<h2>No accounts yet</h2>
 			<p>Sign in with a browser or paste a cookie.</p>
-			<div class="add-account-host" data-account-menu>
+			<div class="relative" data-account-menu>
 				<button
 					bind:this={trigger}
 					class="btn-primary"

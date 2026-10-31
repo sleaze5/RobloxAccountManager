@@ -163,7 +163,7 @@
 				<div class="relative shrink-0" data-account-menu>
 					<button
 						class={[
-							"relative flex size-8 items-center justify-center rounded-md border bg-canvas text-2xs transition-colors duration-100 hover:border-line-focus hover:bg-hover hover:text-accent-strong data-open:border-line-focus data-open:bg-hover data-open:text-accent-strong",
+							"relative flex size-8 items-center justify-center rounded-md border bg-base text-2xs transition-colors duration-100 hover:border-line-focus hover:bg-hover hover:text-accent-strong data-open:border-line-focus data-open:bg-hover data-open:text-accent-strong",
 							store.selectedTagIds.length > 0
 								? "border-line-strong text-accent-strong"
 								: "border-line text-fg-muted",

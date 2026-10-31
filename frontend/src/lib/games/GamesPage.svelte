@@ -159,12 +159,12 @@
 		class="flex min-h-0 flex-1"
 		style={`--sidebar-width: ${store.sidebarCollapsed ? 44 : store.sidebarWidth}px;`}>
 		<aside
-			class="account-explorer w-(--sidebar-width) shrink-0"
-			class:collapsed={store.sidebarCollapsed}
+			class="flex min-h-0 w-(--sidebar-width) shrink-0 flex-col bg-surface"
 			aria-label="Game browser">
 			{#if store.sidebarCollapsed}
-				<div class="collapsed-sidebar">
+				<div class="flex h-full flex-col items-center gap-3 pt-2 text-fg-faint">
 					<button
+						class="btn-ghost"
 						type="button"
 						aria-label="Expand games sidebar"
 						data-tooltip="Expand the games sidebar"
@@ -172,18 +172,23 @@
 						onclick={() => (store.sidebarCollapsed = false)}
 						><CaretRightIcon size={16} aria-hidden="true" /></button>
 					<GameControllerIcon size={16} aria-hidden="true" />
-					{#if favoritesMode}<span>{store.favorites.length}</span>{/if}
+					{#if favoritesMode}<span class="font-mono text-2xs"
+							>{store.favorites.length}</span
+						>{/if}
 				</div>
 			{:else}
-				<div class="explorer-controls">
-					<div class="account-title">
+				<div class="flex shrink-0 flex-col gap-1 px-3 pt-1 pb-2">
+					<div class="relative flex h-7 items-center">
 						<h1>
 							Games
-							{#if favoritesMode}<span>({store.favorites.length})</span
+							{#if favoritesMode}<span
+									class="font-mono text-2xs font-normal text-fg-faint"
+									>({store.favorites.length})</span
 								>{/if}
 						</h1>
-						<div class="account-title-actions">
+						<div class="ml-auto flex items-center gap-px">
 							<button
+								class="btn-ghost"
 								type="button"
 								aria-label="Collapse games sidebar"
 								data-tooltip="Collapse the games sidebar"
@@ -194,7 +199,7 @@
 					</div>
 					<form
 						novalidate
-						class="account-filters"
+						class="flex items-center gap-1"
 						role="search"
 						onsubmit={(event) => {
 							event.preventDefault()
@@ -269,7 +274,7 @@
 						</button>
 					</div>
 				</div>
-				<div class="account-list-region">
+				<div class="relative grid min-h-0 flex-1 grid-rows-1">
 					<div
 						class="games-list"
 						class:has-search-results={hasSearch}

@@ -72,7 +72,7 @@
 </script>
 
 <div
-	class="account-context-menu account-menu"
+	class="fixed menu"
 	data-account-menu
 	role="menu"
 	aria-label="Image actions"
@@ -82,6 +82,7 @@
 	in:menuIn
 	out:menuOut>
 	<button
+		class="menu-item"
 		type="button"
 		role="menuitem"
 		disabled={store.copying}
@@ -89,6 +90,7 @@
 		<span>{copyingImage ? "Copying image…" : "Copy image"}</span>
 	</button>
 	<button
+		class="menu-item"
 		type="button"
 		role="menuitem"
 		disabled={store.copying}

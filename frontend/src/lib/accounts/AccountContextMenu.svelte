@@ -56,7 +56,7 @@
 </script>
 
 <div
-	class="account-context-menu account-menu"
+	class="fixed menu"
 	role="group"
 	aria-label={store.multipleSelected ? "Selected account actions" : "Account actions"}
 	tabindex="-1"

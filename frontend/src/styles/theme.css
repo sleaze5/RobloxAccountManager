@@ -20,15 +20,15 @@
 	--text-*: initial;
 
 	--color-base: #0a0a0a;
-	--color-canvas: #0d0d0d;
+	--color-canvas: #0f0f0f;
 	--color-surface: #111111;
-	--color-raised: #1c1c1c;
-	--color-raised-hover: #222222;
-	--color-overlay: rgb(17 17 17 / 98%);
+	--color-raised: #1a1a1a;
+	--color-raised-hover: #1f1f1f;
+	--color-overlay: rgb(20 20 20 / 98%);
 	--color-scrim: rgb(0 0 0 / 72%);
 	--color-scrim-strong: rgb(10 10 10 / 90%);
 	--color-fill: rgb(255 255 255 / 3%);
-	--color-hover: #1f1f1f;
+	--color-hover: #1a1a1a;
 	--color-hover-overlay: rgb(255 255 255 / 7%);
 	--color-active: rgb(255 255 255 / 4.5%);
 
@@ -43,8 +43,8 @@
 	--color-accent-strong: #d4d4d4;
 
 	--color-line-subtle: rgb(255 255 255 / 6%);
-	--color-line: #1f1f1f;
-	--color-line-strong: #2c2c2c;
+	--color-line: #1c1c1c;
+	--color-line-strong: #282828;
 	--color-line-focus: rgb(255 255 255 / 22%);
 	--color-focus: rgb(255 255 255 / 40%);
 	--color-scrollbar: rgb(163 163 163 / 22%);

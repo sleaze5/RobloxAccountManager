@@ -216,18 +216,6 @@
 	gap: var(--space-1);
 }
 
-.edit-tags-host {
-	position: relative;
-	display: inline-flex;
-}
-
-.profile-tag-menu {
-	position: absolute;
-	top: calc(100% + var(--space-1));
-	left: 0;
-	z-index: var(--layer-menu);
-}
-
 .profile-verified-badge {
 	flex: 0 0 auto;
 	color: var(--color-accent-strong);

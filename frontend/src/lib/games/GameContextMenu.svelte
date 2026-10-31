@@ -71,7 +71,7 @@
 	}} />
 
 <div
-	class="account-context-menu account-menu game-context-menu"
+	class="fixed menu"
 	role="group"
 	aria-label={`${store.displayName(place)} actions`}
 	tabindex="-1"
@@ -80,6 +80,7 @@
 	in:menuIn
 	out:menuOut>
 	<button
+		class="menu-item"
 		type="button"
 		onclick={() => {
 			const { placeId } = place
@@ -89,7 +90,10 @@
 		><ListPlusIcon size={16} aria-hidden="true" /><span>Fill launch options</span
 		></button>
 	{#if favorite}
-		<button type="button" onclick={() => store.editNickname(place)}
+		<button
+			class="menu-item"
+			type="button"
+			onclick={() => store.editNickname(place)}
 			><PencilLineIcon size={16} aria-hidden="true" /><span
 				>{store.nicknameFor(place.placeId)
 					? "Edit nickname"
@@ -97,6 +101,7 @@
 			></button>
 	{:else}
 		<button
+			class="menu-item"
 			type="button"
 			disabled={favoriteBusy}
 			onclick={() => void store.toggleFavorite(place)}
@@ -105,23 +110,27 @@
 	{/if}
 
 	<div role="group" aria-label="Copy game details">
-		<div class="account-menu-heading" aria-hidden="true">Copy</div>
+		<div class="menu-heading" aria-hidden="true">Copy</div>
 		<button
+			class="menu-item"
 			type="button"
 			aria-label="Copy game name"
 			onclick={() => void store.copy(place.name, "Game name")}
 			><TextTIcon size={16} aria-hidden="true" /><span>Name</span></button>
 		<button
+			class="menu-item"
 			type="button"
 			aria-label="Copy place ID"
 			onclick={() => void store.copy(place.placeId, "Place ID")}
 			><HashIcon size={16} aria-hidden="true" /><span>Place ID</span></button>
 		<button
+			class="menu-item"
 			type="button"
 			aria-label="Copy universe ID"
 			onclick={() => void store.copy(place.universeId, "Universe ID")}
 			><HashIcon size={16} aria-hidden="true" /><span>Universe ID</span></button>
 		<button
+			class="menu-item"
 			type="button"
 			aria-label={`Copy ${owner.toLowerCase()} name`}
 			disabled={!place.creatorName}
@@ -134,6 +143,7 @@
 			<span>{owner} name</span>
 		</button>
 		<button
+			class="menu-item"
 			type="button"
 			aria-label={`Copy ${owner.toLowerCase()} ID`}
 			disabled={!place.creatorId}
@@ -141,9 +151,9 @@
 			><HashIcon size={16} aria-hidden="true" /><span>{owner} ID</span></button>
 	</div>
 	{#if favorite}
-		<div class="account-menu-separator"></div>
+		<div class="menu-separator"></div>
 		<button
-			class="danger-action"
+			class="menu-item-danger"
 			type="button"
 			disabled={favoriteBusy}
 			onclick={() => void store.toggleFavorite(place)}
