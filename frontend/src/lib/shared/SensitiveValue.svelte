@@ -7,27 +7,12 @@
 </script>
 
 <button
-	class="sensitive-value cursor-help rounded-md tabular-nums focus-visible:outline-offset-2"
-	class:revealed
+	class="max-w-full cursor-pointer rounded-md text-left wrap-anywhere tabular-nums focus-visible:outline-offset-2"
 	type="button"
 	aria-pressed={revealed}
 	aria-label={revealed ? undefined : `${label} hidden. Click to reveal`}
 	data-tooltip={revealed ? "Click to hide" : "Click to reveal"}
 	data-tooltip-side="top"
 	onclick={() => (revealed = !revealed)}>
-	<span>{@render children()}</span>
+	<span class={[!revealed && "blur-sm select-none"]}>{@render children()}</span>
 </button>
-
-<style>
-	.sensitive-value {
-		max-width: 100%;
-		cursor: pointer;
-		text-align: left;
-		overflow-wrap: anywhere;
-	}
-
-	.sensitive-value:not(.revealed) > span {
-		filter: blur(var(--blur-sensitive));
-		user-select: none;
-	}
-</style>

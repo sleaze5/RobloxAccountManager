@@ -261,6 +261,16 @@
 
 @utility dialog-card {
 	@apply max-h-full w-full max-w-sm overflow-x-hidden overflow-y-auto rounded-xl border border-line bg-overlay p-4 shadow-float;
+
+	:where(&) h2 {
+		@apply text-base font-semibold text-fg;
+	}
+
+	:where(&) > p,
+	:where(&) > form > p,
+	:where(&) :where(.dialog-heading) p {
+		@apply mt-1 text-sm leading-normal text-fg-muted;
+	}
 }
 
 @utility notice {
@@ -533,4 +543,84 @@
 @utility timeline {
 	@apply grid gap-x-3;
 	grid-template-columns: max-content minmax(0, 1fr);
+}
+
+@utility dialog-heading {
+	@apply mb-3 flex items-start justify-between gap-3;
+
+	:where(&) > div {
+		@apply text-left;
+	}
+
+	:where(&) > button {
+		@apply btn-close;
+	}
+}
+
+@utility dialog-field {
+	@apply mt-3 block text-left;
+
+	:where(&) > span {
+		@apply mb-1 flex items-center justify-between text-xs font-medium text-fg-muted;
+	}
+
+	:where(&) > span b {
+		@apply text-2xs font-semibold text-warning;
+	}
+
+	:where(&) input:not([type="checkbox"], [type="radio"]) {
+		@apply field;
+	}
+
+	:where(&) textarea {
+		@apply field h-24 resize-none overflow-x-hidden p-2 font-mono text-2xs leading-normal wrap-anywhere;
+	}
+}
+
+@utility dialog-actions {
+	@apply mt-3 flex justify-end gap-2;
+}
+
+@utility checklist {
+	@apply mt-3 grid grid-cols-2 gap-x-2 gap-y-1 text-left;
+
+	:where(&) > li {
+		@apply flex items-center gap-1 text-xs text-fg-muted;
+	}
+
+	:where(&) > li > svg {
+		@apply invisible animate-pop;
+	}
+
+	&[data-touched] > li {
+		@apply text-danger-muted;
+	}
+
+	&[data-touched] > li > svg {
+		@apply visible;
+	}
+
+	&[data-touched] > li[data-valid] {
+		@apply text-fg-bright;
+	}
+}
+
+@utility transfer {
+	@apply flex w-full min-w-0 flex-col gap-1 text-fg-muted;
+
+	:where(&) strong {
+		@apply flex items-center gap-1 text-sm font-semibold text-fg;
+	}
+
+	:where(&) span {
+		@apply font-mono text-2xs tabular-nums;
+	}
+}
+
+@utility progress-bar {
+	@apply mt-1 h-1.5 w-full overflow-hidden rounded-sm bg-raised;
+
+	:where(&) > div {
+		@apply h-full origin-left bg-accent transition-transform duration-150;
+	}
 }

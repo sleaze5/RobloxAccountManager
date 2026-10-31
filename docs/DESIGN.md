@@ -19,8 +19,6 @@ The frontend is styled with Tailwind CSS 4. Markup carries utility classes. Styl
 - `frontend/src/lib/shared/presence.ts` defines the enter and exit transitions for menus, dialogs, tooltips, and notifications that mount and unmount with `{#if}`. Reuse them.
 - [`assets/icon.svg`](../assets/icon.svg) is the editable source of the application icon.
 
-During the migration to Tailwind, `frontend/src/styles/legacy/` holds the stylesheets that markup has not left yet. They load in a cascade layer below the utilities. Do not add rules there. When markup moves to utilities, delete the legacy rules it used, and delete each file when it is empty.
-
 ## Writing styles
 
 - Style an element with utility classes in its `class` attribute. Write each class name in full, never built from parts, so that Tailwind can find it.
@@ -47,7 +45,7 @@ During the migration to Tailwind, `frontend/src/styles/legacy/` holds the styles
 
 ## Building blocks
 
-Build from these parts before you write new styles. If a part lacks a variant you need, extend the part. Do not create a parallel style for the same role.
+Build from these parts before you write new styles. If a part lacks a variant you need, extend the part. Do not create a parallel style for the same role. Building blocks keep their descendant rules inside `:where()`, so a utility on an element overrides them.
 
 Buttons (`@utility` classes):
 
@@ -57,37 +55,50 @@ Buttons (`@utility` classes):
 - `btn-ghost`: a borderless icon-only button. `btn-ghost-sm` is its 24px form.
 - `btn-close`: the 24px close button of a dialog, notice, or error. It inherits the text color.
 - `btn-danger` and `btn-warning`: confirmation actions with a danger or warning tone. See [Destructive actions](#destructive-actions).
+- Set `data-open` on a button while the menu it opens is open.
 
 Inputs:
 
 - `field`: a text field. `search-field` wraps a search input with a leading icon and a clear button.
-- `lib/shared/Select.svelte`: a dropdown. Use it instead of `<select>`.
+- `lib/shared/Select.svelte`: a dropdown. Use it instead of `<select>`. Pass its width with `className`.
 - `lib/shared/NumberStepper.svelte`: a numeric input.
-- `checkbox`: a checkbox. Use it instead of a native checkbox.
+- `checkbox`: a checkbox. `check-option` is a checkbox with a label and an optional description.
 - `switch`: a switch. Its input has `role="switch"`.
-- `radio`: a radio button.
+- `radio` inside `radio-option`: a radio button with its label.
 - `segmented`: two to four mutually exclusive options that stay visible.
+- `checklist`: requirements that turn valid or invalid as the user types, with `data-touched` and `data-valid`.
 
 Surfaces and feedback:
 
-- `menu`, `menu-item`, `menu-heading`, and `menu-separator`: menus and context menus.
-- `dialog-backdrop` and `dialog-card`: dialogs. See [Dialogs](#dialogs).
+- `menu`, `menu-item`, `menu-item-danger`, `menu-item-warning`, `menu-heading`, and `menu-separator`: menus and context menus. `submenu` opens beside a menu item on hover or focus.
+- `dialog-backdrop`, `dialog-card`, `dialog-heading`, `dialog-field`, and `dialog-actions`: dialogs. See [Dialogs](#dialogs).
 - `notice-warning`, `notice-error`, and `notice-note`: inline notices.
 - `lib/shared/OperationError.svelte`: a failed operation that has no specific place on the page.
 - `lib/notifications/notification-center.svelte.ts`: notifications.
 - `lib/shared/Tooltip.svelte`: tooltips, through the `data-tooltip` attribute.
+- `transfer` and `progress-bar`: download and install progress.
+- `spinner`: the busy spinner on an icon.
 
 Content:
 
 - `empty-state`: empty, loading, and unavailable states for a page or pane.
-- `tag-pill`: tags.
-- `list-row`: a row in a selectable list.
+- `tag-pill` and `tag-pill-favorite`: tags.
+- `list-row`: a row in a selectable list, with `data-selected` and `data-open`.
+- `facts`: a list of labels and values, written as a `<dl>`. Set `data-tone` on a row for a success, warning, or muted value.
+- `detail-grid`: compact label and value pairs in columns.
+- `timeline`: a two-column timeline of markers and cards.
+- `server-table`, `server-columns`, `server-row`, `server-number`, and `server-tag`: the game server tables.
 - `text-block`: multi-line technical text.
 - `lib/shared/Timestamp.svelte`, `lib/shared/CompactNumber.svelte`, and `lib/shared/SensitiveValue.svelte`: formatted dates, compact numbers, and hidden secrets.
 
 Layout:
 
 - The workbench: the sidebar and detail pane layout of Accounts, Games, and Logs Explorer, with `lib/layout/SidebarResizer.svelte` as the resizer and `lib/layout/StatusBar.svelte` as the status strip.
+- `settings-page`, `settings-header`, `settings-layout`, `settings-sidebar`, `settings-nav` with `nav-item`, and `settings-content`: Settings, account settings, chats, and other sub-pages with a navigation sidebar.
+- `settings-section`, `settings-rows`, `settings-row`, and `settings-row-copy`: groups of settings.
+- `scrollbar-stable`: reserve the scrollbar gutter in a scrolling list.
+
+Scripts find elements through data attributes, never through class names, because utility classes change with the design.
 
 ## Embedded browser UI
 
@@ -227,7 +238,7 @@ Color:
 
 ### Dialogs
 
-1. Render the dialog as a `dialog-card` inside a `dialog-backdrop`. Set its width with a `max-w-*` container size. Use `modalFocus` and the dialog transitions from `presence.ts`. `modalFocus` moves focus to the first text field, or to the first control when the dialog has no text field.
+1. Render the dialog as a `dialog-card` inside a `dialog-backdrop`. Set its width with a `max-w-*` container size. Put the title and description in a `dialog-heading`, fields in `dialog-field`, and actions in `dialog-actions`. Use `modalFocus` and the dialog transitions from `presence.ts`. `modalFocus` moves focus to the first text field, or to the first control when the dialog has no text field.
 2. Use `role="dialog"`. Use `role="alertdialog"` for a confirmation.
 3. Put the title and an optional one-sentence description at the top.
 4. Put a `btn-close` in the top-right corner. Omit the close button only when the user must complete the dialog, such as the vault lock screen.

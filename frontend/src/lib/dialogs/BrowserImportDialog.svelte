@@ -201,16 +201,16 @@
 	}
 </script>
 
-<div class="modal-backdrop" in:modalBackdropIn out:modalBackdropOut>
+<div class="dialog-backdrop" in:modalBackdropIn out:modalBackdropOut>
 	<div
-		class="modal-card browser-import-card"
+		class="dialog-card max-w-2xl"
 		use:modalFocus
 		in:modalCardIn
 		out:modalCardOut
 		role="dialog"
 		aria-modal="true"
 		aria-labelledby="browser-import-title">
-		<div class="modal-heading">
+		<div class="dialog-heading">
 			<div>
 				<h2 id="browser-import-title">Add accounts with a browser</h2>
 				<p>
@@ -219,10 +219,10 @@
 				</p>
 			</div>
 		</div>
-		{#if browser.error}<div class="modal-error" role="alert">
+		{#if browser.error}<div class="mt-3 notice-error" role="alert">
 				{browser.error}
 			</div>{/if}
-		<div class="browser-session-toolbar">
+		<div class="mt-3 flex items-center justify-between gap-2">
 			<button
 				type="button"
 				class="btn"
@@ -237,7 +237,7 @@
 				>{/if}
 		</div>
 		<button
-			class="browser-session-summary"
+			class="mt-2 flex min-h-7 w-full items-center justify-between rounded-md border border-line bg-fill px-2 text-xs text-fg-muted"
 			type="button"
 			aria-expanded={sessionsExpanded}
 			onclick={() => (sessionsExpanded = !sessionsExpanded)}>
@@ -247,19 +247,24 @@
 					? "session"
 					: "sessions"}</span
 			><CaretDownIcon
-				class={sessionsExpanded ? "open" : undefined}
+				class={[
+					"transition-transform duration-100",
+					sessionsExpanded && "rotate-180",
+				]}
 				size={16}
 				aria-hidden="true" />
 		</button>
 		{#if sessionsExpanded && sessions.length > 0}
-			<div class="browser-session-list">
+			<div class="mt-1 overflow-hidden rounded-md border border-line">
 				{#each sessions as session (session.id)}
-					<div class="browser-session-row">
-						<span
-							><strong>{session.title}</strong><small
+					<div
+						class="flex min-h-10 items-center justify-between gap-3 px-2 py-1 not-first:border-t not-first:border-line-subtle">
+						<span class="flex min-w-0 flex-col"
+							><strong class="text-xs text-fg">{session.title}</strong
+							><small class="font-mono text-2xs text-fg-faint"
 								>{session.lifecycle}</small
 							></span>
-						<div>
+						<div class="flex items-center gap-2">
 							<button
 								class="btn"
 								type="button"
@@ -281,10 +286,10 @@
 								><XIcon size={16} aria-hidden="true" />Close</button>
 						</div>
 					</div>
-					{#if session.checkpointWarning}<div class="modal-warning">
+					{#if session.checkpointWarning}<div class="mt-3 notice-warning">
 							{session.checkpointWarning}
 						</div>{/if}
-					{#if session.error}<div class="modal-warning">
+					{#if session.error}<div class="mt-3 notice-warning">
 							{session.error}
 						</div>{/if}
 				{/each}
@@ -299,15 +304,17 @@
 				onToggle={toggleCandidate}
 				onToggleAll={toggleAll} />
 		{:else if launchingInitial}
-			<div class="modal-note">Starting browser…</div>
+			<div class="mt-3 notice-note">Starting browser…</div>
 		{:else if activeLoginSessions.length === 0}
-			<div class="modal-note">No account candidates are waiting to be saved.</div>
+			<div class="mt-3 notice-note">
+				No account candidates are waiting to be saved.
+			</div>
 		{:else}
-			<div class="modal-note">
+			<div class="mt-3 notice-note">
 				Account checks appear here after a browser signs in.
 			</div>
 		{/if}
-		<div class="modal-actions">
+		<div class="dialog-actions">
 			{#if candidates.length > 0 && activeLoginSessions.length === 0}<button
 					class="btn"
 					type="button"

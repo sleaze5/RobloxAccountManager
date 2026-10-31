@@ -20,7 +20,7 @@
 </script>
 
 <button
-	class="timestamp"
+	class="cursor-help rounded-md font-medium text-fg-muted transition-colors duration-100 hover:text-fg focus-visible:text-fg focus-visible:outline-offset-2"
 	type="button"
 	aria-label={tooltip}
 	data-tooltip={tooltip}
@@ -29,27 +29,3 @@
 	onfocus={refreshTooltip}>
 	<time datetime={dateTime}>{shown}</time>
 </button>
-
-<style>
-	.timestamp {
-		padding: 0;
-		border: 0;
-		border-radius: var(--radius-control);
-		background: transparent;
-		color: var(--color-text-muted);
-		font: inherit;
-		font-weight: var(--font-medium);
-		cursor: help;
-		transition: color var(--duration-fast) var(--ease-standard);
-	}
-
-	.timestamp:hover,
-	.timestamp:focus-visible {
-		color: var(--color-text);
-	}
-
-	.timestamp:focus-visible {
-		outline: var(--focus-ring-width) solid var(--color-focus-ring);
-		outline-offset: 2px;
-	}
-</style>

@@ -101,9 +101,12 @@
 	}
 </script>
 
-<div class="modal-backdrop vault-gate" in:modalBackdropIn out:modalBackdropOut>
+<div
+	class="dialog-backdrop z-50 bg-scrim-strong"
+	in:modalBackdropIn
+	out:modalBackdropOut>
 	<div
-		class="modal-card vault-card"
+		class="relative dialog-card max-w-sm text-center"
 		role="dialog"
 		aria-modal="true"
 		aria-labelledby="vault-title"
@@ -117,7 +120,10 @@
 				event.preventDefault()
 				void submit()
 			}}>
-			<div class="modal-icon"><LockKeyIcon size={16} aria-hidden="true" /></div>
+			<div
+				class="mx-auto mb-3 grid size-8 place-items-center rounded-md border border-line-strong bg-raised text-fg">
+				<LockKeyIcon size={16} aria-hidden="true" />
+			</div>
 			<h2 id="vault-title">
 				{creating
 					? "Create account vault"
@@ -134,33 +140,33 @@
 			</p>
 
 			{#if store.vault.startupError}
-				<div class="modal-warning">{store.vault.startupError}</div>
+				<div class="mt-3 notice-warning">{store.vault.startupError}</div>
 				{#if !creating && !recoveryMode}
 					<button
-						class="visibility-control"
+						class="mt-2 flex items-center gap-1 py-1 text-xs text-fg-muted transition-colors duration-100 *:animate-pop"
 						type="button"
 						onclick={() => void showRecovery()}>Recovery options</button>
 				{/if}
 			{/if}
 			{#if store.error}
-				<div class="modal-error" role="alert">
+				<div class="mt-3 notice-error" role="alert">
 					{store.error}
 				</div>
 				{#if !recoveryMode && !creating}
 					<button
-						class="visibility-control"
+						class="mt-2 flex items-center gap-1 py-1 text-xs text-fg-muted transition-colors duration-100 *:animate-pop"
 						type="button"
 						onclick={() => void showRecovery()}>Recovery options</button>
 				{/if}
 			{/if}
 
 			{#if recoveryMode && !store.vault.unlocked}
-				<div class="modal-note">
+				<div class="mt-3 notice-note">
 					vault.key and autounlock.key are security files. Use the built-in
 					backup and restore operations to copy them, and do not edit them.
 				</div>
 				{#if backups.length > 0}
-					<div class="modal-field">
+					<div class="dialog-field">
 						<span>Verified backup candidate</span>
 						<Select
 							className="w-full"
@@ -173,7 +179,7 @@
 							disabled={store.busy}
 							onChange={(name) => (selectedBackup = name)} />
 					</div>
-					<label class="modal-field">
+					<label class="dialog-field">
 						<span>Backup master password</span>
 						<input
 							bind:value={password}
@@ -188,23 +194,23 @@
 						Restore selected backup
 					</button>
 				{/if}
-				<div class="modal-warning">
+				<div class="mt-3 notice-warning">
 					Reset deletes vault.db, vault.key, and autounlock.key. Stored
 					accounts cannot be recovered without a valid backup.
 				</div>
-				<label class="modal-field">
+				<label class="dialog-field">
 					<span>Type RESET to confirm</span>
 					<input bind:value={resetConfirmation} autocomplete="off" />
 				</label>
 				<button
-					class="vault-danger btn-danger"
+					class="mt-3 btn-danger w-full"
 					type="button"
 					disabled={resetConfirmation !== "RESET" || store.busy}
 					onclick={() => void reset()}>
 					Reset vault
 				</button>
 			{:else}
-				<label class="modal-field">
+				<label class="dialog-field">
 					<span
 						>{creating || incomplete
 							? "New master password"
@@ -218,7 +224,7 @@
 						required />
 				</label>
 				<button
-					class="visibility-control"
+					class="mt-2 flex items-center gap-1 py-1 text-xs text-fg-muted transition-colors duration-100 *:animate-pop"
 					type="button"
 					onclick={() => (visible = !visible)}>
 					{#if visible}<EyeSlashIcon size={16} aria-hidden="true" /> Hide passwords{:else}<EyeIcon
@@ -226,10 +232,10 @@
 							aria-hidden="true" /> Show passwords{/if}
 				</button>
 				{#if !creating && !incomplete && store.vault.passwordHint}
-					<div class="modal-note">Hint: {store.vault.passwordHint}</div>
+					<div class="mt-3 notice-note">Hint: {store.vault.passwordHint}</div>
 				{/if}
 				{#if creating || incomplete}
-					<label class="modal-field">
+					<label class="dialog-field">
 						<span>Confirm master password</span>
 						<input
 							bind:value={confirmation}
@@ -238,11 +244,11 @@
 							required />
 					</label>
 					<ul
-						class="password-checklist"
-						class:touched={password !== ""}
+						class="checklist"
+						data-touched={password !== "" || undefined}
 						aria-label="Password requirements">
 						{#each [[rules.length, "8-128 characters long"], [rules.uppercase, "At least one upper-case letter"], [rules.lowercase, "At least one lower-case letter"], [rules.digit, "At least one number"], [rules.special, "At least one special character"]] as requirement}
-							<li class:valid={requirement[0]}>
+							<li data-valid={requirement[0] || undefined}>
 								{#if requirement[0]}<CheckIcon
 										size={14}
 										aria-hidden="true" />{:else}<XIcon
@@ -251,7 +257,10 @@
 								{requirement[1]}
 							</li>
 						{/each}
-						<li class:valid={password !== "" && password === confirmation}>
+						<li
+							data-valid={(password !== "" &&
+								password === confirmation) ||
+								undefined}>
 							{#if password !== "" && password === confirmation}<CheckIcon
 									size={14}
 									aria-hidden="true" />{:else}<XIcon
@@ -260,17 +269,18 @@
 							Passwords match
 						</li>
 					</ul>
-					<label class="modal-field">
+					<label class="dialog-field">
 						<span>Password hint (optional)</span>
 						<input bind:value={hint} maxlength="480" autocomplete="off" />
 					</label>
-					<div class="modal-warning">
+					<div class="mt-3 notice-warning">
 						The hint is stored in plain text. Do not include sensitive
 						information.
 					</div>
 				{/if}
-				<div class="automatic-unlock">
-					<label>
+				<div
+					class="mt-2 flex items-center justify-start gap-1 text-xs text-fg-muted">
+					<label class="flex items-center gap-1">
 						<span class="checkbox">
 							<input bind:checked={automaticUnlock} type="checkbox" />
 							<span aria-hidden="true"
@@ -282,7 +292,7 @@
 						Enable automatic unlock
 					</label>
 					<button
-						class="automatic-unlock-info"
+						class="flex size-5 cursor-help items-center justify-center text-fg-faint transition-colors duration-100 hover:text-fg focus-visible:text-fg"
 						type="button"
 						aria-label="About automatic unlock"
 						data-tooltip={automaticUnlockDialogDescription}>

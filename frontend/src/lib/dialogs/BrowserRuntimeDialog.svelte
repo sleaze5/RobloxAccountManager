@@ -25,16 +25,16 @@
 	$effect(() => browser.trackRuntimeView())
 </script>
 
-<div class="modal-backdrop" in:modalBackdropIn out:modalBackdropOut>
+<div class="dialog-backdrop" in:modalBackdropIn out:modalBackdropOut>
 	<div
-		class="modal-card runtime-card"
+		class="dialog-card max-w-md"
 		role="dialog"
 		aria-modal="true"
 		use:modalFocus
 		in:modalCardIn
 		out:modalCardOut
 		aria-labelledby="runtime-title">
-		<div class="modal-heading">
+		<div class="dialog-heading">
 			<div>
 				<h2 id="runtime-title">
 					{damaged ? "Redownload browser?" : "Download browser?"}
@@ -50,7 +50,8 @@
 				aria-label="Dismiss browser download"
 				onclick={onDismiss}><XIcon size={14} aria-hidden="true" /></button>
 		</div>
-		<div class="runtime-details">
+		<div
+			class="mt-3 grid grid-cols-2 gap-2 text-xs text-fg-muted *:even:justify-self-end">
 			<span>Version</span><code>{runtime.requiredVersion}</code><span
 				>Download size</span
 			><code
@@ -58,11 +59,11 @@
 					? formatCompactBytes(runtime.approximateBytes)
 					: "Unknown"}</code>
 		</div>
-		{#if browser.error || runtime.error}<div class="modal-error" role="alert">
+		{#if browser.error || runtime.error}<div class="mt-3 notice-error" role="alert">
 				{browser.error || runtime.error}
 			</div>{/if}
-		{#if active}<BrowserRuntimeActivity {runtime} />{/if}
-		<div class="modal-actions">
+		{#if active}<div class="mt-3"><BrowserRuntimeActivity {runtime} /></div>{/if}
+		<div class="dialog-actions">
 			<button class="btn" type="button" onclick={onDismiss}
 				>{active ? "Continue in background" : "Not now"}</button
 			>{#if runtime.canCancel}<button

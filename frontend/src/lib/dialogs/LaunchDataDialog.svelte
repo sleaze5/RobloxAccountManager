@@ -48,7 +48,7 @@
 <svelte:window onkeydown={handleKeydown} />
 
 <div
-	class="modal-backdrop"
+	class="dialog-backdrop"
 	in:modalBackdropIn
 	out:modalBackdropOut
 	onclick={(event) => {
@@ -56,7 +56,7 @@
 	}}
 	role="presentation">
 	<div
-		class="modal-card launch-data-card"
+		class="dialog-card max-w-md"
 		role="dialog"
 		aria-modal="true"
 		use:modalFocus
@@ -69,7 +69,7 @@
 				event.preventDefault()
 				handleSave()
 			}}>
-			<div class="modal-heading compact-heading">
+			<div class="dialog-heading mb-2">
 				<div>
 					<h2 id="launch-data-title">Launch data</h2>
 					<p>
@@ -84,23 +84,25 @@
 					<XIcon size={14} aria-hidden="true" />
 				</button>
 			</div>
-			<label class="modal-field launch-data-field">
+			<label class="dialog-field">
 				<span>Launch data</span>
 				<textarea
 					bind:this={textarea}
 					bind:value={draft}
-					class="launch-data-textarea"
+					class="h-36 break-all whitespace-pre-wrap"
 					placeholder="Enter launch data…"
 					wrap="soft"
 					spellcheck="false"
 					autocomplete="off"
 					disabled={store.launching}></textarea>
 			</label>
-			<div class="launch-data-footer">
-				<span class="launch-data-size" aria-live="polite">
+			<div class="mt-3 flex items-center justify-between gap-3">
+				<span
+					class="font-mono text-xs text-fg-faint select-none"
+					aria-live="polite">
 					{formatCompactBytes(byteSize)}
 				</span>
-				<div class="modal-actions">
+				<div class="dialog-actions mt-0">
 					<button
 						class="btn"
 						type="button"

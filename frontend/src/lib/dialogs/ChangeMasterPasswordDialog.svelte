@@ -43,9 +43,9 @@
 	}
 </script>
 
-<div class="modal-backdrop" in:modalBackdropIn out:modalBackdropOut>
+<div class="dialog-backdrop" in:modalBackdropIn out:modalBackdropOut>
 	<div
-		class="modal-card vault-card"
+		class="relative dialog-card max-w-sm text-center"
 		role="dialog"
 		aria-modal="true"
 		aria-labelledby="change-password-title"
@@ -54,7 +54,7 @@
 		in:modalCardIn
 		out:modalCardOut>
 		<button
-			class="modal-close"
+			class="absolute top-3 right-3 btn-close"
 			type="button"
 			aria-label="Close change master password dialog"
 			disabled={store.busy}
@@ -67,23 +67,26 @@
 				event.preventDefault()
 				void changePassword()
 			}}>
-			<div class="modal-icon"><KeyIcon size={16} aria-hidden="true" /></div>
+			<div
+				class="mx-auto mb-3 grid size-8 place-items-center rounded-md border border-line-strong bg-raised text-fg">
+				<KeyIcon size={16} aria-hidden="true" />
+			</div>
 			<h2 id="change-password-title">Change master password</h2>
 			<p>
 				Changing the password rotates the database encryption key and removes
 				backups that contain old secrets.
 			</p>
-			{#if store.error}<div class="modal-error" role="alert">
+			{#if store.error}<div class="mt-3 notice-error" role="alert">
 					{store.error}
 				</div>{/if}
 
 			{#if store.vault.validAutomaticUnlock}
-				<div class="modal-note">
+				<div class="mt-3 notice-note">
 					Automatic unlock has verified your access. You can change your
 					master password without entering the current one.
 				</div>
 			{:else}
-				<label class="modal-field">
+				<label class="dialog-field">
 					<span>Current master password</span>
 					<input
 						bind:value={currentPassword}
@@ -92,7 +95,7 @@
 						required />
 				</label>
 			{/if}
-			<label class="modal-field">
+			<label class="dialog-field">
 				<span>New master password</span>
 				<input
 					bind:value={newPassword}
@@ -100,7 +103,7 @@
 					autocomplete="new-password"
 					required />
 			</label>
-			<label class="modal-field">
+			<label class="dialog-field">
 				<span>Confirm new master password</span>
 				<input
 					bind:value={confirmation}
@@ -109,16 +112,16 @@
 					required />
 			</label>
 			<button
-				class="visibility-control"
+				class="mt-2 flex items-center gap-1 py-1 text-xs text-fg-muted transition-colors duration-100 *:animate-pop"
 				type="button"
 				onclick={() => (visible = !visible)}>
 				{#if visible}<EyeSlashIcon size={16} aria-hidden="true" /> Hide passwords{:else}<EyeIcon
 						size={16}
 						aria-hidden="true" /> Show passwords{/if}
 			</button>
-			<ul class="password-checklist" class:touched={newPassword !== ""}>
+			<ul class="checklist" data-touched={newPassword !== "" || undefined}>
 				{#each [[rules.length, "8-128 characters long"], [rules.uppercase, "At least one upper-case letter"], [rules.lowercase, "At least one lower-case letter"], [rules.digit, "At least one number"], [rules.special, "At least one special character"]] as requirement}
-					<li class:valid={requirement[0]}>
+					<li data-valid={requirement[0] || undefined}>
 						{#if requirement[0]}<CheckIcon
 								size={14}
 								aria-hidden="true" />{:else}<XIcon
@@ -126,7 +129,9 @@
 								aria-hidden="true" />{/if}{requirement[1]}
 					</li>
 				{/each}
-				<li class:valid={newPassword !== "" && newPassword === confirmation}>
+				<li
+					data-valid={(newPassword !== "" && newPassword === confirmation) ||
+						undefined}>
 					{#if newPassword !== "" && newPassword === confirmation}<CheckIcon
 							size={14}
 							aria-hidden="true" />{:else}<XIcon
@@ -134,16 +139,17 @@
 							aria-hidden="true" />{/if}Passwords match
 				</li>
 			</ul>
-			<label class="modal-field"
+			<label class="dialog-field"
 				><span>Password hint (optional)</span><input
 					bind:value={hint}
 					maxlength="480"
 					autocomplete="off" /></label>
-			<div class="modal-warning">
+			<div class="mt-3 notice-warning">
 				The hint is stored in plain text. Do not include sensitive information.
 			</div>
-			<div class="automatic-unlock">
-				<label>
+			<div
+				class="mt-2 flex items-center justify-start gap-1 text-xs text-fg-muted">
+				<label class="flex items-center gap-1">
 					<span class="checkbox">
 						<input bind:checked={automaticUnlock} type="checkbox" />
 						<span aria-hidden="true"
@@ -155,14 +161,14 @@
 					Enable automatic unlock
 				</label>
 				<button
-					class="automatic-unlock-info"
+					class="flex size-5 cursor-help items-center justify-center text-fg-faint transition-colors duration-100 hover:text-fg focus-visible:text-fg"
 					type="button"
 					aria-label="About automatic unlock"
 					data-tooltip={automaticUnlockDialogDescription}>
 					<InfoIcon size={14} aria-hidden="true" />
 				</button>
 			</div>
-			<div class="modal-actions">
+			<div class="dialog-actions">
 				<button
 					class="btn"
 					type="button"

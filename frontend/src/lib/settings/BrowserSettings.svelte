@@ -159,16 +159,16 @@
 {/if}
 
 {#if pendingAction && effects}
-	<div class="modal-backdrop" in:modalBackdropIn out:modalBackdropOut>
+	<div class="dialog-backdrop" in:modalBackdropIn out:modalBackdropOut>
 		<div
-			class="modal-card confirm-card"
+			class="dialog-card max-w-sm text-left"
 			role="alertdialog"
 			aria-modal="true"
 			use:modalFocus
 			in:modalCardIn
 			out:modalCardOut
 			aria-labelledby="runtime-confirm-title">
-			<div class="modal-heading">
+			<div class="dialog-heading">
 				<div>
 					<h2 id="runtime-confirm-title">
 						{pendingAction === "remove"
@@ -187,7 +187,7 @@
 					<XIcon size={14} aria-hidden="true" />
 				</button>
 			</div>
-			<ul class="confirmation-effects">
+			<ul class="mt-3 flex list-disc flex-col gap-1 pl-5 text-xs text-warning">
 				{#if effects.browserSessions}<li>
 						Close {effects.browserSessions} active browser {effects.browserSessions ===
 						1
@@ -206,7 +206,7 @@
 					</li>{/if}
 				{#if effects.accountChecks}<li>Cancel account validations.</li>{/if}
 			</ul>
-			<div class="modal-actions">
+			<div class="dialog-actions">
 				<button
 					class="btn"
 					type="button"

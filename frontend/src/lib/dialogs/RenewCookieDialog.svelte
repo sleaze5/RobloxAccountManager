@@ -47,11 +47,11 @@
 	}
 </script>
 
-<div class="modal-backdrop" in:modalBackdropIn out:modalBackdropOut>
+<div class="dialog-backdrop" in:modalBackdropIn out:modalBackdropOut>
 	<div
 		bind:this={dialog}
 		tabindex="-1"
-		class="modal-card confirm-card"
+		class="dialog-card max-w-sm text-left"
 		role="dialog"
 		aria-modal="true"
 		aria-labelledby="renew-cookie-title"
@@ -61,7 +61,7 @@
 		use:modalFocus
 		in:modalCardIn
 		out:modalCardOut>
-		<div class="modal-heading compact-heading">
+		<div class="dialog-heading mb-2">
 			<div>
 				<h2 id="renew-cookie-title">
 					{phase === "confirm" ? "Renew cookie?" : "Renew cookie"}
@@ -84,7 +84,7 @@
 		{:else}
 			<div
 				id="renew-cookie-status"
-				class="renewal-status"
+				class="flex items-center gap-2 py-2 text-xs *:shrink-0"
 				role="status"
 				aria-live="polite">
 				{#if pending}
@@ -93,18 +93,18 @@
 				{:else if error}
 					<span>Renewal could not be confirmed.</span>
 				{:else}
-					<CheckIcon size={16} class="renewal-success" aria-hidden="true" />
+					<CheckIcon size={16} class="text-success" aria-hidden="true" />
 					<span>The renewed cookie is saved.</span>
 				{/if}
 			</div>
 		{/if}
 		{#if error}
-			<div class="modal-error" role="alert">{error}</div>
+			<div class="mt-3 notice-error" role="alert">{error}</div>
 		{/if}
 		{#if warning}
-			<p class="renewal-warning" role="status">{warning}</p>
+			<p class="text-warning" role="status">{warning}</p>
 		{/if}
-		<div class="modal-actions">
+		<div class="dialog-actions">
 			{#if phase === "confirm"}
 				<button class="btn" type="button" onclick={onClose}>Cancel</button>
 				<button

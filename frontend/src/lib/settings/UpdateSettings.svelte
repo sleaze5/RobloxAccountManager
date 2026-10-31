@@ -114,7 +114,7 @@
 		</div>
 		{#if update.status === UpdateStatus.StatusDownloading}
 			<div class="settings-row">
-				<div class="runtime-activity">
+				<div class="transfer">
 					<strong>
 						{#if !determinate}
 							<CircleNotchIcon
@@ -125,7 +125,8 @@
 						{/if}
 						Downloading update
 					</strong>
-					<div class="runtime-transfer">
+					<div
+						class="flex flex-wrap gap-x-2 gap-y-1 font-mono text-2xs *:whitespace-nowrap">
 						<span
 							>{formatCompactBytes(update.downloadedBytes)}/{determinate
 								? formatCompactBytes(update.totalBytes)
@@ -133,7 +134,7 @@
 					</div>
 					{#if determinate}
 						<div
-							class="runtime-progress"
+							class="progress-bar"
 							role="progressbar"
 							aria-label="Update download progress"
 							aria-valuemin={0}

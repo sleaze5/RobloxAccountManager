@@ -34,16 +34,16 @@
 	}
 </script>
 
-<div class="modal-backdrop" in:modalBackdropIn out:modalBackdropOut>
+<div class="dialog-backdrop" in:modalBackdropIn out:modalBackdropOut>
 	<div
-		class="modal-card confirm-card"
+		class="dialog-card max-w-sm text-left"
 		role="alertdialog"
 		aria-modal="true"
 		use:modalFocus
 		in:modalCardIn
 		out:modalCardOut
 		aria-labelledby="lock-title">
-		<div class="modal-heading">
+		<div class="dialog-heading">
 			<div>
 				<h2 id="lock-title">Lock vault?</h2>
 				<p>
@@ -61,11 +61,14 @@
 				<XIcon size={14} aria-hidden="true" />
 			</button>
 		</div>
-		{#if store.error}<div class="modal-error" role="alert">{store.error}</div>{/if}
-		{#if effectLines.length > 0}<ul class="confirmation-effects">
+		{#if store.error}<div class="mt-3 notice-error" role="alert">
+				{store.error}
+			</div>{/if}
+		{#if effectLines.length > 0}<ul
+				class="mt-3 flex list-disc flex-col gap-1 pl-5 text-xs text-warning">
 				{#each effectLines as effect}<li>{effect}</li>{/each}
 			</ul>{/if}
-		<div class="modal-actions">
+		<div class="dialog-actions">
 			<button class="btn" type="button" disabled={store.busy} onclick={onClose}
 				>Cancel</button
 			><button

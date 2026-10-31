@@ -126,9 +126,9 @@
 		if (event.key === "Escape") close()
 	}} />
 
-<div class="modal-backdrop" in:modalBackdropIn out:modalBackdropOut>
+<div class="dialog-backdrop" in:modalBackdropIn out:modalBackdropOut>
 	<div
-		class="modal-card confirm-card"
+		class="dialog-card max-w-sm text-left"
 		role={phase === "confirm" ? "alertdialog" : "dialog"}
 		aria-modal="true"
 		aria-labelledby="account-edit-title"
@@ -142,7 +142,7 @@
 				event.preventDefault()
 				submit()
 			}}>
-			<div class="modal-heading compact-heading">
+			<div class="dialog-heading mb-2">
 				<div>
 					<h2 id="account-edit-title">
 						{phase === "confirm" ? `${titles[kind]}?` : titles[kind]}
@@ -161,16 +161,16 @@
 			{#if phase === "confirm"}
 				{#if kind === "displayName"}
 					<p>The new display name will be “{value.trim()}”.</p>
-					<div class="modal-warning">
+					<div class="mt-3 notice-warning">
 						You can't change the display name again for 7 days.
 					</div>
 				{:else if kind === "email"}
 					<p>The new email will be {value.trim()}.</p>
-					<div class="modal-note">
+					<div class="mt-3 notice-note">
 						Roblox sends a verification email to the new address.
 					</div>
 				{:else}
-					<div class="modal-warning">
+					<div class="mt-3 notice-warning">
 						{account.hasSavedPassword
 							? "The saved password in your vault will also be updated."
 							: "The new password will not be saved in the vault. Store it somewhere safe before you continue."}
@@ -178,7 +178,7 @@
 				{/if}
 			{:else}
 				{#if kind === "displayName"}
-					<label class="modal-field">
+					<label class="dialog-field">
 						<span>New display name</span>
 						<input
 							bind:value
@@ -186,11 +186,11 @@
 							spellcheck="false"
 							disabled={pending} />
 					</label>
-					<div class="modal-warning">
+					<div class="mt-3 notice-warning">
 						After you change it, you can't change it again for 7 days.
 					</div>
 				{:else if kind === "email"}
-					<label class="modal-field">
+					<label class="dialog-field">
 						<span>New email</span>
 						<input
 							bind:value
@@ -200,7 +200,7 @@
 							disabled={pending} />
 					</label>
 				{:else if kind === "pin"}
-					<label class="modal-field">
+					<label class="dialog-field">
 						<span>PIN</span>
 						<input
 							bind:value
@@ -211,7 +211,7 @@
 					</label>
 				{/if}
 				{#if kind === "email" || kind === "password"}
-					<label class="modal-field">
+					<label class="dialog-field">
 						<span
 							>{kind === "email" ? "Password" : "Current password"}</span>
 						<input
@@ -222,7 +222,7 @@
 					</label>
 				{/if}
 				{#if kind === "password"}
-					<label class="modal-field">
+					<label class="dialog-field">
 						<span>New password</span>
 						<input
 							bind:value={newPassword}
@@ -230,7 +230,7 @@
 							autocomplete="off"
 							disabled={pending} />
 					</label>
-					<label class="modal-field">
+					<label class="dialog-field">
 						<span>Confirm new password</span>
 						<input
 							bind:value={confirmation}
@@ -243,7 +243,7 @@
 				{/if}
 				{#if kind === "email" || kind === "password"}
 					<button
-						class="visibility-control"
+						class="mt-2 flex items-center gap-1 py-1 text-xs text-fg-muted transition-colors duration-100 *:animate-pop"
 						type="button"
 						onclick={() => (visible = !visible)}>
 						{#if visible}<EyeSlashIcon size={16} aria-hidden="true" /> Hide passwords{:else}<EyeIcon
@@ -254,10 +254,10 @@
 			{/if}
 
 			{#if error}
-				<div class="modal-error" role="alert">{error}</div>
+				<div class="mt-3 notice-error" role="alert">{error}</div>
 			{/if}
 
-			<div class="modal-actions">
+			<div class="dialog-actions">
 				{#if phase === "confirm"}
 					<button
 						class="btn"

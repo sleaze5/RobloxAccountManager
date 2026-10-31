@@ -95,9 +95,12 @@
 	}
 </script>
 
-<div class="modal-backdrop vault-gate" in:modalBackdropIn out:modalBackdropOut>
+<div
+	class="dialog-backdrop z-50 bg-scrim-strong"
+	in:modalBackdropIn
+	out:modalBackdropOut>
 	<div
-		class="modal-card location-card"
+		class="dialog-card max-w-md text-left"
 		role="alertdialog"
 		aria-modal="true"
 		aria-labelledby="app-location-title"
@@ -105,7 +108,7 @@
 		use:modalFocus
 		in:modalCardIn
 		out:modalCardOut>
-		<div class="modal-heading compact-heading">
+		<div class="dialog-heading mb-2">
 			<div>
 				<h2 id="app-location-title">{heading}</h2>
 				<p id="app-location-summary">{summary}</p>
@@ -113,15 +116,20 @@
 		</div>
 
 		<div
-			class="location-options"
+			class="flex flex-col gap-1"
 			role="radiogroup"
 			aria-labelledby="app-location-title">
 			{#each candidates as candidate (candidate.mode)}
 				<label
-					class="location-option"
-					class:selected={selected === candidate.mode}
-					class:disabled={busy}>
+					class={[
+						"relative flex cursor-pointer items-start gap-2 rounded-md border px-3 py-2 transition-colors duration-100 has-focus-visible:outline-1 has-focus-visible:outline-offset-1 has-focus-visible:outline-focus",
+						selected === candidate.mode
+							? "border-line-strong bg-active"
+							: "border-line",
+						busy ? "cursor-not-allowed opacity-45" : "hover:bg-hover",
+					]}>
 					<input
+						class="pointer-events-none absolute opacity-0"
 						type="radio"
 						name="app-location"
 						value={candidate.mode}
@@ -129,17 +137,20 @@
 						disabled={busy}
 						aria-describedby={`app-location-${candidate.mode}`}
 						onchange={() => (selected = candidate.mode)} />
-					<span class="location-option-text">
-						<span class="location-option-title">{title(candidate)}</span>
+					<span class="flex min-w-0 flex-1 flex-col gap-0.5">
+						<span class="text-xs font-medium text-fg"
+							>{title(candidate)}</span>
 						<span
-							class="location-option-description"
+							class="flex flex-col gap-0.5 text-xs leading-snug text-fg-muted"
 							id={`app-location-${candidate.mode}`}>
 							{description(candidate)}
-							<span class="location-option-path"
+							<span class="font-mono text-2xs wrap-anywhere text-fg-faint"
 								>{candidate.directory}</span>
 						</span>
 					</span>
-					<span class="location-option-check" aria-hidden="true">
+					<span
+						class="inline-flex h-5 w-3.5 shrink-0 items-center text-fg"
+						aria-hidden="true">
 						{#if selected === candidate.mode}
 							<CheckIcon size={14} weight="bold" />
 						{/if}
@@ -149,25 +160,27 @@
 		</div>
 
 		{#if otherItemCount > 0}
-			<div class="modal-warning">
+			<div class="mt-3 notice-warning">
 				This folder already contains other items. Use an empty folder that holds
 				only the app.
-				<ul class="location-items" aria-label="Items in this folder">
+				<ul
+					class="mt-2 grid gap-0.5 pl-4 font-mono text-2xs wrap-anywhere"
+					aria-label="Items in this folder">
 					{#each listedItems as item (item)}
 						<li>{item}</li>
 					{/each}
 					{#if hiddenItems > 0}
-						<li class="location-items-more">and {hiddenItems} more</li>
+						<li class="list-none font-sans">and {hiddenItems} more</li>
 					{/if}
 				</ul>
 			</div>
 		{/if}
 
 		{#if error}
-			<div class="modal-error" role="alert">{error}</div>
+			<div class="mt-3 notice-error" role="alert">{error}</div>
 		{/if}
 
-		<div class="modal-actions">
+		<div class="dialog-actions">
 			<button
 				class="btn"
 				type="button"

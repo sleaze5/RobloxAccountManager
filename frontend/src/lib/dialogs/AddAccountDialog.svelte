@@ -232,9 +232,9 @@
 	}
 </script>
 
-<div class="modal-backdrop" in:modalBackdropIn out:modalBackdropOut>
+<div class="dialog-backdrop" in:modalBackdropIn out:modalBackdropOut>
 	<div
-		class="modal-card cookie-card"
+		class="dialog-card max-w-xl"
 		role="dialog"
 		aria-modal="true"
 		aria-labelledby="add-account-title"
@@ -248,7 +248,7 @@
 				event.preventDefault()
 				void validate()
 			}}>
-			<div class="modal-heading">
+			<div class="dialog-heading">
 				<div>
 					<h2 id="add-account-title">Paste cookies</h2>
 					<p>
@@ -265,11 +265,11 @@
 				</button>
 			</div>
 			{#if store.error}
-				<div class="modal-error" role="alert">
+				<div class="mt-3 notice-error" role="alert">
 					{store.error}
 				</div>
 			{/if}
-			<label class="modal-field">
+			<label class="dialog-field">
 				<span>.ROBLOSECURITY cookies <b>Required</b></span>
 				<textarea
 					value={cookieInput}
@@ -290,7 +290,7 @@
 					onToggle={(id, selected) => toggleAccount(Number(id), selected)}
 					onToggleAll={toggleAllAccounts} />
 			{/if}
-			<div class="modal-actions">
+			<div class="dialog-actions">
 				<button class="btn" type="button" disabled={store.busy} onclick={close}
 					>Cancel</button>
 				{#if preview?.batchId && preview.readyCount > 0}

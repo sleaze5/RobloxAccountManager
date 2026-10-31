@@ -170,7 +170,7 @@
 	}} />
 
 <div
-	class="modal-backdrop"
+	class="dialog-backdrop"
 	in:modalBackdropIn
 	out:modalBackdropOut
 	onclick={(event) => {
@@ -178,7 +178,7 @@
 	}}
 	role="presentation">
 	<div
-		class="modal-card launch-data-card"
+		class="dialog-card max-w-md"
 		role="dialog"
 		aria-modal="true"
 		use:modalFocus
@@ -192,12 +192,12 @@
 				event.preventDefault()
 				void save()
 			}}>
-			<div class="modal-heading compact-heading">
+			<div class="dialog-heading mb-2">
 				<div>
 					<h2 id="player-path-title">Roblox Player location</h2>
 					<p>Choose the RobloxPlayerBeta.exe that direct launch starts.</p>
 				</div>
-				<div class="player-path-actions">
+				<div class="flex gap-1">
 					<button
 						class="btn-ghost"
 						type="button"
@@ -221,7 +221,7 @@
 				</div>
 			</div>
 			<div
-				class="player-path-options flex flex-col gap-0.5 pl-1"
+				class="flex flex-col gap-0.5 pl-1"
 				role="radiogroup"
 				aria-labelledby="player-path-title">
 				<label
@@ -238,7 +238,7 @@
 						<span aria-hidden="true"></span>
 					</span>
 					<span class="text-xs text-fg">Automatic</span>
-					<small>
+					<small class="ml-auto font-mono text-2xs text-fg-faint">
 						{#if versions === null}
 							{loading ? "Finding Roblox versions" : ""}
 						{:else if newest}
@@ -262,8 +262,7 @@
 								disabled={busy} />
 							<span aria-hidden="true"></span>
 						</span>
-						<span class="player-path-version text-xs text-fg"
-							>{version.name}</span>
+						<span class="font-mono text-2xs text-fg">{version.name}</span>
 					</label>
 				{/each}
 				<label class="radio-option" data-disabled={busy || undefined}>
@@ -279,10 +278,11 @@
 					<span class="text-xs text-fg">Use a custom path</span>
 				</label>
 			</div>
-			<div class="modal-field">
+			<div class="dialog-field">
 				<span><label for={customPathID}>Custom path</label></span>
-				<div class="player-path-custom">
+				<div class="flex items-center gap-2">
 					<input
+						class="min-w-0 flex-1 font-mono text-2xs"
 						id={customPathID}
 						bind:value={customPath}
 						type="text"
@@ -297,7 +297,7 @@
 							void checkPath()
 						}} />
 					<button
-						class="player-path-validate"
+						class="btn h-8 px-3 font-semibold"
 						type="button"
 						disabled={busy || customPath.trim() === ""}
 						onclick={() => void validate()}>
@@ -323,27 +323,29 @@
 						<XIcon size={16} aria-hidden="true" />
 					</button>
 				</div>
-				<div class="player-path-status" aria-live="polite">
+				<div
+					class="*:mt-2 *:flex *:items-center *:gap-1 *:text-xs"
+					aria-live="polite">
 					{#if checked?.problem}
-						<span class="problem"
+						<span class="text-danger-muted"
 							><WarningCircleIcon
 								size={14}
 								aria-hidden="true" />{checked.problem}</span>
 					{:else if validated && checked?.found}
-						<span class="found"
+						<span class="text-success"
 							><CheckCircleIcon size={14} aria-hidden="true" />Found.
 							Custom path saved.</span>
 					{:else if validated && checked}
-						<span class="missing"
+						<span class="text-warning"
 							><WarningCircleIcon size={14} aria-hidden="true" />Saved,
 							but the binary was not found.</span>
 					{/if}
 				</div>
 			</div>
 			{#if error}
-				<div class="modal-error" role="alert">{error}</div>
+				<div class="mt-3 notice-error" role="alert">{error}</div>
 			{/if}
-			<div class="modal-actions">
+			<div class="dialog-actions">
 				<button class="btn" type="button" disabled={busy} onclick={onClose}
 					>Cancel</button>
 				<button class="btn-primary" type="submit" disabled={busy || !parses}>
@@ -353,83 +355,3 @@
 		</form>
 	</div>
 </div>
-
-<style>
-	.player-path-actions {
-		display: flex;
-		gap: var(--space-1);
-	}
-
-	.player-path-options small {
-		margin-left: auto;
-		color: var(--color-text-faint);
-		font-family: var(--font-mono);
-		font-size: var(--text-11);
-	}
-
-	.player-path-custom {
-		display: flex;
-		align-items: center;
-		gap: var(--space-2);
-	}
-
-	.player-path-custom input {
-		flex: 1;
-		min-width: 0;
-		font-family: var(--font-mono);
-		font-size: var(--text-11);
-	}
-
-	.player-path-validate {
-		display: inline-flex;
-		min-height: var(--control-height-lg);
-		align-items: center;
-		gap: var(--space-1);
-		padding: 0 var(--space-3);
-		border: 1px solid var(--color-border);
-		border-radius: var(--radius-control);
-		background: transparent;
-		color: var(--color-text-muted);
-		font-size: var(--text-12);
-		font-weight: var(--font-semibold);
-		cursor: pointer;
-		transition:
-			border-color 80ms var(--ease-standard),
-			background-color 80ms var(--ease-standard);
-	}
-
-	.player-path-validate:hover:not(:disabled) {
-		border-color: var(--color-border-focus);
-		background: var(--color-surface-raised-hover);
-	}
-
-	.player-path-validate:disabled {
-		color: var(--color-text-faint);
-		cursor: not-allowed;
-	}
-
-	.player-path-status span {
-		display: flex;
-		align-items: center;
-		gap: var(--space-1);
-		margin-top: var(--space-2);
-		font-size: var(--text-12);
-	}
-
-	.player-path-status .problem {
-		color: var(--color-danger-muted);
-	}
-
-	.player-path-status .found {
-		color: var(--color-success);
-	}
-
-	.player-path-status .missing {
-		color: var(--color-warning);
-	}
-
-	.player-path-version {
-		font-family: var(--font-mono);
-		font-size: var(--text-11);
-	}
-</style>

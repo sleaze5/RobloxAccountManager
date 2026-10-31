@@ -12,15 +12,6 @@ const source = join(frontend, "src")
 const styles = join(source, "styles")
 const stylesheet = join(styles, "app.css")
 
-const legacyStyleBlocks = new Set([
-	"lib/dialogs/LinuxClientDialog.svelte",
-	"lib/dialogs/RobloxPlayerPathDialog.svelte",
-	"lib/dialogs/RobloxProcessesDialog.svelte",
-	"lib/dialogs/SavedPasswordDialog.svelte",
-	"lib/shared/SensitiveValue.svelte",
-	"lib/shared/Timestamp.svelte",
-])
-
 const spacingSteps = new Set([
 	"0",
 	"0.5",
@@ -232,7 +223,7 @@ function modifierProblem(root: string, value: string, fraction: string): string 
 }
 
 function valueProblem(root: string, value: string): string | null {
-	if (!/^\d/.test(value)) return null
+	if (!/^\d+(\.\d+)?$/.test(value)) return null
 	if (spacingRoots.has(root) && !spacingSteps.has(value)) {
 		return `${value} is not on the spacing scale (${[...spacingSteps].join(", ")}).`
 	}
@@ -332,10 +323,9 @@ function checkSource(
 	designSystem: DesignSystem,
 	problems: Problem[],
 ): void {
-	const name = relative(source, path).replaceAll("\\", "/")
 	const report = (index: number, text: string, reason: string) =>
 		problems.push({ file: path, line: lineOf(content, index), text, reason })
-	if (path.endsWith(".svelte") && !legacyStyleBlocks.has(name)) {
+	if (path.endsWith(".svelte")) {
 		for (const match of content.matchAll(/<style[\s>]/g)) {
 			report(match.index, "<style>", "Style the markup with utilities instead.")
 		}
@@ -396,9 +386,7 @@ function checkThemeNames(content: string, problems: Problem[]): void {
 }
 
 const problems: Problem[] = []
-const paths = (await files(source)).filter(
-	(path) => !path.startsWith(join(styles, "legacy")),
-)
+const paths = await files(source)
 const contents = new Map(
 	await Promise.all(
 		paths.map(async (path) => [path, await readFile(path, "utf8")] as const),

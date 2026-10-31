@@ -1,14 +1,5 @@
-@layer theme, base, legacy, components, utilities;
-
 @import "tailwindcss" source(none);
 @source "../";
 @import "./theme.css";
 @import "./base.css";
 @import "./components.css";
-
-@import "./legacy/tokens.css" layer(legacy);
-@import "./legacy/base.css" layer(legacy);
-@import "./legacy/controls.css" layer(legacy);
-@import "./legacy/accounts.css" layer(legacy);
-@import "./legacy/dialogs.css" layer(legacy);
-@import "./legacy/browser.css" layer(legacy);

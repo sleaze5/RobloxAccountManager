@@ -18,7 +18,7 @@
 		)
 </script>
 
-<div class="runtime-activity">
+<div class="transfer">
 	<strong>
 		{#if installing || !determinate}
 			<CircleNotchIcon
@@ -34,7 +34,8 @@
 	{#if installing}
 		<span>Preparing Chrome for Testing for use.</span>
 	{:else}
-		<div class="runtime-transfer">
+		<div
+			class="flex flex-wrap gap-x-2 gap-y-1 font-mono text-2xs *:whitespace-nowrap">
 			<span
 				>{formatCompactBytes(runtime.downloadedBytes)}/{determinate
 					? formatCompactBytes(runtime.downloadTotalBytes)
@@ -48,7 +49,7 @@
 	{/if}
 	{#if determinate && !installing}
 		<div
-			class="runtime-progress"
+			class="progress-bar"
 			role="progressbar"
 			aria-label="Browser download progress"
 			aria-valuemin={0}

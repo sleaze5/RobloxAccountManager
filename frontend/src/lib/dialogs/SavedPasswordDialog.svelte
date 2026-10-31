@@ -147,9 +147,9 @@
 		if (event.key === "Escape") close()
 	}} />
 
-<div class="modal-backdrop" in:modalBackdropIn out:modalBackdropOut>
+<div class="dialog-backdrop" in:modalBackdropIn out:modalBackdropOut>
 	<div
-		class="modal-card confirm-card"
+		class="dialog-card max-w-sm text-left"
 		role="dialog"
 		aria-modal="true"
 		aria-labelledby="saved-password-title"
@@ -163,7 +163,7 @@
 				event.preventDefault()
 				void save()
 			}}>
-			<div class="modal-heading compact-heading">
+			<div class="dialog-heading mb-2">
 				<div>
 					<h2 id="saved-password-title">{title}</h2>
 					<p>@{account.username}</p>
@@ -177,12 +177,13 @@
 				</button>
 			</div>
 
-			<div class="password-field">
-				<label class="modal-field">
+			<div class="relative">
+				<label class="dialog-field">
 					<span>Roblox password</span>
 					<input
 						bind:this={input}
 						bind:value={password}
+						class="pr-8"
 						type={visible ? "text" : "password"}
 						placeholder={loading ? "Loading…" : ""}
 						autocomplete="off"
@@ -194,7 +195,7 @@
 						}} />
 				</label>
 				<button
-					class="btn-ghost"
+					class="absolute right-1 bottom-1 btn-ghost size-6"
 					type="button"
 					aria-label={visible ? "Hide password" : "Show password"}
 					data-tooltip={visible ? "Hide password" : "Show password"}
@@ -207,18 +208,18 @@
 				</button>
 			</div>
 
-			<div class="password-validation">
+			<div class="mt-2 flex min-h-6 items-center gap-1 text-xs text-fg">
 				{#if validation === "valid"}
-					<span class="password-valid" role="status"
+					<span class="flex items-center gap-1 text-success" role="status"
 						><CheckCircleIcon size={16} aria-hidden="true" />Password is
 						correct</span>
 				{:else if validation === "invalid"}
-					<span class="password-invalid" role="status"
+					<span class="flex items-center gap-1 text-warning" role="status"
 						><WarningCircleIcon size={16} aria-hidden="true" />Password is
 						incorrect</span>
 				{:else}
 					<button
-						class="visibility-control"
+						class="flex items-center gap-1 py-1 text-xs text-fg-muted transition-colors duration-100 *:animate-pop"
 						type="button"
 						disabled={busy || !password}
 						onclick={() => void validate()}>
@@ -230,7 +231,7 @@
 								aria-hidden="true" /> Validate with Roblox{/if}
 					</button>
 					<button
-						class="automatic-unlock-info"
+						class="flex size-5 cursor-help items-center justify-center text-fg-faint transition-colors duration-100 hover:text-fg focus-visible:text-fg"
 						type="button"
 						aria-label={validationHint}
 						data-tooltip={validationHint}>
@@ -239,9 +240,9 @@
 				{/if}
 			</div>
 
-			{#if error}<div class="modal-error" role="alert">{error}</div>{/if}
+			{#if error}<div class="mt-3 notice-error" role="alert">{error}</div>{/if}
 
-			<div class="modal-actions">
+			<div class="dialog-actions">
 				<button
 					class="btn"
 					type="button"
@@ -257,49 +258,3 @@
 		</form>
 	</div>
 </div>
-
-<style>
-	.password-field {
-		position: relative;
-	}
-
-	.password-field input {
-		padding-right: calc(var(--control-height-sm) + var(--space-2));
-	}
-
-	.password-field > button {
-		position: absolute;
-		right: var(--space-1);
-		bottom: var(--space-1);
-		width: var(--control-height-sm);
-		height: var(--control-height-sm);
-	}
-
-	.password-validation {
-		display: flex;
-		min-height: var(--control-height-sm);
-		align-items: center;
-		gap: var(--space-1);
-		margin-top: var(--space-2);
-		color: var(--color-text);
-		font-size: var(--text-12);
-	}
-
-	.password-validation > span {
-		display: flex;
-		align-items: center;
-		gap: var(--space-1);
-	}
-
-	.password-validation > .visibility-control {
-		margin-top: 0;
-	}
-
-	.password-validation > .password-valid {
-		color: var(--color-success);
-	}
-
-	.password-validation > .password-invalid {
-		color: var(--color-warning);
-	}
-</style>

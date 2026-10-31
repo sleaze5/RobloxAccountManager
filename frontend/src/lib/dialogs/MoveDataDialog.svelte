@@ -38,9 +38,9 @@
 
 <svelte:window onkeydown={handleKeydown} />
 
-<div class="modal-backdrop" in:modalBackdropIn out:modalBackdropOut>
+<div class="dialog-backdrop" in:modalBackdropIn out:modalBackdropOut>
 	<div
-		class="modal-card confirm-card"
+		class="dialog-card max-w-sm text-left"
 		role="alertdialog"
 		aria-modal="true"
 		aria-labelledby="move-data-title"
@@ -48,7 +48,7 @@
 		use:modalFocus
 		in:modalCardIn
 		out:modalCardOut>
-		<div class="modal-heading">
+		<div class="dialog-heading">
 			<div>
 				<h2 id="move-data-title">Move to {targetLabel} storage?</h2>
 				<p id="move-data-description">
@@ -64,13 +64,15 @@
 				<XIcon size={14} aria-hidden="true" />
 			</button>
 		</div>
-		<div class="location-option-path">{target.directory}</div>
-		<ul class="confirmation-effects">
+		<div class="mt-2 font-mono text-2xs wrap-anywhere text-fg-faint">
+			{target.directory}
+		</div>
+		<ul class="mt-3 flex list-disc flex-col gap-1 pl-5 text-xs text-warning">
 			<li>Every file is verified before the old copy is deleted.</li>
 			<li>Open browser sessions close. The browser downloads again if needed.</li>
 		</ul>
-		{#if error}<div class="modal-error" role="alert">{error}</div>{/if}
-		<div class="modal-actions">
+		{#if error}<div class="mt-3 notice-error" role="alert">{error}</div>{/if}
+		<div class="dialog-actions">
 			<button class="btn" type="button" disabled={busy} onclick={onClose}
 				>Cancel</button
 			><button

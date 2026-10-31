@@ -58,9 +58,9 @@
 </script>
 
 {#if pending}
-	<div class="modal-backdrop" in:modalBackdropIn out:modalBackdropOut>
+	<div class="dialog-backdrop" in:modalBackdropIn out:modalBackdropOut>
 		<div
-			class="modal-card confirm-card"
+			class="dialog-card max-w-sm text-left"
 			role="alertdialog"
 			tabindex="-1"
 			aria-modal="true"
@@ -76,7 +76,7 @@
 					void respond(false)
 				}
 			}}>
-			<div class="modal-heading compact-heading">
+			<div class="dialog-heading mb-2">
 				<div>
 					<h2 id="replace-roblox-title">
 						{pending.accountCount > 1
@@ -104,8 +104,8 @@
 					</p>
 				</div>
 			</div>
-			{#if error}<div class="modal-error" role="alert">{error}</div>{/if}
-			<div class="modal-actions">
+			{#if error}<div class="mt-3 notice-error" role="alert">{error}</div>{/if}
+			<div class="dialog-actions">
 				<button
 					class="btn"
 					type="button"

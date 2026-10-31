@@ -103,9 +103,9 @@
 	})
 </script>
 
-<div class="modal-backdrop" in:modalBackdropIn out:modalBackdropOut>
+<div class="dialog-backdrop" in:modalBackdropIn out:modalBackdropOut>
 	<div
-		class="modal-card roblox-process-card"
+		class="dialog-card max-w-md"
 		role="alertdialog"
 		tabindex="-1"
 		aria-modal="true"
@@ -120,9 +120,9 @@
 				dismiss()
 			}
 		}}>
-		<div class="modal-heading">
+		<div class="dialog-heading items-center">
 			<h2 id="roblox-process-title">Close Roblox processes</h2>
-			<div class="process-heading-actions">
+			<div class="flex gap-1">
 				<button
 					class="btn-ghost-sm"
 					type="button"
@@ -144,9 +144,10 @@
 					onclick={dismiss}><XIcon size={14} aria-hidden="true" /></button>
 			</div>
 		</div>
-		<div class="process-results">
-			<div class="cookie-results-toolbar">
-				<label class="cookie-select-all">
+		<div class="overflow-hidden rounded-md border border-line">
+			<div
+				class="flex min-h-8 items-center justify-between gap-2 border-b border-line-subtle bg-fill px-2 text-xs text-fg-muted">
+				<label class="flex cursor-pointer items-center gap-1 font-medium">
 					<span class="checkbox">
 						<input
 							type="checkbox"
@@ -167,15 +168,21 @@
 					</span>
 					<span>{allSelected ? "Deselect all" : "Select all"}</span>
 				</label>
-				<span class="cookie-selection-count" role="status"
+				<span class="font-mono text-fg-faint" role="status"
 					>{selectedProcesses.length} of {processes.length} selected</span>
 			</div>
-			<div class="process-table-scroll">
-				<table aria-label="Roblox processes" aria-busy={loading || killing}>
+			<div class="max-h-60 overflow-auto">
+				<table
+					class="w-full border-separate border-spacing-0 text-left text-xs"
+					aria-label="Roblox processes"
+					aria-busy={loading || killing}>
 					<tbody>
 						{#each processes as process (processKey(process))}
-							<tr class:selected={selected.includes(processKey(process))}>
-								<td class="selection-column">
+							<tr
+								class="*:p-2 not-first:*:border-t not-first:*:border-line-subtle data-selected:*:bg-active"
+								data-selected={selected.includes(processKey(process)) ||
+									undefined}>
+								<td class="w-8">
 									<label class="checkbox">
 										<input
 											type="checkbox"
@@ -196,12 +203,14 @@
 												aria-hidden="true" /></span>
 									</label>
 								</td>
-								<td class="process-name">{process.name}</td>
-								<td class="pid-column">PID: {process.pid}</td>
+								<td class="font-mono font-medium">{process.name}</td>
+								<td
+									class="text-right font-mono text-2xs whitespace-nowrap text-fg-faint"
+									>PID: {process.pid}</td>
 							</tr>
 						{:else}
 							<tr
-								><td colspan="3" class="process-empty">
+								><td colspan="3" class="p-4 text-center text-fg-faint">
 									<span role="status">
 										{#if loading}Loading processes…
 										{:else if snapshot?.supported === false}Not
@@ -215,10 +224,10 @@
 				</table>
 			</div>
 		</div>
-		{#if error || loadError}<div class="modal-error" role="alert">
+		{#if error || loadError}<div class="mt-3 notice-error" role="alert">
 				{error || loadError}
 			</div>{/if}
-		<div class="modal-actions">
+		<div class="dialog-actions">
 			<button
 				class="btn"
 				bind:this={cancelButton}
@@ -237,71 +246,3 @@
 		</div>
 	</div>
 </div>
-
-<style>
-	.roblox-process-card {
-		width: min(440px, 100%);
-	}
-
-	.modal-heading {
-		align-items: center;
-	}
-
-	.process-heading-actions {
-		display: flex;
-		gap: var(--space-1);
-	}
-
-	.process-results {
-		overflow: hidden;
-		border: 1px solid var(--color-border);
-		border-radius: var(--radius-control);
-	}
-
-	.process-table-scroll {
-		max-height: 240px;
-		overflow: auto;
-	}
-
-	table {
-		width: 100%;
-		border-spacing: 0;
-		font-size: var(--text-12);
-		text-align: left;
-	}
-
-	td {
-		padding: var(--space-2);
-	}
-
-	.process-name {
-		font-family: var(--font-mono);
-		font-weight: var(--font-medium);
-	}
-
-	tr + tr td {
-		border-top: 1px solid var(--color-border-subtle);
-	}
-
-	tr.selected td {
-		background: var(--color-active);
-	}
-
-	.selection-column {
-		width: 30px;
-	}
-
-	.pid-column {
-		color: var(--color-text-faint);
-		font-family: var(--font-mono);
-		font-size: var(--text-11);
-		text-align: right;
-		white-space: nowrap;
-	}
-
-	.process-empty {
-		padding: var(--space-4);
-		color: var(--color-text-faint);
-		text-align: center;
-	}
-</style>

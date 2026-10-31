@@ -67,7 +67,7 @@
 	}} />
 
 <div
-	class="modal-backdrop"
+	class="dialog-backdrop"
 	in:modalBackdropIn
 	out:modalBackdropOut
 	onclick={(event) => {
@@ -75,7 +75,7 @@
 	}}
 	role="presentation">
 	<div
-		class="modal-card launch-data-card"
+		class="dialog-card max-w-md"
 		role="dialog"
 		aria-modal="true"
 		use:modalFocus
@@ -89,7 +89,7 @@
 				event.preventDefault()
 				void save()
 			}}>
-			<div class="modal-heading compact-heading">
+			<div class="dialog-heading mb-2">
 				<div>
 					<h2 id="linux-client-dialog-title">Linux client</h2>
 					<p>Choose the client that joins games.</p>
@@ -122,18 +122,21 @@
 						</span>
 						<span class="text-xs text-fg">{option.label}</span>
 						{#if !option.installed}
-							<small class="linux-client-missing">Not installed</small>
+							<small class="ml-auto text-2xs text-fg-faint"
+								>Not installed</small>
 						{/if}
 					</label>
 				{/each}
 			</div>
 			{#if !installed}
-				<div class="modal-note">Install Sober or Mocktail to join games.</div>
+				<div class="mt-3 notice-note">
+					Install Sober or Mocktail to join games.
+				</div>
 			{/if}
 			{#if error}
-				<div class="modal-error" role="alert">{error}</div>
+				<div class="mt-3 notice-error" role="alert">{error}</div>
 			{/if}
-			<div class="modal-actions">
+			<div class="dialog-actions">
 				<button class="btn" type="button" disabled={saving} onclick={onClose}
 					>Cancel</button>
 				<button class="btn-primary" type="submit" disabled={saving}>
@@ -143,11 +146,3 @@
 		</form>
 	</div>
 </div>
-
-<style>
-	.linux-client-missing {
-		margin-left: auto;
-		color: var(--color-text-faint);
-		font-size: var(--text-11);
-	}
-</style>

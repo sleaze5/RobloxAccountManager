@@ -65,16 +65,16 @@
 	}
 </script>
 
-<div class="modal-backdrop" in:modalBackdropIn out:modalBackdropOut>
+<div class="dialog-backdrop" in:modalBackdropIn out:modalBackdropOut>
 	<div
-		class="modal-card tag-manager-card"
+		class="dialog-card max-w-sm"
 		role="dialog"
 		aria-modal="true"
 		aria-labelledby="manage-tags-title"
 		use:modalFocus
 		in:modalCardIn
 		out:modalCardOut>
-		<div class="modal-heading compact-heading">
+		<div class="dialog-heading mb-2">
 			<div>
 				<h2 id="manage-tags-title">Manage tags</h2>
 				<p>
@@ -92,7 +92,7 @@
 			</button>
 		</div>
 		{#if store.error}
-			<div class="modal-error" role="alert">{store.error}</div>
+			<div class="mt-3 notice-error" role="alert">{store.error}</div>
 		{/if}
 		<form
 			novalidate
@@ -102,11 +102,12 @@
 				event.preventDefault()
 				void submit()
 			}}>
-			<label class="modal-field tag-name-field" for="managed-tag-name">
+			<label class="dialog-field" for="managed-tag-name">
 				<span>New tag</span>
 			</label>
-			<div class="tag-manager-create-row">
+			<div class="flex gap-2">
 				<input
+					class="field text-sm"
 					id="managed-tag-name"
 					value={nameInput.value}
 					oninput={(event) => nameInput.update(event)}
@@ -129,22 +130,30 @@
 			</div>
 		</form>
 		{#if invalid}
-			<p class="tag-name-validation" id="managed-tag-validation">
+			<p
+				class="mt-1 text-xs leading-snug text-danger-muted"
+				id="managed-tag-validation">
 				{validationMessage}
 			</p>
 		{:else}
-			<p class="tag-name-hint">Use letters and numbers. Spaces become hyphens.</p>
+			<p class="mt-1">Use letters and numbers. Spaces become hyphens.</p>
 		{/if}
-		<div class="tag-manager-heading">
-			<strong>Tags</strong>
-			<span>{store.customTags.length}</span>
+		<div class="mt-4 flex items-center justify-between pb-2 text-xs text-fg-muted">
+			<strong class="font-semibold">Tags</strong>
+			<span class="font-mono text-2xs text-fg-faint"
+				>{store.customTags.length}</span>
 		</div>
-		<div class="tag-manager-list">
+		<div
+			class="max-h-48 overflow-y-auto rounded-md border border-line bg-fill *:not-first:border-t *:not-first:border-line-subtle">
 			{#each store.customTags as tag (tag.id)}
-				<div class="tag-manager-row">
-					<HashIcon size={16} aria-hidden="true" />
-					<span>{tag.name}</span>
+				<div class="flex min-h-8 items-center gap-2 pl-2 text-xs text-fg">
+					<HashIcon
+						class="shrink-0 text-fg-faint"
+						size={16}
+						aria-hidden="true" />
+					<span class="min-w-0 flex-1 truncate">{tag.name}</span>
 					<button
+						class="grid size-8 shrink-0 place-items-center text-fg-faint transition-colors duration-100 hover:bg-danger/10 hover:text-danger"
 						type="button"
 						aria-label={`Delete ${tag.name} tag`}
 						data-tooltip={`Delete ${tag.name}`}
@@ -155,10 +164,12 @@
 					</button>
 				</div>
 			{:else}
-				<div class="tag-manager-empty">No custom tags</div>
+				<div class="px-2 py-3 text-center text-xs text-fg-faint">
+					No custom tags
+				</div>
 			{/each}
 		</div>
-		<div class="modal-actions">
+		<div class="dialog-actions">
 			<button class="btn" type="button" disabled={store.busy} onclick={close}
 				>Done</button>
 		</div>

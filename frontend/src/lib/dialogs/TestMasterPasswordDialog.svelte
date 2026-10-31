@@ -27,9 +27,9 @@
 	}
 </script>
 
-<div class="modal-backdrop" in:modalBackdropIn out:modalBackdropOut>
+<div class="dialog-backdrop" in:modalBackdropIn out:modalBackdropOut>
 	<div
-		class="modal-card vault-card"
+		class="relative dialog-card max-w-sm text-center"
 		role="dialog"
 		aria-modal="true"
 		aria-labelledby="test-password-title"
@@ -38,7 +38,7 @@
 		in:modalCardIn
 		out:modalCardOut>
 		<button
-			class="modal-close"
+			class="absolute top-3 right-3 btn-close"
 			type="button"
 			aria-label="Close test master password dialog"
 			disabled={store.busy}
@@ -51,16 +51,17 @@
 				event.preventDefault()
 				void testPassword()
 			}}>
-			<div class="modal-icon">
+			<div
+				class="mx-auto mb-3 grid size-8 place-items-center rounded-md border border-line-strong bg-raised text-fg">
 				<ShieldCheckIcon size={16} aria-hidden="true" />
 			</div>
 			<h2 id="test-password-title">Test master password</h2>
 			<p>Confirm that you still know the portable vault password.</p>
-			{#if store.error}<div class="modal-error" role="alert">
+			{#if store.error}<div class="mt-3 notice-error" role="alert">
 					{store.error}
 				</div>{/if}
 
-			<label class="modal-field">
+			<label class="dialog-field">
 				<span>Master password</span>
 				<input
 					bind:value={password}
@@ -69,7 +70,7 @@
 					required />
 			</label>
 			<button
-				class="visibility-control"
+				class="mt-2 flex items-center gap-1 py-1 text-xs text-fg-muted transition-colors duration-100 *:animate-pop"
 				type="button"
 				onclick={() => (visible = !visible)}>
 				{#if visible}<EyeSlashIcon size={16} aria-hidden="true" /> Hide password{:else}<EyeIcon
@@ -77,9 +78,9 @@
 						aria-hidden="true" /> Show password{/if}
 			</button>
 			{#if store.vault.passwordHint}
-				<div class="modal-note">Hint: {store.vault.passwordHint}</div>
+				<div class="mt-3 notice-note">Hint: {store.vault.passwordHint}</div>
 			{/if}
-			<div class="modal-actions">
+			<div class="dialog-actions">
 				<button
 					class="btn"
 					type="button"

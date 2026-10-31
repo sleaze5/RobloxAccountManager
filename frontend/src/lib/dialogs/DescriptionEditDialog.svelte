@@ -121,9 +121,9 @@
 		if (event.key === "Escape") close()
 	}} />
 
-<div class="modal-backdrop" in:modalBackdropIn out:modalBackdropOut>
+<div class="dialog-backdrop" in:modalBackdropIn out:modalBackdropOut>
 	<div
-		class="modal-card location-card"
+		class="dialog-card max-w-md text-left"
 		role="dialog"
 		aria-modal="true"
 		aria-labelledby="description-edit-title"
@@ -137,7 +137,7 @@
 				event.preventDefault()
 				void submit()
 			}}>
-			<div class="modal-heading compact-heading">
+			<div class="dialog-heading mb-2">
 				<div>
 					<h2 id="description-edit-title">Edit description</h2>
 					<p>@{account.username}</p>
@@ -151,7 +151,7 @@
 				</button>
 			</div>
 
-			<label class="modal-field">
+			<label class="dialog-field">
 				<span>Description</span>
 				{#if preview === undefined}
 					<textarea bind:this={field} bind:value disabled={pending !== null}
@@ -164,7 +164,7 @@
 
 			<div aria-live="polite">
 				{#if changed && text === ""}
-					<div class="modal-warning">
+					<div class="mt-3 notice-warning">
 						This removes the description from @{account.username}'s profile.
 					</div>
 				{:else if clean}
@@ -177,10 +177,10 @@
 			</div>
 
 			{#if error}
-				<div class="modal-error" role="alert">{error}</div>
+				<div class="mt-3 notice-error" role="alert">{error}</div>
 			{/if}
 
-			<div class="modal-actions">
+			<div class="dialog-actions">
 				<button
 					class="btn"
 					type="button"
@@ -200,7 +200,7 @@
 						Edit
 					{:else}
 						{#if clean}<CheckCircleIcon
-								class="validation-passed"
+								class="text-success"
 								size={14}
 								aria-hidden="true" />{/if}
 						Validate
