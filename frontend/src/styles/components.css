@@ -513,3 +513,24 @@
 @utility server-tag {
 	@apply rounded-sm border border-line-strong px-1 font-sans text-2xs leading-3.5 font-medium text-fg-muted;
 }
+
+@utility detail-grid {
+	@apply grid grid-cols-2 gap-x-3 gap-y-2;
+
+	&[data-columns="fit"] {
+		grid-template-columns: minmax(0, 1fr) max-content;
+	}
+
+	:where(&) dt {
+		@apply text-2xs leading-4 text-fg-muted;
+	}
+
+	:where(&) dd {
+		@apply text-xs leading-5 wrap-anywhere text-fg;
+	}
+}
+
+@utility timeline {
+	@apply grid gap-x-3;
+	grid-template-columns: max-content minmax(0, 1fr);
+}

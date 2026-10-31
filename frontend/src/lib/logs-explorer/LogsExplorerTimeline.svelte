@@ -39,22 +39,28 @@
 </script>
 
 <ol
-	class="logs-explorer-timeline"
+	class="timeline"
 	aria-label={`Game joins and teleports, ${newestFirst ? "newest" : "oldest"} first`}>
 	{#each orderedVisits as visit, index (index)}
-		<li class="logs-explorer-visit">
-			<div class="logs-explorer-timeline-point">
+		<li class="relative col-span-full grid grid-cols-subgrid gap-3 pb-3 last:pb-0">
+			<div
+				class={[
+					"relative",
+					index < orderedVisits.length - 1 &&
+						"after:absolute after:top-6 after:-bottom-3 after:left-1/2 after:w-px after:bg-line-strong",
+				]}>
 				<span
-					class="logs-explorer-timeline-marker"
+					class="relative z-10 grid min-h-6 place-items-center rounded-md border border-line-strong bg-surface px-1 font-mono text-2xs whitespace-nowrap text-fg-muted"
 					aria-label="Time from log start">
 					{#if logStartedAtMs && visit.startedAtMs}
 						+{formatClock((visit.startedAtMs - logStartedAtMs) / 1000)}
 					{:else}--:--{/if}
 				</span>
 			</div>
-			<div class="logs-explorer-visit-card">
-				<div class="logs-explorer-visit-heading">
-					<h3>
+			<div
+				class="flex min-w-0 flex-col gap-2 rounded-lg border border-line px-3 py-2">
+				<div class="flex min-h-6 flex-wrap items-center gap-2">
+					<h3 class="text-sm font-semibold">
 						{visit.kind === VisitKind.VisitRejoin
 							? "Rejoin"
 							: visit.kind === VisitKind.VisitTeleport
@@ -65,7 +71,7 @@
 					</h3>
 					{#if visit.startedAtMs && visit.endedAtMs}
 						<span
-							class="logs-explorer-visit-duration"
+							class="font-mono text-2xs text-fg-muted"
 							data-tooltip={visit.endEstimated
 								? "Estimated duration"
 								: "Duration"}>
@@ -75,7 +81,7 @@
 						</span>
 					{/if}
 					<button
-						class="logs-explorer-visit-actions btn-ghost-sm"
+						class="ml-auto btn-ghost-sm"
 						type="button"
 						aria-label="Event actions"
 						aria-haspopup="menu"
@@ -99,7 +105,7 @@
 					</button>
 				</div>
 				<LogsExplorerVisitDetails {visit} {onSearchPlace} />
-				<div class="logs-explorer-visit-time">
+				<div class="flex justify-end text-2xs">
 					{#if visit.startedAtMs}<Timestamp
 							value={visit.startedAtMs} />{:else}Time unavailable{/if}
 				</div>

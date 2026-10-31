@@ -69,19 +69,22 @@
 </script>
 
 {#if user}
-	<div class="logs-explorer-profile">
-		<span class="logs-explorer-avatar" aria-hidden="true">
+	<div class="flex min-w-0 items-center gap-3">
+		<span
+			class="grid size-10 shrink-0 place-items-center overflow-hidden rounded-md border border-line-strong bg-raised text-fg-faint"
+			aria-hidden="true">
 			<ProfileImage url={avatarUrl} />
 		</span>
-		<div class="logs-explorer-profile-copy">
-			<strong class="account-display-name"
-				><span>{user.displayName || user.username}</span
+		<div class="flex min-w-0 flex-col leading-snug">
+			<strong
+				class="inline-flex min-w-0 items-center gap-1 text-sm font-semibold text-fg"
+				><span class="truncate">{user.displayName || user.username}</span
 				>{#if user.favorite}<StarIcon
 						class="shrink-0 animate-pop text-accent-strong"
 						size={12}
 						weight="fill"
 						aria-label="Favorite" />{/if}</strong>
-			<span
+			<span class="truncate text-xs text-fg-muted"
 				>@{user.username}{user.inVault === false
 					? " - Not in your vault"
 					: ""}</span>

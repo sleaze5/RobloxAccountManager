@@ -12,41 +12,41 @@
 	const validId = (id: number) => Number.isSafeInteger(id) && id > 0
 </script>
 
-<div class="logs-explorer-details">
+<div class="flex flex-col gap-2">
 	{#if validId(universeId) && validId(placeId)}<LogsExplorerGame
 			{universeId}
 			{placeId}
 			onSearch={() => onSearchPlace(placeId)} />{/if}
-	<dl class="logs-explorer-detail-grid" aria-label="Game identifiers">
+	<dl class="detail-grid" aria-label="Game identifiers">
 		<div>
 			<dt>Place ID</dt>
-			<dd class="logs-explorer-detail-mono">{visit.placeId}</dd>
+			<dd class="font-mono">{visit.placeId}</dd>
 		</div>
 		<div>
 			<dt>Job ID</dt>
-			<dd class="logs-explorer-detail-mono">{visit.jobId}</dd>
+			<dd class="font-mono">{visit.jobId}</dd>
 		</div>
-		{#if visit.universeId}<div class="logs-explorer-detail-wide">
+		{#if visit.universeId}<div class="col-span-full">
 				<dt>Universe ID</dt>
-				<dd class="logs-explorer-detail-mono">{visit.universeId}</dd>
+				<dd class="font-mono">{visit.universeId}</dd>
 			</div>{/if}
 	</dl>
 	{#if visit.serverAddress || visit.datacenterId}
-		<dl class="logs-explorer-detail-grid" aria-label="Server details">
+		<dl class="detail-grid" aria-label="Server details">
 			{#if visit.datacenterId}<div>
 					<dt>Datacenter ID</dt>
-					<dd class="logs-explorer-detail-mono">{visit.datacenterId}</dd>
+					<dd class="font-mono">{visit.datacenterId}</dd>
 				</div>{/if}
 			{#if visit.serverAddress}<div>
 					<dt>Server address</dt>
-					<dd class="logs-explorer-detail-mono">{visit.serverAddress}</dd>
+					<dd class="font-mono">{visit.serverAddress}</dd>
 				</div>{/if}
 		</dl>
 	{/if}
-	<dl class="logs-explorer-detail-grid" aria-label="Session details">
-		<div class="logs-explorer-detail-wide">
+	<dl class="detail-grid" aria-label="Session details">
+		<div class="col-span-full">
 			<dt>End reason</dt>
-			<dd class="logs-explorer-detail-mono">
+			<dd class="font-mono">
 				{#if visit.disconnectCode}
 					{visit.disconnectCode}{visit.disconnectReason
 						? ` (${visit.disconnectReason})`

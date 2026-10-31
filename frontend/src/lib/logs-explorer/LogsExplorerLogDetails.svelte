@@ -37,18 +37,16 @@
 	)
 </script>
 
-<div class="logs-explorer-details">
-	<div class="logs-explorer-file-heading">
-		<dl
-			class="logs-explorer-detail-grid logs-explorer-file-metadata"
-			aria-label="Log file">
+<div class="flex flex-col gap-2">
+	<div class="flex items-center gap-3">
+		<dl class="detail-grid min-w-0 flex-1" data-columns="fit" aria-label="Log file">
 			<div>
 				<dt>File</dt>
-				<dd class="logs-explorer-detail-mono">{session.fileName}</dd>
+				<dd class="font-mono">{session.fileName}</dd>
 			</div>
 			<div>
 				<dt>Log size</dt>
-				<dd class="logs-explorer-detail-mono">
+				<dd class="font-mono">
 					{formatCompactBytes(session.sizeBytes)}
 				</dd>
 			</div>
@@ -70,37 +68,33 @@
 		</button>
 	</div>
 	{#if session.userId}<LogsExplorerAccount userId={session.userId} />{/if}
-	<dl
-		class="logs-explorer-detail-grid logs-explorer-client-metadata"
-		aria-label="Client details">
+	<dl class="detail-grid grid-cols-4" aria-label="Client details">
 		<div>
 			<dt>User ID</dt>
-			<dd class="logs-explorer-detail-mono">
+			<dd class="font-mono">
 				{session.userId || "Not recorded"}
 			</dd>
 		</div>
 		<div>
 			<dt>Channel</dt>
-			<dd class="logs-explorer-detail-mono">
+			<dd class="font-mono">
 				{session.channel || "Not recorded"}
 			</dd>
 		</div>
 		<div>
 			<dt>Client version</dt>
-			<dd class="logs-explorer-detail-mono">
+			<dd class="font-mono">
 				{session.version || "Not recorded"}
 			</dd>
 		</div>
 		<div>
 			<dt>Version hash</dt>
-			<dd class="logs-explorer-detail-mono">
+			<dd class="font-mono">
 				{session.versionHash || "Not recorded"}
 			</dd>
 		</div>
 	</dl>
-	<dl
-		class="logs-explorer-detail-grid logs-explorer-client-metadata"
-		aria-label="Client lifecycle">
+	<dl class="detail-grid grid-cols-4" aria-label="Client lifecycle">
 		<div>
 			<dt>Launch</dt>
 			<dd>{launch}</dd>
@@ -123,7 +117,7 @@
 		</div>
 		<div>
 			<dt>Client lifetime</dt>
-			<dd class="logs-explorer-detail-mono">
+			<dd class="font-mono">
 				{#if session.startedAtMs && session.endedAtMs}{session.endEstimated
 						? "≈"
 						: ""}{formatClock(session.lifetimeMs / 1000, "days")}{:else}Not

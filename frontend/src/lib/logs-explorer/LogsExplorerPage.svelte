@@ -106,13 +106,14 @@
 					</div>
 				</div>
 				<div
-					class="logs-explorer-session-list flex-1"
+					class="min-h-0 flex-1 scrollbar-stable overflow-y-auto"
 					aria-busy={store.refreshing}>
 					{#each sessions as session (session.fileName)}
 						{@const visitCount = session.visits?.length ?? 0}
 						<button
-							class="logs-explorer-session-row list-row"
-							class:selected={store.selectedFile === session.fileName}
+							class="flex min-h-12 w-full flex-col justify-center border-b border-line-subtle list-row px-3 py-2 text-left leading-snug"
+							data-selected={store.selectedFile === session.fileName ||
+								undefined}
 							type="button"
 							aria-current={store.selectedFile === session.fileName
 								? "true"
@@ -120,8 +121,12 @@
 							onclick={() => (store.selectedFile = session.fileName)}
 							data-tooltip={session.fileName}
 							data-tooltip-side="right">
-							<span class="logs-explorer-row-title"
-								><FileTextIcon size={16} aria-hidden="true" /><span
+							<span
+								class="flex w-full items-center gap-2 text-xs font-semibold text-fg"
+								><FileTextIcon
+									class="shrink-0 text-fg-muted"
+									size={16}
+									aria-hidden="true" /><span class="truncate"
 									>{session.startedAtMs
 										? formatTimestamp(
 												session.startedAtMs,
@@ -129,18 +134,19 @@
 											)
 										: "Unknown start time"}</span
 								>{#if session.issue}<WarningIcon
-										class="logs-explorer-issue-icon"
+										class="shrink-0 text-warning"
 										size={14}
 										aria-label="Incomplete log" />{/if}</span>
-							<span class="logs-explorer-row-meta"
+							<span
+								class="flex w-full items-center gap-2 pl-6 text-2xs text-fg-muted"
 								>{visitCount}
 								{visitCount === 1 ? "visit" : "visits"}</span>
 						</button>
 					{:else}
 						{#if store.refreshing}
-							<p class="logs-explorer-list-empty">Loading sessions…</p>
+							<p class="p-3 text-2xs text-fg-muted">Loading sessions…</p>
 						{:else if store.query}
-							<p class="logs-explorer-list-empty">
+							<p class="p-3 text-2xs text-fg-muted">
 								No matching sessions.
 							</p>
 						{/if}
@@ -165,7 +171,7 @@
 							void store.refreshSession(selected.fileName)} />
 				{/key}
 			{:else}
-				<div class="logs-explorer-empty" role="status">
+				<div class="empty-state" role="status">
 					{#if store.refreshing}<CircleNotchIcon
 							class="spinner"
 							size={28}

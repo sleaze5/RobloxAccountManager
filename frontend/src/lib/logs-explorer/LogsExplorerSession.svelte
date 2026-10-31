@@ -25,19 +25,22 @@
 </script>
 
 <section
-	class="logs-explorer-session"
+	class="grid min-h-0 min-w-0 animate-enter grid-rows-1"
 	aria-label="Selected launch session"
 	aria-busy={refreshing}>
-	<div class="logs-explorer-session-scroll">
-		<div class="logs-explorer-session-content">
+	<div class="min-h-0 overflow-y-auto">
+		<div class="flex flex-col gap-3 p-3">
 			<LogsExplorerLogDetails {session} {refreshing} {onRefresh} />
 			{#if session.issue}
-				<p class="logs-explorer-warning" role="status">
-					<WarningIcon size={16} aria-hidden="true" />{session.issue}
+				<p class="flex items-start gap-2 notice-warning" role="status">
+					<WarningIcon
+						class="shrink-0"
+						size={16}
+						aria-hidden="true" />{session.issue}
 				</p>
 			{/if}
-			<div class="logs-explorer-timeline-heading">
-				<h2>Timeline</h2>
+			<div class="flex items-center gap-2 border-b border-line pb-2">
+				<h2 class="text-base font-semibold text-fg">Timeline</h2>
 				<button
 					class="btn-icon"
 					type="button"
@@ -62,7 +65,7 @@
 					{onFillLaunch}
 					{onSearchPlace} />
 			{:else}
-				<p class="logs-explorer-empty-timeline">No game joins recorded.</p>
+				<p class="text-xs text-fg-muted">No game joins recorded.</p>
 			{/if}
 		</div>
 	</div>

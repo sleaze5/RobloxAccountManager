@@ -12,4 +12,3 @@
 @import "./legacy/accounts.css" layer(legacy);
 @import "./legacy/dialogs.css" layer(legacy);
 @import "./legacy/browser.css" layer(legacy);
-@import "./legacy/logs-explorer.css" layer(legacy);
