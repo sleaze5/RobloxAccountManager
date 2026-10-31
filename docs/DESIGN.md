@@ -106,7 +106,7 @@ The user must never see UI that looks or behaves like an exposed embedded browse
 - Design for a 900px by 500px window at 100% display scaling. This is also the minimum window size. Check every layout change at this size with the launch panel open at its default height.
 - At the minimum size, the detail pane next to a default-width sidebar is about 680px wide. Make tables and fixed-column grids fit that width. Hide or truncate lower-priority columns before you add horizontal scrolling.
 - Use `bg-surface` for persistent chrome (the title bar, page tabs, sidebars, tool rails, and status strip) and `bg-canvas` for the main content plane. The content is one small step darker than the chrome. Keep that step small and separate regions mainly with borders.
-- Use `bg-overlay` for dialogs, menus, popovers, and other floating surfaces, which sit one step above the content. Use `bg-raised` for compact opaque controls, and `bg-base`, the darkest shade, for recessed plates such as inputs.
+- Use `bg-overlay` for dialogs, menus, popovers, and other floating surfaces, which sit one step above the content. Use `bg-raised` for compact opaque controls, and `bg-canvas` for inputs.
 - Separate regions with a background step plus a 1px border, not with large shadows. Use `border-line` by default, `border-line-subtle` between rows and shell regions, and `border-line-strong` for selected controls and floating surfaces that need extra separation. Avoid bright outlines.
 - Keep the shell flat. The title bar and the page tabs are `h-9`, the status strip is `h-6`, and the default sidebar is `w-56`.
 - Show each value once per screen. For example, do not show the same count in a sidebar header and in the status strip.
@@ -179,7 +179,7 @@ Use `rounded-full` for status dots, radio buttons, switch thumbs, and the switch
 
 Inputs:
 
-- Style inputs as recessed plates: `bg-base`, a 1px `border-line` border, `rounded-md`, and `text-fg-faint` placeholders. On focus, use `border-line-focus`. The `field` building block does this.
+- Style inputs as shallow plates: `bg-canvas`, a 1px `border-line` border, `rounded-md`, and `text-fg-faint` placeholders. On focus, use `border-line-focus`. The `field` building block does this.
 - Give every text field a visible label. With a visible label, the field border may stay subtle.
 
 Buttons:

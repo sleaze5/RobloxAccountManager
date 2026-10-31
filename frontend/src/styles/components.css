@@ -65,11 +65,11 @@
 }
 
 @utility field {
-	@apply h-8 w-full min-w-0 rounded-md border border-line bg-base px-2 text-sm text-fg outline-0 transition-colors duration-100 placeholder:text-fg-faint focus:border-line-focus disabled:cursor-not-allowed disabled:opacity-45 aria-invalid:border-danger/40;
+	@apply h-8 w-full min-w-0 rounded-md border border-line bg-canvas px-2 text-sm text-fg outline-0 transition-colors duration-100 placeholder:text-fg-faint focus:border-line-focus disabled:cursor-not-allowed disabled:opacity-45 aria-invalid:border-danger/40;
 }
 
 @utility search-field {
-	@apply flex h-8 min-w-0 flex-1 items-center gap-2 rounded-md border border-line bg-base px-2 text-fg-faint transition-colors duration-100 focus-within:border-line-focus;
+	@apply flex h-8 min-w-0 flex-1 items-center gap-2 rounded-md border border-line bg-canvas px-2 text-fg-faint transition-colors duration-100 focus-within:border-line-focus;
 
 	& input {
 		@apply w-full min-w-0 bg-transparent text-xs text-fg outline-0 placeholder:text-fg-faint;
@@ -92,7 +92,7 @@
 	}
 
 	& > span {
-		@apply grid size-3.5 place-items-center rounded-sm border border-line-strong bg-base text-on-solid transition-colors duration-100;
+		@apply grid size-3.5 place-items-center rounded-sm border border-line-strong bg-canvas text-on-solid transition-colors duration-100;
 	}
 
 	& svg {
@@ -185,7 +185,7 @@
 }
 
 @utility segmented {
-	@apply grid auto-cols-fr grid-flow-col gap-0.5 rounded-md border border-line bg-base p-0.5;
+	@apply grid auto-cols-fr grid-flow-col gap-0.5 rounded-md border border-line bg-canvas p-0.5;
 
 	& > button {
 		@apply flex h-6 items-center justify-center gap-1 rounded-sm px-2 text-xs font-medium whitespace-nowrap text-fg-faint transition-colors duration-100 hover:text-fg aria-pressed:bg-raised aria-pressed:text-fg;
