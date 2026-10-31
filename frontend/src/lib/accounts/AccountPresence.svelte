@@ -74,10 +74,10 @@
 	})
 </script>
 
-<div class="profile-presence">
+<div class="flex min-h-6 min-w-0 items-center gap-1 text-xs">
 	<button
 		type="button"
-		class="profile-presence-copy cursor-help rounded-md tabular-nums focus-visible:outline-offset-2"
+		class="flex min-w-0 cursor-help items-center gap-1 rounded-md text-left tabular-nums focus-visible:outline-offset-2"
 		aria-label={tooltip}
 		data-tooltip={tooltip}>
 		<span
@@ -86,8 +86,8 @@
 				presenceTextClass(presence),
 			]}><Icon size={14} aria-hidden="true" />{label}{detail ? ":" : ""}</span>
 		{#if detail}
-			<span class="game-display-name">
-				<span>{detail}</span>
+			<span class="inline-flex min-w-0 items-center gap-1">
+				<span class="truncate">{detail}</span>
 				{#if inExperience && place && games.isFavorite(place.placeId)}
 					<StarIcon
 						class="shrink-0 animate-pop text-accent-strong"
@@ -100,7 +100,7 @@
 	</button>
 	{#if joinable}
 		<button
-			class="profile-presence-join btn-ghost-sm"
+			class="btn-ghost-sm"
 			type="button"
 			aria-label="Fill launch options"
 			data-tooltip="Fill launch options with this place and server"
@@ -110,7 +110,7 @@
 	{/if}
 	{#if inExperience && joinPlaceId > 0}
 		<button
-			class="profile-presence-search btn-ghost-sm"
+			class="btn-ghost-sm"
 			type="button"
 			aria-label="Find this place in Games"
 			data-tooltip="Find this place in Games"

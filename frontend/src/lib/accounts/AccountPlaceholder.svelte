@@ -39,11 +39,11 @@
 </script>
 
 {#if store.multipleSelected}
-	<div class="account-content empty-state">
+	<div class="empty-state min-h-full animate-enter">
 		<UsersThreeIcon size={28} aria-hidden="true" />
 		<h2>{store.selectedAccountIds.length} accounts selected</h2>
 		<p>Launch starts every selected account.</p>
-		<div class="account-placeholder-actions">
+		<div class="flex gap-2">
 			<button
 				class="btn"
 				type="button"
@@ -61,7 +61,7 @@
 		</div>
 	</div>
 {:else if store.vault.unlocked && !store.loadingAccounts}
-	<div class="account-content empty-state">
+	<div class="empty-state min-h-full animate-enter">
 		{#if noAccounts}
 			<UserPlusIcon size={28} aria-hidden="true" />
 			<h2>No accounts yet</h2>
@@ -91,10 +91,3 @@
 		{/if}
 	</div>
 {/if}
-
-<style>
-	.account-placeholder-actions {
-		display: flex;
-		gap: var(--space-2);
-	}
-</style>

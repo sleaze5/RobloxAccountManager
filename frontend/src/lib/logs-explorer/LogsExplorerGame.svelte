@@ -40,20 +40,20 @@
 {#if loading || place}
 	<div class="logs-explorer-profile" aria-busy={loading}>
 		<span class="logs-explorer-game-icon">
-			<GameIcon url={place?.iconUrl ?? ""} />
+			<GameIcon url={place?.iconUrl ?? ""} size="lg" />
 			{#if rootPlace}<button
 					class="logs-explorer-root-icon cursor-help rounded-md tabular-nums focus-visible:outline-offset-2"
 					type="button"
 					aria-label={`Subplace of ${rootName}`}
 					data-tooltip={`Subplace of ${rootName}`}
 					data-tooltip-strong={rootName}
-					><GameIcon url={rootPlace.iconUrl} /></button
+					><GameIcon url={rootPlace.iconUrl} size="xs" /></button
 				>{/if}
 		</span>
 		<div class="logs-explorer-profile-copy">
 			{#if place}
-				<strong class="game-display-name"
-					><span>{games.displayName(place)}</span
+				<strong class="inline-flex min-w-0 items-center gap-1"
+					><span class="truncate">{games.displayName(place)}</span
 					>{#if games.isFavorite(place.placeId)}<StarIcon
 							class="shrink-0 animate-pop text-accent-strong"
 							size={12}

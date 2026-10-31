@@ -37,7 +37,7 @@
 	})
 </script>
 
-<div class={status.tone}>
+<div data-tone={status.tone || undefined}>
 	<dt>
 		{#if voiceChat?.state === VoiceChatState.VoiceChatOn}<MicrophoneIcon
 				size={16}
@@ -49,7 +49,7 @@
 	<dd>
 		<span>{status.label}</span>
 		{#if suspendedUntil > now}
-			<small class="profile-countdown"
+			<small class="tabular-nums"
 				>Ends in <time datetime={new Date(suspendedUntil).toISOString()}
 					>{formatClock(
 						Math.ceil((suspendedUntil - now) / 1000),

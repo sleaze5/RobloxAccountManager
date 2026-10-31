@@ -330,8 +330,10 @@
 									>{/if}
 								<GameIcon url={place.iconUrl} />
 								<span class="game-row-text">
-									<strong class="game-display-name"
-										><span>{store.displayName(place)}</span
+									<strong
+										class="inline-flex min-w-0 items-center gap-1"
+										><span class="truncate"
+											>{store.displayName(place)}</span
 										>{#if store.isFavorite(place.placeId)}<StarIcon
 												class="shrink-0 animate-pop text-accent-strong"
 												size={12}

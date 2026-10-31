@@ -113,12 +113,12 @@
 {:else if workspace.accountPage === "chats" && hasAccount && store.vault.unlocked}
 	<ChatsPage {store} {workspace} onBack={() => void backToProfile()} />
 {:else}
-	<section class="profile-page" aria-labelledby="account-name">
-		<div class="profile-head">
-			<div class="selected-identity">
+	<section class="flex flex-col gap-4 p-3 pb-4" aria-labelledby="account-name">
+		<div class="flex items-start gap-3 @max-xl:flex-col">
+			<div class="flex min-w-0 flex-1 items-center gap-4">
 				<button
 					type="button"
-					class="profile-image-trigger"
+					class="shrink-0 cursor-default rounded-md"
 					aria-label="Profile image"
 					aria-haspopup="menu"
 					aria-expanded={workspace.imageContextMenu?.imageUrl ===
@@ -142,29 +142,32 @@
 						)}>
 					<AccountAvatar
 						account={selectedAccount}
-						className="selected-avatar" />
+						className="size-20 text-lg" />
 				</button>
-				<div class="identity-copy">
-					<h2 id="account-name" class="account-display-name">
-						<span>{selectedAccount.displayName}</span>
+				<div class="flex min-w-0 flex-col gap-1">
+					<h2
+						id="account-name"
+						class="flex min-w-0 items-center gap-1 text-lg leading-tight font-semibold tracking-tight text-fg">
+						<span class="truncate">{selectedAccount.displayName}</span>
 						{#if selectedAccount.favorite}<StarIcon
 								class="shrink-0 animate-pop text-accent-strong"
 								size={16}
 								weight="fill"
 								aria-hidden="true" />{/if}
 						{#if profile?.verifiedBadge}<SealCheckIcon
-								class="profile-verified-badge"
+								class="shrink-0 text-accent-strong"
 								size={16}
 								aria-label="Verified" />{/if}
 					</h2>
 					{#if hasAccount}
-						<div class="identity-meta">
+						<div
+							class="flex min-w-0 flex-wrap items-center gap-1 font-mono text-2xs wrap-anywhere text-fg-muted">
 							<span>@{selectedAccount.username}</span>
-							<span class="meta-separator" aria-hidden="true">-</span>
+							<span class="text-fg-faint" aria-hidden="true">-</span>
 							<span>ID: {selectedAccount.userId}</span>
 						</div>
 						{#if selectedAccount.state === SessionState.StateReauthRequired || selectedAccount.state === SessionState.StateChallenged}
-							<div class="session-warning">
+							<div class="flex items-center gap-2 text-xs text-warning">
 								<WarningCircleIcon size={14} aria-hidden="true" />
 								<span
 									>{selectedAccount.state ===
@@ -185,7 +188,7 @@
 								presence={selectedAccount.presence}
 								onJoin={onJoinServer}
 								{onSearchPlace} />
-							<div class="profile-balance-row">
+							<div class="flex flex-wrap items-center gap-2">
 								<AccountProfileBalance
 									snapshot={profile}
 									loading={profileState?.loading ||
@@ -197,7 +200,7 @@
 					{/if}
 				</div>
 			</div>
-			<div class="header-actions">
+			<div class="relative flex items-center gap-1 @max-xl:self-end">
 				<button
 					class="btn-icon"
 					type="button"
@@ -256,7 +259,7 @@
 		</div>
 
 		{#if hasAccount}
-			<div class="identity-section">
+			<div class="flex flex-wrap items-center gap-1">
 				{#if selectedAccount.favorite}
 					<span class="tag-pill-favorite">
 						<StarIcon size={12} weight="fill" aria-hidden="true" />
@@ -269,7 +272,7 @@
 						<span>{tag.name}</span>
 					</span>
 				{/each}
-				<div class="edit-tags-host" data-account-menu>
+				<div class="relative inline-flex" data-account-menu>
 					<button
 						bind:this={tagsButton}
 						class="btn-icon size-6"
@@ -300,12 +303,17 @@
 			</div>
 
 			{#if profile && (profile.friendCount !== null || profile.followerCount !== null || profile.followingCount !== null)}
-				<dl class="profile-social" aria-label="Connections">
+				<dl
+					class="flex flex-wrap items-baseline gap-x-4 gap-y-1"
+					aria-label="Connections">
 					{#each [["Friends", profile.friendCount], ["Followers", profile.followerCount], ["Following", profile.followingCount]] as const as [label, value] (label)}
 						{#if value !== null}
-							<div>
-								<dt>{label}</dt>
-								<dd><CompactNumber {value} /></dd>
+							<div class="flex items-baseline gap-1">
+								<dt class="text-xs text-fg-muted">{label}</dt>
+								<dd
+									class="order-first text-sm font-semibold text-fg tabular-nums">
+									<CompactNumber {value} />
+								</dd>
 							</div>
 						{/if}
 					{/each}
@@ -324,9 +332,11 @@
 
 			<AccountProfileDetails account={selectedAccount} snapshot={profile} />
 			{#if profileVisible && profileState?.error}
-				<p class="profile-read-error" role="alert">{profileState.error}</p>
+				<p class="text-xs text-danger-muted" role="alert">
+					{profileState.error}
+				</p>
 			{:else if (profile?.unavailable?.length ?? 0) > 0}
-				<p class="profile-read-error" role="alert">
+				<p class="text-xs text-danger-muted" role="alert">
 					Some profile details could not be refreshed. Refresh to retry.
 				</p>
 			{/if}

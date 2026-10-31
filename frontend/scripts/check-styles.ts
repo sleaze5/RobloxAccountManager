@@ -13,7 +13,6 @@ const styles = join(source, "styles")
 const stylesheet = join(styles, "app.css")
 
 const legacyStyleBlocks = new Set([
-	"lib/accounts/AccountPlaceholder.svelte",
 	"lib/dialogs/LinuxClientDialog.svelte",
 	"lib/dialogs/RobloxPlayerPathDialog.svelte",
 	"lib/dialogs/RobloxProcessesDialog.svelte",

@@ -2,10 +2,12 @@
 	import type { AccountProfileSnapshot } from "../backend/bridge"
 
 	let { snapshot }: { snapshot: AccountProfileSnapshot } = $props()
+	const badgeClass =
+		"inline-flex h-5 cursor-help items-center gap-1 rounded-sm border border-line-strong bg-raised px-1 text-2xs font-medium text-accent-strong"
 </script>
 
 {#if snapshot.premium}
-	<span class="profile-badge" data-tooltip="Roblox Premium">
+	<span class={badgeClass} data-tooltip="Roblox Premium">
 		<svg
 			viewBox="0 0 32 32"
 			width="12"
@@ -21,7 +23,7 @@
 	</span>
 {/if}
 {#if snapshot.plus}
-	<span class="profile-badge" data-tooltip="Roblox Plus">
+	<span class={badgeClass} data-tooltip="Roblox Plus">
 		<svg
 			viewBox="0 0 32 32"
 			width="12"

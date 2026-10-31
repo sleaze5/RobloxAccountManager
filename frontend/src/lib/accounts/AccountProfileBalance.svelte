@@ -46,11 +46,13 @@
 
 <button
 	type="button"
-	class="profile-balance"
-	class:profile-value-unavailable={unavailable}
+	class={[
+		"inline-flex shrink-0 cursor-help items-center rounded-md font-mono text-xs whitespace-pre tabular-nums focus-visible:outline-offset-2",
+		unavailable ? "text-fg-faint" : "text-fg",
+	]}
 	aria-label={tooltip}
 	data-tooltip={tooltip}>
 	R$ {balance}{#if pending !== null && pending !== undefined && pending > 0}<span
-			class="profile-balance-pending">{` (+${amount(pending)})`}</span
+			class="text-fg-muted">{` (+${amount(pending)})`}</span
 		>{/if}
 </button>

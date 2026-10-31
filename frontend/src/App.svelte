@@ -85,6 +85,11 @@
 			browserSessions: 0,
 		})
 	setGamesStore(games)
+	const accountSubpage = $derived(
+		workspace.accountPage !== "profile" &&
+			store.selectedAccount.id !== 0 &&
+			store.vault.unlocked,
+	)
 	const accountToRemove = $derived(
 		store.accounts.find((account) => account.id === removeAccountId) ?? null,
 	)
@@ -472,8 +477,14 @@
 					onManageTags={openManageTags}
 					onBrowser={(accountId) => void openManagedBrowser(accountId)} />
 
-				<main class="account-workspace min-w-0 flex-1">
-					<div class="workspace-scroll">
+				<main class="flex min-w-0 flex-1 flex-col overflow-hidden bg-canvas">
+					<div
+						class={[
+							"@container min-h-0 flex-1",
+							accountSubpage
+								? "overflow-hidden"
+								: "overflow-x-hidden overflow-y-auto",
+						]}>
 						{#if store.multipleSelected || store.selectedAccount.id === 0}
 							<AccountPlaceholder
 								{store}
@@ -482,7 +493,11 @@
 								onBrowser={() => void openManagedBrowser(null)} />
 						{:else}
 							{#key store.selectedAccountId}
-								<div class="account-content">
+								<div
+									class={[
+										"animate-enter",
+										accountSubpage ? "h-full" : "min-h-full",
+									]}>
 									<AccountProfile
 										{store}
 										{workspace}

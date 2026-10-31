@@ -40,9 +40,11 @@
 	}
 </script>
 
-<section class="profile-section" aria-labelledby="profile-about-heading">
-	<div class="profile-section-heading">
-		<h3 id="profile-about-heading" class="profile-section-label">About</h3>
+<section class="flex flex-col gap-2" aria-labelledby="profile-about-heading">
+	<div class="flex items-center gap-1">
+		<h3 id="profile-about-heading" class="text-xs font-semibold text-fg-muted">
+			About
+		</h3>
 		<button
 			class="btn-ghost-sm"
 			type="button"
@@ -54,14 +56,14 @@
 		</button>
 	</div>
 	{#if snapshot.unavailable?.includes("about") && !snapshot.description}
-		<p class="profile-read-error" role="alert">
+		<p class="text-xs text-danger-muted" role="alert">
 			The description is unavailable. Refresh to retry.
 		</p>
 	{:else}
 		<pre class="text-block">{snapshot.description || "No description yet."}</pre>
 	{/if}
 	{#if snapshot.socialLinks?.length || snapshot.previousNames?.length}
-		<dl class="profile-facts">
+		<dl class="facts">
 			{#if snapshot.socialLinks?.length}
 				<div>
 					<dt><LinkIcon size={16} aria-hidden="true" />Social links</dt>

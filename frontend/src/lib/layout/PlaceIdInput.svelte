@@ -179,7 +179,7 @@
 					event.preventDefault()
 					accept(place)
 				}}>
-				<GameIcon url={place.iconUrl} />
+				<GameIcon url={place.iconUrl} size="sm" />
 				<span class="place-suggestion-copy">
 					<span>{place.nickname || place.name}</span>
 					<small>{place.placeId}</small>

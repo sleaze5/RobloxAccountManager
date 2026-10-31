@@ -96,9 +96,11 @@
 		})
 </script>
 
-<section class="profile-section" aria-labelledby="profile-account-heading">
-	<h3 id="profile-account-heading" class="profile-section-label">Account</h3>
-	<dl class="profile-facts">
+<section class="flex flex-col gap-2" aria-labelledby="profile-account-heading">
+	<h3 id="profile-account-heading" class="text-xs font-semibold text-fg-muted">
+		Account
+	</h3>
+	<dl class="facts">
 		{#if account.createdAtMs}
 			<div>
 				<dt><CalendarDotsIcon size={16} aria-hidden="true" />Joined</dt>
@@ -113,7 +115,7 @@
 				<dt><GlobeHemisphereWestIcon size={16} aria-hidden="true" />Country</dt>
 				<dd>
 					<span>{country}</span>
-					<small class="mono">{snapshot?.countryCode}</small>
+					<small class="font-mono">{snapshot?.countryCode}</small>
 				</dd>
 			</div>
 		{/if}
@@ -134,7 +136,7 @@
 			</div>
 		{/if}
 		{#if snapshot && snapshot.twoStepEnabled !== null}
-			<div class:warning={!snapshot.twoStepEnabled}>
+			<div data-tone={snapshot.twoStepEnabled ? undefined : "warning"}>
 				<dt>
 					{#if snapshot.twoStepEnabled}<ShieldCheckIcon
 							size={16}
@@ -157,8 +159,9 @@
 			<div>
 				<dt><UsersThreeIcon size={16} aria-hidden="true" />Primary group</dt>
 				<dd>
-					<span class="profile-fact-name"
+					<span class="inline-flex min-w-0 items-center gap-1"
 						>{group.name}{#if group.verified}<SealCheckIcon
+								class="shrink-0 text-fg-muted"
 								size={14}
 								aria-label="Verified group" />{/if}</span>
 					<small
@@ -172,10 +175,12 @@
 	</dl>
 </section>
 
-<section class="profile-section" aria-labelledby="profile-vault-heading">
-	<h3 id="profile-vault-heading" class="profile-section-label">Vault</h3>
-	<dl class="profile-facts">
-		<div class={session.tone}>
+<section class="flex flex-col gap-2" aria-labelledby="profile-vault-heading">
+	<h3 id="profile-vault-heading" class="text-xs font-semibold text-fg-muted">
+		Vault
+	</h3>
+	<dl class="facts">
+		<div data-tone={session.tone}>
 			<dt>
 				{#if session.tone === "success"}<CheckCircleIcon
 						size={16}

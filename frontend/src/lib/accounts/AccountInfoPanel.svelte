@@ -119,7 +119,7 @@
 
 {#snippet edit(kind: AccountEditKind, label: string)}
 	<button
-		class="profile-fact-action btn-ghost-sm"
+		class="-my-1 btn-ghost-sm self-center"
 		type="button"
 		aria-label={label}
 		data-tooltip={label}
@@ -137,7 +137,7 @@
 					<SavedPasswordValue accountId={account.id} />
 				{/key}
 			{:else}
-				<span class="account-info-missing">Not saved</span>
+				<span class="text-fg-faint">Not saved</span>
 			{/if}
 			<AccountPasswordMenu
 				hasSavedPassword={account.hasSavedPassword}
@@ -165,7 +165,7 @@
 	{#if visible.has("password")}
 		<section class="settings-section" aria-labelledby="account-info-account">
 			<h3 id="account-info-account">Account</h3>
-			<dl class="profile-facts">{@render passwordFact()}</dl>
+			<dl class="facts">{@render passwordFact()}</dl>
 		</section>
 	{/if}
 	{#if info.loading}
@@ -178,7 +178,7 @@
 	{#if any("displayName", "username", "password", "pin", "gender", "ageGroup", "birthday", "firstAccount")}
 		<section class="settings-section" aria-labelledby="account-info-account">
 			<h3 id="account-info-account">Account</h3>
-			<dl class="profile-facts">
+			<dl class="facts">
 				{#if visible.has("displayName")}
 					<div>
 						<dt>
@@ -206,12 +206,12 @@
 						<dt><LockKeyIcon size={16} aria-hidden="true" />Account PIN</dt>
 						<dd>
 							{#if missing("pin") || !pinLabels[snapshot.pin]}
-								<span class="account-info-missing">Unavailable</span>
+								<span class="text-fg-faint">Unavailable</span>
 							{:else}
 								<span>{pinLabels[snapshot.pin]}</span>
 								{#if snapshot.pin === PinState.PinLocked}
 									<button
-										class="profile-fact-action btn h-6"
+										class="-my-1 btn h-6 self-center"
 										type="button"
 										onclick={() => onEdit("pin")}>Unlock</button>
 								{/if}
@@ -224,11 +224,11 @@
 						<dt><UserCircleIcon size={16} aria-hidden="true" />Gender</dt>
 						<dd>
 							{#if missing("gender")}
-								<span class="account-info-missing">Unavailable</span>
+								<span class="text-fg-faint">Unavailable</span>
 							{:else if genders[snapshot.gender]}
 								<span>{genders[snapshot.gender]}</span>
 							{:else}
-								<span class="account-info-missing">Not set</span>
+								<span class="text-fg-faint">Not set</span>
 							{/if}
 						</dd>
 					</div>
@@ -245,7 +245,7 @@
 										]}</small
 									>{/if}
 							{:else}
-								<span class="account-info-missing">Unavailable</span>
+								<span class="text-fg-faint">Unavailable</span>
 							{/if}
 						</dd>
 					</div>
@@ -263,7 +263,7 @@
 										]}</small
 									>{/if}
 							{:else}
-								<span class="account-info-missing">Unavailable</span>
+								<span class="text-fg-faint">Unavailable</span>
 							{/if}
 						</dd>
 					</div>
@@ -273,7 +273,7 @@
 						<dt><FlagIcon size={16} aria-hidden="true" />First account</dt>
 						<dd>
 							{#if snapshot.firstAccount == null}
-								<span class="account-info-missing">Unavailable</span>
+								<span class="text-fg-faint">Unavailable</span>
 							{:else}
 								<button
 									class="cursor-help rounded-md tabular-nums focus-visible:outline-offset-2"
@@ -292,13 +292,13 @@
 	{#if any("email", "phone")}
 		<section class="settings-section" aria-labelledby="account-info-contact">
 			<h3 id="account-info-contact">Contact</h3>
-			<dl class="profile-facts">
+			<dl class="facts">
 				{#if visible.has("email")}
 					<div>
 						<dt><EnvelopeIcon size={16} aria-hidden="true" />Email</dt>
 						<dd>
 							{#if missing("email")}
-								<span class="account-info-missing">Unavailable</span>
+								<span class="text-fg-faint">Unavailable</span>
 							{:else if snapshot.email}
 								<SensitiveValue label="Email"
 									>{snapshot.email}</SensitiveValue>
@@ -307,7 +307,7 @@
 										? "Verified"
 										: "Not verified"}</small>
 							{:else}
-								<span class="account-info-missing">Not set</span>
+								<span class="text-fg-faint">Not set</span>
 							{/if}
 							{#if !missing("email")}
 								{@render edit("email", "Change email")}
@@ -320,7 +320,7 @@
 						<dt><PhoneIcon size={16} aria-hidden="true" />Phone number</dt>
 						<dd>
 							{#if missing("phone")}
-								<span class="account-info-missing">Unavailable</span>
+								<span class="text-fg-faint">Unavailable</span>
 							{:else if snapshot.phone}
 								<SensitiveValue label="Phone number"
 									>{snapshot.phone}</SensitiveValue>
@@ -329,7 +329,7 @@
 										? "Verified"
 										: "Not verified"}</small>
 							{:else}
-								<span class="account-info-missing">Not set</span>
+								<span class="text-fg-faint">Not set</span>
 							{/if}
 						</dd>
 					</div>
@@ -341,7 +341,7 @@
 	{#if any("language", "translations", "location")}
 		<section class="settings-section" aria-labelledby="account-info-region">
 			<h3 id="account-info-region">Language &amp; region</h3>
-			<dl class="profile-facts">
+			<dl class="facts">
 				{#if visible.has("language")}
 					<div>
 						<dt><TranslateIcon size={16} aria-hidden="true" />Language</dt>
@@ -349,7 +349,7 @@
 							{#if snapshot.language}
 								<span>{snapshot.language}</span>
 							{:else}
-								<span class="account-info-missing">Unavailable</span>
+								<span class="text-fg-faint">Unavailable</span>
 							{/if}
 						</dd>
 					</div>
@@ -363,7 +363,7 @@
 						</dt>
 						<dd>
 							{#if snapshot.autoTranslations == null}
-								<span class="account-info-missing">Unavailable</span>
+								<span class="text-fg-faint">Unavailable</span>
 							{:else}
 								<span>{snapshot.autoTranslations ? "On" : "Off"}</span>
 							{/if}
@@ -377,12 +377,12 @@
 						</dt>
 						<dd>
 							{#if missing("location")}
-								<span class="account-info-missing">Unavailable</span>
+								<span class="text-fg-faint">Unavailable</span>
 							{:else if snapshot.location}
 								<SensitiveValue label="Account location"
 									>{snapshot.location}</SensitiveValue>
 							{:else}
-								<span class="account-info-missing">Not set</span>
+								<span class="text-fg-faint">Not set</span>
 							{/if}
 						</dd>
 					</div>
@@ -395,7 +395,7 @@
 		{@const voice = snapshot.voiceChat}
 		<section class="settings-section" aria-labelledby="account-info-voice">
 			<h3 id="account-info-voice">Voice chat</h3>
-			<dl class="profile-facts">
+			<dl class="facts">
 				{#if visible.has("voiceChat")}
 					<AccountVoiceChat voiceChat={voice} label="Status" />
 					{#if voice?.state === VoiceChatState.VoiceChatSuspended && voice.suspendedUntilMs}
@@ -420,7 +420,7 @@
 										>Enrollment disabled</small
 									>{/if}
 							{:else}
-								<span class="account-info-missing">Unavailable</span>
+								<span class="text-fg-faint">Unavailable</span>
 							{/if}
 						</dd>
 					</div>
@@ -441,7 +441,7 @@
 										>Age check available</small
 									>{/if}
 							{:else}
-								<span class="account-info-missing">Unavailable</span>
+								<span class="text-fg-faint">Unavailable</span>
 							{/if}
 						</dd>
 					</div>

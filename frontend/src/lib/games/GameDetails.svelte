@@ -238,6 +238,9 @@
 		node.focus()
 		node.select()
 	}
+	const metaClass =
+			"flex min-w-0 flex-wrap items-center gap-1 font-mono text-2xs wrap-anywhere text-fg-muted",
+		sectionHeadingClass = "text-xs font-semibold text-fg-muted"
 </script>
 
 {#snippet row(fact: Fact, mono = false)}
@@ -245,11 +248,10 @@
 		<dt><fact.icon size={16} aria-hidden="true" />{fact.label}</dt>
 		<dd>
 			{#if fact.value}
-				<span class:mono class:game-fact-copyable={mono}>{fact.value}</span>
+				<span class={[mono && "font-mono select-text"]}>{fact.value}</span>
 				{#if fact.detail}<small>{fact.detail}</small>{/if}
 			{:else}
-				<span class="profile-value-unavailable"
-					>{game ? "Unavailable" : "-"}</span>
+				<span class="text-fg-faint">{game ? "Unavailable" : "-"}</span>
 			{/if}
 		</dd>
 	</div>
@@ -257,15 +259,15 @@
 
 {#if place}
 	<section
-		class="game-details"
+		class="min-h-0 min-w-0 animate-enter overflow-y-auto"
 		aria-label={store.displayName(place)}
 		aria-busy={store.loadingDetails}>
-		<div class="game-details-content">
-			<div class="profile-head">
-				<div class="selected-identity game-identity">
+		<div class="flex flex-col gap-4 p-3 pb-4">
+			<div class="flex items-start gap-3 @max-xl:flex-col">
+				<div class="flex min-w-0 flex-1 items-start gap-4">
 					<button
 						type="button"
-						class="profile-image-trigger"
+						class="shrink-0 cursor-default rounded-md"
 						aria-label="Game icon"
 						aria-haspopup="menu"
 						aria-expanded={workspace.imageContextMenu?.imageUrl ===
@@ -281,25 +283,28 @@
 						}}
 						oncontextmenu={(event) =>
 							workspace.openImageContextMenu(event, place.iconUrl)}>
-						<GameIcon url={place.iconUrl} large />
+						<GameIcon url={place.iconUrl} size="xl" />
 					</button>
-					<div class="identity-copy">
-						<div class="game-title">
-							<h2 class="game-name">
-								{nameStart}<span class="game-name-end"
+					<div class="flex min-w-0 flex-col gap-1">
+						<div class="min-w-0 leading-6">
+							<h2
+								class="mr-1 inline text-lg font-semibold tracking-tight wrap-anywhere text-fg">
+								{nameStart}<span class="whitespace-nowrap"
 									>{nameEnd}{#if favorite}<StarIcon
-											class="shrink-0 animate-pop text-accent-strong"
+											class="relative top-px ml-1 inline-block animate-pop text-accent-strong"
 											size={16}
 											weight="fill"
 											aria-label="Favorite" />{/if}</span>
 							</h2>
 							{#if favorite}
 								<span
-									class="game-nickname"
-									class:empty={!nickname && !editing}>
+									class="inline-flex max-w-full min-w-0 items-center gap-0.5 align-top text-sm text-fg-muted">
+									{#if nickname || editing}<span aria-hidden="true"
+											>(</span
+										>{/if}
 									{#if editing}
 										<input
-											class="game-nickname-input"
+											class="h-6 w-44 min-w-0 rounded-md border border-line-strong bg-transparent px-1.5 text-sm text-fg placeholder:text-fg-faint"
 											type="text"
 											autocomplete="off"
 											placeholder="Nickname"
@@ -317,11 +322,11 @@
 												}
 											}} />
 									{:else}
-										{#if nickname}<span class="game-nickname-text"
+										{#if nickname}<span class="truncate"
 												>{nickname}</span
 											>{/if}
 										<button
-											class="game-nickname-edit btn-ghost-sm"
+											class="btn-ghost-sm"
 											type="button"
 											aria-label={nickname
 												? "Edit nickname"
@@ -335,15 +340,18 @@
 												size={14}
 												aria-hidden="true" /></button>
 									{/if}
+									{#if nickname || editing}<span aria-hidden="true"
+											>)</span
+										>{/if}
 								</span>
 							{/if}
 						</div>
-						<div class="identity-meta">
+						<div class={metaClass}>
 							<span>ID: {place.placeId}</span>
-							<span class="meta-separator" aria-hidden="true">-</span>
+							<span class="text-fg-faint" aria-hidden="true">-</span>
 							<span>Universe ID: {place.universeId}</span>
 							<button
-								class="game-universe-search btn-ghost"
+								class="-my-1 -ms-1 btn-ghost size-5"
 								type="button"
 								aria-label="Search places in this universe"
 								data-tooltip="Search places in this universe"
@@ -352,27 +360,33 @@
 									size={14}
 									aria-hidden="true" /></button>
 						</div>
-						<div class="identity-meta">
-							<span class="game-creator"
+						<div class={metaClass}>
+							<span class="inline-flex items-center gap-1 text-fg-muted"
 								>{creatorByline(
 									place,
 								)}{#if place.creatorVerified}<SealCheckIcon
 										size={14}
 										aria-label="Verified creator" />{/if}</span>
 							{#if place.creatorId}
-								<span class="meta-separator" aria-hidden="true">-</span>
+								<span class="text-fg-faint" aria-hidden="true">-</span>
 								<span>{place.creatorType} ID: {place.creatorId}</span>
 							{/if}
 						</div>
 						{#if game && !rootPlace}
-							<p class="game-playing" class:active={game.playing > 0}>
+							<p
+								class={[
+									"inline-flex items-center gap-1 text-xs font-medium tabular-nums",
+									game.playing > 0
+										? "text-presence-game"
+										: "text-fg-muted",
+								]}>
 								<PulseIcon size={14} aria-hidden="true" />
 								{numbers.format(game.playing)} playing
 							</p>
 						{/if}
 					</div>
 				</div>
-				<div class="header-actions">
+				<div class="relative flex items-center gap-1 @max-xl:self-end">
 					<button
 						class="btn-icon"
 						type="button"
@@ -422,7 +436,7 @@
 			</div>
 
 			{#if favorite}
-				<div class="identity-section">
+				<div class="flex flex-wrap items-center gap-1">
 					<span class="tag-pill-favorite">
 						<StarIcon size={12} weight="fill" aria-hidden="true" />
 						<span>Favorite</span>
@@ -431,30 +445,39 @@
 			{/if}
 
 			{#if rootPlace}
-				<p class="game-subplace-note" role="note">
-					<TreeStructureIcon size={14} aria-hidden="true" />
+				<p
+					class="inline-flex max-w-full items-center gap-1 self-start rounded-md border border-line bg-raised px-2 py-0.5 text-xs text-fg"
+					role="note">
+					<TreeStructureIcon
+						class="shrink-0 text-fg-muted"
+						size={14}
+						aria-hidden="true" />
 					<span
 						>Subplace of <button
-							class="game-subplace-link"
+							class="rounded-sm underline underline-offset-2 hover:text-fg focus-visible:outline-offset-2"
 							type="button"
 							onclick={() => store.select(rootPlace)}
 							>{store.displayName(rootPlace)}</button
 						></span>
-					<span class="game-subplace-hint"
+					<span class="truncate text-fg-muted"
 						>{" - Main game stats are hidden"}</span>
 				</p>
 			{/if}
 
 			{#if store.detailsError}
-				<p class="game-details-error" role="alert">
-					<WarningIcon size={16} aria-hidden="true" />
+				<p
+					class="flex items-start gap-2 text-xs text-danger-muted"
+					role="alert">
+					<WarningIcon class="mt-0.5 shrink-0" size={16} aria-hidden="true" />
 					<span>{store.detailsError}</span>
 				</p>
 			{/if}
 
-			<section class="game-section" aria-labelledby="game-information">
-				<h3 id="game-information">Details</h3>
-				<dl class="profile-facts">
+			<section
+				class="flex flex-col gap-3 pt-3"
+				aria-labelledby="game-information">
+				<h3 id="game-information" class={sectionHeadingClass}>Details</h3>
+				<dl class="facts">
 					{#each details as fact (fact.label)}{@render row(fact)}{/each}
 					{#if !rootPlace}
 						{#each dates as fact (fact.label)}
@@ -469,7 +492,7 @@
 										<Timestamp value={fact.value} />
 										<small>{relativeTime(fact.value)}</small>
 									{:else}
-										<span class="profile-value-unavailable"
+										<span class="text-fg-faint"
 											>{game ? "Unavailable" : "-"}</span>
 									{/if}
 								</dd>
@@ -484,21 +507,29 @@
 			</section>
 
 			{#if game}
-				<section class="game-section" aria-labelledby="game-features">
-					<h3 id="game-features">Access &amp; features</h3>
-					<dl class="profile-facts">
+				<section
+					class="flex flex-col gap-3 pt-3"
+					aria-labelledby="game-features">
+					<h3 id="game-features" class={sectionHeadingClass}>
+						Access &amp; features
+					</h3>
+					<dl class="facts">
 						{#each features as fact (fact.label)}{@render row(fact)}{/each}
 					</dl>
 				</section>
 			{/if}
 
 			{#if game}
-				<section class="game-section" aria-labelledby="game-description">
-					<h3 id="game-description">Description</h3>
+				<section
+					class="flex flex-col gap-3 pt-3"
+					aria-labelledby="game-description">
+					<h3 id="game-description" class={sectionHeadingClass}>
+						Description
+					</h3>
 					{#if game.description.trim()}
 						<pre class="text-block">{game.description.trim()}</pre>
 					{:else}
-						<p class="game-description-empty">No description provided.</p>
+						<p class="text-xs text-fg-muted">No description provided.</p>
 					{/if}
 				</section>
 			{/if}

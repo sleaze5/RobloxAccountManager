@@ -322,3 +322,49 @@
 @utility scrollbar-stable {
 	scrollbar-gutter: stable;
 }
+
+@utility facts {
+	@apply max-w-2xl text-xs leading-normal;
+
+	& > div {
+		@apply grid min-w-0 items-start gap-4 py-2;
+		grid-template-columns: minmax(0, --spacing(40)) minmax(0, 1fr);
+	}
+
+	& > div + div {
+		@apply border-t border-line-subtle;
+	}
+
+	& dt {
+		@apply flex min-w-0 items-center gap-2 text-fg-muted;
+	}
+
+	& dt > svg {
+		@apply shrink-0 text-fg-faint;
+	}
+
+	& dd {
+		@apply flex min-w-0 flex-wrap items-baseline gap-x-3 gap-y-1 wrap-anywhere text-fg;
+	}
+
+	& dd > * {
+		@apply max-w-full min-w-0 text-left;
+	}
+
+	& dd > small {
+		@apply text-2xs text-fg-muted;
+	}
+
+	& > [data-tone="success"] dt > svg {
+		@apply text-success;
+	}
+
+	& > [data-tone="warning"] dt > svg,
+	& > [data-tone="warning"] dd > span:first-child {
+		@apply text-warning;
+	}
+
+	& > [data-tone="muted"] dd > span:first-child {
+		@apply text-fg-muted;
+	}
+}
