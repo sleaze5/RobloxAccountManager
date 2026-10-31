@@ -74,7 +74,7 @@
 {#if (location || error) && (matches("Storage location", "data folder path portable standard copy") || (other && matches(`Move to ${otherLabel} storage`, "move data vault backups settings restart")))}
 	<section class="settings-section" aria-labelledby="vault-storage-title">
 		<h3 id="vault-storage-title">Storage</h3>
-		{#if error}<div class="settings-inline-error" role="alert">{error}</div>{/if}
+		{#if error}<div class="notice-error" role="alert">{error}</div>{/if}
 		{#if location}<div class="settings-rows">
 				{#if matches("Storage location", "data folder path portable standard copy")}
 					<div class="settings-row">
@@ -84,7 +84,8 @@
 								>{location.mode === StorageMode.ModePortable
 									? "Next to the app."
 									: "In your user folder."}</span>
-							<span class="settings-row-path">{location.directory}</span>
+							<span class="font-mono text-2xs wrap-anywhere text-fg-faint"
+								>{location.directory}</span>
 							<SettingsStatus value={currentLabel} />
 						</div>
 						<button

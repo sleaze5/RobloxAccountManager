@@ -221,14 +221,14 @@
 				</div>
 			</div>
 			<div
-				class="settings-radio-options player-path-options"
+				class="player-path-options flex flex-col gap-0.5 pl-1"
 				role="radiogroup"
 				aria-labelledby="player-path-title">
 				<label
-					class="settings-radio-option"
-					class:disabled={busy}
+					class="radio-option"
+					data-disabled={busy || undefined}
 					data-tooltip={newest?.displayPath}>
-					<span class="settings-radio">
+					<span class="radio">
 						<input
 							type="radio"
 							name={radioName}
@@ -237,7 +237,7 @@
 							disabled={busy} />
 						<span aria-hidden="true"></span>
 					</span>
-					<span class="settings-radio-label">Automatic</span>
+					<span class="text-xs text-fg">Automatic</span>
 					<small>
 						{#if versions === null}
 							{loading ? "Finding Roblox versions" : ""}
@@ -250,10 +250,10 @@
 				</label>
 				{#each choices as version (version.path)}
 					<label
-						class="settings-radio-option"
-						class:disabled={busy}
+						class="radio-option"
+						data-disabled={busy || undefined}
 						data-tooltip={version.displayPath}>
-						<span class="settings-radio">
+						<span class="radio">
 							<input
 								type="radio"
 								name={radioName}
@@ -262,12 +262,12 @@
 								disabled={busy} />
 							<span aria-hidden="true"></span>
 						</span>
-						<span class="settings-radio-label player-path-version"
+						<span class="player-path-version text-xs text-fg"
 							>{version.name}</span>
 					</label>
 				{/each}
-				<label class="settings-radio-option" class:disabled={busy}>
-					<span class="settings-radio">
+				<label class="radio-option" data-disabled={busy || undefined}>
+					<span class="radio">
 						<input
 							type="radio"
 							name={radioName}
@@ -276,7 +276,7 @@
 							disabled={busy} />
 						<span aria-hidden="true"></span>
 					</span>
-					<span class="settings-radio-label">Use a custom path</span>
+					<span class="text-xs text-fg">Use a custom path</span>
 				</label>
 			</div>
 			<div class="modal-field">

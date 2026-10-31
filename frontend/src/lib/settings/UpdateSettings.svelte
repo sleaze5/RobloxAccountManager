@@ -61,14 +61,14 @@
 
 <section class="settings-section" aria-labelledby="about-updates-title">
 	<h3 id="about-updates-title">Updates</h3>
-	{#if error}<div class="settings-inline-error" role="alert">{error}</div>{/if}
+	{#if error}<div class="notice-error" role="alert">{error}</div>{/if}
 	<div class="settings-rows">
 		<div class="settings-row">
 			<div class="settings-row-copy">
 				<strong>Version {update.currentVersion}</strong><span>{summary}</span>
 				<SettingsStatus value={status.value} tone={status.tone} />
 			</div>
-			<div class="settings-row-actions">
+			<div class="flex items-center gap-2">
 				{#if update.status === UpdateStatus.StatusAvailable}<button
 						class="btn"
 						type="button"

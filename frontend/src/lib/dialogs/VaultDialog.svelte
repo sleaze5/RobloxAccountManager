@@ -163,6 +163,7 @@
 					<div class="modal-field">
 						<span>Verified backup candidate</span>
 						<Select
+							className="w-full"
 							label="Verified backup candidate"
 							value={selectedBackup}
 							options={backups.map((backup) => ({

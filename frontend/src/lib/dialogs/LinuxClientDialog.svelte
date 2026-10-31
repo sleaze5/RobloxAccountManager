@@ -103,15 +103,15 @@
 				</button>
 			</div>
 			<div
-				class="settings-radio-options"
+				class="flex flex-col gap-0.5 pl-1"
 				role="radiogroup"
 				aria-labelledby="linux-client-dialog-title">
 				{#each options as option (option.value)}
 					<label
-						class="settings-radio-option"
-						class:disabled={saving || !option.installed}
+						class="radio-option"
+						data-disabled={saving || !option.installed || undefined}
 						data-tooltip={option.description || undefined}>
-						<span class="settings-radio">
+						<span class="radio">
 							<input
 								type="radio"
 								name={radioName}
@@ -120,7 +120,7 @@
 								disabled={saving || !option.installed} />
 							<span aria-hidden="true"></span>
 						</span>
-						<span class="settings-radio-label">{option.label}</span>
+						<span class="text-xs text-fg">{option.label}</span>
 						{#if !option.installed}
 							<small class="linux-client-missing">Not installed</small>
 						{/if}

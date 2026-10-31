@@ -51,9 +51,7 @@
 
 <section class="settings-section" aria-labelledby="vault-security-title">
 	<h3 id="vault-security-title">Security</h3>
-	{#if store.error && activeDialog === null}<div
-			class="settings-inline-error"
-			role="alert">
+	{#if store.error && activeDialog === null}<div class="notice-error" role="alert">
 			{store.error}
 		</div>{/if}
 	<div class="settings-rows">
@@ -71,7 +69,7 @@
 					</span>
 					<SettingsStatus value="Unlocked" tone="success" />
 				</div>
-				<div class="settings-row-actions">
+				<div class="flex items-center gap-2">
 					<button
 						class="btn"
 						type="button"
@@ -100,9 +98,7 @@
 						>Unlock the vault without the master password when the app
 						starts. Locking the vault turns it off.</span>
 				</div>
-				<label
-					class="settings-toggle"
-					data-tooltip={automaticUnlockDescription}>
+				<label class="switch" data-tooltip={automaticUnlockDescription}>
 					<input
 						type="checkbox"
 						role="switch"

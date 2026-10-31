@@ -101,9 +101,7 @@
 {#if visible}
 	<section class="settings-section" aria-labelledby="browser-runtime-title">
 		<h3 id="browser-runtime-title">Browser</h3>
-		{#if browser.error || runtime.error}<div
-				class="settings-inline-error"
-				role="alert">
+		{#if browser.error || runtime.error}<div class="notice-error" role="alert">
 				{browser.error || runtime.error}
 			</div>{/if}
 		<div class="settings-rows">
@@ -130,7 +128,7 @@
 							>The managed browser stays in this portable application
 							directory.</span>
 					</div>
-					<div class="settings-row-actions">
+					<div class="flex items-center gap-2">
 						{#if runtime.status === RuntimeStatus.RuntimeMissing}<button
 								class="btn"
 								type="button"

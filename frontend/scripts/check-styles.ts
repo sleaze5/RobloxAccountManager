@@ -18,7 +18,6 @@ const legacyStyleBlocks = new Set([
 	"lib/dialogs/RobloxProcessesDialog.svelte",
 	"lib/dialogs/SavedPasswordDialog.svelte",
 	"lib/layout/LaunchDrawer.svelte",
-	"lib/settings/RobloxSettings.svelte",
 	"lib/shared/SensitiveValue.svelte",
 	"lib/shared/Timestamp.svelte",
 ])
@@ -377,6 +376,26 @@ function checkStylesheet(path: string, content: string, problems: Problem[]): vo
 	}
 }
 
+function checkThemeNames(content: string, problems: Problem[]): void {
+	const names = (namespace: string) =>
+		new Set(
+			[...content.matchAll(new RegExp(`--${namespace}-([a-z0-9-]+):`, "g"))]
+				.map((match) => match[1] ?? "")
+				.filter((name) => !name.includes("--")),
+		)
+	const sizes = names("text")
+	for (const color of names("color")) {
+		if (sizes.has(color)) {
+			problems.push({
+				file: join(styles, "theme.css"),
+				line: 1,
+				text: `--color-${color}`,
+				reason: `text-${color} would mean both a color and a text size. Rename the color.`,
+			})
+		}
+	}
+}
+
 const problems: Problem[] = []
 const paths = (await files(source)).filter(
 	(path) => !path.startsWith(join(styles, "legacy")),
@@ -394,6 +413,7 @@ const designSystem = await __unstable__loadDesignSystem(
 	},
 )
 checkClasses(markup, designSystem, problems)
+checkThemeNames(await readFile(join(styles, "theme.css"), "utf8"), problems)
 for (const [path, content] of contents) {
 	if (markup.has(path)) checkSource(path, content, designSystem, problems)
 	else if (path.endsWith(".css")) checkStylesheet(path, content, problems)

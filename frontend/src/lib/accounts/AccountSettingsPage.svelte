@@ -592,7 +592,7 @@
 		resetScroll()
 		workspace.accountSettingsCategory = id
 		await tick()
-		contentElement?.querySelector<HTMLElement>(".settings-subpage-back")?.focus()
+		contentElement?.querySelector<HTMLElement>("[data-subpage-back]")?.focus()
 	}
 
 	async function closeCategory(): Promise<void> {
@@ -762,11 +762,14 @@
 			blocked.dispose()
 		}
 	})
+	const subpageClass =
+		"flex min-h-11 items-center gap-3 border-b border-line-subtle px-2 text-left text-sm font-medium text-fg transition-colors duration-100 hover:bg-hover"
 </script>
 
 <section class="settings-page" aria-labelledby="account-settings-title">
 	<header class="settings-header">
 		<button
+			class="btn-ghost"
 			type="button"
 			aria-label="Back to profile"
 			data-tooltip="Back to profile"
@@ -776,8 +779,10 @@
 		<h1 id="account-settings-title" tabindex="-1" bind:this={heading}>
 			Account settings
 		</h1>
-		<span class="account-settings-identity">@{store.selectedAccount.username}</span>
+		<span class="mr-auto min-w-0 text-xs wrap-anywhere text-fg-muted"
+			>@{store.selectedAccount.username}</span>
 		<button
+			class="btn-ghost"
 			type="button"
 			aria-label="Refresh settings"
 			data-tooltip="Refresh settings"
@@ -792,10 +797,10 @@
 	</header>
 
 	<div
-		class="settings-layout account-settings-layout"
-		style={`--account-settings-sidebar-width: ${workspace.accountSettingsSidebarWidth}px;`}>
+		class="settings-layout"
+		style={`--sidebar-width: ${workspace.accountSettingsSidebarWidth}px;`}>
 		<aside class="settings-sidebar">
-			<div class="search-field">
+			<div class="m-3 search-field">
 				<MagnifyingGlassIcon size={16} aria-hidden="true" />
 				<input
 					bind:value={workspace.accountSettingsQuery}
@@ -815,9 +820,10 @@
 					</button>
 				{/if}
 			</div>
-			<nav aria-label="Account settings pages">
+			<nav class="settings-nav" aria-label="Account settings pages">
 				{#each visiblePages as page (page.id)}
 					<button
+						class="nav-item"
 						type="button"
 						aria-current={activePage?.id === page.id ? "page" : undefined}
 						data-tooltip={page.label}
@@ -829,7 +835,7 @@
 				{/each}
 			</nav>
 			{#if visiblePages.length === 0}
-				<p class="settings-search-empty">No settings found.</p>
+				<p class="px-3 text-xs text-fg-faint">No settings found.</p>
 			{/if}
 		</aside>
 		<SidebarResizer
@@ -844,7 +850,7 @@
 			aria-label="Account settings content">
 			{#key `${activePage?.id}:${openSubpage}:${normalizedQuery}`}
 				{#if !activePage}
-					<p class="settings-content-empty">
+					<p class="m-auto text-xs text-fg-faint">
 						No settings match “{workspace.accountSettingsQuery}”.
 					</p>
 				{:else if activePage.id === "info"}
@@ -861,59 +867,80 @@
 					<h2>{privacyLabel}</h2>
 					{#if !blockedUsersOpen}
 						{#if settingsState?.error}
-							<div class="settings-inline-error" role="alert">
+							<div class="notice-error" role="alert">
 								{settingsState.error}
 							</div>
 						{/if}
 						{#each sectionErrors as error}
-							<div class="settings-inline-error" role="alert">
+							<div class="notice-error" role="alert">
 								{error.message}
 							</div>
 						{/each}
 					{/if}
 
 					{#if !openSubpage}
-						<nav class="settings-subpages" aria-label={privacyLabel}>
+						<nav
+							class="flex flex-col border-t border-line-subtle"
+							aria-label={privacyLabel}>
 							{#each visibleCategories as cat (cat.id)}
 								<button
+									class={subpageClass}
 									type="button"
 									data-settings-subpage={cat.id}
 									onclick={() => void openCategory(cat.id)}>
-									<cat.icon size={16} aria-hidden="true" />
-									<span>{cat.label}</span>
-									<CaretRightIcon size={16} aria-hidden="true" />
+									<cat.icon
+										class="shrink-0 text-fg-muted"
+										size={16}
+										aria-hidden="true" />
+									<span class="flex-1">{cat.label}</span>
+									<CaretRightIcon
+										class="shrink-0 text-fg-muted"
+										size={16}
+										aria-hidden="true" />
 								</button>
 							{/each}
 							{#if showBlockedUsers}
 								<button
+									class={subpageClass}
 									type="button"
 									data-settings-subpage={blockedUsersPage.id}
 									onclick={() =>
 										void openCategory(blockedUsersPage.id)}>
-									<ProhibitIcon size={16} aria-hidden="true" />
-									<span>{blockedUsersPage.label}</span>
-									<CaretRightIcon size={16} aria-hidden="true" />
+									<ProhibitIcon
+										class="shrink-0 text-fg-muted"
+										size={16}
+										aria-hidden="true" />
+									<span class="flex-1">{blockedUsersPage.label}</span>
+									<CaretRightIcon
+										class="shrink-0 text-fg-muted"
+										size={16}
+										aria-hidden="true" />
 								</button>
 							{/if}
 						</nav>
 					{:else}
-						<div class="settings-subpage-heading">
+						<div class="flex items-center gap-2">
 							<button
-								class="settings-subpage-back btn-ghost"
+								class="btn-ghost"
+								data-subpage-back
 								type="button"
 								aria-label={`Back to ${privacyLabel}`}
 								data-tooltip={`Back to ${privacyLabel}`}
 								onclick={() => void closeCategory()}>
 								<CaretLeftIcon size={16} aria-hidden="true" />
 							</button>
-							<h3>{activeCategory?.label ?? blockedUsersPage.label}</h3>
+							<h3 class="text-sm font-semibold text-fg">
+								{activeCategory?.label ?? blockedUsersPage.label}
+							</h3>
 						</div>
 						{#if !activeCategory}
 							{#if blockedState}
 								<BlockedUsersList blocked={blockedState} />
 							{/if}
 						{:else if !settingsState || (settingsState.loading && !settingsState.snapshot)}
-							<div class="account-settings-loading" role="status">
+							<div
+								class="flex items-center gap-2 text-xs text-fg-muted"
+								role="status">
 								<CircleNotchIcon
 									class="spinner"
 									size={16}

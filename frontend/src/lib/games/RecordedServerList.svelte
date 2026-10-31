@@ -62,6 +62,7 @@
 		<div class="game-servers-filter wide">
 			<span>Region</span>
 			<Select
+				className="w-56"
 				label="Server region"
 				value={servers.region}
 				options={regionOptions}
@@ -92,6 +93,7 @@
 		<div class="game-servers-filter compact">
 			<span>Per page</span>
 			<Select
+				className="w-20"
 				label="Servers per page"
 				value={servers.limit}
 				options={[10, 50, 100].map((value) => ({

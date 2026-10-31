@@ -128,24 +128,36 @@
 			send()
 		}
 	}
+	const noteClass = "flex flex-wrap items-center justify-end gap-2 px-1 text-2xs",
+		linkButtonClass =
+			"rounded-sm text-2xs font-medium text-fg underline underline-offset-2"
 </script>
 
-<section class="chat-thread" aria-labelledby="chat-thread-title">
-	<header class="chat-thread-header">
-		<ChatAvatar {conversation} />
-		<h2 id="chat-thread-title">{conversation.title}</h2>
+<section
+	class="flex min-h-0 animate-enter flex-col"
+	aria-labelledby="chat-thread-title">
+	<header
+		class="flex min-w-0 shrink-0 items-center gap-2 border-b border-line-subtle px-3 py-2">
+		<ChatAvatar {conversation} className="size-6" />
+		<h2
+			id="chat-thread-title"
+			class="min-w-0 truncate text-sm font-semibold text-fg">
+			{conversation.title}
+		</h2>
 		{#if conversation.group}
-			<span class="chat-thread-meta">
+			<span class="shrink-0 text-xs text-fg-muted">
 				{conversation.participants?.length ?? 0} members
 			</span>
 		{/if}
 	</header>
 
-	<div class="chat-timeline" bind:this={scroller}>
+	<div
+		class="flex min-h-0 flex-1 flex-col gap-2 overflow-y-auto p-3"
+		bind:this={scroller}>
 		{#if chat.messagesCursor && !chat.messagesLoading}
 			<button
 				type="button"
-				class="chat-load-more btn"
+				class="btn self-center"
 				disabled={chat.olderLoading}
 				aria-busy={chat.olderLoading}
 				onclick={() => void loadOlder()}>
@@ -156,58 +168,85 @@
 			</button>
 		{/if}
 		{#if chat.messagesError}
-			<p class="settings-inline-error" role="alert">
+			<p
+				class="flex items-center justify-between gap-2 notice-error"
+				role="alert">
 				{chat.messagesError}
-				<button type="button" onclick={() => void chat.reloadMessages()}>
+				<button
+					class={linkButtonClass}
+					type="button"
+					onclick={() => void chat.reloadMessages()}>
 					Retry
 				</button>
 			</p>
 		{/if}
 		{#if chat.messagesLoading && chat.messages.length === 0}
-			<p class="chat-list-status" role="status">
+			<p class="flex items-center gap-2 p-2 text-xs text-fg-faint" role="status">
 				<CircleNotchIcon class="spinner" size={16} aria-hidden="true" />
 				Loading messages
 			</p>
 		{:else if timeline.length === 0 && !chat.messagesError}
-			<p class="chat-list-status">No messages yet. Say hello.</p>
+			<p class="flex items-center gap-2 p-2 text-xs text-fg-faint">
+				No messages yet. Say hello.
+			</p>
 		{/if}
-		<ol class="chat-messages" aria-label="Messages">
+		<ol class="flex flex-col gap-0.5" aria-label="Messages">
 			{#each timeline as item (item.key)}
 				{#if item.kind === "time"}
-					<li class="chat-time-break">{chatMessageTime(item.ms)}</li>
+					<li
+						class="self-center pt-2 pb-1 text-center text-2xs text-fg-faint">
+						{chatMessageTime(item.ms)}
+					</li>
 				{:else if item.kind === "system"}
-					<li class="chat-system-message">{item.text}</li>
+					<li
+						class="max-w-4/5 self-center pt-2 pb-1 text-center text-2xs text-fg-muted italic">
+						{item.text}
+					</li>
 				{:else}
-					<li class="chat-message" class:mine={item.mine}>
-						{#if item.sender}<span class="chat-sender">{item.sender}</span
+					<li
+						class={[
+							"flex max-w-3/4 flex-col gap-0.5",
+							item.mine ? "items-end self-end" : "items-start self-start",
+						]}>
+						{#if item.sender}<span
+								class="px-1 pt-1 text-2xs font-medium text-fg-muted"
+								>{item.sender}</span
 							>{/if}
 						<p
-							class="chat-bubble"
-							class:pending={item.pending && !item.pending.failed}
-							class:failed={item.pending?.failed || item.moderated}>
+							class={[
+								"rounded-xl border px-3 py-2 text-sm leading-snug wrap-anywhere whitespace-pre-wrap text-fg select-text",
+								item.pending && !item.pending.failed && "opacity-60",
+								item.mine && (item.pending?.failed || item.moderated)
+									? "border-danger/40 bg-danger/5"
+									: item.mine
+										? "border-line-strong bg-raised"
+										: "border-line bg-fill",
+							]}>
 							{item.text}
 						</p>
 						{#if item.moderated}
-							<span class="chat-message-note failed">
+							<span class={[noteClass, "text-danger-muted"]}>
 								Not delivered: Roblox moderated this message.
 							</span>
 						{:else if item.pending?.failed}
 							{@const pending = item.pending}
-							<span class="chat-message-note failed" role="alert">
+							<span class={[noteClass, "text-danger-muted"]} role="alert">
 								{pending.error}
 								<button
+									class={linkButtonClass}
 									type="button"
 									onclick={() => chat.retry(pending.key)}>
 									Retry
 								</button>
 								<button
+									class={linkButtonClass}
 									type="button"
 									onclick={() => chat.discard(pending.key)}>
 									Discard
 								</button>
 							</span>
 						{:else if item.pending}
-							<span class="chat-message-note">Sending</span>
+							<span class={[noteClass, "text-fg-faint"]}>Sending</span>
 						{/if}
 					</li>
 				{/if}
@@ -216,19 +255,20 @@
 	</div>
 
 	{#if chat.actionError}
-		<p class="settings-inline-error chat-action-error" role="alert">
+		<p class="mx-3 mb-2 notice-error" role="alert">
 			{chat.actionError}
 		</p>
 	{/if}
 	<form
 		novalidate
-		class="chat-bar"
+		class="flex shrink-0 items-end gap-1 border-t border-line-subtle bg-surface px-3 py-2"
 		onsubmit={(event) => {
 			event.preventDefault()
 			send()
 		}}>
 		<textarea
 			bind:value={draft}
+			class="field-sizing-content max-h-24 min-h-8 min-w-0 flex-1 resize-none rounded-md border border-line bg-transparent px-3 py-2 text-sm leading-snug text-fg transition-colors duration-100 placeholder:text-fg-faint focus-visible:border-line-strong focus-visible:outline-0"
 			rows="1"
 			aria-label={`Message ${conversation.title}`}
 			placeholder="Write a message"

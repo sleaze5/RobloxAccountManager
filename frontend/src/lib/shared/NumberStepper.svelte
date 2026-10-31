@@ -66,7 +66,7 @@
 </script>
 
 <div
-	class="settings-number-stepper"
+	class="flex items-center gap-1"
 	role="group"
 	aria-label={label}
 	aria-busy={saving}
@@ -80,6 +80,7 @@
 	<input
 		bind:this={input}
 		bind:value={draft}
+		class="field w-16 text-right font-mono text-xs"
 		type="number"
 		inputmode="numeric"
 		aria-label={label}
@@ -94,6 +95,7 @@
 			}
 		}} />
 	<button
+		class="btn-icon size-8"
 		type="button"
 		aria-label={`Decrease ${label.toLowerCase()}`}
 		disabled={disabled || saving || normalized(draft ?? value) <= min}
@@ -101,6 +103,7 @@
 		<MinusIcon size={16} aria-hidden="true" />
 	</button>
 	<button
+		class="btn-icon size-8"
 		type="button"
 		aria-label={`Increase ${label.toLowerCase()}`}
 		disabled={disabled || saving || normalized(draft ?? value) >= max}

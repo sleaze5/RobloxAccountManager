@@ -106,9 +106,10 @@
 	}
 </script>
 
-<section class="settings-page game-servers-page" aria-labelledby="game-servers-title">
+<section class="settings-page min-w-0" aria-labelledby="game-servers-title">
 	<header class="settings-header">
 		<button
+			class="btn-ghost"
 			type="button"
 			aria-label="Back to game details"
 			data-tooltip="Back to game details"
@@ -116,12 +117,20 @@
 			<CaretLeftIcon size={16} aria-hidden="true" />
 		</button>
 		<h1 id="game-servers-title" tabindex="-1" bind:this={heading}>Servers</h1>
-		<span class="account-settings-identity">{store.displayName(place)}</span>
+		<span class="mr-auto min-w-0 text-xs wrap-anywhere text-fg-muted"
+			>{store.displayName(place)}</span>
 		{#if appSettings.roValraEnabled}
-			<div class="game-servers-source" role="radiogroup" aria-label="Server list">
+			<div
+				class="flex gap-0.5 rounded-lg border border-line p-0.5"
+				role="radiogroup"
+				aria-label="Server list">
 				{#each sources as option (option.id)}
-					<label data-tooltip={option.tooltip} data-tooltip-side="bottom-end">
+					<label
+						class="grid h-6 cursor-pointer place-items-center rounded-md px-2 text-xs font-medium text-fg-muted transition-colors duration-100 hover:bg-hover hover:text-fg has-checked:bg-raised has-checked:text-fg-bright has-focus-visible:outline-1 has-focus-visible:outline-offset-1 has-focus-visible:outline-focus"
+						data-tooltip={option.tooltip}
+						data-tooltip-side="bottom-end">
 						<input
+							class="pointer-events-none absolute opacity-0"
 							type="radio"
 							name={`${menuID}-source`}
 							value={option.id}
@@ -133,6 +142,7 @@
 			</div>
 		{/if}
 		<button
+			class="btn-ghost"
 			type="button"
 			aria-label={active.loading ? "Refreshing servers" : "Refresh servers"}
 			data-tooltip="Refresh servers"

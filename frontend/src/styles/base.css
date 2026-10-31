@@ -15,7 +15,7 @@
 		min-width: 760px;
 		min-height: 100vh;
 		overflow: hidden;
-		background-color: var(--color-base);
+		background-color: var(--color-deep);
 		color: var(--color-fg);
 		font-family: var(--font-sans);
 		font-size: var(--text-sm);
@@ -40,9 +40,28 @@
 		cursor: pointer;
 	}
 
+	summary {
+		list-style: none;
+		cursor: pointer;
+	}
+
+	summary::-webkit-details-marker {
+		display: none;
+	}
+
 	input[type="checkbox"],
 	input[type="radio"] {
 		accent-color: var(--color-accent);
+	}
+
+	input[type="number"] {
+		appearance: textfield;
+	}
+
+	input::-webkit-inner-spin-button,
+	input::-webkit-outer-spin-button {
+		margin: 0;
+		appearance: none;
 	}
 
 	input::-ms-reveal,

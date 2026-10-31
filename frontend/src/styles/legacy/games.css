@@ -110,10 +110,6 @@
 	width: 200px;
 }
 
-.game-servers-page {
-	min-width: 0;
-}
-
 .game-servers-body {
 	display: grid;
 	min-height: 0;
@@ -147,50 +143,6 @@
 
 .game-servers-filter.wide .settings-select {
 	width: 232px;
-}
-
-.game-servers-source {
-	display: flex;
-	gap: var(--space-half);
-	padding: var(--space-half);
-	border: 1px solid var(--color-border);
-	border-radius: var(--radius-panel);
-}
-
-.game-servers-source label {
-	display: grid;
-	height: var(--control-height-sm);
-	place-items: center;
-	padding-inline: var(--space-2);
-	border-radius: var(--radius-control);
-	color: var(--color-text-muted);
-	font-size: var(--text-12);
-	font-weight: var(--font-medium);
-	cursor: pointer;
-	transition:
-		background-color var(--duration-fast) var(--ease-standard),
-		color var(--duration-fast) var(--ease-standard);
-}
-
-.game-servers-source label:hover {
-	background: var(--color-hover);
-	color: var(--color-text);
-}
-
-.game-servers-source label:has(input:checked) {
-	background: var(--color-surface-raised);
-	color: var(--color-text-bright);
-}
-
-.game-servers-source label:has(input:focus-visible) {
-	outline: var(--focus-ring-width) solid var(--color-focus-ring);
-	outline-offset: 1px;
-}
-
-.game-servers-source input {
-	position: absolute;
-	opacity: 0;
-	pointer-events: none;
 }
 
 .game-servers-summary {
@@ -424,21 +376,6 @@
 	right: 0;
 	justify-self: end;
 	background: inherit;
-}
-
-.game-servers-pager {
-	display: flex;
-	align-items: center;
-	gap: var(--space-2);
-	margin-left: auto;
-}
-
-.game-servers-page-number {
-	min-width: 7ch;
-	color: var(--color-text-muted);
-	font-family: var(--font-mono);
-	font-size: var(--text-11);
-	text-align: center;
 }
 
 .game-server-menu {

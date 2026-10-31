@@ -16,7 +16,10 @@
 					void chat.loadMore()
 				}
 			},
-			{ root: node.closest(".chat-sidebar"), rootMargin: "0px 0px 160px 0px" },
+			{
+				root: node.closest("[data-chat-sidebar]"),
+				rootMargin: "0px 0px 160px 0px",
+			},
 		)
 		observer.observe(node)
 		return {
@@ -30,36 +33,43 @@
 </script>
 
 {#if chat.loading && chat.conversations.length === 0}
-	<p class="chat-list-status" role="status">
+	<p class="flex items-center gap-2 p-2 text-xs text-fg-faint" role="status">
 		<CircleNotchIcon class="spinner" size={16} aria-hidden="true" />
 		Loading chats
 	</p>
 {:else if chat.conversations.length === 0 && !chat.error}
-	<p class="chat-list-status">No chats yet. Start one with New chat.</p>
+	<p class="flex items-center gap-2 p-2 text-xs text-fg-faint">
+		No chats yet. Start one with New chat.
+	</p>
 {:else}
-	<ul class="chat-list" aria-label="Chats">
+	<ul class="-mx-2 flex flex-col" aria-label="Chats">
 		{#each chat.conversations as conversation (conversation.id)}
 			<li>
 				<button
 					type="button"
-					class="chat-row list-row"
-					class:selected={chat.openId === conversation.id}
-					class:unread={conversation.unreadCount > 0}
+					class="group/row flex min-h-12 w-full items-center gap-2 border-b border-line-subtle list-row px-3 py-2 text-left"
+					data-selected={chat.openId === conversation.id || undefined}
+					data-unread={conversation.unreadCount > 0 || undefined}
 					aria-current={chat.openId === conversation.id ? "true" : undefined}
 					onclick={() => void chat.open(conversation.id)}>
 					<ChatAvatar {conversation} />
-					<span class="chat-row-copy">
-						<span class="chat-row-line">
-							<strong>{conversation.title}</strong>
-							<time class="chat-row-time">
+					<span class="flex min-w-0 flex-1 flex-col">
+						<span class="flex min-w-0 items-center gap-2">
+							<strong
+								class="min-w-0 flex-1 truncate text-sm font-medium text-fg group-data-unread/row:font-semibold group-data-unread/row:text-fg-bright"
+								>{conversation.title}</strong>
+							<time
+								class="shrink-0 text-xs text-fg-faint group-hover/row:text-fg-muted group-data-selected/row:text-fg-muted">
 								{chatListTime(conversation.updatedAtMs)}
 							</time>
 						</span>
-						<span class="chat-row-line">
-							<span class="chat-row-preview">{conversation.preview}</span>
+						<span class="flex min-w-0 items-center gap-2">
+							<span
+								class="min-w-0 flex-1 truncate text-xs text-fg-faint group-hover/row:text-fg-muted group-data-selected/row:text-fg-muted group-data-unread/row:text-fg-muted"
+								>{conversation.preview}</span>
 							{#if conversation.unreadCount > 0}
 								<span
-									class="chat-unread-count"
+									class="min-w-5 rounded-sm bg-solid px-1 text-center text-2xs leading-4 font-bold text-on-solid"
 									aria-label={`${conversation.unreadCount} unread`}>
 									{conversation.unreadCount > 99
 										? "99+"
@@ -74,12 +84,12 @@
 	</ul>
 	{#if chat.conversationsCursor}
 		<div
-			class="chat-list-footer"
+			class="flex min-h-7 items-center justify-center text-fg-faint"
 			use:loadMoreWhenVisible={chat.conversationsCursor}>
 			{#if chat.loadMoreFailed}
 				<button
 					type="button"
-					class="chat-load-more btn"
+					class="btn self-center"
 					onclick={() => void chat.loadMore()}>
 					Load more chats
 				</button>

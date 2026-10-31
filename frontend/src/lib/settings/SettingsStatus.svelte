@@ -8,7 +8,14 @@
 		tone?: "neutral" | "success" | "warning" | "danger"
 		id?: string
 	} = $props()
+
+	const tones = {
+		neutral: "text-fg-muted",
+		success: "text-success",
+		warning: "text-warning",
+		danger: "text-danger",
+	}
 </script>
 
-<span class="settings-status" {id} role="status"
-	>status: <span class="settings-status-value" data-tone={tone}>{value}</span></span>
+<span class="mt-0.5 font-mono text-2xs text-fg-faint" {id} role="status"
+	>status: <span class={tones[tone]}>{value}</span></span>

@@ -17,6 +17,13 @@
 		warning: WarningIcon,
 	}
 
+	const toneColors = {
+		error: "text-danger",
+		info: "text-fg-muted",
+		success: "text-success",
+		warning: "text-warning",
+	}
+
 	let { center }: { center: NotificationCenter } = $props(),
 		runningAction = $state("")
 
@@ -37,11 +44,14 @@
 	}
 </script>
 
-<section class="notification-region" aria-label="Notifications" aria-live="polite">
+<section
+	class="pointer-events-none fixed top-11 right-2 z-30 flex w-80 flex-col gap-2"
+	aria-label="Notifications"
+	aria-live="polite">
 	{#each center.items as notification (notification.id)}
 		{@const ToneIcon = toneIcons[notification.tone]}
 		<article
-			class="notification-toast"
+			class="pointer-events-auto flex gap-2 rounded-xl border border-line-strong bg-overlay p-2 shadow-float"
 			role="status"
 			in:toastIn
 			out:toastOut
@@ -60,14 +70,21 @@
 				)
 					center.resume(notification.id)
 			}}>
-			<div class="notification-icon {notification.tone}">
+			<div
+				class={[
+					"grid size-6 shrink-0 place-items-center rounded-md border border-line bg-raised",
+					toneColors[notification.tone],
+				]}>
 				<ToneIcon size={16} aria-hidden="true" />
 			</div>
-			<div class="notification-content">
-				<strong>{notification.title}</strong>
-				<p>{notification.message}</p>
+			<div class="min-w-0 flex-1">
+				<strong class="block text-sm font-semibold text-fg"
+					>{notification.title}</strong>
+				<p class="mt-0.5 text-xs leading-snug text-fg-muted">
+					{notification.message}
+				</p>
 				{#if notification.actions.length > 0}
-					<div class="notification-actions">
+					<div class="mt-1 flex justify-end gap-2">
 						{#each notification.actions as action, index}
 							<button
 								class={action.emphasis
@@ -85,7 +102,7 @@
 			</div>
 			{#if notification.dismissible}
 				<button
-					class="notification-dismiss"
+					class="btn-close text-fg-faint hover:text-fg"
 					type="button"
 					aria-label={`Dismiss ${notification.title}`}
 					disabled={runningAction !== ""}

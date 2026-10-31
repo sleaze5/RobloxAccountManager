@@ -47,7 +47,7 @@
 </script>
 
 {#if visible}
-	{#if store.error}<div class="settings-inline-error" role="alert">
+	{#if store.error}<div class="notice-error" role="alert">
 			{store.error}
 		</div>{/if}
 
@@ -61,7 +61,7 @@
 						>Enable this to show more server information in the server
 						browser and add other features.</span>
 				</div>
-				<label class="settings-toggle">
+				<label class="switch">
 					<input
 						type="checkbox"
 						role="switch"
@@ -85,8 +85,9 @@
 							>The launch panel fills a server from this region, or from
 							the closest region that has one.</span>
 					</div>
-					<div class="settings-region settings-row-actions">
+					<div class="flex items-center gap-2">
 						<Select
+							className="w-56"
 							label="Preferred region"
 							value={store.roValraRegion}
 							options={regionOptions}

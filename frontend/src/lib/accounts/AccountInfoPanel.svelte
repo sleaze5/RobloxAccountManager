@@ -154,9 +154,9 @@
 {/snippet}
 
 {#if info.error}
-	<div class="settings-inline-error" role="alert">{info.error}</div>
+	<div class="notice-error" role="alert">{info.error}</div>
 {:else if (snapshot?.unavailable?.length ?? 0) > 0}
-	<div class="settings-inline-error" role="alert">
+	<div class="notice-error" role="alert">
 		Some details could not be loaded. Refresh to retry.
 	</div>
 {/if}
@@ -169,7 +169,7 @@
 		</section>
 	{/if}
 	{#if info.loading}
-		<div class="account-settings-loading" role="status">
+		<div class="flex items-center gap-2 text-xs text-fg-muted" role="status">
 			<CircleNotchIcon class="spinner" size={16} aria-hidden="true" />
 			Loading account info
 		</div>

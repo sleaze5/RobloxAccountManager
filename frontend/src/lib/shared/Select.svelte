@@ -9,12 +9,14 @@
 		value,
 		options,
 		disabled = false,
+		className = "w-36",
 		onChange,
 	}: {
 		label: string
 		value: T
 		options: { value: T; label: string; description?: string; group?: string }[]
 		disabled?: boolean
+		className?: string
 		onChange: (value: T) => void
 	} = $props()
 	let open = $state(false),
@@ -112,9 +114,9 @@
 			close()
 	}} />
 
-<div class="settings-select" bind:this={root}>
+<div class={["relative", className]} bind:this={root}>
 	<button
-		class="settings-select-trigger"
+		class="flex h-7 w-full items-center justify-between gap-2 rounded-md border border-line bg-transparent px-2 text-xs font-medium text-fg-muted transition-colors duration-100 hover:border-line-strong hover:bg-hover hover:text-fg focus-visible:border-line-focus aria-expanded:border-line-strong aria-expanded:bg-hover aria-expanded:text-fg"
 		type="button"
 		bind:this={trigger}
 		aria-label={label}
@@ -132,14 +134,14 @@
 				void show()
 			}
 		}}>
-		<span>{selectedLabel}</span><CaretDownIcon
-			class={open ? "open" : undefined}
+		<span class="truncate">{selectedLabel}</span><CaretDownIcon
+			class={["shrink-0 transition-transform duration-100", open && "rotate-180"]}
 			size={16}
 			aria-hidden="true" />
 	</button>
 	{#if open}
 		<div
-			class="settings-select-menu"
+			class="overflow-hidden rounded-xl border border-line-strong bg-overlay shadow-menu"
 			bind:this={menu}
 			use:liftToTopLayer
 			style={menuPosition}
@@ -150,15 +152,21 @@
 			onkeydown={handleKeydown}
 			in:menuIn
 			out:menuOut>
-			<div class="settings-select-options">
+			<div
+				class="max-h-(--select-menu-height) overflow-y-auto overscroll-contain p-1">
 				{#each options as option, index (option.value)}
 					{#if option.group && option.group !== options[index - 1]?.group}
-						<div class="settings-select-group" aria-hidden="true">
+						<div
+							class="px-2 pt-2 pb-1 text-2xs font-semibold text-fg-faint"
+							aria-hidden="true">
 							{option.group}
 						</div>
 					{/if}
 					<button
-						class:has-description={!!option.description}
+						class={[
+							"flex w-full items-center justify-between gap-2 rounded-md px-2 text-left text-xs font-medium text-fg-muted transition-colors duration-100 hover:bg-hover hover:text-fg focus-visible:bg-hover focus-visible:text-fg aria-selected:bg-hover aria-selected:text-fg",
+							option.description ? "py-2" : "h-7",
+						]}
 						type="button"
 						role="option"
 						aria-label={option.group
@@ -173,13 +181,15 @@
 							onChange(option.value)
 							close(true)
 						}}>
-						<span class="settings-select-option-copy">
+						<span class="flex min-w-0 flex-col gap-1">
 							<span>{option.label}</span>
 							{#if option.description}<small
+									class="text-2xs leading-snug font-normal text-fg-muted"
 									id={`${menuID}-${index}-description`}
 									>{option.description}</small
 								>{/if}
 						</span>{#if option.value === value}<CheckIcon
+								class="shrink-0"
 								size={16}
 								aria-hidden="true" />{/if}
 					</button>

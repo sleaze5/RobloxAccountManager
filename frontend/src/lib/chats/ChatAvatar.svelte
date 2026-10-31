@@ -3,11 +3,17 @@
 	import type { ChatConversationView } from "../backend/bridge"
 	import ProfileImage from "../shared/ProfileImage.svelte"
 
-	let { conversation }: { conversation: ChatConversationView } = $props()
+	let {
+		conversation,
+		className = "size-8",
+	}: { conversation: ChatConversationView; className?: string } = $props()
 </script>
 
 <span
-	class="chat-avatar relative grid place-items-center overflow-hidden rounded-md border border-line-strong bg-raised"
+	class={[
+		"relative grid shrink-0 place-items-center overflow-hidden rounded-md border border-line-strong bg-raised",
+		className,
+	]}
 	aria-hidden="true">
 	{#if conversation.group}
 		<UsersIcon class="size-1/2 text-fg-faint" aria-hidden="true" />

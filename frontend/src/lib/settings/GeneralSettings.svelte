@@ -72,7 +72,7 @@
 		)
 </script>
 
-{#if store.error}<div class="settings-inline-error" role="alert">
+{#if store.error}<div class="notice-error" role="alert">
 		{store.error}
 	</div>{/if}
 
@@ -88,7 +88,7 @@
 						<span id={`presence-${scope.id}-description`}
 							>{scope.description}</span>
 					</div>
-					<label class="settings-toggle">
+					<label class="switch">
 						<input
 							type="checkbox"
 							role="switch"
@@ -142,12 +142,12 @@
 		<h3 id="logging-title">Logging</h3>
 		<div class="settings-rows">
 			{#if showAllLevels}
-				<div class="settings-row settings-row-master">
+				<div class="settings-row border-b-line-strong">
 					<div class="settings-row-copy">
 						<strong>All log levels</strong>
 						<span>Enable or disable every log level at once.</span>
 					</div>
-					<label class="settings-toggle">
+					<label class="switch">
 						<input
 							type="checkbox"
 							role="switch"
@@ -168,7 +168,7 @@
 						<strong>{level.name}</strong>
 						<span>{level.description}</span>
 					</div>
-					<label class="settings-toggle">
+					<label class="switch">
 						<input
 							type="checkbox"
 							role="switch"

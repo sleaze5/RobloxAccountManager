@@ -86,6 +86,7 @@
 		<div class="game-servers-filter compact">
 			<span>Per page</span>
 			<Select
+				className="w-20"
 				label="Servers per page"
 				value={servers.limit}
 				options={[10, 25, 50, 100].map((value) => ({
@@ -96,7 +97,7 @@
 		</div>
 		<div class="game-servers-filter">
 			<span id={`${filterID}-full`}>Hide full servers</span>
-			<label class="settings-toggle">
+			<label class="switch">
 				<input
 					type="checkbox"
 					role="switch"

@@ -77,24 +77,21 @@
 	{/if}
 
 	{#if saving}
-		<span class="settings-row-detail" role="status"
+		<span class="flex items-center gap-1" role="status"
 			><CircleNotchIcon
 				class="spinner"
 				size={14}
 				aria-hidden="true" />Saving</span>
 	{/if}
-	{#if error}<div class="settings-inline-error" role="alert">{error}</div>{/if}
+	{#if error}<div class="notice-error" role="alert">{error}</div>{/if}
 {/snippet}
 
 {#if type === "toggle"}
-	<div
-		class="settings-row"
-		data-account-setting={id}
-		class:settings-row-disabled={controlDisabled}>
+	<div class="settings-row" data-account-setting={id}>
 		<div class="settings-row-copy">
 			{@render details()}
 		</div>
-		<label class="settings-toggle">
+		<label class="switch">
 			<input
 				type="checkbox"
 				role="switch"
@@ -108,24 +105,23 @@
 	</div>
 {:else}
 	<div
-		class="settings-radio-group"
-		data-account-setting={id}
-		class:settings-radio-group-disabled={controlDisabled}>
-		<div class="settings-radio-group-header">
+		class="flex flex-col gap-2 border-b border-line-subtle px-1 py-2"
+		data-account-setting={id}>
+		<div class="settings-row-copy">
 			{@render details()}
 		</div>
 		<div
-			class="settings-radio-options"
+			class="flex flex-col gap-0.5 pl-1"
 			role="radiogroup"
 			aria-labelledby={`setting-label-${id}`}>
 			{#each radioOptions as option (option.value)}
 				<label
-					class="settings-radio-option"
-					class:disabled={controlDisabled || option.disabled}
+					class="radio-option"
+					data-disabled={controlDisabled || option.disabled || undefined}
 					data-tooltip={option.disabled && option.reason
 						? option.reason
 						: undefined}>
-					<span class="settings-radio">
+					<span class="radio">
 						<input
 							type="radio"
 							name={id}
@@ -136,7 +132,7 @@
 							onchange={() => onRadioSelect?.(option.value)} />
 						<span aria-hidden="true"></span>
 					</span>
-					<span class="settings-radio-label">{option.label}</span>
+					<span class="text-xs text-fg">{option.label}</span>
 				</label>
 			{/each}
 		</div>

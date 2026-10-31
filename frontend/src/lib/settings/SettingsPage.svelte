@@ -111,6 +111,7 @@
 <section class="settings-page" aria-labelledby="settings-title">
 	<header class="settings-header">
 		<button
+			class="btn-ghost"
 			type="button"
 			aria-label={backLabel}
 			data-tooltip={backLabel}
@@ -122,9 +123,9 @@
 
 	<div
 		class="settings-layout"
-		style={`--settings-sidebar-width: ${workspace.settingsSidebarWidth}px;`}>
+		style={`--sidebar-width: ${workspace.settingsSidebarWidth}px;`}>
 		<aside class="settings-sidebar">
-			<div class="search-field">
+			<div class="m-3 search-field">
 				<MagnifyingGlassIcon size={16} aria-hidden="true" />
 				<input
 					bind:value={query}
@@ -140,9 +141,10 @@
 					</button>
 				{/if}
 			</div>
-			<nav aria-label="Settings categories">
+			<nav class="settings-nav" aria-label="Settings categories">
 				{#each visibleCategories as category (category.id)}
 					<button
+						class="nav-item"
 						type="button"
 						aria-current={activeCategory.id === category.id
 							? "page"
@@ -153,7 +155,7 @@
 					</button>
 				{/each}
 			</nav>
-			{#if visibleCategories.length === 0}<p class="settings-search-empty">
+			{#if visibleCategories.length === 0}<p class="px-3 text-xs text-fg-faint">
 					No settings found.
 				</p>{/if}
 		</aside>
@@ -183,7 +185,9 @@
 						<GeneralSettings store={appSettings} {query} />
 					{/if}
 				{:else}
-					<p class="settings-content-empty">No settings match “{query}”.</p>
+					<p class="m-auto text-xs text-fg-faint">
+						No settings match “{query}”.
+					</p>
 				{/if}
 			{/key}
 		</main>

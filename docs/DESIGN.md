@@ -144,7 +144,7 @@ Text colors:
 
 - Use `text-fg` for body text, names, and important labels.
 - Use `text-fg-muted` for timestamps, helper text, metadata, and secondary labels.
-- Use `text-fg-faint` for placeholders, inactive navigation, file paths, and tertiary information. Use it only on `bg-base`, `bg-surface`, `bg-canvas`, and `bg-overlay`. On raised, hover, and selected fills, use `text-fg-muted` or a stronger color.
+- Use `text-fg-faint` for placeholders, inactive navigation, file paths, and tertiary information. Use it only on `bg-deep`, `bg-surface`, `bg-canvas`, and `bg-overlay`. On raised, hover, and selected fills, use `text-fg-muted` or a stronger color.
 - Use `text-fg-bright` sparingly for primary buttons and the strongest emphasis.
 - Do not use accent colors or opacity modifiers for text.
 

@@ -169,13 +169,14 @@
 		}
 		void store.setTimestampFormats(timestampFormat, timestampHoverFormat)
 	}
+	const codeClass = "rounded-sm bg-fill px-0.5 font-mono text-2xs text-fg-muted"
 </script>
 
 {#if showMotion}
 	<section class="settings-section" aria-labelledby="motion-title">
 		<h3 id="motion-title">Motion</h3>
 		{#if store.error}
-			<div class="settings-inline-error" role="alert">
+			<div class="notice-error" role="alert">
 				{store.error}
 			</div>
 		{/if}
@@ -199,33 +200,48 @@
 {#if showTimestampFormat || showHoverFormat || showPreview || showTimestampActions}
 	<section class="settings-section" aria-labelledby="timestamps-title">
 		<h3 id="timestamps-title">Timestamps</h3>
-		<div class="settings-section-help">
-			<InfoIcon size={14} aria-hidden="true" />
+		<div
+			class="flex items-start gap-1 px-1 pb-1 text-xs leading-normal text-fg-muted">
+			<InfoIcon class="mt-px shrink-0" size={14} aria-hidden="true" />
 			<p>
-				Start each token with <code>$</code>, such as <code>$YYYY</code>. Other
-				text appears as typed. Use <code>$$</code> to show a <code>$</code> sign.
+				Start each token with <code class={codeClass}>$</code>, such as
+				<code class={codeClass}>$YYYY</code>. Other text appears as typed. Use
+				<code class={codeClass}>$$</code>
+				to show a <code class={codeClass}>$</code> sign.
 			</p>
 		</div>
-		<details class="settings-token-reference">
+		<details class="group px-1 pb-2 text-xs text-fg-muted">
 			<summary
-				><CaretRightIcon size={14} aria-hidden="true" />Token reference</summary>
-			<p>Examples use Wednesday, March 4, 2026, at 9:05:07.042 PM.</p>
-			<dl>
+				class="inline-flex items-center gap-1 rounded-sm transition-colors duration-100 hover:text-fg focus-visible:text-fg focus-visible:outline-offset-2"
+				><CaretRightIcon
+					class="transition-transform duration-100 group-open:rotate-90"
+					size={14}
+					aria-hidden="true" />Token reference</summary>
+			<p class="mt-2 mb-1">
+				Examples use Wednesday, March 4, 2026, at 9:05:07.042 PM.
+			</p>
+			<dl class="grid grid-cols-2 gap-x-4 gap-y-0.5">
 				{#each tokenReference as item (item.token)}
-					<div>
-						<dt><code>{item.token}</code></dt>
-						<dd>{item.label}<span>{item.example}</span></dd>
+					<div class="flex items-baseline gap-2">
+						<dt class="w-16 shrink-0">
+							<code class={codeClass}>{item.token}</code>
+						</dt>
+						<dd class="flex min-w-0 flex-1 justify-between gap-2">
+							{item.label}<span
+								class="font-mono text-2xs whitespace-nowrap text-fg-faint"
+								>{item.example}</span>
+						</dd>
 					</div>
 				{/each}
 			</dl>
 		</details>
 		{#if store.error && !showMotion}
-			<div class="settings-inline-error" role="alert">
+			<div class="notice-error" role="alert">
 				{store.error}
 			</div>
 		{/if}
 		{#each validationErrors as error (error)}
-			<div class="settings-inline-error" role="alert">
+			<div class="notice-error" role="alert">
 				{error}
 			</div>
 		{/each}
@@ -244,7 +260,7 @@
 							<span>Use tokens such as $YYYY, $MMMM, and $HH:$mm.</span>
 						</div>
 						<input
-							class="settings-format-input"
+							class="field w-72 font-mono text-2xs"
 							type="text"
 							aria-labelledby="timestamp-format-label"
 							autocomplete="off"
@@ -265,7 +281,7 @@
 								ago”.</span>
 						</div>
 						<input
-							class="settings-format-input"
+							class="field w-72 font-mono text-2xs"
 							type="text"
 							aria-labelledby="timestamp-hover-format-label"
 							autocomplete="off"
@@ -284,7 +300,7 @@
 								>Hover over the timestamp to preview the hover format.</span>
 						</div>
 						<button
-							class="settings-timestamp-preview"
+							class="max-w-72 truncate rounded-md border border-line px-2 py-1 text-xs font-medium text-fg-muted transition-colors duration-100 hover:border-line-strong hover:bg-hover hover:text-fg focus-visible:border-line-strong focus-visible:bg-hover focus-visible:text-fg"
 							type="button"
 							aria-label={previewHover || "Timestamp hover preview"}
 							data-tooltip={previewHover}
@@ -298,7 +314,7 @@
 			</div>
 
 			{#if showTimestampActions}
-				<div class="settings-form-actions">
+				<div class="flex justify-end gap-2 px-1 pt-2">
 					<button
 						class="btn"
 						type="button"

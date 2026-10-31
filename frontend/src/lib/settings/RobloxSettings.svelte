@@ -128,9 +128,12 @@
 
 <section class="settings-section" aria-labelledby="multi-instance-title">
 	<div class="settings-rows">
-		<div class="settings-row" class:unavailable={snapshot?.supported === false}>
+		<div class="settings-row">
 			<div class="settings-row-copy">
-				<strong id="multi-instance-title">Multi-instance</strong>
+				<strong
+					id="multi-instance-title"
+					class={[snapshot?.supported === false && "text-fg-faint"]}
+					>Multi-instance</strong>
 				<span id="multi-instance-description"
 					>Launch multiple games at the same time. Only works while Roblox
 					Account Manager is open.</span>
@@ -139,7 +142,7 @@
 					value={statusText}
 					tone={statusTone} />
 			</div>
-			<label class="settings-toggle">
+			<label class="switch">
 				<input
 					type="checkbox"
 					role="switch"
@@ -157,9 +160,9 @@
 		</div>
 	</div>
 	{#if error || statusError}
-		<div class="settings-inline-error" role="alert">{error || statusError}</div>
+		<div class="notice-error" role="alert">{error || statusError}</div>
 		{#if !snapshot}
-			<div class="settings-form-actions">
+			<div class="flex justify-end gap-2 px-1 pt-2">
 				<button
 					class="btn"
 					type="button"
@@ -192,12 +195,12 @@
 			</div>
 		</div>
 		{#if clientsError}
-			<div class="settings-inline-error" role="alert">{clientsError}</div>
+			<div class="notice-error" role="alert">{clientsError}</div>
 		{/if}
 	</section>
 {:else if clientsError}
-	<div class="settings-inline-error" role="alert">{clientsError}</div>
-	<div class="settings-form-actions">
+	<div class="notice-error" role="alert">{clientsError}</div>
+	<div class="flex justify-end gap-2 px-1 pt-2">
 		<button
 			class="btn"
 			type="button"
@@ -205,9 +208,3 @@
 			onclick={() => void loadClients()}>Retry</button>
 	</div>
 {/if}
-
-<style>
-	.unavailable strong {
-		color: var(--color-text-faint);
-	}
-</style>

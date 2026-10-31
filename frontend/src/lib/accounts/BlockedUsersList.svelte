@@ -12,24 +12,24 @@
 </script>
 
 {#if blocked.error}
-	<div class="settings-inline-error" role="alert">{blocked.error}</div>
+	<div class="notice-error" role="alert">{blocked.error}</div>
 {/if}
 
 {#if !blocked.users}
 	{#if blocked.loading}
-		<div class="account-settings-loading" role="status">
+		<div class="flex items-center gap-2 text-xs text-fg-muted" role="status">
 			<CircleNotchIcon class="spinner" size={16} aria-hidden="true" />
 			Loading blocked users
 		</div>
 	{/if}
 {:else if blocked.users.length === 0}
-	<p class="blocked-users-empty">No blocked users.</p>
+	<p class="text-xs text-fg-faint">No blocked users.</p>
 {:else}
-	<ul class="settings-rows blocked-users" aria-label="Blocked users">
+	<ul class="settings-rows" aria-label="Blocked users">
 		{#each blocked.users as user (user.userId)}
-			<li class="settings-row blocked-user">
+			<li class="settings-row justify-start gap-3">
 				<span
-					class="blocked-user-avatar relative grid place-items-center overflow-hidden rounded-md border border-line-strong bg-raised"
+					class="relative grid size-7 shrink-0 place-items-center overflow-hidden rounded-md border border-line-strong bg-raised"
 					aria-hidden="true">
 					<ProfileImage url={user.imageUrl} />
 				</span>

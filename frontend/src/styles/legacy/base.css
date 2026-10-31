@@ -1,20 +1,11 @@
 :where(
-	.account-row,
 	.game-row,
-	.settings-header button,
-	.settings-select-trigger,
-	.settings-select-menu button,
 	.place-suggestion,
-	.notification-dismiss,
 	.modal-heading > button,
 	.modal-close,
 	.tag-manager-row button,
 	.visibility-control,
-	.automatic-unlock-info,
-	.account-title button,
-	.collapsed-sidebar button,
-	.tag-filter-trigger,
-	.settings-sidebar nav button
+	.automatic-unlock-info
 ) {
 	transition:
 		background-color var(--duration-fast) var(--ease-standard),
@@ -24,7 +15,6 @@
 }
 
 :where(
-	.settings-format-input,
 	.modal-field input,
 	.modal-field textarea,
 	.modal-field select,

@@ -53,6 +53,7 @@
 <section class="settings-page" aria-labelledby="chats-title">
 	<header class="settings-header">
 		<button
+			class="btn-ghost"
 			type="button"
 			aria-label="Back to profile"
 			data-tooltip="Back to profile"
@@ -60,8 +61,10 @@
 			<CaretLeftIcon size={16} aria-hidden="true" />
 		</button>
 		<h1 id="chats-title" tabindex="-1" bind:this={heading}>Chats</h1>
-		<span class="account-settings-identity">@{account.username}</span>
+		<span class="mr-auto min-w-0 text-xs wrap-anywhere text-fg-muted"
+			>@{account.username}</span>
 		<button
+			class="btn-ghost"
 			type="button"
 			aria-label="New chat"
 			aria-expanded={creatingOpen}
@@ -70,6 +73,7 @@
 			<NotePencilIcon size={16} aria-hidden="true" />
 		</button>
 		<button
+			class="btn-ghost"
 			type="button"
 			aria-label="Mark all as read"
 			data-tooltip="Mark all as read"
@@ -83,6 +87,7 @@
 			{/if}
 		</button>
 		<button
+			class="btn-ghost"
 			type="button"
 			aria-label="Refresh chats"
 			data-tooltip="Refresh chats"
@@ -98,13 +103,13 @@
 	</header>
 
 	<div
-		class="settings-layout account-settings-layout"
-		style={`--account-settings-sidebar-width: ${workspace.accountSettingsSidebarWidth}px;`}>
-		<aside class="settings-sidebar chat-sidebar">
+		class="settings-layout"
+		style={`--sidebar-width: ${workspace.accountSettingsSidebarWidth}px;`}>
+		<aside class="flex settings-sidebar flex-col gap-2 p-2" data-chat-sidebar>
 			{#if creatingOpen}
 				<form
 					novalidate
-					class="chat-new"
+					class="flex animate-enter flex-wrap gap-2"
 					onsubmit={(event) => {
 						event.preventDefault()
 						void startChat()
@@ -137,12 +142,14 @@
 						Start
 					</button>
 					{#if chat.createError}
-						<p class="chat-new-error" role="alert">{chat.createError}</p>
+						<p class="w-full text-xs text-danger-muted" role="alert">
+							{chat.createError}
+						</p>
 					{/if}
 				</form>
 			{/if}
 			{#if chat.error}
-				<p class="settings-inline-error chat-list-error" role="alert">
+				<p class="notice-error" role="alert">
 					{chat.error}
 				</p>
 			{/if}
@@ -153,7 +160,7 @@
 			name="chats"
 			minimumWidth={192} />
 
-		<main class="chat-main" aria-label="Chat">
+		<main class="grid h-full min-h-0 min-w-0 flex-1 grid-rows-1" aria-label="Chat">
 			{#if openConversation}
 				{#key openConversation.id}
 					<ChatThread
@@ -162,7 +169,7 @@
 						selfUserId={Number(account.userId)} />
 				{/key}
 			{:else}
-				<p class="settings-content-empty">Select a chat to read it.</p>
+				<p class="m-auto text-xs text-fg-faint">Select a chat to read it.</p>
 			{/if}
 		</main>
 	</div>
