@@ -31,8 +31,8 @@
 			{
 				"paths": [
 					{
-						"name": "@lucide/svelte",
-						"message": "Import icons from @lucide/svelte/icons/<name>."
+						"name": "phosphor-svelte",
+						"message": "Import icons from phosphor-svelte/lib/<Name>Icon."
 					}
 				],
 				"patterns": [
@@ -46,7 +46,7 @@
 	},
 	"overrides": [
 		{
-			"files": ["vite.config.ts", "svelte.config.js"],
+			"files": ["vite.config.ts", "svelte.config.js", "scripts/**"],
 			"env": {
 				"browser": false,
 				"node": true

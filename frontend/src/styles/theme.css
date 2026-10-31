@@ -1,0 +1,98 @@
+@font-face {
+	font-family: "Geist";
+	src: url("../assets/fonts/Geist-Variable.woff2") format("woff2");
+	font-weight: 100 900;
+	font-style: normal;
+	font-display: swap;
+}
+
+@font-face {
+	font-family: "Geist Mono";
+	src: url("../assets/fonts/GeistMono-Variable.woff2") format("woff2");
+	font-weight: 100 900;
+	font-style: normal;
+	font-display: swap;
+}
+
+@theme {
+	--color-*: initial;
+	--shadow-*: initial;
+	--text-*: initial;
+
+	--color-base: #111111;
+	--color-canvas: #131313;
+	--color-surface: #171717;
+	--color-raised: #242424;
+	--color-raised-hover: #292929;
+	--color-overlay: rgb(23 23 23 / 98%);
+	--color-scrim: rgb(0 0 0 / 72%);
+	--color-scrim-strong: rgb(10 10 10 / 90%);
+	--color-fill: rgb(255 255 255 / 3%);
+	--color-hover: #292929;
+	--color-hover-overlay: rgb(255 255 255 / 7%);
+	--color-active: rgb(255 255 255 / 4.5%);
+
+	--color-fg: #cccccc;
+	--color-fg-muted: #a3a3a3;
+	--color-fg-faint: #808080;
+	--color-fg-bright: #ffffff;
+
+	--color-solid: #ffffff;
+	--color-on-solid: #000000;
+	--color-accent: #c7c7c7;
+	--color-accent-strong: #d4d4d4;
+
+	--color-line-subtle: rgb(255 255 255 / 6%);
+	--color-line: #262626;
+	--color-line-strong: #363636;
+	--color-line-focus: rgb(255 255 255 / 22%);
+	--color-focus: rgb(255 255 255 / 40%);
+	--color-scrollbar: rgb(163 163 163 / 22%);
+
+	--color-success: #66a978;
+	--color-warning: #d2a15a;
+	--color-danger: #c95c54;
+	--color-danger-muted: #dfaaa6;
+	--color-toast-danger: rgb(38 25 24 / 97%);
+
+	--color-presence-online: #7d9fb5;
+	--color-presence-game: #70a981;
+	--color-presence-studio: #b99a69;
+
+	--font-sans: "Geist", sans-serif;
+	--font-mono: "Geist Mono", monospace;
+
+	--text-2xs: 11px;
+	--text-2xs--line-height: 14px;
+	--text-xs: 12px;
+	--text-xs--line-height: 16px;
+	--text-sm: 13px;
+	--text-sm--line-height: 20px;
+	--text-base: 15px;
+	--text-base--line-height: 22px;
+	--text-lg: 16px;
+	--text-lg--line-height: 24px;
+
+	--shadow-menu: 0 2px 6px rgb(0 0 0 / 16%);
+	--shadow-float: 0 4px 12px rgb(0 0 0 / 24%);
+
+	--ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+	--ease-in-out: cubic-bezier(0.4, 0, 0.2, 1);
+
+	--animate-enter: enter 100ms var(--ease-out);
+	--animate-pop: pop 100ms var(--ease-out);
+
+	@keyframes enter {
+		from {
+			opacity: 0;
+			transform: translateY(2px);
+		}
+	}
+
+	@keyframes pop {
+		from {
+			opacity: 0;
+			transform: scale(0.99);
+		}
+	}
+}

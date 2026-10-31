@@ -16,6 +16,7 @@
 	"singleAttributePerLine": false,
 	"sortPackageJson": false,
 	"svelte": true,
+	"sortTailwindcss": { "stylesheet": "./src/styles/app.css" },
 	"ignorePatterns": [
 		"bindings/**",
 		"dist/**",

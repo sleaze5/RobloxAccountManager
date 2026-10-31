@@ -1,5 +1,6 @@
 import { readFileSync } from "node:fs"
 import { svelte } from "@sveltejs/vite-plugin-svelte"
+import tailwindcss from "@tailwindcss/vite"
 import wails from "@wailsio/runtime/plugins/vite"
 import { defineConfig, type Plugin } from "vite"
 
@@ -50,6 +51,7 @@ export default defineConfig({
 	build: { target: "esnext", chunkSizeWarningLimit: 1024 },
 	optimizeDeps: { exclude: ["svelte", "phosphor-svelte"] },
 	plugins: [
+		tailwindcss(),
 		svelteRuntimeCompatibility,
 		svelte({ prebundleSvelteLibraries: false }),
 		wails("./bindings"),
