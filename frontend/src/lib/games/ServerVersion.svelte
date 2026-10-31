@@ -8,8 +8,12 @@
 </script>
 
 {#if version}
-	<span class="game-server-number numeric" aria-label={tooltip} data-tooltip={tooltip}
-		>{#if old}<span class="game-server-tag">Old</span>{/if}{version}</span>
+	<span
+		class="server-number justify-self-end text-right"
+		aria-label={tooltip}
+		data-tooltip={tooltip}
+		>{#if old}<span class="server-tag">Old</span>{/if}{version}</span>
 {:else}
-	<span class="game-server-faint numeric" aria-label="Version unknown">-</span>
+	<span class="justify-self-end text-right text-fg-faint" aria-label="Version unknown"
+		>-</span>
 {/if}

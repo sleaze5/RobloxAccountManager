@@ -11,8 +11,11 @@
 </script>
 
 {#if firstSeenMs}
-	<span class="game-server-number numeric" aria-label={tooltip} data-tooltip={tooltip}
-		>{uptime}</span>
+	<span
+		class="server-number justify-self-end text-right"
+		aria-label={tooltip}
+		data-tooltip={tooltip}>{uptime}</span>
 {:else}
-	<span class="game-server-faint numeric" aria-label="Uptime unknown">-</span>
+	<span class="justify-self-end text-right text-fg-faint" aria-label="Uptime unknown"
+		>-</span>
 {/if}

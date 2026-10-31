@@ -57,9 +57,12 @@
 	})
 </script>
 
-<div class="game-servers-body">
-	<div class="game-servers-filters" role="group" aria-label="Server filters">
-		<div class="game-servers-filter wide">
+<div class="flex min-h-0 flex-1 flex-col">
+	<div
+		class="flex flex-wrap items-end gap-x-3 gap-y-2 border-b border-line-subtle p-3"
+		role="group"
+		aria-label="Server filters">
+		<div class="flex flex-col gap-1 text-2xs text-fg-muted">
 			<span>Region</span>
 			<Select
 				className="w-56"
@@ -69,7 +72,7 @@
 				onChange={(region) => servers.setOptions({ region })} />
 		</div>
 		<div
-			class="game-servers-filter"
+			class="flex flex-col gap-1 text-2xs text-fg-muted"
 			data-tooltip={servers.region
 				? "RoValra lists a region's servers newest first"
 				: undefined}>
@@ -90,7 +93,7 @@
 				]}
 				onChange={(order) => servers.setOptions({ order })} />
 		</div>
-		<div class="game-servers-filter compact">
+		<div class="flex flex-col gap-1 text-2xs text-fg-muted">
 			<span>Per page</span>
 			<Select
 				className="w-20"
@@ -140,7 +143,7 @@
 			{/if}
 		</div>
 	{:else}
-		<p class="game-servers-summary" role="status">
+		<p class="flex gap-1 px-3 pt-2 font-mono text-2xs text-fg-faint" role="status">
 			<span>Page {servers.pageNumber}</span>
 			<span aria-hidden="true">-</span>
 			<span
@@ -154,54 +157,57 @@
 			<span>Some may have closed</span>
 		</p>
 		<div
-			class="game-servers-table recorded"
-			class:loading={servers.loading}
+			class="server-table"
+			data-variant="recorded"
+			data-loading={servers.loading || undefined}
 			bind:this={list}>
-			<div class="game-servers-columns" aria-hidden="true">
+			<div class="server-columns" aria-hidden="true">
 				<span>Region</span>
-				<span class="numeric">Datacenter</span>
+				<span class="justify-self-end text-right">Datacenter</span>
 				<span>IP address</span>
-				<span class="numeric">Version</span>
-				<span class="numeric">Uptime</span>
+				<span class="justify-self-end text-right">Version</span>
+				<span class="justify-self-end text-right">Uptime</span>
 				<span>Job ID</span>
 			</div>
 			<ol aria-label="Servers" aria-busy={servers.loading}>
 				{#each shown as server (server.jobId)}
 					<li
-						class="game-server-row"
-						class:menu-open={activeJobId === server.jobId}
+						class="server-row"
+						data-open={activeJobId === server.jobId || undefined}
 						oncontextmenu={(event) => {
 							const trigger =
 								event.currentTarget.querySelector<HTMLElement>(
-									".game-server-actions",
+									"[data-server-actions]",
 								)
 							if (!trigger) return
 							event.preventDefault()
 							onMenu(server.jobId, trigger, true)
 						}}>
 						<span
-							class="game-server-place"
+							class="truncate text-xs text-fg"
 							data-tooltip={recordLocation(server) || undefined}
 							>{recordPlace(server) || "Unknown location"}</span>
 						{#if server.datacenterId}
-							<span class="game-server-number numeric"
+							<span class="server-number justify-self-end text-right"
 								>{server.datacenterId}</span>
 						{:else}
 							<span
-								class="game-server-faint numeric"
+								class="justify-self-end text-right text-fg-faint"
 								aria-label="Datacenter unknown">-</span>
 						{/if}
 						{#if server.address}
-							<span class="game-server-job">{server.address}</span>
-						{:else}
 							<span
-								class="game-server-faint"
-								aria-label="IP address unknown">-</span>
+								class="truncate font-mono text-2xs text-fg-faint select-text"
+								>{server.address}</span>
+						{:else}
+							<span class="text-fg-faint" aria-label="IP address unknown"
+								>-</span>
 						{/if}
 						<ServerVersion version={server.placeVersion} {newestVersion} />
 						<ServerUptime firstSeenMs={server.firstSeenMs} />
-						<span class="game-server-job" data-tooltip={server.jobId}
-							>{server.jobId}</span>
+						<span
+							class="truncate font-mono text-2xs text-fg-faint select-text"
+							data-tooltip={server.jobId}>{server.jobId}</span>
 						<ServerActionsButton
 							open={activeJobId === server.jobId}
 							{menuID}

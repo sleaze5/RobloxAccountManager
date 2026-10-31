@@ -468,3 +468,48 @@
 		@apply opacity-45;
 	}
 }
+
+@utility server-table {
+	@apply min-h-0 flex-1 overflow-auto transition-opacity duration-100 data-loading:opacity-55;
+	--server-columns: --spacing(26) minmax(--spacing(30), 1fr) --spacing(14)
+		--spacing(8) --spacing(16) --spacing(13) minmax(--spacing(25), 1fr) --spacing(7);
+	--server-min-width: --spacing(160);
+
+	&[data-variant="records"] {
+		--server-columns: --spacing(26) --spacing(14) minmax(--spacing(30), 1fr)
+			--spacing(16) --spacing(18) minmax(--spacing(25), 1fr) --spacing(7);
+		--server-min-width: 0;
+	}
+
+	&[data-variant="records"]
+		:is(.server-columns, .server-row)
+		> :is(:nth-child(2), :nth-child(4), :nth-child(5), :nth-child(6)) {
+		@apply hidden;
+	}
+
+	&[data-variant="recorded"] {
+		--server-columns: minmax(--spacing(38), 1fr) --spacing(28) --spacing(16)
+			--spacing(18) minmax(--spacing(25), 1fr) --spacing(7);
+		--server-min-width: 0;
+	}
+
+	&[data-variant="recorded"] :is(.server-columns, .server-row) > :nth-child(2) {
+		@apply hidden;
+	}
+}
+
+@utility server-columns {
+	@apply sticky top-0 z-10 grid min-w-(--server-min-width) grid-cols-(--server-columns) items-center gap-3 border-b border-line-subtle bg-canvas px-3 py-2 text-2xs font-semibold text-fg-faint;
+}
+
+@utility server-row {
+	@apply grid h-11 min-w-(--server-min-width) grid-cols-(--server-columns) items-center gap-3 border-b border-line-subtle bg-canvas px-3 transition-colors duration-75 hover:bg-hover data-open:bg-hover;
+}
+
+@utility server-number {
+	@apply flex items-center gap-1 font-mono text-2xs whitespace-nowrap text-fg;
+}
+
+@utility server-tag {
+	@apply rounded-sm border border-line-strong px-1 font-sans text-2xs leading-3.5 font-medium text-fg-muted;
+}

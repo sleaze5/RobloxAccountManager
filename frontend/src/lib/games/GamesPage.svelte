@@ -68,7 +68,8 @@
 
 	function grab(event: PointerEvent, placeId: number): void {
 		grabbedPlaceId =
-			event.target instanceof Element && event.target.closest(".game-drag-handle")
+			event.target instanceof Element &&
+			event.target.closest("[data-drag-handle]")
 				? placeId
 				: null
 	}
@@ -277,8 +278,10 @@
 				</div>
 				<div class="relative grid min-h-0 flex-1 grid-rows-1">
 					<div
-						class="games-list"
-						class:has-search-results={hasSearch}
+						class={[
+							"min-h-0 scrollbar-stable overflow-y-auto",
+							hasSearch && "pb-12",
+						]}
 						aria-label={favoritesMode
 							? "Favorite places"
 							: "Search results"}
@@ -288,16 +291,18 @@
 						{#each store.places as place (place.placeId)}
 							{@const active = store.selected?.placeId === place.placeId}
 							<button
-								class="game-row list-row"
-								class:selected={active}
-								class:menu-open={store.menu?.place.placeId ===
-									place.placeId}
-								class:dragging={draggedPlaceId === place.placeId}
-								class:drop-before={dropTarget?.placeId ===
-									place.placeId && !dropTarget.after}
-								class:drop-after={dropTarget?.placeId ===
-									place.placeId && dropTarget.after}
-								class:reorderable={favoritesMode}
+								class={[
+									"relative flex h-12 w-full items-center gap-2 border-b border-line-subtle list-row text-left",
+									favoritesMode ? "pr-3 pl-2" : "px-3",
+									draggedPlaceId === place.placeId && "opacity-45",
+									dropTarget?.placeId === place.placeId &&
+										(dropTarget.after
+											? "after:absolute after:inset-x-1 after:bottom-0 after:z-10 after:h-px after:bg-fg-muted"
+											: "before:absolute before:inset-x-1 before:top-0 before:z-10 before:h-px before:bg-fg-muted"),
+								]}
+								data-selected={active || undefined}
+								data-open={store.menu?.place.placeId ===
+									place.placeId || undefined}
 								draggable={favoritesMode && store.canReorder}
 								onpointerdown={(event) => grab(event, place.placeId)}
 								ondragstart={(event) => startDrag(event, place.placeId)}
@@ -322,17 +327,22 @@
 									void moveWithKeyboard(event, place.placeId)
 								}}>
 								{#if favoritesMode}<span
-										class="game-drag-handle"
-										class:disabled={!store.canReorder}
+										class={[
+											"grid h-7 w-3 shrink-0 place-items-center text-fg-faint",
+											store.canReorder
+												? "cursor-grab active:cursor-grabbing"
+												: "cursor-default",
+										]}
+										data-drag-handle
 										aria-hidden="true"
 										><DotsSixVerticalIcon
 											size={14}
 											aria-hidden="true" /></span
 									>{/if}
 								<GameIcon url={place.iconUrl} />
-								<span class="game-row-text">
+								<span class="flex min-w-0 flex-col leading-snug">
 									<strong
-										class="inline-flex min-w-0 items-center gap-1"
+										class="inline-flex min-w-0 items-center gap-1 text-xs font-semibold text-fg"
 										><span class="truncate"
 											>{store.displayName(place)}</span
 										>{#if store.isFavorite(place.placeId)}<StarIcon
@@ -340,7 +350,7 @@
 												size={12}
 												weight="fill"
 												aria-label="Favorite" />{/if}</strong>
-									<span
+									<span class="truncate text-2xs text-fg-muted"
 										>{creatorByline(
 											place,
 										)}{#if place.creatorVerified}<SealCheckIcon
@@ -352,7 +362,7 @@
 						{/each}
 						{#if hasMore}
 							<div
-								class="games-list-footer"
+								class="flex min-h-12 items-center justify-center text-fg-faint"
 								use:loadMoreWhenVisible={store.nextPageToken}>
 								{#if store.loadMoreFailed}
 									<button

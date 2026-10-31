@@ -17,7 +17,7 @@
 	} = $props()
 </script>
 
-<nav class="game-servers-pager" aria-label="Server pages">
+<nav class="ml-auto flex items-center gap-1" aria-label="Server pages">
 	<button
 		class="btn-icon"
 		type="button"
@@ -34,7 +34,7 @@
 		onclick={() => pager.previous()}>
 		<CaretLeftIcon size={16} aria-hidden="true" />Previous
 	</button>
-	<span class="game-servers-page-number" aria-current="page"
+	<span class="px-1 text-xs text-fg-muted" aria-current="page"
 		>Page {pager.pageNumber}</span>
 	<button
 		class="btn"

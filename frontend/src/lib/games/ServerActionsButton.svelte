@@ -13,7 +13,8 @@
 </script>
 
 <button
-	class="game-server-actions btn-ghost"
+	class="sticky right-0 btn-ghost justify-self-end bg-inherit"
+	data-server-actions
 	type="button"
 	aria-label="Server actions"
 	aria-haspopup="menu"

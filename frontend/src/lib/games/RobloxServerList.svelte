@@ -46,9 +46,12 @@
 	})
 </script>
 
-<div class="game-servers-body">
-	<div class="game-servers-filters" role="group" aria-label="Server filters">
-		<div class="game-servers-filter">
+<div class="flex min-h-0 flex-1 flex-col">
+	<div
+		class="flex flex-wrap items-end gap-x-3 gap-y-2 border-b border-line-subtle p-3"
+		role="group"
+		aria-label="Server filters">
+		<div class="flex flex-col gap-1 text-2xs text-fg-muted">
 			<span>Sort</span>
 			<Select
 				label="Sort servers"
@@ -70,7 +73,7 @@
 				]}
 				onChange={(order) => servers.setOptions({ order })} />
 		</div>
-		<div class="game-servers-filter">
+		<div class="flex flex-col gap-1 text-2xs text-fg-muted">
 			<span>Ping</span>
 			<Select
 				label="Maximum ping"
@@ -83,7 +86,7 @@
 				]}
 				onChange={(value) => (servers.maxPing = value)} />
 		</div>
-		<div class="game-servers-filter compact">
+		<div class="flex flex-col gap-1 text-2xs text-fg-muted">
 			<span>Per page</span>
 			<Select
 				className="w-20"
@@ -95,7 +98,7 @@
 				}))}
 				onChange={(value) => servers.setOptions({ limit: value })} />
 		</div>
-		<div class="game-servers-filter">
+		<div class="flex flex-col gap-1 text-2xs text-fg-muted">
 			<span id={`${filterID}-full`}>Hide full servers</span>
 			<label class="switch">
 				<input
@@ -143,7 +146,7 @@
 			{/if}
 		</div>
 	{:else}
-		<p class="game-servers-summary" role="status">
+		<p class="flex gap-1 px-3 pt-2 font-mono text-2xs text-fg-faint" role="status">
 			<span>Page {servers.pageNumber}</span>
 			<span aria-hidden="true">-</span>
 			<span
@@ -158,21 +161,21 @@
 		</p>
 		{#if shown.length}
 			<div
-				class="game-servers-table"
-				class:records
-				class:loading={servers.loading}
+				class="server-table"
+				data-variant={records ? "records" : undefined}
+				data-loading={servers.loading || undefined}
 				bind:this={list}>
-				<div class="game-servers-columns" aria-hidden="true">
-					<span class="numeric">Players</span>
+				<div class="server-columns" aria-hidden="true">
+					<span class="justify-self-end text-right">Players</span>
 					<span>In server</span>
-					<span class="numeric">Ping</span>
-					<span class="numeric">FPS</span>
-					<span class="numeric">Language</span>
-					<span class="numeric">Friends</span>
+					<span class="justify-self-end text-right">Ping</span>
+					<span class="justify-self-end text-right">FPS</span>
+					<span class="justify-self-end text-right">Language</span>
+					<span class="justify-self-end text-right">Friends</span>
 					{#if records}
 						<span>Region</span>
-						<span class="numeric">Version</span>
-						<span class="numeric">Uptime</span>
+						<span class="justify-self-end text-right">Version</span>
+						<span class="justify-self-end text-right">Uptime</span>
 					{/if}
 					<span>Job ID</span>
 				</div>
@@ -185,89 +188,97 @@
 						{@const images = server.playerImages ?? []}
 						{@const hidden = server.playing - images.length}
 						<li
-							class="game-server-row"
-							class:menu-open={activeJobId === server.jobId}
+							class="server-row"
+							data-open={activeJobId === server.jobId || undefined}
 							oncontextmenu={(event) => {
 								const trigger =
 									event.currentTarget.querySelector<HTMLElement>(
-										".game-server-actions",
+										"[data-server-actions]",
 									)
 								if (!trigger) return
 								event.preventDefault()
 								onMenu(server.jobId, trigger, true)
 							}}>
 							<div
-								class="game-server-capacity"
+								class="flex flex-col gap-1"
 								aria-label={`${server.playing} of ${server.maxPlayers} players${full ? ", full" : ""}`}>
-								<span class="game-server-count"
-									>{#if full}<span class="game-server-tag">Full</span
-										>{/if}<strong>{server.playing}</strong
+								<span
+									class="flex items-center justify-end gap-0.5 font-mono text-2xs text-fg-muted"
+									>{#if full}<span class="mr-1 server-tag">Full</span
+										>{/if}<strong class="font-semibold text-fg"
+										>{server.playing}</strong
 									>/{server.maxPlayers}</span>
-								<span class="game-server-bar" aria-hidden="true"
-									><span style:transform={`scaleX(${fill})`}></span
+								<span
+									class="block h-1 overflow-hidden rounded-full bg-line-strong"
+									aria-hidden="true"
+									><span
+										class="block h-full origin-left bg-fg-muted transition-transform duration-150"
+										style:transform={`scaleX(${fill})`}></span
 									></span>
 							</div>
 							<div
-								class="game-server-players"
+								class="flex min-w-0 items-center"
 								aria-label={images.length
 									? `${images.length} player avatars shown`
 									: "Player avatars unavailable"}>
 								{#each images as url, index (index)}
-									<span class="game-server-avatar"
+									<span
+										class="grid size-6 shrink-0 place-items-center overflow-hidden rounded-full border border-canvas bg-raised text-fg-faint not-first:-ml-1.5"
 										><ProfileImage {url} /></span>
 								{/each}
 								{#if images.length && hidden > 0}
-									<span class="game-server-more">+{hidden}</span>
+									<span class="ml-1 font-mono text-2xs text-fg-muted"
+										>+{hidden}</span>
 								{:else if !images.length}
-									<span class="game-server-faint">-</span>
+									<span class="text-fg-faint">-</span>
 								{/if}
 							</div>
 							{#if server.pingMs === null}
 								<span
-									class="game-server-faint numeric"
+									class="justify-self-end text-right text-fg-faint"
 									aria-label="Ping unavailable">-</span>
 							{:else}
 								<span
-									class="game-server-number numeric"
+									class="server-number justify-self-end text-right"
 									aria-label={`Ping ${server.pingMs} milliseconds`}>
 									{server.pingMs} ms
 								</span>
 							{/if}
 							<span
-								class="game-server-number numeric"
+								class="server-number justify-self-end text-right"
 								aria-label={`${Math.round(server.fps)} frames per second`}
 								>{Math.round(server.fps)}</span>
 							{#if server.languageMatches === null}
 								<span
-									class="game-server-faint numeric"
+									class="justify-self-end text-right text-fg-faint"
 									aria-label="Language matches unavailable">-</span>
 							{:else}
 								{@const speakers = `${server.languageMatches} ${server.languageMatches === 1 ? "player speaks" : "players speak"} your language`}
 								<span
-									class="game-server-number numeric"
+									class="server-number justify-self-end text-right"
 									aria-label={speakers}
 									data-tooltip={speakers}
 									>{server.languageMatches}</span>
 							{/if}
 							{#if server.friends === null}
 								<span
-									class="game-server-faint numeric"
+									class="justify-self-end text-right text-fg-faint"
 									aria-label="Friends unavailable">-</span>
 							{:else}
 								<span
-									class="game-server-number numeric"
+									class="server-number justify-self-end text-right"
 									aria-label={`${server.friends} ${server.friends === 1 ? "friend" : "friends"}`}
 									>{server.friends}</span>
 							{/if}
 							{#if records}
 								{#if server.record}
 									<span
-										class="game-server-place"
+										class="truncate text-xs text-fg"
 										data-tooltip={recordLocation(server.record)}
 										>{recordPlace(server.record)}</span>
 								{:else}
 									<span
-										class="game-server-faint"
+										class="text-fg-faint"
 										data-tooltip="RoValra has not seen this server yet"
 										>-</span>
 								{/if}
@@ -277,8 +288,9 @@
 								<ServerUptime
 									firstSeenMs={server.record?.firstSeenMs ?? 0} />
 							{/if}
-							<span class="game-server-job" data-tooltip={server.jobId}
-								>{server.jobId}</span>
+							<span
+								class="truncate font-mono text-2xs text-fg-faint select-text"
+								data-tooltip={server.jobId}>{server.jobId}</span>
 							<ServerActionsButton
 								open={activeJobId === server.jobId}
 								{menuID}
