@@ -8,7 +8,7 @@
 	--color-surface-raised-hover: #1f1f1f;
 	--color-dialog: rgb(20 20 20 / 98%);
 	--color-overlay: rgb(20 20 20 / 98%);
-	--color-input: #0f0f0f;
+	--color-input: transparent;
 	--color-scrim: rgb(0 0 0 / 72%);
 	--color-scrim-vault: rgb(10 10 10 / 90%);
 	--color-fill-subtle: rgb(255 255 255 / 3%);
