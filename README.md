@@ -163,15 +163,21 @@ cd RobloxAccountManager
 
 Run every command from the repository root. Go runs the [Task](https://taskfile.dev) version pinned in `build/tools/go.mod`, so you do not install Task yourself.
 
-Run the build task for your target:
+Run the build task:
 
-- `go tool -modfile build/tools/go.mod task build:windows-amd64`: Windows x64. Runs on Windows.
-- `go tool -modfile build/tools/go.mod task build:windows-arm64`: Windows ARM64. Cross-compiles on x64 Windows with llvm-mingw.
-- `go tool -modfile build/tools/go.mod task build:linux-amd64`: Linux x64. Runs on Linux.
-- `go tool -modfile build/tools/go.mod task build:darwin-arm64`: macOS app bundle for Apple silicon. Runs on macOS.
-- `go tool -modfile build/tools/go.mod task build:darwin-amd64`: macOS app bundle for Intel. Runs on macOS.
+```sh
+go tool -modfile build/tools/go.mod task build
+```
 
-Each build first runs `go tool -modfile build/tools/go.mod task fix` to format, apply lint fixes, and validate the source. Output goes to `dist/<os>-<arch>/`.
+It runs `go tool -modfile build/tools/go.mod task fix` to format, apply lint fixes, and validate the source, builds the production frontend, and then builds the executable for your operating system and architecture. To build another target, add `TARGET=<target>`:
+
+- `windows-amd64`: Windows x64. Runs on Windows.
+- `windows-arm64`: Windows ARM64. Cross-compiles on x64 Windows with llvm-mingw.
+- `linux-amd64`: Linux x64. Runs on Linux.
+- `darwin-arm64`: macOS app bundle for Apple silicon. Runs on macOS.
+- `darwin-amd64`: macOS app bundle for Intel. Runs on macOS.
+
+Output goes to `dist/<os>-<arch>/`.
 
 Other tasks:
 

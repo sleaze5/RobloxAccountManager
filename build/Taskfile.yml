@@ -8,12 +8,12 @@ tasks:
         sources:
             - package.json
             - bun.lock
+            - bunfig.toml
         generates:
-            - node_modules/.bin/oxlint.exe
-            - node_modules/.bin/svelte-check.exe
-            - node_modules/.bin/vite.exe
+            - node_modules/.task-installed
         cmds:
             - bun install --frozen-lockfile
+            - bun -e 'await Bun.write("node_modules/.task-installed", "")'
 
     internal:generate:bindings:
         internal: true
@@ -119,7 +119,6 @@ tasks:
         dir: "{{.ROOT_DIR}}/frontend"
         deps:
             - task: internal:frontend:deps
-            - task: internal:generate:bindings
         cmds:
             - bun run build
 

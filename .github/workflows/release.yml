@@ -85,22 +85,34 @@ jobs:
                       echo "targets=$(jq -r '[.[].targets] | join(" ")' <<< "$matrix")"
                   } >> "$GITHUB_OUTPUT"
 
+    frontend:
+        name: Prepare frontend
+        uses: ./.github/workflows/prepare-frontend.yml
+
+    validate:
+        name: Validate Go
+        uses: ./.github/workflows/validate-go.yml
+
     build:
         name: Build ${{ matrix.name }}
-        needs: check
+        needs:
+            - check
+            - frontend
         strategy:
             matrix:
                 include: ${{ fromJSON(needs.check.outputs.matrix) }}
         uses: ./.github/workflows/build-targets.yml
         with:
             targets: ${{ matrix.targets }}
-            artifact: ${{ matrix.name }}
+            artifact: build-${{ matrix.name }}
             retention-days: 7
+            frontend-artifact: ${{ needs.frontend.outputs.artifact }}
 
     publish:
         name: ${{ inputs.rehearsal && 'Rehearse' || 'Publish' }}
         needs:
             - check
+            - validate
             - build
         runs-on: ubuntu-24.04
         timeout-minutes: 15
@@ -119,15 +131,17 @@ jobs:
               with:
                   persist-credentials: false
 
-            - name: Set up
-              uses: ./.github/actions/setup
-              with:
-                  system-libraries: "false"
+            - name: Set up Go
+              uses: ./.github/actions/setup-go
+
+            - name: Set up Bun
+              uses: ./.github/actions/setup-bun
 
             - name: Download builds
               uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333
               with:
                   path: ${{ env.RELEASE }}
+                  pattern: build-*
                   merge-multiple: true
 
             - name: Prepare release

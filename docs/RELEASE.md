@@ -4,7 +4,7 @@ Platform rules are in [PLATFORM.md](./PLATFORM.md). Git rules are in [GIT.md](./
 
 `internal/appmeta/VERSION` is the only source of the application version. It uses `MAJOR.MINOR.PATCH` with an optional `-PRERELEASE` suffix. Go embeds it, the frontend reads it as `APP_VERSION`, and the build writes it into the Windows version resource. Do not write the version anywhere else.
 
-To release, change `VERSION`, run `go tool -modfile build/tools/go.mod task fix`, get the change into `main` as [GIT.md](./GIT.md) describes, and run the manual "Release" workflow in `.github/workflows/release.yml`. The workflow first checks that it runs on `main` and that tag `v<version>` does not exist. Only a confirmed "not found" answer passes the tag check. Any other error stops the release, because `gh release create` attaches a release to an existing tag and ignores `--target`. The check job defines the release targets once. They drive the build matrix and the targets that release preparation expects. The workflow builds Linux on Ubuntu 24.04, macOS on macOS 15, and Windows on Windows Server 2025 in parallel, through the reusable `.github/workflows/build-targets.yml`, and keeps the builds for 7 days. The macOS job builds both architectures on Apple silicon. The Windows job builds x64 and cross-compiles ARM64 with a pinned, checksum-verified llvm-mingw release. A build fails when it changes source files. The Windows job pauses Defender real-time scanning, because it slows builds on the disposable runners. After every build succeeds, the publish job on Ubuntu 24.04 runs the `release:prepare` task and creates the release. The workflow publishes:
+To release, change `VERSION`, run `go tool -modfile build/tools/go.mod task fix`, get the change into `main` as [GIT.md](./GIT.md) describes, and run the manual "Release" workflow in `.github/workflows/release.yml`. The workflow first checks that it runs on `main` and that tag `v<version>` does not exist. Only a confirmed "not found" answer passes the tag check. Any other error stops the release, because `gh release create` attaches a release to an existing tag and ignores `--target`. The check job defines the release targets once. They drive the build matrix and the targets that release preparation expects. The workflow validates its own commit and does not rely on an earlier "Check" run: `.github/workflows/prepare-frontend.yml` checks the frontend and `.github/workflows/validate-go.yml` checks the Go source on every operating system. The frontend is prepared once on Linux and reaches each build as an artifact of the same run. The workflow builds Linux on Ubuntu 24.04, macOS on macOS 15, and Windows on Windows Server 2025 in parallel with Go validation, through the reusable `.github/workflows/build-targets.yml`, and keeps the builds for 7 days. The macOS job builds both architectures on Apple silicon. The Windows job builds x64 and cross-compiles ARM64 with a pinned, checksum-verified llvm-mingw release. A build fails when it changes source files. The Windows job pauses Defender real-time scanning, because it slows builds on the disposable runners. After validation and every build succeed, the publish job on Ubuntu 24.04 runs the `release:prepare` task and creates the release. The workflow publishes:
 
 - `RobloxAccountManager.exe`: the Windows executable for manual download.
 - `RobloxAccountManager-windows-x64.zip`: the Windows updater artifact.
@@ -41,17 +41,31 @@ A re-run of a workflow run uses that run's commit and workflow files. After a wo
 
 ## Test builds
 
-`.github/workflows/build-targets.yml` is the only definition of how a target is set up, built, checked, and packaged. The "Release" workflow calls it for each operating system, and the manual "Build" workflow in `.github/workflows/build.yml` calls it for one target. Add a target there once, and both workflows build it the same way.
+`.github/workflows/build-targets.yml` is the only definition of how a target is set up, built, checked, and packaged. The "Release" workflow calls it for each operating system, and the manual "Build" workflow in `.github/workflows/build.yml` calls it for one target. Add a target there once, and both workflows build it the same way. It only compiles: it takes the `artifact` output of `prepare-frontend.yml` from the same run as its `frontend-artifact` input, so a caller must run `prepare-frontend.yml` first.
 
-To test a build without a release, run the "Build" workflow from the Actions tab and choose the branch and the target. The run keeps the packaged files for 7 days, with the same names as release assets. Test builds are not added to the update manifest.
+The frontend bindings and production assets are the same for every target, so they are prepared once on Linux. The Wails services and their models are defined in platform-neutral Go files. Keep them platform-neutral when you add an operating system, and keep native behavior behind them.
+
+To test a build without a release, run the "Build" workflow from the Actions tab and choose the branch and the target. It validates the commit like a release does. The run keeps the packaged files for 7 days, with the same names as release assets. Test builds are not added to the update manifest.
 
 The pinned llvm-mingw release for Windows ARM64 is set up by `.github/actions/setup-llvm-mingw`. Change its version and checksum there.
+
+## Tasks
+
+The `build` task is the complete local workflow: it runs `fix`, then `frontend:build`, then `build:<target>` for `TARGET`, which defaults to the host. CI runs the same steps as separate tasks, so it can prepare the frontend once and compile each target from it:
+
+- `setup:frontend` installs the frontend dependencies from the lockfile.
+- `generate` generates the TypeScript bindings for the Wails services.
+- `frontend:build` builds the production frontend from the installed dependencies and the generated bindings.
+- `build:<target>` compiles and packages one target from the production frontend. It never runs fixes, checks, generation, or a frontend build, and it fails when `frontend/dist/index.html` is missing or empty.
 
 ## Checks
 
 The `check` task runs two scopes in parallel, and each runs its own steps in parallel:
 
-- `check:common` validates what does not depend on the operating system: frontend formatting, lint, and `svelte-check`, Go formatting, whether the `go.mod` and `go.sum` files of the application and of `build/tools` are tidy, and whether `@wailsio/runtime` in `frontend/package.json` matches the Wails version in `go.mod`.
+- `check:common` installs the frontend dependencies, generates the bindings, and validates what does not depend on the operating system. It runs three tasks that CI also runs on their own:
+    - `check:frontend:source`: frontend formatting and lint, and whether `@wailsio/runtime` in `frontend/package.json` matches the Wails version in `go.mod`.
+    - `check:frontend:types`: `svelte-check` and the type check of the scripts. It needs the generated bindings.
+    - `check:go`: Go formatting, and whether the `go.mod` and `go.sum` files of the application and of `build/tools` are tidy.
 - `check:native` runs golangci-lint and `go build`. Go compiles only the files of the current operating system, so this scope must run on each one.
 
 The `fix` task still applies every fix, including golangci-lint fixes, and then runs the `check` task. It first sets `@wailsio/runtime` to the Wails version in `go.mod`, so `go.mod` is the only place to change the Wails version. Dependabot and the `update` task update Wails only in `go.mod`.
@@ -67,7 +81,7 @@ The "Check" workflow in `.github/workflows/check.yml` runs on every pull request
 - **Native** runs the `check:native` task on each supported operating system at the same time, when the native scope runs.
 - **CI** passes only when every other job passed or was skipped. Require only this check in branch protection.
 
-`.github/actions/setup` is the only definition of how a runner is prepared for tasks. It sets up Go, Bun, and the operating system's build requirements. It does not install Task, because Go runs the pinned version. The check, build, and release workflows all use it.
+Each tool has one setup action, and a job uses only the ones it needs. `.github/actions/setup-go` sets up Go, which runs the pinned Task, so no job installs Task. `.github/actions/setup-bun` sets up Bun. `.github/actions/setup-native` prepares the operating system for cgo: it installs the GTK and WebKitGTK libraries on Linux and pauses Defender on Windows. `.github/actions/setup` combines all three for jobs that run the complete local workflow.
 
 ## Update signing
 

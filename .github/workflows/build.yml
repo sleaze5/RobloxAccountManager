@@ -18,10 +18,20 @@ permissions:
     contents: read
 
 jobs:
+    frontend:
+        name: Prepare frontend
+        uses: ./.github/workflows/prepare-frontend.yml
+
+    validate:
+        name: Validate Go
+        uses: ./.github/workflows/validate-go.yml
+
     build:
         name: Build ${{ inputs.target }}
+        needs: frontend
         uses: ./.github/workflows/build-targets.yml
         with:
             targets: ${{ inputs.target }}
             artifact: RobloxAccountManager-${{ inputs.target }}-build-${{ github.run_number }}
             retention-days: 7
+            frontend-artifact: ${{ needs.frontend.outputs.artifact }}

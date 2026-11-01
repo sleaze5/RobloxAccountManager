@@ -1,0 +1,68 @@
+name: Prepare frontend
+
+on:
+    workflow_call:
+        outputs:
+            artifact:
+                description: Name of this run's artifact with frontend/bindings and frontend/dist. Pass it to build-targets.yml.
+                value: ${{ jobs.frontend.outputs.artifact }}
+
+permissions:
+    contents: read
+
+jobs:
+    frontend:
+        name: Frontend
+        runs-on: ubuntu-24.04
+        timeout-minutes: 20
+        env:
+            ARTIFACT: prepared-frontend
+        outputs:
+            artifact: ${{ env.ARTIFACT }}
+        steps:
+            - name: Check out
+              uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+              with:
+                  persist-credentials: false
+
+            - name: Set up native compilation
+              uses: ./.github/actions/setup-native
+
+            - name: Set up Go
+              uses: ./.github/actions/setup-go
+
+            - name: Set up Bun
+              uses: ./.github/actions/setup-bun
+
+            - name: Install dependencies
+              run: go tool -modfile build/tools/go.mod task setup:frontend
+
+            - name: Generate bindings
+              run: go tool -modfile build/tools/go.mod task generate
+
+            - name: Build
+              run: go tool -modfile build/tools/go.mod task frontend:build
+
+            - name: Check source
+              run: go tool -modfile build/tools/go.mod task check:frontend:source
+
+            - name: Check types
+              run: go tool -modfile build/tools/go.mod task check:frontend:types
+
+            - name: Check that preparation did not change source files
+              run: |
+                  changes=$(git status --porcelain)
+                  if [ -n "$changes" ]; then
+                      printf 'Frontend preparation changed source files.\n%s\n' "$changes" >&2
+                      exit 1
+                  fi
+
+            - name: Upload
+              uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
+              with:
+                  name: ${{ env.ARTIFACT }}
+                  path: |
+                      frontend/bindings
+                      frontend/dist
+                  if-no-files-found: error
+                  retention-days: 1
