@@ -15,6 +15,10 @@ on:
                 description: Days to keep the artifact
                 required: true
                 type: number
+            frontend-artifact:
+                description: The artifact output of prepare-frontend.yml from the same run
+                required: true
+                type: string
 
 permissions:
     contents: read
@@ -33,8 +37,19 @@ jobs:
               with:
                   persist-credentials: false
 
-            - name: Set up
-              uses: ./.github/actions/setup
+            - name: Set up native compilation
+              uses: ./.github/actions/setup-native
+
+            - name: Set up Go
+              uses: ./.github/actions/setup-go
+              with:
+                  cache: production-${{ inputs.targets }}
+
+            - name: Download the prepared frontend
+              uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333
+              with:
+                  name: ${{ inputs.frontend-artifact }}
+                  path: frontend
 
             - name: Set up ARM64 compiler
               if: contains(inputs.targets, 'windows-arm64')
@@ -67,7 +82,7 @@ jobs:
               run: |
                   changes=$(git status --porcelain)
                   if [ -n "$changes" ]; then
-                      printf 'The build changed source files. Run go tool -modfile build/tools/go.mod task fix, commit, and build again.\n%s\n' "$changes" >&2
+                      printf 'The build changed source files.\n%s\n' "$changes" >&2
                       exit 1
                   fi
 

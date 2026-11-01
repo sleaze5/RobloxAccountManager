@@ -1,0 +1,22 @@
+name: Set up native compilation
+description: Prepare the operating system for cgo compilation and binding generation.
+
+runs:
+    using: composite
+    steps:
+        - name: Pause Defender scanning
+          if: runner.os == 'Windows'
+          shell: pwsh
+          run: |
+              try {
+                  Set-MpPreference -DisableRealtimeMonitoring $true -ErrorAction Stop
+              } catch {
+                  Write-Warning "Defender scanning could not be paused: $_"
+              }
+
+        - name: Install system libraries
+          if: runner.os == 'Linux'
+          shell: bash
+          run: |
+              sudo apt-get update
+              sudo apt-get install -y --no-install-recommends libgtk-4-dev libwebkitgtk-6.0-dev

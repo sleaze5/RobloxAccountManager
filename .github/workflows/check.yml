@@ -20,7 +20,9 @@ jobs:
         runs-on: ubuntu-24.04
         timeout-minutes: 5
         outputs:
-            native: ${{ steps.scope.outputs.native }}
+            frontend: ${{ steps.scope.outputs.frontend }}
+            frontend-source: ${{ steps.scope.outputs.frontend-source }}
+            go: ${{ steps.scope.outputs.go }}
         steps:
             - name: Check out
               uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
@@ -31,77 +33,68 @@ jobs:
             - name: Find changed scopes
               id: scope
               env:
-                  BASE: ${{ github.event.pull_request.base.sha || github.event.before }}
-                  HEAD: ${{ github.event.pull_request.head.sha || github.sha }}
+                  # A pull request runs on its merge commit, whose first parent is the base it merges into.
+                  BASE: ${{ github.event_name == 'pull_request' && format('{0}^1', github.sha) || github.event.before }}
+                  HEAD: ${{ github.sha }}
               run: |
-                  set -eu
-                  native=true
-                  # A new branch or a rewritten base has nothing to compare with, so everything runs.
-                  if git cat-file -e "$BASE^{commit}" 2>/dev/null; then
-                      if ! git diff --name-only "$BASE...$HEAD" | grep -Eq '\.go$|(^|/)go\.(mod|sum)$|^\.golangci\.yml$|Taskfile\.yml$|^\.github/'; then
-                          native=false
-                      fi
+                  set -euo pipefail
+                  frontend=false
+                  frontend_source=false
+                  go=false
+                  all() { frontend=true; frontend_source=true; go=true; }
+                  # Without a base to compare with, such as on a new branch, after a force push, or on a manual run, everything runs.
+                  if git cat-file -e "$BASE^{commit}" 2>/dev/null && git diff --name-only --no-renames -z "$BASE" "$HEAD" > "$RUNNER_TEMP/changes"; then
+                      while IFS= read -r -d '' path; do
+                          case "$path" in
+                              frontend/* | scripts/*) frontend=true; frontend_source=true ;;
+                              internal/* | *.go | go.sum) frontend=true; go=true ;;
+                              docs/* | .claude/* | assets/showcase/* | README.md | AGENTS.md | LICENSE | THIRD_PARTY_LICENSES.txt | THIRD_PARTY_NOTICES.md) ;;
+                              *) all ;;
+                          esac
+                      done < "$RUNNER_TEMP/changes"
+                  else
+                      all
                   fi
-                  echo "native=$native" >> "$GITHUB_OUTPUT"
+                  {
+                      echo "frontend=$frontend"
+                      echo "frontend-source=$frontend_source"
+                      echo "go=$go"
+                  } >> "$GITHUB_OUTPUT"
 
-    common:
-        name: Common
-        runs-on: ubuntu-24.04
-        timeout-minutes: 20
-        steps:
-            - name: Check out
-              uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
-              with:
-                  persist-credentials: false
-
-            - name: Set up
-              uses: ./.github/actions/setup
-
-            - name: Check
-              run: go tool -modfile build/tools/go.mod task check:common
-
-    native:
-        name: Native (${{ matrix.os }})
+    frontend:
+        name: Frontend
         needs: scope
-        if: needs.scope.outputs.native == 'true'
-        strategy:
-            fail-fast: false
-            matrix:
-                os:
-                    - ubuntu-24.04
-                    - windows-2025
-                    - macos-15
-        runs-on: ${{ matrix.os }}
-        timeout-minutes: 20
-        steps:
-            - name: Check out
-              uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
-              with:
-                  persist-credentials: false
+        if: needs.scope.outputs.frontend == 'true'
+        uses: ./.github/workflows/prepare-frontend.yml
+        with:
+            source-checks: ${{ needs.scope.outputs.frontend-source == 'true' }}
 
-            - name: Set up
-              uses: ./.github/actions/setup
-              with:
-                  bun: "false"
-
-            - name: Check
-              run: go tool -modfile build/tools/go.mod task check:native
+    go:
+        name: Go
+        needs: scope
+        if: needs.scope.outputs.go == 'true'
+        uses: ./.github/workflows/validate-go.yml
 
     ci:
         name: CI
         needs:
             - scope
-            - common
-            - native
+            - frontend
+            - go
         if: always()
         runs-on: ubuntu-24.04
         timeout-minutes: 5
         steps:
-            - name: Require every check to pass or be skipped
+            - name: Require every selected check to pass and every other check to be skipped
               env:
                   RESULTS: ${{ toJSON(needs) }}
               run: |
-                  echo "$RESULTS" | jq -e 'all(.[]; .result == "success" or .result == "skipped")' > /dev/null || {
+                  echo "$RESULTS" | jq -e '
+                      def expected($selected): if $selected == "true" then "success" else "skipped" end;
+                      .scope.result == "success"
+                      and .frontend.result == expected(.scope.outputs.frontend)
+                      and .go.result == expected(.scope.outputs.go)
+                  ' > /dev/null || {
                       echo "$RESULTS" | jq -r 'to_entries[] | "\(.key): \(.value.result)"' >&2
                       exit 1
                   }

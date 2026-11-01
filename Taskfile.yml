@@ -22,14 +22,29 @@ tasks:
             - bun --version
             - "{{.TASK_EXE}} --version"
 
-    internal:setup:
-        internal: true
-        run: once
-        deps:
-            - task: internal:validate-tools
+    setup:frontend:
+        desc: Install the frontend dependencies from the lockfile.
         cmds:
             - task: common:internal:frontend:deps
+
+    generate:
+        desc: Generate the TypeScript bindings for the Wails services.
+        cmds:
             - task: common:internal:generate:bindings
+
+    frontend:build:
+        desc: Build the production frontend from the generated bindings.
+        cmds:
+            - task: common:internal:frontend:build:production
+
+    build:
+        desc: Run fix, build the production frontend, then build TARGET. TARGET defaults to the host, such as linux-amd64.
+        vars:
+            TARGET: '{{.TARGET | default (printf "%s-%s" OS ARCH)}}'
+        cmds:
+            - task: fix
+            - task: frontend:build
+            - task: "build:{{.TARGET}}"
 
     internal:dev:build:
         internal: true
@@ -62,19 +77,36 @@ tasks:
             - task: check:native
 
     check:common:
-        desc: Validate source that does not depend on the operating system.
+        desc: Validate source that does not depend on the operating system. Generates the bindings first.
         deps:
-            - task: internal:setup
+            - task: internal:validate-tools
         cmds:
+            - task: common:internal:frontend:deps
+            - task: common:internal:generate:bindings
             - task: internal:check:common
 
     internal:check:common:
         internal: true
         deps:
+            - task: check:frontend:source
+            - task: check:frontend:types
+            - task: check:go
+
+    check:frontend:source:
+        desc: Check frontend formatting and lint, and that @wailsio/runtime matches go.mod.
+        deps:
             - task: common:internal:frontend:runtime:check
             - task: common:internal:frontend:format:check
             - task: common:internal:frontend:lint
+
+    check:frontend:types:
+        desc: Type-check the frontend and scripts. Needs installed dependencies and generated bindings.
+        cmds:
             - task: common:internal:frontend:check
+
+    check:go:
+        desc: Check Go formatting and that both Go modules are tidy.
+        deps:
             - task: common:internal:go:format:check
             - task: common:internal:go:tidy:check
 
@@ -95,9 +127,11 @@ tasks:
     fix:
         desc: Apply safe formatting and lint fixes, then run check.
         deps:
-            - task: internal:setup
+            - task: internal:validate-tools
         cmds:
             - task: common:internal:frontend:runtime:sync
+            - task: common:internal:frontend:deps
+            - task: common:internal:generate:bindings
             - task: common:internal:frontend:format
             - task: common:internal:frontend:lint:fix
             - task: common:internal:go:format
@@ -121,54 +155,54 @@ tasks:
             - bun run ./scripts/update-cft-manifest.ts
 
     build:windows-amd64:
-        desc: Run fix, then build the Windows x64 executable. Runs on Windows.
-        deps:
-            - task: fix
+        desc: Build the Windows x64 executable. Runs on Windows. Needs the production frontend from frontend:build.
+        preconditions:
+            - sh: test -s frontend/dist/index.html
+              msg: The production frontend is missing. Run the build task, or frontend:build first.
         cmds:
-            - task: common:internal:frontend:build:production
             - task: windows:internal:compile
               vars:
                   DEV: "false"
                   ARCH: amd64
 
     build:windows-arm64:
-        desc: Run fix, then cross-compile the Windows ARM64 executable. Runs on x64 Windows with llvm-mingw.
-        deps:
-            - task: fix
+        desc: Cross-compile the Windows ARM64 executable. Runs on x64 Windows with llvm-mingw. Needs the production frontend from frontend:build.
+        preconditions:
+            - sh: test -s frontend/dist/index.html
+              msg: The production frontend is missing. Run the build task, or frontend:build first.
         cmds:
-            - task: common:internal:frontend:build:production
             - task: windows:internal:compile
               vars:
                   DEV: "false"
                   ARCH: arm64
 
     build:linux-amd64:
-        desc: Run fix, then build the Linux x64 executable. Runs on Linux.
-        deps:
-            - task: fix
+        desc: Build the Linux x64 executable. Runs on Linux. Needs the production frontend from frontend:build.
+        preconditions:
+            - sh: test -s frontend/dist/index.html
+              msg: The production frontend is missing. Run the build task, or frontend:build first.
         cmds:
-            - task: common:internal:frontend:build:production
             - task: linux:internal:compile
               vars:
                   DEV: "false"
 
     build:darwin-arm64:
-        desc: Run fix, then build the macOS Apple silicon app bundle. Runs on macOS.
-        deps:
-            - task: fix
+        desc: Build the macOS Apple silicon app bundle. Runs on macOS. Needs the production frontend from frontend:build.
+        preconditions:
+            - sh: test -s frontend/dist/index.html
+              msg: The production frontend is missing. Run the build task, or frontend:build first.
         cmds:
-            - task: common:internal:frontend:build:production
             - task: darwin:internal:compile
               vars:
                   DEV: "false"
                   ARCH: arm64
 
     build:darwin-amd64:
-        desc: Run fix, then build the macOS Intel app bundle. Runs on macOS.
-        deps:
-            - task: fix
+        desc: Build the macOS Intel app bundle. Runs on macOS. Needs the production frontend from frontend:build.
+        preconditions:
+            - sh: test -s frontend/dist/index.html
+              msg: The production frontend is missing. Run the build task, or frontend:build first.
         cmds:
-            - task: common:internal:frontend:build:production
             - task: darwin:internal:compile
               vars:
                   DEV: "false"
