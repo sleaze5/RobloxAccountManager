@@ -1,5 +1,6 @@
 <script lang="ts">
-	import XIcon from "phosphor-svelte/lib/XIcon"
+	import xIcon from "@phosphor-icons/core/regular/x.svg?raw"
+	import Icon from "../shared/Icon.svelte"
 	import { untrack } from "svelte"
 	import type { AccountStore } from "../accounts/account-store.svelte"
 	import { formatCompactBytes } from "../shared/bytes"
@@ -81,7 +82,7 @@
 					type="button"
 					aria-label="Close launch data dialog"
 					onclick={onClose}>
-					<XIcon size={14} aria-hidden="true" />
+					<Icon svg={xIcon} size={14} aria-hidden="true" />
 				</button>
 			</div>
 			<label class="dialog-field">

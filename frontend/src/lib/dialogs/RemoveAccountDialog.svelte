@@ -1,6 +1,7 @@
 <script lang="ts">
-	import StarIcon from "phosphor-svelte/lib/StarIcon"
-	import XIcon from "phosphor-svelte/lib/XIcon"
+	import starFillIcon from "@phosphor-icons/core/fill/star-fill.svg?raw"
+	import xIcon from "@phosphor-icons/core/regular/x.svg?raw"
+	import Icon from "../shared/Icon.svelte"
 	import type { AccountStore } from "../accounts/account-store.svelte"
 	import type { Account } from "../accounts/account-model"
 	import {
@@ -48,10 +49,10 @@
 					id="remove-account-title"
 					class="inline-flex min-w-0 items-center gap-1">
 					<span class="truncate">Remove {account.displayName}</span>
-					{#if account.favorite}<StarIcon
+					{#if account.favorite}<Icon
+							svg={starFillIcon}
 							class="shrink-0 animate-pop text-accent-strong"
 							size={14}
-							weight="fill"
 							aria-hidden="true" />{/if}
 					<span>(@{account.username})?</span>
 				</h2>
@@ -62,7 +63,7 @@
 				aria-label="Close remove account dialog"
 				disabled={store.busy}
 				onclick={close}>
-				<XIcon size={14} aria-hidden="true" />
+				<Icon svg={xIcon} size={14} aria-hidden="true" />
 			</button>
 		</div>
 		{#if store.error}

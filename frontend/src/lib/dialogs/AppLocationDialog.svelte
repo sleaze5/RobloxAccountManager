@@ -1,5 +1,6 @@
 <script lang="ts">
-	import CheckIcon from "phosphor-svelte/lib/CheckIcon"
+	import checkBoldIcon from "@phosphor-icons/core/bold/check-bold.svg?raw"
+	import Icon from "../shared/Icon.svelte"
 	import { Application } from "@wailsio/runtime"
 	import {
 		accountBackend,
@@ -152,7 +153,7 @@
 						class="inline-flex h-5 w-3.5 shrink-0 items-center text-fg"
 						aria-hidden="true">
 						{#if selected === candidate.mode}
-							<CheckIcon size={14} weight="bold" />
+							<Icon svg={checkBoldIcon} size={14} />
 						{/if}
 					</span>
 				</label>

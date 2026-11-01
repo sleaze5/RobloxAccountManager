@@ -1,9 +1,10 @@
 <script lang="ts">
-	import ArrowsClockwiseIcon from "phosphor-svelte/lib/ArrowsClockwiseIcon"
-	import CheckCircleIcon from "phosphor-svelte/lib/CheckCircleIcon"
-	import CircleNotchIcon from "phosphor-svelte/lib/CircleNotchIcon"
-	import WarningCircleIcon from "phosphor-svelte/lib/WarningCircleIcon"
-	import XIcon from "phosphor-svelte/lib/XIcon"
+	import arrowsClockwiseIcon from "@phosphor-icons/core/regular/arrows-clockwise.svg?raw"
+	import checkCircleIcon from "@phosphor-icons/core/regular/check-circle.svg?raw"
+	import circleNotchIcon from "@phosphor-icons/core/regular/circle-notch.svg?raw"
+	import warningCircleIcon from "@phosphor-icons/core/regular/warning-circle.svg?raw"
+	import xIcon from "@phosphor-icons/core/regular/x.svg?raw"
+	import Icon from "../shared/Icon.svelte"
 	import { onMount } from "svelte"
 	import type { AccountStore } from "../accounts/account-store.svelte"
 	import {
@@ -205,11 +206,13 @@
 						data-tooltip="Reload Roblox versions"
 						disabled={loading || busy}
 						onclick={() => void load()}>
-						{#if loading}<CircleNotchIcon
+						{#if loading}<Icon
+								svg={circleNotchIcon}
 								class="spinner"
 								size={16}
 								aria-hidden="true" />
-						{:else}<ArrowsClockwiseIcon
+						{:else}<Icon
+								svg={arrowsClockwiseIcon}
 								data-turn
 								size={16}
 								aria-hidden="true" />{/if}
@@ -219,7 +222,7 @@
 						type="button"
 						aria-label="Close Roblox Player location dialog"
 						onclick={onClose}>
-						<XIcon size={14} aria-hidden="true" />
+						<Icon svg={xIcon} size={14} aria-hidden="true" />
 					</button>
 				</div>
 			</div>
@@ -304,7 +307,8 @@
 						type="button"
 						disabled={busy || customPath.trim() === ""}
 						onclick={() => void validate()}>
-						{#if validating}<CircleNotchIcon
+						{#if validating}<Icon
+								svg={circleNotchIcon}
 								class="spinner"
 								size={14}
 								aria-hidden="true" />{/if}
@@ -323,7 +327,7 @@
 							checkSequence++
 							if (selection === custom) selection = automatic
 						}}>
-						<XIcon size={16} aria-hidden="true" />
+						<Icon svg={xIcon} size={16} aria-hidden="true" />
 					</button>
 				</div>
 				<div
@@ -331,17 +335,23 @@
 					aria-live="polite">
 					{#if checked?.problem}
 						<span class="text-danger-muted"
-							><WarningCircleIcon
+							><Icon
+								svg={warningCircleIcon}
 								size={14}
 								aria-hidden="true" />{checked.problem}</span>
 					{:else if validated && checked?.found}
 						<span class="text-success"
-							><CheckCircleIcon size={14} aria-hidden="true" />Found.
-							Custom path saved.</span>
+							><Icon
+								svg={checkCircleIcon}
+								size={14}
+								aria-hidden="true" />Found. Custom path saved.</span>
 					{:else if validated && checked}
 						<span class="text-warning"
-							><WarningCircleIcon size={14} aria-hidden="true" />Saved,
-							but the binary was not found.</span>
+							><Icon
+								svg={warningCircleIcon}
+								size={14}
+								aria-hidden="true" />Saved, but the binary was not
+							found.</span>
 					{/if}
 				</div>
 			</div>

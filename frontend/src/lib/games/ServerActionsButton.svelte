@@ -1,5 +1,6 @@
 <script lang="ts">
-	import DotsThreeIcon from "phosphor-svelte/lib/DotsThreeIcon"
+	import dotsThreeIcon from "@phosphor-icons/core/regular/dots-three.svg?raw"
+	import Icon from "../shared/Icon.svelte"
 
 	let {
 		open,
@@ -33,5 +34,5 @@
 			onMenu(event.currentTarget, false)
 		}
 	}}>
-	<DotsThreeIcon size={16} aria-hidden="true" />
+	<Icon svg={dotsThreeIcon} size={16} aria-hidden="true" />
 </button>

@@ -28,10 +28,10 @@
 		"format:check": "bun fmt --check && bun fmt --config .oxfmtrc.json --check ../scripts"
 	},
 	"dependencies": {
-		"@wailsio/runtime": "3.0.0",
-		"phosphor-svelte": "3.1.1"
+		"@wailsio/runtime": "3.0.0"
 	},
 	"devDependencies": {
+		"@phosphor-icons/core": "2.1.1",
 		"@sveltejs/vite-plugin-svelte": "7.3.1",
 		"@tailwindcss/node": "4.3.3",
 		"@tailwindcss/oxide": "4.3.3",

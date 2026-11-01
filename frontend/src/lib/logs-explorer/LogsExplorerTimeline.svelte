@@ -1,5 +1,6 @@
 <script lang="ts">
-	import DotsThreeIcon from "phosphor-svelte/lib/DotsThreeIcon"
+	import dotsThreeIcon from "@phosphor-icons/core/regular/dots-three.svg?raw"
+	import Icon from "../shared/Icon.svelte"
 	import { VisitKind } from "../backend/bridge"
 	import type { LogsExplorerVisit } from "../backend/bridge"
 	import Timestamp from "../shared/Timestamp.svelte"
@@ -101,7 +102,7 @@
 								activeMenu = { visit, trigger: event.currentTarget }
 							}
 						}}>
-						<DotsThreeIcon size={14} aria-hidden="true" />
+						<Icon svg={dotsThreeIcon} size={14} aria-hidden="true" />
 					</button>
 				</div>
 				<LogsExplorerVisitDetails {visit} {onSearchPlace} />

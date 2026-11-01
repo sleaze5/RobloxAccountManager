@@ -49,14 +49,14 @@ export default defineConfig({
 	},
 	css: { transformer: "lightningcss" },
 	build: { target: "esnext", chunkSizeWarningLimit: 1024 },
-	optimizeDeps: { exclude: ["svelte", "phosphor-svelte"] },
+	optimizeDeps: { exclude: ["svelte"] },
 	plugins: [
 		tailwindcss(),
 		svelteRuntimeCompatibility,
 		svelte({ prebundleSvelteLibraries: false }),
 		wails("./bindings"),
 	],
-	ssr: { optimizeDeps: { exclude: ["svelte", "phosphor-svelte"] } },
+	ssr: { optimizeDeps: { exclude: ["svelte"] } },
 	server: {
 		host: "127.0.0.1",
 		port: Number(process.env.WAILS_VITE_PORT) || 9245,

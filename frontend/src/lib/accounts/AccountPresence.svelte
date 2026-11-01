@@ -1,7 +1,8 @@
 <script lang="ts">
-	import MagnifyingGlassIcon from "phosphor-svelte/lib/MagnifyingGlassIcon"
-	import SignInIcon from "phosphor-svelte/lib/SignInIcon"
-	import StarIcon from "phosphor-svelte/lib/StarIcon"
+	import magnifyingGlassIcon from "@phosphor-icons/core/regular/magnifying-glass.svg?raw"
+	import signInIcon from "@phosphor-icons/core/regular/sign-in.svg?raw"
+	import starFillIcon from "@phosphor-icons/core/fill/star-fill.svg?raw"
+	import Icon from "../shared/Icon.svelte"
 	import { PresenceType } from "../backend/bridge"
 	import type { GamePlace, UserPresence } from "../backend/bridge"
 	import { loadGamePlace } from "../games/game-place-cache"
@@ -39,7 +40,7 @@
 				!!presence.gameId,
 		),
 		label = $derived(presenceLabel(presence)),
-		Icon = $derived(presenceIcon(presence)),
+		icon = $derived(presenceIcon(presence)),
 		detail = $derived(
 			presenceDetail(presence, (place && games.displayName(place)) || ""),
 		),
@@ -84,15 +85,18 @@
 			class={[
 				"inline-flex shrink-0 items-center gap-1 font-medium",
 				presenceTextClass(presence),
-			]}><Icon size={14} aria-hidden="true" />{label}{detail ? ":" : ""}</span>
+			]}
+			><Icon svg={icon} size={14} aria-hidden="true" />{label}{detail
+				? ":"
+				: ""}</span>
 		{#if detail}
 			<span class="inline-flex min-w-0 items-center gap-1">
 				<span class="truncate">{detail}</span>
 				{#if inExperience && place && games.isFavorite(place.placeId)}
-					<StarIcon
+					<Icon
+						svg={starFillIcon}
 						class="shrink-0 animate-pop text-accent-strong"
 						size={12}
-						weight="fill"
 						aria-label="Favorite" />
 				{/if}
 			</span>
@@ -105,7 +109,7 @@
 			aria-label="Fill launch options"
 			data-tooltip="Fill launch options with this place and server"
 			onclick={() => onJoin(joinPlaceId, presence.gameId ?? "")}>
-			<SignInIcon size={14} aria-hidden="true" />
+			<Icon svg={signInIcon} size={14} aria-hidden="true" />
 		</button>
 	{/if}
 	{#if inExperience && joinPlaceId > 0}
@@ -115,7 +119,7 @@
 			aria-label="Find this place in Games"
 			data-tooltip="Find this place in Games"
 			onclick={() => onSearchPlace(joinPlaceId)}>
-			<MagnifyingGlassIcon size={14} aria-hidden="true" />
+			<Icon svg={magnifyingGlassIcon} size={14} aria-hidden="true" />
 		</button>
 	{/if}
 </div>

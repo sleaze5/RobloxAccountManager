@@ -1,14 +1,15 @@
 <script lang="ts">
 	import { onMount } from "svelte"
-	import WarningIcon from "phosphor-svelte/lib/WarningIcon"
-	import CaretLeftIcon from "phosphor-svelte/lib/CaretLeftIcon"
-	import CaretRightIcon from "phosphor-svelte/lib/CaretRightIcon"
-	import FileMagnifyingGlassIcon from "phosphor-svelte/lib/FileMagnifyingGlassIcon"
-	import FileTextIcon from "phosphor-svelte/lib/FileTextIcon"
-	import CircleNotchIcon from "phosphor-svelte/lib/CircleNotchIcon"
-	import ArrowsClockwiseIcon from "phosphor-svelte/lib/ArrowsClockwiseIcon"
-	import MagnifyingGlassIcon from "phosphor-svelte/lib/MagnifyingGlassIcon"
-	import XIcon from "phosphor-svelte/lib/XIcon"
+	import arrowsClockwiseIcon from "@phosphor-icons/core/regular/arrows-clockwise.svg?raw"
+	import caretLeftIcon from "@phosphor-icons/core/regular/caret-left.svg?raw"
+	import caretRightIcon from "@phosphor-icons/core/regular/caret-right.svg?raw"
+	import circleNotchIcon from "@phosphor-icons/core/regular/circle-notch.svg?raw"
+	import fileMagnifyingGlassIcon from "@phosphor-icons/core/regular/file-magnifying-glass.svg?raw"
+	import fileTextIcon from "@phosphor-icons/core/regular/file-text.svg?raw"
+	import magnifyingGlassIcon from "@phosphor-icons/core/regular/magnifying-glass.svg?raw"
+	import warningIcon from "@phosphor-icons/core/regular/warning.svg?raw"
+	import xIcon from "@phosphor-icons/core/regular/x.svg?raw"
+	import Icon from "../shared/Icon.svelte"
 	import { appSettings } from "../settings/settings-store.svelte"
 	import type { LogsExplorerVisit } from "../backend/bridge"
 	import SidebarResizer from "../layout/SidebarResizer.svelte"
@@ -49,11 +50,12 @@
 						data-tooltip="Expand the logs sidebar"
 						data-tooltip-side="right"
 						onclick={() => (store.sidebarCollapsed = false)}
-						><CaretRightIcon
+						><Icon
+							svg={caretRightIcon}
 							data-nudge="right"
 							size={16}
 							aria-hidden="true" /></button>
-					<FileMagnifyingGlassIcon size={16} aria-hidden="true" />
+					<Icon svg={fileMagnifyingGlassIcon} size={16} aria-hidden="true" />
 					<span class="font-mono text-2xs">{store.sessions.length}</span>
 				</div>
 			{:else}
@@ -76,10 +78,12 @@
 									: "Refresh all logs"}
 								data-tooltip="Refresh all logs"
 								data-tooltip-side="bottom-end">
-								{#if store.refreshing}<CircleNotchIcon
+								{#if store.refreshing}<Icon
+										svg={circleNotchIcon}
 										class="spinner"
 										size={16}
-										aria-hidden="true" />{:else}<ArrowsClockwiseIcon
+										aria-hidden="true" />{:else}<Icon
+										svg={arrowsClockwiseIcon}
 										data-turn
 										size={16}
 										aria-hidden="true" />{/if}
@@ -91,7 +95,8 @@
 								data-tooltip="Collapse the logs sidebar"
 								data-tooltip-side="bottom-end"
 								onclick={() => (store.sidebarCollapsed = true)}
-								><CaretLeftIcon
+								><Icon
+									svg={caretLeftIcon}
 									data-nudge="left"
 									size={16}
 									aria-hidden="true" /></button>
@@ -99,7 +104,10 @@
 					</div>
 					<div class="flex items-center gap-1">
 						<div class="search-field">
-							<MagnifyingGlassIcon size={16} aria-hidden="true" /><input
+							<Icon
+								svg={magnifyingGlassIcon}
+								size={16}
+								aria-hidden="true" /><input
 								type="text"
 								placeholder="Search logs or IDs"
 								aria-label="Search logs, user IDs, place IDs, or job IDs"
@@ -107,7 +115,10 @@
 									type="button"
 									aria-label="Clear logs search"
 									onclick={() => (store.query = "")}
-									><XIcon size={14} aria-hidden="true" /></button
+									><Icon
+										svg={xIcon}
+										size={14}
+										aria-hidden="true" /></button
 								>{/if}
 						</div>
 					</div>
@@ -130,7 +141,8 @@
 							data-tooltip-side="right">
 							<span
 								class="flex w-full items-center gap-2 text-xs font-semibold text-fg"
-								><FileTextIcon
+								><Icon
+									svg={fileTextIcon}
 									class="shrink-0 text-fg-muted"
 									size={16}
 									aria-hidden="true" /><span class="truncate"
@@ -140,7 +152,8 @@
 												appSettings.timestampFormat,
 											)
 										: "Unknown start time"}</span
-								>{#if session.issue}<WarningIcon
+								>{#if session.issue}<Icon
+										svg={warningIcon}
 										class="shrink-0 text-warning"
 										size={14}
 										aria-label="Incomplete log" />{/if}</span>
@@ -179,26 +192,33 @@
 				{/key}
 			{:else}
 				<div class="empty-state" role="status">
-					{#if store.refreshing}<CircleNotchIcon
+					{#if store.refreshing}<Icon
+							svg={circleNotchIcon}
 							class="spinner"
 							size={28}
 							aria-hidden="true" />
 						<h2>Reading Roblox logs…</h2>
-					{:else if store.error && !store.loaded}<WarningIcon
+					{:else if store.error && !store.loaded}<Icon
+							svg={warningIcon}
 							size={28}
 							aria-hidden="true" />
 						<h2>Logs are unavailable</h2>
 						<p>Refresh all to try reading the logs again.</p>
-					{:else if !store.sessions.length}<FileMagnifyingGlassIcon
+					{:else if !store.sessions.length}<Icon
+							svg={fileMagnifyingGlassIcon}
 							size={28}
 							aria-hidden="true" />
 						<h2>No Roblox sessions found</h2>
-					{:else if !sessions.length}<MagnifyingGlassIcon
+					{:else if !sessions.length}<Icon
+							svg={magnifyingGlassIcon}
 							size={28}
 							aria-hidden="true" />
 						<h2>No matching sessions</h2>
 						<p>Try a different file name, user ID, or place ID.</p>
-					{:else}<FileMagnifyingGlassIcon size={28} aria-hidden="true" />
+					{:else}<Icon
+							svg={fileMagnifyingGlassIcon}
+							size={28}
+							aria-hidden="true" />
 						<h2>Select a launch session</h2>
 						<p>Choose a log to explore its game timeline.</p>{/if}
 				</div>

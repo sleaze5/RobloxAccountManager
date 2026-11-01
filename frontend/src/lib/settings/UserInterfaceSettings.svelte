@@ -1,8 +1,9 @@
 <script lang="ts">
-	import CaretRightIcon from "phosphor-svelte/lib/CaretRightIcon"
-	import InfoIcon from "phosphor-svelte/lib/InfoIcon"
-	import ArrowCounterClockwiseIcon from "phosphor-svelte/lib/ArrowCounterClockwiseIcon"
-	import FloppyDiskIcon from "phosphor-svelte/lib/FloppyDiskIcon"
+	import arrowCounterClockwiseIcon from "@phosphor-icons/core/regular/arrow-counter-clockwise.svg?raw"
+	import caretRightIcon from "@phosphor-icons/core/regular/caret-right.svg?raw"
+	import floppyDiskIcon from "@phosphor-icons/core/regular/floppy-disk.svg?raw"
+	import infoIcon from "@phosphor-icons/core/regular/info.svg?raw"
+	import Icon from "../shared/Icon.svelte"
 	import { accountBackend, MotionPreference } from "../backend/bridge"
 	import type { TimestampFormat } from "../backend/bridge"
 	import Select from "../shared/Select.svelte"
@@ -202,7 +203,7 @@
 		<h3 id="timestamps-title">Timestamps</h3>
 		<div
 			class="flex items-start gap-1 px-1 pb-1 text-xs leading-normal text-fg-muted">
-			<InfoIcon class="mt-px shrink-0" size={14} aria-hidden="true" />
+			<Icon svg={infoIcon} class="mt-px shrink-0" size={14} aria-hidden="true" />
 			<p>
 				Start each token with <code class={codeClass}>$</code>, such as
 				<code class={codeClass}>$YYYY</code>. Other text appears as typed. Use
@@ -213,7 +214,8 @@
 		<details class="group px-1 pb-2 text-xs text-fg-muted">
 			<summary
 				class="inline-flex items-center gap-1 rounded-sm transition-colors duration-100 hover:text-fg focus-visible:text-fg focus-visible:outline-offset-2"
-				><CaretRightIcon
+				><Icon
+					svg={caretRightIcon}
 					class="transition-transform duration-100 group-open:rotate-90"
 					size={14}
 					aria-hidden="true" />Token reference</summary>
@@ -322,7 +324,10 @@
 							(timestampFormat === defaultTimestampFormats.shown &&
 								timestampHoverFormat === defaultTimestampFormats.hover)}
 						onclick={restoreDefaults}>
-						<ArrowCounterClockwiseIcon size={16} aria-hidden="true" />
+						<Icon
+							svg={arrowCounterClockwiseIcon}
+							size={16}
+							aria-hidden="true" />
 						Restore defaults
 					</button>
 					<button
@@ -332,7 +337,7 @@
 							store.busyTimestampFormats ||
 							!changed ||
 							validationErrors.length > 0}>
-						<FloppyDiskIcon size={16} aria-hidden="true" />
+						<Icon svg={floppyDiskIcon} size={16} aria-hidden="true" />
 						{store.busyTimestampFormats ? "Saving…" : "Save changes"}
 					</button>
 				</div>

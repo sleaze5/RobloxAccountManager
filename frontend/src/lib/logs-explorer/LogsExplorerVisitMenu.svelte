@@ -1,5 +1,6 @@
 <script lang="ts">
-	import ListPlusIcon from "phosphor-svelte/lib/ListPlusIcon"
+	import listPlusIcon from "@phosphor-icons/core/regular/list-plus.svg?raw"
+	import Icon from "../shared/Icon.svelte"
 	import { menuIn, menuOut, placeMenuAtAnchor } from "../shared/presence"
 
 	let {
@@ -81,7 +82,7 @@
 	in:menuIn|global
 	out:menuOut|global>
 	<button class="menu-item" type="button" role="menuitem" onclick={onFillLaunch}>
-		<ListPlusIcon size={16} aria-hidden="true" />
+		<Icon svg={listPlusIcon} size={16} aria-hidden="true" />
 		<span>Fill launch options</span>
 	</button>
 </div>

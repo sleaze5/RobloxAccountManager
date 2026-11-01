@@ -1,6 +1,7 @@
 <script lang="ts">
-	import HashIcon from "phosphor-svelte/lib/HashIcon"
-	import ListPlusIcon from "phosphor-svelte/lib/ListPlusIcon"
+	import hashIcon from "@phosphor-icons/core/regular/hash.svg?raw"
+	import listPlusIcon from "@phosphor-icons/core/regular/list-plus.svg?raw"
+	import Icon from "../shared/Icon.svelte"
 	import { menuIn, menuOut, placeMenuAtAnchor } from "../shared/presence"
 
 	let {
@@ -105,11 +106,11 @@
 	in:menuIn|global
 	out:menuOut|global>
 	<button class="menu-item" type="button" role="menuitem" onclick={onFillLaunch}>
-		<ListPlusIcon size={16} aria-hidden="true" />
+		<Icon svg={listPlusIcon} size={16} aria-hidden="true" />
 		<span>Fill launch options</span>
 	</button>
 	<button class="menu-item" type="button" role="menuitem" onclick={onCopyJobId}>
-		<HashIcon size={16} aria-hidden="true" />
+		<Icon svg={hashIcon} size={16} aria-hidden="true" />
 		<span>Copy job ID</span>
 	</button>
 </div>

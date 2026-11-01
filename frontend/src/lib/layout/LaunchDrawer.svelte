@@ -1,9 +1,10 @@
 <script lang="ts">
-	import ProhibitIcon from "phosphor-svelte/lib/ProhibitIcon"
-	import CaretDownIcon from "phosphor-svelte/lib/CaretDownIcon"
-	import CheckIcon from "phosphor-svelte/lib/CheckIcon"
-	import EraserIcon from "phosphor-svelte/lib/EraserIcon"
-	import GameControllerIcon from "phosphor-svelte/lib/GameControllerIcon"
+	import caretDownIcon from "@phosphor-icons/core/regular/caret-down.svg?raw"
+	import checkBoldIcon from "@phosphor-icons/core/bold/check-bold.svg?raw"
+	import eraserIcon from "@phosphor-icons/core/regular/eraser.svg?raw"
+	import gameControllerIcon from "@phosphor-icons/core/regular/game-controller.svg?raw"
+	import prohibitIcon from "@phosphor-icons/core/regular/prohibit.svg?raw"
+	import Icon from "../shared/Icon.svelte"
 	import type { AccountStore } from "../accounts/account-store.svelte"
 	import { LaunchMethod } from "../backend/bridge"
 	import RobloxProcessesDialog from "../dialogs/RobloxProcessesDialog.svelte"
@@ -105,7 +106,7 @@
 			workspace.launchOpen && "border-b border-line-subtle",
 		]}>
 		<span class="flex items-center gap-2">
-			<GameControllerIcon size={16} aria-hidden="true" />
+			<Icon svg={gameControllerIcon} size={16} aria-hidden="true" />
 			<strong id="launch-title" class="text-2xs font-semibold text-fg"
 				>Launch options</strong>
 		</span>
@@ -123,7 +124,7 @@
 					workspace.closeAccountMenus()
 					processesOpen = true
 				}}>
-				<ProhibitIcon size={16} aria-hidden="true" />
+				<Icon svg={prohibitIcon} size={16} aria-hidden="true" />
 			</button>
 			<button
 				class="btn-ghost-sm"
@@ -137,7 +138,8 @@
 					: "Expand the launch panel"}
 				data-tooltip-side="top-end"
 				onclick={() => (workspace.launchOpen = !workspace.launchOpen)}>
-				<CaretDownIcon
+				<Icon
+					svg={caretDownIcon}
 					class={[
 						"transition-transform duration-100",
 						workspace.launchOpen && "rotate-180",
@@ -219,9 +221,9 @@
 									type="checkbox"
 									disabled={store.launching} />
 								<span aria-hidden="true"
-									><CheckIcon
+									><Icon
+										svg={checkBoldIcon}
 										size={11}
-										weight="bold"
 										aria-hidden="true" /></span>
 							</span>
 							<span>Resolve current game</span>
@@ -259,7 +261,7 @@
 						data-tooltip-side="top"
 						disabled={store.launching}
 						onclick={() => store.clearJoinTarget()}>
-						<EraserIcon size={16} aria-hidden="true" />
+						<Icon svg={eraserIcon} size={16} aria-hidden="true" />
 					</button>
 				</div>
 				<LaunchArguments {store} />

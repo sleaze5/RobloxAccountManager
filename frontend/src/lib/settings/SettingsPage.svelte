@@ -1,13 +1,14 @@
 <script lang="ts">
-	import CaretLeftIcon from "phosphor-svelte/lib/CaretLeftIcon"
-	import GameControllerIcon from "phosphor-svelte/lib/GameControllerIcon"
-	import InfoIcon from "phosphor-svelte/lib/InfoIcon"
-	import KeyIcon from "phosphor-svelte/lib/KeyIcon"
-	import MonitorIcon from "phosphor-svelte/lib/MonitorIcon"
-	import PlugIcon from "phosphor-svelte/lib/PlugIcon"
-	import MagnifyingGlassIcon from "phosphor-svelte/lib/MagnifyingGlassIcon"
-	import SlidersHorizontalIcon from "phosphor-svelte/lib/SlidersHorizontalIcon"
-	import XIcon from "phosphor-svelte/lib/XIcon"
+	import caretLeftIcon from "@phosphor-icons/core/regular/caret-left.svg?raw"
+	import gameControllerIcon from "@phosphor-icons/core/regular/game-controller.svg?raw"
+	import infoIcon from "@phosphor-icons/core/regular/info.svg?raw"
+	import keyIcon from "@phosphor-icons/core/regular/key.svg?raw"
+	import magnifyingGlassIcon from "@phosphor-icons/core/regular/magnifying-glass.svg?raw"
+	import monitorIcon from "@phosphor-icons/core/regular/monitor.svg?raw"
+	import plugIcon from "@phosphor-icons/core/regular/plug.svg?raw"
+	import slidersHorizontalIcon from "@phosphor-icons/core/regular/sliders-horizontal.svg?raw"
+	import xIcon from "@phosphor-icons/core/regular/x.svg?raw"
+	import Icon from "../shared/Icon.svelte"
 	import type { AccountStore } from "../accounts/account-store.svelte"
 	import type { BrowserStore } from "../browser/browser-store.svelte"
 	import type { NotificationCenter } from "../notifications/notification-center.svelte"
@@ -26,37 +27,37 @@
 
 	const categories = [
 		{
-			icon: KeyIcon,
+			icon: keyIcon,
 			id: "vault",
 			label: "Vault",
 			search: "vault security vault status unlocked automatic unlock without master password when the app starts enable disable on off operating system user account lock vault test master password last tested not tested change master password rotate encryption key update password test reminder choose how often asks confirm storage location data folder path copy portable standard move data backups settings restart",
 		},
 		{
-			icon: SlidersHorizontalIcon,
+			icon: slidersHorizontalIcon,
 			id: "general",
 			label: "General",
 			search: "general presence updates automatic enabled disabled interval seconds minutes online offline in game accounts bar all stored accounts batches active profile selected account while its profile is open logging all log levels enable disable every level trace detailed requests internal operations debug diagnostic information development info normal application activity completed operations warning recoverable problems need attention error failed operations critical problems",
 		},
 		{
-			icon: MonitorIcon,
+			icon: monitorIcon,
 			id: "user-interface",
 			label: "User interface",
 			search: "user interface motion animations animation reduce reduced full system operating system effects timestamps timestamp date time display format hover tooltip relative preview tokens token reference dollar reset defaults save",
 		},
 		{
-			icon: GameControllerIcon,
+			icon: gameControllerIcon,
 			id: "roblox",
 			label: "Roblox",
 			search: "roblox multi instance multi-instance launch multiple games same time windows processes close ready status enabled disabled account manager open linux client sober mocktail automatic desktop default join",
 		},
 		{
-			icon: PlugIcon,
+			icon: plugIcon,
 			id: "integrations",
 			label: "Integrations",
 			search: "integrations rovalra api server browser servers information features enabled disabled on off browser chrome testing runtime version download redownload remove disk usage installed invalid manage",
 		},
 		{
-			icon: InfoIcon,
+			icon: infoIcon,
 			id: "about",
 			label: "About",
 			search: "about updates update check latest download install restart new release version build time timestamp unix platform architecture arch os go wails revision commit launch id startup stages timings duration ready storage data folder loaded components schema format version settings vault database sqlite sqlcipher key file automatic unlock browser runtime manifest log created loaded recovered",
@@ -116,7 +117,7 @@
 			aria-label={backLabel}
 			data-tooltip={backLabel}
 			onclick={onBack}>
-			<CaretLeftIcon data-nudge="left" size={16} aria-hidden="true" />
+			<Icon svg={caretLeftIcon} data-nudge="left" size={16} aria-hidden="true" />
 		</button>
 		<h1 id="settings-title">Settings</h1>
 	</header>
@@ -126,7 +127,7 @@
 		style={`--sidebar-width: ${workspace.settingsSidebarWidth}px;`}>
 		<aside class="settings-sidebar">
 			<div class="m-3 search-field">
-				<MagnifyingGlassIcon size={16} aria-hidden="true" />
+				<Icon svg={magnifyingGlassIcon} size={16} aria-hidden="true" />
 				<input
 					bind:value={query}
 					type="search"
@@ -137,7 +138,7 @@
 						type="button"
 						aria-label="Clear settings search"
 						onclick={() => (query = "")}>
-						<XIcon size={14} aria-hidden="true" />
+						<Icon svg={xIcon} size={14} aria-hidden="true" />
 					</button>
 				{/if}
 			</div>
@@ -150,7 +151,7 @@
 							? "page"
 							: undefined}
 						onclick={() => (activeCategory = category)}>
-						<category.icon size={16} aria-hidden="true" />
+						<Icon svg={category.icon} size={16} aria-hidden="true" />
 						<span>{category.label}</span>
 					</button>
 				{/each}

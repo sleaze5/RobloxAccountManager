@@ -1,5 +1,6 @@
 <script lang="ts">
-	import ArrowsClockwiseIcon from "phosphor-svelte/lib/ArrowsClockwiseIcon"
+	import arrowsClockwiseIcon from "@phosphor-icons/core/regular/arrows-clockwise.svg?raw"
+	import Icon from "../shared/Icon.svelte"
 	import { untrack } from "svelte"
 	import Select from "../shared/Select.svelte"
 	import type { SettingsStore } from "./settings-store.svelte"
@@ -108,7 +109,8 @@
 								store.busyRoValraRegion ||
 								store.busyRoValra}
 							onclick={() => void store.loadServerRegions(true)}>
-							<ArrowsClockwiseIcon
+							<Icon
+								svg={arrowsClockwiseIcon}
 								data-turn
 								class={store.loadingServerRegions
 									? "spinner"

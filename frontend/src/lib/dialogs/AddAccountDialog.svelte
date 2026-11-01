@@ -1,5 +1,6 @@
 <script lang="ts">
-	import XIcon from "phosphor-svelte/lib/XIcon"
+	import xIcon from "@phosphor-icons/core/regular/x.svg?raw"
+	import Icon from "../shared/Icon.svelte"
 	import CandidateList from "../accounts/CandidateList.svelte"
 	import type { CandidateListItem } from "../accounts/candidate-model"
 	import type { AccountStore } from "../accounts/account-store.svelte"
@@ -261,7 +262,7 @@
 					aria-label="Close add account dialog"
 					disabled={store.busy}
 					onclick={close}>
-					<XIcon size={14} aria-hidden="true" />
+					<Icon svg={xIcon} size={14} aria-hidden="true" />
 				</button>
 			</div>
 			{#if store.error}

@@ -1,7 +1,8 @@
 <script lang="ts">
-	import CheckIcon from "phosphor-svelte/lib/CheckIcon"
-	import CircleNotchIcon from "phosphor-svelte/lib/CircleNotchIcon"
-	import PlayIcon from "phosphor-svelte/lib/PlayIcon"
+	import checkIcon from "@phosphor-icons/core/regular/check.svg?raw"
+	import circleNotchIcon from "@phosphor-icons/core/regular/circle-notch.svg?raw"
+	import playFillIcon from "@phosphor-icons/core/fill/play-fill.svg?raw"
+	import Icon from "../shared/Icon.svelte"
 	import { onDestroy, tick } from "svelte"
 	import type { AccountStore } from "../accounts/account-store.svelte"
 	import { menuIn, menuOut, placeMenuAtPoint } from "../shared/presence"
@@ -90,15 +91,17 @@
 				void showMenu(bounds.left, bounds.bottom)
 			}
 		}}>
-		{#if store.launching}<CircleNotchIcon
+		{#if store.launching}<Icon
+				svg={circleNotchIcon}
 				class="spinner"
 				size={16}
 				aria-hidden="true" />
-		{:else if copied}<CheckIcon
+		{:else if copied}<Icon
+				svg={checkIcon}
 				class="animate-bloom"
 				size={16}
 				aria-hidden="true" />
-		{:else}<PlayIcon size={16} weight="fill" aria-hidden="true" />{/if}
+		{:else}<Icon svg={playFillIcon} size={16} aria-hidden="true" />{/if}
 		{store.copyingLaunchOptions
 			? "Copying"
 			: store.launching

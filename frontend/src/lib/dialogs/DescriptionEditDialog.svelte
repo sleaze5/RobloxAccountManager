@@ -1,7 +1,8 @@
 <script lang="ts">
 	import { tick, untrack } from "svelte"
-	import CheckCircleIcon from "phosphor-svelte/lib/CheckCircleIcon"
-	import XIcon from "phosphor-svelte/lib/XIcon"
+	import checkCircleIcon from "@phosphor-icons/core/regular/check-circle.svg?raw"
+	import xIcon from "@phosphor-icons/core/regular/x.svg?raw"
+	import Icon from "../shared/Icon.svelte"
 	import type { Account } from "../accounts/account-model"
 	import { accountBackend, TextModeration } from "../backend/bridge"
 	import type { TextFilter } from "../backend/bridge"
@@ -147,7 +148,7 @@
 					aria-label="Close edit description"
 					disabled={pending !== null}
 					onclick={close}>
-					<XIcon size={14} aria-hidden="true" />
+					<Icon svg={xIcon} size={14} aria-hidden="true" />
 				</button>
 			</div>
 
@@ -199,7 +200,8 @@
 					{:else if preview !== undefined}
 						Edit
 					{:else}
-						{#if clean}<CheckCircleIcon
+						{#if clean}<Icon
+								svg={checkCircleIcon}
 								class="text-success"
 								size={14}
 								aria-hidden="true" />{/if}

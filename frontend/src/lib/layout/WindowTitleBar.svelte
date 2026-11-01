@@ -1,8 +1,9 @@
 <script lang="ts">
-	import GitBranchIcon from "phosphor-svelte/lib/GitBranchIcon"
-	import MinusIcon from "phosphor-svelte/lib/MinusIcon"
-	import SquareIcon from "phosphor-svelte/lib/SquareIcon"
-	import XIcon from "phosphor-svelte/lib/XIcon"
+	import gitBranchLightIcon from "@phosphor-icons/core/light/git-branch-light.svg?raw"
+	import minusLightIcon from "@phosphor-icons/core/light/minus-light.svg?raw"
+	import squareLightIcon from "@phosphor-icons/core/light/square-light.svg?raw"
+	import xLightIcon from "@phosphor-icons/core/light/x-light.svg?raw"
+	import Icon from "../shared/Icon.svelte"
 	import { Browser, Window } from "@wailsio/runtime"
 	import { repository } from "../../../package.json"
 
@@ -36,7 +37,7 @@
 			aria-label="Open repository"
 			data-tooltip="Open repository"
 			onclick={() => void Browser.OpenURL(repositoryURL)}>
-			<GitBranchIcon size={18} weight="light" aria-hidden="true" />
+			<Icon svg={gitBranchLightIcon} size={18} aria-hidden="true" />
 		</button>
 		<button
 			class={controlClass}
@@ -44,7 +45,7 @@
 			aria-label="Minimize window"
 			data-tooltip="Minimize window"
 			onclick={() => void Window.Minimise()}>
-			<MinusIcon size={18} weight="light" aria-hidden="true" />
+			<Icon svg={minusLightIcon} size={18} aria-hidden="true" />
 		</button>
 		<button
 			class={controlClass}
@@ -52,7 +53,7 @@
 			aria-label="Maximize or restore window"
 			data-tooltip="Maximize or restore window"
 			onclick={() => void Window.ToggleMaximise()}>
-			<SquareIcon size={14} weight="light" aria-hidden="true" />
+			<Icon svg={squareLightIcon} size={14} aria-hidden="true" />
 		</button>
 		<button
 			class={[controlClass, "hover:bg-danger"]}
@@ -61,7 +62,7 @@
 			data-tooltip="Close window"
 			data-tooltip-side="bottom-end"
 			onclick={() => void Window.Close()}>
-			<XIcon size={18} weight="light" aria-hidden="true" />
+			<Icon svg={xLightIcon} size={18} aria-hidden="true" />
 		</button>
 	</div>
 </header>

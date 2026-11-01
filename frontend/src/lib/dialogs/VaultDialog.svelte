@@ -1,12 +1,14 @@
 <script lang="ts">
 	import { automaticUnlockDialogDescription } from "../shared/automatic-unlock"
 	import { onMount } from "svelte"
-	import CheckIcon from "phosphor-svelte/lib/CheckIcon"
-	import EyeIcon from "phosphor-svelte/lib/EyeIcon"
-	import EyeSlashIcon from "phosphor-svelte/lib/EyeSlashIcon"
-	import InfoIcon from "phosphor-svelte/lib/InfoIcon"
-	import LockKeyIcon from "phosphor-svelte/lib/LockKeyIcon"
-	import XIcon from "phosphor-svelte/lib/XIcon"
+	import checkBoldIcon from "@phosphor-icons/core/bold/check-bold.svg?raw"
+	import checkIcon from "@phosphor-icons/core/regular/check.svg?raw"
+	import eyeIcon from "@phosphor-icons/core/regular/eye.svg?raw"
+	import eyeSlashIcon from "@phosphor-icons/core/regular/eye-slash.svg?raw"
+	import infoIcon from "@phosphor-icons/core/regular/info.svg?raw"
+	import lockKeyIcon from "@phosphor-icons/core/regular/lock-key.svg?raw"
+	import xIcon from "@phosphor-icons/core/regular/x.svg?raw"
+	import Icon from "../shared/Icon.svelte"
 	import { FileState } from "../backend/bridge"
 	import type { BackupInfo } from "../backend/bridge"
 	import type { AccountStore } from "../accounts/account-store.svelte"
@@ -122,7 +124,7 @@
 			}}>
 			<div
 				class="mx-auto mb-3 grid size-8 place-items-center rounded-md border border-line-strong bg-raised text-fg">
-				<LockKeyIcon size={16} aria-hidden="true" />
+				<Icon svg={lockKeyIcon} size={16} aria-hidden="true" />
 			</div>
 			<h2 id="vault-title">
 				{creating
@@ -227,7 +229,11 @@
 					class="mt-2 flex items-center gap-1 py-1 text-xs text-fg-muted transition-colors duration-100 *:animate-pop"
 					type="button"
 					onclick={() => (visible = !visible)}>
-					{#if visible}<EyeSlashIcon size={16} aria-hidden="true" /> Hide passwords{:else}<EyeIcon
+					{#if visible}<Icon
+							svg={eyeSlashIcon}
+							size={16}
+							aria-hidden="true" /> Hide passwords{:else}<Icon
+							svg={eyeIcon}
 							size={16}
 							aria-hidden="true" /> Show passwords{/if}
 				</button>
@@ -249,9 +255,11 @@
 						aria-label="Password requirements">
 						{#each [[rules.length, "8-128 characters long"], [rules.uppercase, "At least one upper-case letter"], [rules.lowercase, "At least one lower-case letter"], [rules.digit, "At least one number"], [rules.special, "At least one special character"]] as requirement}
 							<li data-valid={requirement[0] || undefined}>
-								{#if requirement[0]}<CheckIcon
+								{#if requirement[0]}<Icon
+										svg={checkIcon}
 										size={14}
-										aria-hidden="true" />{:else}<XIcon
+										aria-hidden="true" />{:else}<Icon
+										svg={xIcon}
 										size={14}
 										aria-hidden="true" />{/if}
 								{requirement[1]}
@@ -261,9 +269,11 @@
 							data-valid={(password !== "" &&
 								password === confirmation) ||
 								undefined}>
-							{#if password !== "" && password === confirmation}<CheckIcon
+							{#if password !== "" && password === confirmation}<Icon
+									svg={checkIcon}
 									size={14}
-									aria-hidden="true" />{:else}<XIcon
+									aria-hidden="true" />{:else}<Icon
+									svg={xIcon}
 									size={14}
 									aria-hidden="true" />{/if}
 							Passwords match
@@ -284,9 +294,9 @@
 						<span class="checkbox">
 							<input bind:checked={automaticUnlock} type="checkbox" />
 							<span aria-hidden="true"
-								><CheckIcon
+								><Icon
+									svg={checkBoldIcon}
 									size={11}
-									weight="bold"
 									aria-hidden="true" /></span>
 						</span>
 						Enable automatic unlock
@@ -296,7 +306,7 @@
 						type="button"
 						aria-label="About automatic unlock"
 						data-tooltip={automaticUnlockDialogDescription}>
-						<InfoIcon size={14} aria-hidden="true" />
+						<Icon svg={infoIcon} size={14} aria-hidden="true" />
 					</button>
 				</div>
 				<button

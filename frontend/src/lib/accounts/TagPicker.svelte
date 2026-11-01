@@ -1,9 +1,11 @@
 <script lang="ts">
-	import CheckIcon from "phosphor-svelte/lib/CheckIcon"
-	import HashIcon from "phosphor-svelte/lib/HashIcon"
-	import MinusIcon from "phosphor-svelte/lib/MinusIcon"
-	import SlidersIcon from "phosphor-svelte/lib/SlidersIcon"
-	import StarIcon from "phosphor-svelte/lib/StarIcon"
+	import checkIcon from "@phosphor-icons/core/regular/check.svg?raw"
+	import hashIcon from "@phosphor-icons/core/regular/hash.svg?raw"
+	import minusIcon from "@phosphor-icons/core/regular/minus.svg?raw"
+	import slidersIcon from "@phosphor-icons/core/regular/sliders.svg?raw"
+	import starFillIcon from "@phosphor-icons/core/fill/star-fill.svg?raw"
+	import starIcon from "@phosphor-icons/core/regular/star.svg?raw"
+	import Icon from "../shared/Icon.svelte"
 	import type { TagView } from "../backend/bridge"
 	import type { AccountStore } from "./account-store.svelte"
 	import { hasTag } from "./account-model"
@@ -38,12 +40,14 @@
 
 {#snippet mark(state: TagState)}
 	{#if state === "on"}
-		<CheckIcon
+		<Icon
+			svg={checkIcon}
 			size={16}
 			class="ml-auto shrink-0 animate-bloom"
 			aria-hidden="true" />
 	{:else if state === "mixed"}
-		<MinusIcon
+		<Icon
+			svg={minusIcon}
 			size={16}
 			class="ml-auto shrink-0 animate-bloom"
 			aria-hidden="true" />
@@ -60,10 +64,10 @@
 			aria-pressed={state === "mixed" ? "mixed" : state === "on"}
 			disabled={store.busy}
 			onclick={() => toggle(favorite)}>
-			<StarIcon
+			<Icon
+				svg={state === "on" ? starFillIcon : starIcon}
 				size={16}
-				aria-hidden="true"
-				weight={state === "on" ? "fill" : "regular"} />
+				aria-hidden="true" />
 			<span>Favorite</span>
 			{@render mark(state)}
 		</button>
@@ -78,7 +82,7 @@
 				aria-pressed={state === "mixed" ? "mixed" : state === "on"}
 				disabled={store.busy}
 				onclick={() => toggle(tag)}>
-				<HashIcon size={16} aria-hidden="true" />
+				<Icon svg={hashIcon} size={16} aria-hidden="true" />
 				<span>{tag.name}</span>
 				{@render mark(state)}
 			</button>
@@ -92,6 +96,6 @@
 		type="button"
 		disabled={store.busy}
 		onclick={onManageTags}>
-		<SlidersIcon size={16} aria-hidden="true" /><span>Manage tags</span>
+		<Icon svg={slidersIcon} size={16} aria-hidden="true" /><span>Manage tags</span>
 	</button>
 </div>

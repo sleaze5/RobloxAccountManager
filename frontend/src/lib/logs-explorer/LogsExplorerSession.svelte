@@ -1,7 +1,8 @@
 <script lang="ts">
-	import WarningIcon from "phosphor-svelte/lib/WarningIcon"
-	import SortAscendingIcon from "phosphor-svelte/lib/SortAscendingIcon"
-	import SortDescendingIcon from "phosphor-svelte/lib/SortDescendingIcon"
+	import sortAscendingIcon from "@phosphor-icons/core/regular/sort-ascending.svg?raw"
+	import sortDescendingIcon from "@phosphor-icons/core/regular/sort-descending.svg?raw"
+	import warningIcon from "@phosphor-icons/core/regular/warning.svg?raw"
+	import Icon from "../shared/Icon.svelte"
 	import type { LogsExplorerSession, LogsExplorerVisit } from "../backend/bridge"
 	import LogsExplorerTimeline from "./LogsExplorerTimeline.svelte"
 	import LogsExplorerLogDetails from "./LogsExplorerLogDetails.svelte"
@@ -33,7 +34,8 @@
 			<LogsExplorerLogDetails {session} {refreshing} {onRefresh} />
 			{#if session.issue}
 				<p class="flex items-start gap-2 notice-warning" role="status">
-					<WarningIcon
+					<Icon
+						svg={warningIcon}
 						class="shrink-0"
 						size={16}
 						aria-hidden="true" />{session.issue}
@@ -51,9 +53,9 @@
 						: "Oldest first. Switch to newest first"}
 					onclick={() => (newestFirst = !newestFirst)}>
 					{#if newestFirst}
-						<SortDescendingIcon size={16} aria-hidden="true" />
+						<Icon svg={sortDescendingIcon} size={16} aria-hidden="true" />
 					{:else}
-						<SortAscendingIcon size={16} aria-hidden="true" />
+						<Icon svg={sortAscendingIcon} size={16} aria-hidden="true" />
 					{/if}
 				</button>
 			</div>

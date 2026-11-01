@@ -1,9 +1,10 @@
 <script lang="ts">
-	import CheckIcon from "phosphor-svelte/lib/CheckIcon"
-	import CircleNotchIcon from "phosphor-svelte/lib/CircleNotchIcon"
-	import MinusIcon from "phosphor-svelte/lib/MinusIcon"
-	import ArrowsClockwiseIcon from "phosphor-svelte/lib/ArrowsClockwiseIcon"
-	import XIcon from "phosphor-svelte/lib/XIcon"
+	import arrowsClockwiseIcon from "@phosphor-icons/core/regular/arrows-clockwise.svg?raw"
+	import checkBoldIcon from "@phosphor-icons/core/bold/check-bold.svg?raw"
+	import circleNotchIcon from "@phosphor-icons/core/regular/circle-notch.svg?raw"
+	import minusBoldIcon from "@phosphor-icons/core/bold/minus-bold.svg?raw"
+	import xIcon from "@phosphor-icons/core/regular/x.svg?raw"
+	import Icon from "../shared/Icon.svelte"
 	import { onMount, tick } from "svelte"
 	import {
 		accountBackend,
@@ -130,11 +131,13 @@
 					data-tooltip="Refresh process list"
 					disabled={loading || killing || snapshot?.supported === false}
 					onclick={() => void refresh()}>
-					{#if loading}<CircleNotchIcon
+					{#if loading}<Icon
+							svg={circleNotchIcon}
 							class="spinner"
 							size={14}
 							aria-hidden="true" />
-					{:else}<ArrowsClockwiseIcon
+					{:else}<Icon
+							svg={arrowsClockwiseIcon}
 							data-turn
 							size={14}
 							aria-hidden="true" />{/if}
@@ -144,7 +147,8 @@
 					type="button"
 					aria-label="Cancel"
 					disabled={killing}
-					onclick={dismiss}><XIcon size={14} aria-hidden="true" /></button>
+					onclick={dismiss}
+					><Icon svg={xIcon} size={14} aria-hidden="true" /></button>
 			</div>
 		</div>
 		<div class="overflow-hidden rounded-md border border-line">
@@ -159,13 +163,13 @@
 							disabled={loading || killing || processes.length === 0}
 							onchange={toggleAll} />
 						<span aria-hidden="true">
-							{#if someSelected}<MinusIcon
+							{#if someSelected}<Icon
+									svg={minusBoldIcon}
 									size={11}
-									weight="bold"
 									aria-hidden="true" />
-							{:else}<CheckIcon
+							{:else}<Icon
+									svg={checkBoldIcon}
 									size={11}
-									weight="bold"
 									aria-hidden="true" />{/if}
 						</span>
 					</span>
@@ -200,9 +204,9 @@
 													event.currentTarget.checked,
 												)} />
 										<span aria-hidden="true"
-											><CheckIcon
+											><Icon
+												svg={checkBoldIcon}
 												size={11}
-												weight="bold"
 												aria-hidden="true" /></span>
 									</label>
 								</td>

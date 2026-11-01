@@ -1,6 +1,7 @@
 <script lang="ts" generics="T extends string | number">
-	import CheckIcon from "phosphor-svelte/lib/CheckIcon"
-	import CaretDownIcon from "phosphor-svelte/lib/CaretDownIcon"
+	import caretDownIcon from "@phosphor-icons/core/regular/caret-down.svg?raw"
+	import checkIcon from "@phosphor-icons/core/regular/check.svg?raw"
+	import Icon from "./Icon.svelte"
 	import { tick } from "svelte"
 	import { liftToTopLayer, menuIn, menuOut } from "./presence"
 
@@ -134,7 +135,8 @@
 				void show()
 			}
 		}}>
-		<span class="truncate">{selectedLabel}</span><CaretDownIcon
+		<span class="truncate">{selectedLabel}</span><Icon
+			svg={caretDownIcon}
 			class={["shrink-0 transition-transform duration-100", open && "rotate-180"]}
 			size={16}
 			aria-hidden="true" />
@@ -188,7 +190,8 @@
 									id={`${menuID}-${index}-description`}
 									>{option.description}</small
 								>{/if}
-						</span>{#if option.value === value}<CheckIcon
+						</span>{#if option.value === value}<Icon
+								svg={checkIcon}
 								class="shrink-0"
 								size={16}
 								aria-hidden="true" />{/if}

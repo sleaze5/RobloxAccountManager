@@ -1,8 +1,9 @@
 <script lang="ts">
-	import EyeIcon from "phosphor-svelte/lib/EyeIcon"
-	import EyeSlashIcon from "phosphor-svelte/lib/EyeSlashIcon"
-	import ShieldCheckIcon from "phosphor-svelte/lib/ShieldCheckIcon"
-	import XIcon from "phosphor-svelte/lib/XIcon"
+	import eyeIcon from "@phosphor-icons/core/regular/eye.svg?raw"
+	import eyeSlashIcon from "@phosphor-icons/core/regular/eye-slash.svg?raw"
+	import shieldCheckIcon from "@phosphor-icons/core/regular/shield-check.svg?raw"
+	import xIcon from "@phosphor-icons/core/regular/x.svg?raw"
+	import Icon from "../shared/Icon.svelte"
 	import type { AccountStore } from "../accounts/account-store.svelte"
 	import {
 		modalBackdropIn,
@@ -43,7 +44,7 @@
 			aria-label="Close test master password dialog"
 			disabled={store.busy}
 			onclick={onClose}>
-			<XIcon size={14} aria-hidden="true" />
+			<Icon svg={xIcon} size={14} aria-hidden="true" />
 		</button>
 		<form
 			novalidate
@@ -53,7 +54,7 @@
 			}}>
 			<div
 				class="mx-auto mb-3 grid size-8 place-items-center rounded-md border border-line-strong bg-raised text-fg">
-				<ShieldCheckIcon size={16} aria-hidden="true" />
+				<Icon svg={shieldCheckIcon} size={16} aria-hidden="true" />
 			</div>
 			<h2 id="test-password-title">Test master password</h2>
 			<p>Confirm that you still know the portable vault password.</p>
@@ -73,9 +74,9 @@
 				class="mt-2 flex items-center gap-1 py-1 text-xs text-fg-muted transition-colors duration-100 *:animate-pop"
 				type="button"
 				onclick={() => (visible = !visible)}>
-				{#if visible}<EyeSlashIcon size={16} aria-hidden="true" /> Hide password{:else}<EyeIcon
-						size={16}
-						aria-hidden="true" /> Show password{/if}
+				{#if visible}<Icon svg={eyeSlashIcon} size={16} aria-hidden="true" /> Hide
+					password{:else}<Icon svg={eyeIcon} size={16} aria-hidden="true" /> Show
+					password{/if}
 			</button>
 			{#if store.vault.passwordHint}
 				<div class="mt-3 notice-note">Hint: {store.vault.passwordHint}</div>

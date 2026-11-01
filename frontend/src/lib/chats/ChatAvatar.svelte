@@ -1,5 +1,6 @@
 <script lang="ts">
-	import UsersIcon from "phosphor-svelte/lib/UsersIcon"
+	import usersIcon from "@phosphor-icons/core/regular/users.svg?raw"
+	import Icon from "../shared/Icon.svelte"
 	import type { ChatConversationView } from "../backend/bridge"
 	import ProfileImage from "../shared/ProfileImage.svelte"
 
@@ -16,7 +17,7 @@
 	]}
 	aria-hidden="true">
 	{#if conversation.group}
-		<UsersIcon class="size-1/2 text-fg-faint" aria-hidden="true" />
+		<Icon svg={usersIcon} class="size-1/2 text-fg-faint" aria-hidden="true" />
 	{:else}
 		<ProfileImage url={conversation.imageUrl} />
 	{/if}

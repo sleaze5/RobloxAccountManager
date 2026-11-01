@@ -1,5 +1,6 @@
 <script lang="ts">
-	import CircleNotchIcon from "phosphor-svelte/lib/CircleNotchIcon"
+	import circleNotchIcon from "@phosphor-icons/core/regular/circle-notch.svg?raw"
+	import Icon from "../shared/Icon.svelte"
 	import { RuntimeStatus } from "../backend/bridge"
 	import type { RuntimeState } from "../backend/bridge"
 	import { formatCompactBytes } from "../shared/bytes"
@@ -21,7 +22,8 @@
 <div class="transfer">
 	<strong>
 		{#if installing || !determinate}
-			<CircleNotchIcon
+			<Icon
+				svg={circleNotchIcon}
 				class="spinner"
 				size={14}
 				role="progressbar"

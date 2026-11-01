@@ -1,6 +1,7 @@
 <script lang="ts">
-	import ArrowsLeftRightIcon from "phosphor-svelte/lib/ArrowsLeftRightIcon"
-	import CopyIcon from "phosphor-svelte/lib/CopyIcon"
+	import arrowsLeftRightIcon from "@phosphor-icons/core/regular/arrows-left-right.svg?raw"
+	import copyIcon from "@phosphor-icons/core/regular/copy.svg?raw"
+	import Icon from "../shared/Icon.svelte"
 	import { onMount } from "svelte"
 	import type { AccountStore } from "../accounts/account-store.svelte"
 	import { accountBackend, FileState, StorageMode } from "../backend/bridge"
@@ -92,7 +93,7 @@
 							class="btn"
 							type="button"
 							onclick={() => void copyPath()}>
-							<CopyIcon size={16} aria-hidden="true" />
+							<Icon svg={copyIcon} size={16} aria-hidden="true" />
 							Copy path
 						</button>
 					</div>
@@ -114,7 +115,10 @@
 							disabled={store.busy ||
 								store.vault.fileState !== FileState.FileStateReady}
 							onclick={() => (moving = true)}>
-							<ArrowsLeftRightIcon size={16} aria-hidden="true" />
+							<Icon
+								svg={arrowsLeftRightIcon}
+								size={16}
+								aria-hidden="true" />
 							Move data
 						</button>
 					</div>

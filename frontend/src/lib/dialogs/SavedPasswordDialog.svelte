@@ -1,12 +1,13 @@
 <script lang="ts">
-	import CheckCircleIcon from "phosphor-svelte/lib/CheckCircleIcon"
-	import CircleNotchIcon from "phosphor-svelte/lib/CircleNotchIcon"
-	import EyeIcon from "phosphor-svelte/lib/EyeIcon"
-	import EyeSlashIcon from "phosphor-svelte/lib/EyeSlashIcon"
-	import InfoIcon from "phosphor-svelte/lib/InfoIcon"
-	import ShieldCheckIcon from "phosphor-svelte/lib/ShieldCheckIcon"
-	import WarningCircleIcon from "phosphor-svelte/lib/WarningCircleIcon"
-	import XIcon from "phosphor-svelte/lib/XIcon"
+	import checkCircleIcon from "@phosphor-icons/core/regular/check-circle.svg?raw"
+	import circleNotchIcon from "@phosphor-icons/core/regular/circle-notch.svg?raw"
+	import eyeIcon from "@phosphor-icons/core/regular/eye.svg?raw"
+	import eyeSlashIcon from "@phosphor-icons/core/regular/eye-slash.svg?raw"
+	import infoIcon from "@phosphor-icons/core/regular/info.svg?raw"
+	import shieldCheckIcon from "@phosphor-icons/core/regular/shield-check.svg?raw"
+	import warningCircleIcon from "@phosphor-icons/core/regular/warning-circle.svg?raw"
+	import xIcon from "@phosphor-icons/core/regular/x.svg?raw"
+	import Icon from "../shared/Icon.svelte"
 	import { onDestroy, onMount, tick, untrack } from "svelte"
 	import type { Account } from "../accounts/account-model"
 	import { accountBackend } from "../backend/bridge"
@@ -173,7 +174,7 @@
 					aria-label={`Close ${title.toLowerCase()}`}
 					disabled={pending !== null}
 					onclick={close}>
-					<XIcon size={14} aria-hidden="true" />
+					<Icon svg={xIcon} size={14} aria-hidden="true" />
 				</button>
 			</div>
 
@@ -200,9 +201,11 @@
 					aria-label={visible ? "Hide password" : "Show password"}
 					data-tooltip={visible ? "Hide password" : "Show password"}
 					onclick={() => (visible = !visible)}>
-					{#if visible}<EyeSlashIcon
+					{#if visible}<Icon
+							svg={eyeSlashIcon}
 							size={16}
-							aria-hidden="true" />{:else}<EyeIcon
+							aria-hidden="true" />{:else}<Icon
+							svg={eyeIcon}
 							size={16}
 							aria-hidden="true" />{/if}
 				</button>
@@ -211,22 +214,28 @@
 			<div class="mt-2 flex min-h-6 items-center gap-1 text-xs text-fg">
 				{#if validation === "valid"}
 					<span class="flex items-center gap-1 text-success" role="status"
-						><CheckCircleIcon size={16} aria-hidden="true" />Password is
-						correct</span>
+						><Icon
+							svg={checkCircleIcon}
+							size={16}
+							aria-hidden="true" />Password is correct</span>
 				{:else if validation === "invalid"}
 					<span class="flex items-center gap-1 text-warning" role="status"
-						><WarningCircleIcon size={16} aria-hidden="true" />Password is
-						incorrect</span>
+						><Icon
+							svg={warningCircleIcon}
+							size={16}
+							aria-hidden="true" />Password is incorrect</span>
 				{:else}
 					<button
 						class="flex items-center gap-1 py-1 text-xs text-fg-muted transition-colors duration-100 *:animate-pop"
 						type="button"
 						disabled={busy || !password}
 						onclick={() => void validate()}>
-						{#if pending === "validate"}<CircleNotchIcon
+						{#if pending === "validate"}<Icon
+								svg={circleNotchIcon}
 								class="spinner"
 								size={16}
-								aria-hidden="true" /> Validating…{:else}<ShieldCheckIcon
+								aria-hidden="true" /> Validating…{:else}<Icon
+								svg={shieldCheckIcon}
 								size={16}
 								aria-hidden="true" /> Validate with Roblox{/if}
 					</button>
@@ -235,7 +244,7 @@
 						type="button"
 						aria-label={validationHint}
 						data-tooltip={validationHint}>
-						<InfoIcon size={14} aria-hidden="true" />
+						<Icon svg={infoIcon} size={14} aria-hidden="true" />
 					</button>
 				{/if}
 			</div>

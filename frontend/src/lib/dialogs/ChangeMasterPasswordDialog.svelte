@@ -1,11 +1,13 @@
 <script lang="ts">
 	import { automaticUnlockDialogDescription } from "../shared/automatic-unlock"
-	import CheckIcon from "phosphor-svelte/lib/CheckIcon"
-	import EyeIcon from "phosphor-svelte/lib/EyeIcon"
-	import EyeSlashIcon from "phosphor-svelte/lib/EyeSlashIcon"
-	import InfoIcon from "phosphor-svelte/lib/InfoIcon"
-	import KeyIcon from "phosphor-svelte/lib/KeyIcon"
-	import XIcon from "phosphor-svelte/lib/XIcon"
+	import checkBoldIcon from "@phosphor-icons/core/bold/check-bold.svg?raw"
+	import checkIcon from "@phosphor-icons/core/regular/check.svg?raw"
+	import eyeIcon from "@phosphor-icons/core/regular/eye.svg?raw"
+	import eyeSlashIcon from "@phosphor-icons/core/regular/eye-slash.svg?raw"
+	import infoIcon from "@phosphor-icons/core/regular/info.svg?raw"
+	import keyIcon from "@phosphor-icons/core/regular/key.svg?raw"
+	import xIcon from "@phosphor-icons/core/regular/x.svg?raw"
+	import Icon from "../shared/Icon.svelte"
 	import type { AccountStore } from "../accounts/account-store.svelte"
 	import {
 		modalBackdropIn,
@@ -59,7 +61,7 @@
 			aria-label="Close change master password dialog"
 			disabled={store.busy}
 			onclick={onClose}>
-			<XIcon size={14} aria-hidden="true" />
+			<Icon svg={xIcon} size={14} aria-hidden="true" />
 		</button>
 		<form
 			novalidate
@@ -69,7 +71,7 @@
 			}}>
 			<div
 				class="mx-auto mb-3 grid size-8 place-items-center rounded-md border border-line-strong bg-raised text-fg">
-				<KeyIcon size={16} aria-hidden="true" />
+				<Icon svg={keyIcon} size={16} aria-hidden="true" />
 			</div>
 			<h2 id="change-password-title">Change master password</h2>
 			<p>
@@ -115,16 +117,18 @@
 				class="mt-2 flex items-center gap-1 py-1 text-xs text-fg-muted transition-colors duration-100 *:animate-pop"
 				type="button"
 				onclick={() => (visible = !visible)}>
-				{#if visible}<EyeSlashIcon size={16} aria-hidden="true" /> Hide passwords{:else}<EyeIcon
-						size={16}
-						aria-hidden="true" /> Show passwords{/if}
+				{#if visible}<Icon svg={eyeSlashIcon} size={16} aria-hidden="true" /> Hide
+					passwords{:else}<Icon svg={eyeIcon} size={16} aria-hidden="true" /> Show
+					passwords{/if}
 			</button>
 			<ul class="checklist" data-touched={newPassword !== "" || undefined}>
 				{#each [[rules.length, "8-128 characters long"], [rules.uppercase, "At least one upper-case letter"], [rules.lowercase, "At least one lower-case letter"], [rules.digit, "At least one number"], [rules.special, "At least one special character"]] as requirement}
 					<li data-valid={requirement[0] || undefined}>
-						{#if requirement[0]}<CheckIcon
+						{#if requirement[0]}<Icon
+								svg={checkIcon}
 								size={14}
-								aria-hidden="true" />{:else}<XIcon
+								aria-hidden="true" />{:else}<Icon
+								svg={xIcon}
 								size={14}
 								aria-hidden="true" />{/if}{requirement[1]}
 					</li>
@@ -132,9 +136,11 @@
 				<li
 					data-valid={(newPassword !== "" && newPassword === confirmation) ||
 						undefined}>
-					{#if newPassword !== "" && newPassword === confirmation}<CheckIcon
+					{#if newPassword !== "" && newPassword === confirmation}<Icon
+							svg={checkIcon}
 							size={14}
-							aria-hidden="true" />{:else}<XIcon
+							aria-hidden="true" />{:else}<Icon
+							svg={xIcon}
 							size={14}
 							aria-hidden="true" />{/if}Passwords match
 				</li>
@@ -153,9 +159,9 @@
 					<span class="checkbox">
 						<input bind:checked={automaticUnlock} type="checkbox" />
 						<span aria-hidden="true"
-							><CheckIcon
+							><Icon
+								svg={checkBoldIcon}
 								size={11}
-								weight="bold"
 								aria-hidden="true" /></span>
 					</span>
 					Enable automatic unlock
@@ -165,7 +171,7 @@
 					type="button"
 					aria-label="About automatic unlock"
 					data-tooltip={automaticUnlockDialogDescription}>
-					<InfoIcon size={14} aria-hidden="true" />
+					<Icon svg={infoIcon} size={14} aria-hidden="true" />
 				</button>
 			</div>
 			<div class="dialog-actions">

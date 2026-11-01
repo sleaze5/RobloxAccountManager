@@ -1,5 +1,6 @@
 <script lang="ts">
-	import XIcon from "phosphor-svelte/lib/XIcon"
+	import xIcon from "@phosphor-icons/core/regular/x.svg?raw"
+	import Icon from "../shared/Icon.svelte"
 	import { accountBackend } from "../backend/bridge"
 	import type { StorageCandidate } from "../backend/bridge"
 	import {
@@ -61,7 +62,7 @@
 				aria-label="Close move data dialog"
 				disabled={busy}
 				onclick={onClose}>
-				<XIcon size={14} aria-hidden="true" />
+				<Icon svg={xIcon} size={14} aria-hidden="true" />
 			</button>
 		</div>
 		<div class="mt-2 font-mono text-2xs wrap-anywhere text-fg-faint">

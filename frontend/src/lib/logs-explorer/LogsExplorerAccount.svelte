@@ -1,5 +1,6 @@
 <script lang="ts">
-	import StarIcon from "phosphor-svelte/lib/StarIcon"
+	import starFillIcon from "@phosphor-icons/core/fill/star-fill.svg?raw"
+	import Icon from "../shared/Icon.svelte"
 	import ProfileImage from "../shared/ProfileImage.svelte"
 	import { accountBackend, TagKind } from "../backend/bridge"
 
@@ -79,10 +80,10 @@
 			<strong
 				class="inline-flex min-w-0 items-center gap-1 text-sm font-semibold text-fg"
 				><span class="truncate">{user.displayName || user.username}</span
-				>{#if user.favorite}<StarIcon
+				>{#if user.favorite}<Icon
+						svg={starFillIcon}
 						class="shrink-0 animate-pop text-accent-strong"
 						size={12}
-						weight="fill"
 						aria-label="Favorite" />{/if}</strong>
 			<span class="truncate text-xs text-fg-muted"
 				>@{user.username}{user.inVault === false

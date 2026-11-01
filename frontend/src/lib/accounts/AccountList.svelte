@@ -1,7 +1,8 @@
 <script lang="ts">
-	import CheckIcon from "phosphor-svelte/lib/CheckIcon"
-	import DotsSixVerticalIcon from "phosphor-svelte/lib/DotsSixVerticalIcon"
-	import StarIcon from "phosphor-svelte/lib/StarIcon"
+	import checkBoldIcon from "@phosphor-icons/core/bold/check-bold.svg?raw"
+	import dotsSixVerticalIcon from "@phosphor-icons/core/regular/dots-six-vertical.svg?raw"
+	import starFillIcon from "@phosphor-icons/core/fill/star-fill.svg?raw"
+	import Icon from "../shared/Icon.svelte"
 	import { tick } from "svelte"
 	import { isMoveShortcut } from "../shared/move-shortcut"
 	import type { WorkspaceState } from "../layout/workspace-state.svelte"
@@ -170,7 +171,10 @@
 							}
 						}} />
 					<span aria-hidden="true"
-						><CheckIcon size={11} weight="bold" aria-hidden="true" /></span>
+						><Icon
+							svg={checkBoldIcon}
+							size={11}
+							aria-hidden="true" /></span>
 				</span>
 			{:else}
 				<span
@@ -179,7 +183,7 @@
 					aria-hidden="true"
 					ondragstart={(event) => startDrag(event, account.id)}
 					ondragend={finishDrag}>
-					<DotsSixVerticalIcon size={14} aria-hidden="true" />
+					<Icon svg={dotsSixVerticalIcon} size={14} aria-hidden="true" />
 				</span>
 			{/if}
 			<button
@@ -211,10 +215,10 @@
 					<strong
 						class="mb-0.5 flex min-w-0 items-center gap-1 text-sm font-semibold text-fg">
 						<span class="truncate">{account.displayName}</span>
-						{#if account.favorite}<StarIcon
+						{#if account.favorite}<Icon
+								svg={starFillIcon}
 								class="shrink-0 animate-pop text-accent-strong"
 								size={12}
-								weight="fill"
 								aria-hidden="true" />{/if}
 					</strong>
 					<small

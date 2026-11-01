@@ -1,7 +1,8 @@
 <script lang="ts">
-	import WarningIcon from "phosphor-svelte/lib/WarningIcon"
-	import CircleNotchIcon from "phosphor-svelte/lib/CircleNotchIcon"
-	import HardDrivesIcon from "phosphor-svelte/lib/HardDrivesIcon"
+	import circleNotchIcon from "@phosphor-icons/core/regular/circle-notch.svg?raw"
+	import hardDrivesIcon from "@phosphor-icons/core/regular/hard-drives.svg?raw"
+	import warningIcon from "@phosphor-icons/core/regular/warning.svg?raw"
+	import Icon from "../shared/Icon.svelte"
 	import { untrack } from "svelte"
 	import { GameServerRecordOrder } from "../backend/bridge"
 	import Select from "../shared/Select.svelte"
@@ -110,7 +111,7 @@
 
 	{#if servers.error}
 		<div class="empty-state" role="alert">
-			<WarningIcon size={28} aria-hidden="true" />
+			<Icon svg={warningIcon} size={28} aria-hidden="true" />
 			<h2>RoValra servers are unavailable</h2>
 			<p>{servers.error}</p>
 			<button class="btn" type="button" onclick={() => void servers.load()}
@@ -118,12 +119,12 @@
 		</div>
 	{:else if !servers.page}
 		<div class="empty-state" role="status">
-			<CircleNotchIcon class="spinner" size={28} aria-hidden="true" />
+			<Icon svg={circleNotchIcon} class="spinner" size={28} aria-hidden="true" />
 			<h2>Loading servers…</h2>
 		</div>
 	{:else if !shown.length}
 		<div class="empty-state" role="status">
-			<HardDrivesIcon size={28} aria-hidden="true" />
+			<Icon svg={hardDrivesIcon} size={28} aria-hidden="true" />
 			{#if servers.pageNumber > 1}
 				<h2>No more servers</h2>
 				<p>RoValra has no more servers for this list.</p>

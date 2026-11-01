@@ -1,7 +1,8 @@
 <script lang="ts">
-	import FloppyDiskIcon from "phosphor-svelte/lib/FloppyDiskIcon"
-	import KeyIcon from "phosphor-svelte/lib/KeyIcon"
-	import PencilSimpleIcon from "phosphor-svelte/lib/PencilSimpleIcon"
+	import floppyDiskIcon from "@phosphor-icons/core/regular/floppy-disk.svg?raw"
+	import keyIcon from "@phosphor-icons/core/regular/key.svg?raw"
+	import pencilSimpleIcon from "@phosphor-icons/core/regular/pencil-simple.svg?raw"
+	import Icon from "../shared/Icon.svelte"
 	import { menuIn, menuOut, placeMenuAtAnchor } from "../shared/presence"
 
 	let {
@@ -94,7 +95,7 @@
 			open = true
 		}
 	}}>
-	<PencilSimpleIcon size={14} aria-hidden="true" />
+	<Icon svg={pencilSimpleIcon} size={14} aria-hidden="true" />
 </button>
 
 {#if open}
@@ -115,7 +116,7 @@
 			role="menuitem"
 			tabindex="-1"
 			onclick={() => choose(onEditSaved)}>
-			<FloppyDiskIcon size={16} aria-hidden="true" />
+			<Icon svg={floppyDiskIcon} size={16} aria-hidden="true" />
 			<span>{hasSavedPassword ? "Update saved password" : "Save password"}</span>
 		</button>
 		<button
@@ -124,7 +125,7 @@
 			role="menuitem"
 			tabindex="-1"
 			onclick={() => choose(onChange)}>
-			<KeyIcon size={16} aria-hidden="true" />
+			<Icon svg={keyIcon} size={16} aria-hidden="true" />
 			<span>Change Roblox password</span>
 		</button>
 	</div>

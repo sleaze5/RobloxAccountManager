@@ -1,31 +1,33 @@
 <script lang="ts">
-	import PulseIcon from "phosphor-svelte/lib/PulseIcon"
-	import WarningIcon from "phosphor-svelte/lib/WarningIcon"
-	import SealCheckIcon from "phosphor-svelte/lib/SealCheckIcon"
-	import CalendarDotsIcon from "phosphor-svelte/lib/CalendarDotsIcon"
-	import CopyIcon from "phosphor-svelte/lib/CopyIcon"
-	import EyeIcon from "phosphor-svelte/lib/EyeIcon"
-	import FootprintsIcon from "phosphor-svelte/lib/FootprintsIcon"
-	import GitCommitIcon from "phosphor-svelte/lib/GitCommitIcon"
-	import ClockCounterClockwiseIcon from "phosphor-svelte/lib/ClockCounterClockwiseIcon"
-	import CircleNotchIcon from "phosphor-svelte/lib/CircleNotchIcon"
-	import MagnifyingGlassIcon from "phosphor-svelte/lib/MagnifyingGlassIcon"
-	import MicrophoneIcon from "phosphor-svelte/lib/MicrophoneIcon"
-	import DotsThreeIcon from "phosphor-svelte/lib/DotsThreeIcon"
-	import TreeStructureIcon from "phosphor-svelte/lib/TreeStructureIcon"
-	import PencilIcon from "phosphor-svelte/lib/PencilIcon"
-	import PersonArmsSpreadIcon from "phosphor-svelte/lib/PersonArmsSpreadIcon"
-	import ArrowsClockwiseIcon from "phosphor-svelte/lib/ArrowsClockwiseIcon"
-	import HardDrivesIcon from "phosphor-svelte/lib/HardDrivesIcon"
-	import ShieldCheckIcon from "phosphor-svelte/lib/ShieldCheckIcon"
-	import ShapesIcon from "phosphor-svelte/lib/ShapesIcon"
-	import TShirtIcon from "phosphor-svelte/lib/TShirtIcon"
-	import StarIcon from "phosphor-svelte/lib/StarIcon"
-	import ThumbsUpIcon from "phosphor-svelte/lib/ThumbsUpIcon"
-	import TicketIcon from "phosphor-svelte/lib/TicketIcon"
-	import UploadSimpleIcon from "phosphor-svelte/lib/UploadSimpleIcon"
-	import UsersThreeIcon from "phosphor-svelte/lib/UsersThreeIcon"
-	import VideoCameraIcon from "phosphor-svelte/lib/VideoCameraIcon"
+	import arrowsClockwiseIcon from "@phosphor-icons/core/regular/arrows-clockwise.svg?raw"
+	import calendarDotsIcon from "@phosphor-icons/core/regular/calendar-dots.svg?raw"
+	import circleNotchIcon from "@phosphor-icons/core/regular/circle-notch.svg?raw"
+	import clockCounterClockwiseIcon from "@phosphor-icons/core/regular/clock-counter-clockwise.svg?raw"
+	import copyIcon from "@phosphor-icons/core/regular/copy.svg?raw"
+	import dotsThreeIcon from "@phosphor-icons/core/regular/dots-three.svg?raw"
+	import eyeIcon from "@phosphor-icons/core/regular/eye.svg?raw"
+	import footprintsIcon from "@phosphor-icons/core/regular/footprints.svg?raw"
+	import gitCommitIcon from "@phosphor-icons/core/regular/git-commit.svg?raw"
+	import hardDrivesIcon from "@phosphor-icons/core/regular/hard-drives.svg?raw"
+	import magnifyingGlassIcon from "@phosphor-icons/core/regular/magnifying-glass.svg?raw"
+	import microphoneIcon from "@phosphor-icons/core/regular/microphone.svg?raw"
+	import pencilIcon from "@phosphor-icons/core/regular/pencil.svg?raw"
+	import personArmsSpreadIcon from "@phosphor-icons/core/regular/person-arms-spread.svg?raw"
+	import pulseIcon from "@phosphor-icons/core/regular/pulse.svg?raw"
+	import sealCheckIcon from "@phosphor-icons/core/regular/seal-check.svg?raw"
+	import shapesIcon from "@phosphor-icons/core/regular/shapes.svg?raw"
+	import shieldCheckIcon from "@phosphor-icons/core/regular/shield-check.svg?raw"
+	import starFillIcon from "@phosphor-icons/core/fill/star-fill.svg?raw"
+	import starIcon from "@phosphor-icons/core/regular/star.svg?raw"
+	import tShirtIcon from "@phosphor-icons/core/regular/t-shirt.svg?raw"
+	import thumbsUpIcon from "@phosphor-icons/core/regular/thumbs-up.svg?raw"
+	import ticketIcon from "@phosphor-icons/core/regular/ticket.svg?raw"
+	import treeStructureIcon from "@phosphor-icons/core/regular/tree-structure.svg?raw"
+	import uploadSimpleIcon from "@phosphor-icons/core/regular/upload-simple.svg?raw"
+	import usersThreeIcon from "@phosphor-icons/core/regular/users-three.svg?raw"
+	import videoCameraIcon from "@phosphor-icons/core/regular/video-camera.svg?raw"
+	import warningIcon from "@phosphor-icons/core/regular/warning.svg?raw"
+	import Icon from "../shared/Icon.svelte"
 	import { untrack } from "svelte"
 	import type { WorkspaceState } from "../layout/workspace-state.svelte"
 	import Timestamp from "../shared/Timestamp.svelte"
@@ -51,7 +53,7 @@
 
 	type Fact = {
 		label: string
-		icon: typeof PulseIcon
+		icon: string
 		value: string | undefined
 		detail?: string
 	}
@@ -87,10 +89,10 @@
 				),
 		),
 		details = $derived<Fact[]>([
-			{ label: "Genre", icon: ShapesIcon, value: genre || undefined },
+			{ label: "Genre", icon: shapesIcon, value: genre || undefined },
 			{
 				label: "Content rating",
-				icon: ShieldCheckIcon,
+				icon: shieldCheckIcon,
 				value: contentRating || undefined,
 			},
 			...(rootPlace
@@ -98,7 +100,7 @@
 				: [
 						{
 							label: "Rating",
-							icon: ThumbsUpIcon,
+							icon: thumbsUpIcon,
 							value: game
 								? votes
 									? `${percent.format(likeShare)} liked`
@@ -109,15 +111,15 @@
 									? `${count(game.upVotes, "like", "likes")} - ${count(game.downVotes, "dislike", "dislikes")}`
 									: "",
 						},
-						{ label: "Visits", icon: EyeIcon, value: exact(game?.visits) },
+						{ label: "Visits", icon: eyeIcon, value: exact(game?.visits) },
 						{
 							label: "Favorites",
-							icon: StarIcon,
+							icon: starIcon,
 							value: exact(game?.favorites),
 						},
 						{
 							label: "Server capacity",
-							icon: UsersThreeIcon,
+							icon: usersThreeIcon,
 							value:
 								game?.maxPlayers === undefined
 									? undefined
@@ -128,22 +130,22 @@
 		dates = $derived([
 			{
 				label: "Updated",
-				icon: ClockCounterClockwiseIcon,
+				icon: clockCounterClockwiseIcon,
 				value: game?.updatedAtMs,
 			},
-			{ label: "Created", icon: CalendarDotsIcon, value: game?.createdAtMs },
+			{ label: "Created", icon: calendarDotsIcon, value: game?.createdAtMs },
 		]),
 		supported = (value: boolean | undefined) =>
 			value === undefined ? undefined : value ? "Supported" : "Not supported",
 		versions = $derived<Fact[]>([
 			{
 				label: "Saved version",
-				icon: GitCommitIcon,
+				icon: gitCommitIcon,
 				value: game?.versions?.saved?.toString(),
 			},
 			{
 				label: "Published version",
-				icon: UploadSimpleIcon,
+				icon: uploadSimpleIcon,
 				value: game?.versions?.published?.toString(),
 			},
 		]),
@@ -152,17 +154,17 @@
 				? [
 						{
 							label: "Voice chat",
-							icon: MicrophoneIcon,
+							icon: microphoneIcon,
 							value: supported(game.communication?.voiceChat),
 						},
 						{
 							label: "Camera",
-							icon: VideoCameraIcon,
+							icon: videoCameraIcon,
 							value: supported(game.communication?.camera),
 						},
 						{
 							label: "Access",
-							icon: TicketIcon,
+							icon: ticketIcon,
 							value:
 								game.price > 0
 									? `Paid access - R$ ${numbers.format(game.price)}`
@@ -170,12 +172,12 @@
 						},
 						{
 							label: "Avatar type",
-							icon: PersonArmsSpreadIcon,
+							icon: personArmsSpreadIcon,
 							value: game.avatarType || "Unknown",
 						},
 						{
 							label: "Animations",
-							icon: FootprintsIcon,
+							icon: footprintsIcon,
 							value: game.avatarRules
 								? game.avatarRules.customAnimationsAllowed
 									? "Custom allowed"
@@ -186,14 +188,14 @@
 							? [
 									{
 										label: "Avatar items",
-										icon: TShirtIcon,
+										icon: tShirtIcon,
 										value: `${numbers.format(game.avatarRules.itemOverrides)} replaced by the game`,
 									},
 								]
 							: []),
 						{
 							label: "Private servers",
-							icon: HardDrivesIcon,
+							icon: hardDrivesIcon,
 							value: game.privateServersAllowed
 								? "Allowed"
 								: "Not allowed",
@@ -203,7 +205,7 @@
 							: [
 									{
 										label: "Copying",
-										icon: CopyIcon,
+										icon: copyIcon,
 										value: game.copyingAllowed
 											? "Allowed"
 											: "Not allowed",
@@ -245,7 +247,7 @@
 
 {#snippet row(fact: Fact, mono = false)}
 	<div>
-		<dt><fact.icon size={16} aria-hidden="true" />{fact.label}</dt>
+		<dt><Icon svg={fact.icon} size={16} aria-hidden="true" />{fact.label}</dt>
 		<dd>
 			{#if fact.value}
 				<span class={[mono && "font-mono select-text"]}>{fact.value}</span>
@@ -290,10 +292,10 @@
 							<h2
 								class="mr-1 inline text-lg font-semibold tracking-tight wrap-anywhere text-fg">
 								{nameStart}<span class="whitespace-nowrap"
-									>{nameEnd}{#if favorite}<StarIcon
+									>{nameEnd}{#if favorite}<Icon
+											svg={starFillIcon}
 											class="relative top-px ml-1 inline-block animate-pop text-accent-strong"
 											size={16}
-											weight="fill"
 											aria-label="Favorite" />{/if}</span>
 							</h2>
 							{#if favorite}
@@ -336,7 +338,8 @@
 												: "Add nickname"}
 											disabled={store.savingNickname}
 											onclick={startEditing}
-											><PencilIcon
+											><Icon
+												svg={pencilIcon}
 												size={14}
 												aria-hidden="true" /></button>
 									{/if}
@@ -356,15 +359,15 @@
 								aria-label="Search places in this universe"
 								data-tooltip="Search places in this universe"
 								onclick={() => onSearchUniverse(place.universeId)}
-								><MagnifyingGlassIcon
+								><Icon
+									svg={magnifyingGlassIcon}
 									size={14}
 									aria-hidden="true" /></button>
 						</div>
 						<div class={metaClass}>
 							<span class="inline-flex items-center gap-1 text-fg-muted"
-								>{creatorByline(
-									place,
-								)}{#if place.creatorVerified}<SealCheckIcon
+								>{creatorByline(place)}{#if place.creatorVerified}<Icon
+										svg={sealCheckIcon}
 										size={14}
 										aria-label="Verified creator" />{/if}</span>
 							{#if place.creatorId}
@@ -380,7 +383,7 @@
 										? "text-presence-game"
 										: "text-fg-muted",
 								]}>
-								<PulseIcon size={14} aria-hidden="true" />
+								<Icon svg={pulseIcon} size={14} aria-hidden="true" />
 								{numbers.format(game.playing)} playing
 							</p>
 						{/if}
@@ -397,10 +400,12 @@
 						data-tooltip="Refresh game details"
 						disabled={store.loadingDetails}
 						onclick={() => void store.refreshDetails()}>
-						{#if store.loadingDetails}<CircleNotchIcon
+						{#if store.loadingDetails}<Icon
+								svg={circleNotchIcon}
 								class="spinner"
 								size={16}
-								aria-hidden="true" />{:else}<ArrowsClockwiseIcon
+								aria-hidden="true" />{:else}<Icon
+								svg={arrowsClockwiseIcon}
 								data-turn
 								size={16}
 								aria-hidden="true" />{/if}
@@ -415,7 +420,7 @@
 							store.closeMenu()
 							store.detailsPage = "servers"
 						}}>
-						<HardDrivesIcon size={16} aria-hidden="true" />
+						<Icon svg={hardDrivesIcon} size={16} aria-hidden="true" />
 					</button>
 					<button
 						class="btn-icon"
@@ -431,7 +436,7 @@
 							if (menuOpen) store.closeMenu()
 							else store.openMenu(event, place)
 						}}>
-						<DotsThreeIcon size={16} aria-hidden="true" />
+						<Icon svg={dotsThreeIcon} size={16} aria-hidden="true" />
 					</button>
 				</div>
 			</div>
@@ -439,7 +444,7 @@
 			{#if favorite}
 				<div class="flex flex-wrap items-center gap-1">
 					<span class="tag-pill-favorite">
-						<StarIcon size={12} weight="fill" aria-hidden="true" />
+						<Icon svg={starFillIcon} size={12} aria-hidden="true" />
 						<span>Favorite</span>
 					</span>
 				</div>
@@ -449,7 +454,8 @@
 				<p
 					class="inline-flex max-w-full items-center gap-1 self-start rounded-md border border-line bg-raised px-2 py-0.5 text-xs text-fg"
 					role="note">
-					<TreeStructureIcon
+					<Icon
+						svg={treeStructureIcon}
 						class="shrink-0 text-fg-muted"
 						size={14}
 						aria-hidden="true" />
@@ -469,7 +475,11 @@
 				<p
 					class="flex items-start gap-2 text-xs text-danger-muted"
 					role="alert">
-					<WarningIcon class="mt-0.5 shrink-0" size={16} aria-hidden="true" />
+					<Icon
+						svg={warningIcon}
+						class="mt-0.5 shrink-0"
+						size={16}
+						aria-hidden="true" />
 					<span>{store.detailsError}</span>
 				</p>
 			{/if}
@@ -484,7 +494,8 @@
 						{#each dates as fact (fact.label)}
 							<div>
 								<dt>
-									<fact.icon
+									<Icon
+										svg={fact.icon}
 										size={16}
 										aria-hidden="true" />{fact.label}
 								</dt>

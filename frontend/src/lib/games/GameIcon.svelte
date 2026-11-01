@@ -1,5 +1,6 @@
 <script lang="ts">
-	import GameControllerIcon from "phosphor-svelte/lib/GameControllerIcon"
+	import gameControllerIcon from "@phosphor-icons/core/regular/game-controller.svg?raw"
+	import Icon from "../shared/Icon.svelte"
 	type Size = "xs" | "sm" | "md" | "lg" | "xl"
 	let { url, size = "md" }: { url: string; size?: Size } = $props()
 	let failed = $state("")
@@ -30,7 +31,8 @@
 			referrerpolicy="no-referrer"
 			onerror={() => (failed = url)} />
 	{:else}
-		<GameControllerIcon
+		<Icon
+			svg={gameControllerIcon}
 			size={size === "xl" ? 36 : size === "xs" ? 14 : 18}
 			aria-hidden="true" />
 	{/if}

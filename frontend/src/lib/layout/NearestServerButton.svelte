@@ -1,6 +1,7 @@
 <script lang="ts">
-	import CircleNotchIcon from "phosphor-svelte/lib/CircleNotchIcon"
-	import CrosshairIcon from "phosphor-svelte/lib/CrosshairIcon"
+	import circleNotchIcon from "@phosphor-icons/core/regular/circle-notch.svg?raw"
+	import crosshairIcon from "@phosphor-icons/core/regular/crosshair.svg?raw"
+	import Icon from "../shared/Icon.svelte"
 	import type { AccountStore } from "../accounts/account-store.svelte"
 	import { appSettings } from "../settings/settings-store.svelte"
 
@@ -29,9 +30,9 @@
 		disabled={!region || !hasPlace || store.launching || store.findingServer}
 		onclick={() => void store.fillNearestServer()}>
 		{#if store.findingServer}
-			<CircleNotchIcon class="spinner" size={16} aria-hidden="true" />
+			<Icon svg={circleNotchIcon} class="spinner" size={16} aria-hidden="true" />
 		{:else}
-			<CrosshairIcon size={16} aria-hidden="true" />
+			<Icon svg={crosshairIcon} size={16} aria-hidden="true" />
 		{/if}
 	</button>
 </span>

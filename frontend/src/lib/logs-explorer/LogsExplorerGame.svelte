@@ -1,7 +1,8 @@
 <script lang="ts">
-	import SealCheckIcon from "phosphor-svelte/lib/SealCheckIcon"
-	import MagnifyingGlassIcon from "phosphor-svelte/lib/MagnifyingGlassIcon"
-	import StarIcon from "phosphor-svelte/lib/StarIcon"
+	import magnifyingGlassIcon from "@phosphor-icons/core/regular/magnifying-glass.svg?raw"
+	import sealCheckIcon from "@phosphor-icons/core/regular/seal-check.svg?raw"
+	import starFillIcon from "@phosphor-icons/core/fill/star-fill.svg?raw"
+	import Icon from "../shared/Icon.svelte"
 	import type { GamePlaceSummary } from "../backend/bridge"
 	import GameIcon from "../games/GameIcon.svelte"
 	import { loadGamePlace } from "../games/game-place-cache"
@@ -55,13 +56,14 @@
 				<strong
 					class="inline-flex min-w-0 items-center gap-1 text-sm font-semibold text-fg"
 					><span class="truncate">{games.displayName(place)}</span
-					>{#if games.isFavorite(place.placeId)}<StarIcon
+					>{#if games.isFavorite(place.placeId)}<Icon
+							svg={starFillIcon}
 							class="shrink-0 animate-pop text-accent-strong"
 							size={12}
-							weight="fill"
 							aria-label="Favorite" />{/if}</strong>
 				<span class="truncate text-xs text-fg-muted"
-					>{creatorByline(place)}{#if place.creatorVerified}<SealCheckIcon
+					>{creatorByline(place)}{#if place.creatorVerified}<Icon
+							svg={sealCheckIcon}
 							class="relative top-0.5 ml-1 inline-block"
 							size={14}
 							aria-label="Verified creator" />{/if}</span>
@@ -75,7 +77,7 @@
 				aria-label="Find this place in Games"
 				data-tooltip="Find this place in Games"
 				onclick={onSearch}
-				><MagnifyingGlassIcon size={14} aria-hidden="true" /></button
+				><Icon svg={magnifyingGlassIcon} size={14} aria-hidden="true" /></button
 			>{/if}
 	</div>
 {/if}
