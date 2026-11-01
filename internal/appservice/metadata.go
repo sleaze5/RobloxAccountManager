@@ -65,13 +65,15 @@ func (service *Service) refreshFavoriteMetadata(places []games.Place) {
 
 func (service *Service) refreshAccountMetadata(accountID, userID int64) {
 	service.refreshMetadata(fmt.Sprintf("user-%d", userID), func(ctx context.Context) {
-		if service.users.CachedProfileFresh(ctx, userID) {
+		identity, err := service.users.Profile(ctx, userID)
+		if err != nil {
+			if ctx.Err() == nil {
+				service.logger.WarnContext(ctx, "saved account names unavailable; retry the account list later", "operation", "account-name-recovery", "account_id", accountID)
+			}
 			return
 		}
-		if _, err := service.users.Profile(ctx, userID); err != nil {
-			if ctx.Err() == nil {
-				service.logger.WarnContext(ctx, "public account metadata refresh unavailable; keeping cached names", "operation", "account-metadata-refresh", "account_id", accountID)
-			}
+		if err := service.repo.RestoreNames(ctx, accountID, identity); err != nil {
+			service.logger.WarnContext(ctx, "saved account names could not be restored", "operation", "account-name-recovery", "account_id", accountID, "error", err)
 			return
 		}
 		if ctx.Err() == nil {

@@ -13,7 +13,6 @@ import (
 
 	"github.com/sleaze5/RobloxAccountManager/internal/accounts"
 	"github.com/sleaze5/RobloxAccountManager/internal/roblox"
-	"github.com/sleaze5/RobloxAccountManager/internal/storage/caches"
 )
 
 type UserView struct {
@@ -23,16 +22,15 @@ type UserView struct {
 }
 
 type Users struct {
-	cache         *caches.Store
 	client        *roblox.Client
 	authenticated *url.URL
 	profiles      *url.URL
 }
 
-func NewUsers(client *roblox.Client, cache *caches.Store) *Users {
+func NewUsers(client *roblox.Client) *Users {
 	authenticated, _ := url.Parse("https://users.roblox.com/v1/users/authenticated")
 	profiles, _ := url.Parse("https://users.roblox.com/v1/users/")
-	return &Users{cache: cache, client: client, authenticated: authenticated, profiles: profiles}
+	return &Users{client: client, authenticated: authenticated, profiles: profiles}
 }
 
 func (service *Users) ValidateCookie(ctx context.Context, cookie, browserID string) (roblox.CookieValidation, error) {
@@ -109,7 +107,6 @@ func (service *Users) Profile(ctx context.Context, userID int64) (accounts.Ident
 	if parseErr != nil || profile.ID != userID || strings.TrimSpace(profile.Name) == "" {
 		return accounts.Identity{}, &roblox.Error{Kind: roblox.KindProtocol, Endpoint: "user-profile", Status: response.Status, Message: "Roblox returned invalid account details.", Cause: parseErr}
 	}
-	service.cache.SaveUser(ctx, profile.ID, profile.Name, profile.DisplayName)
 	return accounts.Identity{RobloxUserID: profile.ID, Username: profile.Name, DisplayName: profile.DisplayName, CreatedAt: createdAt.UTC()}, nil
 }
 
@@ -143,9 +140,4 @@ func (service *Users) UserIDFromUsername(ctx context.Context, username string) (
 		return 0, &roblox.Error{Kind: roblox.KindProtocol, Endpoint: "username-lookup", Message: "That username was not found or is unavailable. Enter a username, not a display name."}
 	}
 	return result.Data[0].ID, nil
-}
-
-func (service *Users) CachedProfileFresh(ctx context.Context, id int64) bool {
-	_, fresh := service.cache.User(ctx, id)
-	return fresh
 }

@@ -6,13 +6,11 @@ import (
 	"errors"
 	"fmt"
 	"log/slog"
-	"strconv"
 	"strings"
 	"time"
 
 	sqlite3 "github.com/mutecomm/go-sqlcipher/v4"
 	accountdomain "github.com/sleaze5/RobloxAccountManager/internal/accounts"
-	"github.com/sleaze5/RobloxAccountManager/internal/storage/caches"
 )
 
 type (
@@ -53,13 +51,12 @@ type DatabaseProvider interface {
 
 type Repository struct {
 	provider DatabaseProvider
-	cache    *caches.Store
 	now      func() time.Time
 	logger   *slog.Logger
 }
 
-func NewRepository(provider DatabaseProvider, logger *slog.Logger, cache *caches.Store) *Repository {
-	return &Repository{provider: provider, cache: cache, now: time.Now, logger: logger}
+func NewRepository(provider DatabaseProvider, logger *slog.Logger) *Repository {
+	return &Repository{provider: provider, now: time.Now, logger: logger}
 }
 
 func (repository *Repository) database(ctx context.Context) (*sql.DB, func(), error) {
@@ -86,8 +83,8 @@ func (repository *Repository) Create(ctx context.Context, identity Identity, coo
 	}
 	defer tx.Rollback()
 	result, err := tx.ExecContext(ctx, `
-INSERT INTO accounts(roblox_user_id, display_order, created_at_ms, updated_at_ms)
-SELECT ?, COALESCE(MAX(display_order) + 1, 0), ?, ? FROM accounts`, identity.RobloxUserID, identity.CreatedAt.UTC().UnixMilli(), now.UnixMilli())
+INSERT INTO accounts(roblox_user_id, username, display_name, display_order, created_at_ms, updated_at_ms)
+SELECT ?, ?, ?, COALESCE(MAX(display_order) + 1, 0), ?, ? FROM accounts`, identity.RobloxUserID, identity.Username, identity.DisplayName, identity.CreatedAt.UTC().UnixMilli(), now.UnixMilli())
 	if err != nil {
 		if isConstraint(err) {
 			return AccountView{}, SessionRecord{}, ErrDuplicateAccount
@@ -120,7 +117,7 @@ func (repository *Repository) FindByRobloxUserID(ctx context.Context, userID int
 		return AccountView{}, err
 	}
 	defer release()
-	view, err := repository.scanView(ctx, db.QueryRowContext(ctx, viewQuery+` WHERE a.roblox_user_id = ?`, userID))
+	view, err := scanView(db.QueryRowContext(ctx, viewQuery+` WHERE a.roblox_user_id = ?`, userID))
 	if err != nil {
 		return AccountView{}, err
 	}
@@ -146,7 +143,7 @@ func (repository *Repository) ReplaceCookie(ctx context.Context, accountID int64
 	if err := validateReplacementIdentity(ctx, tx, accountID, identity); err != nil {
 		return AccountView{}, SessionRecord{}, err
 	}
-	if _, err := tx.ExecContext(ctx, `UPDATE accounts SET created_at_ms = ?, updated_at_ms = ? WHERE id = ?`, identity.CreatedAt.UTC().UnixMilli(), now.UnixMilli(), accountID); err != nil {
+	if _, err := tx.ExecContext(ctx, `UPDATE accounts SET username = ?, display_name = ?, created_at_ms = ?, updated_at_ms = ? WHERE id = ?`, identity.Username, identity.DisplayName, identity.CreatedAt.UTC().UnixMilli(), now.UnixMilli(), accountID); err != nil {
 		return AccountView{}, SessionRecord{}, fmt.Errorf("update replaced account: %w", err)
 	}
 	if _, err := tx.ExecContext(ctx, `
@@ -157,7 +154,7 @@ replaced_at_ms = ?, last_validated_at_ms = ?, last_success_at_ms = ?, last_auth_
 	if err := bumpRevision(ctx, tx); err != nil {
 		return AccountView{}, SessionRecord{}, err
 	}
-	view, err := repository.scanView(ctx, tx.QueryRowContext(ctx, viewQuery+` WHERE a.id = ?`, accountID))
+	view, err := scanView(tx.QueryRowContext(ctx, viewQuery+` WHERE a.id = ?`, accountID))
 	if err != nil {
 		return AccountView{}, SessionRecord{}, fmt.Errorf("read replacement account: %w", err)
 	}
@@ -267,8 +264,8 @@ func (repository *Repository) Page(ctx context.Context, query AccountQuery) (Acc
 	where := []string{"1 = 1"}
 	arguments := make([]any, 0, 6)
 	if search := strings.TrimSpace(query.Search); search != "" {
-		where = append(where, repository.searchClause(ctx, search))
-		arguments = append(arguments, search)
+		where = append(where, `(instr(lower(a.username), lower(?)) > 0 OR instr(lower(a.display_name), lower(?)) > 0 OR instr(CAST(a.roblox_user_id AS TEXT), ?) > 0)`)
+		arguments = append(arguments, search, search, search)
 	}
 	for _, tagID := range query.TagIDs {
 		where = append(where, `EXISTS (SELECT 1 FROM account_tags filter_tags WHERE filter_tags.account_id = a.id AND filter_tags.tag_id = ?)`)
@@ -291,7 +288,7 @@ func (repository *Repository) Page(ctx context.Context, query AccountQuery) (Acc
 	views := make([]AccountView, 0, accountPageSize+1)
 	orders := make([]int64, 0, accountPageSize+1)
 	for rows.Next() {
-		view, order, err := repository.scanPageView(ctx, rows)
+		view, order, err := scanPageView(rows)
 		if err != nil {
 			return AccountPage{}, err
 		}
@@ -367,7 +364,7 @@ func (repository *Repository) GetView(ctx context.Context, accountID int64) (Acc
 		return AccountView{}, err
 	}
 	defer release()
-	view, err := repository.scanView(ctx, db.QueryRowContext(ctx, viewQuery+` WHERE a.id = ?`, accountID))
+	view, err := scanView(db.QueryRowContext(ctx, viewQuery+` WHERE a.id = ?`, accountID))
 	if err != nil {
 		return AccountView{}, err
 	}
@@ -447,7 +444,7 @@ func (repository *Repository) RecordValidation(ctx context.Context, accountID, e
 	if changed == 0 {
 		return ErrStaleSecret
 	}
-	if _, err := tx.ExecContext(ctx, `UPDATE accounts SET created_at_ms = ?, updated_at_ms = ? WHERE id = ?`, identity.CreatedAt.UTC().UnixMilli(), now, accountID); err != nil {
+	if _, err := tx.ExecContext(ctx, `UPDATE accounts SET username = ?, display_name = ?, created_at_ms = ?, updated_at_ms = ? WHERE id = ?`, identity.Username, identity.DisplayName, identity.CreatedAt.UTC().UnixMilli(), now, accountID); err != nil {
 		return fmt.Errorf("update validated account: %w", err)
 	}
 	if err := bumpRevision(ctx, tx); err != nil {
@@ -488,14 +485,14 @@ func (repository *Repository) RecordSuccess(ctx context.Context, accountID, expe
 }
 
 const viewQuery = `
-SELECT a.id, a.roblox_user_id, 'User ' || a.roblox_user_id, '',
+SELECT a.id, a.roblox_user_id, COALESCE(NULLIF(a.username, ''), 'User ' || a.roblox_user_id), a.display_name,
        s.state, s.state_reason, s.secret_version, s.cookie_expires_at_ms,
 	   a.created_at_ms, s.imported_at_ms, s.rotated_at_ms, s.last_validated_at_ms,
 	   s.updated_at_ms, s.password <> ''
 FROM accounts a JOIN account_sessions s ON s.account_id = a.id`
 
 const pageViewQuery = `
-SELECT a.id, a.roblox_user_id, 'User ' || a.roblox_user_id, '',
+SELECT a.id, a.roblox_user_id, COALESCE(NULLIF(a.username, ''), 'User ' || a.roblox_user_id), a.display_name,
        s.state, s.state_reason, s.secret_version, s.cookie_expires_at_ms,
 	   a.created_at_ms, s.imported_at_ms, s.rotated_at_ms, s.last_validated_at_ms,
 	   s.updated_at_ms, s.password <> '', a.display_order
@@ -509,7 +506,7 @@ FROM account_sessions`
 
 type scanner interface{ Scan(...any) error }
 
-func (repository *Repository) scanView(ctx context.Context, row scanner) (AccountView, error) {
+func scanView(row scanner) (AccountView, error) {
 	var view AccountView
 	var expires, rotated, validated sql.NullInt64
 	err := row.Scan(&view.ID, &view.RobloxUserID, &view.Username, &view.DisplayName, &view.State, &view.StateReason, &view.SecretVersion, &expires, &view.CreatedAtMS, &view.ImportedAtMS, &rotated, &validated, &view.UpdatedAtMS, &view.HasSavedPassword)
@@ -519,8 +516,6 @@ func (repository *Repository) scanView(ctx context.Context, row scanner) (Accoun
 	if err != nil {
 		return AccountView{}, fmt.Errorf("scan account: %w", err)
 	}
-	user, _ := repository.cache.User(ctx, view.RobloxUserID)
-	view.Username, view.DisplayName = user.Username, user.DisplayName
 	view.Tags = []TagView{}
 	view.CookieExpiresAtMS = nullMillisPtr(expires)
 	view.RotatedAtMS = nullMillisPtr(rotated)
@@ -528,7 +523,7 @@ func (repository *Repository) scanView(ctx context.Context, row scanner) (Accoun
 	return view, nil
 }
 
-func (repository *Repository) scanPageView(ctx context.Context, row scanner) (AccountView, int64, error) {
+func scanPageView(row scanner) (AccountView, int64, error) {
 	var view AccountView
 	var order int64
 	var expires, rotated, validated sql.NullInt64
@@ -536,8 +531,6 @@ func (repository *Repository) scanPageView(ctx context.Context, row scanner) (Ac
 	if err != nil {
 		return AccountView{}, 0, fmt.Errorf("scan account page: %w", err)
 	}
-	user, _ := repository.cache.User(ctx, view.RobloxUserID)
-	view.Username, view.DisplayName = user.Username, user.DisplayName
 	view.Tags = []TagView{}
 	view.CookieExpiresAtMS = nullMillisPtr(expires)
 	view.RotatedAtMS = nullMillisPtr(rotated)
@@ -710,15 +703,32 @@ func shiftMovedAccounts(ctx context.Context, tx *sql.Tx, oldOrder, newOrder, cou
 	return nil
 }
 
-func (repository *Repository) searchClause(ctx context.Context, search string) string {
-	ids := repository.cache.MatchingUsers(ctx, search)
-	values := make([]string, len(ids))
-	for index, id := range ids {
-		values[index] = strconv.FormatInt(id, 10)
+func (repository *Repository) RestoreNames(ctx context.Context, accountID int64, identity Identity) error {
+	db, release, err := repository.database(ctx)
+	if err != nil {
+		return err
 	}
-	clause := `instr(lower('User ' || a.roblox_user_id), lower(?)) > 0`
-	if len(values) > 0 {
-		clause += ` OR a.roblox_user_id IN (` + strings.Join(values, ",") + `)`
+	defer release()
+	tx, err := db.BeginTx(ctx, nil)
+	if err != nil {
+		return fmt.Errorf("begin account name recovery: %w", err)
 	}
-	return "(" + clause + ")"
+	defer tx.Rollback()
+	result, err := tx.ExecContext(ctx, `UPDATE accounts SET username = ?, display_name = ? WHERE id = ? AND roblox_user_id = ? AND username = ''`, identity.Username, identity.DisplayName, accountID, identity.RobloxUserID)
+	if err != nil {
+		return fmt.Errorf("restore saved account names: %w", err)
+	}
+	changed, err := result.RowsAffected()
+	if err != nil {
+		return fmt.Errorf("count restored account names: %w", err)
+	}
+	if changed > 0 {
+		if err := bumpRevision(ctx, tx); err != nil {
+			return err
+		}
+	}
+	if err := tx.Commit(); err != nil {
+		return fmt.Errorf("commit account name recovery: %w", err)
+	}
+	return nil
 }

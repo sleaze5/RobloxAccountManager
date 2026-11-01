@@ -18,19 +18,14 @@ import (
 	"github.com/sleaze5/RobloxAccountManager/internal/games"
 )
 
-const formatVersion = 1
+const formatVersion = 2
 const freshFor = 5 * time.Minute
 const retention = 30 * 24 * time.Hour
 
 var errInvalidCache = errors.New("invalid cache format")
 
-var schemas = [...]string{`CREATE TABLE metadata (kind TEXT NOT NULL, id INTEGER NOT NULL, payload TEXT NOT NULL, fetched_at INTEGER NOT NULL, PRIMARY KEY(kind, id)); CREATE INDEX metadata_age ON metadata(fetched_at); PRAGMA user_version = 1;`}
+var schemas = [...]string{`CREATE TABLE metadata (kind TEXT NOT NULL, id INTEGER NOT NULL, payload TEXT NOT NULL, fetched_at INTEGER NOT NULL, PRIMARY KEY(kind, id)); CREATE INDEX metadata_age ON metadata(fetched_at); PRAGMA user_version = 1;`, `DELETE FROM metadata WHERE kind = 'user'; PRAGMA user_version = 2;`}
 var _ = [1]struct{}{}[len(schemas)-formatVersion]
-
-type User struct {
-	Username    string `json:"username"`
-	DisplayName string `json:"displayName"`
-}
 
 type Store struct {
 	mu      sync.Mutex
@@ -124,7 +119,7 @@ func (store *Store) open(ctx context.Context) (err error) {
 		uriPath = "/" + uriPath
 	}
 	u := url.URL{Scheme: "file", Path: uriPath}
-	u.RawQuery = "_busy_timeout=250&_journal_mode=DELETE"
+	u.RawQuery = "_busy_timeout=250&_journal_mode=DELETE&_secure_delete=on"
 	db, err := sql.Open("sqlite3", u.String())
 	if err != nil {
 		return fmt.Errorf("open public cache: %w", err)
@@ -145,8 +140,8 @@ func (store *Store) open(ctx context.Context) (err error) {
 	if version < 0 || version > formatVersion {
 		return errInvalidCache
 	}
-	if version == 0 {
-		if _, err := db.ExecContext(ctx, "BEGIN;"+schemas[0]+"COMMIT;"); err != nil {
+	for ; version < formatVersion; version++ {
+		if _, err := db.ExecContext(ctx, "BEGIN;"+schemas[version]+"COMMIT;"); err != nil {
 			return fmt.Errorf("initialize public cache: %w", err)
 		}
 	}
@@ -199,44 +194,4 @@ func (store *Store) Place(ctx context.Context, id int64) (games.Place, bool) {
 func (store *Store) SavePlace(ctx context.Context, place games.Place) {
 	place.Nickname = ""
 	store.write(ctx, "place", place.PlaceID, place)
-}
-
-func (store *Store) User(ctx context.Context, id int64) (User, bool) {
-	user := User{Username: fmt.Sprintf("User %d", id)}
-	fresh := store.read(ctx, "user", id, &user)
-	return user, fresh
-}
-
-func (store *Store) SaveUser(ctx context.Context, id int64, username, displayName string) {
-	store.write(ctx, "user", id, User{Username: username, DisplayName: displayName})
-}
-
-func (store *Store) MatchingUsers(ctx context.Context, search string) []int64 {
-	ids := []int64{}
-	store.access(ctx, func(db *sql.DB) error {
-		rows, err := db.QueryContext(ctx, `SELECT id,payload FROM metadata WHERE kind='user'`)
-		if err != nil {
-			return fmt.Errorf("search cached users: %w", err)
-		}
-		defer rows.Close()
-		for rows.Next() {
-			var id int64
-			var payload string
-			if err := rows.Scan(&id, &payload); err != nil {
-				return fmt.Errorf("read cached user: %w", err)
-			}
-			var user User
-			if err := json.Unmarshal([]byte(payload), &user); err != nil {
-				return fmt.Errorf("%w: decode cached user: %w", errInvalidCache, err)
-			}
-			if strings.Contains(strings.ToLower(user.Username), strings.ToLower(search)) || strings.Contains(strings.ToLower(user.DisplayName), strings.ToLower(search)) {
-				ids = append(ids, id)
-			}
-		}
-		if err := rows.Err(); err != nil {
-			return fmt.Errorf("read matching users: %w", err)
-		}
-		return nil
-	})
-	return ids
 }

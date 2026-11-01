@@ -33,6 +33,7 @@ type Vault interface {
 }
 
 type AccountRepository interface {
+	RestoreNames(context.Context, int64, accounts.Identity) error
 	Create(context.Context, accounts.Identity, string, *time.Time) (accounts.AccountView, accounts.SessionRecord, error)
 	FindByRobloxUserID(context.Context, int64) (accounts.AccountView, error)
 	ReplaceCookie(context.Context, int64, accounts.Identity, string, *time.Time) (accounts.AccountView, accounts.SessionRecord, error)

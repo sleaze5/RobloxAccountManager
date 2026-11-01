@@ -10,9 +10,9 @@ import (
 	"github.com/sleaze5/RobloxAccountManager/internal/logging"
 )
 
-const schemaVersion = 3
+const schemaVersion = 4
 
-var schemaMigrations = [...]func(context.Context, *sql.Tx) error{addAccountPasswords, splitPublicMetadata}
+var schemaMigrations = [...]func(context.Context, *sql.Tx) error{addAccountPasswords, splitPublicMetadata, restoreAccountNames}
 
 var _ = [1]struct{}{}[len(schemaMigrations)-(schemaVersion-1)]
 
@@ -167,6 +167,13 @@ func verifySchema(ctx context.Context, db *sql.DB, expectedID [vaultIDBytes]byte
 	}
 	if len(identifier) != vaultIDBytes || !sameVaultID(expectedID, [vaultIDBytes]byte(identifier)) {
 		return ErrVaultMismatch
+	}
+	return nil
+}
+
+func restoreAccountNames(ctx context.Context, tx *sql.Tx) error {
+	if _, err := tx.ExecContext(ctx, `ALTER TABLE accounts ADD COLUMN username TEXT NOT NULL DEFAULT ''; ALTER TABLE accounts ADD COLUMN display_name TEXT NOT NULL DEFAULT '';`); err != nil {
+		return fmt.Errorf("restore account identity columns: %w", err)
 	}
 	return nil
 }
