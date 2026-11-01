@@ -76,12 +76,16 @@ Task is pinned in `build/tools` the same way and runs with `go tool -modfile bui
 
 The "Check" workflow in `.github/workflows/check.yml` runs on every pull request and every push to `main`. A newer run cancels an older one for the same pull request or branch.
 
-- **Scope** finds the changed files. The native scope runs only when Go files, a `go.mod` or `go.sum` file, `.golangci.yml`, a Taskfile, or `.github/` changed, or when there is no base to compare with.
-- **Common** runs the `check:common` task once on Linux.
-- **Native** runs the `check:native` task on each supported operating system at the same time, when the native scope runs.
-- **CI** passes only when every other job passed or was skipped. Require only this check in branch protection.
+- **Scope** compares the changed files, including deleted and renamed ones. A push compares its before and after commits. A pull request compares its merge commit with the base it merges into, so changes on `main` that the branch does not have are not counted. It selects the other jobs:
+    - Changes in `frontend/` or `scripts/` run **Frontend** with every frontend check.
+    - Changes in `internal/`, to a Go file, or to `go.sum` run **Go**, and **Frontend** without formatting and lint, because the bindings and `APP_VERSION` can change.
+    - Changes only to documentation, `AGENTS.md`, the license files, `.claude/`, or `assets/showcase/` run neither.
+    - Any other change, including `go.mod`, which `check:frontend:source` compares with `@wailsio/runtime`, a missing base, and a manual run, runs everything.
+- **Frontend** runs `.github/workflows/prepare-frontend.yml`, which is described under "Caches".
+- **Go** runs `.github/workflows/validate-go.yml`: the `check:go` task once on Linux, and the `check:native` task on each supported operating system at the same time.
+- **CI** passes only when every selected job passed and every other job was skipped, so a selected job that was skipped or cancelled fails it. Require only this check in branch protection.
 
-Each tool has one setup action, and a job uses only the ones it needs. `.github/actions/setup-go` sets up Go, which runs the pinned Task, so no job installs Task. `.github/actions/setup-bun` sets up Bun. `.github/actions/setup-native` prepares the operating system for cgo: it installs the GTK and WebKitGTK libraries on Linux and pauses Defender on Windows. `.github/actions/setup` combines all three for the "Update dependencies" workflow, which runs the complete local workflow.
+Each tool has one setup action, and a job uses only the ones it needs. `.github/actions/setup-go` sets up Go, which runs the pinned Task, so no job installs Task. `.github/actions/setup-bun` sets up Bun. `.github/actions/setup-native` prepares the operating system for cgo: it installs the GTK and WebKitGTK libraries on Linux and pauses Defender on Windows. The "Update dependencies" workflow runs the complete local workflow, so it uses all three.
 
 ## Caches
 

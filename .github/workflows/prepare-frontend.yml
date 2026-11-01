@@ -2,6 +2,11 @@ name: Prepare frontend
 
 on:
     workflow_call:
+        inputs:
+            source-checks:
+                description: Also check frontend formatting and lint, and that @wailsio/runtime matches go.mod. The type checks always run.
+                type: boolean
+                default: true
         outputs:
             artifact:
                 description: Name of this run's artifact with frontend/bindings and frontend/dist. Pass it to build-targets.yml.
@@ -67,6 +72,7 @@ jobs:
               run: go tool -modfile build/tools/go.mod task frontend:build
 
             - name: Check source
+              if: inputs.source-checks
               run: go tool -modfile build/tools/go.mod task check:frontend:source
 
             - name: Check types
