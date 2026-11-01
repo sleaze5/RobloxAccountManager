@@ -43,6 +43,7 @@ Read each document that matches the change:
 
 - [docs/ARCHITECTURE.md](./docs/ARCHITECTURE.md): frontend and backend boundaries, persisted formats, and logging
 - [docs/DESIGN.md](./docs/DESIGN.md): frontend UI, styling, interaction, and motion
+- [docs/GIT.md](./docs/GIT.md): Git authorship, commits, pull requests, and merging
 - [docs/PLATFORM.md](./docs/PLATFORM.md): supported platforms, build targets, OS-specific code, and data storage
 - [docs/RELEASE.md](./docs/RELEASE.md): versioning, release and build workflows, CI checks, update signing, and in-place updates
 
