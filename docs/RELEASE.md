@@ -95,7 +95,7 @@ Each tool has one setup action, and a job uses only the ones it needs. `.github/
 - `native`: golangci-lint and `go build` on each operating system, and the "Update dependencies" workflow.
 - `frontend`: binding generation.
 - `production-<targets>`: production builds of one target group, such as `production-windows-amd64 windows-arm64`. A single-target test build has its own cache, so it cannot leave out the second architecture of a release build.
-- `none`: no cache, for the publish job, which only builds Task.
+- `release`: the publish job, which builds Task and the Wails CLI.
 
 The key also contains the operating system, the architecture, the Go version, and both `go.sum` files. Go's build cache already tells apart architectures, build flags, tags, and C compiler versions, so a new runner image or compiler only causes cache misses. A cache never changes after it is saved. It gets the packages that changed since then only when a `go.sum` file or the Go version changes.
 

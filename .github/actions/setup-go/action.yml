@@ -3,14 +3,13 @@ description: Set up the Go version pinned in go.mod, which also runs the pinned 
 
 inputs:
     cache:
-        description: Name of the Go cache for this kind of job, or none for no cache. Jobs that compile different packages, flags, or architectures need different names.
+        description: Name of the Go cache for this kind of job. Jobs that compile different packages, flags, or architectures need different names.
         required: true
 
 runs:
     using: composite
     steps:
         - name: Name the Go cache
-          if: inputs.cache != 'none'
           shell: bash
           env:
               CACHE: ${{ inputs.cache }}
@@ -22,7 +21,6 @@ runs:
           uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e
           with:
               go-version-file: go.mod
-              cache: ${{ inputs.cache != 'none' }}
               cache-dependency-path: |
                   go.sum
                   build/tools/go.sum
