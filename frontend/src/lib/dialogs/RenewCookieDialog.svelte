@@ -1,7 +1,8 @@
 <script lang="ts">
-	import CheckIcon from "phosphor-svelte/lib/CheckIcon"
-	import CircleNotchIcon from "phosphor-svelte/lib/CircleNotchIcon"
-	import XIcon from "phosphor-svelte/lib/XIcon"
+	import checkIcon from "@phosphor-icons/core/regular/check.svg?raw"
+	import circleNotchIcon from "@phosphor-icons/core/regular/circle-notch.svg?raw"
+	import xIcon from "@phosphor-icons/core/regular/x.svg?raw"
+	import Icon from "../shared/Icon.svelte"
 	import type { Account } from "../accounts/account-model"
 	import type { AccountStore } from "../accounts/account-store.svelte"
 	import { accountBackend } from "../backend/bridge"
@@ -73,7 +74,7 @@
 				aria-label="Close cookie renewal"
 				disabled={pending}
 				onclick={onClose}>
-				<XIcon size={14} aria-hidden="true" />
+				<Icon svg={xIcon} size={14} aria-hidden="true" />
 			</button>
 		</div>
 		{#if phase === "confirm"}
@@ -88,12 +89,20 @@
 				role="status"
 				aria-live="polite">
 				{#if pending}
-					<CircleNotchIcon size={16} class="spinner" aria-hidden="true" />
+					<Icon
+						svg={circleNotchIcon}
+						size={16}
+						class="spinner"
+						aria-hidden="true" />
 					<span>Renewing the cookie and saving it…</span>
 				{:else if error}
 					<span>Renewal could not be confirmed.</span>
 				{:else}
-					<CheckIcon size={16} class="text-success" aria-hidden="true" />
+					<Icon
+						svg={checkIcon}
+						size={16}
+						class="text-success"
+						aria-hidden="true" />
 					<span>The renewed cookie is saved.</span>
 				{/if}
 			</div>

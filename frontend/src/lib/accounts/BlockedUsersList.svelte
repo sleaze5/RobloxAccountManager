@@ -1,5 +1,6 @@
 <script lang="ts">
-	import CircleNotchIcon from "phosphor-svelte/lib/CircleNotchIcon"
+	import circleNotchIcon from "@phosphor-icons/core/regular/circle-notch.svg?raw"
+	import Icon from "../shared/Icon.svelte"
 	import type { BlockedUser } from "../backend/bridge"
 	import ProfileImage from "../shared/ProfileImage.svelte"
 	import type { BlockedUsersState } from "./blocked-users-state.svelte"
@@ -18,7 +19,7 @@
 {#if !blocked.users}
 	{#if blocked.loading}
 		<div class="flex items-center gap-2 text-xs text-fg-muted" role="status">
-			<CircleNotchIcon class="spinner" size={16} aria-hidden="true" />
+			<Icon svg={circleNotchIcon} class="spinner" size={16} aria-hidden="true" />
 			Loading blocked users
 		</div>
 	{/if}
@@ -44,7 +45,11 @@
 					disabled={blocked.loading || blocked.unblocking !== null}
 					onclick={() => void blocked.unblock(user)}>
 					{#if blocked.unblocking === user.userId}
-						<CircleNotchIcon class="spinner" size={14} aria-hidden="true" />
+						<Icon
+							svg={circleNotchIcon}
+							class="spinner"
+							size={14}
+							aria-hidden="true" />
 					{/if}
 					Unblock
 				</button>

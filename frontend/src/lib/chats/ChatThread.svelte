@@ -1,7 +1,8 @@
 <script lang="ts">
-	import EyeIcon from "phosphor-svelte/lib/EyeIcon"
-	import CircleNotchIcon from "phosphor-svelte/lib/CircleNotchIcon"
-	import PaperPlaneRightIcon from "phosphor-svelte/lib/PaperPlaneRightIcon"
+	import circleNotchIcon from "@phosphor-icons/core/regular/circle-notch.svg?raw"
+	import eyeIcon from "@phosphor-icons/core/regular/eye.svg?raw"
+	import paperPlaneRightIcon from "@phosphor-icons/core/regular/paper-plane-right.svg?raw"
+	import Icon from "../shared/Icon.svelte"
 	import { tick } from "svelte"
 	import type { ChatConversationView } from "../backend/bridge"
 	import ChatAvatar from "./ChatAvatar.svelte"
@@ -162,7 +163,11 @@
 				aria-busy={chat.olderLoading}
 				onclick={() => void loadOlder()}>
 				{#if chat.olderLoading}
-					<CircleNotchIcon class="spinner" size={16} aria-hidden="true" />
+					<Icon
+						svg={circleNotchIcon}
+						class="spinner"
+						size={16}
+						aria-hidden="true" />
 				{/if}
 				Load older messages
 			</button>
@@ -182,7 +187,11 @@
 		{/if}
 		{#if chat.messagesLoading && chat.messages.length === 0}
 			<p class="flex items-center gap-2 p-2 text-xs text-fg-faint" role="status">
-				<CircleNotchIcon class="spinner" size={16} aria-hidden="true" />
+				<Icon
+					svg={circleNotchIcon}
+					class="spinner"
+					size={16}
+					aria-hidden="true" />
 				Loading messages
 			</p>
 		{:else if timeline.length === 0 && !chat.messagesError}
@@ -282,9 +291,13 @@
 			disabled={chat.markingRead}
 			onclick={() => void chat.markRead()}>
 			{#if chat.markingRead}
-				<CircleNotchIcon class="spinner" size={16} aria-hidden="true" />
+				<Icon
+					svg={circleNotchIcon}
+					class="spinner"
+					size={16}
+					aria-hidden="true" />
 			{:else}
-				<EyeIcon size={16} aria-hidden="true" />
+				<Icon svg={eyeIcon} size={16} aria-hidden="true" />
 			{/if}
 		</button>
 		<button
@@ -293,7 +306,7 @@
 			aria-label="Send message"
 			data-tooltip="Send message"
 			disabled={!draft.trim()}>
-			<PaperPlaneRightIcon size={16} aria-hidden="true" />
+			<Icon svg={paperPlaneRightIcon} size={16} aria-hidden="true" />
 		</button>
 	</form>
 </section>

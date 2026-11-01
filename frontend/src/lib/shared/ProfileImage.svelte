@@ -1,5 +1,6 @@
 <script lang="ts">
-	import UserIcon from "phosphor-svelte/lib/UserIcon"
+	import userIcon from "@phosphor-icons/core/regular/user.svg?raw"
+	import Icon from "./Icon.svelte"
 
 	let { url }: { url: string } = $props()
 	let failed = $state("")
@@ -15,5 +16,5 @@
 		referrerpolicy="no-referrer"
 		onerror={() => (failed = url)} />
 {:else}
-	<UserIcon class="size-1/2 text-fg-faint" aria-hidden="true" />
+	<Icon svg={userIcon} class="size-1/2 text-fg-faint" aria-hidden="true" />
 {/if}

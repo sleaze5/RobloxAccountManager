@@ -1,18 +1,19 @@
 <script lang="ts">
-	import CurrencyCircleDollarIcon from "phosphor-svelte/lib/CurrencyCircleDollarIcon"
-	import CaretLeftIcon from "phosphor-svelte/lib/CaretLeftIcon"
-	import CaretRightIcon from "phosphor-svelte/lib/CaretRightIcon"
-	import EyeIcon from "phosphor-svelte/lib/EyeIcon"
-	import CircleNotchIcon from "phosphor-svelte/lib/CircleNotchIcon"
-	import LockKeyIcon from "phosphor-svelte/lib/LockKeyIcon"
-	import ChatCircleIcon from "phosphor-svelte/lib/ChatCircleIcon"
-	import ArrowsClockwiseIcon from "phosphor-svelte/lib/ArrowsClockwiseIcon"
-	import MagnifyingGlassIcon from "phosphor-svelte/lib/MagnifyingGlassIcon"
-	import ProhibitIcon from "phosphor-svelte/lib/ProhibitIcon"
-	import ShieldCheckIcon from "phosphor-svelte/lib/ShieldCheckIcon"
-	import SlidersHorizontalIcon from "phosphor-svelte/lib/SlidersHorizontalIcon"
-	import UserCircleIcon from "phosphor-svelte/lib/UserCircleIcon"
-	import XIcon from "phosphor-svelte/lib/XIcon"
+	import arrowsClockwiseIcon from "@phosphor-icons/core/regular/arrows-clockwise.svg?raw"
+	import caretLeftIcon from "@phosphor-icons/core/regular/caret-left.svg?raw"
+	import caretRightIcon from "@phosphor-icons/core/regular/caret-right.svg?raw"
+	import chatCircleIcon from "@phosphor-icons/core/regular/chat-circle.svg?raw"
+	import circleNotchIcon from "@phosphor-icons/core/regular/circle-notch.svg?raw"
+	import currencyCircleDollarIcon from "@phosphor-icons/core/regular/currency-circle-dollar.svg?raw"
+	import eyeIcon from "@phosphor-icons/core/regular/eye.svg?raw"
+	import lockKeyIcon from "@phosphor-icons/core/regular/lock-key.svg?raw"
+	import magnifyingGlassIcon from "@phosphor-icons/core/regular/magnifying-glass.svg?raw"
+	import prohibitIcon from "@phosphor-icons/core/regular/prohibit.svg?raw"
+	import shieldCheckIcon from "@phosphor-icons/core/regular/shield-check.svg?raw"
+	import slidersHorizontalIcon from "@phosphor-icons/core/regular/sliders-horizontal.svg?raw"
+	import userCircleIcon from "@phosphor-icons/core/regular/user-circle.svg?raw"
+	import xIcon from "@phosphor-icons/core/regular/x.svg?raw"
+	import Icon from "../shared/Icon.svelte"
 	import { onMount, tick, untrack } from "svelte"
 	import SidebarResizer from "../layout/SidebarResizer.svelte"
 	import type { WorkspaceState } from "../layout/workspace-state.svelte"
@@ -49,7 +50,7 @@
 	interface CategoryDef {
 		id: string
 		label: string
-		icon: typeof ShieldCheckIcon
+		icon: string
 		search: string
 		sections: SectionDef[]
 	}
@@ -115,7 +116,7 @@
 		{
 			id: "content-maturity",
 			label: "Content maturity",
-			icon: ShieldCheckIcon,
+			icon: shieldCheckIcon,
 			search: "content maturity minimal mild moderate restricted sensitive issues",
 			sections: [
 				{
@@ -145,7 +146,7 @@
 		{
 			id: "communication",
 			label: "Communication",
-			icon: ChatCircleIcon,
+			icon: chatCircleIcon,
 			search: "communication experience direct chat party friends voice data product improvements camera input gameplay coordination quick words",
 			sections: [
 				{
@@ -252,7 +253,7 @@
 		{
 			id: "visibility-private-servers",
 			label: "Visibility & private servers",
-			icon: EyeIcon,
+			icon: eyeIcon,
 			search: "visibility private servers online status current game activity updates social links who can add friend suggestions contacts phone",
 			sections: [
 				{
@@ -341,7 +342,7 @@
 		{
 			id: "trading-inventory",
 			label: "Trading & inventory",
-			icon: CurrencyCircleDollarIcon,
+			icon: currencyCircleDollarIcon,
 			search: "trading inventory visibility trade audience quality filter",
 			sections: [
 				{
@@ -377,7 +378,7 @@
 		{
 			id: "ads-preferences",
 			label: "Ads preferences",
-			icon: SlidersHorizontalIcon,
+			icon: slidersHorizontalIcon,
 			search: "ads preferences personalize advertising data selling sharing",
 			sections: [
 				{
@@ -416,13 +417,13 @@
 			{
 				id: "info",
 				label: "Account info",
-				icon: UserCircleIcon,
+				icon: userCircleIcon,
 				search: "account info",
 			},
 			{
 				id: "privacy",
 				label: privacyLabel,
-				icon: LockKeyIcon,
+				icon: lockKeyIcon,
 				search: "privacy content restrictions",
 			},
 		] as const
@@ -774,7 +775,7 @@
 			aria-label="Back to profile"
 			data-tooltip="Back to profile"
 			onclick={onBack}>
-			<CaretLeftIcon data-nudge="left" size={16} aria-hidden="true" />
+			<Icon svg={caretLeftIcon} data-nudge="left" size={16} aria-hidden="true" />
 		</button>
 		<h1 id="account-settings-title" tabindex="-1" bind:this={heading}>
 			Account settings
@@ -789,9 +790,17 @@
 			disabled={refreshing}
 			onclick={refresh}>
 			{#if refreshing}
-				<CircleNotchIcon class="spinner" size={16} aria-hidden="true" />
+				<Icon
+					svg={circleNotchIcon}
+					class="spinner"
+					size={16}
+					aria-hidden="true" />
 			{:else}
-				<ArrowsClockwiseIcon data-turn size={16} aria-hidden="true" />
+				<Icon
+					svg={arrowsClockwiseIcon}
+					data-turn
+					size={16}
+					aria-hidden="true" />
 			{/if}
 		</button>
 	</header>
@@ -801,7 +810,7 @@
 		style={`--sidebar-width: ${workspace.accountSettingsSidebarWidth}px;`}>
 		<aside class="settings-sidebar">
 			<div class="m-3 search-field">
-				<MagnifyingGlassIcon size={16} aria-hidden="true" />
+				<Icon svg={magnifyingGlassIcon} size={16} aria-hidden="true" />
 				<input
 					bind:value={workspace.accountSettingsQuery}
 					oninput={resetScroll}
@@ -816,7 +825,7 @@
 							resetScroll()
 							workspace.accountSettingsQuery = ""
 						}}>
-						<XIcon size={14} aria-hidden="true" />
+						<Icon svg={xIcon} size={14} aria-hidden="true" />
 					</button>
 				{/if}
 			</div>
@@ -829,7 +838,7 @@
 						data-tooltip={page.label}
 						data-tooltip-side="right"
 						onclick={() => selectPage(page.id)}>
-						<page.icon size={16} aria-hidden="true" />
+						<Icon svg={page.icon} size={16} aria-hidden="true" />
 						<span>{page.label}</span>
 					</button>
 				{/each}
@@ -888,12 +897,14 @@
 									type="button"
 									data-settings-subpage={cat.id}
 									onclick={() => void openCategory(cat.id)}>
-									<cat.icon
+									<Icon
+										svg={cat.icon}
 										class="shrink-0 text-fg-muted"
 										size={16}
 										aria-hidden="true" />
 									<span class="flex-1">{cat.label}</span>
-									<CaretRightIcon
+									<Icon
+										svg={caretRightIcon}
 										data-nudge="right"
 										class="shrink-0 text-fg-muted"
 										size={16}
@@ -907,12 +918,14 @@
 									data-settings-subpage={blockedUsersPage.id}
 									onclick={() =>
 										void openCategory(blockedUsersPage.id)}>
-									<ProhibitIcon
+									<Icon
+										svg={prohibitIcon}
 										class="shrink-0 text-fg-muted"
 										size={16}
 										aria-hidden="true" />
 									<span class="flex-1">{blockedUsersPage.label}</span>
-									<CaretRightIcon
+									<Icon
+										svg={caretRightIcon}
 										data-nudge="right"
 										class="shrink-0 text-fg-muted"
 										size={16}
@@ -929,7 +942,8 @@
 								aria-label={`Back to ${privacyLabel}`}
 								data-tooltip={`Back to ${privacyLabel}`}
 								onclick={() => void closeCategory()}>
-								<CaretLeftIcon
+								<Icon
+									svg={caretLeftIcon}
 									data-nudge="left"
 									size={16}
 									aria-hidden="true" />
@@ -946,7 +960,8 @@
 							<div
 								class="flex items-center gap-2 text-xs text-fg-muted"
 								role="status">
-								<CircleNotchIcon
+								<Icon
+									svg={circleNotchIcon}
 									class="spinner"
 									size={16}
 									aria-hidden="true" />

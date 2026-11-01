@@ -1,6 +1,7 @@
 <script lang="ts">
-	import ClipboardTextIcon from "phosphor-svelte/lib/ClipboardTextIcon"
-	import GlobeHemisphereWestIcon from "phosphor-svelte/lib/GlobeHemisphereWestIcon"
+	import clipboardTextIcon from "@phosphor-icons/core/regular/clipboard-text.svg?raw"
+	import globeHemisphereWestIcon from "@phosphor-icons/core/regular/globe-hemisphere-west.svg?raw"
+	import Icon from "../shared/Icon.svelte"
 	import { floatMenu, menuIn, menuOut } from "../shared/presence"
 
 	let {
@@ -23,11 +24,11 @@
 	in:menuIn
 	out:menuOut>
 	<button class="menu-item" type="button" {disabled} onclick={onBrowser}>
-		<GlobeHemisphereWestIcon size={16} aria-hidden="true" />
+		<Icon svg={globeHemisphereWestIcon} size={16} aria-hidden="true" />
 		<span>Sign in with browser</span>
 	</button>
 	<button class="menu-item" type="button" {disabled} onclick={onPasteCookie}>
-		<ClipboardTextIcon size={16} aria-hidden="true" />
+		<Icon svg={clipboardTextIcon} size={16} aria-hidden="true" />
 		<span>Paste cookie</span>
 	</button>
 </div>

@@ -3,9 +3,10 @@
 </script>
 
 <script lang="ts">
-	import EyeIcon from "phosphor-svelte/lib/EyeIcon"
-	import EyeSlashIcon from "phosphor-svelte/lib/EyeSlashIcon"
-	import XIcon from "phosphor-svelte/lib/XIcon"
+	import eyeIcon from "@phosphor-icons/core/regular/eye.svg?raw"
+	import eyeSlashIcon from "@phosphor-icons/core/regular/eye-slash.svg?raw"
+	import xIcon from "@phosphor-icons/core/regular/x.svg?raw"
+	import Icon from "../shared/Icon.svelte"
 	import type { Account } from "../accounts/account-model"
 	import { accountBackend } from "../backend/bridge"
 	import type { NotificationCenter } from "../notifications/notification-center.svelte"
@@ -154,7 +155,7 @@
 					aria-label={`Close ${titles[kind].toLowerCase()}`}
 					disabled={pending}
 					onclick={close}>
-					<XIcon size={14} aria-hidden="true" />
+					<Icon svg={xIcon} size={14} aria-hidden="true" />
 				</button>
 			</div>
 
@@ -246,7 +247,11 @@
 						class="mt-2 flex items-center gap-1 py-1 text-xs text-fg-muted transition-colors duration-100 *:animate-pop"
 						type="button"
 						onclick={() => (visible = !visible)}>
-						{#if visible}<EyeSlashIcon size={16} aria-hidden="true" /> Hide passwords{:else}<EyeIcon
+						{#if visible}<Icon
+								svg={eyeSlashIcon}
+								size={16}
+								aria-hidden="true" /> Hide passwords{:else}<Icon
+								svg={eyeIcon}
 								size={16}
 								aria-hidden="true" /> Show passwords{/if}
 					</button>

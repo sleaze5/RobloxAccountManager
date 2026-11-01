@@ -1,6 +1,7 @@
 <script lang="ts">
-	import MicrophoneIcon from "phosphor-svelte/lib/MicrophoneIcon"
-	import MicrophoneSlashIcon from "phosphor-svelte/lib/MicrophoneSlashIcon"
+	import microphoneIcon from "@phosphor-icons/core/regular/microphone.svg?raw"
+	import microphoneSlashIcon from "@phosphor-icons/core/regular/microphone-slash.svg?raw"
+	import Icon from "../shared/Icon.svelte"
 	import { VoiceChatState } from "../backend/bridge"
 	import type { VoiceChat } from "../backend/bridge"
 	import { formatClock } from "../shared/duration"
@@ -39,9 +40,11 @@
 
 <div data-tone={status.tone || undefined}>
 	<dt>
-		{#if voiceChat?.state === VoiceChatState.VoiceChatOn}<MicrophoneIcon
+		{#if voiceChat?.state === VoiceChatState.VoiceChatOn}<Icon
+				svg={microphoneIcon}
 				size={16}
-				aria-hidden="true" />{:else}<MicrophoneSlashIcon
+				aria-hidden="true" />{:else}<Icon
+				svg={microphoneSlashIcon}
 				size={16}
 				aria-hidden="true" />{/if}
 		{label}

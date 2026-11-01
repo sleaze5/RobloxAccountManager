@@ -1,14 +1,15 @@
 <script lang="ts">
-	import SealCheckIcon from "phosphor-svelte/lib/SealCheckIcon"
-	import GearIcon from "phosphor-svelte/lib/GearIcon"
-	import HashIcon from "phosphor-svelte/lib/HashIcon"
-	import CircleNotchIcon from "phosphor-svelte/lib/CircleNotchIcon"
-	import DotsThreeIcon from "phosphor-svelte/lib/DotsThreeIcon"
-	import ChatsIcon from "phosphor-svelte/lib/ChatsIcon"
-	import ArrowsClockwiseIcon from "phosphor-svelte/lib/ArrowsClockwiseIcon"
-	import StarIcon from "phosphor-svelte/lib/StarIcon"
-	import TagIcon from "phosphor-svelte/lib/TagIcon"
-	import WarningCircleIcon from "phosphor-svelte/lib/WarningCircleIcon"
+	import arrowsClockwiseIcon from "@phosphor-icons/core/regular/arrows-clockwise.svg?raw"
+	import chatsIcon from "@phosphor-icons/core/regular/chats.svg?raw"
+	import circleNotchIcon from "@phosphor-icons/core/regular/circle-notch.svg?raw"
+	import dotsThreeIcon from "@phosphor-icons/core/regular/dots-three.svg?raw"
+	import gearIcon from "@phosphor-icons/core/regular/gear.svg?raw"
+	import hashIcon from "@phosphor-icons/core/regular/hash.svg?raw"
+	import sealCheckIcon from "@phosphor-icons/core/regular/seal-check.svg?raw"
+	import starFillIcon from "@phosphor-icons/core/fill/star-fill.svg?raw"
+	import tagIcon from "@phosphor-icons/core/regular/tag.svg?raw"
+	import warningCircleIcon from "@phosphor-icons/core/regular/warning-circle.svg?raw"
+	import Icon from "../shared/Icon.svelte"
 	import { tick, untrack } from "svelte"
 	import { SessionState } from "../backend/bridge"
 	import ChatsPage from "../chats/ChatsPage.svelte"
@@ -149,12 +150,13 @@
 						id="account-name"
 						class="flex min-w-0 items-center gap-1 text-lg leading-tight font-semibold tracking-tight text-fg">
 						<span class="truncate">{selectedAccount.displayName}</span>
-						{#if selectedAccount.favorite}<StarIcon
+						{#if selectedAccount.favorite}<Icon
+								svg={starFillIcon}
 								class="shrink-0 animate-pop text-accent-strong"
 								size={16}
-								weight="fill"
 								aria-hidden="true" />{/if}
-						{#if profile?.verifiedBadge}<SealCheckIcon
+						{#if profile?.verifiedBadge}<Icon
+								svg={sealCheckIcon}
 								class="shrink-0 text-accent-strong"
 								size={16}
 								aria-label="Verified" />{/if}
@@ -168,7 +170,10 @@
 						</div>
 						{#if selectedAccount.state === SessionState.StateReauthRequired || selectedAccount.state === SessionState.StateChallenged}
 							<div class="flex items-center gap-2 text-xs text-warning">
-								<WarningCircleIcon size={14} aria-hidden="true" />
+								<Icon
+									svg={warningCircleIcon}
+									size={14}
+									aria-hidden="true" />
 								<span
 									>{selectedAccount.state ===
 									SessionState.StateReauthRequired
@@ -214,9 +219,17 @@
 						profileState?.loading}
 					onclick={() => void profileState?.refresh(true)}>
 					{#if profileState?.loading}
-						<CircleNotchIcon class="spinner" size={16} aria-hidden="true" />
+						<Icon
+							svg={circleNotchIcon}
+							class="spinner"
+							size={16}
+							aria-hidden="true" />
 					{:else}
-						<ArrowsClockwiseIcon data-turn size={16} aria-hidden="true" />
+						<Icon
+							svg={arrowsClockwiseIcon}
+							data-turn
+							size={16}
+							aria-hidden="true" />
 					{/if}
 				</button>
 				<button
@@ -227,7 +240,7 @@
 					disabled={!hasAccount || !store.vault.unlocked}
 					bind:this={chatsButton}
 					onclick={() => openPage("chats")}>
-					<ChatsIcon size={16} aria-hidden="true" />
+					<Icon svg={chatsIcon} size={16} aria-hidden="true" />
 				</button>
 				<button
 					class="btn-icon"
@@ -237,7 +250,7 @@
 					disabled={!hasAccount || !store.vault.unlocked}
 					bind:this={settingsButton}
 					onclick={() => openPage("settings")}>
-					<GearIcon size={16} aria-hidden="true" />
+					<Icon svg={gearIcon} size={16} aria-hidden="true" />
 				</button>
 				<button
 					class="btn-icon"
@@ -253,7 +266,7 @@
 						if (workspace.accountContextMenu) workspace.closeAccountMenus()
 						else workspace.openAccountContextMenu(event, selectedAccount.id)
 					}}>
-					<DotsThreeIcon size={16} aria-hidden="true" />
+					<Icon svg={dotsThreeIcon} size={16} aria-hidden="true" />
 				</button>
 			</div>
 		</div>
@@ -262,13 +275,13 @@
 			<div class="flex flex-wrap items-center gap-1">
 				{#if selectedAccount.favorite}
 					<span class="tag-pill-favorite">
-						<StarIcon size={12} weight="fill" aria-hidden="true" />
+						<Icon svg={starFillIcon} size={12} aria-hidden="true" />
 						<span>Favorite</span>
 					</span>
 				{/if}
 				{#each selectedCustomTags as tag (tag.id)}
 					<span class="tag-pill">
-						<HashIcon size={12} aria-hidden="true" />
+						<Icon svg={hashIcon} size={12} aria-hidden="true" />
 						<span>{tag.name}</span>
 					</span>
 				{/each}
@@ -284,7 +297,7 @@
 						data-tooltip="Edit account tags"
 						disabled={store.busy}
 						onclick={() => workspace.toggleAccountMenu("profile-tags")}>
-						<TagIcon size={14} aria-hidden="true" />
+						<Icon svg={tagIcon} size={14} aria-hidden="true" />
 					</button>
 					{#if workspace.activeAccountMenu === "profile-tags"}
 						<div

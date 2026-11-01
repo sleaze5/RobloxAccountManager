@@ -1,8 +1,8 @@
-import CodeIcon from "phosphor-svelte/lib/CodeIcon"
-import EyeSlashIcon from "phosphor-svelte/lib/EyeSlashIcon"
-import GameControllerIcon from "phosphor-svelte/lib/GameControllerIcon"
-import GlobeIcon from "phosphor-svelte/lib/GlobeIcon"
-import GlobeXIcon from "phosphor-svelte/lib/GlobeXIcon"
+import codeIcon from "@phosphor-icons/core/regular/code.svg?raw"
+import eyeSlashIcon from "@phosphor-icons/core/regular/eye-slash.svg?raw"
+import gameControllerIcon from "@phosphor-icons/core/regular/game-controller.svg?raw"
+import globeIcon from "@phosphor-icons/core/regular/globe.svg?raw"
+import globeXIcon from "@phosphor-icons/core/regular/globe-x.svg?raw"
 import { AgeVerification, PresenceType, SessionState, TagKind } from "../backend/bridge"
 import type { AccountView, TagView, UserPresence } from "../backend/bridge"
 
@@ -123,18 +123,18 @@ export function presenceTextClass(presence: UserPresence): string {
 	}
 }
 
-export function presenceIcon(presence: UserPresence): typeof GlobeIcon {
+export function presenceIcon(presence: UserPresence): string {
 	switch (presence.userPresenceType) {
 		case PresenceType.PresenceTypeOnline:
-			return GlobeIcon
+			return globeIcon
 		case PresenceType.PresenceTypeInGame:
-			return GameControllerIcon
+			return gameControllerIcon
 		case PresenceType.PresenceTypeInStudio:
-			return CodeIcon
+			return codeIcon
 		case PresenceType.PresenceTypeInvisible:
-			return EyeSlashIcon
+			return eyeSlashIcon
 		default:
-			return GlobeXIcon
+			return globeXIcon
 	}
 }
 

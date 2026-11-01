@@ -1,5 +1,6 @@
 <script lang="ts">
-	import CircleNotchIcon from "phosphor-svelte/lib/CircleNotchIcon"
+	import circleNotchIcon from "@phosphor-icons/core/regular/circle-notch.svg?raw"
+	import Icon from "../shared/Icon.svelte"
 	import ChatAvatar from "./ChatAvatar.svelte"
 	import type { ChatState } from "./chat-state.svelte"
 	import { chatListTime } from "./chat-time"
@@ -34,7 +35,7 @@
 
 {#if chat.loading && chat.conversations.length === 0}
 	<p class="flex items-center gap-2 p-2 text-xs text-fg-faint" role="status">
-		<CircleNotchIcon class="spinner" size={16} aria-hidden="true" />
+		<Icon svg={circleNotchIcon} class="spinner" size={16} aria-hidden="true" />
 		Loading chats
 	</p>
 {:else if chat.conversations.length === 0 && !chat.error}
@@ -94,7 +95,8 @@
 					Load more chats
 				</button>
 			{:else}
-				<CircleNotchIcon
+				<Icon
+					svg={circleNotchIcon}
 					class="spinner"
 					size={16}
 					aria-label="Loading more chats" />

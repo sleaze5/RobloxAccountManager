@@ -31,24 +31,25 @@
 </script>
 
 <script lang="ts">
-	import AtIcon from "phosphor-svelte/lib/AtIcon"
-	import CakeIcon from "phosphor-svelte/lib/CakeIcon"
-	import CalendarIcon from "phosphor-svelte/lib/CalendarIcon"
-	import FlagIcon from "phosphor-svelte/lib/FlagIcon"
-	import TranslateIcon from "phosphor-svelte/lib/TranslateIcon"
-	import CircleNotchIcon from "phosphor-svelte/lib/CircleNotchIcon"
-	import EnvelopeIcon from "phosphor-svelte/lib/EnvelopeIcon"
-	import IdentificationCardIcon from "phosphor-svelte/lib/IdentificationCardIcon"
-	import KeyIcon from "phosphor-svelte/lib/KeyIcon"
-	import LockKeyIcon from "phosphor-svelte/lib/LockKeyIcon"
-	import PencilSimpleIcon from "phosphor-svelte/lib/PencilSimpleIcon"
-	import MapPinIcon from "phosphor-svelte/lib/MapPinIcon"
-	import PhoneIcon from "phosphor-svelte/lib/PhoneIcon"
-	import UserCircleIcon from "phosphor-svelte/lib/UserCircleIcon"
-	import GlobeHemisphereWestIcon from "phosphor-svelte/lib/GlobeHemisphereWestIcon"
-	import HourglassIcon from "phosphor-svelte/lib/HourglassIcon"
-	import ToggleRightIcon from "phosphor-svelte/lib/ToggleRightIcon"
-	import UserCheckIcon from "phosphor-svelte/lib/UserCheckIcon"
+	import atIcon from "@phosphor-icons/core/regular/at.svg?raw"
+	import cakeIcon from "@phosphor-icons/core/regular/cake.svg?raw"
+	import calendarIcon from "@phosphor-icons/core/regular/calendar.svg?raw"
+	import circleNotchIcon from "@phosphor-icons/core/regular/circle-notch.svg?raw"
+	import envelopeIcon from "@phosphor-icons/core/regular/envelope.svg?raw"
+	import flagIcon from "@phosphor-icons/core/regular/flag.svg?raw"
+	import globeHemisphereWestIcon from "@phosphor-icons/core/regular/globe-hemisphere-west.svg?raw"
+	import hourglassIcon from "@phosphor-icons/core/regular/hourglass.svg?raw"
+	import identificationCardIcon from "@phosphor-icons/core/regular/identification-card.svg?raw"
+	import keyIcon from "@phosphor-icons/core/regular/key.svg?raw"
+	import lockKeyIcon from "@phosphor-icons/core/regular/lock-key.svg?raw"
+	import mapPinIcon from "@phosphor-icons/core/regular/map-pin.svg?raw"
+	import pencilSimpleIcon from "@phosphor-icons/core/regular/pencil-simple.svg?raw"
+	import phoneIcon from "@phosphor-icons/core/regular/phone.svg?raw"
+	import toggleRightIcon from "@phosphor-icons/core/regular/toggle-right.svg?raw"
+	import translateIcon from "@phosphor-icons/core/regular/translate.svg?raw"
+	import userCheckIcon from "@phosphor-icons/core/regular/user-check.svg?raw"
+	import userCircleIcon from "@phosphor-icons/core/regular/user-circle.svg?raw"
+	import Icon from "../shared/Icon.svelte"
 	import Timestamp from "../shared/Timestamp.svelte"
 	import SensitiveValue from "../shared/SensitiveValue.svelte"
 	import { AgeVerification, PinState, VoiceChatState } from "../backend/bridge"
@@ -124,13 +125,13 @@
 		aria-label={label}
 		data-tooltip={label}
 		onclick={() => onEdit(kind)}>
-		<PencilSimpleIcon size={14} aria-hidden="true" />
+		<Icon svg={pencilSimpleIcon} size={14} aria-hidden="true" />
 	</button>
 {/snippet}
 
 {#snippet passwordFact()}
 	<div>
-		<dt><KeyIcon size={16} aria-hidden="true" />Password</dt>
+		<dt><Icon svg={keyIcon} size={16} aria-hidden="true" />Password</dt>
 		<dd>
 			{#if account.hasSavedPassword}
 				{#key `${account.id}:${passwordResets}`}
@@ -170,7 +171,7 @@
 	{/if}
 	{#if info.loading}
 		<div class="flex items-center gap-2 text-xs text-fg-muted" role="status">
-			<CircleNotchIcon class="spinner" size={16} aria-hidden="true" />
+			<Icon svg={circleNotchIcon} class="spinner" size={16} aria-hidden="true" />
 			Loading account info
 		</div>
 	{/if}
@@ -182,7 +183,8 @@
 				{#if visible.has("displayName")}
 					<div>
 						<dt>
-							<IdentificationCardIcon
+							<Icon
+								svg={identificationCardIcon}
 								size={16}
 								aria-hidden="true" />Display name
 						</dt>
@@ -194,7 +196,9 @@
 				{/if}
 				{#if visible.has("username")}
 					<div>
-						<dt><AtIcon size={16} aria-hidden="true" />Username</dt>
+						<dt>
+							<Icon svg={atIcon} size={16} aria-hidden="true" />Username
+						</dt>
 						<dd><span>{account.username}</span></dd>
 					</div>
 				{/if}
@@ -203,7 +207,12 @@
 				{/if}
 				{#if visible.has("pin")}
 					<div>
-						<dt><LockKeyIcon size={16} aria-hidden="true" />Account PIN</dt>
+						<dt>
+							<Icon
+								svg={lockKeyIcon}
+								size={16}
+								aria-hidden="true" />Account PIN
+						</dt>
 						<dd>
 							{#if missing("pin") || !pinLabels[snapshot.pin]}
 								<span class="text-fg-faint">Unavailable</span>
@@ -221,7 +230,12 @@
 				{/if}
 				{#if visible.has("gender")}
 					<div>
-						<dt><UserCircleIcon size={16} aria-hidden="true" />Gender</dt>
+						<dt>
+							<Icon
+								svg={userCircleIcon}
+								size={16}
+								aria-hidden="true" />Gender
+						</dt>
 						<dd>
 							{#if missing("gender")}
 								<span class="text-fg-faint">Unavailable</span>
@@ -235,7 +249,10 @@
 				{/if}
 				{#if visible.has("ageGroup")}
 					<div>
-						<dt><CalendarIcon size={16} aria-hidden="true" />Age group</dt>
+						<dt>
+							<Icon svg={calendarIcon} size={16} aria-hidden="true" />Age
+							group
+						</dt>
 						<dd>
 							{#if snapshot.ageGroup}
 								<span>{snapshot.ageGroup}</span>
@@ -252,7 +269,9 @@
 				{/if}
 				{#if visible.has("birthday")}
 					<div>
-						<dt><CakeIcon size={16} aria-hidden="true" />Birthday</dt>
+						<dt>
+							<Icon svg={cakeIcon} size={16} aria-hidden="true" />Birthday
+						</dt>
 						<dd>
 							{#if birthday}
 								<SensitiveValue label="Birthday"
@@ -270,7 +289,10 @@
 				{/if}
 				{#if visible.has("firstAccount")}
 					<div>
-						<dt><FlagIcon size={16} aria-hidden="true" />First account</dt>
+						<dt>
+							<Icon svg={flagIcon} size={16} aria-hidden="true" />First
+							account
+						</dt>
 						<dd>
 							{#if snapshot.firstAccount == null}
 								<span class="text-fg-faint">Unavailable</span>
@@ -295,7 +317,12 @@
 			<dl class="facts">
 				{#if visible.has("email")}
 					<div>
-						<dt><EnvelopeIcon size={16} aria-hidden="true" />Email</dt>
+						<dt>
+							<Icon
+								svg={envelopeIcon}
+								size={16}
+								aria-hidden="true" />Email
+						</dt>
 						<dd>
 							{#if missing("email")}
 								<span class="text-fg-faint">Unavailable</span>
@@ -317,7 +344,10 @@
 				{/if}
 				{#if visible.has("phone")}
 					<div>
-						<dt><PhoneIcon size={16} aria-hidden="true" />Phone number</dt>
+						<dt>
+							<Icon svg={phoneIcon} size={16} aria-hidden="true" />Phone
+							number
+						</dt>
 						<dd>
 							{#if missing("phone")}
 								<span class="text-fg-faint">Unavailable</span>
@@ -344,7 +374,12 @@
 			<dl class="facts">
 				{#if visible.has("language")}
 					<div>
-						<dt><TranslateIcon size={16} aria-hidden="true" />Language</dt>
+						<dt>
+							<Icon
+								svg={translateIcon}
+								size={16}
+								aria-hidden="true" />Language
+						</dt>
 						<dd>
 							{#if snapshot.language}
 								<span>{snapshot.language}</span>
@@ -357,7 +392,8 @@
 				{#if visible.has("translations")}
 					<div>
 						<dt>
-							<GlobeHemisphereWestIcon
+							<Icon
+								svg={globeHemisphereWestIcon}
 								size={16}
 								aria-hidden="true" />Automatic translations
 						</dt>
@@ -373,7 +409,10 @@
 				{#if visible.has("location")}
 					<div>
 						<dt>
-							<MapPinIcon size={16} aria-hidden="true" />Account location
+							<Icon
+								svg={mapPinIcon}
+								size={16}
+								aria-hidden="true" />Account location
 						</dt>
 						<dd>
 							{#if missing("location")}
@@ -401,8 +440,10 @@
 					{#if voice?.state === VoiceChatState.VoiceChatSuspended && voice.suspendedUntilMs}
 						<div>
 							<dt>
-								<HourglassIcon size={16} aria-hidden="true" />Suspension
-								ends
+								<Icon
+									svg={hourglassIcon}
+									size={16}
+									aria-hidden="true" />Suspension ends
 							</dt>
 							<dd><Timestamp value={voice.suspendedUntilMs} /></dd>
 						</div>
@@ -411,7 +452,10 @@
 				{#if visible.has("voiceOptIn")}
 					<div>
 						<dt>
-							<ToggleRightIcon size={16} aria-hidden="true" />Opted in
+							<Icon
+								svg={toggleRightIcon}
+								size={16}
+								aria-hidden="true" />Opted in
 						</dt>
 						<dd>
 							{#if voice}
@@ -428,8 +472,10 @@
 				{#if visible.has("voiceVerification")}
 					<div>
 						<dt>
-							<UserCheckIcon size={16} aria-hidden="true" />Voice
-							verification
+							<Icon
+								svg={userCheckIcon}
+								size={16}
+								aria-hidden="true" />Voice verification
 						</dt>
 						<dd>
 							{#if voice}

@@ -162,8 +162,8 @@ Text colors:
 
 ## Icons
 
-- Use Phosphor icons when an appropriate icon exists. Import each component directly, for example `import GearIcon from "phosphor-svelte/lib/GearIcon"`. Do not use barrel imports or an icon registry.
-- Use the default `regular` weight, `light` for title-bar controls, `bold` for compact checkbox marks, and `fill` for filled states such as favorites. Use the `weight` prop instead of SVG `fill` or `strokeWidth` overrides.
+- Use Phosphor icons when an appropriate icon exists. Import each icon as a single-weight raw SVG from `@phosphor-icons/core/<weight>/<name>.svg?raw`, for example `import gearIcon from "@phosphor-icons/core/regular/gear.svg?raw"`, and render it with `lib/shared/Icon.svelte`, for example `<Icon svg={gearIcon} size={16} aria-hidden="true" />`. Do not use barrel imports or an icon registry.
+- Use the default `regular` weight, `light` for title-bar controls, `bold` for compact checkbox marks, and `fill` for filled states such as favorites. Pick the weight by importing its file (`fill/star-fill.svg?raw`), and import each weight you switch between. Do not override the SVG `fill` or stroke width.
 - Use 16px icons by default in buttons, menu items, list rows, and fields.
 - Use 14px icons in 24px controls, in tags, and next to 12px text. Use 12px icons next to 11px or smaller text. Use 11px icons for checkbox marks.
 - Use 18px icons for title-bar controls and 28px icons for empty states.

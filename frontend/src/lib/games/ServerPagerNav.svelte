@@ -1,7 +1,8 @@
 <script lang="ts">
-	import CaretLeftIcon from "phosphor-svelte/lib/CaretLeftIcon"
-	import CaretRightIcon from "phosphor-svelte/lib/CaretRightIcon"
-	import CaretDoubleLeftIcon from "phosphor-svelte/lib/CaretDoubleLeftIcon"
+	import caretDoubleLeftIcon from "@phosphor-icons/core/regular/caret-double-left.svg?raw"
+	import caretLeftIcon from "@phosphor-icons/core/regular/caret-left.svg?raw"
+	import caretRightIcon from "@phosphor-icons/core/regular/caret-right.svg?raw"
+	import Icon from "../shared/Icon.svelte"
 
 	let {
 		pager,
@@ -25,14 +26,22 @@
 		data-tooltip="First page"
 		disabled={pager.loading || pager.pageNumber < 2}
 		onclick={() => pager.first()}>
-		<CaretDoubleLeftIcon data-nudge="left" size={16} aria-hidden="true" />
+		<Icon
+			svg={caretDoubleLeftIcon}
+			data-nudge="left"
+			size={16}
+			aria-hidden="true" />
 	</button>
 	<button
 		class="btn"
 		type="button"
 		disabled={pager.loading || pager.pageNumber < 2}
 		onclick={() => pager.previous()}>
-		<CaretLeftIcon data-nudge="left" size={16} aria-hidden="true" />Previous
+		<Icon
+			svg={caretLeftIcon}
+			data-nudge="left"
+			size={16}
+			aria-hidden="true" />Previous
 	</button>
 	<span class="px-1 text-xs text-fg-muted" aria-current="page"
 		>Page {pager.pageNumber}</span>
@@ -41,6 +50,10 @@
 		type="button"
 		disabled={pager.loading || !pager.hasNext}
 		onclick={() => pager.next()}>
-		Next<CaretRightIcon data-nudge="right" size={16} aria-hidden="true" />
+		Next<Icon
+			svg={caretRightIcon}
+			data-nudge="right"
+			size={16}
+			aria-hidden="true" />
 	</button>
 </nav>

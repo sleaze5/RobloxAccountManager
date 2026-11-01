@@ -1,17 +1,19 @@
 <script lang="ts">
-	import CheckIcon from "phosphor-svelte/lib/CheckIcon"
-	import CaretLeftIcon from "phosphor-svelte/lib/CaretLeftIcon"
-	import CaretRightIcon from "phosphor-svelte/lib/CaretRightIcon"
-	import HashIcon from "phosphor-svelte/lib/HashIcon"
-	import FunnelIcon from "phosphor-svelte/lib/FunnelIcon"
-	import CircleNotchIcon from "phosphor-svelte/lib/CircleNotchIcon"
-	import PlusIcon from "phosphor-svelte/lib/PlusIcon"
-	import ArrowsClockwiseIcon from "phosphor-svelte/lib/ArrowsClockwiseIcon"
-	import MagnifyingGlassIcon from "phosphor-svelte/lib/MagnifyingGlassIcon"
-	import SlidersIcon from "phosphor-svelte/lib/SlidersIcon"
-	import StarIcon from "phosphor-svelte/lib/StarIcon"
-	import UsersIcon from "phosphor-svelte/lib/UsersIcon"
-	import XIcon from "phosphor-svelte/lib/XIcon"
+	import arrowsClockwiseIcon from "@phosphor-icons/core/regular/arrows-clockwise.svg?raw"
+	import caretLeftIcon from "@phosphor-icons/core/regular/caret-left.svg?raw"
+	import caretRightIcon from "@phosphor-icons/core/regular/caret-right.svg?raw"
+	import checkIcon from "@phosphor-icons/core/regular/check.svg?raw"
+	import circleNotchIcon from "@phosphor-icons/core/regular/circle-notch.svg?raw"
+	import funnelIcon from "@phosphor-icons/core/regular/funnel.svg?raw"
+	import hashIcon from "@phosphor-icons/core/regular/hash.svg?raw"
+	import magnifyingGlassIcon from "@phosphor-icons/core/regular/magnifying-glass.svg?raw"
+	import plusIcon from "@phosphor-icons/core/regular/plus.svg?raw"
+	import slidersIcon from "@phosphor-icons/core/regular/sliders.svg?raw"
+	import starFillIcon from "@phosphor-icons/core/fill/star-fill.svg?raw"
+	import starIcon from "@phosphor-icons/core/regular/star.svg?raw"
+	import usersIcon from "@phosphor-icons/core/regular/users.svg?raw"
+	import xIcon from "@phosphor-icons/core/regular/x.svg?raw"
+	import Icon from "../shared/Icon.svelte"
 	import type { WorkspaceState } from "../layout/workspace-state.svelte"
 	import SidebarResizer from "../layout/SidebarResizer.svelte"
 	import { menuIn, menuOut } from "../shared/presence"
@@ -73,9 +75,13 @@
 				data-tooltip="Expand the account sidebar"
 				data-tooltip-side="right"
 				onclick={() => (workspace.sidebarCollapsed = false)}>
-				<CaretRightIcon data-nudge="right" size={16} aria-hidden="true" />
+				<Icon
+					svg={caretRightIcon}
+					data-nudge="right"
+					size={16}
+					aria-hidden="true" />
 			</button>
-			<UsersIcon size={16} aria-hidden="true" />
+			<Icon svg={usersIcon} size={16} aria-hidden="true" />
 			<span class="font-mono text-2xs">{store.accountTotal}</span>
 		</div>
 	{:else}
@@ -99,7 +105,7 @@
 							data-tooltip-side="bottom-end"
 							disabled={store.busy}
 							onclick={() => workspace.toggleAccountMenu("add-account")}>
-							<PlusIcon size={16} aria-hidden="true" />
+							<Icon svg={plusIcon} size={16} aria-hidden="true" />
 						</button>
 					</div>
 					<button
@@ -114,12 +120,14 @@
 						disabled={!store.vault.unlocked || store.refreshing}
 						onclick={() => void store.refreshAccountList()}>
 						{#if store.refreshing}
-							<CircleNotchIcon
+							<Icon
+								svg={circleNotchIcon}
 								class="spinner"
 								size={16}
 								aria-hidden="true" />
 						{:else}
-							<ArrowsClockwiseIcon
+							<Icon
+								svg={arrowsClockwiseIcon}
 								data-turn
 								size={16}
 								aria-hidden="true" />
@@ -132,7 +140,11 @@
 						data-tooltip="Collapse the account sidebar"
 						data-tooltip-side="bottom-end"
 						onclick={() => (workspace.sidebarCollapsed = true)}>
-						<CaretLeftIcon data-nudge="left" size={16} aria-hidden="true" />
+						<Icon
+							svg={caretLeftIcon}
+							data-nudge="left"
+							size={16}
+							aria-hidden="true" />
 					</button>
 				</div>
 				{#if workspace.activeAccountMenu === "add-account"}
@@ -144,7 +156,7 @@
 			</div>
 			<div class="flex items-center gap-1">
 				<div class="search-field">
-					<MagnifyingGlassIcon size={16} aria-hidden="true" />
+					<Icon svg={magnifyingGlassIcon} size={16} aria-hidden="true" />
 					<input
 						value={store.query}
 						oninput={(event) =>
@@ -159,7 +171,7 @@
 							type="button"
 							aria-label="Clear account search"
 							onclick={() => store.setQuery("")}>
-							<XIcon size={14} aria-hidden="true" />
+							<Icon svg={xIcon} size={14} aria-hidden="true" />
 						</button>
 					{/if}
 				</div>
@@ -184,7 +196,7 @@
 							: `${store.selectedTagIds.length} tag filters`}
 						data-tooltip-side="bottom-end"
 						onclick={() => workspace.toggleAccountMenu("tag-filter")}>
-						<FunnelIcon size={16} aria-hidden="true" />
+						<Icon svg={funnelIcon} size={16} aria-hidden="true" />
 						{#if store.selectedTagIds.length > 0}
 							<span
 								class="absolute -top-1 -right-1 grid h-3.5 min-w-3.5 animate-bloom place-items-center rounded-sm border border-surface bg-accent-strong px-0.5 font-mono text-2xs font-bold text-canvas"
@@ -212,8 +224,10 @@
 											store.clearSelectedTags()
 											filterTrigger?.focus()
 										}}>
-										<XIcon size={14} aria-hidden="true" /><span
-											>Clear</span>
+										<Icon
+											svg={xIcon}
+											size={14}
+											aria-hidden="true" /><span>Clear</span>
 									</button>
 								{/if}
 							</div>
@@ -226,15 +240,16 @@
 								onclick={() =>
 									store.favoriteTag &&
 									store.toggleSelectedTag(store.favoriteTag.id)}>
-								<StarIcon
-									size={16}
-									aria-hidden="true"
-									weight={store.favoriteTag &&
+								<Icon
+									svg={store.favoriteTag &&
 									store.selectedTagIds.includes(store.favoriteTag.id)
-										? "fill"
-										: "regular"} />
+										? starFillIcon
+										: starIcon}
+									size={16}
+									aria-hidden="true" />
 								<span>Favorites</span>
-								{#if store.favoriteTag && store.selectedTagIds.includes(store.favoriteTag.id)}<CheckIcon
+								{#if store.favoriteTag && store.selectedTagIds.includes(store.favoriteTag.id)}<Icon
+										svg={checkIcon}
 										size={16}
 										aria-hidden="true"
 										class="ml-auto shrink-0 animate-bloom" />{/if}
@@ -251,9 +266,13 @@
 											tag.id,
 										)}
 										onclick={() => store.toggleSelectedTag(tag.id)}>
-										<HashIcon size={16} aria-hidden="true" />
+										<Icon
+											svg={hashIcon}
+											size={16}
+											aria-hidden="true" />
 										<span>{tag.name}</span>
-										{#if store.selectedTagIds.includes(tag.id)}<CheckIcon
+										{#if store.selectedTagIds.includes(tag.id)}<Icon
+												svg={checkIcon}
 												size={16}
 												aria-hidden="true"
 												class="ml-auto shrink-0 animate-bloom" />{/if}
@@ -269,8 +288,10 @@
 								class="menu-item shrink-0"
 								type="button"
 								onclick={() => onManageTags()}>
-								<SlidersIcon size={16} aria-hidden="true" /><span
-									>Manage tags</span>
+								<Icon
+									svg={slidersIcon}
+									size={16}
+									aria-hidden="true" /><span>Manage tags</span>
 							</button>
 						</div>
 					{/if}
@@ -297,7 +318,7 @@
 								)
 								?.focus()
 						}}>
-						<XIcon size={14} aria-hidden="true" />
+						<Icon svg={xIcon} size={14} aria-hidden="true" />
 						<span>Unselect all</span>
 					</button>
 				</div>

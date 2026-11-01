@@ -29,13 +29,15 @@
 		"no-restricted-imports": [
 			"error",
 			{
-				"paths": [
-					{
-						"name": "phosphor-svelte",
-						"message": "Import icons from phosphor-svelte/lib/<Name>Icon."
-					}
-				],
 				"patterns": [
+					{
+						"regex": "^phosphor-svelte(/|$)",
+						"message": "Import icons as @phosphor-icons/core/<weight>/<name>.svg?raw and render them with lib/shared/Icon.svelte."
+					},
+					{
+						"regex": "^@phosphor-icons/core($|/(assets|dist)/|/[^?]*$|/.*\\?([^r]|r[^a]|ra[^w]|raw.))",
+						"message": "Import each icon as @phosphor-icons/core/<weight>/<name>.svg?raw so that only the used weight is bundled."
+					},
 					{
 						"regex": "(^|/)bindings/",
 						"message": "Import generated bindings through src/lib/backend/bridge.ts."

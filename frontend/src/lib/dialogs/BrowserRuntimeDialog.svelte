@@ -1,6 +1,7 @@
 <script lang="ts">
-	import DownloadSimpleIcon from "phosphor-svelte/lib/DownloadSimpleIcon"
-	import XIcon from "phosphor-svelte/lib/XIcon"
+	import downloadSimpleIcon from "@phosphor-icons/core/regular/download-simple.svg?raw"
+	import xIcon from "@phosphor-icons/core/regular/x.svg?raw"
+	import Icon from "../shared/Icon.svelte"
 	import BrowserRuntimeActivity from "../browser/BrowserRuntimeActivity.svelte"
 	import type { BrowserStore } from "../browser/browser-store.svelte"
 	import { RuntimeStatus } from "../backend/bridge"
@@ -48,7 +49,8 @@
 			<button
 				type="button"
 				aria-label="Dismiss browser download"
-				onclick={onDismiss}><XIcon size={14} aria-hidden="true" /></button>
+				onclick={onDismiss}
+				><Icon svg={xIcon} size={14} aria-hidden="true" /></button>
 		</div>
 		<div
 			class="mt-3 grid grid-cols-2 gap-2 text-xs text-fg-muted *:even:justify-self-end">
@@ -78,7 +80,10 @@
 						void browser.download(
 							runtime.status === RuntimeStatus.RuntimeDamaged,
 						)}
-					><DownloadSimpleIcon size={16} aria-hidden="true" />{damaged
+					><Icon
+						svg={downloadSimpleIcon}
+						size={16}
+						aria-hidden="true" />{damaged
 						? "Redownload browser"
 						: "Download browser"}</button
 				>{/if}

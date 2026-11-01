@@ -1,8 +1,9 @@
 <script lang="ts">
-	import DownloadSimpleIcon from "phosphor-svelte/lib/DownloadSimpleIcon"
-	import CircleNotchIcon from "phosphor-svelte/lib/CircleNotchIcon"
-	import ArrowsClockwiseIcon from "phosphor-svelte/lib/ArrowsClockwiseIcon"
-	import ArrowCounterClockwiseIcon from "phosphor-svelte/lib/ArrowCounterClockwiseIcon"
+	import arrowCounterClockwiseIcon from "@phosphor-icons/core/regular/arrow-counter-clockwise.svg?raw"
+	import arrowsClockwiseIcon from "@phosphor-icons/core/regular/arrows-clockwise.svg?raw"
+	import circleNotchIcon from "@phosphor-icons/core/regular/circle-notch.svg?raw"
+	import downloadSimpleIcon from "@phosphor-icons/core/regular/download-simple.svg?raw"
+	import Icon from "../shared/Icon.svelte"
 	import { UpdateStatus } from "../backend/bridge"
 	import { formatCompactBytes } from "../shared/bytes"
 	import { updateStore } from "../updates/update-store.svelte"
@@ -73,8 +74,10 @@
 						class="btn"
 						type="button"
 						onclick={() => void updateStore.install()}
-						><DownloadSimpleIcon size={16} aria-hidden="true" />Download
-						update</button
+						><Icon
+							svg={downloadSimpleIcon}
+							size={16}
+							aria-hidden="true" />Download update</button
 					>{:else if update.status === UpdateStatus.StatusDownloading}<button
 						class="btn"
 						type="button"
@@ -84,14 +87,16 @@
 						class="btn"
 						type="button"
 						onclick={() => void updateStore.restart()}
-						><ArrowCounterClockwiseIcon
+						><Icon
+							svg={arrowCounterClockwiseIcon}
 							size={16}
 							aria-hidden="true" />Restart to update</button
 					>{:else if update.status === UpdateStatus.StatusRestarting}<button
 						class="btn"
 						type="button"
 						disabled
-						><CircleNotchIcon
+						><Icon
+							svg={circleNotchIcon}
 							class="spinner"
 							size={16}
 							aria-hidden="true" />Restarting</button
@@ -99,7 +104,8 @@
 						class="btn"
 						type="button"
 						disabled
-						><CircleNotchIcon
+						><Icon
+							svg={circleNotchIcon}
 							class="spinner"
 							size={16}
 							aria-hidden="true" />Checking</button
@@ -107,7 +113,8 @@
 						class="btn"
 						type="button"
 						onclick={() => void updateStore.check()}
-						><ArrowsClockwiseIcon
+						><Icon
+							svg={arrowsClockwiseIcon}
 							data-turn
 							size={16}
 							aria-hidden="true" />Check for updates</button
@@ -119,7 +126,8 @@
 				<div class="transfer">
 					<strong>
 						{#if !determinate}
-							<CircleNotchIcon
+							<Icon
+								svg={circleNotchIcon}
 								class="spinner"
 								size={14}
 								role="progressbar"

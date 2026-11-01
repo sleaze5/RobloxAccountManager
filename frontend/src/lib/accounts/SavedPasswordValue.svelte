@@ -1,7 +1,8 @@
 <script lang="ts">
-	import CircleNotchIcon from "phosphor-svelte/lib/CircleNotchIcon"
-	import EyeIcon from "phosphor-svelte/lib/EyeIcon"
-	import EyeSlashIcon from "phosphor-svelte/lib/EyeSlashIcon"
+	import circleNotchIcon from "@phosphor-icons/core/regular/circle-notch.svg?raw"
+	import eyeIcon from "@phosphor-icons/core/regular/eye.svg?raw"
+	import eyeSlashIcon from "@phosphor-icons/core/regular/eye-slash.svg?raw"
+	import Icon from "../shared/Icon.svelte"
 	import { onDestroy } from "svelte"
 	import { accountBackend } from "../backend/bridge"
 	import { errorMessage } from "../shared/errors"
@@ -56,11 +57,11 @@
 		else if (!loading) void show()
 	}}>
 	{#if loading}
-		<CircleNotchIcon class="spinner" size={14} aria-hidden="true" />
+		<Icon svg={circleNotchIcon} class="spinner" size={14} aria-hidden="true" />
 	{:else if password}
-		<EyeSlashIcon size={14} aria-hidden="true" />
+		<Icon svg={eyeSlashIcon} size={14} aria-hidden="true" />
 	{:else}
-		<EyeIcon size={14} aria-hidden="true" />
+		<Icon svg={eyeIcon} size={14} aria-hidden="true" />
 	{/if}
 </button>
 {#if error}<small role="alert">{error}</small>{/if}

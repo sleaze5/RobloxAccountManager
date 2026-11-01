@@ -1,7 +1,8 @@
 <script lang="ts">
-	import HashIcon from "phosphor-svelte/lib/HashIcon"
-	import TrashIcon from "phosphor-svelte/lib/TrashIcon"
-	import XIcon from "phosphor-svelte/lib/XIcon"
+	import hashIcon from "@phosphor-icons/core/regular/hash.svg?raw"
+	import trashIcon from "@phosphor-icons/core/regular/trash.svg?raw"
+	import xIcon from "@phosphor-icons/core/regular/x.svg?raw"
+	import Icon from "../shared/Icon.svelte"
 	import type { AccountStore } from "../accounts/account-store.svelte"
 	import { TagNameInputState } from "../accounts/tag-name-input.svelte"
 	import {
@@ -88,7 +89,7 @@
 				aria-label="Close manage tags dialog"
 				disabled={store.busy}
 				onclick={close}>
-				<XIcon size={14} aria-hidden="true" />
+				<Icon svg={xIcon} size={14} aria-hidden="true" />
 			</button>
 		</div>
 		{#if store.error}
@@ -147,7 +148,8 @@
 			class="max-h-48 overflow-y-auto rounded-md border border-line bg-fill *:not-first:border-t *:not-first:border-line-subtle">
 			{#each store.customTags as tag (tag.id)}
 				<div class="flex min-h-8 items-center gap-2 pl-2 text-xs text-fg">
-					<HashIcon
+					<Icon
+						svg={hashIcon}
 						class="shrink-0 text-fg-faint"
 						size={16}
 						aria-hidden="true" />
@@ -160,7 +162,7 @@
 						data-tooltip-side="left"
 						disabled={store.busy}
 						onclick={() => void store.removeTag(tag.id)}>
-						<TrashIcon size={16} aria-hidden="true" />
+						<Icon svg={trashIcon} size={16} aria-hidden="true" />
 					</button>
 				</div>
 			{:else}

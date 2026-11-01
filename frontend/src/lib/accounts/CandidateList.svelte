@@ -1,6 +1,7 @@
 <script lang="ts">
-	import CheckIcon from "phosphor-svelte/lib/CheckIcon"
-	import MinusIcon from "phosphor-svelte/lib/MinusIcon"
+	import checkBoldIcon from "@phosphor-icons/core/bold/check-bold.svg?raw"
+	import minusBoldIcon from "@phosphor-icons/core/bold/minus-bold.svg?raw"
+	import Icon from "../shared/Icon.svelte"
 	import ProfileImage from "../shared/ProfileImage.svelte"
 	import type { CandidateListItem } from "./candidate-model"
 
@@ -43,12 +44,12 @@
 					disabled={disabled || selectableCount === 0}
 					onchange={onToggleAll} />
 				<span aria-hidden="true">
-					{#if someSelected}<MinusIcon
+					{#if someSelected}<Icon
+							svg={minusBoldIcon}
 							size={11}
-							weight="bold"
-							aria-hidden="true" />{:else}<CheckIcon
+							aria-hidden="true" />{:else}<Icon
+							svg={checkBoldIcon}
 							size={11}
-							weight="bold"
 							aria-hidden="true" />{/if}
 				</span>
 			</span>
@@ -73,7 +74,10 @@
 						onchange={(event) =>
 							onToggle(item.id, event.currentTarget.checked)} />
 					<span aria-hidden="true"
-						><CheckIcon size={11} weight="bold" aria-hidden="true" /></span>
+						><Icon
+							svg={checkBoldIcon}
+							size={11}
+							aria-hidden="true" /></span>
 				</label>
 				{#if item.indexLabel}<span
 						class="w-5 shrink-0 text-right font-mono text-fg-faint"

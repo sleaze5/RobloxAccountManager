@@ -1,10 +1,11 @@
 <script lang="ts">
-	import FileMagnifyingGlassIcon from "phosphor-svelte/lib/FileMagnifyingGlassIcon"
-	import GameControllerIcon from "phosphor-svelte/lib/GameControllerIcon"
-	import CircleNotchIcon from "phosphor-svelte/lib/CircleNotchIcon"
-	import LockKeyIcon from "phosphor-svelte/lib/LockKeyIcon"
-	import GearIcon from "phosphor-svelte/lib/GearIcon"
-	import UsersIcon from "phosphor-svelte/lib/UsersIcon"
+	import circleNotchIcon from "@phosphor-icons/core/regular/circle-notch.svg?raw"
+	import fileMagnifyingGlassIcon from "@phosphor-icons/core/regular/file-magnifying-glass.svg?raw"
+	import gameControllerIcon from "@phosphor-icons/core/regular/game-controller.svg?raw"
+	import gearIcon from "@phosphor-icons/core/regular/gear.svg?raw"
+	import lockKeyIcon from "@phosphor-icons/core/regular/lock-key.svg?raw"
+	import usersIcon from "@phosphor-icons/core/regular/users.svg?raw"
+	import Icon from "../shared/Icon.svelte"
 	import type { AccountStore } from "../accounts/account-store.svelte"
 
 	let {
@@ -32,7 +33,7 @@
 			type="button"
 			aria-current={activePage === "accounts" ? "page" : undefined}
 			onclick={() => onPage("accounts")}>
-			<UsersIcon size={16} aria-hidden="true" />
+			<Icon svg={usersIcon} size={16} aria-hidden="true" />
 			<span>Accounts</span>
 		</button>
 		<button
@@ -40,7 +41,7 @@
 			type="button"
 			aria-current={activePage === "games" ? "page" : undefined}
 			onclick={() => onPage("games")}>
-			<GameControllerIcon size={16} aria-hidden="true" />
+			<Icon svg={gameControllerIcon} size={16} aria-hidden="true" />
 			<span>Games</span>
 		</button>
 		<button
@@ -48,7 +49,7 @@
 			type="button"
 			aria-current={activePage === "logs-explorer" ? "page" : undefined}
 			onclick={() => onPage("logs-explorer")}>
-			<FileMagnifyingGlassIcon size={16} aria-hidden="true" />
+			<Icon svg={fileMagnifyingGlassIcon} size={16} aria-hidden="true" />
 			<span>Logs Explorer</span>
 		</button>
 	</nav>
@@ -61,10 +62,12 @@
 			data-tooltip-side="bottom-end"
 			disabled={!store.vault.unlocked || store.busy}
 			onclick={onLock}>
-			{#if store.busy}<CircleNotchIcon
+			{#if store.busy}<Icon
+					svg={circleNotchIcon}
 					class="spinner"
 					size={16}
-					aria-hidden="true" />{:else}<LockKeyIcon
+					aria-hidden="true" />{:else}<Icon
+					svg={lockKeyIcon}
 					class="animate-pop"
 					size={16}
 					aria-hidden="true" />{/if}
@@ -76,7 +79,7 @@
 			data-tooltip="Settings"
 			data-tooltip-side="bottom-end"
 			onclick={onSettings}>
-			<GearIcon class="animate-pop" size={16} aria-hidden="true" />
+			<Icon svg={gearIcon} class="animate-pop" size={16} aria-hidden="true" />
 		</button>
 	</div>
 </header>

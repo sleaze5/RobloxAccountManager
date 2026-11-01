@@ -1,17 +1,18 @@
 <script lang="ts">
-	import SealCheckIcon from "phosphor-svelte/lib/SealCheckIcon"
-	import CalendarDotsIcon from "phosphor-svelte/lib/CalendarDotsIcon"
-	import WarningCircleIcon from "phosphor-svelte/lib/WarningCircleIcon"
-	import CheckCircleIcon from "phosphor-svelte/lib/CheckCircleIcon"
-	import CircleDashedIcon from "phosphor-svelte/lib/CircleDashedIcon"
-	import CookieIcon from "phosphor-svelte/lib/CookieIcon"
-	import DatabaseIcon from "phosphor-svelte/lib/DatabaseIcon"
-	import GlobeHemisphereWestIcon from "phosphor-svelte/lib/GlobeHemisphereWestIcon"
-	import ArrowsClockwiseIcon from "phosphor-svelte/lib/ArrowsClockwiseIcon"
-	import ShieldCheckIcon from "phosphor-svelte/lib/ShieldCheckIcon"
-	import ShieldSlashIcon from "phosphor-svelte/lib/ShieldSlashIcon"
-	import UserCircleIcon from "phosphor-svelte/lib/UserCircleIcon"
-	import UsersThreeIcon from "phosphor-svelte/lib/UsersThreeIcon"
+	import arrowsClockwiseIcon from "@phosphor-icons/core/regular/arrows-clockwise.svg?raw"
+	import calendarDotsIcon from "@phosphor-icons/core/regular/calendar-dots.svg?raw"
+	import checkCircleIcon from "@phosphor-icons/core/regular/check-circle.svg?raw"
+	import circleDashedIcon from "@phosphor-icons/core/regular/circle-dashed.svg?raw"
+	import cookieIcon from "@phosphor-icons/core/regular/cookie.svg?raw"
+	import databaseIcon from "@phosphor-icons/core/regular/database.svg?raw"
+	import globeHemisphereWestIcon from "@phosphor-icons/core/regular/globe-hemisphere-west.svg?raw"
+	import sealCheckIcon from "@phosphor-icons/core/regular/seal-check.svg?raw"
+	import shieldCheckIcon from "@phosphor-icons/core/regular/shield-check.svg?raw"
+	import shieldSlashIcon from "@phosphor-icons/core/regular/shield-slash.svg?raw"
+	import userCircleIcon from "@phosphor-icons/core/regular/user-circle.svg?raw"
+	import usersThreeIcon from "@phosphor-icons/core/regular/users-three.svg?raw"
+	import warningCircleIcon from "@phosphor-icons/core/regular/warning-circle.svg?raw"
+	import Icon from "../shared/Icon.svelte"
 	import { AgeVerification, SessionState } from "../backend/bridge"
 	import type { AccountProfileSnapshot } from "../backend/bridge"
 	import Timestamp from "../shared/Timestamp.svelte"
@@ -103,7 +104,9 @@
 	<dl class="facts">
 		{#if account.createdAtMs}
 			<div>
-				<dt><CalendarDotsIcon size={16} aria-hidden="true" />Joined</dt>
+				<dt>
+					<Icon svg={calendarDotsIcon} size={16} aria-hidden="true" />Joined
+				</dt>
 				<dd>
 					<Timestamp value={account.createdAtMs} />
 					<small>{accountAge} old</small>
@@ -112,7 +115,12 @@
 		{/if}
 		{#if country}
 			<div>
-				<dt><GlobeHemisphereWestIcon size={16} aria-hidden="true" />Country</dt>
+				<dt>
+					<Icon
+						svg={globeHemisphereWestIcon}
+						size={16}
+						aria-hidden="true" />Country
+				</dt>
 				<dd>
 					<span>{country}</span>
 					<small class="font-mono">{snapshot?.countryCode}</small>
@@ -122,9 +130,11 @@
 		{#if age || ageVerification}
 			<div>
 				<dt>
-					{#if snapshot?.ageVerification === AgeVerification.AgeVerifiedFaceScan || snapshot?.ageVerification === AgeVerification.AgeVerifiedID}<SealCheckIcon
+					{#if snapshot?.ageVerification === AgeVerification.AgeVerifiedFaceScan || snapshot?.ageVerification === AgeVerification.AgeVerifiedID}<Icon
+							svg={sealCheckIcon}
 							size={16}
-							aria-hidden="true" />{:else}<UserCircleIcon
+							aria-hidden="true" />{:else}<Icon
+							svg={userCircleIcon}
 							size={16}
 							aria-hidden="true" />{/if}
 					Age group
@@ -138,9 +148,11 @@
 		{#if snapshot && snapshot.twoStepEnabled !== null}
 			<div data-tone={snapshot.twoStepEnabled ? undefined : "warning"}>
 				<dt>
-					{#if snapshot.twoStepEnabled}<ShieldCheckIcon
+					{#if snapshot.twoStepEnabled}<Icon
+							svg={shieldCheckIcon}
 							size={16}
-							aria-hidden="true" />{:else}<ShieldSlashIcon
+							aria-hidden="true" />{:else}<Icon
+							svg={shieldSlashIcon}
 							size={16}
 							aria-hidden="true" />{/if}
 					2-step verification
@@ -157,10 +169,14 @@
 		{#if snapshot?.primaryGroup}
 			{@const group = snapshot.primaryGroup}
 			<div>
-				<dt><UsersThreeIcon size={16} aria-hidden="true" />Primary group</dt>
+				<dt>
+					<Icon svg={usersThreeIcon} size={16} aria-hidden="true" />Primary
+					group
+				</dt>
 				<dd>
 					<span class="inline-flex min-w-0 items-center gap-1"
-						>{group.name}{#if group.verified}<SealCheckIcon
+						>{group.name}{#if group.verified}<Icon
+								svg={sealCheckIcon}
 								class="shrink-0 text-fg-muted"
 								size={14}
 								aria-label="Verified group" />{/if}</span>
@@ -182,11 +198,14 @@
 	<dl class="facts">
 		<div data-tone={session.tone}>
 			<dt>
-				{#if session.tone === "success"}<CheckCircleIcon
+				{#if session.tone === "success"}<Icon
+						svg={checkCircleIcon}
 						size={16}
-						aria-hidden="true" />{:else if session.tone === "warning"}<WarningCircleIcon
+						aria-hidden="true" />{:else if session.tone === "warning"}<Icon
+						svg={warningCircleIcon}
 						size={16}
-						aria-hidden="true" />{:else}<CircleDashedIcon
+						aria-hidden="true" />{:else}<Icon
+						svg={circleDashedIcon}
 						size={16}
 						aria-hidden="true" />{/if}
 				Session
@@ -198,7 +217,9 @@
 		</div>
 		{#if account.cookieExpiresAtMs}
 			<div>
-				<dt><CookieIcon size={16} aria-hidden="true" />Cookie expires</dt>
+				<dt>
+					<Icon svg={cookieIcon} size={16} aria-hidden="true" />Cookie expires
+				</dt>
 				<dd>
 					<Timestamp value={account.cookieExpiresAtMs} />
 					<small>{relativeTime(account.cookieExpiresAtMs)}</small>
@@ -207,7 +228,9 @@
 		{/if}
 		{#if account.lastValidatedAtMs}
 			<div>
-				<dt><CheckCircleIcon size={16} aria-hidden="true" />Validated</dt>
+				<dt>
+					<Icon svg={checkCircleIcon} size={16} aria-hidden="true" />Validated
+				</dt>
 				<dd>
 					<Timestamp value={account.lastValidatedAtMs} />
 					<small>{relativeTime(account.lastValidatedAtMs)}</small>
@@ -217,8 +240,11 @@
 		{#if account.rotatedAtMs}
 			<div>
 				<dt>
-					<ArrowsClockwiseIcon data-turn size={16} aria-hidden="true" />Cookie
-					renewed
+					<Icon
+						svg={arrowsClockwiseIcon}
+						data-turn
+						size={16}
+						aria-hidden="true" />Cookie renewed
 				</dt>
 				<dd>
 					<Timestamp value={account.rotatedAtMs} />
@@ -228,7 +254,7 @@
 		{/if}
 		{#if account.importedAtMs}
 			<div>
-				<dt><DatabaseIcon size={16} aria-hidden="true" />Added</dt>
+				<dt><Icon svg={databaseIcon} size={16} aria-hidden="true" />Added</dt>
 				<dd>
 					<Timestamp value={account.importedAtMs} />
 					<small>{relativeTime(account.importedAtMs)}</small>

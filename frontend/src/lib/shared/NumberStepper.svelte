@@ -1,6 +1,7 @@
 <script lang="ts">
-	import MinusIcon from "phosphor-svelte/lib/MinusIcon"
-	import PlusIcon from "phosphor-svelte/lib/PlusIcon"
+	import minusIcon from "@phosphor-icons/core/regular/minus.svg?raw"
+	import plusIcon from "@phosphor-icons/core/regular/plus.svg?raw"
+	import Icon from "./Icon.svelte"
 	import { tick } from "svelte"
 
 	let {
@@ -100,7 +101,7 @@
 		aria-label={`Decrease ${label.toLowerCase()}`}
 		disabled={disabled || saving || normalized(draft ?? value) <= min}
 		onclick={() => adjust(-1)}>
-		<MinusIcon size={16} aria-hidden="true" />
+		<Icon svg={minusIcon} size={16} aria-hidden="true" />
 	</button>
 	<button
 		class="btn-icon size-8"
@@ -108,6 +109,6 @@
 		aria-label={`Increase ${label.toLowerCase()}`}
 		disabled={disabled || saving || normalized(draft ?? value) >= max}
 		onclick={() => adjust(1)}>
-		<PlusIcon size={16} aria-hidden="true" />
+		<Icon svg={plusIcon} size={16} aria-hidden="true" />
 	</button>
 </div>

@@ -1,8 +1,9 @@
 <script lang="ts">
-	import CaretDownIcon from "phosphor-svelte/lib/CaretDownIcon"
-	import ArrowSquareOutIcon from "phosphor-svelte/lib/ArrowSquareOutIcon"
-	import CornersOutIcon from "phosphor-svelte/lib/CornersOutIcon"
-	import XIcon from "phosphor-svelte/lib/XIcon"
+	import arrowSquareOutIcon from "@phosphor-icons/core/regular/arrow-square-out.svg?raw"
+	import caretDownIcon from "@phosphor-icons/core/regular/caret-down.svg?raw"
+	import cornersOutIcon from "@phosphor-icons/core/regular/corners-out.svg?raw"
+	import xIcon from "@phosphor-icons/core/regular/x.svg?raw"
+	import Icon from "../shared/Icon.svelte"
 	import { onMount, untrack } from "svelte"
 	import CandidateList from "../accounts/CandidateList.svelte"
 	import type { AccountStore } from "../accounts/account-store.svelte"
@@ -228,12 +229,13 @@
 				class="btn"
 				disabled={browser.loading}
 				onclick={() => void browser.startLogin()}
-				><ArrowSquareOutIcon size={16} aria-hidden="true" />Open another browser</button>
+				><Icon svg={arrowSquareOutIcon} size={16} aria-hidden="true" />Open
+				another browser</button>
 			{#if activeLoginSessions.length > 0}<button
 					type="button"
 					class="btn"
 					onclick={() => void browser.closeAllLogin()}
-					><XIcon size={16} aria-hidden="true" />Close all browsers</button
+					><Icon svg={xIcon} size={16} aria-hidden="true" />Close all browsers</button
 				>{/if}
 		</div>
 		<button
@@ -246,7 +248,8 @@
 				1
 					? "session"
 					: "sessions"}</span
-			><CaretDownIcon
+			><Icon
+				svg={caretDownIcon}
 				class={[
 					"transition-transform duration-100",
 					sessionsExpanded && "rotate-180",
@@ -272,7 +275,8 @@
 								disabled={session.lifecycle ===
 									Lifecycle.LifecycleFailed}
 								onclick={() => void browser.focus(session.id)}
-								><CornersOutIcon
+								><Icon
+									svg={cornersOutIcon}
 									size={16}
 									aria-hidden="true" />Focus</button
 							><button
@@ -283,7 +287,10 @@
 									Lifecycle.LifecycleClosing ||
 									session.lifecycle === Lifecycle.LifecycleValidating}
 								onclick={() => void browser.close(session.id)}
-								><XIcon size={16} aria-hidden="true" />Close</button>
+								><Icon
+									svg={xIcon}
+									size={16}
+									aria-hidden="true" />Close</button>
 						</div>
 					</div>
 					{#if session.checkpointWarning}<div class="mt-3 notice-warning">

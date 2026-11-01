@@ -1,9 +1,10 @@
 <script lang="ts">
-	import BellIcon from "phosphor-svelte/lib/BellIcon"
-	import CheckCircleIcon from "phosphor-svelte/lib/CheckCircleIcon"
-	import WarningCircleIcon from "phosphor-svelte/lib/WarningCircleIcon"
-	import WarningIcon from "phosphor-svelte/lib/WarningIcon"
-	import XIcon from "phosphor-svelte/lib/XIcon"
+	import bellIcon from "@phosphor-icons/core/regular/bell.svg?raw"
+	import checkCircleIcon from "@phosphor-icons/core/regular/check-circle.svg?raw"
+	import warningCircleIcon from "@phosphor-icons/core/regular/warning-circle.svg?raw"
+	import warningIcon from "@phosphor-icons/core/regular/warning.svg?raw"
+	import xIcon from "@phosphor-icons/core/regular/x.svg?raw"
+	import Icon from "../shared/Icon.svelte"
 	import { toastIn, toastMove, toastOut } from "../shared/presence"
 	import type {
 		NotificationAction,
@@ -11,10 +12,10 @@
 	} from "./notification-center.svelte"
 
 	const toneIcons = {
-		error: WarningCircleIcon,
-		info: BellIcon,
-		success: CheckCircleIcon,
-		warning: WarningIcon,
+		error: warningCircleIcon,
+		info: bellIcon,
+		success: checkCircleIcon,
+		warning: warningIcon,
 	}
 
 	const toneColors = {
@@ -49,7 +50,7 @@
 	aria-label="Notifications"
 	aria-live="polite">
 	{#each center.items as notification (notification.id)}
-		{@const ToneIcon = toneIcons[notification.tone]}
+		{@const toneIcon = toneIcons[notification.tone]}
 		<article
 			class="pointer-events-auto flex gap-2 rounded-xl border border-line-strong bg-overlay p-2 shadow-float"
 			role="status"
@@ -75,7 +76,7 @@
 					"grid size-6 shrink-0 place-items-center rounded-md border border-line bg-raised",
 					toneColors[notification.tone],
 				]}>
-				<ToneIcon size={16} aria-hidden="true" />
+				<Icon svg={toneIcon} size={16} aria-hidden="true" />
 			</div>
 			<div class="min-w-0 flex-1">
 				<strong class="block text-sm font-semibold text-fg"
@@ -107,7 +108,7 @@
 					aria-label={`Dismiss ${notification.title}`}
 					disabled={runningAction !== ""}
 					onclick={() => center.dismiss(notification.id)}>
-					<XIcon size={14} aria-hidden="true" />
+					<Icon svg={xIcon} size={14} aria-hidden="true" />
 				</button>
 			{/if}
 		</article>

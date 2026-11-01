@@ -1,5 +1,6 @@
 <script lang="ts">
-	import XIcon from "phosphor-svelte/lib/XIcon"
+	import xIcon from "@phosphor-icons/core/regular/x.svg?raw"
+	import Icon from "../shared/Icon.svelte"
 	import type { AccountStore } from "../accounts/account-store.svelte"
 	import type { ShutdownEffects } from "../backend/bridge"
 	import {
@@ -58,7 +59,7 @@
 				aria-label="Close lock vault dialog"
 				disabled={store.busy}
 				onclick={onClose}>
-				<XIcon size={14} aria-hidden="true" />
+				<Icon svg={xIcon} size={14} aria-hidden="true" />
 			</button>
 		</div>
 		{#if store.error}<div class="mt-3 notice-error" role="alert">

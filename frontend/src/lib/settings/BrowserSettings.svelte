@@ -1,8 +1,9 @@
 <script lang="ts">
-	import DownloadSimpleIcon from "phosphor-svelte/lib/DownloadSimpleIcon"
-	import ArrowCounterClockwiseIcon from "phosphor-svelte/lib/ArrowCounterClockwiseIcon"
-	import TrashIcon from "phosphor-svelte/lib/TrashIcon"
-	import XIcon from "phosphor-svelte/lib/XIcon"
+	import arrowCounterClockwiseIcon from "@phosphor-icons/core/regular/arrow-counter-clockwise.svg?raw"
+	import downloadSimpleIcon from "@phosphor-icons/core/regular/download-simple.svg?raw"
+	import trashIcon from "@phosphor-icons/core/regular/trash.svg?raw"
+	import xIcon from "@phosphor-icons/core/regular/x.svg?raw"
+	import Icon from "../shared/Icon.svelte"
 	import BrowserRuntimeActivity from "../browser/BrowserRuntimeActivity.svelte"
 	import type { BrowserStore } from "../browser/browser-store.svelte"
 	import { RuntimeStatus } from "../backend/bridge"
@@ -133,21 +134,24 @@
 								class="btn"
 								type="button"
 								onclick={() => void browser.download()}
-								><DownloadSimpleIcon
+								><Icon
+									svg={downloadSimpleIcon}
 									size={16}
 									aria-hidden="true" />Download</button
 							>{:else}<button
 								class="btn"
 								type="button"
 								onclick={() => void requestAction("redownload")}
-								><ArrowCounterClockwiseIcon
+								><Icon
+									svg={arrowCounterClockwiseIcon}
 									size={16}
 									aria-hidden="true" />Redownload</button
 							><button
 								class="btn"
 								type="button"
 								onclick={() => void requestAction("remove")}
-								><TrashIcon
+								><Icon
+									svg={trashIcon}
 									size={16}
 									aria-hidden="true" />Remove</button
 							>{/if}
@@ -184,7 +188,7 @@
 						pendingAction = null
 						effects = null
 					}}>
-					<XIcon size={14} aria-hidden="true" />
+					<Icon svg={xIcon} size={14} aria-hidden="true" />
 				</button>
 			</div>
 			<ul class="mt-3 flex list-disc flex-col gap-1 pl-5 text-xs text-warning">

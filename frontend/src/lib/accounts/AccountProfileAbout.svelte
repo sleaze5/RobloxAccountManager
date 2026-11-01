@@ -1,9 +1,10 @@
 <script lang="ts">
 	import { Browser } from "@wailsio/runtime"
-	import ArrowSquareOutIcon from "phosphor-svelte/lib/ArrowSquareOutIcon"
-	import ClockCounterClockwiseIcon from "phosphor-svelte/lib/ClockCounterClockwiseIcon"
-	import LinkIcon from "phosphor-svelte/lib/LinkIcon"
-	import PencilSimpleIcon from "phosphor-svelte/lib/PencilSimpleIcon"
+	import arrowSquareOutIcon from "@phosphor-icons/core/regular/arrow-square-out.svg?raw"
+	import clockCounterClockwiseIcon from "@phosphor-icons/core/regular/clock-counter-clockwise.svg?raw"
+	import linkIcon from "@phosphor-icons/core/regular/link.svg?raw"
+	import pencilSimpleIcon from "@phosphor-icons/core/regular/pencil-simple.svg?raw"
+	import Icon from "../shared/Icon.svelte"
 	import type { AccountProfileSnapshot, UserSocialLink } from "../backend/bridge"
 	import type { NotificationCenter } from "../notifications/notification-center.svelte"
 	import { errorMessage } from "../shared/errors"
@@ -52,7 +53,7 @@
 			data-tooltip="Edit description"
 			disabled={disabled || snapshot.unavailable?.includes("about")}
 			onclick={() => onEditDescription(snapshot.description)}>
-			<PencilSimpleIcon size={14} aria-hidden="true" />
+			<Icon svg={pencilSimpleIcon} size={14} aria-hidden="true" />
 		</button>
 	</div>
 	{#if snapshot.unavailable?.includes("about") && !snapshot.description}
@@ -66,7 +67,9 @@
 		<dl class="facts">
 			{#if snapshot.socialLinks?.length}
 				<div>
-					<dt><LinkIcon size={16} aria-hidden="true" />Social links</dt>
+					<dt>
+						<Icon svg={linkIcon} size={16} aria-hidden="true" />Social links
+					</dt>
 					<dd>
 						{#each snapshot.socialLinks as link (link.name)}
 							<button
@@ -77,7 +80,10 @@
 								aria-busy={opening === link.name}
 								disabled={opening !== ""}
 								onclick={() => void openLink(link)}>
-								<ArrowSquareOutIcon size={16} aria-hidden="true" />
+								<Icon
+									svg={arrowSquareOutIcon}
+									size={16}
+									aria-hidden="true" />
 								{link.name}
 							</button>
 						{/each}
@@ -87,7 +93,8 @@
 			{#if snapshot.previousNames?.length}
 				<div>
 					<dt>
-						<ClockCounterClockwiseIcon
+						<Icon
+							svg={clockCounterClockwiseIcon}
 							size={16}
 							aria-hidden="true" />Previous names
 					</dt>

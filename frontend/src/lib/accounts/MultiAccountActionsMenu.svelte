@@ -1,10 +1,11 @@
 <script lang="ts">
-	import AtIcon from "phosphor-svelte/lib/AtIcon"
-	import CaretRightIcon from "phosphor-svelte/lib/CaretRightIcon"
-	import HashIcon from "phosphor-svelte/lib/HashIcon"
-	import KeyIcon from "phosphor-svelte/lib/KeyIcon"
-	import TagIcon from "phosphor-svelte/lib/TagIcon"
-	import UserCircleIcon from "phosphor-svelte/lib/UserCircleIcon"
+	import atIcon from "@phosphor-icons/core/regular/at.svg?raw"
+	import caretRightIcon from "@phosphor-icons/core/regular/caret-right.svg?raw"
+	import hashIcon from "@phosphor-icons/core/regular/hash.svg?raw"
+	import keyIcon from "@phosphor-icons/core/regular/key.svg?raw"
+	import tagIcon from "@phosphor-icons/core/regular/tag.svg?raw"
+	import userCircleIcon from "@phosphor-icons/core/regular/user-circle.svg?raw"
+	import Icon from "../shared/Icon.svelte"
 	import { AccountCopyField } from "../backend/bridge"
 	import type { WorkspaceState } from "../layout/workspace-state.svelte"
 	import type { AccountStore } from "./account-store.svelte"
@@ -25,11 +26,11 @@
 		{
 			field: AccountCopyField.CopyDisplayName,
 			label: "Display names",
-			icon: UserCircleIcon,
+			icon: userCircleIcon,
 		},
-		{ field: AccountCopyField.CopyUsername, label: "Usernames", icon: AtIcon },
-		{ field: AccountCopyField.CopyUserID, label: "User IDs", icon: HashIcon },
-		{ field: AccountCopyField.CopyCookie, label: "Cookies", icon: KeyIcon },
+		{ field: AccountCopyField.CopyUsername, label: "Usernames", icon: atIcon },
+		{ field: AccountCopyField.CopyUserID, label: "User IDs", icon: hashIcon },
+		{ field: AccountCopyField.CopyCookie, label: "Cookies", icon: keyIcon },
 	]
 
 	async function copyField(field: AccountCopyField): Promise<void> {
@@ -46,9 +47,10 @@
 </div>
 <div class="relative">
 	<button class="menu-item" type="button">
-		<TagIcon size={16} aria-hidden="true" />
+		<Icon svg={tagIcon} size={16} aria-hidden="true" />
 		<span>Edit tags</span>
-		<CaretRightIcon
+		<Icon
+			svg={caretRightIcon}
 			data-nudge="right"
 			size={16}
 			class="ml-auto shrink-0"
@@ -69,7 +71,8 @@
 			aria-label={`Copy ${item.label.toLowerCase()}`}
 			disabled={store.copying}
 			onclick={() => void copyField(item.field)}>
-			<item.icon size={16} aria-hidden="true" /><span>{item.label}</span>
+			<Icon svg={item.icon} size={16} aria-hidden="true" /><span
+				>{item.label}</span>
 		</button>
 	{/each}
 </div>

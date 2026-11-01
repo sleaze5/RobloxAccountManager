@@ -1,9 +1,10 @@
 <script lang="ts">
-	import ChecksIcon from "phosphor-svelte/lib/ChecksIcon"
-	import CaretLeftIcon from "phosphor-svelte/lib/CaretLeftIcon"
-	import CircleNotchIcon from "phosphor-svelte/lib/CircleNotchIcon"
-	import ArrowsClockwiseIcon from "phosphor-svelte/lib/ArrowsClockwiseIcon"
-	import NotePencilIcon from "phosphor-svelte/lib/NotePencilIcon"
+	import arrowsClockwiseIcon from "@phosphor-icons/core/regular/arrows-clockwise.svg?raw"
+	import caretLeftIcon from "@phosphor-icons/core/regular/caret-left.svg?raw"
+	import checksIcon from "@phosphor-icons/core/regular/checks.svg?raw"
+	import circleNotchIcon from "@phosphor-icons/core/regular/circle-notch.svg?raw"
+	import notePencilIcon from "@phosphor-icons/core/regular/note-pencil.svg?raw"
+	import Icon from "../shared/Icon.svelte"
 	import { onMount, tick, untrack } from "svelte"
 	import type { AccountStore } from "../accounts/account-store.svelte"
 	import SidebarResizer from "../layout/SidebarResizer.svelte"
@@ -58,7 +59,7 @@
 			aria-label="Back to profile"
 			data-tooltip="Back to profile"
 			onclick={onBack}>
-			<CaretLeftIcon data-nudge="left" size={16} aria-hidden="true" />
+			<Icon svg={caretLeftIcon} data-nudge="left" size={16} aria-hidden="true" />
 		</button>
 		<h1 id="chats-title" tabindex="-1" bind:this={heading}>Chats</h1>
 		<span class="mr-auto min-w-0 text-xs wrap-anywhere text-fg-muted"
@@ -70,7 +71,7 @@
 			aria-expanded={creatingOpen}
 			data-tooltip="New chat"
 			onclick={() => void toggleNewChat()}>
-			<NotePencilIcon size={16} aria-hidden="true" />
+			<Icon svg={notePencilIcon} size={16} aria-hidden="true" />
 		</button>
 		<button
 			class="btn-ghost"
@@ -81,9 +82,13 @@
 			disabled={chat.markingAll || chat.loading}
 			onclick={() => void chat.markAllRead()}>
 			{#if chat.markingAll}
-				<CircleNotchIcon class="spinner" size={16} aria-hidden="true" />
+				<Icon
+					svg={circleNotchIcon}
+					class="spinner"
+					size={16}
+					aria-hidden="true" />
 			{:else}
-				<ChecksIcon size={16} aria-hidden="true" />
+				<Icon svg={checksIcon} size={16} aria-hidden="true" />
 			{/if}
 		</button>
 		<button
@@ -95,9 +100,17 @@
 			disabled={chat.loading}
 			onclick={() => void chat.refresh()}>
 			{#if chat.loading}
-				<CircleNotchIcon class="spinner" size={16} aria-hidden="true" />
+				<Icon
+					svg={circleNotchIcon}
+					class="spinner"
+					size={16}
+					aria-hidden="true" />
 			{:else}
-				<ArrowsClockwiseIcon data-turn size={16} aria-hidden="true" />
+				<Icon
+					svg={arrowsClockwiseIcon}
+					data-turn
+					size={16}
+					aria-hidden="true" />
 			{/if}
 		</button>
 	</header>
@@ -134,7 +147,8 @@
 						aria-busy={chat.creating}
 						disabled={chat.creating || !username.trim()}>
 						{#if chat.creating}
-							<CircleNotchIcon
+							<Icon
+								svg={circleNotchIcon}
 								class="spinner"
 								size={16}
 								aria-hidden="true" />

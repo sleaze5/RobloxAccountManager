@@ -1,16 +1,18 @@
 <script lang="ts">
 	import { onDestroy, onMount, tick } from "svelte"
-	import WarningIcon from "phosphor-svelte/lib/WarningIcon"
-	import SealCheckIcon from "phosphor-svelte/lib/SealCheckIcon"
-	import ArrowRightIcon from "phosphor-svelte/lib/ArrowRightIcon"
-	import CaretLeftIcon from "phosphor-svelte/lib/CaretLeftIcon"
-	import CaretRightIcon from "phosphor-svelte/lib/CaretRightIcon"
-	import GameControllerIcon from "phosphor-svelte/lib/GameControllerIcon"
-	import DotsSixVerticalIcon from "phosphor-svelte/lib/DotsSixVerticalIcon"
-	import CircleNotchIcon from "phosphor-svelte/lib/CircleNotchIcon"
-	import MagnifyingGlassIcon from "phosphor-svelte/lib/MagnifyingGlassIcon"
-	import StarIcon from "phosphor-svelte/lib/StarIcon"
-	import XIcon from "phosphor-svelte/lib/XIcon"
+	import arrowRightIcon from "@phosphor-icons/core/regular/arrow-right.svg?raw"
+	import caretLeftIcon from "@phosphor-icons/core/regular/caret-left.svg?raw"
+	import caretRightIcon from "@phosphor-icons/core/regular/caret-right.svg?raw"
+	import circleNotchIcon from "@phosphor-icons/core/regular/circle-notch.svg?raw"
+	import dotsSixVerticalIcon from "@phosphor-icons/core/regular/dots-six-vertical.svg?raw"
+	import gameControllerIcon from "@phosphor-icons/core/regular/game-controller.svg?raw"
+	import magnifyingGlassIcon from "@phosphor-icons/core/regular/magnifying-glass.svg?raw"
+	import sealCheckIcon from "@phosphor-icons/core/regular/seal-check.svg?raw"
+	import starFillIcon from "@phosphor-icons/core/fill/star-fill.svg?raw"
+	import starIcon from "@phosphor-icons/core/regular/star.svg?raw"
+	import warningIcon from "@phosphor-icons/core/regular/warning.svg?raw"
+	import xIcon from "@phosphor-icons/core/regular/x.svg?raw"
+	import Icon from "../shared/Icon.svelte"
 	import SidebarResizer from "../layout/SidebarResizer.svelte"
 	import type { WorkspaceState } from "../layout/workspace-state.svelte"
 	import { isMoveShortcut } from "../shared/move-shortcut"
@@ -171,11 +173,12 @@
 						data-tooltip="Expand the games sidebar"
 						data-tooltip-side="right"
 						onclick={() => (store.sidebarCollapsed = false)}
-						><CaretRightIcon
+						><Icon
+							svg={caretRightIcon}
 							data-nudge="right"
 							size={16}
 							aria-hidden="true" /></button>
-					<GameControllerIcon size={16} aria-hidden="true" />
+					<Icon svg={gameControllerIcon} size={16} aria-hidden="true" />
 					{#if favoritesMode}<span class="font-mono text-2xs"
 							>{store.favorites.length}</span
 						>{/if}
@@ -198,7 +201,8 @@
 								data-tooltip="Collapse the games sidebar"
 								data-tooltip-side="bottom-end"
 								onclick={() => (store.sidebarCollapsed = true)}
-								><CaretLeftIcon
+								><Icon
+									svg={caretLeftIcon}
 									data-nudge="left"
 									size={16}
 									aria-hidden="true" /></button>
@@ -215,7 +219,10 @@
 							else searchInput?.focus()
 						}}>
 						<div class="search-field">
-							<MagnifyingGlassIcon size={16} aria-hidden="true" /><input
+							<Icon
+								svg={magnifyingGlassIcon}
+								size={16}
+								aria-hidden="true" /><input
 								type="text"
 								placeholder={favoritesMode
 									? "Search favorites"
@@ -244,7 +251,11 @@
 										if (favoritesMode) store.favoritesQuery = ""
 										else store.query = ""
 										searchInput?.focus()
-									}}><XIcon size={14} aria-hidden="true" /></button
+									}}
+									><Icon
+										svg={xIcon}
+										size={14}
+										aria-hidden="true" /></button
 								>{/if}
 						</div>
 						{#if !favoritesMode}
@@ -256,10 +267,12 @@
 									aria-busy={store.searching}
 									data-tooltip="Search Roblox"
 									data-tooltip-side="bottom-end">
-									{#if store.searching && !store.results.length}<CircleNotchIcon
+									{#if store.searching && !store.results.length}<Icon
+											svg={circleNotchIcon}
 											class="spinner"
 											size={16}
-											aria-hidden="true" />{:else}<ArrowRightIcon
+											aria-hidden="true" />{:else}<Icon
+											svg={arrowRightIcon}
 											size={16}
 											aria-hidden="true" />{/if}
 								</button>
@@ -271,14 +284,20 @@
 							type="button"
 							aria-pressed={favoritesMode}
 							onclick={() => store.show("favorites")}>
-							<StarIcon size={14} aria-hidden="true" />Favorites
+							<Icon
+								svg={starIcon}
+								size={14}
+								aria-hidden="true" />Favorites
 							<span>{store.favorites.length}</span>
 						</button>
 						<button
 							type="button"
 							aria-pressed={!favoritesMode}
 							onclick={() => store.show("search")}>
-							<MagnifyingGlassIcon size={14} aria-hidden="true" />Search
+							<Icon
+								svg={magnifyingGlassIcon}
+								size={14}
+								aria-hidden="true" />Search
 						</button>
 					</div>
 				</div>
@@ -341,7 +360,8 @@
 										]}
 										data-drag-handle
 										aria-hidden="true"
-										><DotsSixVerticalIcon
+										><Icon
+											svg={dotsSixVerticalIcon}
 											size={14}
 											aria-hidden="true" /></span
 									>{/if}
@@ -351,15 +371,16 @@
 										class="inline-flex min-w-0 items-center gap-1 text-xs font-semibold text-fg"
 										><span class="truncate"
 											>{store.displayName(place)}</span
-										>{#if store.isFavorite(place.placeId)}<StarIcon
+										>{#if store.isFavorite(place.placeId)}<Icon
+												svg={starFillIcon}
 												class="shrink-0 animate-pop text-accent-strong"
 												size={12}
-												weight="fill"
 												aria-label="Favorite" />{/if}</strong>
 									<span class="truncate text-2xs text-fg-muted"
 										>{creatorByline(
 											place,
-										)}{#if place.creatorVerified}<SealCheckIcon
+										)}{#if place.creatorVerified}<Icon
+												svg={sealCheckIcon}
 												class="relative top-0.5 ml-1 inline-block"
 												size={14}
 												aria-label="Verified creator" />{/if}</span>
@@ -377,7 +398,8 @@
 										onclick={() => void store.search(true)}
 										>Load more results</button>
 								{:else}
-									<CircleNotchIcon
+									<Icon
+										svg={circleNotchIcon}
 										class="spinner"
 										size={16}
 										aria-label="Loading more results" />
@@ -399,7 +421,7 @@
 									store.clearSearch()
 									searchInput?.focus()
 								}}>
-								<XIcon size={14} aria-hidden="true" />
+								<Icon svg={xIcon} size={14} aria-hidden="true" />
 								<span>Clear results</span>
 							</button>
 						</div>
@@ -430,12 +452,14 @@
 			{:else}
 				<div class="empty-state" role="status">
 					{#if favoritesMode}
-						{#if store.loadingFavorites}<CircleNotchIcon
+						{#if store.loadingFavorites}<Icon
+								svg={circleNotchIcon}
 								class="spinner"
 								size={28}
 								aria-hidden="true" />
 							<h2>Loading favorites…</h2>
-						{:else if !store.favoritesLoaded}<WarningIcon
+						{:else if !store.favoritesLoaded}<Icon
+								svg={warningIcon}
 								size={28}
 								aria-hidden="true" />
 							<h2>Favorites are unavailable</h2>
@@ -444,36 +468,49 @@
 								type="button"
 								onclick={() => void store.loadFavorites()}
 								>Try again</button>
-						{:else if !count && store.favorites.length}<MagnifyingGlassIcon
+						{:else if !count && store.favorites.length}<Icon
+								svg={magnifyingGlassIcon}
 								size={28}
 								aria-hidden="true" />
 							<h2>No matching favorites</h2>
 							<p>Try a different nickname, name, or creator.</p>
-						{:else if !count}<StarIcon size={28} aria-hidden="true" />
+						{:else if !count}<Icon
+								svg={starIcon}
+								size={28}
+								aria-hidden="true" />
 							<h2>No favorite places yet</h2>
 							<p>Right-click a game and add it to your favorites.</p>
-						{:else}<StarIcon size={28} aria-hidden="true" />
+						{:else}<Icon svg={starIcon} size={28} aria-hidden="true" />
 							<h2>Select a favorite place</h2>
 							<p>Choose a place to see its details.</p>{/if}
-					{:else if store.searching}<CircleNotchIcon
+					{:else if store.searching}<Icon
+							svg={circleNotchIcon}
 							class="spinner"
 							size={28}
 							aria-hidden="true" />
 						<h2>Searching Roblox…</h2>
-					{:else if store.searchError}<WarningIcon
+					{:else if store.searchError}<Icon
+							svg={warningIcon}
 							size={28}
 							aria-hidden="true" />
 						<h2>Search is unavailable</h2>
 						<p>{store.searchError}</p>
-					{:else if store.searchedText && !count}<MagnifyingGlassIcon
+					{:else if store.searchedText && !count}<Icon
+							svg={magnifyingGlassIcon}
 							size={28}
 							aria-hidden="true" />
 						<h2>No games found</h2>
 						<p>Try a different name or place ID.</p>
-					{:else if count}<GameControllerIcon size={28} aria-hidden="true" />
+					{:else if count}<Icon
+							svg={gameControllerIcon}
+							size={28}
+							aria-hidden="true" />
 						<h2>Select a game</h2>
 						<p>Choose a game to see its details.</p>
-					{:else}<GameControllerIcon size={28} aria-hidden="true" />
+					{:else}<Icon
+							svg={gameControllerIcon}
+							size={28}
+							aria-hidden="true" />
 						<h2>Search Roblox games</h2>
 						<p>
 							Enter a game name, a place ID like id:1818, or a universe ID

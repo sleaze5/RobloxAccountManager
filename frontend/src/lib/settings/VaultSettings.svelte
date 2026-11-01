@@ -1,7 +1,8 @@
 <script lang="ts">
-	import KeyIcon from "phosphor-svelte/lib/KeyIcon"
-	import LockKeyIcon from "phosphor-svelte/lib/LockKeyIcon"
-	import ShieldCheckIcon from "phosphor-svelte/lib/ShieldCheckIcon"
+	import keyIcon from "@phosphor-icons/core/regular/key.svg?raw"
+	import lockKeyIcon from "@phosphor-icons/core/regular/lock-key.svg?raw"
+	import shieldCheckIcon from "@phosphor-icons/core/regular/shield-check.svg?raw"
+	import Icon from "../shared/Icon.svelte"
 	import type { AccountStore } from "../accounts/account-store.svelte"
 	import ChangeMasterPasswordDialog from "../dialogs/ChangeMasterPasswordDialog.svelte"
 	import TestMasterPasswordDialog from "../dialogs/TestMasterPasswordDialog.svelte"
@@ -75,7 +76,7 @@
 						type="button"
 						disabled={store.busy}
 						onclick={() => openDialog("test")}>
-						<ShieldCheckIcon size={16} aria-hidden="true" />
+						<Icon svg={shieldCheckIcon} size={16} aria-hidden="true" />
 						Test password
 					</button>
 					<button
@@ -83,7 +84,7 @@
 						type="button"
 						disabled={store.busy || !store.vault.unlocked}
 						onclick={onLock}>
-						<LockKeyIcon size={16} aria-hidden="true" />
+						<Icon svg={lockKeyIcon} size={16} aria-hidden="true" />
 						Lock
 					</button>
 				</div>
@@ -128,7 +129,7 @@
 					type="button"
 					disabled={store.busy}
 					onclick={() => openDialog("change")}>
-					<KeyIcon size={16} aria-hidden="true" />
+					<Icon svg={keyIcon} size={16} aria-hidden="true" />
 					Change password
 				</button>
 			</div>

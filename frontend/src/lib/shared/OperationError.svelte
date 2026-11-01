@@ -1,5 +1,6 @@
 <script lang="ts">
-	import XIcon from "phosphor-svelte/lib/XIcon"
+	import xIcon from "@phosphor-icons/core/regular/x.svg?raw"
+	import Icon from "./Icon.svelte"
 	import { errorIn, errorOut } from "./presence"
 
 	let { store }: { store: { error: string; clearError: () => void } } = $props()
@@ -18,7 +19,7 @@
 			type="button"
 			aria-label="Dismiss error"
 			onclick={() => store.clearError()}>
-			<XIcon size={14} aria-hidden="true" />
+			<Icon svg={xIcon} size={14} aria-hidden="true" />
 		</button>
 	</div>
 {/if}
