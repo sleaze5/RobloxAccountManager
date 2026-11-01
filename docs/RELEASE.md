@@ -95,6 +95,8 @@ Each tool has one setup action, and a job uses only the ones it needs. `.github/
 
 The key also contains the operating system, the architecture, the Go version, and both `go.sum` files. Go's build cache already tells apart architectures, build flags, tags, and C compiler versions, so a new runner image or compiler only causes cache misses. A cache never changes after it is saved. It gets the packages that changed since then only when a `go.sum` file or the Go version changes.
 
+`.github/workflows/prepare-frontend.yml` caches the bindings and the production frontend together, with an exact key and no fallback to a similar key. The key hashes every file that binding generation or the frontend build reads: everything in `frontend/` and `internal/`, `main.go`, `go.mod`, `go.sum`, the two Taskfiles that define the commands, and the workflow itself. `frontend/package.json` pins the Bun version and `go.mod` pins Wails, so both are in the key. A hit skips generation and the frontend build, but the frontend checks still run. A second exact cache holds only the bindings, keyed without `frontend/`. When only frontend files changed, it skips the native libraries and binding generation. Caches are saved only after every check passes. Add a file to both keys when generation or the build starts to read it.
+
 ## Update signing
 
 - The `UPDATER_PRIVATE_KEY` repository secret signs `manifest.json`. Never commit the private key.
