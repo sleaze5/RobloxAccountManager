@@ -20,20 +20,15 @@
 		onSettings: () => void
 		onLock: () => void
 	} = $props()
-	const tabClass =
-			"relative flex shrink-0 items-center justify-center gap-2 border-r border-line-subtle px-4 text-xs font-medium whitespace-nowrap transition-colors duration-100 hover:text-fg",
-		actionClass =
-			"flex w-8 items-center justify-center text-fg-muted transition-colors duration-100 hover:text-fg"
+	const actionClass =
+		"flex w-8 items-center justify-center text-fg-muted transition-colors duration-100 hover:text-fg"
 </script>
 
 <header
 	class="flex h-9 shrink-0 items-stretch border-b border-line-subtle bg-surface pr-3">
 	<nav class="flex items-stretch" aria-label="Page navigation">
 		<button
-			class={[
-				tabClass,
-				activePage === "accounts" ? "text-fg shadow-tab" : "text-fg-muted",
-			]}
+			class="tab"
 			type="button"
 			aria-current={activePage === "accounts" ? "page" : undefined}
 			onclick={() => onPage("accounts")}>
@@ -41,10 +36,7 @@
 			<span>Accounts</span>
 		</button>
 		<button
-			class={[
-				tabClass,
-				activePage === "games" ? "text-fg shadow-tab" : "text-fg-muted",
-			]}
+			class="tab"
 			type="button"
 			aria-current={activePage === "games" ? "page" : undefined}
 			onclick={() => onPage("games")}>
@@ -52,10 +44,7 @@
 			<span>Games</span>
 		</button>
 		<button
-			class={[
-				tabClass,
-				activePage === "logs-explorer" ? "text-fg shadow-tab" : "text-fg-muted",
-			]}
+			class="tab"
 			type="button"
 			aria-current={activePage === "logs-explorer" ? "page" : undefined}
 			onclick={() => onPage("logs-explorer")}>

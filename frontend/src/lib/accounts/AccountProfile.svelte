@@ -216,7 +216,7 @@
 					{#if profileState?.loading}
 						<CircleNotchIcon class="spinner" size={16} aria-hidden="true" />
 					{:else}
-						<ArrowsClockwiseIcon size={16} aria-hidden="true" />
+						<ArrowsClockwiseIcon data-turn size={16} aria-hidden="true" />
 					{/if}
 				</button>
 				<button

@@ -49,7 +49,10 @@
 						data-tooltip="Expand the logs sidebar"
 						data-tooltip-side="right"
 						onclick={() => (store.sidebarCollapsed = false)}
-						><CaretRightIcon size={16} aria-hidden="true" /></button>
+						><CaretRightIcon
+							data-nudge="right"
+							size={16}
+							aria-hidden="true" /></button>
 					<FileMagnifyingGlassIcon size={16} aria-hidden="true" />
 					<span class="font-mono text-2xs">{store.sessions.length}</span>
 				</div>
@@ -77,6 +80,7 @@
 										class="spinner"
 										size={16}
 										aria-hidden="true" />{:else}<ArrowsClockwiseIcon
+										data-turn
 										size={16}
 										aria-hidden="true" />{/if}
 							</button>
@@ -87,7 +91,10 @@
 								data-tooltip="Collapse the logs sidebar"
 								data-tooltip-side="bottom-end"
 								onclick={() => (store.sidebarCollapsed = true)}
-								><CaretLeftIcon size={16} aria-hidden="true" /></button>
+								><CaretLeftIcon
+									data-nudge="left"
+									size={16}
+									aria-hidden="true" /></button>
 						</div>
 					</div>
 					<div class="flex items-center gap-1">
@@ -111,7 +118,7 @@
 					{#each sessions as session (session.fileName)}
 						{@const visitCount = session.visits?.length ?? 0}
 						<button
-							class="flex min-h-12 w-full flex-col justify-center border-b border-line-subtle list-row px-3 py-2 text-left leading-snug"
+							class="list-row flex min-h-12 w-full flex-col justify-center border-b border-line-subtle px-3 py-2 text-left leading-snug"
 							data-selected={store.selectedFile === session.fileName ||
 								undefined}
 							type="button"

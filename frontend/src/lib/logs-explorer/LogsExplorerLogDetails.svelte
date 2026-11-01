@@ -63,6 +63,7 @@
 					class="spinner"
 					size={16}
 					aria-hidden="true" />{:else}<ArrowsClockwiseIcon
+					data-turn
 					size={16}
 					aria-hidden="true" />{/if}
 		</button>

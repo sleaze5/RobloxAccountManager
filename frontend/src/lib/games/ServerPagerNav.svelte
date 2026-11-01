@@ -25,14 +25,14 @@
 		data-tooltip="First page"
 		disabled={pager.loading || pager.pageNumber < 2}
 		onclick={() => pager.first()}>
-		<CaretDoubleLeftIcon size={16} aria-hidden="true" />
+		<CaretDoubleLeftIcon data-nudge="left" size={16} aria-hidden="true" />
 	</button>
 	<button
 		class="btn"
 		type="button"
 		disabled={pager.loading || pager.pageNumber < 2}
 		onclick={() => pager.previous()}>
-		<CaretLeftIcon size={16} aria-hidden="true" />Previous
+		<CaretLeftIcon data-nudge="left" size={16} aria-hidden="true" />Previous
 	</button>
 	<span class="px-1 text-xs text-fg-muted" aria-current="page"
 		>Page {pager.pageNumber}</span>
@@ -41,6 +41,6 @@
 		type="button"
 		disabled={pager.loading || !pager.hasNext}
 		onclick={() => pager.next()}>
-		Next<CaretRightIcon size={16} aria-hidden="true" />
+		Next<CaretRightIcon data-nudge="right" size={16} aria-hidden="true" />
 	</button>
 </nav>

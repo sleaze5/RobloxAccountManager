@@ -107,8 +107,10 @@
 						class="btn"
 						type="button"
 						onclick={() => void updateStore.check()}
-						><ArrowsClockwiseIcon size={16} aria-hidden="true" />Check for
-						updates</button
+						><ArrowsClockwiseIcon
+							data-turn
+							size={16}
+							aria-hidden="true" />Check for updates</button
 					>{/if}
 			</div>
 		</div>

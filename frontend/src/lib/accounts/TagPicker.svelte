@@ -38,9 +38,15 @@
 
 {#snippet mark(state: TagState)}
 	{#if state === "on"}
-		<CheckIcon size={16} class="ml-auto shrink-0 animate-pop" aria-hidden="true" />
+		<CheckIcon
+			size={16}
+			class="ml-auto shrink-0 animate-bloom"
+			aria-hidden="true" />
 	{:else if state === "mixed"}
-		<MinusIcon size={16} class="ml-auto shrink-0 animate-pop" aria-hidden="true" />
+		<MinusIcon
+			size={16}
+			class="ml-auto shrink-0 animate-bloom"
+			aria-hidden="true" />
 	{/if}
 {/snippet}
 

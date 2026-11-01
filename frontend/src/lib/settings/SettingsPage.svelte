@@ -116,7 +116,7 @@
 			aria-label={backLabel}
 			data-tooltip={backLabel}
 			onclick={onBack}>
-			<CaretLeftIcon size={16} aria-hidden="true" />
+			<CaretLeftIcon data-nudge="left" size={16} aria-hidden="true" />
 		</button>
 		<h1 id="settings-title">Settings</h1>
 	</header>

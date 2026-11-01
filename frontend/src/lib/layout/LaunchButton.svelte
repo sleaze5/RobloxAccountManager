@@ -94,7 +94,10 @@
 				class="spinner"
 				size={16}
 				aria-hidden="true" />
-		{:else if copied}<CheckIcon size={16} aria-hidden="true" />
+		{:else if copied}<CheckIcon
+				class="animate-bloom"
+				size={16}
+				aria-hidden="true" />
 		{:else}<PlayIcon size={16} weight="fill" aria-hidden="true" />{/if}
 		{store.copyingLaunchOptions
 			? "Copying"

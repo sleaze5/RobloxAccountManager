@@ -48,7 +48,11 @@
 	<button class="menu-item" type="button">
 		<TagIcon size={16} aria-hidden="true" />
 		<span>Edit tags</span>
-		<CaretRightIcon size={16} class="ml-auto shrink-0" aria-hidden="true" />
+		<CaretRightIcon
+			data-nudge="right"
+			size={16}
+			class="ml-auto shrink-0"
+			aria-hidden="true" />
 	</button>
 	<div class="submenu" data-side={submenuLeft ? "left" : undefined} data-account-menu>
 		<TagPicker {store} accounts={store.selectedAccounts} {onManageTags} />

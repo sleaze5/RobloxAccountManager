@@ -109,6 +109,7 @@
 								store.busyRoValra}
 							onclick={() => void store.loadServerRegions(true)}>
 							<ArrowsClockwiseIcon
+								data-turn
 								class={store.loadingServerRegions
 									? "spinner"
 									: undefined}

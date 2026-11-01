@@ -774,7 +774,7 @@
 			aria-label="Back to profile"
 			data-tooltip="Back to profile"
 			onclick={onBack}>
-			<CaretLeftIcon size={16} aria-hidden="true" />
+			<CaretLeftIcon data-nudge="left" size={16} aria-hidden="true" />
 		</button>
 		<h1 id="account-settings-title" tabindex="-1" bind:this={heading}>
 			Account settings
@@ -791,7 +791,7 @@
 			{#if refreshing}
 				<CircleNotchIcon class="spinner" size={16} aria-hidden="true" />
 			{:else}
-				<ArrowsClockwiseIcon size={16} aria-hidden="true" />
+				<ArrowsClockwiseIcon data-turn size={16} aria-hidden="true" />
 			{/if}
 		</button>
 	</header>
@@ -894,6 +894,7 @@
 										aria-hidden="true" />
 									<span class="flex-1">{cat.label}</span>
 									<CaretRightIcon
+										data-nudge="right"
 										class="shrink-0 text-fg-muted"
 										size={16}
 										aria-hidden="true" />
@@ -912,6 +913,7 @@
 										aria-hidden="true" />
 									<span class="flex-1">{blockedUsersPage.label}</span>
 									<CaretRightIcon
+										data-nudge="right"
 										class="shrink-0 text-fg-muted"
 										size={16}
 										aria-hidden="true" />
@@ -927,7 +929,10 @@
 								aria-label={`Back to ${privacyLabel}`}
 								data-tooltip={`Back to ${privacyLabel}`}
 								onclick={() => void closeCategory()}>
-								<CaretLeftIcon size={16} aria-hidden="true" />
+								<CaretLeftIcon
+									data-nudge="left"
+									size={16}
+									aria-hidden="true" />
 							</button>
 							<h3 class="text-sm font-semibold text-fg">
 								{activeCategory?.label ?? blockedUsersPage.label}

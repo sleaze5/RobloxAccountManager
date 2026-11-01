@@ -65,7 +65,7 @@ Inputs:
 - `checkbox`: a checkbox. `check-option` is a checkbox with a label and an optional description.
 - `switch`: a switch. Its input has `role="switch"`.
 - `radio` inside `radio-option`: a radio button with its label.
-- `segmented`: two to four mutually exclusive options that stay visible.
+- `segmented`: two to four mutually exclusive options that stay visible, as buttons with `aria-pressed` or as labels around radio inputs.
 - `checklist`: requirements that turn valid or invalid as the user types, with `data-touched` and `data-valid`.
 
 Surfaces and feedback:
@@ -83,7 +83,7 @@ Content:
 
 - `empty-state`: empty, loading, and unavailable states for a page or pane.
 - `tag-pill` and `tag-pill-favorite`: tags.
-- `list-row`: a row in a selectable list, with `data-selected` and `data-open`.
+- `list-row`: a row in a selectable list, with `data-selected` and `data-open`. Show a drop position while dragging with `shadow-drop-before` or `shadow-drop-after`.
 - `facts`: a list of labels and values, written as a `<dl>`. Set `data-tone` on a row for a success, warning, or muted value.
 - `detail-grid`: compact label and value pairs in columns.
 - `timeline`: a two-column timeline of markers and cards.
@@ -93,6 +93,7 @@ Content:
 
 Layout:
 
+- `tab`: a page tab, with `aria-current="page"` on the selected tab.
 - The workbench: the sidebar and detail pane layout of Accounts, Games, and Logs Explorer, with `lib/layout/SidebarResizer.svelte` as the resizer and `lib/layout/StatusBar.svelte` as the status strip.
 - `settings-page`, `settings-header`, `settings-layout`, `settings-sidebar`, `settings-nav` with `nav-item`, and `settings-content`: Settings, account settings, chats, and other sub-pages with a navigation sidebar.
 - `settings-section`, `settings-rows`, `settings-row`, and `settings-row-copy`: groups of settings.
@@ -202,10 +203,10 @@ Buttons:
 Hover and selection:
 
 - Keep hover and active feedback low contrast (`bg-hover`, `bg-active`). Do not use large brightness changes, and do not replace hover states with shadows.
-- Mark the selected row in a list with two cues: a 2px `accent` bar on the left edge, and a `bg-active` fill. The bar carries the selection. Keep the fill quieter than `bg-hover`, because a brighter fill makes the list heavy.
+- Mark the selected row in a list with two cues: a 2px `accent` bar on the left edge that grows in, and a `bg-active` fill. The bar carries the selection. Keep the fill quieter than `bg-hover`, because a brighter fill makes the list heavy.
 - When the pointer is over a selected row, show the `bg-hover` fill and keep the bar.
 - Draw the selection bar the same way in every list, with `list-row`. The bar must not shift the row content.
-- Mark the selected page tab with a 2px `accent` bar on its bottom edge.
+- Mark the selected page tab with a 2px `accent` bar on its bottom edge, drawn by the `tab` building block.
 - Mark the selected item in a sidebar navigation list with a `bg-active` fill, a `border-line` border, and `font-medium`.
 
 Disabled and other states:
@@ -329,7 +330,7 @@ Use these durations and easings:
 `ease-out` is the sharp entrance curve from the theme. `presence.ts` reads the same durations from the `--duration-*` variables in `theme.css`.
 
 - No transition exceeds 150ms.
-- Animate movement only with `transform` and `opacity`, over small distances: at most `translate-y-0.5` (2px) and `scale-95`. Do not use bounce, spring overshoot, slow fades, or decorative loops.
+- Animate movement only with `transform` and `opacity`, over small distances: at most 2px of movement. Only small marks and badges may scale from 50% with `animate-bloom`; larger surfaces scale from `scale-95` at most. Do not use bounce, spring overshoot, slow fades, or decorative loops.
 - Notifications may slide to their new positions with `toastMove` from `presence.ts` when another notification enters or leaves. This slide is the only movement larger than 2px.
 - Direct hover and focus feedback may also transition `color`, `background-color`, and `border-color`, with `transition-colors`.
 - Do not animate layout properties, `filter`, `backdrop-filter`, blur, or `box-shadow`. Name the transitioned properties with `transition-colors`, `transition-opacity`, or `transition-transform`. Never use `transition` or `transition-all`.
@@ -337,6 +338,12 @@ Use these durations and easings:
 - Animate the entrance and exit of a `popover` or `<dialog>` element with CSS: `starting:` for the entry state, `transition-discrete` for `display` and `overlay`, and `open:` for the open state. Use the `presence.ts` transitions for a surface that mounts and unmounts with `{#if}`.
 - Keep menus, dialogs, tooltips, notifications, and operation errors mounted during their exit transition. Reopening a closing surface reverses or cancels the exit. It does not queue another animation. Restore focus only after a dialog finishes closing.
 - When the selected account, settings category, or filtered settings result changes, use `animate-enter` on the new content. Do not animate the outgoing content. Do not stagger account rows or tag rows. Use `animate-pop` for an icon that appears in place.
+- Small feedback may be playful as long as it stays quiet:
+    - The selection bar of a `list-row` and the underline of a page `tab` grow in with `scale`.
+    - Use `animate-bloom` for a check mark, a count badge, or a confirmation icon that appears, such as Copied. Do not bloom large surfaces.
+    - Mark a refresh icon with `data-turn` and a directional arrow or caret with `data-nudge="left"` or `data-nudge="right"`. Base styles turn or nudge it by 2px while the pointer is over its button.
+    - Empty-state icons bloom in. Checkbox marks grow from `scale-50`.
+- Every motion uses `transform`, `translate`, `rotate`, `scale`, or `opacity`, so it stays on the compositor. Do not add motion that animates layout, color fills over large areas, or shadows.
 - Validation feedback may replay one horizontal nudge of at most 2px for 150ms with `replayValidationNudge`. Cancel the previous nudge before replaying it. Do not hide or delay the error text.
 
 ## Reduced motion

@@ -133,7 +133,10 @@
 							pathOpen = true
 						}}>
 						Set location
-						<ArrowRightIcon size={12} aria-hidden="true" />
+						<ArrowRightIcon
+							data-nudge="right"
+							size={12}
+							aria-hidden="true" />
 					</button>
 				</div>
 			{:else if clients?.choiceSupported}
@@ -155,7 +158,10 @@
 							clientOpen = true
 						}}>
 						Choose client
-						<ArrowRightIcon size={12} aria-hidden="true" />
+						<ArrowRightIcon
+							data-nudge="right"
+							size={12}
+							aria-hidden="true" />
 					</button>
 				</div>
 			{/if}
@@ -203,7 +209,7 @@
 						launchDataOpen = true
 					}}>
 					Set data
-					<ArrowRightIcon size={12} aria-hidden="true" />
+					<ArrowRightIcon data-nudge="right" size={12} aria-hidden="true" />
 				</button>
 			</div>
 		</section>

@@ -209,7 +209,10 @@
 								class="spinner"
 								size={16}
 								aria-hidden="true" />
-						{:else}<ArrowsClockwiseIcon size={16} aria-hidden="true" />{/if}
+						{:else}<ArrowsClockwiseIcon
+								data-turn
+								size={16}
+								aria-hidden="true" />{/if}
 					</button>
 					<button
 						class="btn-ghost-sm"

@@ -73,7 +73,7 @@
 				data-tooltip="Expand the account sidebar"
 				data-tooltip-side="right"
 				onclick={() => (workspace.sidebarCollapsed = false)}>
-				<CaretRightIcon size={16} aria-hidden="true" />
+				<CaretRightIcon data-nudge="right" size={16} aria-hidden="true" />
 			</button>
 			<UsersIcon size={16} aria-hidden="true" />
 			<span class="font-mono text-2xs">{store.accountTotal}</span>
@@ -119,7 +119,10 @@
 								size={16}
 								aria-hidden="true" />
 						{:else}
-							<ArrowsClockwiseIcon size={16} aria-hidden="true" />
+							<ArrowsClockwiseIcon
+								data-turn
+								size={16}
+								aria-hidden="true" />
 						{/if}
 					</button>
 					<button
@@ -129,7 +132,7 @@
 						data-tooltip="Collapse the account sidebar"
 						data-tooltip-side="bottom-end"
 						onclick={() => (workspace.sidebarCollapsed = true)}>
-						<CaretLeftIcon size={16} aria-hidden="true" />
+						<CaretLeftIcon data-nudge="left" size={16} aria-hidden="true" />
 					</button>
 				</div>
 				{#if workspace.activeAccountMenu === "add-account"}
@@ -184,7 +187,7 @@
 						<FunnelIcon size={16} aria-hidden="true" />
 						{#if store.selectedTagIds.length > 0}
 							<span
-								class="absolute -top-1 -right-1 grid h-3.5 min-w-3.5 place-items-center rounded-sm border border-surface bg-accent-strong px-0.5 font-mono text-2xs font-bold text-canvas"
+								class="absolute -top-1 -right-1 grid h-3.5 min-w-3.5 animate-bloom place-items-center rounded-sm border border-surface bg-accent-strong px-0.5 font-mono text-2xs font-bold text-canvas"
 								>{store.selectedTagIds.length}</span>
 						{/if}
 					</button>
@@ -234,7 +237,7 @@
 								{#if store.favoriteTag && store.selectedTagIds.includes(store.favoriteTag.id)}<CheckIcon
 										size={16}
 										aria-hidden="true"
-										class="ml-auto shrink-0 animate-pop" />{/if}
+										class="ml-auto shrink-0 animate-bloom" />{/if}
 							</button>
 							<div class="menu-heading shrink-0" aria-hidden="true">
 								Tags
@@ -253,7 +256,7 @@
 										{#if store.selectedTagIds.includes(tag.id)}<CheckIcon
 												size={16}
 												aria-hidden="true"
-												class="ml-auto shrink-0 animate-pop" />{/if}
+												class="ml-auto shrink-0 animate-bloom" />{/if}
 									</button>
 								{:else}
 									<div class="p-2 text-xs text-fg-faint">

@@ -40,6 +40,24 @@
 		cursor: pointer;
 	}
 
+	:is([data-turn], [data-nudge]) {
+		transition-property: translate, rotate;
+		transition-duration: var(--duration-enter);
+		transition-timing-function: var(--ease-out);
+	}
+
+	button:hover:not(:disabled) [data-turn] {
+		rotate: 60deg;
+	}
+
+	button:hover:not(:disabled) [data-nudge="right"] {
+		translate: 2px 0;
+	}
+
+	button:hover:not(:disabled) [data-nudge="left"] {
+		translate: -2px 0;
+	}
+
 	summary {
 		list-style: none;
 		cursor: pointer;

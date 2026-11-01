@@ -96,9 +96,10 @@
 	}
 
 	& svg {
-		@apply scale-95 opacity-0;
+		@apply scale-50 opacity-0;
 		transition-property: opacity, scale;
-		transition-duration: var(--duration-fast);
+		transition-duration: var(--duration-enter);
+		transition-timing-function: var(--ease-out);
 	}
 
 	& input:is(:checked, :indeterminate) + span {
@@ -187,19 +188,42 @@
 @utility segmented {
 	@apply grid auto-cols-fr grid-flow-col gap-0.5 rounded-md border border-line bg-transparent p-0.5;
 
-	& > button {
-		@apply flex h-6 items-center justify-center gap-1 rounded-sm px-2 text-xs font-medium whitespace-nowrap text-fg-faint transition-colors duration-100 hover:text-fg aria-pressed:bg-raised aria-pressed:text-fg;
+	& > :is(button, label) {
+		@apply flex h-6 cursor-pointer items-center justify-center gap-1 rounded-sm px-2 text-xs font-medium whitespace-nowrap text-fg-faint transition-colors duration-100 hover:text-fg has-checked:bg-raised has-checked:text-fg has-focus-visible:outline-1 has-focus-visible:outline-focus aria-pressed:bg-raised aria-pressed:text-fg;
 	}
+
+	& > label > input {
+		@apply pointer-events-none absolute opacity-0;
+	}
+
 	& > button > span {
 		@apply font-mono text-2xs text-fg-faint;
 	}
 }
 
 @utility list-row {
-	@apply transition-colors duration-100 hover:bg-hover data-open:bg-hover;
+	@apply relative transition-colors duration-100 hover:bg-hover data-open:bg-hover;
+
+	&::before {
+		@apply pointer-events-none absolute inset-y-0 left-0 w-0.5 scale-y-0 bg-accent transition-transform duration-150 ease-out;
+		content: "";
+	}
 
 	&:is([aria-selected="true"], [data-selected]) {
-		@apply bg-active shadow-selected hover:bg-hover;
+		@apply bg-active before:scale-y-100 hover:bg-hover;
+	}
+}
+
+@utility tab {
+	@apply relative flex shrink-0 items-center justify-center gap-2 border-r border-line-subtle px-4 text-xs font-medium whitespace-nowrap text-fg-muted transition-colors duration-100 hover:text-fg aria-[current=page]:text-fg;
+
+	&::after {
+		@apply pointer-events-none absolute inset-x-0 bottom-0 h-0.5 scale-x-0 bg-accent transition-transform duration-150 ease-out;
+		content: "";
+	}
+
+	&[aria-current="page"]::after {
+		@apply scale-x-100;
 	}
 }
 
@@ -291,6 +315,10 @@
 
 @utility empty-state {
 	@apply flex min-w-0 flex-col items-center justify-center gap-2 p-4 text-center text-fg-muted;
+
+	:where(&) > svg {
+		@apply animate-bloom;
+	}
 
 	& h2 {
 		@apply text-sm font-semibold text-fg;

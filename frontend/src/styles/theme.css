@@ -75,14 +75,15 @@
 
 	--shadow-menu: 0 2px 6px rgb(0 0 0 / 16%);
 	--shadow-float: 0 4px 12px rgb(0 0 0 / 24%);
-	--shadow-selected: inset 2px 0 0 var(--color-accent);
-	--shadow-tab: inset 0 -2px 0 var(--color-accent);
+	--shadow-drop-before: inset 0 1px 0 var(--color-fg-muted);
+	--shadow-drop-after: inset 0 -1px 0 var(--color-fg-muted);
 
 	--ease-out: cubic-bezier(0.16, 1, 0.3, 1);
 	--ease-in-out: cubic-bezier(0.4, 0, 0.2, 1);
 
 	--animate-enter: enter 100ms var(--ease-out);
 	--animate-pop: pop 100ms var(--ease-out);
+	--animate-bloom: bloom 150ms var(--ease-out);
 
 	@keyframes enter {
 		from {
@@ -95,6 +96,13 @@
 		from {
 			opacity: 0;
 			transform: scale(0.99);
+		}
+	}
+
+	@keyframes bloom {
+		from {
+			opacity: 0;
+			scale: 0.5;
 		}
 	}
 }

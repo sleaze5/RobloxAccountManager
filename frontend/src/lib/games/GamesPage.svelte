@@ -171,7 +171,10 @@
 						data-tooltip="Expand the games sidebar"
 						data-tooltip-side="right"
 						onclick={() => (store.sidebarCollapsed = false)}
-						><CaretRightIcon size={16} aria-hidden="true" /></button>
+						><CaretRightIcon
+							data-nudge="right"
+							size={16}
+							aria-hidden="true" /></button>
 					<GameControllerIcon size={16} aria-hidden="true" />
 					{#if favoritesMode}<span class="font-mono text-2xs"
 							>{store.favorites.length}</span
@@ -195,7 +198,10 @@
 								data-tooltip="Collapse the games sidebar"
 								data-tooltip-side="bottom-end"
 								onclick={() => (store.sidebarCollapsed = true)}
-								><CaretLeftIcon size={16} aria-hidden="true" /></button>
+								><CaretLeftIcon
+									data-nudge="left"
+									size={16}
+									aria-hidden="true" /></button>
 						</div>
 					</div>
 					<form
@@ -292,13 +298,13 @@
 							{@const active = store.selected?.placeId === place.placeId}
 							<button
 								class={[
-									"relative flex h-12 w-full items-center gap-2 border-b border-line-subtle list-row text-left",
+									"list-row relative flex h-12 w-full items-center gap-2 border-b border-line-subtle text-left",
 									favoritesMode ? "pr-3 pl-2" : "px-3",
 									draggedPlaceId === place.placeId && "opacity-45",
 									dropTarget?.placeId === place.placeId &&
 										(dropTarget.after
-											? "after:absolute after:inset-x-1 after:bottom-0 after:z-10 after:h-px after:bg-fg-muted"
-											: "before:absolute before:inset-x-1 before:top-0 before:z-10 before:h-px before:bg-fg-muted"),
+											? "shadow-drop-after"
+											: "shadow-drop-before"),
 								]}
 								data-selected={active || undefined}
 								data-open={store.menu?.place.placeId ===

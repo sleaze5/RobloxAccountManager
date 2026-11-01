@@ -47,7 +47,7 @@
 			<li>
 				<button
 					type="button"
-					class="group/row flex min-h-12 w-full items-center gap-2 border-b border-line-subtle list-row px-3 py-2 text-left"
+					class="group/row list-row flex min-h-12 w-full items-center gap-2 border-b border-line-subtle px-3 py-2 text-left"
 					data-selected={chat.openId === conversation.id || undefined}
 					data-unread={conversation.unreadCount > 0 || undefined}
 					aria-current={chat.openId === conversation.id ? "true" : undefined}
@@ -69,7 +69,7 @@
 								>{conversation.preview}</span>
 							{#if conversation.unreadCount > 0}
 								<span
-									class="min-w-5 rounded-sm bg-solid px-1 text-center text-2xs leading-4 font-bold text-on-solid"
+									class="min-w-5 animate-bloom rounded-sm bg-solid px-1 text-center text-2xs leading-4 font-bold text-on-solid"
 									aria-label={`${conversation.unreadCount} unread`}>
 									{conversation.unreadCount > 99
 										? "99+"

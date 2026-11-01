@@ -141,12 +141,10 @@
 	{#each store.filteredAccounts as account (account.id)}
 		<div
 			class={[
-				"group/row relative flex h-12 w-full items-center gap-2 border-b border-line-subtle list-row text-left",
+				"group/row list-row relative flex h-12 w-full items-center gap-2 border-b border-line-subtle text-left",
 				draggedAccountId === account.id && "opacity-45",
 				dropTarget?.accountId === account.id &&
-					(dropTarget.after
-						? "after:absolute after:inset-x-1 after:bottom-0 after:z-10 after:h-px after:bg-fg-muted"
-						: "before:absolute before:inset-x-1 before:top-0 before:z-10 before:h-px before:bg-fg-muted"),
+					(dropTarget.after ? "shadow-drop-after" : "shadow-drop-before"),
 			]}
 			data-selected={store.selectedAccountIds.includes(account.id) || undefined}
 			data-account-row

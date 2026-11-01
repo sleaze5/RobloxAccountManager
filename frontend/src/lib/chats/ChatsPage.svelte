@@ -58,7 +58,7 @@
 			aria-label="Back to profile"
 			data-tooltip="Back to profile"
 			onclick={onBack}>
-			<CaretLeftIcon size={16} aria-hidden="true" />
+			<CaretLeftIcon data-nudge="left" size={16} aria-hidden="true" />
 		</button>
 		<h1 id="chats-title" tabindex="-1" bind:this={heading}>Chats</h1>
 		<span class="mr-auto min-w-0 text-xs wrap-anywhere text-fg-muted"
@@ -97,7 +97,7 @@
 			{#if chat.loading}
 				<CircleNotchIcon class="spinner" size={16} aria-hidden="true" />
 			{:else}
-				<ArrowsClockwiseIcon size={16} aria-hidden="true" />
+				<ArrowsClockwiseIcon data-turn size={16} aria-hidden="true" />
 			{/if}
 		</button>
 	</header>

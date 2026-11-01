@@ -217,7 +217,8 @@
 		{#if account.rotatedAtMs}
 			<div>
 				<dt>
-					<ArrowsClockwiseIcon size={16} aria-hidden="true" />Cookie renewed
+					<ArrowsClockwiseIcon data-turn size={16} aria-hidden="true" />Cookie
+					renewed
 				</dt>
 				<dd>
 					<Timestamp value={account.rotatedAtMs} />

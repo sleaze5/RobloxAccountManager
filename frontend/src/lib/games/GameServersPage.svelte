@@ -114,23 +114,16 @@
 			aria-label="Back to game details"
 			data-tooltip="Back to game details"
 			onclick={onBack}>
-			<CaretLeftIcon size={16} aria-hidden="true" />
+			<CaretLeftIcon data-nudge="left" size={16} aria-hidden="true" />
 		</button>
 		<h1 id="game-servers-title" tabindex="-1" bind:this={heading}>Servers</h1>
 		<span class="mr-auto min-w-0 text-xs wrap-anywhere text-fg-muted"
 			>{store.displayName(place)}</span>
 		{#if appSettings.roValraEnabled}
-			<div
-				class="flex gap-0.5 rounded-lg border border-line p-0.5"
-				role="radiogroup"
-				aria-label="Server list">
+			<div class="segmented" role="radiogroup" aria-label="Server list">
 				{#each sources as option (option.id)}
-					<label
-						class="grid h-6 cursor-pointer place-items-center rounded-md px-2 text-xs font-medium text-fg-muted transition-colors duration-100 hover:bg-hover hover:text-fg has-checked:bg-raised has-checked:text-fg-bright has-focus-visible:outline-1 has-focus-visible:outline-offset-1 has-focus-visible:outline-focus"
-						data-tooltip={option.tooltip}
-						data-tooltip-side="bottom-end">
+					<label data-tooltip={option.tooltip} data-tooltip-side="bottom-end">
 						<input
-							class="pointer-events-none absolute opacity-0"
 							type="radio"
 							name={`${menuID}-source`}
 							value={option.id}
@@ -153,7 +146,7 @@
 			{#if active.loading}
 				<CircleNotchIcon class="spinner" size={16} aria-hidden="true" />
 			{:else}
-				<ArrowsClockwiseIcon size={16} aria-hidden="true" />
+				<ArrowsClockwiseIcon data-turn size={16} aria-hidden="true" />
 			{/if}
 		</button>
 	</header>

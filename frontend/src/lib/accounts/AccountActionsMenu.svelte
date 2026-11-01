@@ -76,7 +76,11 @@
 	<button class="menu-item" type="button">
 		<TagIcon size={16} aria-hidden="true" />
 		<span>Edit tags</span>
-		<CaretRightIcon size={16} class="ml-auto shrink-0" aria-hidden="true" />
+		<CaretRightIcon
+			data-nudge="right"
+			size={16}
+			class="ml-auto shrink-0"
+			aria-hidden="true" />
 	</button>
 	<div class="submenu" data-side={submenuLeft ? "left" : undefined} data-account-menu>
 		<TagPicker
@@ -152,7 +156,8 @@
 		type="button"
 		disabled={store.busy}
 		onclick={() => onRenewCookie(account.id)}>
-		<ArrowsClockwiseIcon size={16} aria-hidden="true" /><span>Renew cookie</span>
+		<ArrowsClockwiseIcon data-turn size={16} aria-hidden="true" /><span
+			>Renew cookie</span>
 	</button>
 </div>
 <div class="menu-separator"></div>
