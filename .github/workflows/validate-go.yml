@@ -19,6 +19,8 @@ jobs:
 
             - name: Set up Go
               uses: ./.github/actions/setup-go
+              with:
+                  cache: validation
 
             - name: Check
               run: go tool -modfile build/tools/go.mod task check:go
@@ -45,6 +47,8 @@ jobs:
 
             - name: Set up Go
               uses: ./.github/actions/setup-go
+              with:
+                  cache: native
 
             - name: Check
               run: go tool -modfile build/tools/go.mod task check:native

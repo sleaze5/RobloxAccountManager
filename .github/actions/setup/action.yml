@@ -1,24 +1,16 @@
 name: Set up the runner
-description: "Prepare a checked-out runner for every task: Go, which runs the pinned Task, and optionally Bun and native compilation."
-
-inputs:
-    bun:
-        description: Set up Bun for frontend tasks.
-        default: "true"
-    system-libraries:
-        description: Prepare the operating system for native compilation.
-        default: "true"
+description: "Prepare a checked-out runner for every task, including the complete local workflow: native compilation, Go, which runs the pinned Task, and Bun."
 
 runs:
     using: composite
     steps:
         - name: Set up native compilation
-          if: inputs.system-libraries == 'true'
           uses: ./.github/actions/setup-native
 
         - name: Set up Go
           uses: ./.github/actions/setup-go
+          with:
+              cache: native
 
         - name: Set up Bun
-          if: inputs.bun == 'true'
           uses: ./.github/actions/setup-bun

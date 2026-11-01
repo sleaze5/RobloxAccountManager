@@ -81,7 +81,19 @@ The "Check" workflow in `.github/workflows/check.yml` runs on every pull request
 - **Native** runs the `check:native` task on each supported operating system at the same time, when the native scope runs.
 - **CI** passes only when every other job passed or was skipped. Require only this check in branch protection.
 
-Each tool has one setup action, and a job uses only the ones it needs. `.github/actions/setup-go` sets up Go, which runs the pinned Task, so no job installs Task. `.github/actions/setup-bun` sets up Bun. `.github/actions/setup-native` prepares the operating system for cgo: it installs the GTK and WebKitGTK libraries on Linux and pauses Defender on Windows. `.github/actions/setup` combines all three for jobs that run the complete local workflow.
+Each tool has one setup action, and a job uses only the ones it needs. `.github/actions/setup-go` sets up Go, which runs the pinned Task, so no job installs Task. `.github/actions/setup-bun` sets up Bun. `.github/actions/setup-native` prepares the operating system for cgo: it installs the GTK and WebKitGTK libraries on Linux and pauses Defender on Windows. `.github/actions/setup` combines all three for the "Update dependencies" workflow, which runs the complete local workflow.
+
+## Caches
+
+`.github/actions/setup-go` is the only owner of the Go module and build caches. Each job passes a cache name for the kind of work it does, because `actions/setup-go` saves a cache only once per key, and the first job to save it decides what every later job restores:
+
+- `validation`: Go formatting and module checks.
+- `native`: golangci-lint and `go build` on each operating system, and the "Update dependencies" workflow.
+- `frontend`: binding generation.
+- `production-<targets>`: production builds of one target group, such as `production-windows-amd64 windows-arm64`. A single-target test build has its own cache, so it cannot leave out the second architecture of a release build.
+- `none`: no cache, for the publish job, which only builds Task.
+
+The key also contains the operating system, the architecture, the Go version, and both `go.sum` files. Go's build cache already tells apart architectures, build flags, tags, and C compiler versions, so a new runner image or compiler only causes cache misses. A cache never changes after it is saved. It gets the packages that changed since then only when a `go.sum` file or the Go version changes.
 
 ## Update signing
 

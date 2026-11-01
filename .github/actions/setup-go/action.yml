@@ -1,13 +1,29 @@
 name: Set up Go
 description: Set up the Go version pinned in go.mod, which also runs the pinned Task, with the module and build caches.
 
+inputs:
+    cache:
+        description: Name of the Go cache for this kind of job, or none for no cache. Jobs that compile different packages, flags, or architectures need different names.
+        required: true
+
 runs:
     using: composite
     steps:
+        - name: Name the Go cache
+          if: inputs.cache != 'none'
+          shell: bash
+          env:
+              CACHE: ${{ inputs.cache }}
+          run: |
+              mkdir -p .task
+              printf '%s\n' "$CACHE" > .task/go-cache
+
         - name: Set up Go
           uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e
           with:
               go-version-file: go.mod
+              cache: ${{ inputs.cache != 'none' }}
               cache-dependency-path: |
                   go.sum
                   build/tools/go.sum
+                  .task/go-cache

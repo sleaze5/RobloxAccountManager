@@ -54,8 +54,16 @@ jobs:
               with:
                   persist-credentials: false
 
-            - name: Set up
-              uses: ./.github/actions/setup
+            - name: Set up native compilation
+              uses: ./.github/actions/setup-native
+
+            - name: Set up Go
+              uses: ./.github/actions/setup-go
+              with:
+                  cache: frontend
+
+            - name: Set up Bun
+              uses: ./.github/actions/setup-bun
 
             - name: Check
               run: go tool -modfile build/tools/go.mod task check:common
@@ -79,10 +87,13 @@ jobs:
               with:
                   persist-credentials: false
 
-            - name: Set up
-              uses: ./.github/actions/setup
+            - name: Set up native compilation
+              uses: ./.github/actions/setup-native
+
+            - name: Set up Go
+              uses: ./.github/actions/setup-go
               with:
-                  bun: "false"
+                  cache: native
 
             - name: Check
               run: go tool -modfile build/tools/go.mod task check:native
