@@ -265,6 +265,7 @@ export class GamesStore {
 		const cached = this.#details.get(place.placeId)
 		if (cached && Date.now() - cached.fetchedAt < detailsKeepMs) {
 			this.game = cached.game
+			this.selected = cached.game.place
 		}
 		this.revalidate()
 	}
@@ -288,6 +289,19 @@ export class GamesStore {
 			this.#remember(game)
 			this.game = game
 			this.selected = game.place
+			this.results = this.results.map((item) =>
+				item.placeId === game.place.placeId
+					? { ...game.place, nickname: item.nickname }
+					: item,
+			)
+			this.favorites = this.favorites.map((item) =>
+				item.placeId === game.place.placeId
+					? { ...game.place, nickname: item.nickname }
+					: item,
+			)
+			if (this.menu?.place.placeId === game.place.placeId) {
+				this.menu = { ...this.menu, place: game.place }
+			}
 		} catch (error) {
 			if (this.#detailsRequest === request) {
 				this.detailsError = errorMessage(

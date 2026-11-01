@@ -62,6 +62,14 @@ func (repository *Repository) Save(ctx context.Context, place games.Place) error
 		place.PlaceID, place.UniverseID, place.Name, place.CreatorID, place.CreatorName, place.CreatorType, place.CreatorVerified, place.IconURL, time.Now().UnixMilli())
 }
 
+func (repository *Repository) Refresh(ctx context.Context, place games.Place) error {
+	return repository.write(ctx, place.PlaceID, "favorite-place-refresh", false, `UPDATE favorite_places SET
+		universe_id = ?, name = ?, creator_id = ?, creator_name = ?, creator_type = ?, creator_verified = ?, icon_url = ?
+		WHERE place_id = ? AND (universe_id != ? OR name != ? OR creator_id != ? OR creator_name != ? OR creator_type != ? OR creator_verified != ? OR icon_url != ?)`,
+		place.UniverseID, place.Name, place.CreatorID, place.CreatorName, place.CreatorType, place.CreatorVerified, place.IconURL,
+		place.PlaceID, place.UniverseID, place.Name, place.CreatorID, place.CreatorName, place.CreatorType, place.CreatorVerified, place.IconURL)
+}
+
 func (repository *Repository) SetNickname(ctx context.Context, placeID int64, nickname string) error {
 	return repository.write(ctx, placeID, "favorite-place-nickname", true, `UPDATE favorite_places SET nickname = ? WHERE place_id = ?`, nickname, placeID)
 }
@@ -124,12 +132,13 @@ func (repository *Repository) write(ctx context.Context, placeID int64, operatio
 	if err != nil {
 		return fmt.Errorf("update favorite place: %w", err)
 	}
-	if existing {
-		if changed, err := result.RowsAffected(); err != nil {
-			return fmt.Errorf("count updated favorite places: %w", err)
-		} else if changed == 0 {
+	if changed, err := result.RowsAffected(); err != nil {
+		return fmt.Errorf("count updated favorite places: %w", err)
+	} else if changed == 0 {
+		if existing {
 			return ErrNotFavorite
 		}
+		return nil
 	}
 	if _, err := tx.ExecContext(ctx, `UPDATE vault_state SET storage_revision = storage_revision + 1 WHERE singleton = 1`); err != nil {
 		return fmt.Errorf("update storage revision: %w", err)
