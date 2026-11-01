@@ -9,6 +9,7 @@ import (
 	"os"
 
 	"github.com/sleaze5/RobloxAccountManager/internal/appdata"
+	"github.com/sleaze5/RobloxAccountManager/internal/logging"
 )
 
 func (manager *Manager) completeUnlock(ctx context.Context, usedNext bool, password string) error {
@@ -43,7 +44,7 @@ func (manager *Manager) migrateSchema(ctx context.Context) error {
 	if err := applySchemaMigrations(ctx, db, version); err != nil {
 		return err
 	}
-	manager.logger.Info("vault schema migrated", "operation", "vault-migrate", "from_schema_version", version, "schema_version", schemaVersion)
+	logging.Diagnostic(manager.logger, "vault schema migrated", "operation", "vault-migrate", "from_schema_version", version, "schema_version", schemaVersion)
 	return nil
 }
 
