@@ -16,6 +16,7 @@ import (
 
 	sqlite3 "github.com/mutecomm/go-sqlcipher/v4"
 	"github.com/sleaze5/RobloxAccountManager/internal/games"
+	"github.com/sleaze5/RobloxAccountManager/internal/logging"
 )
 
 const formatVersion = 2
@@ -39,6 +40,7 @@ type Store struct {
 }
 
 func New(path string, logger *slog.Logger) *Store {
+	logging.Diagnostic(logger, "cache format supported", "operation", "cache-load", "database", "caches.db", "supported_format_version", formatVersion, "encrypted", false)
 	return &Store{path: path, logger: logger}
 }
 
@@ -140,6 +142,7 @@ func (store *Store) open(ctx context.Context) (err error) {
 	if version < 0 || version > formatVersion {
 		return errInvalidCache
 	}
+	fromVersion := version
 	for ; version < formatVersion; version++ {
 		if _, err := db.ExecContext(ctx, "BEGIN;"+schemas[version]+"COMMIT;"); err != nil {
 			return fmt.Errorf("initialize public cache: %w", err)
@@ -147,7 +150,17 @@ func (store *Store) open(ctx context.Context) (err error) {
 	}
 	store.db = db
 	store.pruneAt = time.Time{}
+	store.recordLoaded(fromVersion)
 	return nil
+}
+
+func (store *Store) recordLoaded(fromVersion int) {
+	if fromVersion == 0 {
+		logging.Diagnostic(store.logger, "cache database created", "operation", "cache-load", "format_version", formatVersion)
+	} else if fromVersion < formatVersion {
+		logging.Diagnostic(store.logger, "cache database migrated", "operation", "cache-load", "from_format_version", fromVersion, "format_version", formatVersion)
+	}
+	logging.Diagnostic(store.logger, "cache database loaded", "operation", "cache-load", "database", "caches.db", "format_version", formatVersion, "source_format_version", fromVersion, "encrypted", false)
 }
 
 func (store *Store) read(ctx context.Context, kind string, id int64, target any) (fresh bool) {
