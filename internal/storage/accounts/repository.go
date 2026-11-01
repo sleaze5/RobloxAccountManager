@@ -264,8 +264,8 @@ func (repository *Repository) Page(ctx context.Context, query AccountQuery) (Acc
 	where := []string{"1 = 1"}
 	arguments := make([]any, 0, 6)
 	if search := strings.TrimSpace(query.Search); search != "" {
-		where = append(where, `(instr(lower(a.username), lower(?)) > 0 OR instr(lower(a.display_name), lower(?)) > 0)`)
-		arguments = append(arguments, search, search)
+		where = append(where, `(instr(lower(a.username), lower(?)) > 0 OR instr(lower(a.display_name), lower(?)) > 0 OR instr(CAST(a.roblox_user_id AS TEXT), ?) > 0)`)
+		arguments = append(arguments, search, search, search)
 	}
 	for _, tagID := range query.TagIDs {
 		where = append(where, `EXISTS (SELECT 1 FROM account_tags filter_tags WHERE filter_tags.account_id = a.id AND filter_tags.tag_id = ?)`)
@@ -485,14 +485,14 @@ func (repository *Repository) RecordSuccess(ctx context.Context, accountID, expe
 }
 
 const viewQuery = `
-SELECT a.id, a.roblox_user_id, a.username, a.display_name,
+SELECT a.id, a.roblox_user_id, COALESCE(NULLIF(a.username, ''), 'User ' || a.roblox_user_id), a.display_name,
        s.state, s.state_reason, s.secret_version, s.cookie_expires_at_ms,
 	   a.created_at_ms, s.imported_at_ms, s.rotated_at_ms, s.last_validated_at_ms,
 	   s.updated_at_ms, s.password <> ''
 FROM accounts a JOIN account_sessions s ON s.account_id = a.id`
 
 const pageViewQuery = `
-SELECT a.id, a.roblox_user_id, a.username, a.display_name,
+SELECT a.id, a.roblox_user_id, COALESCE(NULLIF(a.username, ''), 'User ' || a.roblox_user_id), a.display_name,
        s.state, s.state_reason, s.secret_version, s.cookie_expires_at_ms,
 	   a.created_at_ms, s.imported_at_ms, s.rotated_at_ms, s.last_validated_at_ms,
 	   s.updated_at_ms, s.password <> '', a.display_order
@@ -699,6 +699,36 @@ func shiftMovedAccounts(ctx context.Context, tx *sql.Tx, oldOrder, newOrder, cou
 		if _, err := tx.ExecContext(ctx, `UPDATE accounts SET display_order = display_order - ? WHERE display_order > ?`, count+2, count); err != nil {
 			return fmt.Errorf("compact accounts up: %w", err)
 		}
+	}
+	return nil
+}
+
+func (repository *Repository) RestoreNames(ctx context.Context, accountID int64, identity Identity) error {
+	db, release, err := repository.database(ctx)
+	if err != nil {
+		return err
+	}
+	defer release()
+	tx, err := db.BeginTx(ctx, nil)
+	if err != nil {
+		return fmt.Errorf("begin account name recovery: %w", err)
+	}
+	defer tx.Rollback()
+	result, err := tx.ExecContext(ctx, `UPDATE accounts SET username = ?, display_name = ? WHERE id = ? AND roblox_user_id = ? AND username = ''`, identity.Username, identity.DisplayName, accountID, identity.RobloxUserID)
+	if err != nil {
+		return fmt.Errorf("restore saved account names: %w", err)
+	}
+	changed, err := result.RowsAffected()
+	if err != nil {
+		return fmt.Errorf("count restored account names: %w", err)
+	}
+	if changed > 0 {
+		if err := bumpRevision(ctx, tx); err != nil {
+			return err
+		}
+	}
+	if err := tx.Commit(); err != nil {
+		return fmt.Errorf("commit account name recovery: %w", err)
 	}
 	return nil
 }

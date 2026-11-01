@@ -16,6 +16,7 @@ import (
 
 	"github.com/sleaze5/RobloxAccountManager/internal/games"
 	"github.com/sleaze5/RobloxAccountManager/internal/roblox"
+	"github.com/sleaze5/RobloxAccountManager/internal/storage/caches"
 )
 
 const (
@@ -24,12 +25,13 @@ const (
 )
 
 type Games struct {
+	cache  *caches.Store
 	client *roblox.Client
 	logger *slog.Logger
 }
 
-func NewGames(client *roblox.Client, logger *slog.Logger) *Games {
-	return &Games{client: client, logger: logger}
+func NewGames(client *roblox.Client, logger *slog.Logger, cache *caches.Store) *Games {
+	return &Games{cache: cache, client: client, logger: logger}
 }
 
 func (service *Games) Search(ctx context.Context, query games.SearchQuery) (games.SearchPage, error) {
@@ -152,6 +154,7 @@ func (service *Games) subplace(ctx context.Context, root games.Place, placeID in
 		service.logger.WarnContext(ctx, "place icons unavailable", "operation", "place-icons", "error", err)
 	}
 	place.IconURL = icons[placeID]
+	service.cache.SavePlace(ctx, place)
 	return place, description, true, nil
 }
 
@@ -189,6 +192,9 @@ func (service *Games) UniversePlaces(ctx context.Context, universeID int64) ([]g
 		for index := range batch {
 			batch[index].IconURL = icons[batch[index].PlaceID]
 		}
+	}
+	for _, place := range places {
+		service.cache.SavePlace(ctx, place)
 	}
 	return places, true, nil
 }
@@ -461,6 +467,7 @@ func (service *Games) details(ctx context.Context, ids []int64) (map[int64]games
 	for id, game := range result {
 		game.Place.IconURL = icons[id]
 		result[id] = game
+		service.cache.SavePlace(ctx, game.Place)
 	}
 	return result, nil
 }
@@ -633,4 +640,8 @@ func (service *Games) loadGameExtras(ctx context.Context, accountID int64, game 
 
 func validGameCreator(id int64, kind string) bool {
 	return id > 0 && id < 1<<53 && (kind == "User" || kind == "Group")
+}
+
+func (service *Games) CachedPlace(ctx context.Context, id int64) (games.Place, bool) {
+	return service.cache.Place(ctx, id)
 }

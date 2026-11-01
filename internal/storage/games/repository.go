@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/sleaze5/RobloxAccountManager/internal/games"
+	"github.com/sleaze5/RobloxAccountManager/internal/storage/caches"
 )
 
 var ErrNotFavorite = errors.New("place is not a favorite")
@@ -19,11 +20,12 @@ type DatabaseProvider interface {
 
 type Repository struct {
 	provider DatabaseProvider
+	cache    *caches.Store
 	logger   *slog.Logger
 }
 
-func NewRepository(provider DatabaseProvider, logger *slog.Logger) *Repository {
-	return &Repository{provider: provider, logger: logger}
+func NewRepository(provider DatabaseProvider, logger *slog.Logger, cache *caches.Store) *Repository {
+	return &Repository{provider: provider, logger: logger, cache: cache}
 }
 
 func (repository *Repository) List(ctx context.Context) ([]games.Place, error) {
@@ -32,7 +34,7 @@ func (repository *Repository) List(ctx context.Context) ([]games.Place, error) {
 		return nil, err
 	}
 	defer release()
-	rows, err := db.QueryContext(ctx, `SELECT place_id, universe_id, name, creator_id, creator_name, creator_type, creator_verified, icon_url, nickname FROM favorite_places ORDER BY display_order, place_id`)
+	rows, err := db.QueryContext(ctx, `SELECT place_id, nickname FROM favorite_places ORDER BY display_order, place_id`)
 	if err != nil {
 		return nil, fmt.Errorf("list favorite places: %w", err)
 	}
@@ -40,10 +42,12 @@ func (repository *Repository) List(ctx context.Context) ([]games.Place, error) {
 	places := make([]games.Place, 0)
 	for rows.Next() {
 		var place games.Place
-		if err := rows.Scan(&place.PlaceID, &place.UniverseID, &place.Name, &place.CreatorID, &place.CreatorName, &place.CreatorType, &place.CreatorVerified, &place.IconURL, &place.Nickname); err != nil {
+		if err := rows.Scan(&place.PlaceID, &place.Nickname); err != nil {
 			return nil, fmt.Errorf("read favorite place: %w", err)
 		}
-		places = append(places, place)
+		metadata, _ := repository.cache.Place(ctx, place.PlaceID)
+		metadata.Nickname = place.Nickname
+		places = append(places, metadata)
 	}
 	if err := rows.Err(); err != nil {
 		return nil, fmt.Errorf("read favorite places: %w", err)
@@ -55,19 +59,7 @@ func (repository *Repository) Save(ctx context.Context, place games.Place) error
 	if place.PlaceID <= 0 || place.UniverseID <= 0 || place.Name == "" {
 		return errors.New("invalid favorite place")
 	}
-	return repository.write(ctx, place.PlaceID, "favorite-place-save", false, `INSERT INTO favorite_places(place_id, universe_id, name, creator_id, creator_name, creator_type, creator_verified, icon_url, display_order, created_at_ms)
-		VALUES(?, ?, ?, ?, ?, ?, ?, ?, (SELECT COALESCE(MIN(display_order) - 1, 0) FROM favorite_places), ?) ON CONFLICT(place_id) DO UPDATE SET
-		universe_id = excluded.universe_id, name = excluded.name, creator_id = excluded.creator_id,
-		creator_name = excluded.creator_name, creator_type = excluded.creator_type, creator_verified = excluded.creator_verified, icon_url = excluded.icon_url`,
-		place.PlaceID, place.UniverseID, place.Name, place.CreatorID, place.CreatorName, place.CreatorType, place.CreatorVerified, place.IconURL, time.Now().UnixMilli())
-}
-
-func (repository *Repository) Refresh(ctx context.Context, place games.Place) error {
-	return repository.write(ctx, place.PlaceID, "favorite-place-refresh", false, `UPDATE favorite_places SET
-		universe_id = ?, name = ?, creator_id = ?, creator_name = ?, creator_type = ?, creator_verified = ?, icon_url = ?
-		WHERE place_id = ? AND (universe_id != ? OR name != ? OR creator_id != ? OR creator_name != ? OR creator_type != ? OR creator_verified != ? OR icon_url != ?)`,
-		place.UniverseID, place.Name, place.CreatorID, place.CreatorName, place.CreatorType, place.CreatorVerified, place.IconURL,
-		place.PlaceID, place.UniverseID, place.Name, place.CreatorID, place.CreatorName, place.CreatorType, place.CreatorVerified, place.IconURL)
+	return repository.write(ctx, place.PlaceID, "favorite-place-save", false, `INSERT INTO favorite_places(place_id, display_order, created_at_ms) VALUES(?, (SELECT COALESCE(MIN(display_order) - 1, 0) FROM favorite_places), ?) ON CONFLICT(place_id) DO NOTHING`, place.PlaceID, time.Now().UnixMilli())
 }
 
 func (repository *Repository) SetNickname(ctx context.Context, placeID int64, nickname string) error {

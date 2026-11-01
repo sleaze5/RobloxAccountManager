@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"strings"
 
 	"github.com/sleaze5/RobloxAccountManager/internal/accounts"
 	"github.com/sleaze5/RobloxAccountManager/internal/browser"
@@ -191,6 +192,9 @@ func (service *Service) ListAccounts(ctx context.Context, query accounts.Account
 	}
 	for _, account := range page.Accounts {
 		service.sessions.BrowserID(account.ID)
+		if strings.HasPrefix(account.Username, "User ") {
+			service.refreshAccountMetadata(account.ID, account.RobloxUserID)
+		}
 	}
 	return page, nil
 }

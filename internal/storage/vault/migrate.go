@@ -9,6 +9,7 @@ import (
 	"os"
 
 	"github.com/sleaze5/RobloxAccountManager/internal/appdata"
+	"github.com/sleaze5/RobloxAccountManager/internal/logging"
 )
 
 func (manager *Manager) completeUnlock(ctx context.Context, usedNext bool, password string) error {
@@ -43,7 +44,7 @@ func (manager *Manager) migrateSchema(ctx context.Context) error {
 	if err := applySchemaMigrations(ctx, db, version); err != nil {
 		return err
 	}
-	manager.logger.Info("vault schema migrated", "operation", "vault-migrate", "from_schema_version", version, "schema_version", schemaVersion)
+	logging.Diagnostic(manager.logger, "vault schema migrated", "operation", "vault-migrate", "from_schema_version", version, "schema_version", schemaVersion)
 	return nil
 }
 
@@ -77,9 +78,19 @@ func runSchemaMigrations(ctx context.Context, tx *sql.Tx, from int) error {
 	if _, err := tx.ExecContext(ctx, `PRAGMA defer_foreign_keys = ON`); err != nil {
 		return fmt.Errorf("defer vault foreign key checks: %w", err)
 	}
+	if from < 3 {
+		if _, err := tx.ExecContext(ctx, `CREATE TABLE migration_account_names AS SELECT id, username, display_name FROM accounts`); err != nil {
+			return fmt.Errorf("preserve saved account names: %w", err)
+		}
+	}
 	for version := from; version < schemaVersion; version++ {
 		if err := schemaMigrations[version-1](ctx, tx); err != nil {
 			return fmt.Errorf("migrate vault schema from version %d: %w", version, err)
+		}
+	}
+	if from < 3 {
+		if _, err := tx.ExecContext(ctx, `UPDATE accounts SET username = (SELECT username FROM migration_account_names WHERE id = accounts.id), display_name = (SELECT display_name FROM migration_account_names WHERE id = accounts.id); DROP TABLE migration_account_names;`); err != nil {
+			return fmt.Errorf("restore preserved account names: %w", err)
 		}
 	}
 	if _, err := tx.ExecContext(ctx, `UPDATE vault_state SET schema_version = ? WHERE singleton = 1`, schemaVersion); err != nil {

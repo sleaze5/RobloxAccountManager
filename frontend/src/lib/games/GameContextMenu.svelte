@@ -133,6 +133,7 @@
 			class="menu-item"
 			type="button"
 			aria-label="Copy universe ID"
+			disabled={!place.universeId}
 			onclick={() => void store.copy(place.universeId, "Universe ID")}
 			><Icon svg={hashIcon} size={16} aria-hidden="true" /><span>Universe ID</span
 			></button>

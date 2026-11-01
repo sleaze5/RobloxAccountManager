@@ -10,11 +10,46 @@ import (
 	"github.com/sleaze5/RobloxAccountManager/internal/logging"
 )
 
-const schemaVersion = 2
+const schemaVersion = 4
 
-var schemaMigrations = [...]func(context.Context, *sql.Tx) error{addAccountPasswords}
+var schemaMigrations = [...]func(context.Context, *sql.Tx) error{addAccountPasswords, splitPublicMetadata, restoreAccountNames}
 
 var _ = [1]struct{}{}[len(schemaMigrations)-(schemaVersion-1)]
+
+func splitPublicMetadata(ctx context.Context, tx *sql.Tx) error {
+	if _, err := tx.ExecContext(ctx, `
+CREATE TABLE accounts_new (
+    id INTEGER PRIMARY KEY,
+    roblox_user_id INTEGER NOT NULL UNIQUE CHECK (roblox_user_id > 0),
+    display_order INTEGER NOT NULL UNIQUE CHECK (display_order >= 0),
+    created_at_ms INTEGER NOT NULL,
+    updated_at_ms INTEGER NOT NULL
+);
+INSERT INTO accounts_new SELECT id, roblox_user_id, display_order, created_at_ms, updated_at_ms FROM accounts;
+CREATE TABLE saved_sessions AS SELECT account_id, roblosecurity, cookie_expires_at_ms, state, state_reason, secret_version, imported_at_ms, replaced_at_ms, rotated_at_ms, last_validated_at_ms, last_success_at_ms, last_auth_failure_at_ms, updated_at_ms, password FROM account_sessions;
+CREATE TABLE saved_account_tags AS SELECT account_id, tag_id, created_at_ms FROM account_tags;
+DELETE FROM account_sessions;
+DELETE FROM account_tags;
+DROP TABLE accounts;
+ALTER TABLE accounts_new RENAME TO accounts;
+INSERT INTO account_sessions(account_id, roblosecurity, cookie_expires_at_ms, state, state_reason, secret_version, imported_at_ms, replaced_at_ms, rotated_at_ms, last_validated_at_ms, last_success_at_ms, last_auth_failure_at_ms, updated_at_ms, password) SELECT account_id, roblosecurity, cookie_expires_at_ms, state, state_reason, secret_version, imported_at_ms, replaced_at_ms, rotated_at_ms, last_validated_at_ms, last_success_at_ms, last_auth_failure_at_ms, updated_at_ms, password FROM saved_sessions;
+INSERT INTO account_tags(account_id, tag_id, created_at_ms) SELECT account_id, tag_id, created_at_ms FROM saved_account_tags;
+DROP TABLE saved_sessions;
+DROP TABLE saved_account_tags;
+CREATE TABLE favorite_places_new (
+    place_id INTEGER PRIMARY KEY CHECK (place_id > 0),
+    nickname TEXT NOT NULL DEFAULT '' CHECK (length(nickname) <= 50),
+    display_order INTEGER NOT NULL,
+    created_at_ms INTEGER NOT NULL
+);
+INSERT INTO favorite_places_new SELECT place_id, nickname, display_order, created_at_ms FROM favorite_places;
+DROP TABLE favorite_places;
+ALTER TABLE favorite_places_new RENAME TO favorite_places;
+`); err != nil {
+		return fmt.Errorf("remove rebuildable public metadata: %w", err)
+	}
+	return nil
+}
 
 func addAccountPasswords(ctx context.Context, tx *sql.Tx) error {
 	if _, err := tx.ExecContext(ctx, `ALTER TABLE account_sessions ADD COLUMN password TEXT NOT NULL DEFAULT ''`); err != nil {
@@ -132,6 +167,13 @@ func verifySchema(ctx context.Context, db *sql.DB, expectedID [vaultIDBytes]byte
 	}
 	if len(identifier) != vaultIDBytes || !sameVaultID(expectedID, [vaultIDBytes]byte(identifier)) {
 		return ErrVaultMismatch
+	}
+	return nil
+}
+
+func restoreAccountNames(ctx context.Context, tx *sql.Tx) error {
+	if _, err := tx.ExecContext(ctx, `ALTER TABLE accounts ADD COLUMN username TEXT NOT NULL DEFAULT ''; ALTER TABLE accounts ADD COLUMN display_name TEXT NOT NULL DEFAULT '';`); err != nil {
+		return fmt.Errorf("restore account identity columns: %w", err)
 	}
 	return nil
 }
