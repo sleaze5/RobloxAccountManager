@@ -131,6 +131,8 @@ func (service *Users) VoiceChat(ctx context.Context, accountID, version int64) (
 type UserAbout struct {
 	Description   string
 	VerifiedBadge bool
+	Banned        bool
+	CreatedAt     time.Time
 }
 
 type UserSocialLink struct {
@@ -139,17 +141,27 @@ type UserSocialLink struct {
 }
 
 func (service *Users) SocialLinks(ctx context.Context, accountID, version int64) ([]UserSocialLink, error) {
+	return service.socialLinks(ctx, accountID, version, "profile-social-links", "https://accountinformation.roblox.com/v1/promotion-channels?alwaysReturnUrls=true")
+}
+
+// UserSocialLinks reads the social links another user shows on their profile.
+func (service *Users) UserSocialLinks(ctx context.Context, accountID, version, userID int64) ([]UserSocialLink, error) {
+	address := "https://accountinformation.roblox.com/v1/users/" + strconv.FormatInt(userID, 10) + "/promotion-channels?alwaysReturnUrls=true"
+	return service.socialLinks(ctx, accountID, version, "friend-social-links", address)
+}
+
+func (service *Users) socialLinks(ctx context.Context, accountID, version int64, endpoint, address string) ([]UserSocialLink, error) {
 	var result *struct {
 		Facebook string `json:"facebook"`
 		Twitter  string `json:"twitter"`
 		YouTube  string `json:"youtube"`
 		Twitch   string `json:"twitch"`
 	}
-	if err := service.readAccountDetails(ctx, accountID, version, "profile-social-links", "https://accountinformation.roblox.com/v1/promotion-channels?alwaysReturnUrls=true", &result); err != nil {
+	if err := service.readAccountDetails(ctx, accountID, version, endpoint, address, &result); err != nil {
 		return nil, err
 	}
 	if result == nil {
-		return nil, invalidProfileDetails("profile-social-links")
+		return nil, invalidProfileDetails(endpoint)
 	}
 	channels := []struct {
 		name, address string
@@ -168,7 +180,7 @@ func (service *Users) SocialLinks(ctx context.Context, accountID, version int64)
 		}
 		uri, err := url.Parse(address)
 		if err != nil || len(address) > 2048 || uri.Scheme != "https" || uri.User != nil || (uri.Port() != "" && uri.Port() != "443") {
-			return nil, invalidProfileDetails("profile-social-links")
+			return nil, invalidProfileDetails(endpoint)
 		}
 		host := strings.ToLower(uri.Hostname())
 		allowed := false
@@ -179,7 +191,7 @@ func (service *Users) SocialLinks(ctx context.Context, accountID, version int64)
 			}
 		}
 		if !allowed {
-			return nil, invalidProfileDetails("profile-social-links")
+			return nil, invalidProfileDetails(endpoint)
 		}
 		links = append(links, UserSocialLink{Name: channel.name, URL: uri.String()})
 	}
@@ -246,6 +258,8 @@ func (service *Users) About(ctx context.Context, accountID, version, userID int6
 		ID               int64   `json:"id"`
 		Description      *string `json:"description"`
 		HasVerifiedBadge bool    `json:"hasVerifiedBadge"`
+		IsBanned         bool    `json:"isBanned"`
+		Created          string  `json:"created"`
 	}
 	address := "https://users.roblox.com/v1/users/" + strconv.FormatInt(userID, 10)
 	if err := service.readAccountDetails(ctx, accountID, version, "profile-about", address, &result); err != nil {
@@ -254,7 +268,11 @@ func (service *Users) About(ctx context.Context, accountID, version, userID int6
 	if result.ID != userID || result.Description == nil || len(*result.Description) > 4096 {
 		return UserAbout{}, invalidProfileDetails("profile-about")
 	}
-	return UserAbout{Description: strings.TrimSpace(*result.Description), VerifiedBadge: result.HasVerifiedBadge}, nil
+	about := UserAbout{Description: strings.TrimSpace(*result.Description), VerifiedBadge: result.HasVerifiedBadge, Banned: result.IsBanned}
+	if createdAt, err := time.Parse(time.RFC3339, strings.TrimSpace(result.Created)); err == nil {
+		about.CreatedAt = createdAt.UTC()
+	}
+	return about, nil
 }
 
 func (service *Users) SocialCount(ctx context.Context, accountID, version, userID int64, counter string) (*int64, error) {

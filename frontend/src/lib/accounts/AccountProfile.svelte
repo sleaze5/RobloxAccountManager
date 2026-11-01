@@ -12,10 +12,11 @@
 	import Icon from "../shared/Icon.svelte"
 	import { tick, untrack } from "svelte"
 	import { SessionState } from "../backend/bridge"
+	import type { SocialListKind } from "../social/social-store.svelte"
 	import ChatsPage from "../chats/ChatsPage.svelte"
+	import SocialCounts from "../social/SocialCounts.svelte"
 	import type { WorkspaceState } from "../layout/workspace-state.svelte"
 	import type { NotificationCenter } from "../notifications/notification-center.svelte"
-	import CompactNumber from "../shared/CompactNumber.svelte"
 	import { appSettings } from "../settings/settings-store.svelte"
 	import { floatMenu, menuIn, menuOut } from "../shared/presence"
 	import AccountAvatar from "./AccountAvatar.svelte"
@@ -37,6 +38,7 @@
 		onSearchPlace,
 		onReplaceCookie,
 		onEditDescription,
+		onShowSocial,
 		notifications,
 	}: {
 		store: AccountStore
@@ -46,6 +48,7 @@
 		onSearchPlace: (placeId: number) => void
 		onReplaceCookie: () => void
 		onEditDescription: (description: string) => void
+		onShowSocial: (list: SocialListKind) => void
 		notifications: NotificationCenter
 	} = $props()
 
@@ -315,22 +318,12 @@
 				</div>
 			</div>
 
-			{#if profile && (profile.friendCount !== null || profile.followerCount !== null || profile.followingCount !== null)}
-				<dl
-					class="flex flex-wrap items-baseline gap-x-4 gap-y-1"
-					aria-label="Connections">
-					{#each [["Friends", profile.friendCount], ["Followers", profile.followerCount], ["Following", profile.followingCount]] as const as [label, value] (label)}
-						{#if value !== null}
-							<div class="flex items-baseline gap-1">
-								<dt class="text-xs text-fg-muted">{label}</dt>
-								<dd
-									class="order-first text-sm font-semibold text-fg tabular-nums">
-									<CompactNumber {value} />
-								</dd>
-							</div>
-						{/if}
-					{/each}
-				</dl>
+			{#if profile}
+				<SocialCounts
+					friends={profile.friendCount}
+					followers={profile.followerCount}
+					following={profile.followingCount}
+					onShow={onShowSocial} />
 			{/if}
 
 			{#if profile}

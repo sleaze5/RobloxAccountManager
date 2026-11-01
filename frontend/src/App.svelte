@@ -12,6 +12,8 @@
 	import AppLocationDialog from "./lib/dialogs/AppLocationDialog.svelte"
 	import BrowserImportDialog from "./lib/dialogs/BrowserImportDialog.svelte"
 	import BrowserRuntimeDialog from "./lib/dialogs/BrowserRuntimeDialog.svelte"
+	import NicknameDialog from "./lib/dialogs/NicknameDialog.svelte"
+	import UnfriendDialog from "./lib/dialogs/UnfriendDialog.svelte"
 	import DescriptionEditDialog from "./lib/dialogs/DescriptionEditDialog.svelte"
 	import LockVaultDialog from "./lib/dialogs/LockVaultDialog.svelte"
 	import ManageTagsDialog from "./lib/dialogs/ManageTagsDialog.svelte"
@@ -26,8 +28,11 @@
 		LaunchMethod,
 		RuntimeStatus,
 	} from "./lib/backend/bridge"
-	import type { AppLocation, ShutdownEffects } from "./lib/backend/bridge"
+	import type { AppLocation, ShutdownEffects, SocialUser } from "./lib/backend/bridge"
 	import { browserStore } from "./lib/browser/browser-store.svelte"
+	import SocialPage from "./lib/social/SocialPage.svelte"
+	import { SocialStore } from "./lib/social/social-store.svelte"
+	import type { SocialListKind } from "./lib/social/social-store.svelte"
 	import LogsExplorerPage from "./lib/logs-explorer/LogsExplorerPage.svelte"
 	import GamesPage from "./lib/games/GamesPage.svelte"
 	import { GamesStore, setGamesStore } from "./lib/games/games-store.svelte"
@@ -55,13 +60,16 @@
 		| "remove-account"
 		| "renew-cookie"
 		| "test-password"
+		| "unfriend"
+		| "nickname"
 		| null
-	type ActivePage = "accounts" | "games" | "logs-explorer" | "settings"
+	type ActivePage = "accounts" | "social" | "games" | "logs-explorer" | "settings"
 
 	const notificationCenter = new NotificationCenter(),
 		store = new AccountStore(notificationCenter),
 		logsExplorer = new LogsExplorerStore(),
 		games = new GamesStore(notificationCenter),
+		social = new SocialStore(notificationCenter),
 		workspace = new WorkspaceState(),
 		passwordReminderNotificationId = "password-test-reminder"
 	let appLocation = $state<AppLocation | null>(null),
@@ -71,6 +79,8 @@
 		passwordReminderNotified = $state(false),
 		tagAccountId = $state<number | null>(null),
 		removeAccountId = $state<number | null>(null),
+		unfriendTarget = $state<SocialUser | null>(null),
+		nicknameTarget = $state<{ person: SocialUser; nickname: string } | null>(null),
 		renewAccountId = $state<number | null>(null)
 	let descriptionEditor = $state<{
 		account: Account
@@ -100,7 +110,10 @@
 	$effect(() => {
 		if (!store.vault.unlocked) {
 			workspace.closeAccountMenus()
-			untrack(() => games.reset())
+			untrack(() => {
+				games.reset()
+				social.reset()
+			})
 		} else untrack(() => games.initialize())
 	})
 
@@ -131,6 +144,7 @@
 			unmountUpdates = updateStore.mount(notificationCenter)
 		return () => {
 			games.reset()
+			social.reset()
 			unmountAccounts()
 			unmountBrowser()
 			unmountUpdates()
@@ -336,7 +350,46 @@
 		passwordReminderNotified = false
 	}
 
+	function openUnfriend(friend: SocialUser): void {
+		social.unfriendError = ""
+		unfriendTarget = friend
+		activeDialog = "unfriend"
+	}
+
+	function showSocial(list: SocialListKind): void {
+		const account = store.selectedAccount
+		social.home(account.id, Number(account.userId) || 0, list)
+		activePage = "social"
+	}
+
+	function closeUnfriend(): void {
+		if (social.unfriending) return
+		social.unfriendError = ""
+		activeDialog = null
+		unfriendTarget = null
+	}
+
+	function openNickname(person: SocialUser, nickname: string): void {
+		social.nicknameError = ""
+		nicknameTarget = { person, nickname }
+		activeDialog = "nickname"
+	}
+
+	function closeNickname(): void {
+		if (social.updating === "nickname") return
+		activeDialog = null
+		nicknameTarget = null
+	}
+
 	function closeDialog(): void {
+		if (activeDialog === "unfriend") {
+			closeUnfriend()
+			return
+		}
+		if (activeDialog === "nickname") {
+			closeNickname()
+			return
+		}
 		if (store.busy) {
 			return
 		}
@@ -362,9 +415,10 @@
 		notificationCenter.show({ message, title: "Accounts saved", tone: "success" })
 	}
 
-	const pageOrder = ["accounts", "games", "logs-explorer"] as const
+	const pageOrder = ["accounts", "social", "games", "logs-explorer"] as const
 	const pageLabels = {
 		"accounts": "Accounts",
+		"social": "Social",
 		"games": "Games",
 		"logs-explorer": "Logs Explorer",
 	} satisfies Record<(typeof pageOrder)[number], string>
@@ -453,7 +507,16 @@
 			<OperationError {store} />
 		{/if}
 
-		{#if activePage === "games"}
+		{#if activePage === "social"}
+			<SocialPage
+				store={social}
+				accounts={store}
+				onFillLaunch={(placeId, jobId) =>
+					void fillGameLaunchOptions(placeId, jobId)}
+				onSearchPlace={(placeId) => void searchGames(`id:${placeId}`)}
+				onUnfriend={openUnfriend}
+				onEditNickname={openNickname} />
+		{:else if activePage === "games"}
 			<GamesPage
 				store={games}
 				{workspace}
@@ -510,7 +573,8 @@
 										onSearchPlace={(placeId) =>
 											void searchGames(`id:${placeId}`)}
 										onReplaceCookie={openAddAccount}
-										onEditDescription={openDescriptionEditor} />
+										onEditDescription={openDescriptionEditor}
+										onShowSocial={showSocial} />
 								</div>
 							{/key}
 						{/if}
@@ -579,6 +643,23 @@
 
 {#if activeDialog === "renew-cookie" && accountToRenew}
 	<RenewCookieDialog {store} account={accountToRenew} onClose={closeDialog} />
+{/if}
+
+{#if activeDialog === "nickname" && nicknameTarget}
+	<NicknameDialog
+		store={social}
+		account={store.selectedAccount}
+		person={nicknameTarget.person}
+		nickname={nicknameTarget.nickname}
+		onClose={closeNickname} />
+{/if}
+
+{#if activeDialog === "unfriend" && unfriendTarget}
+	<UnfriendDialog
+		store={social}
+		account={store.selectedAccount}
+		friend={unfriendTarget}
+		onClose={closeUnfriend} />
 {/if}
 
 {#if activeDialog === "test-password"}

@@ -1,7 +1,8 @@
 <script lang="ts">
 	import type { AccountProfileSnapshot } from "../backend/bridge"
 
-	let { snapshot }: { snapshot: AccountProfileSnapshot } = $props()
+	let { snapshot }: { snapshot: Pick<AccountProfileSnapshot, "premium" | "plus"> } =
+		$props()
 	const badgeClass =
 		"inline-flex h-5 cursor-help items-center gap-1 rounded-sm border border-line-strong bg-raised px-1 text-2xs font-medium text-accent-strong"
 </script>

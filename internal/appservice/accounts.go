@@ -269,22 +269,31 @@ func (service *Service) presenceTargets(ctx context.Context, accountID *int64) (
 		}
 		return []robloxservices.PresenceTarget{{AccountID: view.ID, RobloxUserID: view.RobloxUserID}}, nil
 	}
-	targets := []robloxservices.PresenceTarget{}
+	views, err := service.savedAccounts(ctx)
+	if err != nil {
+		return nil, err
+	}
+	targets := make([]robloxservices.PresenceTarget, 0, len(views))
+	for _, view := range views {
+		targets = append(targets, robloxservices.PresenceTarget{AccountID: view.ID, RobloxUserID: view.RobloxUserID})
+	}
+	return targets, nil
+}
+
+func (service *Service) savedAccounts(ctx context.Context) ([]accounts.AccountView, error) {
+	views := []accounts.AccountView{}
 	var cursor *accounts.AccountCursor
 	for {
 		page, err := service.repo.Page(ctx, accounts.AccountQuery{Cursor: cursor})
 		if err != nil {
 			return nil, mapRepositoryError(err)
 		}
-		for _, view := range page.Accounts {
-			targets = append(targets, robloxservices.PresenceTarget{AccountID: view.ID, RobloxUserID: view.RobloxUserID})
-		}
+		views = append(views, page.Accounts...)
 		cursor = page.NextCursor
 		if cursor == nil {
-			break
+			return views, nil
 		}
 	}
-	return targets, nil
 }
 
 func (service *Service) ValidateAccount(ctx context.Context, accountID int64) (accounts.AccountView, error) {
