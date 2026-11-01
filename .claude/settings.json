@@ -4,5 +4,6 @@
 		"pr": "",
 		"sessionUrl": false
 	},
-	"includeCoAuthoredBy": false
+	"includeCoAuthoredBy": false,
+	"includeGitInstructions": false
 }

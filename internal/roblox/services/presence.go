@@ -5,13 +5,17 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/url"
+	"slices"
 	"strings"
 	"sync"
 
 	"github.com/sleaze5/RobloxAccountManager/internal/roblox"
 )
 
-const presenceWorkerLimit = 4
+const (
+	presenceWorkerLimit = 4
+	presenceBatchSize   = 100
+)
 
 type PresenceType int
 
@@ -113,12 +117,38 @@ func normalizePresenceTargets(targets []PresenceTarget) ([]PresenceTarget, error
 	return unique, nil
 }
 
+// UserPresences reads other users' presence as the account sees it.
+func (service *Presence) UserPresences(ctx context.Context, accountID, version int64, userIDs []int64) ([]UserPresence, error) {
+	presences := make([]UserPresence, 0, len(userIDs))
+	for batch := range slices.Chunk(userIDs, presenceBatchSize) {
+		page, err := service.request(ctx, accountID, version, batch)
+		if err != nil {
+			return nil, err
+		}
+		presences = append(presences, page...)
+	}
+	return presences, nil
+}
+
 func (service *Presence) requestPresence(ctx context.Context, target PresenceTarget) (UserPresence, error) {
+	presences, err := service.request(ctx, target.AccountID, 0, []int64{target.RobloxUserID})
+	if err != nil {
+		return UserPresence{}, err
+	}
+	for _, presence := range presences {
+		if presence.UserID == target.RobloxUserID {
+			return presence, nil
+		}
+	}
+	return UserPresence{}, invalidPresence(http.StatusOK, nil)
+}
+
+func (service *Presence) request(ctx context.Context, accountID, version int64, userIDs []int64) ([]UserPresence, error) {
 	body, err := json.Marshal(struct {
 		UserIDs []int64 `json:"userIds"`
-	}{UserIDs: []int64{target.RobloxUserID}})
+	}{UserIDs: userIDs})
 	if err != nil {
-		return UserPresence{}, &roblox.Error{
+		return nil, &roblox.Error{
 			Kind:     roblox.KindProtocol,
 			Endpoint: "user-presences",
 			Message:  "The presence request could not be created.",
@@ -126,15 +156,16 @@ func (service *Presence) requestPresence(ctx context.Context, target PresenceTar
 		}
 	}
 	response, err := service.client.Do(ctx, roblox.Request{
-		Endpoint:        "user-presences",
-		AccountID:       target.AccountID,
-		Authenticated:   true,
-		Method:          http.MethodPost,
-		URL:             service.endpoint,
-		Body:            body,
-		ContentType:     "application/json",
-		RequiresCSRF:    true,
-		MaxResponseSize: 64 << 10,
+		Endpoint:              "user-presences",
+		AccountID:             accountID,
+		ExpectedSecretVersion: version,
+		Authenticated:         true,
+		Method:                http.MethodPost,
+		URL:                   service.endpoint,
+		Body:                  body,
+		ContentType:           "application/json",
+		RequiresCSRF:          true,
+		MaxResponseSize:       256 << 10,
 		Retry: roblox.RetryPolicy{
 			MaxAttempts:       3,
 			Idempotent:        true,
@@ -143,7 +174,7 @@ func (service *Presence) requestPresence(ctx context.Context, target PresenceTar
 		},
 	})
 	if err != nil {
-		return UserPresence{}, err
+		return nil, err
 	}
 	var payload struct {
 		UserPresences []struct {
@@ -157,22 +188,21 @@ func (service *Presence) requestPresence(ctx context.Context, target PresenceTar
 		} `json:"userPresences"`
 	}
 	if err := json.Unmarshal(response.Body, &payload); err != nil {
-		return UserPresence{}, invalidPresence(response.Status, err)
+		return nil, invalidPresence(response.Status, err)
 	}
+	presences := make([]UserPresence, 0, len(payload.UserPresences))
 	for _, item := range payload.UserPresences {
-		if item.UserID == target.RobloxUserID {
-			return UserPresence{
-				UserID:           item.UserID,
-				UserPresenceType: presenceType(item.Type),
-				LastLocation:     strings.TrimSpace(item.LastLocation),
-				PlaceID:          item.PlaceID,
-				RootPlaceID:      item.RootPlaceID,
-				GameID:           strings.TrimSpace(item.GameID),
-				UniverseID:       item.UniverseID,
-			}, nil
-		}
+		presences = append(presences, UserPresence{
+			UserID:           item.UserID,
+			UserPresenceType: presenceType(item.Type),
+			LastLocation:     strings.TrimSpace(item.LastLocation),
+			PlaceID:          item.PlaceID,
+			RootPlaceID:      item.RootPlaceID,
+			GameID:           strings.TrimSpace(item.GameID),
+			UniverseID:       item.UniverseID,
+		})
 	}
-	return UserPresence{}, invalidPresence(response.Status, nil)
+	return presences, nil
 }
 
 func invalidPresence(status int, cause error) error {

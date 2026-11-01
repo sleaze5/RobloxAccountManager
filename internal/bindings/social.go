@@ -1,0 +1,77 @@
+package bindings
+
+import (
+	"context"
+
+	"github.com/sleaze5/RobloxAccountManager/internal/appservice"
+)
+
+func (service *Service) GetSocialPage(ctx context.Context, accountID, userID int64, list appservice.SocialList, cursor string) (appservice.SocialPage, error) {
+	if err := socialTarget(accountID, userID, "social"); err != nil {
+		return appservice.SocialPage{}, err
+	}
+	return service.core.GetSocialPage(ctx, accountID, userID, list, cursor)
+}
+
+func (service *Service) SearchPlayers(ctx context.Context, accountID int64, keyword, cursor string) (appservice.SocialPage, error) {
+	if err := positiveID(accountID, "player-search"); err != nil {
+		return appservice.SocialPage{}, err
+	}
+	return service.core.SearchPlayers(ctx, accountID, keyword, cursor)
+}
+
+func (service *Service) GetSocialProfile(ctx context.Context, accountID, userID int64) (appservice.SocialProfile, error) {
+	if err := socialTarget(accountID, userID, "social-profile"); err != nil {
+		return appservice.SocialProfile{}, err
+	}
+	return service.core.GetSocialProfile(ctx, accountID, userID)
+}
+
+func (service *Service) AcceptFriendRequest(ctx context.Context, accountID, userID int64) error {
+	if err := socialTarget(accountID, userID, "friend-request-accept"); err != nil {
+		return err
+	}
+	return service.core.AcceptFriendRequest(ctx, accountID, userID)
+}
+
+func (service *Service) DeclineFriendRequest(ctx context.Context, accountID, userID int64) error {
+	if err := socialTarget(accountID, userID, "friend-request-decline"); err != nil {
+		return err
+	}
+	return service.core.DeclineFriendRequest(ctx, accountID, userID)
+}
+
+func (service *Service) Unfriend(ctx context.Context, accountID, userID int64) error {
+	if err := socialTarget(accountID, userID, "unfriend"); err != nil {
+		return err
+	}
+	return service.core.Unfriend(ctx, accountID, userID)
+}
+
+func (service *Service) Follow(ctx context.Context, accountID, userID int64) error {
+	if err := socialTarget(accountID, userID, "follow"); err != nil {
+		return err
+	}
+	return service.core.Follow(ctx, accountID, userID)
+}
+
+func (service *Service) Unfollow(ctx context.Context, accountID, userID int64) error {
+	if err := socialTarget(accountID, userID, "unfollow"); err != nil {
+		return err
+	}
+	return service.core.Unfollow(ctx, accountID, userID)
+}
+
+func (service *Service) SetNickname(ctx context.Context, accountID, userID int64, nickname string) (string, error) {
+	if err := socialTarget(accountID, userID, "nickname-update"); err != nil {
+		return "", err
+	}
+	return service.core.SetNickname(ctx, accountID, userID, nickname)
+}
+
+func socialTarget(accountID, userID int64, endpoint string) error {
+	if err := positiveID(accountID, endpoint); err != nil {
+		return err
+	}
+	return positiveID(userID, endpoint)
+}

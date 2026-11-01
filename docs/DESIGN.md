@@ -314,7 +314,7 @@ Use these terms consistently:
 
 ## Motion
 
-Motion must feel immediate. If an animation feels like something the user waits for, it is too slow.
+Use motion wherever it makes the interface feel responsive: something appears or disappears, a state changes, an action completes, or a control is hovered. When you build or change a component, check its entrance, state changes, and action feedback, and add quiet motion where it fits. Motion must feel immediate. If the user waits for an animation, it is too slow.
 
 Use these durations and easings:
 
@@ -329,22 +329,33 @@ Use these durations and easings:
 
 `ease-out` is the sharp entrance curve from the theme. `presence.ts` reads the same durations from the `--duration-*` variables in `theme.css`.
 
+### Patterns
+
+These are examples, not a complete list.
+
+- Surfaces: Animate a `popover` or `<dialog>` element with CSS: `starting:` for the entry state, `transition-discrete` for `display` and `overlay`, and `open:` for the open state. Use the `presence.ts` transitions for a surface that mounts and unmounts with `{#if}`.
+- Exits: Keep menus, dialogs, tooltips, notifications, and operation errors mounted during their exit transition. Reopening a closing surface reverses or cancels the exit and does not queue another animation. Restore focus only after a dialog finishes closing.
+- Changed content: When the selected account, settings category, or filtered settings result changes, use `animate-enter` on the new content. Do not animate the outgoing content.
+- Added items: Use `animate-enter` on an item added to a list, such as a browser session or a tag.
+- Indicators: Use `animate-pop` for an icon that appears in place or a status indicator that changes. Use `animate-bloom` for a check mark, a count badge, or a confirmation icon, such as Copied. Empty-state icons bloom in. Checkbox marks grow from `scale-50`.
+- Selection: The selection bar of a `list-row` and the underline of a page `tab` grow in with `scale`.
+- Hover: Mark a refresh icon with `data-turn` and a directional arrow or caret with `data-nudge="left"` or `data-nudge="right"`. Base styles turn the icon or nudge it 2px while the pointer is over its button.
+- Disclosure: Rotate the caret 180 degrees with `transition-transform`, and use `animate-enter` on the revealed content.
+- Press: An icon-only button may scale to `scale-95` while pressed.
+- Progress: Grow a progress bar with `scale-x`, as `progress-bar` does.
+- Notifications: Slide notifications to their new positions with `toastMove` from `presence.ts` when another notification enters or leaves.
+- Validation: Replay one horizontal nudge of at most 2px for 150ms with `replayValidationNudge`. Cancel the previous nudge before replaying it. Do not hide or delay the error text.
+
+### Limits
+
 - No transition exceeds 150ms.
-- Animate movement only with `transform` and `opacity`, over small distances: at most 2px of movement. Only small marks and badges may scale from 50% with `animate-bloom`; larger surfaces scale from `scale-95` at most. Do not use bounce, spring overshoot, slow fades, or decorative loops.
-- Notifications may slide to their new positions with `toastMove` from `presence.ts` when another notification enters or leaves. This slide is the only movement larger than 2px.
-- Direct hover and focus feedback may also transition `color`, `background-color`, and `border-color`, with `transition-colors`.
-- Do not animate layout properties, `filter`, `backdrop-filter`, blur, or `box-shadow`. Name the transitioned properties with `transition-colors`, `transition-opacity`, or `transition-transform`. Never use `transition` or `transition-all`.
+- Animate only `transform`, `translate`, `rotate`, `scale`, and `opacity`, so motion stays on the compositor. Hover and focus feedback may also transition `color`, `background-color`, and `border-color` with `transition-colors`.
+- Do not animate layout properties, `filter`, `backdrop-filter`, blur, `box-shadow`, or color fills over large areas.
+- Name the transitioned properties with `transition-colors`, `transition-opacity`, or `transition-transform`. Never use `transition` or `transition-all`.
+- Move an element at most 2px. The `toastMove` slide is the only exception.
+- Scale from 50% only small marks and badges, with `animate-bloom`. Scale larger surfaces from `scale-95` at most.
+- Do not use bounce, spring overshoot, slow fades, decorative loops, or staggered rows.
 - The only continuous animation is a functional busy spinner, `animate-spin`. Do not run an idle `requestAnimationFrame` loop. Apply `will-change` only to an element that is about to animate.
-- Animate the entrance and exit of a `popover` or `<dialog>` element with CSS: `starting:` for the entry state, `transition-discrete` for `display` and `overlay`, and `open:` for the open state. Use the `presence.ts` transitions for a surface that mounts and unmounts with `{#if}`.
-- Keep menus, dialogs, tooltips, notifications, and operation errors mounted during their exit transition. Reopening a closing surface reverses or cancels the exit. It does not queue another animation. Restore focus only after a dialog finishes closing.
-- When the selected account, settings category, or filtered settings result changes, use `animate-enter` on the new content. Do not animate the outgoing content. Do not stagger account rows or tag rows. Use `animate-pop` for an icon that appears in place.
-- Small feedback may be playful as long as it stays quiet:
-    - The selection bar of a `list-row` and the underline of a page `tab` grow in with `scale`.
-    - Use `animate-bloom` for a check mark, a count badge, or a confirmation icon that appears, such as Copied. Do not bloom large surfaces.
-    - Mark a refresh icon with `data-turn` and a directional arrow or caret with `data-nudge="left"` or `data-nudge="right"`. Base styles turn or nudge it by 2px while the pointer is over its button.
-    - Empty-state icons bloom in. Checkbox marks grow from `scale-50`.
-- Every motion uses `transform`, `translate`, `rotate`, `scale`, or `opacity`, so it stays on the compositor. Do not add motion that animates layout, color fills over large areas, or shadows.
-- Validation feedback may replay one horizontal nudge of at most 2px for 150ms with `replayValidationNudge`. Cancel the previous nudge before replaying it. Do not hide or delay the error text.
 
 ## Reduced motion
 

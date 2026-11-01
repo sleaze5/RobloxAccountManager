@@ -12,6 +12,11 @@ export type {
 	ChatConversationView,
 	ChatMessageView,
 	ChatParticipant,
+	FriendConnection,
+	SocialPage as SocialListPage,
+	SocialProfile as SocialProfileSnapshot,
+	SocialRelationship,
+	SocialUser,
 	ImportPreview,
 	ImportPreviewItem,
 	LaunchConfirmation,
@@ -43,6 +48,7 @@ export {
 	AgeVerification,
 	ImportStatus,
 	PinState,
+	SocialList,
 	VoiceChatState,
 } from "../../../bindings/github.com/sleaze5/RobloxAccountManager/internal/appservice/models.js"
 export {
@@ -50,6 +56,7 @@ export {
 	TagKind,
 } from "../../../bindings/github.com/sleaze5/RobloxAccountManager/internal/accounts/models.js"
 export {
+	FriendStatus,
 	PresenceType,
 	TextModeration,
 } from "../../../bindings/github.com/sleaze5/RobloxAccountManager/internal/roblox/services/models.js"

@@ -167,7 +167,7 @@ func (service *Users) BlockedUsers(ctx context.Context, accountID, version int64
 			}
 		}
 		if result.Data.Cursor == nil || *result.Data.Cursor == "" {
-			return service.names(ctx, ids)
+			return service.Names(ctx, ids)
 		}
 		cursor = *result.Data.Cursor
 	}
@@ -190,7 +190,7 @@ func (service *Users) Unblock(ctx context.Context, accountID, version, userID in
 }
 
 // Users that Roblox no longer returns keep only their ID.
-func (service *Users) names(ctx context.Context, ids []int64) ([]UserView, error) {
+func (service *Users) Names(ctx context.Context, ids []int64) ([]UserView, error) {
 	users := make([]UserView, 0, len(ids))
 	endpoint, _ := url.Parse("https://users.roblox.com/v1/users")
 	for start := 0; start < len(ids); start += userNamesBatchSize {

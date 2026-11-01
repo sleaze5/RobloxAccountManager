@@ -2,6 +2,7 @@
 	import caretDownIcon from "@phosphor-icons/core/regular/caret-down.svg?raw"
 	import checkIcon from "@phosphor-icons/core/regular/check.svg?raw"
 	import Icon from "./Icon.svelte"
+	import ProfileImage from "./ProfileImage.svelte"
 	import { tick } from "svelte"
 	import { liftToTopLayer, menuIn, menuOut } from "./presence"
 
@@ -15,7 +16,13 @@
 	}: {
 		label: string
 		value: T
-		options: { value: T; label: string; description?: string; group?: string }[]
+		options: {
+			value: T
+			label: string
+			description?: string
+			group?: string
+			image?: string
+		}[]
 		disabled?: boolean
 		className?: string
 		onChange: (value: T) => void
@@ -27,9 +34,8 @@
 	const maxMenuHeight = 280
 	let menuPosition = $state("")
 	const menuID = $props.id()
-	const selectedLabel = $derived(
-		options.find((option) => option.value === value)?.label ?? "",
-	)
+	const selected = $derived(options.find((option) => option.value === value)),
+		selectedLabel = $derived(selected?.label ?? "")
 
 	$effect(() => {
 		if (disabled) open = false
@@ -41,7 +47,11 @@
 		const width = Math.min(
 			Math.max(
 				bounds.width,
-				options.some((option) => option.description) ? 320 : 0,
+				options.some(
+					(option) => option.description && option.image === undefined,
+				)
+					? 320
+					: 0,
 			),
 			window.innerWidth - 24,
 		)
@@ -117,7 +127,10 @@
 
 <div class={["relative", className]} bind:this={root}>
 	<button
-		class="flex h-7 w-full items-center justify-between gap-2 rounded-md border border-line bg-transparent px-2 text-xs font-medium text-fg-muted transition-colors duration-100 hover:border-line-strong hover:bg-hover hover:text-fg focus-visible:border-line-focus aria-expanded:border-line-strong aria-expanded:bg-hover aria-expanded:text-fg"
+		class={[
+			"flex w-full items-center justify-between gap-2 rounded-md border border-line bg-transparent px-2 text-xs font-medium text-fg-muted transition-colors duration-100 hover:border-line-strong hover:bg-hover hover:text-fg focus-visible:border-line-focus aria-expanded:border-line-strong aria-expanded:bg-hover aria-expanded:text-fg",
+			selected?.image === undefined ? "h-7" : "h-10 pl-1.5",
+		]}
 		type="button"
 		bind:this={trigger}
 		aria-label={label}
@@ -135,7 +148,22 @@
 				void show()
 			}
 		}}>
-		<span class="truncate">{selectedLabel}</span><Icon
+		{#if selected?.image !== undefined}
+			<span class="flex min-w-0 items-center gap-2">
+				<span
+					class="relative grid size-7 shrink-0 place-items-center overflow-hidden rounded-md border border-line-strong bg-raised"
+					aria-hidden="true"><ProfileImage url={selected.image} /></span>
+				<span class="flex min-w-0 flex-col text-left leading-snug">
+					<span class="truncate text-fg">{selectedLabel}</span>
+					{#if selected.description}<small
+							class="truncate text-2xs font-normal text-fg-muted"
+							>{selected.description}</small
+						>{/if}
+				</span>
+			</span>
+		{:else}
+			<span class="truncate">{selectedLabel}</span>
+		{/if}<Icon
 			svg={caretDownIcon}
 			class={["shrink-0 transition-transform duration-100", open && "rotate-180"]}
 			size={16}
@@ -183,13 +211,20 @@
 							onChange(option.value)
 							close(true)
 						}}>
-						<span class="flex min-w-0 flex-col gap-1">
-							<span>{option.label}</span>
-							{#if option.description}<small
-									class="text-2xs leading-snug font-normal text-fg-muted"
-									id={`${menuID}-${index}-description`}
-									>{option.description}</small
+						<span class="flex min-w-0 items-center gap-2">
+							{#if option.image !== undefined}<span
+									class="relative grid size-7 shrink-0 place-items-center overflow-hidden rounded-md border border-line-strong bg-raised"
+									aria-hidden="true"
+									><ProfileImage url={option.image} /></span
 								>{/if}
+							<span class="flex min-w-0 flex-col gap-1">
+								<span class="truncate">{option.label}</span>
+								{#if option.description}<small
+										class="text-2xs leading-snug font-normal text-fg-muted"
+										id={`${menuID}-${index}-description`}
+										>{option.description}</small
+									>{/if}
+							</span>
 						</span>{#if option.value === value}<Icon
 								svg={checkIcon}
 								class="shrink-0"

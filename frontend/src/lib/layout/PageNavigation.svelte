@@ -3,6 +3,7 @@
 	import fileMagnifyingGlassIcon from "@phosphor-icons/core/regular/file-magnifying-glass.svg?raw"
 	import gameControllerIcon from "@phosphor-icons/core/regular/game-controller.svg?raw"
 	import gearIcon from "@phosphor-icons/core/regular/gear.svg?raw"
+	import handshakeIcon from "@phosphor-icons/core/regular/handshake.svg?raw"
 	import lockKeyIcon from "@phosphor-icons/core/regular/lock-key.svg?raw"
 	import usersIcon from "@phosphor-icons/core/regular/users.svg?raw"
 	import Icon from "../shared/Icon.svelte"
@@ -16,8 +17,8 @@
 		onLock,
 	}: {
 		store: AccountStore
-		activePage: "accounts" | "games" | "logs-explorer"
-		onPage: (page: "accounts" | "games" | "logs-explorer") => void
+		activePage: "accounts" | "social" | "games" | "logs-explorer"
+		onPage: (page: "accounts" | "social" | "games" | "logs-explorer") => void
 		onSettings: () => void
 		onLock: () => void
 	} = $props()
@@ -35,6 +36,14 @@
 			onclick={() => onPage("accounts")}>
 			<Icon svg={usersIcon} size={16} aria-hidden="true" />
 			<span>Accounts</span>
+		</button>
+		<button
+			class="tab"
+			type="button"
+			aria-current={activePage === "social" ? "page" : undefined}
+			onclick={() => onPage("social")}>
+			<Icon svg={handshakeIcon} size={16} aria-hidden="true" />
+			<span>Social</span>
 		</button>
 		<button
 			class="tab"
