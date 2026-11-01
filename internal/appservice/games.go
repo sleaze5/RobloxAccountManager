@@ -86,7 +86,13 @@ func (service *Service) GetGame(ctx context.Context, universeID, placeID int64) 
 		return games.Game{}, service.gamesError(ctx, "game-details", err)
 	}
 	game, err := service.games.Get(ctx, universeID, placeID, accountID)
-	return game, service.gamesError(ctx, "game-details", err)
+	if err != nil {
+		return games.Game{}, service.gamesError(ctx, "game-details", err)
+	}
+	if err := service.favoritePlaces.Refresh(ctx, game.Place); err != nil {
+		service.logs.Module("application.games").WarnContext(ctx, "favorite place details could not be refreshed", "operation", "favorite-place-refresh", "place_id", placeID, "error", err)
+	}
+	return game, nil
 }
 
 func (service *Service) ListGameServers(ctx context.Context, query games.ServerQuery) (games.ServerPage, error) {
