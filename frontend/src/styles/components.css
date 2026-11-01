@@ -199,6 +199,10 @@
 	& > button > span {
 		@apply font-mono text-2xs text-fg-faint;
 	}
+
+	& > [aria-pressed="true"] > span {
+		@apply text-fg-muted;
+	}
 }
 
 @utility list-row {
