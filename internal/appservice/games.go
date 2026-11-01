@@ -71,8 +71,11 @@ func gameIDQuery(text, prefix, invalid string) (int64, bool, error) {
 }
 
 func (service *Service) GetGame(ctx context.Context, universeID, placeID int64) (games.Game, error) {
-	for _, id := range []int64{universeID, placeID} {
-		if err := validGameID(id); err != nil {
+	if err := validGameID(placeID); err != nil {
+		return games.Game{}, err
+	}
+	if universeID != 0 {
+		if err := validGameID(universeID); err != nil {
 			return games.Game{}, err
 		}
 	}
@@ -81,6 +84,16 @@ func (service *Service) GetGame(ctx context.Context, universeID, placeID int64) 
 		return games.Game{}, err
 	}
 	defer done()
+	if universeID == 0 {
+		place, found, err := service.games.PlaceByID(ctx, placeID)
+		if err != nil {
+			return games.Game{}, service.gamesError(ctx, "game-details", err)
+		}
+		if !found {
+			return games.Game{}, gamesInputError("This place is unavailable.")
+		}
+		universeID = place.UniverseID
+	}
 	accountID, err := service.gameAccount(ctx)
 	if err != nil {
 		return games.Game{}, service.gamesError(ctx, "game-details", err)
@@ -89,8 +102,10 @@ func (service *Service) GetGame(ctx context.Context, universeID, placeID int64) 
 	if err != nil {
 		return games.Game{}, service.gamesError(ctx, "game-details", err)
 	}
-	if err := service.favoritePlaces.Refresh(ctx, game.Place); err != nil {
-		service.logs.Module("application.games").WarnContext(ctx, "favorite place details could not be refreshed", "operation", "favorite-place-refresh", "place_id", placeID, "error", err)
+
+	service.events.send("game:metadata-changed", game.Place)
+	if game.RootPlace != nil {
+		service.events.send("game:metadata-changed", *game.RootPlace)
 	}
 	return game, nil
 }
@@ -244,6 +259,9 @@ func (service *Service) ListFavoritePlaces(ctx context.Context) ([]games.Place, 
 	}
 	defer done()
 	places, err := service.favoritePlaces.List(ctx)
+	if err == nil {
+		service.refreshFavoriteMetadata(places)
+	}
 	return places, service.gamesError(ctx, "favorite-places-list", err)
 }
 

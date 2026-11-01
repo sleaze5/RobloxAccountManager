@@ -12,6 +12,7 @@ const (
 )
 
 type Paths struct {
+	Caches          string
 	VaultRoot       string
 	LogsRoot        string
 	Settings        string
@@ -61,6 +62,7 @@ func layout(root string) Paths {
 	storageRoot := filepath.Join(root, storageDirectory)
 	vaultRoot := filepath.Join(storageRoot, "vault")
 	return Paths{
+		Caches:          filepath.Join(storageRoot, "caches.db"),
 		VaultRoot:       vaultRoot,
 		LogsRoot:        LogsDirectory(root),
 		Settings:        SettingsFile(root),

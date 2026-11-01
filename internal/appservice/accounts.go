@@ -191,6 +191,7 @@ func (service *Service) ListAccounts(ctx context.Context, query accounts.Account
 	}
 	for _, account := range page.Accounts {
 		service.sessions.BrowserID(account.ID)
+		service.refreshAccountMetadata(account.ID, account.RobloxUserID)
 	}
 	return page, nil
 }

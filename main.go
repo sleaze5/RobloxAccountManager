@@ -29,6 +29,7 @@ import (
 	"github.com/sleaze5/RobloxAccountManager/internal/roblox"
 	robloxservices "github.com/sleaze5/RobloxAccountManager/internal/roblox/services"
 	accountstore "github.com/sleaze5/RobloxAccountManager/internal/storage/accounts"
+	"github.com/sleaze5/RobloxAccountManager/internal/storage/caches"
 	gamestore "github.com/sleaze5/RobloxAccountManager/internal/storage/games"
 	"github.com/sleaze5/RobloxAccountManager/internal/storage/vault"
 	"github.com/wailsapp/wails/v3/pkg/application"
@@ -114,7 +115,8 @@ func run() (runErr error) {
 
 	launch.Begin("application-services")
 	vaultManager := vault.NewManager(dataPaths, protection.New(), logSystem.Module("vault"))
-	repository := accountstore.NewRepository(vaultManager, logSystem.Module("storage.accounts"))
+	publicCache := caches.New(dataPaths.Caches, logSystem.Module("storage.caches"))
+	repository := accountstore.NewRepository(vaultManager, logSystem.Module("storage.accounts"), publicCache)
 	sessions := roblox.NewSessionManager()
 	sessions.SetLoader(repository.GetSession)
 	events := appservice.NewEvents()
@@ -128,16 +130,16 @@ func run() (runErr error) {
 		vaultManager,
 		repository,
 		sessions,
-		robloxservices.NewUsers(client),
+		robloxservices.NewUsers(client, publicCache),
 		robloxservices.NewAccountSettings(client),
 		robloxservices.NewChat(client),
 		robloxservices.NewAuth(client),
 		robloxservices.NewThumbnails(client),
 		robloxservices.NewPresence(client),
 		robloxservices.NewGameLinks(client),
-		robloxservices.NewGames(client, logSystem.Module("roblox.games")),
+		robloxservices.NewGames(client, logSystem.Module("roblox.games"), publicCache),
 		rovalra.New(),
-		gamestore.NewRepository(vaultManager, logSystem.Module("storage.games")),
+		gamestore.NewRepository(vaultManager, logSystem.Module("storage.games"), publicCache),
 		logsexplorer.NewReader(robloxlogs.Directories, logSystem.Module("logs-explorer")),
 		gamelaunch.New(func() string { return settingsStore.Roblox().LinuxClient }),
 		multiInstance,

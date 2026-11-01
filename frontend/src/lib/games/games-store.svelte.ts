@@ -1,3 +1,4 @@
+import { Events } from "@wailsio/runtime"
 import { createContext } from "svelte"
 import { accountBackend } from "../backend/bridge"
 import type {
@@ -57,6 +58,8 @@ export class GamesStore {
 	detailsError = $state("")
 	#sessionId = ""
 	#epoch = 0
+	#pendingMetadata = new Map<number, GamePlace>()
+	#removeMetadataListener: (() => void) | null = null
 	#searchRequest: ReturnType<typeof accountBackend.SearchGames> | null = null
 	#detailsRequest: ReturnType<typeof accountBackend.GetGame> | null = null
 	readonly #details = new Map<number, { game: Game; fetchedAt: number }>()
@@ -115,6 +118,10 @@ export class GamesStore {
 	}
 
 	initialize(): void {
+		if (!this.#removeMetadataListener)
+			this.#removeMetadataListener = Events.On("game:metadata-changed", (event) =>
+				this.updateMetadata(event.data as GamePlace),
+			)
 		if (!this.favoritesLoaded) void this.loadFavorites()
 	}
 
@@ -202,6 +209,7 @@ export class GamesStore {
 			]
 			this.nextPageToken = page.nextPageToken
 			this.#sessionId = page.sessionId
+			this.updateMetadataList(page.places)
 		} catch (error) {
 			if (this.#searchRequest === request) {
 				const reason = errorMessage(
@@ -237,6 +245,9 @@ export class GamesStore {
 			const places = await request
 			if (this.#favoritesRequest !== request) return
 			this.favorites = places ?? []
+			for (const place of this.#pendingMetadata.values())
+				this.updateMetadata(place)
+			this.#pendingMetadata.clear()
 			this.favoritesLoaded = true
 		} catch (error) {
 			if (this.#favoritesRequest === request) {
@@ -288,20 +299,11 @@ export class GamesStore {
 			if (this.#detailsRequest !== request) return
 			this.#remember(game)
 			this.game = game
-			this.selected = game.place
-			this.results = this.results.map((item) =>
-				item.placeId === game.place.placeId
-					? { ...game.place, nickname: item.nickname }
-					: item,
-			)
-			this.favorites = this.favorites.map((item) =>
-				item.placeId === game.place.placeId
-					? { ...game.place, nickname: item.nickname }
-					: item,
-			)
-			if (this.menu?.place.placeId === game.place.placeId) {
-				this.menu = { ...this.menu, place: game.place }
+			this.selected = {
+				...game.place,
+				nickname: this.nicknameFor(game.place.placeId),
 			}
+			this.updateMetadata(game.place)
 		} catch (error) {
 			if (this.#detailsRequest === request) {
 				this.detailsError = errorMessage(
@@ -315,6 +317,26 @@ export class GamesStore {
 				this.loadingDetails = false
 			}
 		}
+	}
+
+	updateMetadataList(places: GamePlace[] | null): void {
+		for (const place of places ?? []) this.updateMetadata(place)
+	}
+
+	updateMetadata(place: GamePlace): void {
+		if (this.loadingFavorites) this.#pendingMetadata.set(place.placeId, place)
+		const replace = (item: GamePlace): GamePlace =>
+			item.placeId === place.placeId
+				? { ...place, nickname: item.nickname }
+				: item
+		const cached = this.#details.get(place.placeId)
+		if (cached) cached.game = { ...cached.game, place: replace(cached.game.place) }
+		this.results = this.results.map(replace)
+		this.favorites = this.favorites.map(replace)
+		if (this.selected) this.selected = replace(this.selected)
+		if (this.game?.place.placeId === place.placeId)
+			this.game = { ...this.game, place: replace(this.game.place) }
+		if (this.menu) this.menu = { ...this.menu, place: replace(this.menu.place) }
 	}
 
 	#remember(game: Game): void {
@@ -448,7 +470,10 @@ export class GamesStore {
 	}
 
 	reset(): void {
+		this.#removeMetadataListener?.()
+		this.#removeMetadataListener = null
 		this.#epoch++
+		this.#pendingMetadata.clear()
 		void this.#searchRequest?.cancel()
 		void this.#detailsRequest?.cancel()
 		void this.#favoritesRequest?.cancel()

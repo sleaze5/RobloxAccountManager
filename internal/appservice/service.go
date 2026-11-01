@@ -53,6 +53,7 @@ type Service struct {
 	accountSettingsMu    sync.Mutex
 	accountSettingsLocks map[int64]*accountSettingsLock
 	cookieRenewals       sync.Map
+	metadataRefresh      sync.Map
 
 	mu                     sync.Mutex
 	lifecycle              context.Context
