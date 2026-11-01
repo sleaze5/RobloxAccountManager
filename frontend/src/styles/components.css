@@ -228,7 +228,7 @@
 }
 
 @utility menu {
-	@apply w-48 rounded-xl border border-line-strong bg-overlay p-1.5 shadow-menu;
+	@apply w-48 overflow-visible rounded-xl border border-line-strong bg-overlay p-1.5 shadow-menu;
 }
 
 @utility menu-item {

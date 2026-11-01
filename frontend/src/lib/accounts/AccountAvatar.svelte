@@ -19,7 +19,7 @@
 	{#if showPresence && account.id !== 0}
 		<span
 			class={[
-				"absolute -right-0.5 -bottom-0.5 z-10 size-3.5 cursor-help rounded-full border-2 border-surface ring-1 ring-line-strong",
+				"absolute -right-0.5 -bottom-0.5 size-3.5 cursor-help rounded-full border-2 border-surface ring-1 ring-line-strong",
 				presenceDotClass(account.presence),
 			]}
 			role="img"
