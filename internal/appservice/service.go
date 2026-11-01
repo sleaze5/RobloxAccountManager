@@ -54,6 +54,7 @@ type Service struct {
 	accountSettingsLocks map[int64]*accountSettingsLock
 	cookieRenewals       sync.Map
 	metadataRefresh      sync.Map
+	metadataSlots        chan struct{}
 
 	mu                     sync.Mutex
 	lifecycle              context.Context
@@ -90,6 +91,7 @@ func New(
 ) *Service {
 	return &Service{
 		vault:                vaultManager,
+		metadataSlots:        make(chan struct{}, 3),
 		repo:                 repository,
 		sessions:             sessions,
 		users:                users,

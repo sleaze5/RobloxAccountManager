@@ -22,7 +22,15 @@ func (service *Service) refreshMetadata(key string, refresh func(context.Context
 		defer service.metadataRefresh.Delete(key)
 		ctx, cancel := context.WithTimeout(parent, 45*time.Second)
 		defer cancel()
-		refresh(ctx)
+		select {
+		case service.metadataSlots <- struct{}{}:
+		case <-ctx.Done():
+			return
+		}
+		if ctx.Err() == nil {
+			refresh(ctx)
+		}
+		<-service.metadataSlots
 		timer := time.NewTimer(time.Minute)
 		defer timer.Stop()
 		select {

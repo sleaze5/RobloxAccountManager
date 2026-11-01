@@ -116,6 +116,7 @@ func run() (runErr error) {
 	launch.Begin("application-services")
 	vaultManager := vault.NewManager(dataPaths, protection.New(), logSystem.Module("vault"))
 	publicCache := caches.New(dataPaths.Caches, logSystem.Module("storage.caches"))
+	defer func() { runErr = errors.Join(runErr, publicCache.Close()) }()
 	repository := accountstore.NewRepository(vaultManager, logSystem.Module("storage.accounts"), publicCache)
 	sessions := roblox.NewSessionManager()
 	sessions.SetLoader(repository.GetSession)

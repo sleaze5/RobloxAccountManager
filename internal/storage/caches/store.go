@@ -37,6 +37,10 @@ type Store struct {
 	path    string
 	logger  *slog.Logger
 	retryAt time.Time
+	db      *sql.DB
+	closed  bool
+	pruneAt time.Time
+	writes  int
 }
 
 func New(path string, logger *slog.Logger) *Store {
@@ -46,15 +50,20 @@ func New(path string, logger *slog.Logger) *Store {
 func (store *Store) access(ctx context.Context, action func(*sql.DB) error) {
 	store.mu.Lock()
 	defer store.mu.Unlock()
-	if time.Now().Before(store.retryAt) {
+	if store.closed || time.Now().Before(store.retryAt) {
 		return
 	}
 	err := store.run(ctx, action)
 	if err == nil || ctx.Err() != nil {
 		return
 	}
+	if closeErr := store.closeDatabase(); closeErr != nil {
+		store.logger.WarnContext(ctx, "public cache could not be closed", "operation", "cache-recover")
+		store.retryAt = time.Now().Add(time.Minute)
+		return
+	}
 	var sqliteErr sqlite3.Error
-	if errors.Is(err, errInvalidCache) || errors.As(err, &sqliteErr) && (sqliteErr.Code == sqlite3.ErrCorrupt || sqliteErr.Code == sqlite3.ErrNotADB || sqliteErr.Code == sqlite3.ErrSchema || sqliteErr.Code == sqlite3.ErrError) {
+	if errors.Is(err, errInvalidCache) || errors.As(err, &sqliteErr) && (sqliteErr.Code == sqlite3.ErrCorrupt || sqliteErr.Code == sqlite3.ErrNotADB) {
 		if removeErr := os.Remove(store.path); removeErr != nil && !errors.Is(removeErr, os.ErrNotExist) {
 			store.logger.WarnContext(ctx, "damaged cache could not be removed; delete caches.db after closing the application", "operation", "cache-recover")
 		}
@@ -63,7 +72,50 @@ func (store *Store) access(ctx context.Context, action func(*sql.DB) error) {
 	store.logger.WarnContext(ctx, "public metadata cache unavailable; using ID placeholders and retrying later", "operation", "cache-access")
 }
 
-func (store *Store) run(ctx context.Context, action func(*sql.DB) error) (err error) {
+func (store *Store) run(ctx context.Context, action func(*sql.DB) error) error {
+	if store.db != nil {
+		if _, err := os.Stat(store.path); errors.Is(err, os.ErrNotExist) {
+			if err := store.closeDatabase(); err != nil {
+				return err
+			}
+		} else if err != nil {
+			return fmt.Errorf("inspect cache file: %w", err)
+		}
+	}
+	if store.db == nil {
+		if err := store.open(ctx); err != nil {
+			return err
+		}
+	}
+	if time.Now().After(store.pruneAt) || store.writes >= 256 {
+		if _, err := store.db.ExecContext(ctx, `DELETE FROM metadata WHERE fetched_at < ? OR rowid IN (SELECT rowid FROM metadata ORDER BY fetched_at DESC, rowid DESC LIMIT -1 OFFSET 10000)`, time.Now().Add(-retention).UnixMilli()); err != nil {
+			return fmt.Errorf("expire public cache: %w", err)
+		}
+		store.pruneAt = time.Now().Add(5 * time.Minute)
+		store.writes = 0
+	}
+	return action(store.db)
+}
+
+func (store *Store) Close() error {
+	store.mu.Lock()
+	defer store.mu.Unlock()
+	store.closed = true
+	return store.closeDatabase()
+}
+
+func (store *Store) closeDatabase() error {
+	if store.db == nil {
+		return nil
+	}
+	if err := store.db.Close(); err != nil {
+		return fmt.Errorf("close public cache: %w", err)
+	}
+	store.db = nil
+	return nil
+}
+
+func (store *Store) open(ctx context.Context) (err error) {
 	if err := os.MkdirAll(filepath.Dir(store.path), 0o700); err != nil {
 		return fmt.Errorf("create cache directory: %w", err)
 	}
@@ -79,6 +131,9 @@ func (store *Store) run(ctx context.Context, action func(*sql.DB) error) (err er
 	}
 	db.SetMaxOpenConns(1)
 	defer func() {
+		if err == nil {
+			return
+		}
 		if closeErr := db.Close(); closeErr != nil {
 			err = errors.Join(err, fmt.Errorf("close public cache: %w", closeErr))
 		}
@@ -95,10 +150,9 @@ func (store *Store) run(ctx context.Context, action func(*sql.DB) error) (err er
 			return fmt.Errorf("initialize public cache: %w", err)
 		}
 	}
-	if _, err := db.ExecContext(ctx, `DELETE FROM metadata WHERE fetched_at < ? OR rowid IN (SELECT rowid FROM metadata ORDER BY fetched_at DESC, rowid DESC LIMIT -1 OFFSET 10000)`, time.Now().Add(-retention).UnixMilli()); err != nil {
-		return fmt.Errorf("expire public cache: %w", err)
-	}
-	return action(db)
+	store.db = db
+	store.pruneAt = time.Time{}
+	return nil
 }
 
 func (store *Store) read(ctx context.Context, kind string, id int64, target any) (fresh bool) {
@@ -123,6 +177,7 @@ func (store *Store) read(ctx context.Context, kind string, id int64, target any)
 
 func (store *Store) write(ctx context.Context, kind string, id int64, value any) {
 	store.access(ctx, func(db *sql.DB) error {
+		store.writes++
 		payload, err := json.Marshal(value)
 		if err != nil {
 			return fmt.Errorf("encode public metadata: %w", err)
