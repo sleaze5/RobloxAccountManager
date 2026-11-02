@@ -16,15 +16,15 @@
 		replayValidationNudge,
 	} from "../shared/presence"
 	import { errorMessage } from "../shared/errors"
+	import type { NotificationCenter } from "../notifications/notification-center.svelte"
 	import { checkPassword, passwordValid } from "./password-rules"
+	import { copyPath, fileName } from "./vault-transfer"
 
 	let {
-			directory,
-			onCopyPath,
+			notifications,
 			onClose,
 		}: {
-			directory: string
-			onCopyPath: () => void
+			notifications: NotificationCenter
 			onClose: () => void
 		} = $props(),
 		passcode = $state(""),
@@ -52,7 +52,9 @@
 		exporting = true
 		error = ""
 		try {
-			exported = await accountBackend.ExportVault(passcode, confirmation)
+			const saved = await accountBackend.ExportVault(passcode, confirmation)
+			if (!saved.path) return
+			exported = saved
 			passcode = confirmation = ""
 		} catch (cause) {
 			error = errorMessage(cause, "The data could not be exported. Try again.")
@@ -119,19 +121,28 @@
 					<span class="font-mono text-2xs wrap-anywhere text-fg"
 						>{exported.name}</span>
 					<span class="font-mono text-2xs wrap-anywhere text-fg-faint"
-						>{directory}</span>
+						>{exported.path.slice(
+							0,
+							Math.max(
+								exported.path.length -
+									fileName(exported.path).length -
+									1,
+								0,
+							),
+						)}</span>
 				</span>
 				<button
 					class="btn-icon"
 					type="button"
-					aria-label="Copy folder path"
-					data-tooltip="Copy folder path"
-					onclick={onCopyPath}>
+					aria-label="Copy file path"
+					data-tooltip="Copy file path"
+					onclick={() => void copyPath(exported?.path ?? "", notifications)}>
 					<Icon svg={copyIcon} size={16} aria-hidden="true" />
 				</button>
 			</div>
 			<p class="mt-3 text-xs text-fg-muted">
-				To import it on another computer, copy it into that app's export folder.
+				To import it on another computer, choose Import data there and open this
+				file.
 			</p>
 			<div class="dialog-actions">
 				<button class="btn-primary" type="button" onclick={onClose}

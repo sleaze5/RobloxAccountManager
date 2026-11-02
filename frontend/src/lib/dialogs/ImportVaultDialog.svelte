@@ -1,20 +1,17 @@
 <script lang="ts">
-	import arrowsClockwiseIcon from "@phosphor-icons/core/regular/arrows-clockwise.svg?raw"
 	import checkBoldIcon from "@phosphor-icons/core/bold/check-bold.svg?raw"
-	import copyIcon from "@phosphor-icons/core/regular/copy.svg?raw"
 	import fileArrowDownIcon from "@phosphor-icons/core/regular/file-arrow-down.svg?raw"
 	import xIcon from "@phosphor-icons/core/regular/x.svg?raw"
 	import Icon from "../shared/Icon.svelte"
 	import CandidateList from "../accounts/CandidateList.svelte"
 	import type { CandidateListItem } from "../accounts/candidate-model"
 	import Timestamp from "../shared/Timestamp.svelte"
-	import { onMount } from "svelte"
+	import { untrack } from "svelte"
 	import {
 		accountBackend,
 		SettingsSection,
 		TransferMode,
 		TransferSettingsStatus,
-		type ExportInfo,
 		type TransferPreview,
 		type TransferResult,
 	} from "../backend/bridge"
@@ -30,16 +27,18 @@
 	import type { AccountStore } from "../accounts/account-store.svelte"
 	import { getGamesStore } from "../games/games-store.svelte"
 	import type { NotificationCenter } from "../notifications/notification-center.svelte"
-	import { copyExportFolder } from "../settings/export-folder"
+	import { chooseExportFile, fileName } from "./vault-transfer"
 	import { appSettings } from "../settings/settings-store.svelte"
 
 	let {
 		store,
 		notifications,
+		path,
 		onClose,
 	}: {
 		store: AccountStore
 		notifications: NotificationCenter
+		path: string
 		onClose: () => void
 	} = $props()
 	const games = getGamesStore()
@@ -75,24 +74,23 @@
 				},
 			},
 		fileGroup = $props.id()
-	let files = $state<ExportInfo[] | null>(null),
-		directory = $state(""),
-		selectedFile = $state(""),
+	let file = $state(untrack(() => path)),
 		passcode = $state(""),
 		preview = $state<TransferPreview | null>(null),
-		mode = $state(TransferMode.TransferMerge),
+		mode = $state(TransferMode.TransferOverwrite),
 		selectedAccounts = $state<number[]>([]),
 		favoritePlaces = $state(true),
 		sections = $state<SettingsSection[]>([]),
 		confirmation = $state(""),
 		result = $state<TransferResult | null>(null),
-		loading = $state(false),
 		opening = $state(false),
 		importing = $state(false),
 		error = $state(""),
 		card = $state<HTMLDivElement>()
 
-	const busy = $derived(loading || opening || importing),
+	const busy = $derived(opening || importing),
+		name = $derived(fileName(file)),
+		folder = $derived(file.slice(0, Math.max(file.length - name.length - 1, 0))),
 		accounts = $derived(preview?.accounts ?? []),
 		allAccountsSelected = $derived(
 			accounts.length > 0 && selectedAccounts.length === accounts.length,
@@ -138,33 +136,18 @@
 			})),
 		)
 
-	onMount(() => {
-		void loadFiles()
-	})
-
-	async function loadFiles(): Promise<void> {
-		loading = true
+	async function changeFile(): Promise<void> {
+		const next = await chooseExportFile(notifications)
+		if (!next) return
+		file = next
 		error = ""
-		try {
-			const exports = await accountBackend.ListVaultExports()
-			directory = exports.directory
-			files = exports.files ?? []
-			if (!files.some((file) => file.name === selectedFile)) {
-				selectedFile = files[0]?.name ?? ""
-			}
-		} catch (cause) {
-			files ??= []
-			error = errorMessage(cause, "The export folder could not be read.")
-		} finally {
-			loading = false
-		}
 	}
 
 	async function openExport(): Promise<void> {
 		opening = true
 		error = ""
 		try {
-			preview = await accountBackend.OpenVaultExport(selectedFile, passcode)
+			preview = await accountBackend.OpenVaultExport(file, passcode)
 			passcode = ""
 			selectedAccounts = (preview.accounts ?? []).map(
 				(account) => account.robloxUserId,
@@ -183,16 +166,16 @@
 		importing = true
 		error = ""
 		try {
-			const replace = mode === TransferMode.TransferReplace
+			const overwrite = mode === TransferMode.TransferOverwrite
 			result = await accountBackend.ImportVaultExport(
 				preview.id,
 				{
 					mode,
-					robloxUserIds: replace ? [] : selectedAccounts,
-					favoritePlaces: !replace && favoritePlaces,
-					settingsSections: replace ? [] : sections,
+					robloxUserIds: overwrite ? [] : selectedAccounts,
+					favoritePlaces: !overwrite && favoritePlaces,
+					settingsSections: overwrite ? [] : sections,
 				},
-				replace ? confirmation : "",
+				overwrite ? confirmation : "",
 			)
 			preview = null
 			void store.initialize()
@@ -266,11 +249,11 @@
 				</h2>
 				<p>
 					{#if result}
-						Imported from {selectedFile}.
+						Imported from {name}.
 					{:else if preview}
 						Exported <Timestamp value={preview.exportedAtMs} />.
 					{:else}
-						Choose an export file from the export folder.
+						Enter the passcode that was set when this file was exported.
 					{/if}
 				</p>
 			</div>
@@ -337,16 +320,16 @@
 							type="radio"
 							name="{fileGroup}-mode"
 							bind:group={mode}
-							value={TransferMode.TransferMerge}
-							disabled={busy} />Merge
+							value={TransferMode.TransferOverwrite}
+							disabled={busy} />Overwrite
 					</label>
 					<label>
 						<input
 							type="radio"
 							name="{fileGroup}-mode"
 							bind:group={mode}
-							value={TransferMode.TransferReplace}
-							disabled={busy} />Replace
+							value={TransferMode.TransferMerge}
+							disabled={busy} />Merge
 					</label>
 				</div>
 
@@ -421,12 +404,12 @@
 				{:else}
 					<div class="animate-enter">
 						<div class="mt-3 notice-warning">
-							Replace removes every account, tag, and favorite place in
+							Overwrite removes every account, tag, and favorite place in
 							this vault, then imports everything from the file, including
 							settings. The app backs up the current vault first.
 						</div>
 						<label class="dialog-field">
-							<span>Type REPLACE to confirm</span>
+							<span>Type OVERWRITE to confirm</span>
 							<input
 								bind:value={confirmation}
 								autocomplete="off"
@@ -441,12 +424,12 @@
 				<div class="dialog-actions">
 					<button class="btn" type="button" disabled={busy} onclick={back}
 						>Back</button>
-					{#if mode === TransferMode.TransferReplace}
+					{#if mode === TransferMode.TransferOverwrite}
 						<button
 							class="btn-danger"
 							type="submit"
-							disabled={confirmation !== "REPLACE" || busy}
-							>{importing ? "Replacing…" : "Replace vault"}</button>
+							disabled={confirmation !== "OVERWRITE" || busy}
+							>{importing ? "Overwriting…" : "Overwrite vault"}</button>
 					{:else}
 						<button
 							class="btn-primary"
@@ -463,73 +446,22 @@
 					event.preventDefault()
 					void openExport()
 				}}>
-				{#if files === null}
-					<p class="text-xs text-fg-muted" aria-busy="true">
-						Loading export files…
-					</p>
-				{:else if files.length === 0}
-					<div class="empty-state">
-						<Icon svg={fileArrowDownIcon} size={28} aria-hidden="true" />
-						<h2>No export files</h2>
-						<p>
-							Copy a .ramexport file into the export folder, then refresh.
-						</p>
-					</div>
-				{:else}
-					<div
-						class="flex max-h-48 scrollbar-stable flex-col gap-0.5 overflow-y-auto pl-1"
-						role="radiogroup"
-						aria-label="Export file">
-						{#each files as file (file.name)}
-							<label
-								class="radio-option"
-								data-disabled={busy || undefined}>
-								<span class="radio">
-									<input
-										type="radio"
-										name={fileGroup}
-										bind:group={selectedFile}
-										value={file.name}
-										disabled={busy} />
-									<span aria-hidden="true"></span>
-								</span>
-								<span class="flex min-w-0 flex-col py-1">
-									<span
-										class="font-mono text-2xs wrap-anywhere text-fg"
-										>{file.name}</span>
-									<small class="text-2xs text-fg-muted"
-										><Timestamp value={file.createdAtMs} /></small>
-								</span>
-							</label>
-						{/each}
-					</div>
-				{/if}
-				<div class="mt-3 flex items-center gap-2">
-					<span
-						class="min-w-0 flex-1 font-mono text-2xs wrap-anywhere text-fg-faint"
-						>{directory}</span>
+				<div
+					class="flex items-center gap-2 rounded-md border border-line bg-fill p-2">
+					<span class="text-fg-faint">
+						<Icon svg={fileArrowDownIcon} size={16} aria-hidden="true" />
+					</span>
+					<span class="flex min-w-0 flex-1 flex-col">
+						<span class="font-mono text-xs wrap-anywhere text-fg"
+							>{name}</span>
+						<span class="font-mono text-2xs wrap-anywhere text-fg-faint"
+							>{folder}</span>
+					</span>
 					<button
-						class="btn-icon"
+						class="btn"
 						type="button"
-						aria-label="Copy folder path"
-						data-tooltip="Copy folder path"
-						disabled={!directory}
-						onclick={() => void copyExportFolder(directory, notifications)}>
-						<Icon svg={copyIcon} size={16} aria-hidden="true" />
-					</button>
-					<button
-						class="btn-icon"
-						type="button"
-						aria-label="Refresh export files"
-						data-tooltip="Refresh export files"
 						disabled={busy}
-						onclick={() => void loadFiles()}>
-						<Icon
-							svg={arrowsClockwiseIcon}
-							size={16}
-							aria-hidden="true"
-							data-turn />
-					</button>
+						onclick={() => void changeFile()}>Change file</button>
 				</div>
 				<label class="dialog-field">
 					<span>Passcode</span>
@@ -537,7 +469,7 @@
 						bind:value={passcode}
 						type="password"
 						autocomplete="off"
-						disabled={opening || files?.length === 0}
+						disabled={opening}
 						required />
 				</label>
 				{#if error}
@@ -549,7 +481,7 @@
 					<button
 						class="btn-primary"
 						type="submit"
-						disabled={!selectedFile || !passcode || busy}
+						disabled={!passcode || busy}
 						>{opening ? "Opening…" : "Open export"}</button>
 				</div>
 			</form>

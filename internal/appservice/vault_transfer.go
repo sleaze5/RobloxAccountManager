@@ -21,14 +21,9 @@ const transferPreviewTTL = 10 * time.Minute
 type TransferMode string
 
 const (
-	TransferReplace TransferMode = "replace"
-	TransferMerge   TransferMode = "merge"
+	TransferOverwrite TransferMode = "overwrite"
+	TransferMerge     TransferMode = "merge"
 )
-
-type VaultExports struct {
-	Directory string             `json:"directory"`
-	Files     []vault.ExportInfo `json:"files"`
-}
 
 type TransferPreview struct {
 	ID                string            `json:"id"`
@@ -87,18 +82,23 @@ func transferError(message string, cause error) error {
 	return &roblox.Error{Kind: roblox.KindProtocol, Endpoint: "vault-transfer", Message: message, Cause: cause}
 }
 
-func (service *Service) ListVaultExports() (VaultExports, error) {
-	files, err := service.vault.ListExports()
-	if err != nil {
-		service.logger.Warn("export files could not be listed", "operation", "vault-import", "error", err)
-		return VaultExports{}, transferError("The export folder could not be read.", err)
+func (service *Service) ExportsDirectory() string { return service.vault.ExportsDirectory() }
+
+func (service *Service) DefaultExportName() string { return service.vault.DefaultExportName() }
+
+func (service *Service) ValidateExportPasscode(passcode, confirmation string) error {
+	if passcode != confirmation {
+		return transferError("The passcodes do not match.", nil)
 	}
-	return VaultExports{Directory: service.vault.ExportsDirectory(), Files: files}, nil
+	if err := vault.ValidateExportPasscode(passcode); err != nil {
+		return transferError("The passcode does not meet every requirement.", err)
+	}
+	return nil
 }
 
-func (service *Service) ExportVault(ctx context.Context, passcode, confirmation string) (vault.ExportInfo, error) {
-	if passcode != confirmation {
-		return vault.ExportInfo{}, transferError("The passcodes do not match.", nil)
+func (service *Service) ExportVault(ctx context.Context, path, passcode, confirmation string) (vault.ExportInfo, error) {
+	if err := service.ValidateExportPasscode(passcode, confirmation); err != nil {
+		return vault.ExportInfo{}, err
 	}
 	payload, err := service.transfers.Read(ctx)
 	if err != nil {
@@ -118,20 +118,17 @@ func (service *Service) ExportVault(ctx context.Context, passcode, confirmation 
 		return vault.ExportInfo{}, transferError("The export could not be created.", err)
 	}
 	defer clear(data)
-	info, err := service.vault.WriteExport(passcode, data)
-	if errors.Is(err, vault.ErrWeakExportPasscode) {
-		return vault.ExportInfo{}, transferError("The passcode does not meet every requirement.", err)
-	}
+	info, err := service.vault.WriteExport(path, passcode, data)
 	if err != nil {
 		service.logger.Error("export file could not be written", "operation", "vault-export", "error", err)
-		return vault.ExportInfo{}, transferError("The export file could not be saved. Check free disk space and try again.", err)
+		return vault.ExportInfo{}, transferError("The export file could not be saved. Check that the folder is writable and has free space, then try again.", err)
 	}
-	service.logger.Info("vault exported", "operation", "vault-export", "file", info.Name, "accounts", len(payload.Accounts), "tags", len(payload.Tags), "favorite_places", len(payload.FavoritePlaces))
+	service.logger.Info("vault exported", "operation", "vault-export", "accounts", len(payload.Accounts), "tags", len(payload.Tags), "favorite_places", len(payload.FavoritePlaces))
 	return info, nil
 }
 
-func (service *Service) OpenVaultExport(ctx context.Context, name, passcode string) (TransferPreview, error) {
-	info, data, err := service.vault.ReadExport(name, passcode)
+func (service *Service) OpenVaultExport(ctx context.Context, path, passcode string) (TransferPreview, error) {
+	info, data, err := service.vault.ReadExport(path, passcode)
 	if err != nil {
 		return TransferPreview{}, service.exportReadError(err)
 	}
@@ -158,7 +155,7 @@ func (service *Service) OpenVaultExport(ctx context.Context, name, passcode stri
 		return TransferPreview{}, transferError("The export could not be opened.", err)
 	}
 	service.storePendingTransfer(&pendingTransfer{id: preview.ID, payload: payload, settings: settings})
-	service.logger.Info("export opened for import", "operation", "vault-import", "file", name, "accounts", len(payload.Accounts))
+	service.logger.Info("export opened for import", "operation", "vault-import", "accounts", len(payload.Accounts))
 	return preview, nil
 }
 
@@ -223,8 +220,8 @@ func (service *Service) ImportVaultExport(ctx context.Context, id string, reques
 	}
 	defer clearPendingTransfer(pending)
 	switch request.Mode {
-	case TransferReplace:
-		return service.replaceVaultData(ctx, pending)
+	case TransferOverwrite:
+		return service.overwriteVaultData(ctx, pending)
 	case TransferMerge:
 		return service.mergeVaultData(ctx, pending, request)
 	default:
@@ -238,8 +235,8 @@ func (service *Service) DiscardVaultExport(id string) {
 	}
 }
 
-func (service *Service) replaceVaultData(ctx context.Context, pending *pendingTransfer) (TransferResult, error) {
-	logger := service.logger.With("operation", "vault-import", "mode", TransferReplace)
+func (service *Service) overwriteVaultData(ctx context.Context, pending *pendingTransfer) (TransferResult, error) {
+	logger := service.logger.With("operation", "vault-import", "mode", TransferOverwrite)
 	if err := service.vault.CreateBackup(ctx); err != nil {
 		logger.Error("vault could not be backed up before replacing it", "error", err)
 		return TransferResult{}, transferError("The current vault could not be backed up, so nothing was imported. Check free disk space and try again.", err)

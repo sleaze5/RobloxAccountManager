@@ -12,6 +12,7 @@
 	import AppLocationDialog from "./lib/dialogs/AppLocationDialog.svelte"
 	import BrowserImportDialog from "./lib/dialogs/BrowserImportDialog.svelte"
 	import ImportVaultDialog from "./lib/dialogs/ImportVaultDialog.svelte"
+	import { chooseExportFile } from "./lib/dialogs/vault-transfer"
 	import BrowserRuntimeDialog from "./lib/dialogs/BrowserRuntimeDialog.svelte"
 	import NicknameDialog from "./lib/dialogs/NicknameDialog.svelte"
 	import UnfriendDialog from "./lib/dialogs/UnfriendDialog.svelte"
@@ -83,7 +84,8 @@
 		removeAccountId = $state<number | null>(null),
 		unfriendTarget = $state<SocialUser | null>(null),
 		nicknameTarget = $state<{ person: SocialUser; nickname: string } | null>(null),
-		renewAccountId = $state<number | null>(null)
+		renewAccountId = $state<number | null>(null),
+		importPath = $state("")
 	let descriptionEditor = $state<{
 		account: Account
 		state: AccountProfileState
@@ -173,10 +175,11 @@
 		activeDialog = "add-account"
 	}
 
-	function openImportFile(): void {
+	async function openImportFile(): Promise<void> {
 		store.clearError()
 		workspace.closeAccountMenus()
-		activeDialog = "import-vault"
+		importPath = await chooseExportFile(notificationCenter)
+		if (importPath) activeDialog = "import-vault"
 	}
 
 	function openManageTags(accountId: number | null = null): void {
@@ -545,7 +548,7 @@
 					onAddAccount={openAddAccount}
 					onManageTags={openManageTags}
 					onBrowser={(accountId) => void openManagedBrowser(accountId)}
-					onImportFile={openImportFile} />
+					onImportFile={() => void openImportFile()} />
 
 				<main class="flex min-w-0 flex-1 flex-col overflow-hidden bg-canvas">
 					<div
@@ -562,7 +565,7 @@
 								{workspace}
 								onAddAccount={openAddAccount}
 								onBrowser={() => void openManagedBrowser(null)}
-								onImportFile={openImportFile} />
+								onImportFile={() => void openImportFile()} />
 						{:else}
 							{#key store.selectedAccountId}
 								<div
@@ -633,10 +636,11 @@
 	<AddAccountDialog {store} onClose={closePasteDialog} />
 {/if}
 
-{#if activeDialog === "import-vault"}
+{#if activeDialog === "import-vault" && importPath}
 	<ImportVaultDialog
 		{store}
 		notifications={notificationCenter}
+		path={importPath}
 		onClose={closeDialog} />
 {/if}
 

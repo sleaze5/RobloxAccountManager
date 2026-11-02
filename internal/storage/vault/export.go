@@ -7,10 +7,8 @@ import (
 	"encoding/binary"
 	"errors"
 	"fmt"
-	"io"
 	"os"
 	"path/filepath"
-	"sort"
 	"strings"
 	"time"
 	"unicode/utf8"
@@ -24,7 +22,7 @@ const (
 	exportExtension     = ".ramexport"
 	exportNamePrefix    = "RobloxAccountManager-"
 	// Every version starts with an 8-byte magic, a 2-byte version, and an 8-byte creation time in Unix milliseconds,
-	// so the file list can show any export without its passcode or filesystem timestamps.
+	// so the creation time never depends on filesystem timestamps.
 	exportPrefixBytes = 8 + 2 + 8
 	// Version 1 continues with a 4-byte Argon2 time, 4-byte memory, 1-byte threads, 16-byte salt, and 12-byte nonce.
 	exportHeaderBytes = exportPrefixBytes + 4 + 4 + 1 + 16 + 12
@@ -44,59 +42,76 @@ var _ = [1]struct{}{}[len(exportDecoders)-int(exportFormatVersion)]
 
 type ExportInfo struct {
 	Name        string `json:"name"`
+	Path        string `json:"path"`
 	CreatedAtMS int64  `json:"createdAtMs"`
 }
 
-func (manager *Manager) ExportsDirectory() string { return manager.paths.ExportsRoot }
+// ExportsDirectory creates the export folder and returns it. If the folder cannot be created, it returns the data folder,
+// so a file dialog still opens in a useful place.
+func (manager *Manager) ExportsDirectory() string {
+	if err := appdata.PreparePrivateDirectory(manager.paths.ExportsRoot); err != nil {
+		return filepath.Dir(manager.paths.ExportsRoot)
+	}
+	return manager.paths.ExportsRoot
+}
 
-func (manager *Manager) WriteExport(passcode string, payload []byte) (ExportInfo, error) {
+func (manager *Manager) DefaultExportName() string {
+	base := exportNamePrefix + time.Now().Format("2006-01-02")
+	name := base + exportExtension
+	for suffix := 2; fileExists(filepath.Join(manager.paths.ExportsRoot, name)); suffix++ {
+		name = fmt.Sprintf("%s-%d%s", base, suffix, exportExtension)
+	}
+	return name
+}
+
+func (manager *Manager) WriteExport(path, passcode string, payload []byte) (ExportInfo, error) {
+	if !strings.EqualFold(filepath.Ext(path), exportExtension) {
+		path += exportExtension
+	}
 	now := time.Now()
 	sealed, err := sealExport(passcode, payload, now.UnixMilli())
 	if err != nil {
 		return ExportInfo{}, err
 	}
-	if err := appdata.PreparePrivateDirectory(manager.paths.ExportsRoot); err != nil {
+	if err := writeExportFile(path, sealed); err != nil {
 		return ExportInfo{}, err
 	}
-	base := exportNamePrefix + now.Format("2006-01-02")
-	name := base + exportExtension
-	for suffix := 2; fileExists(filepath.Join(manager.paths.ExportsRoot, name)); suffix++ {
-		name = fmt.Sprintf("%s-%d%s", base, suffix, exportExtension)
-	}
-	if err := appdata.WritePrivateFile(filepath.Join(manager.paths.ExportsRoot, name), sealed); err != nil {
-		return ExportInfo{}, fmt.Errorf("write export file: %w", err)
-	}
-	return ExportInfo{Name: name, CreatedAtMS: now.UnixMilli()}, nil
+	return ExportInfo{Name: filepath.Base(path), Path: path, CreatedAtMS: now.UnixMilli()}, nil
 }
 
-func (manager *Manager) ListExports() ([]ExportInfo, error) {
-	entries, err := os.ReadDir(manager.paths.ExportsRoot)
-	if errors.Is(err, os.ErrNotExist) {
-		return []ExportInfo{}, nil
-	}
+// writeExportFile does not set a private access list, because the user can choose a drive that has none, such as FAT32.
+// The file is encrypted, and the export folder that the app creates is already private.
+func writeExportFile(path string, data []byte) error {
+	file, err := os.CreateTemp(filepath.Dir(path), "."+filepath.Base(path)+".*.tmp")
 	if err != nil {
-		return nil, fmt.Errorf("list export files: %w", err)
+		return fmt.Errorf("create export file: %w", err)
 	}
-	result := make([]ExportInfo, 0, len(entries))
-	for _, entry := range entries {
-		if !entry.Type().IsRegular() || !validExportName(entry.Name()) {
-			continue
+	temporary := file.Name()
+	ok := false
+	defer func() {
+		_ = file.Close()
+		if !ok {
+			_ = os.Remove(temporary)
 		}
-		createdAt, err := readExportCreatedAt(filepath.Join(manager.paths.ExportsRoot, entry.Name()))
-		if err != nil {
-			continue
-		}
-		result = append(result, ExportInfo{Name: entry.Name(), CreatedAtMS: createdAt})
+	}()
+	if _, err := file.Write(data); err != nil {
+		return fmt.Errorf("write export file: %w", err)
 	}
-	sort.Slice(result, func(left, right int) bool { return result[left].CreatedAtMS > result[right].CreatedAtMS })
-	return result, nil
+	if err := file.Sync(); err != nil {
+		return fmt.Errorf("flush export file: %w", err)
+	}
+	if err := file.Close(); err != nil {
+		return fmt.Errorf("close export file: %w", err)
+	}
+	if err := appdata.ReplaceFile(temporary, path); err != nil {
+		return fmt.Errorf("save export file: %w", err)
+	}
+	ok = true
+	return nil
 }
 
-func (manager *Manager) ReadExport(name, passcode string) (ExportInfo, []byte, error) {
-	if !validExportName(name) {
-		return ExportInfo{}, nil, errors.New("invalid export file selection")
-	}
-	data, err := readBounded(filepath.Join(manager.paths.ExportsRoot, name), exportFileLimit)
+func (manager *Manager) ReadExport(path, passcode string) (ExportInfo, []byte, error) {
+	data, err := readBounded(path, exportFileLimit)
 	if err != nil {
 		return ExportInfo{}, nil, err
 	}
@@ -104,27 +119,10 @@ func (manager *Manager) ReadExport(name, passcode string) (ExportInfo, []byte, e
 	if err != nil {
 		return ExportInfo{}, nil, err
 	}
-	return ExportInfo{Name: name, CreatedAtMS: int64(binary.BigEndian.Uint64(data[len(exportMagic)+2:]))}, payload, nil
+	return ExportInfo{Name: filepath.Base(path), Path: path, CreatedAtMS: int64(binary.BigEndian.Uint64(data[len(exportMagic)+2:]))}, payload, nil
 }
 
-func readExportCreatedAt(path string) (int64, error) {
-	file, err := os.Open(path)
-	if err != nil {
-		return 0, fmt.Errorf("open export file: %w", err)
-	}
-	defer func() { _ = file.Close() }()
-	prefix := make([]byte, exportPrefixBytes)
-	if _, err := io.ReadFull(file, prefix); err != nil || !bytes.Equal(prefix[:len(exportMagic)], exportMagic[:]) || binary.BigEndian.Uint16(prefix[len(exportMagic):]) == 0 {
-		return 0, ErrInvalidExport
-	}
-	return int64(binary.BigEndian.Uint64(prefix[len(exportMagic)+2:])), nil
-}
-
-func validExportName(name string) bool {
-	return strings.HasSuffix(name, exportExtension) && len(name) > len(exportExtension) && filepath.Base(name) == name && !strings.ContainsAny(name, `/\:`)
-}
-
-func validateExportPasscode(passcode string) error {
+func ValidateExportPasscode(passcode string) error {
 	if !utf8.ValidString(passcode) || !CheckPassword(passcode).Valid() {
 		return ErrWeakExportPasscode
 	}
@@ -132,7 +130,7 @@ func validateExportPasscode(passcode string) error {
 }
 
 func sealExport(passcode string, payload []byte, createdAtMS int64) ([]byte, error) {
-	if err := validateExportPasscode(passcode); err != nil {
+	if err := ValidateExportPasscode(passcode); err != nil {
 		return nil, err
 	}
 	params, err := calibrateKDF(passcode)

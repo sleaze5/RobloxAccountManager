@@ -25,7 +25,6 @@ export type {
 	TimestampFormats,
 	TransferPreview,
 	TransferResult,
-	VaultExports,
 	VaultState,
 	VoiceChat,
 } from "../../../bindings/github.com/sleaze5/RobloxAccountManager/internal/appservice/models.js"

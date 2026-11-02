@@ -2,13 +2,11 @@
 	import fileArrowDownIcon from "@phosphor-icons/core/regular/file-arrow-down.svg?raw"
 	import fileArrowUpIcon from "@phosphor-icons/core/regular/file-arrow-up.svg?raw"
 	import Icon from "../shared/Icon.svelte"
-	import { onMount } from "svelte"
 	import type { AccountStore } from "../accounts/account-store.svelte"
-	import { accountBackend } from "../backend/bridge"
 	import ExportVaultDialog from "../dialogs/ExportVaultDialog.svelte"
 	import ImportVaultDialog from "../dialogs/ImportVaultDialog.svelte"
+	import { chooseExportFile } from "../dialogs/vault-transfer"
 	import type { NotificationCenter } from "../notifications/notification-center.svelte"
-	import { copyExportFolder } from "./export-folder"
 
 	let {
 			store,
@@ -19,38 +17,30 @@
 			notifications: NotificationCenter
 			query?: string
 		} = $props(),
-		directory = $state(""),
-		error = $state(""),
-		activeDialog = $state<"export" | "import" | null>(null),
+		exporting = $state(false),
+		importPath = $state(""),
 		searchTerms = $derived(query.trim().toLowerCase().split(/\s+/).filter(Boolean))
+
+	const exportTerms =
+			"encrypted file passcode accounts saved passwords tags favorite places settings backup move computer save",
+		importTerms =
+			"merge overwrite export file passcode accounts cookies tags favorite places settings open"
 
 	function matches(name: string, description: string): boolean {
 		const text = `vault transfer export import ${name} ${description}`.toLowerCase()
 		return searchTerms.every((term) => text.includes(term))
 	}
 
-	onMount(() => {
-		let disposed = false
-		void (async () => {
-			try {
-				const exports = await accountBackend.ListVaultExports()
-				if (!disposed) directory = exports.directory
-			} catch {
-				if (!disposed) error = "The export folder could not be found."
-			}
-		})()
-		return () => {
-			disposed = true
-		}
-	})
+	async function chooseImport(): Promise<void> {
+		importPath = await chooseExportFile(notifications)
+	}
 </script>
 
-{#if matches("Export vault data", "encrypted file passcode accounts saved passwords tags favorite places settings backup move computer") || matches("Import vault data", "merge replace export file passcode accounts cookies tags favorite places settings")}
+{#if matches("Export vault data", exportTerms) || matches("Import vault data", importTerms)}
 	<section class="settings-section" aria-labelledby="vault-transfer-title">
 		<h3 id="vault-transfer-title">Export and import</h3>
-		{#if error}<div class="notice-error" role="alert">{error}</div>{/if}
 		<div class="settings-rows">
-			{#if matches("Export vault data", "encrypted file passcode accounts saved passwords tags favorite places settings backup move computer")}
+			{#if matches("Export vault data", exportTerms)}
 				<div class="settings-row">
 					<div class="settings-row-copy">
 						<strong>Export vault data</strong>
@@ -61,25 +51,26 @@
 					<button
 						class="btn"
 						type="button"
-						disabled={store.busy || !store.vault.unlocked || !directory}
-						onclick={() => (activeDialog = "export")}>
+						disabled={store.busy || !store.vault.unlocked}
+						onclick={() => (exporting = true)}>
 						<Icon svg={fileArrowUpIcon} size={16} aria-hidden="true" />
 						Export data
 					</button>
 				</div>
 			{/if}
-			{#if matches("Import vault data", "merge replace export file passcode accounts cookies tags favorite places settings")}
+			{#if matches("Import vault data", importTerms)}
 				<div class="settings-row">
 					<div class="settings-row-copy">
 						<strong>Import vault data</strong>
 						<span
-							>Merge or replace this vault with data from an export file.</span>
+							>Overwrite or merge this vault with data from an export
+							file.</span>
 					</div>
 					<button
 						class="btn"
 						type="button"
-						disabled={store.busy || !store.vault.unlocked || !directory}
-						onclick={() => (activeDialog = "import")}>
+						disabled={store.busy || !store.vault.unlocked}
+						onclick={() => void chooseImport()}>
 						<Icon svg={fileArrowDownIcon} size={16} aria-hidden="true" />
 						Import data
 					</button>
@@ -89,13 +80,14 @@
 	</section>
 {/if}
 
-{#if activeDialog === "export"}
-	<ExportVaultDialog
-		{directory}
-		onCopyPath={() => void copyExportFolder(directory, notifications)}
-		onClose={() => (activeDialog = null)} />
+{#if exporting}
+	<ExportVaultDialog {notifications} onClose={() => (exporting = false)} />
 {/if}
 
-{#if activeDialog === "import"}
-	<ImportVaultDialog {store} {notifications} onClose={() => (activeDialog = null)} />
+{#if importPath}
+	<ImportVaultDialog
+		{store}
+		{notifications}
+		path={importPath}
+		onClose={() => (importPath = "")} />
 {/if}

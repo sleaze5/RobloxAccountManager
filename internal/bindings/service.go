@@ -427,21 +427,35 @@ func (service *Service) ResetVault(confirmation string) error {
 	return service.core.ResetVault()
 }
 
-func (service *Service) ListVaultExports() (appservice.VaultExports, error) {
-	return service.core.ListVaultExports()
-}
-
 func (service *Service) ExportVault(ctx context.Context, passcode, confirmation string) (vault.ExportInfo, error) {
-	return service.core.ExportVault(ctx, passcode, confirmation)
+	if err := service.core.ValidateExportPasscode(passcode, confirmation); err != nil {
+		return vault.ExportInfo{}, err
+	}
+	path, err := chooseSaveFile(service.core.ExportsDirectory(), service.core.DefaultExportName())
+	if err != nil {
+		return vault.ExportInfo{}, &roblox.Error{Kind: roblox.KindProtocol, Endpoint: "vault-transfer", Message: "The save dialog could not be opened.", Cause: err}
+	}
+	if path == "" {
+		return vault.ExportInfo{}, nil
+	}
+	return service.core.ExportVault(ctx, path, passcode, confirmation)
 }
 
-func (service *Service) OpenVaultExport(ctx context.Context, name, passcode string) (appservice.TransferPreview, error) {
-	return service.core.OpenVaultExport(ctx, name, passcode)
+func (service *Service) ChooseVaultExport() (string, error) {
+	path, err := chooseOpenFile(service.core.ExportsDirectory())
+	if err != nil {
+		return "", &roblox.Error{Kind: roblox.KindProtocol, Endpoint: "vault-transfer", Message: "The open dialog could not be opened.", Cause: err}
+	}
+	return path, nil
+}
+
+func (service *Service) OpenVaultExport(ctx context.Context, path, passcode string) (appservice.TransferPreview, error) {
+	return service.core.OpenVaultExport(ctx, path, passcode)
 }
 
 func (service *Service) ImportVaultExport(ctx context.Context, id string, request appservice.TransferRequest, confirmation string) (appservice.TransferResult, error) {
-	if request.Mode == appservice.TransferReplace && confirmation != "REPLACE" {
-		return appservice.TransferResult{}, &roblox.Error{Kind: roblox.KindProtocol, Endpoint: "vault-transfer", Message: "Type REPLACE to confirm replacing the vault."}
+	if request.Mode == appservice.TransferOverwrite && confirmation != "OVERWRITE" {
+		return appservice.TransferResult{}, &roblox.Error{Kind: roblox.KindProtocol, Endpoint: "vault-transfer", Message: "Type OVERWRITE to confirm overwriting the vault."}
 	}
 	return service.core.ImportVaultExport(ctx, id, request)
 }

@@ -45,10 +45,10 @@ storage/
     settings.json
     vault/          # vault.db, vault.key, autounlock.key, recovery files, and vault creation staging
     backups/
-    exports/        # Encrypted export files (.ramexport) that the user creates or copies here
     runtime/        # Managed browser runtime
     temp/           # Browser installation staging and temporary browser profiles
 logs/
+export/             # Where the export and import file dialogs open. Created when either dialog opens.
 ```
 
 Missing subdirectories are created when needed.
@@ -102,7 +102,7 @@ The About page shows the storage mode and data folder. Each launch records the m
 
 - Resolve every data path through `internal/appdata`. Do not rely on the working directory or on a fixed name or location for the executable folder or data root.
 - Do not require machine-wide installation, global environment variables, or system services.
-- Write outside the data root only where the OS or Roblox requires it. Remove any temporary data when the operation finishes or at the next safe cleanup.
+- Write outside the data root only where the OS or Roblox requires it, or where the user chooses in a file dialog. Remove any temporary data when the operation finishes or at the next safe cleanup.
 - Keep the live vault on a local or removable drive. The application rejects network data roots. Cloud-synchronized folders are unsupported, because another process can replace vault files outside the application lock.
 
 ## Windows
