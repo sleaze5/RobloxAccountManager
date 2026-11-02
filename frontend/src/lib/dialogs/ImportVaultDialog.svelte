@@ -1,7 +1,6 @@
 <script lang="ts">
 	import arrowsClockwiseIcon from "@phosphor-icons/core/regular/arrows-clockwise.svg?raw"
 	import checkBoldIcon from "@phosphor-icons/core/bold/check-bold.svg?raw"
-	import checkCircleIcon from "@phosphor-icons/core/regular/check-circle.svg?raw"
 	import copyIcon from "@phosphor-icons/core/regular/copy.svg?raw"
 	import fileArrowDownIcon from "@phosphor-icons/core/regular/file-arrow-down.svg?raw"
 	import xIcon from "@phosphor-icons/core/regular/x.svg?raw"
@@ -79,6 +78,22 @@
 			selectedAccounts.length === 0 &&
 				!(favoritePlaces && (preview?.newFavoritePlaces ?? 0) > 0) &&
 				sections.length === 0,
+		),
+		resultRows = $derived(
+			result
+				? [
+						{ label: "Accounts added", count: result.added },
+						{ label: "Accounts updated", count: result.updated },
+						{
+							label: "Favorite places added",
+							count: result.favoritePlaces,
+						},
+					].map((row) => ({
+						label: row.label,
+						changed: row.count > 0,
+						value: row.count > 0 ? String(row.count) : "None",
+					}))
+				: [],
 		),
 		keptCookies = $derived(result?.keptCookies ?? []),
 		candidateItems = $derived<CandidateListItem[]>(
@@ -223,10 +238,12 @@
 		out:modalCardOut>
 		<div class="dialog-heading">
 			<div>
-				<h2 id="import-vault-title">Import vault data</h2>
+				<h2 id="import-vault-title">
+					{result ? "Data imported" : "Import vault data"}
+				</h2>
 				<p>
 					{#if result}
-						The selected data is in this vault.
+						Imported from {selectedFile}.
 					{:else if preview}
 						Exported <Timestamp value={preview.exportedAtMs} />.
 					{:else}
@@ -244,33 +261,32 @@
 		</div>
 
 		{#if result}
-			<div class="flex flex-col items-center gap-2 py-2 text-center">
-				<span class="animate-bloom text-success">
-					<Icon svg={checkCircleIcon} size={28} aria-hidden="true" />
-				</span>
-				<p class="text-sm font-semibold text-fg" role="status">Data imported</p>
+			<div
+				class="animate-enter overflow-hidden rounded-md border border-line bg-fill text-xs"
+				role="status">
+				{#each resultRows as row (row.label)}
+					<div
+						class="flex min-h-8 items-center justify-between gap-3 px-3 not-first:border-t not-first:border-line-subtle">
+						<span class={row.changed ? "text-fg" : "text-fg-faint"}
+							>{row.label}</span>
+						<span
+							class={[
+								"font-mono",
+								row.changed ? "text-fg" : "text-fg-faint",
+							]}>{row.value}</span>
+					</div>
+				{/each}
+				<div
+					class="flex min-h-8 items-center justify-between gap-3 border-t border-line-subtle px-3">
+					<span class={result.settings ? "text-fg" : "text-fg-faint"}
+						>Settings</span>
+					<span class={result.settings ? "text-fg" : "text-fg-faint"}
+						>{result.settings ? "Imported" : "Skipped"}</span>
+				</div>
 			</div>
-			<dl class="facts">
-				<div>
-					<dt>Accounts added</dt>
-					<dd>{result.added}</dd>
-				</div>
-				<div>
-					<dt>Accounts updated</dt>
-					<dd>{result.updated}</dd>
-				</div>
-				<div>
-					<dt>Favorite places added</dt>
-					<dd>{result.favoritePlaces}</dd>
-				</div>
-				<div>
-					<dt>Settings</dt>
-					<dd>{result.settings ? "Imported" : "Not imported"}</dd>
-				</div>
-			</dl>
 			{#if keptCookies.length > 0}
 				<div class="mt-3 notice-warning">
-					<p>Kept the current cookie for these accounts:</p>
+					<p>These accounts kept their current cookie:</p>
 					<ul class="mt-1 flex flex-col gap-0.5">
 						{#each keptCookies as kept (kept.username)}
 							<li><strong>{kept.username}</strong>: {kept.reason}</li>

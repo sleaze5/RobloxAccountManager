@@ -80,7 +80,7 @@
 	}}
 	role="presentation">
 	<div
-		class="dialog-card max-w-sm"
+		class="dialog-card max-w-md"
 		role="dialog"
 		aria-modal="true"
 		aria-labelledby="export-vault-title"
@@ -91,10 +91,13 @@
 		out:modalCardOut>
 		<div class="dialog-heading">
 			<div>
-				<h2 id="export-vault-title">Export vault data</h2>
+				<h2 id="export-vault-title">
+					{exported ? "Data exported" : "Export vault data"}
+				</h2>
 				<p>
-					Save accounts, saved passwords, tags, favorite places, and settings
-					to an encrypted file.
+					{exported
+						? "Keep the file and its passcode in separate places."
+						: "Save accounts, saved passwords, tags, favorite places, and settings to an encrypted file."}
 				</p>
 			</div>
 			<button
@@ -106,25 +109,31 @@
 			</button>
 		</div>
 		{#if exported}
-			<div class="flex flex-col items-center gap-2 py-2 text-center">
+			<div
+				class="flex animate-enter items-center gap-2 rounded-md border border-line bg-fill p-2"
+				role="status">
 				<span class="animate-bloom text-success">
-					<Icon svg={checkCircleIcon} size={28} aria-hidden="true" />
+					<Icon svg={checkCircleIcon} size={16} aria-hidden="true" />
 				</span>
-				<p class="text-sm font-semibold text-fg" role="status">Data exported</p>
-				<span class="font-mono text-2xs wrap-anywhere text-fg-muted"
-					>{exported.name}</span>
-				<span class="font-mono text-2xs wrap-anywhere text-fg-faint"
-					>{directory}</span>
-			</div>
-			<div class="mt-3 notice-note">
-				Keep the file and its passcode in separate places. To import it on
-				another computer, copy it into that app's export folder.
-			</div>
-			<div class="dialog-actions">
-				<button class="btn" type="button" onclick={onCopyPath}>
+				<span class="flex min-w-0 flex-1 flex-col">
+					<span class="font-mono text-2xs wrap-anywhere text-fg"
+						>{exported.name}</span>
+					<span class="font-mono text-2xs wrap-anywhere text-fg-faint"
+						>{directory}</span>
+				</span>
+				<button
+					class="btn-icon"
+					type="button"
+					aria-label="Copy folder path"
+					data-tooltip="Copy folder path"
+					onclick={onCopyPath}>
 					<Icon svg={copyIcon} size={16} aria-hidden="true" />
-					Copy folder path
 				</button>
+			</div>
+			<p class="mt-3 text-xs text-fg-muted">
+				To import it on another computer, copy it into that app's export folder.
+			</p>
+			<div class="dialog-actions">
 				<button class="btn-primary" type="button" onclick={onClose}
 					>Done</button>
 			</div>
