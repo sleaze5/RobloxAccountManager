@@ -133,6 +133,7 @@ func (service *Service) LockVault() error {
 func (service *Service) finishLocked() {
 	service.stopGames()
 	service.clearPendingImports()
+	service.discardPendingTransfer()
 	service.sessions.Lock()
 	service.mu.Lock()
 	service.reminderDue = false

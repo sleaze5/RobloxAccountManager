@@ -427,6 +427,27 @@ func (service *Service) ResetVault(confirmation string) error {
 	return service.core.ResetVault()
 }
 
+func (service *Service) ListVaultExports() (appservice.VaultExports, error) {
+	return service.core.ListVaultExports()
+}
+
+func (service *Service) ExportVault(ctx context.Context, passcode, confirmation string) (vault.ExportInfo, error) {
+	return service.core.ExportVault(ctx, passcode, confirmation)
+}
+
+func (service *Service) OpenVaultExport(ctx context.Context, name, passcode string) (appservice.TransferPreview, error) {
+	return service.core.OpenVaultExport(ctx, name, passcode)
+}
+
+func (service *Service) ImportVaultExport(ctx context.Context, id string, request appservice.TransferRequest, confirmation string) (appservice.TransferResult, error) {
+	if request.Mode == appservice.TransferReplace && confirmation != "REPLACE" {
+		return appservice.TransferResult{}, &roblox.Error{Kind: roblox.KindProtocol, Endpoint: "vault-transfer", Message: "Type REPLACE to confirm replacing the vault."}
+	}
+	return service.core.ImportVaultExport(ctx, id, request)
+}
+
+func (service *Service) DiscardVaultExport(id string) { service.core.DiscardVaultExport(id) }
+
 func (service *Service) ValidateCookies(ctx context.Context, input string) (appservice.ImportPreview, error) {
 	return service.core.ValidateCookies(ctx, input)
 }

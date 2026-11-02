@@ -30,6 +30,10 @@ type Vault interface {
 	ListBackups() ([]vault.BackupInfo, error)
 	RestoreBackup(context.Context, string, string) error
 	ResetVault() error
+	ExportsDirectory() string
+	WriteExport(string, []byte) (vault.ExportInfo, error)
+	ListExports() ([]vault.ExportInfo, error)
+	ReadExport(string, string) ([]byte, error)
 }
 
 type AccountRepository interface {

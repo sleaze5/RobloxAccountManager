@@ -31,6 +31,7 @@ import (
 	accountstore "github.com/sleaze5/RobloxAccountManager/internal/storage/accounts"
 	"github.com/sleaze5/RobloxAccountManager/internal/storage/caches"
 	gamestore "github.com/sleaze5/RobloxAccountManager/internal/storage/games"
+	transferstore "github.com/sleaze5/RobloxAccountManager/internal/storage/transfer"
 	"github.com/sleaze5/RobloxAccountManager/internal/storage/vault"
 	"github.com/wailsapp/wails/v3/pkg/application"
 	wailevents "github.com/wailsapp/wails/v3/pkg/events"
@@ -141,6 +142,7 @@ func run() (runErr error) {
 		robloxservices.NewGames(client, logSystem.Module("roblox.games"), publicCache),
 		rovalra.New(),
 		gamestore.NewRepository(vaultManager, logSystem.Module("storage.games"), publicCache),
+		transferstore.NewRepository(vaultManager, logSystem.Module("storage.transfer")),
 		logsexplorer.NewReader(robloxlogs.Directories, logSystem.Module("logs-explorer")),
 		gamelaunch.New(func() string { return settingsStore.Roblox().LinuxClient }),
 		multiInstance,

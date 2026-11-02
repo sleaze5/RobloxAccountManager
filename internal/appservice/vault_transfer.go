@@ -1,0 +1,425 @@
+package appservice
+
+import (
+	"context"
+	"errors"
+	"fmt"
+	"log/slog"
+	"slices"
+	"time"
+
+	"github.com/sleaze5/RobloxAccountManager/internal/accounts"
+	"github.com/sleaze5/RobloxAccountManager/internal/appsettings"
+	"github.com/sleaze5/RobloxAccountManager/internal/games"
+	"github.com/sleaze5/RobloxAccountManager/internal/roblox"
+	transferstore "github.com/sleaze5/RobloxAccountManager/internal/storage/transfer"
+	"github.com/sleaze5/RobloxAccountManager/internal/storage/vault"
+)
+
+const transferPreviewTTL = 10 * time.Minute
+
+type TransferMode string
+
+const (
+	TransferReplace TransferMode = "replace"
+	TransferMerge   TransferMode = "merge"
+)
+
+type VaultExports struct {
+	Directory string             `json:"directory"`
+	Files     []vault.ExportInfo `json:"files"`
+}
+
+type TransferPreview struct {
+	ID                string            `json:"id"`
+	ExportedAtMS      int64             `json:"exportedAtMs"`
+	Accounts          []TransferAccount `json:"accounts"`
+	FavoritePlaces    int               `json:"favoritePlaces"`
+	NewFavoritePlaces int               `json:"newFavoritePlaces"`
+}
+
+type TransferAccount struct {
+	RobloxUserID int64    `json:"robloxUserId"`
+	Username     string   `json:"username"`
+	DisplayName  string   `json:"displayName"`
+	Existing     bool     `json:"existing"`
+	Favorite     bool     `json:"favorite"`
+	Tags         []string `json:"tags"`
+}
+
+type TransferRequest struct {
+	Mode             TransferMode          `json:"mode"`
+	RobloxUserIDs    []int64               `json:"robloxUserIds"`
+	FavoritePlaces   bool                  `json:"favoritePlaces"`
+	SettingsSections []appsettings.Section `json:"settingsSections"`
+}
+
+type TransferResult struct {
+	Added          int                  `json:"added"`
+	Updated        int                  `json:"updated"`
+	KeptCookies    []TransferKeptCookie `json:"keptCookies"`
+	FavoritePlaces int                  `json:"favoritePlaces"`
+	Settings       bool                 `json:"settings"`
+	SettingsError  string               `json:"settingsError,omitempty"`
+}
+
+type TransferKeptCookie struct {
+	Username string `json:"username"`
+	Reason   string `json:"reason"`
+}
+
+type pendingTransfer struct {
+	id       string
+	payload  transferstore.Payload
+	settings appsettings.Settings
+	timer    *time.Timer
+}
+
+func transferError(message string, cause error) error {
+	return &roblox.Error{Kind: roblox.KindProtocol, Endpoint: "vault-transfer", Message: message, Cause: cause}
+}
+
+func (service *Service) ListVaultExports() (VaultExports, error) {
+	files, err := service.vault.ListExports()
+	if err != nil {
+		service.logger.Warn("export files could not be listed", "operation", "vault-import", "error", err)
+		return VaultExports{}, transferError("The export folder could not be read.", err)
+	}
+	return VaultExports{Directory: service.vault.ExportsDirectory(), Files: files}, nil
+}
+
+func (service *Service) ExportVault(ctx context.Context, passcode, confirmation string) (vault.ExportInfo, error) {
+	if passcode != confirmation {
+		return vault.ExportInfo{}, transferError("The passcodes do not match.", nil)
+	}
+	payload, err := service.transfers.Read(ctx)
+	if err != nil {
+		if errors.Is(err, vault.ErrLocked) {
+			return vault.ExportInfo{}, mapRepositoryError(err)
+		}
+		service.logger.Error("vault data could not be read for export", "operation", "vault-export", "error", err)
+		return vault.ExportInfo{}, transferError("The vault data could not be read.", err)
+	}
+	if payload.Settings, err = service.settings.Export(); err != nil {
+		service.logger.Error("settings could not be read for export", "operation", "vault-export", "error", err)
+		return vault.ExportInfo{}, transferError("The settings could not be read.", err)
+	}
+	data, err := transferstore.Encode(payload)
+	if err != nil {
+		service.logger.Error("export data could not be encoded", "operation", "vault-export", "error", err)
+		return vault.ExportInfo{}, transferError("The export could not be created.", err)
+	}
+	defer clear(data)
+	info, err := service.vault.WriteExport(passcode, data)
+	if errors.Is(err, vault.ErrWeakExportPasscode) {
+		return vault.ExportInfo{}, transferError("The passcode does not meet every requirement.", err)
+	}
+	if err != nil {
+		service.logger.Error("export file could not be written", "operation", "vault-export", "error", err)
+		return vault.ExportInfo{}, transferError("The export file could not be saved. Check free disk space and try again.", err)
+	}
+	service.logger.Info("vault exported", "operation", "vault-export", "file", info.Name, "accounts", len(payload.Accounts), "tags", len(payload.Tags), "favorite_places", len(payload.FavoritePlaces))
+	return info, nil
+}
+
+func (service *Service) OpenVaultExport(ctx context.Context, name, passcode string) (TransferPreview, error) {
+	data, err := service.vault.ReadExport(name, passcode)
+	if err != nil {
+		return TransferPreview{}, service.exportReadError(err)
+	}
+	payload, err := transferstore.Decode(data)
+	clear(data)
+	if errors.Is(err, transferstore.ErrUnsupportedVersion) {
+		return TransferPreview{}, transferError("This export is from a newer version. Update the app to import it.", err)
+	}
+	if err != nil {
+		service.logger.Warn("export data could not be decoded", "operation", "vault-import", "error", err)
+		return TransferPreview{}, transferError("The export file is damaged.", err)
+	}
+	settings, err := appsettings.Decode(payload.Settings)
+	if err != nil {
+		service.logger.Warn("exported settings could not be decoded", "operation", "vault-import", "error", err)
+		return TransferPreview{}, transferError("The settings in this export could not be read. Update the app and try again.", err)
+	}
+	preview, err := service.transferPreview(ctx, payload)
+	if err != nil {
+		return TransferPreview{}, err
+	}
+	preview.ID, err = newImportBatchID()
+	if err != nil {
+		return TransferPreview{}, transferError("The export could not be opened.", err)
+	}
+	service.storePendingTransfer(&pendingTransfer{id: preview.ID, payload: payload, settings: settings})
+	service.logger.Info("export opened for import", "operation", "vault-import", "file", name, "accounts", len(payload.Accounts))
+	return preview, nil
+}
+
+func (service *Service) exportReadError(err error) error {
+	switch {
+	case errors.Is(err, vault.ErrExportPasscode):
+		return transferError("The passcode is incorrect, or the file is damaged.", err)
+	case errors.Is(err, vault.ErrUnsupportedExport):
+		return transferError("This export is from a newer version. Update the app to import it.", err)
+	case errors.Is(err, vault.ErrInvalidExport):
+		return transferError("This file is not a valid export.", err)
+	}
+	service.logger.Warn("export file could not be read", "operation", "vault-import", "error", err)
+	return transferError("The export file could not be read.", err)
+}
+
+func (service *Service) transferPreview(ctx context.Context, payload transferstore.Payload) (TransferPreview, error) {
+	preview := TransferPreview{ExportedAtMS: payload.ExportedAtMS, Accounts: make([]TransferAccount, 0, len(payload.Accounts)), FavoritePlaces: len(payload.FavoritePlaces)}
+	for _, account := range payload.Accounts {
+		_, err := service.repo.FindByRobloxUserID(ctx, account.RobloxUserID)
+		if err != nil && !errors.Is(err, accounts.ErrNotFound) {
+			return TransferPreview{}, mapRepositoryError(err)
+		}
+		preview.Accounts = append(preview.Accounts, TransferAccount{
+			RobloxUserID: account.RobloxUserID,
+			Username:     transferUsername(account),
+			DisplayName:  account.DisplayName,
+			Existing:     err == nil,
+			Favorite:     account.Favorite,
+			Tags:         account.Tags,
+		})
+	}
+	favorites, err := service.favoritePlaces.List(ctx)
+	if err != nil {
+		return TransferPreview{}, mapRepositoryError(err)
+	}
+	for _, place := range payload.FavoritePlaces {
+		if !slices.ContainsFunc(favorites, func(favorite games.Place) bool { return favorite.PlaceID == place.PlaceID }) {
+			preview.NewFavoritePlaces++
+		}
+	}
+	return preview, nil
+}
+
+func (service *Service) ImportVaultExport(ctx context.Context, id string, request TransferRequest) (TransferResult, error) {
+	for _, section := range request.SettingsSections {
+		if !slices.Contains(appsettings.Sections, section) {
+			return TransferResult{}, transferError("The selected settings are invalid.", nil)
+		}
+	}
+	pending, ok := service.takePendingTransfer(id)
+	if !ok {
+		return TransferResult{}, transferError("The opened export expired. Open it again.", nil)
+	}
+	defer clearPendingTransfer(pending)
+	switch request.Mode {
+	case TransferReplace:
+		return service.replaceVaultData(ctx, pending)
+	case TransferMerge:
+		return service.mergeVaultData(ctx, pending, request)
+	default:
+		return TransferResult{}, transferError("The import mode is invalid.", nil)
+	}
+}
+
+func (service *Service) DiscardVaultExport(id string) {
+	if pending, ok := service.takePendingTransfer(id); ok {
+		clearPendingTransfer(pending)
+	}
+}
+
+func (service *Service) replaceVaultData(ctx context.Context, pending *pendingTransfer) (TransferResult, error) {
+	logger := service.logger.With("operation", "vault-import", "mode", TransferReplace)
+	if err := service.vault.PurgeBackups(); err != nil {
+		logger.Error("backups could not be removed before replacing the vault", "error", err)
+		return TransferResult{}, transferError("Old backups could not be removed, so nothing was imported.", err)
+	}
+	removed, err := service.transfers.Replace(ctx, pending.payload)
+	if err != nil {
+		logger.Error("vault data could not be replaced", "error", err)
+		return TransferResult{}, transferError("The export could not be imported. The vault was not changed.", err)
+	}
+	service.clearPendingImports()
+	for _, accountID := range removed {
+		service.sessions.Remove(accountID)
+		if service.browser != nil {
+			service.browser.DetachAccount(accountID, "The vault was replaced by an import. This browser is no longer synchronized.")
+		}
+		service.events.send("account:removed", struct {
+			AccountID int64 `json:"accountId"`
+		}{AccountID: accountID})
+	}
+	result := TransferResult{Added: len(pending.payload.Accounts), FavoritePlaces: len(pending.payload.FavoritePlaces), KeptCookies: []TransferKeptCookie{}}
+	service.importSettings(logger, pending.settings, appsettings.Sections, &result)
+	service.events.CredentialBackupChanged(service.refreshCredentialBackup(ctx, logger, false))
+	return result, nil
+}
+
+func (service *Service) mergeVaultData(ctx context.Context, pending *pendingTransfer, request TransferRequest) (TransferResult, error) {
+	logger := service.logger.With("operation", "vault-import", "mode", TransferMerge)
+	selected, err := selectedTransferAccounts(pending.payload.Accounts, request.RobloxUserIDs)
+	if err != nil {
+		return TransferResult{}, err
+	}
+	if len(selected) == 0 && !request.FavoritePlaces && len(request.SettingsSections) == 0 {
+		return TransferResult{}, transferError("Choose something to import.", nil)
+	}
+	replacements, kept, err := service.validateTransferCookies(ctx, selected)
+	if err != nil {
+		return TransferResult{}, err
+	}
+	if len(replacements) > 0 {
+		if err := service.vault.PurgeBackups(); err != nil {
+			logger.Error("backups could not be removed before replacing cookies", "error", err)
+			return TransferResult{}, transferError("Old backups could not be removed, so nothing was imported.", err)
+		}
+	}
+	input := transferstore.MergeInput{Accounts: selected, Replacements: replacements}
+	if request.FavoritePlaces {
+		input.FavoritePlaces = pending.payload.FavoritePlaces
+	}
+	merged, err := service.transfers.Merge(ctx, input)
+	if err != nil {
+		logger.Error("vault data could not be merged", "error", err)
+		return TransferResult{}, transferError("The export could not be imported. The vault was not changed.", err)
+	}
+	for _, record := range merged.Replaced {
+		if err := service.sessions.ApplyRotation(record); err != nil {
+			logger.Warn("imported cookie saved but runtime session changed before reconciliation", "account_id", record.AccountID, "error", err)
+		}
+		if service.browser != nil {
+			service.browser.DetachAccount(record.AccountID, "The saved cookie changed elsewhere. This browser is no longer synchronized.")
+		}
+	}
+	result := TransferResult{Added: len(merged.Added), Updated: len(merged.Updated) + len(merged.Replaced), KeptCookies: kept, FavoritePlaces: merged.FavoritePlaces}
+	service.importSettings(logger, pending.settings, request.SettingsSections, &result)
+	if len(merged.Replaced) > 0 {
+		service.events.CredentialBackupChanged(service.refreshCredentialBackup(ctx, logger, false))
+	}
+	return result, nil
+}
+
+func selectedTransferAccounts(available []transferstore.Account, robloxUserIDs []int64) ([]transferstore.Account, error) {
+	wanted := make(map[int64]struct{}, len(robloxUserIDs))
+	for _, userID := range robloxUserIDs {
+		if _, duplicate := wanted[userID]; duplicate {
+			return nil, transferError("The selected accounts are invalid. Open the export again.", nil)
+		}
+		wanted[userID] = struct{}{}
+	}
+	selected := make([]transferstore.Account, 0, len(wanted))
+	for _, account := range available {
+		if _, ok := wanted[account.RobloxUserID]; ok {
+			selected = append(selected, account)
+		}
+	}
+	if len(selected) != len(wanted) {
+		return nil, transferError("The selected accounts are invalid. Open the export again.", nil)
+	}
+	return selected, nil
+}
+
+// validateTransferCookies checks each imported cookie that differs from the saved one, so a stale export never replaces a working login.
+func (service *Service) validateTransferCookies(ctx context.Context, selected []transferstore.Account) (map[int64]transferstore.Replacement, []TransferKeptCookie, error) {
+	candidates := make([]transferstore.Account, 0, len(selected))
+	for _, account := range selected {
+		existing, err := service.repo.FindByRobloxUserID(ctx, account.RobloxUserID)
+		if errors.Is(err, accounts.ErrNotFound) {
+			continue
+		}
+		if err != nil {
+			return nil, nil, mapRepositoryError(err)
+		}
+		session, err := service.repo.GetSession(ctx, existing.ID)
+		if err != nil {
+			return nil, nil, mapRepositoryError(err)
+		}
+		if session.Roblosecurity != account.Cookie {
+			candidates = append(candidates, account)
+		}
+	}
+	replacements := make(map[int64]transferstore.Replacement, len(candidates))
+	kept := []TransferKeptCookie{}
+	if len(candidates) == 0 {
+		return replacements, kept, nil
+	}
+	cookies := make([]string, len(candidates))
+	for index, account := range candidates {
+		cookies[index] = account.Cookie
+	}
+	validationCtx, finishValidation := service.beginValidation(ctx)
+	outcomes := service.validateImportInputs(validationCtx, cookies)
+	finishValidation()
+	for index, outcome := range outcomes {
+		account := candidates[index]
+		switch {
+		case outcome.err != nil:
+			_, reason := importErrorDetails(outcome.err)
+			kept = append(kept, TransferKeptCookie{Username: transferUsername(account), Reason: reason})
+		case outcome.validation.Identity.RobloxUserID != account.RobloxUserID:
+			kept = append(kept, TransferKeptCookie{Username: transferUsername(account), Reason: "The imported cookie belongs to a different Roblox account."})
+		default:
+			replacements[account.RobloxUserID] = transferstore.Replacement{Identity: outcome.validation.Identity, Cookie: outcome.validation.Cookie, ExpiresAt: outcome.validation.ExpiresAt}
+		}
+		outcomes[index] = importValidationOutcome{}
+	}
+	return replacements, kept, nil
+}
+
+func (service *Service) importSettings(logger *slog.Logger, settings appsettings.Settings, sections []appsettings.Section, result *TransferResult) {
+	if len(sections) == 0 {
+		return
+	}
+	err := service.settings.Import(settings, sections)
+	if err == nil && slices.Contains(sections, appsettings.SectionLogging) {
+		err = service.applyLoggingSettings()
+	}
+	if err != nil {
+		logger.Warn("imported settings could not be saved", "error", err)
+		result.SettingsError = "The vault data was imported, but the settings could not be saved. Try again from Settings."
+		return
+	}
+	result.Settings = true
+}
+
+func transferUsername(account transferstore.Account) string {
+	if account.Username != "" {
+		return account.Username
+	}
+	return fmt.Sprintf("User %d", account.RobloxUserID)
+}
+
+func (service *Service) storePendingTransfer(pending *pendingTransfer) {
+	pending.timer = time.AfterFunc(transferPreviewTTL, func() { service.DiscardVaultExport(pending.id) })
+	service.transferMu.Lock()
+	previous := service.pendingTransfer
+	service.pendingTransfer = pending
+	service.transferMu.Unlock()
+	if previous != nil {
+		clearPendingTransfer(previous)
+	}
+}
+
+func (service *Service) takePendingTransfer(id string) (*pendingTransfer, bool) {
+	service.transferMu.Lock()
+	defer service.transferMu.Unlock()
+	pending := service.pendingTransfer
+	if pending == nil || id == "" || pending.id != id {
+		return nil, false
+	}
+	service.pendingTransfer = nil
+	return pending, true
+}
+
+func (service *Service) discardPendingTransfer() {
+	service.transferMu.Lock()
+	pending := service.pendingTransfer
+	service.pendingTransfer = nil
+	service.transferMu.Unlock()
+	if pending != nil {
+		clearPendingTransfer(pending)
+	}
+}
+
+func clearPendingTransfer(pending *pendingTransfer) {
+	if pending.timer != nil {
+		pending.timer.Stop()
+	}
+	clear(pending.payload.Accounts)
+	clear(pending.payload.Settings)
+	pending.payload = transferstore.Payload{}
+}

@@ -102,6 +102,18 @@ type LoggingSettings struct {
 	EnabledLevels map[string]bool `json:"enabledLevels"`
 }
 
+type Section string
+
+const (
+	SectionPresence      Section = "presence"
+	SectionIntegrations  Section = "integrations"
+	SectionUserInterface Section = "userInterface"
+	SectionLogging       Section = "logging"
+	SectionVault         Section = "vault"
+)
+
+var Sections = []Section{SectionPresence, SectionIntegrations, SectionUserInterface, SectionLogging, SectionVault}
+
 type MotionPreference string
 
 const (
@@ -210,6 +222,58 @@ func decode(data []byte) (loadResult, error) {
 	}
 	settings, replaced := decodeCurrent(document)
 	return loadResult{settings: settings, sourceVersion: version, replacedFields: replaced}, nil
+}
+
+func Decode(data []byte) (Settings, error) {
+	loaded, err := decode(data)
+	if err != nil {
+		return Settings{}, err
+	}
+	return loaded.settings, nil
+}
+
+// Export leaves out the Roblox settings and the vault timestamps, because they belong to this computer and vault.
+func (store *Store) Export() ([]byte, error) {
+	store.mu.Lock()
+	settings := store.settings
+	settings.Logging.EnabledLevels = cloneLoggingLevels(settings.Logging.EnabledLevels)
+	store.mu.Unlock()
+	settings.Roblox = RobloxSettings{}
+	settings.Vault = VaultSettings{PasswordTestIntervalDays: settings.Vault.PasswordTestIntervalDays}
+	data, err := json.Marshal(settings)
+	if err != nil {
+		return nil, fmt.Errorf("encode exported settings: %w", err)
+	}
+	return data, nil
+}
+
+func (store *Store) Import(imported Settings, sections []Section) error {
+	store.mu.Lock()
+	defer store.mu.Unlock()
+	previous := store.settings
+	previous.Logging.EnabledLevels = cloneLoggingLevels(previous.Logging.EnabledLevels)
+	for _, section := range sections {
+		switch section {
+		case SectionPresence:
+			store.settings.Presence = imported.Presence
+		case SectionIntegrations:
+			store.settings.Integrations = imported.Integrations
+		case SectionUserInterface:
+			store.settings.UserInterface = imported.UserInterface
+		case SectionLogging:
+			store.settings.Logging.EnabledLevels = cloneLoggingLevels(imported.Logging.EnabledLevels)
+		case SectionVault:
+			store.settings.Vault.PasswordTestIntervalDays = imported.Vault.PasswordTestIntervalDays
+		default:
+			store.settings = previous
+			return fmt.Errorf("unknown settings section %q", section)
+		}
+	}
+	if err := store.saveLocked(); err != nil {
+		store.settings = previous
+		return err
+	}
+	return nil
 }
 
 func decodeCurrent(document object) (Settings, []string) {
