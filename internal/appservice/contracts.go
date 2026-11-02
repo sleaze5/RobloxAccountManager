@@ -33,7 +33,7 @@ type Vault interface {
 	ExportsDirectory() string
 	WriteExport(string, []byte) (vault.ExportInfo, error)
 	ListExports() ([]vault.ExportInfo, error)
-	ReadExport(string, string) ([]byte, error)
+	ReadExport(string, string) (vault.ExportInfo, []byte, error)
 }
 
 type AccountRepository interface {

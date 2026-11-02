@@ -54,6 +54,7 @@ export {
 	PinState,
 	SocialList,
 	TransferMode,
+	TransferSettingsStatus,
 	VoiceChatState,
 } from "../../../bindings/github.com/sleaze5/RobloxAccountManager/internal/appservice/models.js"
 export {

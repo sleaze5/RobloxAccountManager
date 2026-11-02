@@ -3,6 +3,7 @@ package transferstore
 import (
 	"context"
 	"database/sql"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"log/slog"
@@ -31,6 +32,12 @@ type MergeInput struct {
 	Accounts       []Account
 	Replacements   map[int64]Replacement
 	FavoritePlaces []FavoritePlace
+	Settings       *PendingSettings
+}
+
+type PendingSettings struct {
+	Data     json.RawMessage
+	Sections []string
 }
 
 type MergeResult struct {
@@ -55,7 +62,7 @@ func (repository *Repository) Read(ctx context.Context) (Payload, error) {
 		return Payload{}, fmt.Errorf("begin export read: %w", err)
 	}
 	defer tx.Rollback()
-	payload := Payload{ExportedAtMS: repository.now().UnixMilli()}
+	payload := Payload{}
 	if payload.Accounts, err = readAccounts(ctx, tx); err != nil {
 		return Payload{}, err
 	}
@@ -171,7 +178,7 @@ func readFavoritePlaces(ctx context.Context, tx *sql.Tx) ([]FavoritePlace, error
 
 // Replace keeps new row IDs above the removed ones, so account and tag IDs that the
 // application still holds for removed rows never point at imported rows.
-func (repository *Repository) Replace(ctx context.Context, payload Payload) ([]int64, error) {
+func (repository *Repository) Replace(ctx context.Context, payload Payload, settings *PendingSettings) ([]int64, error) {
 	db, release, err := repository.provider.Lease(ctx)
 	if err != nil {
 		return nil, err
@@ -197,6 +204,9 @@ func (repository *Repository) Replace(ctx context.Context, payload Payload) ([]i
 		return nil, fmt.Errorf("clear vault data: %w", err)
 	}
 	if err := insertPayload(ctx, tx, payload, nextAccountID, nextTagID, repository.now().UTC().UnixMilli()); err != nil {
+		return nil, err
+	}
+	if err := storePendingSettings(ctx, tx, settings); err != nil {
 		return nil, err
 	}
 	if err := bumpRevision(ctx, tx); err != nil {
@@ -275,6 +285,9 @@ func (repository *Repository) Merge(ctx context.Context, input MergeInput) (Merg
 		} else if changed > 0 {
 			result.FavoritePlaces++
 		}
+	}
+	if err := storePendingSettings(ctx, tx, input.Settings); err != nil {
+		return MergeResult{}, err
 	}
 	if err := bumpRevision(ctx, tx); err != nil {
 		return MergeResult{}, err
@@ -446,6 +459,53 @@ func accountIDs(ctx context.Context, tx *sql.Tx) ([]int64, error) {
 		return nil, fmt.Errorf("read replaced accounts: %w", err)
 	}
 	return ids, nil
+}
+
+func storePendingSettings(ctx context.Context, tx *sql.Tx, settings *PendingSettings) error {
+	if settings == nil {
+		return nil
+	}
+	sections, err := json.Marshal(settings.Sections)
+	if err != nil {
+		return fmt.Errorf("encode pending settings sections: %w", err)
+	}
+	if _, err := tx.ExecContext(ctx, `INSERT OR REPLACE INTO pending_settings_import(singleton, settings, sections) VALUES(1, ?, ?)`, string(settings.Data), string(sections)); err != nil {
+		return fmt.Errorf("store pending settings import: %w", err)
+	}
+	return nil
+}
+
+func (repository *Repository) PendingSettings(ctx context.Context) (*PendingSettings, error) {
+	db, release, err := repository.provider.Lease(ctx)
+	if err != nil {
+		return nil, err
+	}
+	defer release()
+	var data, sections string
+	err = db.QueryRowContext(ctx, `SELECT settings, sections FROM pending_settings_import WHERE singleton = 1`).Scan(&data, &sections)
+	if errors.Is(err, sql.ErrNoRows) {
+		return nil, nil
+	}
+	if err != nil {
+		return nil, fmt.Errorf("read pending settings import: %w", err)
+	}
+	pending := &PendingSettings{Data: json.RawMessage(data)}
+	if err := json.Unmarshal([]byte(sections), &pending.Sections); err != nil {
+		return nil, fmt.Errorf("decode pending settings sections: %w", err)
+	}
+	return pending, nil
+}
+
+func (repository *Repository) ClearPendingSettings(ctx context.Context) error {
+	db, release, err := repository.provider.Lease(ctx)
+	if err != nil {
+		return err
+	}
+	defer release()
+	if _, err := db.ExecContext(ctx, `DELETE FROM pending_settings_import`); err != nil {
+		return fmt.Errorf("clear pending settings import: %w", err)
+	}
+	return nil
 }
 
 func bumpRevision(ctx context.Context, tx *sql.Tx) error {

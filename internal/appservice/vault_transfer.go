@@ -55,12 +55,20 @@ type TransferRequest struct {
 	SettingsSections []appsettings.Section `json:"settingsSections"`
 }
 
+type TransferSettingsStatus string
+
+const (
+	TransferSettingsSkipped  TransferSettingsStatus = "skipped"
+	TransferSettingsImported TransferSettingsStatus = "imported"
+	TransferSettingsPending  TransferSettingsStatus = "pending"
+)
+
 type TransferResult struct {
-	Added          int                  `json:"added"`
-	Updated        int                  `json:"updated"`
-	KeptCookies    []TransferKeptCookie `json:"keptCookies"`
-	FavoritePlaces int                  `json:"favoritePlaces"`
-	Settings       bool                 `json:"settings"`
+	Added          int                    `json:"added"`
+	Updated        int                    `json:"updated"`
+	KeptCookies    []TransferKeptCookie   `json:"keptCookies"`
+	FavoritePlaces int                    `json:"favoritePlaces"`
+	Settings       TransferSettingsStatus `json:"settings"`
 }
 
 type TransferKeptCookie struct {
@@ -123,7 +131,7 @@ func (service *Service) ExportVault(ctx context.Context, passcode, confirmation 
 }
 
 func (service *Service) OpenVaultExport(ctx context.Context, name, passcode string) (TransferPreview, error) {
-	data, err := service.vault.ReadExport(name, passcode)
+	info, data, err := service.vault.ReadExport(name, passcode)
 	if err != nil {
 		return TransferPreview{}, service.exportReadError(err)
 	}
@@ -141,7 +149,7 @@ func (service *Service) OpenVaultExport(ctx context.Context, name, passcode stri
 		service.logger.Warn("exported settings could not be decoded", "operation", "vault-import", "error", err)
 		return TransferPreview{}, transferError("The settings in this export could not be read. Update the app and try again.", err)
 	}
-	preview, err := service.transferPreview(ctx, payload)
+	preview, err := service.transferPreview(ctx, payload, info.CreatedAtMS)
 	if err != nil {
 		return TransferPreview{}, err
 	}
@@ -167,8 +175,8 @@ func (service *Service) exportReadError(err error) error {
 	return transferError("The export file could not be read.", err)
 }
 
-func (service *Service) transferPreview(ctx context.Context, payload transferstore.Payload) (TransferPreview, error) {
-	preview := TransferPreview{ExportedAtMS: payload.ExportedAtMS, Accounts: make([]TransferAccount, 0, len(payload.Accounts)), FavoritePlaces: len(payload.FavoritePlaces)}
+func (service *Service) transferPreview(ctx context.Context, payload transferstore.Payload, exportedAtMS int64) (TransferPreview, error) {
+	preview := TransferPreview{ExportedAtMS: exportedAtMS, Accounts: make([]TransferAccount, 0, len(payload.Accounts)), FavoritePlaces: len(payload.FavoritePlaces)}
 	for _, account := range payload.Accounts {
 		_, err := service.repo.FindByRobloxUserID(ctx, account.RobloxUserID)
 		if err != nil && !errors.Is(err, accounts.ErrNotFound) {
@@ -236,14 +244,10 @@ func (service *Service) replaceVaultData(ctx context.Context, pending *pendingTr
 		logger.Error("vault could not be backed up before replacing it", "error", err)
 		return TransferResult{}, transferError("The current vault could not be backed up, so nothing was imported. Check free disk space and try again.", err)
 	}
-	var removed []int64
-	err := service.writeWithSettings(logger, pending.settings, appsettings.Sections, func() error {
-		var replaceErr error
-		removed, replaceErr = service.transfers.Replace(ctx, pending.payload)
-		return replaceErr
-	})
+	removed, err := service.transfers.Replace(ctx, pending.payload, pendingSettings(pending, appsettings.Sections))
 	if err != nil {
-		return TransferResult{}, err
+		logger.Error("vault data could not be replaced", "error", err)
+		return TransferResult{}, transferError("The export could not be imported. Nothing was changed.", err)
 	}
 	service.clearPendingImports()
 	for _, accountID := range removed {
@@ -255,8 +259,9 @@ func (service *Service) replaceVaultData(ctx context.Context, pending *pendingTr
 			AccountID int64 `json:"accountId"`
 		}{AccountID: accountID})
 	}
+	settings := service.finishSettingsImport(ctx, logger)
 	service.events.CredentialBackupChanged(service.refreshCredentialBackup(ctx, logger, false))
-	return TransferResult{Added: len(pending.payload.Accounts), FavoritePlaces: len(pending.payload.FavoritePlaces), KeptCookies: []TransferKeptCookie{}, Settings: true}, nil
+	return TransferResult{Added: len(pending.payload.Accounts), FavoritePlaces: len(pending.payload.FavoritePlaces), KeptCookies: []TransferKeptCookie{}, Settings: settings}, nil
 }
 
 func (service *Service) mergeVaultData(ctx context.Context, pending *pendingTransfer, request TransferRequest) (TransferResult, error) {
@@ -272,18 +277,14 @@ func (service *Service) mergeVaultData(ctx context.Context, pending *pendingTran
 	if err != nil {
 		return TransferResult{}, err
 	}
-	input := transferstore.MergeInput{Accounts: selected, Replacements: replacements}
+	input := transferstore.MergeInput{Accounts: selected, Replacements: replacements, Settings: pendingSettings(pending, request.SettingsSections)}
 	if request.FavoritePlaces {
 		input.FavoritePlaces = pending.payload.FavoritePlaces
 	}
-	var merged transferstore.MergeResult
-	err = service.writeWithSettings(logger, pending.settings, request.SettingsSections, func() error {
-		var mergeErr error
-		merged, mergeErr = service.transfers.Merge(ctx, input)
-		return mergeErr
-	})
+	merged, err := service.transfers.Merge(ctx, input)
 	if err != nil {
-		return TransferResult{}, err
+		logger.Error("vault data could not be merged", "error", err)
+		return TransferResult{}, transferError("The export could not be imported. Nothing was changed.", err)
 	}
 	for _, record := range merged.Replaced {
 		if err := service.sessions.ApplyRotation(record); err != nil {
@@ -293,6 +294,10 @@ func (service *Service) mergeVaultData(ctx context.Context, pending *pendingTran
 			service.browser.DetachAccount(record.AccountID, "The saved cookie changed elsewhere. This browser is no longer synchronized.")
 		}
 	}
+	settings := TransferSettingsSkipped
+	if input.Settings != nil {
+		settings = service.finishSettingsImport(ctx, logger)
+	}
 	if len(merged.Replaced) > 0 {
 		service.events.CredentialBackupChanged(service.refreshCredentialBackup(ctx, logger, true))
 	}
@@ -301,34 +306,62 @@ func (service *Service) mergeVaultData(ctx context.Context, pending *pendingTran
 		Updated:        len(merged.Updated) + len(merged.Replaced),
 		KeptCookies:    kept,
 		FavoritePlaces: merged.FavoritePlaces,
-		Settings:       len(request.SettingsSections) > 0,
+		Settings:       settings,
 	}, nil
 }
 
-// writeWithSettings saves the settings before the vault data and restores them if the vault write fails, so an import never changes only one of the two.
-func (service *Service) writeWithSettings(logger *slog.Logger, settings appsettings.Settings, sections []appsettings.Section, write func() error) error {
-	previous, err := service.settings.Import(settings, sections)
-	if err != nil {
-		logger.Error("imported settings could not be saved", "error", err)
-		return transferError("The settings could not be saved, so nothing was imported. Try again.", err)
+func pendingSettings(pending *pendingTransfer, sections []appsettings.Section) *transferstore.PendingSettings {
+	if len(sections) == 0 {
+		return nil
 	}
-	if err := write(); err != nil {
-		logger.Error("vault data could not be imported", "error", err)
-		if _, restoreErr := service.settings.Import(previous, sections); restoreErr != nil {
-			logger.Error("settings could not be restored after a failed import", "error", restoreErr)
-			return transferError("The vault was not changed, but the previous settings could not be restored. Check your settings.", errors.Join(err, restoreErr))
+	names := make([]string, len(sections))
+	for index, section := range sections {
+		names[index] = string(section)
+	}
+	return &transferstore.PendingSettings{Data: pending.payload.Settings, Sections: names}
+}
+
+func (service *Service) finishSettingsImport(ctx context.Context, logger *slog.Logger) TransferSettingsStatus {
+	if err := service.applyPendingSettings(ctx); err != nil {
+		logger.Warn("imported settings will be saved on the next unlock", "error", err)
+		return TransferSettingsPending
+	}
+	return TransferSettingsImported
+}
+
+// applyPendingSettings saves settings that an import committed to the vault. It runs after each import and each unlock,
+// so imported settings are saved even if the application stopped after the vault transaction.
+func (service *Service) applyPendingSettings(ctx context.Context) error {
+	pending, err := service.transfers.PendingSettings(ctx)
+	if err != nil || pending == nil {
+		return err
+	}
+	settings, err := appsettings.Decode(pending.Data)
+	if err != nil {
+		if clearErr := service.transfers.ClearPendingSettings(ctx); clearErr != nil {
+			return errors.Join(err, clearErr)
 		}
-		return transferError("The export could not be imported. The vault and settings were not changed.", err)
+		return fmt.Errorf("decode pending settings: %w", err)
+	}
+	sections := make([]appsettings.Section, len(pending.Sections))
+	for index, section := range pending.Sections {
+		sections[index] = appsettings.Section(section)
+	}
+	if err := service.settings.Import(settings, sections); err != nil {
+		return fmt.Errorf("save imported settings: %w", err)
 	}
 	if slices.Contains(sections, appsettings.SectionLogging) {
 		if err := service.applyLoggingSettings(); err != nil {
-			logger.Warn("imported logging settings could not be applied", "error", err)
+			service.logger.Warn("imported logging settings could not be applied", "operation", "vault-import", "error", err)
 		}
 	}
 	if slices.Contains(sections, appsettings.SectionRoblox) {
 		service.launchMu.Lock()
 		service.multiInstance.SetEnabled(service.settings.Roblox().MultiInstance)
 		service.launchMu.Unlock()
+	}
+	if err := service.transfers.ClearPendingSettings(ctx); err != nil {
+		return fmt.Errorf("clear saved settings import: %w", err)
 	}
 	return nil
 }

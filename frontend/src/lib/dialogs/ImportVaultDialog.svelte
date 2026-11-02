@@ -13,6 +13,7 @@
 		accountBackend,
 		SettingsSection,
 		TransferMode,
+		TransferSettingsStatus,
 		type ExportInfo,
 		type TransferPreview,
 		type TransferResult,
@@ -45,12 +46,34 @@
 
 	const settingsSections = [
 			{ value: SettingsSection.SectionPresence, label: "Presence updates" },
-			{ value: SettingsSection.SectionRoblox, label: "Multi-instance" },
+			{
+				value: SettingsSection.SectionRoblox,
+				label: "Roblox multi-instance and Linux client",
+			},
 			{ value: SettingsSection.SectionIntegrations, label: "Integrations" },
 			{ value: SettingsSection.SectionUserInterface, label: "User interface" },
 			{ value: SettingsSection.SectionLogging, label: "Logging" },
 			{ value: SettingsSection.SectionVault, label: "Password test reminder" },
 		],
+		settingsLabels: Record<TransferSettingsStatus, { text: string; tone: string }> =
+			{
+				[TransferSettingsStatus.$zero]: {
+					text: "Skipped",
+					tone: "text-fg-faint",
+				},
+				[TransferSettingsStatus.TransferSettingsSkipped]: {
+					text: "Skipped",
+					tone: "text-fg-faint",
+				},
+				[TransferSettingsStatus.TransferSettingsImported]: {
+					text: "Imported",
+					tone: "text-fg",
+				},
+				[TransferSettingsStatus.TransferSettingsPending]: {
+					text: "Saves on next unlock",
+					tone: "text-warning",
+				},
+			},
 		fileGroup = $props.id()
 	let files = $state<ExportInfo[] | null>(null),
 		directory = $state(""),
@@ -278,10 +301,13 @@
 				{/each}
 				<div
 					class="flex min-h-8 items-center justify-between gap-3 border-t border-line-subtle px-3">
-					<span class={result.settings ? "text-fg" : "text-fg-faint"}
-						>Settings</span>
-					<span class={result.settings ? "text-fg" : "text-fg-faint"}
-						>{result.settings ? "Imported" : "Skipped"}</span>
+					<span
+						class={result.settings ===
+						TransferSettingsStatus.TransferSettingsSkipped
+							? "text-fg-faint"
+							: "text-fg"}>Settings</span>
+					<span class={settingsLabels[result.settings].tone}
+						>{settingsLabels[result.settings].text}</span>
 				</div>
 			</div>
 			{#if keptCookies.length > 0}

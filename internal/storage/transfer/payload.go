@@ -28,7 +28,6 @@ var _ = [1]struct{}{}[len(migrations)-(FormatVersion-1)]
 
 type Payload struct {
 	Version        int             `json:"version"`
-	ExportedAtMS   int64           `json:"exportedAtMs"`
 	Accounts       []Account       `json:"accounts"`
 	Tags           []string        `json:"tags"`
 	FavoritePlaces []FavoritePlace `json:"favoritePlaces"`

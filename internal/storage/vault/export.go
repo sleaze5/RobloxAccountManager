@@ -7,6 +7,7 @@ import (
 	"encoding/binary"
 	"errors"
 	"fmt"
+	"io"
 	"os"
 	"path/filepath"
 	"sort"
@@ -22,8 +23,11 @@ const (
 	exportFileLimit     = 64 * 1024 * 1024
 	exportExtension     = ".ramexport"
 	exportNamePrefix    = "RobloxAccountManager-"
-	// 8-byte magic, 2-byte version, 4-byte Argon2 time, 4-byte memory, 1-byte threads, 16-byte salt, and 12-byte nonce.
-	exportHeaderBytes = 8 + 2 + 4 + 4 + 1 + 16 + 12
+	// Every version starts with an 8-byte magic, a 2-byte version, and an 8-byte creation time in Unix milliseconds,
+	// so the file list can show any export without its passcode or filesystem timestamps.
+	exportPrefixBytes = 8 + 2 + 8
+	// Version 1 continues with a 4-byte Argon2 time, 4-byte memory, 1-byte threads, 16-byte salt, and 12-byte nonce.
+	exportHeaderBytes = exportPrefixBytes + 4 + 4 + 1 + 16 + 12
 )
 
 var (
@@ -46,14 +50,14 @@ type ExportInfo struct {
 func (manager *Manager) ExportsDirectory() string { return manager.paths.ExportsRoot }
 
 func (manager *Manager) WriteExport(passcode string, payload []byte) (ExportInfo, error) {
-	sealed, err := sealExport(passcode, payload)
+	now := time.Now()
+	sealed, err := sealExport(passcode, payload, now.UnixMilli())
 	if err != nil {
 		return ExportInfo{}, err
 	}
 	if err := appdata.PreparePrivateDirectory(manager.paths.ExportsRoot); err != nil {
 		return ExportInfo{}, err
 	}
-	now := time.Now()
 	base := exportNamePrefix + now.Format("2006-01-02")
 	name := base + exportExtension
 	for suffix := 2; fileExists(filepath.Join(manager.paths.ExportsRoot, name)); suffix++ {
@@ -78,25 +82,42 @@ func (manager *Manager) ListExports() ([]ExportInfo, error) {
 		if !entry.Type().IsRegular() || !validExportName(entry.Name()) {
 			continue
 		}
-		info, err := entry.Info()
+		createdAt, err := readExportCreatedAt(filepath.Join(manager.paths.ExportsRoot, entry.Name()))
 		if err != nil {
 			continue
 		}
-		result = append(result, ExportInfo{Name: entry.Name(), CreatedAtMS: info.ModTime().UnixMilli()})
+		result = append(result, ExportInfo{Name: entry.Name(), CreatedAtMS: createdAt})
 	}
 	sort.Slice(result, func(left, right int) bool { return result[left].CreatedAtMS > result[right].CreatedAtMS })
 	return result, nil
 }
 
-func (manager *Manager) ReadExport(name, passcode string) ([]byte, error) {
+func (manager *Manager) ReadExport(name, passcode string) (ExportInfo, []byte, error) {
 	if !validExportName(name) {
-		return nil, errors.New("invalid export file selection")
+		return ExportInfo{}, nil, errors.New("invalid export file selection")
 	}
 	data, err := readBounded(filepath.Join(manager.paths.ExportsRoot, name), exportFileLimit)
 	if err != nil {
-		return nil, err
+		return ExportInfo{}, nil, err
 	}
-	return openExport(data, passcode)
+	payload, err := openExport(data, passcode)
+	if err != nil {
+		return ExportInfo{}, nil, err
+	}
+	return ExportInfo{Name: name, CreatedAtMS: int64(binary.BigEndian.Uint64(data[len(exportMagic)+2:]))}, payload, nil
+}
+
+func readExportCreatedAt(path string) (int64, error) {
+	file, err := os.Open(path)
+	if err != nil {
+		return 0, fmt.Errorf("open export file: %w", err)
+	}
+	defer func() { _ = file.Close() }()
+	prefix := make([]byte, exportPrefixBytes)
+	if _, err := io.ReadFull(file, prefix); err != nil || !bytes.Equal(prefix[:len(exportMagic)], exportMagic[:]) || binary.BigEndian.Uint16(prefix[len(exportMagic):]) == 0 {
+		return 0, ErrInvalidExport
+	}
+	return int64(binary.BigEndian.Uint64(prefix[len(exportMagic)+2:])), nil
 }
 
 func validExportName(name string) bool {
@@ -110,7 +131,7 @@ func validateExportPasscode(passcode string) error {
 	return nil
 }
 
-func sealExport(passcode string, payload []byte) ([]byte, error) {
+func sealExport(passcode string, payload []byte, createdAtMS int64) ([]byte, error) {
 	if err := validateExportPasscode(passcode); err != nil {
 		return nil, err
 	}
@@ -130,12 +151,12 @@ func sealExport(passcode string, payload []byte) ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
-	header := exportHeader(exportFormatVersion, params, salt, nonce)
+	header := exportHeader(exportFormatVersion, createdAtMS, params, salt, nonce)
 	return aead.Seal(bytes.Clone(header), nonce, payload, header), nil
 }
 
 func openExport(data []byte, passcode string) ([]byte, error) {
-	if len(data) < len(exportMagic)+2 || !bytes.Equal(data[:len(exportMagic)], exportMagic[:]) {
+	if len(data) < exportPrefixBytes || !bytes.Equal(data[:len(exportMagic)], exportMagic[:]) {
 		return nil, ErrInvalidExport
 	}
 	version := binary.BigEndian.Uint16(data[len(exportMagic):])
@@ -152,7 +173,7 @@ func openExportV1(data []byte, passcode string) ([]byte, error) {
 	if len(data) < exportHeaderBytes {
 		return nil, ErrInvalidExport
 	}
-	offset := len(exportMagic) + 2
+	offset := exportPrefixBytes
 	params := argon2Parameters{
 		Time:      binary.BigEndian.Uint32(data[offset:]),
 		MemoryKiB: binary.BigEndian.Uint32(data[offset+4:]),
@@ -192,10 +213,11 @@ func exportCipher(passcode string, params argon2Parameters, salt []byte) (cipher
 	return aead, nil
 }
 
-func exportHeader(version uint16, params argon2Parameters, salt, nonce []byte) []byte {
+func exportHeader(version uint16, createdAtMS int64, params argon2Parameters, salt, nonce []byte) []byte {
 	header := make([]byte, 0, exportHeaderBytes)
 	header = append(header, exportMagic[:]...)
 	header = binary.BigEndian.AppendUint16(header, version)
+	header = binary.BigEndian.AppendUint64(header, uint64(createdAtMS))
 	header = binary.BigEndian.AppendUint32(header, params.Time)
 	header = binary.BigEndian.AppendUint32(header, params.MemoryKiB)
 	header = append(header, params.Threads)
