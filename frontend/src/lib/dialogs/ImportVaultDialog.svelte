@@ -27,21 +27,26 @@
 		replayValidationNudge,
 	} from "../shared/presence"
 	import { errorMessage } from "../shared/errors"
+	import type { AccountStore } from "../accounts/account-store.svelte"
+	import { getGamesStore } from "../games/games-store.svelte"
+	import type { NotificationCenter } from "../notifications/notification-center.svelte"
+	import { copyExportFolder } from "../settings/export-folder"
+	import { appSettings } from "../settings/settings-store.svelte"
 
 	let {
-		directory,
-		onCopyPath,
-		onImported,
+		store,
+		notifications,
 		onClose,
 	}: {
-		directory: string
-		onCopyPath: () => void
-		onImported: () => void
+		store: AccountStore
+		notifications: NotificationCenter
 		onClose: () => void
 	} = $props()
+	const games = getGamesStore()
 
 	const settingsSections = [
 			{ value: SettingsSection.SectionPresence, label: "Presence updates" },
+			{ value: SettingsSection.SectionRoblox, label: "Multi-instance" },
 			{ value: SettingsSection.SectionIntegrations, label: "Integrations" },
 			{ value: SettingsSection.SectionUserInterface, label: "User interface" },
 			{ value: SettingsSection.SectionLogging, label: "Logging" },
@@ -49,6 +54,7 @@
 		],
 		fileGroup = $props.id()
 	let files = $state<ExportInfo[] | null>(null),
+		directory = $state(""),
 		selectedFile = $state(""),
 		passcode = $state(""),
 		preview = $state<TransferPreview | null>(null),
@@ -102,7 +108,9 @@
 		loading = true
 		error = ""
 		try {
-			files = (await accountBackend.ListVaultExports()).files ?? []
+			const exports = await accountBackend.ListVaultExports()
+			directory = exports.directory
+			files = exports.files ?? []
 			if (!files.some((file) => file.name === selectedFile)) {
 				selectedFile = files[0]?.name ?? ""
 			}
@@ -149,7 +157,10 @@
 				replace ? confirmation : "",
 			)
 			preview = null
-			onImported()
+			void store.initialize()
+			games.reset()
+			games.initialize()
+			void appSettings.initialize(notifications)
 		} catch (cause) {
 			error = errorMessage(cause, "The export could not be imported. Try again.")
 			preview = null
@@ -267,9 +278,6 @@
 					</ul>
 				</div>
 			{/if}
-			{#if result.settingsError}
-				<div class="mt-3 notice-error" role="alert">{result.settingsError}</div>
-			{/if}
 			<div class="dialog-actions">
 				<button class="btn-primary" type="button" onclick={onClose}
 					>Done</button>
@@ -372,9 +380,8 @@
 					<div class="animate-enter">
 						<div class="mt-3 notice-warning">
 							Replace removes every account, tag, and favorite place in
-							this vault and deletes its backups. It then imports
-							everything from the file, including settings. This cannot be
-							undone.
+							this vault, then imports everything from the file, including
+							settings. The app backs up the current vault first.
 						</div>
 						<label class="dialog-field">
 							<span>Type REPLACE to confirm</span>
@@ -464,7 +471,8 @@
 						type="button"
 						aria-label="Copy folder path"
 						data-tooltip="Copy folder path"
-						onclick={onCopyPath}>
+						disabled={!directory}
+						onclick={() => void copyExportFolder(directory, notifications)}>
 						<Icon svg={copyIcon} size={16} aria-hidden="true" />
 					</button>
 					<button

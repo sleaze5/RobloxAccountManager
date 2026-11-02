@@ -61,7 +61,6 @@ type TransferResult struct {
 	KeptCookies    []TransferKeptCookie `json:"keptCookies"`
 	FavoritePlaces int                  `json:"favoritePlaces"`
 	Settings       bool                 `json:"settings"`
-	SettingsError  string               `json:"settingsError,omitempty"`
 }
 
 type TransferKeptCookie struct {
@@ -233,14 +232,18 @@ func (service *Service) DiscardVaultExport(id string) {
 
 func (service *Service) replaceVaultData(ctx context.Context, pending *pendingTransfer) (TransferResult, error) {
 	logger := service.logger.With("operation", "vault-import", "mode", TransferReplace)
-	if err := service.vault.PurgeBackups(); err != nil {
-		logger.Error("backups could not be removed before replacing the vault", "error", err)
-		return TransferResult{}, transferError("Old backups could not be removed, so nothing was imported.", err)
+	if err := service.vault.CreateBackup(ctx); err != nil {
+		logger.Error("vault could not be backed up before replacing it", "error", err)
+		return TransferResult{}, transferError("The current vault could not be backed up, so nothing was imported. Check free disk space and try again.", err)
 	}
-	removed, err := service.transfers.Replace(ctx, pending.payload)
+	var removed []int64
+	err := service.writeWithSettings(logger, pending.settings, appsettings.Sections, func() error {
+		var replaceErr error
+		removed, replaceErr = service.transfers.Replace(ctx, pending.payload)
+		return replaceErr
+	})
 	if err != nil {
-		logger.Error("vault data could not be replaced", "error", err)
-		return TransferResult{}, transferError("The export could not be imported. The vault was not changed.", err)
+		return TransferResult{}, err
 	}
 	service.clearPendingImports()
 	for _, accountID := range removed {
@@ -252,10 +255,8 @@ func (service *Service) replaceVaultData(ctx context.Context, pending *pendingTr
 			AccountID int64 `json:"accountId"`
 		}{AccountID: accountID})
 	}
-	result := TransferResult{Added: len(pending.payload.Accounts), FavoritePlaces: len(pending.payload.FavoritePlaces), KeptCookies: []TransferKeptCookie{}}
-	service.importSettings(logger, pending.settings, appsettings.Sections, &result)
 	service.events.CredentialBackupChanged(service.refreshCredentialBackup(ctx, logger, false))
-	return result, nil
+	return TransferResult{Added: len(pending.payload.Accounts), FavoritePlaces: len(pending.payload.FavoritePlaces), KeptCookies: []TransferKeptCookie{}, Settings: true}, nil
 }
 
 func (service *Service) mergeVaultData(ctx context.Context, pending *pendingTransfer, request TransferRequest) (TransferResult, error) {
@@ -271,20 +272,18 @@ func (service *Service) mergeVaultData(ctx context.Context, pending *pendingTran
 	if err != nil {
 		return TransferResult{}, err
 	}
-	if len(replacements) > 0 {
-		if err := service.vault.PurgeBackups(); err != nil {
-			logger.Error("backups could not be removed before replacing cookies", "error", err)
-			return TransferResult{}, transferError("Old backups could not be removed, so nothing was imported.", err)
-		}
-	}
 	input := transferstore.MergeInput{Accounts: selected, Replacements: replacements}
 	if request.FavoritePlaces {
 		input.FavoritePlaces = pending.payload.FavoritePlaces
 	}
-	merged, err := service.transfers.Merge(ctx, input)
+	var merged transferstore.MergeResult
+	err = service.writeWithSettings(logger, pending.settings, request.SettingsSections, func() error {
+		var mergeErr error
+		merged, mergeErr = service.transfers.Merge(ctx, input)
+		return mergeErr
+	})
 	if err != nil {
-		logger.Error("vault data could not be merged", "error", err)
-		return TransferResult{}, transferError("The export could not be imported. The vault was not changed.", err)
+		return TransferResult{}, err
 	}
 	for _, record := range merged.Replaced {
 		if err := service.sessions.ApplyRotation(record); err != nil {
@@ -294,12 +293,44 @@ func (service *Service) mergeVaultData(ctx context.Context, pending *pendingTran
 			service.browser.DetachAccount(record.AccountID, "The saved cookie changed elsewhere. This browser is no longer synchronized.")
 		}
 	}
-	result := TransferResult{Added: len(merged.Added), Updated: len(merged.Updated) + len(merged.Replaced), KeptCookies: kept, FavoritePlaces: merged.FavoritePlaces}
-	service.importSettings(logger, pending.settings, request.SettingsSections, &result)
 	if len(merged.Replaced) > 0 {
-		service.events.CredentialBackupChanged(service.refreshCredentialBackup(ctx, logger, false))
+		service.events.CredentialBackupChanged(service.refreshCredentialBackup(ctx, logger, true))
 	}
-	return result, nil
+	return TransferResult{
+		Added:          len(merged.Added),
+		Updated:        len(merged.Updated) + len(merged.Replaced),
+		KeptCookies:    kept,
+		FavoritePlaces: merged.FavoritePlaces,
+		Settings:       len(request.SettingsSections) > 0,
+	}, nil
+}
+
+// writeWithSettings saves the settings before the vault data and restores them if the vault write fails, so an import never changes only one of the two.
+func (service *Service) writeWithSettings(logger *slog.Logger, settings appsettings.Settings, sections []appsettings.Section, write func() error) error {
+	previous, err := service.settings.Import(settings, sections)
+	if err != nil {
+		logger.Error("imported settings could not be saved", "error", err)
+		return transferError("The settings could not be saved, so nothing was imported. Try again.", err)
+	}
+	if err := write(); err != nil {
+		logger.Error("vault data could not be imported", "error", err)
+		if _, restoreErr := service.settings.Import(previous, sections); restoreErr != nil {
+			logger.Error("settings could not be restored after a failed import", "error", restoreErr)
+			return transferError("The vault was not changed, but the previous settings could not be restored. Check your settings.", errors.Join(err, restoreErr))
+		}
+		return transferError("The export could not be imported. The vault and settings were not changed.", err)
+	}
+	if slices.Contains(sections, appsettings.SectionLogging) {
+		if err := service.applyLoggingSettings(); err != nil {
+			logger.Warn("imported logging settings could not be applied", "error", err)
+		}
+	}
+	if slices.Contains(sections, appsettings.SectionRoblox) {
+		service.launchMu.Lock()
+		service.multiInstance.SetEnabled(service.settings.Roblox().MultiInstance)
+		service.launchMu.Unlock()
+	}
+	return nil
 }
 
 func selectedTransferAccounts(available []transferstore.Account, robloxUserIDs []int64) ([]transferstore.Account, error) {
@@ -367,22 +398,6 @@ func (service *Service) validateTransferCookies(ctx context.Context, selected []
 		outcomes[index] = importValidationOutcome{}
 	}
 	return replacements, kept, nil
-}
-
-func (service *Service) importSettings(logger *slog.Logger, settings appsettings.Settings, sections []appsettings.Section, result *TransferResult) {
-	if len(sections) == 0 {
-		return
-	}
-	err := service.settings.Import(settings, sections)
-	if err == nil && slices.Contains(sections, appsettings.SectionLogging) {
-		err = service.applyLoggingSettings()
-	}
-	if err != nil {
-		logger.Warn("imported settings could not be saved", "error", err)
-		result.SettingsError = "The vault data was imported, but the settings could not be saved. Try again from Settings."
-		return
-	}
-	result.Settings = true
 }
 
 func transferUsername(account transferstore.Account) string {

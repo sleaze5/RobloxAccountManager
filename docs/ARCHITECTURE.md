@@ -50,7 +50,9 @@ An export file holds the vault data and settings so that the user can import the
 
 - `internal/storage/vault` owns the encrypted file format. The header holds the format version, the Argon2id parameters, the salt, and the nonce. AES-256-GCM encrypts the data and authenticates the header. The passcode follows the master password rules.
 - `internal/storage/transfer` owns the JSON data inside the file. Each migration transforms the raw JSON object of one version into the raw JSON object of the next version. The settings inside keep their own version and use the settings migrations.
-- Import decrypts, migrates, and validates the data in memory before it writes anything. It then writes the data in one transaction. If a step fails, the vault stays unchanged.
+- Import decrypts, migrates, and validates the data in memory before it writes anything.
+- Import saves the selected settings first, then writes the vault data in one transaction. If the vault write fails, import restores the previous settings, so neither changes.
+- Before a Replace import, back up the current vault. If the backup fails, import nothing.
 - Reject a file or data version that is newer than the supported version, and tell the user to update the application.
 - Keep every export decoder and migration, because an export file can exist indefinitely.
 

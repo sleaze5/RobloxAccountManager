@@ -11,6 +11,7 @@
 	import AddAccountDialog from "./lib/dialogs/AddAccountDialog.svelte"
 	import AppLocationDialog from "./lib/dialogs/AppLocationDialog.svelte"
 	import BrowserImportDialog from "./lib/dialogs/BrowserImportDialog.svelte"
+	import ImportVaultDialog from "./lib/dialogs/ImportVaultDialog.svelte"
 	import BrowserRuntimeDialog from "./lib/dialogs/BrowserRuntimeDialog.svelte"
 	import NicknameDialog from "./lib/dialogs/NicknameDialog.svelte"
 	import UnfriendDialog from "./lib/dialogs/UnfriendDialog.svelte"
@@ -54,6 +55,7 @@
 		| "add-account"
 		| "edit-description"
 		| "browser-import"
+		| "import-vault"
 		| "browser-runtime"
 		| "lock-vault"
 		| "manage-tags"
@@ -169,6 +171,12 @@
 		store.clearError()
 		workspace.closeAccountMenus()
 		activeDialog = "add-account"
+	}
+
+	function openImportFile(): void {
+		store.clearError()
+		workspace.closeAccountMenus()
+		activeDialog = "import-vault"
 	}
 
 	function openManageTags(accountId: number | null = null): void {
@@ -536,7 +544,8 @@
 					{workspace}
 					onAddAccount={openAddAccount}
 					onManageTags={openManageTags}
-					onBrowser={(accountId) => void openManagedBrowser(accountId)} />
+					onBrowser={(accountId) => void openManagedBrowser(accountId)}
+					onImportFile={openImportFile} />
 
 				<main class="flex min-w-0 flex-1 flex-col overflow-hidden bg-canvas">
 					<div
@@ -552,7 +561,8 @@
 								{store}
 								{workspace}
 								onAddAccount={openAddAccount}
-								onBrowser={() => void openManagedBrowser(null)} />
+								onBrowser={() => void openManagedBrowser(null)}
+								onImportFile={openImportFile} />
 						{:else}
 							{#key store.selectedAccountId}
 								<div
@@ -621,6 +631,13 @@
 
 {#if activeDialog === "add-account"}
 	<AddAccountDialog {store} onClose={closePasteDialog} />
+{/if}
+
+{#if activeDialog === "import-vault"}
+	<ImportVaultDialog
+		{store}
+		notifications={notificationCenter}
+		onClose={closeDialog} />
 {/if}
 
 {#if activeDialog === "edit-description" && descriptionEditor}

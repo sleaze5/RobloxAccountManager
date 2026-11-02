@@ -313,32 +313,40 @@ func mergeAccount(ctx context.Context, tx *sql.Tx, account Account, replacements
 	if err != nil {
 		return err
 	}
+	passwordChanged, err := importPassword(ctx, tx, accountID, account.Password, now)
+	if err != nil {
+		return err
+	}
 	if replacement, ok := replacements[account.RobloxUserID]; ok {
-		record, err := replaceSession(ctx, tx, accountID, account.Password, replacement, now)
+		record, err := replaceSession(ctx, tx, accountID, replacement, now)
 		if err != nil {
 			return err
 		}
 		result.Replaced = append(result.Replaced, record)
 		return nil
 	}
-	if account.Password != "" {
-		filled, err := tx.ExecContext(ctx, `UPDATE account_sessions SET password = ?, updated_at_ms = ? WHERE account_id = ? AND password = ''`, account.Password, now, accountID)
-		if err != nil {
-			return fmt.Errorf("import saved account password: %w", err)
-		}
-		if count, err := filled.RowsAffected(); err != nil {
-			return fmt.Errorf("count imported saved passwords: %w", err)
-		} else if count > 0 {
-			changed = true
-		}
-	}
-	if changed {
+	if changed || passwordChanged {
 		result.Updated = append(result.Updated, accountID)
 	}
 	return nil
 }
 
-func replaceSession(ctx context.Context, tx *sql.Tx, accountID int64, password string, replacement Replacement, now int64) (accountdomain.SessionRecord, error) {
+func importPassword(ctx context.Context, tx *sql.Tx, accountID int64, password string, now int64) (bool, error) {
+	if password == "" {
+		return false, nil
+	}
+	updated, err := tx.ExecContext(ctx, `UPDATE account_sessions SET password = ?, updated_at_ms = ? WHERE account_id = ? AND password <> ?`, password, now, accountID, password)
+	if err != nil {
+		return false, fmt.Errorf("import saved account password: %w", err)
+	}
+	count, err := updated.RowsAffected()
+	if err != nil {
+		return false, fmt.Errorf("count imported saved passwords: %w", err)
+	}
+	return count > 0, nil
+}
+
+func replaceSession(ctx context.Context, tx *sql.Tx, accountID int64, replacement Replacement, now int64) (accountdomain.SessionRecord, error) {
 	identity := replacement.Identity
 	if _, err := tx.ExecContext(ctx, `UPDATE accounts SET username = ?, display_name = ?, created_at_ms = ?, updated_at_ms = ? WHERE id = ?`, identity.Username, identity.DisplayName, identity.CreatedAt.UTC().UnixMilli(), now, accountID); err != nil {
 		return accountdomain.SessionRecord{}, fmt.Errorf("update imported account identity: %w", err)
@@ -349,9 +357,8 @@ func replaceSession(ctx context.Context, tx *sql.Tx, accountID int64, password s
 	}
 	if _, err := tx.ExecContext(ctx, `
 UPDATE account_sessions SET roblosecurity = ?, cookie_expires_at_ms = ?, state = ?, state_reason = '', secret_version = secret_version + 1,
-password = CASE WHEN ? = '' THEN password ELSE ? END,
 replaced_at_ms = ?, last_validated_at_ms = ?, last_success_at_ms = ?, last_auth_failure_at_ms = NULL, updated_at_ms = ? WHERE account_id = ?`,
-		replacement.Cookie, expires, accountdomain.StateActive, password, password, now, now, now, now, accountID); err != nil {
+		replacement.Cookie, expires, accountdomain.StateActive, now, now, now, now, accountID); err != nil {
 		return accountdomain.SessionRecord{}, fmt.Errorf("replace imported account cookie: %w", err)
 	}
 	record := accountdomain.SessionRecord{AccountID: accountID, State: accountdomain.StateActive}

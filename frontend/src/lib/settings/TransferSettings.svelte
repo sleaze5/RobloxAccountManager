@@ -7,9 +7,8 @@
 	import { accountBackend } from "../backend/bridge"
 	import ExportVaultDialog from "../dialogs/ExportVaultDialog.svelte"
 	import ImportVaultDialog from "../dialogs/ImportVaultDialog.svelte"
-	import { getGamesStore } from "../games/games-store.svelte"
 	import type { NotificationCenter } from "../notifications/notification-center.svelte"
-	import { appSettings } from "./settings-store.svelte"
+	import { copyExportFolder } from "./export-folder"
 
 	let {
 			store,
@@ -24,7 +23,6 @@
 		error = $state(""),
 		activeDialog = $state<"export" | "import" | null>(null),
 		searchTerms = $derived(query.trim().toLowerCase().split(/\s+/).filter(Boolean))
-	const games = getGamesStore()
 
 	function matches(name: string, description: string): boolean {
 		const text = `vault transfer export import ${name} ${description}`.toLowerCase()
@@ -45,32 +43,6 @@
 			disposed = true
 		}
 	})
-
-	async function copyPath(): Promise<void> {
-		try {
-			await navigator.clipboard.writeText(directory)
-			notifications.show({
-				id: "clipboard-copy",
-				title: "Copied",
-				tone: "success",
-				message: "Export folder path copied to clipboard.",
-			})
-		} catch {
-			notifications.show({
-				id: "clipboard-copy",
-				title: "Path not copied",
-				tone: "error",
-				message: "The export folder path could not be copied. Try again.",
-			})
-		}
-	}
-
-	function imported(): void {
-		void store.initialize()
-		games.reset()
-		games.initialize()
-		void appSettings.initialize(notifications)
-	}
 </script>
 
 {#if matches("Export vault data", "encrypted file passcode accounts saved passwords tags favorite places settings backup move computer") || matches("Import vault data", "merge replace export file passcode accounts cookies tags favorite places settings")}
@@ -120,14 +92,10 @@
 {#if activeDialog === "export"}
 	<ExportVaultDialog
 		{directory}
-		onCopyPath={() => void copyPath()}
+		onCopyPath={() => void copyExportFolder(directory, notifications)}
 		onClose={() => (activeDialog = null)} />
 {/if}
 
 {#if activeDialog === "import"}
-	<ImportVaultDialog
-		{directory}
-		onCopyPath={() => void copyPath()}
-		onImported={imported}
-		onClose={() => (activeDialog = null)} />
+	<ImportVaultDialog {store} {notifications} onClose={() => (activeDialog = null)} />
 {/if}

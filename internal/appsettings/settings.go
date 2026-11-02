@@ -106,13 +106,14 @@ type Section string
 
 const (
 	SectionPresence      Section = "presence"
+	SectionRoblox        Section = "roblox"
 	SectionIntegrations  Section = "integrations"
 	SectionUserInterface Section = "userInterface"
 	SectionLogging       Section = "logging"
 	SectionVault         Section = "vault"
 )
 
-var Sections = []Section{SectionPresence, SectionIntegrations, SectionUserInterface, SectionLogging, SectionVault}
+var Sections = []Section{SectionPresence, SectionRoblox, SectionIntegrations, SectionUserInterface, SectionLogging, SectionVault}
 
 type MotionPreference string
 
@@ -232,13 +233,13 @@ func Decode(data []byte) (Settings, error) {
 	return loaded.settings, nil
 }
 
-// Export leaves out the Roblox settings and the vault timestamps, because they belong to this computer and vault.
+// Export leaves out the Roblox Player path, the Linux client, and the vault timestamps, because they belong to this computer and vault.
 func (store *Store) Export() ([]byte, error) {
 	store.mu.Lock()
 	settings := store.settings
 	settings.Logging.EnabledLevels = cloneLoggingLevels(settings.Logging.EnabledLevels)
 	store.mu.Unlock()
-	settings.Roblox = RobloxSettings{}
+	settings.Roblox = RobloxSettings{MultiInstance: settings.Roblox.MultiInstance}
 	settings.Vault = VaultSettings{PasswordTestIntervalDays: settings.Vault.PasswordTestIntervalDays}
 	data, err := json.Marshal(settings)
 	if err != nil {
@@ -247,15 +248,21 @@ func (store *Store) Export() ([]byte, error) {
 	return data, nil
 }
 
-func (store *Store) Import(imported Settings, sections []Section) error {
+// Import returns the previous settings, so the caller can restore them with the same sections.
+func (store *Store) Import(imported Settings, sections []Section) (Settings, error) {
 	store.mu.Lock()
 	defer store.mu.Unlock()
 	previous := store.settings
 	previous.Logging.EnabledLevels = cloneLoggingLevels(previous.Logging.EnabledLevels)
+	if len(sections) == 0 {
+		return previous, nil
+	}
 	for _, section := range sections {
 		switch section {
 		case SectionPresence:
 			store.settings.Presence = imported.Presence
+		case SectionRoblox:
+			store.settings.Roblox.MultiInstance = imported.Roblox.MultiInstance
 		case SectionIntegrations:
 			store.settings.Integrations = imported.Integrations
 		case SectionUserInterface:
@@ -266,14 +273,14 @@ func (store *Store) Import(imported Settings, sections []Section) error {
 			store.settings.Vault.PasswordTestIntervalDays = imported.Vault.PasswordTestIntervalDays
 		default:
 			store.settings = previous
-			return fmt.Errorf("unknown settings section %q", section)
+			return Settings{}, fmt.Errorf("unknown settings section %q", section)
 		}
 	}
 	if err := store.saveLocked(); err != nil {
 		store.settings = previous
-		return err
+		return Settings{}, err
 	}
-	return nil
+	return previous, nil
 }
 
 func decodeCurrent(document object) (Settings, []string) {
