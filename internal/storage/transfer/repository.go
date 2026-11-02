@@ -81,7 +81,7 @@ func (repository *Repository) Read(ctx context.Context) (Payload, error) {
 func readAccounts(ctx context.Context, tx *sql.Tx) ([]Account, error) {
 	rows, err := tx.QueryContext(ctx, `
 SELECT a.id, a.roblox_user_id, a.username, a.display_name, a.created_at_ms,
-       s.roblosecurity, s.cookie_expires_at_ms, s.state, s.state_reason, s.password
+       s.roblosecurity, s.cookie_expires_at_ms, s.password
 FROM accounts a JOIN account_sessions s ON s.account_id = a.id
 ORDER BY a.display_order, a.id`)
 	if err != nil {
@@ -94,7 +94,7 @@ ORDER BY a.display_order, a.id`)
 		var id int64
 		var expires sql.NullInt64
 		account := Account{Tags: []string{}}
-		if err := rows.Scan(&id, &account.RobloxUserID, &account.Username, &account.DisplayName, &account.CreatedAtMS, &account.Cookie, &expires, &account.State, &account.StateReason, &account.Password); err != nil {
+		if err := rows.Scan(&id, &account.RobloxUserID, &account.Username, &account.DisplayName, &account.CreatedAtMS, &account.Cookie, &expires, &account.Password); err != nil {
 			return nil, fmt.Errorf("read exported account: %w", err)
 		}
 		if expires.Valid {
@@ -387,8 +387,8 @@ func insertAccount(ctx context.Context, tx *sql.Tx, accountID, order int64, acco
 		return fmt.Errorf("insert imported account: %w", err)
 	}
 	if _, err := tx.ExecContext(ctx, `
-INSERT INTO account_sessions(account_id, roblosecurity, cookie_expires_at_ms, state, state_reason, secret_version, imported_at_ms, updated_at_ms, password)
-VALUES(?, ?, ?, ?, ?, 1, ?, ?, ?)`, accountID, account.Cookie, account.CookieExpiresAtMS, account.State, account.StateReason, now, now, account.Password); err != nil {
+INSERT INTO account_sessions(account_id, roblosecurity, cookie_expires_at_ms, state, secret_version, imported_at_ms, updated_at_ms, password)
+VALUES(?, ?, ?, ?, 1, ?, ?, ?)`, accountID, account.Cookie, account.CookieExpiresAtMS, accountdomain.StateActive, now, now, account.Password); err != nil {
 		return fmt.Errorf("insert imported account session: %w", err)
 	}
 	return nil

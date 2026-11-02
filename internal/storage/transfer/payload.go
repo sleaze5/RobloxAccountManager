@@ -35,17 +35,15 @@ type Payload struct {
 }
 
 type Account struct {
-	RobloxUserID      int64                      `json:"robloxUserId"`
-	Username          string                     `json:"username"`
-	DisplayName       string                     `json:"displayName"`
-	CreatedAtMS       int64                      `json:"createdAtMs"`
-	Cookie            string                     `json:"cookie"`
-	CookieExpiresAtMS *int64                     `json:"cookieExpiresAtMs"`
-	State             accountdomain.SessionState `json:"state"`
-	StateReason       string                     `json:"stateReason"`
-	Password          string                     `json:"password"`
-	Favorite          bool                       `json:"favorite"`
-	Tags              []string                   `json:"tags"`
+	RobloxUserID      int64    `json:"robloxUserId"`
+	Username          string   `json:"username"`
+	DisplayName       string   `json:"displayName"`
+	CreatedAtMS       int64    `json:"createdAtMs"`
+	Cookie            string   `json:"cookie"`
+	CookieExpiresAtMS *int64   `json:"cookieExpiresAtMs"`
+	Password          string   `json:"password"`
+	Favorite          bool     `json:"favorite"`
+	Tags              []string `json:"tags"`
 }
 
 type FavoritePlace struct {
@@ -124,7 +122,7 @@ func validateTags(names []string) (map[string]struct{}, error) {
 func validateAccounts(accounts []Account, tags map[string]struct{}) error {
 	users := make(map[int64]struct{}, len(accounts))
 	for _, account := range accounts {
-		if account.RobloxUserID <= 0 || account.Cookie == "" || !account.State.Valid() {
+		if account.RobloxUserID <= 0 || account.Cookie == "" {
 			return errors.New("invalid account")
 		}
 		if !utf8.ValidString(account.Username) || !utf8.ValidString(account.DisplayName) || !utf8.ValidString(account.Password) {
