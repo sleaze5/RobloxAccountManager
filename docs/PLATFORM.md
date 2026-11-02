@@ -45,6 +45,7 @@ storage/
     settings.json
     vault/          # vault.db, vault.key, autounlock.key, recovery files, and vault creation staging
     backups/
+    exports/        # Encrypted export files (.ramexport) that the user creates or copies here
     runtime/        # Managed browser runtime
     temp/           # Browser installation staging and temporary browser profiles
 logs/
@@ -91,7 +92,7 @@ When the OS offers both modes, Settings > Vault > Storage moves the data to the 
 2. The old process closes the vault and releases the single-instance lock. The application restarts with `--move-storage=<mode>`.
 3. Before it opens settings, logs, or the vault, the new process copies `settings.json`, `vault/`, and `backups/` to a staging folder in the target `storage/`. It verifies each file with SHA-256.
 4. It renames the staged backups, settings, and finally the vault into place. Backups that already exist in the target keep their target copy.
-5. It deletes the source vault, then the source settings, backups, browser runtime, and temporary files. Logs stay where they are.
+5. It deletes the source vault, then the source settings, backups, browser runtime, and temporary files. Logs and export files stay where they are.
 
 If a step before the vault rename fails, the data stays in the source root and the application starts there. If only the deletion fails, the application starts from the target and asks the user to delete the old copy. A notification shows the result. Automatic unlock keeps working, because the device and user stay the same.
 
