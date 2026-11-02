@@ -42,6 +42,7 @@ type TransferAccount struct {
 	RobloxUserID int64    `json:"robloxUserId"`
 	Username     string   `json:"username"`
 	DisplayName  string   `json:"displayName"`
+	AvatarURL    string   `json:"avatarUrl,omitempty"`
 	Existing     bool     `json:"existing"`
 	Favorite     bool     `json:"favorite"`
 	Tags         []string `json:"tags"`
@@ -182,6 +183,14 @@ func (service *Service) transferPreview(ctx context.Context, payload transfersto
 			Favorite:     account.Favorite,
 			Tags:         account.Tags,
 		})
+	}
+	userIDs := make([]int64, len(preview.Accounts))
+	for index, account := range preview.Accounts {
+		userIDs[index] = account.RobloxUserID
+	}
+	images := service.avatarURLs(ctx, userIDs)
+	for index := range preview.Accounts {
+		preview.Accounts[index].AvatarURL = images[preview.Accounts[index].RobloxUserID]
 	}
 	favorites, err := service.favoritePlaces.List(ctx)
 	if err != nil {

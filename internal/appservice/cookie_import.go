@@ -398,19 +398,26 @@ func (service *Service) validateImportInputs(ctx context.Context, inputs []strin
 }
 
 func (service *Service) loadImportAvatars(ctx context.Context, userIDs []int64, preview *ImportPreview) {
-	if service.avatars != nil && len(userIDs) > 0 {
-		if headshots, err := service.avatars.AvatarHeadshots(ctx, userIDs); err == nil {
-			images := make(map[int64]string, len(headshots))
-			for _, headshot := range headshots {
-				images[headshot.RobloxUserID] = headshot.ImageURL
-			}
-			for index := range preview.Items {
-				preview.Items[index].AvatarURL = images[preview.Items[index].RobloxUserID]
-			}
-		} else {
-			service.logger.Debug("import preview headshots unavailable", "error", err)
-		}
+	images := service.avatarURLs(ctx, userIDs)
+	for index := range preview.Items {
+		preview.Items[index].AvatarURL = images[preview.Items[index].RobloxUserID]
 	}
+}
+
+func (service *Service) avatarURLs(ctx context.Context, userIDs []int64) map[int64]string {
+	images := map[int64]string{}
+	if service.avatars == nil || len(userIDs) == 0 {
+		return images
+	}
+	headshots, err := service.avatars.AvatarHeadshots(ctx, userIDs)
+	if err != nil {
+		service.logger.Debug("import preview headshots unavailable", "error", err)
+		return images
+	}
+	for _, headshot := range headshots {
+		images[headshot.RobloxUserID] = headshot.ImageURL
+	}
+	return images
 }
 
 func uniqueSelectedImportUsers(batch *pendingImportBatch, selected map[int]struct{}) bool {

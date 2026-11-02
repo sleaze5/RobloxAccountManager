@@ -6,6 +6,8 @@
 	import fileArrowDownIcon from "@phosphor-icons/core/regular/file-arrow-down.svg?raw"
 	import xIcon from "@phosphor-icons/core/regular/x.svg?raw"
 	import Icon from "../shared/Icon.svelte"
+	import CandidateList from "../accounts/CandidateList.svelte"
+	import type { CandidateListItem } from "../accounts/candidate-model"
 	import Timestamp from "../shared/Timestamp.svelte"
 	import { onMount } from "svelte"
 	import {
@@ -72,7 +74,25 @@
 				!(favoritePlaces && (preview?.newFavoritePlaces ?? 0) > 0) &&
 				sections.length === 0,
 		),
-		keptCookies = $derived(result?.keptCookies ?? [])
+		keptCookies = $derived(result?.keptCookies ?? []),
+		candidateItems = $derived<CandidateListItem[]>(
+			accounts.map((account) => ({
+				avatarUrl: account.avatarUrl,
+				displayName: account.displayName.trim() || account.username,
+				id: String(account.robloxUserId),
+				robloxUserId: account.robloxUserId,
+				selectable: true,
+				selectionLabel: account.existing
+					? `Update @${account.username} from the export`
+					: `Add @${account.username} from the export`,
+				status: account.existing
+					? selectedAccounts.includes(account.robloxUserId)
+						? "Update cookie"
+						: "Already added"
+					: undefined,
+				username: account.username,
+			})),
+		)
 
 	onMount(() => {
 		void loadFiles()
@@ -139,6 +159,12 @@
 		}
 	}
 
+	function toggleAccount(robloxUserId: number, selected: boolean): void {
+		selectedAccounts = selected
+			? [...selectedAccounts, robloxUserId]
+			: selectedAccounts.filter((id) => id !== robloxUserId)
+	}
+
 	function toggleAllAccounts(): void {
 		selectedAccounts = allAccountsSelected
 			? []
@@ -175,7 +201,7 @@
 	}}
 	role="presentation">
 	<div
-		class="dialog-card max-w-md"
+		class="dialog-card max-w-lg"
 		role="dialog"
 		aria-modal="true"
 		aria-labelledby="import-vault-title"
@@ -280,62 +306,19 @@
 							Accounts already in the vault take the imported cookie if
 							Roblox accepts it. Otherwise they keep their current cookie.
 						</p>
-						<fieldset class="mt-3">
-							<legend class="mb-1 text-xs font-semibold text-fg-muted"
-								>Accounts</legend>
-							{#if accounts.length === 0}
-								<p class="text-xs text-fg-faint">
-									The export has no accounts.
-								</p>
-							{:else}
-								<label class="check-option mb-1">
-									<span class="checkbox">
-										<input
-											type="checkbox"
-											checked={allAccountsSelected}
-											indeterminate={selectedAccounts.length >
-												0 && !allAccountsSelected}
-											disabled={busy}
-											onchange={toggleAllAccounts} />
-										<span aria-hidden="true"
-											><Icon
-												svg={checkBoldIcon}
-												size={11}
-												aria-hidden="true" /></span>
-									</span>
-									<span
-										><strong
-											>All accounts ({selectedAccounts.length} of {accounts.length})</strong
-										></span>
-								</label>
-								<div
-									class="flex max-h-48 scrollbar-stable flex-col gap-1.5 overflow-y-auto rounded-md border border-line p-2">
-									{#each accounts as account (account.robloxUserId)}
-										<label class="check-option">
-											<span class="checkbox">
-												<input
-													type="checkbox"
-													bind:group={selectedAccounts}
-													value={account.robloxUserId}
-													disabled={busy} />
-												<span aria-hidden="true"
-													><Icon
-														svg={checkBoldIcon}
-														size={11}
-														aria-hidden="true" /></span>
-											</span>
-											<span>
-												<strong>{account.username}</strong>
-												<small
-													>{account.existing
-														? "Already in this vault"
-														: "New account"}</small>
-											</span>
-										</label>
-									{/each}
-								</div>
-							{/if}
-						</fieldset>
+						{#if accounts.length === 0}
+							<p class="mt-3 text-xs text-fg-faint">
+								The export has no accounts.
+							</p>
+						{:else}
+							<CandidateList
+								items={candidateItems}
+								selected={selectedAccounts.map(String)}
+								disabled={busy}
+								onToggle={(id, selected) =>
+									toggleAccount(Number(id), selected)}
+								onToggleAll={toggleAllAccounts} />
+						{/if}
 						<fieldset class="mt-3 flex flex-col gap-1.5">
 							<legend class="mb-1 text-xs font-semibold text-fg-muted"
 								>Games</legend>
@@ -498,17 +481,15 @@
 							data-turn />
 					</button>
 				</div>
-				{#if files && files.length > 0}
-					<label class="dialog-field">
-						<span>Passcode</span>
-						<input
-							bind:value={passcode}
-							type="password"
-							autocomplete="off"
-							disabled={busy}
-							required />
-					</label>
-				{/if}
+				<label class="dialog-field">
+					<span>Passcode</span>
+					<input
+						bind:value={passcode}
+						type="password"
+						autocomplete="off"
+						disabled={opening || files?.length === 0}
+						required />
+				</label>
 				{#if error}
 					<div class="mt-3 notice-error" role="alert">{error}</div>
 				{/if}
