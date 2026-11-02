@@ -409,7 +409,11 @@
 							settings. The app backs up the current vault first.
 						</div>
 						<label class="dialog-field">
-							<span>Type OVERWRITE to confirm</span>
+							<span
+								><span
+									>Type <strong class="font-semibold text-fg"
+										>CONFIRM</strong> to overwrite this vault</span
+								></span>
 							<input
 								bind:value={confirmation}
 								autocomplete="off"
@@ -428,7 +432,7 @@
 						<button
 							class="btn-danger"
 							type="submit"
-							disabled={confirmation !== "OVERWRITE" || busy}
+							disabled={confirmation !== "CONFIRM" || busy}
 							>{importing ? "Overwriting…" : "Overwrite vault"}</button>
 					{:else}
 						<button

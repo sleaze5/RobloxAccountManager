@@ -454,8 +454,8 @@ func (service *Service) OpenVaultExport(ctx context.Context, path, passcode stri
 }
 
 func (service *Service) ImportVaultExport(ctx context.Context, id string, request appservice.TransferRequest, confirmation string) (appservice.TransferResult, error) {
-	if request.Mode == appservice.TransferOverwrite && confirmation != "OVERWRITE" {
-		return appservice.TransferResult{}, &roblox.Error{Kind: roblox.KindProtocol, Endpoint: "vault-transfer", Message: "Type OVERWRITE to confirm overwriting the vault."}
+	if request.Mode == appservice.TransferOverwrite && confirmation != "CONFIRM" {
+		return appservice.TransferResult{}, &roblox.Error{Kind: roblox.KindProtocol, Endpoint: "vault-transfer", Message: "Type CONFIRM to overwrite the vault."}
 	}
 	return service.core.ImportVaultExport(ctx, id, request)
 }
