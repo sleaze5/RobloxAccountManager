@@ -15,6 +15,7 @@ import (
 	"time"
 	"unicode/utf8"
 
+	"github.com/sleaze5/RobloxAccountManager/internal/logging"
 	"github.com/sleaze5/RobloxAccountManager/internal/roblox"
 	robloxservices "github.com/sleaze5/RobloxAccountManager/internal/roblox/services"
 )
@@ -81,7 +82,7 @@ func (service *Service) GetChatConversations(ctx context.Context, accountID int6
 	}
 	page, err := service.chat.Conversations(ctx, accountID, version, cursor)
 	if err != nil {
-		return ChatConversationPage{}, chatFailure(logger, err)
+		return ChatConversationPage{}, chatFailure(ctx, logger, err)
 	}
 	conversations := slices.DeleteFunc(page.Conversations, func(conversation robloxservices.ChatConversation) bool {
 		return !realChatConversation(conversation.ID)
@@ -103,7 +104,7 @@ func (service *Service) GetChatMessages(ctx context.Context, accountID int64, co
 	defer done()
 	page, err := service.chat.Messages(ctx, accountID, version, conversationID, cursor)
 	if err != nil {
-		return ChatMessagePage{}, chatFailure(logger, err)
+		return ChatMessagePage{}, chatFailure(ctx, logger, err)
 	}
 	messages := make([]ChatMessageView, 0, len(page.Messages))
 	for _, message := range page.Messages {
@@ -139,7 +140,7 @@ func (service *Service) MarkAllChatConversationsRead(ctx context.Context, accoun
 	for range maxChatMarkAllPages {
 		page, err := service.chat.Conversations(ctx, accountID, version, cursor)
 		if err != nil {
-			return 0, chatFailure(logger, err)
+			return 0, chatFailure(ctx, logger, err)
 		}
 		for _, conversation := range page.Conversations {
 			if conversation.UnreadMessageCount > 0 && realChatConversation(conversation.ID) && !seen[conversation.ID] {
@@ -156,7 +157,7 @@ func (service *Service) MarkAllChatConversationsRead(ctx context.Context, accoun
 			return 0, err
 		}
 	}
-	logger.Debug("chat conversations marked read", "count", len(ids))
+	logger.DebugContext(ctx, "chat conversations marked read", "count", len(ids))
 	return len(ids), nil
 }
 
@@ -176,16 +177,16 @@ func (service *Service) CreateChatConversation(ctx context.Context, accountID in
 	}
 	userID, err := service.users.UserIDFromUsername(ctx, username)
 	if err != nil {
-		return ChatConversationView{}, chatFailure(logger, err)
+		return ChatConversationView{}, chatFailure(ctx, logger, err)
 	}
 	if userID == selfID {
 		return ChatConversationView{}, chatInputError("Enter another user's username.")
 	}
 	conversation, err := service.chat.CreateDirect(ctx, accountID, version, userID)
 	if err != nil {
-		return ChatConversationView{}, chatFailure(logger, err)
+		return ChatConversationView{}, chatFailure(ctx, logger, err)
 	}
-	logger.Info("chat conversation opened")
+	logger.InfoContext(ctx, "chat conversation opened")
 	return service.chatConversationViews(ctx, logger, selfID, []robloxservices.ChatConversation{conversation})[0], nil
 }
 
@@ -214,7 +215,7 @@ func (service *Service) SendChatMessage(ctx context.Context, accountID int64, co
 		if errors.As(err, &remote) && remote.Status == http.StatusConflict {
 			return ChatMessageView{}, chatInputError("This chat changed. Refresh it and try again.")
 		}
-		return ChatMessageView{}, chatFailure(logger, err)
+		return ChatMessageView{}, chatFailure(ctx, logger, err)
 	}
 	view := chatMessageView(message)
 	if view.Text == "" {
@@ -223,7 +224,7 @@ func (service *Service) SendChatMessage(ctx context.Context, accountID int64, co
 	if view.CreatedAtMs == 0 {
 		view.CreatedAtMs = time.Now().UnixMilli()
 	}
-	logger.Debug("chat message sent", "moderated", view.Moderated)
+	logger.DebugContext(ctx, "chat message sent", "moderated", view.Moderated)
 	return view, nil
 }
 
@@ -232,7 +233,8 @@ func (service *Service) beginChat(parent context.Context, accountID int64, opera
 	if err != nil {
 		return nil, 0, nil, nil, err
 	}
-	logger := service.logs.Module("application.chat").With("operation_id", fmt.Sprintf("chat-%d", chatOperationID.Add(1)), "operation", operation)
+	ctx = logging.WithOperation(ctx, fmt.Sprintf("chat-%d", chatOperationID.Add(1)))
+	logger := service.logs.Module("application.chat").With("operation", operation)
 	return ctx, version, logger, done, nil
 }
 
@@ -247,11 +249,11 @@ func (service *Service) chatSelfID(ctx context.Context, accountID int64) (int64,
 func (service *Service) markChatRead(ctx context.Context, logger *slog.Logger, accountID, version int64, ids []string) error {
 	results, err := service.chat.MarkRead(ctx, accountID, version, ids)
 	if err != nil {
-		return chatFailure(logger, err)
+		return chatFailure(ctx, logger, err)
 	}
 	for _, result := range results {
 		if result.Status != "" && !strings.EqualFold(result.Status, "success") {
-			logger.Warn("chat mark-read returned an unexpected status", "status", result.Status)
+			logger.WarnContext(ctx, "chat mark-read returned an unexpected status", "status", result.Status)
 		}
 	}
 	return nil
@@ -272,7 +274,7 @@ func (service *Service) chatConversationViews(ctx context.Context, logger *slog.
 	}
 	headshots, err := service.avatars.AvatarHeadshots(ctx, imageUsers)
 	if err != nil {
-		logger.Warn("chat avatars unavailable", "error", err)
+		logger.WarnContext(ctx, "chat avatars unavailable", "error", err)
 		return views
 	}
 	images := make(map[int64]string, len(headshots))
@@ -406,13 +408,13 @@ func validateChatConversationID(id string) error {
 	return nil
 }
 
-func chatFailure(logger *slog.Logger, err error) error {
+func chatFailure(ctx context.Context, logger *slog.Logger, err error) error {
 	var remote *roblox.Error
 	if !errors.As(err, &remote) {
-		logger.Warn("chat operation failed", "error", err)
+		logger.WarnContext(ctx, "chat operation failed", "error", err)
 		return &roblox.Error{Kind: roblox.KindProtocol, Endpoint: "chat", Message: "The chat request failed. Try again.", Cause: err}
 	}
-	logger.Warn("chat operation failed", "endpoint", remote.Endpoint, "error_kind", remote.Kind, "status", remote.Status, "roblox_code", remote.RobloxCode)
+	logger.WarnContext(ctx, "chat operation failed", "endpoint", remote.Endpoint, "error_kind", remote.Kind, "status", remote.Status, "roblox_code", remote.RobloxCode)
 	return err
 }
 

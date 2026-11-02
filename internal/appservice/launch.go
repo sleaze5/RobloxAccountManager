@@ -12,6 +12,7 @@ import (
 
 	"github.com/sleaze5/RobloxAccountManager/internal/accounts"
 	"github.com/sleaze5/RobloxAccountManager/internal/gamelaunch"
+	"github.com/sleaze5/RobloxAccountManager/internal/logging"
 	"github.com/sleaze5/RobloxAccountManager/internal/platform/robloxmulti"
 	"github.com/sleaze5/RobloxAccountManager/internal/roblox"
 	robloxservices "github.com/sleaze5/RobloxAccountManager/internal/roblox/services"
@@ -182,10 +183,11 @@ func (service *Service) accountLaunchOptions(ctx context.Context, accountID int6
 }
 
 func (service *Service) runLaunchOperation(ctx context.Context, accountID int64, input gamelaunch.Input, operation string, action func(context.Context, func() (string, error), string, gamelaunch.Request) error) (result error) {
-	logger := service.logger.With("operation_id", fmt.Sprintf("launch-%d", launchOperationID.Add(1)), "operation", operation, "account_id", accountID)
+	ctx = logging.WithOperation(ctx, fmt.Sprintf("launch-%d", launchOperationID.Add(1)))
+	logger := service.logger.With("operation", operation, "account_id", accountID)
 	stage := "parse-input"
 	defer func() {
-		logLaunchResult(logger, operation, stage, result)
+		logLaunchResult(ctx, logger, operation, stage, result)
 	}()
 	target, err := gamelaunch.Parse(input)
 	if err != nil {
@@ -208,7 +210,7 @@ func (service *Service) runLaunchOperation(ctx context.Context, accountID int64,
 	if session.Context.Err() != nil {
 		cancel()
 	}
-	logger.Debug("Preparing Roblox launch")
+	logger.DebugContext(ctx, "Preparing Roblox launch")
 	if input.Method == gamelaunch.MethodUser {
 		stage = "resolve-user"
 		target, err = service.resolveLaunchUser(ctx, accountID, target, input.ResolveCurrentGame)
@@ -300,13 +302,13 @@ func launchPreparationError(err error) *roblox.Error {
 	return &roblox.Error{Kind: roblox.KindProtocol, Endpoint: "game-launch", Message: strings.ToUpper(message[:1]) + message[1:] + "."}
 }
 
-func logLaunchResult(logger *slog.Logger, operation, stage string, result error) {
+func logLaunchResult(ctx context.Context, logger *slog.Logger, operation, stage string, result error) {
 	if errors.Is(result, robloxmulti.ErrLaunchCancelled) {
-		logger.Info("Roblox launch cancelled")
+		logger.InfoContext(ctx, "Roblox launch cancelled")
 		return
 	}
 	if result == nil {
-		logger.Info("Roblox launch operation completed")
+		logger.InfoContext(ctx, "Roblox launch operation completed")
 		return
 	}
 	kind, status, code := roblox.KindProtocol, 0, 0
@@ -316,5 +318,5 @@ func logLaunchResult(logger *slog.Logger, operation, stage string, result error)
 		endpoint, message = remote.Endpoint, remote.Message
 	}
 	// Do not log Cause: transport and process errors can include secret URLs.
-	logger.Warn("Roblox launch operation failed", "stage", stage, "endpoint", endpoint, "error_kind", kind, "status", status, "roblox_code", code, "error_message", message)
+	logger.WarnContext(ctx, "Roblox launch operation failed", "stage", stage, "endpoint", endpoint, "error_kind", kind, "status", status, "roblox_code", code, "error_message", message)
 }

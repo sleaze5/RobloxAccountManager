@@ -107,7 +107,7 @@ VALUES(?, ?, ?, ?, 1, ?, ?, ?, ?)`, accountID, cookie, nullableMillis(expiresAt)
 		return AccountView{}, SessionRecord{}, fmt.Errorf("commit account insert: %w", err)
 	}
 	session := SessionRecord{AccountID: accountID, Roblosecurity: cookie, CookieExpiresAt: copyTime(expiresAt), State: StateActive, SecretVersion: 1, ImportedAt: now, LastValidatedAt: &now, LastSuccessAt: &now, UpdatedAt: now}
-	repository.logger.Info("account stored", "account_id", accountID, "roblox_user_id", identity.RobloxUserID)
+	repository.logger.InfoContext(ctx, "account stored", "operation", "account-store", "account_id", accountID, "roblox_user_id", identity.RobloxUserID)
 	return viewFrom(identity, accountID, session, now), session, nil
 }
 
@@ -248,7 +248,7 @@ func (repository *Repository) Remove(ctx context.Context, accountID int64) error
 	if err := tx.Commit(); err != nil {
 		return fmt.Errorf("commit account removal: %w", err)
 	}
-	repository.logger.Info("account removed", "account_id", accountID)
+	repository.logger.InfoContext(ctx, "account removed", "operation", "account-remove", "account_id", accountID)
 	return nil
 }
 

@@ -459,7 +459,7 @@ func (client *Client) sendAttempt(ctx context.Context, contract Request, snapsho
 		if urlError, ok := errors.AsType[*url.Error](err); ok {
 			err = urlError.Err
 		}
-		client.logger.Debug("Roblox request transport failed",
+		client.logger.DebugContext(ctx, "Roblox request transport failed",
 			"endpoint", contract.Endpoint,
 			"account_id", contract.AccountID,
 			"host", request.URL.Hostname(),
@@ -585,7 +585,7 @@ func (client *Client) setState(ctx context.Context, snapshot SessionSnapshot, st
 		return
 	}
 	client.sessions.UpdateState(snapshot.AccountID, snapshot.SecretVersion, state)
-	client.logger.Warn("Roblox session state changed", "account_id", snapshot.AccountID, "state", state)
+	client.logger.WarnContext(ctx, "Roblox session state changed", "operation", "session-state", "account_id", snapshot.AccountID, "state", state)
 	if client.observer != nil {
 		client.observer.SessionChanged(snapshot.AccountID)
 	}
@@ -606,7 +606,7 @@ func (client *Client) logStoreFailure(ctx context.Context, message string, snaps
 	if ctx.Err() != nil || snapshot.Context.Err() != nil || errors.Is(err, accounts.ErrStaleSecret) || errors.Is(err, accounts.ErrUnavailable) {
 		return
 	}
-	client.logger.Warn(message, "operation", "session-state", "account_id", snapshot.AccountID, "error", err)
+	client.logger.WarnContext(ctx, message, "operation", "session-state", "account_id", snapshot.AccountID, "error", err)
 }
 
 func safeToRetryRequest(request Request) bool {
@@ -816,7 +816,7 @@ func (client *Client) storeRotatedCookie(ctx context.Context, request Request, s
 		if client.observer != nil {
 			client.observer.SessionChanged(snapshot.AccountID)
 		}
-		client.logger.Info("Roblox session cookie rotated", "account_id", snapshot.AccountID)
+		client.logger.InfoContext(ctx, "Roblox session cookie rotated", "operation", "cookie-rotation", "account_id", snapshot.AccountID)
 		return record.SecretVersion, false, nil
 	}
 	return 0, false, nil
