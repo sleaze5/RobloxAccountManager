@@ -12,7 +12,11 @@ Always use the writing skill for commit messages, pull request titles, and pull 
 
 - Write short, direct PR titles in sentence case, following the same rules as commit messages.
 - Keep PR descriptions short, concise, and straightforward.
-- Disclose AI involvement only on the final line of the initial PR description, using exactly: `This was written by {model} in {harness} on behalf of the author.` Replace `{model}` with the current model slug and `{harness}` with the harness you are running in.
+- Disclose AI involvement only on the final line of the initial PR description, using exactly the line below. Replace `{model}` with the current model slug and `{harness}` with the harness you are running in.
+
+  ```markdown
+  This was written by `{model}` in `{harness}` on behalf of the author.
+  ```
 - Strict requirement: never add chat session links (for example `claude.ai/code/session_...`) to PR or issue titles, descriptions, or comments.
 - Never add AI attribution anywhere else, including commits, code comments, documentation, or subsequent PR messages.
 
