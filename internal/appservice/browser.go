@@ -7,6 +7,7 @@ import (
 
 	"github.com/sleaze5/RobloxAccountManager/internal/browser"
 	"github.com/sleaze5/RobloxAccountManager/internal/gamelaunch"
+	"github.com/sleaze5/RobloxAccountManager/internal/logging"
 	"github.com/sleaze5/RobloxAccountManager/internal/platform/robloxmulti"
 	"github.com/sleaze5/RobloxAccountManager/internal/roblox"
 )
@@ -83,9 +84,10 @@ func (service *Service) LaunchBrowserGame(ctx context.Context, sessionID, protoc
 	if ctx.Err() != nil || !service.vault.Unlocked() {
 		return
 	}
-	logger := service.logger.With("operation_id", fmt.Sprintf("launch-%d", launchOperationID.Add(1)), "operation", "browser-game-launch", "session_id", sessionID)
+	ctx = logging.WithOperation(ctx, fmt.Sprintf("launch-%d", launchOperationID.Add(1)))
+	logger := service.logger.With("operation", "browser-game-launch", "session_id", sessionID)
 	if err := gamelaunch.ValidateBrowserProtocolURL(protocolURL); err != nil {
-		logger.Warn("invalid browser game launch rejected", "error", err)
+		logger.WarnContext(ctx, "invalid browser game launch rejected", "error", err)
 		service.events.BrowserLaunchFailed(sessionID, "The browser supplied an invalid game launch. Try joining again.")
 		return
 	}
@@ -100,16 +102,16 @@ func (service *Service) LaunchBrowserGame(ctx context.Context, sessionID, protoc
 	if err != nil {
 		var failure *roblox.Error
 		if errors.Is(err, robloxmulti.ErrLaunchCancelled) || ctx.Err() != nil || errors.As(err, &failure) && failure.Kind == roblox.KindCancelled {
-			logger.Info("browser game launch cancelled")
+			logger.InfoContext(ctx, "browser game launch cancelled")
 			return
 		}
 		message := "Roblox could not be started. Try joining again."
 		if errors.As(err, &failure) {
 			message = failure.Message
 		}
-		logger.Warn("browser game launch failed", "error_message", message)
+		logger.WarnContext(ctx, "browser game launch failed", "error_message", message)
 		service.events.BrowserLaunchFailed(sessionID, message)
 		return
 	}
-	logger.Info("browser game launched")
+	logger.InfoContext(ctx, "browser game launched")
 }
