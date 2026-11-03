@@ -43,7 +43,7 @@ func (repository *Repository) CreateTag(ctx context.Context, input string) (TagV
 	if err := tx.Commit(); err != nil {
 		return TagView{}, fmt.Errorf("commit tag creation: %w", err)
 	}
-	repository.logger.Info("account tag created", "tag_id", id)
+	repository.logger.InfoContext(ctx, "account tag created", "operation", "tag-create", "tag_id", id)
 	return TagView{ID: id, Name: name, Kind: TagKindCustom}, nil
 }
 
@@ -78,7 +78,7 @@ func (repository *Repository) RemoveTag(ctx context.Context, tagID int64) error 
 	if err := tx.Commit(); err != nil {
 		return fmt.Errorf("commit tag removal: %w", err)
 	}
-	repository.logger.Info("account tag removed", "tag_id", tagID)
+	repository.logger.InfoContext(ctx, "account tag removed", "operation", "tag-remove", "tag_id", tagID)
 	return nil
 }
 

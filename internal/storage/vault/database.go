@@ -202,7 +202,7 @@ func (manager *Manager) Unlock(ctx context.Context, password string) error {
 	if err := manager.completeUnlock(ctx, usedNext, password); err != nil {
 		return err
 	}
-	manager.logger.Info("vault unlocked with master password")
+	manager.logger.InfoContext(ctx, "vault unlocked with master password", "operation", "vault-unlock")
 	return nil
 }
 
@@ -254,7 +254,7 @@ func (manager *Manager) AutoUnlock(ctx context.Context) error {
 	if err := manager.completeUnlock(ctx, usedNext, ""); err != nil {
 		return err
 	}
-	manager.logger.Info("vault unlocked with automatic unlock")
+	manager.logger.InfoContext(ctx, "vault unlocked with automatic unlock", "operation", "vault-unlock")
 	return nil
 }
 
@@ -378,7 +378,7 @@ func (manager *Manager) close(manual bool) error {
 			return fmt.Errorf("remove automatic unlock file: %w", err)
 		}
 	}
-	manager.logger.Info("vault locked", "automatic_unlock_revoked", manual)
+	manager.logger.Info("vault locked", "operation", "vault-lock", "automatic_unlock_revoked", manual)
 	return nil
 }
 
