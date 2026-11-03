@@ -8,16 +8,15 @@ Always use the writing skill for commit messages, pull request titles, and pull 
 - Write short, direct commit messages in sentence case. Match the style of previous commits.
 - Use a single-line commit message. Never add a description or body.
 
-## Pull requests
+## Pull requests & issues
 
-- Write short, direct PR titles in sentence case, following the same rules as commit messages.
-- Keep PR descriptions short, concise, and straightforward.
-- Disclose AI involvement only on the final line of the initial PR description, using exactly the line below. Replace `{model}` with the current model slug and `{harness}` with the harness you are running in.
-
-  ```markdown
-  This was written by `{model}` in `{harness}` on behalf of the author.
-  ```
-- Strict requirement: never add chat session links (for example `claude.ai/code/session_...`) to PR or issue titles, descriptions, or comments.
+- Write short, direct titles in sentence case, following the same rules as commit messages.
+- Keep the descriptions short, concise, and straightforward.
+- Disclose AI involvement only on the final line of the initial description, using exactly the line below. Replace `{model_slug}` with the current model slug and `{harness}` with the harness it is running in.
+    ```markdown
+    This was written by `{model_slug}` in `{harness}` on behalf of the author.
+    ```
+- Never add chat session links (ie. `claude.ai/code/session_...`, `chatgpt.com/c/...`) to PR or issue titles, descriptions, or comments.
 - Never add AI attribution anywhere else, including commits, code comments, documentation, or subsequent PR messages.
 
 ## Merging
