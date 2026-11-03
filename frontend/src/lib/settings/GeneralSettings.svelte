@@ -15,6 +15,11 @@
 			description:
 				"Update presence for the selected account while its profile is open.",
 		},
+		{
+			id: PresenceScope.PresenceSocial,
+			name: "Social",
+			description: "Update presence for the listed users while Social is open.",
+		},
 	] as const
 	const levels: { id: LoggingLevel; name: string; description: string }[] = [
 		{

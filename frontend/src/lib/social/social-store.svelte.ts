@@ -5,6 +5,7 @@ import type {
 	SocialProfileSnapshot,
 	SocialRelationship,
 	SocialUser,
+	UserPresence,
 } from "../backend/bridge"
 import type { NotificationCenter } from "../notifications/notification-center.svelte"
 import { errorMessage } from "../shared/errors"
@@ -39,6 +40,8 @@ export function personName(person: SocialSubject): string {
 	)
 }
 
+const presenceRefreshError = "Presence could not be refreshed."
+
 export class SocialStore {
 	sidebarCollapsed = $state(false)
 	sidebarWidth = $state(220)
@@ -67,6 +70,7 @@ export class SocialStore {
 	#epoch = 0
 	#listRequest: ReturnType<typeof accountBackend.GetSocialPage> | null = null
 	#profileRequest: ReturnType<typeof accountBackend.GetSocialProfile> | null = null
+	#presenceRequest: ReturnType<typeof accountBackend.GetSocialPresences> | null = null
 	readonly #pages = new Map<string, { page: SocialListPage; fetchedAt: number }>()
 	readonly #profiles = new Map<
 		number,
@@ -210,6 +214,51 @@ export class SocialStore {
 				this.#listRequest = null
 				this.loading = this.loadingMore = false
 			}
+		}
+	}
+
+	async refreshPresences(): Promise<void> {
+		const page = this.page,
+			userIds = this.#presenceUserIds()
+		if (!page || userIds.length === 0 || this.#presenceRequest) return
+		const epoch = this.#epoch,
+			request = accountBackend.GetSocialPresences(this.accountId, userIds)
+		this.#presenceRequest = request
+		try {
+			const presences = (await request) ?? []
+			if (request !== this.#presenceRequest || epoch !== this.#epoch) return
+			if (this.page === page) this.#installPresences(page, presences)
+			if (this.error === presenceRefreshError) this.error = ""
+		} catch {
+			if (request !== this.#presenceRequest || epoch !== this.#epoch) return
+			this.error = presenceRefreshError
+		} finally {
+			if (request === this.#presenceRequest) this.#presenceRequest = null
+		}
+	}
+
+	#presenceUserIds(): number[] {
+		if (this.loading || this.loadingMore) return []
+		return (this.page?.people ?? [])
+			.filter((person) => person.presence)
+			.map((person) => person.userId)
+	}
+
+	#installPresences(page: SocialListPage, presences: UserPresence[]): void {
+		const byUser = new Map(
+				presences.map((presence) => [presence.userId, presence]),
+			),
+			people: SocialUser[] = []
+		for (const person of page.people ?? []) {
+			const presence = person.presence && byUser.get(person.userId)
+			people.push(presence ? { ...person, presence } : person)
+		}
+		const next = { ...page, people },
+			key = this.#key(),
+			cached = this.#pages.get(key)
+		this.page = next
+		if (cached?.page === page) {
+			this.#pages.set(key, { page: next, fetchedAt: cached.fetchedAt })
 		}
 	}
 
@@ -499,6 +548,8 @@ export class SocialStore {
 	#open(): void {
 		void this.#listRequest?.cancel()
 		this.#listRequest = null
+		void this.#presenceRequest?.cancel()
+		this.#presenceRequest = null
 		this.loading = this.loadingMore = false
 		this.loadError = ""
 		this.closeMenu()
@@ -528,7 +579,8 @@ export class SocialStore {
 		this.#epoch++
 		void this.#listRequest?.cancel()
 		void this.#profileRequest?.cancel()
-		this.#listRequest = this.#profileRequest = null
+		void this.#presenceRequest?.cancel()
+		this.#listRequest = this.#profileRequest = this.#presenceRequest = null
 		this.#pages.clear()
 		this.#profiles.clear()
 		this.accountId = accountId

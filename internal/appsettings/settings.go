@@ -25,6 +25,7 @@ const (
 	DefaultTimestampHoverFormat            = "$dddd, $MMMM $DD $YYYY, $hh:$mm:$ss $A ($relative)"
 	DefaultAccountsPresenceIntervalSeconds = 300
 	DefaultProfilePresenceIntervalSeconds  = 60
+	DefaultSocialPresenceIntervalSeconds   = 60
 )
 
 var loggingLevels = []string{"trace", "debug", "info", "warn", "error"}
@@ -75,11 +76,13 @@ type PresenceScope string
 const (
 	PresenceAccounts PresenceScope = "accounts"
 	PresenceProfile  PresenceScope = "profile"
+	PresenceSocial   PresenceScope = "social"
 )
 
 type PresenceSettings struct {
 	Accounts PresenceUpdateSettings `json:"accounts"`
 	Profile  PresenceUpdateSettings `json:"profile"`
+	Social   PresenceUpdateSettings `json:"social"`
 }
 
 type PresenceUpdateSettings struct {
@@ -287,6 +290,7 @@ func decodeCurrent(document object) (Settings, []string) {
 	presence := fields.object(document, "presence")
 	fields.presence(fields.object(presence, "presence.accounts"), "presence.accounts", &settings.Presence.Accounts)
 	fields.presence(fields.object(presence, "presence.profile"), "presence.profile", &settings.Presence.Profile)
+	fields.presence(fields.object(presence, "presence.social"), "presence.social", &settings.Presence.Social)
 	roblox := fields.object(document, "roblox")
 	decodeField(fields, roblox, "roblox.multiInstance", &settings.Roblox.MultiInstance, nil)
 	decodeField(fields, roblox, "roblox.linuxClient", &settings.Roblox.LinuxClient, validLinuxClient)
@@ -354,6 +358,7 @@ func defaults() Settings {
 		Presence: PresenceSettings{
 			Accounts: PresenceUpdateSettings{Enabled: true, IntervalSeconds: DefaultAccountsPresenceIntervalSeconds},
 			Profile:  PresenceUpdateSettings{Enabled: true, IntervalSeconds: DefaultProfilePresenceIntervalSeconds},
+			Social:   PresenceUpdateSettings{Enabled: true, IntervalSeconds: DefaultSocialPresenceIntervalSeconds},
 		},
 		Integrations: IntegrationSettings{RoValra: true},
 		Vault:        VaultSettings{PasswordTestIntervalDays: DefaultPasswordTestIntervalDays},
@@ -431,6 +436,8 @@ func (store *Store) SetPresenceUpdates(scope PresenceScope, enabled bool, interv
 		store.settings.Presence.Accounts = settings
 	case PresenceProfile:
 		store.settings.Presence.Profile = settings
+	case PresenceSocial:
+		store.settings.Presence.Social = settings
 	default:
 		return fmt.Errorf("unknown presence update scope %q", scope)
 	}

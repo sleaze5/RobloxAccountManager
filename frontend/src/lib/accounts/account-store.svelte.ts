@@ -56,6 +56,7 @@ export class AccountStore {
 	findingServer = $state(false)
 	refreshing = $state(false)
 	presenceRefreshing = $state(false)
+	presencesRefreshedAt = 0
 	error = $state("")
 	nextCursor = $state<AccountCursor | null>(null)
 	accountTotal = $state(0)
@@ -1033,9 +1034,7 @@ export class AccountStore {
 			const presences = (await request) ?? []
 			if (version !== this.#remoteDataVersion || !this.vault.unlocked) return
 			this.installPresences(presences, sequence)
-			if (this.error === presenceRefreshError) {
-				this.error = ""
-			}
+			this.#presenceRefreshed(accountId)
 		} catch {
 			if (version !== this.#remoteDataVersion || !this.vault.unlocked) return
 			this.error = presenceRefreshError
@@ -1045,6 +1044,11 @@ export class AccountStore {
 				if (accountId === null) this.presenceRefreshing = false
 			}
 		}
+	}
+
+	#presenceRefreshed(accountId: number | null): void {
+		if (accountId === null) this.presencesRefreshedAt = Date.now()
+		if (this.error === presenceRefreshError) this.error = ""
 	}
 
 	private installPresences(presences: UserPresence[], sequence: number): void {
@@ -1160,6 +1164,7 @@ export class AccountStore {
 		for (const request of this.#presenceRequests.values()) void request.cancel()
 		this.#presenceRequests.clear()
 		this.presenceRefreshing = false
+		this.presencesRefreshedAt = 0
 	}
 
 	#removeProfile(accountId: number): void {

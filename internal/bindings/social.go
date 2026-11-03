@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"github.com/sleaze5/RobloxAccountManager/internal/appservice"
+	robloxservices "github.com/sleaze5/RobloxAccountManager/internal/roblox/services"
 )
 
 func (service *Service) GetSocialPage(ctx context.Context, accountID, userID int64, list appservice.SocialList, cursor string) (appservice.SocialPage, error) {
@@ -18,6 +19,18 @@ func (service *Service) SearchPlayers(ctx context.Context, accountID int64, keyw
 		return appservice.SocialPage{}, err
 	}
 	return service.core.SearchPlayers(ctx, accountID, keyword, cursor)
+}
+
+func (service *Service) GetSocialPresences(ctx context.Context, accountID int64, userIDs []int64) ([]robloxservices.UserPresence, error) {
+	if err := positiveID(accountID, "social-presence"); err != nil {
+		return nil, err
+	}
+	for _, userID := range userIDs {
+		if err := positiveID(userID, "social-presence"); err != nil {
+			return nil, err
+		}
+	}
+	return service.core.GetSocialPresences(ctx, accountID, userIDs)
 }
 
 func (service *Service) GetSocialProfile(ctx context.Context, accountID, userID int64) (appservice.SocialProfile, error) {

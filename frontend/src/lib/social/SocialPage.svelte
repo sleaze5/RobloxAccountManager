@@ -17,6 +17,7 @@
 	import type { AccountStore } from "../accounts/account-store.svelte"
 	import { presenceDetail, presenceLabel } from "../accounts/account-model"
 	import SidebarResizer from "../layout/SidebarResizer.svelte"
+	import { appSettings } from "../settings/settings-store.svelte"
 	import OperationError from "../shared/OperationError.svelte"
 	import ProfileImage from "../shared/ProfileImage.svelte"
 	import Select from "../shared/Select.svelte"
@@ -111,6 +112,18 @@
 			selfUserId = Number(account.userId) || 0
 		if (!accounts.vault.unlocked) return
 		untrack(() => store.show(accountId, selfUserId))
+	})
+
+	$effect(() => {
+		const presence = appSettings.presence.social
+		if (!appSettings.initialized || !accounts.vault.unlocked || !presence.enabled) {
+			return
+		}
+		const timer = window.setInterval(
+			() => void store.refreshPresences(),
+			presence.intervalSeconds * 1000,
+		)
+		return () => window.clearInterval(timer)
 	})
 
 	onDestroy(() => store.closeMenu())
