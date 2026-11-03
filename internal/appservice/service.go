@@ -17,6 +17,7 @@ import (
 	"github.com/sleaze5/RobloxAccountManager/internal/roblox"
 	robloxservices "github.com/sleaze5/RobloxAccountManager/internal/roblox/services"
 	gamestore "github.com/sleaze5/RobloxAccountManager/internal/storage/games"
+	transferstore "github.com/sleaze5/RobloxAccountManager/internal/storage/transfer"
 	"github.com/sleaze5/RobloxAccountManager/internal/storage/vault"
 )
 
@@ -34,6 +35,7 @@ type Service struct {
 	games           *robloxservices.Games
 	rovalra         *rovalra.Client
 	favoritePlaces  *gamestore.Repository
+	transfers       *transferstore.Repository
 	logsExplorer    *logsexplorer.Reader
 	launcher        gamelaunch.Launcher
 	multiInstance   *robloxmulti.Manager
@@ -45,6 +47,8 @@ type Service struct {
 	runtime         *browser.RuntimeManager
 
 	importMu             sync.Mutex
+	transferMu           sync.Mutex
+	pendingTransfer      *pendingTransfer
 	launchMu             sync.Mutex
 	pendingImports       map[string]pendingImportBatch
 	validationMu         sync.Mutex
@@ -81,6 +85,7 @@ func New(
 	games *robloxservices.Games,
 	rovalraClient *rovalra.Client,
 	favoritePlaces *gamestore.Repository,
+	transfers *transferstore.Repository,
 	logsExplorerReader *logsexplorer.Reader,
 	launcher gamelaunch.Launcher,
 	multiInstance *robloxmulti.Manager,
@@ -105,6 +110,7 @@ func New(
 		games:                games,
 		rovalra:              rovalraClient,
 		favoritePlaces:       favoritePlaces,
+		transfers:            transfers,
 		logsExplorer:         logsExplorerReader,
 		launcher:             launcher,
 		multiInstance:        multiInstance,
@@ -162,6 +168,7 @@ func (service *Service) Shutdown() error {
 	service.cancelPendingValidations()
 	service.stopBackground()
 	service.clearPendingImports()
+	service.discardPendingTransfer()
 	service.sessions.Lock()
 	return service.vault.Close()
 }

@@ -73,6 +73,9 @@ func (service *Service) UnlockVault(ctx context.Context, password string) error 
 
 func (service *Service) finishUnlock(automatic bool) {
 	service.sessions.Unlock()
+	if err := service.applyPendingSettings(service.lifecycle); err != nil {
+		service.logger.Warn("imported settings could not be saved after unlock", "operation", "vault-import", "error", err)
+	}
 	var cursor *accounts.AccountCursor
 	for {
 		page, err := service.ListAccounts(service.lifecycle, accounts.AccountQuery{Cursor: cursor})
@@ -133,6 +136,7 @@ func (service *Service) LockVault() error {
 func (service *Service) finishLocked() {
 	service.stopGames()
 	service.clearPendingImports()
+	service.discardPendingTransfer()
 	service.sessions.Lock()
 	service.mu.Lock()
 	service.reminderDue = false

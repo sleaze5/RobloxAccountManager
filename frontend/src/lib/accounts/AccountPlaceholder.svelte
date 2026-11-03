@@ -14,11 +14,13 @@
 		workspace,
 		onAddAccount,
 		onBrowser,
+		onImportFile,
 	}: {
 		store: AccountStore
 		workspace: WorkspaceState
 		onAddAccount: () => void
 		onBrowser: () => void
+		onImportFile: () => void
 	} = $props()
 	const menuOpen = $derived(workspace.activeAccountMenu === "empty-add-account")
 	let trigger = $state<HTMLButtonElement>()
@@ -31,6 +33,11 @@
 	function openBrowser(): void {
 		workspace.closeAccountMenus()
 		onBrowser()
+	}
+
+	function importFile(): void {
+		workspace.closeAccountMenus()
+		onImportFile()
 	}
 	const noAccounts = $derived(
 		store.accounts.length === 0 &&
@@ -67,7 +74,7 @@
 		{#if noAccounts}
 			<Icon svg={userPlusIcon} size={28} aria-hidden="true" />
 			<h2>No accounts yet</h2>
-			<p>Sign in with a browser or paste a cookie.</p>
+			<p>Sign in with a browser, paste a cookie, or import an export file.</p>
 			<div class="relative" data-account-menu>
 				<button
 					bind:this={trigger}
@@ -83,7 +90,8 @@
 						disabled={store.busy}
 						anchor={trigger}
 						onPasteCookie={pasteCookie}
-						onBrowser={openBrowser} />
+						onBrowser={openBrowser}
+						onImportFile={importFile} />
 				{/if}
 			</div>
 		{:else}
