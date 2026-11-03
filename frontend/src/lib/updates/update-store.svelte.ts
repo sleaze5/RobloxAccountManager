@@ -2,6 +2,7 @@ import { Events } from "@wailsio/runtime"
 import type { NotificationCenter } from "../notifications/notification-center.svelte"
 import { accountBackend, UpdateStatus } from "../backend/bridge"
 import type { UpdateState } from "../backend/bridge"
+import { errorMessage } from "../shared/errors"
 
 const notificationId = "application-update"
 
@@ -9,12 +10,11 @@ export class UpdateStore {
 	state = $state<UpdateState>({
 		currentVersion: APP_VERSION,
 		downloadedBytes: 0,
-		requiresExport: false,
+		requiresMigration: false,
 		status: UpdateStatus.StatusIdle,
 		totalBytes: 0,
 	})
 	error = $state("")
-	reviewing = $state(false)
 	#notifications: NotificationCenter | null = null
 	#reload: Promise<void> | null = null
 	#queued = false
@@ -58,7 +58,7 @@ export class UpdateStore {
 		if (next.status === UpdateStatus.StatusAvailable && next.error) {
 			this.#notifications?.show({
 				actions: [
-					{ emphasis: true, label: "Retry", onClick: () => this.download() },
+					{ emphasis: true, label: "Retry", onClick: () => this.install() },
 				],
 				id: notificationId,
 				message: next.error,
@@ -70,13 +70,13 @@ export class UpdateStore {
 				actions: [
 					{
 						emphasis: true,
-						label: next.requiresExport ? "Review" : "Download",
-						onClick: () => this.download(),
+						label: "Download",
+						onClick: () => this.install(),
 					},
 				],
 				id: notificationId,
-				message: next.requiresExport
-					? `Version ${version} uses a new vault format. Export your data before you update.`
+				message: next.requiresMigration
+					? `Version ${version} uses a new vault format. Your data moves to it when you restart to update.`
 					: `Version ${version} is available.`,
 				title: "Update available",
 			})
@@ -86,7 +86,9 @@ export class UpdateStore {
 					{ emphasis: true, label: "Restart", onClick: () => this.restart() },
 				],
 				id: notificationId,
-				message: `Restart to install version ${version}.`,
+				message: next.requiresMigration
+					? `Unlock the vault, then restart to install version ${version} and move your data.`
+					: `Restart to install version ${version}.`,
 				title: "Update ready",
 			})
 		} else {
@@ -101,15 +103,9 @@ export class UpdateStore {
 		)
 	}
 
-	async download(): Promise<void> {
-		if (this.state.requiresExport) this.reviewing = true
-		else await this.install(false)
-	}
-
-	async install(exportConfirmed: boolean): Promise<void> {
-		this.reviewing = false
+	async install(): Promise<void> {
 		await this.#run(
-			() => accountBackend.InstallUpdate(exportConfirmed),
+			() => accountBackend.InstallUpdate(),
 			"The update could not be downloaded. Try again.",
 		)
 	}
@@ -122,10 +118,16 @@ export class UpdateStore {
 	}
 
 	async restart(): Promise<void> {
-		await this.#run(
-			() => accountBackend.RestartToUpdate(),
-			"The application could not restart to install the update. Try again.",
-		)
+		this.error = ""
+		try {
+			await accountBackend.RestartToUpdate()
+		} catch (cause) {
+			this.error = errorMessage(
+				cause,
+				"The application could not restart to install the update. Try again.",
+			)
+		}
+		await this.refresh()
 	}
 
 	async #run(action: () => Promise<void>, failure: string): Promise<void> {
