@@ -111,7 +111,9 @@ func (service *Service) GetUpdateState() appupdate.State { return service.update
 
 func (service *Service) CheckForUpdate(ctx context.Context) error { return service.updates.Check(ctx) }
 
-func (service *Service) InstallUpdate(ctx context.Context) error { return service.updates.Install(ctx) }
+func (service *Service) InstallUpdate(ctx context.Context, exportConfirmed bool) error {
+	return service.updates.Install(ctx, exportConfirmed)
+}
 
 func (service *Service) CancelUpdateDownload() { service.updates.CancelDownload() }
 
