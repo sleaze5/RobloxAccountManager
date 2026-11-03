@@ -429,6 +429,13 @@ func (service *Service) ResetVault(confirmation string) error {
 	return service.core.ResetVault()
 }
 
+func (service *Service) SetAsideLegacyVault(confirmation string) error {
+	if confirmation != "CONFIRM" {
+		return &roblox.Error{Kind: roblox.KindProtocol, Endpoint: "vault-legacy", Message: "Type CONFIRM to set the old vault aside."}
+	}
+	return service.core.SetAsideLegacyVault()
+}
+
 func (service *Service) ExportVault(ctx context.Context, passcode, confirmation string) (vault.ExportInfo, error) {
 	if err := service.core.ValidateExportPasscode(passcode, confirmation); err != nil {
 		return vault.ExportInfo{}, err

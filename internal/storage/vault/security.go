@@ -4,7 +4,6 @@ import (
 	"context"
 	"crypto/subtle"
 	"database/sql"
-	"encoding/hex"
 	"errors"
 	"fmt"
 	"os"
@@ -98,14 +97,9 @@ func (manager *Manager) rotateDatabaseKey(ctx context.Context, password, hint st
 			finish()
 		}
 	}()
-	if err := manager.rekeyDatabase(ctx, db, newDEK, identifier); err != nil {
+	if err := manager.replaceDatabaseKey(ctx, db, newDEK, identifier); err != nil {
 		return err
 	}
-	manager.mu.Lock()
-	oldDEK := manager.dek
-	manager.dek = append([]byte(nil), newDEK...)
-	manager.mu.Unlock()
-	wipe(oldDEK)
 	if err := manager.publishRotatedKeys(automaticUnlock); err != nil {
 		return err
 	}
@@ -206,17 +200,83 @@ func (manager *Manager) stageRotatedKeys(keyData, autoData []byte, automaticUnlo
 	return nil
 }
 
-func (manager *Manager) rekeyDatabase(ctx context.Context, db *sql.DB, newDEK []byte, identifier [vaultIDBytes]byte) error {
-	if _, err := db.ExecContext(ctx, `PRAGMA rekey = "x'`+hex.EncodeToString(newDEK)+`'"`); err != nil {
-		return fmt.Errorf("rekey vault database: %w", err)
+// replaceDatabaseKey copies the vault into a database encrypted with newDEK and
+// swaps it into place. Until the swap, the current vault.key opens vault.db.
+// After it, vault.key.next does, so an interrupted rotation recovers on unlock.
+func (manager *Manager) replaceDatabaseKey(ctx context.Context, db *sql.DB, newDEK []byte, identifier [vaultIDBytes]byte) error {
+	next := manager.paths.Vault + ".next"
+	if err := os.Remove(next); err != nil && !errors.Is(err, os.ErrNotExist) {
+		return fmt.Errorf("remove stale rotated vault: %w", err)
 	}
-	if err := verifyOpenDatabase(ctx, db, identifier, manager.logger); err != nil {
-		return fmt.Errorf("verify rekeyed vault database: %w", err)
+	if err := manager.stageRotatedDatabase(ctx, db, next, newDEK, identifier); err != nil {
+		_ = os.Remove(next)
+		return err
 	}
-	if _, err := db.ExecContext(ctx, `UPDATE vault_state SET storage_revision = storage_revision + 1 WHERE singleton = 1`); err != nil {
+	if err := db.Close(); err != nil {
+		_ = os.Remove(next)
+		return manager.reopenAfterFailedRotation(ctx, fmt.Errorf("close vault before rotation: %w", err))
+	}
+	if err := appdata.ReplaceFile(next, manager.paths.Vault); err != nil {
+		_ = os.Remove(next)
+		return manager.reopenAfterFailedRotation(ctx, err)
+	}
+	rotated, err := openAndVerify(ctx, manager.paths.Vault, newDEK, identifier, manager.logger)
+	if err != nil {
+		manager.dropDatabase()
+		return fmt.Errorf("open rotated vault database: %w", err)
+	}
+	manager.mu.Lock()
+	oldDEK := manager.dek
+	manager.db = rotated
+	manager.dek = append([]byte(nil), newDEK...)
+	manager.mu.Unlock()
+	wipe(oldDEK)
+	return nil
+}
+
+func (manager *Manager) stageRotatedDatabase(ctx context.Context, db *sql.DB, path string, newDEK []byte, identifier [vaultIDBytes]byte) error {
+	if err := snapshotDatabase(ctx, db, path, newDEK); err != nil {
+		return err
+	}
+	staged, err := openAndVerify(ctx, path, newDEK, identifier, manager.logger)
+	if err != nil {
+		return fmt.Errorf("verify rotated vault database: %w", err)
+	}
+	if _, err := staged.ExecContext(ctx, `UPDATE vault_state SET storage_revision = storage_revision + 1 WHERE singleton = 1`); err != nil {
+		_ = staged.Close()
 		return fmt.Errorf("record new master password: %w", err)
 	}
-	return nil
+	if err := staged.Close(); err != nil {
+		return fmt.Errorf("close rotated vault database: %w", err)
+	}
+	return appdata.RestrictFile(path)
+}
+
+// reopenAfterFailedRotation reopens vault.db with the current key after the
+// rotation closed it. If that fails too, the vault locks.
+func (manager *Manager) reopenAfterFailedRotation(ctx context.Context, cause error) error {
+	dek, identifier := manager.currentKey()
+	defer wipe(dek)
+	db, err := openAndVerify(ctx, manager.paths.Vault, dek, identifier, manager.logger)
+	if err != nil {
+		manager.dropDatabase()
+		return errors.Join(cause, fmt.Errorf("reopen vault after failed rotation: %w", err))
+	}
+	manager.mu.Lock()
+	manager.db = db
+	manager.mu.Unlock()
+	return cause
+}
+
+func (manager *Manager) dropDatabase() {
+	manager.mu.Lock()
+	dek := manager.dek
+	manager.db = nil
+	manager.dek = nil
+	manager.vaultID = [vaultIDBytes]byte{}
+	manager.unlockedAutomatically = false
+	manager.mu.Unlock()
+	wipe(dek)
 }
 
 func (manager *Manager) publishRotatedKeys(automaticUnlock bool) error {

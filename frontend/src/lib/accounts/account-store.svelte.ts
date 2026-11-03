@@ -533,6 +533,24 @@ export class AccountStore {
 		}
 	}
 
+	async setAsideLegacyVault(confirmation: string): Promise<boolean> {
+		if (this.busy) {
+			return false
+		}
+		this.busy = true
+		this.error = ""
+		try {
+			await accountBackend.SetAsideLegacyVault(confirmation)
+			this.vault = await accountBackend.GetVaultState()
+			return true
+		} catch (error) {
+			this.error = errorMessage(error, operationError)
+			return false
+		} finally {
+			this.busy = false
+		}
+	}
+
 	async refreshAccountList(): Promise<void> {
 		if (!this.vault.unlocked || this.refreshing) return
 		this.refreshing = true

@@ -13,7 +13,13 @@ import (
 )
 
 func (manager *Manager) completeUnlock(ctx context.Context, usedNext bool, password string) error {
-	err := manager.promoteOrDiscardRotation(usedNext)
+	err := os.Remove(manager.paths.Vault + ".next")
+	if errors.Is(err, os.ErrNotExist) {
+		err = nil
+	}
+	if err == nil {
+		err = manager.promoteOrDiscardRotation(usedNext)
+	}
 	if err == nil {
 		err = manager.migrateSchema(ctx)
 	}

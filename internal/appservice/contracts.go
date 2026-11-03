@@ -30,6 +30,7 @@ type Vault interface {
 	ListBackups() ([]vault.BackupInfo, error)
 	RestoreBackup(context.Context, string, string) error
 	ResetVault() error
+	SetAsideLegacyVault() error
 	ExportsDirectory() string
 	DefaultExportName() string
 	WriteExport(string, string, []byte) (vault.ExportInfo, error)

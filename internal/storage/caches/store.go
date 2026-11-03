@@ -14,7 +14,8 @@ import (
 	"sync"
 	"time"
 
-	sqlite3 "github.com/mutecomm/go-sqlcipher/v4"
+	"github.com/ncruces/go-sqlite3"
+	_ "github.com/ncruces/go-sqlite3/driver"
 	"github.com/sleaze5/RobloxAccountManager/internal/games"
 	"github.com/sleaze5/RobloxAccountManager/internal/logging"
 )
@@ -59,8 +60,7 @@ func (store *Store) access(ctx context.Context, action func(*sql.DB) error) {
 		store.retryAt = time.Now().Add(time.Minute)
 		return
 	}
-	var sqliteErr sqlite3.Error
-	if errors.Is(err, errInvalidCache) || errors.As(err, &sqliteErr) && (sqliteErr.Code == sqlite3.ErrCorrupt || sqliteErr.Code == sqlite3.ErrNotADB) {
+	if errors.Is(err, errInvalidCache) || errors.Is(err, sqlite3.CORRUPT) || errors.Is(err, sqlite3.NOTADB) {
 		if removeErr := os.Remove(store.path); removeErr != nil && !errors.Is(removeErr, os.ErrNotExist) {
 			store.logger.WarnContext(ctx, "damaged cache could not be removed; delete caches.db after closing the application", "operation", "cache-recover")
 		}
@@ -121,7 +121,7 @@ func (store *Store) open(ctx context.Context) (err error) {
 		uriPath = "/" + uriPath
 	}
 	u := url.URL{Scheme: "file", Path: uriPath}
-	u.RawQuery = "_busy_timeout=250&_journal_mode=DELETE&_secure_delete=on"
+	u.RawQuery = url.Values{"_pragma": {"busy_timeout(250)", "journal_mode(delete)", "secure_delete(1)"}}.Encode()
 	db, err := sql.Open("sqlite3", u.String())
 	if err != nil {
 		return fmt.Errorf("open public cache: %w", err)

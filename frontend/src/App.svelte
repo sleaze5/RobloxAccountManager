@@ -12,6 +12,7 @@
 	import AppLocationDialog from "./lib/dialogs/AppLocationDialog.svelte"
 	import BrowserImportDialog from "./lib/dialogs/BrowserImportDialog.svelte"
 	import ImportVaultDialog from "./lib/dialogs/ImportVaultDialog.svelte"
+	import LegacyVaultDialog from "./lib/dialogs/LegacyVaultDialog.svelte"
 	import { chooseExportFile } from "./lib/dialogs/vault-transfer"
 	import BrowserRuntimeDialog from "./lib/dialogs/BrowserRuntimeDialog.svelte"
 	import NicknameDialog from "./lib/dialogs/NicknameDialog.svelte"
@@ -630,6 +631,8 @@
 			if (appLocation) appLocation = { ...appLocation, initialized: true }
 			void store.initialize()
 		}} />
+{:else if store.vault.fileState === FileState.FileStateLegacy}
+	<LegacyVaultDialog {store} />
 {:else if !store.vault.unlocked || store.vault.fileState === FileState.FileStateIncomplete}
 	<VaultDialog {store} />
 {/if}

@@ -19,7 +19,7 @@ import (
 )
 
 const (
-	keyFormatVersion  = uint16(1)
+	keyFormatVersion  = uint16(2)
 	autoFormatVersion = uint16(1)
 	dekBytes          = 32
 	vaultIDBytes      = 16
@@ -41,7 +41,9 @@ var (
 	calibrateKDF   = calibrateArgon2
 )
 
-var keyFileDecoders = [...]func([]byte) (keyFile, error){decodeKeyFileV1}
+// Version 1 key files belong to SQLCipher vaults, which this build cannot open.
+// Version 2 keeps the same layout for vaults encrypted with AES-256-XTS.
+var keyFileDecoders = [...]func([]byte) (keyFile, error){decodeLegacyKeyFile, decodeKeyFileV2}
 
 var autoUnlockDecoders = [...]func([]byte) ([vaultIDBytes]byte, []byte, error){decodeAutoUnlockV1}
 
@@ -303,7 +305,9 @@ func decodeKeyFile(data []byte) (keyFile, error) {
 	return keyFileDecoders[version-1](data)
 }
 
-func decodeKeyFileV1(data []byte) (keyFile, error) {
+func decodeLegacyKeyFile([]byte) (keyFile, error) { return keyFile{}, ErrLegacyVault }
+
+func decodeKeyFileV2(data []byte) (keyFile, error) {
 	reader := bytes.NewReader(data)
 	var magic [8]byte
 	var key keyFile

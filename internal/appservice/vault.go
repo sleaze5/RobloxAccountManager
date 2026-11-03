@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/sleaze5/RobloxAccountManager/internal/accounts"
+	"github.com/sleaze5/RobloxAccountManager/internal/roblox"
 	"github.com/sleaze5/RobloxAccountManager/internal/storage/vault"
 )
 
@@ -204,6 +205,9 @@ func (service *Service) ListBackups() ([]vault.BackupInfo, error) { return servi
 
 func (service *Service) RestoreBackup(ctx context.Context, name, password string) error {
 	if err := service.vault.RestoreBackup(ctx, name, password); err != nil {
+		if errors.Is(err, vault.ErrLegacyVault) {
+			return &roblox.Error{Kind: roblox.KindProtocol, Endpoint: "vault-restore", Message: legacyVaultMessage, Cause: err}
+		}
 		return err
 	}
 	service.sessions.ResetBrowserIDs()
@@ -216,5 +220,13 @@ func (service *Service) ResetVault() error {
 		return err
 	}
 	service.sessions.ResetBrowserIDs()
+	return nil
+}
+
+func (service *Service) SetAsideLegacyVault() error {
+	if err := service.vault.SetAsideLegacyVault(); err != nil {
+		service.logger.Error("legacy vault could not be set aside", "operation", "vault-legacy", "error", err)
+		return errors.New("the old vault could not be set aside")
+	}
 	return nil
 }
