@@ -26,7 +26,9 @@
 			case UpdateStatus.StatusUpToDate:
 				return "You have the latest version."
 			case UpdateStatus.StatusAvailable:
-				return `Version ${version} is available.`
+				return update.requiresExport
+					? `Version ${version} uses a new vault format. Export your data before you update.`
+					: `Version ${version} is available.`
 			case UpdateStatus.StatusDownloading:
 				return `Downloading version ${version}.`
 			case UpdateStatus.StatusReady:
@@ -73,11 +75,13 @@
 				{#if update.status === UpdateStatus.StatusAvailable}<button
 						class="btn"
 						type="button"
-						onclick={() => void updateStore.install()}
+						onclick={() => void updateStore.download()}
 						><Icon
 							svg={downloadSimpleIcon}
 							size={16}
-							aria-hidden="true" />Download update</button
+							aria-hidden="true" />{update.requiresExport
+							? "Review update"
+							: "Download update"}</button
 					>{:else if update.status === UpdateStatus.StatusDownloading}<button
 						class="btn"
 						type="button"

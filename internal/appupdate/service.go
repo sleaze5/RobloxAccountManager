@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -20,6 +21,10 @@ import (
 const manifestURL = "https://github.com/sleaze5/RobloxAccountManager/releases/latest/download/manifest.json"
 
 const checkTimeout = 30 * time.Second
+
+// Versions from vaultFormatVersion on cannot open vaults from earlier
+// versions, so users must export their data before they install one.
+var vaultFormatVersion = [3]int{0, 10, 0}
 
 type Status string
 
@@ -37,6 +42,7 @@ type State struct {
 	Status           Status `json:"status"`
 	CurrentVersion   string `json:"currentVersion"`
 	AvailableVersion string `json:"availableVersion,omitempty"`
+	RequiresExport   bool   `json:"requiresExport"`
 	DownloadedBytes  int64  `json:"downloadedBytes"`
 	TotalBytes       int64  `json:"totalBytes"`
 	Error            string `json:"error,omitempty"`
@@ -163,13 +169,32 @@ func (service *Service) finishCheck(release *updater.Release, err error) {
 		service.state = State{Status: StatusUpToDate, CurrentVersion: appmeta.Version}
 	default:
 		service.logger.Info("update available", "operation", "update-check", "version", release.Version)
-		service.state = State{Status: StatusAvailable, CurrentVersion: appmeta.Version, AvailableVersion: release.Version, TotalBytes: release.Artifact.Size}
+		service.state = State{Status: StatusAvailable, CurrentVersion: appmeta.Version, AvailableVersion: release.Version,
+			RequiresExport: requiresExport(release.Version), TotalBytes: release.Artifact.Size}
 	}
 	service.mu.Unlock()
 	service.changed()
 }
 
-func (service *Service) Install(ctx context.Context) error {
+func requiresExport(version string) bool {
+	core, _, _ := strings.Cut(strings.TrimPrefix(version, "v"), "-")
+	parts := strings.Split(core, ".")
+	if len(parts) != len(vaultFormatVersion) {
+		return true
+	}
+	for index, part := range parts {
+		number, err := strconv.Atoi(part)
+		if err != nil {
+			return true
+		}
+		if number != vaultFormatVersion[index] {
+			return number > vaultFormatVersion[index]
+		}
+	}
+	return true
+}
+
+func (service *Service) Install(ctx context.Context, exportConfirmed bool) error {
 	service.mu.Lock()
 	if service.updater == nil {
 		service.mu.Unlock()
@@ -178,6 +203,10 @@ func (service *Service) Install(ctx context.Context) error {
 	if service.state.Status != StatusAvailable {
 		service.mu.Unlock()
 		return errors.New("no update is available to download")
+	}
+	if service.state.RequiresExport && !exportConfirmed {
+		service.mu.Unlock()
+		return errors.New("export your vault data before you download this update")
 	}
 	downloadContext, cancel := context.WithCancel(context.WithoutCancel(ctx))
 	service.cancel = cancel

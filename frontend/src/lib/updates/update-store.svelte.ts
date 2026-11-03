@@ -9,10 +9,12 @@ export class UpdateStore {
 	state = $state<UpdateState>({
 		currentVersion: APP_VERSION,
 		downloadedBytes: 0,
+		requiresExport: false,
 		status: UpdateStatus.StatusIdle,
 		totalBytes: 0,
 	})
 	error = $state("")
+	reviewing = $state(false)
 	#notifications: NotificationCenter | null = null
 	#reload: Promise<void> | null = null
 	#queued = false
@@ -56,7 +58,7 @@ export class UpdateStore {
 		if (next.status === UpdateStatus.StatusAvailable && next.error) {
 			this.#notifications?.show({
 				actions: [
-					{ emphasis: true, label: "Retry", onClick: () => this.install() },
+					{ emphasis: true, label: "Retry", onClick: () => this.download() },
 				],
 				id: notificationId,
 				message: next.error,
@@ -68,12 +70,14 @@ export class UpdateStore {
 				actions: [
 					{
 						emphasis: true,
-						label: "Download",
-						onClick: () => this.install(),
+						label: next.requiresExport ? "Review" : "Download",
+						onClick: () => this.download(),
 					},
 				],
 				id: notificationId,
-				message: `Version ${version} is available.`,
+				message: next.requiresExport
+					? `Version ${version} uses a new vault format. Export your data before you update.`
+					: `Version ${version} is available.`,
 				title: "Update available",
 			})
 		} else if (next.status === UpdateStatus.StatusReady) {
@@ -97,9 +101,15 @@ export class UpdateStore {
 		)
 	}
 
-	async install(): Promise<void> {
+	async download(): Promise<void> {
+		if (this.state.requiresExport) this.reviewing = true
+		else await this.install(false)
+	}
+
+	async install(exportConfirmed: boolean): Promise<void> {
+		this.reviewing = false
 		await this.#run(
-			() => accountBackend.InstallUpdate(),
+			() => accountBackend.InstallUpdate(exportConfirmed),
 			"The update could not be downloaded. Try again.",
 		)
 	}
