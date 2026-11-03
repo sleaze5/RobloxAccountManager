@@ -405,7 +405,7 @@ func (manager *Manager) ResetVault() error {
 	if manager.Unlocked() {
 		return errors.New("lock the vault before resetting it")
 	}
-	for _, path := range []string{manager.paths.Vault, manager.paths.VaultKey, manager.paths.AutoUnlockKey, manager.paths.VaultKey + ".next", manager.paths.AutoUnlockKey + ".next"} {
+	for _, path := range []string{manager.paths.Vault, manager.paths.VaultKey, manager.paths.AutoUnlockKey, manager.paths.Migration, manager.paths.VaultKey + ".next", manager.paths.AutoUnlockKey + ".next"} {
 		if err := os.Remove(path); err != nil && !errors.Is(err, os.ErrNotExist) {
 			return fmt.Errorf("remove %q: %w", fileName(path), err)
 		}

@@ -19,6 +19,7 @@ type Paths struct {
 	Vault           string
 	VaultKey        string
 	AutoUnlockKey   string
+	Migration       string
 	BackupsRoot     string
 	ExportsRoot     string
 	RecoveryRoot    string
@@ -70,6 +71,7 @@ func layout(root string) Paths {
 		Vault:           filepath.Join(vaultRoot, "vault.db"),
 		VaultKey:        filepath.Join(vaultRoot, "vault.key"),
 		AutoUnlockKey:   filepath.Join(vaultRoot, "autounlock.key"),
+		Migration:       filepath.Join(vaultRoot, "migration.bin"),
 		BackupsRoot:     filepath.Join(storageRoot, "backups"),
 		ExportsRoot:     filepath.Join(root, "export"),
 		RecoveryRoot:    filepath.Join(vaultRoot, "recovery"),
