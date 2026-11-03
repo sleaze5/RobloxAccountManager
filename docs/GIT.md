@@ -16,8 +16,8 @@ Always use the writing skill for commit messages, pull request titles, and pull 
     ```markdown
     This was written by `{model_slug}` in `{harness}` on behalf of the author.
     ```
-- Never add chat session links (ie. `claude.ai/code/session_...`, `chatgpt.com/c/...`) to PR or issue titles, descriptions, or comments.
-- Never add AI attribution anywhere else, including commits, code comments, documentation, or subsequent PR messages.
+- Never add chat session links (ie. `claude.ai/code/session_...`, `chatgpt.com/c/...`) to titles, descriptions, or comments.
+- Never add AI attribution anywhere else, including commits, code comments, documentation, or subsequent messages.
 
 ## Merging
 
