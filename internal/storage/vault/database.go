@@ -130,6 +130,9 @@ func (manager *Manager) ValidAutomaticUnlock() bool {
 
 func (manager *Manager) PasswordHint() string {
 	key, err := readKeyFile(manager.paths.VaultKey)
+	if errors.Is(err, ErrLegacyVault) {
+		key, err = readLegacyKeyFile(manager.paths.VaultKey)
+	}
 	if err != nil {
 		return ""
 	}

@@ -7,7 +7,9 @@ import (
 	"time"
 
 	"github.com/sleaze5/RobloxAccountManager/internal/accounts"
+	"github.com/sleaze5/RobloxAccountManager/internal/appsettings"
 	"github.com/sleaze5/RobloxAccountManager/internal/roblox"
+	transferstore "github.com/sleaze5/RobloxAccountManager/internal/storage/transfer"
 	"github.com/sleaze5/RobloxAccountManager/internal/storage/vault"
 )
 
@@ -15,6 +17,7 @@ type VaultState struct {
 	Initialized              bool            `json:"initialized"`
 	Unlocked                 bool            `json:"unlocked"`
 	FileState                vault.FileState `json:"fileState"`
+	MigrationAvailable       bool            `json:"migrationAvailable"`
 	PasswordHint             string          `json:"passwordHint,omitempty"`
 	PasswordReminderDue      bool            `json:"passwordReminderDue"`
 	PasswordTestIntervalDays int             `json:"passwordTestIntervalDays"`
@@ -33,6 +36,7 @@ func (service *Service) GetVaultState() VaultState {
 		Initialized:              service.vault.Initialized(),
 		Unlocked:                 service.vault.Unlocked(),
 		FileState:                service.vault.FileState(),
+		MigrationAvailable:       service.vault.MigrationAvailable(),
 		PasswordHint:             service.vault.PasswordHint(),
 		PasswordReminderDue:      service.reminderDue,
 		PasswordTestIntervalDays: settings.PasswordTestIntervalDays,
@@ -231,5 +235,36 @@ func (service *Service) SetAsideLegacyVault() error {
 		service.logger.Error("legacy vault could not be set aside", "operation", "vault-legacy", "error", err)
 		return errors.New("the old vault could not be set aside")
 	}
+	return nil
+}
+
+// MigrateLegacyVault imports the data that 0.9.2 saved before the update into
+// a new vault, with the same master password as the old vault.
+func (service *Service) MigrateLegacyVault(ctx context.Context, password string) error {
+	var payload transferstore.Payload
+	err := service.vault.MigrateLegacyVault(ctx, password, func(data []byte) error {
+		var err error
+		if payload, err = transferstore.Decode(data); err != nil {
+			return err
+		}
+		_, err = appsettings.Decode(payload.Settings)
+		return err
+	})
+	if err != nil {
+		if errors.Is(err, vault.ErrInvalidPassword) {
+			return safeVaultError(err)
+		}
+		service.logger.Error("legacy vault could not be migrated", "operation", "vault-migration", "error", err)
+		return transferError("Your data could not be moved to the new vault format. Download version 0.9.2 to export it instead.", err)
+	}
+	if _, err := service.transfers.Replace(ctx, payload, pendingSettings(&pendingTransfer{payload: payload}, appsettings.Sections)); err != nil {
+		service.logger.Error("migrated data could not be imported", "operation", "vault-migration", "error", err)
+		return transferError("The new vault was created, but your data could not be imported. The old vault is in the recovery folder in storage/vault.", err)
+	}
+	if err := service.settings.RecordPasswordTested(time.Now()); err != nil {
+		service.logger.Error("record master password after migration failed", "error", err)
+	}
+	service.finishUnlock(false)
+	service.logger.Info("vault data migrated", "operation", "vault-migration", "accounts", len(payload.Accounts))
 	return nil
 }

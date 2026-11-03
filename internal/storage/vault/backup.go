@@ -378,7 +378,7 @@ func (manager *Manager) SetAsideLegacyVault() error {
 		return errors.New("the vault is not from a version before 0.10.0")
 	}
 	if err := manager.quarantineCurrentVault(manager.paths.Vault, manager.paths.VaultKey, manager.paths.AutoUnlockKey,
-		manager.paths.VaultKey+".next", manager.paths.AutoUnlockKey+".next"); err != nil {
+		manager.paths.Migration, manager.paths.VaultKey+".next", manager.paths.AutoUnlockKey+".next"); err != nil {
 		return err
 	}
 	manager.logger.Info("legacy vault set aside", "operation", "vault-legacy")

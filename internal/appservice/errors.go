@@ -49,7 +49,7 @@ func mapRepositoryError(err error) error {
 	}
 }
 
-const legacyVaultMessage = "This vault was created by an older version and cannot be opened. Export it with version 0.9.1, then import the file here."
+const legacyVaultMessage = "This vault was created by an older version and cannot be opened. Update to this version from version 0.9.2 to move your data."
 
 func safeVaultError(err error) error {
 	if errors.Is(err, vault.ErrInvalidPassword) {
