@@ -19,6 +19,7 @@
 	import RobloxSettings from "./RobloxSettings.svelte"
 	import { appSettings } from "./settings-store.svelte"
 	import StorageSettings from "./StorageSettings.svelte"
+	import TransferSettings from "./TransferSettings.svelte"
 	import UpdateSettings from "./UpdateSettings.svelte"
 	import UserInterfaceSettings from "./UserInterfaceSettings.svelte"
 	import VaultSettings from "./VaultSettings.svelte"
@@ -30,7 +31,7 @@
 			icon: keyIcon,
 			id: "vault",
 			label: "Vault",
-			search: "vault security vault status unlocked automatic unlock without master password when the app starts enable disable on off operating system user account lock vault test master password last tested not tested change master password rotate encryption key update password test reminder choose how often asks confirm storage location data folder path copy portable standard move data backups settings restart",
+			search: "vault security vault status unlocked automatic unlock without master password when the app starts enable disable on off operating system user account lock vault test master password last tested not tested change master password rotate encryption key update password test reminder choose how often asks confirm storage location data folder path copy portable standard move data backups settings restart export import encrypted file passcode merge replace favorite places",
 		},
 		{
 			icon: slidersHorizontalIcon,
@@ -172,6 +173,7 @@
 					{#if activeCategory.id === "vault"}
 						<VaultSettings {store} {query} {onLock} />
 						<StorageSettings {store} {notifications} {query} />
+						<TransferSettings {store} {notifications} {query} />
 					{:else if activeCategory.id === "roblox"}
 						<RobloxSettings />
 					{:else if activeCategory.id === "integrations"}

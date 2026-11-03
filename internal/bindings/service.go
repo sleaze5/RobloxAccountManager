@@ -427,6 +427,41 @@ func (service *Service) ResetVault(confirmation string) error {
 	return service.core.ResetVault()
 }
 
+func (service *Service) ExportVault(ctx context.Context, passcode, confirmation string) (vault.ExportInfo, error) {
+	if err := service.core.ValidateExportPasscode(passcode, confirmation); err != nil {
+		return vault.ExportInfo{}, err
+	}
+	path, err := chooseSaveFile(service.core.ExportsDirectory(), service.core.DefaultExportName())
+	if err != nil {
+		return vault.ExportInfo{}, &roblox.Error{Kind: roblox.KindProtocol, Endpoint: "vault-transfer", Message: "The save dialog could not be opened.", Cause: err}
+	}
+	if path == "" {
+		return vault.ExportInfo{}, nil
+	}
+	return service.core.ExportVault(ctx, path, passcode, confirmation)
+}
+
+func (service *Service) ChooseVaultExport() (string, error) {
+	path, err := chooseOpenFile(service.core.ExportsDirectory())
+	if err != nil {
+		return "", &roblox.Error{Kind: roblox.KindProtocol, Endpoint: "vault-transfer", Message: "The open dialog could not be opened.", Cause: err}
+	}
+	return path, nil
+}
+
+func (service *Service) OpenVaultExport(ctx context.Context, path, passcode string) (appservice.TransferPreview, error) {
+	return service.core.OpenVaultExport(ctx, path, passcode)
+}
+
+func (service *Service) ImportVaultExport(ctx context.Context, id string, request appservice.TransferRequest, confirmation string) (appservice.TransferResult, error) {
+	if request.Mode == appservice.TransferOverwrite && confirmation != "CONFIRM" {
+		return appservice.TransferResult{}, &roblox.Error{Kind: roblox.KindProtocol, Endpoint: "vault-transfer", Message: "Type CONFIRM to overwrite the vault."}
+	}
+	return service.core.ImportVaultExport(ctx, id, request)
+}
+
+func (service *Service) DiscardVaultExport(id string) { service.core.DiscardVaultExport(id) }
+
 func (service *Service) ValidateCookies(ctx context.Context, input string) (appservice.ImportPreview, error) {
 	return service.core.ValidateCookies(ctx, input)
 }

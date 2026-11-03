@@ -23,6 +23,8 @@ export type {
 	LaunchResult,
 	RobloxPlayerPathCheck,
 	TimestampFormats,
+	TransferPreview,
+	TransferResult,
 	VaultState,
 	VoiceChat,
 } from "../../../bindings/github.com/sleaze5/RobloxAccountManager/internal/appservice/models.js"
@@ -40,6 +42,7 @@ export { Status as UpdateStatus } from "../../../bindings/github.com/sleaze5/Rob
 export {
 	MotionPreference,
 	PresenceScope,
+	Section as SettingsSection,
 } from "../../../bindings/github.com/sleaze5/RobloxAccountManager/internal/appsettings/models.js"
 export type { PresenceSettings } from "../../../bindings/github.com/sleaze5/RobloxAccountManager/internal/appsettings/models.js"
 export {
@@ -49,6 +52,8 @@ export {
 	ImportStatus,
 	PinState,
 	SocialList,
+	TransferMode,
+	TransferSettingsStatus,
 	VoiceChatState,
 } from "../../../bindings/github.com/sleaze5/RobloxAccountManager/internal/appservice/models.js"
 export {
@@ -66,7 +71,10 @@ export type {
 	TagView,
 } from "../../../bindings/github.com/sleaze5/RobloxAccountManager/internal/accounts/models.js"
 export { FileState } from "../../../bindings/github.com/sleaze5/RobloxAccountManager/internal/storage/vault/models.js"
-export type { BackupInfo } from "../../../bindings/github.com/sleaze5/RobloxAccountManager/internal/storage/vault/models.js"
+export type {
+	BackupInfo,
+	ExportInfo,
+} from "../../../bindings/github.com/sleaze5/RobloxAccountManager/internal/storage/vault/models.js"
 export type {
 	AvatarHeadshotView,
 	TextFilter,

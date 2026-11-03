@@ -10,9 +10,9 @@ import (
 	"github.com/sleaze5/RobloxAccountManager/internal/logging"
 )
 
-const schemaVersion = 4
+const schemaVersion = 5
 
-var schemaMigrations = [...]func(context.Context, *sql.Tx) error{addAccountPasswords, splitPublicMetadata, restoreAccountNames}
+var schemaMigrations = [...]func(context.Context, *sql.Tx) error{addAccountPasswords, splitPublicMetadata, restoreAccountNames, addPendingSettingsImport}
 
 var _ = [1]struct{}{}[len(schemaMigrations)-(schemaVersion-1)]
 
@@ -174,6 +174,20 @@ func verifySchema(ctx context.Context, db *sql.DB, expectedID [vaultIDBytes]byte
 func restoreAccountNames(ctx context.Context, tx *sql.Tx) error {
 	if _, err := tx.ExecContext(ctx, `ALTER TABLE accounts ADD COLUMN username TEXT NOT NULL DEFAULT ''; ALTER TABLE accounts ADD COLUMN display_name TEXT NOT NULL DEFAULT '';`); err != nil {
 		return fmt.Errorf("restore account identity columns: %w", err)
+	}
+	return nil
+}
+
+// addPendingSettingsImport stores imported settings in the same transaction as the imported vault data,
+// so the application can finish saving them after a crash.
+func addPendingSettingsImport(ctx context.Context, tx *sql.Tx) error {
+	if _, err := tx.ExecContext(ctx, `
+CREATE TABLE pending_settings_import (
+    singleton   INTEGER PRIMARY KEY CHECK (singleton = 1),
+    settings    TEXT NOT NULL,
+    sections    TEXT NOT NULL
+)`); err != nil {
+		return fmt.Errorf("add pending settings import: %w", err)
 	}
 	return nil
 }

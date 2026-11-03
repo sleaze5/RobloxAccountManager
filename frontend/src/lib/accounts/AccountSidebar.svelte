@@ -27,12 +27,14 @@
 		onAddAccount,
 		onManageTags,
 		onBrowser,
+		onImportFile,
 	}: {
 		store: AccountStore
 		workspace: WorkspaceState
 		onAddAccount: () => void
 		onManageTags: () => void
 		onBrowser: (accountId: number | null) => void
+		onImportFile: () => void
 	} = $props()
 	let filterTrigger = $state<HTMLButtonElement>()
 
@@ -60,6 +62,10 @@
 	function openBrowser(): void {
 		workspace.closeAccountMenus()
 		onBrowser(null)
+	}
+	function importFile(): void {
+		workspace.closeAccountMenus()
+		onImportFile()
 	}
 </script>
 
@@ -151,7 +157,8 @@
 					<AddAccountMenu
 						disabled={store.busy}
 						onPasteCookie={pasteCookie}
-						onBrowser={openBrowser} />
+						onBrowser={openBrowser}
+						onImportFile={importFile} />
 				{/if}
 			</div>
 			<div class="flex items-center gap-1">

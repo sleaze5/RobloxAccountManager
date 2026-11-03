@@ -44,6 +44,20 @@ The vault holds account data. Never replace vault data with defaults or delete i
 - Rewrite an older `vault.key` only after a password unlock, because the key file version is authenticated together with the wrapped database key.
 - If a key file rewrite fails, log it and continue the unlock. The older file stays readable.
 
+### Export files
+
+An export file holds the vault data and settings so that the user can import them into any vault on any supported operating system. The user chooses where to save it and which file to open in the operating system's file dialogs. Both dialogs start in `export/` in the data root. The application creates that folder before it opens a dialog, and starts in the data root if it cannot.
+
+- Keep everything an import needs inside the file. Do not depend on the file name, timestamps, permissions, or other filesystem metadata, because they can change when the file moves between computers or file systems. Write every number in a fixed byte order.
+- `internal/storage/vault` owns the encrypted file format. Every version starts with the same prefix: the magic, the format version, and the creation time. The creation time never depends on filesystem timestamps. The rest of the version 1 header holds the Argon2id parameters, the salt, and the nonce. AES-256-GCM encrypts the data and authenticates the whole header. The passcode follows the master password rules.
+- `internal/storage/transfer` owns the JSON data inside the file. Each migration transforms the raw JSON object of one version into the raw JSON object of the next version. The settings inside keep their own version and use the settings migrations.
+- Export every portable setting, including options for other operating systems. Leave out values that belong to one computer, such as the Roblox Player path. On import, save options for other operating systems without using them.
+- Import decrypts, migrates, and validates the data in memory before it writes anything.
+- Import writes the vault data and the selected settings in one vault transaction. The settings go into the `pending_settings_import` table. After the commit, the application saves them to `settings.json` and clears the table. If that fails, or the application stops first, it saves them after the next unlock.
+- Before an Overwrite import, back up the current vault. If the backup fails, import nothing.
+- Reject a file or data version that is newer than the supported version, and tell the user to update the application.
+- Keep every export decoder and migration, because an export file can exist indefinitely.
+
 ## Logging
 
 - Log only through `internal/logging`. Do not create independent loggers or write log files directly.

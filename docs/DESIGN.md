@@ -105,7 +105,7 @@ Scripts find elements through data attributes, never through class names, becaus
 
 The user must never see UI that looks or behaves like an exposed embedded browser. Everything the frontend shows must look intentionally designed as part of the application.
 
-- After the frontend is ready, keep every user-facing interaction inside the WebView UI. Native operating-system UI is acceptable only during startup, before the frontend can show its own UI.
+- After the frontend is ready, keep every user-facing interaction inside the WebView UI. Native operating-system UI is acceptable only during startup, before the frontend can show its own UI, and for the operating system's file dialogs when the user chooses where to save or which file to open.
 - Do not use `alert()`, `confirm()`, or `prompt()`. Use the application's dialogs and notifications.
 - Do not use the `title` attribute for tooltips. Use `data-tooltip` (and optionally `data-tooltip-side`, and `data-tooltip-strong` to bold one part of the text), which `lib/shared/Tooltip.svelte` renders.
 - Add `novalidate` to every `<form>`. Show validation errors in the application UI, not in browser validation popups.
