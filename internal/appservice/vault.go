@@ -74,6 +74,9 @@ func (service *Service) UnlockVault(ctx context.Context, password string) error 
 
 func (service *Service) finishUnlock(automatic bool) {
 	service.sessions.Unlock()
+	if err := service.vault.RemoveMigration(); err != nil {
+		service.logger.Warn("stale vault migration file could not be removed", "operation", "vault-migration", "error", err)
+	}
 	if err := service.applyPendingSettings(service.lifecycle); err != nil {
 		service.logger.Warn("imported settings could not be saved after unlock", "operation", "vault-import", "error", err)
 	}

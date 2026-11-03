@@ -24,14 +24,12 @@
 	import RobloxLaunchDialog from "./lib/dialogs/RobloxLaunchDialog.svelte"
 	import RenewCookieDialog from "./lib/dialogs/RenewCookieDialog.svelte"
 	import TestMasterPasswordDialog from "./lib/dialogs/TestMasterPasswordDialog.svelte"
-	import UpdateExportDialog from "./lib/dialogs/UpdateExportDialog.svelte"
 	import VaultDialog from "./lib/dialogs/VaultDialog.svelte"
 	import {
 		accountBackend,
 		FileState,
 		LaunchMethod,
 		RuntimeStatus,
-		UpdateStatus,
 	} from "./lib/backend/bridge"
 	import type { AppLocation, ShutdownEffects, SocialUser } from "./lib/backend/bridge"
 	import { browserStore } from "./lib/browser/browser-store.svelte"
@@ -698,13 +696,6 @@
 		accounts={store}
 		notifications={notificationCenter}
 		onClose={() => (activeDialog = null)} />
-{/if}
-
-{#if updateStore.reviewing && updateStore.state.status === UpdateStatus.StatusAvailable}
-	<UpdateExportDialog
-		{store}
-		notifications={notificationCenter}
-		onClose={() => (updateStore.reviewing = false)} />
 {/if}
 
 {#if activeDialog === "browser-runtime"}

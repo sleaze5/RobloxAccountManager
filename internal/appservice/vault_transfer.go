@@ -100,22 +100,9 @@ func (service *Service) ExportVault(ctx context.Context, path, passcode, confirm
 	if err := service.ValidateExportPasscode(passcode, confirmation); err != nil {
 		return vault.ExportInfo{}, err
 	}
-	payload, err := service.transfers.Read(ctx)
+	data, err := service.exportData(ctx, "vault-export")
 	if err != nil {
-		if errors.Is(err, vault.ErrLocked) {
-			return vault.ExportInfo{}, mapRepositoryError(err)
-		}
-		service.logger.Error("vault data could not be read for export", "operation", "vault-export", "error", err)
-		return vault.ExportInfo{}, transferError("The vault data could not be read.", err)
-	}
-	if payload.Settings, err = service.settings.Export(); err != nil {
-		service.logger.Error("settings could not be read for export", "operation", "vault-export", "error", err)
-		return vault.ExportInfo{}, transferError("The settings could not be read.", err)
-	}
-	data, err := transferstore.Encode(payload)
-	if err != nil {
-		service.logger.Error("export data could not be encoded", "operation", "vault-export", "error", err)
-		return vault.ExportInfo{}, transferError("The export could not be created.", err)
+		return vault.ExportInfo{}, err
 	}
 	defer clear(data)
 	info, err := service.vault.WriteExport(path, passcode, data)
@@ -123,8 +110,48 @@ func (service *Service) ExportVault(ctx context.Context, path, passcode, confirm
 		service.logger.Error("export file could not be written", "operation", "vault-export", "error", err)
 		return vault.ExportInfo{}, transferError("The export file could not be saved. Check that the folder is writable and has free space, then try again.", err)
 	}
-	service.logger.Info("vault exported", "operation", "vault-export", "accounts", len(payload.Accounts), "tags", len(payload.Tags), "favorite_places", len(payload.FavoritePlaces))
+	service.logger.Info("vault exported", "operation", "vault-export")
 	return info, nil
+}
+
+// PrepareVaultMigration writes the migration file that the next version
+// imports, because that version cannot read this vault format.
+func (service *Service) PrepareVaultMigration(ctx context.Context) error {
+	if !service.vault.Unlocked() {
+		return transferError("Unlock the vault before you restart to update.", vault.ErrLocked)
+	}
+	data, err := service.exportData(ctx, "vault-migration")
+	if err != nil {
+		return err
+	}
+	defer clear(data)
+	if err := service.vault.WriteMigration(data); err != nil {
+		service.logger.Error("vault migration file could not be written", "operation", "vault-migration", "error", err)
+		return transferError("Your data could not be prepared for the update. Check that the data folder has free space, then try again.", err)
+	}
+	return nil
+}
+
+func (service *Service) exportData(ctx context.Context, operation string) ([]byte, error) {
+	payload, err := service.transfers.Read(ctx)
+	if err != nil {
+		if errors.Is(err, vault.ErrLocked) {
+			return nil, mapRepositoryError(err)
+		}
+		service.logger.Error("vault data could not be read", "operation", operation, "error", err)
+		return nil, transferError("The vault data could not be read.", err)
+	}
+	if payload.Settings, err = service.settings.Export(); err != nil {
+		service.logger.Error("settings could not be read", "operation", operation, "error", err)
+		return nil, transferError("The settings could not be read.", err)
+	}
+	data, err := transferstore.Encode(payload)
+	if err != nil {
+		service.logger.Error("vault data could not be encoded", "operation", operation, "error", err)
+		return nil, transferError("The vault data could not be encoded.", err)
+	}
+	service.logger.Info("vault data read", "operation", operation, "accounts", len(payload.Accounts), "tags", len(payload.Tags), "favorite_places", len(payload.FavoritePlaces))
+	return data, nil
 }
 
 func (service *Service) OpenVaultExport(ctx context.Context, path, passcode string) (TransferPreview, error) {

@@ -35,6 +35,8 @@ type Vault interface {
 	DefaultExportName() string
 	WriteExport(string, string, []byte) (vault.ExportInfo, error)
 	ReadExport(string, string) (vault.ExportInfo, []byte, error)
+	WriteMigration([]byte) error
+	RemoveMigration() error
 }
 
 type AccountRepository interface {
