@@ -55,10 +55,14 @@ func (manager *Manager) MigrateLegacyVault(ctx context.Context, password string,
 		return err
 	}
 	automaticUnlock := fileExists(manager.paths.AutoUnlockKey)
-	if err := manager.SetAsideLegacyVault(); err != nil {
+	recovery, err := manager.setAsideLegacyVault()
+	if err != nil {
 		return err
 	}
 	if err := manager.Create(ctx, password, legacy.Hint, automaticUnlock); err != nil {
+		if restoreErr := manager.restoreLegacyVault(recovery); restoreErr != nil {
+			return errors.Join(err, restoreErr)
+		}
 		return err
 	}
 	manager.logger.Info("legacy vault migrated", "operation", "vault-migration", "automatic_unlock", automaticUnlock)

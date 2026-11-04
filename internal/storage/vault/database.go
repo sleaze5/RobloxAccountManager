@@ -551,11 +551,9 @@ func databaseDSN(path string, dek []byte) (string, error) {
 		return "", err
 	}
 	defer wipe(key)
-	uriPath := filepath.ToSlash(path)
-	if filepath.VolumeName(path) != "" && !strings.HasPrefix(uriPath, "/") {
-		uriPath = "/" + uriPath
-	}
-	u := &url.URL{Scheme: "file", Path: uriPath}
+	// The SQLite VFS opens the URI path as is, so a Windows path keeps its drive
+	// letter first, as in file:C:/Users/..., without a leading slash.
+	u := &url.URL{Scheme: "file", Opaque: (&url.URL{Path: filepath.ToSlash(path)}).EscapedPath()}
 	query := url.Values{}
 	query.Set("vfs", "xts")
 	query.Set("hexkey", hex.EncodeToString(key))

@@ -10,7 +10,6 @@ import (
 	"net/url"
 	"os"
 	"path/filepath"
-	"strings"
 	"sync"
 	"time"
 
@@ -116,11 +115,9 @@ func (store *Store) open(ctx context.Context) (err error) {
 	if err := os.MkdirAll(filepath.Dir(store.path), 0o700); err != nil {
 		return fmt.Errorf("create cache directory: %w", err)
 	}
-	uriPath := filepath.ToSlash(store.path)
-	if filepath.VolumeName(store.path) != "" && !strings.HasPrefix(uriPath, "/") {
-		uriPath = "/" + uriPath
-	}
-	u := url.URL{Scheme: "file", Path: uriPath}
+	// The SQLite VFS opens the URI path as is, so a Windows path keeps its drive
+	// letter first, as in file:C:/Users/..., without a leading slash.
+	u := url.URL{Scheme: "file", Opaque: (&url.URL{Path: filepath.ToSlash(store.path)}).EscapedPath()}
 	u.RawQuery = url.Values{"_pragma": {"busy_timeout(250)", "journal_mode(delete)", "secure_delete(1)"}}.Encode()
 	db, err := sql.Open("sqlite3", u.String())
 	if err != nil {
