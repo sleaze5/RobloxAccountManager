@@ -374,6 +374,7 @@ The Animations setting in Settings > User Interface chooses System (the default)
 
 `lib/shared/motion.ts` resolves the setting and sets the `data-reduced-motion` attribute on the root element. `base.css` defines the reduced-motion guard for that attribute and redefines Tailwind's `motion-safe` and `motion-reduce` variants to follow it, and `presence.ts` reads it through `reducedMotion()`. Define the guard only once, and do not query `prefers-reduced-motion` anywhere else. Under reduced motion:
 
-- Exits complete immediately.
+- Keep opacity and color transitions at their normal durations, so that state changes still fade instead of snapping.
+- Remove all movement: transforms, scale, slides, hover nudges, and press feedback apply instantly or not at all.
 - The spinner stops but stays visible as a static busy indicator: `motion-reduce:animate-none`.
 - Selected, expanded, loading, success, warning, and error states stay understandable without animation.

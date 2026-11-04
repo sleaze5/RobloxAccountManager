@@ -133,12 +133,23 @@
 	}
 }
 
+:root[data-reduced-motion] {
+	--animate-enter: fade var(--duration-fast) var(--ease-out);
+	--animate-pop: fade var(--duration-fast) var(--ease-out);
+	--animate-bloom: fade var(--duration-enter) var(--ease-out);
+}
+
 :root[data-reduced-motion],
 :root[data-reduced-motion] *,
 :root[data-reduced-motion] ::before,
 :root[data-reduced-motion] ::after {
-	animation-duration: 0.01ms !important;
-	animation-iteration-count: 1 !important;
 	scroll-behavior: auto !important;
-	transition-duration: 0.01ms !important;
+	transition-property: color, background-color, border-color, opacity !important;
+}
+
+:root[data-reduced-motion] :is(:active, [data-turn], [data-nudge]),
+:root[data-reduced-motion] button:hover :is([data-turn], [data-nudge]) {
+	rotate: none !important;
+	scale: none !important;
+	translate: none !important;
 }
