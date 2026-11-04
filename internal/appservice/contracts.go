@@ -33,8 +33,9 @@ type Vault interface {
 	SetAsideLegacyVault() error
 	ExportsDirectory() string
 	DefaultExportName() string
-	WriteExport(string, string, []byte) (vault.ExportInfo, error)
+	WriteExport(string, string, string, []byte) (vault.ExportInfo, error)
 	ReadExport(string, string) (vault.ExportInfo, []byte, error)
+	ReadExportHint(string) (string, error)
 	RemoveMigration() error
 	MigrationAvailable() bool
 	MigrateLegacyVault(context.Context, string, func([]byte) error) error

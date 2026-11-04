@@ -75,7 +75,8 @@
 			},
 		fileGroup = $props.id()
 	let file = $state(untrack(() => path)),
-		passcode = $state(""),
+		password = $state(""),
+		hint = $state(""),
 		preview = $state<TransferPreview | null>(null),
 		mode = $state(TransferMode.TransferOverwrite),
 		selectedAccounts = $state<number[]>([]),
@@ -136,6 +137,20 @@
 			})),
 		)
 
+	$effect(() => {
+		void loadHint(file)
+	})
+
+	async function loadHint(target: string): Promise<void> {
+		hint = ""
+		try {
+			const value = await accountBackend.GetExportHint(target)
+			if (file === target) hint = value
+		} catch {
+			hint = ""
+		}
+	}
+
 	async function changeFile(): Promise<void> {
 		const next = await chooseExportFile(notifications)
 		if (!next) return
@@ -147,8 +162,8 @@
 		opening = true
 		error = ""
 		try {
-			preview = await accountBackend.OpenVaultExport(file, passcode)
-			passcode = ""
+			preview = await accountBackend.OpenVaultExport(file, password)
+			password = ""
 			selectedAccounts = (preview.accounts ?? []).map(
 				(account) => account.robloxUserId,
 			)
@@ -253,7 +268,8 @@
 					{:else if preview}
 						Exported <Timestamp value={preview.exportedAtMs} />.
 					{:else}
-						Enter the passcode that was set when this file was exported.
+						Enter the export password that was set when this file was
+						exported.
 					{/if}
 				</p>
 			</div>
@@ -468,14 +484,17 @@
 						onclick={() => void changeFile()}>Change file</button>
 				</div>
 				<label class="dialog-field">
-					<span>Passcode</span>
+					<span>Export password</span>
 					<input
-						bind:value={passcode}
+						bind:value={password}
 						type="password"
 						autocomplete="off"
 						disabled={opening}
 						required />
 				</label>
+				{#if hint}
+					<div class="mt-3 notice-note">Hint: {hint}</div>
+				{/if}
 				{#if error}
 					<div class="mt-3 notice-error" role="alert">{error}</div>
 				{/if}
@@ -485,7 +504,7 @@
 					<button
 						class="btn-primary"
 						type="submit"
-						disabled={!passcode || busy}
+						disabled={!password || busy}
 						>{opening ? "Opening…" : "Open export"}</button>
 				</div>
 			</form>
