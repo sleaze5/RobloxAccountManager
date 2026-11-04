@@ -57,10 +57,10 @@
 		<div class="settings-rows">
 			<div class="settings-row">
 				<div class="settings-row-copy">
-					<strong id="rovalra-enabled">Enabled</strong>
+					<strong id="rovalra-enabled">Server data</strong>
 					<span id="rovalra-description"
-						>Enable this to show more server information in the server
-						browser and add other features.</span>
+						>Show server regions and ages, and fill the nearest server from
+						the launch panel.</span>
 				</div>
 				<label class="switch">
 					<input

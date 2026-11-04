@@ -89,9 +89,12 @@ export function modalCardOut(node: Element): TransitionConfig {
 	})
 }
 
-export function tooltipIn(node: Element): TransitionConfig {
+export function tooltipIn(
+	node: Element,
+	{ instant = false }: { instant?: boolean } = {},
+): TransitionConfig {
 	return motion({
-		duration: tokenDuration(node, "--duration-fast", 100),
+		duration: instant ? 0 : tokenDuration(node, "--duration-fast", 100),
 		easing: sharp,
 		scale: tokenNumber(node, "--motion-scale", 0.99),
 		y: tokenNumber(node, "--motion-distance", 2),

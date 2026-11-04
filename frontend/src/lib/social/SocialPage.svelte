@@ -583,9 +583,10 @@
 		</div>
 	</div>
 	<footer
-		class="flex h-6 shrink-0 items-center justify-between border-t border-line-subtle bg-surface pl-3 font-mono text-2xs text-fg-faint"
+		class="flex h-6 shrink-0 items-center justify-between border-t border-line-subtle bg-surface pl-3 text-2xs text-fg-faint"
 		aria-label="Social status">
-		<span aria-live="polite">User: {selected ? personName(selected) : "None"}</span>
+		<span aria-live="polite"
+			>{selected ? `User: ${personName(selected)}` : "No user selected"}</span>
 		{#if store.page}
 			<span class="truncate pr-3">{statusSummary()}</span>
 		{/if}

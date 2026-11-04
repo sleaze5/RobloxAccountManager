@@ -129,6 +129,12 @@
 		searchInput?.focus()
 	}
 
+	async function searchGames(): Promise<void> {
+		store.show("search")
+		await tick()
+		searchInput?.focus()
+	}
+
 	onMount(() => store.revalidate())
 	onDestroy(() => store.closeMenu())
 
@@ -479,7 +485,15 @@
 								size={28}
 								aria-hidden="true" />
 							<h2>No favorite places yet</h2>
-							<p>Right-click a game and add it to your favorites.</p>
+							<p>Search for a game, then add it to your favorites.</p>
+							<button
+								class="btn"
+								type="button"
+								onclick={() => void searchGames()}
+								><Icon
+									svg={magnifyingGlassIcon}
+									size={16}
+									aria-hidden="true" />Search games</button>
 						{:else}<Icon svg={starIcon} size={28} aria-hidden="true" />
 							<h2>Select a favorite place</h2>
 							<p>Choose a place to see its details.</p>{/if}
@@ -521,15 +535,20 @@
 		</div>
 	</div>
 	<footer
-		class="flex h-6 shrink-0 items-center justify-between border-t border-line-subtle bg-surface pl-3 font-mono text-2xs text-fg-faint"
+		class="flex h-6 shrink-0 items-center justify-between border-t border-line-subtle bg-surface pl-3 text-2xs text-fg-faint"
 		aria-label="Game list">
 		{#if store.selected}
-			<span>Place ID: {store.selected.placeId}</span>
+			<span
+				>Place ID: <span class="font-mono">{store.selected.placeId}</span
+				></span>
 			<div class="flex items-center gap-4 pr-3">
-				<span>Universe ID: {store.selected.universeId}</span>
+				<span
+					>Universe ID: <span class="font-mono"
+						>{store.selected.universeId}</span
+					></span>
 			</div>
 		{:else}
-			<span>Place: None</span>
+			<span>No place selected</span>
 		{/if}
 	</footer>
 </main>

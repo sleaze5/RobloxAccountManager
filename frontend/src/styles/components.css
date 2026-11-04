@@ -288,7 +288,7 @@
 }
 
 @utility dialog-card {
-	@apply max-h-full w-full max-w-sm overflow-x-hidden overflow-y-auto rounded-xl border border-line bg-overlay p-4 shadow-float;
+	@apply max-h-full w-full max-w-sm overflow-x-hidden overflow-y-auto overscroll-contain rounded-xl border border-line bg-overlay p-4 shadow-float;
 
 	:where(&) h2 {
 		@apply text-base font-semibold text-fg;
@@ -355,6 +355,10 @@
 
 @utility text-block {
 	@apply max-w-2xl rounded-lg border border-line bg-fill px-3 py-2 font-mono text-xs leading-5 wrap-anywhere whitespace-pre-wrap text-fg select-text;
+
+	&[data-variant="prose"] {
+		@apply font-sans text-sm leading-normal;
+	}
 }
 
 @utility spinner {
@@ -424,19 +428,35 @@
 }
 
 @utility settings-section {
-	@apply flex w-full animate-enter flex-col gap-2;
+	@apply flex w-full shrink-0 animate-enter flex-col overflow-hidden rounded-lg border border-line bg-surface;
 
 	:where(&) > h3 {
-		@apply px-1 text-xs font-semibold text-fg-muted;
+		@apply border-b border-line-subtle px-3 py-2.5 text-sm font-semibold text-fg;
+	}
+
+	:where(&) > :not(h3, .settings-rows, form) {
+		@apply mx-3 mt-3 last:mb-3;
+	}
+
+	:where(&) > .facts {
+		@apply my-1;
+	}
+
+	:where(&) > :not(h3, .settings-rows) + :is(.settings-rows, form) {
+		@apply mt-3 border-t border-line-subtle;
+	}
+
+	:where(&) > .settings-rows + .settings-rows {
+		@apply border-t border-line-subtle;
 	}
 }
 
 @utility settings-rows {
-	@apply border-t border-line-subtle;
+	@apply flex flex-col;
 }
 
 @utility settings-row {
-	@apply flex min-h-11 items-center justify-between gap-4 border-b border-line-subtle px-1 py-2;
+	@apply flex min-h-11 items-center justify-between gap-4 border-b border-line-subtle px-3 py-2.5 last:border-b-0;
 }
 
 @utility settings-row-copy {
