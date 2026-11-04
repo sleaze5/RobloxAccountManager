@@ -6,14 +6,13 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"log/slog"
 	"os"
 	"path/filepath"
 	"sort"
 	"strings"
 	"time"
 
-	sqlite3 "github.com/mutecomm/go-sqlcipher/v4"
+	sqlite3driver "github.com/ncruces/go-sqlite3/driver"
 	"github.com/sleaze5/RobloxAccountManager/internal/appdata"
 )
 
@@ -86,7 +85,7 @@ func (manager *Manager) writeBackup(ctx context.Context, db *sql.DB) error {
 		}
 	}()
 	destination := filepath.Join(temporary, "vault.db")
-	if err := snapshotDatabase(ctx, db, destination, dek, manager.logger); err != nil {
+	if err := snapshotDatabase(ctx, db, destination, dek); err != nil {
 		return err
 	}
 	if err := appdata.RestrictFile(destination); err != nil {
@@ -113,53 +112,41 @@ func (manager *Manager) writeBackup(ctx context.Context, db *sql.DB) error {
 	return manager.trimBackups()
 }
 
-func snapshotDatabase(ctx context.Context, source *sql.DB, destinationPath string, dek []byte, logger *slog.Logger) error {
-	destination, err := openDatabase(ctx, destinationPath, dek, logger)
+func snapshotDatabase(ctx context.Context, source *sql.DB, destinationPath string, dek []byte) error {
+	destination, err := databaseDSN(destinationPath, dek)
 	if err != nil {
 		return err
 	}
-	defer func() { _ = destination.Close() }()
 	sourceConn, err := source.Conn(ctx)
 	if err != nil {
 		return fmt.Errorf("open backup source: %w", err)
 	}
 	defer func() { _ = sourceConn.Close() }()
-	destinationConn, err := destination.Conn(ctx)
-	if err != nil {
-		return fmt.Errorf("open backup destination: %w", err)
-	}
-	defer func() { _ = destinationConn.Close() }()
-	err = sourceConn.Raw(func(sourceDriver any) error {
-		sourceSQLite, ok := sourceDriver.(*sqlite3.SQLiteConn)
+	err = sourceConn.Raw(func(driverConn any) error {
+		sourceSQLite, ok := driverConn.(sqlite3driver.Conn)
 		if !ok {
-			return errors.New("SQLCipher backup source is unavailable")
+			return errors.New("SQLite backup source is unavailable")
 		}
-		return destinationConn.Raw(func(destinationDriver any) error {
-			destinationSQLite, ok := destinationDriver.(*sqlite3.SQLiteConn)
-			if !ok {
-				return errors.New("SQLCipher backup destination is unavailable")
+		backup, err := sourceSQLite.Raw().BackupInit("main", destination)
+		if err != nil {
+			return fmt.Errorf("start SQLite backup: %w", err)
+		}
+		for {
+			done, stepErr := backup.Step(128)
+			if stepErr != nil {
+				_ = backup.Close()
+				return fmt.Errorf("copy SQLite backup pages: %w", stepErr)
 			}
-			backup, err := destinationSQLite.Backup("main", sourceSQLite, "main")
-			if err != nil {
-				return fmt.Errorf("start SQLite backup: %w", err)
+			if done {
+				return backup.Close()
 			}
-			for {
-				done, stepErr := backup.Step(128)
-				if stepErr != nil {
-					_ = backup.Close()
-					return fmt.Errorf("copy SQLite backup pages: %w", stepErr)
-				}
-				if done {
-					return backup.Close()
-				}
-				select {
-				case <-ctx.Done():
-					_ = backup.Close()
-					return ctx.Err()
-				case <-time.After(5 * time.Millisecond):
-				}
+			select {
+			case <-ctx.Done():
+				_ = backup.Close()
+				return ctx.Err()
+			case <-time.After(5 * time.Millisecond):
 			}
-		})
+		}
 	})
 	if err != nil {
 		return fmt.Errorf("copy vault snapshot: %w", err)
@@ -191,6 +178,9 @@ func (manager *Manager) ListBackups() ([]BackupInfo, error) {
 			continue
 		}
 		if !fileExists(filepath.Join(manager.paths.BackupsRoot, entry.Name(), "vault.db")) || !fileExists(filepath.Join(manager.paths.BackupsRoot, entry.Name(), "vault.key")) {
+			continue
+		}
+		if _, err := readKeyFile(filepath.Join(manager.paths.BackupsRoot, entry.Name(), "vault.key")); errors.Is(err, ErrLegacyVault) {
 			continue
 		}
 		result = append(result, BackupInfo{Name: entry.Name(), CreatedAtMS: created.UnixMilli()})
@@ -298,7 +288,7 @@ func (manager *Manager) RestoreBackup(ctx context.Context, name, password string
 	if err := os.Remove(manager.paths.AutoUnlockKey); err != nil && !errors.Is(err, os.ErrNotExist) {
 		return fmt.Errorf("remove automatic unlock file: %w", err)
 	}
-	if err := manager.quarantineCurrentVault(); err != nil {
+	if _, err := manager.quarantineCurrentVault(manager.paths.Vault, manager.paths.VaultKey); err != nil {
 		return err
 	}
 	if err := copyPrivateFile(filepath.Join(backup, "vault.db"), manager.paths.Vault); err != nil {
@@ -359,21 +349,73 @@ func copyPrivateFile(source, destination string) error {
 	return appdata.RestrictFile(destination)
 }
 
-func (manager *Manager) quarantineCurrentVault() error {
+func (manager *Manager) quarantineCurrentVault(sources ...string) (string, error) {
 	if err := appdata.PreparePrivateDirectory(manager.paths.RecoveryRoot); err != nil {
-		return err
+		return "", err
 	}
 	recovery := filepath.Join(manager.paths.RecoveryRoot, time.Now().UTC().Format(backupTimeFormat))
 	if err := appdata.PreparePrivateDirectory(recovery); err != nil {
-		return err
+		return "", err
 	}
-	for _, source := range []string{manager.paths.Vault, manager.paths.VaultKey} {
+	for _, source := range sources {
 		if !fileExists(source) {
 			continue
 		}
 		if err := os.Rename(source, filepath.Join(recovery, filepath.Base(source))); err != nil {
-			return fmt.Errorf("quarantine current %q: %w", filepath.Base(source), err)
+			return "", fmt.Errorf("quarantine current %q: %w", filepath.Base(source), err)
 		}
 	}
+	return recovery, nil
+}
+
+func (manager *Manager) legacyVaultFiles() []string {
+	return []string{manager.paths.Vault, manager.paths.VaultKey, manager.paths.AutoUnlockKey, manager.paths.Migration,
+		manager.paths.VaultKey + ".next", manager.paths.AutoUnlockKey + ".next"}
+}
+
+// SetAsideLegacyVault moves a vault from a version before 0.10.0 into the
+// recovery folder, so a new vault can be created. Nothing is deleted.
+func (manager *Manager) SetAsideLegacyVault() error {
+	_, err := manager.setAsideLegacyVault()
+	return err
+}
+
+func (manager *Manager) setAsideLegacyVault() (string, error) {
+	if manager.Unlocked() {
+		return "", errors.New("lock the vault before setting it aside")
+	}
+	if manager.FileState() != FileStateLegacy {
+		return "", errors.New("the vault is not from a version before 0.10.0")
+	}
+	recovery, err := manager.quarantineCurrentVault(manager.legacyVaultFiles()...)
+	if err != nil {
+		return "", err
+	}
+	manager.logger.Info("legacy vault set aside", "operation", "vault-legacy")
+	return recovery, nil
+}
+
+// restoreLegacyVault moves a legacy vault back from the recovery folder after
+// a migration failed to create the new vault.
+func (manager *Manager) restoreLegacyVault(recovery string) error {
+	if fileExists(manager.paths.Vault) || fileExists(manager.paths.VaultKey) {
+		return errors.New("a vault exists, so the old vault stays in the recovery folder")
+	}
+	if err := manager.removeManaged(manager.paths.CreateStaging, manager.paths.VaultRoot); err != nil {
+		return fmt.Errorf("remove vault staging data: %w", err)
+	}
+	for _, destination := range manager.legacyVaultFiles() {
+		source := filepath.Join(recovery, filepath.Base(destination))
+		if !fileExists(source) {
+			continue
+		}
+		if err := os.Rename(source, destination); err != nil {
+			return fmt.Errorf("restore %q: %w", filepath.Base(destination), err)
+		}
+	}
+	if err := os.Remove(recovery); err != nil {
+		manager.logger.Warn("empty recovery folder could not be removed", "operation", "vault-legacy", "error", err)
+	}
+	manager.logger.Info("legacy vault restored from the recovery folder", "operation", "vault-legacy")
 	return nil
 }

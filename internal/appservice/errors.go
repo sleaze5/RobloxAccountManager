@@ -49,6 +49,8 @@ func mapRepositoryError(err error) error {
 	}
 }
 
+const legacyVaultMessage = "This vault was created by an older version and cannot be opened. Update to this version from version 0.9.2 to move your data."
+
 func safeVaultError(err error) error {
 	if errors.Is(err, vault.ErrInvalidPassword) {
 		return &roblox.Error{
@@ -61,6 +63,8 @@ func safeVaultError(err error) error {
 	switch {
 	case errors.Is(err, vault.ErrIncomplete):
 		message = "The vault files are incomplete. Restore a backup or reset the vault."
+	case errors.Is(err, vault.ErrLegacyVault):
+		message = legacyVaultMessage
 	case errors.Is(err, vault.ErrUnsupportedVersion):
 		message = "The vault key-file version is unsupported. Restore a compatible backup."
 	case errors.Is(err, vault.ErrUnsupportedSchema):

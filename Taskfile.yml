@@ -166,7 +166,7 @@ tasks:
                   ARCH: amd64
 
     build:windows-arm64:
-        desc: Cross-compile the Windows ARM64 executable. Runs on x64 Windows with llvm-mingw. Needs the production frontend from frontend:build.
+        desc: Cross-compile the Windows ARM64 executable. Runs on Windows. Needs the production frontend from frontend:build.
         preconditions:
             - sh: test -s frontend/dist/index.html
               msg: The production frontend is missing. Run the build task, or frontend:build first.

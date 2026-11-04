@@ -19,7 +19,7 @@ import (
 )
 
 const (
-	keyFormatVersion  = uint16(1)
+	keyFormatVersion  = uint16(2)
 	autoFormatVersion = uint16(1)
 	dekBytes          = 32
 	vaultIDBytes      = 16
@@ -41,7 +41,9 @@ var (
 	calibrateKDF   = calibrateArgon2
 )
 
-var keyFileDecoders = [...]func([]byte) (keyFile, error){decodeKeyFileV1}
+// Version 1 key files belong to SQLCipher vaults, which this build cannot open.
+// Version 2 keeps the same layout for vaults encrypted with AES-256-XTS.
+var keyFileDecoders = [...]func([]byte) (keyFile, error){decodeLegacyKeyFile, decodeKeyFileFields}
 
 var autoUnlockDecoders = [...]func([]byte) ([vaultIDBytes]byte, []byte, error){decodeAutoUnlockV1}
 
@@ -303,7 +305,22 @@ func decodeKeyFile(data []byte) (keyFile, error) {
 	return keyFileDecoders[version-1](data)
 }
 
-func decodeKeyFileV1(data []byte) (keyFile, error) {
+func decodeLegacyKeyFile([]byte) (keyFile, error) { return keyFile{}, ErrLegacyVault }
+
+// readLegacyKeyFile reads a version 1 key file, which has the same fields as
+// version 2, so a legacy vault key can still be unwrapped for migration.
+func readLegacyKeyFile(path string) (keyFile, error) {
+	data, err := readBounded(path, keyFileLimit)
+	if err != nil {
+		return keyFile{}, err
+	}
+	if len(data) < len(keyMagic)+2 || !bytes.Equal(data[:len(keyMagic)], keyMagic[:]) || binary.BigEndian.Uint16(data[len(keyMagic):]) != 1 {
+		return keyFile{}, errors.New("vault key file is not from a version before 0.10.0")
+	}
+	return decodeKeyFileFields(data)
+}
+
+func decodeKeyFileFields(data []byte) (keyFile, error) {
 	reader := bytes.NewReader(data)
 	var magic [8]byte
 	var key keyFile

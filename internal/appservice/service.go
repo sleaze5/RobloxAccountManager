@@ -137,7 +137,7 @@ func (service *Service) Start(ctx context.Context) error {
 		} else {
 			service.finishUnlock(true)
 		}
-	} else if !errors.Is(err, vault.ErrNotInitialized) && !errors.Is(err, vault.ErrLocked) {
+	} else if !errors.Is(err, vault.ErrNotInitialized) && !errors.Is(err, vault.ErrLocked) && !errors.Is(err, vault.ErrLegacyVault) {
 		message := "Automatic unlock failed. Enter the master password to recover the vault."
 		switch {
 		case errors.Is(err, vault.ErrIncomplete):

@@ -22,9 +22,9 @@
 		searchTerms = $derived(query.trim().toLowerCase().split(/\s+/).filter(Boolean))
 
 	const exportTerms =
-			"encrypted file passcode accounts saved passwords tags favorite places settings backup move computer save",
+			"encrypted file password hint accounts saved passwords tags favorite places settings backup move computer save",
 		importTerms =
-			"merge overwrite export file passcode accounts cookies tags favorite places settings open"
+			"merge overwrite export file password hint accounts cookies tags favorite places settings open"
 
 	function matches(name: string, description: string): boolean {
 		const text = `vault transfer export import ${name} ${description}`.toLowerCase()
@@ -45,8 +45,8 @@
 					<div class="settings-row-copy">
 						<strong>Export vault data</strong>
 						<span
-							>Save accounts, tags, favorite places, and settings to an
-							encrypted file.</span>
+							>Save accounts, saved passwords, tags, favorite places, and
+							settings to an encrypted file.</span>
 					</div>
 					<button
 						class="btn"

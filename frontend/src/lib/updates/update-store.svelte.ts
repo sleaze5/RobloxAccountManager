@@ -2,7 +2,6 @@ import { Events } from "@wailsio/runtime"
 import type { NotificationCenter } from "../notifications/notification-center.svelte"
 import { accountBackend, UpdateStatus } from "../backend/bridge"
 import type { UpdateState } from "../backend/bridge"
-import { errorMessage } from "../shared/errors"
 
 const notificationId = "application-update"
 
@@ -10,7 +9,6 @@ export class UpdateStore {
 	state = $state<UpdateState>({
 		currentVersion: APP_VERSION,
 		downloadedBytes: 0,
-		requiresMigration: false,
 		status: UpdateStatus.StatusIdle,
 		totalBytes: 0,
 	})
@@ -75,9 +73,7 @@ export class UpdateStore {
 					},
 				],
 				id: notificationId,
-				message: next.requiresMigration
-					? `Version ${version} uses a new vault format. Your data moves to it when you restart to update.`
-					: `Version ${version} is available.`,
+				message: `Version ${version} is available.`,
 				title: "Update available",
 			})
 		} else if (next.status === UpdateStatus.StatusReady) {
@@ -86,9 +82,7 @@ export class UpdateStore {
 					{ emphasis: true, label: "Restart", onClick: () => this.restart() },
 				],
 				id: notificationId,
-				message: next.requiresMigration
-					? `Unlock the vault, then restart to install version ${version} and move your data.`
-					: `Restart to install version ${version}.`,
+				message: `Restart to install version ${version}.`,
 				title: "Update ready",
 			})
 		} else {
@@ -118,16 +112,10 @@ export class UpdateStore {
 	}
 
 	async restart(): Promise<void> {
-		this.error = ""
-		try {
-			await accountBackend.RestartToUpdate()
-		} catch (cause) {
-			this.error = errorMessage(
-				cause,
-				"The application could not restart to install the update. Try again.",
-			)
-		}
-		await this.refresh()
+		await this.#run(
+			() => accountBackend.RestartToUpdate(),
+			"The application could not restart to install the update. Try again.",
+		)
 	}
 
 	async #run(action: () => Promise<void>, failure: string): Promise<void> {

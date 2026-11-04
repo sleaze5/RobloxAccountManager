@@ -73,6 +73,7 @@ export type {
 export { FileState } from "../../../bindings/github.com/sleaze5/RobloxAccountManager/internal/storage/vault/models.js"
 export type {
 	BackupInfo,
+	ExportDetails,
 	ExportInfo,
 } from "../../../bindings/github.com/sleaze5/RobloxAccountManager/internal/storage/vault/models.js"
 export type {

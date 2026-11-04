@@ -42,6 +42,7 @@ export class AccountStore {
 		fileState: FileState.$zero,
 		initialized: false,
 		lastPasswordTestedAt: "",
+		migrationAvailable: false,
 		passwordReminderDue: false,
 		passwordTestIntervalDays: 30,
 		unlocked: false,
@@ -524,6 +525,43 @@ export class AccountStore {
 		this.error = ""
 		try {
 			await accountBackend.ResetVault(confirmation)
+			this.vault = await accountBackend.GetVaultState()
+			return true
+		} catch (error) {
+			this.error = errorMessage(error, operationError)
+			return false
+		} finally {
+			this.busy = false
+		}
+	}
+
+	async migrateLegacyVault(password: string): Promise<boolean> {
+		if (this.busy) {
+			return false
+		}
+		this.busy = true
+		this.error = ""
+		try {
+			await accountBackend.MigrateLegacyVault(password)
+			this.vault = await accountBackend.GetVaultState()
+			await this.refreshAccounts()
+			return true
+		} catch (error) {
+			this.error = errorMessage(error, operationError)
+			return false
+		} finally {
+			this.busy = false
+		}
+	}
+
+	async setAsideLegacyVault(confirmation: string): Promise<boolean> {
+		if (this.busy) {
+			return false
+		}
+		this.busy = true
+		this.error = ""
+		try {
+			await accountBackend.SetAsideLegacyVault(confirmation)
 			this.vault = await accountBackend.GetVaultState()
 			return true
 		} catch (error) {

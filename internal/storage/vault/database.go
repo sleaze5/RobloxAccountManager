@@ -1,12 +1,16 @@
 package vault
 
 import (
+	"bytes"
 	"context"
+	"crypto/hkdf"
+	"crypto/sha256"
 	"crypto/subtle"
 	"database/sql"
 	"encoding/hex"
 	"errors"
 	"fmt"
+	"io"
 	"log/slog"
 	"net/url"
 	"os"
@@ -15,7 +19,8 @@ import (
 	"sync"
 	"time"
 
-	_ "github.com/mutecomm/go-sqlcipher/v4"
+	_ "github.com/ncruces/go-sqlite3/driver"
+	_ "github.com/ncruces/go-sqlite3/vfs/xts"
 	"github.com/sleaze5/RobloxAccountManager/internal/appdata"
 	"github.com/sleaze5/RobloxAccountManager/internal/logging"
 	"github.com/sleaze5/RobloxAccountManager/internal/platform/protection"
@@ -27,6 +32,7 @@ var (
 	ErrNotInitialized             = errors.New("vault is not initialized")
 	ErrInvalidPassword            = errors.New("master password or vault key data is incorrect")
 	ErrUnsupportedVersion         = errors.New("unsupported key-file version")
+	ErrLegacyVault                = errors.New("vault was created by a version before 0.10.0")
 	ErrUnsupportedSchema          = errors.New("unsupported vault schema")
 	ErrVaultMismatch              = errors.New("database and key identifiers do not match")
 	ErrAutomaticUnlockUnavailable = errors.New("automatic unlock is unavailable for this user")
@@ -40,6 +46,7 @@ const (
 	FileStateEmpty      FileState = "empty"
 	FileStateReady      FileState = "ready"
 	FileStateIncomplete FileState = "incomplete"
+	FileStateLegacy     FileState = "legacy"
 )
 
 const lockTimeout = 5 * time.Second
@@ -74,8 +81,12 @@ func (manager *Manager) FileState() FileState {
 		return FileStateEmpty
 	}
 	if database && key && !staged {
-		if _, err := readKeyFile(manager.paths.VaultKey); err == nil {
+		_, err := readKeyFile(manager.paths.VaultKey)
+		switch {
+		case err == nil:
 			return FileStateReady
+		case errors.Is(err, ErrLegacyVault):
+			return FileStateLegacy
 		}
 		return FileStateIncomplete
 	}
@@ -119,6 +130,9 @@ func (manager *Manager) ValidAutomaticUnlock() bool {
 
 func (manager *Manager) PasswordHint() string {
 	key, err := readKeyFile(manager.paths.VaultKey)
+	if errors.Is(err, ErrLegacyVault) {
+		key, err = readLegacyKeyFile(manager.paths.VaultKey)
+	}
 	if err != nil {
 		return ""
 	}
@@ -234,7 +248,7 @@ func (manager *Manager) AutoUnlock(ctx context.Context) error {
 		}
 		return ErrLocked
 	}
-	if errors.Is(keyErr, ErrUnsupportedVersion) {
+	if errors.Is(keyErr, ErrUnsupportedVersion) || errors.Is(keyErr, ErrLegacyVault) {
 		return keyErr
 	}
 	usedNext := false
@@ -405,7 +419,7 @@ func (manager *Manager) ResetVault() error {
 	if manager.Unlocked() {
 		return errors.New("lock the vault before resetting it")
 	}
-	for _, path := range []string{manager.paths.Vault, manager.paths.VaultKey, manager.paths.AutoUnlockKey, manager.paths.Migration, manager.paths.VaultKey + ".next", manager.paths.AutoUnlockKey + ".next"} {
+	for _, path := range []string{manager.paths.Vault, manager.paths.VaultKey, manager.paths.AutoUnlockKey, manager.paths.Migration, manager.paths.Vault + ".next", manager.paths.VaultKey + ".next", manager.paths.AutoUnlockKey + ".next"} {
 		if err := os.Remove(path); err != nil && !errors.Is(err, os.ErrNotExist) {
 			return fmt.Errorf("remove %q: %w", fileName(path), err)
 		}
@@ -453,7 +467,11 @@ func verifyOpenDatabase(ctx context.Context, db *sql.DB, identifier [vaultIDByte
 }
 
 func openDatabase(ctx context.Context, path string, dek []byte, logger *slog.Logger) (*sql.DB, error) {
-	db, err := sql.Open("sqlite3", databaseDSN(path, dek))
+	dsn, err := databaseDSN(path, dek)
+	if err != nil {
+		return nil, err
+	}
+	db, err := sql.Open("sqlite3", dsn)
 	if err != nil {
 		return nil, fmt.Errorf("open encrypted vault: %w", err)
 	}
@@ -466,26 +484,21 @@ func openDatabase(ctx context.Context, path string, dek []byte, logger *slog.Log
 	}
 	openCtx, cancel := context.WithTimeout(ctx, 15*time.Second)
 	defer cancel()
-	var cipherVersion string
-	if err := db.QueryRowContext(openCtx, `PRAGMA cipher_version`).Scan(&cipherVersion); err != nil || cipherVersion == "" {
-		return closeOnError(errors.New("SQLCipher support is unavailable"))
-	}
 	var sqliteVersion string
 	if err := db.QueryRowContext(openCtx, `SELECT sqlite_version()`).Scan(&sqliteVersion); err != nil {
 		return closeOnError(fmt.Errorf("read SQLite version: %w", err))
 	}
-	logging.Diagnostic(logger, "database engine loaded", "operation", "vault-load", "sqlite_version", sqliteVersion, "sqlcipher_version", cipherVersion)
+	logging.Diagnostic(logger, "database engine loaded", "operation", "vault-load", "sqlite_version", sqliteVersion, "encryption", "aes-256-xts")
 	if err := db.QueryRowContext(openCtx, `SELECT count(*) FROM sqlite_master`).Scan(new(int)); err != nil {
 		return closeOnError(fmt.Errorf("verify encrypted vault key: %w", err))
 	}
-	var foreignKeys, pageSize, secureDelete int
+	if err := requireEncrypted(path); err != nil {
+		return closeOnError(err)
+	}
+	var foreignKeys, secureDelete int
 	var journalMode string
 	if err := db.QueryRowContext(openCtx, `PRAGMA foreign_keys`).Scan(&foreignKeys); err != nil || foreignKeys != 1 {
 		return closeOnError(errors.New("foreign key enforcement is unavailable"))
-	}
-	// The vault uses the SQLCipher 4 default page size of 4096 bytes.
-	if err := db.QueryRowContext(openCtx, `PRAGMA cipher_page_size`).Scan(&pageSize); err != nil || pageSize != 4096 {
-		return closeOnError(errors.New("SQLCipher page size is unsupported"))
 	}
 	if err := db.QueryRowContext(openCtx, `PRAGMA secure_delete`).Scan(&secureDelete); err != nil || secureDelete != 1 {
 		return closeOnError(errors.New("secure deletion is unavailable"))
@@ -496,23 +509,57 @@ func openDatabase(ctx context.Context, path string, dek []byte, logger *slog.Log
 	return db, nil
 }
 
-func databaseDSN(path string, dek []byte) string {
-	uriPath := filepath.ToSlash(path)
-	if filepath.VolumeName(path) != "" && !strings.HasPrefix(uriPath, "/") {
-		uriPath = "/" + uriPath
+// requireEncrypted rejects a database file that SQLite wrote without the
+// encrypting VFS, because its first bytes would be the plaintext header.
+func requireEncrypted(path string) error {
+	file, err := os.Open(path)
+	if errors.Is(err, os.ErrNotExist) {
+		return nil
 	}
-	u := &url.URL{Scheme: "file", Path: uriPath}
-	query := u.Query()
-	query.Set("_pragma_key", "x'"+hex.EncodeToString(dek)+"'")
-	query.Set("_pragma_cipher_compatibility", "4")
-	query.Set("_pragma_cipher_page_size", "4096")
-	query.Set("_pragma_cipher_memory_security", "ON")
-	query.Set("_busy_timeout", "5000")
-	query.Set("_foreign_keys", "on")
-	query.Set("_journal_mode", "DELETE")
-	query.Set("_secure_delete", "on")
+	if err != nil {
+		return fmt.Errorf("open vault database: %w", err)
+	}
+	defer func() { _ = file.Close() }()
+	header := make([]byte, len(plaintextHeader))
+	if _, err := io.ReadFull(file, header); err != nil {
+		if errors.Is(err, io.EOF) || errors.Is(err, io.ErrUnexpectedEOF) {
+			return nil
+		}
+		return fmt.Errorf("read vault database header: %w", err)
+	}
+	if bytes.Equal(header, plaintextHeader) {
+		return errors.New("vault database is not encrypted")
+	}
+	return nil
+}
+
+var plaintextHeader = []byte("SQLite format 3\x00")
+
+// databaseKey derives the 64-byte AES-256-XTS key for vault.db from the
+// vault key, which stays 32 bytes so the key files keep their format.
+func databaseKey(dek []byte) ([]byte, error) {
+	key, err := hkdf.Key(sha256.New, dek, nil, "RobloxAccountManager vault.db AES-256-XTS", 64)
+	if err != nil {
+		return nil, fmt.Errorf("derive vault database key: %w", err)
+	}
+	return key, nil
+}
+
+func databaseDSN(path string, dek []byte) (string, error) {
+	key, err := databaseKey(dek)
+	if err != nil {
+		return "", err
+	}
+	defer wipe(key)
+	// The SQLite VFS opens the URI path as is, so a Windows path keeps its drive
+	// letter first, as in file:C:/Users/..., without a leading slash.
+	u := &url.URL{Scheme: "file", Opaque: (&url.URL{Path: filepath.ToSlash(path)}).EscapedPath()}
+	query := url.Values{}
+	query.Set("vfs", "xts")
+	query.Set("hexkey", hex.EncodeToString(key))
+	query["_pragma"] = []string{"busy_timeout(5000)", "foreign_keys(1)", "journal_mode(delete)", "secure_delete(1)", "temp_store(memory)"}
 	u.RawQuery = query.Encode()
-	return u.String()
+	return u.String(), nil
 }
 
 func (manager *Manager) stageCreatedVault(ctx context.Context, identifier [vaultIDBytes]byte, dek, encodedKey, encodedAuto []byte, automaticUnlock bool) error {

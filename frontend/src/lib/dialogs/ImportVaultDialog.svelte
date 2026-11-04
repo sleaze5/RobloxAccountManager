@@ -1,5 +1,10 @@
 <script lang="ts">
 	import checkBoldIcon from "@phosphor-icons/core/bold/check-bold.svg?raw"
+	import checkCircleIcon from "@phosphor-icons/core/regular/check-circle.svg?raw"
+	import eyeIcon from "@phosphor-icons/core/regular/eye.svg?raw"
+	import eyeSlashIcon from "@phosphor-icons/core/regular/eye-slash.svg?raw"
+	import stackIcon from "@phosphor-icons/core/regular/stack.svg?raw"
+	import warningCircleIcon from "@phosphor-icons/core/regular/warning-circle.svg?raw"
 	import fileArrowDownIcon from "@phosphor-icons/core/regular/file-arrow-down.svg?raw"
 	import xIcon from "@phosphor-icons/core/regular/x.svg?raw"
 	import Icon from "../shared/Icon.svelte"
@@ -12,6 +17,7 @@
 		SettingsSection,
 		TransferMode,
 		TransferSettingsStatus,
+		type ExportDetails,
 		type TransferPreview,
 		type TransferResult,
 	} from "../backend/bridge"
@@ -75,7 +81,9 @@
 			},
 		fileGroup = $props.id()
 	let file = $state(untrack(() => path)),
-		passcode = $state(""),
+		password = $state(""),
+		details = $state<ExportDetails | null>(null),
+		visible = $state(false),
 		preview = $state<TransferPreview | null>(null),
 		mode = $state(TransferMode.TransferOverwrite),
 		selectedAccounts = $state<number[]>([]),
@@ -89,6 +97,7 @@
 		card = $state<HTMLDivElement>()
 
 	const busy = $derived(opening || importing),
+		readable = $derived(details?.supported === true),
 		name = $derived(fileName(file)),
 		folder = $derived(file.slice(0, Math.max(file.length - name.length - 1, 0))),
 		accounts = $derived(preview?.accounts ?? []),
@@ -136,6 +145,21 @@
 			})),
 		)
 
+	$effect(() => {
+		void loadDetails(file)
+	})
+
+	async function loadDetails(target: string): Promise<void> {
+		details = null
+		try {
+			const value = await accountBackend.GetExportDetails(target)
+			if (file === target) details = value
+		} catch (cause) {
+			if (file === target)
+				error = errorMessage(cause, "The export file could not be read.")
+		}
+	}
+
 	async function changeFile(): Promise<void> {
 		const next = await chooseExportFile(notifications)
 		if (!next) return
@@ -147,8 +171,8 @@
 		opening = true
 		error = ""
 		try {
-			preview = await accountBackend.OpenVaultExport(file, passcode)
-			passcode = ""
+			preview = await accountBackend.OpenVaultExport(file, password)
+			password = ""
 			selectedAccounts = (preview.accounts ?? []).map(
 				(account) => account.robloxUserId,
 			)
@@ -253,7 +277,8 @@
 					{:else if preview}
 						Exported <Timestamp value={preview.exportedAtMs} />.
 					{:else}
-						Enter the passcode that was set when this file was exported.
+						Enter the export password that was set when this file was
+						exported.
 					{/if}
 				</p>
 			</div>
@@ -467,15 +492,74 @@
 						disabled={busy}
 						onclick={() => void changeFile()}>Change file</button>
 				</div>
+				{#if details}
+					<dl class="mt-3 facts" aria-label="Export file format">
+						<div data-tone={details.supported ? "success" : "warning"}>
+							<dt>
+								<Icon
+									svg={details.supported
+										? checkCircleIcon
+										: warningCircleIcon}
+									size={16}
+									aria-hidden="true" />File format
+							</dt>
+							<dd>
+								<span>Version {details.formatVersion}</span>
+								<small
+									>{details.supported
+										? "Supported"
+										: "Not supported"}</small>
+							</dd>
+						</div>
+						<div>
+							<dt>
+								<Icon
+									svg={stackIcon}
+									size={16}
+									aria-hidden="true" />Supported formats
+							</dt>
+							<dd>
+								<span
+									>{details.minFormatVersion ===
+									details.maxFormatVersion
+										? `Version ${details.maxFormatVersion}`
+										: `Versions ${details.minFormatVersion}–${details.maxFormatVersion}`}</span>
+							</dd>
+						</div>
+					</dl>
+					{#if !details.supported}
+						<div class="mt-3 notice-error" role="alert">
+							This export was made by a newer version of the app. Update
+							the app to import it.
+						</div>
+					{/if}
+				{/if}
 				<label class="dialog-field">
-					<span>Passcode</span>
+					<span>Export password</span>
 					<input
-						bind:value={passcode}
-						type="password"
+						bind:value={password}
+						type={visible ? "text" : "password"}
 						autocomplete="off"
-						disabled={opening}
+						disabled={opening || !readable}
 						required />
 				</label>
+				<button
+					class="mt-2 flex items-center gap-1 py-1 text-xs text-fg-muted transition-colors duration-100 *:animate-pop"
+					type="button"
+					aria-pressed={visible}
+					disabled={!readable}
+					onclick={() => (visible = !visible)}>
+					{#if visible}<Icon
+							svg={eyeSlashIcon}
+							size={16}
+							aria-hidden="true" /> Hide password{:else}<Icon
+							svg={eyeIcon}
+							size={16}
+							aria-hidden="true" /> Show password{/if}
+				</button>
+				{#if details?.hint}
+					<div class="mt-3 notice-note">Hint: {details.hint}</div>
+				{/if}
 				{#if error}
 					<div class="mt-3 notice-error" role="alert">{error}</div>
 				{/if}
@@ -485,7 +569,7 @@
 					<button
 						class="btn-primary"
 						type="submit"
-						disabled={!passcode || busy}
+						disabled={!password || busy || !readable}
 						>{opening ? "Opening…" : "Open export"}</button>
 				</div>
 			</form>

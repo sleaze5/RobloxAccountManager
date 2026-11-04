@@ -29,7 +29,8 @@ jobs:
         runs-on: ${{ startsWith(inputs.targets, 'windows-') && 'windows-2025' || startsWith(inputs.targets, 'darwin-') && 'macos-15' || 'ubuntu-24.04' }}
         timeout-minutes: 45
         env:
-            CGO_ENABLED: "1"
+            # Windows needs no C compiler. Linux and macOS use cgo for the system web view.
+            CGO_ENABLED: ${{ startsWith(inputs.targets, 'windows-') && '0' || '1' }}
             TARGETS: ${{ inputs.targets }}
         steps:
             - name: Check out
@@ -51,18 +52,11 @@ jobs:
                   name: ${{ inputs.frontend-artifact }}
                   path: frontend
 
-            - name: Set up ARM64 compiler
-              if: contains(inputs.targets, 'windows-arm64')
-              uses: ./.github/actions/setup-llvm-mingw
-
             - name: Build
               if: runner.os == 'Windows'
               shell: pwsh
               run: |
-                  $path = $env:PATH
                   foreach ($target in $env:TARGETS -split " ") {
-                      # Append, so gcc still resolves to the runner's x64 MinGW.
-                      $env:PATH = if ($target -eq "windows-arm64") { "$path;$env:LLVM_MINGW_BIN" } else { $path }
                       go tool -modfile build/tools/go.mod task "build:$target"
                       if ($LASTEXITCODE -ne 0) {
                           throw "Build $target failed with exit code $LASTEXITCODE"

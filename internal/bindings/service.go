@@ -116,11 +116,6 @@ func (service *Service) InstallUpdate(ctx context.Context) error { return servic
 func (service *Service) CancelUpdateDownload() { service.updates.CancelDownload() }
 
 func (service *Service) RestartToUpdate(ctx context.Context) error {
-	if state := service.updates.State(); state.Status == appupdate.StatusReady && state.RequiresMigration {
-		if err := service.core.PrepareVaultMigration(ctx); err != nil {
-			return err
-		}
-	}
 	return service.updates.Restart(ctx)
 }
 
@@ -432,8 +427,19 @@ func (service *Service) ResetVault(confirmation string) error {
 	return service.core.ResetVault()
 }
 
-func (service *Service) ExportVault(ctx context.Context, passcode, confirmation string) (vault.ExportInfo, error) {
-	if err := service.core.ValidateExportPasscode(passcode, confirmation); err != nil {
+func (service *Service) MigrateLegacyVault(ctx context.Context, password string) error {
+	return service.core.MigrateLegacyVault(ctx, password)
+}
+
+func (service *Service) SetAsideLegacyVault(confirmation string) error {
+	if confirmation != "CONFIRM" {
+		return &roblox.Error{Kind: roblox.KindProtocol, Endpoint: "vault-legacy", Message: "Type CONFIRM to set the old vault aside."}
+	}
+	return service.core.SetAsideLegacyVault()
+}
+
+func (service *Service) ExportVault(ctx context.Context, password, confirmation, hint string) (vault.ExportInfo, error) {
+	if err := service.core.ValidateExportPassword(password, confirmation, hint); err != nil {
 		return vault.ExportInfo{}, err
 	}
 	path, err := chooseSaveFile(service.core.ExportsDirectory(), service.core.DefaultExportName())
@@ -443,7 +449,7 @@ func (service *Service) ExportVault(ctx context.Context, passcode, confirmation 
 	if path == "" {
 		return vault.ExportInfo{}, nil
 	}
-	return service.core.ExportVault(ctx, path, passcode, confirmation)
+	return service.core.ExportVault(ctx, path, password, confirmation, hint)
 }
 
 func (service *Service) ChooseVaultExport() (string, error) {
@@ -454,8 +460,12 @@ func (service *Service) ChooseVaultExport() (string, error) {
 	return path, nil
 }
 
-func (service *Service) OpenVaultExport(ctx context.Context, path, passcode string) (appservice.TransferPreview, error) {
-	return service.core.OpenVaultExport(ctx, path, passcode)
+func (service *Service) GetExportDetails(path string) (vault.ExportDetails, error) {
+	return service.core.ExportDetails(path)
+}
+
+func (service *Service) OpenVaultExport(ctx context.Context, path, password string) (appservice.TransferPreview, error) {
+	return service.core.OpenVaultExport(ctx, path, password)
 }
 
 func (service *Service) ImportVaultExport(ctx context.Context, id string, request appservice.TransferRequest, confirmation string) (appservice.TransferResult, error) {
