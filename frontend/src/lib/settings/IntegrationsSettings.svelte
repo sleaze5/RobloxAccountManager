@@ -2,6 +2,7 @@
 	import arrowsClockwiseIcon from "@phosphor-icons/core/regular/arrows-clockwise.svg?raw"
 	import Icon from "../shared/Icon.svelte"
 	import ConnectionHosts from "./ConnectionHosts.svelte"
+	import SectionLink from "./SectionLink.svelte"
 	import { untrack } from "svelte"
 	import Select from "../shared/Select.svelte"
 	import type { SettingsStore } from "./settings-store.svelte"
@@ -54,7 +55,10 @@
 		</div>{/if}
 
 	<section class="settings-section" aria-labelledby="rovalra-title">
-		<h3 id="rovalra-title">RoValra API</h3>
+		<h3 class="flex items-center justify-between gap-2">
+			<span id="rovalra-title">RoValra API</span>
+			<SectionLink label="Open RoValra website" url="https://www.rovalra.com/" />
+		</h3>
 		<div class="settings-rows">
 			<div class="settings-row">
 				<div class="settings-row-copy">

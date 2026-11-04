@@ -10,6 +10,7 @@
 	import type { ShutdownEffects } from "../backend/bridge"
 	import { formatCompactBytes } from "../shared/bytes"
 	import ConnectionHosts from "./ConnectionHosts.svelte"
+	import SectionLink from "./SectionLink.svelte"
 	import SettingsStatus from "./SettingsStatus.svelte"
 	import {
 		modalBackdropIn,
@@ -102,7 +103,12 @@
 
 {#if visible}
 	<section class="settings-section" aria-labelledby="browser-runtime-title">
-		<h3 id="browser-runtime-title">Browser</h3>
+		<h3 class="flex items-center justify-between gap-2">
+			<span id="browser-runtime-title">Browser</span>
+			<SectionLink
+				label="Open Chrome for Testing website"
+				url="https://googlechromelabs.github.io/chrome-for-testing/" />
+		</h3>
 		{#if browser.error || runtime.error}<div class="notice-error" role="alert">
 				{browser.error || runtime.error}
 			</div>{/if}
