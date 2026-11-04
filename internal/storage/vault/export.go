@@ -17,7 +17,7 @@ import (
 )
 
 const (
-	exportFormatVersion = uint16(1)
+	exportFormatVersion = uint16(2)
 	exportFileLimit     = 64 * 1024 * 1024
 	exportExtension     = ".ramexport"
 	exportNamePrefix    = "RobloxAccountManager-"
@@ -26,17 +26,21 @@ const (
 	exportPrefixBytes = 8 + 2 + 8
 	// Version 1 continues with a 4-byte Argon2 time, 4-byte memory, 1-byte threads, 16-byte salt, and 12-byte nonce.
 	exportHeaderBytes = exportPrefixBytes + 4 + 4 + 1 + 16 + 12
+	// Version 2 continues with a 2-byte hint length and the plaintext password hint. The header authenticates the hint.
+	exportHintLengthBytes = 2
 )
 
 var (
-	ErrExportPasscode     = errors.New("export passcode is incorrect or the file is damaged")
+	ErrExportPassword     = errors.New("export password is incorrect or the file is damaged")
 	ErrUnsupportedExport  = errors.New("export file is from a newer version")
 	ErrInvalidExport      = errors.New("file is not a valid export")
-	ErrWeakExportPasscode = errors.New("export passcode does not meet every requirement")
+	ErrWeakExportPassword = errors.New("export password does not meet every requirement")
+	ErrExportHint         = errors.New("export password hint is too long")
+	ErrExportHintPassword = errors.New("export password hint contains the export password")
 	exportMagic           = [8]byte{'R', 'A', 'M', 'X', 'P', 'R', 'T', 0}
 )
 
-var exportDecoders = [...]func([]byte, string) ([]byte, error){openExportV1}
+var exportDecoders = [...]func([]byte, string) ([]byte, error){openExportV1, openExportV2}
 
 var _ = [1]struct{}{}[len(exportDecoders)-int(exportFormatVersion)]
 
@@ -64,12 +68,12 @@ func (manager *Manager) DefaultExportName() string {
 	return name
 }
 
-func (manager *Manager) WriteExport(path, passcode string, payload []byte) (ExportInfo, error) {
+func (manager *Manager) WriteExport(path, password, hint string, payload []byte) (ExportInfo, error) {
 	if !strings.EqualFold(filepath.Ext(path), exportExtension) {
 		path += exportExtension
 	}
 	now := time.Now()
-	sealed, err := sealExport(passcode, payload, now.UnixMilli())
+	sealed, err := sealExport(password, hint, payload, now.UnixMilli())
 	if err != nil {
 		return ExportInfo{}, err
 	}
@@ -110,30 +114,78 @@ func writeExportFile(path string, data []byte) error {
 	return nil
 }
 
-func (manager *Manager) ReadExport(path, passcode string) (ExportInfo, []byte, error) {
+func (manager *Manager) ReadExport(path, password string) (ExportInfo, []byte, error) {
 	data, err := readBounded(path, exportFileLimit)
 	if err != nil {
 		return ExportInfo{}, nil, err
 	}
-	payload, err := openExport(data, passcode)
+	payload, err := openExport(data, password)
 	if err != nil {
 		return ExportInfo{}, nil, err
 	}
 	return ExportInfo{Name: filepath.Base(path), Path: path, CreatedAtMS: int64(binary.BigEndian.Uint64(data[len(exportMagic)+2:]))}, payload, nil
 }
 
-func ValidateExportPasscode(passcode string) error {
-	if !utf8.ValidString(passcode) || !CheckPassword(passcode).Valid() {
-		return ErrWeakExportPasscode
+// ExportDetails describes an export file before it is opened with its password.
+type ExportDetails struct {
+	FormatVersion    int    `json:"formatVersion"`
+	MinFormatVersion int    `json:"minFormatVersion"`
+	MaxFormatVersion int    `json:"maxFormatVersion"`
+	Supported        bool   `json:"supported"`
+	Hint             string `json:"hint,omitempty"`
+}
+
+// ReadExportDetails reads the format version and password hint of an export
+// file without its password. Files from format version 1 have no hint, and
+// files from a newer format version are reported as unsupported.
+func (manager *Manager) ReadExportDetails(path string) (ExportDetails, error) {
+	data, err := readBounded(path, exportFileLimit)
+	if err != nil {
+		return ExportDetails{}, err
+	}
+	if len(data) < exportPrefixBytes || !bytes.Equal(data[:len(exportMagic)], exportMagic[:]) {
+		return ExportDetails{}, ErrInvalidExport
+	}
+	version := binary.BigEndian.Uint16(data[len(exportMagic):])
+	if version == 0 {
+		return ExportDetails{}, ErrInvalidExport
+	}
+	details := ExportDetails{FormatVersion: int(version), MinFormatVersion: 1, MaxFormatVersion: int(exportFormatVersion), Supported: version <= exportFormatVersion}
+	if version >= 2 && details.Supported {
+		headerEnd, err := exportHeaderEnd(data)
+		if err != nil {
+			return ExportDetails{}, err
+		}
+		details.Hint = string(data[exportHeaderBytes+exportHintLengthBytes : headerEnd])
+	}
+	return details, nil
+}
+
+func ValidateExportPassword(password string) error {
+	if !utf8.ValidString(password) || !CheckPassword(password).Valid() {
+		return ErrWeakExportPassword
 	}
 	return nil
 }
 
-func sealExport(passcode string, payload []byte, createdAtMS int64) ([]byte, error) {
-	if err := ValidateExportPasscode(passcode); err != nil {
+func ValidateExportHint(hint, password string) error {
+	if validateHint(hint) != nil {
+		return ErrExportHint
+	}
+	if password != "" && strings.Contains(strings.ToLower(hint), strings.ToLower(password)) {
+		return ErrExportHintPassword
+	}
+	return nil
+}
+
+func sealExport(password, hint string, payload []byte, createdAtMS int64) ([]byte, error) {
+	if err := ValidateExportPassword(password); err != nil {
 		return nil, err
 	}
-	params, err := calibrateKDF(passcode)
+	if err := ValidateExportHint(hint, password); err != nil {
+		return nil, err
+	}
+	params, err := calibrateKDF(password)
 	if err != nil {
 		return nil, err
 	}
@@ -141,7 +193,7 @@ func sealExport(passcode string, payload []byte, createdAtMS int64) ([]byte, err
 	if err != nil {
 		return nil, err
 	}
-	aead, err := exportCipher(passcode, params, salt)
+	aead, err := exportCipher(password, params, salt)
 	if err != nil {
 		return nil, err
 	}
@@ -150,27 +202,65 @@ func sealExport(passcode string, payload []byte, createdAtMS int64) ([]byte, err
 		return nil, err
 	}
 	header := exportHeader(exportFormatVersion, createdAtMS, params, salt, nonce)
+	header = binary.BigEndian.AppendUint16(header, uint16(len(hint)))
+	header = append(header, hint...)
 	return aead.Seal(bytes.Clone(header), nonce, payload, header), nil
 }
 
-func openExport(data []byte, passcode string) ([]byte, error) {
+func exportVersion(data []byte) (uint16, error) {
 	if len(data) < exportPrefixBytes || !bytes.Equal(data[:len(exportMagic)], exportMagic[:]) {
-		return nil, ErrInvalidExport
+		return 0, ErrInvalidExport
 	}
 	version := binary.BigEndian.Uint16(data[len(exportMagic):])
 	if version == 0 {
-		return nil, ErrInvalidExport
+		return 0, ErrInvalidExport
 	}
 	if version > exportFormatVersion {
-		return nil, fmt.Errorf("%w: export version %d", ErrUnsupportedExport, version)
+		return 0, fmt.Errorf("%w: export version %d", ErrUnsupportedExport, version)
 	}
-	return exportDecoders[version-1](data, passcode)
+	return version, nil
 }
 
-func openExportV1(data []byte, passcode string) ([]byte, error) {
+func openExport(data []byte, password string) ([]byte, error) {
+	version, err := exportVersion(data)
+	if err != nil {
+		return nil, err
+	}
+	return exportDecoders[version-1](data, password)
+}
+
+func openExportV1(data []byte, password string) ([]byte, error) {
 	if len(data) < exportHeaderBytes {
 		return nil, ErrInvalidExport
 	}
+	return openSealedExport(data, password, exportHeaderBytes)
+}
+
+func openExportV2(data []byte, password string) ([]byte, error) {
+	headerEnd, err := exportHeaderEnd(data)
+	if err != nil {
+		return nil, err
+	}
+	return openSealedExport(data, password, headerEnd)
+}
+
+// exportHeaderEnd returns where the version 2 header, which ends with the
+// password hint, stops and the encrypted payload starts.
+func exportHeaderEnd(data []byte) (int, error) {
+	if len(data) < exportHeaderBytes+exportHintLengthBytes {
+		return 0, ErrInvalidExport
+	}
+	hintLength := int(binary.BigEndian.Uint16(data[exportHeaderBytes:]))
+	headerEnd := exportHeaderBytes + exportHintLengthBytes + hintLength
+	if len(data) < headerEnd || validateHint(string(data[exportHeaderBytes+exportHintLengthBytes:headerEnd])) != nil {
+		return 0, ErrInvalidExport
+	}
+	return headerEnd, nil
+}
+
+// openSealedExport decrypts the payload after headerEnd. The whole header,
+// including the version 2 hint, is the authenticated data.
+func openSealedExport(data []byte, password string, headerEnd int) ([]byte, error) {
 	offset := exportPrefixBytes
 	params := argon2Parameters{
 		Time:      binary.BigEndian.Uint32(data[offset:]),
@@ -180,22 +270,22 @@ func openExportV1(data []byte, passcode string) ([]byte, error) {
 	offset += 9
 	salt := data[offset : offset+16]
 	nonce := data[offset+16 : exportHeaderBytes]
-	aead, err := exportCipher(passcode, params, salt)
+	aead, err := exportCipher(password, params, salt)
 	if errors.Is(err, ErrInvalidPassword) {
-		return nil, ErrExportPasscode
+		return nil, ErrExportPassword
 	}
 	if err != nil {
 		return nil, fmt.Errorf("%w: %w", ErrInvalidExport, err)
 	}
-	payload, err := aead.Open(nil, nonce, data[exportHeaderBytes:], data[:exportHeaderBytes])
+	payload, err := aead.Open(nil, nonce, data[headerEnd:], data[:headerEnd])
 	if err != nil {
-		return nil, ErrExportPasscode
+		return nil, ErrExportPassword
 	}
 	return payload, nil
 }
 
-func exportCipher(passcode string, params argon2Parameters, salt []byte) (cipher.AEAD, error) {
-	key, err := deriveKEK(passcode, params, salt)
+func exportCipher(password string, params argon2Parameters, salt []byte) (cipher.AEAD, error) {
+	key, err := deriveKEK(password, params, salt)
 	if err != nil {
 		return nil, err
 	}

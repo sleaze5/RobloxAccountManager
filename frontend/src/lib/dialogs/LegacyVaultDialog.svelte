@@ -1,5 +1,7 @@
 <script lang="ts">
 	import arrowSquareOutIcon from "@phosphor-icons/core/regular/arrow-square-out.svg?raw"
+	import eyeIcon from "@phosphor-icons/core/regular/eye.svg?raw"
+	import eyeSlashIcon from "@phosphor-icons/core/regular/eye-slash.svg?raw"
 	import lockKeyIcon from "@phosphor-icons/core/regular/lock-key.svg?raw"
 	import { Browser } from "@wailsio/runtime"
 	import Icon from "../shared/Icon.svelte"
@@ -16,6 +18,7 @@
 
 	let { store }: { store: AccountStore } = $props(),
 		password = $state(""),
+		visible = $state(false),
 		confirmation = $state(""),
 		manual = $state(false),
 		card = $state<HTMLDivElement>()
@@ -70,10 +73,24 @@
 					<span>Master password</span>
 					<input
 						bind:value={password}
-						type="password"
+						type={visible ? "text" : "password"}
 						autocomplete="current-password"
+						disabled={store.busy}
 						required />
 				</label>
+				<button
+					class="mt-2 flex items-center gap-1 py-1 text-xs text-fg-muted transition-colors duration-100 *:animate-pop"
+					type="button"
+					aria-pressed={visible}
+					onclick={() => (visible = !visible)}>
+					{#if visible}<Icon
+							svg={eyeSlashIcon}
+							size={16}
+							aria-hidden="true" /> Hide password{:else}<Icon
+							svg={eyeIcon}
+							size={16}
+							aria-hidden="true" /> Show password{/if}
+				</button>
 				{#if store.vault.passwordHint}
 					<div class="mt-3 notice-note">Hint: {store.vault.passwordHint}</div>
 				{/if}

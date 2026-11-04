@@ -86,18 +86,23 @@ func (service *Service) ExportsDirectory() string { return service.vault.Exports
 
 func (service *Service) DefaultExportName() string { return service.vault.DefaultExportName() }
 
-func (service *Service) ValidateExportPasscode(passcode, confirmation string) error {
-	if passcode != confirmation {
-		return transferError("The passcodes do not match.", nil)
+func (service *Service) ValidateExportPassword(password, confirmation, hint string) error {
+	if password != confirmation {
+		return transferError("The export passwords do not match.", nil)
 	}
-	if err := vault.ValidateExportPasscode(passcode); err != nil {
-		return transferError("The passcode does not meet every requirement.", err)
+	if err := vault.ValidateExportPassword(password); err != nil {
+		return transferError("The export password does not meet every requirement.", err)
+	}
+	if err := vault.ValidateExportHint(hint, password); errors.Is(err, vault.ErrExportHintPassword) {
+		return transferError("The password hint cannot contain the export password.", err)
+	} else if err != nil {
+		return transferError("The password hint is too long.", err)
 	}
 	return nil
 }
 
-func (service *Service) ExportVault(ctx context.Context, path, passcode, confirmation string) (vault.ExportInfo, error) {
-	if err := service.ValidateExportPasscode(passcode, confirmation); err != nil {
+func (service *Service) ExportVault(ctx context.Context, path, password, confirmation, hint string) (vault.ExportInfo, error) {
+	if err := service.ValidateExportPassword(password, confirmation, hint); err != nil {
 		return vault.ExportInfo{}, err
 	}
 	data, err := service.exportData(ctx, "vault-export")
@@ -105,7 +110,7 @@ func (service *Service) ExportVault(ctx context.Context, path, passcode, confirm
 		return vault.ExportInfo{}, err
 	}
 	defer clear(data)
-	info, err := service.vault.WriteExport(path, passcode, data)
+	info, err := service.vault.WriteExport(path, password, hint, data)
 	if err != nil {
 		service.logger.Error("export file could not be written", "operation", "vault-export", "error", err)
 		return vault.ExportInfo{}, transferError("The export file could not be saved. Check that the folder is writable and has free space, then try again.", err)
@@ -136,8 +141,17 @@ func (service *Service) exportData(ctx context.Context, operation string) ([]byt
 	return data, nil
 }
 
-func (service *Service) OpenVaultExport(ctx context.Context, path, passcode string) (TransferPreview, error) {
-	info, data, err := service.vault.ReadExport(path, passcode)
+// ExportDetails returns the format version and password hint of an export file.
+func (service *Service) ExportDetails(path string) (vault.ExportDetails, error) {
+	details, err := service.vault.ReadExportDetails(path)
+	if err != nil {
+		return vault.ExportDetails{}, service.exportReadError(err)
+	}
+	return details, nil
+}
+
+func (service *Service) OpenVaultExport(ctx context.Context, path, password string) (TransferPreview, error) {
+	info, data, err := service.vault.ReadExport(path, password)
 	if err != nil {
 		return TransferPreview{}, service.exportReadError(err)
 	}
@@ -170,8 +184,8 @@ func (service *Service) OpenVaultExport(ctx context.Context, path, passcode stri
 
 func (service *Service) exportReadError(err error) error {
 	switch {
-	case errors.Is(err, vault.ErrExportPasscode):
-		return transferError("The passcode is incorrect, or the file is damaged.", err)
+	case errors.Is(err, vault.ErrExportPassword):
+		return transferError("The export password is incorrect, or the file is damaged.", err)
 	case errors.Is(err, vault.ErrUnsupportedExport):
 		return transferError("This export is from a newer version. Update the app to import it.", err)
 	case errors.Is(err, vault.ErrInvalidExport):
