@@ -295,13 +295,24 @@ Color:
 
 ## Writing
 
-- Use sentence case for all interface text, including buttons, headings, tabs, and menu items. The page names Accounts, Games, Logs Explorer, and Settings are proper names.
+- Follow [Capitalization](#capitalization).
 - Start a button label or menu item with a verb. Name the object when the context does not make it clear.
 - Use the same verb for an action in every place: the button, the progress label, and the result. For example, use "Remove account", "Removing…", and "Account removed".
 - Write an error as what happened, then what the user can do. Do not apologize or blame the user.
 - Use the ellipsis character "…" in progress labels, not three periods.
 - Use digits for numbers. Do not use exclamation marks.
 - Keep labels to a few words and descriptions to one sentence.
+
+### Capitalization
+
+Use sentence case by default. Capitalize only the first word and any word that is always capitalized.
+
+- Use sentence case for buttons, menu items, headings, labels, descriptions, tooltips, notifications, placeholders, segmented options, and sidebar navigation items, such as "Remove account", "Account info", and "Search favorites".
+- Use title case for page tab names: Accounts, Social, Games, and Logs Explorer. Settings is a page name too.
+- Keep proper nouns in their own capitalization wherever they appear: product, service, and brand names, such as Roblox, Roblox Account Manager, Roblox Studio, RoValra, Chrome for Testing, Sober, Windows, and Linux. A proper noun inside a sentence-case label keeps its capitals, as in "Close Roblox processes".
+- Write acronyms and initialisms in capitals, such as ID, PIN, URL, and API, as in "Place ID" and "User ID".
+- Write user-provided text, such as names, nicknames, tags, and descriptions, exactly as the user or Roblox stores it.
+- Write tokens, codes, and technical values in their exact case, such as `.ROBLOSECURITY`, `$YYYY`, and file names.
 
 Use these terms consistently:
 
