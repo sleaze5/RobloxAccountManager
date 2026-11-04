@@ -154,8 +154,8 @@
 			role="menuitem"
 			onclick={() => {
 				const jobId = presence?.gameId ?? ""
-				store.closeMenu()
 				onFillLaunch(placeId, jobId)
+				store.closeMenu()
 			}}
 			><Icon svg={listPlusIcon} size={16} aria-hidden="true" /><span
 				>Fill launch options</span
@@ -167,8 +167,8 @@
 			type="button"
 			role="menuitem"
 			onclick={() => {
-				store.closeMenu()
 				onSearchPlace(placeId)
+				store.closeMenu()
 			}}
 			><Icon svg={magnifyingGlassIcon} size={16} aria-hidden="true" /><span
 				>Find place in Games</span
@@ -179,8 +179,8 @@
 		type="button"
 		role="menuitem"
 		onclick={() => {
-			store.closeMenu()
 			store.explore(person, SocialList.SocialFriends)
+			store.closeMenu()
 		}}
 		><Icon svg={userListIcon} size={16} aria-hidden="true" /><span
 			>View friends</span
@@ -230,8 +230,8 @@
 			type="button"
 			role="menuitem"
 			onclick={() => {
-				store.closeMenu()
 				onUnfriend(person)
+				store.closeMenu()
 			}}
 			><Icon svg={userMinusIcon} size={16} aria-hidden="true" /><span
 				>Unfriend</span
