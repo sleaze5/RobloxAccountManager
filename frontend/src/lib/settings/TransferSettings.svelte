@@ -45,8 +45,8 @@
 					<div class="settings-row-copy">
 						<strong>Export vault data</strong>
 						<span
-							>Save accounts, tags, favorite places, and settings to an
-							encrypted file.</span>
+							>Save accounts, saved passwords, tags, favorite places, and
+							settings to an encrypted file.</span>
 					</div>
 					<button
 						class="btn"

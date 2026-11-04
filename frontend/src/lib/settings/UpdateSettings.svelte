@@ -1,9 +1,12 @@
 <script lang="ts">
 	import arrowCounterClockwiseIcon from "@phosphor-icons/core/regular/arrow-counter-clockwise.svg?raw"
+	import arrowSquareOutIcon from "@phosphor-icons/core/regular/arrow-square-out.svg?raw"
 	import arrowsClockwiseIcon from "@phosphor-icons/core/regular/arrows-clockwise.svg?raw"
 	import circleNotchIcon from "@phosphor-icons/core/regular/circle-notch.svg?raw"
 	import downloadSimpleIcon from "@phosphor-icons/core/regular/download-simple.svg?raw"
+	import { Browser } from "@wailsio/runtime"
 	import Icon from "../shared/Icon.svelte"
+	import { repository } from "../../../package.json"
 	import { UpdateStatus } from "../backend/bridge"
 	import { formatCompactBytes } from "../shared/bytes"
 	import { updateStore } from "../updates/update-store.svelte"
@@ -12,6 +15,9 @@
 	const update = $derived(updateStore.state),
 		error = $derived(updateStore.error || update.error || ""),
 		version = $derived(update.availableVersion ?? ""),
+		releaseURL = $derived(
+			`${repository.url.replace(/^git\+/, "").replace(/\.git$/, "")}/releases/tag/v${version}`,
+		),
 		determinate = $derived(update.totalBytes > 0),
 		progress = $derived(
 			determinate
@@ -70,6 +76,15 @@
 				<SettingsStatus value={status.value} tone={status.tone} />
 			</div>
 			<div class="flex items-center gap-2">
+				{#if version && update.status !== UpdateStatus.StatusUpToDate}<button
+						class="btn"
+						type="button"
+						onclick={() => void Browser.OpenURL(releaseURL)}
+						><Icon
+							svg={arrowSquareOutIcon}
+							size={16}
+							aria-hidden="true" />What's new</button
+					>{/if}
 				{#if update.status === UpdateStatus.StatusAvailable}<button
 						class="btn"
 						type="button"
@@ -99,7 +114,7 @@
 							svg={circleNotchIcon}
 							class="spinner"
 							size={16}
-							aria-hidden="true" />Restarting</button
+							aria-hidden="true" />Restarting…</button
 					>{:else if update.status === UpdateStatus.StatusChecking}<button
 						class="btn"
 						type="button"
@@ -108,7 +123,7 @@
 							svg={circleNotchIcon}
 							class="spinner"
 							size={16}
-							aria-hidden="true" />Checking</button
+							aria-hidden="true" />Checking…</button
 					>{:else}<button
 						class="btn"
 						type="button"

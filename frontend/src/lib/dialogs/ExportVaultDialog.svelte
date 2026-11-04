@@ -43,7 +43,12 @@
 			[rules.digit, "At least one number"],
 			[rules.special, "At least one special character"],
 			[password !== "" && password === confirmation, "Passwords match"],
-		])
+		]),
+		hintHasPassword = $derived(
+			hint !== "" &&
+				password !== "" &&
+				hint.toLowerCase().includes(password.toLowerCase()),
+		)
 
 	function close(): void {
 		if (!exporting) onClose()
@@ -83,7 +88,7 @@
 	}}
 	role="presentation">
 	<div
-		class="dialog-card max-w-md"
+		class="dialog-card max-w-lg"
 		role="dialog"
 		aria-modal="true"
 		aria-labelledby="export-vault-title"
@@ -160,27 +165,30 @@
 					Anyone with this file and its export password can sign in to your
 					accounts. The export password cannot be recovered.
 				</div>
-				<label class="dialog-field">
-					<span>Export password</span>
-					<input
-						bind:value={password}
-						type={visible ? "text" : "password"}
-						autocomplete="new-password"
-						disabled={exporting}
-						required />
-				</label>
-				<label class="dialog-field">
-					<span>Confirm export password</span>
-					<input
-						bind:value={confirmation}
-						type={visible ? "text" : "password"}
-						autocomplete="new-password"
-						disabled={exporting}
-						required />
-				</label>
+				<div class="grid grid-cols-2 gap-3">
+					<label class="dialog-field">
+						<span>Export password</span>
+						<input
+							bind:value={password}
+							type={visible ? "text" : "password"}
+							autocomplete="new-password"
+							disabled={exporting}
+							required />
+					</label>
+					<label class="dialog-field">
+						<span>Confirm export password</span>
+						<input
+							bind:value={confirmation}
+							type={visible ? "text" : "password"}
+							autocomplete="new-password"
+							disabled={exporting}
+							required />
+					</label>
+				</div>
 				<button
 					class="mt-2 flex items-center gap-1 py-1 text-xs text-fg-muted transition-colors duration-100 *:animate-pop"
 					type="button"
+					aria-pressed={visible}
 					onclick={() => (visible = !visible)}>
 					{#if visible}<Icon
 							svg={eyeSlashIcon}
@@ -209,12 +217,21 @@
 						bind:value={hint}
 						maxlength="120"
 						autocomplete="off"
+						aria-invalid={hintHasPassword || undefined}
+						aria-describedby={hintHasPassword
+							? "export-hint-error"
+							: undefined}
 						disabled={exporting} />
 				</label>
-				<div class="mt-3 notice-warning">
-					The hint is stored in plain text in the file. Do not include the
-					password.
-				</div>
+				{#if hintHasPassword}
+					<p id="export-hint-error" class="mt-1 text-xs text-danger-muted">
+						The hint cannot contain the export password.
+					</p>
+				{:else}
+					<p class="mt-1 text-2xs text-fg-muted">
+						Anyone with the file can read the hint.
+					</p>
+				{/if}
 				{#if error}
 					<div class="mt-3 notice-error" role="alert">{error}</div>
 				{/if}
@@ -229,6 +246,7 @@
 						type="submit"
 						disabled={!passwordValid(password) ||
 							password !== confirmation ||
+							hintHasPassword ||
 							exporting}
 						>{exporting ? "Exporting…" : "Export data"}</button>
 				</div>

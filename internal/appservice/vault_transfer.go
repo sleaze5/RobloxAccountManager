@@ -93,7 +93,9 @@ func (service *Service) ValidateExportPassword(password, confirmation, hint stri
 	if err := vault.ValidateExportPassword(password); err != nil {
 		return transferError("The export password does not meet every requirement.", err)
 	}
-	if err := vault.ValidateExportHint(hint); err != nil {
+	if err := vault.ValidateExportHint(hint, password); errors.Is(err, vault.ErrExportHintPassword) {
+		return transferError("The password hint cannot contain the export password.", err)
+	} else if err != nil {
 		return transferError("The password hint is too long.", err)
 	}
 	return nil

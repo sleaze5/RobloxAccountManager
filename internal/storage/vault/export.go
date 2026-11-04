@@ -36,6 +36,7 @@ var (
 	ErrInvalidExport      = errors.New("file is not a valid export")
 	ErrWeakExportPassword = errors.New("export password does not meet every requirement")
 	ErrExportHint         = errors.New("export password hint is too long")
+	ErrExportHintPassword = errors.New("export password hint contains the export password")
 	exportMagic           = [8]byte{'R', 'A', 'M', 'X', 'P', 'R', 'T', 0}
 )
 
@@ -167,9 +168,12 @@ func ValidateExportPassword(password string) error {
 	return nil
 }
 
-func ValidateExportHint(hint string) error {
+func ValidateExportHint(hint, password string) error {
 	if validateHint(hint) != nil {
 		return ErrExportHint
+	}
+	if password != "" && strings.Contains(strings.ToLower(hint), strings.ToLower(password)) {
+		return ErrExportHintPassword
 	}
 	return nil
 }
@@ -178,7 +182,7 @@ func sealExport(password, hint string, payload []byte, createdAtMS int64) ([]byt
 	if err := ValidateExportPassword(password); err != nil {
 		return nil, err
 	}
-	if err := ValidateExportHint(hint); err != nil {
+	if err := ValidateExportHint(hint, password); err != nil {
 		return nil, err
 	}
 	params, err := calibrateKDF(password)

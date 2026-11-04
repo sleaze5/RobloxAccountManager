@@ -1,6 +1,8 @@
 <script lang="ts">
 	import checkBoldIcon from "@phosphor-icons/core/bold/check-bold.svg?raw"
 	import checkCircleIcon from "@phosphor-icons/core/regular/check-circle.svg?raw"
+	import eyeIcon from "@phosphor-icons/core/regular/eye.svg?raw"
+	import eyeSlashIcon from "@phosphor-icons/core/regular/eye-slash.svg?raw"
 	import stackIcon from "@phosphor-icons/core/regular/stack.svg?raw"
 	import warningCircleIcon from "@phosphor-icons/core/regular/warning-circle.svg?raw"
 	import fileArrowDownIcon from "@phosphor-icons/core/regular/file-arrow-down.svg?raw"
@@ -81,6 +83,7 @@
 	let file = $state(untrack(() => path)),
 		password = $state(""),
 		details = $state<ExportDetails | null>(null),
+		visible = $state(false),
 		preview = $state<TransferPreview | null>(null),
 		mode = $state(TransferMode.TransferOverwrite),
 		selectedAccounts = $state<number[]>([]),
@@ -94,6 +97,7 @@
 		card = $state<HTMLDivElement>()
 
 	const busy = $derived(opening || importing),
+		readable = $derived(details?.supported === true),
 		name = $derived(fileName(file)),
 		folder = $derived(file.slice(0, Math.max(file.length - name.length - 1, 0))),
 		accounts = $derived(preview?.accounts ?? []),
@@ -512,7 +516,7 @@
 								<Icon
 									svg={stackIcon}
 									size={16}
-									aria-hidden="true" />This app opens
+									aria-hidden="true" />Supported formats
 							</dt>
 							<dd>
 								<span
@@ -534,11 +538,25 @@
 					<span>Export password</span>
 					<input
 						bind:value={password}
-						type="password"
+						type={visible ? "text" : "password"}
 						autocomplete="off"
-						disabled={opening || details?.supported === false}
+						disabled={opening || !readable}
 						required />
 				</label>
+				<button
+					class="mt-2 flex items-center gap-1 py-1 text-xs text-fg-muted transition-colors duration-100 *:animate-pop"
+					type="button"
+					aria-pressed={visible}
+					disabled={!readable}
+					onclick={() => (visible = !visible)}>
+					{#if visible}<Icon
+							svg={eyeSlashIcon}
+							size={16}
+							aria-hidden="true" /> Hide password{:else}<Icon
+							svg={eyeIcon}
+							size={16}
+							aria-hidden="true" /> Show password{/if}
+				</button>
 				{#if details?.hint}
 					<div class="mt-3 notice-note">Hint: {details.hint}</div>
 				{/if}
@@ -551,7 +569,7 @@
 					<button
 						class="btn-primary"
 						type="submit"
-						disabled={!password || busy || details?.supported === false}
+						disabled={!password || busy || !readable}
 						>{opening ? "Opening…" : "Open export"}</button>
 				</div>
 			</form>
