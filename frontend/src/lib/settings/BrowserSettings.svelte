@@ -9,6 +9,7 @@
 	import { RuntimeStatus } from "../backend/bridge"
 	import type { ShutdownEffects } from "../backend/bridge"
 	import { formatCompactBytes } from "../shared/bytes"
+	import ConnectionHosts from "./ConnectionHosts.svelte"
 	import SettingsStatus from "./SettingsStatus.svelte"
 	import {
 		modalBackdropIn,
@@ -29,7 +30,7 @@
 		terms = $derived(query.trim().toLowerCase().split(/\s+/).filter(Boolean)),
 		visible = $derived(
 			terms.every((term) =>
-				`integrations browser chrome testing runtime version download redownload remove disk usage installed manage`.includes(
+				`integrations browser chrome testing runtime version download redownload remove disk usage installed manage hosts connect storage.googleapis.com`.includes(
 					term,
 				),
 			),
@@ -157,6 +158,7 @@
 					</div>
 				</div>
 			{/if}
+			<ConnectionHosts hosts={["storage.googleapis.com"]} />
 		</div>
 	</section>
 {/if}

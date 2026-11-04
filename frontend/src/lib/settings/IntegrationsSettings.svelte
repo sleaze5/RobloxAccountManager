@@ -1,6 +1,7 @@
 <script lang="ts">
 	import arrowsClockwiseIcon from "@phosphor-icons/core/regular/arrows-clockwise.svg?raw"
 	import Icon from "../shared/Icon.svelte"
+	import ConnectionHosts from "./ConnectionHosts.svelte"
 	import { untrack } from "svelte"
 	import Select from "../shared/Select.svelte"
 	import type { SettingsStore } from "./settings-store.svelte"
@@ -9,7 +10,7 @@
 	const terms = $derived(query.trim().toLowerCase().split(/\s+/).filter(Boolean)),
 		visible = $derived(
 			terms.every((term) =>
-				"integrations rovalra api server browser servers information features enabled disabled on off preferred region country nearest launch join refresh regions".includes(
+				"integrations rovalra api server browser servers information features enabled disabled on off preferred region country nearest launch join refresh regions hosts connect apis.rovalra.com".includes(
 					term,
 				),
 			),
@@ -122,6 +123,7 @@
 					</div>
 				</div>
 			{/if}
+			<ConnectionHosts hosts={["apis.rovalra.com"]} />
 		</div>
 	</section>
 {/if}
