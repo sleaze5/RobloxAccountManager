@@ -15,7 +15,7 @@
 	import Icon from "../shared/Icon.svelte"
 	import SidebarResizer from "../layout/SidebarResizer.svelte"
 	import type { WorkspaceState } from "../layout/workspace-state.svelte"
-	import { isMoveShortcut } from "../shared/move-shortcut"
+	import { isMoveShortcut, moveListFocus } from "../shared/move-shortcut"
 	import OperationError from "../shared/OperationError.svelte"
 	import { menuIn, menuOut } from "../shared/presence"
 	import GameContextMenu from "./GameContextMenu.svelte"
@@ -294,7 +294,6 @@
 								svg={starIcon}
 								size={14}
 								aria-hidden="true" />Favorites
-							<span>{store.favorites.length}</span>
 						</button>
 						<button
 							type="button"
@@ -344,6 +343,7 @@
 								type="button"
 								aria-current={active ? "true" : undefined}
 								aria-haspopup="menu"
+								data-list-item
 								aria-keyshortcuts={favoritesMode
 									? "Control+Shift+ArrowUp Control+Shift+ArrowDown"
 									: undefined}
@@ -356,6 +356,7 @@
 									)
 										store.openMenu(event, place)
 									void moveWithKeyboard(event, place.placeId)
+									moveListFocus(event)
 								}}>
 								{#if favoritesMode}<span
 										class={[
@@ -547,8 +548,6 @@
 						>{store.selected.universeId}</span
 					></span>
 			</div>
-		{:else}
-			<span>No place selected</span>
 		{/if}
 	</footer>
 </main>

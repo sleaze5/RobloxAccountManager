@@ -13,14 +13,14 @@
 		components = $derived(report?.components ?? []),
 		dependencyGroups = $derived([
 			{
-				label: "runtime",
+				label: "Runtime",
 				dependencies: [
 					{ name: "go", version: build?.go_version ?? "" },
 					...(build?.dependencies ?? []),
 					...FRONTEND_DEPENDENCIES.runtime,
 				],
 			},
-			{ label: "build", dependencies: FRONTEND_DEPENDENCIES.build },
+			{ label: "Build", dependencies: FRONTEND_DEPENDENCIES.build },
 		])
 
 	onMount(() => {
@@ -48,7 +48,8 @@
 		tableClass =
 			"w-full border-collapse border-t border-line-subtle font-mono text-2xs",
 		cellClass = "border-b border-line-subtle p-1",
-		numberClass = "w-24 text-right whitespace-nowrap"
+		numberClass = "text-right whitespace-nowrap",
+		labelClass = "font-sans font-normal text-fg-muted"
 </script>
 
 {#if error}
@@ -59,16 +60,14 @@
 	<section class="settings-section" aria-labelledby="about-build-title">
 		<h3 id="about-build-title">Build</h3>
 		<dl class={gridClass}>
-			<dt class="font-normal text-fg-faint">version</dt>
-			<dd class="col-span-3 text-fg">{build.version}</dd>
-			<dt class="font-normal text-fg-faint">platform</dt>
+			<dt class={labelClass}>Platform</dt>
 			<dd class="col-span-3 text-fg">{build.os}/{build.architecture}</dd>
-			<dt class="font-normal text-fg-faint">built</dt>
+			<dt class={labelClass}>Built</dt>
 			<dd class="col-span-3 text-fg">
 				{#if build.build_time}
 					<Timestamp value={build.build_time * 1000} />
 				{:else}
-					<span class="text-fg-faint">not stamped</span>
+					<span class="text-fg-faint">Not stamped</span>
 				{/if}
 			</dd>
 		</dl>
@@ -76,81 +75,84 @@
 
 	<section class="settings-section" aria-labelledby="about-dependencies-title">
 		<h3 id="about-dependencies-title">Dependencies</h3>
-		<table class={tableClass}>
-			{#each dependencyGroups as group, groupIndex (group.label)}
-				<tbody>
-					<tr>
-						<th
-							class={[
-								cellClass,
-								"text-left font-normal text-fg-faint",
-								groupIndex > 0 && "pt-3",
-							]}
-							scope="colgroup"
-							colspan="2">
-							{group.label}
-						</th>
-					</tr>
-					{#each group.dependencies as dependency (dependency.name)}
+		<div>
+			<table class={tableClass}>
+				{#each dependencyGroups as group, groupIndex (group.label)}
+					<tbody>
 						<tr>
-							<td class={[cellClass, "text-fg"]}>{dependency.name}</td>
-							<td class={[cellClass, numberClass, "text-fg"]}
-								>{dependency.version}</td>
+							<th
+								class={[
+									cellClass,
+									labelClass,
+									"text-left",
+									groupIndex > 0 && "pt-3",
+								]}
+								scope="colgroup"
+								colspan="2">
+								{group.label}
+							</th>
 						</tr>
-					{/each}
-				</tbody>
-			{/each}
-		</table>
+						{#each group.dependencies as dependency (dependency.name)}
+							<tr>
+								<td class={[cellClass, "text-fg"]}
+									>{dependency.name}</td>
+								<td class={[cellClass, numberClass, "text-fg"]}
+									>{dependency.version}</td>
+							</tr>
+						{/each}
+					</tbody>
+				{/each}
+			</table>
+		</div>
 	</section>
 
 	<section class="settings-section" aria-labelledby="about-launch-title">
 		<h3 id="about-launch-title">Launch</h3>
 		<dl class={gridClass}>
-			<dt class="font-normal text-fg-faint">launch id</dt>
+			<dt class={labelClass}>Launch ID</dt>
 			<dd class="col-span-3 text-fg">{report.launchId}</dd>
-			<dt class="font-normal text-fg-faint">started</dt>
+			<dt class={labelClass}>Started</dt>
 			<dd class="col-span-3 text-fg">
 				<Timestamp value={report.startedAt} />
 			</dd>
-			<dt class="font-normal text-fg-faint">ready</dt>
+			<dt class={labelClass}>Ready</dt>
 			<dd class="col-span-3 text-fg">
-				{report.ready ? formatCompactDuration(report.readyMs) : "starting"}
+				{report.ready ? formatCompactDuration(report.readyMs) : "Starting"}
 			</dd>
 			{#if location}
-				<dt class="font-normal text-fg-faint">storage</dt>
+				<dt class={labelClass}>Storage</dt>
 				<dd class="col-span-3 text-fg">
 					{location.mode === StorageMode.ModePortable
-						? "portable"
-						: "standard"}
+						? "Portable"
+						: "Standard"}
 				</dd>
-				<dt class="font-normal text-fg-faint">data folder</dt>
+				<dt class={labelClass}>Data folder</dt>
 				<dd class="col-span-3 text-fg">{location.directory}</dd>
 			{/if}
 		</dl>
-		<table class={tableClass}>
-			<thead>
-				<tr>
-					<th
-						class={[cellClass, "text-left font-normal text-fg-faint"]}
-						scope="col">stage</th>
-					<th
-						class={[cellClass, numberClass, "font-normal text-fg-faint"]}
-						scope="col">
-						duration
-					</th>
-				</tr>
-			</thead>
-			<tbody>
-				{#each stages as stage, index (index)}
+		<div>
+			<table class={tableClass}>
+				<thead>
 					<tr>
-						<td class={[cellClass, "text-fg"]}>{stage.name}</td>
-						<td class={[cellClass, numberClass, "text-fg"]}>
-							{formatCompactDuration(stage.duration_ms)}
-						</td>
+						<th class={[cellClass, labelClass, "text-left"]} scope="col"
+							>Stage</th>
+						<th class={[cellClass, numberClass, labelClass]} scope="col">
+							Duration
+						</th>
 					</tr>
-				{/each}
-			</tbody>
-		</table>
+				</thead>
+				<tbody>
+					{#each stages as stage, index (index)}
+						<tr>
+							<td class={[cellClass, "text-fg"]}>{stage.name}</td>
+							<td class={[cellClass, numberClass, "text-fg"]}>
+								{formatCompactDuration(stage.duration_ms)}
+							</td>
+						</tr>
+					{/each}
+				</tbody>
+			</table>
+		</div>
 	</section>
 
 	<section class="settings-section" aria-labelledby="about-components-title">

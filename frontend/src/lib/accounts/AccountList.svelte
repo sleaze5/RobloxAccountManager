@@ -4,7 +4,7 @@
 	import starFillIcon from "@phosphor-icons/core/fill/star-fill.svg?raw"
 	import Icon from "../shared/Icon.svelte"
 	import { tick } from "svelte"
-	import { isMoveShortcut } from "../shared/move-shortcut"
+	import { isMoveShortcut, moveListFocus } from "../shared/move-shortcut"
 	import type { WorkspaceState } from "../layout/workspace-state.svelte"
 	import AccountAvatar from "./AccountAvatar.svelte"
 	import type { AccountStore } from "./account-store.svelte"
@@ -133,10 +133,7 @@
 </script>
 
 <div
-	class={[
-		"min-h-0 scrollbar-stable overflow-y-auto",
-		store.multipleSelected && "pb-12",
-	]}
+	class={["min-h-0 scrollbar-stable overflow-y-auto"]}
 	aria-busy={store.loadingAccounts || store.loadingMore}
 	onscroll={loadNearEnd}>
 	{#each store.filteredAccounts as account (account.id)}
@@ -189,6 +186,7 @@
 			<button
 				class="flex h-full min-w-0 flex-1 items-center gap-2 pr-2 text-left"
 				data-account-select
+				data-list-item
 				type="button"
 				aria-pressed={store.selectedAccountIds.includes(account.id)}
 				aria-keyshortcuts="Control+Shift+ArrowUp Control+Shift+ArrowDown"
@@ -198,6 +196,7 @@
 				onkeydown={(event) => {
 					handleContextKey(event, account.id)
 					void moveWithKeyboard(event, account.id)
+					moveListFocus(event)
 					if (
 						(event.key === " " || event.key === "Enter") &&
 						(event.ctrlKey || event.metaKey)
@@ -232,12 +231,10 @@
 			class="flex h-24 flex-col items-center justify-center gap-0.5 text-xs text-fg-faint">
 			{#if store.loadingAccounts}
 				<span>Loading accounts…</span>
-			{:else if !store.query && store.selectedTagIds.length === 0}
-				<strong class="font-medium text-fg-muted">No accounts yet</strong>
-				<span>Use the plus button to add one.</span>
-			{:else}
+			{:else if !store.vault.unlocked}
+				<span>Unlock the vault to see accounts.</span>
+			{:else if store.query || store.selectedTagIds.length > 0}
 				<strong class="font-medium text-fg-muted">No matching accounts</strong>
-				<span>Change the search or tag filter.</span>
 			{/if}
 		</div>
 	{/each}

@@ -74,32 +74,6 @@
 	{#if session.userId}<LogsExplorerAccount userId={session.userId} />{/if}
 	<dl class="detail-grid grid-cols-4" aria-label="Client details">
 		<div>
-			<dt>User ID</dt>
-			<dd class="font-mono">
-				{session.userId || "Not recorded"}
-			</dd>
-		</div>
-		<div>
-			<dt>Channel</dt>
-			<dd class="font-mono">
-				{session.channel || "Not recorded"}
-			</dd>
-		</div>
-		<div>
-			<dt>Client version</dt>
-			<dd class="font-mono">
-				{session.version || "Not recorded"}
-			</dd>
-		</div>
-		<div>
-			<dt>Version hash</dt>
-			<dd class="font-mono">
-				{session.versionHash || "Not recorded"}
-			</dd>
-		</div>
-	</dl>
-	<dl class="detail-grid grid-cols-4" aria-label="Client lifecycle">
-		<div>
 			<dt>Launch</dt>
 			<dd>{launch}</dd>
 		</div>
@@ -126,6 +100,12 @@
 						? "≈"
 						: ""}{formatClock(session.lifetimeMs / 1000, "days")}{:else}Not
 					recorded{/if}
+			</dd>
+		</div>
+		<div>
+			<dt>Version hash</dt>
+			<dd class="font-mono">
+				{session.versionHash || "Not recorded"}
 			</dd>
 		</div>
 	</dl>

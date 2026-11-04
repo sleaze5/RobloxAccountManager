@@ -21,6 +21,7 @@
 	import OperationError from "../shared/OperationError.svelte"
 	import ProfileImage from "../shared/ProfileImage.svelte"
 	import Select from "../shared/Select.svelte"
+	import { moveListFocus } from "../shared/move-shortcut"
 	import { menuIn, menuOut } from "../shared/presence"
 	import SocialAvatar from "./SocialAvatar.svelte"
 	import SocialMenu from "./SocialMenu.svelte"
@@ -394,6 +395,7 @@
 								type="button"
 								aria-current={active ? "true" : undefined}
 								aria-haspopup="menu"
+								data-list-item
 								aria-label={rowLabel(person)}
 								onclick={() => store.select(person)}
 								oncontextmenu={(event) => store.openMenu(event, person)}
@@ -403,6 +405,7 @@
 										(event.shiftKey && event.key === "F10")
 									)
 										store.openMenu(event, person)
+									moveListFocus(event)
 								}}>
 								<SocialAvatar
 									imageUrl={person.imageUrl}
@@ -585,10 +588,9 @@
 	<footer
 		class="flex h-6 shrink-0 items-center justify-between border-t border-line-subtle bg-surface pl-3 text-2xs text-fg-faint"
 		aria-label="Social status">
-		<span aria-live="polite"
-			>{selected ? `User: ${personName(selected)}` : "No user selected"}</span>
 		{#if store.page}
-			<span class="truncate pr-3">{statusSummary()}</span>
+			<span class="ml-auto truncate pr-3" aria-live="polite"
+				>{statusSummary()}</span>
 		{/if}
 	</footer>
 </main>

@@ -10,6 +10,7 @@
 	import warningIcon from "@phosphor-icons/core/regular/warning.svg?raw"
 	import xIcon from "@phosphor-icons/core/regular/x.svg?raw"
 	import Icon from "../shared/Icon.svelte"
+	import { moveListFocus } from "../shared/move-shortcut"
 	import { appSettings } from "../settings/settings-store.svelte"
 	import type { LogsExplorerVisit } from "../backend/bridge"
 	import SidebarResizer from "../layout/SidebarResizer.svelte"
@@ -136,7 +137,9 @@
 							aria-current={store.selectedFile === session.fileName
 								? "true"
 								: undefined}
+							data-list-item
 							onclick={() => (store.selectedFile = session.fileName)}
+							onkeydown={moveListFocus}
 							data-tooltip={session.fileName}
 							data-tooltip-side="right">
 							<span
@@ -259,13 +262,9 @@
 					></span>
 				<span
 					>Client version: <span class="font-mono"
-						>{selected.versionHash && selected.version
-							? `${selected.versionHash} (${selected.version})`
-							: selected.version || "Not recorded"}</span
+						>{selected.version || "Not recorded"}</span
 					></span>
 			</div>
-		{:else}
-			<span>No session selected</span>
 		{/if}
 	</footer>
 </main>

@@ -83,7 +83,7 @@
 				svg={circleNotchIcon}
 				class="spinner"
 				size={14}
-				aria-hidden="true" />Saving</span>
+				aria-hidden="true" />Saving…</span>
 	{/if}
 	{#if error}<div class="notice-error" role="alert">{error}</div>{/if}
 {/snippet}
@@ -107,22 +107,19 @@
 	</div>
 {:else}
 	<div
-		class="flex flex-col gap-2 border-b border-line-subtle px-1 py-2"
+		class="flex flex-col gap-2 border-b border-line-subtle px-3 py-2.5 last:border-b-0"
 		data-account-setting={id}>
 		<div class="settings-row-copy">
 			{@render details()}
 		</div>
 		<div
-			class="flex flex-col gap-0.5 pl-1"
+			class="-mx-2 flex flex-col gap-0.5"
 			role="radiogroup"
 			aria-labelledby={`setting-label-${id}`}>
 			{#each radioOptions as option (option.value)}
 				<label
 					class="radio-option"
-					data-disabled={controlDisabled || option.disabled || undefined}
-					data-tooltip={option.disabled && option.reason
-						? option.reason
-						: undefined}>
+					data-disabled={controlDisabled || option.disabled || undefined}>
 					<span class="radio">
 						<input
 							type="radio"
@@ -136,6 +133,10 @@
 					</span>
 					<span class="text-xs text-fg">{option.label}</span>
 				</label>
+				{#if option.disabled && option.reason}
+					<small class="pb-1 pl-8 text-2xs text-fg-muted"
+						>{option.reason}</small>
+				{/if}
 			{/each}
 		</div>
 	</div>

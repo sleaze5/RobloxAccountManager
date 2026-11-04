@@ -53,7 +53,7 @@
 							aria-hidden="true" />{/if}
 				</span>
 			</span>
-			<span>{allSelected ? "Unselect all" : "Select all"}</span>
+			<span>{allSelected ? "Clear selection" : "Select all"}</span>
 		</label>
 		<span class="font-mono text-fg-faint"
 			>{selected.length} of {selectableCount} selected</span>

@@ -126,8 +126,7 @@
 				<div class="settings-row">
 					<div class="settings-row-copy">
 						<strong>Manage browser</strong><span
-							>The managed browser stays in this portable application
-							directory.</span>
+							>The managed browser stays in the data folder.</span>
 					</div>
 					<div class="flex items-center gap-2">
 						{#if runtime.status === RuntimeStatus.RuntimeMissing}<button

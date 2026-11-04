@@ -501,9 +501,7 @@
 	onkeydown={handleWindowKeydown} />
 
 <div class="flex h-screen flex-col bg-canvas">
-	<WindowTitleBar
-		version={APP_VERSION}
-		pageTitle={activePage === "settings" ? "Settings" : undefined} />
+	<WindowTitleBar version={APP_VERSION} />
 
 	{#if activePage === "settings"}
 		<SettingsPage

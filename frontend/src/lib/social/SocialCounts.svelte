@@ -25,21 +25,21 @@
 			[
 				{
 					list: SocialList.SocialFriends,
-					label: "Friends",
+					label: friends === 1 ? "friend" : "friends",
 					value: friends,
-					noun: "friends",
+					noun: friends === 1 ? "friend" : "friends",
 				},
 				{
 					list: SocialList.SocialFollowers,
-					label: "Followers",
+					label: followers === 1 ? "follower" : "followers",
 					value: followers,
-					noun: "followers",
+					noun: followers === 1 ? "follower" : "followers",
 				},
 				{
 					list: SocialList.SocialFollowing,
-					label: "Following",
+					label: "following",
 					value: following,
-					noun: "followed users",
+					noun: following === 1 ? "followed user" : "followed users",
 				},
 			] as const
 		).flatMap((item) =>
