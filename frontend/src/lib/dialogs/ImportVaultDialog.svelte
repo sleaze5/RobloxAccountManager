@@ -1,5 +1,8 @@
 <script lang="ts">
 	import checkBoldIcon from "@phosphor-icons/core/bold/check-bold.svg?raw"
+	import checkCircleIcon from "@phosphor-icons/core/regular/check-circle.svg?raw"
+	import stackIcon from "@phosphor-icons/core/regular/stack.svg?raw"
+	import warningCircleIcon from "@phosphor-icons/core/regular/warning-circle.svg?raw"
 	import fileArrowDownIcon from "@phosphor-icons/core/regular/file-arrow-down.svg?raw"
 	import xIcon from "@phosphor-icons/core/regular/x.svg?raw"
 	import Icon from "../shared/Icon.svelte"
@@ -12,6 +15,7 @@
 		SettingsSection,
 		TransferMode,
 		TransferSettingsStatus,
+		type ExportDetails,
 		type TransferPreview,
 		type TransferResult,
 	} from "../backend/bridge"
@@ -76,7 +80,7 @@
 		fileGroup = $props.id()
 	let file = $state(untrack(() => path)),
 		password = $state(""),
-		hint = $state(""),
+		details = $state<ExportDetails | null>(null),
 		preview = $state<TransferPreview | null>(null),
 		mode = $state(TransferMode.TransferOverwrite),
 		selectedAccounts = $state<number[]>([]),
@@ -138,16 +142,17 @@
 		)
 
 	$effect(() => {
-		void loadHint(file)
+		void loadDetails(file)
 	})
 
-	async function loadHint(target: string): Promise<void> {
-		hint = ""
+	async function loadDetails(target: string): Promise<void> {
+		details = null
 		try {
-			const value = await accountBackend.GetExportHint(target)
-			if (file === target) hint = value
-		} catch {
-			hint = ""
+			const value = await accountBackend.GetExportDetails(target)
+			if (file === target) details = value
+		} catch (cause) {
+			if (file === target)
+				error = errorMessage(cause, "The export file could not be read.")
 		}
 	}
 
@@ -483,17 +488,59 @@
 						disabled={busy}
 						onclick={() => void changeFile()}>Change file</button>
 				</div>
+				{#if details}
+					<dl class="mt-3 facts" aria-label="Export file format">
+						<div data-tone={details.supported ? "success" : "warning"}>
+							<dt>
+								<Icon
+									svg={details.supported
+										? checkCircleIcon
+										: warningCircleIcon}
+									size={16}
+									aria-hidden="true" />File format
+							</dt>
+							<dd>
+								<span>Version {details.formatVersion}</span>
+								<small
+									>{details.supported
+										? "Supported"
+										: "Not supported"}</small>
+							</dd>
+						</div>
+						<div>
+							<dt>
+								<Icon
+									svg={stackIcon}
+									size={16}
+									aria-hidden="true" />This app opens
+							</dt>
+							<dd>
+								<span
+									>{details.minFormatVersion ===
+									details.maxFormatVersion
+										? `Version ${details.maxFormatVersion}`
+										: `Versions ${details.minFormatVersion}–${details.maxFormatVersion}`}</span>
+							</dd>
+						</div>
+					</dl>
+					{#if !details.supported}
+						<div class="mt-3 notice-error" role="alert">
+							This export was made by a newer version of the app. Update
+							the app to import it.
+						</div>
+					{/if}
+				{/if}
 				<label class="dialog-field">
 					<span>Export password</span>
 					<input
 						bind:value={password}
 						type="password"
 						autocomplete="off"
-						disabled={opening}
+						disabled={opening || details?.supported === false}
 						required />
 				</label>
-				{#if hint}
-					<div class="mt-3 notice-note">Hint: {hint}</div>
+				{#if details?.hint}
+					<div class="mt-3 notice-note">Hint: {details.hint}</div>
 				{/if}
 				{#if error}
 					<div class="mt-3 notice-error" role="alert">{error}</div>
@@ -504,7 +551,7 @@
 					<button
 						class="btn-primary"
 						type="submit"
-						disabled={!password || busy}
+						disabled={!password || busy || details?.supported === false}
 						>{opening ? "Opening…" : "Open export"}</button>
 				</div>
 			</form>

@@ -460,8 +460,8 @@ func (service *Service) ChooseVaultExport() (string, error) {
 	return path, nil
 }
 
-func (service *Service) GetExportHint(path string) (string, error) {
-	return service.core.ExportHint(path)
+func (service *Service) GetExportDetails(path string) (vault.ExportDetails, error) {
+	return service.core.ExportDetails(path)
 }
 
 func (service *Service) OpenVaultExport(ctx context.Context, path, password string) (appservice.TransferPreview, error) {

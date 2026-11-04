@@ -125,25 +125,39 @@ func (manager *Manager) ReadExport(path, password string) (ExportInfo, []byte, e
 	return ExportInfo{Name: filepath.Base(path), Path: path, CreatedAtMS: int64(binary.BigEndian.Uint64(data[len(exportMagic)+2:]))}, payload, nil
 }
 
-// ReadExportHint returns the password hint of an export file. It needs no
-// password, and files from format version 1 have no hint.
-func (manager *Manager) ReadExportHint(path string) (string, error) {
+// ExportDetails describes an export file before it is opened with its password.
+type ExportDetails struct {
+	FormatVersion    int    `json:"formatVersion"`
+	MinFormatVersion int    `json:"minFormatVersion"`
+	MaxFormatVersion int    `json:"maxFormatVersion"`
+	Supported        bool   `json:"supported"`
+	Hint             string `json:"hint,omitempty"`
+}
+
+// ReadExportDetails reads the format version and password hint of an export
+// file without its password. Files from format version 1 have no hint, and
+// files from a newer format version are reported as unsupported.
+func (manager *Manager) ReadExportDetails(path string) (ExportDetails, error) {
 	data, err := readBounded(path, exportFileLimit)
 	if err != nil {
-		return "", err
+		return ExportDetails{}, err
 	}
-	version, err := exportVersion(data)
-	if err != nil {
-		return "", err
+	if len(data) < exportPrefixBytes || !bytes.Equal(data[:len(exportMagic)], exportMagic[:]) {
+		return ExportDetails{}, ErrInvalidExport
 	}
-	if version == 1 {
-		return "", nil
+	version := binary.BigEndian.Uint16(data[len(exportMagic):])
+	if version == 0 {
+		return ExportDetails{}, ErrInvalidExport
 	}
-	headerEnd, err := exportHeaderEnd(data)
-	if err != nil {
-		return "", err
+	details := ExportDetails{FormatVersion: int(version), MinFormatVersion: 1, MaxFormatVersion: int(exportFormatVersion), Supported: version <= exportFormatVersion}
+	if version >= 2 && details.Supported {
+		headerEnd, err := exportHeaderEnd(data)
+		if err != nil {
+			return ExportDetails{}, err
+		}
+		details.Hint = string(data[exportHeaderBytes+exportHintLengthBytes : headerEnd])
 	}
-	return string(data[exportHeaderBytes+exportHintLengthBytes : headerEnd]), nil
+	return details, nil
 }
 
 func ValidateExportPassword(password string) error {

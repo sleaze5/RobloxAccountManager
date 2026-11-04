@@ -139,13 +139,13 @@ func (service *Service) exportData(ctx context.Context, operation string) ([]byt
 	return data, nil
 }
 
-// ExportHint returns the password hint saved in an export file.
-func (service *Service) ExportHint(path string) (string, error) {
-	hint, err := service.vault.ReadExportHint(path)
+// ExportDetails returns the format version and password hint of an export file.
+func (service *Service) ExportDetails(path string) (vault.ExportDetails, error) {
+	details, err := service.vault.ReadExportDetails(path)
 	if err != nil {
-		return "", service.exportReadError(err)
+		return vault.ExportDetails{}, service.exportReadError(err)
 	}
-	return hint, nil
+	return details, nil
 }
 
 func (service *Service) OpenVaultExport(ctx context.Context, path, password string) (TransferPreview, error) {
