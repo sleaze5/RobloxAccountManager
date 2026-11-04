@@ -288,7 +288,7 @@ func (manager *Manager) RestoreBackup(ctx context.Context, name, password string
 	if err := os.Remove(manager.paths.AutoUnlockKey); err != nil && !errors.Is(err, os.ErrNotExist) {
 		return fmt.Errorf("remove automatic unlock file: %w", err)
 	}
-	if err := manager.quarantineCurrentVault(manager.paths.Vault, manager.paths.VaultKey); err != nil {
+	if _, err := manager.quarantineCurrentVault(manager.paths.Vault, manager.paths.VaultKey); err != nil {
 		return err
 	}
 	if err := copyPrivateFile(filepath.Join(backup, "vault.db"), manager.paths.Vault); err != nil {
@@ -349,38 +349,73 @@ func copyPrivateFile(source, destination string) error {
 	return appdata.RestrictFile(destination)
 }
 
-func (manager *Manager) quarantineCurrentVault(sources ...string) error {
+func (manager *Manager) quarantineCurrentVault(sources ...string) (string, error) {
 	if err := appdata.PreparePrivateDirectory(manager.paths.RecoveryRoot); err != nil {
-		return err
+		return "", err
 	}
 	recovery := filepath.Join(manager.paths.RecoveryRoot, time.Now().UTC().Format(backupTimeFormat))
 	if err := appdata.PreparePrivateDirectory(recovery); err != nil {
-		return err
+		return "", err
 	}
 	for _, source := range sources {
 		if !fileExists(source) {
 			continue
 		}
 		if err := os.Rename(source, filepath.Join(recovery, filepath.Base(source))); err != nil {
-			return fmt.Errorf("quarantine current %q: %w", filepath.Base(source), err)
+			return "", fmt.Errorf("quarantine current %q: %w", filepath.Base(source), err)
 		}
 	}
-	return nil
+	return recovery, nil
+}
+
+func (manager *Manager) legacyVaultFiles() []string {
+	return []string{manager.paths.Vault, manager.paths.VaultKey, manager.paths.AutoUnlockKey, manager.paths.Migration,
+		manager.paths.VaultKey + ".next", manager.paths.AutoUnlockKey + ".next"}
 }
 
 // SetAsideLegacyVault moves a vault from a version before 0.10.0 into the
 // recovery folder, so a new vault can be created. Nothing is deleted.
 func (manager *Manager) SetAsideLegacyVault() error {
+	_, err := manager.setAsideLegacyVault()
+	return err
+}
+
+func (manager *Manager) setAsideLegacyVault() (string, error) {
 	if manager.Unlocked() {
-		return errors.New("lock the vault before setting it aside")
+		return "", errors.New("lock the vault before setting it aside")
 	}
 	if manager.FileState() != FileStateLegacy {
-		return errors.New("the vault is not from a version before 0.10.0")
+		return "", errors.New("the vault is not from a version before 0.10.0")
 	}
-	if err := manager.quarantineCurrentVault(manager.paths.Vault, manager.paths.VaultKey, manager.paths.AutoUnlockKey,
-		manager.paths.Migration, manager.paths.VaultKey+".next", manager.paths.AutoUnlockKey+".next"); err != nil {
-		return err
+	recovery, err := manager.quarantineCurrentVault(manager.legacyVaultFiles()...)
+	if err != nil {
+		return "", err
 	}
 	manager.logger.Info("legacy vault set aside", "operation", "vault-legacy")
+	return recovery, nil
+}
+
+// restoreLegacyVault moves a legacy vault back from the recovery folder after
+// a migration failed to create the new vault.
+func (manager *Manager) restoreLegacyVault(recovery string) error {
+	if fileExists(manager.paths.Vault) || fileExists(manager.paths.VaultKey) {
+		return errors.New("a vault exists, so the old vault stays in the recovery folder")
+	}
+	if err := manager.removeManaged(manager.paths.CreateStaging, manager.paths.VaultRoot); err != nil {
+		return fmt.Errorf("remove vault staging data: %w", err)
+	}
+	for _, destination := range manager.legacyVaultFiles() {
+		source := filepath.Join(recovery, filepath.Base(destination))
+		if !fileExists(source) {
+			continue
+		}
+		if err := os.Rename(source, destination); err != nil {
+			return fmt.Errorf("restore %q: %w", filepath.Base(destination), err)
+		}
+	}
+	if err := os.Remove(recovery); err != nil {
+		manager.logger.Warn("empty recovery folder could not be removed", "operation", "vault-legacy", "error", err)
+	}
+	manager.logger.Info("legacy vault restored from the recovery folder", "operation", "vault-legacy")
 	return nil
 }
