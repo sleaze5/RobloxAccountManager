@@ -61,7 +61,7 @@
 			icon: infoIcon,
 			id: "about",
 			label: "About",
-			search: "about updates update check latest download install restart new release version build time timestamp unix platform architecture arch os go wails revision commit launch id startup stages timings duration ready storage data folder loaded components schema format version settings vault database sqlite sqlcipher key file automatic unlock browser runtime manifest log created loaded recovered",
+			search: "about updates update check latest download install restart new release version build time timestamp unix platform architecture arch os go wails revision commit launch id startup stages timings duration ready storage data folder loaded components schema format version settings vault database sqlite encryption key file automatic unlock browser runtime manifest log created loaded recovered",
 		},
 	] as const
 

@@ -26,15 +26,11 @@
 			case UpdateStatus.StatusUpToDate:
 				return "You have the latest version."
 			case UpdateStatus.StatusAvailable:
-				return update.requiresMigration
-					? `Version ${version} uses a new vault format. Your data moves to it when you restart to update.`
-					: `Version ${version} is available.`
+				return `Version ${version} is available.`
 			case UpdateStatus.StatusDownloading:
 				return `Downloading version ${version}.`
 			case UpdateStatus.StatusReady:
-				return update.requiresMigration
-					? `Version ${version} is downloaded and verified. Restart to install it and move your data to the new vault format.`
-					: `Version ${version} is downloaded and verified. Restart to install it.`
+				return `Version ${version} is downloaded and verified. Restart to install it.`
 			case UpdateStatus.StatusRestarting:
 				return `Restarting to install version ${version}.`
 			default:

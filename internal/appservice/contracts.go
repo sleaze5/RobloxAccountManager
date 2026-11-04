@@ -30,12 +30,14 @@ type Vault interface {
 	ListBackups() ([]vault.BackupInfo, error)
 	RestoreBackup(context.Context, string, string) error
 	ResetVault() error
+	SetAsideLegacyVault() error
 	ExportsDirectory() string
 	DefaultExportName() string
 	WriteExport(string, string, []byte) (vault.ExportInfo, error)
 	ReadExport(string, string) (vault.ExportInfo, []byte, error)
-	WriteMigration([]byte) error
 	RemoveMigration() error
+	MigrationAvailable() bool
+	MigrateLegacyVault(context.Context, string, func([]byte) error) error
 }
 
 type AccountRepository interface {

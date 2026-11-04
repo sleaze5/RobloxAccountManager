@@ -116,11 +116,6 @@ func (service *Service) InstallUpdate(ctx context.Context) error { return servic
 func (service *Service) CancelUpdateDownload() { service.updates.CancelDownload() }
 
 func (service *Service) RestartToUpdate(ctx context.Context) error {
-	if state := service.updates.State(); state.Status == appupdate.StatusReady && state.RequiresMigration {
-		if err := service.core.PrepareVaultMigration(ctx); err != nil {
-			return err
-		}
-	}
 	return service.updates.Restart(ctx)
 }
 
@@ -430,6 +425,17 @@ func (service *Service) ResetVault(confirmation string) error {
 		return &roblox.Error{Kind: roblox.KindProtocol, Endpoint: "vault-reset", Message: "Type RESET to confirm vault deletion."}
 	}
 	return service.core.ResetVault()
+}
+
+func (service *Service) MigrateLegacyVault(ctx context.Context, password string) error {
+	return service.core.MigrateLegacyVault(ctx, password)
+}
+
+func (service *Service) SetAsideLegacyVault(confirmation string) error {
+	if confirmation != "CONFIRM" {
+		return &roblox.Error{Kind: roblox.KindProtocol, Endpoint: "vault-legacy", Message: "Type CONFIRM to set the old vault aside."}
+	}
+	return service.core.SetAsideLegacyVault()
 }
 
 func (service *Service) ExportVault(ctx context.Context, passcode, confirmation string) (vault.ExportInfo, error) {

@@ -3,13 +3,10 @@ package appupdate
 import (
 	"context"
 	"errors"
-	"fmt"
-	"io"
 	"log/slog"
 	"net/http"
 	"os"
 	"path/filepath"
-	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -20,17 +17,9 @@ import (
 	"github.com/wailsapp/wails/v3/pkg/updater/providers/endpoint"
 )
 
-const (
-	manifestURL       = "https://github.com/sleaze5/RobloxAccountManager/releases/latest/download/manifest.json"
-	bridgeManifestURL = "https://github.com/sleaze5/RobloxAccountManager/releases/download/v0.10.0/manifest.json"
-)
+const manifestURL = "https://github.com/sleaze5/RobloxAccountManager/releases/latest/download/manifest.json"
 
 const checkTimeout = 30 * time.Second
-
-// Versions from vaultFormatVersion on cannot open vaults from earlier
-// versions. This version updates only to that first version, which imports
-// the migration file written before the restart.
-var vaultFormatVersion = [3]int{0, 10, 0}
 
 type Status string
 
@@ -45,13 +34,12 @@ const (
 )
 
 type State struct {
-	Status            Status `json:"status"`
-	CurrentVersion    string `json:"currentVersion"`
-	AvailableVersion  string `json:"availableVersion,omitempty"`
-	RequiresMigration bool   `json:"requiresMigration"`
-	DownloadedBytes   int64  `json:"downloadedBytes"`
-	TotalBytes        int64  `json:"totalBytes"`
-	Error             string `json:"error,omitempty"`
+	Status           Status `json:"status"`
+	CurrentVersion   string `json:"currentVersion"`
+	AvailableVersion string `json:"availableVersion,omitempty"`
+	DownloadedBytes  int64  `json:"downloadedBytes"`
+	TotalBytes       int64  `json:"totalBytes"`
+	Error            string `json:"error,omitempty"`
 }
 
 var errUnavailable = errors.New("updates are unavailable")
@@ -72,20 +60,18 @@ func New(logger *slog.Logger, changed func()) *Service {
 }
 
 func (service *Service) Start(ctx context.Context, app *application.App) {
-	client := &http.Client{Transport: &http.Transport{
-		Proxy:                 http.ProxyFromEnvironment,
-		TLSHandshakeTimeout:   10 * time.Second,
-		ResponseHeaderTimeout: checkTimeout,
-	}}
-	latest, err := endpoint.New(endpoint.Config{URL: manifestURL, HTTPClient: client})
-	var bridge *endpoint.Provider
-	if err == nil {
-		bridge, err = endpoint.New(endpoint.Config{URL: bridgeManifestURL, HTTPClient: client})
-	}
+	provider, err := endpoint.New(endpoint.Config{
+		URL: manifestURL,
+		HTTPClient: &http.Client{Transport: &http.Transport{
+			Proxy:                 http.ProxyFromEnvironment,
+			TLSHandshakeTimeout:   10 * time.Second,
+			ResponseHeaderTimeout: checkTimeout,
+		}},
+	})
 	if err == nil {
 		err = app.Updater.Init(updater.Config{
 			CurrentVersion: appmeta.Version,
-			Providers:      []updater.Provider{bridgeProvider{latest: latest, bridge: bridge}},
+			Providers:      []updater.Provider{provider},
 			PublicKey:      appmeta.UpdaterPublicKey,
 			Window:         updater.WindowNone,
 		})
@@ -177,65 +163,10 @@ func (service *Service) finishCheck(release *updater.Release, err error) {
 		service.state = State{Status: StatusUpToDate, CurrentVersion: appmeta.Version}
 	default:
 		service.logger.Info("update available", "operation", "update-check", "version", release.Version)
-		service.state = State{Status: StatusAvailable, CurrentVersion: appmeta.Version, AvailableVersion: release.Version,
-			RequiresMigration: requiresMigration(release.Version), TotalBytes: release.Artifact.Size}
+		service.state = State{Status: StatusAvailable, CurrentVersion: appmeta.Version, AvailableVersion: release.Version, TotalBytes: release.Artifact.Size}
 	}
 	service.mu.Unlock()
 	service.changed()
-}
-
-// bridgeProvider offers the newest release, unless it is past the first
-// version with the new vault format. Then it offers that version instead,
-// because only that version imports the migration file.
-type bridgeProvider struct {
-	latest *endpoint.Provider
-	bridge *endpoint.Provider
-}
-
-func (provider bridgeProvider) Name() string { return provider.latest.Name() }
-
-func (provider bridgeProvider) Check(ctx context.Context, request updater.CheckRequest) (*updater.Release, error) {
-	release, err := provider.latest.Check(ctx, request)
-	if err != nil {
-		return nil, fmt.Errorf("check latest version: %w", err)
-	}
-	if release == nil || !requiresMigration(release.Version) || isVaultFormatVersion(release.Version) {
-		return release, nil
-	}
-	release, err = provider.bridge.Check(ctx, request)
-	if err != nil {
-		return nil, fmt.Errorf("check version 0.10.0: %w", err)
-	}
-	return release, nil
-}
-
-func (provider bridgeProvider) Download(ctx context.Context, release *updater.Release, destination io.Writer, progress func(written, total int64)) error {
-	if err := provider.latest.Download(ctx, release, destination, progress); err != nil {
-		return fmt.Errorf("download version %s: %w", release.Version, err)
-	}
-	return nil
-}
-
-func isVaultFormatVersion(version string) bool {
-	return strings.TrimPrefix(version, "v") == fmt.Sprintf("%d.%d.%d", vaultFormatVersion[0], vaultFormatVersion[1], vaultFormatVersion[2])
-}
-
-func requiresMigration(version string) bool {
-	core, _, _ := strings.Cut(strings.TrimPrefix(version, "v"), "-")
-	parts := strings.Split(core, ".")
-	if len(parts) != len(vaultFormatVersion) {
-		return true
-	}
-	for index, part := range parts {
-		number, err := strconv.Atoi(part)
-		if err != nil {
-			return true
-		}
-		if number != vaultFormatVersion[index] {
-			return number > vaultFormatVersion[index]
-		}
-	}
-	return true
 }
 
 func (service *Service) Install(ctx context.Context) error {

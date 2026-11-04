@@ -9,7 +9,7 @@ import (
 	"strings"
 	"time"
 
-	sqlite3 "github.com/mutecomm/go-sqlcipher/v4"
+	"github.com/ncruces/go-sqlite3"
 	accountdomain "github.com/sleaze5/RobloxAccountManager/internal/accounts"
 )
 
@@ -620,8 +620,7 @@ func safeReason(reason string) string {
 }
 
 func isConstraint(err error) bool {
-	var sqliteErr sqlite3.Error
-	return errors.As(err, &sqliteErr) && sqliteErr.Code == sqlite3.ErrConstraint
+	return errors.Is(err, sqlite3.CONSTRAINT)
 }
 
 func validateReplacementIdentity(ctx context.Context, tx *sql.Tx, accountID int64, identity Identity) error {

@@ -114,24 +114,6 @@ func (service *Service) ExportVault(ctx context.Context, path, passcode, confirm
 	return info, nil
 }
 
-// PrepareVaultMigration writes the migration file that the next version
-// imports, because that version cannot read this vault format.
-func (service *Service) PrepareVaultMigration(ctx context.Context) error {
-	if !service.vault.Unlocked() {
-		return transferError("Unlock the vault before you restart to update.", vault.ErrLocked)
-	}
-	data, err := service.exportData(ctx, "vault-migration")
-	if err != nil {
-		return err
-	}
-	defer clear(data)
-	if err := service.vault.WriteMigration(data); err != nil {
-		service.logger.Error("vault migration file could not be written", "operation", "vault-migration", "error", err)
-		return transferError("Your data could not be prepared for the update. Check that the data folder has free space, then try again.", err)
-	}
-	return nil
-}
-
 func (service *Service) exportData(ctx context.Context, operation string) ([]byte, error) {
 	payload, err := service.transfers.Read(ctx)
 	if err != nil {
