@@ -37,7 +37,7 @@
 			icon: slidersHorizontalIcon,
 			id: "general",
 			label: "General",
-			search: "general presence updates automatic enabled disabled interval seconds minutes online offline in game accounts bar all stored accounts batches active profile selected account while its profile is open logging all log levels enable disable every level trace detailed requests internal operations debug diagnostic information development info normal application activity completed operations warning recoverable problems need attention error failed operations critical problems",
+			search: "general presence updates automatic enabled disabled interval seconds minutes online offline in game accounts bar all stored accounts batches active profile selected account while its profile is open social friends followers following players listed users while social is open logging all log levels enable disable every level trace detailed requests internal operations debug diagnostic information development info normal application activity completed operations warning recoverable problems need attention error failed operations critical problems",
 		},
 		{
 			icon: monitorIcon,

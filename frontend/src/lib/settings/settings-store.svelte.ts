@@ -15,6 +15,7 @@ export class SettingsStore {
 	presence = $state<PresenceSettings>({
 		accounts: { enabled: true, intervalSeconds: 300 },
 		profile: { enabled: true, intervalSeconds: 60 },
+		social: { enabled: true, intervalSeconds: 60 },
 	})
 	busyPresence = $state(false)
 	enabledLoggingLevels = $state<Record<LoggingLevel, boolean>>({

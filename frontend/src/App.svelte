@@ -158,14 +158,24 @@
 	})
 
 	$effect(() => {
-		const presence = appSettings.presence.accounts
-		if (!appSettings.initialized || !store.vault.unlocked || !presence.enabled) {
+		const presence = appSettings.presence.accounts,
+			intervalMs = presence.intervalSeconds * 1000
+		if (
+			activePage !== "accounts" ||
+			!appSettings.initialized ||
+			!store.vault.unlocked ||
+			!presence.enabled
+		) {
 			return
 		}
-		untrack(() => void store.refreshPresences())
+		untrack(() => {
+			if (Date.now() - store.presencesRefreshedAt >= intervalMs) {
+				void store.refreshPresences()
+			}
+		})
 		const timer = window.setInterval(
 			() => void store.refreshPresences(),
-			presence.intervalSeconds * 1000,
+			intervalMs,
 		)
 		return () => window.clearInterval(timer)
 	})

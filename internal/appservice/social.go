@@ -23,6 +23,7 @@ const (
 	maxSocialCursorLength   = 4096
 	minPlayerSearchLength   = 3
 	maxPlayerSearchLength   = 50
+	maxSocialPresenceUsers  = 1000
 	maxNicknameLength       = 20
 	friendConnectionWorkers = 4
 )
@@ -251,18 +252,12 @@ func (service *Service) socialEntries(ctx context.Context, accountID, version, u
 }
 
 func socialPeople(users []robloxservices.UserView, requests []robloxservices.FriendRequest, presences []robloxservices.UserPresence, withPresence bool) []SocialUser {
-	presenceByUser := make(map[int64]robloxservices.UserPresence, len(presences))
-	for _, presence := range presences {
-		presenceByUser[presence.UserID] = presence
-	}
+	presenceByUser := indexPresences(presences)
 	people := make([]SocialUser, 0, len(users))
 	for index, user := range users {
 		person := SocialUser{UserID: user.UserID, Username: user.Username, DisplayName: cmp.Or(user.DisplayName, user.Username)}
 		if withPresence {
-			presence, found := presenceByUser[user.UserID]
-			if !found {
-				presence = robloxservices.UserPresence{UserID: user.UserID, UserPresenceType: robloxservices.PresenceTypeOffline}
-			}
+			presence := presenceOrOffline(presenceByUser, user.UserID)
 			person.Presence = &presence
 		}
 		if index < len(requests) {
@@ -277,11 +272,50 @@ func socialPeople(users []robloxservices.UserView, requests []robloxservices.Fri
 	return people
 }
 
+func indexPresences(presences []robloxservices.UserPresence) map[int64]robloxservices.UserPresence {
+	byUser := make(map[int64]robloxservices.UserPresence, len(presences))
+	for _, presence := range presences {
+		byUser[presence.UserID] = presence
+	}
+	return byUser
+}
+
+func presenceOrOffline(byUser map[int64]robloxservices.UserPresence, userID int64) robloxservices.UserPresence {
+	if presence, found := byUser[userID]; found {
+		return presence
+	}
+	return robloxservices.UserPresence{UserID: userID, UserPresenceType: robloxservices.PresenceTypeOffline}
+}
+
 func compareFriends(left, right SocialUser) int {
 	return cmp.Or(
 		cmp.Compare(friendPresenceRank(left.Presence), friendPresenceRank(right.Presence)),
 		strings.Compare(strings.ToLower(left.DisplayName), strings.ToLower(right.DisplayName)),
 	)
+}
+
+// GetSocialPresences reads the presence of listed users as the account sees
+// it, with one entry per user so users Roblox omits read as offline.
+func (service *Service) GetSocialPresences(ctx context.Context, accountID int64, userIDs []int64) ([]robloxservices.UserPresence, error) {
+	if len(userIDs) > maxSocialPresenceUsers {
+		return nil, socialInputError("Too many users were requested. Refresh the list.")
+	}
+	ctx, version, logger, done, err := service.beginSocial(ctx, accountID, "presence")
+	if err != nil {
+		return nil, err
+	}
+	defer done()
+	presences, err := service.presence.UserPresences(ctx, accountID, version, userIDs)
+	if err != nil {
+		return nil, socialFailure(logger, err)
+	}
+	byUser := indexPresences(presences)
+	complete := make([]robloxservices.UserPresence, 0, len(userIDs))
+	for _, userID := range userIDs {
+		complete = append(complete, presenceOrOffline(byUser, userID))
+	}
+	logger.Debug("social presence read", "count", len(complete))
+	return complete, nil
 }
 
 func (service *Service) GetSocialProfile(ctx context.Context, accountID, userID int64) (SocialProfile, error) {
