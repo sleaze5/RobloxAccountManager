@@ -318,26 +318,34 @@ export class SavedServers {
 	error = $state("")
 	actionError = $state("")
 	#active = true
+	#generation = 0
 
 	constructor(readonly placeId: number) {}
 
 	async load(): Promise<void> {
-		if (!this.#active || this.loading) return
+		if (!this.#active) return
+		const generation = ++this.#generation,
+			current = () => this.#active && generation === this.#generation
 		this.loading = true
 		this.error = ""
 		try {
 			const servers = await accountBackend.ListSavedPrivateServers(this.placeId)
-			if (this.#active) this.servers = servers ?? []
+			if (current()) this.servers = servers ?? []
 		} catch (error) {
-			if (this.#active) {
+			if (current()) {
 				this.error = errorMessage(
 					error,
 					"Saved links could not be loaded. Try again.",
 				)
 			}
 		} finally {
-			if (this.#active) this.loading = false
+			if (current()) this.loading = false
 		}
+	}
+
+	#apply(change: (servers: SavedPrivateServer[]) => SavedPrivateServer[]): void {
+		this.servers = change(this.servers ?? [])
+		if (this.loading) void this.load()
 	}
 
 	async save(accountId: number, name: string, link: string): Promise<boolean> {
@@ -352,7 +360,10 @@ export class SavedServers {
 				link,
 			)
 			if (!this.#active) return false
-			this.servers = [...(this.servers ?? []), server]
+			this.#apply((servers) => [
+				...servers.filter((item) => item.id !== server.id),
+				server,
+			])
 			return true
 		} catch (error) {
 			if (this.#active) {
@@ -374,7 +385,7 @@ export class SavedServers {
 		try {
 			await accountBackend.RemoveSavedPrivateServer(server.id)
 			if (!this.#active) return false
-			this.servers = (this.servers ?? []).filter((item) => item.id !== server.id)
+			this.#apply((servers) => servers.filter((item) => item.id !== server.id))
 			return true
 		} catch (error) {
 			if (this.#active) {
