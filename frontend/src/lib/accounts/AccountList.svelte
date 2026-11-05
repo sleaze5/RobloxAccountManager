@@ -8,7 +8,7 @@
 	import type { WorkspaceState } from "../layout/workspace-state.svelte"
 	import AccountAvatar from "./AccountAvatar.svelte"
 	import type { AccountStore } from "./account-store.svelte"
-	import { presenceLabel, showsPresence } from "./account-model"
+	import { presenceDetail, presenceLabel, showsPresence } from "./account-model"
 	import PresenceLine from "./PresenceLine.svelte"
 
 	interface DropTarget {
@@ -138,11 +138,11 @@
 	aria-busy={store.loadingAccounts || store.loadingMore}
 	onscroll={loadNearEnd}>
 	{#each store.filteredAccounts as account (account.id)}
-		{@const presence = showsPresence(account.presence)}
+		{@const detail = presenceDetail(account.presence)}
 		<div
 			class={[
 				"group/row list-row relative flex w-full items-center gap-2 border-b border-line-subtle text-left",
-				presence ? "h-16" : "h-12",
+				detail ? "h-16" : "h-12",
 				draggedAccountId === account.id && "opacity-45",
 				dropTarget?.accountId === account.id &&
 					(dropTarget.after ? "shadow-drop-after" : "shadow-drop-before"),
@@ -155,7 +155,7 @@
 			ondragover={(event) => updateDropTarget(event, account.id)}
 			ondrop={(event) => dropAccount(event, account.id)}>
 			{#if store.multipleSelected}
-				<span class={["checkbox ml-2", presence && "mt-4 self-start"]}>
+				<span class={["checkbox ml-2", detail && "mt-4 self-start"]}>
 					<input
 						type="checkbox"
 						aria-label={`Select @${account.username}`}
@@ -180,7 +180,7 @@
 				<span
 					class={[
 						"grid h-7 w-5 shrink-0 cursor-grab place-items-center pl-2 text-fg-faint active:cursor-grabbing",
-						presence && "mt-2.5 self-start",
+						detail && "mt-2.5 self-start",
 					]}
 					draggable={!store.busy && store.accounts.length > 1}
 					aria-hidden="true"
@@ -231,8 +231,10 @@
 							class="block truncate text-2xs text-fg-faint group-hover/row:text-fg-muted group-data-selected/row:text-fg-muted"
 							>@{account.username}</small>
 					</span>
+					{#if !detail && showsPresence(account.presence)}<PresenceLine
+							presence={account.presence} />{/if}
 				</span>
-				{#if presence}<PresenceLine presence={account.presence} />{/if}
+				{#if detail}<PresenceLine presence={account.presence} />{/if}
 			</button>
 		</div>
 	{:else}

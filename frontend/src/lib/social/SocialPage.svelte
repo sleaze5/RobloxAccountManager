@@ -393,11 +393,13 @@
 						aria-busy={store.loading || store.loadingMore}>
 						{#each store.people as person (person.userId)}
 							{@const active = store.selectedUserId === person.userId}
-							{@const presence = showsPresence(person.presence)}
+							{@const detail = person.presence
+								? presenceDetail(person.presence)
+								: ""}
 							<button
 								class={[
 									"group/row list-row relative flex w-full flex-col justify-center gap-1 border-b border-line-subtle px-3 text-left",
-									presence ? "h-16" : "h-12",
+									detail ? "h-16" : "h-12",
 								]}
 								data-selected={active || undefined}
 								data-open={store.menu?.person.userId ===
@@ -430,8 +432,10 @@
 											class="truncate text-2xs text-fg-faint group-hover/row:text-fg-muted group-data-selected/row:text-fg-muted"
 											>{subtitle(person)}</small>
 									</span>
+									{#if !detail && showsPresence(person.presence)}<PresenceLine
+											presence={person.presence} />{/if}
 								</span>
-								{#if showsPresence(person.presence)}<PresenceLine
+								{#if detail && person.presence}<PresenceLine
 										presence={person.presence} />{/if}
 							</button>
 						{/each}
