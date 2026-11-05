@@ -25,9 +25,7 @@
 		<span>Roblox Account Manager</span>
 		<span class="text-fg-faint" aria-hidden="true">-</span>
 		<span class="font-mono text-2xs text-fg-faint">{version}</span>
-		{#if !release}<span
-				class="self-center rounded-sm border border-warning/30 bg-warning/5 px-1 text-2xs font-medium text-warning"
-				>Dev</span
+		{#if !release}<span class="text-2xs font-medium text-fg-faint">DEV BUILD</span
 			>{/if}
 	</div>
 	<div class="ml-auto flex h-full" style="--wails-draggable: no-drag">
