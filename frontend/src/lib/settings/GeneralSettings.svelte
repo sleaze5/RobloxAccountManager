@@ -6,7 +6,7 @@
 	const presenceScopes = [
 		{
 			id: PresenceScope.PresenceAccounts,
-			name: "Accounts bar",
+			name: "Account list",
 			description: "Update presence for all stored accounts.",
 		},
 		{

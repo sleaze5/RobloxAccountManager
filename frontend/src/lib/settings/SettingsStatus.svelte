@@ -17,5 +17,5 @@
 	}
 </script>
 
-<span class="mt-0.5 font-mono text-2xs text-fg-faint" {id} role="status"
-	>status: <span class={tones[tone]}>{value}</span></span>
+<span class="mt-0.5 text-2xs text-fg-faint" {id} role="status"
+	>Status: <span class={tones[tone]}>{value}</span></span>

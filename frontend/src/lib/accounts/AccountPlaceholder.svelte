@@ -1,6 +1,7 @@
 <script lang="ts">
 	import cursorClickIcon from "@phosphor-icons/core/regular/cursor-click.svg?raw"
 	import dotsThreeIcon from "@phosphor-icons/core/regular/dots-three.svg?raw"
+	import magnifyingGlassIcon from "@phosphor-icons/core/regular/magnifying-glass.svg?raw"
 	import plusIcon from "@phosphor-icons/core/regular/plus.svg?raw"
 	import userPlusIcon from "@phosphor-icons/core/regular/user-plus.svg?raw"
 	import usersThreeIcon from "@phosphor-icons/core/regular/users-three.svg?raw"
@@ -44,6 +45,12 @@
 			!store.query &&
 			store.selectedTagIds.length === 0,
 	)
+	const noMatches = $derived(!noAccounts && store.filteredAccounts.length === 0)
+
+	function clearFilters(): void {
+		store.setQuery("")
+		store.clearSelectedTags()
+	}
 </script>
 
 {#if store.multipleSelected}
@@ -64,7 +71,16 @@
 				<Icon svg={dotsThreeIcon} size={16} aria-hidden="true" />Edit tags or
 				copy
 			</button>
-			<button class="btn" type="button" onclick={() => store.clearSelection()}>
+			<button
+				class="btn"
+				type="button"
+				onclick={() => {
+					store.clearSelection()
+					workspace.closeAccountMenus()
+					document
+						.querySelector<HTMLButtonElement>("[data-account-select]")
+						?.focus()
+				}}>
 				Clear selection
 			</button>
 		</div>
@@ -94,6 +110,13 @@
 						onImportFile={importFile} />
 				{/if}
 			</div>
+		{:else if noMatches}
+			<Icon svg={magnifyingGlassIcon} size={28} aria-hidden="true" />
+			<h2>Nothing to show</h2>
+			<p>Change the search or tag filter to find an account.</p>
+			<button class="btn" type="button" onclick={clearFilters}>
+				Clear search and filters
+			</button>
 		{:else}
 			<Icon svg={cursorClickIcon} size={28} aria-hidden="true" />
 			<h2>No account selected</h2>

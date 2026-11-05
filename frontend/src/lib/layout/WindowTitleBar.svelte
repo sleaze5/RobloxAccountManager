@@ -7,7 +7,7 @@
 	import { Browser, Window } from "@wailsio/runtime"
 	import { repository } from "../../../package.json"
 
-	let { version, pageTitle }: { version: string; pageTitle?: string } = $props()
+	let { version }: { version: string } = $props()
 	const repositoryURL = repository.url.replace(/^git\+/, "").replace(/\.git$/, "")
 	const controlClass =
 		"grid h-full w-11 cursor-default place-items-center text-fg-muted transition-colors duration-100 hover:bg-hover hover:text-fg-bright"
@@ -22,23 +22,20 @@
 	</div>
 	<div
 		class="pointer-events-none absolute left-1/2 flex -translate-x-1/2 items-baseline gap-1 text-xs text-fg-muted">
-		{#if pageTitle}
-			<span>{pageTitle}</span>
-		{:else}
-			<span>Roblox Account Manager</span>
-			<span class="text-fg-faint" aria-hidden="true">-</span>
-			<span class="font-mono text-2xs text-fg-faint">{version}</span>
-		{/if}
+		<span>Roblox Account Manager</span>
+		<span class="text-fg-faint" aria-hidden="true">-</span>
+		<span class="font-mono text-2xs text-fg-faint">{version}</span>
 	</div>
 	<div class="ml-auto flex h-full" style="--wails-draggable: no-drag">
 		<button
-			class={controlClass}
+			class="btn-ghost self-center"
 			type="button"
 			aria-label="Open repository"
 			data-tooltip="Open repository"
 			onclick={() => void Browser.OpenURL(repositoryURL)}>
 			<Icon svg={gitBranchLightIcon} size={18} aria-hidden="true" />
 		</button>
+		<div class="mx-2 h-4 w-px self-center bg-line-strong" aria-hidden="true"></div>
 		<button
 			class={controlClass}
 			type="button"

@@ -10,7 +10,6 @@
 	import { UpdateStatus } from "../backend/bridge"
 	import { formatCompactBytes } from "../shared/bytes"
 	import { updateStore } from "../updates/update-store.svelte"
-	import SettingsStatus from "./SettingsStatus.svelte"
 
 	const update = $derived(updateStore.state),
 		error = $derived(updateStore.error || update.error || ""),
@@ -43,27 +42,6 @@
 				return "Updates have not been checked yet."
 		}
 	})
-
-	const status = $derived.by(
-		(): { value: string; tone: "neutral" | "success" | "warning" } => {
-			switch (update.status) {
-				case UpdateStatus.StatusChecking:
-					return { value: "Checking", tone: "neutral" }
-				case UpdateStatus.StatusUpToDate:
-					return { value: "Up to date", tone: "success" }
-				case UpdateStatus.StatusAvailable:
-					return { value: "Update available", tone: "warning" }
-				case UpdateStatus.StatusDownloading:
-					return { value: "Downloading", tone: "neutral" }
-				case UpdateStatus.StatusReady:
-					return { value: "Ready to install", tone: "success" }
-				case UpdateStatus.StatusRestarting:
-					return { value: "Restarting", tone: "neutral" }
-				default:
-					return { value: "Not checked", tone: "neutral" }
-			}
-		},
-	)
 </script>
 
 <section class="settings-section" aria-labelledby="about-updates-title">
@@ -72,8 +50,8 @@
 	<div class="settings-rows">
 		<div class="settings-row">
 			<div class="settings-row-copy">
-				<strong>Version {update.currentVersion}</strong><span>{summary}</span>
-				<SettingsStatus value={status.value} tone={status.tone} />
+				<strong>Version {update.currentVersion}</strong><span role="status"
+					>{summary}</span>
 			</div>
 			<div class="flex items-center gap-2">
 				{#if version && update.status !== UpdateStatus.StatusUpToDate}<button

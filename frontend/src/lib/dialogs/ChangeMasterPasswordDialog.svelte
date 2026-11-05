@@ -47,7 +47,7 @@
 
 <div class="dialog-backdrop" in:modalBackdropIn out:modalBackdropOut>
 	<div
-		class="relative dialog-card max-w-sm text-center"
+		class="relative dialog-card max-w-md text-center"
 		role="dialog"
 		aria-modal="true"
 		aria-labelledby="change-password-title"

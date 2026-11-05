@@ -1,6 +1,8 @@
 <script lang="ts">
 	import arrowsClockwiseIcon from "@phosphor-icons/core/regular/arrows-clockwise.svg?raw"
 	import Icon from "../shared/Icon.svelte"
+	import ConnectionHosts from "./ConnectionHosts.svelte"
+	import SectionLink from "./SectionLink.svelte"
 	import { untrack } from "svelte"
 	import Select from "../shared/Select.svelte"
 	import type { SettingsStore } from "./settings-store.svelte"
@@ -9,7 +11,7 @@
 	const terms = $derived(query.trim().toLowerCase().split(/\s+/).filter(Boolean)),
 		visible = $derived(
 			terms.every((term) =>
-				"integrations rovalra api server browser servers information features enabled disabled on off preferred region country nearest launch join refresh regions".includes(
+				"integrations rovalra api server browser servers information features enabled disabled on off preferred region country nearest launch join refresh regions hosts connect apis.rovalra.com".includes(
 					term,
 				),
 			),
@@ -53,14 +55,17 @@
 		</div>{/if}
 
 	<section class="settings-section" aria-labelledby="rovalra-title">
-		<h3 id="rovalra-title">RoValra API</h3>
+		<h3 class="flex items-center justify-between gap-2">
+			<span id="rovalra-title">RoValra API</span>
+			<SectionLink label="Open RoValra website" url="https://www.rovalra.com/" />
+		</h3>
 		<div class="settings-rows">
 			<div class="settings-row">
 				<div class="settings-row-copy">
-					<strong id="rovalra-enabled">Enabled</strong>
+					<strong id="rovalra-enabled">Server data</strong>
 					<span id="rovalra-description"
-						>Enable this to show more server information in the server
-						browser and add other features.</span>
+						>Show server regions and ages, and fill the nearest server from
+						the launch panel.</span>
 				</div>
 				<label class="switch">
 					<input
@@ -122,6 +127,7 @@
 					</div>
 				</div>
 			{/if}
+			<ConnectionHosts hosts={["apis.rovalra.com"]} />
 		</div>
 	</section>
 {/if}

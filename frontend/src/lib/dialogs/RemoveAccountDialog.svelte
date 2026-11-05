@@ -47,16 +47,19 @@
 			<div>
 				<h2
 					id="remove-account-title"
-					class="inline-flex min-w-0 items-center gap-1">
-					<span class="truncate">Remove {account.displayName}</span>
+					class="flex min-w-0 flex-wrap items-center gap-x-1 wrap-anywhere">
+					<span class="min-w-0">Remove {account.displayName}</span>
 					{#if account.favorite}<Icon
 							svg={starFillIcon}
 							class="shrink-0 animate-pop text-accent-strong"
 							size={14}
 							aria-hidden="true" />{/if}
-					<span>(@{account.username})?</span>
+					<span class="min-w-0">(@{account.username})?</span>
 				</h2>
-				<p>This removes the account and its encrypted session.</p>
+				<p>
+					The Roblox account stays, but its saved session and every older
+					backup are deleted, and this cannot be undone.
+				</p>
 			</div>
 			<button
 				type="button"

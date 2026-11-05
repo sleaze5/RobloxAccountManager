@@ -10,6 +10,7 @@
 	import warningIcon from "@phosphor-icons/core/regular/warning.svg?raw"
 	import xIcon from "@phosphor-icons/core/regular/x.svg?raw"
 	import Icon from "../shared/Icon.svelte"
+	import { moveListFocus } from "../shared/move-shortcut"
 	import { appSettings } from "../settings/settings-store.svelte"
 	import type { LogsExplorerVisit } from "../backend/bridge"
 	import SidebarResizer from "../layout/SidebarResizer.svelte"
@@ -136,7 +137,9 @@
 							aria-current={store.selectedFile === session.fileName
 								? "true"
 								: undefined}
+							data-list-item
 							onclick={() => (store.selectedFile = session.fileName)}
+							onkeydown={moveListFocus}
 							data-tooltip={session.fileName}
 							data-tooltip-side="right">
 							<span
@@ -203,12 +206,31 @@
 							size={28}
 							aria-hidden="true" />
 						<h2>Logs are unavailable</h2>
-						<p>Refresh all to try reading the logs again.</p>
+						<p>Refresh the logs to try reading them again.</p>
+						<button
+							class="btn"
+							type="button"
+							onclick={() => void store.refreshAll()}
+							><Icon
+								svg={arrowsClockwiseIcon}
+								data-turn
+								size={16}
+								aria-hidden="true" />Refresh logs</button>
 					{:else if !store.sessions.length}<Icon
 							svg={fileMagnifyingGlassIcon}
 							size={28}
 							aria-hidden="true" />
-						<h2>No Roblox sessions found</h2>
+						<h2>No Roblox sessions yet</h2>
+						<p>Launch Roblox once, then refresh to read its logs.</p>
+						<button
+							class="btn"
+							type="button"
+							onclick={() => void store.refreshAll()}
+							><Icon
+								svg={arrowsClockwiseIcon}
+								data-turn
+								size={16}
+								aria-hidden="true" />Refresh logs</button>
 					{:else if !sessions.length}<Icon
 							svg={magnifyingGlassIcon}
 							size={28}
@@ -226,19 +248,23 @@
 		</div>
 	</div>
 	<footer
-		class="flex h-6 shrink-0 items-center justify-between border-t border-line-subtle bg-surface pl-3 font-mono text-2xs text-fg-faint"
+		class="flex h-6 shrink-0 items-center justify-between border-t border-line-subtle bg-surface pl-3 text-2xs text-fg-faint"
 		aria-label="Log details">
 		{#if selected}
-			<span>User ID: {selected.userId || "Not recorded"}</span>
+			<span
+				>User ID: <span class="font-mono"
+					>{selected.userId || "Not recorded"}</span
+				></span>
 			<div class="flex items-center gap-4 pr-3">
-				<span>Channel: {selected.channel || "Not recorded"}</span>
 				<span
-					>Client version: {selected.versionHash && selected.version
-						? `${selected.versionHash} (${selected.version})`
-						: selected.version || "Not recorded"}</span>
+					>Channel: <span class="font-mono"
+						>{selected.channel || "Not recorded"}</span
+					></span>
+				<span
+					>Client version: <span class="font-mono"
+						>{selected.version || "Not recorded"}</span
+					></span>
 			</div>
-		{:else}
-			<span>Session: None</span>
 		{/if}
 	</footer>
 </main>

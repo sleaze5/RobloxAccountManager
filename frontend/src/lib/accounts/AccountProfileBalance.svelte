@@ -34,7 +34,7 @@
 			`Robux: ${
 				robux === null || robux === undefined
 					? loading
-						? "Loading"
+						? "Loading…"
 						: "Unavailable"
 					: exact.format(robux)
 			}` +

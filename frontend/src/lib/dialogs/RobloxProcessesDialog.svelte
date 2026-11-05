@@ -173,9 +173,9 @@
 									aria-hidden="true" />{/if}
 						</span>
 					</span>
-					<span>{allSelected ? "Deselect all" : "Select all"}</span>
+					<span>{allSelected ? "Clear selection" : "Select all"}</span>
 				</label>
-				<span class="font-mono text-fg-faint" role="status"
+				<span class="font-mono text-fg-muted" role="status"
 					>{selectedProcesses.length} of {processes.length} selected</span>
 			</div>
 			<div class="max-h-60 overflow-auto">

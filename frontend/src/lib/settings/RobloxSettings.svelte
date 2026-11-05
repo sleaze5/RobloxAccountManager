@@ -162,7 +162,7 @@
 	{#if error || statusError}
 		<div class="notice-error" role="alert">{error || statusError}</div>
 		{#if !snapshot}
-			<div class="flex justify-end gap-2 px-1 pt-2">
+			<div class="flex justify-end gap-2">
 				<button
 					class="btn"
 					type="button"

@@ -175,7 +175,7 @@ Text colors:
 - Use the 4px spacing scale. Use `1` (4px) for tight internal spacing, `2` (8px) for compact controls, `3` (12px) for row and group gaps, and `4` (16px) for larger internal padding. Keep page and surface padding between `3` and `5`, and use `4` to `6` between major content groups.
 - Prefer `gap` over margins for rows and columns.
 - Use `size-6` (24px) controls for compact icon actions, `h-7` (28px) controls for ordinary buttons and menu rows, and `h-8` (32px) controls for text fields and dominant actions.
-- Make list rows `h-12`, with `size-9` thumbnails.
+- Make list rows `h-12`, with `size-9` thumbnails. A row that also shows a game or place in its presence is `h-16`, with three lines: name, username, and presence.
 - Keep nested curves concentric: child radius = outer radius - inset. A menu is `rounded-xl` with `p-1.5`, so its items are `rounded-md`.
 
 Use the radius scale:
@@ -225,7 +225,7 @@ Color:
 
 ### Lists
 
-- Give list rows the `list-row` building block, `h-12`, and a 1px `border-line-subtle` separator. Set `aria-selected="true"` or `data-selected` on the selected row and `data-open` while its menu is open. `list-row` draws the hover and selection treatment from [Controls and states](#controls-and-states).
+- Give list rows the `list-row` building block, `h-12` (`h-16` when its presence names a game or place), and a 1px `border-line-subtle` separator. Set `aria-selected="true"` or `data-selected` on the selected row and `data-open` while its menu is open. `list-row` draws the hover and selection treatment from [Controls and states](#controls-and-states).
 - When a list can be reordered, support dragging and `Ctrl+Shift+ArrowUp` and `Ctrl+Shift+ArrowDown`. Announce the new position through a polite live region.
 - Distinguish an empty list ("No accounts yet") from a list with no matches ("No matching accounts"). Tell the user how to change each state.
 
@@ -295,13 +295,24 @@ Color:
 
 ## Writing
 
-- Use sentence case for all interface text, including buttons, headings, tabs, and menu items. The page names Accounts, Games, Logs Explorer, and Settings are proper names.
+- Follow [Capitalization](#capitalization).
 - Start a button label or menu item with a verb. Name the object when the context does not make it clear.
 - Use the same verb for an action in every place: the button, the progress label, and the result. For example, use "Remove account", "Removing…", and "Account removed".
 - Write an error as what happened, then what the user can do. Do not apologize or blame the user.
 - Use the ellipsis character "…" in progress labels, not three periods.
 - Use digits for numbers. Do not use exclamation marks.
 - Keep labels to a few words and descriptions to one sentence.
+
+### Capitalization
+
+Use sentence case by default. Capitalize only the first word and any word that is always capitalized.
+
+- Use sentence case for buttons, menu items, headings, labels, descriptions, tooltips, notifications, placeholders, segmented options, and sidebar navigation items, such as "Remove account", "Account info", and "Search favorites".
+- Use title case for page tab names: Accounts, Social, Games, and Logs Explorer. Settings is a page name too.
+- Keep proper nouns in their own capitalization wherever they appear: product, service, and brand names, such as Roblox, Roblox Account Manager, Roblox Studio, RoValra, Chrome for Testing, Sober, Windows, and Linux. A proper noun inside a sentence-case label keeps its capitals, as in "Close Roblox processes".
+- Write acronyms and initialisms in capitals, such as ID, PIN, URL, and API, as in "Place ID" and "User ID".
+- Write user-provided text, such as names, nicknames, tags, and descriptions, exactly as the user or Roblox stores it.
+- Write tokens, codes, and technical values in their exact case, such as `.ROBLOSECURITY`, `$YYYY`, and file names.
 
 Use these terms consistently:
 
@@ -363,6 +374,7 @@ The Animations setting in Settings > User Interface chooses System (the default)
 
 `lib/shared/motion.ts` resolves the setting and sets the `data-reduced-motion` attribute on the root element. `base.css` defines the reduced-motion guard for that attribute and redefines Tailwind's `motion-safe` and `motion-reduce` variants to follow it, and `presence.ts` reads it through `reducedMotion()`. Define the guard only once, and do not query `prefers-reduced-motion` anywhere else. Under reduced motion:
 
-- Exits complete immediately.
+- Keep opacity and color transitions at their normal durations, so that state changes still fade instead of snapping.
+- Remove all movement: transforms, scale, slides, hover nudges, and press feedback apply instantly or not at all.
 - The spinner stops but stays visible as a static busy indicator: `motion-reduce:animate-none`.
 - Selected, expanded, loading, success, warning, and error states stay understandable without animation.

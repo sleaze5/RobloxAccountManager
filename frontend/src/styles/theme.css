@@ -85,6 +85,12 @@
 	--animate-pop: pop 100ms var(--ease-out);
 	--animate-bloom: bloom 150ms var(--ease-out);
 
+	@keyframes fade {
+		from {
+			opacity: 0;
+		}
+	}
+
 	@keyframes enter {
 		from {
 			opacity: 0;

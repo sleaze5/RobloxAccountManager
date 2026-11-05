@@ -8,7 +8,7 @@
 	import userPlusIcon from "@phosphor-icons/core/regular/user-plus.svg?raw"
 	import vaultIcon from "@phosphor-icons/core/regular/vault.svg?raw"
 	import Icon from "../shared/Icon.svelte"
-	import { FriendStatus } from "../backend/bridge"
+	import { FriendStatus, TrustedStatus } from "../backend/bridge"
 	import type { SocialProfileSnapshot } from "../backend/bridge"
 	import AccountMembershipBadges from "../accounts/AccountMembershipBadges.svelte"
 
@@ -29,7 +29,7 @@
 						tooltip: "Saved in this vault",
 					},
 				relationship.friend === FriendStatus.FriendStatusFriends &&
-					(relationship.trusted
+					(relationship.trusted === TrustedStatus.TrustedStatusTrusted
 						? {
 								icon: shieldCheckIcon,
 								label: "Trusted friend",

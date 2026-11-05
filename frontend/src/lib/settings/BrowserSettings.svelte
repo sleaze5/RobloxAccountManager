@@ -9,6 +9,8 @@
 	import { RuntimeStatus } from "../backend/bridge"
 	import type { ShutdownEffects } from "../backend/bridge"
 	import { formatCompactBytes } from "../shared/bytes"
+	import ConnectionHosts from "./ConnectionHosts.svelte"
+	import SectionLink from "./SectionLink.svelte"
 	import SettingsStatus from "./SettingsStatus.svelte"
 	import {
 		modalBackdropIn,
@@ -29,7 +31,7 @@
 		terms = $derived(query.trim().toLowerCase().split(/\s+/).filter(Boolean)),
 		visible = $derived(
 			terms.every((term) =>
-				`integrations browser chrome testing runtime version download redownload remove disk usage installed manage`.includes(
+				`integrations browser chrome testing runtime version download redownload remove disk usage installed manage hosts connect storage.googleapis.com`.includes(
 					term,
 				),
 			),
@@ -101,7 +103,12 @@
 
 {#if visible}
 	<section class="settings-section" aria-labelledby="browser-runtime-title">
-		<h3 id="browser-runtime-title">Browser</h3>
+		<h3 class="flex items-center justify-between gap-2">
+			<span id="browser-runtime-title">Browser</span>
+			<SectionLink
+				label="Open Chrome for Testing website"
+				url="https://googlechromelabs.github.io/chrome-for-testing/" />
+		</h3>
 		{#if browser.error || runtime.error}<div class="notice-error" role="alert">
 				{browser.error || runtime.error}
 			</div>{/if}
@@ -126,8 +133,7 @@
 				<div class="settings-row">
 					<div class="settings-row-copy">
 						<strong>Manage browser</strong><span
-							>The managed browser stays in this portable application
-							directory.</span>
+							>The managed browser stays in the data folder.</span>
 					</div>
 					<div class="flex items-center gap-2">
 						{#if runtime.status === RuntimeStatus.RuntimeMissing}<button
@@ -158,6 +164,7 @@
 					</div>
 				</div>
 			{/if}
+			<ConnectionHosts hosts={["storage.googleapis.com"]} />
 		</div>
 	</section>
 {/if}

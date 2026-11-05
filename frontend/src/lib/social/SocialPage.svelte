@@ -20,7 +20,9 @@
 	import { appSettings } from "../settings/settings-store.svelte"
 	import OperationError from "../shared/OperationError.svelte"
 	import ProfileImage from "../shared/ProfileImage.svelte"
+	import PresenceLine from "../accounts/PresenceLine.svelte"
 	import Select from "../shared/Select.svelte"
+	import { moveListFocus } from "../shared/move-shortcut"
 	import { menuIn, menuOut } from "../shared/presence"
 	import SocialAvatar from "./SocialAvatar.svelte"
 	import SocialMenu from "./SocialMenu.svelte"
@@ -34,6 +36,7 @@
 		onFillLaunch,
 		onSearchPlace,
 		onUnfriend,
+		onRemoveTrusted,
 		onEditNickname,
 	}: {
 		store: SocialStore
@@ -41,6 +44,7 @@
 		onFillLaunch: (placeId: number, jobId: string) => void
 		onSearchPlace: (placeId: number) => void
 		onUnfriend: (person: SocialUser) => void
+		onRemoveTrusted: (person: SocialUser) => void
 		onEditNickname: (person: SocialUser, nickname: string) => void
 	} = $props()
 
@@ -148,8 +152,7 @@
 	}
 
 	function subtitle(person: SocialUser): string {
-		const handle = person.username ? `@${person.username}` : `ID ${person.userId}`
-		return (person.presence && presenceDetail(person.presence)) || handle
+		return person.username ? `@${person.username}` : `ID ${person.userId}`
 	}
 
 	function rowLabel(person: SocialUser): string {
@@ -386,14 +389,21 @@
 						aria-busy={store.loading || store.loadingMore}>
 						{#each store.people as person (person.userId)}
 							{@const active = store.selectedUserId === person.userId}
+							{@const detail = person.presence
+								? presenceDetail(person.presence)
+								: ""}
 							<button
-								class="group/row list-row relative flex h-12 w-full items-center gap-2 border-b border-line-subtle px-3 text-left"
+								class={[
+									"group/row list-row relative flex w-full flex-col justify-center border-b border-line-subtle px-3 text-left",
+									detail ? "h-16" : "h-12",
+								]}
 								data-selected={active || undefined}
 								data-open={store.menu?.person.userId ===
 									person.userId || undefined}
 								type="button"
 								aria-current={active ? "true" : undefined}
 								aria-haspopup="menu"
+								data-list-item
 								aria-label={rowLabel(person)}
 								onclick={() => store.select(person)}
 								oncontextmenu={(event) => store.openMenu(event, person)}
@@ -403,18 +413,27 @@
 										(event.shiftKey && event.key === "F10")
 									)
 										store.openMenu(event, person)
+									moveListFocus(event)
 								}}>
-								<SocialAvatar
-									imageUrl={person.imageUrl}
-									presence={person.presence ?? undefined}
-									className="size-9" />
-								<span class="flex min-w-0 flex-col leading-snug">
-									<strong
-										class="truncate text-sm font-semibold text-fg"
-										>{personName(person)}</strong>
-									<small
-										class="truncate text-2xs text-fg-faint group-hover/row:text-fg-muted group-data-selected/row:text-fg-muted"
-										>{subtitle(person)}</small>
+								<span
+									class={[
+										"flex w-full min-w-0 gap-2",
+										detail ? "items-start" : "items-center",
+									]}>
+									<SocialAvatar
+										imageUrl={person.imageUrl}
+										presence={person.presence ?? undefined}
+										className="size-9" />
+									<span class="flex min-w-0 flex-col leading-snug">
+										<strong
+											class="truncate text-sm font-semibold text-fg"
+											>{personName(person)}</strong>
+										<small
+											class="truncate text-2xs text-fg-faint group-hover/row:text-fg-muted group-data-selected/row:text-fg-muted"
+											>{subtitle(person)}</small>
+										{#if detail && person.presence}<PresenceLine
+												presence={person.presence} />{/if}
+									</span>
 								</span>
 							</button>
 						{/each}
@@ -583,15 +602,21 @@
 		</div>
 	</div>
 	<footer
-		class="flex h-6 shrink-0 items-center justify-between border-t border-line-subtle bg-surface pl-3 font-mono text-2xs text-fg-faint"
+		class="flex h-6 shrink-0 items-center justify-between border-t border-line-subtle bg-surface pl-3 text-2xs text-fg-faint"
 		aria-label="Social status">
-		<span aria-live="polite">User: {selected ? personName(selected) : "None"}</span>
 		{#if store.page}
-			<span class="truncate pr-3">{statusSummary()}</span>
+			<span class="ml-auto truncate pr-3" aria-live="polite"
+				>{statusSummary()}</span>
 		{/if}
 	</footer>
 </main>
 
 {#if store.menu}
-	<SocialMenu {store} menu={store.menu} {onFillLaunch} {onSearchPlace} {onUnfriend} />
+	<SocialMenu
+		{store}
+		menu={store.menu}
+		{onFillLaunch}
+		{onSearchPlace}
+		{onUnfriend}
+		{onRemoveTrusted} />
 {/if}
