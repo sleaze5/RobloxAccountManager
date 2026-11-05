@@ -4,6 +4,9 @@ tasks:
     internal:compile:
         internal: true
         dir: "{{.ROOT_DIR}}"
+        vars:
+            COMMIT:
+                sh: '{{if ne .RELEASE_BUILD "true"}}{{.COMMIT_SCRIPT}}{{end}}'
         env:
             GOOS: linux
             GOARCH: amd64
@@ -13,7 +16,7 @@ tasks:
                   set -eu
                   output="{{.DIST_DIR}}/linux-amd64/{{.APP_NAME}}"
                   mkdir -p "$(dirname "$output")"
-                  ldflags="-X github.com/sleaze5/RobloxAccountManager/internal/appmeta.buildTime=$(date +%s)"
+                  ldflags="-X github.com/sleaze5/RobloxAccountManager/internal/appmeta.buildTime=$(date +%s) -X github.com/sleaze5/RobloxAccountManager/internal/appmeta.commit={{.COMMIT}}"
                   if [ "{{.DEV}}" != "true" ]; then
                     go build -buildvcs=false -tags production -trimpath -ldflags="-w -s $ldflags" -o "$output" .
                   else

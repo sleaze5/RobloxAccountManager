@@ -107,6 +107,7 @@ jobs:
             artifact: build-${{ matrix.name }}
             retention-days: 7
             frontend-artifact: ${{ needs.frontend.outputs.artifact }}
+            release: true
 
     publish:
         name: ${{ inputs.rehearsal && 'Rehearse' || 'Publish' }}

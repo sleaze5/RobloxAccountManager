@@ -38,6 +38,8 @@
 				return `Version ${version} is downloaded and verified. Restart to install it.`
 			case UpdateStatus.StatusRestarting:
 				return `Restarting to install version ${version}.`
+			case UpdateStatus.StatusDisabled:
+				return "Updates are off in development builds."
 			default:
 				return "Updates have not been checked yet."
 		}
@@ -102,7 +104,7 @@
 							class="spinner"
 							size={16}
 							aria-hidden="true" />Checking…</button
-					>{:else}<button
+					>{:else if update.status !== UpdateStatus.StatusDisabled}<button
 						class="btn"
 						type="button"
 						onclick={() => void updateStore.check()}

@@ -1,6 +1,7 @@
 package appmeta
 
 import (
+	"cmp"
 	_ "embed"
 	"strings"
 )
@@ -13,10 +14,14 @@ const (
 )
 
 //go:embed VERSION
-var version string
+var releaseVersion string
+
+// The build sets commit for every build that is not a release.
+var commit string
 
 var (
-	Version   = strings.TrimSpace(version)
+	Release   = commit == ""
+	Version   = cmp.Or(commit, strings.TrimSpace(releaseVersion))
 	UserAgent = Name + "/" + Version
 )
 

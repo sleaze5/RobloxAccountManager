@@ -19,6 +19,11 @@ on:
                 description: The artifact output of prepare-frontend.yml from the same run
                 required: true
                 type: string
+            release:
+                description: Build release versions from internal/appmeta/VERSION instead of development versions
+                required: false
+                type: boolean
+                default: false
 
 permissions:
     contents: read
@@ -32,6 +37,7 @@ jobs:
             # Windows needs no C compiler. Linux and macOS use cgo for the system web view.
             CGO_ENABLED: ${{ startsWith(inputs.targets, 'windows-') && '0' || '1' }}
             TARGETS: ${{ inputs.targets }}
+            RELEASE_BUILD: ${{ inputs.release }}
         steps:
             - name: Check out
               uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1

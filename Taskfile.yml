@@ -6,6 +6,10 @@ vars:
     VITE_PORT: "{{.WAILS_VITE_PORT | default 9245}}"
     GOLANGCI_LINT: go tool -modfile=build/tools/go.mod golangci-lint
     GOVULNCHECK: go tool -modfile=build/tools/go.mod govulncheck
+    COMMIT_SCRIPT: |
+        commit=$(git rev-parse --short HEAD 2>/dev/null) || commit=unknown
+        if [ -n "$(git status --porcelain 2>/dev/null)" ]; then commit="$commit-dirty"; fi
+        echo "$commit"
 
 includes:
     common: ./build/Taskfile.yml
@@ -38,7 +42,7 @@ tasks:
             - task: common:internal:frontend:build:production
 
     build:
-        desc: Run fix, build the production frontend, then build TARGET. TARGET defaults to the host, such as linux-amd64.
+        desc: Run fix, build the production frontend, then build TARGET. TARGET defaults to the host, such as linux-amd64. Builds are development builds versioned by commit, unless RELEASE_BUILD=true.
         vars:
             TARGET: '{{.TARGET | default (printf "%s-%s" OS ARCH)}}'
         cmds:

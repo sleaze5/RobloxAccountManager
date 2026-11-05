@@ -11,6 +11,7 @@
 	import AddAccountDialog from "./lib/dialogs/AddAccountDialog.svelte"
 	import AppLocationDialog from "./lib/dialogs/AppLocationDialog.svelte"
 	import BrowserImportDialog from "./lib/dialogs/BrowserImportDialog.svelte"
+	import DevelopmentBuildDialog from "./lib/dialogs/DevelopmentBuildDialog.svelte"
 	import ImportVaultDialog from "./lib/dialogs/ImportVaultDialog.svelte"
 	import LegacyVaultDialog from "./lib/dialogs/LegacyVaultDialog.svelte"
 	import { chooseExportFile } from "./lib/dialogs/vault-transfer"
@@ -32,7 +33,12 @@
 		LaunchMethod,
 		RuntimeStatus,
 	} from "./lib/backend/bridge"
-	import type { AppLocation, ShutdownEffects, SocialUser } from "./lib/backend/bridge"
+	import type {
+		AppBuild,
+		AppLocation,
+		ShutdownEffects,
+		SocialUser,
+	} from "./lib/backend/bridge"
 	import { browserStore } from "./lib/browser/browser-store.svelte"
 	import SocialPage from "./lib/social/SocialPage.svelte"
 	import { SocialStore } from "./lib/social/social-store.svelte"
@@ -78,7 +84,9 @@
 		social = new SocialStore(notificationCenter),
 		workspace = new WorkspaceState(),
 		passwordReminderNotificationId = "password-test-reminder"
-	let appLocation = $state<AppLocation | null>(null),
+	let build = $state<AppBuild | null>(null),
+		developmentWarning = $state<"loading" | "open" | "closed">("loading"),
+		appLocation = $state<AppLocation | null>(null),
 		activePage = $state<ActivePage>("accounts"),
 		settingsReturnPage = $state<Exclude<ActivePage, "settings">>("accounts"),
 		activeDialog = $state<ActiveDialog>(null),
@@ -124,6 +132,14 @@
 		} else untrack(() => games.initialize())
 	})
 
+	async function loadBuild(): Promise<void> {
+		try {
+			build = await accountBackend.GetBuild()
+		} finally {
+			developmentWarning = build && !build.release ? "open" : "closed"
+		}
+	}
+
 	async function loadAppLocation(): Promise<void> {
 		const location = await accountBackend.GetAppLocation()
 		appLocation = location
@@ -144,6 +160,7 @@
 	}
 
 	onMount(() => {
+		void loadBuild()
 		void loadAppLocation()
 		void appSettings.initialize(notificationCenter)
 		const unmountAccounts = store.mount(),
@@ -521,7 +538,7 @@
 </script>
 
 <svelte:head>
-	<title>Roblox Account Manager: {APP_VERSION}</title>
+	<title>Roblox Account Manager{build ? `: ${build.version}` : ""}</title>
 </svelte:head>
 
 <svelte:window
@@ -530,7 +547,7 @@
 	onkeydown={handleWindowKeydown} />
 
 <div class="flex h-screen flex-col bg-canvas">
-	<WindowTitleBar version={APP_VERSION} />
+	<WindowTitleBar version={build?.version ?? ""} release={build?.release ?? true} />
 
 	{#if activePage === "settings"}
 		<SettingsPage
@@ -663,17 +680,23 @@
 	<AccountImageMenu {store} {workspace} menu={workspace.imageContextMenu} />
 {/if}
 
-{#if appLocation && !appLocation.initialized}
-	<AppLocationDialog
-		location={appLocation}
-		onConfirm={() => {
-			if (appLocation) appLocation = { ...appLocation, initialized: true }
-			void store.initialize()
-		}} />
-{:else if store.vault.fileState === FileState.FileStateLegacy}
-	<LegacyVaultDialog {store} />
-{:else if !store.vault.unlocked || store.vault.fileState === FileState.FileStateIncomplete}
-	<VaultDialog {store} />
+{#if developmentWarning === "open" && build}
+	<DevelopmentBuildDialog
+		version={build.version}
+		onContinue={() => (developmentWarning = "closed")} />
+{:else if developmentWarning === "closed"}
+	{#if appLocation && !appLocation.initialized}
+		<AppLocationDialog
+			location={appLocation}
+			onConfirm={() => {
+				if (appLocation) appLocation = { ...appLocation, initialized: true }
+				void store.initialize()
+			}} />
+	{:else if store.vault.fileState === FileState.FileStateLegacy}
+		<LegacyVaultDialog {store} />
+	{:else if !store.vault.unlocked || store.vault.fileState === FileState.FileStateIncomplete}
+		<VaultDialog {store} />
+	{/if}
 {/if}
 
 {#if activeDialog === "add-account"}

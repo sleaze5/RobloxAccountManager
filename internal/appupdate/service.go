@@ -31,6 +31,7 @@ const (
 	StatusDownloading Status = "downloading"
 	StatusReady       Status = "ready"
 	StatusRestarting  Status = "restarting"
+	StatusDisabled    Status = "disabled"
 )
 
 type State struct {
@@ -56,10 +57,19 @@ type Service struct {
 }
 
 func New(logger *slog.Logger, changed func()) *Service {
-	return &Service{logger: logger, changed: changed, state: State{Status: StatusIdle, CurrentVersion: appmeta.Version}}
+	status := StatusIdle
+	if !appmeta.Release {
+		status = StatusDisabled
+	}
+	return &Service{logger: logger, changed: changed, state: State{Status: status, CurrentVersion: appmeta.Version}}
 }
 
 func (service *Service) Start(ctx context.Context, app *application.App) {
+	if !appmeta.Release {
+		service.logger.Info("updates are off in development builds", "operation", "update-startup", "version", appmeta.Version)
+		go service.removeLeftovers()
+		return
+	}
 	provider, err := endpoint.New(endpoint.Config{
 		URL: manifestURL,
 		HTTPClient: &http.Client{Transport: &http.Transport{
@@ -122,7 +132,7 @@ func (service *Service) Check(ctx context.Context) error {
 		return errUnavailable
 	}
 	switch service.state.Status {
-	case StatusChecking, StatusDownloading, StatusReady, StatusRestarting:
+	case StatusChecking, StatusDownloading, StatusReady, StatusRestarting, StatusDisabled:
 		service.mu.Unlock()
 		return nil
 	case StatusIdle, StatusUpToDate, StatusAvailable:
