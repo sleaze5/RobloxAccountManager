@@ -44,10 +44,10 @@
 		}
 	})
 	const gridClass =
-			"grid grid-cols-4 border-t border-line-subtle font-mono text-2xs *:flex *:min-w-0 *:items-center *:gap-2 *:border-b *:border-line-subtle *:p-1 *:wrap-anywhere",
-		tableClass =
-			"w-full border-collapse border-t border-line-subtle font-mono text-2xs",
-		cellClass = "border-b border-line-subtle p-1",
+			"grid grid-cols-4 font-mono text-2xs *:flex *:min-w-0 *:items-center *:gap-2 *:border-t *:border-line-subtle *:p-1 *:wrap-anywhere *:first:border-t-0 *:nth-2:border-t-0",
+		tableClass = "w-full border-collapse font-mono text-2xs",
+		rowClass = "not-first:*:border-t not-first:*:border-line-subtle",
+		cellClass = "p-1",
 		numberClass = "text-right whitespace-nowrap",
 		labelClass = "font-sans font-normal text-fg-muted"
 </script>
@@ -79,7 +79,7 @@
 			<table class={tableClass}>
 				{#each dependencyGroups as group, groupIndex (group.label)}
 					<tbody>
-						<tr>
+						<tr class={rowClass}>
 							<th
 								class={[
 									cellClass,
@@ -93,7 +93,7 @@
 							</th>
 						</tr>
 						{#each group.dependencies as dependency (dependency.name)}
-							<tr>
+							<tr class={rowClass}>
 								<td class={[cellClass, "text-fg"]}
 									>{dependency.name}</td>
 								<td class={[cellClass, numberClass, "text-fg"]}
@@ -132,7 +132,7 @@
 		</dl>
 		<div>
 			<table class={tableClass}>
-				<thead>
+				<thead class="border-b border-line-subtle">
 					<tr>
 						<th class={[cellClass, labelClass, "text-left"]} scope="col"
 							>Stage</th>
@@ -143,7 +143,7 @@
 				</thead>
 				<tbody>
 					{#each stages as stage, index (index)}
-						<tr>
+						<tr class={rowClass}>
 							<td class={[cellClass, "text-fg"]}>{stage.name}</td>
 							<td class={[cellClass, numberClass, "text-fg"]}>
 								{formatCompactDuration(stage.duration_ms)}
@@ -160,9 +160,10 @@
 		{#if components.length === 0}
 			<p class="px-1 text-xs text-fg-faint">No component records yet.</p>
 		{:else}
-			<ul class="flex flex-col border-t border-line-subtle font-mono text-2xs">
+			<ul class="flex flex-col font-mono text-2xs">
 				{#each components as component (`${component.module}:${component.message}`)}
-					<li class="flex flex-col gap-1 border-b border-line-subtle p-1">
+					<li
+						class="flex flex-col gap-1 p-1 not-first:border-t not-first:border-line-subtle">
 						<div class="flex items-baseline gap-2 text-fg">
 							<span class="font-semibold text-fg-muted"
 								>{component.module}</span>
