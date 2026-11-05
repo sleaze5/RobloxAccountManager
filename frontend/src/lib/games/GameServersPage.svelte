@@ -1,4 +1,5 @@
 <script lang="ts">
+	import arrowSquareOutIcon from "@phosphor-icons/core/regular/arrow-square-out.svg?raw"
 	import arrowsClockwiseIcon from "@phosphor-icons/core/regular/arrows-clockwise.svg?raw"
 	import caretLeftIcon from "@phosphor-icons/core/regular/caret-left.svg?raw"
 	import circleNotchIcon from "@phosphor-icons/core/regular/circle-notch.svg?raw"
@@ -145,6 +146,7 @@
 		const accountId = accounts.selectedAccount.id
 		untrack(() => {
 			if (accountId && (privateServers.page || privateServers.error)) {
+				privateServers.page = null
 				privateServers.first()
 			}
 		})
@@ -200,10 +202,23 @@
 
 	function actionsFor(key: string): ServerMenuAction[] {
 		if (source === "rbxservers") {
-			const server = listedServers.page?.servers?.find(
-				(item) => item.accessCode === key,
-			)
-			return linkActions(server?.launchLink ?? "")
+			const server = listedServers.page?.servers?.find((item) => item.id === key)
+			return server
+				? [
+						{
+							label: "Open on RBXServers",
+							icon: arrowSquareOutIcon,
+							onSelect: select(() => void store.openLink(server.url)),
+						},
+						{
+							label: "Copy RBXServers link",
+							icon: linkIcon,
+							onSelect: select(
+								() => void store.copy(server.url, "RBXServers link"),
+							),
+						},
+					]
+				: []
 		}
 		if (source === "private") {
 			const server = privateServers.page?.servers?.find(

@@ -242,9 +242,9 @@ type ListedPrivateServerPage struct {
 }
 
 type ListedPrivateServer struct {
-	AccessCode string `json:"accessCode"`
-	Name       string `json:"name"`
-	LaunchLink string `json:"launchLink"`
+	ID   string `json:"id"`
+	Name string `json:"name"`
+	URL  string `json:"url"`
 }
 
 func AccessCodeLaunchLink(placeID int64, accessCode string) string {

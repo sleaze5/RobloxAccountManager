@@ -66,19 +66,21 @@ func (client *Client) Servers(ctx context.Context, placeID int64) (games.ListedP
 	if len(body) > maxResponseSize {
 		return games.ListedPrivateServerPage{}, errors.New("RBXServers servers: response is too large")
 	}
-	return games.ListedPrivateServerPage{Servers: parse(placeID, string(body))}, nil
+	return games.ListedPrivateServerPage{Servers: parse(string(body))}, nil
 }
 
-func parse(placeID int64, page string) []games.ListedPrivateServer {
+// The UUID is the RBXServers server ID, not a Roblox code. The quicklaunch page
+// gets the Roblox link code after the browser solves the RBXServers challenge.
+func parse(page string) []games.ListedPrivateServer {
 	servers := []games.ListedPrivateServer{}
 	seen := map[string]bool{}
 	for _, match := range quickLaunchPattern.FindAllStringSubmatch(page, -1) {
-		code := strings.ToLower(match[1])
-		if seen[code] {
+		id := strings.ToLower(match[1])
+		if seen[id] {
 			continue
 		}
-		seen[code] = true
-		servers = append(servers, games.ListedPrivateServer{AccessCode: code, Name: serverName(match[2]), LaunchLink: games.AccessCodeLaunchLink(placeID, code)})
+		seen[id] = true
+		servers = append(servers, games.ListedPrivateServer{ID: id, Name: serverName(match[2]), URL: "https://rbxservers.xyz/embedded/quicklaunch/" + id})
 		if len(servers) == maxServers {
 			break
 		}

@@ -1,4 +1,4 @@
-import { Events } from "@wailsio/runtime"
+import { Browser, Events } from "@wailsio/runtime"
 import { createContext } from "svelte"
 import { accountBackend } from "../backend/bridge"
 import type {
@@ -167,6 +167,15 @@ export class GamesStore {
 			})
 		} catch {
 			this.error = `${label} could not be copied. Try again.`
+		}
+	}
+
+	async openLink(url: string): Promise<void> {
+		this.closeMenu()
+		try {
+			await Browser.OpenURL(url)
+		} catch (error) {
+			this.error = errorMessage(error, "Could not open the link. Try again.")
 		}
 	}
 

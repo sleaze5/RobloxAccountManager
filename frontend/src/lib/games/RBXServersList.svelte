@@ -52,7 +52,7 @@
 			<span aria-hidden="true">-</span>
 			<span>Up to 30 shared on RBXServers</span>
 			<span aria-hidden="true">-</span>
-			<span>Roblox may refuse some access codes</span>
+			<span>Opens in your browser to join</span>
 		</p>
 		<div
 			class="server-table"
@@ -60,13 +60,13 @@
 			data-loading={servers.loading || undefined}>
 			<div class="server-columns" aria-hidden="true">
 				<span>Name</span>
-				<span>Access code</span>
+				<span>Server ID</span>
 			</div>
 			<ol aria-label="RBXServers private servers" aria-busy={servers.loading}>
-				{#each shown as server (server.accessCode)}
+				{#each shown as server (server.id)}
 					<li
 						class="server-row"
-						data-open={activeKey === server.accessCode || undefined}
+						data-open={activeKey === server.id || undefined}
 						oncontextmenu={(event) => {
 							const trigger =
 								event.currentTarget.querySelector<HTMLElement>(
@@ -74,7 +74,7 @@
 								)
 							if (!trigger) return
 							event.preventDefault()
-							onMenu(server.accessCode, trigger, true)
+							onMenu(server.id, trigger, true)
 						}}>
 						<span
 							class="truncate text-xs font-medium text-fg"
@@ -82,12 +82,12 @@
 							>{server.name || "Unnamed server"}</span>
 						<span
 							class="truncate font-mono text-2xs text-fg-faint select-text"
-							data-tooltip={server.accessCode}>{server.accessCode}</span>
+							data-tooltip={server.id}>{server.id}</span>
 						<ServerActionsButton
-							open={activeKey === server.accessCode}
+							open={activeKey === server.id}
 							{menuID}
 							onMenu={(trigger, toggle) =>
-								onMenu(server.accessCode, trigger, toggle)} />
+								onMenu(server.id, trigger, toggle)} />
 					</li>
 				{/each}
 			</ol>

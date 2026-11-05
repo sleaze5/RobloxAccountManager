@@ -224,10 +224,8 @@
 						<Icon svg={warningIcon} size={28} aria-hidden="true" />
 						<h2>Private server is unavailable</h2>
 						<p>{server.errorFor("load")}</p>
-						<button
-							class="btn"
-							type="button"
-							onclick={() => void server.load()}>Try again</button>
+						<button class="btn" type="button" onclick={() => void load()}
+							>Try again</button>
 					</div>
 				{/if}
 			{:else}
