@@ -10,6 +10,7 @@ import (
 	"github.com/sleaze5/RobloxAccountManager/internal/appsettings"
 	"github.com/sleaze5/RobloxAccountManager/internal/browser"
 	"github.com/sleaze5/RobloxAccountManager/internal/gamelaunch"
+	"github.com/sleaze5/RobloxAccountManager/internal/integration/rbxservers"
 	"github.com/sleaze5/RobloxAccountManager/internal/integration/rovalra"
 	"github.com/sleaze5/RobloxAccountManager/internal/logging"
 	"github.com/sleaze5/RobloxAccountManager/internal/logsexplorer"
@@ -33,7 +34,9 @@ type Service struct {
 	presence        *robloxservices.Presence
 	gameLinks       *robloxservices.GameLinks
 	games           *robloxservices.Games
+	privateServers  *robloxservices.PrivateServers
 	rovalra         *rovalra.Client
+	rbxservers      *rbxservers.Client
 	favoritePlaces  *gamestore.Repository
 	transfers       *transferstore.Repository
 	logsExplorer    *logsexplorer.Reader
@@ -83,7 +86,9 @@ func New(
 	presence *robloxservices.Presence,
 	gameLinks *robloxservices.GameLinks,
 	games *robloxservices.Games,
+	privateServers *robloxservices.PrivateServers,
 	rovalraClient *rovalra.Client,
+	rbxserversClient *rbxservers.Client,
 	favoritePlaces *gamestore.Repository,
 	transfers *transferstore.Repository,
 	logsExplorerReader *logsexplorer.Reader,
@@ -108,7 +113,9 @@ func New(
 		presence:             presence,
 		gameLinks:            gameLinks,
 		games:                games,
+		privateServers:       privateServers,
 		rovalra:              rovalraClient,
+		rbxservers:           rbxserversClient,
 		favoritePlaces:       favoritePlaces,
 		transfers:            transfers,
 		logsExplorer:         logsExplorerReader,

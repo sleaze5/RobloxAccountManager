@@ -10,10 +10,12 @@ import type {
 	GameServerRecordPage,
 	GameServerRegion,
 	GameServerStats,
+	ListedPrivateServerPage,
+	PrivateServerPage,
 } from "../backend/bridge"
 import { errorMessage } from "../shared/errors"
 
-export type ServerSource = "roblox" | "rovalra"
+export type ServerSource = "roblox" | "private" | "rovalra" | "rbxservers"
 export type ServerPageSize = 10 | 25 | 50 | 100
 export type RecordPageSize = 10 | 50 | 100
 
@@ -260,6 +262,50 @@ export class RecordedServers extends ServerPager<number, GameServerRecordPage> {
 
 	protected nextCursor(page: GameServerRecordPage): number | null {
 		return page.nextCursor || null
+	}
+}
+
+export class PrivateServers extends ServerPager<string, PrivateServerPage> {
+	constructor(
+		placeId: number,
+		cache: ServerPageCache<PrivateServerPage>,
+		private readonly accountId: () => number,
+	) {
+		super(placeId, "", cache)
+	}
+
+	protected key(cursor: string): PageKey {
+		return { placeId: this.placeId, cursor, accountId: this.accountId() }
+	}
+
+	protected fetch(key: PageKey): CancellableRequest<PrivateServerPage> {
+		return accountBackend.ListPlacePrivateServers({
+			placeId: this.placeId,
+			accountId: key.accountId as number,
+			cursor: key.cursor as string,
+		})
+	}
+
+	protected nextCursor(page: PrivateServerPage): string | null {
+		return page.nextCursor || null
+	}
+}
+
+export class ListedServers extends ServerPager<number, ListedPrivateServerPage> {
+	constructor(placeId: number, cache: ServerPageCache<ListedPrivateServerPage>) {
+		super(placeId, 0, cache)
+	}
+
+	protected key(): PageKey {
+		return { placeId: this.placeId }
+	}
+
+	protected fetch(): CancellableRequest<ListedPrivateServerPage> {
+		return accountBackend.ListRBXServersPrivateServers(this.placeId)
+	}
+
+	protected nextCursor(): null {
+		return null
 	}
 }
 

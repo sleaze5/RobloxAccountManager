@@ -1,6 +1,10 @@
 package games
 
-import "strings"
+import (
+	"net/url"
+	"strconv"
+	"strings"
+)
 
 type Place struct {
 	PlaceID         int64  `json:"placeId"`
@@ -161,6 +165,90 @@ type Region struct {
 type NearestServer struct {
 	JobID  string `json:"jobId"`
 	Region Region `json:"region"`
+}
+
+type PrivateServerQuery struct {
+	PlaceID   int64  `json:"placeId"`
+	AccountID int64  `json:"accountId"`
+	Cursor    string `json:"cursor"`
+}
+
+type PrivateServerPage struct {
+	Servers    []PrivateServer `json:"servers"`
+	NextCursor string          `json:"nextCursor"`
+}
+
+type PrivateServer struct {
+	ServerID         int64  `json:"serverId"`
+	Name             string `json:"name"`
+	OwnerID          int64  `json:"ownerId"`
+	OwnerName        string `json:"ownerName"`
+	OwnerDisplayName string `json:"ownerDisplayName"`
+	Owned            bool   `json:"owned"`
+	Playing          int64  `json:"playing"`
+	MaxPlayers       int64  `json:"maxPlayers"`
+	Running          bool   `json:"running"`
+	LaunchLink       string `json:"launchLink"`
+}
+
+type OwnedPrivateServerPage struct {
+	Servers    []OwnedPrivateServer `json:"servers"`
+	NextCursor string               `json:"nextCursor"`
+}
+
+type OwnedPrivateServer struct {
+	ServerID    int64  `json:"serverId"`
+	Name        string `json:"name"`
+	Active      bool   `json:"active"`
+	UniverseID  int64  `json:"universeId"`
+	PlaceID     int64  `json:"placeId"`
+	GameName    string `json:"gameName"`
+	Price       int64  `json:"price"`
+	Renews      bool   `json:"renews"`
+	ExpiresAtMs int64  `json:"expiresAtMs"`
+}
+
+type PrivateServerSettings struct {
+	ServerID       int64               `json:"serverId"`
+	Name           string              `json:"name"`
+	GameName       string              `json:"gameName"`
+	Active         bool                `json:"active"`
+	FriendsAllowed bool                `json:"friendsAllowed"`
+	Renews         bool                `json:"renews"`
+	Expired        bool                `json:"expired"`
+	ExpiresAtMs    int64               `json:"expiresAtMs"`
+	Price          int64               `json:"price"`
+	JoinLink       string              `json:"joinLink"`
+	Users          []PrivateServerUser `json:"users"`
+}
+
+type PrivateServerUser struct {
+	UserID      int64  `json:"userId"`
+	Username    string `json:"username"`
+	DisplayName string `json:"displayName"`
+	ImageURL    string `json:"imageUrl"`
+}
+
+type PrivateServerOption string
+
+const (
+	PrivateServerActive         PrivateServerOption = "active"
+	PrivateServerFriendsAllowed PrivateServerOption = "friendsAllowed"
+	PrivateServerRenews         PrivateServerOption = "renews"
+)
+
+type ListedPrivateServerPage struct {
+	Servers []ListedPrivateServer `json:"servers"`
+}
+
+type ListedPrivateServer struct {
+	AccessCode string `json:"accessCode"`
+	Name       string `json:"name"`
+	LaunchLink string `json:"launchLink"`
+}
+
+func AccessCodeLaunchLink(placeID int64, accessCode string) string {
+	return "roblox://experiences/start?placeId=" + strconv.FormatInt(placeID, 10) + "&accessCode=" + url.QueryEscape(accessCode)
 }
 
 const javaScriptMaxSafeInteger = 1<<53 - 1

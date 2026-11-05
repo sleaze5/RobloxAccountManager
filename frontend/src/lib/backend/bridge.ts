@@ -100,8 +100,16 @@ export const accountBackend = Service
 
 export type {
 	Game,
+	ListedPrivateServer,
+	ListedPrivateServerPage,
+	OwnedPrivateServer,
+	OwnedPrivateServerPage,
 	Place as GamePlace,
 	PlaceSummary as GamePlaceSummary,
+	PrivateServer,
+	PrivateServerPage,
+	PrivateServerSettings,
+	PrivateServerUser,
 	RecordPage as GameServerRecordPage,
 	Region as GameRegion,
 	Server as GameServer,
@@ -111,6 +119,7 @@ export type {
 	ServerStats as GameServerStats,
 } from "../../../bindings/github.com/sleaze5/RobloxAccountManager/internal/games/models.js"
 export {
+	PrivateServerOption,
 	RecordOrder as GameServerRecordOrder,
 	ServerOrder as GameServerOrder,
 } from "../../../bindings/github.com/sleaze5/RobloxAccountManager/internal/games/models.js"

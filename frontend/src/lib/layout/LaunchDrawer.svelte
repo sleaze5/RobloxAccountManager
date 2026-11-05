@@ -194,6 +194,7 @@
 								>Roblox links</span>
 							<input
 								class="field font-mono text-2xs"
+								data-launch-link
 								bind:value={store.launchInput.link}
 								type="text"
 								placeholder="Paste link here"

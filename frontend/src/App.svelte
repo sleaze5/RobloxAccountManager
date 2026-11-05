@@ -239,6 +239,16 @@
 		document.querySelector<HTMLInputElement>("[data-place-input]")?.focus()
 	}
 
+	async function fillGameLaunchLink(link: string): Promise<void> {
+		store.launchInput.method = LaunchMethod.MethodLink
+		store.launchInput.link = link
+		store.launchInput.launchData = ""
+		workspace.launchOpen = true
+		activePage = "accounts"
+		await tick()
+		document.querySelector<HTMLInputElement>("[data-launch-link]")?.focus()
+	}
+
 	async function searchGames(text: string): Promise<void> {
 		void games.searchFor(text)
 		activePage = "games"
@@ -541,9 +551,12 @@
 		{:else if activePage === "games"}
 			<GamesPage
 				store={games}
+				accounts={store}
+				notifications={notificationCenter}
 				{workspace}
 				onFillLaunch={(placeId, jobId) =>
-					void fillGameLaunchOptions(placeId, jobId)} />
+					void fillGameLaunchOptions(placeId, jobId)}
+				onFillLaunchLink={(link) => void fillGameLaunchLink(link)} />
 		{:else if activePage === "logs-explorer"}
 			<LogsExplorerPage
 				store={logsExplorer}

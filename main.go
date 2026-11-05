@@ -18,6 +18,7 @@ import (
 	"github.com/sleaze5/RobloxAccountManager/internal/bindings"
 	"github.com/sleaze5/RobloxAccountManager/internal/browser"
 	"github.com/sleaze5/RobloxAccountManager/internal/gamelaunch"
+	"github.com/sleaze5/RobloxAccountManager/internal/integration/rbxservers"
 	"github.com/sleaze5/RobloxAccountManager/internal/integration/rovalra"
 	"github.com/sleaze5/RobloxAccountManager/internal/logging"
 	"github.com/sleaze5/RobloxAccountManager/internal/logsexplorer"
@@ -140,7 +141,9 @@ func run() (runErr error) {
 		robloxservices.NewPresence(client),
 		robloxservices.NewGameLinks(client),
 		robloxservices.NewGames(client, logSystem.Module("roblox.games"), publicCache),
+		robloxservices.NewPrivateServers(client),
 		rovalra.New(),
+		rbxservers.New(),
 		gamestore.NewRepository(vaultManager, logSystem.Module("storage.games"), publicCache),
 		transferstore.NewRepository(vaultManager, logSystem.Module("storage.transfer")),
 		logsexplorer.NewReader(robloxlogs.Directories, logSystem.Module("logs-explorer")),
