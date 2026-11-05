@@ -63,10 +63,25 @@ func (service *Service) GetPrivateServer(ctx context.Context, accountID, serverI
 	return service.privateServerSettings(ctx, accountID, version, serverID)
 }
 
+// ValidatePrivateServerName runs the name through the Roblox text filter, as
+// ValidateAccountDescription does, so the user sees what Roblox would censor.
+func (service *Service) ValidatePrivateServerName(ctx context.Context, accountID int64, name string) (robloxservices.TextFilter, error) {
+	name, err := privateServerName(name)
+	if err != nil {
+		return robloxservices.TextFilter{}, err
+	}
+	ctx, version, done, err := service.beginAccountSession(ctx, accountID, "private-server-name-validate")
+	if err != nil {
+		return robloxservices.TextFilter{}, err
+	}
+	defer done()
+	return service.users.FilterText(ctx, accountID, version, name)
+}
+
 func (service *Service) RenamePrivateServer(ctx context.Context, accountID, serverID int64, name string) (games.PrivateServerSettings, error) {
-	name = strings.TrimSpace(name)
-	if name == "" || utf8.RuneCountInString(name) > maxPrivateServerNameLength || strings.ContainsFunc(name, unicode.IsControl) {
-		return games.PrivateServerSettings{}, privateServerInputError("Enter a name of up to 50 characters.")
+	name, err := privateServerName(name)
+	if err != nil {
+		return games.PrivateServerSettings{}, err
 	}
 	return service.updatePrivateServer(ctx, accountID, serverID, "private-server-rename", func(context.Context) (robloxservices.PrivateServerUpdate, error) {
 		return robloxservices.PrivateServerUpdate{Name: &name}, nil
@@ -204,6 +219,14 @@ func (service *Service) privateServerSettings(ctx context.Context, accountID, ve
 		settings.Users[index].ImageURL = images[settings.Users[index].UserID]
 	}
 	return settings, nil
+}
+
+func privateServerName(name string) (string, error) {
+	name = strings.TrimSpace(name)
+	if name == "" || utf8.RuneCountInString(name) > maxPrivateServerNameLength || strings.ContainsFunc(name, unicode.IsControl) {
+		return "", privateServerInputError("Enter a name of up to 50 characters.")
+	}
+	return name, nil
 }
 
 func validPrivateServerID(serverID int64) error {

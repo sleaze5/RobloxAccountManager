@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"github.com/sleaze5/RobloxAccountManager/internal/games"
+	robloxservices "github.com/sleaze5/RobloxAccountManager/internal/roblox/services"
 )
 
 func (service *Service) SearchGames(ctx context.Context, query games.SearchQuery) (games.SearchPage, error) {
@@ -81,6 +82,13 @@ func (service *Service) GetPrivateServer(ctx context.Context, accountID, serverI
 		return games.PrivateServerSettings{}, err
 	}
 	return service.core.GetPrivateServer(ctx, accountID, serverID)
+}
+
+func (service *Service) ValidatePrivateServerName(ctx context.Context, accountID int64, name string) (robloxservices.TextFilter, error) {
+	if err := positiveID(accountID, "private-server-name-validate"); err != nil {
+		return robloxservices.TextFilter{}, err
+	}
+	return service.core.ValidatePrivateServerName(ctx, accountID, name)
 }
 
 func (service *Service) RenamePrivateServer(ctx context.Context, accountID, serverID int64, name string) (games.PrivateServerSettings, error) {
