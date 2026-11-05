@@ -18,12 +18,13 @@
 	import {
 		presenceDetail,
 		presenceLabel,
-		presenceLine,
+		showsPresence,
 	} from "../accounts/account-model"
 	import SidebarResizer from "../layout/SidebarResizer.svelte"
 	import { appSettings } from "../settings/settings-store.svelte"
 	import OperationError from "../shared/OperationError.svelte"
 	import ProfileImage from "../shared/ProfileImage.svelte"
+	import PresenceLine from "../accounts/PresenceLine.svelte"
 	import Select from "../shared/Select.svelte"
 	import { moveListFocus } from "../shared/move-shortcut"
 	import { menuIn, menuOut } from "../shared/presence"
@@ -392,7 +393,7 @@
 						aria-busy={store.loading || store.loadingMore}>
 						{#each store.people as person (person.userId)}
 							{@const active = store.selectedUserId === person.userId}
-							{@const presence = presenceLine(person.presence)}
+							{@const presence = showsPresence(person.presence)}
 							<button
 								class={[
 									"group/row list-row relative flex w-full flex-col justify-center gap-1 border-b border-line-subtle px-3 text-left",
@@ -430,11 +431,8 @@
 											>{subtitle(person)}</small>
 									</span>
 								</span>
-								{#if presence}
-									<small
-										class="block w-full truncate text-2xs text-fg-muted"
-										>{presence}</small>
-								{/if}
+								{#if showsPresence(person.presence)}<PresenceLine
+										presence={person.presence} />{/if}
 							</button>
 						{/each}
 						{#if !players && filterText.length >= minimumSearchLength}

@@ -8,7 +8,8 @@
 	import type { WorkspaceState } from "../layout/workspace-state.svelte"
 	import AccountAvatar from "./AccountAvatar.svelte"
 	import type { AccountStore } from "./account-store.svelte"
-	import { presenceLabel, presenceLine } from "./account-model"
+	import { presenceLabel, showsPresence } from "./account-model"
+	import PresenceLine from "./PresenceLine.svelte"
 
 	interface DropTarget {
 		accountId: number
@@ -137,7 +138,7 @@
 	aria-busy={store.loadingAccounts || store.loadingMore}
 	onscroll={loadNearEnd}>
 	{#each store.filteredAccounts as account (account.id)}
-		{@const presence = presenceLine(account.presence)}
+		{@const presence = showsPresence(account.presence)}
 		<div
 			class={[
 				"group/row list-row relative flex w-full items-center gap-2 border-b border-line-subtle text-left",
@@ -231,10 +232,7 @@
 							>@{account.username}</small>
 					</span>
 				</span>
-				{#if presence}
-					<small class="block w-full truncate text-2xs text-fg-muted"
-						>{presence}</small>
-				{/if}
+				{#if presence}<PresenceLine presence={account.presence} />{/if}
 			</button>
 		</div>
 	{:else}
