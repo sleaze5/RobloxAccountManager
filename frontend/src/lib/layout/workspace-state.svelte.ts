@@ -31,7 +31,8 @@ export class WorkspaceState {
 	sidebarWidth = $state(220)
 	settingsSidebarWidth = $state(240)
 	accountSettingsSidebarWidth = $state(192)
-	launchOpen = $state(true)
+	#profileLaunchOpen = $state(true)
+	#subpageLaunchOpen = $state(false)
 	launchHeight = $state(180)
 	launchMinimumHeight = $state(0)
 	viewportHeight = $state(window.innerHeight)
@@ -41,6 +42,17 @@ export class WorkspaceState {
 	activeAccountMenu = $state<ActiveAccountMenu>(null)
 	accountContextMenu = $state<AccountContextMenu | null>(null)
 	imageContextMenu = $state<ImageContextMenu | null>(null)
+
+	get launchOpen(): boolean {
+		return this.accountPage === "profile"
+			? this.#profileLaunchOpen
+			: this.#subpageLaunchOpen
+	}
+
+	set launchOpen(open: boolean) {
+		if (this.accountPage === "profile") this.#profileLaunchOpen = open
+		else this.#subpageLaunchOpen = open
+	}
 
 	closeAccountMenus(): void {
 		this.activeAccountMenu = null

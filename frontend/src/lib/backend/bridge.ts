@@ -16,6 +16,7 @@ export type {
 	SocialPage as SocialListPage,
 	SocialProfile as SocialProfileSnapshot,
 	SocialRelationship,
+	SocialRelationshipSnapshot,
 	SocialUser,
 	ImportPreview,
 	ImportPreviewItem,
@@ -64,6 +65,7 @@ export {
 	FriendStatus,
 	PresenceType,
 	TextModeration,
+	TrustedStatus,
 } from "../../../bindings/github.com/sleaze5/RobloxAccountManager/internal/roblox/services/models.js"
 export type {
 	AccountCursor,

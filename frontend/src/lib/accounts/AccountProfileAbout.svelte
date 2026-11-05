@@ -61,7 +61,9 @@
 			The description is unavailable. Refresh to retry.
 		</p>
 	{:else}
-		<pre class="text-block">{snapshot.description || "No description yet."}</pre>
+		<p class="text-block" data-variant="prose">
+			{snapshot.description || "No description yet."}
+		</p>
 	{/if}
 	{#if snapshot.socialLinks?.length || snapshot.previousNames?.length}
 		<dl class="facts">

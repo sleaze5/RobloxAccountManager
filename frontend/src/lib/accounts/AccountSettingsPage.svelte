@@ -427,7 +427,7 @@
 			},
 			{
 				id: "privacy",
-				label: privacyLabel,
+				label: "Privacy & content",
 				icon: lockKeyIcon,
 				search: "privacy content restrictions",
 			},
@@ -999,7 +999,7 @@
 									class="spinner"
 									size={16}
 									aria-hidden="true" />
-								Loading settings
+								Loading settings…
 							</div>
 						{:else}
 							{#each activeCategory.sections as section (section.id)}

@@ -18,6 +18,7 @@
 		left = $state(0),
 		top = $state(0),
 		visible = $state(false),
+		instant = $state(false),
 		alignEnd = false,
 		anchor: HTMLElement | null = null,
 		frame = 0,
@@ -70,7 +71,8 @@
 		alignEnd = placement.alignEnd
 		text = element.dataset.tooltip.trim()
 		strong = element.dataset.tooltipStrong?.trim() ?? ""
-		const delayMs = performance.now() < skipDelayUntil ? 0 : openDelayMs
+		instant = performance.now() < skipDelayUntil
+		const delayMs = instant ? 0 : openDelayMs
 		openTimer = window.setTimeout(() => {
 			openTimer = 0
 			if (!anchor) {
@@ -193,7 +195,7 @@
 		bind:this={tip}
 		use:liftToTopLayer
 		style="top: 0; left: 0; transform: translate({left}px, {top}px);">
-		<span class="block" in:tooltipIn out:tooltipOut
+		<span class="block" in:tooltipIn={{ instant }} out:tooltipOut
 			>{#if strongAt < 0}{text}{:else}{text.slice(0, strongAt)}<strong
 					class="font-semibold">{strong}</strong
 				>{text.slice(strongAt + strong.length)}{/if}</span>

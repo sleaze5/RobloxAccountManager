@@ -255,7 +255,7 @@
 								</button>
 							</span>
 						{:else if item.pending}
-							<span class={[noteClass, "text-fg-faint"]}>Sending</span>
+							<span class={[noteClass, "text-fg-faint"]}>Sending…</span>
 						{/if}
 					</li>
 				{/if}

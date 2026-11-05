@@ -16,7 +16,7 @@
 	import Icon from "../shared/Icon.svelte"
 	import type { WorkspaceState } from "../layout/workspace-state.svelte"
 	import SidebarResizer from "../layout/SidebarResizer.svelte"
-	import { menuIn, menuOut } from "../shared/presence"
+	import { menuIn, menuKeyboard, menuOut } from "../shared/presence"
 	import AccountList from "./AccountList.svelte"
 	import AddAccountMenu from "./AddAccountMenu.svelte"
 	import type { AccountStore } from "./account-store.svelte"
@@ -94,8 +94,11 @@
 		<div class="flex shrink-0 flex-col gap-1 px-3 pt-1 pb-2">
 			<div class="relative flex h-7 items-center">
 				<h1>
-					Accounts <span class="font-mono text-2xs font-normal text-fg-faint"
-						>({store.accountTotal})</span>
+					Accounts
+					{#if store.vault.unlocked}<span
+							class="font-mono text-2xs font-normal text-fg-faint"
+							>({store.accountTotal})</span
+						>{/if}
 				</h1>
 				<div class="ml-auto flex items-center gap-px">
 					<div class="relative" data-account-menu>
@@ -214,6 +217,7 @@
 						<div
 							class="absolute top-full right-0 z-10 mt-1 flex max-h-(--tag-filter-height) menu flex-col"
 							use:constrainTagFilter
+							use:menuKeyboard
 							role="group"
 							aria-label="Filter accounts by tag"
 							in:menuIn
@@ -308,28 +312,6 @@
 
 		<div class="relative grid min-h-0 flex-1 grid-rows-1">
 			<AccountList {store} {workspace} />
-			{#if store.multipleSelected}
-				<div
-					class="pointer-events-none absolute inset-x-0 bottom-2 flex justify-center">
-					<button
-						class="pointer-events-auto btn bg-raised shadow-float hover:bg-raised-hover"
-						type="button"
-						in:menuIn
-						out:menuOut
-						onclick={() => {
-							store.clearSelection()
-							workspace.closeAccountMenus()
-							document
-								.querySelector<HTMLButtonElement>(
-									"[data-account-select]",
-								)
-								?.focus()
-						}}>
-						<Icon svg={xIcon} size={14} aria-hidden="true" />
-						<span>Unselect all</span>
-					</button>
-				</div>
-			{/if}
 		</div>
 	{/if}
 </aside>

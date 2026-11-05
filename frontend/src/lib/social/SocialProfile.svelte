@@ -233,7 +233,9 @@
 			<h3 id="social-about-heading" class="text-xs font-semibold text-fg-muted">
 				About
 			</h3>
-			<pre class="text-block">{profile.description || "No description."}</pre>
+			<p class="text-block" data-variant="prose">
+				{profile.description || "No description."}
+			</p>
 			{#if profile.socialLinks?.length}
 				<div class="flex flex-wrap items-center gap-1">
 					<Icon

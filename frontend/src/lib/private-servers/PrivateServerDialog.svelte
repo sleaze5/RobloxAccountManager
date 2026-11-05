@@ -267,43 +267,48 @@
 					{/if}
 				</form>
 
-				<div class="mt-3 settings-rows">
-					{#each toggles as toggle (toggle.option)}
-						<div class="settings-row">
-							<div class="settings-row-copy">
-								<strong id={`${id}-${toggle.option}`}
-									>{toggle.label}</strong>
-								<span id={`${id}-${toggle.option}-description`}
-									>{toggle.description}</span>
-								{#if server.errorFor(toggle.option)}
-									<span class="text-danger-muted" role="alert"
-										>{server.errorFor(toggle.option)}</span>
+				<div class="settings-section mt-3">
+					<div class="settings-rows">
+						{#each toggles as toggle (toggle.option)}
+							<div class="settings-row">
+								<div class="settings-row-copy">
+									<strong id={`${id}-${toggle.option}`}
+										>{toggle.label}</strong>
+									<span id={`${id}-${toggle.option}-description`}
+										>{toggle.description}</span>
+									{#if server.errorFor(toggle.option)}
+										<span class="text-danger-muted" role="alert"
+											>{server.errorFor(toggle.option)}</span>
+									{/if}
+								</div>
+								{#if server.pending === toggle.option}
+									<Icon
+										svg={circleNotchIcon}
+										class="spinner text-fg-muted"
+										size={14}
+										aria-hidden="true" />
 								{/if}
+								<label class="switch">
+									<input
+										type="checkbox"
+										role="switch"
+										aria-labelledby={`${id}-${toggle.option}`}
+										aria-describedby={`${id}-${toggle.option}-description`}
+										checked={toggle.checked}
+										disabled={busy}
+										onchange={(event) => {
+											const enabled = event.currentTarget.checked
+											event.currentTarget.checked = toggle.checked
+											void server.setOption(
+												toggle.option,
+												enabled,
+											)
+										}} />
+									<span aria-hidden="true"></span>
+								</label>
 							</div>
-							{#if server.pending === toggle.option}
-								<Icon
-									svg={circleNotchIcon}
-									class="spinner text-fg-muted"
-									size={14}
-									aria-hidden="true" />
-							{/if}
-							<label class="switch">
-								<input
-									type="checkbox"
-									role="switch"
-									aria-labelledby={`${id}-${toggle.option}`}
-									aria-describedby={`${id}-${toggle.option}-description`}
-									checked={toggle.checked}
-									disabled={busy}
-									onchange={(event) => {
-										const enabled = event.currentTarget.checked
-										event.currentTarget.checked = toggle.checked
-										void server.setOption(toggle.option, enabled)
-									}} />
-								<span aria-hidden="true"></span>
-							</label>
-						</div>
-					{/each}
+						{/each}
+					</div>
 				</div>
 
 				<section
@@ -358,41 +363,44 @@
 							>{/if}
 					</h3>
 					{#if users.length}
-						<ul class="settings-rows" aria-label="Allowed users">
-							{#each users as user (user.userId)}
-								<li
-									class="settings-row animate-enter justify-start gap-3">
-									<span
-										class="grid size-7 shrink-0 place-items-center overflow-hidden rounded-md border border-line-strong bg-raised"
-										aria-hidden="true">
-										<ProfileImage url={user.imageUrl} />
-									</span>
-									<div class="settings-row-copy">
-										<strong class="truncate"
-											>{userName(user)}</strong>
+						<div class="settings-section">
+							<ul class="settings-rows" aria-label="Allowed users">
+								{#each users as user (user.userId)}
+									<li
+										class="settings-row animate-enter justify-start gap-3">
 										<span
-											>{user.username
-												? `@${user.username}`
-												: user.userId}</span>
-									</div>
-									<button
-										class="btn"
-										type="button"
-										aria-label={`Remove ${userName(user)}`}
-										disabled={busy}
-										onclick={() => void server.removeUser(user)}>
-										{#if server.pending === `remove-${user.userId}`}
-											<Icon
-												svg={circleNotchIcon}
-												class="spinner"
-												size={14}
-												aria-hidden="true" />
-										{/if}
-										Remove
-									</button>
-								</li>
-							{/each}
-						</ul>
+											class="grid size-7 shrink-0 place-items-center overflow-hidden rounded-md border border-line-strong bg-raised"
+											aria-hidden="true">
+											<ProfileImage url={user.imageUrl} />
+										</span>
+										<div class="settings-row-copy">
+											<strong class="truncate"
+												>{userName(user)}</strong>
+											<span
+												>{user.username
+													? `@${user.username}`
+													: user.userId}</span>
+										</div>
+										<button
+											class="btn"
+											type="button"
+											aria-label={`Remove ${userName(user)}`}
+											disabled={busy}
+											onclick={() =>
+												void server.removeUser(user)}>
+											{#if server.pending === `remove-${user.userId}`}
+												<Icon
+													svg={circleNotchIcon}
+													class="spinner"
+													size={14}
+													aria-hidden="true" />
+											{/if}
+											Remove
+										</button>
+									</li>
+								{/each}
+							</ul>
+						</div>
 					{:else}
 						<p class="text-xs text-fg-faint">
 							No one else is allowed. Add a user to let them join.

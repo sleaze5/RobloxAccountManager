@@ -45,31 +45,36 @@
 		@{username} does not own any private servers. Buy one on a game's page on Roblox.
 	</p>
 {:else}
-	<ul class="settings-rows" aria-label="Private servers" aria-busy={owned.loading}>
-		{#each owned.servers as server (server.serverId)}
-			{@const name = server.name || "Unnamed server"}
-			<li class="settings-row animate-enter justify-start gap-3">
-				<div class="settings-row-copy">
-					<strong class="flex min-w-0 items-center gap-1.5">
-						<span class="truncate">{name}</span>
-						{#if !server.active}<span class="shrink-0 server-tag"
-								>Inactive</span
-							>{/if}
-					</strong>
-					<span class="truncate"
-						>{server.gameName || `Place ${server.placeId}`} - {renewal(
-							server,
-						)}</span>
-				</div>
-				<button
-					class="btn"
-					type="button"
-					aria-label={`Manage ${name}`}
-					disabled={owned.loading}
-					onclick={() => onManage(server)}>Manage</button>
-			</li>
-		{/each}
-	</ul>
+	<div class="settings-section">
+		<ul
+			class="settings-rows"
+			aria-label="Private servers"
+			aria-busy={owned.loading}>
+			{#each owned.servers as server (server.serverId)}
+				{@const name = server.name || "Unnamed server"}
+				<li class="settings-row animate-enter justify-start gap-3">
+					<div class="settings-row-copy">
+						<strong class="flex min-w-0 items-center gap-1.5">
+							<span class="truncate">{name}</span>
+							{#if !server.active}<span class="shrink-0 server-tag"
+									>Inactive</span
+								>{/if}
+						</strong>
+						<span class="truncate"
+							>{server.gameName || `Place ${server.placeId}`} - {renewal(
+								server,
+							)}</span>
+					</div>
+					<button
+						class="btn"
+						type="button"
+						aria-label={`Manage ${name}`}
+						disabled={owned.loading}
+						onclick={() => onManage(server)}>Manage</button>
+				</li>
+			{/each}
+		</ul>
+	</div>
 	{#if owned.nextCursor}
 		<button
 			class="btn self-start"

@@ -201,8 +201,7 @@
 {#if showTimestampFormat || showHoverFormat || showPreview || showTimestampActions}
 	<section class="settings-section" aria-labelledby="timestamps-title">
 		<h3 id="timestamps-title">Timestamps</h3>
-		<div
-			class="flex items-start gap-1 px-1 pb-1 text-xs leading-normal text-fg-muted">
+		<div class="flex items-start gap-1 text-xs leading-normal text-fg-muted">
 			<Icon svg={infoIcon} class="mt-px shrink-0" size={14} aria-hidden="true" />
 			<p>
 				Start each token with <code class={codeClass}>$</code>, such as
@@ -211,7 +210,7 @@
 				to show a <code class={codeClass}>$</code> sign.
 			</p>
 		</div>
-		<details class="group px-1 pb-2 text-xs text-fg-muted">
+		<details class="group text-xs text-fg-muted">
 			<summary
 				class="inline-flex items-center gap-1 rounded-sm transition-colors duration-100 hover:text-fg focus-visible:text-fg focus-visible:outline-offset-2"
 				><Icon
@@ -316,7 +315,7 @@
 			</div>
 
 			{#if showTimestampActions}
-				<div class="flex justify-end gap-2 px-1 pt-2">
+				<div class="flex justify-end gap-2 px-3 pt-1 pb-3">
 					<button
 						class="btn"
 						type="button"

@@ -25,7 +25,8 @@
 	} = $props()
 
 	const games = getGamesStore()
-	let place = $state<GamePlace | null>(null)
+	let place = $state<GamePlace | null>(null),
+		rootPlace = $state<GamePlace | null>(null)
 
 	const type = $derived(presence.userPresenceType),
 		universeId = $derived(presence.universeId ?? 0),
@@ -44,9 +45,22 @@
 		detail = $derived(
 			presenceDetail(presence, (place && games.displayName(place)) || ""),
 		),
+		location = $derived(presence.lastLocation?.trim() ?? ""),
+		rootName = $derived(
+			rootPlace && rootPlace.placeId !== place?.placeId ? rootPlace.name : "",
+		),
 		tooltip = $derived(
 			[
 				detail ? `${label}: ${detail}` : label,
+				place && !sameName(place.name, detail) ? `Place: ${place.name}` : "",
+				rootName ? `Sub-place of: ${rootName}` : "",
+				inExperience &&
+				place &&
+				location &&
+				!sameName(location, place.name) &&
+				!sameName(location, rootName)
+					? `Game: ${location}`
+					: "",
 				inExperience && place?.creatorName
 					? `${creatorByline(place)}${place.creatorVerified ? " (Verified creator)" : ""}`
 					: "",
@@ -59,14 +73,21 @@
 				.join("\n"),
 		)
 
+	function sameName(first: string, second: string): boolean {
+		return first.trim().toLowerCase() === second.trim().toLowerCase()
+	}
+
 	$effect(() => {
 		const id = inExperience ? universeId : 0,
 			placeId = joinPlaceId
-		place = null
+		place = rootPlace = null
 		if (id <= 0 || placeId <= 0) return
 		let current = true
 		void loadGamePlace(id, placeId).then((result) => {
-			if (current) place = result?.place ?? null
+			if (current) {
+				place = result?.place ?? null
+				rootPlace = result?.rootPlace ?? null
+			}
 			return result
 		})
 		return () => {

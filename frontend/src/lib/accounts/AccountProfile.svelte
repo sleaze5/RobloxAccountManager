@@ -18,7 +18,7 @@
 	import type { WorkspaceState } from "../layout/workspace-state.svelte"
 	import type { NotificationCenter } from "../notifications/notification-center.svelte"
 	import { appSettings } from "../settings/settings-store.svelte"
-	import { floatMenu, menuIn, menuOut } from "../shared/presence"
+	import { floatMenu, menuIn, menuKeyboard, menuOut } from "../shared/presence"
 	import AccountAvatar from "./AccountAvatar.svelte"
 	import AccountMembershipBadges from "./AccountMembershipBadges.svelte"
 	import AccountPresence from "./AccountPresence.svelte"
@@ -307,6 +307,7 @@
 							class="menu"
 							data-account-menu
 							use:floatMenu={{ anchor: tagsButton, align: "start" }}
+							use:menuKeyboard
 							in:menuIn
 							out:menuOut>
 							<TagPicker

@@ -40,6 +40,41 @@ func (service *Service) GetSocialProfile(ctx context.Context, accountID, userID 
 	return service.core.GetSocialProfile(ctx, accountID, userID)
 }
 
+func (service *Service) GetSocialRelationship(ctx context.Context, accountID, userID int64) (appservice.SocialRelationshipSnapshot, error) {
+	if err := socialTarget(accountID, userID, "social-relationship"); err != nil {
+		return appservice.SocialRelationshipSnapshot{}, err
+	}
+	return service.core.GetSocialRelationship(ctx, accountID, userID)
+}
+
+func (service *Service) SendFriendRequest(ctx context.Context, accountID, userID int64) error {
+	if err := socialTarget(accountID, userID, "friend-request-send"); err != nil {
+		return err
+	}
+	return service.core.SendFriendRequest(ctx, accountID, userID)
+}
+
+func (service *Service) SendTrustedFriendRequest(ctx context.Context, accountID, userID int64) error {
+	if err := socialTarget(accountID, userID, "trusted-friend-request-send"); err != nil {
+		return err
+	}
+	return service.core.SendTrustedFriendRequest(ctx, accountID, userID)
+}
+
+func (service *Service) AcceptTrustedFriendRequest(ctx context.Context, accountID, userID int64) error {
+	if err := socialTarget(accountID, userID, "trusted-friend-request-accept"); err != nil {
+		return err
+	}
+	return service.core.AcceptTrustedFriendRequest(ctx, accountID, userID)
+}
+
+func (service *Service) RemoveTrustedFriend(ctx context.Context, accountID, userID int64) error {
+	if err := socialTarget(accountID, userID, "trusted-friend-remove"); err != nil {
+		return err
+	}
+	return service.core.RemoveTrustedFriend(ctx, accountID, userID)
+}
+
 func (service *Service) AcceptFriendRequest(ctx context.Context, accountID, userID int64) error {
 	if err := socialTarget(accountID, userID, "friend-request-accept"); err != nil {
 		return err

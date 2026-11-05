@@ -108,7 +108,7 @@
 	in:modalBackdropIn
 	out:modalBackdropOut>
 	<div
-		class="relative dialog-card max-w-sm text-center"
+		class={["relative dialog-card text-center", creating ? "max-w-md" : "max-w-sm"]}
 		role="dialog"
 		aria-modal="true"
 		aria-labelledby="vault-title"

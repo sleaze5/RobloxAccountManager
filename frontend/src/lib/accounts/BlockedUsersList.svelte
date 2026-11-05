@@ -26,7 +26,7 @@
 {:else if blocked.users.length === 0}
 	<p class="text-xs text-fg-faint">No blocked users.</p>
 {:else}
-	<ul class="settings-rows" aria-label="Blocked users">
+	<ul class="settings-section settings-rows" aria-label="Blocked users">
 		{#each blocked.users as user (user.userId)}
 			<li class="settings-row justify-start gap-3">
 				<span

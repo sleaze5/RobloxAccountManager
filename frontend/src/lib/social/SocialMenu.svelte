@@ -5,12 +5,21 @@
 	import listPlusIcon from "@phosphor-icons/core/regular/list-plus.svg?raw"
 	import magnifyingGlassIcon from "@phosphor-icons/core/regular/magnifying-glass.svg?raw"
 	import prohibitIcon from "@phosphor-icons/core/regular/prohibit.svg?raw"
+	import shieldCheckIcon from "@phosphor-icons/core/regular/shield-check.svg?raw"
+	import shieldSlashIcon from "@phosphor-icons/core/regular/shield-slash.svg?raw"
 	import textTIcon from "@phosphor-icons/core/regular/text-t.svg?raw"
+	import userCircleMinusIcon from "@phosphor-icons/core/regular/user-circle-minus.svg?raw"
+	import userCirclePlusIcon from "@phosphor-icons/core/regular/user-circle-plus.svg?raw"
 	import userListIcon from "@phosphor-icons/core/regular/user-list.svg?raw"
 	import userMinusIcon from "@phosphor-icons/core/regular/user-minus.svg?raw"
 	import userPlusIcon from "@phosphor-icons/core/regular/user-plus.svg?raw"
 	import Icon from "../shared/Icon.svelte"
-	import { PresenceType, SocialList } from "../backend/bridge"
+	import {
+		FriendStatus,
+		PresenceType,
+		SocialList,
+		TrustedStatus,
+	} from "../backend/bridge"
 	import type { SocialUser } from "../backend/bridge"
 	import { menuIn, menuOut, placeMenuAtPoint } from "../shared/presence"
 	import { personName } from "./social-store.svelte"
@@ -22,12 +31,14 @@
 		onFillLaunch,
 		onSearchPlace,
 		onUnfriend,
+		onRemoveTrusted,
 	}: {
 		store: SocialStore
 		menu: SocialMenu
 		onFillLaunch: (placeId: number, jobId: string) => void
 		onSearchPlace: (placeId: number) => void
 		onUnfriend: (person: SocialUser) => void
+		onRemoveTrusted: (person: SocialUser) => void
 	} = $props()
 	const person = $derived(menu.person),
 		presence = $derived(person.presence),
@@ -40,7 +51,14 @@
 			presence?.userPresenceType === PresenceType.PresenceTypeInGame &&
 				placeId > 0 &&
 				!!presence.gameId,
-		)
+		),
+		relationship = $derived(store.menuRelationship?.relationship ?? null),
+		unavailable = $derived(store.menuRelationship?.unavailable ?? []),
+		isFriend = $derived(relationship?.friend === FriendStatus.FriendStatusFriends),
+		isTrusted = $derived(
+			isFriend && relationship?.trusted === TrustedStatus.TrustedStatusTrusted,
+		),
+		busy = $derived(relationship === null || store.updating !== null)
 
 	function positionMenu(node: HTMLElement, position: SocialMenu) {
 		const previousFocus = document.activeElement
@@ -154,8 +172,8 @@
 			role="menuitem"
 			onclick={() => {
 				const jobId = presence?.gameId ?? ""
-				store.closeMenu()
 				onFillLaunch(placeId, jobId)
+				store.closeMenu()
 			}}
 			><Icon svg={listPlusIcon} size={16} aria-hidden="true" /><span
 				>Fill launch options</span
@@ -167,8 +185,8 @@
 			type="button"
 			role="menuitem"
 			onclick={() => {
-				store.closeMenu()
 				onSearchPlace(placeId)
+				store.closeMenu()
 			}}
 			><Icon svg={magnifyingGlassIcon} size={16} aria-hidden="true" /><span
 				>Find place in Games</span
@@ -179,8 +197,8 @@
 		type="button"
 		role="menuitem"
 		onclick={() => {
-			store.closeMenu()
 			store.explore(person, SocialList.SocialFriends)
+			store.closeMenu()
 		}}
 		><Icon svg={userListIcon} size={16} aria-hidden="true" /><span
 			>View friends</span
@@ -193,6 +211,97 @@
 		><Icon svg={arrowSquareOutIcon} size={16} aria-hidden="true" /><span
 			>Open Roblox profile</span
 		></button>
+
+	{#if !relationship?.self}
+		<div role="group" aria-label="Connection" aria-busy={relationship === null}>
+			<div class="menu-heading" aria-hidden="true">Connection</div>
+			<button
+				class="menu-item"
+				type="button"
+				role="menuitem"
+				disabled={busy || unavailable.includes("follow")}
+				onclick={() => {
+					void store.setFollowing(person, !relationship?.following)
+					store.closeMenu()
+				}}
+				><Icon
+					svg={relationship?.following
+						? userCircleMinusIcon
+						: userCirclePlusIcon}
+					size={16}
+					aria-hidden="true" /><span
+					>{relationship?.following ? "Unfollow" : "Follow"}</span
+				></button>
+			{#if !person.request && !isFriend}
+				{#if relationship?.friend === FriendStatus.FriendStatusRequestReceived}
+					<button
+						class="menu-item"
+						type="button"
+						role="menuitem"
+						disabled={store.responding !== null}
+						onclick={() => void store.respond(person, true)}
+						><Icon svg={userPlusIcon} size={16} aria-hidden="true" /><span
+							>Accept friend request</span
+						></button>
+				{:else}
+					<button
+						class="menu-item"
+						type="button"
+						role="menuitem"
+						disabled={busy ||
+							unavailable.includes("friendship") ||
+							relationship?.friend ===
+								FriendStatus.FriendStatusRequestSent}
+						onclick={() => void store.sendFriendRequest(person)}
+						><Icon svg={userPlusIcon} size={16} aria-hidden="true" /><span
+							>{relationship?.friend ===
+							FriendStatus.FriendStatusRequestSent
+								? "Friend request sent"
+								: "Add friend"}</span
+						></button>
+				{/if}
+			{/if}
+			{#if relationship === null || (isFriend && !isTrusted)}
+				{#if relationship?.trusted === TrustedStatus.TrustedStatusRequestReceived}
+					<button
+						class="menu-item"
+						type="button"
+						role="menuitem"
+						disabled={busy}
+						onclick={() => void store.acceptTrustedFriendRequest(person)}
+						><Icon
+							svg={shieldCheckIcon}
+							size={16}
+							aria-hidden="true" /><span>Accept trusted request</span
+						></button>
+				{:else}
+					<button
+						class="menu-item"
+						type="button"
+						role="menuitem"
+						disabled={busy ||
+							unavailable.includes("trusted") ||
+							relationship?.trusted ===
+								TrustedStatus.TrustedStatusRequestSent}
+						onclick={() => void store.sendTrustedFriendRequest(person)}
+						><Icon
+							svg={shieldCheckIcon}
+							size={16}
+							aria-hidden="true" /><span
+							>{relationship?.trusted ===
+							TrustedStatus.TrustedStatusRequestSent
+								? "Trusted request sent"
+								: "Add trusted friend"}</span
+						></button>
+				{/if}
+			{/if}
+			{#if store.menuRelationshipFailed}
+				<p class="px-2 py-1 text-2xs text-fg-muted" role="status">
+					Could not check this user. Reopen the menu to retry.
+				</p>
+			{/if}
+		</div>
+	{/if}
 
 	<div role="group" aria-label="Copy user details">
 		<div class="menu-heading" aria-hidden="true">Copy</div>
@@ -223,15 +332,28 @@
 			><Icon svg={hashIcon} size={16} aria-hidden="true" /><span>User ID</span
 			></button>
 	</div>
-	{#if store.ownFriends}
+	{#if isFriend}
 		<div class="menu-separator"></div>
+		{#if isTrusted}
+			<button
+				class="menu-item-danger"
+				type="button"
+				role="menuitem"
+				onclick={() => {
+					onRemoveTrusted(person)
+					store.closeMenu()
+				}}
+				><Icon svg={shieldSlashIcon} size={16} aria-hidden="true" /><span
+					>Remove trusted friend</span
+				></button>
+		{/if}
 		<button
 			class="menu-item-danger"
 			type="button"
 			role="menuitem"
 			onclick={() => {
-				store.closeMenu()
 				onUnfriend(person)
+				store.closeMenu()
 			}}
 			><Icon svg={userMinusIcon} size={16} aria-hidden="true" /><span
 				>Unfriend</span

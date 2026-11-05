@@ -1,3 +1,6 @@
+import codeBoldIcon from "@phosphor-icons/core/bold/code-bold.svg?raw"
+import gameControllerBoldIcon from "@phosphor-icons/core/bold/game-controller-bold.svg?raw"
+import globeBoldIcon from "@phosphor-icons/core/bold/globe-bold.svg?raw"
 import codeIcon from "@phosphor-icons/core/regular/code.svg?raw"
 import eyeSlashIcon from "@phosphor-icons/core/regular/eye-slash.svg?raw"
 import gameControllerIcon from "@phosphor-icons/core/regular/game-controller.svg?raw"
@@ -138,12 +141,26 @@ export function presenceIcon(presence: UserPresence): string {
 	}
 }
 
+export function presenceBadgeIcon(presence: UserPresence): string {
+	switch (presence.userPresenceType) {
+		case PresenceType.PresenceTypeOnline:
+			return globeBoldIcon
+		case PresenceType.PresenceTypeInGame:
+			return gameControllerBoldIcon
+		case PresenceType.PresenceTypeInStudio:
+			return codeBoldIcon
+		default:
+			return ""
+	}
+}
+
 export function presenceDetail(presence: UserPresence, experience = ""): string {
 	const location = presence.lastLocation?.trim() ?? ""
 	switch (presence.userPresenceType) {
 		case PresenceType.PresenceTypeInGame:
-		case PresenceType.PresenceTypeInStudio:
 			return experience || location
+		case PresenceType.PresenceTypeInStudio:
+			return experience || (location.toLowerCase() === "studio" ? "" : location)
 		case PresenceType.PresenceTypeOnline:
 			return location.toLowerCase() === "website" ? "" : location
 		default:

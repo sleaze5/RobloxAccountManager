@@ -30,6 +30,14 @@
 		letter-spacing: var(--tracking-tight);
 	}
 
+	:is(h1, h2, h3) {
+		text-wrap: balance;
+	}
+
+	p {
+		text-wrap: pretty;
+	}
+
 	svg {
 		max-width: 100%;
 		height: auto;
@@ -92,9 +100,13 @@
 		cursor: not-allowed;
 	}
 
-	:is(button, input, textarea, select, [role="slider"]):focus-visible {
+	:is(button, input, textarea, select, summary, [tabindex="0"]):focus-visible {
 		outline: 1px solid var(--color-focus);
 		outline-offset: -1px;
+	}
+
+	:not(button, input, textarea, select)[tabindex="-1"]:focus {
+		outline: none;
 	}
 
 	[popover]:popover-open {
@@ -121,12 +133,23 @@
 	}
 }
 
+:root[data-reduced-motion] {
+	--animate-enter: fade var(--duration-fast) var(--ease-out);
+	--animate-pop: fade var(--duration-fast) var(--ease-out);
+	--animate-bloom: fade var(--duration-enter) var(--ease-out);
+}
+
 :root[data-reduced-motion],
 :root[data-reduced-motion] *,
 :root[data-reduced-motion] ::before,
 :root[data-reduced-motion] ::after {
-	animation-duration: 0.01ms !important;
-	animation-iteration-count: 1 !important;
 	scroll-behavior: auto !important;
-	transition-duration: 0.01ms !important;
+	transition-property: color, background-color, border-color, opacity !important;
+}
+
+:root[data-reduced-motion] :is(:active, [data-turn], [data-nudge]),
+:root[data-reduced-motion] button:hover :is([data-turn], [data-nudge]) {
+	rotate: none !important;
+	scale: none !important;
+	translate: none !important;
 }

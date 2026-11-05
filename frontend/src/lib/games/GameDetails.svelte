@@ -539,7 +539,9 @@
 						Description
 					</h3>
 					{#if game.description.trim()}
-						<pre class="text-block">{game.description.trim()}</pre>
+						<p class="text-block" data-variant="prose">
+							{game.description.trim()}
+						</p>
 					{:else}
 						<p class="text-xs text-fg-muted">No description provided.</p>
 					{/if}

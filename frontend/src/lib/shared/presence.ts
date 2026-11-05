@@ -22,10 +22,11 @@ function motion({
 	scale = 1,
 	origin = "center",
 }: MotionOptions): TransitionConfig {
+	if (reducedMotion()) return { css: (t) => `opacity: ${t};`, duration, easing }
 	return {
 		css: (t, u) =>
 			`opacity: ${t}; transform: translate(${u * x}px, ${u * y}px) scale(${scale + (1 - scale) * t}); transform-origin: ${origin};`,
-		duration: reducedMotion() ? 0 : duration,
+		duration,
 		easing,
 	}
 }
@@ -89,9 +90,12 @@ export function modalCardOut(node: Element): TransitionConfig {
 	})
 }
 
-export function tooltipIn(node: Element): TransitionConfig {
+export function tooltipIn(
+	node: Element,
+	{ instant = false }: { instant?: boolean } = {},
+): TransitionConfig {
 	return motion({
-		duration: tokenDuration(node, "--duration-fast", 100),
+		duration: instant ? 0 : tokenDuration(node, "--duration-fast", 100),
 		easing: sharp,
 		scale: tokenNumber(node, "--motion-scale", 0.99),
 		y: tokenNumber(node, "--motion-distance", 2),
@@ -172,6 +176,39 @@ export function liftToTopLayer(node: HTMLElement): void {
 	}
 	node.popover = "manual"
 	node.showPopover()
+}
+
+export function menuKeyboard(node: HTMLElement): { destroy: () => void } {
+	const previousFocus = document.activeElement,
+		items = () =>
+			Array.from(
+				node.querySelectorAll<HTMLButtonElement>("button:not(:disabled)"),
+			).filter((button) => button.checkVisibility({ visibilityProperty: true })),
+		handleKeydown = (event: KeyboardEvent) => {
+			if (event.key === "Escape") {
+				if (previousFocus instanceof HTMLElement && previousFocus.isConnected) {
+					previousFocus.focus({ preventScroll: true })
+				}
+				return
+			}
+			if (!["ArrowDown", "ArrowUp", "Home", "End"].includes(event.key)) return
+			event.preventDefault()
+			const buttons = items(),
+				current = buttons.findIndex(
+					(button) => button === document.activeElement,
+				),
+				direction = event.key === "ArrowUp" ? -1 : 1,
+				next =
+					event.key === "Home"
+						? 0
+						: event.key === "End"
+							? buttons.length - 1
+							: (current + direction + buttons.length) % buttons.length
+			buttons[next]?.focus()
+		}
+	items()[0]?.focus({ preventScroll: true })
+	node.addEventListener("keydown", handleKeydown)
+	return { destroy: () => node.removeEventListener("keydown", handleKeydown) }
 }
 
 export function floatMenu(

@@ -2,6 +2,7 @@
 	import hashIcon from "@phosphor-icons/core/regular/hash.svg?raw"
 	import trashIcon from "@phosphor-icons/core/regular/trash.svg?raw"
 	import xIcon from "@phosphor-icons/core/regular/x.svg?raw"
+	import { tick } from "svelte"
 	import Icon from "../shared/Icon.svelte"
 	import type { AccountStore } from "../accounts/account-store.svelte"
 	import { TagNameInputState } from "../accounts/tag-name-input.svelte"
@@ -29,7 +30,9 @@
 			onClose: () => void
 		} = $props(),
 		form = $state<HTMLFormElement>(),
-		creating = $state(false)
+		creating = $state(false),
+		confirmingTagId = $state<number | null>(null),
+		deleting = $state(false)
 	const nameInput = new TagNameInputState(() => store.clearError()),
 		invalid = $derived(
 			nameInput.value.length > 0 && !isValidTagName(nameInput.value),
@@ -43,6 +46,41 @@
 
 		store.clearError()
 		onClose()
+	}
+
+	async function confirmDelete(tagId: number): Promise<void> {
+		store.clearError()
+		confirmingTagId = tagId
+		await tick()
+		document.querySelector<HTMLButtonElement>("[data-cancel-tag-delete]")?.focus()
+	}
+
+	async function cancelDelete(): Promise<void> {
+		const tagId = confirmingTagId
+		confirmingTagId = null
+		await tick()
+		document
+			.querySelector<HTMLButtonElement>(`[data-delete-tag="${tagId}"]`)
+			?.focus()
+	}
+
+	function cancelOnEscape(event: KeyboardEvent): void {
+		if (event.key !== "Escape") return
+		event.stopPropagation()
+		if (!store.busy) void cancelDelete()
+	}
+
+	async function deleteTag(tagId: number): Promise<void> {
+		deleting = true
+		try {
+			await store.removeTag(tagId)
+		} finally {
+			deleting = false
+		}
+		if (store.error) return
+		confirmingTagId = null
+		await tick()
+		document.querySelector<HTMLInputElement>("#managed-tag-name")?.focus()
 	}
 
 	async function submit(): Promise<void> {
@@ -147,24 +185,53 @@
 		<div
 			class="max-h-48 overflow-y-auto rounded-md border border-line bg-fill *:not-first:border-t *:not-first:border-line-subtle">
 			{#each store.customTags as tag (tag.id)}
-				<div class="flex min-h-8 items-center gap-2 pl-2 text-xs text-fg">
-					<Icon
-						svg={hashIcon}
-						class="shrink-0 text-fg-faint"
-						size={16}
-						aria-hidden="true" />
-					<span class="min-w-0 flex-1 truncate">{tag.name}</span>
-					<button
-						class="grid size-8 shrink-0 place-items-center text-fg-faint transition-colors duration-100 hover:bg-danger/10 hover:text-danger"
-						type="button"
-						aria-label={`Delete ${tag.name} tag`}
-						data-tooltip={`Delete ${tag.name}`}
-						data-tooltip-side="left"
-						disabled={store.busy}
-						onclick={() => void store.removeTag(tag.id)}>
-						<Icon svg={trashIcon} size={16} aria-hidden="true" />
-					</button>
-				</div>
+				{#if confirmingTagId === tag.id}
+					<div
+						class="flex animate-enter flex-col gap-2 bg-danger/5 p-2 text-xs text-fg"
+						role="group"
+						aria-labelledby="delete-tag-prompt">
+						<p id="delete-tag-prompt">
+							Delete the <strong class="font-semibold">{tag.name}</strong> tag?
+							It is removed from every account and cannot be undone.
+						</p>
+						<div class="flex justify-end gap-2">
+							<button
+								class="btn"
+								type="button"
+								data-cancel-tag-delete
+								disabled={store.busy}
+								onkeydown={cancelOnEscape}
+								onclick={() => void cancelDelete()}>Cancel</button>
+							<button
+								class="btn-danger"
+								type="button"
+								disabled={store.busy}
+								onkeydown={cancelOnEscape}
+								onclick={() => void deleteTag(tag.id)}
+								>{deleting ? "Deleting…" : "Delete tag"}</button>
+						</div>
+					</div>
+				{:else}
+					<div class="flex min-h-8 items-center gap-2 pl-2 text-xs text-fg">
+						<Icon
+							svg={hashIcon}
+							class="shrink-0 text-fg-faint"
+							size={16}
+							aria-hidden="true" />
+						<span class="min-w-0 flex-1 truncate">{tag.name}</span>
+						<button
+							class="grid size-8 shrink-0 place-items-center text-fg-faint transition-colors duration-100 hover:bg-danger/10 hover:text-danger"
+							type="button"
+							aria-label={`Delete ${tag.name} tag`}
+							data-tooltip={`Delete ${tag.name}`}
+							data-tooltip-side="left"
+							data-delete-tag={tag.id}
+							disabled={store.busy}
+							onclick={() => void confirmDelete(tag.id)}>
+							<Icon svg={trashIcon} size={16} aria-hidden="true" />
+						</button>
+					</div>
+				{/if}
 			{:else}
 				<div class="px-2 py-3 text-center text-xs text-fg-faint">
 					No custom tags
