@@ -15,11 +15,7 @@
 	import { PresenceType, SocialList } from "../backend/bridge"
 	import type { SocialUser } from "../backend/bridge"
 	import type { AccountStore } from "../accounts/account-store.svelte"
-	import {
-		presenceDetail,
-		presenceLabel,
-		showsPresence,
-	} from "../accounts/account-model"
+	import { presenceDetail, presenceLabel } from "../accounts/account-model"
 	import SidebarResizer from "../layout/SidebarResizer.svelte"
 	import { appSettings } from "../settings/settings-store.svelte"
 	import OperationError from "../shared/OperationError.svelte"
@@ -432,8 +428,6 @@
 											class="truncate text-2xs text-fg-faint group-hover/row:text-fg-muted group-data-selected/row:text-fg-muted"
 											>{subtitle(person)}</small>
 									</span>
-									{#if !detail && showsPresence(person.presence)}<PresenceLine
-											presence={person.presence} />{/if}
 								</span>
 								{#if detail && person.presence}<PresenceLine
 										presence={person.presence} />{/if}

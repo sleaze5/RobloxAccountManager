@@ -8,7 +8,7 @@
 	import type { WorkspaceState } from "../layout/workspace-state.svelte"
 	import AccountAvatar from "./AccountAvatar.svelte"
 	import type { AccountStore } from "./account-store.svelte"
-	import { presenceDetail, presenceLabel, showsPresence } from "./account-model"
+	import { presenceDetail, presenceLabel } from "./account-model"
 	import PresenceLine from "./PresenceLine.svelte"
 
 	interface DropTarget {
@@ -231,8 +231,6 @@
 							class="block truncate text-2xs text-fg-faint group-hover/row:text-fg-muted group-data-selected/row:text-fg-muted"
 							>@{account.username}</small>
 					</span>
-					{#if !detail && showsPresence(account.presence)}<PresenceLine
-							presence={account.presence} />{/if}
 				</span>
 				{#if detail}<PresenceLine presence={account.presence} />{/if}
 			</button>

@@ -151,12 +151,6 @@ export function presenceDetail(presence: UserPresence, experience = ""): string 
 	}
 }
 
-export function showsPresence(
-	presence: UserPresence | null | undefined,
-): presence is UserPresence {
-	return !!presence && presence.userPresenceType !== PresenceType.PresenceTypeOffline
-}
-
 export function presenceTooltip(presence: UserPresence): string {
 	const label = presenceLabel(presence),
 		detail = presenceDetail(presence)
