@@ -3,7 +3,7 @@
 	import Icon from "../shared/Icon.svelte"
 	import type { UserPresence } from "../backend/bridge"
 	import { getGamesStore } from "../games/games-store.svelte"
-	import { presenceDetail, presenceTextClass } from "./account-model"
+	import { presenceDetail, presenceLabel, presenceTextClass } from "./account-model"
 
 	let { presence }: { presence: UserPresence } = $props()
 
@@ -14,8 +14,10 @@
 	)
 </script>
 
-<small class="flex w-full min-w-0 items-center gap-1 text-2xs">
-	<span class={["min-w-0 truncate font-medium", presenceTextClass(presence)]}
+<small class="flex w-full min-w-0 items-center gap-1 text-2xs text-fg">
+	<span class={["shrink-0 font-medium", presenceTextClass(presence)]}
+		>{presenceLabel(presence)}:</span>
+	<span class="min-w-0 truncate"
 		>{favorite ? games.displayName(favorite) : presenceDetail(presence)}</span>
 	{#if favorite}<Icon
 			svg={starFillIcon}
