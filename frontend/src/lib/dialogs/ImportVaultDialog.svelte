@@ -88,6 +88,7 @@
 		mode = $state(TransferMode.TransferOverwrite),
 		selectedAccounts = $state<number[]>([]),
 		favoritePlaces = $state(true),
+		savedPrivateServers = $state(true),
 		sections = $state<SettingsSection[]>([]),
 		confirmation = $state(""),
 		result = $state<TransferResult | null>(null),
@@ -107,6 +108,7 @@
 		mergeEmpty = $derived(
 			selectedAccounts.length === 0 &&
 				!(favoritePlaces && (preview?.newFavoritePlaces ?? 0) > 0) &&
+				!(savedPrivateServers && (preview?.newSavedPrivateServers ?? 0) > 0) &&
 				sections.length === 0,
 		),
 		resultRows = $derived(
@@ -117,6 +119,10 @@
 						{
 							label: "Favorite places added",
 							count: result.favoritePlaces,
+						},
+						{
+							label: "Private server links added",
+							count: result.savedPrivateServers,
 						},
 					].map((row) => ({
 						label: row.label,
@@ -177,6 +183,7 @@
 				(account) => account.robloxUserId,
 			)
 			favoritePlaces = preview.newFavoritePlaces > 0
+			savedPrivateServers = preview.newSavedPrivateServers > 0
 		} catch (cause) {
 			error = errorMessage(cause, "The export could not be opened. Try again.")
 			replayValidationNudge(card)
@@ -197,6 +204,7 @@
 					mode,
 					robloxUserIds: overwrite ? [] : selectedAccounts,
 					favoritePlaces: !overwrite && favoritePlaces,
+					savedPrivateServers: !overwrite && savedPrivateServers,
 					settingsSections: overwrite ? [] : sections,
 				},
 				overwrite ? confirmation : "",
@@ -397,6 +405,26 @@
 									<strong>Favorite places</strong>
 									<small
 										>{preview.newFavoritePlaces} of {preview.favoritePlaces}
+										are new.</small>
+								</span>
+							</label>
+							<label class="check-option">
+								<span class="checkbox">
+									<input
+										type="checkbox"
+										bind:checked={savedPrivateServers}
+										disabled={busy ||
+											preview.newSavedPrivateServers === 0} />
+									<span aria-hidden="true"
+										><Icon
+											svg={checkBoldIcon}
+											size={11}
+											aria-hidden="true" /></span>
+								</span>
+								<span>
+									<strong>Private server links</strong>
+									<small
+										>{preview.newSavedPrivateServers} of {preview.savedPrivateServers}
 										are new.</small>
 								</span>
 							</label>

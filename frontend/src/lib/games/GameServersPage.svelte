@@ -7,11 +7,15 @@
 	import linkIcon from "@phosphor-icons/core/regular/link.svg?raw"
 	import listPlusIcon from "@phosphor-icons/core/regular/list-plus.svg?raw"
 	import slidersHorizontalIcon from "@phosphor-icons/core/regular/sliders-horizontal.svg?raw"
+	import trashIcon from "@phosphor-icons/core/regular/trash.svg?raw"
 	import Icon from "../shared/Icon.svelte"
 	import { onMount, untrack } from "svelte"
 	import type { AccountStore } from "../accounts/account-store.svelte"
 	import type { NotificationCenter } from "../notifications/notification-center.svelte"
+	import type { SavedPrivateServer } from "../backend/bridge"
+	import AddPrivateServerLinkDialog from "../private-servers/AddPrivateServerLinkDialog.svelte"
 	import PrivateServerDialog from "../private-servers/PrivateServerDialog.svelte"
+	import RemovePrivateServerLinkDialog from "../private-servers/RemovePrivateServerLinkDialog.svelte"
 	import { appSettings } from "../settings/settings-store.svelte"
 	import GameServerMenu, { type ServerMenuAction } from "./GameServerMenu.svelte"
 	import PrivateServerList from "./PrivateServerList.svelte"
@@ -23,6 +27,7 @@
 		ListedServers,
 		PrivateServers,
 		RecordedServers,
+		SavedServers,
 		type ServerSource,
 		ServerStatsLoader,
 	} from "./game-servers-state.svelte"
@@ -90,6 +95,7 @@
 		listedServers = untrack(
 			() => new ListedServers(place.placeId, store.listedPages),
 		),
+		savedServers = untrack(() => new SavedServers(place.placeId)),
 		stats = untrack(() => new ServerStatsLoader(place.placeId)),
 		menuID = $props.id()
 	let heading = $state<HTMLHeadingElement | undefined>(undefined),
@@ -99,7 +105,9 @@
 			username: string
 			serverId: number
 			name: string
-		} | null>(null)
+		} | null>(null),
+		addingLink = $state(false),
+		removingLink = $state<SavedPrivateServer | null>(null)
 	const sources = $derived(
 			allSources.filter(
 				(option) =>
@@ -129,6 +137,7 @@
 			recordedServers.dispose()
 			privateServers.dispose()
 			listedServers.dispose()
+			savedServers.dispose()
 			stats.dispose()
 		}
 	})
@@ -137,6 +146,9 @@
 		const current = active,
 			accountId = accounts.selectedAccount.id
 		untrack(() => {
+			if (current === privateServers && !savedServers.servers) {
+				void savedServers.load()
+			}
 			if (current === privateServers && accountId === 0) return
 			if (!current.page && !current.loading) void current.load()
 		})
@@ -220,6 +232,32 @@
 					]
 				: []
 		}
+		if (source === "private" && key.startsWith("saved-")) {
+			const server = savedServers.servers?.find(
+				(item) => `saved-${item.id}` === key,
+			)
+			if (!server) return []
+			return [
+				{
+					label: "Fill launch options",
+					icon: listPlusIcon,
+					onSelect: select(() => onFillLaunchLink(server.link)),
+				},
+				{
+					label: "Copy link",
+					icon: linkIcon,
+					onSelect: select(
+						() => void store.copy(server.link, "Private server link"),
+					),
+				},
+				{
+					label: "Remove link",
+					icon: trashIcon,
+					danger: true,
+					onSelect: select(() => (removingLink = server)),
+				},
+			]
+		}
 		if (source === "private") {
 			const server = privateServers.page?.servers?.find(
 					(item) => String(item.serverId) === key,
@@ -262,6 +300,7 @@
 	}
 
 	function refresh(): void {
+		if (active === privateServers) void savedServers.load()
 		if (active === privateServers && !accounts.selectedAccount.id) return
 		active.refresh()
 		if (appSettings.roValraEnabled) void stats.load()
@@ -329,11 +368,13 @@
 	{:else if source === "private"}
 		<PrivateServerList
 			servers={privateServers}
+			saved={savedServers}
 			{accounts}
 			activeKey={activeMenu?.key}
 			{menuID}
 			onMenu={openMenu}
-			onAccount={(accountId) => accounts.selectAccount(accountId)} />
+			onAccount={(accountId) => accounts.selectAccount(accountId)}
+			onAddLink={() => (addingLink = true)} />
 	{:else if source === "rbxservers"}
 		<RBXServersList
 			servers={listedServers}
@@ -357,6 +398,20 @@
 		anchor={activeMenu.trigger}
 		actions={menuActions}
 		onClose={() => (activeMenu = null)} />
+{/if}
+
+{#if addingLink}
+	<AddPrivateServerLinkDialog
+		saved={savedServers}
+		gameName={store.displayName(place)}
+		onClose={() => (addingLink = false)} />
+{/if}
+
+{#if removingLink}
+	<RemovePrivateServerLinkDialog
+		saved={savedServers}
+		server={removingLink}
+		onClose={() => (removingLink = null)} />
 {/if}
 
 {#if managing}

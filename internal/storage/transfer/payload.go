@@ -11,8 +11,10 @@ import (
 )
 
 const (
-	FormatVersion          = 1
-	maxFavoriteNicknameLen = 50
+	FormatVersion             = 2
+	maxFavoriteNicknameLen    = 50
+	maxPrivateServerNameLen   = 50
+	maxPrivateServerLinkBytes = 2048
 )
 
 var (
@@ -22,16 +24,30 @@ var (
 
 type object = map[string]json.RawMessage
 
-var migrations = [...]func(object) (object, error){}
+var migrations = [...]func(object) (object, error){addSavedPrivateServers}
+
+// addSavedPrivateServers gives a version 1 export the empty list of saved private servers that version 2 requires.
+func addSavedPrivateServers(document object) (object, error) {
+	document["version"] = json.RawMessage("2")
+	document["savedPrivateServers"] = json.RawMessage("[]")
+	return document, nil
+}
 
 var _ = [1]struct{}{}[len(migrations)-(FormatVersion-1)]
 
 type Payload struct {
-	Version        int             `json:"version"`
-	Accounts       []Account       `json:"accounts"`
-	Tags           []string        `json:"tags"`
-	FavoritePlaces []FavoritePlace `json:"favoritePlaces"`
-	Settings       json.RawMessage `json:"settings"`
+	Version             int                  `json:"version"`
+	Accounts            []Account            `json:"accounts"`
+	Tags                []string             `json:"tags"`
+	FavoritePlaces      []FavoritePlace      `json:"favoritePlaces"`
+	SavedPrivateServers []SavedPrivateServer `json:"savedPrivateServers"`
+	Settings            json.RawMessage      `json:"settings"`
+}
+
+type SavedPrivateServer struct {
+	PlaceID int64  `json:"placeId"`
+	Name    string `json:"name"`
+	Link    string `json:"link"`
 }
 
 type Account struct {
@@ -102,7 +118,29 @@ func (payload Payload) validate() error {
 	if err := validateAccounts(payload.Accounts, tags); err != nil {
 		return err
 	}
-	return validateFavoritePlaces(payload.FavoritePlaces)
+	if err := validateFavoritePlaces(payload.FavoritePlaces); err != nil {
+		return err
+	}
+	return validateSavedPrivateServers(payload.SavedPrivateServers)
+}
+
+func validateSavedPrivateServers(servers []SavedPrivateServer) error {
+	type key struct {
+		placeID int64
+		link    string
+	}
+	seen := make(map[key]struct{}, len(servers))
+	for _, server := range servers {
+		if server.PlaceID <= 0 || server.Link == "" || len(server.Link) > maxPrivateServerLinkBytes || !utf8.ValidString(server.Link) ||
+			!utf8.ValidString(server.Name) || utf8.RuneCountInString(server.Name) > maxPrivateServerNameLen {
+			return errors.New("invalid saved private server")
+		}
+		if _, duplicate := seen[key{server.PlaceID, server.Link}]; duplicate {
+			return fmt.Errorf("duplicate saved private server for place %d", server.PlaceID)
+		}
+		seen[key{server.PlaceID, server.Link}] = struct{}{}
+	}
+	return nil
 }
 
 func validateTags(names []string) (map[string]struct{}, error) {

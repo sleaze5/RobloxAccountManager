@@ -29,10 +29,11 @@ type Replacement struct {
 }
 
 type MergeInput struct {
-	Accounts       []Account
-	Replacements   map[int64]Replacement
-	FavoritePlaces []FavoritePlace
-	Settings       *PendingSettings
+	Accounts            []Account
+	Replacements        map[int64]Replacement
+	FavoritePlaces      []FavoritePlace
+	SavedPrivateServers []SavedPrivateServer
+	Settings            *PendingSettings
 }
 
 type PendingSettings struct {
@@ -41,10 +42,11 @@ type PendingSettings struct {
 }
 
 type MergeResult struct {
-	Added          []int64
-	Updated        []int64
-	Replaced       []accountdomain.SessionRecord
-	FavoritePlaces int
+	Added               []int64
+	Updated             []int64
+	Replaced            []accountdomain.SessionRecord
+	FavoritePlaces      int
+	SavedPrivateServers int
 }
 
 func NewRepository(provider DatabaseProvider, logger *slog.Logger) *Repository {
@@ -70,6 +72,9 @@ func (repository *Repository) Read(ctx context.Context) (Payload, error) {
 		return Payload{}, err
 	}
 	if payload.FavoritePlaces, err = readFavoritePlaces(ctx, tx); err != nil {
+		return Payload{}, err
+	}
+	if payload.SavedPrivateServers, err = readSavedPrivateServers(ctx, tx); err != nil {
 		return Payload{}, err
 	}
 	if err := tx.Commit(); err != nil {
@@ -178,6 +183,26 @@ func readFavoritePlaces(ctx context.Context, tx *sql.Tx) ([]FavoritePlace, error
 
 // Replace keeps new row IDs above the removed ones, so account and tag IDs that the
 // application still holds for removed rows never point at imported rows.
+func readSavedPrivateServers(ctx context.Context, tx *sql.Tx) ([]SavedPrivateServer, error) {
+	rows, err := tx.QueryContext(ctx, `SELECT place_id, name, link FROM saved_private_servers ORDER BY id`)
+	if err != nil {
+		return nil, fmt.Errorf("list exported saved private servers: %w", err)
+	}
+	defer rows.Close()
+	servers := []SavedPrivateServer{}
+	for rows.Next() {
+		var server SavedPrivateServer
+		if err := rows.Scan(&server.PlaceID, &server.Name, &server.Link); err != nil {
+			return nil, fmt.Errorf("read exported saved private server: %w", err)
+		}
+		servers = append(servers, server)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("read exported saved private servers: %w", err)
+	}
+	return servers, nil
+}
+
 func (repository *Repository) Replace(ctx context.Context, payload Payload, settings *PendingSettings) ([]int64, error) {
 	db, release, err := repository.provider.Lease(ctx)
 	if err != nil {
@@ -200,7 +225,7 @@ func (repository *Repository) Replace(ctx context.Context, payload Payload, sett
 	if err := tx.QueryRowContext(ctx, `SELECT COALESCE(MAX(id), 0) + 1 FROM tags`).Scan(&nextTagID); err != nil {
 		return nil, fmt.Errorf("read tag ID range: %w", err)
 	}
-	if _, err := tx.ExecContext(ctx, `DELETE FROM accounts; DELETE FROM tags WHERE kind = 'custom'; DELETE FROM favorite_places;`); err != nil {
+	if _, err := tx.ExecContext(ctx, `DELETE FROM accounts; DELETE FROM tags WHERE kind = 'custom'; DELETE FROM favorite_places; DELETE FROM saved_private_servers;`); err != nil {
 		return nil, fmt.Errorf("clear vault data: %w", err)
 	}
 	if err := insertPayload(ctx, tx, payload, nextAccountID, nextTagID, repository.now().UTC().UnixMilli()); err != nil {
@@ -215,7 +240,7 @@ func (repository *Repository) Replace(ctx context.Context, payload Payload, sett
 	if err := tx.Commit(); err != nil {
 		return nil, fmt.Errorf("commit vault replacement: %w", err)
 	}
-	repository.logger.Info("vault data replaced", "operation", "vault-import", "removed_accounts", len(removed), "accounts", len(payload.Accounts), "favorite_places", len(payload.FavoritePlaces))
+	repository.logger.Info("vault data replaced", "operation", "vault-import", "removed_accounts", len(removed), "accounts", len(payload.Accounts), "favorite_places", len(payload.FavoritePlaces), "saved_private_servers", len(payload.SavedPrivateServers))
 	return removed, nil
 }
 
@@ -245,7 +270,40 @@ func insertPayload(ctx context.Context, tx *sql.Tx, payload Payload, nextAccount
 			return fmt.Errorf("insert imported favorite place: %w", err)
 		}
 	}
-	return nil
+	_, err = insertSavedPrivateServers(ctx, tx, payload.SavedPrivateServers, now)
+	return err
+}
+
+func mergeFavoritePlaces(ctx context.Context, tx *sql.Tx, places []FavoritePlace, now int64) (int, error) {
+	added := 0
+	for _, place := range places {
+		inserted, err := tx.ExecContext(ctx, `INSERT INTO favorite_places(place_id, nickname, display_order, created_at_ms) SELECT ?, ?, COALESCE(MAX(display_order) + 1, 0), ? FROM favorite_places WHERE true ON CONFLICT(place_id) DO NOTHING`, place.PlaceID, place.Nickname, now)
+		if err != nil {
+			return 0, fmt.Errorf("insert imported favorite place: %w", err)
+		}
+		changed, err := inserted.RowsAffected()
+		if err != nil {
+			return 0, fmt.Errorf("count imported favorite places: %w", err)
+		}
+		added += int(changed)
+	}
+	return added, nil
+}
+
+func insertSavedPrivateServers(ctx context.Context, tx *sql.Tx, servers []SavedPrivateServer, now int64) (int, error) {
+	inserted := 0
+	for _, server := range servers {
+		result, err := tx.ExecContext(ctx, `INSERT INTO saved_private_servers(place_id, name, link, created_at_ms) VALUES(?, ?, ?, ?) ON CONFLICT(place_id, link) DO NOTHING`, server.PlaceID, server.Name, server.Link, now)
+		if err != nil {
+			return 0, fmt.Errorf("insert imported saved private server: %w", err)
+		}
+		changed, err := result.RowsAffected()
+		if err != nil {
+			return 0, fmt.Errorf("count imported saved private servers: %w", err)
+		}
+		inserted += int(changed)
+	}
+	return inserted, nil
 }
 
 func (repository *Repository) Merge(ctx context.Context, input MergeInput) (MergeResult, error) {
@@ -275,16 +333,11 @@ func (repository *Repository) Merge(ctx context.Context, input MergeInput) (Merg
 			return MergeResult{}, err
 		}
 	}
-	for _, place := range input.FavoritePlaces {
-		inserted, err := tx.ExecContext(ctx, `INSERT INTO favorite_places(place_id, nickname, display_order, created_at_ms) SELECT ?, ?, COALESCE(MAX(display_order) + 1, 0), ? FROM favorite_places WHERE true ON CONFLICT(place_id) DO NOTHING`, place.PlaceID, place.Nickname, now)
-		if err != nil {
-			return MergeResult{}, fmt.Errorf("insert imported favorite place: %w", err)
-		}
-		if changed, err := inserted.RowsAffected(); err != nil {
-			return MergeResult{}, fmt.Errorf("count imported favorite places: %w", err)
-		} else if changed > 0 {
-			result.FavoritePlaces++
-		}
+	if result.FavoritePlaces, err = mergeFavoritePlaces(ctx, tx, input.FavoritePlaces, now); err != nil {
+		return MergeResult{}, err
+	}
+	if result.SavedPrivateServers, err = insertSavedPrivateServers(ctx, tx, input.SavedPrivateServers, now); err != nil {
+		return MergeResult{}, err
 	}
 	if err := storePendingSettings(ctx, tx, input.Settings); err != nil {
 		return MergeResult{}, err
@@ -295,7 +348,7 @@ func (repository *Repository) Merge(ctx context.Context, input MergeInput) (Merg
 	if err := tx.Commit(); err != nil {
 		return MergeResult{}, fmt.Errorf("commit vault merge: %w", err)
 	}
-	repository.logger.Info("vault data merged", "operation", "vault-import", "added_accounts", len(result.Added), "replaced_cookies", len(result.Replaced), "updated_accounts", len(result.Updated), "favorite_places", result.FavoritePlaces)
+	repository.logger.Info("vault data merged", "operation", "vault-import", "added_accounts", len(result.Added), "replaced_cookies", len(result.Replaced), "updated_accounts", len(result.Updated), "favorite_places", result.FavoritePlaces, "saved_private_servers", result.SavedPrivateServers)
 	return result, nil
 }
 

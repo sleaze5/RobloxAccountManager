@@ -237,6 +237,14 @@ const (
 	PrivateServerRenews         PrivateServerOption = "renews"
 )
 
+type SavedPrivateServer struct {
+	ID          int64  `json:"id"`
+	PlaceID     int64  `json:"placeId"`
+	Name        string `json:"name"`
+	Link        string `json:"link"`
+	CreatedAtMs int64  `json:"createdAtMs"`
+}
+
 type ListedPrivateServerPage struct {
 	Servers []ListedPrivateServer `json:"servers"`
 }

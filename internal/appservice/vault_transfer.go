@@ -26,11 +26,13 @@ const (
 )
 
 type TransferPreview struct {
-	ID                string            `json:"id"`
-	ExportedAtMS      int64             `json:"exportedAtMs"`
-	Accounts          []TransferAccount `json:"accounts"`
-	FavoritePlaces    int               `json:"favoritePlaces"`
-	NewFavoritePlaces int               `json:"newFavoritePlaces"`
+	ID                     string            `json:"id"`
+	ExportedAtMS           int64             `json:"exportedAtMs"`
+	Accounts               []TransferAccount `json:"accounts"`
+	FavoritePlaces         int               `json:"favoritePlaces"`
+	NewFavoritePlaces      int               `json:"newFavoritePlaces"`
+	SavedPrivateServers    int               `json:"savedPrivateServers"`
+	NewSavedPrivateServers int               `json:"newSavedPrivateServers"`
 }
 
 type TransferAccount struct {
@@ -44,10 +46,11 @@ type TransferAccount struct {
 }
 
 type TransferRequest struct {
-	Mode             TransferMode          `json:"mode"`
-	RobloxUserIDs    []int64               `json:"robloxUserIds"`
-	FavoritePlaces   bool                  `json:"favoritePlaces"`
-	SettingsSections []appsettings.Section `json:"settingsSections"`
+	Mode                TransferMode          `json:"mode"`
+	RobloxUserIDs       []int64               `json:"robloxUserIds"`
+	FavoritePlaces      bool                  `json:"favoritePlaces"`
+	SavedPrivateServers bool                  `json:"savedPrivateServers"`
+	SettingsSections    []appsettings.Section `json:"settingsSections"`
 }
 
 type TransferSettingsStatus string
@@ -59,11 +62,12 @@ const (
 )
 
 type TransferResult struct {
-	Added          int                    `json:"added"`
-	Updated        int                    `json:"updated"`
-	KeptCookies    []TransferKeptCookie   `json:"keptCookies"`
-	FavoritePlaces int                    `json:"favoritePlaces"`
-	Settings       TransferSettingsStatus `json:"settings"`
+	Added               int                    `json:"added"`
+	Updated             int                    `json:"updated"`
+	KeptCookies         []TransferKeptCookie   `json:"keptCookies"`
+	FavoritePlaces      int                    `json:"favoritePlaces"`
+	SavedPrivateServers int                    `json:"savedPrivateServers"`
+	Settings            TransferSettingsStatus `json:"settings"`
 }
 
 type TransferKeptCookie struct {
@@ -137,7 +141,7 @@ func (service *Service) exportData(ctx context.Context, operation string) ([]byt
 		service.logger.Error("vault data could not be encoded", "operation", operation, "error", err)
 		return nil, transferError("The vault data could not be encoded.", err)
 	}
-	service.logger.Info("vault data read", "operation", operation, "accounts", len(payload.Accounts), "tags", len(payload.Tags), "favorite_places", len(payload.FavoritePlaces))
+	service.logger.Info("vault data read", "operation", operation, "accounts", len(payload.Accounts), "tags", len(payload.Tags), "favorite_places", len(payload.FavoritePlaces), "saved_private_servers", len(payload.SavedPrivateServers))
 	return data, nil
 }
 
@@ -196,7 +200,7 @@ func (service *Service) exportReadError(err error) error {
 }
 
 func (service *Service) transferPreview(ctx context.Context, payload transferstore.Payload, exportedAtMS int64) (TransferPreview, error) {
-	preview := TransferPreview{ExportedAtMS: exportedAtMS, Accounts: make([]TransferAccount, 0, len(payload.Accounts)), FavoritePlaces: len(payload.FavoritePlaces)}
+	preview := TransferPreview{ExportedAtMS: exportedAtMS, Accounts: make([]TransferAccount, 0, len(payload.Accounts)), FavoritePlaces: len(payload.FavoritePlaces), SavedPrivateServers: len(payload.SavedPrivateServers)}
 	for _, account := range payload.Accounts {
 		_, err := service.repo.FindByRobloxUserID(ctx, account.RobloxUserID)
 		if err != nil && !errors.Is(err, accounts.ErrNotFound) {
@@ -226,6 +230,17 @@ func (service *Service) transferPreview(ctx context.Context, payload transfersto
 	for _, place := range payload.FavoritePlaces {
 		if !slices.ContainsFunc(favorites, func(favorite games.Place) bool { return favorite.PlaceID == place.PlaceID }) {
 			preview.NewFavoritePlaces++
+		}
+	}
+	saved, err := service.favoritePlaces.AllPrivateServers(ctx)
+	if err != nil {
+		return TransferPreview{}, mapRepositoryError(err)
+	}
+	for _, server := range payload.SavedPrivateServers {
+		if !slices.ContainsFunc(saved, func(existing games.SavedPrivateServer) bool {
+			return existing.PlaceID == server.PlaceID && existing.Link == server.Link
+		}) {
+			preview.NewSavedPrivateServers++
 		}
 	}
 	return preview, nil
@@ -281,7 +296,7 @@ func (service *Service) overwriteVaultData(ctx context.Context, pending *pending
 	}
 	settings := service.finishSettingsImport(ctx, logger)
 	service.events.CredentialBackupChanged(service.refreshCredentialBackup(ctx, logger, false))
-	return TransferResult{Added: len(pending.payload.Accounts), FavoritePlaces: len(pending.payload.FavoritePlaces), KeptCookies: []TransferKeptCookie{}, Settings: settings}, nil
+	return TransferResult{Added: len(pending.payload.Accounts), FavoritePlaces: len(pending.payload.FavoritePlaces), SavedPrivateServers: len(pending.payload.SavedPrivateServers), KeptCookies: []TransferKeptCookie{}, Settings: settings}, nil
 }
 
 func (service *Service) mergeVaultData(ctx context.Context, pending *pendingTransfer, request TransferRequest) (TransferResult, error) {
@@ -290,7 +305,7 @@ func (service *Service) mergeVaultData(ctx context.Context, pending *pendingTran
 	if err != nil {
 		return TransferResult{}, err
 	}
-	if len(selected) == 0 && !request.FavoritePlaces && len(request.SettingsSections) == 0 {
+	if len(selected) == 0 && !request.FavoritePlaces && !request.SavedPrivateServers && len(request.SettingsSections) == 0 {
 		return TransferResult{}, transferError("Choose something to import.", nil)
 	}
 	replacements, kept, err := service.validateTransferCookies(ctx, selected)
@@ -300,6 +315,9 @@ func (service *Service) mergeVaultData(ctx context.Context, pending *pendingTran
 	input := transferstore.MergeInput{Accounts: selected, Replacements: replacements, Settings: pendingSettings(pending, request.SettingsSections)}
 	if request.FavoritePlaces {
 		input.FavoritePlaces = pending.payload.FavoritePlaces
+	}
+	if request.SavedPrivateServers {
+		input.SavedPrivateServers = pending.payload.SavedPrivateServers
 	}
 	merged, err := service.transfers.Merge(ctx, input)
 	if err != nil {
@@ -322,11 +340,12 @@ func (service *Service) mergeVaultData(ctx context.Context, pending *pendingTran
 		service.events.CredentialBackupChanged(service.refreshCredentialBackup(ctx, logger, true))
 	}
 	return TransferResult{
-		Added:          len(merged.Added),
-		Updated:        len(merged.Updated) + len(merged.Replaced),
-		KeptCookies:    kept,
-		FavoritePlaces: merged.FavoritePlaces,
-		Settings:       settings,
+		Added:               len(merged.Added),
+		Updated:             len(merged.Updated) + len(merged.Replaced),
+		KeptCookies:         kept,
+		FavoritePlaces:      merged.FavoritePlaces,
+		SavedPrivateServers: merged.SavedPrivateServers,
+		Settings:            settings,
 	}, nil
 }
 

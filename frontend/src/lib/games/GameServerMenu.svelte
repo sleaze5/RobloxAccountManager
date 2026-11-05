@@ -2,6 +2,7 @@
 	export interface ServerMenuAction {
 		label: string
 		icon: string
+		danger?: boolean
 		onSelect: () => void
 	}
 </script>
@@ -110,8 +111,9 @@
 	in:menuIn|global
 	out:menuOut|global>
 	{#each actions as action (action.label)}
+		{#if action.danger}<div class="menu-separator"></div>{/if}
 		<button
-			class="menu-item"
+			class={action.danger ? "menu-item-danger" : "menu-item"}
 			type="button"
 			role="menuitem"
 			onclick={action.onSelect}>

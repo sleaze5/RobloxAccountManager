@@ -9,9 +9,11 @@ import (
 	"unicode"
 	"unicode/utf8"
 
+	"github.com/sleaze5/RobloxAccountManager/internal/gamelaunch"
 	"github.com/sleaze5/RobloxAccountManager/internal/games"
 	"github.com/sleaze5/RobloxAccountManager/internal/roblox"
 	robloxservices "github.com/sleaze5/RobloxAccountManager/internal/roblox/services"
+	gamestore "github.com/sleaze5/RobloxAccountManager/internal/storage/games"
 )
 
 const maxPrivateServerNameLength = 50
@@ -213,4 +215,71 @@ func validPrivateServerID(serverID int64) error {
 
 func privateServerInputError(message string) error {
 	return &roblox.Error{Kind: roblox.KindProtocol, Endpoint: "private-servers", Message: message}
+}
+
+func (service *Service) ListSavedPrivateServers(ctx context.Context, placeID int64) ([]games.SavedPrivateServer, error) {
+	if err := validGameID(placeID); err != nil {
+		return nil, err
+	}
+	ctx, done, err := service.beginGames(ctx)
+	if err != nil {
+		return nil, err
+	}
+	defer done()
+	servers, err := service.favoritePlaces.PrivateServers(ctx, placeID)
+	return servers, service.gamesError(ctx, "private-server-links", err)
+}
+
+func (service *Service) SavePrivateServerLink(ctx context.Context, placeID int64, name, link string) (games.SavedPrivateServer, error) {
+	if err := validGameID(placeID); err != nil {
+		return games.SavedPrivateServer{}, err
+	}
+	name, link = strings.TrimSpace(name), strings.TrimSpace(link)
+	if utf8.RuneCountInString(name) > maxPrivateServerNameLength || strings.ContainsFunc(name, unicode.IsControl) {
+		return games.SavedPrivateServer{}, privateServerInputError("Enter a name of up to 50 characters.")
+	}
+	if err := validPrivateServerLink(placeID, link); err != nil {
+		return games.SavedPrivateServer{}, err
+	}
+	ctx, done, err := service.beginGames(ctx)
+	if err != nil {
+		return games.SavedPrivateServer{}, err
+	}
+	defer done()
+	server, err := service.favoritePlaces.SavePrivateServer(ctx, games.SavedPrivateServer{PlaceID: placeID, Name: name, Link: link})
+	if errors.Is(err, gamestore.ErrPrivateServerSaved) {
+		return games.SavedPrivateServer{}, privateServerInputError("This link is already saved for this game.")
+	}
+	return server, service.gamesError(ctx, "private-server-link-save", err)
+}
+
+func (service *Service) RemoveSavedPrivateServer(ctx context.Context, id int64) error {
+	if !games.ValidID(id) {
+		return privateServerInputError("The saved link is invalid. Refresh the private servers.")
+	}
+	ctx, done, err := service.beginGames(ctx)
+	if err != nil {
+		return err
+	}
+	defer done()
+	if err := service.favoritePlaces.RemovePrivateServer(ctx, id); errors.Is(err, gamestore.ErrPrivateServerNotSaved) {
+		return privateServerInputError("This link was already removed. Refresh the private servers.")
+	} else if err != nil {
+		return service.gamesError(ctx, "private-server-link-remove", err)
+	}
+	return nil
+}
+
+func validPrivateServerLink(placeID int64, link string) error {
+	if len(link) > 2048 {
+		return privateServerInputError("The link is too long.")
+	}
+	request, err := gamelaunch.Parse(gamelaunch.Input{Method: gamelaunch.MethodLink, Link: link})
+	if err != nil || request.LinkCode == "" && request.AccessCode == "" && request.ShareType != gamelaunch.ShareServer {
+		return privateServerInputError("Paste a private server link, a server share link, or a link with an access code.")
+	}
+	if request.PlaceID != 0 && request.PlaceID != placeID {
+		return privateServerInputError("This link is for a different game.")
+	}
+	return nil
 }

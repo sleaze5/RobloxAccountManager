@@ -12,6 +12,7 @@ import type {
 	GameServerStats,
 	ListedPrivateServerPage,
 	PrivateServerPage,
+	SavedPrivateServer,
 } from "../backend/bridge"
 import { errorMessage } from "../shared/errors"
 
@@ -306,6 +307,89 @@ export class ListedServers extends ServerPager<number, ListedPrivateServerPage> 
 
 	protected nextCursor(): null {
 		return null
+	}
+}
+
+export class SavedServers {
+	servers = $state<SavedPrivateServer[] | null>(null)
+	loading = $state(false)
+	saving = $state(false)
+	removing = $state<number | null>(null)
+	error = $state("")
+	actionError = $state("")
+	#active = true
+
+	constructor(readonly placeId: number) {}
+
+	async load(): Promise<void> {
+		if (!this.#active || this.loading) return
+		this.loading = true
+		this.error = ""
+		try {
+			const servers = await accountBackend.ListSavedPrivateServers(this.placeId)
+			if (this.#active) this.servers = servers ?? []
+		} catch (error) {
+			if (this.#active) {
+				this.error = errorMessage(
+					error,
+					"Saved links could not be loaded. Try again.",
+				)
+			}
+		} finally {
+			if (this.#active) this.loading = false
+		}
+	}
+
+	async save(name: string, link: string): Promise<boolean> {
+		if (!this.#active || this.saving) return false
+		this.saving = true
+		this.actionError = ""
+		try {
+			const server = await accountBackend.SavePrivateServerLink(
+				this.placeId,
+				name,
+				link,
+			)
+			if (!this.#active) return false
+			this.servers = [...(this.servers ?? []), server]
+			return true
+		} catch (error) {
+			if (this.#active) {
+				this.actionError = errorMessage(
+					error,
+					"The link could not be saved. Try again.",
+				)
+			}
+			return false
+		} finally {
+			if (this.#active) this.saving = false
+		}
+	}
+
+	async remove(server: SavedPrivateServer): Promise<boolean> {
+		if (!this.#active || this.removing !== null) return false
+		this.removing = server.id
+		this.actionError = ""
+		try {
+			await accountBackend.RemoveSavedPrivateServer(server.id)
+			if (!this.#active) return false
+			this.servers = (this.servers ?? []).filter((item) => item.id !== server.id)
+			return true
+		} catch (error) {
+			if (this.#active) {
+				this.actionError = errorMessage(
+					error,
+					"The link could not be removed. Try again.",
+				)
+			}
+			return false
+		} finally {
+			if (this.#active) this.removing = null
+		}
+	}
+
+	dispose(): void {
+		this.#active = false
 	}
 }
 

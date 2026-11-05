@@ -110,6 +110,7 @@ export type {
 	PrivateServerPage,
 	PrivateServerSettings,
 	PrivateServerUser,
+	SavedPrivateServer,
 	RecordPage as GameServerRecordPage,
 	Region as GameRegion,
 	Server as GameServer,
