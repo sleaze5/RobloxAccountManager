@@ -35,6 +35,7 @@
 		onFillLaunch,
 		onSearchPlace,
 		onUnfriend,
+		onRemoveTrusted,
 		onEditNickname,
 	}: {
 		store: SocialStore
@@ -42,6 +43,7 @@
 		onFillLaunch: (placeId: number, jobId: string) => void
 		onSearchPlace: (placeId: number) => void
 		onUnfriend: (person: SocialUser) => void
+		onRemoveTrusted: (person: SocialUser) => void
 		onEditNickname: (person: SocialUser, nickname: string) => void
 	} = $props()
 
@@ -596,5 +598,11 @@
 </main>
 
 {#if store.menu}
-	<SocialMenu {store} menu={store.menu} {onFillLaunch} {onSearchPlace} {onUnfriend} />
+	<SocialMenu
+		{store}
+		menu={store.menu}
+		{onFillLaunch}
+		{onSearchPlace}
+		{onUnfriend}
+		{onRemoveTrusted} />
 {/if}

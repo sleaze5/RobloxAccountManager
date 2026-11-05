@@ -60,12 +60,19 @@ type SocialUser struct {
 
 // SocialRelationship describes the user as the browsing account sees them.
 type SocialRelationship struct {
-	Self       bool                        `json:"self"`
-	Friend     robloxservices.FriendStatus `json:"friend"`
-	Trusted    bool                        `json:"trusted"`
-	Following  bool                        `json:"following"`
-	FollowedBy bool                        `json:"followedBy"`
-	Nickname   string                      `json:"nickname"`
+	Self       bool                         `json:"self"`
+	Friend     robloxservices.FriendStatus  `json:"friend"`
+	Trusted    robloxservices.TrustedStatus `json:"trusted"`
+	Following  bool                         `json:"following"`
+	FollowedBy bool                         `json:"followedBy"`
+	Nickname   string                       `json:"nickname"`
+}
+
+// SocialRelationshipSnapshot is the relationship and the parts of it that
+// could not be read.
+type SocialRelationshipSnapshot struct {
+	Relationship SocialRelationship `json:"relationship"`
+	Unavailable  []string           `json:"unavailable"`
 }
 
 type SocialPage struct {
@@ -328,7 +335,7 @@ func (service *Service) GetSocialProfile(ctx context.Context, accountID, userID 
 	if err != nil {
 		return SocialProfile{}, mapRepositoryError(err)
 	}
-	profile := SocialProfile{UserID: userID, Relationship: SocialRelationship{Self: userID == account.RobloxUserID, Friend: robloxservices.FriendStatusNone}}
+	profile := SocialProfile{UserID: userID, Relationship: newSocialRelationship(account.RobloxUserID, userID)}
 	reads := []accountRead{
 		{"about", func() error {
 			about, readErr := service.users.About(ctx, accountID, version, userID)
@@ -400,6 +407,33 @@ func (service *Service) GetSocialProfile(ctx context.Context, accountID, userID 
 	return profile, nil
 }
 
+// GetSocialRelationship reads only how the account relates to the user, for
+// places that do not need the whole profile.
+func (service *Service) GetSocialRelationship(ctx context.Context, accountID, userID int64) (SocialRelationshipSnapshot, error) {
+	ctx, version, logger, done, err := service.beginSocial(ctx, accountID, "relationship")
+	if err != nil {
+		return SocialRelationshipSnapshot{}, err
+	}
+	defer done()
+	account, err := service.repo.GetView(ctx, accountID)
+	if err != nil {
+		return SocialRelationshipSnapshot{}, mapRepositoryError(err)
+	}
+	snapshot := SocialRelationshipSnapshot{Relationship: newSocialRelationship(account.RobloxUserID, userID)}
+	if snapshot.Relationship.Self {
+		return snapshot, nil
+	}
+	reads := service.relationshipReads(ctx, accountID, version, account.RobloxUserID, userID, &snapshot.Relationship)
+	if snapshot.Unavailable, err = service.runAccountReads(ctx, accountID, version, "social-relationship", logger, reads); err != nil {
+		return SocialRelationshipSnapshot{}, err
+	}
+	return snapshot, nil
+}
+
+func newSocialRelationship(selfID, userID int64) SocialRelationship {
+	return SocialRelationship{Self: userID == selfID, Friend: robloxservices.FriendStatusNone, Trusted: robloxservices.TrustedStatusNone}
+}
+
 func (service *Service) relationshipReads(ctx context.Context, accountID, version, selfID, userID int64, relationship *SocialRelationship) []accountRead {
 	return []accountRead{
 		{"friendship", func() error {
@@ -409,7 +443,7 @@ func (service *Service) relationshipReads(ctx context.Context, accountID, versio
 		}},
 		{"trusted", func() error {
 			var readErr error
-			relationship.Trusted, readErr = service.users.TrustedFriend(ctx, accountID, version, userID)
+			relationship.Trusted, readErr = service.users.TrustedStatus(ctx, accountID, version, userID)
 			return readErr
 		}},
 		{"follow", func() error {
@@ -524,6 +558,30 @@ func (service *Service) DeclineFriendRequest(ctx context.Context, accountID, use
 func (service *Service) Unfriend(ctx context.Context, accountID, userID int64) error {
 	return service.editAccount(ctx, accountID, "unfriend", "", func(ctx context.Context, version int64) error {
 		return service.users.Unfriend(ctx, accountID, version, userID)
+	})
+}
+
+func (service *Service) SendFriendRequest(ctx context.Context, accountID, userID int64) error {
+	return service.editAccount(ctx, accountID, "friend-request-send", "Roblox did not allow this friend request.", func(ctx context.Context, version int64) error {
+		return service.users.SendFriendRequest(ctx, accountID, version, userID)
+	})
+}
+
+func (service *Service) SendTrustedFriendRequest(ctx context.Context, accountID, userID int64) error {
+	return service.editAccount(ctx, accountID, "trusted-friend-request-send", "Roblox did not allow this trusted friend request.", func(ctx context.Context, version int64) error {
+		return service.users.SendTrustedFriendRequest(ctx, accountID, version, userID)
+	})
+}
+
+func (service *Service) AcceptTrustedFriendRequest(ctx context.Context, accountID, userID int64) error {
+	return service.editAccount(ctx, accountID, "trusted-friend-request-accept", "Roblox did not allow this trusted friend request.", func(ctx context.Context, version int64) error {
+		return service.users.AcceptTrustedFriendRequest(ctx, accountID, version, userID)
+	})
+}
+
+func (service *Service) RemoveTrustedFriend(ctx context.Context, accountID, userID int64) error {
+	return service.editAccount(ctx, accountID, "trusted-friend-remove", "", func(ctx context.Context, version int64) error {
+		return service.users.RemoveTrustedFriend(ctx, accountID, version, userID)
 	})
 }
 

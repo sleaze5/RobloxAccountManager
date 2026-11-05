@@ -16,6 +16,7 @@
 	import { chooseExportFile } from "./lib/dialogs/vault-transfer"
 	import BrowserRuntimeDialog from "./lib/dialogs/BrowserRuntimeDialog.svelte"
 	import NicknameDialog from "./lib/dialogs/NicknameDialog.svelte"
+	import RemoveTrustedFriendDialog from "./lib/dialogs/RemoveTrustedFriendDialog.svelte"
 	import UnfriendDialog from "./lib/dialogs/UnfriendDialog.svelte"
 	import DescriptionEditDialog from "./lib/dialogs/DescriptionEditDialog.svelte"
 	import LockVaultDialog from "./lib/dialogs/LockVaultDialog.svelte"
@@ -65,6 +66,7 @@
 		| "renew-cookie"
 		| "test-password"
 		| "unfriend"
+		| "remove-trusted"
 		| "nickname"
 		| null
 	type ActivePage = "accounts" | "social" | "games" | "logs-explorer" | "settings"
@@ -378,6 +380,19 @@
 		activeDialog = "unfriend"
 	}
 
+	function openRemoveTrusted(friend: SocialUser): void {
+		social.removeTrustedError = ""
+		unfriendTarget = friend
+		activeDialog = "remove-trusted"
+	}
+
+	function closeRemoveTrusted(): void {
+		if (social.removingTrusted) return
+		social.removeTrustedError = ""
+		activeDialog = null
+		unfriendTarget = null
+	}
+
 	function showSocial(list: SocialListKind): void {
 		const account = store.selectedAccount
 		social.home(account.id, Number(account.userId) || 0, list)
@@ -410,6 +425,10 @@
 		}
 		if (activeDialog === "nickname") {
 			closeNickname()
+			return
+		}
+		if (activeDialog === "remove-trusted") {
+			closeRemoveTrusted()
 			return
 		}
 		if (store.busy) {
@@ -535,6 +554,7 @@
 					void fillGameLaunchOptions(placeId, jobId)}
 				onSearchPlace={(placeId) => void searchGames(`id:${placeId}`)}
 				onUnfriend={openUnfriend}
+				onRemoveTrusted={openRemoveTrusted}
 				onEditNickname={openNickname} />
 		{:else if activePage === "games"}
 			<GamesPage
@@ -692,6 +712,14 @@
 		account={store.selectedAccount}
 		friend={unfriendTarget}
 		onClose={closeUnfriend} />
+{/if}
+
+{#if activeDialog === "remove-trusted" && unfriendTarget}
+	<RemoveTrustedFriendDialog
+		store={social}
+		account={store.selectedAccount}
+		friend={unfriendTarget}
+		onClose={closeRemoveTrusted} />
 {/if}
 
 {#if activeDialog === "test-password"}

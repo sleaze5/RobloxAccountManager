@@ -139,6 +139,31 @@ func (service *Users) Unfriend(ctx context.Context, accountID, version, userID i
 	return service.friendAction(ctx, accountID, version, userID, "unfriend", "unfriend")
 }
 
+// SendFriendRequest asks the user to become a friend of the account.
+func (service *Users) SendFriendRequest(ctx context.Context, accountID, version, userID int64) error {
+	address := "https://friends.roblox.com/v1/users/" + strconv.FormatInt(userID, 10) + "/request-friendship"
+	_, err := service.writeAccount(ctx, accountID, version, "friend-request-send", http.MethodPost, address, map[string]int{"friendshipOriginSourceType": 0})
+	return err
+}
+
+func (service *Users) SendTrustedFriendRequest(ctx context.Context, accountID, version, userID int64) error {
+	return service.trustedFriendAction(ctx, accountID, version, userID, "trusted-friend-request-send", "send-trusted-friend-request")
+}
+
+func (service *Users) AcceptTrustedFriendRequest(ctx context.Context, accountID, version, userID int64) error {
+	return service.trustedFriendAction(ctx, accountID, version, userID, "trusted-friend-request-accept", "accept-trusted-friend-request")
+}
+
+func (service *Users) RemoveTrustedFriend(ctx context.Context, accountID, version, userID int64) error {
+	return service.trustedFriendAction(ctx, accountID, version, userID, "trusted-friend-remove", "remove-trusted-friend")
+}
+
+func (service *Users) trustedFriendAction(ctx context.Context, accountID, version, userID int64, endpoint, action string) error {
+	address := "https://friends.roblox.com/v1/users/" + strconv.FormatInt(userID, 10) + "/" + action
+	_, err := service.writeAccount(ctx, accountID, version, endpoint, http.MethodPost, address, struct{}{})
+	return err
+}
+
 func (service *Users) friendAction(ctx context.Context, accountID, version, userID int64, endpoint, action string) error {
 	address := "https://friends.roblox.com/v1/users/" + strconv.FormatInt(userID, 10) + "/" + action
 	_, err := service.writeAccount(ctx, accountID, version, endpoint, http.MethodPost, address, nil)
@@ -308,19 +333,37 @@ func (service *Users) FollowState(ctx context.Context, accountID, version, userI
 	return FollowState{}, invalidProfileDetails("follow-state")
 }
 
-// TrustedFriend reads whether the user is one of the account's trusted connections.
-func (service *Users) TrustedFriend(ctx context.Context, accountID, version, userID int64) (bool, error) {
+type TrustedStatus string
+
+const (
+	TrustedStatusNone            TrustedStatus = "none"
+	TrustedStatusTrusted         TrustedStatus = "trusted"
+	TrustedStatusRequestSent     TrustedStatus = "requestSent"
+	TrustedStatusRequestReceived TrustedStatus = "requestReceived"
+)
+
+// TrustedStatus reads how the user relates to the account's trusted connections.
+func (service *Users) TrustedStatus(ctx context.Context, accountID, version, userID int64) (TrustedStatus, error) {
 	var result struct {
 		Status *string `json:"status"`
 	}
 	address := "https://friends.roblox.com/v1/my/trusted-friends/" + strconv.FormatInt(userID, 10) + "/status"
 	if err := service.readAccountDetails(ctx, accountID, version, "trusted-friend-status", address, &result); err != nil {
-		return false, err
+		return "", err
 	}
 	if result.Status == nil {
-		return false, invalidProfileDetails("trusted-friend-status")
+		return "", invalidProfileDetails("trusted-friend-status")
 	}
-	return *result.Status == "TrustedFriends", nil
+	switch *result.Status {
+	case "TrustedFriends":
+		return TrustedStatusTrusted, nil
+	case "RequestSent":
+		return TrustedStatusRequestSent, nil
+	case "RequestReceived":
+		return TrustedStatusRequestReceived, nil
+	default:
+		return TrustedStatusNone, nil
+	}
 }
 
 // Nicknames reads the private names the account gave to users. Users without
