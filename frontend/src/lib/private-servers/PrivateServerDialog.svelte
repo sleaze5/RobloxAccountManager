@@ -1,5 +1,7 @@
 <script lang="ts">
 	import arrowsCounterClockwiseIcon from "@phosphor-icons/core/regular/arrows-counter-clockwise.svg?raw"
+	import caretDownIcon from "@phosphor-icons/core/regular/caret-down.svg?raw"
+	import pencilSimpleIcon from "@phosphor-icons/core/regular/pencil-simple.svg?raw"
 	import circleNotchIcon from "@phosphor-icons/core/regular/circle-notch.svg?raw"
 	import copyIcon from "@phosphor-icons/core/regular/copy.svg?raw"
 	import warningIcon from "@phosphor-icons/core/regular/warning.svg?raw"
@@ -19,6 +21,7 @@
 		replayValidationNudge,
 	} from "../shared/presence"
 	import { PrivateServerState } from "./private-server-state.svelte"
+	import RenamePrivateServerDialog from "./RenamePrivateServerDialog.svelte"
 
 	let {
 		accountId,
@@ -45,7 +48,7 @@
 		dates = new Intl.DateTimeFormat(undefined, { dateStyle: "medium" }),
 		numbers = new Intl.NumberFormat()
 	let phase = $state<"manage" | "reset-link">("manage"),
-		nameValue = $state(untrack(() => name)),
+		renaming = $state(false),
 		userValue = $state(""),
 		card = $state<HTMLDivElement>()
 	const settings = $derived(server.settings),
@@ -81,7 +84,7 @@
 	})
 
 	async function load(): Promise<void> {
-		if ((await server.load()) && server.settings) nameValue = server.settings.name
+		await server.load()
 	}
 
 	function renewalText(current: PrivateServerSettings | null): string {
@@ -97,7 +100,7 @@
 	}
 
 	function close(): void {
-		if (locked) return
+		if (locked || renaming) return
 		if (phase === "reset-link") {
 			void showManage()
 			return
@@ -117,14 +120,10 @@
 		card?.querySelector<HTMLElement>("[data-confirm-reset]")?.focus()
 	}
 
-	async function rename(): Promise<void> {
-		const text = nameValue.trim()
-		if (!text || text === settings?.name) {
-			replayValidationNudge(card)
-			return
-		}
-		if (await server.rename(text)) nameValue = server.settings?.name ?? text
-		else replayValidationNudge(card)
+	async function closeRename(): Promise<void> {
+		renaming = false
+		await tick()
+		card?.querySelector<HTMLElement>("[data-rename]")?.focus()
 	}
 
 	async function addUser(): Promise<void> {
@@ -151,314 +150,334 @@
 		if (event.key === "Escape") close()
 	}} />
 
-<div class="dialog-backdrop" in:modalBackdropIn out:modalBackdropOut>
-	<div
-		class="dialog-card max-w-md text-left"
-		role={phase === "reset-link" ? "alertdialog" : "dialog"}
-		aria-modal="true"
-		aria-labelledby={`${id}-title`}
-		aria-describedby={`${id}-description`}
-		aria-busy={server.pending === "load"}
-		bind:this={card}
-		use:modalFocus
-		in:modalCardIn
-		out:modalCardOut>
-		{#if phase === "reset-link"}
-			<div class="dialog-heading">
-				<div>
-					<h2 id={`${id}-title`}>Reset join link?</h2>
-					<p id={`${id}-description`}>{title}</p>
-				</div>
-				<button
-					type="button"
-					aria-label="Cancel resetting the join link"
-					disabled={busy}
-					onclick={close}>
-					<Icon svg={xIcon} size={14} aria-hidden="true" />
-				</button>
-			</div>
-			<div class="notice-warning">
-				The current link stops working. People who already joined keep access.
-			</div>
-			<div class="dialog-actions">
-				<button class="btn" type="button" disabled={busy} onclick={close}
-					>Cancel</button>
-				<button
-					class="btn-warning"
-					type="button"
-					data-confirm-reset
-					disabled={busy}
-					onclick={() => void resetLink()}>
-					{server.pending === "link" ? "Resetting…" : "Reset link"}
-				</button>
-			</div>
-		{:else}
-			<div class="dialog-heading">
-				<div class="min-w-0">
-					<h2 id={`${id}-title`} class="wrap-anywhere">{title}</h2>
-					<p id={`${id}-description`}>
-						{settings?.gameName ? `${settings.gameName} - ` : ""}@{username}
-					</p>
-				</div>
-				<button
-					type="button"
-					aria-label="Close private server"
-					disabled={locked}
-					onclick={close}>
-					<Icon svg={xIcon} size={14} aria-hidden="true" />
-				</button>
-			</div>
-
-			{#if !settings}
-				{#if server.pending === "load"}
-					<div class="empty-state" role="status">
-						<Icon
-							svg={circleNotchIcon}
-							class="spinner"
-							size={28}
-							aria-hidden="true" />
-						<h2>Loading private server…</h2>
+{#if renaming}
+	<RenamePrivateServerDialog {server} {username} onClose={() => void closeRename()} />
+{:else}
+	<div class="dialog-backdrop" in:modalBackdropIn out:modalBackdropOut>
+		<div
+			class="dialog-card max-w-md text-left"
+			role={phase === "reset-link" ? "alertdialog" : "dialog"}
+			aria-modal="true"
+			aria-labelledby={`${id}-title`}
+			aria-describedby={`${id}-description`}
+			aria-busy={server.pending === "load"}
+			bind:this={card}
+			use:modalFocus
+			in:modalCardIn
+			out:modalCardOut>
+			{#if phase === "reset-link"}
+				<div class="dialog-heading">
+					<div>
+						<h2 id={`${id}-title`}>Reset join link?</h2>
+						<p id={`${id}-description`}>{title}</p>
 					</div>
-				{:else}
-					<div class="empty-state" role="alert">
-						<Icon svg={warningIcon} size={28} aria-hidden="true" />
-						<h2>Private server is unavailable</h2>
-						<p>{server.errorFor("load")}</p>
-						<button class="btn" type="button" onclick={() => void load()}
-							>Try again</button>
-					</div>
-				{/if}
+					<button
+						type="button"
+						aria-label="Cancel resetting the join link"
+						disabled={busy}
+						onclick={close}>
+						<Icon svg={xIcon} size={14} aria-hidden="true" />
+					</button>
+				</div>
+				<div class="notice-warning">
+					The current link stops working. People who already joined keep
+					access.
+				</div>
+				<div class="dialog-actions">
+					<button class="btn" type="button" disabled={busy} onclick={close}
+						>Cancel</button>
+					<button
+						class="btn-warning"
+						type="button"
+						data-confirm-reset
+						disabled={busy}
+						onclick={() => void resetLink()}>
+						{server.pending === "link" ? "Resetting…" : "Reset link"}
+					</button>
+				</div>
 			{:else}
-				<form
-					novalidate
-					class="dialog-field mt-0"
-					onsubmit={(event) => {
-						event.preventDefault()
-						void rename()
-					}}>
-					<label for={`${id}-name`}>Name</label>
-					<div class="flex gap-2">
-						<input
-							id={`${id}-name`}
-							class="field min-w-0 flex-1"
-							type="text"
-							autocomplete="off"
-							maxlength={50}
-							aria-invalid={server.errorFor("rename")
-								? "true"
-								: undefined}
-							aria-describedby={server.errorFor("rename")
-								? `${id}-name-error`
-								: undefined}
-							disabled={busy}
-							bind:value={nameValue} />
-						<button
-							class="btn h-8"
-							type="submit"
-							disabled={busy ||
-								!nameValue.trim() ||
-								nameValue.trim() === settings.name}>
-							{server.pending === "rename" ? "Renaming…" : "Rename"}
-						</button>
+				<div class="dialog-heading">
+					<div class="min-w-0">
+						<h2 id={`${id}-title`} class="wrap-anywhere">{title}</h2>
+						<p id={`${id}-description`}>
+							{settings?.gameName
+								? `${settings.gameName} - `
+								: ""}@{username}
+						</p>
 					</div>
-					{#if server.errorFor("rename")}
-						<small id={`${id}-name-error`} class="text-xs text-danger-muted"
-							>{server.errorFor("rename")}</small>
-					{/if}
-				</form>
+					<button
+						type="button"
+						aria-label="Close private server"
+						disabled={locked}
+						onclick={close}>
+						<Icon svg={xIcon} size={14} aria-hidden="true" />
+					</button>
+				</div>
 
-				<div class="settings-section mt-3">
-					<div class="settings-rows">
-						{#each toggles as toggle (toggle.option)}
+				{#if !settings}
+					{#if server.pending === "load"}
+						<div class="empty-state" role="status">
+							<Icon
+								svg={circleNotchIcon}
+								class="spinner"
+								size={28}
+								aria-hidden="true" />
+							<h2>Loading private server…</h2>
+						</div>
+					{:else}
+						<div class="empty-state" role="alert">
+							<Icon svg={warningIcon} size={28} aria-hidden="true" />
+							<h2>Private server is unavailable</h2>
+							<p>{server.errorFor("load")}</p>
+							<button
+								class="btn"
+								type="button"
+								onclick={() => void load()}>Try again</button>
+						</div>
+					{/if}
+				{:else}
+					<div class="settings-section">
+						<div class="settings-rows">
 							<div class="settings-row">
 								<div class="settings-row-copy">
-									<strong id={`${id}-${toggle.option}`}
-										>{toggle.label}</strong>
-									<span id={`${id}-${toggle.option}-description`}
-										>{toggle.description}</span>
-									{#if server.errorFor(toggle.option)}
-										<span class="text-danger-muted" role="alert"
-											>{server.errorFor(toggle.option)}</span>
-									{/if}
+									<strong>Name</strong>
+									<span class="truncate"
+										>{settings.name || "Unnamed server"}</span>
 								</div>
-								{#if server.pending === toggle.option}
+								<button
+									class="btn"
+									type="button"
+									data-rename
+									disabled={busy}
+									onclick={() => (renaming = true)}>
 									<Icon
-										svg={circleNotchIcon}
-										class="spinner text-fg-muted"
+										svg={pencilSimpleIcon}
 										size={14}
 										aria-hidden="true" />
-								{/if}
-								<label class="switch">
-									<input
-										type="checkbox"
-										role="switch"
-										aria-labelledby={`${id}-${toggle.option}`}
-										aria-describedby={`${id}-${toggle.option}-description`}
-										checked={toggle.checked}
-										disabled={busy}
-										onchange={(event) => {
-											const enabled = event.currentTarget.checked
-											event.currentTarget.checked = toggle.checked
-											void server.setOption(
-												toggle.option,
-												enabled,
-											)
-										}} />
-									<span aria-hidden="true"></span>
-								</label>
+									Rename
+								</button>
 							</div>
-						{/each}
-					</div>
-				</div>
-
-				<section
-					class="mt-4 flex flex-col gap-2"
-					aria-labelledby={`${id}-link`}>
-					<h3 id={`${id}-link`} class="text-xs font-semibold text-fg-muted">
-						Join link
-					</h3>
-					{#if settings.joinLink}
-						<p class="text-block text-2xs">{settings.joinLink}</p>
-					{:else}
-						<p class="text-xs text-fg-faint">
-							This server has no join link. Reset the link to create one.
-						</p>
-					{/if}
-					<div class="flex flex-wrap gap-2">
-						<button
-							class="btn"
-							type="button"
-							disabled={!settings.joinLink}
-							onclick={() => void server.copyLink()}>
-							<Icon svg={copyIcon} size={14} aria-hidden="true" />
-							Copy link
-						</button>
-						<button
-							class="btn"
-							type="button"
-							data-reset-link
-							disabled={busy}
-							onclick={() => void showReset()}>
-							<Icon
-								svg={arrowsCounterClockwiseIcon}
-								size={14}
-								aria-hidden="true" />
-							Reset link
-						</button>
-					</div>
-					{#if server.errorFor("link")}
-						<div class="notice-error" role="alert">
-							{server.errorFor("link")}
-						</div>
-					{/if}
-				</section>
-
-				<section
-					class="mt-4 flex flex-col gap-2"
-					aria-labelledby={`${id}-users`}>
-					<h3 id={`${id}-users`} class="text-xs font-semibold text-fg-muted">
-						Allowed users
-						{#if users.length}<span class="font-normal"
-								>({users.length})</span
-							>{/if}
-					</h3>
-					{#if users.length}
-						<div class="settings-section">
-							<ul class="settings-rows" aria-label="Allowed users">
-								{#each users as user (user.userId)}
-									<li
-										class="settings-row animate-enter justify-start gap-3">
-										<span
-											class="grid size-7 shrink-0 place-items-center overflow-hidden rounded-md border border-line-strong bg-raised"
-											aria-hidden="true">
-											<ProfileImage url={user.imageUrl} />
-										</span>
-										<div class="settings-row-copy">
-											<strong class="truncate"
-												>{userName(user)}</strong>
-											<span
-												>{user.username
-													? `@${user.username}`
-													: user.userId}</span>
-										</div>
-										<button
-											class="btn"
-											type="button"
-											aria-label={`Remove ${userName(user)}`}
+							{#each toggles as toggle (toggle.option)}
+								<div class="settings-row">
+									<div class="settings-row-copy">
+										<strong id={`${id}-${toggle.option}`}
+											>{toggle.label}</strong>
+										<span id={`${id}-${toggle.option}-description`}
+											>{toggle.description}</span>
+										{#if server.errorFor(toggle.option)}
+											<span class="text-danger-muted" role="alert"
+												>{server.errorFor(toggle.option)}</span>
+										{/if}
+									</div>
+									{#if server.pending === toggle.option}
+										<Icon
+											svg={circleNotchIcon}
+											class="spinner text-fg-muted"
+											size={14}
+											aria-hidden="true" />
+									{/if}
+									<label class="switch">
+										<input
+											type="checkbox"
+											role="switch"
+											aria-labelledby={`${id}-${toggle.option}`}
+											aria-describedby={`${id}-${toggle.option}-description`}
+											checked={toggle.checked}
 											disabled={busy}
-											onclick={() =>
-												void server.removeUser(user)}>
-											{#if server.pending === `remove-${user.userId}`}
-												<Icon
-													svg={circleNotchIcon}
-													class="spinner"
-													size={14}
-													aria-hidden="true" />
-											{/if}
-											Remove
-										</button>
-									</li>
-								{/each}
-							</ul>
-						</div>
-					{:else}
-						<p class="text-xs text-fg-faint">
-							No one else is allowed. Add a user to let them join.
-						</p>
-					{/if}
-					{#each users as user (user.userId)}
-						{#if server.errorFor(`remove-${user.userId}`)}
-							<div class="notice-error" role="alert">
-								{server.errorFor(`remove-${user.userId}`)}
+											onchange={(event) => {
+												const enabled =
+													event.currentTarget.checked
+												event.currentTarget.checked =
+													toggle.checked
+												void server.setOption(
+													toggle.option,
+													enabled,
+												)
+											}} />
+										<span aria-hidden="true"></span>
+									</label>
+								</div>
+							{/each}
+							<div class="settings-row">
+								<div class="settings-row-copy">
+									<strong>Join link</strong>
+									{#if settings.joinLink}
+										<span
+											class="truncate font-mono text-2xs"
+											data-tooltip={settings.joinLink}
+											>{settings.joinLink}</span>
+									{:else}
+										<span
+											>No join link. Reset the link to create one.</span>
+									{/if}
+									{#if server.errorFor("link")}
+										<span class="text-danger-muted" role="alert"
+											>{server.errorFor("link")}</span>
+									{/if}
+								</div>
+								<div class="flex shrink-0 items-center gap-1.5">
+									<button
+										class="btn-icon"
+										type="button"
+										aria-label="Copy join link"
+										data-tooltip="Copy join link"
+										disabled={!settings.joinLink}
+										onclick={() => void server.copyLink()}>
+										<Icon
+											svg={copyIcon}
+											size={16}
+											aria-hidden="true" />
+									</button>
+									<button
+										class="btn"
+										type="button"
+										data-reset-link
+										disabled={busy}
+										onclick={() => void showReset()}>
+										<Icon
+											svg={arrowsCounterClockwiseIcon}
+											size={14}
+											aria-hidden="true" />
+										Reset link
+									</button>
+								</div>
 							</div>
-						{/if}
-					{/each}
-					<form
-						novalidate
-						class="dialog-field mt-1"
-						onsubmit={(event) => {
-							event.preventDefault()
-							void addUser()
-						}}>
-						<label for={`${id}-user`}>Add a user</label>
-						<div class="flex gap-2">
-							<input
-								id={`${id}-user`}
-								class="field min-w-0 flex-1"
-								type="text"
-								autocomplete="off"
-								spellcheck="false"
-								placeholder="Username"
-								aria-invalid={server.errorFor("add-user")
-									? "true"
-									: undefined}
-								aria-describedby={`${id}-user-help`}
-								disabled={busy}
-								bind:value={userValue} />
-							<button
-								class="btn h-8"
-								type="submit"
-								disabled={busy || !userValue.trim()}>
-								{server.pending === "add-user" ? "Adding…" : "Add user"}
-							</button>
+							<details class="group">
+								<summary
+									class="settings-row cursor-pointer border-b-0 transition-colors duration-100 group-open:border-b hover:bg-hover">
+									<div class="settings-row-copy">
+										<strong>Allowed users</strong>
+										<span
+											>{users.length
+												? `${users.length} ${users.length === 1 ? "person" : "people"} can join without the link.`
+												: "No one else is allowed yet."}</span>
+									</div>
+									<Icon
+										svg={caretDownIcon}
+										class="shrink-0 text-fg-muted transition-transform duration-100 group-open:rotate-180"
+										size={16}
+										aria-hidden="true" />
+								</summary>
+								<div class="animate-enter">
+									{#if users.length}
+										<ul aria-label="Allowed users">
+											{#each users as user (user.userId)}
+												<li
+													class="settings-row justify-start gap-3 py-2">
+													<span
+														class="grid size-6 shrink-0 place-items-center overflow-hidden rounded-md border border-line-strong bg-raised"
+														aria-hidden="true">
+														<ProfileImage
+															url={user.imageUrl} />
+													</span>
+													<span
+														class="flex min-w-0 flex-1 items-baseline gap-1.5">
+														<strong
+															class="truncate text-sm font-semibold text-fg"
+															>{userName(user)}</strong>
+														<span
+															class="truncate text-xs text-fg-muted"
+															>{user.username
+																? `@${user.username}`
+																: user.userId}</span>
+													</span>
+													<button
+														class="btn"
+														type="button"
+														aria-label={`Remove ${userName(user)}`}
+														disabled={busy}
+														onclick={() =>
+															void server.removeUser(
+																user,
+															)}>
+														{#if server.pending === `remove-${user.userId}`}
+															<Icon
+																svg={circleNotchIcon}
+																class="spinner"
+																size={14}
+																aria-hidden="true" />
+														{/if}
+														Remove
+													</button>
+												</li>
+											{/each}
+										</ul>
+									{/if}
+									{#each users as user (user.userId)}
+										{#if server.errorFor(`remove-${user.userId}`)}
+											<div
+												class="mx-3 mt-2.5 notice-error"
+												role="alert">
+												{server.errorFor(
+													`remove-${user.userId}`,
+												)}
+											</div>
+										{/if}
+									{/each}
+									<form
+										novalidate
+										class={[
+											"flex flex-col gap-1 px-3 py-2.5",
+											users.length &&
+												"border-t border-line-subtle",
+										]}
+										onsubmit={(event) => {
+											event.preventDefault()
+											void addUser()
+										}}>
+										<label
+											for={`${id}-user`}
+											class="text-xs text-fg-muted"
+											>Add a user</label>
+										<div class="flex gap-2">
+											<input
+												id={`${id}-user`}
+												class="field min-w-0 flex-1"
+												type="text"
+												autocomplete="off"
+												spellcheck="false"
+												placeholder="Username"
+												aria-invalid={server.errorFor(
+													"add-user",
+												)
+													? "true"
+													: undefined}
+												aria-describedby={`${id}-user-help`}
+												disabled={busy}
+												bind:value={userValue} />
+											<button
+												class="btn h-8"
+												type="submit"
+												disabled={busy || !userValue.trim()}>
+												{server.pending === "add-user"
+													? "Adding…"
+													: "Add user"}
+											</button>
+										</div>
+										{#if server.errorFor("add-user")}
+											<small
+												id={`${id}-user-help`}
+												class="text-xs text-danger-muted"
+												>{server.errorFor("add-user")}</small>
+										{:else}
+											<small
+												id={`${id}-user-help`}
+												class="text-xs text-fg-muted"
+												>Enter a username, or id=123 for a user
+												ID.</small>
+										{/if}
+									</form>
+								</div>
+							</details>
 						</div>
-						{#if server.errorFor("add-user")}
-							<small
-								id={`${id}-user-help`}
-								class="text-xs text-danger-muted"
-								>{server.errorFor("add-user")}</small>
-						{:else}
-							<small id={`${id}-user-help`} class="text-xs text-fg-muted"
-								>Enter a username, or id=123 for a user ID.</small>
-						{/if}
-					</form>
-				</section>
-			{/if}
+					</div>
+				{/if}
 
-			<div class="dialog-actions">
-				<button class="btn" type="button" disabled={locked} onclick={close}
-					>Close</button>
-			</div>
-		{/if}
+				<div class="dialog-actions">
+					<button class="btn" type="button" disabled={locked} onclick={close}
+						>Close</button>
+				</div>
+			{/if}
+		</div>
 	</div>
-</div>
+{/if}

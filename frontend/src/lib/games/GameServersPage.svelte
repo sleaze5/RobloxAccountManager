@@ -99,7 +99,11 @@
 		stats = untrack(() => new ServerStatsLoader(place.placeId)),
 		menuID = $props.id()
 	let heading = $state<HTMLHeadingElement | undefined>(undefined),
-		activeMenu = $state<{ key: string; trigger: HTMLElement } | null>(null),
+		activeMenu = $state<{
+			key: string
+			trigger: HTMLElement
+			open: boolean
+		} | null>(null),
 		managing = $state<{
 			accountId: number
 			username: string
@@ -128,6 +132,7 @@
 				rbxservers: listedServers,
 			}[source],
 		),
+		openKey = $derived(activeMenu?.open ? activeMenu.key : undefined),
 		menuActions = $derived(activeMenu ? actionsFor(activeMenu.key) : [])
 
 	onMount(() => {
@@ -166,7 +171,7 @@
 
 	$effect(() => {
 		void active.page
-		untrack(() => (activeMenu = null))
+		untrack(closeMenu)
 	})
 
 	$effect(() => {
@@ -185,12 +190,17 @@
 	})
 
 	function openMenu(key: string, trigger: HTMLElement, toggle: boolean): void {
-		activeMenu = toggle && activeMenu?.trigger === trigger ? null : { key, trigger }
+		if (toggle && activeMenu?.open && activeMenu.trigger === trigger) closeMenu()
+		else activeMenu = { key, trigger, open: true }
+	}
+
+	function closeMenu(): void {
+		if (activeMenu) activeMenu = { ...activeMenu, open: false }
 	}
 
 	function select(action: () => void): () => void {
 		return () => {
-			activeMenu = null
+			closeMenu()
 			action()
 		}
 	}
@@ -362,7 +372,7 @@
 		<RecordedServerList
 			servers={recordedServers}
 			{stats}
-			activeJobId={activeMenu?.key}
+			activeJobId={openKey}
 			{menuID}
 			onMenu={openMenu} />
 	{:else if source === "private"}
@@ -370,7 +380,7 @@
 			servers={privateServers}
 			saved={savedServers}
 			{accounts}
-			activeKey={activeMenu?.key}
+			activeKey={openKey}
 			{menuID}
 			onMenu={openMenu}
 			onAccount={(accountId) => accounts.selectAccount(accountId)}
@@ -378,7 +388,7 @@
 	{:else if source === "rbxservers"}
 		<RBXServersList
 			servers={listedServers}
-			activeKey={activeMenu?.key}
+			activeKey={openKey}
 			{menuID}
 			onMenu={openMenu} />
 	{:else}
@@ -386,18 +396,18 @@
 			servers={robloxServers}
 			records={appSettings.roValraEnabled}
 			newestVersion={stats.stats?.newestVersion ?? 0}
-			activeJobId={activeMenu?.key}
+			activeJobId={openKey}
 			{menuID}
 			onMenu={openMenu} />
 	{/if}
 </section>
 
-{#if activeMenu && menuActions.length}
+{#if activeMenu?.open && menuActions.length}
 	<GameServerMenu
 		id={menuID}
 		anchor={activeMenu.trigger}
 		actions={menuActions}
-		onClose={() => (activeMenu = null)} />
+		onClose={closeMenu} />
 {/if}
 
 {#if addingLink}
