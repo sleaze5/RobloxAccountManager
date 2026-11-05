@@ -20,6 +20,7 @@ type Dependency struct {
 
 type Build struct {
 	Version      string       `json:"version"`
+	Release      bool         `json:"release"`
 	GoVersion    string       `json:"go_version"`
 	Dependencies []Dependency `json:"dependencies"`
 	OS           string       `json:"os"`
@@ -31,7 +32,7 @@ type Build struct {
 }
 
 func CurrentBuild() Build {
-	build := Build{Version: Version, GoVersion: runtime.Version(), OS: runtime.GOOS,
+	build := Build{Version: Version, Release: Release, GoVersion: runtime.Version(), OS: runtime.GOOS,
 		Architecture: runtime.GOARCH, Revision: "unavailable", Dependencies: []Dependency{}}
 	if seconds, err := strconv.ParseInt(buildTime, 10, 64); err == nil && seconds > 0 {
 		build.BuildTime = seconds

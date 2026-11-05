@@ -7,7 +7,7 @@ const notificationId = "application-update"
 
 export class UpdateStore {
 	state = $state<UpdateState>({
-		currentVersion: APP_VERSION,
+		currentVersion: "",
 		downloadedBytes: 0,
 		status: UpdateStatus.StatusIdle,
 		totalBytes: 0,

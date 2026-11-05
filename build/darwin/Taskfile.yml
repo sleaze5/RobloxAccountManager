@@ -9,6 +9,8 @@ tasks:
                 - ARCH
         vars:
             APP_BUNDLE: "{{.DIST_DIR}}/darwin-{{.ARCH}}/{{.APP_NAME}}.app"
+            COMMIT:
+                sh: '{{if ne .RELEASE_BUILD "true"}}{{.COMMIT_SCRIPT}}{{end}}'
         env:
             GOOS: darwin
             GOARCH: "{{.ARCH}}"
@@ -26,7 +28,7 @@ tasks:
                   esac
                   rm -rf -- "$bundle"
                   mkdir -p "$bundle/Contents/MacOS" "$bundle/Contents/Resources"
-                  ldflags="-X github.com/sleaze5/RobloxAccountManager/internal/appmeta.buildTime=$(date +%s)"
+                  ldflags="-X github.com/sleaze5/RobloxAccountManager/internal/appmeta.buildTime=$(date +%s) -X github.com/sleaze5/RobloxAccountManager/internal/appmeta.commit={{.COMMIT}}"
                   if [ "{{.DEV}}" != "true" ]; then
                     go build -buildvcs=false -tags production -trimpath -ldflags="-w -s $ldflags" -o "$bundle/Contents/MacOS/{{.APP_NAME}}" .
                   else

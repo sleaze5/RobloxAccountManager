@@ -1,6 +1,7 @@
 param(
     [Parameter(Mandatory = $true)]
-    [string] $Output
+    [string] $Output,
+    [string] $Commit = ""
 )
 
 $ErrorActionPreference = "Stop"
@@ -27,7 +28,8 @@ if ($Matches[4]) {
 $info = [IO.File]::ReadAllText((Join-Path $PSScriptRoot "info.json")) | ConvertFrom-Json
 $info | Add-Member -NotePropertyName "fixed" -NotePropertyValue $fixed
 $strings = $info.info."0409"
-$strings | Add-Member -NotePropertyName "FileVersion" -NotePropertyValue $version
-$strings | Add-Member -NotePropertyName "ProductVersion" -NotePropertyValue $version
+$label = if ($Commit) { $Commit } else { $version }
+$strings | Add-Member -NotePropertyName "FileVersion" -NotePropertyValue $label
+$strings | Add-Member -NotePropertyName "ProductVersion" -NotePropertyValue $label
 
 [IO.File]::WriteAllText( $Output, ($info | ConvertTo-Json -Depth 5) )

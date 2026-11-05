@@ -7,7 +7,7 @@
 	import { Browser, Window } from "@wailsio/runtime"
 	import { repository } from "../../../package.json"
 
-	let { version }: { version: string } = $props()
+	let { version, release }: { version: string; release: boolean } = $props()
 	const repositoryURL = repository.url.replace(/^git\+/, "").replace(/\.git$/, "")
 	const controlClass =
 		"grid h-full w-11 cursor-default place-items-center text-fg-muted transition-colors duration-100 hover:bg-hover hover:text-fg-bright"
@@ -25,6 +25,10 @@
 		<span>Roblox Account Manager</span>
 		<span class="text-fg-faint" aria-hidden="true">-</span>
 		<span class="font-mono text-2xs text-fg-faint">{version}</span>
+		{#if !release}<span
+				class="self-center rounded-sm border border-warning/30 bg-warning/5 px-1 text-2xs font-medium text-warning"
+				>Dev</span
+			>{/if}
 	</div>
 	<div class="ml-auto flex h-full" style="--wails-draggable: no-drag">
 		<button
