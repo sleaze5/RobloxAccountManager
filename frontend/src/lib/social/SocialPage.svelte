@@ -15,7 +15,11 @@
 	import { PresenceType, SocialList } from "../backend/bridge"
 	import type { SocialUser } from "../backend/bridge"
 	import type { AccountStore } from "../accounts/account-store.svelte"
-	import { presenceDetail, presenceLabel } from "../accounts/account-model"
+	import {
+		presenceDetail,
+		presenceLabel,
+		presenceLine,
+	} from "../accounts/account-model"
 	import SidebarResizer from "../layout/SidebarResizer.svelte"
 	import { appSettings } from "../settings/settings-store.svelte"
 	import OperationError from "../shared/OperationError.svelte"
@@ -151,8 +155,7 @@
 	}
 
 	function subtitle(person: SocialUser): string {
-		const handle = person.username ? `@${person.username}` : `ID ${person.userId}`
-		return (person.presence && presenceDetail(person.presence)) || handle
+		return person.username ? `@${person.username}` : `ID ${person.userId}`
 	}
 
 	function rowLabel(person: SocialUser): string {
@@ -389,8 +392,12 @@
 						aria-busy={store.loading || store.loadingMore}>
 						{#each store.people as person (person.userId)}
 							{@const active = store.selectedUserId === person.userId}
+							{@const presence = presenceLine(person.presence)}
 							<button
-								class="group/row list-row relative flex h-12 w-full items-center gap-2 border-b border-line-subtle px-3 text-left"
+								class={[
+									"group/row list-row relative flex w-full items-center gap-2 border-b border-line-subtle px-3 text-left",
+									presence ? "h-16" : "h-12",
+								]}
 								data-selected={active || undefined}
 								data-open={store.menu?.person.userId ===
 									person.userId || undefined}
@@ -420,6 +427,10 @@
 									<small
 										class="truncate text-2xs text-fg-faint group-hover/row:text-fg-muted group-data-selected/row:text-fg-muted"
 										>{subtitle(person)}</small>
+									{#if presence}
+										<small class="truncate text-2xs text-fg-muted"
+											>{presence}</small>
+									{/if}
 								</span>
 							</button>
 						{/each}

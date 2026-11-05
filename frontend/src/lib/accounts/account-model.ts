@@ -151,6 +151,13 @@ export function presenceDetail(presence: UserPresence, experience = ""): string 
 	}
 }
 
+export function presenceLine(presence: UserPresence | null | undefined): string {
+	if (!presence || presence.userPresenceType === PresenceType.PresenceTypeOffline) {
+		return ""
+	}
+	return presenceDetail(presence) || presenceLabel(presence)
+}
+
 export function presenceTooltip(presence: UserPresence): string {
 	const label = presenceLabel(presence),
 		detail = presenceDetail(presence)

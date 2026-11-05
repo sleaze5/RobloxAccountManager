@@ -175,7 +175,7 @@ Text colors:
 - Use the 4px spacing scale. Use `1` (4px) for tight internal spacing, `2` (8px) for compact controls, `3` (12px) for row and group gaps, and `4` (16px) for larger internal padding. Keep page and surface padding between `3` and `5`, and use `4` to `6` between major content groups.
 - Prefer `gap` over margins for rows and columns.
 - Use `size-6` (24px) controls for compact icon actions, `h-7` (28px) controls for ordinary buttons and menu rows, and `h-8` (32px) controls for text fields and dominant actions.
-- Make list rows `h-12`, with `size-9` thumbnails.
+- Make list rows `h-12`, with `size-9` thumbnails. A row that also shows presence is `h-16`, with three lines: name, username, and presence.
 - Keep nested curves concentric: child radius = outer radius - inset. A menu is `rounded-xl` with `p-1.5`, so its items are `rounded-md`.
 
 Use the radius scale:
@@ -225,7 +225,7 @@ Color:
 
 ### Lists
 
-- Give list rows the `list-row` building block, `h-12`, and a 1px `border-line-subtle` separator. Set `aria-selected="true"` or `data-selected` on the selected row and `data-open` while its menu is open. `list-row` draws the hover and selection treatment from [Controls and states](#controls-and-states).
+- Give list rows the `list-row` building block, `h-12` (`h-16` with a presence line), and a 1px `border-line-subtle` separator. Set `aria-selected="true"` or `data-selected` on the selected row and `data-open` while its menu is open. `list-row` draws the hover and selection treatment from [Controls and states](#controls-and-states).
 - When a list can be reordered, support dragging and `Ctrl+Shift+ArrowUp` and `Ctrl+Shift+ArrowDown`. Announce the new position through a polite live region.
 - Distinguish an empty list ("No accounts yet") from a list with no matches ("No matching accounts"). Tell the user how to change each state.
 
