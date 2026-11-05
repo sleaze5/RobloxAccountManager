@@ -202,7 +202,7 @@
 		{/if}
 
 		<section
-			class="border-t border-line-subtle"
+			class="-mt-px border-t border-line-subtle"
 			aria-labelledby={`${menuID}-saved`}>
 			<div class="flex items-center gap-3 px-3 pt-3 pb-2">
 				<div class="flex min-w-0 flex-1 flex-col gap-0.5">

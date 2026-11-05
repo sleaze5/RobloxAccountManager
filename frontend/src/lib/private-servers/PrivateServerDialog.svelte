@@ -1,5 +1,6 @@
 <script lang="ts">
 	import arrowsCounterClockwiseIcon from "@phosphor-icons/core/regular/arrows-counter-clockwise.svg?raw"
+	import caretDownIcon from "@phosphor-icons/core/regular/caret-down.svg?raw"
 	import circleNotchIcon from "@phosphor-icons/core/regular/circle-notch.svg?raw"
 	import copyIcon from "@phosphor-icons/core/regular/copy.svg?raw"
 	import warningIcon from "@phosphor-icons/core/regular/warning.svg?raw"
@@ -308,151 +309,166 @@
 								</label>
 							</div>
 						{/each}
+						<div class="settings-row">
+							<div class="settings-row-copy">
+								<strong>Join link</strong>
+								{#if settings.joinLink}
+									<span
+										class="truncate font-mono text-2xs"
+										data-tooltip={settings.joinLink}
+										>{settings.joinLink}</span>
+								{:else}
+									<span
+										>No join link. Reset the link to create one.</span>
+								{/if}
+								{#if server.errorFor("link")}
+									<span class="text-danger-muted" role="alert"
+										>{server.errorFor("link")}</span>
+								{/if}
+							</div>
+							<div class="flex shrink-0 items-center gap-1.5">
+								<button
+									class="btn-icon"
+									type="button"
+									aria-label="Copy join link"
+									data-tooltip="Copy join link"
+									disabled={!settings.joinLink}
+									onclick={() => void server.copyLink()}>
+									<Icon svg={copyIcon} size={16} aria-hidden="true" />
+								</button>
+								<button
+									class="btn"
+									type="button"
+									data-reset-link
+									disabled={busy}
+									onclick={() => void showReset()}>
+									<Icon
+										svg={arrowsCounterClockwiseIcon}
+										size={14}
+										aria-hidden="true" />
+									Reset link
+								</button>
+							</div>
+						</div>
+						<details class="group">
+							<summary
+								class="settings-row cursor-pointer border-b-0 transition-colors duration-100 group-open:border-b hover:bg-hover">
+								<div class="settings-row-copy">
+									<strong>Allowed users</strong>
+									<span
+										>{users.length
+											? `${users.length} ${users.length === 1 ? "person" : "people"} can join without the link.`
+											: "No one else is allowed yet."}</span>
+								</div>
+								<Icon
+									svg={caretDownIcon}
+									class="shrink-0 text-fg-muted transition-transform duration-100 group-open:rotate-180"
+									size={16}
+									aria-hidden="true" />
+							</summary>
+							<div class="animate-enter">
+								{#if users.length}
+									<ul aria-label="Allowed users">
+										{#each users as user (user.userId)}
+											<li
+												class="settings-row justify-start gap-3 py-2">
+												<span
+													class="grid size-6 shrink-0 place-items-center overflow-hidden rounded-md border border-line-strong bg-raised"
+													aria-hidden="true">
+													<ProfileImage url={user.imageUrl} />
+												</span>
+												<span
+													class="flex min-w-0 flex-1 items-baseline gap-1.5">
+													<strong
+														class="truncate text-sm font-semibold text-fg"
+														>{userName(user)}</strong>
+													<span
+														class="truncate text-xs text-fg-muted"
+														>{user.username
+															? `@${user.username}`
+															: user.userId}</span>
+												</span>
+												<button
+													class="btn"
+													type="button"
+													aria-label={`Remove ${userName(user)}`}
+													disabled={busy}
+													onclick={() =>
+														void server.removeUser(user)}>
+													{#if server.pending === `remove-${user.userId}`}
+														<Icon
+															svg={circleNotchIcon}
+															class="spinner"
+															size={14}
+															aria-hidden="true" />
+													{/if}
+													Remove
+												</button>
+											</li>
+										{/each}
+									</ul>
+								{/if}
+								{#each users as user (user.userId)}
+									{#if server.errorFor(`remove-${user.userId}`)}
+										<div
+											class="mx-3 mt-2.5 notice-error"
+											role="alert">
+											{server.errorFor(`remove-${user.userId}`)}
+										</div>
+									{/if}
+								{/each}
+								<form
+									novalidate
+									class={[
+										"flex flex-col gap-1 px-3 py-2.5",
+										users.length && "border-t border-line-subtle",
+									]}
+									onsubmit={(event) => {
+										event.preventDefault()
+										void addUser()
+									}}>
+									<label
+										for={`${id}-user`}
+										class="text-xs text-fg-muted">Add a user</label>
+									<div class="flex gap-2">
+										<input
+											id={`${id}-user`}
+											class="field min-w-0 flex-1"
+											type="text"
+											autocomplete="off"
+											spellcheck="false"
+											placeholder="Username"
+											aria-invalid={server.errorFor("add-user")
+												? "true"
+												: undefined}
+											aria-describedby={`${id}-user-help`}
+											disabled={busy}
+											bind:value={userValue} />
+										<button
+											class="btn h-8"
+											type="submit"
+											disabled={busy || !userValue.trim()}>
+											{server.pending === "add-user"
+												? "Adding…"
+												: "Add user"}
+										</button>
+									</div>
+									{#if server.errorFor("add-user")}
+										<small
+											id={`${id}-user-help`}
+											class="text-xs text-danger-muted"
+											>{server.errorFor("add-user")}</small>
+									{:else}
+										<small
+											id={`${id}-user-help`}
+											class="text-xs text-fg-muted"
+											>Enter a username, or id=123 for a user ID.</small>
+									{/if}
+								</form>
+							</div>
+						</details>
 					</div>
 				</div>
-
-				<section
-					class="mt-4 flex flex-col gap-2"
-					aria-labelledby={`${id}-link`}>
-					<h3 id={`${id}-link`} class="text-xs font-semibold text-fg-muted">
-						Join link
-					</h3>
-					{#if settings.joinLink}
-						<p class="text-block text-2xs">{settings.joinLink}</p>
-					{:else}
-						<p class="text-xs text-fg-faint">
-							This server has no join link. Reset the link to create one.
-						</p>
-					{/if}
-					<div class="flex flex-wrap gap-2">
-						<button
-							class="btn"
-							type="button"
-							disabled={!settings.joinLink}
-							onclick={() => void server.copyLink()}>
-							<Icon svg={copyIcon} size={14} aria-hidden="true" />
-							Copy link
-						</button>
-						<button
-							class="btn"
-							type="button"
-							data-reset-link
-							disabled={busy}
-							onclick={() => void showReset()}>
-							<Icon
-								svg={arrowsCounterClockwiseIcon}
-								size={14}
-								aria-hidden="true" />
-							Reset link
-						</button>
-					</div>
-					{#if server.errorFor("link")}
-						<div class="notice-error" role="alert">
-							{server.errorFor("link")}
-						</div>
-					{/if}
-				</section>
-
-				<section
-					class="mt-4 flex flex-col gap-2"
-					aria-labelledby={`${id}-users`}>
-					<h3 id={`${id}-users`} class="text-xs font-semibold text-fg-muted">
-						Allowed users
-						{#if users.length}<span class="font-normal"
-								>({users.length})</span
-							>{/if}
-					</h3>
-					{#if users.length}
-						<div class="settings-section">
-							<ul class="settings-rows" aria-label="Allowed users">
-								{#each users as user (user.userId)}
-									<li
-										class="settings-row animate-enter justify-start gap-3">
-										<span
-											class="grid size-7 shrink-0 place-items-center overflow-hidden rounded-md border border-line-strong bg-raised"
-											aria-hidden="true">
-											<ProfileImage url={user.imageUrl} />
-										</span>
-										<div class="settings-row-copy">
-											<strong class="truncate"
-												>{userName(user)}</strong>
-											<span
-												>{user.username
-													? `@${user.username}`
-													: user.userId}</span>
-										</div>
-										<button
-											class="btn"
-											type="button"
-											aria-label={`Remove ${userName(user)}`}
-											disabled={busy}
-											onclick={() =>
-												void server.removeUser(user)}>
-											{#if server.pending === `remove-${user.userId}`}
-												<Icon
-													svg={circleNotchIcon}
-													class="spinner"
-													size={14}
-													aria-hidden="true" />
-											{/if}
-											Remove
-										</button>
-									</li>
-								{/each}
-							</ul>
-						</div>
-					{:else}
-						<p class="text-xs text-fg-faint">
-							No one else is allowed. Add a user to let them join.
-						</p>
-					{/if}
-					{#each users as user (user.userId)}
-						{#if server.errorFor(`remove-${user.userId}`)}
-							<div class="notice-error" role="alert">
-								{server.errorFor(`remove-${user.userId}`)}
-							</div>
-						{/if}
-					{/each}
-					<form
-						novalidate
-						class="dialog-field mt-1"
-						onsubmit={(event) => {
-							event.preventDefault()
-							void addUser()
-						}}>
-						<label for={`${id}-user`}>Add a user</label>
-						<div class="flex gap-2">
-							<input
-								id={`${id}-user`}
-								class="field min-w-0 flex-1"
-								type="text"
-								autocomplete="off"
-								spellcheck="false"
-								placeholder="Username"
-								aria-invalid={server.errorFor("add-user")
-									? "true"
-									: undefined}
-								aria-describedby={`${id}-user-help`}
-								disabled={busy}
-								bind:value={userValue} />
-							<button
-								class="btn h-8"
-								type="submit"
-								disabled={busy || !userValue.trim()}>
-								{server.pending === "add-user" ? "Adding…" : "Add user"}
-							</button>
-						</div>
-						{#if server.errorFor("add-user")}
-							<small
-								id={`${id}-user-help`}
-								class="text-xs text-danger-muted"
-								>{server.errorFor("add-user")}</small>
-						{:else}
-							<small id={`${id}-user-help`} class="text-xs text-fg-muted"
-								>Enter a username, or id=123 for a user ID.</small>
-						{/if}
-					</form>
-				</section>
 			{/if}
 
 			<div class="dialog-actions">

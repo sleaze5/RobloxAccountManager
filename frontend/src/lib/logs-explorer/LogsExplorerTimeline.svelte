@@ -1,6 +1,7 @@
 <script lang="ts">
 	import dotsThreeIcon from "@phosphor-icons/core/regular/dots-three.svg?raw"
 	import Icon from "../shared/Icon.svelte"
+	import { untrack } from "svelte"
 	import { VisitKind } from "../backend/bridge"
 	import type { LogsExplorerVisit } from "../backend/bridge"
 	import Timestamp from "../shared/Timestamp.svelte"
@@ -21,21 +22,29 @@
 		onFillLaunch: (visit: LogsExplorerVisit) => void
 		onSearchPlace: (placeId: number) => void
 	} = $props()
-	let activeMenu = $state<{ visit: LogsExplorerVisit; trigger: HTMLElement } | null>(
-		null,
-	)
+	let activeMenu = $state<{
+		visit: LogsExplorerVisit
+		trigger: HTMLElement
+		open: boolean
+	} | null>(null)
 	const menuID = $props.id()
-	const orderedVisits = $derived(newestFirst ? visits.toReversed() : visits)
+	const orderedVisits = $derived(newestFirst ? visits.toReversed() : visits),
+		openVisit = $derived(activeMenu?.open ? activeMenu.visit : null)
 
 	$effect(() => {
 		void orderedVisits
-		activeMenu = null
+		untrack(closeMenu)
 	})
 
 	function toggleMenu(event: MouseEvent, visit: LogsExplorerVisit): void {
 		event.preventDefault()
 		const trigger = event.currentTarget as HTMLElement
-		activeMenu = activeMenu?.trigger === trigger ? null : { visit, trigger }
+		if (activeMenu?.open && activeMenu.trigger === trigger) closeMenu()
+		else activeMenu = { visit, trigger, open: true }
+	}
+
+	function closeMenu(): void {
+		if (activeMenu) activeMenu = { ...activeMenu, open: false }
 	}
 </script>
 
@@ -86,8 +95,8 @@
 						type="button"
 						aria-label="Event actions"
 						aria-haspopup="menu"
-						aria-expanded={activeMenu?.visit === visit}
-						aria-controls={activeMenu?.visit === visit ? menuID : undefined}
+						aria-expanded={openVisit === visit}
+						aria-controls={openVisit === visit ? menuID : undefined}
 						data-tooltip="Event actions"
 						data-tooltip-side="bottom-end"
 						onclick={(event) => toggleMenu(event, visit)}
@@ -99,7 +108,11 @@
 								(event.shiftKey && event.key === "F10")
 							) {
 								event.preventDefault()
-								activeMenu = { visit, trigger: event.currentTarget }
+								activeMenu = {
+									visit,
+									trigger: event.currentTarget,
+									open: true,
+								}
 							}
 						}}>
 						<Icon svg={dotsThreeIcon} size={14} aria-hidden="true" />
@@ -115,15 +128,15 @@
 	{/each}
 </ol>
 
-{#if activeMenu}
+{#if activeMenu?.open}
 	<LogsExplorerVisitMenu
 		id={menuID}
 		anchor={activeMenu.trigger}
-		onClose={() => (activeMenu = null)}
+		onClose={closeMenu}
 		onFillLaunch={() => {
 			if (!activeMenu) return
 			const { visit } = activeMenu
-			activeMenu = null
+			closeMenu()
 			onFillLaunch(visit)
 		}} />
 {/if}
