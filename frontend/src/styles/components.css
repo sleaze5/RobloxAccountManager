@@ -562,6 +562,18 @@
 	&[data-variant="recorded"] :is(.server-columns, .server-row) > :nth-child(2) {
 		@apply hidden;
 	}
+
+	&[data-variant="private"] {
+		--server-columns: minmax(--spacing(36), 1fr) minmax(--spacing(28), 1fr)
+			--spacing(16) --spacing(20) --spacing(7);
+		--server-min-width: 0;
+	}
+
+	&[data-variant="listed"] {
+		--server-columns: minmax(--spacing(36), 1fr) minmax(--spacing(25), 1fr)
+			--spacing(7);
+		--server-min-width: 0;
+	}
 }
 
 @utility server-columns {

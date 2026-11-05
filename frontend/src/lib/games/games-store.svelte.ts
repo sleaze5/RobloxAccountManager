@@ -1,4 +1,4 @@
-import { Events } from "@wailsio/runtime"
+import { Browser, Events } from "@wailsio/runtime"
 import { createContext } from "svelte"
 import { accountBackend } from "../backend/bridge"
 import type {
@@ -6,6 +6,8 @@ import type {
 	GamePlace,
 	GameServerPage,
 	GameServerRecordPage,
+	ListedPrivateServerPage,
+	PrivateServerPage,
 } from "../backend/bridge"
 import type { NotificationCenter } from "../notifications/notification-center.svelte"
 import { detailsKeepMs, isFresh } from "../shared/freshness"
@@ -65,6 +67,8 @@ export class GamesStore {
 	readonly #details = new Map<number, { game: Game; fetchedAt: number }>()
 	readonly serverPages = new ServerPageCache<GameServerPage>()
 	readonly recordPages = new ServerPageCache<GameServerRecordPage>()
+	readonly privatePages = new ServerPageCache<PrivateServerPage>()
+	readonly listedPages = new ServerPageCache<ListedPrivateServerPage>()
 	#favoritesRequest: ReturnType<typeof accountBackend.ListFavoritePlaces> | null =
 		null
 	#saveRequest:
@@ -163,6 +167,15 @@ export class GamesStore {
 			})
 		} catch {
 			this.error = `${label} could not be copied. Try again.`
+		}
+	}
+
+	async openLink(url: string): Promise<void> {
+		this.closeMenu()
+		try {
+			await Browser.OpenURL(url)
+		} catch (error) {
+			this.error = errorMessage(error, "Could not open the link. Try again.")
 		}
 	}
 
@@ -483,6 +496,8 @@ export class GamesStore {
 		this.#details.clear()
 		this.serverPages.clear()
 		this.recordPages.clear()
+		this.privatePages.clear()
+		this.listedPages.clear()
 		this.#favoritesRequest = null
 		this.#saveRequest = null
 		this.searching =

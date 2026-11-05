@@ -15,6 +15,7 @@ type AppSettingsState struct {
 	Motion               appsettings.MotionPreference `json:"motion"`
 	RoValraEnabled       bool                         `json:"roValraEnabled"`
 	RoValraRegion        string                       `json:"roValraRegion"`
+	RBXServersEnabled    bool                         `json:"rbxServersEnabled"`
 	SettingsRecovered    bool                         `json:"settingsRecovered"`
 }
 
@@ -38,6 +39,7 @@ func (service *Service) GetAppSettings() (AppSettingsState, error) {
 		Motion:               userInterfaceSettings.Motion,
 		RoValraEnabled:       service.settings.Integrations().RoValra,
 		RoValraRegion:        service.settings.Integrations().RoValraRegion,
+		RBXServersEnabled:    service.settings.Integrations().RBXServers,
 		SettingsRecovered:    service.settings.RecoveryError() != nil,
 	}, nil
 }
@@ -57,6 +59,15 @@ func (service *Service) SetRoValraEnabled(enabled bool) error {
 		return err
 	}
 	service.logger.Info("integration settings saved", "operation", "integration-settings", "integration", "rovalra", "enabled", enabled)
+	return nil
+}
+
+func (service *Service) SetRBXServersEnabled(enabled bool) error {
+	if err := service.settings.SetRBXServersEnabled(enabled); err != nil {
+		service.logger.Warn("could not save integration settings", "operation", "integration-settings", "integration", "rbxservers", "error", err)
+		return err
+	}
+	service.logger.Info("integration settings saved", "operation", "integration-settings", "integration", "rbxservers", "enabled", enabled)
 	return nil
 }
 

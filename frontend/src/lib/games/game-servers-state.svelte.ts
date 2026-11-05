@@ -10,10 +10,13 @@ import type {
 	GameServerRecordPage,
 	GameServerRegion,
 	GameServerStats,
+	ListedPrivateServerPage,
+	PrivateServerPage,
+	SavedPrivateServer,
 } from "../backend/bridge"
 import { errorMessage } from "../shared/errors"
 
-export type ServerSource = "roblox" | "rovalra"
+export type ServerSource = "roblox" | "private" | "rovalra" | "rbxservers"
 export type ServerPageSize = 10 | 25 | 50 | 100
 export type RecordPageSize = 10 | 50 | 100
 
@@ -260,6 +263,145 @@ export class RecordedServers extends ServerPager<number, GameServerRecordPage> {
 
 	protected nextCursor(page: GameServerRecordPage): number | null {
 		return page.nextCursor || null
+	}
+}
+
+export class PrivateServers extends ServerPager<string, PrivateServerPage> {
+	constructor(
+		placeId: number,
+		cache: ServerPageCache<PrivateServerPage>,
+		private readonly accountId: () => number,
+	) {
+		super(placeId, "", cache)
+	}
+
+	protected key(cursor: string): PageKey {
+		return { placeId: this.placeId, cursor, accountId: this.accountId() }
+	}
+
+	protected fetch(key: PageKey): CancellableRequest<PrivateServerPage> {
+		return accountBackend.ListPlacePrivateServers({
+			placeId: this.placeId,
+			accountId: key.accountId as number,
+			cursor: key.cursor as string,
+		})
+	}
+
+	protected nextCursor(page: PrivateServerPage): string | null {
+		return page.nextCursor || null
+	}
+}
+
+export class ListedServers extends ServerPager<number, ListedPrivateServerPage> {
+	constructor(placeId: number, cache: ServerPageCache<ListedPrivateServerPage>) {
+		super(placeId, 0, cache)
+	}
+
+	protected key(): PageKey {
+		return { placeId: this.placeId }
+	}
+
+	protected fetch(): CancellableRequest<ListedPrivateServerPage> {
+		return accountBackend.ListRBXServersPrivateServers(this.placeId)
+	}
+
+	protected nextCursor(): null {
+		return null
+	}
+}
+
+export class SavedServers {
+	servers = $state<SavedPrivateServer[] | null>(null)
+	loading = $state(false)
+	saving = $state(false)
+	removing = $state<number | null>(null)
+	error = $state("")
+	actionError = $state("")
+	#active = true
+	#generation = 0
+
+	constructor(readonly placeId: number) {}
+
+	async load(): Promise<void> {
+		if (!this.#active) return
+		const generation = ++this.#generation,
+			current = () => this.#active && generation === this.#generation
+		this.loading = true
+		this.error = ""
+		try {
+			const servers = await accountBackend.ListSavedPrivateServers(this.placeId)
+			if (current()) this.servers = servers ?? []
+		} catch (error) {
+			if (current()) {
+				this.error = errorMessage(
+					error,
+					"Saved links could not be loaded. Try again.",
+				)
+			}
+		} finally {
+			if (current()) this.loading = false
+		}
+	}
+
+	#apply(change: (servers: SavedPrivateServer[]) => SavedPrivateServer[]): void {
+		this.servers = change(this.servers ?? [])
+		if (this.loading) void this.load()
+	}
+
+	async save(accountId: number, name: string, link: string): Promise<boolean> {
+		if (!this.#active || this.saving) return false
+		this.saving = true
+		this.actionError = ""
+		try {
+			const server = await accountBackend.SavePrivateServerLink(
+				this.placeId,
+				accountId,
+				name,
+				link,
+			)
+			if (!this.#active) return false
+			this.#apply((servers) => [
+				...servers.filter((item) => item.id !== server.id),
+				server,
+			])
+			return true
+		} catch (error) {
+			if (this.#active) {
+				this.actionError = errorMessage(
+					error,
+					"The link could not be saved. Try again.",
+				)
+			}
+			return false
+		} finally {
+			if (this.#active) this.saving = false
+		}
+	}
+
+	async remove(server: SavedPrivateServer): Promise<boolean> {
+		if (!this.#active || this.removing !== null) return false
+		this.removing = server.id
+		this.actionError = ""
+		try {
+			await accountBackend.RemoveSavedPrivateServer(server.id)
+			if (!this.#active) return false
+			this.#apply((servers) => servers.filter((item) => item.id !== server.id))
+			return true
+		} catch (error) {
+			if (this.#active) {
+				this.actionError = errorMessage(
+					error,
+					"The link could not be removed. Try again.",
+				)
+			}
+			return false
+		} finally {
+			if (this.#active) this.removing = null
+		}
+	}
+
+	dispose(): void {
+		this.#active = false
 	}
 }
 

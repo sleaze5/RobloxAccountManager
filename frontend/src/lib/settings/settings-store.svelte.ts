@@ -35,6 +35,8 @@ export class SettingsStore {
 	roValraRegion = $state("")
 	busyRoValra = $state(false)
 	busyRoValraRegion = $state(false)
+	rbxServersEnabled = $state(true)
+	busyRBXServers = $state(false)
 	serverRegions = $state<GameRegion[] | null>(null)
 	serverRegionsFailed = $state(false)
 	loadingServerRegions = $state(false)
@@ -58,6 +60,7 @@ export class SettingsStore {
 			setMotionPreference(settings.motion)
 			this.roValraEnabled = settings.roValraEnabled
 			this.roValraRegion = settings.roValraRegion
+			this.rbxServersEnabled = settings.rbxServersEnabled
 			if (settings.settingsRecovered) {
 				notifications.show({
 					id: "settings-recovered",
@@ -154,6 +157,23 @@ export class SettingsStore {
 			this.error = errorMessage(error, "The RoValra setting could not be saved.")
 		} finally {
 			this.busyRoValra = false
+		}
+	}
+
+	async setRBXServersEnabled(enabled: boolean): Promise<void> {
+		if (this.busyRBXServers) return
+		this.busyRBXServers = true
+		this.error = ""
+		try {
+			await accountBackend.SetRBXServersEnabled(enabled)
+			this.rbxServersEnabled = enabled
+		} catch (error) {
+			this.error = errorMessage(
+				error,
+				"The RBXServers setting could not be saved.",
+			)
+		} finally {
+			this.busyRBXServers = false
 		}
 	}
 

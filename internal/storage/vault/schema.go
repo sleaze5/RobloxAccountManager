@@ -10,9 +10,9 @@ import (
 	"github.com/sleaze5/RobloxAccountManager/internal/logging"
 )
 
-const schemaVersion = 5
+const schemaVersion = 6
 
-var schemaMigrations = [...]func(context.Context, *sql.Tx) error{addAccountPasswords, splitPublicMetadata, restoreAccountNames, addPendingSettingsImport}
+var schemaMigrations = [...]func(context.Context, *sql.Tx) error{addAccountPasswords, splitPublicMetadata, restoreAccountNames, addPendingSettingsImport, addSavedPrivateServers}
 
 var _ = [1]struct{}{}[len(schemaMigrations)-(schemaVersion-1)]
 
@@ -188,6 +188,22 @@ CREATE TABLE pending_settings_import (
     sections    TEXT NOT NULL
 )`); err != nil {
 		return fmt.Errorf("add pending settings import: %w", err)
+	}
+	return nil
+}
+
+func addSavedPrivateServers(ctx context.Context, tx *sql.Tx) error {
+	if _, err := tx.ExecContext(ctx, `
+CREATE TABLE saved_private_servers (
+    id              INTEGER PRIMARY KEY,
+    place_id        INTEGER NOT NULL CHECK (place_id > 0),
+    access_code     TEXT NOT NULL CHECK (access_code <> '' AND length(access_code) <= 512),
+    link_code       TEXT NOT NULL DEFAULT '' CHECK (length(link_code) <= 512),
+    name            TEXT NOT NULL CHECK (length(name) <= 50),
+    created_at_ms   INTEGER NOT NULL,
+    UNIQUE (place_id, access_code)
+)`); err != nil {
+		return fmt.Errorf("add saved private servers: %w", err)
 	}
 	return nil
 }

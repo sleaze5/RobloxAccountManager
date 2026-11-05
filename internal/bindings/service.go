@@ -334,6 +334,10 @@ func (service *Service) SetRoValraEnabled(enabled bool) error {
 	return service.core.SetRoValraEnabled(enabled)
 }
 
+func (service *Service) SetRBXServersEnabled(enabled bool) error {
+	return service.core.SetRBXServersEnabled(enabled)
+}
+
 func (service *Service) ParseTimestampFormat(source string) (timestampformat.Format, error) {
 	return service.core.ParseTimestampFormat(source)
 }

@@ -11,7 +11,7 @@
 	const terms = $derived(query.trim().toLowerCase().split(/\s+/).filter(Boolean)),
 		visible = $derived(
 			terms.every((term) =>
-				"integrations rovalra api server browser servers information features enabled disabled on off preferred region country nearest launch join refresh regions hosts connect apis.rovalra.com".includes(
+				"integrations rovalra rbxservers api private server browser servers information features enabled disabled on off preferred region country nearest launch join refresh regions hosts connect domain data sent apis.rovalra.com rbxservers.xyz".includes(
 					term,
 				),
 			),
@@ -128,6 +128,41 @@
 				</div>
 			{/if}
 			<ConnectionHosts hosts={["apis.rovalra.com"]} />
+		</div>
+	</section>
+
+	<section class="settings-section" aria-labelledby="rbxservers-title">
+		<h3 class="flex items-center justify-between gap-2">
+			<span id="rbxservers-title">RBXServers</span>
+			<SectionLink
+				label="Open RBXServers website"
+				url="https://rbxservers.xyz/" />
+		</h3>
+		<div class="settings-rows">
+			<div class="settings-row">
+				<div class="settings-row-copy">
+					<strong id="rbxservers-enabled">Shared private servers</strong>
+					<span id="rbxservers-description"
+						>List private servers that people share on RBXServers. Opening
+						the list sends the place ID.</span>
+				</div>
+				<label class="switch">
+					<input
+						type="checkbox"
+						role="switch"
+						aria-labelledby="rbxservers-title rbxservers-enabled"
+						aria-describedby="rbxservers-description"
+						checked={store.rbxServersEnabled}
+						disabled={!store.initialized || store.busyRBXServers}
+						onchange={(event) => {
+							const enabled = event.currentTarget.checked
+							event.currentTarget.checked = store.rbxServersEnabled
+							void store.setRBXServersEnabled(enabled)
+						}} />
+					<span aria-hidden="true"></span>
+				</label>
+			</div>
+			<ConnectionHosts hosts={["rbxservers.xyz"]} />
 		</div>
 	</section>
 {/if}

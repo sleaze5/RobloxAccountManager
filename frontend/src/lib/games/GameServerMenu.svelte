@@ -1,21 +1,26 @@
+<script lang="ts" module>
+	export interface ServerMenuAction {
+		label: string
+		icon: string
+		danger?: boolean
+		onSelect: () => void
+	}
+</script>
+
 <script lang="ts">
-	import hashIcon from "@phosphor-icons/core/regular/hash.svg?raw"
-	import listPlusIcon from "@phosphor-icons/core/regular/list-plus.svg?raw"
 	import Icon from "../shared/Icon.svelte"
 	import { menuIn, menuOut, placeMenuAtAnchor } from "../shared/presence"
 
 	let {
 		id,
 		anchor,
+		actions,
 		onClose,
-		onFillLaunch,
-		onCopyJobId,
 	}: {
 		id: string
 		anchor: HTMLElement
+		actions: ServerMenuAction[]
 		onClose: () => void
-		onFillLaunch: () => void
-		onCopyJobId: () => void
 	} = $props()
 	let menu = $state<HTMLElement>()
 	let restoreFocus = false
@@ -105,12 +110,15 @@
 	use:positionMenu={anchor}
 	in:menuIn|global
 	out:menuOut|global>
-	<button class="menu-item" type="button" role="menuitem" onclick={onFillLaunch}>
-		<Icon svg={listPlusIcon} size={16} aria-hidden="true" />
-		<span>Fill launch options</span>
-	</button>
-	<button class="menu-item" type="button" role="menuitem" onclick={onCopyJobId}>
-		<Icon svg={hashIcon} size={16} aria-hidden="true" />
-		<span>Copy job ID</span>
-	</button>
+	{#each actions as action (action.label)}
+		{#if action.danger}<div class="menu-separator"></div>{/if}
+		<button
+			class={action.danger ? "menu-item-danger" : "menu-item"}
+			type="button"
+			role="menuitem"
+			onclick={action.onSelect}>
+			<Icon svg={action.icon} size={16} aria-hidden="true" />
+			<span>{action.label}</span>
+		</button>
+	{/each}
 </div>

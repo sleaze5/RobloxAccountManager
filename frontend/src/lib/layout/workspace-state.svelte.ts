@@ -22,7 +22,7 @@ export type ActiveAccountMenu =
 
 export class WorkspaceState {
 	accountPage = $state<"profile" | "settings" | "chats">("profile")
-	accountSettingsPage = $state<"info" | "privacy">("info")
+	accountSettingsPage = $state<"info" | "privacy" | "servers">("info")
 	accountSettingsCategory = $state<string | null>(null)
 	accountSettingsQuery = $state("")
 	accountSettingsScrollTop = 0

@@ -6,6 +6,7 @@
 	import circleNotchIcon from "@phosphor-icons/core/regular/circle-notch.svg?raw"
 	import currencyCircleDollarIcon from "@phosphor-icons/core/regular/currency-circle-dollar.svg?raw"
 	import eyeIcon from "@phosphor-icons/core/regular/eye.svg?raw"
+	import hardDrivesIcon from "@phosphor-icons/core/regular/hard-drives.svg?raw"
 	import lockKeyIcon from "@phosphor-icons/core/regular/lock-key.svg?raw"
 	import magnifyingGlassIcon from "@phosphor-icons/core/regular/magnifying-glass.svg?raw"
 	import prohibitIcon from "@phosphor-icons/core/regular/prohibit.svg?raw"
@@ -23,6 +24,8 @@
 	import SavedPasswordDialog from "../dialogs/SavedPasswordDialog.svelte"
 	import type { AccountEditKind } from "../dialogs/AccountEditDialog.svelte"
 	import type { NotificationCenter } from "../notifications/notification-center.svelte"
+	import PrivateServerDialog from "../private-servers/PrivateServerDialog.svelte"
+	import type { OwnedPrivateServer } from "../backend/bridge"
 	import type { AccountStore } from "./account-store.svelte"
 	import AccountInfoPanel, { accountInfoFields } from "./AccountInfoPanel.svelte"
 	import type { AccountInfoFieldId } from "./AccountInfoPanel.svelte"
@@ -32,6 +35,8 @@
 	import { AccountSettingsState } from "./account-settings-state.svelte"
 	import BlockedUsersList from "./BlockedUsersList.svelte"
 	import { BlockedUsersState } from "./blocked-users-state.svelte"
+	import OwnedPrivateServersList from "./OwnedPrivateServersList.svelte"
+	import { OwnedPrivateServersState } from "./owned-private-servers-state.svelte"
 
 	interface FieldDef {
 		key: Key
@@ -426,6 +431,12 @@
 				icon: lockKeyIcon,
 				search: "privacy content restrictions",
 			},
+			{
+				id: "servers",
+				label: "Private servers",
+				icon: hardDrivesIcon,
+				search: "private servers vip owned active renew subscription join link allowed users",
+			},
 		] as const
 
 	type PageId = (typeof pages)[number]["id"]
@@ -447,6 +458,8 @@
 		settingsState = $state<AccountSettingsState | null>(null),
 		infoState = $state<AccountInfoState | null>(null),
 		blockedState = $state<BlockedUsersState | null>(null),
+		ownedState = $state<OwnedPrivateServersState | null>(null),
+		managingServer = $state<OwnedPrivateServer | null>(null),
 		editing = $state<AccountEditKind | null>(null),
 		savedPasswordOpen = $state(false),
 		normalizedQuery = $derived(workspace.accountSettingsQuery.trim().toLowerCase()),
@@ -481,7 +494,10 @@
 			pages.filter((page) =>
 				page.id === "info"
 					? visibleInfoFields.size > 0
-					: visibleCategories.length > 0 || showBlockedUsers,
+					: page.id === "servers"
+						? searchTerms.length === 0 ||
+							matches(`${page.label} ${page.search}`)
+						: visibleCategories.length > 0 || showBlockedUsers,
 			),
 		),
 		activePage = $derived(
@@ -507,9 +523,11 @@
 		refreshing = $derived(
 			activePage?.id === "info"
 				? (infoState?.loading ?? false)
-				: blockedUsersOpen
-					? (blockedState?.loading ?? false)
-					: busy,
+				: activePage?.id === "servers"
+					? (ownedState?.loading ?? false)
+					: blockedUsersOpen
+						? (blockedState?.loading ?? false)
+						: busy,
 		)
 
 	$effect(() => {
@@ -525,9 +543,11 @@
 		const page = activePage?.id,
 			info = infoState,
 			settings = settingsState,
+			owned = ownedState,
 			blocked = blockedUsersOpen ? blockedState : null
 		untrack(() => {
 			if (page === "info" && info && !info.snapshot) void info.refresh()
+			if (page === "servers" && owned && !owned.servers) void owned.refresh()
 			if (page === "privacy" && settings && !settings.snapshot) {
 				void settings.refresh()
 			}
@@ -543,9 +563,11 @@
 			ready =
 				activePage?.id === "info"
 					? !!infoState?.snapshot
-					: blockedUsersOpen
-						? !!blockedState?.users
-						: !!settingsState?.snapshot,
+					: activePage?.id === "servers"
+						? !!ownedState?.servers
+						: blockedUsersOpen
+							? !!blockedState?.users
+							: !!settingsState?.snapshot,
 			scrollTop = untrack(() => workspace.accountSettingsScrollTop),
 			anchor = untrack(() => workspace.accountSettingsScrollAnchor)
 		let cancelled = false
@@ -608,6 +630,7 @@
 
 	function refresh(): void {
 		if (activePage?.id === "info") void infoState?.refresh()
+		else if (activePage?.id === "servers") void ownedState?.refresh()
 		else if (blockedUsersOpen) void blockedState?.refresh()
 		else void settingsState?.refresh()
 	}
@@ -751,16 +774,19 @@
 			notifications,
 		)
 		const info = new AccountInfoState(store.selectedAccount.id, store),
-			blocked = new BlockedUsersState(store.selectedAccount.id, store)
+			blocked = new BlockedUsersState(store.selectedAccount.id, store),
+			owned = new OwnedPrivateServersState(store.selectedAccount.id, store)
 		settingsState = settings
 		infoState = info
 		blockedState = blocked
+		ownedState = owned
 		heading?.closest("[data-workspace-scroll]")?.scrollTo({ top: 0 })
 		heading?.focus({ preventScroll: true })
 		return () => {
 			settings.dispose()
 			info.dispose()
 			blocked.dispose()
+			owned.dispose()
 		}
 	})
 	const subpageClass =
@@ -871,6 +897,14 @@
 							visible={visibleInfoFields}
 							onSavedPassword={() => (savedPasswordOpen = true)}
 							onEdit={(kind) => (editing = kind)} />
+					{/if}
+				{:else if activePage.id === "servers"}
+					<h2>Private servers</h2>
+					{#if ownedState}
+						<OwnedPrivateServersList
+							owned={ownedState}
+							username={store.selectedAccount.username}
+							onManage={(server) => (managingServer = server)} />
 					{/if}
 				{:else}
 					<h2>{privacyLabel}</h2>
@@ -1042,6 +1076,17 @@
 		{notifications}
 		onSaved={() => void infoState?.refresh()}
 		onClose={() => (editing = null)} />
+{/if}
+
+{#if managingServer && store.vault.unlocked}
+	<PrivateServerDialog
+		accountId={store.selectedAccount.id}
+		username={store.selectedAccount.username}
+		serverId={managingServer.serverId}
+		name={managingServer.name}
+		{notifications}
+		onChanged={(settings) => ownedState?.update(settings)}
+		onClose={() => (managingServer = null)} />
 {/if}
 
 {#if savedPasswordOpen && store.vault.unlocked}

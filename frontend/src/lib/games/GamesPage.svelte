@@ -13,8 +13,10 @@
 	import warningIcon from "@phosphor-icons/core/regular/warning.svg?raw"
 	import xIcon from "@phosphor-icons/core/regular/x.svg?raw"
 	import Icon from "../shared/Icon.svelte"
+	import type { AccountStore } from "../accounts/account-store.svelte"
 	import SidebarResizer from "../layout/SidebarResizer.svelte"
 	import type { WorkspaceState } from "../layout/workspace-state.svelte"
+	import type { NotificationCenter } from "../notifications/notification-center.svelte"
 	import { isMoveShortcut, moveListFocus } from "../shared/move-shortcut"
 	import OperationError from "../shared/OperationError.svelte"
 	import { menuIn, menuOut } from "../shared/presence"
@@ -26,12 +28,18 @@
 
 	let {
 		store,
+		accounts,
+		notifications,
 		workspace,
 		onFillLaunch,
+		onFillLaunchLink,
 	}: {
 		store: GamesStore
+		accounts: AccountStore
+		notifications: NotificationCenter
 		workspace: WorkspaceState
 		onFillLaunch: (placeId: number, jobId?: string) => void
+		onFillLaunchLink: (link: string) => void
 	} = $props()
 	const favoritesMode = $derived(store.mode === "favorites"),
 		count = $derived(store.places.length),
@@ -446,8 +454,11 @@
 					{#if store.detailsPage === "servers"}
 						<GameServersPage
 							{store}
+							{accounts}
+							{notifications}
 							onBack={() => void closeServers()}
-							{onFillLaunch} />
+							{onFillLaunch}
+							{onFillLaunchLink} />
 					{:else}
 						<GameDetails
 							{store}
