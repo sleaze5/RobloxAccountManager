@@ -395,7 +395,7 @@
 							{@const presence = presenceLine(person.presence)}
 							<button
 								class={[
-									"group/row list-row relative flex w-full items-center gap-2 border-b border-line-subtle px-3 text-left",
+									"group/row list-row relative flex w-full flex-col justify-center gap-1 border-b border-line-subtle px-3 text-left",
 									presence ? "h-16" : "h-12",
 								]}
 								data-selected={active || undefined}
@@ -416,22 +416,25 @@
 										store.openMenu(event, person)
 									moveListFocus(event)
 								}}>
-								<SocialAvatar
-									imageUrl={person.imageUrl}
-									presence={person.presence ?? undefined}
-									className="size-9" />
-								<span class="flex min-w-0 flex-col leading-snug">
-									<strong
-										class="truncate text-sm font-semibold text-fg"
-										>{personName(person)}</strong>
-									<small
-										class="truncate text-2xs text-fg-faint group-hover/row:text-fg-muted group-data-selected/row:text-fg-muted"
-										>{subtitle(person)}</small>
-									{#if presence}
-										<small class="truncate text-2xs text-fg-muted"
-											>{presence}</small>
-									{/if}
+								<span class="flex w-full min-w-0 items-center gap-2">
+									<SocialAvatar
+										imageUrl={person.imageUrl}
+										presence={person.presence ?? undefined}
+										className="size-9" />
+									<span class="flex min-w-0 flex-col leading-snug">
+										<strong
+											class="truncate text-sm font-semibold text-fg"
+											>{personName(person)}</strong>
+										<small
+											class="truncate text-2xs text-fg-faint group-hover/row:text-fg-muted group-data-selected/row:text-fg-muted"
+											>{subtitle(person)}</small>
+									</span>
 								</span>
+								{#if presence}
+									<small
+										class="block w-full truncate text-2xs text-fg-muted"
+										>{presence}</small>
+								{/if}
 							</button>
 						{/each}
 						{#if !players && filterText.length >= minimumSearchLength}

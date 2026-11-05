@@ -154,7 +154,7 @@
 			ondragover={(event) => updateDropTarget(event, account.id)}
 			ondrop={(event) => dropAccount(event, account.id)}>
 			{#if store.multipleSelected}
-				<span class="checkbox ml-2">
+				<span class={["checkbox ml-2", presence && "mt-4 self-start"]}>
 					<input
 						type="checkbox"
 						aria-label={`Select @${account.username}`}
@@ -177,7 +177,10 @@
 				</span>
 			{:else}
 				<span
-					class="grid h-7 w-5 shrink-0 cursor-grab place-items-center pl-2 text-fg-faint active:cursor-grabbing"
+					class={[
+						"grid h-7 w-5 shrink-0 cursor-grab place-items-center pl-2 text-fg-faint active:cursor-grabbing",
+						presence && "mt-2.5 self-start",
+					]}
 					draggable={!store.busy && store.accounts.length > 1}
 					aria-hidden="true"
 					ondragstart={(event) => startDrag(event, account.id)}
@@ -186,7 +189,7 @@
 				</span>
 			{/if}
 			<button
-				class="flex h-full min-w-0 flex-1 items-center gap-2 pr-2 text-left"
+				class="flex h-full min-w-0 flex-1 flex-col justify-center gap-1 pr-2 text-left"
 				data-account-select
 				data-list-item
 				type="button"
@@ -208,28 +211,30 @@
 					}
 				}}
 				ondragstart={(event) => event.preventDefault()}>
-				<AccountAvatar
-					{account}
-					className="size-9 text-xs"
-					showPresence={true} />
-				<span class="block min-w-0">
-					<strong
-						class="mb-0.5 flex min-w-0 items-center gap-1 text-sm font-semibold text-fg">
-						<span class="truncate">{account.displayName}</span>
-						{#if account.favorite}<Icon
-								svg={starFillIcon}
-								class="shrink-0 animate-pop text-accent-strong"
-								size={12}
-								aria-hidden="true" />{/if}
-					</strong>
-					<small
-						class="block truncate text-2xs text-fg-faint group-hover/row:text-fg-muted group-data-selected/row:text-fg-muted"
-						>@{account.username}</small>
-					{#if presence}
-						<small class="block truncate text-2xs text-fg-muted"
-							>{presence}</small>
-					{/if}
+				<span class="flex w-full min-w-0 items-center gap-2">
+					<AccountAvatar
+						{account}
+						className="size-9 text-xs"
+						showPresence={true} />
+					<span class="block min-w-0">
+						<strong
+							class="mb-0.5 flex min-w-0 items-center gap-1 text-sm font-semibold text-fg">
+							<span class="truncate">{account.displayName}</span>
+							{#if account.favorite}<Icon
+									svg={starFillIcon}
+									class="shrink-0 animate-pop text-accent-strong"
+									size={12}
+									aria-hidden="true" />{/if}
+						</strong>
+						<small
+							class="block truncate text-2xs text-fg-faint group-hover/row:text-fg-muted group-data-selected/row:text-fg-muted"
+							>@{account.username}</small>
+					</span>
 				</span>
+				{#if presence}
+					<small class="block w-full truncate text-2xs text-fg-muted"
+						>{presence}</small>
+				{/if}
 			</button>
 		</div>
 	{:else}
