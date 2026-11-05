@@ -23,10 +23,10 @@
 	<div
 		class="pointer-events-none absolute left-1/2 flex -translate-x-1/2 items-baseline gap-1 text-xs text-fg-muted">
 		<span>Roblox Account Manager</span>
+		{#if !release}<span class="text-2xs font-medium text-fg-faint">[DEV BUILD]</span
+			>{/if}
 		<span class="text-fg-faint" aria-hidden="true">-</span>
 		<span class="font-mono text-2xs text-fg-faint">{version}</span>
-		{#if !release}<span class="text-2xs font-medium text-fg-faint">DEV BUILD</span
-			>{/if}
 	</div>
 	<div class="ml-auto flex h-full" style="--wails-draggable: no-drag">
 		<button
