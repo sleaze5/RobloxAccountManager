@@ -99,6 +99,7 @@ type RobloxSettings struct {
 type IntegrationSettings struct {
 	RoValra       bool   `json:"rovalra"`
 	RoValraRegion string `json:"rovalraRegion"`
+	RBXServers    bool   `json:"rbxservers"`
 }
 
 type LoggingSettings struct {
@@ -298,6 +299,7 @@ func decodeCurrent(document object) (Settings, []string) {
 	integrations := fields.object(document, "integrations")
 	decodeField(fields, integrations, "integrations.rovalra", &settings.Integrations.RoValra, nil)
 	decodeField(fields, integrations, "integrations.rovalraRegion", &settings.Integrations.RoValraRegion, nil)
+	decodeField(fields, integrations, "integrations.rbxservers", &settings.Integrations.RBXServers, nil)
 	vault := fields.object(document, "vault")
 	decodeField(fields, vault, "vault.passwordTestIntervalDays", &settings.Vault.PasswordTestIntervalDays, validPasswordTestInterval)
 	decodeField(fields, vault, "vault.lastPasswordTestedAtMs", &settings.Vault.LastPasswordTestedAtMs, validTimestamp)
@@ -360,7 +362,7 @@ func defaults() Settings {
 			Profile:  PresenceUpdateSettings{Enabled: true, IntervalSeconds: DefaultProfilePresenceIntervalSeconds},
 			Social:   PresenceUpdateSettings{Enabled: true, IntervalSeconds: DefaultSocialPresenceIntervalSeconds},
 		},
-		Integrations: IntegrationSettings{RoValra: true},
+		Integrations: IntegrationSettings{RoValra: true, RBXServers: true},
 		Vault:        VaultSettings{PasswordTestIntervalDays: DefaultPasswordTestIntervalDays},
 		Logging:      LoggingSettings{EnabledLevels: defaultEnabledLoggingLevels()},
 		UserInterface: UserInterfaceSettings{
@@ -495,6 +497,18 @@ func (store *Store) SetRoValraEnabled(enabled bool) error {
 	defer store.mu.Unlock()
 	previous := store.settings.Integrations
 	store.settings.Integrations.RoValra = enabled
+	if err := store.saveLocked(); err != nil {
+		store.settings.Integrations = previous
+		return err
+	}
+	return nil
+}
+
+func (store *Store) SetRBXServersEnabled(enabled bool) error {
+	store.mu.Lock()
+	defer store.mu.Unlock()
+	previous := store.settings.Integrations
+	store.settings.Integrations.RBXServers = enabled
 	if err := store.saveLocked(); err != nil {
 		store.settings.Integrations = previous
 		return err

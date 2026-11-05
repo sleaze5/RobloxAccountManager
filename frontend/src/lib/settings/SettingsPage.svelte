@@ -55,7 +55,7 @@
 			icon: plugIcon,
 			id: "integrations",
 			label: "Integrations",
-			search: "integrations rovalra api server browser servers information features enabled disabled on off browser chrome testing runtime version download redownload remove disk usage installed invalid manage",
+			search: "integrations rovalra rbxservers api private server browser servers information features enabled disabled on off domain domains data sent privacy browser chrome testing runtime version download redownload remove disk usage installed invalid manage",
 		},
 		{
 			icon: infoIcon,

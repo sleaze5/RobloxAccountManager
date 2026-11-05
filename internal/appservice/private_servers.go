@@ -140,6 +140,9 @@ func (service *Service) ListRBXServersPrivateServers(ctx context.Context, placeI
 	if err := validGameID(placeID); err != nil {
 		return games.ListedPrivateServerPage{}, err
 	}
+	if !service.settings.Integrations().RBXServers {
+		return games.ListedPrivateServerPage{}, gamesInputError("Turn on the RBXServers integration in Settings to use RBXServers servers.")
+	}
 	ctx, done, err := service.beginGames(ctx)
 	if err != nil {
 		return games.ListedPrivateServerPage{}, err

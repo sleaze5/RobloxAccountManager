@@ -101,7 +101,9 @@
 		} | null>(null)
 	const sources = $derived(
 			allSources.filter(
-				(option) => option.id !== "rovalra" || appSettings.roValraEnabled,
+				(option) =>
+					(option.id !== "rovalra" || appSettings.roValraEnabled) &&
+					(option.id !== "rbxservers" || appSettings.rbxServersEnabled),
 			),
 		),
 		source = $derived<ServerSource>(
