@@ -142,8 +142,9 @@ export function presenceDetail(presence: UserPresence, experience = ""): string 
 	const location = presence.lastLocation?.trim() ?? ""
 	switch (presence.userPresenceType) {
 		case PresenceType.PresenceTypeInGame:
-		case PresenceType.PresenceTypeInStudio:
 			return experience || location
+		case PresenceType.PresenceTypeInStudio:
+			return experience || (location.toLowerCase() === "studio" ? "" : location)
 		case PresenceType.PresenceTypeOnline:
 			return location.toLowerCase() === "website" ? "" : location
 		default:

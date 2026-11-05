@@ -394,7 +394,7 @@
 								: ""}
 							<button
 								class={[
-									"group/row list-row relative flex w-full flex-col justify-center gap-1 border-b border-line-subtle px-3 text-left",
+									"group/row list-row relative flex w-full flex-col justify-center border-b border-line-subtle px-3 text-left",
 									detail ? "h-16" : "h-12",
 								]}
 								data-selected={active || undefined}
@@ -415,7 +415,11 @@
 										store.openMenu(event, person)
 									moveListFocus(event)
 								}}>
-								<span class="flex w-full min-w-0 items-center gap-2">
+								<span
+									class={[
+										"flex w-full min-w-0 gap-2",
+										detail ? "items-start" : "items-center",
+									]}>
 									<SocialAvatar
 										imageUrl={person.imageUrl}
 										presence={person.presence ?? undefined}
@@ -427,10 +431,10 @@
 										<small
 											class="truncate text-2xs text-fg-faint group-hover/row:text-fg-muted group-data-selected/row:text-fg-muted"
 											>{subtitle(person)}</small>
+										{#if detail && person.presence}<PresenceLine
+												presence={person.presence} />{/if}
 									</span>
 								</span>
-								{#if detail && person.presence}<PresenceLine
-										presence={person.presence} />{/if}
 							</button>
 						{/each}
 						{#if !players && filterText.length >= minimumSearchLength}

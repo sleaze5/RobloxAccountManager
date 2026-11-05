@@ -190,7 +190,7 @@
 				</span>
 			{/if}
 			<button
-				class="flex h-full min-w-0 flex-1 flex-col justify-center gap-1 pr-2 text-left"
+				class="flex h-full min-w-0 flex-1 flex-col justify-center pr-2 text-left"
 				data-account-select
 				data-list-item
 				type="button"
@@ -212,7 +212,11 @@
 					}
 				}}
 				ondragstart={(event) => event.preventDefault()}>
-				<span class="flex w-full min-w-0 items-center gap-2">
+				<span
+					class={[
+						"flex w-full min-w-0 gap-2",
+						detail ? "items-start" : "items-center",
+					]}>
 					<AccountAvatar
 						{account}
 						className="size-9 text-xs"
@@ -230,9 +234,9 @@
 						<small
 							class="block truncate text-2xs text-fg-faint group-hover/row:text-fg-muted group-data-selected/row:text-fg-muted"
 							>@{account.username}</small>
+						{#if detail}<PresenceLine presence={account.presence} />{/if}
 					</span>
 				</span>
-				{#if detail}<PresenceLine presence={account.presence} />{/if}
 			</button>
 		</div>
 	{:else}
