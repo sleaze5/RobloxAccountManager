@@ -126,8 +126,8 @@ func (service *Service) ListSavedPrivateServers(ctx context.Context, placeID int
 	return service.core.ListSavedPrivateServers(ctx, placeID)
 }
 
-func (service *Service) SavePrivateServerLink(ctx context.Context, placeID int64, name, link string) (games.SavedPrivateServer, error) {
-	return service.core.SavePrivateServerLink(ctx, placeID, name, link)
+func (service *Service) SavePrivateServerLink(ctx context.Context, placeID, accountID int64, name, link string) (games.SavedPrivateServer, error) {
+	return service.core.SavePrivateServerLink(ctx, placeID, accountID, name, link)
 }
 
 func (service *Service) RemoveSavedPrivateServer(ctx context.Context, id int64) error {

@@ -230,27 +230,62 @@ func (service *Service) ListSavedPrivateServers(ctx context.Context, placeID int
 	return servers, service.gamesError(ctx, "private-server-links", err)
 }
 
-func (service *Service) SavePrivateServerLink(ctx context.Context, placeID int64, name, link string) (games.SavedPrivateServer, error) {
+func (service *Service) SavePrivateServerLink(ctx context.Context, placeID, accountID int64, name, link string) (games.SavedPrivateServer, error) {
 	if err := validGameID(placeID); err != nil {
 		return games.SavedPrivateServer{}, err
 	}
-	name, link = strings.TrimSpace(name), strings.TrimSpace(link)
+	name = strings.TrimSpace(name)
 	if utf8.RuneCountInString(name) > maxPrivateServerNameLength || strings.ContainsFunc(name, unicode.IsControl) {
 		return games.SavedPrivateServer{}, privateServerInputError("Enter a name of up to 50 characters.")
 	}
-	if err := validPrivateServerLink(placeID, link); err != nil {
+	target, err := service.privateServerTarget(ctx, accountID, link)
+	if err != nil {
 		return games.SavedPrivateServer{}, err
+	}
+	if target.PlaceID != placeID {
+		return games.SavedPrivateServer{}, privateServerInputError("This link is for a different game.")
 	}
 	ctx, done, err := service.beginGames(ctx)
 	if err != nil {
 		return games.SavedPrivateServer{}, err
 	}
 	defer done()
-	server, err := service.favoritePlaces.SavePrivateServer(ctx, games.SavedPrivateServer{PlaceID: placeID, Name: name, Link: link})
+	server, err := service.favoritePlaces.SavePrivateServer(ctx, games.SavedPrivateServer{PlaceID: placeID, Name: name, AccessCode: target.AccessCode, LinkCode: target.LinkCode})
 	if errors.Is(err, gamestore.ErrPrivateServerSaved) {
-		return games.SavedPrivateServer{}, privateServerInputError("This link is already saved for this game.")
+		return games.SavedPrivateServer{}, privateServerInputError("This private server is already saved for this game.")
 	}
 	return server, service.gamesError(ctx, "private-server-link-save", err)
+}
+
+// privateServerTarget reads the place ID and access code from a private server link.
+// Share links and link codes carry no access code, so Roblox resolves them for the account.
+func (service *Service) privateServerTarget(ctx context.Context, accountID int64, link string) (gamelaunch.Request, error) {
+	link = strings.TrimSpace(link)
+	invalid := privateServerInputError("Paste a private server link, a server share link, or a link with an access code.")
+	if len(link) > 2048 {
+		return gamelaunch.Request{}, invalid
+	}
+	target, err := gamelaunch.Parse(gamelaunch.Input{Method: gamelaunch.MethodLink, Link: link})
+	if err != nil || target.LinkCode == "" && target.AccessCode == "" && target.ShareType != gamelaunch.ShareServer {
+		return gamelaunch.Request{}, invalid
+	}
+	if target.AccessCode == "" {
+		if accountID <= 0 {
+			return gamelaunch.Request{}, privateServerInputError("Add an account first. Roblox reads the access code of this link for an account.")
+		}
+		ctx, version, done, err := service.beginAccountSession(ctx, accountID, "private-server-link-resolve")
+		if err != nil {
+			return gamelaunch.Request{}, err
+		}
+		defer done()
+		if target, err = service.gameLinks.Resolve(ctx, accountID, version, target); err != nil {
+			return gamelaunch.Request{}, err
+		}
+	}
+	if target.PlaceID <= 0 || target.AccessCode == "" {
+		return gamelaunch.Request{}, invalid
+	}
+	return target, nil
 }
 
 func (service *Service) RemoveSavedPrivateServer(ctx context.Context, id int64) error {
@@ -266,20 +301,6 @@ func (service *Service) RemoveSavedPrivateServer(ctx context.Context, id int64) 
 		return privateServerInputError("This link was already removed. Refresh the private servers.")
 	} else if err != nil {
 		return service.gamesError(ctx, "private-server-link-remove", err)
-	}
-	return nil
-}
-
-func validPrivateServerLink(placeID int64, link string) error {
-	if len(link) > 2048 {
-		return privateServerInputError("The link is too long.")
-	}
-	request, err := gamelaunch.Parse(gamelaunch.Input{Method: gamelaunch.MethodLink, Link: link})
-	if err != nil || request.LinkCode == "" && request.AccessCode == "" && request.ShareType != gamelaunch.ShareServer {
-		return privateServerInputError("Paste a private server link, a server share link, or a link with an access code.")
-	}
-	if request.PlaceID != 0 && request.PlaceID != placeID {
-		return privateServerInputError("This link is for a different game.")
 	}
 	return nil
 }

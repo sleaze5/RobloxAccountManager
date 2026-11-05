@@ -184,7 +184,7 @@ func readFavoritePlaces(ctx context.Context, tx *sql.Tx) ([]FavoritePlace, error
 // Replace keeps new row IDs above the removed ones, so account and tag IDs that the
 // application still holds for removed rows never point at imported rows.
 func readSavedPrivateServers(ctx context.Context, tx *sql.Tx) ([]SavedPrivateServer, error) {
-	rows, err := tx.QueryContext(ctx, `SELECT place_id, name, link FROM saved_private_servers ORDER BY id`)
+	rows, err := tx.QueryContext(ctx, `SELECT place_id, name, access_code, link_code FROM saved_private_servers ORDER BY id`)
 	if err != nil {
 		return nil, fmt.Errorf("list exported saved private servers: %w", err)
 	}
@@ -192,7 +192,7 @@ func readSavedPrivateServers(ctx context.Context, tx *sql.Tx) ([]SavedPrivateSer
 	servers := []SavedPrivateServer{}
 	for rows.Next() {
 		var server SavedPrivateServer
-		if err := rows.Scan(&server.PlaceID, &server.Name, &server.Link); err != nil {
+		if err := rows.Scan(&server.PlaceID, &server.Name, &server.AccessCode, &server.LinkCode); err != nil {
 			return nil, fmt.Errorf("read exported saved private server: %w", err)
 		}
 		servers = append(servers, server)
@@ -293,7 +293,7 @@ func mergeFavoritePlaces(ctx context.Context, tx *sql.Tx, places []FavoritePlace
 func insertSavedPrivateServers(ctx context.Context, tx *sql.Tx, servers []SavedPrivateServer, now int64) (int, error) {
 	inserted := 0
 	for _, server := range servers {
-		result, err := tx.ExecContext(ctx, `INSERT INTO saved_private_servers(place_id, name, link, created_at_ms) VALUES(?, ?, ?, ?) ON CONFLICT(place_id, link) DO NOTHING`, server.PlaceID, server.Name, server.Link, now)
+		result, err := tx.ExecContext(ctx, `INSERT INTO saved_private_servers(place_id, name, access_code, link_code, created_at_ms) VALUES(?, ?, ?, ?, ?) ON CONFLICT(place_id, access_code) DO NOTHING`, server.PlaceID, server.Name, server.AccessCode, server.LinkCode, now)
 		if err != nil {
 			return 0, fmt.Errorf("insert imported saved private server: %w", err)
 		}

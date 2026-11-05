@@ -5,16 +5,16 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"regexp"
 	"unicode/utf8"
 
 	accountdomain "github.com/sleaze5/RobloxAccountManager/internal/accounts"
 )
 
 const (
-	FormatVersion             = 2
-	maxFavoriteNicknameLen    = 50
-	maxPrivateServerNameLen   = 50
-	maxPrivateServerLinkBytes = 2048
+	FormatVersion           = 2
+	maxFavoriteNicknameLen  = 50
+	maxPrivateServerNameLen = 50
 )
 
 var (
@@ -45,10 +45,13 @@ type Payload struct {
 }
 
 type SavedPrivateServer struct {
-	PlaceID int64  `json:"placeId"`
-	Name    string `json:"name"`
-	Link    string `json:"link"`
+	PlaceID    int64  `json:"placeId"`
+	Name       string `json:"name"`
+	AccessCode string `json:"accessCode"`
+	LinkCode   string `json:"linkCode"`
 }
+
+var privateServerCodePattern = regexp.MustCompile(`^[a-zA-Z0-9_-]{1,512}$`)
 
 type Account struct {
 	RobloxUserID      int64    `json:"robloxUserId"`
@@ -126,19 +129,20 @@ func (payload Payload) validate() error {
 
 func validateSavedPrivateServers(servers []SavedPrivateServer) error {
 	type key struct {
-		placeID int64
-		link    string
+		placeID    int64
+		accessCode string
 	}
 	seen := make(map[key]struct{}, len(servers))
 	for _, server := range servers {
-		if server.PlaceID <= 0 || server.Link == "" || len(server.Link) > maxPrivateServerLinkBytes || !utf8.ValidString(server.Link) ||
+		if server.PlaceID <= 0 || !privateServerCodePattern.MatchString(server.AccessCode) ||
+			server.LinkCode != "" && !privateServerCodePattern.MatchString(server.LinkCode) ||
 			!utf8.ValidString(server.Name) || utf8.RuneCountInString(server.Name) > maxPrivateServerNameLen {
 			return errors.New("invalid saved private server")
 		}
-		if _, duplicate := seen[key{server.PlaceID, server.Link}]; duplicate {
+		if _, duplicate := seen[key{server.PlaceID, server.AccessCode}]; duplicate {
 			return fmt.Errorf("duplicate saved private server for place %d", server.PlaceID)
 		}
-		seen[key{server.PlaceID, server.Link}] = struct{}{}
+		seen[key{server.PlaceID, server.AccessCode}] = struct{}{}
 	}
 	return nil
 }

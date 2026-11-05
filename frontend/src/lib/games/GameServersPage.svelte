@@ -241,13 +241,13 @@
 				{
 					label: "Fill launch options",
 					icon: listPlusIcon,
-					onSelect: select(() => onFillLaunchLink(server.link)),
+					onSelect: select(() => onFillLaunchLink(server.launchLink)),
 				},
 				{
-					label: "Copy link",
+					label: "Copy launch link",
 					icon: linkIcon,
 					onSelect: select(
-						() => void store.copy(server.link, "Private server link"),
+						() => void store.copy(server.launchLink, "Launch link"),
 					),
 				},
 				{
@@ -404,6 +404,8 @@
 	<AddPrivateServerLinkDialog
 		saved={savedServers}
 		gameName={store.displayName(place)}
+		accountId={accounts.selectedAccount.id}
+		username={accounts.selectedAccount.username}
 		onClose={() => (addingLink = false)} />
 {/if}
 

@@ -130,7 +130,7 @@ func (service *PrivateServers) ForPlace(ctx context.Context, accountID, version,
 			Running: games.ValidJobID(item.ID),
 		}
 		if games.ValidJobID(item.AccessCode) {
-			server.LaunchLink = games.AccessCodeLaunchLink(query.PlaceID, item.AccessCode)
+			server.LaunchLink = games.PrivateServerLaunchLink(query.PlaceID, item.AccessCode, "")
 		}
 		page.Servers = append(page.Servers, server)
 	}

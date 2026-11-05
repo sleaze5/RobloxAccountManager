@@ -340,13 +340,14 @@ export class SavedServers {
 		}
 	}
 
-	async save(name: string, link: string): Promise<boolean> {
+	async save(accountId: number, name: string, link: string): Promise<boolean> {
 		if (!this.#active || this.saving) return false
 		this.saving = true
 		this.actionError = ""
 		try {
 			const server = await accountBackend.SavePrivateServerLink(
 				this.placeId,
+				accountId,
 				name,
 				link,
 			)

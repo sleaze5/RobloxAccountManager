@@ -14,10 +14,14 @@
 	let {
 		saved,
 		gameName,
+		accountId,
+		username,
 		onClose,
 	}: {
 		saved: SavedServers
 		gameName: string
+		accountId: number
+		username: string
 		onClose: () => void
 	} = $props()
 
@@ -37,7 +41,7 @@
 			replayValidationNudge(card)
 			return
 		}
-		if (await saved.save(name, link)) onClose()
+		if (await saved.save(accountId, name, link)) onClose()
 		else replayValidationNudge(card)
 	}
 </script>
@@ -62,7 +66,7 @@
 			<div>
 				<h2 id={`${id}-title`}>Add private server link</h2>
 				<p id={`${id}-description`}>
-					Saved in the vault for {gameName}. Any account can launch it.
+					Saves the place ID and access code in the vault for {gameName}.
 				</p>
 			</div>
 			<button
@@ -93,8 +97,9 @@
 					disabled={saved.saving}
 					bind:value={link} />
 				<small id={`${id}-link-help`} class="text-xs text-fg-muted"
-					>A private server link, a server share link, or a link with an
-					access code.</small>
+					>{accountId
+						? `Share links and link codes are read from Roblox as @${username}.`
+						: "Share links and link codes need an account to read the access code."}</small>
 			</div>
 			<div class="dialog-field">
 				<label for={`${id}-name`}>Name (optional)</label>

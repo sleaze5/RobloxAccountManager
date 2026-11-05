@@ -238,7 +238,7 @@ func (service *Service) transferPreview(ctx context.Context, payload transfersto
 	}
 	for _, server := range payload.SavedPrivateServers {
 		if !slices.ContainsFunc(saved, func(existing games.SavedPrivateServer) bool {
-			return existing.PlaceID == server.PlaceID && existing.Link == server.Link
+			return existing.PlaceID == server.PlaceID && existing.AccessCode == server.AccessCode
 		}) {
 			preview.NewSavedPrivateServers++
 		}

@@ -197,10 +197,11 @@ func addSavedPrivateServers(ctx context.Context, tx *sql.Tx) error {
 CREATE TABLE saved_private_servers (
     id              INTEGER PRIMARY KEY,
     place_id        INTEGER NOT NULL CHECK (place_id > 0),
+    access_code     TEXT NOT NULL CHECK (access_code <> '' AND length(access_code) <= 512),
+    link_code       TEXT NOT NULL DEFAULT '' CHECK (length(link_code) <= 512),
     name            TEXT NOT NULL CHECK (length(name) <= 50),
-    link            TEXT NOT NULL CHECK (link <> '' AND length(link) <= 2048),
     created_at_ms   INTEGER NOT NULL,
-    UNIQUE (place_id, link)
+    UNIQUE (place_id, access_code)
 )`); err != nil {
 		return fmt.Errorf("add saved private servers: %w", err)
 	}

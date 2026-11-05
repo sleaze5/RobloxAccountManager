@@ -241,7 +241,9 @@ type SavedPrivateServer struct {
 	ID          int64  `json:"id"`
 	PlaceID     int64  `json:"placeId"`
 	Name        string `json:"name"`
-	Link        string `json:"link"`
+	AccessCode  string `json:"accessCode"`
+	LinkCode    string `json:"linkCode"`
+	LaunchLink  string `json:"launchLink"`
 	CreatedAtMs int64  `json:"createdAtMs"`
 }
 
@@ -255,8 +257,12 @@ type ListedPrivateServer struct {
 	URL  string `json:"url"`
 }
 
-func AccessCodeLaunchLink(placeID int64, accessCode string) string {
-	return "roblox://experiences/start?placeId=" + strconv.FormatInt(placeID, 10) + "&accessCode=" + url.QueryEscape(accessCode)
+func PrivateServerLaunchLink(placeID int64, accessCode, linkCode string) string {
+	link := "roblox://experiences/start?placeId=" + strconv.FormatInt(placeID, 10) + "&accessCode=" + url.QueryEscape(accessCode)
+	if linkCode != "" {
+		link += "&linkCode=" + url.QueryEscape(linkCode)
+	}
+	return link
 }
 
 const javaScriptMaxSafeInteger = 1<<53 - 1
