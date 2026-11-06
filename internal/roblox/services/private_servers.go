@@ -10,6 +10,7 @@ import (
 	"time"
 	"unicode/utf8"
 
+	"github.com/sleaze5/RobloxAccountManager/internal/gamelaunch"
 	"github.com/sleaze5/RobloxAccountManager/internal/games"
 	"github.com/sleaze5/RobloxAccountManager/internal/roblox"
 )
@@ -18,6 +19,7 @@ const (
 	placePrivateServersPageSize = 25
 	ownedPrivateServersPageSize = 50
 	maxPrivateServerTextLength  = 200
+	maxLinkCodePages            = 20
 )
 
 type PrivateServers struct {
@@ -94,29 +96,23 @@ func (service *PrivateServers) Owned(ctx context.Context, accountID, version int
 	return page, nil
 }
 
+type placePrivateServerPage struct {
+	NextPageCursor string `json:"nextPageCursor"`
+	Data           []struct {
+		VipServerID int64             `json:"vipServerId"`
+		ID          string            `json:"id"`
+		Name        string            `json:"name"`
+		AccessCode  string            `json:"accessCode"`
+		Playing     int64             `json:"playing"`
+		MaxPlayers  int64             `json:"maxPlayers"`
+		Owner       privateServerUser `json:"owner"`
+	} `json:"data"`
+}
+
 func (service *PrivateServers) ForPlace(ctx context.Context, accountID, version, ownerID int64, query games.PrivateServerQuery) (games.PrivateServerPage, error) {
-	parameters := url.Values{"limit": {strconv.Itoa(placePrivateServersPageSize)}}
-	if query.Cursor != "" {
-		parameters.Set("cursor", query.Cursor)
-	}
-	var payload struct {
-		NextPageCursor string `json:"nextPageCursor"`
-		Data           []struct {
-			VipServerID int64             `json:"vipServerId"`
-			ID          string            `json:"id"`
-			Name        string            `json:"name"`
-			AccessCode  string            `json:"accessCode"`
-			Playing     int64             `json:"playing"`
-			MaxPlayers  int64             `json:"maxPlayers"`
-			Owner       privateServerUser `json:"owner"`
-		} `json:"data"`
-	}
-	path := "/v1/games/" + strconv.FormatInt(query.PlaceID, 10) + "/private-servers"
-	if err := service.read(ctx, accountID, version, "private-servers-place", path, parameters, &payload); err != nil {
+	payload, err := service.placePage(ctx, accountID, version, query.PlaceID, query.Cursor)
+	if err != nil {
 		return games.PrivateServerPage{}, err
-	}
-	if len(payload.Data) > 100 || len(payload.NextPageCursor) > maxServerCursorLength {
-		return games.PrivateServerPage{}, privateServerDataError("private-servers-place")
 	}
 	page := games.PrivateServerPage{Servers: make([]games.PrivateServer, 0, len(payload.Data)), NextCursor: payload.NextPageCursor}
 	for _, item := range payload.Data {
@@ -135,6 +131,56 @@ func (service *PrivateServers) ForPlace(ctx context.Context, accountID, version,
 		page.Servers = append(page.Servers, server)
 	}
 	return page, nil
+}
+
+// LinkCode finds the link code of the private server with this access code.
+// Roblox shows the link only to the owner, so it returns "" for other servers.
+func (service *PrivateServers) LinkCode(ctx context.Context, accountID, version, ownerID, placeID int64, accessCode string) (string, error) {
+	cursor := ""
+	for range maxLinkCodePages {
+		page, err := service.placePage(ctx, accountID, version, placeID, cursor)
+		if err != nil {
+			return "", err
+		}
+		for _, item := range page.Data {
+			if !strings.EqualFold(item.AccessCode, accessCode) {
+				continue
+			}
+			if ownerID <= 0 || item.Owner.ID != ownerID || !games.ValidID(item.VipServerID) {
+				return "", nil
+			}
+			settings, err := service.Settings(ctx, accountID, version, item.VipServerID)
+			if err != nil || settings.JoinLink == "" {
+				return "", err
+			}
+			target, err := gamelaunch.Parse(gamelaunch.Input{Method: gamelaunch.MethodLink, Link: settings.JoinLink})
+			if err != nil {
+				return "", privateServerDataError("private-server")
+			}
+			return target.LinkCode, nil
+		}
+		if page.NextPageCursor == "" {
+			return "", nil
+		}
+		cursor = page.NextPageCursor
+	}
+	return "", nil
+}
+
+func (service *PrivateServers) placePage(ctx context.Context, accountID, version, placeID int64, cursor string) (placePrivateServerPage, error) {
+	parameters := url.Values{"limit": {strconv.Itoa(placePrivateServersPageSize)}}
+	if cursor != "" {
+		parameters.Set("cursor", cursor)
+	}
+	var payload placePrivateServerPage
+	path := "/v1/games/" + strconv.FormatInt(placeID, 10) + "/private-servers"
+	if err := service.read(ctx, accountID, version, "private-servers-place", path, parameters, &payload); err != nil {
+		return placePrivateServerPage{}, err
+	}
+	if len(payload.Data) > 100 || len(payload.NextPageCursor) > maxServerCursorLength {
+		return placePrivateServerPage{}, privateServerDataError("private-servers-place")
+	}
+	return payload, nil
 }
 
 func (service *PrivateServers) Settings(ctx context.Context, accountID, version, serverID int64) (games.PrivateServerSettings, error) {

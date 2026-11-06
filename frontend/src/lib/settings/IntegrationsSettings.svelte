@@ -11,7 +11,7 @@
 	const terms = $derived(query.trim().toLowerCase().split(/\s+/).filter(Boolean)),
 		visible = $derived(
 			terms.every((term) =>
-				"integrations rovalra rbxservers api private server browser servers information features enabled disabled on off preferred region country nearest launch join refresh regions hosts connect domain data sent apis.rovalra.com rbxservers.xyz".includes(
+				"integrations rovalra rbxservers api private server browser servers information features enabled disabled on off preferred region country nearest launch join refresh regions hosts connect domain data sent apis.rovalra.com rbxservers.xyz api.rbxservers.xyz".includes(
 					term,
 				),
 			),
@@ -144,7 +144,8 @@
 					<strong id="rbxservers-enabled">Shared private servers</strong>
 					<span id="rbxservers-description"
 						>List private servers that people share on RBXServers. Opening
-						the list sends the place ID.</span>
+						the list sends the place ID. Getting a launch link sends the
+						server ID.</span>
 				</div>
 				<label class="switch">
 					<input
@@ -162,7 +163,7 @@
 					<span aria-hidden="true"></span>
 				</label>
 			</div>
-			<ConnectionHosts hosts={["rbxservers.xyz"]} />
+			<ConnectionHosts hosts={["rbxservers.xyz", "api.rbxservers.xyz"]} />
 		</div>
 	</section>
 {/if}

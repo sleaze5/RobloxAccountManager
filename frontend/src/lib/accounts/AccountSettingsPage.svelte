@@ -1084,6 +1084,7 @@
 		username={store.selectedAccount.username}
 		serverId={managingServer.serverId}
 		name={managingServer.name}
+		gameName={managingServer.gameName}
 		{notifications}
 		onChanged={(settings) => ownedState?.update(settings)}
 		onClose={() => (managingServer = null)} />

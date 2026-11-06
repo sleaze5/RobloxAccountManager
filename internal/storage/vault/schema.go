@@ -10,9 +10,9 @@ import (
 	"github.com/sleaze5/RobloxAccountManager/internal/logging"
 )
 
-const schemaVersion = 6
+const schemaVersion = 7
 
-var schemaMigrations = [...]func(context.Context, *sql.Tx) error{addAccountPasswords, splitPublicMetadata, restoreAccountNames, addPendingSettingsImport, addSavedPrivateServers}
+var schemaMigrations = [...]func(context.Context, *sql.Tx) error{addAccountPasswords, splitPublicMetadata, restoreAccountNames, addPendingSettingsImport, addSavedPrivateServers, saveOnePrivateServerCode}
 
 var _ = [1]struct{}{}[len(schemaMigrations)-(schemaVersion-1)]
 
@@ -204,6 +204,31 @@ CREATE TABLE saved_private_servers (
     UNIQUE (place_id, access_code)
 )`); err != nil {
 		return fmt.Errorf("add saved private servers: %w", err)
+	}
+	return nil
+}
+
+// saveOnePrivateServerCode keeps the link code of each saved private server, and the
+// access code only when the link code is unknown.
+func saveOnePrivateServerCode(ctx context.Context, tx *sql.Tx) error {
+	if _, err := tx.ExecContext(ctx, `
+CREATE TABLE saved_private_servers_new (
+    id              INTEGER PRIMARY KEY,
+    place_id        INTEGER NOT NULL CHECK (place_id > 0),
+    access_code     TEXT NOT NULL DEFAULT '' CHECK (length(access_code) <= 512),
+    link_code       TEXT NOT NULL DEFAULT '' CHECK (length(link_code) <= 512),
+    name            TEXT NOT NULL CHECK (length(name) <= 50),
+    created_at_ms   INTEGER NOT NULL,
+    CHECK ((access_code = '') <> (link_code = ''))
+);
+CREATE UNIQUE INDEX saved_private_servers_access_code ON saved_private_servers_new(place_id, access_code) WHERE access_code <> '';
+CREATE UNIQUE INDEX saved_private_servers_link_code ON saved_private_servers_new(place_id, link_code) WHERE link_code <> '';
+INSERT OR IGNORE INTO saved_private_servers_new(id, place_id, access_code, link_code, name, created_at_ms)
+SELECT id, place_id, CASE WHEN link_code = '' THEN access_code ELSE '' END, link_code, name, created_at_ms FROM saved_private_servers ORDER BY id;
+DROP TABLE saved_private_servers;
+ALTER TABLE saved_private_servers_new RENAME TO saved_private_servers;
+`); err != nil {
+		return fmt.Errorf("save one code per private server: %w", err)
 	}
 	return nil
 }

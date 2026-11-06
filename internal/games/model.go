@@ -258,11 +258,12 @@ type ListedPrivateServer struct {
 }
 
 func PrivateServerLaunchLink(placeID int64, accessCode, linkCode string) string {
-	link := "roblox://experiences/start?placeId=" + strconv.FormatInt(placeID, 10) + "&accessCode=" + url.QueryEscape(accessCode)
 	if linkCode != "" {
-		link += "&linkCode=" + url.QueryEscape(linkCode)
+		link := url.URL{Scheme: "https", Host: "www.roblox.com", Path: "/games/" + strconv.FormatInt(placeID, 10)}
+		link.RawQuery = url.Values{"privateServerLinkCode": {linkCode}}.Encode()
+		return link.String()
 	}
-	return link
+	return "roblox://experiences/start?placeId=" + strconv.FormatInt(placeID, 10) + "&accessCode=" + url.QueryEscape(accessCode)
 }
 
 const javaScriptMaxSafeInteger = 1<<53 - 1

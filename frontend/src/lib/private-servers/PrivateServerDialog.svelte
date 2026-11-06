@@ -28,6 +28,7 @@
 		username,
 		serverId,
 		name,
+		gameName,
 		notifications,
 		onChanged,
 		onClose,
@@ -36,6 +37,7 @@
 		username: string
 		serverId: number
 		name: string
+		gameName: string
 		notifications: NotificationCenter
 		onChanged: (settings: PrivateServerSettings) => void
 		onClose: () => void
@@ -54,7 +56,7 @@
 	const settings = $derived(server.settings),
 		busy = $derived(server.pending !== null),
 		locked = $derived(busy && server.pending !== "load"),
-		title = $derived(settings?.name || name || "Private server"),
+		serverName = $derived(settings?.name || name || "Unnamed server"),
 		renewal = $derived(renewalText(settings)),
 		users = $derived(settings?.users ?? []),
 		toggles = $derived([
@@ -67,7 +69,7 @@
 			{
 				option: PrivateServerOption.PrivateServerFriendsAllowed,
 				label: "Friends can join",
-				description: `Friends of @${username} can join without the link.`,
+				description: "Friends of the owner can join without the link.",
 				checked: settings?.friendsAllowed ?? false,
 			},
 			{
@@ -151,7 +153,11 @@
 	}} />
 
 {#if renaming}
-	<RenamePrivateServerDialog {server} {username} onClose={() => void closeRename()} />
+	<RenamePrivateServerDialog
+		{server}
+		{username}
+		{notifications}
+		onClose={() => void closeRename()} />
 {:else}
 	<div class="dialog-backdrop" in:modalBackdropIn out:modalBackdropOut>
 		<div
@@ -169,7 +175,7 @@
 				<div class="dialog-heading">
 					<div>
 						<h2 id={`${id}-title`}>Reset join link?</h2>
-						<p id={`${id}-description`}>{title}</p>
+						<p id={`${id}-description`}>{serverName}</p>
 					</div>
 					<button
 						type="button"
@@ -198,12 +204,10 @@
 			{:else}
 				<div class="dialog-heading">
 					<div class="min-w-0">
-						<h2 id={`${id}-title`} class="wrap-anywhere">{title}</h2>
-						<p id={`${id}-description`}>
-							{settings?.gameName
-								? `${settings.gameName} - `
-								: ""}@{username}
-						</p>
+						<h2 id={`${id}-title`} class="wrap-anywhere">
+							{gameName || settings?.gameName || "Private server"}
+						</h2>
+						<p id={`${id}-description`}>@{username}</p>
 					</div>
 					<button
 						type="button"
@@ -241,8 +245,7 @@
 							<div class="settings-row">
 								<div class="settings-row-copy">
 									<strong>Name</strong>
-									<span class="truncate"
-										>{settings.name || "Unnamed server"}</span>
+									<span class="truncate">{serverName}</span>
 								</div>
 								<button
 									class="btn"

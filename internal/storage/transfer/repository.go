@@ -293,7 +293,7 @@ func mergeFavoritePlaces(ctx context.Context, tx *sql.Tx, places []FavoritePlace
 func insertSavedPrivateServers(ctx context.Context, tx *sql.Tx, servers []SavedPrivateServer, now int64) (int, error) {
 	inserted := 0
 	for _, server := range servers {
-		result, err := tx.ExecContext(ctx, `INSERT INTO saved_private_servers(place_id, name, access_code, link_code, created_at_ms) VALUES(?, ?, ?, ?, ?) ON CONFLICT(place_id, access_code) DO NOTHING`, server.PlaceID, server.Name, server.AccessCode, server.LinkCode, now)
+		result, err := tx.ExecContext(ctx, `INSERT INTO saved_private_servers(place_id, name, access_code, link_code, created_at_ms) VALUES(?, ?, ?, ?, ?) ON CONFLICT DO NOTHING`, server.PlaceID, server.Name, server.AccessCode, server.LinkCode, now)
 		if err != nil {
 			return 0, fmt.Errorf("insert imported saved private server: %w", err)
 		}

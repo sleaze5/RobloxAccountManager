@@ -12,7 +12,7 @@ import (
 )
 
 const (
-	FormatVersion           = 2
+	FormatVersion           = 3
 	maxFavoriteNicknameLen  = 50
 	maxPrivateServerNameLen = 50
 )
@@ -24,12 +24,37 @@ var (
 
 type object = map[string]json.RawMessage
 
-var migrations = [...]func(object) (object, error){addSavedPrivateServers}
+var migrations = [...]func(object) (object, error){addSavedPrivateServers, saveOnePrivateServerCode}
 
 // addSavedPrivateServers gives a version 1 export the empty list of saved private servers that version 2 requires.
 func addSavedPrivateServers(document object) (object, error) {
 	document["version"] = json.RawMessage("2")
 	document["savedPrivateServers"] = json.RawMessage("[]")
+	return document, nil
+}
+
+// saveOnePrivateServerCode clears the access code of each saved private server in a
+// version 2 export that has a link code, because version 3 keeps one code per server.
+func saveOnePrivateServerCode(document object) (object, error) {
+	var servers []object
+	if err := json.Unmarshal(document["savedPrivateServers"], &servers); err != nil {
+		return nil, fmt.Errorf("read saved private servers: %w", err)
+	}
+	for _, server := range servers {
+		var linkCode string
+		if err := json.Unmarshal(server["linkCode"], &linkCode); err != nil {
+			return nil, fmt.Errorf("read saved private server link code: %w", err)
+		}
+		if linkCode != "" {
+			server["accessCode"] = json.RawMessage(`""`)
+		}
+	}
+	encoded, err := json.Marshal(servers)
+	if err != nil {
+		return nil, fmt.Errorf("encode saved private servers: %w", err)
+	}
+	document["version"] = json.RawMessage("3")
+	document["savedPrivateServers"] = encoded
 	return document, nil
 }
 
@@ -131,18 +156,21 @@ func validateSavedPrivateServers(servers []SavedPrivateServer) error {
 	type key struct {
 		placeID    int64
 		accessCode string
+		linkCode   string
 	}
 	seen := make(map[key]struct{}, len(servers))
 	for _, server := range servers {
-		if server.PlaceID <= 0 || !privateServerCodePattern.MatchString(server.AccessCode) ||
+		if server.PlaceID <= 0 || (server.AccessCode == "") == (server.LinkCode == "") ||
+			server.AccessCode != "" && !privateServerCodePattern.MatchString(server.AccessCode) ||
 			server.LinkCode != "" && !privateServerCodePattern.MatchString(server.LinkCode) ||
 			!utf8.ValidString(server.Name) || utf8.RuneCountInString(server.Name) > maxPrivateServerNameLen {
 			return errors.New("invalid saved private server")
 		}
-		if _, duplicate := seen[key{server.PlaceID, server.AccessCode}]; duplicate {
+		id := key{server.PlaceID, server.AccessCode, server.LinkCode}
+		if _, duplicate := seen[id]; duplicate {
 			return fmt.Errorf("duplicate saved private server for place %d", server.PlaceID)
 		}
-		seen[key{server.PlaceID, server.AccessCode}] = struct{}{}
+		seen[id] = struct{}{}
 	}
 	return nil
 }

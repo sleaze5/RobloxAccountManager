@@ -44,15 +44,9 @@ var privateAccessPatterns = []*regexp.Regexp{
 }
 
 func (service *GameLinks) Resolve(ctx context.Context, accountID, version int64, target gamelaunch.Request) (gamelaunch.Request, error) {
-	if target.ShareCode != "" {
-		resolved, err := service.resolveShare(ctx, accountID, version, target.ShareCode, target.ShareType)
-		if err != nil {
-			return gamelaunch.Request{}, err
-		}
-		if target.LaunchData != "" {
-			resolved.LaunchData = target.LaunchData
-		}
-		target = resolved
+	target, err := service.ResolveShare(ctx, accountID, version, target)
+	if err != nil {
+		return gamelaunch.Request{}, err
 	}
 	if target.LinkCode == "" || target.AccessCode != "" {
 		return target, nil
@@ -76,6 +70,20 @@ func (service *GameLinks) Resolve(ctx context.Context, accountID, version int64,
 		}
 	}
 	return gamelaunch.Request{}, gameLinkError("private-server-link", response.Status, "Roblox did not return a private-server access code. Check that the link is active and this account can join it.")
+}
+
+func (service *GameLinks) ResolveShare(ctx context.Context, accountID, version int64, target gamelaunch.Request) (gamelaunch.Request, error) {
+	if target.ShareCode == "" {
+		return target, nil
+	}
+	resolved, err := service.resolveShare(ctx, accountID, version, target.ShareCode, target.ShareType)
+	if err != nil {
+		return gamelaunch.Request{}, err
+	}
+	if target.LaunchData != "" {
+		resolved.LaunchData = target.LaunchData
+	}
+	return resolved, nil
 }
 
 func (service *GameLinks) resolveShare(ctx context.Context, accountID, version int64, code string, shareType gamelaunch.ShareType) (gamelaunch.Request, error) {

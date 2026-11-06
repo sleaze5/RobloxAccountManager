@@ -11,6 +11,7 @@ import (
 
 	"github.com/sleaze5/RobloxAccountManager/internal/gamelaunch"
 	"github.com/sleaze5/RobloxAccountManager/internal/games"
+	"github.com/sleaze5/RobloxAccountManager/internal/integration/rbxservers"
 	"github.com/sleaze5/RobloxAccountManager/internal/roblox"
 	robloxservices "github.com/sleaze5/RobloxAccountManager/internal/roblox/services"
 	gamestore "github.com/sleaze5/RobloxAccountManager/internal/storage/games"
@@ -166,14 +167,43 @@ func (service *Service) ListRBXServersPrivateServers(ctx context.Context, placeI
 	}
 	defer done()
 	page, err := service.rbxservers.Servers(ctx, placeID)
-	if err == nil {
-		return page, nil
+	if err != nil {
+		return games.ListedPrivateServerPage{}, service.rbxserversError(ctx, "rbxservers-servers", placeID, err)
 	}
+	return page, nil
+}
+
+func (service *Service) ResolveRBXServersLink(ctx context.Context, placeID int64, serverID string) (string, error) {
+	if err := validGameID(placeID); err != nil {
+		return "", err
+	}
+	if !games.ValidJobID(serverID) {
+		return "", gamesInputError("The server is invalid. Refresh the servers.")
+	}
+	if !service.settings.Integrations().RBXServers {
+		return "", gamesInputError("Turn on the RBXServers integration in Settings to use RBXServers servers.")
+	}
+	ctx, done, err := service.beginGames(ctx)
+	if err != nil {
+		return "", err
+	}
+	defer done()
+	code, err := service.rbxservers.LinkCode(ctx, strings.ToLower(serverID))
+	if errors.Is(err, rbxservers.ErrServerUnavailable) {
+		return "", gamesInputError("This server is no longer on RBXServers. Refresh the servers.")
+	}
+	if err != nil {
+		return "", service.rbxserversError(ctx, "rbxservers-link", placeID, err)
+	}
+	return games.PrivateServerLaunchLink(placeID, "", code), nil
+}
+
+func (service *Service) rbxserversError(ctx context.Context, operation string, placeID int64, err error) error {
 	if errors.Is(err, context.Canceled) && ctx.Err() != nil {
-		return games.ListedPrivateServerPage{}, &roblox.Error{Kind: roblox.KindCancelled, Endpoint: "rbxservers-servers", Message: "The RBXServers request was cancelled."}
+		return &roblox.Error{Kind: roblox.KindCancelled, Endpoint: operation, Message: "The RBXServers request was cancelled."}
 	}
-	service.logs.Module("integration.rbxservers").WarnContext(ctx, "rbxservers request failed", "operation", "rbxservers-servers", "place_id", placeID, "error", err)
-	return games.ListedPrivateServerPage{}, &roblox.Error{Kind: roblox.KindServer, Endpoint: "rbxservers-servers", Message: "RBXServers could not be reached. Try again later.", Cause: err}
+	service.logs.Module("integration.rbxservers").WarnContext(ctx, "rbxservers request failed", "operation", operation, "place_id", placeID, "error", err)
+	return &roblox.Error{Kind: roblox.KindServer, Endpoint: operation, Message: "RBXServers could not be reached. Try again later.", Cause: err}
 }
 
 func (service *Service) updatePrivateServer(ctx context.Context, accountID, serverID int64, operation string, change func(context.Context) (robloxservices.PrivateServerUpdate, error)) (games.PrivateServerSettings, error) {
@@ -280,8 +310,9 @@ func (service *Service) SavePrivateServerLink(ctx context.Context, placeID, acco
 	return server, service.gamesError(ctx, "private-server-link-save", err)
 }
 
-// privateServerTarget reads the place ID and access code from a private server link.
-// Share links and link codes carry no access code, so Roblox resolves them for the account.
+// privateServerTarget reads the place ID and the one code to save from a private server link.
+// Share links resolve to their link code. Roblox shows the link code only to the owner,
+// so an access code becomes the link code only when the account owns the server.
 func (service *Service) privateServerTarget(ctx context.Context, accountID int64, link string) (gamelaunch.Request, error) {
 	link = strings.TrimSpace(link)
 	invalid := privateServerInputError("Paste a private server link, a server share link, or a link with an access code.")
@@ -289,24 +320,47 @@ func (service *Service) privateServerTarget(ctx context.Context, accountID int64
 		return gamelaunch.Request{}, invalid
 	}
 	target, err := gamelaunch.Parse(gamelaunch.Input{Method: gamelaunch.MethodLink, Link: link})
-	if err != nil || target.LinkCode == "" && target.AccessCode == "" && target.ShareType != gamelaunch.ShareServer {
+	if err != nil || target.LinkCode == "" && target.AccessCode == "" && target.ShareType != gamelaunch.ShareServer || target.ShareCode == "" && target.PlaceID <= 0 {
 		return gamelaunch.Request{}, invalid
 	}
-	if target.AccessCode == "" {
-		if accountID <= 0 {
-			return gamelaunch.Request{}, privateServerInputError("Add an account first. Roblox reads the access code of this link for an account.")
-		}
-		ctx, version, done, err := service.beginAccountSession(ctx, accountID, "private-server-link-resolve")
-		if err != nil {
-			return gamelaunch.Request{}, err
-		}
-		defer done()
-		if target, err = service.gameLinks.Resolve(ctx, accountID, version, target); err != nil {
-			return gamelaunch.Request{}, err
-		}
+	if target.LinkCode != "" {
+		target.AccessCode = ""
+		return target, nil
 	}
-	if target.PlaceID <= 0 || target.AccessCode == "" {
+	if accountID <= 0 {
+		if target.ShareCode != "" {
+			return gamelaunch.Request{}, privateServerInputError("Add an account first. Roblox reads share links for an account.")
+		}
+		return target, nil
+	}
+	if target, err = service.resolvePrivateServerTarget(ctx, accountID, target); err != nil {
+		return gamelaunch.Request{}, err
+	}
+	if target.PlaceID <= 0 || target.LinkCode == "" && target.AccessCode == "" {
 		return gamelaunch.Request{}, invalid
+	}
+	return target, nil
+}
+
+func (service *Service) resolvePrivateServerTarget(ctx context.Context, accountID int64, target gamelaunch.Request) (gamelaunch.Request, error) {
+	ctx, version, done, err := service.beginAccountSession(ctx, accountID, "private-server-link-resolve")
+	if err != nil {
+		return gamelaunch.Request{}, err
+	}
+	defer done()
+	if target.ShareCode != "" {
+		return service.gameLinks.ResolveShare(ctx, accountID, version, target)
+	}
+	account, err := service.repo.GetView(ctx, accountID)
+	if err != nil {
+		return gamelaunch.Request{}, mapRepositoryError(err)
+	}
+	code, err := service.privateServers.LinkCode(ctx, accountID, version, account.RobloxUserID, target.PlaceID, target.AccessCode)
+	if err != nil {
+		return gamelaunch.Request{}, err
+	}
+	if code != "" {
+		target.LinkCode, target.AccessCode = code, ""
 	}
 	return target, nil
 }

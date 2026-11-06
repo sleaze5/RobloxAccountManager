@@ -61,7 +61,7 @@ func (repository *Repository) SavePrivateServer(ctx context.Context, server game
 	}
 	defer tx.Rollback()
 	server.CreatedAtMs = time.Now().UnixMilli()
-	result, err := tx.ExecContext(ctx, `INSERT INTO saved_private_servers(place_id, name, access_code, link_code, created_at_ms) VALUES(?, ?, ?, ?, ?) ON CONFLICT(place_id, access_code) DO NOTHING`, server.PlaceID, server.Name, server.AccessCode, server.LinkCode, server.CreatedAtMs)
+	result, err := tx.ExecContext(ctx, `INSERT INTO saved_private_servers(place_id, name, access_code, link_code, created_at_ms) VALUES(?, ?, ?, ?, ?) ON CONFLICT DO NOTHING`, server.PlaceID, server.Name, server.AccessCode, server.LinkCode, server.CreatedAtMs)
 	if err != nil {
 		return games.SavedPrivateServer{}, fmt.Errorf("insert saved private server: %w", err)
 	}

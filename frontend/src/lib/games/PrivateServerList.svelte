@@ -215,7 +215,7 @@
 							>{/if}
 					</h3>
 					<p class="text-2xs text-fg-faint">
-						Place IDs and access codes stored in the vault for this game.
+						Place IDs and link codes stored in the vault for this game.
 					</p>
 				</div>
 				<button class="btn" type="button" onclick={onAddLink}>
@@ -252,7 +252,7 @@
 					data-variant="listed">
 					<div class="server-columns" aria-hidden="true">
 						<span>Name</span>
-						<span>Access code</span>
+						<span>Code</span>
 					</div>
 					<ol aria-label="Saved private server links">
 						{#each savedShown as server (server.id)}
@@ -275,8 +275,10 @@
 									>{server.name || "Saved server"}</span>
 								<span
 									class="truncate font-mono text-2xs text-fg-faint select-text"
-									data-tooltip={server.accessCode}
-									>{server.accessCode}</span>
+									data-tooltip={server.linkCode
+										? `Link code ${server.linkCode}`
+										: `Access code ${server.accessCode}`}
+									>{server.linkCode || server.accessCode}</span>
 								<ServerActionsButton
 									open={activeKey === key}
 									{menuID}

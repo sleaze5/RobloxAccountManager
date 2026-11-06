@@ -130,6 +130,10 @@ func (service *Service) ListRBXServersPrivateServers(ctx context.Context, placeI
 	return service.core.ListRBXServersPrivateServers(ctx, placeID)
 }
 
+func (service *Service) ResolveRBXServersLink(ctx context.Context, placeID int64, serverID string) (string, error) {
+	return service.core.ResolveRBXServersLink(ctx, placeID, serverID)
+}
+
 func (service *Service) ListSavedPrivateServers(ctx context.Context, placeID int64) ([]games.SavedPrivateServer, error) {
 	return service.core.ListSavedPrivateServers(ctx, placeID)
 }

@@ -293,8 +293,40 @@ export class PrivateServers extends ServerPager<string, PrivateServerPage> {
 }
 
 export class ListedServers extends ServerPager<number, ListedPrivateServerPage> {
+	resolving = $state("")
+	readonly #links = new Map<string, string>()
+	#linkRequest: CancellableRequest<string> | null = null
+
 	constructor(placeId: number, cache: ServerPageCache<ListedPrivateServerPage>) {
 		super(placeId, 0, cache)
+	}
+
+	async launchLink(serverId: string): Promise<string | null> {
+		const cached = this.#links.get(serverId)
+		if (cached) return cached
+		void this.#linkRequest?.cancel()
+		const request = accountBackend.ResolveRBXServersLink(this.placeId, serverId)
+		this.#linkRequest = request
+		this.resolving = serverId
+		try {
+			const link = await request
+			this.#links.set(serverId, link)
+			return this.#linkRequest === request ? link : null
+		} catch (error) {
+			if (this.#linkRequest === request) throw error
+			return null
+		} finally {
+			if (this.#linkRequest === request) {
+				this.#linkRequest = null
+				this.resolving = ""
+			}
+		}
+	}
+
+	override dispose(): void {
+		super.dispose()
+		void this.#linkRequest?.cancel()
+		this.#linkRequest = null
 	}
 
 	protected key(): PageKey {

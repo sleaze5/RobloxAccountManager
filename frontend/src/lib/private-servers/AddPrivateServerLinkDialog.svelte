@@ -66,7 +66,7 @@
 			<div>
 				<h2 id={`${id}-title`}>Add private server link</h2>
 				<p id={`${id}-description`}>
-					Saves the place ID and access code in the vault for {gameName}.
+					Saves the place ID and link code in the vault for {gameName}.
 				</p>
 			</div>
 			<button
@@ -98,8 +98,8 @@
 					bind:value={link} />
 				<small id={`${id}-link-help`} class="text-xs text-fg-muted"
 					>{accountId
-						? `Share links and link codes are read from Roblox as @${username}.`
-						: "Share links and link codes need an account to read the access code."}</small>
+						? `Share links and access codes are read from Roblox as @${username}. An access code becomes a link code only if @${username} owns the server.`
+						: "Share links need an account. Access codes are saved as they are."}</small>
 			</div>
 			<div class="dialog-field">
 				<label for={`${id}-name`}>Name (optional)</label>

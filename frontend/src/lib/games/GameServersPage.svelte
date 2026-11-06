@@ -17,6 +17,7 @@
 	import PrivateServerDialog from "../private-servers/PrivateServerDialog.svelte"
 	import RemovePrivateServerLinkDialog from "../private-servers/RemovePrivateServerLinkDialog.svelte"
 	import { appSettings } from "../settings/settings-store.svelte"
+	import { errorMessage } from "../shared/errors"
 	import GameServerMenu, { type ServerMenuAction } from "./GameServerMenu.svelte"
 	import PrivateServerList from "./PrivateServerList.svelte"
 	import RBXServersList from "./RBXServersList.svelte"
@@ -51,14 +52,14 @@
 
 	const allSources: { id: ServerSource; label: string; tooltip: string }[] = [
 		{
-			id: "roblox",
-			label: "Roblox",
-			tooltip: "Servers running now, with players, ping, and FPS",
-		},
-		{
 			id: "private",
 			label: "Private servers",
 			tooltip: "Private servers the account owns or can join",
+		},
+		{
+			id: "roblox",
+			label: "Roblox",
+			tooltip: "Servers running now, with players, ping, and FPS",
 		},
 		{
 			id: "rovalra",
@@ -222,22 +223,47 @@
 			: []
 	}
 
+	async function withListedLink(
+		serverId: string,
+		use: (link: string) => void | Promise<void>,
+	): Promise<void> {
+		try {
+			const link = await listedServers.launchLink(serverId)
+			if (link) await use(link)
+		} catch (error) {
+			store.error = errorMessage(
+				error,
+				"The launch link could not be loaded. Try again.",
+			)
+		}
+	}
+
 	function actionsFor(key: string): ServerMenuAction[] {
 		if (source === "rbxservers") {
 			const server = listedServers.page?.servers?.find((item) => item.id === key)
 			return server
 				? [
 						{
+							label: "Fill launch options",
+							icon: listPlusIcon,
+							onSelect: select(
+								() => void withListedLink(server.id, onFillLaunchLink),
+							),
+						},
+						{
+							label: "Copy launch link",
+							icon: linkIcon,
+							onSelect: select(
+								() =>
+									void withListedLink(server.id, (link) =>
+										store.copy(link, "Launch link"),
+									),
+							),
+						},
+						{
 							label: "Open on RBXServers",
 							icon: arrowSquareOutIcon,
 							onSelect: select(() => void store.openLink(server.url)),
-						},
-						{
-							label: "Copy RBXServers link",
-							icon: linkIcon,
-							onSelect: select(
-								() => void store.copy(server.url, "RBXServers link"),
-							),
 						},
 					]
 				: []
@@ -432,6 +458,7 @@
 		username={managing.username}
 		serverId={managing.serverId}
 		name={managing.name}
+		gameName={store.displayName(place)}
 		{notifications}
 		onChanged={() => privateServers.refresh()}
 		onClose={() => (managing = null)} />

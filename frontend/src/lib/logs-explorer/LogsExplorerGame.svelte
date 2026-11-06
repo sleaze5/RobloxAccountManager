@@ -4,8 +4,8 @@
 	import starFillIcon from "@phosphor-icons/core/fill/star-fill.svg?raw"
 	import Icon from "../shared/Icon.svelte"
 	import type { GamePlaceSummary } from "../backend/bridge"
-	import GameIcon from "../games/GameIcon.svelte"
 	import { loadGamePlace } from "../games/game-place-cache"
+	import PlaceIcon from "../games/PlaceIcon.svelte"
 	import { creatorByline, getGamesStore } from "../games/games-store.svelte"
 
 	let {
@@ -18,8 +18,7 @@
 	let summary = $state<GamePlaceSummary | null>(null),
 		loading = $state(true)
 	const place = $derived(summary?.place ?? null),
-		rootPlace = $derived(summary?.rootPlace ?? null),
-		rootName = $derived(rootPlace ? games.displayName(rootPlace) : "")
+		rootPlace = $derived(summary?.rootPlace ?? null)
 
 	$effect(() => {
 		const request = loadGamePlace(universeId, placeId)
@@ -40,17 +39,7 @@
 
 {#if loading || place}
 	<div class="flex min-w-0 items-center gap-3" aria-busy={loading}>
-		<span class="relative shrink-0">
-			<GameIcon url={place?.iconUrl ?? ""} size="lg" />
-			{#if rootPlace}<button
-					class="absolute -right-1.5 -bottom-1.5 block cursor-help rounded-sm ring-2 ring-canvas focus-visible:outline-offset-2"
-					type="button"
-					aria-label={`Subplace of ${rootName}`}
-					data-tooltip={`Subplace of ${rootName}`}
-					data-tooltip-strong={rootName}
-					><GameIcon url={rootPlace.iconUrl} size="xs" /></button
-				>{/if}
-		</span>
+		<PlaceIcon {place} {rootPlace} size="lg" />
 		<div class="flex min-w-0 flex-col leading-snug">
 			{#if place}
 				<strong

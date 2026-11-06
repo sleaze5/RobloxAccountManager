@@ -2,6 +2,9 @@
 	import circleNotchIcon from "@phosphor-icons/core/regular/circle-notch.svg?raw"
 	import Icon from "../shared/Icon.svelte"
 	import type { OwnedPrivateServer } from "../backend/bridge"
+	import GameIcon from "../games/GameIcon.svelte"
+	import { loadGamePlace } from "../games/game-place-cache"
+	import PlaceIcon from "../games/PlaceIcon.svelte"
 	import type { OwnedPrivateServersState } from "./owned-private-servers-state.svelte"
 
 	let {
@@ -53,6 +56,13 @@
 			{#each owned.servers as server (server.serverId)}
 				{@const name = server.name || "Unnamed server"}
 				<li class="settings-row animate-enter justify-start gap-3">
+					{#await loadGamePlace(server.universeId, server.placeId)}
+						<GameIcon url="" />
+					{:then summary}
+						<PlaceIcon
+							place={summary?.place ?? null}
+							rootPlace={summary?.rootPlace ?? null} />
+					{/await}
 					<div class="settings-row-copy">
 						<strong class="flex min-w-0 items-center gap-1.5">
 							<span class="truncate">{name}</span>

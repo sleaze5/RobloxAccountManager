@@ -1,9 +1,11 @@
 <script lang="ts">
-	import { untrack } from "svelte"
+	import { tick, untrack } from "svelte"
+	import checkCircleIcon from "@phosphor-icons/core/regular/check-circle.svg?raw"
 	import xIcon from "@phosphor-icons/core/regular/x.svg?raw"
 	import Icon from "../shared/Icon.svelte"
 	import { accountBackend, TextModeration } from "../backend/bridge"
 	import type { TextFilter } from "../backend/bridge"
+	import type { NotificationCenter } from "../notifications/notification-center.svelte"
 	import {
 		modalBackdropIn,
 		modalBackdropOut,
@@ -18,10 +20,12 @@
 	let {
 		server,
 		username,
+		notifications,
 		onClose,
 	}: {
 		server: PrivateServerState
 		username: string
+		notifications: NotificationCenter
 		onClose: () => void
 	} = $props()
 
@@ -29,62 +33,77 @@
 		maximumLength = 50,
 		current = untrack(() => server.settings?.name ?? "")
 	let value = $state(current),
-		checking = $state(false),
-		checked = $state<{ text: string; filter: TextFilter | null } | null>(null),
+		validating = $state<"validate" | "submit" | null>(null),
+		validated = $state<{ text: string; filter: TextFilter | null } | null>(null),
 		error = $state(""),
-		card = $state<HTMLDivElement>()
+		card = $state<HTMLDivElement>(),
+		field = $state<HTMLInputElement>()
 	const text = $derived(value.trim()),
 		changed = $derived(text !== "" && text !== current),
-		result = $derived(checked?.text === text ? checked : null),
-		censored = $derived(
+		result = $derived(validated?.text === text ? validated : null),
+		clean = $derived(
+			result?.filter?.moderation === TextModeration.TextModerationNone,
+		),
+		tagged = $derived(
 			!!result?.filter &&
 				result.filter.moderation !== TextModeration.TextModerationNone,
 		),
+		preview = $derived(tagged ? result?.filter?.filteredText : undefined),
 		renaming = $derived(server.pending === "rename"),
-		busy = $derived(checking || renaming)
+		busy = $derived(validating !== null || renaming)
 
 	function close(): void {
 		if (!busy) onClose()
 	}
 
-	async function check(): Promise<boolean> {
-		const checkedText = text
-		checking = true
+	async function validate(mode: "validate" | "submit"): Promise<boolean> {
+		const validatedText = text
+		validating = mode
 		error = ""
 		try {
 			const filter = await accountBackend.ValidatePrivateServerName(
 				server.accountId,
-				checkedText,
+				validatedText,
 			)
-			checked = { text: checkedText, filter }
+			validated = { text: validatedText, filter }
 			return filter.moderation === TextModeration.TextModerationNone
 		} catch (cause) {
-			checked = { text: checkedText, filter: null }
-			error = errorMessage(
-				cause,
-				"Roblox's filter could not check the name. Try again, or rename without checking.",
-			)
+			validated = { text: validatedText, filter: null }
+			error = errorMessage(cause, "Could not validate the name. Try again.")
 			return false
 		} finally {
-			checking = false
+			validating = null
 		}
 	}
 
-	async function submit(): Promise<void> {
-		if (!changed || busy) {
-			replayValidationNudge(card)
-			return
-		}
-		if (!result && !(await check())) {
-			replayValidationNudge(card)
-			return
-		}
+	async function edit(): Promise<void> {
+		validated = null
+		await tick()
+		field?.focus()
+	}
+
+	async function rename(): Promise<void> {
+		error = ""
 		if (await server.rename(text)) {
+			notifications.show({
+				id: `private-server-rename-${server.serverId}`,
+				title: "Private server renamed",
+				tone: "success",
+				message: `@${username}`,
+			})
 			onClose()
 			return
 		}
 		error = server.errorFor("rename")
 		replayValidationNudge(card)
+	}
+
+	async function submit(): Promise<void> {
+		if (!changed || busy) {
+			replayValidationNudge(card)
+		} else if (result || (await validate("submit"))) {
+			await rename()
+		}
 	}
 </script>
 
@@ -96,10 +115,9 @@
 <div class="dialog-backdrop" in:modalBackdropIn out:modalBackdropOut>
 	<div
 		class="dialog-card max-w-sm text-left"
-		role={censored ? "alertdialog" : "dialog"}
+		role="dialog"
 		aria-modal="true"
 		aria-labelledby={`${id}-title`}
-		aria-describedby={`${id}-description`}
 		bind:this={card}
 		use:modalFocus
 		in:modalCardIn
@@ -114,10 +132,7 @@
 			<div class="dialog-heading">
 				<div class="min-w-0">
 					<h2 id={`${id}-title`}>Rename private server</h2>
-					<p id={`${id}-description`}>
-						Saved to Roblox for @{username}. Everyone who can join sees the
-						new name.
-					</p>
+					<p>@{username}</p>
 				</div>
 				<button
 					type="button"
@@ -129,31 +144,39 @@
 			</div>
 			<div class="dialog-field mt-0">
 				<label for={`${id}-name`}>Name</label>
-				<input
-					id={`${id}-name`}
-					class="field"
-					type="text"
-					autocomplete="off"
-					maxlength={maximumLength}
-					aria-describedby={`${id}-count`}
-					disabled={busy}
-					bind:value />
+				{#if preview === undefined}
+					<input
+						id={`${id}-name`}
+						class="field"
+						type="text"
+						autocomplete="off"
+						maxlength={maximumLength}
+						aria-describedby={`${id}-count`}
+						disabled={busy}
+						bind:this={field}
+						bind:value />
+				{:else}
+					<input
+						id={`${id}-name`}
+						class="field"
+						type="text"
+						aria-describedby={`${id}-count`}
+						value={preview}
+						readonly
+						disabled={busy} />
+				{/if}
 				<small
 					id={`${id}-count`}
 					class="flex justify-end font-mono text-2xs text-fg-muted tabular-nums"
 					>{Array.from(value).length}/{maximumLength}</small>
 			</div>
 			<div aria-live="polite">
-				{#if censored && result?.filter}
-					<div class="mt-3 flex flex-col gap-1.5 notice-warning">
-						<span
-							>{result.filter.moderation ===
-							TextModeration.TextModerationFull
-								? "Roblox will censor this name."
-								: "Roblox will censor part of this name."} Players will see:</span>
-						<span class="font-mono text-2xs wrap-anywhere text-fg"
-							>{result.filter.filteredText}</span>
-					</div>
+				{#if clean}
+					<span class="sr-only">Roblox's filter won't tag this name.</span>
+				{:else if result?.filter?.moderation === TextModeration.TextModerationPartial}
+					<span class="sr-only">Roblox will tag part of this name.</span>
+				{:else if result?.filter?.moderation === TextModeration.TextModerationFull}
+					<span class="sr-only">Roblox will tag all of this name.</span>
 				{/if}
 			</div>
 			{#if error}
@@ -163,17 +186,38 @@
 				<button class="btn" type="button" disabled={busy} onclick={close}
 					>Cancel</button>
 				<button
-					class={censored ? "btn-warning" : "btn-primary"}
+					class="btn"
+					type="button"
+					aria-busy={validating === "validate"}
+					disabled={busy ||
+						(preview === undefined && (text === "" || result !== null))}
+					onclick={() =>
+						void (preview === undefined ? validate("validate") : edit())}>
+					{#if validating === "validate"}
+						Validating…
+					{:else if preview !== undefined}
+						Edit
+					{:else}
+						{#if clean}<Icon
+								svg={checkCircleIcon}
+								class="text-success"
+								size={14}
+								aria-hidden="true" />{/if}
+						Validate
+					{/if}
+				</button>
+				<button
+					class={tagged ? "btn-warning" : "btn-primary"}
 					type="submit"
-					aria-busy={busy}
+					aria-busy={validating === "submit" || renaming}
 					disabled={!changed || busy}>
-					{#if checking}
-						Checking…
+					{#if validating === "submit"}
+						Validating…
 					{:else if renaming}
 						Renaming…
 					{:else if result && !result.filter}
-						Rename without checking
-					{:else if censored}
+						Rename without validating
+					{:else if tagged}
 						Rename anyway
 					{:else}
 						Rename server

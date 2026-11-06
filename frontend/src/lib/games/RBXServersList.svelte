@@ -51,8 +51,6 @@
 				{shown.length === 1 ? "server" : "servers"}</span>
 			<span aria-hidden="true">-</span>
 			<span>Up to 30 shared on RBXServers</span>
-			<span aria-hidden="true">-</span>
-			<span>Opens in your browser to join</span>
 		</p>
 		<div
 			class="server-table"
@@ -60,7 +58,7 @@
 			data-loading={servers.loading || undefined}>
 			<div class="server-columns" aria-hidden="true">
 				<span>Name</span>
-				<span>Server ID</span>
+				<span>UUID</span>
 			</div>
 			<ol aria-label="RBXServers private servers" aria-busy={servers.loading}>
 				{#each shown as server (server.id)}
@@ -85,6 +83,7 @@
 							data-tooltip={server.id}>{server.id}</span>
 						<ServerActionsButton
 							open={activeKey === server.id}
+							busy={servers.resolving === server.id}
 							{menuID}
 							onMenu={(trigger, toggle) =>
 								onMenu(server.id, trigger, toggle)} />
