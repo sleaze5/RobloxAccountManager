@@ -321,19 +321,14 @@ export class AccountStore {
 		}
 	}
 
-	async unlockVault(password: string, automaticUnlock: boolean): Promise<boolean> {
-		if (!password || this.busy) {
+	async #runBusy(action: () => Promise<void>): Promise<boolean> {
+		if (this.busy) {
 			return false
 		}
-
 		this.busy = true
 		this.error = ""
 		try {
-			await accountBackend.UnlockVault(password)
-			this.vault = await accountBackend.GetVaultState()
-			await this.refreshAccounts()
-			await accountBackend.SetAutomaticUnlock(automaticUnlock)
-			this.vault = await accountBackend.GetVaultState()
+			await action()
 			return true
 		} catch (error) {
 			this.error = errorMessage(error, operationError)
@@ -341,6 +336,20 @@ export class AccountStore {
 		} finally {
 			this.busy = false
 		}
+	}
+
+	async unlockVault(password: string, automaticUnlock: boolean): Promise<boolean> {
+		if (!password) {
+			return false
+		}
+
+		return this.#runBusy(async () => {
+			await accountBackend.UnlockVault(password)
+			this.vault = await accountBackend.GetVaultState()
+			await this.refreshAccounts()
+			await accountBackend.SetAutomaticUnlock(automaticUnlock)
+			this.vault = await accountBackend.GetVaultState()
+		})
 	}
 
 	async createVault(
@@ -349,12 +358,7 @@ export class AccountStore {
 		hint: string,
 		automaticUnlock: boolean,
 	): Promise<boolean> {
-		if (this.busy) {
-			return false
-		}
-		this.busy = true
-		this.error = ""
-		try {
+		return this.#runBusy(async () => {
 			await accountBackend.CreateVault(
 				password,
 				confirmation,
@@ -363,98 +367,52 @@ export class AccountStore {
 			)
 			this.vault = await accountBackend.GetVaultState()
 			await this.refreshAccounts()
-			return true
-		} catch (error) {
-			this.error = errorMessage(error, operationError)
-			return false
-		} finally {
-			this.busy = false
-		}
+		})
 	}
 
 	async lockVault(): Promise<void> {
-		if (this.busy || !this.vault.unlocked) {
+		if (!this.vault.unlocked) {
 			return
 		}
 
-		this.busy = true
-		this.error = ""
-		try {
+		await this.#runBusy(async () => {
 			await accountBackend.LockVault()
 			this.resetLockedState()
-		} catch (error) {
-			this.error = errorMessage(error, operationError)
-		} finally {
-			this.busy = false
-		}
+		})
 	}
 
 	async testVaultPassword(password: string): Promise<boolean> {
-		if (!password || this.busy) {
+		if (!password) {
 			return false
 		}
-		this.busy = true
-		this.error = ""
-		try {
+		return this.#runBusy(async () => {
 			await accountBackend.TestVaultPassword(password)
 			this.vault = await accountBackend.GetVaultState()
-			return true
-		} catch (error) {
-			this.error = errorMessage(error, operationError)
-			return false
-		} finally {
-			this.busy = false
-		}
+		})
 	}
 
 	async dismissPasswordReminder(): Promise<boolean> {
-		if (this.busy) {
-			return false
-		}
-		this.busy = true
-		this.error = ""
-		try {
+		return this.#runBusy(async () => {
 			await accountBackend.DismissPasswordReminder()
 			this.vault = await accountBackend.GetVaultState()
-			return true
-		} catch (error) {
-			this.error = errorMessage(error, operationError)
-			return false
-		} finally {
-			this.busy = false
-		}
+		})
 	}
 
 	async setPasswordTestIntervalDays(days: number): Promise<void> {
-		if (this.busy) {
-			return
-		}
-		this.busy = true
-		this.error = ""
-		try {
+		await this.#runBusy(async () => {
 			await accountBackend.SetPasswordTestIntervalDays(days)
 			this.vault = await accountBackend.GetVaultState()
-		} catch (error) {
-			this.error = errorMessage(error, operationError)
-		} finally {
-			this.busy = false
-		}
+		})
 	}
 
 	async setAutomaticUnlock(enabled: boolean): Promise<void> {
-		if (this.busy || !this.vault.unlocked) {
+		if (!this.vault.unlocked) {
 			return
 		}
-		this.busy = true
-		this.error = ""
-		try {
+		await this.#runBusy(async () => {
 			await accountBackend.SetAutomaticUnlock(enabled)
 			this.vault = await accountBackend.GetVaultState()
-		} catch (error) {
-			this.error = errorMessage(error, operationError)
-		} finally {
-			this.busy = false
-		}
+		})
 	}
 
 	async changeVaultPassword(
@@ -464,12 +422,7 @@ export class AccountStore {
 		hint: string,
 		automaticUnlock: boolean,
 	): Promise<boolean> {
-		if (this.busy) {
-			return false
-		}
-		this.busy = true
-		this.error = ""
-		try {
+		return this.#runBusy(async () => {
 			await accountBackend.ChangeVaultPassword(
 				currentPassword,
 				newPassword,
@@ -481,13 +434,7 @@ export class AccountStore {
 			if (this.vault.fileState === FileState.FileStateReady) {
 				await this.refreshAccounts()
 			}
-			return true
-		} catch (error) {
-			this.error = errorMessage(error, operationError)
-			return false
-		} finally {
-			this.busy = false
-		}
+		})
 	}
 
 	async listBackups(): Promise<BackupInfo[]> {
@@ -500,76 +447,32 @@ export class AccountStore {
 	}
 
 	async restoreBackup(name: string, password: string): Promise<boolean> {
-		if (this.busy) {
-			return false
-		}
-		this.busy = true
-		this.error = ""
-		try {
+		return this.#runBusy(async () => {
 			await accountBackend.RestoreBackup(name, password)
 			this.vault = await accountBackend.GetVaultState()
-			return true
-		} catch (error) {
-			this.error = errorMessage(error, operationError)
-			return false
-		} finally {
-			this.busy = false
-		}
+		})
 	}
 
 	async resetVault(confirmation: string): Promise<boolean> {
-		if (this.busy) {
-			return false
-		}
-		this.busy = true
-		this.error = ""
-		try {
+		return this.#runBusy(async () => {
 			await accountBackend.ResetVault(confirmation)
 			this.vault = await accountBackend.GetVaultState()
-			return true
-		} catch (error) {
-			this.error = errorMessage(error, operationError)
-			return false
-		} finally {
-			this.busy = false
-		}
+		})
 	}
 
 	async migrateLegacyVault(password: string): Promise<boolean> {
-		if (this.busy) {
-			return false
-		}
-		this.busy = true
-		this.error = ""
-		try {
+		return this.#runBusy(async () => {
 			await accountBackend.MigrateLegacyVault(password)
 			this.vault = await accountBackend.GetVaultState()
 			await this.refreshAccounts()
-			return true
-		} catch (error) {
-			this.error = errorMessage(error, operationError)
-			return false
-		} finally {
-			this.busy = false
-		}
+		})
 	}
 
 	async setAsideLegacyVault(confirmation: string): Promise<boolean> {
-		if (this.busy) {
-			return false
-		}
-		this.busy = true
-		this.error = ""
-		try {
+		return this.#runBusy(async () => {
 			await accountBackend.SetAsideLegacyVault(confirmation)
 			this.vault = await accountBackend.GetVaultState()
-			return true
-		} catch (error) {
-			this.error = errorMessage(error, operationError)
-			return false
-		} finally {
-			this.busy = false
-		}
+		})
 	}
 
 	async refreshAccountList(): Promise<void> {
@@ -877,24 +780,18 @@ export class AccountStore {
 	}
 
 	async removeTag(tagId: number): Promise<void> {
-		if (tagId <= 0 || this.busy) {
+		if (tagId <= 0) {
 			return
 		}
 
-		this.busy = true
-		this.error = ""
-		try {
+		await this.#runBusy(async () => {
 			await accountBackend.RemoveTag(tagId)
 			this.selectedTagIds = this.selectedTagIds.filter(
 				(selectedTagId) => selectedTagId !== tagId,
 			)
 			this.invalidateAccountList()
 			await this.refreshAccounts()
-		} catch (error) {
-			this.error = errorMessage(error, operationError)
-		} finally {
-			this.busy = false
-		}
+		})
 	}
 
 	async setAccountsTag(
@@ -902,40 +799,26 @@ export class AccountStore {
 		tag: TagView,
 		selected: boolean,
 	): Promise<void> {
-		if (accountIds.length === 0 || accountIds.includes(0) || this.busy) {
+		if (accountIds.length === 0 || accountIds.includes(0)) {
 			return
 		}
 
-		this.busy = true
-		this.error = ""
-		try {
+		await this.#runBusy(async () => {
 			await accountBackend.SetAccountsTag(accountIds, tag.id, selected)
 			await this.refreshAccounts()
-		} catch (error) {
-			this.error = errorMessage(error, operationError)
-		} finally {
-			this.busy = false
-		}
+		})
 	}
 
 	async removeAccount(accountId: number): Promise<boolean> {
-		if (accountId === 0 || this.busy) {
+		if (accountId === 0) {
 			return false
 		}
 
-		this.busy = true
-		this.error = ""
-		try {
+		return this.#runBusy(async () => {
 			await accountBackend.RemoveAccount(accountId)
 			this.#removeProfile(accountId)
 			await this.refreshAccounts()
-			return true
-		} catch (error) {
-			this.error = errorMessage(error, operationError)
-			return false
-		} finally {
-			this.busy = false
-		}
+		})
 	}
 
 	async fillNearestServer(): Promise<void> {

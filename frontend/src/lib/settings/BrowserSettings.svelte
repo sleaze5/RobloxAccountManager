@@ -9,16 +9,10 @@
 	import { RuntimeStatus } from "../backend/bridge"
 	import type { ShutdownEffects } from "../backend/bridge"
 	import { formatCompactBytes } from "../shared/bytes"
+	import Dialog from "../shared/Dialog.svelte"
 	import ConnectionHosts from "./ConnectionHosts.svelte"
 	import SectionLink from "./SectionLink.svelte"
 	import SettingsStatus from "./SettingsStatus.svelte"
-	import {
-		modalBackdropIn,
-		modalBackdropOut,
-		modalCardIn,
-		modalCardOut,
-		modalFocus,
-	} from "../shared/presence"
 
 	let { browser, query = "" }: { browser: BrowserStore; query?: string } = $props(),
 		pendingAction = $state<"redownload" | "remove" | null>(null),
@@ -170,69 +164,63 @@
 {/if}
 
 {#if pendingAction && effects}
-	<div class="dialog-backdrop" in:modalBackdropIn out:modalBackdropOut>
-		<div
-			class="dialog-card max-w-sm text-left"
-			role="alertdialog"
-			aria-modal="true"
-			use:modalFocus
-			in:modalCardIn
-			out:modalCardOut
-			aria-labelledby="runtime-confirm-title">
-			<div class="dialog-heading">
-				<div>
-					<h2 id="runtime-confirm-title">
-						{pendingAction === "remove"
-							? "Remove browser?"
-							: "Redownload browser?"}
-					</h2>
-					<p>This will stop browser work that is currently active.</p>
-				</div>
-				<button
-					type="button"
-					aria-label="Close browser confirmation"
-					onclick={() => {
-						pendingAction = null
-						effects = null
-					}}>
-					<Icon svg={xIcon} size={14} aria-hidden="true" />
-				</button>
+	<Dialog
+		class="max-w-sm text-left"
+		role="alertdialog"
+		aria-labelledby="runtime-confirm-title">
+		<div class="dialog-heading">
+			<div>
+				<h2 id="runtime-confirm-title">
+					{pendingAction === "remove"
+						? "Remove browser?"
+						: "Redownload browser?"}
+				</h2>
+				<p>This will stop browser work that is currently active.</p>
 			</div>
-			<ul class="mt-3 flex list-disc flex-col gap-1 pl-5 text-xs text-warning">
-				{#if effects.browserSessions}<li>
-						Close {effects.browserSessions} active browser {effects.browserSessions ===
-						1
-							? "session"
-							: "sessions"}.
-					</li>
-					<li>Browser downloads may stop.</li>{/if}
-				{#if effects.browserDownloads}<li>
-						Stop the browser runtime download.
-					</li>{/if}
-				{#if effects.accountCandidates}<li>
-						Discard {effects.accountCandidates} Add-account {effects.accountCandidates ===
-						1
-							? "candidate"
-							: "candidates"}.
-					</li>{/if}
-				{#if effects.accountChecks}<li>Cancel account validations.</li>{/if}
-			</ul>
-			<div class="dialog-actions">
-				<button
-					class="btn"
-					type="button"
-					onclick={() => {
-						pendingAction = null
-						effects = null
-					}}>Cancel</button
-				><button
-					class={pendingAction === "remove" ? "btn-danger" : "btn-primary"}
-					type="button"
-					onclick={() => void runAction(pendingAction!)}
-					>{pendingAction === "remove"
-						? "Remove browser"
-						: "Redownload browser"}</button>
-			</div>
+			<button
+				type="button"
+				aria-label="Close browser confirmation"
+				onclick={() => {
+					pendingAction = null
+					effects = null
+				}}>
+				<Icon svg={xIcon} size={14} aria-hidden="true" />
+			</button>
 		</div>
-	</div>
+		<ul class="mt-3 flex list-disc flex-col gap-1 pl-5 text-xs text-warning">
+			{#if effects.browserSessions}<li>
+					Close {effects.browserSessions} active browser {effects.browserSessions ===
+					1
+						? "session"
+						: "sessions"}.
+				</li>
+				<li>Browser downloads may stop.</li>{/if}
+			{#if effects.browserDownloads}<li>
+					Stop the browser runtime download.
+				</li>{/if}
+			{#if effects.accountCandidates}<li>
+					Discard {effects.accountCandidates} Add-account {effects.accountCandidates ===
+					1
+						? "candidate"
+						: "candidates"}.
+				</li>{/if}
+			{#if effects.accountChecks}<li>Cancel account validations.</li>{/if}
+		</ul>
+		<div class="dialog-actions">
+			<button
+				class="btn"
+				type="button"
+				onclick={() => {
+					pendingAction = null
+					effects = null
+				}}>Cancel</button
+			><button
+				class={pendingAction === "remove" ? "btn-danger" : "btn-primary"}
+				type="button"
+				onclick={() => void runAction(pendingAction!)}
+				>{pendingAction === "remove"
+					? "Remove browser"
+					: "Redownload browser"}</button>
+		</div>
+	</Dialog>
 {/if}

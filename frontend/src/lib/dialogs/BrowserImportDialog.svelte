@@ -7,6 +7,7 @@
 	import warningCircleIcon from "@phosphor-icons/core/regular/warning-circle.svg?raw"
 	import xIcon from "@phosphor-icons/core/regular/x.svg?raw"
 	import Icon from "../shared/Icon.svelte"
+	import Dialog from "../shared/Dialog.svelte"
 	import { onMount, untrack } from "svelte"
 	import CandidateList from "../accounts/CandidateList.svelte"
 	import type { AccountStore } from "../accounts/account-store.svelte"
@@ -14,13 +15,6 @@
 	import type { BrowserStore } from "../browser/browser-store.svelte"
 	import { Lifecycle, SaveStatus } from "../backend/bridge"
 	import type { NotificationCenter } from "../notifications/notification-center.svelte"
-	import {
-		modalBackdropIn,
-		modalBackdropOut,
-		modalCardIn,
-		modalCardOut,
-		modalFocus,
-	} from "../shared/presence"
 
 	let {
 		browser,
@@ -228,170 +222,158 @@
 		if (event.key === "Escape") closeDialog()
 	}} />
 
-<div class="dialog-backdrop" in:modalBackdropIn out:modalBackdropOut>
-	<div
-		class="dialog-card max-w-lg"
-		use:modalFocus
-		in:modalCardIn
-		out:modalCardOut
-		role="dialog"
-		aria-modal="true"
-		aria-labelledby="browser-import-title">
-		<div class="dialog-heading">
-			<div>
-				<h2 id="browser-import-title">Add accounts with a browser</h2>
-				<p>Sign in to Roblox, then choose which accounts to save.</p>
-			</div>
-			<button
-				type="button"
-				aria-label="Close browser sign-in"
-				disabled={!canClose}
-				onclick={closeDialog}>
-				<Icon svg={xIcon} size={14} aria-hidden="true" />
-			</button>
+<Dialog class="max-w-lg" aria-labelledby="browser-import-title">
+	<div class="dialog-heading">
+		<div>
+			<h2 id="browser-import-title">Add accounts with a browser</h2>
+			<p>Sign in to Roblox, then choose which accounts to save.</p>
 		</div>
-		{#if browser.error}<div class="mb-3 notice-error" role="alert">
-				{browser.error}
-			</div>{/if}
-		{#if sessions.length === 0 && candidates.length === 0}
-			<div
-				class="empty-state rounded-md border border-dashed border-line-strong py-8"
-				aria-busy={launchingInitial}>
-				{#if launchingInitial}
-					<Icon
-						svg={circleNotchIcon}
-						class="spinner"
-						size={28}
-						aria-hidden="true" />
-					<p>Opening browser…</p>
-				{:else}
-					<Icon svg={browserIcon} size={28} aria-hidden="true" />
-					<h2>No browser open</h2>
-					<p>Open a browser and sign in to Roblox to add an account.</p>
-					<button
-						type="button"
-						class="mt-1 btn-primary"
-						disabled={browser.loading}
-						onclick={() => void browser.startLogin()}>Open browser</button>
-				{/if}
-			</div>
-		{:else}
-			<ul class="overflow-hidden rounded-md border border-line bg-fill">
-				{#each sessions as session, index (session.id)}
-					<li
-						class="flex min-h-12 animate-enter items-center gap-2 border-b border-line-subtle px-2 py-1.5">
-						<span
-							class="grid size-6 shrink-0 place-items-center text-fg-faint"
-							aria-hidden="true">
-							{#if session.lifecycle === Lifecycle.LifecycleActive}
-								<span class="size-2 rounded-full bg-success"></span>
-							{:else if session.lifecycle === Lifecycle.LifecycleFailed}
-								<Icon
-									svg={warningCircleIcon}
-									class="text-danger"
-									size={16} />
-							{:else if session.lifecycle === Lifecycle.LifecycleClosed}
-								<Icon svg={checkIcon} size={16} />
-							{:else}
-								<Icon svg={circleNotchIcon} class="spinner" size={16} />
-							{/if}
-						</span>
-						<div class="min-w-0 flex-1">
-							<p class="text-xs font-medium text-fg">
-								Browser {index + 1}
-							</p>
-							<p class="text-2xs text-fg-faint">
-								{sessionStatus[session.lifecycle]}
-							</p>
-							{#if session.checkpointWarning}<p
-									class="mt-0.5 text-2xs text-warning">
-									{session.checkpointWarning}
-								</p>{/if}
-							{#if session.error}<p
-									class="mt-0.5 text-2xs text-danger-muted"
-									role="alert">
-									{session.error}
-								</p>{/if}
-						</div>
-						<button
-							type="button"
-							class="btn-ghost-sm"
-							aria-label={`Show browser ${index + 1}`}
-							data-tooltip="Show browser"
-							disabled={session.lifecycle === Lifecycle.LifecycleFailed ||
-								session.lifecycle === Lifecycle.LifecycleClosed}
-							onclick={() => void browser.focus(session.id)}
-							><Icon
-								svg={cornersOutIcon}
-								size={14}
-								aria-hidden="true" /></button>
-						<button
-							type="button"
-							class="btn-ghost-sm"
-							aria-label={`Close browser ${index + 1}`}
-							data-tooltip="Close browser"
-							disabled={session.lifecycle ===
-								Lifecycle.LifecycleClosing ||
-								session.lifecycle === Lifecycle.LifecycleValidating}
-							onclick={() => void browser.close(session.id)}
-							><Icon svg={xIcon} size={14} aria-hidden="true" /></button>
-					</li>
-				{/each}
-				<li>
-					<button
-						type="button"
-						class="flex h-9 w-full items-center gap-2 px-2 text-xs text-fg-muted transition-colors duration-100 hover:bg-hover hover:text-fg"
-						disabled={browser.loading}
-						onclick={() => void browser.startLogin()}>
-						<span class="grid size-6 place-items-center" aria-hidden="true"
-							><Icon svg={plusIcon} size={14} /></span>
-						{sessions.length > 0 ? "Open another browser" : "Open browser"}
-					</button>
-				</li>
-			</ul>
-			{#if candidates.length > 0}
-				<CandidateList
-					items={candidateItems}
-					{selected}
-					selectionTotal={candidateGroupCount}
-					disabled={saving}
-					onToggle={toggleCandidate}
-					onToggleAll={toggleAll} />
-				{#if activeLoginSessions.length > 0}<p
-						class="mt-2 text-xs text-fg-faint">
-						Close {activeLoginSessions.length === 1
-							? "the browser"
-							: "all browsers"} to save these accounts.
-					</p>{/if}
-			{:else}
-				<p
-					class="mt-3 rounded-md border border-dashed border-line-strong px-3 py-6 text-center text-xs text-fg-faint">
-					Accounts appear here after you sign in.
-				</p>
-			{/if}
-		{/if}
-		<div class="dialog-actions">
-			{#if activeLoginSessions.length > 1}<button
-					type="button"
-					class="mr-auto btn"
-					onclick={() => void browser.closeAllLogin()}
-					>Close all browsers</button
-				>{/if}
-			{#if candidates.length > 0 && activeLoginSessions.length === 0}<button
-					class="btn"
-					type="button"
-					disabled={saving}
-					onclick={() => void browser.discard()}>Discard</button
-				>{/if}
-			{#if canClose}<button class="btn" type="button" onclick={closeDialog}
-					>Close</button
-				>{/if}
-			{#if candidates.length > 0}<button
-					type="button"
-					class="btn-primary"
-					disabled={!canCommit || selected.length === 0 || saving}
-					onclick={() => void save()}>{saveLabel}</button
-				>{/if}
-		</div>
+		<button
+			type="button"
+			aria-label="Close browser sign-in"
+			disabled={!canClose}
+			onclick={closeDialog}>
+			<Icon svg={xIcon} size={14} aria-hidden="true" />
+		</button>
 	</div>
-</div>
+	{#if browser.error}<div class="mb-3 notice-error" role="alert">
+			{browser.error}
+		</div>{/if}
+	{#if sessions.length === 0 && candidates.length === 0}
+		<div
+			class="empty-state rounded-md border border-dashed border-line-strong py-8"
+			aria-busy={launchingInitial}>
+			{#if launchingInitial}
+				<Icon
+					svg={circleNotchIcon}
+					class="spinner"
+					size={28}
+					aria-hidden="true" />
+				<p>Opening browser…</p>
+			{:else}
+				<Icon svg={browserIcon} size={28} aria-hidden="true" />
+				<h2>No browser open</h2>
+				<p>Open a browser and sign in to Roblox to add an account.</p>
+				<button
+					type="button"
+					class="mt-1 btn-primary"
+					disabled={browser.loading}
+					onclick={() => void browser.startLogin()}>Open browser</button>
+			{/if}
+		</div>
+	{:else}
+		<ul class="overflow-hidden rounded-md border border-line bg-fill">
+			{#each sessions as session, index (session.id)}
+				<li
+					class="flex min-h-12 animate-enter items-center gap-2 border-b border-line-subtle px-2 py-1.5">
+					<span
+						class="grid size-6 shrink-0 place-items-center text-fg-faint"
+						aria-hidden="true">
+						{#if session.lifecycle === Lifecycle.LifecycleActive}
+							<span class="size-2 rounded-full bg-success"></span>
+						{:else if session.lifecycle === Lifecycle.LifecycleFailed}
+							<Icon
+								svg={warningCircleIcon}
+								class="text-danger"
+								size={16} />
+						{:else if session.lifecycle === Lifecycle.LifecycleClosed}
+							<Icon svg={checkIcon} size={16} />
+						{:else}
+							<Icon svg={circleNotchIcon} class="spinner" size={16} />
+						{/if}
+					</span>
+					<div class="min-w-0 flex-1">
+						<p class="text-xs font-medium text-fg">
+							Browser {index + 1}
+						</p>
+						<p class="text-2xs text-fg-faint">
+							{sessionStatus[session.lifecycle]}
+						</p>
+						{#if session.checkpointWarning}<p
+								class="mt-0.5 text-2xs text-warning">
+								{session.checkpointWarning}
+							</p>{/if}
+						{#if session.error}<p
+								class="mt-0.5 text-2xs text-danger-muted"
+								role="alert">
+								{session.error}
+							</p>{/if}
+					</div>
+					<button
+						type="button"
+						class="btn-ghost-sm"
+						aria-label={`Show browser ${index + 1}`}
+						data-tooltip="Show browser"
+						disabled={session.lifecycle === Lifecycle.LifecycleFailed ||
+							session.lifecycle === Lifecycle.LifecycleClosed}
+						onclick={() => void browser.focus(session.id)}
+						><Icon
+							svg={cornersOutIcon}
+							size={14}
+							aria-hidden="true" /></button>
+					<button
+						type="button"
+						class="btn-ghost-sm"
+						aria-label={`Close browser ${index + 1}`}
+						data-tooltip="Close browser"
+						disabled={session.lifecycle === Lifecycle.LifecycleClosing ||
+							session.lifecycle === Lifecycle.LifecycleValidating}
+						onclick={() => void browser.close(session.id)}
+						><Icon svg={xIcon} size={14} aria-hidden="true" /></button>
+				</li>
+			{/each}
+			<li>
+				<button
+					type="button"
+					class="flex h-9 w-full items-center gap-2 px-2 text-xs text-fg-muted transition-colors duration-100 hover:bg-hover hover:text-fg"
+					disabled={browser.loading}
+					onclick={() => void browser.startLogin()}>
+					<span class="grid size-6 place-items-center" aria-hidden="true"
+						><Icon svg={plusIcon} size={14} /></span>
+					{sessions.length > 0 ? "Open another browser" : "Open browser"}
+				</button>
+			</li>
+		</ul>
+		{#if candidates.length > 0}
+			<CandidateList
+				items={candidateItems}
+				{selected}
+				selectionTotal={candidateGroupCount}
+				disabled={saving}
+				onToggle={toggleCandidate}
+				onToggleAll={toggleAll} />
+			{#if activeLoginSessions.length > 0}<p class="mt-2 text-xs text-fg-faint">
+					Close {activeLoginSessions.length === 1
+						? "the browser"
+						: "all browsers"} to save these accounts.
+				</p>{/if}
+		{:else}
+			<p
+				class="mt-3 rounded-md border border-dashed border-line-strong px-3 py-6 text-center text-xs text-fg-faint">
+				Accounts appear here after you sign in.
+			</p>
+		{/if}
+	{/if}
+	<div class="dialog-actions">
+		{#if activeLoginSessions.length > 1}<button
+				type="button"
+				class="mr-auto btn"
+				onclick={() => void browser.closeAllLogin()}>Close all browsers</button
+			>{/if}
+		{#if candidates.length > 0 && activeLoginSessions.length === 0}<button
+				class="btn"
+				type="button"
+				disabled={saving}
+				onclick={() => void browser.discard()}>Discard</button
+			>{/if}
+		{#if canClose}<button class="btn" type="button" onclick={closeDialog}
+				>Close</button
+			>{/if}
+		{#if candidates.length > 0}<button
+				type="button"
+				class="btn-primary"
+				disabled={!canCommit || selected.length === 0 || saving}
+				onclick={() => void save()}>{saveLabel}</button
+			>{/if}
+	</div>
+</Dialog>

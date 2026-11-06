@@ -1,4 +1,5 @@
 import { Browser } from "@wailsio/runtime"
+import { copyText } from "../shared/clipboard"
 import {
 	accountBackend,
 	FriendStatus,
@@ -667,15 +668,13 @@ export class SocialStore {
 
 	async copy(value: string | number, label: string): Promise<void> {
 		this.closeMenu()
-		try {
-			await navigator.clipboard.writeText(String(value))
-			this.notifications.show({
-				id: "clipboard-copy",
-				title: "Copied",
-				tone: "success",
-				message: `${label} copied to clipboard.`,
-			})
-		} catch {
+		if (
+			!(await copyText(
+				this.notifications,
+				String(value),
+				`${label} copied to clipboard.`,
+			))
+		) {
 			this.error = `${label} could not be copied. Try again.`
 		}
 	}

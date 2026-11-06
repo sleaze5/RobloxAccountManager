@@ -1,8 +1,6 @@
 <script lang="ts">
 	import { onMount } from "svelte"
 	import arrowsClockwiseIcon from "@phosphor-icons/core/regular/arrows-clockwise.svg?raw"
-	import caretLeftIcon from "@phosphor-icons/core/regular/caret-left.svg?raw"
-	import caretRightIcon from "@phosphor-icons/core/regular/caret-right.svg?raw"
 	import circleNotchIcon from "@phosphor-icons/core/regular/circle-notch.svg?raw"
 	import fileMagnifyingGlassIcon from "@phosphor-icons/core/regular/file-magnifying-glass.svg?raw"
 	import fileTextIcon from "@phosphor-icons/core/regular/file-text.svg?raw"
@@ -13,7 +11,7 @@
 	import { moveListFocus } from "../shared/move-shortcut"
 	import { appSettings } from "../settings/settings-store.svelte"
 	import type { LogsExplorerVisit } from "../backend/bridge"
-	import SidebarResizer from "../layout/SidebarResizer.svelte"
+	import WorkbenchSidebar from "../layout/WorkbenchSidebar.svelte"
 	import OperationError from "../shared/OperationError.svelte"
 	import { formatTimestamp } from "../shared/timestamp"
 	import LogsExplorerSession from "./LogsExplorerSession.svelte"
@@ -39,148 +37,112 @@
 	<div
 		class="flex min-h-0 flex-1"
 		style={`--sidebar-width: ${store.sidebarCollapsed ? 44 : store.sidebarWidth}px;`}>
-		<aside
-			class="flex min-h-0 w-(--sidebar-width) shrink-0 flex-col bg-surface"
-			aria-label="Launch sessions">
-			{#if store.sidebarCollapsed}
-				<div class="flex h-full flex-col items-center gap-3 pt-2 text-fg-faint">
-					<button
-						class="btn-ghost"
-						type="button"
-						aria-label="Expand logs sidebar"
-						data-tooltip="Expand the logs sidebar"
-						data-tooltip-side="right"
-						onclick={() => (store.sidebarCollapsed = false)}
-						><Icon
-							svg={caretRightIcon}
-							data-nudge="right"
+		<WorkbenchSidebar
+			label="Launch sessions"
+			name="logs"
+			icon={fileMagnifyingGlassIcon}
+			count={store.sessions.length}
+			bind:collapsed={store.sidebarCollapsed}
+			bind:width={store.sidebarWidth}>
+			{#snippet title()}Logs <span
+					class="font-mono text-2xs font-normal text-fg-faint"
+					>({store.sessions.length})</span
+				>{/snippet}
+			{#snippet actions()}
+				<button
+					class="btn-ghost"
+					type="button"
+					disabled={store.refreshing}
+					aria-busy={store.refreshing}
+					onclick={() => void store.refreshAll()}
+					aria-label={store.refreshing
+						? "Refreshing all logs"
+						: "Refresh all logs"}
+					data-tooltip="Refresh all logs"
+					data-tooltip-side="bottom-end">
+					{#if store.refreshing}<Icon
+							svg={circleNotchIcon}
+							class="spinner"
 							size={16}
-							aria-hidden="true" /></button>
-					<Icon svg={fileMagnifyingGlassIcon} size={16} aria-hidden="true" />
-					<span class="font-mono text-2xs">{store.sessions.length}</span>
-				</div>
-			{:else}
-				<div class="flex shrink-0 flex-col gap-1 px-3 pt-1 pb-2">
-					<div class="relative flex h-7 items-center">
-						<h1>
-							Logs <span
-								class="font-mono text-2xs font-normal text-fg-faint"
-								>({store.sessions.length})</span>
-						</h1>
-						<div class="ml-auto flex items-center gap-px">
-							<button
-								class="btn-ghost"
+							aria-hidden="true" />{:else}<Icon
+							svg={arrowsClockwiseIcon}
+							data-turn
+							size={16}
+							aria-hidden="true" />{/if}
+				</button>
+			{/snippet}
+			{#snippet tools()}
+				<div class="flex items-center gap-1">
+					<div class="search-field">
+						<Icon
+							svg={magnifyingGlassIcon}
+							size={16}
+							aria-hidden="true" /><input
+							type="text"
+							placeholder="Search logs or IDs"
+							aria-label="Search logs, user IDs, place IDs, or job IDs"
+							bind:value={store.query} />{#if store.query}<button
 								type="button"
-								disabled={store.refreshing}
-								aria-busy={store.refreshing}
-								onclick={() => void store.refreshAll()}
-								aria-label={store.refreshing
-									? "Refreshing all logs"
-									: "Refresh all logs"}
-								data-tooltip="Refresh all logs"
-								data-tooltip-side="bottom-end">
-								{#if store.refreshing}<Icon
-										svg={circleNotchIcon}
-										class="spinner"
-										size={16}
-										aria-hidden="true" />{:else}<Icon
-										svg={arrowsClockwiseIcon}
-										data-turn
-										size={16}
-										aria-hidden="true" />{/if}
-							</button>
-							<button
-								class="btn-ghost"
-								type="button"
-								aria-label="Collapse logs sidebar"
-								data-tooltip="Collapse the logs sidebar"
-								data-tooltip-side="bottom-end"
-								onclick={() => (store.sidebarCollapsed = true)}
+								aria-label="Clear logs search"
+								onclick={() => (store.query = "")}
 								><Icon
-									svg={caretLeftIcon}
-									data-nudge="left"
-									size={16}
-									aria-hidden="true" /></button>
-						</div>
+									svg={xIcon}
+									size={14}
+									aria-hidden="true" /></button
+							>{/if}
 					</div>
-					<div class="flex items-center gap-1">
-						<div class="search-field">
-							<Icon
-								svg={magnifyingGlassIcon}
+				</div>
+			{/snippet}
+			<div
+				class="min-h-0 flex-1 scrollbar-stable overflow-y-auto"
+				aria-busy={store.refreshing}>
+				{#each sessions as session (session.fileName)}
+					{@const visitCount = session.visits?.length ?? 0}
+					<button
+						class="list-row flex min-h-12 w-full flex-col justify-center border-b border-line-subtle px-3 py-2 text-left leading-snug"
+						data-selected={store.selectedFile === session.fileName ||
+							undefined}
+						type="button"
+						aria-current={store.selectedFile === session.fileName
+							? "true"
+							: undefined}
+						data-list-item
+						onclick={() => (store.selectedFile = session.fileName)}
+						onkeydown={moveListFocus}
+						data-tooltip={session.fileName}
+						data-tooltip-side="right">
+						<span
+							class="flex w-full items-center gap-2 text-xs font-semibold text-fg"
+							><Icon
+								svg={fileTextIcon}
+								class="shrink-0 text-fg-muted"
 								size={16}
-								aria-hidden="true" /><input
-								type="text"
-								placeholder="Search logs or IDs"
-								aria-label="Search logs, user IDs, place IDs, or job IDs"
-								bind:value={store.query} />{#if store.query}<button
-									type="button"
-									aria-label="Clear logs search"
-									onclick={() => (store.query = "")}
-									><Icon
-										svg={xIcon}
-										size={14}
-										aria-hidden="true" /></button
-								>{/if}
-						</div>
-					</div>
-				</div>
-				<div
-					class="min-h-0 flex-1 scrollbar-stable overflow-y-auto"
-					aria-busy={store.refreshing}>
-					{#each sessions as session (session.fileName)}
-						{@const visitCount = session.visits?.length ?? 0}
-						<button
-							class="list-row flex min-h-12 w-full flex-col justify-center border-b border-line-subtle px-3 py-2 text-left leading-snug"
-							data-selected={store.selectedFile === session.fileName ||
-								undefined}
-							type="button"
-							aria-current={store.selectedFile === session.fileName
-								? "true"
-								: undefined}
-							data-list-item
-							onclick={() => (store.selectedFile = session.fileName)}
-							onkeydown={moveListFocus}
-							data-tooltip={session.fileName}
-							data-tooltip-side="right">
-							<span
-								class="flex w-full items-center gap-2 text-xs font-semibold text-fg"
-								><Icon
-									svg={fileTextIcon}
-									class="shrink-0 text-fg-muted"
-									size={16}
-									aria-hidden="true" /><span class="truncate"
-									>{session.startedAtMs
-										? formatTimestamp(
-												session.startedAtMs,
-												appSettings.timestampFormat,
-											)
-										: "Unknown start time"}</span
-								>{#if session.issue}<Icon
-										svg={warningIcon}
-										class="shrink-0 text-warning"
-										size={14}
-										aria-label="Incomplete log" />{/if}</span>
-							<span
-								class="flex w-full items-center gap-2 pl-6 text-2xs text-fg-muted"
-								>{visitCount}
-								{visitCount === 1 ? "visit" : "visits"}</span>
-						</button>
-					{:else}
-						{#if store.refreshing}
-							<p class="p-3 text-2xs text-fg-muted">Loading sessions…</p>
-						{:else if store.query}
-							<p class="p-3 text-2xs text-fg-muted">
-								No matching sessions.
-							</p>
-						{/if}
-					{/each}
-				</div>
-			{/if}
-		</aside>
-		<SidebarResizer
-			bind:width={store.sidebarWidth}
-			collapsed={store.sidebarCollapsed}
-			name="logs" />
+								aria-hidden="true" /><span class="truncate"
+								>{session.startedAtMs
+									? formatTimestamp(
+											session.startedAtMs,
+											appSettings.timestampFormat,
+										)
+									: "Unknown start time"}</span
+							>{#if session.issue}<Icon
+									svg={warningIcon}
+									class="shrink-0 text-warning"
+									size={14}
+									aria-label="Incomplete log" />{/if}</span>
+						<span
+							class="flex w-full items-center gap-2 pl-6 text-2xs text-fg-muted"
+							>{visitCount}
+							{visitCount === 1 ? "visit" : "visits"}</span>
+					</button>
+				{:else}
+					{#if store.refreshing}
+						<p class="p-3 text-2xs text-fg-muted">Loading sessions…</p>
+					{:else if store.query}
+						<p class="p-3 text-2xs text-fg-muted">No matching sessions.</p>
+					{/if}
+				{/each}
+			</div>
+		</WorkbenchSidebar>
 		<div class="grid min-w-0 flex-1 grid-rows-1">
 			{#if selected}
 				{#key selected.fileName}

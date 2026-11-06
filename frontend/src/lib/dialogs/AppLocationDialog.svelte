@@ -1,6 +1,7 @@
 <script lang="ts">
 	import checkBoldIcon from "@phosphor-icons/core/bold/check-bold.svg?raw"
 	import Icon from "../shared/Icon.svelte"
+	import Dialog from "../shared/Dialog.svelte"
 	import { Application } from "@wailsio/runtime"
 	import {
 		accountBackend,
@@ -9,13 +10,6 @@
 		StorageMode,
 	} from "../backend/bridge"
 	import type { AppLocation, StorageCandidate } from "../backend/bridge"
-	import {
-		modalBackdropIn,
-		modalBackdropOut,
-		modalCardIn,
-		modalCardOut,
-		modalFocus,
-	} from "../shared/presence"
 
 	let { location, onConfirm }: { location: AppLocation; onConfirm: () => void } =
 			$props(),
@@ -96,110 +90,101 @@
 	}
 </script>
 
-<div
-	class="dialog-backdrop z-50 bg-scrim-strong"
-	in:modalBackdropIn
-	out:modalBackdropOut>
-	<div
-		class="dialog-card max-w-md text-left"
-		role="alertdialog"
-		aria-modal="true"
-		aria-labelledby="app-location-title"
-		aria-describedby="app-location-summary"
-		use:modalFocus
-		in:modalCardIn
-		out:modalCardOut>
-		<div class="dialog-heading mb-2">
-			<div>
-				<h2 id="app-location-title">{heading}</h2>
-				<p id="app-location-summary">{summary}</p>
-			</div>
-		</div>
-
-		<div
-			class="flex flex-col gap-1"
-			role="radiogroup"
-			aria-labelledby="app-location-title">
-			{#each candidates as candidate (candidate.mode)}
-				<label
-					class={[
-						"relative flex cursor-pointer items-start gap-2 rounded-md border px-3 py-2 transition-colors duration-100 has-focus-visible:outline-1 has-focus-visible:outline-offset-1 has-focus-visible:outline-focus",
-						selected === candidate.mode
-							? "border-line-strong bg-active"
-							: "border-line",
-						busy ? "cursor-not-allowed opacity-45" : "hover:bg-hover",
-					]}>
-					<input
-						class="pointer-events-none absolute opacity-0"
-						type="radio"
-						name="app-location"
-						value={candidate.mode}
-						checked={selected === candidate.mode}
-						disabled={busy}
-						aria-describedby={`app-location-${candidate.mode}`}
-						onchange={() => (selected = candidate.mode)} />
-					<span class="flex min-w-0 flex-1 flex-col gap-0.5">
-						<span class="text-xs font-medium text-fg"
-							>{title(candidate)}</span>
-						<span
-							class="flex flex-col gap-0.5 text-xs leading-snug text-fg-muted"
-							id={`app-location-${candidate.mode}`}>
-							{description(candidate)}
-							<span class="font-mono text-2xs wrap-anywhere text-fg-faint"
-								>{candidate.directory}</span>
-						</span>
-					</span>
-					<span
-						class="inline-flex h-5 w-3.5 shrink-0 items-center text-fg"
-						aria-hidden="true">
-						{#if selected === candidate.mode}
-							<Icon svg={checkBoldIcon} size={14} />
-						{/if}
-					</span>
-				</label>
-			{/each}
-		</div>
-
-		{#if otherItemCount > 0}
-			<div class="mt-3 notice-warning">
-				This folder already contains other items. Use an empty folder that holds
-				only the app.
-				<ul
-					class="mt-2 grid gap-0.5 pl-4 font-mono text-2xs wrap-anywhere"
-					aria-label="Items in this folder">
-					{#each listedItems as item (item)}
-						<li>{item}</li>
-					{/each}
-					{#if hiddenItems > 0}
-						<li class="list-none font-sans">and {hiddenItems} more</li>
-					{/if}
-				</ul>
-			</div>
-		{/if}
-
-		{#if error}
-			<div class="mt-3 notice-error" role="alert">{error}</div>
-		{/if}
-
-		<div class="dialog-actions">
-			<button
-				class="btn"
-				type="button"
-				disabled={busy}
-				onclick={() => void Application.Quit()}>Quit</button>
-			<button
-				class="btn-primary"
-				type="button"
-				disabled={busy || !selected}
-				onclick={() => void confirm()}>
-				{restarting
-					? "Restarting…"
-					: busy
-						? "Setting up…"
-						: otherItemCount > 0
-							? "Use anyway"
-							: "Continue"}
-			</button>
+<Dialog
+	class="max-w-md text-left"
+	role="alertdialog"
+	aria-labelledby="app-location-title"
+	aria-describedby="app-location-summary"
+	strong>
+	<div class="dialog-heading mb-2">
+		<div>
+			<h2 id="app-location-title">{heading}</h2>
+			<p id="app-location-summary">{summary}</p>
 		</div>
 	</div>
-</div>
+
+	<div
+		class="flex flex-col gap-1"
+		role="radiogroup"
+		aria-labelledby="app-location-title">
+		{#each candidates as candidate (candidate.mode)}
+			<label
+				class={[
+					"relative flex cursor-pointer items-start gap-2 rounded-md border px-3 py-2 transition-colors duration-100 has-focus-visible:outline-1 has-focus-visible:outline-offset-1 has-focus-visible:outline-focus",
+					selected === candidate.mode
+						? "border-line-strong bg-active"
+						: "border-line",
+					busy ? "cursor-not-allowed opacity-45" : "hover:bg-hover",
+				]}>
+				<input
+					class="pointer-events-none absolute opacity-0"
+					type="radio"
+					name="app-location"
+					value={candidate.mode}
+					checked={selected === candidate.mode}
+					disabled={busy}
+					aria-describedby={`app-location-${candidate.mode}`}
+					onchange={() => (selected = candidate.mode)} />
+				<span class="flex min-w-0 flex-1 flex-col gap-0.5">
+					<span class="text-xs font-medium text-fg">{title(candidate)}</span>
+					<span
+						class="flex flex-col gap-0.5 text-xs leading-snug text-fg-muted"
+						id={`app-location-${candidate.mode}`}>
+						{description(candidate)}
+						<span class="font-mono text-2xs wrap-anywhere text-fg-faint"
+							>{candidate.directory}</span>
+					</span>
+				</span>
+				<span
+					class="inline-flex h-5 w-3.5 shrink-0 items-center text-fg"
+					aria-hidden="true">
+					{#if selected === candidate.mode}
+						<Icon svg={checkBoldIcon} size={14} />
+					{/if}
+				</span>
+			</label>
+		{/each}
+	</div>
+
+	{#if otherItemCount > 0}
+		<div class="mt-3 notice-warning">
+			This folder already contains other items. Use an empty folder that holds
+			only the app.
+			<ul
+				class="mt-2 grid gap-0.5 pl-4 font-mono text-2xs wrap-anywhere"
+				aria-label="Items in this folder">
+				{#each listedItems as item (item)}
+					<li>{item}</li>
+				{/each}
+				{#if hiddenItems > 0}
+					<li class="list-none font-sans">and {hiddenItems} more</li>
+				{/if}
+			</ul>
+		</div>
+	{/if}
+
+	{#if error}
+		<div class="mt-3 notice-error" role="alert">{error}</div>
+	{/if}
+
+	<div class="dialog-actions">
+		<button
+			class="btn"
+			type="button"
+			disabled={busy}
+			onclick={() => void Application.Quit()}>Quit</button>
+		<button
+			class="btn-primary"
+			type="button"
+			disabled={busy || !selected}
+			onclick={() => void confirm()}>
+			{restarting
+				? "Restarting…"
+				: busy
+					? "Setting up…"
+					: otherItemCount > 0
+						? "Use anyway"
+						: "Continue"}
+		</button>
+	</div>
+</Dialog>

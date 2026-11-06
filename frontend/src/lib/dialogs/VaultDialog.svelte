@@ -13,14 +13,8 @@
 	import type { BackupInfo } from "../backend/bridge"
 	import type { AccountStore } from "../accounts/account-store.svelte"
 	import Select from "../shared/Select.svelte"
-	import {
-		modalBackdropIn,
-		modalBackdropOut,
-		modalCardIn,
-		modalCardOut,
-		modalFocus,
-		replayValidationNudge,
-	} from "../shared/presence"
+	import { replayValidationNudge } from "../shared/presence"
+	import Dialog from "../shared/Dialog.svelte"
 	import { checkPassword, passwordValid } from "./password-rules"
 
 	let { store }: { store: AccountStore } = $props(),
@@ -103,231 +97,217 @@
 	}
 </script>
 
-<div
-	class="dialog-backdrop z-50 bg-scrim-strong"
-	in:modalBackdropIn
-	out:modalBackdropOut>
-	<div
-		class={["relative dialog-card text-center", creating ? "max-w-md" : "max-w-sm"]}
-		role="dialog"
-		aria-modal="true"
-		aria-labelledby="vault-title"
-		bind:this={card}
-		use:modalFocus
-		in:modalCardIn
-		out:modalCardOut>
-		<form
-			novalidate
-			onsubmit={(event) => {
-				event.preventDefault()
-				void submit()
-			}}>
-			<div
-				class="mx-auto mb-3 grid size-8 place-items-center rounded-md border border-line-strong bg-raised text-fg">
-				<Icon svg={lockKeyIcon} size={16} aria-hidden="true" />
-			</div>
-			<h2 id="vault-title">
-				{creating
-					? "Create account vault"
-					: recoveryMode
-						? "Recover account vault"
-						: "Unlock vault"}
-			</h2>
-			<p>
-				{creating
-					? "Create a master password for the encrypted account vault."
-					: recoveryMode
-						? "The active vault files are missing or damaged. Repair the portable key, restore a backup, or reset the vault."
-						: "Enter the master password to unlock Roblox account sessions."}
-			</p>
+<Dialog
+	class={["relative text-center", creating ? "max-w-md" : "max-w-sm"]}
+	aria-labelledby="vault-title"
+	bind:card
+	strong>
+	<form
+		novalidate
+		onsubmit={(event) => {
+			event.preventDefault()
+			void submit()
+		}}>
+		<div
+			class="mx-auto mb-3 grid size-8 place-items-center rounded-md border border-line-strong bg-raised text-fg">
+			<Icon svg={lockKeyIcon} size={16} aria-hidden="true" />
+		</div>
+		<h2 id="vault-title">
+			{creating
+				? "Create account vault"
+				: recoveryMode
+					? "Recover account vault"
+					: "Unlock vault"}
+		</h2>
+		<p>
+			{creating
+				? "Create a master password for the encrypted account vault."
+				: recoveryMode
+					? "The active vault files are missing or damaged. Repair the portable key, restore a backup, or reset the vault."
+					: "Enter the master password to unlock Roblox account sessions."}
+		</p>
 
-			{#if store.vault.startupError}
-				<div class="mt-3 notice-warning">{store.vault.startupError}</div>
-				{#if !creating && !recoveryMode}
-					<button
-						class="mt-2 flex items-center gap-1 py-1 text-xs text-fg-muted transition-colors duration-100 *:animate-pop"
-						type="button"
-						onclick={() => void showRecovery()}>Recovery options</button>
-				{/if}
-			{/if}
-			{#if store.error}
-				<div class="mt-3 notice-error" role="alert">
-					{store.error}
-				</div>
-				{#if !recoveryMode && !creating}
-					<button
-						class="mt-2 flex items-center gap-1 py-1 text-xs text-fg-muted transition-colors duration-100 *:animate-pop"
-						type="button"
-						onclick={() => void showRecovery()}>Recovery options</button>
-				{/if}
-			{/if}
-
-			{#if recoveryMode && !store.vault.unlocked}
-				<div class="mt-3 notice-note">
-					vault.key and autounlock.key are security files. Use the built-in
-					backup and restore operations to copy them, and do not edit them.
-				</div>
-				{#if backups.length > 0}
-					<div class="dialog-field">
-						<span>Verified backup candidate</span>
-						<Select
-							className="w-full"
-							label="Verified backup candidate"
-							value={selectedBackup}
-							options={backups.map((backup) => ({
-								value: backup.name,
-								label: new Date(backup.createdAtMs).toLocaleString(),
-							}))}
-							disabled={store.busy}
-							onChange={(name) => (selectedBackup = name)} />
-					</div>
-					<label class="dialog-field">
-						<span>Backup master password</span>
-						<input
-							bind:value={password}
-							type="password"
-							autocomplete="current-password" />
-					</label>
-					<button
-						class="mt-3 btn-primary h-8 w-full"
-						type="button"
-						disabled={!password || store.busy}
-						onclick={() => void restore()}>
-						Restore selected backup
-					</button>
-				{/if}
-				<div class="mt-3 notice-warning">
-					Reset deletes vault.db, vault.key, and autounlock.key. Stored
-					accounts cannot be recovered without a valid backup.
-				</div>
-				<label class="dialog-field">
-					<span>Type RESET to confirm</span>
-					<input bind:value={resetConfirmation} autocomplete="off" />
-				</label>
-				<button
-					class="mt-3 btn-danger w-full"
-					type="button"
-					disabled={resetConfirmation !== "RESET" || store.busy}
-					onclick={() => void reset()}>
-					Reset vault
-				</button>
-			{:else}
-				<label class="dialog-field">
-					<span
-						>{creating || incomplete
-							? "New master password"
-							: "Master password"}</span>
-					<input
-						bind:value={password}
-						type={visible ? "text" : "password"}
-						autocomplete={creating || incomplete
-							? "new-password"
-							: "current-password"}
-						required />
-				</label>
+		{#if store.vault.startupError}
+			<div class="mt-3 notice-warning">{store.vault.startupError}</div>
+			{#if !creating && !recoveryMode}
 				<button
 					class="mt-2 flex items-center gap-1 py-1 text-xs text-fg-muted transition-colors duration-100 *:animate-pop"
 					type="button"
-					onclick={() => (visible = !visible)}>
-					{#if visible}<Icon
-							svg={eyeSlashIcon}
-							size={16}
-							aria-hidden="true" /> Hide passwords{:else}<Icon
-							svg={eyeIcon}
-							size={16}
-							aria-hidden="true" /> Show passwords{/if}
+					onclick={() => void showRecovery()}>Recovery options</button>
+			{/if}
+		{/if}
+		{#if store.error}
+			<div class="mt-3 notice-error" role="alert">
+				{store.error}
+			</div>
+			{#if !recoveryMode && !creating}
+				<button
+					class="mt-2 flex items-center gap-1 py-1 text-xs text-fg-muted transition-colors duration-100 *:animate-pop"
+					type="button"
+					onclick={() => void showRecovery()}>Recovery options</button>
+			{/if}
+		{/if}
+
+		{#if recoveryMode && !store.vault.unlocked}
+			<div class="mt-3 notice-note">
+				vault.key and autounlock.key are security files. Use the built-in backup
+				and restore operations to copy them, and do not edit them.
+			</div>
+			{#if backups.length > 0}
+				<div class="dialog-field">
+					<span>Verified backup candidate</span>
+					<Select
+						className="w-full"
+						label="Verified backup candidate"
+						value={selectedBackup}
+						options={backups.map((backup) => ({
+							value: backup.name,
+							label: new Date(backup.createdAtMs).toLocaleString(),
+						}))}
+						disabled={store.busy}
+						onChange={(name) => (selectedBackup = name)} />
+				</div>
+				<label class="dialog-field">
+					<span>Backup master password</span>
+					<input
+						bind:value={password}
+						type="password"
+						autocomplete="current-password" />
+				</label>
+				<button
+					class="mt-3 btn-primary h-8 w-full"
+					type="button"
+					disabled={!password || store.busy}
+					onclick={() => void restore()}>
+					Restore selected backup
 				</button>
-				{#if !creating && !incomplete && store.vault.passwordHint}
-					<div class="mt-3 notice-note">Hint: {store.vault.passwordHint}</div>
-				{/if}
-				{#if creating || incomplete}
-					<label class="dialog-field">
-						<span>Confirm master password</span>
-						<input
-							bind:value={confirmation}
-							type={visible ? "text" : "password"}
-							autocomplete="new-password"
-							required />
-					</label>
-					<ul
-						class="checklist"
-						data-touched={password !== "" || undefined}
-						aria-label="Password requirements">
-						{#each [[rules.length, "8-128 characters long"], [rules.uppercase, "At least one upper-case letter"], [rules.lowercase, "At least one lower-case letter"], [rules.digit, "At least one number"], [rules.special, "At least one special character"]] as requirement}
-							<li data-valid={requirement[0] || undefined}>
-								{#if requirement[0]}<Icon
-										svg={checkIcon}
-										size={14}
-										aria-hidden="true" />{:else}<Icon
-										svg={xIcon}
-										size={14}
-										aria-hidden="true" />{/if}
-								{requirement[1]}
-							</li>
-						{/each}
-						<li
-							data-valid={(password !== "" &&
-								password === confirmation) ||
-								undefined}>
-							{#if password !== "" && password === confirmation}<Icon
+			{/if}
+			<div class="mt-3 notice-warning">
+				Reset deletes vault.db, vault.key, and autounlock.key. Stored accounts
+				cannot be recovered without a valid backup.
+			</div>
+			<label class="dialog-field">
+				<span>Type RESET to confirm</span>
+				<input bind:value={resetConfirmation} autocomplete="off" />
+			</label>
+			<button
+				class="mt-3 btn-danger w-full"
+				type="button"
+				disabled={resetConfirmation !== "RESET" || store.busy}
+				onclick={() => void reset()}>
+				Reset vault
+			</button>
+		{:else}
+			<label class="dialog-field">
+				<span
+					>{creating || incomplete
+						? "New master password"
+						: "Master password"}</span>
+				<input
+					bind:value={password}
+					type={visible ? "text" : "password"}
+					autocomplete={creating || incomplete
+						? "new-password"
+						: "current-password"}
+					required />
+			</label>
+			<button
+				class="mt-2 flex items-center gap-1 py-1 text-xs text-fg-muted transition-colors duration-100 *:animate-pop"
+				type="button"
+				onclick={() => (visible = !visible)}>
+				{#if visible}<Icon svg={eyeSlashIcon} size={16} aria-hidden="true" /> Hide
+					passwords{:else}<Icon svg={eyeIcon} size={16} aria-hidden="true" /> Show
+					passwords{/if}
+			</button>
+			{#if !creating && !incomplete && store.vault.passwordHint}
+				<div class="mt-3 notice-note">Hint: {store.vault.passwordHint}</div>
+			{/if}
+			{#if creating || incomplete}
+				<label class="dialog-field">
+					<span>Confirm master password</span>
+					<input
+						bind:value={confirmation}
+						type={visible ? "text" : "password"}
+						autocomplete="new-password"
+						required />
+				</label>
+				<ul
+					class="checklist"
+					data-touched={password !== "" || undefined}
+					aria-label="Password requirements">
+					{#each [[rules.length, "8-128 characters long"], [rules.uppercase, "At least one upper-case letter"], [rules.lowercase, "At least one lower-case letter"], [rules.digit, "At least one number"], [rules.special, "At least one special character"]] as requirement}
+						<li data-valid={requirement[0] || undefined}>
+							{#if requirement[0]}<Icon
 									svg={checkIcon}
 									size={14}
 									aria-hidden="true" />{:else}<Icon
 									svg={xIcon}
 									size={14}
 									aria-hidden="true" />{/if}
-							Passwords match
+							{requirement[1]}
 						</li>
-					</ul>
-					<label class="dialog-field">
-						<span>Password hint (optional)</span>
-						<input bind:value={hint} maxlength="480" autocomplete="off" />
-					</label>
-					<div class="mt-3 notice-warning">
-						The hint is stored in plain text. Do not include sensitive
-						information.
-					</div>
-				{/if}
-				<div
-					class="mt-2 flex items-center justify-start gap-1 text-xs text-fg-muted">
-					<label class="flex items-center gap-1">
-						<span class="checkbox">
-							<input bind:checked={automaticUnlock} type="checkbox" />
-							<span aria-hidden="true"
-								><Icon
-									svg={checkBoldIcon}
-									size={11}
-									aria-hidden="true" /></span>
-						</span>
-						Enable automatic unlock
-					</label>
-					<button
-						class="flex size-5 cursor-help items-center justify-center text-fg-faint transition-colors duration-100 hover:text-fg focus-visible:text-fg"
-						type="button"
-						aria-label="About automatic unlock"
-						data-tooltip={automaticUnlockDialogDescription}>
-						<Icon svg={infoIcon} size={14} aria-hidden="true" />
-					</button>
+					{/each}
+					<li
+						data-valid={(password !== "" && password === confirmation) ||
+							undefined}>
+						{#if password !== "" && password === confirmation}<Icon
+								svg={checkIcon}
+								size={14}
+								aria-hidden="true" />{:else}<Icon
+								svg={xIcon}
+								size={14}
+								aria-hidden="true" />{/if}
+						Passwords match
+					</li>
+				</ul>
+				<label class="dialog-field">
+					<span>Password hint (optional)</span>
+					<input bind:value={hint} maxlength="480" autocomplete="off" />
+				</label>
+				<div class="mt-3 notice-warning">
+					The hint is stored in plain text. Do not include sensitive
+					information.
 				</div>
-				<button
-					class="mt-3 btn-primary h-8 w-full"
-					type="submit"
-					disabled={creating || incomplete
-						? !canCreate
-						: !password || store.busy}>
-					{creating
-						? store.busy
-							? "Creating vault…"
-							: "Create vault"
-						: incomplete
-							? store.busy
-								? "Repairing portable key…"
-								: "Repair portable key"
-							: store.busy
-								? "Unlocking…"
-								: "Unlock"}
-				</button>
 			{/if}
-		</form>
-	</div>
-</div>
+			<div
+				class="mt-2 flex items-center justify-start gap-1 text-xs text-fg-muted">
+				<label class="flex items-center gap-1">
+					<span class="checkbox">
+						<input bind:checked={automaticUnlock} type="checkbox" />
+						<span aria-hidden="true"
+							><Icon
+								svg={checkBoldIcon}
+								size={11}
+								aria-hidden="true" /></span>
+					</span>
+					Enable automatic unlock
+				</label>
+				<button
+					class="flex size-5 cursor-help items-center justify-center text-fg-faint transition-colors duration-100 hover:text-fg focus-visible:text-fg"
+					type="button"
+					aria-label="About automatic unlock"
+					data-tooltip={automaticUnlockDialogDescription}>
+					<Icon svg={infoIcon} size={14} aria-hidden="true" />
+				</button>
+			</div>
+			<button
+				class="mt-3 btn-primary h-8 w-full"
+				type="submit"
+				disabled={creating || incomplete
+					? !canCreate
+					: !password || store.busy}>
+				{creating
+					? store.busy
+						? "Creating vault…"
+						: "Create vault"
+					: incomplete
+						? store.busy
+							? "Repairing portable key…"
+							: "Repair portable key"
+						: store.busy
+							? "Unlocking…"
+							: "Unlock"}
+			</button>
+		{/if}
+	</form>
+</Dialog>

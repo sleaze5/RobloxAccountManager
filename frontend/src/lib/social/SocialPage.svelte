@@ -16,7 +16,7 @@
 	import type { SocialUser } from "../backend/bridge"
 	import type { AccountStore } from "../accounts/account-store.svelte"
 	import { presenceDetail, presenceLabel } from "../accounts/account-model"
-	import SidebarResizer from "../layout/SidebarResizer.svelte"
+	import WorkbenchSidebar from "../layout/WorkbenchSidebar.svelte"
 	import { appSettings } from "../settings/settings-store.svelte"
 	import OperationError from "../shared/OperationError.svelte"
 	import ProfileImage from "../shared/ProfileImage.svelte"
@@ -202,303 +202,264 @@
 	<div
 		class="flex min-h-0 flex-1"
 		style={`--sidebar-width: ${store.sidebarCollapsed ? 44 : store.sidebarWidth}px;`}>
-		<aside
-			class="flex min-h-0 w-(--sidebar-width) shrink-0 flex-col bg-surface"
-			aria-label="People">
-			{#if store.sidebarCollapsed}
-				<div class="flex h-full flex-col items-center gap-3 pt-2 text-fg-faint">
-					<button
-						class="btn-ghost"
-						type="button"
-						aria-label="Expand social sidebar"
-						data-tooltip="Expand the social sidebar"
-						data-tooltip-side="right"
-						onclick={() => (store.sidebarCollapsed = false)}
-						><Icon
-							svg={caretRightIcon}
-							data-nudge="right"
+		<WorkbenchSidebar
+			label="People"
+			name="social"
+			icon={handshakeIcon}
+			bind:collapsed={store.sidebarCollapsed}
+			bind:width={store.sidebarWidth}>
+			{#snippet title()}Social{/snippet}
+			{#snippet actions()}
+				<button
+					class="btn-ghost"
+					type="button"
+					aria-label={store.loading ? "Refreshing list" : "Refresh list"}
+					aria-busy={store.loading}
+					data-tooltip="Refresh list"
+					data-tooltip-side="bottom-end"
+					disabled={account.id === 0 || store.loading}
+					onclick={() => void store.refresh()}>
+					{#if store.loading}
+						<Icon
+							svg={circleNotchIcon}
+							class="spinner"
 							size={16}
-							aria-hidden="true" /></button>
-					<Icon svg={handshakeIcon} size={16} aria-hidden="true" />
-				</div>
-			{:else}
-				<div class="flex shrink-0 flex-col gap-1 px-3 pt-1 pb-2">
-					<div class="relative flex h-7 items-center">
-						<h1>Social</h1>
-						<div class="ml-auto flex items-center gap-px">
-							<button
-								class="btn-ghost"
-								type="button"
-								aria-label={store.loading
-									? "Refreshing list"
-									: "Refresh list"}
-								aria-busy={store.loading}
-								data-tooltip="Refresh list"
-								data-tooltip-side="bottom-end"
-								disabled={account.id === 0 || store.loading}
-								onclick={() => void store.refresh()}>
-								{#if store.loading}
-									<Icon
-										svg={circleNotchIcon}
-										class="spinner"
-										size={16}
-										aria-hidden="true" />
-								{:else}
-									<Icon
-										svg={arrowsClockwiseIcon}
-										data-turn
-										size={16}
-										aria-hidden="true" />
-								{/if}
-							</button>
-							<button
-								class="btn-ghost"
-								type="button"
-								aria-label="Collapse social sidebar"
-								data-tooltip="Collapse the social sidebar"
-								data-tooltip-side="bottom-end"
-								onclick={() => (store.sidebarCollapsed = true)}
-								><Icon
-									svg={caretLeftIcon}
-									data-nudge="left"
-									size={16}
-									aria-hidden="true" /></button>
-						</div>
-					</div>
-					<Select
-						label="Account used to browse"
-						value={account.id}
-						options={accountOptions}
-						disabled={accountOptions.length === 0}
-						className="w-full"
-						onChange={(accountId) => accounts.selectAccount(accountId)} />
-					{#if subject}
-						{@const previous = store.trail.at(-2)}
-						{@const backLabel = `Back to ${previous ? personName(previous) : `@${account.username}`}`}
-						<nav
-							class="flex h-7 min-w-0 animate-enter items-center gap-1 text-xs font-medium"
-							aria-label="Browsing trail">
-							<button
-								class="btn-ghost-sm"
-								type="button"
-								aria-label={backLabel}
-								data-tooltip={backLabel}
-								onclick={() => store.back()}
-								><Icon
-									svg={caretLeftIcon}
-									data-nudge="left"
-									size={14}
-									aria-hidden="true" /></button>
-							<button
-								class="max-w-24 shrink-0 truncate rounded-sm text-fg-faint transition-colors duration-100 hover:text-fg"
-								type="button"
-								aria-label={`Return to @${account.username}`}
-								onclick={() => store.back(0)}
-								>@{account.username}</button>
+							aria-hidden="true" />
+					{:else}
+						<Icon
+							svg={arrowsClockwiseIcon}
+							data-turn
+							size={16}
+							aria-hidden="true" />
+					{/if}
+				</button>
+			{/snippet}
+			{#snippet tools()}
+				<Select
+					label="Account used to browse"
+					value={account.id}
+					options={accountOptions}
+					disabled={accountOptions.length === 0}
+					className="w-full"
+					onChange={(accountId) => accounts.selectAccount(accountId)} />
+				{#if subject}
+					{@const previous = store.trail.at(-2)}
+					{@const backLabel = `Back to ${previous ? personName(previous) : `@${account.username}`}`}
+					<nav
+						class="flex h-7 min-w-0 animate-enter items-center gap-1 text-xs font-medium"
+						aria-label="Browsing trail">
+						<button
+							class="btn-ghost-sm"
+							type="button"
+							aria-label={backLabel}
+							data-tooltip={backLabel}
+							onclick={() => store.back()}
+							><Icon
+								svg={caretLeftIcon}
+								data-nudge="left"
+								size={14}
+								aria-hidden="true" /></button>
+						<button
+							class="max-w-24 shrink-0 truncate rounded-sm text-fg-faint transition-colors duration-100 hover:text-fg"
+							type="button"
+							aria-label={`Return to @${account.username}`}
+							onclick={() => store.back(0)}>@{account.username}</button>
+						<Icon
+							svg={caretRightIcon}
+							class="shrink-0 text-fg-faint"
+							size={12}
+							aria-hidden="true" />
+						{#if store.trail.length > 1}
+							<span class="shrink-0 text-fg-faint" aria-hidden="true"
+								>…</span>
 							<Icon
 								svg={caretRightIcon}
 								class="shrink-0 text-fg-faint"
 								size={12}
 								aria-hidden="true" />
-							{#if store.trail.length > 1}
-								<span class="shrink-0 text-fg-faint" aria-hidden="true"
-									>…</span>
-								<Icon
-									svg={caretRightIcon}
-									class="shrink-0 text-fg-faint"
-									size={12}
-									aria-hidden="true" />
-							{/if}
-							<span
-								class="relative grid size-5 shrink-0 place-items-center overflow-hidden rounded-sm border border-line-strong bg-raised"
-								aria-hidden="true"
-								><ProfileImage url={subject.imageUrl} /></span>
-							<span class="min-w-0 truncate text-fg" aria-current="page"
-								>{personName(subject)}</span>
-						</nav>
-					{/if}
-					<Select
-						label="List"
-						value={store.list}
-						options={viewOptions}
-						disabled={account.id === 0}
-						className="w-full"
-						onChange={(view) => void changeView(view)} />
-					<form
-						novalidate
-						role="search"
-						onsubmit={(event) => {
-							event.preventDefault()
-							search()
-						}}>
-						<div class="search-field">
-							<Icon
-								svg={magnifyingGlassIcon}
-								size={16}
-								aria-hidden="true" /><input
-								type="text"
-								placeholder={players
-									? "Search players or id:123"
-									: `Filter ${current.noun}`}
-								aria-label={players
-									? "Search Roblox players by username, display name, or id: and a user ID"
-									: `Filter ${current.noun}, or press Enter to search Roblox players`}
-								aria-invalid={searchError ? "true" : undefined}
-								maxlength={50}
-								disabled={account.id === 0}
-								bind:this={searchInput}
-								bind:value={store.query}
-								oninput={() =>
-									(searchError = "")} />{#if store.query}<button
-									type="button"
-									aria-label="Clear search"
-									onclick={() => {
-										store.query = ""
-										searchError = ""
-										searchInput?.focus()
-									}}
-									><Icon
-										svg={xIcon}
-										size={14}
-										aria-hidden="true" /></button
-								>{/if}
-						</div>
-						{#if searchError}
-							<p class="mt-1 text-xs text-danger-muted" role="alert">
-								{searchError}
-							</p>
 						{/if}
-					</form>
-				</div>
-				{#if store.loadError && store.page}
-					<p class="px-3 pb-2 text-xs text-danger-muted" role="alert">
-						{store.loadError}
-					</p>
-				{:else if store.page?.unavailable?.includes("presence")}
-					<p class="px-3 pb-2 text-xs text-danger-muted" role="alert">
-						Online status could not be loaded. Refresh to retry.
-					</p>
+						<span
+							class="relative grid size-5 shrink-0 place-items-center overflow-hidden rounded-sm border border-line-strong bg-raised"
+							aria-hidden="true"
+							><ProfileImage url={subject.imageUrl} /></span>
+						<span class="min-w-0 truncate text-fg" aria-current="page"
+							>{personName(subject)}</span>
+					</nav>
 				{/if}
-				<div class="relative grid min-h-0 flex-1 grid-rows-1">
-					<div
-						class={[
-							"min-h-0 scrollbar-stable overflow-y-auto",
-							players && store.playerQuery && "pb-12",
-						]}
-						aria-label={current.label}
-						aria-busy={store.loading || store.loadingMore}>
-						{#each store.people as person (person.userId)}
-							{@const active = store.selectedUserId === person.userId}
-							{@const detail = person.presence
-								? presenceDetail(person.presence)
-								: ""}
-							<button
-								class={[
-									"group/row list-row relative flex w-full flex-col justify-center border-b border-line-subtle px-3 text-left",
-									detail ? "h-16" : "h-12",
-								]}
-								data-selected={active || undefined}
-								data-open={store.menu?.person.userId ===
-									person.userId || undefined}
+				<Select
+					label="List"
+					value={store.list}
+					options={viewOptions}
+					disabled={account.id === 0}
+					className="w-full"
+					onChange={(view) => void changeView(view)} />
+				<form
+					novalidate
+					role="search"
+					onsubmit={(event) => {
+						event.preventDefault()
+						search()
+					}}>
+					<div class="search-field">
+						<Icon
+							svg={magnifyingGlassIcon}
+							size={16}
+							aria-hidden="true" /><input
+							type="text"
+							placeholder={players
+								? "Search players or id:123"
+								: `Filter ${current.noun}`}
+							aria-label={players
+								? "Search Roblox players by username, display name, or id: and a user ID"
+								: `Filter ${current.noun}, or press Enter to search Roblox players`}
+							aria-invalid={searchError ? "true" : undefined}
+							maxlength={50}
+							disabled={account.id === 0}
+							bind:this={searchInput}
+							bind:value={store.query}
+							oninput={() =>
+								(searchError = "")} />{#if store.query}<button
 								type="button"
-								aria-current={active ? "true" : undefined}
-								aria-haspopup="menu"
-								data-list-item
-								aria-label={rowLabel(person)}
-								onclick={() => store.select(person)}
-								oncontextmenu={(event) => store.openMenu(event, person)}
-								onkeydown={(event) => {
-									if (
-										event.key === "ContextMenu" ||
-										(event.shiftKey && event.key === "F10")
-									)
-										store.openMenu(event, person)
-									moveListFocus(event)
-								}}>
-								<span
-									class={[
-										"flex w-full min-w-0 gap-2",
-										detail ? "items-start" : "items-center",
-									]}>
-									<SocialAvatar
-										imageUrl={person.imageUrl}
-										presence={person.presence ?? undefined}
-										className="size-9" />
-									<span class="flex min-w-0 flex-col leading-snug">
-										<strong
-											class="truncate text-sm font-semibold text-fg"
-											>{personName(person)}</strong>
-										<small
-											class="truncate text-2xs text-fg-faint group-hover/row:text-fg-muted group-data-selected/row:text-fg-muted"
-											>{subtitle(person)}</small>
-										{#if detail && person.presence}<PresenceLine
-												presence={person.presence} />{/if}
-									</span>
-								</span>
-							</button>
-						{/each}
-						{#if !players && filterText.length >= minimumSearchLength}
-							<button
-								class="list-row flex h-10 w-full items-center gap-2 border-b border-line-subtle px-3 text-left text-xs text-fg-muted"
-								type="button"
-								onclick={search}>
-								<Icon
-									svg={magnifyingGlassIcon}
-									class="shrink-0"
-									size={16}
-									aria-hidden="true" />
-								<span class="min-w-0 flex-1 truncate"
-									>Search players for <strong
-										class="font-medium text-fg"
-										>"{filterText}"</strong
-									></span>
-								<Icon
-									svg={arrowRightIcon}
-									class="shrink-0"
-									data-nudge="right"
-									size={14}
-									aria-hidden="true" />
-							</button>
-						{/if}
-						{#if store.page?.nextCursor && (players || !store.query)}
-							<div class="flex min-h-12 items-center justify-center">
-								<button
-									class="btn"
-									type="button"
-									aria-busy={store.loadingMore}
-									disabled={store.loadingMore}
-									onclick={() => void store.load(true)}
-									>{store.loadingMore
-										? "Loading…"
-										: "Load more"}</button>
-							</div>
-						{/if}
-					</div>
-					{#if players && store.playerQuery}
-						<div
-							class="pointer-events-none absolute inset-x-0 bottom-2 flex justify-center">
-							<button
-								class="pointer-events-auto btn bg-raised shadow-float hover:bg-raised-hover"
-								type="button"
-								in:menuIn
-								out:menuOut
+								aria-label="Clear search"
 								onclick={() => {
-									store.clearPlayers()
+									store.query = ""
 									searchError = ""
 									searchInput?.focus()
-								}}>
-								<Icon svg={xIcon} size={14} aria-hidden="true" />
-								<span>Clear search</span>
-							</button>
+								}}
+								><Icon
+									svg={xIcon}
+									size={14}
+									aria-hidden="true" /></button
+							>{/if}
+					</div>
+					{#if searchError}
+						<p class="mt-1 text-xs text-danger-muted" role="alert">
+							{searchError}
+						</p>
+					{/if}
+				</form>
+			{/snippet}
+			{#if store.loadError && store.page}
+				<p class="px-3 pb-2 text-xs text-danger-muted" role="alert">
+					{store.loadError}
+				</p>
+			{:else if store.page?.unavailable?.includes("presence")}
+				<p class="px-3 pb-2 text-xs text-danger-muted" role="alert">
+					Online status could not be loaded. Refresh to retry.
+				</p>
+			{/if}
+			<div class="relative grid min-h-0 flex-1 grid-rows-1">
+				<div
+					class={[
+						"min-h-0 scrollbar-stable overflow-y-auto",
+						players && store.playerQuery && "pb-12",
+					]}
+					aria-label={current.label}
+					aria-busy={store.loading || store.loadingMore}>
+					{#each store.people as person (person.userId)}
+						{@const active = store.selectedUserId === person.userId}
+						{@const detail = person.presence
+							? presenceDetail(person.presence)
+							: ""}
+						<button
+							class={[
+								"group/row list-row relative flex w-full flex-col justify-center border-b border-line-subtle px-3 text-left",
+								detail ? "h-16" : "h-12",
+							]}
+							data-selected={active || undefined}
+							data-open={store.menu?.person.userId === person.userId ||
+								undefined}
+							type="button"
+							aria-current={active ? "true" : undefined}
+							aria-haspopup="menu"
+							data-list-item
+							aria-label={rowLabel(person)}
+							onclick={() => store.select(person)}
+							oncontextmenu={(event) => store.openMenu(event, person)}
+							onkeydown={(event) => {
+								if (
+									event.key === "ContextMenu" ||
+									(event.shiftKey && event.key === "F10")
+								)
+									store.openMenu(event, person)
+								moveListFocus(event)
+							}}>
+							<span
+								class={[
+									"flex w-full min-w-0 gap-2",
+									detail ? "items-start" : "items-center",
+								]}>
+								<SocialAvatar
+									imageUrl={person.imageUrl}
+									presence={person.presence ?? undefined}
+									className="size-9" />
+								<span class="flex min-w-0 flex-col leading-snug">
+									<strong
+										class="truncate text-sm font-semibold text-fg"
+										>{personName(person)}</strong>
+									<small
+										class="truncate text-2xs text-fg-faint group-hover/row:text-fg-muted group-data-selected/row:text-fg-muted"
+										>{subtitle(person)}</small>
+									{#if detail && person.presence}<PresenceLine
+											presence={person.presence} />{/if}
+								</span>
+							</span>
+						</button>
+					{/each}
+					{#if !players && filterText.length >= minimumSearchLength}
+						<button
+							class="list-row flex h-10 w-full items-center gap-2 border-b border-line-subtle px-3 text-left text-xs text-fg-muted"
+							type="button"
+							onclick={search}>
+							<Icon
+								svg={magnifyingGlassIcon}
+								class="shrink-0"
+								size={16}
+								aria-hidden="true" />
+							<span class="min-w-0 flex-1 truncate"
+								>Search players for <strong class="font-medium text-fg"
+									>"{filterText}"</strong
+								></span>
+							<Icon
+								svg={arrowRightIcon}
+								class="shrink-0"
+								data-nudge="right"
+								size={14}
+								aria-hidden="true" />
+						</button>
+					{/if}
+					{#if store.page?.nextCursor && (players || !store.query)}
+						<div class="flex min-h-12 items-center justify-center">
+							<button
+								class="btn"
+								type="button"
+								aria-busy={store.loadingMore}
+								disabled={store.loadingMore}
+								onclick={() => void store.load(true)}
+								>{store.loadingMore ? "Loading…" : "Load more"}</button>
 						</div>
 					{/if}
 				</div>
-			{/if}
-		</aside>
-		<SidebarResizer
-			bind:width={store.sidebarWidth}
-			collapsed={store.sidebarCollapsed}
-			name="social" />
+				{#if players && store.playerQuery}
+					<div
+						class="pointer-events-none absolute inset-x-0 bottom-2 flex justify-center">
+						<button
+							class="pointer-events-auto btn bg-raised shadow-float hover:bg-raised-hover"
+							type="button"
+							in:menuIn
+							out:menuOut
+							onclick={() => {
+								store.clearPlayers()
+								searchError = ""
+								searchInput?.focus()
+							}}>
+							<Icon svg={xIcon} size={14} aria-hidden="true" />
+							<span>Clear search</span>
+						</button>
+					</div>
+				{/if}
+			</div>
+		</WorkbenchSidebar>
 		<div class="@container min-w-0 flex-1 overflow-x-hidden overflow-y-auto">
 			{#if selected}
 				{#key selected.userId}

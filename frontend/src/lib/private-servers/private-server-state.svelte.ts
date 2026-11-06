@@ -1,3 +1,4 @@
+import { copyText } from "../shared/clipboard"
 import { accountBackend } from "../backend/bridge"
 import type {
 	PrivateServerOption,
@@ -84,15 +85,13 @@ export class PrivateServerState {
 
 	async copyLink(): Promise<void> {
 		if (!this.settings?.joinLink) return
-		try {
-			await navigator.clipboard.writeText(this.settings.joinLink)
-			this.notifications.show({
-				id: "clipboard-copy",
-				title: "Copied",
-				tone: "success",
-				message: "Join link copied to clipboard.",
-			})
-		} catch {
+		if (
+			!(await copyText(
+				this.notifications,
+				this.settings.joinLink,
+				"Join link copied to clipboard.",
+			))
+		) {
 			this.error = {
 				action: "link",
 				message: "The join link could not be copied. Try again.",

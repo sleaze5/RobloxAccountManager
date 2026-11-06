@@ -1,8 +1,6 @@
 <script lang="ts">
 	import { onDestroy, onMount, tick } from "svelte"
 	import arrowRightIcon from "@phosphor-icons/core/regular/arrow-right.svg?raw"
-	import caretLeftIcon from "@phosphor-icons/core/regular/caret-left.svg?raw"
-	import caretRightIcon from "@phosphor-icons/core/regular/caret-right.svg?raw"
 	import circleNotchIcon from "@phosphor-icons/core/regular/circle-notch.svg?raw"
 	import dotsSixVerticalIcon from "@phosphor-icons/core/regular/dots-six-vertical.svg?raw"
 	import gameControllerIcon from "@phosphor-icons/core/regular/game-controller.svg?raw"
@@ -14,7 +12,7 @@
 	import xIcon from "@phosphor-icons/core/regular/x.svg?raw"
 	import Icon from "../shared/Icon.svelte"
 	import type { AccountStore } from "../accounts/account-store.svelte"
-	import SidebarResizer from "../layout/SidebarResizer.svelte"
+	import WorkbenchSidebar from "../layout/WorkbenchSidebar.svelte"
 	import type { WorkspaceState } from "../layout/workspace-state.svelte"
 	import type { NotificationCenter } from "../notifications/notification-center.svelte"
 	import { isMoveShortcut, moveListFocus } from "../shared/move-shortcut"
@@ -175,279 +173,231 @@
 	<div
 		class="flex min-h-0 flex-1"
 		style={`--sidebar-width: ${store.sidebarCollapsed ? 44 : store.sidebarWidth}px;`}>
-		<aside
-			class="flex min-h-0 w-(--sidebar-width) shrink-0 flex-col bg-surface"
-			aria-label="Game browser">
-			{#if store.sidebarCollapsed}
-				<div class="flex h-full flex-col items-center gap-3 pt-2 text-fg-faint">
-					<button
-						class="btn-ghost"
-						type="button"
-						aria-label="Expand games sidebar"
-						data-tooltip="Expand the games sidebar"
-						data-tooltip-side="right"
-						onclick={() => (store.sidebarCollapsed = false)}
-						><Icon
-							svg={caretRightIcon}
-							data-nudge="right"
+		<WorkbenchSidebar
+			label="Game browser"
+			name="games"
+			icon={gameControllerIcon}
+			count={favoritesMode ? store.favorites.length : undefined}
+			bind:collapsed={store.sidebarCollapsed}
+			bind:width={store.sidebarWidth}>
+			{#snippet title()}Games
+				{#if favoritesMode}<span
+						class="font-mono text-2xs font-normal text-fg-faint"
+						>({store.favorites.length})</span
+					>{/if}{/snippet}
+			{#snippet tools()}
+				<form
+					novalidate
+					class="flex items-center gap-1"
+					role="search"
+					onsubmit={(event) => {
+						event.preventDefault()
+						if (!favoritesMode && store.query.trim()) void store.search()
+						else searchInput?.focus()
+					}}>
+					<div class="search-field">
+						<Icon
+							svg={magnifyingGlassIcon}
 							size={16}
-							aria-hidden="true" /></button>
-					<Icon svg={gameControllerIcon} size={16} aria-hidden="true" />
-					{#if favoritesMode}<span class="font-mono text-2xs"
-							>{store.favorites.length}</span
-						>{/if}
-				</div>
-			{:else}
-				<div class="flex shrink-0 flex-col gap-1 px-3 pt-1 pb-2">
-					<div class="relative flex h-7 items-center">
-						<h1>
-							Games
-							{#if favoritesMode}<span
-									class="font-mono text-2xs font-normal text-fg-faint"
-									>({store.favorites.length})</span
-								>{/if}
-						</h1>
-						<div class="ml-auto flex items-center gap-px">
-							<button
-								class="btn-ghost"
+							aria-hidden="true" /><input
+							type="text"
+							placeholder={favoritesMode
+								? "Search favorites"
+								: "Search Roblox"}
+							aria-label={favoritesMode
+								? "Filter favorite places by nickname, name, or creator"
+								: "Search Roblox games by name, by place ID with id:, or by universe ID with universe:"}
+							maxlength={100}
+							bind:this={searchInput}
+							data-games-search
+							bind:value={
+								() =>
+									favoritesMode ? store.favoritesQuery : store.query,
+								(value) => {
+									if (favoritesMode) store.favoritesQuery = value
+									else store.query = value
+								}
+							} />{#if favoritesMode ? store.favoritesQuery : store.query}<button
 								type="button"
-								aria-label="Collapse games sidebar"
-								data-tooltip="Collapse the games sidebar"
-								data-tooltip-side="bottom-end"
-								onclick={() => (store.sidebarCollapsed = true)}
-								><Icon
-									svg={caretLeftIcon}
-									data-nudge="left"
-									size={16}
-									aria-hidden="true" /></button>
-						</div>
-					</div>
-					<form
-						novalidate
-						class="flex items-center gap-1"
-						role="search"
-						onsubmit={(event) => {
-							event.preventDefault()
-							if (!favoritesMode && store.query.trim())
-								void store.search()
-							else searchInput?.focus()
-						}}>
-						<div class="search-field">
-							<Icon
-								svg={magnifyingGlassIcon}
-								size={16}
-								aria-hidden="true" /><input
-								type="text"
-								placeholder={favoritesMode
-									? "Search favorites"
-									: "Search Roblox"}
 								aria-label={favoritesMode
-									? "Filter favorite places by nickname, name, or creator"
-									: "Search Roblox games by name, by place ID with id:, or by universe ID with universe:"}
-								maxlength={100}
-								bind:this={searchInput}
-								data-games-search
-								bind:value={
-									() =>
-										favoritesMode
-											? store.favoritesQuery
-											: store.query,
-									(value) => {
-										if (favoritesMode) store.favoritesQuery = value
-										else store.query = value
-									}
-								} />{#if favoritesMode ? store.favoritesQuery : store.query}<button
-									type="button"
-									aria-label={favoritesMode
-										? "Clear favorites filter"
-										: "Clear game search"}
-									onclick={() => {
-										if (favoritesMode) store.favoritesQuery = ""
-										else store.query = ""
-										searchInput?.focus()
-									}}
-									><Icon
-										svg={xIcon}
-										size={14}
-										aria-hidden="true" /></button
-								>{/if}
-						</div>
-						{#if !favoritesMode}
-							<div class="tag-filter-host">
-								<button
-									class="tag-filter-trigger"
-									type="submit"
-									aria-label="Search Roblox"
-									aria-busy={store.searching}
-									data-tooltip="Search Roblox"
-									data-tooltip-side="bottom-end">
-									{#if store.searching && !store.results.length}<Icon
-											svg={circleNotchIcon}
-											class="spinner"
-											size={16}
-											aria-hidden="true" />{:else}<Icon
-											svg={arrowRightIcon}
-											size={16}
-											aria-hidden="true" />{/if}
-								</button>
-							</div>
-						{/if}
-					</form>
-					<div class="segmented" role="group" aria-label="Show games">
-						<button
-							type="button"
-							aria-pressed={favoritesMode}
-							onclick={() => store.show("favorites")}>
-							<Icon
-								svg={starIcon}
-								size={14}
-								aria-hidden="true" />Favorites
-						</button>
-						<button
-							type="button"
-							aria-pressed={!favoritesMode}
-							onclick={() => store.show("search")}>
-							<Icon
-								svg={magnifyingGlassIcon}
-								size={14}
-								aria-hidden="true" />Search
-						</button>
+									? "Clear favorites filter"
+									: "Clear game search"}
+								onclick={() => {
+									if (favoritesMode) store.favoritesQuery = ""
+									else store.query = ""
+									searchInput?.focus()
+								}}
+								><Icon
+									svg={xIcon}
+									size={14}
+									aria-hidden="true" /></button
+							>{/if}
 					</div>
-				</div>
-				<div class="relative grid min-h-0 flex-1 grid-rows-1">
-					<div
-						class={[
-							"min-h-0 scrollbar-stable overflow-y-auto",
-							hasSearch && "pb-12",
-						]}
-						aria-label={favoritesMode
-							? "Favorite places"
-							: "Search results"}
-						aria-busy={favoritesMode
-							? store.loadingFavorites
-							: store.searching}>
-						{#each store.places as place (place.placeId)}
-							{@const active = store.selected?.placeId === place.placeId}
+					{#if !favoritesMode}
+						<div class="tag-filter-host">
 							<button
-								class={[
-									"list-row relative flex h-12 w-full items-center gap-2 border-b border-line-subtle text-left",
-									favoritesMode ? "pr-3 pl-2" : "px-3",
-									draggedPlaceId === place.placeId && "opacity-45",
-									dropTarget?.placeId === place.placeId &&
-										(dropTarget.after
-											? "shadow-drop-after"
-											: "shadow-drop-before"),
-								]}
-								data-selected={active || undefined}
-								data-open={store.menu?.place.placeId ===
-									place.placeId || undefined}
-								draggable={favoritesMode && store.canReorder}
-								onpointerdown={(event) => grab(event, place.placeId)}
-								ondragstart={(event) => startDrag(event, place.placeId)}
-								ondragend={finishDrag}
-								ondragover={(event) =>
-									updateDropTarget(event, place.placeId)}
-								ondrop={(event) => dropFavorite(event, place.placeId)}
-								type="button"
-								aria-current={active ? "true" : undefined}
-								aria-haspopup="menu"
-								data-list-item
-								aria-keyshortcuts={favoritesMode
-									? "Control+Shift+ArrowUp Control+Shift+ArrowDown"
-									: undefined}
-								onclick={() => store.select(place)}
-								oncontextmenu={(event) => store.openMenu(event, place)}
-								onkeydown={(event) => {
-									if (
-										event.key === "ContextMenu" ||
-										(event.shiftKey && event.key === "F10")
-									)
-										store.openMenu(event, place)
-									void moveWithKeyboard(event, place.placeId)
-									moveListFocus(event)
-								}}>
-								{#if favoritesMode}<span
-										class={[
-											"grid h-7 w-3 shrink-0 place-items-center text-fg-faint",
-											store.canReorder
-												? "cursor-grab active:cursor-grabbing"
-												: "cursor-default",
-										]}
-										data-drag-handle
-										aria-hidden="true"
-										><Icon
-											svg={dotsSixVerticalIcon}
-											size={14}
-											aria-hidden="true" /></span
-									>{/if}
-								<GameIcon url={place.iconUrl} />
-								<span class="flex min-w-0 flex-col leading-snug">
-									<strong
-										class="inline-flex min-w-0 items-center gap-1 text-xs font-semibold text-fg"
-										><span class="truncate"
-											>{store.displayName(place)}</span
-										>{#if store.isFavorite(place.placeId)}<Icon
-												svg={starFillIcon}
-												class="shrink-0 animate-pop text-accent-strong"
-												size={12}
-												aria-label="Favorite" />{/if}</strong>
-									<span class="truncate text-2xs text-fg-muted"
-										>{creatorByline(
-											place,
-										)}{#if place.creatorVerified}<Icon
-												svg={sealCheckIcon}
-												class="relative top-0.5 ml-1 inline-block"
-												size={14}
-												aria-label="Verified creator" />{/if}</span>
-								</span>
-							</button>
-						{/each}
-						{#if hasMore}
-							<div
-								class="flex min-h-12 items-center justify-center text-fg-faint"
-								use:loadMoreWhenVisible={store.nextPageToken}>
-								{#if store.loadMoreFailed}
-									<button
-										class="btn"
-										type="button"
-										onclick={() => void store.search(true)}
-										>Load more results</button>
-								{:else}
-									<Icon
+								class="tag-filter-trigger"
+								type="submit"
+								aria-label="Search Roblox"
+								aria-busy={store.searching}
+								data-tooltip="Search Roblox"
+								data-tooltip-side="bottom-end">
+								{#if store.searching && !store.results.length}<Icon
 										svg={circleNotchIcon}
 										class="spinner"
 										size={16}
-										aria-label="Loading more results" />
-								{/if}
-							</div>
-						{/if}
-						<span class="sr-only" aria-live="polite"
-							>{moveAnnouncement}</span>
-					</div>
-					{#if hasSearch}
-						<div
-							class="pointer-events-none absolute inset-x-0 bottom-2 flex justify-center">
-							<button
-								class="pointer-events-auto btn bg-raised shadow-float hover:bg-raised-hover"
-								type="button"
-								in:menuIn
-								out:menuOut
-								onclick={() => {
-									store.clearSearch()
-									searchInput?.focus()
-								}}>
-								<Icon svg={xIcon} size={14} aria-hidden="true" />
-								<span>Clear results</span>
+										aria-hidden="true" />{:else}<Icon
+										svg={arrowRightIcon}
+										size={16}
+										aria-hidden="true" />{/if}
 							</button>
 						</div>
 					{/if}
+				</form>
+				<div class="segmented" role="group" aria-label="Show games">
+					<button
+						type="button"
+						aria-pressed={favoritesMode}
+						onclick={() => store.show("favorites")}>
+						<Icon svg={starIcon} size={14} aria-hidden="true" />Favorites
+					</button>
+					<button
+						type="button"
+						aria-pressed={!favoritesMode}
+						onclick={() => store.show("search")}>
+						<Icon
+							svg={magnifyingGlassIcon}
+							size={14}
+							aria-hidden="true" />Search
+					</button>
 				</div>
-			{/if}
-		</aside>
-		<SidebarResizer
-			bind:width={store.sidebarWidth}
-			collapsed={store.sidebarCollapsed}
-			name="games" />
+			{/snippet}
+			<div class="relative grid min-h-0 flex-1 grid-rows-1">
+				<div
+					class={[
+						"min-h-0 scrollbar-stable overflow-y-auto",
+						hasSearch && "pb-12",
+					]}
+					aria-label={favoritesMode ? "Favorite places" : "Search results"}
+					aria-busy={favoritesMode
+						? store.loadingFavorites
+						: store.searching}>
+					{#each store.places as place (place.placeId)}
+						{@const active = store.selected?.placeId === place.placeId}
+						<button
+							class={[
+								"list-row relative flex h-12 w-full items-center gap-2 border-b border-line-subtle text-left",
+								favoritesMode ? "pr-3 pl-2" : "px-3",
+								draggedPlaceId === place.placeId && "opacity-45",
+								dropTarget?.placeId === place.placeId &&
+									(dropTarget.after
+										? "shadow-drop-after"
+										: "shadow-drop-before"),
+							]}
+							data-selected={active || undefined}
+							data-open={store.menu?.place.placeId === place.placeId ||
+								undefined}
+							draggable={favoritesMode && store.canReorder}
+							onpointerdown={(event) => grab(event, place.placeId)}
+							ondragstart={(event) => startDrag(event, place.placeId)}
+							ondragend={finishDrag}
+							ondragover={(event) =>
+								updateDropTarget(event, place.placeId)}
+							ondrop={(event) => dropFavorite(event, place.placeId)}
+							type="button"
+							aria-current={active ? "true" : undefined}
+							aria-haspopup="menu"
+							data-list-item
+							aria-keyshortcuts={favoritesMode
+								? "Control+Shift+ArrowUp Control+Shift+ArrowDown"
+								: undefined}
+							onclick={() => store.select(place)}
+							oncontextmenu={(event) => store.openMenu(event, place)}
+							onkeydown={(event) => {
+								if (
+									event.key === "ContextMenu" ||
+									(event.shiftKey && event.key === "F10")
+								)
+									store.openMenu(event, place)
+								void moveWithKeyboard(event, place.placeId)
+								moveListFocus(event)
+							}}>
+							{#if favoritesMode}<span
+									class={[
+										"grid h-7 w-3 shrink-0 place-items-center text-fg-faint",
+										store.canReorder
+											? "cursor-grab active:cursor-grabbing"
+											: "cursor-default",
+									]}
+									data-drag-handle
+									aria-hidden="true"
+									><Icon
+										svg={dotsSixVerticalIcon}
+										size={14}
+										aria-hidden="true" /></span
+								>{/if}
+							<GameIcon url={place.iconUrl} />
+							<span class="flex min-w-0 flex-col leading-snug">
+								<strong
+									class="inline-flex min-w-0 items-center gap-1 text-xs font-semibold text-fg"
+									><span class="truncate"
+										>{store.displayName(place)}</span
+									>{#if store.isFavorite(place.placeId)}<Icon
+											svg={starFillIcon}
+											class="shrink-0 animate-pop text-accent-strong"
+											size={12}
+											aria-label="Favorite" />{/if}</strong>
+								<span class="truncate text-2xs text-fg-muted"
+									>{creatorByline(
+										place,
+									)}{#if place.creatorVerified}<Icon
+											svg={sealCheckIcon}
+											class="relative top-0.5 ml-1 inline-block"
+											size={14}
+											aria-label="Verified creator" />{/if}</span>
+							</span>
+						</button>
+					{/each}
+					{#if hasMore}
+						<div
+							class="flex min-h-12 items-center justify-center text-fg-faint"
+							use:loadMoreWhenVisible={store.nextPageToken}>
+							{#if store.loadMoreFailed}
+								<button
+									class="btn"
+									type="button"
+									onclick={() => void store.search(true)}
+									>Load more results</button>
+							{:else}
+								<Icon
+									svg={circleNotchIcon}
+									class="spinner"
+									size={16}
+									aria-label="Loading more results" />
+							{/if}
+						</div>
+					{/if}
+					<span class="sr-only" aria-live="polite">{moveAnnouncement}</span>
+				</div>
+				{#if hasSearch}
+					<div
+						class="pointer-events-none absolute inset-x-0 bottom-2 flex justify-center">
+						<button
+							class="pointer-events-auto btn bg-raised shadow-float hover:bg-raised-hover"
+							type="button"
+							in:menuIn
+							out:menuOut
+							onclick={() => {
+								store.clearSearch()
+								searchInput?.focus()
+							}}>
+							<Icon svg={xIcon} size={14} aria-hidden="true" />
+							<span>Clear results</span>
+						</button>
+					</div>
+				{/if}
+			</div>
+		</WorkbenchSidebar>
 		<div class="grid min-w-0 flex-1 grid-rows-1">
 			{#if store.selected}
 				{#key store.selected.placeId}
