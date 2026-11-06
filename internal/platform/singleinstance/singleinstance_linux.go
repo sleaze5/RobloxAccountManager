@@ -11,6 +11,8 @@ import (
 	"os/exec"
 	"strings"
 	"syscall"
+
+	"github.com/sleaze5/RobloxAccountManager/internal/appmeta"
 )
 
 type Instance struct {
@@ -36,9 +38,9 @@ func Acquire(applicationID string) (*Instance, bool, error) {
 }
 
 func ShowAlreadyRunning() {
-	command := exec.CommandContext(context.Background(), "notify-send", "--app-name", "Roblox Account Manager", "Roblox Account Manager", "Roblox Account Manager is already running.")
+	command := exec.CommandContext(context.Background(), "notify-send", "--app-name", appmeta.DisplayName, appmeta.DisplayName, alreadyRunningMessage)
 	if err := command.Run(); err != nil {
-		fmt.Fprintln(os.Stderr, "Roblox Account Manager is already running.")
+		fmt.Fprintln(os.Stderr, alreadyRunningMessage)
 	}
 }
 

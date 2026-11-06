@@ -7,14 +7,15 @@ import (
 	"fmt"
 	"unsafe"
 
+	"github.com/sleaze5/RobloxAccountManager/internal/appmeta"
 	"golang.org/x/sys/windows"
 )
 
 var (
 	user32          = windows.NewLazySystemDLL("user32.dll")
 	messageBox      = user32.NewProc("MessageBoxW")
-	alreadyRunning  = windows.StringToUTF16Ptr("Roblox Account Manager is already running.")
-	applicationName = windows.StringToUTF16Ptr("Roblox Account Manager")
+	alreadyRunning  = windows.StringToUTF16Ptr(alreadyRunningMessage)
+	applicationName = windows.StringToUTF16Ptr(appmeta.DisplayName)
 )
 
 type Instance struct{ mutex windows.Handle }

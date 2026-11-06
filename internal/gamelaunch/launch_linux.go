@@ -7,61 +7,16 @@ import (
 	"io"
 	"os/exec"
 	"strings"
-	"time"
 )
 
-type linuxLauncher struct {
-	preferred func() string
-}
-
 func New(preferred func() string) Launcher {
-	if preferred == nil {
-		preferred = func() string { return "" }
-	}
-	return linuxLauncher{preferred: preferred}
+	return protocolLauncher{open: func(ctx context.Context, protocolURL string) error {
+		return openLinuxClient(ctx, preferred(), protocolURL)
+	}}
 }
 
-func (launcher linuxLauncher) Launch(ctx context.Context, ticket, browserTrackerID string, request Request) error {
-	if err := ctx.Err(); err != nil {
-		return err
-	}
-	if request.DirectLaunch {
-		return &ClientError{Message: "launching the Roblox Player binary directly is only available on Windows"}
-	}
-	protocolURL, err := buildProtocolURL(ticket, browserTrackerID, request, time.Now())
-	if err != nil {
-		return err
-	}
-	return launcher.open(ctx, protocolURL)
-}
-
-func (launcher linuxLauncher) LaunchProtocol(ctx context.Context, protocolURL string) error {
-	if err := ctx.Err(); err != nil {
-		return err
-	}
-	if err := ValidateBrowserProtocolURL(protocolURL); err != nil {
-		return err
-	}
-	return launcher.open(ctx, protocolURL)
-}
-
-func (linuxLauncher) CommandLine(ctx context.Context, ticket, browserTrackerID string, request Request) (string, error) {
-	if err := ctx.Err(); err != nil {
-		return "", err
-	}
-	if request.DirectLaunch {
-		return "", &ClientError{Message: "launching the Roblox Player binary directly is only available on Windows"}
-	}
-	return buildProtocolURL(ticket, browserTrackerID, request, time.Now())
-}
-
-func (launcher linuxLauncher) open(ctx context.Context, protocolURL string) error {
-	if strings.IndexFunc(protocolURL, func(character rune) bool {
-		return character <= ' ' || character == '"' || character == '\\'
-	}) >= 0 {
-		return &ClientError{Message: "the Roblox launch URL is invalid"}
-	}
-	client, desktop, err := resolveLinuxClient(launcher.preferred())
+func openLinuxClient(ctx context.Context, preferred, protocolURL string) error {
+	client, desktop, err := resolveLinuxClient(preferred)
 	if err != nil {
 		return err
 	}

@@ -12,55 +12,16 @@ import (
 	"os/exec"
 	"path/filepath"
 	"strings"
-	"time"
 )
 
 const robloxBundleID = "com.roblox.RobloxPlayer"
 
-type darwinLauncher struct{}
-
 func New(func() string) Launcher {
-	return darwinLauncher{}
+	return protocolLauncher{open: openRoblox}
 }
 
-func (launcher darwinLauncher) Launch(ctx context.Context, ticket, browserTrackerID string, request Request) error {
-	if err := ctx.Err(); err != nil {
-		return err
-	}
-	if request.DirectLaunch {
-		return &ClientError{Message: "launching the Roblox Player binary directly is only available on Windows"}
-	}
-	protocolURL, err := buildProtocolURL(ticket, browserTrackerID, request, time.Now())
-	if err != nil {
-		return err
-	}
-	return launcher.open(ctx, protocolURL)
-}
-
-func (launcher darwinLauncher) LaunchProtocol(ctx context.Context, protocolURL string) error {
-	if err := ctx.Err(); err != nil {
-		return err
-	}
-	if err := ValidateBrowserProtocolURL(protocolURL); err != nil {
-		return err
-	}
-	return launcher.open(ctx, protocolURL)
-}
-
-func (darwinLauncher) CommandLine(ctx context.Context, ticket, browserTrackerID string, request Request) (string, error) {
-	if err := ctx.Err(); err != nil {
-		return "", err
-	}
-	if request.DirectLaunch {
-		return "", &ClientError{Message: "launching the Roblox Player binary directly is only available on Windows"}
-	}
-	return buildProtocolURL(ticket, browserTrackerID, request, time.Now())
-}
-
-func (darwinLauncher) open(ctx context.Context, protocolURL string) error {
-	if !strings.HasPrefix(strings.ToLower(protocolURL), "roblox-player:") || strings.IndexFunc(protocolURL, func(character rune) bool {
-		return character <= ' ' || character == '"' || character == '\\'
-	}) >= 0 {
+func openRoblox(ctx context.Context, protocolURL string) error {
+	if !strings.HasPrefix(strings.ToLower(protocolURL), "roblox-player:") {
 		return &ClientError{Message: "the Roblox launch URL is invalid"}
 	}
 	home, _ := os.UserHomeDir()
