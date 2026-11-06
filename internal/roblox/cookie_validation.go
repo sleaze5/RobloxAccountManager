@@ -2,7 +2,6 @@ package roblox
 
 import (
 	"context"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
@@ -11,7 +10,6 @@ import (
 	"time"
 
 	"github.com/sleaze5/RobloxAccountManager/internal/accounts"
-	"github.com/sleaze5/RobloxAccountManager/internal/appmeta"
 )
 
 type CookieValidation struct {
@@ -41,7 +39,7 @@ func (client *Client) ValidateCookie(ctx context.Context, cookie, browserID stri
 		if retry {
 			continue
 		}
-		if err := client.applyValidationCookies(response, &validation); err != nil {
+		if err := applyValidationCookies(response, &validation); err != nil {
 			return CookieValidation{}, err
 		}
 		result, retry, err := client.cookieValidationResponse(requestContext, response, validation, attempt)
@@ -54,13 +52,10 @@ func (client *Client) ValidateCookie(ctx context.Context, cookie, browserID stri
 }
 
 func (client *Client) sendCookieValidation(ctx context.Context, validation CookieValidation, attempt int) (*Response, bool, error) {
-	request, err := http.NewRequestWithContext(ctx, http.MethodGet, authenticatedUserURL, http.NoBody)
+	request, err := newAuthenticatedUserRequest(ctx, validation.Cookie, validation.BrowserID)
 	if err != nil {
 		return nil, false, &Error{Kind: KindProtocol, Endpoint: "cookie-import", Message: "The cookie validation request is invalid.", Cause: err}
 	}
-	request.Header.Set("User-Agent", appmeta.UserAgent)
-	request.Header.Set("Accept", "application/json")
-	request.Header.Set("Cookie", formatAuthCookie(validation.Cookie, validation.BrowserID))
 	release, err := client.limits.acquire(ctx, request.URL.Hostname(), 0)
 	if err != nil {
 		return nil, false, contextError("cookie-import", err)
@@ -94,26 +89,21 @@ func (client *Client) sendCookieValidation(ctx context.Context, validation Cooki
 	return &Response{Status: response.StatusCode, Header: response.Header, Body: body}, false, nil
 }
 
-func (client *Client) applyValidationCookies(response *Response, validation *CookieValidation) error {
-	cookies := (&http.Response{Header: response.Header}).Cookies()
-	for _, replacement := range cookies {
-		if replacement.Name != accounts.RoblosecurityCookieName {
-			continue
-		}
-		if replacement.Value == "" || replacement.MaxAge < 0 {
-			return &Error{Kind: KindInvalidSession, Endpoint: "cookie-import", Status: response.Status, Message: "Roblox rejected this cookie."}
-		}
-		if err := accounts.ValidateCookieValue(replacement.Value); err != nil {
-			return &Error{Kind: KindProtocol, Endpoint: "cookie-import", Message: "Roblox returned an invalid replacement cookie.", Cause: err}
-		}
-		validation.Cookie = replacement.Value
-		if !replacement.Expires.IsZero() {
-			value := replacement.Expires.UTC()
-			if !value.After(time.Now()) {
-				return &Error{Kind: KindInvalidSession, Endpoint: "cookie-import", Status: response.Status, Message: "Roblox returned an expired session cookie."}
-			}
-			validation.ExpiresAt = &value
-		}
+func applyValidationCookies(response *Response, validation *CookieValidation) error {
+	replacement, found, err := sessionCookieReplacement(response.Header)
+	switch {
+	case !found:
+		return nil
+	case err != nil:
+		return &Error{Kind: KindProtocol, Endpoint: "cookie-import", Message: "Roblox returned an invalid replacement cookie.", Cause: err}
+	case replacement.deleted:
+		return &Error{Kind: KindInvalidSession, Endpoint: "cookie-import", Status: response.Status, Message: "Roblox rejected this cookie."}
+	case replacement.expired:
+		return &Error{Kind: KindInvalidSession, Endpoint: "cookie-import", Status: response.Status, Message: "Roblox returned an expired session cookie."}
+	}
+	validation.Cookie = replacement.value
+	if replacement.expires != nil {
+		validation.ExpiresAt = replacement.expires
 	}
 	return nil
 }
@@ -155,14 +145,10 @@ func (client *Client) cookieValidationResponse(ctx context.Context, response *Re
 }
 
 func cookieValidationIdentity(response *Response, validation CookieValidation) (CookieValidation, error) {
-	var identity struct {
-		ID          int64  `json:"id"`
-		Name        string `json:"name"`
-		DisplayName string `json:"displayName"`
-	}
-	if err := json.Unmarshal(response.Body, &identity); err != nil || identity.ID <= 0 || strings.TrimSpace(identity.Name) == "" {
+	identity, ok := DecodeAuthenticatedUser(response.Body)
+	if !ok {
 		return CookieValidation{}, &Error{Kind: KindProtocol, Endpoint: "cookie-import", Status: response.Status, Message: "Roblox returned an invalid account identity."}
 	}
-	validation.Identity = accounts.Identity{RobloxUserID: identity.ID, Username: identity.Name, DisplayName: identity.DisplayName}
+	validation.Identity = identity
 	return validation, nil
 }

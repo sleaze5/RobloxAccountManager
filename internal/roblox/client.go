@@ -30,7 +30,6 @@ const (
 	challengeTypeHeader  = "Rblx-Challenge-Type"
 	robloxDefaultOrigin  = "https://www.roblox.com"
 	robloxDefaultReferer = "https://www.roblox.com/"
-	authenticatedUserURL = "https://users.roblox.com/v1/users/authenticated"
 )
 
 var errResponseTooLarge = errors.New("response exceeds configured limit")
@@ -359,7 +358,7 @@ func (client *Client) handleFailedResponse(ctx context.Context, execution *reque
 }
 
 func (client *Client) unauthorizedResponse(ctx context.Context, request Request, snapshot SessionSnapshot, response *Response) error {
-	if request.Endpoint == "authenticated-user" {
+	if request.URL.String() == AuthenticatedUserURL {
 		client.setState(ctx, snapshot, accounts.StateReauthRequired, "Roblox rejected the session.")
 		return &Error{Kind: KindReauthRequired, Endpoint: request.Endpoint, Status: response.Status, Message: "Roblox rejected this session."}
 	}
@@ -459,34 +458,52 @@ func (client *Client) sendAttempt(ctx context.Context, contract Request, snapsho
 	return result, nil
 }
 
-func (client *Client) processSetCookie(ctx context.Context, request Request, snapshot SessionSnapshot, headers http.Header) (int64, bool, error) {
-	dummy := &http.Response{Header: headers}
-	for _, cookie := range dummy.Cookies() {
+type cookieReplacement struct {
+	value   string
+	expires *time.Time
+	deleted bool
+	expired bool
+}
+
+func sessionCookieReplacement(headers http.Header) (cookieReplacement, bool, error) {
+	for _, cookie := range (&http.Response{Header: headers}).Cookies() {
 		if cookie.Name != accounts.RoblosecurityCookieName {
 			continue
 		}
 		if cookie.Value == "" || cookie.MaxAge < 0 {
-			client.setState(ctx, snapshot, accounts.StateReauthRequired, "Roblox deleted the session cookie.")
-			return 0, true, nil
+			return cookieReplacement{deleted: true}, true, nil
 		}
 		if err := accounts.ValidateCookieValue(cookie.Value); err != nil {
-			return 0, false, &Error{Kind: KindProtocol, Endpoint: request.Endpoint, Message: "Roblox returned an invalid replacement cookie.", Cause: err}
+			return cookieReplacement{}, true, err
 		}
-		var expires *time.Time
+		replacement := cookieReplacement{value: cookie.Value}
 		if !cookie.Expires.IsZero() {
-			value := cookie.Expires.UTC()
-			expires = &value
-			if !value.After(time.Now()) {
-				client.setState(ctx, snapshot, accounts.StateReauthRequired, "Roblox expired the session cookie.")
-				return 0, true, nil
-			}
+			expires := cookie.Expires.UTC()
+			replacement.expires = &expires
+			replacement.expired = !expires.After(time.Now())
 		}
-		if cookie.Value == snapshot.Cookie && sameTime(expires, snapshot.CookieExpiresAt) {
-			return 0, false, nil
-		}
-		return client.storeRotatedCookie(ctx, request, snapshot, cookie.Value, expires)
+		return replacement, true, nil
 	}
-	return 0, false, nil
+	return cookieReplacement{}, false, nil
+}
+
+func (client *Client) processSetCookie(ctx context.Context, request Request, snapshot SessionSnapshot, headers http.Header) (int64, bool, error) {
+	replacement, found, err := sessionCookieReplacement(headers)
+	switch {
+	case !found:
+		return 0, false, nil
+	case err != nil:
+		return 0, false, &Error{Kind: KindProtocol, Endpoint: request.Endpoint, Message: "Roblox returned an invalid replacement cookie.", Cause: err}
+	case replacement.deleted:
+		client.setState(ctx, snapshot, accounts.StateReauthRequired, "Roblox deleted the session cookie.")
+		return 0, true, nil
+	case replacement.expired:
+		client.setState(ctx, snapshot, accounts.StateReauthRequired, "Roblox expired the session cookie.")
+		return 0, true, nil
+	case replacement.value == snapshot.Cookie && sameTime(replacement.expires, snapshot.CookieExpiresAt):
+		return 0, false, nil
+	}
+	return client.storeRotatedCookie(ctx, request, snapshot, replacement.value, replacement.expires)
 }
 
 func (client *Client) confirmSessionInvalid(ctx context.Context, snapshot SessionSnapshot) bool {
@@ -513,13 +530,10 @@ func (client *Client) confirmSessionInvalid(ctx context.Context, snapshot Sessio
 func (client *Client) probeAuthenticated(ctx context.Context, snapshot SessionSnapshot) (int, error) {
 	merged, stop := mergeContext(ctx, snapshot.Context)
 	defer stop()
-	request, err := http.NewRequestWithContext(merged, http.MethodGet, authenticatedUserURL, http.NoBody)
+	request, err := newAuthenticatedUserRequest(merged, snapshot.Cookie, snapshot.BrowserID)
 	if err != nil {
-		return 0, fmt.Errorf("create authenticated-user request: %w", err)
+		return 0, err
 	}
-	request.Header.Set("User-Agent", appmeta.UserAgent)
-	request.Header.Set("Accept", "application/json")
-	request.Header.Set("Cookie", formatAuthCookie(snapshot.Cookie, snapshot.BrowserID))
 	release, err := client.limits.acquire(merged, request.URL.Hostname(), snapshot.AccountID)
 	if err != nil {
 		return 0, err

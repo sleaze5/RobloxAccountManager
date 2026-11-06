@@ -38,9 +38,9 @@ func Acquire(applicationID string) (*Instance, bool, error) {
 
 func ShowAlreadyRunning() {
 	command := exec.CommandContext(context.Background(), "/usr/bin/osascript", "-e",
-		`display alert "Roblox Account Manager is already running." as informational`)
+		`display alert "`+alreadyRunningMessage+`" as informational`)
 	if err := command.Run(); err != nil {
-		fmt.Fprintln(os.Stderr, "Roblox Account Manager is already running.")
+		fmt.Fprintln(os.Stderr, alreadyRunningMessage)
 	}
 }
 

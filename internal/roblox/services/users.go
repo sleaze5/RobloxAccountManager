@@ -28,7 +28,7 @@ type Users struct {
 }
 
 func NewUsers(client *roblox.Client) *Users {
-	authenticated, _ := url.Parse("https://users.roblox.com/v1/users/authenticated")
+	authenticated, _ := url.Parse(roblox.AuthenticatedUserURL)
 	profiles, _ := url.Parse("https://users.roblox.com/v1/users/")
 	return &Users{client: client, authenticated: authenticated, profiles: profiles}
 }
@@ -59,15 +59,11 @@ func (service *Users) Authenticated(ctx context.Context, accountID int64) (accou
 	if err != nil {
 		return accounts.Identity{}, err
 	}
-	var identity struct {
-		ID          int64  `json:"id"`
-		Name        string `json:"name"`
-		DisplayName string `json:"displayName"`
-	}
-	if err := json.Unmarshal(response.Body, &identity); err != nil || identity.ID <= 0 || strings.TrimSpace(identity.Name) == "" {
+	identity, ok := roblox.DecodeAuthenticatedUser(response.Body)
+	if !ok {
 		return accounts.Identity{}, &roblox.Error{Kind: roblox.KindProtocol, Endpoint: "authenticated-user", Status: response.Status, Message: "Roblox returned an invalid account identity.", Cause: errors.New("invalid authenticated-user response")}
 	}
-	profile, err := service.Profile(ctx, identity.ID)
+	profile, err := service.Profile(ctx, identity.RobloxUserID)
 	if err != nil {
 		return accounts.Identity{}, err
 	}
