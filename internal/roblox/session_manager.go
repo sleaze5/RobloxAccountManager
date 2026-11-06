@@ -158,19 +158,16 @@ func (manager *SessionManager) CSRF(accountID, version int64) string {
 	return session.csrfToken
 }
 
-func (manager *SessionManager) SetCSRF(accountID, version int64, token string) bool {
+func (manager *SessionManager) SetCSRF(accountID, version int64, token string) {
 	session := manager.get(accountID)
 	if session == nil || token == "" {
-		return false
+		return
 	}
 	session.mu.Lock()
 	defer session.mu.Unlock()
-	if session.secretVersion != version {
-		return false
+	if session.secretVersion == version {
+		session.csrfToken = token
 	}
-	changed := session.csrfToken != token
-	session.csrfToken = token
-	return changed
 }
 
 func (manager *SessionManager) Validate(ctx context.Context, accountID int64, validate func(context.Context, SessionSnapshot) (any, error)) (any, error) {

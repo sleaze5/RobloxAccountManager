@@ -26,6 +26,19 @@ type BackupInfo struct {
 	CreatedAtMS int64  `json:"createdAtMs"`
 }
 
+type execer interface {
+	ExecContext(ctx context.Context, query string, args ...any) (sql.Result, error)
+}
+
+// BumpRevision must run in every transaction that changes vault data, so that
+// MaybeCreateBackup sees the change.
+func BumpRevision(ctx context.Context, db execer) error {
+	if _, err := db.ExecContext(ctx, `UPDATE vault_state SET storage_revision = storage_revision + 1 WHERE singleton = 1`); err != nil {
+		return fmt.Errorf("update storage revision: %w", err)
+	}
+	return nil
+}
+
 func (manager *Manager) MaybeCreateBackup(ctx context.Context) error {
 	db, release, err := manager.Lease(ctx)
 	if err != nil {

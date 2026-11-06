@@ -11,7 +11,6 @@ export type {
 	BlockedUser,
 	ChatConversationView,
 	ChatMessageView,
-	ChatParticipant,
 	FriendConnection,
 	SocialPage as SocialListPage,
 	SocialProfile as SocialProfileSnapshot,
@@ -23,7 +22,6 @@ export type {
 	LaunchConfirmation,
 	LaunchResult,
 	RobloxPlayerPathCheck,
-	TimestampFormats,
 	TransferPreview,
 	TransferResult,
 	VaultState,
@@ -103,13 +101,10 @@ export const accountBackend = Service
 
 export type {
 	Game,
-	ListedPrivateServer,
 	ListedPrivateServerPage,
 	OwnedPrivateServer,
-	OwnedPrivateServerPage,
 	Place as GamePlace,
 	PlaceSummary as GamePlaceSummary,
-	PrivateServer,
 	PrivateServerPage,
 	PrivateServerSettings,
 	PrivateServerUser,
@@ -151,11 +146,7 @@ export type {
 	PlayerVersion as RobloxPlayerVersion,
 } from "../../../bindings/github.com/sleaze5/RobloxAccountManager/internal/gamelaunch/models.js"
 
-export type {
-	ComponentRecord,
-	LaunchReport,
-	LaunchStage,
-} from "../../../bindings/github.com/sleaze5/RobloxAccountManager/internal/logging/models.js"
+export type { LaunchReport } from "../../../bindings/github.com/sleaze5/RobloxAccountManager/internal/logging/models.js"
 
 export { Kind as TimestampSegmentKind } from "../../../bindings/github.com/sleaze5/RobloxAccountManager/internal/timestampformat/models.js"
 export type { Format as TimestampFormat } from "../../../bindings/github.com/sleaze5/RobloxAccountManager/internal/timestampformat/models.js"

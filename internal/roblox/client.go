@@ -21,6 +21,7 @@ import (
 
 	"github.com/sleaze5/RobloxAccountManager/internal/accounts"
 	"github.com/sleaze5/RobloxAccountManager/internal/appmeta"
+	"github.com/sleaze5/RobloxAccountManager/internal/logging"
 )
 
 const (
@@ -29,6 +30,7 @@ const (
 	challengeTypeHeader  = "Rblx-Challenge-Type"
 	robloxDefaultOrigin  = "https://www.roblox.com"
 	robloxDefaultReferer = "https://www.roblox.com/"
+	authenticatedUserURL = "https://users.roblox.com/v1/users/authenticated"
 )
 
 var errResponseTooLarge = errors.New("response exceeds configured limit")
@@ -45,60 +47,34 @@ type Observer interface {
 }
 
 type ClientOptions struct {
-	Transport            http.RoundTripper
-	Store                SessionStore
-	Sessions             *SessionManager
-	Observer             Observer
-	CredentialPolicy     func(*url.URL) bool
-	AuthenticatedUserURL *url.URL
-	Now                  func() time.Time
-	Logger               *slog.Logger
+	Store    SessionStore
+	Sessions *SessionManager
+	Observer Observer
+	Logger   *slog.Logger
 }
 
 type Client struct {
-	http                 *http.Client
-	store                SessionStore
-	sessions             *SessionManager
-	observer             Observer
-	credentialPolicy     func(*url.URL) bool
-	authenticatedUserURL *url.URL
-	now                  func() time.Time
-	limits               *requestLimits
-	logger               *slog.Logger
+	http     *http.Client
+	store    SessionStore
+	sessions *SessionManager
+	observer Observer
+	limits   *requestLimits
+	logger   *slog.Logger
 }
 
 func NewClient(options ClientOptions) *Client {
-	transport := options.Transport
-	if transport == nil {
-		transport = &http.Transport{
-			Proxy:                  http.ProxyFromEnvironment,
-			DialContext:            (&net.Dialer{Timeout: 10 * time.Second, KeepAlive: 30 * time.Second}).DialContext,
-			ForceAttemptHTTP2:      true,
-			TLSClientConfig:        &tls.Config{MinVersion: tls.VersionTLS12},
-			MaxIdleConns:           100,
-			MaxIdleConnsPerHost:    10,
-			MaxResponseHeaderBytes: 1 << 20,
-			IdleConnTimeout:        90 * time.Second,
-			TLSHandshakeTimeout:    10 * time.Second,
-			ResponseHeaderTimeout:  15 * time.Second,
-			ExpectContinueTimeout:  time.Second,
-		}
-	}
-	policy := options.CredentialPolicy
-	if policy == nil {
-		policy = AllowedCredentialURL
-	}
-	now := options.Now
-	if now == nil {
-		now = time.Now
-	}
-	authenticatedUserURL := options.AuthenticatedUserURL
-	if authenticatedUserURL == nil {
-		authenticatedUserURL, _ = url.Parse("https://users.roblox.com/v1/users/authenticated")
-	}
-	logger := options.Logger
-	if logger == nil {
-		logger = slog.New(slog.DiscardHandler)
+	transport := &http.Transport{
+		Proxy:                  http.ProxyFromEnvironment,
+		DialContext:            (&net.Dialer{Timeout: 10 * time.Second, KeepAlive: 30 * time.Second}).DialContext,
+		ForceAttemptHTTP2:      true,
+		TLSClientConfig:        &tls.Config{MinVersion: tls.VersionTLS12},
+		MaxIdleConns:           100,
+		MaxIdleConnsPerHost:    10,
+		MaxResponseHeaderBytes: 1 << 20,
+		IdleConnTimeout:        90 * time.Second,
+		TLSHandshakeTimeout:    10 * time.Second,
+		ResponseHeaderTimeout:  15 * time.Second,
+		ExpectContinueTimeout:  time.Second,
 	}
 	return &Client{
 		http: &http.Client{
@@ -107,14 +83,11 @@ func NewClient(options ClientOptions) *Client {
 				return http.ErrUseLastResponse
 			},
 		},
-		store:                options.Store,
-		sessions:             options.Sessions,
-		observer:             options.Observer,
-		credentialPolicy:     policy,
-		authenticatedUserURL: cloneURL(authenticatedUserURL),
-		now:                  now,
-		limits:               newRequestLimits(),
-		logger:               logger,
+		store:    options.Store,
+		sessions: options.Sessions,
+		observer: options.Observer,
+		limits:   newRequestLimits(),
+		logger:   options.Logger,
 	}
 }
 
@@ -155,7 +128,7 @@ func (client *Client) prepareRequest(request *Request) error {
 	if client.sessions == nil {
 		return &Error{Kind: KindProtocol, Endpoint: request.Endpoint, Message: "The session manager is unavailable."}
 	}
-	if err := request.validate(client.credentialPolicy); err != nil {
+	if err := request.validate(allowedCredentialURL); err != nil {
 		return &Error{Kind: KindProtocol, Endpoint: request.Endpoint, Message: "The request contract is invalid.", Cause: err}
 	}
 	request.Method = strings.ToUpper(request.Method)
@@ -191,7 +164,7 @@ func (client *Client) requestSnapshot(ctx context.Context, request Request) (Ses
 		if snapshot.State == accounts.StateDisabled {
 			return SessionSnapshot{}, &Error{Kind: KindForbidden, Endpoint: request.Endpoint, Message: "Network use is disabled for this account."}
 		}
-		if snapshot.CookieExpiresAt != nil && !snapshot.CookieExpiresAt.After(client.now()) {
+		if snapshot.CookieExpiresAt != nil && !snapshot.CookieExpiresAt.After(time.Now()) {
 			client.setState(ctx, snapshot, accounts.StateReauthRequired, "The known cookie expiry passed.")
 			return SessionSnapshot{}, &Error{Kind: KindReauthRequired, Endpoint: request.Endpoint, Message: "The Roblox session has expired."}
 		}
@@ -301,7 +274,7 @@ func (client *Client) handleSendError(ctx context.Context, execution *requestExe
 	if errors.As(sendErr, &netErr) && netErr.Timeout() {
 		kind = KindTimeout
 	}
-	return response, false, &Error{Kind: kind, Endpoint: request.Endpoint, Message: "The Roblox request failed.", Cause: sendErr, SafeToRetry: safeToRetryRequest(request)}
+	return response, false, &Error{Kind: kind, Endpoint: request.Endpoint, Message: "The Roblox request failed.", Cause: sendErr}
 }
 
 func (client *Client) handleStaleResponse(execution *requestExecution, response *Response) (*Response, bool, error) {
@@ -377,7 +350,7 @@ func (client *Client) handleFailedResponse(ctx context.Context, execution *reque
 		return client.rateLimitedResponse(ctx, execution, response)
 	}
 	if isRetryableStatus(response.Status) && request.Retry.RetryServerErrors && execution.serverAttempt < execution.maxAttempts {
-		if err := waitForRetry(ctx, retryDelay(response.Header, execution.serverAttempt, client.now())); err != nil {
+		if err := waitForRetry(ctx, retryDelay(response.Header, execution.serverAttempt, time.Now())); err != nil {
 			return nil, false, contextError(request.Endpoint, err)
 		}
 		return nil, true, nil
@@ -402,7 +375,7 @@ func (client *Client) forbiddenResponse(ctx context.Context, request Request, sn
 	if challengeType != "" {
 		message := "Roblox requires user interaction."
 		client.setState(ctx, snapshot, accounts.StateChallenged, message)
-		return &Error{Kind: KindChallengeRequired, Endpoint: request.Endpoint, Status: response.Status, ChallengeType: challengeType, Message: message}
+		return &Error{Kind: KindChallengeRequired, Endpoint: request.Endpoint, Status: response.Status, Message: message}
 	}
 	kind := KindForbidden
 	message := "Roblox rejected this operation."
@@ -415,8 +388,8 @@ func (client *Client) forbiddenResponse(ctx context.Context, request Request, sn
 
 func (client *Client) rateLimitedResponse(ctx context.Context, execution *requestExecution, response *Response) (*Response, bool, error) {
 	request := execution.request
-	delay := retryDelay(response.Header, execution.serverAttempt, client.now())
-	retryAt := client.now().Add(delay)
+	delay := retryDelay(response.Header, execution.serverAttempt, time.Now())
+	retryAt := time.Now().Add(delay)
 	if client.observer != nil {
 		client.observer.RateLimited(request.AccountID, retryAt)
 	}
@@ -426,7 +399,7 @@ func (client *Client) rateLimitedResponse(ctx context.Context, execution *reques
 		}
 		return nil, true, nil
 	}
-	return nil, false, &Error{Kind: KindRateLimited, Endpoint: request.Endpoint, Status: response.Status, RetryAt: retryAt, SafeToRetry: true, Message: "Roblox is rate limiting requests."}
+	return nil, false, &Error{Kind: KindRateLimited, Endpoint: request.Endpoint, Status: response.Status, RetryAt: retryAt, Message: "Roblox is rate limiting requests."}
 }
 
 func (client *Client) sendAttempt(ctx context.Context, contract Request, snapshot SessionSnapshot, csrfToken string) (*Response, error) {
@@ -445,9 +418,8 @@ func (client *Client) sendAttempt(ctx context.Context, contract Request, snapsho
 		return nil, err
 	}
 	defer release()
-	started := client.now()
-	// slog.LevelDebug-4 is the trace level.
-	client.logger.Log(ctx, slog.LevelDebug-4, "Roblox request started",
+	started := time.Now()
+	client.logger.Log(ctx, logging.TraceLevel, "Roblox request started",
 		"endpoint", contract.Endpoint,
 		"account_id", contract.AccountID,
 		"method", contract.Method,
@@ -463,7 +435,7 @@ func (client *Client) sendAttempt(ctx context.Context, contract Request, snapsho
 			"endpoint", contract.Endpoint,
 			"account_id", contract.AccountID,
 			"host", request.URL.Hostname(),
-			"duration_ms", client.now().Sub(started).Milliseconds(),
+			"duration_ms", time.Since(started).Milliseconds(),
 			"error", err,
 		)
 		return nil, err
@@ -477,12 +449,11 @@ func (client *Client) sendAttempt(ctx context.Context, contract Request, snapsho
 		}
 		return result, err
 	}
-	// slog.LevelDebug-4 is the trace level.
-	client.logger.Log(ctx, slog.LevelDebug-4, "Roblox response received",
+	client.logger.Log(ctx, logging.TraceLevel, "Roblox response received",
 		"endpoint", contract.Endpoint,
 		"account_id", contract.AccountID,
 		"status", response.StatusCode,
-		"duration_ms", client.now().Sub(started).Milliseconds(),
+		"duration_ms", time.Since(started).Milliseconds(),
 	)
 	result.Body = body
 	return result, nil
@@ -505,7 +476,7 @@ func (client *Client) processSetCookie(ctx context.Context, request Request, sna
 		if !cookie.Expires.IsZero() {
 			value := cookie.Expires.UTC()
 			expires = &value
-			if !value.After(client.now()) {
+			if !value.After(time.Now()) {
 				client.setState(ctx, snapshot, accounts.StateReauthRequired, "Roblox expired the session cookie.")
 				return 0, true, nil
 			}
@@ -540,13 +511,9 @@ func (client *Client) confirmSessionInvalid(ctx context.Context, snapshot Sessio
 }
 
 func (client *Client) probeAuthenticated(ctx context.Context, snapshot SessionSnapshot) (int, error) {
-	probeURL := cloneURL(client.authenticatedUserURL)
-	if !client.credentialPolicy(probeURL) {
-		return 0, errors.New("authenticated-user URL is outside the credential policy")
-	}
 	merged, stop := mergeContext(ctx, snapshot.Context)
 	defer stop()
-	request, err := http.NewRequestWithContext(merged, http.MethodGet, probeURL.String(), http.NoBody)
+	request, err := http.NewRequestWithContext(merged, http.MethodGet, authenticatedUserURL, http.NoBody)
 	if err != nil {
 		return 0, fmt.Errorf("create authenticated-user request: %w", err)
 	}
@@ -614,7 +581,7 @@ func safeToRetryRequest(request Request) bool {
 	case http.MethodGet, http.MethodHead, http.MethodOptions:
 		return true
 	default:
-		return request.Retry.Idempotent || request.Retry.IdempotencyKey != ""
+		return request.Retry.Idempotent
 	}
 }
 
@@ -641,7 +608,7 @@ func retryDelay(headers http.Header, attempt int, now time.Time) time.Duration {
 			return time.Duration(seconds) * time.Second
 		}
 		if when, err := http.ParseTime(raw); err == nil && when.After(now) {
-			return minDuration(when.Sub(now), 30*time.Second)
+			return min(when.Sub(now), 30*time.Second)
 		}
 	}
 	return backoff(attempt, secureSample())
@@ -653,7 +620,7 @@ func backoff(attempt, sample int) time.Duration {
 	}
 	base := time.Duration(math.Pow(2, float64(attempt-1))) * 250 * time.Millisecond
 	jitter := time.Duration(sample%251) * time.Millisecond
-	return minDuration(base+jitter, 5*time.Second)
+	return min(base+jitter, 5*time.Second)
 }
 
 func waitForRetry(ctx context.Context, delay time.Duration) error {
@@ -714,7 +681,7 @@ func responseError(request Request, response *Response) *Error {
 			message = singleString
 		}
 	}
-	return &Error{Kind: kind, Endpoint: request.Endpoint, Status: response.Status, RobloxCode: robloxCode, Message: message, SafeToRetry: safeToRetryRequest(request) && isRetryableStatus(response.Status)}
+	return &Error{Kind: kind, Endpoint: request.Endpoint, Status: response.Status, RobloxCode: robloxCode, Message: message}
 }
 
 func mergeContext(primary, cancellation context.Context) (context.Context, func()) {
@@ -740,17 +707,9 @@ func cloneURL(value *url.URL) *url.URL {
 
 func secureSample() int {
 	var value [8]byte
-	if _, err := rand.Read(value[:]); err != nil {
-		return int(time.Now().UnixNano() & math.MaxInt32)
-	}
+	// crypto/rand.Read never returns an error.
+	_, _ = rand.Read(value[:])
 	return int(binary.LittleEndian.Uint64(value[:]) & math.MaxInt32)
-}
-
-func minDuration(a, b time.Duration) time.Duration {
-	if a < b {
-		return a
-	}
-	return b
 }
 
 func sameTime(left, right *time.Time) bool {
@@ -775,11 +734,8 @@ func (client *Client) prepareAttemptHeaders(request *http.Request, contract Requ
 	if contract.AuthenticationNegotiation {
 		request.Header.Set("Rbxauthenticationnegotiation", "1")
 	}
-	if contract.Retry.IdempotencyKey != "" {
-		request.Header.Set("Idempotency-Key", contract.Retry.IdempotencyKey)
-	}
 	if contract.Authenticated {
-		if !client.credentialPolicy(request.URL) {
+		if !allowedCredentialURL(request.URL) {
 			return errors.New("credential host failed final validation")
 		}
 		request.Header.Set("Cookie", formatAuthCookie(snapshot.Cookie, snapshot.BrowserID))

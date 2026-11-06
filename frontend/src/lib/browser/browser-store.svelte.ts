@@ -61,18 +61,6 @@ export class BrowserStore {
 		)
 	}
 
-	get activeSessions() {
-		return (this.snapshot.sessions ?? []).filter(
-			(session) =>
-				session.lifecycle !== Lifecycle.LifecycleClosed &&
-				session.lifecycle !== Lifecycle.LifecycleFailed,
-		)
-	}
-
-	get browserSessions() {
-		return this.snapshot.sessions ?? []
-	}
-
 	get activeLoginSessions() {
 		return this.loginSessions.filter(
 			(session) =>
@@ -278,16 +266,6 @@ export class BrowserStore {
 				tone: "error",
 			})
 		}
-	}
-
-	hasAccountSession(accountId: number): boolean {
-		return (this.snapshot.sessions ?? []).some(
-			(session) =>
-				session.mode === Mode.ModeSaved &&
-				session.accountId === accountId &&
-				session.lifecycle !== Lifecycle.LifecycleClosed &&
-				session.lifecycle !== Lifecycle.LifecycleFailed,
-		)
 	}
 
 	accountSessionId(accountId: number): string {

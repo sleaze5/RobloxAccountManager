@@ -45,7 +45,7 @@ func main() {
 	appupdate.HandleHelperMode()
 	if monitor, err := logging.RunCrashMonitor(); monitor {
 		if err != nil {
-			logging.NewConsole(os.Stderr, logging.LevelError).Error("crash monitor failed", "module", "logging", "error", err)
+			logging.NewConsole().Error("crash monitor failed", "module", "logging", "error", err)
 			os.Exit(1)
 		}
 		return
@@ -155,7 +155,7 @@ func run() (runErr error) {
 		logSystem.Module("application.accounts"),
 	)
 	launch.Begin("browser-runtime")
-	runtimeManager, err := browser.NewRuntimeManager(dataPaths, logSystem.Module("browser.runtime"), nil)
+	runtimeManager, err := browser.NewRuntimeManager(dataPaths, logSystem.Module("browser.runtime"))
 	if err != nil {
 		return fmt.Errorf("initialize browser runtime: %w", err)
 	}

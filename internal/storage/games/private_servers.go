@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/sleaze5/RobloxAccountManager/internal/games"
+	"github.com/sleaze5/RobloxAccountManager/internal/storage/vault"
 )
 
 var (
@@ -109,8 +110,8 @@ func (repository *Repository) RemovePrivateServer(ctx context.Context, id int64)
 }
 
 func commitPrivateServers(ctx context.Context, tx *sql.Tx) error {
-	if _, err := tx.ExecContext(ctx, `UPDATE vault_state SET storage_revision = storage_revision + 1 WHERE singleton = 1`); err != nil {
-		return fmt.Errorf("update storage revision: %w", err)
+	if err := vault.BumpRevision(ctx, tx); err != nil {
+		return err
 	}
 	if err := tx.Commit(); err != nil {
 		return fmt.Errorf("commit saved private servers: %w", err)

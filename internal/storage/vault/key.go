@@ -99,7 +99,7 @@ func CheckPassword(password string) PasswordRequirements {
 	return requirements
 }
 
-func ValidatePassword(password string) error {
+func validatePassword(password string) error {
 	if !utf8.ValidString(password) || !CheckPassword(password).Valid() {
 		return errors.New("master password does not meet every requirement")
 	}
@@ -171,7 +171,7 @@ func deriveKEK(password string, params argon2Parameters, salt []byte) ([]byte, e
 }
 
 func createKeyFile(password, hint string, vaultID [vaultIDBytes]byte, dek []byte, params argon2Parameters) (keyFile, error) {
-	if err := ValidatePassword(password); err != nil {
+	if err := validatePassword(password); err != nil {
 		return keyFile{}, err
 	}
 	if err := validateHint(hint); err != nil {

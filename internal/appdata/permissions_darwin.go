@@ -23,7 +23,6 @@ func rejectNetworkPath(path string) error {
 }
 
 func restrictDirectory(path string) error {
-	// Only the owner can read, write, and enter the directory.
 	if err := os.Chmod(path, 0o700); err != nil {
 		return fmt.Errorf("restrict directory permissions: %w", err)
 	}

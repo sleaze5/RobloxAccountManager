@@ -506,6 +506,12 @@
 		)
 	}
 
+	const dialogsWithOwnEscape = new Set<ActiveDialog>([
+		"browser-import",
+		"edit-description",
+		"import-vault",
+	])
+
 	function handleWindowKeydown(event: KeyboardEvent): void {
 		if (event.ctrlKey && !event.altKey && event.key === "Tab") {
 			event.preventDefault()
@@ -518,10 +524,7 @@
 
 		if (activeDialog === "test-password") {
 			closePasswordTest()
-		} else if (
-			activeDialog === "browser-import" ||
-			activeDialog === "edit-description"
-		) {
+		} else if (dialogsWithOwnEscape.has(activeDialog)) {
 			return
 		} else if (activeDialog === "browser-runtime") {
 			dismissBrowserRuntime()

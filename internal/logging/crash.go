@@ -107,7 +107,7 @@ func RunCrashMonitor() (bool, error) {
 	if string(data) == cleanShutdownRecord {
 		return true, nil
 	}
-	system, err := Open(Config{
+	system, err := open(config{
 		Directory: directory, LaunchID: os.Args[2], Resume: true,
 		EnabledLevels: []Level{LevelError},
 	})

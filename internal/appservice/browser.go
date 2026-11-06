@@ -13,43 +13,26 @@ import (
 )
 
 func (service *Service) GetBrowserState() browser.Snapshot {
-	if service.browser == nil {
-		return browser.Snapshot{}
-	}
 	return service.browser.Snapshot()
 }
 
 func (service *Service) GetBrowserShutdownEffects() browser.ShutdownEffects {
-	if service.browser == nil {
-		return browser.ShutdownEffects{}
-	}
 	return service.browser.Effects()
 }
 
 func (service *Service) DownloadBrowserRuntime(ctx context.Context) error {
-	if service.browser == nil {
-		return errors.New("browser runtime management is unavailable")
-	}
 	return service.browser.DownloadRuntime(context.WithoutCancel(ctx), false)
 }
 
 func (service *Service) CancelBrowserRuntimeDownload() {
-	if service.runtime != nil {
-		service.runtime.CancelDownload()
-	}
+	service.runtime.CancelDownload()
 }
 
 func (service *Service) RedownloadBrowserRuntime(ctx context.Context) error {
-	if service.browser == nil {
-		return errors.New("browser runtime management is unavailable")
-	}
 	return service.browser.DownloadRuntime(context.WithoutCancel(ctx), true)
 }
 
 func (service *Service) RemoveBrowserRuntime() error {
-	if service.browser == nil {
-		return errors.New("browser runtime management is unavailable")
-	}
 	return service.browser.RemoveRuntime()
 }
 

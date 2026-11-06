@@ -144,7 +144,6 @@ func (service *Users) SocialLinks(ctx context.Context, accountID, version int64)
 	return service.socialLinks(ctx, accountID, version, "profile-social-links", "https://accountinformation.roblox.com/v1/promotion-channels?alwaysReturnUrls=true")
 }
 
-// UserSocialLinks reads the social links another user shows on their profile.
 func (service *Users) UserSocialLinks(ctx context.Context, accountID, version, userID int64) ([]UserSocialLink, error) {
 	address := "https://accountinformation.roblox.com/v1/users/" + strconv.FormatInt(userID, 10) + "/promotion-channels?alwaysReturnUrls=true"
 	return service.socialLinks(ctx, accountID, version, "friend-social-links", address)

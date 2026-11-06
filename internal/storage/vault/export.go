@@ -34,8 +34,8 @@ var (
 	ErrExportPassword     = errors.New("export password is incorrect or the file is damaged")
 	ErrUnsupportedExport  = errors.New("export file is from a newer version")
 	ErrInvalidExport      = errors.New("file is not a valid export")
-	ErrWeakExportPassword = errors.New("export password does not meet every requirement")
-	ErrExportHint         = errors.New("export password hint is too long")
+	errWeakExportPassword = errors.New("export password does not meet every requirement")
+	errExportHint         = errors.New("export password hint is too long")
 	ErrExportHintPassword = errors.New("export password hint contains the export password")
 	exportMagic           = [8]byte{'R', 'A', 'M', 'X', 'P', 'R', 'T', 0}
 )
@@ -163,14 +163,14 @@ func (manager *Manager) ReadExportDetails(path string) (ExportDetails, error) {
 
 func ValidateExportPassword(password string) error {
 	if !utf8.ValidString(password) || !CheckPassword(password).Valid() {
-		return ErrWeakExportPassword
+		return errWeakExportPassword
 	}
 	return nil
 }
 
 func ValidateExportHint(hint, password string) error {
 	if validateHint(hint) != nil {
-		return ErrExportHint
+		return errExportHint
 	}
 	if password != "" && strings.Contains(strings.ToLower(hint), strings.ToLower(password)) {
 		return ErrExportHintPassword

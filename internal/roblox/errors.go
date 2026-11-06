@@ -26,15 +26,13 @@ const (
 )
 
 type Error struct {
-	Kind          ErrorKind
-	Endpoint      string
-	Status        int
-	RobloxCode    int
-	ChallengeType string
-	RetryAt       time.Time
-	SafeToRetry   bool
-	Message       string
-	Cause         error
+	Kind       ErrorKind
+	Endpoint   string
+	Status     int
+	RobloxCode int
+	RetryAt    time.Time
+	Message    string
+	Cause      error
 }
 
 func (e *Error) Error() string {

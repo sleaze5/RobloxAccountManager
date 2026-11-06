@@ -51,7 +51,6 @@ func copyFile(source, destination string) error {
 		return fmt.Errorf("open staged update: %w", err)
 	}
 	defer func() { _ = input.Close() }()
-	// Only the owner can read, write, and run the executable.
 	output, err := os.OpenFile(destination, os.O_CREATE|os.O_EXCL|os.O_WRONLY, 0o700)
 	if err != nil {
 		return fmt.Errorf("create update copy: %w", err)

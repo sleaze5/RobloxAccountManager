@@ -697,9 +697,10 @@ func (store *Store) saveLocked() error {
 	return nil
 }
 
+var utf8BOM = []byte{0xef, 0xbb, 0xbf}
+
 func decodeJSON(data []byte, value any) error {
-	// UTF-8 byte order mark
-	data = bytes.TrimPrefix(data, []byte{0xef, 0xbb, 0xbf})
+	data = bytes.TrimPrefix(data, utf8BOM)
 	if !utf8.Valid(data) {
 		return errors.New("settings must use valid UTF-8 encoding")
 	}

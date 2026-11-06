@@ -16,7 +16,6 @@ const (
 type RetryPolicy struct {
 	MaxAttempts       int
 	Idempotent        bool
-	IdempotencyKey    string
 	RetryServerErrors bool
 	RetryRateLimit    bool
 }
@@ -83,7 +82,7 @@ func (request Request) validate(policy func(*url.URL) bool) error {
 	return nil
 }
 
-func AllowedCredentialURL(value *url.URL) bool {
+func allowedCredentialURL(value *url.URL) bool {
 	if value == nil || !strings.EqualFold(value.Scheme, "https") || value.User != nil {
 		return false
 	}

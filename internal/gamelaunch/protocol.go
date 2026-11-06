@@ -9,7 +9,7 @@ import (
 	"time"
 )
 
-func BuildProtocolURL(ticket, browserTrackerID string, request Request, now time.Time) (string, error) {
+func buildProtocolURL(ticket, browserTrackerID string, request Request, now time.Time) (string, error) {
 	if err := validateTicket(ticket); err != nil {
 		return "", err
 	}

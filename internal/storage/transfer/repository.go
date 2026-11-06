@@ -10,6 +10,7 @@ import (
 	"time"
 
 	accountdomain "github.com/sleaze5/RobloxAccountManager/internal/accounts"
+	"github.com/sleaze5/RobloxAccountManager/internal/storage/vault"
 )
 
 type DatabaseProvider interface {
@@ -18,7 +19,6 @@ type DatabaseProvider interface {
 
 type Repository struct {
 	provider DatabaseProvider
-	now      func() time.Time
 	logger   *slog.Logger
 }
 
@@ -50,7 +50,7 @@ type MergeResult struct {
 }
 
 func NewRepository(provider DatabaseProvider, logger *slog.Logger) *Repository {
-	return &Repository{provider: provider, now: time.Now, logger: logger}
+	return &Repository{provider: provider, logger: logger}
 }
 
 func (repository *Repository) Read(ctx context.Context) (Payload, error) {
@@ -228,13 +228,13 @@ func (repository *Repository) Replace(ctx context.Context, payload Payload, sett
 	if _, err := tx.ExecContext(ctx, `DELETE FROM accounts; DELETE FROM tags WHERE kind = 'custom'; DELETE FROM favorite_places; DELETE FROM saved_private_servers;`); err != nil {
 		return nil, fmt.Errorf("clear vault data: %w", err)
 	}
-	if err := insertPayload(ctx, tx, payload, nextAccountID, nextTagID, repository.now().UTC().UnixMilli()); err != nil {
+	if err := insertPayload(ctx, tx, payload, nextAccountID, nextTagID, time.Now().UTC().UnixMilli()); err != nil {
 		return nil, err
 	}
 	if err := storePendingSettings(ctx, tx, settings); err != nil {
 		return nil, err
 	}
-	if err := bumpRevision(ctx, tx); err != nil {
+	if err := vault.BumpRevision(ctx, tx); err != nil {
 		return nil, err
 	}
 	if err := tx.Commit(); err != nil {
@@ -317,7 +317,7 @@ func (repository *Repository) Merge(ctx context.Context, input MergeInput) (Merg
 		return MergeResult{}, fmt.Errorf("begin vault merge: %w", err)
 	}
 	defer tx.Rollback()
-	now := repository.now().UTC().UnixMilli()
+	now := time.Now().UTC().UnixMilli()
 	tagIDs, err := favoriteTagIDs(ctx, tx)
 	if err != nil {
 		return MergeResult{}, err
@@ -342,7 +342,7 @@ func (repository *Repository) Merge(ctx context.Context, input MergeInput) (Merg
 	if err := storePendingSettings(ctx, tx, input.Settings); err != nil {
 		return MergeResult{}, err
 	}
-	if err := bumpRevision(ctx, tx); err != nil {
+	if err := vault.BumpRevision(ctx, tx); err != nil {
 		return MergeResult{}, err
 	}
 	if err := tx.Commit(); err != nil {
@@ -557,13 +557,6 @@ func (repository *Repository) ClearPendingSettings(ctx context.Context) error {
 	defer release()
 	if _, err := db.ExecContext(ctx, `DELETE FROM pending_settings_import`); err != nil {
 		return fmt.Errorf("clear pending settings import: %w", err)
-	}
-	return nil
-}
-
-func bumpRevision(ctx context.Context, tx *sql.Tx) error {
-	if _, err := tx.ExecContext(ctx, `UPDATE vault_state SET storage_revision = storage_revision + 1 WHERE singleton = 1`); err != nil {
-		return fmt.Errorf("update storage revision: %w", err)
 	}
 	return nil
 }

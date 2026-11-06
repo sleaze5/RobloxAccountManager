@@ -29,7 +29,7 @@ func prepareLaunch(ctx context.Context, ticket, browserTrackerID string, request
 	if request.DirectLaunch {
 		return preparePlayerDirectly(ticket, browserTrackerID, request)
 	}
-	protocolURL, err := BuildProtocolURL(ticket, browserTrackerID, request, time.Now())
+	protocolURL, err := buildProtocolURL(ticket, browserTrackerID, request, time.Now())
 	return preparedLaunch{protocolURL: protocolURL}, err
 }
 

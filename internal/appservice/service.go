@@ -168,9 +168,7 @@ func (service *Service) Shutdown() error {
 	service.logger.Info("application service shutting down")
 	service.stopGames()
 	service.cancelLaunchConfirmation()
-	if service.browser != nil {
-		service.browser.Shutdown()
-	}
+	service.browser.Shutdown()
 	service.multiInstance.Close()
 	service.cancelPendingValidations()
 	service.stopBackground()

@@ -2,7 +2,6 @@ package logging
 
 import (
 	"errors"
-	"io"
 	"log/slog"
 	"os"
 	"path/filepath"
@@ -13,17 +12,15 @@ import (
 )
 
 const (
-	defaultMaxBytes = 5 << 20
-	defaultRetained = 5
+	maxLogBytes      = 5 << 20
+	retainedLogFiles = 5
 )
 
-type Config struct {
+type config struct {
 	EnabledLevels []Level
 	Directory     string
 	LaunchID      string
 	Resume        bool
-	MaxBytes      int64
-	RetainedFiles int
 	AddSource     bool
 	// Hold keeps entries in memory and leaves Directory untouched until Release.
 	Hold       bool
@@ -38,28 +35,11 @@ type System struct {
 	crash  *crashCapture
 }
 
-func Open(config Config) (*System, error) {
+func open(config config) (*System, error) {
 	levels := config.EnabledLevels
-	if levels == nil {
-		levels = AllLevels()
-	}
-	for _, level := range levels {
-		if level == LevelOff {
-			return nil, errors.New("off is not an individual log level")
-		}
-		if _, err := ParseLevel(string(level)); err != nil {
-			return nil, err
-		}
-	}
 	header, err := launchHeader(config.LaunchID)
 	if err != nil {
 		return nil, err
-	}
-	if config.MaxBytes == 0 {
-		config.MaxBytes = defaultMaxBytes
-	}
-	if config.RetainedFiles == 0 {
-		config.RetainedFiles = defaultRetained
 	}
 	if strings.TrimSpace(config.Directory) == "" {
 		return nil, errors.New("log directory is required")
@@ -69,7 +49,7 @@ func Open(config Config) (*System, error) {
 			return nil, err
 		}
 	}
-	writer, err := newRotatingWriter(filepath.Join(config.Directory, config.LaunchID+".log"), config.MaxBytes, config.RetainedFiles, header, config.Resume)
+	writer, err := newRotatingWriter(filepath.Join(config.Directory, config.LaunchID+".log"), maxLogBytes, retainedLogFiles, header, config.Resume)
 	if err != nil {
 		return nil, err
 	}
@@ -81,7 +61,7 @@ func Open(config Config) (*System, error) {
 	}
 	handler := slog.NewJSONHandler(writer, &slog.HandlerOptions{
 		AddSource:   config.AddSource,
-		Level:       traceSlogLevel,
+		Level:       TraceLevel,
 		ReplaceAttr: replaceLogAttribute,
 	})
 	filter := newLevelFilter(levels)
@@ -89,11 +69,8 @@ func Open(config Config) (*System, error) {
 	return &System{base: base, writer: writer, filter: filter}, nil
 }
 
-func NewConsole(writer io.Writer, level Level) *slog.Logger {
-	if writer == nil {
-		writer = os.Stderr
-	}
-	handler := slog.NewJSONHandler(writer, &slog.HandlerOptions{Level: level.slogLevel(), ReplaceAttr: replaceLogAttribute})
+func NewConsole() *slog.Logger {
+	handler := slog.NewJSONHandler(os.Stderr, &slog.HandlerOptions{Level: slog.LevelError, ReplaceAttr: replaceLogAttribute})
 	return slog.New(&redactingHandler{next: handler})
 }
 
@@ -104,14 +81,6 @@ func (system *System) Module(name string) *slog.Logger {
 func (system *System) SetEnabledLevels(levels []Level) error {
 	system.mu.Lock()
 	defer system.mu.Unlock()
-	for _, level := range levels {
-		if level == LevelOff {
-			return errors.New("off is not an individual log level")
-		}
-		if _, err := ParseLevel(string(level)); err != nil {
-			return err
-		}
-	}
 	if len(levels) > 0 {
 		if err := system.writer.ensureOpen(); err != nil {
 			return err
