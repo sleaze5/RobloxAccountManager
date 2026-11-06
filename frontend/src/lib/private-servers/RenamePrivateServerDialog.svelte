@@ -6,15 +6,9 @@
 	import { accountBackend, TextModeration } from "../backend/bridge"
 	import type { TextFilter } from "../backend/bridge"
 	import type { NotificationCenter } from "../notifications/notification-center.svelte"
-	import {
-		modalBackdropIn,
-		modalBackdropOut,
-		modalCardIn,
-		modalCardOut,
-		modalFocus,
-		replayValidationNudge,
-	} from "../shared/presence"
+	import { replayValidationNudge } from "../shared/presence"
 	import { errorMessage } from "../shared/errors"
+	import Dialog from "../shared/Dialog.svelte"
 	import type { PrivateServerState } from "./private-server-state.svelte"
 
 	let {
@@ -112,118 +106,108 @@
 		if (event.key === "Escape") close()
 	}} />
 
-<div class="dialog-backdrop" in:modalBackdropIn out:modalBackdropOut>
-	<div
-		class="dialog-card max-w-sm text-left"
-		role="dialog"
-		aria-modal="true"
-		aria-labelledby={`${id}-title`}
-		bind:this={card}
-		use:modalFocus
-		in:modalCardIn
-		out:modalCardOut>
-		<form
-			novalidate
-			class="contents"
-			onsubmit={(event) => {
-				event.preventDefault()
-				void submit()
-			}}>
-			<div class="dialog-heading">
-				<div class="min-w-0">
-					<h2 id={`${id}-title`}>Rename private server</h2>
-					<p>@{username}</p>
-				</div>
-				<button
-					type="button"
-					aria-label="Close rename private server"
+<Dialog class="max-w-sm text-left" aria-labelledby={`${id}-title`} bind:card>
+	<form
+		novalidate
+		class="contents"
+		onsubmit={(event) => {
+			event.preventDefault()
+			void submit()
+		}}>
+		<div class="dialog-heading">
+			<div class="min-w-0">
+				<h2 id={`${id}-title`}>Rename private server</h2>
+				<p>@{username}</p>
+			</div>
+			<button
+				type="button"
+				aria-label="Close rename private server"
+				disabled={busy}
+				onclick={close}>
+				<Icon svg={xIcon} size={14} aria-hidden="true" />
+			</button>
+		</div>
+		<div class="dialog-field mt-0">
+			<label for={`${id}-name`}>Name</label>
+			{#if preview === undefined}
+				<input
+					id={`${id}-name`}
+					class="field"
+					type="text"
+					autocomplete="off"
+					maxlength={maximumLength}
+					aria-describedby={`${id}-count`}
 					disabled={busy}
-					onclick={close}>
-					<Icon svg={xIcon} size={14} aria-hidden="true" />
-				</button>
-			</div>
-			<div class="dialog-field mt-0">
-				<label for={`${id}-name`}>Name</label>
-				{#if preview === undefined}
-					<input
-						id={`${id}-name`}
-						class="field"
-						type="text"
-						autocomplete="off"
-						maxlength={maximumLength}
-						aria-describedby={`${id}-count`}
-						disabled={busy}
-						bind:this={field}
-						bind:value />
-				{:else}
-					<input
-						id={`${id}-name`}
-						class="field"
-						type="text"
-						aria-describedby={`${id}-count`}
-						value={preview}
-						readonly
-						disabled={busy} />
-				{/if}
-				<small
-					id={`${id}-count`}
-					class="flex justify-end font-mono text-2xs text-fg-muted tabular-nums"
-					>{Array.from(value).length}/{maximumLength}</small>
-			</div>
-			<div aria-live="polite">
-				{#if clean}
-					<span class="sr-only">Roblox's filter won't tag this name.</span>
-				{:else if result?.filter?.moderation === TextModeration.TextModerationPartial}
-					<span class="sr-only">Roblox will tag part of this name.</span>
-				{:else if result?.filter?.moderation === TextModeration.TextModerationFull}
-					<span class="sr-only">Roblox will tag all of this name.</span>
-				{/if}
-			</div>
-			{#if error}
-				<div class="mt-3 notice-error" role="alert">{error}</div>
+					bind:this={field}
+					bind:value />
+			{:else}
+				<input
+					id={`${id}-name`}
+					class="field"
+					type="text"
+					aria-describedby={`${id}-count`}
+					value={preview}
+					readonly
+					disabled={busy} />
 			{/if}
-			<div class="dialog-actions">
-				<button class="btn" type="button" disabled={busy} onclick={close}
-					>Cancel</button>
-				<button
-					class="btn"
-					type="button"
-					aria-busy={validating === "validate"}
-					disabled={busy ||
-						(preview === undefined && (text === "" || result !== null))}
-					onclick={() =>
-						void (preview === undefined ? validate("validate") : edit())}>
-					{#if validating === "validate"}
-						Validating…
-					{:else if preview !== undefined}
-						Edit
-					{:else}
-						{#if clean}<Icon
-								svg={checkCircleIcon}
-								class="text-success"
-								size={14}
-								aria-hidden="true" />{/if}
-						Validate
-					{/if}
-				</button>
-				<button
-					class={tagged ? "btn-warning" : "btn-primary"}
-					type="submit"
-					aria-busy={validating === "submit" || renaming}
-					disabled={!changed || busy}>
-					{#if validating === "submit"}
-						Validating…
-					{:else if renaming}
-						Renaming…
-					{:else if result && !result.filter}
-						Rename without validating
-					{:else if tagged}
-						Rename anyway
-					{:else}
-						Rename server
-					{/if}
-				</button>
-			</div>
-		</form>
-	</div>
-</div>
+			<small
+				id={`${id}-count`}
+				class="flex justify-end font-mono text-2xs text-fg-muted tabular-nums"
+				>{Array.from(value).length}/{maximumLength}</small>
+		</div>
+		<div aria-live="polite">
+			{#if clean}
+				<span class="sr-only">Roblox's filter won't tag this name.</span>
+			{:else if result?.filter?.moderation === TextModeration.TextModerationPartial}
+				<span class="sr-only">Roblox will tag part of this name.</span>
+			{:else if result?.filter?.moderation === TextModeration.TextModerationFull}
+				<span class="sr-only">Roblox will tag all of this name.</span>
+			{/if}
+		</div>
+		{#if error}
+			<div class="mt-3 notice-error" role="alert">{error}</div>
+		{/if}
+		<div class="dialog-actions">
+			<button class="btn" type="button" disabled={busy} onclick={close}
+				>Cancel</button>
+			<button
+				class="btn"
+				type="button"
+				aria-busy={validating === "validate"}
+				disabled={busy ||
+					(preview === undefined && (text === "" || result !== null))}
+				onclick={() =>
+					void (preview === undefined ? validate("validate") : edit())}>
+				{#if validating === "validate"}
+					Validating…
+				{:else if preview !== undefined}
+					Edit
+				{:else}
+					{#if clean}<Icon
+							svg={checkCircleIcon}
+							class="text-success"
+							size={14}
+							aria-hidden="true" />{/if}
+					Validate
+				{/if}
+			</button>
+			<button
+				class={tagged ? "btn-warning" : "btn-primary"}
+				type="submit"
+				aria-busy={validating === "submit" || renaming}
+				disabled={!changed || busy}>
+				{#if validating === "submit"}
+					Validating…
+				{:else if renaming}
+					Renaming…
+				{:else if result && !result.filter}
+					Rename without validating
+				{:else if tagged}
+					Rename anyway
+				{:else}
+					Rename server
+				{/if}
+			</button>
+		</div>
+	</form>
+</Dialog>

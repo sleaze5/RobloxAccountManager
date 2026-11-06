@@ -12,15 +12,9 @@
 	import type { Account } from "../accounts/account-model"
 	import { accountBackend } from "../backend/bridge"
 	import type { NotificationCenter } from "../notifications/notification-center.svelte"
-	import {
-		modalBackdropIn,
-		modalBackdropOut,
-		modalCardIn,
-		modalCardOut,
-		modalFocus,
-		replayValidationNudge,
-	} from "../shared/presence"
+	import { replayValidationNudge } from "../shared/presence"
 	import { errorMessage } from "../shared/errors"
+	import Dialog from "../shared/Dialog.svelte"
 
 	let {
 		account,
@@ -148,122 +142,110 @@
 		if (event.key === "Escape") close()
 	}} />
 
-<div class="dialog-backdrop" in:modalBackdropIn out:modalBackdropOut>
-	<div
-		class="dialog-card max-w-sm text-left"
-		role="dialog"
-		aria-modal="true"
-		aria-labelledby="saved-password-title"
-		bind:this={card}
-		use:modalFocus
-		in:modalCardIn
-		out:modalCardOut>
-		<form
-			novalidate
-			onsubmit={(event) => {
-				event.preventDefault()
-				void save()
-			}}>
-			<div class="dialog-heading mb-2">
-				<div>
-					<h2 id="saved-password-title">{title}</h2>
-					<p>@{account.username}</p>
-				</div>
+<Dialog class="max-w-sm text-left" aria-labelledby="saved-password-title" bind:card>
+	<form
+		novalidate
+		onsubmit={(event) => {
+			event.preventDefault()
+			void save()
+		}}>
+		<div class="dialog-heading mb-2">
+			<div>
+				<h2 id="saved-password-title">{title}</h2>
+				<p>@{account.username}</p>
+			</div>
+			<button
+				type="button"
+				aria-label={`Close ${title.toLowerCase()}`}
+				disabled={pending !== null}
+				onclick={close}>
+				<Icon svg={xIcon} size={14} aria-hidden="true" />
+			</button>
+		</div>
+
+		<div class="relative">
+			<label class="dialog-field">
+				<span>Roblox password</span>
+				<input
+					bind:this={input}
+					bind:value={password}
+					class="pr-8"
+					type={visible ? "text" : "password"}
+					placeholder={loading ? "Loading…" : ""}
+					autocomplete="off"
+					spellcheck="false"
+					disabled={busy}
+					oninput={() => {
+						validation = "unchecked"
+						error = ""
+					}} />
+			</label>
+			<button
+				class="absolute right-1 bottom-1 btn-ghost size-6"
+				type="button"
+				aria-label={visible ? "Hide password" : "Show password"}
+				data-tooltip={visible ? "Hide password" : "Show password"}
+				onclick={() => (visible = !visible)}>
+				{#if visible}<Icon
+						svg={eyeSlashIcon}
+						size={16}
+						aria-hidden="true" />{:else}<Icon
+						svg={eyeIcon}
+						size={16}
+						aria-hidden="true" />{/if}
+			</button>
+		</div>
+
+		<div class="mt-2 flex min-h-6 items-center gap-1 text-xs text-fg">
+			{#if validation === "valid"}
+				<span class="flex items-center gap-1 text-success" role="status"
+					><Icon svg={checkCircleIcon} size={16} aria-hidden="true" />Password
+					is correct</span>
+			{:else if validation === "invalid"}
+				<span class="flex items-center gap-1 text-warning" role="status"
+					><Icon
+						svg={warningCircleIcon}
+						size={16}
+						aria-hidden="true" />Password is incorrect</span>
+			{:else}
 				<button
+					class="flex items-center gap-1 py-1 text-xs text-fg-muted transition-colors duration-100 *:animate-pop"
 					type="button"
-					aria-label={`Close ${title.toLowerCase()}`}
-					disabled={pending !== null}
-					onclick={close}>
-					<Icon svg={xIcon} size={14} aria-hidden="true" />
+					disabled={busy || !password}
+					onclick={() => void validate()}>
+					{#if pending === "validate"}<Icon
+							svg={circleNotchIcon}
+							class="spinner"
+							size={16}
+							aria-hidden="true" /> Validating…{:else}<Icon
+							svg={shieldCheckIcon}
+							size={16}
+							aria-hidden="true" /> Validate with Roblox{/if}
 				</button>
-			</div>
-
-			<div class="relative">
-				<label class="dialog-field">
-					<span>Roblox password</span>
-					<input
-						bind:this={input}
-						bind:value={password}
-						class="pr-8"
-						type={visible ? "text" : "password"}
-						placeholder={loading ? "Loading…" : ""}
-						autocomplete="off"
-						spellcheck="false"
-						disabled={busy}
-						oninput={() => {
-							validation = "unchecked"
-							error = ""
-						}} />
-				</label>
 				<button
-					class="absolute right-1 bottom-1 btn-ghost size-6"
+					class="flex size-5 cursor-help items-center justify-center text-fg-faint transition-colors duration-100 hover:text-fg focus-visible:text-fg"
 					type="button"
-					aria-label={visible ? "Hide password" : "Show password"}
-					data-tooltip={visible ? "Hide password" : "Show password"}
-					onclick={() => (visible = !visible)}>
-					{#if visible}<Icon
-							svg={eyeSlashIcon}
-							size={16}
-							aria-hidden="true" />{:else}<Icon
-							svg={eyeIcon}
-							size={16}
-							aria-hidden="true" />{/if}
+					aria-label={validationHint}
+					data-tooltip={validationHint}>
+					<Icon svg={infoIcon} size={14} aria-hidden="true" />
 				</button>
-			</div>
+			{/if}
+		</div>
 
-			<div class="mt-2 flex min-h-6 items-center gap-1 text-xs text-fg">
-				{#if validation === "valid"}
-					<span class="flex items-center gap-1 text-success" role="status"
-						><Icon
-							svg={checkCircleIcon}
-							size={16}
-							aria-hidden="true" />Password is correct</span>
-				{:else if validation === "invalid"}
-					<span class="flex items-center gap-1 text-warning" role="status"
-						><Icon
-							svg={warningCircleIcon}
-							size={16}
-							aria-hidden="true" />Password is incorrect</span>
-				{:else}
-					<button
-						class="flex items-center gap-1 py-1 text-xs text-fg-muted transition-colors duration-100 *:animate-pop"
-						type="button"
-						disabled={busy || !password}
-						onclick={() => void validate()}>
-						{#if pending === "validate"}<Icon
-								svg={circleNotchIcon}
-								class="spinner"
-								size={16}
-								aria-hidden="true" /> Validating…{:else}<Icon
-								svg={shieldCheckIcon}
-								size={16}
-								aria-hidden="true" /> Validate with Roblox{/if}
-					</button>
-					<button
-						class="flex size-5 cursor-help items-center justify-center text-fg-faint transition-colors duration-100 hover:text-fg focus-visible:text-fg"
-						type="button"
-						aria-label={validationHint}
-						data-tooltip={validationHint}>
-						<Icon svg={infoIcon} size={14} aria-hidden="true" />
-					</button>
-				{/if}
-			</div>
+		{#if error}<div class="mt-3 notice-error" role="alert">{error}</div>{/if}
 
-			{#if error}<div class="mt-3 notice-error" role="alert">{error}</div>{/if}
-
-			<div class="dialog-actions">
-				<button
-					class="btn"
-					type="button"
-					disabled={pending !== null}
-					onclick={close}>Cancel</button>
-				<button
-					class="btn-primary"
-					type="submit"
-					disabled={busy || !password || password === saved}>
-					{pending === "save" ? "Saving…" : "Save"}
-				</button>
-			</div>
-		</form>
-	</div>
-</div>
+		<div class="dialog-actions">
+			<button
+				class="btn"
+				type="button"
+				disabled={pending !== null}
+				onclick={close}>Cancel</button>
+			<button
+				class="btn-primary"
+				type="submit"
+				disabled={busy || !password || password === saved}>
+				{pending === "save" ? "Saving…" : "Save"}
+			</button>
+		</div>
+	</form>
+</Dialog>

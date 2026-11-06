@@ -7,15 +7,9 @@
 	import { accountBackend, TextModeration } from "../backend/bridge"
 	import type { TextFilter } from "../backend/bridge"
 	import type { NotificationCenter } from "../notifications/notification-center.svelte"
-	import {
-		modalBackdropIn,
-		modalBackdropOut,
-		modalCardIn,
-		modalCardOut,
-		modalFocus,
-		replayValidationNudge,
-	} from "../shared/presence"
+	import { replayValidationNudge } from "../shared/presence"
 	import { errorMessage } from "../shared/errors"
+	import Dialog from "../shared/Dialog.svelte"
 
 	let {
 		account,
@@ -122,110 +116,100 @@
 		if (event.key === "Escape") close()
 	}} />
 
-<div class="dialog-backdrop" in:modalBackdropIn out:modalBackdropOut>
-	<div
-		class="dialog-card max-w-md text-left"
-		role="dialog"
-		aria-modal="true"
-		aria-labelledby="description-edit-title"
-		bind:this={card}
-		use:modalFocus
-		in:modalCardIn
-		out:modalCardOut>
-		<form
-			novalidate
-			onsubmit={(event) => {
-				event.preventDefault()
-				void submit()
-			}}>
-			<div class="dialog-heading mb-2">
-				<div>
-					<h2 id="description-edit-title">Edit description</h2>
-					<p>@{account.username}</p>
-				</div>
-				<button
-					type="button"
-					aria-label="Close edit description"
-					disabled={pending !== null}
-					onclick={close}>
-					<Icon svg={xIcon} size={14} aria-hidden="true" />
-				</button>
+<Dialog class="max-w-md text-left" aria-labelledby="description-edit-title" bind:card>
+	<form
+		novalidate
+		onsubmit={(event) => {
+			event.preventDefault()
+			void submit()
+		}}>
+		<div class="dialog-heading mb-2">
+			<div>
+				<h2 id="description-edit-title">Edit description</h2>
+				<p>@{account.username}</p>
 			</div>
+			<button
+				type="button"
+				aria-label="Close edit description"
+				disabled={pending !== null}
+				onclick={close}>
+				<Icon svg={xIcon} size={14} aria-hidden="true" />
+			</button>
+		</div>
 
-			<label class="dialog-field">
-				<span>Description</span>
-				{#if preview === undefined}
-					<textarea bind:this={field} bind:value disabled={pending !== null}
-					></textarea>
-				{:else}
-					<textarea value={preview} readonly disabled={pending !== null}
-					></textarea>
-				{/if}
-			</label>
-
-			<div aria-live="polite">
-				{#if changed && text === ""}
-					<div class="mt-3 notice-warning">
-						This removes the description from @{account.username}'s profile.
-					</div>
-				{:else if clean}
-					<span class="sr-only">Roblox's filter won't tag this text.</span>
-				{:else if result?.filter?.moderation === TextModeration.TextModerationPartial}
-					<span class="sr-only">Roblox will tag part of this text.</span>
-				{:else if result?.filter?.moderation === TextModeration.TextModerationFull}
-					<span class="sr-only">Roblox will tag all of this text.</span>
-				{/if}
-			</div>
-
-			{#if error}
-				<div class="mt-3 notice-error" role="alert">{error}</div>
+		<label class="dialog-field">
+			<span>Description</span>
+			{#if preview === undefined}
+				<textarea bind:this={field} bind:value disabled={pending !== null}
+				></textarea>
+			{:else}
+				<textarea value={preview} readonly disabled={pending !== null}
+				></textarea>
 			{/if}
+		</label>
 
-			<div class="dialog-actions">
-				<button
-					class="btn"
-					type="button"
-					disabled={pending !== null}
-					onclick={close}>Cancel</button>
-				<button
-					class="btn"
-					type="button"
-					aria-busy={pending === "validate"}
-					disabled={pending !== null ||
-						(preview === undefined && (text === "" || result !== null))}
-					onclick={() =>
-						void (preview === undefined ? validate("validate") : edit())}>
-					{#if pending === "validate"}
-						Validating…
-					{:else if preview !== undefined}
-						Edit
-					{:else}
-						{#if clean}<Icon
-								svg={checkCircleIcon}
-								class="text-success"
-								size={14}
-								aria-hidden="true" />{/if}
-						Validate
-					{/if}
-				</button>
-				<button
-					class={tagged ? "btn-warning" : "btn-primary"}
-					type="submit"
-					aria-busy={pending === "submit" || pending === "save"}
-					disabled={!changed || pending !== null}>
-					{#if pending === "submit"}
-						Validating…
-					{:else if pending === "save"}
-						Saving…
-					{:else if result && !result.filter}
-						Save without validating
-					{:else if tagged}
-						Save anyway
-					{:else}
-						Save description
-					{/if}
-				</button>
-			</div>
-		</form>
-	</div>
-</div>
+		<div aria-live="polite">
+			{#if changed && text === ""}
+				<div class="mt-3 notice-warning">
+					This removes the description from @{account.username}'s profile.
+				</div>
+			{:else if clean}
+				<span class="sr-only">Roblox's filter won't tag this text.</span>
+			{:else if result?.filter?.moderation === TextModeration.TextModerationPartial}
+				<span class="sr-only">Roblox will tag part of this text.</span>
+			{:else if result?.filter?.moderation === TextModeration.TextModerationFull}
+				<span class="sr-only">Roblox will tag all of this text.</span>
+			{/if}
+		</div>
+
+		{#if error}
+			<div class="mt-3 notice-error" role="alert">{error}</div>
+		{/if}
+
+		<div class="dialog-actions">
+			<button
+				class="btn"
+				type="button"
+				disabled={pending !== null}
+				onclick={close}>Cancel</button>
+			<button
+				class="btn"
+				type="button"
+				aria-busy={pending === "validate"}
+				disabled={pending !== null ||
+					(preview === undefined && (text === "" || result !== null))}
+				onclick={() =>
+					void (preview === undefined ? validate("validate") : edit())}>
+				{#if pending === "validate"}
+					Validating…
+				{:else if preview !== undefined}
+					Edit
+				{:else}
+					{#if clean}<Icon
+							svg={checkCircleIcon}
+							class="text-success"
+							size={14}
+							aria-hidden="true" />{/if}
+					Validate
+				{/if}
+			</button>
+			<button
+				class={tagged ? "btn-warning" : "btn-primary"}
+				type="submit"
+				aria-busy={pending === "submit" || pending === "save"}
+				disabled={!changed || pending !== null}>
+				{#if pending === "submit"}
+					Validating…
+				{:else if pending === "save"}
+					Saving…
+				{:else if result && !result.filter}
+					Save without validating
+				{:else if tagged}
+					Save anyway
+				{:else}
+					Save description
+				{/if}
+			</button>
+		</div>
+	</form>
+</Dialog>

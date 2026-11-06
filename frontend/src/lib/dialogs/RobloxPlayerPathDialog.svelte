@@ -12,14 +12,8 @@
 		type RobloxPlayerPathCheck,
 		type RobloxPlayerVersion,
 	} from "../backend/bridge"
-	import {
-		modalBackdropIn,
-		modalBackdropOut,
-		modalCardIn,
-		modalCardOut,
-		modalFocus,
-	} from "../shared/presence"
 	import { errorMessage } from "../shared/errors"
+	import Dialog from "../shared/Dialog.svelte"
 
 	let {
 		store,
@@ -170,201 +164,187 @@
 		}
 	}} />
 
-<div
-	class="dialog-backdrop"
-	in:modalBackdropIn
-	out:modalBackdropOut
-	onclick={(event) => {
-		if (event.target === event.currentTarget) onClose()
-	}}
-	role="presentation">
-	<div
-		class="dialog-card max-w-md"
-		role="dialog"
-		aria-modal="true"
-		use:modalFocus
-		in:modalCardIn
-		out:modalCardOut
-		aria-labelledby="player-path-title"
-		aria-busy={loading || busy}>
-		<form
-			novalidate
-			onsubmit={(event) => {
-				event.preventDefault()
-				void save()
-			}}>
-			<div class="dialog-heading mb-2">
-				<div>
-					<h2 id="player-path-title">Roblox Player location</h2>
-					<p>Choose the RobloxPlayerBeta.exe that direct launch starts.</p>
-				</div>
-				<div class="flex gap-1">
-					<button
-						class="btn-ghost"
-						type="button"
-						aria-label="Reload Roblox versions"
-						data-tooltip="Reload Roblox versions"
-						disabled={loading || busy}
-						onclick={() => void load()}>
-						{#if loading}<Icon
-								svg={circleNotchIcon}
-								class="spinner"
-								size={16}
-								aria-hidden="true" />
-						{:else}<Icon
-								svg={arrowsClockwiseIcon}
-								data-turn
-								size={16}
-								aria-hidden="true" />{/if}
-					</button>
-					<button
-						class="btn-ghost-sm"
-						type="button"
-						aria-label="Close Roblox Player location dialog"
-						onclick={onClose}>
-						<Icon svg={xIcon} size={14} aria-hidden="true" />
-					</button>
-				</div>
+<Dialog
+	class="max-w-md"
+	aria-labelledby="player-path-title"
+	aria-busy={loading || busy}
+	onBackdropClick={onClose}>
+	<form
+		novalidate
+		onsubmit={(event) => {
+			event.preventDefault()
+			void save()
+		}}>
+		<div class="dialog-heading mb-2">
+			<div>
+				<h2 id="player-path-title">Roblox Player location</h2>
+				<p>Choose the RobloxPlayerBeta.exe that direct launch starts.</p>
 			</div>
-			<div
-				class="flex flex-col gap-0.5 pl-1"
-				role="radiogroup"
-				aria-labelledby="player-path-title">
+			<div class="flex gap-1">
+				<button
+					class="btn-ghost"
+					type="button"
+					aria-label="Reload Roblox versions"
+					data-tooltip="Reload Roblox versions"
+					disabled={loading || busy}
+					onclick={() => void load()}>
+					{#if loading}<Icon
+							svg={circleNotchIcon}
+							class="spinner"
+							size={16}
+							aria-hidden="true" />
+					{:else}<Icon
+							svg={arrowsClockwiseIcon}
+							data-turn
+							size={16}
+							aria-hidden="true" />{/if}
+				</button>
+				<button
+					class="btn-ghost-sm"
+					type="button"
+					aria-label="Close Roblox Player location dialog"
+					onclick={onClose}>
+					<Icon svg={xIcon} size={14} aria-hidden="true" />
+				</button>
+			</div>
+		</div>
+		<div
+			class="flex flex-col gap-0.5 pl-1"
+			role="radiogroup"
+			aria-labelledby="player-path-title">
+			<label
+				class="radio-option"
+				data-disabled={busy || undefined}
+				data-tooltip={newest?.displayPath}>
+				<span class="radio">
+					<input
+						type="radio"
+						name={radioName}
+						bind:group={selection}
+						value={automatic}
+						disabled={busy} />
+					<span aria-hidden="true"></span>
+				</span>
+				<span class="text-xs text-fg">Automatic</span>
+				<small class="ml-auto font-mono text-2xs text-fg-faint">
+					{#if versions === null}
+						{loading ? "Finding Roblox versions" : ""}
+					{:else if newest}
+						{newest.name}
+					{:else}
+						No Roblox versions were found
+					{/if}
+				</small>
+			</label>
+			{#each choices as version (version.path)}
 				<label
 					class="radio-option"
 					data-disabled={busy || undefined}
-					data-tooltip={newest?.displayPath}>
+					data-tooltip={version.displayPath}>
 					<span class="radio">
 						<input
 							type="radio"
 							name={radioName}
 							bind:group={selection}
-							value={automatic}
+							value={version.path}
 							disabled={busy} />
 						<span aria-hidden="true"></span>
 					</span>
-					<span class="text-xs text-fg">Automatic</span>
-					<small class="ml-auto font-mono text-2xs text-fg-faint">
-						{#if versions === null}
-							{loading ? "Finding Roblox versions" : ""}
-						{:else if newest}
-							{newest.name}
-						{:else}
-							No Roblox versions were found
-						{/if}
-					</small>
+					<span class="font-mono text-2xs text-fg">{version.name}</span>
 				</label>
-				{#each choices as version (version.path)}
-					<label
-						class="radio-option"
-						data-disabled={busy || undefined}
-						data-tooltip={version.displayPath}>
-						<span class="radio">
-							<input
-								type="radio"
-								name={radioName}
-								bind:group={selection}
-								value={version.path}
-								disabled={busy} />
-							<span aria-hidden="true"></span>
-						</span>
-						<span class="font-mono text-2xs text-fg">{version.name}</span>
-					</label>
-				{/each}
-				<label class="radio-option" data-disabled={busy || undefined}>
-					<span class="radio">
-						<input
-							type="radio"
-							name={radioName}
-							bind:group={selection}
-							value={custom}
-							disabled={busy} />
-						<span aria-hidden="true"></span>
-					</span>
-					<span class="text-xs text-fg">Use a custom path</span>
-				</label>
-			</div>
-			<div class="dialog-field">
-				<span><label for={customPathID}>Custom path</label></span>
-				<div class="flex items-center gap-2">
+			{/each}
+			<label class="radio-option" data-disabled={busy || undefined}>
+				<span class="radio">
 					<input
-						class="min-w-0 flex-1 font-mono text-2xs"
-						id={customPathID}
-						bind:value={customPath}
-						type="text"
-						placeholder="Path to binary"
-						spellcheck="false"
-						autocomplete="off"
-						aria-invalid={checked?.problem ? true : undefined}
-						disabled={busy}
-						oninput={() => {
-							selection = custom
-							validated = false
-							void checkPath()
-						}} />
-					<button
-						class="btn h-8 px-3 font-semibold"
-						type="button"
-						disabled={busy || customPath.trim() === ""}
-						onclick={() => void validate()}>
-						{#if validating}<Icon
-								svg={circleNotchIcon}
-								class="spinner"
-								size={14}
-								aria-hidden="true" />{/if}
-						Validate
-					</button>
-					<button
-						class="btn-ghost"
-						type="button"
-						aria-label="Clear custom path"
-						data-tooltip="Clear custom path"
-						disabled={busy || customPath.length === 0}
-						onclick={() => {
-							customPath = ""
-							check = null
-							validated = false
-							checkSequence++
-							if (selection === custom) selection = automatic
-						}}>
-						<Icon svg={xIcon} size={16} aria-hidden="true" />
-					</button>
-				</div>
-				<div
-					class="*:mt-2 *:flex *:items-center *:gap-1 *:text-xs"
-					aria-live="polite">
-					{#if checked?.problem}
-						<span class="text-danger-muted"
-							><Icon
-								svg={warningCircleIcon}
-								size={14}
-								aria-hidden="true" />{checked.problem}</span>
-					{:else if validated && checked?.found}
-						<span class="text-success"
-							><Icon
-								svg={checkCircleIcon}
-								size={14}
-								aria-hidden="true" />Found. Custom path saved.</span>
-					{:else if validated && checked}
-						<span class="text-warning"
-							><Icon
-								svg={warningCircleIcon}
-								size={14}
-								aria-hidden="true" />Saved, but the binary was not
-							found.</span>
-					{/if}
-				</div>
-			</div>
-			{#if error}
-				<div class="mt-3 notice-error" role="alert">{error}</div>
-			{/if}
-			<div class="dialog-actions">
-				<button class="btn" type="button" disabled={busy} onclick={onClose}
-					>Cancel</button>
-				<button class="btn-primary" type="submit" disabled={busy || !parses}>
-					Save
+						type="radio"
+						name={radioName}
+						bind:group={selection}
+						value={custom}
+						disabled={busy} />
+					<span aria-hidden="true"></span>
+				</span>
+				<span class="text-xs text-fg">Use a custom path</span>
+			</label>
+		</div>
+		<div class="dialog-field">
+			<span><label for={customPathID}>Custom path</label></span>
+			<div class="flex items-center gap-2">
+				<input
+					class="min-w-0 flex-1 font-mono text-2xs"
+					id={customPathID}
+					bind:value={customPath}
+					type="text"
+					placeholder="Path to binary"
+					spellcheck="false"
+					autocomplete="off"
+					aria-invalid={checked?.problem ? true : undefined}
+					disabled={busy}
+					oninput={() => {
+						selection = custom
+						validated = false
+						void checkPath()
+					}} />
+				<button
+					class="btn h-8 px-3 font-semibold"
+					type="button"
+					disabled={busy || customPath.trim() === ""}
+					onclick={() => void validate()}>
+					{#if validating}<Icon
+							svg={circleNotchIcon}
+							class="spinner"
+							size={14}
+							aria-hidden="true" />{/if}
+					Validate
+				</button>
+				<button
+					class="btn-ghost"
+					type="button"
+					aria-label="Clear custom path"
+					data-tooltip="Clear custom path"
+					disabled={busy || customPath.length === 0}
+					onclick={() => {
+						customPath = ""
+						check = null
+						validated = false
+						checkSequence++
+						if (selection === custom) selection = automatic
+					}}>
+					<Icon svg={xIcon} size={16} aria-hidden="true" />
 				</button>
 			</div>
-		</form>
-	</div>
-</div>
+			<div
+				class="*:mt-2 *:flex *:items-center *:gap-1 *:text-xs"
+				aria-live="polite">
+				{#if checked?.problem}
+					<span class="text-danger-muted"
+						><Icon
+							svg={warningCircleIcon}
+							size={14}
+							aria-hidden="true" />{checked.problem}</span>
+				{:else if validated && checked?.found}
+					<span class="text-success"
+						><Icon
+							svg={checkCircleIcon}
+							size={14}
+							aria-hidden="true" />Found. Custom path saved.</span>
+				{:else if validated && checked}
+					<span class="text-warning"
+						><Icon
+							svg={warningCircleIcon}
+							size={14}
+							aria-hidden="true" />Saved, but the binary was not found.</span>
+				{/if}
+			</div>
+		</div>
+		{#if error}
+			<div class="mt-3 notice-error" role="alert">{error}</div>
+		{/if}
+		<div class="dialog-actions">
+			<button class="btn" type="button" disabled={busy} onclick={onClose}
+				>Cancel</button>
+			<button class="btn-primary" type="submit" disabled={busy || !parses}>
+				Save
+			</button>
+		</div>
+	</form>
+</Dialog>
