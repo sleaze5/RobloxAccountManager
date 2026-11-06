@@ -28,7 +28,7 @@ import (
 
 var (
 	ErrLocked                     = errors.New("vault is locked")
-	ErrAlreadyExists              = errors.New("vault already exists")
+	errAlreadyExists              = errors.New("vault already exists")
 	ErrNotInitialized             = errors.New("vault is not initialized")
 	ErrInvalidPassword            = errors.New("master password or vault key data is incorrect")
 	ErrUnsupportedVersion         = errors.New("unsupported key-file version")
@@ -37,7 +37,7 @@ var (
 	ErrVaultMismatch              = errors.New("database and key identifiers do not match")
 	ErrAutomaticUnlockUnavailable = errors.New("automatic unlock is unavailable for this user")
 	ErrIncomplete                 = errors.New("vault files are incomplete")
-	ErrLockTimeout                = errors.New("vault operations did not stop before the lock timeout")
+	errLockTimeout                = errors.New("vault operations did not stop before the lock timeout")
 )
 
 type FileState string
@@ -141,12 +141,12 @@ func (manager *Manager) PasswordHint() string {
 
 func (manager *Manager) Create(ctx context.Context, password, hint string, automaticUnlock bool) error {
 	if manager.FileState() != FileStateEmpty {
-		return ErrAlreadyExists
+		return errAlreadyExists
 	}
 	if _, err := os.Stat(manager.paths.VaultRoot); err != nil {
 		return fmt.Errorf("vault directory is unavailable: %w", err)
 	}
-	if err := ValidatePassword(password); err != nil {
+	if err := validatePassword(password); err != nil {
 		return err
 	}
 	params, err := calibrateKDF(password)
@@ -370,7 +370,7 @@ func (manager *Manager) close(manual bool) error {
 			manager.closing = false
 			manager.drained = nil
 			manager.mu.Unlock()
-			return ErrLockTimeout
+			return errLockTimeout
 		}
 	}
 	manager.mu.Lock()

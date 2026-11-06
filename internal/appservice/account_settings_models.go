@@ -76,37 +76,36 @@ type AccountSettingUpdateResult struct {
 }
 
 type accountSettingDefinition struct {
-	key           AccountSettingKey
-	boolean       bool
-	verifiedWrite bool
-	optionsV2     bool
+	key       AccountSettingKey
+	boolean   bool
+	optionsV2 bool
 }
 
 var accountSettingDefinitions = []accountSettingDefinition{
-	{key: SettingContentMaturity, verifiedWrite: true},
-	{key: SettingSensitiveIssues, verifiedWrite: true},
-	{key: SettingExperienceChat, verifiedWrite: true, optionsV2: true},
-	{key: SettingDirectExperienceChat, verifiedWrite: true, optionsV2: true},
-	{key: SettingParty, verifiedWrite: true, optionsV2: true},
-	{key: SettingPartyChat, verifiedWrite: true, optionsV2: true},
-	{key: SettingPartyVoice, verifiedWrite: true, optionsV2: true},
-	{key: SettingCamera, boolean: true, verifiedWrite: true},
-	{key: SettingQuickWords, verifiedWrite: true, optionsV2: true},
-	{key: SettingVoiceOptIn, boolean: true, verifiedWrite: true},
-	{key: SettingVoiceDataUsage, verifiedWrite: true},
-	{key: SettingOnlineStatus, verifiedWrite: true},
-	{key: SettingExperienceJoins, verifiedWrite: true},
-	{key: SettingPrivateServerAdditions, verifiedWrite: true},
-	{key: SettingPhoneDiscovery, verifiedWrite: true},
-	{key: SettingContactPermission, boolean: true, verifiedWrite: true},
-	{key: SettingFriendSuggestions, verifiedWrite: true},
-	{key: SettingActivityUpdates, verifiedWrite: true},
-	{key: SettingTradeAudience, verifiedWrite: true},
-	{key: SettingTradeQuality, verifiedWrite: true},
-	{key: SettingInventoryVisibility, verifiedWrite: true},
-	{key: SettingPersonalizedAdvertising, verifiedWrite: true},
-	{key: SettingDataSharing, verifiedWrite: true},
-	{key: SettingSocialNetworks, verifiedWrite: true},
+	{key: SettingContentMaturity},
+	{key: SettingSensitiveIssues},
+	{key: SettingExperienceChat, optionsV2: true},
+	{key: SettingDirectExperienceChat, optionsV2: true},
+	{key: SettingParty, optionsV2: true},
+	{key: SettingPartyChat, optionsV2: true},
+	{key: SettingPartyVoice, optionsV2: true},
+	{key: SettingCamera, boolean: true},
+	{key: SettingQuickWords, optionsV2: true},
+	{key: SettingVoiceOptIn, boolean: true},
+	{key: SettingVoiceDataUsage},
+	{key: SettingOnlineStatus},
+	{key: SettingExperienceJoins},
+	{key: SettingPrivateServerAdditions},
+	{key: SettingPhoneDiscovery},
+	{key: SettingContactPermission, boolean: true},
+	{key: SettingFriendSuggestions},
+	{key: SettingActivityUpdates},
+	{key: SettingTradeAudience},
+	{key: SettingTradeQuality},
+	{key: SettingInventoryVisibility},
+	{key: SettingPersonalizedAdvertising},
+	{key: SettingDataSharing},
+	{key: SettingSocialNetworks},
 }
 
 func accountSettingDefinitionFor(key AccountSettingKey) (accountSettingDefinition, bool) {

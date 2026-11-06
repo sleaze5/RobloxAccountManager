@@ -63,8 +63,8 @@ func applySchemaMigrations(ctx context.Context, db *sql.DB, from int) error {
 	if err := runSchemaMigrations(ctx, tx, from); err != nil {
 		return err
 	}
-	if _, err := tx.ExecContext(ctx, `UPDATE vault_state SET storage_revision = storage_revision + 1 WHERE singleton = 1`); err != nil {
-		return fmt.Errorf("record vault storage revision: %w", err)
+	if err := BumpRevision(ctx, tx); err != nil {
+		return err
 	}
 	var violations int
 	if err := tx.QueryRowContext(ctx, `SELECT count(*) FROM pragma_foreign_key_check`).Scan(&violations); err != nil || violations != 0 {

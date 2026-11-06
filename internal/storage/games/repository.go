@@ -10,6 +10,7 @@ import (
 
 	"github.com/sleaze5/RobloxAccountManager/internal/games"
 	"github.com/sleaze5/RobloxAccountManager/internal/storage/caches"
+	"github.com/sleaze5/RobloxAccountManager/internal/storage/vault"
 )
 
 var ErrNotFavorite = errors.New("place is not a favorite")
@@ -95,8 +96,8 @@ func (repository *Repository) Reorder(ctx context.Context, placeIDs []int64) err
 			return ErrNotFavorite
 		}
 	}
-	if _, err := tx.ExecContext(ctx, `UPDATE vault_state SET storage_revision = storage_revision + 1 WHERE singleton = 1`); err != nil {
-		return fmt.Errorf("update storage revision: %w", err)
+	if err := vault.BumpRevision(ctx, tx); err != nil {
+		return err
 	}
 	if err := tx.Commit(); err != nil {
 		return fmt.Errorf("commit favorite reorder: %w", err)
@@ -132,8 +133,8 @@ func (repository *Repository) write(ctx context.Context, placeID int64, operatio
 		}
 		return nil
 	}
-	if _, err := tx.ExecContext(ctx, `UPDATE vault_state SET storage_revision = storage_revision + 1 WHERE singleton = 1`); err != nil {
-		return fmt.Errorf("update storage revision: %w", err)
+	if err := vault.BumpRevision(ctx, tx); err != nil {
+		return err
 	}
 	if err := tx.Commit(); err != nil {
 		return fmt.Errorf("commit favorite update: %w", err)

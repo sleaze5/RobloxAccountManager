@@ -76,10 +76,9 @@ type TransferKeptCookie struct {
 }
 
 type pendingTransfer struct {
-	id       string
-	payload  transferstore.Payload
-	settings appsettings.Settings
-	timer    *time.Timer
+	id      string
+	payload transferstore.Payload
+	timer   *time.Timer
 }
 
 func transferError(message string, cause error) error {
@@ -168,8 +167,7 @@ func (service *Service) OpenVaultExport(ctx context.Context, path, password stri
 		service.logger.Warn("export data could not be decoded", "operation", "vault-import", "error", err)
 		return TransferPreview{}, transferError("The export file is damaged.", err)
 	}
-	settings, err := appsettings.Decode(payload.Settings)
-	if err != nil {
+	if _, err := appsettings.Decode(payload.Settings); err != nil {
 		service.logger.Warn("exported settings could not be decoded", "operation", "vault-import", "error", err)
 		return TransferPreview{}, transferError("The settings in this export could not be read. Update the app and try again.", err)
 	}
@@ -181,7 +179,7 @@ func (service *Service) OpenVaultExport(ctx context.Context, path, password stri
 	if err != nil {
 		return TransferPreview{}, transferError("The export could not be opened.", err)
 	}
-	service.storePendingTransfer(&pendingTransfer{id: preview.ID, payload: payload, settings: settings})
+	service.storePendingTransfer(&pendingTransfer{id: preview.ID, payload: payload})
 	service.logger.Info("export opened for import", "operation", "vault-import", "accounts", len(payload.Accounts))
 	return preview, nil
 }
@@ -287,9 +285,7 @@ func (service *Service) overwriteVaultData(ctx context.Context, pending *pending
 	service.clearPendingImports()
 	for _, accountID := range removed {
 		service.sessions.Remove(accountID)
-		if service.browser != nil {
-			service.browser.DetachAccount(accountID, "The vault was replaced by an import. This browser is no longer synchronized.")
-		}
+		service.browser.DetachAccount(accountID, "The vault was replaced by an import. This browser is no longer synchronized.")
 		service.events.send("account:removed", struct {
 			AccountID int64 `json:"accountId"`
 		}{AccountID: accountID})
@@ -328,9 +324,7 @@ func (service *Service) mergeVaultData(ctx context.Context, pending *pendingTran
 		if err := service.sessions.ApplyRotation(record); err != nil {
 			logger.Warn("imported cookie saved but runtime session changed before reconciliation", "account_id", record.AccountID, "error", err)
 		}
-		if service.browser != nil {
-			service.browser.DetachAccount(record.AccountID, "The saved cookie changed elsewhere. This browser is no longer synchronized.")
-		}
+		service.browser.DetachAccount(record.AccountID, "The saved cookie changed elsewhere. This browser is no longer synchronized.")
 	}
 	settings := TransferSettingsSkipped
 	if input.Settings != nil {

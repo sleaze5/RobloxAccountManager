@@ -40,8 +40,6 @@ var manifestFS embed.FS
 type Manifest struct {
 	SchemaVersion int               `json:"schemaVersion"`
 	Version       string            `json:"version"`
-	SourceURL     string            `json:"sourceUrl"`
-	GeneratedAt   string            `json:"generatedAt"`
 	Downloads     map[string]string `json:"downloads"`
 }
 
@@ -88,7 +86,7 @@ type RuntimeManager struct {
 	done   chan struct{}
 }
 
-func NewRuntimeManager(paths appdata.Paths, logger *slog.Logger, changed func()) (*RuntimeManager, error) {
+func NewRuntimeManager(paths appdata.Paths, logger *slog.Logger) (*RuntimeManager, error) {
 	data, err := manifestFS.ReadFile("runtime_manifest.json")
 	if err != nil {
 		return nil, fmt.Errorf("read embedded CfT manifest: %w", err)
@@ -110,7 +108,7 @@ func NewRuntimeManager(paths appdata.Paths, logger *slog.Logger, changed func())
 	}
 	manager := &RuntimeManager{
 		paths: paths, manifest: manifest,
-		client: &http.Client{Timeout: 30 * time.Minute}, logger: logger, changed: changed,
+		client: &http.Client{Timeout: 30 * time.Minute}, logger: logger,
 		state: RuntimeState{RequiredVersion: manifest.Version, ApproximateBytes: approximateSize},
 	}
 	manager.cleanupStaging()
@@ -217,7 +215,6 @@ func (manager *RuntimeManager) install(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
-	// The owner can write. Everyone can read and enter these directories.
 	if err := os.MkdirAll(manager.paths.CfTRuntimeRoot, 0o755); err != nil {
 		return fmt.Errorf("create CfT runtime root: %w", err)
 	}
@@ -257,7 +254,6 @@ func (manager *RuntimeManager) install(ctx context.Context) error {
 	if err != nil {
 		return fmt.Errorf("encode browser runtime metadata: %w", err)
 	}
-	// Only the owner can read and write the file.
 	if err := os.WriteFile(filepath.Join(extracted, runtimeMetadataName), append(metadata, '\n'), 0o600); err != nil {
 		return fmt.Errorf("write browser runtime metadata: %w", err)
 	}
@@ -337,7 +333,9 @@ func (manager *RuntimeManager) replaceRuntime(extracted, stage string) error {
 	}
 	if err := renameRuntimeDirectory(extracted, destination); err != nil {
 		if hadPrevious {
-			_ = renameRuntimeDirectory(backup, destination)
+			if restoreErr := renameRuntimeDirectory(backup, destination); restoreErr != nil {
+				return fmt.Errorf("install browser runtime: %w", errors.Join(err, fmt.Errorf("restore previous runtime: %w", restoreErr)))
+			}
 		}
 		return fmt.Errorf("install browser runtime: %w", err)
 	}
@@ -507,8 +505,11 @@ func (manager *RuntimeManager) setInstalling() {
 }
 
 func (manager *RuntimeManager) notify() {
-	if manager.changed != nil {
-		manager.changed()
+	manager.mu.Lock()
+	changed := manager.changed
+	manager.mu.Unlock()
+	if changed != nil {
+		changed()
 	}
 }
 func (manager *RuntimeManager) notifyAsync() { go manager.notify() }
@@ -532,7 +533,7 @@ func extractRuntime(ctx context.Context, archive, destination string) error {
 		return fmt.Errorf("open browser archive: %w", err)
 	}
 	defer func() { _ = reader.Close() }()
-	// The owner can write, and everyone can read and enter directories. Files keep their archive permissions, and the owner can always read and write them.
+	// Files keep their archive permissions, and the owner can always read and write them.
 	if err := os.Mkdir(destination, 0o755); err != nil {
 		return fmt.Errorf("create browser extraction directory: %w", err)
 	}
@@ -731,7 +732,6 @@ func (manager *RuntimeManager) cleanupStaging() {
 }
 
 func (manager *RuntimeManager) writeRuntimeArchive(archive string, body io.Reader) error {
-	// Only the owner can read and write the file.
 	file, err := os.OpenFile(archive, os.O_CREATE|os.O_EXCL|os.O_WRONLY, 0o600)
 	if err != nil {
 		return fmt.Errorf("create browser archive: %w", err)

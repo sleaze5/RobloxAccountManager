@@ -158,9 +158,7 @@ func (service *Service) replaceValidatedCookie(ctx context.Context, accountID in
 		logger.Warn("cookie saved but runtime session changed before reconciliation", "error", err)
 	}
 	service.events.send("account:updated", view)
-	if service.browser != nil {
-		service.browser.DetachAccount(accountID, "The saved cookie changed elsewhere. This browser is no longer synchronized.")
-	}
+	service.browser.DetachAccount(accountID, "The saved cookie changed elsewhere. This browser is no longer synchronized.")
 	service.events.CredentialBackupChanged(service.refreshCredentialBackup(ctx, logger, false))
 	return view, nil
 }
@@ -176,9 +174,7 @@ func (service *Service) RemoveAccount(ctx context.Context, accountID int64) erro
 	service.events.send("account:removed", struct {
 		AccountID int64 `json:"accountId"`
 	}{AccountID: accountID})
-	if service.browser != nil {
-		service.browser.DetachAccount(accountID, "The saved account was removed. This browser is no longer synchronized.")
-	}
+	service.browser.DetachAccount(accountID, "The saved account was removed. This browser is no longer synchronized.")
 	if err := service.vault.CreateBackup(ctx); err != nil {
 		return fmt.Errorf("the account was removed, but the fresh backup failed: %w", err)
 	}

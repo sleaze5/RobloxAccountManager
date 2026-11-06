@@ -51,7 +51,7 @@ func replaceLogAttribute(_ []string, attribute slog.Attr) slog.Attr {
 	if attribute.Value.Kind() == slog.KindTime {
 		attribute.Value = slog.Int64Value(attribute.Value.Time().UnixMilli())
 	}
-	if level, ok := attribute.Value.Any().(slog.Level); attribute.Key == slog.LevelKey && ok && level == traceSlogLevel {
+	if level, ok := attribute.Value.Any().(slog.Level); attribute.Key == slog.LevelKey && ok && level == TraceLevel {
 		attribute.Value = slog.StringValue("TRACE")
 	}
 	return attribute

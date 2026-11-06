@@ -106,9 +106,7 @@ func (service *Service) finishUnlock(automatic bool) {
 	service.reminderDue = automatic && due
 	service.mu.Unlock()
 	service.startBackground()
-	if service.browser != nil {
-		service.browser.AllowLaunches()
-	}
+	service.browser.AllowLaunches()
 	service.events.send("vault:unlocked", struct{}{})
 	go func() {
 		if err := service.vault.MaybeCreateBackup(context.WithoutCancel(service.lifecycle)); err != nil {
@@ -120,17 +118,13 @@ func (service *Service) finishUnlock(automatic bool) {
 func (service *Service) LockVault() error {
 	service.cancelLaunchConfirmation()
 	service.cancelPendingValidations()
-	if service.browser != nil {
-		service.browser.ForceShutdown()
-	}
+	service.browser.ForceShutdown()
 	service.clearPendingImports()
 	service.stopBackground()
 	if err := service.vault.Lock(); err != nil {
 		if service.vault.Unlocked() {
 			service.startBackground()
-			if service.browser != nil {
-				service.browser.AllowLaunches()
-			}
+			service.browser.AllowLaunches()
 		} else {
 			service.finishLocked()
 		}

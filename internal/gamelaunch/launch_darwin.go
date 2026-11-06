@@ -30,7 +30,7 @@ func (launcher darwinLauncher) Launch(ctx context.Context, ticket, browserTracke
 	if request.DirectLaunch {
 		return &ClientError{Message: "launching the Roblox Player binary directly is only available on Windows"}
 	}
-	protocolURL, err := BuildProtocolURL(ticket, browserTrackerID, request, time.Now())
+	protocolURL, err := buildProtocolURL(ticket, browserTrackerID, request, time.Now())
 	if err != nil {
 		return err
 	}
@@ -54,7 +54,7 @@ func (darwinLauncher) CommandLine(ctx context.Context, ticket, browserTrackerID 
 	if request.DirectLaunch {
 		return "", &ClientError{Message: "launching the Roblox Player binary directly is only available on Windows"}
 	}
-	return BuildProtocolURL(ticket, browserTrackerID, request, time.Now())
+	return buildProtocolURL(ticket, browserTrackerID, request, time.Now())
 }
 
 func (darwinLauncher) open(ctx context.Context, protocolURL string) error {

@@ -167,8 +167,8 @@ type Coordinator struct {
 func NewCoordinator(paths appdata.Paths, runtimeManager *RuntimeManager, backend AccountSource, logger *slog.Logger, changed func(uint64)) *Coordinator {
 	ctx, cancel := context.WithCancel(context.Background())
 	coordinator := &Coordinator{paths: paths, runtime: runtimeManager, backend: backend, logger: logger, changed: changed, sessions: make(map[string]*session), candidates: make(map[string]*candidate), root: ctx, cancel: cancel}
-	coordinator.cleanup = newCleanupQueue(paths.BrowserTempRoot, logger, coordinator.cleanupChanged)
-	runtimeManager.SetChanged(coordinator.runtimeChanged)
+	coordinator.cleanup = newCleanupQueue(paths.BrowserTempRoot, logger, coordinator.bump)
+	runtimeManager.SetChanged(coordinator.bump)
 	coordinator.queueStaleSessions()
 	coordinator.cleanup.retry()
 	return coordinator
@@ -1127,12 +1127,7 @@ func (coordinator *Coordinator) bumpLocked() {
 		go coordinator.changed(revision)
 	}
 }
-func (coordinator *Coordinator) runtimeChanged() {
-	coordinator.mu.Lock()
-	coordinator.bumpLocked()
-	coordinator.mu.Unlock()
-}
-func (coordinator *Coordinator) cleanupChanged() {
+func (coordinator *Coordinator) bump() {
 	coordinator.mu.Lock()
 	coordinator.bumpLocked()
 	coordinator.mu.Unlock()
@@ -1168,7 +1163,6 @@ func newCleanupQueue(root string, logger *slog.Logger, changed func()) *cleanupQ
 func (queue *cleanupQueue) createDirectory(id string) (string, error) {
 	queue.mu.Lock()
 	defer queue.mu.Unlock()
-	// The owner can write. Everyone can read and enter these directories.
 	if err := os.MkdirAll(queue.root, 0o755); err != nil {
 		return "", fmt.Errorf("create browser temporary root: %w", err)
 	}

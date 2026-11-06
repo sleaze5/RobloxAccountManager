@@ -9,7 +9,6 @@ import (
 	robloxservices "github.com/sleaze5/RobloxAccountManager/internal/roblox/services"
 )
 
-const unverifiedSettingReason = "This setting cannot be changed in this app yet."
 const conflictingSettingReason = "Roblox returned conflicting values. Refresh settings before editing."
 
 func normalizeAccountSetting(definition accountSettingDefinition, reads accountSettingsReads) (AccountSettingView, bool) {
@@ -31,8 +30,8 @@ func normalizeAccountSetting(definition accountSettingDefinition, reads accountS
 	}
 	view := settingValueView(definition, current)
 	view.Options = []AccountSettingOption{}
-	view.UnavailableReason = settingReadOnlyReason(definition, view)
-	if definition.verifiedWrite && !definition.optionsV2 && !settingHasIndependentChoices(definition.key) && reads.optionsErr != nil {
+	view.UnavailableReason = settingReadOnlyReason(view)
+	if !definition.optionsV2 && !settingHasIndependentChoices(definition.key) && reads.optionsErr != nil {
 		view.UnavailableReason = "Some settings could not be refreshed. Refresh settings before editing."
 	}
 	if definition.optionsV2 && reads.optionsV2Err != nil {
@@ -177,10 +176,7 @@ func settingKnownValue(view AccountSettingView) bool {
 	return known
 }
 
-func settingReadOnlyReason(definition accountSettingDefinition, view AccountSettingView) string {
-	if !definition.verifiedWrite {
-		return unverifiedSettingReason
-	}
+func settingReadOnlyReason(view AccountSettingView) string {
 	if !settingKnownValue(view) {
 		return "The current value is unavailable or not supported for editing."
 	}
@@ -197,9 +193,6 @@ func settingOptionReason(definition accountSettingDefinition, value AccountSetti
 		case "ContentAgeRestrictionVerification":
 			return "Complete age verification on Roblox to change this setting."
 		}
-	}
-	if !definition.verifiedWrite {
-		return unverifiedSettingReason
 	}
 	if !settingKnownValue(value) {
 		return "This option is not supported for editing."

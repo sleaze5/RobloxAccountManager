@@ -16,7 +16,7 @@ func (manager *Manager) ChangePassword(ctx context.Context, currentPassword, new
 	if newPassword != confirmation {
 		return errors.New("new passwords do not match")
 	}
-	if err := ValidatePassword(newPassword); err != nil {
+	if err := validatePassword(newPassword); err != nil {
 		return err
 	}
 	if currentPassword != "" {
@@ -135,7 +135,7 @@ func (manager *Manager) beginExclusive(ctx context.Context) (*sql.DB, func(), er
 			return nil, nil, ctx.Err()
 		case <-timer.C:
 			manager.endExclusive()
-			return nil, nil, ErrLockTimeout
+			return nil, nil, errLockTimeout
 		}
 	}
 	return db, manager.endExclusive, nil
@@ -242,7 +242,7 @@ func (manager *Manager) stageRotatedDatabase(ctx context.Context, db *sql.DB, pa
 	if err != nil {
 		return fmt.Errorf("verify rotated vault database: %w", err)
 	}
-	if _, err := staged.ExecContext(ctx, `UPDATE vault_state SET storage_revision = storage_revision + 1 WHERE singleton = 1`); err != nil {
+	if err := BumpRevision(ctx, staged); err != nil {
 		_ = staged.Close()
 		return fmt.Errorf("record new master password: %w", err)
 	}

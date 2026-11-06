@@ -167,9 +167,6 @@ func validateAccountSettingChange(change AccountSettingChange) error {
 	} else if change.StringValue == nil || change.ExpectedStringValue == nil || change.BoolValue != nil || change.ExpectedBoolValue != nil {
 		return accountSettingsError(roblox.KindProtocol, "This setting requires a string value and its last confirmed value.")
 	}
-	if !definition.verifiedWrite {
-		return accountSettingsError(roblox.KindForbidden, unverifiedSettingReason)
-	}
 	if change.StringValue != nil && !supportedSettingToken(change.Key, *change.StringValue) {
 		return accountSettingsError(roblox.KindProtocol, "This value is not supported for this setting.")
 	}

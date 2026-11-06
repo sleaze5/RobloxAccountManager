@@ -133,7 +133,6 @@ func (service *PrivateServers) ForPlace(ctx context.Context, accountID, version,
 	return page, nil
 }
 
-// LinkCode finds the link code of the private server with this access code.
 // Roblox shows the link only to the owner, so it returns "" for other servers.
 func (service *PrivateServers) LinkCode(ctx context.Context, accountID, version, ownerID, placeID int64, accessCode string) (string, error) {
 	cursor := ""

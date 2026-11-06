@@ -139,7 +139,6 @@ func (service *Users) Unfriend(ctx context.Context, accountID, version, userID i
 	return service.friendAction(ctx, accountID, version, userID, "unfriend", "unfriend")
 }
 
-// SendFriendRequest asks the user to become a friend of the account.
 func (service *Users) SendFriendRequest(ctx context.Context, accountID, version, userID int64) error {
 	address := "https://friends.roblox.com/v1/users/" + strconv.FormatInt(userID, 10) + "/request-friendship"
 	_, err := service.writeAccount(ctx, accountID, version, "friend-request-send", http.MethodPost, address, map[string]int{"friendshipOriginSourceType": 0})
@@ -342,7 +341,6 @@ const (
 	TrustedStatusRequestReceived TrustedStatus = "requestReceived"
 )
 
-// TrustedStatus reads how the user relates to the account's trusted connections.
 func (service *Users) TrustedStatus(ctx context.Context, accountID, version, userID int64) (TrustedStatus, error) {
 	var result struct {
 		Status *string `json:"status"`

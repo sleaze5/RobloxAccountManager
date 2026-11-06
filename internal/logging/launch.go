@@ -6,6 +6,7 @@ import (
 	"log/slog"
 	"os"
 	"runtime"
+	"slices"
 	"sync"
 	"time"
 
@@ -47,13 +48,13 @@ func NewLaunch() *Launch {
 }
 
 func (launch *Launch) Open(root string, hold bool) (*System, error) {
-	settings, settingsErr := appsettings.ReadLogging(appdata.SettingsFile(root))
-	launch.consoleEnabled = settings.EnabledLevels["error"]
+	settings, settingsErr := loggingSettings(root, hold)
 	levels, err := ParseLevels(settings.EnabledLevelNames())
 	if err != nil {
 		return nil, err
 	}
-	system, err := Open(Config{Directory: appdata.LogsDirectory(root), LaunchID: launch.id, EnabledLevels: levels, AddSource: true, Hold: hold, components: launch.components})
+	launch.consoleEnabled = slices.Contains(levels, LevelError)
+	system, err := open(config{Directory: appdata.LogsDirectory(root), LaunchID: launch.id, EnabledLevels: levels, AddSource: true, Hold: hold, components: launch.components})
 	if err != nil {
 		return nil, err
 	}
@@ -181,6 +182,14 @@ func (launch *Launch) Error(message string, err error, attributes ...any) {
 	}
 }
 
+// settings.json of an unconfirmed root must not be read.
+func loggingSettings(root string, hold bool) (appsettings.LoggingSettings, error) {
+	if hold {
+		return appsettings.New(appdata.SettingsFile(root)).Logging(), nil
+	}
+	return appsettings.ReadLogging(appdata.SettingsFile(root))
+}
+
 func (launch *Launch) Finish(err error, attributes ...any) {
 	if launch.system == nil && err != nil {
 		root, openErr := appdata.FallbackRoot()
@@ -189,7 +198,7 @@ func (launch *Launch) Finish(err error, attributes ...any) {
 		}
 		if openErr != nil && launch.system == nil {
 			if launch.consoleEnabled {
-				NewConsole(os.Stderr, LevelError).Error("startup diagnostics unavailable", "module", "startup",
+				NewConsole().Error("startup diagnostics unavailable", "module", "startup",
 					"launch_id", launch.id, "stage", launch.stage, "error", errors.Join(err, openErr))
 			}
 			return
@@ -216,7 +225,7 @@ func (launch *Launch) Finish(err error, attributes ...any) {
 
 func (launch *Launch) consoleError(message string, err error) {
 	if launch.system.filter.includes(slog.LevelError) {
-		NewConsole(os.Stderr, LevelError).Error(message, "module", "startup", "launch_id", launch.id, "error", err)
+		NewConsole().Error(message, "module", "startup", "launch_id", launch.id, "error", err)
 	}
 }
 

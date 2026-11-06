@@ -6,50 +6,52 @@ import (
 	"errors"
 	"fmt"
 	"strings"
+	"time"
 
 	accountdomain "github.com/sleaze5/RobloxAccountManager/internal/accounts"
+	"github.com/sleaze5/RobloxAccountManager/internal/storage/vault"
 )
 
-func (repository *Repository) CreateTag(ctx context.Context, input string) (TagView, error) {
+func (repository *Repository) CreateTag(ctx context.Context, input string) (accountdomain.TagView, error) {
 	name, err := accountdomain.ValidateTagName(input)
 	if err != nil {
-		return TagView{}, err
+		return accountdomain.TagView{}, err
 	}
 	db, release, err := repository.database(ctx)
 	if err != nil {
-		return TagView{}, err
+		return accountdomain.TagView{}, err
 	}
 	defer release()
-	now := repository.now().UTC().UnixMilli()
+	now := time.Now().UTC().UnixMilli()
 	tx, err := db.BeginTx(ctx, nil)
 	if err != nil {
-		return TagView{}, fmt.Errorf("begin tag creation: %w", err)
+		return accountdomain.TagView{}, fmt.Errorf("begin tag creation: %w", err)
 	}
 	defer tx.Rollback()
 	result, err := tx.ExecContext(ctx, `INSERT INTO tags(name, kind, created_at_ms, updated_at_ms) VALUES(?, 'custom', ?, ?)`, name, now, now)
 	if err != nil {
 		if isConstraint(err) {
-			return TagView{}, ErrDuplicateTag
+			return accountdomain.TagView{}, accountdomain.ErrDuplicateTag
 		}
-		return TagView{}, fmt.Errorf("create account tag: %w", err)
+		return accountdomain.TagView{}, fmt.Errorf("create account tag: %w", err)
 	}
 	id, err := result.LastInsertId()
 	if err != nil {
-		return TagView{}, fmt.Errorf("read created tag ID: %w", err)
+		return accountdomain.TagView{}, fmt.Errorf("read created tag ID: %w", err)
 	}
-	if err := bumpRevision(ctx, tx); err != nil {
-		return TagView{}, err
+	if err := vault.BumpRevision(ctx, tx); err != nil {
+		return accountdomain.TagView{}, err
 	}
 	if err := tx.Commit(); err != nil {
-		return TagView{}, fmt.Errorf("commit tag creation: %w", err)
+		return accountdomain.TagView{}, fmt.Errorf("commit tag creation: %w", err)
 	}
 	repository.logger.InfoContext(ctx, "account tag created", "operation", "tag-create", "tag_id", id)
-	return TagView{ID: id, Name: name, Kind: TagKindCustom}, nil
+	return accountdomain.TagView{ID: id, Name: name, Kind: accountdomain.TagKindCustom}, nil
 }
 
 func (repository *Repository) RemoveTag(ctx context.Context, tagID int64) error {
 	if tagID <= 0 {
-		return ErrTagNotFound
+		return accountdomain.ErrTagNotFound
 	}
 	db, release, err := repository.database(ctx)
 	if err != nil {
@@ -70,9 +72,9 @@ func (repository *Repository) RemoveTag(ctx context.Context, tagID int64) error 
 		return fmt.Errorf("count removed tags: %w", err)
 	}
 	if changed == 0 {
-		return ErrTagNotFound
+		return accountdomain.ErrTagNotFound
 	}
-	if err := bumpRevision(ctx, tx); err != nil {
+	if err := vault.BumpRevision(ctx, tx); err != nil {
 		return err
 	}
 	if err := tx.Commit(); err != nil {
@@ -82,7 +84,7 @@ func (repository *Repository) RemoveTag(ctx context.Context, tagID int64) error 
 	return nil
 }
 
-func (repository *Repository) ListTags(ctx context.Context) ([]TagView, error) {
+func (repository *Repository) ListTags(ctx context.Context) ([]accountdomain.TagView, error) {
 	db, release, err := repository.database(ctx)
 	if err != nil {
 		return nil, err
@@ -93,9 +95,9 @@ func (repository *Repository) ListTags(ctx context.Context) ([]TagView, error) {
 		return nil, fmt.Errorf("list tags: %w", err)
 	}
 	defer rows.Close()
-	tags := []TagView{}
+	tags := []accountdomain.TagView{}
 	for rows.Next() {
-		var tag TagView
+		var tag accountdomain.TagView
 		if err := rows.Scan(&tag.ID, &tag.Name, &tag.Kind); err != nil {
 			return nil, fmt.Errorf("read tag: %w", err)
 		}
@@ -107,17 +109,17 @@ func (repository *Repository) ListTags(ctx context.Context) ([]TagView, error) {
 	return tags, nil
 }
 
-func (repository *Repository) SetAccountsTag(ctx context.Context, accountIDs []int64, tagID int64, selected bool) ([]AccountView, error) {
+func (repository *Repository) SetAccountsTag(ctx context.Context, accountIDs []int64, tagID int64, selected bool) ([]accountdomain.AccountView, error) {
 	if len(accountIDs) == 0 {
-		return nil, ErrNotFound
+		return nil, accountdomain.ErrNotFound
 	}
 	for _, accountID := range accountIDs {
 		if accountID <= 0 {
-			return nil, ErrNotFound
+			return nil, accountdomain.ErrNotFound
 		}
 	}
 	if tagID <= 0 {
-		return nil, ErrTagNotFound
+		return nil, accountdomain.ErrTagNotFound
 	}
 	db, release, err := repository.database(ctx)
 	if err != nil {
@@ -131,24 +133,24 @@ func (repository *Repository) SetAccountsTag(ctx context.Context, accountIDs []i
 	defer tx.Rollback()
 	var exists int
 	if err := tx.QueryRowContext(ctx, `SELECT 1 FROM tags WHERE id = ?`, tagID).Scan(&exists); errors.Is(err, sql.ErrNoRows) {
-		return nil, ErrTagNotFound
+		return nil, accountdomain.ErrTagNotFound
 	} else if err != nil {
 		return nil, fmt.Errorf("find tag: %w", err)
 	}
-	now := repository.now().UTC().UnixMilli()
+	now := time.Now().UTC().UnixMilli()
 	anyChanged, err := assignAccountsTag(ctx, tx, accountIDs, tagID, selected, now)
 	if err != nil {
 		return nil, err
 	}
 	if anyChanged {
-		if err := bumpRevision(ctx, tx); err != nil {
+		if err := vault.BumpRevision(ctx, tx); err != nil {
 			return nil, err
 		}
 	}
 	if err := tx.Commit(); err != nil {
 		return nil, fmt.Errorf("commit tag assignment: %w", err)
 	}
-	views := make([]AccountView, 0, len(accountIDs))
+	views := make([]accountdomain.AccountView, 0, len(accountIDs))
 	for _, accountID := range accountIDs {
 		view, err := repository.GetView(ctx, accountID)
 		if err != nil {
@@ -159,7 +161,7 @@ func (repository *Repository) SetAccountsTag(ctx context.Context, accountIDs []i
 	return views, nil
 }
 
-func loadAccountTags(ctx context.Context, db *sql.DB, views []AccountView) error {
+func loadAccountTags(ctx context.Context, db *sql.DB, views []accountdomain.AccountView) error {
 	if len(views) == 0 {
 		return nil
 	}
@@ -167,7 +169,7 @@ func loadAccountTags(ctx context.Context, db *sql.DB, views []AccountView) error
 	placeholders := make([]string, len(views))
 	arguments := make([]any, len(views))
 	for index := range views {
-		views[index].Tags = []TagView{}
+		views[index].Tags = []accountdomain.TagView{}
 		indices[views[index].ID] = index
 		placeholders[index] = "?"
 		arguments[index] = views[index].ID
@@ -181,7 +183,7 @@ ORDER BY account_tags.account_id, CASE tags.kind WHEN 'favorite' THEN 0 ELSE 1 E
 	defer rows.Close()
 	for rows.Next() {
 		var accountID int64
-		var tag TagView
+		var tag accountdomain.TagView
 		if err := rows.Scan(&accountID, &tag.ID, &tag.Name, &tag.Kind); err != nil {
 			return fmt.Errorf("read account tag: %w", err)
 		}
@@ -197,15 +199,15 @@ ORDER BY account_tags.account_id, CASE tags.kind WHEN 'favorite' THEN 0 ELSE 1 E
 
 func listAccountTags(ctx context.Context, db interface {
 	QueryContext(context.Context, string, ...any) (*sql.Rows, error)
-}, accountID int64) ([]TagView, error) {
+}, accountID int64) ([]accountdomain.TagView, error) {
 	rows, err := db.QueryContext(ctx, `SELECT tags.id, tags.name, tags.kind FROM account_tags JOIN tags ON tags.id = account_tags.tag_id WHERE account_tags.account_id = ? ORDER BY CASE tags.kind WHEN 'favorite' THEN 0 ELSE 1 END, tags.name COLLATE NOCASE, tags.id`, accountID)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	tags := []TagView{}
+	tags := []accountdomain.TagView{}
 	for rows.Next() {
-		var tag TagView
+		var tag accountdomain.TagView
 		if err := rows.Scan(&tag.ID, &tag.Name, &tag.Kind); err != nil {
 			return nil, fmt.Errorf("read account tag: %w", err)
 		}
@@ -227,7 +229,7 @@ func assignAccountsTag(ctx context.Context, tx *sql.Tx, accountIDs []int64, tagI
 	anyChanged := false
 	for _, accountID := range accountIDs {
 		if err := tx.QueryRowContext(ctx, `SELECT 1 FROM accounts WHERE id = ?`, accountID).Scan(&exists); errors.Is(err, sql.ErrNoRows) {
-			return false, ErrNotFound
+			return false, accountdomain.ErrNotFound
 		} else if err != nil {
 			return false, fmt.Errorf("find tagged account: %w", err)
 		}
@@ -240,7 +242,11 @@ func assignAccountsTag(ctx context.Context, tx *sql.Tx, accountIDs []int64, tagI
 		if err != nil {
 			return false, fmt.Errorf("update account tag: %w", err)
 		}
-		if changed, _ := result.RowsAffected(); changed > 0 {
+		changed, err := result.RowsAffected()
+		if err != nil {
+			return false, fmt.Errorf("count updated account tags: %w", err)
+		}
+		if changed > 0 {
 			anyChanged = true
 			if _, err := tx.ExecContext(ctx, `UPDATE accounts SET updated_at_ms = ? WHERE id = ?`, now, accountID); err != nil {
 				return false, fmt.Errorf("update tagged account: %w", err)
