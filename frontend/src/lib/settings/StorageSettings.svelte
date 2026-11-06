@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { copyText } from "../shared/clipboard"
 	import arrowsLeftRightIcon from "@phosphor-icons/core/regular/arrows-left-right.svg?raw"
 	import copyIcon from "@phosphor-icons/core/regular/copy.svg?raw"
 	import Icon from "../shared/Icon.svelte"
@@ -58,15 +59,13 @@
 
 	async function copyPath(): Promise<void> {
 		if (!location) return
-		try {
-			await navigator.clipboard.writeText(location.directory)
-			notifications.show({
-				id: "clipboard-copy",
-				title: "Copied",
-				tone: "success",
-				message: "Data folder path copied to clipboard.",
-			})
-		} catch {
+		if (
+			!(await copyText(
+				notifications,
+				location.directory,
+				"Data folder path copied to clipboard.",
+			))
+		) {
 			error = "The path could not be copied. Try again."
 		}
 	}
