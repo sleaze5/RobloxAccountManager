@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { matchesSearch, searchTerms } from "../shared/search"
 	import fileArrowDownIcon from "@phosphor-icons/core/regular/file-arrow-down.svg?raw"
 	import fileArrowUpIcon from "@phosphor-icons/core/regular/file-arrow-up.svg?raw"
 	import Icon from "../shared/Icon.svelte"
@@ -19,7 +20,7 @@
 		} = $props(),
 		exporting = $state(false),
 		importPath = $state(""),
-		searchTerms = $derived(query.trim().toLowerCase().split(/\s+/).filter(Boolean))
+		terms = $derived(searchTerms(query))
 
 	const exportTerms =
 			"encrypted file password hint accounts saved passwords tags favorite places settings backup move computer save",
@@ -27,8 +28,10 @@
 			"merge overwrite export file password hint accounts cookies tags favorite places settings open"
 
 	function matches(name: string, description: string): boolean {
-		const text = `vault transfer export import ${name} ${description}`.toLowerCase()
-		return searchTerms.every((term) => text.includes(term))
+		return matchesSearch(
+			terms,
+			`vault transfer export import ${name} ${description}`,
+		)
 	}
 
 	async function chooseImport(): Promise<void> {

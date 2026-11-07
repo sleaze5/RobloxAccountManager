@@ -274,18 +274,7 @@
 			)
 			if (!server) return []
 			return [
-				{
-					label: "Fill launch options",
-					icon: listPlusIcon,
-					onSelect: select(() => onFillLaunchLink(server.launchLink)),
-				},
-				{
-					label: "Copy launch link",
-					icon: linkIcon,
-					onSelect: select(
-						() => void store.copy(server.launchLink, "Launch link"),
-					),
-				},
+				...linkActions(server.launchLink),
 				{
 					label: "Remove link",
 					icon: trashIcon,

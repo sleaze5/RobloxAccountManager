@@ -45,7 +45,7 @@
 			!store.query &&
 			store.selectedTagIds.length === 0,
 	)
-	const noMatches = $derived(!noAccounts && store.filteredAccounts.length === 0)
+	const noMatches = $derived(!noAccounts && store.accounts.length === 0)
 
 	function clearFilters(): void {
 		store.setQuery("")

@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { matchesSearch, searchTerms } from "../shared/search"
 	import arrowCounterClockwiseIcon from "@phosphor-icons/core/regular/arrow-counter-clockwise.svg?raw"
 	import caretRightIcon from "@phosphor-icons/core/regular/caret-right.svg?raw"
 	import floppyDiskIcon from "@phosphor-icons/core/regular/floppy-disk.svg?raw"
@@ -64,8 +65,7 @@
 		hoverDraft = $state<DraftFormat>({ format: null, error: "" }),
 		previewValue = $state(Date.now() - 16 * 60 * 60 * 1_000),
 		previewNow = $state(Date.now()),
-		normalizedQuery = $derived(query.trim().toLowerCase()),
-		searchTerms = $derived(normalizedQuery.split(/\s+/).filter(Boolean)),
+		terms = $derived(searchTerms(query)),
 		previewDateTime = $derived(new Date(previewValue).toISOString()),
 		preview = $derived(
 			formatTimestamp(previewValue, shownDraft.format, previewNow),
@@ -150,8 +150,7 @@
 		description: string,
 		section = "timestamps",
 	): boolean {
-		const text = `user interface ${section} ${name} ${description}`.toLowerCase()
-		return searchTerms.every((term) => text.includes(term))
+		return matchesSearch(terms, `user interface ${section} ${name} ${description}`)
 	}
 
 	function restoreDefaults(): void {

@@ -34,7 +34,7 @@ function motion({
 export function menuIn(node: Element): TransitionConfig {
 	const distance = tokenNumber(node, "--motion-distance", 2)
 	return motion({
-		duration: tokenDuration(node, "--duration-fast", 100),
+		duration: tokenNumber(node, "--duration-fast", 100),
 		easing: sharp,
 		origin:
 			getComputedStyle(node).getPropertyValue("--menu-origin").trim() ||
@@ -47,7 +47,7 @@ export function menuIn(node: Element): TransitionConfig {
 export function menuOut(node: Element): TransitionConfig {
 	const distance = tokenNumber(node, "--motion-distance", 2)
 	return motion({
-		duration: tokenDuration(node, "--duration-exit", 75),
+		duration: tokenNumber(node, "--duration-exit", 75),
 		easing: standard,
 		origin:
 			getComputedStyle(node).getPropertyValue("--menu-origin").trim() ||
@@ -59,21 +59,21 @@ export function menuOut(node: Element): TransitionConfig {
 
 export function modalBackdropIn(node: Element): TransitionConfig {
 	return motion({
-		duration: tokenDuration(node, "--duration-enter", 150),
+		duration: tokenNumber(node, "--duration-enter", 150),
 		easing: sharp,
 	})
 }
 
 export function modalBackdropOut(node: Element): TransitionConfig {
 	return motion({
-		duration: tokenDuration(node, "--duration-exit", 75),
+		duration: tokenNumber(node, "--duration-exit", 75),
 		easing: standard,
 	})
 }
 
 export function modalCardIn(node: Element): TransitionConfig {
 	return motion({
-		duration: tokenDuration(node, "--duration-enter", 150),
+		duration: tokenNumber(node, "--duration-enter", 150),
 		easing: sharp,
 		scale: tokenNumber(node, "--motion-scale", 0.99),
 		y: tokenNumber(node, "--motion-distance", 2),
@@ -83,7 +83,7 @@ export function modalCardIn(node: Element): TransitionConfig {
 export function modalCardOut(node: Element): TransitionConfig {
 	const distance = tokenNumber(node, "--motion-distance", 2)
 	return motion({
-		duration: tokenDuration(node, "--duration-exit", 75),
+		duration: tokenNumber(node, "--duration-exit", 75),
 		easing: standard,
 		scale: tokenNumber(node, "--motion-scale", 0.99),
 		y: distance / 2,
@@ -95,7 +95,7 @@ export function tooltipIn(
 	{ instant = false }: { instant?: boolean } = {},
 ): TransitionConfig {
 	return motion({
-		duration: instant ? 0 : tokenDuration(node, "--duration-fast", 100),
+		duration: instant ? 0 : tokenNumber(node, "--duration-fast", 100),
 		easing: sharp,
 		scale: tokenNumber(node, "--motion-scale", 0.99),
 		y: tokenNumber(node, "--motion-distance", 2),
@@ -105,7 +105,7 @@ export function tooltipIn(
 export function tooltipOut(node: Element): TransitionConfig {
 	const distance = tokenNumber(node, "--motion-distance", 2)
 	return motion({
-		duration: tokenDuration(node, "--duration-instant", 75),
+		duration: tokenNumber(node, "--duration-instant", 75),
 		easing: standard,
 		scale: tokenNumber(node, "--motion-scale", 0.99),
 		y: distance / 2,
@@ -115,7 +115,7 @@ export function tooltipOut(node: Element): TransitionConfig {
 export function toastIn(node: Element): TransitionConfig {
 	const distance = tokenNumber(node, "--motion-distance", 2)
 	return motion({
-		duration: tokenDuration(node, "--duration-enter", 150),
+		duration: tokenNumber(node, "--duration-enter", 150),
 		easing: sharp,
 		scale: tokenNumber(node, "--motion-scale", 0.99),
 		y: -distance,
@@ -125,7 +125,7 @@ export function toastIn(node: Element): TransitionConfig {
 export function toastOut(node: Element): TransitionConfig {
 	const distance = tokenNumber(node, "--motion-distance", 2)
 	return motion({
-		duration: tokenDuration(node, "--duration-exit", 75),
+		duration: tokenNumber(node, "--duration-exit", 75),
 		easing: standard,
 		scale: tokenNumber(node, "--motion-scale", 0.99),
 		y: -distance / 2,
@@ -137,12 +137,10 @@ export function toastMove(
 	positions: { from: DOMRect; to: DOMRect },
 ): AnimationConfig {
 	return flip(node, positions, {
-		duration: reducedMotion() ? 0 : tokenDuration(node, "--duration-enter", 150),
+		duration: reducedMotion() ? 0 : tokenNumber(node, "--duration-enter", 150),
 		easing: standard,
 	})
 }
-
-export { toastIn as errorIn, toastOut as errorOut }
 
 export function replayValidationNudge(element: HTMLElement | undefined): void {
 	if (!element || reducedMotion()) {
@@ -159,7 +157,7 @@ export function replayValidationNudge(element: HTMLElement | undefined): void {
 			{ transform: "translateX(0)" },
 		],
 		{
-			duration: tokenDuration(element, "--duration-enter", 150),
+			duration: tokenNumber(element, "--duration-enter", 150),
 			easing: "cubic-bezier(0.4, 0, 0.2, 1)",
 		},
 	)
@@ -303,10 +301,6 @@ function setMenuPosition(
 	node.style.left = `${x}px`
 	node.style.top = `${y}px`
 	node.style.setProperty("--menu-origin", origin)
-}
-
-function tokenDuration(node: Element, token: string, fallback: number): number {
-	return tokenNumber(node, token, fallback)
 }
 
 function tokenNumber(node: Element, token: string, fallback: number): number {

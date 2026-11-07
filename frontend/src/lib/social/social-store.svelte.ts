@@ -102,10 +102,6 @@ export class SocialStore {
 		return this.subject?.userId ?? this.selfUserId
 	}
 
-	get ownFriends(): boolean {
-		return !this.subject && this.list === SocialList.SocialFriends
-	}
-
 	get people(): SocialUser[] {
 		const people = this.page?.people ?? [],
 			text = this.query.trim().toLowerCase().replace(/^@/, "")

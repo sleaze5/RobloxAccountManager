@@ -11,7 +11,7 @@
 	import { errorMessage } from "../shared/errors"
 	import Dialog from "../shared/Dialog.svelte"
 	import type { NotificationCenter } from "../notifications/notification-center.svelte"
-	import { checkPassword, passwordValid } from "./password-rules"
+	import { passwordRequirements, passwordValid } from "./password-rules"
 	import { copyPath, fileName } from "./vault-transfer"
 
 	let {
@@ -29,13 +29,8 @@
 		error = $state(""),
 		exported = $state<ExportInfo | null>(null),
 		card = $state<HTMLDivElement>()
-	const rules = $derived(checkPassword(password)),
-		requirements = $derived<[boolean, string][]>([
-			[rules.length, "8-128 characters long"],
-			[rules.uppercase, "At least one upper-case letter"],
-			[rules.lowercase, "At least one lower-case letter"],
-			[rules.digit, "At least one number"],
-			[rules.special, "At least one special character"],
+	const requirements = $derived<[boolean, string][]>([
+			...passwordRequirements(password),
 			[password !== "" && password === confirmation, "Passwords match"],
 		]),
 		hintHasPassword = $derived(

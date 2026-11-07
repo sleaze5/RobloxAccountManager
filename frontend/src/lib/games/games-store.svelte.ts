@@ -21,7 +21,7 @@ export interface GameMenu {
 	y: number
 }
 
-export function creatorLabel(place: GamePlace): string {
+function creatorLabel(place: GamePlace): string {
 	if (!place.creatorName) return ""
 	return place.creatorType === "User" ? `@${place.creatorName}` : place.creatorName
 }

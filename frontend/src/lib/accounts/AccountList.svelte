@@ -137,7 +137,7 @@
 	class={["min-h-0 scrollbar-stable overflow-y-auto"]}
 	aria-busy={store.loadingAccounts || store.loadingMore}
 	onscroll={loadNearEnd}>
-	{#each store.filteredAccounts as account (account.id)}
+	{#each store.accounts as account (account.id)}
 		{@const detail = presenceDetail(account.presence)}
 		<div
 			class={[

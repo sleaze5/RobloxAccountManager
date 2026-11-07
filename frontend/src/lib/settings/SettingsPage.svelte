@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { matchesSearch, searchTerms } from "../shared/search"
 	import caretLeftIcon from "@phosphor-icons/core/regular/caret-left.svg?raw"
 	import gameControllerIcon from "@phosphor-icons/core/regular/game-controller.svg?raw"
 	import infoIcon from "@phosphor-icons/core/regular/info.svg?raw"
@@ -87,12 +88,9 @@
 		activeCategory = $state<Category>(categories[0]),
 		query = $state(""),
 		contentElement = $state<HTMLElement | undefined>(undefined),
-		normalizedQuery = $derived(query.trim().toLowerCase()),
-		searchTerms = $derived(normalizedQuery.split(/\s+/).filter(Boolean)),
+		terms = $derived(searchTerms(query)),
 		visibleCategories = $derived(
-			categories.filter((category) =>
-				searchTerms.every((term) => category.search.includes(term)),
-			),
+			categories.filter((category) => matchesSearch(terms, category.search)),
 		)
 
 	$effect(() => {

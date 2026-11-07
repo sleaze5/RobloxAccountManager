@@ -25,6 +25,8 @@ import { AccountProfileState } from "./account-profile-state.svelte"
 import { isValidTagName, tagNameError } from "./tag-name"
 import { appSettings } from "../settings/settings-store.svelte"
 import type { NotificationCenter } from "../notifications/notification-center.svelte"
+import { notifyCopied } from "../shared/clipboard"
+import { coalesce } from "../shared/coalesce"
 import { errorMessage } from "../shared/errors"
 
 const operationError = "The operation failed.",
@@ -56,7 +58,6 @@ export class AccountStore {
 	copyingLaunchOptions = $state(false)
 	findingServer = $state(false)
 	refreshing = $state(false)
-	presenceRefreshing = $state(false)
 	presencesRefreshedAt = 0
 	error = $state("")
 	nextCursor = $state<AccountCursor | null>(null)
@@ -78,8 +79,6 @@ export class AccountStore {
 	#remoteDataVersion = 0
 	#accountListVersion = 0
 	readonly #profiles = new Map<number, AccountProfileState>()
-	#refreshPromise: Promise<void> | null = null
-	#refreshQueued = false
 	#presenceRequest = 0
 	#filterTimer = 0
 	#importSummary: { created: number; updated: number } | null = null
@@ -145,12 +144,7 @@ export class AccountStore {
 		try {
 			await action()
 			if (!this.vault.unlocked) return false
-			this.notifications.show({
-				id: "clipboard-copy",
-				title: "Copied",
-				message,
-				tone: "success",
-			})
+			notifyCopied(this.notifications, message)
 			return true
 		} catch (error) {
 			if (this.vault.unlocked) this.error = errorMessage(error, operationError)
@@ -186,10 +180,6 @@ export class AccountStore {
 
 	get customTags(): TagView[] {
 		return this.tags.filter((tag) => tag.kind === TagKind.TagKindCustom)
-	}
-
-	get filteredAccounts(): Account[] {
-		return this.accounts
 	}
 
 	getAccountProfile(accountId: number): AccountProfileState {
@@ -487,29 +477,20 @@ export class AccountStore {
 	}
 
 	async refreshAccounts(): Promise<void> {
-		if (!this.vault.unlocked) {
-			return
-		}
-		if (this.#refreshPromise) {
-			this.#refreshQueued = true
-			return this.#refreshPromise
-		}
+		if (this.vault.unlocked) await this.#refreshAccountList()
+	}
 
-		this.#refreshPromise = this.performQueuedRefresh()
+	#refreshingAccounts = false
+
+	readonly #refreshAccountList = coalesce(async () => {
+		if (!this.vault.unlocked) return
+		this.#refreshingAccounts = true
 		try {
-			await this.#refreshPromise
+			await this.performRefresh()
 		} finally {
-			this.#refreshPromise = null
+			this.#refreshingAccounts = false
 		}
-	}
-
-	private async performQueuedRefresh(): Promise<void> {
-		this.#refreshQueued = false
-		await this.performRefresh()
-		if (this.#refreshQueued && this.vault.unlocked) {
-			await this.performQueuedRefresh()
-		}
-	}
+	})
 
 	private async performRefresh(): Promise<void> {
 		this.invalidateAccountList()
@@ -567,7 +548,7 @@ export class AccountStore {
 	}
 
 	async loadMore(): Promise<void> {
-		if (!this.nextCursor || this.loadingMore || this.#refreshPromise) {
+		if (!this.nextCursor || this.loadingMore || this.#refreshingAccounts) {
 			return
 		}
 		this.loadingMore = true
@@ -950,7 +931,6 @@ export class AccountStore {
 			sequence = ++this.#presenceRequest,
 			request = accountBackend.GetAccountPresences(accountId)
 		this.#presenceRequests.set(key, request)
-		if (accountId === null) this.presenceRefreshing = true
 		try {
 			const presences = (await request) ?? []
 			if (version !== this.#remoteDataVersion || !this.vault.unlocked) return
@@ -962,7 +942,6 @@ export class AccountStore {
 		} finally {
 			if (this.#presenceRequests.get(key) === request) {
 				this.#presenceRequests.delete(key)
-				if (accountId === null) this.presenceRefreshing = false
 			}
 		}
 	}
@@ -997,26 +976,16 @@ export class AccountStore {
 		const version = this.#remoteDataVersion,
 			requests = this.getAvatarRequests(userIds, force)
 		if (requests.size === 0) return
+		let headshots
 		try {
-			const headshots = (await Promise.all(requests)).flatMap(
-				(result) => result ?? [],
-			)
-			if (version !== this.#remoteDataVersion || !this.vault.unlocked) return
-			this.installHeadshots(headshots)
-			if (
-				force &&
-				!headshots.some((headshot) => headshot.robloxUserId === userIds[0])
-			) {
-				throw new Error(
-					"The profile image is not available yet. Refresh to retry.",
-				)
-			}
+			headshots = (await Promise.all(requests)).flatMap((result) => result ?? [])
 		} catch {
 			if (force) {
 				throw new Error(
 					"The profile image could not be refreshed. Refresh to retry.",
 				)
 			}
+			return
 		} finally {
 			for (const userId of userIds) {
 				const pending = this.#avatarRequests.get(userId)
@@ -1024,6 +993,14 @@ export class AccountStore {
 					this.#avatarRequests.delete(userId)
 				}
 			}
+		}
+		if (version !== this.#remoteDataVersion || !this.vault.unlocked) return
+		this.installHeadshots(headshots)
+		if (
+			force &&
+			!headshots.some((headshot) => headshot.robloxUserId === userIds[0])
+		) {
+			throw new Error("The profile image is not available yet. Refresh to retry.")
 		}
 	}
 
@@ -1084,7 +1061,6 @@ export class AccountStore {
 		this.#avatarRequests.clear()
 		for (const request of this.#presenceRequests.values()) void request.cancel()
 		this.#presenceRequests.clear()
-		this.presenceRefreshing = false
 		this.presencesRefreshedAt = 0
 	}
 
