@@ -22,11 +22,11 @@ var knownLinuxClients = []knownClient{
 	{id: "mocktail", name: "Mocktail", desktop: "space.bigrat.mocktail.desktop"},
 }
 
-func listClients() []ClientInfo {
-	clients := make([]ClientInfo, 0, len(knownLinuxClients))
+func listClients() []RobloxClient {
+	clients := make([]RobloxClient, 0, len(knownLinuxClients))
 	for _, client := range knownLinuxClients {
 		_, installed := findDesktop(client.desktop)
-		clients = append(clients, ClientInfo{ID: client.id, Name: client.name, Installed: installed})
+		clients = append(clients, RobloxClient{ID: client.id, Name: client.name, Installed: installed})
 	}
 	return clients
 }

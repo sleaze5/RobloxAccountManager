@@ -41,7 +41,7 @@ var exportDecoders = [...]func([]byte, string) ([]byte, error){openExportV1, ope
 
 var _ = [1]struct{}{}[len(exportDecoders)-int(exportFormatVersion)]
 
-type ExportInfo struct {
+type ExportFile struct {
 	Name        string `json:"name"`
 	Path        string `json:"path"`
 	CreatedAtMS int64  `json:"createdAtMs"`
@@ -65,19 +65,19 @@ func (manager *Manager) DefaultExportName() string {
 	return name
 }
 
-func (manager *Manager) WriteExport(path, password, hint string, payload []byte) (ExportInfo, error) {
+func (manager *Manager) WriteExport(path, password, hint string, payload []byte) (ExportFile, error) {
 	if !strings.EqualFold(filepath.Ext(path), exportExtension) {
 		path += exportExtension
 	}
 	now := time.Now()
 	sealed, err := sealExport(password, hint, payload, now.UnixMilli())
 	if err != nil {
-		return ExportInfo{}, err
+		return ExportFile{}, err
 	}
 	if err := writeExportFile(path, sealed); err != nil {
-		return ExportInfo{}, err
+		return ExportFile{}, err
 	}
-	return ExportInfo{Name: filepath.Base(path), Path: path, CreatedAtMS: now.UnixMilli()}, nil
+	return ExportFile{Name: filepath.Base(path), Path: path, CreatedAtMS: now.UnixMilli()}, nil
 }
 
 // writeExportFile does not set a private access list, because the user can choose a drive that has none, such as FAT32.
@@ -111,16 +111,16 @@ func writeExportFile(path string, data []byte) error {
 	return nil
 }
 
-func (manager *Manager) ReadExport(path, password string) (ExportInfo, []byte, error) {
+func (manager *Manager) ReadExport(path, password string) (ExportFile, []byte, error) {
 	data, err := readBounded(path, exportFileLimit)
 	if err != nil {
-		return ExportInfo{}, nil, err
+		return ExportFile{}, nil, err
 	}
 	payload, err := openExport(data, password)
 	if err != nil {
-		return ExportInfo{}, nil, err
+		return ExportFile{}, nil, err
 	}
-	return ExportInfo{Name: filepath.Base(path), Path: path, CreatedAtMS: int64(binary.BigEndian.Uint64(data[len(exportMagic)+2:]))}, payload, nil
+	return ExportFile{Name: filepath.Base(path), Path: path, CreatedAtMS: int64(binary.BigEndian.Uint64(data[len(exportMagic)+2:]))}, payload, nil
 }
 
 // ExportDetails describes an export file before it is opened with its password.

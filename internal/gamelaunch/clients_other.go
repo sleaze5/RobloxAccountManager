@@ -2,6 +2,6 @@
 
 package gamelaunch
 
-func listClients() []ClientInfo {
-	return []ClientInfo{}
+func listClients() []RobloxClient {
+	return []RobloxClient{}
 }

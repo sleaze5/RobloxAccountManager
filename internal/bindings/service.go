@@ -431,7 +431,7 @@ func (service *Service) SetAutomaticUnlock(enabled bool) error {
 	return service.core.SetAutomaticUnlock(enabled)
 }
 
-func (service *Service) ListBackups() ([]vault.BackupInfo, error) { return service.core.ListBackups() }
+func (service *Service) ListBackups() ([]vault.Backup, error) { return service.core.ListBackups() }
 
 func (service *Service) RestoreBackup(ctx context.Context, name, password string) error {
 	return service.core.RestoreBackup(ctx, name, password)
@@ -455,16 +455,16 @@ func (service *Service) SetAsideLegacyVault(confirmation string) error {
 	return service.core.SetAsideLegacyVault()
 }
 
-func (service *Service) ExportVault(ctx context.Context, password, confirmation, hint string) (vault.ExportInfo, error) {
+func (service *Service) ExportVault(ctx context.Context, password, confirmation, hint string) (vault.ExportFile, error) {
 	if err := service.core.ValidateExportPassword(password, confirmation, hint); err != nil {
-		return vault.ExportInfo{}, err
+		return vault.ExportFile{}, err
 	}
 	path, err := chooseSaveFile(service.core.ExportsDirectory(), service.core.DefaultExportName())
 	if err != nil {
-		return vault.ExportInfo{}, &roblox.Error{Kind: roblox.KindProtocol, Endpoint: "vault-transfer", Message: "The save dialog could not be opened.", Cause: err}
+		return vault.ExportFile{}, &roblox.Error{Kind: roblox.KindProtocol, Endpoint: "vault-transfer", Message: "The save dialog could not be opened.", Cause: err}
 	}
 	if path == "" {
-		return vault.ExportInfo{}, nil
+		return vault.ExportFile{}, nil
 	}
 	return service.core.ExportVault(ctx, path, password, confirmation, hint)
 }

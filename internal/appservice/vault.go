@@ -201,7 +201,7 @@ func (service *Service) SetAutomaticUnlock(enabled bool) error {
 	return nil
 }
 
-func (service *Service) ListBackups() ([]vault.BackupInfo, error) { return service.vault.ListBackups() }
+func (service *Service) ListBackups() ([]vault.Backup, error) { return service.vault.ListBackups() }
 
 func (service *Service) RestoreBackup(ctx context.Context, name, password string) error {
 	if err := service.vault.RestoreBackup(ctx, name, password); err != nil {

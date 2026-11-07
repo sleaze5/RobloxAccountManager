@@ -104,22 +104,22 @@ func (service *Service) ValidateExportPassword(password, confirmation, hint stri
 	return nil
 }
 
-func (service *Service) ExportVault(ctx context.Context, path, password, confirmation, hint string) (vault.ExportInfo, error) {
+func (service *Service) ExportVault(ctx context.Context, path, password, confirmation, hint string) (vault.ExportFile, error) {
 	if err := service.ValidateExportPassword(password, confirmation, hint); err != nil {
-		return vault.ExportInfo{}, err
+		return vault.ExportFile{}, err
 	}
 	data, err := service.exportData(ctx, "vault-export")
 	if err != nil {
-		return vault.ExportInfo{}, err
+		return vault.ExportFile{}, err
 	}
 	defer clear(data)
-	info, err := service.vault.WriteExport(path, password, hint, data)
+	writtenExport, err := service.vault.WriteExport(path, password, hint, data)
 	if err != nil {
 		service.logger.Error("export file could not be written", "operation", "vault-export", "error", err)
-		return vault.ExportInfo{}, transferError("The export file could not be saved. Check that the folder is writable and has free space, then try again.", err)
+		return vault.ExportFile{}, transferError("The export file could not be saved. Check that the folder is writable and has free space, then try again.", err)
 	}
 	service.logger.Info("vault exported", "operation", "vault-export")
-	return info, nil
+	return writtenExport, nil
 }
 
 func (service *Service) exportData(ctx context.Context, operation string) ([]byte, error) {
@@ -154,7 +154,7 @@ func (service *Service) ExportDetails(path string) (vault.ExportDetails, error) 
 }
 
 func (service *Service) OpenVaultExport(ctx context.Context, path, password string) (TransferPreview, error) {
-	info, data, err := service.vault.ReadExport(path, password)
+	openedExport, data, err := service.vault.ReadExport(path, password)
 	if err != nil {
 		return TransferPreview{}, service.exportReadError(err)
 	}
@@ -171,7 +171,7 @@ func (service *Service) OpenVaultExport(ctx context.Context, path, password stri
 		service.logger.Warn("exported settings could not be decoded", "operation", "vault-import", "error", err)
 		return TransferPreview{}, transferError("The settings in this export could not be read. Update the app and try again.", err)
 	}
-	preview, err := service.transferPreview(ctx, payload, info.CreatedAtMS)
+	preview, err := service.transferPreview(ctx, payload, openedExport.CreatedAtMS)
 	if err != nil {
 		return TransferPreview{}, err
 	}

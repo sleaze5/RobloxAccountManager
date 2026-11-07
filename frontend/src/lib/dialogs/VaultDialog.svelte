@@ -10,7 +10,7 @@
 	import xIcon from "@phosphor-icons/core/regular/x.svg?raw"
 	import Icon from "../shared/Icon.svelte"
 	import { FileState } from "../backend/bridge"
-	import type { BackupInfo } from "../backend/bridge"
+	import type { Backup } from "../backend/bridge"
 	import type { AccountStore } from "../accounts/account-store.svelte"
 	import Select from "../shared/Select.svelte"
 	import { replayValidationNudge } from "../shared/presence"
@@ -23,7 +23,7 @@
 		hint = $state(""),
 		automaticUnlock = $state(true),
 		visible = $state(false),
-		backups = $state<BackupInfo[]>([]),
+		backups = $state<Backup[]>([]),
 		selectedBackup = $state(""),
 		resetConfirmation = $state(""),
 		recovery = $state(false),

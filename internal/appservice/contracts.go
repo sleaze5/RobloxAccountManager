@@ -27,14 +27,14 @@ type Vault interface {
 	MaybeCreateBackup(context.Context) error
 	CreateBackup(context.Context) error
 	PurgeBackups() error
-	ListBackups() ([]vault.BackupInfo, error)
+	ListBackups() ([]vault.Backup, error)
 	RestoreBackup(context.Context, string, string) error
 	ResetVault() error
 	SetAsideLegacyVault() error
 	ExportsDirectory() string
 	DefaultExportName() string
-	WriteExport(string, string, string, []byte) (vault.ExportInfo, error)
-	ReadExport(string, string) (vault.ExportInfo, []byte, error)
+	WriteExport(string, string, string, []byte) (vault.ExportFile, error)
+	ReadExport(string, string) (vault.ExportFile, []byte, error)
 	ReadExportDetails(string) (vault.ExportDetails, error)
 	RemoveMigration() error
 	MigrationAvailable() bool

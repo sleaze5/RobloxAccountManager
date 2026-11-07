@@ -6,7 +6,7 @@
 	import eyeSlashIcon from "@phosphor-icons/core/regular/eye-slash.svg?raw"
 	import xIcon from "@phosphor-icons/core/regular/x.svg?raw"
 	import Icon from "../shared/Icon.svelte"
-	import { accountBackend, type ExportInfo } from "../backend/bridge"
+	import { accountBackend, type ExportFile } from "../backend/bridge"
 	import { replayValidationNudge } from "../shared/presence"
 	import { errorMessage } from "../shared/errors"
 	import Dialog from "../shared/Dialog.svelte"
@@ -27,7 +27,7 @@
 		visible = $state(false),
 		exporting = $state(false),
 		error = $state(""),
-		exported = $state<ExportInfo | null>(null),
+		exported = $state<ExportFile | null>(null),
 		card = $state<HTMLDivElement>()
 	const requirements = $derived<[boolean, string][]>([
 			...passwordRequirements(password),

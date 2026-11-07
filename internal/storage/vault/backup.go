@@ -21,7 +21,7 @@ const (
 	retainedBackups  = 3
 )
 
-type BackupInfo struct {
+type Backup struct {
 	Name        string `json:"name"`
 	CreatedAtMS int64  `json:"createdAtMs"`
 }
@@ -166,21 +166,21 @@ func snapshotDatabase(ctx context.Context, source *sql.DB, destinationPath strin
 	return nil
 }
 
-func (manager *Manager) ListBackups() ([]BackupInfo, error) {
+func (manager *Manager) ListBackups() ([]Backup, error) {
 	manager.backupMutex.Lock()
 	defer manager.backupMutex.Unlock()
 	return manager.listBackups()
 }
 
-func (manager *Manager) listBackups() ([]BackupInfo, error) {
+func (manager *Manager) listBackups() ([]Backup, error) {
 	entries, err := os.ReadDir(manager.paths.BackupsRoot)
 	if errors.Is(err, os.ErrNotExist) {
-		return []BackupInfo{}, nil
+		return []Backup{}, nil
 	}
 	if err != nil {
 		return nil, fmt.Errorf("list vault backups: %w", err)
 	}
-	result := make([]BackupInfo, 0, len(entries))
+	result := make([]Backup, 0, len(entries))
 	for _, entry := range entries {
 		if !entry.IsDir() {
 			continue
@@ -201,7 +201,7 @@ func (manager *Manager) listBackups() ([]BackupInfo, error) {
 		if _, err := readKeyFile(filepath.Join(manager.paths.BackupsRoot, entry.Name(), "vault.key")); errors.Is(err, ErrLegacyVault) {
 			continue
 		}
-		result = append(result, BackupInfo{Name: entry.Name(), CreatedAtMS: created.UnixMilli()})
+		result = append(result, Backup{Name: entry.Name(), CreatedAtMS: created.UnixMilli()})
 	}
 	sort.Slice(result, func(left, right int) bool { return result[left].Name > result[right].Name })
 	return result, nil

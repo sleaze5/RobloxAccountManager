@@ -11,7 +11,7 @@ import type {
 	AccountCursor,
 	AccountView,
 	AvatarHeadshotView,
-	BackupInfo,
+	Backup,
 	ImportPreview,
 	LaunchInput,
 	LaunchResult,
@@ -427,7 +427,7 @@ export class AccountStore {
 		})
 	}
 
-	async listBackups(): Promise<BackupInfo[]> {
+	async listBackups(): Promise<Backup[]> {
 		try {
 			return (await accountBackend.ListBackups()) ?? []
 		} catch (error) {
