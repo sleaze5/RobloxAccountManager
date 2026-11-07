@@ -21,18 +21,6 @@ const (
 	ImportFailed    ImportStatus = "failed"
 )
 
-func (service *Service) ReplaceCookie(ctx context.Context, accountID int64, input string) (accounts.AccountView, error) {
-	cookie, err := accounts.NormalizeCookie(input)
-	if err != nil {
-		return accounts.AccountView{}, &roblox.Error{Kind: roblox.KindInvalidCookieInput, Endpoint: "cookie-replacement", Message: err.Error()}
-	}
-	validated, err := service.users.ValidateCookie(ctx, cookie, service.sessions.BrowserID(accountID))
-	if err != nil {
-		return accounts.AccountView{}, err
-	}
-	return service.replaceValidatedCookie(ctx, accountID, validated)
-}
-
 func (service *Service) BrowserAccount(ctx context.Context, accountID int64) (accounts.AccountView, roblox.SessionSnapshot, error) {
 	view, err := service.repo.GetView(ctx, accountID)
 	if err != nil {
@@ -82,9 +70,6 @@ func (service *Service) ValidateBrowserCookie(ctx context.Context, cookie, brows
 }
 
 func (service *Service) BrowserAvatar(ctx context.Context, robloxUserID int64) string {
-	if service.avatars == nil {
-		return ""
-	}
 	views, err := service.avatars.AvatarHeadshots(ctx, []int64{robloxUserID})
 	if err != nil || len(views) == 0 {
 		return ""
@@ -121,18 +106,21 @@ func (service *Service) CommitBrowserCandidate(ctx context.Context, validation r
 
 func (service *Service) SynchronizeBrowserCookie(ctx context.Context, accountID, expectedVersion int64, validation roblox.CookieValidation) (int64, error) {
 	view, err := service.repo.GetView(ctx, accountID)
-	if err != nil || view.RobloxUserID != validation.Identity.RobloxUserID {
+	if err != nil {
+		return 0, mapRepositoryError(err)
+	}
+	if view.RobloxUserID != validation.Identity.RobloxUserID {
 		return 0, errors.New("saved browser account identity changed")
 	}
 	record, err := service.repo.RotateCookie(ctx, accountID, expectedVersion, validation.Cookie, validation.ExpiresAt)
 	if err != nil {
 		return 0, err
 	}
-	if err := service.sessions.ApplyRotation(record); err != nil {
-		service.events.SessionChanged(accountID)
-		return 0, err
-	}
+	applyErr := service.sessions.ApplyRotation(record)
 	service.events.SessionChanged(accountID)
+	if applyErr != nil {
+		return 0, applyErr
+	}
 	logger := service.logger.With("operation", "browser-cookie-synchronization", "account_id", accountID)
 	service.events.CredentialBackupChanged(service.refreshCredentialBackup(ctx, logger, true))
 	return record.SecretVersion, nil
@@ -238,16 +226,10 @@ func (service *Service) SetAccountsTag(ctx context.Context, accountIDs []int64, 
 }
 
 func (service *Service) GetAvatarHeadshots(ctx context.Context, userIDs []int64) ([]robloxservices.AvatarHeadshotView, error) {
-	if service.avatars == nil {
-		return nil, &roblox.Error{Kind: roblox.KindProtocol, Endpoint: "avatar-headshots", Message: "Avatar headshots are unavailable."}
-	}
 	return service.avatars.AvatarHeadshots(ctx, userIDs)
 }
 
 func (service *Service) GetAccountPresences(ctx context.Context, accountID *int64) ([]robloxservices.UserPresence, error) {
-	if service.presence == nil {
-		return nil, &roblox.Error{Kind: roblox.KindProtocol, Endpoint: "user-presences", Message: "Account presence is unavailable."}
-	}
 	targets, err := service.presenceTargets(ctx, accountID)
 	if err != nil {
 		return nil, err

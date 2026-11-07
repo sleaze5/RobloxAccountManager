@@ -187,14 +187,10 @@ func (service *Service) GetBlockedUsers(ctx context.Context, accountID int64) ([
 	if len(ids) == 0 {
 		return blocked, nil
 	}
-	headshots, err := service.avatars.AvatarHeadshots(ctx, ids)
+	images, err := service.headshotImages(ctx, ids)
 	if err != nil {
 		service.logger.Warn("blocked user avatars unavailable", "operation", "blocked-users", "account_id", accountID, "error", err)
 		return blocked, nil
-	}
-	images := make(map[int64]string, len(headshots))
-	for _, headshot := range headshots {
-		images[headshot.RobloxUserID] = headshot.ImageURL
 	}
 	for index := range blocked {
 		blocked[index].ImageURL = images[blocked[index].UserID]

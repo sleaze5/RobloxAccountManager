@@ -9,7 +9,6 @@ import (
 	"path/filepath"
 	"strings"
 	"time"
-	"unicode/utf8"
 
 	"github.com/sleaze5/RobloxAccountManager/internal/appdata"
 )
@@ -160,7 +159,7 @@ func (manager *Manager) ReadExportDetails(path string) (ExportDetails, error) {
 }
 
 func ValidateExportPassword(password string) error {
-	if !utf8.ValidString(password) || !CheckPassword(password).Valid() {
+	if !meetsPasswordRules(password) {
 		return errWeakExportPassword
 	}
 	return nil

@@ -49,6 +49,7 @@ func (e *Error) LogValue() slog.Value {
 		slog.String("endpoint", e.Endpoint),
 		slog.String("kind", string(e.Kind)),
 		slog.Int("status", e.Status),
+		slog.Int("roblox_code", e.RobloxCode),
 	)
 }
 

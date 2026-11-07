@@ -191,8 +191,7 @@ func (service *Service) runLaunchOperation(ctx context.Context, accountID int64,
 	}()
 	target, err := gamelaunch.Parse(input)
 	if err != nil {
-		message := err.Error()
-		return launchError(roblox.KindProtocol, strings.ToUpper(message[:1])+message[1:]+".")
+		return launchPreparationError(err)
 	}
 	logger = logger.With("method", input.Method, "share_type", target.ShareType)
 	stage = "account-session"

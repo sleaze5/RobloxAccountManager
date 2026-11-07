@@ -19,7 +19,6 @@ var accountProfileOperationID atomic.Uint64
 
 type AccountProfileSnapshot struct {
 	AccountID       int64                            `json:"accountId"`
-	FetchedAtMs     int64                            `json:"fetchedAtMs"`
 	Robux           *int64                           `json:"robux"`
 	PendingRobux    *int64                           `json:"pendingRobux"`
 	AgeBracket      *int                             `json:"ageBracket"`
@@ -75,7 +74,6 @@ func (service *Service) GetAccountProfile(ctx context.Context, accountID int64) 
 	}
 	profile.Unavailable = unavailable
 	profile.AgeGroup, profile.AgeVerification = age.group, age.verification()
-	profile.FetchedAtMs = time.Now().UnixMilli()
 	logger.Debug("account profile read finished", "duration_ms", time.Since(started).Milliseconds(), "failed_sections", len(profile.Unavailable))
 	return profile, nil
 }

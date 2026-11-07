@@ -107,7 +107,6 @@ func (service *Service) finishUnlock(automatic bool) {
 	service.mu.Unlock()
 	service.startBackground()
 	service.browser.AllowLaunches()
-	service.events.send("vault:unlocked", struct{}{})
 	go func() {
 		if err := service.vault.MaybeCreateBackup(context.WithoutCancel(service.lifecycle)); err != nil {
 			service.logger.Warn("automatic vault backup failed", "error", err)

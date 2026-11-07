@@ -82,7 +82,7 @@ func (service *Service) readAccountSettings(ctx context.Context, accountID, vers
 		return AccountSettingsSnapshot{}, accountSettingsError(roblox.KindCancelled, "The settings request ended or the account session changed. Refresh settings to continue.")
 	}
 	snapshot := AccountSettingsSnapshot{
-		AccountID: accountID, FetchedAtMs: time.Now().UnixMilli(),
+		AccountID: accountID,
 		Settings: []AccountSettingView{}, SectionErrors: []AccountSettingsSectionError{},
 	}
 	for _, section := range []struct {

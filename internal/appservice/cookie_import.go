@@ -94,9 +94,6 @@ func (service *Service) ValidateCookies(ctx context.Context, input string) (Impo
 			Message:  fmt.Sprintf("Paste no more than %d cookies at once.", maxImportCookies),
 		}
 	}
-	if service.users == nil {
-		return ImportPreview{}, &roblox.Error{Kind: roblox.KindProtocol, Endpoint: "cookie-import", Message: "Cookie validation is unavailable."}
-	}
 
 	outcomes := service.validateImportInputs(ctx, inputs)
 
@@ -294,7 +291,7 @@ func (service *Service) takePendingImport(batchID string) (pendingImportBatch, b
 	batch, ok := service.pendingImports[batchID]
 	delete(service.pendingImports, batchID)
 	service.importMu.Unlock()
-	return batch, ok && now.Sub(batch.createdAt) <= pendingImportTTL
+	return batch, ok
 }
 
 func (service *Service) prunePendingImportsLocked(now time.Time) {
@@ -405,17 +402,13 @@ func (service *Service) loadImportAvatars(ctx context.Context, userIDs []int64, 
 }
 
 func (service *Service) avatarURLs(ctx context.Context, userIDs []int64) map[int64]string {
-	images := map[int64]string{}
-	if service.avatars == nil || len(userIDs) == 0 {
-		return images
+	if len(userIDs) == 0 {
+		return map[int64]string{}
 	}
-	headshots, err := service.avatars.AvatarHeadshots(ctx, userIDs)
+	images, err := service.headshotImages(ctx, userIDs)
 	if err != nil {
 		service.logger.Debug("import preview headshots unavailable", "error", err)
-		return images
-	}
-	for _, headshot := range headshots {
-		images[headshot.RobloxUserID] = headshot.ImageURL
+		return map[int64]string{}
 	}
 	return images
 }

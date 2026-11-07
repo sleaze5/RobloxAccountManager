@@ -3,7 +3,6 @@ package appservice
 import (
 	"cmp"
 	"context"
-	"errors"
 	"fmt"
 	"log/slog"
 	"regexp"
@@ -623,13 +622,7 @@ func friendPresenceRank(presence *robloxservices.UserPresence) int {
 }
 
 func socialFailure(logger *slog.Logger, err error) error {
-	var remote *roblox.Error
-	if !errors.As(err, &remote) {
-		logger.Warn("social operation failed", "error", err)
-		return &roblox.Error{Kind: roblox.KindProtocol, Endpoint: "social", Message: "The request failed. Try again.", Cause: err}
-	}
-	logger.Warn("social operation failed", "endpoint", remote.Endpoint, "error_kind", remote.Kind, "status", remote.Status, "roblox_code", remote.RobloxCode)
-	return err
+	return operationFailure(context.Background(), logger, err, "social", "The request failed. Try again.")
 }
 
 func socialInputError(message string) error {

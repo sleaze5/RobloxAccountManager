@@ -42,7 +42,7 @@ type SessionStore interface {
 
 type Observer interface {
 	SessionChanged(accountID int64)
-	RateLimited(accountID int64, retryAt time.Time)
+	RateLimited(retryAt time.Time)
 }
 
 type ClientOptions struct {
@@ -390,7 +390,7 @@ func (client *Client) rateLimitedResponse(ctx context.Context, execution *reques
 	request := execution.request
 	delay := retryDelay(response.Header, execution.serverAttempt)
 	if client.observer != nil {
-		client.observer.RateLimited(request.AccountID, time.Now().Add(delay))
+		client.observer.RateLimited(time.Now().Add(delay))
 	}
 	if request.Retry.RetryRateLimit && execution.serverAttempt < execution.maxAttempts {
 		if err := waitForRetry(ctx, delay); err != nil {

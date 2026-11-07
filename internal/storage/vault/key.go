@@ -72,39 +72,30 @@ type keyFile struct {
 	Hint       string
 }
 
-type PasswordRequirements struct {
-	Length    bool `json:"length"`
-	ByteLimit bool `json:"byteLimit"`
-	Uppercase bool `json:"uppercase"`
-	Lowercase bool `json:"lowercase"`
-	Digit     bool `json:"digit"`
-	Special   bool `json:"special"`
-}
-
-func (requirements PasswordRequirements) Valid() bool {
-	return requirements.Length && requirements.ByteLimit && requirements.Uppercase && requirements.Lowercase && requirements.Digit && requirements.Special
-}
-
-func CheckPassword(password string) PasswordRequirements {
+func meetsPasswordRules(password string) bool {
 	runeCount := utf8.RuneCountInString(password)
-	requirements := PasswordRequirements{Length: runeCount >= 8 && runeCount <= 128, ByteLimit: len(password) <= 1024}
+	return utf8.ValidString(password) && runeCount >= 8 && runeCount <= 128 && len(password) <= 1024 && hasEveryCharacterClass(password)
+}
+
+func hasEveryCharacterClass(password string) bool {
+	var uppercase, lowercase, digit, special bool
 	for _, character := range password {
 		switch {
 		case character >= 'A' && character <= 'Z':
-			requirements.Uppercase = true
+			uppercase = true
 		case character >= 'a' && character <= 'z':
-			requirements.Lowercase = true
+			lowercase = true
 		case character >= '0' && character <= '9':
-			requirements.Digit = true
+			digit = true
 		default:
-			requirements.Special = true
+			special = true
 		}
 	}
-	return requirements
+	return uppercase && lowercase && digit && special
 }
 
 func validatePassword(password string) error {
-	if !utf8.ValidString(password) || !CheckPassword(password).Valid() {
+	if !meetsPasswordRules(password) {
 		return errors.New("master password does not meet every requirement")
 	}
 	return nil

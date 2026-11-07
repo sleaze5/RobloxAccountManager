@@ -293,7 +293,6 @@ func completeSettingOptions(definition accountSettingDefinition, reads accountSe
 		return
 	}
 	if definition.key == SettingVoiceOptIn || definition.key == SettingCamera {
-		view.UnavailableReason = ""
 		view.Options = nil
 		for _, value := range []bool{true, false} {
 			reason := voiceOptionReason(definition.key, value, reads.voice)
@@ -308,7 +307,6 @@ func completeSettingOptions(definition accountSettingDefinition, reads accountSe
 	if len(view.Options) != 0 || !settingHasIndependentChoices(definition.key) {
 		return
 	}
-	view.UnavailableReason = ""
 	if definition.boolean {
 		view.Options = []AccountSettingOption{
 			{BoolValue: new(true), Label: "On", Enabled: true},
@@ -316,11 +314,9 @@ func completeSettingOptions(definition accountSettingDefinition, reads accountSe
 		}
 		return
 	}
-	tokens := []string{"Enabled", "Disabled"}
-	for _, value := range tokens {
+	for _, value := range []string{"Enabled", "Disabled"} {
 		label, _ := settingValueLabel(definition.key, value)
-		valCopy := value
-		view.Options = append(view.Options, AccountSettingOption{StringValue: &valCopy, Label: label, Enabled: true})
+		view.Options = append(view.Options, AccountSettingOption{StringValue: &value, Label: label, Enabled: true})
 	}
 }
 

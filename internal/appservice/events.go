@@ -63,18 +63,11 @@ func (events *Events) LaunchConfirmationChanged() {
 	events.send("game:launch-confirmation-changed", struct{}{})
 }
 
-func (events *Events) RateLimited(accountID int64, retryAt time.Time) {
+func (events *Events) RateLimited(retryAt time.Time) {
 	events.mu.Lock()
+	defer events.mu.Unlock()
 	if retryAt.After(events.rateUntil) {
 		events.rateUntil = retryAt
-	}
-	emitter := events.emit
-	events.mu.Unlock()
-	if emitter != nil {
-		emitter("account:rate-limited", struct {
-			AccountID int64 `json:"accountId"`
-			RetryAtMS int64 `json:"retryAtMs"`
-		}{AccountID: accountID, RetryAtMS: retryAt.UnixMilli()})
 	}
 }
 

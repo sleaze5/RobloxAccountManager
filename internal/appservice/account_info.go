@@ -12,7 +12,6 @@ var accountInfoOperationID atomic.Uint64
 // AccountInfoSnapshot is never persisted or logged.
 type AccountInfoSnapshot struct {
 	AccountID        int64           `json:"accountId"`
-	FetchedAtMs      int64           `json:"fetchedAtMs"`
 	Email            string          `json:"email"`
 	EmailVerified    *bool           `json:"emailVerified"`
 	Phone            string          `json:"phone"`
@@ -50,7 +49,6 @@ func (service *Service) GetAccountInfo(ctx context.Context, accountID int64) (Ac
 		return AccountInfoSnapshot{}, err
 	}
 	info.AgeGroup, info.AgeVerification = age.group, age.verification()
-	info.FetchedAtMs = time.Now().UnixMilli()
 	logger.Debug("account info read finished", "duration_ms", time.Since(started).Milliseconds(), "failed_sections", len(info.Unavailable))
 	return info, nil
 }

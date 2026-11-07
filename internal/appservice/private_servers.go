@@ -236,14 +236,10 @@ func (service *Service) privateServerSettings(ctx context.Context, accountID, ve
 	for index, user := range settings.Users {
 		ids[index] = user.UserID
 	}
-	headshots, err := service.avatars.AvatarHeadshots(ctx, ids)
+	images, err := service.headshotImages(ctx, ids)
 	if err != nil {
 		service.logger.Warn("private server user avatars unavailable", "operation", "private-server", "account_id", accountID, "error", err)
 		return settings, nil
-	}
-	images := make(map[int64]string, len(headshots))
-	for _, headshot := range headshots {
-		images[headshot.RobloxUserID] = headshot.ImageURL
 	}
 	for index := range settings.Users {
 		settings.Users[index].ImageURL = images[settings.Users[index].UserID]

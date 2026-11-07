@@ -356,7 +356,7 @@ func (service *Service) SetRBXServersEnabled(enabled bool) error {
 }
 
 func (service *Service) ParseTimestampFormat(source string) (timestampformat.Format, error) {
-	return service.core.ParseTimestampFormat(source)
+	return timestampformat.Parse(source)
 }
 
 func (service *Service) SetTimestampFormats(timestampFormat, timestampHoverFormat string) (appservice.TimestampFormats, error) {
@@ -373,10 +373,6 @@ func (service *Service) CreateVault(ctx context.Context, password, confirmation,
 
 func (service *Service) UnlockVault(ctx context.Context, password string) error {
 	return service.core.UnlockVault(ctx, password)
-}
-
-func (service *Service) CheckPassword(password string) vault.PasswordRequirements {
-	return vault.CheckPassword(password)
 }
 
 func (service *Service) LockVault() error { return service.core.LockVault() }
@@ -510,13 +506,6 @@ func (service *Service) DiscardValidatedCookies(batchID string) {
 	service.core.DiscardValidatedCookies(batchID)
 }
 
-func (service *Service) ReplaceCookie(ctx context.Context, accountID int64, input string) (accounts.AccountView, error) {
-	if err := positiveID(accountID, "cookie-replacement"); err != nil {
-		return accounts.AccountView{}, err
-	}
-	return service.core.ReplaceCookie(ctx, accountID, input)
-}
-
 func (service *Service) RenewCookie(ctx context.Context, accountID int64) (appservice.CookieRenewalResult, error) {
 	if err := positiveID(accountID, "cookie-renewal"); err != nil {
 		return appservice.CookieRenewalResult{}, err
@@ -623,7 +612,7 @@ func (service *Service) CopyLaunchOptions(ctx context.Context, accountIDs []int6
 	}
 	app := application.Get()
 	if app == nil {
-		return &roblox.Error{Kind: roblox.KindProtocol, Endpoint: "copy-launch-options", Message: "The clipboard is unavailable. Restart the app and try again."}
+		return clipboardUnavailable()
 	}
 	return service.core.CopyLaunchOptions(ctx, accountIDs, input, app.Clipboard.SetText)
 }

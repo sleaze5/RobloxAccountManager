@@ -64,7 +64,6 @@ type AccountSettingsSectionError struct {
 
 type AccountSettingsSnapshot struct {
 	AccountID     int64                         `json:"accountId"`
-	FetchedAtMs   int64                         `json:"fetchedAtMs"`
 	Settings      []AccountSettingView          `json:"settings"`
 	SectionErrors []AccountSettingsSectionError `json:"sectionErrors"`
 }
