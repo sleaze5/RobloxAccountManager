@@ -64,15 +64,27 @@
 			view?.unavailableReason ||
 				(!view ? "This setting is unavailable for this account." : ""),
 		),
+		notes = $derived(
+			[
+				...new Set([
+					unavailable,
+					...radioOptions.map((option) =>
+						option.disabled ? (option.reason ?? "") : "",
+					),
+				]),
+			].filter(Boolean),
+		),
 		controlDisabled = $derived(disabled || saving || !view?.editable)
 </script>
 
 {#snippet details()}
 	<strong id={`setting-label-${id}`}>{label}</strong>
 	<span id={`setting-description-${id}`}>{description}</span>
-	{#if unavailable && (type !== "radio" || currentRadioValue)}<span
-			>{unavailable}</span
-		>{/if}
+	{#if notes.length > 0}
+		<span id={`setting-notes-${id}`} class="flex flex-col gap-0.5">
+			{#each notes as note (note)}<span>{note}</span>{/each}
+		</span>
+	{/if}
 	{#if type !== "radio" && view && view.valueState !== "known"}
 		<span>Current value: {view.valueLabel}</span>
 	{/if}
@@ -98,7 +110,9 @@
 				type="checkbox"
 				role="switch"
 				aria-labelledby={`setting-label-${id}`}
-				aria-describedby={`setting-description-${id}`}
+				aria-describedby={notes.length > 0
+					? `setting-description-${id} setting-notes-${id}`
+					: `setting-description-${id}`}
 				checked={isChecked}
 				disabled={controlDisabled}
 				onchange={(e) => onToggle?.(e.currentTarget.checked)} />
@@ -126,17 +140,15 @@
 							name={id}
 							value={option.value}
 							checked={currentRadioValue === option.value}
-							aria-describedby={`setting-description-${id}`}
+							aria-describedby={notes.length > 0
+								? `setting-description-${id} setting-notes-${id}`
+								: `setting-description-${id}`}
 							disabled={controlDisabled || option.disabled}
 							onchange={() => onRadioSelect?.(option.value)} />
 						<span aria-hidden="true"></span>
 					</span>
 					<span class="text-xs text-fg">{option.label}</span>
 				</label>
-				{#if option.disabled && option.reason}
-					<small class="pb-1 pl-8 text-2xs text-fg-muted"
-						>{option.reason}</small>
-				{/if}
 			{/each}
 		</div>
 	</div>

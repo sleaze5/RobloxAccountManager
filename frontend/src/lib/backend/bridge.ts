@@ -3,6 +3,7 @@ import * as Service from "../../../bindings/github.com/sleaze5/RobloxAccountMana
 export type {
 	AccountInfoSnapshot,
 	AccountProfileSnapshot,
+	AccountSession,
 	AccountSettingChange,
 	AccountSettingOption,
 	AccountSettingsSnapshot,

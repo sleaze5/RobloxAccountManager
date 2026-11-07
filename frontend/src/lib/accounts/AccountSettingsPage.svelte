@@ -1,17 +1,11 @@
 <script lang="ts">
 	import arrowsClockwiseIcon from "@phosphor-icons/core/regular/arrows-clockwise.svg?raw"
 	import caretLeftIcon from "@phosphor-icons/core/regular/caret-left.svg?raw"
-	import caretRightIcon from "@phosphor-icons/core/regular/caret-right.svg?raw"
-	import chatCircleIcon from "@phosphor-icons/core/regular/chat-circle.svg?raw"
 	import circleNotchIcon from "@phosphor-icons/core/regular/circle-notch.svg?raw"
-	import currencyCircleDollarIcon from "@phosphor-icons/core/regular/currency-circle-dollar.svg?raw"
-	import eyeIcon from "@phosphor-icons/core/regular/eye.svg?raw"
+	import devicesIcon from "@phosphor-icons/core/regular/devices.svg?raw"
 	import hardDrivesIcon from "@phosphor-icons/core/regular/hard-drives.svg?raw"
 	import lockKeyIcon from "@phosphor-icons/core/regular/lock-key.svg?raw"
 	import magnifyingGlassIcon from "@phosphor-icons/core/regular/magnifying-glass.svg?raw"
-	import prohibitIcon from "@phosphor-icons/core/regular/prohibit.svg?raw"
-	import shieldCheckIcon from "@phosphor-icons/core/regular/shield-check.svg?raw"
-	import slidersHorizontalIcon from "@phosphor-icons/core/regular/sliders-horizontal.svg?raw"
 	import userCircleIcon from "@phosphor-icons/core/regular/user-circle.svg?raw"
 	import xIcon from "@phosphor-icons/core/regular/x.svg?raw"
 	import Icon from "../shared/Icon.svelte"
@@ -22,12 +16,15 @@
 	import type { AccountSettingOption, AccountSettingView } from "../backend/bridge"
 	import AccountEditDialog from "../dialogs/AccountEditDialog.svelte"
 	import SavedPasswordDialog from "../dialogs/SavedPasswordDialog.svelte"
+	import SignOutSessionsDialog from "../dialogs/SignOutSessionsDialog.svelte"
 	import type { AccountEditKind } from "../dialogs/AccountEditDialog.svelte"
 	import type { NotificationCenter } from "../notifications/notification-center.svelte"
 	import PrivateServerDialog from "../private-servers/PrivateServerDialog.svelte"
 	import type { OwnedPrivateServer } from "../backend/bridge"
 	import type { AccountStore } from "./account-store.svelte"
 	import AccountInfoPanel, { accountInfoFields } from "./AccountInfoPanel.svelte"
+	import AccountSessionsList from "./AccountSessionsList.svelte"
+	import { AccountSessionsState } from "./account-sessions-state.svelte"
 	import type { AccountInfoFieldId } from "./AccountInfoPanel.svelte"
 	import { AccountInfoState } from "./account-info-state.svelte"
 	import AccountSettingRow from "./AccountSettingRow.svelte"
@@ -55,7 +52,6 @@
 	interface CategoryDef {
 		id: string
 		label: string
-		icon: string
 		search: string
 		sections: SectionDef[]
 	}
@@ -121,7 +117,6 @@
 		{
 			id: "content-maturity",
 			label: "Content maturity",
-			icon: shieldCheckIcon,
 			search: "content maturity minimal mild moderate restricted sensitive issues",
 			sections: [
 				{
@@ -151,7 +146,6 @@
 		{
 			id: "communication",
 			label: "Communication",
-			icon: chatCircleIcon,
 			search: "communication experience direct chat party friends voice data product improvements camera input gameplay coordination quick words",
 			sections: [
 				{
@@ -258,7 +252,6 @@
 		{
 			id: "visibility-private-servers",
 			label: "Visibility & private servers",
-			icon: eyeIcon,
 			search: "visibility private servers online status current game activity updates social links who can add friend suggestions contacts phone",
 			sections: [
 				{
@@ -347,7 +340,6 @@
 		{
 			id: "trading-inventory",
 			label: "Trading & inventory",
-			icon: currencyCircleDollarIcon,
 			search: "trading inventory visibility trade audience quality filter",
 			sections: [
 				{
@@ -383,7 +375,6 @@
 		{
 			id: "ads-preferences",
 			label: "Ads preferences",
-			icon: slidersHorizontalIcon,
 			search: "ads preferences personalize advertising data selling sharing",
 			sections: [
 				{
@@ -437,6 +428,12 @@
 				icon: hardDrivesIcon,
 				search: "private servers vip owned active renew subscription join link allowed users",
 			},
+			{
+				id: "sessions",
+				label: "Sessions",
+				icon: devicesIcon,
+				search: "sessions signed in devices browsers apps location ip address last active sign out log out security",
+			},
 		] as const
 
 	type PageId = (typeof pages)[number]["id"]
@@ -459,6 +456,8 @@
 		infoState = $state<AccountInfoState | null>(null),
 		blockedState = $state<BlockedUsersState | null>(null),
 		ownedState = $state<OwnedPrivateServersState | null>(null),
+		sessionsState = $state<AccountSessionsState | null>(null),
+		signOutOpen = $state(false),
 		managingServer = $state<OwnedPrivateServer | null>(null),
 		editing = $state<AccountEditKind | null>(null),
 		savedPasswordOpen = $state(false),
@@ -490,32 +489,39 @@
 					`${privacyLabel} ${blockedUsersPage.label} ${blockedUsersPage.search}`,
 				),
 		),
+		visibleSubpages = $derived([
+			...visibleCategories.map((category) => ({
+				id: category.id,
+				label: category.label,
+			})),
+			...(showBlockedUsers ? [blockedUsersPage] : []),
+		]),
 		visiblePages = $derived(
 			pages.filter((page) =>
 				page.id === "info"
 					? visibleInfoFields.size > 0
-					: page.id === "servers"
-						? searchTerms.length === 0 ||
-							matches(`${page.label} ${page.search}`)
-						: visibleCategories.length > 0 || showBlockedUsers,
+					: page.id === "privacy"
+						? visibleSubpages.length > 0
+						: searchTerms.length === 0 ||
+							matches(`${page.label} ${page.search}`),
 			),
 		),
 		activePage = $derived(
 			visiblePages.find((page) => page.id === workspace.accountSettingsPage) ??
 				visiblePages[0],
 		),
+		activeSubpage = $derived(
+			activePage?.id === "privacy"
+				? (visibleSubpages.find(
+						(subpage) => subpage.id === workspace.accountSettingsCategory,
+					) ?? visibleSubpages[0])
+				: undefined,
+		),
 		activeCategory = $derived(
-			visibleCategories.find(
-				(category) => category.id === workspace.accountSettingsCategory,
-			) ?? null,
+			visibleCategories.find((category) => category.id === activeSubpage?.id) ??
+				null,
 		),
-		blockedUsersOpen = $derived(
-			showBlockedUsers &&
-				workspace.accountSettingsCategory === blockedUsersPage.id,
-		),
-		openSubpage = $derived(
-			activeCategory?.id ?? (blockedUsersOpen ? blockedUsersPage.id : null),
-		),
+		blockedUsersOpen = $derived(activeSubpage?.id === blockedUsersPage.id),
 		sectionErrors = $derived(settingsState?.snapshot?.sectionErrors ?? []),
 		busy = $derived(
 			!settingsState || settingsState.loading || settingsState.saving !== null,
@@ -525,17 +531,20 @@
 				? (infoState?.loading ?? false)
 				: activePage?.id === "servers"
 					? (ownedState?.loading ?? false)
-					: blockedUsersOpen
-						? (blockedState?.loading ?? false)
-						: busy,
+					: activePage?.id === "sessions"
+						? (sessionsState?.loading ?? false) ||
+							(sessionsState?.signingOut ?? false)
+						: blockedUsersOpen
+							? (blockedState?.loading ?? false)
+							: busy,
 		)
 
 	$effect(() => {
 		if (activePage && activePage.id !== workspace.accountSettingsPage) {
 			workspace.accountSettingsPage = activePage.id
 		}
-		if (workspace.accountSettingsCategory && !openSubpage) {
-			workspace.accountSettingsCategory = null
+		if (activeSubpage && activeSubpage.id !== workspace.accountSettingsCategory) {
+			workspace.accountSettingsCategory = activeSubpage.id
 		}
 	})
 
@@ -544,10 +553,14 @@
 			info = infoState,
 			settings = settingsState,
 			owned = ownedState,
+			sessions = sessionsState,
 			blocked = blockedUsersOpen ? blockedState : null
 		untrack(() => {
 			if (page === "info" && info && !info.snapshot) void info.refresh()
 			if (page === "servers" && owned && !owned.servers) void owned.refresh()
+			if (page === "sessions" && sessions && !sessions.sessions) {
+				void sessions.refresh()
+			}
 			if (page === "privacy" && settings && !settings.snapshot) {
 				void settings.refresh()
 			}
@@ -557,7 +570,7 @@
 
 	$effect(() => {
 		void activePage?.id
-		void openSubpage
+		void activeSubpage?.id
 		void normalizedQuery
 		const element = contentElement,
 			ready =
@@ -565,9 +578,11 @@
 					? !!infoState?.snapshot
 					: activePage?.id === "servers"
 						? !!ownedState?.servers
-						: blockedUsersOpen
-							? !!blockedState?.users
-							: !!settingsState?.snapshot,
+						: activePage?.id === "sessions"
+							? !!sessionsState?.sessions
+							: blockedUsersOpen
+								? !!blockedState?.users
+								: !!settingsState?.snapshot,
 			scrollTop = untrack(() => workspace.accountSettingsScrollTop),
 			anchor = untrack(() => workspace.accountSettingsScrollAnchor)
 		let cancelled = false
@@ -599,38 +614,22 @@
 		return searchTerms.every((term) => lower.includes(term))
 	}
 
-	function selectPage(page: PageId): void {
+	function selectPage(page: PageId, subpage?: string): void {
 		if (
 			workspace.accountSettingsPage === page &&
-			!workspace.accountSettingsCategory
+			(!subpage || workspace.accountSettingsCategory === subpage)
 		) {
 			return
 		}
 		resetScroll()
 		workspace.accountSettingsPage = page
-		workspace.accountSettingsCategory = null
-	}
-
-	async function openCategory(id: string): Promise<void> {
-		resetScroll()
-		workspace.accountSettingsCategory = id
-		await tick()
-		contentElement?.querySelector<HTMLElement>("[data-subpage-back]")?.focus()
-	}
-
-	async function closeCategory(): Promise<void> {
-		const previous = workspace.accountSettingsCategory
-		resetScroll()
-		workspace.accountSettingsCategory = null
-		await tick()
-		contentElement
-			?.querySelector<HTMLElement>(`[data-settings-subpage="${previous}"]`)
-			?.focus()
+		if (subpage) workspace.accountSettingsCategory = subpage
 	}
 
 	function refresh(): void {
 		if (activePage?.id === "info") void infoState?.refresh()
 		else if (activePage?.id === "servers") void ownedState?.refresh()
+		else if (activePage?.id === "sessions") void sessionsState?.refresh()
 		else if (blockedUsersOpen) void blockedState?.refresh()
 		else void settingsState?.refresh()
 	}
@@ -775,11 +774,17 @@
 		)
 		const info = new AccountInfoState(store.selectedAccount.id, store),
 			blocked = new BlockedUsersState(store.selectedAccount.id, store),
-			owned = new OwnedPrivateServersState(store.selectedAccount.id, store)
+			owned = new OwnedPrivateServersState(store.selectedAccount.id, store),
+			sessions = new AccountSessionsState(
+				store.selectedAccount.id,
+				store,
+				notifications,
+			)
 		settingsState = settings
 		infoState = info
 		blockedState = blocked
 		ownedState = owned
+		sessionsState = sessions
 		heading?.closest("[data-workspace-scroll]")?.scrollTo({ top: 0 })
 		heading?.focus({ preventScroll: true })
 		return () => {
@@ -787,10 +792,9 @@
 			info.dispose()
 			blocked.dispose()
 			owned.dispose()
+			sessions.dispose()
 		}
 	})
-	const subpageClass =
-		"flex min-h-11 items-center gap-3 border-b border-line-subtle px-2 text-left text-sm font-medium text-fg transition-colors duration-100 hover:bg-hover"
 </script>
 
 <section class="settings-page" aria-labelledby="account-settings-title">
@@ -860,13 +864,38 @@
 					<button
 						class="nav-item"
 						type="button"
-						aria-current={activePage?.id === page.id ? "page" : undefined}
+						aria-current={activePage?.id === page.id && !activeSubpage
+							? "page"
+							: undefined}
+						data-current-branch={activePage?.id === page.id && activeSubpage
+							? true
+							: undefined}
 						data-tooltip={page.label}
 						data-tooltip-side="right"
 						onclick={() => selectPage(page.id)}>
 						<Icon svg={page.icon} size={16} aria-hidden="true" />
 						<span>{page.label}</span>
 					</button>
+					{#if page.id === "privacy"}
+						<div
+							class="ml-4 flex flex-col gap-1 border-l border-line-subtle pl-1.5"
+							role="group"
+							aria-label={page.label}>
+							{#each visibleSubpages as subpage (subpage.id)}
+								<button
+									class="nav-item"
+									type="button"
+									aria-current={activeSubpage?.id === subpage.id
+										? "page"
+										: undefined}
+									data-tooltip={subpage.label}
+									data-tooltip-side="right"
+									onclick={() => selectPage("privacy", subpage.id)}>
+									<span>{subpage.label}</span>
+								</button>
+							{/each}
+						</div>
+					{/if}
 				{/each}
 			</nav>
 			{#if visiblePages.length === 0}
@@ -883,7 +912,7 @@
 			onscroll={rememberScroll}
 			class="settings-content"
 			aria-label="Account settings content">
-			{#key `${activePage?.id}:${openSubpage}:${normalizedQuery}`}
+			{#key `${activePage?.id}:${activeSubpage?.id}:${normalizedQuery}`}
 				{#if !activePage}
 					<p class="m-auto text-xs text-fg-faint">
 						No settings match “{workspace.accountSettingsQuery}”.
@@ -906,8 +935,16 @@
 							username={store.selectedAccount.username}
 							onManage={(server) => (managingServer = server)} />
 					{/if}
+				{:else if activePage.id === "sessions"}
+					<h2>Sessions</h2>
+					{#if sessionsState}
+						<AccountSessionsList
+							sessions={sessionsState}
+							username={store.selectedAccount.username}
+							onSignOut={() => (signOutOpen = true)} />
+					{/if}
 				{:else}
-					<h2>{privacyLabel}</h2>
+					<h2>{activeSubpage?.label}</h2>
 					{#if !blockedUsersOpen}
 						{#if settingsState?.error}
 							<div class="notice-error" role="alert">
@@ -920,148 +957,79 @@
 							</div>
 						{/each}
 					{/if}
-
-					{#if !openSubpage}
-						<nav
-							class="flex flex-col border-t border-line-subtle"
-							aria-label={privacyLabel}>
-							{#each visibleCategories as cat (cat.id)}
-								<button
-									class={subpageClass}
-									type="button"
-									data-settings-subpage={cat.id}
-									onclick={() => void openCategory(cat.id)}>
-									<Icon
-										svg={cat.icon}
-										class="shrink-0 text-fg-muted"
-										size={16}
-										aria-hidden="true" />
-									<span class="flex-1">{cat.label}</span>
-									<Icon
-										svg={caretRightIcon}
-										data-nudge="right"
-										class="shrink-0 text-fg-muted"
-										size={16}
-										aria-hidden="true" />
-								</button>
-							{/each}
-							{#if showBlockedUsers}
-								<button
-									class={subpageClass}
-									type="button"
-									data-settings-subpage={blockedUsersPage.id}
-									onclick={() =>
-										void openCategory(blockedUsersPage.id)}>
-									<Icon
-										svg={prohibitIcon}
-										class="shrink-0 text-fg-muted"
-										size={16}
-										aria-hidden="true" />
-									<span class="flex-1">{blockedUsersPage.label}</span>
-									<Icon
-										svg={caretRightIcon}
-										data-nudge="right"
-										class="shrink-0 text-fg-muted"
-										size={16}
-										aria-hidden="true" />
-								</button>
-							{/if}
-						</nav>
-					{:else}
-						<div class="flex items-center gap-2">
-							<button
-								class="btn-ghost"
-								data-subpage-back
-								type="button"
-								aria-label={`Back to ${privacyLabel}`}
-								data-tooltip={`Back to ${privacyLabel}`}
-								onclick={() => void closeCategory()}>
-								<Icon
-									svg={caretLeftIcon}
-									data-nudge="left"
-									size={16}
-									aria-hidden="true" />
-							</button>
-							<h3 class="text-sm font-semibold text-fg">
-								{activeCategory?.label ?? blockedUsersPage.label}
-							</h3>
-						</div>
-						{#if !activeCategory}
-							{#if blockedState}
-								<BlockedUsersList blocked={blockedState} />
-							{/if}
-						{:else if !settingsState || (settingsState.loading && !settingsState.snapshot)}
-							<div
-								class="flex items-center gap-2 text-xs text-fg-muted"
-								role="status">
-								<Icon
-									svg={circleNotchIcon}
-									class="spinner"
-									size={16}
-									aria-hidden="true" />
-								Loading settings…
-							</div>
-						{:else}
-							{#each activeCategory.sections as section (section.id)}
-								{@const matchingFields = filterFields(
-									activeCategory,
-									section.fields,
-								)}
-								{#if matchingFields.length > 0}
-									<section
-										class="settings-section"
-										aria-labelledby={section.title !==
-										activeCategory.label
-											? `section-title-${section.id}`
-											: undefined}>
-										{#if section.title !== activeCategory.label}
-											<h3 id={`section-title-${section.id}`}>
-												{section.title}
-											</h3>
-										{/if}
-										<div class="settings-rows">
-											{#each matchingFields as field (field.key)}
-												{@const view = getSettingView(
-													field.key,
-												)}
-												{@const fieldDisabled =
-													computeFieldDisabled(field)}
-												{@const fieldOptions =
-													computeRadioOptions(field)}
-												{@const isSaving =
-													settingsState.saving === field.key}
-												{@const fieldError =
-													settingsState.feedback?.key ===
-														field.key &&
-													!settingsState.feedback.success
-														? settingsState.feedback.message
-														: ""}
-												<AccountSettingRow
-													id={field.key}
-													label={field.label}
-													description={field.description}
-													type={field.type}
-													{view}
-													disabled={fieldDisabled}
-													saving={isSaving}
-													radioOptions={fieldOptions}
-													error={fieldError}
-													onToggle={(checked) =>
-														void handleToggle(
-															field.key,
-															checked,
-														)}
-													onRadioSelect={(value) =>
-														void handleRadioSelect(
-															field.key,
-															value,
-														)} />
-											{/each}
-										</div>
-									</section>
-								{/if}
-							{/each}
+					{#if !activeCategory}
+						{#if blockedState}
+							<BlockedUsersList blocked={blockedState} />
 						{/if}
+					{:else if !settingsState || (settingsState.loading && !settingsState.snapshot)}
+						<div
+							class="flex items-center gap-2 text-xs text-fg-muted"
+							role="status">
+							<Icon
+								svg={circleNotchIcon}
+								class="spinner"
+								size={16}
+								aria-hidden="true" />
+							Loading settings…
+						</div>
+					{:else}
+						{#each activeCategory.sections as section (section.id)}
+							{@const matchingFields = filterFields(
+								activeCategory,
+								section.fields,
+							)}
+							{#if matchingFields.length > 0}
+								<section
+									class="settings-section"
+									aria-labelledby={section.title !==
+									activeCategory.label
+										? `section-title-${section.id}`
+										: undefined}>
+									{#if section.title !== activeCategory.label}
+										<h3 id={`section-title-${section.id}`}>
+											{section.title}
+										</h3>
+									{/if}
+									<div class="settings-rows">
+										{#each matchingFields as field (field.key)}
+											{@const view = getSettingView(field.key)}
+											{@const fieldDisabled =
+												computeFieldDisabled(field)}
+											{@const fieldOptions =
+												computeRadioOptions(field)}
+											{@const isSaving =
+												settingsState.saving === field.key}
+											{@const fieldError =
+												settingsState.feedback?.key ===
+													field.key &&
+												!settingsState.feedback.success
+													? settingsState.feedback.message
+													: ""}
+											<AccountSettingRow
+												id={field.key}
+												label={field.label}
+												description={field.description}
+												type={field.type}
+												{view}
+												disabled={fieldDisabled}
+												saving={isSaving}
+												radioOptions={fieldOptions}
+												error={fieldError}
+												onToggle={(checked) =>
+													void handleToggle(
+														field.key,
+														checked,
+													)}
+												onRadioSelect={(value) =>
+													void handleRadioSelect(
+														field.key,
+														value,
+													)} />
+										{/each}
+									</div>
+								</section>
+							{/if}
+						{/each}
 					{/if}
 				{/if}
 			{/key}
@@ -1088,6 +1056,13 @@
 		{notifications}
 		onChanged={(settings) => ownedState?.update(settings)}
 		onClose={() => (managingServer = null)} />
+{/if}
+
+{#if signOutOpen && sessionsState && store.vault.unlocked}
+	<SignOutSessionsDialog
+		account={store.selectedAccount}
+		sessions={sessionsState}
+		onClose={() => (signOutOpen = false)} />
 {/if}
 
 {#if savedPasswordOpen && store.vault.unlocked}

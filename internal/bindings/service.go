@@ -230,6 +230,20 @@ func (service *Service) UnblockUser(ctx context.Context, accountID, userID int64
 	return service.core.UnblockUser(ctx, accountID, userID)
 }
 
+func (service *Service) GetAccountSessions(ctx context.Context, accountID int64) ([]appservice.AccountSession, error) {
+	if err := positiveID(accountID, "account-sessions"); err != nil {
+		return nil, err
+	}
+	return service.core.GetAccountSessions(ctx, accountID)
+}
+
+func (service *Service) SignOutOtherSessions(ctx context.Context, accountID int64) (appservice.CookieRenewalResult, error) {
+	if err := positiveID(accountID, "sessions-sign-out"); err != nil {
+		return appservice.CookieRenewalResult{}, err
+	}
+	return service.core.SignOutOtherSessions(ctx, accountID)
+}
+
 func (service *Service) GetChatConversations(ctx context.Context, accountID int64, cursor string) (appservice.ChatConversationPage, error) {
 	if err := positiveID(accountID, "chat"); err != nil {
 		return appservice.ChatConversationPage{}, err

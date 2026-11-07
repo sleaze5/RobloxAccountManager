@@ -22,7 +22,7 @@ export type ActiveAccountMenu =
 
 export class WorkspaceState {
 	accountPage = $state<"profile" | "settings" | "chats">("profile")
-	accountSettingsPage = $state<"info" | "privacy" | "servers">("info")
+	accountSettingsPage = $state<"info" | "privacy" | "servers" | "sessions">("info")
 	accountSettingsCategory = $state<string | null>(null)
 	accountSettingsQuery = $state("")
 	accountSettingsScrollTop = 0
@@ -30,7 +30,7 @@ export class WorkspaceState {
 	sidebarCollapsed = $state(false)
 	sidebarWidth = $state(220)
 	settingsSidebarWidth = $state(240)
-	accountSettingsSidebarWidth = $state(192)
+	accountSettingsSidebarWidth = $state(224)
 	#profileLaunchOpen = $state(true)
 	#subpageLaunchOpen = $state(false)
 	launchHeight = $state(180)
