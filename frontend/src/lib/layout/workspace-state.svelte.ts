@@ -1,4 +1,5 @@
 import { installPointerResize } from "../shared/pointer-resize"
+import { menuPointFor } from "../shared/presence"
 
 export interface AccountContextMenu {
 	accountId: number
@@ -71,14 +72,10 @@ export class WorkspaceState {
 		event.stopPropagation()
 		this.activeAccountMenu = null
 		this.imageContextMenu = null
-		const bounds = (event.currentTarget as HTMLElement).getBoundingClientRect(),
-			atPointer = event instanceof MouseEvent && event.type === "contextmenu"
-
 		this.accountContextMenu = {
 			accountId,
 			submenuLeft: false,
-			x: atPointer ? event.clientX : bounds.left,
-			y: atPointer ? event.clientY : bounds.bottom,
+			...menuPointFor(event, 0),
 		}
 	}
 
@@ -87,13 +84,7 @@ export class WorkspaceState {
 		event.stopPropagation()
 		this.closeAccountMenus()
 		if (!imageUrl) return
-		const bounds = (event.currentTarget as HTMLElement).getBoundingClientRect(),
-			atPointer = event instanceof MouseEvent && event.type === "contextmenu"
-		this.imageContextMenu = {
-			imageUrl,
-			x: atPointer ? event.clientX : bounds.left,
-			y: atPointer ? event.clientY : bounds.bottom,
-		}
+		this.imageContextMenu = { imageUrl, ...menuPointFor(event, 0) }
 	}
 
 	handleWindowClick(event: MouseEvent): void {

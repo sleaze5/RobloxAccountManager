@@ -205,9 +205,23 @@ export function menuKeyboard(node: HTMLElement): { destroy: () => void } {
 							: (current + direction + buttons.length) % buttons.length
 			buttons[next]?.focus()
 		}
-	items()[0]?.focus({ preventScroll: true })
+	// A menu whose items are all disabled while it loads takes focus itself, so
+	// the keyboard still reaches it.
+	const initialFocus = items()[0] ?? node
+	initialFocus.focus({ preventScroll: true })
 	node.addEventListener("keydown", handleKeydown)
-	return { destroy: () => node.removeEventListener("keydown", handleKeydown) }
+	return {
+		destroy: () => {
+			node.removeEventListener("keydown", handleKeydown)
+			if (
+				node.contains(document.activeElement) &&
+				previousFocus instanceof HTMLElement &&
+				previousFocus.isConnected
+			) {
+				previousFocus.focus({ preventScroll: true })
+			}
+		},
+	}
 }
 
 export function floatMenu(
@@ -219,6 +233,40 @@ export function floatMenu(
 		if (current.anchor?.isConnected) {
 			placeMenuAtAnchor(node, current.anchor, current.align)
 		}
+	}
+	place()
+	window.addEventListener("resize", place)
+	return {
+		update: (next) => {
+			current = next
+			place()
+		},
+		destroy: () => {
+			window.removeEventListener("resize", place)
+		},
+	}
+}
+
+// menuPointFor returns where a menu opens: at the pointer for a right click, or
+// under the trigger for a keyboard or button press.
+export function menuPointFor(
+	event: MouseEvent | KeyboardEvent,
+	offsetBelowTriggerPixels: number,
+): { x: number; y: number } {
+	if (event instanceof MouseEvent && event.type === "contextmenu") {
+		return { x: event.clientX, y: event.clientY }
+	}
+	const bounds = (event.currentTarget as HTMLElement).getBoundingClientRect()
+	return { x: bounds.left, y: bounds.bottom + offsetBelowTriggerPixels }
+}
+
+export function floatMenuAtPoint(
+	node: HTMLElement,
+	point: { x: number; y: number },
+): { update: (next: { x: number; y: number }) => void; destroy: () => void } {
+	let current = point
+	const place = () => {
+		placeMenuAtPoint(node, current)
 	}
 	place()
 	window.addEventListener("resize", place)

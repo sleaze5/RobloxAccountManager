@@ -17,6 +17,7 @@ import type {
 import type { NotificationCenter } from "../notifications/notification-center.svelte"
 import { errorMessage } from "../shared/errors"
 import { detailsKeepMs, isFresh } from "../shared/freshness"
+import { menuPointFor } from "../shared/presence"
 
 export interface SocialSubject {
 	userId: number
@@ -620,13 +621,7 @@ export class SocialStore {
 	openMenu(event: MouseEvent | KeyboardEvent, person: SocialUser): void {
 		event.preventDefault()
 		event.stopPropagation()
-		const bounds = (event.currentTarget as HTMLElement).getBoundingClientRect(),
-			atPointer = event instanceof MouseEvent && event.type === "contextmenu"
-		this.menu = {
-			person,
-			x: atPointer ? event.clientX : bounds.left,
-			y: atPointer ? event.clientY : bounds.bottom + 2,
-		}
+		this.menu = { person, ...menuPointFor(event, 2) }
 		void this.#loadMenuRelationship(person.userId)
 	}
 

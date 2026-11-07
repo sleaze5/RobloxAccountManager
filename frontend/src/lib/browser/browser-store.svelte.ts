@@ -158,6 +158,10 @@ export class BrowserStore {
 	}
 
 	#updateDetachmentNotifications(next: BrowserSnapshot): void {
+		const sessionIds = new Set((next.sessions ?? []).map((session) => session.id))
+		for (const sessionId of this.#detachmentNotified) {
+			if (!sessionIds.has(sessionId)) this.#detachmentNotified.delete(sessionId)
+		}
 		for (const session of next.sessions ?? []) {
 			if (
 				session.mode === Mode.ModeSaved &&
