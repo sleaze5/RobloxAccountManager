@@ -89,10 +89,10 @@
 			<div class="mt-3 notice-error" role="alert">{store.nicknameError}</div>
 		{/if}
 		<div class="dialog-actions">
-			<button class="btn" type="button" disabled={saving} onclick={close}
+			<button class="button" type="button" disabled={saving} onclick={close}
 				>Cancel</button>
 			<button
-				class="btn-primary"
+				class="button-primary"
 				type="submit"
 				disabled={saving || text === nickname}>
 				{#if removing}{saving ? "Removing…" : "Remove nickname"}{:else}{saving

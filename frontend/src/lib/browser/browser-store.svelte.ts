@@ -7,11 +7,12 @@ import type {
 	SaveResult,
 	ShutdownEffects,
 } from "../backend/bridge"
+import { coalesce } from "../shared/coalesce"
 import { errorMessage } from "../shared/errors"
 
 const browserOperationError = "The browser operation failed."
 
-const emptySnapshot = {
+const emptySnapshot: BrowserSnapshot = {
 	candidates: [],
 	cleanup: [],
 	revision: 0,
@@ -27,14 +28,12 @@ const emptySnapshot = {
 		status: RuntimeStatus.RuntimeMissing,
 	},
 	sessions: [],
-} as BrowserSnapshot
+}
 
 export class BrowserStore {
 	snapshot = $state<BrowserSnapshot>(emptySnapshot)
 	loading = $state(false)
 	error = $state("")
-	#reload: Promise<void> | null = null
-	#queued = false
 	#notifications: NotificationCenter | null = null
 	#cleanupNotified = false
 	#detachmentNotified = new Set<string>()
@@ -102,21 +101,7 @@ export class BrowserStore {
 		}
 	}
 
-	async refresh(): Promise<void> {
-		if (this.#reload) {
-			this.#queued = true
-			return this.#reload
-		}
-		this.#reload = this.#refreshQueued()
-		try {
-			await this.#reload
-		} finally {
-			this.#reload = null
-		}
-	}
-
-	async #refreshQueued(): Promise<void> {
-		this.#queued = false
+	readonly refresh = coalesce(async () => {
 		try {
 			const next = await accountBackend.GetBrowserState()
 			this.snapshot = next
@@ -124,10 +109,7 @@ export class BrowserStore {
 		} catch (error) {
 			this.error = errorMessage(error, browserOperationError)
 		}
-		if (this.#queued) {
-			await this.#refreshQueued()
-		}
-	}
+	})
 
 	#updateNotifications(next: BrowserSnapshot): void {
 		this.#updateRuntimeDownloadNotification(next)
@@ -176,6 +158,10 @@ export class BrowserStore {
 	}
 
 	#updateDetachmentNotifications(next: BrowserSnapshot): void {
+		const sessionIds = new Set((next.sessions ?? []).map((session) => session.id))
+		for (const sessionId of this.#detachmentNotified) {
+			if (!sessionIds.has(sessionId)) this.#detachmentNotified.delete(sessionId)
+		}
 		for (const session of next.sessions ?? []) {
 			if (
 				session.mode === Mode.ModeSaved &&
@@ -293,17 +279,11 @@ export class BrowserStore {
 	}
 
 	async close(id: string): Promise<void> {
-		try {
-			await accountBackend.CloseBrowserSession(id)
-			await this.refresh()
-		} catch (error) {
-			this.error = errorMessage(error, browserOperationError)
-		}
+		await this.#attempt(() => accountBackend.CloseBrowserSession(id))
 	}
 
 	async closeAllLogin(): Promise<void> {
-		await accountBackend.CloseAllLoginBrowsers()
-		await this.refresh()
+		await this.#attempt(() => accountBackend.CloseAllLoginBrowsers())
 	}
 
 	async save(selected: string[]): Promise<SaveResult | null> {
@@ -321,8 +301,7 @@ export class BrowserStore {
 	}
 
 	async discard(): Promise<void> {
-		await accountBackend.DiscardBrowserCandidates()
-		await this.refresh()
+		await this.#attempt(() => accountBackend.DiscardBrowserCandidates())
 	}
 
 	async download(redownload = false): Promise<void> {
@@ -342,16 +321,15 @@ export class BrowserStore {
 	}
 
 	async cancelDownload(): Promise<void> {
-		await accountBackend.CancelBrowserRuntimeDownload()
-	}
-
-	async removeRuntime(): Promise<void> {
 		try {
-			await accountBackend.RemoveBrowserRuntime()
-			await this.refresh()
+			await accountBackend.CancelBrowserRuntimeDownload()
 		} catch (error) {
 			this.error = errorMessage(error, browserOperationError)
 		}
+	}
+
+	async removeRuntime(): Promise<void> {
+		await this.#attempt(() => accountBackend.RemoveBrowserRuntime())
 	}
 
 	async effects(): Promise<ShutdownEffects> {
@@ -359,8 +337,16 @@ export class BrowserStore {
 	}
 
 	async retryCleanup(): Promise<void> {
-		await accountBackend.RetryBrowserCleanup()
-		await this.refresh()
+		await this.#attempt(() => accountBackend.RetryBrowserCleanup())
+	}
+
+	async #attempt(action: () => Promise<unknown>): Promise<void> {
+		try {
+			await action()
+			await this.refresh()
+		} catch (error) {
+			this.error = errorMessage(error, browserOperationError)
+		}
 	}
 }
 

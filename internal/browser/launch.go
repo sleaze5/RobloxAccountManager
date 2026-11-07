@@ -20,7 +20,7 @@ type launchBridge struct {
 	events   chan cdpMessage
 	launch   func(string)
 	contexts map[string]map[int64]bool
-	mu       sync.Mutex
+	mutex    sync.Mutex
 	sessions map[string]string
 	changed  chan struct{}
 }
@@ -30,9 +30,9 @@ func (client *CDPClient) InterceptRobloxLaunches(ctx context.Context, launch fun
 		client: client, events: make(chan cdpMessage, 128), launch: launch,
 		contexts: make(map[string]map[int64]bool), sessions: make(map[string]string), changed: make(chan struct{}),
 	}
-	client.mu.Lock()
+	client.mutex.Lock()
 	client.launchBridge = bridge
-	client.mu.Unlock()
+	client.mutex.Unlock()
 	go bridge.run()
 	return client.Call(ctx, "Target.setAutoAttach", map[string]any{
 		"autoAttach": true, "waitForDebuggerOnStart": true, "flatten": true,
@@ -42,9 +42,9 @@ func (client *CDPClient) InterceptRobloxLaunches(ctx context.Context, launch fun
 
 func (bridge *launchBridge) session(ctx context.Context, targetID string) (string, error) {
 	for {
-		bridge.mu.Lock()
+		bridge.mutex.Lock()
 		sessionID, changed := bridge.sessions[targetID], bridge.changed
-		bridge.mu.Unlock()
+		bridge.mutex.Unlock()
 		if sessionID != "" {
 			return sessionID, nil
 		}
@@ -64,9 +64,9 @@ func (client *CDPClient) routeLaunchEvent(message cdpMessage) bool {
 	default:
 		return true
 	}
-	client.mu.Lock()
+	client.mutex.Lock()
 	bridge := client.launchBridge
-	client.mu.Unlock()
+	client.mutex.Unlock()
 	if bridge == nil {
 		return true
 	}
@@ -105,8 +105,8 @@ func (bridge *launchBridge) handle(event cdpMessage) {
 	switch event.Method {
 	case "Target.attachedToTarget":
 		var params struct {
-			SessionID string     `json:"sessionId"`
-			Target    TargetInfo `json:"targetInfo"`
+			SessionID string    `json:"sessionId"`
+			Target    CDPTarget `json:"targetInfo"`
 		}
 		if json.Unmarshal(event.Params, &params) == nil && params.Target.Type == "page" {
 			bridge.attach(params.Target.TargetID, params.SessionID)
@@ -125,8 +125,8 @@ func (bridge *launchBridge) handle(event cdpMessage) {
 
 func (bridge *launchBridge) detach(sessionID string) {
 	delete(bridge.contexts, sessionID)
-	bridge.mu.Lock()
-	defer bridge.mu.Unlock()
+	bridge.mutex.Lock()
+	defer bridge.mutex.Unlock()
 	for targetID, attached := range bridge.sessions {
 		if attached == sessionID {
 			delete(bridge.sessions, targetID)
@@ -179,11 +179,11 @@ func (bridge *launchBridge) attach(targetID, sessionID string) {
 		bridge.handleAttachFailure(targetID, err)
 		return
 	}
-	bridge.mu.Lock()
+	bridge.mutex.Lock()
 	bridge.sessions[targetID] = sessionID
 	close(bridge.changed)
 	bridge.changed = make(chan struct{})
-	bridge.mu.Unlock()
+	bridge.mutex.Unlock()
 }
 
 func (bridge *launchBridge) handleAttachFailure(targetID string, cause error) {

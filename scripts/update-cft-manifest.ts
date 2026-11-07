@@ -9,7 +9,8 @@ const temporaryOutputPath = new URL(
 )
 const officialHost = "storage.googleapis.com"
 const officialPrefix = "/chrome-for-testing-public/"
-const platforms = ["linux64", "mac-arm64", "mac-x64", "win32", "win64"] as const
+// Windows ARM64 runs the x64 build, so these are every download the application uses.
+const platforms = ["linux64", "mac-arm64", "mac-x64", "win64"] as const
 
 interface Download {
 	platform: string
@@ -49,17 +50,13 @@ if (!stable?.version || !/^\d+\.\d+\.\d+\.\d+$/.test(stable.version)) {
 }
 const downloads = stable.downloads?.chrome ?? []
 const urls: Record<string, string> = {}
+// The application refuses to start on a platform without a download.
 for (const platform of platforms) {
 	const download = downloads.find((item) => item.platform === platform)
-	if (download) {
-		urls[platform] = validateURL(download.url, stable.version, platform)
-	}
-}
-// The application refuses to start on a platform without a download.
-for (const platform of ["linux64", "mac-arm64", "mac-x64", "win64"] as const) {
-	if (!urls[platform]) {
+	if (!download) {
 		throw new Error(`The Stable channel has no ${platform} Chrome download`)
 	}
+	urls[platform] = validateURL(download.url, stable.version, platform)
 }
 
 const manifest = {

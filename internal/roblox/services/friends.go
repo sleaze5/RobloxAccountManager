@@ -420,10 +420,10 @@ func (service *Users) postRead(ctx context.Context, accountID, version int64, en
 	}
 	ctx, cancel := context.WithTimeout(ctx, 15*time.Second)
 	defer cancel()
-	uri, _ := url.Parse(address)
+	endpointURL, _ := url.Parse(address)
 	response, err := service.client.Do(ctx, roblox.Request{
 		Endpoint: endpoint, AccountID: accountID, ExpectedSecretVersion: version,
-		Authenticated: true, Method: http.MethodPost, URL: uri, Body: body,
+		Authenticated: true, Method: http.MethodPost, URL: endpointURL, Body: body,
 		ContentType: "application/json", RequiresCSRF: true, MaxResponseSize: 64 << 10,
 		Retry: roblox.RetryPolicy{MaxAttempts: 2, Idempotent: true, RetryServerErrors: true, RetryRateLimit: true},
 	})

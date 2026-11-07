@@ -49,12 +49,12 @@ Build from these parts before you write new styles. If a part lacks a variant yo
 
 Buttons (`@utility` classes):
 
-- `btn-primary`: the one dominant action in a dialog, drawer, or empty state. The Launch button uses this style.
-- `btn`: a bordered secondary button with a text label.
-- `btn-icon`: a bordered icon-only button.
-- `btn-ghost`: a borderless icon-only button. `btn-ghost-sm` is its 24px form.
-- `btn-close`: the 24px close button of a dialog, notice, or error. It inherits the text color.
-- `btn-danger` and `btn-warning`: confirmation actions with a danger or warning tone. See [Destructive actions](#destructive-actions).
+- `button-primary`: the one dominant action in a dialog, drawer, or empty state. The Launch button uses this style.
+- `button`: a bordered secondary button with a text label.
+- `button-icon`: a bordered icon-only button.
+- `button-ghost`: a borderless icon-only button. `button-ghost-sm` is its 24px form.
+- `button-close`: the 24px close button of a dialog, notice, or error. It inherits the text color.
+- `button-danger` and `button-warning`: confirmation actions with a danger or warning tone. See [Destructive actions](#destructive-actions).
 - Set `data-open` on a button while the menu it opens is open.
 
 Inputs:
@@ -242,7 +242,7 @@ Color:
 1. Render the dialog as a `dialog-card` inside a `dialog-backdrop`. Set its width with a `max-w-*` container size. Put the title and description in a `dialog-heading`, fields in `dialog-field`, and actions in `dialog-actions`. Use `modalFocus` and the dialog transitions from `presence.ts`. `modalFocus` moves focus to the first text field, or to the first control when the dialog has no text field.
 2. Use `role="dialog"`. Use `role="alertdialog"` for a confirmation.
 3. Put the title and an optional one-sentence description at the top.
-4. Put a `btn-close` in the top-right corner. Omit the close button only when the user must complete the dialog, such as the vault lock screen.
+4. Put a `button-close` in the top-right corner. Omit the close button only when the user must complete the dialog, such as the vault lock screen.
 5. Show errors inside the dialog with `notice-error`, above the actions.
 6. Put the actions at the bottom right: Cancel first, then the main action.
 7. Name the main action with a verb and an object, such as "Remove account". Do not use "OK" or "Yes".
@@ -252,7 +252,7 @@ Color:
 ### Destructive actions
 
 - Confirm every destructive action in a dialog that names the affected item and the consequence.
-- Use `btn-danger` only for actions that delete data or end something that cannot resume. Use the primary style for a reversible action, such as locking the vault.
+- Use `button-danger` only for actions that delete data or end something that cannot resume. Use the primary style for a reversible action, such as locking the vault.
 - State when an action cannot be undone.
 - When an action can delete data that has no backup, require the user to type a confirmation word, such as `RESET`.
 

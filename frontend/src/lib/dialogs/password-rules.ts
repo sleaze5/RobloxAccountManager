@@ -1,4 +1,4 @@
-export interface PasswordRules {
+interface PasswordRules {
 	length: boolean
 	byteLimit: boolean
 	uppercase: boolean
@@ -7,7 +7,7 @@ export interface PasswordRules {
 	special: boolean
 }
 
-export function checkPassword(password: string): PasswordRules {
+function checkPassword(password: string): PasswordRules {
 	const characters = Array.from(password)
 	return {
 		byteLimit: new TextEncoder().encode(password).length <= 1024,
@@ -21,4 +21,15 @@ export function checkPassword(password: string): PasswordRules {
 
 export function passwordValid(password: string): boolean {
 	return Object.values(checkPassword(password)).every(Boolean)
+}
+
+export function passwordRequirements(password: string): [boolean, string][] {
+	const rules = checkPassword(password)
+	return [
+		[rules.length, "8-128 characters long"],
+		[rules.uppercase, "At least one upper-case letter"],
+		[rules.lowercase, "At least one lower-case letter"],
+		[rules.digit, "At least one number"],
+		[rules.special, "At least one special character"],
+	]
 }

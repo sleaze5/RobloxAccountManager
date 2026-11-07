@@ -1,4 +1,4 @@
-export const detailsFreshMs = 60_000
+const detailsFreshMs = 60_000
 
 export const detailsKeepMs = 5 * 60_000
 

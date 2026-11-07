@@ -11,7 +11,7 @@
 	import type { AccountStore } from "../accounts/account-store.svelte"
 	import { replayValidationNudge } from "../shared/presence"
 	import Dialog from "../shared/Dialog.svelte"
-	import { checkPassword, passwordValid } from "./password-rules"
+	import { passwordRequirements, passwordValid } from "./password-rules"
 
 	let { store, onClose }: { store: AccountStore; onClose: () => void } = $props(),
 		currentPassword = $state(""),
@@ -21,7 +21,7 @@
 		automaticUnlock = $state(true),
 		visible = $state(false),
 		card = $state<HTMLDivElement>()
-	const rules = $derived(checkPassword(newPassword))
+	const requirements = $derived(passwordRequirements(newPassword))
 
 	async function changePassword(): Promise<void> {
 		const changed = await store.changeVaultPassword(
@@ -44,7 +44,7 @@
 	aria-labelledby="change-password-title"
 	bind:card>
 	<button
-		class="absolute top-3 right-3 btn-close"
+		class="absolute top-3 right-3 button-close"
 		type="button"
 		aria-label="Close change master password dialog"
 		disabled={store.busy}
@@ -111,7 +111,7 @@
 					aria-hidden="true" /> Show passwords{/if}
 		</button>
 		<ul class="checklist" data-touched={newPassword !== "" || undefined}>
-			{#each [[rules.length, "8-128 characters long"], [rules.uppercase, "At least one upper-case letter"], [rules.lowercase, "At least one lower-case letter"], [rules.digit, "At least one number"], [rules.special, "At least one special character"]] as requirement}
+			{#each requirements as requirement}
 				<li data-valid={requirement[0] || undefined}>
 					{#if requirement[0]}<Icon
 							svg={checkIcon}
@@ -163,10 +163,10 @@
 			</button>
 		</div>
 		<div class="dialog-actions">
-			<button class="btn" type="button" disabled={store.busy} onclick={onClose}
+			<button class="button" type="button" disabled={store.busy} onclick={onClose}
 				>Cancel</button>
 			<button
-				class="btn-primary"
+				class="button-primary"
 				type="submit"
 				disabled={!passwordValid(newPassword) ||
 					newPassword !== confirmation ||

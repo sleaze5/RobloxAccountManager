@@ -132,11 +132,11 @@ func (service *Chat) Send(ctx context.Context, accountID, version int64, convers
 }
 
 func (service *Chat) get(ctx context.Context, accountID, version int64, endpoint, path string, query url.Values, target any) error {
-	uri, _ := url.Parse(chatBaseURL + path)
-	uri.RawQuery = query.Encode()
+	endpointURL, _ := url.Parse(chatBaseURL + path)
+	endpointURL.RawQuery = query.Encode()
 	response, err := service.client.Do(ctx, roblox.Request{
 		Endpoint: endpoint, AccountID: accountID, ExpectedSecretVersion: version,
-		Authenticated: true, Method: http.MethodGet, URL: uri, MaxResponseSize: chatResponseSize,
+		Authenticated: true, Method: http.MethodGet, URL: endpointURL, MaxResponseSize: chatResponseSize,
 		Retry: roblox.RetryPolicy{MaxAttempts: 3, RetryServerErrors: true, RetryRateLimit: true},
 	})
 	if err != nil {
@@ -150,14 +150,14 @@ func (service *Chat) post(ctx context.Context, accountID, version int64, endpoin
 	if err != nil {
 		return &roblox.Error{Kind: roblox.KindProtocol, Endpoint: endpoint, Message: "The chat request could not be encoded.", Cause: err}
 	}
-	uri, _ := url.Parse(chatBaseURL + path)
-	retry := roblox.RetryPolicy{MaxAttempts: 1}
+	endpointURL, _ := url.Parse(chatBaseURL + path)
+	var retry roblox.RetryPolicy
 	if idempotent {
 		retry = roblox.RetryPolicy{MaxAttempts: 3, Idempotent: true, RetryServerErrors: true, RetryRateLimit: true}
 	}
 	response, err := service.client.Do(ctx, roblox.Request{
 		Endpoint: endpoint, AccountID: accountID, ExpectedSecretVersion: version,
-		Authenticated: true, Method: http.MethodPost, URL: uri, Body: body,
+		Authenticated: true, Method: http.MethodPost, URL: endpointURL, Body: body,
 		ContentType: "application/json", RequiresCSRF: true, MaxResponseSize: chatResponseSize, Retry: retry,
 	})
 	if err != nil {

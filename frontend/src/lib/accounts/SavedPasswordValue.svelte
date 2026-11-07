@@ -47,7 +47,7 @@
 
 <span>{password || "••••••••••"}</span>
 <button
-	class="-my-1 btn-ghost-sm self-center"
+	class="-my-1 button-ghost-sm self-center"
 	type="button"
 	aria-label={password ? "Hide password" : "Show password"}
 	data-tooltip={password ? "Hide password" : "Show password"}

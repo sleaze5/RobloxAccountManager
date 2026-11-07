@@ -49,10 +49,10 @@ func (service *AccountSettings) ReadOptionsV2(ctx context.Context, accountID, ve
 }
 
 func (service *AccountSettings) read(ctx context.Context, accountID, version int64, endpoint, address string) (SettingsDocument, error) {
-	uri, _ := url.Parse(address)
+	endpointURL, _ := url.Parse(address)
 	response, err := service.client.Do(ctx, roblox.Request{
 		Endpoint: endpoint, AccountID: accountID, ExpectedSecretVersion: version,
-		Authenticated: true, Method: http.MethodGet, URL: uri,
+		Authenticated: true, Method: http.MethodGet, URL: endpointURL,
 		MaxResponseSize: 256 << 10,
 		Retry:           roblox.RetryPolicy{MaxAttempts: 3, RetryServerErrors: true, RetryRateLimit: true},
 	})
@@ -110,10 +110,10 @@ func (service *AccountSettings) UpdateBool(ctx context.Context, accountID, versi
 }
 
 func (service *AccountSettings) update(ctx context.Context, accountID, version int64, address string, body []byte) error {
-	uri, _ := url.Parse(address)
+	endpointURL, _ := url.Parse(address)
 	_, err := service.client.Do(ctx, roblox.Request{
 		Endpoint: "account-settings-update", AccountID: accountID, ExpectedSecretVersion: version,
-		Authenticated: true, Method: http.MethodPost, URL: uri, Body: body,
+		Authenticated: true, Method: http.MethodPost, URL: endpointURL, Body: body,
 		ContentType: "application/json", RequiresCSRF: true, MaxResponseSize: 64 << 10,
 	})
 	return err

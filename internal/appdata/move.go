@@ -157,12 +157,12 @@ func removeStorage(source Paths) error {
 }
 
 func copyVerified(source, destination string) error {
-	info, err := os.Lstat(source)
+	sourceStatus, err := os.Lstat(source)
 	if err != nil {
 		return fmt.Errorf("inspect source path: %w", err)
 	}
 	switch {
-	case info.IsDir():
+	case sourceStatus.IsDir():
 		if err := os.Mkdir(destination, 0o700); err != nil {
 			return fmt.Errorf("create destination directory: %w", err)
 		}
@@ -179,7 +179,7 @@ func copyVerified(source, destination string) error {
 			}
 		}
 		return nil
-	case info.Mode().IsRegular():
+	case sourceStatus.Mode().IsRegular():
 		return copyFile(source, destination)
 	default:
 		return fmt.Errorf("%q is not a regular file", filepath.Base(source))
@@ -197,11 +197,11 @@ func copyFile(source, destination string) error {
 		return fmt.Errorf("create destination file: %w", err)
 	}
 	expected := sha256.New()
-	_, copyErr := io.Copy(output, io.TeeReader(input, expected))
-	syncErr := output.Sync()
-	closeErr := output.Close()
-	if err := errors.Join(copyErr, syncErr, closeErr); err != nil {
-		return err
+	_, copyError := io.Copy(output, io.TeeReader(input, expected))
+	syncError := output.Sync()
+	closeError := output.Close()
+	if err := errors.Join(copyError, syncError, closeError); err != nil {
+		return fmt.Errorf("copy %q: %w", filepath.Base(source), err)
 	}
 	if err := RestrictFile(destination); err != nil {
 		return err

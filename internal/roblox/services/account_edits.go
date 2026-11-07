@@ -247,10 +247,10 @@ func (service *Users) writeAccount(ctx context.Context, accountID, version int64
 			return nil, &roblox.Error{Kind: roblox.KindProtocol, Endpoint: endpoint, Message: "The request could not be encoded.", Cause: err}
 		}
 	}
-	uri, _ := url.Parse(address)
+	endpointURL, _ := url.Parse(address)
 	return service.client.Do(ctx, roblox.Request{
 		Endpoint: endpoint, AccountID: accountID, ExpectedSecretVersion: version,
-		Authenticated: true, Method: method, URL: uri, Body: body,
+		Authenticated: true, Method: method, URL: endpointURL, Body: body,
 		ContentType: contentType, RequiresCSRF: true, MaxResponseSize: 64 << 10,
 	})
 }

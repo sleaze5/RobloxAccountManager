@@ -50,7 +50,7 @@
 				>{/snippet}
 			{#snippet actions()}
 				<button
-					class="btn-ghost"
+					class="button-ghost"
 					type="button"
 					disabled={store.refreshing}
 					aria-busy={store.refreshing}
@@ -170,7 +170,7 @@
 						<h2>Logs are unavailable</h2>
 						<p>Refresh the logs to try reading them again.</p>
 						<button
-							class="btn"
+							class="button"
 							type="button"
 							onclick={() => void store.refreshAll()}
 							><Icon
@@ -185,7 +185,7 @@
 						<h2>No Roblox sessions yet</h2>
 						<p>Launch Roblox once, then refresh to read its logs.</p>
 						<button
-							class="btn"
+							class="button"
 							type="button"
 							onclick={() => void store.refreshAll()}
 							><Icon

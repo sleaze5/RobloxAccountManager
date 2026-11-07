@@ -66,13 +66,13 @@ func (service *Games) Servers(ctx context.Context, query games.ServerQuery, acco
 		if !games.ValidJobID(item.ID) {
 			continue
 		}
-		fps := item.FPS
-		if math.IsNaN(fps) || math.IsInf(fps, 0) {
-			fps = 0
+		framesPerSecond := item.FPS
+		if math.IsNaN(framesPerSecond) || math.IsInf(framesPerSecond, 0) {
+			framesPerSecond = 0
 		}
 		page.Servers = append(page.Servers, games.Server{
 			JobID: item.ID, Playing: max(item.Playing, 0), MaxPlayers: max(item.MaxPlayers, 0),
-			FPS: max(fps, 0), PingMS: nonNegative(item.Ping), PlayerImages: []string{},
+			FPS: max(framesPerSecond, 0), PingMS: nonNegative(item.Ping), PlayerImages: []string{},
 			LanguageMatches: nonNegative(item.LanguageMatchCount),
 		})
 		if accountID > 0 {

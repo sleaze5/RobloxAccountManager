@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { matchesSearch, searchTerms } from "../shared/search"
 	import { copyText } from "../shared/clipboard"
 	import arrowsLeftRightIcon from "@phosphor-icons/core/regular/arrows-left-right.svg?raw"
 	import copyIcon from "@phosphor-icons/core/regular/copy.svg?raw"
@@ -23,7 +24,7 @@
 		location = $state<AppLocation | null>(null),
 		error = $state(""),
 		moving = $state(false),
-		searchTerms = $derived(query.trim().toLowerCase().split(/\s+/).filter(Boolean))
+		terms = $derived(searchTerms(query))
 
 	const other = $derived(
 			location?.candidates?.find(
@@ -38,8 +39,7 @@
 	}
 
 	function matches(name: string, description: string): boolean {
-		const text = `vault storage ${name} ${description}`.toLowerCase()
-		return searchTerms.every((term) => text.includes(term))
+		return matchesSearch(terms, `vault storage ${name} ${description}`)
 	}
 
 	onMount(() => {
@@ -89,7 +89,7 @@
 							<SettingsStatus value={currentLabel} />
 						</div>
 						<button
-							class="btn"
+							class="button"
 							type="button"
 							onclick={() => void copyPath()}>
 							<Icon svg={copyIcon} size={16} aria-hidden="true" />
@@ -109,7 +109,7 @@
 									: "to your user folder"}. The app restarts.</span>
 						</div>
 						<button
-							class="btn"
+							class="button"
 							type="button"
 							disabled={store.busy ||
 								store.vault.fileState !== FileState.FileStateReady}

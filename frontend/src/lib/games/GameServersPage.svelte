@@ -274,18 +274,7 @@
 			)
 			if (!server) return []
 			return [
-				{
-					label: "Fill launch options",
-					icon: listPlusIcon,
-					onSelect: select(() => onFillLaunchLink(server.launchLink)),
-				},
-				{
-					label: "Copy launch link",
-					icon: linkIcon,
-					onSelect: select(
-						() => void store.copy(server.launchLink, "Launch link"),
-					),
-				},
+				...linkActions(server.launchLink),
 				{
 					label: "Remove link",
 					icon: trashIcon,
@@ -346,7 +335,7 @@
 <section class="settings-page min-w-0" aria-labelledby="game-servers-title">
 	<header class="settings-header">
 		<button
-			class="btn-ghost"
+			class="button-ghost"
 			type="button"
 			aria-label="Back to game details"
 			data-tooltip="Back to game details"
@@ -370,7 +359,7 @@
 			{/each}
 		</div>
 		<button
-			class="btn-ghost"
+			class="button-ghost"
 			type="button"
 			aria-label={active.loading ? "Refreshing servers" : "Refresh servers"}
 			data-tooltip="Refresh servers"

@@ -49,8 +49,8 @@ func CheckPlayerPath(path string) (string, bool, error) {
 	if err != nil {
 		return "", false, err
 	}
-	info, err := os.Stat(parsed)
-	return parsed, err == nil && info.Mode().IsRegular(), nil
+	playerStatus, err := os.Stat(parsed)
+	return parsed, err == nil && playerStatus.Mode().IsRegular(), nil
 }
 
 func parsePlayerPath(path string) (string, error) {
@@ -135,14 +135,14 @@ func installedPlayers(variable string) []installedPlayer {
 			continue
 		}
 		path := filepath.Join(root, entry.Name(), playerExecutableName)
-		if info, err := os.Stat(path); err == nil && info.Mode().IsRegular() {
+		if playerStatus, err := os.Stat(path); err == nil && playerStatus.Mode().IsRegular() {
 			found = append(found, installedPlayer{
 				version: PlayerVersion{
 					Name:        entry.Name(),
 					Path:        path,
 					DisplayPath: filepath.Join("%"+variable+"%", "Roblox", "Versions", entry.Name(), playerExecutableName),
 				},
-				modified: info.ModTime(),
+				modified: playerStatus.ModTime(),
 			})
 		}
 	}

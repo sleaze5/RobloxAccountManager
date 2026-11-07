@@ -11,16 +11,12 @@ tasks:
             APP_BUNDLE: "{{.DIST_DIR}}/darwin-{{.ARCH}}/{{.APP_NAME}}.app"
             COMMIT:
                 sh: '{{if ne .RELEASE_BUILD "true"}}{{.COMMIT_SCRIPT}}{{end}}'
-        env:
-            GOOS: darwin
-            GOARCH: "{{.ARCH}}"
-            CGO_ENABLED: "1"
-            CGO_CFLAGS: -mmacosx-version-min=12.0
-            CGO_LDFLAGS: -mmacosx-version-min=12.0
-            MACOSX_DEPLOYMENT_TARGET: "12.0"
         cmds:
             - cmd: |
                   set -eu
+                  # Task does not override variables that the shell already sets.
+                  export GOOS=darwin GOARCH={{.ARCH}} CGO_ENABLED=1 MACOSX_DEPLOYMENT_TARGET=12.0
+                  export CGO_CFLAGS=-mmacosx-version-min=12.0 CGO_LDFLAGS=-mmacosx-version-min=12.0
                   bundle="{{.APP_BUNDLE}}"
                   version=$(tr -d '[:space:]' < internal/appmeta/VERSION)
                   case "$version" in

@@ -21,7 +21,7 @@
 		TrustedStatus,
 	} from "../backend/bridge"
 	import type { SocialUser } from "../backend/bridge"
-	import { menuIn, menuOut, placeMenuAtPoint } from "../shared/presence"
+	import { floatMenuAtPoint, menuIn, menuKeyboard, menuOut } from "../shared/presence"
 	import { personName } from "./social-store.svelte"
 	import type { SocialMenu, SocialStore } from "./social-store.svelte"
 
@@ -60,62 +60,8 @@
 		),
 		busy = $derived(relationship === null || store.updating !== null)
 
-	function positionMenu(node: HTMLElement, position: SocialMenu) {
-		const previousFocus = document.activeElement
-		let current = position
-		const reposition = () => {
-			placeMenuAtPoint(node, current)
-		}
-		reposition()
-		node.focus({ preventScroll: true })
-		window.addEventListener("resize", reposition)
-		return {
-			update(next: SocialMenu) {
-				current = next
-				reposition()
-			},
-			destroy() {
-				window.removeEventListener("resize", reposition)
-				if (
-					node.contains(document.activeElement) &&
-					previousFocus instanceof HTMLElement &&
-					previousFocus.isConnected
-				) {
-					previousFocus.focus({ preventScroll: true })
-				}
-			},
-		}
-	}
-
-	function moveFocus(event: KeyboardEvent): void {
-		const buttons = Array.from(
-				(
-					event.currentTarget as HTMLElement
-				).querySelectorAll<HTMLButtonElement>("button:enabled"),
-			),
-			current = buttons.indexOf(document.activeElement as HTMLButtonElement)
-		let next: number
-		switch (event.key) {
-			case "ArrowDown":
-				next = (current + 1) % buttons.length
-				break
-			case "ArrowUp":
-				next = (current - 1 + buttons.length) % buttons.length
-				break
-			case "Home":
-				next = 0
-				break
-			case "End":
-				next = buttons.length - 1
-				break
-			case "Tab":
-				store.closeMenu()
-				return
-			default:
-				return
-		}
-		event.preventDefault()
-		buttons[next]?.focus()
+	function closeOnTab(event: KeyboardEvent): void {
+		if (event.key === "Tab") store.closeMenu()
 	}
 
 	function handleWindowClick(event: MouseEvent): void {
@@ -141,8 +87,9 @@
 	aria-label={`${personName(person)} actions`}
 	tabindex="-1"
 	data-social-menu
-	onkeydown={moveFocus}
-	use:positionMenu={menu}
+	onkeydown={closeOnTab}
+	use:floatMenuAtPoint={menu}
+	use:menuKeyboard
 	in:menuIn
 	out:menuOut>
 	{#if person.request}

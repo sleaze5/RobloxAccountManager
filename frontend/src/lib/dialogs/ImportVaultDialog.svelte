@@ -316,7 +316,7 @@
 			</div>
 		{/if}
 		<div class="dialog-actions">
-			<button class="btn-primary" type="button" onclick={onClose}>Done</button>
+			<button class="button-primary" type="button" onclick={onClose}>Done</button>
 		</div>
 	{:else if preview}
 		<form
@@ -457,17 +457,17 @@
 				<div class="mt-3 notice-error" role="alert">{error}</div>
 			{/if}
 			<div class="dialog-actions">
-				<button class="btn" type="button" disabled={busy} onclick={back}
+				<button class="button" type="button" disabled={busy} onclick={back}
 					>Back</button>
 				{#if mode === TransferMode.TransferOverwrite}
 					<button
-						class="btn-danger"
+						class="button-danger"
 						type="submit"
 						disabled={confirmation !== "CONFIRM" || busy}
 						>{importing ? "Overwriting…" : "Overwrite vault"}</button>
 				{:else}
 					<button
-						class="btn-primary"
+						class="button-primary"
 						type="submit"
 						disabled={mergeEmpty || busy}
 						>{importing ? "Importing…" : "Import data"}</button>
@@ -492,7 +492,7 @@
 						>{folder}</span>
 				</span>
 				<button
-					class="btn"
+					class="button"
 					type="button"
 					disabled={busy}
 					onclick={() => void changeFile()}>Change file</button>
@@ -564,10 +564,10 @@
 				<div class="mt-3 notice-error" role="alert">{error}</div>
 			{/if}
 			<div class="dialog-actions">
-				<button class="btn" type="button" disabled={busy} onclick={close}
+				<button class="button" type="button" disabled={busy} onclick={close}
 					>Cancel</button>
 				<button
-					class="btn-primary"
+					class="button-primary"
 					type="submit"
 					disabled={!password || busy || !readable}
 					>{opening ? "Opening…" : "Open export"}</button>

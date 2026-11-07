@@ -1,4 +1,4 @@
-@utility btn-base {
+@utility button-base {
 	@apply inline-flex h-7 shrink-0 items-center justify-center gap-1 rounded-md border border-line bg-transparent px-3 text-xs font-medium whitespace-nowrap text-fg-muted;
 	transition-property: color, background-color, border-color, scale;
 	transition-duration:
@@ -11,16 +11,16 @@
 	}
 }
 
-@utility btn-primary {
-	@apply btn-base border-line-strong bg-raised text-fg-bright;
+@utility button-primary {
+	@apply button-base border-line-strong bg-raised text-fg-bright;
 
 	&:hover:where(:not(:disabled)) {
 		@apply border-line-focus bg-raised-hover;
 	}
 }
 
-@utility btn {
-	@apply btn-base px-2;
+@utility button {
+	@apply button-base px-2;
 
 	&:hover:where(:not(:disabled)),
 	&[data-open] {
@@ -28,35 +28,35 @@
 	}
 }
 
-@utility btn-icon {
-	@apply btn size-7 px-0;
+@utility button-icon {
+	@apply button size-7 px-0;
 }
 
-@utility btn-ghost {
-	@apply btn-icon border-0;
+@utility button-ghost {
+	@apply button-icon border-0;
 }
 
-@utility btn-ghost-sm {
-	@apply btn-ghost size-6;
+@utility button-ghost-sm {
+	@apply button-ghost size-6;
 }
 
-@utility btn-danger {
-	@apply btn-base border-danger/40 bg-danger/10 text-danger-muted;
+@utility button-danger {
+	@apply button-base border-danger/40 bg-danger/10 text-danger-muted;
 
 	&:hover:where(:not(:disabled)) {
 		@apply bg-danger/20;
 	}
 }
 
-@utility btn-warning {
-	@apply btn-base border-warning/30 bg-warning/5 text-warning;
+@utility button-warning {
+	@apply button-base border-warning/30 bg-warning/5 text-warning;
 
 	&:hover:where(:not(:disabled)) {
 		@apply border-warning;
 	}
 }
 
-@utility btn-close {
+@utility button-close {
 	@apply grid size-6 shrink-0 place-items-center rounded-md text-inherit transition-colors duration-100;
 
 	&:hover {
@@ -621,7 +621,7 @@
 	}
 
 	:where(&) > button {
-		@apply btn-close;
+		@apply button-close;
 	}
 }
 

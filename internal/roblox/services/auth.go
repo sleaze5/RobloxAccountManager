@@ -31,7 +31,6 @@ func (service *Auth) RefreshCookie(ctx context.Context, accountID, version int64
 		Endpoint: "session-refresh", AccountID: accountID, ExpectedSecretVersion: version,
 		Authenticated: true, Method: http.MethodPost, URL: endpoint,
 		RequiresCSRF: true, MaxResponseSize: 64 << 10,
-		Retry: roblox.RetryPolicy{MaxAttempts: 1},
 	})
 	// This endpoint's body is empty. A successful status and saved replacement
 	// are sufficient even if the connection closed before its body finished.
@@ -57,7 +56,6 @@ func (service *Auth) AuthenticationTicket(ctx context.Context, accountID int64) 
 		RequiresCSRF:              true,
 		AuthenticationNegotiation: true,
 		Referer:                   "https://www.roblox.com/",
-		Retry:                     roblox.RetryPolicy{MaxAttempts: 1},
 	})
 	if err != nil {
 		return AuthenticationTicket{}, err

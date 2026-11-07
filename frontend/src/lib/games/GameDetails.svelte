@@ -328,7 +328,7 @@
 												>{nickname}</span
 											>{/if}
 										<button
-											class="btn-ghost-sm"
+											class="button-ghost-sm"
 											type="button"
 											aria-label={nickname
 												? "Edit nickname"
@@ -354,7 +354,7 @@
 							<span class="text-fg-faint" aria-hidden="true">-</span>
 							<span>Universe ID: {place.universeId}</span>
 							<button
-								class="-my-1 -ms-1 btn-ghost size-5"
+								class="-my-1 -ms-1 button-ghost size-5"
 								type="button"
 								aria-label="Search places in this universe"
 								data-tooltip="Search places in this universe"
@@ -391,7 +391,7 @@
 				</div>
 				<div class="relative flex items-center gap-1 @max-xl:self-end">
 					<button
-						class="btn-icon"
+						class="button-icon"
 						type="button"
 						aria-label={store.loadingDetails
 							? "Refreshing game details"
@@ -411,7 +411,7 @@
 								aria-hidden="true" />{/if}
 					</button>
 					<button
-						class="btn-icon"
+						class="button-icon"
 						type="button"
 						aria-label="Servers"
 						data-tooltip="Servers"
@@ -423,7 +423,7 @@
 						<Icon svg={hardDrivesIcon} size={16} aria-hidden="true" />
 					</button>
 					<button
-						class="btn-icon"
+						class="button-icon"
 						type="button"
 						aria-label="More game actions"
 						aria-haspopup="menu"

@@ -3,7 +3,6 @@ package appservice
 import (
 	"cmp"
 	"context"
-	"errors"
 	"fmt"
 	"log/slog"
 	"regexp"
@@ -42,7 +41,7 @@ const (
 	SocialRequests  SocialList = "requests"
 )
 
-type FriendRequestInfo struct {
+type FriendRequestView struct {
 	SentAtMs      int64    `json:"sentAtMs"`
 	Origin        string   `json:"origin"`
 	MutualFriends []string `json:"mutualFriends"`
@@ -55,7 +54,7 @@ type SocialUser struct {
 	Nickname    string                       `json:"nickname"`
 	ImageURL    string                       `json:"imageUrl"`
 	Presence    *robloxservices.UserPresence `json:"presence"`
-	Request     *FriendRequestInfo           `json:"request"`
+	Request     *FriendRequestView           `json:"request"`
 }
 
 // SocialRelationship describes the user as the browsing account sees them.
@@ -200,26 +199,26 @@ func (service *Service) socialPage(ctx context.Context, accountID, version int64
 	var presences []robloxservices.UserPresence
 	var images, nicknames map[int64]string
 	reads := []accountRead{{"avatars", func() error {
-		var readErr error
-		images, readErr = service.headshotImages(ctx, entries.ids)
-		return readErr
+		var readError error
+		images, readError = service.headshotImages(ctx, entries.ids)
+		return readError
 	}}, {"nicknames", func() error {
-		var readErr error
-		nicknames, readErr = service.users.Nicknames(ctx, accountID, version, entries.ids)
-		return readErr
+		var readError error
+		nicknames, readError = service.users.Nicknames(ctx, accountID, version, entries.ids)
+		return readError
 	}}}
 	if withPresence {
 		reads = append(reads, accountRead{"presence", func() error {
-			var readErr error
-			presences, readErr = service.presence.UserPresences(ctx, accountID, version, entries.ids)
-			return readErr
+			var readError error
+			presences, readError = service.presence.UserPresences(ctx, accountID, version, entries.ids)
+			return readError
 		}})
 	}
 	if withRequestCount {
 		reads = append(reads, accountRead{"requestCount", func() error {
-			var readErr error
-			page.RequestCount, readErr = service.users.FriendRequestCount(ctx, accountID, version)
-			return readErr
+			var readError error
+			page.RequestCount, readError = service.users.FriendRequestCount(ctx, accountID, version)
+			return readError
 		}})
 	}
 	if page.Unavailable, err = service.runAccountReads(ctx, accountID, version, "social", logger, reads); err != nil {
@@ -269,7 +268,7 @@ func socialPeople(users []robloxservices.UserView, requests []robloxservices.Fri
 		}
 		if index < len(requests) {
 			request := requests[index]
-			person.Request = &FriendRequestInfo{Origin: request.OriginSourceType, MutualFriends: request.MutualFriends}
+			person.Request = &FriendRequestView{Origin: request.OriginSourceType, MutualFriends: request.MutualFriends}
 			if !request.SentAt.IsZero() {
 				person.Request.SentAtMs = request.SentAt.UnixMilli()
 			}
@@ -338,64 +337,64 @@ func (service *Service) GetSocialProfile(ctx context.Context, accountID, userID 
 	profile := SocialProfile{UserID: userID, Relationship: newSocialRelationship(account.RobloxUserID, userID)}
 	reads := []accountRead{
 		{"about", func() error {
-			about, readErr := service.users.About(ctx, accountID, version, userID)
-			if readErr == nil {
+			about, readError := service.users.About(ctx, accountID, version, userID)
+			if readError == nil {
 				profile.Description, profile.Verified, profile.Banned = about.Description, about.VerifiedBadge, about.Banned
 				if !about.CreatedAt.IsZero() {
 					profile.CreatedAtMs = about.CreatedAt.UnixMilli()
 				}
 			}
-			return readErr
+			return readError
 		}},
 		{"friends", func() error {
-			var readErr error
-			profile.FriendCount, readErr = service.users.SocialCount(ctx, accountID, version, userID, "friends")
-			return readErr
+			var readError error
+			profile.FriendCount, readError = service.users.SocialCount(ctx, accountID, version, userID, "friends")
+			return readError
 		}},
 		{"followers", func() error {
-			var readErr error
-			profile.FollowerCount, readErr = service.users.SocialCount(ctx, accountID, version, userID, "followers")
-			return readErr
+			var readError error
+			profile.FollowerCount, readError = service.users.SocialCount(ctx, accountID, version, userID, "followers")
+			return readError
 		}},
 		{"following", func() error {
-			var readErr error
-			profile.FollowingCount, readErr = service.users.SocialCount(ctx, accountID, version, userID, "followings")
-			return readErr
+			var readError error
+			profile.FollowingCount, readError = service.users.SocialCount(ctx, accountID, version, userID, "followings")
+			return readError
 		}},
 		{"previousNames", func() error {
-			var readErr error
-			profile.PreviousNames, readErr = service.users.PreviousNames(ctx, accountID, version, userID)
-			return readErr
+			var readError error
+			profile.PreviousNames, readError = service.users.PreviousNames(ctx, accountID, version, userID)
+			return readError
 		}},
 		{"primaryGroup", func() error {
-			var readErr error
-			profile.PrimaryGroup, readErr = service.users.PrimaryGroup(ctx, accountID, version, userID)
-			return readErr
+			var readError error
+			profile.PrimaryGroup, readError = service.users.PrimaryGroup(ctx, accountID, version, userID)
+			return readError
 		}},
 		{"robloxBadges", func() error {
-			var readErr error
-			profile.RobloxBadges, readErr = service.users.RobloxBadges(ctx, accountID, version, userID)
-			return readErr
+			var readError error
+			profile.RobloxBadges, readError = service.users.RobloxBadges(ctx, accountID, version, userID)
+			return readError
 		}},
 		{"socialLinks", func() error {
-			var readErr error
-			profile.SocialLinks, readErr = service.users.UserSocialLinks(ctx, accountID, version, userID)
-			return readErr
+			var readError error
+			profile.SocialLinks, readError = service.users.UserSocialLinks(ctx, accountID, version, userID)
+			return readError
 		}},
 		{"premium", func() error {
-			var readErr error
-			profile.Premium, readErr = service.users.Premium(ctx, accountID, version, userID)
-			return readErr
+			var readError error
+			profile.Premium, readError = service.users.Premium(ctx, accountID, version, userID)
+			return readError
 		}},
 		{"inventory", func() error {
-			var readErr error
-			profile.InventoryVisible, readErr = service.users.InventoryVisible(ctx, accountID, version, userID)
-			return readErr
+			var readError error
+			profile.InventoryVisible, readError = service.users.InventoryVisible(ctx, accountID, version, userID)
+			return readError
 		}},
 		{"connections", func() error {
-			var readErr error
-			profile.SavedAccountID, profile.Connections, readErr = service.friendConnections(ctx, logger, accountID, userID)
-			return readErr
+			var readError error
+			profile.SavedAccountID, profile.Connections, readError = service.friendConnections(ctx, logger, accountID, userID)
+			return readError
 		}},
 	}
 	if !profile.Relationship.Self {
@@ -437,24 +436,24 @@ func newSocialRelationship(selfID, userID int64) SocialRelationship {
 func (service *Service) relationshipReads(ctx context.Context, accountID, version, selfID, userID int64, relationship *SocialRelationship) []accountRead {
 	return []accountRead{
 		{"friendship", func() error {
-			var readErr error
-			relationship.Friend, readErr = service.users.FriendStatus(ctx, accountID, version, selfID, userID)
-			return readErr
+			var readError error
+			relationship.Friend, readError = service.users.FriendStatus(ctx, accountID, version, selfID, userID)
+			return readError
 		}},
 		{"trusted", func() error {
-			var readErr error
-			relationship.Trusted, readErr = service.users.TrustedStatus(ctx, accountID, version, userID)
-			return readErr
+			var readError error
+			relationship.Trusted, readError = service.users.TrustedStatus(ctx, accountID, version, userID)
+			return readError
 		}},
 		{"follow", func() error {
-			state, readErr := service.users.FollowState(ctx, accountID, version, userID)
+			state, readError := service.users.FollowState(ctx, accountID, version, userID)
 			relationship.Following, relationship.FollowedBy = state.Following, state.FollowedBy
-			return readErr
+			return readError
 		}},
 		{"nickname", func() error {
-			nicknames, readErr := service.users.Nicknames(ctx, accountID, version, []int64{userID})
+			nicknames, readError := service.users.Nicknames(ctx, accountID, version, []int64{userID})
 			relationship.Nickname = nicknames[userID]
-			return readErr
+			return readError
 		}},
 	}
 }
@@ -623,13 +622,7 @@ func friendPresenceRank(presence *robloxservices.UserPresence) int {
 }
 
 func socialFailure(logger *slog.Logger, err error) error {
-	var remote *roblox.Error
-	if !errors.As(err, &remote) {
-		logger.Warn("social operation failed", "error", err)
-		return &roblox.Error{Kind: roblox.KindProtocol, Endpoint: "social", Message: "The request failed. Try again.", Cause: err}
-	}
-	logger.Warn("social operation failed", "endpoint", remote.Endpoint, "error_kind", remote.Kind, "status", remote.Status, "roblox_code", remote.RobloxCode)
-	return err
+	return operationFailure(context.Background(), logger, err, "social", "The request failed. Try again.")
 }
 
 func socialInputError(message string) error {

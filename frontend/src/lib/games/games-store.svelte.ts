@@ -14,6 +14,7 @@ import type { NotificationCenter } from "../notifications/notification-center.sv
 import { detailsKeepMs, isFresh } from "../shared/freshness"
 import { ServerPageCache, type ServerSource } from "./game-servers-state.svelte"
 import { errorMessage } from "../shared/errors"
+import { menuPointFor } from "../shared/presence"
 
 export interface GameMenu {
 	place: GamePlace
@@ -21,7 +22,7 @@ export interface GameMenu {
 	y: number
 }
 
-export function creatorLabel(place: GamePlace): string {
+function creatorLabel(place: GamePlace): string {
 	if (!place.creatorName) return ""
 	return place.creatorType === "User" ? `@${place.creatorName}` : place.creatorName
 }
@@ -143,13 +144,7 @@ export class GamesStore {
 	openMenu(event: MouseEvent | KeyboardEvent, place: GamePlace): void {
 		event.preventDefault()
 		event.stopPropagation()
-		const bounds = (event.currentTarget as HTMLElement).getBoundingClientRect(),
-			atPointer = event instanceof MouseEvent && event.type === "contextmenu"
-		this.menu = {
-			place,
-			x: atPointer ? event.clientX : bounds.left,
-			y: atPointer ? event.clientY : bounds.bottom + 2,
-		}
+		this.menu = { place, ...menuPointFor(event, 2) }
 	}
 
 	closeMenu(): void {

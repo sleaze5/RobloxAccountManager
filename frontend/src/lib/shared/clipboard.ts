@@ -10,11 +10,15 @@ export async function copyText(
 	} catch {
 		return false
 	}
+	notifyCopied(notifications, message)
+	return true
+}
+
+export function notifyCopied(notifications: NotificationCenter, message: string): void {
 	notifications.show({
 		id: "clipboard-copy",
 		title: "Copied",
 		tone: "success",
 		message,
 	})
-	return true
 }

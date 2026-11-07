@@ -10,12 +10,12 @@
 	import xIcon from "@phosphor-icons/core/regular/x.svg?raw"
 	import Icon from "../shared/Icon.svelte"
 	import { FileState } from "../backend/bridge"
-	import type { BackupInfo } from "../backend/bridge"
+	import type { Backup } from "../backend/bridge"
 	import type { AccountStore } from "../accounts/account-store.svelte"
 	import Select from "../shared/Select.svelte"
 	import { replayValidationNudge } from "../shared/presence"
 	import Dialog from "../shared/Dialog.svelte"
-	import { checkPassword, passwordValid } from "./password-rules"
+	import { passwordRequirements, passwordValid } from "./password-rules"
 
 	let { store }: { store: AccountStore } = $props(),
 		password = $state(""),
@@ -23,7 +23,7 @@
 		hint = $state(""),
 		automaticUnlock = $state(true),
 		visible = $state(false),
-		backups = $state<BackupInfo[]>([]),
+		backups = $state<Backup[]>([]),
 		selectedBackup = $state(""),
 		resetConfirmation = $state(""),
 		recovery = $state(false),
@@ -32,7 +32,7 @@
 	const creating = $derived(store.vault.fileState === FileState.FileStateEmpty),
 		incomplete = $derived(store.vault.fileState === FileState.FileStateIncomplete),
 		recoveryMode = $derived(incomplete || recovery),
-		rules = $derived(checkPassword(password)),
+		requirements = $derived(passwordRequirements(password)),
 		canCreate = $derived(
 			passwordValid(password) && password === confirmation && !store.busy,
 		)
@@ -175,7 +175,7 @@
 						autocomplete="current-password" />
 				</label>
 				<button
-					class="mt-3 btn-primary h-8 w-full"
+					class="mt-3 button-primary h-8 w-full"
 					type="button"
 					disabled={!password || store.busy}
 					onclick={() => void restore()}>
@@ -191,7 +191,7 @@
 				<input bind:value={resetConfirmation} autocomplete="off" />
 			</label>
 			<button
-				class="mt-3 btn-danger w-full"
+				class="mt-3 button-danger w-full"
 				type="button"
 				disabled={resetConfirmation !== "RESET" || store.busy}
 				onclick={() => void reset()}>
@@ -235,7 +235,7 @@
 					class="checklist"
 					data-touched={password !== "" || undefined}
 					aria-label="Password requirements">
-					{#each [[rules.length, "8-128 characters long"], [rules.uppercase, "At least one upper-case letter"], [rules.lowercase, "At least one lower-case letter"], [rules.digit, "At least one number"], [rules.special, "At least one special character"]] as requirement}
+					{#each requirements as requirement}
 						<li data-valid={requirement[0] || undefined}>
 							{#if requirement[0]}<Icon
 									svg={checkIcon}
@@ -291,7 +291,7 @@
 				</button>
 			</div>
 			<button
-				class="mt-3 btn-primary h-8 w-full"
+				class="mt-3 button-primary h-8 w-full"
 				type="submit"
 				disabled={creating || incomplete
 					? !canCreate

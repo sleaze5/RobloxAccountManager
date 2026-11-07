@@ -107,7 +107,7 @@
 									</span>{nickname}</span
 								>{/if}
 							{#if canNickname}<button
-									class="btn-ghost-sm"
+									class="button-ghost-sm"
 									type="button"
 									aria-label={nickname
 										? "Edit nickname"
@@ -145,7 +145,7 @@
 			{#if profile && !profile.relationship.self && !profile.unavailable?.includes("follow")}
 				{@const following = profile.relationship.following}
 				<button
-					class="btn"
+					class="button"
 					type="button"
 					disabled={store.updating !== null}
 					onclick={() => void store.setFollowing(person, !following)}>
@@ -162,14 +162,14 @@
 			{/if}
 			{#if request}
 				<button
-					class="btn-primary"
+					class="button-primary"
 					type="button"
 					disabled={store.responding !== null}
 					onclick={() => void store.respond(person, true)}>
 					{responding?.accept ? "Accepting…" : "Accept"}
 				</button>
 				<button
-					class="btn"
+					class="button"
 					type="button"
 					disabled={store.responding !== null}
 					onclick={() => void store.respond(person, false)}
@@ -178,7 +178,7 @@
 						: "Decline"}</button>
 			{/if}
 			<button
-				class="btn-icon"
+				class="button-icon"
 				type="button"
 				data-tooltip="Refresh profile"
 				aria-label={store.loadingProfile
@@ -202,7 +202,7 @@
 				{/if}
 			</button>
 			<button
-				class="btn-icon"
+				class="button-icon"
 				type="button"
 				aria-label={`More actions for ${personName(person)}`}
 				aria-haspopup="menu"
@@ -245,7 +245,7 @@
 						aria-label="Social links" />
 					{#each profile.socialLinks as link (link.name)}
 						<button
-							class="btn"
+							class="button"
 							type="button"
 							aria-label={`Open ${link.name} (${link.url})`}
 							data-tooltip={link.url}

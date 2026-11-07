@@ -74,9 +74,9 @@ export type {
 } from "../../../bindings/github.com/sleaze5/RobloxAccountManager/internal/accounts/models.js"
 export { FileState } from "../../../bindings/github.com/sleaze5/RobloxAccountManager/internal/storage/vault/models.js"
 export type {
-	BackupInfo,
+	Backup,
 	ExportDetails,
-	ExportInfo,
+	ExportFile,
 } from "../../../bindings/github.com/sleaze5/RobloxAccountManager/internal/storage/vault/models.js"
 export type {
 	AvatarHeadshotView,

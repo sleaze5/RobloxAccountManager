@@ -22,11 +22,11 @@ var knownLinuxClients = []knownClient{
 	{id: "mocktail", name: "Mocktail", desktop: "space.bigrat.mocktail.desktop"},
 }
 
-func listClients() []ClientInfo {
-	clients := make([]ClientInfo, 0, len(knownLinuxClients))
+func listClients() []RobloxClient {
+	clients := make([]RobloxClient, 0, len(knownLinuxClients))
 	for _, client := range knownLinuxClients {
 		_, installed := findDesktop(client.desktop)
-		clients = append(clients, ClientInfo{ID: client.id, Name: client.name, Installed: installed})
+		clients = append(clients, RobloxClient{ID: client.id, Name: client.name, Installed: installed})
 	}
 	return clients
 }
@@ -76,10 +76,10 @@ func resolveLinuxClient(preferred string) (knownClient, string, error) {
 }
 
 func findDesktop(name string) (string, bool) {
-	for _, dir := range applicationDirectories() {
-		path := filepath.Join(dir, name)
-		info, err := os.Stat(path)
-		if err == nil && info.Mode().IsRegular() {
+	for _, directory := range applicationDirectories() {
+		path := filepath.Join(directory, name)
+		desktopEntryStatus, err := os.Stat(path)
+		if err == nil && desktopEntryStatus.Mode().IsRegular() {
 			return path, true
 		}
 	}
@@ -88,17 +88,17 @@ func findDesktop(name string) (string, bool) {
 
 func applicationDirectories() []string {
 	seen := map[string]struct{}{}
-	dirs := make([]string, 0, 6)
-	add := func(dir string) {
-		if dir == "" {
+	directories := make([]string, 0, 6)
+	add := func(directory string) {
+		if directory == "" {
 			return
 		}
-		dir = filepath.Clean(dir)
-		if _, ok := seen[dir]; ok {
+		directory = filepath.Clean(directory)
+		if _, ok := seen[directory]; ok {
 			return
 		}
-		seen[dir] = struct{}{}
-		dirs = append(dirs, dir)
+		seen[directory] = struct{}{}
+		directories = append(directories, directory)
 	}
 	home, _ := os.UserHomeDir()
 	if dataHome := os.Getenv("XDG_DATA_HOME"); dataHome != "" {
@@ -106,32 +106,32 @@ func applicationDirectories() []string {
 	} else if home != "" {
 		add(filepath.Join(home, ".local", "share", "applications"))
 	}
-	dataDirs := os.Getenv("XDG_DATA_DIRS")
-	if dataDirs == "" {
-		dataDirs = "/usr/local/share" + string(filepath.ListSeparator) + "/usr/share"
+	dataDirectories := os.Getenv("XDG_DATA_DIRS")
+	if dataDirectories == "" {
+		dataDirectories = "/usr/local/share" + string(filepath.ListSeparator) + "/usr/share"
 	}
-	for _, dir := range filepath.SplitList(dataDirs) {
-		add(filepath.Join(dir, "applications"))
+	for _, directory := range filepath.SplitList(dataDirectories) {
+		add(filepath.Join(directory, "applications"))
 	}
 	if home != "" {
 		add(filepath.Join(home, ".local", "share", "flatpak", "exports", "share", "applications"))
 	}
 	add("/var/lib/flatpak/exports/share/applications")
-	return dirs
+	return directories
 }
 
 func defaultRobloxDesktop() string {
-	xdg, err := exec.LookPath("xdg-mime")
+	xdgMimePath, err := exec.LookPath("xdg-mime")
 	if err != nil {
 		return ""
 	}
 	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
 	defer cancel()
-	out, err := exec.CommandContext(ctx, xdg, "query", "default", "x-scheme-handler/roblox-player").Output()
+	defaultClientOutput, err := exec.CommandContext(ctx, xdgMimePath, "query", "default", "x-scheme-handler/roblox-player").Output()
 	if err != nil {
 		return ""
 	}
-	name := strings.TrimSpace(string(out))
+	name := strings.TrimSpace(string(defaultClientOutput))
 	if name == "" || strings.Contains(name, "/") || strings.Contains(name, `\`) || strings.Contains(name, "..") {
 		return ""
 	}

@@ -120,7 +120,7 @@
 
 {#snippet edit(kind: AccountEditKind, label: string)}
 	<button
-		class="-my-1 btn-ghost-sm self-center"
+		class="-my-1 button-ghost-sm self-center"
 		type="button"
 		aria-label={label}
 		data-tooltip={label}
@@ -220,7 +220,7 @@
 								<span>{pinLabels[snapshot.pin]}</span>
 								{#if snapshot.pin === PinState.PinLocked}
 									<button
-										class="-my-1 btn h-6 self-center"
+										class="-my-1 button h-6 self-center"
 										type="button"
 										onclick={() => onEdit("pin")}>Unlock</button>
 								{/if}

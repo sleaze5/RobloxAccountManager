@@ -87,7 +87,7 @@ func setProperties(hwnd uintptr, values *[4]string) error {
 
 	// RelaunchCommand (2), RelaunchIconResource (3), RelaunchDisplayNameResource
 	// (4), then ID (5). Setting ID last tells Explorer to refresh the complete set.
-	var clearErr error
+	var clearError error
 	for index := range 4 {
 		key := propertyKey{format: appUserModelID, id: uint32(index + 2)}
 		value := propertyValue{}
@@ -106,8 +106,8 @@ func setProperties(hwnd uintptr, values *[4]string) error {
 			if values != nil {
 				return err
 			}
-			clearErr = errors.Join(clearErr, err)
+			clearError = errors.Join(clearError, err)
 		}
 	}
-	return clearErr
+	return clearError
 }

@@ -2,9 +2,9 @@
 
 Platform rules are in [PLATFORM.md](./PLATFORM.md). Git rules are in [GIT.md](./GIT.md).
 
-`internal/appmeta/VERSION` is the only source of the application version. It uses `MAJOR.MINOR.PATCH` with an optional `-PRERELEASE` suffix. Go embeds it, the frontend reads it as `APP_VERSION`, and the build writes it into the Windows version resource. Do not write the version anywhere else.
+`internal/appmeta/VERSION` is the only source of the application version. It uses `MAJOR.MINOR.PATCH` with an optional `-PRERELEASE` suffix. Go embeds it, and the build writes it into the Windows version resource. Do not write the version anywhere else.
 
-To release, change `VERSION`, run `go tool -modfile build/tools/go.mod task fix`, get the change into `main` as [GIT.md](./GIT.md) describes, and run the manual "Release" workflow in `.github/workflows/release.yml`. The workflow first checks that it runs on `main` and that tag `v<version>` does not exist. Only a confirmed "not found" answer passes the tag check. Any other error stops the release, because `gh release create` attaches a release to an existing tag and ignores `--target`. The check job defines the release targets once. They drive the build matrix and the targets that release preparation expects. The workflow validates its own commit and does not rely on an earlier "Check" run: `.github/workflows/prepare-frontend.yml` checks the frontend and `.github/workflows/validate-go.yml` checks the Go source on every operating system. The frontend is prepared once on Linux and reaches each build as an artifact of the same run. The workflow builds Linux on Ubuntu 24.04, macOS on macOS 15, and Windows on Windows Server 2025 in parallel with Go validation, through the reusable `.github/workflows/build-targets.yml`, and keeps the builds for 7 days. The macOS job builds both architectures on Apple silicon. The Windows job builds x64 and cross-compiles ARM64 with a pinned, checksum-verified llvm-mingw release. A build fails when it changes source files. The Windows job pauses Defender real-time scanning, because it slows builds on the disposable runners. After validation and every build succeed, the publish job on Ubuntu 24.04 runs the `release:prepare` task and creates the release. The workflow publishes:
+To release, change `VERSION`, run `go tool -modfile build/tools/go.mod task fix`, and get the change into `main` as [GIT.md](./GIT.md) describes. A push to `main` that changes `VERSION` starts the "Release" workflow in `.github/workflows/release.yml`. You can also start it manually. The workflow first checks that it runs on `main` and that tag `v<version>` does not exist. Only a confirmed "not found" answer passes the tag check. Any other error stops the release, because `gh release create` attaches a release to an existing tag and ignores `--target`. The check job defines the release targets once. They drive the build matrix and the targets that release preparation expects. The workflow validates its own commit and does not rely on an earlier "Check" run: `.github/workflows/prepare-frontend.yml` checks the frontend and `.github/workflows/validate-go.yml` checks the Go source on every operating system. The frontend is prepared once on Linux and reaches each build as an artifact of the same run. The workflow builds Linux on Ubuntu 24.04, macOS on macOS 15, and Windows on Windows Server 2025 in parallel with Go validation, through the reusable `.github/workflows/build-targets.yml`, and keeps the builds for 7 days. The macOS job builds both architectures on Apple silicon. The Windows job builds x64 and cross-compiles ARM64 without cgo. A build fails when it changes source files. The Windows job pauses Defender real-time scanning, because it slows builds on the disposable runners. After validation and every build succeed, the publish job on Ubuntu 24.04 runs the `release:prepare` task and creates the release. The workflow publishes:
 
 - `RobloxAccountManager.exe`: the Windows executable for manual download.
 - `RobloxAccountManager-windows-x64.zip`: the Windows updater artifact.
@@ -47,8 +47,6 @@ The frontend bindings and production assets are the same for every target, so th
 
 To test a build without a release, run the "Build" workflow from the Actions tab and choose the branch and the target. It validates the commit like a release does. The run keeps the packaged files for 7 days, with the same names as release assets. Test builds are not added to the update manifest.
 
-The pinned llvm-mingw release for Windows ARM64 is set up by `.github/actions/setup-llvm-mingw`. Change its version and checksum there.
-
 ## Tasks
 
 The `build` task is the complete local workflow: it runs `fix`, then `frontend:build`, then `build:<target>` for `TARGET`, which defaults to the host. CI runs the same steps as separate tasks, so it can prepare the frontend once and compile each target from it:
@@ -68,7 +66,7 @@ The `check` task runs two scopes in parallel, and each runs its own steps in par
     - `check:go`: Go formatting, and whether the `go.mod` and `go.sum` files of the application and of `build/tools` are tidy.
 - `check:native` runs golangci-lint and `go build`. Go compiles only the files of the current operating system, so this scope must run on each one.
 
-The `fix` task still applies every fix, including golangci-lint fixes, and then runs the `check` task. It first sets `@wailsio/runtime` to the Wails version in `go.mod`, so `go.mod` is the only place to change the Wails version. Dependabot and the `update` task update Wails only in `go.mod`.
+The `fix` task still applies every fix, including golangci-lint fixes, and then runs the `check` task. It first sets `@wailsio/runtime` to the Wails version in `go.mod`, so `go.mod` is the only place to change the Wails version. Dependabot ignores Wails, because its pull request could not change `@wailsio/runtime` with it. The `update` task updates Wails in both scopes, and its `fix` step updates `@wailsio/runtime` to match.
 
 golangci-lint runs the `go vet` analyzers, staticcheck, and the other linters that `.golangci.yml` enables. Its version is pinned in the separate tool module `build/tools`, and the tasks run it with `go tool -modfile=build/tools/go.mod`. The separate module keeps the linter's dependencies out of the application's `go.mod`, so they cannot change the dependency versions of the application. Dependabot updates golangci-lint, and the `update` task upgrades it.
 
@@ -78,7 +76,7 @@ The "Check" workflow in `.github/workflows/check.yml` runs on every pull request
 
 - **Scope** compares the changed files, including deleted and renamed ones. A push compares its before and after commits. A pull request compares its merge commit with the base it merges into, so changes on `main` that the branch does not have are not counted. It selects the other jobs:
     - Changes in `frontend/` or `scripts/` run **Frontend** with every frontend check.
-    - Changes in `internal/`, to a Go file, or to `go.sum` run **Go**, and **Frontend** without formatting and lint, because the bindings and `APP_VERSION` can change.
+    - Changes in `internal/`, to a Go file, or to `go.sum` run **Go**, and **Frontend** without formatting and lint, because the bindings can change.
     - Changes only to documentation, `AGENTS.md`, the license files, `.claude/`, or `assets/showcase/` run neither.
     - Any other change, including `go.mod`, which `check:frontend:source` compares with `@wailsio/runtime`, a missing base, and a manual run, runs everything.
 - **Frontend** runs `.github/workflows/prepare-frontend.yml`, which is described under "Caches".

@@ -19,7 +19,6 @@ var accountProfileOperationID atomic.Uint64
 
 type AccountProfileSnapshot struct {
 	AccountID       int64                            `json:"accountId"`
-	FetchedAtMs     int64                            `json:"fetchedAtMs"`
 	Robux           *int64                           `json:"robux"`
 	PendingRobux    *int64                           `json:"pendingRobux"`
 	AgeBracket      *int                             `json:"ageBracket"`
@@ -75,7 +74,6 @@ func (service *Service) GetAccountProfile(ctx context.Context, accountID int64) 
 	}
 	profile.Unavailable = unavailable
 	profile.AgeGroup, profile.AgeVerification = age.group, age.verification()
-	profile.FetchedAtMs = time.Now().UnixMilli()
 	logger.Debug("account profile read finished", "duration_ms", time.Since(started).Milliseconds(), "failed_sections", len(profile.Unavailable))
 	return profile, nil
 }
@@ -207,13 +205,13 @@ func profileError(kind roblox.ErrorKind, message string) error {
 }
 
 func (service *Service) readProfileAccount(ctx context.Context, accountID, version, userID int64, profile *AccountProfileSnapshot) error {
-	info, err := service.users.AccountInfo(ctx, accountID, version, userID)
+	accountDetails, err := service.users.AccountInfo(ctx, accountID, version, userID)
 	if err == nil {
-		profile.Premium, profile.Plus = info.IsPremium, info.HasRobloxSubscription
-		if info.AgeBracket != nil && (*info.AgeBracket == 0 || *info.AgeBracket == 1) {
-			profile.AgeBracket = info.AgeBracket
+		profile.Premium, profile.Plus = accountDetails.IsPremium, accountDetails.HasRobloxSubscription
+		if accountDetails.AgeBracket != nil && (*accountDetails.AgeBracket == 0 || *accountDetails.AgeBracket == 1) {
+			profile.AgeBracket = accountDetails.AgeBracket
 		}
-		country := strings.ToUpper(strings.TrimSpace(info.CountryCode))
+		country := strings.ToUpper(strings.TrimSpace(accountDetails.CountryCode))
 		if len(country) == 2 && country[0] >= 'A' && country[0] <= 'Z' && country[1] >= 'A' && country[1] <= 'Z' {
 			profile.CountryCode = country
 		}

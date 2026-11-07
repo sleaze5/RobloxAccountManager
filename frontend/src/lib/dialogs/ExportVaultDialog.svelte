@@ -6,12 +6,12 @@
 	import eyeSlashIcon from "@phosphor-icons/core/regular/eye-slash.svg?raw"
 	import xIcon from "@phosphor-icons/core/regular/x.svg?raw"
 	import Icon from "../shared/Icon.svelte"
-	import { accountBackend, type ExportInfo } from "../backend/bridge"
+	import { accountBackend, type ExportFile } from "../backend/bridge"
 	import { replayValidationNudge } from "../shared/presence"
 	import { errorMessage } from "../shared/errors"
 	import Dialog from "../shared/Dialog.svelte"
 	import type { NotificationCenter } from "../notifications/notification-center.svelte"
-	import { checkPassword, passwordValid } from "./password-rules"
+	import { passwordRequirements, passwordValid } from "./password-rules"
 	import { copyPath, fileName } from "./vault-transfer"
 
 	let {
@@ -27,15 +27,10 @@
 		visible = $state(false),
 		exporting = $state(false),
 		error = $state(""),
-		exported = $state<ExportInfo | null>(null),
+		exported = $state<ExportFile | null>(null),
 		card = $state<HTMLDivElement>()
-	const rules = $derived(checkPassword(password)),
-		requirements = $derived<[boolean, string][]>([
-			[rules.length, "8-128 characters long"],
-			[rules.uppercase, "At least one upper-case letter"],
-			[rules.lowercase, "At least one lower-case letter"],
-			[rules.digit, "At least one number"],
-			[rules.special, "At least one special character"],
+	const requirements = $derived<[boolean, string][]>([
+			...passwordRequirements(password),
 			[password !== "" && password === confirmation, "Passwords match"],
 		]),
 		hintHasPassword = $derived(
@@ -118,7 +113,7 @@
 					)}</span>
 			</span>
 			<button
-				class="btn-icon"
+				class="button-icon"
 				type="button"
 				aria-label="Copy file path"
 				data-tooltip="Copy file path"
@@ -131,7 +126,7 @@
 			file.
 		</p>
 		<div class="dialog-actions">
-			<button class="btn-primary" type="button" onclick={onClose}>Done</button>
+			<button class="button-primary" type="button" onclick={onClose}>Done</button>
 		</div>
 	{:else}
 		<form
@@ -209,10 +204,13 @@
 				<div class="mt-3 notice-error" role="alert">{error}</div>
 			{/if}
 			<div class="dialog-actions">
-				<button class="btn" type="button" disabled={exporting} onclick={close}
-					>Cancel</button>
 				<button
-					class="btn-primary"
+					class="button"
+					type="button"
+					disabled={exporting}
+					onclick={close}>Cancel</button>
+				<button
+					class="button-primary"
 					type="submit"
 					disabled={!passwordValid(password) ||
 						password !== confirmation ||

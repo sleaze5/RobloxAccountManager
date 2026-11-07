@@ -147,14 +147,14 @@ func readFile(ctx context.Context, root *os.Root, name string) (Session, error) 
 		return session, fmt.Errorf("open Roblox log: %w", err)
 	}
 	defer func() { _ = file.Close() }()
-	info, err := file.Stat()
+	logFileStatus, err := file.Stat()
 	if err != nil {
 		return session, fmt.Errorf("inspect Roblox log: %w", err)
 	}
-	if !info.Mode().IsRegular() {
+	if !logFileStatus.Mode().IsRegular() {
 		return session, errors.New("not a regular log file")
 	}
-	session.SizeBytes = info.Size()
-	err = parse(ctx, io.LimitReader(file, info.Size()), &session)
+	session.SizeBytes = logFileStatus.Size()
+	err = parse(ctx, io.LimitReader(file, logFileStatus.Size()), &session)
 	return session, err
 }

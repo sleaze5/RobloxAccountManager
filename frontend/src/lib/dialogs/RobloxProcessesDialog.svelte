@@ -114,7 +114,7 @@
 		<h2 id="roblox-process-title">Close Roblox processes</h2>
 		<div class="flex gap-1">
 			<button
-				class="btn-ghost-sm"
+				class="button-ghost-sm"
 				type="button"
 				aria-label="Refresh process list"
 				data-tooltip="Refresh process list"
@@ -132,7 +132,7 @@
 						aria-hidden="true" />{/if}
 			</button>
 			<button
-				class="btn-ghost-sm"
+				class="button-ghost-sm"
 				type="button"
 				aria-label="Cancel"
 				disabled={killing}
@@ -223,13 +223,13 @@
 		</div>{/if}
 	<div class="dialog-actions">
 		<button
-			class="btn"
+			class="button"
 			bind:this={cancelButton}
 			type="button"
 			disabled={killing}
 			onclick={dismiss}>Cancel</button>
 		<button
-			class="btn-danger"
+			class="button-danger"
 			type="button"
 			disabled={loading ||
 				killing ||

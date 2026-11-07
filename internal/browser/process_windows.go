@@ -153,18 +153,18 @@ func startBrowserWithPipes(options ProcessOptions, launchToken windows.Token, pi
 	startup.ProcThreadAttributeList = attributes.List()
 	information := windows.ProcessInformation{}
 	flags := browserCreationFlags()
-	var createErr error
+	var createError error
 	if launchToken != 0 {
-		createErr = windows.CreateProcessAsUser(launchToken, executable, commandLine, nil, nil, true, flags, nil, directory, (*windows.StartupInfo)(unsafe.Pointer(&startup)), &information)
+		createError = windows.CreateProcessAsUser(launchToken, executable, commandLine, nil, nil, true, flags, nil, directory, (*windows.StartupInfo)(unsafe.Pointer(&startup)), &information)
 	} else {
-		createErr = windows.CreateProcess(executable, commandLine, nil, nil, true, flags, nil, directory, (*windows.StartupInfo)(unsafe.Pointer(&startup)), &information)
+		createError = windows.CreateProcess(executable, commandLine, nil, nil, true, flags, nil, directory, (*windows.StartupInfo)(unsafe.Pointer(&startup)), &information)
 	}
 	// UpdateProcThreadAttribute retains pointers to these arrays until process
 	// creation completes. Keep that ownership explicit across the syscall.
 	runtime.KeepAlive(handles)
 	runtime.KeepAlive(jobs)
-	if createErr != nil {
-		return nil, fmt.Errorf("start Chrome for Testing: %w", createErr)
+	if createError != nil {
+		return nil, fmt.Errorf("start Chrome for Testing: %w", createError)
 	}
 	windows.CloseHandle(information.Thread)
 	if information.Process == 0 {
@@ -209,11 +209,11 @@ func browserCommand(options ProcessOptions, launchToken windows.Token, pipes *br
 	}
 	commandLine, err := windows.UTF16PtrFromString(windows.ComposeCommandLine(arguments))
 	if err != nil {
-		return nil, nil, nil, fmt.Errorf("encode browser path: %w", err)
+		return nil, nil, nil, fmt.Errorf("encode browser command line: %w", err)
 	}
 	executable, err := windows.UTF16PtrFromString(options.Executable)
 	if err != nil {
-		return nil, nil, nil, fmt.Errorf("encode browser command line: %w", err)
+		return nil, nil, nil, fmt.Errorf("encode browser path: %w", err)
 	}
 	directory, err := windows.UTF16PtrFromString(options.UserDataPath)
 	if err != nil {
@@ -234,10 +234,10 @@ func browserCreationFlags() uint32 {
 
 func verifyProcessInJob(process, job windows.Handle) error {
 	var result int32
-	r1, _, callErr := isProcessInJob.Call(uintptr(process), uintptr(job), uintptr(unsafe.Pointer(&result)))
-	if r1 == 0 {
-		if !errors.Is(callErr, windows.ERROR_SUCCESS) {
-			return fmt.Errorf("check browser job membership: %w", callErr)
+	callSucceeded, _, callError := isProcessInJob.Call(uintptr(process), uintptr(job), uintptr(unsafe.Pointer(&result)))
+	if callSucceeded == 0 {
+		if !errors.Is(callError, windows.ERROR_SUCCESS) {
+			return fmt.Errorf("check browser job membership: %w", callError)
 		}
 		return errors.New("could not verify session containment")
 	}
@@ -352,9 +352,6 @@ func (process *windowsBrowserProcess) ExitError() error {
 
 func (process *windowsBrowserProcess) Wait(timeout time.Duration) bool {
 	milliseconds := uint32(max(timeout.Milliseconds(), 0))
-	if timeout <= 0 {
-		milliseconds = 0
-	}
 	result, _ := windows.WaitForSingleObject(process.process, milliseconds)
 	return result == waitObjectZero
 }
@@ -436,10 +433,10 @@ func (process *windowsBrowserProcess) Focus() error {
 	if target == 0 {
 		return errors.New("the browser window is not available")
 	}
-	result, _, callErr := setForegroundWindow.Call(uintptr(target))
+	result, _, callError := setForegroundWindow.Call(uintptr(target))
 	if result == 0 {
-		if !errors.Is(callErr, windows.ERROR_SUCCESS) {
-			return fmt.Errorf("focus browser window: %w", callErr)
+		if !errors.Is(callError, windows.ERROR_SUCCESS) {
+			return fmt.Errorf("focus browser window: %w", callError)
 		}
 		return errors.New("windows refused to focus the browser")
 	}

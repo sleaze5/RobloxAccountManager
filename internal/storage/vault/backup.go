@@ -21,7 +21,7 @@ const (
 	retainedBackups  = 3
 )
 
-type BackupInfo struct {
+type Backup struct {
 	Name        string `json:"name"`
 	CreatedAtMS int64  `json:"createdAtMs"`
 }
@@ -32,20 +32,20 @@ type execer interface {
 
 // BumpRevision must run in every transaction that changes vault data, so that
 // MaybeCreateBackup sees the change.
-func BumpRevision(ctx context.Context, db execer) error {
-	if _, err := db.ExecContext(ctx, `UPDATE vault_state SET storage_revision = storage_revision + 1 WHERE singleton = 1`); err != nil {
+func BumpRevision(ctx context.Context, database execer) error {
+	if _, err := database.ExecContext(ctx, `UPDATE vault_state SET storage_revision = storage_revision + 1 WHERE singleton = 1`); err != nil {
 		return fmt.Errorf("update storage revision: %w", err)
 	}
 	return nil
 }
 
 func (manager *Manager) MaybeCreateBackup(ctx context.Context) error {
-	db, release, err := manager.Lease(ctx)
+	database, release, err := manager.Lease(ctx)
 	if err != nil {
 		return err
 	}
 	var revision int64
-	if err := db.QueryRowContext(ctx, `SELECT storage_revision FROM vault_state WHERE singleton = 1`).Scan(&revision); err != nil {
+	if err := database.QueryRowContext(ctx, `SELECT storage_revision FROM vault_state WHERE singleton = 1`).Scan(&revision); err != nil {
 		release()
 		return fmt.Errorf("read storage revision: %w", err)
 	}
@@ -59,8 +59,8 @@ func (manager *Manager) MaybeCreateBackup(ctx context.Context) error {
 		if time.Since(time.UnixMilli(newest.CreatedAtMS)) < 24*time.Hour {
 			return nil
 		}
-		backupRevision, verifyErr := manager.backupRevision(ctx, newest.Name)
-		if verifyErr == nil && backupRevision == revision {
+		backupRevision, verifyError := manager.backupRevision(ctx, newest.Name)
+		if verifyError == nil && backupRevision == revision {
 			return nil
 		}
 	}
@@ -68,20 +68,19 @@ func (manager *Manager) MaybeCreateBackup(ctx context.Context) error {
 }
 
 func (manager *Manager) CreateBackup(ctx context.Context) error {
-	db, release, err := manager.Lease(ctx)
+	database, release, err := manager.Lease(ctx)
 	if err != nil {
 		return err
 	}
 	defer release()
-	return manager.writeBackup(ctx, db)
+	return manager.writeBackup(ctx, database)
 }
 
-func (manager *Manager) writeBackup(ctx context.Context, db *sql.DB) error {
-	manager.mu.Lock()
-	dek := append([]byte(nil), manager.dek...)
-	identifier := manager.vaultID
-	manager.mu.Unlock()
-	defer wipe(dek)
+func (manager *Manager) writeBackup(ctx context.Context, database *sql.DB) error {
+	manager.backupMutex.Lock()
+	defer manager.backupMutex.Unlock()
+	vaultKey, identifier := manager.currentKey()
+	defer wipe(vaultKey)
 	if err := appdata.PreparePrivateDirectory(manager.paths.BackupsRoot); err != nil {
 		return err
 	}
@@ -98,7 +97,7 @@ func (manager *Manager) writeBackup(ctx context.Context, db *sql.DB) error {
 		}
 	}()
 	destination := filepath.Join(temporary, "vault.db")
-	if err := snapshotDatabase(ctx, db, destination, dek); err != nil {
+	if err := snapshotDatabase(ctx, database, destination, vaultKey); err != nil {
 		return err
 	}
 	if err := appdata.RestrictFile(destination); err != nil {
@@ -111,7 +110,7 @@ func (manager *Manager) writeBackup(ctx context.Context, db *sql.DB) error {
 	if err := appdata.WritePrivateFile(filepath.Join(temporary, "vault.key"), keyData); err != nil {
 		return err
 	}
-	verified, err := openAndVerify(ctx, destination, dek, identifier, manager.logger)
+	verified, err := openAndVerify(ctx, destination, vaultKey, identifier, manager.logger)
 	if err != nil {
 		return fmt.Errorf("verify backup: %w", err)
 	}
@@ -125,8 +124,8 @@ func (manager *Manager) writeBackup(ctx context.Context, db *sql.DB) error {
 	return manager.trimBackups()
 }
 
-func snapshotDatabase(ctx context.Context, source *sql.DB, destinationPath string, dek []byte) error {
-	destination, err := databaseDSN(destinationPath, dek)
+func snapshotDatabase(ctx context.Context, source *sql.DB, destinationPath string, vaultKey []byte) error {
+	destination, err := databaseDSN(destinationPath, vaultKey)
 	if err != nil {
 		return err
 	}
@@ -145,10 +144,10 @@ func snapshotDatabase(ctx context.Context, source *sql.DB, destinationPath strin
 			return fmt.Errorf("start SQLite backup: %w", err)
 		}
 		for {
-			done, stepErr := backup.Step(128)
-			if stepErr != nil {
+			done, stepError := backup.Step(128)
+			if stepError != nil {
 				_ = backup.Close()
-				return fmt.Errorf("copy SQLite backup pages: %w", stepErr)
+				return fmt.Errorf("copy SQLite backup pages: %w", stepError)
 			}
 			if done {
 				return backup.Close()
@@ -167,15 +166,21 @@ func snapshotDatabase(ctx context.Context, source *sql.DB, destinationPath strin
 	return nil
 }
 
-func (manager *Manager) ListBackups() ([]BackupInfo, error) {
+func (manager *Manager) ListBackups() ([]Backup, error) {
+	manager.backupMutex.Lock()
+	defer manager.backupMutex.Unlock()
+	return manager.listBackups()
+}
+
+func (manager *Manager) listBackups() ([]Backup, error) {
 	entries, err := os.ReadDir(manager.paths.BackupsRoot)
 	if errors.Is(err, os.ErrNotExist) {
-		return []BackupInfo{}, nil
+		return []Backup{}, nil
 	}
 	if err != nil {
 		return nil, fmt.Errorf("list vault backups: %w", err)
 	}
-	result := make([]BackupInfo, 0, len(entries))
+	result := make([]Backup, 0, len(entries))
 	for _, entry := range entries {
 		if !entry.IsDir() {
 			continue
@@ -196,14 +201,14 @@ func (manager *Manager) ListBackups() ([]BackupInfo, error) {
 		if _, err := readKeyFile(filepath.Join(manager.paths.BackupsRoot, entry.Name(), "vault.key")); errors.Is(err, ErrLegacyVault) {
 			continue
 		}
-		result = append(result, BackupInfo{Name: entry.Name(), CreatedAtMS: created.UnixMilli()})
+		result = append(result, Backup{Name: entry.Name(), CreatedAtMS: created.UnixMilli()})
 	}
 	sort.Slice(result, func(left, right int) bool { return result[left].Name > result[right].Name })
 	return result, nil
 }
 
 func (manager *Manager) trimBackups() error {
-	backups, err := manager.ListBackups()
+	backups, err := manager.listBackups()
 	if err != nil {
 		return err
 	}
@@ -219,6 +224,8 @@ func (manager *Manager) trimBackups() error {
 }
 
 func (manager *Manager) PurgeBackups() error {
+	manager.backupMutex.Lock()
+	defer manager.backupMutex.Unlock()
 	entries, err := os.ReadDir(manager.paths.BackupsRoot)
 	if errors.Is(err, os.ErrNotExist) {
 		return nil
@@ -230,8 +237,8 @@ func (manager *Manager) PurgeBackups() error {
 		if !entry.IsDir() {
 			continue
 		}
-		_, timestampErr := time.Parse(backupTimeFormat, entry.Name())
-		if timestampErr != nil && !strings.HasPrefix(entry.Name(), ".next-") {
+		_, timestampError := time.Parse(backupTimeFormat, entry.Name())
+		if timestampError != nil && !strings.HasPrefix(entry.Name(), ".next-") {
 			continue
 		}
 		if err := manager.removeManaged(filepath.Join(manager.paths.BackupsRoot, entry.Name()), manager.paths.BackupsRoot); err != nil {
@@ -257,18 +264,15 @@ func (manager *Manager) backupRevision(ctx context.Context, name string) (int64,
 	if err != nil {
 		return 0, err
 	}
-	manager.mu.Lock()
-	dek := append([]byte(nil), manager.dek...)
-	identifier := manager.vaultID
-	manager.mu.Unlock()
-	defer wipe(dek)
-	db, err := openAndVerify(ctx, filepath.Join(path, "vault.db"), dek, identifier, manager.logger)
+	vaultKey, identifier := manager.currentKey()
+	defer wipe(vaultKey)
+	database, err := openAndVerify(ctx, filepath.Join(path, "vault.db"), vaultKey, identifier, manager.logger)
 	if err != nil {
 		return 0, err
 	}
-	defer func() { _ = db.Close() }()
+	defer func() { _ = database.Close() }()
 	var revision int64
-	if err := db.QueryRowContext(ctx, `SELECT storage_revision FROM vault_state WHERE singleton = 1`).Scan(&revision); err != nil {
+	if err := database.QueryRowContext(ctx, `SELECT storage_revision FROM vault_state WHERE singleton = 1`).Scan(&revision); err != nil {
 		return 0, fmt.Errorf("read backup storage revision: %w", err)
 	}
 	return revision, nil
@@ -286,16 +290,16 @@ func (manager *Manager) RestoreBackup(ctx context.Context, name, password string
 	if err != nil {
 		return err
 	}
-	dek, err := key.unwrap(password)
+	vaultKey, err := key.unwrap(password)
 	if err != nil {
 		return err
 	}
-	defer wipe(dek)
-	db, err := openAndVerify(ctx, filepath.Join(backup, "vault.db"), dek, key.VaultID, manager.logger)
+	defer wipe(vaultKey)
+	database, err := openAndVerify(ctx, filepath.Join(backup, "vault.db"), vaultKey, key.VaultID, manager.logger)
 	if err != nil {
 		return err
 	}
-	if err := db.Close(); err != nil {
+	if err := database.Close(); err != nil {
 		return fmt.Errorf("close restored vault: %w", err)
 	}
 	if err := os.Remove(manager.paths.AutoUnlockKey); err != nil && !errors.Is(err, os.ErrNotExist) {

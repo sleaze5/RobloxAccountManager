@@ -2,6 +2,7 @@ import { Events } from "@wailsio/runtime"
 import type { NotificationCenter } from "../notifications/notification-center.svelte"
 import { accountBackend, UpdateStatus } from "../backend/bridge"
 import type { UpdateState } from "../backend/bridge"
+import { coalesce } from "../shared/coalesce"
 
 const notificationId = "application-update"
 
@@ -14,8 +15,6 @@ export class UpdateStore {
 	})
 	error = $state("")
 	#notifications: NotificationCenter | null = null
-	#reload: Promise<void> | null = null
-	#queued = false
 
 	mount(notifications: NotificationCenter): () => void {
 		this.#notifications = notifications
@@ -24,21 +23,7 @@ export class UpdateStore {
 		return remove
 	}
 
-	async refresh(): Promise<void> {
-		if (this.#reload) {
-			this.#queued = true
-			return this.#reload
-		}
-		this.#reload = this.#refreshQueued()
-		try {
-			await this.#reload
-		} finally {
-			this.#reload = null
-		}
-	}
-
-	async #refreshQueued(): Promise<void> {
-		this.#queued = false
+	readonly refresh = coalesce(async () => {
 		try {
 			const previous = this.state,
 				next = await accountBackend.GetUpdateState()
@@ -47,8 +32,7 @@ export class UpdateStore {
 		} catch {
 			this.error = "The update status could not be loaded."
 		}
-		if (this.#queued) await this.#refreshQueued()
-	}
+	})
 
 	#notify(previous: UpdateState, next: UpdateState): void {
 		if (previous.status === next.status) return

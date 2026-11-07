@@ -134,7 +134,7 @@ type UserInterfaceSettings struct {
 }
 
 type Store struct {
-	mu             sync.Mutex
+	mutex          sync.Mutex
 	path           string
 	settings       Settings
 	origin         string
@@ -164,7 +164,7 @@ func New(path string) *Store {
 }
 
 func Open(path string) (*Store, error) {
-	loaded, loadErr := load(path)
+	loaded, loadError := load(path)
 	store := &Store{
 		path:           path,
 		settings:       loaded.settings,
@@ -172,14 +172,14 @@ func Open(path string) (*Store, error) {
 		sourceVersion:  loaded.sourceVersion,
 		replacedFields: loaded.replacedFields,
 	}
-	if loadErr != nil {
+	if loadError != nil {
 		store.origin = "created"
-		if !errors.Is(loadErr, os.ErrNotExist) {
+		if !errors.Is(loadError, os.ErrNotExist) {
 			store.origin = "recovered"
 			if err := preserveUnreadableSettings(path); err != nil {
-				return nil, errors.Join(loadErr, err)
+				return nil, errors.Join(loadError, err)
 			}
-			store.recoveryError = loadErr
+			store.recoveryError = loadError
 		}
 		store.settings = defaults()
 	}
@@ -240,10 +240,10 @@ func Decode(data []byte) (Settings, error) {
 // Export leaves out the Roblox Player path and the vault timestamps, because they belong to this computer and vault.
 // Options for other operating systems stay in the export. They are saved on import and have no effect on other systems.
 func (store *Store) Export() ([]byte, error) {
-	store.mu.Lock()
+	store.mutex.Lock()
 	settings := store.settings
 	settings.Logging.EnabledLevels = cloneLoggingLevels(settings.Logging.EnabledLevels)
-	store.mu.Unlock()
+	store.mutex.Unlock()
 	settings.Roblox.PlayerPath = ""
 	settings.Vault = VaultSettings{PasswordTestIntervalDays: settings.Vault.PasswordTestIntervalDays}
 	data, err := json.Marshal(settings)
@@ -254,35 +254,28 @@ func (store *Store) Export() ([]byte, error) {
 }
 
 func (store *Store) Import(imported Settings, sections []Section) error {
-	store.mu.Lock()
-	defer store.mu.Unlock()
-	previous := store.settings
-	previous.Logging.EnabledLevels = cloneLoggingLevels(previous.Logging.EnabledLevels)
-	for _, section := range sections {
-		switch section {
-		case SectionPresence:
-			store.settings.Presence = imported.Presence
-		case SectionRoblox:
-			store.settings.Roblox.MultiInstance = imported.Roblox.MultiInstance
-			store.settings.Roblox.LinuxClient = imported.Roblox.LinuxClient
-		case SectionIntegrations:
-			store.settings.Integrations = imported.Integrations
-		case SectionUserInterface:
-			store.settings.UserInterface = imported.UserInterface
-		case SectionLogging:
-			store.settings.Logging.EnabledLevels = cloneLoggingLevels(imported.Logging.EnabledLevels)
-		case SectionVault:
-			store.settings.Vault.PasswordTestIntervalDays = imported.Vault.PasswordTestIntervalDays
-		default:
-			store.settings = previous
-			return fmt.Errorf("unknown settings section %q", section)
+	return store.update(func(settings *Settings) error {
+		for _, section := range sections {
+			switch section {
+			case SectionPresence:
+				settings.Presence = imported.Presence
+			case SectionRoblox:
+				settings.Roblox.MultiInstance = imported.Roblox.MultiInstance
+				settings.Roblox.LinuxClient = imported.Roblox.LinuxClient
+			case SectionIntegrations:
+				settings.Integrations = imported.Integrations
+			case SectionUserInterface:
+				settings.UserInterface = imported.UserInterface
+			case SectionLogging:
+				settings.Logging.EnabledLevels = cloneLoggingLevels(imported.Logging.EnabledLevels)
+			case SectionVault:
+				settings.Vault.PasswordTestIntervalDays = imported.Vault.PasswordTestIntervalDays
+			default:
+				return fmt.Errorf("unknown settings section %q", section)
+			}
 		}
-	}
-	if err := store.saveLocked(); err != nil {
-		store.settings = previous
-		return err
-	}
-	return nil
+		return nil
+	})
 }
 
 func decodeCurrent(document object) (Settings, []string) {
@@ -339,12 +332,12 @@ func (fields *fieldDecoder) presence(document object, path string, target *Prese
 	decodeField(fields, document, path+".intervalSeconds", &target.IntervalSeconds, validPresenceInterval)
 }
 
-func decodeField[T any](fields *fieldDecoder, document object, path string, target *T, valid func(T) bool) {
+func decodeField[FieldValue any](fields *fieldDecoder, document object, path string, target *FieldValue, valid func(FieldValue) bool) {
 	raw, ok := document[fieldName(path)]
 	if !ok {
 		return
 	}
-	var value T
+	var value FieldValue
 	if string(bytes.TrimSpace(raw)) == "null" || json.Unmarshal(raw, &value) != nil || valid != nil && !valid(value) {
 		fields.replaced = append(fields.replaced, path)
 		return
@@ -374,8 +367,8 @@ func defaults() Settings {
 }
 
 func (store *Store) Vault() VaultSettings {
-	store.mu.Lock()
-	defer store.mu.Unlock()
+	store.mutex.Lock()
+	defer store.mutex.Unlock()
 	settings := store.settings.Vault
 	if settings.LastPasswordTestedAtMs != 0 {
 		settings.LastPasswordTestedAt = time.UnixMilli(settings.LastPasswordTestedAtMs).UTC().Format(time.RFC3339Nano)
@@ -384,8 +377,8 @@ func (store *Store) Vault() VaultSettings {
 }
 
 func (store *Store) Logging() LoggingSettings {
-	store.mu.Lock()
-	defer store.mu.Unlock()
+	store.mutex.Lock()
+	defer store.mutex.Unlock()
 	settings := store.settings.Logging
 	settings.EnabledLevels = cloneLoggingLevels(settings.EnabledLevels)
 	return settings
@@ -402,231 +395,149 @@ func (settings LoggingSettings) EnabledLevelNames() []string {
 }
 
 func (store *Store) UserInterface() UserInterfaceSettings {
-	store.mu.Lock()
-	defer store.mu.Unlock()
+	store.mutex.Lock()
+	defer store.mutex.Unlock()
 	return store.settings.UserInterface
 }
 
 func (store *Store) Roblox() RobloxSettings {
-	store.mu.Lock()
-	defer store.mu.Unlock()
+	store.mutex.Lock()
+	defer store.mutex.Unlock()
 	return store.settings.Roblox
 }
 
 func (store *Store) Integrations() IntegrationSettings {
-	store.mu.Lock()
-	defer store.mu.Unlock()
+	store.mutex.Lock()
+	defer store.mutex.Unlock()
 	return store.settings.Integrations
 }
 
 func (store *Store) Presence() PresenceSettings {
-	store.mu.Lock()
-	defer store.mu.Unlock()
+	store.mutex.Lock()
+	defer store.mutex.Unlock()
 	return store.settings.Presence
 }
 
 func (store *Store) SetPresenceUpdates(scope PresenceScope, enabled bool, intervalSeconds int) error {
-	settings := PresenceUpdateSettings{Enabled: enabled, IntervalSeconds: intervalSeconds}
-	if err := validatePresenceSettings(settings); err != nil {
+	presence := PresenceUpdateSettings{Enabled: enabled, IntervalSeconds: intervalSeconds}
+	if err := validatePresenceSettings(presence); err != nil {
 		return err
 	}
-	store.mu.Lock()
-	defer store.mu.Unlock()
-	previous := store.settings.Presence
-	switch scope {
-	case PresenceAccounts:
-		store.settings.Presence.Accounts = settings
-	case PresenceProfile:
-		store.settings.Presence.Profile = settings
-	case PresenceSocial:
-		store.settings.Presence.Social = settings
-	default:
-		return fmt.Errorf("unknown presence update scope %q", scope)
-	}
-	if err := store.saveLocked(); err != nil {
-		store.settings.Presence = previous
-		return err
-	}
-	return nil
+	return store.update(func(settings *Settings) error {
+		switch scope {
+		case PresenceAccounts:
+			settings.Presence.Accounts = presence
+		case PresenceProfile:
+			settings.Presence.Profile = presence
+		case PresenceSocial:
+			settings.Presence.Social = presence
+		default:
+			return fmt.Errorf("unknown presence update scope %q", scope)
+		}
+		return nil
+	})
 }
 
 func (store *Store) SetMultiInstance(enabled bool) error {
-	store.mu.Lock()
-	defer store.mu.Unlock()
-	previous := store.settings.Roblox
-	store.settings.Roblox.MultiInstance = enabled
-	if err := store.saveLocked(); err != nil {
-		store.settings.Roblox = previous
-		return err
-	}
-	return nil
+	return store.set(func(settings *Settings) { settings.Roblox.MultiInstance = enabled })
 }
 
 func (store *Store) SetLinuxClient(client string) error {
 	if !validLinuxClient(client) {
 		return fmt.Errorf("unknown linux client %q", client)
 	}
-	store.mu.Lock()
-	defer store.mu.Unlock()
-	previous := store.settings.Roblox
-	store.settings.Roblox.LinuxClient = client
-	if err := store.saveLocked(); err != nil {
-		store.settings.Roblox = previous
-		return err
-	}
-	return nil
+	return store.set(func(settings *Settings) { settings.Roblox.LinuxClient = client })
 }
 
 func (store *Store) SetPlayerPath(path string) error {
 	if !validPlayerPath(path) {
 		return errors.New("the Roblox Player path is not valid UTF-8 or is longer than 4096 bytes")
 	}
-	store.mu.Lock()
-	defer store.mu.Unlock()
-	previous := store.settings.Roblox
-	store.settings.Roblox.PlayerPath = path
-	if err := store.saveLocked(); err != nil {
-		store.settings.Roblox = previous
-		return err
-	}
-	return nil
+	return store.set(func(settings *Settings) { settings.Roblox.PlayerPath = path })
 }
 
 func (store *Store) SetRoValraEnabled(enabled bool) error {
-	store.mu.Lock()
-	defer store.mu.Unlock()
-	previous := store.settings.Integrations
-	store.settings.Integrations.RoValra = enabled
-	if err := store.saveLocked(); err != nil {
-		store.settings.Integrations = previous
-		return err
-	}
-	return nil
+	return store.set(func(settings *Settings) { settings.Integrations.RoValra = enabled })
 }
 
 func (store *Store) SetRBXServersEnabled(enabled bool) error {
-	store.mu.Lock()
-	defer store.mu.Unlock()
-	previous := store.settings.Integrations
-	store.settings.Integrations.RBXServers = enabled
-	if err := store.saveLocked(); err != nil {
-		store.settings.Integrations = previous
-		return err
-	}
-	return nil
+	return store.set(func(settings *Settings) { settings.Integrations.RBXServers = enabled })
 }
 
 func (store *Store) SetRoValraRegion(region string) error {
-	store.mu.Lock()
-	defer store.mu.Unlock()
-	previous := store.settings.Integrations
-	store.settings.Integrations.RoValraRegion = region
-	if err := store.saveLocked(); err != nil {
-		store.settings.Integrations = previous
-		return err
-	}
-	return nil
+	return store.set(func(settings *Settings) { settings.Integrations.RoValraRegion = region })
 }
 
 func (store *Store) SetLoggingLevelEnabled(level string, enabled bool) error {
 	if !validLoggingLevel(level) {
 		return fmt.Errorf("unknown logging level %q", level)
 	}
-	store.mu.Lock()
-	defer store.mu.Unlock()
-	previous := cloneLoggingLevels(store.settings.Logging.EnabledLevels)
-	store.settings.Logging.EnabledLevels[level] = enabled
-	if err := store.saveLocked(); err != nil {
-		store.settings.Logging.EnabledLevels = previous
-		return err
-	}
-	return nil
+	return store.set(func(settings *Settings) { settings.Logging.EnabledLevels[level] = enabled })
 }
 
 func (store *Store) SetAllLoggingLevelsEnabled(enabled bool) error {
-	store.mu.Lock()
-	defer store.mu.Unlock()
-	previous := cloneLoggingLevels(store.settings.Logging.EnabledLevels)
-	for _, level := range loggingLevels {
-		store.settings.Logging.EnabledLevels[level] = enabled
-	}
-	if err := store.saveLocked(); err != nil {
-		store.settings.Logging.EnabledLevels = previous
-		return err
-	}
-	return nil
+	return store.set(func(settings *Settings) {
+		for _, level := range loggingLevels {
+			settings.Logging.EnabledLevels[level] = enabled
+		}
+	})
 }
 
 func (store *Store) SetTimestampFormats(timestampFormat, timestampHoverFormat string) error {
-	settings := UserInterfaceSettings{
-		TimestampFormat:      timestampFormat,
-		TimestampHoverFormat: timestampHoverFormat,
-	}
-	if err := validateUserInterfaceSettings(settings); err != nil {
+	if err := validateUserInterfaceSettings(UserInterfaceSettings{TimestampFormat: timestampFormat, TimestampHoverFormat: timestampHoverFormat}); err != nil {
 		return err
 	}
-	store.mu.Lock()
-	defer store.mu.Unlock()
-	previous := store.settings.UserInterface
-	store.settings.UserInterface.TimestampFormat = settings.TimestampFormat
-	store.settings.UserInterface.TimestampHoverFormat = settings.TimestampHoverFormat
-	if err := store.saveLocked(); err != nil {
-		store.settings.UserInterface = previous
-		return err
-	}
-	return nil
+	return store.set(func(settings *Settings) {
+		settings.UserInterface.TimestampFormat = timestampFormat
+		settings.UserInterface.TimestampHoverFormat = timestampHoverFormat
+	})
 }
 
 func (store *Store) SetMotion(motion MotionPreference) error {
 	if !validMotion(motion) {
 		return fmt.Errorf("unknown motion preference %q", motion)
 	}
-	store.mu.Lock()
-	defer store.mu.Unlock()
-	previous := store.settings.UserInterface
-	store.settings.UserInterface.Motion = motion
-	if err := store.saveLocked(); err != nil {
-		store.settings.UserInterface = previous
-		return err
-	}
-	return nil
+	return store.set(func(settings *Settings) { settings.UserInterface.Motion = motion })
 }
 
 func (store *Store) SetPasswordTestIntervalDays(days int) error {
 	if !validPasswordTestInterval(days) {
 		return errors.New("password test interval must be 0, 7, 30, or 90 days")
 	}
-	store.mu.Lock()
-	defer store.mu.Unlock()
-	previous := store.settings.Vault.PasswordTestIntervalDays
-	store.settings.Vault.PasswordTestIntervalDays = days
-	if err := store.saveLocked(); err != nil {
-		store.settings.Vault.PasswordTestIntervalDays = previous
-		return err
-	}
-	return nil
+	return store.set(func(settings *Settings) { settings.Vault.PasswordTestIntervalDays = days })
 }
 
 func (store *Store) RecordPasswordTested(at time.Time) error {
-	store.mu.Lock()
-	defer store.mu.Unlock()
-	previous := store.settings.Vault
-	store.settings.Vault.LastPasswordTestedAtMs = at.UTC().UnixMilli()
-	store.settings.Vault.PasswordReminderDismissedAtMs = 0
-	if err := store.saveLocked(); err != nil {
-		store.settings.Vault = previous
-		return err
-	}
-	return nil
+	return store.set(func(settings *Settings) {
+		settings.Vault.LastPasswordTestedAtMs = at.UTC().UnixMilli()
+		settings.Vault.PasswordReminderDismissedAtMs = 0
+	})
 }
 
 func (store *Store) DismissPasswordReminder(at time.Time) error {
-	store.mu.Lock()
-	defer store.mu.Unlock()
-	previous := store.settings.Vault.PasswordReminderDismissedAtMs
-	store.settings.Vault.PasswordReminderDismissedAtMs = at.UTC().UnixMilli()
+	return store.set(func(settings *Settings) { settings.Vault.PasswordReminderDismissedAtMs = at.UTC().UnixMilli() })
+}
+
+func (store *Store) set(change func(*Settings)) error {
+	return store.update(func(settings *Settings) error {
+		change(settings)
+		return nil
+	})
+}
+
+// update saves the changed settings, or keeps the previous settings if the
+// change or the save fails.
+func (store *Store) update(change func(*Settings) error) error {
+	store.mutex.Lock()
+	defer store.mutex.Unlock()
+	previous := store.settings
+	previous.Logging.EnabledLevels = cloneLoggingLevels(previous.Logging.EnabledLevels)
+	if err := change(&store.settings); err != nil {
+		store.settings = previous
+		return err
+	}
 	if err := store.saveLocked(); err != nil {
-		store.settings.Vault.PasswordReminderDismissedAtMs = previous
+		store.settings = previous
 		return err
 	}
 	return nil
@@ -642,11 +553,11 @@ func (store *Store) PasswordReminderDue(at time.Time) bool {
 }
 
 func preserveUnreadableSettings(path string) error {
-	info, err := os.Lstat(path)
+	settingsStatus, err := os.Lstat(path)
 	if err != nil {
 		return fmt.Errorf("inspect unreadable settings: %w", err)
 	}
-	if !info.Mode().IsRegular() {
+	if !settingsStatus.Mode().IsRegular() {
 		return errors.New("cannot back up settings: settings.json is not a regular file")
 	}
 	backup := path + ".bak"
@@ -660,14 +571,14 @@ func preserveUnreadableSettings(path string) error {
 }
 
 func archiveSettingsBackup(backup string) error {
-	info, err := os.Lstat(backup)
+	backupStatus, err := os.Lstat(backup)
 	if errors.Is(err, os.ErrNotExist) {
 		return nil
 	}
 	if err != nil {
 		return fmt.Errorf("inspect previous settings backup: %w", err)
 	}
-	if !info.Mode().IsRegular() {
+	if !backupStatus.Mode().IsRegular() {
 		return errors.New("cannot preserve previous settings backup: settings.json.bak is not a regular file")
 	}
 	pattern := fmt.Sprintf("%s.%d.*", filepath.Base(backup), time.Now().UnixMilli())
@@ -730,19 +641,18 @@ func validPresenceInterval(seconds int) bool {
 }
 
 func validateUserInterfaceSettings(settings UserInterfaceSettings) error {
-	for name, value := range map[string]string{
-		"timestampFormat":      settings.TimestampFormat,
-		"timestampHoverFormat": settings.TimestampHoverFormat,
-	} {
-		if _, err := timestampformat.Parse(value); err != nil {
-			return fmt.Errorf("%s: %w", name, err)
-		}
+	if _, err := timestampformat.Parse(settings.TimestampFormat); err != nil {
+		return fmt.Errorf("timestampFormat: %w", err)
+	}
+	if _, err := timestampformat.Parse(settings.TimestampHoverFormat); err != nil {
+		return fmt.Errorf("timestampHoverFormat: %w", err)
 	}
 	return nil
 }
 
 func validTimestampFormat(format string) bool {
-	return validateUserInterfaceSettings(UserInterfaceSettings{TimestampFormat: format, TimestampHoverFormat: format}) == nil
+	_, err := timestampformat.Parse(format)
+	return err == nil
 }
 
 func validTimestamp(milliseconds int64) bool { return milliseconds >= 0 }

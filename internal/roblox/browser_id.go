@@ -30,14 +30,14 @@ func formatAuthCookie(cookie, browserID string) string {
 }
 
 func (manager *SessionManager) BrowserID(accountID int64) string {
-	manager.mu.Lock()
-	defer manager.mu.Unlock()
+	manager.mutex.Lock()
+	defer manager.mutex.Unlock()
 	return manager.browserIDLocked(accountID, "")
 }
 
 func (manager *SessionManager) ResetBrowserIDs() {
-	manager.mu.Lock()
-	defer manager.mu.Unlock()
+	manager.mutex.Lock()
+	defer manager.mutex.Unlock()
 	clear(manager.browserIDs)
 }
 

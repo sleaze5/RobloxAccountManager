@@ -457,7 +457,7 @@ func (service *Games) details(ctx context.Context, ids []int64) (map[int64]games
 	if len(result) == 0 {
 		return result, nil
 	}
-	icons, err := service.icons(ctx, parameters)
+	icons, err := service.thumbnails(ctx, "/v1/games/icons", parameters)
 	if ctx.Err() != nil {
 		return nil, ctx.Err()
 	}
@@ -474,10 +474,6 @@ func (service *Games) details(ctx context.Context, ids []int64) (map[int64]games
 
 func (service *Games) placeIcons(ctx context.Context, ids []int64) (map[int64]string, error) {
 	return service.thumbnails(ctx, "/v1/places/gameicons", url.Values{"placeIds": {gameIDs(ids)}})
-}
-
-func (service *Games) icons(ctx context.Context, parameters url.Values) (map[int64]string, error) {
-	return service.thumbnails(ctx, "/v1/games/icons", parameters)
 }
 
 func (service *Games) thumbnails(ctx context.Context, path string, parameters url.Values) (map[int64]string, error) {

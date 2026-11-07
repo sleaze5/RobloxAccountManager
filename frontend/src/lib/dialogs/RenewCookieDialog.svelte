@@ -103,14 +103,14 @@
 	{/if}
 	<div class="dialog-actions">
 		{#if phase === "confirm"}
-			<button class="btn" type="button" onclick={onClose}>Cancel</button>
+			<button class="button" type="button" onclick={onClose}>Cancel</button>
 			<button
-				class="btn-warning"
+				class="button-warning"
 				type="button"
 				disabled={store.busy}
 				onclick={() => void renew()}>Renew cookie</button>
 		{:else}
-			<button class="btn" type="button" disabled={pending} onclick={onClose}
+			<button class="button" type="button" disabled={pending} onclick={onClose}
 				>{pending ? "Renewing…" : "Close"}</button>
 		{/if}
 	</div>

@@ -14,9 +14,9 @@ const conflictingSettingReason = "Roblox returned conflicting values. Refresh se
 func normalizeAccountSetting(definition accountSettingDefinition, reads accountSettingsReads) (AccountSettingView, bool) {
 	plain, optionsRaw, present := accountSettingDocuments(definition.key, reads)
 	if definition.optionsV2 {
-		v2, found := reads.optionsV2[string(definition.key)]
+		versionTwoOptions, found := reads.optionsV2[string(definition.key)]
 		plain = nil
-		optionsRaw = v2
+		optionsRaw = versionTwoOptions
 		present = present || found
 	}
 	if !present {
@@ -31,10 +31,10 @@ func normalizeAccountSetting(definition accountSettingDefinition, reads accountS
 	view := settingValueView(definition, current)
 	view.Options = []AccountSettingOption{}
 	view.UnavailableReason = settingReadOnlyReason(view)
-	if !definition.optionsV2 && !settingHasIndependentChoices(definition.key) && reads.optionsErr != nil {
+	if !definition.optionsV2 && !settingHasIndependentChoices(definition.key) && reads.optionsError != nil {
 		view.UnavailableReason = "Some settings could not be refreshed. Refresh settings before editing."
 	}
-	if definition.optionsV2 && reads.optionsV2Err != nil {
+	if definition.optionsV2 && reads.optionsV2Error != nil {
 		view.UnavailableReason = "Communication permissions could not be refreshed. Refresh settings before editing."
 	}
 	if metadataOK {
@@ -45,8 +45,8 @@ func normalizeAccountSetting(definition accountSettingDefinition, reads accountS
 		view.UnavailableReason = conflictingSettingReason
 	}
 	completeSettingOptions(definition, reads, &view)
-	slices.SortStableFunc(view.Options, func(a, b AccountSettingOption) int {
-		return settingOptionOrder(definition.key, a) - settingOptionOrder(definition.key, b)
+	slices.SortStableFunc(view.Options, func(left, right AccountSettingOption) int {
+		return settingOptionOrder(definition.key, left) - settingOptionOrder(definition.key, right)
 	})
 	finishSettingCapability(&view)
 	return view, true
@@ -261,14 +261,14 @@ func inheritedSettingReason(key AccountSettingKey) string {
 	}
 }
 
-func sameSettingValue(a, b AccountSettingView) bool {
-	if a.ValueState != b.ValueState {
+func sameSettingValue(left, right AccountSettingView) bool {
+	if left.ValueState != right.ValueState {
 		return false
 	}
-	if a.StringValue != nil && b.StringValue != nil {
-		return *a.StringValue == *b.StringValue
+	if left.StringValue != nil && right.StringValue != nil {
+		return *left.StringValue == *right.StringValue
 	}
-	return a.BoolValue != nil && b.BoolValue != nil && *a.BoolValue == *b.BoolValue
+	return left.BoolValue != nil && right.BoolValue != nil && *left.BoolValue == *right.BoolValue
 }
 
 func settingValuesConflict(definition accountSettingDefinition, plain, options json.RawMessage) bool {
@@ -293,7 +293,6 @@ func completeSettingOptions(definition accountSettingDefinition, reads accountSe
 		return
 	}
 	if definition.key == SettingVoiceOptIn || definition.key == SettingCamera {
-		view.UnavailableReason = ""
 		view.Options = nil
 		for _, value := range []bool{true, false} {
 			reason := voiceOptionReason(definition.key, value, reads.voice)
@@ -308,7 +307,6 @@ func completeSettingOptions(definition accountSettingDefinition, reads accountSe
 	if len(view.Options) != 0 || !settingHasIndependentChoices(definition.key) {
 		return
 	}
-	view.UnavailableReason = ""
 	if definition.boolean {
 		view.Options = []AccountSettingOption{
 			{BoolValue: new(true), Label: "On", Enabled: true},
@@ -316,11 +314,9 @@ func completeSettingOptions(definition accountSettingDefinition, reads accountSe
 		}
 		return
 	}
-	tokens := []string{"Enabled", "Disabled"}
-	for _, value := range tokens {
+	for _, value := range []string{"Enabled", "Disabled"} {
 		label, _ := settingValueLabel(definition.key, value)
-		valCopy := value
-		view.Options = append(view.Options, AccountSettingOption{StringValue: &valCopy, Label: label, Enabled: true})
+		view.Options = append(view.Options, AccountSettingOption{StringValue: &value, Label: label, Enabled: true})
 	}
 }
 

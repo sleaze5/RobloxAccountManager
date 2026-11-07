@@ -470,8 +470,8 @@ export class ServerStatsLoader {
 	}
 }
 
-export function formatUptime(startedMs: number, now = Date.now()): string {
-	const minutes = Math.max(0, Math.floor((now - startedMs) / 60_000)),
+export function formatUptime(startedMs: number): string {
+	const minutes = Math.max(0, Math.floor((Date.now() - startedMs) / 60_000)),
 		days = Math.floor(minutes / 1440),
 		hours = Math.floor((minutes % 1440) / 60)
 	if (days) return `${days}d ${hours}h`

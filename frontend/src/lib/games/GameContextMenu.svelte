@@ -8,7 +8,7 @@
 	import userCircleIcon from "@phosphor-icons/core/regular/user-circle.svg?raw"
 	import usersThreeIcon from "@phosphor-icons/core/regular/users-three.svg?raw"
 	import Icon from "../shared/Icon.svelte"
-	import { menuIn, menuKeyboard, menuOut, placeMenuAtPoint } from "../shared/presence"
+	import { floatMenuAtPoint, menuIn, menuKeyboard, menuOut } from "../shared/presence"
 	import type { GameMenu, GamesStore } from "./games-store.svelte"
 
 	let {
@@ -27,24 +27,6 @@
 		favoriteBusy = $derived(
 			store.savingFavorite || store.savingNickname || !store.favoritesLoaded,
 		)
-
-	function positionMenu(node: HTMLElement, position: GameMenu) {
-		let current = position
-		const reposition = () => {
-			placeMenuAtPoint(node, current)
-		}
-		reposition()
-		window.addEventListener("resize", reposition)
-		return {
-			update(next: GameMenu) {
-				current = next
-				reposition()
-			},
-			destroy() {
-				window.removeEventListener("resize", reposition)
-			},
-		}
-	}
 
 	function handleWindowClick(event: MouseEvent): void {
 		if (
@@ -69,7 +51,7 @@
 	aria-label={`${store.displayName(place)} actions`}
 	tabindex="-1"
 	data-game-menu
-	use:positionMenu={menu}
+	use:floatMenuAtPoint={menu}
 	use:menuKeyboard
 	in:menuIn
 	out:menuOut>

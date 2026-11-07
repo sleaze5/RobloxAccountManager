@@ -23,7 +23,7 @@
 
 <span class="flex shrink-0" data-tooltip={tooltip} data-tooltip-side="top-end">
 	<button
-		class="btn-icon size-8"
+		class="button-icon size-8"
 		type="button"
 		aria-label="Fill nearest server"
 		aria-busy={store.findingServer}

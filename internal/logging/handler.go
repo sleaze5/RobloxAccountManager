@@ -37,7 +37,7 @@ type redactingHandler struct {
 }
 
 type levelFilter struct {
-	mu      sync.RWMutex
+	mutex   sync.RWMutex
 	enabled map[slog.Level]bool
 }
 
@@ -52,28 +52,26 @@ func (filter *levelFilter) set(levels []Level) {
 	for _, level := range levels {
 		enabled[level.slogLevel()] = true
 	}
-	filter.mu.Lock()
+	filter.mutex.Lock()
 	filter.enabled = enabled
-	filter.mu.Unlock()
+	filter.mutex.Unlock()
 }
 
 func (filter *levelFilter) includes(level slog.Level) bool {
-	filter.mu.RLock()
-	defer filter.mu.RUnlock()
+	filter.mutex.RLock()
+	defer filter.mutex.RUnlock()
 	return filter.enabled[level]
 }
 
 func (filter *levelFilter) any() bool {
-	filter.mu.RLock()
-	defer filter.mu.RUnlock()
+	filter.mutex.RLock()
+	defer filter.mutex.RUnlock()
 	return len(filter.enabled) > 0
 }
 
 func (filter *levelFilter) allows(ctx context.Context, level slog.Level) bool {
-	if metadata, _ := ctx.Value(diagnosticContextKey{}).(bool); metadata {
-		filter.mu.RLock()
-		defer filter.mu.RUnlock()
-		return len(filter.enabled) > 0
+	if isDiagnostic(ctx) {
+		return filter.any()
 	}
 	return filter.includes(level)
 }

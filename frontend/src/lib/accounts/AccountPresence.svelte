@@ -125,7 +125,7 @@
 	</button>
 	{#if joinable}
 		<button
-			class="btn-ghost-sm"
+			class="button-ghost-sm"
 			type="button"
 			aria-label="Fill launch options"
 			data-tooltip="Fill launch options with this place and server"
@@ -135,7 +135,7 @@
 	{/if}
 	{#if inExperience && joinPlaceId > 0}
 		<button
-			class="btn-ghost-sm"
+			class="button-ghost-sm"
 			type="button"
 			aria-label="Find this place in Games"
 			data-tooltip="Find this place in Games"

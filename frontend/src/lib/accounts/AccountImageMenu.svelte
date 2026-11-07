@@ -3,7 +3,7 @@
 		ImageContextMenu,
 		WorkspaceState,
 	} from "../layout/workspace-state.svelte"
-	import { menuIn, menuOut, placeMenuAtPoint } from "../shared/presence"
+	import { floatMenuAtPoint, menuIn, menuKeyboard, menuOut } from "../shared/presence"
 	import type { AccountStore } from "./account-store.svelte"
 
 	let {
@@ -16,51 +16,6 @@
 		menu: ImageContextMenu
 	} = $props()
 	let copyingImage = $state(false)
-
-	function placeMenu(node: HTMLElement, position: ImageContextMenu) {
-		const previousFocus = document.activeElement
-		let current = position
-		const place = () => {
-			placeMenuAtPoint(node, current)
-		}
-		place()
-		node.querySelector<HTMLButtonElement>("button")?.focus({ preventScroll: true })
-		window.addEventListener("resize", place)
-		return {
-			update(next: ImageContextMenu) {
-				current = next
-				place()
-			},
-			destroy() {
-				window.removeEventListener("resize", place)
-				if (
-					node.contains(document.activeElement) &&
-					previousFocus instanceof HTMLElement &&
-					previousFocus.isConnected
-				) {
-					previousFocus.focus({ preventScroll: true })
-				}
-			},
-		}
-	}
-
-	function handleKeydown(event: KeyboardEvent): void {
-		if (!["ArrowDown", "ArrowUp", "Home", "End"].includes(event.key)) return
-		event.preventDefault()
-		const node = event.currentTarget as HTMLElement,
-			buttons = Array.from(
-				node.querySelectorAll<HTMLButtonElement>("button:not(:disabled)"),
-			),
-			current = buttons.findIndex((button) => button === document.activeElement),
-			direction = event.key === "ArrowUp" ? -1 : 1,
-			next =
-				event.key === "Home"
-					? 0
-					: event.key === "End"
-						? buttons.length - 1
-						: (current + direction + buttons.length) % buttons.length
-		buttons[next]?.focus()
-	}
 
 	async function copy(urlOnly: boolean): Promise<void> {
 		copyingImage = !urlOnly
@@ -77,8 +32,8 @@
 	role="menu"
 	aria-label="Image actions"
 	tabindex="-1"
-	onkeydown={handleKeydown}
-	use:placeMenu={menu}
+	use:floatMenuAtPoint={menu}
+	use:menuKeyboard
 	in:menuIn
 	out:menuOut>
 	<button

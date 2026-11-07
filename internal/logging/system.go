@@ -31,7 +31,7 @@ type System struct {
 	base   *slog.Logger
 	writer *rotatingWriter
 	filter *levelFilter
-	mu     sync.Mutex
+	mutex  sync.Mutex
 	crash  *crashCapture
 }
 
@@ -49,10 +49,7 @@ func open(config config) (*System, error) {
 			return nil, err
 		}
 	}
-	writer, err := newRotatingWriter(filepath.Join(config.Directory, config.LaunchID+".log"), maxLogBytes, retainedLogFiles, header, config.Resume)
-	if err != nil {
-		return nil, err
-	}
+	writer := newRotatingWriter(filepath.Join(config.Directory, config.LaunchID+".log"), header, config.Resume)
 	writer.held = config.Hold
 	if len(levels) > 0 {
 		if err := writer.ensureOpen(); err != nil {
@@ -79,8 +76,8 @@ func (system *System) Module(name string) *slog.Logger {
 }
 
 func (system *System) SetEnabledLevels(levels []Level) error {
-	system.mu.Lock()
-	defer system.mu.Unlock()
+	system.mutex.Lock()
+	defer system.mutex.Unlock()
 	if len(levels) > 0 {
 		if err := system.writer.ensureOpen(); err != nil {
 			return err
@@ -96,8 +93,8 @@ func (system *System) SetEnabledLevels(levels []Level) error {
 }
 
 func (system *System) Release(directory string) error {
-	system.mu.Lock()
-	defer system.mu.Unlock()
+	system.mutex.Lock()
+	defer system.mutex.Unlock()
 	if err := appdata.PreparePrivateDirectory(directory); err != nil {
 		return err
 	}
@@ -108,8 +105,8 @@ func (system *System) Close() error {
 	if system == nil || system.writer == nil {
 		return nil
 	}
-	system.mu.Lock()
-	defer system.mu.Unlock()
+	system.mutex.Lock()
+	defer system.mutex.Unlock()
 	if system.crash != nil {
 		if err := system.crash.close(); err != nil {
 			system.Module("logging").Error("close crash capture", "error", err)

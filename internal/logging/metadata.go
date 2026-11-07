@@ -23,8 +23,8 @@ func Diagnostic(logger *slog.Logger, message string, attributes ...any) {
 func launchHeader(id string) ([]byte, error) {
 	stamp, process, ok := strings.Cut(id, "-")
 	started, err := strconv.ParseInt(stamp, 10, 64)
-	pid, pidErr := strconv.Atoi(process)
-	if !ok || err != nil || started <= 0 || strconv.FormatInt(started, 10) != stamp || pidErr != nil || pid <= 0 || strconv.Itoa(pid) != process {
+	pid, pidError := strconv.Atoi(process)
+	if !ok || err != nil || started <= 0 || strconv.FormatInt(started, 10) != stamp || pidError != nil || pid <= 0 || strconv.Itoa(pid) != process {
 		return nil, errors.New("invalid launch identifier")
 	}
 	header := struct {

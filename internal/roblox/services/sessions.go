@@ -97,7 +97,6 @@ func (service *Auth) SignOutOtherSessions(ctx context.Context, accountID, versio
 		Authenticated: true, Method: http.MethodPost, URL: endpoint,
 		Body: []byte("{}"), ContentType: "application/json",
 		RequiresCSRF: true, MaxResponseSize: 64 << 10,
-		Retry: roblox.RetryPolicy{MaxAttempts: 1},
 	})
 	if response != nil && response.Status >= 200 && response.Status < 300 && response.RotatedSecretVersion > version {
 		return nil

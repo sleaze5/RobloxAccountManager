@@ -104,22 +104,22 @@ func (service *Service) ValidateExportPassword(password, confirmation, hint stri
 	return nil
 }
 
-func (service *Service) ExportVault(ctx context.Context, path, password, confirmation, hint string) (vault.ExportInfo, error) {
+func (service *Service) ExportVault(ctx context.Context, path, password, confirmation, hint string) (vault.ExportFile, error) {
 	if err := service.ValidateExportPassword(password, confirmation, hint); err != nil {
-		return vault.ExportInfo{}, err
+		return vault.ExportFile{}, err
 	}
 	data, err := service.exportData(ctx, "vault-export")
 	if err != nil {
-		return vault.ExportInfo{}, err
+		return vault.ExportFile{}, err
 	}
 	defer clear(data)
-	info, err := service.vault.WriteExport(path, password, hint, data)
+	writtenExport, err := service.vault.WriteExport(path, password, hint, data)
 	if err != nil {
 		service.logger.Error("export file could not be written", "operation", "vault-export", "error", err)
-		return vault.ExportInfo{}, transferError("The export file could not be saved. Check that the folder is writable and has free space, then try again.", err)
+		return vault.ExportFile{}, transferError("The export file could not be saved. Check that the folder is writable and has free space, then try again.", err)
 	}
 	service.logger.Info("vault exported", "operation", "vault-export")
-	return info, nil
+	return writtenExport, nil
 }
 
 func (service *Service) exportData(ctx context.Context, operation string) ([]byte, error) {
@@ -154,7 +154,7 @@ func (service *Service) ExportDetails(path string) (vault.ExportDetails, error) 
 }
 
 func (service *Service) OpenVaultExport(ctx context.Context, path, password string) (TransferPreview, error) {
-	info, data, err := service.vault.ReadExport(path, password)
+	openedExport, data, err := service.vault.ReadExport(path, password)
 	if err != nil {
 		return TransferPreview{}, service.exportReadError(err)
 	}
@@ -171,7 +171,7 @@ func (service *Service) OpenVaultExport(ctx context.Context, path, password stri
 		service.logger.Warn("exported settings could not be decoded", "operation", "vault-import", "error", err)
 		return TransferPreview{}, transferError("The settings in this export could not be read. Update the app and try again.", err)
 	}
-	preview, err := service.transferPreview(ctx, payload, info.CreatedAtMS)
+	preview, err := service.transferPreview(ctx, payload, openedExport.CreatedAtMS)
 	if err != nil {
 		return TransferPreview{}, err
 	}
@@ -371,8 +371,8 @@ func (service *Service) applyPendingSettings(ctx context.Context) error {
 	}
 	settings, err := appsettings.Decode(pending.Data)
 	if err != nil {
-		if clearErr := service.transfers.ClearPendingSettings(ctx); clearErr != nil {
-			return errors.Join(err, clearErr)
+		if clearError := service.transfers.ClearPendingSettings(ctx); clearError != nil {
+			return errors.Join(err, clearError)
 		}
 		return fmt.Errorf("decode pending settings: %w", err)
 	}
@@ -389,9 +389,9 @@ func (service *Service) applyPendingSettings(ctx context.Context) error {
 		}
 	}
 	if slices.Contains(sections, appsettings.SectionRoblox) {
-		service.launchMu.Lock()
+		service.launchMutex.Lock()
 		service.multiInstance.SetEnabled(service.settings.Roblox().MultiInstance)
-		service.launchMu.Unlock()
+		service.launchMutex.Unlock()
 	}
 	if err := service.transfers.ClearPendingSettings(ctx); err != nil {
 		return fmt.Errorf("clear saved settings import: %w", err)
@@ -447,8 +447,8 @@ func (service *Service) validateTransferCookies(ctx context.Context, selected []
 	for index, account := range candidates {
 		cookies[index] = account.Cookie
 	}
-	validationCtx, finishValidation := service.beginValidation(ctx)
-	outcomes := service.validateImportInputs(validationCtx, cookies)
+	validationContext, finishValidation := service.beginValidation(ctx)
+	outcomes := service.validateImportInputs(validationContext, cookies)
 	finishValidation()
 	for index, outcome := range outcomes {
 		account := candidates[index]
@@ -475,18 +475,18 @@ func transferUsername(account transferstore.Account) string {
 
 func (service *Service) storePendingTransfer(pending *pendingTransfer) {
 	pending.timer = time.AfterFunc(transferPreviewTTL, func() { service.DiscardVaultExport(pending.id) })
-	service.transferMu.Lock()
+	service.transferMutex.Lock()
 	previous := service.pendingTransfer
 	service.pendingTransfer = pending
-	service.transferMu.Unlock()
+	service.transferMutex.Unlock()
 	if previous != nil {
 		clearPendingTransfer(previous)
 	}
 }
 
 func (service *Service) takePendingTransfer(id string) (*pendingTransfer, bool) {
-	service.transferMu.Lock()
-	defer service.transferMu.Unlock()
+	service.transferMutex.Lock()
+	defer service.transferMutex.Unlock()
 	pending := service.pendingTransfer
 	if pending == nil || id == "" || pending.id != id {
 		return nil, false
@@ -496,10 +496,10 @@ func (service *Service) takePendingTransfer(id string) (*pendingTransfer, bool) 
 }
 
 func (service *Service) discardPendingTransfer() {
-	service.transferMu.Lock()
+	service.transferMutex.Lock()
 	pending := service.pendingTransfer
 	service.pendingTransfer = nil
-	service.transferMu.Unlock()
+	service.transferMutex.Unlock()
 	if pending != nil {
 		clearPendingTransfer(pending)
 	}

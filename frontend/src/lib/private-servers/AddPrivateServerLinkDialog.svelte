@@ -105,10 +105,10 @@
 			<div class="mt-3 notice-error" role="alert">{saved.actionError}</div>
 		{/if}
 		<div class="dialog-actions">
-			<button class="btn" type="button" disabled={saved.saving} onclick={close}
+			<button class="button" type="button" disabled={saved.saving} onclick={close}
 				>Cancel</button>
 			<button
-				class="btn-primary"
+				class="button-primary"
 				type="submit"
 				disabled={saved.saving || !link.trim()}>
 				{saved.saving ? "Saving…" : "Save link"}

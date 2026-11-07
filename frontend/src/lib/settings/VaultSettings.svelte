@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { matchesSearch, searchTerms } from "../shared/search"
 	import keyIcon from "@phosphor-icons/core/regular/key.svg?raw"
 	import lockKeyIcon from "@phosphor-icons/core/regular/lock-key.svg?raw"
 	import shieldCheckIcon from "@phosphor-icons/core/regular/shield-check.svg?raw"
@@ -25,12 +26,10 @@
 			onLock,
 		}: { store: AccountStore; query?: string; onLock: () => void } = $props(),
 		activeDialog = $state<ActiveDialog>(null),
-		normalizedQuery = $derived(query.trim().toLowerCase()),
-		searchTerms = $derived(normalizedQuery.split(/\s+/).filter(Boolean))
+		terms = $derived(searchTerms(query))
 
 	function matches(name: string, description: string): boolean {
-		const text = `vault security ${name} ${description}`.toLowerCase()
-		return searchTerms.every((term) => text.includes(term))
+		return matchesSearch(terms, `vault security ${name} ${description}`)
 	}
 
 	function openDialog(dialog: Exclude<ActiveDialog, null>): void {
@@ -72,7 +71,7 @@
 				</div>
 				<div class="flex items-center gap-2">
 					<button
-						class="btn"
+						class="button"
 						type="button"
 						disabled={store.busy}
 						onclick={() => openDialog("test")}>
@@ -80,7 +79,7 @@
 						Test password
 					</button>
 					<button
-						class="btn"
+						class="button"
 						type="button"
 						disabled={store.busy || !store.vault.unlocked}
 						onclick={onLock}>
@@ -125,7 +124,7 @@
 						>Rotate the vault encryption key and update automatic unlock.</span>
 				</div>
 				<button
-					class="btn"
+					class="button"
 					type="button"
 					disabled={store.busy}
 					onclick={() => openDialog("change")}>

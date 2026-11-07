@@ -62,7 +62,7 @@
 					>{sessions.sessions.length}</span
 				></span>
 			<button
-				class="-my-1 btn"
+				class="-my-1 button"
 				type="button"
 				disabled={others === 0 || sessions.loading || sessions.signingOut}
 				onclick={onSignOut}>Sign out other sessions</button>

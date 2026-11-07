@@ -27,14 +27,14 @@ type Vault interface {
 	MaybeCreateBackup(context.Context) error
 	CreateBackup(context.Context) error
 	PurgeBackups() error
-	ListBackups() ([]vault.BackupInfo, error)
+	ListBackups() ([]vault.Backup, error)
 	RestoreBackup(context.Context, string, string) error
 	ResetVault() error
 	SetAsideLegacyVault() error
 	ExportsDirectory() string
 	DefaultExportName() string
-	WriteExport(string, string, string, []byte) (vault.ExportInfo, error)
-	ReadExport(string, string) (vault.ExportInfo, []byte, error)
+	WriteExport(string, string, string, []byte) (vault.ExportFile, error)
+	ReadExport(string, string) (vault.ExportFile, []byte, error)
 	ReadExportDetails(string) (vault.ExportDetails, error)
 	RemoveMigration() error
 	MigrationAvailable() bool
@@ -46,7 +46,7 @@ type AccountRepository interface {
 	Create(context.Context, accounts.Identity, string, *time.Time) (accounts.AccountView, accounts.SessionRecord, error)
 	FindByRobloxUserID(context.Context, int64) (accounts.AccountView, error)
 	ReplaceCookie(context.Context, int64, accounts.Identity, string, *time.Time) (accounts.AccountView, accounts.SessionRecord, error)
-	RotateCookie(context.Context, int64, int64, string, *time.Time) (accounts.SessionRecord, bool, error)
+	RotateCookie(context.Context, int64, int64, string, *time.Time) (accounts.SessionRecord, error)
 	Remove(context.Context, int64) error
 	Page(context.Context, accounts.AccountQuery) (accounts.AccountPage, error)
 	Move(context.Context, int64, *int64, *int64) error

@@ -1,7 +1,6 @@
 package logging
 
 import (
-	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -11,32 +10,24 @@ import (
 const maxHeldBytes = 1 << 20
 
 type rotatingWriter struct {
-	mu       sync.Mutex
-	path     string
-	maxBytes int64
-	retained int
-	file     *os.File
-	size     int64
-	header   []byte
-	resume   bool
-	closed   bool
-	held     bool
-	pending  []byte
+	mutex   sync.Mutex
+	path    string
+	file    *os.File
+	size    int64
+	header  []byte
+	resume  bool
+	closed  bool
+	held    bool
+	pending []byte
 }
 
-func newRotatingWriter(path string, maxBytes int64, retained int, header []byte, resume bool) (*rotatingWriter, error) {
-	if maxBytes <= 0 {
-		return nil, errors.New("log size limit must be positive")
-	}
-	if retained < 1 {
-		return nil, errors.New("retained log count must be positive")
-	}
-	return &rotatingWriter{path: path, maxBytes: maxBytes, retained: retained, header: header, resume: resume}, nil
+func newRotatingWriter(path string, header []byte, resume bool) *rotatingWriter {
+	return &rotatingWriter{path: path, header: header, resume: resume}
 }
 
 func (writer *rotatingWriter) ensureOpen() error {
-	writer.mu.Lock()
-	defer writer.mu.Unlock()
+	writer.mutex.Lock()
+	defer writer.mutex.Unlock()
 	if writer.closed {
 		return os.ErrClosed
 	}
@@ -47,8 +38,8 @@ func (writer *rotatingWriter) ensureOpen() error {
 }
 
 func (writer *rotatingWriter) release(directory string, open bool) error {
-	writer.mu.Lock()
-	defer writer.mu.Unlock()
+	writer.mutex.Lock()
+	defer writer.mutex.Unlock()
 	if writer.closed {
 		return os.ErrClosed
 	}
@@ -74,8 +65,8 @@ func (writer *rotatingWriter) release(directory string, open bool) error {
 }
 
 func (writer *rotatingWriter) Write(data []byte) (int, error) {
-	writer.mu.Lock()
-	defer writer.mu.Unlock()
+	writer.mutex.Lock()
+	defer writer.mutex.Unlock()
 	if writer.held && !writer.closed {
 		if len(writer.pending)+len(data) <= maxHeldBytes {
 			writer.pending = append(writer.pending, data...)
@@ -85,7 +76,7 @@ func (writer *rotatingWriter) Write(data []byte) (int, error) {
 	if writer.file == nil {
 		return 0, os.ErrClosed
 	}
-	if writer.size > int64(len(writer.header)) && writer.size+int64(len(data)) > writer.maxBytes {
+	if writer.size > int64(len(writer.header)) && writer.size+int64(len(data)) > maxLogBytes {
 		if err := writer.rotate(); err != nil {
 			return 0, err
 		}
@@ -99,8 +90,8 @@ func (writer *rotatingWriter) Write(data []byte) (int, error) {
 }
 
 func (writer *rotatingWriter) Close() error {
-	writer.mu.Lock()
-	defer writer.mu.Unlock()
+	writer.mutex.Lock()
+	defer writer.mutex.Unlock()
 	writer.closed = true
 	if writer.file == nil {
 		return nil
@@ -114,8 +105,8 @@ func (writer *rotatingWriter) Close() error {
 }
 
 func (writer *rotatingWriter) Sync() error {
-	writer.mu.Lock()
-	defer writer.mu.Unlock()
+	writer.mutex.Lock()
+	defer writer.mutex.Unlock()
 	if writer.file == nil {
 		return nil
 	}
@@ -134,13 +125,13 @@ func (writer *rotatingWriter) open() error {
 	if err != nil {
 		return fmt.Errorf("open log file: %w", err)
 	}
-	info, err := file.Stat()
+	logFileStatus, err := file.Stat()
 	if err != nil {
 		_ = file.Close()
 		return fmt.Errorf("inspect log file: %w", err)
 	}
 	writer.file = file
-	writer.size = info.Size()
+	writer.size = logFileStatus.Size()
 	writer.resume = false
 	if writer.size == 0 {
 		written, err := file.Write(writer.header)
@@ -159,11 +150,11 @@ func (writer *rotatingWriter) rotate() error {
 		return fmt.Errorf("close log file for rotation: %w", err)
 	}
 	writer.file = nil
-	oldest := rotatedPath(writer.path, writer.retained)
+	oldest := rotatedPath(writer.path, retainedLogFiles)
 	if err := os.Remove(oldest); err != nil && !os.IsNotExist(err) {
 		return fmt.Errorf("remove oldest log file: %w", err)
 	}
-	for index := writer.retained - 1; index >= 1; index-- {
+	for index := retainedLogFiles - 1; index >= 1; index-- {
 		from := rotatedPath(writer.path, index)
 		to := rotatedPath(writer.path, index+1)
 		if err := os.Rename(from, to); err != nil && !os.IsNotExist(err) {

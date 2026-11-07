@@ -56,6 +56,7 @@
 	import { NotificationCenter } from "./lib/notifications/notification-center.svelte"
 	import SettingsPage from "./lib/settings/SettingsPage.svelte"
 	import { appSettings } from "./lib/settings/settings-store.svelte"
+	import { errorMessage } from "./lib/shared/errors"
 	import OperationError from "./lib/shared/OperationError.svelte"
 	import Tooltip from "./lib/shared/Tooltip.svelte"
 	import { updateStore } from "./lib/updates/update-store.svelte"
@@ -132,16 +133,33 @@
 		} else untrack(() => games.initialize())
 	})
 
+	function showLoadError(id: string, title: string, error: unknown): void {
+		notificationCenter.show({
+			id,
+			title,
+			tone: "error",
+			message: errorMessage(error, "Restart the application and try again."),
+		})
+	}
+
 	async function loadBuild(): Promise<void> {
 		try {
 			build = await accountBackend.GetBuild()
+		} catch (error) {
+			showLoadError("build-load", "Build details unavailable", error)
 		} finally {
 			developmentWarning = build && !build.release ? "open" : "closed"
 		}
 	}
 
 	async function loadAppLocation(): Promise<void> {
-		const location = await accountBackend.GetAppLocation()
+		let location: AppLocation
+		try {
+			location = await accountBackend.GetAppLocation()
+		} catch (error) {
+			showLoadError("location-load", "Data folder unavailable", error)
+			return
+		}
 		appLocation = location
 		if (location.moveError) {
 			notificationCenter.show({
@@ -327,7 +345,12 @@
 	}
 
 	async function openLockVault(): Promise<void> {
-		lockEffects = await browserStore.effects()
+		try {
+			lockEffects = await browserStore.effects()
+		} catch (error) {
+			showLoadError("lock-effects-load", "Vault not locked", error)
+			return
+		}
 		activeDialog = "lock-vault"
 	}
 

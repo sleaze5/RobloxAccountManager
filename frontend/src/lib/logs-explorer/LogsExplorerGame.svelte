@@ -61,7 +61,7 @@
 			{/if}
 		</div>
 		{#if place}<button
-				class="-ms-2 btn-ghost-sm shrink-0 self-start"
+				class="-ms-2 button-ghost-sm shrink-0 self-start"
 				type="button"
 				aria-label="Find this place in Games"
 				data-tooltip="Find this place in Games"

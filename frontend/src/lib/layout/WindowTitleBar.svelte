@@ -30,7 +30,7 @@
 	</div>
 	<div class="ml-auto flex h-full" style="--wails-draggable: no-drag">
 		<button
-			class="btn-ghost self-center"
+			class="button-ghost self-center"
 			type="button"
 			aria-label="Open repository"
 			data-tooltip="Open repository"

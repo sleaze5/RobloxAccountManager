@@ -158,11 +158,16 @@ tasks:
         cmds:
             - bun run ./scripts/update-cft-manifest.ts
 
-    build:windows-amd64:
-        desc: Build the Windows x64 executable. Runs on Windows. Needs the production frontend from frontend:build.
+    internal:require-frontend:
+        internal: true
         preconditions:
             - sh: test -s frontend/dist/index.html
               msg: The production frontend is missing. Run the build task, or frontend:build first.
+
+    build:windows-amd64:
+        desc: Build the Windows x64 executable. Runs on Windows. Needs the production frontend from frontend:build.
+        deps:
+            - task: internal:require-frontend
         cmds:
             - task: windows:internal:compile
               vars:
@@ -171,9 +176,8 @@ tasks:
 
     build:windows-arm64:
         desc: Cross-compile the Windows ARM64 executable. Runs on Windows. Needs the production frontend from frontend:build.
-        preconditions:
-            - sh: test -s frontend/dist/index.html
-              msg: The production frontend is missing. Run the build task, or frontend:build first.
+        deps:
+            - task: internal:require-frontend
         cmds:
             - task: windows:internal:compile
               vars:
@@ -182,9 +186,8 @@ tasks:
 
     build:linux-amd64:
         desc: Build the Linux x64 executable. Runs on Linux. Needs the production frontend from frontend:build.
-        preconditions:
-            - sh: test -s frontend/dist/index.html
-              msg: The production frontend is missing. Run the build task, or frontend:build first.
+        deps:
+            - task: internal:require-frontend
         cmds:
             - task: linux:internal:compile
               vars:
@@ -192,9 +195,8 @@ tasks:
 
     build:darwin-arm64:
         desc: Build the macOS Apple silicon app bundle. Runs on macOS. Needs the production frontend from frontend:build.
-        preconditions:
-            - sh: test -s frontend/dist/index.html
-              msg: The production frontend is missing. Run the build task, or frontend:build first.
+        deps:
+            - task: internal:require-frontend
         cmds:
             - task: darwin:internal:compile
               vars:
@@ -203,9 +205,8 @@ tasks:
 
     build:darwin-amd64:
         desc: Build the macOS Intel app bundle. Runs on macOS. Needs the production frontend from frontend:build.
-        preconditions:
-            - sh: test -s frontend/dist/index.html
-              msg: The production frontend is missing. Run the build task, or frontend:build first.
+        deps:
+            - task: internal:require-frontend
         cmds:
             - task: darwin:internal:compile
               vars:
@@ -222,10 +223,8 @@ tasks:
                 - TARGETS
                 - REPOSITORY
                 - SIGNING
-        env:
-            CGO_ENABLED: "0"
         cmds:
-            - bun run ./scripts/release-prepare.ts "{{.RELEASE_DIR}}" "{{.TARGETS}}" "{{.REPOSITORY}}" "{{.SIGNING}}"
+            - CGO_ENABLED=0 bun run ./scripts/release-prepare.ts "{{.RELEASE_DIR}}" "{{.TARGETS}}" "{{.REPOSITORY}}" "{{.SIGNING}}"
 
     clean:
         desc: Destructive and irreversible. Delete builds, dependencies, generated files, logs, and all portable data, including the account vault. Standard data roots are not touched. Asks for confirmation, and -y skips it.

@@ -2,6 +2,8 @@ import { readFile, writeFile } from "node:fs/promises"
 import { join, resolve } from "node:path"
 import { parseArgs } from "node:util"
 
+import { run } from "./run"
+
 type Version = { major: number; minor: number; patch: number; prerelease?: string }
 type Manifest = {
 	dependencies?: Record<string, string>
@@ -14,6 +16,7 @@ const frontend = join(root, "frontend")
 const manifestPath = join(frontend, "package.json")
 const goModPaths = [join(root, "go.mod"), join(root, "build", "tools", "go.mod")]
 const wailsRuntime = "@wailsio/runtime"
+const wailsModule = "github.com/wailsapp/wails/v3"
 
 const { values } = parseArgs({
 	options: {
@@ -23,18 +26,6 @@ const { values } = parseArgs({
 })
 if (values.all && values.uncovered) {
 	throw new Error("Pass either --all or --uncovered, not both")
-}
-
-async function run(cwd: string, ...command: string[]): Promise<string> {
-	const child = Bun.spawn(command, { cwd, stdout: "pipe", stderr: "inherit" })
-	const [output, code] = await Promise.all([
-		new Response(child.stdout).text(),
-		child.exited,
-	])
-	if (code !== 0) {
-		throw new Error(`${command.join(" ")} failed with exit code ${code}`)
-	}
-	return output
 }
 
 async function fetchVersions(name: string): Promise<string[]> {
@@ -122,7 +113,7 @@ function newestCompatible(current: string, candidates: string[]): string | undef
 function goVersions(text: string): Map<string, string> {
 	const versions = new Map<string, string>()
 	for (const [, name, version] of text.matchAll(
-		/^\s*(?:require\s+)?(toolchain|[\w.-]+\.[\w./-]+)\s+(\S+)/gm,
+		/^[ \t]*(?:require[ \t]+)?(toolchain|[\w.-]+\.[\w./-]+)[ \t]+(\S+)/gm,
 	)) {
 		if (name && version) {
 			versions.set(name, version)
@@ -182,6 +173,9 @@ const goBefore = await Promise.all(
 	goModPaths.map(async (path) => goVersions(await readFile(path, "utf8"))),
 )
 await run(root, "go", "get", "toolchain@latest")
+// Dependabot ignores Wails, because @wailsio/runtime must change with it. The
+// fix task that follows this script updates @wailsio/runtime to match.
+await run(root, "go", "get", `${wailsModule}@latest`)
 if (!values.uncovered) {
 	const modules = (
 		await run(

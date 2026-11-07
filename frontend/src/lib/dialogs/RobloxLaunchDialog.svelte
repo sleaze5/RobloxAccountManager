@@ -96,12 +96,12 @@
 		{#if error}<div class="mt-3 notice-error" role="alert">{error}</div>{/if}
 		<div class="dialog-actions">
 			<button
-				class="btn"
+				class="button"
 				type="button"
 				disabled={submitting}
 				onclick={() => void respond(false)}>Cancel</button>
 			<button
-				class="btn-danger"
+				class="button-danger"
 				type="button"
 				disabled={submitting}
 				onclick={() => void respond(true)}

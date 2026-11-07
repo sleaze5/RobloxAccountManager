@@ -34,6 +34,7 @@ export class ChatState {
 	#active = true
 	#listGeneration = 0
 	#messagesGeneration = 0
+	#deliveredWhileLoading: ChatMessageView[] = []
 	#nextPendingKey = 0
 	readonly #accountId: number
 	readonly #store: AccountStore
@@ -78,7 +79,7 @@ export class ChatState {
 		} finally {
 			if (generation === this.#listGeneration) this.loading = false
 		}
-		if (this.openId) await this.#loadMessages(this.openId)
+		if (this.#current() && this.openId) await this.#loadMessages(this.openId)
 	}
 
 	async loadMore(): Promise<void> {
@@ -131,6 +132,7 @@ export class ChatState {
 
 	async #loadMessages(conversationId: string): Promise<void> {
 		const generation = ++this.#messagesGeneration
+		this.#deliveredWhileLoading = []
 		this.messagesLoading = true
 		this.olderLoading = false
 		this.messagesError = ""
@@ -141,7 +143,14 @@ export class ChatState {
 				"",
 			)
 			if (!this.#current() || generation !== this.#messagesGeneration) return
-			this.messages = page.messages ?? []
+			const loaded = page.messages ?? [],
+				loadedIds = new Set(loaded.map((message) => message.id))
+			this.messages = [
+				...loaded,
+				...this.#deliveredWhileLoading.filter(
+					(message) => !loadedIds.has(message.id),
+				),
+			]
 			this.messagesCursor = page.nextCursor
 		} catch (error) {
 			if (this.#current() && generation === this.#messagesGeneration) {
@@ -314,6 +323,7 @@ export class ChatState {
 			this.discard(pending.key)
 			if (this.openId === pending.conversationId) {
 				this.messages = [...this.messages, sent]
+				if (this.messagesLoading) this.#deliveredWhileLoading.push(sent)
 			}
 			this.conversations = this.conversations.map((item) =>
 				item.id === pending.conversationId

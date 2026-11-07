@@ -49,7 +49,7 @@ func (service *Service) removeLeftovers() {
 func (service *Service) removeStaging(directory string) {
 	staged, _ := filepath.Glob(filepath.Join(directory, stagingPrefix+"*"))
 	for _, path := range staged {
-		if info, err := os.Lstat(path); err != nil || !info.IsDir() {
+		if stagingStatus, err := os.Lstat(path); err != nil || !stagingStatus.IsDir() {
 			continue
 		}
 		if err := os.RemoveAll(path); err != nil {

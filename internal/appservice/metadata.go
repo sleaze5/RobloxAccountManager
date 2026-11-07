@@ -9,9 +9,9 @@ import (
 )
 
 func (service *Service) refreshMetadata(key string, refresh func(context.Context)) {
-	service.mu.Lock()
+	service.mutex.Lock()
 	parent := service.gamesContext
-	service.mu.Unlock()
+	service.mutex.Unlock()
 	if parent == nil || parent.Err() != nil {
 		return
 	}

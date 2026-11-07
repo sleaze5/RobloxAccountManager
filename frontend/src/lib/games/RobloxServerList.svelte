@@ -122,7 +122,7 @@
 			<Icon svg={warningIcon} size={28} aria-hidden="true" />
 			<h2>Servers are unavailable</h2>
 			<p>{servers.error}</p>
-			<button class="btn" type="button" onclick={() => void servers.load()}
+			<button class="button" type="button" onclick={() => void servers.load()}
 				>Try again</button>
 		</div>
 	{:else if !servers.page}
@@ -136,7 +136,7 @@
 			{#if servers.pageNumber > 1}
 				<h2>No more servers</h2>
 				<p>The servers on this page closed. Go back to the first page.</p>
-				<button class="btn" type="button" onclick={() => servers.first()}
+				<button class="button" type="button" onclick={() => servers.first()}
 					>First page</button>
 			{:else if servers.excludeFull}
 				<h2>No servers have open slots</h2>
@@ -308,8 +308,10 @@
 				<p>
 					No server on this page reports a ping of {servers.maxPing} ms or less.
 				</p>
-				<button class="btn" type="button" onclick={() => (servers.maxPing = 0)}
-					>Show any ping</button>
+				<button
+					class="button"
+					type="button"
+					onclick={() => (servers.maxPing = 0)}>Show any ping</button>
 			</div>
 		{/if}
 	{/if}

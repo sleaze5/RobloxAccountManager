@@ -22,10 +22,10 @@
 	</div>
 	<div class="mt-3 notice-warning">Keep your accounts in a release build.</div>
 	<div class="dialog-actions">
-		<button class="btn" type="button" onclick={() => void Application.Quit()}
+		<button class="button" type="button" onclick={() => void Application.Quit()}
 			>Quit</button>
 		<button
-			class="btn-primary"
+			class="button-primary"
 			type="button"
 			{@attach (button) => button.focus()}
 			onclick={onContinue}>Continue</button>

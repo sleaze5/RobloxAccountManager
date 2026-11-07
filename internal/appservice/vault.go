@@ -29,8 +29,8 @@ type VaultState struct {
 }
 
 func (service *Service) GetVaultState() VaultState {
-	service.mu.Lock()
-	defer service.mu.Unlock()
+	service.mutex.Lock()
+	defer service.mutex.Unlock()
 	settings := service.settings.Vault()
 	return VaultState{
 		Initialized:              service.vault.Initialized(),
@@ -97,17 +97,16 @@ func (service *Service) finishUnlock(automatic bool) {
 		cursor = page.NextCursor
 	}
 	due := service.settings.PasswordReminderDue(time.Now())
-	service.mu.Lock()
+	service.mutex.Lock()
 	service.startupError = ""
 	if service.gamesCancel != nil {
 		service.gamesCancel()
 	}
 	service.gamesContext, service.gamesCancel = context.WithCancel(service.lifecycle)
 	service.reminderDue = automatic && due
-	service.mu.Unlock()
+	service.mutex.Unlock()
 	service.startBackground()
 	service.browser.AllowLaunches()
-	service.events.send("vault:unlocked", struct{}{})
 	go func() {
 		if err := service.vault.MaybeCreateBackup(context.WithoutCancel(service.lifecycle)); err != nil {
 			service.logger.Warn("automatic vault backup failed", "error", err)
@@ -140,9 +139,9 @@ func (service *Service) finishLocked() {
 	service.clearPendingImports()
 	service.discardPendingTransfer()
 	service.sessions.Lock()
-	service.mu.Lock()
+	service.mutex.Lock()
 	service.reminderDue = false
-	service.mu.Unlock()
+	service.mutex.Unlock()
 	service.events.send("vault:locked", struct{}{})
 }
 
@@ -153,9 +152,9 @@ func (service *Service) TestVaultPassword(ctx context.Context, password string) 
 	if err := service.settings.RecordPasswordTested(time.Now()); err != nil {
 		return fmt.Errorf("save password test time: %w", err)
 	}
-	service.mu.Lock()
+	service.mutex.Lock()
 	service.reminderDue = false
-	service.mu.Unlock()
+	service.mutex.Unlock()
 	return nil
 }
 
@@ -163,9 +162,9 @@ func (service *Service) DismissPasswordReminder() error {
 	if err := service.settings.DismissPasswordReminder(time.Now()); err != nil {
 		return fmt.Errorf("save password reminder dismissal: %w", err)
 	}
-	service.mu.Lock()
+	service.mutex.Lock()
 	service.reminderDue = false
-	service.mu.Unlock()
+	service.mutex.Unlock()
 	return nil
 }
 
@@ -177,9 +176,9 @@ func (service *Service) ChangeVaultPassword(ctx context.Context, currentPassword
 	if err := service.settings.RecordPasswordTested(time.Now()); err != nil {
 		service.logger.Error("record changed master password failed", "error", err)
 	}
-	service.mu.Lock()
+	service.mutex.Lock()
 	service.reminderDue = false
-	service.mu.Unlock()
+	service.mutex.Unlock()
 	if recovering {
 		service.finishUnlock(false)
 	}
@@ -202,7 +201,7 @@ func (service *Service) SetAutomaticUnlock(enabled bool) error {
 	return nil
 }
 
-func (service *Service) ListBackups() ([]vault.BackupInfo, error) { return service.vault.ListBackups() }
+func (service *Service) ListBackups() ([]vault.Backup, error) { return service.vault.ListBackups() }
 
 func (service *Service) RestoreBackup(ctx context.Context, name, password string) error {
 	if err := service.vault.RestoreBackup(ctx, name, password); err != nil {

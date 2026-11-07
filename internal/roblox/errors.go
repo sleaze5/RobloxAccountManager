@@ -1,9 +1,6 @@
 package roblox
 
-import (
-	"fmt"
-	"time"
-)
+import "log/slog"
 
 type ErrorKind string
 
@@ -30,23 +27,30 @@ type Error struct {
 	Endpoint   string
 	Status     int
 	RobloxCode int
-	RetryAt    time.Time
 	Message    string
 	Cause      error
 }
 
-func (e *Error) Error() string {
-	if e == nil {
+// Error returns only the message, because the desktop runtime shows it to the
+// user. LogValue keeps the request details in logs.
+func (failure *Error) Error() string {
+	if failure == nil {
 		return ""
 	}
-	message := e.Message
-	if message == "" {
-		message = string(e.Kind)
+	if failure.Message == "" {
+		return string(failure.Kind)
 	}
-	if e.Endpoint != "" {
-		return fmt.Sprintf("%s: %s", e.Endpoint, message)
-	}
-	return message
+	return failure.Message
 }
 
-func (e *Error) Unwrap() error { return e.Cause }
+func (failure *Error) LogValue() slog.Value {
+	return slog.GroupValue(
+		slog.String("message", failure.Error()),
+		slog.String("endpoint", failure.Endpoint),
+		slog.String("kind", string(failure.Kind)),
+		slog.Int("status", failure.Status),
+		slog.Int("roblox_code", failure.RobloxCode),
+	)
+}
+
+func (failure *Error) Unwrap() error { return failure.Cause }

@@ -63,10 +63,10 @@
 	</ul>
 	{#if error}<div class="mt-3 notice-error" role="alert">{error}</div>{/if}
 	<div class="dialog-actions">
-		<button class="btn" type="button" disabled={busy} onclick={onClose}
+		<button class="button" type="button" disabled={busy} onclick={onClose}
 			>Cancel</button
 		><button
-			class="btn-primary"
+			class="button-primary"
 			type="button"
 			disabled={busy}
 			onclick={() => void move()}

@@ -29,9 +29,9 @@ type Service struct {
 	events   *appservice.Events
 	launch   *logging.Launch
 
-	startMu  sync.Mutex
-	startCtx context.Context
-	started  bool
+	startMutex   sync.Mutex
+	startContext context.Context
+	started      bool
 }
 
 func NewService(core *appservice.Service, location *appservice.Location, updates *appupdate.Service, events *appservice.Events, launch *logging.Launch) *Service {
@@ -56,9 +56,9 @@ func (service *Service) ServiceStartup(ctx context.Context, _ application.Servic
 			}
 		})
 	}
-	service.startMu.Lock()
-	service.startCtx = ctx
-	service.startMu.Unlock()
+	service.startMutex.Lock()
+	service.startContext = ctx
+	service.startMutex.Unlock()
 	if err := service.startCore(); err != nil {
 		return err
 	}
@@ -96,12 +96,12 @@ func (service *Service) MoveAppData(mode appdata.Mode) error {
 // Automatic unlock and migrations must never touch a vault that the user has
 // not chosen.
 func (service *Service) startCore() error {
-	service.startMu.Lock()
-	defer service.startMu.Unlock()
-	if service.started || service.startCtx == nil || !service.location.State().Initialized {
+	service.startMutex.Lock()
+	defer service.startMutex.Unlock()
+	if service.started || service.startContext == nil || !service.location.State().Initialized {
 		return nil
 	}
-	if err := service.core.Start(service.startCtx); err != nil {
+	if err := service.core.Start(service.startContext); err != nil {
 		return err
 	}
 	service.started = true
@@ -356,7 +356,7 @@ func (service *Service) SetRBXServersEnabled(enabled bool) error {
 }
 
 func (service *Service) ParseTimestampFormat(source string) (timestampformat.Format, error) {
-	return service.core.ParseTimestampFormat(source)
+	return timestampformat.Parse(source)
 }
 
 func (service *Service) SetTimestampFormats(timestampFormat, timestampHoverFormat string) (appservice.TimestampFormats, error) {
@@ -373,10 +373,6 @@ func (service *Service) CreateVault(ctx context.Context, password, confirmation,
 
 func (service *Service) UnlockVault(ctx context.Context, password string) error {
 	return service.core.UnlockVault(ctx, password)
-}
-
-func (service *Service) CheckPassword(password string) vault.PasswordRequirements {
-	return vault.CheckPassword(password)
 }
 
 func (service *Service) LockVault() error { return service.core.LockVault() }
@@ -435,7 +431,7 @@ func (service *Service) SetAutomaticUnlock(enabled bool) error {
 	return service.core.SetAutomaticUnlock(enabled)
 }
 
-func (service *Service) ListBackups() ([]vault.BackupInfo, error) { return service.core.ListBackups() }
+func (service *Service) ListBackups() ([]vault.Backup, error) { return service.core.ListBackups() }
 
 func (service *Service) RestoreBackup(ctx context.Context, name, password string) error {
 	return service.core.RestoreBackup(ctx, name, password)
@@ -459,16 +455,16 @@ func (service *Service) SetAsideLegacyVault(confirmation string) error {
 	return service.core.SetAsideLegacyVault()
 }
 
-func (service *Service) ExportVault(ctx context.Context, password, confirmation, hint string) (vault.ExportInfo, error) {
+func (service *Service) ExportVault(ctx context.Context, password, confirmation, hint string) (vault.ExportFile, error) {
 	if err := service.core.ValidateExportPassword(password, confirmation, hint); err != nil {
-		return vault.ExportInfo{}, err
+		return vault.ExportFile{}, err
 	}
 	path, err := chooseSaveFile(service.core.ExportsDirectory(), service.core.DefaultExportName())
 	if err != nil {
-		return vault.ExportInfo{}, &roblox.Error{Kind: roblox.KindProtocol, Endpoint: "vault-transfer", Message: "The save dialog could not be opened.", Cause: err}
+		return vault.ExportFile{}, &roblox.Error{Kind: roblox.KindProtocol, Endpoint: "vault-transfer", Message: "The save dialog could not be opened.", Cause: err}
 	}
 	if path == "" {
-		return vault.ExportInfo{}, nil
+		return vault.ExportFile{}, nil
 	}
 	return service.core.ExportVault(ctx, path, password, confirmation, hint)
 }
@@ -508,13 +504,6 @@ func (service *Service) SaveValidatedCookies(ctx context.Context, batchID string
 
 func (service *Service) DiscardValidatedCookies(batchID string) {
 	service.core.DiscardValidatedCookies(batchID)
-}
-
-func (service *Service) ReplaceCookie(ctx context.Context, accountID int64, input string) (accounts.AccountView, error) {
-	if err := positiveID(accountID, "cookie-replacement"); err != nil {
-		return accounts.AccountView{}, err
-	}
-	return service.core.ReplaceCookie(ctx, accountID, input)
 }
 
 func (service *Service) RenewCookie(ctx context.Context, accountID int64) (appservice.CookieRenewalResult, error) {
@@ -614,11 +603,7 @@ func (service *Service) LaunchAccounts(ctx context.Context, accountIDs []int64, 
 	if err := accountSelection(accountIDs, "game-launch"); err != nil {
 		return appservice.LaunchResult{}, err
 	}
-	result, err := service.core.LaunchAccounts(ctx, accountIDs, input)
-	if failure, ok := errors.AsType[*roblox.Error](err); ok {
-		return result, errors.New(failure.Message)
-	}
-	return result, err
+	return service.core.LaunchAccounts(ctx, accountIDs, input)
 }
 
 func (service *Service) CopyLaunchOptions(ctx context.Context, accountIDs []int64, input gamelaunch.Input) error {
@@ -627,7 +612,7 @@ func (service *Service) CopyLaunchOptions(ctx context.Context, accountIDs []int6
 	}
 	app := application.Get()
 	if app == nil {
-		return &roblox.Error{Kind: roblox.KindProtocol, Endpoint: "copy-launch-options", Message: "The clipboard is unavailable. Restart the app and try again."}
+		return clipboardUnavailable()
 	}
 	return service.core.CopyLaunchOptions(ctx, accountIDs, input, app.Clipboard.SetText)
 }

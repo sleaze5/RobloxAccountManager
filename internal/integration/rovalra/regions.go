@@ -29,8 +29,8 @@ type Coordinates struct {
 }
 
 func (client *Client) Regions(ctx context.Context, refresh bool) ([]Region, error) {
-	client.mu.Lock()
-	defer client.mu.Unlock()
+	client.mutex.Lock()
+	defer client.mutex.Unlock()
 	if !refresh && client.regions != nil && time.Since(client.regionsFetchedAt) < regionsKeep {
 		return client.regions, nil
 	}
@@ -81,9 +81,9 @@ func newRegion(name, country, countryCode string, latLong []string) (Region, boo
 	if len(latLong) != 2 || len(countryCode) != 2 || !ValidRegionCode(countryCode) {
 		return Region{}, false
 	}
-	latitude, latErr := strconv.ParseFloat(latLong[0], 64)
-	longitude, lonErr := strconv.ParseFloat(latLong[1], 64)
-	if latErr != nil || lonErr != nil || !validCoordinates(latitude, longitude) {
+	latitude, latError := strconv.ParseFloat(latLong[0], 64)
+	longitude, lonError := strconv.ParseFloat(latLong[1], 64)
+	if latError != nil || lonError != nil || !validCoordinates(latitude, longitude) {
 		return Region{}, false
 	}
 	if country = text(country); country == "" {

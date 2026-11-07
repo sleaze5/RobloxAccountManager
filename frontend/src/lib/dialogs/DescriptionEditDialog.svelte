@@ -168,12 +168,12 @@
 
 		<div class="dialog-actions">
 			<button
-				class="btn"
+				class="button"
 				type="button"
 				disabled={pending !== null}
 				onclick={close}>Cancel</button>
 			<button
-				class="btn"
+				class="button"
 				type="button"
 				aria-busy={pending === "validate"}
 				disabled={pending !== null ||
@@ -194,7 +194,7 @@
 				{/if}
 			</button>
 			<button
-				class={tagged ? "btn-warning" : "btn-primary"}
+				class={tagged ? "button-warning" : "button-primary"}
 				type="submit"
 				aria-busy={pending === "submit" || pending === "save"}
 				disabled={!changed || pending !== null}>

@@ -12,8 +12,8 @@ const (
 	StateDisabled       SessionState = "disabled"
 )
 
-func (s SessionState) Valid() bool {
-	switch s {
+func (state SessionState) Valid() bool {
+	switch state {
 	case StateActive, StateUnknown, StateReauthRequired, StateChallenged, StateDisabled:
 		return true
 	default:
@@ -42,19 +42,13 @@ type TagView struct {
 }
 
 type SessionRecord struct {
-	AccountID         int64
-	Roblosecurity     string
-	CookieExpiresAt   *time.Time
-	State             SessionState
-	StateReason       string
-	SecretVersion     int64
-	ImportedAt        time.Time
-	ReplacedAt        *time.Time
-	RotatedAt         *time.Time
-	LastValidatedAt   *time.Time
-	LastSuccessAt     *time.Time
-	LastAuthFailureAt *time.Time
-	UpdatedAt         time.Time
+	AccountID       int64
+	Roblosecurity   string
+	CookieExpiresAt *time.Time
+	State           SessionState
+	SecretVersion   int64
+	ImportedAt      time.Time
+	LastValidatedAt *time.Time
 }
 
 type AccountView struct {

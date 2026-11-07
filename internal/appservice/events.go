@@ -8,7 +8,7 @@ import (
 type eventEmitter func(string, any)
 
 type Events struct {
-	mu        sync.RWMutex
+	mutex     sync.RWMutex
 	emit      eventEmitter
 	rateUntil time.Time
 }
@@ -16,15 +16,15 @@ type Events struct {
 func NewEvents() *Events { return &Events{} }
 
 func (events *Events) SetEmitter(emitter func(string, any)) {
-	events.mu.Lock()
+	events.mutex.Lock()
 	events.emit = emitter
-	events.mu.Unlock()
+	events.mutex.Unlock()
 }
 
 func (events *Events) send(name string, data any) {
-	events.mu.RLock()
+	events.mutex.RLock()
 	emitter := events.emit
-	events.mu.RUnlock()
+	events.mutex.RUnlock()
 	if emitter != nil {
 		emitter(name, data)
 	}
@@ -63,23 +63,16 @@ func (events *Events) LaunchConfirmationChanged() {
 	events.send("game:launch-confirmation-changed", struct{}{})
 }
 
-func (events *Events) RateLimited(accountID int64, retryAt time.Time) {
-	events.mu.Lock()
+func (events *Events) RateLimited(retryAt time.Time) {
+	events.mutex.Lock()
+	defer events.mutex.Unlock()
 	if retryAt.After(events.rateUntil) {
 		events.rateUntil = retryAt
-	}
-	emitter := events.emit
-	events.mu.Unlock()
-	if emitter != nil {
-		emitter("account:rate-limited", struct {
-			AccountID int64 `json:"accountId"`
-			RetryAtMS int64 `json:"retryAtMs"`
-		}{AccountID: accountID, RetryAtMS: retryAt.UnixMilli()})
 	}
 }
 
 func (events *Events) BackgroundPaused(now time.Time) bool {
-	events.mu.RLock()
-	defer events.mu.RUnlock()
+	events.mutex.RLock()
+	defer events.mutex.RUnlock()
 	return events.rateUntil.After(now)
 }

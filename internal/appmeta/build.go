@@ -4,7 +4,6 @@ import (
 	"runtime"
 	"runtime/debug"
 	"strconv"
-	"time"
 )
 
 var buildTime string
@@ -25,24 +24,21 @@ type Build struct {
 	Dependencies []Dependency `json:"dependencies"`
 	OS           string       `json:"os"`
 	Architecture string       `json:"architecture"`
-	Revision     string       `json:"revision"`
-	RevisionTime int64        `json:"revision_time,omitempty"`
-	Modified     *bool        `json:"modified,omitempty"`
 	BuildTime    int64        `json:"build_time,omitempty"`
 }
 
 func CurrentBuild() Build {
 	build := Build{Version: Version, Release: Release, GoVersion: runtime.Version(), OS: runtime.GOOS,
-		Architecture: runtime.GOARCH, Revision: "unavailable", Dependencies: []Dependency{}}
+		Architecture: runtime.GOARCH, Dependencies: []Dependency{}}
 	if seconds, err := strconv.ParseInt(buildTime, 10, 64); err == nil && seconds > 0 {
 		build.BuildTime = seconds
 	}
-	info, ok := debug.ReadBuildInfo()
+	embeddedBuild, ok := debug.ReadBuildInfo()
 	if !ok {
 		return build
 	}
 	for _, path := range reportedModules {
-		for _, dependency := range info.Deps {
+		for _, dependency := range embeddedBuild.Deps {
 			if dependency.Path != path {
 				continue
 			}
@@ -51,19 +47,6 @@ func CurrentBuild() Build {
 				version = dependency.Replace.Version + " (replacement)"
 			}
 			build.Dependencies = append(build.Dependencies, Dependency{Name: path, Version: version})
-		}
-	}
-	for _, setting := range info.Settings {
-		switch setting.Key {
-		case "vcs.revision":
-			build.Revision = setting.Value
-		case "vcs.time":
-			if value, err := time.Parse(time.RFC3339, setting.Value); err == nil {
-				build.RevisionTime = value.UnixMilli()
-			}
-		case "vcs.modified":
-			modified := setting.Value == "true"
-			build.Modified = &modified
 		}
 	}
 	return build

@@ -35,10 +35,6 @@ func Acquire(applicationID string) (*Instance, bool, error) {
 	if err != nil {
 		return nil, false, fmt.Errorf("create single-instance mutex: %w", err)
 	}
-	if errors.Is(windows.GetLastError(), windows.ERROR_ALREADY_EXISTS) {
-		windows.CloseHandle(mutex)
-		return nil, false, nil
-	}
 	return &Instance{mutex: mutex}, true, nil
 }
 

@@ -5,7 +5,6 @@ package appdata
 import (
 	"errors"
 	"fmt"
-	"os"
 	"path/filepath"
 	"strings"
 
@@ -21,14 +20,6 @@ func rejectNetworkPath(path string) error {
 		return errors.New("network application paths are unsupported")
 	}
 	return nil
-}
-
-func restrictDirectory(path string) error {
-	// On Windows, Chmod only clears the read-only attribute. restrictACL limits access to the current user.
-	if err := os.Chmod(path, 0o700); err != nil {
-		return fmt.Errorf("restrict directory permissions: %w", err)
-	}
-	return restrictACL(path, true)
 }
 
 func ReplaceFile(source, destination string) error {
@@ -55,7 +46,7 @@ func restrictACL(path string, directory bool) error {
 	if directory {
 		inheritance = windows.SUB_CONTAINERS_AND_OBJECTS_INHERIT
 	}
-	acl, err := windows.ACLFromEntries([]windows.EXPLICIT_ACCESS{{
+	accessControlList, err := windows.ACLFromEntries([]windows.EXPLICIT_ACCESS{{
 		AccessPermissions: windows.ACCESS_MASK(windows.GENERIC_ALL),
 		AccessMode:        windows.SET_ACCESS,
 		Inheritance:       inheritance,
@@ -74,7 +65,7 @@ func restrictACL(path string, directory bool) error {
 		windows.DACL_SECURITY_INFORMATION|windows.PROTECTED_DACL_SECURITY_INFORMATION,
 		nil,
 		nil,
-		acl,
+		accessControlList,
 		nil,
 	); err != nil {
 		return fmt.Errorf("set private Windows ACL: %w", err)

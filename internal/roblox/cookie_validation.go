@@ -74,17 +74,17 @@ func (client *Client) sendCookieValidation(ctx context.Context, validation Cooki
 		}
 		return nil, false, &Error{Kind: KindTransport, Endpoint: "cookie-import", Message: "Roblox could not be reached. The cookie was not stored.", Cause: err}
 	}
-	body, readErr := readLimited(response.Body, defaultResponseLimit)
+	body, readError := readLimited(response.Body, defaultResponseLimit)
 	response.Body.Close()
 	release()
-	if readErr != nil {
+	if readError != nil {
 		if ctx.Err() != nil {
 			return nil, false, contextError("cookie-import", ctx.Err())
 		}
-		if errors.Is(readErr, errResponseTooLarge) {
-			return nil, false, &Error{Kind: KindResponseTooLarge, Endpoint: "cookie-import", Status: response.StatusCode, Message: "The cookie validation response was too large.", Cause: readErr}
+		if errors.Is(readError, errResponseTooLarge) {
+			return nil, false, &Error{Kind: KindResponseTooLarge, Endpoint: "cookie-import", Status: response.StatusCode, Message: "The cookie validation response was too large.", Cause: readError}
 		}
-		return nil, false, &Error{Kind: KindTransport, Endpoint: "cookie-import", Status: response.StatusCode, Message: "The cookie validation response could not be read. The cookie was not stored.", Cause: readErr}
+		return nil, false, &Error{Kind: KindTransport, Endpoint: "cookie-import", Status: response.StatusCode, Message: "The cookie validation response could not be read. The cookie was not stored.", Cause: readError}
 	}
 	return &Response{Status: response.StatusCode, Header: response.Header, Body: body}, false, nil
 }
@@ -123,17 +123,16 @@ func (client *Client) cookieValidationResponse(ctx context.Context, response *Re
 		}
 		return CookieValidation{}, false, &Error{Kind: KindForbidden, Endpoint: "cookie-import", Status: response.Status, Message: "Roblox rejected cookie validation."}
 	case response.Status == http.StatusTooManyRequests:
-		delay := retryDelay(response.Header, attempt, time.Now())
 		if attempt < 3 {
-			if err := waitForRetry(ctx, delay); err != nil {
+			if err := waitForRetry(ctx, retryDelay(response.Header, attempt)); err != nil {
 				return CookieValidation{}, false, contextError("cookie-import", err)
 			}
 			return CookieValidation{}, true, nil
 		}
-		return CookieValidation{}, false, &Error{Kind: KindRateLimited, Endpoint: "cookie-import", Status: response.Status, RetryAt: time.Now().Add(delay), Message: "Roblox is rate limiting cookie validation."}
+		return CookieValidation{}, false, &Error{Kind: KindRateLimited, Endpoint: "cookie-import", Status: response.Status, Message: "Roblox is rate limiting cookie validation."}
 	case response.Status >= 500:
 		if attempt < 3 {
-			if err := waitForRetry(ctx, retryDelay(response.Header, attempt, time.Now())); err != nil {
+			if err := waitForRetry(ctx, retryDelay(response.Header, attempt)); err != nil {
 				return CookieValidation{}, false, contextError("cookie-import", err)
 			}
 			return CookieValidation{}, true, nil

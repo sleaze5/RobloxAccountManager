@@ -23,19 +23,19 @@ const (
 
 func (service *Service) startBackground() {
 	service.stopBackground()
-	service.mu.Lock()
+	service.mutex.Lock()
 	ctx, cancel := context.WithCancel(service.lifecycle)
 	service.backgroundCancel = cancel
-	service.mu.Unlock()
+	service.mutex.Unlock()
 	service.logger.Debug("background validation started", "worker_count", backgroundWorkers)
 	go service.backgroundValidation(ctx)
 }
 
 func (service *Service) stopBackground() {
-	service.mu.Lock()
+	service.mutex.Lock()
 	cancel := service.backgroundCancel
 	service.backgroundCancel = nil
-	service.mu.Unlock()
+	service.mutex.Unlock()
 	if cancel != nil {
 		cancel()
 		service.logger.Debug("background validation stopped")

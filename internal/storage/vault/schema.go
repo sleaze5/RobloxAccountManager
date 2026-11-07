@@ -16,8 +16,8 @@ var schemaMigrations = [...]func(context.Context, *sql.Tx) error{addAccountPassw
 
 var _ = [1]struct{}{}[len(schemaMigrations)-(schemaVersion-1)]
 
-func splitPublicMetadata(ctx context.Context, tx *sql.Tx) error {
-	if _, err := tx.ExecContext(ctx, `
+func splitPublicMetadata(ctx context.Context, transaction *sql.Tx) error {
+	if _, err := transaction.ExecContext(ctx, `
 CREATE TABLE accounts_new (
     id INTEGER PRIMARY KEY,
     roblox_user_id INTEGER NOT NULL UNIQUE CHECK (roblox_user_id > 0),
@@ -51,8 +51,8 @@ ALTER TABLE favorite_places_new RENAME TO favorite_places;
 	return nil
 }
 
-func addAccountPasswords(ctx context.Context, tx *sql.Tx) error {
-	if _, err := tx.ExecContext(ctx, `ALTER TABLE account_sessions ADD COLUMN password TEXT NOT NULL DEFAULT ''`); err != nil {
+func addAccountPasswords(ctx context.Context, transaction *sql.Tx) error {
+	if _, err := transaction.ExecContext(ctx, `ALTER TABLE account_sessions ADD COLUMN password TEXT NOT NULL DEFAULT ''`); err != nil {
 		return fmt.Errorf("add saved account passwords: %w", err)
 	}
 	return nil
@@ -128,34 +128,34 @@ CREATE TABLE favorite_places (
 );
 `
 
-func initializeSchema(ctx context.Context, db *sql.DB, vaultID [vaultIDBytes]byte) error {
-	tx, err := db.BeginTx(ctx, nil)
+func initializeSchema(ctx context.Context, database *sql.DB, vaultID [vaultIDBytes]byte) error {
+	transaction, err := database.BeginTx(ctx, nil)
 	if err != nil {
 		return fmt.Errorf("begin vault schema initialization: %w", err)
 	}
-	defer tx.Rollback()
-	if _, err := tx.ExecContext(ctx, initialSchema); err != nil {
+	defer transaction.Rollback()
+	if _, err := transaction.ExecContext(ctx, initialSchema); err != nil {
 		return fmt.Errorf("initialize vault schema: %w", err)
 	}
-	if _, err := tx.ExecContext(ctx, `INSERT INTO vault_state(singleton, vault_id, schema_version) VALUES(1, ?, 1)`, vaultID[:]); err != nil {
+	if _, err := transaction.ExecContext(ctx, `INSERT INTO vault_state(singleton, vault_id, schema_version) VALUES(1, ?, 1)`, vaultID[:]); err != nil {
 		return fmt.Errorf("initialize vault state: %w", err)
 	}
-	if _, err := tx.ExecContext(ctx, `INSERT INTO tags(name, kind, created_at_ms, updated_at_ms) VALUES('Favorites', 'favorite', strftime('%s', 'now') * 1000, strftime('%s', 'now') * 1000)`); err != nil {
+	if _, err := transaction.ExecContext(ctx, `INSERT INTO tags(name, kind, created_at_ms, updated_at_ms) VALUES('Favorites', 'favorite', strftime('%s', 'now') * 1000, strftime('%s', 'now') * 1000)`); err != nil {
 		return fmt.Errorf("initialize favorite tag: %w", err)
 	}
-	if err := runSchemaMigrations(ctx, tx, 1); err != nil {
+	if err := runSchemaMigrations(ctx, transaction, 1); err != nil {
 		return err
 	}
-	if err := tx.Commit(); err != nil {
+	if err := transaction.Commit(); err != nil {
 		return fmt.Errorf("commit vault schema initialization: %w", err)
 	}
 	return nil
 }
 
-func verifySchema(ctx context.Context, db *sql.DB, expectedID [vaultIDBytes]byte, logger *slog.Logger) error {
+func verifySchema(ctx context.Context, database *sql.DB, expectedID [vaultIDBytes]byte, logger *slog.Logger) error {
 	var identifier []byte
 	var version int
-	if err := db.QueryRowContext(ctx, `SELECT vault_id, schema_version FROM vault_state WHERE singleton = 1`).Scan(&identifier, &version); err != nil {
+	if err := database.QueryRowContext(ctx, `SELECT vault_id, schema_version FROM vault_state WHERE singleton = 1`).Scan(&identifier, &version); err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return ErrUnsupportedSchema
 		}
@@ -165,14 +165,14 @@ func verifySchema(ctx context.Context, db *sql.DB, expectedID [vaultIDBytes]byte
 	if version < 1 || version > schemaVersion {
 		return fmt.Errorf("%w: schema version %d", ErrUnsupportedSchema, version)
 	}
-	if len(identifier) != vaultIDBytes || !sameVaultID(expectedID, [vaultIDBytes]byte(identifier)) {
+	if len(identifier) != vaultIDBytes || expectedID != [vaultIDBytes]byte(identifier) {
 		return ErrVaultMismatch
 	}
 	return nil
 }
 
-func restoreAccountNames(ctx context.Context, tx *sql.Tx) error {
-	if _, err := tx.ExecContext(ctx, `ALTER TABLE accounts ADD COLUMN username TEXT NOT NULL DEFAULT ''; ALTER TABLE accounts ADD COLUMN display_name TEXT NOT NULL DEFAULT '';`); err != nil {
+func restoreAccountNames(ctx context.Context, transaction *sql.Tx) error {
+	if _, err := transaction.ExecContext(ctx, `ALTER TABLE accounts ADD COLUMN username TEXT NOT NULL DEFAULT ''; ALTER TABLE accounts ADD COLUMN display_name TEXT NOT NULL DEFAULT '';`); err != nil {
 		return fmt.Errorf("restore account identity columns: %w", err)
 	}
 	return nil
@@ -180,8 +180,8 @@ func restoreAccountNames(ctx context.Context, tx *sql.Tx) error {
 
 // addPendingSettingsImport stores imported settings in the same transaction as the imported vault data,
 // so the application can finish saving them after a crash.
-func addPendingSettingsImport(ctx context.Context, tx *sql.Tx) error {
-	if _, err := tx.ExecContext(ctx, `
+func addPendingSettingsImport(ctx context.Context, transaction *sql.Tx) error {
+	if _, err := transaction.ExecContext(ctx, `
 CREATE TABLE pending_settings_import (
     singleton   INTEGER PRIMARY KEY CHECK (singleton = 1),
     settings    TEXT NOT NULL,
@@ -192,8 +192,8 @@ CREATE TABLE pending_settings_import (
 	return nil
 }
 
-func addSavedPrivateServers(ctx context.Context, tx *sql.Tx) error {
-	if _, err := tx.ExecContext(ctx, `
+func addSavedPrivateServers(ctx context.Context, transaction *sql.Tx) error {
+	if _, err := transaction.ExecContext(ctx, `
 CREATE TABLE saved_private_servers (
     id              INTEGER PRIMARY KEY,
     place_id        INTEGER NOT NULL CHECK (place_id > 0),
@@ -210,8 +210,8 @@ CREATE TABLE saved_private_servers (
 
 // saveOnePrivateServerCode keeps the link code of each saved private server, and the
 // access code only when the link code is unknown.
-func saveOnePrivateServerCode(ctx context.Context, tx *sql.Tx) error {
-	if _, err := tx.ExecContext(ctx, `
+func saveOnePrivateServerCode(ctx context.Context, transaction *sql.Tx) error {
+	if _, err := transaction.ExecContext(ctx, `
 CREATE TABLE saved_private_servers_new (
     id              INTEGER PRIMARY KEY,
     place_id        INTEGER NOT NULL CHECK (place_id > 0),

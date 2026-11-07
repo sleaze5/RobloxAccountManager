@@ -168,10 +168,10 @@
 			<div class="mt-3 notice-error" role="alert">{error}</div>
 		{/if}
 		<div class="dialog-actions">
-			<button class="btn" type="button" disabled={busy} onclick={close}
+			<button class="button" type="button" disabled={busy} onclick={close}
 				>Cancel</button>
 			<button
-				class="btn"
+				class="button"
 				type="button"
 				aria-busy={validating === "validate"}
 				disabled={busy ||
@@ -192,7 +192,7 @@
 				{/if}
 			</button>
 			<button
-				class={tagged ? "btn-warning" : "btn-primary"}
+				class={tagged ? "button-warning" : "button-primary"}
 				type="submit"
 				aria-busy={validating === "submit" || renaming}
 				disabled={!changed || busy}>

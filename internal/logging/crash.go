@@ -30,8 +30,8 @@ type crashCapture struct {
 }
 
 func (system *System) CaptureCrashes(launchID string) error {
-	system.mu.Lock()
-	defer system.mu.Unlock()
+	system.mutex.Lock()
+	defer system.mutex.Unlock()
 	capture := &crashCapture{launchID: launchID, directory: filepath.Dir(system.writer.path)}
 	if err := capture.setEnabled(system.filter.includes(slog.LevelError)); err != nil {
 		return err
@@ -81,11 +81,11 @@ func (capture *crashCapture) close() error {
 	if err := debug.SetCrashOutput(nil, debug.CrashOptions{}); err != nil {
 		return fmt.Errorf("stop crash output: %w", err)
 	}
-	_, writeErr := capture.pipe.WriteString(cleanShutdownRecord)
-	closeErr := capture.pipe.Close()
-	waitErr := capture.command.Wait()
+	_, writeError := capture.pipe.WriteString(cleanShutdownRecord)
+	closeError := capture.pipe.Close()
+	waitError := capture.command.Wait()
 	capture.pipe, capture.command = nil, nil
-	return errors.Join(writeErr, closeErr, waitErr)
+	return errors.Join(writeError, closeError, waitError)
 }
 
 func RunCrashMonitor() (bool, error) {
@@ -191,9 +191,9 @@ func PanicReason(value any) string {
 }
 
 func PanicStack() []string {
-	pcs := make([]uintptr, 64)
-	count := runtime.Callers(2, pcs)
-	iterator := runtime.CallersFrames(pcs[:count])
+	programCounters := make([]uintptr, 64)
+	count := runtime.Callers(2, programCounters)
+	iterator := runtime.CallersFrames(programCounters[:count])
 	var frames []string
 	for {
 		frame, more := iterator.Next()

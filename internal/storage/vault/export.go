@@ -2,8 +2,6 @@ package vault
 
 import (
 	"bytes"
-	"crypto/aes"
-	"crypto/cipher"
 	"encoding/binary"
 	"errors"
 	"fmt"
@@ -11,7 +9,6 @@ import (
 	"path/filepath"
 	"strings"
 	"time"
-	"unicode/utf8"
 
 	"github.com/sleaze5/RobloxAccountManager/internal/appdata"
 )
@@ -44,7 +41,7 @@ var exportDecoders = [...]func([]byte, string) ([]byte, error){openExportV1, ope
 
 var _ = [1]struct{}{}[len(exportDecoders)-int(exportFormatVersion)]
 
-type ExportInfo struct {
+type ExportFile struct {
 	Name        string `json:"name"`
 	Path        string `json:"path"`
 	CreatedAtMS int64  `json:"createdAtMs"`
@@ -68,19 +65,19 @@ func (manager *Manager) DefaultExportName() string {
 	return name
 }
 
-func (manager *Manager) WriteExport(path, password, hint string, payload []byte) (ExportInfo, error) {
+func (manager *Manager) WriteExport(path, password, hint string, payload []byte) (ExportFile, error) {
 	if !strings.EqualFold(filepath.Ext(path), exportExtension) {
 		path += exportExtension
 	}
 	now := time.Now()
 	sealed, err := sealExport(password, hint, payload, now.UnixMilli())
 	if err != nil {
-		return ExportInfo{}, err
+		return ExportFile{}, err
 	}
 	if err := writeExportFile(path, sealed); err != nil {
-		return ExportInfo{}, err
+		return ExportFile{}, err
 	}
-	return ExportInfo{Name: filepath.Base(path), Path: path, CreatedAtMS: now.UnixMilli()}, nil
+	return ExportFile{Name: filepath.Base(path), Path: path, CreatedAtMS: now.UnixMilli()}, nil
 }
 
 // writeExportFile does not set a private access list, because the user can choose a drive that has none, such as FAT32.
@@ -114,16 +111,16 @@ func writeExportFile(path string, data []byte) error {
 	return nil
 }
 
-func (manager *Manager) ReadExport(path, password string) (ExportInfo, []byte, error) {
+func (manager *Manager) ReadExport(path, password string) (ExportFile, []byte, error) {
 	data, err := readBounded(path, exportFileLimit)
 	if err != nil {
-		return ExportInfo{}, nil, err
+		return ExportFile{}, nil, err
 	}
 	payload, err := openExport(data, password)
 	if err != nil {
-		return ExportInfo{}, nil, err
+		return ExportFile{}, nil, err
 	}
-	return ExportInfo{Name: filepath.Base(path), Path: path, CreatedAtMS: int64(binary.BigEndian.Uint64(data[len(exportMagic)+2:]))}, payload, nil
+	return ExportFile{Name: filepath.Base(path), Path: path, CreatedAtMS: int64(binary.BigEndian.Uint64(data[len(exportMagic)+2:]))}, payload, nil
 }
 
 // ExportDetails describes an export file before it is opened with its password.
@@ -162,7 +159,7 @@ func (manager *Manager) ReadExportDetails(path string) (ExportDetails, error) {
 }
 
 func ValidateExportPassword(password string) error {
-	if !utf8.ValidString(password) || !CheckPassword(password).Valid() {
+	if !meetsPasswordRules(password) {
 		return errWeakExportPassword
 	}
 	return nil
@@ -185,15 +182,12 @@ func sealExport(password, hint string, payload []byte, createdAtMS int64) ([]byt
 	if err := ValidateExportHint(hint, password); err != nil {
 		return nil, err
 	}
-	params, err := calibrateKDF(password)
+	params := calibrateKDF(password)
+	salt, err := newRandomBytes(saltBytes, "export salt")
 	if err != nil {
 		return nil, err
 	}
-	salt, err := newRandomBytes(16, "export salt")
-	if err != nil {
-		return nil, err
-	}
-	aead, err := exportCipher(password, params, salt)
+	aead, err := passwordCipher(password, params, salt)
 	if err != nil {
 		return nil, err
 	}
@@ -201,7 +195,7 @@ func sealExport(password, hint string, payload []byte, createdAtMS int64) ([]byt
 	if err != nil {
 		return nil, err
 	}
-	header := exportHeader(exportFormatVersion, createdAtMS, params, salt, nonce)
+	header := exportHeader(createdAtMS, params, salt, nonce)
 	header = binary.BigEndian.AppendUint16(header, uint16(len(hint)))
 	header = append(header, hint...)
 	return aead.Seal(bytes.Clone(header), nonce, payload, header), nil
@@ -268,9 +262,9 @@ func openSealedExport(data []byte, password string, headerEnd int) ([]byte, erro
 		Threads:   data[offset+8],
 	}
 	offset += 9
-	salt := data[offset : offset+16]
-	nonce := data[offset+16 : exportHeaderBytes]
-	aead, err := exportCipher(password, params, salt)
+	salt := data[offset : offset+saltBytes]
+	nonce := data[offset+saltBytes : exportHeaderBytes]
+	aead, err := passwordCipher(password, params, salt)
 	if errors.Is(err, ErrInvalidPassword) {
 		return nil, ErrExportPassword
 	}
@@ -284,27 +278,10 @@ func openSealedExport(data []byte, password string, headerEnd int) ([]byte, erro
 	return payload, nil
 }
 
-func exportCipher(password string, params argon2Parameters, salt []byte) (cipher.AEAD, error) {
-	key, err := deriveKEK(password, params, salt)
-	if err != nil {
-		return nil, err
-	}
-	defer wipe(key)
-	block, err := aes.NewCipher(key)
-	if err != nil {
-		return nil, fmt.Errorf("create export cipher: %w", err)
-	}
-	aead, err := cipher.NewGCM(block)
-	if err != nil {
-		return nil, fmt.Errorf("create authenticated export cipher: %w", err)
-	}
-	return aead, nil
-}
-
-func exportHeader(version uint16, createdAtMS int64, params argon2Parameters, salt, nonce []byte) []byte {
+func exportHeader(createdAtMS int64, params argon2Parameters, salt, nonce []byte) []byte {
 	header := make([]byte, 0, exportHeaderBytes)
 	header = append(header, exportMagic[:]...)
-	header = binary.BigEndian.AppendUint16(header, version)
+	header = binary.BigEndian.AppendUint16(header, exportFormatVersion)
 	header = binary.BigEndian.AppendUint64(header, uint64(createdAtMS))
 	header = binary.BigEndian.AppendUint32(header, params.Time)
 	header = binary.BigEndian.AppendUint32(header, params.MemoryKiB)

@@ -272,14 +272,10 @@ func (service *Service) chatConversationViews(ctx context.Context, logger *slog.
 	if len(imageUsers) == 0 {
 		return views
 	}
-	headshots, err := service.avatars.AvatarHeadshots(ctx, imageUsers)
+	images, err := service.headshotImages(ctx, imageUsers)
 	if err != nil {
 		logger.WarnContext(ctx, "chat avatars unavailable", "error", err)
 		return views
-	}
-	images := make(map[int64]string, len(headshots))
-	for _, headshot := range headshots {
-		images[headshot.RobloxUserID] = headshot.ImageURL
 	}
 	for index := range views {
 		if !views[index].Group && len(views[index].Participants) > 0 {
@@ -402,20 +398,14 @@ func realChatConversation(id string) bool {
 
 func validateChatConversationID(id string) error {
 	// 0x7f is the DEL control character.
-	if !realChatConversation(id) || len(id) > 256 || !utf8.ValidString(id) || strings.ContainsFunc(id, func(r rune) bool { return r <= ' ' || r == 0x7f }) {
+	if !realChatConversation(id) || len(id) > 256 || !utf8.ValidString(id) || strings.ContainsFunc(id, func(character rune) bool { return character <= ' ' || character == 0x7f }) {
 		return chatInputError("This chat is unavailable. Refresh chats.")
 	}
 	return nil
 }
 
 func chatFailure(ctx context.Context, logger *slog.Logger, err error) error {
-	var remote *roblox.Error
-	if !errors.As(err, &remote) {
-		logger.WarnContext(ctx, "chat operation failed", "error", err)
-		return &roblox.Error{Kind: roblox.KindProtocol, Endpoint: "chat", Message: "The chat request failed. Try again.", Cause: err}
-	}
-	logger.WarnContext(ctx, "chat operation failed", "endpoint", remote.Endpoint, "error_kind", remote.Kind, "status", remote.Status, "roblox_code", remote.RobloxCode)
-	return err
+	return operationFailure(ctx, logger, err, "chat", "The chat request failed. Try again.")
 }
 
 func chatInputError(message string) error {

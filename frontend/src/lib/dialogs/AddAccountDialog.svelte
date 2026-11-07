@@ -276,14 +276,14 @@
 				onToggleAll={toggleAllAccounts} />
 		{/if}
 		<div class="dialog-actions">
-			<button class="btn" type="button" disabled={store.busy} onclick={close}
+			<button class="button" type="button" disabled={store.busy} onclick={close}
 				>Cancel</button>
 			{#if preview?.batchId && preview.readyCount > 0}
-				<button class="btn" type="submit" disabled={store.busy}>
+				<button class="button" type="submit" disabled={store.busy}>
 					{operation === "validate" ? "Validating…" : "Validate"}
 				</button>
 				<button
-					class="btn-primary"
+					class="button-primary"
 					type="button"
 					disabled={store.busy || selectedCount === 0}
 					onclick={() => void addValidated()}>
@@ -291,7 +291,7 @@
 				</button>
 			{:else}
 				<button
-					class="btn-primary"
+					class="button-primary"
 					type="submit"
 					disabled={store.busy || !cookieInput.trim()}>
 					{operation === "validate" ? "Validating…" : "Validate"}

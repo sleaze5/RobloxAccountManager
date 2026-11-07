@@ -149,9 +149,9 @@ type Coordinator struct {
 	changed func(uint64)
 	cleanup *cleanupQueue
 
-	mu              sync.Mutex
-	lifecycleMu     sync.Mutex
-	savedStartMu    sync.Mutex
+	mutex           sync.Mutex
+	lifecycleMutex  sync.Mutex
+	savedStartMutex sync.Mutex
 	starts          sync.WaitGroup
 	pendingStarts   int
 	revision        uint64
@@ -175,8 +175,8 @@ func NewCoordinator(paths appdata.Paths, runtimeManager *RuntimeManager, backend
 }
 
 func (coordinator *Coordinator) Snapshot() Snapshot {
-	coordinator.mu.Lock()
-	defer coordinator.mu.Unlock()
+	coordinator.mutex.Lock()
+	defer coordinator.mutex.Unlock()
 	snapshot := Snapshot{Revision: coordinator.revision, Runtime: coordinator.runtime.State()}
 	for _, current := range coordinator.sessions {
 		snapshot.Sessions = append(snapshot.Sessions, current.state)
@@ -185,14 +185,14 @@ func (coordinator *Coordinator) Snapshot() Snapshot {
 		snapshot.Candidates = append(snapshot.Candidates, current.state)
 	}
 	snapshot.Cleanup = coordinator.cleanup.snapshot()
-	sort.Slice(snapshot.Sessions, func(i, j int) bool { return snapshot.Sessions[i].ID < snapshot.Sessions[j].ID })
-	sort.Slice(snapshot.Candidates, func(i, j int) bool { return snapshot.Candidates[i].ID < snapshot.Candidates[j].ID })
+	sort.Slice(snapshot.Sessions, func(left, right int) bool { return snapshot.Sessions[left].ID < snapshot.Sessions[right].ID })
+	sort.Slice(snapshot.Candidates, func(left, right int) bool { return snapshot.Candidates[left].ID < snapshot.Candidates[right].ID })
 	return snapshot
 }
 
 func (coordinator *Coordinator) Effects() ShutdownEffects {
-	coordinator.mu.Lock()
-	defer coordinator.mu.Unlock()
+	coordinator.mutex.Lock()
+	defer coordinator.mutex.Unlock()
 	effects := ShutdownEffects{BrowserSessions: coordinator.pendingStarts, AccountCandidates: len(coordinator.candidates), AccountChecks: coordinator.validationCount > 0}
 	for _, current := range coordinator.sessions {
 		if current.state.Lifecycle != LifecycleClosed && current.state.Lifecycle != LifecycleFailed {
@@ -211,34 +211,34 @@ func (coordinator *Coordinator) StartLogin(ctx context.Context) (SessionState, e
 	return coordinator.start(ctx, ModeLogin, 0)
 }
 func (coordinator *Coordinator) OpenAccount(ctx context.Context, accountID int64) (SessionState, error) {
-	coordinator.savedStartMu.Lock()
-	defer coordinator.savedStartMu.Unlock()
-	coordinator.mu.Lock()
+	coordinator.savedStartMutex.Lock()
+	defer coordinator.savedStartMutex.Unlock()
+	coordinator.mutex.Lock()
 	for _, current := range coordinator.sessions {
 		if current.state.Mode == ModeSaved && current.state.AccountID == accountID && current.state.Lifecycle != LifecycleClosed && current.state.Lifecycle != LifecycleFailed {
 			state := current.state
-			coordinator.mu.Unlock()
+			coordinator.mutex.Unlock()
 			if err := coordinator.Focus(state.ID); err != nil {
 				return state, err
 			}
 			return state, nil
 		}
 	}
-	coordinator.mu.Unlock()
+	coordinator.mutex.Unlock()
 	return coordinator.start(ctx, ModeSaved, accountID)
 }
 
 func (coordinator *Coordinator) start(ctx context.Context, mode Mode, accountID int64) (SessionState, error) {
-	coordinator.mu.Lock()
+	coordinator.mutex.Lock()
 	if coordinator.launchesBlocked || coordinator.stopped {
-		coordinator.mu.Unlock()
+		coordinator.mutex.Unlock()
 		return SessionState{}, errLaunchesBlocked
 	}
 	lifetime := coordinator.root
 	coordinator.starts.Add(1)
 	coordinator.pendingStarts++
 	coordinator.bumpLocked()
-	coordinator.mu.Unlock()
+	coordinator.mutex.Unlock()
 	registered := false
 	defer func() {
 		coordinator.finishStart(registered)
@@ -283,15 +283,15 @@ func (coordinator *Coordinator) start(ctx context.Context, mode Mode, accountID 
 		coordinator.cleanup.enqueue(id)
 		return SessionState{}, err
 	}
-	currentCtx, cancel := context.WithCancel(lifetime)
+	currentContext, cancel := context.WithCancel(lifetime)
 	checkpointGate := make(chan struct{}, 1)
 	checkpointGate <- struct{}{}
-	current := &session{state: state, process: process, directory: directory, secretVersion: record.SecretVersion, robloxUserID: account.RobloxUserID, browserID: record.BrowserID, trigger: make(chan struct{}, 1), checkpointGate: checkpointGate, ctx: currentCtx, cancel: cancel, downloads: make(map[string]struct{}), targetSessions: make(map[string]string), pages: make(map[string]struct{})}
+	current := &session{state: state, process: process, directory: directory, secretVersion: record.SecretVersion, robloxUserID: account.RobloxUserID, browserID: record.BrowserID, trigger: make(chan struct{}, 1), checkpointGate: checkpointGate, ctx: currentContext, cancel: cancel, downloads: make(map[string]struct{}), targetSessions: make(map[string]string), pages: make(map[string]struct{})}
 	input, output := process.CDPPipes()
 	current.cdp = NewCDPClient(input, output, func(failure error) { coordinator.failSession(id, failure) })
-	coordinator.mu.Lock()
-	if coordinator.launchesBlocked || currentCtx.Err() != nil || ctx.Err() != nil {
-		coordinator.mu.Unlock()
+	coordinator.mutex.Lock()
+	if coordinator.launchesBlocked || currentContext.Err() != nil || ctx.Err() != nil {
+		coordinator.mutex.Unlock()
 		coordinator.finishSession(current, false, "")
 		return SessionState{}, errLaunchesBlocked
 	}
@@ -299,31 +299,31 @@ func (coordinator *Coordinator) start(ctx context.Context, mode Mode, accountID 
 	registered = true
 	coordinator.pendingStarts--
 	coordinator.bumpLocked()
-	coordinator.mu.Unlock()
+	coordinator.mutex.Unlock()
 	coordinator.logger.InfoContext(ctx, "managed browser session starting", "operation", "browser-session-start", "session_id", id, "session_mode", mode, "account_id", accountID)
 	if mode == ModeLogin {
-		go coordinator.initializeLogin(currentCtx, current)
+		go coordinator.initializeLogin(currentContext, current)
 		return state, nil
 	}
 	return coordinator.initializeSavedSession(ctx, current, state, record.Cookie)
 }
 
 func (coordinator *Coordinator) initializeLogin(ctx context.Context, current *session) {
-	startupCtx, cancel := context.WithTimeout(ctx, 12*time.Second)
+	startupContext, cancel := context.WithTimeout(ctx, 12*time.Second)
 	defer cancel()
-	if err := coordinator.initializeCDP(startupCtx, current); err != nil {
+	if err := coordinator.initializeCDP(startupContext, current); err != nil {
 		if ctx.Err() != nil {
 			return
 		}
 		coordinator.abortStartup(current, err)
 		return
 	}
-	sessionID, err := coordinator.targetSession(startupCtx, current)
+	sessionID, err := coordinator.targetSession(startupContext, current)
 	if err == nil {
-		err = current.cdp.SetBrowserID(startupCtx, sessionID, current.browserID)
+		err = current.cdp.SetBrowserID(startupContext, sessionID, current.browserID)
 	}
 	if err == nil {
-		err = current.cdp.Navigate(startupCtx, sessionID, "https://www.roblox.com/Login")
+		err = current.cdp.Navigate(startupContext, sessionID, "https://www.roblox.com/Login")
 	}
 	if err != nil {
 		if ctx.Err() != nil {
@@ -350,22 +350,22 @@ func (coordinator *Coordinator) initializeCDP(ctx context.Context, current *sess
 		return fmt.Errorf("verify managed browser: %w", err)
 	}
 	if err := current.cdp.InterceptRobloxLaunches(ctx, func(protocolURL string) {
-		coordinator.mu.Lock()
+		coordinator.mutex.Lock()
 		allowed := current.ctx.Err() == nil && !coordinator.launchesBlocked && !current.gameLaunchPending && coordinator.sessions[current.state.ID] == current && current.state.Lifecycle == LifecycleActive
 		if allowed {
 			current.gameLaunchPending = true
 		}
-		coordinator.mu.Unlock()
+		coordinator.mutex.Unlock()
 		if allowed {
 			go func() {
 				defer func() {
-					coordinator.mu.Lock()
+					coordinator.mutex.Lock()
 					current.gameLaunchPending = false
-					coordinator.mu.Unlock()
+					coordinator.mutex.Unlock()
 				}()
-				launchCtx, cancel := context.WithTimeout(current.ctx, 90*time.Second)
+				launchContext, cancel := context.WithTimeout(current.ctx, 90*time.Second)
 				defer cancel()
-				coordinator.backend.LaunchBrowserGame(launchCtx, current.state.ID, protocolURL)
+				coordinator.backend.LaunchBrowserGame(launchContext, current.state.ID, protocolURL)
 			}()
 		}
 	}); err != nil {
@@ -381,8 +381,8 @@ func (coordinator *Coordinator) initializeCDP(ctx context.Context, current *sess
 }
 
 func (coordinator *Coordinator) activateSession(current *session) SessionState {
-	coordinator.mu.Lock()
-	defer coordinator.mu.Unlock()
+	coordinator.mutex.Lock()
+	defer coordinator.mutex.Unlock()
 	if stored := coordinator.sessions[current.state.ID]; stored == current && current.state.Lifecycle == LifecycleStarting {
 		current.state.Lifecycle = LifecycleActive
 		coordinator.bumpLocked()
@@ -391,16 +391,16 @@ func (coordinator *Coordinator) activateSession(current *session) SessionState {
 }
 
 func (coordinator *Coordinator) abortStartup(current *session, cause error) {
-	coordinator.mu.Lock()
+	coordinator.mutex.Lock()
 	if stored := coordinator.sessions[current.state.ID]; stored != current || current.state.Lifecycle != LifecycleStarting {
-		coordinator.mu.Unlock()
+		coordinator.mutex.Unlock()
 		return
 	}
 	current.state.Attached = false
 	current.state.Lifecycle = LifecycleFailed
 	current.state.Error = "The browser session could not be started."
 	coordinator.bumpLocked()
-	coordinator.mu.Unlock()
+	coordinator.mutex.Unlock()
 
 	current.cancel()
 	current.closeOnce.Do(func() {
@@ -446,13 +446,13 @@ func (coordinator *Coordinator) handleSessionEvent(current *session, event cdpMe
 	switch event.Method {
 	case "Target.targetCreated", "Target.targetInfoChanged":
 		var params struct {
-			TargetInfo TargetInfo `json:"targetInfo"`
+			Target CDPTarget `json:"targetInfo"`
 		}
-		if json.Unmarshal(event.Params, &params) == nil && params.TargetInfo.Type == "page" {
-			coordinator.mu.Lock()
-			current.targetID = params.TargetInfo.TargetID
-			current.pages[params.TargetInfo.TargetID] = struct{}{}
-			coordinator.mu.Unlock()
+		if json.Unmarshal(event.Params, &params) == nil && params.Target.Type == "page" {
+			coordinator.mutex.Lock()
+			current.targetID = params.Target.TargetID
+			current.pages[params.Target.TargetID] = struct{}{}
+			coordinator.mutex.Unlock()
 		}
 	case "Target.targetDestroyed":
 		coordinator.handleTargetDestroyed(current, event.Params)
@@ -477,9 +477,9 @@ func (coordinator *Coordinator) handleSessionEvent(current *session, event cdpMe
 }
 
 func (coordinator *Coordinator) setDownload(current *session, guid string, active bool) {
-	coordinator.mu.Lock()
+	coordinator.mutex.Lock()
 	if coordinator.sessions[current.state.ID] != current || current.state.Lifecycle != LifecycleActive {
-		coordinator.mu.Unlock()
+		coordinator.mutex.Unlock()
 		return
 	}
 	if active {
@@ -489,7 +489,7 @@ func (coordinator *Coordinator) setDownload(current *session, guid string, activ
 	}
 	current.state.ActiveDownloads = len(current.downloads)
 	coordinator.bumpLocked()
-	coordinator.mu.Unlock()
+	coordinator.mutex.Unlock()
 }
 
 func (coordinator *Coordinator) checkpoint(ctx context.Context, current *session, final bool) {
@@ -507,12 +507,12 @@ func (coordinator *Coordinator) checkpoint(ctx context.Context, current *session
 	case <-current.checkpointGate:
 		defer func() { current.checkpointGate <- struct{}{} }()
 	}
-	coordinator.mu.Lock()
+	coordinator.mutex.Lock()
 	if stored := coordinator.sessions[current.state.ID]; stored != current || (!final && current.state.Lifecycle != LifecycleActive) || !current.state.Attached && current.state.Mode == ModeSaved {
-		coordinator.mu.Unlock()
+		coordinator.mutex.Unlock()
 		return
 	}
-	coordinator.mu.Unlock()
+	coordinator.mutex.Unlock()
 	sessionID, cookies, err := coordinator.sessionCookies(ctx, current)
 	if err != nil {
 		coordinator.recordCheckpointFailure(current, err)
@@ -538,57 +538,53 @@ func (coordinator *Coordinator) checkpoint(ctx context.Context, current *session
 
 func (coordinator *Coordinator) recordCheckpointFailure(current *session, cause error) {
 	message := cause.Error()
-	coordinator.mu.Lock()
+	coordinator.mutex.Lock()
 	if coordinator.sessions[current.state.ID] != current || current.lastCheckpointError == message {
-		coordinator.mu.Unlock()
+		coordinator.mutex.Unlock()
 		return
 	}
 	current.lastCheckpointError = message
-	coordinator.mu.Unlock()
+	coordinator.mutex.Unlock()
 	coordinator.logger.Warn("browser cookie checkpoint unavailable", "operation", "browser-cookie-checkpoint", "session_id", current.state.ID, "session_mode", current.state.Mode, "account_id", current.state.AccountID, "error", cause)
 }
 
 func (coordinator *Coordinator) clearCheckpointFailure(current *session) {
-	coordinator.mu.Lock()
+	coordinator.mutex.Lock()
 	if coordinator.sessions[current.state.ID] != current {
-		coordinator.mu.Unlock()
+		coordinator.mutex.Unlock()
 		return
 	}
 	recovered := current.lastCheckpointError != ""
 	current.lastCheckpointError = ""
-	coordinator.mu.Unlock()
+	coordinator.mutex.Unlock()
 	if recovered {
 		coordinator.logger.Info("browser cookie checkpoint recovered", "operation", "browser-cookie-checkpoint", "session_id", current.state.ID, "session_mode", current.state.Mode, "account_id", current.state.AccountID)
 	}
 }
 
 func (coordinator *Coordinator) installCandidate(ctx context.Context, current *session, validation roblox.CookieValidation) {
-	coordinator.mu.Lock()
+	coordinator.mutex.Lock()
 	allowed := coordinator.sessions[current.state.ID] == current && (current.state.Lifecycle == LifecycleActive || current.state.Lifecycle == LifecycleValidating)
-	coordinator.mu.Unlock()
+	coordinator.mutex.Unlock()
 	if !allowed {
-		validation.Cookie = ""
 		return
 	}
 	id, err := randomID(24)
 	if err != nil {
-		validation.Cookie = ""
 		coordinator.logger.ErrorContext(ctx, "browser candidate identifier generation failed", "operation", "browser-account-capture", "session_id", current.state.ID, "session_mode", current.state.Mode, "error", err)
 		return
 	}
 	avatar := coordinator.backend.BrowserAvatar(ctx, validation.Identity.RobloxUserID)
 	existingAccount, updatesExisting := coordinator.backend.BrowserCandidateAccount(ctx, validation.Identity.RobloxUserID)
-	coordinator.mu.Lock()
+	coordinator.mutex.Lock()
 	if coordinator.sessions[current.state.ID] != current || current.state.Lifecycle != LifecycleActive && current.state.Lifecycle != LifecycleValidating {
-		coordinator.mu.Unlock()
-		validation.Cookie = ""
+		coordinator.mutex.Unlock()
 		return
 	}
 	for _, existing := range coordinator.candidates {
 		if existing.state.SessionID != current.state.ID || existing.state.RobloxUserID != validation.Identity.RobloxUserID {
 			continue
 		}
-		existing.validation.Cookie = ""
 		existing.validation = validation
 		existing.state.Username = validation.Identity.Username
 		existing.state.DisplayName = validation.Identity.DisplayName
@@ -596,7 +592,7 @@ func (coordinator *Coordinator) installCandidate(ctx context.Context, current *s
 		existing.state.UpdatesExisting = updatesExisting && existingAccount.ID > 0
 		updatesSavedAccount := existing.state.UpdatesExisting
 		coordinator.bumpLocked()
-		coordinator.mu.Unlock()
+		coordinator.mutex.Unlock()
 		coordinator.logger.InfoContext(ctx, "browser account candidate updated", "operation", "browser-account-capture", "session_id", current.state.ID, "session_mode", current.state.Mode, "roblox_user_id", validation.Identity.RobloxUserID, "updates_existing", updatesSavedAccount)
 		return
 	}
@@ -609,30 +605,24 @@ func (coordinator *Coordinator) installCandidate(ctx context.Context, current *s
 	}
 	coordinator.candidates[id] = &candidate{state: state, validation: validation}
 	coordinator.bumpLocked()
-	coordinator.mu.Unlock()
+	coordinator.mutex.Unlock()
 	coordinator.logger.InfoContext(ctx, "browser account candidate captured", "operation", "browser-account-capture", "session_id", current.state.ID, "session_mode", current.state.Mode, "roblox_user_id", validation.Identity.RobloxUserID, "updates_existing", state.UpdatesExisting)
 }
 
 func (coordinator *Coordinator) Focus(id string) error {
-	coordinator.mu.Lock()
+	coordinator.mutex.Lock()
 	current := coordinator.sessions[id]
 	if current == nil {
-		coordinator.mu.Unlock()
+		coordinator.mutex.Unlock()
 		return errors.New("browser session not found")
 	}
 	target := current.targetID
-	coordinator.mu.Unlock()
+	coordinator.mutex.Unlock()
 	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
 	defer cancel()
 	if target == "" {
-		targets, err := current.cdp.Targets(ctx)
-		if err == nil {
-			for _, candidate := range slices.Backward(targets) {
-				if candidate.Type == "page" {
-					target = candidate.TargetID
-					break
-				}
-			}
+		if targets, err := current.cdp.Targets(ctx); err == nil {
+			target = lastPageTarget(targets)
 		}
 	}
 	if target != "" {
@@ -647,42 +637,43 @@ func (coordinator *Coordinator) Focus(id string) error {
 	return nil
 }
 
+func lastPageTarget(targets []CDPTarget) string {
+	for _, target := range slices.Backward(targets) {
+		if target.Type == "page" {
+			return target.TargetID
+		}
+	}
+	return ""
+}
+
 func (coordinator *Coordinator) targetSession(ctx context.Context, current *session) (string, error) {
-	coordinator.mu.Lock()
+	coordinator.mutex.Lock()
 	targetID := current.targetID
-	coordinator.mu.Unlock()
-	if targetID == "" {
-		for targetID == "" {
-			targets, err := current.cdp.Targets(ctx)
-			if err != nil {
-				return "", err
-			}
-			for _, target := range slices.Backward(targets) {
-				if target.Type == "page" {
-					targetID = target.TargetID
-					break
-				}
-			}
-			if targetID != "" {
-				break
-			}
-			select {
-			case <-ctx.Done():
-				return "", ctx.Err()
-			case <-time.After(50 * time.Millisecond):
-			}
+	coordinator.mutex.Unlock()
+	for targetID == "" {
+		targets, err := current.cdp.Targets(ctx)
+		if err != nil {
+			return "", err
+		}
+		if targetID = lastPageTarget(targets); targetID != "" {
+			break
+		}
+		select {
+		case <-ctx.Done():
+			return "", ctx.Err()
+		case <-time.After(50 * time.Millisecond):
 		}
 	}
 	return coordinator.targetSessionFor(ctx, current, targetID)
 }
 
 func (coordinator *Coordinator) targetSessionFor(ctx context.Context, current *session, targetID string) (string, error) {
-	coordinator.mu.Lock()
+	coordinator.mutex.Lock()
 	if sessionID := current.targetSessions[targetID]; sessionID != "" {
-		coordinator.mu.Unlock()
+		coordinator.mutex.Unlock()
 		return sessionID, nil
 	}
-	coordinator.mu.Unlock()
+	coordinator.mutex.Unlock()
 	sessionID, err := current.cdp.Attach(ctx, targetID)
 	if err != nil {
 		return "", err
@@ -693,10 +684,10 @@ func (coordinator *Coordinator) targetSessionFor(ctx context.Context, current *s
 	if err := current.cdp.EnablePage(ctx, sessionID); err != nil {
 		return "", fmt.Errorf("enable browser page events: %w", err)
 	}
-	coordinator.mu.Lock()
+	coordinator.mutex.Lock()
 	current.targetSessions[targetID] = sessionID
 	current.targetID = targetID
-	coordinator.mu.Unlock()
+	coordinator.mutex.Unlock()
 	return sessionID, nil
 }
 
@@ -714,22 +705,22 @@ func (coordinator *Coordinator) sessionCookies(ctx context.Context, current *ses
 		return "", nil, err
 	}
 	var firstSession string
-	var lastErr error
+	var lastError error
 	for _, target := range slices.Backward(targets) {
 		if target.Type != "page" {
 			continue
 		}
-		sessionID, attachErr := coordinator.targetSessionFor(ctx, current, target.TargetID)
-		if attachErr != nil {
-			lastErr = attachErr
+		sessionID, attachError := coordinator.targetSessionFor(ctx, current, target.TargetID)
+		if attachError != nil {
+			lastError = attachError
 			continue
 		}
 		if firstSession == "" {
 			firstSession = sessionID
 		}
-		cookies, cookieErr := current.cdp.Cookies(ctx, sessionID)
-		if cookieErr != nil {
-			lastErr = cookieErr
+		cookies, cookieError := current.cdp.Cookies(ctx, sessionID)
+		if cookieError != nil {
+			lastError = cookieError
 			continue
 		}
 		if len(cookies) > 0 {
@@ -739,51 +730,51 @@ func (coordinator *Coordinator) sessionCookies(ctx context.Context, current *ses
 	if firstSession != "" {
 		return firstSession, nil, nil
 	}
-	if lastErr != nil {
-		return "", nil, lastErr
+	if lastError != nil {
+		return "", nil, lastError
 	}
 	return "", nil, errors.New("browser page target not found")
 }
 
 func (coordinator *Coordinator) Close(id string) error {
-	coordinator.mu.Lock()
+	coordinator.mutex.Lock()
 	current := coordinator.sessions[id]
 	if current == nil {
-		coordinator.mu.Unlock()
+		coordinator.mutex.Unlock()
 		return nil
 	}
 	if current.state.Lifecycle == LifecycleFailed {
 		delete(coordinator.sessions, id)
 		coordinator.bumpLocked()
-		coordinator.mu.Unlock()
+		coordinator.mutex.Unlock()
 		coordinator.logger.Info("failed browser session dismissed", "operation", "browser-session-close", "session_id", id, "session_mode", current.state.Mode, "account_id", current.state.AccountID)
 		return nil
 	}
 	if current.state.Lifecycle == LifecycleClosing || current.state.Lifecycle == LifecycleValidating || current.state.Lifecycle == LifecycleClosed {
-		coordinator.mu.Unlock()
+		coordinator.mutex.Unlock()
 		return nil
 	}
 	current.state.Lifecycle = LifecycleClosing
 	current.cancel()
 	coordinator.bumpLocked()
-	coordinator.mu.Unlock()
+	coordinator.mutex.Unlock()
 	coordinator.logger.Info("managed browser session closing", "operation", "browser-session-close", "session_id", id, "session_mode", current.state.Mode, "account_id", current.state.AccountID)
 	go coordinator.closeGracefully(current)
 	return nil
 }
 
 func (coordinator *Coordinator) closeGracefully(current *session) {
-	coordinator.mu.Lock()
+	coordinator.mutex.Lock()
 	if current.state.Mode == ModeLogin {
 		current.state.Lifecycle = LifecycleValidating
 		coordinator.bumpLocked()
 	}
-	coordinator.mu.Unlock()
-	checkpointCtx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
-	coordinator.checkpoint(checkpointCtx, current, true)
+	coordinator.mutex.Unlock()
+	checkpointContext, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	coordinator.checkpoint(checkpointContext, current, true)
 	cancel()
-	closeCtx, closeCancel := context.WithTimeout(context.Background(), 2*time.Second)
-	if err := current.cdp.CloseBrowser(closeCtx); err != nil && !errors.Is(err, context.Canceled) {
+	closeContext, closeCancel := context.WithTimeout(context.Background(), 2*time.Second)
+	if err := current.cdp.CloseBrowser(closeContext); err != nil && !errors.Is(err, context.Canceled) {
 		coordinator.logger.Debug("graceful browser close unavailable", "operation", "browser-session-close", "session_id", current.state.ID, "session_mode", current.state.Mode, "account_id", current.state.AccountID, "error", err)
 	}
 	closeCancel()
@@ -799,14 +790,14 @@ func (coordinator *Coordinator) closeGracefully(current *session) {
 }
 
 func (coordinator *Coordinator) CloseAllLogin() {
-	coordinator.mu.Lock()
+	coordinator.mutex.Lock()
 	ids := []string{}
 	for id, current := range coordinator.sessions {
 		if current.state.Mode == ModeLogin && current.state.Lifecycle != LifecycleClosed {
 			ids = append(ids, id)
 		}
 	}
-	coordinator.mu.Unlock()
+	coordinator.mutex.Unlock()
 	for _, id := range ids {
 		_ = coordinator.Close(id)
 	}
@@ -841,9 +832,9 @@ func (coordinator *Coordinator) watchProcess(current *session) {
 				default:
 				}
 			}
-			coordinator.mu.Lock()
+			coordinator.mutex.Lock()
 			expected := current.state.Lifecycle == LifecycleClosing || current.state.Lifecycle == LifecycleValidating
-			coordinator.mu.Unlock()
+			coordinator.mutex.Unlock()
 			if !expected {
 				coordinator.failSession(current.state.ID, err)
 			}
@@ -853,22 +844,22 @@ func (coordinator *Coordinator) watchProcess(current *session) {
 }
 
 func (coordinator *Coordinator) failSession(id string, cause error) {
-	coordinator.mu.Lock()
+	coordinator.mutex.Lock()
 	current := coordinator.sessions[id]
 	if current == nil {
-		coordinator.mu.Unlock()
+		coordinator.mutex.Unlock()
 		return
 	}
 	if current.state.Lifecycle == LifecycleStarting {
-		coordinator.mu.Unlock()
+		coordinator.mutex.Unlock()
 		coordinator.abortStartup(current, cause)
 		return
 	}
 	if current.state.Lifecycle == LifecycleClosing || current.state.Lifecycle == LifecycleValidating || current.state.Lifecycle == LifecycleClosed || current.state.Lifecycle == LifecycleFailed {
-		coordinator.mu.Unlock()
+		coordinator.mutex.Unlock()
 		return
 	}
-	coordinator.mu.Unlock()
+	coordinator.mutex.Unlock()
 	if !coordinator.finishSession(current, true, "The browser closed unexpectedly. The final cookie could not be checked.") {
 		return
 	}
@@ -892,7 +883,7 @@ func (coordinator *Coordinator) finishSession(current *session, failed bool, war
 		}
 		_ = current.cdp.Close()
 		_ = current.process.Close()
-		coordinator.mu.Lock()
+		coordinator.mutex.Lock()
 		clear(current.downloads)
 		current.state.ActiveDownloads = 0
 		if current.state.Mode == ModeSaved {
@@ -906,7 +897,7 @@ func (coordinator *Coordinator) finishSession(current *session, failed bool, war
 			delete(coordinator.sessions, current.state.ID)
 		}
 		coordinator.bumpLocked()
-		coordinator.mu.Unlock()
+		coordinator.mutex.Unlock()
 		coordinator.cleanup.enqueue(current.state.ID)
 		if !failed {
 			coordinator.logger.Info("managed browser session closed", "operation", "browser-session-close", "session_id", current.state.ID, "session_mode", current.state.Mode, "account_id", current.state.AccountID)
@@ -916,27 +907,27 @@ func (coordinator *Coordinator) finishSession(current *session, failed bool, war
 }
 
 func (coordinator *Coordinator) setCheckpointWarning(current *session, message string) {
-	coordinator.mu.Lock()
+	coordinator.mutex.Lock()
 	if coordinator.sessions[current.state.ID] != current {
-		coordinator.mu.Unlock()
+		coordinator.mutex.Unlock()
 		return
 	}
 	current.state.CheckpointWarning = message
 	coordinator.bumpLocked()
-	coordinator.mu.Unlock()
+	coordinator.mutex.Unlock()
 }
 func (coordinator *Coordinator) detach(current *session, message string) {
-	coordinator.mu.Lock()
+	coordinator.mutex.Lock()
 	if coordinator.sessions[current.state.ID] == current && current.state.Attached {
 		current.state.Attached = false
 		current.state.Error = message
 		coordinator.bumpLocked()
 	}
-	coordinator.mu.Unlock()
+	coordinator.mutex.Unlock()
 }
 
 func (coordinator *Coordinator) DetachAccount(accountID int64, message string) {
-	coordinator.mu.Lock()
+	coordinator.mutex.Lock()
 	for _, current := range coordinator.sessions {
 		if current.state.AccountID == accountID && current.state.Attached {
 			current.state.Attached = false
@@ -944,13 +935,13 @@ func (coordinator *Coordinator) DetachAccount(accountID int64, message string) {
 		}
 	}
 	coordinator.bumpLocked()
-	coordinator.mu.Unlock()
+	coordinator.mutex.Unlock()
 }
 
 func (coordinator *Coordinator) SaveCandidates(ctx context.Context, selected []string) (SaveResult, error) {
-	coordinator.mu.Lock()
+	coordinator.mutex.Lock()
 	if len(selected) == 0 {
-		coordinator.mu.Unlock()
+		coordinator.mutex.Unlock()
 		return SaveResult{}, errors.New("select at least one account candidate")
 	}
 	seen := map[int64]struct{}{}
@@ -959,11 +950,11 @@ func (coordinator *Coordinator) SaveCandidates(ctx context.Context, selected []s
 	for _, id := range selected {
 		item := coordinator.candidates[id]
 		if item == nil {
-			coordinator.mu.Unlock()
+			coordinator.mutex.Unlock()
 			return SaveResult{}, errors.New("an account candidate is no longer available")
 		}
 		if _, duplicate := seen[item.state.RobloxUserID]; duplicate {
-			coordinator.mu.Unlock()
+			coordinator.mutex.Unlock()
 			return SaveResult{}, errors.New("select only one candidate for each account")
 		}
 		seen[item.state.RobloxUserID] = struct{}{}
@@ -977,7 +968,7 @@ func (coordinator *Coordinator) SaveCandidates(ctx context.Context, selected []s
 		delete(coordinator.candidates, id)
 	}
 	coordinator.bumpLocked()
-	coordinator.mu.Unlock()
+	coordinator.mutex.Unlock()
 	result := SaveResult{Items: make([]SaveResultItem, 0, len(chosen))}
 	for _, item := range chosen {
 		account, status, err := coordinator.backend.CommitBrowserCandidate(ctx, item.validation)
@@ -992,25 +983,25 @@ func (coordinator *Coordinator) SaveCandidates(ctx context.Context, selected []s
 }
 
 func (coordinator *Coordinator) DiscardCandidates() {
-	coordinator.mu.Lock()
+	coordinator.mutex.Lock()
 	for id, item := range coordinator.candidates {
 		item.validation.Cookie = ""
 		delete(coordinator.candidates, id)
 	}
 	coordinator.bumpLocked()
-	coordinator.mu.Unlock()
+	coordinator.mutex.Unlock()
 }
 
 func (coordinator *Coordinator) ForceShutdown() {
-	coordinator.lifecycleMu.Lock()
-	defer coordinator.lifecycleMu.Unlock()
+	coordinator.lifecycleMutex.Lock()
+	defer coordinator.lifecycleMutex.Unlock()
 	if err := coordinator.forceShutdown(); err != nil {
 		coordinator.logger.Warn("browser runtime did not stop", "operation", "browser-shutdown", "error", err)
 	}
 }
 
 func (coordinator *Coordinator) forceShutdown() error {
-	coordinator.mu.Lock()
+	coordinator.mutex.Lock()
 	coordinator.launchesBlocked = true
 	coordinator.cancel()
 	sessions := make([]*session, 0, len(coordinator.sessions))
@@ -1025,31 +1016,31 @@ func (coordinator *Coordinator) forceShutdown() error {
 		delete(coordinator.candidates, id)
 	}
 	coordinator.bumpLocked()
-	coordinator.mu.Unlock()
+	coordinator.mutex.Unlock()
 	for _, current := range sessions {
 		current.cancel()
 		coordinator.finishSession(current, false, "")
 	}
 	coordinator.starts.Wait()
 	err := coordinator.runtime.StopDownload(30 * time.Second)
-	coordinator.mu.Lock()
+	coordinator.mutex.Lock()
 	for id := range coordinator.sessions {
 		delete(coordinator.sessions, id)
 	}
 	coordinator.bumpLocked()
-	coordinator.mu.Unlock()
+	coordinator.mutex.Unlock()
 	return err
 }
 
 func (coordinator *Coordinator) AllowLaunches() {
-	coordinator.lifecycleMu.Lock()
-	defer coordinator.lifecycleMu.Unlock()
+	coordinator.lifecycleMutex.Lock()
+	defer coordinator.lifecycleMutex.Unlock()
 	coordinator.allowLaunches()
 }
 
 func (coordinator *Coordinator) allowLaunches() {
-	coordinator.mu.Lock()
-	defer coordinator.mu.Unlock()
+	coordinator.mutex.Lock()
+	defer coordinator.mutex.Unlock()
 	if coordinator.stopped || !coordinator.launchesBlocked {
 		return
 	}
@@ -1059,11 +1050,11 @@ func (coordinator *Coordinator) allowLaunches() {
 }
 
 func (coordinator *Coordinator) DownloadRuntime(ctx context.Context, replace bool) error {
-	coordinator.lifecycleMu.Lock()
-	defer coordinator.lifecycleMu.Unlock()
-	coordinator.mu.Lock()
+	coordinator.lifecycleMutex.Lock()
+	defer coordinator.lifecycleMutex.Unlock()
+	coordinator.mutex.Lock()
 	blocked, stopped := coordinator.launchesBlocked, coordinator.stopped
-	coordinator.mu.Unlock()
+	coordinator.mutex.Unlock()
 	if stopped {
 		return errLaunchesBlocked
 	}
@@ -1086,11 +1077,11 @@ func (coordinator *Coordinator) DownloadRuntime(ctx context.Context, replace boo
 }
 
 func (coordinator *Coordinator) RemoveRuntime() error {
-	coordinator.lifecycleMu.Lock()
-	defer coordinator.lifecycleMu.Unlock()
-	coordinator.mu.Lock()
+	coordinator.lifecycleMutex.Lock()
+	defer coordinator.lifecycleMutex.Unlock()
+	coordinator.mutex.Lock()
 	blocked, stopped := coordinator.launchesBlocked, coordinator.stopped
-	coordinator.mu.Unlock()
+	coordinator.mutex.Unlock()
 	if stopped {
 		return errLaunchesBlocked
 	}
@@ -1104,15 +1095,15 @@ func (coordinator *Coordinator) RemoveRuntime() error {
 }
 
 func (coordinator *Coordinator) Shutdown() {
-	coordinator.lifecycleMu.Lock()
-	defer coordinator.lifecycleMu.Unlock()
-	coordinator.mu.Lock()
+	coordinator.lifecycleMutex.Lock()
+	defer coordinator.lifecycleMutex.Unlock()
+	coordinator.mutex.Lock()
 	if coordinator.stopped {
-		coordinator.mu.Unlock()
+		coordinator.mutex.Unlock()
 		return
 	}
 	coordinator.stopped = true
-	coordinator.mu.Unlock()
+	coordinator.mutex.Unlock()
 	if err := coordinator.forceShutdown(); err != nil {
 		coordinator.logger.Warn("browser runtime did not stop", "operation", "browser-shutdown", "error", err)
 	}
@@ -1128,9 +1119,9 @@ func (coordinator *Coordinator) bumpLocked() {
 	}
 }
 func (coordinator *Coordinator) bump() {
-	coordinator.mu.Lock()
+	coordinator.mutex.Lock()
 	coordinator.bumpLocked()
-	coordinator.mu.Unlock()
+	coordinator.mutex.Unlock()
 }
 func (coordinator *Coordinator) queueStaleSessions() {
 	entries, err := os.ReadDir(coordinator.paths.BrowserTempRoot)
@@ -1148,7 +1139,7 @@ type cleanupQueue struct {
 	root    string
 	logger  *slog.Logger
 	changed func()
-	mu      sync.Mutex
+	mutex   sync.Mutex
 	pending map[string]string
 	wake    chan struct{}
 	done    chan struct{}
@@ -1161,8 +1152,8 @@ func newCleanupQueue(root string, logger *slog.Logger, changed func()) *cleanupQ
 	return queue
 }
 func (queue *cleanupQueue) createDirectory(id string) (string, error) {
-	queue.mu.Lock()
-	defer queue.mu.Unlock()
+	queue.mutex.Lock()
+	defer queue.mutex.Unlock()
 	if err := os.MkdirAll(queue.root, 0o755); err != nil {
 		return "", fmt.Errorf("create browser temporary root: %w", err)
 	}
@@ -1173,11 +1164,11 @@ func (queue *cleanupQueue) createDirectory(id string) (string, error) {
 	return directory, nil
 }
 func (queue *cleanupQueue) enqueue(id string) {
-	queue.mu.Lock()
+	queue.mutex.Lock()
 	if _, exists := queue.pending[id]; !exists {
 		queue.pending[id] = ""
 	}
-	queue.mu.Unlock()
+	queue.mutex.Unlock()
 	select {
 	case queue.wake <- struct{}{}:
 	default:
@@ -1190,8 +1181,8 @@ func (queue *cleanupQueue) retry() {
 	}
 }
 func (queue *cleanupQueue) snapshot() []CleanupState {
-	queue.mu.Lock()
-	defer queue.mu.Unlock()
+	queue.mutex.Lock()
+	defer queue.mutex.Unlock()
 	result := make([]CleanupState, 0, len(queue.pending))
 	for id, err := range queue.pending {
 		if err != "" {
@@ -1213,12 +1204,12 @@ func (queue *cleanupQueue) run() {
 	}
 }
 func (queue *cleanupQueue) process() {
-	queue.mu.Lock()
+	queue.mutex.Lock()
 	ids := make([]string, 0, len(queue.pending))
 	for id := range queue.pending {
 		ids = append(ids, id)
 	}
-	queue.mu.Unlock()
+	queue.mutex.Unlock()
 	for _, id := range ids {
 		var err error
 		if !validRandomID(id, 24) {
@@ -1226,18 +1217,18 @@ func (queue *cleanupQueue) process() {
 		} else {
 			err = removeManagedDirectory(queue.root, filepath.Join(queue.root, id))
 		}
-		queue.mu.Lock()
+		queue.mutex.Lock()
 		if err == nil || errors.Is(err, os.ErrNotExist) {
 			delete(queue.pending, id)
 		} else {
 			queue.pending[id] = "A temporary browser profile could not be removed."
 			queue.logger.Warn("browser profile cleanup failed", "operation", "browser-cleanup", "error", err)
 		}
-		queue.mu.Unlock()
+		queue.mutex.Unlock()
 	}
-	queue.mu.Lock()
+	queue.mutex.Lock()
 	err := removeEmptyDirectory(queue.root)
-	queue.mu.Unlock()
+	queue.mutex.Unlock()
 	if err != nil {
 		queue.logger.Warn("browser temporary root cleanup failed", "operation", "browser-cleanup", "error", err)
 	}
@@ -1251,38 +1242,38 @@ func (queue *cleanupQueue) close() {
 }
 
 func (coordinator *Coordinator) finishStart(registered bool) {
-	coordinator.mu.Lock()
+	coordinator.mutex.Lock()
 	if !registered {
 		coordinator.pendingStarts--
 		coordinator.bumpLocked()
 	}
-	coordinator.mu.Unlock()
+	coordinator.mutex.Unlock()
 	coordinator.starts.Done()
 }
 
 func (coordinator *Coordinator) initializeSavedSession(ctx context.Context, current *session, state SessionState, cookie string) (SessionState, error) {
 	id, mode, accountID := state.ID, state.Mode, state.AccountID
-	startupCtx, startupCancel := context.WithTimeout(ctx, 12*time.Second)
+	startupContext, startupCancel := context.WithTimeout(ctx, 12*time.Second)
 	defer startupCancel()
-	if err := coordinator.initializeCDP(startupCtx, current); err != nil {
+	if err := coordinator.initializeCDP(startupContext, current); err != nil {
 		coordinator.abortStartup(current, err)
 		return SessionState{}, err
 	}
-	sessionID, err := coordinator.targetSession(startupCtx, current)
+	sessionID, err := coordinator.targetSession(startupContext, current)
 	if err != nil {
 		coordinator.abortStartup(current, err)
 		return SessionState{}, err
 	}
-	if err := current.cdp.SetBrowserID(startupCtx, sessionID, current.browserID); err != nil {
+	if err := current.cdp.SetBrowserID(startupContext, sessionID, current.browserID); err != nil {
 		coordinator.abortStartup(current, err)
 		return SessionState{}, err
 	}
-	if err := current.cdp.SetRobloxCookie(startupCtx, sessionID, cookie); err != nil {
+	if err := current.cdp.SetRobloxCookie(startupContext, sessionID, cookie); err != nil {
 		coordinator.abortStartup(current, err)
 		return SessionState{}, errors.New("the saved account cookie could not be prepared in the browser")
 	}
 	current.lastCookie = cookie
-	if err := current.cdp.Navigate(startupCtx, sessionID, "https://www.roblox.com/home"); err != nil {
+	if err := current.cdp.Navigate(startupContext, sessionID, "https://www.roblox.com/home"); err != nil {
 		coordinator.abortStartup(current, err)
 		return SessionState{}, err
 	}
@@ -1302,7 +1293,7 @@ func (coordinator *Coordinator) handleTargetDestroyed(current *session, paramsDa
 		TargetID string `json:"targetId"`
 	}
 	if json.Unmarshal(paramsData, &params) == nil && params.TargetID != "" {
-		coordinator.mu.Lock()
+		coordinator.mutex.Lock()
 		delete(current.targetSessions, params.TargetID)
 		if current.targetID == params.TargetID {
 			current.targetID = ""
@@ -1310,7 +1301,7 @@ func (coordinator *Coordinator) handleTargetDestroyed(current *session, paramsDa
 		_, page := current.pages[params.TargetID]
 		delete(current.pages, params.TargetID)
 		lastPage := page && len(current.pages) == 0
-		coordinator.mu.Unlock()
+		coordinator.mutex.Unlock()
 		if lastPage {
 			current.process.PagesClosed()
 		}
@@ -1322,13 +1313,13 @@ func (coordinator *Coordinator) handleTargetDetached(current *session, paramsDat
 		SessionID string `json:"sessionId"`
 	}
 	if json.Unmarshal(paramsData, &params) == nil && params.SessionID != "" {
-		coordinator.mu.Lock()
+		coordinator.mutex.Lock()
 		for targetID, sessionID := range current.targetSessions {
 			if sessionID == params.SessionID {
 				delete(current.targetSessions, targetID)
 			}
 		}
-		coordinator.mu.Unlock()
+		coordinator.mutex.Unlock()
 	}
 }
 
@@ -1339,7 +1330,7 @@ func (coordinator *Coordinator) completeCheckpointValidation(ctx context.Context
 	} else if err == nil {
 		coordinator.setCheckpointWarning(current, "")
 	}
-	coordinator.mu.Lock()
+	coordinator.mutex.Lock()
 	coordinator.validationCount--
 	allowed := current.state.Lifecycle == LifecycleActive || final && current.state.Lifecycle == LifecycleValidating
 	stale := current.generation != generation || coordinator.sessions[current.state.ID] != current || !allowed
@@ -1347,14 +1338,14 @@ func (coordinator *Coordinator) completeCheckpointValidation(ctx context.Context
 		current.validatedGeneration = generation
 	}
 	coordinator.bumpLocked()
-	coordinator.mu.Unlock()
+	coordinator.mutex.Unlock()
 	return stale
 }
 
 func (coordinator *Coordinator) checkpointCookie(ctx context.Context, current *session, final bool, sessionID, value string) {
-	coordinator.mu.Lock()
+	coordinator.mutex.Lock()
 	if value == current.lastCookie && current.validatedGeneration == current.generation {
-		coordinator.mu.Unlock()
+		coordinator.mutex.Unlock()
 		return
 	}
 	if value != current.lastCookie {
@@ -1365,7 +1356,7 @@ func (coordinator *Coordinator) checkpointCookie(ctx context.Context, current *s
 	browserID, robloxUserID := current.browserID, current.robloxUserID
 	coordinator.validationCount++
 	coordinator.bumpLocked()
-	coordinator.mu.Unlock()
+	coordinator.mutex.Unlock()
 	validation, err := coordinator.backend.ValidateBrowserCookie(ctx, value, browserID)
 	stale := coordinator.completeCheckpointValidation(ctx, current, final, generation, err)
 	if stale || err != nil {
@@ -1379,20 +1370,20 @@ func (coordinator *Coordinator) checkpointCookie(ctx context.Context, current *s
 		coordinator.setCheckpointWarning(current, "The account browser ID could not be synchronized.")
 		return
 	}
-	coordinator.mu.Lock()
+	coordinator.mutex.Lock()
 	current.browserID = validation.BrowserID
 	current.validatedGeneration = generation
 	if current.state.Mode == ModeLogin {
 		current.robloxUserID = validation.Identity.RobloxUserID
 	}
-	coordinator.mu.Unlock()
+	coordinator.mutex.Unlock()
 	if validation.Cookie != value {
-		if injectionErr := current.cdp.SetRobloxCookie(ctx, sessionID, validation.Cookie); injectionErr != nil {
+		if injectionError := current.cdp.SetRobloxCookie(ctx, sessionID, validation.Cookie); injectionError != nil {
 			coordinator.setCheckpointWarning(current, "A rotated browser cookie could not be returned to the browser.")
 		} else {
-			coordinator.mu.Lock()
+			coordinator.mutex.Lock()
 			current.lastCookie = validation.Cookie
-			coordinator.mu.Unlock()
+			coordinator.mutex.Unlock()
 		}
 	}
 	coordinator.synchronizeCheckpoint(ctx, current, &validation)
@@ -1414,8 +1405,8 @@ func (coordinator *Coordinator) synchronizeCheckpoint(ctx context.Context, curre
 		coordinator.detach(current, "The saved account changed elsewhere. This browser is no longer synchronized.")
 		return
 	}
-	coordinator.mu.Lock()
+	coordinator.mutex.Lock()
 	current.secretVersion = newVersion
 	coordinator.bumpLocked()
-	coordinator.mu.Unlock()
+	coordinator.mutex.Unlock()
 }

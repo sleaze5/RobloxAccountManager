@@ -12,6 +12,10 @@ The Svelte frontend is a presentation layer. The Go backend owns application log
 - Import backend bindings only through `frontend/src/lib/backend/bridge.ts`.
 - Show notifications only through `frontend/src/lib/notifications/notification-center.svelte.ts`.
 - Build small components with one responsibility.
+- Every store action that calls the backend catches its errors and shows them through the store's error state or a notification. A component may call an action without awaiting it, as in `void store.action()`, only when the action handles its own errors.
+- Ignore a response that arrives after a newer request or after the vault locked. Check a version or request counter before you apply the response.
+- Keep state only when the UI reads it.
+- Reuse the shared helpers in `frontend/src/lib/shared/` instead of writing the behavior again: `coalesce.ts` for refreshes that must not overlap, `search.ts` for search terms and matching, `clipboard.ts` for copying and the copy notification, and `errors.ts` for error messages.
 
 ## Backend
 
@@ -21,6 +25,23 @@ The Svelte frontend is a presentation layer. The Go backend owns application log
 - Storage code does not launch Roblox.
 - Roblox API clients do not manipulate UI state.
 - Keep platform code out of account and persistence logic. Shared business logic depends on platform-neutral interfaces when practical.
+- Every exported method of the binding service is called by the frontend, and every field of a returned type is read by the frontend or used by the backend. Remove a binding, field, or event in the same change that stops using it.
+- `main.go` wires every dependency of a service. Do not check those dependencies for `nil`, and do not add a fallback for a dependency that is always present.
+- Give each behavior one implementation. Code that two packages or two operating systems need goes into one shared function or one `_unix.go` or `_other.go` file, as [PLATFORM.md](./PLATFORM.md) describes.
+- Add an interface only when it has two implementations or crosses a package boundary that must not import the other package.
+
+## Errors
+
+- Return errors that the UI shows as `*roblox.Error` with a short, complete sentence in `Message` that tells the user what to do. `Error()` returns only `Message`, because the desktop runtime shows it as is. Do not convert or strip error text per binding.
+- Never put paths, URLs, cookies, tokens, or internal error text in `Message`. Put the underlying error in `Cause`. The frontend shows only `Message`.
+- Log an error once, where it is handled, with an `operation` attribute and the `error`. A `*roblox.Error` logs its endpoint, kind, status, and Roblox code itself.
+- Map storage and vault errors to user messages in one place per package, such as `mapRepositoryError` and `safeVaultError`, instead of at each call.
+
+## Concurrency and crash safety
+
+- A resource that several goroutines use, such as the vault database, the backup folder, or a staging folder, has one owner that serializes access to it. Never close, replace, or delete a resource while another operation holds it. Use the owner's existing lock or exclusive operation instead of adding a second one.
+- A change that writes several files must leave a state that the next startup can finish or roll back after a crash at any point. Write new files next to the old ones, replace them in an order that keeps one complete set readable, and say why the order is safe in a comment.
+- Bound every wait, retry, and poll with a context, a timeout, or a maximum count, and comment why a retry or delay exists.
 
 ## Persisted formats
 

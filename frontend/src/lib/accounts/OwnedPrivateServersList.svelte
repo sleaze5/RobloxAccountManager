@@ -76,7 +76,7 @@
 							)}</span>
 					</div>
 					<button
-						class="btn"
+						class="button"
 						type="button"
 						aria-label={`Manage ${name}`}
 						disabled={owned.loading}
@@ -87,7 +87,7 @@
 	</div>
 	{#if owned.nextCursor}
 		<button
-			class="btn self-start"
+			class="button self-start"
 			type="button"
 			disabled={owned.loading}
 			onclick={() => void owned.loadMore()}>

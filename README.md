@@ -18,7 +18,7 @@ This app is built primarily for Windows but also works on Linux and macOS. Some 
 
 ## Features
 
-- **Encrypted vault:** SQLCipher encryption, protected by your master password through Argon2id.
+- **Encrypted vault:** SQLite encrypted with AES-256-XTS, protected by your master password through Argon2id.
     - Unlock automatically on your device.
     - Restore from automatic backups.
 - **Account import:** Paste multiple `.ROBLOSECURITY` cookies, or sign in through a managed browser.
@@ -146,11 +146,10 @@ logs/
 
 - [Go](https://go.dev) 1.26 or later
 - [Bun](https://bun.sh)
-- A C compiler for cgo, because SQLCipher needs cgo:
-    - **Windows x64:** MinGW-w64 GCC on `PATH`.
-    - **Windows ARM64:** MinGW-w64 GCC and `aarch64-w64-mingw32-clang` from [llvm-mingw](https://github.com/mstorsjo/llvm-mingw) on `PATH`. Put llvm-mingw after the x64 MinGW on `PATH`, because llvm-mingw also ships a `gcc`.
-    - **Linux:** A C compiler and the GTK 4 and WebKitGTK 6 development libraries. On Ubuntu 24.04, install `libgtk-4-dev` and `libwebkitgtk-6.0-dev`.
-    - **macOS:** Xcode command line tools. On macOS, the Wails runtime also uses cgo.
+- The native requirements of the Wails runtime:
+    - **Windows:** Nothing else. Windows builds without cgo.
+    - **Linux:** A C compiler and the GTK 4 and WebKitGTK 6 development libraries, because the Wails runtime uses cgo. On Ubuntu 24.04, install `libgtk-4-dev` and `libwebkitgtk-6.0-dev`.
+    - **macOS:** Xcode command line tools, because the Wails runtime uses cgo.
 
 ### Build
 
@@ -172,7 +171,7 @@ go tool -modfile build/tools/go.mod task build
 It runs `go tool -modfile build/tools/go.mod task fix` to format, apply lint fixes, and validate the source, builds the production frontend, and then builds the executable for your operating system and architecture. To build another target, add `TARGET=<target>`:
 
 - `windows-amd64`: Windows x64. Runs on Windows.
-- `windows-arm64`: Windows ARM64. Cross-compiles on x64 Windows with llvm-mingw.
+- `windows-arm64`: Windows ARM64. Cross-compiles on x64 Windows.
 - `linux-amd64`: Linux x64. Runs on Linux.
 - `darwin-arm64`: macOS app bundle for Apple silicon. Runs on macOS.
 - `darwin-amd64`: macOS app bundle for Intel. Runs on macOS.

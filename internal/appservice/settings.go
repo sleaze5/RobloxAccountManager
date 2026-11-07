@@ -93,10 +93,6 @@ func (service *Service) applyLoggingSettings() error {
 	return service.logs.SetEnabledLevels(levels)
 }
 
-func (service *Service) ParseTimestampFormat(source string) (timestampformat.Format, error) {
-	return timestampformat.Parse(source)
-}
-
 func (service *Service) SetTimestampFormats(timestampFormat, timestampHoverFormat string) (TimestampFormats, error) {
 	if err := service.settings.SetTimestampFormats(timestampFormat, timestampHoverFormat); err != nil {
 		return TimestampFormats{}, err

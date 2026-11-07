@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { matchesSearch, searchTerms } from "../shared/search"
 	import arrowsClockwiseIcon from "@phosphor-icons/core/regular/arrows-clockwise.svg?raw"
 	import caretLeftIcon from "@phosphor-icons/core/regular/caret-left.svg?raw"
 	import circleNotchIcon from "@phosphor-icons/core/regular/circle-notch.svg?raw"
@@ -40,7 +41,6 @@
 		label: string
 		description: string
 		type: "toggle" | "radio"
-		section: string
 	}
 
 	interface SectionDef {
@@ -129,7 +129,6 @@
 							description:
 								"Choose the level of mature content and experiences allowed on this account.",
 							type: "radio",
-							section: "Content maturity",
 						},
 						{
 							key: Key.SettingSensitiveIssues,
@@ -137,7 +136,6 @@
 							description:
 								"Allow experiences that depict sensitive themes and topics.",
 							type: "toggle",
-							section: "Content maturity",
 						},
 					],
 				},
@@ -157,7 +155,6 @@
 							label: "Experience chat",
 							description: "Enable text chat within Roblox experiences.",
 							type: "toggle",
-							section: "Experience chat",
 						},
 						{
 							key: Key.SettingDirectExperienceChat,
@@ -165,7 +162,6 @@
 							description:
 								"Allow direct messaging with other players inside experiences.",
 							type: "toggle",
-							section: "Experience chat",
 						},
 					],
 				},
@@ -179,21 +175,18 @@
 							description:
 								"Join parties and connect with friends across Roblox.",
 							type: "toggle",
-							section: "Chat and party with friends",
 						},
 						{
 							key: Key.SettingPartyChat,
 							label: "Friends chat",
 							description: "Choose who can chat with you in parties.",
 							type: "radio",
-							section: "Chat and party with friends",
 						},
 						{
 							key: Key.SettingPartyVoice,
 							label: "Voice chat with friends",
 							description: "Choose who can speak with you in parties.",
 							type: "radio",
-							section: "Chat and party with friends",
 						},
 						{
 							key: Key.SettingVoiceOptIn,
@@ -201,7 +194,6 @@
 							description:
 								"Enable spatial voice chat in supported experiences.",
 							type: "toggle",
-							section: "Chat and party with friends",
 						},
 					],
 				},
@@ -215,7 +207,6 @@
 							description:
 								"Allow Roblox to use voice recordings to improve products and services.",
 							type: "toggle",
-							section: "Voice data usage",
 						},
 					],
 				},
@@ -229,7 +220,6 @@
 							description:
 								"Use camera tracking to animate your avatar with facial expressions.",
 							type: "toggle",
-							section: "Camera input",
 						},
 					],
 				},
@@ -243,7 +233,6 @@
 							description:
 								"Use suggested preset phrases for quick chat during gameplay.",
 							type: "toggle",
-							section: "Gameplay coordination",
 						},
 					],
 				},
@@ -263,7 +252,6 @@
 							label: "Online status",
 							description: "Choose who can see when you are online.",
 							type: "radio",
-							section: "Visibility",
 						},
 						{
 							key: Key.SettingExperienceJoins,
@@ -271,7 +259,6 @@
 							description:
 								"Choose who can see the game you are playing and join you.",
 							type: "radio",
-							section: "Visibility",
 						},
 						{
 							key: Key.SettingActivityUpdates,
@@ -279,7 +266,6 @@
 							description:
 								"Notify friends about your in-game activity and milestones.",
 							type: "toggle",
-							section: "Visibility",
 						},
 						{
 							key: Key.SettingSocialNetworks,
@@ -287,7 +273,6 @@
 							description:
 								"Choose who can view links to your social networks on your profile.",
 							type: "radio",
-							section: "Visibility",
 						},
 					],
 				},
@@ -301,7 +286,6 @@
 							description:
 								"Choose who can add you to their private servers.",
 							type: "radio",
-							section: "Private servers",
 						},
 					],
 				},
@@ -315,7 +299,6 @@
 							description:
 								"Receive friend suggestions based on mutual connections.",
 							type: "toggle",
-							section: "Friends & contacts",
 						},
 						{
 							key: Key.SettingContactPermission,
@@ -323,7 +306,6 @@
 							description:
 								"Allow Roblox to sync contacts from your devices.",
 							type: "toggle",
-							section: "Friends & contacts",
 						},
 						{
 							key: Key.SettingPhoneDiscovery,
@@ -331,7 +313,6 @@
 							description:
 								"Allow people who have your phone number to find your account.",
 							type: "toggle",
-							section: "Friends & contacts",
 						},
 					],
 				},
@@ -351,14 +332,12 @@
 							label: "Inventory visibility",
 							description: "Choose who can view items in your inventory.",
 							type: "radio",
-							section: "Trading & inventory",
 						},
 						{
 							key: Key.SettingTradeAudience,
 							label: "Trade audience",
 							description: "Choose who can send you trade requests.",
 							type: "radio",
-							section: "Trading & inventory",
 						},
 						{
 							key: Key.SettingTradeQuality,
@@ -366,7 +345,6 @@
 							description:
 								"Filter incoming trade requests by item value.",
 							type: "radio",
-							section: "Trading & inventory",
 						},
 					],
 				},
@@ -387,7 +365,6 @@
 							description:
 								"Receive personalized advertising based on your activity and interests.",
 							type: "toggle",
-							section: "Ads preferences",
 						},
 						{
 							key: Key.SettingDataSharing,
@@ -395,7 +372,6 @@
 							description:
 								"Allow sharing personal information with advertising partners.",
 							type: "toggle",
-							section: "Ads preferences",
 						},
 					],
 				},
@@ -462,14 +438,12 @@
 		editing = $state<AccountEditKind | null>(null),
 		savedPasswordOpen = $state(false),
 		normalizedQuery = $derived(workspace.accountSettingsQuery.trim().toLowerCase()),
-		searchTerms = $derived(normalizedQuery.split(/\s+/).filter(Boolean)),
+		terms = $derived(searchTerms(normalizedQuery)),
 		visibleCategories = $derived(
-			categories.filter(
-				(cat) =>
-					filterFields(
-						cat,
-						cat.sections.flatMap((sec) => sec.fields),
-					).length > 0,
+			categories.filter((category) =>
+				category.sections.some(
+					(section) => filterFields(category, section).length > 0,
+				),
 			),
 		),
 		visibleInfoFields = $derived(
@@ -477,14 +451,14 @@
 				accountInfoFields
 					.filter(
 						(field) =>
-							searchTerms.length === 0 ||
+							terms.length === 0 ||
 							matches(`${pages[0].search} ${field.search}`),
 					)
 					.map((field) => field.id),
 			),
 		),
 		showBlockedUsers = $derived(
-			searchTerms.length === 0 ||
+			terms.length === 0 ||
 				matches(
 					`${privacyLabel} ${blockedUsersPage.label} ${blockedUsersPage.search}`,
 				),
@@ -502,8 +476,7 @@
 					? visibleInfoFields.size > 0
 					: page.id === "privacy"
 						? visibleSubpages.length > 0
-						: searchTerms.length === 0 ||
-							matches(`${page.label} ${page.search}`),
+						: terms.length === 0 || matches(`${page.label} ${page.search}`),
 			),
 		),
 		activePage = $derived(
@@ -610,8 +583,7 @@
 	})
 
 	function matches(text: string): boolean {
-		const lower = text.toLowerCase()
-		return searchTerms.every((term) => lower.includes(term))
+		return matchesSearch(terms, text)
 	}
 
 	function selectPage(page: PageId, subpage?: string): void {
@@ -658,7 +630,7 @@
 	}
 
 	function getSettingView(key: Key): AccountSettingView | undefined {
-		return settingsState?.snapshot?.settings?.find((s) => s.key === key)
+		return settingsState?.snapshot?.settings?.find((setting) => setting.key === key)
 	}
 
 	function computeRadioOptions(field: FieldDef): SettingRadioOption[] {
@@ -756,14 +728,16 @@
 		await settingsState.save(view, option)
 	}
 
-	function filterFields(category: CategoryDef, fields: FieldDef[]): FieldDef[] {
+	function filterFields(category: CategoryDef, section: SectionDef): FieldDef[] {
 		if (
-			searchTerms.length === 0 ||
+			terms.length === 0 ||
 			matches(`${privacyLabel} ${category.label} ${category.search}`)
 		) {
-			return fields
+			return section.fields
 		}
-		return fields.filter((f) => matches(`${f.label} ${f.description} ${f.section}`))
+		return section.fields.filter((field) =>
+			matches(`${field.label} ${field.description} ${section.title}`),
+		)
 	}
 
 	onMount(() => {
@@ -800,7 +774,7 @@
 <section class="settings-page" aria-labelledby="account-settings-title">
 	<header class="settings-header">
 		<button
-			class="btn-ghost"
+			class="button-ghost"
 			type="button"
 			aria-label="Back to profile"
 			data-tooltip="Back to profile"
@@ -813,7 +787,7 @@
 		<span class="mr-auto min-w-0 text-xs wrap-anywhere text-fg-muted"
 			>@{store.selectedAccount.username}</span>
 		<button
-			class="btn-ghost"
+			class="button-ghost"
 			type="button"
 			aria-label="Refresh settings"
 			data-tooltip="Refresh settings"
@@ -976,7 +950,7 @@
 						{#each activeCategory.sections as section (section.id)}
 							{@const matchingFields = filterFields(
 								activeCategory,
-								section.fields,
+								section,
 							)}
 							{#if matchingFields.length > 0}
 								<section

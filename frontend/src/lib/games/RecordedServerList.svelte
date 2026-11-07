@@ -114,7 +114,7 @@
 			<Icon svg={warningIcon} size={28} aria-hidden="true" />
 			<h2>RoValra servers are unavailable</h2>
 			<p>{servers.error}</p>
-			<button class="btn" type="button" onclick={() => void servers.load()}
+			<button class="button" type="button" onclick={() => void servers.load()}
 				>Try again</button>
 		</div>
 	{:else if !servers.page}
@@ -128,13 +128,13 @@
 			{#if servers.pageNumber > 1}
 				<h2>No more servers</h2>
 				<p>RoValra has no more servers for this list.</p>
-				<button class="btn" type="button" onclick={() => servers.first()}
+				<button class="button" type="button" onclick={() => servers.first()}
 					>First page</button>
 			{:else if servers.region}
 				<h2>No servers in this region</h2>
 				<p>RoValra has not seen a server of this place in this region.</p>
 				<button
-					class="btn"
+					class="button"
 					type="button"
 					onclick={() => servers.setOptions({ region: "" })}
 					>Any region</button>

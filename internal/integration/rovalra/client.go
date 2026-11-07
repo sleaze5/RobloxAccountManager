@@ -30,7 +30,7 @@ const (
 type Client struct {
 	http *http.Client
 
-	mu               sync.Mutex
+	mutex            sync.Mutex
 	regions          []Region
 	regionsFetchedAt time.Time
 }

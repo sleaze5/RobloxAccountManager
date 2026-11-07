@@ -1,7 +1,9 @@
 package appservice
 
 import (
+	"context"
 	"errors"
+	"log/slog"
 
 	"github.com/sleaze5/RobloxAccountManager/internal/accounts"
 	"github.com/sleaze5/RobloxAccountManager/internal/roblox"
@@ -80,4 +82,15 @@ func safeVaultError(err error) error {
 		Message:  message,
 		Cause:    err,
 	}
+}
+
+// operationFailure logs a failed Roblox operation. An error that is not a
+// *roblox.Error becomes one with the fallback message, so the UI never shows
+// internal details.
+func operationFailure(ctx context.Context, logger *slog.Logger, err error, endpoint, fallback string) error {
+	logger.WarnContext(ctx, endpoint+" operation failed", "error", err)
+	if _, ok := errors.AsType[*roblox.Error](err); ok {
+		return err
+	}
+	return &roblox.Error{Kind: roblox.KindProtocol, Endpoint: endpoint, Message: fallback, Cause: err}
 }

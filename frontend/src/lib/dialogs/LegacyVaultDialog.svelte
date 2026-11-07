@@ -77,7 +77,7 @@
 				<div class="mt-3 notice-note">Hint: {store.vault.passwordHint}</div>
 			{/if}
 			<button
-				class="mt-3 btn-primary h-8 w-full"
+				class="mt-3 button-primary h-8 w-full"
 				type="submit"
 				disabled={!password || store.busy}>
 				{store.busy ? "Moving data…" : "Move data"}
@@ -106,7 +106,7 @@
 			</li>
 		</ul>
 		<button
-			class="mt-3 btn w-full"
+			class="mt-3 button w-full"
 			type="button"
 			onclick={() => void Browser.OpenURL(bridgeReleaseURL)}>
 			<Icon svg={arrowSquareOutIcon} size={16} aria-hidden="true" />
@@ -130,7 +130,7 @@
 				<input bind:value={confirmation} autocomplete="off" />
 			</label>
 			<button
-				class="mt-3 btn-warning w-full"
+				class="mt-3 button-warning w-full"
 				type="submit"
 				disabled={confirmation !== "CONFIRM" || store.busy}>
 				{store.busy ? "Setting aside…" : "Set aside old vault"}

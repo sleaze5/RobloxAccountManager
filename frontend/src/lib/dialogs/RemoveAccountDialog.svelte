@@ -64,10 +64,10 @@
 		</div>
 	{/if}
 	<div class="dialog-actions">
-		<button class="btn" type="button" disabled={store.busy} onclick={close}
+		<button class="button" type="button" disabled={store.busy} onclick={close}
 			>Cancel</button>
 		<button
-			class="btn-danger"
+			class="button-danger"
 			type="button"
 			disabled={store.busy}
 			onclick={() => void remove()}>

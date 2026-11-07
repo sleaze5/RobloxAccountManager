@@ -55,16 +55,16 @@ func main() {
 	}
 }
 
-func run() (runErr error) {
+func run() (runError error) {
 	launch := logging.NewLaunch()
 	var instance *singleinstance.Instance
 	defer func() {
 		var attributes []any
 		if value := recover(); value != nil {
-			runErr = errors.New(logging.PanicReason(value))
+			runError = errors.New(logging.PanicReason(value))
 			attributes = []any{"stack", logging.PanicStack()}
 		}
-		launch.Finish(runErr, attributes...)
+		launch.Finish(runError, attributes...)
 		_ = instance.Close()
 	}()
 	launch.Begin("single-instance")
@@ -84,15 +84,15 @@ func run() (runErr error) {
 		singleinstance.ShowAlreadyRunning()
 		return nil
 	}
-	requested, moved, moveErr := moveData(launch, requested, moveTarget)
+	requested, moved, moveError := moveData(launch, requested, moveTarget)
 	launch.Begin("application-location")
 	location, err := appdata.Inspect(requested)
 	if err != nil {
 		return fmt.Errorf("inspect application location: %w", err)
 	}
 	location.Moved = moved
-	if moveError, ok := errors.AsType[*appdata.MoveError](moveErr); ok {
-		location.MoveError = moveError.Message
+	if userFacingMoveError, ok := errors.AsType[*appdata.MoveError](moveError); ok {
+		location.MoveError = userFacingMoveError.Message
 	}
 	launch.Begin("logging")
 	logSystem, err := launch.Open(location.Directory, !location.Initialized)
@@ -109,7 +109,7 @@ func run() (runErr error) {
 	if err != nil {
 		return err
 	}
-	logLocation(logSystem.Module("application.location"), location, requested, moveTarget, moveErr)
+	logLocation(logSystem.Module("application.location"), location, requested, moveTarget, moveError)
 	launch.Begin("roblox-multi-instance")
 	multiInstance := robloxmulti.New(logSystem.Module("platform.roblox-multi-instance"))
 	defer multiInstance.Close()
@@ -118,7 +118,7 @@ func run() (runErr error) {
 	launch.Begin("application-services")
 	vaultManager := vault.NewManager(dataPaths, protection.New(), logSystem.Module("vault"))
 	publicCache := caches.New(dataPaths.Caches, logSystem.Module("storage.caches"))
-	defer func() { runErr = errors.Join(runErr, publicCache.Close()) }()
+	defer func() { runError = errors.Join(runError, publicCache.Close()) }()
 	repository := accountstore.NewRepository(vaultManager, logSystem.Module("storage.accounts"))
 	sessions := roblox.NewSessionManager()
 	sessions.SetLoader(repository.GetSession)
@@ -297,7 +297,7 @@ func runtimeErrorHandler(launch *logging.Launch) func(error) {
 	}
 }
 
-func logLocation(logger *slog.Logger, location appdata.Location, requested, moveTarget appdata.Mode, moveErr error) {
+func logLocation(logger *slog.Logger, location appdata.Location, requested, moveTarget appdata.Mode, moveError error) {
 	state := appdata.RootEmpty
 	if candidate, ok := location.Candidate(location.Mode); ok {
 		state = candidate.State
@@ -312,8 +312,8 @@ func logLocation(logger *slog.Logger, location appdata.Location, requested, move
 	logging.Diagnostic(logger, "data folder resolved", attributes...)
 	switch {
 	case moveTarget == "":
-	case moveErr != nil:
-		logger.Error("data move failed", "operation", "data-move", "target", moveTarget, "moved", location.Moved, "error", moveErr)
+	case moveError != nil:
+		logger.Error("data move failed", "operation", "data-move", "target", moveTarget, "moved", location.Moved, "error", moveError)
 	default:
 		logger.Info("data moved", "operation", "data-move", "target", moveTarget)
 	}

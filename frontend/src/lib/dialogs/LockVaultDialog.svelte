@@ -56,10 +56,10 @@
 			{#each effectLines as effect}<li>{effect}</li>{/each}
 		</ul>{/if}
 	<div class="dialog-actions">
-		<button class="btn" type="button" disabled={store.busy} onclick={onClose}
+		<button class="button" type="button" disabled={store.busy} onclick={onClose}
 			>Cancel</button
 		><button
-			class="btn-primary"
+			class="button-primary"
 			type="button"
 			disabled={store.busy}
 			onclick={() => void lock()}

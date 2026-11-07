@@ -10,13 +10,10 @@ export function loadGamePlace(
 	const key = `${universeId}:${placeId}`
 	let request = places.get(key)
 	if (!request) {
-		request = accountBackend.GetGamePlace(universeId, placeId).then(
-			(summary) => summary,
-			() => {
-				places.delete(key)
-				return null
-			},
-		)
+		request = accountBackend.GetGamePlace(universeId, placeId).catch(() => {
+			places.delete(key)
+			return null
+		})
 		places.set(key, request)
 	}
 	return request

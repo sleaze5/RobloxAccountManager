@@ -53,7 +53,7 @@
 			</div>
 		</dl>
 		<button
-			class="btn-icon"
+			class="button-icon"
 			type="button"
 			disabled={refreshing}
 			aria-busy={refreshing}

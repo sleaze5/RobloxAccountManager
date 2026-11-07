@@ -17,7 +17,7 @@
 </script>
 
 <button
-	class="sticky right-0 btn-ghost justify-self-end bg-inherit"
+	class="sticky right-0 button-ghost justify-self-end bg-inherit"
 	data-server-actions
 	type="button"
 	aria-label="Server actions"

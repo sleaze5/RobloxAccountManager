@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { matchesSearch, searchTerms } from "../shared/search"
 	import { PresenceScope } from "../backend/bridge"
 	import NumberStepper from "../shared/NumberStepper.svelte"
 	import type { LoggingLevel, SettingsStore } from "./settings-store.svelte"
@@ -50,29 +51,27 @@
 	]
 
 	let { store, query = "" }: { store: SettingsStore; query?: string } = $props(),
-		normalizedQuery = $derived(query.trim().toLowerCase()),
-		searchTerms = $derived(normalizedQuery.split(/\s+/).filter(Boolean)),
+		terms = $derived(searchTerms(query)),
 		visibleLevels = $derived(
-			levels.filter((level) => {
-				const text =
-					`general logging ${level.name} ${level.description}`.toLowerCase()
-				return searchTerms.every((term) => text.includes(term))
-			}),
+			levels.filter((level) =>
+				matchesSearch(
+					terms,
+					`general logging ${level.name} ${level.description}`,
+				),
+			),
 		),
 		visiblePresenceScopes = $derived(
 			presenceScopes.filter((scope) =>
-				searchTerms.every((term) =>
-					`general presence updates automatic enabled disabled interval seconds minutes online offline in game ${scope.name} ${scope.description}`
-						.toLowerCase()
-						.includes(term),
+				matchesSearch(
+					terms,
+					`general presence updates automatic enabled disabled interval seconds minutes online offline in game ${scope.name} ${scope.description}`,
 				),
 			),
 		),
 		showAllLevels = $derived(
-			searchTerms.every((term) =>
-				"general logging all log levels enable disable every level at once".includes(
-					term,
-				),
+			matchesSearch(
+				terms,
+				"general logging all log levels enable disable every level at once",
 			),
 		)
 </script>

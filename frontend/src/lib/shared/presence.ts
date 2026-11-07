@@ -22,10 +22,11 @@ function motion({
 	scale = 1,
 	origin = "center",
 }: MotionOptions): TransitionConfig {
-	if (reducedMotion()) return { css: (t) => `opacity: ${t};`, duration, easing }
+	if (reducedMotion())
+		return { css: (progress) => `opacity: ${progress};`, duration, easing }
 	return {
-		css: (t, u) =>
-			`opacity: ${t}; transform: translate(${u * x}px, ${u * y}px) scale(${scale + (1 - scale) * t}); transform-origin: ${origin};`,
+		css: (progress, remaining) =>
+			`opacity: ${progress}; transform: translate(${remaining * x}px, ${remaining * y}px) scale(${scale + (1 - scale) * progress}); transform-origin: ${origin};`,
 		duration,
 		easing,
 	}
@@ -34,7 +35,7 @@ function motion({
 export function menuIn(node: Element): TransitionConfig {
 	const distance = tokenNumber(node, "--motion-distance", 2)
 	return motion({
-		duration: tokenDuration(node, "--duration-fast", 100),
+		duration: tokenNumber(node, "--duration-fast", 100),
 		easing: sharp,
 		origin:
 			getComputedStyle(node).getPropertyValue("--menu-origin").trim() ||
@@ -47,7 +48,7 @@ export function menuIn(node: Element): TransitionConfig {
 export function menuOut(node: Element): TransitionConfig {
 	const distance = tokenNumber(node, "--motion-distance", 2)
 	return motion({
-		duration: tokenDuration(node, "--duration-exit", 75),
+		duration: tokenNumber(node, "--duration-exit", 75),
 		easing: standard,
 		origin:
 			getComputedStyle(node).getPropertyValue("--menu-origin").trim() ||
@@ -59,21 +60,21 @@ export function menuOut(node: Element): TransitionConfig {
 
 export function modalBackdropIn(node: Element): TransitionConfig {
 	return motion({
-		duration: tokenDuration(node, "--duration-enter", 150),
+		duration: tokenNumber(node, "--duration-enter", 150),
 		easing: sharp,
 	})
 }
 
 export function modalBackdropOut(node: Element): TransitionConfig {
 	return motion({
-		duration: tokenDuration(node, "--duration-exit", 75),
+		duration: tokenNumber(node, "--duration-exit", 75),
 		easing: standard,
 	})
 }
 
 export function modalCardIn(node: Element): TransitionConfig {
 	return motion({
-		duration: tokenDuration(node, "--duration-enter", 150),
+		duration: tokenNumber(node, "--duration-enter", 150),
 		easing: sharp,
 		scale: tokenNumber(node, "--motion-scale", 0.99),
 		y: tokenNumber(node, "--motion-distance", 2),
@@ -83,7 +84,7 @@ export function modalCardIn(node: Element): TransitionConfig {
 export function modalCardOut(node: Element): TransitionConfig {
 	const distance = tokenNumber(node, "--motion-distance", 2)
 	return motion({
-		duration: tokenDuration(node, "--duration-exit", 75),
+		duration: tokenNumber(node, "--duration-exit", 75),
 		easing: standard,
 		scale: tokenNumber(node, "--motion-scale", 0.99),
 		y: distance / 2,
@@ -95,7 +96,7 @@ export function tooltipIn(
 	{ instant = false }: { instant?: boolean } = {},
 ): TransitionConfig {
 	return motion({
-		duration: instant ? 0 : tokenDuration(node, "--duration-fast", 100),
+		duration: instant ? 0 : tokenNumber(node, "--duration-fast", 100),
 		easing: sharp,
 		scale: tokenNumber(node, "--motion-scale", 0.99),
 		y: tokenNumber(node, "--motion-distance", 2),
@@ -105,7 +106,7 @@ export function tooltipIn(
 export function tooltipOut(node: Element): TransitionConfig {
 	const distance = tokenNumber(node, "--motion-distance", 2)
 	return motion({
-		duration: tokenDuration(node, "--duration-instant", 75),
+		duration: tokenNumber(node, "--duration-instant", 75),
 		easing: standard,
 		scale: tokenNumber(node, "--motion-scale", 0.99),
 		y: distance / 2,
@@ -115,7 +116,7 @@ export function tooltipOut(node: Element): TransitionConfig {
 export function toastIn(node: Element): TransitionConfig {
 	const distance = tokenNumber(node, "--motion-distance", 2)
 	return motion({
-		duration: tokenDuration(node, "--duration-enter", 150),
+		duration: tokenNumber(node, "--duration-enter", 150),
 		easing: sharp,
 		scale: tokenNumber(node, "--motion-scale", 0.99),
 		y: -distance,
@@ -125,7 +126,7 @@ export function toastIn(node: Element): TransitionConfig {
 export function toastOut(node: Element): TransitionConfig {
 	const distance = tokenNumber(node, "--motion-distance", 2)
 	return motion({
-		duration: tokenDuration(node, "--duration-exit", 75),
+		duration: tokenNumber(node, "--duration-exit", 75),
 		easing: standard,
 		scale: tokenNumber(node, "--motion-scale", 0.99),
 		y: -distance / 2,
@@ -137,12 +138,10 @@ export function toastMove(
 	positions: { from: DOMRect; to: DOMRect },
 ): AnimationConfig {
 	return flip(node, positions, {
-		duration: reducedMotion() ? 0 : tokenDuration(node, "--duration-enter", 150),
+		duration: reducedMotion() ? 0 : tokenNumber(node, "--duration-enter", 150),
 		easing: standard,
 	})
 }
-
-export { toastIn as errorIn, toastOut as errorOut }
 
 export function replayValidationNudge(element: HTMLElement | undefined): void {
 	if (!element || reducedMotion()) {
@@ -159,7 +158,7 @@ export function replayValidationNudge(element: HTMLElement | undefined): void {
 			{ transform: "translateX(0)" },
 		],
 		{
-			duration: tokenDuration(element, "--duration-enter", 150),
+			duration: tokenNumber(element, "--duration-enter", 150),
 			easing: "cubic-bezier(0.4, 0, 0.2, 1)",
 		},
 	)
@@ -206,9 +205,23 @@ export function menuKeyboard(node: HTMLElement): { destroy: () => void } {
 							: (current + direction + buttons.length) % buttons.length
 			buttons[next]?.focus()
 		}
-	items()[0]?.focus({ preventScroll: true })
+	// A menu whose items are all disabled while it loads takes focus itself, so
+	// the keyboard still reaches it.
+	const initialFocus = items()[0] ?? node
+	initialFocus.focus({ preventScroll: true })
 	node.addEventListener("keydown", handleKeydown)
-	return { destroy: () => node.removeEventListener("keydown", handleKeydown) }
+	return {
+		destroy: () => {
+			node.removeEventListener("keydown", handleKeydown)
+			if (
+				node.contains(document.activeElement) &&
+				previousFocus instanceof HTMLElement &&
+				previousFocus.isConnected
+			) {
+				previousFocus.focus({ preventScroll: true })
+			}
+		},
+	}
 }
 
 export function floatMenu(
@@ -220,6 +233,40 @@ export function floatMenu(
 		if (current.anchor?.isConnected) {
 			placeMenuAtAnchor(node, current.anchor, current.align)
 		}
+	}
+	place()
+	window.addEventListener("resize", place)
+	return {
+		update: (next) => {
+			current = next
+			place()
+		},
+		destroy: () => {
+			window.removeEventListener("resize", place)
+		},
+	}
+}
+
+// menuPointFor returns where a menu opens: at the pointer for a right click, or
+// under the trigger for a keyboard or button press.
+export function menuPointFor(
+	event: MouseEvent | KeyboardEvent,
+	offsetBelowTriggerPixels: number,
+): { x: number; y: number } {
+	if (event instanceof MouseEvent && event.type === "contextmenu") {
+		return { x: event.clientX, y: event.clientY }
+	}
+	const bounds = (event.currentTarget as HTMLElement).getBoundingClientRect()
+	return { x: bounds.left, y: bounds.bottom + offsetBelowTriggerPixels }
+}
+
+export function floatMenuAtPoint(
+	node: HTMLElement,
+	point: { x: number; y: number },
+): { update: (next: { x: number; y: number }) => void; destroy: () => void } {
+	let current = point
+	const place = () => {
+		placeMenuAtPoint(node, current)
 	}
 	place()
 	window.addEventListener("resize", place)
@@ -305,10 +352,6 @@ function setMenuPosition(
 	node.style.setProperty("--menu-origin", origin)
 }
 
-function tokenDuration(node: Element, token: string, fallback: number): number {
-	return tokenNumber(node, token, fallback)
-}
-
 function tokenNumber(node: Element, token: string, fallback: number): number {
 	const value = Number.parseFloat(getComputedStyle(node).getPropertyValue(token))
 	return Number.isFinite(value) ? value : fallback
@@ -367,20 +410,37 @@ export function modalFocus(node: HTMLElement): { destroy: () => void } {
 }
 
 function cubicBezier(x1: number, y1: number, x2: number, y2: number): EasingFunction {
-	const sample = (a: number, b: number, t: number) =>
-			((1 - 3 * b + 3 * a) * t + (3 * b - 6 * a)) * t * t + 3 * a * t,
-		derivative = (a: number, b: number, t: number) =>
-			3 * (1 - 3 * b + 3 * a) * t * t + 2 * (3 * b - 6 * a) * t + 3 * a
+	const sample = (
+			firstControl: number,
+			secondControl: number,
+			curveParameter: number,
+		) =>
+			((1 - 3 * secondControl + 3 * firstControl) * curveParameter +
+				(3 * secondControl - 6 * firstControl)) *
+				curveParameter *
+				curveParameter +
+			3 * firstControl * curveParameter,
+		derivative = (
+			firstControl: number,
+			secondControl: number,
+			curveParameter: number,
+		) =>
+			3 *
+				(1 - 3 * secondControl + 3 * firstControl) *
+				curveParameter *
+				curveParameter +
+			2 * (3 * secondControl - 6 * firstControl) * curveParameter +
+			3 * firstControl
 
-	return (x) => {
-		let t = x
-		for (let index = 0; index < 5; index += 1) {
-			const slope = derivative(x1, x2, t)
+	return (elapsedFraction) => {
+		let curveParameter = elapsedFraction
+		for (let iteration = 0; iteration < 5; iteration += 1) {
+			const slope = derivative(x1, x2, curveParameter)
 			if (Math.abs(slope) < 1e-6) {
 				break
 			}
-			t -= (sample(x1, x2, t) - x) / slope
+			curveParameter -= (sample(x1, x2, curveParameter) - elapsedFraction) / slope
 		}
-		return sample(y1, y2, Math.min(1, Math.max(0, t)))
+		return sample(y1, y2, Math.min(1, Math.max(0, curveParameter)))
 	}
 }
