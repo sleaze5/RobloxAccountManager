@@ -105,8 +105,8 @@ func (bridge *launchBridge) handle(event cdpMessage) {
 	switch event.Method {
 	case "Target.attachedToTarget":
 		var params struct {
-			SessionID string     `json:"sessionId"`
-			Target    TargetInfo `json:"targetInfo"`
+			SessionID string    `json:"sessionId"`
+			Target    CDPTarget `json:"targetInfo"`
 		}
 		if json.Unmarshal(event.Params, &params) == nil && params.Target.Type == "page" {
 			bridge.attach(params.Target.TargetID, params.SessionID)

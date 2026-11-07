@@ -33,12 +33,12 @@ func CurrentBuild() Build {
 	if seconds, err := strconv.ParseInt(buildTime, 10, 64); err == nil && seconds > 0 {
 		build.BuildTime = seconds
 	}
-	info, ok := debug.ReadBuildInfo()
+	embeddedBuild, ok := debug.ReadBuildInfo()
 	if !ok {
 		return build
 	}
 	for _, path := range reportedModules {
-		for _, dependency := range info.Deps {
+		for _, dependency := range embeddedBuild.Deps {
 			if dependency.Path != path {
 				continue
 			}

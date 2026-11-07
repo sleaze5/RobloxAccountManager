@@ -183,7 +183,7 @@ func (client *CDPClient) removePending(id int64) {
 	client.mutex.Unlock()
 }
 
-type TargetInfo struct {
+type CDPTarget struct {
 	TargetID string `json:"targetId"`
 	Type     string `json:"type"`
 }
@@ -209,9 +209,9 @@ func (client *CDPClient) EnableDownloadEvents(ctx context.Context) error {
 	return client.Call(ctx, "Browser.setDownloadBehavior", map[string]any{"behavior": "default", "eventsEnabled": true}, "", nil)
 }
 
-func (client *CDPClient) Targets(ctx context.Context) ([]TargetInfo, error) {
+func (client *CDPClient) Targets(ctx context.Context) ([]CDPTarget, error) {
 	var result struct {
-		TargetInfos []TargetInfo `json:"targetInfos"`
+		TargetInfos []CDPTarget `json:"targetInfos"`
 	}
 	if err := client.Call(ctx, "Target.getTargets", nil, "", &result); err != nil {
 		return nil, err

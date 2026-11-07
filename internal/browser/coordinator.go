@@ -446,12 +446,12 @@ func (coordinator *Coordinator) handleSessionEvent(current *session, event cdpMe
 	switch event.Method {
 	case "Target.targetCreated", "Target.targetInfoChanged":
 		var params struct {
-			TargetInfo TargetInfo `json:"targetInfo"`
+			Target CDPTarget `json:"targetInfo"`
 		}
-		if json.Unmarshal(event.Params, &params) == nil && params.TargetInfo.Type == "page" {
+		if json.Unmarshal(event.Params, &params) == nil && params.Target.Type == "page" {
 			coordinator.mutex.Lock()
-			current.targetID = params.TargetInfo.TargetID
-			current.pages[params.TargetInfo.TargetID] = struct{}{}
+			current.targetID = params.Target.TargetID
+			current.pages[params.Target.TargetID] = struct{}{}
 			coordinator.mutex.Unlock()
 		}
 	case "Target.targetDestroyed":
@@ -637,7 +637,7 @@ func (coordinator *Coordinator) Focus(id string) error {
 	return nil
 }
 
-func lastPageTarget(targets []TargetInfo) string {
+func lastPageTarget(targets []CDPTarget) string {
 	for _, target := range slices.Backward(targets) {
 		if target.Type == "page" {
 			return target.TargetID

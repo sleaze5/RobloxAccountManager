@@ -197,14 +197,14 @@ func inspectCandidate(mode Mode, directory string) (Candidate, error) {
 // alone does not compete with a vault in another root.
 func inspectRoot(root string) (RootState, error) {
 	paths := layout(root)
-	info, err := os.Stat(filepath.Join(root, storageDirectory))
+	storageStatus, err := os.Stat(filepath.Join(root, storageDirectory))
 	if errors.Is(err, os.ErrNotExist) {
 		return RootEmpty, nil
 	}
 	if err != nil {
 		return "", fmt.Errorf("inspect data root: %w", err)
 	}
-	if !info.IsDir() {
+	if !storageStatus.IsDir() {
 		return "", fmt.Errorf("%q is not a folder", filepath.Join(root, storageDirectory))
 	}
 	if !hasKnownStorage(paths) {
@@ -235,8 +235,8 @@ func hasKnownStorage(paths Paths) bool {
 }
 
 func regularFile(path string) bool {
-	info, err := os.Stat(path)
-	return err == nil && info.Mode().IsRegular()
+	fileStatus, err := os.Stat(path)
+	return err == nil && fileStatus.Mode().IsRegular()
 }
 
 func hasEntries(directory string) bool {

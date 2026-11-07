@@ -41,76 +41,76 @@ func (service *Service) GetAccountInfo(ctx context.Context, accountID int64) (Ac
 	}
 	logger := service.logger.With("operation_id", fmt.Sprintf("account-info-%d", accountInfoOperationID.Add(1)), "operation", "account-info-read")
 	started := time.Now()
-	info := AccountInfoSnapshot{AccountID: accountID}
+	snapshot := AccountInfoSnapshot{AccountID: accountID}
 	var age accountAge
-	reads := append(service.accountInfoReads(ctx, accountID, version, account.RobloxUserID, &info), service.ageReads(ctx, accountID, version, &age)...)
-	info.Unavailable, err = service.runAccountReads(ctx, accountID, version, "account-info", logger, reads)
+	reads := append(service.accountInfoReads(ctx, accountID, version, account.RobloxUserID, &snapshot), service.ageReads(ctx, accountID, version, &age)...)
+	snapshot.Unavailable, err = service.runAccountReads(ctx, accountID, version, "account-info", logger, reads)
 	if err != nil {
 		return AccountInfoSnapshot{}, err
 	}
-	info.AgeGroup, info.AgeVerification = age.group, age.verification()
-	logger.Debug("account info read finished", "duration_ms", time.Since(started).Milliseconds(), "failed_sections", len(info.Unavailable))
-	return info, nil
+	snapshot.AgeGroup, snapshot.AgeVerification = age.group, age.verification()
+	logger.Debug("account info read finished", "duration_ms", time.Since(started).Milliseconds(), "failed_sections", len(snapshot.Unavailable))
+	return snapshot, nil
 }
 
-func (service *Service) accountInfoReads(ctx context.Context, accountID, version, userID int64, info *AccountInfoSnapshot) []accountRead {
+func (service *Service) accountInfoReads(ctx context.Context, accountID, version, userID int64, snapshot *AccountInfoSnapshot) []accountRead {
 	return []accountRead{
 		{"email", func() error {
 			email, err := service.users.Email(ctx, accountID, version)
 			if err == nil {
-				info.Email, info.EmailVerified = email.Address, &email.Verified
+				snapshot.Email, snapshot.EmailVerified = email.Address, &email.Verified
 			}
 			return err
 		}},
 		{"phone", func() error {
 			phone, err := service.users.Phone(ctx, accountID, version)
 			if err == nil {
-				info.Phone, info.PhoneVerified = phone.Number, &phone.Verified
+				snapshot.Phone, snapshot.PhoneVerified = phone.Number, &phone.Verified
 			}
 			return err
 		}},
 		{"gender", func() error {
 			gender, err := service.users.Gender(ctx, accountID, version)
 			if err == nil {
-				info.Gender = gender
+				snapshot.Gender = gender
 			}
 			return err
 		}},
 		{"birthdate", func() error {
 			date, err := service.users.Birthdate(ctx, accountID, version)
 			if err == nil {
-				info.Birthdate = fmt.Sprintf("%04d-%02d-%02d", date.Year, date.Month, date.Day)
+				snapshot.Birthdate = fmt.Sprintf("%04d-%02d-%02d", date.Year, date.Month, date.Day)
 			}
 			return err
 		}},
 		{"firstAccount", func() error {
 			first, err := service.users.FirstAccount(ctx, accountID, version, userID)
 			if err == nil {
-				info.FirstAccount = &first
+				snapshot.FirstAccount = &first
 			}
 			return err
 		}},
 		{"locale", func() error {
 			locale, err := service.users.Locale(ctx, accountID, version)
 			if err == nil {
-				info.Language, info.AutoTranslations = locale.Language, locale.AutoTranslations
+				snapshot.Language, snapshot.AutoTranslations = locale.Language, locale.AutoTranslations
 			}
 			return err
 		}},
 		{"location", func() error {
 			location, err := service.users.AccountLocation(ctx, accountID, version)
 			if err == nil {
-				info.Location = location
+				snapshot.Location = location
 			}
 			return err
 		}},
 		{"pin", func() error {
 			pin, err := service.users.Pin(ctx, accountID, version)
 			if err == nil {
-				info.Pin = pinState(pin)
+				snapshot.Pin = pinState(pin)
 			}
 			return err
 		}},
-		service.voiceChatRead(ctx, accountID, version, &info.VoiceChat),
+		service.voiceChatRead(ctx, accountID, version, &snapshot.VoiceChat),
 	}
 }

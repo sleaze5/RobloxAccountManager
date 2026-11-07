@@ -78,8 +78,8 @@ func resolveLinuxClient(preferred string) (knownClient, string, error) {
 func findDesktop(name string) (string, bool) {
 	for _, directory := range applicationDirectories() {
 		path := filepath.Join(directory, name)
-		info, err := os.Stat(path)
-		if err == nil && info.Mode().IsRegular() {
+		desktopEntryStatus, err := os.Stat(path)
+		if err == nil && desktopEntryStatus.Mode().IsRegular() {
 			return path, true
 		}
 	}

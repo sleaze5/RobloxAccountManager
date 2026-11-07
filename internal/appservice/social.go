@@ -41,7 +41,7 @@ const (
 	SocialRequests  SocialList = "requests"
 )
 
-type FriendRequestInfo struct {
+type FriendRequestView struct {
 	SentAtMs      int64    `json:"sentAtMs"`
 	Origin        string   `json:"origin"`
 	MutualFriends []string `json:"mutualFriends"`
@@ -54,7 +54,7 @@ type SocialUser struct {
 	Nickname    string                       `json:"nickname"`
 	ImageURL    string                       `json:"imageUrl"`
 	Presence    *robloxservices.UserPresence `json:"presence"`
-	Request     *FriendRequestInfo           `json:"request"`
+	Request     *FriendRequestView           `json:"request"`
 }
 
 // SocialRelationship describes the user as the browsing account sees them.
@@ -268,7 +268,7 @@ func socialPeople(users []robloxservices.UserView, requests []robloxservices.Fri
 		}
 		if index < len(requests) {
 			request := requests[index]
-			person.Request = &FriendRequestInfo{Origin: request.OriginSourceType, MutualFriends: request.MutualFriends}
+			person.Request = &FriendRequestView{Origin: request.OriginSourceType, MutualFriends: request.MutualFriends}
 			if !request.SentAt.IsZero() {
 				person.Request.SentAtMs = request.SentAt.UnixMilli()
 			}

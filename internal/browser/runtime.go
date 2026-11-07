@@ -613,8 +613,8 @@ func readArchiveLink(entry *zip.File) (string, error) {
 
 func validateRuntimeFiles(root string) error {
 	for _, relative := range requiredRuntimeFiles {
-		info, err := os.Stat(filepath.Join(root, runtimeArchiveRoot, relative))
-		if err != nil || !info.Mode().IsRegular() {
+		runtimeFileStatus, err := os.Stat(filepath.Join(root, runtimeArchiveRoot, relative))
+		if err != nil || !runtimeFileStatus.Mode().IsRegular() {
 			return fmt.Errorf("browser runtime is missing %s", relative)
 		}
 	}
@@ -628,11 +628,11 @@ func directorySize(root string) (int64, error) {
 			return err
 		}
 		if !entry.IsDir() {
-			info, infoError := entry.Info()
-			if infoError != nil {
-				return fmt.Errorf("inspect browser runtime file: %w", infoError)
+			fileStatus, statusError := entry.Info()
+			if statusError != nil {
+				return fmt.Errorf("inspect browser runtime file: %w", statusError)
 			}
-			size += info.Size()
+			size += fileStatus.Size()
 		}
 		return nil
 	})
@@ -655,11 +655,11 @@ func removeManagedDirectory(root, target string) error {
 	if err != nil || relative == "." || !filepath.IsLocal(relative) || strings.ContainsRune(relative, filepath.Separator) {
 		return errors.New("refusing unsafe managed-directory cleanup")
 	}
-	info, err := os.Lstat(targetAbs)
+	targetStatus, err := os.Lstat(targetAbs)
 	if err != nil {
 		return fmt.Errorf("inspect managed directory: %w", err)
 	}
-	if info.Mode()&os.ModeSymlink != 0 {
+	if targetStatus.Mode()&os.ModeSymlink != 0 {
 		return errors.New("refusing linked managed-directory cleanup")
 	}
 	if err := filepath.WalkDir(targetAbs, checkManagedEntry); err != nil {

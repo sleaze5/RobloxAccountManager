@@ -125,13 +125,13 @@ func (writer *rotatingWriter) open() error {
 	if err != nil {
 		return fmt.Errorf("open log file: %w", err)
 	}
-	info, err := file.Stat()
+	logFileStatus, err := file.Stat()
 	if err != nil {
 		_ = file.Close()
 		return fmt.Errorf("inspect log file: %w", err)
 	}
 	writer.file = file
-	writer.size = info.Size()
+	writer.size = logFileStatus.Size()
 	writer.resume = false
 	if writer.size == 0 {
 		written, err := file.Write(writer.header)

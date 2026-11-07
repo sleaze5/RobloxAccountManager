@@ -17,7 +17,7 @@ const (
 	maxUsernameHistoryPages = 20
 )
 
-type UserAccountInfo struct {
+type UserAccountDetails struct {
 	ID                    int64  `json:"id"`
 	AgeBracket            *int   `json:"ageBracket"`
 	CountryCode           string `json:"countryCode"`
@@ -30,8 +30,8 @@ type UserVerificationMethod struct {
 	Enabled   *bool  `json:"enabled"`
 }
 
-func (service *Users) AccountInfo(ctx context.Context, accountID, version, userID int64) (UserAccountInfo, error) {
-	var result UserAccountInfo
+func (service *Users) AccountInfo(ctx context.Context, accountID, version, userID int64) (UserAccountDetails, error) {
+	var result UserAccountDetails
 	err := service.readAccountDetails(ctx, accountID, version, "profile-account", "https://users.roblox.com/v1/users/authenticated/app-launch-info", &result)
 	if err == nil && result.ID <= 0 {
 		err = invalidProfileDetails("profile-account")

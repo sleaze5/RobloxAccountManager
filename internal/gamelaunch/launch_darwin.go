@@ -66,8 +66,8 @@ func findRoblox(home string) string {
 		candidates = append(candidates, filepath.Join(home, "Applications", "Roblox.app"))
 	}
 	for _, candidate := range candidates {
-		info, err := os.ReadFile(filepath.Join(candidate, "Contents", "Info.plist"))
-		if err == nil && bytes.Contains(info, []byte(robloxBundleID)) {
+		infoPlist, err := os.ReadFile(filepath.Join(candidate, "Contents", "Info.plist"))
+		if err == nil && bytes.Contains(infoPlist, []byte(robloxBundleID)) {
 			return candidate
 		}
 	}

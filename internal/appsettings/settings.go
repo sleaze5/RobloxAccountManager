@@ -553,11 +553,11 @@ func (store *Store) PasswordReminderDue(at time.Time) bool {
 }
 
 func preserveUnreadableSettings(path string) error {
-	info, err := os.Lstat(path)
+	settingsStatus, err := os.Lstat(path)
 	if err != nil {
 		return fmt.Errorf("inspect unreadable settings: %w", err)
 	}
-	if !info.Mode().IsRegular() {
+	if !settingsStatus.Mode().IsRegular() {
 		return errors.New("cannot back up settings: settings.json is not a regular file")
 	}
 	backup := path + ".bak"
@@ -571,14 +571,14 @@ func preserveUnreadableSettings(path string) error {
 }
 
 func archiveSettingsBackup(backup string) error {
-	info, err := os.Lstat(backup)
+	backupStatus, err := os.Lstat(backup)
 	if errors.Is(err, os.ErrNotExist) {
 		return nil
 	}
 	if err != nil {
 		return fmt.Errorf("inspect previous settings backup: %w", err)
 	}
-	if !info.Mode().IsRegular() {
+	if !backupStatus.Mode().IsRegular() {
 		return errors.New("cannot preserve previous settings backup: settings.json.bak is not a regular file")
 	}
 	pattern := fmt.Sprintf("%s.%d.*", filepath.Base(backup), time.Now().UnixMilli())
