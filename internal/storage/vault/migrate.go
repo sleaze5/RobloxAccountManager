@@ -122,10 +122,7 @@ func (manager *Manager) upgradeKeyFile(password string) error {
 	if err != nil || key.Version == keyFormatVersion {
 		return err
 	}
-	params, err := calibrateKDF(password)
-	if err != nil {
-		return err
-	}
+	params := calibrateKDF(password)
 	dek, identifier := manager.currentKey()
 	defer wipe(dek)
 	upgraded, err := createKeyFile(password, key.Hint, identifier, dek, params)

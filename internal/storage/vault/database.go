@@ -38,6 +38,7 @@ var (
 	ErrAutomaticUnlockUnavailable = errors.New("automatic unlock is unavailable for this user")
 	ErrIncomplete                 = errors.New("vault files are incomplete")
 	errLockTimeout                = errors.New("vault operations did not stop before the lock timeout")
+	errBusy                       = errors.New("another vault operation is in progress")
 )
 
 type FileState string
@@ -53,6 +54,7 @@ const lockTimeout = 5 * time.Second
 
 type Manager struct {
 	mu                    sync.Mutex
+	backupMu              sync.Mutex
 	paths                 appdata.Paths
 	protector             protection.Protector
 	db                    *sql.DB
@@ -149,10 +151,7 @@ func (manager *Manager) Create(ctx context.Context, password, hint string, autom
 	if err := validatePassword(password); err != nil {
 		return err
 	}
-	params, err := calibrateKDF(password)
-	if err != nil {
-		return err
-	}
+	params := calibrateKDF(password)
 	identifier, err := newVaultID()
 	if err != nil {
 		return err
@@ -161,11 +160,7 @@ func (manager *Manager) Create(ctx context.Context, password, hint string, autom
 	if err != nil {
 		return err
 	}
-	defer func() {
-		if dek != nil {
-			wipe(dek)
-		}
-	}()
+	defer func() { wipe(dek) }()
 	key, err := createKeyFile(password, hint, identifier, dek, params)
 	if err != nil {
 		return err
@@ -184,11 +179,9 @@ func (manager *Manager) Create(ctx context.Context, password, hint string, autom
 	if err := manager.stageCreatedVault(ctx, identifier, dek, encodedKey, encodedAuto, automaticUnlock); err != nil {
 		return err
 	}
-	db, err := openAndVerify(ctx, manager.paths.Vault, dek, identifier, manager.logger)
-	if err != nil {
+	if err := manager.installUnlocked(ctx, dek, identifier, automaticUnlock); err != nil {
 		return err
 	}
-	manager.install(db, dek, identifier, automaticUnlock)
 	dek = nil
 	logging.Diagnostic(manager.logger, "vault created", "operation", "vault-create", "schema_version", schemaVersion,
 		"key_file_version", keyFormatVersion, "automatic_unlock", automaticUnlock)
@@ -311,16 +304,6 @@ func (manager *Manager) installUnlocked(ctx context.Context, dek []byte, identif
 	return nil
 }
 
-func (manager *Manager) install(db *sql.DB, dek []byte, identifier [vaultIDBytes]byte, automatic bool) {
-	manager.mu.Lock()
-	manager.db = db
-	manager.dek = dek
-	manager.vaultID = identifier
-	manager.unlockedAutomatically = automatic
-	manager.closing = false
-	manager.mu.Unlock()
-}
-
 func (manager *Manager) Lease(_ context.Context) (*sql.DB, func(), error) {
 	manager.mu.Lock()
 	if manager.db == nil || manager.closing {
@@ -350,43 +333,18 @@ func (manager *Manager) Lock() error { return manager.close(true) }
 func (manager *Manager) Close() error { return manager.close(false) }
 
 func (manager *Manager) close(manual bool) error {
-	manager.mu.Lock()
-	if manager.db == nil {
-		manager.mu.Unlock()
+	db, finish, err := manager.beginExclusive(context.Background())
+	if errors.Is(err, ErrLocked) {
 		return nil
 	}
-	manager.closing = true
-	var drained <-chan struct{}
-	if manager.active > 0 {
-		manager.drained = make(chan struct{})
-		drained = manager.drained
+	if err != nil {
+		return err
 	}
-	manager.mu.Unlock()
-	if drained != nil {
-		select {
-		case <-drained:
-		case <-time.After(lockTimeout):
-			manager.mu.Lock()
-			manager.closing = false
-			manager.drained = nil
-			manager.mu.Unlock()
-			return errLockTimeout
-		}
-	}
-	manager.mu.Lock()
-	db := manager.db
-	dek := manager.dek
-	manager.db = nil
-	manager.dek = nil
-	manager.vaultID = [vaultIDBytes]byte{}
-	manager.unlockedAutomatically = false
-	manager.closing = false
-	manager.mu.Unlock()
+	manager.dropDatabase()
+	finish()
 	if err := db.Close(); err != nil {
-		wipe(dek)
 		return fmt.Errorf("close vault: %w", err)
 	}
-	wipe(dek)
 	if manual {
 		if err := os.Remove(manager.paths.AutoUnlockKey); err != nil && !errors.Is(err, os.ErrNotExist) {
 			return fmt.Errorf("remove automatic unlock file: %w", err)
@@ -421,7 +379,7 @@ func (manager *Manager) ResetVault() error {
 	}
 	for _, path := range []string{manager.paths.Vault, manager.paths.VaultKey, manager.paths.AutoUnlockKey, manager.paths.Migration, manager.paths.Vault + ".next", manager.paths.VaultKey + ".next", manager.paths.AutoUnlockKey + ".next"} {
 		if err := os.Remove(path); err != nil && !errors.Is(err, os.ErrNotExist) {
-			return fmt.Errorf("remove %q: %w", fileName(path), err)
+			return fmt.Errorf("remove %q: %w", filepath.Base(path), err)
 		}
 	}
 	if err := manager.removeManaged(manager.paths.CreateStaging, manager.paths.VaultRoot); err != nil && !errors.Is(err, os.ErrNotExist) {

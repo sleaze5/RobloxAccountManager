@@ -77,10 +77,9 @@ func (manager *Manager) CreateBackup(ctx context.Context) error {
 }
 
 func (manager *Manager) writeBackup(ctx context.Context, db *sql.DB) error {
-	manager.mu.Lock()
-	dek := append([]byte(nil), manager.dek...)
-	identifier := manager.vaultID
-	manager.mu.Unlock()
+	manager.backupMu.Lock()
+	defer manager.backupMu.Unlock()
+	dek, identifier := manager.currentKey()
 	defer wipe(dek)
 	if err := appdata.PreparePrivateDirectory(manager.paths.BackupsRoot); err != nil {
 		return err
@@ -168,6 +167,12 @@ func snapshotDatabase(ctx context.Context, source *sql.DB, destinationPath strin
 }
 
 func (manager *Manager) ListBackups() ([]BackupInfo, error) {
+	manager.backupMu.Lock()
+	defer manager.backupMu.Unlock()
+	return manager.listBackups()
+}
+
+func (manager *Manager) listBackups() ([]BackupInfo, error) {
 	entries, err := os.ReadDir(manager.paths.BackupsRoot)
 	if errors.Is(err, os.ErrNotExist) {
 		return []BackupInfo{}, nil
@@ -203,7 +208,7 @@ func (manager *Manager) ListBackups() ([]BackupInfo, error) {
 }
 
 func (manager *Manager) trimBackups() error {
-	backups, err := manager.ListBackups()
+	backups, err := manager.listBackups()
 	if err != nil {
 		return err
 	}
@@ -219,6 +224,8 @@ func (manager *Manager) trimBackups() error {
 }
 
 func (manager *Manager) PurgeBackups() error {
+	manager.backupMu.Lock()
+	defer manager.backupMu.Unlock()
 	entries, err := os.ReadDir(manager.paths.BackupsRoot)
 	if errors.Is(err, os.ErrNotExist) {
 		return nil
@@ -257,10 +264,7 @@ func (manager *Manager) backupRevision(ctx context.Context, name string) (int64,
 	if err != nil {
 		return 0, err
 	}
-	manager.mu.Lock()
-	dek := append([]byte(nil), manager.dek...)
-	identifier := manager.vaultID
-	manager.mu.Unlock()
+	dek, identifier := manager.currentKey()
 	defer wipe(dek)
 	db, err := openAndVerify(ctx, filepath.Join(path, "vault.db"), dek, identifier, manager.logger)
 	if err != nil {

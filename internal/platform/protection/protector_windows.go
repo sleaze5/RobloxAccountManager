@@ -7,13 +7,12 @@ import (
 	"fmt"
 	"unsafe"
 
-	"github.com/sleaze5/RobloxAccountManager/internal/appmeta"
 	"golang.org/x/sys/windows"
 )
 
 const cryptProtectUIForbidden = 0x1
 
-var applicationEntropy = []byte(appmeta.Identifier + "/autounlock/v1")
+var applicationEntropy = []byte(purpose)
 
 type windowsProtector struct{}
 

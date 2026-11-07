@@ -53,10 +53,7 @@ func (manager *Manager) SetAutomaticUnlock(enabled bool) error {
 }
 
 func (manager *Manager) rotateDatabaseKey(ctx context.Context, password, hint string, automaticUnlock bool) error {
-	params, err := calibrateKDF(password)
-	if err != nil {
-		return err
-	}
+	params := calibrateKDF(password)
 	manager.mu.Lock()
 	if manager.db == nil || manager.closing {
 		manager.mu.Unlock()
@@ -113,9 +110,13 @@ func (manager *Manager) rotateDatabaseKey(ctx context.Context, password, hint st
 
 func (manager *Manager) beginExclusive(ctx context.Context) (*sql.DB, func(), error) {
 	manager.mu.Lock()
-	if manager.db == nil || manager.closing {
+	if manager.db == nil {
 		manager.mu.Unlock()
 		return nil, nil, ErrLocked
+	}
+	if manager.closing {
+		manager.mu.Unlock()
+		return nil, nil, errBusy
 	}
 	manager.closing = true
 	var drained <-chan struct{}
@@ -181,21 +182,25 @@ func (manager *Manager) promoteOrDiscardRotation(useNext bool) error {
 	return nil
 }
 
+// stageRotatedKeys removes the current automatic unlock file before it stages a
+// rotation without one. Otherwise, after a crash before the database swap, that
+// file would unlock the old database and the unlock would promote vault.key.next.
 func (manager *Manager) stageRotatedKeys(keyData, autoData []byte, automaticUnlock bool) error {
 	if err := manager.PurgeBackups(); err != nil {
 		return err
+	}
+	if !automaticUnlock {
+		for _, path := range []string{manager.paths.AutoUnlockKey + ".next", manager.paths.AutoUnlockKey} {
+			if err := os.Remove(path); err != nil && !errors.Is(err, os.ErrNotExist) {
+				return fmt.Errorf("remove automatic unlock file: %w", err)
+			}
+		}
 	}
 	if err := appdata.WritePrivateFile(manager.paths.VaultKey+".next", keyData); err != nil {
 		return err
 	}
 	if automaticUnlock {
-		if err := appdata.WritePrivateFile(manager.paths.AutoUnlockKey+".next", autoData); err != nil {
-			return err
-		}
-	} else {
-		if err := os.Remove(manager.paths.AutoUnlockKey + ".next"); err != nil && !errors.Is(err, os.ErrNotExist) {
-			return fmt.Errorf("remove stale automatic unlock candidate: %w", err)
-		}
+		return appdata.WritePrivateFile(manager.paths.AutoUnlockKey+".next", autoData)
 	}
 	return nil
 }
@@ -284,8 +289,6 @@ func (manager *Manager) publishRotatedKeys(automaticUnlock bool) error {
 		if err := appdata.ReplaceFile(manager.paths.AutoUnlockKey+".next", manager.paths.AutoUnlockKey); err != nil {
 			return err
 		}
-	} else if err := os.Remove(manager.paths.AutoUnlockKey); err != nil && !errors.Is(err, os.ErrNotExist) {
-		return fmt.Errorf("remove automatic unlock file: %w", err)
 	}
 	if err := appdata.ReplaceFile(manager.paths.VaultKey+".next", manager.paths.VaultKey); err != nil {
 		return err

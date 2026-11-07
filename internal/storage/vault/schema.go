@@ -165,7 +165,7 @@ func verifySchema(ctx context.Context, db *sql.DB, expectedID [vaultIDBytes]byte
 	if version < 1 || version > schemaVersion {
 		return fmt.Errorf("%w: schema version %d", ErrUnsupportedSchema, version)
 	}
-	if len(identifier) != vaultIDBytes || !sameVaultID(expectedID, [vaultIDBytes]byte(identifier)) {
+	if len(identifier) != vaultIDBytes || expectedID != [vaultIDBytes]byte(identifier) {
 		return ErrVaultMismatch
 	}
 	return nil
