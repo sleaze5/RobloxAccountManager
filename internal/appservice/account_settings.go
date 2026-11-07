@@ -83,7 +83,7 @@ func (service *Service) readAccountSettings(ctx context.Context, accountID, vers
 	}
 	snapshot := AccountSettingsSnapshot{
 		AccountID: accountID,
-		Settings: []AccountSettingView{}, SectionErrors: []AccountSettingsSectionError{},
+		Settings:  []AccountSettingView{}, SectionErrors: []AccountSettingsSectionError{},
 	}
 	for _, section := range []struct {
 		source string

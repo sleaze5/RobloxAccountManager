@@ -1,13 +1,13 @@
 package browser
 
 import (
-	"maps"
 	"bufio"
 	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
+	"maps"
 	"strings"
 	"sync"
 

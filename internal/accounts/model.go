@@ -42,13 +42,13 @@ type TagView struct {
 }
 
 type SessionRecord struct {
-	AccountID         int64
-	Roblosecurity     string
-	CookieExpiresAt   *time.Time
-	State             SessionState
-	SecretVersion     int64
-	ImportedAt        time.Time
-	LastValidatedAt   *time.Time
+	AccountID       int64
+	Roblosecurity   string
+	CookieExpiresAt *time.Time
+	State           SessionState
+	SecretVersion   int64
+	ImportedAt      time.Time
+	LastValidatedAt *time.Time
 }
 
 type AccountView struct {

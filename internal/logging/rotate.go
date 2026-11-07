@@ -10,15 +10,15 @@ import (
 const maxHeldBytes = 1 << 20
 
 type rotatingWriter struct {
-	mu       sync.Mutex
-	path     string
-	file     *os.File
-	size     int64
-	header   []byte
-	resume   bool
-	closed   bool
-	held     bool
-	pending  []byte
+	mu      sync.Mutex
+	path    string
+	file    *os.File
+	size    int64
+	header  []byte
+	resume  bool
+	closed  bool
+	held    bool
+	pending []byte
 }
 
 func newRotatingWriter(path string, header []byte, resume bool) *rotatingWriter {
