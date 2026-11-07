@@ -181,8 +181,6 @@ func readFavoritePlaces(ctx context.Context, tx *sql.Tx) ([]FavoritePlace, error
 	return places, nil
 }
 
-// Replace keeps new row IDs above the removed ones, so account and tag IDs that the
-// application still holds for removed rows never point at imported rows.
 func readSavedPrivateServers(ctx context.Context, tx *sql.Tx) ([]SavedPrivateServer, error) {
 	rows, err := tx.QueryContext(ctx, `SELECT place_id, name, access_code, link_code FROM saved_private_servers ORDER BY id`)
 	if err != nil {
@@ -203,6 +201,8 @@ func readSavedPrivateServers(ctx context.Context, tx *sql.Tx) ([]SavedPrivateSer
 	return servers, nil
 }
 
+// Replace keeps new row IDs above the removed ones, so account and tag IDs that the
+// application still holds for removed rows never point at imported rows.
 func (repository *Repository) Replace(ctx context.Context, payload Payload, settings *PendingSettings) ([]int64, error) {
 	db, release, err := repository.provider.Lease(ctx)
 	if err != nil {

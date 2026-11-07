@@ -49,10 +49,7 @@ func open(config config) (*System, error) {
 			return nil, err
 		}
 	}
-	writer, err := newRotatingWriter(filepath.Join(config.Directory, config.LaunchID+".log"), maxLogBytes, retainedLogFiles, header, config.Resume)
-	if err != nil {
-		return nil, err
-	}
+	writer := newRotatingWriter(filepath.Join(config.Directory, config.LaunchID+".log"), header, config.Resume)
 	writer.held = config.Hold
 	if len(levels) > 0 {
 		if err := writer.ensureOpen(); err != nil {

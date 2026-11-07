@@ -5,7 +5,6 @@ package appdata
 import (
 	"errors"
 	"fmt"
-	"os"
 	"path/filepath"
 	"strings"
 
@@ -21,14 +20,6 @@ func rejectNetworkPath(path string) error {
 		return errors.New("network application paths are unsupported")
 	}
 	return nil
-}
-
-func restrictDirectory(path string) error {
-	// On Windows, Chmod only clears the read-only attribute. restrictACL limits access to the current user.
-	if err := os.Chmod(path, 0o700); err != nil {
-		return fmt.Errorf("restrict directory permissions: %w", err)
-	}
-	return restrictACL(path, true)
 }
 
 func ReplaceFile(source, destination string) error {

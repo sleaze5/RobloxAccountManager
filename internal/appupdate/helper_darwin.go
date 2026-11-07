@@ -12,38 +12,6 @@ import (
 	"strings"
 )
 
-// The Wails helper renames the extracted application bundle over the
-// installed one, which fails when the temporary folder is on another volume.
-// Copy the bundle next to the installed one first.
-func stageHelperArtifact() {
-	if os.Getenv("WAILS_UPDATER_HELPER") != "1" {
-		return
-	}
-	target, staged := os.Getenv("WAILS_UPDATER_HELPER_TARGET"), os.Getenv("WAILS_UPDATER_HELPER_NEW")
-	if target == "" || staged == "" {
-		return
-	}
-	directory, err := os.MkdirTemp(filepath.Dir(target), stagingPrefix+"*")
-	if err != nil {
-		return
-	}
-	local := filepath.Join(directory, filepath.Base(staged))
-	if err := copyTree(staged, local); err != nil {
-		_ = os.RemoveAll(directory)
-		return
-	}
-	_ = os.Setenv("WAILS_UPDATER_HELPER_NEW", local)
-}
-
-func helperCopiedUpdate() bool {
-	executable, err := os.Executable()
-	if err != nil {
-		return false
-	}
-	staged, _ := filepath.Glob(filepath.Join(filepath.Dir(installTarget(executable)), stagingPrefix+"*"))
-	return len(staged) > 0
-}
-
 func installTarget(executable string) string {
 	for directory := filepath.Dir(executable); directory != filepath.Dir(directory); directory = filepath.Dir(directory) {
 		if strings.HasSuffix(directory, ".app") {
@@ -53,7 +21,7 @@ func installTarget(executable string) string {
 	return executable
 }
 
-func copyTree(source, destination string) error {
+func copyStaged(source, destination string) error {
 	sourceRoot, err := os.OpenRoot(source)
 	if err != nil {
 		return fmt.Errorf("open staged update bundle: %w", err)

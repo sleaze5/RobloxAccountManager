@@ -35,7 +35,7 @@ const (
 var errResponseTooLarge = errors.New("response exceeds configured limit")
 
 type SessionStore interface {
-	RotateCookie(context.Context, int64, int64, string, *time.Time) (accounts.SessionRecord, bool, error)
+	RotateCookie(context.Context, int64, int64, string, *time.Time) (accounts.SessionRecord, error)
 	MarkState(context.Context, int64, int64, accounts.SessionState, string) error
 	RecordSuccess(context.Context, int64, int64) error
 }
@@ -503,7 +503,8 @@ func (client *Client) processSetCookie(ctx context.Context, request Request, sna
 	case replacement.value == snapshot.Cookie && sameTime(replacement.expires, snapshot.CookieExpiresAt):
 		return 0, false, nil
 	}
-	return client.storeRotatedCookie(ctx, request, snapshot, replacement.value, replacement.expires)
+	version, err := client.storeRotatedCookie(ctx, request, snapshot, replacement.value, replacement.expires)
+	return version, false, err
 }
 
 func (client *Client) confirmSessionInvalid(ctx context.Context, snapshot SessionSnapshot) bool {
@@ -768,26 +769,23 @@ func (client *Client) prepareAttemptHeaders(request *http.Request, contract Requ
 	return nil
 }
 
-func (client *Client) storeRotatedCookie(ctx context.Context, request Request, snapshot SessionSnapshot, value string, expires *time.Time) (int64, bool, error) {
+func (client *Client) storeRotatedCookie(ctx context.Context, request Request, snapshot SessionSnapshot, value string, expires *time.Time) (int64, error) {
 	if client.store == nil {
-		return 0, false, &Error{Kind: KindProtocol, Endpoint: request.Endpoint, Message: "Session rotation storage is unavailable."}
+		return 0, &Error{Kind: KindProtocol, Endpoint: request.Endpoint, Message: "Session rotation storage is unavailable."}
 	}
-	record, changed, err := client.store.RotateCookie(ctx, snapshot.AccountID, snapshot.SecretVersion, value, expires)
+	record, err := client.store.RotateCookie(ctx, snapshot.AccountID, snapshot.SecretVersion, value, expires)
 	if err != nil {
 		if errors.Is(err, accounts.ErrStaleSecret) {
-			return 0, false, &Error{Kind: KindCancelled, Endpoint: request.Endpoint, Message: "The saved session changed. The newer cookie was not overwritten.", Cause: err}
+			return 0, &Error{Kind: KindCancelled, Endpoint: request.Endpoint, Message: "The saved session changed. The newer cookie was not overwritten.", Cause: err}
 		}
-		return 0, false, &Error{Kind: KindProtocol, Endpoint: request.Endpoint, Message: "The rotated Roblox session could not be stored. Sign in again to restore access.", Cause: err}
+		return 0, &Error{Kind: KindProtocol, Endpoint: request.Endpoint, Message: "The rotated Roblox session could not be stored. Sign in again to restore access.", Cause: err}
 	}
-	if changed {
-		if err := client.sessions.ApplyRotation(record); err != nil {
-			return 0, false, err
-		}
-		if client.observer != nil {
-			client.observer.SessionChanged(snapshot.AccountID)
-		}
-		client.logger.InfoContext(ctx, "Roblox session cookie rotated", "operation", "cookie-rotation", "account_id", snapshot.AccountID)
-		return record.SecretVersion, false, nil
+	if err := client.sessions.ApplyRotation(record); err != nil {
+		return 0, err
 	}
-	return 0, false, nil
+	if client.observer != nil {
+		client.observer.SessionChanged(snapshot.AccountID)
+	}
+	client.logger.InfoContext(ctx, "Roblox session cookie rotated", "operation", "cookie-rotation", "account_id", snapshot.AccountID)
+	return record.SecretVersion, nil
 }

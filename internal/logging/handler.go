@@ -70,10 +70,8 @@ func (filter *levelFilter) any() bool {
 }
 
 func (filter *levelFilter) allows(ctx context.Context, level slog.Level) bool {
-	if metadata, _ := ctx.Value(diagnosticContextKey{}).(bool); metadata {
-		filter.mu.RLock()
-		defer filter.mu.RUnlock()
-		return len(filter.enabled) > 0
+	if isDiagnostic(ctx) {
+		return filter.any()
 	}
 	return filter.includes(level)
 }

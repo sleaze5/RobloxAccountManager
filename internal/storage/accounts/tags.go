@@ -202,7 +202,7 @@ func listAccountTags(ctx context.Context, db interface {
 }, accountID int64) ([]accountdomain.TagView, error) {
 	rows, err := db.QueryContext(ctx, `SELECT tags.id, tags.name, tags.kind FROM account_tags JOIN tags ON tags.id = account_tags.tag_id WHERE account_tags.account_id = ? ORDER BY CASE tags.kind WHEN 'favorite' THEN 0 ELSE 1 END, tags.name COLLATE NOCASE, tags.id`, accountID)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("list account tags: %w", err)
 	}
 	defer rows.Close()
 	tags := []accountdomain.TagView{}

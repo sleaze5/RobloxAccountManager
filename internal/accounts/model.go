@@ -46,15 +46,9 @@ type SessionRecord struct {
 	Roblosecurity     string
 	CookieExpiresAt   *time.Time
 	State             SessionState
-	StateReason       string
 	SecretVersion     int64
 	ImportedAt        time.Time
-	ReplacedAt        *time.Time
-	RotatedAt         *time.Time
 	LastValidatedAt   *time.Time
-	LastSuccessAt     *time.Time
-	LastAuthFailureAt *time.Time
-	UpdatedAt         time.Time
 }
 
 type AccountView struct {

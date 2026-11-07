@@ -107,6 +107,15 @@ func PreparePrivateDirectory(directory string) error {
 	return restrictDirectory(directory)
 }
 
+func restrictDirectory(path string) error {
+	if err := os.Chmod(path, 0o700); err != nil {
+		return fmt.Errorf("restrict directory permissions: %w", err)
+	}
+	return restrictACL(path, true)
+}
+
+// On Windows, Chmod only clears the read-only attribute, and restrictACL limits
+// access to the current user.
 func RestrictFile(path string) error {
 	if err := os.Chmod(path, 0o600); err != nil {
 		return fmt.Errorf("restrict file permissions: %w", err)

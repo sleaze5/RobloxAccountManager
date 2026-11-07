@@ -201,7 +201,7 @@ func copyFile(source, destination string) error {
 	syncErr := output.Sync()
 	closeErr := output.Close()
 	if err := errors.Join(copyErr, syncErr, closeErr); err != nil {
-		return err
+		return fmt.Errorf("copy %q: %w", filepath.Base(source), err)
 	}
 	if err := RestrictFile(destination); err != nil {
 		return err

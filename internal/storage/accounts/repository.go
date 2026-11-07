@@ -76,7 +76,7 @@ VALUES(?, ?, ?, ?, 1, ?, ?, ?, ?)`, accountID, cookie, nullableMillis(expiresAt)
 	if err := tx.Commit(); err != nil {
 		return accountdomain.AccountView{}, accountdomain.SessionRecord{}, fmt.Errorf("commit account insert: %w", err)
 	}
-	session := accountdomain.SessionRecord{AccountID: accountID, Roblosecurity: cookie, CookieExpiresAt: copyTime(expiresAt), State: accountdomain.StateActive, SecretVersion: 1, ImportedAt: now, LastValidatedAt: &now, LastSuccessAt: &now, UpdatedAt: now}
+	session := accountdomain.SessionRecord{AccountID: accountID, Roblosecurity: cookie, CookieExpiresAt: copyTime(expiresAt), State: accountdomain.StateActive, SecretVersion: 1, ImportedAt: now, LastValidatedAt: &now}
 	repository.logger.InfoContext(ctx, "account stored", "operation", "account-store", "account_id", accountID, "roblox_user_id", identity.RobloxUserID)
 	return viewFrom(identity, accountID, session, now), session, nil
 }
@@ -142,43 +142,43 @@ replaced_at_ms = ?, last_validated_at_ms = ?, last_success_at_ms = ?, last_auth_
 	return view, session, nil
 }
 
-func (repository *Repository) RotateCookie(ctx context.Context, accountID, expectedVersion int64, cookie string, expiresAt *time.Time) (accountdomain.SessionRecord, bool, error) {
+func (repository *Repository) RotateCookie(ctx context.Context, accountID, expectedVersion int64, cookie string, expiresAt *time.Time) (accountdomain.SessionRecord, error) {
 	if cookie == "" {
-		return accountdomain.SessionRecord{}, false, errors.New("rotated cookie is empty")
+		return accountdomain.SessionRecord{}, errors.New("rotated cookie is empty")
 	}
 	db, release, err := repository.database(ctx)
 	if err != nil {
-		return accountdomain.SessionRecord{}, false, err
+		return accountdomain.SessionRecord{}, err
 	}
 	defer release()
 	now := time.Now().UTC().Truncate(time.Millisecond)
 	tx, err := db.BeginTx(ctx, nil)
 	if err != nil {
-		return accountdomain.SessionRecord{}, false, fmt.Errorf("begin cookie rotation: %w", err)
+		return accountdomain.SessionRecord{}, fmt.Errorf("begin cookie rotation: %w", err)
 	}
 	defer tx.Rollback()
 	result, err := tx.ExecContext(ctx, `UPDATE account_sessions SET roblosecurity = ?, cookie_expires_at_ms = ?, secret_version = secret_version + 1, rotated_at_ms = ?, updated_at_ms = ? WHERE account_id = ? AND secret_version = ?`, cookie, nullableMillis(expiresAt), now.UnixMilli(), now.UnixMilli(), accountID, expectedVersion)
 	if err != nil {
-		return accountdomain.SessionRecord{}, false, fmt.Errorf("rotate account cookie: %w", err)
+		return accountdomain.SessionRecord{}, fmt.Errorf("rotate account cookie: %w", err)
 	}
 	changed, err := result.RowsAffected()
 	if err != nil {
-		return accountdomain.SessionRecord{}, false, fmt.Errorf("count rotated sessions: %w", err)
+		return accountdomain.SessionRecord{}, fmt.Errorf("count rotated sessions: %w", err)
 	}
 	if changed == 0 {
-		return accountdomain.SessionRecord{}, false, accountdomain.ErrStaleSecret
+		return accountdomain.SessionRecord{}, accountdomain.ErrStaleSecret
 	}
 	current, err := scanSession(tx.QueryRowContext(ctx, sessionQuery+` WHERE account_id = ?`, accountID))
 	if err != nil {
-		return accountdomain.SessionRecord{}, false, err
+		return accountdomain.SessionRecord{}, err
 	}
 	if err := vault.BumpRevision(ctx, tx); err != nil {
-		return accountdomain.SessionRecord{}, false, err
+		return accountdomain.SessionRecord{}, err
 	}
 	if err := tx.Commit(); err != nil {
-		return accountdomain.SessionRecord{}, false, fmt.Errorf("commit cookie rotation: %w", err)
+		return accountdomain.SessionRecord{}, fmt.Errorf("commit cookie rotation: %w", err)
 	}
-	return current, true, nil
+	return current, nil
 }
 
 func (repository *Repository) Remove(ctx context.Context, accountID int64) error {
@@ -250,7 +250,7 @@ func (repository *Repository) Page(ctx context.Context, query accountdomain.Acco
 		arguments = append(arguments, query.Cursor.DisplayOrder, query.Cursor.DisplayOrder, query.Cursor.AccountID)
 	}
 	arguments = append(arguments, accountPageSize+1)
-	rows, err := db.QueryContext(ctx, pageViewQuery+` WHERE `+strings.Join(where, " AND ")+` ORDER BY a.display_order, a.id LIMIT ?`, arguments...)
+	rows, err := db.QueryContext(ctx, viewColumns+`, a.display_order`+viewTables+` WHERE `+strings.Join(where, " AND ")+` ORDER BY a.display_order, a.id LIMIT ?`, arguments...)
 	if err != nil {
 		return accountdomain.AccountPage{}, fmt.Errorf("list account page: %w", err)
 	}
@@ -258,7 +258,8 @@ func (repository *Repository) Page(ctx context.Context, query accountdomain.Acco
 	views := make([]accountdomain.AccountView, 0, accountPageSize+1)
 	orders := make([]int64, 0, accountPageSize+1)
 	for rows.Next() {
-		view, order, err := scanPageView(rows)
+		var order int64
+		view, err := scanView(rows, &order)
 		if err != nil {
 			return accountdomain.AccountPage{}, err
 		}
@@ -463,32 +464,27 @@ func (repository *Repository) RecordSuccess(ctx context.Context, accountID, expe
 	return nil
 }
 
-const viewQuery = `
+const viewColumns = `
 SELECT a.id, a.roblox_user_id, COALESCE(NULLIF(a.username, ''), 'User ' || a.roblox_user_id), a.display_name,
        s.state, s.state_reason, s.secret_version, s.cookie_expires_at_ms,
 	   a.created_at_ms, s.imported_at_ms, s.rotated_at_ms, s.last_validated_at_ms,
-	   s.updated_at_ms, s.password <> ''
-FROM accounts a JOIN account_sessions s ON s.account_id = a.id`
+	   s.updated_at_ms, s.password <> ''`
 
-const pageViewQuery = `
-SELECT a.id, a.roblox_user_id, COALESCE(NULLIF(a.username, ''), 'User ' || a.roblox_user_id), a.display_name,
-       s.state, s.state_reason, s.secret_version, s.cookie_expires_at_ms,
-	   a.created_at_ms, s.imported_at_ms, s.rotated_at_ms, s.last_validated_at_ms,
-	   s.updated_at_ms, s.password <> '', a.display_order
+const viewQuery = viewColumns + viewTables
+
+const viewTables = `
 FROM accounts a JOIN account_sessions s ON s.account_id = a.id`
 
 const sessionQuery = `
-SELECT account_id, roblosecurity, cookie_expires_at_ms, state, state_reason, secret_version,
-       imported_at_ms, replaced_at_ms, rotated_at_ms, last_validated_at_ms,
-       last_success_at_ms, last_auth_failure_at_ms, updated_at_ms
+SELECT account_id, roblosecurity, cookie_expires_at_ms, state, secret_version, imported_at_ms, last_validated_at_ms
 FROM account_sessions`
 
 type scanner interface{ Scan(...any) error }
 
-func scanView(row scanner) (accountdomain.AccountView, error) {
+func scanView(row scanner, extra ...any) (accountdomain.AccountView, error) {
 	var view accountdomain.AccountView
 	var expires, rotated, validated sql.NullInt64
-	err := row.Scan(&view.ID, &view.RobloxUserID, &view.Username, &view.DisplayName, &view.State, &view.StateReason, &view.SecretVersion, &expires, &view.CreatedAtMS, &view.ImportedAtMS, &rotated, &validated, &view.UpdatedAtMS, &view.HasSavedPassword)
+	err := row.Scan(append([]any{&view.ID, &view.RobloxUserID, &view.Username, &view.DisplayName, &view.State, &view.StateReason, &view.SecretVersion, &expires, &view.CreatedAtMS, &view.ImportedAtMS, &rotated, &validated, &view.UpdatedAtMS, &view.HasSavedPassword}, extra...)...)
 	if errors.Is(err, sql.ErrNoRows) {
 		return accountdomain.AccountView{}, accountdomain.ErrNotFound
 	}
@@ -502,26 +498,11 @@ func scanView(row scanner) (accountdomain.AccountView, error) {
 	return view, nil
 }
 
-func scanPageView(row scanner) (accountdomain.AccountView, int64, error) {
-	var view accountdomain.AccountView
-	var order int64
-	var expires, rotated, validated sql.NullInt64
-	err := row.Scan(&view.ID, &view.RobloxUserID, &view.Username, &view.DisplayName, &view.State, &view.StateReason, &view.SecretVersion, &expires, &view.CreatedAtMS, &view.ImportedAtMS, &rotated, &validated, &view.UpdatedAtMS, &view.HasSavedPassword, &order)
-	if err != nil {
-		return accountdomain.AccountView{}, 0, fmt.Errorf("scan account page: %w", err)
-	}
-	view.Tags = []accountdomain.TagView{}
-	view.CookieExpiresAtMS = nullMillisPtr(expires)
-	view.RotatedAtMS = nullMillisPtr(rotated)
-	view.LastValidatedAtMS = nullMillisPtr(validated)
-	return view, order, nil
-}
-
 func scanSession(row scanner) (accountdomain.SessionRecord, error) {
 	var result accountdomain.SessionRecord
-	var expires, replaced, rotated, validated, success, failure sql.NullInt64
-	var imported, updated int64
-	err := row.Scan(&result.AccountID, &result.Roblosecurity, &expires, &result.State, &result.StateReason, &result.SecretVersion, &imported, &replaced, &rotated, &validated, &success, &failure, &updated)
+	var expires, validated sql.NullInt64
+	var imported int64
+	err := row.Scan(&result.AccountID, &result.Roblosecurity, &expires, &result.State, &result.SecretVersion, &imported, &validated)
 	if errors.Is(err, sql.ErrNoRows) {
 		return accountdomain.SessionRecord{}, accountdomain.ErrNotFound
 	}
@@ -529,13 +510,8 @@ func scanSession(row scanner) (accountdomain.SessionRecord, error) {
 		return accountdomain.SessionRecord{}, fmt.Errorf("scan account session: %w", err)
 	}
 	result.ImportedAt = timeFromMillis(imported)
-	result.UpdatedAt = timeFromMillis(updated)
 	result.CookieExpiresAt = timePtrFromNull(expires)
-	result.ReplacedAt = timePtrFromNull(replaced)
-	result.RotatedAt = timePtrFromNull(rotated)
 	result.LastValidatedAt = timePtrFromNull(validated)
-	result.LastSuccessAt = timePtrFromNull(success)
-	result.LastAuthFailureAt = timePtrFromNull(failure)
 	return result, nil
 }
 

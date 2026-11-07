@@ -124,7 +124,7 @@ func (service *Service) SynchronizeBrowserCookie(ctx context.Context, accountID,
 	if err != nil || view.RobloxUserID != validation.Identity.RobloxUserID {
 		return 0, errors.New("saved browser account identity changed")
 	}
-	record, _, err := service.repo.RotateCookie(ctx, accountID, expectedVersion, validation.Cookie, validation.ExpiresAt)
+	record, err := service.repo.RotateCookie(ctx, accountID, expectedVersion, validation.Cookie, validation.ExpiresAt)
 	if err != nil {
 		return 0, err
 	}
