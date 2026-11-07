@@ -128,51 +128,30 @@ tasks:
         deps:
             - task: internal:frontend:deps
         cmds:
-            - bun run dev -- --port {{.VITE_PORT}} --strictPort
+            - bun run dev
 
     internal:frontend:wait:
         internal: true
         dir: "{{.ROOT_DIR}}"
         cmds:
-            - cmd: powershell -NoProfile -File ./build/windows/wait-for-vite.ps1 -Port {{.VITE_PORT}}
-              platforms:
-                  - windows
-            - cmd: sh ./build/linux/wait-for-vite.sh {{.VITE_PORT}}
-              platforms:
-                  - linux
-                  - darwin
+            - bun run ./scripts/wait-for-vite.ts {{.VITE_PORT}}
 
     internal:go:format:
         internal: true
         dir: "{{.ROOT_DIR}}"
         cmds:
-            - cmd: powershell -NoProfile -Command '& { $files = @("main.go") + @(Get-ChildItem -LiteralPath "internal" -Recurse -File -Filter "*.go" | ForEach-Object FullName); & gofmt -w @files; if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE } }'
-              platforms:
-                  - windows
-            - cmd: |
-                  set -eu
-                  find main.go internal -type f -name '*.go' -exec gofmt -w {} +
-              platforms:
-                  - linux
-                  - darwin
+            - gofmt -w main.go internal
 
     internal:go:format:check:
         internal: true
         dir: "{{.ROOT_DIR}}"
         cmds:
-            - cmd: powershell -NoProfile -Command '& { $files = @("main.go") + @(Get-ChildItem -LiteralPath "internal" -Recurse -File -Filter "*.go" | ForEach-Object FullName); $unformatted = @(& gofmt -l @files); if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE } if ($unformatted.Count -ne 0) { Write-Error ("Go files are not formatted:" + [Environment]::NewLine + ($unformatted -join [Environment]::NewLine)); exit 1 } }'
-              platforms:
-                  - windows
             - cmd: |
-                  set -eu
-                  unformatted=$(find main.go internal -type f -name '*.go' -exec gofmt -l {} +)
+                  unformatted=$(gofmt -l main.go internal)
                   if [ -n "$unformatted" ]; then
                     printf 'Go files are not formatted:\n%s\n' "$unformatted" >&2
                     exit 1
                   fi
-              platforms:
-                  - linux
-                  - darwin
 
     internal:go:tidy:
         internal: true

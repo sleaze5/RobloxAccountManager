@@ -7,13 +7,11 @@ tasks:
         vars:
             COMMIT:
                 sh: '{{if ne .RELEASE_BUILD "true"}}{{.COMMIT_SCRIPT}}{{end}}'
-        env:
-            GOOS: linux
-            GOARCH: amd64
-            CGO_ENABLED: "1"
         cmds:
             - cmd: |
                   set -eu
+                  # Task does not override variables that the shell already sets.
+                  export GOOS=linux GOARCH=amd64 CGO_ENABLED=1
                   output="{{.DIST_DIR}}/linux-amd64/{{.APP_NAME}}"
                   mkdir -p "$(dirname "$output")"
                   ldflags="-X github.com/sleaze5/RobloxAccountManager/internal/appmeta.buildTime=$(date +%s) -X github.com/sleaze5/RobloxAccountManager/internal/appmeta.commit={{.COMMIT}}"

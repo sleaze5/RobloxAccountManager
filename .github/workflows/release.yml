@@ -29,7 +29,6 @@ jobs:
             GH_TOKEN: ${{ github.token }}
             REHEARSAL: ${{ inputs.rehearsal }}
         outputs:
-            version: ${{ steps.version.outputs.version }}
             tag: ${{ steps.version.outputs.tag }}
             prerelease: ${{ steps.version.outputs.prerelease }}
             matrix: ${{ steps.targets.outputs.matrix }}

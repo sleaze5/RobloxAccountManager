@@ -44,18 +44,15 @@ jobs:
               uses: ./.github/actions/setup-bun
 
             - name: Update
-              id: update
               env:
                   SCOPE: ${{ inputs.scope || 'uncovered' }}
                   DEPS_SUMMARY_FILE: ${{ runner.temp }}/dependencies.md
               run: |
                   go tool -modfile build/tools/go.mod task update -- "--$SCOPE"
-                  echo "bun=$(jq -r .devEngines.packageManager.version frontend/package.json)" >> "$GITHUB_OUTPUT"
+                  cat "$DEPS_SUMMARY_FILE" >> "$GITHUB_STEP_SUMMARY"
 
             - name: Set up the updated Bun
-              uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6
-              with:
-                  bun-version: ${{ steps.update.outputs.bun }}
+              uses: ./.github/actions/setup-bun
 
             - name: Install with the updated Bun
               working-directory: frontend
@@ -70,7 +67,7 @@ jobs:
                   fi
                   git config user.name "github-actions[bot]"
                   git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-                  git commit --all -m "Update dependencies" -m "$(cat "$RUNNER_TEMP/dependencies.md")"
+                  git commit --all -m "Update dependencies"
                   echo "changed=true" >> "$GITHUB_OUTPUT"
 
             - name: Land

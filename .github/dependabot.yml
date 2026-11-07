@@ -10,6 +10,7 @@ updates:
       allow:
           - dependency-type: direct
       ignore:
+          - dependency-name: github.com/wailsapp/wails/v3
           - dependency-name: "*"
             update-types:
                 - version-update:semver-major

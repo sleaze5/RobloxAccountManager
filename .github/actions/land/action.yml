@@ -26,5 +26,9 @@ runs:
                   [ -n "$run" ] && break
                   sleep 5
               done
+              if [ -z "$run" ]; then
+                  echo "The Check run for $sha did not start." >&2
+                  exit 1
+              fi
               gh run watch "$run" --exit-status --compact --interval 15
               git push origin "HEAD:refs/heads/$DEFAULT_BRANCH"
