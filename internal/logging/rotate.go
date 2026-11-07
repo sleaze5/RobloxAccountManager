@@ -10,7 +10,7 @@ import (
 const maxHeldBytes = 1 << 20
 
 type rotatingWriter struct {
-	mu      sync.Mutex
+	mutex   sync.Mutex
 	path    string
 	file    *os.File
 	size    int64
@@ -26,8 +26,8 @@ func newRotatingWriter(path string, header []byte, resume bool) *rotatingWriter 
 }
 
 func (writer *rotatingWriter) ensureOpen() error {
-	writer.mu.Lock()
-	defer writer.mu.Unlock()
+	writer.mutex.Lock()
+	defer writer.mutex.Unlock()
 	if writer.closed {
 		return os.ErrClosed
 	}
@@ -38,8 +38,8 @@ func (writer *rotatingWriter) ensureOpen() error {
 }
 
 func (writer *rotatingWriter) release(directory string, open bool) error {
-	writer.mu.Lock()
-	defer writer.mu.Unlock()
+	writer.mutex.Lock()
+	defer writer.mutex.Unlock()
 	if writer.closed {
 		return os.ErrClosed
 	}
@@ -65,8 +65,8 @@ func (writer *rotatingWriter) release(directory string, open bool) error {
 }
 
 func (writer *rotatingWriter) Write(data []byte) (int, error) {
-	writer.mu.Lock()
-	defer writer.mu.Unlock()
+	writer.mutex.Lock()
+	defer writer.mutex.Unlock()
 	if writer.held && !writer.closed {
 		if len(writer.pending)+len(data) <= maxHeldBytes {
 			writer.pending = append(writer.pending, data...)
@@ -90,8 +90,8 @@ func (writer *rotatingWriter) Write(data []byte) (int, error) {
 }
 
 func (writer *rotatingWriter) Close() error {
-	writer.mu.Lock()
-	defer writer.mu.Unlock()
+	writer.mutex.Lock()
+	defer writer.mutex.Unlock()
 	writer.closed = true
 	if writer.file == nil {
 		return nil
@@ -105,8 +105,8 @@ func (writer *rotatingWriter) Close() error {
 }
 
 func (writer *rotatingWriter) Sync() error {
-	writer.mu.Lock()
-	defer writer.mu.Unlock()
+	writer.mutex.Lock()
+	defer writer.mutex.Unlock()
 	if writer.file == nil {
 		return nil
 	}

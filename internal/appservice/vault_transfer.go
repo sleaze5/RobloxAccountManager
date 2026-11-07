@@ -371,8 +371,8 @@ func (service *Service) applyPendingSettings(ctx context.Context) error {
 	}
 	settings, err := appsettings.Decode(pending.Data)
 	if err != nil {
-		if clearErr := service.transfers.ClearPendingSettings(ctx); clearErr != nil {
-			return errors.Join(err, clearErr)
+		if clearError := service.transfers.ClearPendingSettings(ctx); clearError != nil {
+			return errors.Join(err, clearError)
 		}
 		return fmt.Errorf("decode pending settings: %w", err)
 	}
@@ -389,9 +389,9 @@ func (service *Service) applyPendingSettings(ctx context.Context) error {
 		}
 	}
 	if slices.Contains(sections, appsettings.SectionRoblox) {
-		service.launchMu.Lock()
+		service.launchMutex.Lock()
 		service.multiInstance.SetEnabled(service.settings.Roblox().MultiInstance)
-		service.launchMu.Unlock()
+		service.launchMutex.Unlock()
 	}
 	if err := service.transfers.ClearPendingSettings(ctx); err != nil {
 		return fmt.Errorf("clear saved settings import: %w", err)
@@ -447,8 +447,8 @@ func (service *Service) validateTransferCookies(ctx context.Context, selected []
 	for index, account := range candidates {
 		cookies[index] = account.Cookie
 	}
-	validationCtx, finishValidation := service.beginValidation(ctx)
-	outcomes := service.validateImportInputs(validationCtx, cookies)
+	validationContext, finishValidation := service.beginValidation(ctx)
+	outcomes := service.validateImportInputs(validationContext, cookies)
 	finishValidation()
 	for index, outcome := range outcomes {
 		account := candidates[index]
@@ -475,18 +475,18 @@ func transferUsername(account transferstore.Account) string {
 
 func (service *Service) storePendingTransfer(pending *pendingTransfer) {
 	pending.timer = time.AfterFunc(transferPreviewTTL, func() { service.DiscardVaultExport(pending.id) })
-	service.transferMu.Lock()
+	service.transferMutex.Lock()
 	previous := service.pendingTransfer
 	service.pendingTransfer = pending
-	service.transferMu.Unlock()
+	service.transferMutex.Unlock()
 	if previous != nil {
 		clearPendingTransfer(previous)
 	}
 }
 
 func (service *Service) takePendingTransfer(id string) (*pendingTransfer, bool) {
-	service.transferMu.Lock()
-	defer service.transferMu.Unlock()
+	service.transferMutex.Lock()
+	defer service.transferMutex.Unlock()
 	pending := service.pendingTransfer
 	if pending == nil || id == "" || pending.id != id {
 		return nil, false
@@ -496,10 +496,10 @@ func (service *Service) takePendingTransfer(id string) (*pendingTransfer, bool) 
 }
 
 func (service *Service) discardPendingTransfer() {
-	service.transferMu.Lock()
+	service.transferMutex.Lock()
 	pending := service.pendingTransfer
 	service.pendingTransfer = nil
-	service.transferMu.Unlock()
+	service.transferMutex.Unlock()
 	if pending != nil {
 		clearPendingTransfer(pending)
 	}

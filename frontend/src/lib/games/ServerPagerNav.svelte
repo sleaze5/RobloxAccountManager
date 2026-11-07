@@ -20,7 +20,7 @@
 
 <nav class="ml-auto flex items-center gap-1" aria-label="Server pages">
 	<button
-		class="btn-icon"
+		class="button-icon"
 		type="button"
 		aria-label="First page"
 		data-tooltip="First page"
@@ -33,7 +33,7 @@
 			aria-hidden="true" />
 	</button>
 	<button
-		class="btn"
+		class="button"
 		type="button"
 		disabled={pager.loading || pager.pageNumber < 2}
 		onclick={() => pager.previous()}>
@@ -46,7 +46,7 @@
 	<span class="px-1 text-xs text-fg-muted" aria-current="page"
 		>Page {pager.pageNumber}</span>
 	<button
-		class="btn"
+		class="button"
 		type="button"
 		disabled={pager.loading || !pager.hasNext}
 		onclick={() => pager.next()}>

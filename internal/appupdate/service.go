@@ -49,7 +49,7 @@ type Service struct {
 	logger  *slog.Logger
 	changed func()
 
-	mu       sync.Mutex
+	mutex    sync.Mutex
 	updater  *updater.Updater
 	state    State
 	cancel   context.CancelFunc
@@ -90,56 +90,56 @@ func (service *Service) Start(ctx context.Context, app *application.App) {
 		service.logger.Error("updater could not be configured", "operation", "update-startup", "error", err)
 		return
 	}
-	service.mu.Lock()
+	service.mutex.Lock()
 	service.updater = app.Updater
 	service.progress = app.Event.On(updater.EventDownloadProgress, service.recordProgress)
-	service.mu.Unlock()
+	service.mutex.Unlock()
 	go service.removeLeftovers()
 	go func() { _ = service.Check(ctx) }()
 }
 
 func (service *Service) Shutdown() {
-	service.mu.Lock()
+	service.mutex.Lock()
 	cancel, removeProgress := service.cancel, service.progress
 	staged := ""
 	if status := service.state.Status; service.updater != nil && (status == StatusReady || status == StatusRestarting && helperCopiedUpdate()) {
 		staged = service.updater.DownloadedPath()
 	}
-	service.mu.Unlock()
+	service.mutex.Unlock()
 	if cancel != nil {
 		cancel()
 	}
 	if removeProgress != nil {
 		removeProgress()
 	}
-	if dir := filepath.Dir(staged); staged != "" && strings.HasPrefix(filepath.Base(dir), wailsUpdatePrefix) {
-		if err := os.RemoveAll(dir); err != nil {
-			service.logger.Warn("downloaded update could not be removed", "operation", "update-cleanup", "path", dir, "error", err)
+	if directory := filepath.Dir(staged); staged != "" && strings.HasPrefix(filepath.Base(directory), wailsUpdatePrefix) {
+		if err := os.RemoveAll(directory); err != nil {
+			service.logger.Warn("downloaded update could not be removed", "operation", "update-cleanup", "path", directory, "error", err)
 		}
 	}
 }
 
 func (service *Service) State() State {
-	service.mu.Lock()
-	defer service.mu.Unlock()
+	service.mutex.Lock()
+	defer service.mutex.Unlock()
 	return service.state
 }
 
 func (service *Service) Check(ctx context.Context) error {
-	service.mu.Lock()
+	service.mutex.Lock()
 	if service.updater == nil {
-		service.mu.Unlock()
+		service.mutex.Unlock()
 		return errUnavailable
 	}
 	switch service.state.Status {
 	case StatusChecking, StatusDownloading, StatusReady, StatusRestarting, StatusDisabled:
-		service.mu.Unlock()
+		service.mutex.Unlock()
 		return nil
 	case StatusIdle, StatusUpToDate, StatusAvailable:
 	}
 	service.state = State{Status: StatusChecking, CurrentVersion: appmeta.Version}
 	current := service.updater
-	service.mu.Unlock()
+	service.mutex.Unlock()
 	service.changed()
 
 	checkContext, cancel := context.WithTimeout(ctx, checkTimeout)
@@ -163,7 +163,7 @@ func requireSignature(release *updater.Release) error {
 }
 
 func (service *Service) finishCheck(release *updater.Release, err error) {
-	service.mu.Lock()
+	service.mutex.Lock()
 	switch {
 	case err != nil:
 		service.logger.Warn("update check failed", "operation", "update-check", "error", err)
@@ -175,18 +175,18 @@ func (service *Service) finishCheck(release *updater.Release, err error) {
 		service.logger.Info("update available", "operation", "update-check", "version", release.Version)
 		service.state = State{Status: StatusAvailable, CurrentVersion: appmeta.Version, AvailableVersion: release.Version, TotalBytes: release.Artifact.Size}
 	}
-	service.mu.Unlock()
+	service.mutex.Unlock()
 	service.changed()
 }
 
 func (service *Service) Install(ctx context.Context) error {
-	service.mu.Lock()
+	service.mutex.Lock()
 	if service.updater == nil {
-		service.mu.Unlock()
+		service.mutex.Unlock()
 		return errUnavailable
 	}
 	if service.state.Status != StatusAvailable {
-		service.mu.Unlock()
+		service.mutex.Unlock()
 		return errors.New("no update is available to download")
 	}
 	downloadContext, cancel := context.WithCancel(context.WithoutCancel(ctx))
@@ -195,7 +195,7 @@ func (service *Service) Install(ctx context.Context) error {
 	service.state.DownloadedBytes = 0
 	service.state.Error = ""
 	current := service.updater
-	service.mu.Unlock()
+	service.mutex.Unlock()
 	service.changed()
 
 	go service.download(downloadContext, current)
@@ -204,7 +204,7 @@ func (service *Service) Install(ctx context.Context) error {
 
 func (service *Service) download(ctx context.Context, current *updater.Updater) {
 	err := current.DownloadAndInstall(ctx)
-	service.mu.Lock()
+	service.mutex.Lock()
 	service.cancel()
 	service.cancel = nil
 	switch {
@@ -219,33 +219,33 @@ func (service *Service) download(ctx context.Context, current *updater.Updater) 
 		service.state.Status = StatusAvailable
 		service.state.Error = "The update could not be downloaded or verified. Try again."
 	}
-	service.mu.Unlock()
+	service.mutex.Unlock()
 	service.changed()
 }
 
 func (service *Service) CancelDownload() {
-	service.mu.Lock()
+	service.mutex.Lock()
 	cancel := service.cancel
-	service.mu.Unlock()
+	service.mutex.Unlock()
 	if cancel != nil {
 		cancel()
 	}
 }
 
 func (service *Service) Restart(ctx context.Context) error {
-	service.mu.Lock()
+	service.mutex.Lock()
 	if service.updater == nil {
-		service.mu.Unlock()
+		service.mutex.Unlock()
 		return errUnavailable
 	}
 	if service.state.Status != StatusReady {
-		service.mu.Unlock()
+		service.mutex.Unlock()
 		return errors.New("no update is ready to install")
 	}
 	service.state.Status = StatusRestarting
 	service.state.Error = ""
 	current := service.updater
-	service.mu.Unlock()
+	service.mutex.Unlock()
 	service.changed()
 
 	service.logger.Info("restarting to install update", "operation", "update-install", "version", service.State().AvailableVersion)
@@ -253,10 +253,10 @@ func (service *Service) Restart(ctx context.Context) error {
 	if err := current.Restart(ctx); err != nil {
 		_ = os.Unsetenv(helperLogVariable)
 		service.logger.Warn("update restart failed", "operation", "update-install", "error", err)
-		service.mu.Lock()
+		service.mutex.Lock()
 		service.state.Status = StatusReady
 		service.state.Error = "The application could not restart to install the update. Try again."
-		service.mu.Unlock()
+		service.mutex.Unlock()
 		service.changed()
 	}
 	return nil
@@ -267,15 +267,15 @@ func (service *Service) recordProgress(event *application.CustomEvent) {
 	if !ok {
 		return
 	}
-	service.mu.Lock()
+	service.mutex.Lock()
 	if service.state.Status != StatusDownloading {
-		service.mu.Unlock()
+		service.mutex.Unlock()
 		return
 	}
 	service.state.DownloadedBytes = progress.Written
 	if progress.Total > 0 {
 		service.state.TotalBytes = progress.Total
 	}
-	service.mu.Unlock()
+	service.mutex.Unlock()
 	service.changed()
 }

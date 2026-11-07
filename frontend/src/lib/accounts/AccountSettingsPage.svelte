@@ -440,8 +440,10 @@
 		normalizedQuery = $derived(workspace.accountSettingsQuery.trim().toLowerCase()),
 		terms = $derived(searchTerms(normalizedQuery)),
 		visibleCategories = $derived(
-			categories.filter((cat) =>
-				cat.sections.some((sec) => filterFields(cat, sec).length > 0),
+			categories.filter((category) =>
+				category.sections.some(
+					(section) => filterFields(category, section).length > 0,
+				),
 			),
 		),
 		visibleInfoFields = $derived(
@@ -628,7 +630,7 @@
 	}
 
 	function getSettingView(key: Key): AccountSettingView | undefined {
-		return settingsState?.snapshot?.settings?.find((s) => s.key === key)
+		return settingsState?.snapshot?.settings?.find((setting) => setting.key === key)
 	}
 
 	function computeRadioOptions(field: FieldDef): SettingRadioOption[] {
@@ -733,8 +735,8 @@
 		) {
 			return section.fields
 		}
-		return section.fields.filter((f) =>
-			matches(`${f.label} ${f.description} ${section.title}`),
+		return section.fields.filter((field) =>
+			matches(`${field.label} ${field.description} ${section.title}`),
 		)
 	}
 
@@ -772,7 +774,7 @@
 <section class="settings-page" aria-labelledby="account-settings-title">
 	<header class="settings-header">
 		<button
-			class="btn-ghost"
+			class="button-ghost"
 			type="button"
 			aria-label="Back to profile"
 			data-tooltip="Back to profile"
@@ -785,7 +787,7 @@
 		<span class="mr-auto min-w-0 text-xs wrap-anywhere text-fg-muted"
 			>@{store.selectedAccount.username}</span>
 		<button
-			class="btn-ghost"
+			class="button-ghost"
 			type="button"
 			aria-label="Refresh settings"
 			data-tooltip="Refresh settings"

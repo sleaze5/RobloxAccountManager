@@ -113,7 +113,7 @@
 					)}</span>
 			</span>
 			<button
-				class="btn-icon"
+				class="button-icon"
 				type="button"
 				aria-label="Copy file path"
 				data-tooltip="Copy file path"
@@ -126,7 +126,7 @@
 			file.
 		</p>
 		<div class="dialog-actions">
-			<button class="btn-primary" type="button" onclick={onClose}>Done</button>
+			<button class="button-primary" type="button" onclick={onClose}>Done</button>
 		</div>
 	{:else}
 		<form
@@ -204,10 +204,13 @@
 				<div class="mt-3 notice-error" role="alert">{error}</div>
 			{/if}
 			<div class="dialog-actions">
-				<button class="btn" type="button" disabled={exporting} onclick={close}
-					>Cancel</button>
 				<button
-					class="btn-primary"
+					class="button"
+					type="button"
+					disabled={exporting}
+					onclick={close}>Cancel</button>
+				<button
+					class="button-primary"
 					type="submit"
 					disabled={!passwordValid(password) ||
 						password !== confirmation ||

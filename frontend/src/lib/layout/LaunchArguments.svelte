@@ -78,7 +78,7 @@
 
 <div class="relative" bind:this={root}>
 	<button
-		class={["btn-ghost", activeOptions.length > 0 && "text-accent-strong"]}
+		class={["button-ghost", activeOptions.length > 0 && "text-accent-strong"]}
 		type="button"
 		bind:this={trigger}
 		aria-label={triggerLabel}

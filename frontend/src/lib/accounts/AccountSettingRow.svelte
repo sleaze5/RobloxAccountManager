@@ -115,7 +115,7 @@
 					: `setting-description-${id}`}
 				checked={isChecked}
 				disabled={controlDisabled}
-				onchange={(e) => onToggle?.(e.currentTarget.checked)} />
+				onchange={(event) => onToggle?.(event.currentTarget.checked)} />
 			<span aria-hidden="true"></span>
 		</label>
 	</div>

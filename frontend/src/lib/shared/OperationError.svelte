@@ -15,7 +15,7 @@
 		out:toastOut>
 		<span class="max-h-48 overflow-y-auto whitespace-pre-line">{store.error}</span>
 		<button
-			class="btn-close"
+			class="button-close"
 			type="button"
 			aria-label="Dismiss error"
 			onclick={() => store.clearError()}>

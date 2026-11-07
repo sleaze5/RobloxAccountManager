@@ -71,7 +71,7 @@
 				</div>
 				<div class="flex items-center gap-2">
 					<button
-						class="btn"
+						class="button"
 						type="button"
 						disabled={store.busy}
 						onclick={() => openDialog("test")}>
@@ -79,7 +79,7 @@
 						Test password
 					</button>
 					<button
-						class="btn"
+						class="button"
 						type="button"
 						disabled={store.busy || !store.vault.unlocked}
 						onclick={onLock}>
@@ -124,7 +124,7 @@
 						>Rotate the vault encryption key and update automatic unlock.</span>
 				</div>
 				<button
-					class="btn"
+					class="button"
 					type="button"
 					disabled={store.busy}
 					onclick={() => openDialog("change")}>

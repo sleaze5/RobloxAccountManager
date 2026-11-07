@@ -74,16 +74,16 @@ func KillProcesses(ctx context.Context, processes []Process, logger *slog.Logger
 	}
 	ctx, cancel := context.WithTimeout(ctx, 5*time.Second)
 	defer cancel()
-	var killErr error
+	var killError error
 	for _, process := range processes {
 		if err := ctx.Err(); err != nil {
-			return errors.Join(killErr, err)
+			return errors.Join(killError, err)
 		}
 		if err := killProcess(ctx, process, logger); err != nil {
-			killErr = errors.Join(killErr, fmt.Errorf("kill Roblox process %d: %w", process.PID, err))
+			killError = errors.Join(killError, fmt.Errorf("kill Roblox process %d: %w", process.PID, err))
 		}
 	}
-	return killErr
+	return killError
 }
 
 func killProcess(ctx context.Context, process Process, logger *slog.Logger) error {

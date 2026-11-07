@@ -183,7 +183,7 @@
 										? "Sign-in required"
 										: "Security challenge"}</span>
 								<button
-									class="btn"
+									class="button"
 									type="button"
 									disabled={store.busy}
 									onclick={onReplaceCookie}>
@@ -210,7 +210,7 @@
 			</div>
 			<div class="relative flex items-center gap-1 @max-xl:self-end">
 				<button
-					class="btn-icon"
+					class="button-icon"
 					type="button"
 					data-tooltip="Refresh account data"
 					aria-label={profileState?.loading
@@ -236,7 +236,7 @@
 					{/if}
 				</button>
 				<button
-					class="btn-icon"
+					class="button-icon"
 					type="button"
 					aria-label="Chats"
 					data-tooltip="Chats"
@@ -246,7 +246,7 @@
 					<Icon svg={chatsIcon} size={16} aria-hidden="true" />
 				</button>
 				<button
-					class="btn-icon"
+					class="button-icon"
 					type="button"
 					aria-label="Account settings"
 					data-tooltip="Account settings"
@@ -256,7 +256,7 @@
 					<Icon svg={gearIcon} size={16} aria-hidden="true" />
 				</button>
 				<button
-					class="btn-icon"
+					class="button-icon"
 					data-account-menu
 					type="button"
 					aria-label="More account actions"
@@ -291,7 +291,7 @@
 				<div class="relative inline-flex" data-account-menu>
 					<button
 						bind:this={tagsButton}
-						class="btn-icon size-6"
+						class="button-icon size-6"
 						type="button"
 						aria-label="Edit account tags"
 						aria-expanded={workspace.activeAccountMenu === "profile-tags"}

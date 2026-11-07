@@ -99,9 +99,9 @@ func (service *Users) Profile(ctx context.Context, userID int64) (accounts.Ident
 	if err := json.Unmarshal(response.Body, &profile); err != nil {
 		return accounts.Identity{}, &roblox.Error{Kind: roblox.KindProtocol, Endpoint: "user-profile", Status: response.Status, Message: "Roblox returned invalid account details.", Cause: err}
 	}
-	createdAt, parseErr := time.Parse(time.RFC3339, strings.TrimSpace(profile.Created))
-	if parseErr != nil || profile.ID != userID || strings.TrimSpace(profile.Name) == "" {
-		return accounts.Identity{}, &roblox.Error{Kind: roblox.KindProtocol, Endpoint: "user-profile", Status: response.Status, Message: "Roblox returned invalid account details.", Cause: parseErr}
+	createdAt, parseError := time.Parse(time.RFC3339, strings.TrimSpace(profile.Created))
+	if parseError != nil || profile.ID != userID || strings.TrimSpace(profile.Name) == "" {
+		return accounts.Identity{}, &roblox.Error{Kind: roblox.KindProtocol, Endpoint: "user-profile", Status: response.Status, Message: "Roblox returned invalid account details.", Cause: parseError}
 	}
 	return accounts.Identity{RobloxUserID: profile.ID, Username: profile.Name, DisplayName: profile.DisplayName, CreatedAt: createdAt.UTC()}, nil
 }

@@ -28,7 +28,7 @@
 			<Icon svg={warningIcon} size={28} aria-hidden="true" />
 			<h2>RBXServers servers are unavailable</h2>
 			<p>{servers.error}</p>
-			<button class="btn" type="button" onclick={() => void servers.load()}
+			<button class="button" type="button" onclick={() => void servers.load()}
 				>Try again</button>
 		</div>
 	{:else if !servers.page}

@@ -178,10 +178,10 @@
 				The current link stops working. People who already joined keep access.
 			</div>
 			<div class="dialog-actions">
-				<button class="btn" type="button" disabled={busy} onclick={close}
+				<button class="button" type="button" disabled={busy} onclick={close}
 					>Cancel</button>
 				<button
-					class="btn-warning"
+					class="button-warning"
 					type="button"
 					data-confirm-reset
 					disabled={busy}
@@ -221,7 +221,7 @@
 						<Icon svg={warningIcon} size={28} aria-hidden="true" />
 						<h2>Private server is unavailable</h2>
 						<p>{server.errorFor("load")}</p>
-						<button class="btn" type="button" onclick={() => void load()}
+						<button class="button" type="button" onclick={() => void load()}
 							>Try again</button>
 					</div>
 				{/if}
@@ -234,7 +234,7 @@
 								<span class="truncate">{serverName}</span>
 							</div>
 							<button
-								class="btn"
+								class="button"
 								type="button"
 								data-rename
 								disabled={busy}
@@ -304,7 +304,7 @@
 							</div>
 							<div class="flex shrink-0 items-center gap-1.5">
 								<button
-									class="btn-icon"
+									class="button-icon"
 									type="button"
 									aria-label="Copy join link"
 									data-tooltip="Copy join link"
@@ -313,7 +313,7 @@
 									<Icon svg={copyIcon} size={16} aria-hidden="true" />
 								</button>
 								<button
-									class="btn"
+									class="button"
 									type="button"
 									data-reset-link
 									disabled={busy}
@@ -365,7 +365,7 @@
 															: user.userId}</span>
 												</span>
 												<button
-													class="btn"
+													class="button"
 													type="button"
 													aria-label={`Remove ${userName(user)}`}
 													disabled={busy}
@@ -421,7 +421,7 @@
 											disabled={busy}
 											bind:value={userValue} />
 										<button
-											class="btn h-8"
+											class="button h-8"
 											type="submit"
 											disabled={busy || !userValue.trim()}>
 											{server.pending === "add-user"
@@ -448,7 +448,7 @@
 			{/if}
 
 			<div class="dialog-actions">
-				<button class="btn" type="button" disabled={locked} onclick={close}
+				<button class="button" type="button" disabled={locked} onclick={close}
 					>Close</button>
 			</div>
 		{/if}

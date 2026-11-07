@@ -89,8 +89,8 @@
 						{#each notification.actions as action, index}
 							<button
 								class={action.emphasis
-									? "btn-primary h-6 px-2"
-									: "btn h-6"}
+									? "button-primary h-6 px-2"
+									: "button h-6"}
 								type="button"
 								disabled={runningAction !== ""}
 								onclick={() =>
@@ -103,7 +103,7 @@
 			</div>
 			{#if notification.dismissible}
 				<button
-					class="btn-close text-fg-faint hover:text-fg"
+					class="button-close text-fg-faint hover:text-fg"
 					type="button"
 					aria-label={`Dismiss ${notification.title}`}
 					disabled={runningAction !== ""}

@@ -21,7 +21,7 @@ type LaunchStage struct {
 }
 
 type Launch struct {
-	mu             sync.Mutex
+	mutex          sync.Mutex
 	id             string
 	started        time.Time
 	stage          string
@@ -48,7 +48,7 @@ func NewLaunch() *Launch {
 }
 
 func (launch *Launch) Open(root string, hold bool) (*System, error) {
-	settings, settingsErr := loggingSettings(root, hold)
+	settings, settingsError := loggingSettings(root, hold)
 	levels, err := ParseLevels(settings.EnabledLevelNames())
 	if err != nil {
 		return nil, err
@@ -58,15 +58,15 @@ func (launch *Launch) Open(root string, hold bool) (*System, error) {
 	if err != nil {
 		return nil, err
 	}
-	launch.mu.Lock()
+	launch.mutex.Lock()
 	launch.system = system
 	launch.logger = system.Module("startup").With("operation", "application-launch")
 	launch.logger.Info("application starting", "version", appmeta.Version, "go_version", runtime.Version(),
 		"os", runtime.GOOS, "arch", runtime.GOARCH, "pid", os.Getpid(),
 		"started_at", launch.started.UTC(), "elapsed_ms", milliseconds(time.Since(launch.started)), "stages", launch.stages)
-	launch.mu.Unlock()
-	if settingsErr != nil {
-		launch.logger.Warn("logging preferences could not be loaded; using defaults", "error", settingsErr)
+	launch.mutex.Unlock()
+	if settingsError != nil {
+		launch.logger.Warn("logging preferences could not be loaded; using defaults", "error", settingsError)
 	}
 	logFile := "created"
 	if len(levels) == 0 {
@@ -97,8 +97,8 @@ func (launch *Launch) captureCrashes() {
 }
 
 func (launch *Launch) Begin(stage string) {
-	launch.mu.Lock()
-	defer launch.mu.Unlock()
+	launch.mutex.Lock()
+	defer launch.mutex.Unlock()
 	launch.completeStage()
 	launch.stage, launch.since = stage, time.Now()
 	launch.logger.Info("startup stage started", "stage", stage, "elapsed_ms", milliseconds(time.Since(launch.started)))
@@ -116,11 +116,11 @@ func (launch *Launch) completeStage() {
 
 func (launch *Launch) WaitForWebview() {
 	launch.Begin("webview-runtime-ready")
-	launch.mu.Lock()
-	defer launch.mu.Unlock()
+	launch.mutex.Lock()
+	defer launch.mutex.Unlock()
 	launch.timer = time.AfterFunc(30*time.Second, func() {
-		launch.mu.Lock()
-		defer launch.mu.Unlock()
+		launch.mutex.Lock()
+		defer launch.mutex.Unlock()
 		if !launch.ready && !launch.finished {
 			launch.logger.Warn("webview runtime has not reported ready", "stage", launch.stage,
 				"elapsed_ms", milliseconds(time.Since(launch.started)), "stages", launch.stages)
@@ -129,8 +129,8 @@ func (launch *Launch) WaitForWebview() {
 }
 
 func (launch *Launch) Ready() {
-	launch.mu.Lock()
-	defer launch.mu.Unlock()
+	launch.mutex.Lock()
+	defer launch.mutex.Unlock()
 	if launch.ready || launch.finished {
 		return
 	}
@@ -156,18 +156,18 @@ type LaunchReport struct {
 }
 
 func (launch *Launch) Report() LaunchReport {
-	launch.mu.Lock()
+	launch.mutex.Lock()
 	report := LaunchReport{LaunchID: launch.id, StartedAt: launch.started.UnixMilli(), Ready: launch.ready,
 		ReadyMS: launch.readyMS, Stages: append([]LaunchStage{}, launch.stages...)}
-	launch.mu.Unlock()
+	launch.mutex.Unlock()
 	report.Build = appmeta.CurrentBuild()
 	report.Components = launch.components.snapshot()
 	return report
 }
 
 func (launch *Launch) Error(message string, err error, attributes ...any) {
-	launch.mu.Lock()
-	defer launch.mu.Unlock()
+	launch.mutex.Lock()
+	defer launch.mutex.Unlock()
 	if launch.finished {
 		return
 	}
@@ -192,14 +192,14 @@ func loggingSettings(root string, hold bool) (appsettings.LoggingSettings, error
 
 func (launch *Launch) Finish(err error, attributes ...any) {
 	if launch.system == nil && err != nil {
-		root, openErr := appdata.FallbackRoot()
-		if openErr == nil {
-			_, openErr = launch.Open(root, false)
+		root, openError := appdata.FallbackRoot()
+		if openError == nil {
+			_, openError = launch.Open(root, false)
 		}
-		if openErr != nil && launch.system == nil {
+		if openError != nil && launch.system == nil {
 			if launch.consoleEnabled {
 				NewConsole().Error("startup diagnostics unavailable", "module", "startup",
-					"launch_id", launch.id, "stage", launch.stage, "error", errors.Join(err, openErr))
+					"launch_id", launch.id, "stage", launch.stage, "error", errors.Join(err, openError))
 			}
 			return
 		}
@@ -207,8 +207,8 @@ func (launch *Launch) Finish(err error, attributes ...any) {
 	if err != nil {
 		launch.Error("application failed", err, attributes...)
 	}
-	launch.mu.Lock()
-	defer launch.mu.Unlock()
+	launch.mutex.Lock()
+	defer launch.mutex.Unlock()
 	launch.finished = true
 	if launch.timer != nil {
 		launch.timer.Stop()
@@ -217,8 +217,8 @@ func (launch *Launch) Finish(err error, attributes ...any) {
 		if err == nil {
 			launch.logger.Info("application stopped", "startup_complete", launch.ready, "uptime_ms", milliseconds(time.Since(launch.started)))
 		}
-		if closeErr := launch.system.Close(); closeErr != nil {
-			launch.consoleError("could not close application log", closeErr)
+		if closeError := launch.system.Close(); closeError != nil {
+			launch.consoleError("could not close application log", closeError)
 		}
 	}
 }

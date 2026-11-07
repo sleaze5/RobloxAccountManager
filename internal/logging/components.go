@@ -20,7 +20,7 @@ type ComponentRecord struct {
 }
 
 type componentRegistry struct {
-	mu      sync.Mutex
+	mutex   sync.Mutex
 	order   []string
 	records map[string]ComponentRecord
 }
@@ -31,8 +31,8 @@ func newComponentRegistry() *componentRegistry {
 
 func (registry *componentRegistry) add(record ComponentRecord) {
 	key := record.Module + "\x00" + record.Message
-	registry.mu.Lock()
-	defer registry.mu.Unlock()
+	registry.mutex.Lock()
+	defer registry.mutex.Unlock()
 	if _, ok := registry.records[key]; !ok {
 		registry.order = append(registry.order, key)
 	}
@@ -40,8 +40,8 @@ func (registry *componentRegistry) add(record ComponentRecord) {
 }
 
 func (registry *componentRegistry) snapshot() []ComponentRecord {
-	registry.mu.Lock()
-	defer registry.mu.Unlock()
+	registry.mutex.Lock()
+	defer registry.mutex.Unlock()
 	result := make([]ComponentRecord, 0, len(registry.order))
 	for _, key := range registry.order {
 		result = append(result, registry.records[key])

@@ -24,28 +24,28 @@ func (windowsProtector) Protect(plaintext []byte) ([]byte, error) {
 	if len(plaintext) == 0 {
 		return nil, errors.New("protect data: plaintext is empty")
 	}
-	in := dataBlob(plaintext)
+	inputBlob := dataBlob(plaintext)
 	entropy := dataBlob(applicationEntropy)
-	var out windows.DataBlob
-	if err := windows.CryptProtectData(&in, nil, &entropy, 0, nil, cryptProtectUIForbidden, &out); err != nil {
+	var outputBlob windows.DataBlob
+	if err := windows.CryptProtectData(&inputBlob, nil, &entropy, 0, nil, cryptProtectUIForbidden, &outputBlob); err != nil {
 		return nil, fmt.Errorf("protect data with DPAPI: %w", err)
 	}
-	defer windows.LocalFree(windows.Handle(unsafe.Pointer(out.Data)))
-	return copyBlob(out), nil
+	defer windows.LocalFree(windows.Handle(unsafe.Pointer(outputBlob.Data)))
+	return copyBlob(outputBlob), nil
 }
 
 func (windowsProtector) Unprotect(ciphertext []byte) ([]byte, error) {
 	if len(ciphertext) == 0 {
 		return nil, errors.New("unprotect data: ciphertext is empty")
 	}
-	in := dataBlob(ciphertext)
+	inputBlob := dataBlob(ciphertext)
 	entropy := dataBlob(applicationEntropy)
-	var out windows.DataBlob
-	if err := windows.CryptUnprotectData(&in, nil, &entropy, 0, nil, cryptProtectUIForbidden, &out); err != nil {
+	var outputBlob windows.DataBlob
+	if err := windows.CryptUnprotectData(&inputBlob, nil, &entropy, 0, nil, cryptProtectUIForbidden, &outputBlob); err != nil {
 		return nil, fmt.Errorf("unprotect data with DPAPI: %w", err)
 	}
-	defer windows.LocalFree(windows.Handle(unsafe.Pointer(out.Data)))
-	return copyBlob(out), nil
+	defer windows.LocalFree(windows.Handle(unsafe.Pointer(outputBlob.Data)))
+	return copyBlob(outputBlob), nil
 }
 
 func dataBlob(data []byte) windows.DataBlob {

@@ -42,12 +42,12 @@ func clearSingletonEvents(logger *slog.Logger) (bool, error) {
 	windows.CloseHandle(event)
 	// Our own reference must be closed before checking whether cleanup removed
 	// the event. Keeping it open would preserve the singleton state ourselves.
-	event, probeErr := openSingletonEvent()
-	present := event != 0 || probeErr != nil
+	event, probeError := openSingletonEvent()
+	present := event != 0 || probeError != nil
 	if event != 0 {
 		windows.CloseHandle(event)
 	}
-	return present, errors.Join(err, probeErr)
+	return present, errors.Join(err, probeError)
 }
 
 func runningPlayerIDs() ([]uint32, error) {
@@ -78,11 +78,11 @@ func runningProcesses(names []string) ([]Process, error) {
 			continue
 		}
 		var playerSession uint32
-		if sessionErr := windows.ProcessIdToSessionId(entry.ProcessID, &playerSession); sessionErr != nil {
-			if errors.Is(sessionErr, windows.ERROR_INVALID_PARAMETER) {
+		if sessionError := windows.ProcessIdToSessionId(entry.ProcessID, &playerSession); sessionError != nil {
+			if errors.Is(sessionError, windows.ERROR_INVALID_PARAMETER) {
 				continue
 			}
-			return processes, fmt.Errorf("get Roblox session for process %d: %w", entry.ProcessID, sessionErr)
+			return processes, fmt.Errorf("get Roblox session for process %d: %w", entry.ProcessID, sessionError)
 		}
 		if playerSession == sessionID {
 			processes = append(processes, Process{Name: names[nameIndex], PID: entry.ProcessID})
@@ -132,13 +132,13 @@ func clearSingletonHandles(players []uint32, event windows.Handle, logger *slog.
 			byPID[uint32(entry.ProcessID)] = append(byPID[uint32(entry.ProcessID)], entry.Handle)
 		}
 	}
-	var scanErr error
+	var scanError error
 	for _, player := range players {
 		if err := clearPlayerSingleton(player, byPID[player], event, logger); err != nil {
-			scanErr = errors.Join(scanErr, fmt.Errorf("clear singleton for Roblox process %d: %w", player, err))
+			scanError = errors.Join(scanError, fmt.Errorf("clear singleton for Roblox process %d: %w", player, err))
 		}
 	}
-	return scanErr
+	return scanError
 }
 
 func clearPlayerSingleton(playerID uint32, handles []windows.Handle, event windows.Handle, logger *slog.Logger) error {

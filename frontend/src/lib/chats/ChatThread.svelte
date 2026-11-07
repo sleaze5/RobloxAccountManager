@@ -10,7 +10,7 @@
 	import { chatMessageTime, chatTimestampBreakMs } from "./chat-time"
 
 	type TimelineItem =
-		| { kind: "time"; key: string; ms: number }
+		| { kind: "time"; key: string; createdAtMs: number }
 		| { kind: "system"; key: string; text: string }
 		| {
 				kind: "message"
@@ -53,7 +53,7 @@
 		const entries = [
 			...chat.messages.map((message) => ({
 				key: message.id,
-				ms: message.createdAtMs,
+				createdAtMs: message.createdAtMs,
 				sender: message.senderUserId,
 				text: message.text,
 				system: message.system,
@@ -64,7 +64,7 @@
 				.filter((pending) => pending.conversationId === conversation.id)
 				.map((pending) => ({
 					key: `pending-${pending.key}`,
-					ms: pending.createdAtMs,
+					createdAtMs: pending.createdAtMs,
 					sender: selfUserId,
 					text: pending.text,
 					system: false,
@@ -74,13 +74,17 @@
 		]
 		for (const entry of entries) {
 			if (
-				entry.ms &&
-				(!previousMs || entry.ms - previousMs > chatTimestampBreakMs)
+				entry.createdAtMs &&
+				(!previousMs || entry.createdAtMs - previousMs > chatTimestampBreakMs)
 			) {
-				items.push({ kind: "time", key: `time-${entry.key}`, ms: entry.ms })
+				items.push({
+					kind: "time",
+					key: `time-${entry.key}`,
+					createdAtMs: entry.createdAtMs,
+				})
 				previousSender = null
 			}
-			previousMs = entry.ms || previousMs
+			previousMs = entry.createdAtMs || previousMs
 			if (entry.system) {
 				items.push({ kind: "system", key: entry.key, text: entry.text })
 				previousSender = null
@@ -158,7 +162,7 @@
 		{#if chat.messagesCursor && !chat.messagesLoading}
 			<button
 				type="button"
-				class="btn self-center"
+				class="button self-center"
 				disabled={chat.olderLoading}
 				aria-busy={chat.olderLoading}
 				onclick={() => void loadOlder()}>
@@ -204,7 +208,7 @@
 				{#if item.kind === "time"}
 					<li
 						class="self-center pt-2 pb-1 text-center text-2xs text-fg-faint">
-						{chatMessageTime(item.ms)}
+						{chatMessageTime(item.createdAtMs)}
 					</li>
 				{:else if item.kind === "system"}
 					<li
@@ -284,7 +288,7 @@
 			onkeydown={handleKeydown}></textarea>
 		<button
 			type="button"
-			class="btn-ghost size-8"
+			class="button-ghost size-8"
 			aria-label="Mark as read"
 			data-tooltip="Mark as read"
 			aria-busy={chat.markingRead}
@@ -302,7 +306,7 @@
 		</button>
 		<button
 			type="submit"
-			class="btn-ghost size-8"
+			class="button-ghost size-8"
 			aria-label="Send message"
 			data-tooltip="Send message"
 			disabled={!draft.trim()}>

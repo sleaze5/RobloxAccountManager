@@ -111,7 +111,7 @@
 <section class="settings-page" aria-labelledby="settings-title">
 	<header class="settings-header">
 		<button
-			class="btn-ghost"
+			class="button-ghost"
 			type="button"
 			aria-label={backLabel}
 			data-tooltip={backLabel}

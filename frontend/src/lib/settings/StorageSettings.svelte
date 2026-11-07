@@ -89,7 +89,7 @@
 							<SettingsStatus value={currentLabel} />
 						</div>
 						<button
-							class="btn"
+							class="button"
 							type="button"
 							onclick={() => void copyPath()}>
 							<Icon svg={copyIcon} size={16} aria-hidden="true" />
@@ -109,7 +109,7 @@
 									: "to your user folder"}. The app restarts.</span>
 						</div>
 						<button
-							class="btn"
+							class="button"
 							type="button"
 							disabled={store.busy ||
 								store.vault.fileState !== FileState.FileStateReady}

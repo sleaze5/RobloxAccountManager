@@ -80,7 +80,7 @@ type RuntimeManager struct {
 	logger   *slog.Logger
 	changed  func()
 
-	mu     sync.Mutex
+	mutex  sync.Mutex
 	state  RuntimeState
 	cancel context.CancelFunc
 	done   chan struct{}
@@ -128,28 +128,28 @@ func NewRuntimeManager(paths appdata.Paths, logger *slog.Logger) (*RuntimeManage
 
 func (manager *RuntimeManager) Manifest() Manifest { return manager.manifest }
 func (manager *RuntimeManager) MarkDamaged() {
-	manager.mu.Lock()
+	manager.mutex.Lock()
 	manager.state.Status = RuntimeDamaged
 	manager.state.Error = invalidRuntimeError
-	manager.mu.Unlock()
+	manager.mutex.Unlock()
 	manager.logger.Warn("CfT runtime marked damaged", "version", manager.manifest.Version)
 	manager.notify()
 }
 func (manager *RuntimeManager) SetChanged(changed func()) {
-	manager.mu.Lock()
+	manager.mutex.Lock()
 	manager.changed = changed
-	manager.mu.Unlock()
+	manager.mutex.Unlock()
 }
 
 func (manager *RuntimeManager) State() RuntimeState {
-	manager.mu.Lock()
-	defer manager.mu.Unlock()
+	manager.mutex.Lock()
+	defer manager.mutex.Unlock()
 	return manager.state
 }
 
 func (manager *RuntimeManager) Executable() (string, error) {
-	manager.mu.Lock()
-	defer manager.mu.Unlock()
+	manager.mutex.Lock()
+	defer manager.mutex.Unlock()
 	if manager.cancel != nil {
 		return "", errors.New("wait for the browser runtime download to finish")
 	}
@@ -161,14 +161,14 @@ func (manager *RuntimeManager) Executable() (string, error) {
 }
 
 func (manager *RuntimeManager) Download(parent context.Context, replace bool) error {
-	manager.mu.Lock()
+	manager.mutex.Lock()
 	if manager.cancel != nil {
-		manager.mu.Unlock()
+		manager.mutex.Unlock()
 		return errors.New("a browser runtime download is already active")
 	}
 	manager.refreshLocked()
 	if !replace && manager.state.Status == RuntimeReady {
-		manager.mu.Unlock()
+		manager.mutex.Unlock()
 		return nil
 	}
 	ctx, cancel := context.WithCancel(parent)
@@ -179,7 +179,7 @@ func (manager *RuntimeManager) Download(parent context.Context, replace bool) er
 	manager.state.DownloadedBytes = 0
 	manager.state.DownloadTotalBytes = 0
 	manager.state.CanCancel = true
-	manager.mu.Unlock()
+	manager.mutex.Unlock()
 	manager.logger.Info("CfT runtime download started", "version", manager.manifest.Version, "replacement", replace)
 	manager.notify()
 	go manager.download(ctx)
@@ -187,9 +187,9 @@ func (manager *RuntimeManager) Download(parent context.Context, replace bool) er
 }
 
 func (manager *RuntimeManager) CancelDownload() {
-	manager.mu.Lock()
+	manager.mutex.Lock()
 	cancel := manager.cancel
-	manager.mu.Unlock()
+	manager.mutex.Unlock()
 	if cancel != nil {
 		manager.logger.Info("CfT runtime download cancellation requested", "version", manager.manifest.Version)
 		cancel()
@@ -225,11 +225,11 @@ func (manager *RuntimeManager) install(ctx context.Context) error {
 	if err := os.Mkdir(stage, 0o755); err != nil {
 		return fmt.Errorf("create installation staging directory: %w", err)
 	}
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, manager.manifest.Downloads[runtimeDownloadKey], http.NoBody)
+	request, err := http.NewRequestWithContext(ctx, http.MethodGet, manager.manifest.Downloads[runtimeDownloadKey], http.NoBody)
 	if err != nil {
 		return fmt.Errorf("create browser download request: %w", err)
 	}
-	response, err := manager.client.Do(req)
+	response, err := manager.client.Do(request)
 	if err != nil {
 		return fmt.Errorf("download browser: %w", err)
 	}
@@ -267,8 +267,8 @@ func (manager *RuntimeManager) Remove() error {
 	if err := manager.StopDownload(30 * time.Second); err != nil {
 		return err
 	}
-	manager.mu.Lock()
-	defer manager.mu.Unlock()
+	manager.mutex.Lock()
+	defer manager.mutex.Unlock()
 	for _, directory := range manager.managedRuntimeDirectories() {
 		if err := removeManagedDirectory(manager.paths.CfTRuntimeRoot, directory); err != nil && !errors.Is(err, os.ErrNotExist) {
 			return err
@@ -304,9 +304,9 @@ func (manager *RuntimeManager) managedRuntimeDirectories() []string {
 }
 
 func (manager *RuntimeManager) StopDownload(timeout time.Duration) error {
-	manager.mu.Lock()
+	manager.mutex.Lock()
 	cancel, done := manager.cancel, manager.done
-	manager.mu.Unlock()
+	manager.mutex.Unlock()
 	if cancel == nil || done == nil {
 		return nil
 	}
@@ -333,8 +333,8 @@ func (manager *RuntimeManager) replaceRuntime(extracted, stage string) error {
 	}
 	if err := renameRuntimeDirectory(extracted, destination); err != nil {
 		if hadPrevious {
-			if restoreErr := renameRuntimeDirectory(backup, destination); restoreErr != nil {
-				return fmt.Errorf("install browser runtime: %w", errors.Join(err, fmt.Errorf("restore previous runtime: %w", restoreErr)))
+			if restoreError := renameRuntimeDirectory(backup, destination); restoreError != nil {
+				return fmt.Errorf("install browser runtime: %w", errors.Join(err, fmt.Errorf("restore previous runtime: %w", restoreError)))
 			}
 		}
 		return fmt.Errorf("install browser runtime: %w", err)
@@ -345,26 +345,26 @@ func (manager *RuntimeManager) replaceRuntime(extracted, stage string) error {
 	return nil
 }
 
-func (manager *RuntimeManager) finishDownload(downloadErr error) {
-	manager.mu.Lock()
+func (manager *RuntimeManager) finishDownload(downloadError error) {
+	manager.mutex.Lock()
 	done := manager.done
 	manager.cancel = nil
 	manager.done = nil
 	manager.state.CanCancel = false
-	if downloadErr != nil {
+	if downloadError != nil {
 		manager.refreshLocked()
-		if errors.Is(downloadErr, context.Canceled) {
+		if errors.Is(downloadError, context.Canceled) {
 			manager.state.Error = ""
 			manager.logger.Info("CfT runtime download cancelled", "version", manager.manifest.Version)
 		} else {
 			manager.state.Error = "The browser could not be installed. Try again."
-			manager.logger.Error("CfT installation failed", "error", downloadErr)
+			manager.logger.Error("CfT installation failed", "error", downloadError)
 		}
 	} else {
 		manager.refreshLocked()
 		manager.logger.Info("CfT runtime installed", "version", manager.manifest.Version)
 	}
-	manager.mu.Unlock()
+	manager.mutex.Unlock()
 	if done != nil {
 		close(done)
 	}
@@ -391,16 +391,16 @@ func (manager *RuntimeManager) refreshLocked() {
 	}
 	var metadata runtimeMetadata
 	state.InstalledBytes, _ = directorySize(manager.installDirectory())
-	decodeErr := json.Unmarshal(metadataData, &metadata)
+	decodeError := json.Unmarshal(metadataData, &metadata)
 	if manager.state.InstalledVersion != metadata.Version || manager.state.Status == "" {
-		if decodeErr != nil {
-			manager.logger.Warn("browser runtime metadata could not be decoded", "operation", "browser-runtime-load", "error", decodeErr)
+		if decodeError != nil {
+			manager.logger.Warn("browser runtime metadata could not be decoded", "operation", "browser-runtime-load", "error", decodeError)
 		} else {
 			logging.Diagnostic(manager.logger, "browser runtime metadata read", "operation", "browser-runtime-load",
 				"schema_version", metadata.SchemaVersion, "supported_schema_version", runtimeMetadataVersion, "browser_version", metadata.Version)
 		}
 	}
-	if decodeErr != nil || metadata.SchemaVersion != runtimeMetadataVersion || metadata.Version != manager.manifest.Version || validateRuntimeFiles(manager.installDirectory()) != nil {
+	if decodeError != nil || metadata.SchemaVersion != runtimeMetadataVersion || metadata.Version != manager.manifest.Version || validateRuntimeFiles(manager.installDirectory()) != nil {
 		state.Status, state.Error = RuntimeDamaged, invalidRuntimeError
 		state.InstalledVersion = metadata.Version
 		manager.state = state
@@ -450,16 +450,16 @@ func (manager *RuntimeManager) installDirectory() string {
 }
 
 func (manager *RuntimeManager) setDownloadTotal(total int64) {
-	manager.mu.Lock()
+	manager.mutex.Lock()
 	manager.state.DownloadTotalBytes = max(total, 0)
-	manager.mu.Unlock()
+	manager.mutex.Unlock()
 	manager.notify()
 }
 
 func (manager *RuntimeManager) addProgress(count int64) {
-	manager.mu.Lock()
+	manager.mutex.Lock()
 	manager.state.DownloadedBytes += count
-	manager.mu.Unlock()
+	manager.mutex.Unlock()
 }
 
 func (manager *RuntimeManager) reportDownloadProgress(done <-chan struct{}) {
@@ -472,9 +472,9 @@ func (manager *RuntimeManager) reportDownloadProgress(done <-chan struct{}) {
 		case <-done:
 			return
 		case <-ticker.C:
-			manager.mu.Lock()
+			manager.mutex.Lock()
 			if manager.state.Status != RuntimeDownloading {
-				manager.mu.Unlock()
+				manager.mutex.Unlock()
 				return
 			}
 			now := time.Now()
@@ -487,7 +487,7 @@ func (manager *RuntimeManager) reportDownloadProgress(done <-chan struct{}) {
 				seconds := int64(math.Ceil(float64(remaining) / speed))
 				manager.state.DownloadETASeconds = &seconds
 			}
-			manager.mu.Unlock()
+			manager.mutex.Unlock()
 			lastBytes, lastSample = downloaded, now
 			manager.notify()
 		}
@@ -495,19 +495,19 @@ func (manager *RuntimeManager) reportDownloadProgress(done <-chan struct{}) {
 }
 
 func (manager *RuntimeManager) setInstalling() {
-	manager.mu.Lock()
+	manager.mutex.Lock()
 	manager.state.Status = RuntimeInstalling
 	manager.state.CanCancel = false
 	manager.state.DownloadBytesPerSecond = 0
 	manager.state.DownloadETASeconds = nil
-	manager.mu.Unlock()
+	manager.mutex.Unlock()
 	manager.notify()
 }
 
 func (manager *RuntimeManager) notify() {
-	manager.mu.Lock()
+	manager.mutex.Lock()
 	changed := manager.changed
-	manager.mu.Unlock()
+	manager.mutex.Unlock()
 	if changed != nil {
 		changed()
 	}
@@ -520,11 +520,11 @@ type progressReader struct {
 }
 
 func (reader *progressReader) Read(buffer []byte) (int, error) {
-	n, err := reader.reader.Read(buffer)
-	if n > 0 {
-		reader.update(int64(n))
+	readCount, err := reader.reader.Read(buffer)
+	if readCount > 0 {
+		reader.update(int64(readCount))
 	}
-	return n, err
+	return readCount, err
 }
 
 func extractRuntime(ctx context.Context, archive, destination string) error {
@@ -628,9 +628,9 @@ func directorySize(root string) (int64, error) {
 			return err
 		}
 		if !entry.IsDir() {
-			info, infoErr := entry.Info()
-			if infoErr != nil {
-				return fmt.Errorf("inspect browser runtime file: %w", infoErr)
+			info, infoError := entry.Info()
+			if infoError != nil {
+				return fmt.Errorf("inspect browser runtime file: %w", infoError)
 			}
 			size += info.Size()
 		}
@@ -736,13 +736,13 @@ func (manager *RuntimeManager) writeRuntimeArchive(archive string, body io.Reade
 	if err != nil {
 		return fmt.Errorf("create browser archive: %w", err)
 	}
-	_, copyErr := io.Copy(file, &progressReader{reader: body, update: manager.addProgress})
-	closeErr := file.Close()
-	if copyErr != nil {
-		return fmt.Errorf("write browser archive: %w", copyErr)
+	_, copyError := io.Copy(file, &progressReader{reader: body, update: manager.addProgress})
+	closeError := file.Close()
+	if copyError != nil {
+		return fmt.Errorf("write browser archive: %w", copyError)
 	}
-	if closeErr != nil {
-		return fmt.Errorf("close browser archive: %w", closeErr)
+	if closeError != nil {
+		return fmt.Errorf("close browser archive: %w", closeError)
 	}
 	return nil
 }
@@ -771,21 +771,21 @@ func extractRuntimeFile(entry *zip.File, target string) error {
 		source.Close()
 		return fmt.Errorf("create browser file: %w", err)
 	}
-	_, copyErr := io.Copy(output, io.LimitReader(source, int64(entry.UncompressedSize64)+1))
-	closeErr := output.Close()
+	_, copyError := io.Copy(output, io.LimitReader(source, int64(entry.UncompressedSize64)+1))
+	closeError := output.Close()
 	source.Close()
-	if copyErr != nil {
-		return fmt.Errorf("extract browser archive entry: %w", copyErr)
+	if copyError != nil {
+		return fmt.Errorf("extract browser archive entry: %w", copyError)
 	}
-	if closeErr != nil {
-		return fmt.Errorf("close extracted browser file: %w", closeErr)
+	if closeError != nil {
+		return fmt.Errorf("close extracted browser file: %w", closeError)
 	}
 	return nil
 }
 
-func checkManagedEntry(_ string, entry os.DirEntry, walkErr error) error {
-	if walkErr != nil {
-		return walkErr
+func checkManagedEntry(_ string, entry os.DirEntry, walkError error) error {
+	if walkError != nil {
+		return walkError
 	}
 	// RemoveAll removes a link without following it.
 	if entry.Type()&os.ModeSymlink != 0 && !runtimeArchiveLinks {

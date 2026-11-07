@@ -53,12 +53,12 @@ const (
 const lockTimeout = 5 * time.Second
 
 type Manager struct {
-	mu                    sync.Mutex
-	backupMu              sync.Mutex
+	mutex                 sync.Mutex
+	backupMutex           sync.Mutex
 	paths                 appdata.Paths
 	protector             protection.Protector
-	db                    *sql.DB
-	dek                   []byte
+	database              *sql.DB
+	vaultKey              []byte
 	vaultID               [vaultIDBytes]byte
 	active                int
 	closing               bool
@@ -75,14 +75,14 @@ func NewManager(paths appdata.Paths, protector protection.Protector, logger *slo
 }
 
 func (manager *Manager) FileState() FileState {
-	database := fileExists(manager.paths.Vault)
-	key := fileExists(manager.paths.VaultKey)
-	automatic := fileExists(manager.paths.AutoUnlockKey)
-	staged := directoryHasEntries(manager.paths.CreateStaging)
-	if !database && !key && !automatic && !staged {
+	hasDatabase := fileExists(manager.paths.Vault)
+	hasKey := fileExists(manager.paths.VaultKey)
+	hasAutomaticUnlock := fileExists(manager.paths.AutoUnlockKey)
+	hasStagedCreation := directoryHasEntries(manager.paths.CreateStaging)
+	if !hasDatabase && !hasKey && !hasAutomaticUnlock && !hasStagedCreation {
 		return FileStateEmpty
 	}
-	if database && key && !staged {
+	if hasDatabase && hasKey && !hasStagedCreation {
 		_, err := readKeyFile(manager.paths.VaultKey)
 		switch {
 		case err == nil:
@@ -98,15 +98,15 @@ func (manager *Manager) FileState() FileState {
 func (manager *Manager) Initialized() bool { return manager.FileState() != FileStateEmpty }
 
 func (manager *Manager) Unlocked() bool {
-	manager.mu.Lock()
-	defer manager.mu.Unlock()
-	return manager.db != nil && !manager.closing
+	manager.mutex.Lock()
+	defer manager.mutex.Unlock()
+	return manager.database != nil && !manager.closing
 }
 
 func (manager *Manager) UnlockedAutomatically() bool {
-	manager.mu.Lock()
-	defer manager.mu.Unlock()
-	return manager.db != nil && manager.unlockedAutomatically
+	manager.mutex.Lock()
+	defer manager.mutex.Unlock()
+	return manager.database != nil && manager.unlockedAutomatically
 }
 
 func (manager *Manager) AutomaticUnlockEnabled() bool { return fileExists(manager.paths.AutoUnlockKey) }
@@ -116,18 +116,18 @@ func (manager *Manager) ValidAutomaticUnlock() bool {
 	if err != nil {
 		return false
 	}
-	identifier, dek, err := decodeAutoUnlock(data, manager.protector)
+	identifier, vaultKey, err := decodeAutoUnlock(data, manager.protector)
 	if err != nil {
 		return false
 	}
-	defer wipe(dek)
-	manager.mu.Lock()
-	defer manager.mu.Unlock()
-	return manager.db != nil &&
+	defer wipe(vaultKey)
+	manager.mutex.Lock()
+	defer manager.mutex.Unlock()
+	return manager.database != nil &&
 		!manager.closing &&
 		identifier == manager.vaultID &&
-		len(dek) == len(manager.dek) &&
-		subtle.ConstantTimeCompare(dek, manager.dek) == 1
+		len(vaultKey) == len(manager.vaultKey) &&
+		subtle.ConstantTimeCompare(vaultKey, manager.vaultKey) == 1
 }
 
 func (manager *Manager) PasswordHint() string {
@@ -156,12 +156,12 @@ func (manager *Manager) Create(ctx context.Context, password, hint string, autom
 	if err != nil {
 		return err
 	}
-	dek, err := newDEK()
+	vaultKey, err := newVaultKey()
 	if err != nil {
 		return err
 	}
-	defer func() { wipe(dek) }()
-	key, err := createKeyFile(password, hint, identifier, dek, params)
+	defer func() { wipe(vaultKey) }()
+	key, err := createKeyFile(password, hint, identifier, vaultKey, params)
 	if err != nil {
 		return err
 	}
@@ -171,18 +171,18 @@ func (manager *Manager) Create(ctx context.Context, password, hint string, autom
 	}
 	var encodedAuto []byte
 	if automaticUnlock {
-		encodedAuto, err = encodeAutoUnlock(manager.protector, identifier, dek)
+		encodedAuto, err = encodeAutoUnlock(manager.protector, identifier, vaultKey)
 		if err != nil {
 			return err
 		}
 	}
-	if err := manager.stageCreatedVault(ctx, identifier, dek, encodedKey, encodedAuto, automaticUnlock); err != nil {
+	if err := manager.stageCreatedVault(ctx, identifier, vaultKey, encodedKey, encodedAuto, automaticUnlock); err != nil {
 		return err
 	}
-	if err := manager.installUnlocked(ctx, dek, identifier, automaticUnlock); err != nil {
+	if err := manager.installUnlocked(ctx, vaultKey, identifier, automaticUnlock); err != nil {
 		return err
 	}
-	dek = nil
+	vaultKey = nil
 	logging.Diagnostic(manager.logger, "vault created", "operation", "vault-create", "schema_version", schemaVersion,
 		"key_file_version", keyFormatVersion, "automatic_unlock", automaticUnlock)
 	return nil
@@ -198,7 +198,7 @@ func (manager *Manager) Unlock(ctx context.Context, password string) error {
 	usedNext := false
 	err := manager.unlockPasswordCandidate(ctx, manager.paths.VaultKey, password)
 	if err != nil && fileExists(manager.paths.VaultKey+".next") {
-		if nextErr := manager.unlockPasswordCandidate(ctx, manager.paths.VaultKey+".next", password); nextErr == nil {
+		if nextError := manager.unlockPasswordCandidate(ctx, manager.paths.VaultKey+".next", password); nextError == nil {
 			usedNext = true
 			err = nil
 		}
@@ -219,11 +219,11 @@ func (manager *Manager) unlockPasswordCandidate(ctx context.Context, path, passw
 		return fmt.Errorf("read vault key file: %w", err)
 	}
 	logging.Diagnostic(manager.logger, "vault key file loaded", "operation", "vault-load", "key_file_version", key.Version)
-	dek, err := key.unwrap(password)
+	vaultKey, err := key.unwrap(password)
 	if err != nil {
 		return err
 	}
-	return manager.installUnlocked(ctx, dek, key.VaultID, false)
+	return manager.installUnlocked(ctx, vaultKey, key.VaultID, false)
 }
 
 func (manager *Manager) AutoUnlock(ctx context.Context) error {
@@ -231,8 +231,8 @@ func (manager *Manager) AutoUnlock(ctx context.Context) error {
 	if directoryHasEntries(manager.paths.CreateStaging) {
 		return ErrIncomplete
 	}
-	key, keyErr := readKeyFile(manager.paths.VaultKey)
-	if keyErr == nil {
+	key, keyError := readKeyFile(manager.paths.VaultKey)
+	if keyError == nil {
 		logging.Diagnostic(manager.logger, "vault key file loaded", "operation", "vault-load", "key_file_version", key.Version)
 	}
 	if !fileExists(manager.paths.Vault) || !fileExists(manager.paths.AutoUnlockKey) {
@@ -241,13 +241,13 @@ func (manager *Manager) AutoUnlock(ctx context.Context) error {
 		}
 		return ErrLocked
 	}
-	if errors.Is(keyErr, ErrUnsupportedVersion) || errors.Is(keyErr, ErrLegacyVault) {
-		return keyErr
+	if errors.Is(keyError, ErrUnsupportedVersion) || errors.Is(keyError, ErrLegacyVault) {
+		return keyError
 	}
 	usedNext := false
 	err := manager.unlockAutoCandidate(ctx, manager.paths.AutoUnlockKey)
 	if err != nil && fileExists(manager.paths.AutoUnlockKey+".next") {
-		if nextErr := manager.unlockAutoCandidate(ctx, manager.paths.AutoUnlockKey+".next"); nextErr == nil {
+		if nextError := manager.unlockAutoCandidate(ctx, manager.paths.AutoUnlockKey+".next"); nextError == nil {
 			usedNext = true
 			err = nil
 		}
@@ -270,62 +270,62 @@ func (manager *Manager) unlockAutoCandidate(ctx context.Context, path string) er
 	if err != nil {
 		return err
 	}
-	identifier, dek, err := decodeAutoUnlock(data, manager.protector)
+	identifier, vaultKey, err := decodeAutoUnlock(data, manager.protector)
 	if err != nil {
 		return err
 	}
 	logging.Diagnostic(manager.logger, "automatic unlock file loaded", "operation", "vault-load", "auto_unlock_version", autoFormatVersion)
-	return manager.installUnlocked(ctx, dek, identifier, true)
+	return manager.installUnlocked(ctx, vaultKey, identifier, true)
 }
 
-func (manager *Manager) installUnlocked(ctx context.Context, dek []byte, identifier [vaultIDBytes]byte, automatic bool) error {
-	if len(dek) != dekBytes {
-		wipe(dek)
+func (manager *Manager) installUnlocked(ctx context.Context, vaultKey []byte, identifier [vaultIDBytes]byte, automatic bool) error {
+	if len(vaultKey) != vaultKeyBytes {
+		wipe(vaultKey)
 		return errors.New("invalid database key length")
 	}
-	db, err := openAndVerify(ctx, manager.paths.Vault, dek, identifier, manager.logger)
+	database, err := openAndVerify(ctx, manager.paths.Vault, vaultKey, identifier, manager.logger)
 	if err != nil {
-		wipe(dek)
+		wipe(vaultKey)
 		return err
 	}
-	manager.mu.Lock()
-	if manager.db != nil {
-		manager.mu.Unlock()
-		_ = db.Close()
-		wipe(dek)
+	manager.mutex.Lock()
+	if manager.database != nil {
+		manager.mutex.Unlock()
+		_ = database.Close()
+		wipe(vaultKey)
 		return nil
 	}
-	manager.db = db
-	manager.dek = dek
+	manager.database = database
+	manager.vaultKey = vaultKey
 	manager.vaultID = identifier
 	manager.unlockedAutomatically = automatic
 	manager.closing = false
-	manager.mu.Unlock()
+	manager.mutex.Unlock()
 	return nil
 }
 
 func (manager *Manager) Lease(_ context.Context) (*sql.DB, func(), error) {
-	manager.mu.Lock()
-	if manager.db == nil || manager.closing {
-		manager.mu.Unlock()
+	manager.mutex.Lock()
+	if manager.database == nil || manager.closing {
+		manager.mutex.Unlock()
 		return nil, nil, ErrLocked
 	}
 	manager.active++
-	db := manager.db
-	manager.mu.Unlock()
+	database := manager.database
+	manager.mutex.Unlock()
 	var once sync.Once
 	release := func() {
 		once.Do(func() {
-			manager.mu.Lock()
+			manager.mutex.Lock()
 			manager.active--
 			if manager.closing && manager.active == 0 && manager.drained != nil {
 				close(manager.drained)
 				manager.drained = nil
 			}
-			manager.mu.Unlock()
+			manager.mutex.Unlock()
 		})
 	}
-	return db, release, nil
+	return database, release, nil
 }
 
 func (manager *Manager) Lock() error { return manager.close(true) }
@@ -333,7 +333,7 @@ func (manager *Manager) Lock() error { return manager.close(true) }
 func (manager *Manager) Close() error { return manager.close(false) }
 
 func (manager *Manager) close(manual bool) error {
-	db, finish, err := manager.beginExclusive(context.Background())
+	database, finish, err := manager.beginExclusive(context.Background())
 	if errors.Is(err, ErrLocked) {
 		return nil
 	}
@@ -342,7 +342,7 @@ func (manager *Manager) close(manual bool) error {
 	}
 	manager.dropDatabase()
 	finish()
-	if err := db.Close(); err != nil {
+	if err := database.Close(); err != nil {
 		return fmt.Errorf("close vault: %w", err)
 	}
 	if manual {
@@ -359,14 +359,14 @@ func (manager *Manager) TestPassword(ctx context.Context, password string) error
 	if err != nil {
 		return err
 	}
-	dek, err := key.unwrap(password)
+	vaultKey, err := key.unwrap(password)
 	if err != nil {
 		return err
 	}
-	defer wipe(dek)
-	manager.mu.Lock()
-	valid := manager.db != nil && key.VaultID == manager.vaultID && len(manager.dek) == len(dek) && subtle.ConstantTimeCompare(manager.dek, dek) == 1
-	manager.mu.Unlock()
+	defer wipe(vaultKey)
+	manager.mutex.Lock()
+	valid := manager.database != nil && key.VaultID == manager.vaultID && len(manager.vaultKey) == len(vaultKey) && subtle.ConstantTimeCompare(manager.vaultKey, vaultKey) == 1
+	manager.mutex.Unlock()
 	if !valid {
 		return ErrInvalidPassword
 	}
@@ -401,53 +401,53 @@ func directoryHasEntries(path string) bool {
 	return err != nil || len(entries) > 0
 }
 
-func openAndVerify(ctx context.Context, path string, dek []byte, identifier [vaultIDBytes]byte, logger *slog.Logger) (*sql.DB, error) {
-	db, err := openDatabase(ctx, path, dek, logger)
+func openAndVerify(ctx context.Context, path string, vaultKey []byte, identifier [vaultIDBytes]byte, logger *slog.Logger) (*sql.DB, error) {
+	database, err := openDatabase(ctx, path, vaultKey, logger)
 	if err != nil {
 		return nil, err
 	}
-	if err := verifyOpenDatabase(ctx, db, identifier, logger); err != nil {
-		_ = db.Close()
+	if err := verifyOpenDatabase(ctx, database, identifier, logger); err != nil {
+		_ = database.Close()
 		return nil, err
 	}
-	return db, nil
+	return database, nil
 }
 
-func verifyOpenDatabase(ctx context.Context, db *sql.DB, identifier [vaultIDBytes]byte, logger *slog.Logger) error {
-	if err := verifySchema(ctx, db, identifier, logger); err != nil {
+func verifyOpenDatabase(ctx context.Context, database *sql.DB, identifier [vaultIDBytes]byte, logger *slog.Logger) error {
+	if err := verifySchema(ctx, database, identifier, logger); err != nil {
 		return err
 	}
 	var integrity string
-	if err := db.QueryRowContext(ctx, `PRAGMA quick_check`).Scan(&integrity); err != nil || integrity != "ok" {
+	if err := database.QueryRowContext(ctx, `PRAGMA quick_check`).Scan(&integrity); err != nil || integrity != "ok" {
 		return errors.New("vault integrity check failed")
 	}
 	return nil
 }
 
-func openDatabase(ctx context.Context, path string, dek []byte, logger *slog.Logger) (*sql.DB, error) {
-	dsn, err := databaseDSN(path, dek)
+func openDatabase(ctx context.Context, path string, vaultKey []byte, logger *slog.Logger) (*sql.DB, error) {
+	dataSourceName, err := databaseDSN(path, vaultKey)
 	if err != nil {
 		return nil, err
 	}
-	db, err := sql.Open("sqlite3", dsn)
+	database, err := sql.Open("sqlite3", dataSourceName)
 	if err != nil {
 		return nil, fmt.Errorf("open encrypted vault: %w", err)
 	}
-	db.SetMaxOpenConns(1)
-	db.SetMaxIdleConns(1)
-	db.SetConnMaxLifetime(0)
+	database.SetMaxOpenConns(1)
+	database.SetMaxIdleConns(1)
+	database.SetConnMaxLifetime(0)
 	closeOnError := func(err error) (*sql.DB, error) {
-		_ = db.Close()
+		_ = database.Close()
 		return nil, err
 	}
-	openCtx, cancel := context.WithTimeout(ctx, 15*time.Second)
+	openContext, cancel := context.WithTimeout(ctx, 15*time.Second)
 	defer cancel()
 	var sqliteVersion string
-	if err := db.QueryRowContext(openCtx, `SELECT sqlite_version()`).Scan(&sqliteVersion); err != nil {
+	if err := database.QueryRowContext(openContext, `SELECT sqlite_version()`).Scan(&sqliteVersion); err != nil {
 		return closeOnError(fmt.Errorf("read SQLite version: %w", err))
 	}
 	logging.Diagnostic(logger, "database engine loaded", "operation", "vault-load", "sqlite_version", sqliteVersion, "encryption", "aes-256-xts")
-	if err := db.QueryRowContext(openCtx, `SELECT count(*) FROM sqlite_master`).Scan(new(int)); err != nil {
+	if err := database.QueryRowContext(openContext, `SELECT count(*) FROM sqlite_master`).Scan(new(int)); err != nil {
 		return closeOnError(fmt.Errorf("verify encrypted vault key: %w", err))
 	}
 	if err := requireEncrypted(path); err != nil {
@@ -455,16 +455,16 @@ func openDatabase(ctx context.Context, path string, dek []byte, logger *slog.Log
 	}
 	var foreignKeys, secureDelete int
 	var journalMode string
-	if err := db.QueryRowContext(openCtx, `PRAGMA foreign_keys`).Scan(&foreignKeys); err != nil || foreignKeys != 1 {
+	if err := database.QueryRowContext(openContext, `PRAGMA foreign_keys`).Scan(&foreignKeys); err != nil || foreignKeys != 1 {
 		return closeOnError(errors.New("foreign key enforcement is unavailable"))
 	}
-	if err := db.QueryRowContext(openCtx, `PRAGMA secure_delete`).Scan(&secureDelete); err != nil || secureDelete != 1 {
+	if err := database.QueryRowContext(openContext, `PRAGMA secure_delete`).Scan(&secureDelete); err != nil || secureDelete != 1 {
 		return closeOnError(errors.New("secure deletion is unavailable"))
 	}
-	if err := db.QueryRowContext(openCtx, `PRAGMA journal_mode`).Scan(&journalMode); err != nil || !strings.EqualFold(journalMode, "delete") {
+	if err := database.QueryRowContext(openContext, `PRAGMA journal_mode`).Scan(&journalMode); err != nil || !strings.EqualFold(journalMode, "delete") {
 		return closeOnError(errors.New("portable journal mode is unavailable"))
 	}
-	return db, nil
+	return database, nil
 }
 
 // requireEncrypted rejects a database file that SQLite wrote without the
@@ -495,32 +495,32 @@ var plaintextHeader = []byte("SQLite format 3\x00")
 
 // databaseKey derives the 64-byte AES-256-XTS key for vault.db from the
 // vault key, which stays 32 bytes so the key files keep their format.
-func databaseKey(dek []byte) ([]byte, error) {
-	key, err := hkdf.Key(sha256.New, dek, nil, "RobloxAccountManager vault.db AES-256-XTS", 64)
+func databaseKey(vaultKey []byte) ([]byte, error) {
+	key, err := hkdf.Key(sha256.New, vaultKey, nil, "RobloxAccountManager vault.db AES-256-XTS", 64)
 	if err != nil {
 		return nil, fmt.Errorf("derive vault database key: %w", err)
 	}
 	return key, nil
 }
 
-func databaseDSN(path string, dek []byte) (string, error) {
-	key, err := databaseKey(dek)
+func databaseDSN(path string, vaultKey []byte) (string, error) {
+	key, err := databaseKey(vaultKey)
 	if err != nil {
 		return "", err
 	}
 	defer wipe(key)
 	// The SQLite VFS opens the URI path as is, so a Windows path keeps its drive
 	// letter first, as in file:C:/Users/..., without a leading slash.
-	u := &url.URL{Scheme: "file", Opaque: (&url.URL{Path: filepath.ToSlash(path)}).EscapedPath()}
+	databaseURL := &url.URL{Scheme: "file", Opaque: (&url.URL{Path: filepath.ToSlash(path)}).EscapedPath()}
 	query := url.Values{}
 	query.Set("vfs", "xts")
 	query.Set("hexkey", hex.EncodeToString(key))
 	query["_pragma"] = []string{"busy_timeout(5000)", "foreign_keys(1)", "journal_mode(delete)", "secure_delete(1)", "temp_store(memory)"}
-	u.RawQuery = query.Encode()
-	return u.String(), nil
+	databaseURL.RawQuery = query.Encode()
+	return databaseURL.String(), nil
 }
 
-func (manager *Manager) stageCreatedVault(ctx context.Context, identifier [vaultIDBytes]byte, dek, encodedKey, encodedAuto []byte, automaticUnlock bool) error {
+func (manager *Manager) stageCreatedVault(ctx context.Context, identifier [vaultIDBytes]byte, vaultKey, encodedKey, encodedAuto []byte, automaticUnlock bool) error {
 	if err := appdata.PreparePrivateDirectory(manager.paths.CreateStaging); err != nil {
 		return err
 	}
@@ -530,14 +530,14 @@ func (manager *Manager) stageCreatedVault(ctx context.Context, identifier [vault
 	if fileExists(stagedDatabase) || fileExists(stagedKey) || fileExists(stagedAuto) {
 		return ErrIncomplete
 	}
-	if err := manager.initializeStagedDatabase(ctx, stagedDatabase, dek, identifier); err != nil {
+	if err := manager.initializeStagedDatabase(ctx, stagedDatabase, vaultKey, identifier); err != nil {
 		return err
 	}
 	if err := appdata.WritePrivateFile(stagedKey, encodedKey); err != nil {
 		return err
 	}
 	if automaticUnlock {
-		if err := manager.writeStagedAutomaticUnlock(stagedAuto, encodedAuto, identifier, dek); err != nil {
+		if err := manager.writeStagedAutomaticUnlock(stagedAuto, encodedAuto, identifier, vaultKey); err != nil {
 			return err
 		}
 	}
@@ -558,20 +558,20 @@ func (manager *Manager) stageCreatedVault(ctx context.Context, identifier [vault
 	return nil
 }
 
-func (manager *Manager) initializeStagedDatabase(ctx context.Context, stagedDatabase string, dek []byte, identifier [vaultIDBytes]byte) error {
-	db, err := openDatabase(ctx, stagedDatabase, dek, manager.logger)
+func (manager *Manager) initializeStagedDatabase(ctx context.Context, stagedDatabase string, vaultKey []byte, identifier [vaultIDBytes]byte) error {
+	database, err := openDatabase(ctx, stagedDatabase, vaultKey, manager.logger)
 	if err != nil {
 		return err
 	}
-	if err := initializeSchema(ctx, db, identifier); err != nil {
-		_ = db.Close()
+	if err := initializeSchema(ctx, database, identifier); err != nil {
+		_ = database.Close()
 		return err
 	}
-	if err := verifyOpenDatabase(ctx, db, identifier, manager.logger); err != nil {
-		_ = db.Close()
+	if err := verifyOpenDatabase(ctx, database, identifier, manager.logger); err != nil {
+		_ = database.Close()
 		return err
 	}
-	if err := db.Close(); err != nil {
+	if err := database.Close(); err != nil {
 		return fmt.Errorf("close staged vault: %w", err)
 	}
 	if err := appdata.RestrictFile(stagedDatabase); err != nil {
@@ -580,28 +580,28 @@ func (manager *Manager) initializeStagedDatabase(ctx context.Context, stagedData
 	return nil
 }
 
-func (manager *Manager) writeStagedAutomaticUnlock(stagedAuto string, encodedAuto []byte, identifier [vaultIDBytes]byte, dek []byte) error {
+func (manager *Manager) writeStagedAutomaticUnlock(stagedAuto string, encodedAuto []byte, identifier [vaultIDBytes]byte, vaultKey []byte) error {
 	if err := appdata.WritePrivateFile(stagedAuto, encodedAuto); err != nil {
 		return err
 	}
-	storedID, storedDEK, err := decodeAutoUnlock(encodedAuto, manager.protector)
-	if err != nil || storedID != identifier || subtle.ConstantTimeCompare(storedDEK, dek) != 1 {
-		wipe(storedDEK)
+	storedID, storedVaultKey, err := decodeAutoUnlock(encodedAuto, manager.protector)
+	if err != nil || storedID != identifier || subtle.ConstantTimeCompare(storedVaultKey, vaultKey) != 1 {
+		wipe(storedVaultKey)
 		return errors.New("verify automatic unlock file")
 	}
-	wipe(storedDEK)
+	wipe(storedVaultKey)
 	return nil
 }
 
 func (manager *Manager) rotationMatchesUnlockedKey() bool {
 	if !fileExists(manager.paths.AutoUnlockKey + ".next") {
 		return true
-	} else if data, readErr := readBounded(manager.paths.AutoUnlockKey+".next", autoFileLimit); readErr == nil {
-		_, nextDEK, decodeErr := decodeAutoUnlock(data, manager.protector)
-		manager.mu.Lock()
-		matches := decodeErr == nil && len(nextDEK) == len(manager.dek) && subtle.ConstantTimeCompare(nextDEK, manager.dek) == 1
-		manager.mu.Unlock()
-		wipe(nextDEK)
+	} else if data, readError := readBounded(manager.paths.AutoUnlockKey+".next", autoFileLimit); readError == nil {
+		_, nextVaultKey, decodeError := decodeAutoUnlock(data, manager.protector)
+		manager.mutex.Lock()
+		matches := decodeError == nil && len(nextVaultKey) == len(manager.vaultKey) && subtle.ConstantTimeCompare(nextVaultKey, manager.vaultKey) == 1
+		manager.mutex.Unlock()
+		wipe(nextVaultKey)
 		return matches
 	}
 	return false

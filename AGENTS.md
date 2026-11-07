@@ -58,7 +58,9 @@ Names exist so that a reader understands what the code does without reading its 
 - Name a thing by what it represents or does in the problem domain, not by its type or how it works: `accountCookie`, not `str` or `data`.
 - Write full words. Do not abbreviate: `account`, `configuration`, `password`, `message`, not `acct`, `cfg`, `pw`, `msg`. Only these short forms are allowed:
     - Acronyms that are words of their own: `ID`, `URL`, `API`, `HTTP`, `JSON`, `UI`, `CDP`, `DPAPI`, and file format names. In Go, write acronyms in one case (`accountID`, `HTTPClient`). In TypeScript, follow the existing generated bindings (`accountId`).
-    - Go's `ctx` for a `context.Context` and `err` for an `error`, because the full words shadow the package and the built-in type.
+    - Go's `ctx` for a `context.Context` and `err` for an `error`, because the full words shadow the package and the built-in type. Write compound names in full: `readError`, `startupContext`, `importMutex`.
+    - `x` and `y` for coordinates, and `x1`, `y1`, `x2`, `y2` for curve control points.
+    - The `Err` prefix of Go sentinel errors, such as `ErrLocked`, which golangci-lint requires.
 - Never use single letters, `tmp`, `temp`, `val`, `value`, `data`, `info`, `item`, `result`, `obj`, or numbered names (`file1`) when a more specific name exists. Name loop variables after what they hold (`for _, account := range accounts`, `for index := range accounts`).
 - Make a name match the behavior completely. A function named `get` or `read` must not change state. A function that does two things names both, or is split. Rename a name when its behavior changes.
 - Start a function or method with a verb that says what it does: `refreshAccountMetadata`, `removeManagedDirectory`, `validateCookie`.

@@ -9,7 +9,7 @@ import (
 
 type requestLimits struct {
 	global chan struct{}
-	mu     sync.Mutex
+	mutex  sync.Mutex
 	hosts  map[string]chan struct{}
 	users  map[int64]chan struct{}
 }
@@ -19,7 +19,7 @@ func newRequestLimits() *requestLimits {
 }
 
 func (limits *requestLimits) acquire(ctx context.Context, host string, accountID int64) (func(), error) {
-	limits.mu.Lock()
+	limits.mutex.Lock()
 	hostLimit := limits.hosts[host]
 	if hostLimit == nil {
 		hostLimit = make(chan struct{}, 8)
@@ -33,7 +33,7 @@ func (limits *requestLimits) acquire(ctx context.Context, host string, accountID
 			limits.users[accountID] = accountLimit
 		}
 	}
-	limits.mu.Unlock()
+	limits.mutex.Unlock()
 	if accountLimit != nil {
 		select {
 		case accountLimit <- struct{}{}:

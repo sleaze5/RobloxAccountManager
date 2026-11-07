@@ -53,7 +53,7 @@ func Parse(input Input) (Request, error) {
 
 func positiveID(value, label string) (int64, error) {
 	value = strings.TrimSpace(value)
-	if value == "" || strings.IndexFunc(value, func(c rune) bool { return c < '0' || c > '9' }) >= 0 {
+	if value == "" || strings.IndexFunc(value, func(character rune) bool { return character < '0' || character > '9' }) >= 0 {
 		return 0, fmt.Errorf("enter a positive numeric %s", label)
 	}
 	id, err := strconv.ParseInt(value, 10, 64)

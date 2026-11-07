@@ -44,7 +44,7 @@
 			<div class="flex items-center gap-2 border-b border-line pb-2">
 				<h2 class="text-base font-semibold text-fg">Timeline</h2>
 				<button
-					class="btn-icon"
+					class="button-icon"
 					type="button"
 					aria-label="Newest visits first"
 					aria-pressed={newestFirst}

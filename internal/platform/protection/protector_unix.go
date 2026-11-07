@@ -42,8 +42,8 @@ func (keyringProtector) Protect(plaintext []byte) ([]byte, error) {
 	if _, err := rand.Read(nonce); err != nil {
 		return nil, fmt.Errorf("protect data with %s: %w", keyringName, err)
 	}
-	out := append([]byte{protectedVersion}, nonce...)
-	return gcm.Seal(out, nonce, plaintext, []byte(purpose)), nil
+	header := append([]byte{protectedVersion}, nonce...)
+	return gcm.Seal(header, nonce, plaintext, []byte(purpose)), nil
 }
 
 func (keyringProtector) Unprotect(ciphertext []byte) ([]byte, error) {

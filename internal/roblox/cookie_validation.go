@@ -74,17 +74,17 @@ func (client *Client) sendCookieValidation(ctx context.Context, validation Cooki
 		}
 		return nil, false, &Error{Kind: KindTransport, Endpoint: "cookie-import", Message: "Roblox could not be reached. The cookie was not stored.", Cause: err}
 	}
-	body, readErr := readLimited(response.Body, defaultResponseLimit)
+	body, readError := readLimited(response.Body, defaultResponseLimit)
 	response.Body.Close()
 	release()
-	if readErr != nil {
+	if readError != nil {
 		if ctx.Err() != nil {
 			return nil, false, contextError("cookie-import", ctx.Err())
 		}
-		if errors.Is(readErr, errResponseTooLarge) {
-			return nil, false, &Error{Kind: KindResponseTooLarge, Endpoint: "cookie-import", Status: response.StatusCode, Message: "The cookie validation response was too large.", Cause: readErr}
+		if errors.Is(readError, errResponseTooLarge) {
+			return nil, false, &Error{Kind: KindResponseTooLarge, Endpoint: "cookie-import", Status: response.StatusCode, Message: "The cookie validation response was too large.", Cause: readError}
 		}
-		return nil, false, &Error{Kind: KindTransport, Endpoint: "cookie-import", Status: response.StatusCode, Message: "The cookie validation response could not be read. The cookie was not stored.", Cause: readErr}
+		return nil, false, &Error{Kind: KindTransport, Endpoint: "cookie-import", Status: response.StatusCode, Message: "The cookie validation response could not be read. The cookie was not stored.", Cause: readError}
 	}
 	return &Response{Status: response.StatusCode, Header: response.Header, Body: body}, false, nil
 }

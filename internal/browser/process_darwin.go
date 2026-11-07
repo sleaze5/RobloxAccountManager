@@ -13,8 +13,8 @@ func browserProcessAttributes() *syscall.SysProcAttr {
 
 // Chrome on macOS keeps running after its last window closes.
 func (process *unixBrowserProcess) PagesClosed() {
-	process.mu.Lock()
-	defer process.mu.Unlock()
+	process.mutex.Lock()
+	defer process.mutex.Unlock()
 	if process.finished {
 		return
 	}

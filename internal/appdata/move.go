@@ -197,10 +197,10 @@ func copyFile(source, destination string) error {
 		return fmt.Errorf("create destination file: %w", err)
 	}
 	expected := sha256.New()
-	_, copyErr := io.Copy(output, io.TeeReader(input, expected))
-	syncErr := output.Sync()
-	closeErr := output.Close()
-	if err := errors.Join(copyErr, syncErr, closeErr); err != nil {
+	_, copyError := io.Copy(output, io.TeeReader(input, expected))
+	syncError := output.Sync()
+	closeError := output.Close()
+	if err := errors.Join(copyError, syncError, closeError); err != nil {
 		return fmt.Errorf("copy %q: %w", filepath.Base(source), err)
 	}
 	if err := RestrictFile(destination); err != nil {

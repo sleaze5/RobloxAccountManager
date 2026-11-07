@@ -19,8 +19,8 @@ type pendingLaunchConfirmation struct {
 }
 
 func (service *Service) GetLaunchConfirmation() LaunchConfirmation {
-	service.mu.Lock()
-	defer service.mu.Unlock()
+	service.mutex.Lock()
+	defer service.mutex.Unlock()
 	if service.launchConfirmation == nil {
 		return LaunchConfirmation{}
 	}
@@ -28,8 +28,8 @@ func (service *Service) GetLaunchConfirmation() LaunchConfirmation {
 }
 
 func (service *Service) ResolveLaunchConfirmation(id string, approved bool) {
-	service.mu.Lock()
-	defer service.mu.Unlock()
+	service.mutex.Lock()
+	defer service.mutex.Unlock()
 	pending := service.launchConfirmation
 	if pending == nil || pending.state.ID != id {
 		return
@@ -52,7 +52,7 @@ func (service *Service) confirmLaunch(ctx context.Context, state LaunchConfirmat
 	if err := ctx.Err(); err != nil {
 		return false, err
 	}
-	service.mu.Lock()
+	service.mutex.Lock()
 	service.launchConfirmationNext++
 	state.ID = strconv.FormatUint(service.launchConfirmationNext, 10)
 	pending := &pendingLaunchConfirmation{
@@ -60,12 +60,12 @@ func (service *Service) confirmLaunch(ctx context.Context, state LaunchConfirmat
 		reply: make(chan bool, 1),
 	}
 	service.launchConfirmation = pending
-	service.mu.Unlock()
+	service.mutex.Unlock()
 	service.events.LaunchConfirmationChanged()
 	defer func() {
-		service.mu.Lock()
+		service.mutex.Lock()
 		service.launchConfirmation = nil
-		service.mu.Unlock()
+		service.mutex.Unlock()
 		service.events.LaunchConfirmationChanged()
 	}()
 	select {

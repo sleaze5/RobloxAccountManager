@@ -144,32 +144,32 @@ func regionsByDistance(regions []rovalra.Region, origin rovalra.Region, stats ga
 	available := make([]rovalra.Region, 0, len(regions))
 	for _, region := range regions {
 		if _, exists := distances[region.Code]; exists {
-			distances[region.Code] = regionDistanceKm(origin, region)
+			distances[region.Code] = regionDistanceKilometers(origin, region)
 			available = append(available, region)
 		}
 	}
 	distances[origin.Code] = -1
-	slices.SortStableFunc(available, func(a, b rovalra.Region) int {
-		return cmp.Compare(distances[a.Code], distances[b.Code])
+	slices.SortStableFunc(available, func(left, right rovalra.Region) int {
+		return cmp.Compare(distances[left.Code], distances[right.Code])
 	})
 	return available
 }
 
-func regionDistanceKm(a, b rovalra.Region) float64 {
+func regionDistanceKilometers(from, to rovalra.Region) float64 {
 	distance := math.Inf(1)
-	for _, left := range a.Coordinates {
-		for _, right := range b.Coordinates {
-			distance = min(distance, distanceKm(left, right))
+	for _, fromCoordinates := range from.Coordinates {
+		for _, toCoordinates := range to.Coordinates {
+			distance = min(distance, distanceKilometers(fromCoordinates, toCoordinates))
 		}
 	}
 	return distance
 }
 
-func distanceKm(a, b rovalra.Coordinates) float64 {
-	const earthRadiusKm = 6371
+func distanceKilometers(from, to rovalra.Coordinates) float64 {
+	const earthRadiusKilometers = 6371
 	radians := math.Pi / 180
-	dLat, dLon := (b.Latitude-a.Latitude)*radians, (b.Longitude-a.Longitude)*radians
-	h := math.Sin(dLat/2)*math.Sin(dLat/2) + math.Cos(a.Latitude*radians)*math.Cos(b.Latitude*radians)*math.Sin(dLon/2)*math.Sin(dLon/2)
-	h = min(1, max(0, h))
-	return 2 * earthRadiusKm * math.Atan2(math.Sqrt(h), math.Sqrt(1-h))
+	latitudeDelta, longitudeDelta := (to.Latitude-from.Latitude)*radians, (to.Longitude-from.Longitude)*radians
+	haversine := math.Sin(latitudeDelta/2)*math.Sin(latitudeDelta/2) + math.Cos(from.Latitude*radians)*math.Cos(to.Latitude*radians)*math.Sin(longitudeDelta/2)*math.Sin(longitudeDelta/2)
+	haversine = min(1, max(0, haversine))
+	return 2 * earthRadiusKilometers * math.Atan2(math.Sqrt(haversine), math.Sqrt(1-haversine))
 }

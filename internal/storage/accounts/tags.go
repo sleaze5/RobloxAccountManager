@@ -17,18 +17,18 @@ func (repository *Repository) CreateTag(ctx context.Context, input string) (acco
 	if err != nil {
 		return accountdomain.TagView{}, err
 	}
-	db, release, err := repository.database(ctx)
+	database, release, err := repository.leaseDatabase(ctx)
 	if err != nil {
 		return accountdomain.TagView{}, err
 	}
 	defer release()
 	now := time.Now().UTC().UnixMilli()
-	tx, err := db.BeginTx(ctx, nil)
+	transaction, err := database.BeginTx(ctx, nil)
 	if err != nil {
 		return accountdomain.TagView{}, fmt.Errorf("begin tag creation: %w", err)
 	}
-	defer tx.Rollback()
-	result, err := tx.ExecContext(ctx, `INSERT INTO tags(name, kind, created_at_ms, updated_at_ms) VALUES(?, 'custom', ?, ?)`, name, now, now)
+	defer transaction.Rollback()
+	result, err := transaction.ExecContext(ctx, `INSERT INTO tags(name, kind, created_at_ms, updated_at_ms) VALUES(?, 'custom', ?, ?)`, name, now, now)
 	if err != nil {
 		if isConstraint(err) {
 			return accountdomain.TagView{}, accountdomain.ErrDuplicateTag
@@ -39,10 +39,10 @@ func (repository *Repository) CreateTag(ctx context.Context, input string) (acco
 	if err != nil {
 		return accountdomain.TagView{}, fmt.Errorf("read created tag ID: %w", err)
 	}
-	if err := vault.BumpRevision(ctx, tx); err != nil {
+	if err := vault.BumpRevision(ctx, transaction); err != nil {
 		return accountdomain.TagView{}, err
 	}
-	if err := tx.Commit(); err != nil {
+	if err := transaction.Commit(); err != nil {
 		return accountdomain.TagView{}, fmt.Errorf("commit tag creation: %w", err)
 	}
 	repository.logger.InfoContext(ctx, "account tag created", "operation", "tag-create", "tag_id", id)
@@ -53,17 +53,17 @@ func (repository *Repository) RemoveTag(ctx context.Context, tagID int64) error 
 	if tagID <= 0 {
 		return accountdomain.ErrTagNotFound
 	}
-	db, release, err := repository.database(ctx)
+	database, release, err := repository.leaseDatabase(ctx)
 	if err != nil {
 		return err
 	}
 	defer release()
-	tx, err := db.BeginTx(ctx, nil)
+	transaction, err := database.BeginTx(ctx, nil)
 	if err != nil {
 		return fmt.Errorf("begin tag removal: %w", err)
 	}
-	defer tx.Rollback()
-	result, err := tx.ExecContext(ctx, `DELETE FROM tags WHERE id = ? AND kind = 'custom'`, tagID)
+	defer transaction.Rollback()
+	result, err := transaction.ExecContext(ctx, `DELETE FROM tags WHERE id = ? AND kind = 'custom'`, tagID)
 	if err != nil {
 		return fmt.Errorf("remove account tag: %w", err)
 	}
@@ -74,10 +74,10 @@ func (repository *Repository) RemoveTag(ctx context.Context, tagID int64) error 
 	if changed == 0 {
 		return accountdomain.ErrTagNotFound
 	}
-	if err := vault.BumpRevision(ctx, tx); err != nil {
+	if err := vault.BumpRevision(ctx, transaction); err != nil {
 		return err
 	}
-	if err := tx.Commit(); err != nil {
+	if err := transaction.Commit(); err != nil {
 		return fmt.Errorf("commit tag removal: %w", err)
 	}
 	repository.logger.InfoContext(ctx, "account tag removed", "operation", "tag-remove", "tag_id", tagID)
@@ -85,12 +85,12 @@ func (repository *Repository) RemoveTag(ctx context.Context, tagID int64) error 
 }
 
 func (repository *Repository) ListTags(ctx context.Context) ([]accountdomain.TagView, error) {
-	db, release, err := repository.database(ctx)
+	database, release, err := repository.leaseDatabase(ctx)
 	if err != nil {
 		return nil, err
 	}
 	defer release()
-	rows, err := db.QueryContext(ctx, `SELECT id, name, kind FROM tags ORDER BY CASE kind WHEN 'favorite' THEN 0 ELSE 1 END, name COLLATE NOCASE, id`)
+	rows, err := database.QueryContext(ctx, `SELECT id, name, kind FROM tags ORDER BY CASE kind WHEN 'favorite' THEN 0 ELSE 1 END, name COLLATE NOCASE, id`)
 	if err != nil {
 		return nil, fmt.Errorf("list tags: %w", err)
 	}
@@ -121,33 +121,33 @@ func (repository *Repository) SetAccountsTag(ctx context.Context, accountIDs []i
 	if tagID <= 0 {
 		return nil, accountdomain.ErrTagNotFound
 	}
-	db, release, err := repository.database(ctx)
+	database, release, err := repository.leaseDatabase(ctx)
 	if err != nil {
 		return nil, err
 	}
 	defer release()
-	tx, err := db.BeginTx(ctx, nil)
+	transaction, err := database.BeginTx(ctx, nil)
 	if err != nil {
 		return nil, fmt.Errorf("begin tag assignment: %w", err)
 	}
-	defer tx.Rollback()
+	defer transaction.Rollback()
 	var exists int
-	if err := tx.QueryRowContext(ctx, `SELECT 1 FROM tags WHERE id = ?`, tagID).Scan(&exists); errors.Is(err, sql.ErrNoRows) {
+	if err := transaction.QueryRowContext(ctx, `SELECT 1 FROM tags WHERE id = ?`, tagID).Scan(&exists); errors.Is(err, sql.ErrNoRows) {
 		return nil, accountdomain.ErrTagNotFound
 	} else if err != nil {
 		return nil, fmt.Errorf("find tag: %w", err)
 	}
 	now := time.Now().UTC().UnixMilli()
-	anyChanged, err := assignAccountsTag(ctx, tx, accountIDs, tagID, selected, now)
+	anyChanged, err := assignAccountsTag(ctx, transaction, accountIDs, tagID, selected, now)
 	if err != nil {
 		return nil, err
 	}
 	if anyChanged {
-		if err := vault.BumpRevision(ctx, tx); err != nil {
+		if err := vault.BumpRevision(ctx, transaction); err != nil {
 			return nil, err
 		}
 	}
-	if err := tx.Commit(); err != nil {
+	if err := transaction.Commit(); err != nil {
 		return nil, fmt.Errorf("commit tag assignment: %w", err)
 	}
 	views := make([]accountdomain.AccountView, 0, len(accountIDs))
@@ -161,7 +161,7 @@ func (repository *Repository) SetAccountsTag(ctx context.Context, accountIDs []i
 	return views, nil
 }
 
-func loadAccountTags(ctx context.Context, db *sql.DB, views []accountdomain.AccountView) error {
+func loadAccountTags(ctx context.Context, database *sql.DB, views []accountdomain.AccountView) error {
 	if len(views) == 0 {
 		return nil
 	}
@@ -174,7 +174,7 @@ func loadAccountTags(ctx context.Context, db *sql.DB, views []accountdomain.Acco
 		placeholders[index] = "?"
 		arguments[index] = views[index].ID
 	}
-	rows, err := db.QueryContext(ctx, accountTagsQuery+`
+	rows, err := database.QueryContext(ctx, accountTagsQuery+`
 WHERE account_tags.account_id IN (`+strings.Join(placeholders, ",")+`)
 ORDER BY account_tags.account_id, CASE tags.kind WHEN 'favorite' THEN 0 ELSE 1 END, tags.name COLLATE NOCASE, tags.id`, arguments...)
 	if err != nil {
@@ -197,10 +197,10 @@ ORDER BY account_tags.account_id, CASE tags.kind WHEN 'favorite' THEN 0 ELSE 1 E
 	return nil
 }
 
-func listAccountTags(ctx context.Context, db interface {
+func listAccountTags(ctx context.Context, database interface {
 	QueryContext(context.Context, string, ...any) (*sql.Rows, error)
 }, accountID int64) ([]accountdomain.TagView, error) {
-	rows, err := db.QueryContext(ctx, `SELECT tags.id, tags.name, tags.kind FROM account_tags JOIN tags ON tags.id = account_tags.tag_id WHERE account_tags.account_id = ? ORDER BY CASE tags.kind WHEN 'favorite' THEN 0 ELSE 1 END, tags.name COLLATE NOCASE, tags.id`, accountID)
+	rows, err := database.QueryContext(ctx, `SELECT tags.id, tags.name, tags.kind FROM account_tags JOIN tags ON tags.id = account_tags.tag_id WHERE account_tags.account_id = ? ORDER BY CASE tags.kind WHEN 'favorite' THEN 0 ELSE 1 END, tags.name COLLATE NOCASE, tags.id`, accountID)
 	if err != nil {
 		return nil, fmt.Errorf("list account tags: %w", err)
 	}
@@ -223,21 +223,21 @@ const accountTagsQuery = `
 SELECT account_tags.account_id, tags.id, tags.name, tags.kind
 FROM account_tags JOIN tags ON tags.id = account_tags.tag_id`
 
-func assignAccountsTag(ctx context.Context, tx *sql.Tx, accountIDs []int64, tagID int64, selected bool, now int64) (bool, error) {
+func assignAccountsTag(ctx context.Context, transaction *sql.Tx, accountIDs []int64, tagID int64, selected bool, now int64) (bool, error) {
 	var exists int
 	var err error
 	anyChanged := false
 	for _, accountID := range accountIDs {
-		if err := tx.QueryRowContext(ctx, `SELECT 1 FROM accounts WHERE id = ?`, accountID).Scan(&exists); errors.Is(err, sql.ErrNoRows) {
+		if err := transaction.QueryRowContext(ctx, `SELECT 1 FROM accounts WHERE id = ?`, accountID).Scan(&exists); errors.Is(err, sql.ErrNoRows) {
 			return false, accountdomain.ErrNotFound
 		} else if err != nil {
 			return false, fmt.Errorf("find tagged account: %w", err)
 		}
 		var result sql.Result
 		if selected {
-			result, err = tx.ExecContext(ctx, `INSERT INTO account_tags(account_id, tag_id, created_at_ms) VALUES(?, ?, ?) ON CONFLICT(account_id, tag_id) DO NOTHING`, accountID, tagID, now)
+			result, err = transaction.ExecContext(ctx, `INSERT INTO account_tags(account_id, tag_id, created_at_ms) VALUES(?, ?, ?) ON CONFLICT(account_id, tag_id) DO NOTHING`, accountID, tagID, now)
 		} else {
-			result, err = tx.ExecContext(ctx, `DELETE FROM account_tags WHERE account_id = ? AND tag_id = ?`, accountID, tagID)
+			result, err = transaction.ExecContext(ctx, `DELETE FROM account_tags WHERE account_id = ? AND tag_id = ?`, accountID, tagID)
 		}
 		if err != nil {
 			return false, fmt.Errorf("update account tag: %w", err)
@@ -248,7 +248,7 @@ func assignAccountsTag(ctx context.Context, tx *sql.Tx, accountIDs []int64, tagI
 		}
 		if changed > 0 {
 			anyChanged = true
-			if _, err := tx.ExecContext(ctx, `UPDATE accounts SET updated_at_ms = ? WHERE id = ?`, now, accountID); err != nil {
+			if _, err := transaction.ExecContext(ctx, `UPDATE accounts SET updated_at_ms = ? WHERE id = ?`, now, accountID); err != nil {
 				return false, fmt.Errorf("update tagged account: %w", err)
 			}
 		}

@@ -29,9 +29,9 @@ type Service struct {
 	events   *appservice.Events
 	launch   *logging.Launch
 
-	startMu  sync.Mutex
-	startCtx context.Context
-	started  bool
+	startMutex   sync.Mutex
+	startContext context.Context
+	started      bool
 }
 
 func NewService(core *appservice.Service, location *appservice.Location, updates *appupdate.Service, events *appservice.Events, launch *logging.Launch) *Service {
@@ -56,9 +56,9 @@ func (service *Service) ServiceStartup(ctx context.Context, _ application.Servic
 			}
 		})
 	}
-	service.startMu.Lock()
-	service.startCtx = ctx
-	service.startMu.Unlock()
+	service.startMutex.Lock()
+	service.startContext = ctx
+	service.startMutex.Unlock()
 	if err := service.startCore(); err != nil {
 		return err
 	}
@@ -96,12 +96,12 @@ func (service *Service) MoveAppData(mode appdata.Mode) error {
 // Automatic unlock and migrations must never touch a vault that the user has
 // not chosen.
 func (service *Service) startCore() error {
-	service.startMu.Lock()
-	defer service.startMu.Unlock()
-	if service.started || service.startCtx == nil || !service.location.State().Initialized {
+	service.startMutex.Lock()
+	defer service.startMutex.Unlock()
+	if service.started || service.startContext == nil || !service.location.State().Initialized {
 		return nil
 	}
-	if err := service.core.Start(service.startCtx); err != nil {
+	if err := service.core.Start(service.startContext); err != nil {
 		return err
 	}
 	service.started = true

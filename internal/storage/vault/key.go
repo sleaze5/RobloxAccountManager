@@ -22,7 +22,7 @@ import (
 const (
 	keyFormatVersion  = uint16(2)
 	autoFormatVersion = uint16(1)
-	dekBytes          = 32
+	vaultKeyBytes     = 32
 	vaultIDBytes      = 16
 	keyFileLimit      = 1024
 	autoFileLimit     = 16 * 1024
@@ -35,7 +35,7 @@ const (
 	argonKeyBytes     = 32
 	saltBytes         = 16
 	nonceBytes        = 12
-	wrappedDEKBytes   = dekBytes + 16
+	wrappedDEKBytes   = vaultKeyBytes + 16
 	autoHeaderBytes   = 14
 )
 
@@ -63,13 +63,13 @@ type argon2Parameters struct {
 }
 
 type keyFile struct {
-	Version    uint16
-	VaultID    [vaultIDBytes]byte
-	KDF        argon2Parameters
-	Salt       []byte
-	Nonce      []byte
-	WrappedDEK []byte
-	Hint       string
+	Version         uint16
+	VaultID         [vaultIDBytes]byte
+	KDF             argon2Parameters
+	Salt            []byte
+	Nonce           []byte
+	WrappedVaultKey []byte
+	Hint            string
 }
 
 func meetsPasswordRules(password string) bool {
@@ -116,7 +116,7 @@ func newRandomBytes(size int, label string) ([]byte, error) {
 	return value, nil
 }
 
-func newDEK() ([]byte, error) { return newRandomBytes(dekBytes, "database key") }
+func newVaultKey() ([]byte, error) { return newRandomBytes(vaultKeyBytes, "database key") }
 
 func newVaultID() ([vaultIDBytes]byte, error) {
 	var id [vaultIDBytes]byte
@@ -176,14 +176,14 @@ func passwordCipher(password string, params argon2Parameters, salt []byte) (ciph
 	return aead, nil
 }
 
-func createKeyFile(password, hint string, vaultID [vaultIDBytes]byte, dek []byte, params argon2Parameters) (keyFile, error) {
+func createKeyFile(password, hint string, vaultID [vaultIDBytes]byte, vaultKey []byte, params argon2Parameters) (keyFile, error) {
 	if err := validatePassword(password); err != nil {
 		return keyFile{}, err
 	}
 	if err := validateHint(hint); err != nil {
 		return keyFile{}, err
 	}
-	if len(dek) != dekBytes {
+	if len(vaultKey) != vaultKeyBytes {
 		return keyFile{}, errors.New("invalid database key length")
 	}
 	salt, err := newRandomBytes(saltBytes, "password salt")
@@ -199,7 +199,7 @@ func createKeyFile(password, hint string, vaultID [vaultIDBytes]byte, dek []byte
 	if err != nil {
 		return keyFile{}, err
 	}
-	key.WrappedDEK = aead.Seal(nil, key.Nonce, dek, key.additionalData())
+	key.WrappedVaultKey = aead.Seal(nil, key.Nonce, vaultKey, key.additionalData())
 	return key, nil
 }
 
@@ -208,14 +208,14 @@ func (key keyFile) unwrap(password string) ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
-	if len(key.Nonce) != aead.NonceSize() || len(key.WrappedDEK) != dekBytes+aead.Overhead() {
+	if len(key.Nonce) != aead.NonceSize() || len(key.WrappedVaultKey) != vaultKeyBytes+aead.Overhead() {
 		return nil, errors.New("invalid wrapped database key")
 	}
-	dek, err := aead.Open(nil, key.Nonce, key.WrappedDEK, key.additionalData())
+	vaultKey, err := aead.Open(nil, key.Nonce, key.WrappedVaultKey, key.additionalData())
 	if err != nil {
 		return nil, ErrInvalidPassword
 	}
-	return dek, nil
+	return vaultKey, nil
 }
 
 func (key keyFile) additionalData() []byte {
@@ -234,7 +234,7 @@ func (key keyFile) additionalData() []byte {
 }
 
 func encodeKeyFile(key keyFile) ([]byte, error) {
-	if key.Version != keyFormatVersion || len(key.Salt) != saltBytes || len(key.Nonce) != nonceBytes || len(key.WrappedDEK) != wrappedDEKBytes {
+	if key.Version != keyFormatVersion || len(key.Salt) != saltBytes || len(key.Nonce) != nonceBytes || len(key.WrappedVaultKey) != wrappedDEKBytes {
 		return nil, errors.New("invalid vault key fields")
 	}
 	if err := validateArgon2(key.KDF); err != nil {
@@ -252,11 +252,11 @@ func encodeKeyFile(key keyFile) ([]byte, error) {
 	buffer.WriteByte(key.KDF.Threads)
 	buffer.WriteByte(byte(len(key.Salt)))
 	buffer.WriteByte(byte(len(key.Nonce)))
-	_ = binary.Write(&buffer, binary.BigEndian, uint16(len(key.WrappedDEK)))
+	_ = binary.Write(&buffer, binary.BigEndian, uint16(len(key.WrappedVaultKey)))
 	_ = binary.Write(&buffer, binary.BigEndian, uint16(len(key.Hint)))
 	buffer.Write(key.Salt)
 	buffer.Write(key.Nonce)
-	buffer.Write(key.WrappedDEK)
+	buffer.Write(key.WrappedVaultKey)
 	buffer.WriteString(key.Hint)
 	if buffer.Len() > keyFileLimit {
 		return nil, errors.New("vault key file is too large")
@@ -324,9 +324,9 @@ func decodeKeyFileFields(data []byte) (keyFile, error) {
 	}
 	key.Salt = make([]byte, saltLength)
 	key.Nonce = make([]byte, nonceLength)
-	key.WrappedDEK = make([]byte, wrappedLength)
+	key.WrappedVaultKey = make([]byte, wrappedLength)
 	hint := make([]byte, hintLength)
-	for _, value := range [][]byte{key.Salt, key.Nonce, key.WrappedDEK, hint} {
+	for _, value := range [][]byte{key.Salt, key.Nonce, key.WrappedVaultKey, hint} {
 		if _, err := io.ReadFull(reader, value); err != nil {
 			return keyFile{}, errors.New("vault key file is truncated")
 		}
@@ -341,14 +341,14 @@ func decodeKeyFileFields(data []byte) (keyFile, error) {
 	return key, nil
 }
 
-func encodeAutoUnlock(protector protection.Protector, vaultID [vaultIDBytes]byte, dek []byte) ([]byte, error) {
-	if protector == nil || len(dek) != dekBytes {
+func encodeAutoUnlock(protector protection.Protector, vaultID [vaultIDBytes]byte, vaultKey []byte) ([]byte, error) {
+	if protector == nil || len(vaultKey) != vaultKeyBytes {
 		return nil, errors.New("automatic unlock is unavailable")
 	}
 	plain := append([]byte(nil), autoPlainMagic[:]...)
 	plain = binary.BigEndian.AppendUint16(plain, autoFormatVersion)
 	plain = append(plain, vaultID[:]...)
-	plain = append(plain, dek...)
+	plain = append(plain, vaultKey...)
 	ciphertext, err := protector.Protect(plain)
 	wipe(plain)
 	if err != nil {
@@ -390,12 +390,12 @@ func decodeAutoUnlock(data []byte, protector protection.Protector) ([vaultIDByte
 func decodeAutoUnlockV1(plain []byte) ([vaultIDBytes]byte, []byte, error) {
 	var vaultID [vaultIDBytes]byte
 	// 8-byte magic and 2-byte version, then the vault ID and the key.
-	if len(plain) != 8+2+vaultIDBytes+dekBytes || !bytes.Equal(plain[:8], autoPlainMagic[:]) || binary.BigEndian.Uint16(plain[8:10]) != 1 {
+	if len(plain) != 8+2+vaultIDBytes+vaultKeyBytes || !bytes.Equal(plain[:8], autoPlainMagic[:]) || binary.BigEndian.Uint16(plain[8:10]) != 1 {
 		return vaultID, nil, errors.New("automatic unlock file is corrupted")
 	}
 	copy(vaultID[:], plain[10:10+vaultIDBytes])
-	dek := append([]byte(nil), plain[10+vaultIDBytes:]...)
-	return vaultID, dek, nil
+	vaultKey := append([]byte(nil), plain[10+vaultIDBytes:]...)
+	return vaultID, vaultKey, nil
 }
 
 func readBounded(path string, limit int64) ([]byte, error) {

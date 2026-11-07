@@ -29,8 +29,8 @@ type VaultState struct {
 }
 
 func (service *Service) GetVaultState() VaultState {
-	service.mu.Lock()
-	defer service.mu.Unlock()
+	service.mutex.Lock()
+	defer service.mutex.Unlock()
 	settings := service.settings.Vault()
 	return VaultState{
 		Initialized:              service.vault.Initialized(),
@@ -97,14 +97,14 @@ func (service *Service) finishUnlock(automatic bool) {
 		cursor = page.NextCursor
 	}
 	due := service.settings.PasswordReminderDue(time.Now())
-	service.mu.Lock()
+	service.mutex.Lock()
 	service.startupError = ""
 	if service.gamesCancel != nil {
 		service.gamesCancel()
 	}
 	service.gamesContext, service.gamesCancel = context.WithCancel(service.lifecycle)
 	service.reminderDue = automatic && due
-	service.mu.Unlock()
+	service.mutex.Unlock()
 	service.startBackground()
 	service.browser.AllowLaunches()
 	go func() {
@@ -139,9 +139,9 @@ func (service *Service) finishLocked() {
 	service.clearPendingImports()
 	service.discardPendingTransfer()
 	service.sessions.Lock()
-	service.mu.Lock()
+	service.mutex.Lock()
 	service.reminderDue = false
-	service.mu.Unlock()
+	service.mutex.Unlock()
 	service.events.send("vault:locked", struct{}{})
 }
 
@@ -152,9 +152,9 @@ func (service *Service) TestVaultPassword(ctx context.Context, password string) 
 	if err := service.settings.RecordPasswordTested(time.Now()); err != nil {
 		return fmt.Errorf("save password test time: %w", err)
 	}
-	service.mu.Lock()
+	service.mutex.Lock()
 	service.reminderDue = false
-	service.mu.Unlock()
+	service.mutex.Unlock()
 	return nil
 }
 
@@ -162,9 +162,9 @@ func (service *Service) DismissPasswordReminder() error {
 	if err := service.settings.DismissPasswordReminder(time.Now()); err != nil {
 		return fmt.Errorf("save password reminder dismissal: %w", err)
 	}
-	service.mu.Lock()
+	service.mutex.Lock()
 	service.reminderDue = false
-	service.mu.Unlock()
+	service.mutex.Unlock()
 	return nil
 }
 
@@ -176,9 +176,9 @@ func (service *Service) ChangeVaultPassword(ctx context.Context, currentPassword
 	if err := service.settings.RecordPasswordTested(time.Now()); err != nil {
 		service.logger.Error("record changed master password failed", "error", err)
 	}
-	service.mu.Lock()
+	service.mutex.Lock()
 	service.reminderDue = false
-	service.mu.Unlock()
+	service.mutex.Unlock()
 	if recovering {
 		service.finishUnlock(false)
 	}

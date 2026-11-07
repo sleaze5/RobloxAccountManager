@@ -54,7 +54,7 @@
 <section class="settings-page" aria-labelledby="chats-title">
 	<header class="settings-header">
 		<button
-			class="btn-ghost"
+			class="button-ghost"
 			type="button"
 			aria-label="Back to profile"
 			data-tooltip="Back to profile"
@@ -65,7 +65,7 @@
 		<span class="mr-auto min-w-0 text-xs wrap-anywhere text-fg-muted"
 			>@{account.username}</span>
 		<button
-			class="btn-ghost"
+			class="button-ghost"
 			type="button"
 			aria-label="New chat"
 			aria-expanded={creatingOpen}
@@ -74,7 +74,7 @@
 			<Icon svg={notePencilIcon} size={16} aria-hidden="true" />
 		</button>
 		<button
-			class="btn-ghost"
+			class="button-ghost"
 			type="button"
 			aria-label="Mark all as read"
 			data-tooltip="Mark all as read"
@@ -92,7 +92,7 @@
 			{/if}
 		</button>
 		<button
-			class="btn-ghost"
+			class="button-ghost"
 			type="button"
 			aria-label="Refresh chats"
 			data-tooltip="Refresh chats"
@@ -143,7 +143,7 @@
 					</div>
 					<button
 						type="submit"
-						class="btn-primary h-8"
+						class="button-primary h-8"
 						aria-busy={chat.creating}
 						disabled={chat.creating || !username.trim()}>
 						{#if chat.creating}

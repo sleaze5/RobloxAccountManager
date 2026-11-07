@@ -30,7 +30,7 @@ export function matchPlaces(entries: PlaceSearchEntry[], text: string): GamePlac
 		}
 		if (score < Infinity) ranked.push({ place: entry.place, score, order })
 	})
-	ranked.sort((a, b) => a.score - b.score || a.order - b.order)
+	ranked.sort((left, right) => left.score - right.score || left.order - right.order)
 	return ranked.map((match) => match.place)
 }
 

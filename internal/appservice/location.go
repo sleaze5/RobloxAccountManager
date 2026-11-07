@@ -12,7 +12,7 @@ import (
 type Relaunch func(arguments []string) error
 
 type Location struct {
-	mu       sync.Mutex
+	mutex    sync.Mutex
 	state    appdata.Location
 	paths    appdata.Paths
 	launch   *logging.Launch
@@ -25,8 +25,8 @@ func NewLocation(state appdata.Location, paths appdata.Paths, launch *logging.La
 }
 
 func (location *Location) State() appdata.Location {
-	location.mu.Lock()
-	defer location.mu.Unlock()
+	location.mutex.Lock()
+	defer location.mutex.Unlock()
 	return location.state
 }
 
@@ -34,8 +34,8 @@ func (location *Location) State() appdata.Location {
 // startup, so only an empty provisional root continues in place. Any other
 // choice restarts, and the new process opens that root normally.
 func (location *Location) Confirm(mode appdata.Mode) (bool, error) {
-	location.mu.Lock()
-	defer location.mu.Unlock()
+	location.mutex.Lock()
+	defer location.mutex.Unlock()
 	if location.state.Initialized {
 		return false, nil
 	}
@@ -74,8 +74,8 @@ func (location *Location) Confirm(mode appdata.Mode) (bool, error) {
 }
 
 func (location *Location) Move(mode appdata.Mode) error {
-	location.mu.Lock()
-	defer location.mu.Unlock()
+	location.mutex.Lock()
+	defer location.mutex.Unlock()
 	if !location.state.Initialized || mode == location.state.Mode {
 		return errors.New("this storage option is unavailable")
 	}

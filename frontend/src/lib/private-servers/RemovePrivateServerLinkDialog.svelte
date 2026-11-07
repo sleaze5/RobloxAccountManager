@@ -61,10 +61,10 @@
 		<div class="mt-3 notice-error" role="alert">{saved.actionError}</div>
 	{/if}
 	<div class="dialog-actions">
-		<button class="btn" type="button" disabled={removing} onclick={close}
+		<button class="button" type="button" disabled={removing} onclick={close}
 			>Cancel</button>
 		<button
-			class="btn-danger"
+			class="button-danger"
 			type="button"
 			disabled={removing}
 			onclick={() => void remove()}>

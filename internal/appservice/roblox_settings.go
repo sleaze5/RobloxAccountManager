@@ -13,8 +13,8 @@ func (service *Service) GetMultiInstanceState() robloxmulti.Snapshot {
 }
 
 func (service *Service) SetMultiInstanceEnabled(enabled bool) (robloxmulti.Snapshot, error) {
-	service.launchMu.Lock()
-	defer service.launchMu.Unlock()
+	service.launchMutex.Lock()
+	defer service.launchMutex.Unlock()
 	if state := service.multiInstance.Snapshot(); !state.Supported {
 		return state, &roblox.Error{Kind: roblox.KindProtocol, Endpoint: "multi-instance", Message: "Multi-instance is only available on Windows."}
 	}

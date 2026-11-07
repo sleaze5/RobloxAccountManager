@@ -160,7 +160,7 @@ func (service *Service) ValidateCookies(ctx context.Context, input string) (Impo
 		clearPendingImportBatch(&pending)
 		return ImportPreview{}, &roblox.Error{Kind: roblox.KindProtocol, Endpoint: "cookie-import", Message: "The validated cookies could not be staged.", Cause: err}
 	}
-	service.importMu.Lock()
+	service.importMutex.Lock()
 	now := time.Now().UTC()
 	service.prunePendingImportsLocked(now)
 	service.makePendingImportRoomLocked()
@@ -169,7 +169,7 @@ func (service *Service) ValidateCookies(ctx context.Context, input string) (Impo
 		service.DiscardValidatedCookies(batchID)
 	})
 	service.pendingImports[batchID] = pending
-	service.importMu.Unlock()
+	service.importMutex.Unlock()
 	preview.BatchID = batchID
 	return preview, nil
 }
@@ -200,8 +200,8 @@ func (service *Service) SaveValidatedCookies(ctx context.Context, batchID string
 		view, session, err := service.repo.Create(ctx, item.validation.Identity, item.validation.Cookie, item.validation.ExpiresAt)
 		if err != nil {
 			if errors.Is(err, accounts.ErrDuplicateAccount) {
-				existing, lookupErr := service.repo.FindByRobloxUserID(ctx, item.validation.Identity.RobloxUserID)
-				if lookupErr == nil {
+				existing, lookupError := service.repo.FindByRobloxUserID(ctx, item.validation.Identity.RobloxUserID)
+				if lookupError == nil {
 					result.Items = append(result.Items, ImportBatchItem{Index: item.index, Status: ImportDuplicate, Account: existing})
 					continue
 				}
@@ -211,8 +211,8 @@ func (service *Service) SaveValidatedCookies(ctx context.Context, batchID string
 			continue
 		}
 		if err := service.sessions.Put(session, item.validation.BrowserID); err != nil {
-			if removeErr := service.repo.Remove(context.WithoutCancel(ctx), view.ID); removeErr != nil {
-				service.logger.Error("failed import rollback failed", "account_id", view.ID, "error", removeErr)
+			if removeError := service.repo.Remove(context.WithoutCancel(ctx), view.ID); removeError != nil {
+				service.logger.Error("failed import rollback failed", "account_id", view.ID, "error", removeError)
 			}
 			status, message := importErrorDetails(err)
 			result.Items = append(result.Items, failedImportBatchItem(item.index, status, message))
@@ -272,10 +272,10 @@ func (service *Service) DiscardValidatedCookies(batchID string) {
 	if batchID == "" {
 		return
 	}
-	service.importMu.Lock()
+	service.importMutex.Lock()
 	batch, ok := service.pendingImports[batchID]
 	delete(service.pendingImports, batchID)
-	service.importMu.Unlock()
+	service.importMutex.Unlock()
 	if ok {
 		clearPendingImportBatch(&batch)
 	}
@@ -286,11 +286,11 @@ func (service *Service) takePendingImport(batchID string) (pendingImportBatch, b
 		return pendingImportBatch{}, false
 	}
 	now := time.Now().UTC()
-	service.importMu.Lock()
+	service.importMutex.Lock()
 	service.prunePendingImportsLocked(now)
 	batch, ok := service.pendingImports[batchID]
 	delete(service.pendingImports, batchID)
-	service.importMu.Unlock()
+	service.importMutex.Unlock()
 	return batch, ok
 }
 
@@ -322,12 +322,12 @@ func (service *Service) makePendingImportRoomLocked() {
 }
 
 func (service *Service) clearPendingImports() {
-	service.importMu.Lock()
+	service.importMutex.Lock()
 	for batchID, batch := range service.pendingImports {
 		clearPendingImportBatch(&batch)
 		delete(service.pendingImports, batchID)
 	}
-	service.importMu.Unlock()
+	service.importMutex.Unlock()
 }
 
 func clearPendingImportBatch(batch *pendingImportBatch) {
@@ -350,12 +350,12 @@ func newImportBatchID() (string, error) {
 }
 
 func importErrorDetails(err error) (string, string) {
-	if robloxErr, ok := errors.AsType[*roblox.Error](err); ok {
-		status := strings.ReplaceAll(string(robloxErr.Kind), "_", " ")
-		if robloxErr.Status > 0 {
-			status = fmt.Sprintf("%d %s", robloxErr.Status, http.StatusText(robloxErr.Status))
+	if robloxError, ok := errors.AsType[*roblox.Error](err); ok {
+		status := strings.ReplaceAll(string(robloxError.Kind), "_", " ")
+		if robloxError.Status > 0 {
+			status = fmt.Sprintf("%d %s", robloxError.Status, http.StatusText(robloxError.Status))
 		}
-		message := strings.TrimSpace(robloxErr.Message)
+		message := strings.TrimSpace(robloxError.Message)
 		message = strings.TrimPrefix(message, accounts.ErrInvalidCookieInput.Error()+": ")
 		if message == "" {
 			message = "The cookie could not be validated."

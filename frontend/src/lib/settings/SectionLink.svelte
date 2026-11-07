@@ -7,7 +7,7 @@
 </script>
 
 <button
-	class="-my-0.5 btn-ghost-sm"
+	class="-my-0.5 button-ghost-sm"
 	type="button"
 	aria-label={label}
 	data-tooltip={label}

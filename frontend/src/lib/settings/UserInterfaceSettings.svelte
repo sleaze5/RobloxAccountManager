@@ -316,7 +316,7 @@
 			{#if showTimestampActions}
 				<div class="flex justify-end gap-2 px-3 pt-1 pb-3">
 					<button
-						class="btn"
+						class="button"
 						type="button"
 						disabled={store.busyTimestampFormats ||
 							(timestampFormat === defaultTimestampFormats.shown &&
@@ -329,7 +329,7 @@
 						Restore defaults
 					</button>
 					<button
-						class="btn-primary"
+						class="button-primary"
 						type="submit"
 						disabled={!store.initialized ||
 							store.busyTimestampFormats ||

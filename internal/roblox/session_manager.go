@@ -21,7 +21,7 @@ type SessionSnapshot struct {
 }
 
 type runtimeSession struct {
-	mu              sync.RWMutex
+	mutex           sync.RWMutex
 	accountID       int64
 	secretVersion   int64
 	state           accounts.SessionState
@@ -35,7 +35,7 @@ type runtimeSession struct {
 type credentialLoader func(context.Context, int64) (accounts.SessionRecord, error)
 
 type SessionManager struct {
-	mu             sync.RWMutex
+	mutex          sync.RWMutex
 	sessions       map[int64]*runtimeSession
 	loader         credentialLoader
 	locked         bool
@@ -48,29 +48,29 @@ func NewSessionManager() *SessionManager {
 }
 
 func (manager *SessionManager) SetLoader(loader func(context.Context, int64) (accounts.SessionRecord, error)) {
-	manager.mu.Lock()
+	manager.mutex.Lock()
 	manager.loader = loader
-	manager.mu.Unlock()
+	manager.mutex.Unlock()
 }
 
 func (manager *SessionManager) Unlock() {
-	manager.mu.Lock()
+	manager.mutex.Lock()
 	manager.locked = false
-	manager.mu.Unlock()
+	manager.mutex.Unlock()
 }
 
 func (manager *SessionManager) Put(record accounts.SessionRecord, browserID string) error {
 	if record.AccountID <= 0 || record.SecretVersion <= 0 {
 		return errors.New("load invalid account session")
 	}
-	manager.mu.Lock()
+	manager.mutex.Lock()
 	if manager.locked {
-		manager.mu.Unlock()
+		manager.mutex.Unlock()
 		return &Error{Kind: KindVaultLocked, Message: "The account vault is locked."}
 	}
 	old := manager.sessions[record.AccountID]
 	manager.sessions[record.AccountID] = newRuntimeSession(record, manager.browserIDLocked(record.AccountID, browserID))
-	manager.mu.Unlock()
+	manager.mutex.Unlock()
 	if old != nil {
 		old.close()
 	}
@@ -82,10 +82,10 @@ func (manager *SessionManager) ApplyRotation(record accounts.SessionRecord) erro
 	if err != nil {
 		return err
 	}
-	session.mu.Lock()
+	session.mutex.Lock()
 	currentVersion := session.secretVersion
 	if record.SecretVersion <= currentVersion {
-		session.mu.Unlock()
+		session.mutex.Unlock()
 		if record.SecretVersion < currentVersion {
 			return accounts.ErrStaleSecret
 		}
@@ -96,16 +96,16 @@ func (manager *SessionManager) ApplyRotation(record accounts.SessionRecord) erro
 	session.secretVersion = record.SecretVersion
 	session.state = record.State
 	session.csrfToken = ""
-	session.mu.Unlock()
+	session.mutex.Unlock()
 	oldCancel()
 	return nil
 }
 
 func (manager *SessionManager) Snapshot(accountID int64) (SessionSnapshot, error) {
-	manager.mu.RLock()
+	manager.mutex.RLock()
 	loader := manager.loader
 	locked := manager.locked
-	manager.mu.RUnlock()
+	manager.mutex.RUnlock()
 	if locked {
 		return SessionSnapshot{}, &Error{Kind: KindVaultLocked, Message: "The account vault is locked."}
 	}
@@ -120,10 +120,10 @@ func (manager *SessionManager) Snapshot(accountID int64) (SessionSnapshot, error
 	if err != nil {
 		return SessionSnapshot{}, err
 	}
-	session.mu.RLock()
+	session.mutex.RLock()
 	operationContext := session.context
 	browserID := session.browserID
-	session.mu.RUnlock()
+	session.mutex.RUnlock()
 	return SessionSnapshot{
 		AccountID:       accountID,
 		SecretVersion:   record.SecretVersion,
@@ -140,8 +140,8 @@ func (manager *SessionManager) VersionCurrent(accountID, version int64) bool {
 	if session == nil {
 		return false
 	}
-	session.mu.RLock()
-	defer session.mu.RUnlock()
+	session.mutex.RLock()
+	defer session.mutex.RUnlock()
 	return session.secretVersion == version
 }
 
@@ -150,8 +150,8 @@ func (manager *SessionManager) CSRF(accountID, version int64) string {
 	if session == nil {
 		return ""
 	}
-	session.mu.RLock()
-	defer session.mu.RUnlock()
+	session.mutex.RLock()
+	defer session.mutex.RUnlock()
 	if session.secretVersion != version {
 		return ""
 	}
@@ -163,8 +163,8 @@ func (manager *SessionManager) SetCSRF(accountID, version int64, token string) {
 	if session == nil || token == "" {
 		return
 	}
-	session.mu.Lock()
-	defer session.mu.Unlock()
+	session.mutex.Lock()
+	defer session.mutex.Unlock()
 	if session.secretVersion == version {
 		session.csrfToken = token
 	}
@@ -190,38 +190,38 @@ func (manager *SessionManager) UpdateState(accountID, version int64, state accou
 	if session == nil {
 		return
 	}
-	session.mu.Lock()
+	session.mutex.Lock()
 	if session.secretVersion == version {
 		session.state = state
 	}
-	session.mu.Unlock()
+	session.mutex.Unlock()
 }
 
 func (manager *SessionManager) Remove(accountID int64) {
-	manager.mu.Lock()
+	manager.mutex.Lock()
 	session := manager.sessions[accountID]
 	delete(manager.sessions, accountID)
 	delete(manager.browserIDs, accountID)
-	manager.mu.Unlock()
+	manager.mutex.Unlock()
 	if session != nil {
 		session.close()
 	}
 }
 
 func (manager *SessionManager) Lock() {
-	manager.mu.Lock()
+	manager.mutex.Lock()
 	old := manager.sessions
 	manager.sessions = make(map[int64]*runtimeSession)
 	manager.locked = true
-	manager.mu.Unlock()
+	manager.mutex.Unlock()
 	for _, session := range old {
 		session.close()
 	}
 }
 
 func (manager *SessionManager) runtime(accountID int64, record accounts.SessionRecord) (*runtimeSession, error) {
-	manager.mu.Lock()
-	defer manager.mu.Unlock()
+	manager.mutex.Lock()
+	defer manager.mutex.Unlock()
 	if manager.locked {
 		return nil, &Error{Kind: KindVaultLocked, Message: "The account vault is locked."}
 	}
@@ -234,8 +234,8 @@ func (manager *SessionManager) runtime(accountID int64, record accounts.SessionR
 }
 
 func (manager *SessionManager) get(accountID int64) *runtimeSession {
-	manager.mu.RLock()
-	defer manager.mu.RUnlock()
+	manager.mutex.RLock()
+	defer manager.mutex.RUnlock()
 	if manager.locked {
 		return nil
 	}
@@ -255,10 +255,10 @@ func newRuntimeSession(record accounts.SessionRecord, browserID string) *runtime
 }
 
 func (session *runtimeSession) close() {
-	session.mu.Lock()
+	session.mutex.Lock()
 	session.cancel()
 	session.csrfToken = ""
-	session.mu.Unlock()
+	session.mutex.Unlock()
 }
 
 func copyTime(value *time.Time) *time.Time {

@@ -44,7 +44,7 @@
 	aria-labelledby="change-password-title"
 	bind:card>
 	<button
-		class="absolute top-3 right-3 btn-close"
+		class="absolute top-3 right-3 button-close"
 		type="button"
 		aria-label="Close change master password dialog"
 		disabled={store.busy}
@@ -163,10 +163,10 @@
 			</button>
 		</div>
 		<div class="dialog-actions">
-			<button class="btn" type="button" disabled={store.busy} onclick={onClose}
+			<button class="button" type="button" disabled={store.busy} onclick={onClose}
 				>Cancel</button>
 			<button
-				class="btn-primary"
+				class="button-primary"
 				type="submit"
 				disabled={!passwordValid(newPassword) ||
 					newPassword !== confirmation ||

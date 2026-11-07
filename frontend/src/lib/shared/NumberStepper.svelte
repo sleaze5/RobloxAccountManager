@@ -96,7 +96,7 @@
 			}
 		}} />
 	<button
-		class="btn-icon size-8"
+		class="button-icon size-8"
 		type="button"
 		aria-label={`Decrease ${label.toLowerCase()}`}
 		disabled={disabled || saving || normalized(draft ?? value) <= min}
@@ -104,7 +104,7 @@
 		<Icon svg={minusIcon} size={16} aria-hidden="true" />
 	</button>
 	<button
-		class="btn-icon size-8"
+		class="button-icon size-8"
 		type="button"
 		aria-label={`Increase ${label.toLowerCase()}`}
 		disabled={disabled || saving || normalized(draft ?? value) >= max}

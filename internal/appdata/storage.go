@@ -83,9 +83,9 @@ func Inspect(requested Mode) (Location, error) {
 	if err := os.Chdir(executableDirectory); err != nil {
 		return Location{}, fmt.Errorf("set executable working directory: %w", err)
 	}
-	portableDirectory, standardDirectory, standardErr := candidateDirectories(executableDirectory)
+	portableDirectory, standardDirectory, standardError := candidateDirectories(executableDirectory)
 	var portable, standard *Candidate
-	if standardErr == nil {
+	if standardError == nil {
 		candidate, err := inspectCandidate(ModeStandard, standardDirectory)
 		if err != nil {
 			return Location{}, err
@@ -100,7 +100,7 @@ func Inspect(requested Mode) (Location, error) {
 		portable = &candidate
 	}
 	if portable == nil && standard == nil {
-		return Location{}, fmt.Errorf("resolve standard data folder: %w", standardErr)
+		return Location{}, fmt.Errorf("resolve standard data folder: %w", standardError)
 	}
 	return resolve(portable, standard, requested)
 }

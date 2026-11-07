@@ -82,7 +82,7 @@
 				<Icon svg={warningIcon} size={28} aria-hidden="true" />
 				<h2>Private servers are unavailable</h2>
 				<p>{servers.error}</p>
-				<button class="btn" type="button" onclick={() => void servers.load()}
+				<button class="button" type="button" onclick={() => void servers.load()}
 					>Try again</button>
 			</div>
 		{:else if !servers.page}
@@ -100,7 +100,7 @@
 				{#if servers.pageNumber > 1}
 					<h2>No more private servers</h2>
 					<p>The servers on this page changed. Go back to the first page.</p>
-					<button class="btn" type="button" onclick={() => servers.first()}
+					<button class="button" type="button" onclick={() => servers.first()}
 						>First page</button>
 				{:else}
 					<h2>No private servers</h2>
@@ -218,7 +218,7 @@
 						Place IDs and link codes stored in the vault for this game.
 					</p>
 				</div>
-				<button class="btn" type="button" onclick={onAddLink}>
+				<button class="button" type="button" onclick={onAddLink}>
 					<Icon svg={plusIcon} size={14} aria-hidden="true" />
 					Add link
 				</button>
@@ -228,8 +228,10 @@
 					class="mx-3 mb-3 flex items-center gap-3 notice-error"
 					role="alert">
 					<span class="flex-1">{saved.error}</span>
-					<button class="btn" type="button" onclick={() => void saved.load()}
-						>Try again</button>
+					<button
+						class="button"
+						type="button"
+						onclick={() => void saved.load()}>Try again</button>
 				</div>
 			{:else if !saved.servers}
 				<p

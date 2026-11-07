@@ -112,7 +112,7 @@
 		</span>
 		<div class="flex items-center gap-1">
 			<button
-				class="btn-ghost-sm hover:bg-danger/5 hover:text-danger aria-expanded:bg-danger/5 aria-expanded:text-danger"
+				class="button-ghost-sm hover:bg-danger/5 hover:text-danger aria-expanded:bg-danger/5 aria-expanded:text-danger"
 				type="button"
 				aria-label="Close Roblox processes"
 				aria-haspopup="dialog"
@@ -127,7 +127,7 @@
 				<Icon svg={prohibitIcon} size={16} aria-hidden="true" />
 			</button>
 			<button
-				class="btn-ghost-sm"
+				class="button-ghost-sm"
 				type="button"
 				aria-label={workspace.launchOpen
 					? "Collapse the launch panel"
@@ -255,7 +255,7 @@
 						{/each}
 					</div>
 					<button
-						class="btn-ghost"
+						class="button-ghost"
 						type="button"
 						aria-label="Clear join fields"
 						data-tooltip="Clear join fields and reset to Place ID"

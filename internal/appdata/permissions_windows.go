@@ -46,7 +46,7 @@ func restrictACL(path string, directory bool) error {
 	if directory {
 		inheritance = windows.SUB_CONTAINERS_AND_OBJECTS_INHERIT
 	}
-	acl, err := windows.ACLFromEntries([]windows.EXPLICIT_ACCESS{{
+	accessControlList, err := windows.ACLFromEntries([]windows.EXPLICIT_ACCESS{{
 		AccessPermissions: windows.ACCESS_MASK(windows.GENERIC_ALL),
 		AccessMode:        windows.SET_ACCESS,
 		Inheritance:       inheritance,
@@ -65,7 +65,7 @@ func restrictACL(path string, directory bool) error {
 		windows.DACL_SECURITY_INFORMATION|windows.PROTECTED_DACL_SECURITY_INFORMATION,
 		nil,
 		nil,
-		acl,
+		accessControlList,
 		nil,
 	); err != nil {
 		return fmt.Errorf("set private Windows ACL: %w", err)

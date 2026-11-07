@@ -40,12 +40,12 @@ func (manager *Manager) MigrateLegacyVault(ctx context.Context, password string,
 	if err != nil {
 		return err
 	}
-	dek, err := legacy.unwrap(password)
+	vaultKey, err := legacy.unwrap(password)
 	if err != nil {
 		return err
 	}
-	defer wipe(dek)
-	payload, err := manager.readMigration(dek, legacy.VaultID)
+	defer wipe(vaultKey)
+	payload, err := manager.readMigration(vaultKey, legacy.VaultID)
 	if err != nil {
 		return err
 	}
@@ -60,8 +60,8 @@ func (manager *Manager) MigrateLegacyVault(ctx context.Context, password string,
 		return err
 	}
 	if err := manager.Create(ctx, password, legacy.Hint, automaticUnlock); err != nil {
-		if restoreErr := manager.restoreLegacyVault(recovery); restoreErr != nil {
-			return errors.Join(err, restoreErr)
+		if restoreError := manager.restoreLegacyVault(recovery); restoreError != nil {
+			return errors.Join(err, restoreError)
 		}
 		return err
 	}
@@ -71,7 +71,7 @@ func (manager *Manager) MigrateLegacyVault(ctx context.Context, password string,
 
 func (manager *Manager) MigrationAvailable() bool { return fileExists(manager.paths.Migration) }
 
-func (manager *Manager) readMigration(dek []byte, identifier [vaultIDBytes]byte) ([]byte, error) {
+func (manager *Manager) readMigration(vaultKey []byte, identifier [vaultIDBytes]byte) ([]byte, error) {
 	data, err := readBounded(manager.paths.Migration, exportFileLimit)
 	if errors.Is(err, os.ErrNotExist) {
 		return nil, ErrNoMigration
@@ -88,7 +88,7 @@ func (manager *Manager) readMigration(dek []byte, identifier [vaultIDBytes]byte)
 	if !bytes.Equal(data[len(migrationMagic)+2:len(migrationMagic)+2+vaultIDBytes], identifier[:]) {
 		return nil, fmt.Errorf("%w: the migration file belongs to another vault", ErrInvalidMigration)
 	}
-	key, err := migrationKey(dek)
+	key, err := migrationKey(vaultKey)
 	if err != nil {
 		return nil, err
 	}
@@ -116,8 +116,8 @@ func (manager *Manager) RemoveMigration() error {
 	return nil
 }
 
-func migrationKey(dek []byte) ([]byte, error) {
-	key, err := hkdf.Key(sha256.New, dek, nil, "RobloxAccountManager vault migration", 32)
+func migrationKey(vaultKey []byte) ([]byte, error) {
+	key, err := hkdf.Key(sha256.New, vaultKey, nil, "RobloxAccountManager vault migration", 32)
 	if err != nil {
 		return nil, fmt.Errorf("derive vault migration key: %w", err)
 	}

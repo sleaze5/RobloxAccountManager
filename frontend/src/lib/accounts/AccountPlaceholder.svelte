@@ -60,7 +60,7 @@
 		<p>Launch starts every selected account.</p>
 		<div class="flex gap-2">
 			<button
-				class="btn"
+				class="button"
 				type="button"
 				aria-expanded={workspace.accountContextMenu !== null}
 				onclick={(event) =>
@@ -72,7 +72,7 @@
 				copy
 			</button>
 			<button
-				class="btn"
+				class="button"
 				type="button"
 				onclick={() => {
 					store.clearSelection()
@@ -94,7 +94,7 @@
 			<div class="relative" data-account-menu>
 				<button
 					bind:this={trigger}
-					class="btn-primary"
+					class="button-primary"
 					type="button"
 					aria-expanded={menuOpen}
 					disabled={store.busy}
@@ -114,7 +114,7 @@
 			<Icon svg={magnifyingGlassIcon} size={28} aria-hidden="true" />
 			<h2>Nothing to show</h2>
 			<p>Change the search or tag filter to find an account.</p>
-			<button class="btn" type="button" onclick={clearFilters}>
+			<button class="button" type="button" onclick={clearFilters}>
 				Clear search and filters
 			</button>
 		{:else}

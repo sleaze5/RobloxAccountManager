@@ -364,7 +364,7 @@
 							use:loadMoreWhenVisible={store.nextPageToken}>
 							{#if store.loadMoreFailed}
 								<button
-									class="btn"
+									class="button"
 									type="button"
 									onclick={() => void store.search(true)}
 									>Load more results</button>
@@ -383,7 +383,7 @@
 					<div
 						class="pointer-events-none absolute inset-x-0 bottom-2 flex justify-center">
 						<button
-							class="pointer-events-auto btn bg-raised shadow-float hover:bg-raised-hover"
+							class="pointer-events-auto button bg-raised shadow-float hover:bg-raised-hover"
 							type="button"
 							in:menuIn
 							out:menuOut
@@ -432,7 +432,7 @@
 								aria-hidden="true" />
 							<h2>Favorites are unavailable</h2>
 							<button
-								class="btn"
+								class="button"
 								type="button"
 								onclick={() => void store.loadFavorites()}
 								>Try again</button>
@@ -449,7 +449,7 @@
 							<h2>No favorite places yet</h2>
 							<p>Search for a game, then add it to your favorites.</p>
 							<button
-								class="btn"
+								class="button"
 								type="button"
 								onclick={() => void searchGames()}
 								><Icon

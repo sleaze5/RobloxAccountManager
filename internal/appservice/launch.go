@@ -70,8 +70,8 @@ func (service *Service) LaunchAccounts(ctx context.Context, accountIDs []int64, 
 }
 
 func (service *Service) serializeLaunch(ctx context.Context, action func() error) error {
-	service.launchMu.Lock()
-	defer service.launchMu.Unlock()
+	service.launchMutex.Lock()
+	defer service.launchMutex.Unlock()
 	if ctx.Err() != nil || !service.vault.Unlocked() {
 		return launchError(roblox.KindCancelled, "The launch was cancelled or the vault is locked.")
 	}
@@ -278,9 +278,9 @@ func (service *Service) resolveLaunchUser(ctx context.Context, accountID int64, 
 }
 
 func userLaunchMessage(err error, fallback string) string {
-	var clientErr *gamelaunch.ClientError
-	if errors.As(err, &clientErr) && strings.TrimSpace(clientErr.Message) != "" {
-		message := strings.TrimSpace(clientErr.Message)
+	var clientError *gamelaunch.ClientError
+	if errors.As(err, &clientError) && strings.TrimSpace(clientError.Message) != "" {
+		message := strings.TrimSpace(clientError.Message)
 		return strings.ToUpper(message[:1]) + message[1:] + "."
 	}
 	if errors.Is(err, gamelaunch.ErrDesktopUnavailable) {

@@ -16,10 +16,10 @@ import (
 var accountSettingsOperationID atomic.Uint64
 
 type accountSettingsReads struct {
-	settings, options, voice          robloxservices.SettingsDocument
-	settingsErr, optionsErr, voiceErr error
-	optionsV2                         robloxservices.SettingsDocument
-	optionsV2Err                      error
+	settings, options, voice                robloxservices.SettingsDocument
+	settingsError, optionsError, voiceError error
+	optionsV2                               robloxservices.SettingsDocument
+	optionsV2Error                          error
 }
 
 type accountSettingsLock struct {
@@ -63,19 +63,19 @@ func (service *Service) readAccountSettings(ctx context.Context, accountID, vers
 	group.Add(4)
 	go func() {
 		defer group.Done()
-		reads.settings, reads.settingsErr = service.accountSettings.Read(ctx, accountID, version)
+		reads.settings, reads.settingsError = service.accountSettings.Read(ctx, accountID, version)
 	}()
 	go func() {
 		defer group.Done()
-		reads.options, reads.optionsErr = service.accountSettings.ReadOptions(ctx, accountID, version)
+		reads.options, reads.optionsError = service.accountSettings.ReadOptions(ctx, accountID, version)
 	}()
 	go func() {
 		defer group.Done()
-		reads.voice, reads.voiceErr = service.accountSettings.ReadVoice(ctx, accountID, version)
+		reads.voice, reads.voiceError = service.accountSettings.ReadVoice(ctx, accountID, version)
 	}()
 	go func() {
 		defer group.Done()
-		reads.optionsV2, reads.optionsV2Err = service.accountSettings.ReadOptionsV2(ctx, accountID, version)
+		reads.optionsV2, reads.optionsV2Error = service.accountSettings.ReadOptionsV2(ctx, accountID, version)
 	}()
 	group.Wait()
 	if ctx.Err() != nil || !service.sessions.VersionCurrent(accountID, version) {
@@ -89,7 +89,7 @@ func (service *Service) readAccountSettings(ctx context.Context, accountID, vers
 		source string
 		err    error
 	}{
-		{"settings", reads.settingsErr}, {"options", reads.optionsErr}, {"communication", reads.optionsV2Err}, {"voice", reads.voiceErr},
+		{"settings", reads.settingsError}, {"options", reads.optionsError}, {"communication", reads.optionsV2Error}, {"voice", reads.voiceError},
 	} {
 		if section.err == nil {
 			continue
@@ -130,21 +130,21 @@ func accountSettingsError(kind roblox.ErrorKind, message string) error {
 }
 
 func (service *Service) lockAccountSettings(ctx context.Context, accountID int64) (func(), error) {
-	service.accountSettingsMu.Lock()
+	service.accountSettingsMutex.Lock()
 	lock := service.accountSettingsLocks[accountID]
 	if lock == nil {
 		lock = &accountSettingsLock{gate: make(chan struct{}, 1)}
 		service.accountSettingsLocks[accountID] = lock
 	}
 	lock.users++
-	service.accountSettingsMu.Unlock()
+	service.accountSettingsMutex.Unlock()
 	drop := func() {
-		service.accountSettingsMu.Lock()
+		service.accountSettingsMutex.Lock()
 		lock.users--
 		if lock.users == 0 {
 			delete(service.accountSettingsLocks, accountID)
 		}
-		service.accountSettingsMu.Unlock()
+		service.accountSettingsMutex.Unlock()
 	}
 	select {
 	case lock.gate <- struct{}{}:
@@ -210,13 +210,13 @@ func (service *Service) UpdateAccountSetting(ctx context.Context, accountID int6
 	if ctx.Err() != nil || !service.sessions.VersionCurrent(accountID, version) {
 		return AccountSettingUpdateResult{}, accountSettingsError(roblox.KindCancelled, "The account session changed before saving. Refresh settings to continue.")
 	}
-	var writeErr error
+	var writeError error
 	if change.BoolValue != nil {
-		writeErr = service.accountSettings.UpdateBool(ctx, accountID, version, string(change.Key), *change.BoolValue)
+		writeError = service.accountSettings.UpdateBool(ctx, accountID, version, string(change.Key), *change.BoolValue)
 	} else {
-		writeErr = service.accountSettings.Update(ctx, accountID, version, string(change.Key), *change.StringValue)
+		writeError = service.accountSettings.Update(ctx, accountID, version, string(change.Key), *change.StringValue)
 	}
-	return service.confirmAccountSetting(ctx, accountID, version, before, change.Key, desired, writeErr, logger)
+	return service.confirmAccountSetting(ctx, accountID, version, before, change.Key, desired, writeError, logger)
 }
 
 func findAccountSetting(snapshot AccountSettingsSnapshot, key AccountSettingKey) AccountSettingView {
@@ -237,17 +237,17 @@ func accountSettingAllows(current, desired AccountSettingView) bool {
 	return false
 }
 
-func (service *Service) confirmAccountSetting(ctx context.Context, accountID, version int64, before AccountSettingsSnapshot, key AccountSettingKey, desired AccountSettingView, writeErr error, logger *slog.Logger) (AccountSettingUpdateResult, error) {
-	after, readErr := service.readAccountSettings(ctx, accountID, version, logger)
-	if readErr == nil && settingsReadBackConfirmed(after, key, desired) {
+func (service *Service) confirmAccountSetting(ctx context.Context, accountID, version int64, before AccountSettingsSnapshot, key AccountSettingKey, desired AccountSettingView, writeError error, logger *slog.Logger) (AccountSettingUpdateResult, error) {
+	after, readError := service.readAccountSettings(ctx, accountID, version, logger)
+	if readError == nil && settingsReadBackConfirmed(after, key, desired) {
 		logger.Info("account setting update finished", "outcome", "applied")
 		return AccountSettingUpdateResult{Snapshot: after, Outcome: "applied", Message: "Saved"}, nil
 	}
-	if writeErr != nil {
-		failure := accountSettingsSectionError("settings", writeErr)
+	if writeError != nil {
+		failure := accountSettingsSectionError("settings", writeError)
 		logger.Warn("account setting write not confirmed", "error_kind", failure.Kind)
-		if definiteSettingRejection(writeErr) {
-			return AccountSettingUpdateResult{}, writeErr
+		if definiteSettingRejection(writeError) {
+			return AccountSettingUpdateResult{}, writeError
 		}
 	}
 	logger.Warn("account setting update finished", "outcome", "unconfirmed")

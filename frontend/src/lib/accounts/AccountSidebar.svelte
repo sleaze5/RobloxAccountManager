@@ -82,7 +82,7 @@
 	{#snippet actions()}
 		<div class="relative" data-account-menu>
 			<button
-				class="btn-ghost"
+				class="button-ghost"
 				data-open={workspace.activeAccountMenu === "add-account" || undefined}
 				type="button"
 				aria-label="Add account"
@@ -95,7 +95,7 @@
 			</button>
 		</div>
 		<button
-			class="btn-ghost"
+			class="button-ghost"
 			type="button"
 			aria-label={store.refreshing ? "Refreshing accounts" : "Refresh accounts"}
 			aria-busy={store.refreshing}

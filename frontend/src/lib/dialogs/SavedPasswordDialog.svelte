@@ -181,7 +181,7 @@
 					}} />
 			</label>
 			<button
-				class="absolute right-1 bottom-1 btn-ghost size-6"
+				class="absolute right-1 bottom-1 button-ghost size-6"
 				type="button"
 				aria-label={visible ? "Hide password" : "Show password"}
 				data-tooltip={visible ? "Hide password" : "Show password"}
@@ -236,12 +236,12 @@
 
 		<div class="dialog-actions">
 			<button
-				class="btn"
+				class="button"
 				type="button"
 				disabled={pending !== null}
 				onclick={close}>Cancel</button>
 			<button
-				class="btn-primary"
+				class="button-primary"
 				type="submit"
 				disabled={busy || !password || password === saved}>
 				{pending === "save" ? "Saving…" : "Save"}

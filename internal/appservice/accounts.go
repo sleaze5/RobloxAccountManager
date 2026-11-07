@@ -80,23 +80,23 @@ func (service *Service) BrowserAvatar(ctx context.Context, robloxUserID int64) s
 func (service *Service) CommitBrowserCandidate(ctx context.Context, validation roblox.CookieValidation) (accounts.AccountView, browser.SaveStatus, error) {
 	existing, err := service.repo.FindByRobloxUserID(ctx, validation.Identity.RobloxUserID)
 	if err == nil {
-		view, replaceErr := service.replaceValidatedCookie(ctx, existing.ID, validation)
-		return view, browser.SaveUpdated, replaceErr
+		view, replaceError := service.replaceValidatedCookie(ctx, existing.ID, validation)
+		return view, browser.SaveUpdated, replaceError
 	}
 	if !errors.Is(err, accounts.ErrNotFound) {
 		return accounts.AccountView{}, browser.SaveFailed, mapRepositoryError(err)
 	}
 	view, record, err := service.repo.Create(ctx, validation.Identity, validation.Cookie, validation.ExpiresAt)
 	if errors.Is(err, accounts.ErrDuplicateAccount) {
-		duplicate, lookupErr := service.repo.FindByRobloxUserID(ctx, validation.Identity.RobloxUserID)
-		return duplicate, browser.SaveDuplicate, lookupErr
+		duplicate, lookupError := service.repo.FindByRobloxUserID(ctx, validation.Identity.RobloxUserID)
+		return duplicate, browser.SaveDuplicate, lookupError
 	}
 	if err != nil {
 		return accounts.AccountView{}, browser.SaveFailed, mapRepositoryError(err)
 	}
 	if err := service.sessions.Put(record, validation.BrowserID); err != nil {
-		if removeErr := service.repo.Remove(context.WithoutCancel(ctx), view.ID); removeErr != nil {
-			service.logger.Error("browser account rollback failed", "operation", "browser-account-save", "account_id", view.ID, "error", removeErr)
+		if removeError := service.repo.Remove(context.WithoutCancel(ctx), view.ID); removeError != nil {
+			service.logger.Error("browser account rollback failed", "operation", "browser-account-save", "account_id", view.ID, "error", removeError)
 		}
 		return accounts.AccountView{}, browser.SaveFailed, err
 	}
@@ -116,10 +116,10 @@ func (service *Service) SynchronizeBrowserCookie(ctx context.Context, accountID,
 	if err != nil {
 		return 0, err
 	}
-	applyErr := service.sessions.ApplyRotation(record)
+	applyError := service.sessions.ApplyRotation(record)
 	service.events.SessionChanged(accountID)
-	if applyErr != nil {
-		return 0, applyErr
+	if applyError != nil {
+		return 0, applyError
 	}
 	logger := service.logger.With("operation", "browser-cookie-synchronization", "account_id", accountID)
 	service.events.CredentialBackupChanged(service.refreshCredentialBackup(ctx, logger, true))
@@ -287,9 +287,9 @@ func (service *Service) ValidateAccount(ctx context.Context, accountID int64) (a
 	if err != nil {
 		return accounts.AccountView{}, err
 	}
-	snapshot, snapshotErr := service.sessions.Snapshot(accountID)
-	if snapshotErr != nil {
-		return accounts.AccountView{}, snapshotErr
+	snapshot, snapshotError := service.sessions.Snapshot(accountID)
+	if snapshotError != nil {
+		return accounts.AccountView{}, snapshotError
 	}
 	if identity.RobloxUserID != current.RobloxUserID {
 		if err := service.repo.MarkState(context.WithoutCancel(ctx), accountID, snapshot.SecretVersion, accounts.StateReauthRequired, "Roblox returned a different account identity."); err != nil && !errors.Is(err, accounts.ErrStaleSecret) {

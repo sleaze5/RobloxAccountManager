@@ -34,8 +34,8 @@ func (err *cdpError) Error() string { return fmt.Sprintf("CDP error %d: %s", err
 type CDPClient struct {
 	input        io.WriteCloser
 	output       io.ReadCloser
-	writeMu      sync.Mutex
-	mu           sync.Mutex
+	writeMutex   sync.Mutex
+	mutex        sync.Mutex
 	nextID       int64
 	pending      map[int64]chan cdpMessage
 	events       chan cdpMessage
@@ -53,17 +53,17 @@ func NewCDPClient(input io.WriteCloser, output io.ReadCloser, onFailure func(err
 }
 
 func (client *CDPClient) Call(ctx context.Context, method string, params any, sessionID string, result any) error {
-	client.mu.Lock()
+	client.mutex.Lock()
 	if client.err != nil {
 		err := client.err
-		client.mu.Unlock()
+		client.mutex.Unlock()
 		return err
 	}
 	client.nextID++
 	id := client.nextID
 	response := make(chan cdpMessage, 1)
 	client.pending[id] = response
-	client.mu.Unlock()
+	client.mutex.Unlock()
 	payload, err := json.Marshal(struct {
 		ID        int64  `json:"id"`
 		Method    string `json:"method"`
@@ -74,9 +74,9 @@ func (client *CDPClient) Call(ctx context.Context, method string, params any, se
 		client.removePending(id)
 		return fmt.Errorf("encode CDP command: %w", err)
 	}
-	client.writeMu.Lock()
+	client.writeMutex.Lock()
 	_, err = client.input.Write(append(payload, 0))
-	client.writeMu.Unlock()
+	client.writeMutex.Unlock()
 	if err != nil {
 		err = fmt.Errorf("write browser CDP input: %w", err)
 		client.removePending(id)
@@ -98,9 +98,9 @@ func (client *CDPClient) Call(ctx context.Context, method string, params any, se
 		client.removePending(id)
 		return ctx.Err()
 	case <-client.done:
-		client.mu.Lock()
+		client.mutex.Lock()
 		err := client.err
-		client.mu.Unlock()
+		client.mutex.Unlock()
 		if err == nil {
 			err = io.EOF
 		}
@@ -133,10 +133,10 @@ func (client *CDPClient) readLoop() {
 			return
 		}
 		if message.ID > 0 {
-			client.mu.Lock()
+			client.mutex.Lock()
 			target := client.pending[message.ID]
 			delete(client.pending, message.ID)
-			client.mu.Unlock()
+			client.mutex.Unlock()
 			if target != nil {
 				target <- message
 			}
@@ -161,9 +161,9 @@ func (client *CDPClient) fail(err error) {
 
 func (client *CDPClient) stop(err error, notify bool) {
 	client.closeOnce.Do(func() { _ = client.input.Close(); _ = client.output.Close() })
-	client.mu.Lock()
+	client.mutex.Lock()
 	if client.err != nil {
-		client.mu.Unlock()
+		client.mutex.Unlock()
 		return
 	}
 	client.err = err
@@ -171,16 +171,16 @@ func (client *CDPClient) stop(err error, notify bool) {
 		delete(client.pending, id)
 	}
 	close(client.done)
-	client.mu.Unlock()
+	client.mutex.Unlock()
 	if notify && client.onFailure != nil {
 		client.onFailure(err)
 	}
 }
 
 func (client *CDPClient) removePending(id int64) {
-	client.mu.Lock()
+	client.mutex.Lock()
 	delete(client.pending, id)
-	client.mu.Unlock()
+	client.mutex.Unlock()
 }
 
 type TargetInfo struct {
@@ -220,9 +220,9 @@ func (client *CDPClient) Targets(ctx context.Context) ([]TargetInfo, error) {
 }
 
 func (client *CDPClient) Attach(ctx context.Context, targetID string) (string, error) {
-	client.mu.Lock()
+	client.mutex.Lock()
 	bridge := client.launchBridge
-	client.mu.Unlock()
+	client.mutex.Unlock()
 	if bridge != nil {
 		return bridge.session(ctx, targetID)
 	}

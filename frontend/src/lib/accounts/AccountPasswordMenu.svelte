@@ -80,7 +80,7 @@
 	onresize={() => close()} />
 
 <button
-	class="-my-1 btn-ghost-sm self-center"
+	class="-my-1 button-ghost-sm self-center"
 	type="button"
 	bind:this={trigger}
 	aria-label="Password options"

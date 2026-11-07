@@ -90,7 +90,7 @@
 			{#if chat.loadMoreFailed}
 				<button
 					type="button"
-					class="btn self-center"
+					class="button self-center"
 					onclick={() => void chat.loadMore()}>
 					Load more chats
 				</button>

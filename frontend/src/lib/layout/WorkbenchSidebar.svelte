@@ -38,7 +38,7 @@
 	{#if collapsed}
 		<div class="flex h-full flex-col items-center gap-3 pt-2 text-fg-faint">
 			<button
-				class="btn-ghost"
+				class="button-ghost"
 				type="button"
 				aria-label={`Expand ${name} sidebar`}
 				data-tooltip={`Expand the ${name} sidebar`}
@@ -60,7 +60,7 @@
 				<div class="ml-auto flex items-center gap-px">
 					{@render actions?.()}
 					<button
-						class="btn-ghost"
+						class="button-ghost"
 						type="button"
 						aria-label={`Collapse ${name} sidebar`}
 						data-tooltip={`Collapse the ${name} sidebar`}

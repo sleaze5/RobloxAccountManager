@@ -55,10 +55,13 @@
 		<div class="mt-3 notice-error" role="alert">{sessions.signOutError}</div>
 	{/if}
 	<div class="dialog-actions">
-		<button class="btn" type="button" disabled={sessions.signingOut} onclick={close}
-			>Cancel</button>
 		<button
-			class="btn-danger"
+			class="button"
+			type="button"
+			disabled={sessions.signingOut}
+			onclick={close}>Cancel</button>
+		<button
+			class="button-danger"
 			type="button"
 			disabled={sessions.signingOut}
 			onclick={() => void signOut()}>

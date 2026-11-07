@@ -58,10 +58,13 @@
 		<div class="mt-3 notice-error" role="alert">{store.unfriendError}</div>
 	{/if}
 	<div class="dialog-actions">
-		<button class="btn" type="button" disabled={store.unfriending} onclick={close}
-			>Cancel</button>
 		<button
-			class="btn-danger"
+			class="button"
+			type="button"
+			disabled={store.unfriending}
+			onclick={close}>Cancel</button>
+		<button
+			class="button-danger"
 			type="button"
 			disabled={store.unfriending}
 			onclick={() => void unfriend()}>

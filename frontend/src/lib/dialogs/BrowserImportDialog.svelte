@@ -256,7 +256,7 @@
 				<p>Open a browser and sign in to Roblox to add an account.</p>
 				<button
 					type="button"
-					class="mt-1 btn-primary"
+					class="mt-1 button-primary"
 					disabled={browser.loading}
 					onclick={() => void browser.startLogin()}>Open browser</button>
 			{/if}
@@ -301,7 +301,7 @@
 					</div>
 					<button
 						type="button"
-						class="btn-ghost-sm"
+						class="button-ghost-sm"
 						aria-label={`Show browser ${index + 1}`}
 						data-tooltip="Show browser"
 						disabled={session.lifecycle === Lifecycle.LifecycleFailed ||
@@ -313,7 +313,7 @@
 							aria-hidden="true" /></button>
 					<button
 						type="button"
-						class="btn-ghost-sm"
+						class="button-ghost-sm"
 						aria-label={`Close browser ${index + 1}`}
 						data-tooltip="Close browser"
 						disabled={session.lifecycle === Lifecycle.LifecycleClosing ||
@@ -357,21 +357,21 @@
 	<div class="dialog-actions">
 		{#if activeLoginSessions.length > 1}<button
 				type="button"
-				class="mr-auto btn"
+				class="mr-auto button"
 				onclick={() => void browser.closeAllLogin()}>Close all browsers</button
 			>{/if}
 		{#if candidates.length > 0 && activeLoginSessions.length === 0}<button
-				class="btn"
+				class="button"
 				type="button"
 				disabled={saving}
 				onclick={() => void browser.discard()}>Discard</button
 			>{/if}
-		{#if canClose}<button class="btn" type="button" onclick={closeDialog}
+		{#if canClose}<button class="button" type="button" onclick={closeDialog}
 				>Close</button
 			>{/if}
 		{#if candidates.length > 0}<button
 				type="button"
-				class="btn-primary"
+				class="button-primary"
 				disabled={!canCommit || selected.length === 0 || saving}
 				onclick={() => void save()}>{saveLabel}</button
 			>{/if}

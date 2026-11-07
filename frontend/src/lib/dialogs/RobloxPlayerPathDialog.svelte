@@ -182,7 +182,7 @@
 			</div>
 			<div class="flex gap-1">
 				<button
-					class="btn-ghost"
+					class="button-ghost"
 					type="button"
 					aria-label="Reload Roblox versions"
 					data-tooltip="Reload Roblox versions"
@@ -200,7 +200,7 @@
 							aria-hidden="true" />{/if}
 				</button>
 				<button
-					class="btn-ghost-sm"
+					class="button-ghost-sm"
 					type="button"
 					aria-label="Close Roblox Player location dialog"
 					onclick={onClose}>
@@ -285,7 +285,7 @@
 						void checkPath()
 					}} />
 				<button
-					class="btn h-8 px-3 font-semibold"
+					class="button h-8 px-3 font-semibold"
 					type="button"
 					disabled={busy || customPath.trim() === ""}
 					onclick={() => void validate()}>
@@ -297,7 +297,7 @@
 					Validate
 				</button>
 				<button
-					class="btn-ghost"
+					class="button-ghost"
 					type="button"
 					aria-label="Clear custom path"
 					data-tooltip="Clear custom path"
@@ -340,9 +340,9 @@
 			<div class="mt-3 notice-error" role="alert">{error}</div>
 		{/if}
 		<div class="dialog-actions">
-			<button class="btn" type="button" disabled={busy} onclick={onClose}
+			<button class="button" type="button" disabled={busy} onclick={onClose}
 				>Cancel</button>
-			<button class="btn-primary" type="submit" disabled={busy || !parses}>
+			<button class="button-primary" type="submit" disabled={busy || !parses}>
 				Save
 			</button>
 		</div>

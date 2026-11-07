@@ -52,7 +52,7 @@
 							settings to an encrypted file.</span>
 					</div>
 					<button
-						class="btn"
+						class="button"
 						type="button"
 						disabled={store.busy || !store.vault.unlocked}
 						onclick={() => (exporting = true)}>
@@ -70,7 +70,7 @@
 							file.</span>
 					</div>
 					<button
-						class="btn"
+						class="button"
 						type="button"
 						disabled={store.busy || !store.vault.unlocked}
 						onclick={() => void chooseImport()}>

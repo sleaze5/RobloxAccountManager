@@ -253,15 +253,15 @@
 		<div class="dialog-actions">
 			{#if phase === "confirm"}
 				<button
-					class="btn"
+					class="button"
 					type="button"
 					disabled={pending}
 					onclick={() => (phase = "edit")}>Back</button>
 			{:else}
-				<button class="btn" type="button" disabled={pending} onclick={close}
+				<button class="button" type="button" disabled={pending} onclick={close}
 					>Cancel</button>
 			{/if}
-			<button class="btn-primary" type="submit" disabled={!ready || pending}>
+			<button class="button-primary" type="submit" disabled={!ready || pending}>
 				{#if pending}
 					{kind === "pin" ? "Unlocking…" : "Saving…"}
 				{:else if phase === "confirm" || kind === "pin"}

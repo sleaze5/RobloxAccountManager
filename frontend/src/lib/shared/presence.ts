@@ -22,10 +22,11 @@ function motion({
 	scale = 1,
 	origin = "center",
 }: MotionOptions): TransitionConfig {
-	if (reducedMotion()) return { css: (t) => `opacity: ${t};`, duration, easing }
+	if (reducedMotion())
+		return { css: (progress) => `opacity: ${progress};`, duration, easing }
 	return {
-		css: (t, u) =>
-			`opacity: ${t}; transform: translate(${u * x}px, ${u * y}px) scale(${scale + (1 - scale) * t}); transform-origin: ${origin};`,
+		css: (progress, remaining) =>
+			`opacity: ${progress}; transform: translate(${remaining * x}px, ${remaining * y}px) scale(${scale + (1 - scale) * progress}); transform-origin: ${origin};`,
 		duration,
 		easing,
 	}
@@ -361,20 +362,37 @@ export function modalFocus(node: HTMLElement): { destroy: () => void } {
 }
 
 function cubicBezier(x1: number, y1: number, x2: number, y2: number): EasingFunction {
-	const sample = (a: number, b: number, t: number) =>
-			((1 - 3 * b + 3 * a) * t + (3 * b - 6 * a)) * t * t + 3 * a * t,
-		derivative = (a: number, b: number, t: number) =>
-			3 * (1 - 3 * b + 3 * a) * t * t + 2 * (3 * b - 6 * a) * t + 3 * a
+	const sample = (
+			firstControl: number,
+			secondControl: number,
+			curveParameter: number,
+		) =>
+			((1 - 3 * secondControl + 3 * firstControl) * curveParameter +
+				(3 * secondControl - 6 * firstControl)) *
+				curveParameter *
+				curveParameter +
+			3 * firstControl * curveParameter,
+		derivative = (
+			firstControl: number,
+			secondControl: number,
+			curveParameter: number,
+		) =>
+			3 *
+				(1 - 3 * secondControl + 3 * firstControl) *
+				curveParameter *
+				curveParameter +
+			2 * (3 * secondControl - 6 * firstControl) * curveParameter +
+			3 * firstControl
 
-	return (x) => {
-		let t = x
-		for (let index = 0; index < 5; index += 1) {
-			const slope = derivative(x1, x2, t)
+	return (elapsedFraction) => {
+		let curveParameter = elapsedFraction
+		for (let iteration = 0; iteration < 5; iteration += 1) {
+			const slope = derivative(x1, x2, curveParameter)
 			if (Math.abs(slope) < 1e-6) {
 				break
 			}
-			t -= (sample(x1, x2, t) - x) / slope
+			curveParameter -= (sample(x1, x2, curveParameter) - elapsedFraction) / slope
 		}
-		return sample(y1, y2, Math.min(1, Math.max(0, t)))
+		return sample(y1, y2, Math.min(1, Math.max(0, curveParameter)))
 	}
 }

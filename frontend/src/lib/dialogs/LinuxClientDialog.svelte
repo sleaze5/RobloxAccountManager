@@ -78,7 +78,7 @@
 				<p>Choose the client that joins games.</p>
 			</div>
 			<button
-				class="btn-ghost-sm"
+				class="button-ghost-sm"
 				type="button"
 				aria-label="Close Linux client dialog"
 				onclick={onClose}>
@@ -118,9 +118,11 @@
 			<div class="mt-3 notice-error" role="alert">{error}</div>
 		{/if}
 		<div class="dialog-actions">
-			<button class="btn" type="button" disabled={saving} onclick={onClose}
+			<button class="button" type="button" disabled={saving} onclick={onClose}
 				>Cancel</button>
-			<button class="btn-primary" type="submit" disabled={saving}> Save </button>
+			<button class="button-primary" type="submit" disabled={saving}>
+				Save
+			</button>
 		</div>
 	</form>
 </Dialog>

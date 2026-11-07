@@ -164,7 +164,7 @@
 		{#if !snapshot}
 			<div class="flex justify-end gap-2">
 				<button
-					class="btn"
+					class="button"
 					type="button"
 					disabled={loading}
 					onclick={() => void load()}>Retry</button>
@@ -202,7 +202,7 @@
 	<div class="notice-error" role="alert">{clientsError}</div>
 	<div class="flex justify-end gap-2 px-1 pt-2">
 		<button
-			class="btn"
+			class="button"
 			type="button"
 			disabled={clientsLoading}
 			onclick={() => void loadClients()}>Retry</button>

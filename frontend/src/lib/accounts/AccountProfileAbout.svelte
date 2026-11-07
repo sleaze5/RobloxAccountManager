@@ -47,7 +47,7 @@
 			About
 		</h3>
 		<button
-			class="btn-ghost-sm"
+			class="button-ghost-sm"
 			type="button"
 			aria-label="Edit description"
 			data-tooltip="Edit description"
@@ -75,7 +75,7 @@
 					<dd>
 						{#each snapshot.socialLinks as link (link.name)}
 							<button
-								class="btn"
+								class="button"
 								type="button"
 								aria-label={`Open ${link.name} (${link.url})`}
 								data-tooltip={link.url}

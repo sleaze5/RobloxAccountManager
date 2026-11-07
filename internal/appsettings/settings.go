@@ -134,7 +134,7 @@ type UserInterfaceSettings struct {
 }
 
 type Store struct {
-	mu             sync.Mutex
+	mutex          sync.Mutex
 	path           string
 	settings       Settings
 	origin         string
@@ -164,7 +164,7 @@ func New(path string) *Store {
 }
 
 func Open(path string) (*Store, error) {
-	loaded, loadErr := load(path)
+	loaded, loadError := load(path)
 	store := &Store{
 		path:           path,
 		settings:       loaded.settings,
@@ -172,14 +172,14 @@ func Open(path string) (*Store, error) {
 		sourceVersion:  loaded.sourceVersion,
 		replacedFields: loaded.replacedFields,
 	}
-	if loadErr != nil {
+	if loadError != nil {
 		store.origin = "created"
-		if !errors.Is(loadErr, os.ErrNotExist) {
+		if !errors.Is(loadError, os.ErrNotExist) {
 			store.origin = "recovered"
 			if err := preserveUnreadableSettings(path); err != nil {
-				return nil, errors.Join(loadErr, err)
+				return nil, errors.Join(loadError, err)
 			}
-			store.recoveryError = loadErr
+			store.recoveryError = loadError
 		}
 		store.settings = defaults()
 	}
@@ -240,10 +240,10 @@ func Decode(data []byte) (Settings, error) {
 // Export leaves out the Roblox Player path and the vault timestamps, because they belong to this computer and vault.
 // Options for other operating systems stay in the export. They are saved on import and have no effect on other systems.
 func (store *Store) Export() ([]byte, error) {
-	store.mu.Lock()
+	store.mutex.Lock()
 	settings := store.settings
 	settings.Logging.EnabledLevels = cloneLoggingLevels(settings.Logging.EnabledLevels)
-	store.mu.Unlock()
+	store.mutex.Unlock()
 	settings.Roblox.PlayerPath = ""
 	settings.Vault = VaultSettings{PasswordTestIntervalDays: settings.Vault.PasswordTestIntervalDays}
 	data, err := json.Marshal(settings)
@@ -332,12 +332,12 @@ func (fields *fieldDecoder) presence(document object, path string, target *Prese
 	decodeField(fields, document, path+".intervalSeconds", &target.IntervalSeconds, validPresenceInterval)
 }
 
-func decodeField[T any](fields *fieldDecoder, document object, path string, target *T, valid func(T) bool) {
+func decodeField[FieldValue any](fields *fieldDecoder, document object, path string, target *FieldValue, valid func(FieldValue) bool) {
 	raw, ok := document[fieldName(path)]
 	if !ok {
 		return
 	}
-	var value T
+	var value FieldValue
 	if string(bytes.TrimSpace(raw)) == "null" || json.Unmarshal(raw, &value) != nil || valid != nil && !valid(value) {
 		fields.replaced = append(fields.replaced, path)
 		return
@@ -367,8 +367,8 @@ func defaults() Settings {
 }
 
 func (store *Store) Vault() VaultSettings {
-	store.mu.Lock()
-	defer store.mu.Unlock()
+	store.mutex.Lock()
+	defer store.mutex.Unlock()
 	settings := store.settings.Vault
 	if settings.LastPasswordTestedAtMs != 0 {
 		settings.LastPasswordTestedAt = time.UnixMilli(settings.LastPasswordTestedAtMs).UTC().Format(time.RFC3339Nano)
@@ -377,8 +377,8 @@ func (store *Store) Vault() VaultSettings {
 }
 
 func (store *Store) Logging() LoggingSettings {
-	store.mu.Lock()
-	defer store.mu.Unlock()
+	store.mutex.Lock()
+	defer store.mutex.Unlock()
 	settings := store.settings.Logging
 	settings.EnabledLevels = cloneLoggingLevels(settings.EnabledLevels)
 	return settings
@@ -395,26 +395,26 @@ func (settings LoggingSettings) EnabledLevelNames() []string {
 }
 
 func (store *Store) UserInterface() UserInterfaceSettings {
-	store.mu.Lock()
-	defer store.mu.Unlock()
+	store.mutex.Lock()
+	defer store.mutex.Unlock()
 	return store.settings.UserInterface
 }
 
 func (store *Store) Roblox() RobloxSettings {
-	store.mu.Lock()
-	defer store.mu.Unlock()
+	store.mutex.Lock()
+	defer store.mutex.Unlock()
 	return store.settings.Roblox
 }
 
 func (store *Store) Integrations() IntegrationSettings {
-	store.mu.Lock()
-	defer store.mu.Unlock()
+	store.mutex.Lock()
+	defer store.mutex.Unlock()
 	return store.settings.Integrations
 }
 
 func (store *Store) Presence() PresenceSettings {
-	store.mu.Lock()
-	defer store.mu.Unlock()
+	store.mutex.Lock()
+	defer store.mutex.Unlock()
 	return store.settings.Presence
 }
 
@@ -528,8 +528,8 @@ func (store *Store) set(change func(*Settings)) error {
 // update saves the changed settings, or keeps the previous settings if the
 // change or the save fails.
 func (store *Store) update(change func(*Settings) error) error {
-	store.mu.Lock()
-	defer store.mu.Unlock()
+	store.mutex.Lock()
+	defer store.mutex.Unlock()
 	previous := store.settings
 	previous.Logging.EnabledLevels = cloneLoggingLevels(previous.Logging.EnabledLevels)
 	if err := change(&store.settings); err != nil {

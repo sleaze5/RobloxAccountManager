@@ -12,8 +12,8 @@ const (
 	StateDisabled       SessionState = "disabled"
 )
 
-func (s SessionState) Valid() bool {
-	switch s {
+func (state SessionState) Valid() bool {
+	switch state {
 	case StateActive, StateUnknown, StateReauthRequired, StateChallenged, StateDisabled:
 		return true
 	default:

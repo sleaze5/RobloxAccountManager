@@ -25,12 +25,12 @@ func (repository *Repository) AllPrivateServers(ctx context.Context) ([]games.Sa
 }
 
 func (repository *Repository) listPrivateServers(ctx context.Context, query string, args ...any) ([]games.SavedPrivateServer, error) {
-	db, release, err := repository.provider.Lease(ctx)
+	database, release, err := repository.provider.Lease(ctx)
 	if err != nil {
 		return nil, err
 	}
 	defer release()
-	rows, err := db.QueryContext(ctx, query, args...)
+	rows, err := database.QueryContext(ctx, query, args...)
 	if err != nil {
 		return nil, fmt.Errorf("list saved private servers: %w", err)
 	}
@@ -51,18 +51,18 @@ func (repository *Repository) listPrivateServers(ctx context.Context, query stri
 }
 
 func (repository *Repository) SavePrivateServer(ctx context.Context, server games.SavedPrivateServer) (games.SavedPrivateServer, error) {
-	db, release, err := repository.provider.Lease(ctx)
+	database, release, err := repository.provider.Lease(ctx)
 	if err != nil {
 		return games.SavedPrivateServer{}, err
 	}
 	defer release()
-	tx, err := db.BeginTx(ctx, nil)
+	transaction, err := database.BeginTx(ctx, nil)
 	if err != nil {
 		return games.SavedPrivateServer{}, fmt.Errorf("begin saved private server insert: %w", err)
 	}
-	defer tx.Rollback()
+	defer transaction.Rollback()
 	server.CreatedAtMs = time.Now().UnixMilli()
-	result, err := tx.ExecContext(ctx, `INSERT INTO saved_private_servers(place_id, name, access_code, link_code, created_at_ms) VALUES(?, ?, ?, ?, ?) ON CONFLICT DO NOTHING`, server.PlaceID, server.Name, server.AccessCode, server.LinkCode, server.CreatedAtMs)
+	result, err := transaction.ExecContext(ctx, `INSERT INTO saved_private_servers(place_id, name, access_code, link_code, created_at_ms) VALUES(?, ?, ?, ?, ?) ON CONFLICT DO NOTHING`, server.PlaceID, server.Name, server.AccessCode, server.LinkCode, server.CreatedAtMs)
 	if err != nil {
 		return games.SavedPrivateServer{}, fmt.Errorf("insert saved private server: %w", err)
 	}
@@ -74,7 +74,7 @@ func (repository *Repository) SavePrivateServer(ctx context.Context, server game
 	if server.ID, err = result.LastInsertId(); err != nil {
 		return games.SavedPrivateServer{}, fmt.Errorf("read saved private server ID: %w", err)
 	}
-	if err := commitPrivateServers(ctx, tx); err != nil {
+	if err := commitPrivateServers(ctx, transaction); err != nil {
 		return games.SavedPrivateServer{}, err
 	}
 	server.LaunchLink = games.PrivateServerLaunchLink(server.PlaceID, server.AccessCode, server.LinkCode)
@@ -83,17 +83,17 @@ func (repository *Repository) SavePrivateServer(ctx context.Context, server game
 }
 
 func (repository *Repository) RemovePrivateServer(ctx context.Context, id int64) error {
-	db, release, err := repository.provider.Lease(ctx)
+	database, release, err := repository.provider.Lease(ctx)
 	if err != nil {
 		return err
 	}
 	defer release()
-	tx, err := db.BeginTx(ctx, nil)
+	transaction, err := database.BeginTx(ctx, nil)
 	if err != nil {
 		return fmt.Errorf("begin saved private server removal: %w", err)
 	}
-	defer tx.Rollback()
-	result, err := tx.ExecContext(ctx, `DELETE FROM saved_private_servers WHERE id = ?`, id)
+	defer transaction.Rollback()
+	result, err := transaction.ExecContext(ctx, `DELETE FROM saved_private_servers WHERE id = ?`, id)
 	if err != nil {
 		return fmt.Errorf("remove saved private server: %w", err)
 	}
@@ -102,18 +102,18 @@ func (repository *Repository) RemovePrivateServer(ctx context.Context, id int64)
 	} else if changed == 0 {
 		return ErrPrivateServerNotSaved
 	}
-	if err := commitPrivateServers(ctx, tx); err != nil {
+	if err := commitPrivateServers(ctx, transaction); err != nil {
 		return err
 	}
 	repository.logger.InfoContext(ctx, "private server link removed", "operation", "private-server-link-remove", "saved_server_id", id)
 	return nil
 }
 
-func commitPrivateServers(ctx context.Context, tx *sql.Tx) error {
-	if err := vault.BumpRevision(ctx, tx); err != nil {
+func commitPrivateServers(ctx context.Context, transaction *sql.Tx) error {
+	if err := vault.BumpRevision(ctx, transaction); err != nil {
 		return err
 	}
-	if err := tx.Commit(); err != nil {
+	if err := transaction.Commit(); err != nil {
 		return fmt.Errorf("commit saved private servers: %w", err)
 	}
 	return nil

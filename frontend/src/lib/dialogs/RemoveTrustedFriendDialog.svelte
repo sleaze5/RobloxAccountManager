@@ -58,12 +58,12 @@
 	{/if}
 	<div class="dialog-actions">
 		<button
-			class="btn"
+			class="button"
 			type="button"
 			disabled={store.removingTrusted}
 			onclick={close}>Cancel</button>
 		<button
-			class="btn-danger"
+			class="button-danger"
 			type="button"
 			disabled={store.removingTrusted}
 			onclick={() => void remove()}>

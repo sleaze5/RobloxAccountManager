@@ -345,9 +345,9 @@ func (service *Service) RemoveFavoritePlace(ctx context.Context, placeID int64) 
 }
 
 func (service *Service) beginGames(parent context.Context) (context.Context, func(), error) {
-	service.mu.Lock()
+	service.mutex.Lock()
 	unlocked := service.gamesContext
-	service.mu.Unlock()
+	service.mutex.Unlock()
 	if unlocked == nil || unlocked.Err() != nil || !service.vault.Unlocked() {
 		return nil, nil, mapRepositoryError(vault.ErrLocked)
 	}
@@ -358,8 +358,8 @@ func (service *Service) beginGames(parent context.Context) (context.Context, fun
 }
 
 func (service *Service) stopGames() {
-	service.mu.Lock()
-	defer service.mu.Unlock()
+	service.mutex.Lock()
+	defer service.mutex.Unlock()
 	if service.gamesCancel != nil {
 		service.gamesCancel()
 	}

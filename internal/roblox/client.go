@@ -183,14 +183,14 @@ func (client *Client) executeRequestAttempt(ctx context.Context, execution *requ
 		execution.serverAttempt--
 		return nil, true, nil
 	}
-	response, sentCSRFToken, sendErr := client.sendSessionAttempt(ctx, *request, snapshot)
+	response, sentCSRFToken, sendError := client.sendSessionAttempt(ctx, *request, snapshot)
 	if response != nil && request.Authenticated {
 		if err := client.rotateResponseCookie(ctx, request, &snapshot, response); err != nil {
 			return nil, false, err
 		}
 	}
-	if sendErr != nil {
-		return client.handleSendError(ctx, execution, snapshot, response, sendErr)
+	if sendError != nil {
+		return client.handleSendError(ctx, execution, snapshot, response, sendError)
 	}
 	if request.Authenticated {
 		if !client.sessions.VersionCurrent(snapshot.AccountID, snapshot.SecretVersion) {
@@ -210,28 +210,28 @@ func (client *Client) sendSessionAttempt(ctx context.Context, request Request, s
 	if request.Authenticated && request.RequiresCSRF {
 		sentCSRFToken = client.sessions.CSRF(snapshot.AccountID, snapshot.SecretVersion)
 	}
-	response, sendErr := client.sendAttempt(attemptContext, request, snapshot, sentCSRFToken)
+	response, sendError := client.sendAttempt(attemptContext, request, snapshot, sentCSRFToken)
 	stopMerge()
-	return response, sentCSRFToken, sendErr
+	return response, sentCSRFToken, sendError
 }
 
 func (client *Client) rotateResponseCookie(ctx context.Context, request *Request, snapshot *SessionSnapshot, response *Response) error {
 	// A server-issued replacement must be saved even if reading the body
 	// failed or the caller cancelled after the headers arrived.
 	rotationContext, finishRotation := context.WithTimeout(context.WithoutCancel(ctx), 5*time.Second)
-	version, deleted, rotationErr := client.processSetCookie(rotationContext, *request, *snapshot, response.Header)
+	version, deleted, rotationError := client.processSetCookie(rotationContext, *request, *snapshot, response.Header)
 	finishRotation()
-	if rotationErr != nil {
-		return rotationErr
+	if rotationError != nil {
+		return rotationError
 	}
 	if deleted {
 		return &Error{Kind: KindReauthRequired, Endpoint: request.Endpoint, Status: response.Status, Message: "Roblox ended this session."}
 	}
 	response.RotatedSecretVersion = version
 	if version != 0 {
-		latest, snapshotErr := client.sessions.Snapshot(request.AccountID)
-		if snapshotErr != nil {
-			return snapshotErr
+		latest, snapshotError := client.sessions.Snapshot(request.AccountID)
+		if snapshotError != nil {
+			return snapshotError
 		}
 		if latest.SecretVersion != version {
 			return &Error{Kind: KindCancelled, Endpoint: request.Endpoint, Message: "The account session changed while the replacement was being saved."}
@@ -244,12 +244,12 @@ func (client *Client) rotateResponseCookie(ctx context.Context, request *Request
 	return nil
 }
 
-func (client *Client) handleSendError(ctx context.Context, execution *requestExecution, snapshot SessionSnapshot, response *Response, sendErr error) (*Response, bool, error) {
+func (client *Client) handleSendError(ctx context.Context, execution *requestExecution, snapshot SessionSnapshot, response *Response, sendError error) (*Response, bool, error) {
 	request := execution.request
-	if typed, ok := errors.AsType[*Error](sendErr); ok {
+	if typed, ok := errors.AsType[*Error](sendError); ok {
 		return response, false, typed
 	}
-	if errors.Is(sendErr, accounts.ErrStaleSecret) {
+	if errors.Is(sendError, accounts.ErrStaleSecret) {
 		execution.serverAttempt--
 		return nil, true, nil
 	}
@@ -263,24 +263,24 @@ func (client *Client) handleSendError(ctx context.Context, execution *requestExe
 		}
 		return nil, false, &Error{Kind: KindCancelled, Endpoint: request.Endpoint, Message: "The account session changed while the request was in progress."}
 	}
-	if execution.serverAttempt < execution.maxAttempts && retryableTransport(sendErr) {
+	if execution.serverAttempt < execution.maxAttempts && retryableTransport(sendError) {
 		if err := waitForRetry(ctx, backoff(execution.serverAttempt, 0)); err != nil {
 			return nil, false, contextError(request.Endpoint, err)
 		}
 		return nil, true, nil
 	}
 	kind := KindTransport
-	var netErr net.Error
-	if errors.As(sendErr, &netErr) && netErr.Timeout() {
+	var netError net.Error
+	if errors.As(sendError, &netError) && netError.Timeout() {
 		kind = KindTimeout
 	}
-	return response, false, &Error{Kind: kind, Endpoint: request.Endpoint, Message: "The Roblox request failed.", Cause: sendErr}
+	return response, false, &Error{Kind: kind, Endpoint: request.Endpoint, Message: "The Roblox request failed.", Cause: sendError}
 }
 
 func (client *Client) handleStaleResponse(execution *requestExecution, response *Response) (*Response, bool, error) {
 	request := execution.request
-	if _, snapshotErr := client.sessions.Snapshot(request.AccountID); snapshotErr != nil {
-		return nil, false, snapshotErr
+	if _, snapshotError := client.sessions.Snapshot(request.AccountID); snapshotError != nil {
+		return nil, false, snapshotError
 	}
 	if response.Status >= 200 && response.Status < 300 {
 		return response, false, nil
@@ -601,8 +601,8 @@ func safeToRetryRequest(request Request) bool {
 }
 
 func retryableTransport(err error) bool {
-	var netErr net.Error
-	return errors.As(err, &netErr)
+	var netError net.Error
+	return errors.As(err, &netError)
 }
 
 func isRetryableStatus(status int) bool {

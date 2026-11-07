@@ -177,11 +177,11 @@ func (service *Users) socialLinks(ctx context.Context, accountID, version int64,
 		if address == "" {
 			continue
 		}
-		uri, err := url.Parse(address)
-		if err != nil || len(address) > 2048 || uri.Scheme != "https" || uri.User != nil || (uri.Port() != "" && uri.Port() != "443") {
+		endpointURL, err := url.Parse(address)
+		if err != nil || len(address) > 2048 || endpointURL.Scheme != "https" || endpointURL.User != nil || (endpointURL.Port() != "" && endpointURL.Port() != "443") {
 			return nil, invalidProfileDetails(endpoint)
 		}
-		host := strings.ToLower(uri.Hostname())
+		host := strings.ToLower(endpointURL.Hostname())
 		allowed := false
 		for _, domain := range channel.hosts {
 			if host == domain || strings.HasSuffix(host, "."+domain) {
@@ -192,7 +192,7 @@ func (service *Users) socialLinks(ctx context.Context, accountID, version int64,
 		if !allowed {
 			return nil, invalidProfileDetails(endpoint)
 		}
-		links = append(links, UserSocialLink{Name: channel.name, URL: uri.String()})
+		links = append(links, UserSocialLink{Name: channel.name, URL: endpointURL.String()})
 	}
 	return links, nil
 }
@@ -323,10 +323,10 @@ func (service *Users) PrimaryGroup(ctx context.Context, accountID, version, user
 func (service *Users) readAccountDetails(ctx context.Context, accountID, version int64, endpoint, address string, result any) error {
 	ctx, cancel := context.WithTimeout(ctx, 15*time.Second)
 	defer cancel()
-	uri, _ := url.Parse(address)
+	endpointURL, _ := url.Parse(address)
 	response, err := service.client.Do(ctx, roblox.Request{
 		Endpoint: endpoint, AccountID: accountID, ExpectedSecretVersion: version,
-		Authenticated: true, Method: http.MethodGet, URL: uri,
+		Authenticated: true, Method: http.MethodGet, URL: endpointURL,
 		ContentType: "application/json", MaxResponseSize: 64 << 10,
 		Retry: roblox.RetryPolicy{MaxAttempts: 2, RetryServerErrors: true, RetryRateLimit: true},
 	})

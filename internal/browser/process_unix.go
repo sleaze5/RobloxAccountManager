@@ -23,7 +23,7 @@ type unixBrowserProcess struct {
 	done          chan struct{}
 	closeOnce     sync.Once
 
-	mu       sync.Mutex
+	mutex    sync.Mutex
 	finished bool
 }
 
@@ -82,7 +82,7 @@ func (process *unixBrowserProcess) Exited() <-chan error { return process.exited
 func (process *unixBrowserProcess) waitLoop() {
 	err := process.command.Wait()
 	close(process.done)
-	process.mu.Lock()
+	process.mutex.Lock()
 	process.finished = true
 	// Chrome exits with code 0 when the user closes its last window on Linux, or
 	// quits it on macOS. This is how the coordinator tells a user close from a crash.
@@ -93,7 +93,7 @@ func (process *unixBrowserProcess) waitLoop() {
 		}
 	}
 	close(process.windowsClosed)
-	process.mu.Unlock()
+	process.mutex.Unlock()
 	process.exited <- err
 	close(process.exited)
 }

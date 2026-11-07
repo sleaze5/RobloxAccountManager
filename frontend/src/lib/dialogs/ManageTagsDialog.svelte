@@ -147,7 +147,7 @@
 				aria-invalid={invalid}
 				aria-describedby={invalid ? "managed-tag-validation" : undefined} />
 			<button
-				class="btn-primary"
+				class="button-primary"
 				type="submit"
 				disabled={store.busy || !isValidTagName(nameInput.value)}>
 				{creating ? "Creating…" : "Create tag"}
@@ -181,14 +181,14 @@
 					</p>
 					<div class="flex justify-end gap-2">
 						<button
-							class="btn"
+							class="button"
 							type="button"
 							data-cancel-tag-delete
 							disabled={store.busy}
 							onkeydown={cancelOnEscape}
 							onclick={() => void cancelDelete()}>Cancel</button>
 						<button
-							class="btn-danger"
+							class="button-danger"
 							type="button"
 							disabled={store.busy}
 							onkeydown={cancelOnEscape}
@@ -224,7 +224,7 @@
 		{/each}
 	</div>
 	<div class="dialog-actions">
-		<button class="btn" type="button" disabled={store.busy} onclick={close}
+		<button class="button" type="button" disabled={store.busy} onclick={close}
 			>Done</button>
 	</div>
 </Dialog>

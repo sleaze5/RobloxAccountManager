@@ -117,7 +117,7 @@
 				<div class="settings-row">
 					<BrowserRuntimeActivity {runtime} />
 					{#if runtime.canCancel}<button
-							class="btn"
+							class="button"
 							type="button"
 							onclick={() => void browser.cancelDownload()}
 							>Cancel download</button
@@ -131,7 +131,7 @@
 					</div>
 					<div class="flex items-center gap-2">
 						{#if runtime.status === RuntimeStatus.RuntimeMissing}<button
-								class="btn"
+								class="button"
 								type="button"
 								onclick={() => void browser.download()}
 								><Icon
@@ -139,7 +139,7 @@
 									size={16}
 									aria-hidden="true" />Download</button
 							>{:else}<button
-								class="btn"
+								class="button"
 								type="button"
 								onclick={() => void requestAction("redownload")}
 								><Icon
@@ -147,7 +147,7 @@
 									size={16}
 									aria-hidden="true" />Redownload</button
 							><button
-								class="btn"
+								class="button"
 								type="button"
 								onclick={() => void requestAction("remove")}
 								><Icon
@@ -208,14 +208,14 @@
 		</ul>
 		<div class="dialog-actions">
 			<button
-				class="btn"
+				class="button"
 				type="button"
 				onclick={() => {
 					pendingAction = null
 					effects = null
 				}}>Cancel</button
 			><button
-				class={pendingAction === "remove" ? "btn-danger" : "btn-primary"}
+				class={pendingAction === "remove" ? "button-danger" : "button-primary"}
 				type="button"
 				onclick={() => void runAction(pendingAction!)}
 				>{pendingAction === "remove"

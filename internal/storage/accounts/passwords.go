@@ -12,13 +12,13 @@ import (
 )
 
 func (repository *Repository) GetPassword(ctx context.Context, accountID int64) (string, error) {
-	db, release, err := repository.database(ctx)
+	database, release, err := repository.leaseDatabase(ctx)
 	if err != nil {
 		return "", fmt.Errorf("open vault for saved password: %w", err)
 	}
 	defer release()
 	var password string
-	if err := db.QueryRowContext(ctx, `SELECT password FROM account_sessions WHERE account_id = ?`, accountID).Scan(&password); err != nil {
+	if err := database.QueryRowContext(ctx, `SELECT password FROM account_sessions WHERE account_id = ?`, accountID).Scan(&password); err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return "", accountdomain.ErrNotFound
 		}
@@ -31,17 +31,17 @@ func (repository *Repository) SetPassword(ctx context.Context, accountID int64, 
 	if password == "" {
 		return errors.New("saved account password cannot be empty")
 	}
-	db, release, err := repository.database(ctx)
+	database, release, err := repository.leaseDatabase(ctx)
 	if err != nil {
 		return fmt.Errorf("open vault to save password: %w", err)
 	}
 	defer release()
-	tx, err := db.BeginTx(ctx, nil)
+	transaction, err := database.BeginTx(ctx, nil)
 	if err != nil {
 		return fmt.Errorf("begin account password update: %w", err)
 	}
-	defer tx.Rollback()
-	result, err := tx.ExecContext(ctx, `UPDATE account_sessions SET password = ?, updated_at_ms = ? WHERE account_id = ?`, password, time.Now().UTC().UnixMilli(), accountID)
+	defer transaction.Rollback()
+	result, err := transaction.ExecContext(ctx, `UPDATE account_sessions SET password = ?, updated_at_ms = ? WHERE account_id = ?`, password, time.Now().UTC().UnixMilli(), accountID)
 	if err != nil {
 		return fmt.Errorf("save account password: %w", err)
 	}
@@ -52,10 +52,10 @@ func (repository *Repository) SetPassword(ctx context.Context, accountID int64, 
 	if changed == 0 {
 		return accountdomain.ErrNotFound
 	}
-	if err := vault.BumpRevision(ctx, tx); err != nil {
+	if err := vault.BumpRevision(ctx, transaction); err != nil {
 		return fmt.Errorf("record account password revision: %w", err)
 	}
-	if err := tx.Commit(); err != nil {
+	if err := transaction.Commit(); err != nil {
 		return fmt.Errorf("commit account password update: %w", err)
 	}
 	return nil

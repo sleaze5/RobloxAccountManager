@@ -211,7 +211,7 @@
 			{#snippet title()}Social{/snippet}
 			{#snippet actions()}
 				<button
-					class="btn-ghost"
+					class="button-ghost"
 					type="button"
 					aria-label={store.loading ? "Refreshing list" : "Refresh list"}
 					aria-busy={store.loading}
@@ -249,7 +249,7 @@
 						class="flex h-7 min-w-0 animate-enter items-center gap-1 text-xs font-medium"
 						aria-label="Browsing trail">
 						<button
-							class="btn-ghost-sm"
+							class="button-ghost-sm"
 							type="button"
 							aria-label={backLabel}
 							data-tooltip={backLabel}
@@ -431,7 +431,7 @@
 					{#if store.page?.nextCursor && (players || !store.query)}
 						<div class="flex min-h-12 items-center justify-center">
 							<button
-								class="btn"
+								class="button"
 								type="button"
 								aria-busy={store.loadingMore}
 								disabled={store.loadingMore}
@@ -444,7 +444,7 @@
 					<div
 						class="pointer-events-none absolute inset-x-0 bottom-2 flex justify-center">
 						<button
-							class="pointer-events-auto btn bg-raised shadow-float hover:bg-raised-hover"
+							class="pointer-events-auto button bg-raised shadow-float hover:bg-raised-hover"
 							type="button"
 							in:menuIn
 							out:menuOut
@@ -524,7 +524,7 @@
 						</h2>
 						<p>{store.loadError}</p>
 						<button
-							class="btn"
+							class="button"
 							type="button"
 							onclick={() => void store.load()}>Try again</button>
 					{:else if total === 0}<Icon

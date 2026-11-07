@@ -84,13 +84,13 @@
 			</span>
 			<div class="dialog-actions mt-0">
 				<button
-					class="btn"
+					class="button"
 					type="button"
 					disabled={draft.length === 0 || store.launching}
 					onclick={handleClear}>
 					Clear
 				</button>
-				<button class="btn-primary" type="submit" disabled={store.launching}>
+				<button class="button-primary" type="submit" disabled={store.launching}>
 					Save
 				</button>
 			</div>

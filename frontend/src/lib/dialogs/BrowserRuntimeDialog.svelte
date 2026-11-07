@@ -49,14 +49,14 @@
 		</div>{/if}
 	{#if active}<div class="mt-3"><BrowserRuntimeActivity {runtime} /></div>{/if}
 	<div class="dialog-actions">
-		<button class="btn" type="button" onclick={onDismiss}
+		<button class="button" type="button" onclick={onDismiss}
 			>{active ? "Continue in background" : "Not now"}</button
 		>{#if runtime.canCancel}<button
-				class="btn"
+				class="button"
 				type="button"
 				onclick={() => void browser.cancelDownload()}>Cancel download</button
 			>{:else if !active}<button
-				class="btn-primary"
+				class="button-primary"
 				type="button"
 				onclick={() =>
 					void browser.download(

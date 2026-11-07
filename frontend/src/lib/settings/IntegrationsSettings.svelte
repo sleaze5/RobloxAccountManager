@@ -106,7 +106,7 @@
 									void store.setRoValraRegion(region)
 							}} />
 						<button
-							class="btn"
+							class="button"
 							type="button"
 							aria-busy={store.loadingServerRegions}
 							disabled={!store.initialized ||

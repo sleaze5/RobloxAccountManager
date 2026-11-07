@@ -18,12 +18,12 @@ type Snapshot struct {
 }
 
 type Manager struct {
-	mu               sync.Mutex
+	mutex            sync.Mutex
 	logger           *slog.Logger
 	enabled          bool
 	closed           bool
 	holder           *mutexHolder
-	startErr         error
+	startError       error
 	sweepStop        chan struct{}
 	sweepUntil       time.Time
 	lastCleanupError string
@@ -34,8 +34,8 @@ func New(logger *slog.Logger) *Manager {
 }
 
 func (manager *Manager) SetEnabled(enabled bool) {
-	manager.mu.Lock()
-	defer manager.mu.Unlock()
+	manager.mutex.Lock()
+	defer manager.mutex.Unlock()
 	if !supported || manager.closed || manager.enabled == enabled {
 		return
 	}
@@ -45,9 +45,9 @@ func (manager *Manager) SetEnabled(enabled bool) {
 		manager.logger.Info("multi-instance disabled")
 		return
 	}
-	manager.holder, manager.startErr = newMutexHolder(manager.logger)
-	if manager.startErr != nil {
-		manager.logger.Warn("could not start multi-instance", "error", manager.startErr)
+	manager.holder, manager.startError = newMutexHolder(manager.logger)
+	if manager.startError != nil {
+		manager.logger.Warn("could not start multi-instance", "error", manager.startError)
 		return
 	}
 	manager.logger.Info("multi-instance enabled")
@@ -56,14 +56,14 @@ func (manager *Manager) SetEnabled(enabled bool) {
 }
 
 func (manager *Manager) Snapshot() Snapshot {
-	manager.mu.Lock()
-	defer manager.mu.Unlock()
+	manager.mutex.Lock()
+	defer manager.mutex.Unlock()
 	return manager.snapshotLocked()
 }
 
 func (manager *Manager) PrepareForLaunch(ctx context.Context, confirm func(context.Context, int, bool) (bool, error)) error {
-	manager.mu.Lock()
-	defer manager.mu.Unlock()
+	manager.mutex.Lock()
+	defer manager.mutex.Unlock()
 	for {
 		if err := manager.checkLaunchLocked(ctx); err != nil {
 			return err
@@ -89,9 +89,9 @@ func (manager *Manager) PrepareForLaunch(ctx context.Context, confirm func(conte
 func (manager *Manager) replacePlayersLocked(ctx context.Context, players *playerProcesses, confirm func(context.Context, int, bool) (bool, error)) error {
 	defer players.close()
 	multiInstance := manager.enabled
-	manager.mu.Unlock()
+	manager.mutex.Unlock()
 	approved, err := confirm(ctx, players.count(), multiInstance)
-	manager.mu.Lock()
+	manager.mutex.Lock()
 	if err != nil {
 		return err
 	}
@@ -145,28 +145,28 @@ func (manager *Manager) prepareMultiInstanceLocked(ctx context.Context) error {
 			}
 			return errors.New("could not prepare Roblox for another game. Try joining again")
 		}
-		manager.mu.Unlock()
+		manager.mutex.Unlock()
 		timer := time.NewTimer(100 * time.Millisecond)
 		select {
 		case <-ctx.Done():
 		case <-timer.C:
 		}
 		timer.Stop()
-		manager.mu.Lock()
+		manager.mutex.Lock()
 	}
 }
 
 func (manager *Manager) AfterLaunch() {
-	manager.mu.Lock()
-	defer manager.mu.Unlock()
+	manager.mutex.Lock()
+	defer manager.mutex.Unlock()
 	if manager.enabled && !manager.closed {
 		manager.scheduleLocked()
 	}
 }
 
 func (manager *Manager) Close() {
-	manager.mu.Lock()
-	defer manager.mu.Unlock()
+	manager.mutex.Lock()
+	defer manager.mutex.Unlock()
 	manager.closed = true
 	manager.enabled = false
 	manager.stopLocked()
@@ -181,7 +181,7 @@ func (manager *Manager) stopLocked() {
 		manager.holder.close()
 		manager.holder = nil
 	}
-	manager.startErr = nil
+	manager.startError = nil
 }
 
 func (manager *Manager) snapshotLocked() Snapshot {
@@ -189,7 +189,7 @@ func (manager *Manager) snapshotLocked() Snapshot {
 	if !manager.enabled {
 		return state
 	}
-	if manager.startErr != nil || manager.holder == nil || manager.holder.failed.Load() {
+	if manager.startError != nil || manager.holder == nil || manager.holder.failed.Load() {
 		state.Message = "turn multi-instance off and on to retry"
 		return state
 	}
@@ -234,18 +234,18 @@ func (manager *Manager) sweep(stop chan struct{}) {
 		case <-stop:
 			return
 		case <-ticker.C:
-			manager.mu.Lock()
+			manager.mutex.Lock()
 			if manager.sweepStop != stop {
-				manager.mu.Unlock()
+				manager.mutex.Unlock()
 				return
 			}
 			if time.Now().After(manager.sweepUntil) {
 				manager.sweepStop = nil
-				manager.mu.Unlock()
+				manager.mutex.Unlock()
 				return
 			}
 			_, _ = manager.cleanupLocked()
-			manager.mu.Unlock()
+			manager.mutex.Unlock()
 		}
 	}
 }

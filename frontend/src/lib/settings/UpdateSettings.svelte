@@ -57,7 +57,7 @@
 			</div>
 			<div class="flex items-center gap-2">
 				{#if version && update.status !== UpdateStatus.StatusUpToDate}<button
-						class="btn"
+						class="button"
 						type="button"
 						onclick={() => void Browser.OpenURL(releaseURL)}
 						><Icon
@@ -66,7 +66,7 @@
 							aria-hidden="true" />What's new</button
 					>{/if}
 				{#if update.status === UpdateStatus.StatusAvailable}<button
-						class="btn"
+						class="button"
 						type="button"
 						onclick={() => void updateStore.install()}
 						><Icon
@@ -74,12 +74,12 @@
 							size={16}
 							aria-hidden="true" />Download update</button
 					>{:else if update.status === UpdateStatus.StatusDownloading}<button
-						class="btn"
+						class="button"
 						type="button"
 						onclick={() => void updateStore.cancelDownload()}
 						>Cancel download</button
 					>{:else if update.status === UpdateStatus.StatusReady}<button
-						class="btn"
+						class="button"
 						type="button"
 						onclick={() => void updateStore.restart()}
 						><Icon
@@ -87,7 +87,7 @@
 							size={16}
 							aria-hidden="true" />Restart to update</button
 					>{:else if update.status === UpdateStatus.StatusRestarting}<button
-						class="btn"
+						class="button"
 						type="button"
 						disabled
 						><Icon
@@ -96,7 +96,7 @@
 							size={16}
 							aria-hidden="true" />Restarting…</button
 					>{:else if update.status === UpdateStatus.StatusChecking}<button
-						class="btn"
+						class="button"
 						type="button"
 						disabled
 						><Icon
@@ -105,7 +105,7 @@
 							size={16}
 							aria-hidden="true" />Checking…</button
 					>{:else if update.status !== UpdateStatus.StatusDisabled}<button
-						class="btn"
+						class="button"
 						type="button"
 						onclick={() => void updateStore.check()}
 						><Icon

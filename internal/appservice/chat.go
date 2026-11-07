@@ -398,7 +398,7 @@ func realChatConversation(id string) bool {
 
 func validateChatConversationID(id string) error {
 	// 0x7f is the DEL control character.
-	if !realChatConversation(id) || len(id) > 256 || !utf8.ValidString(id) || strings.ContainsFunc(id, func(r rune) bool { return r <= ' ' || r == 0x7f }) {
+	if !realChatConversation(id) || len(id) > 256 || !utf8.ValidString(id) || strings.ContainsFunc(id, func(character rune) bool { return character <= ' ' || character == 0x7f }) {
 		return chatInputError("This chat is unavailable. Refresh chats.")
 	}
 	return nil

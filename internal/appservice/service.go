@@ -49,21 +49,21 @@ type Service struct {
 	browser         *browser.Coordinator
 	runtime         *browser.RuntimeManager
 
-	importMu             sync.Mutex
-	transferMu           sync.Mutex
+	importMutex          sync.Mutex
+	transferMutex        sync.Mutex
 	pendingTransfer      *pendingTransfer
-	launchMu             sync.Mutex
+	launchMutex          sync.Mutex
 	pendingImports       map[string]pendingImportBatch
-	validationMu         sync.Mutex
+	validationMutex      sync.Mutex
 	validationNext       uint64
 	validationCancels    map[uint64]context.CancelFunc
-	accountSettingsMu    sync.Mutex
+	accountSettingsMutex sync.Mutex
 	accountSettingsLocks map[int64]*accountSettingsLock
 	cookieRenewals       sync.Map
 	metadataRefresh      sync.Map
 	metadataSlots        chan struct{}
 
-	mu                     sync.Mutex
+	mutex                  sync.Mutex
 	lifecycle              context.Context
 	gamesContext           context.Context
 	gamesCancel            context.CancelFunc
@@ -134,9 +134,9 @@ func New(
 func (service *Service) Start(ctx context.Context) error {
 	started := time.Now()
 	service.logger.Info("vault startup started", "operation", "vault-startup")
-	service.mu.Lock()
+	service.mutex.Lock()
 	service.lifecycle = ctx
-	service.mu.Unlock()
+	service.mutex.Unlock()
 
 	if err := service.vault.AutoUnlock(ctx); err == nil {
 		if service.vault.FileState() == vault.FileStateIncomplete {
@@ -180,26 +180,26 @@ func (service *Service) Shutdown() error {
 
 func (service *Service) beginValidation(parent context.Context) (context.Context, func()) {
 	ctx, cancel := context.WithCancel(parent)
-	service.validationMu.Lock()
+	service.validationMutex.Lock()
 	service.validationNext++
 	id := service.validationNext
 	service.validationCancels[id] = cancel
-	service.validationMu.Unlock()
+	service.validationMutex.Unlock()
 	return ctx, func() {
 		cancel()
-		service.validationMu.Lock()
+		service.validationMutex.Lock()
 		delete(service.validationCancels, id)
-		service.validationMu.Unlock()
+		service.validationMutex.Unlock()
 	}
 }
 
 func (service *Service) cancelPendingValidations() {
-	service.validationMu.Lock()
+	service.validationMutex.Lock()
 	for id, cancel := range service.validationCancels {
 		cancel()
 		delete(service.validationCancels, id)
 	}
-	service.validationMu.Unlock()
+	service.validationMutex.Unlock()
 }
 
 func (service *Service) AttachBrowser(coordinator *browser.Coordinator, runtimeManager *browser.RuntimeManager) {
@@ -207,7 +207,7 @@ func (service *Service) AttachBrowser(coordinator *browser.Coordinator, runtimeM
 }
 
 func (service *Service) setStartupError(message string) {
-	service.mu.Lock()
+	service.mutex.Lock()
 	service.startupError = message
-	service.mu.Unlock()
+	service.mutex.Unlock()
 }

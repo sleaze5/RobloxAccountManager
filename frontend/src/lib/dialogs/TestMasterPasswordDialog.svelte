@@ -27,7 +27,7 @@
 	aria-labelledby="test-password-title"
 	bind:card>
 	<button
-		class="absolute top-3 right-3 btn-close"
+		class="absolute top-3 right-3 button-close"
 		type="button"
 		aria-label="Close test master password dialog"
 		disabled={store.busy}
@@ -71,10 +71,12 @@
 			<div class="mt-3 notice-note">Hint: {store.vault.passwordHint}</div>
 		{/if}
 		<div class="dialog-actions">
-			<button class="btn" type="button" disabled={store.busy} onclick={onClose}
+			<button class="button" type="button" disabled={store.busy} onclick={onClose}
 				>Cancel</button>
-			<button class="btn-primary" type="submit" disabled={!password || store.busy}
-				>Test password</button>
+			<button
+				class="button-primary"
+				type="submit"
+				disabled={!password || store.busy}>Test password</button>
 		</div>
 	</form>
 </Dialog>

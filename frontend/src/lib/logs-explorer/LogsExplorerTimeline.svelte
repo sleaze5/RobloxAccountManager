@@ -91,7 +91,7 @@
 						</span>
 					{/if}
 					<button
-						class="ml-auto btn-ghost-sm"
+						class="ml-auto button-ghost-sm"
 						type="button"
 						aria-label="Event actions"
 						aria-haspopup="menu"
