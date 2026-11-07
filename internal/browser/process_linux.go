@@ -4,7 +4,7 @@ package browser
 
 import "syscall"
 
-const credentialStoreFlag = "--password-store=basic"
+const keyringFlag = "--password-store=basic"
 
 // A separate process group lets Terminate stop Chrome and its helpers
 // together. Pdeathsig covers an application crash.

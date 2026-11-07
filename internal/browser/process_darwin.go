@@ -5,7 +5,7 @@ package browser
 import "syscall"
 
 // --use-mock-keychain keeps Chrome from asking for Keychain access.
-const credentialStoreFlag = "--use-mock-keychain"
+const keyringFlag = "--use-mock-keychain"
 
 func browserProcessAttributes() *syscall.SysProcAttr {
 	return &syscall.SysProcAttr{Setpgid: true}
