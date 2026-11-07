@@ -3,12 +3,10 @@ package robloxmulti
 import (
 	"cmp"
 	"context"
-	"errors"
 	"fmt"
 	"log/slog"
 	"slices"
 	"strconv"
-	"time"
 
 	"golang.org/x/sys/windows"
 )
@@ -48,26 +46,6 @@ func ListProcesses() (ProcessSnapshot, error) {
 		return cmp.Compare(left.PID, right.PID)
 	})
 	return state, nil
-}
-
-func KillProcesses(ctx context.Context, processes []Process, logger *slog.Logger) error {
-	for _, process := range processes {
-		if process.PID == 0 || process.StartTime == "" || !slices.Contains(managedProcessNames, process.Name) {
-			return errors.New("invalid Roblox process selection")
-		}
-	}
-	ctx, cancel := context.WithTimeout(ctx, 5*time.Second)
-	defer cancel()
-	var killErr error
-	for _, process := range processes {
-		if err := ctx.Err(); err != nil {
-			return errors.Join(killErr, err)
-		}
-		if err := killProcess(ctx, process, logger); err != nil {
-			killErr = errors.Join(killErr, fmt.Errorf("kill Roblox process %d: %w", process.PID, err))
-		}
-	}
-	return killErr
 }
 
 func killProcess(ctx context.Context, process Process, logger *slog.Logger) error {

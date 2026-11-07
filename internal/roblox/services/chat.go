@@ -151,7 +151,7 @@ func (service *Chat) post(ctx context.Context, accountID, version int64, endpoin
 		return &roblox.Error{Kind: roblox.KindProtocol, Endpoint: endpoint, Message: "The chat request could not be encoded.", Cause: err}
 	}
 	uri, _ := url.Parse(chatBaseURL + path)
-	retry := roblox.RetryPolicy{MaxAttempts: 1}
+	var retry roblox.RetryPolicy
 	if idempotent {
 		retry = roblox.RetryPolicy{MaxAttempts: 3, Idempotent: true, RetryServerErrors: true, RetryRateLimit: true}
 	}

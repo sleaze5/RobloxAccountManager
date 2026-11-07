@@ -209,11 +209,11 @@ func browserCommand(options ProcessOptions, launchToken windows.Token, pipes *br
 	}
 	commandLine, err := windows.UTF16PtrFromString(windows.ComposeCommandLine(arguments))
 	if err != nil {
-		return nil, nil, nil, fmt.Errorf("encode browser path: %w", err)
+		return nil, nil, nil, fmt.Errorf("encode browser command line: %w", err)
 	}
 	executable, err := windows.UTF16PtrFromString(options.Executable)
 	if err != nil {
-		return nil, nil, nil, fmt.Errorf("encode browser command line: %w", err)
+		return nil, nil, nil, fmt.Errorf("encode browser path: %w", err)
 	}
 	directory, err := windows.UTF16PtrFromString(options.UserDataPath)
 	if err != nil {
@@ -352,9 +352,6 @@ func (process *windowsBrowserProcess) ExitError() error {
 
 func (process *windowsBrowserProcess) Wait(timeout time.Duration) bool {
 	milliseconds := uint32(max(timeout.Milliseconds(), 0))
-	if timeout <= 0 {
-		milliseconds = 0
-	}
 	result, _ := windows.WaitForSingleObject(process.process, milliseconds)
 	return result == waitObjectZero
 }

@@ -614,11 +614,7 @@ func (service *Service) LaunchAccounts(ctx context.Context, accountIDs []int64, 
 	if err := accountSelection(accountIDs, "game-launch"); err != nil {
 		return appservice.LaunchResult{}, err
 	}
-	result, err := service.core.LaunchAccounts(ctx, accountIDs, input)
-	if failure, ok := errors.AsType[*roblox.Error](err); ok {
-		return result, errors.New(failure.Message)
-	}
-	return result, err
+	return service.core.LaunchAccounts(ctx, accountIDs, input)
 }
 
 func (service *Service) CopyLaunchOptions(ctx context.Context, accountIDs []int64, input gamelaunch.Input) error {

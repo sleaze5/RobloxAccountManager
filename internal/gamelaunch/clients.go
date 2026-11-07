@@ -23,9 +23,6 @@ type ClientState struct {
 
 func CurrentClients(selected string) ClientState {
 	clients := listClients()
-	if clients == nil {
-		clients = []ClientInfo{}
-	}
 	return ClientState{
 		ChoiceSupported: runtime.GOOS == "linux",
 		DirectLaunch:    runtime.GOOS == "windows",

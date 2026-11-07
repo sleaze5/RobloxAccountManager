@@ -123,17 +123,16 @@ func (client *Client) cookieValidationResponse(ctx context.Context, response *Re
 		}
 		return CookieValidation{}, false, &Error{Kind: KindForbidden, Endpoint: "cookie-import", Status: response.Status, Message: "Roblox rejected cookie validation."}
 	case response.Status == http.StatusTooManyRequests:
-		delay := retryDelay(response.Header, attempt, time.Now())
 		if attempt < 3 {
-			if err := waitForRetry(ctx, delay); err != nil {
+			if err := waitForRetry(ctx, retryDelay(response.Header, attempt)); err != nil {
 				return CookieValidation{}, false, contextError("cookie-import", err)
 			}
 			return CookieValidation{}, true, nil
 		}
-		return CookieValidation{}, false, &Error{Kind: KindRateLimited, Endpoint: "cookie-import", Status: response.Status, RetryAt: time.Now().Add(delay), Message: "Roblox is rate limiting cookie validation."}
+		return CookieValidation{}, false, &Error{Kind: KindRateLimited, Endpoint: "cookie-import", Status: response.Status, Message: "Roblox is rate limiting cookie validation."}
 	case response.Status >= 500:
 		if attempt < 3 {
-			if err := waitForRetry(ctx, retryDelay(response.Header, attempt, time.Now())); err != nil {
+			if err := waitForRetry(ctx, retryDelay(response.Header, attempt)); err != nil {
 				return CookieValidation{}, false, contextError("cookie-import", err)
 			}
 			return CookieValidation{}, true, nil

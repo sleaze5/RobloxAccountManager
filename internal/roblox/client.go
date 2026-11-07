@@ -132,7 +132,8 @@ func (client *Client) prepareRequest(request *Request) error {
 	}
 	request.Method = strings.ToUpper(request.Method)
 	request.Body = append([]byte(nil), request.Body...)
-	request.URL = cloneURL(request.URL)
+	clonedURL := *request.URL
+	request.URL = &clonedURL
 	request.Headers = request.Headers.Clone()
 	if request.Headers == nil {
 		request.Headers = make(http.Header)
@@ -349,7 +350,7 @@ func (client *Client) handleFailedResponse(ctx context.Context, execution *reque
 		return client.rateLimitedResponse(ctx, execution, response)
 	}
 	if isRetryableStatus(response.Status) && request.Retry.RetryServerErrors && execution.serverAttempt < execution.maxAttempts {
-		if err := waitForRetry(ctx, retryDelay(response.Header, execution.serverAttempt, time.Now())); err != nil {
+		if err := waitForRetry(ctx, retryDelay(response.Header, execution.serverAttempt)); err != nil {
 			return nil, false, contextError(request.Endpoint, err)
 		}
 		return nil, true, nil
@@ -387,10 +388,9 @@ func (client *Client) forbiddenResponse(ctx context.Context, request Request, sn
 
 func (client *Client) rateLimitedResponse(ctx context.Context, execution *requestExecution, response *Response) (*Response, bool, error) {
 	request := execution.request
-	delay := retryDelay(response.Header, execution.serverAttempt, time.Now())
-	retryAt := time.Now().Add(delay)
+	delay := retryDelay(response.Header, execution.serverAttempt)
 	if client.observer != nil {
-		client.observer.RateLimited(request.AccountID, retryAt)
+		client.observer.RateLimited(request.AccountID, time.Now().Add(delay))
 	}
 	if request.Retry.RetryRateLimit && execution.serverAttempt < execution.maxAttempts {
 		if err := waitForRetry(ctx, delay); err != nil {
@@ -398,7 +398,7 @@ func (client *Client) rateLimitedResponse(ctx context.Context, execution *reques
 		}
 		return nil, true, nil
 	}
-	return nil, false, &Error{Kind: KindRateLimited, Endpoint: request.Endpoint, Status: response.Status, RetryAt: retryAt, Message: "Roblox is rate limiting requests."}
+	return nil, false, &Error{Kind: KindRateLimited, Endpoint: request.Endpoint, Status: response.Status, Message: "Roblox is rate limiting requests."}
 }
 
 func (client *Client) sendAttempt(ctx context.Context, contract Request, snapshot SessionSnapshot, csrfToken string) (*Response, error) {
@@ -614,7 +614,7 @@ func isRetryableStatus(status int) bool {
 	}
 }
 
-func retryDelay(headers http.Header, attempt int, now time.Time) time.Duration {
+func retryDelay(headers http.Header, attempt int) time.Duration {
 	if raw := strings.TrimSpace(headers.Get("Retry-After")); raw != "" {
 		if seconds, err := strconv.Atoi(raw); err == nil && seconds >= 0 {
 			if seconds >= 30 {
@@ -622,8 +622,10 @@ func retryDelay(headers http.Header, attempt int, now time.Time) time.Duration {
 			}
 			return time.Duration(seconds) * time.Second
 		}
-		if when, err := http.ParseTime(raw); err == nil && when.After(now) {
-			return min(when.Sub(now), 30*time.Second)
+		if when, err := http.ParseTime(raw); err == nil {
+			if wait := time.Until(when); wait > 0 {
+				return min(wait, 30*time.Second)
+			}
 		}
 	}
 	return backoff(attempt, secureSample())
@@ -706,18 +708,6 @@ func mergeContext(primary, cancellation context.Context) (context.Context, func(
 		stop()
 		cancel()
 	}
-}
-
-func cloneURL(value *url.URL) *url.URL {
-	if value == nil {
-		return nil
-	}
-	result := *value
-	if value.User != nil {
-		user := *value.User
-		result.User = &user
-	}
-	return &result
 }
 
 func secureSample() int {

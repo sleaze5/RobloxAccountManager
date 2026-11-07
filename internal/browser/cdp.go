@@ -1,6 +1,7 @@
 package browser
 
 import (
+	"maps"
 	"bufio"
 	"context"
 	"encoding/json"
@@ -185,8 +186,6 @@ func (client *CDPClient) removePending(id int64) {
 type TargetInfo struct {
 	TargetID string `json:"targetId"`
 	Type     string `json:"type"`
-	URL      string `json:"url"`
-	Attached bool   `json:"attached"`
 }
 
 func (client *CDPClient) VerifyVersion(ctx context.Context, expected string) error {
@@ -253,12 +252,10 @@ func (client *CDPClient) CloseBrowser(ctx context.Context) error {
 }
 
 type Cookie struct {
-	Name    string  `json:"name"`
-	Value   string  `json:"value"`
-	Domain  string  `json:"domain"`
-	Path    string  `json:"path"`
-	Secure  bool    `json:"secure"`
-	Expires float64 `json:"expires"`
+	Name   string `json:"name"`
+	Value  string `json:"value"`
+	Domain string `json:"domain"`
+	Secure bool   `json:"secure"`
 }
 
 func (client *CDPClient) Cookies(ctx context.Context, sessionID string) ([]Cookie, error) {
@@ -279,32 +276,24 @@ func (client *CDPClient) Cookies(ctx context.Context, sessionID string) ([]Cooki
 }
 
 func (client *CDPClient) SetRobloxCookie(ctx context.Context, sessionID, value string) error {
-	var result struct {
-		Success bool `json:"success"`
-	}
-	err := client.Call(ctx, "Network.setCookie", map[string]any{"name": accounts.RoblosecurityCookieName, "value": value, "url": "https://www.roblox.com/", "domain": ".roblox.com", "path": "/", "secure": true, "httpOnly": true, "sameSite": "Lax"}, sessionID, &result)
-	if err != nil {
-		return err
-	}
-	if !result.Success {
-		return errors.New("chrome rejected the Roblox cookie")
-	}
-	return nil
+	return client.setCookie(ctx, sessionID, map[string]any{"name": accounts.RoblosecurityCookieName, "value": value, "httpOnly": true}, "chrome rejected the Roblox cookie")
 }
 
 func (client *CDPClient) SetBrowserID(ctx context.Context, sessionID, browserID string) error {
+	return client.setCookie(ctx, sessionID, map[string]any{"name": roblox.EventTrackerCookieName, "value": roblox.EventTrackerCookieValue(browserID)}, "chrome rejected the account browser ID")
+}
+
+func (client *CDPClient) setCookie(ctx context.Context, sessionID string, fields map[string]any, rejected string) error {
+	cookie := map[string]any{"url": "https://www.roblox.com/", "domain": ".roblox.com", "path": "/", "secure": true, "sameSite": "Lax"}
+	maps.Copy(cookie, fields)
 	var result struct {
 		Success bool `json:"success"`
 	}
-	err := client.Call(ctx, "Network.setCookie", map[string]any{
-		"name": roblox.EventTrackerCookieName, "value": roblox.EventTrackerCookieValue(browserID),
-		"url": "https://www.roblox.com/", "domain": ".roblox.com", "path": "/", "secure": true, "sameSite": "Lax",
-	}, sessionID, &result)
-	if err != nil {
+	if err := client.Call(ctx, "Network.setCookie", cookie, sessionID, &result); err != nil {
 		return err
 	}
 	if !result.Success {
-		return errors.New("chrome rejected the account browser ID")
+		return errors.New(rejected)
 	}
 	return nil
 }

@@ -567,12 +567,10 @@ func (coordinator *Coordinator) installCandidate(ctx context.Context, current *s
 	allowed := coordinator.sessions[current.state.ID] == current && (current.state.Lifecycle == LifecycleActive || current.state.Lifecycle == LifecycleValidating)
 	coordinator.mu.Unlock()
 	if !allowed {
-		validation.Cookie = ""
 		return
 	}
 	id, err := randomID(24)
 	if err != nil {
-		validation.Cookie = ""
 		coordinator.logger.ErrorContext(ctx, "browser candidate identifier generation failed", "operation", "browser-account-capture", "session_id", current.state.ID, "session_mode", current.state.Mode, "error", err)
 		return
 	}
@@ -581,14 +579,12 @@ func (coordinator *Coordinator) installCandidate(ctx context.Context, current *s
 	coordinator.mu.Lock()
 	if coordinator.sessions[current.state.ID] != current || current.state.Lifecycle != LifecycleActive && current.state.Lifecycle != LifecycleValidating {
 		coordinator.mu.Unlock()
-		validation.Cookie = ""
 		return
 	}
 	for _, existing := range coordinator.candidates {
 		if existing.state.SessionID != current.state.ID || existing.state.RobloxUserID != validation.Identity.RobloxUserID {
 			continue
 		}
-		existing.validation.Cookie = ""
 		existing.validation = validation
 		existing.state.Username = validation.Identity.Username
 		existing.state.DisplayName = validation.Identity.DisplayName
@@ -625,14 +621,8 @@ func (coordinator *Coordinator) Focus(id string) error {
 	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
 	defer cancel()
 	if target == "" {
-		targets, err := current.cdp.Targets(ctx)
-		if err == nil {
-			for _, candidate := range slices.Backward(targets) {
-				if candidate.Type == "page" {
-					target = candidate.TargetID
-					break
-				}
-			}
+		if targets, err := current.cdp.Targets(ctx); err == nil {
+			target = lastPageTarget(targets)
 		}
 	}
 	if target != "" {
@@ -647,30 +637,31 @@ func (coordinator *Coordinator) Focus(id string) error {
 	return nil
 }
 
+func lastPageTarget(targets []TargetInfo) string {
+	for _, target := range slices.Backward(targets) {
+		if target.Type == "page" {
+			return target.TargetID
+		}
+	}
+	return ""
+}
+
 func (coordinator *Coordinator) targetSession(ctx context.Context, current *session) (string, error) {
 	coordinator.mu.Lock()
 	targetID := current.targetID
 	coordinator.mu.Unlock()
-	if targetID == "" {
-		for targetID == "" {
-			targets, err := current.cdp.Targets(ctx)
-			if err != nil {
-				return "", err
-			}
-			for _, target := range slices.Backward(targets) {
-				if target.Type == "page" {
-					targetID = target.TargetID
-					break
-				}
-			}
-			if targetID != "" {
-				break
-			}
-			select {
-			case <-ctx.Done():
-				return "", ctx.Err()
-			case <-time.After(50 * time.Millisecond):
-			}
+	for targetID == "" {
+		targets, err := current.cdp.Targets(ctx)
+		if err != nil {
+			return "", err
+		}
+		if targetID = lastPageTarget(targets); targetID != "" {
+			break
+		}
+		select {
+		case <-ctx.Done():
+			return "", ctx.Err()
+		case <-time.After(50 * time.Millisecond):
 		}
 	}
 	return coordinator.targetSessionFor(ctx, current, targetID)

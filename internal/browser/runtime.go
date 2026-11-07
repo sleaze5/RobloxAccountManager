@@ -652,7 +652,7 @@ func removeManagedDirectory(root, target string) error {
 		return fmt.Errorf("resolve managed directory: %w", err)
 	}
 	relative, err := filepath.Rel(rootAbs, targetAbs)
-	if err != nil || relative == "." || relative == "" || strings.HasPrefix(relative, ".."+string(filepath.Separator)) || filepath.IsAbs(relative) || strings.Contains(relative, string(filepath.Separator)) {
+	if err != nil || relative == "." || !filepath.IsLocal(relative) || strings.ContainsRune(relative, filepath.Separator) {
 		return errors.New("refusing unsafe managed-directory cleanup")
 	}
 	info, err := os.Lstat(targetAbs)
