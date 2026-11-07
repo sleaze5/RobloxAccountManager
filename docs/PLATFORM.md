@@ -21,7 +21,14 @@ Do not expose other architectures.
 A file name or package path must show whether its code is OS-specific. Put OS-specific code in one of two places:
 
 - **`<name>_<os>.go` files in a feature package:** for native behavior that the package needs for its own work. Expose it through package-private functions with platform-neutral signatures. Example: `internal/gamelaunch/launch_windows.go`.
-- **`internal/platform/<capability>/`:** for a native capability that the application uses as a feature of its own. Give it a platform-neutral API. Current packages: `protection`, `singleinstance`, `robloxmulti`, and `robloxlogs`.
+- **`internal/platform/<capability>/`:** for a native capability that the application uses as a feature of its own. Give it a platform-neutral API. Current packages: `protection`, `singleinstance`, `robloxmulti`, `robloxlogs`, and `shellidentity`.
+
+Name a file by the operating systems it builds on, so the name always matches its build constraint:
+
+- `<name>_<os>.go`: one operating system. Go applies the constraint from the name.
+- `<name>_unix.go`: code that Linux and macOS share, with `//go:build linux || darwin`, or `//go:build unix` when every Unix system can use it. Put code in it instead of copying it into `_linux.go` and `_darwin.go`.
+- `<name>_other.go`: the fallback for every operating system without its own file, with a `//go:build` line that excludes those operating systems, such as `//go:build !windows`.
+- Never use a name that does not show the operating systems, such as `_supported.go`. If code fits none of these names, keep a copy in each `_<os>.go` file.
 
 Rules:
 
@@ -112,7 +119,7 @@ The About page shows the storage mode and data folder. Each launch records the m
 - Automatic unlock protects its key with DPAPI for the current user.
 - Joining a game starts the Roblox Player directly or through its protocol.
 - Multi-instance support and Roblox process control are available.
-- ARM64 is cross-compiled on x64 Windows. SQLCipher needs cgo, so the build needs `aarch64-w64-mingw32-clang` from [llvm-mingw](https://github.com/mstorsjo/llvm-mingw) on `PATH`. Put it after the x64 MinGW, because llvm-mingw also ships a `gcc`.
+- Windows builds without cgo. ARM64 is cross-compiled on x64 Windows with Go alone.
 - Chrome for Testing has no ARM64 build. On ARM64, the managed browser runs x64 Chrome through Windows 11 emulation.
 
 ## Linux
@@ -126,7 +133,7 @@ The About page shows the storage mode and data folder. Each launch records the m
 
 ## macOS
 
-- The application is a `.app` bundle. Build it on macOS with Xcode command line tools, because the Wails runtime and SQLCipher use cgo.
+- The application is a `.app` bundle. Build it on macOS with Xcode command line tools, because the Wails runtime uses cgo.
 - `build/darwin/Info.plist` is the bundle template. The build adds the version from `VERSION` and `assets/icon.icns`, then signs the bundle ad hoc.
 - Regenerate `assets/icon.icns` from `assets/icon.svg` when the icon changes.
 - Portable storage is unavailable (`portableSupported` is `false` in `internal/appdata/standard_darwin.go`). The executable is in `RobloxAccountManager.app/Contents/MacOS/`, so a Portable vault would sit inside the bundle. Writing there breaks the bundle signature, and an in-place update replaces the bundle and would delete the vault.
