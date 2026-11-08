@@ -86,7 +86,7 @@ func (service *Service) SignOutOtherSessions(ctx context.Context, accountID int6
 	}
 	service.browser.DetachAccount(accountID, "Other sessions were signed out. Reopen this account's browser to use the new session.")
 	service.events.SessionChanged(accountID)
-	result := CookieRenewalResult{Warning: service.refreshCredentialBackup(ctx, logger, false)}
-	logger.Info("signed out other sessions", "backup_warning", result.Warning != "")
-	return result, nil
+	renewalResult := CookieRenewalResult{Warning: service.refreshCredentialBackup(ctx, logger, false)}
+	logger.Info("signed out other sessions", "backup_warning", renewalResult.Warning != "")
+	return renewalResult, nil
 }

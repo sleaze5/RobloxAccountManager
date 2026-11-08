@@ -112,11 +112,11 @@ func (manager *Manager) UnlockedAutomatically() bool {
 func (manager *Manager) AutomaticUnlockEnabled() bool { return fileExists(manager.paths.AutoUnlockKey) }
 
 func (manager *Manager) ValidAutomaticUnlock() bool {
-	data, err := readBounded(manager.paths.AutoUnlockKey, autoFileLimit)
+	encodedAutoUnlock, err := readBounded(manager.paths.AutoUnlockKey, autoFileLimit)
 	if err != nil {
 		return false
 	}
-	identifier, vaultKey, err := decodeAutoUnlock(data, manager.protector)
+	identifier, vaultKey, err := decodeAutoUnlock(encodedAutoUnlock, manager.protector)
 	if err != nil {
 		return false
 	}
@@ -266,11 +266,11 @@ func (manager *Manager) AutoUnlock(ctx context.Context) error {
 }
 
 func (manager *Manager) unlockAutoCandidate(ctx context.Context, path string) error {
-	data, err := readBounded(path, autoFileLimit)
+	encodedAutoUnlock, err := readBounded(path, autoFileLimit)
 	if err != nil {
 		return err
 	}
-	identifier, vaultKey, err := decodeAutoUnlock(data, manager.protector)
+	identifier, vaultKey, err := decodeAutoUnlock(encodedAutoUnlock, manager.protector)
 	if err != nil {
 		return err
 	}
@@ -596,8 +596,8 @@ func (manager *Manager) writeStagedAutomaticUnlock(stagedAuto string, encodedAut
 func (manager *Manager) rotationMatchesUnlockedKey() bool {
 	if !fileExists(manager.paths.AutoUnlockKey + ".next") {
 		return true
-	} else if data, readError := readBounded(manager.paths.AutoUnlockKey+".next", autoFileLimit); readError == nil {
-		_, nextVaultKey, decodeError := decodeAutoUnlock(data, manager.protector)
+	} else if encodedNextAutoUnlock, readError := readBounded(manager.paths.AutoUnlockKey+".next", autoFileLimit); readError == nil {
+		_, nextVaultKey, decodeError := decodeAutoUnlock(encodedNextAutoUnlock, manager.protector)
 		manager.mutex.Lock()
 		matches := decodeError == nil && len(nextVaultKey) == len(manager.vaultKey) && subtle.ConstantTimeCompare(nextVaultKey, manager.vaultKey) == 1
 		manager.mutex.Unlock()

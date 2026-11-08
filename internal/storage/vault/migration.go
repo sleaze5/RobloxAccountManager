@@ -72,20 +72,20 @@ func (manager *Manager) MigrateLegacyVault(ctx context.Context, password string,
 func (manager *Manager) MigrationAvailable() bool { return fileExists(manager.paths.Migration) }
 
 func (manager *Manager) readMigration(vaultKey []byte, identifier [vaultIDBytes]byte) ([]byte, error) {
-	data, err := readBounded(manager.paths.Migration, exportFileLimit)
+	encodedMigration, err := readBounded(manager.paths.Migration, exportFileLimit)
 	if errors.Is(err, os.ErrNotExist) {
 		return nil, ErrNoMigration
 	}
 	if err != nil {
 		return nil, err
 	}
-	if len(data) < migrationHeaderBytes || !bytes.Equal(data[:len(migrationMagic)], migrationMagic[:]) {
+	if len(encodedMigration) < migrationHeaderBytes || !bytes.Equal(encodedMigration[:len(migrationMagic)], migrationMagic[:]) {
 		return nil, ErrInvalidMigration
 	}
-	if version := binary.BigEndian.Uint16(data[len(migrationMagic):]); version != migrationFormatVersion {
+	if version := binary.BigEndian.Uint16(encodedMigration[len(migrationMagic):]); version != migrationFormatVersion {
 		return nil, fmt.Errorf("%w: migration format version %d", ErrInvalidMigration, version)
 	}
-	if !bytes.Equal(data[len(migrationMagic)+2:len(migrationMagic)+2+vaultIDBytes], identifier[:]) {
+	if !bytes.Equal(encodedMigration[len(migrationMagic)+2:len(migrationMagic)+2+vaultIDBytes], identifier[:]) {
 		return nil, fmt.Errorf("%w: the migration file belongs to another vault", ErrInvalidMigration)
 	}
 	key, err := migrationKey(vaultKey)
@@ -101,8 +101,8 @@ func (manager *Manager) readMigration(vaultKey []byte, identifier [vaultIDBytes]
 	if err != nil {
 		return nil, fmt.Errorf("create migration cipher mode: %w", err)
 	}
-	header := data[:migrationHeaderBytes]
-	payload, err := gcm.Open(nil, header[len(migrationMagic)+2+vaultIDBytes:], data[migrationHeaderBytes:], header)
+	header := encodedMigration[:migrationHeaderBytes]
+	payload, err := gcm.Open(nil, header[len(migrationMagic)+2+vaultIDBytes:], encodedMigration[migrationHeaderBytes:], header)
 	if err != nil {
 		return nil, fmt.Errorf("%w: %w", ErrInvalidMigration, err)
 	}

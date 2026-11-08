@@ -24,16 +24,16 @@ func (service *Service) ListServerRegions(ctx context.Context, refresh bool) ([]
 		return nil, err
 	}
 	preferred := service.settings.Integrations().RoValraRegion
-	result := make([]games.Region, len(regions))
+	gameRegions := make([]games.Region, len(regions))
 	listed := preferred == ""
 	for index, region := range regions {
-		result[index] = region.Region
+		gameRegions[index] = region.Region
 		listed = listed || region.Code == preferred
 	}
 	if !listed {
 		service.logs.Module("integration.rovalra").WarnContext(ctx, "preferred region is no longer listed", "operation", "rovalra-regions", "region", preferred)
 	}
-	return result, nil
+	return gameRegions, nil
 }
 
 func (service *Service) SetRoValraRegion(ctx context.Context, code string) error {

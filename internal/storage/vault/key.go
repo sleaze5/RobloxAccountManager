@@ -265,28 +265,28 @@ func encodeKeyFile(key keyFile) ([]byte, error) {
 }
 
 func readKeyFile(path string) (keyFile, error) {
-	data, err := readBounded(path, keyFileLimit)
+	encodedKeyFile, err := readBounded(path, keyFileLimit)
 	if err != nil {
 		return keyFile{}, err
 	}
-	return decodeKeyFile(data)
+	return decodeKeyFile(encodedKeyFile)
 }
 
-func decodeKeyFile(data []byte) (keyFile, error) {
-	if len(data) > keyFileLimit {
+func decodeKeyFile(encoded []byte) (keyFile, error) {
+	if len(encoded) > keyFileLimit {
 		return keyFile{}, errors.New("vault key file is too large")
 	}
-	if len(data) < len(keyMagic)+2 {
+	if len(encoded) < len(keyMagic)+2 {
 		return keyFile{}, errors.New("vault key file is truncated")
 	}
-	if !bytes.Equal(data[:len(keyMagic)], keyMagic[:]) {
+	if !bytes.Equal(encoded[:len(keyMagic)], keyMagic[:]) {
 		return keyFile{}, errors.New("vault key file has invalid magic")
 	}
-	version := binary.BigEndian.Uint16(data[len(keyMagic):])
+	version := binary.BigEndian.Uint16(encoded[len(keyMagic):])
 	if version == 0 || version > keyFormatVersion {
 		return keyFile{}, fmt.Errorf("%w: vault key version %d", ErrUnsupportedVersion, version)
 	}
-	return keyFileDecoders[version-1](data)
+	return keyFileDecoders[version-1](encoded)
 }
 
 func decodeLegacyKeyFile([]byte) (keyFile, error) { return keyFile{}, ErrLegacyVault }
@@ -294,18 +294,18 @@ func decodeLegacyKeyFile([]byte) (keyFile, error) { return keyFile{}, ErrLegacyV
 // readLegacyKeyFile reads a version 1 key file, which has the same fields as
 // version 2, so a legacy vault key can still be unwrapped for migration.
 func readLegacyKeyFile(path string) (keyFile, error) {
-	data, err := readBounded(path, keyFileLimit)
+	encodedKeyFile, err := readBounded(path, keyFileLimit)
 	if err != nil {
 		return keyFile{}, err
 	}
-	if len(data) < len(keyMagic)+2 || !bytes.Equal(data[:len(keyMagic)], keyMagic[:]) || binary.BigEndian.Uint16(data[len(keyMagic):]) != 1 {
+	if len(encodedKeyFile) < len(keyMagic)+2 || !bytes.Equal(encodedKeyFile[:len(keyMagic)], keyMagic[:]) || binary.BigEndian.Uint16(encodedKeyFile[len(keyMagic):]) != 1 {
 		return keyFile{}, errors.New("vault key file is not from a version before 0.10.0")
 	}
-	return decodeKeyFileFields(data)
+	return decodeKeyFileFields(encodedKeyFile)
 }
 
-func decodeKeyFileFields(data []byte) (keyFile, error) {
-	reader := bytes.NewReader(data)
+func decodeKeyFileFields(encoded []byte) (keyFile, error) {
+	reader := bytes.NewReader(encoded)
 	var magic [8]byte
 	var key keyFile
 	var saltLength, nonceLength uint8
@@ -358,28 +358,28 @@ func encodeAutoUnlock(protector protection.Protector, vaultID [vaultIDBytes]byte
 	if len(ciphertext) == 0 || len(ciphertext) > autoFileLimit-autoHeaderBytes {
 		return nil, errors.New("automatic unlock data is too large")
 	}
-	result := append([]byte(nil), autoMagic[:]...)
-	result = binary.BigEndian.AppendUint16(result, autoFormatVersion)
-	result = binary.BigEndian.AppendUint32(result, uint32(len(ciphertext)))
-	result = append(result, ciphertext...)
-	return result, nil
+	encodedAutoUnlock := append([]byte(nil), autoMagic[:]...)
+	encodedAutoUnlock = binary.BigEndian.AppendUint16(encodedAutoUnlock, autoFormatVersion)
+	encodedAutoUnlock = binary.BigEndian.AppendUint32(encodedAutoUnlock, uint32(len(ciphertext)))
+	encodedAutoUnlock = append(encodedAutoUnlock, ciphertext...)
+	return encodedAutoUnlock, nil
 }
 
-func decodeAutoUnlock(data []byte, protector protection.Protector) ([vaultIDBytes]byte, []byte, error) {
+func decodeAutoUnlock(encoded []byte, protector protection.Protector) ([vaultIDBytes]byte, []byte, error) {
 	var vaultID [vaultIDBytes]byte
 	// The header holds an 8-byte magic, a 2-byte version, and a 4-byte length.
-	if len(data) < autoHeaderBytes || len(data) > autoFileLimit || !bytes.Equal(data[:8], autoMagic[:]) {
+	if len(encoded) < autoHeaderBytes || len(encoded) > autoFileLimit || !bytes.Equal(encoded[:8], autoMagic[:]) {
 		return vaultID, nil, errors.New("automatic unlock file is corrupted")
 	}
-	version := binary.BigEndian.Uint16(data[8:10])
+	version := binary.BigEndian.Uint16(encoded[8:10])
 	if version == 0 || version > autoFormatVersion {
 		return vaultID, nil, fmt.Errorf("%w: automatic unlock version %d", ErrUnsupportedVersion, version)
 	}
-	length := binary.BigEndian.Uint32(data[10:14])
-	if length == 0 || int(length) != len(data)-autoHeaderBytes || protector == nil {
+	length := binary.BigEndian.Uint32(encoded[10:14])
+	if length == 0 || int(length) != len(encoded)-autoHeaderBytes || protector == nil {
 		return vaultID, nil, errors.New("automatic unlock file is corrupted")
 	}
-	plain, err := protector.Unprotect(data[autoHeaderBytes:])
+	plain, err := protector.Unprotect(encoded[autoHeaderBytes:])
 	if err != nil {
 		return vaultID, nil, fmt.Errorf("%w: %w", ErrAutomaticUnlockUnavailable, err)
 	}
@@ -404,19 +404,19 @@ func readBounded(path string, limit int64) ([]byte, error) {
 		return nil, fmt.Errorf("open vault file: %w", err)
 	}
 	defer func() { _ = file.Close() }()
-	data, err := io.ReadAll(io.LimitReader(file, limit+1))
+	contents, err := io.ReadAll(io.LimitReader(file, limit+1))
 	if err != nil {
 		return nil, fmt.Errorf("read %q: %w", filepath.Base(path), err)
 	}
-	if int64(len(data)) > limit {
+	if int64(len(contents)) > limit {
 		return nil, fmt.Errorf("%q is too large", filepath.Base(path))
 	}
-	return data, nil
+	return contents, nil
 }
 
-func wipe(data []byte) {
-	for index := range data {
-		data[index] = 0
+func wipe(secret []byte) {
+	for index := range secret {
+		secret[index] = 0
 	}
-	runtime.KeepAlive(data)
+	runtime.KeepAlive(secret)
 }

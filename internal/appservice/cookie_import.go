@@ -102,31 +102,31 @@ func (service *Service) ValidateCookies(ctx context.Context, input string) (Impo
 	seenUsers := make(map[int64]seenImportAccount, len(inputs))
 	userIDs := make([]int64, 0, len(inputs))
 	for index, outcome := range outcomes {
-		item := ImportPreviewItem{Index: index + 1}
+		previewItem := ImportPreviewItem{Index: index + 1}
 		if outcome.err != nil {
-			item.ErrorStatus, item.ErrorMessage = importErrorDetails(outcome.err)
-			preview.Items[index] = item
+			previewItem.ErrorStatus, previewItem.ErrorMessage = importErrorDetails(outcome.err)
+			preview.Items[index] = previewItem
 			continue
 		}
 
 		identity := outcome.validation.Identity
-		item.Authenticated = true
-		item.Ready = true
+		previewItem.Authenticated = true
+		previewItem.Ready = true
 		if seen, duplicate := seenUsers[identity.RobloxUserID]; duplicate {
-			item.SameAccountAsIndex = seen.firstIndex
-			item.UpdatesExisting = seen.existingAccountID > 0
+			previewItem.SameAccountAsIndex = seen.firstIndex
+			previewItem.UpdatesExisting = seen.existingAccountID > 0
 			pending.items = append(pending.items, pendingImportItem{
-				index:             item.Index,
+				index:             previewItem.Index,
 				existingAccountID: seen.existingAccountID,
 				validation:        outcome.validation,
 			})
-			preview.Items[index] = item
+			preview.Items[index] = previewItem
 			continue
 		}
 
-		item.RobloxUserID = identity.RobloxUserID
-		item.Username = identity.Username
-		item.DisplayName = identity.DisplayName
+		previewItem.RobloxUserID = identity.RobloxUserID
+		previewItem.Username = identity.Username
+		previewItem.DisplayName = identity.DisplayName
 		userIDs = append(userIDs, identity.RobloxUserID)
 
 		var existingAccountID int64
@@ -134,20 +134,20 @@ func (service *Service) ValidateCookies(ctx context.Context, input string) (Impo
 		switch {
 		case err == nil:
 			existingAccountID = existing.ID
-			item.UpdatesExisting = true
+			previewItem.UpdatesExisting = true
 		case errors.Is(err, accounts.ErrNotFound):
 		default:
 			clearPendingImportBatch(&pending)
 			return ImportPreview{}, mapRepositoryError(err)
 		}
-		seenUsers[identity.RobloxUserID] = seenImportAccount{firstIndex: item.Index, existingAccountID: existingAccountID}
+		seenUsers[identity.RobloxUserID] = seenImportAccount{firstIndex: previewItem.Index, existingAccountID: existingAccountID}
 		preview.ReadyCount++
 		pending.items = append(pending.items, pendingImportItem{
-			index:             item.Index,
+			index:             previewItem.Index,
 			existingAccountID: existingAccountID,
 			validation:        outcome.validation,
 		})
-		preview.Items[index] = item
+		preview.Items[index] = previewItem
 	}
 
 	service.loadImportAvatars(ctx, userIDs, &preview)
@@ -184,44 +184,44 @@ func (service *Service) SaveValidatedCookies(ctx context.Context, batchID string
 		return ImportBatchResult{}, &roblox.Error{Kind: roblox.KindProtocol, Endpoint: "cookie-import", Message: "The selected accounts are invalid. Validate the cookies again."}
 	}
 
-	result := ImportBatchResult{Items: make([]ImportBatchItem, 0, len(batch.items))}
-	for _, item := range batch.items {
-		if item.existingAccountID > 0 {
-			view, err := service.replaceValidatedCookie(ctx, item.existingAccountID, item.validation)
+	batchResult := ImportBatchResult{Items: make([]ImportBatchItem, 0, len(batch.items))}
+	for _, batchItem := range batch.items {
+		if batchItem.existingAccountID > 0 {
+			view, err := service.replaceValidatedCookie(ctx, batchItem.existingAccountID, batchItem.validation)
 			if err != nil {
-				service.logger.Error("validated account update failed", "cookie_index", item.index, "roblox_user_id", item.validation.Identity.RobloxUserID, "error", err)
-				result.Items = append(result.Items, failedImportBatchItem(item.index, "update error", "The cookie could not be updated."))
+				service.logger.Error("validated account update failed", "cookie_index", batchItem.index, "roblox_user_id", batchItem.validation.Identity.RobloxUserID, "error", err)
+				batchResult.Items = append(batchResult.Items, failedImportBatchItem(batchItem.index, "update error", "The cookie could not be updated."))
 				continue
 			}
-			result.Items = append(result.Items, ImportBatchItem{Index: item.index, Status: ImportUpdated, Account: view})
+			batchResult.Items = append(batchResult.Items, ImportBatchItem{Index: batchItem.index, Status: ImportUpdated, Account: view})
 			continue
 		}
 
-		view, session, err := service.repo.Create(ctx, item.validation.Identity, item.validation.Cookie, item.validation.ExpiresAt)
+		view, session, err := service.repo.Create(ctx, batchItem.validation.Identity, batchItem.validation.Cookie, batchItem.validation.ExpiresAt)
 		if err != nil {
 			if errors.Is(err, accounts.ErrDuplicateAccount) {
-				existing, lookupError := service.repo.FindByRobloxUserID(ctx, item.validation.Identity.RobloxUserID)
+				existing, lookupError := service.repo.FindByRobloxUserID(ctx, batchItem.validation.Identity.RobloxUserID)
 				if lookupError == nil {
-					result.Items = append(result.Items, ImportBatchItem{Index: item.index, Status: ImportDuplicate, Account: existing})
+					batchResult.Items = append(batchResult.Items, ImportBatchItem{Index: batchItem.index, Status: ImportDuplicate, Account: existing})
 					continue
 				}
 			}
-			service.logger.Error("validated account import failed", "cookie_index", item.index, "roblox_user_id", item.validation.Identity.RobloxUserID, "error", err)
-			result.Items = append(result.Items, failedImportBatchItem(item.index, "storage error", "The account could not be added."))
+			service.logger.Error("validated account import failed", "cookie_index", batchItem.index, "roblox_user_id", batchItem.validation.Identity.RobloxUserID, "error", err)
+			batchResult.Items = append(batchResult.Items, failedImportBatchItem(batchItem.index, "storage error", "The account could not be added."))
 			continue
 		}
-		if err := service.sessions.Put(session, item.validation.BrowserID); err != nil {
+		if err := service.sessions.Put(session, batchItem.validation.BrowserID); err != nil {
 			if removeError := service.repo.Remove(context.WithoutCancel(ctx), view.ID); removeError != nil {
 				service.logger.Error("failed import rollback failed", "account_id", view.ID, "error", removeError)
 			}
 			status, message := importErrorDetails(err)
-			result.Items = append(result.Items, failedImportBatchItem(item.index, status, message))
+			batchResult.Items = append(batchResult.Items, failedImportBatchItem(batchItem.index, status, message))
 			continue
 		}
 		service.events.send("account:added", view)
-		result.Items = append(result.Items, ImportBatchItem{Index: item.index, Status: ImportCreated, Account: view})
+		batchResult.Items = append(batchResult.Items, ImportBatchItem{Index: batchItem.index, Status: ImportCreated, Account: view})
 	}
-	return result, nil
+	return batchResult, nil
 }
 
 func retainSelectedImports(batch *pendingImportBatch, selectedIndexes []int) bool {
@@ -240,8 +240,8 @@ func retainSelectedImports(batch *pendingImportBatch, selectedIndexes []int) boo
 	}
 
 	available := make(map[int]struct{}, len(batch.items))
-	for _, item := range batch.items {
-		available[item.index] = struct{}{}
+	for _, batchItem := range batch.items {
+		available[batchItem.index] = struct{}{}
 	}
 	for index := range selected {
 		if _, exists := available[index]; !exists {
@@ -254,9 +254,9 @@ func retainSelectedImports(batch *pendingImportBatch, selectedIndexes []int) boo
 
 	retained := batch.items[:0]
 	for itemIndex := range batch.items {
-		item := batch.items[itemIndex]
-		if _, keep := selected[item.index]; keep {
-			retained = append(retained, item)
+		batchItem := batch.items[itemIndex]
+		if _, keep := selected[batchItem.index]; keep {
+			retained = append(retained, batchItem)
 		} else {
 			batch.items[itemIndex].validation = roblox.CookieValidation{}
 		}
@@ -415,11 +415,11 @@ func (service *Service) avatarURLs(ctx context.Context, userIDs []int64) map[int
 
 func uniqueSelectedImportUsers(batch *pendingImportBatch, selected map[int]struct{}) bool {
 	selectedUsers := make(map[int64]struct{}, len(selected))
-	for _, item := range batch.items {
-		if _, keep := selected[item.index]; !keep {
+	for _, batchItem := range batch.items {
+		if _, keep := selected[batchItem.index]; !keep {
 			continue
 		}
-		userID := item.validation.Identity.RobloxUserID
+		userID := batchItem.validation.Identity.RobloxUserID
 		if userID <= 0 {
 			return false
 		}

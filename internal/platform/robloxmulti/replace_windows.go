@@ -41,17 +41,17 @@ func openProcess(pid, access uint32, expectedName string) (windows.Handle, error
 	if err != nil {
 		return 0, fmt.Errorf("open Roblox process: %w", err)
 	}
-	result, err := windows.WaitForSingleObject(handle, 0)
+	waitStatus, err := windows.WaitForSingleObject(handle, 0)
 	switch {
 	case err != nil:
 		windows.CloseHandle(handle)
 		return 0, fmt.Errorf("check Roblox process state: %w", err)
-	case result == windows.WAIT_OBJECT_0:
+	case waitStatus == windows.WAIT_OBJECT_0:
 		windows.CloseHandle(handle)
 		return 0, nil
 	}
 	if err := verifyProcess(handle, expectedName); err != nil {
-		if result, _ := windows.WaitForSingleObject(handle, 0); result == windows.WAIT_OBJECT_0 {
+		if waitStatus, _ := windows.WaitForSingleObject(handle, 0); waitStatus == windows.WAIT_OBJECT_0 {
 			windows.CloseHandle(handle)
 			return 0, nil
 		}
@@ -90,15 +90,15 @@ func (players *playerProcesses) terminate(ctx context.Context, logger *slog.Logg
 		if err := ctx.Err(); err != nil {
 			return err
 		}
-		result, err := windows.WaitForSingleObject(handle, 0)
+		waitStatus, err := windows.WaitForSingleObject(handle, 0)
 		if err != nil {
 			return fmt.Errorf("check Roblox process state: %w", err)
 		}
-		if result == windows.WAIT_OBJECT_0 {
+		if waitStatus == windows.WAIT_OBJECT_0 {
 			continue
 		}
 		if err := windows.TerminateProcess(handle, 0); err != nil {
-			if result, _ := windows.WaitForSingleObject(handle, 0); result != windows.WAIT_OBJECT_0 {
+			if waitStatus, _ := windows.WaitForSingleObject(handle, 0); waitStatus != windows.WAIT_OBJECT_0 {
 				return fmt.Errorf("close Roblox process: %w", err)
 			}
 		}
@@ -113,11 +113,11 @@ func (players *playerProcesses) terminate(ctx context.Context, logger *slog.Logg
 			if err := ctx.Err(); err != nil {
 				return err
 			}
-			result, err := windows.WaitForSingleObject(handle, 50)
+			waitStatus, err := windows.WaitForSingleObject(handle, 50)
 			if err != nil {
 				return fmt.Errorf("wait for Roblox process: %w", err)
 			}
-			if result == windows.WAIT_OBJECT_0 {
+			if waitStatus == windows.WAIT_OBJECT_0 {
 				break
 			}
 		}

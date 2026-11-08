@@ -191,15 +191,15 @@ func (service *Presence) request(ctx context.Context, accountID, version int64, 
 		return nil, invalidPresence(response.Status, err)
 	}
 	presences := make([]UserPresence, 0, len(payload.UserPresences))
-	for _, item := range payload.UserPresences {
+	for _, userPresence := range payload.UserPresences {
 		presences = append(presences, UserPresence{
-			UserID:           item.UserID,
-			UserPresenceType: presenceType(item.Type),
-			LastLocation:     strings.TrimSpace(item.LastLocation),
-			PlaceID:          item.PlaceID,
-			RootPlaceID:      item.RootPlaceID,
-			GameID:           strings.TrimSpace(item.GameID),
-			UniverseID:       item.UniverseID,
+			UserID:           userPresence.UserID,
+			UserPresenceType: presenceType(userPresence.Type),
+			LastLocation:     strings.TrimSpace(userPresence.LastLocation),
+			PlaceID:          userPresence.PlaceID,
+			RootPlaceID:      userPresence.RootPlaceID,
+			GameID:           strings.TrimSpace(userPresence.GameID),
+			UniverseID:       userPresence.UniverseID,
 		})
 	}
 	return presences, nil

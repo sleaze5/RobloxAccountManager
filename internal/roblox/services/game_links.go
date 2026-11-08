@@ -108,20 +108,20 @@ func (service *GameLinks) resolveShare(ctx context.Context, accountID, version i
 	if err != nil {
 		return gamelaunch.Request{}, err
 	}
-	var result struct {
+	var payload struct {
 		PrivateServerInviteData *privateServerInvite `json:"privateServerInviteData"`
 		ServerData              *privateServerInvite `json:"serverData"`
 		ExperienceInviteData    *experienceInvite    `json:"experienceInviteData"`
 	}
-	if err := json.Unmarshal(response.Body, &result); err != nil {
+	if err := json.Unmarshal(response.Body, &payload); err != nil {
 		return gamelaunch.Request{}, gameLinkError("share-link", response.Status, "Roblox returned invalid share-link details.")
 	}
 	if shareType == gamelaunch.ShareExperienceInvite {
-		return experienceInviteRequest(result.ExperienceInviteData, response.Status)
+		return experienceInviteRequest(payload.ExperienceInviteData, response.Status)
 	}
-	invite := result.PrivateServerInviteData
+	invite := payload.PrivateServerInviteData
 	if invite == nil {
-		invite = result.ServerData
+		invite = payload.ServerData
 	}
 	return service.resolvePrivateInvite(ctx, invite, response.Status)
 }
@@ -183,19 +183,19 @@ func (service *GameLinks) rootPlace(ctx context.Context, universeID int64) (int6
 	if err != nil {
 		return 0, err
 	}
-	var result struct {
+	var payload struct {
 		Data []struct {
 			ID          int64 `json:"id"`
 			RootPlaceID int64 `json:"rootPlaceId"`
 		} `json:"data"`
 	}
-	if err := json.Unmarshal(response.Body, &result); err != nil {
+	if err := json.Unmarshal(response.Body, &payload); err != nil {
 		return 0, gameLinkError("server-share-game", response.Status, "Roblox returned invalid game details for this server-share link.")
 	}
-	if len(result.Data) != 1 || result.Data[0].ID != universeID || result.Data[0].RootPlaceID <= 0 {
+	if len(payload.Data) != 1 || payload.Data[0].ID != universeID || payload.Data[0].RootPlaceID <= 0 {
 		return 0, gameLinkError("server-share-game", response.Status, "The game for this server-share link is unavailable.")
 	}
-	return result.Data[0].RootPlaceID, nil
+	return payload.Data[0].RootPlaceID, nil
 }
 
 func gameLinkError(endpoint string, status int, message string) error {

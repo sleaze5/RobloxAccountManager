@@ -33,57 +33,57 @@ type UserLocale struct {
 }
 
 func (service *Users) Email(ctx context.Context, accountID, version int64) (UserEmail, error) {
-	var result struct {
+	var payload struct {
 		EmailAddress *string `json:"emailAddress"`
 		Verified     bool    `json:"verified"`
 	}
-	if err := service.readAccountDetails(ctx, accountID, version, "account-info-email", "https://accountsettings.roblox.com/v1/email", &result); err != nil {
+	if err := service.readAccountDetails(ctx, accountID, version, "account-info-email", "https://accountsettings.roblox.com/v1/email", &payload); err != nil {
 		return UserEmail{}, err
 	}
 	// 320 bytes is the longest valid email address.
-	if result.EmailAddress != nil && len(*result.EmailAddress) > 320 {
+	if payload.EmailAddress != nil && len(*payload.EmailAddress) > 320 {
 		return UserEmail{}, invalidProfileDetails("account-info-email")
 	}
-	email := UserEmail{Verified: result.Verified}
-	if result.EmailAddress != nil {
-		email.Address = strings.TrimSpace(*result.EmailAddress)
+	email := UserEmail{Verified: payload.Verified}
+	if payload.EmailAddress != nil {
+		email.Address = strings.TrimSpace(*payload.EmailAddress)
 	}
 	return email, nil
 }
 
 func (service *Users) Phone(ctx context.Context, accountID, version int64) (UserPhone, error) {
-	var result struct {
+	var payload struct {
 		Prefix     *string `json:"prefix"`
 		Phone      *string `json:"phone"`
 		IsVerified bool    `json:"isVerified"`
 	}
-	if err := service.readAccountDetails(ctx, accountID, version, "account-info-phone", "https://accountinformation.roblox.com/v1/phone", &result); err != nil {
+	if err := service.readAccountDetails(ctx, accountID, version, "account-info-phone", "https://accountinformation.roblox.com/v1/phone", &payload); err != nil {
 		return UserPhone{}, err
 	}
-	if result.Phone == nil || strings.TrimSpace(*result.Phone) == "" {
+	if payload.Phone == nil || strings.TrimSpace(*payload.Phone) == "" {
 		return UserPhone{}, nil
 	}
-	number := strings.TrimSpace(*result.Phone)
-	if result.Prefix != nil && strings.TrimSpace(*result.Prefix) != "" {
-		number = "+" + strings.TrimPrefix(strings.TrimSpace(*result.Prefix), "+") + " " + number
+	number := strings.TrimSpace(*payload.Phone)
+	if payload.Prefix != nil && strings.TrimSpace(*payload.Prefix) != "" {
+		number = "+" + strings.TrimPrefix(strings.TrimSpace(*payload.Prefix), "+") + " " + number
 	}
 	if len(number) > 64 {
 		return UserPhone{}, invalidProfileDetails("account-info-phone")
 	}
-	return UserPhone{Number: number, Verified: result.IsVerified}, nil
+	return UserPhone{Number: number, Verified: payload.IsVerified}, nil
 }
 
 func (service *Users) Gender(ctx context.Context, accountID, version int64) (string, error) {
-	var result struct {
+	var payload struct {
 		Gender *int `json:"gender"`
 	}
-	if err := service.readAccountDetails(ctx, accountID, version, "account-info-gender", "https://users.roblox.com/v1/gender", &result); err != nil {
+	if err := service.readAccountDetails(ctx, accountID, version, "account-info-gender", "https://users.roblox.com/v1/gender", &payload); err != nil {
 		return "", err
 	}
-	if result.Gender == nil {
+	if payload.Gender == nil {
 		return "", invalidProfileDetails("account-info-gender")
 	}
-	switch *result.Gender {
+	switch *payload.Gender {
 	case 2:
 		return "male", nil
 	case 3:
@@ -94,18 +94,18 @@ func (service *Users) Gender(ctx context.Context, accountID, version int64) (str
 }
 
 func (service *Users) Birthdate(ctx context.Context, accountID, version int64) (UserBirthdate, error) {
-	var result struct {
+	var payload struct {
 		Year  int `json:"birthYear"`
 		Month int `json:"birthMonth"`
 		Day   int `json:"birthDay"`
 	}
-	if err := service.readAccountDetails(ctx, accountID, version, "account-info-birthdate", "https://users.roblox.com/v1/birthdate", &result); err != nil {
+	if err := service.readAccountDetails(ctx, accountID, version, "account-info-birthdate", "https://users.roblox.com/v1/birthdate", &payload); err != nil {
 		return UserBirthdate{}, err
 	}
-	if result.Year < 1900 || result.Year > 9999 || result.Month < 1 || result.Month > 12 || result.Day < 1 || result.Day > 31 {
+	if payload.Year < 1900 || payload.Year > 9999 || payload.Month < 1 || payload.Month > 12 || payload.Day < 1 || payload.Day > 31 {
 		return UserBirthdate{}, invalidProfileDetails("account-info-birthdate")
 	}
-	return UserBirthdate{Year: result.Year, Month: result.Month, Day: result.Day}, nil
+	return UserBirthdate{Year: payload.Year, Month: payload.Month, Day: payload.Day}, nil
 }
 
 // Labels from Roblox's account settings translations for Label.AgeGroup* keys.
@@ -122,51 +122,51 @@ var ageGroupLabels = map[string]string{
 
 // The age group can differ from the birthday unless the birthday was verified with an ID.
 func (service *Users) CheckedAgeGroup(ctx context.Context, accountID, version int64) (UserAgeGroup, error) {
-	var result struct {
+	var payload struct {
 		Key     *string `json:"ageGroupTranslationKey"`
 		Checked bool    `json:"isChecked"`
 	}
-	if err := service.readAccountDetails(ctx, accountID, version, "account-info-age-group", "https://apis.roblox.com/user-settings-api/v1/account-insights/age-group", &result); err != nil {
+	if err := service.readAccountDetails(ctx, accountID, version, "account-info-age-group", "https://apis.roblox.com/user-settings-api/v1/account-insights/age-group", &payload); err != nil {
 		return UserAgeGroup{}, err
 	}
-	if result.Key == nil {
+	if payload.Key == nil {
 		return UserAgeGroup{}, invalidProfileDetails("account-info-age-group")
 	}
-	return UserAgeGroup{Label: ageGroupLabels[*result.Key], Checked: result.Checked}, nil
+	return UserAgeGroup{Label: ageGroupLabels[*payload.Key], Checked: payload.Checked}, nil
 }
 
 func (service *Users) FirstAccount(ctx context.Context, accountID, version, userID int64) (bool, error) {
-	var result struct {
+	var payload struct {
 		PlayerInfo *struct {
 			UserID         string `json:"userId"`
 			IsOriginalUser *bool  `json:"isOriginalUser"`
 		} `json:"playerInfo"`
 	}
-	if err := service.readAccountDetails(ctx, accountID, version, "account-info-first-account", "https://apis.roblox.com/player-hydration-service/v1/players/signed", &result); err != nil {
+	if err := service.readAccountDetails(ctx, accountID, version, "account-info-first-account", "https://apis.roblox.com/player-hydration-service/v1/players/signed", &payload); err != nil {
 		return false, err
 	}
-	if result.PlayerInfo == nil || result.PlayerInfo.IsOriginalUser == nil {
+	if payload.PlayerInfo == nil || payload.PlayerInfo.IsOriginalUser == nil {
 		return false, invalidProfileDetails("account-info-first-account")
 	}
-	if result.PlayerInfo.UserID != strconv.FormatInt(userID, 10) {
+	if payload.PlayerInfo.UserID != strconv.FormatInt(userID, 10) {
 		return false, profileIdentityError()
 	}
-	return *result.PlayerInfo.IsOriginalUser, nil
+	return *payload.PlayerInfo.IsOriginalUser, nil
 }
 
 func (service *Users) Locale(ctx context.Context, accountID, version int64) (UserLocale, error) {
-	var result struct {
+	var payload struct {
 		GeneralExperience *struct {
 			Name string `json:"name"`
 		} `json:"generalExperience"`
 		ShowRobloxTranslations *bool `json:"showRobloxTranslations"`
 	}
-	if err := service.readAccountDetails(ctx, accountID, version, "account-info-locale", "https://locale.roblox.com/v1/locales/user-localization-locus-supported-locales", &result); err != nil {
+	if err := service.readAccountDetails(ctx, accountID, version, "account-info-locale", "https://locale.roblox.com/v1/locales/user-localization-locus-supported-locales", &payload); err != nil {
 		return UserLocale{}, err
 	}
-	locale := UserLocale{AutoTranslations: result.ShowRobloxTranslations}
-	if result.GeneralExperience != nil {
-		locale.Language = strings.TrimSpace(result.GeneralExperience.Name)
+	locale := UserLocale{AutoTranslations: payload.ShowRobloxTranslations}
+	if payload.GeneralExperience != nil {
+		locale.Language = strings.TrimSpace(payload.GeneralExperience.Name)
 	}
 	if len(locale.Language) > 128 {
 		return UserLocale{}, invalidProfileDetails("account-info-locale")
@@ -175,21 +175,21 @@ func (service *Users) Locale(ctx context.Context, accountID, version int64) (Use
 }
 
 func (service *Users) AccountLocation(ctx context.Context, accountID, version int64) (string, error) {
-	var result struct {
+	var payload struct {
 		Value *struct {
 			LocalizedName        string `json:"localizedName"`
 			LocalizedSubdivision string `json:"localizedSubdivision"`
 		} `json:"value"`
 	}
-	if err := service.readAccountDetails(ctx, accountID, version, "account-info-location", "https://accountsettings.roblox.com/v1/account/settings/account-country", &result); err != nil {
+	if err := service.readAccountDetails(ctx, accountID, version, "account-info-location", "https://accountsettings.roblox.com/v1/account/settings/account-country", &payload); err != nil {
 		return "", err
 	}
-	if result.Value == nil {
+	if payload.Value == nil {
 		return "", nil
 	}
-	location := strings.TrimSpace(result.Value.LocalizedSubdivision)
+	location := strings.TrimSpace(payload.Value.LocalizedSubdivision)
 	if location == "" {
-		location = strings.TrimSpace(result.Value.LocalizedName)
+		location = strings.TrimSpace(payload.Value.LocalizedName)
 	}
 	if len(location) > 256 {
 		return "", invalidProfileDetails("account-info-location")

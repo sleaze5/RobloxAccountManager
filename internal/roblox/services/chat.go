@@ -95,40 +95,40 @@ func (service *Chat) Messages(ctx context.Context, accountID, version int64, con
 }
 
 func (service *Chat) MarkRead(ctx context.Context, accountID, version int64, conversationIDs []string) ([]ChatMarkResult, error) {
-	var result struct {
+	var payload struct {
 		Results []ChatMarkResult `json:"results"`
 	}
-	err := service.post(ctx, accountID, version, "chat-mark-read", "mark-conversations", true, map[string]any{"conversation_ids": conversationIDs}, &result)
-	return result.Results, err
+	err := service.post(ctx, accountID, version, "chat-mark-read", "mark-conversations", true, map[string]any{"conversation_ids": conversationIDs}, &payload)
+	return payload.Results, err
 }
 
 func (service *Chat) CreateDirect(ctx context.Context, accountID, version, userID int64) (ChatConversation, error) {
-	var result struct {
+	var payload struct {
 		Conversations []ChatConversation `json:"conversations"`
 	}
 	body := map[string]any{
 		"conversations":     []map[string]any{{"type": "one_to_one", "participant_user_ids": []int64{userID}}},
 		"include_user_data": true,
 	}
-	if err := service.post(ctx, accountID, version, "chat-create", "create-conversations", false, body, &result); err != nil {
+	if err := service.post(ctx, accountID, version, "chat-create", "create-conversations", false, body, &payload); err != nil {
 		return ChatConversation{}, err
 	}
-	if len(result.Conversations) == 0 || result.Conversations[0].ID == "" {
+	if len(payload.Conversations) == 0 || payload.Conversations[0].ID == "" {
 		return ChatConversation{}, &roblox.Error{Kind: roblox.KindProtocol, Endpoint: "chat-create", Message: "Roblox did not return the new chat."}
 	}
-	return result.Conversations[0], nil
+	return payload.Conversations[0], nil
 }
 
 func (service *Chat) Send(ctx context.Context, accountID, version int64, conversationID, content string) (ChatMessage, error) {
-	var result ChatMessagePage
+	var payload ChatMessagePage
 	body := map[string]any{"conversation_id": conversationID, "messages": []map[string]string{{"content": content}}}
-	if err := service.post(ctx, accountID, version, "chat-send", "send-messages", false, body, &result); err != nil {
+	if err := service.post(ctx, accountID, version, "chat-send", "send-messages", false, body, &payload); err != nil {
 		return ChatMessage{}, err
 	}
-	if len(result.Messages) == 0 {
+	if len(payload.Messages) == 0 {
 		return ChatMessage{}, &roblox.Error{Kind: roblox.KindProtocol, Endpoint: "chat-send", Message: "Roblox did not confirm the sent message. Refresh the chat to check."}
 	}
-	return result.Messages[0], nil
+	return payload.Messages[0], nil
 }
 
 func (service *Chat) get(ctx context.Context, accountID, version int64, endpoint, path string, query url.Values, target any) error {

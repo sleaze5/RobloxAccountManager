@@ -37,20 +37,20 @@ func (service *Service) voiceChatRead(ctx context.Context, accountID, version in
 // Availability follows the Roblox privacy settings page, which hides the toggle for unverified users
 // and disables it while enrollment is closed.
 func voiceChat(voice robloxservices.UserVoiceChat) *VoiceChat {
-	result := &VoiceChat{
+	voiceChat := &VoiceChat{
 		State: VoiceChatOff, OptedIn: voice.OptedIn, EnrollmentDisabled: voice.OptInDisabled,
 		Verified: voice.Verified, CanVerifyAge: voice.CanVerifyAge,
 	}
 	switch {
 	case voice.Suspended:
-		result.State = VoiceChatSuspended
+		voiceChat.State = VoiceChatSuspended
 		if !voice.SuspendedUntil.IsZero() {
-			result.SuspendedUntilMs = voice.SuspendedUntil.UnixMilli()
+			voiceChat.SuspendedUntilMs = voice.SuspendedUntil.UnixMilli()
 		}
 	case !voice.Verified || (voice.OptInDisabled && !voice.OptedIn):
-		result.State = VoiceChatIneligible
+		voiceChat.State = VoiceChatIneligible
 	case voice.OptedIn:
-		result.State = VoiceChatOn
+		voiceChat.State = VoiceChatOn
 	}
-	return result
+	return voiceChat
 }

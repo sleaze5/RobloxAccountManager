@@ -18,13 +18,13 @@ func SplitCookieInputs(input string) []string {
 	lines := strings.FieldsFunc(input, func(character rune) bool {
 		return character == '\r' || character == '\n'
 	})
-	result := make([]string, 0, len(lines))
+	nonEmptyLines := make([]string, 0, len(lines))
 	for _, line := range lines {
 		if trimmed := strings.TrimSpace(line); trimmed != "" {
-			result = append(result, trimmed)
+			nonEmptyLines = append(nonEmptyLines, trimmed)
 		}
 	}
-	return result
+	return nonEmptyLines
 }
 
 func NormalizeCookie(input string) (string, error) {

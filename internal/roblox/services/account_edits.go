@@ -47,16 +47,16 @@ func (service *Users) SetDescription(ctx context.Context, accountID, version int
 	if err != nil {
 		return "", err
 	}
-	var result struct {
+	var payload struct {
 		Description *string `json:"description"`
 	}
-	if err := json.Unmarshal(response.Body, &result); err != nil {
+	if err := json.Unmarshal(response.Body, &payload); err != nil {
 		return "", &roblox.Error{Kind: roblox.KindProtocol, Endpoint: "description-update", Status: response.Status, Message: "Roblox did not confirm the description. Refresh the profile to check.", Cause: err}
 	}
-	if result.Description == nil || len(*result.Description) > 4096 {
+	if payload.Description == nil || len(*payload.Description) > 4096 {
 		return "", &roblox.Error{Kind: roblox.KindProtocol, Endpoint: "description-update", Status: response.Status, Message: "Roblox did not confirm the description. Refresh the profile to check."}
 	}
-	return strings.TrimSpace(*result.Description), nil
+	return strings.TrimSpace(*payload.Description), nil
 }
 
 // Roblox has no profile text preview. RoSeal and RoValra use the game update filter.
@@ -66,17 +66,17 @@ func (service *Users) FilterText(ctx context.Context, accountID, version int64, 
 	if err != nil {
 		return TextFilter{}, err
 	}
-	var result struct {
+	var payload struct {
 		FilteredText    *string `json:"filteredGameUpdateText"`
 		ModerationLevel int     `json:"moderationLevel"`
 	}
 	levels := map[int]TextModeration{1: TextModerationNone, 2: TextModerationPartial, 3: TextModerationFull}
-	err = json.Unmarshal(response.Body, &result)
-	moderation, known := levels[result.ModerationLevel]
-	if err != nil || !known || result.FilteredText == nil {
+	err = json.Unmarshal(response.Body, &payload)
+	moderation, known := levels[payload.ModerationLevel]
+	if err != nil || !known || payload.FilteredText == nil {
 		return TextFilter{}, &roblox.Error{Kind: roblox.KindProtocol, Endpoint: "description-validate", Status: response.Status, Message: "Roblox returned an invalid filter result. Validate the description again.", Cause: err}
 	}
-	return TextFilter{Moderation: moderation, FilteredText: *result.FilteredText}, nil
+	return TextFilter{Moderation: moderation, FilteredText: *payload.FilteredText}, nil
 }
 
 func (service *Users) SetEmail(ctx context.Context, accountID, version int64, password, email string) error {
@@ -112,17 +112,17 @@ func (service *Users) ValidatePassword(ctx context.Context, accountID, version i
 }
 
 func (service *Users) Pin(ctx context.Context, accountID, version int64) (AccountPin, error) {
-	var result struct {
+	var payload struct {
 		Enabled       *bool    `json:"isEnabled"`
 		UnlockedUntil *float64 `json:"unlockedUntil"`
 	}
-	if err := service.readAccountDetails(ctx, accountID, version, "account-pin", "https://auth.roblox.com/v1/account/pin", &result); err != nil {
+	if err := service.readAccountDetails(ctx, accountID, version, "account-pin", "https://auth.roblox.com/v1/account/pin", &payload); err != nil {
 		return AccountPin{}, err
 	}
-	if result.Enabled == nil {
+	if payload.Enabled == nil {
 		return AccountPin{}, invalidProfileDetails("account-pin")
 	}
-	return AccountPin{Enabled: *result.Enabled, Unlocked: *result.Enabled && result.UnlockedUntil != nil && *result.UnlockedUntil > 0}, nil
+	return AccountPin{Enabled: *payload.Enabled, Unlocked: *payload.Enabled && payload.UnlockedUntil != nil && *payload.UnlockedUntil > 0}, nil
 }
 
 func (service *Users) UnlockPin(ctx context.Context, accountID, version int64, pin string) error {
@@ -137,7 +137,7 @@ func (service *Users) BlockedUsers(ctx context.Context, accountID, version int64
 	seen := map[int64]struct{}{}
 	cursor := ""
 	for range maxBlockedUsersPages {
-		var result struct {
+		var payload struct {
 			Data *struct {
 				BlockedUserIDs []int64 `json:"blockedUserIds"`
 				BlockedUsers   []struct {
@@ -150,14 +150,14 @@ func (service *Users) BlockedUsers(ctx context.Context, accountID, version int64
 		if cursor != "" {
 			query.Set("cursor", cursor)
 		}
-		if err := service.readAccountDetails(ctx, accountID, version, "blocked-users", "https://apis.roblox.com/user-blocking-api/v1/users/get-blocked-users?"+query.Encode(), &result); err != nil {
+		if err := service.readAccountDetails(ctx, accountID, version, "blocked-users", "https://apis.roblox.com/user-blocking-api/v1/users/get-blocked-users?"+query.Encode(), &payload); err != nil {
 			return nil, err
 		}
-		if result.Data == nil {
+		if payload.Data == nil {
 			return nil, invalidProfileDetails("blocked-users")
 		}
-		page := result.Data.BlockedUserIDs
-		for _, user := range result.Data.BlockedUsers {
+		page := payload.Data.BlockedUserIDs
+		for _, user := range payload.Data.BlockedUsers {
 			page = append(page, user.UserID)
 		}
 		for _, id := range page {
@@ -166,10 +166,10 @@ func (service *Users) BlockedUsers(ctx context.Context, accountID, version int64
 				ids = append(ids, id)
 			}
 		}
-		if result.Data.Cursor == nil || *result.Data.Cursor == "" {
+		if payload.Data.Cursor == nil || *payload.Data.Cursor == "" {
 			return service.Names(ctx, ids)
 		}
-		cursor = *result.Data.Cursor
+		cursor = *payload.Data.Cursor
 	}
 	return nil, &roblox.Error{Kind: roblox.KindProtocol, Endpoint: "blocked-users", Message: "Roblox returned too many blocked users to list."}
 }
@@ -180,11 +180,11 @@ func (service *Users) Unblock(ctx context.Context, accountID, version, userID in
 	if err != nil {
 		return err
 	}
-	var result struct {
+	var payload struct {
 		Error *string `json:"error"`
 	}
-	if json.Unmarshal(response.Body, &result) == nil && result.Error != nil && *result.Error != "" {
-		return &roblox.Error{Kind: roblox.KindProtocol, Endpoint: "user-unblock", Status: response.Status, Message: *result.Error}
+	if json.Unmarshal(response.Body, &payload) == nil && payload.Error != nil && *payload.Error != "" {
+		return &roblox.Error{Kind: roblox.KindProtocol, Endpoint: "user-unblock", Status: response.Status, Message: *payload.Error}
 	}
 	return nil
 }
@@ -210,18 +210,18 @@ func (service *Users) Names(ctx context.Context, ids []int64) ([]UserView, error
 		if err != nil {
 			return nil, err
 		}
-		var result struct {
+		var payload struct {
 			Data []struct {
 				ID          int64  `json:"id"`
 				Name        string `json:"name"`
 				DisplayName string `json:"displayName"`
 			} `json:"data"`
 		}
-		if err := json.Unmarshal(response.Body, &result); err != nil {
+		if err := json.Unmarshal(response.Body, &payload); err != nil {
 			return nil, &roblox.Error{Kind: roblox.KindProtocol, Endpoint: "user-names", Status: response.Status, Message: "Roblox returned invalid user details.", Cause: err}
 		}
-		found := make(map[int64]UserView, len(result.Data))
-		for _, user := range result.Data {
+		found := make(map[int64]UserView, len(payload.Data))
+		for _, user := range payload.Data {
 			found[user.ID] = UserView{UserID: user.ID, Username: user.Name, DisplayName: user.DisplayName}
 		}
 		for _, id := range batch {

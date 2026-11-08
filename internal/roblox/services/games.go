@@ -64,10 +64,10 @@ func (service *Games) Search(ctx context.Context, query games.SearchQuery) (game
 		if section.ContentGroupType != "Game" {
 			continue
 		}
-		for _, item := range section.Contents {
-			if games.ValidID(item.ContentID) && !seen[item.ContentID] {
-				seen[item.ContentID] = true
-				ids = append(ids, item.ContentID)
+		for _, content := range section.Contents {
+			if games.ValidID(content.ContentID) && !seen[content.ContentID] {
+				seen[content.ContentID] = true
+				ids = append(ids, content.ContentID)
 			}
 		}
 	}
@@ -219,13 +219,13 @@ func (service *Games) subplaces(ctx context.Context, root games.Place, visit fun
 		if err := service.get(ctx, "game-universe-places", "develop.roblox.com", path, parameters, &payload); err != nil {
 			return err
 		}
-		for _, item := range payload.Data {
-			if item.UniverseID != root.UniverseID || !games.ValidID(item.ID) || item.ID == root.PlaceID || strings.TrimSpace(item.Name) == "" {
+		for _, listedPlace := range payload.Data {
+			if listedPlace.UniverseID != root.UniverseID || !games.ValidID(listedPlace.ID) || listedPlace.ID == root.PlaceID || strings.TrimSpace(listedPlace.Name) == "" {
 				continue
 			}
 			place := root
-			place.PlaceID, place.Name, place.IconURL = item.ID, item.Name, ""
-			if !visit(place, item.Description) {
+			place.PlaceID, place.Name, place.IconURL = listedPlace.ID, listedPlace.Name, ""
+			if !visit(place, listedPlace.Description) {
 				return nil
 			}
 		}
@@ -276,9 +276,9 @@ func (service *Games) votes(ctx context.Context, game *games.Game) error {
 	if err := service.get(ctx, "game-votes", "games.roblox.com", "/v1/games/votes", parameters, &payload); err != nil {
 		return err
 	}
-	for _, item := range payload.Data {
-		if item.ID == game.Place.UniverseID {
-			game.UpVotes, game.DownVotes = max(item.UpVotes, 0), max(item.DownVotes, 0)
+	for _, universe := range payload.Data {
+		if universe.ID == game.Place.UniverseID {
+			game.UpVotes, game.DownVotes = max(universe.UpVotes, 0), max(universe.DownVotes, 0)
 		}
 	}
 	return nil
@@ -334,9 +334,9 @@ func (service *Games) versions(ctx context.Context, accountID int64, game *games
 		if err := service.account(ctx, "game-versions", accountID, http.MethodPost, endpoint, body, &payload); err != nil {
 			return 0, err
 		}
-		for _, result := range payload.Results {
-			if result.AssetID == game.Place.PlaceID && result.VersionNumber > 0 {
-				return result.VersionNumber, nil
+		for _, asset := range payload.Results {
+			if asset.AssetID == game.Place.PlaceID && asset.VersionNumber > 0 {
+				return asset.VersionNumber, nil
 			}
 		}
 		return 0, gameDataError("Roblox did not return the place version.")
@@ -388,8 +388,8 @@ func (service *Games) maturity(ctx context.Context, game *games.Game) error {
 			game.Maturity = strings.TrimSpace(recommendation.DisplayName)
 		}
 		if universe.Details.Descriptors != nil {
-			for _, item := range universe.Details.Descriptors.Items {
-				if name := strings.TrimSpace(item.DisplayName); item.Contains && name != "" {
+			for _, descriptor := range universe.Details.Descriptors.Items {
+				if name := strings.TrimSpace(descriptor.DisplayName); descriptor.Contains && name != "" {
 					game.MaturityDescriptors = append(game.MaturityDescriptors, name)
 				}
 			}
@@ -433,29 +433,29 @@ func (service *Games) details(ctx context.Context, ids []int64) (map[int64]games
 	for _, id := range ids {
 		requested[id] = true
 	}
-	result := make(map[int64]games.Game, len(payload.Data))
-	for _, item := range payload.Data {
-		if !requested[item.ID] || !games.ValidID(item.RootPlaceID) || strings.TrimSpace(item.Name) == "" {
+	gamesByUniverseID := make(map[int64]games.Game, len(payload.Data))
+	for _, universe := range payload.Data {
+		if !requested[universe.ID] || !games.ValidID(universe.RootPlaceID) || strings.TrimSpace(universe.Name) == "" {
 			continue
 		}
-		place := games.Place{PlaceID: item.RootPlaceID, UniverseID: item.ID, Name: item.Name, CreatorName: item.Creator.Name, CreatorVerified: item.Creator.Verified}
-		if validGameCreator(item.Creator.ID, item.Creator.Type) {
-			place.CreatorID, place.CreatorType = item.Creator.ID, item.Creator.Type
+		place := games.Place{PlaceID: universe.RootPlaceID, UniverseID: universe.ID, Name: universe.Name, CreatorName: universe.Creator.Name, CreatorVerified: universe.Creator.Verified}
+		if validGameCreator(universe.Creator.ID, universe.Creator.Type) {
+			place.CreatorID, place.CreatorType = universe.Creator.ID, universe.Creator.Type
 		}
 		game := games.Game{
-			Place: place, Description: item.Description,
-			Playing: item.Playing, Visits: item.Visits, Favorites: item.FavoritedCount, MaxPlayers: item.MaxPlayers,
-			Genre: gameGenre(item.Genre), Subgenre: gameGenre(item.Subgenre), AvatarType: gameAvatarType(item.AvatarType),
-			CopyingAllowed: item.CopyingAllowed, PrivateServersAllowed: item.PrivateServersAllowed,
-			CreatedAtMS: gameTimestamp(item.Created), UpdatedAtMS: gameTimestamp(item.Updated),
+			Place: place, Description: universe.Description,
+			Playing: universe.Playing, Visits: universe.Visits, Favorites: universe.FavoritedCount, MaxPlayers: universe.MaxPlayers,
+			Genre: gameGenre(universe.Genre), Subgenre: gameGenre(universe.Subgenre), AvatarType: gameAvatarType(universe.AvatarType),
+			CopyingAllowed: universe.CopyingAllowed, PrivateServersAllowed: universe.PrivateServersAllowed,
+			CreatedAtMS: gameTimestamp(universe.Created), UpdatedAtMS: gameTimestamp(universe.Updated),
 		}
-		if item.Price != nil {
-			game.Price = max(*item.Price, 0)
+		if universe.Price != nil {
+			game.Price = max(*universe.Price, 0)
 		}
-		result[item.ID] = game
+		gamesByUniverseID[universe.ID] = game
 	}
-	if len(result) == 0 {
-		return result, nil
+	if len(gamesByUniverseID) == 0 {
+		return gamesByUniverseID, nil
 	}
 	icons, err := service.thumbnails(ctx, "/v1/games/icons", parameters)
 	if ctx.Err() != nil {
@@ -464,12 +464,12 @@ func (service *Games) details(ctx context.Context, ids []int64) (map[int64]games
 	if err != nil {
 		service.logger.WarnContext(ctx, "game icons unavailable", "operation", "game-icons", "error", err)
 	}
-	for id, game := range result {
+	for id, game := range gamesByUniverseID {
 		game.Place.IconURL = icons[id]
-		result[id] = game
+		gamesByUniverseID[id] = game
 		service.cache.SavePlace(ctx, game.Place)
 	}
-	return result, nil
+	return gamesByUniverseID, nil
 }
 
 func (service *Games) placeIcons(ctx context.Context, ids []int64) (map[int64]string, error) {
@@ -491,13 +491,13 @@ func (service *Games) thumbnails(ctx context.Context, path string, parameters ur
 	if err := service.get(ctx, "game-icons", "thumbnails.roblox.com", path, parameters, &payload); err != nil {
 		return nil, err
 	}
-	result := make(map[int64]string, len(payload.Data))
-	for _, item := range payload.Data {
-		if item.State == "Completed" && safeThumbnailURL(item.ImageURL) {
-			result[item.TargetID] = item.ImageURL
+	namesByUniverseID := make(map[int64]string, len(payload.Data))
+	for _, universe := range payload.Data {
+		if universe.State == "Completed" && safeThumbnailURL(universe.ImageURL) {
+			namesByUniverseID[universe.TargetID] = universe.ImageURL
 		}
 	}
-	return result, nil
+	return namesByUniverseID, nil
 }
 
 func (service *Games) get(ctx context.Context, operation, host, path string, parameters url.Values, target any) error {

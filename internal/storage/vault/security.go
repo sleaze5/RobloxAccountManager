@@ -45,11 +45,11 @@ func (manager *Manager) SetAutomaticUnlock(enabled bool) error {
 		}
 		return nil
 	}
-	data, err := encodeAutoUnlock(manager.protector, identifier, vaultKey)
+	encodedAutoUnlock, err := encodeAutoUnlock(manager.protector, identifier, vaultKey)
 	if err != nil {
 		return err
 	}
-	return appdata.WritePrivateFile(manager.paths.AutoUnlockKey, data)
+	return appdata.WritePrivateFile(manager.paths.AutoUnlockKey, encodedAutoUnlock)
 }
 
 func (manager *Manager) rotateDatabaseKey(ctx context.Context, password, hint string, automaticUnlock bool) error {
@@ -155,8 +155,8 @@ func (manager *Manager) promoteOrDiscardRotation(useNext bool) error {
 			if err := appdata.ReplaceFile(manager.paths.AutoUnlockKey+".next", manager.paths.AutoUnlockKey); err != nil {
 				return err
 			}
-		} else if data, err := readBounded(manager.paths.AutoUnlockKey, autoFileLimit); err == nil {
-			identifier, vaultKey, decodeError := decodeAutoUnlock(data, manager.protector)
+		} else if encodedAutoUnlock, err := readBounded(manager.paths.AutoUnlockKey, autoFileLimit); err == nil {
+			identifier, vaultKey, decodeError := decodeAutoUnlock(encodedAutoUnlock, manager.protector)
 			if decodeError == nil {
 				manager.mutex.Lock()
 				matches := identifier == manager.vaultID && subtle.ConstantTimeCompare(vaultKey, manager.vaultKey) == 1

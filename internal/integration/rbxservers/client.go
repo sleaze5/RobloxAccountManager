@@ -109,17 +109,17 @@ func (client *Client) LinkCode(ctx context.Context, serverID string) (string, er
 	if code == http.StatusNotFound {
 		return "", ErrServerUnavailable
 	}
-	var result struct {
+	var payload struct {
 		LinkCode string `json:"server_linkcode"`
 		Error    string `json:"error"`
 	}
-	if err := json.Unmarshal(body, &result); err != nil {
+	if err := json.Unmarshal(body, &payload); err != nil {
 		return "", fmt.Errorf("RBXServers link: HTTP %d with invalid JSON: %w", code, err)
 	}
-	if code != http.StatusOK || !linkCodePattern.MatchString(result.LinkCode) {
-		return "", fmt.Errorf("RBXServers link: HTTP %d: %.100q", code, result.Error)
+	if code != http.StatusOK || !linkCodePattern.MatchString(payload.LinkCode) {
+		return "", fmt.Errorf("RBXServers link: HTTP %d: %.100q", code, payload.Error)
 	}
-	return result.LinkCode, nil
+	return payload.LinkCode, nil
 }
 
 func solve(ctx context.Context, hash, salt string) (int, error) {
@@ -157,14 +157,14 @@ func (client *Client) fetch(ctx context.Context, method string, endpoint *url.UR
 		return 0, nil, fmt.Errorf("request: %w", err)
 	}
 	defer response.Body.Close()
-	data, err := io.ReadAll(io.LimitReader(response.Body, maxResponseSize+1))
+	responseBody, err := io.ReadAll(io.LimitReader(response.Body, maxResponseSize+1))
 	if err != nil {
 		return 0, nil, fmt.Errorf("read response: %w", err)
 	}
-	if len(data) > maxResponseSize {
+	if len(responseBody) > maxResponseSize {
 		return 0, nil, errors.New("response is too large")
 	}
-	return response.StatusCode, data, nil
+	return response.StatusCode, responseBody, nil
 }
 
 func parse(page string) []games.ListedPrivateServer {

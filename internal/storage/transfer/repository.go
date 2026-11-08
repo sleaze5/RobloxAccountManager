@@ -293,11 +293,11 @@ func mergeFavoritePlaces(ctx context.Context, transaction *sql.Tx, places []Favo
 func insertSavedPrivateServers(ctx context.Context, transaction *sql.Tx, servers []SavedPrivateServer, now int64) (int, error) {
 	inserted := 0
 	for _, server := range servers {
-		result, err := transaction.ExecContext(ctx, `INSERT INTO saved_private_servers(place_id, name, access_code, link_code, created_at_ms) VALUES(?, ?, ?, ?, ?) ON CONFLICT DO NOTHING`, server.PlaceID, server.Name, server.AccessCode, server.LinkCode, now)
+		insertion, err := transaction.ExecContext(ctx, `INSERT INTO saved_private_servers(place_id, name, access_code, link_code, created_at_ms) VALUES(?, ?, ?, ?, ?) ON CONFLICT DO NOTHING`, server.PlaceID, server.Name, server.AccessCode, server.LinkCode, now)
 		if err != nil {
 			return 0, fmt.Errorf("insert imported saved private server: %w", err)
 		}
-		changed, err := result.RowsAffected()
+		changed, err := insertion.RowsAffected()
 		if err != nil {
 			return 0, fmt.Errorf("count imported saved private servers: %w", err)
 		}
@@ -322,21 +322,21 @@ func (repository *Repository) Merge(ctx context.Context, input MergeInput) (Merg
 	if err != nil {
 		return MergeResult{}, err
 	}
-	result := MergeResult{}
+	mergeResult := MergeResult{}
 	for _, account := range input.Accounts {
 		for _, name := range account.Tags {
 			if tagIDs[name], err = ensureTag(ctx, transaction, name, now); err != nil {
 				return MergeResult{}, err
 			}
 		}
-		if err := mergeAccount(ctx, transaction, account, input.Replacements, tagIDs, now, &result); err != nil {
+		if err := mergeAccount(ctx, transaction, account, input.Replacements, tagIDs, now, &mergeResult); err != nil {
 			return MergeResult{}, err
 		}
 	}
-	if result.FavoritePlaces, err = mergeFavoritePlaces(ctx, transaction, input.FavoritePlaces, now); err != nil {
+	if mergeResult.FavoritePlaces, err = mergeFavoritePlaces(ctx, transaction, input.FavoritePlaces, now); err != nil {
 		return MergeResult{}, err
 	}
-	if result.SavedPrivateServers, err = insertSavedPrivateServers(ctx, transaction, input.SavedPrivateServers, now); err != nil {
+	if mergeResult.SavedPrivateServers, err = insertSavedPrivateServers(ctx, transaction, input.SavedPrivateServers, now); err != nil {
 		return MergeResult{}, err
 	}
 	if err := storePendingSettings(ctx, transaction, input.Settings); err != nil {
@@ -348,11 +348,11 @@ func (repository *Repository) Merge(ctx context.Context, input MergeInput) (Merg
 	if err := transaction.Commit(); err != nil {
 		return MergeResult{}, fmt.Errorf("commit vault merge: %w", err)
 	}
-	repository.logger.Info("vault data merged", "operation", "vault-import", "added_accounts", len(result.Added), "replaced_cookies", len(result.Replaced), "updated_accounts", len(result.Updated), "favorite_places", result.FavoritePlaces, "saved_private_servers", result.SavedPrivateServers)
-	return result, nil
+	repository.logger.Info("vault data merged", "operation", "vault-import", "added_accounts", len(mergeResult.Added), "replaced_cookies", len(mergeResult.Replaced), "updated_accounts", len(mergeResult.Updated), "favorite_places", mergeResult.FavoritePlaces, "saved_private_servers", mergeResult.SavedPrivateServers)
+	return mergeResult, nil
 }
 
-func mergeAccount(ctx context.Context, transaction *sql.Tx, account Account, replacements map[int64]Replacement, tagIDs map[string]int64, now int64, result *MergeResult) error {
+func mergeAccount(ctx context.Context, transaction *sql.Tx, account Account, replacements map[int64]Replacement, tagIDs map[string]int64, now int64, mergeResult *MergeResult) error {
 	var accountID int64
 	err := transaction.QueryRowContext(ctx, `SELECT id FROM accounts WHERE roblox_user_id = ?`, account.RobloxUserID).Scan(&accountID)
 	if errors.Is(err, sql.ErrNoRows) {
@@ -369,7 +369,7 @@ func mergeAccount(ctx context.Context, transaction *sql.Tx, account Account, rep
 		if _, err := assignTags(ctx, transaction, accountID, account, tagIDs, now); err != nil {
 			return err
 		}
-		result.Added = append(result.Added, accountID)
+		mergeResult.Added = append(mergeResult.Added, accountID)
 		return nil
 	}
 	if err != nil {
@@ -388,11 +388,11 @@ func mergeAccount(ctx context.Context, transaction *sql.Tx, account Account, rep
 		if err != nil {
 			return err
 		}
-		result.Replaced = append(result.Replaced, record)
+		mergeResult.Replaced = append(mergeResult.Replaced, record)
 		return nil
 	}
 	if changed || passwordChanged {
-		result.Updated = append(result.Updated, accountID)
+		mergeResult.Updated = append(mergeResult.Updated, accountID)
 	}
 	return nil
 }
@@ -454,11 +454,11 @@ func assignTags(ctx context.Context, transaction *sql.Tx, accountID int64, accou
 	}
 	changed := false
 	for _, name := range names {
-		result, err := transaction.ExecContext(ctx, `INSERT INTO account_tags(account_id, tag_id, created_at_ms) VALUES(?, ?, ?) ON CONFLICT(account_id, tag_id) DO NOTHING`, accountID, tagIDs[name], now)
+		insertion, err := transaction.ExecContext(ctx, `INSERT INTO account_tags(account_id, tag_id, created_at_ms) VALUES(?, ?, ?) ON CONFLICT(account_id, tag_id) DO NOTHING`, accountID, tagIDs[name], now)
 		if err != nil {
 			return false, fmt.Errorf("assign imported tag: %w", err)
 		}
-		if count, err := result.RowsAffected(); err != nil {
+		if count, err := insertion.RowsAffected(); err != nil {
 			return false, fmt.Errorf("count imported tags: %w", err)
 		} else if count > 0 {
 			changed = true
@@ -534,15 +534,15 @@ func (repository *Repository) PendingSettings(ctx context.Context) (*PendingSett
 		return nil, err
 	}
 	defer release()
-	var data, sections string
-	err = database.QueryRowContext(ctx, `SELECT settings, sections FROM pending_settings_import WHERE singleton = 1`).Scan(&data, &sections)
+	var settingsJSON, sections string
+	err = database.QueryRowContext(ctx, `SELECT settings, sections FROM pending_settings_import WHERE singleton = 1`).Scan(&settingsJSON, &sections)
 	if errors.Is(err, sql.ErrNoRows) {
 		return nil, nil
 	}
 	if err != nil {
 		return nil, fmt.Errorf("read pending settings import: %w", err)
 	}
-	pending := &PendingSettings{Data: json.RawMessage(data)}
+	pending := &PendingSettings{Data: json.RawMessage(settingsJSON)}
 	if err := json.Unmarshal([]byte(sections), &pending.Sections); err != nil {
 		return nil, fmt.Errorf("decode pending settings sections: %w", err)
 	}

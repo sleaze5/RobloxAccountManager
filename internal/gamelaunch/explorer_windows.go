@@ -46,9 +46,9 @@ func launchFromExplorer(ctx context.Context, target, arguments, directory string
 	}
 	// This object belongs to the existing desktop Explorer, not this process.
 	// Never fall back to a local launch: it would inherit our token and process tree.
-	result, err := shell.CallMethod("ShellExecute", target, arguments, directory, "open", int32(windows.SW_SHOWNORMAL))
-	if result != nil {
-		defer result.Clear()
+	shellExecuteOutcome, err := shell.CallMethod("ShellExecute", target, arguments, directory, "open", int32(windows.SW_SHOWNORMAL))
+	if shellExecuteOutcome != nil {
+		defer shellExecuteOutcome.Clear()
 	}
 	if err != nil {
 		return fmt.Errorf("start Roblox Player through desktop Explorer: %w", err)

@@ -152,9 +152,9 @@ func cleanAttribute(attribute slog.Attr) slog.Attr {
 }
 
 func attrsToAny(attributes []slog.Attr) []any {
-	result := make([]any, len(attributes))
+	attributeValues := make([]any, len(attributes))
 	for index := range attributes {
-		result[index] = attributes[index]
+		attributeValues[index] = attributes[index]
 	}
-	return result
+	return attributeValues
 }

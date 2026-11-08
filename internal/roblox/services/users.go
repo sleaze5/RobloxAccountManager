@@ -123,17 +123,17 @@ func (service *Users) UserIDFromUsername(ctx context.Context, username string) (
 	if err != nil {
 		return 0, err
 	}
-	var result struct {
+	var payload struct {
 		Data []struct {
 			ID                int64  `json:"id"`
 			RequestedUsername string `json:"requestedUsername"`
 		} `json:"data"`
 	}
-	if err := json.Unmarshal(response.Body, &result); err != nil {
+	if err := json.Unmarshal(response.Body, &payload); err != nil {
 		return 0, &roblox.Error{Kind: roblox.KindProtocol, Endpoint: "username-lookup", Message: "Roblox returned invalid username details.", Cause: err}
 	}
-	if len(result.Data) != 1 || result.Data[0].ID <= 0 || !strings.EqualFold(result.Data[0].RequestedUsername, username) {
+	if len(payload.Data) != 1 || payload.Data[0].ID <= 0 || !strings.EqualFold(payload.Data[0].RequestedUsername, username) {
 		return 0, &roblox.Error{Kind: roblox.KindProtocol, Endpoint: "username-lookup", Message: "That username was not found or is unavailable. Enter a username, not a display name."}
 	}
-	return result.Data[0].ID, nil
+	return payload.Data[0].ID, nil
 }

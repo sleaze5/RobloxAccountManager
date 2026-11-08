@@ -251,9 +251,9 @@ func (service *Service) markChatRead(ctx context.Context, logger *slog.Logger, a
 	if err != nil {
 		return chatFailure(ctx, logger, err)
 	}
-	for _, result := range results {
-		if result.Status != "" && !strings.EqualFold(result.Status, "success") {
-			logger.WarnContext(ctx, "chat mark-read returned an unexpected status", "status", result.Status)
+	for _, conversationStatus := range results {
+		if conversationStatus.Status != "" && !strings.EqualFold(conversationStatus.Status, "success") {
+			logger.WarnContext(ctx, "chat mark-read returned an unexpected status", "status", conversationStatus.Status)
 		}
 	}
 	return nil

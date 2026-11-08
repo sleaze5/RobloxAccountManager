@@ -112,15 +112,15 @@ func writeExportFile(path string, data []byte) error {
 }
 
 func (manager *Manager) ReadExport(path, password string) (ExportFile, []byte, error) {
-	data, err := readBounded(path, exportFileLimit)
+	encodedExport, err := readBounded(path, exportFileLimit)
 	if err != nil {
 		return ExportFile{}, nil, err
 	}
-	payload, err := openExport(data, password)
+	payload, err := openExport(encodedExport, password)
 	if err != nil {
 		return ExportFile{}, nil, err
 	}
-	return ExportFile{Name: filepath.Base(path), Path: path, CreatedAtMS: int64(binary.BigEndian.Uint64(data[len(exportMagic)+2:]))}, payload, nil
+	return ExportFile{Name: filepath.Base(path), Path: path, CreatedAtMS: int64(binary.BigEndian.Uint64(encodedExport[len(exportMagic)+2:]))}, payload, nil
 }
 
 // ExportDetails describes an export file before it is opened with its password.
@@ -136,24 +136,24 @@ type ExportDetails struct {
 // file without its password. Files from format version 1 have no hint, and
 // files from a newer format version are reported as unsupported.
 func (manager *Manager) ReadExportDetails(path string) (ExportDetails, error) {
-	data, err := readBounded(path, exportFileLimit)
+	encodedExport, err := readBounded(path, exportFileLimit)
 	if err != nil {
 		return ExportDetails{}, err
 	}
-	if len(data) < exportPrefixBytes || !bytes.Equal(data[:len(exportMagic)], exportMagic[:]) {
+	if len(encodedExport) < exportPrefixBytes || !bytes.Equal(encodedExport[:len(exportMagic)], exportMagic[:]) {
 		return ExportDetails{}, ErrInvalidExport
 	}
-	version := binary.BigEndian.Uint16(data[len(exportMagic):])
+	version := binary.BigEndian.Uint16(encodedExport[len(exportMagic):])
 	if version == 0 {
 		return ExportDetails{}, ErrInvalidExport
 	}
 	details := ExportDetails{FormatVersion: int(version), MinFormatVersion: 1, MaxFormatVersion: int(exportFormatVersion), Supported: version <= exportFormatVersion}
 	if version >= 2 && details.Supported {
-		headerEnd, err := exportHeaderEnd(data)
+		headerEnd, err := exportHeaderEnd(encodedExport)
 		if err != nil {
 			return ExportDetails{}, err
 		}
-		details.Hint = string(data[exportHeaderBytes+exportHintLengthBytes : headerEnd])
+		details.Hint = string(encodedExport[exportHeaderBytes+exportHintLengthBytes : headerEnd])
 	}
 	return details, nil
 }

@@ -233,15 +233,15 @@ func browserCreationFlags() uint32 {
 }
 
 func verifyProcessInJob(process, job windows.Handle) error {
-	var result int32
-	callSucceeded, _, callError := isProcessInJob.Call(uintptr(process), uintptr(job), uintptr(unsafe.Pointer(&result)))
+	var isInJob int32
+	callSucceeded, _, callError := isProcessInJob.Call(uintptr(process), uintptr(job), uintptr(unsafe.Pointer(&isInJob)))
 	if callSucceeded == 0 {
 		if !errors.Is(callError, windows.ERROR_SUCCESS) {
 			return fmt.Errorf("check browser job membership: %w", callError)
 		}
 		return errors.New("could not verify session containment")
 	}
-	if result == 0 {
+	if isInJob == 0 {
 		return errors.New("process was not assigned to its session job")
 	}
 	return nil
@@ -352,8 +352,8 @@ func (process *windowsBrowserProcess) ExitError() error {
 
 func (process *windowsBrowserProcess) Wait(timeout time.Duration) bool {
 	milliseconds := uint32(max(timeout.Milliseconds(), 0))
-	result, _ := windows.WaitForSingleObject(process.process, milliseconds)
-	return result == waitObjectZero
+	waitStatus, _ := windows.WaitForSingleObject(process.process, milliseconds)
+	return waitStatus == waitObjectZero
 }
 
 func (process *windowsBrowserProcess) Terminate() error {
@@ -433,8 +433,8 @@ func (process *windowsBrowserProcess) Focus() error {
 	if target == 0 {
 		return errors.New("the browser window is not available")
 	}
-	result, _, callError := setForegroundWindow.Call(uintptr(target))
-	if result == 0 {
+	callStatus, _, callError := setForegroundWindow.Call(uintptr(target))
+	if callStatus == 0 {
 		if !errors.Is(callError, windows.ERROR_SUCCESS) {
 			return fmt.Errorf("focus browser window: %w", callError)
 		}
@@ -455,7 +455,7 @@ func processIDsInJob(job windows.Handle) (map[uint32]struct{}, error) {
 	if assigned > listed {
 		return nil, errors.New("too many browser processes to focus safely")
 	}
-	result := make(map[uint32]struct{}, listed)
+	processIDs := make(map[uint32]struct{}, listed)
 	offset := 8
 	size := int(unsafe.Sizeof(uintptr(0)))
 	for range listed {
@@ -465,8 +465,8 @@ func processIDsInJob(job windows.Handle) (map[uint32]struct{}, error) {
 		} else {
 			value = uint64(binary.LittleEndian.Uint32(buffer[offset:]))
 		}
-		result[uint32(value)] = struct{}{}
+		processIDs[uint32(value)] = struct{}{}
 		offset += size
 	}
-	return result, nil
+	return processIDs, nil
 }

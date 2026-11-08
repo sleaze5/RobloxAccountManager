@@ -180,7 +180,7 @@ func (manager *Manager) listBackups() ([]Backup, error) {
 	if err != nil {
 		return nil, fmt.Errorf("list vault backups: %w", err)
 	}
-	result := make([]Backup, 0, len(entries))
+	backups := make([]Backup, 0, len(entries))
 	for _, entry := range entries {
 		if !entry.IsDir() {
 			continue
@@ -201,10 +201,10 @@ func (manager *Manager) listBackups() ([]Backup, error) {
 		if _, err := readKeyFile(filepath.Join(manager.paths.BackupsRoot, entry.Name(), "vault.key")); errors.Is(err, ErrLegacyVault) {
 			continue
 		}
-		result = append(result, Backup{Name: entry.Name(), CreatedAtMS: created.UnixMilli()})
+		backups = append(backups, Backup{Name: entry.Name(), CreatedAtMS: created.UnixMilli()})
 	}
-	sort.Slice(result, func(left, right int) bool { return result[left].Name > result[right].Name })
-	return result, nil
+	sort.Slice(backups, func(left, right int) bool { return backups[left].Name > backups[right].Name })
+	return backups, nil
 }
 
 func (manager *Manager) trimBackups() error {

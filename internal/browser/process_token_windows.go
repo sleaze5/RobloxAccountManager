@@ -40,14 +40,14 @@ func restrictedBrowserToken(current windows.Token) (windows.Token, error) {
 	// Restrict our own primary token: CreateProcessAsUser does not require
 	// SeAssignPrimaryTokenPrivilege for a restricted version of the caller's token.
 	var level windows.Handle
-	result, _, err := saferCreateLevel.Call(saferScopeUser, saferLevelNormalUser, saferLevelOpen, uintptr(unsafe.Pointer(&level)), 0)
-	if result == 0 {
+	callStatus, _, err := saferCreateLevel.Call(saferScopeUser, saferLevelNormalUser, saferLevelOpen, uintptr(unsafe.Pointer(&level)), 0)
+	if callStatus == 0 {
 		return 0, fmt.Errorf("prepare normal-user browser restrictions: %w", err)
 	}
 	defer func() { _, _, _ = saferCloseLevel.Call(uintptr(level)) }()
 	var restricted windows.Token
-	result, _, err = saferComputeTokenFromLevel.Call(uintptr(level), uintptr(current), uintptr(unsafe.Pointer(&restricted)), 0, 0)
-	if result == 0 {
+	callStatus, _, err = saferComputeTokenFromLevel.Call(uintptr(level), uintptr(current), uintptr(unsafe.Pointer(&restricted)), 0, 0)
+	if callStatus == 0 {
 		return 0, fmt.Errorf("restrict browser launch token: %w", err)
 	}
 	if err := setBrowserTokenIntegrity(restricted); err != nil {

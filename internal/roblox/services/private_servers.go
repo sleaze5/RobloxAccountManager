@@ -74,22 +74,22 @@ func (service *PrivateServers) Owned(ctx context.Context, accountID, version int
 		return games.OwnedPrivateServerPage{}, privateServerDataError("private-servers-owned")
 	}
 	page := games.OwnedPrivateServerPage{Servers: make([]games.OwnedPrivateServer, 0, len(payload.Data)), NextCursor: payload.NextPageCursor}
-	for _, item := range payload.Data {
-		if !games.ValidID(item.PrivateServerID) {
+	for _, listedServer := range payload.Data {
+		if !games.ValidID(listedServer.PrivateServerID) {
 			continue
 		}
 		server := games.OwnedPrivateServer{
-			ServerID: item.PrivateServerID, Name: privateServerText(item.Name), Active: item.Active,
-			GameName: privateServerText(item.UniverseName), Renews: item.WillRenew, ExpiresAtMs: privateServerTime(item.ExpirationDate),
+			ServerID: listedServer.PrivateServerID, Name: privateServerText(listedServer.Name), Active: listedServer.Active,
+			GameName: privateServerText(listedServer.UniverseName), Renews: listedServer.WillRenew, ExpiresAtMs: privateServerTime(listedServer.ExpirationDate),
 		}
-		if games.ValidID(item.UniverseID) {
-			server.UniverseID = item.UniverseID
+		if games.ValidID(listedServer.UniverseID) {
+			server.UniverseID = listedServer.UniverseID
 		}
-		if games.ValidID(item.PlaceID) {
-			server.PlaceID = item.PlaceID
+		if games.ValidID(listedServer.PlaceID) {
+			server.PlaceID = listedServer.PlaceID
 		}
-		if item.PriceInRobux != nil {
-			server.Price = max(*item.PriceInRobux, 0)
+		if listedServer.PriceInRobux != nil {
+			server.Price = max(*listedServer.PriceInRobux, 0)
 		}
 		page.Servers = append(page.Servers, server)
 	}
@@ -115,18 +115,18 @@ func (service *PrivateServers) ForPlace(ctx context.Context, accountID, version,
 		return games.PrivateServerPage{}, err
 	}
 	page := games.PrivateServerPage{Servers: make([]games.PrivateServer, 0, len(payload.Data)), NextCursor: payload.NextPageCursor}
-	for _, item := range payload.Data {
-		if !games.ValidID(item.VipServerID) {
+	for _, listedServer := range payload.Data {
+		if !games.ValidID(listedServer.VipServerID) {
 			continue
 		}
 		server := games.PrivateServer{
-			ServerID: item.VipServerID, Name: privateServerText(item.Name),
-			OwnerID: max(item.Owner.ID, 0), OwnerName: privateServerText(item.Owner.Name), OwnerDisplayName: privateServerText(item.Owner.DisplayName),
-			Owned: ownerID > 0 && item.Owner.ID == ownerID, Playing: max(item.Playing, 0), MaxPlayers: max(item.MaxPlayers, 0),
-			Running: games.ValidJobID(item.ID),
+			ServerID: listedServer.VipServerID, Name: privateServerText(listedServer.Name),
+			OwnerID: max(listedServer.Owner.ID, 0), OwnerName: privateServerText(listedServer.Owner.Name), OwnerDisplayName: privateServerText(listedServer.Owner.DisplayName),
+			Owned: ownerID > 0 && listedServer.Owner.ID == ownerID, Playing: max(listedServer.Playing, 0), MaxPlayers: max(listedServer.MaxPlayers, 0),
+			Running: games.ValidJobID(listedServer.ID),
 		}
-		if games.ValidJobID(item.AccessCode) {
-			server.LaunchLink = games.PrivateServerLaunchLink(query.PlaceID, item.AccessCode, "")
+		if games.ValidJobID(listedServer.AccessCode) {
+			server.LaunchLink = games.PrivateServerLaunchLink(query.PlaceID, listedServer.AccessCode, "")
 		}
 		page.Servers = append(page.Servers, server)
 	}
@@ -141,14 +141,14 @@ func (service *PrivateServers) LinkCode(ctx context.Context, accountID, version,
 		if err != nil {
 			return "", err
 		}
-		for _, item := range page.Data {
-			if !strings.EqualFold(item.AccessCode, accessCode) {
+		for _, server := range page.Data {
+			if !strings.EqualFold(server.AccessCode, accessCode) {
 				continue
 			}
-			if ownerID <= 0 || item.Owner.ID != ownerID || !games.ValidID(item.VipServerID) {
+			if ownerID <= 0 || server.Owner.ID != ownerID || !games.ValidID(server.VipServerID) {
 				return "", nil
 			}
-			settings, err := service.Settings(ctx, accountID, version, item.VipServerID)
+			settings, err := service.Settings(ctx, accountID, version, server.VipServerID)
 			if err != nil || settings.JoinLink == "" {
 				return "", err
 			}

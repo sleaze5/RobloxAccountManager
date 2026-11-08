@@ -43,8 +43,8 @@ func launchHeader(id string) ([]byte, error) {
 		Message: "launch log created", RecordType: "launch", FormatVersion: logFormatVersion,
 		LaunchID: id, PID: pid, Build: appmeta.CurrentBuild(),
 	}
-	data, err := json.Marshal(header)
-	return append(data, '\n'), err
+	headerJSON, err := json.Marshal(header)
+	return append(headerJSON, '\n'), err
 }
 
 func replaceLogAttribute(_ []string, attribute slog.Attr) slog.Attr {

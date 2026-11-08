@@ -55,8 +55,8 @@ func (client *Client) Regions(ctx context.Context, refresh bool) ([]Region, erro
 	}
 	regions := make([]Region, 0, len(payload))
 	byCode := make(map[string]int, len(payload))
-	for _, item := range payload {
-		region, ok := newRegion(item.Location.Region, item.Location.CountryName, item.Location.Country, item.Location.LatLong)
+	for _, regionEntry := range payload {
+		region, ok := newRegion(regionEntry.Location.Region, regionEntry.Location.CountryName, regionEntry.Location.Country, regionEntry.Location.LatLong)
 		if !ok {
 			continue
 		}

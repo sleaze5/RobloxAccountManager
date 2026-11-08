@@ -44,7 +44,7 @@ func (service *Service) RenewCookie(ctx context.Context, accountID int64) (Cooki
 	}
 	service.browser.DetachAccount(accountID, "The saved cookie was renewed. Reopen this account's browser to use the new session.")
 	service.events.SessionChanged(accountID)
-	result := CookieRenewalResult{Warning: service.refreshCredentialBackup(ctx, logger, true)}
-	logger.Info("cookie renewal completed", "backup_warning", result.Warning != "")
-	return result, nil
+	renewalResult := CookieRenewalResult{Warning: service.refreshCredentialBackup(ctx, logger, true)}
+	logger.Info("cookie renewal completed", "backup_warning", renewalResult.Warning != "")
+	return renewalResult, nil
 }

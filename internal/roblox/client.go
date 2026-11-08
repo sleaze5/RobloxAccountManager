@@ -440,13 +440,13 @@ func (client *Client) sendAttempt(ctx context.Context, contract Request, snapsho
 		return nil, err
 	}
 	defer response.Body.Close()
-	result := &Response{Status: response.StatusCode, Header: response.Header.Clone()}
+	parsedResponse := &Response{Status: response.StatusCode, Header: response.Header.Clone()}
 	body, err := readLimited(response.Body, contract.MaxResponseSize)
 	if err != nil {
 		if errors.Is(err, errResponseTooLarge) {
-			return result, &Error{Kind: KindResponseTooLarge, Endpoint: contract.Endpoint, Status: response.StatusCode, Message: "The Roblox response was too large.", Cause: err}
+			return parsedResponse, &Error{Kind: KindResponseTooLarge, Endpoint: contract.Endpoint, Status: response.StatusCode, Message: "The Roblox response was too large.", Cause: err}
 		}
-		return result, err
+		return parsedResponse, err
 	}
 	client.logger.Log(ctx, logging.TraceLevel, "Roblox response received",
 		"endpoint", contract.Endpoint,
@@ -454,8 +454,8 @@ func (client *Client) sendAttempt(ctx context.Context, contract Request, snapsho
 		"status", response.StatusCode,
 		"duration_ms", time.Since(started).Milliseconds(),
 	)
-	result.Body = body
-	return result, nil
+	parsedResponse.Body = body
+	return parsedResponse, nil
 }
 
 type cookieReplacement struct {
@@ -652,14 +652,14 @@ func waitForRetry(ctx context.Context, delay time.Duration) error {
 }
 
 func readLimited(reader io.Reader, limit int64) ([]byte, error) {
-	data, err := io.ReadAll(io.LimitReader(reader, limit+1))
+	body, err := io.ReadAll(io.LimitReader(reader, limit+1))
 	if err != nil {
 		return nil, fmt.Errorf("read Roblox response: %w", err)
 	}
-	if int64(len(data)) > limit {
+	if int64(len(body)) > limit {
 		return nil, fmt.Errorf("%w: %d bytes", errResponseTooLarge, limit)
 	}
-	return data, nil
+	return body, nil
 }
 
 func responseError(request Request, response *Response) *Error {

@@ -97,14 +97,14 @@ func RunCrashMonitor() (bool, error) {
 	if !filepath.IsAbs(directory) {
 		return true, errors.New("crash monitor log directory must be absolute")
 	}
-	data, err := io.ReadAll(io.LimitReader(os.Stdin, 1<<20))
+	crashOutput, err := io.ReadAll(io.LimitReader(os.Stdin, 1<<20))
 	if err != nil {
 		return true, fmt.Errorf("read crash output: %w", err)
 	}
 	if _, err := io.Copy(io.Discard, os.Stdin); err != nil {
 		return true, fmt.Errorf("drain crash output: %w", err)
 	}
-	if string(data) == cleanShutdownRecord {
+	if string(crashOutput) == cleanShutdownRecord {
 		return true, nil
 	}
 	system, err := open(config{
@@ -114,10 +114,10 @@ func RunCrashMonitor() (bool, error) {
 	if err != nil {
 		return true, err
 	}
-	lines := strings.Split(string(data), "\n")
+	lines := strings.Split(string(crashOutput), "\n")
 	reason := "unhandled Go panic or fatal runtime error (payload omitted)"
 	message := "application crashed"
-	if len(data) == 0 {
+	if len(crashOutput) == 0 {
 		message = "application exited unexpectedly"
 		reason = "process terminated without a shutdown record or Go crash report; cause unavailable"
 	}
@@ -130,7 +130,7 @@ func RunCrashMonitor() (bool, error) {
 	system.Module("runtime.crash").Error(message,
 		"operation", "crash", "error", reason,
 		"version", appmeta.Version, "go_version", runtime.Version(),
-		"stack", crashFrames(lines), "truncated", len(data) == 1<<20)
+		"stack", crashFrames(lines), "truncated", len(crashOutput) == 1<<20)
 	return true, errors.Join(system.Sync(), system.Close())
 }
 

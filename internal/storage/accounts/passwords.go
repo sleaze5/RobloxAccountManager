@@ -41,11 +41,11 @@ func (repository *Repository) SetPassword(ctx context.Context, accountID int64, 
 		return fmt.Errorf("begin account password update: %w", err)
 	}
 	defer transaction.Rollback()
-	result, err := transaction.ExecContext(ctx, `UPDATE account_sessions SET password = ?, updated_at_ms = ? WHERE account_id = ?`, password, time.Now().UTC().UnixMilli(), accountID)
+	update, err := transaction.ExecContext(ctx, `UPDATE account_sessions SET password = ?, updated_at_ms = ? WHERE account_id = ?`, password, time.Now().UTC().UnixMilli(), accountID)
 	if err != nil {
 		return fmt.Errorf("save account password: %w", err)
 	}
-	changed, err := result.RowsAffected()
+	changed, err := update.RowsAffected()
 	if err != nil {
 		return fmt.Errorf("check saved account password update: %w", err)
 	}

@@ -87,12 +87,12 @@ type RuntimeManager struct {
 }
 
 func NewRuntimeManager(paths appdata.Paths, logger *slog.Logger) (*RuntimeManager, error) {
-	data, err := manifestFS.ReadFile("runtime_manifest.json")
+	manifestJSON, err := manifestFS.ReadFile("runtime_manifest.json")
 	if err != nil {
 		return nil, fmt.Errorf("read embedded CfT manifest: %w", err)
 	}
 	var manifest Manifest
-	if err := json.Unmarshal(data, &manifest); err != nil {
+	if err := json.Unmarshal(manifestJSON, &manifest); err != nil {
 		return nil, errors.New("invalid embedded CfT manifest")
 	}
 	logging.Diagnostic(logger, "browser manifest loaded", "operation", "browser-runtime-load",
@@ -597,12 +597,12 @@ func readArchiveLink(entry *zip.File) (string, error) {
 		return "", fmt.Errorf("open browser archive link: %w", err)
 	}
 	defer source.Close()
-	data, err := io.ReadAll(io.LimitReader(source, 4097))
+	linkContents, err := io.ReadAll(io.LimitReader(source, 4097))
 	if err != nil {
 		return "", fmt.Errorf("read browser archive link: %w", err)
 	}
-	target := string(data)
-	if len(data) > 4096 || strings.ContainsRune(target, 0) || strings.HasPrefix(target, "/") || filepath.IsAbs(target) {
+	target := string(linkContents)
+	if len(linkContents) > 4096 || strings.ContainsRune(target, 0) || strings.HasPrefix(target, "/") || filepath.IsAbs(target) {
 		return "", errors.New("browser archive contains an unsafe link")
 	}
 	if slices.Contains(strings.Split(target, "/"), "..") {
