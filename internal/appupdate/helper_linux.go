@@ -4,7 +4,6 @@ package appupdate
 
 import (
 	"fmt"
-	"io"
 	"os"
 )
 
@@ -20,16 +19,5 @@ func copyStaged(source, destination string) error {
 	if err != nil {
 		return fmt.Errorf("create update copy: %w", err)
 	}
-	if _, err := io.Copy(output, input); err != nil {
-		_ = output.Close()
-		return fmt.Errorf("copy update: %w", err)
-	}
-	if err := output.Sync(); err != nil {
-		_ = output.Close()
-		return fmt.Errorf("flush update copy: %w", err)
-	}
-	if err := output.Close(); err != nil {
-		return fmt.Errorf("close update copy: %w", err)
-	}
-	return nil
+	return writeUpdateCopy(output, input)
 }
