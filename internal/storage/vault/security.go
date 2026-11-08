@@ -247,7 +247,7 @@ func (manager *Manager) stageRotatedDatabase(ctx context.Context, database *sql.
 	if err != nil {
 		return fmt.Errorf("verify rotated vault database: %w", err)
 	}
-	if err := BumpRevision(ctx, staged); err != nil {
+	if err := bumpRevision(ctx, staged); err != nil {
 		_ = staged.Close()
 		return fmt.Errorf("record new master password: %w", err)
 	}

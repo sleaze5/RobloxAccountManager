@@ -23,27 +23,22 @@ func (repository *Repository) CreateTag(ctx context.Context, input string) (acco
 	}
 	defer release()
 	now := time.Now().UTC().UnixMilli()
-	transaction, err := database.BeginTx(ctx, nil)
-	if err != nil {
-		return accountdomain.TagView{}, fmt.Errorf("begin tag creation: %w", err)
-	}
-	defer transaction.Rollback()
-	insertion, err := transaction.ExecContext(ctx, `INSERT INTO tags(name, kind, created_at_ms, updated_at_ms) VALUES(?, 'custom', ?, ?)`, name, now, now)
-	if err != nil {
-		if isConstraint(err) {
-			return accountdomain.TagView{}, accountdomain.ErrDuplicateTag
+	var id int64
+	err = vault.RunWriteTransaction(ctx, database, "tag creation", func(transaction *sql.Tx) (bool, error) {
+		insertion, err := transaction.ExecContext(ctx, `INSERT INTO tags(name, kind, created_at_ms, updated_at_ms) VALUES(?, 'custom', ?, ?)`, name, now, now)
+		if err != nil {
+			if isConstraint(err) {
+				return false, accountdomain.ErrDuplicateTag
+			}
+			return false, fmt.Errorf("create account tag: %w", err)
 		}
-		return accountdomain.TagView{}, fmt.Errorf("create account tag: %w", err)
-	}
-	id, err := insertion.LastInsertId()
+		if id, err = insertion.LastInsertId(); err != nil {
+			return false, fmt.Errorf("read created tag ID: %w", err)
+		}
+		return true, nil
+	})
 	if err != nil {
-		return accountdomain.TagView{}, fmt.Errorf("read created tag ID: %w", err)
-	}
-	if err := vault.BumpRevision(ctx, transaction); err != nil {
 		return accountdomain.TagView{}, err
-	}
-	if err := transaction.Commit(); err != nil {
-		return accountdomain.TagView{}, fmt.Errorf("commit tag creation: %w", err)
 	}
 	repository.logger.InfoContext(ctx, "account tag created", "operation", "tag-create", "tag_id", id)
 	return accountdomain.TagView{ID: id, Name: name, Kind: accountdomain.TagKindCustom}, nil
@@ -58,27 +53,22 @@ func (repository *Repository) RemoveTag(ctx context.Context, tagID int64) error 
 		return err
 	}
 	defer release()
-	transaction, err := database.BeginTx(ctx, nil)
+	err = vault.RunWriteTransaction(ctx, database, "tag removal", func(transaction *sql.Tx) (bool, error) {
+		deletion, err := transaction.ExecContext(ctx, `DELETE FROM tags WHERE id = ? AND kind = 'custom'`, tagID)
+		if err != nil {
+			return false, fmt.Errorf("remove account tag: %w", err)
+		}
+		changed, err := deletion.RowsAffected()
+		if err != nil {
+			return false, fmt.Errorf("count removed tags: %w", err)
+		}
+		if changed == 0 {
+			return false, accountdomain.ErrTagNotFound
+		}
+		return true, nil
+	})
 	if err != nil {
-		return fmt.Errorf("begin tag removal: %w", err)
-	}
-	defer transaction.Rollback()
-	deletion, err := transaction.ExecContext(ctx, `DELETE FROM tags WHERE id = ? AND kind = 'custom'`, tagID)
-	if err != nil {
-		return fmt.Errorf("remove account tag: %w", err)
-	}
-	changed, err := deletion.RowsAffected()
-	if err != nil {
-		return fmt.Errorf("count removed tags: %w", err)
-	}
-	if changed == 0 {
-		return accountdomain.ErrTagNotFound
-	}
-	if err := vault.BumpRevision(ctx, transaction); err != nil {
 		return err
-	}
-	if err := transaction.Commit(); err != nil {
-		return fmt.Errorf("commit tag removal: %w", err)
 	}
 	repository.logger.InfoContext(ctx, "account tag removed", "operation", "tag-remove", "tag_id", tagID)
 	return nil
@@ -126,29 +116,17 @@ func (repository *Repository) SetAccountsTag(ctx context.Context, accountIDs []i
 		return nil, err
 	}
 	defer release()
-	transaction, err := database.BeginTx(ctx, nil)
-	if err != nil {
-		return nil, fmt.Errorf("begin tag assignment: %w", err)
-	}
-	defer transaction.Rollback()
-	var exists int
-	if err := transaction.QueryRowContext(ctx, `SELECT 1 FROM tags WHERE id = ?`, tagID).Scan(&exists); errors.Is(err, sql.ErrNoRows) {
-		return nil, accountdomain.ErrTagNotFound
-	} else if err != nil {
-		return nil, fmt.Errorf("find tag: %w", err)
-	}
-	now := time.Now().UTC().UnixMilli()
-	anyChanged, err := assignAccountsTag(ctx, transaction, accountIDs, tagID, selected, now)
+	err = vault.RunWriteTransaction(ctx, database, "tag assignment", func(transaction *sql.Tx) (bool, error) {
+		var exists int
+		if err := transaction.QueryRowContext(ctx, `SELECT 1 FROM tags WHERE id = ?`, tagID).Scan(&exists); errors.Is(err, sql.ErrNoRows) {
+			return false, accountdomain.ErrTagNotFound
+		} else if err != nil {
+			return false, fmt.Errorf("find tag: %w", err)
+		}
+		return assignAccountsTag(ctx, transaction, accountIDs, tagID, selected, time.Now().UTC().UnixMilli())
+	})
 	if err != nil {
 		return nil, err
-	}
-	if anyChanged {
-		if err := vault.BumpRevision(ctx, transaction); err != nil {
-			return nil, err
-		}
-	}
-	if err := transaction.Commit(); err != nil {
-		return nil, fmt.Errorf("commit tag assignment: %w", err)
 	}
 	views := make([]accountdomain.AccountView, 0, len(accountIDs))
 	for _, accountID := range accountIDs {

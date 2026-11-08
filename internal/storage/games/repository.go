@@ -73,34 +73,29 @@ func (repository *Repository) Reorder(ctx context.Context, placeIDs []int64) err
 		return err
 	}
 	defer release()
-	transaction, err := database.BeginTx(ctx, nil)
+	err = vault.RunWriteTransaction(ctx, database, "favorite reorder", func(transaction *sql.Tx) (bool, error) {
+		var count int
+		if err := transaction.QueryRowContext(ctx, `SELECT COUNT(*) FROM favorite_places`).Scan(&count); err != nil {
+			return false, fmt.Errorf("count favorite places: %w", err)
+		}
+		if count != len(placeIDs) {
+			return false, ErrNotFavorite
+		}
+		for order, placeID := range placeIDs {
+			update, err := transaction.ExecContext(ctx, `UPDATE favorite_places SET display_order = ? WHERE place_id = ?`, order, placeID)
+			if err != nil {
+				return false, fmt.Errorf("reorder favorite place: %w", err)
+			}
+			if changed, err := update.RowsAffected(); err != nil {
+				return false, fmt.Errorf("count reordered favorite places: %w", err)
+			} else if changed == 0 {
+				return false, ErrNotFavorite
+			}
+		}
+		return true, nil
+	})
 	if err != nil {
-		return fmt.Errorf("begin favorite reorder: %w", err)
-	}
-	defer transaction.Rollback()
-	var count int
-	if err := transaction.QueryRowContext(ctx, `SELECT COUNT(*) FROM favorite_places`).Scan(&count); err != nil {
-		return fmt.Errorf("count favorite places: %w", err)
-	}
-	if count != len(placeIDs) {
-		return ErrNotFavorite
-	}
-	for order, placeID := range placeIDs {
-		update, err := transaction.ExecContext(ctx, `UPDATE favorite_places SET display_order = ? WHERE place_id = ?`, order, placeID)
-		if err != nil {
-			return fmt.Errorf("reorder favorite place: %w", err)
-		}
-		if changed, err := update.RowsAffected(); err != nil {
-			return fmt.Errorf("count reordered favorite places: %w", err)
-		} else if changed == 0 {
-			return ErrNotFavorite
-		}
-	}
-	if err := vault.BumpRevision(ctx, transaction); err != nil {
 		return err
-	}
-	if err := transaction.Commit(); err != nil {
-		return fmt.Errorf("commit favorite reorder: %w", err)
 	}
 	repository.logger.InfoContext(ctx, "favorite places reordered", "operation", "favorite-places-reorder", "count", len(placeIDs))
 	return nil
@@ -116,28 +111,24 @@ func (repository *Repository) write(ctx context.Context, placeID int64, operatio
 		return err
 	}
 	defer release()
-	transaction, err := database.BeginTx(ctx, nil)
-	if err != nil {
-		return fmt.Errorf("begin favorite update: %w", err)
-	}
-	defer transaction.Rollback()
-	change, err := transaction.ExecContext(ctx, query, args...)
-	if err != nil {
-		return fmt.Errorf("update favorite place: %w", err)
-	}
-	if changed, err := change.RowsAffected(); err != nil {
-		return fmt.Errorf("count updated favorite places: %w", err)
-	} else if changed == 0 {
-		if existing {
-			return ErrNotFavorite
+	var wasChanged bool
+	err = vault.RunWriteTransaction(ctx, database, "favorite update", func(transaction *sql.Tx) (bool, error) {
+		change, err := transaction.ExecContext(ctx, query, args...)
+		if err != nil {
+			return false, fmt.Errorf("update favorite place: %w", err)
 		}
-		return nil
-	}
-	if err := vault.BumpRevision(ctx, transaction); err != nil {
+		changed, err := change.RowsAffected()
+		if err != nil {
+			return false, fmt.Errorf("count updated favorite places: %w", err)
+		}
+		if changed == 0 && existing {
+			return false, ErrNotFavorite
+		}
+		wasChanged = changed > 0
+		return wasChanged, nil
+	})
+	if err != nil || !wasChanged {
 		return err
-	}
-	if err := transaction.Commit(); err != nil {
-		return fmt.Errorf("commit favorite update: %w", err)
 	}
 	repository.logger.InfoContext(ctx, "favorite places updated", "operation", operation, "place_id", placeID)
 	return nil

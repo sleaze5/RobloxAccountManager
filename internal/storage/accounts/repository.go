@@ -47,34 +47,29 @@ func (repository *Repository) Create(ctx context.Context, identity accountdomain
 	}
 	defer release()
 	now := time.Now().UTC().Truncate(time.Millisecond)
-	transaction, err := database.BeginTx(ctx, nil)
-	if err != nil {
-		return accountdomain.AccountView{}, accountdomain.SessionRecord{}, fmt.Errorf("begin account insert: %w", err)
-	}
-	defer transaction.Rollback()
-	insertion, err := transaction.ExecContext(ctx, `
+	var accountID int64
+	err = vault.RunWriteTransaction(ctx, database, "account insert", func(transaction *sql.Tx) (bool, error) {
+		insertion, err := transaction.ExecContext(ctx, `
 INSERT INTO accounts(roblox_user_id, username, display_name, display_order, created_at_ms, updated_at_ms)
 SELECT ?, ?, ?, COALESCE(MAX(display_order) + 1, 0), ?, ? FROM accounts`, identity.RobloxUserID, identity.Username, identity.DisplayName, identity.CreatedAt.UTC().UnixMilli(), now.UnixMilli())
-	if err != nil {
-		if isConstraint(err) {
-			return accountdomain.AccountView{}, accountdomain.SessionRecord{}, accountdomain.ErrDuplicateAccount
+		if err != nil {
+			if isConstraint(err) {
+				return false, accountdomain.ErrDuplicateAccount
+			}
+			return false, fmt.Errorf("insert account: %w", err)
 		}
-		return accountdomain.AccountView{}, accountdomain.SessionRecord{}, fmt.Errorf("insert account: %w", err)
-	}
-	accountID, err := insertion.LastInsertId()
-	if err != nil {
-		return accountdomain.AccountView{}, accountdomain.SessionRecord{}, fmt.Errorf("read inserted account ID: %w", err)
-	}
-	if _, err := transaction.ExecContext(ctx, `
+		if accountID, err = insertion.LastInsertId(); err != nil {
+			return false, fmt.Errorf("read inserted account ID: %w", err)
+		}
+		if _, err := transaction.ExecContext(ctx, `
 INSERT INTO account_sessions(account_id, roblosecurity, cookie_expires_at_ms, state, secret_version, imported_at_ms, last_validated_at_ms, last_success_at_ms, updated_at_ms)
 VALUES(?, ?, ?, ?, 1, ?, ?, ?, ?)`, accountID, cookie, nullableUnixMilliseconds(expiresAt), accountdomain.StateActive, now.UnixMilli(), now.UnixMilli(), now.UnixMilli(), now.UnixMilli()); err != nil {
-		return accountdomain.AccountView{}, accountdomain.SessionRecord{}, fmt.Errorf("insert account session: %w", err)
-	}
-	if err := vault.BumpRevision(ctx, transaction); err != nil {
+			return false, fmt.Errorf("insert account session: %w", err)
+		}
+		return true, nil
+	})
+	if err != nil {
 		return accountdomain.AccountView{}, accountdomain.SessionRecord{}, err
-	}
-	if err := transaction.Commit(); err != nil {
-		return accountdomain.AccountView{}, accountdomain.SessionRecord{}, fmt.Errorf("commit account insert: %w", err)
 	}
 	session := accountdomain.SessionRecord{AccountID: accountID, Roblosecurity: cookie, CookieExpiresAt: copyTime(expiresAt), State: accountdomain.StateActive, SecretVersion: 1, ImportedAt: now, LastValidatedAt: &now}
 	repository.logger.InfoContext(ctx, "account stored", "operation", "account-store", "account_id", accountID, "roblox_user_id", identity.RobloxUserID)
@@ -105,39 +100,34 @@ func (repository *Repository) ReplaceCookie(ctx context.Context, accountID int64
 	}
 	defer release()
 	now := time.Now().UTC().Truncate(time.Millisecond)
-	transaction, err := database.BeginTx(ctx, nil)
-	if err != nil {
-		return accountdomain.AccountView{}, accountdomain.SessionRecord{}, fmt.Errorf("begin cookie replacement: %w", err)
-	}
-	defer transaction.Rollback()
-	if err := validateReplacementIdentity(ctx, transaction, accountID, identity); err != nil {
-		return accountdomain.AccountView{}, accountdomain.SessionRecord{}, err
-	}
-	if _, err := transaction.ExecContext(ctx, `UPDATE accounts SET username = ?, display_name = ?, created_at_ms = ?, updated_at_ms = ? WHERE id = ?`, identity.Username, identity.DisplayName, identity.CreatedAt.UTC().UnixMilli(), now.UnixMilli(), accountID); err != nil {
-		return accountdomain.AccountView{}, accountdomain.SessionRecord{}, fmt.Errorf("update replaced account: %w", err)
-	}
-	if _, err := transaction.ExecContext(ctx, `
+	var view accountdomain.AccountView
+	var session accountdomain.SessionRecord
+	err = vault.RunWriteTransaction(ctx, database, "cookie replacement", func(transaction *sql.Tx) (bool, error) {
+		if err := validateReplacementIdentity(ctx, transaction, accountID, identity); err != nil {
+			return false, err
+		}
+		if _, err := transaction.ExecContext(ctx, `UPDATE accounts SET username = ?, display_name = ?, created_at_ms = ?, updated_at_ms = ? WHERE id = ?`, identity.Username, identity.DisplayName, identity.CreatedAt.UTC().UnixMilli(), now.UnixMilli(), accountID); err != nil {
+			return false, fmt.Errorf("update replaced account: %w", err)
+		}
+		if _, err := transaction.ExecContext(ctx, `
 UPDATE account_sessions SET roblosecurity = ?, cookie_expires_at_ms = ?, state = ?, state_reason = '', secret_version = secret_version + 1,
 replaced_at_ms = ?, last_validated_at_ms = ?, last_success_at_ms = ?, last_auth_failure_at_ms = NULL, updated_at_ms = ? WHERE account_id = ?`, cookie, nullableUnixMilliseconds(expiresAt), accountdomain.StateActive, now.UnixMilli(), now.UnixMilli(), now.UnixMilli(), now.UnixMilli(), accountID); err != nil {
-		return accountdomain.AccountView{}, accountdomain.SessionRecord{}, fmt.Errorf("update replaced session: %w", err)
-	}
-	if err := vault.BumpRevision(ctx, transaction); err != nil {
+			return false, fmt.Errorf("update replaced session: %w", err)
+		}
+		var err error
+		if view, err = scanView(transaction.QueryRowContext(ctx, viewQuery+` WHERE a.id = ?`, accountID)); err != nil {
+			return false, fmt.Errorf("read replacement account: %w", err)
+		}
+		if view.Tags, err = listAccountTags(ctx, transaction, accountID); err != nil {
+			return false, fmt.Errorf("read replacement account tags: %w", err)
+		}
+		if session, err = scanSession(transaction.QueryRowContext(ctx, sessionQuery+` WHERE account_id = ?`, accountID)); err != nil {
+			return false, fmt.Errorf("read replacement session: %w", err)
+		}
+		return true, nil
+	})
+	if err != nil {
 		return accountdomain.AccountView{}, accountdomain.SessionRecord{}, err
-	}
-	view, err := scanView(transaction.QueryRowContext(ctx, viewQuery+` WHERE a.id = ?`, accountID))
-	if err != nil {
-		return accountdomain.AccountView{}, accountdomain.SessionRecord{}, fmt.Errorf("read replacement account: %w", err)
-	}
-	view.Tags, err = listAccountTags(ctx, transaction, accountID)
-	if err != nil {
-		return accountdomain.AccountView{}, accountdomain.SessionRecord{}, fmt.Errorf("read replacement account tags: %w", err)
-	}
-	session, err := scanSession(transaction.QueryRowContext(ctx, sessionQuery+` WHERE account_id = ?`, accountID))
-	if err != nil {
-		return accountdomain.AccountView{}, accountdomain.SessionRecord{}, fmt.Errorf("read replacement session: %w", err)
-	}
-	if err := transaction.Commit(); err != nil {
-		return accountdomain.AccountView{}, accountdomain.SessionRecord{}, fmt.Errorf("commit cookie replacement: %w", err)
 	}
 	return view, session, nil
 }
@@ -152,31 +142,20 @@ func (repository *Repository) RotateCookie(ctx context.Context, accountID, expec
 	}
 	defer release()
 	now := time.Now().UTC().Truncate(time.Millisecond)
-	transaction, err := database.BeginTx(ctx, nil)
-	if err != nil {
-		return accountdomain.SessionRecord{}, fmt.Errorf("begin cookie rotation: %w", err)
-	}
-	defer transaction.Rollback()
-	update, err := transaction.ExecContext(ctx, `UPDATE account_sessions SET roblosecurity = ?, cookie_expires_at_ms = ?, secret_version = secret_version + 1, rotated_at_ms = ?, updated_at_ms = ? WHERE account_id = ? AND secret_version = ?`, cookie, nullableUnixMilliseconds(expiresAt), now.UnixMilli(), now.UnixMilli(), accountID, expectedVersion)
-	if err != nil {
-		return accountdomain.SessionRecord{}, fmt.Errorf("rotate account cookie: %w", err)
-	}
-	changed, err := update.RowsAffected()
-	if err != nil {
-		return accountdomain.SessionRecord{}, fmt.Errorf("count rotated sessions: %w", err)
-	}
-	if changed == 0 {
-		return accountdomain.SessionRecord{}, accountdomain.ErrStaleSecret
-	}
-	current, err := scanSession(transaction.QueryRowContext(ctx, sessionQuery+` WHERE account_id = ?`, accountID))
+	var current accountdomain.SessionRecord
+	err = vault.RunWriteTransaction(ctx, database, "cookie rotation", func(transaction *sql.Tx) (bool, error) {
+		update, err := transaction.ExecContext(ctx, `UPDATE account_sessions SET roblosecurity = ?, cookie_expires_at_ms = ?, secret_version = secret_version + 1, rotated_at_ms = ?, updated_at_ms = ? WHERE account_id = ? AND secret_version = ?`, cookie, nullableUnixMilliseconds(expiresAt), now.UnixMilli(), now.UnixMilli(), accountID, expectedVersion)
+		if err != nil {
+			return false, fmt.Errorf("rotate account cookie: %w", err)
+		}
+		if _, err := requireChangedSession(update, "count rotated sessions"); err != nil {
+			return false, err
+		}
+		current, err = scanSession(transaction.QueryRowContext(ctx, sessionQuery+` WHERE account_id = ?`, accountID))
+		return err == nil, err
+	})
 	if err != nil {
 		return accountdomain.SessionRecord{}, err
-	}
-	if err := vault.BumpRevision(ctx, transaction); err != nil {
-		return accountdomain.SessionRecord{}, err
-	}
-	if err := transaction.Commit(); err != nil {
-		return accountdomain.SessionRecord{}, fmt.Errorf("commit cookie rotation: %w", err)
 	}
 	return current, nil
 }
@@ -187,36 +166,31 @@ func (repository *Repository) Remove(ctx context.Context, accountID int64) error
 		return err
 	}
 	defer release()
-	transaction, err := database.BeginTx(ctx, nil)
+	err = vault.RunWriteTransaction(ctx, database, "account removal", func(transaction *sql.Tx) (bool, error) {
+		var order int64
+		if err := transaction.QueryRowContext(ctx, `SELECT display_order FROM accounts WHERE id = ?`, accountID).Scan(&order); errors.Is(err, sql.ErrNoRows) {
+			return false, accountdomain.ErrNotFound
+		} else if err != nil {
+			return false, fmt.Errorf("read removed account: %w", err)
+		}
+		if _, err := transaction.ExecContext(ctx, `DELETE FROM accounts WHERE id = ?`, accountID); err != nil {
+			return false, fmt.Errorf("delete account: %w", err)
+		}
+		var remaining int64
+		if err := transaction.QueryRowContext(ctx, `SELECT count(*) FROM accounts`).Scan(&remaining); err != nil {
+			return false, fmt.Errorf("count remaining accounts: %w", err)
+		}
+		// Two shifts keep display_order unique: move later rows above every existing value, then back down to one below their old value.
+		if _, err := transaction.ExecContext(ctx, `UPDATE accounts SET display_order = display_order + ? WHERE display_order > ?`, remaining+2, order); err != nil {
+			return false, fmt.Errorf("shift account order: %w", err)
+		}
+		if _, err := transaction.ExecContext(ctx, `UPDATE accounts SET display_order = display_order - ? WHERE display_order > ?`, remaining+3, remaining); err != nil {
+			return false, fmt.Errorf("compact account order: %w", err)
+		}
+		return true, nil
+	})
 	if err != nil {
-		return fmt.Errorf("begin account removal: %w", err)
-	}
-	defer transaction.Rollback()
-	var order int64
-	if err := transaction.QueryRowContext(ctx, `SELECT display_order FROM accounts WHERE id = ?`, accountID).Scan(&order); errors.Is(err, sql.ErrNoRows) {
-		return accountdomain.ErrNotFound
-	} else if err != nil {
-		return fmt.Errorf("read removed account: %w", err)
-	}
-	if _, err := transaction.ExecContext(ctx, `DELETE FROM accounts WHERE id = ?`, accountID); err != nil {
-		return fmt.Errorf("delete account: %w", err)
-	}
-	var remaining int64
-	if err := transaction.QueryRowContext(ctx, `SELECT count(*) FROM accounts`).Scan(&remaining); err != nil {
-		return fmt.Errorf("count remaining accounts: %w", err)
-	}
-	// Two shifts keep display_order unique: move later rows above every existing value, then back down to one below their old value.
-	if _, err := transaction.ExecContext(ctx, `UPDATE accounts SET display_order = display_order + ? WHERE display_order > ?`, remaining+2, order); err != nil {
-		return fmt.Errorf("shift account order: %w", err)
-	}
-	if _, err := transaction.ExecContext(ctx, `UPDATE accounts SET display_order = display_order - ? WHERE display_order > ?`, remaining+3, remaining); err != nil {
-		return fmt.Errorf("compact account order: %w", err)
-	}
-	if err := vault.BumpRevision(ctx, transaction); err != nil {
 		return err
-	}
-	if err := transaction.Commit(); err != nil {
-		return fmt.Errorf("commit account removal: %w", err)
 	}
 	repository.logger.InfoContext(ctx, "account removed", "operation", "account-remove", "account_id", accountID)
 	return nil
@@ -292,41 +266,29 @@ func (repository *Repository) Move(ctx context.Context, accountID int64, beforeI
 		return err
 	}
 	defer release()
-	transaction, err := database.BeginTx(ctx, nil)
-	if err != nil {
-		return fmt.Errorf("begin account move: %w", err)
-	}
-	defer transaction.Rollback()
-	var oldOrder, count int64
-	if err := transaction.QueryRowContext(ctx, `SELECT display_order FROM accounts WHERE id = ?`, accountID).Scan(&oldOrder); err != nil {
-		return accountdomain.ErrInvalidOrder
-	}
-	if err := transaction.QueryRowContext(ctx, `SELECT count(*) FROM accounts`).Scan(&count); err != nil {
-		return fmt.Errorf("count accounts: %w", err)
-	}
-	newOrder, err := moveDestination(ctx, transaction, oldOrder, count, beforeID, afterID)
-	if err != nil {
-		return err
-	}
-	if newOrder == oldOrder {
-		return nil
-	}
-	if _, err := transaction.ExecContext(ctx, `UPDATE accounts SET display_order = ? WHERE id = ?`, count, accountID); err != nil {
-		return fmt.Errorf("park moved account: %w", err)
-	}
-	if err := shiftMovedAccounts(ctx, transaction, oldOrder, newOrder, count); err != nil {
-		return err
-	}
-	if _, err := transaction.ExecContext(ctx, `UPDATE accounts SET display_order = ?, updated_at_ms = ? WHERE id = ?`, newOrder, time.Now().UTC().UnixMilli(), accountID); err != nil {
-		return fmt.Errorf("place moved account: %w", err)
-	}
-	if err := vault.BumpRevision(ctx, transaction); err != nil {
-		return err
-	}
-	if err := transaction.Commit(); err != nil {
-		return fmt.Errorf("commit account move: %w", err)
-	}
-	return nil
+	return vault.RunWriteTransaction(ctx, database, "account move", func(transaction *sql.Tx) (bool, error) {
+		var oldOrder, count int64
+		if err := transaction.QueryRowContext(ctx, `SELECT display_order FROM accounts WHERE id = ?`, accountID).Scan(&oldOrder); err != nil {
+			return false, accountdomain.ErrInvalidOrder
+		}
+		if err := transaction.QueryRowContext(ctx, `SELECT count(*) FROM accounts`).Scan(&count); err != nil {
+			return false, fmt.Errorf("count accounts: %w", err)
+		}
+		newOrder, err := moveDestination(ctx, transaction, oldOrder, count, beforeID, afterID)
+		if err != nil || newOrder == oldOrder {
+			return false, err
+		}
+		if _, err := transaction.ExecContext(ctx, `UPDATE accounts SET display_order = ? WHERE id = ?`, count, accountID); err != nil {
+			return false, fmt.Errorf("park moved account: %w", err)
+		}
+		if err := shiftMovedAccounts(ctx, transaction, oldOrder, newOrder, count); err != nil {
+			return false, err
+		}
+		if _, err := transaction.ExecContext(ctx, `UPDATE accounts SET display_order = ?, updated_at_ms = ? WHERE id = ?`, newOrder, time.Now().UTC().UnixMilli(), accountID); err != nil {
+			return false, fmt.Errorf("place moved account: %w", err)
+		}
+		return true, nil
+	})
 }
 
 func (repository *Repository) GetView(ctx context.Context, accountID int64) (accountdomain.AccountView, error) {
@@ -362,33 +324,17 @@ func (repository *Repository) MarkState(ctx context.Context, accountID, expected
 	}
 	defer release()
 	now := time.Now().UTC().UnixMilli()
-	transaction, err := database.BeginTx(ctx, nil)
-	if err != nil {
-		return fmt.Errorf("begin session state update: %w", err)
-	}
-	defer transaction.Rollback()
 	var failure any
 	if state == accountdomain.StateReauthRequired {
 		failure = now
 	}
-	update, err := transaction.ExecContext(ctx, `UPDATE account_sessions SET state = ?, state_reason = ?, last_auth_failure_at_ms = COALESCE(?, last_auth_failure_at_ms), updated_at_ms = ? WHERE account_id = ? AND secret_version = ?`, state, safeReason(reason), failure, now, accountID, expectedVersion)
-	if err != nil {
-		return fmt.Errorf("update session state: %w", err)
-	}
-	changed, err := update.RowsAffected()
-	if err != nil {
-		return fmt.Errorf("count updated session states: %w", err)
-	}
-	if changed == 0 {
-		return accountdomain.ErrStaleSecret
-	}
-	if err := vault.BumpRevision(ctx, transaction); err != nil {
-		return err
-	}
-	if err := transaction.Commit(); err != nil {
-		return fmt.Errorf("commit session state: %w", err)
-	}
-	return nil
+	return vault.RunWriteTransaction(ctx, database, "session state update", func(transaction *sql.Tx) (bool, error) {
+		update, err := transaction.ExecContext(ctx, `UPDATE account_sessions SET state = ?, state_reason = ?, last_auth_failure_at_ms = COALESCE(?, last_auth_failure_at_ms), updated_at_ms = ? WHERE account_id = ? AND secret_version = ?`, state, safeReason(reason), failure, now, accountID, expectedVersion)
+		if err != nil {
+			return false, fmt.Errorf("update session state: %w", err)
+		}
+		return requireChangedSession(update, "count updated session states")
+	})
 }
 
 func (repository *Repository) RecordValidation(ctx context.Context, accountID, expectedVersion int64, identity accountdomain.Identity) error {
@@ -398,39 +344,26 @@ func (repository *Repository) RecordValidation(ctx context.Context, accountID, e
 	}
 	defer release()
 	now := time.Now().UTC().UnixMilli()
-	transaction, err := database.BeginTx(ctx, nil)
-	if err != nil {
-		return fmt.Errorf("begin validation record: %w", err)
-	}
-	defer transaction.Rollback()
-	var userID int64
-	if err := transaction.QueryRowContext(ctx, `SELECT roblox_user_id FROM accounts WHERE id = ?`, accountID).Scan(&userID); err != nil {
-		return fmt.Errorf("read validated account: %w", err)
-	}
-	if userID != identity.RobloxUserID {
-		return errors.New("validated identity does not match the stored account")
-	}
-	update, err := transaction.ExecContext(ctx, `UPDATE account_sessions SET state = CASE WHEN state = ? THEN state ELSE ? END, state_reason = CASE WHEN state = ? THEN state_reason ELSE '' END, last_validated_at_ms = ?, last_success_at_ms = ?, updated_at_ms = ? WHERE account_id = ? AND secret_version = ?`, accountdomain.StateDisabled, accountdomain.StateActive, accountdomain.StateDisabled, now, now, now, accountID, expectedVersion)
-	if err != nil {
-		return fmt.Errorf("record validation: %w", err)
-	}
-	changed, err := update.RowsAffected()
-	if err != nil {
-		return fmt.Errorf("count recorded validations: %w", err)
-	}
-	if changed == 0 {
-		return accountdomain.ErrStaleSecret
-	}
-	if _, err := transaction.ExecContext(ctx, `UPDATE accounts SET username = ?, display_name = ?, created_at_ms = ?, updated_at_ms = ? WHERE id = ?`, identity.Username, identity.DisplayName, identity.CreatedAt.UTC().UnixMilli(), now, accountID); err != nil {
-		return fmt.Errorf("update validated account: %w", err)
-	}
-	if err := vault.BumpRevision(ctx, transaction); err != nil {
-		return err
-	}
-	if err := transaction.Commit(); err != nil {
-		return fmt.Errorf("commit validation record: %w", err)
-	}
-	return nil
+	return vault.RunWriteTransaction(ctx, database, "validation record", func(transaction *sql.Tx) (bool, error) {
+		var userID int64
+		if err := transaction.QueryRowContext(ctx, `SELECT roblox_user_id FROM accounts WHERE id = ?`, accountID).Scan(&userID); err != nil {
+			return false, fmt.Errorf("read validated account: %w", err)
+		}
+		if userID != identity.RobloxUserID {
+			return false, errors.New("validated identity does not match the stored account")
+		}
+		update, err := transaction.ExecContext(ctx, `UPDATE account_sessions SET state = CASE WHEN state = ? THEN state ELSE ? END, state_reason = CASE WHEN state = ? THEN state_reason ELSE '' END, last_validated_at_ms = ?, last_success_at_ms = ?, updated_at_ms = ? WHERE account_id = ? AND secret_version = ?`, accountdomain.StateDisabled, accountdomain.StateActive, accountdomain.StateDisabled, now, now, now, accountID, expectedVersion)
+		if err != nil {
+			return false, fmt.Errorf("record validation: %w", err)
+		}
+		if _, err := requireChangedSession(update, "count recorded validations"); err != nil {
+			return false, err
+		}
+		if _, err := transaction.ExecContext(ctx, `UPDATE accounts SET username = ?, display_name = ?, created_at_ms = ?, updated_at_ms = ? WHERE id = ?`, identity.Username, identity.DisplayName, identity.CreatedAt.UTC().UnixMilli(), now, accountID); err != nil {
+			return false, fmt.Errorf("update validated account: %w", err)
+		}
+		return true, nil
+	})
 }
 
 func (repository *Repository) RecordSuccess(ctx context.Context, accountID, expectedVersion int64) error {
@@ -440,28 +373,17 @@ func (repository *Repository) RecordSuccess(ctx context.Context, accountID, expe
 	}
 	defer release()
 	now := time.Now().UTC().UnixMilli()
-	transaction, err := database.BeginTx(ctx, nil)
-	if err != nil {
-		return fmt.Errorf("begin success record: %w", err)
-	}
-	defer transaction.Rollback()
-	update, err := transaction.ExecContext(ctx, `UPDATE account_sessions SET state = CASE WHEN state = ? THEN state ELSE ? END, state_reason = CASE WHEN state = ? THEN state_reason ELSE '' END, last_success_at_ms = ?, updated_at_ms = ? WHERE account_id = ? AND secret_version = ? AND (state != ? OR last_success_at_ms IS NULL OR last_success_at_ms < ?)`, accountdomain.StateDisabled, accountdomain.StateActive, accountdomain.StateDisabled, now, now, accountID, expectedVersion, accountdomain.StateActive, now-int64(time.Minute/time.Millisecond))
-	if err != nil {
-		return fmt.Errorf("record success: %w", err)
-	}
-	changed, err := update.RowsAffected()
-	if err != nil {
-		return fmt.Errorf("count recorded successes: %w", err)
-	}
-	if changed > 0 {
-		if err := vault.BumpRevision(ctx, transaction); err != nil {
-			return err
+	return vault.RunWriteTransaction(ctx, database, "success record", func(transaction *sql.Tx) (bool, error) {
+		update, err := transaction.ExecContext(ctx, `UPDATE account_sessions SET state = CASE WHEN state = ? THEN state ELSE ? END, state_reason = CASE WHEN state = ? THEN state_reason ELSE '' END, last_success_at_ms = ?, updated_at_ms = ? WHERE account_id = ? AND secret_version = ? AND (state != ? OR last_success_at_ms IS NULL OR last_success_at_ms < ?)`, accountdomain.StateDisabled, accountdomain.StateActive, accountdomain.StateDisabled, now, now, accountID, expectedVersion, accountdomain.StateActive, now-int64(time.Minute/time.Millisecond))
+		if err != nil {
+			return false, fmt.Errorf("record success: %w", err)
 		}
-	}
-	if err := transaction.Commit(); err != nil {
-		return fmt.Errorf("commit success record: %w", err)
-	}
-	return nil
+		changed, err := update.RowsAffected()
+		if err != nil {
+			return false, fmt.Errorf("count recorded successes: %w", err)
+		}
+		return changed > 0, nil
+	})
 }
 
 const viewColumns = `
@@ -656,26 +578,28 @@ func (repository *Repository) RestoreNames(ctx context.Context, accountID int64,
 		return err
 	}
 	defer release()
-	transaction, err := database.BeginTx(ctx, nil)
-	if err != nil {
-		return fmt.Errorf("begin account name recovery: %w", err)
-	}
-	defer transaction.Rollback()
-	update, err := transaction.ExecContext(ctx, `UPDATE accounts SET username = ?, display_name = ? WHERE id = ? AND roblox_user_id = ? AND username = ''`, identity.Username, identity.DisplayName, accountID, identity.RobloxUserID)
-	if err != nil {
-		return fmt.Errorf("restore saved account names: %w", err)
-	}
+	return vault.RunWriteTransaction(ctx, database, "account name recovery", func(transaction *sql.Tx) (bool, error) {
+		update, err := transaction.ExecContext(ctx, `UPDATE accounts SET username = ?, display_name = ? WHERE id = ? AND roblox_user_id = ? AND username = ''`, identity.Username, identity.DisplayName, accountID, identity.RobloxUserID)
+		if err != nil {
+			return false, fmt.Errorf("restore saved account names: %w", err)
+		}
+		changed, err := update.RowsAffected()
+		if err != nil {
+			return false, fmt.Errorf("count restored account names: %w", err)
+		}
+		return changed > 0, nil
+	})
+}
+
+// requireChangedSession reports ErrStaleSecret when an update matched no
+// session, because another operation replaced the cookie first.
+func requireChangedSession(update sql.Result, countOperation string) (bool, error) {
 	changed, err := update.RowsAffected()
 	if err != nil {
-		return fmt.Errorf("count restored account names: %w", err)
+		return false, fmt.Errorf("%s: %w", countOperation, err)
 	}
-	if changed > 0 {
-		if err := vault.BumpRevision(ctx, transaction); err != nil {
-			return err
-		}
+	if changed == 0 {
+		return false, accountdomain.ErrStaleSecret
 	}
-	if err := transaction.Commit(); err != nil {
-		return fmt.Errorf("commit account name recovery: %w", err)
-	}
-	return nil
+	return true, nil
 }

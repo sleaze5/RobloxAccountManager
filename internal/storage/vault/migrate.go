@@ -63,7 +63,7 @@ func applySchemaMigrations(ctx context.Context, database *sql.DB, from int) erro
 	if err := runSchemaMigrations(ctx, transaction, from); err != nil {
 		return err
 	}
-	if err := BumpRevision(ctx, transaction); err != nil {
+	if err := bumpRevision(ctx, transaction); err != nil {
 		return err
 	}
 	var violations int
