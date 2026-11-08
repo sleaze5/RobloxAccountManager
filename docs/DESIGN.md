@@ -62,7 +62,7 @@ Inputs:
 - `field`: a text field. `search-field` wraps a search input with a leading icon and a clear button.
 - `lib/shared/Select.svelte`: a dropdown. Use it instead of `<select>`. Pass its width with `className`.
 - `lib/shared/NumberStepper.svelte`: a numeric input.
-- `checkbox`: a checkbox. `check-option` is a checkbox with a label and an optional description.
+- `checkbox`: a checkbox. `check-option` is a checkbox with a label and an optional description. Render the check mark with `lib/shared/CheckboxMark.svelte`, and set `isIndeterminate` for a partial selection.
 - `switch`: a switch. Its input has `role="switch"`.
 - `radio` inside `radio-option`: a radio button with its label.
 - `segmented`: two to four mutually exclusive options that stay visible, as buttons with `aria-pressed` or as labels around radio inputs.
@@ -77,7 +77,7 @@ Surfaces and feedback:
 - `lib/notifications/notification-center.svelte.ts`: notifications.
 - `lib/shared/Tooltip.svelte`: tooltips, through the `data-tooltip` attribute.
 - `transfer` and `progress-bar`: download and install progress.
-- `spinner`: the busy spinner on an icon.
+- `spinner`: the busy spinner on an icon. `lib/shared/RefreshIcon.svelte` shows the refresh icon, or the spinner while `isRefreshing` is true.
 
 Content:
 

@@ -66,6 +66,8 @@ Names exist so that a reader understands what the code does without reading its 
 - Start a function or method with a verb that says what it does: `refreshAccountMetadata`, `removeManagedDirectory`, `validateCookie`.
 - Start a boolean with `is`, `has`, `can`, `should`, or `was`, and state it positively: `isUnlocked`, not `notLocked`. Existing Go getters such as `Unlocked()` may keep their form.
 - Name a collection in the plural (`accounts`) and a map by both sides (`accountByRobloxUserID`, `imagesByUserID`).
+- Name a decoded API response `payload`. When an entry of a response becomes a domain value, give the entry a different name than the value: `listedServer` becomes `server`.
+- Name the outcome of a database statement after the statement: `insertion`, `update`, or `deletion`.
 - Put computed qualifiers at the end, and include units where a value has one: `retryDelay`, `accountCount`, `lockTimeout`, `maxResponseSizeBytes`, `intervalSeconds`.
 - Use matched opposites consistently: `begin`/`end`, `open`/`close`, `add`/`remove`, `source`/`destination`, `previous`/`next`.
 - Give each variable one purpose. Do not reuse a variable for a second meaning, and do not encode special meanings in values, such as `-1` for an error.
