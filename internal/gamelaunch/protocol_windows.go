@@ -44,15 +44,15 @@ func protocolExecutable(protocol string) (string, error) {
 		return "", fmt.Errorf("encode protocol verb: %w", err)
 	}
 	var size uint32
-	if result, _, _ := assocQueryString.Call(assocIsProtocol, assocStrExecutable, uintptr(unsafe.Pointer(name)), uintptr(unsafe.Pointer(verb)), 0, uintptr(unsafe.Pointer(&size))); int32(result) < 0 {
-		return "", fmt.Errorf("measure protocol handler path: %w", windows.Errno(uint32(result)))
+	if callStatus, _, _ := assocQueryString.Call(assocIsProtocol, assocStrExecutable, uintptr(unsafe.Pointer(name)), uintptr(unsafe.Pointer(verb)), 0, uintptr(unsafe.Pointer(&size))); int32(callStatus) < 0 {
+		return "", fmt.Errorf("measure protocol handler path: %w", windows.Errno(uint32(callStatus)))
 	}
 	if size == 0 {
 		return "", fmt.Errorf("measure protocol handler path: %w", errNoAssociation)
 	}
 	buffer := make([]uint16, size)
-	if result, _, _ := assocQueryString.Call(assocIsProtocol, assocStrExecutable, uintptr(unsafe.Pointer(name)), uintptr(unsafe.Pointer(verb)), uintptr(unsafe.Pointer(&buffer[0])), uintptr(unsafe.Pointer(&size))); int32(result) < 0 {
-		return "", fmt.Errorf("read protocol handler path: %w", windows.Errno(uint32(result)))
+	if callStatus, _, _ := assocQueryString.Call(assocIsProtocol, assocStrExecutable, uintptr(unsafe.Pointer(name)), uintptr(unsafe.Pointer(verb)), uintptr(unsafe.Pointer(&buffer[0])), uintptr(unsafe.Pointer(&size))); int32(callStatus) < 0 {
+		return "", fmt.Errorf("read protocol handler path: %w", windows.Errno(uint32(callStatus)))
 	}
 	return windows.UTF16ToString(buffer), nil
 }

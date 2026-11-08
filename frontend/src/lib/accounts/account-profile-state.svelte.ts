@@ -87,8 +87,8 @@ export class AccountProfileState {
 			this.#store.refreshAccountAvatar(this.#accountId),
 			this.#store.refreshPresences(this.#accountId),
 		])
-		for (const result of results) {
-			if (result.status === "rejected") throw result.reason
+		for (const settled of results) {
+			if (settled.status === "rejected") throw settled.reason
 		}
 	}
 

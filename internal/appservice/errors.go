@@ -61,26 +61,30 @@ func safeVaultError(err error) error {
 			Message:  "The master password is incorrect.",
 		}
 	}
-	message := "The vault could not be unlocked."
-	switch {
-	case errors.Is(err, vault.ErrIncomplete):
-		message = "The vault files are incomplete. Restore a backup or reset the vault."
-	case errors.Is(err, vault.ErrLegacyVault):
-		message = legacyVaultMessage
-	case errors.Is(err, vault.ErrUnsupportedVersion):
-		message = "The vault key-file version is unsupported. Restore a compatible backup."
-	case errors.Is(err, vault.ErrUnsupportedSchema):
-		message = "The vault database schema is unsupported. Restore a compatible backup."
-	case errors.Is(err, vault.ErrVaultMismatch):
-		message = "The database and security files belong to different vaults."
-	case errors.Is(err, vault.ErrAutomaticUnlockUnavailable):
-		message = "Automatic unlock is unavailable for this user. Enter the master password."
-	}
 	return &roblox.Error{
 		Kind:     roblox.KindProtocol,
 		Endpoint: "vault-unlock",
-		Message:  message,
+		Message:  vaultFailureMessage(err, "The vault could not be unlocked."),
 		Cause:    err,
+	}
+}
+
+func vaultFailureMessage(err error, fallback string) string {
+	switch {
+	case errors.Is(err, vault.ErrIncomplete):
+		return "The vault files are incomplete. Restore a backup or reset the vault."
+	case errors.Is(err, vault.ErrLegacyVault):
+		return legacyVaultMessage
+	case errors.Is(err, vault.ErrUnsupportedVersion):
+		return "The vault key-file version is unsupported. Restore a compatible backup."
+	case errors.Is(err, vault.ErrUnsupportedSchema):
+		return "The vault database schema is unsupported. Restore a compatible backup."
+	case errors.Is(err, vault.ErrVaultMismatch):
+		return "The database and security files belong to different vaults. Restore a backup or reset the vault."
+	case errors.Is(err, vault.ErrAutomaticUnlockUnavailable):
+		return "Automatic unlock is unavailable for this user. Enter the master password."
+	default:
+		return fallback
 	}
 }
 

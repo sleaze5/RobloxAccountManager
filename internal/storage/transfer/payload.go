@@ -97,16 +97,16 @@ type FavoritePlace struct {
 
 func Encode(payload Payload) ([]byte, error) {
 	payload.Version = FormatVersion
-	data, err := json.Marshal(payload)
+	payloadJSON, err := json.Marshal(payload)
 	if err != nil {
 		return nil, fmt.Errorf("encode export data: %w", err)
 	}
-	return data, nil
+	return payloadJSON, nil
 }
 
-func Decode(data []byte) (Payload, error) {
+func Decode(payloadJSON []byte) (Payload, error) {
 	var document object
-	if err := json.Unmarshal(data, &document); err != nil || document == nil {
+	if err := json.Unmarshal(payloadJSON, &document); err != nil || document == nil {
 		return Payload{}, ErrInvalidPayload
 	}
 	var version int

@@ -1,10 +1,10 @@
 <script lang="ts">
-	import arrowsClockwiseIcon from "@phosphor-icons/core/regular/arrows-clockwise.svg?raw"
 	import checkCircleIcon from "@phosphor-icons/core/regular/check-circle.svg?raw"
 	import circleNotchIcon from "@phosphor-icons/core/regular/circle-notch.svg?raw"
 	import warningCircleIcon from "@phosphor-icons/core/regular/warning-circle.svg?raw"
 	import xIcon from "@phosphor-icons/core/regular/x.svg?raw"
 	import Icon from "../shared/Icon.svelte"
+	import RefreshIcon from "../shared/RefreshIcon.svelte"
 	import { onMount } from "svelte"
 	import type { AccountStore } from "../accounts/account-store.svelte"
 	import {
@@ -49,9 +49,9 @@
 		loading = true
 		error = ""
 		try {
-			const result = await accountBackend.GetRobloxPlayers(),
-				loaded = result.versions ?? []
-			if (versions === null) initialize(loaded, result.customPath)
+			const players = await accountBackend.GetRobloxPlayers(),
+				loaded = players.versions ?? []
+			if (versions === null) initialize(loaded, players.customPath)
 			else if (
 				selection !== automatic &&
 				selection !== custom &&
@@ -84,8 +84,8 @@
 			return
 		}
 		try {
-			const result = await accountBackend.CheckRobloxPlayerPath(text)
-			if (sequence === checkSequence) check = { text, result }
+			const pathCheck = await accountBackend.CheckRobloxPlayerPath(text)
+			if (sequence === checkSequence) check = { text, result: pathCheck }
 		} catch {
 			if (sequence === checkSequence) {
 				check = {
@@ -106,16 +106,16 @@
 		validating = true
 		error = ""
 		try {
-			const result = await accountBackend.CheckRobloxPlayerPath(text)
-			if (result.problem !== "") {
-				check = { text, result }
+			const pathCheck = await accountBackend.CheckRobloxPlayerPath(text)
+			if (pathCheck.problem !== "") {
+				check = { text, result: pathCheck }
 				return
 			}
-			await accountBackend.SetRobloxPlayerPath(result.path)
-			customPath = result.path
-			savedCustomPath = result.path
+			await accountBackend.SetRobloxPlayerPath(pathCheck.path)
+			customPath = pathCheck.path
+			savedCustomPath = pathCheck.path
 			selection = custom
-			check = { text: result.path, result }
+			check = { text: pathCheck.path, result: pathCheck }
 			validated = true
 		} catch (cause) {
 			error = errorMessage(
@@ -188,16 +188,7 @@
 					data-tooltip="Reload Roblox versions"
 					disabled={loading || busy}
 					onclick={() => void load()}>
-					{#if loading}<Icon
-							svg={circleNotchIcon}
-							class="spinner"
-							size={16}
-							aria-hidden="true" />
-					{:else}<Icon
-							svg={arrowsClockwiseIcon}
-							data-turn
-							size={16}
-							aria-hidden="true" />{/if}
+					<RefreshIcon isRefreshing={loading} />
 				</button>
 				<button
 					class="button-ghost-sm"

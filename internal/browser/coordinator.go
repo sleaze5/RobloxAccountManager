@@ -948,44 +948,44 @@ func (coordinator *Coordinator) SaveCandidates(ctx context.Context, selected []s
 	chosen := make([]*candidate, 0, len(selected))
 	chosenIDs := map[string]struct{}{}
 	for _, id := range selected {
-		item := coordinator.candidates[id]
-		if item == nil {
+		candidate := coordinator.candidates[id]
+		if candidate == nil {
 			coordinator.mutex.Unlock()
 			return SaveResult{}, errors.New("an account candidate is no longer available")
 		}
-		if _, duplicate := seen[item.state.RobloxUserID]; duplicate {
+		if _, duplicate := seen[candidate.state.RobloxUserID]; duplicate {
 			coordinator.mutex.Unlock()
 			return SaveResult{}, errors.New("select only one candidate for each account")
 		}
-		seen[item.state.RobloxUserID] = struct{}{}
+		seen[candidate.state.RobloxUserID] = struct{}{}
 		chosenIDs[id] = struct{}{}
-		chosen = append(chosen, item)
+		chosen = append(chosen, candidate)
 	}
-	for id, item := range coordinator.candidates {
+	for id, candidate := range coordinator.candidates {
 		if _, keep := chosenIDs[id]; !keep {
-			item.validation.Cookie = ""
+			candidate.validation.Cookie = ""
 		}
 		delete(coordinator.candidates, id)
 	}
 	coordinator.bumpLocked()
 	coordinator.mutex.Unlock()
-	result := SaveResult{Items: make([]SaveResultItem, 0, len(chosen))}
-	for _, item := range chosen {
-		account, status, err := coordinator.backend.CommitBrowserCandidate(ctx, item.validation)
-		item.validation.Cookie = ""
-		resultItem := SaveResultItem{CandidateID: item.state.ID, Status: status, Account: account}
+	saveResult := SaveResult{Items: make([]SaveResultItem, 0, len(chosen))}
+	for _, chosenCandidate := range chosen {
+		account, status, err := coordinator.backend.CommitBrowserCandidate(ctx, chosenCandidate.validation)
+		chosenCandidate.validation.Cookie = ""
+		resultItem := SaveResultItem{CandidateID: chosenCandidate.state.ID, Status: status, Account: account}
 		if err != nil {
 			resultItem.Status, resultItem.Error = SaveFailed, "The account could not be saved."
 		}
-		result.Items = append(result.Items, resultItem)
+		saveResult.Items = append(saveResult.Items, resultItem)
 	}
-	return result, nil
+	return saveResult, nil
 }
 
 func (coordinator *Coordinator) DiscardCandidates() {
 	coordinator.mutex.Lock()
-	for id, item := range coordinator.candidates {
-		item.validation.Cookie = ""
+	for id, candidate := range coordinator.candidates {
+		candidate.validation.Cookie = ""
 		delete(coordinator.candidates, id)
 	}
 	coordinator.bumpLocked()
@@ -1011,8 +1011,8 @@ func (coordinator *Coordinator) forceShutdown() error {
 		}
 		sessions = append(sessions, current)
 	}
-	for id, item := range coordinator.candidates {
-		item.validation.Cookie = ""
+	for id, candidate := range coordinator.candidates {
+		candidate.validation.Cookie = ""
 		delete(coordinator.candidates, id)
 	}
 	coordinator.bumpLocked()
@@ -1183,13 +1183,13 @@ func (queue *cleanupQueue) retry() {
 func (queue *cleanupQueue) snapshot() []CleanupState {
 	queue.mutex.Lock()
 	defer queue.mutex.Unlock()
-	result := make([]CleanupState, 0, len(queue.pending))
+	cleanupStates := make([]CleanupState, 0, len(queue.pending))
 	for id, err := range queue.pending {
 		if err != "" {
-			result = append(result, CleanupState{ID: id, Error: err})
+			cleanupStates = append(cleanupStates, CleanupState{ID: id, Error: err})
 		}
 	}
-	return result
+	return cleanupStates
 }
 func (queue *cleanupQueue) run() {
 	defer close(queue.stopped)

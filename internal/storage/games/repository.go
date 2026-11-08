@@ -86,11 +86,11 @@ func (repository *Repository) Reorder(ctx context.Context, placeIDs []int64) err
 		return ErrNotFavorite
 	}
 	for order, placeID := range placeIDs {
-		result, err := transaction.ExecContext(ctx, `UPDATE favorite_places SET display_order = ? WHERE place_id = ?`, order, placeID)
+		update, err := transaction.ExecContext(ctx, `UPDATE favorite_places SET display_order = ? WHERE place_id = ?`, order, placeID)
 		if err != nil {
 			return fmt.Errorf("reorder favorite place: %w", err)
 		}
-		if changed, err := result.RowsAffected(); err != nil {
+		if changed, err := update.RowsAffected(); err != nil {
 			return fmt.Errorf("count reordered favorite places: %w", err)
 		} else if changed == 0 {
 			return ErrNotFavorite
@@ -121,11 +121,11 @@ func (repository *Repository) write(ctx context.Context, placeID int64, operatio
 		return fmt.Errorf("begin favorite update: %w", err)
 	}
 	defer transaction.Rollback()
-	result, err := transaction.ExecContext(ctx, query, args...)
+	change, err := transaction.ExecContext(ctx, query, args...)
 	if err != nil {
 		return fmt.Errorf("update favorite place: %w", err)
 	}
-	if changed, err := result.RowsAffected(); err != nil {
+	if changed, err := change.RowsAffected(); err != nil {
 		return fmt.Errorf("count updated favorite places: %w", err)
 	} else if changed == 0 {
 		if existing {

@@ -47,27 +47,27 @@ func (holder *mutexHolder) run(ready chan<- error, logger *slog.Logger) {
 		return
 	}
 	defer windows.CloseHandle(mutex)
-	result, err := windows.WaitForSingleObject(mutex, 0)
+	waitStatus, err := windows.WaitForSingleObject(mutex, 0)
 	if err != nil {
 		ready <- fmt.Errorf("acquire Roblox singleton mutex: %w", err)
 		return
 	}
-	holder.owned.Store(result == windows.WAIT_OBJECT_0 || result == windows.WAIT_ABANDONED)
+	holder.owned.Store(waitStatus == windows.WAIT_OBJECT_0 || waitStatus == windows.WAIT_ABANDONED)
 	ready <- nil
 	if !holder.owned.Load() {
 		logger.Info("waiting for Roblox singleton mutex ownership")
-		result, err = windows.WaitForMultipleObjects([]windows.Handle{holder.stop, mutex}, false, windows.INFINITE)
+		waitStatus, err = windows.WaitForMultipleObjects([]windows.Handle{holder.stop, mutex}, false, windows.INFINITE)
 		if err != nil {
 			holder.failed.Store(true)
 			logger.Warn("waiting for Roblox singleton mutex failed", "error", err)
 			return
 		}
-		if result == windows.WAIT_OBJECT_0 {
+		if waitStatus == windows.WAIT_OBJECT_0 {
 			return
 		}
-		if result != windows.WAIT_OBJECT_0+1 && result != windows.WAIT_ABANDONED+1 {
+		if waitStatus != windows.WAIT_OBJECT_0+1 && waitStatus != windows.WAIT_ABANDONED+1 {
 			holder.failed.Store(true)
-			logger.Warn("unexpected Roblox mutex wait result", "result", result)
+			logger.Warn("unexpected Roblox mutex wait result", "result", waitStatus)
 			return
 		}
 		holder.owned.Store(true)

@@ -153,8 +153,8 @@
 			<ul
 				class="mt-2 grid gap-0.5 pl-4 font-mono text-2xs wrap-anywhere"
 				aria-label="Items in this folder">
-				{#each listedItems as item (item)}
-					<li>{item}</li>
+				{#each listedItems as entryName (entryName)}
+					<li>{entryName}</li>
 				{/each}
 				{#if hiddenItems > 0}
 					<li class="list-none font-sans">and {hiddenItems} more</li>

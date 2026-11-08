@@ -141,17 +141,17 @@ func (manager *Manager) upgradeKeyFile(password string) error {
 }
 
 func (manager *Manager) upgradeAutoUnlock() error {
-	data, err := readBounded(manager.paths.AutoUnlockKey, autoFileLimit)
+	encodedAutoUnlock, err := readBounded(manager.paths.AutoUnlockKey, autoFileLimit)
 	if errors.Is(err, os.ErrNotExist) {
 		return nil
 	}
 	if err != nil {
 		return err
 	}
-	if len(data) < len(autoMagic)+2 {
+	if len(encodedAutoUnlock) < len(autoMagic)+2 {
 		return errors.New("automatic unlock file is corrupted")
 	}
-	version := binary.BigEndian.Uint16(data[len(autoMagic):])
+	version := binary.BigEndian.Uint16(encodedAutoUnlock[len(autoMagic):])
 	if version >= autoFormatVersion {
 		return nil
 	}

@@ -1,7 +1,5 @@
 <script lang="ts">
-	import arrowsClockwiseIcon from "@phosphor-icons/core/regular/arrows-clockwise.svg?raw"
 	import checkIcon from "@phosphor-icons/core/regular/check.svg?raw"
-	import circleNotchIcon from "@phosphor-icons/core/regular/circle-notch.svg?raw"
 	import funnelIcon from "@phosphor-icons/core/regular/funnel.svg?raw"
 	import hashIcon from "@phosphor-icons/core/regular/hash.svg?raw"
 	import magnifyingGlassIcon from "@phosphor-icons/core/regular/magnifying-glass.svg?raw"
@@ -12,6 +10,7 @@
 	import usersIcon from "@phosphor-icons/core/regular/users.svg?raw"
 	import xIcon from "@phosphor-icons/core/regular/x.svg?raw"
 	import Icon from "../shared/Icon.svelte"
+	import RefreshIcon from "../shared/RefreshIcon.svelte"
 	import type { WorkspaceState } from "../layout/workspace-state.svelte"
 	import WorkbenchSidebar from "../layout/WorkbenchSidebar.svelte"
 	import { menuIn, menuKeyboard, menuOut } from "../shared/presence"
@@ -103,19 +102,7 @@
 			data-tooltip-side="bottom-end"
 			disabled={!store.vault.unlocked || store.refreshing}
 			onclick={() => void store.refreshAccountList()}>
-			{#if store.refreshing}
-				<Icon
-					svg={circleNotchIcon}
-					class="spinner"
-					size={16}
-					aria-hidden="true" />
-			{:else}
-				<Icon
-					svg={arrowsClockwiseIcon}
-					data-turn
-					size={16}
-					aria-hidden="true" />
-			{/if}
+			<RefreshIcon isRefreshing={store.refreshing} />
 		</button>
 	{/snippet}
 	{#snippet menu()}

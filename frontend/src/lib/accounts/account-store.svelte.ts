@@ -666,25 +666,25 @@ export class AccountStore {
 		this.busy = true
 		this.error = ""
 		try {
-			const result = await accountBackend.SaveValidatedCookies(
+			const saveResult = await accountBackend.SaveValidatedCookies(
 					batchId,
 					selectedIndexes,
 				),
-				items = result.items ?? [],
+				items = saveResult.items ?? [],
 				saved = items.filter(
-					(item) =>
-						item.status === ImportStatus.ImportCreated ||
-						item.status === ImportStatus.ImportUpdated,
+					(savedItem) =>
+						savedItem.status === ImportStatus.ImportCreated ||
+						savedItem.status === ImportStatus.ImportUpdated,
 				),
 				duplicates = items.filter(
-					(item) => item.status === ImportStatus.ImportDuplicate,
+					(savedItem) => savedItem.status === ImportStatus.ImportDuplicate,
 				),
 				failed = items.filter(
-					(item) => item.status === ImportStatus.ImportFailed,
+					(savedItem) => savedItem.status === ImportStatus.ImportFailed,
 				)
 
 			if (saved.length > 0) {
-				this.recordImportSummary(saved.map((item) => item.status))
+				this.recordImportSummary(saved.map((savedItem) => savedItem.status))
 				this.selectAccount(saved.at(-1)?.account.id ?? 0)
 				await this.refreshAccounts()
 			}
@@ -872,9 +872,12 @@ export class AccountStore {
 			}
 			if (copyOptions) await accountBackend.CopyLaunchOptions(accountIds, input)
 			else {
-				const result = await accountBackend.LaunchAccounts(accountIds, input)
+				const launchResult = await accountBackend.LaunchAccounts(
+					accountIds,
+					input,
+				)
 				if (!this.vault.unlocked) return false
-				return this.showLaunchResult(result, selected)
+				return this.showLaunchResult(launchResult, selected)
 			}
 			return this.vault.unlocked
 		} catch (error) {
@@ -886,29 +889,33 @@ export class AccountStore {
 		}
 	}
 
-	private showLaunchResult(result: LaunchResult, selected: Account[]): boolean {
-		const failures = result.failures ?? [],
-			launched = result.launched?.length ?? 0
+	private showLaunchResult(launchResult: LaunchResult, selected: Account[]): boolean {
+		const failures = launchResult.failures ?? [],
+			launched = launchResult.launched?.length ?? 0
 		this.error = failures
 			.map((failure) => {
-				const account = selected.find((item) => item.id === failure.accountId)
+				const account = selected.find(
+					(selectedAccount) => selectedAccount.id === failure.accountId,
+				)
 				return `${account ? `@${account.username}: ` : ""}${failure.message}`
 			})
 			.join("\n")
 		if (selected.length > 1 && (launched > 0 || failures.length > 0)) {
 			this.notifications.show({
 				id: "batch-launch",
-				title: result.cancelled ? "Launch stopped" : "Account launch complete",
+				title: launchResult.cancelled
+					? "Launch stopped"
+					: "Account launch complete",
 				tone:
 					failures.length > 0
 						? "error"
-						: result.cancelled
+						: launchResult.cancelled
 							? "warning"
 							: "success",
 				message: `Launch requested for ${launched} of ${selected.length} accounts.${failures.length > 0 ? ` ${failures.length} failed. See the error details.` : ""}`,
 			})
 		}
-		return !result.cancelled && failures.length === 0
+		return !launchResult.cancelled && failures.length === 0
 	}
 
 	private createAccount(record: AccountView): Account {
@@ -964,7 +971,9 @@ export class AccountStore {
 	}
 
 	async refreshAccountAvatar(accountId: number): Promise<void> {
-		const account = this.accounts.find((item) => item.id === accountId)
+		const account = this.accounts.find(
+			(listedAccount) => listedAccount.id === accountId,
+		)
 		if (!account || !this.vault.unlocked) return
 		await this.refreshAvatarHeadshots([Number(account.userId)], true)
 	}
@@ -978,7 +987,9 @@ export class AccountStore {
 		if (requests.size === 0) return
 		let headshots
 		try {
-			headshots = (await Promise.all(requests)).flatMap((result) => result ?? [])
+			headshots = (await Promise.all(requests)).flatMap(
+				(headshotBatch) => headshotBatch ?? [],
+			)
 		} catch {
 			if (force) {
 				throw new Error(

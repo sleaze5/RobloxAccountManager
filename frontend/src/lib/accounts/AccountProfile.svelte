@@ -1,7 +1,5 @@
 <script lang="ts">
-	import arrowsClockwiseIcon from "@phosphor-icons/core/regular/arrows-clockwise.svg?raw"
 	import chatsIcon from "@phosphor-icons/core/regular/chats.svg?raw"
-	import circleNotchIcon from "@phosphor-icons/core/regular/circle-notch.svg?raw"
 	import dotsThreeIcon from "@phosphor-icons/core/regular/dots-three.svg?raw"
 	import gearIcon from "@phosphor-icons/core/regular/gear.svg?raw"
 	import hashIcon from "@phosphor-icons/core/regular/hash.svg?raw"
@@ -10,6 +8,7 @@
 	import tagIcon from "@phosphor-icons/core/regular/tag.svg?raw"
 	import warningCircleIcon from "@phosphor-icons/core/regular/warning-circle.svg?raw"
 	import Icon from "../shared/Icon.svelte"
+	import RefreshIcon from "../shared/RefreshIcon.svelte"
 	import { tick, untrack } from "svelte"
 	import { SessionState } from "../backend/bridge"
 	import type { SocialListKind } from "../social/social-store.svelte"
@@ -221,19 +220,7 @@
 						!store.vault.unlocked ||
 						profileState?.loading}
 					onclick={() => void profileState?.refresh(true)}>
-					{#if profileState?.loading}
-						<Icon
-							svg={circleNotchIcon}
-							class="spinner"
-							size={16}
-							aria-hidden="true" />
-					{:else}
-						<Icon
-							svg={arrowsClockwiseIcon}
-							data-turn
-							size={16}
-							aria-hidden="true" />
-					{/if}
+					<RefreshIcon isRefreshing={profileState?.loading ?? false} />
 				</button>
 				<button
 					class="button-icon"

@@ -168,7 +168,9 @@ export class SocialStore {
 	}
 
 	explore(person: SocialSubject, list: SocialListKind): void {
-		const index = this.trail.findIndex((item) => item.userId === person.userId)
+		const index = this.trail.findIndex(
+			(trailEntry) => trailEntry.userId === person.userId,
+		)
 		if (person.userId === this.selfUserId) this.trail = []
 		else if (index >= 0) this.trail = this.trail.slice(0, index + 1)
 		else {

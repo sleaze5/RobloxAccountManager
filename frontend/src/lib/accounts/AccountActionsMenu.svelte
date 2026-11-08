@@ -115,15 +115,15 @@
 
 <div role="group" aria-label="Copy account details">
 	<div class="menu-heading" aria-hidden="true">Copy</div>
-	{#each copyFields as item (item.field)}
+	{#each copyFields as fieldOption (fieldOption.field)}
 		<button
 			class="menu-item"
 			type="button"
-			aria-label={`Copy ${item.label}`}
+			aria-label={`Copy ${fieldOption.label}`}
 			disabled={store.copying}
-			onclick={() => void copyField(item.field)}>
-			<Icon svg={item.icon} size={16} aria-hidden="true" /><span
-				>{item.label}</span>
+			onclick={() => void copyField(fieldOption.field)}>
+			<Icon svg={fieldOption.icon} size={16} aria-hidden="true" /><span
+				>{fieldOption.label}</span>
 		</button>
 	{/each}
 </div>

@@ -25,11 +25,11 @@
 		summary = null
 		loading = true
 		let current = true
-		void request.then((result) => {
-			if (!current) return result
-			summary = result
+		void request.then((loadedSummary) => {
+			if (!current) return loadedSummary
+			summary = loadedSummary
 			loading = false
-			return result
+			return loadedSummary
 		})
 		return () => {
 			current = false

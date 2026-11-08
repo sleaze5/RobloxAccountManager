@@ -1,10 +1,10 @@
 <script lang="ts">
-	import arrowsClockwiseIcon from "@phosphor-icons/core/regular/arrows-clockwise.svg?raw"
 	import caretLeftIcon from "@phosphor-icons/core/regular/caret-left.svg?raw"
 	import checksIcon from "@phosphor-icons/core/regular/checks.svg?raw"
 	import circleNotchIcon from "@phosphor-icons/core/regular/circle-notch.svg?raw"
 	import notePencilIcon from "@phosphor-icons/core/regular/note-pencil.svg?raw"
 	import Icon from "../shared/Icon.svelte"
+	import RefreshIcon from "../shared/RefreshIcon.svelte"
 	import { onMount, tick, untrack } from "svelte"
 	import type { AccountStore } from "../accounts/account-store.svelte"
 	import SidebarResizer from "../layout/SidebarResizer.svelte"
@@ -99,19 +99,7 @@
 			aria-busy={chat.loading}
 			disabled={chat.loading}
 			onclick={() => void chat.refresh()}>
-			{#if chat.loading}
-				<Icon
-					svg={circleNotchIcon}
-					class="spinner"
-					size={16}
-					aria-hidden="true" />
-			{:else}
-				<Icon
-					svg={arrowsClockwiseIcon}
-					data-turn
-					size={16}
-					aria-hidden="true" />
-			{/if}
+			<RefreshIcon isRefreshing={chat.loading} />
 		</button>
 	</header>
 

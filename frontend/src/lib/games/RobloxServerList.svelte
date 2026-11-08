@@ -8,6 +8,8 @@
 	import ProfileImage from "../shared/ProfileImage.svelte"
 	import Select from "../shared/Select.svelte"
 	import ServerActionsButton from "./ServerActionsButton.svelte"
+	import { openServerMenuFromRow } from "./server-row-menu"
+	import type { ServerMenuOpener } from "./server-row-menu"
 	import ServerPagerNav from "./ServerPagerNav.svelte"
 	import ServerUptime from "./ServerUptime.svelte"
 	import ServerVersion from "./ServerVersion.svelte"
@@ -31,7 +33,7 @@
 		newestVersion: number
 		activeJobId: string | undefined
 		menuID: string
-		onMenu: (jobId: string, trigger: HTMLElement, toggle: boolean) => void
+		onMenu: ServerMenuOpener
 	} = $props()
 
 	const filterID = $props.id(),
@@ -191,15 +193,8 @@
 						<li
 							class="server-row"
 							data-open={activeJobId === server.jobId || undefined}
-							oncontextmenu={(event) => {
-								const trigger =
-									event.currentTarget.querySelector<HTMLElement>(
-										"[data-server-actions]",
-									)
-								if (!trigger) return
-								event.preventDefault()
-								onMenu(server.jobId, trigger, true)
-							}}>
+							oncontextmenu={(event) =>
+								openServerMenuFromRow(event, server.jobId, onMenu)}>
 							<div
 								class="flex flex-col gap-1"
 								aria-label={`${server.playing} of ${server.maxPlayers} players${full ? ", full" : ""}`}>

@@ -42,11 +42,11 @@ func (registry *componentRegistry) add(record ComponentRecord) {
 func (registry *componentRegistry) snapshot() []ComponentRecord {
 	registry.mutex.Lock()
 	defer registry.mutex.Unlock()
-	result := make([]ComponentRecord, 0, len(registry.order))
+	records := make([]ComponentRecord, 0, len(registry.order))
 	for _, key := range registry.order {
-		result = append(result, registry.records[key])
+		records = append(records, registry.records[key])
 	}
-	return result
+	return records
 }
 
 type componentHandler struct {

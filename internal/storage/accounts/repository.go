@@ -52,7 +52,7 @@ func (repository *Repository) Create(ctx context.Context, identity accountdomain
 		return accountdomain.AccountView{}, accountdomain.SessionRecord{}, fmt.Errorf("begin account insert: %w", err)
 	}
 	defer transaction.Rollback()
-	result, err := transaction.ExecContext(ctx, `
+	insertion, err := transaction.ExecContext(ctx, `
 INSERT INTO accounts(roblox_user_id, username, display_name, display_order, created_at_ms, updated_at_ms)
 SELECT ?, ?, ?, COALESCE(MAX(display_order) + 1, 0), ?, ? FROM accounts`, identity.RobloxUserID, identity.Username, identity.DisplayName, identity.CreatedAt.UTC().UnixMilli(), now.UnixMilli())
 	if err != nil {
@@ -61,13 +61,13 @@ SELECT ?, ?, ?, COALESCE(MAX(display_order) + 1, 0), ?, ? FROM accounts`, identi
 		}
 		return accountdomain.AccountView{}, accountdomain.SessionRecord{}, fmt.Errorf("insert account: %w", err)
 	}
-	accountID, err := result.LastInsertId()
+	accountID, err := insertion.LastInsertId()
 	if err != nil {
 		return accountdomain.AccountView{}, accountdomain.SessionRecord{}, fmt.Errorf("read inserted account ID: %w", err)
 	}
 	if _, err := transaction.ExecContext(ctx, `
 INSERT INTO account_sessions(account_id, roblosecurity, cookie_expires_at_ms, state, secret_version, imported_at_ms, last_validated_at_ms, last_success_at_ms, updated_at_ms)
-VALUES(?, ?, ?, ?, 1, ?, ?, ?, ?)`, accountID, cookie, nullableMillis(expiresAt), accountdomain.StateActive, now.UnixMilli(), now.UnixMilli(), now.UnixMilli(), now.UnixMilli()); err != nil {
+VALUES(?, ?, ?, ?, 1, ?, ?, ?, ?)`, accountID, cookie, nullableUnixMilliseconds(expiresAt), accountdomain.StateActive, now.UnixMilli(), now.UnixMilli(), now.UnixMilli(), now.UnixMilli()); err != nil {
 		return accountdomain.AccountView{}, accountdomain.SessionRecord{}, fmt.Errorf("insert account session: %w", err)
 	}
 	if err := vault.BumpRevision(ctx, transaction); err != nil {
@@ -118,7 +118,7 @@ func (repository *Repository) ReplaceCookie(ctx context.Context, accountID int64
 	}
 	if _, err := transaction.ExecContext(ctx, `
 UPDATE account_sessions SET roblosecurity = ?, cookie_expires_at_ms = ?, state = ?, state_reason = '', secret_version = secret_version + 1,
-replaced_at_ms = ?, last_validated_at_ms = ?, last_success_at_ms = ?, last_auth_failure_at_ms = NULL, updated_at_ms = ? WHERE account_id = ?`, cookie, nullableMillis(expiresAt), accountdomain.StateActive, now.UnixMilli(), now.UnixMilli(), now.UnixMilli(), now.UnixMilli(), accountID); err != nil {
+replaced_at_ms = ?, last_validated_at_ms = ?, last_success_at_ms = ?, last_auth_failure_at_ms = NULL, updated_at_ms = ? WHERE account_id = ?`, cookie, nullableUnixMilliseconds(expiresAt), accountdomain.StateActive, now.UnixMilli(), now.UnixMilli(), now.UnixMilli(), now.UnixMilli(), accountID); err != nil {
 		return accountdomain.AccountView{}, accountdomain.SessionRecord{}, fmt.Errorf("update replaced session: %w", err)
 	}
 	if err := vault.BumpRevision(ctx, transaction); err != nil {
@@ -157,11 +157,11 @@ func (repository *Repository) RotateCookie(ctx context.Context, accountID, expec
 		return accountdomain.SessionRecord{}, fmt.Errorf("begin cookie rotation: %w", err)
 	}
 	defer transaction.Rollback()
-	result, err := transaction.ExecContext(ctx, `UPDATE account_sessions SET roblosecurity = ?, cookie_expires_at_ms = ?, secret_version = secret_version + 1, rotated_at_ms = ?, updated_at_ms = ? WHERE account_id = ? AND secret_version = ?`, cookie, nullableMillis(expiresAt), now.UnixMilli(), now.UnixMilli(), accountID, expectedVersion)
+	update, err := transaction.ExecContext(ctx, `UPDATE account_sessions SET roblosecurity = ?, cookie_expires_at_ms = ?, secret_version = secret_version + 1, rotated_at_ms = ?, updated_at_ms = ? WHERE account_id = ? AND secret_version = ?`, cookie, nullableUnixMilliseconds(expiresAt), now.UnixMilli(), now.UnixMilli(), accountID, expectedVersion)
 	if err != nil {
 		return accountdomain.SessionRecord{}, fmt.Errorf("rotate account cookie: %w", err)
 	}
-	changed, err := result.RowsAffected()
+	changed, err := update.RowsAffected()
 	if err != nil {
 		return accountdomain.SessionRecord{}, fmt.Errorf("count rotated sessions: %w", err)
 	}
@@ -371,11 +371,11 @@ func (repository *Repository) MarkState(ctx context.Context, accountID, expected
 	if state == accountdomain.StateReauthRequired {
 		failure = now
 	}
-	result, err := transaction.ExecContext(ctx, `UPDATE account_sessions SET state = ?, state_reason = ?, last_auth_failure_at_ms = COALESCE(?, last_auth_failure_at_ms), updated_at_ms = ? WHERE account_id = ? AND secret_version = ?`, state, safeReason(reason), failure, now, accountID, expectedVersion)
+	update, err := transaction.ExecContext(ctx, `UPDATE account_sessions SET state = ?, state_reason = ?, last_auth_failure_at_ms = COALESCE(?, last_auth_failure_at_ms), updated_at_ms = ? WHERE account_id = ? AND secret_version = ?`, state, safeReason(reason), failure, now, accountID, expectedVersion)
 	if err != nil {
 		return fmt.Errorf("update session state: %w", err)
 	}
-	changed, err := result.RowsAffected()
+	changed, err := update.RowsAffected()
 	if err != nil {
 		return fmt.Errorf("count updated session states: %w", err)
 	}
@@ -410,11 +410,11 @@ func (repository *Repository) RecordValidation(ctx context.Context, accountID, e
 	if userID != identity.RobloxUserID {
 		return errors.New("validated identity does not match the stored account")
 	}
-	result, err := transaction.ExecContext(ctx, `UPDATE account_sessions SET state = CASE WHEN state = ? THEN state ELSE ? END, state_reason = CASE WHEN state = ? THEN state_reason ELSE '' END, last_validated_at_ms = ?, last_success_at_ms = ?, updated_at_ms = ? WHERE account_id = ? AND secret_version = ?`, accountdomain.StateDisabled, accountdomain.StateActive, accountdomain.StateDisabled, now, now, now, accountID, expectedVersion)
+	update, err := transaction.ExecContext(ctx, `UPDATE account_sessions SET state = CASE WHEN state = ? THEN state ELSE ? END, state_reason = CASE WHEN state = ? THEN state_reason ELSE '' END, last_validated_at_ms = ?, last_success_at_ms = ?, updated_at_ms = ? WHERE account_id = ? AND secret_version = ?`, accountdomain.StateDisabled, accountdomain.StateActive, accountdomain.StateDisabled, now, now, now, accountID, expectedVersion)
 	if err != nil {
 		return fmt.Errorf("record validation: %w", err)
 	}
-	changed, err := result.RowsAffected()
+	changed, err := update.RowsAffected()
 	if err != nil {
 		return fmt.Errorf("count recorded validations: %w", err)
 	}
@@ -445,11 +445,11 @@ func (repository *Repository) RecordSuccess(ctx context.Context, accountID, expe
 		return fmt.Errorf("begin success record: %w", err)
 	}
 	defer transaction.Rollback()
-	result, err := transaction.ExecContext(ctx, `UPDATE account_sessions SET state = CASE WHEN state = ? THEN state ELSE ? END, state_reason = CASE WHEN state = ? THEN state_reason ELSE '' END, last_success_at_ms = ?, updated_at_ms = ? WHERE account_id = ? AND secret_version = ? AND (state != ? OR last_success_at_ms IS NULL OR last_success_at_ms < ?)`, accountdomain.StateDisabled, accountdomain.StateActive, accountdomain.StateDisabled, now, now, accountID, expectedVersion, accountdomain.StateActive, now-int64(time.Minute/time.Millisecond))
+	update, err := transaction.ExecContext(ctx, `UPDATE account_sessions SET state = CASE WHEN state = ? THEN state ELSE ? END, state_reason = CASE WHEN state = ? THEN state_reason ELSE '' END, last_success_at_ms = ?, updated_at_ms = ? WHERE account_id = ? AND secret_version = ? AND (state != ? OR last_success_at_ms IS NULL OR last_success_at_ms < ?)`, accountdomain.StateDisabled, accountdomain.StateActive, accountdomain.StateDisabled, now, now, accountID, expectedVersion, accountdomain.StateActive, now-int64(time.Minute/time.Millisecond))
 	if err != nil {
 		return fmt.Errorf("record success: %w", err)
 	}
-	changed, err := result.RowsAffected()
+	changed, err := update.RowsAffected()
 	if err != nil {
 		return fmt.Errorf("count recorded successes: %w", err)
 	}
@@ -492,72 +492,72 @@ func scanView(row scanner, extra ...any) (accountdomain.AccountView, error) {
 		return accountdomain.AccountView{}, fmt.Errorf("scan account: %w", err)
 	}
 	view.Tags = []accountdomain.TagView{}
-	view.CookieExpiresAtMS = nullMillisPtr(expires)
-	view.RotatedAtMS = nullMillisPtr(rotated)
-	view.LastValidatedAtMS = nullMillisPtr(validated)
+	view.CookieExpiresAtMS = int64PointerFromNull(expires)
+	view.RotatedAtMS = int64PointerFromNull(rotated)
+	view.LastValidatedAtMS = int64PointerFromNull(validated)
 	return view, nil
 }
 
 func scanSession(row scanner) (accountdomain.SessionRecord, error) {
-	var result accountdomain.SessionRecord
+	var session accountdomain.SessionRecord
 	var expires, validated sql.NullInt64
 	var imported int64
-	err := row.Scan(&result.AccountID, &result.Roblosecurity, &expires, &result.State, &result.SecretVersion, &imported, &validated)
+	err := row.Scan(&session.AccountID, &session.Roblosecurity, &expires, &session.State, &session.SecretVersion, &imported, &validated)
 	if errors.Is(err, sql.ErrNoRows) {
 		return accountdomain.SessionRecord{}, accountdomain.ErrNotFound
 	}
 	if err != nil {
 		return accountdomain.SessionRecord{}, fmt.Errorf("scan account session: %w", err)
 	}
-	result.ImportedAt = timeFromMillis(imported)
-	result.CookieExpiresAt = timePtrFromNull(expires)
-	result.LastValidatedAt = timePtrFromNull(validated)
-	return result, nil
+	session.ImportedAt = timeFromUnixMilliseconds(imported)
+	session.CookieExpiresAt = timePointerFromNull(expires)
+	session.LastValidatedAt = timePointerFromNull(validated)
+	return session, nil
 }
 
 func viewFrom(identity accountdomain.Identity, accountID int64, session accountdomain.SessionRecord, updated time.Time) accountdomain.AccountView {
-	return accountdomain.AccountView{ID: accountID, RobloxUserID: identity.RobloxUserID, Username: identity.Username, DisplayName: identity.DisplayName, Tags: []accountdomain.TagView{}, State: session.State, SecretVersion: session.SecretVersion, CookieExpiresAtMS: millisPtr(session.CookieExpiresAt), CreatedAtMS: identity.CreatedAt.UTC().UnixMilli(), ImportedAtMS: session.ImportedAt.UnixMilli(), LastValidatedAtMS: millisPtr(session.LastValidatedAt), UpdatedAtMS: updated.UnixMilli()}
+	return accountdomain.AccountView{ID: accountID, RobloxUserID: identity.RobloxUserID, Username: identity.Username, DisplayName: identity.DisplayName, Tags: []accountdomain.TagView{}, State: session.State, SecretVersion: session.SecretVersion, CookieExpiresAtMS: unixMillisecondsPointer(session.CookieExpiresAt), CreatedAtMS: identity.CreatedAt.UTC().UnixMilli(), ImportedAtMS: session.ImportedAt.UnixMilli(), LastValidatedAtMS: unixMillisecondsPointer(session.LastValidatedAt), UpdatedAtMS: updated.UnixMilli()}
 }
 
-func nullableMillis(value *time.Time) any {
+func nullableUnixMilliseconds(value *time.Time) any {
 	if value == nil {
 		return nil
 	}
 	return value.UTC().UnixMilli()
 }
 
-func nullMillisPtr(value sql.NullInt64) *int64 {
+func int64PointerFromNull(value sql.NullInt64) *int64 {
 	if !value.Valid {
 		return nil
 	}
-	result := value.Int64
-	return &result
+	milliseconds := value.Int64
+	return &milliseconds
 }
 
 func copyTime(value *time.Time) *time.Time {
 	if value == nil {
 		return nil
 	}
-	result := value.UTC().Truncate(time.Millisecond)
-	return &result
+	truncated := value.UTC().Truncate(time.Millisecond)
+	return &truncated
 }
 
-func timeFromMillis(value int64) time.Time { return time.UnixMilli(value).UTC() }
+func timeFromUnixMilliseconds(value int64) time.Time { return time.UnixMilli(value).UTC() }
 
-func timePtrFromNull(value sql.NullInt64) *time.Time {
+func timePointerFromNull(value sql.NullInt64) *time.Time {
 	if !value.Valid {
 		return nil
 	}
-	result := timeFromMillis(value.Int64)
-	return &result
+	timestamp := timeFromUnixMilliseconds(value.Int64)
+	return &timestamp
 }
 
-func millisPtr(value *time.Time) *int64 {
+func unixMillisecondsPointer(value *time.Time) *int64 {
 	if value == nil {
 		return nil
 	}
-	result := value.UTC().UnixMilli()
-	return &result
+	milliseconds := value.UTC().UnixMilli()
+	return &milliseconds
 }
 
 func safeReason(reason string) string {
@@ -661,11 +661,11 @@ func (repository *Repository) RestoreNames(ctx context.Context, accountID int64,
 		return fmt.Errorf("begin account name recovery: %w", err)
 	}
 	defer transaction.Rollback()
-	result, err := transaction.ExecContext(ctx, `UPDATE accounts SET username = ?, display_name = ? WHERE id = ? AND roblox_user_id = ? AND username = ''`, identity.Username, identity.DisplayName, accountID, identity.RobloxUserID)
+	update, err := transaction.ExecContext(ctx, `UPDATE accounts SET username = ?, display_name = ? WHERE id = ? AND roblox_user_id = ? AND username = ''`, identity.Username, identity.DisplayName, accountID, identity.RobloxUserID)
 	if err != nil {
 		return fmt.Errorf("restore saved account names: %w", err)
 	}
-	changed, err := result.RowsAffected()
+	changed, err := update.RowsAffected()
 	if err != nil {
 		return fmt.Errorf("count restored account names: %w", err)
 	}

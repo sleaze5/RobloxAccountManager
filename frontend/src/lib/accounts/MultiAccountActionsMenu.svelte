@@ -62,17 +62,17 @@
 </div>
 <div role="group" aria-label="Copy selected account details">
 	<div class="menu-heading" aria-hidden="true">Copy - one per line</div>
-	{#each copyFields as item (item.field)}
+	{#each copyFields as fieldOption (fieldOption.field)}
 		<button
-			class={item.field === AccountCopyField.CopyCookie
+			class={fieldOption.field === AccountCopyField.CopyCookie
 				? "menu-item-warning"
 				: "menu-item"}
 			type="button"
-			aria-label={`Copy ${item.label.toLowerCase()}`}
+			aria-label={`Copy ${fieldOption.label.toLowerCase()}`}
 			disabled={store.copying}
-			onclick={() => void copyField(item.field)}>
-			<Icon svg={item.icon} size={16} aria-hidden="true" /><span
-				>{item.label}</span>
+			onclick={() => void copyField(fieldOption.field)}>
+			<Icon svg={fieldOption.icon} size={16} aria-hidden="true" /><span
+				>{fieldOption.label}</span>
 		</button>
 	{/each}
 </div>

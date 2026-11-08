@@ -57,7 +57,7 @@ type record struct {
 }
 
 func (client *Client) Records(ctx context.Context, placeID int64, jobIDs []string) (map[string]games.ServerRecord, error) {
-	result := make(map[string]games.ServerRecord, len(jobIDs))
+	serversByJobID := make(map[string]games.ServerRecord, len(jobIDs))
 	for start := 0; start < len(jobIDs); start += detailsBatchSize {
 		parameters := url.Values{
 			"place_id":   {strconv.FormatInt(placeID, 10)},
@@ -67,15 +67,15 @@ func (client *Client) Records(ctx context.Context, placeID int64, jobIDs []strin
 			Servers []record `json:"servers"`
 		}
 		if err := client.get(ctx, "/v1/servers/details", parameters, &payload); err != nil {
-			return result, err
+			return serversByJobID, err
 		}
-		for _, item := range payload.Servers {
-			if converted, ok := item.convert(); ok {
-				result[converted.JobID] = converted
+		for _, server := range payload.Servers {
+			if converted, ok := server.convert(); ok {
+				serversByJobID[converted.JobID] = converted
 			}
 		}
 	}
-	return result, nil
+	return serversByJobID, nil
 }
 
 func (client *Client) Servers(ctx context.Context, query games.RecordQuery) (games.RecordPage, error) {
@@ -102,8 +102,8 @@ func (client *Client) Servers(ctx context.Context, query games.RecordQuery) (gam
 		return games.RecordPage{}, errors.New("RoValra returned an oversized server page")
 	}
 	page := games.RecordPage{Servers: make([]games.ServerRecord, 0, len(payload.Servers))}
-	for _, item := range payload.Servers {
-		if converted, ok := item.convert(); ok {
+	for _, server := range payload.Servers {
+		if converted, ok := server.convert(); ok {
 			page.Servers = append(page.Servers, converted)
 		}
 	}
@@ -196,22 +196,22 @@ func (client *Client) fetch(ctx context.Context, path string, parameters url.Val
 	return response.StatusCode, body, nil
 }
 
-func (item record) convert() (games.ServerRecord, bool) {
-	if !games.ValidJobID(item.ServerID) {
+func (listedRecord record) convert() (games.ServerRecord, bool) {
+	if !games.ValidJobID(listedRecord.ServerID) {
 		return games.ServerRecord{}, false
 	}
 	converted := games.ServerRecord{
-		JobID: item.ServerID, PlaceVersion: max(item.PlaceVersion, 0),
-		City: text(item.City), Region: text(item.Region), Country: text(item.Country),
-		DatacenterID: max(item.DatacenterID, 0),
+		JobID: listedRecord.ServerID, PlaceVersion: max(listedRecord.PlaceVersion, 0),
+		City: text(listedRecord.City), Region: text(listedRecord.Region), Country: text(listedRecord.Country),
+		DatacenterID: max(listedRecord.DatacenterID, 0),
 	}
-	if ValidRegionCode(item.RegionCode) {
-		converted.CountryCode = item.RegionCode
+	if ValidRegionCode(listedRecord.RegionCode) {
+		converted.CountryCode = listedRecord.RegionCode
 	}
-	if address := net.ParseIP(item.IPAddress); address != nil {
+	if address := net.ParseIP(listedRecord.IPAddress); address != nil {
 		converted.Address = address.String()
 	}
-	firstSeen := item.FirstSeen
+	firstSeen := listedRecord.FirstSeen
 	if firstSeen != "" && !strings.HasSuffix(firstSeen, "Z") {
 		firstSeen += "Z"
 	}

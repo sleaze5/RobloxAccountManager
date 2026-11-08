@@ -204,45 +204,47 @@
 			</p>
 		{/if}
 		<ol class="flex flex-col gap-0.5" aria-label="Messages">
-			{#each timeline as item (item.key)}
-				{#if item.kind === "time"}
+			{#each timeline as entry (entry.key)}
+				{#if entry.kind === "time"}
 					<li
 						class="self-center pt-2 pb-1 text-center text-2xs text-fg-faint">
-						{chatMessageTime(item.createdAtMs)}
+						{chatMessageTime(entry.createdAtMs)}
 					</li>
-				{:else if item.kind === "system"}
+				{:else if entry.kind === "system"}
 					<li
 						class="max-w-4/5 self-center pt-2 pb-1 text-center text-2xs text-fg-muted italic">
-						{item.text}
+						{entry.text}
 					</li>
 				{:else}
 					<li
 						class={[
 							"flex max-w-3/4 flex-col gap-0.5",
-							item.mine ? "items-end self-end" : "items-start self-start",
+							entry.mine
+								? "items-end self-end"
+								: "items-start self-start",
 						]}>
-						{#if item.sender}<span
+						{#if entry.sender}<span
 								class="px-1 pt-1 text-2xs font-medium text-fg-muted"
-								>{item.sender}</span
+								>{entry.sender}</span
 							>{/if}
 						<p
 							class={[
 								"rounded-xl border px-3 py-2 text-sm leading-snug wrap-anywhere whitespace-pre-wrap text-fg select-text",
-								item.pending && !item.pending.failed && "opacity-60",
-								item.mine && (item.pending?.failed || item.moderated)
+								entry.pending && !entry.pending.failed && "opacity-60",
+								entry.mine && (entry.pending?.failed || entry.moderated)
 									? "border-danger/40 bg-danger/5"
-									: item.mine
+									: entry.mine
 										? "border-line-strong bg-raised"
 										: "border-line bg-fill",
 							]}>
-							{item.text}
+							{entry.text}
 						</p>
-						{#if item.moderated}
+						{#if entry.moderated}
 							<span class={[noteClass, "text-danger-muted"]}>
 								Not delivered: Roblox moderated this message.
 							</span>
-						{:else if item.pending?.failed}
-							{@const pending = item.pending}
+						{:else if entry.pending?.failed}
+							{@const pending = entry.pending}
 							<span class={[noteClass, "text-danger-muted"]} role="alert">
 								{pending.error}
 								<button
@@ -258,7 +260,7 @@
 									Discard
 								</button>
 							</span>
-						{:else if item.pending}
+						{:else if entry.pending}
 							<span class={[noteClass, "text-fg-faint"]}>Sending…</span>
 						{/if}
 					</li>

@@ -41,20 +41,10 @@ func NewService(core *appservice.Service, location *appservice.Location, updates
 func (service *Service) ServiceStartup(ctx context.Context, _ application.ServiceOptions) error {
 	service.launch.Begin("service-startup")
 	if app := application.Get(); app != nil {
-		service.events.SetEmitter(func(name string, data any) {
-			app.Event.Emit(name, data)
-			if name != "game:launch-confirmation-changed" || service.core.GetLaunchConfirmation().ID == "" {
-				return
-			}
-			if windows := app.Window.GetAll(); len(windows) > 0 {
-				window := windows[0]
-				if window.IsMinimised() {
-					window.UnMinimise()
-				}
-				window.Show()
-				window.Focus()
-			}
-		})
+		service.events.AttachWindow(
+			func(name string, payload any) { app.Event.Emit(name, payload) },
+			func() { showMainWindow(app) },
+		)
 	}
 	service.startMutex.Lock()
 	service.startContext = ctx
@@ -70,9 +60,22 @@ func (service *Service) ServiceStartup(ctx context.Context, _ application.Servic
 }
 
 func (service *Service) ServiceShutdown() error {
-	service.events.SetEmitter(nil)
+	service.events.DetachWindow()
 	service.updates.Shutdown()
 	return service.core.Shutdown()
+}
+
+func showMainWindow(app *application.App) {
+	windows := app.Window.GetAll()
+	if len(windows) == 0 {
+		return
+	}
+	window := windows[0]
+	if window.IsMinimised() {
+		window.UnMinimise()
+	}
+	window.Show()
+	window.Focus()
 }
 
 func (service *Service) GetLaunchReport() logging.LaunchReport { return service.launch.Report() }

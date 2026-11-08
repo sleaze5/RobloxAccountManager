@@ -94,12 +94,12 @@ func copyStorage(source, destination Paths) error {
 	stagedSettings := filepath.Join(staging, filepath.Base(source.Settings))
 	stagedVault := filepath.Join(staging, filepath.Base(source.VaultRoot))
 	stagedBackups := filepath.Join(staging, filepath.Base(source.BackupsRoot))
-	for _, item := range []struct{ from, to string }{
+	for _, copyStep := range []struct{ from, to string }{
 		{source.Settings, stagedSettings},
 		{source.VaultRoot, stagedVault},
 		{source.BackupsRoot, stagedBackups},
 	} {
-		if err := copyVerified(item.from, item.to); err != nil && !errors.Is(err, fs.ErrNotExist) {
+		if err := copyVerified(copyStep.from, copyStep.to); err != nil && !errors.Is(err, fs.ErrNotExist) {
 			return moveError(notMoved, err)
 		}
 	}

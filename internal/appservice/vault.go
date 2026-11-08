@@ -235,9 +235,9 @@ func (service *Service) SetAsideLegacyVault() error {
 // a new vault, with the same master password as the old vault.
 func (service *Service) MigrateLegacyVault(ctx context.Context, password string) error {
 	var payload transferstore.Payload
-	err := service.vault.MigrateLegacyVault(ctx, password, func(data []byte) error {
+	err := service.vault.MigrateLegacyVault(ctx, password, func(payloadJSON []byte) error {
 		var err error
-		if payload, err = transferstore.Decode(data); err != nil {
+		if payload, err = transferstore.Decode(payloadJSON); err != nil {
 			return err
 		}
 		_, err = appsettings.Decode(payload.Settings)

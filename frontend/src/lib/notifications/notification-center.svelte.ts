@@ -42,7 +42,7 @@ export class NotificationCenter {
 				title: input.title,
 				tone: input.tone ?? "info",
 			}
-		this.items = [...this.items.filter((item) => item.id !== id), notification]
+		this.items = [...this.items.filter((shown) => shown.id !== id), notification]
 		this.#clearTimer(id)
 		this.#durations.delete(id)
 		if (notification.actions.length === 0 && durationMs > 0) {
@@ -73,10 +73,10 @@ export class NotificationCenter {
 	dismiss(id: string): void {
 		this.#clearTimer(id)
 		this.#durations.delete(id)
-		if (!this.items.some((item) => item.id === id)) {
+		if (!this.items.some((shown) => shown.id === id)) {
 			return
 		}
-		this.items = this.items.filter((item) => item.id !== id)
+		this.items = this.items.filter((shown) => shown.id !== id)
 	}
 
 	dispose(): void {

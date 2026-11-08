@@ -1,6 +1,6 @@
 <script lang="ts">
+	import CheckboxMark from "../shared/CheckboxMark.svelte"
 	import arrowRightIcon from "@phosphor-icons/core/regular/arrow-right.svg?raw"
-	import checkBoldIcon from "@phosphor-icons/core/bold/check-bold.svg?raw"
 	import slidersIcon from "@phosphor-icons/core/regular/sliders.svg?raw"
 	import Icon from "../shared/Icon.svelte"
 	import { onMount } from "svelte"
@@ -111,11 +111,7 @@
 								type="checkbox"
 								bind:checked={store.launchInput.directLaunch}
 								disabled={store.launching} />
-							<span aria-hidden="true"
-								><Icon
-									svg={checkBoldIcon}
-									size={11}
-									aria-hidden="true" /></span>
+							<CheckboxMark />
 						</span>
 						<span
 							><strong>Launch binary directly</strong><small
@@ -174,11 +170,7 @@
 						type="checkbox"
 						bind:checked={store.launchInput.teleport}
 						disabled={store.launching} />
-					<span aria-hidden="true"
-						><Icon
-							svg={checkBoldIcon}
-							size={11}
-							aria-hidden="true" /></span>
+					<CheckboxMark />
 				</span>
 				<span
 					><strong>Mark launch as a teleport</strong><small
@@ -193,11 +185,7 @@
 							type="checkbox"
 							bind:checked={store.launchDataEnabled}
 							disabled={store.launching} />
-						<span aria-hidden="true"
-							><Icon
-								svg={checkBoldIcon}
-								size={11}
-								aria-hidden="true" /></span>
+						<CheckboxMark />
 					</span>
 					<span
 						><strong>Use custom launch data</strong><small

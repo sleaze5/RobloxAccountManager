@@ -32,26 +32,26 @@ type LaunchResult struct {
 }
 
 func (service *Service) LaunchAccounts(ctx context.Context, accountIDs []int64, input gamelaunch.Input) (LaunchResult, error) {
-	result := LaunchResult{Launched: []int64{}, Failures: []AccountLaunchFailure{}}
+	launchResult := LaunchResult{Launched: []int64{}, Failures: []AccountLaunchFailure{}}
 	if _, err := gamelaunch.Parse(input); err != nil {
-		return result, launchPreparationError(err)
+		return launchResult, launchPreparationError(err)
 	}
 	err := service.serializeLaunch(ctx, func() error {
 		if len(accountIDs) > 1 {
 			approved, err := service.confirmBatchLaunch(ctx, len(accountIDs))
 			if err != nil || !approved {
-				result.Cancelled = true
+				launchResult.Cancelled = true
 				return err
 			}
 		}
 		for _, accountID := range accountIDs {
 			if ctx.Err() != nil || !service.vault.Unlocked() {
-				result.Cancelled = true
+				launchResult.Cancelled = true
 				break
 			}
 			err := service.launchAccount(ctx, accountID, input)
 			if errors.Is(err, robloxmulti.ErrLaunchCancelled) {
-				result.Cancelled = true
+				launchResult.Cancelled = true
 				break
 			}
 			if err != nil {
@@ -59,14 +59,14 @@ func (service *Service) LaunchAccounts(ctx context.Context, accountIDs []int64, 
 				if failure, ok := errors.AsType[*roblox.Error](err); ok {
 					message = failure.Message
 				}
-				result.Failures = append(result.Failures, AccountLaunchFailure{AccountID: accountID, Message: message})
+				launchResult.Failures = append(launchResult.Failures, AccountLaunchFailure{AccountID: accountID, Message: message})
 				continue
 			}
-			result.Launched = append(result.Launched, accountID)
+			launchResult.Launched = append(launchResult.Launched, accountID)
 		}
 		return nil
 	})
-	return result, err
+	return launchResult, err
 }
 
 func (service *Service) serializeLaunch(ctx context.Context, action func() error) error {
@@ -182,12 +182,12 @@ func (service *Service) accountLaunchOptions(ctx context.Context, accountID int6
 	return command, err
 }
 
-func (service *Service) runLaunchOperation(ctx context.Context, accountID int64, input gamelaunch.Input, operation string, action func(context.Context, func() (string, error), string, gamelaunch.Request) error) (result error) {
+func (service *Service) runLaunchOperation(ctx context.Context, accountID int64, input gamelaunch.Input, operation string, action func(context.Context, func() (string, error), string, gamelaunch.Request) error) (operationError error) {
 	ctx = logging.WithOperation(ctx, fmt.Sprintf("launch-%d", launchOperationID.Add(1)))
 	logger := service.logger.With("operation", operation, "account_id", accountID)
 	stage := "parse-input"
 	defer func() {
-		logLaunchResult(ctx, logger, operation, stage, result)
+		logLaunchResult(ctx, logger, operation, stage, operationError)
 	}()
 	target, err := gamelaunch.Parse(input)
 	if err != nil {
@@ -301,18 +301,18 @@ func launchPreparationError(err error) *roblox.Error {
 	return &roblox.Error{Kind: roblox.KindProtocol, Endpoint: "game-launch", Message: strings.ToUpper(message[:1]) + message[1:] + "."}
 }
 
-func logLaunchResult(ctx context.Context, logger *slog.Logger, operation, stage string, result error) {
-	if errors.Is(result, robloxmulti.ErrLaunchCancelled) {
+func logLaunchResult(ctx context.Context, logger *slog.Logger, operation, stage string, launchError error) {
+	if errors.Is(launchError, robloxmulti.ErrLaunchCancelled) {
 		logger.InfoContext(ctx, "Roblox launch cancelled")
 		return
 	}
-	if result == nil {
+	if launchError == nil {
 		logger.InfoContext(ctx, "Roblox launch operation completed")
 		return
 	}
 	kind, status, code := roblox.KindProtocol, 0, 0
 	endpoint, message := operation, "The launch failed before a Roblox response was available."
-	if remote, ok := errors.AsType[*roblox.Error](result); ok {
+	if remote, ok := errors.AsType[*roblox.Error](launchError); ok {
 		kind, status, code = remote.Kind, remote.Status, remote.RobloxCode
 		endpoint, message = remote.Endpoint, remote.Message
 	}

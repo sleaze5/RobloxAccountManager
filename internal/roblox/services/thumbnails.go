@@ -47,7 +47,7 @@ func (service *Thumbnails) AvatarHeadshots(ctx context.Context, userIDs []int64)
 		seen[userID] = struct{}{}
 		unique = append(unique, userID)
 	}
-	result := make([]AvatarHeadshotView, 0, len(unique))
+	headshots := make([]AvatarHeadshotView, 0, len(unique))
 	for start := 0; start < len(unique); start += headshotBatchSize {
 		end := min(start+headshotBatchSize, len(unique))
 		requestURL := *service.endpoint
@@ -85,17 +85,17 @@ func (service *Thumbnails) AvatarHeadshots(ctx context.Context, userIDs []int64)
 		if err := json.Unmarshal(response.Body, &payload); err != nil {
 			return nil, &roblox.Error{Kind: roblox.KindProtocol, Endpoint: "avatar-headshots", Status: response.Status, Message: "Roblox returned invalid avatar headshot data.", Cause: err}
 		}
-		for _, item := range payload.Data {
-			if _, requested := seen[item.TargetID]; !requested || !strings.EqualFold(item.State, "Completed") || item.ImageURL == "" {
+		for _, thumbnail := range payload.Data {
+			if _, requested := seen[thumbnail.TargetID]; !requested || !strings.EqualFold(thumbnail.State, "Completed") || thumbnail.ImageURL == "" {
 				continue
 			}
-			if !safeThumbnailURL(item.ImageURL) {
+			if !safeThumbnailURL(thumbnail.ImageURL) {
 				return nil, &roblox.Error{Kind: roblox.KindProtocol, Endpoint: "avatar-headshots", Status: response.Status, Message: "Roblox returned an unsafe avatar headshot URL."}
 			}
-			result = append(result, AvatarHeadshotView{RobloxUserID: item.TargetID, ImageURL: item.ImageURL})
+			headshots = append(headshots, AvatarHeadshotView{RobloxUserID: thumbnail.TargetID, ImageURL: thumbnail.ImageURL})
 		}
 	}
-	return result, nil
+	return headshots, nil
 }
 
 func safeThumbnailURL(value string) bool {

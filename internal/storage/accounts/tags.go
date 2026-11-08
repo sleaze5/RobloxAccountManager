@@ -28,14 +28,14 @@ func (repository *Repository) CreateTag(ctx context.Context, input string) (acco
 		return accountdomain.TagView{}, fmt.Errorf("begin tag creation: %w", err)
 	}
 	defer transaction.Rollback()
-	result, err := transaction.ExecContext(ctx, `INSERT INTO tags(name, kind, created_at_ms, updated_at_ms) VALUES(?, 'custom', ?, ?)`, name, now, now)
+	insertion, err := transaction.ExecContext(ctx, `INSERT INTO tags(name, kind, created_at_ms, updated_at_ms) VALUES(?, 'custom', ?, ?)`, name, now, now)
 	if err != nil {
 		if isConstraint(err) {
 			return accountdomain.TagView{}, accountdomain.ErrDuplicateTag
 		}
 		return accountdomain.TagView{}, fmt.Errorf("create account tag: %w", err)
 	}
-	id, err := result.LastInsertId()
+	id, err := insertion.LastInsertId()
 	if err != nil {
 		return accountdomain.TagView{}, fmt.Errorf("read created tag ID: %w", err)
 	}
@@ -63,11 +63,11 @@ func (repository *Repository) RemoveTag(ctx context.Context, tagID int64) error 
 		return fmt.Errorf("begin tag removal: %w", err)
 	}
 	defer transaction.Rollback()
-	result, err := transaction.ExecContext(ctx, `DELETE FROM tags WHERE id = ? AND kind = 'custom'`, tagID)
+	deletion, err := transaction.ExecContext(ctx, `DELETE FROM tags WHERE id = ? AND kind = 'custom'`, tagID)
 	if err != nil {
 		return fmt.Errorf("remove account tag: %w", err)
 	}
-	changed, err := result.RowsAffected()
+	changed, err := deletion.RowsAffected()
 	if err != nil {
 		return fmt.Errorf("count removed tags: %w", err)
 	}
@@ -233,16 +233,16 @@ func assignAccountsTag(ctx context.Context, transaction *sql.Tx, accountIDs []in
 		} else if err != nil {
 			return false, fmt.Errorf("find tagged account: %w", err)
 		}
-		var result sql.Result
+		var change sql.Result
 		if selected {
-			result, err = transaction.ExecContext(ctx, `INSERT INTO account_tags(account_id, tag_id, created_at_ms) VALUES(?, ?, ?) ON CONFLICT(account_id, tag_id) DO NOTHING`, accountID, tagID, now)
+			change, err = transaction.ExecContext(ctx, `INSERT INTO account_tags(account_id, tag_id, created_at_ms) VALUES(?, ?, ?) ON CONFLICT(account_id, tag_id) DO NOTHING`, accountID, tagID, now)
 		} else {
-			result, err = transaction.ExecContext(ctx, `DELETE FROM account_tags WHERE account_id = ? AND tag_id = ?`, accountID, tagID)
+			change, err = transaction.ExecContext(ctx, `DELETE FROM account_tags WHERE account_id = ? AND tag_id = ?`, accountID, tagID)
 		}
 		if err != nil {
 			return false, fmt.Errorf("update account tag: %w", err)
 		}
-		changed, err := result.RowsAffected()
+		changed, err := change.RowsAffected()
 		if err != nil {
 			return false, fmt.Errorf("count updated account tags: %w", err)
 		}

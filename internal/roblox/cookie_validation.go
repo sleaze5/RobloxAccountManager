@@ -42,11 +42,11 @@ func (client *Client) ValidateCookie(ctx context.Context, cookie, browserID stri
 		if err := applyValidationCookies(response, &validation); err != nil {
 			return CookieValidation{}, err
 		}
-		result, retry, err := client.cookieValidationResponse(requestContext, response, validation, attempt)
+		cookieValidation, retry, err := client.cookieValidationResponse(requestContext, response, validation, attempt)
 		if retry {
 			continue
 		}
-		return result, err
+		return cookieValidation, err
 	}
 	return CookieValidation{}, &Error{Kind: KindProtocol, Endpoint: "cookie-import", Message: "Cookie validation stopped unexpectedly.", Cause: io.EOF}
 }
@@ -111,8 +111,8 @@ func applyValidationCookies(response *Response, validation *CookieValidation) er
 func (client *Client) cookieValidationResponse(ctx context.Context, response *Response, validation CookieValidation, attempt int) (CookieValidation, bool, error) {
 	switch {
 	case response.Status >= 200 && response.Status < 300:
-		result, err := cookieValidationIdentity(response, validation)
-		return result, false, err
+		cookieValidation, err := cookieValidationIdentity(response, validation)
+		return cookieValidation, false, err
 	case response.Status == http.StatusUnauthorized:
 		return CookieValidation{}, false, &Error{Kind: KindInvalidSession, Endpoint: "cookie-import", Status: response.Status, Message: "Roblox rejected this cookie."}
 	case response.Status == http.StatusForbidden:

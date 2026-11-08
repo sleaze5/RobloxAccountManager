@@ -1,5 +1,5 @@
 <script lang="ts">
-	import checkBoldIcon from "@phosphor-icons/core/bold/check-bold.svg?raw"
+	import CheckboxMark from "../shared/CheckboxMark.svelte"
 	import dotsSixVerticalIcon from "@phosphor-icons/core/regular/dots-six-vertical.svg?raw"
 	import starFillIcon from "@phosphor-icons/core/fill/star-fill.svg?raw"
 	import Icon from "../shared/Icon.svelte"
@@ -170,11 +170,7 @@
 									?.focus()
 							}
 						}} />
-					<span aria-hidden="true"
-						><Icon
-							svg={checkBoldIcon}
-							size={11}
-							aria-hidden="true" /></span>
+					<CheckboxMark />
 				</span>
 			{:else}
 				<span

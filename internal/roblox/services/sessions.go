@@ -35,7 +35,7 @@ func (service *Users) Sessions(ctx context.Context, accountID, version int64) ([
 	seen := map[string]struct{}{}
 	cursor := ""
 	for range maxSessionsPages {
-		var result struct {
+		var payload struct {
 			Sessions []struct {
 				Token string `json:"token"`
 				Agent *struct {
@@ -59,32 +59,32 @@ func (service *Users) Sessions(ctx context.Context, accountID, version int64) ([
 		if cursor != "" {
 			query.Set("nextCursor", cursor)
 		}
-		if err := service.readAccountDetails(ctx, accountID, version, "account-sessions", "https://apis.roblox.com/token-metadata-service/v1/sessions?"+query.Encode(), &result); err != nil {
+		if err := service.readAccountDetails(ctx, accountID, version, "account-sessions", "https://apis.roblox.com/token-metadata-service/v1/sessions?"+query.Encode(), &payload); err != nil {
 			return nil, err
 		}
-		for _, item := range result.Sessions {
-			if _, exists := seen[item.Token]; item.Token == "" || exists {
+		for _, listedSession := range payload.Sessions {
+			if _, exists := seen[listedSession.Token]; listedSession.Token == "" || exists {
 				continue
 			}
-			seen[item.Token] = struct{}{}
-			session := AccountSession{IP: sessionText(item.IP), Current: item.Current}
-			if item.Agent != nil {
-				session.Agent, session.Browser, session.OS = sessionText(item.Agent.Type), sessionText(item.Agent.Value), sessionText(item.Agent.OS)
+			seen[listedSession.Token] = struct{}{}
+			session := AccountSession{IP: sessionText(listedSession.IP), Current: listedSession.Current}
+			if listedSession.Agent != nil {
+				session.Agent, session.Browser, session.OS = sessionText(listedSession.Agent.Type), sessionText(listedSession.Agent.Value), sessionText(listedSession.Agent.OS)
 			}
-			if item.Location != nil {
-				session.City, session.Subdivision, session.Country = sessionText(item.Location.City), sessionText(item.Location.Subdivision), sessionText(item.Location.Country)
+			if listedSession.Location != nil {
+				session.City, session.Subdivision, session.Country = sessionText(listedSession.Location.City), sessionText(listedSession.Location.Subdivision), sessionText(listedSession.Location.Country)
 			}
-			if item.LastAccessed != nil {
-				if milliseconds, err := strconv.ParseInt(*item.LastAccessed, 10, 64); err == nil && milliseconds > 0 {
+			if listedSession.LastAccessed != nil {
+				if milliseconds, err := strconv.ParseInt(*listedSession.LastAccessed, 10, 64); err == nil && milliseconds > 0 {
 					session.LastActive = time.UnixMilli(milliseconds).UTC()
 				}
 			}
 			sessions = append(sessions, session)
 		}
-		if !result.HasMore || result.NextCursor == nil || *result.NextCursor == "" {
+		if !payload.HasMore || payload.NextCursor == nil || *payload.NextCursor == "" {
 			return sessions, nil
 		}
-		cursor = *result.NextCursor
+		cursor = *payload.NextCursor
 	}
 	return nil, &roblox.Error{Kind: roblox.KindProtocol, Endpoint: "account-sessions", Message: "Roblox returned too many sessions to list."}
 }

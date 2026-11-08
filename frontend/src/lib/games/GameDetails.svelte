@@ -1,7 +1,5 @@
 <script lang="ts">
-	import arrowsClockwiseIcon from "@phosphor-icons/core/regular/arrows-clockwise.svg?raw"
 	import calendarDotsIcon from "@phosphor-icons/core/regular/calendar-dots.svg?raw"
-	import circleNotchIcon from "@phosphor-icons/core/regular/circle-notch.svg?raw"
 	import clockCounterClockwiseIcon from "@phosphor-icons/core/regular/clock-counter-clockwise.svg?raw"
 	import copyIcon from "@phosphor-icons/core/regular/copy.svg?raw"
 	import dotsThreeIcon from "@phosphor-icons/core/regular/dots-three.svg?raw"
@@ -28,6 +26,7 @@
 	import videoCameraIcon from "@phosphor-icons/core/regular/video-camera.svg?raw"
 	import warningIcon from "@phosphor-icons/core/regular/warning.svg?raw"
 	import Icon from "../shared/Icon.svelte"
+	import RefreshIcon from "../shared/RefreshIcon.svelte"
 	import { untrack } from "svelte"
 	import type { WorkspaceState } from "../layout/workspace-state.svelte"
 	import Timestamp from "../shared/Timestamp.svelte"
@@ -400,15 +399,7 @@
 						data-tooltip="Refresh game details"
 						disabled={store.loadingDetails}
 						onclick={() => void store.refreshDetails()}>
-						{#if store.loadingDetails}<Icon
-								svg={circleNotchIcon}
-								class="spinner"
-								size={16}
-								aria-hidden="true" />{:else}<Icon
-								svg={arrowsClockwiseIcon}
-								data-turn
-								size={16}
-								aria-hidden="true" />{/if}
+						<RefreshIcon isRefreshing={store.loadingDetails} />
 					</button>
 					<button
 						class="button-icon"

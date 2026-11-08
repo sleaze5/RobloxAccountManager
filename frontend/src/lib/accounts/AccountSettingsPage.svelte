@@ -1,6 +1,5 @@
 <script lang="ts">
 	import { matchesSearch, searchTerms } from "../shared/search"
-	import arrowsClockwiseIcon from "@phosphor-icons/core/regular/arrows-clockwise.svg?raw"
 	import caretLeftIcon from "@phosphor-icons/core/regular/caret-left.svg?raw"
 	import circleNotchIcon from "@phosphor-icons/core/regular/circle-notch.svg?raw"
 	import devicesIcon from "@phosphor-icons/core/regular/devices.svg?raw"
@@ -10,6 +9,7 @@
 	import userCircleIcon from "@phosphor-icons/core/regular/user-circle.svg?raw"
 	import xIcon from "@phosphor-icons/core/regular/x.svg?raw"
 	import Icon from "../shared/Icon.svelte"
+	import RefreshIcon from "../shared/RefreshIcon.svelte"
 	import { onMount, tick, untrack } from "svelte"
 	import SidebarResizer from "../layout/SidebarResizer.svelte"
 	import type { WorkspaceState } from "../layout/workspace-state.svelte"
@@ -567,7 +567,10 @@
 				anchor &&
 				[
 					...element.querySelectorAll<HTMLElement>("[data-account-setting]"),
-				].find((item) => item.dataset.accountSetting === anchor.key)
+				].find(
+					(settingElement) =>
+						settingElement.dataset.accountSetting === anchor.key,
+				)
 			if (row && anchor) {
 				element.scrollTop +=
 					row.getBoundingClientRect().top -
@@ -619,7 +622,9 @@
 				...contentElement.querySelectorAll<HTMLElement>(
 					"[data-account-setting]",
 				),
-			].find((item) => item.getBoundingClientRect().bottom > top)
+			].find(
+				(settingElement) => settingElement.getBoundingClientRect().bottom > top,
+			)
 		workspace.accountSettingsScrollAnchor =
 			row?.dataset.accountSetting && contentElement.scrollTop > 0
 				? {
@@ -723,7 +728,9 @@
 
 	async function handleRadioSelect(key: Key, value: string): Promise<void> {
 		const view = getSettingView(key),
-			option = view?.options?.find((item) => item.stringValue === value)
+			option = view?.options?.find(
+				(listedOption) => listedOption.stringValue === value,
+			)
 		if (!view?.editable || !option?.enabled || !settingsState) return
 		await settingsState.save(view, option)
 	}
@@ -793,19 +800,7 @@
 			data-tooltip="Refresh settings"
 			disabled={refreshing}
 			onclick={refresh}>
-			{#if refreshing}
-				<Icon
-					svg={circleNotchIcon}
-					class="spinner"
-					size={16}
-					aria-hidden="true" />
-			{:else}
-				<Icon
-					svg={arrowsClockwiseIcon}
-					data-turn
-					size={16}
-					aria-hidden="true" />
-			{/if}
+			<RefreshIcon isRefreshing={refreshing} />
 		</button>
 	</header>
 

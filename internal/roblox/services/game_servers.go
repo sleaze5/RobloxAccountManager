@@ -62,23 +62,23 @@ func (service *Games) Servers(ctx context.Context, query games.ServerQuery, acco
 	}
 	page := games.ServerPage{Servers: make([]games.Server, 0, len(payload.Data)), NextCursor: payload.NextPageCursor, PreviousCursor: payload.PreviousPageCursor}
 	tokens := make([][]string, 0, len(payload.Data))
-	for _, item := range payload.Data {
-		if !games.ValidJobID(item.ID) {
+	for _, server := range payload.Data {
+		if !games.ValidJobID(server.ID) {
 			continue
 		}
-		framesPerSecond := item.FPS
+		framesPerSecond := server.FPS
 		if math.IsNaN(framesPerSecond) || math.IsInf(framesPerSecond, 0) {
 			framesPerSecond = 0
 		}
 		page.Servers = append(page.Servers, games.Server{
-			JobID: item.ID, Playing: max(item.Playing, 0), MaxPlayers: max(item.MaxPlayers, 0),
-			FPS: max(framesPerSecond, 0), PingMS: nonNegative(item.Ping), PlayerImages: []string{},
-			LanguageMatches: nonNegative(item.LanguageMatchCount),
+			JobID: server.ID, Playing: max(server.Playing, 0), MaxPlayers: max(server.MaxPlayers, 0),
+			FPS: max(framesPerSecond, 0), PingMS: nonNegative(server.Ping), PlayerImages: []string{},
+			LanguageMatches: nonNegative(server.LanguageMatchCount),
 		})
 		if accountID > 0 {
-			page.Servers[len(page.Servers)-1].Friends = nonNegative(item.FriendCount)
+			page.Servers[len(page.Servers)-1].Friends = nonNegative(server.FriendCount)
 		}
-		tokens = append(tokens, item.PlayerTokens[:min(len(item.PlayerTokens), maxServerPlayerImages)])
+		tokens = append(tokens, server.PlayerTokens[:min(len(server.PlayerTokens), maxServerPlayerImages)])
 	}
 	if err := service.loadServerPlayerImages(ctx, tokens, &page); err != nil {
 		return games.ServerPage{}, err
@@ -105,27 +105,27 @@ func (service *Games) Joinable(ctx context.Context, accountID, placeID int64, jo
 }
 
 func (service *Games) playerImages(ctx context.Context, servers [][]string) (map[string]string, error) {
-	type item struct {
+	type thumbnailRequest struct {
 		RequestID string `json:"requestId"`
 		Token     string `json:"token"`
 		Type      string `json:"type"`
 		Size      string `json:"size"`
 		Format    string `json:"format"`
 	}
-	requests := make([]item, 0)
+	requests := make([]thumbnailRequest, 0)
 	for _, tokens := range servers {
 		for _, token := range tokens {
 			if validPlayerToken(token) {
-				requests = append(requests, item{RequestID: token, Token: token, Type: "AvatarHeadShot", Size: "48x48", Format: "png"})
+				requests = append(requests, thumbnailRequest{RequestID: token, Token: token, Type: "AvatarHeadShot", Size: "48x48", Format: "png"})
 			}
 		}
 	}
-	result := make(map[string]string, len(requests))
+	headshotURLsByToken := make(map[string]string, len(requests))
 	endpoint := &url.URL{Scheme: "https", Host: "thumbnails.roblox.com", Path: "/v1/batch"}
 	for start := 0; start < len(requests); start += headshotBatchSize {
 		body, err := json.Marshal(requests[start:min(start+headshotBatchSize, len(requests))])
 		if err != nil {
-			return result, fmt.Errorf("encode player thumbnail request: %w", err)
+			return headshotURLsByToken, fmt.Errorf("encode player thumbnail request: %w", err)
 		}
 		var payload struct {
 			Data []struct {
@@ -135,23 +135,23 @@ func (service *Games) playerImages(ctx context.Context, servers [][]string) (map
 			} `json:"data"`
 		}
 		if err := service.do(ctx, "game-server-players", http.MethodPost, endpoint, body, &payload); err != nil {
-			return result, err
+			return headshotURLsByToken, err
 		}
 		for _, image := range payload.Data {
 			if image.State == "Completed" && safeThumbnailURL(image.ImageURL) {
-				result[image.RequestID] = image.ImageURL
+				headshotURLsByToken[image.RequestID] = image.ImageURL
 			}
 		}
 	}
-	return result, nil
+	return headshotURLsByToken, nil
 }
 
 func nonNegative(value *int64) *int64 {
 	if value == nil {
 		return nil
 	}
-	result := max(*value, 0)
-	return &result
+	nonNegative := max(*value, 0)
+	return &nonNegative
 }
 
 func validPlayerToken(value string) bool {

@@ -1,5 +1,5 @@
 <script lang="ts">
-	import checkBoldIcon from "@phosphor-icons/core/bold/check-bold.svg?raw"
+	import CheckboxMark from "../shared/CheckboxMark.svelte"
 	import checkCircleIcon from "@phosphor-icons/core/regular/check-circle.svg?raw"
 	import eyeIcon from "@phosphor-icons/core/regular/eye.svg?raw"
 	import eyeSlashIcon from "@phosphor-icons/core/regular/eye-slash.svg?raw"
@@ -85,7 +85,7 @@
 		savedPrivateServers = $state(true),
 		sections = $state<SettingsSection[]>([]),
 		confirmation = $state(""),
-		result = $state<TransferResult | null>(null),
+		importResult = $state<TransferResult | null>(null),
 		opening = $state(false),
 		importing = $state(false),
 		error = $state(""),
@@ -106,17 +106,17 @@
 				sections.length === 0,
 		),
 		resultRows = $derived(
-			result
+			importResult
 				? [
-						{ label: "Accounts added", count: result.added },
-						{ label: "Accounts updated", count: result.updated },
+						{ label: "Accounts added", count: importResult.added },
+						{ label: "Accounts updated", count: importResult.updated },
 						{
 							label: "Favorite places added",
-							count: result.favoritePlaces,
+							count: importResult.favoritePlaces,
 						},
 						{
 							label: "Private server links added",
-							count: result.savedPrivateServers,
+							count: importResult.savedPrivateServers,
 						},
 					].map((row) => ({
 						label: row.label,
@@ -125,7 +125,7 @@
 					}))
 				: [],
 		),
-		keptCookies = $derived(result?.keptCookies ?? []),
+		keptCookies = $derived(importResult?.keptCookies ?? []),
 		candidateItems = $derived<CandidateListItem[]>(
 			accounts.map((account) => ({
 				avatarUrl: account.avatarUrl,
@@ -192,7 +192,7 @@
 		error = ""
 		try {
 			const overwrite = mode === TransferMode.TransferOverwrite
-			result = await accountBackend.ImportVaultExport(
+			importResult = await accountBackend.ImportVaultExport(
 				preview.id,
 				{
 					mode,
@@ -259,10 +259,10 @@
 	<div class="dialog-heading">
 		<div>
 			<h2 id="import-vault-title">
-				{result ? "Data imported" : "Import vault data"}
+				{importResult ? "Data imported" : "Import vault data"}
 			</h2>
 			<p>
-				{#if result}
+				{#if importResult}
 					Imported from {name}.
 				{:else if preview}
 					Exported <Timestamp value={preview.exportedAtMs} />.
@@ -280,7 +280,7 @@
 		</button>
 	</div>
 
-	{#if result}
+	{#if importResult}
 		<div
 			class="animate-enter overflow-hidden rounded-md border border-line bg-fill text-xs"
 			role="status">
@@ -297,12 +297,12 @@
 			<div
 				class="flex min-h-8 items-center justify-between gap-3 border-t border-line-subtle px-3">
 				<span
-					class={result.settings ===
+					class={importResult.settings ===
 					TransferSettingsStatus.TransferSettingsSkipped
 						? "text-fg-faint"
 						: "text-fg"}>Settings</span>
-				<span class={settingsLabels[result.settings].tone}
-					>{settingsLabels[result.settings].text}</span>
+				<span class={settingsLabels[importResult.settings].tone}
+					>{settingsLabels[importResult.settings].text}</span>
 			</div>
 		</div>
 		{#if keptCookies.length > 0}
@@ -373,11 +373,7 @@
 									bind:checked={favoritePlaces}
 									disabled={busy ||
 										preview.newFavoritePlaces === 0} />
-								<span aria-hidden="true"
-									><Icon
-										svg={checkBoldIcon}
-										size={11}
-										aria-hidden="true" /></span>
+								<CheckboxMark />
 							</span>
 							<span>
 								<strong>Favorite places</strong>
@@ -393,11 +389,7 @@
 									bind:checked={savedPrivateServers}
 									disabled={busy ||
 										preview.newSavedPrivateServers === 0} />
-								<span aria-hidden="true"
-									><Icon
-										svg={checkBoldIcon}
-										size={11}
-										aria-hidden="true" /></span>
+								<CheckboxMark />
 							</span>
 							<span>
 								<strong>Private server links</strong>
@@ -421,11 +413,7 @@
 										bind:group={sections}
 										value={section.value}
 										disabled={busy} />
-									<span aria-hidden="true"
-										><Icon
-											svg={checkBoldIcon}
-											size={11}
-											aria-hidden="true" /></span>
+									<CheckboxMark />
 								</span>
 								<span><strong>{section.label}</strong></span>
 							</label>

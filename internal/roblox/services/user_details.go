@@ -31,68 +31,68 @@ type UserVerificationMethod struct {
 }
 
 func (service *Users) AccountInfo(ctx context.Context, accountID, version, userID int64) (UserAccountDetails, error) {
-	var result UserAccountDetails
-	err := service.readAccountDetails(ctx, accountID, version, "profile-account", "https://users.roblox.com/v1/users/authenticated/app-launch-info", &result)
-	if err == nil && result.ID <= 0 {
+	var accountDetails UserAccountDetails
+	err := service.readAccountDetails(ctx, accountID, version, "profile-account", "https://users.roblox.com/v1/users/authenticated/app-launch-info", &accountDetails)
+	if err == nil && accountDetails.ID <= 0 {
 		err = invalidProfileDetails("profile-account")
 	}
-	if err == nil && result.ID != userID {
+	if err == nil && accountDetails.ID != userID {
 		err = profileIdentityError()
 	}
-	return result, err
+	return accountDetails, err
 }
 
 func (service *Users) Robux(ctx context.Context, accountID, version int64) (*int64, error) {
-	var result struct {
+	var payload struct {
 		Robux *int64 `json:"robux"`
 	}
-	err := service.readAccountDetails(ctx, accountID, version, "profile-robux", "https://economy.roblox.com/v1/user/currency", &result)
-	if err == nil && (result.Robux == nil || *result.Robux < 0) {
+	err := service.readAccountDetails(ctx, accountID, version, "profile-robux", "https://economy.roblox.com/v1/user/currency", &payload)
+	if err == nil && (payload.Robux == nil || *payload.Robux < 0) {
 		err = invalidProfileDetails("profile-robux")
 	}
-	return result.Robux, err
+	return payload.Robux, err
 }
 
 func (service *Users) PendingRobux(ctx context.Context, accountID, version, userID int64) (*int64, error) {
-	var result struct {
+	var payload struct {
 		PendingRobux *int64 `json:"pendingRobuxTotal"`
 	}
 	address := "https://apis.roblox.com/transaction-records/v1/users/" + strconv.FormatInt(userID, 10) + "/transaction-totals?timeFrame=Month&transactionType=pendingRobux"
-	err := service.readAccountDetails(ctx, accountID, version, "profile-pending-robux", address, &result)
-	if err == nil && (result.PendingRobux == nil || *result.PendingRobux < 0) {
+	err := service.readAccountDetails(ctx, accountID, version, "profile-pending-robux", address, &payload)
+	if err == nil && (payload.PendingRobux == nil || *payload.PendingRobux < 0) {
 		err = invalidProfileDetails("profile-pending-robux")
 	}
-	return result.PendingRobux, err
+	return payload.PendingRobux, err
 }
 
 func (service *Users) AgeVerified(ctx context.Context, accountID, version int64) (*bool, error) {
-	var result struct {
+	var payload struct {
 		IsVerified *bool `json:"isVerified"`
 	}
-	err := service.readAccountDetails(ctx, accountID, version, "profile-age-verification", "https://apis.roblox.com/age-verification-service/v1/age-verification/verified-age", &result)
-	if err == nil && result.IsVerified == nil {
+	err := service.readAccountDetails(ctx, accountID, version, "profile-age-verification", "https://apis.roblox.com/age-verification-service/v1/age-verification/verified-age", &payload)
+	if err == nil && payload.IsVerified == nil {
 		err = invalidProfileDetails("profile-age-verification")
 	}
-	return result.IsVerified, err
+	return payload.IsVerified, err
 }
 
 func (service *Users) TwoStepVerification(ctx context.Context, accountID, version, userID int64) ([]UserVerificationMethod, error) {
-	var result struct {
+	var payload struct {
 		Methods *[]UserVerificationMethod `json:"methods"`
 	}
 	address := "https://twostepverification.roblox.com/v1/users/" + strconv.FormatInt(userID, 10) + "/configuration"
-	if err := service.readAccountDetails(ctx, accountID, version, "profile-two-step", address, &result); err != nil {
+	if err := service.readAccountDetails(ctx, accountID, version, "profile-two-step", address, &payload); err != nil {
 		return nil, err
 	}
-	if result.Methods == nil {
+	if payload.Methods == nil {
 		return nil, invalidProfileDetails("profile-two-step")
 	}
-	for _, method := range *result.Methods {
+	for _, method := range *payload.Methods {
 		if method.Enabled == nil || method.MediaType == "" || len(method.MediaType) > 64 {
 			return nil, invalidProfileDetails("profile-two-step")
 		}
 	}
-	return *result.Methods, nil
+	return *payload.Methods, nil
 }
 
 type UserVoiceChat struct {
@@ -102,7 +102,7 @@ type UserVoiceChat struct {
 
 // Shape verified against signed-in responses on 2026-10-14. bannedUntil matches RoSeal and Altman.
 func (service *Users) VoiceChat(ctx context.Context, accountID, version int64) (UserVoiceChat, error) {
-	var result struct {
+	var payload struct {
 		OptedIn       *bool `json:"isUserOptIn"`
 		Verified      bool  `json:"isVerifiedForVoice"`
 		CanVerifyAge  bool  `json:"canVerifyAgeForVoice"`
@@ -112,18 +112,18 @@ func (service *Users) VoiceChat(ctx context.Context, accountID, version int64) (
 			Seconds int64 `json:"Seconds"`
 		} `json:"bannedUntil"`
 	}
-	if err := service.readAccountDetails(ctx, accountID, version, "profile-voice-chat", "https://voice.roblox.com/v1/settings", &result); err != nil {
+	if err := service.readAccountDetails(ctx, accountID, version, "profile-voice-chat", "https://voice.roblox.com/v1/settings", &payload); err != nil {
 		return UserVoiceChat{}, err
 	}
-	if result.OptedIn == nil || result.Banned == nil {
+	if payload.OptedIn == nil || payload.Banned == nil {
 		return UserVoiceChat{}, invalidProfileDetails("profile-voice-chat")
 	}
 	voice := UserVoiceChat{
-		OptedIn: *result.OptedIn, Verified: result.Verified, CanVerifyAge: result.CanVerifyAge,
-		OptInDisabled: result.OptInDisabled, Suspended: *result.Banned,
+		OptedIn: *payload.OptedIn, Verified: payload.Verified, CanVerifyAge: payload.CanVerifyAge,
+		OptInDisabled: payload.OptInDisabled, Suspended: *payload.Banned,
 	}
-	if voice.Suspended && result.BannedUntil != nil && result.BannedUntil.Seconds > 0 {
-		voice.SuspendedUntil = time.Unix(result.BannedUntil.Seconds, 0)
+	if voice.Suspended && payload.BannedUntil != nil && payload.BannedUntil.Seconds > 0 {
+		voice.SuspendedUntil = time.Unix(payload.BannedUntil.Seconds, 0)
 	}
 	return voice, nil
 }
@@ -150,26 +150,26 @@ func (service *Users) UserSocialLinks(ctx context.Context, accountID, version, u
 }
 
 func (service *Users) socialLinks(ctx context.Context, accountID, version int64, endpoint, address string) ([]UserSocialLink, error) {
-	var result *struct {
+	var payload *struct {
 		Facebook string `json:"facebook"`
 		Twitter  string `json:"twitter"`
 		YouTube  string `json:"youtube"`
 		Twitch   string `json:"twitch"`
 	}
-	if err := service.readAccountDetails(ctx, accountID, version, endpoint, address, &result); err != nil {
+	if err := service.readAccountDetails(ctx, accountID, version, endpoint, address, &payload); err != nil {
 		return nil, err
 	}
-	if result == nil {
+	if payload == nil {
 		return nil, invalidProfileDetails(endpoint)
 	}
 	channels := []struct {
 		name, address string
 		hosts         []string
 	}{
-		{"Facebook", result.Facebook, []string{"facebook.com"}},
-		{"X", result.Twitter, []string{"twitter.com", "x.com"}},
-		{"YouTube", result.YouTube, []string{"youtube.com", "youtu.be"}},
-		{"Twitch", result.Twitch, []string{"twitch.tv"}},
+		{"Facebook", payload.Facebook, []string{"facebook.com"}},
+		{"X", payload.Twitter, []string{"twitter.com", "x.com"}},
+		{"YouTube", payload.YouTube, []string{"youtube.com", "youtu.be"}},
+		{"Twitch", payload.Twitch, []string{"twitch.tv"}},
 	}
 	links := make([]UserSocialLink, 0, len(channels))
 	for _, channel := range channels {
@@ -204,7 +204,7 @@ func (service *Users) PreviousNames(ctx context.Context, accountID, version, use
 	seenNames, seenCursors := map[string]bool{}, map[string]bool{}
 	cursor := ""
 	for range maxUsernameHistoryPages {
-		var result struct {
+		var payload struct {
 			Data *[]struct {
 				Name string `json:"name"`
 			} `json:"data"`
@@ -215,13 +215,13 @@ func (service *Users) PreviousNames(ctx context.Context, accountID, version, use
 			query.Set("cursor", cursor)
 		}
 		address := "https://users.roblox.com/v1/users/" + strconv.FormatInt(userID, 10) + "/username-history?" + query.Encode()
-		if err := service.readAccountDetails(ctx, accountID, version, "profile-previous-names", address, &result); err != nil {
+		if err := service.readAccountDetails(ctx, accountID, version, "profile-previous-names", address, &payload); err != nil {
 			return nil, err
 		}
-		if result.Data == nil || len(*result.Data) > usernameHistoryPageSize {
+		if payload.Data == nil || len(*payload.Data) > usernameHistoryPageSize {
 			return nil, invalidProfileDetails("profile-previous-names")
 		}
-		for _, entry := range *result.Data {
+		for _, entry := range *payload.Data {
 			name := strings.TrimSpace(entry.Name)
 			if name == "" || len(name) > 64 {
 				return nil, invalidProfileDetails("profile-previous-names")
@@ -232,10 +232,10 @@ func (service *Users) PreviousNames(ctx context.Context, accountID, version, use
 				names = append(names, name)
 			}
 		}
-		if result.NextPageCursor == nil || *result.NextPageCursor == "" {
+		if payload.NextPageCursor == nil || *payload.NextPageCursor == "" {
 			return names, nil
 		}
-		cursor = *result.NextPageCursor
+		cursor = *payload.NextPageCursor
 		if len(cursor) > 4096 || seenCursors[cursor] {
 			return nil, invalidProfileDetails("profile-previous-names")
 		}
@@ -253,7 +253,7 @@ type UserPrimaryGroup struct {
 }
 
 func (service *Users) About(ctx context.Context, accountID, version, userID int64) (UserAbout, error) {
-	var result struct {
+	var payload struct {
 		ID               int64   `json:"id"`
 		Description      *string `json:"description"`
 		HasVerifiedBadge bool    `json:"hasVerifiedBadge"`
@@ -261,14 +261,14 @@ func (service *Users) About(ctx context.Context, accountID, version, userID int6
 		Created          string  `json:"created"`
 	}
 	address := "https://users.roblox.com/v1/users/" + strconv.FormatInt(userID, 10)
-	if err := service.readAccountDetails(ctx, accountID, version, "profile-about", address, &result); err != nil {
+	if err := service.readAccountDetails(ctx, accountID, version, "profile-about", address, &payload); err != nil {
 		return UserAbout{}, err
 	}
-	if result.ID != userID || result.Description == nil || len(*result.Description) > 4096 {
+	if payload.ID != userID || payload.Description == nil || len(*payload.Description) > 4096 {
 		return UserAbout{}, invalidProfileDetails("profile-about")
 	}
-	about := UserAbout{Description: strings.TrimSpace(*result.Description), VerifiedBadge: result.HasVerifiedBadge, Banned: result.IsBanned}
-	if createdAt, err := time.Parse(time.RFC3339, strings.TrimSpace(result.Created)); err == nil {
+	about := UserAbout{Description: strings.TrimSpace(*payload.Description), VerifiedBadge: payload.HasVerifiedBadge, Banned: payload.IsBanned}
+	if createdAt, err := time.Parse(time.RFC3339, strings.TrimSpace(payload.Created)); err == nil {
 		about.CreatedAt = createdAt.UTC()
 	}
 	return about, nil
@@ -280,20 +280,20 @@ func (service *Users) SocialCount(ctx context.Context, accountID, version, userI
 	default:
 		return nil, invalidProfileDetails("profile-social")
 	}
-	var result struct {
+	var payload struct {
 		Count *int64 `json:"count"`
 	}
 	endpoint := "profile-" + counter
 	address := "https://friends.roblox.com/v1/users/" + strconv.FormatInt(userID, 10) + "/" + counter + "/count"
-	err := service.readAccountDetails(ctx, accountID, version, endpoint, address, &result)
-	if err == nil && (result.Count == nil || *result.Count < 0) {
+	err := service.readAccountDetails(ctx, accountID, version, endpoint, address, &payload)
+	if err == nil && (payload.Count == nil || *payload.Count < 0) {
 		err = invalidProfileDetails(endpoint)
 	}
-	return result.Count, err
+	return payload.Count, err
 }
 
 func (service *Users) PrimaryGroup(ctx context.Context, accountID, version, userID int64) (*UserPrimaryGroup, error) {
-	var result *struct {
+	var payload *struct {
 		Group *struct {
 			ID               int64  `json:"id"`
 			Name             string `json:"name"`
@@ -305,18 +305,18 @@ func (service *Users) PrimaryGroup(ctx context.Context, accountID, version, user
 		} `json:"role"`
 	}
 	address := "https://groups.roblox.com/v1/users/" + strconv.FormatInt(userID, 10) + "/groups/primary/role"
-	if err := service.readAccountDetails(ctx, accountID, version, "profile-primary-group", address, &result); err != nil {
+	if err := service.readAccountDetails(ctx, accountID, version, "profile-primary-group", address, &payload); err != nil {
 		return nil, err
 	}
-	if result == nil {
+	if payload == nil {
 		return nil, nil
 	}
-	if result.Group == nil || result.Group.ID <= 0 || strings.TrimSpace(result.Group.Name) == "" || len(result.Group.Name) > 256 || result.Role == nil || len(result.Role.Name) > 256 {
+	if payload.Group == nil || payload.Group.ID <= 0 || strings.TrimSpace(payload.Group.Name) == "" || len(payload.Group.Name) > 256 || payload.Role == nil || len(payload.Role.Name) > 256 {
 		return nil, invalidProfileDetails("profile-primary-group")
 	}
 	return &UserPrimaryGroup{
-		ID: result.Group.ID, Name: strings.TrimSpace(result.Group.Name), Role: strings.TrimSpace(result.Role.Name),
-		Members: max(result.Group.MemberCount, 0), Verified: result.Group.HasVerifiedBadge,
+		ID: payload.Group.ID, Name: strings.TrimSpace(payload.Group.Name), Role: strings.TrimSpace(payload.Role.Name),
+		Members: max(payload.Group.MemberCount, 0), Verified: payload.Group.HasVerifiedBadge,
 	}, nil
 }
 

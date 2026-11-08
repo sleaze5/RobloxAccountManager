@@ -138,7 +138,7 @@
 	}
 
 	function toggleCandidate(id: string, checked: boolean): void {
-		const candidate = candidates.find((item) => item.id === id)
+		const candidate = candidates.find((listed) => listed.id === id)
 		if (!candidate) return
 		if (!checked) {
 			selected = selected.filter((selectedId) => selectedId !== id)
@@ -147,7 +147,7 @@
 		selected = [
 			...selected.filter((selectedId) => {
 				const selectedCandidate = candidates.find(
-					(item) => item.id === selectedId,
+					(listed) => listed.id === selectedId,
 				)
 				return selectedCandidate?.robloxUserId !== candidate.robloxUserId
 			}),
@@ -172,16 +172,16 @@
 
 	async function save(): Promise<void> {
 		saving = true
-		const result = await browser.save(selected).finally(() => (saving = false))
-		if (!result) return
-		const created = (result.items ?? []).filter(
-				(item) => item.status === SaveStatus.SaveCreated,
+		const saveResult = await browser.save(selected).finally(() => (saving = false))
+		if (!saveResult) return
+		const created = (saveResult.items ?? []).filter(
+				(savedItem) => savedItem.status === SaveStatus.SaveCreated,
 			).length,
-			updated = (result.items ?? []).filter(
-				(item) => item.status === SaveStatus.SaveUpdated,
+			updated = (saveResult.items ?? []).filter(
+				(savedItem) => savedItem.status === SaveStatus.SaveUpdated,
 			).length,
-			failed = (result.items ?? []).filter(
-				(item) => item.status === SaveStatus.SaveFailed,
+			failed = (saveResult.items ?? []).filter(
+				(savedItem) => savedItem.status === SaveStatus.SaveFailed,
 			).length
 		if (created + updated > 0) {
 			await accounts.refreshAccounts()

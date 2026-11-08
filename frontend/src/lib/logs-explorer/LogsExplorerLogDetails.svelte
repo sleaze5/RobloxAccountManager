@@ -1,7 +1,6 @@
 <script lang="ts">
-	import arrowsClockwiseIcon from "@phosphor-icons/core/regular/arrows-clockwise.svg?raw"
-	import circleNotchIcon from "@phosphor-icons/core/regular/circle-notch.svg?raw"
 	import Icon from "../shared/Icon.svelte"
+	import RefreshIcon from "../shared/RefreshIcon.svelte"
 	import { ClientLaunchMode, ClientLaunchSource } from "../backend/bridge"
 	import type { LogsExplorerSession } from "../backend/bridge"
 	import Timestamp from "../shared/Timestamp.svelte"
@@ -60,15 +59,7 @@
 			onclick={onRefresh}
 			aria-label={refreshing ? "Refreshing log" : "Refresh log"}
 			data-tooltip="Refresh log">
-			{#if refreshing}<Icon
-					svg={circleNotchIcon}
-					class="spinner"
-					size={16}
-					aria-hidden="true" />{:else}<Icon
-					svg={arrowsClockwiseIcon}
-					data-turn
-					size={16}
-					aria-hidden="true" />{/if}
+			<RefreshIcon isRefreshing={refreshing} />
 		</button>
 	</div>
 	{#if session.userId}<LogsExplorerAccount userId={session.userId} />{/if}

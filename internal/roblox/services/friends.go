@@ -36,7 +36,7 @@ func (service *Users) FriendIDs(ctx context.Context, accountID, version, userID 
 	seen, seenCursors := map[int64]bool{}, map[string]bool{}
 	cursor := ""
 	for range maxFriendsPages {
-		var result struct {
+		var payload struct {
 			PageItems *[]struct {
 				ID int64 `json:"id"`
 			} `json:"PageItems"`
@@ -47,22 +47,22 @@ func (service *Users) FriendIDs(ctx context.Context, accountID, version, userID 
 			query.Set("cursor", cursor)
 		}
 		address := "https://friends.roblox.com/v1/users/" + strconv.FormatInt(userID, 10) + "/friends/find?" + query.Encode()
-		if err := service.readAccountDetails(ctx, accountID, version, "friends", address, &result); err != nil {
+		if err := service.readAccountDetails(ctx, accountID, version, "friends", address, &payload); err != nil {
 			return nil, err
 		}
-		if result.PageItems == nil {
+		if payload.PageItems == nil {
 			return nil, invalidProfileDetails("friends")
 		}
-		for _, item := range *result.PageItems {
-			if item.ID > 0 && !seen[item.ID] {
-				seen[item.ID] = true
-				ids = append(ids, item.ID)
+		for _, friend := range *payload.PageItems {
+			if friend.ID > 0 && !seen[friend.ID] {
+				seen[friend.ID] = true
+				ids = append(ids, friend.ID)
 			}
 		}
-		if result.NextCursor == nil || *result.NextCursor == "" {
+		if payload.NextCursor == nil || *payload.NextCursor == "" {
 			return ids, nil
 		}
-		cursor = *result.NextCursor
+		cursor = *payload.NextCursor
 		if len(cursor) > 4096 || seenCursors[cursor] {
 			return nil, invalidProfileDetails("friends")
 		}
@@ -72,18 +72,18 @@ func (service *Users) FriendIDs(ctx context.Context, accountID, version, userID 
 }
 
 func (service *Users) FriendRequestCount(ctx context.Context, accountID, version int64) (*int64, error) {
-	var result struct {
+	var payload struct {
 		Count *int64 `json:"count"`
 	}
-	err := service.readAccountDetails(ctx, accountID, version, "friend-request-count", "https://friends.roblox.com/v1/user/friend-requests/count", &result)
-	if err == nil && (result.Count == nil || *result.Count < 0) {
+	err := service.readAccountDetails(ctx, accountID, version, "friend-request-count", "https://friends.roblox.com/v1/user/friend-requests/count", &payload)
+	if err == nil && (payload.Count == nil || *payload.Count < 0) {
 		err = invalidProfileDetails("friend-request-count")
 	}
-	return result.Count, err
+	return payload.Count, err
 }
 
 func (service *Users) FriendRequests(ctx context.Context, accountID, version int64, cursor string) ([]FriendRequest, string, error) {
-	var result struct {
+	var payload struct {
 		Data *[]struct {
 			ID            int64 `json:"id"`
 			FriendRequest struct {
@@ -98,22 +98,22 @@ func (service *Users) FriendRequests(ctx context.Context, accountID, version int
 	if cursor != "" {
 		query.Set("cursor", cursor)
 	}
-	if err := service.readAccountDetails(ctx, accountID, version, "friend-requests", "https://friends.roblox.com/v1/my/friends/requests?"+query.Encode(), &result); err != nil {
+	if err := service.readAccountDetails(ctx, accountID, version, "friend-requests", "https://friends.roblox.com/v1/my/friends/requests?"+query.Encode(), &payload); err != nil {
 		return nil, "", err
 	}
-	if result.Data == nil || len(*result.Data) > friendRequestsPageSize {
+	if payload.Data == nil || len(*payload.Data) > friendRequestsPageSize {
 		return nil, "", invalidProfileDetails("friend-requests")
 	}
-	requests := make([]FriendRequest, 0, len(*result.Data))
-	for _, item := range *result.Data {
-		if item.ID <= 0 {
+	requests := make([]FriendRequest, 0, len(*payload.Data))
+	for _, requester := range *payload.Data {
+		if requester.ID <= 0 {
 			return nil, "", invalidProfileDetails("friend-requests")
 		}
-		request := FriendRequest{UserID: item.ID, OriginSourceType: strings.TrimSpace(item.FriendRequest.OriginSourceType), MutualFriends: []string{}}
-		if sentAt, err := time.Parse(time.RFC3339, strings.TrimSpace(item.FriendRequest.SentAt)); err == nil {
+		request := FriendRequest{UserID: requester.ID, OriginSourceType: strings.TrimSpace(requester.FriendRequest.OriginSourceType), MutualFriends: []string{}}
+		if sentAt, err := time.Parse(time.RFC3339, strings.TrimSpace(requester.FriendRequest.SentAt)); err == nil {
 			request.SentAt = sentAt.UTC()
 		}
-		for _, name := range item.MutualFriendsList {
+		for _, name := range requester.MutualFriendsList {
 			if name = strings.TrimSpace(name); name != "" && len(name) <= 64 {
 				request.MutualFriends = append(request.MutualFriends, name)
 			}
@@ -121,8 +121,8 @@ func (service *Users) FriendRequests(ctx context.Context, accountID, version int
 		requests = append(requests, request)
 	}
 	next := ""
-	if result.NextPageCursor != nil {
-		next = *result.NextPageCursor
+	if payload.NextPageCursor != nil {
+		next = *payload.NextPageCursor
 	}
 	return requests, next, nil
 }
@@ -181,24 +181,24 @@ const (
 // FriendStatus reads how the account is connected to another user. Roblox
 // only answers for the signed-in user, so selfID must be the account's user.
 func (service *Users) FriendStatus(ctx context.Context, accountID, version, selfID, userID int64) (FriendStatus, error) {
-	var result struct {
+	var payload struct {
 		Data *[]struct {
 			ID     int64  `json:"id"`
 			Status string `json:"status"`
 		} `json:"data"`
 	}
 	address := "https://friends.roblox.com/v1/users/" + strconv.FormatInt(selfID, 10) + "/friends/statuses?userIds=" + strconv.FormatInt(userID, 10)
-	if err := service.readAccountDetails(ctx, accountID, version, "friend-status", address, &result); err != nil {
+	if err := service.readAccountDetails(ctx, accountID, version, "friend-status", address, &payload); err != nil {
 		return "", err
 	}
-	if result.Data == nil {
+	if payload.Data == nil {
 		return "", invalidProfileDetails("friend-status")
 	}
-	for _, item := range *result.Data {
-		if item.ID != userID {
+	for _, friend := range *payload.Data {
+		if friend.ID != userID {
 			continue
 		}
-		switch item.Status {
+		switch friend.Status {
 		case "Friends":
 			return FriendStatusFriends, nil
 		case "RequestSent":
@@ -213,18 +213,18 @@ func (service *Users) FriendStatus(ctx context.Context, accountID, version, self
 }
 
 func (service *Users) RobloxBadges(ctx context.Context, accountID, version, userID int64) ([]string, error) {
-	var result *[]struct {
+	var payload *[]struct {
 		Name string `json:"name"`
 	}
 	address := "https://accountinformation.roblox.com/v1/users/" + strconv.FormatInt(userID, 10) + "/roblox-badges"
-	if err := service.readAccountDetails(ctx, accountID, version, "friend-roblox-badges", address, &result); err != nil {
+	if err := service.readAccountDetails(ctx, accountID, version, "friend-roblox-badges", address, &payload); err != nil {
 		return nil, err
 	}
-	if result == nil {
+	if payload == nil {
 		return nil, invalidProfileDetails("friend-roblox-badges")
 	}
-	names := make([]string, 0, len(*result))
-	for _, badge := range *result {
+	names := make([]string, 0, len(*payload))
+	for _, badge := range *payload {
 		if name := strings.TrimSpace(badge.Name); name != "" && len(name) <= 64 {
 			names = append(names, name)
 		}
@@ -233,25 +233,25 @@ func (service *Users) RobloxBadges(ctx context.Context, accountID, version, user
 }
 
 func (service *Users) Premium(ctx context.Context, accountID, version, userID int64) (*bool, error) {
-	var result *bool
+	var isPremium *bool
 	address := "https://premiumfeatures.roblox.com/v1/users/" + strconv.FormatInt(userID, 10) + "/validate-membership"
-	err := service.readAccountDetails(ctx, accountID, version, "friend-premium", address, &result)
-	if err == nil && result == nil {
+	err := service.readAccountDetails(ctx, accountID, version, "friend-premium", address, &isPremium)
+	if err == nil && isPremium == nil {
 		err = invalidProfileDetails("friend-premium")
 	}
-	return result, err
+	return isPremium, err
 }
 
 func (service *Users) InventoryVisible(ctx context.Context, accountID, version, userID int64) (*bool, error) {
-	var result struct {
+	var payload struct {
 		CanView *bool `json:"canView"`
 	}
 	address := "https://inventory.roblox.com/v1/users/" + strconv.FormatInt(userID, 10) + "/can-view-inventory"
-	err := service.readAccountDetails(ctx, accountID, version, "friend-inventory", address, &result)
-	if err == nil && result.CanView == nil {
+	err := service.readAccountDetails(ctx, accountID, version, "friend-inventory", address, &payload)
+	if err == nil && payload.CanView == nil {
 		err = invalidProfileDetails("friend-inventory")
 	}
-	return result.CanView, err
+	return payload.CanView, err
 }
 
 // Follows reads one page of a user's followers or followings, newest first.
@@ -274,7 +274,7 @@ func (service *Users) SearchUsers(ctx context.Context, accountID, version int64,
 }
 
 func (service *Users) userIDPage(ctx context.Context, accountID, version int64, endpoint, address string, query url.Values, cursor string, limit int) ([]int64, string, error) {
-	var result struct {
+	var payload struct {
 		Data *[]struct {
 			ID int64 `json:"id"`
 		} `json:"data"`
@@ -283,21 +283,21 @@ func (service *Users) userIDPage(ctx context.Context, accountID, version int64, 
 	if cursor != "" {
 		query.Set("cursor", cursor)
 	}
-	if err := service.readAccountDetails(ctx, accountID, version, endpoint, address+"?"+query.Encode(), &result); err != nil {
+	if err := service.readAccountDetails(ctx, accountID, version, endpoint, address+"?"+query.Encode(), &payload); err != nil {
 		return nil, "", err
 	}
-	if result.Data == nil || len(*result.Data) > limit {
+	if payload.Data == nil || len(*payload.Data) > limit {
 		return nil, "", invalidProfileDetails(endpoint)
 	}
-	ids := make([]int64, 0, len(*result.Data))
-	for _, item := range *result.Data {
-		if item.ID > 0 {
-			ids = append(ids, item.ID)
+	ids := make([]int64, 0, len(*payload.Data))
+	for _, user := range *payload.Data {
+		if user.ID > 0 {
+			ids = append(ids, user.ID)
 		}
 	}
 	next := ""
-	if result.NextPageCursor != nil {
-		next = *result.NextPageCursor
+	if payload.NextPageCursor != nil {
+		next = *payload.NextPageCursor
 	}
 	return ids, next, nil
 }
@@ -310,7 +310,7 @@ type FollowState struct {
 // FollowState reads whether the account follows the user and whether the user
 // follows the account.
 func (service *Users) FollowState(ctx context.Context, accountID, version, userID int64) (FollowState, error) {
-	var result struct {
+	var followingResponse struct {
 		Followings *[]struct {
 			UserID      int64 `json:"userId"`
 			IsFollowing bool  `json:"isFollowing"`
@@ -318,15 +318,15 @@ func (service *Users) FollowState(ctx context.Context, accountID, version, userI
 		} `json:"followings"`
 	}
 	payload := map[string][]int64{"targetUserIds": {userID}}
-	if err := service.postRead(ctx, accountID, version, "follow-state", "https://friends.roblox.com/v1/user/following-exists", payload, &result); err != nil {
+	if err := service.postRead(ctx, accountID, version, "follow-state", "https://friends.roblox.com/v1/user/following-exists", payload, &followingResponse); err != nil {
 		return FollowState{}, err
 	}
-	if result.Followings == nil {
+	if followingResponse.Followings == nil {
 		return FollowState{}, invalidProfileDetails("follow-state")
 	}
-	for _, item := range *result.Followings {
-		if item.UserID == userID {
-			return FollowState{Following: item.IsFollowing, FollowedBy: item.IsFollowed}, nil
+	for _, following := range *followingResponse.Followings {
+		if following.UserID == userID {
+			return FollowState{Following: following.IsFollowing, FollowedBy: following.IsFollowed}, nil
 		}
 	}
 	return FollowState{}, invalidProfileDetails("follow-state")
@@ -342,17 +342,17 @@ const (
 )
 
 func (service *Users) TrustedStatus(ctx context.Context, accountID, version, userID int64) (TrustedStatus, error) {
-	var result struct {
+	var payload struct {
 		Status *string `json:"status"`
 	}
 	address := "https://friends.roblox.com/v1/my/trusted-friends/" + strconv.FormatInt(userID, 10) + "/status"
-	if err := service.readAccountDetails(ctx, accountID, version, "trusted-friend-status", address, &result); err != nil {
+	if err := service.readAccountDetails(ctx, accountID, version, "trusted-friend-status", address, &payload); err != nil {
 		return "", err
 	}
-	if result.Status == nil {
+	if payload.Status == nil {
 		return "", invalidProfileDetails("trusted-friend-status")
 	}
-	switch *result.Status {
+	switch *payload.Status {
 	case "TrustedFriends":
 		return TrustedStatusTrusted, nil
 	case "RequestSent":
@@ -369,20 +369,20 @@ func (service *Users) TrustedStatus(ctx context.Context, accountID, version, use
 func (service *Users) Nicknames(ctx context.Context, accountID, version int64, userIDs []int64) (map[int64]string, error) {
 	nicknames := map[int64]string{}
 	for batch := range slices.Chunk(userIDs, nicknameBatchSize) {
-		var result *[]struct {
+		var tagsResponse *[]struct {
 			TargetUserID  int64  `json:"targetUserId"`
 			TargetUserTag string `json:"targetUserTag"`
 		}
 		payload := map[string][]int64{"targetUserIds": batch}
-		if err := service.postRead(ctx, accountID, version, "nicknames", "https://contacts.roblox.com/v1/user/get-tags", payload, &result); err != nil {
+		if err := service.postRead(ctx, accountID, version, "nicknames", "https://contacts.roblox.com/v1/user/get-tags", payload, &tagsResponse); err != nil {
 			return nil, err
 		}
-		if result == nil {
+		if tagsResponse == nil {
 			return nil, invalidProfileDetails("nicknames")
 		}
-		for _, item := range *result {
-			if tag := strings.TrimSpace(item.TargetUserTag); item.TargetUserID > 0 && tag != "" {
-				nicknames[item.TargetUserID] = tag
+		for _, nickname := range *tagsResponse {
+			if tag := strings.TrimSpace(nickname.TargetUserTag); nickname.TargetUserID > 0 && tag != "" {
+				nicknames[nickname.TargetUserID] = tag
 			}
 		}
 	}
@@ -396,10 +396,10 @@ func (service *Users) SetNickname(ctx context.Context, accountID, version, userI
 	if err != nil {
 		return err
 	}
-	var result struct {
+	var payload struct {
 		Status string `json:"status"`
 	}
-	if json.Unmarshal(response.Body, &result) != nil || !strings.EqualFold(result.Status, "Success") {
+	if json.Unmarshal(response.Body, &payload) != nil || !strings.EqualFold(payload.Status, "Success") {
 		return &roblox.Error{Kind: roblox.KindProtocol, Endpoint: "nickname-update", Status: response.Status, Message: "Roblox did not save the nickname. Try a different one."}
 	}
 	return nil

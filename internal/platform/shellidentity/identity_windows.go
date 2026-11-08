@@ -76,9 +76,9 @@ func New(logger *slog.Logger) (func(uintptr, uint32, uintptr, uintptr) (uintptr,
 
 func setProperties(hwnd uintptr, values *[4]string) error {
 	var store *propertyStore
-	result, _, _ := getPropertyStore.Call(hwnd, uintptr(unsafe.Pointer(&propertyStoreID)), uintptr(unsafe.Pointer(&store)))
-	if int32(result) < 0 {
-		return fmt.Errorf("open window property store: HRESULT %#x", uint32(result))
+	callStatus, _, _ := getPropertyStore.Call(hwnd, uintptr(unsafe.Pointer(&propertyStoreID)), uintptr(unsafe.Pointer(&store)))
+	if int32(callStatus) < 0 {
+		return fmt.Errorf("open window property store: HRESULT %#x", uint32(callStatus))
 	}
 	defer func() {
 		// IUnknown::Release returns a reference count, not an HRESULT or last error.
@@ -100,9 +100,9 @@ func setProperties(hwnd uintptr, values *[4]string) error {
 			value.text = text
 		}
 		// IPropertyStore::SetValue copies the string; this variant borrows Go memory.
-		result, _, _ = syscall.SyscallN(store.vtable[6], uintptr(unsafe.Pointer(store)), uintptr(unsafe.Pointer(&key)), uintptr(unsafe.Pointer(&value)))
-		if int32(result) < 0 {
-			err := fmt.Errorf("set shell property %d: HRESULT %#x", key.id, uint32(result))
+		callStatus, _, _ = syscall.SyscallN(store.vtable[6], uintptr(unsafe.Pointer(store)), uintptr(unsafe.Pointer(&key)), uintptr(unsafe.Pointer(&value)))
+		if int32(callStatus) < 0 {
+			err := fmt.Errorf("set shell property %d: HRESULT %#x", key.id, uint32(callStatus))
 			if values != nil {
 				return err
 			}

@@ -108,12 +108,12 @@ func (service *Service) ExportVault(ctx context.Context, path, password, confirm
 	if err := service.ValidateExportPassword(password, confirmation, hint); err != nil {
 		return vault.ExportFile{}, err
 	}
-	data, err := service.exportData(ctx, "vault-export")
+	payloadJSON, err := service.exportData(ctx, "vault-export")
 	if err != nil {
 		return vault.ExportFile{}, err
 	}
-	defer clear(data)
-	writtenExport, err := service.vault.WriteExport(path, password, hint, data)
+	defer clear(payloadJSON)
+	writtenExport, err := service.vault.WriteExport(path, password, hint, payloadJSON)
 	if err != nil {
 		service.logger.Error("export file could not be written", "operation", "vault-export", "error", err)
 		return vault.ExportFile{}, transferError("The export file could not be saved. Check that the folder is writable and has free space, then try again.", err)
@@ -135,13 +135,13 @@ func (service *Service) exportData(ctx context.Context, operation string) ([]byt
 		service.logger.Error("settings could not be read", "operation", operation, "error", err)
 		return nil, transferError("The settings could not be read.", err)
 	}
-	data, err := transferstore.Encode(payload)
+	payloadJSON, err := transferstore.Encode(payload)
 	if err != nil {
 		service.logger.Error("vault data could not be encoded", "operation", operation, "error", err)
 		return nil, transferError("The vault data could not be encoded.", err)
 	}
 	service.logger.Info("vault data read", "operation", operation, "accounts", len(payload.Accounts), "tags", len(payload.Tags), "favorite_places", len(payload.FavoritePlaces), "saved_private_servers", len(payload.SavedPrivateServers))
-	return data, nil
+	return payloadJSON, nil
 }
 
 // ExportDetails returns the format version and password hint of an export file.
@@ -154,12 +154,12 @@ func (service *Service) ExportDetails(path string) (vault.ExportDetails, error) 
 }
 
 func (service *Service) OpenVaultExport(ctx context.Context, path, password string) (TransferPreview, error) {
-	openedExport, data, err := service.vault.ReadExport(path, password)
+	openedExport, payloadJSON, err := service.vault.ReadExport(path, password)
 	if err != nil {
 		return TransferPreview{}, service.exportReadError(err)
 	}
-	payload, err := transferstore.Decode(data)
-	clear(data)
+	payload, err := transferstore.Decode(payloadJSON)
+	clear(payloadJSON)
 	if errors.Is(err, transferstore.ErrUnsupportedVersion) {
 		return TransferPreview{}, transferError("This export is from a newer version. Update the app to import it.", err)
 	}

@@ -144,14 +144,14 @@ type Store struct {
 }
 
 func ReadLogging(path string) (LoggingSettings, error) {
-	data, err := os.ReadFile(path)
+	settingsJSON, err := os.ReadFile(path)
 	if errors.Is(err, os.ErrNotExist) {
 		return defaults().Logging, nil
 	}
 	if err != nil {
 		return defaults().Logging, fmt.Errorf("read logging settings: %w", err)
 	}
-	loaded, err := decode(data)
+	loaded, err := decode(settingsJSON)
 	if err != nil {
 		return defaults().Logging, err
 	}
@@ -196,16 +196,16 @@ type loadResult struct {
 }
 
 func load(path string) (loadResult, error) {
-	data, err := os.ReadFile(path)
+	settingsJSON, err := os.ReadFile(path)
 	if err != nil {
 		return loadResult{}, fmt.Errorf("read settings file: %w", err)
 	}
-	return decode(data)
+	return decode(settingsJSON)
 }
 
-func decode(data []byte) (loadResult, error) {
+func decode(settingsJSON []byte) (loadResult, error) {
 	var document object
-	if err := decodeJSON(data, &document); err != nil {
+	if err := decodeJSON(settingsJSON, &document); err != nil {
 		return loadResult{}, fmt.Errorf("decode settings file: %w", err)
 	}
 	if document == nil {
@@ -229,8 +229,8 @@ func decode(data []byte) (loadResult, error) {
 	return loadResult{settings: settings, sourceVersion: version, replacedFields: replaced}, nil
 }
 
-func Decode(data []byte) (Settings, error) {
-	loaded, err := decode(data)
+func Decode(settingsJSON []byte) (Settings, error) {
+	loaded, err := decode(settingsJSON)
 	if err != nil {
 		return Settings{}, err
 	}
@@ -246,11 +246,11 @@ func (store *Store) Export() ([]byte, error) {
 	store.mutex.Unlock()
 	settings.Roblox.PlayerPath = ""
 	settings.Vault = VaultSettings{PasswordTestIntervalDays: settings.Vault.PasswordTestIntervalDays}
-	data, err := json.Marshal(settings)
+	settingsJSON, err := json.Marshal(settings)
 	if err != nil {
 		return nil, fmt.Errorf("encode exported settings: %w", err)
 	}
-	return data, nil
+	return settingsJSON, nil
 }
 
 func (store *Store) Import(imported Settings, sections []Section) error {
@@ -598,11 +598,11 @@ func archiveSettingsBackup(backup string) error {
 }
 
 func (store *Store) saveLocked() error {
-	data, err := json.MarshalIndent(store.settings, "", "  ")
+	settingsJSON, err := json.MarshalIndent(store.settings, "", "  ")
 	if err != nil {
 		return fmt.Errorf("encode settings file: %w", err)
 	}
-	if err := appdata.WritePrivateFile(store.path, append(data, '\n')); err != nil {
+	if err := appdata.WritePrivateFile(store.path, append(settingsJSON, '\n')); err != nil {
 		return fmt.Errorf("save settings file: %w", err)
 	}
 	return nil
@@ -610,12 +610,12 @@ func (store *Store) saveLocked() error {
 
 var utf8BOM = []byte{0xef, 0xbb, 0xbf}
 
-func decodeJSON(data []byte, value any) error {
-	data = bytes.TrimPrefix(data, utf8BOM)
-	if !utf8.Valid(data) {
+func decodeJSON(encoded []byte, value any) error {
+	encoded = bytes.TrimPrefix(encoded, utf8BOM)
+	if !utf8.Valid(encoded) {
 		return errors.New("settings must use valid UTF-8 encoding")
 	}
-	if err := json.Unmarshal(data, value); err != nil {
+	if err := json.Unmarshal(encoded, value); err != nil {
 		return fmt.Errorf("parse JSON: %w", err)
 	}
 	return nil

@@ -289,9 +289,9 @@ export class BrowserStore {
 	async save(selected: string[]): Promise<SaveResult | null> {
 		this.loading = true
 		try {
-			const result = await accountBackend.SaveBrowserCandidates(selected)
+			const saveResult = await accountBackend.SaveBrowserCandidates(selected)
 			await this.refresh()
-			return result
+			return saveResult
 		} catch (error) {
 			this.error = errorMessage(error, browserOperationError)
 			return null

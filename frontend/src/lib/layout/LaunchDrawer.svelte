@@ -1,6 +1,6 @@
 <script lang="ts">
+	import CheckboxMark from "../shared/CheckboxMark.svelte"
 	import caretDownIcon from "@phosphor-icons/core/regular/caret-down.svg?raw"
-	import checkBoldIcon from "@phosphor-icons/core/bold/check-bold.svg?raw"
 	import eraserIcon from "@phosphor-icons/core/regular/eraser.svg?raw"
 	import gameControllerIcon from "@phosphor-icons/core/regular/game-controller.svg?raw"
 	import prohibitIcon from "@phosphor-icons/core/regular/prohibit.svg?raw"
@@ -221,11 +221,7 @@
 									bind:checked={store.launchInput.resolveCurrentGame}
 									type="checkbox"
 									disabled={store.launching} />
-								<span aria-hidden="true"
-									><Icon
-										svg={checkBoldIcon}
-										size={11}
-										aria-hidden="true" /></span>
+								<CheckboxMark />
 							</span>
 							<span>Resolve current game</span>
 						</label>

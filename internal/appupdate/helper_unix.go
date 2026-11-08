@@ -1,8 +1,10 @@
-//go:build !windows
+//go:build linux || darwin
 
 package appupdate
 
 import (
+	"fmt"
+	"io"
 	"os"
 	"path/filepath"
 )
@@ -39,4 +41,19 @@ func helperCopiedUpdate() bool {
 	}
 	staged, _ := filepath.Glob(filepath.Join(filepath.Dir(installTarget(executable)), stagingPrefix+"*"))
 	return len(staged) > 0
+}
+
+func writeUpdateCopy(output *os.File, input io.Reader) error {
+	if _, err := io.Copy(output, input); err != nil {
+		_ = output.Close()
+		return fmt.Errorf("copy update: %w", err)
+	}
+	if err := output.Sync(); err != nil {
+		_ = output.Close()
+		return fmt.Errorf("flush update copy: %w", err)
+	}
+	if err := output.Close(); err != nil {
+		return fmt.Errorf("close update copy: %w", err)
+	}
+	return nil
 }

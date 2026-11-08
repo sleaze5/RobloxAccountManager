@@ -265,6 +265,6 @@ func copyTime(value *time.Time) *time.Time {
 	if value == nil {
 		return nil
 	}
-	result := *value
-	return &result
+	copied := *value
+	return &copied
 }

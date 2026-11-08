@@ -5,7 +5,6 @@ package appupdate
 import (
 	"errors"
 	"fmt"
-	"io"
 	"io/fs"
 	"os"
 	"path/filepath"
@@ -109,16 +108,5 @@ func copyFile(source, destination *os.Root, path string, mode fs.FileMode) error
 	if err != nil {
 		return fmt.Errorf("create update copy: %w", err)
 	}
-	if _, err := io.Copy(output, input); err != nil {
-		_ = output.Close()
-		return fmt.Errorf("copy update: %w", err)
-	}
-	if err := output.Sync(); err != nil {
-		_ = output.Close()
-		return fmt.Errorf("flush update copy: %w", err)
-	}
-	if err := output.Close(); err != nil {
-		return fmt.Errorf("close update copy: %w", err)
-	}
-	return nil
+	return writeUpdateCopy(output, input)
 }
