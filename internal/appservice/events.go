@@ -5,28 +5,31 @@ import (
 	"time"
 )
 
-type eventEmitter func(string, any)
-
 type Events struct {
-	mutex     sync.RWMutex
-	emit      eventEmitter
-	rateUntil time.Time
+	mutex      sync.RWMutex
+	emit       func(string, any)
+	showWindow func()
+	rateUntil  time.Time
 }
 
 func NewEvents() *Events { return &Events{} }
 
-func (events *Events) SetEmitter(emitter func(string, any)) {
+func (events *Events) AttachWindow(emit func(string, any), showWindow func()) {
 	events.mutex.Lock()
-	events.emit = emitter
+	events.emit, events.showWindow = emit, showWindow
 	events.mutex.Unlock()
 }
 
-func (events *Events) send(name string, data any) {
+func (events *Events) DetachWindow() {
+	events.AttachWindow(nil, nil)
+}
+
+func (events *Events) send(name string, payload any) {
 	events.mutex.RLock()
-	emitter := events.emit
+	emit := events.emit
 	events.mutex.RUnlock()
-	if emitter != nil {
-		emitter(name, data)
+	if emit != nil {
+		emit(name, payload)
 	}
 }
 
@@ -61,6 +64,18 @@ func (events *Events) UpdateChanged() {
 
 func (events *Events) LaunchConfirmationChanged() {
 	events.send("game:launch-confirmation-changed", struct{}{})
+}
+
+// LaunchConfirmationRequested also brings the window forward, because the
+// launch waits until the user answers.
+func (events *Events) LaunchConfirmationRequested() {
+	events.LaunchConfirmationChanged()
+	events.mutex.RLock()
+	showWindow := events.showWindow
+	events.mutex.RUnlock()
+	if showWindow != nil {
+		showWindow()
+	}
 }
 
 func (events *Events) RateLimited(retryAt time.Time) {

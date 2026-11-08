@@ -145,16 +145,7 @@ func (service *Service) Start(ctx context.Context) error {
 			service.finishUnlock(true)
 		}
 	} else if !errors.Is(err, vault.ErrNotInitialized) && !errors.Is(err, vault.ErrLocked) && !errors.Is(err, vault.ErrLegacyVault) {
-		message := "Automatic unlock failed. Enter the master password to recover the vault."
-		switch {
-		case errors.Is(err, vault.ErrIncomplete):
-			message = "The vault files are incomplete. Restore a backup or reset the vault."
-		case errors.Is(err, vault.ErrUnsupportedVersion), errors.Is(err, vault.ErrUnsupportedSchema):
-			message = "The vault version is unsupported. Restore a compatible backup or reset the vault."
-		case errors.Is(err, vault.ErrVaultMismatch):
-			message = "The database and security files belong to different vaults. Restore a backup or reset the vault."
-		}
-		service.setStartupError(message)
+		service.setStartupError(vaultFailureMessage(err, "Automatic unlock failed. Enter the master password to recover the vault."))
 		service.logger.Warn("automatic vault unlock failed", "error", err)
 	} else {
 		service.logger.Debug("automatic vault unlock unavailable", "reason", err)
