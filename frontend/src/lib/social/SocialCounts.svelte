@@ -42,13 +42,13 @@
 					noun: following === 1 ? "followed user" : "followed users",
 				},
 			] as const
-		).flatMap((item) =>
-			item.value === null
+		).flatMap((count) =>
+			count.value === null
 				? []
 				: [
 						{
-							...item,
-							tooltip: `Show ${exact.format(item.value)} ${item.noun}`,
+							...count,
+							tooltip: `Show ${exact.format(count.value)} ${count.noun}`,
 						},
 					],
 		),
@@ -60,19 +60,19 @@
 		class="flex flex-wrap items-baseline gap-x-4 gap-y-1"
 		role="group"
 		aria-label="Connections">
-		{#each items as item (item.list)}
+		{#each items as count (count.list)}
 			<button
 				class="group/count flex items-baseline gap-1 rounded-sm focus-visible:outline-offset-2"
 				type="button"
-				aria-label={item.tooltip}
-				data-tooltip={item.tooltip}
+				aria-label={count.tooltip}
+				data-tooltip={count.tooltip}
 				data-tooltip-side="top"
-				onclick={() => onShow(item.list)}>
+				onclick={() => onShow(count.list)}>
 				<span class="text-sm font-semibold text-fg tabular-nums"
-					>{compact.format(item.value ?? 0)}</span>
+					>{compact.format(count.value ?? 0)}</span>
 				<span
 					class="text-xs text-fg-muted transition-colors duration-100 group-hover/count:text-fg"
-					>{item.label}</span>
+					>{count.label}</span>
 			</button>
 		{/each}
 	</div>

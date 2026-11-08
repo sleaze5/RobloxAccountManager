@@ -7,6 +7,8 @@
 	import { GameServerRecordOrder } from "../backend/bridge"
 	import Select from "../shared/Select.svelte"
 	import ServerActionsButton from "./ServerActionsButton.svelte"
+	import { openServerMenuFromRow } from "./server-row-menu"
+	import type { ServerMenuOpener } from "./server-row-menu"
 	import ServerPagerNav from "./ServerPagerNav.svelte"
 	import ServerUptime from "./ServerUptime.svelte"
 	import ServerVersion from "./ServerVersion.svelte"
@@ -30,7 +32,7 @@
 		stats: ServerStatsLoader
 		activeJobId: string | undefined
 		menuID: string
-		onMenu: (jobId: string, trigger: HTMLElement, toggle: boolean) => void
+		onMenu: ServerMenuOpener
 	} = $props()
 
 	const numbers = new Intl.NumberFormat()
@@ -175,15 +177,8 @@
 					<li
 						class="server-row"
 						data-open={activeJobId === server.jobId || undefined}
-						oncontextmenu={(event) => {
-							const trigger =
-								event.currentTarget.querySelector<HTMLElement>(
-									"[data-server-actions]",
-								)
-							if (!trigger) return
-							event.preventDefault()
-							onMenu(server.jobId, trigger, true)
-						}}>
+						oncontextmenu={(event) =>
+							openServerMenuFromRow(event, server.jobId, onMenu)}>
 						<span
 							class="truncate text-xs text-fg"
 							data-tooltip={recordLocation(server) || undefined}

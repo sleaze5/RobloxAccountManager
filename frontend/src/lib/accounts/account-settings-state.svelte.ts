@@ -97,11 +97,11 @@ export class AccountSettingsState {
 		this.saving = current.key
 		this.feedback = null
 		try {
-			const result = await accountBackend.UpdateAccountSetting(
+			const updateResult = await accountBackend.UpdateAccountSetting(
 				this.#accountId,
 				change,
 			)
-			this.#handleSaveSuccess(result, current.key, generation)
+			this.#handleSaveSuccess(updateResult, current.key, generation)
 		} catch (error) {
 			this.#handleSaveError(error, current.key, generation)
 		} finally {
@@ -110,19 +110,20 @@ export class AccountSettingsState {
 	}
 
 	#handleSaveSuccess(
-		result: AccountSettingUpdateResult,
+		updateResult: AccountSettingUpdateResult,
 		key: AccountSettingKey,
 		generation: number,
 	): void {
-		const success = result.outcome === "applied" || result.outcome === "unchanged"
+		const success =
+			updateResult.outcome === "applied" || updateResult.outcome === "unchanged"
 		if (!this.#current(generation)) {
 			if (!success) this.#notifyFailure(key)
 			return
 		}
-		if (result.snapshot.accountId !== this.#accountId) return
-		this.snapshot = result.snapshot
-		this.refreshRequired = result.outcome === "unconfirmed"
-		this.feedback = { key, message: result.message, success }
+		if (updateResult.snapshot.accountId !== this.#accountId) return
+		this.snapshot = updateResult.snapshot
+		this.refreshRequired = updateResult.outcome === "unconfirmed"
+		this.feedback = { key, message: updateResult.message, success }
 	}
 
 	#handleSaveError(error: unknown, key: AccountSettingKey, generation: number): void {
@@ -142,7 +143,9 @@ export class AccountSettingsState {
 	}
 
 	#notifyFailure(key: AccountSettingKey): void {
-		const account = this.#store.accounts.find((item) => item.id === this.#accountId)
+		const account = this.#store.accounts.find(
+			(listedAccount) => listedAccount.id === this.#accountId,
+		)
 		if (!this.#store.vault.unlocked || !account) return
 		this.#notifications.show({
 			id: `account-setting-${this.#accountId}-${key}`,

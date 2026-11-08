@@ -9,6 +9,8 @@
 	import type { AccountStore } from "../accounts/account-store.svelte"
 	import Select from "../shared/Select.svelte"
 	import ServerActionsButton from "./ServerActionsButton.svelte"
+	import { openServerMenuFromRow } from "./server-row-menu"
+	import type { ServerMenuOpener } from "./server-row-menu"
 	import ServerPagerNav from "./ServerPagerNav.svelte"
 	import type { PrivateServers, SavedServers } from "./game-servers-state.svelte"
 
@@ -27,7 +29,7 @@
 		accounts: AccountStore
 		activeKey: string | undefined
 		menuID: string
-		onMenu: (key: string, trigger: HTMLElement, toggle: boolean) => void
+		onMenu: ServerMenuOpener
 		onAccount: (accountId: number) => void
 		onAddLink: () => void
 	} = $props()
@@ -38,11 +40,11 @@
 		shown = $derived(servers.page?.servers ?? []),
 		savedShown = $derived(saved.servers ?? []),
 		accountOptions = $derived(
-			accounts.accounts.map((item) => ({
-				value: item.id,
-				label: item.displayName,
-				description: `@${item.username}`,
-				image: item.avatarUrl,
+			accounts.accounts.map((savedAccount) => ({
+				value: savedAccount.id,
+				label: savedAccount.displayName,
+				description: `@${savedAccount.username}`,
+				image: savedAccount.avatarUrl,
 			})),
 		)
 
@@ -139,15 +141,8 @@
 						<li
 							class="server-row"
 							data-open={activeKey === key || undefined}
-							oncontextmenu={(event) => {
-								const trigger =
-									event.currentTarget.querySelector<HTMLElement>(
-										"[data-server-actions]",
-									)
-								if (!trigger) return
-								event.preventDefault()
-								onMenu(key, trigger, true)
-							}}>
+							oncontextmenu={(event) =>
+								openServerMenuFromRow(event, key, onMenu)}>
 							<span class="flex min-w-0 items-center gap-1.5">
 								<span
 									class="truncate text-xs font-medium text-fg"
@@ -262,15 +257,8 @@
 							<li
 								class="server-row animate-enter"
 								data-open={activeKey === key || undefined}
-								oncontextmenu={(event) => {
-									const trigger =
-										event.currentTarget.querySelector<HTMLElement>(
-											"[data-server-actions]",
-										)
-									if (!trigger) return
-									event.preventDefault()
-									onMenu(key, trigger, true)
-								}}>
+								oncontextmenu={(event) =>
+									openServerMenuFromRow(event, key, onMenu)}>
 								<span
 									class="truncate text-xs font-medium text-fg"
 									data-tooltip={server.name || undefined}

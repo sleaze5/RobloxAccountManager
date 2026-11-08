@@ -1,10 +1,8 @@
 <script lang="ts">
-	import arrowsClockwiseIcon from "@phosphor-icons/core/regular/arrows-clockwise.svg?raw"
-	import checkBoldIcon from "@phosphor-icons/core/bold/check-bold.svg?raw"
-	import circleNotchIcon from "@phosphor-icons/core/regular/circle-notch.svg?raw"
-	import minusBoldIcon from "@phosphor-icons/core/bold/minus-bold.svg?raw"
+	import CheckboxMark from "../shared/CheckboxMark.svelte"
 	import xIcon from "@phosphor-icons/core/regular/x.svg?raw"
 	import Icon from "../shared/Icon.svelte"
+	import RefreshIcon from "../shared/RefreshIcon.svelte"
 	import Dialog from "../shared/Dialog.svelte"
 	import { onMount, tick } from "svelte"
 	import {
@@ -58,7 +56,7 @@
 	function toggleProcess(key: string, checked: boolean): void {
 		selected = checked
 			? [...selected, key]
-			: selected.filter((item) => item !== key)
+			: selected.filter((selectedKey) => selectedKey !== key)
 	}
 
 	function toggleAll(): void {
@@ -120,16 +118,7 @@
 				data-tooltip="Refresh process list"
 				disabled={loading || killing || snapshot?.supported === false}
 				onclick={() => void refresh()}>
-				{#if loading}<Icon
-						svg={circleNotchIcon}
-						class="spinner"
-						size={14}
-						aria-hidden="true" />
-				{:else}<Icon
-						svg={arrowsClockwiseIcon}
-						data-turn
-						size={14}
-						aria-hidden="true" />{/if}
+				<RefreshIcon isRefreshing={loading} size={14} />
 			</button>
 			<button
 				class="button-ghost-sm"
@@ -151,16 +140,7 @@
 						indeterminate={someSelected}
 						disabled={loading || killing || processes.length === 0}
 						onchange={toggleAll} />
-					<span aria-hidden="true">
-						{#if someSelected}<Icon
-								svg={minusBoldIcon}
-								size={11}
-								aria-hidden="true" />
-						{:else}<Icon
-								svg={checkBoldIcon}
-								size={11}
-								aria-hidden="true" />{/if}
-					</span>
+					<CheckboxMark isIndeterminate={someSelected} />
 				</span>
 				<span>{allSelected ? "Clear selection" : "Select all"}</span>
 			</label>
@@ -190,11 +170,7 @@
 												processKey(process),
 												event.currentTarget.checked,
 											)} />
-									<span aria-hidden="true"
-										><Icon
-											svg={checkBoldIcon}
-											size={11}
-											aria-hidden="true" /></span>
+									<CheckboxMark />
 								</label>
 							</td>
 							<td class="font-mono font-medium">{process.name}</td>

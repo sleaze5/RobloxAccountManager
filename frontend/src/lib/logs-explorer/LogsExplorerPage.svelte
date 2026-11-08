@@ -8,6 +8,7 @@
 	import warningIcon from "@phosphor-icons/core/regular/warning.svg?raw"
 	import xIcon from "@phosphor-icons/core/regular/x.svg?raw"
 	import Icon from "../shared/Icon.svelte"
+	import RefreshIcon from "../shared/RefreshIcon.svelte"
 	import { moveListFocus } from "../shared/move-shortcut"
 	import { appSettings } from "../settings/settings-store.svelte"
 	import type { LogsExplorerVisit } from "../backend/bridge"
@@ -60,15 +61,7 @@
 						: "Refresh all logs"}
 					data-tooltip="Refresh all logs"
 					data-tooltip-side="bottom-end">
-					{#if store.refreshing}<Icon
-							svg={circleNotchIcon}
-							class="spinner"
-							size={16}
-							aria-hidden="true" />{:else}<Icon
-							svg={arrowsClockwiseIcon}
-							data-turn
-							size={16}
-							aria-hidden="true" />{/if}
+					<RefreshIcon isRefreshing={store.refreshing} />
 				</button>
 			{/snippet}
 			{#snippet tools()}

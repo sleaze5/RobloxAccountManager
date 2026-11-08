@@ -393,7 +393,7 @@ export class SavedServers {
 			)
 			if (!this.#active) return false
 			this.#apply((servers) => [
-				...servers.filter((item) => item.id !== server.id),
+				...servers.filter((listed) => listed.id !== server.id),
 				server,
 			])
 			return true
@@ -417,7 +417,9 @@ export class SavedServers {
 		try {
 			await accountBackend.RemoveSavedPrivateServer(server.id)
 			if (!this.#active) return false
-			this.#apply((servers) => servers.filter((item) => item.id !== server.id))
+			this.#apply((servers) =>
+				servers.filter((listed) => listed.id !== server.id),
+			)
 			return true
 		} catch (error) {
 			if (this.#active) {

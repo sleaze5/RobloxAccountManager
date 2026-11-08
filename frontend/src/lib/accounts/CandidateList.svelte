@@ -1,7 +1,5 @@
 <script lang="ts">
-	import checkBoldIcon from "@phosphor-icons/core/bold/check-bold.svg?raw"
-	import minusBoldIcon from "@phosphor-icons/core/bold/minus-bold.svg?raw"
-	import Icon from "../shared/Icon.svelte"
+	import CheckboxMark from "../shared/CheckboxMark.svelte"
 	import ProfileImage from "../shared/ProfileImage.svelte"
 	import type { CandidateListItem } from "./candidate-model"
 
@@ -22,7 +20,7 @@
 	} = $props()
 
 	const selectableCount = $derived(
-			selectionTotal ?? items.filter((item) => item.selectable).length,
+			selectionTotal ?? items.filter((candidate) => candidate.selectable).length,
 		),
 		allSelected = $derived(
 			selectableCount > 0 && selected.length === selectableCount,
@@ -43,15 +41,7 @@
 					indeterminate={someSelected}
 					disabled={disabled || selectableCount === 0}
 					onchange={onToggleAll} />
-				<span aria-hidden="true">
-					{#if someSelected}<Icon
-							svg={minusBoldIcon}
-							size={11}
-							aria-hidden="true" />{:else}<Icon
-							svg={checkBoldIcon}
-							size={11}
-							aria-hidden="true" />{/if}
-				</span>
+				<CheckboxMark isIndeterminate={someSelected} />
 			</span>
 			<span>{allSelected ? "Clear selection" : "Select all"}</span>
 		</label>
@@ -59,52 +49,49 @@
 			>{selected.length} of {selectableCount} selected</span>
 	</div>
 	<ol class="flex max-h-44 flex-col overflow-x-hidden overflow-y-auto">
-		{#each items as item (item.id)}
+		{#each items as candidate (candidate.id)}
 			<li
 				class={[
 					"flex min-h-9 items-center gap-2 px-2 py-1 text-xs leading-snug not-first:border-t not-first:border-line-subtle",
-					item.error ? "text-danger-muted" : "text-fg-muted",
+					candidate.error ? "text-danger-muted" : "text-fg-muted",
 				]}>
 				<label class="checkbox">
 					<input
 						type="checkbox"
-						checked={selected.includes(item.id)}
-						disabled={disabled || !item.selectable}
-						aria-label={item.selectionLabel}
+						checked={selected.includes(candidate.id)}
+						disabled={disabled || !candidate.selectable}
+						aria-label={candidate.selectionLabel}
 						onchange={(event) =>
-							onToggle(item.id, event.currentTarget.checked)} />
-					<span aria-hidden="true"
-						><Icon
-							svg={checkBoldIcon}
-							size={11}
-							aria-hidden="true" /></span>
+							onToggle(candidate.id, event.currentTarget.checked)} />
+					<CheckboxMark />
 				</label>
-				{#if item.indexLabel}<span
+				{#if candidate.indexLabel}<span
 						class="w-5 shrink-0 text-right font-mono text-fg-faint"
-						>{item.indexLabel}</span
+						>{candidate.indexLabel}</span
 					>{/if}
-				{#if item.duplicateText}
+				{#if candidate.duplicateText}
 					<span class="min-w-0 flex-1 wrap-anywhere text-warning"
-						>{item.duplicateText}</span>
-				{:else if item.error}
-					<span class="min-w-0 flex-1 wrap-anywhere">{item.error}</span>
+						>{candidate.duplicateText}</span>
+				{:else if candidate.error}
+					<span class="min-w-0 flex-1 wrap-anywhere">{candidate.error}</span>
 				{:else}
 					<span
 						class="relative grid size-6 shrink-0 place-items-center overflow-hidden rounded-md border border-line bg-raised text-fg-faint"
 						aria-hidden="true">
-						<ProfileImage url={item.avatarUrl ?? ""} />
+						<ProfileImage url={candidate.avatarUrl ?? ""} />
 					</span>
 					<span
 						class="flex min-w-0 flex-1 items-baseline gap-1 overflow-hidden whitespace-nowrap">
 						<span class="min-w-0 truncate font-medium text-fg"
-							>{item.displayName}</span>
-						<span class="shrink-0 text-fg-faint">@{item.username}</span>
+							>{candidate.displayName}</span>
+						<span class="shrink-0 text-fg-faint"
+							>@{candidate.username}</span>
 						<span class="shrink-0 font-mono text-fg-faint"
-							>- ID: {item.robloxUserId}</span>
+							>- ID: {candidate.robloxUserId}</span>
 					</span>
-					{#if item.status}<span
+					{#if candidate.status}<span
 							class="rounded-sm border border-warning/30 px-1 py-0.5 text-2xs whitespace-nowrap text-warning"
-							>{item.status}</span
+							>{candidate.status}</span
 						>{/if}
 				{/if}
 			</li>

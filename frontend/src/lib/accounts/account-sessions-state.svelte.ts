@@ -2,6 +2,7 @@ import { accountBackend } from "../backend/bridge"
 import type { AccountSession } from "../backend/bridge"
 import type { NotificationCenter } from "../notifications/notification-center.svelte"
 import type { AccountStore } from "./account-store.svelte"
+import { AccountScope } from "./account-scope"
 import { errorMessage } from "../shared/errors"
 
 export class AccountSessionsState {
@@ -10,9 +11,7 @@ export class AccountSessionsState {
 	signingOut = $state(false)
 	error = $state("")
 	signOutError = $state("")
-	#active = true
-	#request: ReturnType<typeof accountBackend.GetAccountSessions> | null = null
-	readonly #accountId: number
+	readonly #scope: AccountScope
 	readonly #store: AccountStore
 	readonly #notifications: NotificationCenter
 
@@ -21,60 +20,59 @@ export class AccountSessionsState {
 		store: AccountStore,
 		notifications: NotificationCenter,
 	) {
-		this.#accountId = accountId
+		this.#scope = new AccountScope(accountId, store)
 		this.#store = store
 		this.#notifications = notifications
 	}
 
-	#current(): boolean {
-		return (
-			this.#active &&
-			this.#store.vault.unlocked &&
-			this.#store.selectedAccount.id === this.#accountId
-		)
-	}
-
 	async refresh(): Promise<void> {
-		if (!this.#current() || this.loading || this.signingOut) return
+		if (!this.#scope.isCurrent || this.loading || this.signingOut) return
 		this.loading = true
 		this.error = ""
 		try {
-			this.#request = accountBackend.GetAccountSessions(this.#accountId)
-			const sessions = await this.#request
-			if (!this.#current()) return
+			const sessions = await this.#scope.track(
+				accountBackend.GetAccountSessions(this.#scope.accountId),
+			)
+			if (!this.#scope.isCurrent) return
 			this.sessions = sessions ?? []
 		} catch (error) {
-			if (!this.#current()) return
+			if (!this.#scope.isCurrent) return
 			this.error = errorMessage(
 				error,
 				"Could not load sessions. Refresh to retry.",
 			)
 		} finally {
-			this.#request = null
-			if (this.#current()) this.loading = false
+			if (this.#scope.isCurrent) this.loading = false
 		}
 	}
 
 	async signOutOthers(): Promise<boolean> {
-		if (!this.#current() || this.loading || this.signingOut || this.#store.busy) {
+		if (
+			!this.#scope.isCurrent ||
+			this.loading ||
+			this.signingOut ||
+			this.#store.busy
+		) {
 			return false
 		}
 		this.signingOut = true
 		this.signOutError = ""
 		this.#store.busy = true
 		try {
-			const result = await accountBackend.SignOutOtherSessions(this.#accountId)
+			const signOutResult = await accountBackend.SignOutOtherSessions(
+				this.#scope.accountId,
+			)
 			this.#notifications.show({
-				id: `sessions-sign-out-${this.#accountId}`,
-				tone: result.warning ? "warning" : "success",
+				id: `sessions-sign-out-${this.#scope.accountId}`,
+				tone: signOutResult.warning ? "warning" : "success",
 				title: "Other sessions signed out",
 				message:
-					result.warning ||
+					signOutResult.warning ||
 					"Every other browser, device, and app was signed out. This app stays signed in.",
 			})
 			return true
 		} catch (error) {
-			if (this.#current()) {
+			if (this.#scope.isCurrent) {
 				this.signOutError = errorMessage(
 					error,
 					"Could not sign out other sessions. Refresh sessions to check.",
@@ -84,7 +82,7 @@ export class AccountSessionsState {
 		} finally {
 			this.#store.busy = false
 			this.signingOut = false
-			if (this.#current()) {
+			if (this.#scope.isCurrent) {
 				void this.#store.refreshAccounts()
 				void this.refresh()
 			}
@@ -92,9 +90,7 @@ export class AccountSessionsState {
 	}
 
 	dispose(): void {
-		this.#active = false
-		void this.#request?.cancel()
-		this.#request = null
+		this.#scope.dispose()
 		this.sessions = null
 		this.loading = false
 		this.error = ""

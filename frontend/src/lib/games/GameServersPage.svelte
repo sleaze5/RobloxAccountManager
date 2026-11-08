@@ -1,14 +1,13 @@
 <script lang="ts">
 	import arrowSquareOutIcon from "@phosphor-icons/core/regular/arrow-square-out.svg?raw"
-	import arrowsClockwiseIcon from "@phosphor-icons/core/regular/arrows-clockwise.svg?raw"
 	import caretLeftIcon from "@phosphor-icons/core/regular/caret-left.svg?raw"
-	import circleNotchIcon from "@phosphor-icons/core/regular/circle-notch.svg?raw"
 	import hashIcon from "@phosphor-icons/core/regular/hash.svg?raw"
 	import linkIcon from "@phosphor-icons/core/regular/link.svg?raw"
 	import listPlusIcon from "@phosphor-icons/core/regular/list-plus.svg?raw"
 	import slidersHorizontalIcon from "@phosphor-icons/core/regular/sliders-horizontal.svg?raw"
 	import trashIcon from "@phosphor-icons/core/regular/trash.svg?raw"
 	import Icon from "../shared/Icon.svelte"
+	import RefreshIcon from "../shared/RefreshIcon.svelte"
 	import { onMount, untrack } from "svelte"
 	import type { AccountStore } from "../accounts/account-store.svelte"
 	import type { NotificationCenter } from "../notifications/notification-center.svelte"
@@ -240,7 +239,9 @@
 
 	function actionsFor(key: string): ServerMenuAction[] {
 		if (source === "rbxservers") {
-			const server = listedServers.page?.servers?.find((item) => item.id === key)
+			const server = listedServers.page?.servers?.find(
+				(listed) => listed.id === key,
+			)
 			return server
 				? [
 						{
@@ -270,7 +271,7 @@
 		}
 		if (source === "private" && key.startsWith("saved-")) {
 			const server = savedServers.servers?.find(
-				(item) => `saved-${item.id}` === key,
+				(saved) => `saved-${saved.id}` === key,
 			)
 			if (!server) return []
 			return [
@@ -285,7 +286,7 @@
 		}
 		if (source === "private") {
 			const server = privateServers.page?.servers?.find(
-					(item) => String(item.serverId) === key,
+					(owned) => String(owned.serverId) === key,
 				),
 				account = accounts.selectedAccount
 			if (!server) return []
@@ -367,19 +368,7 @@
 			aria-busy={active.loading}
 			disabled={active.loading}
 			onclick={refresh}>
-			{#if active.loading}
-				<Icon
-					svg={circleNotchIcon}
-					class="spinner"
-					size={16}
-					aria-hidden="true" />
-			{:else}
-				<Icon
-					svg={arrowsClockwiseIcon}
-					data-turn
-					size={16}
-					aria-hidden="true" />
-			{/if}
+			<RefreshIcon isRefreshing={active.loading} />
 		</button>
 	</header>
 

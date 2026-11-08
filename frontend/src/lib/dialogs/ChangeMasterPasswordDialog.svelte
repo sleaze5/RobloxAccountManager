@@ -1,6 +1,6 @@
 <script lang="ts">
+	import CheckboxMark from "../shared/CheckboxMark.svelte"
 	import { automaticUnlockDialogDescription } from "../shared/automatic-unlock"
-	import checkBoldIcon from "@phosphor-icons/core/bold/check-bold.svg?raw"
 	import checkIcon from "@phosphor-icons/core/regular/check.svg?raw"
 	import eyeIcon from "@phosphor-icons/core/regular/eye.svg?raw"
 	import eyeSlashIcon from "@phosphor-icons/core/regular/eye-slash.svg?raw"
@@ -146,11 +146,7 @@
 			<label class="flex items-center gap-1">
 				<span class="checkbox">
 					<input bind:checked={automaticUnlock} type="checkbox" />
-					<span aria-hidden="true"
-						><Icon
-							svg={checkBoldIcon}
-							size={11}
-							aria-hidden="true" /></span>
+					<CheckboxMark />
 				</span>
 				Enable automatic unlock
 			</label>

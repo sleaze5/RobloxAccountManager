@@ -30,8 +30,8 @@
 		store.busy = true
 		dialog?.focus()
 		try {
-			const result = await accountBackend.RenewCookie(account.id)
-			warning = result.warning ?? ""
+			const renewal = await accountBackend.RenewCookie(account.id)
+			warning = renewal.warning ?? ""
 		} catch (cause) {
 			error = errorMessage(cause, "The renewal failed.")
 		} finally {

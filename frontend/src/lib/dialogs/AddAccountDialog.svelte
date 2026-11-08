@@ -18,7 +18,8 @@
 		selectedUpdateCount = $derived(
 			selectedIndexes.filter((index) =>
 				preview?.items?.some(
-					(item) => item.index === index && item.updatesExisting,
+					(previewItem) =>
+						previewItem.index === index && previewItem.updatesExisting,
 				),
 			).length,
 		),
@@ -29,26 +30,26 @@
 				selectedCount === preview.readyCount,
 		)
 	const candidateItems = $derived<CandidateListItem[]>(
-		(preview?.items ?? []).map((item) => ({
-			avatarUrl: item.avatarUrl,
-			displayName: accountName(item),
-			duplicateText: item.sameAccountAsIndex
-				? `Same account as cookie #${item.sameAccountAsIndex}`
+		(preview?.items ?? []).map((previewItem) => ({
+			avatarUrl: previewItem.avatarUrl,
+			displayName: accountName(previewItem),
+			duplicateText: previewItem.sameAccountAsIndex
+				? `Same account as cookie #${previewItem.sameAccountAsIndex}`
 				: undefined,
-			error: item.authenticated
+			error: previewItem.authenticated
 				? undefined
-				: `failed to authenticate - ${item.errorStatus}: ${item.errorMessage}`,
-			id: String(item.index),
-			indexLabel: `${item.index}.`,
-			robloxUserId: item.robloxUserId,
-			selectable: item.ready,
-			selectionLabel: selectionLabel(item),
-			status: item.updatesExisting
-				? groupIsSelected(item)
+				: `failed to authenticate - ${previewItem.errorStatus}: ${previewItem.errorMessage}`,
+			id: String(previewItem.index),
+			indexLabel: `${previewItem.index}.`,
+			robloxUserId: previewItem.robloxUserId,
+			selectable: previewItem.ready,
+			selectionLabel: selectionLabel(previewItem),
+			status: previewItem.updatesExisting
+				? groupIsSelected(previewItem)
 					? "Update cookie"
 					: "Already added"
 				: undefined,
-			username: item.username,
+			username: previewItem.username,
 		})),
 	)
 

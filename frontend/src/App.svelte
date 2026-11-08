@@ -252,6 +252,13 @@
 		activePage = "settings"
 	}
 
+	async function showLaunchDrawer(focusSelector: string): Promise<void> {
+		workspace.launchOpen = true
+		activePage = "accounts"
+		await tick()
+		document.querySelector<HTMLInputElement>(focusSelector)?.focus()
+	}
+
 	async function fillLaunchOptions(server: {
 		placeId: string
 		jobId: string
@@ -259,31 +266,19 @@
 		store.launchInput.method = LaunchMethod.MethodPlace
 		store.launchInput.placeId = server.placeId
 		store.launchInput.jobId = server.jobId
-		workspace.launchOpen = true
-		activePage = "accounts"
-		await tick()
-		document.querySelector<HTMLInputElement>("[data-place-input]")?.focus()
+		await showLaunchDrawer("[data-place-input]")
 	}
 
 	async function fillGameLaunchOptions(placeId: number, jobId = ""): Promise<void> {
-		store.launchInput.method = LaunchMethod.MethodPlace
-		store.launchInput.placeId = String(placeId)
-		store.launchInput.jobId = jobId
 		store.launchInput.launchData = ""
-		workspace.launchOpen = true
-		activePage = "accounts"
-		await tick()
-		document.querySelector<HTMLInputElement>("[data-place-input]")?.focus()
+		await fillLaunchOptions({ placeId: String(placeId), jobId })
 	}
 
 	async function fillGameLaunchLink(link: string): Promise<void> {
 		store.launchInput.method = LaunchMethod.MethodLink
 		store.launchInput.link = link
 		store.launchInput.launchData = ""
-		workspace.launchOpen = true
-		activePage = "accounts"
-		await tick()
-		document.querySelector<HTMLInputElement>("[data-launch-link]")?.focus()
+		await showLaunchDrawer("[data-launch-link]")
 	}
 
 	async function searchGames(text: string): Promise<void> {

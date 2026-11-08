@@ -1,55 +1,47 @@
 import { accountBackend } from "../backend/bridge"
 import type { AccountInfoSnapshot } from "../backend/bridge"
 import type { AccountStore } from "./account-store.svelte"
+import { AccountScope } from "./account-scope"
 import { errorMessage } from "../shared/errors"
 
 export class AccountInfoState {
 	snapshot = $state<AccountInfoSnapshot | null>(null)
 	loading = $state(false)
 	error = $state("")
-	#active = true
-	#request: ReturnType<typeof accountBackend.GetAccountInfo> | null = null
-	readonly #accountId: number
-	readonly #store: AccountStore
+	readonly #scope: AccountScope
 
 	constructor(accountId: number, store: AccountStore) {
-		this.#accountId = accountId
-		this.#store = store
-	}
-
-	#current(): boolean {
-		return (
-			this.#active &&
-			this.#store.vault.unlocked &&
-			this.#store.selectedAccount.id === this.#accountId
-		)
+		this.#scope = new AccountScope(accountId, store)
 	}
 
 	async refresh(): Promise<void> {
-		if (!this.#current() || this.loading) return
+		if (!this.#scope.isCurrent || this.loading) return
 		this.loading = true
 		this.error = ""
 		try {
-			this.#request = accountBackend.GetAccountInfo(this.#accountId)
-			const snapshot = await this.#request
-			if (!this.#current() || snapshot.accountId !== this.#accountId) return
+			const snapshot = await this.#scope.track(
+				accountBackend.GetAccountInfo(this.#scope.accountId),
+			)
+			if (
+				!this.#scope.isCurrent ||
+				snapshot.accountId !== this.#scope.accountId
+			) {
+				return
+			}
 			this.snapshot = snapshot
 		} catch (error) {
-			if (!this.#current()) return
+			if (!this.#scope.isCurrent) return
 			this.error = errorMessage(
 				error,
 				"Could not load account info. Refresh to retry.",
 			)
 		} finally {
-			this.#request = null
-			if (this.#current()) this.loading = false
+			if (this.#scope.isCurrent) this.loading = false
 		}
 	}
 
 	dispose(): void {
-		this.#active = false
-		void this.#request?.cancel()
-		this.#request = null
+		this.#scope.dispose()
 		this.snapshot = null
 		this.loading = false
 		this.error = ""

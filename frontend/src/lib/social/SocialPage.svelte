@@ -1,7 +1,6 @@
 <script lang="ts">
 	import { onDestroy, tick, untrack } from "svelte"
 	import arrowRightIcon from "@phosphor-icons/core/regular/arrow-right.svg?raw"
-	import arrowsClockwiseIcon from "@phosphor-icons/core/regular/arrows-clockwise.svg?raw"
 	import caretLeftIcon from "@phosphor-icons/core/regular/caret-left.svg?raw"
 	import caretRightIcon from "@phosphor-icons/core/regular/caret-right.svg?raw"
 	import circleNotchIcon from "@phosphor-icons/core/regular/circle-notch.svg?raw"
@@ -12,6 +11,7 @@
 	import warningIcon from "@phosphor-icons/core/regular/warning.svg?raw"
 	import xIcon from "@phosphor-icons/core/regular/x.svg?raw"
 	import Icon from "../shared/Icon.svelte"
+	import RefreshIcon from "../shared/RefreshIcon.svelte"
 	import { PresenceType, SocialList } from "../backend/bridge"
 	import type { SocialUser } from "../backend/bridge"
 	import type { AccountStore } from "../accounts/account-store.svelte"
@@ -74,11 +74,11 @@
 		searchError = $state("")
 	const account = $derived(accounts.selectedAccount),
 		accountOptions = $derived(
-			accounts.accounts.map((item) => ({
-				value: item.id,
-				label: item.displayName,
-				description: `@${item.username}`,
-				image: item.avatarUrl,
+			accounts.accounts.map((savedAccount) => ({
+				value: savedAccount.id,
+				label: savedAccount.displayName,
+				description: `@${savedAccount.username}`,
+				image: savedAccount.avatarUrl,
 			})),
 		),
 		subject = $derived(store.subject),
@@ -219,19 +219,7 @@
 					data-tooltip-side="bottom-end"
 					disabled={account.id === 0 || store.loading}
 					onclick={() => void store.refresh()}>
-					{#if store.loading}
-						<Icon
-							svg={circleNotchIcon}
-							class="spinner"
-							size={16}
-							aria-hidden="true" />
-					{:else}
-						<Icon
-							svg={arrowsClockwiseIcon}
-							data-turn
-							size={16}
-							aria-hidden="true" />
-					{/if}
+					<RefreshIcon isRefreshing={store.loading} />
 				</button>
 			{/snippet}
 			{#snippet tools()}

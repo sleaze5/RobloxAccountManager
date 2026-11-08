@@ -221,15 +221,15 @@
 				Examples use Wednesday, March 4, 2026, at 9:05:07.042 PM.
 			</p>
 			<dl class="grid grid-cols-2 gap-x-4 gap-y-0.5">
-				{#each tokenReference as item (item.token)}
+				{#each tokenReference as reference (reference.token)}
 					<div class="flex items-baseline gap-2">
 						<dt class="w-16 shrink-0">
-							<code class={codeClass}>{item.token}</code>
+							<code class={codeClass}>{reference.token}</code>
 						</dt>
 						<dd class="flex min-w-0 flex-1 justify-between gap-2">
-							{item.label}<span
+							{reference.label}<span
 								class="font-mono text-2xs whitespace-nowrap text-fg-faint"
-								>{item.example}</span>
+								>{reference.example}</span>
 						</dd>
 					</div>
 				{/each}

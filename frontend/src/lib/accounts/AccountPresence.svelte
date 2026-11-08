@@ -83,12 +83,12 @@
 		place = rootPlace = null
 		if (id <= 0 || placeId <= 0) return
 		let current = true
-		void loadGamePlace(id, placeId).then((result) => {
+		void loadGamePlace(id, placeId).then((loaded) => {
 			if (current) {
-				place = result?.place ?? null
-				rootPlace = result?.rootPlace ?? null
+				place = loaded?.place ?? null
+				rootPlace = loaded?.rootPlace ?? null
 			}
-			return result
+			return loaded
 		})
 		return () => {
 			current = false

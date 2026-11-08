@@ -5,10 +5,10 @@
 	import Icon from "../shared/Icon.svelte"
 	import type { Account } from "../accounts/account-model"
 	import { accountBackend, TextModeration } from "../backend/bridge"
-	import type { TextFilter } from "../backend/bridge"
 	import type { NotificationCenter } from "../notifications/notification-center.svelte"
 	import { replayValidationNudge } from "../shared/presence"
 	import { errorMessage } from "../shared/errors"
+	import { TextFilterCheck } from "../shared/text-filter-check.svelte"
 	import Dialog from "../shared/Dialog.svelte"
 
 	let {
@@ -27,21 +27,12 @@
 
 	let value = $state(untrack(() => description)),
 		pending = $state<"validate" | "submit" | "save" | null>(null),
-		validated = $state<{ text: string; filter: TextFilter | null } | null>(null),
 		error = $state(""),
 		card = $state<HTMLDivElement>(),
 		field = $state<HTMLTextAreaElement>()
 	const text = $derived(value.trim()),
 		changed = $derived(text !== description.trim()),
-		result = $derived(validated?.text === text ? validated : null),
-		clean = $derived(
-			result?.filter?.moderation === TextModeration.TextModerationNone,
-		),
-		tagged = $derived(
-			!!result?.filter &&
-				result.filter.moderation !== TextModeration.TextModerationNone,
-		),
-		preview = $derived(tagged ? result?.filter?.filteredText : undefined)
+		check = new TextFilterCheck(() => text)
 
 	function close(): void {
 		if (!pending) onClose()
@@ -52,14 +43,10 @@
 		pending = mode
 		error = ""
 		try {
-			const filter = await accountBackend.ValidateAccountDescription(
-				account.id,
-				validatedText,
+			return await check.run(validatedText, () =>
+				accountBackend.ValidateAccountDescription(account.id, validatedText),
 			)
-			validated = { text: validatedText, filter }
-			return filter.moderation === TextModeration.TextModerationNone
 		} catch (cause) {
-			validated = { text: validatedText, filter: null }
 			error = errorMessage(
 				cause,
 				"Could not validate the description. Try again.",
@@ -71,7 +58,7 @@
 	}
 
 	async function edit(): Promise<void> {
-		validated = null
+		check.clear()
 		await tick()
 		field?.focus()
 	}
@@ -105,7 +92,7 @@
 	async function submit(): Promise<void> {
 		if (!changed || pending) {
 			replayValidationNudge(card)
-		} else if (text === "" || result || (await validate("submit"))) {
+		} else if (text === "" || check.current || (await validate("submit"))) {
 			await save()
 		}
 	}
@@ -139,12 +126,14 @@
 
 		<label class="dialog-field">
 			<span>Description</span>
-			{#if preview === undefined}
+			{#if check.filteredPreview === undefined}
 				<textarea bind:this={field} bind:value disabled={pending !== null}
 				></textarea>
 			{:else}
-				<textarea value={preview} readonly disabled={pending !== null}
-				></textarea>
+				<textarea
+					value={check.filteredPreview}
+					readonly
+					disabled={pending !== null}></textarea>
 			{/if}
 		</label>
 
@@ -153,11 +142,11 @@
 				<div class="mt-3 notice-warning">
 					This removes the description from @{account.username}'s profile.
 				</div>
-			{:else if clean}
+			{:else if check.isClean}
 				<span class="sr-only">Roblox's filter won't tag this text.</span>
-			{:else if result?.filter?.moderation === TextModeration.TextModerationPartial}
+			{:else if check.current?.filter?.moderation === TextModeration.TextModerationPartial}
 				<span class="sr-only">Roblox will tag part of this text.</span>
-			{:else if result?.filter?.moderation === TextModeration.TextModerationFull}
+			{:else if check.current?.filter?.moderation === TextModeration.TextModerationFull}
 				<span class="sr-only">Roblox will tag all of this text.</span>
 			{/if}
 		</div>
@@ -177,15 +166,18 @@
 				type="button"
 				aria-busy={pending === "validate"}
 				disabled={pending !== null ||
-					(preview === undefined && (text === "" || result !== null))}
+					(check.filteredPreview === undefined &&
+						(text === "" || check.current !== null))}
 				onclick={() =>
-					void (preview === undefined ? validate("validate") : edit())}>
+					void (check.filteredPreview === undefined
+						? validate("validate")
+						: edit())}>
 				{#if pending === "validate"}
 					Validating…
-				{:else if preview !== undefined}
+				{:else if check.filteredPreview !== undefined}
 					Edit
 				{:else}
-					{#if clean}<Icon
+					{#if check.isClean}<Icon
 							svg={checkCircleIcon}
 							class="text-success"
 							size={14}
@@ -194,7 +186,7 @@
 				{/if}
 			</button>
 			<button
-				class={tagged ? "button-warning" : "button-primary"}
+				class={check.isTagged ? "button-warning" : "button-primary"}
 				type="submit"
 				aria-busy={pending === "submit" || pending === "save"}
 				disabled={!changed || pending !== null}>
@@ -202,9 +194,9 @@
 					Validating…
 				{:else if pending === "save"}
 					Saving…
-				{:else if result && !result.filter}
+				{:else if check.current && !check.current.filter}
 					Save without validating
-				{:else if tagged}
+				{:else if check.isTagged}
 					Save anyway
 				{:else}
 					Save description

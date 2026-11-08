@@ -367,7 +367,7 @@ export class GamesStore {
 				await this.#saveRequest
 				if (this.#epoch !== epoch) return
 				this.favorites = this.favorites.filter(
-					(item) => item.placeId !== place.placeId,
+					(favorite) => favorite.placeId !== place.placeId,
 				)
 			} else {
 				const request = accountBackend.AddFavoritePlace(place.placeId)
@@ -376,7 +376,9 @@ export class GamesStore {
 				if (this.#epoch !== epoch) return
 				this.favorites = [
 					saved,
-					...this.favorites.filter((item) => item.placeId !== saved.placeId),
+					...this.favorites.filter(
+						(favorite) => favorite.placeId !== saved.placeId,
+					),
 				]
 			}
 		} catch (error) {
@@ -443,7 +445,9 @@ export class GamesStore {
 
 	async saveNickname(place: GamePlace, nickname: string): Promise<boolean> {
 		const epoch = this.#epoch,
-			current = this.favorites.find((item) => item.placeId === place.placeId)
+			current = this.favorites.find(
+				(favorite) => favorite.placeId === place.placeId,
+			)
 		if (!current || this.savingFavorite || this.savingNickname) return false
 		if (current.nickname === nickname.trim()) return true
 		this.savingNickname = true
@@ -456,8 +460,10 @@ export class GamesStore {
 			this.#saveRequest = request
 			const saved = await request
 			if (this.#epoch !== epoch) return false
-			this.favorites = this.favorites.map((item) =>
-				item.placeId === current.placeId ? { ...item, nickname: saved } : item,
+			this.favorites = this.favorites.map((favorite) =>
+				favorite.placeId === current.placeId
+					? { ...favorite, nickname: saved }
+					: favorite,
 			)
 			return true
 		} catch (error) {

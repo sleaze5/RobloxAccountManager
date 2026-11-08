@@ -4,10 +4,10 @@
 	import xIcon from "@phosphor-icons/core/regular/x.svg?raw"
 	import Icon from "../shared/Icon.svelte"
 	import { accountBackend, TextModeration } from "../backend/bridge"
-	import type { TextFilter } from "../backend/bridge"
 	import type { NotificationCenter } from "../notifications/notification-center.svelte"
 	import { replayValidationNudge } from "../shared/presence"
 	import { errorMessage } from "../shared/errors"
+	import { TextFilterCheck } from "../shared/text-filter-check.svelte"
 	import Dialog from "../shared/Dialog.svelte"
 	import type { PrivateServerState } from "./private-server-state.svelte"
 
@@ -28,23 +28,14 @@
 		current = untrack(() => server.settings?.name ?? "")
 	let value = $state(current),
 		validating = $state<"validate" | "submit" | null>(null),
-		validated = $state<{ text: string; filter: TextFilter | null } | null>(null),
 		error = $state(""),
 		card = $state<HTMLDivElement>(),
 		field = $state<HTMLInputElement>()
 	const text = $derived(value.trim()),
 		changed = $derived(text !== "" && text !== current),
-		result = $derived(validated?.text === text ? validated : null),
-		clean = $derived(
-			result?.filter?.moderation === TextModeration.TextModerationNone,
-		),
-		tagged = $derived(
-			!!result?.filter &&
-				result.filter.moderation !== TextModeration.TextModerationNone,
-		),
-		preview = $derived(tagged ? result?.filter?.filteredText : undefined),
 		renaming = $derived(server.pending === "rename"),
-		busy = $derived(validating !== null || renaming)
+		busy = $derived(validating !== null || renaming),
+		check = new TextFilterCheck(() => text)
 
 	function close(): void {
 		if (!busy) onClose()
@@ -55,14 +46,13 @@
 		validating = mode
 		error = ""
 		try {
-			const filter = await accountBackend.ValidatePrivateServerName(
-				server.accountId,
-				validatedText,
+			return await check.run(validatedText, () =>
+				accountBackend.ValidatePrivateServerName(
+					server.accountId,
+					validatedText,
+				),
 			)
-			validated = { text: validatedText, filter }
-			return filter.moderation === TextModeration.TextModerationNone
 		} catch (cause) {
-			validated = { text: validatedText, filter: null }
 			error = errorMessage(cause, "Could not validate the name. Try again.")
 			return false
 		} finally {
@@ -71,7 +61,7 @@
 	}
 
 	async function edit(): Promise<void> {
-		validated = null
+		check.clear()
 		await tick()
 		field?.focus()
 	}
@@ -95,7 +85,7 @@
 	async function submit(): Promise<void> {
 		if (!changed || busy) {
 			replayValidationNudge(card)
-		} else if (result || (await validate("submit"))) {
+		} else if (check.current || (await validate("submit"))) {
 			await rename()
 		}
 	}
@@ -129,7 +119,7 @@
 		</div>
 		<div class="dialog-field mt-0">
 			<label for={`${id}-name`}>Name</label>
-			{#if preview === undefined}
+			{#if check.filteredPreview === undefined}
 				<input
 					id={`${id}-name`}
 					class="field"
@@ -146,7 +136,7 @@
 					class="field"
 					type="text"
 					aria-describedby={`${id}-count`}
-					value={preview}
+					value={check.filteredPreview}
 					readonly
 					disabled={busy} />
 			{/if}
@@ -156,11 +146,11 @@
 				>{Array.from(value).length}/{maximumLength}</small>
 		</div>
 		<div aria-live="polite">
-			{#if clean}
+			{#if check.isClean}
 				<span class="sr-only">Roblox's filter won't tag this name.</span>
-			{:else if result?.filter?.moderation === TextModeration.TextModerationPartial}
+			{:else if check.current?.filter?.moderation === TextModeration.TextModerationPartial}
 				<span class="sr-only">Roblox will tag part of this name.</span>
-			{:else if result?.filter?.moderation === TextModeration.TextModerationFull}
+			{:else if check.current?.filter?.moderation === TextModeration.TextModerationFull}
 				<span class="sr-only">Roblox will tag all of this name.</span>
 			{/if}
 		</div>
@@ -175,15 +165,18 @@
 				type="button"
 				aria-busy={validating === "validate"}
 				disabled={busy ||
-					(preview === undefined && (text === "" || result !== null))}
+					(check.filteredPreview === undefined &&
+						(text === "" || check.current !== null))}
 				onclick={() =>
-					void (preview === undefined ? validate("validate") : edit())}>
+					void (check.filteredPreview === undefined
+						? validate("validate")
+						: edit())}>
 				{#if validating === "validate"}
 					Validating…
-				{:else if preview !== undefined}
+				{:else if check.filteredPreview !== undefined}
 					Edit
 				{:else}
-					{#if clean}<Icon
+					{#if check.isClean}<Icon
 							svg={checkCircleIcon}
 							class="text-success"
 							size={14}
@@ -192,7 +185,7 @@
 				{/if}
 			</button>
 			<button
-				class={tagged ? "button-warning" : "button-primary"}
+				class={check.isTagged ? "button-warning" : "button-primary"}
 				type="submit"
 				aria-busy={validating === "submit" || renaming}
 				disabled={!changed || busy}>
@@ -200,9 +193,9 @@
 					Validating…
 				{:else if renaming}
 					Renaming…
-				{:else if result && !result.filter}
+				{:else if check.current && !check.current.filter}
 					Rename without validating
-				{:else if tagged}
+				{:else if check.isTagged}
 					Rename anyway
 				{:else}
 					Rename server

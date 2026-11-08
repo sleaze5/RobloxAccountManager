@@ -4,6 +4,8 @@
 	import warningIcon from "@phosphor-icons/core/regular/warning.svg?raw"
 	import Icon from "../shared/Icon.svelte"
 	import ServerActionsButton from "./ServerActionsButton.svelte"
+	import { openServerMenuFromRow } from "./server-row-menu"
+	import type { ServerMenuOpener } from "./server-row-menu"
 	import type { ListedServers } from "./game-servers-state.svelte"
 
 	let {
@@ -15,7 +17,7 @@
 		servers: ListedServers
 		activeKey: string | undefined
 		menuID: string
-		onMenu: (key: string, trigger: HTMLElement, toggle: boolean) => void
+		onMenu: ServerMenuOpener
 	} = $props()
 
 	const numbers = new Intl.NumberFormat(),
@@ -65,15 +67,8 @@
 					<li
 						class="server-row"
 						data-open={activeKey === server.id || undefined}
-						oncontextmenu={(event) => {
-							const trigger =
-								event.currentTarget.querySelector<HTMLElement>(
-									"[data-server-actions]",
-								)
-							if (!trigger) return
-							event.preventDefault()
-							onMenu(server.id, trigger, true)
-						}}>
+						oncontextmenu={(event) =>
+							openServerMenuFromRow(event, server.id, onMenu)}>
 						<span
 							class="truncate text-xs font-medium text-fg"
 							data-tooltip={server.name || undefined}

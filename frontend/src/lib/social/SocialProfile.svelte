@@ -1,6 +1,5 @@
 <script lang="ts">
 	import arrowSquareOutIcon from "@phosphor-icons/core/regular/arrow-square-out.svg?raw"
-	import arrowsClockwiseIcon from "@phosphor-icons/core/regular/arrows-clockwise.svg?raw"
 	import backpackIcon from "@phosphor-icons/core/regular/backpack.svg?raw"
 	import calendarDotsIcon from "@phosphor-icons/core/regular/calendar-dots.svg?raw"
 	import circleNotchIcon from "@phosphor-icons/core/regular/circle-notch.svg?raw"
@@ -16,6 +15,7 @@
 	import userCirclePlusIcon from "@phosphor-icons/core/regular/user-circle-plus.svg?raw"
 	import usersThreeIcon from "@phosphor-icons/core/regular/users-three.svg?raw"
 	import Icon from "../shared/Icon.svelte"
+	import RefreshIcon from "../shared/RefreshIcon.svelte"
 	import { FriendStatus } from "../backend/bridge"
 	import type { SocialUser } from "../backend/bridge"
 	import type { AccountStore } from "../accounts/account-store.svelte"
@@ -187,19 +187,7 @@
 				aria-busy={store.loadingProfile}
 				disabled={store.loadingProfile}
 				onclick={() => void store.loadProfile(person.userId, true)}>
-				{#if store.loadingProfile}
-					<Icon
-						svg={circleNotchIcon}
-						class="spinner"
-						size={16}
-						aria-hidden="true" />
-				{:else}
-					<Icon
-						svg={arrowsClockwiseIcon}
-						data-turn
-						size={16}
-						aria-hidden="true" />
-				{/if}
+				<RefreshIcon isRefreshing={store.loadingProfile} />
 			</button>
 			<button
 				class="button-icon"

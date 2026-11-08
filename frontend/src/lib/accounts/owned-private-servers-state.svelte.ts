@@ -1,6 +1,7 @@
 import { accountBackend } from "../backend/bridge"
 import type { OwnedPrivateServer, PrivateServerSettings } from "../backend/bridge"
 import type { AccountStore } from "./account-store.svelte"
+import { AccountScope } from "./account-scope"
 import { errorMessage } from "../shared/errors"
 
 export class OwnedPrivateServersState {
@@ -8,22 +9,10 @@ export class OwnedPrivateServersState {
 	nextCursor = $state("")
 	loading = $state(false)
 	error = $state("")
-	#active = true
-	#request: ReturnType<typeof accountBackend.ListOwnedPrivateServers> | null = null
-	readonly #accountId: number
-	readonly #store: AccountStore
+	readonly #scope: AccountScope
 
 	constructor(accountId: number, store: AccountStore) {
-		this.#accountId = accountId
-		this.#store = store
-	}
-
-	#current(): boolean {
-		return (
-			this.#active &&
-			this.#store.vault.unlocked &&
-			this.#store.selectedAccount.id === this.#accountId
-		)
+		this.#scope = new AccountScope(accountId, store)
 	}
 
 	refresh(): Promise<void> {
@@ -35,7 +24,9 @@ export class OwnedPrivateServersState {
 	}
 
 	update(settings: PrivateServerSettings): void {
-		const server = this.servers?.find((item) => item.serverId === settings.serverId)
+		const server = this.servers?.find(
+			(ownedServer) => ownedServer.serverId === settings.serverId,
+		)
 		if (!server) return
 		server.name = settings.name
 		server.active = settings.active
@@ -44,14 +35,14 @@ export class OwnedPrivateServersState {
 	}
 
 	async #load(cursor: string): Promise<void> {
-		if (!this.#current() || this.loading) return
+		if (!this.#scope.isCurrent || this.loading) return
 		this.loading = true
 		this.error = ""
-		const request = accountBackend.ListOwnedPrivateServers(this.#accountId, cursor)
-		this.#request = request
 		try {
-			const page = await request
-			if (!this.#current()) return
+			const page = await this.#scope.track(
+				accountBackend.ListOwnedPrivateServers(this.#scope.accountId, cursor),
+			)
+			if (!this.#scope.isCurrent) return
 			const loaded = cursor ? (this.servers ?? []) : [],
 				known = new Set(loaded.map((server) => server.serverId))
 			this.servers = [
@@ -60,21 +51,18 @@ export class OwnedPrivateServersState {
 			]
 			this.nextCursor = page.nextCursor
 		} catch (error) {
-			if (!this.#current()) return
+			if (!this.#scope.isCurrent) return
 			this.error = errorMessage(
 				error,
 				"Could not load private servers. Refresh to retry.",
 			)
 		} finally {
-			this.#request = null
-			if (this.#current()) this.loading = false
+			if (this.#scope.isCurrent) this.loading = false
 		}
 	}
 
 	dispose(): void {
-		this.#active = false
-		void this.#request?.cancel()
-		this.#request = null
+		this.#scope.dispose()
 		this.servers = null
 		this.nextCursor = ""
 		this.loading = false

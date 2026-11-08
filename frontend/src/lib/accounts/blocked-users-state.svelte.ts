@@ -1,6 +1,7 @@
 import { accountBackend } from "../backend/bridge"
 import type { BlockedUser } from "../backend/bridge"
 import type { AccountStore } from "./account-store.svelte"
+import { AccountScope } from "./account-scope"
 import { errorMessage } from "../shared/errors"
 
 export class BlockedUsersState {
@@ -8,70 +9,56 @@ export class BlockedUsersState {
 	loading = $state(false)
 	unblocking = $state<number | null>(null)
 	error = $state("")
-	#active = true
-	#request: ReturnType<typeof accountBackend.GetBlockedUsers> | null = null
-	readonly #accountId: number
-	readonly #store: AccountStore
+	readonly #scope: AccountScope
 
 	constructor(accountId: number, store: AccountStore) {
-		this.#accountId = accountId
-		this.#store = store
-	}
-
-	#current(): boolean {
-		return (
-			this.#active &&
-			this.#store.vault.unlocked &&
-			this.#store.selectedAccount.id === this.#accountId
-		)
+		this.#scope = new AccountScope(accountId, store)
 	}
 
 	async refresh(): Promise<void> {
-		if (!this.#current() || this.loading || this.unblocking !== null) return
+		if (!this.#scope.isCurrent || this.loading || this.unblocking !== null) return
 		this.loading = true
 		this.error = ""
 		try {
-			this.#request = accountBackend.GetBlockedUsers(this.#accountId)
-			const users = await this.#request
-			if (!this.#current()) return
+			const users = await this.#scope.track(
+				accountBackend.GetBlockedUsers(this.#scope.accountId),
+			)
+			if (!this.#scope.isCurrent) return
 			this.users = users
 		} catch (error) {
-			if (!this.#current()) return
+			if (!this.#scope.isCurrent) return
 			this.error = errorMessage(
 				error,
 				"Could not load blocked users. Refresh to retry.",
 			)
 		} finally {
-			this.#request = null
-			if (this.#current()) this.loading = false
+			if (this.#scope.isCurrent) this.loading = false
 		}
 	}
 
 	async unblock(user: BlockedUser): Promise<void> {
-		if (!this.#current() || this.loading || this.unblocking !== null) return
+		if (!this.#scope.isCurrent || this.loading || this.unblocking !== null) return
 		this.unblocking = user.userId
 		this.error = ""
 		try {
-			await accountBackend.UnblockUser(this.#accountId, user.userId)
-			if (!this.#current()) return
+			await accountBackend.UnblockUser(this.#scope.accountId, user.userId)
+			if (!this.#scope.isCurrent) return
 			this.users = (this.users ?? []).filter(
-				(item) => item.userId !== user.userId,
+				(blockedUser) => blockedUser.userId !== user.userId,
 			)
 		} catch (error) {
-			if (!this.#current()) return
+			if (!this.#scope.isCurrent) return
 			this.error = errorMessage(
 				error,
 				"Could not unblock this user. Refresh to check.",
 			)
 		} finally {
-			if (this.#current()) this.unblocking = null
+			if (this.#scope.isCurrent) this.unblocking = null
 		}
 	}
 
 	dispose(): void {
-		this.#active = false
-		void this.#request?.cancel()
-		this.#request = null
+		this.#scope.dispose()
 		this.users = null
 		this.loading = false
 		this.unblocking = null
