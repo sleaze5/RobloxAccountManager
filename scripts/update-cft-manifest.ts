@@ -59,17 +59,32 @@ for (const platform of platforms) {
 	urls[platform] = validateURL(download.url, stable.version, platform)
 }
 
-const manifest = {
-	schemaVersion: 1,
-	version: stable.version,
-	sourceUrl: sourceURL,
-	generatedAt: new Date().toISOString(),
-	downloads: urls,
+const previousManifest = (await Bun.file(outputPath).json()) as {
+	version: string
+	downloads: Record<string, string>
 }
-try {
-	await Bun.write(temporaryOutputPath, `${JSON.stringify(manifest, null, "\t")}\n`)
-	await rename(temporaryOutputPath, outputPath)
-} catch (error) {
-	await rm(temporaryOutputPath, { force: true })
-	throw error
+if (
+	previousManifest.version !== stable.version ||
+	JSON.stringify(previousManifest.downloads) !== JSON.stringify(urls)
+) {
+	const manifest = {
+		schemaVersion: 1,
+		version: stable.version,
+		sourceUrl: sourceURL,
+		generatedAt: new Date().toISOString(),
+		downloads: urls,
+	}
+	try {
+		await Bun.write(
+			temporaryOutputPath,
+			`${JSON.stringify(manifest, null, "\t")}\n`,
+		)
+		await rename(temporaryOutputPath, outputPath)
+	} catch (error) {
+		await rm(temporaryOutputPath, { force: true })
+		throw error
+	}
+	console.log(
+		`- \`Chrome for Testing\` ${previousManifest.version} → ${stable.version}`,
+	)
 }

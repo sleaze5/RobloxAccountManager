@@ -195,6 +195,9 @@ if (!values.uncovered) {
 	}
 	await run(root, "go", "-C", "build/tools", "get", "tool")
 }
+// Binding generation runs before the fix task tidies, and it fails when a
+// new Wails version needs a go.sum entry that go get did not add.
+await run(root, "go", "mod", "tidy")
 const goAfter = await Promise.all(
 	goModPaths.map(async (path) => goVersions(await readFile(path, "utf8"))),
 )
@@ -205,6 +208,13 @@ for (const [index, after] of goAfter.entries()) {
 			changes.push(`- \`${name}\` ${previous} → ${version}`)
 		}
 	}
+}
+
+const chromeForTestingChange = (
+	await run(root, "bun", "run", "./scripts/update-cft-manifest.ts")
+).trim()
+if (chromeForTestingChange !== "") {
+	changes.push(chromeForTestingChange)
 }
 
 const summary =

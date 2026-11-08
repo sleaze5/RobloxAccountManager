@@ -144,7 +144,7 @@ tasks:
             - task: check
 
     update:
-        desc: Update the pinned Bun version, the Go toolchain, and every dependency to its latest minor or patch version, then run fix. Pass -- --uncovered to update only what Dependabot cannot. Needs network access.
+        desc: Update the pinned Bun version, the Go toolchain, the pinned Chrome for Testing release, and every dependency to its latest minor or patch version, then run fix. Pass -- --uncovered to update only what Dependabot cannot. Needs network access.
         deps:
             - task: internal:validate-tools
         cmds:
