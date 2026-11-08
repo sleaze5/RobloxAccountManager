@@ -30,9 +30,10 @@ type execer interface {
 	ExecContext(ctx context.Context, query string, args ...any) (sql.Result, error)
 }
 
-// BumpRevision must run in every transaction that changes vault data, so that
-// MaybeCreateBackup sees the change.
-func BumpRevision(ctx context.Context, database execer) error {
+// bumpRevision must run in every transaction that changes vault data, so that
+// MaybeCreateBackup sees the change. Code outside this package changes vault
+// data through RunWriteTransaction.
+func bumpRevision(ctx context.Context, database execer) error {
 	if _, err := database.ExecContext(ctx, `UPDATE vault_state SET storage_revision = storage_revision + 1 WHERE singleton = 1`); err != nil {
 		return fmt.Errorf("update storage revision: %w", err)
 	}

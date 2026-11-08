@@ -62,6 +62,7 @@ The Svelte frontend is a presentation layer. The Go backend owns application log
 The vault holds account data. Never replace vault data with defaults or delete it after a load failure.
 
 - If a vault file is damaged or has an unsupported version, refuse to unlock, leave every file unchanged, and tell the user to restore a backup.
+- Outside `internal/storage/vault`, change vault data only through `vault.RunWriteTransaction`. Report whether the write changed data, so that the storage revision increases and the next backup check sees the change.
 - Before `vault.db` migrates, create a backup in `backups/`. Run every migration in one transaction, then run a foreign key check and an integrity check. If a step fails, roll back and close the vault.
 - Rewrite an older `vault.key` only after a password unlock, because the key file version is authenticated together with the wrapped database key.
 - If a key file rewrite fails, log it and continue the unlock. The older file stays readable.

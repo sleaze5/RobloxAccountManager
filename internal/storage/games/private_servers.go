@@ -56,25 +56,23 @@ func (repository *Repository) SavePrivateServer(ctx context.Context, server game
 		return games.SavedPrivateServer{}, err
 	}
 	defer release()
-	transaction, err := database.BeginTx(ctx, nil)
-	if err != nil {
-		return games.SavedPrivateServer{}, fmt.Errorf("begin saved private server insert: %w", err)
-	}
-	defer transaction.Rollback()
 	server.CreatedAtMs = time.Now().UnixMilli()
-	insertion, err := transaction.ExecContext(ctx, `INSERT INTO saved_private_servers(place_id, name, access_code, link_code, created_at_ms) VALUES(?, ?, ?, ?, ?) ON CONFLICT DO NOTHING`, server.PlaceID, server.Name, server.AccessCode, server.LinkCode, server.CreatedAtMs)
+	err = vault.RunWriteTransaction(ctx, database, "saved private server insert", func(transaction *sql.Tx) (bool, error) {
+		insertion, err := transaction.ExecContext(ctx, `INSERT INTO saved_private_servers(place_id, name, access_code, link_code, created_at_ms) VALUES(?, ?, ?, ?, ?) ON CONFLICT DO NOTHING`, server.PlaceID, server.Name, server.AccessCode, server.LinkCode, server.CreatedAtMs)
+		if err != nil {
+			return false, fmt.Errorf("insert saved private server: %w", err)
+		}
+		if changed, err := insertion.RowsAffected(); err != nil {
+			return false, fmt.Errorf("count saved private servers: %w", err)
+		} else if changed == 0 {
+			return false, ErrPrivateServerSaved
+		}
+		if server.ID, err = insertion.LastInsertId(); err != nil {
+			return false, fmt.Errorf("read saved private server ID: %w", err)
+		}
+		return true, nil
+	})
 	if err != nil {
-		return games.SavedPrivateServer{}, fmt.Errorf("insert saved private server: %w", err)
-	}
-	if changed, err := insertion.RowsAffected(); err != nil {
-		return games.SavedPrivateServer{}, fmt.Errorf("count saved private servers: %w", err)
-	} else if changed == 0 {
-		return games.SavedPrivateServer{}, ErrPrivateServerSaved
-	}
-	if server.ID, err = insertion.LastInsertId(); err != nil {
-		return games.SavedPrivateServer{}, fmt.Errorf("read saved private server ID: %w", err)
-	}
-	if err := commitPrivateServers(ctx, transaction); err != nil {
 		return games.SavedPrivateServer{}, err
 	}
 	server.LaunchLink = games.PrivateServerLaunchLink(server.PlaceID, server.AccessCode, server.LinkCode)
@@ -88,33 +86,21 @@ func (repository *Repository) RemovePrivateServer(ctx context.Context, id int64)
 		return err
 	}
 	defer release()
-	transaction, err := database.BeginTx(ctx, nil)
+	err = vault.RunWriteTransaction(ctx, database, "saved private server removal", func(transaction *sql.Tx) (bool, error) {
+		deletion, err := transaction.ExecContext(ctx, `DELETE FROM saved_private_servers WHERE id = ?`, id)
+		if err != nil {
+			return false, fmt.Errorf("remove saved private server: %w", err)
+		}
+		if changed, err := deletion.RowsAffected(); err != nil {
+			return false, fmt.Errorf("count removed private servers: %w", err)
+		} else if changed == 0 {
+			return false, ErrPrivateServerNotSaved
+		}
+		return true, nil
+	})
 	if err != nil {
-		return fmt.Errorf("begin saved private server removal: %w", err)
-	}
-	defer transaction.Rollback()
-	deletion, err := transaction.ExecContext(ctx, `DELETE FROM saved_private_servers WHERE id = ?`, id)
-	if err != nil {
-		return fmt.Errorf("remove saved private server: %w", err)
-	}
-	if changed, err := deletion.RowsAffected(); err != nil {
-		return fmt.Errorf("count removed private servers: %w", err)
-	} else if changed == 0 {
-		return ErrPrivateServerNotSaved
-	}
-	if err := commitPrivateServers(ctx, transaction); err != nil {
 		return err
 	}
 	repository.logger.InfoContext(ctx, "private server link removed", "operation", "private-server-link-remove", "saved_server_id", id)
-	return nil
-}
-
-func commitPrivateServers(ctx context.Context, transaction *sql.Tx) error {
-	if err := vault.BumpRevision(ctx, transaction); err != nil {
-		return err
-	}
-	if err := transaction.Commit(); err != nil {
-		return fmt.Errorf("commit saved private servers: %w", err)
-	}
 	return nil
 }

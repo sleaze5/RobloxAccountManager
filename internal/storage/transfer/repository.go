@@ -209,36 +209,32 @@ func (repository *Repository) Replace(ctx context.Context, payload Payload, sett
 		return nil, err
 	}
 	defer release()
-	transaction, err := database.BeginTx(ctx, nil)
+	var removed []int64
+	err = vault.RunWriteTransaction(ctx, database, "vault replacement", func(transaction *sql.Tx) (bool, error) {
+		var err error
+		if removed, err = accountIDs(ctx, transaction); err != nil {
+			return false, err
+		}
+		var nextAccountID, nextTagID int64
+		if err := transaction.QueryRowContext(ctx, `SELECT COALESCE(MAX(id), 0) + 1 FROM accounts`).Scan(&nextAccountID); err != nil {
+			return false, fmt.Errorf("read account ID range: %w", err)
+		}
+		if err := transaction.QueryRowContext(ctx, `SELECT COALESCE(MAX(id), 0) + 1 FROM tags`).Scan(&nextTagID); err != nil {
+			return false, fmt.Errorf("read tag ID range: %w", err)
+		}
+		if _, err := transaction.ExecContext(ctx, `DELETE FROM accounts; DELETE FROM tags WHERE kind = 'custom'; DELETE FROM favorite_places; DELETE FROM saved_private_servers;`); err != nil {
+			return false, fmt.Errorf("clear vault data: %w", err)
+		}
+		if err := insertPayload(ctx, transaction, payload, nextAccountID, nextTagID, time.Now().UTC().UnixMilli()); err != nil {
+			return false, err
+		}
+		if err := storePendingSettings(ctx, transaction, settings); err != nil {
+			return false, err
+		}
+		return true, nil
+	})
 	if err != nil {
-		return nil, fmt.Errorf("begin vault replacement: %w", err)
-	}
-	defer transaction.Rollback()
-	removed, err := accountIDs(ctx, transaction)
-	if err != nil {
 		return nil, err
-	}
-	var nextAccountID, nextTagID int64
-	if err := transaction.QueryRowContext(ctx, `SELECT COALESCE(MAX(id), 0) + 1 FROM accounts`).Scan(&nextAccountID); err != nil {
-		return nil, fmt.Errorf("read account ID range: %w", err)
-	}
-	if err := transaction.QueryRowContext(ctx, `SELECT COALESCE(MAX(id), 0) + 1 FROM tags`).Scan(&nextTagID); err != nil {
-		return nil, fmt.Errorf("read tag ID range: %w", err)
-	}
-	if _, err := transaction.ExecContext(ctx, `DELETE FROM accounts; DELETE FROM tags WHERE kind = 'custom'; DELETE FROM favorite_places; DELETE FROM saved_private_servers;`); err != nil {
-		return nil, fmt.Errorf("clear vault data: %w", err)
-	}
-	if err := insertPayload(ctx, transaction, payload, nextAccountID, nextTagID, time.Now().UTC().UnixMilli()); err != nil {
-		return nil, err
-	}
-	if err := storePendingSettings(ctx, transaction, settings); err != nil {
-		return nil, err
-	}
-	if err := vault.BumpRevision(ctx, transaction); err != nil {
-		return nil, err
-	}
-	if err := transaction.Commit(); err != nil {
-		return nil, fmt.Errorf("commit vault replacement: %w", err)
 	}
 	repository.logger.Info("vault data replaced", "operation", "vault-import", "removed_accounts", len(removed), "accounts", len(payload.Accounts), "favorite_places", len(payload.FavoritePlaces), "saved_private_servers", len(payload.SavedPrivateServers))
 	return removed, nil
@@ -312,41 +308,36 @@ func (repository *Repository) Merge(ctx context.Context, input MergeInput) (Merg
 		return MergeResult{}, err
 	}
 	defer release()
-	transaction, err := database.BeginTx(ctx, nil)
-	if err != nil {
-		return MergeResult{}, fmt.Errorf("begin vault merge: %w", err)
-	}
-	defer transaction.Rollback()
 	now := time.Now().UTC().UnixMilli()
-	tagIDs, err := favoriteTagIDs(ctx, transaction)
-	if err != nil {
-		return MergeResult{}, err
-	}
 	mergeResult := MergeResult{}
-	for _, account := range input.Accounts {
-		for _, name := range account.Tags {
-			if tagIDs[name], err = ensureTag(ctx, transaction, name, now); err != nil {
-				return MergeResult{}, err
+	err = vault.RunWriteTransaction(ctx, database, "vault merge", func(transaction *sql.Tx) (bool, error) {
+		tagIDs, err := favoriteTagIDs(ctx, transaction)
+		if err != nil {
+			return false, err
+		}
+		for _, account := range input.Accounts {
+			for _, name := range account.Tags {
+				if tagIDs[name], err = ensureTag(ctx, transaction, name, now); err != nil {
+					return false, err
+				}
+			}
+			if err := mergeAccount(ctx, transaction, account, input.Replacements, tagIDs, now, &mergeResult); err != nil {
+				return false, err
 			}
 		}
-		if err := mergeAccount(ctx, transaction, account, input.Replacements, tagIDs, now, &mergeResult); err != nil {
-			return MergeResult{}, err
+		if mergeResult.FavoritePlaces, err = mergeFavoritePlaces(ctx, transaction, input.FavoritePlaces, now); err != nil {
+			return false, err
 		}
-	}
-	if mergeResult.FavoritePlaces, err = mergeFavoritePlaces(ctx, transaction, input.FavoritePlaces, now); err != nil {
+		if mergeResult.SavedPrivateServers, err = insertSavedPrivateServers(ctx, transaction, input.SavedPrivateServers, now); err != nil {
+			return false, err
+		}
+		if err := storePendingSettings(ctx, transaction, input.Settings); err != nil {
+			return false, err
+		}
+		return true, nil
+	})
+	if err != nil {
 		return MergeResult{}, err
-	}
-	if mergeResult.SavedPrivateServers, err = insertSavedPrivateServers(ctx, transaction, input.SavedPrivateServers, now); err != nil {
-		return MergeResult{}, err
-	}
-	if err := storePendingSettings(ctx, transaction, input.Settings); err != nil {
-		return MergeResult{}, err
-	}
-	if err := vault.BumpRevision(ctx, transaction); err != nil {
-		return MergeResult{}, err
-	}
-	if err := transaction.Commit(); err != nil {
-		return MergeResult{}, fmt.Errorf("commit vault merge: %w", err)
 	}
 	repository.logger.Info("vault data merged", "operation", "vault-import", "added_accounts", len(mergeResult.Added), "replaced_cookies", len(mergeResult.Replaced), "updated_accounts", len(mergeResult.Updated), "favorite_places", mergeResult.FavoritePlaces, "saved_private_servers", mergeResult.SavedPrivateServers)
 	return mergeResult, nil
