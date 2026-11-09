@@ -43,7 +43,7 @@ func browserProtocolParameters(value string) (map[string]string, error) {
 func validateBrowserLauncher(value string) error {
 	launcher, err := url.Parse(value)
 	if err != nil || launcher.Scheme != "https" || launcher.User != nil || launcher.Fragment != "" ||
-		(launcher.Host != "www.roblox.com" && launcher.Host != "assetgame.roblox.com") ||
+		launcher.Host != "www.roblox.com" ||
 		!strings.EqualFold(launcher.Path, "/game/PlaceLauncher.ashx") {
 		return errors.New("the browser supplied an invalid Roblox game launcher address")
 	}
