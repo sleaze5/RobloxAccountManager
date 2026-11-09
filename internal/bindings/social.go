@@ -123,3 +123,14 @@ func socialTarget(accountID, userID int64, endpoint string) error {
 	}
 	return positiveID(userID, endpoint)
 }
+
+func (service *Service) RemoveSocialConnections(ctx context.Context, accountID int64, list appservice.SocialList, userIDs []int64) (appservice.SocialRemoval, error) {
+	if err := positiveID(accountID, "social-bulk-remove"); err != nil {
+		return appservice.SocialRemoval{}, err
+	}
+	return service.core.RemoveSocialConnections(ctx, accountID, list, userIDs)
+}
+
+func (service *Service) FindPlayerByUsername(ctx context.Context, username string) (*appservice.SocialUser, error) {
+	return service.core.FindPlayerByUsername(ctx, username)
+}

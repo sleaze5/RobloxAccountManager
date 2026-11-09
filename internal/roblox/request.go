@@ -33,9 +33,12 @@ type Request struct {
 	MaxResponseSize           int64
 	RequiresCSRF              bool
 	AuthenticationNegotiation bool
-	Referer                   string
-	FollowRedirects           bool
-	Retry                     RetryPolicy
+	// CanUseModeratedSession lets the request reach Roblox while the account is
+	// moderated, for the requests that check or lift the moderation.
+	CanUseModeratedSession bool
+	Referer                string
+	FollowRedirects        bool
+	Retry                  RetryPolicy
 }
 
 type Response struct {

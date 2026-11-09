@@ -29,17 +29,18 @@ type ImportPreview struct {
 }
 
 type ImportPreviewItem struct {
-	Index              int    `json:"index"`
-	Authenticated      bool   `json:"authenticated"`
-	Ready              bool   `json:"ready"`
-	SameAccountAsIndex int    `json:"sameAccountAsIndex,omitempty"`
-	UpdatesExisting    bool   `json:"updatesExisting,omitempty"`
-	RobloxUserID       int64  `json:"robloxUserId,omitempty"`
-	Username           string `json:"username,omitempty"`
-	DisplayName        string `json:"displayName,omitempty"`
-	AvatarURL          string `json:"avatarUrl,omitempty"`
-	ErrorStatus        string `json:"errorStatus,omitempty"`
-	ErrorMessage       string `json:"errorMessage,omitempty"`
+	Index              int                  `json:"index"`
+	Authenticated      bool                 `json:"authenticated"`
+	Ready              bool                 `json:"ready"`
+	SameAccountAsIndex int                  `json:"sameAccountAsIndex,omitempty"`
+	UpdatesExisting    bool                 `json:"updatesExisting,omitempty"`
+	RobloxUserID       int64                `json:"robloxUserId,omitempty"`
+	Username           string               `json:"username,omitempty"`
+	DisplayName        string               `json:"displayName,omitempty"`
+	AvatarURL          string               `json:"avatarUrl,omitempty"`
+	Moderation         *accounts.Moderation `json:"moderation,omitempty"`
+	ErrorStatus        string               `json:"errorStatus,omitempty"`
+	ErrorMessage       string               `json:"errorMessage,omitempty"`
 }
 
 type ImportBatchResult struct {
@@ -127,6 +128,7 @@ func (service *Service) ValidateCookies(ctx context.Context, input string) (Impo
 		previewItem.RobloxUserID = identity.RobloxUserID
 		previewItem.Username = identity.Username
 		previewItem.DisplayName = identity.DisplayName
+		previewItem.Moderation = outcome.validation.Moderation
 		userIDs = append(userIDs, identity.RobloxUserID)
 
 		var existingAccountID int64
@@ -197,7 +199,7 @@ func (service *Service) SaveValidatedCookies(ctx context.Context, batchID string
 			continue
 		}
 
-		view, session, err := service.repo.Create(ctx, batchItem.validation.Identity, batchItem.validation.Cookie, batchItem.validation.ExpiresAt)
+		view, session, err := service.repo.Create(ctx, batchItem.validation.Identity, batchItem.validation.Cookie, batchItem.validation.ExpiresAt, batchItem.validation.Moderation != nil)
 		if err != nil {
 			if errors.Is(err, accounts.ErrDuplicateAccount) {
 				existing, lookupError := service.repo.FindByRobloxUserID(ctx, batchItem.validation.Identity.RobloxUserID)

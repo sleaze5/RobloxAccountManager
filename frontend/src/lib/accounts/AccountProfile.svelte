@@ -10,7 +10,15 @@
 	import Icon from "../shared/Icon.svelte"
 	import RefreshIcon from "../shared/RefreshIcon.svelte"
 	import { tick, untrack } from "svelte"
+	import arrowCounterClockwiseIcon from "@phosphor-icons/core/regular/arrow-counter-clockwise.svg?raw"
+	import circleNotchIcon from "@phosphor-icons/core/regular/circle-notch.svg?raw"
 	import { SessionState } from "../backend/bridge"
+	import AccountModerationPanel from "./AccountModerationPanel.svelte"
+	import {
+		canReactivate,
+		hasReactivation,
+		ModerationClock,
+	} from "./moderation.svelte"
 	import type { SocialListKind } from "../social/social-store.svelte"
 	import ChatsPage from "../chats/ChatsPage.svelte"
 	import SocialCounts from "../social/SocialCounts.svelte"
@@ -38,6 +46,7 @@
 		onReplaceCookie,
 		onEditDescription,
 		onShowSocial,
+		onOpenBrowser,
 		notifications,
 	}: {
 		store: AccountStore
@@ -48,6 +57,7 @@
 		onReplaceCookie: () => void
 		onEditDescription: (description: string) => void
 		onShowSocial: (list: SocialListKind) => void
+		onOpenBrowser: (accountId: number) => void
 		notifications: NotificationCenter
 	} = $props()
 
@@ -55,9 +65,22 @@
 		selectedCustomTags = $derived(getCustomTags(selectedAccount)),
 		profileAccountId = $derived(selectedAccount.id),
 		hasAccount = $derived(profileAccountId !== 0),
+		moderated = $derived(selectedAccount.state === SessionState.StateModerated),
 		profileVisible = $derived(
-			store.vault.unlocked && hasAccount && workspace.accountPage === "profile",
-		)
+			store.vault.unlocked &&
+				hasAccount &&
+				!moderated &&
+				workspace.accountPage === "profile",
+		),
+		moderationClock = new ModerationClock(),
+		canBeReactivated = $derived(
+			moderated && hasReactivation(selectedAccount.moderation),
+		),
+		reactivatable = $derived(
+			canReactivate(selectedAccount.moderation, moderationClock.nowMs),
+		),
+		reactivating = $derived(store.reactivatingAccountId === selectedAccount.id),
+		checkingModeration = $derived(store.checkingAccountId === selectedAccount.id)
 
 	let settingsButton = $state<HTMLButtonElement | undefined>(undefined),
 		chatsButton = $state<HTMLButtonElement | undefined>(undefined),
@@ -69,11 +92,18 @@
 			profileState?.snapshot?.accountId === profileAccountId
 				? profileState.snapshot
 				: null,
+		),
+		refreshing = $derived(
+			moderated ? checkingModeration : (profileState?.loading ?? false),
 		)
 
 	$effect(() => {
-		if (!store.vault.unlocked || !hasAccount) workspace.accountPage = "profile"
+		if (!store.vault.unlocked || !hasAccount || moderated) {
+			workspace.accountPage = "profile"
+		}
 	})
+
+	$effect(() => moderationClock.track(selectedAccount.moderation))
 
 	$effect(() => {
 		const state = profileState
@@ -190,7 +220,7 @@
 								</button>
 							</div>
 						{/if}
-						{#if store.vault.unlocked}
+						{#if store.vault.unlocked && !moderated}
 							<AccountPresence
 								presence={selectedAccount.presence}
 								onJoin={onJoinServer}
@@ -208,26 +238,62 @@
 				</div>
 			</div>
 			<div class="relative flex items-center gap-1 @max-xl:self-end">
+				{#if canBeReactivated && store.vault.unlocked}
+					<button
+						class="button-primary animate-enter"
+						type="button"
+						aria-busy={reactivating}
+						data-tooltip={reactivatable
+							? "Accept the moderation and use this account again"
+							: "Available when the ban ends"}
+						disabled={!reactivatable ||
+							store.reactivatingAccountId !== null}
+						onclick={() =>
+							void store.reactivateAccount(selectedAccount.id)}>
+						{#if reactivating}
+							<Icon
+								svg={circleNotchIcon}
+								class="spinner"
+								size={14}
+								aria-hidden="true" />
+							Reactivating…
+						{:else}
+							<Icon
+								svg={arrowCounterClockwiseIcon}
+								data-turn
+								size={14}
+								aria-hidden="true" />
+							Reactivate
+						{/if}
+					</button>
+				{/if}
 				<button
 					class="button-icon"
 					type="button"
-					data-tooltip="Refresh account data"
-					aria-label={profileState?.loading
-						? "Refreshing account data"
+					data-tooltip={moderated
+						? "Check moderation status"
 						: "Refresh account data"}
-					aria-busy={profileState?.loading ?? false}
-					disabled={!hasAccount ||
-						!store.vault.unlocked ||
-						profileState?.loading}
-					onclick={() => void profileState?.refresh(true)}>
-					<RefreshIcon isRefreshing={profileState?.loading ?? false} />
+					aria-label={moderated
+						? "Check moderation status"
+						: refreshing
+							? "Refreshing account data"
+							: "Refresh account data"}
+					aria-busy={refreshing}
+					disabled={!hasAccount || !store.vault.unlocked || refreshing}
+					onclick={() =>
+						moderated
+							? void store.refreshModeration(selectedAccount.id)
+							: void profileState?.refresh(true)}>
+					<RefreshIcon isRefreshing={refreshing} />
 				</button>
 				<button
 					class="button-icon"
 					type="button"
 					aria-label="Chats"
-					data-tooltip="Chats"
-					disabled={!hasAccount || !store.vault.unlocked}
+					data-tooltip={moderated
+						? "Chats are unavailable while moderated"
+						: "Chats"}
+					disabled={!hasAccount || !store.vault.unlocked || moderated}
 					bind:this={chatsButton}
 					onclick={() => openPage("chats")}>
 					<Icon svg={chatsIcon} size={16} aria-hidden="true" />
@@ -236,8 +302,10 @@
 					class="button-icon"
 					type="button"
 					aria-label="Account settings"
-					data-tooltip="Account settings"
-					disabled={!hasAccount || !store.vault.unlocked}
+					data-tooltip={moderated
+						? "Settings are unavailable while moderated"
+						: "Account settings"}
+					disabled={!hasAccount || !store.vault.unlocked || moderated}
 					bind:this={settingsButton}
 					onclick={() => openPage("settings")}>
 					<Icon svg={gearIcon} size={16} aria-hidden="true" />
@@ -260,6 +328,14 @@
 				</button>
 			</div>
 		</div>
+
+		{#if hasAccount && moderated}
+			{#key selectedAccount.id}
+				<AccountModerationPanel
+					moderation={selectedAccount.moderation}
+					onOpenBrowser={() => onOpenBrowser(selectedAccount.id)} />
+			{/key}
+		{/if}
 
 		{#if hasAccount}
 			<div class="flex flex-wrap items-center gap-1">

@@ -53,7 +53,7 @@
 					data-unread={conversation.unreadCount > 0 || undefined}
 					aria-current={chat.openId === conversation.id ? "true" : undefined}
 					onclick={() => void chat.open(conversation.id)}>
-					<ChatAvatar {conversation} />
+					<ChatAvatar {conversation} selfUserId={chat.selfUserId} />
 					<span class="flex min-w-0 flex-1 flex-col">
 						<span class="flex min-w-0 items-center gap-2">
 							<strong

@@ -8,7 +8,10 @@
 	import type { WorkspaceState } from "../layout/workspace-state.svelte"
 	import AccountAvatar from "./AccountAvatar.svelte"
 	import type { AccountStore } from "./account-store.svelte"
+	import { SessionState } from "../backend/bridge"
 	import { presenceDetail, presenceLabel } from "./account-model"
+	import ModerationLine from "./ModerationLine.svelte"
+	import { moderationLabel } from "./moderation.svelte"
 	import PresenceLine from "./PresenceLine.svelte"
 
 	interface DropTarget {
@@ -138,11 +141,13 @@
 	aria-busy={store.loadingAccounts || store.loadingMore}
 	onscroll={loadNearEnd}>
 	{#each store.accounts as account (account.id)}
-		{@const detail = presenceDetail(account.presence)}
+		{@const moderated = account.state === SessionState.StateModerated}
+		{@const detail = moderated ? "" : presenceDetail(account.presence)}
+		{@const tall = moderated || !!detail}
 		<div
 			class={[
 				"group/row list-row relative flex w-full items-center gap-2 border-b border-line-subtle text-left",
-				detail ? "h-16" : "h-12",
+				tall ? "h-16" : "h-12",
 				draggedAccountId === account.id && "opacity-45",
 				dropTarget?.accountId === account.id &&
 					(dropTarget.after ? "shadow-drop-after" : "shadow-drop-before"),
@@ -155,7 +160,7 @@
 			ondragover={(event) => updateDropTarget(event, account.id)}
 			ondrop={(event) => dropAccount(event, account.id)}>
 			{#if store.multipleSelected}
-				<span class={["checkbox ml-2", detail && "mt-4 self-start"]}>
+				<span class={["checkbox ml-2", tall && "mt-4 self-start"]}>
 					<input
 						type="checkbox"
 						aria-label={`Select @${account.username}`}
@@ -176,7 +181,7 @@
 				<span
 					class={[
 						"grid h-7 w-5 shrink-0 cursor-grab place-items-center pl-2 text-fg-faint active:cursor-grabbing",
-						detail && "mt-2.5 self-start",
+						tall && "mt-2.5 self-start",
 					]}
 					draggable={!store.busy && store.accounts.length > 1}
 					aria-hidden="true"
@@ -192,7 +197,7 @@
 				type="button"
 				aria-pressed={store.selectedAccountIds.includes(account.id)}
 				aria-keyshortcuts="Control+Shift+ArrowUp Control+Shift+ArrowDown"
-				aria-label={`${account.displayName} (@${account.username}), ${presenceLabel(account.presence)}${account.favorite ? ", favorite" : ""}`}
+				aria-label={`${account.displayName} (@${account.username}), ${moderated ? moderationLabel(account.moderation) : presenceLabel(account.presence)}${account.favorite ? ", favorite" : ""}`}
 				onclick={(event) =>
 					selectAccount(account.id, event.ctrlKey || event.metaKey)}
 				onkeydown={(event) => {
@@ -211,12 +216,12 @@
 				<span
 					class={[
 						"flex w-full min-w-0 gap-2",
-						detail ? "items-start" : "items-center",
+						tall ? "items-start" : "items-center",
 					]}>
 					<AccountAvatar
 						{account}
 						className="size-9 text-xs"
-						showPresence={true} />
+						showPresence={!moderated} />
 					<span class="block min-w-0">
 						<strong
 							class="mb-0.5 flex min-w-0 items-center gap-1 text-sm font-semibold text-fg">
@@ -230,7 +235,9 @@
 						<small
 							class="block truncate text-2xs text-fg-faint group-hover/row:text-fg-muted group-data-selected/row:text-fg-muted"
 							>@{account.username}</small>
-						{#if detail}<PresenceLine presence={account.presence} />{/if}
+						{#if moderated}<ModerationLine
+								moderation={account.moderation} />{:else if detail}<PresenceLine
+								presence={account.presence} />{/if}
 					</span>
 				</span>
 			</button>

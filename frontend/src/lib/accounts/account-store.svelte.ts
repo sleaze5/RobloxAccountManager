@@ -57,6 +57,8 @@ export class AccountStore {
 	launching = $state(false)
 	copyingLaunchOptions = $state(false)
 	findingServer = $state(false)
+	reactivatingAccountId = $state<number | null>(null)
+	checkingAccountId = $state<number | null>(null)
 	refreshing = $state(false)
 	presencesRefreshedAt = 0
 	error = $state("")
@@ -788,6 +790,64 @@ export class AccountStore {
 			await accountBackend.SetAccountsTag(accountIds, tag.id, selected)
 			await this.refreshAccounts()
 		})
+	}
+
+	async refreshModeration(accountId: number): Promise<void> {
+		if (this.checkingAccountId !== null) return
+		const version = this.#remoteDataVersion
+		this.checkingAccountId = accountId
+		this.error = ""
+		try {
+			await accountBackend.ValidateAccount(accountId)
+			if (version === this.#remoteDataVersion) await this.refreshAccounts()
+		} catch (error) {
+			if (version === this.#remoteDataVersion) {
+				this.error = errorMessage(
+					error,
+					"Could not check this account. Try again.",
+				)
+			}
+		} finally {
+			if (this.checkingAccountId === accountId) this.checkingAccountId = null
+		}
+	}
+
+	async reactivateAccount(accountId: number): Promise<void> {
+		const account = this.accounts.find((listed) => listed.id === accountId)
+		if (!account || this.reactivatingAccountId !== null) return
+		const version = this.#remoteDataVersion
+		this.reactivatingAccountId = accountId
+		try {
+			await accountBackend.ReactivateAccount(accountId)
+			if (version !== this.#remoteDataVersion) return
+			this.notifications.show({
+				id: `account-reactivated-${accountId}`,
+				title: "Account reactivated",
+				tone: "success",
+				message: `@${account.username} can use Roblox again.`,
+			})
+			await this.refreshAccounts()
+		} catch (error) {
+			if (version !== this.#remoteDataVersion) return
+			this.notifications.show({
+				id: `account-reactivated-${accountId}`,
+				title: "Account not reactivated",
+				tone: "error",
+				message: errorMessage(
+					error,
+					"Roblox did not reactivate this account. Try again.",
+				),
+				actions: [
+					{
+						label: "Try again",
+						onClick: () => this.reactivateAccount(accountId),
+					},
+				],
+			})
+		} finally {
+			if (this.reactivatingAccountId === accountId)
+				this.reactivatingAccountId = null
+		}
 	}
 
 	async removeAccount(accountId: number): Promise<boolean> {

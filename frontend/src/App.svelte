@@ -19,6 +19,7 @@
 	import NicknameDialog from "./lib/dialogs/NicknameDialog.svelte"
 	import RemoveTrustedFriendDialog from "./lib/dialogs/RemoveTrustedFriendDialog.svelte"
 	import UnfriendDialog from "./lib/dialogs/UnfriendDialog.svelte"
+	import RemoveConnectionsDialog from "./lib/dialogs/RemoveConnectionsDialog.svelte"
 	import DescriptionEditDialog from "./lib/dialogs/DescriptionEditDialog.svelte"
 	import LockVaultDialog from "./lib/dialogs/LockVaultDialog.svelte"
 	import ManageTagsDialog from "./lib/dialogs/ManageTagsDialog.svelte"
@@ -75,6 +76,7 @@
 		| "unfriend"
 		| "remove-trusted"
 		| "nickname"
+		| "remove-connections"
 		| null
 	type ActivePage = "accounts" | "social" | "games" | "logs-explorer" | "settings"
 
@@ -463,9 +465,24 @@
 		nicknameTarget = null
 	}
 
+	function openRemoveConnections(): void {
+		social.removeSelectedError = ""
+		activeDialog = "remove-connections"
+	}
+
+	function closeRemoveConnections(): void {
+		if (social.removingSelected) return
+		social.removeSelectedError = ""
+		activeDialog = null
+	}
+
 	function closeDialog(): void {
 		if (activeDialog === "unfriend") {
 			closeUnfriend()
+			return
+		}
+		if (activeDialog === "remove-connections") {
+			closeRemoveConnections()
 			return
 		}
 		if (activeDialog === "nickname") {
@@ -603,7 +620,8 @@
 				onSearchPlace={(placeId) => void searchGames(`id:${placeId}`)}
 				onUnfriend={openUnfriend}
 				onRemoveTrusted={openRemoveTrusted}
-				onEditNickname={openNickname} />
+				onEditNickname={openNickname}
+				onRemoveSelected={openRemoveConnections} />
 		{:else if activePage === "games"}
 			<GamesPage
 				store={games}
@@ -667,7 +685,9 @@
 											void searchGames(`id:${placeId}`)}
 										onReplaceCookie={openAddAccount}
 										onEditDescription={openDescriptionEditor}
-										onShowSocial={showSocial} />
+										onShowSocial={showSocial}
+										onOpenBrowser={(accountId) =>
+											void openManagedBrowser(accountId)} />
 								</div>
 							{/key}
 						{/if}
@@ -769,6 +789,13 @@
 		account={store.selectedAccount}
 		friend={unfriendTarget}
 		onClose={closeUnfriend} />
+{/if}
+
+{#if activeDialog === "remove-connections"}
+	<RemoveConnectionsDialog
+		store={social}
+		account={store.selectedAccount}
+		onClose={closeRemoveConnections} />
 {/if}
 
 {#if activeDialog === "remove-trusted" && unfriendTarget}

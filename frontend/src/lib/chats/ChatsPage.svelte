@@ -2,14 +2,16 @@
 	import caretLeftIcon from "@phosphor-icons/core/regular/caret-left.svg?raw"
 	import checksIcon from "@phosphor-icons/core/regular/checks.svg?raw"
 	import circleNotchIcon from "@phosphor-icons/core/regular/circle-notch.svg?raw"
+	import chatsCircleIcon from "@phosphor-icons/core/regular/chats-circle.svg?raw"
 	import notePencilIcon from "@phosphor-icons/core/regular/note-pencil.svg?raw"
 	import Icon from "../shared/Icon.svelte"
 	import RefreshIcon from "../shared/RefreshIcon.svelte"
-	import { onMount, tick, untrack } from "svelte"
+	import { onMount, untrack } from "svelte"
 	import type { AccountStore } from "../accounts/account-store.svelte"
 	import SidebarResizer from "../layout/SidebarResizer.svelte"
 	import type { WorkspaceState } from "../layout/workspace-state.svelte"
 	import ChatList from "./ChatList.svelte"
+	import ChatPeopleDialog from "./ChatPeopleDialog.svelte"
 	import ChatThread from "./ChatThread.svelte"
 	import { ChatState } from "./chat-state.svelte"
 
@@ -20,27 +22,16 @@
 	}: { store: AccountStore; workspace: WorkspaceState; onBack: () => void } = $props()
 
 	const account = untrack(() => store.selectedAccount),
-		chat = untrack(() => new ChatState(account.id, store))
+		selfUserId = Number(account.userId),
+		chat = untrack(() => new ChatState(account.id, selfUserId, store))
 
 	let heading = $state<HTMLHeadingElement | undefined>(undefined),
-		usernameInput = $state<HTMLInputElement | undefined>(undefined),
-		creatingOpen = $state(false),
-		username = $state(""),
+		peopleDialog = $state<"create" | "add" | null>(null),
 		openConversation = $derived(chat.openConversation)
 
-	async function toggleNewChat(): Promise<void> {
-		creatingOpen = !creatingOpen
+	function openPeopleDialog(mode: "create" | "add"): void {
 		chat.createError = ""
-		if (!creatingOpen) return
-		await tick()
-		usernameInput?.focus()
-	}
-
-	async function startChat(): Promise<void> {
-		if (await chat.create(username)) {
-			username = ""
-			creatingOpen = false
-		}
+		peopleDialog = mode
 	}
 
 	onMount(() => {
@@ -68,9 +59,9 @@
 			class="button-ghost"
 			type="button"
 			aria-label="New chat"
-			aria-expanded={creatingOpen}
-			data-tooltip="New chat"
-			onclick={() => void toggleNewChat()}>
+			aria-haspopup="dialog"
+			data-tooltip="New chat or group"
+			onclick={() => openPeopleDialog("create")}>
 			<Icon svg={notePencilIcon} size={16} aria-hidden="true" />
 		</button>
 		<button
@@ -107,49 +98,6 @@
 		class="settings-layout"
 		style={`--sidebar-width: ${workspace.accountSettingsSidebarWidth}px;`}>
 		<aside class="flex settings-sidebar flex-col gap-2 p-2" data-chat-sidebar>
-			{#if creatingOpen}
-				<form
-					novalidate
-					class="flex animate-enter flex-wrap gap-2"
-					onsubmit={(event) => {
-						event.preventDefault()
-						void startChat()
-					}}>
-					<div class="search-field">
-						<input
-							bind:this={usernameInput}
-							bind:value={username}
-							aria-label="Username"
-							aria-invalid={chat.createError ? "true" : undefined}
-							placeholder="Username"
-							autocomplete="off"
-							spellcheck="false"
-							disabled={chat.creating}
-							onkeydown={(event) => {
-								if (event.key === "Escape") void toggleNewChat()
-							}} />
-					</div>
-					<button
-						type="submit"
-						class="button-primary h-8"
-						aria-busy={chat.creating}
-						disabled={chat.creating || !username.trim()}>
-						{#if chat.creating}
-							<Icon
-								svg={circleNotchIcon}
-								class="spinner"
-								size={16}
-								aria-hidden="true" />
-						{/if}
-						Start
-					</button>
-					{#if chat.createError}
-						<p class="w-full text-xs text-danger-muted" role="alert">
-							{chat.createError}
-						</p>
-					{/if}
-				</form>
-			{/if}
 			{#if chat.error}
 				<p class="notice-error" role="alert">
 					{chat.error}
@@ -168,11 +116,36 @@
 					<ChatThread
 						{chat}
 						conversation={openConversation}
-						selfUserId={Number(account.userId)} />
+						{selfUserId}
+						onAddMembers={() => openPeopleDialog("add")} />
 				{/key}
 			{:else}
-				<p class="m-auto text-xs text-fg-faint">Select a chat to read it.</p>
+				<div class="empty-state h-full">
+					<Icon svg={chatsCircleIcon} size={28} aria-hidden="true" />
+					<h2>Select a chat</h2>
+					<p>Choose a chat to read it, or start a new one with friends.</p>
+					<button
+						class="button-primary"
+						type="button"
+						aria-haspopup="dialog"
+						onclick={() => openPeopleDialog("create")}>
+						<Icon svg={notePencilIcon} size={14} aria-hidden="true" />
+						New chat
+					</button>
+				</div>
 			{/if}
 		</main>
 	</div>
 </section>
+
+{#if peopleDialog}
+	<ChatPeopleDialog
+		{chat}
+		mode={peopleDialog}
+		existingUserIds={peopleDialog === "add"
+			? (openConversation?.participants ?? []).map(
+					(participant) => participant.userId,
+				)
+			: []}
+		onClose={() => (peopleDialog = null)} />
+{/if}

@@ -49,6 +49,9 @@ type ChatConversation struct {
 	PreviewMessage     *ChatMessage        `json:"preview_message"`
 	UnreadMessageCount int64               `json:"unread_message_count"`
 	UpdatedAt          string              `json:"updated_at"`
+	// Status reports whether a created or renamed conversation was accepted:
+	// "success", "moderated" when Roblox blocked the name, or "failed".
+	Status string `json:"status"`
 }
 
 type ChatConversationPage struct {
@@ -103,20 +106,59 @@ func (service *Chat) MarkRead(ctx context.Context, accountID, version int64, con
 }
 
 func (service *Chat) CreateDirect(ctx context.Context, accountID, version, userID int64) (ChatConversation, error) {
+	return service.create(ctx, accountID, version, map[string]any{"type": "one_to_one", "participant_user_ids": []int64{userID}})
+}
+
+// CreateGroup creates a group conversation. Request shape from the Roblox web
+// chat client in Roblox-Web-Datamining.
+func (service *Chat) CreateGroup(ctx context.Context, accountID, version int64, name string, userIDs []int64) (ChatConversation, error) {
+	return service.create(ctx, accountID, version, map[string]any{"type": "group", "name": name, "participant_user_ids": userIDs})
+}
+
+func (service *Chat) create(ctx context.Context, accountID, version int64, conversation map[string]any) (ChatConversation, error) {
 	var payload struct {
 		Conversations []ChatConversation `json:"conversations"`
 	}
-	body := map[string]any{
-		"conversations":     []map[string]any{{"type": "one_to_one", "participant_user_ids": []int64{userID}}},
-		"include_user_data": true,
-	}
+	body := map[string]any{"conversations": []map[string]any{conversation}, "include_user_data": true}
 	if err := service.post(ctx, accountID, version, "chat-create", "create-conversations", false, body, &payload); err != nil {
 		return ChatConversation{}, err
 	}
-	if len(payload.Conversations) == 0 || payload.Conversations[0].ID == "" {
-		return ChatConversation{}, &roblox.Error{Kind: roblox.KindProtocol, Endpoint: "chat-create", Message: "Roblox did not return the new chat."}
+	return firstChatConversation("chat-create", payload.Conversations, "Roblox did not return the new chat.")
+}
+
+// Conversation reads one conversation by ID, with its participants.
+func (service *Chat) Conversation(ctx context.Context, accountID, version int64, conversationID string) (ChatConversation, error) {
+	var payload struct {
+		Conversations []ChatConversation `json:"conversations"`
 	}
-	return payload.Conversations[0], nil
+	body := map[string]any{"ids": []string{conversationID}, "include_participants": true, "include_user_data": true}
+	if err := service.post(ctx, accountID, version, "chat-conversation", "get-conversations", true, body, &payload); err != nil {
+		return ChatConversation{}, err
+	}
+	return firstChatConversation("chat-conversation", payload.Conversations, "Roblox did not return this chat. Refresh chats.")
+}
+
+func (service *Chat) AddUsers(ctx context.Context, accountID, version int64, conversationID string, userIDs []int64) error {
+	var payload any
+	return service.post(ctx, accountID, version, "chat-add-users", "add-users", false, map[string]any{"conversation_id": conversationID, "user_ids": userIDs}, &payload)
+}
+
+func (service *Chat) Rename(ctx context.Context, accountID, version int64, conversationID, name string) (ChatConversation, error) {
+	var payload struct {
+		Conversations []ChatConversation `json:"conversations"`
+	}
+	body := map[string]any{"conversations": []map[string]any{{"id": conversationID, "name": name}}}
+	if err := service.post(ctx, accountID, version, "chat-rename", "update-conversations", true, body, &payload); err != nil {
+		return ChatConversation{}, err
+	}
+	return firstChatConversation("chat-rename", payload.Conversations, "Roblox did not confirm the new name. Refresh chats to check.")
+}
+
+func firstChatConversation(endpoint string, conversations []ChatConversation, missing string) (ChatConversation, error) {
+	if len(conversations) == 0 || conversations[0].ID == "" {
+		return ChatConversation{}, &roblox.Error{Kind: roblox.KindProtocol, Endpoint: endpoint, Message: missing}
+	}
+	return conversations[0], nil
 }
 
 func (service *Chat) Send(ctx context.Context, accountID, version int64, conversationID, content string) (ChatMessage, error) {

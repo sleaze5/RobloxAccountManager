@@ -275,11 +275,25 @@ func (service *Service) MarkAllChatConversationsRead(ctx context.Context, accoun
 	return service.core.MarkAllChatConversationsRead(ctx, accountID)
 }
 
-func (service *Service) CreateChatConversation(ctx context.Context, accountID int64, username string) (appservice.ChatConversationView, error) {
+func (service *Service) CreateChatConversation(ctx context.Context, accountID int64, userIDs []int64, name string) (appservice.ChatConversationView, error) {
 	if err := positiveID(accountID, "chat"); err != nil {
 		return appservice.ChatConversationView{}, err
 	}
-	return service.core.CreateChatConversation(ctx, accountID, username)
+	return service.core.CreateChatConversation(ctx, accountID, userIDs, name)
+}
+
+func (service *Service) AddChatMembers(ctx context.Context, accountID int64, conversationID string, userIDs []int64) (appservice.ChatConversationView, error) {
+	if err := positiveID(accountID, "chat"); err != nil {
+		return appservice.ChatConversationView{}, err
+	}
+	return service.core.AddChatMembers(ctx, accountID, conversationID, userIDs)
+}
+
+func (service *Service) RenameChatConversation(ctx context.Context, accountID int64, conversationID, name string) (appservice.ChatConversationView, error) {
+	if err := positiveID(accountID, "chat"); err != nil {
+		return appservice.ChatConversationView{}, err
+	}
+	return service.core.RenameChatConversation(ctx, accountID, conversationID, name)
 }
 
 func (service *Service) SendChatMessage(ctx context.Context, accountID int64, conversationID, text string) (appservice.ChatMessageView, error) {
@@ -514,6 +528,13 @@ func (service *Service) RenewCookie(ctx context.Context, accountID int64) (appse
 		return appservice.CookieRenewalResult{}, err
 	}
 	return service.core.RenewCookie(ctx, accountID)
+}
+
+func (service *Service) ReactivateAccount(ctx context.Context, accountID int64) (accounts.AccountView, error) {
+	if err := positiveID(accountID, "account-reactivate"); err != nil {
+		return accounts.AccountView{}, err
+	}
+	return service.core.ReactivateAccount(ctx, accountID)
 }
 
 func (service *Service) RemoveAccount(ctx context.Context, accountID int64) error {

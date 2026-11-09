@@ -50,6 +50,59 @@ export function personName(person: SocialSubject): string {
 
 const presenceRefreshError = "Presence could not be refreshed."
 
+export type BulkRemovalList =
+	| SocialList.SocialFriends
+	| SocialList.SocialFollowing
+	| SocialList.SocialRequests
+
+export function isBulkRemovalList(list: SocialView): list is BulkRemovalList {
+	return (
+		list === SocialList.SocialFriends ||
+		list === SocialList.SocialFollowing ||
+		list === SocialList.SocialRequests
+	)
+}
+
+function counted(count: number, singular: string, plural: string): string {
+	return `${count} ${count === 1 ? singular : plural}`
+}
+
+export const bulkRemovalCopy: Record<
+	BulkRemovalList,
+	{
+		action: string
+		progress: string
+		done: string
+		consequence: string
+		result: (count: number) => string
+	}
+> = {
+	[SocialList.SocialFriends]: {
+		action: "Unfriend",
+		progress: "Unfriending…",
+		done: "Unfriended",
+		consequence:
+			"This ends each Roblox friendship. To be friends again, one of you must send a new request.",
+		result: (count) =>
+			`${counted(count, "friend was", "friends were")} unfriended.`,
+	},
+	[SocialList.SocialFollowing]: {
+		action: "Unfollow",
+		progress: "Unfollowing…",
+		done: "Unfollowed",
+		consequence: "You can follow them again at any time.",
+		result: (count) => `${counted(count, "user was", "users were")} unfollowed.`,
+	},
+	[SocialList.SocialRequests]: {
+		action: "Decline",
+		progress: "Declining…",
+		done: "Friend requests declined",
+		consequence: "They can send a new request later.",
+		result: (count) =>
+			`${counted(count, "request was", "requests were")} declined.`,
+	},
+}
+
 export class SocialStore {
 	sidebarCollapsed = $state(false)
 	sidebarWidth = $state(220)
@@ -79,6 +132,11 @@ export class SocialStore {
 	nicknameError = $state("")
 	menu = $state<SocialMenu | null>(null)
 	error = $state("")
+	trustedOnly = $state(false)
+	selecting = $state(false)
+	selectedUserIds = $state<number[]>([])
+	removingSelected = $state(false)
+	removeSelectedError = $state("")
 	#epoch = 0
 	#listRequest: ReturnType<typeof accountBackend.GetSocialPage> | null = null
 	#profileRequest: ReturnType<typeof accountBackend.GetSocialProfile> | null = null
@@ -105,13 +163,110 @@ export class SocialStore {
 
 	get people(): SocialUser[] {
 		const people = this.page?.people ?? [],
-			text = this.query.trim().toLowerCase().replace(/^@/, "")
-		if (!text || this.list === playersView) return people
+			text = this.query.trim().toLowerCase().replace(/^@/, ""),
+			trusted = this.showsTrustedFilter && this.trustedOnly
+		if ((!text && !trusted) || this.list === playersView) return people
 		return people.filter(
 			(person) =>
-				person.displayName.toLowerCase().includes(text) ||
-				person.username.toLowerCase().includes(text),
+				(!trusted || person.trusted) &&
+				(person.displayName.toLowerCase().includes(text) ||
+					person.username.toLowerCase().includes(text)),
 		)
+	}
+
+	// Roblox only lists the trusted friends of the account itself.
+	get showsTrustedFilter(): boolean {
+		return this.list === SocialList.SocialFriends && !this.subject
+	}
+
+	get trustedCount(): number {
+		return (this.page?.people ?? []).filter((person) => person.trusted).length
+	}
+
+	get canRemoveInBulk(): boolean {
+		return !this.subject && isBulkRemovalList(this.list)
+	}
+
+	setTrustedOnly(trustedOnly: boolean): void {
+		this.trustedOnly = trustedOnly
+		this.selectedUserIds = []
+	}
+
+	setSelecting(selecting: boolean): void {
+		this.selecting = selecting && this.canRemoveInBulk
+		this.selectedUserIds = []
+		this.removeSelectedError = ""
+		if (this.selecting) this.closeMenu()
+	}
+
+	toggleSelected(userId: number): void {
+		this.selectedUserIds = this.selectedUserIds.includes(userId)
+			? this.selectedUserIds.filter((selectedId) => selectedId !== userId)
+			: [...this.selectedUserIds, userId]
+	}
+
+	toggleAllVisible(): void {
+		const visible = this.people.map((person) => person.userId),
+			allSelected =
+				visible.length > 0 &&
+				visible.every((userId) => this.selectedUserIds.includes(userId))
+		this.selectedUserIds = allSelected ? [] : visible
+	}
+
+	async removeSelected(): Promise<boolean> {
+		const list = this.list,
+			userIds = [...this.selectedUserIds]
+		if (
+			this.removingSelected ||
+			userIds.length === 0 ||
+			this.subject ||
+			!isBulkRemovalList(list)
+		) {
+			return false
+		}
+		const epoch = this.#epoch
+		this.removingSelected = true
+		this.removeSelectedError = ""
+		try {
+			const removal = await accountBackend.RemoveSocialConnections(
+				this.accountId,
+				list,
+				userIds,
+			)
+			if (epoch !== this.#epoch) return true
+			const removed = removal.removed ?? []
+			for (const userId of removed) this.#remove(userId, list)
+			if (list === SocialList.SocialRequests && this.requestCount !== null) {
+				this.requestCount = Math.max(0, this.requestCount - removed.length)
+			}
+			this.selectedUserIds = this.selectedUserIds.filter(
+				(userId) => !removed.includes(userId),
+			)
+			if (removed.length > 0) {
+				this.notifications.show({
+					id: `social-bulk-remove-${list}`,
+					title: bulkRemovalCopy[list].done,
+					tone: "success",
+					message: bulkRemovalCopy[list].result(removed.length),
+				})
+			}
+			if (removal.failedCount > 0) {
+				this.removeSelectedError = `${counted(removal.failedCount, "person was", "people were")} not changed. ${removal.failureMessage}`
+				return false
+			}
+			this.selecting = false
+			return true
+		} catch (error) {
+			if (epoch === this.#epoch) {
+				this.removeSelectedError = errorMessage(
+					error,
+					"Could not remove the selected people. Try again.",
+				)
+			}
+			return false
+		} finally {
+			if (epoch === this.#epoch) this.removingSelected = false
+		}
 	}
 
 	get selectedUserId(): number | null {
@@ -607,17 +762,24 @@ export class SocialStore {
 				relationship: { ...relationship.relationship, ...change },
 			})
 		}
+		if (change.trusted !== undefined) {
+			const trusted = change.trusted === TrustedStatus.TrustedStatusTrusted
+			for (const person of this.#listedPeople()) {
+				if (person.userId === userId) person.trusted = trusted
+			}
+		}
 	}
 
 	#patchNickname(userId: number, nickname: string): void {
-		const pages = [...this.#pages.values()].map((entry) => entry.page)
-		if (this.page) pages.push(this.page)
-		for (const person of [
-			...pages.flatMap((page) => page.people ?? []),
-			...this.trail,
-		]) {
+		for (const person of [...this.#listedPeople(), ...this.trail]) {
 			if (person.userId === userId) person.nickname = nickname
 		}
+	}
+
+	#listedPeople(): SocialUser[] {
+		const pages = [...this.#pages.values()].map((entry) => entry.page)
+		if (this.page) pages.push(this.page)
+		return pages.flatMap((page) => page.people ?? [])
 	}
 
 	openMenu(event: MouseEvent | KeyboardEvent, person: SocialUser): void {
@@ -707,6 +869,9 @@ export class SocialStore {
 		this.loadError = ""
 		this.closeMenu()
 		this.select(null)
+		this.selecting = false
+		this.selectedUserIds = []
+		this.removeSelectedError = ""
 		const cached = this.#pages.get(this.#key())
 		this.page = cached?.page ?? null
 		if (!cached || !isFresh(cached.fetchedAt)) void this.load()
@@ -750,5 +915,8 @@ export class SocialStore {
 		this.loadError = this.profileError = this.unfriendError = this.error = ""
 		this.removeTrustedError = ""
 		this.nicknameError = ""
+		this.trustedOnly = this.selecting = this.removingSelected = false
+		this.selectedUserIds = []
+		this.removeSelectedError = ""
 	}
 }

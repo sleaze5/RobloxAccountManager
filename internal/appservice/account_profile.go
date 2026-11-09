@@ -104,7 +104,7 @@ func (service *Service) runAccountReads(ctx context.Context, accountID, version 
 			kind, status = remote.Kind, remote.Status
 		}
 		logger.Warn("account section unavailable", "source", reads[index].source, "error_kind", kind, "status", status)
-		if kind == roblox.KindReauthRequired || kind == roblox.KindInvalidSession || kind == roblox.KindVaultLocked {
+		if kind == roblox.KindReauthRequired || kind == roblox.KindInvalidSession || kind == roblox.KindVaultLocked || kind == roblox.KindModerated {
 			return nil, failure
 		}
 		unavailable = append(unavailable, reads[index].source)

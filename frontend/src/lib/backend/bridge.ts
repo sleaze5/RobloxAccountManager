@@ -12,11 +12,13 @@ export type {
 	BlockedUser,
 	ChatConversationView,
 	ChatMessageView,
+	ChatParticipant,
 	FriendConnection,
 	SocialPage as SocialListPage,
 	SocialProfile as SocialProfileSnapshot,
 	SocialRelationship,
 	SocialRelationshipSnapshot,
+	SocialRemoval,
 	SocialUser,
 	ImportPreview,
 	ImportPreviewItem,
@@ -58,6 +60,7 @@ export {
 	VoiceChatState,
 } from "../../../bindings/github.com/sleaze5/RobloxAccountManager/internal/appservice/models.js"
 export {
+	ModerationKind,
 	SessionState,
 	TagKind,
 } from "../../../bindings/github.com/sleaze5/RobloxAccountManager/internal/accounts/models.js"
@@ -70,6 +73,7 @@ export {
 export type {
 	AccountCursor,
 	AccountView,
+	Moderation,
 	TagView,
 } from "../../../bindings/github.com/sleaze5/RobloxAccountManager/internal/accounts/models.js"
 export { FileState } from "../../../bindings/github.com/sleaze5/RobloxAccountManager/internal/storage/vault/models.js"

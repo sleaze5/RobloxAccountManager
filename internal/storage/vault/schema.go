@@ -10,9 +10,9 @@ import (
 	"github.com/sleaze5/RobloxAccountManager/internal/logging"
 )
 
-const schemaVersion = 7
+const schemaVersion = 9
 
-var schemaMigrations = [...]func(context.Context, *sql.Tx) error{addAccountPasswords, splitPublicMetadata, restoreAccountNames, addPendingSettingsImport, addSavedPrivateServers, saveOnePrivateServerCode}
+var schemaMigrations = [...]func(context.Context, *sql.Tx) error{addAccountPasswords, splitPublicMetadata, restoreAccountNames, addPendingSettingsImport, addSavedPrivateServers, saveOnePrivateServerCode, addAccountModeration, moveModerationToCache}
 
 var _ = [1]struct{}{}[len(schemaMigrations)-(schemaVersion-1)]
 
@@ -229,6 +229,54 @@ DROP TABLE saved_private_servers;
 ALTER TABLE saved_private_servers_new RENAME TO saved_private_servers;
 `); err != nil {
 		return fmt.Errorf("save one code per private server: %w", err)
+	}
+	return nil
+}
+
+// addAccountModeration rebuilds account_sessions, because SQLite cannot change
+// the CHECK constraint that lists the session states.
+func addAccountModeration(ctx context.Context, transaction *sql.Tx) error {
+	if _, err := transaction.ExecContext(ctx, `
+CREATE TABLE account_sessions_new (
+    account_id                  INTEGER PRIMARY KEY REFERENCES accounts(id) ON DELETE CASCADE,
+    roblosecurity               TEXT NOT NULL CHECK (roblosecurity <> ''),
+    cookie_expires_at_ms        INTEGER,
+    state                       TEXT NOT NULL CHECK (state IN ('active', 'unknown', 'reauth_required', 'challenged', 'disabled', 'moderated')),
+    state_reason                TEXT NOT NULL DEFAULT '',
+    secret_version              INTEGER NOT NULL DEFAULT 1 CHECK (secret_version > 0),
+    imported_at_ms              INTEGER NOT NULL,
+    replaced_at_ms              INTEGER,
+    rotated_at_ms               INTEGER,
+    last_validated_at_ms        INTEGER,
+    last_success_at_ms          INTEGER,
+    last_auth_failure_at_ms     INTEGER,
+    updated_at_ms               INTEGER NOT NULL,
+    password                    TEXT NOT NULL DEFAULT '',
+    moderation_kind             TEXT NOT NULL DEFAULT '' CHECK (moderation_kind IN ('', 'warned', 'banned', 'terminated')),
+    moderation_begins_at_ms     INTEGER,
+    moderation_ends_at_ms       INTEGER
+);
+INSERT INTO account_sessions_new(account_id, roblosecurity, cookie_expires_at_ms, state, state_reason, secret_version, imported_at_ms, replaced_at_ms, rotated_at_ms, last_validated_at_ms, last_success_at_ms, last_auth_failure_at_ms, updated_at_ms, password)
+SELECT account_id, roblosecurity, cookie_expires_at_ms, state, state_reason, secret_version, imported_at_ms, replaced_at_ms, rotated_at_ms, last_validated_at_ms, last_success_at_ms, last_auth_failure_at_ms, updated_at_ms, password FROM account_sessions;
+DROP TABLE account_sessions;
+ALTER TABLE account_sessions_new RENAME TO account_sessions;
+CREATE INDEX account_sessions_state_idx ON account_sessions(state);
+`); err != nil {
+		return fmt.Errorf("add account moderation: %w", err)
+	}
+	return nil
+}
+
+// moveModerationToCache drops the moderation columns of account_sessions. A
+// punishment is public metadata that Roblox can always return again, so it
+// lives in the public cache. The vault keeps only the moderated session state.
+func moveModerationToCache(ctx context.Context, transaction *sql.Tx) error {
+	if _, err := transaction.ExecContext(ctx, `
+ALTER TABLE account_sessions DROP COLUMN moderation_kind;
+ALTER TABLE account_sessions DROP COLUMN moderation_begins_at_ms;
+ALTER TABLE account_sessions DROP COLUMN moderation_ends_at_ms;
+`); err != nil {
+		return fmt.Errorf("move account moderation to the cache: %w", err)
 	}
 	return nil
 }

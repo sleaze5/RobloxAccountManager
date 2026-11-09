@@ -37,7 +37,7 @@ func (repository *Repository) leaseDatabase(ctx context.Context) (*sql.DB, func(
 	return database, release, nil
 }
 
-func (repository *Repository) Create(ctx context.Context, identity accountdomain.Identity, cookie string, expiresAt *time.Time) (accountdomain.AccountView, accountdomain.SessionRecord, error) {
+func (repository *Repository) Create(ctx context.Context, identity accountdomain.Identity, cookie string, expiresAt *time.Time, moderated bool) (accountdomain.AccountView, accountdomain.SessionRecord, error) {
 	if identity.RobloxUserID <= 0 || identity.Username == "" || cookie == "" {
 		return accountdomain.AccountView{}, accountdomain.SessionRecord{}, errors.New("invalid account record")
 	}
@@ -47,6 +47,7 @@ func (repository *Repository) Create(ctx context.Context, identity accountdomain
 	}
 	defer release()
 	now := time.Now().UTC().Truncate(time.Millisecond)
+	state := validatedState(moderated)
 	var accountID int64
 	err = vault.RunWriteTransaction(ctx, database, "account insert", func(transaction *sql.Tx) (bool, error) {
 		insertion, err := transaction.ExecContext(ctx, `
@@ -63,7 +64,7 @@ SELECT ?, ?, ?, COALESCE(MAX(display_order) + 1, 0), ?, ? FROM accounts`, identi
 		}
 		if _, err := transaction.ExecContext(ctx, `
 INSERT INTO account_sessions(account_id, roblosecurity, cookie_expires_at_ms, state, secret_version, imported_at_ms, last_validated_at_ms, last_success_at_ms, updated_at_ms)
-VALUES(?, ?, ?, ?, 1, ?, ?, ?, ?)`, accountID, cookie, nullableUnixMilliseconds(expiresAt), accountdomain.StateActive, now.UnixMilli(), now.UnixMilli(), now.UnixMilli(), now.UnixMilli()); err != nil {
+VALUES(?, ?, ?, ?, 1, ?, ?, ?, ?)`, accountID, cookie, nullableUnixMilliseconds(expiresAt), state, now.UnixMilli(), now.UnixMilli(), now.UnixMilli(), now.UnixMilli()); err != nil {
 			return false, fmt.Errorf("insert account session: %w", err)
 		}
 		return true, nil
@@ -71,9 +72,17 @@ VALUES(?, ?, ?, ?, 1, ?, ?, ?, ?)`, accountID, cookie, nullableUnixMilliseconds(
 	if err != nil {
 		return accountdomain.AccountView{}, accountdomain.SessionRecord{}, err
 	}
-	session := accountdomain.SessionRecord{AccountID: accountID, Roblosecurity: cookie, CookieExpiresAt: copyTime(expiresAt), State: accountdomain.StateActive, SecretVersion: 1, ImportedAt: now, LastValidatedAt: &now}
+	session := accountdomain.SessionRecord{AccountID: accountID, Roblosecurity: cookie, CookieExpiresAt: copyTime(expiresAt), State: state, SecretVersion: 1, ImportedAt: now, LastValidatedAt: &now}
 	repository.logger.InfoContext(ctx, "account stored", "operation", "account-store", "account_id", accountID, "roblox_user_id", identity.RobloxUserID)
 	return viewFrom(identity, accountID, session, now), session, nil
+}
+
+// validatedState is the state of a session whose cookie Roblox accepted.
+func validatedState(moderated bool) accountdomain.SessionState {
+	if moderated {
+		return accountdomain.StateModerated
+	}
+	return accountdomain.StateActive
 }
 
 func (repository *Repository) FindByRobloxUserID(ctx context.Context, userID int64) (accountdomain.AccountView, error) {
@@ -90,7 +99,7 @@ func (repository *Repository) FindByRobloxUserID(ctx context.Context, userID int
 	return view, err
 }
 
-func (repository *Repository) ReplaceCookie(ctx context.Context, accountID int64, identity accountdomain.Identity, cookie string, expiresAt *time.Time) (accountdomain.AccountView, accountdomain.SessionRecord, error) {
+func (repository *Repository) ReplaceCookie(ctx context.Context, accountID int64, identity accountdomain.Identity, cookie string, expiresAt *time.Time, moderated bool) (accountdomain.AccountView, accountdomain.SessionRecord, error) {
 	if accountID <= 0 || identity.RobloxUserID <= 0 || identity.Username == "" || cookie == "" {
 		return accountdomain.AccountView{}, accountdomain.SessionRecord{}, errors.New("invalid replacement account record")
 	}
@@ -111,7 +120,7 @@ func (repository *Repository) ReplaceCookie(ctx context.Context, accountID int64
 		}
 		if _, err := transaction.ExecContext(ctx, `
 UPDATE account_sessions SET roblosecurity = ?, cookie_expires_at_ms = ?, state = ?, state_reason = '', secret_version = secret_version + 1,
-replaced_at_ms = ?, last_validated_at_ms = ?, last_success_at_ms = ?, last_auth_failure_at_ms = NULL, updated_at_ms = ? WHERE account_id = ?`, cookie, nullableUnixMilliseconds(expiresAt), accountdomain.StateActive, now.UnixMilli(), now.UnixMilli(), now.UnixMilli(), now.UnixMilli(), accountID); err != nil {
+replaced_at_ms = ?, last_validated_at_ms = ?, last_success_at_ms = ?, last_auth_failure_at_ms = NULL, updated_at_ms = ? WHERE account_id = ?`, cookie, nullableUnixMilliseconds(expiresAt), validatedState(moderated), now.UnixMilli(), now.UnixMilli(), now.UnixMilli(), now.UnixMilli(), accountID); err != nil {
 			return false, fmt.Errorf("update replaced session: %w", err)
 		}
 		var err error
@@ -337,6 +346,24 @@ func (repository *Repository) MarkState(ctx context.Context, accountID, expected
 	})
 }
 
+// MarkModerated records a validation in which Roblox reported the account as
+// moderated. Its punishment is public metadata and lives in the cache.
+func (repository *Repository) MarkModerated(ctx context.Context, accountID, expectedVersion int64) error {
+	database, release, err := repository.leaseDatabase(ctx)
+	if err != nil {
+		return err
+	}
+	defer release()
+	now := time.Now().UTC().UnixMilli()
+	return vault.RunWriteTransaction(ctx, database, "session moderation update", func(transaction *sql.Tx) (bool, error) {
+		update, err := transaction.ExecContext(ctx, `UPDATE account_sessions SET state = ?, state_reason = '', last_validated_at_ms = ?, updated_at_ms = ? WHERE account_id = ? AND secret_version = ?`, accountdomain.StateModerated, now, now, accountID, expectedVersion)
+		if err != nil {
+			return false, fmt.Errorf("update session moderation: %w", err)
+		}
+		return requireChangedSession(update, "count moderated sessions")
+	})
+}
+
 func (repository *Repository) RecordValidation(ctx context.Context, accountID, expectedVersion int64, identity accountdomain.Identity) error {
 	database, release, err := repository.leaseDatabase(ctx)
 	if err != nil {
@@ -374,7 +401,9 @@ func (repository *Repository) RecordSuccess(ctx context.Context, accountID, expe
 	defer release()
 	now := time.Now().UTC().UnixMilli()
 	return vault.RunWriteTransaction(ctx, database, "success record", func(transaction *sql.Tx) (bool, error) {
-		update, err := transaction.ExecContext(ctx, `UPDATE account_sessions SET state = CASE WHEN state = ? THEN state ELSE ? END, state_reason = CASE WHEN state = ? THEN state_reason ELSE '' END, last_success_at_ms = ?, updated_at_ms = ? WHERE account_id = ? AND secret_version = ? AND (state != ? OR last_success_at_ms IS NULL OR last_success_at_ms < ?)`, accountdomain.StateDisabled, accountdomain.StateActive, accountdomain.StateDisabled, now, now, accountID, expectedVersion, accountdomain.StateActive, now-int64(time.Minute/time.Millisecond))
+		// Some Roblox endpoints answer a moderated account normally, so a success
+		// keeps the moderated state. Only a validation clears it.
+		update, err := transaction.ExecContext(ctx, `UPDATE account_sessions SET state = CASE WHEN state IN (?, ?) THEN state ELSE ? END, state_reason = CASE WHEN state = ? THEN state_reason ELSE '' END, last_success_at_ms = ?, updated_at_ms = ? WHERE account_id = ? AND secret_version = ? AND (state != ? OR last_success_at_ms IS NULL OR last_success_at_ms < ?)`, accountdomain.StateDisabled, accountdomain.StateModerated, accountdomain.StateActive, accountdomain.StateDisabled, now, now, accountID, expectedVersion, accountdomain.StateActive, now-int64(time.Minute/time.Millisecond))
 		if err != nil {
 			return false, fmt.Errorf("record success: %w", err)
 		}

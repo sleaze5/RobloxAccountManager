@@ -32,6 +32,16 @@ type FriendRequest struct {
 // Shape verified against signed-in responses on 2026-11-01. The older
 // /friends endpoint returns empty names, so names come from Users.Names.
 func (service *Users) FriendIDs(ctx context.Context, accountID, version, userID int64) ([]int64, error) {
+	return service.findFriendIDs(ctx, accountID, version, userID, "friends", "")
+}
+
+// TrustedFriendIDs reads the account's own trusted friends. Roblox rejects the
+// request for any other user. Shape verified on 2026-11-09.
+func (service *Users) TrustedFriendIDs(ctx context.Context, accountID, version, selfID int64) ([]int64, error) {
+	return service.findFriendIDs(ctx, accountID, version, selfID, "trusted-friends", "FindTrustedFriends")
+}
+
+func (service *Users) findFriendIDs(ctx context.Context, accountID, version, userID int64, endpoint, findFriendsType string) ([]int64, error) {
 	ids := []int64{}
 	seen, seenCursors := map[int64]bool{}, map[string]bool{}
 	cursor := ""
@@ -46,12 +56,15 @@ func (service *Users) FriendIDs(ctx context.Context, accountID, version, userID 
 		if cursor != "" {
 			query.Set("cursor", cursor)
 		}
+		if findFriendsType != "" {
+			query.Set("findFriendsType", findFriendsType)
+		}
 		address := "https://friends.roblox.com/v1/users/" + strconv.FormatInt(userID, 10) + "/friends/find?" + query.Encode()
-		if err := service.readAccountDetails(ctx, accountID, version, "friends", address, &payload); err != nil {
+		if err := service.readAccountDetails(ctx, accountID, version, endpoint, address, &payload); err != nil {
 			return nil, err
 		}
 		if payload.PageItems == nil {
-			return nil, invalidProfileDetails("friends")
+			return nil, invalidProfileDetails(endpoint)
 		}
 		for _, friend := range *payload.PageItems {
 			if friend.ID > 0 && !seen[friend.ID] {
@@ -64,11 +77,11 @@ func (service *Users) FriendIDs(ctx context.Context, accountID, version, userID 
 		}
 		cursor = *payload.NextCursor
 		if len(cursor) > 4096 || seenCursors[cursor] {
-			return nil, invalidProfileDetails("friends")
+			return nil, invalidProfileDetails(endpoint)
 		}
 		seenCursors[cursor] = true
 	}
-	return nil, &roblox.Error{Kind: roblox.KindProtocol, Endpoint: "friends", Message: "Roblox returned too many friends to list."}
+	return nil, &roblox.Error{Kind: roblox.KindProtocol, Endpoint: endpoint, Message: "Roblox returned too many friends to list."}
 }
 
 func (service *Users) FriendRequestCount(ctx context.Context, accountID, version int64) (*int64, error) {

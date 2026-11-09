@@ -16,7 +16,14 @@
 	import type { AccountStore } from "./account-store.svelte"
 	import type { Account } from "./account-model"
 	import TagPicker from "./TagPicker.svelte"
-	import { AccountCopyField, LaunchMethod, PresenceType } from "../backend/bridge"
+	import arrowCounterClockwiseIcon from "@phosphor-icons/core/regular/arrow-counter-clockwise.svg?raw"
+	import {
+		AccountCopyField,
+		LaunchMethod,
+		PresenceType,
+		SessionState,
+	} from "../backend/bridge"
+	import { canReactivate, hasReactivation } from "./moderation.svelte"
 	import type { WorkspaceState } from "../layout/workspace-state.svelte"
 
 	let {
@@ -39,7 +46,8 @@
 		onBrowser: (accountId: number | null) => void
 	} = $props()
 	const sessionId = $derived(browserStore.accountSessionId(account.id)),
-		browserOpen = $derived(!!sessionId)
+		browserOpen = $derived(!!sessionId),
+		reactivatable = $derived(canReactivate(account.moderation, Date.now()))
 	const copyFields = [
 		{
 			field: AccountCopyField.CopyDisplayName,
@@ -149,6 +157,20 @@
 
 <div role="group" aria-label="Session">
 	<div class="menu-heading" aria-hidden="true">Session</div>
+	{#if account.state === SessionState.StateModerated && hasReactivation(account.moderation)}
+		<button
+			class="menu-item"
+			type="button"
+			disabled={!reactivatable || store.reactivatingAccountId !== null}
+			data-tooltip={reactivatable ? undefined : "Available when the ban ends"}
+			onclick={() => {
+				workspace.closeAccountMenus()
+				void store.reactivateAccount(account.id)
+			}}>
+			<Icon svg={arrowCounterClockwiseIcon} size={16} aria-hidden="true" /><span
+				>Reactivate account</span>
+		</button>
+	{/if}
 	<button
 		class="menu-item-warning"
 		type="button"

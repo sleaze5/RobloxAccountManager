@@ -1,5 +1,9 @@
-import { accountBackend } from "../backend/bridge"
-import type { ChatConversationView, ChatMessageView } from "../backend/bridge"
+import { accountBackend, SocialList } from "../backend/bridge"
+import type {
+	ChatConversationView,
+	ChatMessageView,
+	SocialUser,
+} from "../backend/bridge"
 import type { AccountStore } from "../accounts/account-store.svelte"
 import { AccountScope } from "../accounts/account-scope"
 import { errorMessage } from "../shared/errors"
@@ -31,14 +35,24 @@ export class ChatState {
 	markingAll = $state(false)
 	creating = $state(false)
 	createError = $state("")
+	renaming = $state(false)
+	renameError = $state("")
+	friends = $state<SocialUser[]>([])
+	friendsLoading = $state(false)
+	friendsLoaded = $state(false)
+	friendsError = $state("")
+	groupMemberLimit = $state(0)
+	groupNameMaxLength = $state(0)
 	actionError = $state("")
 	#listGeneration = 0
 	#messagesGeneration = 0
 	#deliveredWhileLoading: ChatMessageView[] = []
 	#nextPendingKey = 0
 	readonly #scope: AccountScope
+	readonly selfUserId: number
 
-	constructor(accountId: number, store: AccountStore) {
+	constructor(accountId: number, selfUserId: number, store: AccountStore) {
+		this.selfUserId = selfUserId
 		this.#scope = new AccountScope(accountId, store)
 	}
 
@@ -70,6 +84,8 @@ export class ChatState {
 			}
 			this.conversations = conversations
 			this.conversationsCursor = page.nextCursor
+			this.groupMemberLimit = page.groupMemberLimit
+			this.groupNameMaxLength = page.groupNameMaxLength
 		} catch (error) {
 			if (this.#scope.isCurrent && generation === this.#listGeneration) {
 				this.error = errorMessage(error, "Could not load chats. Try again.")
@@ -261,20 +277,20 @@ export class ChatState {
 		)
 	}
 
-	async create(username: string): Promise<boolean> {
+	async create(userIds: number[], name: string): Promise<boolean> {
 		if (!this.#scope.isCurrent || this.creating) return false
 		this.creating = true
 		this.createError = ""
 		try {
-			const conversation = await accountBackend.CreateChatConversation(
-				this.#scope.accountId,
-				username,
+			const conversation = await this.#scope.track(
+				accountBackend.CreateChatConversation(
+					this.#scope.accountId,
+					userIds,
+					name,
+				),
 			)
 			if (!this.#scope.isCurrent) return false
-			this.conversations = [
-				conversation,
-				...this.conversations.filter((listed) => listed.id !== conversation.id),
-			]
+			this.#install(conversation)
 			await this.open(conversation.id)
 			return true
 		} catch (error) {
@@ -288,6 +304,102 @@ export class ChatState {
 		} finally {
 			this.creating = false
 		}
+	}
+
+	async addMembers(userIds: number[]): Promise<boolean> {
+		const conversationId = this.openId
+		if (!this.#scope.isCurrent || !conversationId || this.creating) return false
+		this.creating = true
+		this.createError = ""
+		try {
+			const conversation = await this.#scope.track(
+				accountBackend.AddChatMembers(
+					this.#scope.accountId,
+					conversationId,
+					userIds,
+				),
+			)
+			if (!this.#scope.isCurrent) return false
+			this.#install(conversation)
+			await this.reloadMessages()
+			return true
+		} catch (error) {
+			if (this.#scope.isCurrent) {
+				this.createError = errorMessage(
+					error,
+					"Could not add these members. Try again.",
+				)
+			}
+			return false
+		} finally {
+			this.creating = false
+		}
+	}
+
+	async rename(name: string): Promise<boolean> {
+		const conversationId = this.openId
+		if (!this.#scope.isCurrent || !conversationId || this.renaming) return false
+		this.renaming = true
+		this.renameError = ""
+		try {
+			const conversation = await this.#scope.track(
+				accountBackend.RenameChatConversation(
+					this.#scope.accountId,
+					conversationId,
+					name,
+				),
+			)
+			if (!this.#scope.isCurrent) return false
+			this.#install(conversation)
+			return true
+		} catch (error) {
+			if (this.#scope.isCurrent) {
+				this.renameError = errorMessage(
+					error,
+					"Could not rename this chat. Try again.",
+				)
+			}
+			return false
+		} finally {
+			this.renaming = false
+		}
+	}
+
+	// The friends list feeds the people picker. It loads once per page.
+	async loadFriends(): Promise<void> {
+		if (!this.#scope.isCurrent || this.friendsLoading || this.friendsLoaded) return
+		this.friendsLoading = true
+		this.friendsError = ""
+		try {
+			const page = await this.#scope.track(
+				accountBackend.GetSocialPage(
+					this.#scope.accountId,
+					this.selfUserId,
+					SocialList.SocialFriends,
+					"",
+				),
+			)
+			if (!this.#scope.isCurrent) return
+			this.friends = page.people ?? []
+			this.friendsLoaded = true
+		} catch (error) {
+			if (this.#scope.isCurrent) {
+				this.friendsError = errorMessage(error, "Could not load friends.")
+			}
+		} finally {
+			this.friendsLoading = false
+		}
+	}
+
+	async findUser(username: string): Promise<SocialUser | null> {
+		return this.#scope.track(accountBackend.FindPlayerByUsername(username))
+	}
+
+	#install(conversation: ChatConversationView): void {
+		this.conversations = [
+			conversation,
+			...this.conversations.filter((listed) => listed.id !== conversation.id),
+		]
 	}
 
 	send(text: string): void {

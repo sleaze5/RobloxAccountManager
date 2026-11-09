@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"log/slog"
 	"net/http"
-	"regexp"
 	"slices"
 	"strconv"
 	"strings"
@@ -24,17 +23,20 @@ const (
 	maxChatCursorLength  = 4096
 	maxChatMessageLength = 10000
 	maxChatMarkAllPages  = 50
+	// Roblox limits a group chat to 6 members, including the account, and its
+	// name to 150 characters. Values from platform-chat-api/v1/metadata
+	// (numberOfMembersForPartyChrome and maxConversationTitleLength) on 2026-11-09.
+	maxChatGroupMembers    = 6
+	maxChatGroupNameLength = 150
 )
 
-var (
-	chatOperationID     atomic.Uint64
-	chatUsernamePattern = regexp.MustCompile(`^[A-Za-z0-9_]{3,20}$`)
-)
+var chatOperationID atomic.Uint64
 
 type ChatParticipant struct {
 	UserID      int64  `json:"userId"`
 	Username    string `json:"username"`
 	DisplayName string `json:"displayName"`
+	ImageURL    string `json:"imageUrl"`
 }
 
 type ChatConversationView struct {
@@ -58,8 +60,10 @@ type ChatMessageView struct {
 }
 
 type ChatConversationPage struct {
-	Conversations []ChatConversationView `json:"conversations"`
-	NextCursor    string                 `json:"nextCursor"`
+	Conversations      []ChatConversationView `json:"conversations"`
+	NextCursor         string                 `json:"nextCursor"`
+	GroupMemberLimit   int                    `json:"groupMemberLimit"`
+	GroupNameMaxLength int                    `json:"groupNameMaxLength"`
 }
 
 type ChatMessagePage struct {
@@ -87,7 +91,10 @@ func (service *Service) GetChatConversations(ctx context.Context, accountID int6
 	conversations := slices.DeleteFunc(page.Conversations, func(conversation robloxservices.ChatConversation) bool {
 		return !realChatConversation(conversation.ID)
 	})
-	return ChatConversationPage{Conversations: service.chatConversationViews(ctx, logger, selfID, conversations), NextCursor: page.NextCursor}, nil
+	return ChatConversationPage{
+		Conversations: service.chatConversationViews(ctx, logger, selfID, conversations), NextCursor: page.NextCursor,
+		GroupMemberLimit: maxChatGroupMembers, GroupNameMaxLength: maxChatGroupNameLength,
+	}, nil
 }
 
 func (service *Service) GetChatMessages(ctx context.Context, accountID int64, conversationID, cursor string) (ChatMessagePage, error) {
@@ -161,10 +168,12 @@ func (service *Service) MarkAllChatConversationsRead(ctx context.Context, accoun
 	return len(ids), nil
 }
 
-func (service *Service) CreateChatConversation(ctx context.Context, accountID int64, username string) (ChatConversationView, error) {
-	username = strings.TrimPrefix(strings.TrimSpace(username), "@")
-	if !chatUsernamePattern.MatchString(username) {
-		return ChatConversationView{}, chatInputError("Enter a Roblox username of 3 to 20 letters, numbers, or underscores.")
+// CreateChatConversation opens a direct chat with one user, or creates a group
+// chat when several users are chosen or the chat has a name.
+func (service *Service) CreateChatConversation(ctx context.Context, accountID int64, userIDs []int64, name string) (ChatConversationView, error) {
+	userIDs, name, err := chatMembersInput(userIDs, name, maxChatGroupMembers-1)
+	if err != nil {
+		return ChatConversationView{}, err
 	}
 	ctx, version, logger, done, err := service.beginChat(ctx, accountID, "create")
 	if err != nil {
@@ -175,19 +184,125 @@ func (service *Service) CreateChatConversation(ctx context.Context, accountID in
 	if err != nil {
 		return ChatConversationView{}, err
 	}
-	userID, err := service.users.UserIDFromUsername(ctx, username)
+	if slices.Contains(userIDs, selfID) {
+		return ChatConversationView{}, chatInputError("Choose other users. This account is already in the chat.")
+	}
+	var conversation robloxservices.ChatConversation
+	if len(userIDs) == 1 && name == "" {
+		conversation, err = service.chat.CreateDirect(ctx, accountID, version, userIDs[0])
+	} else {
+		conversation, err = service.chat.CreateGroup(ctx, accountID, version, name, userIDs)
+	}
+	if err == nil {
+		err = chatConversationStatusError(conversation.Status, "Roblox did not create this chat. Try again.")
+	}
 	if err != nil {
 		return ChatConversationView{}, chatFailure(ctx, logger, err)
 	}
-	if userID == selfID {
-		return ChatConversationView{}, chatInputError("Enter another user's username.")
-	}
-	conversation, err := service.chat.CreateDirect(ctx, accountID, version, userID)
-	if err != nil {
-		return ChatConversationView{}, chatFailure(ctx, logger, err)
-	}
-	logger.InfoContext(ctx, "chat conversation opened")
+	logger.InfoContext(ctx, "chat conversation opened", "group", conversation.Type == "group", "members", len(userIDs))
 	return service.chatConversationViews(ctx, logger, selfID, []robloxservices.ChatConversation{conversation})[0], nil
+}
+
+// AddChatMembers adds users to a group chat and returns the updated chat.
+func (service *Service) AddChatMembers(ctx context.Context, accountID int64, conversationID string, userIDs []int64) (ChatConversationView, error) {
+	if err := validateChatConversationID(conversationID); err != nil {
+		return ChatConversationView{}, err
+	}
+	userIDs, _, err := chatMembersInput(userIDs, "", maxChatGroupMembers-2)
+	if err != nil {
+		return ChatConversationView{}, err
+	}
+	ctx, version, logger, done, err := service.beginChat(ctx, accountID, "add-members")
+	if err != nil {
+		return ChatConversationView{}, err
+	}
+	defer done()
+	selfID, err := service.chatSelfID(ctx, accountID)
+	if err != nil {
+		return ChatConversationView{}, err
+	}
+	current, err := service.chat.Conversation(ctx, accountID, version, conversationID)
+	if err != nil {
+		return ChatConversationView{}, chatFailure(ctx, logger, err)
+	}
+	if current.Type != "group" {
+		return ChatConversationView{}, chatInputError("Members can only be added to group chats.")
+	}
+	userIDs = slices.DeleteFunc(userIDs, func(userID int64) bool { return slices.Contains(current.ParticipantUserIDs, userID) })
+	if len(userIDs) == 0 {
+		return ChatConversationView{}, chatInputError("Everyone you chose is already in this chat.")
+	}
+	if len(current.ParticipantUserIDs)+len(userIDs) > maxChatGroupMembers {
+		return ChatConversationView{}, chatInputError(fmt.Sprintf("A group chat can have up to %d members.", maxChatGroupMembers))
+	}
+	if err := service.chat.AddUsers(ctx, accountID, version, conversationID, userIDs); err != nil {
+		return ChatConversationView{}, chatFailure(ctx, logger, err)
+	}
+	updated, err := service.chat.Conversation(ctx, accountID, version, conversationID)
+	if err != nil {
+		return ChatConversationView{}, chatFailure(ctx, logger, err)
+	}
+	logger.InfoContext(ctx, "chat members added", "count", len(userIDs))
+	return service.chatConversationViews(ctx, logger, selfID, []robloxservices.ChatConversation{updated})[0], nil
+}
+
+func (service *Service) RenameChatConversation(ctx context.Context, accountID int64, conversationID, name string) (ChatConversationView, error) {
+	if err := validateChatConversationID(conversationID); err != nil {
+		return ChatConversationView{}, err
+	}
+	name = strings.TrimSpace(name)
+	if name == "" || !utf8.ValidString(name) || utf8.RuneCountInString(name) > maxChatGroupNameLength {
+		return ChatConversationView{}, chatInputError(fmt.Sprintf("Enter a name of up to %d characters.", maxChatGroupNameLength))
+	}
+	ctx, version, logger, done, err := service.beginChat(ctx, accountID, "rename")
+	if err != nil {
+		return ChatConversationView{}, err
+	}
+	defer done()
+	selfID, err := service.chatSelfID(ctx, accountID)
+	if err != nil {
+		return ChatConversationView{}, err
+	}
+	conversation, err := service.chat.Rename(ctx, accountID, version, conversationID, name)
+	if err == nil {
+		err = chatConversationStatusError(conversation.Status, "Roblox did not rename this chat. Try again.")
+	}
+	if err != nil {
+		return ChatConversationView{}, chatFailure(ctx, logger, err)
+	}
+	if len(conversation.ParticipantUserIDs) == 0 {
+		if conversation, err = service.chat.Conversation(ctx, accountID, version, conversationID); err != nil {
+			return ChatConversationView{}, chatFailure(ctx, logger, err)
+		}
+	}
+	logger.InfoContext(ctx, "chat renamed")
+	return service.chatConversationViews(ctx, logger, selfID, []robloxservices.ChatConversation{conversation})[0], nil
+}
+
+// chatMembersInput checks the users and the optional group name of a chat.
+func chatMembersInput(userIDs []int64, name string, maxUsers int) ([]int64, string, error) {
+	userIDs = slices.Compact(slices.Sorted(slices.Values(userIDs)))
+	if len(userIDs) == 0 || len(userIDs) > maxUsers || slices.ContainsFunc(userIDs, func(userID int64) bool { return userID <= 0 }) {
+		return nil, "", chatInputError(fmt.Sprintf("Choose 1 to %d people.", maxUsers))
+	}
+	name = strings.TrimSpace(name)
+	if !utf8.ValidString(name) || utf8.RuneCountInString(name) > maxChatGroupNameLength {
+		return nil, "", chatInputError(fmt.Sprintf("Shorten the group name to %d characters or fewer.", maxChatGroupNameLength))
+	}
+	return userIDs, name, nil
+}
+
+// chatConversationStatusError reads the status that Roblox returns with a
+// created or renamed chat. An empty status means Roblox accepted it.
+func chatConversationStatusError(status, failed string) error {
+	switch strings.ToLower(status) {
+	case "", "success":
+		return nil
+	case "moderated":
+		return chatInputError("Roblox blocked this chat name. Choose another name.")
+	default:
+		return chatInputError(failed)
+	}
 }
 
 func (service *Service) SendChatMessage(ctx context.Context, accountID int64, conversationID, text string) (ChatMessageView, error) {
@@ -264,8 +379,10 @@ func (service *Service) chatConversationViews(ctx context.Context, logger *slog.
 	imageUsers := []int64{}
 	for _, conversation := range conversations {
 		view := chatConversationView(selfID, conversation)
-		if !view.Group && len(view.Participants) > 0 {
-			imageUsers = append(imageUsers, view.Participants[0].UserID)
+		for _, participant := range view.Participants {
+			if !slices.Contains(imageUsers, participant.UserID) {
+				imageUsers = append(imageUsers, participant.UserID)
+			}
 		}
 		views = append(views, view)
 	}
@@ -278,8 +395,13 @@ func (service *Service) chatConversationViews(ctx context.Context, logger *slog.
 		return views
 	}
 	for index := range views {
-		if !views[index].Group && len(views[index].Participants) > 0 {
-			views[index].ImageURL = images[views[index].Participants[0].UserID]
+		view := &views[index]
+		for participantIndex := range view.Participants {
+			participant := &view.Participants[participantIndex]
+			participant.ImageURL = images[participant.UserID]
+		}
+		if !view.Group && len(view.Participants) > 0 {
+			view.ImageURL = view.Participants[0].ImageURL
 		}
 	}
 	return views

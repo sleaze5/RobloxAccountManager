@@ -4,7 +4,7 @@ import gameControllerIcon from "@phosphor-icons/core/regular/game-controller.svg
 import globeIcon from "@phosphor-icons/core/regular/globe.svg?raw"
 import globeXIcon from "@phosphor-icons/core/regular/globe-x.svg?raw"
 import { AgeVerification, PresenceType, SessionState, TagKind } from "../backend/bridge"
-import type { AccountView, TagView, UserPresence } from "../backend/bridge"
+import type { AccountView, Moderation, TagView, UserPresence } from "../backend/bridge"
 
 export interface Account {
 	id: number
@@ -19,6 +19,7 @@ export interface Account {
 	favorite: boolean
 	state: SessionState
 	stateReason: string
+	moderation: Moderation | null
 	cookieExpiresAtMs: number | null
 	importedAtMs: number
 	lastValidatedAtMs: number | null
@@ -45,6 +46,7 @@ export const emptyAccount: Account = {
 	rotatedAtMs: null,
 	state: SessionState.StateUnknown,
 	stateReason: "",
+	moderation: null,
 	tags: [],
 	userId: "N/A",
 	username: "",
@@ -72,6 +74,7 @@ export function accountFromView(
 		rotatedAtMs: record.rotatedAtMs ?? null,
 		state: record.state,
 		stateReason: record.stateReason ?? "",
+		moderation: record.moderation ?? null,
 		tags,
 		userId: String(record.robloxUserId),
 		username: record.username,

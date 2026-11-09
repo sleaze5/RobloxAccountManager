@@ -164,6 +164,9 @@ func (client *Client) requestSnapshot(ctx context.Context, request Request) (Ses
 		if snapshot.State == accounts.StateDisabled {
 			return SessionSnapshot{}, &Error{Kind: KindForbidden, Endpoint: request.Endpoint, Message: "Network use is disabled for this account."}
 		}
+		if snapshot.State == accounts.StateModerated && !request.CanUseModeratedSession {
+			return SessionSnapshot{}, moderatedError(request.Endpoint, 0)
+		}
 		if snapshot.CookieExpiresAt != nil && !snapshot.CookieExpiresAt.After(time.Now()) {
 			client.setState(ctx, snapshot, accounts.StateReauthRequired, "The known cookie expiry passed.")
 			return SessionSnapshot{}, &Error{Kind: KindReauthRequired, Endpoint: request.Endpoint, Message: "The Roblox session has expired."}
@@ -371,6 +374,12 @@ func (client *Client) unauthorizedResponse(ctx context.Context, request Request,
 }
 
 func (client *Client) forbiddenResponse(ctx context.Context, request Request, snapshot SessionSnapshot, response *Response) error {
+	if request.Authenticated && isModeratedResponse(response) {
+		if snapshot.State != accounts.StateModerated {
+			client.setState(ctx, snapshot, accounts.StateModerated, "")
+		}
+		return moderatedError(request.Endpoint, response.Status)
+	}
 	challengeType := strings.TrimSpace(response.Header.Get(challengeTypeHeader))
 	if challengeType != "" {
 		message := "Roblox requires user interaction."
@@ -531,7 +540,7 @@ func (client *Client) confirmSessionInvalid(ctx context.Context, snapshot Sessio
 func (client *Client) probeAuthenticated(ctx context.Context, snapshot SessionSnapshot) (int, error) {
 	merged, stop := mergeContext(ctx, snapshot.Context)
 	defer stop()
-	request, err := newAuthenticatedUserRequest(merged, snapshot.Cookie, snapshot.BrowserID)
+	request, err := newCookieRequest(merged, AuthenticatedUserURL, snapshot.Cookie, snapshot.BrowserID)
 	if err != nil {
 		return 0, err
 	}
@@ -574,7 +583,9 @@ func (client *Client) setState(ctx context.Context, snapshot SessionSnapshot, st
 }
 
 func (client *Client) recordSuccess(ctx context.Context, snapshot SessionSnapshot) {
-	if client.store == nil {
+	// The requests that a moderated session may send succeed while the account
+	// stays moderated. Only a validation ends the moderated state.
+	if client.store == nil || snapshot.State == accounts.StateModerated {
 		return
 	}
 	if err := client.store.RecordSuccess(ctx, snapshot.AccountID, snapshot.SecretVersion); err != nil {

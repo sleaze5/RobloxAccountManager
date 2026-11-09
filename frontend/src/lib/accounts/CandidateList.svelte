@@ -2,6 +2,7 @@
 	import CheckboxMark from "../shared/CheckboxMark.svelte"
 	import ProfileImage from "../shared/ProfileImage.svelte"
 	import type { CandidateListItem } from "./candidate-model"
+	import { moderationStatus } from "./moderation.svelte"
 
 	let {
 		items,
@@ -89,6 +90,22 @@
 						<span class="shrink-0 font-mono text-fg-faint"
 							>- ID: {candidate.robloxUserId}</span>
 					</span>
+					{#if candidate.moderation}
+						{@const moderation = moderationStatus(
+							candidate.moderation,
+							Date.now(),
+						)}
+						<span
+							class={[
+								"rounded-sm border px-1 py-0.5 text-2xs whitespace-nowrap tabular-nums",
+								moderation.tone === "warning"
+									? "border-warning/30 text-warning"
+									: "border-danger/40 text-danger-muted",
+							]}
+							>{moderation.label}{moderation.detail
+								? ` ${moderation.detail}`
+								: ""}</span>
+					{/if}
 					{#if candidate.status}<span
 							class="rounded-sm border border-warning/30 px-1 py-0.5 text-2xs whitespace-nowrap text-warning"
 							>{candidate.status}</span

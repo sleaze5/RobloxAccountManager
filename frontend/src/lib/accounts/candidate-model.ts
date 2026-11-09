@@ -1,3 +1,5 @@
+import type { Moderation } from "../backend/bridge"
+
 export interface CandidateListItem {
 	id: string
 	indexLabel?: string
@@ -9,5 +11,6 @@ export interface CandidateListItem {
 	robloxUserId?: number
 	avatarUrl?: string
 	status?: string
+	moderation?: Moderation | null
 	error?: string
 }

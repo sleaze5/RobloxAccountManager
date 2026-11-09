@@ -133,7 +133,7 @@ func run() (runError error) {
 		vaultManager,
 		repository,
 		sessions,
-		robloxservices.NewUsers(client),
+		robloxservices.NewUsers(client, publicCache),
 		robloxservices.NewAccountSettings(client),
 		robloxservices.NewChat(client),
 		robloxservices.NewAuth(client, logSystem.Module("roblox.auth")),

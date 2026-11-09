@@ -3,8 +3,10 @@ package appservice
 import (
 	"cmp"
 	"context"
+	"errors"
 	"fmt"
 	"log/slog"
+	"net/http"
 	"regexp"
 	"slices"
 	"strconv"
@@ -30,6 +32,7 @@ const (
 var (
 	socialOperationID atomic.Uint64
 	playerIDSearch    = regexp.MustCompile(`^(?i)id:\s*(\d{1,18})$`)
+	playerUsername    = regexp.MustCompile(`^[A-Za-z0-9_]{3,20}$`)
 )
 
 type SocialList string
@@ -55,6 +58,8 @@ type SocialUser struct {
 	ImageURL    string                       `json:"imageUrl"`
 	Presence    *robloxservices.UserPresence `json:"presence"`
 	Request     *FriendRequestView           `json:"request"`
+	// Trusted is set only in the account's own friends list.
+	Trusted bool `json:"trusted"`
 }
 
 // SocialRelationship describes the user as the browsing account sees them.
@@ -136,7 +141,11 @@ func (service *Service) GetSocialPage(ctx context.Context, accountID, userID int
 	if err != nil {
 		return SocialPage{}, socialFailure(logger, err)
 	}
-	page, err := service.socialPage(ctx, accountID, version, logger, entries, list != SocialRequests, own && (list == SocialFriends || list == SocialRequests))
+	optional := socialPageReads{presence: list != SocialRequests, requestCount: own && (list == SocialFriends || list == SocialRequests)}
+	if own && list == SocialFriends {
+		optional.trustedOf = userID
+	}
+	page, err := service.socialPage(ctx, accountID, version, logger, entries, optional)
 	if err == nil && list == SocialFriends {
 		slices.SortStableFunc(page.People, compareFriends)
 	}
@@ -168,7 +177,7 @@ func (service *Service) SearchPlayers(ctx context.Context, accountID int64, keyw
 	if err != nil {
 		return SocialPage{}, socialFailure(logger, err)
 	}
-	return service.socialPage(ctx, accountID, version, logger, entries, true, false)
+	return service.socialPage(ctx, accountID, version, logger, entries, socialPageReads{presence: true})
 }
 
 // playerByID returns the user ID when Roblox knows the user, or no IDs.
@@ -190,7 +199,15 @@ func (service *Service) playerByID(ctx context.Context, value string) ([]int64, 
 	return []int64{userID}, nil
 }
 
-func (service *Service) socialPage(ctx context.Context, accountID, version int64, logger *slog.Logger, entries socialEntries, withPresence, withRequestCount bool) (SocialPage, error) {
+// socialPageReads chooses the optional parts of a social list. trustedOf is
+// the account's own user ID when its trusted friends are marked, or 0.
+type socialPageReads struct {
+	presence     bool
+	requestCount bool
+	trustedOf    int64
+}
+
+func (service *Service) socialPage(ctx context.Context, accountID, version int64, logger *slog.Logger, entries socialEntries, optional socialPageReads) (SocialPage, error) {
 	users, err := service.users.Names(ctx, entries.ids)
 	if err != nil {
 		return SocialPage{}, socialFailure(logger, err)
@@ -207,27 +224,37 @@ func (service *Service) socialPage(ctx context.Context, accountID, version int64
 		nicknames, readError = service.users.Nicknames(ctx, accountID, version, entries.ids)
 		return readError
 	}}}
-	if withPresence {
+	if optional.presence {
 		reads = append(reads, accountRead{"presence", func() error {
 			var readError error
 			presences, readError = service.presence.UserPresences(ctx, accountID, version, entries.ids)
 			return readError
 		}})
 	}
-	if withRequestCount {
+	if optional.requestCount {
 		reads = append(reads, accountRead{"requestCount", func() error {
 			var readError error
 			page.RequestCount, readError = service.users.FriendRequestCount(ctx, accountID, version)
 			return readError
 		}})
 	}
+	trustedUsers := map[int64]bool{}
+	if optional.trustedOf > 0 {
+		reads = append(reads, accountRead{"trusted", func() error {
+			trustedIDs, readError := service.users.TrustedFriendIDs(ctx, accountID, version, optional.trustedOf)
+			for _, trustedID := range trustedIDs {
+				trustedUsers[trustedID] = true
+			}
+			return readError
+		}})
+	}
 	if page.Unavailable, err = service.runAccountReads(ctx, accountID, version, "social", logger, reads); err != nil {
 		return SocialPage{}, err
 	}
-	page.People = socialPeople(users, entries.requests, presences, withPresence)
+	page.People = socialPeople(users, entries.requests, presences, optional.presence)
 	for index := range page.People {
 		person := &page.People[index]
-		person.ImageURL, person.Nickname = images[person.UserID], nicknames[person.UserID]
+		person.ImageURL, person.Nickname, person.Trusted = images[person.UserID], nicknames[person.UserID], trustedUsers[person.UserID]
 	}
 	logger.Debug("social list read", "count", len(page.People), "failed_sections", len(page.Unavailable))
 	return page, nil
@@ -364,7 +391,7 @@ func (service *Service) GetSocialProfile(ctx context.Context, accountID, userID 
 		{"previousNames", func() error {
 			var readError error
 			profile.PreviousNames, readError = service.users.PreviousNames(ctx, accountID, version, userID)
-			return readError
+			return ignoreTerminatedUser(readError)
 		}},
 		{"primaryGroup", func() error {
 			var readError error
@@ -389,7 +416,7 @@ func (service *Service) GetSocialProfile(ctx context.Context, accountID, userID 
 		{"inventory", func() error {
 			var readError error
 			profile.InventoryVisible, readError = service.users.InventoryVisible(ctx, accountID, version, userID)
-			return readError
+			return ignoreTerminatedUser(readError)
 		}},
 		{"connections", func() error {
 			var readError error
@@ -496,7 +523,7 @@ func (service *Service) friendConnections(ctx context.Context, logger *slog.Logg
 		switch {
 		case view.RobloxUserID == userID:
 			savedID = view.ID
-		case view.ID != viewerID && view.State != accounts.StateReauthRequired && view.State != accounts.StateDisabled:
+		case view.ID != viewerID && view.State != accounts.StateReauthRequired && view.State != accounts.StateDisabled && view.State != accounts.StateModerated:
 			candidates = append(candidates, view)
 		}
 	}
@@ -621,10 +648,96 @@ func friendPresenceRank(presence *robloxservices.UserPresence) int {
 	}
 }
 
+// ignoreTerminatedUser hides the 400 that Roblox returns for the username
+// history and inventory of a terminated user, which have nothing to show.
+// Verified against a terminated user on 2026-11-09.
+func ignoreTerminatedUser(err error) error {
+	if remote, ok := errors.AsType[*roblox.Error](err); ok && remote.Status == http.StatusBadRequest {
+		return nil
+	}
+	return err
+}
+
 func socialFailure(logger *slog.Logger, err error) error {
 	return operationFailure(context.Background(), logger, err, "social", "The request failed. Try again.")
 }
 
 func socialInputError(message string) error {
 	return &roblox.Error{Kind: roblox.KindProtocol, Endpoint: "social", Message: message}
+}
+
+const maxSocialRemovalUsers = 200
+
+// SocialRemoval reports a bulk removal. Removed lists the users that are no
+// longer in the list. FailureMessage explains the first failure.
+type SocialRemoval struct {
+	Removed        []int64 `json:"removed"`
+	FailedCount    int     `json:"failedCount"`
+	FailureMessage string  `json:"failureMessage"`
+}
+
+// RemoveSocialConnections unfriends, unfollows, or declines the requests of
+// several users of the account's own list, one at a time.
+func (service *Service) RemoveSocialConnections(ctx context.Context, accountID int64, list SocialList, userIDs []int64) (SocialRemoval, error) {
+	if len(userIDs) == 0 || len(userIDs) > maxSocialRemovalUsers {
+		return SocialRemoval{}, socialInputError(fmt.Sprintf("Select 1 to %d people.", maxSocialRemovalUsers))
+	}
+	var remove func(context.Context, int64) error
+	switch list {
+	case SocialFriends:
+		remove = func(ctx context.Context, userID int64) error { return service.Unfriend(ctx, accountID, userID) }
+	case SocialFollowing:
+		remove = func(ctx context.Context, userID int64) error { return service.Unfollow(ctx, accountID, userID) }
+	case SocialRequests:
+		remove = func(ctx context.Context, userID int64) error {
+			return service.DeclineFriendRequest(ctx, accountID, userID)
+		}
+	default:
+		return SocialRemoval{}, socialInputError("Choose friends, following, or requests.")
+	}
+	removal := SocialRemoval{Removed: []int64{}}
+	for _, userID := range slices.Compact(slices.Sorted(slices.Values(userIDs))) {
+		if ctx.Err() != nil {
+			removal.FailedCount++
+			continue
+		}
+		if err := remove(ctx, userID); err != nil {
+			removal.FailedCount++
+			if removal.FailureMessage == "" {
+				removal.FailureMessage = err.Error()
+			}
+			continue
+		}
+		removal.Removed = append(removal.Removed, userID)
+	}
+	service.logs.Module("application.social").Info("social connections removed", "operation", "social-bulk-remove", "account_id", accountID, "list", list, "removed", len(removal.Removed), "failed", removal.FailedCount)
+	return removal, nil
+}
+
+// FindPlayerByUsername returns the user with exactly this username, or nil
+// when Roblox has no such user.
+func (service *Service) FindPlayerByUsername(ctx context.Context, username string) (*SocialUser, error) {
+	username = strings.TrimPrefix(strings.TrimSpace(username), "@")
+	if !playerUsername.MatchString(username) {
+		return nil, nil
+	}
+	userID, err := service.users.UserIDFromUsername(ctx, username)
+	if errors.Is(err, robloxservices.ErrUsernameNotFound) {
+		return nil, nil
+	}
+	if err != nil {
+		return nil, err
+	}
+	users, err := service.users.Names(ctx, []int64{userID})
+	if err != nil {
+		return nil, err
+	}
+	if len(users) == 0 || users[0].Username == "" {
+		return nil, nil
+	}
+	person := SocialUser{UserID: userID, Username: users[0].Username, DisplayName: cmp.Or(users[0].DisplayName, users[0].Username)}
+	if images, err := service.headshotImages(ctx, []int64{userID}); err == nil {
+		person.ImageURL = images[userID]
+	}
+	return &person, nil
 }

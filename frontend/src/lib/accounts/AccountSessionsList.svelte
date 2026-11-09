@@ -5,6 +5,7 @@
 	import devicesIcon from "@phosphor-icons/core/regular/devices.svg?raw"
 	import globeIcon from "@phosphor-icons/core/regular/globe.svg?raw"
 	import Icon from "../shared/Icon.svelte"
+	import SensitiveValue from "../shared/SensitiveValue.svelte"
 	import Timestamp from "../shared/Timestamp.svelte"
 	import type { AccountSession } from "../backend/bridge"
 	import type { AccountSessionsState } from "./account-sessions-state.svelte"
@@ -87,13 +88,28 @@
 									>This app</span
 								>{/if}
 						</strong>
-						<span class="flex min-w-0 flex-wrap gap-x-3">
-							<span class="min-w-0 truncate"
-								>{session.location || "Unknown location"}</span>
-							{#if session.ip}<span
-									class="font-mono text-2xs leading-4 text-fg-faint"
-									>{session.ip}</span
-								>{/if}
+						<span class="flex min-w-0 flex-wrap items-center gap-x-4">
+							<span class="flex min-w-0 items-center gap-1.5">
+								<span class="shrink-0 text-2xs text-fg-faint"
+									>Location</span>
+								{#if session.location}
+									<SensitiveValue label="Location"
+										>{session.location}</SensitiveValue>
+								{:else}
+									<span>Unknown</span>
+								{/if}
+							</span>
+							{#if session.ip}
+								<span class="flex min-w-0 items-center gap-1.5">
+									<span class="shrink-0 text-2xs text-fg-faint"
+										>IP</span>
+									<SensitiveValue label="IP address"
+										><span
+											class="font-mono text-2xs leading-4 text-fg-muted"
+											>{session.ip}</span
+										></SensitiveValue>
+								</span>
+							{/if}
 						</span>
 					</div>
 					<span class="shrink-0 text-xs text-fg-muted">

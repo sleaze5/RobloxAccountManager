@@ -43,9 +43,9 @@ type Vault interface {
 
 type AccountRepository interface {
 	RestoreNames(context.Context, int64, accounts.Identity) error
-	Create(context.Context, accounts.Identity, string, *time.Time) (accounts.AccountView, accounts.SessionRecord, error)
+	Create(context.Context, accounts.Identity, string, *time.Time, bool) (accounts.AccountView, accounts.SessionRecord, error)
 	FindByRobloxUserID(context.Context, int64) (accounts.AccountView, error)
-	ReplaceCookie(context.Context, int64, accounts.Identity, string, *time.Time) (accounts.AccountView, accounts.SessionRecord, error)
+	ReplaceCookie(context.Context, int64, accounts.Identity, string, *time.Time, bool) (accounts.AccountView, accounts.SessionRecord, error)
 	RotateCookie(context.Context, int64, int64, string, *time.Time) (accounts.SessionRecord, error)
 	Remove(context.Context, int64) error
 	Page(context.Context, accounts.AccountQuery) (accounts.AccountPage, error)
@@ -59,5 +59,6 @@ type AccountRepository interface {
 	GetPassword(context.Context, int64) (string, error)
 	SetPassword(context.Context, int64, string) error
 	MarkState(context.Context, int64, int64, accounts.SessionState, string) error
+	MarkModerated(context.Context, int64, int64) error
 	RecordValidation(context.Context, int64, int64, accounts.Identity) error
 }

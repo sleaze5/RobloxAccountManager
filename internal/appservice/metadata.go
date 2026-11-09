@@ -81,3 +81,13 @@ func (service *Service) refreshAccountMetadata(accountID, userID int64) {
 		}
 	})
 }
+
+// refreshAccountModeration validates a moderated account whose punishment is
+// missing from the cache, which reads and caches the punishment again.
+func (service *Service) refreshAccountModeration(accountID, userID int64) {
+	service.refreshMetadata(fmt.Sprintf("moderation-%d", userID), func(ctx context.Context) {
+		if _, err := service.ValidateAccount(ctx, accountID); err != nil && ctx.Err() == nil {
+			service.logger.WarnContext(ctx, "account moderation could not be refreshed; retry the account list later", "operation", "account-moderation-refresh", "account_id", accountID, "error", err)
+		}
+	})
+}

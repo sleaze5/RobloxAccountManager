@@ -6,6 +6,7 @@
 	import cookieIcon from "@phosphor-icons/core/regular/cookie.svg?raw"
 	import databaseIcon from "@phosphor-icons/core/regular/database.svg?raw"
 	import globeHemisphereWestIcon from "@phosphor-icons/core/regular/globe-hemisphere-west.svg?raw"
+	import prohibitIcon from "@phosphor-icons/core/regular/prohibit.svg?raw"
 	import sealCheckIcon from "@phosphor-icons/core/regular/seal-check.svg?raw"
 	import shieldCheckIcon from "@phosphor-icons/core/regular/shield-check.svg?raw"
 	import shieldSlashIcon from "@phosphor-icons/core/regular/shield-slash.svg?raw"
@@ -13,7 +14,8 @@
 	import usersThreeIcon from "@phosphor-icons/core/regular/users-three.svg?raw"
 	import warningCircleIcon from "@phosphor-icons/core/regular/warning-circle.svg?raw"
 	import Icon from "../shared/Icon.svelte"
-	import { AgeVerification, SessionState } from "../backend/bridge"
+	import { AgeVerification, ModerationKind, SessionState } from "../backend/bridge"
+	import { moderationLabel, resolvesInBrowser } from "./moderation.svelte"
 	import type { AccountProfileSnapshot } from "../backend/bridge"
 	import Timestamp from "../shared/Timestamp.svelte"
 	import { relativeTime } from "../shared/timestamp"
@@ -80,6 +82,17 @@
 						detail:
 							account.stateReason ||
 							"Roblox asked for extra verification.",
+					}
+				case SessionState.StateModerated:
+					return {
+						tone:
+							account.moderation?.kind ===
+								ModerationKind.ModerationWarned ||
+							resolvesInBrowser(account.moderation)
+								? "warning"
+								: "danger",
+						label: moderationLabel(account.moderation),
+						detail: "The cookie works, but Roblox blocks this account.",
 					}
 				case SessionState.StateDisabled:
 					return {
@@ -203,6 +216,9 @@
 						size={16}
 						aria-hidden="true" />{:else if session.tone === "warning"}<Icon
 						svg={warningCircleIcon}
+						size={16}
+						aria-hidden="true" />{:else if session.tone === "danger"}<Icon
+						svg={prohibitIcon}
 						size={16}
 						aria-hidden="true" />{:else}<Icon
 						svg={circleDashedIcon}

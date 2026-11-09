@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"strings"
+	"time"
 
 	"github.com/sleaze5/RobloxAccountManager/internal/accounts"
 	"github.com/sleaze5/RobloxAccountManager/internal/browser"
@@ -86,7 +87,7 @@ func (service *Service) CommitBrowserCandidate(ctx context.Context, validation r
 	if !errors.Is(err, accounts.ErrNotFound) {
 		return accounts.AccountView{}, browser.SaveFailed, mapRepositoryError(err)
 	}
-	view, record, err := service.repo.Create(ctx, validation.Identity, validation.Cookie, validation.ExpiresAt)
+	view, record, err := service.repo.Create(ctx, validation.Identity, validation.Cookie, validation.ExpiresAt, validation.Moderation != nil)
 	if errors.Is(err, accounts.ErrDuplicateAccount) {
 		duplicate, lookupError := service.repo.FindByRobloxUserID(ctx, validation.Identity.RobloxUserID)
 		return duplicate, browser.SaveDuplicate, lookupError
@@ -137,7 +138,7 @@ func (service *Service) replaceValidatedCookie(ctx context.Context, accountID in
 	if err := service.vault.PurgeBackups(); err != nil {
 		return accounts.AccountView{}, fmt.Errorf("remove backups containing the previous cookie: %w", err)
 	}
-	view, session, err := service.repo.ReplaceCookie(ctx, accountID, validated.Identity, validated.Cookie, validated.ExpiresAt)
+	view, session, err := service.repo.ReplaceCookie(ctx, accountID, validated.Identity, validated.Cookie, validated.ExpiresAt, validated.Moderation != nil)
 	if err != nil {
 		return accounts.AccountView{}, mapRepositoryError(err)
 	}
@@ -174,13 +175,27 @@ func (service *Service) ListAccounts(ctx context.Context, query accounts.Account
 	if err != nil {
 		return accounts.AccountPage{}, mapRepositoryError(err)
 	}
-	for _, account := range page.Accounts {
+	for index := range page.Accounts {
+		account := &page.Accounts[index]
 		service.sessions.BrowserID(account.ID)
 		if strings.HasPrefix(account.Username, "User ") {
 			service.refreshAccountMetadata(account.ID, account.RobloxUserID)
 		}
+		if service.attachModeration(ctx, account) {
+			service.refreshAccountModeration(account.ID, account.RobloxUserID)
+		}
 	}
 	return page, nil
+}
+
+// attachModeration adds the cached punishment of a moderated account to its
+// view, and reports whether the cache had none.
+func (service *Service) attachModeration(ctx context.Context, view *accounts.AccountView) bool {
+	if view.State != accounts.StateModerated {
+		return false
+	}
+	view.Moderation = service.users.CachedModeration(ctx, view.RobloxUserID)
+	return view.Moderation == nil
 }
 
 func (service *Service) MoveAccount(ctx context.Context, accountID int64, beforeID, afterID *int64) error {
@@ -243,21 +258,27 @@ func (service *Service) GetAccountPresences(ctx context.Context, accountID *int6
 	return presences, err
 }
 
+// presenceTargets leaves out moderated accounts, because Roblox rejects their
+// presence requests and shows them offline.
 func (service *Service) presenceTargets(ctx context.Context, accountID *int64) ([]robloxservices.PresenceTarget, error) {
+	var views []accounts.AccountView
 	if accountID != nil {
 		view, err := service.repo.GetView(ctx, *accountID)
 		if err != nil {
 			return nil, mapRepositoryError(err)
 		}
-		return []robloxservices.PresenceTarget{{AccountID: view.ID, RobloxUserID: view.RobloxUserID}}, nil
-	}
-	views, err := service.savedAccounts(ctx)
-	if err != nil {
-		return nil, err
+		views = []accounts.AccountView{view}
+	} else {
+		var err error
+		if views, err = service.savedAccounts(ctx); err != nil {
+			return nil, err
+		}
 	}
 	targets := make([]robloxservices.PresenceTarget, 0, len(views))
 	for _, view := range views {
-		targets = append(targets, robloxservices.PresenceTarget{AccountID: view.ID, RobloxUserID: view.RobloxUserID})
+		if view.State != accounts.StateModerated {
+			targets = append(targets, robloxservices.PresenceTarget{AccountID: view.ID, RobloxUserID: view.RobloxUserID})
+		}
 	}
 	return targets, nil
 }
@@ -284,6 +305,9 @@ func (service *Service) ValidateAccount(ctx context.Context, accountID int64) (a
 		return accounts.AccountView{}, mapRepositoryError(err)
 	}
 	identity, err := service.users.Authenticated(ctx, accountID)
+	if remote, ok := errors.AsType[*roblox.Error](err); ok && remote.Kind == roblox.KindModerated {
+		return service.recordModeration(ctx, current)
+	}
 	if err != nil {
 		return accounts.AccountView{}, err
 	}
@@ -306,6 +330,60 @@ func (service *Service) ValidateAccount(ctx context.Context, accountID int64) (a
 	if err != nil {
 		return accounts.AccountView{}, mapRepositoryError(err)
 	}
+	service.events.send("account:updated", view)
+	return view, nil
+}
+
+// reactivationCacheDelay matches the wait of the Roblox website after a
+// reactivation, because Roblox keeps answering with the moderation until its
+// cache refreshes.
+const reactivationCacheDelay = 2 * time.Second
+
+// ReactivateAccount accepts the moderation of a warned account, or of a banned
+// account whose ban ended, and validates the account again.
+func (service *Service) ReactivateAccount(ctx context.Context, accountID int64) (accounts.AccountView, error) {
+	err := service.editAccount(ctx, accountID, "account-reactivate", "Roblox did not reactivate this account. Check the ban end time and try again.", func(ctx context.Context, version int64) error {
+		return service.users.Reactivate(ctx, accountID, version)
+	})
+	if err != nil {
+		return accounts.AccountView{}, err
+	}
+	timer := time.NewTimer(reactivationCacheDelay)
+	defer timer.Stop()
+	select {
+	case <-ctx.Done():
+		return accounts.AccountView{}, &roblox.Error{Kind: roblox.KindCancelled, Endpoint: "account-reactivate", Message: "The account was reactivated. Refresh it to see its status.", Cause: ctx.Err()}
+	case <-timer.C:
+	}
+	view, err := service.ValidateAccount(ctx, accountID)
+	if err != nil {
+		return accounts.AccountView{}, err
+	}
+	if view.State == accounts.StateModerated {
+		return accounts.AccountView{}, &roblox.Error{Kind: roblox.KindModerated, Endpoint: "account-reactivate", Message: "Roblox still reports this account as moderated. Try again in a minute."}
+	}
+	return view, nil
+}
+
+// recordModeration saves that Roblox reported the account as moderated, and
+// caches its punishment.
+func (service *Service) recordModeration(ctx context.Context, current accounts.AccountView) (accounts.AccountView, error) {
+	snapshot, err := service.sessions.Snapshot(current.ID)
+	if err != nil {
+		return accounts.AccountView{}, err
+	}
+	if err := service.repo.MarkModerated(ctx, current.ID, snapshot.SecretVersion); err != nil && !errors.Is(err, accounts.ErrStaleSecret) {
+		return accounts.AccountView{}, mapRepositoryError(err)
+	}
+	service.sessions.UpdateState(current.ID, snapshot.SecretVersion, accounts.StateModerated)
+	if _, err := service.users.Moderation(ctx, current.ID, snapshot.SecretVersion, current.RobloxUserID); err != nil && ctx.Err() == nil {
+		service.logger.Warn("account moderation details unavailable; keeping the cached details", "operation", "account-validation", "account_id", current.ID, "error", err)
+	}
+	view, err := service.repo.GetView(ctx, current.ID)
+	if err != nil {
+		return accounts.AccountView{}, mapRepositoryError(err)
+	}
+	service.attachModeration(ctx, &view)
 	service.events.send("account:updated", view)
 	return view, nil
 }

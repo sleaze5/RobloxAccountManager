@@ -17,6 +17,9 @@ type CookieValidation struct {
 	Cookie    string
 	BrowserID string
 	ExpiresAt *time.Time
+	// Moderation is set when Roblox moderated the account. The cookie still
+	// works, so the account can be saved.
+	Moderation *accounts.Moderation
 }
 
 func (client *Client) ValidateCookie(ctx context.Context, cookie, browserID string) (CookieValidation, error) {
@@ -32,7 +35,7 @@ func (client *Client) ValidateCookie(ctx context.Context, cookie, browserID stri
 	defer cancel()
 	validation := CookieValidation{Cookie: cookie, BrowserID: browserID}
 	for attempt := 1; attempt <= 3; attempt++ {
-		response, retry, err := client.sendCookieValidation(requestContext, validation, attempt)
+		response, retry, err := client.sendCookieValidation(requestContext, validation, AuthenticatedUserURL, attempt)
 		if err != nil {
 			return CookieValidation{}, err
 		}
@@ -51,8 +54,8 @@ func (client *Client) ValidateCookie(ctx context.Context, cookie, browserID stri
 	return CookieValidation{}, &Error{Kind: KindProtocol, Endpoint: "cookie-import", Message: "Cookie validation stopped unexpectedly.", Cause: io.EOF}
 }
 
-func (client *Client) sendCookieValidation(ctx context.Context, validation CookieValidation, attempt int) (*Response, bool, error) {
-	request, err := newAuthenticatedUserRequest(ctx, validation.Cookie, validation.BrowserID)
+func (client *Client) sendCookieValidation(ctx context.Context, validation CookieValidation, address string, attempt int) (*Response, bool, error) {
+	request, err := newCookieRequest(ctx, address, validation.Cookie, validation.BrowserID)
 	if err != nil {
 		return nil, false, &Error{Kind: KindProtocol, Endpoint: "cookie-import", Message: "The cookie validation request is invalid.", Cause: err}
 	}
@@ -115,6 +118,9 @@ func (client *Client) cookieValidationResponse(ctx context.Context, response *Re
 		return cookieValidation, false, err
 	case response.Status == http.StatusUnauthorized:
 		return CookieValidation{}, false, &Error{Kind: KindInvalidSession, Endpoint: "cookie-import", Status: response.Status, Message: "Roblox rejected this cookie."}
+	case isModeratedResponse(response):
+		cookieValidation, err := client.moderatedCookieValidation(ctx, validation)
+		return cookieValidation, false, err
 	case response.Status == http.StatusForbidden:
 		challengeType := strings.TrimSpace(response.Header.Get(challengeTypeHeader))
 		if challengeType != "" {

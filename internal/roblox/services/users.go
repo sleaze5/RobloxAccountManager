@@ -13,7 +13,10 @@ import (
 
 	"github.com/sleaze5/RobloxAccountManager/internal/accounts"
 	"github.com/sleaze5/RobloxAccountManager/internal/roblox"
+	"github.com/sleaze5/RobloxAccountManager/internal/storage/caches"
 )
+
+var ErrUsernameNotFound = errors.New("username not found")
 
 type UserView struct {
 	UserID      int64  `json:"userId"`
@@ -25,12 +28,13 @@ type Users struct {
 	client        *roblox.Client
 	authenticated *url.URL
 	profiles      *url.URL
+	cache         *caches.Store
 }
 
-func NewUsers(client *roblox.Client) *Users {
+func NewUsers(client *roblox.Client, cache *caches.Store) *Users {
 	authenticated, _ := url.Parse(roblox.AuthenticatedUserURL)
 	profiles, _ := url.Parse("https://users.roblox.com/v1/users/")
-	return &Users{client: client, authenticated: authenticated, profiles: profiles}
+	return &Users{client: client, authenticated: authenticated, profiles: profiles, cache: cache}
 }
 
 func (service *Users) ValidateCookie(ctx context.Context, cookie, browserID string) (roblox.CookieValidation, error) {
@@ -39,17 +43,21 @@ func (service *Users) ValidateCookie(ctx context.Context, cookie, browserID stri
 		return roblox.CookieValidation{}, err
 	}
 	validation.Identity, err = service.Profile(ctx, validation.Identity.RobloxUserID)
+	if err == nil && validation.Moderation != nil {
+		service.cache.SaveModeration(ctx, validation.Identity.RobloxUserID, *validation.Moderation)
+	}
 	return validation, err
 }
 
 func (service *Users) Authenticated(ctx context.Context, accountID int64) (accounts.Identity, error) {
 	response, err := service.client.Do(ctx, roblox.Request{
-		Endpoint:        "authenticated-user",
-		AccountID:       accountID,
-		Authenticated:   true,
-		Method:          http.MethodGet,
-		URL:             service.authenticated,
-		MaxResponseSize: 256 << 10,
+		Endpoint:               "authenticated-user",
+		CanUseModeratedSession: true,
+		AccountID:              accountID,
+		Authenticated:          true,
+		Method:                 http.MethodGet,
+		URL:                    service.authenticated,
+		MaxResponseSize:        256 << 10,
 		Retry: roblox.RetryPolicy{
 			MaxAttempts:       3,
 			RetryServerErrors: true,
@@ -133,7 +141,7 @@ func (service *Users) UserIDFromUsername(ctx context.Context, username string) (
 		return 0, &roblox.Error{Kind: roblox.KindProtocol, Endpoint: "username-lookup", Message: "Roblox returned invalid username details.", Cause: err}
 	}
 	if len(payload.Data) != 1 || payload.Data[0].ID <= 0 || !strings.EqualFold(payload.Data[0].RequestedUsername, username) {
-		return 0, &roblox.Error{Kind: roblox.KindProtocol, Endpoint: "username-lookup", Message: "That username was not found or is unavailable. Enter a username, not a display name."}
+		return 0, &roblox.Error{Kind: roblox.KindProtocol, Endpoint: "username-lookup", Message: "That username was not found or is unavailable. Enter a username, not a display name.", Cause: ErrUsernameNotFound}
 	}
 	return payload.Data[0].ID, nil
 }

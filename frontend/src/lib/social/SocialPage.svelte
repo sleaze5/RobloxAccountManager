@@ -10,9 +10,15 @@
 	import usersIcon from "@phosphor-icons/core/regular/users.svg?raw"
 	import warningIcon from "@phosphor-icons/core/regular/warning.svg?raw"
 	import xIcon from "@phosphor-icons/core/regular/x.svg?raw"
+	import listChecksIcon from "@phosphor-icons/core/regular/list-checks.svg?raw"
+	import prohibitIcon from "@phosphor-icons/core/regular/prohibit.svg?raw"
+	import shieldCheckFillIcon from "@phosphor-icons/core/fill/shield-check-fill.svg?raw"
+	import shieldCheckIcon from "@phosphor-icons/core/regular/shield-check.svg?raw"
 	import Icon from "../shared/Icon.svelte"
+	import CheckboxMark from "../shared/CheckboxMark.svelte"
 	import RefreshIcon from "../shared/RefreshIcon.svelte"
-	import { PresenceType, SocialList } from "../backend/bridge"
+	import { PresenceType, SessionState, SocialList } from "../backend/bridge"
+	import { moderationLabel } from "../accounts/moderation.svelte"
 	import type { SocialUser } from "../backend/bridge"
 	import type { AccountStore } from "../accounts/account-store.svelte"
 	import { presenceDetail, presenceLabel } from "../accounts/account-model"
@@ -27,7 +33,12 @@
 	import SocialAvatar from "./SocialAvatar.svelte"
 	import SocialMenu from "./SocialMenu.svelte"
 	import SocialProfile from "./SocialProfile.svelte"
-	import { personName, playersView } from "./social-store.svelte"
+	import {
+		bulkRemovalCopy,
+		isBulkRemovalList,
+		personName,
+		playersView,
+	} from "./social-store.svelte"
 	import type { SocialListKind, SocialStore, SocialView } from "./social-store.svelte"
 
 	let {
@@ -38,6 +49,7 @@
 		onUnfriend,
 		onRemoveTrusted,
 		onEditNickname,
+		onRemoveSelected,
 	}: {
 		store: SocialStore
 		accounts: AccountStore
@@ -46,6 +58,7 @@
 		onUnfriend: (person: SocialUser) => void
 		onRemoveTrusted: (person: SocialUser) => void
 		onEditNickname: (person: SocialUser, nickname: string) => void
+		onRemoveSelected: () => void
 	} = $props()
 
 	const minimumSearchLength = 3,
@@ -109,12 +122,29 @@
 						PresenceType.PresenceTypeInStudio,
 			).length,
 		),
-		selected = $derived(store.selected)
+		selected = $derived(store.selected),
+		accountModerated = $derived(account.state === SessionState.StateModerated),
+		bulkCopy = $derived(
+			isBulkRemovalList(store.list) ? bulkRemovalCopy[store.list] : null,
+		),
+		visibleUserIds = $derived(store.people.map((person) => person.userId)),
+		allVisibleSelected = $derived(
+			visibleUserIds.length > 0 &&
+				visibleUserIds.every((userId) =>
+					store.selectedUserIds.includes(userId),
+				),
+		)
 
+	// Roblox rejects the social requests of a moderated account, so the page
+	// shows its status instead of loading lists that would fail.
 	$effect(() => {
 		const accountId = account.id,
 			selfUserId = Number(account.userId) || 0
 		if (!accounts.vault.unlocked) return
+		if (accountModerated) {
+			untrack(() => store.reset())
+			return
+		}
 		untrack(() => store.show(accountId, selfUserId))
 	})
 
@@ -156,7 +186,7 @@
 	}
 
 	function rowLabel(person: SocialUser): string {
-		const name = `${personName(person)}${person.username ? ` (@${person.username})` : ""}`
+		const name = `${personName(person)}${person.username ? ` (@${person.username})` : ""}${person.trusted ? ", trusted friend" : ""}`
 		if (person.request) return `${name}, friend request`
 		if (!person.presence) return name
 		const detail = presenceDetail(person.presence)
@@ -197,6 +227,32 @@
 	}
 </script>
 
+{#snippet personSummary(person: SocialUser, detail: string)}
+	<span
+		class={["flex w-full min-w-0 gap-2", detail ? "items-start" : "items-center"]}>
+		<SocialAvatar
+			imageUrl={person.imageUrl}
+			presence={person.presence ?? undefined}
+			className="size-9" />
+		<span class="flex min-w-0 flex-col leading-snug">
+			<strong
+				class="flex min-w-0 items-center gap-1 text-sm font-semibold text-fg">
+				<span class="truncate">{personName(person)}</span>
+				{#if person.trusted}<Icon
+						svg={shieldCheckFillIcon}
+						class="shrink-0 animate-pop text-accent-strong"
+						size={12}
+						aria-label="Trusted friend" />{/if}
+			</strong>
+			<small
+				class="truncate text-2xs text-fg-faint group-hover/row:text-fg-muted group-data-selected/row:text-fg-muted"
+				>{subtitle(person)}</small>
+			{#if detail && person.presence}<PresenceLine
+					presence={person.presence} />{/if}
+		</span>
+	</span>
+{/snippet}
+
 <main class="flex min-h-0 flex-1 flex-col bg-canvas" aria-label="Social">
 	<OperationError {store} />
 	<div
@@ -210,6 +266,24 @@
 			bind:width={store.sidebarWidth}>
 			{#snippet title()}Social{/snippet}
 			{#snippet actions()}
+				{#if store.canRemoveInBulk && !accountModerated}
+					<button
+						class="button-ghost"
+						type="button"
+						aria-label={`Select ${current.noun}`}
+						aria-pressed={store.selecting}
+						data-open={store.selecting || undefined}
+						data-tooltip={store.selecting
+							? "Stop selecting"
+							: `Select ${current.noun} to ${bulkCopy?.action.toLowerCase() ?? "remove"}`}
+						data-tooltip-side="bottom-end"
+						disabled={account.id === 0 ||
+							!store.page ||
+							store.removingSelected}
+						onclick={() => store.setSelecting(!store.selecting)}>
+						<Icon svg={listChecksIcon} size={16} aria-hidden="true" />
+					</button>
+				{/if}
 				<button
 					class="button-ghost"
 					type="button"
@@ -217,7 +291,7 @@
 					aria-busy={store.loading}
 					data-tooltip="Refresh list"
 					data-tooltip-side="bottom-end"
-					disabled={account.id === 0 || store.loading}
+					disabled={account.id === 0 || store.loading || accountModerated}
 					onclick={() => void store.refresh()}>
 					<RefreshIcon isRefreshing={store.loading} />
 				</button>
@@ -278,9 +352,31 @@
 					label="List"
 					value={store.list}
 					options={viewOptions}
-					disabled={account.id === 0}
+					disabled={account.id === 0 || accountModerated}
 					className="w-full"
 					onChange={(view) => void changeView(view)} />
+				{#if store.showsTrustedFilter && store.page && !accountModerated}
+					<div
+						class="segmented animate-enter"
+						role="group"
+						aria-label="Show friends">
+						<button
+							type="button"
+							aria-pressed={!store.trustedOnly}
+							onclick={() => store.setTrustedOnly(false)}>
+							All <span>{total}</span>
+						</button>
+						<button
+							type="button"
+							aria-pressed={store.trustedOnly}
+							disabled={!store.page.people?.length ||
+								store.page.unavailable?.includes("trusted")}
+							onclick={() => store.setTrustedOnly(true)}>
+							<Icon svg={shieldCheckIcon} size={14} aria-hidden="true" />
+							Trusted <span>{store.trustedCount}</span>
+						</button>
+					</div>
+				{/if}
 				<form
 					novalidate
 					role="search"
@@ -302,7 +398,7 @@
 								: `Filter ${current.noun}, or press Enter to search Roblox players`}
 							aria-invalid={searchError ? "true" : undefined}
 							maxlength={50}
-							disabled={account.id === 0}
+							disabled={account.id === 0 || accountModerated}
 							bind:this={searchInput}
 							bind:value={store.query}
 							oninput={() =>
@@ -335,12 +431,16 @@
 				<p class="px-3 pb-2 text-xs text-danger-muted" role="alert">
 					Online status could not be loaded. Refresh to retry.
 				</p>
+			{:else if store.page?.unavailable?.includes("trusted")}
+				<p class="px-3 pb-2 text-xs text-danger-muted" role="alert">
+					Trusted friends could not be loaded. Refresh to retry.
+				</p>
 			{/if}
 			<div class="relative grid min-h-0 flex-1 grid-rows-1">
 				<div
 					class={[
 						"min-h-0 scrollbar-stable overflow-y-auto",
-						players && store.playerQuery && "pb-12",
+						((players && store.playerQuery) || store.selecting) && "pb-12",
 					]}
 					aria-label={current.label}
 					aria-busy={store.loading || store.loadingMore}>
@@ -349,50 +449,61 @@
 						{@const detail = person.presence
 							? presenceDetail(person.presence)
 							: ""}
-						<button
-							class={[
-								"group/row list-row relative flex w-full flex-col justify-center border-b border-line-subtle px-3 text-left",
-								detail ? "h-16" : "h-12",
-							]}
-							data-selected={active || undefined}
-							data-open={store.menu?.person.userId === person.userId ||
-								undefined}
-							type="button"
-							aria-current={active ? "true" : undefined}
-							aria-haspopup="menu"
-							data-list-item
-							aria-label={rowLabel(person)}
-							onclick={() => store.select(person)}
-							oncontextmenu={(event) => store.openMenu(event, person)}
-							onkeydown={(event) => {
-								if (
-									event.key === "ContextMenu" ||
-									(event.shiftKey && event.key === "F10")
-								)
-									store.openMenu(event, person)
-								moveListFocus(event)
-							}}>
-							<span
+						{#if store.selecting}
+							{@const checked = store.selectedUserIds.includes(
+								person.userId,
+							)}
+							<label
 								class={[
-									"flex w-full min-w-0 gap-2",
-									detail ? "items-start" : "items-center",
-								]}>
-								<SocialAvatar
-									imageUrl={person.imageUrl}
-									presence={person.presence ?? undefined}
-									className="size-9" />
-								<span class="flex min-w-0 flex-col leading-snug">
-									<strong
-										class="truncate text-sm font-semibold text-fg"
-										>{personName(person)}</strong>
-									<small
-										class="truncate text-2xs text-fg-faint group-hover/row:text-fg-muted group-data-selected/row:text-fg-muted"
-										>{subtitle(person)}</small>
-									{#if detail && person.presence}<PresenceLine
-											presence={person.presence} />{/if}
+									"group/row list-row relative flex w-full cursor-pointer items-center gap-2 border-b border-line-subtle px-3",
+									detail ? "h-16" : "h-12",
+								]}
+								data-selected={checked || undefined}>
+								<span
+									class={[
+										"checkbox shrink-0",
+										detail && "mt-2.5 self-start",
+									]}>
+									<input
+										type="checkbox"
+										data-list-item
+										aria-label={`Select ${rowLabel(person)}`}
+										{checked}
+										disabled={store.removingSelected}
+										onkeydown={moveListFocus}
+										onchange={() =>
+											store.toggleSelected(person.userId)} />
+									<CheckboxMark />
 								</span>
-							</span>
-						</button>
+								{@render personSummary(person, detail)}
+							</label>
+						{:else}
+							<button
+								class={[
+									"group/row list-row relative flex w-full flex-col justify-center border-b border-line-subtle px-3 text-left",
+									detail ? "h-16" : "h-12",
+								]}
+								data-selected={active || undefined}
+								data-open={store.menu?.person.userId ===
+									person.userId || undefined}
+								type="button"
+								aria-current={active ? "true" : undefined}
+								aria-haspopup="menu"
+								data-list-item
+								aria-label={rowLabel(person)}
+								onclick={() => store.select(person)}
+								oncontextmenu={(event) => store.openMenu(event, person)}
+								onkeydown={(event) => {
+									if (
+										event.key === "ContextMenu" ||
+										(event.shiftKey && event.key === "F10")
+									)
+										store.openMenu(event, person)
+									moveListFocus(event)
+								}}>
+								{@render personSummary(person, detail)}
+							</button>
+						{/if}
 					{/each}
 					{#if !players && filterText.length >= minimumSearchLength}
 						<button
@@ -428,6 +539,45 @@
 						</div>
 					{/if}
 				</div>
+				{#if store.selecting && bulkCopy}
+					{@const selectedCount = store.selectedUserIds.length}
+					<div
+						class="absolute inset-x-0 bottom-0 flex h-11 animate-enter items-center gap-2 border-t border-line bg-overlay px-3"
+						role="toolbar"
+						aria-label="Selected people">
+						<span class="checkbox shrink-0">
+							<input
+								type="checkbox"
+								aria-label={allVisibleSelected
+									? "Clear selection"
+									: "Select all shown"}
+								checked={allVisibleSelected}
+								indeterminate={selectedCount > 0 && !allVisibleSelected}
+								disabled={visibleUserIds.length === 0 ||
+									store.removingSelected}
+								onchange={() => store.toggleAllVisible()} />
+							<CheckboxMark
+								isIndeterminate={selectedCount > 0 &&
+									!allVisibleSelected} />
+						</span>
+						<span
+							class="min-w-0 flex-1 truncate text-xs text-fg-muted"
+							aria-live="polite"
+							><strong class="font-mono font-medium text-fg"
+								>{selectedCount}</strong>
+							selected</span>
+						<button
+							class="button"
+							type="button"
+							disabled={store.removingSelected}
+							onclick={() => store.setSelecting(false)}>Cancel</button>
+						<button
+							class="button-danger"
+							type="button"
+							disabled={selectedCount === 0 || store.removingSelected}
+							onclick={onRemoveSelected}>{bulkCopy.action}</button>
+					</div>
+				{/if}
 				{#if players && store.playerQuery}
 					<div
 						class="pointer-events-none absolute inset-x-0 bottom-2 flex justify-center">
@@ -465,7 +615,21 @@
 			{:else}
 				{@const empty = emptyCopy()}
 				<div class="empty-state h-full" role="status">
-					{#if account.id === 0 && accounts.loadingAccounts}<Icon
+					{#if accountModerated}<Icon
+							svg={prohibitIcon}
+							class="text-danger-muted"
+							size={28}
+							aria-hidden="true" />
+						<h2>
+							@{account.username} is {moderationLabel(
+								account.moderation,
+							).toLowerCase()}
+						</h2>
+						<p>
+							Roblox blocks friends and player search for this account.
+							Choose another account above.
+						</p>
+					{:else if account.id === 0 && accounts.loadingAccounts}<Icon
 							svg={circleNotchIcon}
 							class="spinner"
 							size={28}

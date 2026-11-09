@@ -84,9 +84,9 @@
 		<AccountMembershipBadges snapshot={{ premium: profile.premium, plus: null }} />
 		{#if profile.banned}
 			<span
-				class={[pillClass, "border-warning/40 bg-warning/10 text-warning"]}
-				data-tooltip="Roblox banned this account">
-				<Icon svg={prohibitIcon} size={12} aria-hidden="true" />Banned
+				class={[pillClass, "border-danger/40 bg-danger/10 text-danger-muted"]}
+				data-tooltip="Roblox permanently banned this account">
+				<Icon svg={prohibitIcon} size={12} aria-hidden="true" />Terminated
 			</span>
 		{/if}
 	</div>

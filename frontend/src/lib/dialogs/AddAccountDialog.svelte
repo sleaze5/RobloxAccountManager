@@ -50,6 +50,7 @@
 					: "Already added"
 				: undefined,
 			username: previewItem.username,
+			moderation: previewItem.moderation,
 		})),
 	)
 

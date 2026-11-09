@@ -10,6 +10,7 @@ const (
 	KindInvalidCookieInput ErrorKind = "invalid_cookie_input"
 	KindInvalidSession     ErrorKind = "invalid_session"
 	KindReauthRequired     ErrorKind = "reauth_required"
+	KindModerated          ErrorKind = "moderated"
 	KindCSRFRejected       ErrorKind = "csrf_rejected"
 	KindChallengeRequired  ErrorKind = "challenge_required"
 	KindForbidden          ErrorKind = "forbidden"

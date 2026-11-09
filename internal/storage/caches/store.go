@@ -15,6 +15,7 @@ import (
 
 	"github.com/ncruces/go-sqlite3"
 	_ "github.com/ncruces/go-sqlite3/driver"
+	"github.com/sleaze5/RobloxAccountManager/internal/accounts"
 	"github.com/sleaze5/RobloxAccountManager/internal/games"
 	"github.com/sleaze5/RobloxAccountManager/internal/logging"
 )
@@ -204,4 +205,15 @@ func (store *Store) Place(ctx context.Context, id int64) (games.Place, bool) {
 func (store *Store) SavePlace(ctx context.Context, place games.Place) {
 	place.Nickname = ""
 	store.write(ctx, "place", place.PlaceID, place)
+}
+
+// Moderation returns the last punishment saved for a Roblox user, or nil.
+func (store *Store) Moderation(ctx context.Context, userID int64) *accounts.Moderation {
+	var moderation *accounts.Moderation
+	store.read(ctx, "moderation", userID, &moderation)
+	return moderation
+}
+
+func (store *Store) SaveModeration(ctx context.Context, userID int64, moderation accounts.Moderation) {
+	store.write(ctx, "moderation", userID, moderation)
 }

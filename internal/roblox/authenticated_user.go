@@ -25,10 +25,12 @@ func DecodeAuthenticatedUser(body []byte) (accounts.Identity, bool) {
 	return accounts.Identity{RobloxUserID: identity.ID, Username: identity.Name, DisplayName: identity.DisplayName}, true
 }
 
-func newAuthenticatedUserRequest(ctx context.Context, cookie, browserID string) (*http.Request, error) {
-	request, err := http.NewRequestWithContext(ctx, http.MethodGet, AuthenticatedUserURL, http.NoBody)
+// newCookieRequest builds a GET that carries a raw cookie outside the request
+// pipeline, for validation and session probes.
+func newCookieRequest(ctx context.Context, address, cookie, browserID string) (*http.Request, error) {
+	request, err := http.NewRequestWithContext(ctx, http.MethodGet, address, http.NoBody)
 	if err != nil {
-		return nil, fmt.Errorf("create authenticated-user request: %w", err)
+		return nil, fmt.Errorf("create cookie request: %w", err)
 	}
 	request.Header.Set("User-Agent", appmeta.UserAgent)
 	request.Header.Set("Accept", "application/json")

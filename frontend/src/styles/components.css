@@ -414,6 +414,11 @@
 		@apply text-warning;
 	}
 
+	& > [data-tone="danger"] dt > svg,
+	& > [data-tone="danger"] dd > span:first-child {
+		@apply text-danger-muted;
+	}
+
 	& > [data-tone="muted"] dd > span:first-child {
 		@apply text-fg-muted;
 	}
