@@ -2,6 +2,10 @@ package services
 
 import (
 	"context"
+	"encoding/json"
+	"errors"
+	"fmt"
+	"log/slog"
 	"net/http"
 	"net/url"
 	"strings"
@@ -16,13 +20,16 @@ type AuthenticationTicket struct {
 func (ticket AuthenticationTicket) Value() string { return ticket.value }
 
 type Auth struct {
-	client   *roblox.Client
-	endpoint *url.URL
+	client                  *roblox.Client
+	logger                  *slog.Logger
+	authenticationTicketURL *url.URL
+	clientAssertionURL      *url.URL
 }
 
-func NewAuth(client *roblox.Client) *Auth {
-	endpoint, _ := url.Parse("https://auth.roblox.com/v1/authentication-ticket")
-	return &Auth{client: client, endpoint: endpoint}
+func NewAuth(client *roblox.Client, logger *slog.Logger) *Auth {
+	authenticationTicketURL, _ := url.Parse("https://auth.roblox.com/v1/authentication-ticket")
+	clientAssertionURL, _ := url.Parse("https://auth.roblox.com/v1/client-assertion")
+	return &Auth{client: client, logger: logger, authenticationTicketURL: authenticationTicketURL, clientAssertionURL: clientAssertionURL}
 }
 
 func (service *Auth) RefreshCookie(ctx context.Context, accountID, version int64) error {
@@ -43,14 +50,33 @@ func (service *Auth) RefreshCookie(ctx context.Context, accountID, version int64
 	return &roblox.Error{Kind: roblox.KindProtocol, Endpoint: "session-refresh", Message: "Roblox did not return a renewed cookie. The saved cookie was not replaced by this response."}
 }
 
+type authenticationTicketBody struct {
+	ClientAssertion string `json:"clientAssertion,omitempty"`
+}
+
+// AuthenticationTicket sends a client assertion with the ticket request, as the
+// Play button on www.roblox.com does. The Roblox Player does not join with a
+// ticket that was issued without one. Like the website, a failed assertion
+// request still requests the ticket.
 func (service *Auth) AuthenticationTicket(ctx context.Context, accountID int64) (AuthenticationTicket, error) {
+	clientAssertion, err := service.clientAssertion(ctx, accountID)
+	if err != nil {
+		if ctx.Err() != nil {
+			return AuthenticationTicket{}, err
+		}
+		service.logger.WarnContext(ctx, "Requesting the authentication ticket without a client assertion", "operation", "client-assertion", "account_id", accountID, "error", err)
+	}
+	body, err := json.Marshal(authenticationTicketBody{ClientAssertion: clientAssertion})
+	if err != nil {
+		return AuthenticationTicket{}, fmt.Errorf("encode authentication ticket request: %w", err)
+	}
 	response, err := service.client.Do(ctx, roblox.Request{
 		Endpoint:                  "authentication-ticket",
 		AccountID:                 accountID,
 		Authenticated:             true,
 		Method:                    http.MethodPost,
-		URL:                       service.endpoint,
-		Body:                      []byte{},
+		URL:                       service.authenticationTicketURL,
+		Body:                      body,
 		ContentType:               "application/json",
 		MaxResponseSize:           256 << 10,
 		RequiresCSRF:              true,
@@ -68,4 +94,30 @@ func (service *Auth) AuthenticationTicket(ctx context.Context, accountID int64) 
 		return AuthenticationTicket{}, &roblox.Error{Kind: roblox.KindProtocol, Endpoint: "authentication-ticket", Status: response.Status, Message: "Roblox returned an invalid authentication ticket."}
 	}
 	return AuthenticationTicket{value: value}, nil
+}
+
+func (service *Auth) clientAssertion(ctx context.Context, accountID int64) (string, error) {
+	response, err := service.client.Do(ctx, roblox.Request{
+		Endpoint:        "client-assertion",
+		AccountID:       accountID,
+		Authenticated:   true,
+		Method:          http.MethodGet,
+		URL:             service.clientAssertionURL,
+		MaxResponseSize: 64 << 10,
+		Referer:         "https://www.roblox.com/",
+		Retry:           roblox.RetryPolicy{MaxAttempts: 3, Idempotent: true, RetryServerErrors: true, RetryRateLimit: true},
+	})
+	if err != nil {
+		return "", err
+	}
+	var payload struct {
+		ClientAssertion string `json:"clientAssertion"`
+	}
+	if err := json.Unmarshal(response.Body, &payload); err != nil {
+		return "", &roblox.Error{Kind: roblox.KindProtocol, Endpoint: "client-assertion", Status: response.Status, Message: "Roblox returned an invalid client assertion.", Cause: err}
+	}
+	if strings.TrimSpace(payload.ClientAssertion) == "" {
+		return "", &roblox.Error{Kind: roblox.KindProtocol, Endpoint: "client-assertion", Status: response.Status, Message: "Roblox did not return a client assertion.", Cause: errors.New("empty client assertion")}
+	}
+	return payload.ClientAssertion, nil
 }

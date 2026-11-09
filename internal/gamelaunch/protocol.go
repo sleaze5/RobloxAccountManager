@@ -45,7 +45,8 @@ func buildPlaceLauncherURL(browserTrackerID string, request Request) (string, er
 	if request.LaunchData != "" {
 		query.Set("launchData", request.LaunchData)
 	}
-	launcher := url.URL{Scheme: "https", Host: "assetgame.roblox.com", Path: "/game/PlaceLauncher.ashx", RawQuery: query.Encode()}
+	// Roblox retired the assetgame.roblox.com launcher, which now redirects to an error page.
+	launcher := url.URL{Scheme: "https", Host: "www.roblox.com", Path: "/Game/PlaceLauncher.ashx", RawQuery: query.Encode()}
 	return launcher.String(), nil
 }
 
