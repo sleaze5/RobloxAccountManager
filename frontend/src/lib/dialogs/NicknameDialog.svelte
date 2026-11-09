@@ -24,7 +24,7 @@
 		displayName = $derived(person.displayName || person.username)
 	let value = $state(untrack(() => nickname))
 	const text = $derived(value.trim()),
-		saving = $derived(store.updating === "nickname"),
+		saving = $derived(store.savingNickname),
 		removing = $derived(!!nickname && !text)
 
 	function close(): void {

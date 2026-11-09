@@ -18,6 +18,8 @@ import type { NotificationCenter } from "../notifications/notification-center.sv
 import { errorMessage } from "../shared/errors"
 import { detailsKeepMs, isFresh } from "../shared/freshness"
 import { menuPointFor } from "../shared/presence"
+import { relationshipActionsById } from "./relationship"
+import type { RelationshipActionId } from "./relationship"
 
 export interface SocialSubject {
 	userId: number
@@ -121,12 +123,8 @@ export class SocialStore {
 	profile = $state<SocialProfileSnapshot | null>(null)
 	loadingProfile = $state(false)
 	profileError = $state("")
-	responding = $state<{ userId: number; accept: boolean } | null>(null)
-	unfriending = $state(false)
-	unfriendError = $state("")
-	updating = $state<"follow" | "friend" | "trusted" | "nickname" | null>(null)
-	removingTrusted = $state(false)
-	removeTrustedError = $state("")
+	savingNickname = $state(false)
+	relationshipError = $state("")
 	menuRelationship = $state<SocialRelationshipSnapshot | null>(null)
 	menuRelationshipFailed = $state(false)
 	nicknameError = $state("")
@@ -137,6 +135,9 @@ export class SocialStore {
 	selectedUserIds = $state<number[]>([])
 	removingSelected = $state(false)
 	removeSelectedError = $state("")
+	pendingAction = $state<{ userId: number; action: RelationshipActionId } | null>(
+		null,
+	)
 	#epoch = 0
 	#listRequest: ReturnType<typeof accountBackend.GetSocialPage> | null = null
 	#profileRequest: ReturnType<typeof accountBackend.GetSocialProfile> | null = null
@@ -503,218 +504,141 @@ export class SocialStore {
 		}
 	}
 
-	async respond(person: SocialUser, accept: boolean): Promise<void> {
-		if (this.responding !== null) return
+	// runRelationshipAction runs a confirmed relationship action and returns
+	// whether it succeeded. A failure appears in relationshipError.
+	async runRelationshipAction(
+		person: SocialUser,
+		actionId: RelationshipActionId,
+	): Promise<boolean> {
+		if (this.pendingAction) return false
 		const epoch = this.#epoch,
-			name = personName(person)
+			action = relationshipActionsById[actionId],
+			operation = this.#relationshipOperation(person.userId, actionId)
 		this.closeMenu()
-		this.responding = { userId: person.userId, accept }
+		this.pendingAction = { userId: person.userId, action: actionId }
+		this.relationshipError = ""
 		try {
-			if (accept)
-				await accountBackend.AcceptFriendRequest(this.accountId, person.userId)
-			else
-				await accountBackend.DeclineFriendRequest(this.accountId, person.userId)
-			if (epoch !== this.#epoch) return
-			this.#remove(person.userId, SocialList.SocialRequests)
-			if (this.requestCount) this.requestCount--
-			if (accept)
-				this.#pages.delete(`${this.selfUserId}:${SocialList.SocialFriends}`)
-			this.#patchRelationship(person.userId, {
-				friend: accept
-					? FriendStatus.FriendStatusFriends
-					: FriendStatus.FriendStatusNone,
-			})
-			this.notifications.show({
-				id: `friend-request-${person.userId}`,
-				title: accept ? "Friend request accepted" : "Friend request declined",
-				tone: "success",
-				message: accept
-					? `${name} is now a friend.`
-					: `The request from ${name} was declined.`,
-			})
-		} catch (error) {
-			if (epoch !== this.#epoch) return
-			this.error = errorMessage(
-				error,
-				accept
-					? "Could not accept the friend request. Try again."
-					: "Could not decline the friend request. Try again.",
-			)
-		} finally {
-			if (epoch === this.#epoch) this.responding = null
-		}
-	}
-
-	async unfriend(person: SocialUser): Promise<boolean> {
-		if (this.unfriending) return false
-		const epoch = this.#epoch
-		this.unfriending = true
-		this.unfriendError = ""
-		try {
-			await accountBackend.Unfriend(this.accountId, person.userId)
+			await operation.send()
 			if (epoch !== this.#epoch) return true
-			this.#remove(person.userId, SocialList.SocialFriends)
-			this.#patchRelationship(person.userId, {
-				friend: FriendStatus.FriendStatusNone,
-				trusted: TrustedStatus.TrustedStatusNone,
-			})
+			this.#patchRelationship(person.userId, operation.change)
+			operation.after?.()
 			this.notifications.show({
-				id: `unfriend-${person.userId}`,
-				title: "Unfriended",
+				id: `relationship-${person.userId}`,
+				title: action.done,
 				tone: "success",
-				message: `${personName(person)} is no longer a friend.`,
+				message: action.result(personName(person)),
 			})
 			return true
 		} catch (error) {
 			if (epoch === this.#epoch) {
-				this.unfriendError = errorMessage(
-					error,
-					"Could not unfriend this user. Try again.",
-				)
+				this.relationshipError = errorMessage(error, action.failure)
 			}
 			return false
 		} finally {
-			if (epoch === this.#epoch) this.unfriending = false
+			if (epoch === this.#epoch) this.pendingAction = null
 		}
 	}
 
-	async sendFriendRequest(person: SocialSubject): Promise<void> {
-		await this.#sendRequest(
-			"friend",
-			() => accountBackend.SendFriendRequest(this.accountId, person.userId),
-			person.userId,
-			{ friend: FriendStatus.FriendStatusRequestSent },
-			"Friend request sent",
-			`${personName(person)} can now accept the request.`,
-			"Could not send the friend request. Try again.",
-		)
-	}
-
-	async sendTrustedFriendRequest(person: SocialSubject): Promise<void> {
-		await this.#sendRequest(
-			"trusted",
-			() =>
-				accountBackend.SendTrustedFriendRequest(this.accountId, person.userId),
-			person.userId,
-			{ trusted: TrustedStatus.TrustedStatusRequestSent },
-			"Trusted friend request sent",
-			`${personName(person)} can now accept the request.`,
-			"Could not send the trusted friend request. Try again.",
-		)
-	}
-
-	async acceptTrustedFriendRequest(person: SocialSubject): Promise<void> {
-		await this.#sendRequest(
-			"trusted",
-			() =>
-				accountBackend.AcceptTrustedFriendRequest(
-					this.accountId,
-					person.userId,
-				),
-			person.userId,
-			{ trusted: TrustedStatus.TrustedStatusTrusted },
-			"Trusted friend request accepted",
-			`${personName(person)} is now a trusted friend.`,
-			"Could not accept the trusted friend request. Try again.",
-		)
-	}
-
-	async #sendRequest(
-		kind: "friend" | "trusted",
-		send: () => Promise<void>,
+	// Roblox cancels a sent friend request with the unfriend request, and a sent
+	// trusted friend request with the remove trusted friend request.
+	#relationshipOperation(
 		userId: number,
-		change: Partial<SocialRelationship>,
-		title: string,
-		message: string,
-		failure: string,
-	): Promise<void> {
-		if (this.updating !== null) return
-		const epoch = this.#epoch
-		this.closeMenu()
-		this.updating = kind
-		try {
-			await send()
-			if (epoch !== this.#epoch) return
-			this.#patchRelationship(userId, change)
-			this.notifications.show({
-				id: `${kind}-request-${userId}`,
-				title,
-				tone: "success",
-				message,
-			})
-		} catch (error) {
-			if (epoch === this.#epoch) this.error = errorMessage(error, failure)
-		} finally {
-			if (epoch === this.#epoch) this.updating = null
-		}
-	}
-
-	async removeTrustedFriend(person: SocialSubject): Promise<boolean> {
-		if (this.removingTrusted) return false
-		const epoch = this.#epoch
-		this.removingTrusted = true
-		this.removeTrustedError = ""
-		try {
-			await accountBackend.RemoveTrustedFriend(this.accountId, person.userId)
-			if (epoch !== this.#epoch) return true
-			this.#patchRelationship(person.userId, {
-				trusted: TrustedStatus.TrustedStatusNone,
-			})
-			this.notifications.show({
-				id: `trusted-remove-${person.userId}`,
-				title: "Trusted friend removed",
-				tone: "success",
-				message: `${personName(person)} is no longer a trusted friend.`,
-			})
-			return true
-		} catch (error) {
-			if (epoch === this.#epoch) {
-				this.removeTrustedError = errorMessage(
-					error,
-					"Could not remove this trusted friend. Try again.",
-				)
+		actionId: RelationshipActionId,
+	): {
+		send: () => Promise<void>
+		change: Partial<SocialRelationship>
+		after?: () => void
+	} {
+		const accountId = this.accountId,
+			answerRequest = (accept: boolean) => () => {
+				this.#remove(userId, SocialList.SocialRequests)
+				if (this.requestCount) this.requestCount--
+				if (accept)
+					this.#pages.delete(`${this.selfUserId}:${SocialList.SocialFriends}`)
 			}
-			return false
-		} finally {
-			if (epoch === this.#epoch) this.removingTrusted = false
+		switch (actionId) {
+			case "add-friend":
+				return {
+					send: () => accountBackend.SendFriendRequest(accountId, userId),
+					change: { friend: FriendStatus.FriendStatusRequestSent },
+				}
+			case "cancel-friend":
+				return {
+					send: () => accountBackend.Unfriend(accountId, userId),
+					change: { friend: FriendStatus.FriendStatusNone },
+				}
+			case "accept-friend":
+				return {
+					send: () => accountBackend.AcceptFriendRequest(accountId, userId),
+					change: { friend: FriendStatus.FriendStatusFriends },
+					after: answerRequest(true),
+				}
+			case "decline-friend":
+				return {
+					send: () => accountBackend.DeclineFriendRequest(accountId, userId),
+					change: { friend: FriendStatus.FriendStatusNone },
+					after: answerRequest(false),
+				}
+			case "unfriend":
+				return {
+					send: () => accountBackend.Unfriend(accountId, userId),
+					change: {
+						friend: FriendStatus.FriendStatusNone,
+						trusted: TrustedStatus.TrustedStatusNone,
+					},
+					after: () => this.#remove(userId, SocialList.SocialFriends),
+				}
+			case "add-trusted":
+				return {
+					send: () =>
+						accountBackend.SendTrustedFriendRequest(accountId, userId),
+					change: { trusted: TrustedStatus.TrustedStatusRequestSent },
+				}
+			case "accept-trusted":
+				return {
+					send: () =>
+						accountBackend.AcceptTrustedFriendRequest(accountId, userId),
+					change: { trusted: TrustedStatus.TrustedStatusTrusted },
+				}
+			case "decline-trusted":
+				return {
+					send: () =>
+						accountBackend.DeclineTrustedFriendRequest(accountId, userId),
+					change: { trusted: TrustedStatus.TrustedStatusNone },
+				}
+			case "cancel-trusted":
+			case "remove-trusted":
+				return {
+					send: () => accountBackend.RemoveTrustedFriend(accountId, userId),
+					change: { trusted: TrustedStatus.TrustedStatusNone },
+				}
+			case "follow":
+			case "follow-back":
+				return {
+					send: () => accountBackend.Follow(accountId, userId),
+					change: { following: true },
+				}
+			// The remaining action is unfollow.
+			default:
+				return {
+					send: () => accountBackend.Unfollow(accountId, userId),
+					change: { following: false },
+					after: () => this.#remove(userId, SocialList.SocialFollowing),
+				}
 		}
 	}
 
-	async setFollowing(person: SocialSubject, following: boolean): Promise<void> {
-		if (this.updating !== null) return
-		const epoch = this.#epoch,
-			name = personName(person)
-		this.updating = "follow"
-		try {
-			if (following) await accountBackend.Follow(this.accountId, person.userId)
-			else await accountBackend.Unfollow(this.accountId, person.userId)
-			if (epoch !== this.#epoch) return
-			this.#patchRelationship(person.userId, { following })
-			this.notifications.show({
-				id: `follow-${person.userId}`,
-				title: following ? "Followed" : "Unfollowed",
-				tone: "success",
-				message: following
-					? `${name} is now followed.`
-					: `${name} is no longer followed.`,
-			})
-		} catch (error) {
-			if (epoch !== this.#epoch) return
-			this.error = errorMessage(
-				error,
-				following
-					? "Could not follow this user. Try again."
-					: "Could not unfollow this user. Try again.",
-			)
-		} finally {
-			if (epoch === this.#epoch) this.updating = null
-		}
+	isActionPending(userId: number, action: RelationshipActionId): boolean {
+		return (
+			this.pendingAction?.userId === userId &&
+			this.pendingAction.action === action
+		)
 	}
 
 	async setNickname(person: SocialSubject, nickname: string): Promise<boolean> {
-		if (this.updating !== null) return false
+		if (this.savingNickname) return false
 		const epoch = this.#epoch
-		this.updating = "nickname"
+		this.savingNickname = true
 		this.nicknameError = ""
 		try {
 			const saved = await accountBackend.SetNickname(
@@ -743,7 +667,7 @@ export class SocialStore {
 			}
 			return false
 		} finally {
-			if (epoch === this.#epoch) this.updating = null
+			if (epoch === this.#epoch) this.savingNickname = false
 		}
 	}
 
@@ -907,13 +831,10 @@ export class SocialStore {
 		this.accountId = accountId
 		this.selfUserId = selfUserId
 		this.page = this.profile = this.menu = this.selectedPerson = null
-		this.responding = this.requestCount = null
+		this.requestCount = this.menuRelationship = this.pendingAction = null
 		this.loading = this.loadingMore = this.loadingProfile = false
-		this.unfriending = this.removingTrusted = false
-		this.updating = this.menuRelationship = null
-		this.menuRelationshipFailed = false
-		this.loadError = this.profileError = this.unfriendError = this.error = ""
-		this.removeTrustedError = ""
+		this.savingNickname = this.menuRelationshipFailed = false
+		this.loadError = this.profileError = this.error = this.relationshipError = ""
 		this.nicknameError = ""
 		this.trustedOnly = this.selecting = this.removingSelected = false
 		this.selectedUserIds = []

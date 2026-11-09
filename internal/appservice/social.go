@@ -58,7 +58,7 @@ type SocialUser struct {
 	ImageURL    string                       `json:"imageUrl"`
 	Presence    *robloxservices.UserPresence `json:"presence"`
 	Request     *FriendRequestView           `json:"request"`
-	// Trusted is set only in the account's own friends list.
+	// Trusted reports whether the user is a trusted friend of the browsing account.
 	Trusted bool `json:"trusted"`
 }
 
@@ -87,10 +87,13 @@ type SocialPage struct {
 }
 
 type FriendConnection struct {
-	AccountID   int64                       `json:"accountId"`
-	Username    string                      `json:"username"`
-	DisplayName string                      `json:"displayName"`
-	Status      robloxservices.FriendStatus `json:"status"`
+	AccountID   int64                        `json:"accountId"`
+	Username    string                       `json:"username"`
+	DisplayName string                       `json:"displayName"`
+	Friend      robloxservices.FriendStatus  `json:"friend"`
+	Trusted     robloxservices.TrustedStatus `json:"trusted"`
+	Following   bool                         `json:"following"`
+	FollowedBy  bool                         `json:"followedBy"`
 }
 
 type SocialProfile struct {
@@ -141,10 +144,7 @@ func (service *Service) GetSocialPage(ctx context.Context, accountID, userID int
 	if err != nil {
 		return SocialPage{}, socialFailure(logger, err)
 	}
-	optional := socialPageReads{presence: list != SocialRequests, requestCount: own && (list == SocialFriends || list == SocialRequests)}
-	if own && list == SocialFriends {
-		optional.trustedOf = userID
-	}
+	optional := socialPageReads{presence: list != SocialRequests, requestCount: own && (list == SocialFriends || list == SocialRequests), selfUserID: account.RobloxUserID}
 	page, err := service.socialPage(ctx, accountID, version, logger, entries, optional)
 	if err == nil && list == SocialFriends {
 		slices.SortStableFunc(page.People, compareFriends)
@@ -177,7 +177,11 @@ func (service *Service) SearchPlayers(ctx context.Context, accountID int64, keyw
 	if err != nil {
 		return SocialPage{}, socialFailure(logger, err)
 	}
-	return service.socialPage(ctx, accountID, version, logger, entries, socialPageReads{presence: true})
+	account, err := service.repo.GetView(ctx, accountID)
+	if err != nil {
+		return SocialPage{}, mapRepositoryError(err)
+	}
+	return service.socialPage(ctx, accountID, version, logger, entries, socialPageReads{presence: true, selfUserID: account.RobloxUserID})
 }
 
 // playerByID returns the user ID when Roblox knows the user, or no IDs.
@@ -199,12 +203,12 @@ func (service *Service) playerByID(ctx context.Context, value string) ([]int64, 
 	return []int64{userID}, nil
 }
 
-// socialPageReads chooses the optional parts of a social list. trustedOf is
-// the account's own user ID when its trusted friends are marked, or 0.
+// socialPageReads chooses the optional parts of a social list. selfUserID is
+// the browsing account, whose trusted friends are marked in every list.
 type socialPageReads struct {
 	presence     bool
 	requestCount bool
-	trustedOf    int64
+	selfUserID   int64
 }
 
 func (service *Service) socialPage(ctx context.Context, accountID, version int64, logger *slog.Logger, entries socialEntries, optional socialPageReads) (SocialPage, error) {
@@ -239,15 +243,13 @@ func (service *Service) socialPage(ctx context.Context, accountID, version int64
 		}})
 	}
 	trustedUsers := map[int64]bool{}
-	if optional.trustedOf > 0 {
-		reads = append(reads, accountRead{"trusted", func() error {
-			trustedIDs, readError := service.users.TrustedFriendIDs(ctx, accountID, version, optional.trustedOf)
-			for _, trustedID := range trustedIDs {
-				trustedUsers[trustedID] = true
-			}
-			return readError
-		}})
-	}
+	reads = append(reads, accountRead{"trusted", func() error {
+		trustedIDs, readError := service.users.TrustedFriendIDs(ctx, accountID, version, optional.selfUserID)
+		for _, trustedID := range trustedIDs {
+			trustedUsers[trustedID] = true
+		}
+		return readError
+	}})
 	if page.Unavailable, err = service.runAccountReads(ctx, accountID, version, "social", logger, reads); err != nil {
 		return SocialPage{}, err
 	}
@@ -527,16 +529,16 @@ func (service *Service) friendConnections(ctx context.Context, logger *slog.Logg
 			candidates = append(candidates, view)
 		}
 	}
-	statuses, failures := service.friendStatuses(ctx, candidates, userID)
+	states, failures := service.friendConnectionStates(ctx, candidates, userID)
 	connections := []FriendConnection{}
 	failed := 0
-	for index, view := range candidates {
+	for index := range candidates {
 		if failures[index] != nil {
 			failed++
 			continue
 		}
-		if statuses[index] != robloxservices.FriendStatusNone {
-			connections = append(connections, FriendConnection{AccountID: view.ID, Username: view.Username, DisplayName: cmp.Or(view.DisplayName, view.Username), Status: statuses[index]})
+		if state := states[index]; state.isConnected() {
+			connections = append(connections, state)
 		}
 	}
 	if failed > 0 {
@@ -548,8 +550,11 @@ func (service *Service) friendConnections(ctx context.Context, logger *slog.Logg
 	return savedID, connections, nil
 }
 
-func (service *Service) friendStatuses(ctx context.Context, views []accounts.AccountView, userID int64) ([]robloxservices.FriendStatus, []error) {
-	statuses := make([]robloxservices.FriendStatus, len(views))
+// friendConnectionStates reads how each saved account relates to the user.
+// Each read uses that account's own session, because Roblox answers
+// relationship requests only for the signed-in user.
+func (service *Service) friendConnectionStates(ctx context.Context, views []accounts.AccountView, userID int64) ([]FriendConnection, []error) {
+	connections := make([]FriendConnection, len(views))
 	failures := make([]error, len(views))
 	jobs := make(chan int, len(views))
 	for index := range views {
@@ -560,13 +565,33 @@ func (service *Service) friendStatuses(ctx context.Context, views []accounts.Acc
 	for range min(friendConnectionWorkers, len(views)) {
 		workers.Go(func() {
 			for index := range jobs {
-				view := views[index]
-				statuses[index], failures[index] = service.users.FriendStatus(ctx, view.ID, 0, view.RobloxUserID, userID)
+				connections[index], failures[index] = service.friendConnection(ctx, views[index], userID)
 			}
 		})
 	}
 	workers.Wait()
-	return statuses, failures
+	return connections, failures
+}
+
+func (connection FriendConnection) isConnected() bool {
+	return connection.Friend != robloxservices.FriendStatusNone || connection.Trusted != robloxservices.TrustedStatusNone || connection.Following || connection.FollowedBy
+}
+
+func (service *Service) friendConnection(ctx context.Context, view accounts.AccountView, userID int64) (FriendConnection, error) {
+	connection := FriendConnection{AccountID: view.ID, Username: view.Username, DisplayName: cmp.Or(view.DisplayName, view.Username)}
+	var err error
+	if connection.Friend, err = service.users.FriendStatus(ctx, view.ID, 0, view.RobloxUserID, userID); err != nil {
+		return FriendConnection{}, err
+	}
+	if connection.Trusted, err = service.users.TrustedStatus(ctx, view.ID, 0, userID); err != nil {
+		return FriendConnection{}, err
+	}
+	follow, err := service.users.FollowState(ctx, view.ID, 0, userID)
+	if err != nil {
+		return FriendConnection{}, err
+	}
+	connection.Following, connection.FollowedBy = follow.Following, follow.FollowedBy
+	return connection, nil
 }
 
 func (service *Service) AcceptFriendRequest(ctx context.Context, accountID, userID int64) error {
@@ -605,6 +630,14 @@ func (service *Service) AcceptTrustedFriendRequest(ctx context.Context, accountI
 	})
 }
 
+func (service *Service) DeclineTrustedFriendRequest(ctx context.Context, accountID, userID int64) error {
+	return service.editAccount(ctx, accountID, "trusted-friend-request-decline", "", func(ctx context.Context, version int64) error {
+		return service.users.DeclineTrustedFriendRequest(ctx, accountID, version, userID)
+	})
+}
+
+// RemoveTrustedFriend ends a trusted friendship, or cancels a sent trusted
+// friend request.
 func (service *Service) RemoveTrustedFriend(ctx context.Context, accountID, userID int64) error {
 	return service.editAccount(ctx, accountID, "trusted-friend-remove", "", func(ctx context.Context, version int64) error {
 		return service.users.RemoveTrustedFriend(ctx, accountID, version, userID)

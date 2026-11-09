@@ -40,14 +40,14 @@
 		playersView,
 	} from "./social-store.svelte"
 	import type { SocialListKind, SocialStore, SocialView } from "./social-store.svelte"
+	import type { RelationshipActionId } from "./relationship"
 
 	let {
 		store,
 		accounts,
 		onFillLaunch,
 		onSearchPlace,
-		onUnfriend,
-		onRemoveTrusted,
+		onRelationshipAction,
 		onEditNickname,
 		onRemoveSelected,
 	}: {
@@ -55,8 +55,7 @@
 		accounts: AccountStore
 		onFillLaunch: (placeId: number, jobId: string) => void
 		onSearchPlace: (placeId: number) => void
-		onUnfriend: (person: SocialUser) => void
-		onRemoveTrusted: (person: SocialUser) => void
+		onRelationshipAction: (person: SocialUser, action: RelationshipActionId) => void
 		onEditNickname: (person: SocialUser, nickname: string) => void
 		onRemoveSelected: () => void
 	} = $props()
@@ -609,7 +608,8 @@
 							{onFillLaunch}
 							{onSearchPlace}
 							onEditNickname={(nickname) =>
-								onEditNickname(selected, nickname)} />
+								onEditNickname(selected, nickname)}
+							{onRelationshipAction} />
 					</div>
 				{/key}
 			{:else}
@@ -730,6 +730,5 @@
 		menu={store.menu}
 		{onFillLaunch}
 		{onSearchPlace}
-		{onUnfriend}
-		{onRemoveTrusted} />
+		{onRelationshipAction} />
 {/if}

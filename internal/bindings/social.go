@@ -68,6 +68,13 @@ func (service *Service) AcceptTrustedFriendRequest(ctx context.Context, accountI
 	return service.core.AcceptTrustedFriendRequest(ctx, accountID, userID)
 }
 
+func (service *Service) DeclineTrustedFriendRequest(ctx context.Context, accountID, userID int64) error {
+	if err := socialTarget(accountID, userID, "trusted-friend-request-decline"); err != nil {
+		return err
+	}
+	return service.core.DeclineTrustedFriendRequest(ctx, accountID, userID)
+}
+
 func (service *Service) RemoveTrustedFriend(ctx context.Context, accountID, userID int64) error {
 	if err := socialTarget(accountID, userID, "trusted-friend-remove"); err != nil {
 		return err

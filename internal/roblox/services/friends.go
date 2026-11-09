@@ -148,6 +148,8 @@ func (service *Users) DeclineFriendRequest(ctx context.Context, accountID, versi
 	return service.friendAction(ctx, accountID, version, userID, "friend-request-decline", "decline-friend-request")
 }
 
+// Unfriend ends a friendship, or cancels a friend request that the account
+// sent. Roblox uses the same request for both, as RoSeal does.
 func (service *Users) Unfriend(ctx context.Context, accountID, version, userID int64) error {
 	return service.friendAction(ctx, accountID, version, userID, "unfriend", "unfriend")
 }
@@ -166,6 +168,13 @@ func (service *Users) AcceptTrustedFriendRequest(ctx context.Context, accountID,
 	return service.trustedFriendAction(ctx, accountID, version, userID, "trusted-friend-request-accept", "accept-trusted-friend-request")
 }
 
+// DeclineTrustedFriendRequest ignores a trusted friend request that the user sent.
+func (service *Users) DeclineTrustedFriendRequest(ctx context.Context, accountID, version, userID int64) error {
+	return service.trustedFriendAction(ctx, accountID, version, userID, "trusted-friend-request-decline", "ignore-trusted-friend-request")
+}
+
+// RemoveTrustedFriend ends a trusted friendship, or cancels a trusted friend
+// request that the account sent. Roblox uses the same request for both.
 func (service *Users) RemoveTrustedFriend(ctx context.Context, accountID, version, userID int64) error {
 	return service.trustedFriendAction(ctx, accountID, version, userID, "trusted-friend-remove", "remove-trusted-friend")
 }

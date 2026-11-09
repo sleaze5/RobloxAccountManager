@@ -17,8 +17,8 @@
 	import { chooseExportFile } from "./lib/dialogs/vault-transfer"
 	import BrowserRuntimeDialog from "./lib/dialogs/BrowserRuntimeDialog.svelte"
 	import NicknameDialog from "./lib/dialogs/NicknameDialog.svelte"
-	import RemoveTrustedFriendDialog from "./lib/dialogs/RemoveTrustedFriendDialog.svelte"
-	import UnfriendDialog from "./lib/dialogs/UnfriendDialog.svelte"
+	import RelationshipActionDialog from "./lib/dialogs/RelationshipActionDialog.svelte"
+	import type { RelationshipActionId } from "./lib/social/relationship"
 	import RemoveConnectionsDialog from "./lib/dialogs/RemoveConnectionsDialog.svelte"
 	import DescriptionEditDialog from "./lib/dialogs/DescriptionEditDialog.svelte"
 	import LockVaultDialog from "./lib/dialogs/LockVaultDialog.svelte"
@@ -73,8 +73,7 @@
 		| "remove-account"
 		| "renew-cookie"
 		| "test-password"
-		| "unfriend"
-		| "remove-trusted"
+		| "relationship"
 		| "nickname"
 		| "remove-connections"
 		| null
@@ -96,7 +95,10 @@
 		passwordReminderNotified = $state(false),
 		tagAccountId = $state<number | null>(null),
 		removeAccountId = $state<number | null>(null),
-		unfriendTarget = $state<SocialUser | null>(null),
+		relationshipTarget = $state<{
+			person: SocialUser
+			actionId: RelationshipActionId
+		} | null>(null),
 		nicknameTarget = $state<{ person: SocialUser; nickname: string } | null>(null),
 		renewAccountId = $state<number | null>(null),
 		importPath = $state("")
@@ -421,36 +423,26 @@
 		passwordReminderNotified = false
 	}
 
-	function openUnfriend(friend: SocialUser): void {
-		social.unfriendError = ""
-		unfriendTarget = friend
-		activeDialog = "unfriend"
+	function openRelationshipAction(
+		person: SocialUser,
+		actionId: RelationshipActionId,
+	): void {
+		social.relationshipError = ""
+		relationshipTarget = { person, actionId }
+		activeDialog = "relationship"
 	}
 
-	function openRemoveTrusted(friend: SocialUser): void {
-		social.removeTrustedError = ""
-		unfriendTarget = friend
-		activeDialog = "remove-trusted"
-	}
-
-	function closeRemoveTrusted(): void {
-		if (social.removingTrusted) return
-		social.removeTrustedError = ""
+	function closeRelationshipAction(): void {
+		if (social.pendingAction) return
+		social.relationshipError = ""
 		activeDialog = null
-		unfriendTarget = null
+		relationshipTarget = null
 	}
 
 	function showSocial(list: SocialListKind): void {
 		const account = store.selectedAccount
 		social.home(account.id, Number(account.userId) || 0, list)
 		activePage = "social"
-	}
-
-	function closeUnfriend(): void {
-		if (social.unfriending) return
-		social.unfriendError = ""
-		activeDialog = null
-		unfriendTarget = null
 	}
 
 	function openNickname(person: SocialUser, nickname: string): void {
@@ -460,7 +452,7 @@
 	}
 
 	function closeNickname(): void {
-		if (social.updating === "nickname") return
+		if (social.savingNickname) return
 		activeDialog = null
 		nicknameTarget = null
 	}
@@ -477,8 +469,8 @@
 	}
 
 	function closeDialog(): void {
-		if (activeDialog === "unfriend") {
-			closeUnfriend()
+		if (activeDialog === "relationship") {
+			closeRelationshipAction()
 			return
 		}
 		if (activeDialog === "remove-connections") {
@@ -487,10 +479,6 @@
 		}
 		if (activeDialog === "nickname") {
 			closeNickname()
-			return
-		}
-		if (activeDialog === "remove-trusted") {
-			closeRemoveTrusted()
 			return
 		}
 		if (store.busy) {
@@ -618,8 +606,7 @@
 				onFillLaunch={(placeId, jobId) =>
 					void fillGameLaunchOptions(placeId, jobId)}
 				onSearchPlace={(placeId) => void searchGames(`id:${placeId}`)}
-				onUnfriend={openUnfriend}
-				onRemoveTrusted={openRemoveTrusted}
+				onRelationshipAction={openRelationshipAction}
 				onEditNickname={openNickname}
 				onRemoveSelected={openRemoveConnections} />
 		{:else if activePage === "games"}
@@ -783,12 +770,13 @@
 		onClose={closeNickname} />
 {/if}
 
-{#if activeDialog === "unfriend" && unfriendTarget}
-	<UnfriendDialog
+{#if activeDialog === "relationship" && relationshipTarget}
+	<RelationshipActionDialog
 		store={social}
 		account={store.selectedAccount}
-		friend={unfriendTarget}
-		onClose={closeUnfriend} />
+		person={relationshipTarget.person}
+		actionId={relationshipTarget.actionId}
+		onClose={closeRelationshipAction} />
 {/if}
 
 {#if activeDialog === "remove-connections"}
@@ -796,14 +784,6 @@
 		store={social}
 		account={store.selectedAccount}
 		onClose={closeRemoveConnections} />
-{/if}
-
-{#if activeDialog === "remove-trusted" && unfriendTarget}
-	<RemoveTrustedFriendDialog
-		store={social}
-		account={store.selectedAccount}
-		friend={unfriendTarget}
-		onClose={closeRemoveTrusted} />
 {/if}
 
 {#if activeDialog === "test-password"}

@@ -11,8 +11,6 @@
 	import pencilSimpleIcon from "@phosphor-icons/core/regular/pencil-simple.svg?raw"
 	import sealCheckIcon from "@phosphor-icons/core/regular/seal-check.svg?raw"
 	import signpostIcon from "@phosphor-icons/core/regular/signpost.svg?raw"
-	import userCircleMinusIcon from "@phosphor-icons/core/regular/user-circle-minus.svg?raw"
-	import userCirclePlusIcon from "@phosphor-icons/core/regular/user-circle-plus.svg?raw"
 	import usersThreeIcon from "@phosphor-icons/core/regular/users-three.svg?raw"
 	import Icon from "../shared/Icon.svelte"
 	import RefreshIcon from "../shared/RefreshIcon.svelte"
@@ -26,6 +24,12 @@
 	import SocialBadges from "./SocialBadges.svelte"
 	import SocialAvatar from "./SocialAvatar.svelte"
 	import SocialCounts from "./SocialCounts.svelte"
+	import {
+		relationshipActions,
+		relationshipButtonClass,
+		requestRelationship,
+	} from "./relationship"
+	import type { RelationshipActionId } from "./relationship"
 	import { personName } from "./social-store.svelte"
 	import type { SocialStore } from "./social-store.svelte"
 
@@ -36,6 +40,7 @@
 		onFillLaunch,
 		onSearchPlace,
 		onEditNickname,
+		onRelationshipAction,
 	}: {
 		store: SocialStore
 		accounts: AccountStore
@@ -43,6 +48,7 @@
 		onFillLaunch: (placeId: number, jobId: string) => void
 		onSearchPlace: (placeId: number) => void
 		onEditNickname: (nickname: string) => void
+		onRelationshipAction: (person: SocialUser, action: RelationshipActionId) => void
 	} = $props()
 
 	const origins: Record<string, string> = {
@@ -62,8 +68,13 @@
 		profile = $derived(
 			store.profile?.userId === person.userId ? store.profile : null,
 		),
-		responding = $derived(
-			store.responding?.userId === person.userId ? store.responding : null,
+		relationship = $derived(profile?.relationship ?? requestRelationship(person)),
+		actions = $derived(
+			relationship
+				? relationshipActions(relationship, profile?.unavailable ?? []).filter(
+						(action) => action.group === "friend",
+					)
+				: [],
 		),
 		origin = $derived(request ? (origins[request.origin] ?? "") : ""),
 		nickname = $derived(profile ? profile.relationship.nickname : person.nickname),
@@ -115,7 +126,7 @@
 									data-tooltip={nickname
 										? "Edit nickname on Roblox"
 										: "Add a nickname on Roblox"}
-									disabled={store.updating !== null}
+									disabled={store.savingNickname}
 									onclick={() => onEditNickname(nickname)}
 									><Icon
 										svg={pencilSimpleIcon}
@@ -141,42 +152,26 @@
 				{#if profile}<SocialBadges {profile} />{/if}
 			</div>
 		</div>
-		<div class="flex items-center gap-1 @max-xl:self-end">
-			{#if profile && !profile.relationship.self && !profile.unavailable?.includes("follow")}
-				{@const following = profile.relationship.following}
+		<div class="flex flex-wrap items-center justify-end gap-1 @max-xl:self-end">
+			{#each actions as action (action.id)}
+				{@const pending = store.isActionPending(person.userId, action.id)}
 				<button
-					class="button"
+					class={[relationshipButtonClass(action.tone), "animate-enter"]}
 					type="button"
-					disabled={store.updating !== null}
-					onclick={() => void store.setFollowing(person, !following)}>
-					<Icon
-						svg={following ? userCircleMinusIcon : userCirclePlusIcon}
-						size={14}
-						aria-hidden="true" />
-					{#if store.updating === "follow"}{following
-							? "Unfollowing…"
-							: "Following…"}{:else}{following
-							? "Unfollow"
-							: "Follow"}{/if}
+					aria-busy={pending}
+					disabled={store.pendingAction !== null}
+					onclick={() => onRelationshipAction(person, action.id)}>
+					{#if pending}<Icon
+							svg={circleNotchIcon}
+							class="spinner"
+							size={14}
+							aria-hidden="true" />{:else}<Icon
+							svg={action.icon}
+							size={14}
+							aria-hidden="true" />{/if}
+					{pending ? action.progress : action.label}
 				</button>
-			{/if}
-			{#if request}
-				<button
-					class="button-primary"
-					type="button"
-					disabled={store.responding !== null}
-					onclick={() => void store.respond(person, true)}>
-					{responding?.accept ? "Accepting…" : "Accept"}
-				</button>
-				<button
-					class="button"
-					type="button"
-					disabled={store.responding !== null}
-					onclick={() => void store.respond(person, false)}
-					>{responding && !responding.accept
-						? "Declining…"
-						: "Decline"}</button>
-			{/if}
+			{/each}
 			<button
 				class="button-icon"
 				type="button"
