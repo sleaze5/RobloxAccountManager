@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/url"
+	"slices"
 	"strconv"
 	"strings"
 
@@ -96,6 +97,72 @@ func (service *Thumbnails) AvatarHeadshots(ctx context.Context, userIDs []int64)
 		}
 	}
 	return headshots, nil
+}
+
+// ThumbnailTarget names one image for the thumbnails batch endpoint. Type is a
+// batch type such as AvatarHeadShot, GroupIcon, or GameIcon.
+type ThumbnailTarget struct {
+	Type     string
+	TargetID int64
+}
+
+// Images reads one 150x150 image per target. Targets that Roblox cannot render
+// are left out of the map.
+func (service *Thumbnails) Images(ctx context.Context, targets []ThumbnailTarget) (map[ThumbnailTarget]string, error) {
+	if len(targets) > maxHeadshotIDs {
+		return nil, &roblox.Error{Kind: roblox.KindProtocol, Endpoint: "thumbnails-batch", Message: "Too many images were requested."}
+	}
+	type batchRequest struct {
+		RequestID  string `json:"requestId"`
+		TargetID   int64  `json:"targetId"`
+		Type       string `json:"type"`
+		Size       string `json:"size"`
+		Format     string `json:"format"`
+		IsCircular bool   `json:"isCircular"`
+	}
+	targetByRequestID := make(map[string]ThumbnailTarget, len(targets))
+	requests := make([]batchRequest, 0, len(targets))
+	for _, target := range targets {
+		requestID := target.Type + ":" + strconv.FormatInt(target.TargetID, 10)
+		if _, exists := targetByRequestID[requestID]; exists || target.TargetID <= 0 {
+			continue
+		}
+		targetByRequestID[requestID] = target
+		requests = append(requests, batchRequest{RequestID: requestID, TargetID: target.TargetID, Type: target.Type, Size: "150x150", Format: "Png"})
+	}
+	endpoint := &url.URL{Scheme: "https", Host: "thumbnails.roblox.com", Path: "/v1/batch"}
+	images := make(map[ThumbnailTarget]string, len(requests))
+	for batch := range slices.Chunk(requests, headshotBatchSize) {
+		body, err := json.Marshal(batch)
+		if err != nil {
+			return nil, &roblox.Error{Kind: roblox.KindProtocol, Endpoint: "thumbnails-batch", Message: "The image request could not be encoded.", Cause: err}
+		}
+		response, err := service.client.Do(ctx, roblox.Request{
+			Endpoint: "thumbnails-batch", Method: http.MethodPost, URL: endpoint, Body: body,
+			ContentType: "application/json", MaxResponseSize: 2 << 20,
+			Retry: roblox.RetryPolicy{MaxAttempts: 3, Idempotent: true, RetryServerErrors: true, RetryRateLimit: true},
+		})
+		if err != nil {
+			return nil, err
+		}
+		var payload struct {
+			Data []struct {
+				RequestID string `json:"requestId"`
+				State     string `json:"state"`
+				ImageURL  string `json:"imageUrl"`
+			} `json:"data"`
+		}
+		if err := json.Unmarshal(response.Body, &payload); err != nil {
+			return nil, &roblox.Error{Kind: roblox.KindProtocol, Endpoint: "thumbnails-batch", Status: response.Status, Message: "Roblox returned invalid image data.", Cause: err}
+		}
+		for _, image := range payload.Data {
+			target, requested := targetByRequestID[image.RequestID]
+			if requested && strings.EqualFold(image.State, "Completed") && safeThumbnailURL(image.ImageURL) {
+				images[target] = image.ImageURL
+			}
+		}
+	}
+	return images, nil
 }
 
 func safeThumbnailURL(value string) bool {

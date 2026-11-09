@@ -23,31 +23,32 @@ import (
 )
 
 type Service struct {
-	vault           Vault
-	repo            AccountRepository
-	sessions        *roblox.SessionManager
-	users           *robloxservices.Users
-	accountSettings *robloxservices.AccountSettings
-	chat            *robloxservices.Chat
-	auth            *robloxservices.Auth
-	avatars         *robloxservices.Thumbnails
-	presence        *robloxservices.Presence
-	gameLinks       *robloxservices.GameLinks
-	games           *robloxservices.Games
-	privateServers  *robloxservices.PrivateServers
-	rovalra         *rovalra.Client
-	rbxservers      *rbxservers.Client
-	favoritePlaces  *gamestore.Repository
-	transfers       *transferstore.Repository
-	logsExplorer    *logsexplorer.Reader
-	launcher        gamelaunch.Launcher
-	multiInstance   *robloxmulti.Manager
-	settings        *appsettings.Store
-	logs            *logging.System
-	events          *Events
-	logger          *slog.Logger
-	browser         *browser.Coordinator
-	runtime         *browser.RuntimeManager
+	vault              Vault
+	repo               AccountRepository
+	sessions           *roblox.SessionManager
+	users              *robloxservices.Users
+	accountSettings    *robloxservices.AccountSettings
+	chat               *robloxservices.Chat
+	notificationStream *robloxservices.NotificationStream
+	auth               *robloxservices.Auth
+	avatars            *robloxservices.Thumbnails
+	presence           *robloxservices.Presence
+	gameLinks          *robloxservices.GameLinks
+	games              *robloxservices.Games
+	privateServers     *robloxservices.PrivateServers
+	rovalra            *rovalra.Client
+	rbxservers         *rbxservers.Client
+	favoritePlaces     *gamestore.Repository
+	transfers          *transferstore.Repository
+	logsExplorer       *logsexplorer.Reader
+	launcher           gamelaunch.Launcher
+	multiInstance      *robloxmulti.Manager
+	settings           *appsettings.Store
+	logs               *logging.System
+	events             *Events
+	logger             *slog.Logger
+	browser            *browser.Coordinator
+	runtime            *browser.RuntimeManager
 
 	importMutex          sync.Mutex
 	transferMutex        sync.Mutex
@@ -81,6 +82,7 @@ func New(
 	users *robloxservices.Users,
 	accountSettings *robloxservices.AccountSettings,
 	chat *robloxservices.Chat,
+	notificationStream *robloxservices.NotificationStream,
 	auth *robloxservices.Auth,
 	avatars *robloxservices.Thumbnails,
 	presence *robloxservices.Presence,
@@ -108,6 +110,7 @@ func New(
 		accountSettings:      accountSettings,
 		accountSettingsLocks: make(map[int64]*accountSettingsLock),
 		chat:                 chat,
+		notificationStream:   notificationStream,
 		auth:                 auth,
 		avatars:              avatars,
 		presence:             presence,

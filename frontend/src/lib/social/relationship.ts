@@ -41,7 +41,6 @@ export type RelationshipTone = "neutral" | "warning" | "danger"
 
 export interface RelationshipAction {
 	id: RelationshipActionId
-	group: "friend" | "trusted" | "follow"
 	tone: RelationshipTone
 	label: string
 	progress: string
@@ -64,7 +63,6 @@ export const relationshipActionsById: Record<RelationshipActionId, RelationshipA
 	{
 		"add-friend": {
 			id: "add-friend",
-			group: "friend",
 			tone: "neutral",
 			label: "Add friend",
 			progress: "Sending…",
@@ -77,7 +75,6 @@ export const relationshipActionsById: Record<RelationshipActionId, RelationshipA
 		},
 		"cancel-friend": {
 			id: "cancel-friend",
-			group: "friend",
 			tone: "warning",
 			label: "Cancel friend request",
 			progress: "Canceling…",
@@ -91,7 +88,6 @@ export const relationshipActionsById: Record<RelationshipActionId, RelationshipA
 		},
 		"accept-friend": {
 			id: "accept-friend",
-			group: "friend",
 			tone: "neutral",
 			label: "Accept friend",
 			progress: "Accepting…",
@@ -104,7 +100,6 @@ export const relationshipActionsById: Record<RelationshipActionId, RelationshipA
 		},
 		"decline-friend": {
 			id: "decline-friend",
-			group: "friend",
 			tone: "danger",
 			label: "Decline friend",
 			progress: "Declining…",
@@ -117,7 +112,6 @@ export const relationshipActionsById: Record<RelationshipActionId, RelationshipA
 		},
 		"unfriend": {
 			id: "unfriend",
-			group: "friend",
 			tone: "danger",
 			label: "Unfriend",
 			progress: "Unfriending…",
@@ -131,7 +125,6 @@ export const relationshipActionsById: Record<RelationshipActionId, RelationshipA
 		},
 		"add-trusted": {
 			id: "add-trusted",
-			group: "trusted",
 			tone: "neutral",
 			label: "Add trusted friend",
 			progress: "Sending…",
@@ -144,7 +137,6 @@ export const relationshipActionsById: Record<RelationshipActionId, RelationshipA
 		},
 		"cancel-trusted": {
 			id: "cancel-trusted",
-			group: "trusted",
 			tone: "warning",
 			label: "Cancel trusted request",
 			progress: "Canceling…",
@@ -158,7 +150,6 @@ export const relationshipActionsById: Record<RelationshipActionId, RelationshipA
 		},
 		"accept-trusted": {
 			id: "accept-trusted",
-			group: "trusted",
 			tone: "neutral",
 			label: "Accept trusted friend",
 			progress: "Accepting…",
@@ -171,7 +162,6 @@ export const relationshipActionsById: Record<RelationshipActionId, RelationshipA
 		},
 		"decline-trusted": {
 			id: "decline-trusted",
-			group: "trusted",
 			tone: "danger",
 			label: "Decline trusted friend",
 			progress: "Declining…",
@@ -184,7 +174,6 @@ export const relationshipActionsById: Record<RelationshipActionId, RelationshipA
 		},
 		"remove-trusted": {
 			id: "remove-trusted",
-			group: "trusted",
 			tone: "danger",
 			label: "Remove trusted friend",
 			progress: "Removing…",
@@ -197,7 +186,6 @@ export const relationshipActionsById: Record<RelationshipActionId, RelationshipA
 		},
 		"follow": {
 			id: "follow",
-			group: "follow",
 			tone: "neutral",
 			label: "Follow",
 			progress: "Following…",
@@ -210,7 +198,6 @@ export const relationshipActionsById: Record<RelationshipActionId, RelationshipA
 		},
 		"follow-back": {
 			id: "follow-back",
-			group: "follow",
 			tone: "neutral",
 			label: "Follow back",
 			progress: "Following…",
@@ -223,7 +210,6 @@ export const relationshipActionsById: Record<RelationshipActionId, RelationshipA
 		},
 		"unfollow": {
 			id: "unfollow",
-			group: "follow",
 			tone: "danger",
 			label: "Unfollow",
 			progress: "Unfollowing…",
@@ -283,6 +269,17 @@ function followActionIds(relationship: SocialRelationship): RelationshipActionId
 	if (relationship.following) return ["unfollow"]
 	return relationship.followedBy ? ["follow-back"] : ["follow"]
 }
+
+// pendingRequestActionIds answer or withdraw a friend or trusted friend request
+// that is still pending, in either direction.
+export const pendingRequestActionIds: ReadonlySet<RelationshipActionId> = new Set([
+	"accept-friend",
+	"decline-friend",
+	"cancel-friend",
+	"accept-trusted",
+	"decline-trusted",
+	"cancel-trusted",
+])
 
 // relationshipActions lists what the browsing account can do with a user,
 // leaving out the parts of the relationship that could not be read.

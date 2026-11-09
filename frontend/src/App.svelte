@@ -37,6 +37,7 @@
 	import type {
 		AppBuild,
 		AppLocation,
+		RobloxNotificationUser,
 		ShutdownEffects,
 		SocialUser,
 	} from "./lib/backend/bridge"
@@ -276,6 +277,16 @@
 	async function fillGameLaunchOptions(placeId: number, jobId = ""): Promise<void> {
 		store.launchInput.launchData = ""
 		await fillLaunchOptions({ placeId: String(placeId), jobId })
+	}
+
+	// Joining the user who sent an invite follows them into their server.
+	async function fillFollowUserLaunchOptions(
+		user: RobloxNotificationUser,
+	): Promise<void> {
+		store.launchInput.method = LaunchMethod.MethodUser
+		store.launchInput.user = user.username || `id=${user.userId}`
+		store.launchInput.resolveCurrentGame = false
+		await showLaunchDrawer("[data-launch-user]")
 	}
 
 	async function fillGameLaunchLink(link: string): Promise<void> {
@@ -668,6 +679,8 @@
 												placeId: String(placeId),
 												jobId,
 											})}
+										onFollowUser={(user) =>
+											void fillFollowUserLaunchOptions(user)}
 										onSearchPlace={(placeId) =>
 											void searchGames(`id:${placeId}`)}
 										onReplaceCookie={openAddAccount}

@@ -34,10 +34,19 @@
 		peopleDialog = mode
 	}
 
+	async function loadChats(userIdToOpen: number): Promise<void> {
+		await chat.refresh()
+		if (userIdToOpen && !(await chat.create([userIdToOpen], ""))) {
+			chat.error = chat.createError
+			chat.createError = ""
+		}
+	}
+
 	onMount(() => {
 		heading?.closest("[data-workspace-scroll]")?.scrollTo({ top: 0 })
 		heading?.focus({ preventScroll: true })
-		void chat.refresh()
+		void loadChats(workspace.chatUserIdToOpen)
+		workspace.chatUserIdToOpen = 0
 		return () => chat.dispose()
 	})
 </script>

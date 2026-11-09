@@ -22,7 +22,10 @@ export type ActiveAccountMenu =
 	| null
 
 export class WorkspaceState {
-	accountPage = $state<"profile" | "settings" | "chats">("profile")
+	accountPage = $state<"profile" | "settings" | "chats" | "notifications">("profile")
+	// The Chat button of a notification opens Chats with a direct chat to this
+	// user. ChatsPage reads it once when it opens.
+	chatUserIdToOpen = 0
 	accountSettingsPage = $state<"info" | "privacy" | "servers" | "sessions">("info")
 	accountSettingsCategory = $state<string | null>(null)
 	accountSettingsQuery = $state("")

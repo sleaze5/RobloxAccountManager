@@ -1,4 +1,5 @@
 <script lang="ts">
+	import bellIcon from "@phosphor-icons/core/regular/bell.svg?raw"
 	import chatsIcon from "@phosphor-icons/core/regular/chats.svg?raw"
 	import dotsThreeIcon from "@phosphor-icons/core/regular/dots-three.svg?raw"
 	import gearIcon from "@phosphor-icons/core/regular/gear.svg?raw"
@@ -13,6 +14,7 @@
 	import arrowCounterClockwiseIcon from "@phosphor-icons/core/regular/arrow-counter-clockwise.svg?raw"
 	import circleNotchIcon from "@phosphor-icons/core/regular/circle-notch.svg?raw"
 	import { SessionState } from "../backend/bridge"
+	import type { RobloxNotificationUser } from "../backend/bridge"
 	import AccountModerationPanel from "./AccountModerationPanel.svelte"
 	import {
 		canReactivate,
@@ -21,6 +23,7 @@
 	} from "./moderation.svelte"
 	import type { SocialListKind } from "../social/social-store.svelte"
 	import ChatsPage from "../chats/ChatsPage.svelte"
+	import RobloxNotificationsPage from "../roblox-notifications/RobloxNotificationsPage.svelte"
 	import SocialCounts from "../social/SocialCounts.svelte"
 	import type { WorkspaceState } from "../layout/workspace-state.svelte"
 	import type { NotificationCenter } from "../notifications/notification-center.svelte"
@@ -42,6 +45,7 @@
 		workspace,
 		onManageTags,
 		onJoinServer,
+		onFollowUser,
 		onSearchPlace,
 		onReplaceCookie,
 		onEditDescription,
@@ -53,6 +57,7 @@
 		workspace: WorkspaceState
 		onManageTags: (accountId: number) => void
 		onJoinServer: (placeId: number, jobId: string) => void
+		onFollowUser: (user: RobloxNotificationUser) => void
 		onSearchPlace: (placeId: number) => void
 		onReplaceCookie: () => void
 		onEditDescription: (description: string) => void
@@ -84,6 +89,7 @@
 
 	let settingsButton = $state<HTMLButtonElement | undefined>(undefined),
 		chatsButton = $state<HTMLButtonElement | undefined>(undefined),
+		notificationsButton = $state<HTMLButtonElement | undefined>(undefined),
 		tagsButton = $state<HTMLButtonElement | undefined>(undefined)
 	const profileState = $derived(
 			profileVisible ? store.getAccountProfile(profileAccountId) : null,
@@ -123,13 +129,18 @@
 		return () => window.clearInterval(timer)
 	})
 
-	function openPage(page: "settings" | "chats"): void {
+	function openPage(page: "settings" | "chats" | "notifications"): void {
 		workspace.closeAccountMenus()
 		workspace.accountPage = page
 	}
 
 	async function backToProfile(): Promise<void> {
-		const opener = workspace.accountPage === "chats" ? chatsButton : settingsButton
+		const opener = {
+			profile: settingsButton,
+			settings: settingsButton,
+			chats: chatsButton,
+			notifications: notificationsButton,
+		}[workspace.accountPage]
 		workspace.accountPage = "profile"
 		await tick()
 		opener?.closest("[data-workspace-scroll]")?.scrollTo({ top: 0 })
@@ -145,6 +156,16 @@
 		onBack={() => void backToProfile()} />
 {:else if workspace.accountPage === "chats" && hasAccount && store.vault.unlocked}
 	<ChatsPage {store} {workspace} onBack={() => void backToProfile()} />
+{:else if workspace.accountPage === "notifications" && hasAccount && store.vault.unlocked}
+	<RobloxNotificationsPage
+		{store}
+		onBack={() => void backToProfile()}
+		onOpenChat={(userId) => {
+			workspace.chatUserIdToOpen = userId
+			openPage("chats")
+		}}
+		{onFollowUser}
+		{onSearchPlace} />
 {:else}
 	<section class="flex flex-col gap-4 p-3 pb-4" aria-labelledby="account-name">
 		<div class="flex items-start gap-3 @max-xl:flex-col">
@@ -285,6 +306,18 @@
 							? void store.refreshModeration(selectedAccount.id)
 							: void profileState?.refresh(true)}>
 					<RefreshIcon isRefreshing={refreshing} />
+				</button>
+				<button
+					class="button-icon"
+					type="button"
+					aria-label="Notifications"
+					data-tooltip={moderated
+						? "Notifications are unavailable while moderated"
+						: "Notifications"}
+					disabled={!hasAccount || !store.vault.unlocked || moderated}
+					bind:this={notificationsButton}
+					onclick={() => openPage("notifications")}>
+					<Icon svg={bellIcon} size={16} aria-hidden="true" />
 				</button>
 				<button
 					class="button-icon"

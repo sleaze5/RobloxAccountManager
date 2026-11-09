@@ -209,6 +209,7 @@
 								>Username / User ID</span>
 							<input
 								class="field font-mono text-2xs"
+								data-launch-user
 								bind:value={store.launchInput.user}
 								type="text"
 								placeholder="Username or id=123"

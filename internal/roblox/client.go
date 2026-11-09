@@ -127,7 +127,7 @@ func (client *Client) prepareRequest(request *Request) error {
 	if client.sessions == nil {
 		return &Error{Kind: KindProtocol, Endpoint: request.Endpoint, Message: "The session manager is unavailable."}
 	}
-	if err := request.validate(allowedCredentialURL); err != nil {
+	if err := request.validate(IsRobloxURL); err != nil {
 		return &Error{Kind: KindProtocol, Endpoint: request.Endpoint, Message: "The request contract is invalid.", Cause: err}
 	}
 	request.Method = strings.ToUpper(request.Method)
@@ -751,7 +751,7 @@ func (client *Client) prepareAttemptHeaders(request *http.Request, contract Requ
 		request.Header.Set("Rbxauthenticationnegotiation", "1")
 	}
 	if contract.Authenticated {
-		if !allowedCredentialURL(request.URL) {
+		if !IsRobloxURL(request.URL) {
 			return errors.New("credential host failed final validation")
 		}
 		request.Header.Set("Cookie", formatAuthCookie(snapshot.Cookie, snapshot.BrowserID))

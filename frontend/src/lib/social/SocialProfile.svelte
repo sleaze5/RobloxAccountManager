@@ -25,6 +25,7 @@
 	import SocialAvatar from "./SocialAvatar.svelte"
 	import SocialCounts from "./SocialCounts.svelte"
 	import {
+		pendingRequestActionIds,
 		relationshipActions,
 		relationshipButtonClass,
 		requestRelationship,
@@ -72,7 +73,7 @@
 		actions = $derived(
 			relationship
 				? relationshipActions(relationship, profile?.unavailable ?? []).filter(
-						(action) => action.group === "friend",
+						(action) => pendingRequestActionIds.has(action.id),
 					)
 				: [],
 		),
