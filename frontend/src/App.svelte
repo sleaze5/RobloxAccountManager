@@ -617,6 +617,8 @@
 				onFillLaunch={(placeId, jobId) =>
 					void fillGameLaunchOptions(placeId, jobId)}
 				onSearchPlace={(placeId) => void searchGames(`id:${placeId}`)}
+				onSearchUniverse={(universeId) =>
+					void searchGames(`universe:${universeId}`)}
 				onRelationshipAction={openRelationshipAction}
 				onEditNickname={openNickname}
 				onRemoveSelected={openRemoveConnections} />
@@ -683,6 +685,8 @@
 											void fillFollowUserLaunchOptions(user)}
 										onSearchPlace={(placeId) =>
 											void searchGames(`id:${placeId}`)}
+										onSearchUniverse={(universeId) =>
+											void searchGames(`universe:${universeId}`)}
 										onReplaceCookie={openAddAccount}
 										onEditDescription={openDescriptionEditor}
 										onShowSocial={showSocial}

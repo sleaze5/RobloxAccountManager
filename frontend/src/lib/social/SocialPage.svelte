@@ -47,6 +47,7 @@
 		accounts,
 		onFillLaunch,
 		onSearchPlace,
+		onSearchUniverse,
 		onRelationshipAction,
 		onEditNickname,
 		onRemoveSelected,
@@ -55,6 +56,7 @@
 		accounts: AccountStore
 		onFillLaunch: (placeId: number, jobId: string) => void
 		onSearchPlace: (placeId: number) => void
+		onSearchUniverse: (universeId: number) => void
 		onRelationshipAction: (person: SocialUser, action: RelationshipActionId) => void
 		onEditNickname: (person: SocialUser, nickname: string) => void
 		onRemoveSelected: () => void
@@ -607,6 +609,7 @@
 							person={selected}
 							{onFillLaunch}
 							{onSearchPlace}
+							{onSearchUniverse}
 							onEditNickname={(nickname) =>
 								onEditNickname(selected, nickname)}
 							{onRelationshipAction} />

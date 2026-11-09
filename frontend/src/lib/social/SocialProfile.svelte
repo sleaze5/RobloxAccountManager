@@ -40,6 +40,7 @@
 		person,
 		onFillLaunch,
 		onSearchPlace,
+		onSearchUniverse,
 		onEditNickname,
 		onRelationshipAction,
 	}: {
@@ -48,6 +49,7 @@
 		person: SocialUser
 		onFillLaunch: (placeId: number, jobId: string) => void
 		onSearchPlace: (placeId: number) => void
+		onSearchUniverse: (universeId: number) => void
 		onEditNickname: (nickname: string) => void
 		onRelationshipAction: (person: SocialUser, action: RelationshipActionId) => void
 	} = $props()
@@ -148,7 +150,8 @@
 					<AccountPresence
 						presence={person.presence}
 						onJoin={onFillLaunch}
-						{onSearchPlace} />
+						{onSearchPlace}
+						{onSearchUniverse} />
 				{/if}
 				{#if profile}<SocialBadges {profile} />{/if}
 			</div>

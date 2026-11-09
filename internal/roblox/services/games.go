@@ -104,6 +104,10 @@ func (service *Games) Place(ctx context.Context, universeID, placeID int64) (gam
 	if !found {
 		return games.PlaceSummary{}, gameUnavailableError()
 	}
+	if place.IconURL == "" {
+		// Roblox serves no icon for a subplace that has none of its own, so it shows its universe's icon.
+		place.IconURL = root.IconURL
+	}
 	return games.PlaceSummary{Place: place, RootPlace: &root}, nil
 }
 

@@ -7,10 +7,12 @@
 		place,
 		rootPlace,
 		size = "md",
+		isRootNameShownNearby = false,
 	}: {
 		place: GamePlace | null
 		rootPlace: GamePlace | null
 		size?: "md" | "lg"
+		isRootNameShownNearby?: boolean
 	} = $props()
 	const games = getGamesStore(),
 		rootName = $derived(rootPlace ? games.displayName(rootPlace) : "")
@@ -18,7 +20,10 @@
 
 <span class="relative shrink-0">
 	<GameIcon url={place?.iconUrl ?? ""} {size} />
-	{#if rootPlace}<button
+	{#if rootPlace && isRootNameShownNearby}<span
+			class="absolute -right-1.5 -bottom-1.5 block rounded-sm ring-2 ring-canvas"
+			><GameIcon url={rootPlace.iconUrl} size="xs" /></span
+		>{:else if rootPlace}<button
 			class="absolute -right-1.5 -bottom-1.5 block cursor-help rounded-sm ring-2 ring-canvas focus-visible:outline-offset-2"
 			type="button"
 			aria-label={`Subplace of ${rootName}`}

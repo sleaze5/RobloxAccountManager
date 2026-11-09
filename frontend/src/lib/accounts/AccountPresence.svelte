@@ -4,132 +4,159 @@
 	import starFillIcon from "@phosphor-icons/core/fill/star-fill.svg?raw"
 	import Icon from "../shared/Icon.svelte"
 	import { PresenceType } from "../backend/bridge"
-	import type { GamePlace, UserPresence } from "../backend/bridge"
-	import { loadGamePlace } from "../games/game-place-cache"
-	import { creatorByline, getGamesStore } from "../games/games-store.svelte"
+	import type { UserPresence } from "../backend/bridge"
+	import { getGamesStore } from "../games/games-store.svelte"
 	import {
 		presenceTextClass,
 		presenceDetail,
 		presenceIcon,
 		presenceLabel,
 	} from "./account-model"
+	import PresenceCard from "./PresenceCard.svelte"
+	import { isInExperience, PresencePlace } from "./presence-place.svelte"
 
 	let {
 		presence,
 		onJoin,
 		onSearchPlace,
+		onSearchUniverse,
 	}: {
 		presence: UserPresence
 		onJoin: (placeId: number, jobId: string) => void
 		onSearchPlace: (placeId: number) => void
+		onSearchUniverse: (universeId: number) => void
 	} = $props()
 
-	const games = getGamesStore()
-	let place = $state<GamePlace | null>(null),
-		rootPlace = $state<GamePlace | null>(null)
+	const cardHoverOpenDelayMs = 400,
+		cardHoverCloseDelayMs = 150
 
-	const type = $derived(presence.userPresenceType),
-		universeId = $derived(presence.universeId ?? 0),
-		inExperience = $derived(
-			type === PresenceType.PresenceTypeInGame ||
-				type === PresenceType.PresenceTypeInStudio,
-		),
+	const games = getGamesStore(),
+		presencePlace = new PresencePlace(() => presence),
+		cardId = $props.id()
+	let trigger = $state<HTMLButtonElement>(),
+		cardOpenedBy = $state<"hover" | "click" | null>(null),
+		cardHoverTimer = 0
+
+	const place = $derived(presencePlace.place),
+		inExperience = $derived(isInExperience(presence)),
 		joinPlaceId = $derived(presence.placeId ?? 0),
 		joinable = $derived(
-			type === PresenceType.PresenceTypeInGame &&
+			presence.userPresenceType === PresenceType.PresenceTypeInGame &&
 				joinPlaceId > 0 &&
 				!!presence.gameId,
 		),
 		label = $derived(presenceLabel(presence)),
-		icon = $derived(presenceIcon(presence)),
 		detail = $derived(
-			presenceDetail(presence, (place && games.displayName(place)) || ""),
+			presenceDetail(presence, place ? games.displayName(place) : ""),
 		),
-		location = $derived(presence.lastLocation?.trim() ?? ""),
-		rootName = $derived(
-			rootPlace && rootPlace.placeId !== place?.placeId ? rootPlace.name : "",
-		),
+		summary = $derived(detail ? `${label}: ${detail}` : label),
 		tooltip = $derived(
-			[
-				detail ? `${label}: ${detail}` : label,
-				place && !sameName(place.name, detail) ? `Place: ${place.name}` : "",
-				rootName ? `Sub-place of: ${rootName}` : "",
-				inExperience &&
-				place &&
-				location &&
-				!sameName(location, place.name) &&
-				!sameName(location, rootName)
-					? `Game: ${location}`
-					: "",
-				inExperience && place?.creatorName
-					? `${creatorByline(place)}${place.creatorVerified ? " (Verified creator)" : ""}`
-					: "",
-				type === PresenceType.PresenceTypeOnline && !detail
-					? "On the website or app"
-					: "",
-				joinable ? `Job ID: ${presence.gameId}` : "",
-			]
-				.filter(Boolean)
-				.join("\n"),
+			presence.userPresenceType === PresenceType.PresenceTypeOnline && !detail
+				? `${summary}\nOn the website or app`
+				: summary,
 		)
 
-	function sameName(first: string, second: string): boolean {
-		return first.trim().toLowerCase() === second.trim().toLowerCase()
+	$effect(() => {
+		if (!inExperience) closeCard()
+	})
+
+	$effect(() => () => {
+		clearTimeout(cardHoverTimer)
+	})
+
+	function scheduleCardHover(openedBy: "hover" | null, delayMs: number): void {
+		clearTimeout(cardHoverTimer)
+		if (cardOpenedBy === "click") return
+		cardHoverTimer = window.setTimeout(() => {
+			cardOpenedBy = openedBy
+		}, delayMs)
 	}
 
-	$effect(() => {
-		const id = inExperience ? universeId : 0,
-			placeId = joinPlaceId
-		place = rootPlace = null
-		if (id <= 0 || placeId <= 0) return
-		let current = true
-		void loadGamePlace(id, placeId).then((loaded) => {
-			if (current) {
-				place = loaded?.place ?? null
-				rootPlace = loaded?.rootPlace ?? null
-			}
-			return loaded
-		})
-		return () => {
-			current = false
-		}
-	})
+	function toggleCard(): void {
+		clearTimeout(cardHoverTimer)
+		cardOpenedBy = cardOpenedBy === "click" ? null : "click"
+	}
+
+	function closeCard(): void {
+		clearTimeout(cardHoverTimer)
+		cardOpenedBy = null
+	}
+
+	function isInsideCard(target: EventTarget | null): boolean {
+		return (
+			target instanceof Node &&
+			(!!trigger?.contains(target) ||
+				!!document.getElementById(cardId)?.contains(target))
+		)
+	}
+
+	function fillLaunch(): void {
+		closeCard()
+		onJoin(joinPlaceId, presence.gameId ?? "")
+	}
 </script>
 
-<div class="flex min-h-6 min-w-0 items-center gap-1 text-xs">
-	<button
-		type="button"
-		class="flex min-w-0 cursor-help items-center gap-1 rounded-md text-left tabular-nums focus-visible:outline-offset-2"
-		aria-label={tooltip}
-		data-tooltip={tooltip}>
-		<span
-			class={[
-				"inline-flex shrink-0 items-center gap-1 font-medium",
-				presenceTextClass(presence),
-			]}
-			><Icon svg={icon} size={14} aria-hidden="true" />{label}{detail
-				? ":"
-				: ""}</span>
-		{#if detail}
-			<span class="inline-flex min-w-0 items-center gap-1">
-				<span class="truncate">{detail}</span>
-				{#if inExperience && place && games.isFavorite(place.placeId)}
-					<Icon
-						svg={starFillIcon}
-						class="shrink-0 animate-pop text-accent-strong"
-						size={12}
-						aria-label="Favorite" />
-				{/if}
-			</span>
+<svelte:window
+	onpointerdown={(event) => {
+		if (cardOpenedBy && !isInsideCard(event.target)) closeCard()
+	}}
+	onscrollcapture={(event) => {
+		if (cardOpenedBy && !isInsideCard(event.target)) closeCard()
+	}}
+	onresize={closeCard}
+	onkeydown={(event) => {
+		if (cardOpenedBy && event.key === "Escape") {
+			event.preventDefault()
+			closeCard()
+			trigger?.focus()
+		}
+	}} />
+
+<div
+	class="flex min-h-6 min-w-0 items-center gap-1 text-xs"
+	onfocusout={(event) => {
+		if (cardOpenedBy && !isInsideCard(event.relatedTarget)) closeCard()
+	}}>
+	{#if inExperience}
+		<button
+			bind:this={trigger}
+			type="button"
+			class="flex min-w-0 items-center gap-1 rounded-md text-left tabular-nums focus-visible:outline-offset-2"
+			aria-label={`${summary}, show details`}
+			aria-haspopup="dialog"
+			aria-expanded={!!cardOpenedBy}
+			aria-controls={cardOpenedBy ? cardId : undefined}
+			onclick={toggleCard}
+			onpointerenter={() => scheduleCardHover("hover", cardHoverOpenDelayMs)}
+			onpointerleave={() => scheduleCardHover(null, cardHoverCloseDelayMs)}>
+			{@render status()}
+		</button>
+		{#if cardOpenedBy && trigger}
+			<PresenceCard
+				id={cardId}
+				anchor={trigger}
+				{presence}
+				isJoinable={joinable}
+				onPointerEnter={() => scheduleCardHover("hover", 0)}
+				onPointerLeave={() => scheduleCardHover(null, cardHoverCloseDelayMs)}
+				onFillLaunch={fillLaunch}
+				{onSearchPlace}
+				{onSearchUniverse} />
 		{/if}
-	</button>
+	{:else}
+		<button
+			type="button"
+			class="flex min-w-0 cursor-help items-center gap-1 rounded-md text-left focus-visible:outline-offset-2"
+			aria-label={tooltip}
+			data-tooltip={tooltip}>{@render status()}</button>
+	{/if}
 	{#if joinable}
 		<button
 			class="button-ghost-sm"
 			type="button"
 			aria-label="Fill launch options"
 			data-tooltip="Fill launch options with this place and server"
-			onclick={() => onJoin(joinPlaceId, presence.gameId ?? "")}>
+			onclick={fillLaunch}>
 			<Icon svg={signInIcon} size={14} aria-hidden="true" />
 		</button>
 	{/if}
@@ -144,3 +171,27 @@
 		</button>
 	{/if}
 </div>
+
+{#snippet status()}
+	<span
+		class={[
+			"inline-flex shrink-0 items-center gap-1 font-medium",
+			presenceTextClass(presence),
+		]}
+		><Icon
+			svg={presenceIcon(presence)}
+			size={14}
+			aria-hidden="true" />{label}{detail ? ":" : ""}</span>
+	{#if detail}
+		<span class="inline-flex min-w-0 items-center gap-1">
+			<span class="truncate">{detail}</span>
+			{#if place && games.isFavorite(place.placeId)}
+				<Icon
+					svg={starFillIcon}
+					class="shrink-0 animate-pop text-accent-strong"
+					size={12}
+					aria-label="Favorite" />
+			{/if}
+		</span>
+	{/if}
+{/snippet}

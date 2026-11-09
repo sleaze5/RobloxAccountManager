@@ -47,6 +47,7 @@
 		onJoinServer,
 		onFollowUser,
 		onSearchPlace,
+		onSearchUniverse,
 		onReplaceCookie,
 		onEditDescription,
 		onShowSocial,
@@ -59,6 +60,7 @@
 		onJoinServer: (placeId: number, jobId: string) => void
 		onFollowUser: (user: RobloxNotificationUser) => void
 		onSearchPlace: (placeId: number) => void
+		onSearchUniverse: (universeId: number) => void
 		onReplaceCookie: () => void
 		onEditDescription: (description: string) => void
 		onShowSocial: (list: SocialListKind) => void
@@ -245,7 +247,8 @@
 							<AccountPresence
 								presence={selectedAccount.presence}
 								onJoin={onJoinServer}
-								{onSearchPlace} />
+								{onSearchPlace}
+								{onSearchUniverse} />
 							<div class="flex flex-wrap items-center gap-2">
 								<AccountProfileBalance
 									snapshot={profile}

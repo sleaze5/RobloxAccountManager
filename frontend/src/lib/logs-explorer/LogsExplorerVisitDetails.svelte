@@ -1,6 +1,6 @@
 <script lang="ts">
 	import type { LogsExplorerVisit } from "../backend/bridge"
-	import LogsExplorerGame from "./LogsExplorerGame.svelte"
+	import PlaceHeader from "../games/PlaceHeader.svelte"
 
 	let {
 		visit,
@@ -13,7 +13,7 @@
 </script>
 
 <div class="flex flex-col gap-2">
-	{#if validId(universeId) && validId(placeId)}<LogsExplorerGame
+	{#if validId(universeId) && validId(placeId)}<PlaceHeader
 			{universeId}
 			{placeId}
 			onSearch={() => onSearchPlace(placeId)} />{/if}

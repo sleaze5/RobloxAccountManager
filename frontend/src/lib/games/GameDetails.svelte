@@ -87,6 +87,36 @@
 					"; ",
 				),
 		),
+		// Roblox reports these per universe, so a subplace shows its universe's values.
+		universeStats = $derived<Fact[]>([
+			{
+				label: "Rating",
+				icon: thumbsUpIcon,
+				value: game
+					? votes
+						? `${percent.format(likeShare)} liked`
+						: "No votes"
+					: undefined,
+				detail:
+					game && votes
+						? `${count(game.upVotes, "like", "likes")} - ${count(game.downVotes, "dislike", "dislikes")}`
+						: "",
+			},
+			{ label: "Visits", icon: eyeIcon, value: exact(game?.visits) },
+			{
+				label: "Favorites",
+				icon: starIcon,
+				value: exact(game?.favorites),
+			},
+			{
+				label: "Server capacity",
+				icon: usersThreeIcon,
+				value:
+					game?.maxPlayers === undefined
+						? undefined
+						: count(game.maxPlayers, "player", "players"),
+			},
+		]),
 		details = $derived<Fact[]>([
 			{ label: "Genre", icon: shapesIcon, value: genre || undefined },
 			{
@@ -94,37 +124,7 @@
 				icon: shieldCheckIcon,
 				value: contentRating || undefined,
 			},
-			...(rootPlace
-				? []
-				: [
-						{
-							label: "Rating",
-							icon: thumbsUpIcon,
-							value: game
-								? votes
-									? `${percent.format(likeShare)} liked`
-									: "No votes"
-								: undefined,
-							detail:
-								game && votes
-									? `${count(game.upVotes, "like", "likes")} - ${count(game.downVotes, "dislike", "dislikes")}`
-									: "",
-						},
-						{ label: "Visits", icon: eyeIcon, value: exact(game?.visits) },
-						{
-							label: "Favorites",
-							icon: starIcon,
-							value: exact(game?.favorites),
-						},
-						{
-							label: "Server capacity",
-							icon: usersThreeIcon,
-							value:
-								game?.maxPlayers === undefined
-									? undefined
-									: count(game.maxPlayers, "player", "players"),
-						},
-					]),
+			...(rootPlace ? [] : universeStats),
 		]),
 		dates = $derived([
 			{
@@ -258,6 +258,22 @@
 	</div>
 {/snippet}
 
+{#snippet dateRow(fact: { label: string; icon: string; value: number | undefined })}
+	<div>
+		<dt>
+			<Icon svg={fact.icon} size={16} aria-hidden="true" />{fact.label}
+		</dt>
+		<dd>
+			{#if fact.value}
+				<Timestamp value={fact.value} />
+				<small>{relativeTime(fact.value)}</small>
+			{:else}
+				<span class="text-fg-faint">{game ? "Unavailable" : "-"}</span>
+			{/if}
+		</dd>
+	</div>
+{/snippet}
+
 {#if place}
 	<section
 		class="min-h-0 min-w-0 animate-enter overflow-y-auto"
@@ -362,6 +378,10 @@
 									svg={magnifyingGlassIcon}
 									size={14}
 									aria-hidden="true" /></button>
+							{#if rootPlace}
+								<span class="text-fg-faint" aria-hidden="true">-</span>
+								<span>Root place ID: {rootPlace.placeId}</span>
+							{/if}
 						</div>
 						<div class={metaClass}>
 							<span class="inline-flex items-center gap-1 text-fg-muted"
@@ -374,7 +394,7 @@
 								<span>{place.creatorType} ID: {place.creatorId}</span>
 							{/if}
 						</div>
-						{#if game && !rootPlace}
+						{#if game}
 							<p
 								class={[
 									"inline-flex items-center gap-1 text-xs font-medium tabular-nums",
@@ -383,7 +403,9 @@
 										: "text-fg-muted",
 								]}>
 								<Icon svg={pulseIcon} size={14} aria-hidden="true" />
-								{numbers.format(game.playing)} playing
+								{numbers.format(game.playing)} playing{rootPlace
+									? " in this universe"
+									: ""}
 							</p>
 						{/if}
 					</div>
@@ -457,8 +479,6 @@
 							onclick={() => store.select(rootPlace)}
 							>{store.displayName(rootPlace)}</button
 						></span>
-					<span class="truncate text-fg-muted"
-						>{" - Main game stats are hidden"}</span>
 				</p>
 			{/if}
 
@@ -482,25 +502,7 @@
 				<dl class="facts">
 					{#each details as fact (fact.label)}{@render row(fact)}{/each}
 					{#if !rootPlace}
-						{#each dates as fact (fact.label)}
-							<div>
-								<dt>
-									<Icon
-										svg={fact.icon}
-										size={16}
-										aria-hidden="true" />{fact.label}
-								</dt>
-								<dd>
-									{#if fact.value}
-										<Timestamp value={fact.value} />
-										<small>{relativeTime(fact.value)}</small>
-									{:else}
-										<span class="text-fg-faint"
-											>{game ? "Unavailable" : "-"}</span>
-									{/if}
-								</dd>
-							</div>
-						{/each}
+						{#each dates as fact (fact.label)}{@render dateRow(fact)}{/each}
 					{/if}
 					{#each versions as fact (fact.label)}{@render row(
 							fact,
@@ -508,6 +510,20 @@
 						)}{/each}
 				</dl>
 			</section>
+
+			{#if rootPlace}
+				<section
+					class="flex flex-col gap-3 pt-3"
+					aria-labelledby="game-universe">
+					<h3 id="game-universe" class={sectionHeadingClass}>Universe</h3>
+					<dl class="facts">
+						{#each universeStats as fact (fact.label)}{@render row(
+								fact,
+							)}{/each}
+						{#each dates as fact (fact.label)}{@render dateRow(fact)}{/each}
+					</dl>
+				</section>
+			{/if}
 
 			{#if game}
 				<section
