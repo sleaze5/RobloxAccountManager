@@ -177,8 +177,6 @@ export function liftToTopLayer(node: HTMLElement): void {
 	node.showPopover()
 }
 
-// focusMenuItemForKey moves focus between the items for the arrow, Home, and
-// End keys. The arrow keys wrap around.
 export function focusMenuItemForKey(event: KeyboardEvent, items: HTMLElement[]): void {
 	const current = items.indexOf(document.activeElement as HTMLElement)
 	let next: number
