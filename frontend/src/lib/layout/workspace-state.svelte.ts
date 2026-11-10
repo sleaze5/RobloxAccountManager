@@ -26,7 +26,9 @@ export class WorkspaceState {
 	// The Chat button of a notification opens Chats with a direct chat to this
 	// user. ChatsPage reads it once when it opens.
 	chatUserIdToOpen = 0
-	accountSettingsPage = $state<"info" | "privacy" | "servers" | "sessions">("info")
+	accountSettingsPage = $state<"info" | "privacy" | "servers" | "sessions" | "robux">(
+		"info",
+	)
 	accountSettingsCategory = $state<string | null>(null)
 	accountSettingsQuery = $state("")
 	accountSettingsScrollTop = 0
