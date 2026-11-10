@@ -7,6 +7,7 @@
 	import clockIcon from "@phosphor-icons/core/regular/clock.svg?raw"
 	import dotsThreeIcon from "@phosphor-icons/core/regular/dots-three.svg?raw"
 	import linkIcon from "@phosphor-icons/core/regular/link.svg?raw"
+	import swapIcon from "@phosphor-icons/core/regular/swap.svg?raw"
 	import diamondIcon from "@phosphor-icons/core/regular/diamond.svg?raw"
 	import usersFourIcon from "@phosphor-icons/core/regular/users-four.svg?raw"
 	import medalIcon from "@phosphor-icons/core/regular/medal.svg?raw"
@@ -65,6 +66,13 @@
 			UserProfile: "Profile page",
 		},
 		exactNumbers = new Intl.NumberFormat("en-US"),
+		// Roblox mutual trade eligibility statuses from the trades v2 API.
+		tradeEligibilityLabels: Record<string, string> = {
+			CallingUserIneligible: "This account cannot trade",
+			TargetUserIneligible: "They cannot trade",
+			CallingUserPrivacySettingsRestricted: "Blocked by privacy settings",
+			CallingUserAgeCheckRequired: "Needs an age check",
+		},
 		numbers = new Intl.NumberFormat("en-US", {
 			notation: "compact",
 			maximumFractionDigits: 1,
@@ -104,6 +112,7 @@
 				!!profile?.robloxBadges?.length ||
 				(profile?.inventoryVisible ?? null) !== null ||
 				(profile?.communityCount ?? null) !== null ||
+				(profile?.tradeEligibility ?? null) !== null ||
 				(profile?.collectibleCount ?? null) !== null,
 		)
 </script>
@@ -367,6 +376,23 @@
 							badges
 						</dt>
 						<dd><span>{profile.robloxBadges.join(", ")}</span></dd>
+					</div>
+				{/if}
+				{#if profile?.tradeEligibility}
+					{@const trading = profile.tradeEligibility}
+					<div
+						class="animate-enter"
+						data-tone={trading.canTrade ? undefined : "warning"}>
+						<dt>
+							<Icon svg={swapIcon} size={16} aria-hidden="true" />Trading
+						</dt>
+						<dd>
+							<span
+								>{trading.canTrade
+									? "Can trade"
+									: (tradeEligibilityLabels[trading.eligibility] ??
+										"Cannot trade")}</span>
+						</dd>
 					</div>
 				{/if}
 				{#if profile && profile.communityCount !== null}

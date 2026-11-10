@@ -470,6 +470,23 @@ func (service *Users) TradeEligibility(ctx context.Context, accountID, version i
 	return eligibility, nil
 }
 
+// CanTradeWith follows the Roblox trades v2 API schema. The eligibility is the
+// Roblox status name, such as Eligible or TargetUserIneligible.
+func (service *Users) CanTradeWith(ctx context.Context, accountID, version, userID int64) (UserTradeEligibility, error) {
+	var payload struct {
+		CanTrade    *bool  `json:"canTrade"`
+		Eligibility string `json:"mutualTradeEligibility"`
+	}
+	address := "https://trades.roblox.com/v2/users/" + strconv.FormatInt(userID, 10) + "/can-trade-with"
+	if err := service.readAccountDetails(ctx, accountID, version, "friend-trade-eligibility", address, &payload); err != nil {
+		return UserTradeEligibility{}, err
+	}
+	if payload.CanTrade == nil || len(payload.Eligibility) > 64 {
+		return UserTradeEligibility{}, invalidProfileDetails("friend-trade-eligibility")
+	}
+	return UserTradeEligibility{CanTrade: *payload.CanTrade, Eligibility: payload.Eligibility}, nil
+}
+
 type UserCollectibles struct {
 	Count                   int64
 	RecentAveragePriceTotal int64

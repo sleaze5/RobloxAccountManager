@@ -177,6 +177,19 @@ func (service *Service) DismissAllRobloxNotifications(ctx context.Context, accou
 	return len(dismissals), nil
 }
 
+// MarkRobloxNotificationsSeen clears the unread notification count on Roblox.
+func (service *Service) MarkRobloxNotificationsSeen(ctx context.Context, accountID int64) error {
+	ctx, version, logger, done, err := service.beginRobloxNotifications(ctx, accountID, "mark-seen")
+	if err != nil {
+		return err
+	}
+	defer done()
+	if err := service.notificationStream.ClearUnread(ctx, accountID, version); err != nil {
+		return robloxNotificationFailure(ctx, logger, err)
+	}
+	return nil
+}
+
 func (service *Service) beginRobloxNotifications(parent context.Context, accountID int64, operation string) (context.Context, int64, *slog.Logger, func(), error) {
 	ctx, version, done, err := service.beginAccountSession(parent, accountID, "roblox-notifications")
 	if err != nil {

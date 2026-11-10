@@ -109,6 +109,9 @@
 				) &&
 				!profileState.error,
 		),
+		unreadNotifications = $derived(
+			moderated ? 0 : (profile?.unreadNotificationCount ?? 0),
+		),
 		hasAbout = $derived(
 			!!profileState &&
 				(profileState.sections.hasSection(
@@ -327,16 +330,27 @@
 					<RefreshIcon isRefreshing={refreshing} />
 				</button>
 				<button
-					class="button-icon"
+					class="relative button-icon"
 					type="button"
-					aria-label="Notifications"
+					aria-label={unreadNotifications
+						? `Notifications, ${unreadNotifications} unread`
+						: "Notifications"}
 					data-tooltip={moderated
 						? "Notifications are unavailable while moderated"
-						: "Notifications"}
+						: unreadNotifications
+							? `Notifications (${unreadNotifications} unread)`
+							: "Notifications"}
 					disabled={!hasAccount || !store.vault.unlocked || moderated}
 					bind:this={notificationsButton}
 					onclick={() => openPage("notifications")}>
 					<Icon svg={bellIcon} size={16} aria-hidden="true" />
+					{#if unreadNotifications}<span
+							class="absolute -top-1.5 -right-1.5 min-w-4 animate-bloom rounded-sm bg-solid px-0.5 text-center text-2xs leading-4 font-bold text-on-solid"
+							aria-hidden="true"
+							>{unreadNotifications > 99
+								? "99+"
+								: unreadNotifications}</span
+						>{/if}
 				</button>
 				<button
 					class="button-icon"

@@ -310,6 +310,13 @@ func (service *Service) GetRobloxNotifications(ctx context.Context, accountID in
 	return service.core.GetRobloxNotifications(ctx, accountID, startIndex)
 }
 
+func (service *Service) MarkRobloxNotificationsSeen(ctx context.Context, accountID int64) error {
+	if err := positiveID(accountID, "roblox-notifications"); err != nil {
+		return err
+	}
+	return service.core.MarkRobloxNotificationsSeen(ctx, accountID)
+}
+
 func (service *Service) DismissRobloxNotification(ctx context.Context, accountID int64, notificationID, dismissAction string) error {
 	if err := positiveID(accountID, "roblox-notifications"); err != nil {
 		return err

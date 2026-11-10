@@ -115,6 +115,7 @@ const (
 	SocialSectionPreviousNames SocialProfileSection = "previousNames"
 	SocialSectionCommunities   SocialProfileSection = "communities"
 	SocialSectionCollectibles  SocialProfileSection = "collectibles"
+	SocialSectionTrading       SocialProfileSection = "trading"
 )
 
 // SocialProfile holds the fields of the one section that was read.
@@ -139,6 +140,8 @@ type SocialProfile struct {
 	Connections      []FriendConnection               `json:"connections"`
 	Relationship     SocialRelationship               `json:"relationship"`
 	CommunityCount   *int64                           `json:"communityCount"`
+	// TradeEligibility says whether the account can trade with the user.
+	TradeEligibility *TradeEligibility `json:"tradeEligibility"`
 	// The collectible fields stay nil when the user's inventory is private.
 	CollectibleCount                   *int64 `json:"collectibleCount"`
 	CollectibleRecentAveragePriceTotal *int64 `json:"collectibleRecentAveragePriceTotal"`
@@ -406,7 +409,7 @@ func (service *Service) GetSocialProfile(ctx context.Context, accountID, userID 
 		return profile, nil
 	}
 	reads := service.socialProfileSectionReads(ctx, logger, accountID, version, userID, section, &profile)
-	if len(reads) == 0 {
+	if reads == nil {
 		return SocialProfile{}, socialInputError("This profile section does not exist.")
 	}
 	unavailable, err := service.runAccountReads(ctx, accountID, version, "social-profile", logger, reads)
@@ -484,6 +487,16 @@ func (service *Service) socialProfileSectionReads(ctx context.Context, logger *s
 				if collectibles != nil {
 					profile.CollectibleCount, profile.CollectibleRecentAveragePriceTotal = &collectibles.Count, &collectibles.RecentAveragePriceTotal
 				}
+			})}
+		},
+		SocialSectionTrading: func() []accountRead {
+			if profile.Relationship.Self {
+				return []accountRead{}
+			}
+			return []accountRead{applyRead("trading", func() (robloxservices.UserTradeEligibility, error) {
+				return users.CanTradeWith(ctx, accountID, version, userID)
+			}, func(eligibility robloxservices.UserTradeEligibility) {
+				profile.TradeEligibility = &TradeEligibility{CanTrade: eligibility.CanTrade, Eligibility: eligibility.Eligibility}
 			})}
 		},
 		SocialSectionConnections: func() []accountRead {

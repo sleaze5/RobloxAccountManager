@@ -104,6 +104,7 @@ function emptySocialProfile(userId: number): SocialProfileSnapshot {
 			nickname: "",
 		},
 		communityCount: null,
+		tradeEligibility: null,
 		collectibleCount: null,
 		collectibleRecentAveragePriceTotal: null,
 		unavailable: null,
