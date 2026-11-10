@@ -12,10 +12,10 @@ import (
 	"strconv"
 	"strings"
 	"sync"
-	"sync/atomic"
 	"unicode/utf8"
 
 	"github.com/sleaze5/RobloxAccountManager/internal/accounts"
+	"github.com/sleaze5/RobloxAccountManager/internal/logging"
 	"github.com/sleaze5/RobloxAccountManager/internal/roblox"
 	robloxservices "github.com/sleaze5/RobloxAccountManager/internal/roblox/services"
 )
@@ -30,9 +30,8 @@ const (
 )
 
 var (
-	socialOperationID atomic.Uint64
-	playerIDSearch    = regexp.MustCompile(`^(?i)id:\s*(\d{1,18})$`)
-	playerUsername    = regexp.MustCompile(`^[A-Za-z0-9_]{3,20}$`)
+	playerIDSearch = regexp.MustCompile(`^(?i)id:\s*(\d{1,18})$`)
+	playerUsername = regexp.MustCompile(`^[A-Za-z0-9_]{3,20}$`)
 )
 
 type SocialList string
@@ -649,7 +648,7 @@ func (service *Service) beginSocial(parent context.Context, accountID int64, ope
 	if err != nil {
 		return nil, 0, nil, nil, err
 	}
-	logger := service.logs.Module("application.social").With("operation_id", fmt.Sprintf("social-%d", socialOperationID.Add(1)), "operation", operation, "account_id", accountID)
+	logger := service.logs.Module("application.social").With("operation_id", logging.NewOperationID("social"), "operation", operation, "account_id", accountID)
 	return ctx, version, logger, done, nil
 }
 

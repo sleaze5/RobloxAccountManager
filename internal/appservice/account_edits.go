@@ -7,11 +7,11 @@ import (
 	"net/http"
 	"regexp"
 	"strings"
-	"sync/atomic"
 	"time"
 	"unicode"
 	"unicode/utf8"
 
+	"github.com/sleaze5/RobloxAccountManager/internal/logging"
 	"github.com/sleaze5/RobloxAccountManager/internal/roblox"
 	robloxservices "github.com/sleaze5/RobloxAccountManager/internal/roblox/services"
 )
@@ -23,10 +23,7 @@ const (
 	maxPasswordLength    = 200
 )
 
-var (
-	accountEditOperationID atomic.Uint64
-	accountPinPattern      = regexp.MustCompile(`^\d{4}$`)
-)
+var accountPinPattern = regexp.MustCompile(`^\d{4}$`)
 
 type PinState string
 
@@ -205,7 +202,7 @@ func (service *Service) editAccount(ctx context.Context, accountID int64, operat
 		return err
 	}
 	defer done()
-	logger := service.logger.With("operation_id", fmt.Sprintf("%s-%d", operation, accountEditOperationID.Add(1)), "operation", operation, "account_id", accountID)
+	logger := service.logger.With("operation_id", logging.NewOperationID(operation), "operation", operation, "account_id", accountID)
 	err = edit(ctx, version)
 	if err == nil {
 		logger.Info("account edit finished")

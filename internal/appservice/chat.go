@@ -10,7 +10,6 @@ import (
 	"slices"
 	"strconv"
 	"strings"
-	"sync/atomic"
 	"time"
 	"unicode/utf8"
 
@@ -29,8 +28,6 @@ const (
 	maxChatGroupMembers    = 6
 	maxChatGroupNameLength = 150
 )
-
-var chatOperationID atomic.Uint64
 
 type ChatParticipant struct {
 	UserID      int64  `json:"userId"`
@@ -348,7 +345,7 @@ func (service *Service) beginChat(parent context.Context, accountID int64, opera
 	if err != nil {
 		return nil, 0, nil, nil, err
 	}
-	ctx = logging.WithOperation(ctx, fmt.Sprintf("chat-%d", chatOperationID.Add(1)))
+	ctx = logging.WithOperation(ctx, logging.NewOperationID("chat"))
 	logger := service.logs.Module("application.chat").With("operation", operation)
 	return ctx, version, logger, done, nil
 }
@@ -412,7 +409,7 @@ func chatConversationView(selfID int64, conversation robloxservices.ChatConversa
 		ID:           conversation.ID,
 		Group:        conversation.Type == "group",
 		UnreadCount:  max(conversation.UnreadMessageCount, 0),
-		UpdatedAtMs:  chatTime(conversation.UpdatedAt),
+		UpdatedAtMs:  unixMillisecondsFromRFC3339(conversation.UpdatedAt),
 		Participants: []ChatParticipant{},
 	}
 	var self *ChatParticipant
@@ -441,7 +438,7 @@ func chatConversationView(selfID int64, conversation robloxservices.ChatConversa
 	}
 	if preview := chatPreviewMessage(conversation); preview != nil {
 		view.Preview = chatPreviewText(*preview)
-		if createdAt := chatTime(preview.CreatedAt); createdAt > 0 {
+		if createdAt := unixMillisecondsFromRFC3339(preview.CreatedAt); createdAt > 0 {
 			view.UpdatedAtMs = createdAt
 		}
 	}
@@ -455,7 +452,7 @@ func chatPreviewMessage(conversation robloxservices.ChatConversation) *robloxser
 	var latest *robloxservices.ChatMessage
 	for index := range conversation.Messages {
 		message := &conversation.Messages[index]
-		if message.IsPreviewable && chatMessageVisible(*message) && (latest == nil || chatTime(message.CreatedAt) > chatTime(latest.CreatedAt)) {
+		if message.IsPreviewable && chatMessageVisible(*message) && (latest == nil || unixMillisecondsFromRFC3339(message.CreatedAt) > unixMillisecondsFromRFC3339(latest.CreatedAt)) {
 			latest = message
 		}
 	}
@@ -482,7 +479,7 @@ func chatMessageView(message robloxservices.ChatMessage) ChatMessageView {
 		ID:           message.ID,
 		SenderUserID: message.SenderUserID,
 		Text:         text,
-		CreatedAtMs:  chatTime(message.CreatedAt),
+		CreatedAtMs:  unixMillisecondsFromRFC3339(message.CreatedAt),
 		System:       message.Type == "system",
 		Moderated:    strings.EqualFold(message.Status, "moderated"),
 	}
@@ -504,14 +501,6 @@ func chatPiecesText(pieces []robloxservices.ChatMessagePiece) string {
 		text.WriteString(piece.Content)
 	}
 	return text.String()
-}
-
-func chatTime(timestamp string) int64 {
-	parsed, err := time.Parse(time.RFC3339Nano, timestamp)
-	if err != nil {
-		return 0
-	}
-	return parsed.UnixMilli()
 }
 
 func realChatConversation(conversationID string) bool {

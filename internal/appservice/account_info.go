@@ -3,11 +3,10 @@ package appservice
 import (
 	"context"
 	"fmt"
-	"sync/atomic"
 	"time"
-)
 
-var accountInfoOperationID atomic.Uint64
+	"github.com/sleaze5/RobloxAccountManager/internal/logging"
+)
 
 // AccountInfoSnapshot is never persisted or logged.
 type AccountInfoSnapshot struct {
@@ -39,7 +38,7 @@ func (service *Service) GetAccountInfo(ctx context.Context, accountID int64) (Ac
 	if err != nil {
 		return AccountInfoSnapshot{}, mapRepositoryError(err)
 	}
-	logger := service.logger.With("operation_id", fmt.Sprintf("account-info-%d", accountInfoOperationID.Add(1)), "operation", "account-info-read")
+	logger := service.logger.With("operation_id", logging.NewOperationID("account-info"), "operation", "account-info-read")
 	started := time.Now()
 	snapshot := AccountInfoSnapshot{AccountID: accountID}
 	var age accountAge

@@ -3,17 +3,14 @@ package appservice
 import (
 	"context"
 	"errors"
-	"fmt"
 	"log/slog"
 	"sync"
-	"sync/atomic"
 	"time"
 
+	"github.com/sleaze5/RobloxAccountManager/internal/logging"
 	"github.com/sleaze5/RobloxAccountManager/internal/roblox"
 	robloxservices "github.com/sleaze5/RobloxAccountManager/internal/roblox/services"
 )
-
-var accountSettingsOperationID atomic.Uint64
 
 type accountSettingsReads struct {
 	settings, options, voice                robloxservices.SettingsDocument
@@ -33,27 +30,8 @@ func (service *Service) GetAccountSettings(ctx context.Context, accountID int64)
 		return AccountSettingsSnapshot{}, err
 	}
 	defer done()
-	logger := service.logger.With("operation_id", fmt.Sprintf("settings-%d", accountSettingsOperationID.Add(1)), "operation", "read")
+	logger := service.logger.With("operation_id", logging.NewOperationID("settings"), "operation", "read")
 	return service.readAccountSettings(ctx, accountID, version, logger)
-}
-
-func (service *Service) beginAccountSession(parent context.Context, accountID int64, endpoint string) (context.Context, int64, func(), error) {
-	if accountID <= 0 {
-		return nil, 0, nil, &roblox.Error{Kind: roblox.KindProtocol, Endpoint: endpoint, Message: "Select an account first."}
-	}
-	if !service.vault.Unlocked() {
-		return nil, 0, nil, &roblox.Error{Kind: roblox.KindVaultLocked, Endpoint: endpoint, Message: "The account vault is locked."}
-	}
-	snapshot, err := service.sessions.Snapshot(accountID)
-	if err != nil {
-		return nil, 0, nil, err
-	}
-	ctx, cancel := context.WithTimeout(parent, 75*time.Second)
-	stop := context.AfterFunc(snapshot.Context, cancel)
-	if snapshot.Context.Err() != nil {
-		cancel()
-	}
-	return ctx, snapshot.SecretVersion, func() { stop(); cancel() }, nil
 }
 
 func (service *Service) readAccountSettings(ctx context.Context, accountID, version int64, logger *slog.Logger) (AccountSettingsSnapshot, error) {
@@ -188,7 +166,7 @@ func (service *Service) UpdateAccountSetting(ctx context.Context, accountID int6
 		return AccountSettingUpdateResult{}, err
 	}
 	defer unlock()
-	logger := service.logger.With("operation_id", fmt.Sprintf("settings-%d", accountSettingsOperationID.Add(1)), "operation", "update", "setting_key", change.Key)
+	logger := service.logger.With("operation_id", logging.NewOperationID("settings"), "operation", "update", "setting_key", change.Key)
 	before, err := service.readAccountSettings(ctx, accountID, version, logger)
 	if err != nil {
 		return AccountSettingUpdateResult{}, err

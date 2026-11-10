@@ -3,11 +3,9 @@ package appservice
 import (
 	"context"
 	"errors"
-	"fmt"
 	"log/slog"
 	"strconv"
 	"strings"
-	"sync/atomic"
 	"time"
 
 	"github.com/sleaze5/RobloxAccountManager/internal/accounts"
@@ -17,8 +15,6 @@ import (
 	"github.com/sleaze5/RobloxAccountManager/internal/roblox"
 	robloxservices "github.com/sleaze5/RobloxAccountManager/internal/roblox/services"
 )
-
-var launchOperationID atomic.Uint64
 
 type AccountLaunchFailure struct {
 	AccountID int64  `json:"accountId"`
@@ -183,7 +179,7 @@ func (service *Service) accountLaunchOptions(ctx context.Context, accountID int6
 }
 
 func (service *Service) runLaunchOperation(ctx context.Context, accountID int64, input gamelaunch.Input, operation string, action func(context.Context, func() (string, error), string, gamelaunch.Request) error) (operationError error) {
-	ctx = logging.WithOperation(ctx, fmt.Sprintf("launch-%d", launchOperationID.Add(1)))
+	ctx = logging.WithOperation(ctx, logging.NewOperationID("launch"))
 	logger := service.logger.With("operation", operation, "account_id", accountID)
 	stage := "parse-input"
 	defer func() {

@@ -9,7 +9,6 @@ import (
 	"slices"
 	"strconv"
 	"strings"
-	"sync/atomic"
 
 	"github.com/sleaze5/RobloxAccountManager/internal/logging"
 	"github.com/sleaze5/RobloxAccountManager/internal/roblox"
@@ -23,8 +22,6 @@ const (
 	// Dismiss all reads at most this many pages of 20 before it dismisses.
 	maxRobloxNotificationDismissPages = 25
 )
-
-var robloxNotificationOperationID atomic.Uint64
 
 type RobloxNotificationImageKind string
 
@@ -182,7 +179,7 @@ func (service *Service) beginRobloxNotifications(parent context.Context, account
 	if err != nil {
 		return nil, 0, nil, nil, err
 	}
-	ctx = logging.WithOperation(ctx, fmt.Sprintf("roblox-notifications-%d", robloxNotificationOperationID.Add(1)))
+	ctx = logging.WithOperation(ctx, logging.NewOperationID("roblox-notifications"))
 	logger := service.logs.Module("application.roblox-notifications").With("operation", operation)
 	return ctx, version, logger, done, nil
 }
@@ -246,7 +243,7 @@ func robloxNotificationView(entry robloxservices.NotificationStreamEntry) (Roblo
 	}
 	view := RobloxNotificationView{
 		ID:            entry.ID,
-		CreatedAtMs:   chatTime(entry.EventDate),
+		CreatedAtMs:   unixMillisecondsFromRFC3339(entry.EventDate),
 		ImageKind:     RobloxNotificationImageOther,
 		Category:      robloxNotificationCategory(entry.Content.NotificationType),
 		DismissAction: robloxNotificationDismissAction(entry),
