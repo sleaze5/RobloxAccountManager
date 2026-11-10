@@ -1,6 +1,5 @@
 <script lang="ts">
 	import { matchesSearch, searchTerms } from "../shared/search"
-	import caretLeftIcon from "@phosphor-icons/core/regular/caret-left.svg?raw"
 	import circleNotchIcon from "@phosphor-icons/core/regular/circle-notch.svg?raw"
 	import devicesIcon from "@phosphor-icons/core/regular/devices.svg?raw"
 	import hardDrivesIcon from "@phosphor-icons/core/regular/hard-drives.svg?raw"
@@ -9,6 +8,7 @@
 	import userCircleIcon from "@phosphor-icons/core/regular/user-circle.svg?raw"
 	import xIcon from "@phosphor-icons/core/regular/x.svg?raw"
 	import Icon from "../shared/Icon.svelte"
+	import AccountPageHeader from "./AccountPageHeader.svelte"
 	import RefreshIcon from "../shared/RefreshIcon.svelte"
 	import { onMount, tick, untrack } from "svelte"
 	import SidebarResizer from "../layout/SidebarResizer.svelte"
@@ -426,7 +426,6 @@
 			onBack: () => void
 		} = $props(),
 		restoringScroll = $state(true),
-		heading = $state<HTMLHeadingElement | undefined>(undefined),
 		contentElement = $state<HTMLElement | undefined>(undefined),
 		settingsState = $state<AccountSettingsState | null>(null),
 		infoState = $state<AccountInfoState | null>(null),
@@ -766,8 +765,6 @@
 		blockedState = blocked
 		ownedState = owned
 		sessionsState = sessions
-		heading?.closest("[data-workspace-scroll]")?.scrollTo({ top: 0 })
-		heading?.focus({ preventScroll: true })
 		return () => {
 			settings.dispose()
 			info.dispose()
@@ -779,20 +776,11 @@
 </script>
 
 <section class="settings-page" aria-labelledby="account-settings-title">
-	<header class="settings-header">
-		<button
-			class="button-ghost"
-			type="button"
-			aria-label="Back to profile"
-			data-tooltip="Back to profile"
-			onclick={onBack}>
-			<Icon svg={caretLeftIcon} data-nudge="left" size={16} aria-hidden="true" />
-		</button>
-		<h1 id="account-settings-title" tabindex="-1" bind:this={heading}>
-			Account settings
-		</h1>
-		<span class="mr-auto min-w-0 text-xs wrap-anywhere text-fg-muted"
-			>@{store.selectedAccount.username}</span>
+	<AccountPageHeader
+		titleId="account-settings-title"
+		title="Account settings"
+		username={store.selectedAccount.username}
+		{onBack}>
 		<button
 			class="button-ghost"
 			type="button"
@@ -802,7 +790,7 @@
 			onclick={refresh}>
 			<RefreshIcon isRefreshing={refreshing} />
 		</button>
-	</header>
+	</AccountPageHeader>
 
 	<div
 		class="settings-layout"

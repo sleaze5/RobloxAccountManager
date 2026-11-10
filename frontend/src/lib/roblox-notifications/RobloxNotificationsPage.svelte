@@ -1,11 +1,11 @@
 <script lang="ts">
 	import bellIcon from "@phosphor-icons/core/regular/bell.svg?raw"
 	import broomIcon from "@phosphor-icons/core/regular/broom.svg?raw"
-	import caretLeftIcon from "@phosphor-icons/core/regular/caret-left.svg?raw"
 	import circleNotchIcon from "@phosphor-icons/core/regular/circle-notch.svg?raw"
 	import funnelIcon from "@phosphor-icons/core/regular/funnel.svg?raw"
 	import { Browser } from "@wailsio/runtime"
 	import Icon from "../shared/Icon.svelte"
+	import AccountPageHeader from "../accounts/AccountPageHeader.svelte"
 	import RefreshIcon from "../shared/RefreshIcon.svelte"
 	import Select from "../shared/Select.svelte"
 	import { onMount, untrack } from "svelte"
@@ -74,8 +74,7 @@
 				"notifications",
 		)
 
-	let heading = $state<HTMLHeadingElement | undefined>(undefined),
-		isDismissAllOpen = $state(false)
+	let isDismissAllOpen = $state(false)
 
 	async function openLink(url: string): Promise<void> {
 		try {
@@ -111,28 +110,17 @@
 	}
 
 	onMount(() => {
-		heading?.closest("[data-workspace-scroll]")?.scrollTo({ top: 0 })
-		heading?.focus({ preventScroll: true })
 		void stream.refresh()
 		return () => stream.dispose()
 	})
 </script>
 
 <section class="settings-page" aria-labelledby="roblox-notifications-title">
-	<header class="settings-header">
-		<button
-			class="button-ghost"
-			type="button"
-			aria-label="Back to profile"
-			data-tooltip="Back to profile"
-			onclick={onBack}>
-			<Icon svg={caretLeftIcon} data-nudge="left" size={16} aria-hidden="true" />
-		</button>
-		<h1 id="roblox-notifications-title" tabindex="-1" bind:this={heading}>
-			Notifications
-		</h1>
-		<span class="mr-auto min-w-0 text-xs wrap-anywhere text-fg-muted"
-			>@{account.username}</span>
+	<AccountPageHeader
+		titleId="roblox-notifications-title"
+		title="Notifications"
+		username={account.username}
+		{onBack}>
 		<Select
 			className="w-36"
 			label="Notification type"
@@ -160,7 +148,7 @@
 			onclick={() => void stream.refresh()}>
 			<RefreshIcon isRefreshing={stream.loading} />
 		</button>
-	</header>
+	</AccountPageHeader>
 
 	<div
 		class="min-h-0 flex-1 overflow-y-auto"

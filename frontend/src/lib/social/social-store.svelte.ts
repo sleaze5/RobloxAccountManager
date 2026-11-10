@@ -745,12 +745,12 @@ export class SocialStore {
 		}
 	}
 
-	async copy(value: string | number, label: string): Promise<void> {
+	async copy(text: string | number, label: string): Promise<void> {
 		this.closeMenu()
 		if (
 			!(await copyText(
 				this.notifications,
-				String(value),
+				String(text),
 				`${label} copied to clipboard.`,
 			))
 		) {

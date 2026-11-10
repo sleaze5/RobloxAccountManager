@@ -56,10 +56,10 @@
 	async function load(): Promise<void> {
 		try {
 			request = accountBackend.GetAccountPassword(accountId)
-			const value = await request
+			const savedPassword = await request
 			if (!active) return
-			saved = value
-			password = value
+			saved = savedPassword
+			password = savedPassword
 		} catch (cause) {
 			if (!active) return
 			error = errorMessage(cause, "Could not load the saved password.")

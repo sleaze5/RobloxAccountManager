@@ -28,8 +28,8 @@
 		loading = true
 		error = ""
 		try {
-			const value = await current
-			if (request === current) password = value
+			const savedPassword = await current
+			if (request === current) password = savedPassword
 		} catch (cause) {
 			if (request === current) {
 				error = errorMessage(cause, "Could not show the password.")

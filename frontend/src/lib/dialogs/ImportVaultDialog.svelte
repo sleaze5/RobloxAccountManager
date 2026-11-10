@@ -152,8 +152,8 @@
 	async function loadDetails(target: string): Promise<void> {
 		details = null
 		try {
-			const value = await accountBackend.GetExportDetails(target)
-			if (file === target) details = value
+			const exportDetails = await accountBackend.GetExportDetails(target)
+			if (file === target) details = exportDetails
 		} catch (cause) {
 			if (file === target)
 				error = errorMessage(cause, "The export file could not be read.")
