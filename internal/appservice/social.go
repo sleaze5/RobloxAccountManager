@@ -113,6 +113,8 @@ const (
 	SocialSectionInventory     SocialProfileSection = "inventory"
 	SocialSectionConnections   SocialProfileSection = "connections"
 	SocialSectionPreviousNames SocialProfileSection = "previousNames"
+	SocialSectionCommunities   SocialProfileSection = "communities"
+	SocialSectionCollectibles  SocialProfileSection = "collectibles"
 )
 
 // SocialProfile holds the fields of the one section that was read.
@@ -136,6 +138,10 @@ type SocialProfile struct {
 	SavedAccountID   int64                            `json:"savedAccountId"`
 	Connections      []FriendConnection               `json:"connections"`
 	Relationship     SocialRelationship               `json:"relationship"`
+	CommunityCount   *int64                           `json:"communityCount"`
+	// The collectible fields stay nil when the user's inventory is private.
+	CollectibleCount                   *int64 `json:"collectibleCount"`
+	CollectibleRecentAveragePriceTotal *int64 `json:"collectibleRecentAveragePriceTotal"`
 	// Unavailable lists the relationship reads that failed. The relationship
 	// section stays complete without them, because the others still apply.
 	Unavailable []string `json:"unavailable"`
@@ -460,6 +466,25 @@ func (service *Service) socialProfileSectionReads(ctx context.Context, logger *s
 				visible, err := users.InventoryVisible(ctx, accountID, version, userID)
 				return visible, ignoreTerminatedUser(err)
 			}, func(visible *bool) { profile.InventoryVisible = visible })}
+		},
+		SocialSectionCommunities: func() []accountRead {
+			return []accountRead{applyRead("communities", func() (int64, error) { return users.CommunityCount(ctx, accountID, version, userID) }, func(count int64) {
+				profile.CommunityCount = &count
+			})}
+		},
+		SocialSectionCollectibles: func() []accountRead {
+			return []accountRead{applyRead("collectibles", func() (*robloxservices.UserCollectibles, error) {
+				collectibles, err := users.Collectibles(ctx, accountID, version, userID)
+				// Roblox refuses to list a private inventory, which is not a failure.
+				if remote, ok := errors.AsType[*roblox.Error](err); ok && remote.Status == http.StatusForbidden {
+					return nil, nil
+				}
+				return &collectibles, ignoreTerminatedUser(err)
+			}, func(collectibles *robloxservices.UserCollectibles) {
+				if collectibles != nil {
+					profile.CollectibleCount, profile.CollectibleRecentAveragePriceTotal = &collectibles.Count, &collectibles.RecentAveragePriceTotal
+				}
+			})}
 		},
 		SocialSectionConnections: func() []accountRead {
 			return []accountRead{{"connections", func() error {

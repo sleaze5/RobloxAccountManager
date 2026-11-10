@@ -40,6 +40,10 @@
 			}` +
 				(pending !== null && pending !== undefined && pending > 0
 					? `\nPending Robux: ${exact.format(pending)}`
+					: "") +
+				(snapshot?.incomingRobuxPastMonth != null &&
+				snapshot.outgoingRobuxPastMonth != null
+					? `\nPast month: +${exact.format(snapshot.incomingRobuxPastMonth)} / -${exact.format(snapshot.outgoingRobuxPastMonth)}`
 					: ""),
 		)
 </script>

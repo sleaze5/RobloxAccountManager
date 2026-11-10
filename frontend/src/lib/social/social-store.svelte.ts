@@ -62,8 +62,16 @@ const socialProfileSections: SectionFields<
 		fields: ["savedAccountId", "connections"],
 	},
 	{
+		section: SocialProfileSection.SocialSectionCommunities,
+		fields: ["communityCount"],
+	},
+	{
 		section: SocialProfileSection.SocialSectionPreviousNames,
 		fields: ["previousNames"],
+	},
+	{
+		section: SocialProfileSection.SocialSectionCollectibles,
+		fields: ["collectibleCount", "collectibleRecentAveragePriceTotal"],
 	},
 ]
 
@@ -95,6 +103,9 @@ function emptySocialProfile(userId: number): SocialProfileSnapshot {
 			followedBy: false,
 			nickname: "",
 		},
+		communityCount: null,
+		collectibleCount: null,
+		collectibleRecentAveragePriceTotal: null,
 		unavailable: null,
 	}
 }

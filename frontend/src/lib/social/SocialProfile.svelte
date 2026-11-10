@@ -7,6 +7,8 @@
 	import clockIcon from "@phosphor-icons/core/regular/clock.svg?raw"
 	import dotsThreeIcon from "@phosphor-icons/core/regular/dots-three.svg?raw"
 	import linkIcon from "@phosphor-icons/core/regular/link.svg?raw"
+	import diamondIcon from "@phosphor-icons/core/regular/diamond.svg?raw"
+	import usersFourIcon from "@phosphor-icons/core/regular/users-four.svg?raw"
 	import medalIcon from "@phosphor-icons/core/regular/medal.svg?raw"
 	import pencilSimpleIcon from "@phosphor-icons/core/regular/pencil-simple.svg?raw"
 	import sealCheckIcon from "@phosphor-icons/core/regular/seal-check.svg?raw"
@@ -62,6 +64,7 @@
 			QrCode: "QR code",
 			UserProfile: "Profile page",
 		},
+		exactNumbers = new Intl.NumberFormat("en-US"),
 		numbers = new Intl.NumberFormat("en-US", {
 			notation: "compact",
 			maximumFractionDigits: 1,
@@ -99,7 +102,9 @@
 				!!profile?.previousNames?.length ||
 				!!profile?.primaryGroup ||
 				!!profile?.robloxBadges?.length ||
-				(profile?.inventoryVisible ?? null) !== null,
+				(profile?.inventoryVisible ?? null) !== null ||
+				(profile?.communityCount ?? null) !== null ||
+				(profile?.collectibleCount ?? null) !== null,
 		)
 </script>
 
@@ -362,6 +367,42 @@
 							badges
 						</dt>
 						<dd><span>{profile.robloxBadges.join(", ")}</span></dd>
+					</div>
+				{/if}
+				{#if profile && profile.communityCount !== null}
+					<div class="animate-enter">
+						<dt>
+							<Icon
+								svg={usersFourIcon}
+								size={16}
+								aria-hidden="true" />Communities
+						</dt>
+						<dd>
+							<span>{exactNumbers.format(profile.communityCount)}</span>
+						</dd>
+					</div>
+				{/if}
+				{#if profile && profile.collectibleCount !== null}
+					<div class="animate-enter">
+						<dt>
+							<Icon
+								svg={diamondIcon}
+								size={16}
+								aria-hidden="true" />Collectibles
+						</dt>
+						<dd>
+							<span
+								>{exactNumbers.format(profile.collectibleCount)}
+								{profile.collectibleCount === 1
+									? "item"
+									: "items"}</span>
+							{#if profile.collectibleCount > 0 && profile.collectibleRecentAveragePriceTotal !== null}<small
+									class="font-mono"
+									>RAP R$ {exactNumbers.format(
+										profile.collectibleRecentAveragePriceTotal,
+									)}</small
+								>{/if}
+						</dd>
 					</div>
 				{/if}
 				{#if profile && profile.inventoryVisible !== null}
