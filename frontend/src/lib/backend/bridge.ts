@@ -54,6 +54,7 @@ export {
 export type { PresenceSettings } from "../../../bindings/github.com/sleaze5/RobloxAccountManager/internal/appsettings/models.js"
 export {
 	AccountCopyField,
+	AccountInfoSection,
 	AccountProfileSection,
 	AccountSettingKey,
 	AgeVerification,
@@ -62,6 +63,7 @@ export {
 	RobloxNotificationCategory,
 	RobloxNotificationImageKind,
 	SocialList,
+	SocialProfileSection,
 	TransferMode,
 	TransferSettingsStatus,
 	VoiceChatState,
@@ -130,6 +132,7 @@ export type {
 	ServerStats as GameServerStats,
 } from "../../../bindings/github.com/sleaze5/RobloxAccountManager/internal/games/models.js"
 export {
+	GameSection,
 	PrivateServerOption,
 	RecordOrder as GameServerRecordOrder,
 	ServerOrder as GameServerOrder,

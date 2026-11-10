@@ -1,6 +1,8 @@
 <script lang="ts">
 	import arrowsClockwiseIcon from "@phosphor-icons/core/regular/arrows-clockwise.svg?raw"
 	import calendarDotsIcon from "@phosphor-icons/core/regular/calendar-dots.svg?raw"
+	import crownSimpleIcon from "@phosphor-icons/core/regular/crown-simple.svg?raw"
+	import swapIcon from "@phosphor-icons/core/regular/swap.svg?raw"
 	import coinsIcon from "@phosphor-icons/core/regular/coins.svg?raw"
 	import diamondIcon from "@phosphor-icons/core/regular/diamond.svg?raw"
 	import medalIcon from "@phosphor-icons/core/regular/medal.svg?raw"
@@ -66,6 +68,40 @@
 				.join(", ") ?? "",
 		),
 		exactNumbers = new Intl.NumberFormat("en-US"),
+		// Roblox trade eligibility statuses from the trades v2 API.
+		tradeEligibilityLabels: Record<string, string> = {
+			IneligibleTradeSystemDisabled: "Trading is turned off",
+			IneligibleMissingPremiumMembership: "Needs Premium",
+			IneligibleLegalOrRegulatoryRestrictions: "Not available in this region",
+			IneligibleFreeTradesLimitReached: "Free trade limit reached",
+			IneligibleAgeCheckRequired: "Needs an age check",
+		},
+		premiumDate = $derived.by(() => {
+			const subscription = snapshot?.premiumSubscription
+			if (!subscription) return null
+			if (subscription.renewsAtMs) {
+				return { label: "Premium renews", valueMs: subscription.renewsAtMs }
+			}
+			if (subscription.expiresAtMs) {
+				return { label: "Premium ends", valueMs: subscription.expiresAtMs }
+			}
+			return null
+		}),
+		trading = $derived.by(() => {
+			const eligibility = snapshot?.tradeEligibility
+			if (!eligibility) return null
+			const freeTrades = eligibility.freeTrades
+			return {
+				label: eligibility.canTrade
+					? "Can trade"
+					: (tradeEligibilityLabels[eligibility.eligibility] ??
+						"Cannot trade"),
+				detail: freeTrades
+					? `${exactNumbers.format(freeTrades.remaining)} of ${exactNumbers.format(freeTrades.limit)} free trades left${freeTrades.window ? ` this ${freeTrades.window}` : ""}`
+					: "",
+				isWarning: !eligibility.canTrade,
+			}
+		}),
 		activityLabels = $derived.by(() => {
 			if (
 				!snapshot ||
@@ -224,6 +260,44 @@
 							group.members,
 						)}
 						{group.members === 1 ? "member" : "members"}</small>
+				</dd>
+			</div>
+		{/if}
+		{#if snapshot?.premiumSubscription}
+			{@const subscription = snapshot.premiumSubscription}
+			<div class="animate-enter">
+				<dt>
+					<Icon
+						svg={crownSimpleIcon}
+						size={16}
+						aria-hidden="true" />{premiumDate?.label ?? "Premium"}
+				</dt>
+				<dd>
+					{#if premiumDate}<Timestamp
+							value={premiumDate.valueMs} />{:else}<span
+							>{subscription.name || "Premium"}</span
+						>{/if}
+					<small
+						>{[
+							premiumDate ? subscription.name : "",
+							premiumDate ? relativeTime(premiumDate.valueMs) : "",
+							subscription.robuxStipend
+								? `R$ ${exactNumbers.format(subscription.robuxStipend)} a month`
+								: "",
+						]
+							.filter(Boolean)
+							.join(" - ")}</small>
+				</dd>
+			</div>
+		{/if}
+		{#if trading}
+			<div
+				class="animate-enter"
+				data-tone={trading.isWarning ? "warning" : undefined}>
+				<dt><Icon svg={swapIcon} size={16} aria-hidden="true" />Trading</dt>
+				<dd>
+					<span>{trading.label}</span>
+					{#if trading.detail}<small>{trading.detail}</small>{/if}
 				</dd>
 			</div>
 		{/if}

@@ -96,19 +96,25 @@
 	const profileState = $derived(
 			profileVisible ? store.getAccountProfile(profileAccountId) : null,
 		),
-		profile = $derived(profileState?.hasAnySection ? profileState.snapshot : null),
+		profile = $derived(
+			profileState?.sections.hasAnySection ? profileState.snapshot : null,
+		),
 		isBalanceLoading = $derived(
 			!!profileState &&
-				!profileState.hasSection(AccountProfileSection.ProfileSectionRobux) &&
-				!profileState.isSectionUnavailable(
+				!profileState.sections.hasSection(
+					AccountProfileSection.ProfileSectionRobux,
+				) &&
+				!profileState.sections.isSectionUnavailable(
 					AccountProfileSection.ProfileSectionRobux,
 				) &&
 				!profileState.error,
 		),
 		hasAbout = $derived(
 			!!profileState &&
-				(profileState.hasSection(AccountProfileSection.ProfileSectionAbout) ||
-					profileState.isSectionUnavailable(
+				(profileState.sections.hasSection(
+					AccountProfileSection.ProfileSectionAbout,
+				) ||
+					profileState.sections.isSectionUnavailable(
 						AccountProfileSection.ProfileSectionAbout,
 					)),
 		),
@@ -439,17 +445,17 @@
 			{#if profileState && hasAbout}
 				<AccountProfileAbout
 					snapshot={profileState.snapshot}
-					isDescriptionUnavailable={!profileState.hasSection(
+					isDescriptionUnavailable={!profileState.sections.hasSection(
 						AccountProfileSection.ProfileSectionAbout,
 					)}
 					disabled={store.busy ||
-						profileState.loadingSections.includes(
+						profileState.sections.loadingSections.includes(
 							AccountProfileSection.ProfileSectionAbout,
 						) ||
 						!store.vault.unlocked}
 					{notifications}
 					{onEditDescription} />
-			{:else if profileVisible && profileState?.isSectionPending(AccountProfileSection.ProfileSectionAbout)}
+			{:else if profileVisible && profileState?.sections.isSectionPending(AccountProfileSection.ProfileSectionAbout)}
 				<p
 					class="flex items-center gap-2 text-xs text-fg-muted"
 					aria-busy="true">
@@ -466,7 +472,7 @@
 				<p class="text-xs text-danger-muted" role="alert">
 					{profileState.error}
 				</p>
-			{:else if profileVisible && (profileState?.failedSections.length ?? 0) > 0}
+			{:else if profileVisible && (profileState?.sections.failedSections.length ?? 0) > 0}
 				<p class="text-xs text-danger-muted" role="alert">
 					Some profile details could not be refreshed. Refresh to retry.
 				</p>

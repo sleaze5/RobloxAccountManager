@@ -15,6 +15,10 @@ func (service *Service) GetGame(ctx context.Context, universeID, placeID int64) 
 	return service.core.GetGame(ctx, universeID, placeID)
 }
 
+func (service *Service) GetGameSection(ctx context.Context, universeID, placeID int64, section games.GameSection) (games.Game, error) {
+	return service.core.GetGameSection(ctx, universeID, placeID, section)
+}
+
 func (service *Service) ListGameServers(ctx context.Context, query games.ServerQuery) (games.ServerPage, error) {
 	return service.core.ListGameServers(ctx, query)
 }

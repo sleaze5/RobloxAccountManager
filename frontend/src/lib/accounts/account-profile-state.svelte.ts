@@ -5,76 +5,98 @@ import {
 } from "../backend/bridge"
 import type { AccountProfileSnapshot } from "../backend/bridge"
 import { isFresh } from "../shared/freshness"
+import { SectionLoad } from "../shared/section-load.svelte"
+import type { SectionFields } from "../shared/section-load.svelte"
 import type { AccountStore } from "./account-store.svelte"
 import { errorMessage } from "../shared/errors"
 
 // Sections load in this order, so that the header fills first and the
 // paginated sections, which take longest, come last. Roblox requests for one
 // account run a few at a time.
-const profileSections: {
-	section: AccountProfileSection
-	fields: (keyof AccountProfileSnapshot)[]
-}[] = [
-	{ section: AccountProfileSection.ProfileSectionRobux, fields: ["robux"] },
-	{
-		section: AccountProfileSection.ProfileSectionAccount,
-		fields: ["ageBracket", "countryCode", "premium", "plus"],
-	},
-	{
-		section: AccountProfileSection.ProfileSectionAbout,
-		fields: ["description", "verifiedBadge"],
-	},
-	{ section: AccountProfileSection.ProfileSectionFriends, fields: ["friendCount"] },
-	{
-		section: AccountProfileSection.ProfileSectionFollowers,
-		fields: ["followerCount"],
-	},
-	{
-		section: AccountProfileSection.ProfileSectionFollowing,
-		fields: ["followingCount"],
-	},
-	{
-		section: AccountProfileSection.ProfileSectionTransactions,
-		fields: ["pendingRobux", "incomingRobuxPastMonth", "outgoingRobuxPastMonth"],
-	},
-	{
-		section: AccountProfileSection.ProfileSectionTwoStep,
-		fields: ["twoStepEnabled", "twoStepMethods"],
-	},
-	{
-		section: AccountProfileSection.ProfileSectionAge,
-		fields: ["ageGroup", "ageVerification"],
-	},
-	{ section: AccountProfileSection.ProfileSectionVoiceChat, fields: ["voiceChat"] },
-	{
-		section: AccountProfileSection.ProfileSectionPrimaryGroup,
-		fields: ["primaryGroup"],
-	},
-	{
-		section: AccountProfileSection.ProfileSectionCommunities,
-		fields: ["communityCount"],
-	},
-	{
-		section: AccountProfileSection.ProfileSectionSocialLinks,
-		fields: ["socialLinks"],
-	},
-	{
-		section: AccountProfileSection.ProfileSectionRobloxBadges,
-		fields: ["robloxBadges"],
-	},
-	{
-		section: AccountProfileSection.ProfileSectionActivity,
-		fields: ["unreadMessageCount", "inboundTradeCount", "unreadNotificationCount"],
-	},
-	{
-		section: AccountProfileSection.ProfileSectionPreviousNames,
-		fields: ["previousNames"],
-	},
-	{
-		section: AccountProfileSection.ProfileSectionCollectibles,
-		fields: ["collectibleCount", "collectibleRecentAveragePriceTotal"],
-	},
-]
+const profileSections: SectionFields<AccountProfileSnapshot, AccountProfileSection>[] =
+	[
+		{ section: AccountProfileSection.ProfileSectionRobux, fields: ["robux"] },
+		{
+			section: AccountProfileSection.ProfileSectionAccount,
+			fields: ["ageBracket", "countryCode", "premium", "plus"],
+		},
+		{
+			section: AccountProfileSection.ProfileSectionAbout,
+			fields: ["description", "verifiedBadge"],
+		},
+		{
+			section: AccountProfileSection.ProfileSectionFriends,
+			fields: ["friendCount"],
+		},
+		{
+			section: AccountProfileSection.ProfileSectionFollowers,
+			fields: ["followerCount"],
+		},
+		{
+			section: AccountProfileSection.ProfileSectionFollowing,
+			fields: ["followingCount"],
+		},
+		{
+			section: AccountProfileSection.ProfileSectionPremium,
+			fields: ["premiumSubscription"],
+		},
+		{
+			section: AccountProfileSection.ProfileSectionTransactions,
+			fields: [
+				"pendingRobux",
+				"incomingRobuxPastMonth",
+				"outgoingRobuxPastMonth",
+			],
+		},
+		{
+			section: AccountProfileSection.ProfileSectionTwoStep,
+			fields: ["twoStepEnabled", "twoStepMethods"],
+		},
+		{
+			section: AccountProfileSection.ProfileSectionAge,
+			fields: ["ageGroup", "ageVerification"],
+		},
+		{
+			section: AccountProfileSection.ProfileSectionVoiceChat,
+			fields: ["voiceChat"],
+		},
+		{
+			section: AccountProfileSection.ProfileSectionPrimaryGroup,
+			fields: ["primaryGroup"],
+		},
+		{
+			section: AccountProfileSection.ProfileSectionCommunities,
+			fields: ["communityCount"],
+		},
+		{
+			section: AccountProfileSection.ProfileSectionSocialLinks,
+			fields: ["socialLinks"],
+		},
+		{
+			section: AccountProfileSection.ProfileSectionRobloxBadges,
+			fields: ["robloxBadges"],
+		},
+		{
+			section: AccountProfileSection.ProfileSectionActivity,
+			fields: [
+				"unreadMessageCount",
+				"inboundTradeCount",
+				"unreadNotificationCount",
+			],
+		},
+		{
+			section: AccountProfileSection.ProfileSectionTrading,
+			fields: ["tradeEligibility"],
+		},
+		{
+			section: AccountProfileSection.ProfileSectionPreviousNames,
+			fields: ["previousNames"],
+		},
+		{
+			section: AccountProfileSection.ProfileSectionCollectibles,
+			fields: ["collectibleCount", "collectibleRecentAveragePriceTotal"],
+		},
+	]
 
 function emptyProfile(accountId: number): AccountProfileSnapshot {
 	return {
@@ -109,22 +131,19 @@ function emptyProfile(accountId: number): AccountProfileSnapshot {
 		unreadMessageCount: null,
 		inboundTradeCount: null,
 		unreadNotificationCount: null,
+		premiumSubscription: null,
+		tradeEligibility: null,
 	}
 }
 
 // The profile stays in memory until the vault locks or the account is removed,
 // so a revisit shows the last values at once while they refresh.
 export class AccountProfileState {
-	readonly snapshot: AccountProfileSnapshot
-	loadedSections = $state<AccountProfileSection[]>([])
-	loadingSections = $state<AccountProfileSection[]>([])
-	failedSections = $state<AccountProfileSection[]>([])
+	readonly sections: SectionLoad<AccountProfileSnapshot, AccountProfileSection>
 	isValidating = $state(false)
-	error = $state("")
+	identityError = $state("")
 	#active = true
 	#fetchedAt = 0
-	#refreshCount = 0
-	readonly #requests = new Set<ReturnType<typeof accountBackend.GetAccountProfile>>()
 	#validationRequest: ReturnType<typeof accountBackend.ValidateAccount> | null = null
 	readonly #accountId: number
 	readonly #store: AccountStore
@@ -132,35 +151,27 @@ export class AccountProfileState {
 	constructor(accountId: number, store: AccountStore) {
 		this.#accountId = accountId
 		this.#store = store
-		this.snapshot = $state(emptyProfile(accountId))
+		this.sections = new SectionLoad(
+			profileSections,
+			() => emptyProfile(accountId),
+			"Could not refresh profile details. Refresh to retry.",
+		)
+	}
+
+	get snapshot(): AccountProfileSnapshot {
+		return this.sections.snapshot
 	}
 
 	get loading(): boolean {
-		return this.loadingSections.length > 0 || this.isValidating
+		return this.sections.isLoading || this.isValidating
 	}
 
-	get hasAnySection(): boolean {
-		return this.loadedSections.length > 0
+	get error(): string {
+		return this.sections.error || this.identityError
 	}
 
-	hasSection(section: AccountProfileSection): boolean {
-		return this.loadedSections.includes(section)
-	}
-
-	isSectionPending(section: AccountProfileSection): boolean {
-		return !this.hasSection(section) && this.loadingSections.includes(section)
-	}
-
-	isSectionUnavailable(section: AccountProfileSection): boolean {
-		return this.failedSections.includes(section)
-	}
-
-	#current(refreshCount: number): boolean {
-		return (
-			this.#active &&
-			this.#store.vault.unlocked &&
-			refreshCount === this.#refreshCount
-		)
+	#current(): boolean {
+		return this.#active && this.#store.vault.unlocked
 	}
 
 	enter(): void {
@@ -169,72 +180,28 @@ export class AccountProfileState {
 	}
 
 	async refresh(validateIdentity = false): Promise<void> {
-		if (!this.#active || !this.#store.vault.unlocked || this.loading) return
-		const refreshCount = ++this.#refreshCount
-		this.error = ""
-		this.failedSections = []
-		this.loadingSections = profileSections.map(({ section }) => section)
+		if (!this.#current() || this.loading) return
+		this.identityError = ""
 		this.isValidating = validateIdentity
-		const sectionLoads = profileSections.map(({ section, fields }) =>
-			this.#loadSection(section, fields, refreshCount),
-		)
-		const [identity] = await Promise.allSettled([
+		const [identity, sectionLoad] = await Promise.allSettled([
 			validateIdentity ? this.#refreshIdentity() : null,
-			...sectionLoads,
+			this.sections.load(
+				(section) => accountBackend.GetAccountProfile(this.#accountId, section),
+				() => this.#current(),
+			),
 		])
-		if (!this.#current(refreshCount)) return
+		if (!this.#current()) return
 		this.isValidating = false
 		this.#validationRequest = null
-		if (identity.status === "rejected") this.#showError(identity.reason)
-		if (!this.error) this.#fetchedAt = Date.now()
-	}
-
-	async #loadSection(
-		section: AccountProfileSection,
-		fields: (keyof AccountProfileSnapshot)[],
-		refreshCount: number,
-	): Promise<void> {
-		const request = accountBackend.GetAccountProfile(this.#accountId, section)
-		this.#requests.add(request)
-		try {
-			const sectionSnapshot = await request
-			if (!this.#current(refreshCount)) return
-			if (
-				sectionSnapshot.accountId !== this.#accountId ||
-				sectionSnapshot.section !== section
-			) {
-				throw new Error("The account changed while loading. Refresh to retry.")
-			}
-			if (!sectionSnapshot.isComplete) {
-				this.failedSections.push(section)
-				return
-			}
-			for (const field of fields) {
-				Object.assign(this.snapshot, { [field]: sectionSnapshot[field] })
-			}
-			if (!this.loadedSections.includes(section))
-				this.loadedSections.push(section)
-		} catch (error) {
-			if (!this.#current(refreshCount)) return
-			this.failedSections.push(section)
-			// A rejected section means the session failed, so the other sections fail too.
-			this.#showError(error)
-			this.#cancelRequests()
-		} finally {
-			this.#requests.delete(request)
-			if (this.#current(refreshCount)) {
-				this.loadingSections = this.loadingSections.filter(
-					(loadingSection) => loadingSection !== section,
-				)
-			}
+		if (identity.status === "rejected") {
+			this.identityError = errorMessage(
+				identity.reason,
+				"Could not refresh profile details. Refresh to retry.",
+			)
 		}
-	}
-
-	#showError(error: unknown): void {
-		this.error ||= errorMessage(
-			error,
-			"Could not refresh profile details. Refresh to retry.",
-		)
+		if (sectionLoad.status === "fulfilled" && sectionLoad.value && !this.error) {
+			this.#fetchedAt = Date.now()
+		}
 	}
 
 	async #refreshIdentity(): Promise<void> {
@@ -249,28 +216,16 @@ export class AccountProfileState {
 		}
 	}
 
-	#cancelRequests(): void {
-		for (const request of this.#requests) void request.cancel()
-		this.#requests.clear()
-	}
-
 	setDescription(description: string): void {
-		if (this.#active && this.#store.vault.unlocked) {
-			this.snapshot.description = description
-		}
+		if (this.#current()) this.sections.snapshot.description = description
 	}
 
 	dispose(): void {
 		this.#active = false
-		this.#refreshCount++
-		this.#cancelRequests()
+		this.sections.reset()
 		void this.#validationRequest?.cancel()
 		this.#validationRequest = null
-		Object.assign(this.snapshot, emptyProfile(this.#accountId))
-		this.loadedSections = []
-		this.loadingSections = []
-		this.failedSections = []
 		this.isValidating = false
-		this.error = ""
+		this.identityError = ""
 	}
 }

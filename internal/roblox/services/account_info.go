@@ -4,6 +4,7 @@ import (
 	"context"
 	"strconv"
 	"strings"
+	"time"
 )
 
 // Shapes verified against signed-in responses on 2026-10-04.
@@ -195,4 +196,57 @@ func (service *Users) AccountLocation(ctx context.Context, accountID, version in
 		return "", invalidProfileDetails("account-info-location")
 	}
 	return location, nil
+}
+
+type UserRecoveryCodes struct {
+	ActiveCount int64
+	CreatedAt   time.Time
+}
+
+// RecoveryCodes follows the Roblox two-step verification API schema. Roblox
+// sends no creation date when the account never generated codes.
+func (service *Users) RecoveryCodes(ctx context.Context, accountID, version, userID int64) (UserRecoveryCodes, error) {
+	var payload struct {
+		ActiveCount *int64  `json:"activeCount"`
+		Created     *string `json:"created"`
+	}
+	address := "https://twostepverification.roblox.com/v1/users/" + strconv.FormatInt(userID, 10) + "/recovery-codes"
+	if err := service.readAccountDetails(ctx, accountID, version, "account-info-recovery-codes", address, &payload); err != nil {
+		return UserRecoveryCodes{}, err
+	}
+	if payload.ActiveCount == nil || *payload.ActiveCount < 0 {
+		return UserRecoveryCodes{}, invalidProfileDetails("account-info-recovery-codes")
+	}
+	codes := UserRecoveryCodes{ActiveCount: *payload.ActiveCount}
+	if payload.Created != nil {
+		if createdAt, err := time.Parse(time.RFC3339, strings.TrimSpace(*payload.Created)); err == nil {
+			codes.CreatedAt = createdAt.UTC()
+		}
+	}
+	return codes, nil
+}
+
+// Passkeys lists the names of the account's passkeys. Roblox lists them with a
+// POST request that changes nothing. Shape from the Roblox auth API schema.
+func (service *Users) Passkeys(ctx context.Context, accountID, version int64) ([]string, error) {
+	var payload struct {
+		Credentials *[]struct {
+			Nickname string `json:"nickname"`
+		} `json:"credentials"`
+	}
+	if err := service.postRead(ctx, accountID, version, "account-info-passkeys", "https://auth.roblox.com/v1/passkey/ListCredentials", map[string]bool{"all": true}, &payload); err != nil {
+		return nil, err
+	}
+	if payload.Credentials == nil || len(*payload.Credentials) > 100 {
+		return nil, invalidProfileDetails("account-info-passkeys")
+	}
+	names := make([]string, 0, len(*payload.Credentials))
+	for _, credential := range *payload.Credentials {
+		name := strings.TrimSpace(credential.Nickname)
+		if len(name) > 128 {
+			return nil, invalidProfileDetails("account-info-passkeys")
+		}
+		names = append(names, name)
+	}
+	return names, nil
 }

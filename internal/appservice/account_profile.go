@@ -39,7 +39,22 @@ const (
 	ProfileSectionRobloxBadges  AccountProfileSection = "robloxBadges"
 	ProfileSectionCollectibles  AccountProfileSection = "collectibles"
 	ProfileSectionActivity      AccountProfileSection = "activity"
+	ProfileSectionPremium       AccountProfileSection = "premium"
+	ProfileSectionTrading       AccountProfileSection = "trading"
 )
+
+type PremiumSubscription struct {
+	Name         string `json:"name"`
+	RobuxStipend int64  `json:"robuxStipend"`
+	RenewsAtMs   int64  `json:"renewsAtMs"`
+	ExpiresAtMs  int64  `json:"expiresAtMs"`
+}
+
+type TradeEligibility struct {
+	CanTrade    bool                           `json:"canTrade"`
+	Eligibility string                         `json:"eligibility"`
+	FreeTrades  *robloxservices.UserFreeTrades `json:"freeTrades"`
+}
 
 // AccountProfileSnapshot holds the fields of the one section that was read.
 type AccountProfileSnapshot struct {
@@ -74,6 +89,9 @@ type AccountProfileSnapshot struct {
 	UnreadMessageCount                 *int64                           `json:"unreadMessageCount"`
 	InboundTradeCount                  *int64                           `json:"inboundTradeCount"`
 	UnreadNotificationCount            *int64                           `json:"unreadNotificationCount"`
+	// PremiumSubscription is nil when the account has no Premium.
+	PremiumSubscription *PremiumSubscription `json:"premiumSubscription"`
+	TradeEligibility    *TradeEligibility    `json:"tradeEligibility"`
 }
 
 func (service *Service) GetAccountProfile(ctx context.Context, accountID int64, section AccountProfileSection) (AccountProfileSnapshot, error) {
@@ -172,7 +190,10 @@ func (service *Service) profileSectionReads(ctx context.Context, accountID, vers
 		ProfileSectionTwoStep: func() []accountRead {
 			return []accountRead{applyRead("twoStep", func() ([]robloxservices.UserVerificationMethod, error) {
 				return users.TwoStepVerification(ctx, accountID, version, userID)
-			}, func(methods []robloxservices.UserVerificationMethod) { applyProfileVerification(profile, methods) })}
+			}, func(methods []robloxservices.UserVerificationMethod) {
+				profile.TwoStepMethods = enabledVerificationMethods(methods)
+				profile.TwoStepEnabled = new(len(profile.TwoStepMethods) > 0)
+			})}
 		},
 		ProfileSectionVoiceChat: func() []accountRead {
 			return []accountRead{service.voiceChatRead(ctx, accountID, version, &profile.VoiceChat)}
@@ -234,12 +255,40 @@ func (service *Service) profileSectionReads(ctx context.Context, accountID, vers
 				}),
 			}
 		},
+		ProfileSectionPremium: func() []accountRead {
+			return []accountRead{applyRead("premium", func() (*robloxservices.UserPremiumSubscription, error) {
+				return users.PremiumSubscription(ctx, accountID, version, userID)
+			}, func(subscription *robloxservices.UserPremiumSubscription) {
+				profile.PremiumSubscription = premiumSubscription(subscription)
+			})}
+		},
+		ProfileSectionTrading: func() []accountRead {
+			return []accountRead{applyRead("trading", func() (robloxservices.UserTradeEligibility, error) {
+				return users.TradeEligibility(ctx, accountID, version)
+			}, func(eligibility robloxservices.UserTradeEligibility) {
+				profile.TradeEligibility = &TradeEligibility{CanTrade: eligibility.CanTrade, Eligibility: eligibility.Eligibility, FreeTrades: eligibility.FreeTrades}
+			})}
+		},
 	}
 	sectionReads, ok := readsBySection[section]
 	if !ok {
 		return nil
 	}
 	return sectionReads()
+}
+
+func premiumSubscription(subscription *robloxservices.UserPremiumSubscription) *PremiumSubscription {
+	if subscription == nil {
+		return nil
+	}
+	premium := &PremiumSubscription{Name: subscription.Name, RobuxStipend: subscription.RobuxStipend}
+	if !subscription.RenewsAt.IsZero() {
+		premium.RenewsAtMs = subscription.RenewsAt.UnixMilli()
+	}
+	if !subscription.ExpiresAt.IsZero() {
+		premium.ExpiresAtMs = subscription.ExpiresAt.UnixMilli()
+	}
+	return premium
 }
 
 // applyRead runs read and passes its value to apply only when it succeeds.
@@ -259,13 +308,14 @@ func (service *Service) socialCountRead(ctx context.Context, accountID, version,
 	})
 }
 
-func applyProfileVerification(profile *AccountProfileSnapshot, methods []robloxservices.UserVerificationMethod) {
+func enabledVerificationMethods(methods []robloxservices.UserVerificationMethod) []string {
+	enabledMethods := []string{}
 	for _, method := range methods {
-		if method.Enabled != nil && *method.Enabled && !slices.Contains(profile.TwoStepMethods, method.MediaType) {
-			profile.TwoStepMethods = append(profile.TwoStepMethods, method.MediaType)
+		if method.Enabled != nil && *method.Enabled && !slices.Contains(enabledMethods, method.MediaType) {
+			enabledMethods = append(enabledMethods, method.MediaType)
 		}
 	}
-	profile.TwoStepEnabled = new(len(profile.TwoStepMethods) > 0)
+	return enabledMethods
 }
 
 func profileError(kind roblox.ErrorKind, message string) error {

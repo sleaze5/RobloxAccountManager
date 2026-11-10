@@ -11,7 +11,6 @@ import (
 	"net/url"
 	"strconv"
 	"strings"
-	"sync"
 	"time"
 
 	"github.com/sleaze5/RobloxAccountManager/internal/games"
@@ -241,7 +240,7 @@ func (service *Games) subplaces(ctx context.Context, root games.Place, visit fun
 	return nil
 }
 
-func (service *Games) Get(ctx context.Context, universeID, placeID, accountID int64) (games.Game, error) {
+func (service *Games) Get(ctx context.Context, universeID, placeID int64) (games.Game, error) {
 	details, err := service.details(ctx, []int64{universeID})
 	if err != nil {
 		return games.Game{}, err
@@ -260,10 +259,6 @@ func (service *Games) Get(ctx context.Context, universeID, placeID, accountID in
 			return games.Game{}, gameUnavailableError()
 		}
 		game.Place, game.Description, game.RootPlace = place, description, &root
-	}
-	service.loadGameExtras(ctx, accountID, &game)
-	if ctx.Err() != nil {
-		return games.Game{}, ctx.Err()
 	}
 	return game, nil
 }
@@ -606,36 +601,30 @@ func (service *Games) loadSearchPlaces(ctx context.Context, ids []int64, page *g
 	return nil
 }
 
-func (service *Games) loadGameExtras(ctx context.Context, accountID int64, game *games.Game) {
-	var group sync.WaitGroup
-	group.Go(func() {
-		if err := service.votes(ctx, game); err != nil && ctx.Err() == nil {
-			service.logger.WarnContext(ctx, "game votes unavailable", "operation", "game-votes", "error", err)
+// Section reads one part of the game details for the universe. The sections
+// that need a signed-in account stay empty without one.
+func (service *Games) Section(ctx context.Context, universeID, placeID, accountID int64, section games.GameSection) (games.Game, error) {
+	game := games.Game{Place: games.Place{UniverseID: universeID, PlaceID: placeID}}
+	var err error
+	switch section {
+	case games.GameSectionVotes:
+		err = service.votes(ctx, &game)
+	case games.GameSectionMaturity:
+		err = service.maturity(ctx, &game)
+	case games.GameSectionAvatarRules:
+		err = service.avatarRules(ctx, &game)
+	case games.GameSectionCommunication:
+		if accountID > 0 {
+			err = service.communication(ctx, accountID, &game)
 		}
-	})
-	group.Go(func() {
-		if err := service.maturity(ctx, game); err != nil && ctx.Err() == nil {
-			service.logger.WarnContext(ctx, "game maturity unavailable", "operation", "game-maturity", "error", err)
+	case games.GameSectionVersions:
+		if accountID > 0 {
+			err = service.versions(ctx, accountID, &game)
 		}
-	})
-	group.Go(func() {
-		if err := service.avatarRules(ctx, game); err != nil && ctx.Err() == nil {
-			service.logger.WarnContext(ctx, "game avatar rules unavailable", "operation", "game-avatar-rules", "error", err)
-		}
-	})
-	if accountID > 0 {
-		group.Go(func() {
-			if err := service.communication(ctx, accountID, game); err != nil && ctx.Err() == nil {
-				service.logger.WarnContext(ctx, "game communication unavailable", "operation", "game-communication", "error", err)
-			}
-		})
-		group.Go(func() {
-			if err := service.versions(ctx, accountID, game); err != nil && ctx.Err() == nil {
-				service.logger.WarnContext(ctx, "game versions unavailable", "operation", "game-versions", "error", err)
-			}
-		})
+	default:
+		return games.Game{}, gameDataError("This game section does not exist.")
 	}
-	group.Wait()
+	return game, err
 }
 
 func validGameCreator(id int64, kind string) bool {

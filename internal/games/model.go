@@ -18,6 +18,19 @@ type Place struct {
 	Nickname        string `json:"nickname"`
 }
 
+// GameSection names one part of the game details that Roblox serves from its
+// own endpoint. The frontend reads each part after the main details so that
+// the main details do not wait for them.
+type GameSection string
+
+const (
+	GameSectionVotes         GameSection = "votes"
+	GameSectionMaturity      GameSection = "maturity"
+	GameSectionAvatarRules   GameSection = "avatarRules"
+	GameSectionCommunication GameSection = "communication"
+	GameSectionVersions      GameSection = "versions"
+)
+
 type PlaceSummary struct {
 	Place     Place  `json:"place"`
 	RootPlace *Place `json:"rootPlace"`

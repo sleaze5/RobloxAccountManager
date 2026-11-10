@@ -3,6 +3,7 @@ package services
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"net/http"
 	"net/url"
 	"strconv"
@@ -388,6 +389,85 @@ func (service *Users) readCount(ctx context.Context, accountID, version int64, e
 		return 0, invalidProfileDetails(endpoint)
 	}
 	return *payload.Count, nil
+}
+
+type UserPremiumSubscription struct {
+	Name         string
+	RobuxStipend int64
+	RenewsAt     time.Time
+	ExpiresAt    time.Time
+}
+
+// PremiumSubscription returns nil for an account without Premium, because
+// Roblox answers 404 then. The shape follows the Roblox billing page on
+// 2026-10-16. A response without a renewal or expiration date is still valid.
+func (service *Users) PremiumSubscription(ctx context.Context, accountID, version, userID int64) (*UserPremiumSubscription, error) {
+	var payload struct {
+		Product *struct {
+			Name         string `json:"subscriptionName"`
+			RobuxStipend int64  `json:"robuxStipendAmount"`
+			Renewal      string `json:"renewal"`
+			Expiration   string `json:"expiration"`
+		} `json:"subscriptionProductModel"`
+	}
+	address := "https://premiumfeatures.roblox.com/v1/users/" + strconv.FormatInt(userID, 10) + "/subscriptions/details"
+	err := service.readAccountDetails(ctx, accountID, version, "profile-premium-subscription", address, &payload)
+	if remote, ok := errors.AsType[*roblox.Error](err); ok && remote.Status == http.StatusNotFound {
+		return nil, nil
+	}
+	if err != nil {
+		return nil, err
+	}
+	if payload.Product == nil || len(payload.Product.Name) > 128 || payload.Product.RobuxStipend < 0 {
+		return nil, invalidProfileDetails("profile-premium-subscription")
+	}
+	subscription := &UserPremiumSubscription{Name: strings.TrimSpace(payload.Product.Name), RobuxStipend: payload.Product.RobuxStipend}
+	if renewsAt, err := time.Parse(time.RFC3339, strings.TrimSpace(payload.Product.Renewal)); err == nil {
+		subscription.RenewsAt = renewsAt.UTC()
+	}
+	if expiresAt, err := time.Parse(time.RFC3339, strings.TrimSpace(payload.Product.Expiration)); err == nil {
+		subscription.ExpiresAt = expiresAt.UTC()
+	}
+	return subscription, nil
+}
+
+type UserTradeEligibility struct {
+	CanTrade bool
+	// Eligibility is the Roblox status name, such as Eligible or
+	// IneligibleMissingPremiumMembership.
+	Eligibility string
+	// FreeTrades is nil when Roblox sends no free trade allowance.
+	FreeTrades *UserFreeTrades
+}
+
+type UserFreeTrades struct {
+	Remaining int64  `json:"remaining"`
+	Limit     int64  `json:"limit"`
+	Window    string `json:"window"`
+}
+
+// TradeEligibility follows the Roblox trades v2 API schema.
+func (service *Users) TradeEligibility(ctx context.Context, accountID, version int64) (UserTradeEligibility, error) {
+	var payload struct {
+		CanTrade    *bool  `json:"canTrade"`
+		Eligibility string `json:"tradeEligibility"`
+		Allowance   *struct {
+			Limit     *int64 `json:"limit"`
+			Remaining *int64 `json:"remaining"`
+			Window    string `json:"window"`
+		} `json:"freeTradesAllowance"`
+	}
+	if err := service.readAccountDetails(ctx, accountID, version, "profile-trade-eligibility", "https://trades.roblox.com/v2/users/me/can-trade", &payload); err != nil {
+		return UserTradeEligibility{}, err
+	}
+	if payload.CanTrade == nil || len(payload.Eligibility) > 64 {
+		return UserTradeEligibility{}, invalidProfileDetails("profile-trade-eligibility")
+	}
+	eligibility := UserTradeEligibility{CanTrade: *payload.CanTrade, Eligibility: payload.Eligibility}
+	if allowance := payload.Allowance; allowance != nil && allowance.Limit != nil && allowance.Remaining != nil && *allowance.Limit >= 0 && *allowance.Remaining >= 0 && len(allowance.Window) <= 16 {
+		eligibility.FreeTrades = &UserFreeTrades{Remaining: *allowance.Remaining, Limit: *allowance.Limit, Window: strings.ToLower(allowance.Window)}
+	}
+	return eligibility, nil
 }
 
 type UserCollectibles struct {

@@ -14,7 +14,7 @@
 	import usersThreeIcon from "@phosphor-icons/core/regular/users-three.svg?raw"
 	import Icon from "../shared/Icon.svelte"
 	import RefreshIcon from "../shared/RefreshIcon.svelte"
-	import { FriendStatus } from "../backend/bridge"
+	import { FriendStatus, SocialProfileSection } from "../backend/bridge"
 	import type { SocialUser } from "../backend/bridge"
 	import type { AccountStore } from "../accounts/account-store.svelte"
 	import AccountPresence from "../accounts/AccountPresence.svelte"
@@ -71,18 +71,27 @@
 		profile = $derived(
 			store.profile?.userId === person.userId ? store.profile : null,
 		),
-		relationship = $derived(profile?.relationship ?? requestRelationship(person)),
+		profileRelationship = $derived(profile ? store.profileRelationship : null),
+		relationship = $derived(
+			profileRelationship?.relationship ?? requestRelationship(person),
+		),
 		actions = $derived(
 			relationship
-				? relationshipActions(relationship, profile?.unavailable ?? []).filter(
-						(action) => pendingRequestActionIds.has(action.id),
-					)
+				? relationshipActions(
+						relationship,
+						profileRelationship?.unavailable ?? [],
+					).filter((action) => pendingRequestActionIds.has(action.id))
 				: [],
 		),
 		origin = $derived(request ? (origins[request.origin] ?? "") : ""),
-		nickname = $derived(profile ? profile.relationship.nickname : person.nickname),
+		nickname = $derived(
+			profileRelationship
+				? profileRelationship.relationship.nickname
+				: person.nickname,
+		),
 		canNickname = $derived(
-			profile?.relationship.friend === FriendStatus.FriendStatusFriends,
+			profileRelationship?.relationship.friend ===
+				FriendStatus.FriendStatusFriends,
 		),
 		hasFacts = $derived(
 			!!request ||
@@ -153,7 +162,9 @@
 						{onSearchPlace}
 						{onSearchUniverse} />
 				{/if}
-				{#if profile}<SocialBadges {profile} />{/if}
+				{#if profile}<SocialBadges
+						{profile}
+						relationship={profileRelationship?.relationship ?? null} />{/if}
 			</div>
 		</div>
 		<div class="flex flex-wrap items-center justify-end gap-1 @max-xl:self-end">
@@ -215,7 +226,7 @@
 			onShow={(list) => store.explore(person, list)} />
 	{/if}
 
-	{#if profile && !profile.unavailable?.includes("about")}
+	{#if profile && store.profileLoad?.hasSection(SocialProfileSection.SocialSectionAbout)}
 		<section class="flex flex-col gap-2" aria-labelledby="social-about-heading">
 			<h3 id="social-about-heading" class="text-xs font-semibold text-fg-muted">
 				About
@@ -249,7 +260,7 @@
 		</section>
 	{/if}
 
-	{#if profile && !profile.unavailable?.includes("connections") && accounts.accountTotal > 1}
+	{#if profile && store.profileLoad?.hasSection(SocialProfileSection.SocialSectionConnections) && accounts.accountTotal > 1}
 		<FriendConnections connections={profile.connections ?? []} {accounts} />
 	{/if}
 
@@ -375,7 +386,7 @@
 
 	{#if store.profileError}
 		<p class="text-xs text-danger-muted" role="alert">{store.profileError}</p>
-	{:else if (profile?.unavailable?.length ?? 0) > 0}
+	{:else if (store.profileLoad?.failedSections.length ?? 0) > 0 || (profileRelationship?.unavailable?.length ?? 0) > 0}
 		<p class="text-xs text-danger-muted" role="alert">
 			Some profile details could not be loaded. Refresh to retry.
 		</p>
