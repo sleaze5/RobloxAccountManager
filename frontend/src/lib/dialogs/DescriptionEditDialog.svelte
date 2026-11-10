@@ -1,14 +1,15 @@
 <script lang="ts">
 	import { tick, untrack } from "svelte"
-	import checkCircleIcon from "@phosphor-icons/core/regular/check-circle.svg?raw"
 	import xIcon from "@phosphor-icons/core/regular/x.svg?raw"
 	import Icon from "../shared/Icon.svelte"
 	import type { Account } from "../accounts/account-model"
-	import { accountBackend, TextModeration } from "../backend/bridge"
+	import { accountBackend } from "../backend/bridge"
 	import type { NotificationCenter } from "../notifications/notification-center.svelte"
 	import { replayValidationNudge } from "../shared/presence"
 	import { errorMessage } from "../shared/errors"
 	import { TextFilterCheck } from "../shared/text-filter-check.svelte"
+	import TextFilterStatus from "../shared/TextFilterStatus.svelte"
+	import TextFilterValidateButton from "../shared/TextFilterValidateButton.svelte"
 	import Dialog from "../shared/Dialog.svelte"
 
 	let {
@@ -142,12 +143,8 @@
 				<div class="mt-3 notice-warning">
 					This removes the description from @{account.username}'s profile.
 				</div>
-			{:else if check.isClean}
-				<span class="sr-only">Roblox's filter won't tag this text.</span>
-			{:else if check.current?.filter?.moderation === TextModeration.TextModerationPartial}
-				<span class="sr-only">Roblox will tag part of this text.</span>
-			{:else if check.current?.filter?.moderation === TextModeration.TextModerationFull}
-				<span class="sr-only">Roblox will tag all of this text.</span>
+			{:else}
+				<TextFilterStatus {check} noun="text" />
 			{/if}
 		</div>
 
@@ -161,30 +158,13 @@
 				type="button"
 				disabled={pending !== null}
 				onclick={close}>Cancel</button>
-			<button
-				class="button"
-				type="button"
-				aria-busy={pending === "validate"}
-				disabled={pending !== null ||
-					(check.filteredPreview === undefined &&
-						(text === "" || check.current !== null))}
-				onclick={() =>
-					void (check.filteredPreview === undefined
-						? validate("validate")
-						: edit())}>
-				{#if pending === "validate"}
-					Validating…
-				{:else if check.filteredPreview !== undefined}
-					Edit
-				{:else}
-					{#if check.isClean}<Icon
-							svg={checkCircleIcon}
-							class="text-success"
-							size={14}
-							aria-hidden="true" />{/if}
-					Validate
-				{/if}
-			</button>
+			<TextFilterValidateButton
+				{check}
+				{text}
+				isValidating={pending === "validate"}
+				disabled={pending !== null}
+				onValidate={() => void validate("validate")}
+				onEdit={() => void edit()} />
 			<button
 				class={check.isTagged ? "button-warning" : "button-primary"}
 				type="submit"

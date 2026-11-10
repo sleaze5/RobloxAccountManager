@@ -1,11 +1,12 @@
 <script lang="ts">
 	import dotsThreeIcon from "@phosphor-icons/core/regular/dots-three.svg?raw"
+	import listPlusIcon from "@phosphor-icons/core/regular/list-plus.svg?raw"
 	import Icon from "../shared/Icon.svelte"
 	import { untrack } from "svelte"
 	import { VisitKind } from "../backend/bridge"
 	import type { LogsExplorerVisit } from "../backend/bridge"
 	import Timestamp from "../shared/Timestamp.svelte"
-	import LogsExplorerVisitMenu from "./LogsExplorerVisitMenu.svelte"
+	import AnchoredActionMenu from "../shared/AnchoredActionMenu.svelte"
 	import LogsExplorerVisitDetails from "./LogsExplorerVisitDetails.svelte"
 	import { formatClock } from "../shared/duration"
 
@@ -129,14 +130,20 @@
 </ol>
 
 {#if activeMenu?.open}
-	<LogsExplorerVisitMenu
+	{@const { visit } = activeMenu}
+	<AnchoredActionMenu
 		id={menuID}
+		label="Event actions"
 		anchor={activeMenu.trigger}
-		onClose={closeMenu}
-		onFillLaunch={() => {
-			if (!activeMenu) return
-			const { visit } = activeMenu
-			closeMenu()
-			onFillLaunch(visit)
-		}} />
+		actions={[
+			{
+				label: "Fill launch options",
+				icon: listPlusIcon,
+				onSelect: () => {
+					closeMenu()
+					onFillLaunch(visit)
+				},
+			},
+		]}
+		onClose={closeMenu} />
 {/if}

@@ -18,6 +18,7 @@
 	import type { SocialUser } from "../backend/bridge"
 	import type { AccountStore } from "../accounts/account-store.svelte"
 	import AccountPresence from "../accounts/AccountPresence.svelte"
+	import PrimaryGroupFact from "../shared/PrimaryGroupFact.svelte"
 	import Timestamp from "../shared/Timestamp.svelte"
 	import { relativeTime } from "../shared/timestamp"
 	import FriendConnections from "./FriendConnections.svelte"
@@ -53,17 +54,13 @@
 	} = $props()
 
 	const origins: Record<string, string> = {
-			FriendRecommendations: "Friend recommendations",
-			InGame: "An experience",
-			PhoneContactImporter: "Phone contacts",
-			PlayerSearch: "Player search",
-			QrCode: "QR code",
-			UserProfile: "Profile page",
-		},
-		numbers = new Intl.NumberFormat("en-US", {
-			notation: "compact",
-			maximumFractionDigits: 1,
-		})
+		FriendRecommendations: "Friend recommendations",
+		InGame: "An experience",
+		PhoneContactImporter: "Phone contacts",
+		PlayerSearch: "Player search",
+		QrCode: "QR code",
+		UserProfile: "Profile page",
+	}
 
 	const request = $derived(person.request),
 		profile = $derived(
@@ -318,28 +315,7 @@
 					</div>
 				{/if}
 				{#if profile?.primaryGroup}
-					{@const group = profile.primaryGroup}
-					<div>
-						<dt>
-							<Icon
-								svg={usersThreeIcon}
-								size={16}
-								aria-hidden="true" />Primary group
-						</dt>
-						<dd>
-							<span class="inline-flex min-w-0 items-center gap-1"
-								>{group.name}{#if group.verified}<Icon
-										svg={sealCheckIcon}
-										class="shrink-0 text-fg-muted"
-										size={14}
-										aria-label="Verified group" />{/if}</span>
-							<small
-								>{group.role ? `${group.role} - ` : ""}{numbers.format(
-									group.members,
-								)}
-								{group.members === 1 ? "member" : "members"}</small>
-						</dd>
-					</div>
+					<PrimaryGroupFact group={profile.primaryGroup} />
 				{/if}
 				{#if profile?.robloxBadges?.length}
 					<div>

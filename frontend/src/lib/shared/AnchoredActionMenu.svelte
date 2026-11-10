@@ -1,5 +1,5 @@
 <script lang="ts" module>
-	export interface ServerMenuAction {
+	export interface MenuAction {
 		label: string
 		icon: string
 		danger?: boolean
@@ -8,18 +8,20 @@
 </script>
 
 <script lang="ts">
-	import Icon from "../shared/Icon.svelte"
-	import { menuIn, menuOut, placeMenuAtAnchor } from "../shared/presence"
+	import Icon from "./Icon.svelte"
+	import { menuIn, menuOut, placeMenuAtAnchor } from "./presence"
 
 	let {
 		id,
+		label,
 		anchor,
 		actions,
 		onClose,
 	}: {
 		id: string
+		label: string
 		anchor: HTMLElement
-		actions: ServerMenuAction[]
+		actions: MenuAction[]
 		onClose: () => void
 	} = $props()
 	let menu = $state<HTMLElement>()
@@ -104,7 +106,7 @@
 	bind:this={menu}
 	{id}
 	role="menu"
-	aria-label="Server actions"
+	aria-label={label}
 	tabindex="-1"
 	onkeydown={handleKeydown}
 	use:positionMenu={anchor}

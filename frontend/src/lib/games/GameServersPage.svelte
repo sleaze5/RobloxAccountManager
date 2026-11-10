@@ -17,7 +17,9 @@
 	import RemovePrivateServerLinkDialog from "../private-servers/RemovePrivateServerLinkDialog.svelte"
 	import { appSettings } from "../settings/settings-store.svelte"
 	import { errorMessage } from "../shared/errors"
-	import GameServerMenu, { type ServerMenuAction } from "./GameServerMenu.svelte"
+	import AnchoredActionMenu, {
+		type MenuAction,
+	} from "../shared/AnchoredActionMenu.svelte"
 	import PrivateServerList from "./PrivateServerList.svelte"
 	import RBXServersList from "./RBXServersList.svelte"
 	import RecordedServerList from "./RecordedServerList.svelte"
@@ -205,7 +207,7 @@
 		}
 	}
 
-	function linkActions(link: string): ServerMenuAction[] {
+	function linkActions(link: string): MenuAction[] {
 		return link
 			? [
 					{
@@ -237,7 +239,7 @@
 		}
 	}
 
-	function actionsFor(key: string): ServerMenuAction[] {
+	function actionsFor(key: string): MenuAction[] {
 		if (source === "rbxservers") {
 			const server = listedServers.page?.servers?.find(
 				(listed) => listed.id === key,
@@ -407,8 +409,9 @@
 </section>
 
 {#if activeMenu?.open && menuActions.length}
-	<GameServerMenu
+	<AnchoredActionMenu
 		id={menuID}
+		label="Server actions"
 		anchor={activeMenu.trigger}
 		actions={menuActions}
 		onClose={closeMenu} />

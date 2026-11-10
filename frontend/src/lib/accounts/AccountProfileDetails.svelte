@@ -11,12 +11,12 @@
 	import shieldCheckIcon from "@phosphor-icons/core/regular/shield-check.svg?raw"
 	import shieldSlashIcon from "@phosphor-icons/core/regular/shield-slash.svg?raw"
 	import userCircleIcon from "@phosphor-icons/core/regular/user-circle.svg?raw"
-	import usersThreeIcon from "@phosphor-icons/core/regular/users-three.svg?raw"
 	import warningCircleIcon from "@phosphor-icons/core/regular/warning-circle.svg?raw"
 	import Icon from "../shared/Icon.svelte"
 	import { AgeVerification, ModerationKind, SessionState } from "../backend/bridge"
 	import { moderationLabel, resolvesInBrowser } from "./moderation.svelte"
 	import type { AccountProfileSnapshot } from "../backend/bridge"
+	import PrimaryGroupFact from "../shared/PrimaryGroupFact.svelte"
 	import Timestamp from "../shared/Timestamp.svelte"
 	import { relativeTime } from "../shared/timestamp"
 	import { ageVerificationLabels } from "./account-model"
@@ -29,10 +29,6 @@
 	}: { account: Account; snapshot: AccountProfileSnapshot | null } = $props()
 
 	const regions = new Intl.DisplayNames(undefined, { type: "region" }),
-		numbers = new Intl.NumberFormat("en-US", {
-			notation: "compact",
-			maximumFractionDigits: 1,
-		}),
 		verificationMethods: Record<string, string> = {
 			email: "Email",
 			authenticator: "Authenticator app",
@@ -180,26 +176,7 @@
 			<AccountVoiceChat voiceChat={snapshot.voiceChat} label="Voice chat" />
 		{/if}
 		{#if snapshot?.primaryGroup}
-			{@const group = snapshot.primaryGroup}
-			<div>
-				<dt>
-					<Icon svg={usersThreeIcon} size={16} aria-hidden="true" />Primary
-					group
-				</dt>
-				<dd>
-					<span class="inline-flex min-w-0 items-center gap-1"
-						>{group.name}{#if group.verified}<Icon
-								svg={sealCheckIcon}
-								class="shrink-0 text-fg-muted"
-								size={14}
-								aria-label="Verified group" />{/if}</span>
-					<small
-						>{group.role ? `${group.role} - ` : ""}{numbers.format(
-							group.members,
-						)}
-						{group.members === 1 ? "member" : "members"}</small>
-				</dd>
-			</div>
+			<PrimaryGroupFact group={snapshot.primaryGroup} />
 		{/if}
 	</dl>
 </section>

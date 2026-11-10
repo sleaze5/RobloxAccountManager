@@ -92,6 +92,7 @@ export type {
 	AvatarHeadshotView,
 	TextFilter,
 	UserPresence,
+	UserPrimaryGroup,
 	UserSocialLink,
 } from "../../../bindings/github.com/sleaze5/RobloxAccountManager/internal/roblox/services/models.js"
 export type {
