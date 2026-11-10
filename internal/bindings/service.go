@@ -132,6 +132,13 @@ func (service *Service) GetAccountProfile(ctx context.Context, accountID int64, 
 	return service.core.GetAccountProfile(ctx, accountID, section)
 }
 
+func (service *Service) GetRobuxTransactions(ctx context.Context, accountID int64, transactionType appservice.RobuxTransactionType, cursor string) (appservice.RobuxTransactionPage, error) {
+	if err := positiveID(accountID, "robux-transactions"); err != nil {
+		return appservice.RobuxTransactionPage{}, err
+	}
+	return service.core.GetRobuxTransactions(ctx, accountID, transactionType, cursor)
+}
+
 func (service *Service) GetAccountInfo(ctx context.Context, accountID int64, section appservice.AccountInfoSection) (appservice.AccountInfoSnapshot, error) {
 	if err := positiveID(accountID, "account-info"); err != nil {
 		return appservice.AccountInfoSnapshot{}, err

@@ -17,6 +17,7 @@ const (
 	usernameHistoryPageSize = 100
 	maxUsernameHistoryPages = 20
 	collectiblePageSize     = 100
+	transactionPageSize     = 25
 	maxCollectiblePages     = 50
 )
 
@@ -485,6 +486,86 @@ func (service *Users) CanTradeWith(ctx context.Context, accountID, version, user
 		return UserTradeEligibility{}, invalidProfileDetails("friend-trade-eligibility")
 	}
 	return UserTradeEligibility{CanTrade: *payload.CanTrade, Eligibility: payload.Eligibility}, nil
+}
+
+type UserTransaction struct {
+	IDHash     string
+	CreatedAt  time.Time
+	Amount     int64
+	IsPending  bool
+	ItemName   string
+	ItemType   string
+	AgentName  string
+	AgentType  string
+	PlaceName  string
+	PlaceID    int64
+	UniverseID int64
+}
+
+// Transactions reads one page of Robux transactions of one Roblox type, such
+// as Purchase or Sale, newest first. Shape verified against signed-in
+// responses captured on 2026-10-15.
+func (service *Users) Transactions(ctx context.Context, accountID, version, userID int64, transactionType, cursor string) ([]UserTransaction, string, error) {
+	var payload struct {
+		Data *[]struct {
+			IDHash    string `json:"idHash"`
+			Created   string `json:"created"`
+			IsPending bool   `json:"isPending"`
+			Agent     *struct {
+				Name string `json:"name"`
+			} `json:"agent"`
+			Currency *struct {
+				Amount *int64 `json:"amount"`
+			} `json:"currency"`
+			Details *struct {
+				Name  string `json:"name"`
+				Type  string `json:"type"`
+				Place *struct {
+					Name string `json:"name"`
+				} `json:"place"`
+			} `json:"details"`
+		} `json:"data"`
+		NextPageCursor *string `json:"nextPageCursor"`
+	}
+	query := url.Values{"limit": {strconv.Itoa(transactionPageSize)}, "transactionType": {transactionType}}
+	if cursor != "" {
+		query.Set("cursor", cursor)
+	}
+	address := "https://apis.roblox.com/transaction-records/v1/users/" + strconv.FormatInt(userID, 10) + "/transactions?" + query.Encode()
+	if err := service.readAccountDetails(ctx, accountID, version, "robux-transactions", address, &payload); err != nil {
+		return nil, "", err
+	}
+	if payload.Data == nil || len(*payload.Data) > transactionPageSize {
+		return nil, "", invalidProfileDetails("robux-transactions")
+	}
+	transactions := make([]UserTransaction, 0, len(*payload.Data))
+	for _, listedTransaction := range *payload.Data {
+		if listedTransaction.Currency == nil || listedTransaction.Currency.Amount == nil {
+			return nil, "", invalidProfileDetails("robux-transactions")
+		}
+		transaction := UserTransaction{IDHash: listedTransaction.IDHash, Amount: *listedTransaction.Currency.Amount, IsPending: listedTransaction.IsPending}
+		if createdAt, err := time.Parse(time.RFC3339, strings.TrimSpace(listedTransaction.Created)); err == nil {
+			transaction.CreatedAt = createdAt.UTC()
+		}
+		if agent := listedTransaction.Agent; agent != nil {
+			transaction.AgentName = strings.TrimSpace(agent.Name)
+		}
+		if details := listedTransaction.Details; details != nil {
+			transaction.ItemName, transaction.ItemType = strings.TrimSpace(details.Name), details.Type
+			if place := details.Place; place != nil {
+				transaction.PlaceName = strings.TrimSpace(place.Name)
+			}
+		}
+		transactions = append(transactions, transaction)
+	}
+	nextCursor := ""
+	if payload.NextPageCursor != nil {
+		nextCursor = *payload.NextPageCursor
+	}
+	if len(nextCursor) > 4096 {
+		return nil, "", invalidProfileDetails("robux-transactions")
+	}
+	return transactions, nextCursor, nil
 }
 
 type UserCollectibles struct {
