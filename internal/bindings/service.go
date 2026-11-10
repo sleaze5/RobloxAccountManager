@@ -125,11 +125,11 @@ func (service *Service) RestartToUpdate(ctx context.Context) error {
 	return service.updates.Restart(ctx)
 }
 
-func (service *Service) GetAccountProfile(ctx context.Context, accountID int64) (appservice.AccountProfileSnapshot, error) {
+func (service *Service) GetAccountProfile(ctx context.Context, accountID int64, section appservice.AccountProfileSection) (appservice.AccountProfileSnapshot, error) {
 	if err := positiveID(accountID, "account-profile"); err != nil {
 		return appservice.AccountProfileSnapshot{}, err
 	}
-	return service.core.GetAccountProfile(ctx, accountID)
+	return service.core.GetAccountProfile(ctx, accountID, section)
 }
 
 func (service *Service) GetAccountInfo(ctx context.Context, accountID int64) (appservice.AccountInfoSnapshot, error) {

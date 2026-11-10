@@ -85,14 +85,11 @@ func (service *Users) findFriendIDs(ctx context.Context, accountID, version, use
 }
 
 func (service *Users) FriendRequestCount(ctx context.Context, accountID, version int64) (*int64, error) {
-	var payload struct {
-		Count *int64 `json:"count"`
+	count, err := service.readCount(ctx, accountID, version, "friend-request-count", "https://friends.roblox.com/v1/user/friend-requests/count")
+	if err != nil {
+		return nil, err
 	}
-	err := service.readAccountDetails(ctx, accountID, version, "friend-request-count", "https://friends.roblox.com/v1/user/friend-requests/count", &payload)
-	if err == nil && (payload.Count == nil || *payload.Count < 0) {
-		err = invalidProfileDetails("friend-request-count")
-	}
-	return payload.Count, err
+	return &count, nil
 }
 
 func (service *Users) FriendRequests(ctx context.Context, accountID, version int64, cursor string) ([]FriendRequest, string, error) {

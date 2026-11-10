@@ -1,6 +1,11 @@
 <script lang="ts">
 	import arrowsClockwiseIcon from "@phosphor-icons/core/regular/arrows-clockwise.svg?raw"
 	import calendarDotsIcon from "@phosphor-icons/core/regular/calendar-dots.svg?raw"
+	import coinsIcon from "@phosphor-icons/core/regular/coins.svg?raw"
+	import diamondIcon from "@phosphor-icons/core/regular/diamond.svg?raw"
+	import medalIcon from "@phosphor-icons/core/regular/medal.svg?raw"
+	import trayIcon from "@phosphor-icons/core/regular/tray.svg?raw"
+	import usersFourIcon from "@phosphor-icons/core/regular/users-four.svg?raw"
 	import checkCircleIcon from "@phosphor-icons/core/regular/check-circle.svg?raw"
 	import circleDashedIcon from "@phosphor-icons/core/regular/circle-dashed.svg?raw"
 	import cookieIcon from "@phosphor-icons/core/regular/cookie.svg?raw"
@@ -60,6 +65,22 @@
 				?.map((method) => verificationMethods[method] ?? method)
 				.join(", ") ?? "",
 		),
+		exactNumbers = new Intl.NumberFormat("en-US"),
+		activityLabels = $derived.by(() => {
+			if (
+				!snapshot ||
+				snapshot.unreadMessageCount === null ||
+				snapshot.inboundTradeCount === null ||
+				snapshot.unreadNotificationCount === null
+			) {
+				return null
+			}
+			return [
+				countLabel(snapshot.unreadNotificationCount, "unread notification"),
+				countLabel(snapshot.unreadMessageCount, "unread message"),
+				countLabel(snapshot.inboundTradeCount, "trade request"),
+			].filter((label) => label !== "")
+		}),
 		accountAge = $derived(
 			account.createdAtMs
 				? relativeTime(account.createdAtMs, Date.now(), false)
@@ -108,6 +129,11 @@
 					}
 			}
 		})
+
+	function countLabel(count: number, noun: string): string {
+		if (count <= 0) return ""
+		return `${exactNumbers.format(count)} ${noun}${count === 1 ? "" : "s"}`
+	}
 </script>
 
 <section class="flex flex-col gap-2" aria-labelledby="profile-account-heading">
@@ -198,6 +224,68 @@
 							group.members,
 						)}
 						{group.members === 1 ? "member" : "members"}</small>
+				</dd>
+			</div>
+		{/if}
+		{#if snapshot && snapshot.communityCount !== null}
+			<div class="animate-enter">
+				<dt>
+					<Icon svg={usersFourIcon} size={16} aria-hidden="true" />Communities
+				</dt>
+				<dd><span>{exactNumbers.format(snapshot.communityCount)}</span></dd>
+			</div>
+		{/if}
+		{#if snapshot?.robloxBadges?.length}
+			<div class="animate-enter">
+				<dt>
+					<Icon svg={medalIcon} size={16} aria-hidden="true" />Roblox badges
+				</dt>
+				<dd><span>{snapshot.robloxBadges.join(", ")}</span></dd>
+			</div>
+		{/if}
+		{#if snapshot && snapshot.incomingRobuxPastMonth !== null && snapshot.outgoingRobuxPastMonth !== null}
+			<div class="animate-enter">
+				<dt>
+					<Icon svg={coinsIcon} size={16} aria-hidden="true" />Robux past
+					month
+				</dt>
+				<dd>
+					<span class="font-mono tabular-nums"
+						>+{exactNumbers.format(snapshot.incomingRobuxPastMonth)} / -{exactNumbers.format(
+							snapshot.outgoingRobuxPastMonth,
+						)}</span>
+					<small>Received / spent</small>
+				</dd>
+			</div>
+		{/if}
+		{#if snapshot && snapshot.collectibleCount !== null}
+			<div class="animate-enter">
+				<dt>
+					<Icon svg={diamondIcon} size={16} aria-hidden="true" />Collectibles
+				</dt>
+				<dd>
+					<span
+						>{exactNumbers.format(snapshot.collectibleCount)}
+						{snapshot.collectibleCount === 1 ? "item" : "items"}</span>
+					{#if snapshot.collectibleCount > 0 && snapshot.collectibleRecentAveragePriceTotal !== null}<small
+							class="font-mono"
+							>RAP R$ {exactNumbers.format(
+								snapshot.collectibleRecentAveragePriceTotal,
+							)}</small
+						>{/if}
+				</dd>
+			</div>
+		{/if}
+		{#if activityLabels}
+			<div
+				class="animate-enter"
+				data-tone={activityLabels.length ? undefined : "muted"}>
+				<dt><Icon svg={trayIcon} size={16} aria-hidden="true" />On Roblox</dt>
+				<dd>
+					<span
+						>{activityLabels.length
+							? activityLabels.join(", ")
+							: "Nothing new"}</span>
 				</dd>
 			</div>
 		{/if}

@@ -54,6 +54,7 @@ export {
 export type { PresenceSettings } from "../../../bindings/github.com/sleaze5/RobloxAccountManager/internal/appsettings/models.js"
 export {
 	AccountCopyField,
+	AccountProfileSection,
 	AccountSettingKey,
 	AgeVerification,
 	ImportStatus,

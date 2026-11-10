@@ -15,6 +15,8 @@ import (
 const (
 	usernameHistoryPageSize = 100
 	maxUsernameHistoryPages = 20
+	collectiblePageSize     = 100
+	maxCollectiblePages     = 50
 )
 
 type UserAccountDetails struct {
@@ -53,16 +55,29 @@ func (service *Users) Robux(ctx context.Context, accountID, version int64) (*int
 	return payload.Robux, err
 }
 
-func (service *Users) PendingRobux(ctx context.Context, accountID, version, userID int64) (*int64, error) {
+type UserTransactionTotals struct {
+	PendingRobux  int64
+	IncomingRobux int64
+	OutgoingRobux int64
+}
+
+// TransactionTotals reads the Robux totals of the past month. Roblox reports
+// outgoing Robux as a negative number. Shape verified against a signed-in
+// summary response captured on 2026-10-15.
+func (service *Users) TransactionTotals(ctx context.Context, accountID, version, userID int64) (UserTransactionTotals, error) {
 	var payload struct {
-		PendingRobux *int64 `json:"pendingRobuxTotal"`
+		PendingRobux  *int64 `json:"pendingRobuxTotal"`
+		IncomingRobux *int64 `json:"incomingRobuxTotal"`
+		OutgoingRobux *int64 `json:"outgoingRobuxTotal"`
 	}
-	address := "https://apis.roblox.com/transaction-records/v1/users/" + strconv.FormatInt(userID, 10) + "/transaction-totals?timeFrame=Month&transactionType=pendingRobux"
-	err := service.readAccountDetails(ctx, accountID, version, "profile-pending-robux", address, &payload)
-	if err == nil && (payload.PendingRobux == nil || *payload.PendingRobux < 0) {
-		err = invalidProfileDetails("profile-pending-robux")
+	address := "https://apis.roblox.com/transaction-records/v1/users/" + strconv.FormatInt(userID, 10) + "/transaction-totals?timeFrame=Month&transactionType=summary"
+	if err := service.readAccountDetails(ctx, accountID, version, "profile-transaction-totals", address, &payload); err != nil {
+		return UserTransactionTotals{}, err
 	}
-	return payload.PendingRobux, err
+	if payload.PendingRobux == nil || *payload.PendingRobux < 0 || payload.IncomingRobux == nil || *payload.IncomingRobux < 0 || payload.OutgoingRobux == nil || *payload.OutgoingRobux > 0 {
+		return UserTransactionTotals{}, invalidProfileDetails("profile-transaction-totals")
+	}
+	return UserTransactionTotals{PendingRobux: *payload.PendingRobux, IncomingRobux: *payload.IncomingRobux, OutgoingRobux: -*payload.OutgoingRobux}, nil
 }
 
 func (service *Users) AgeVerified(ctx context.Context, accountID, version int64) (*bool, error) {
@@ -318,6 +333,110 @@ func (service *Users) PrimaryGroup(ctx context.Context, accountID, version, user
 		ID: payload.Group.ID, Name: strings.TrimSpace(payload.Group.Name), Role: strings.TrimSpace(payload.Role.Name),
 		Members: max(payload.Group.MemberCount, 0), Verified: payload.Group.HasVerifiedBadge,
 	}, nil
+}
+
+// CommunityCount counts the communities a user belongs to. The v2 list leaves
+// out descriptions and shouts, so it stays small for users in many communities.
+func (service *Users) CommunityCount(ctx context.Context, accountID, version, userID int64) (int64, error) {
+	var payload struct {
+		Data *[]json.RawMessage `json:"data"`
+	}
+	address := "https://groups.roblox.com/v2/users/" + strconv.FormatInt(userID, 10) + "/groups/roles"
+	if err := service.readAccountDetails(ctx, accountID, version, "profile-communities", address, &payload); err != nil {
+		return 0, err
+	}
+	if payload.Data == nil {
+		return 0, invalidProfileDetails("profile-communities")
+	}
+	return int64(len(*payload.Data)), nil
+}
+
+// Shapes of the unread and inbound counts verified against signed-in
+// responses captured on 2026-10-15.
+
+func (service *Users) UnreadMessageCount(ctx context.Context, accountID, version int64) (int64, error) {
+	return service.readCount(ctx, accountID, version, "profile-unread-messages", "https://privatemessages.roblox.com/v1/messages/unread/count")
+}
+
+// InboundTradeCount names the trade status, because Roblox reads a number in
+// its place as a trade ID.
+func (service *Users) InboundTradeCount(ctx context.Context, accountID, version int64) (int64, error) {
+	return service.readCount(ctx, accountID, version, "profile-inbound-trades", "https://trades.roblox.com/v1/trades/Inbound/count")
+}
+
+func (service *Users) UnreadNotificationCount(ctx context.Context, accountID, version int64) (int64, error) {
+	var payload struct {
+		UnreadNotifications *int64 `json:"unreadNotifications"`
+	}
+	if err := service.readAccountDetails(ctx, accountID, version, "profile-unread-notifications", "https://notifications.roblox.com/v2/stream-notifications/unread-count", &payload); err != nil {
+		return 0, err
+	}
+	if payload.UnreadNotifications == nil || *payload.UnreadNotifications < 0 {
+		return 0, invalidProfileDetails("profile-unread-notifications")
+	}
+	return *payload.UnreadNotifications, nil
+}
+
+func (service *Users) readCount(ctx context.Context, accountID, version int64, endpoint, address string) (int64, error) {
+	var payload struct {
+		Count *int64 `json:"count"`
+	}
+	if err := service.readAccountDetails(ctx, accountID, version, endpoint, address, &payload); err != nil {
+		return 0, err
+	}
+	if payload.Count == nil || *payload.Count < 0 {
+		return 0, invalidProfileDetails(endpoint)
+	}
+	return *payload.Count, nil
+}
+
+type UserCollectibles struct {
+	Count                   int64
+	RecentAveragePriceTotal int64
+}
+
+// Collectibles counts a user's limited items and adds up their recent average
+// prices. Shape verified against a collectibles response captured on 2026-10-15.
+func (service *Users) Collectibles(ctx context.Context, accountID, version, userID int64) (UserCollectibles, error) {
+	ctx, cancel := context.WithTimeout(ctx, 30*time.Second)
+	defer cancel()
+	collectibles := UserCollectibles{}
+	seenCursors := map[string]bool{}
+	cursor := ""
+	for range maxCollectiblePages {
+		var payload struct {
+			Data *[]struct {
+				RecentAveragePrice *int64 `json:"recentAveragePrice"`
+			} `json:"data"`
+			NextPageCursor *string `json:"nextPageCursor"`
+		}
+		query := url.Values{"limit": {strconv.Itoa(collectiblePageSize)}, "sortOrder": {"Desc"}}
+		if cursor != "" {
+			query.Set("cursor", cursor)
+		}
+		address := "https://inventory.roblox.com/v1/users/" + strconv.FormatInt(userID, 10) + "/assets/collectibles?" + query.Encode()
+		if err := service.readAccountDetails(ctx, accountID, version, "profile-collectibles", address, &payload); err != nil {
+			return UserCollectibles{}, err
+		}
+		if payload.Data == nil || len(*payload.Data) > collectiblePageSize {
+			return UserCollectibles{}, invalidProfileDetails("profile-collectibles")
+		}
+		for _, listedCollectible := range *payload.Data {
+			collectibles.Count++
+			if listedCollectible.RecentAveragePrice != nil && *listedCollectible.RecentAveragePrice > 0 {
+				collectibles.RecentAveragePriceTotal += *listedCollectible.RecentAveragePrice
+			}
+		}
+		if payload.NextPageCursor == nil || *payload.NextPageCursor == "" {
+			return collectibles, nil
+		}
+		cursor = *payload.NextPageCursor
+		if len(cursor) > 4096 || seenCursors[cursor] {
+			return UserCollectibles{}, invalidProfileDetails("profile-collectibles")
+		}
+		seenCursors[cursor] = true
+	}
+	return UserCollectibles{}, &roblox.Error{Kind: roblox.KindProtocol, Endpoint: "profile-collectibles", Message: "This account has too many collectibles to count."}
 }
 
 func (service *Users) readAccountDetails(ctx context.Context, accountID, version int64, endpoint, address string, result any) error {

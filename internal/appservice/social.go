@@ -375,21 +375,9 @@ func (service *Service) GetSocialProfile(ctx context.Context, accountID, userID 
 			}
 			return readError
 		}},
-		{"friends", func() error {
-			var readError error
-			profile.FriendCount, readError = service.users.SocialCount(ctx, accountID, version, userID, "friends")
-			return readError
-		}},
-		{"followers", func() error {
-			var readError error
-			profile.FollowerCount, readError = service.users.SocialCount(ctx, accountID, version, userID, "followers")
-			return readError
-		}},
-		{"following", func() error {
-			var readError error
-			profile.FollowingCount, readError = service.users.SocialCount(ctx, accountID, version, userID, "followings")
-			return readError
-		}},
+		service.socialCountRead(ctx, accountID, version, userID, "friends", &profile.FriendCount),
+		service.socialCountRead(ctx, accountID, version, userID, "followers", &profile.FollowerCount),
+		service.socialCountRead(ctx, accountID, version, userID, "followings", &profile.FollowingCount),
 		{"previousNames", func() error {
 			var readError error
 			profile.PreviousNames, readError = service.users.PreviousNames(ctx, accountID, version, userID)
