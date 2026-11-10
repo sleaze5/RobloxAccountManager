@@ -349,8 +349,8 @@ func (service *Service) GetLaunchConfirmation() appservice.LaunchConfirmation {
 	return service.core.GetLaunchConfirmation()
 }
 
-func (service *Service) ResolveLaunchConfirmation(id string, approved bool) {
-	service.core.ResolveLaunchConfirmation(id, approved)
+func (service *Service) ResolveLaunchConfirmation(confirmationID string, approved bool) {
+	service.core.ResolveLaunchConfirmation(confirmationID, approved)
 }
 
 func (service *Service) SetMultiInstanceEnabled(enabled bool) (robloxmulti.Snapshot, error) {
@@ -523,14 +523,16 @@ func (service *Service) OpenVaultExport(ctx context.Context, path, password stri
 	return service.core.OpenVaultExport(ctx, path, password)
 }
 
-func (service *Service) ImportVaultExport(ctx context.Context, id string, request appservice.TransferRequest, confirmation string) (appservice.TransferResult, error) {
+func (service *Service) ImportVaultExport(ctx context.Context, transferID string, request appservice.TransferRequest, confirmation string) (appservice.TransferResult, error) {
 	if request.Mode == appservice.TransferOverwrite && confirmation != "CONFIRM" {
 		return appservice.TransferResult{}, &roblox.Error{Kind: roblox.KindProtocol, Endpoint: "vault-transfer", Message: "Type CONFIRM to overwrite the vault."}
 	}
-	return service.core.ImportVaultExport(ctx, id, request)
+	return service.core.ImportVaultExport(ctx, transferID, request)
 }
 
-func (service *Service) DiscardVaultExport(id string) { service.core.DiscardVaultExport(id) }
+func (service *Service) DiscardVaultExport(transferID string) {
+	service.core.DiscardVaultExport(transferID)
+}
 
 func (service *Service) ValidateCookies(ctx context.Context, input string) (appservice.ImportPreview, error) {
 	return service.core.ValidateCookies(ctx, input)
@@ -679,8 +681,8 @@ func accountSelection(accountIDs []int64, endpoint string) error {
 	return nil
 }
 
-func positiveID(value int64, endpoint string) error {
-	if value > 0 {
+func positiveID(id int64, endpoint string) error {
+	if id > 0 {
 		return nil
 	}
 	return &roblox.Error{Kind: roblox.KindProtocol, Endpoint: endpoint, Message: "The requested identifier is invalid."}

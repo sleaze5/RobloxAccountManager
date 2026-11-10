@@ -48,7 +48,7 @@ func (service *Service) GetAccountProfile(ctx context.Context, accountID int64) 
 	if !service.vault.Unlocked() {
 		return AccountProfileSnapshot{}, profileError(roblox.KindVaultLocked, "The account vault is locked.")
 	}
-	account, err := service.repo.GetView(ctx, accountID)
+	account, err := service.accountRepository.GetView(ctx, accountID)
 	if err != nil {
 		return AccountProfileSnapshot{}, mapRepositoryError(err)
 	}

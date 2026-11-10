@@ -133,7 +133,7 @@ func (service *Users) UnlockPin(ctx context.Context, accountID, version int64, p
 // Shape verified against signed-in responses on 2026-10-12. Item fields were
 // not observed, so names come from the users API.
 func (service *Users) BlockedUsers(ctx context.Context, accountID, version int64) ([]UserView, error) {
-	ids := []int64{}
+	userIDs := []int64{}
 	seen := map[int64]struct{}{}
 	cursor := ""
 	for range maxBlockedUsersPages {
@@ -160,14 +160,14 @@ func (service *Users) BlockedUsers(ctx context.Context, accountID, version int64
 		for _, user := range payload.Data.BlockedUsers {
 			page = append(page, user.UserID)
 		}
-		for _, id := range page {
-			if _, exists := seen[id]; id > 0 && !exists {
-				seen[id] = struct{}{}
-				ids = append(ids, id)
+		for _, userID := range page {
+			if _, exists := seen[userID]; userID > 0 && !exists {
+				seen[userID] = struct{}{}
+				userIDs = append(userIDs, userID)
 			}
 		}
 		if payload.Data.Cursor == nil || *payload.Data.Cursor == "" {
-			return service.Names(ctx, ids)
+			return service.Names(ctx, userIDs)
 		}
 		cursor = *payload.Data.Cursor
 	}
@@ -190,11 +190,11 @@ func (service *Users) Unblock(ctx context.Context, accountID, version, userID in
 }
 
 // Users that Roblox no longer returns keep only their ID.
-func (service *Users) Names(ctx context.Context, ids []int64) ([]UserView, error) {
-	users := make([]UserView, 0, len(ids))
+func (service *Users) Names(ctx context.Context, userIDs []int64) ([]UserView, error) {
+	users := make([]UserView, 0, len(userIDs))
 	endpoint, _ := url.Parse("https://users.roblox.com/v1/users")
-	for start := 0; start < len(ids); start += userNamesBatchSize {
-		batch := ids[start:min(start+userNamesBatchSize, len(ids))]
+	for start := 0; start < len(userIDs); start += userNamesBatchSize {
+		batch := userIDs[start:min(start+userNamesBatchSize, len(userIDs))]
 		body, err := json.Marshal(struct {
 			UserIDs            []int64 `json:"userIds"`
 			ExcludeBannedUsers bool    `json:"excludeBannedUsers"`
@@ -224,10 +224,10 @@ func (service *Users) Names(ctx context.Context, ids []int64) ([]UserView, error
 		for _, user := range payload.Data {
 			found[user.ID] = UserView{UserID: user.ID, Username: user.Name, DisplayName: user.DisplayName}
 		}
-		for _, id := range batch {
-			user, exists := found[id]
+		for _, userID := range batch {
+			user, exists := found[userID]
 			if !exists {
-				user = UserView{UserID: id}
+				user = UserView{UserID: userID}
 			}
 			users = append(users, user)
 		}

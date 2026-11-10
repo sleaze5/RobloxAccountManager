@@ -99,11 +99,11 @@ ORDER BY a.display_order, a.id`)
 		var id int64
 		var expires sql.NullInt64
 		account := Account{Tags: []string{}}
-		if err := rows.Scan(&id, &account.RobloxUserID, &account.Username, &account.DisplayName, &account.CreatedAtMS, &account.Cookie, &expires, &account.Password); err != nil {
+		if err := rows.Scan(&id, &account.RobloxUserID, &account.Username, &account.DisplayName, &account.CreatedAtMs, &account.Cookie, &expires, &account.Password); err != nil {
 			return nil, fmt.Errorf("read exported account: %w", err)
 		}
 		if expires.Valid {
-			account.CookieExpiresAtMS = &expires.Int64
+			account.CookieExpiresAtMs = &expires.Int64
 		}
 		indices[id] = len(accounts)
 		accounts = append(accounts, account)
@@ -427,12 +427,12 @@ replaced_at_ms = ?, last_validated_at_ms = ?, last_success_at_ms = ?, last_auth_
 
 func insertAccount(ctx context.Context, transaction *sql.Tx, accountID, order int64, account Account, now int64) error {
 	if _, err := transaction.ExecContext(ctx, `INSERT INTO accounts(id, roblox_user_id, username, display_name, display_order, created_at_ms, updated_at_ms) VALUES(?, ?, ?, ?, ?, ?, ?)`,
-		accountID, account.RobloxUserID, account.Username, account.DisplayName, order, account.CreatedAtMS, now); err != nil {
+		accountID, account.RobloxUserID, account.Username, account.DisplayName, order, account.CreatedAtMs, now); err != nil {
 		return fmt.Errorf("insert imported account: %w", err)
 	}
 	if _, err := transaction.ExecContext(ctx, `
 INSERT INTO account_sessions(account_id, roblosecurity, cookie_expires_at_ms, state, secret_version, imported_at_ms, updated_at_ms, password)
-VALUES(?, ?, ?, ?, 1, ?, ?, ?)`, accountID, account.Cookie, account.CookieExpiresAtMS, accountdomain.StateActive, now, now, account.Password); err != nil {
+VALUES(?, ?, ?, ?, 1, ?, ?, ?)`, accountID, account.Cookie, account.CookieExpiresAtMs, accountdomain.StateActive, now, now, account.Password); err != nil {
 		return fmt.Errorf("insert imported account session: %w", err)
 	}
 	return nil

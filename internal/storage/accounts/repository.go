@@ -435,7 +435,7 @@ type scanner interface{ Scan(...any) error }
 func scanView(row scanner, extra ...any) (accountdomain.AccountView, error) {
 	var view accountdomain.AccountView
 	var expires, rotated, validated sql.NullInt64
-	err := row.Scan(append([]any{&view.ID, &view.RobloxUserID, &view.Username, &view.DisplayName, &view.State, &view.StateReason, &view.SecretVersion, &expires, &view.CreatedAtMS, &view.ImportedAtMS, &rotated, &validated, &view.UpdatedAtMS, &view.HasSavedPassword}, extra...)...)
+	err := row.Scan(append([]any{&view.ID, &view.RobloxUserID, &view.Username, &view.DisplayName, &view.State, &view.StateReason, &view.SecretVersion, &expires, &view.CreatedAtMs, &view.ImportedAtMs, &rotated, &validated, &view.UpdatedAtMs, &view.HasSavedPassword}, extra...)...)
 	if errors.Is(err, sql.ErrNoRows) {
 		return accountdomain.AccountView{}, accountdomain.ErrNotFound
 	}
@@ -443,9 +443,9 @@ func scanView(row scanner, extra ...any) (accountdomain.AccountView, error) {
 		return accountdomain.AccountView{}, fmt.Errorf("scan account: %w", err)
 	}
 	view.Tags = []accountdomain.TagView{}
-	view.CookieExpiresAtMS = int64PointerFromNull(expires)
-	view.RotatedAtMS = int64PointerFromNull(rotated)
-	view.LastValidatedAtMS = int64PointerFromNull(validated)
+	view.CookieExpiresAtMs = int64PointerFromNull(expires)
+	view.RotatedAtMs = int64PointerFromNull(rotated)
+	view.LastValidatedAtMs = int64PointerFromNull(validated)
 	return view, nil
 }
 
@@ -467,7 +467,7 @@ func scanSession(row scanner) (accountdomain.SessionRecord, error) {
 }
 
 func viewFrom(identity accountdomain.Identity, accountID int64, session accountdomain.SessionRecord, updated time.Time) accountdomain.AccountView {
-	return accountdomain.AccountView{ID: accountID, RobloxUserID: identity.RobloxUserID, Username: identity.Username, DisplayName: identity.DisplayName, Tags: []accountdomain.TagView{}, State: session.State, SecretVersion: session.SecretVersion, CookieExpiresAtMS: unixMillisecondsPointer(session.CookieExpiresAt), CreatedAtMS: identity.CreatedAt.UTC().UnixMilli(), ImportedAtMS: session.ImportedAt.UnixMilli(), LastValidatedAtMS: unixMillisecondsPointer(session.LastValidatedAt), UpdatedAtMS: updated.UnixMilli()}
+	return accountdomain.AccountView{ID: accountID, RobloxUserID: identity.RobloxUserID, Username: identity.Username, DisplayName: identity.DisplayName, Tags: []accountdomain.TagView{}, State: session.State, SecretVersion: session.SecretVersion, CookieExpiresAtMs: unixMillisecondsPointer(session.CookieExpiresAt), CreatedAtMs: identity.CreatedAt.UTC().UnixMilli(), ImportedAtMs: session.ImportedAt.UnixMilli(), LastValidatedAtMs: unixMillisecondsPointer(session.LastValidatedAt), UpdatedAtMs: updated.UnixMilli()}
 }
 
 func nullableUnixMilliseconds(value *time.Time) any {

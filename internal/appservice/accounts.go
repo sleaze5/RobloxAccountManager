@@ -23,7 +23,7 @@ const (
 )
 
 func (service *Service) BrowserAccount(ctx context.Context, accountID int64) (accounts.AccountView, roblox.SessionSnapshot, error) {
-	view, err := service.repo.GetView(ctx, accountID)
+	view, err := service.accountRepository.GetView(ctx, accountID)
 	if err != nil {
 		return accounts.AccountView{}, roblox.SessionSnapshot{}, mapRepositoryError(err)
 	}
@@ -32,12 +32,12 @@ func (service *Service) BrowserAccount(ctx context.Context, accountID int64) (ac
 }
 
 func (service *Service) BrowserCandidateAccount(ctx context.Context, robloxUserID int64) (accounts.AccountView, bool) {
-	view, err := service.repo.FindByRobloxUserID(ctx, robloxUserID)
+	view, err := service.accountRepository.FindByRobloxUserID(ctx, robloxUserID)
 	return view, err == nil
 }
 
 func (service *Service) FindAccountByRobloxUserID(ctx context.Context, robloxUserID int64) (*accounts.AccountView, error) {
-	view, err := service.repo.FindByRobloxUserID(ctx, robloxUserID)
+	view, err := service.accountRepository.FindByRobloxUserID(ctx, robloxUserID)
 	if errors.Is(err, accounts.ErrNotFound) {
 		return nil, nil
 	}
@@ -61,7 +61,7 @@ func (service *Service) ValidateBrowserCookie(ctx context.Context, cookie, brows
 	if err != nil {
 		return roblox.CookieValidation{}, err
 	}
-	existing, err := service.repo.FindByRobloxUserID(ctx, validation.Identity.RobloxUserID)
+	existing, err := service.accountRepository.FindByRobloxUserID(ctx, validation.Identity.RobloxUserID)
 	if err == nil {
 		validation.BrowserID = service.sessions.BrowserID(existing.ID)
 	} else if !errors.Is(err, accounts.ErrNotFound) {
@@ -71,7 +71,7 @@ func (service *Service) ValidateBrowserCookie(ctx context.Context, cookie, brows
 }
 
 func (service *Service) BrowserAvatar(ctx context.Context, robloxUserID int64) string {
-	views, err := service.avatars.AvatarHeadshots(ctx, []int64{robloxUserID})
+	views, err := service.thumbnails.AvatarHeadshots(ctx, []int64{robloxUserID})
 	if err != nil || len(views) == 0 {
 		return ""
 	}
@@ -79,7 +79,7 @@ func (service *Service) BrowserAvatar(ctx context.Context, robloxUserID int64) s
 }
 
 func (service *Service) CommitBrowserCandidate(ctx context.Context, validation roblox.CookieValidation) (accounts.AccountView, browser.SaveStatus, error) {
-	existing, err := service.repo.FindByRobloxUserID(ctx, validation.Identity.RobloxUserID)
+	existing, err := service.accountRepository.FindByRobloxUserID(ctx, validation.Identity.RobloxUserID)
 	if err == nil {
 		view, replaceError := service.replaceValidatedCookie(ctx, existing.ID, validation)
 		return view, browser.SaveUpdated, replaceError
@@ -87,16 +87,16 @@ func (service *Service) CommitBrowserCandidate(ctx context.Context, validation r
 	if !errors.Is(err, accounts.ErrNotFound) {
 		return accounts.AccountView{}, browser.SaveFailed, mapRepositoryError(err)
 	}
-	view, record, err := service.repo.Create(ctx, validation.Identity, validation.Cookie, validation.ExpiresAt, validation.Moderation != nil)
+	view, record, err := service.accountRepository.Create(ctx, validation.Identity, validation.Cookie, validation.ExpiresAt, validation.Moderation != nil)
 	if errors.Is(err, accounts.ErrDuplicateAccount) {
-		duplicate, lookupError := service.repo.FindByRobloxUserID(ctx, validation.Identity.RobloxUserID)
+		duplicate, lookupError := service.accountRepository.FindByRobloxUserID(ctx, validation.Identity.RobloxUserID)
 		return duplicate, browser.SaveDuplicate, lookupError
 	}
 	if err != nil {
 		return accounts.AccountView{}, browser.SaveFailed, mapRepositoryError(err)
 	}
 	if err := service.sessions.Put(record, validation.BrowserID); err != nil {
-		if removeError := service.repo.Remove(context.WithoutCancel(ctx), view.ID); removeError != nil {
+		if removeError := service.accountRepository.Remove(context.WithoutCancel(ctx), view.ID); removeError != nil {
 			service.logger.Error("browser account rollback failed", "operation", "browser-account-save", "account_id", view.ID, "error", removeError)
 		}
 		return accounts.AccountView{}, browser.SaveFailed, err
@@ -106,14 +106,14 @@ func (service *Service) CommitBrowserCandidate(ctx context.Context, validation r
 }
 
 func (service *Service) SynchronizeBrowserCookie(ctx context.Context, accountID, expectedVersion int64, validation roblox.CookieValidation) (int64, error) {
-	view, err := service.repo.GetView(ctx, accountID)
+	view, err := service.accountRepository.GetView(ctx, accountID)
 	if err != nil {
 		return 0, mapRepositoryError(err)
 	}
 	if view.RobloxUserID != validation.Identity.RobloxUserID {
 		return 0, errors.New("saved browser account identity changed")
 	}
-	record, err := service.repo.RotateCookie(ctx, accountID, expectedVersion, validation.Cookie, validation.ExpiresAt)
+	record, err := service.accountRepository.RotateCookie(ctx, accountID, expectedVersion, validation.Cookie, validation.ExpiresAt)
 	if err != nil {
 		return 0, err
 	}
@@ -128,7 +128,7 @@ func (service *Service) SynchronizeBrowserCookie(ctx context.Context, accountID,
 }
 
 func (service *Service) replaceValidatedCookie(ctx context.Context, accountID int64, validated roblox.CookieValidation) (accounts.AccountView, error) {
-	current, err := service.repo.GetView(ctx, accountID)
+	current, err := service.accountRepository.GetView(ctx, accountID)
 	if err != nil {
 		return accounts.AccountView{}, mapRepositoryError(err)
 	}
@@ -138,7 +138,7 @@ func (service *Service) replaceValidatedCookie(ctx context.Context, accountID in
 	if err := service.vault.PurgeBackups(); err != nil {
 		return accounts.AccountView{}, fmt.Errorf("remove backups containing the previous cookie: %w", err)
 	}
-	view, session, err := service.repo.ReplaceCookie(ctx, accountID, validated.Identity, validated.Cookie, validated.ExpiresAt, validated.Moderation != nil)
+	view, session, err := service.accountRepository.ReplaceCookie(ctx, accountID, validated.Identity, validated.Cookie, validated.ExpiresAt, validated.Moderation != nil)
 	if err != nil {
 		return accounts.AccountView{}, mapRepositoryError(err)
 	}
@@ -156,7 +156,7 @@ func (service *Service) RemoveAccount(ctx context.Context, accountID int64) erro
 	if err := service.vault.PurgeBackups(); err != nil {
 		return fmt.Errorf("remove backups containing the account: %w", err)
 	}
-	if err := service.repo.Remove(ctx, accountID); err != nil {
+	if err := service.accountRepository.Remove(ctx, accountID); err != nil {
 		return mapRepositoryError(err)
 	}
 	service.sessions.Remove(accountID)
@@ -171,7 +171,7 @@ func (service *Service) RemoveAccount(ctx context.Context, accountID int64) erro
 }
 
 func (service *Service) ListAccounts(ctx context.Context, query accounts.AccountQuery) (accounts.AccountPage, error) {
-	page, err := service.repo.Page(ctx, query)
+	page, err := service.accountRepository.Page(ctx, query)
 	if err != nil {
 		return accounts.AccountPage{}, mapRepositoryError(err)
 	}
@@ -199,11 +199,11 @@ func (service *Service) attachModeration(ctx context.Context, view *accounts.Acc
 }
 
 func (service *Service) MoveAccount(ctx context.Context, accountID int64, beforeID, afterID *int64) error {
-	return mapRepositoryError(service.repo.Move(ctx, accountID, beforeID, afterID))
+	return mapRepositoryError(service.accountRepository.Move(ctx, accountID, beforeID, afterID))
 }
 
 func (service *Service) ListTags(ctx context.Context) ([]accounts.TagView, error) {
-	tags, err := service.repo.ListTags(ctx)
+	tags, err := service.accountRepository.ListTags(ctx)
 	if err != nil {
 		return nil, mapRepositoryError(err)
 	}
@@ -211,7 +211,7 @@ func (service *Service) ListTags(ctx context.Context) ([]accounts.TagView, error
 }
 
 func (service *Service) CreateTag(ctx context.Context, name string) (accounts.TagView, error) {
-	tag, err := service.repo.CreateTag(ctx, name)
+	tag, err := service.accountRepository.CreateTag(ctx, name)
 	if err != nil {
 		return accounts.TagView{}, mapRepositoryError(err)
 	}
@@ -220,7 +220,7 @@ func (service *Service) CreateTag(ctx context.Context, name string) (accounts.Ta
 }
 
 func (service *Service) RemoveTag(ctx context.Context, tagID int64) error {
-	if err := service.repo.RemoveTag(ctx, tagID); err != nil {
+	if err := service.accountRepository.RemoveTag(ctx, tagID); err != nil {
 		return mapRepositoryError(err)
 	}
 	service.events.send("tag:changed", struct {
@@ -230,7 +230,7 @@ func (service *Service) RemoveTag(ctx context.Context, tagID int64) error {
 }
 
 func (service *Service) SetAccountsTag(ctx context.Context, accountIDs []int64, tagID int64, selected bool) ([]accounts.AccountView, error) {
-	views, err := service.repo.SetAccountsTag(ctx, accountIDs, tagID, selected)
+	views, err := service.accountRepository.SetAccountsTag(ctx, accountIDs, tagID, selected)
 	if err != nil {
 		return nil, mapRepositoryError(err)
 	}
@@ -241,7 +241,7 @@ func (service *Service) SetAccountsTag(ctx context.Context, accountIDs []int64, 
 }
 
 func (service *Service) GetAvatarHeadshots(ctx context.Context, userIDs []int64) ([]robloxservices.AvatarHeadshotView, error) {
-	return service.avatars.AvatarHeadshots(ctx, userIDs)
+	return service.thumbnails.AvatarHeadshots(ctx, userIDs)
 }
 
 func (service *Service) GetAccountPresences(ctx context.Context, accountID *int64) ([]robloxservices.UserPresence, error) {
@@ -263,7 +263,7 @@ func (service *Service) GetAccountPresences(ctx context.Context, accountID *int6
 func (service *Service) presenceTargets(ctx context.Context, accountID *int64) ([]robloxservices.PresenceTarget, error) {
 	var views []accounts.AccountView
 	if accountID != nil {
-		view, err := service.repo.GetView(ctx, *accountID)
+		view, err := service.accountRepository.GetView(ctx, *accountID)
 		if err != nil {
 			return nil, mapRepositoryError(err)
 		}
@@ -287,7 +287,7 @@ func (service *Service) savedAccounts(ctx context.Context) ([]accounts.AccountVi
 	views := []accounts.AccountView{}
 	var cursor *accounts.AccountCursor
 	for {
-		page, err := service.repo.Page(ctx, accounts.AccountQuery{Cursor: cursor})
+		page, err := service.accountRepository.Page(ctx, accounts.AccountQuery{Cursor: cursor})
 		if err != nil {
 			return nil, mapRepositoryError(err)
 		}
@@ -300,7 +300,7 @@ func (service *Service) savedAccounts(ctx context.Context) ([]accounts.AccountVi
 }
 
 func (service *Service) ValidateAccount(ctx context.Context, accountID int64) (accounts.AccountView, error) {
-	current, err := service.repo.GetView(ctx, accountID)
+	current, err := service.accountRepository.GetView(ctx, accountID)
 	if err != nil {
 		return accounts.AccountView{}, mapRepositoryError(err)
 	}
@@ -316,17 +316,17 @@ func (service *Service) ValidateAccount(ctx context.Context, accountID int64) (a
 		return accounts.AccountView{}, snapshotError
 	}
 	if identity.RobloxUserID != current.RobloxUserID {
-		if err := service.repo.MarkState(context.WithoutCancel(ctx), accountID, snapshot.SecretVersion, accounts.StateReauthRequired, "Roblox returned a different account identity."); err != nil && !errors.Is(err, accounts.ErrStaleSecret) {
+		if err := service.accountRepository.MarkState(context.WithoutCancel(ctx), accountID, snapshot.SecretVersion, accounts.StateReauthRequired, "Roblox returned a different account identity."); err != nil && !errors.Is(err, accounts.ErrStaleSecret) {
 			service.logger.Warn("account reauthentication state could not be saved", "operation", "account-validation", "account_id", accountID, "error", err)
 		}
 		service.sessions.UpdateState(accountID, snapshot.SecretVersion, accounts.StateReauthRequired)
 		return accounts.AccountView{}, &roblox.Error{Kind: roblox.KindReauthRequired, Endpoint: "authenticated-user", Message: "The session identity changed. Replace the cookie."}
 	}
-	if err := service.repo.RecordValidation(ctx, accountID, snapshot.SecretVersion, identity); err != nil && !errors.Is(err, accounts.ErrStaleSecret) {
+	if err := service.accountRepository.RecordValidation(ctx, accountID, snapshot.SecretVersion, identity); err != nil && !errors.Is(err, accounts.ErrStaleSecret) {
 		return accounts.AccountView{}, mapRepositoryError(err)
 	}
 	service.sessions.UpdateState(accountID, snapshot.SecretVersion, accounts.StateActive)
-	view, err := service.repo.GetView(ctx, accountID)
+	view, err := service.accountRepository.GetView(ctx, accountID)
 	if err != nil {
 		return accounts.AccountView{}, mapRepositoryError(err)
 	}
@@ -372,14 +372,14 @@ func (service *Service) recordModeration(ctx context.Context, current accounts.A
 	if err != nil {
 		return accounts.AccountView{}, err
 	}
-	if err := service.repo.MarkModerated(ctx, current.ID, snapshot.SecretVersion); err != nil && !errors.Is(err, accounts.ErrStaleSecret) {
+	if err := service.accountRepository.MarkModerated(ctx, current.ID, snapshot.SecretVersion); err != nil && !errors.Is(err, accounts.ErrStaleSecret) {
 		return accounts.AccountView{}, mapRepositoryError(err)
 	}
 	service.sessions.UpdateState(current.ID, snapshot.SecretVersion, accounts.StateModerated)
 	if _, err := service.users.Moderation(ctx, current.ID, snapshot.SecretVersion, current.RobloxUserID); err != nil && ctx.Err() == nil {
 		service.logger.Warn("account moderation details unavailable; keeping the cached details", "operation", "account-validation", "account_id", current.ID, "error", err)
 	}
-	view, err := service.repo.GetView(ctx, current.ID)
+	view, err := service.accountRepository.GetView(ctx, current.ID)
 	if err != nil {
 		return accounts.AccountView{}, mapRepositoryError(err)
 	}

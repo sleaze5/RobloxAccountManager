@@ -132,7 +132,7 @@ func (service *Service) ValidateCookies(ctx context.Context, input string) (Impo
 		userIDs = append(userIDs, identity.RobloxUserID)
 
 		var existingAccountID int64
-		existing, err := service.repo.FindByRobloxUserID(ctx, identity.RobloxUserID)
+		existing, err := service.accountRepository.FindByRobloxUserID(ctx, identity.RobloxUserID)
 		switch {
 		case err == nil:
 			existingAccountID = existing.ID
@@ -199,10 +199,10 @@ func (service *Service) SaveValidatedCookies(ctx context.Context, batchID string
 			continue
 		}
 
-		view, session, err := service.repo.Create(ctx, batchItem.validation.Identity, batchItem.validation.Cookie, batchItem.validation.ExpiresAt, batchItem.validation.Moderation != nil)
+		view, session, err := service.accountRepository.Create(ctx, batchItem.validation.Identity, batchItem.validation.Cookie, batchItem.validation.ExpiresAt, batchItem.validation.Moderation != nil)
 		if err != nil {
 			if errors.Is(err, accounts.ErrDuplicateAccount) {
-				existing, lookupError := service.repo.FindByRobloxUserID(ctx, batchItem.validation.Identity.RobloxUserID)
+				existing, lookupError := service.accountRepository.FindByRobloxUserID(ctx, batchItem.validation.Identity.RobloxUserID)
 				if lookupError == nil {
 					batchResult.Items = append(batchResult.Items, ImportBatchItem{Index: batchItem.index, Status: ImportDuplicate, Account: existing})
 					continue
@@ -213,7 +213,7 @@ func (service *Service) SaveValidatedCookies(ctx context.Context, batchID string
 			continue
 		}
 		if err := service.sessions.Put(session, batchItem.validation.BrowserID); err != nil {
-			if removeError := service.repo.Remove(context.WithoutCancel(ctx), view.ID); removeError != nil {
+			if removeError := service.accountRepository.Remove(context.WithoutCancel(ctx), view.ID); removeError != nil {
 				service.logger.Error("failed import rollback failed", "account_id", view.ID, "error", removeError)
 			}
 			status, message := importErrorDetails(err)
@@ -344,11 +344,11 @@ func clearPendingImportBatch(batch *pendingImportBatch) {
 }
 
 func newImportBatchID() (string, error) {
-	value := make([]byte, 24)
-	if _, err := rand.Read(value); err != nil {
+	randomBytes := make([]byte, 24)
+	if _, err := rand.Read(randomBytes); err != nil {
 		return "", fmt.Errorf("generate import batch ID: %w", err)
 	}
-	return base64.RawURLEncoding.EncodeToString(value), nil
+	return base64.RawURLEncoding.EncodeToString(randomBytes), nil
 }
 
 func importErrorDetails(err error) (string, string) {

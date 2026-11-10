@@ -236,10 +236,10 @@ func ValidRegionCode(code string) bool {
 	return true
 }
 
-func text(value string) string {
-	value = strings.TrimSpace(value)
-	if value == "Unknown" || !utf8.ValidString(value) || utf8.RuneCountInString(value) > maxTextLength {
+func text(rawText string) string {
+	rawText = strings.TrimSpace(rawText)
+	if rawText == "Unknown" || !utf8.ValidString(rawText) || utf8.RuneCountInString(rawText) > maxTextLength {
 		return ""
 	}
-	return value
+	return rawText
 }

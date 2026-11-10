@@ -123,7 +123,7 @@ func RestrictFile(path string) error {
 	return restrictACL(path, false)
 }
 
-func WritePrivateFile(path string, data []byte) error {
+func WritePrivateFile(path string, contents []byte) error {
 	temporary := path + ".tmp"
 	file, err := os.OpenFile(temporary, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0o600)
 	if err != nil {
@@ -139,7 +139,7 @@ func WritePrivateFile(path string, data []byte) error {
 	if err := RestrictFile(temporary); err != nil {
 		return err
 	}
-	if _, err := file.Write(data); err != nil {
+	if _, err := file.Write(contents); err != nil {
 		return fmt.Errorf("write %q: %w", filepath.Base(path), err)
 	}
 	if err := file.Sync(); err != nil {

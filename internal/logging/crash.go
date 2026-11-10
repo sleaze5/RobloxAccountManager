@@ -183,11 +183,11 @@ func crashFrames(lines []string) []string {
 
 // PanicReason deliberately avoids formatting arbitrary panic values: they can
 // contain credentials or account data. Runtime faults have safe built-in errors.
-func PanicReason(value any) string {
-	if err, ok := value.(runtime.Error); ok {
+func PanicReason(recovered any) string {
+	if err, ok := recovered.(runtime.Error); ok {
 		return err.Error()
 	}
-	return fmt.Sprintf("panic of type %T (payload omitted)", value)
+	return fmt.Sprintf("panic of type %T (payload omitted)", recovered)
 }
 
 func PanicStack() []string {

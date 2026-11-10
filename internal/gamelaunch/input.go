@@ -51,12 +51,12 @@ func Parse(input Input) (Request, error) {
 	}
 }
 
-func positiveID(value, label string) (int64, error) {
-	value = strings.TrimSpace(value)
-	if value == "" || strings.IndexFunc(value, func(character rune) bool { return character < '0' || character > '9' }) >= 0 {
+func positiveID(text, label string) (int64, error) {
+	text = strings.TrimSpace(text)
+	if text == "" || strings.IndexFunc(text, func(character rune) bool { return character < '0' || character > '9' }) >= 0 {
 		return 0, fmt.Errorf("enter a positive numeric %s", label)
 	}
-	id, err := strconv.ParseInt(value, 10, 64)
+	id, err := strconv.ParseInt(text, 10, 64)
 	if err != nil || id <= 0 {
 		return 0, fmt.Errorf("enter a valid positive %s", label)
 	}
@@ -64,7 +64,7 @@ func positiveID(value, label string) (int64, error) {
 }
 
 func placeRequest(place, job string) (Request, error) {
-	id, err := positiveID(place, "Place ID")
+	placeID, err := positiveID(place, "Place ID")
 	if err != nil {
 		return Request{}, err
 	}
@@ -72,36 +72,36 @@ func placeRequest(place, job string) (Request, error) {
 	if job != "" && !jobIDPattern.MatchString(job) {
 		return Request{}, errors.New("enter a valid Job ID (UUID), or leave it empty for a public server")
 	}
-	return Request{PlaceID: id, JobID: job}, nil
+	return Request{PlaceID: placeID, JobID: job}, nil
 }
 
-func parseUser(value string) (Request, error) {
-	value = strings.TrimSpace(strings.TrimPrefix(strings.TrimSpace(value), "@"))
-	if len(value) >= 3 && strings.EqualFold(value[:3], "id=") {
-		id, err := positiveID(value[3:], "User ID")
-		return Request{UserID: id}, err
+func parseUser(user string) (Request, error) {
+	user = strings.TrimSpace(strings.TrimPrefix(strings.TrimSpace(user), "@"))
+	if len(user) >= 3 && strings.EqualFold(user[:3], "id=") {
+		userID, err := positiveID(user[3:], "User ID")
+		return Request{UserID: userID}, err
 	}
-	if !usernamePattern.MatchString(value) {
+	if !usernamePattern.MatchString(user) {
 		return Request{}, errors.New("enter a username, or use id=123 for a User ID")
 	}
-	return Request{Username: value}, nil
+	return Request{Username: user}, nil
 }
 
-func parseLink(value string) (Request, error) {
-	value = strings.TrimSpace(value)
-	if len(value) > 8192 {
+func parseLink(linkText string) (Request, error) {
+	linkText = strings.TrimSpace(linkText)
+	if len(linkText) > 8192 {
 		return Request{}, errors.New("the Roblox link is too long")
 	}
-	if shareCodePattern.MatchString(value) {
-		return Request{ShareCode: value, ShareType: ShareServer}, nil
+	if shareCodePattern.MatchString(linkText) {
+		return Request{ShareCode: linkText, ShareType: ShareServer}, nil
 	}
-	if strings.HasPrefix(strings.ToLower(value), "roblox://") {
-		return parseDeepLink(value[len("roblox://"):])
+	if strings.HasPrefix(strings.ToLower(linkText), "roblox://") {
+		return parseDeepLink(linkText[len("roblox://"):])
 	}
-	if !strings.Contains(value, "://") {
-		value = "https://" + value
+	if !strings.Contains(linkText, "://") {
+		linkText = "https://" + linkText
 	}
-	link, err := url.Parse(value)
+	link, err := url.Parse(linkText)
 	if err != nil || !allowedWebLink(link) {
 		return Request{}, errors.New("enter a Roblox game, private-server, or experience-invite link, or a 32-character server-share code")
 	}

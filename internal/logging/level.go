@@ -18,21 +18,21 @@ const (
 
 const TraceLevel = slog.LevelDebug - 4
 
-func parseLevel(value string) (Level, error) {
-	level := Level(strings.ToLower(strings.TrimSpace(value)))
+func parseLevel(name string) (Level, error) {
+	level := Level(strings.ToLower(strings.TrimSpace(name)))
 	switch level {
 	case LevelError, LevelWarn, LevelInfo, LevelDebug, LevelTrace:
 		return level, nil
 	default:
-		return "", fmt.Errorf("unknown log level %q", value)
+		return "", fmt.Errorf("unknown log level %q", name)
 	}
 }
 
-func ParseLevels(values []string) ([]Level, error) {
-	levels := make([]Level, 0, len(values))
-	seen := make(map[Level]bool, len(values))
-	for _, value := range values {
-		level, err := parseLevel(value)
+func ParseLevels(names []string) ([]Level, error) {
+	levels := make([]Level, 0, len(names))
+	seen := make(map[Level]bool, len(names))
+	for _, name := range names {
+		level, err := parseLevel(name)
 		if err != nil {
 			return nil, err
 		}

@@ -39,8 +39,8 @@ const (
 // end. Title and Message are the explanation Roblox wrote for the user.
 type Moderation struct {
 	Kind       ModerationKind `json:"kind"`
-	BeginsAtMS int64          `json:"beginsAtMs"`
-	EndsAtMS   *int64         `json:"endsAtMs,omitempty"`
+	BeginsAtMs int64          `json:"beginsAtMs"`
+	EndsAtMs   *int64         `json:"endsAtMs,omitempty"`
 	Title      string         `json:"title"`
 	Message    string         `json:"message"`
 }
@@ -86,12 +86,12 @@ type AccountView struct {
 	StateReason       string       `json:"stateReason,omitempty"`
 	Moderation        *Moderation  `json:"moderation,omitempty"`
 	SecretVersion     int64        `json:"secretVersion"`
-	CookieExpiresAtMS *int64       `json:"cookieExpiresAtMs,omitempty"`
-	CreatedAtMS       int64        `json:"createdAtMs"`
-	ImportedAtMS      int64        `json:"importedAtMs"`
-	RotatedAtMS       *int64       `json:"rotatedAtMs,omitempty"`
-	LastValidatedAtMS *int64       `json:"lastValidatedAtMs,omitempty"`
-	UpdatedAtMS       int64        `json:"updatedAtMs"`
+	CookieExpiresAtMs *int64       `json:"cookieExpiresAtMs,omitempty"`
+	CreatedAtMs       int64        `json:"createdAtMs"`
+	ImportedAtMs      int64        `json:"importedAtMs"`
+	RotatedAtMs       *int64       `json:"rotatedAtMs,omitempty"`
+	LastValidatedAtMs *int64       `json:"lastValidatedAtMs,omitempty"`
+	UpdatedAtMs       int64        `json:"updatedAtMs"`
 }
 
 type AccountCursor struct {

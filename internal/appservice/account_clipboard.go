@@ -18,7 +18,7 @@ const (
 )
 
 func (service *Service) CopyAccountFields(ctx context.Context, accountIDs []int64, field AccountCopyField, copyText func(string) bool) error {
-	values := make([]string, 0, len(accountIDs))
+	fieldValues := make([]string, 0, len(accountIDs))
 	sessions := make([]roblox.SessionSnapshot, 0, len(accountIDs))
 	for _, accountID := range accountIDs {
 		if field == CopyCookie {
@@ -27,14 +27,14 @@ func (service *Service) CopyAccountFields(ctx context.Context, accountIDs []int6
 				return mapRepositoryError(err)
 			}
 			sessions = append(sessions, session)
-			values = append(values, session.Cookie)
+			fieldValues = append(fieldValues, session.Cookie)
 			continue
 		}
-		value, err := service.accountFieldValue(ctx, accountID, field)
+		fieldValue, err := service.accountFieldValue(ctx, accountID, field)
 		if err != nil {
 			return err
 		}
-		values = append(values, value)
+		fieldValues = append(fieldValues, fieldValue)
 	}
 	for _, accountID := range accountIDs {
 		if err := service.checkClipboardAccount(ctx, accountID); err != nil {
@@ -46,7 +46,7 @@ func (service *Service) CopyAccountFields(ctx context.Context, accountIDs []int6
 			return clipboardError("An account session changed. Try again.")
 		}
 	}
-	if !copyText(strings.Join(values, "\n")) {
+	if !copyText(strings.Join(fieldValues, "\n")) {
 		service.logger.Warn("account field clipboard write failed", "operation", "account-copy", "account_count", len(accountIDs), "field", field)
 		return clipboardError("The account details could not be copied. Try again.")
 	}
@@ -54,7 +54,7 @@ func (service *Service) CopyAccountFields(ctx context.Context, accountIDs []int6
 }
 
 func (service *Service) accountFieldValue(ctx context.Context, accountID int64, field AccountCopyField) (string, error) {
-	view, err := service.repo.GetView(ctx, accountID)
+	view, err := service.accountRepository.GetView(ctx, accountID)
 	if err != nil {
 		return "", mapRepositoryError(err)
 	}
@@ -79,7 +79,7 @@ func (service *Service) checkClipboardAccount(ctx context.Context, accountID int
 	if ctx.Err() != nil || !service.vault.Unlocked() {
 		return clipboardError("The copy was cancelled or the vault is locked.")
 	}
-	_, err := service.repo.GetView(ctx, accountID)
+	_, err := service.accountRepository.GetView(ctx, accountID)
 	return mapRepositoryError(err)
 }
 

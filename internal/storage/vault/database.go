@@ -151,7 +151,7 @@ func (manager *Manager) Create(ctx context.Context, password, hint string, autom
 	if err := validatePassword(password); err != nil {
 		return err
 	}
-	params := calibrateKDF(password)
+	parameters := calibrateKDF(password)
 	identifier, err := newVaultID()
 	if err != nil {
 		return err
@@ -161,7 +161,7 @@ func (manager *Manager) Create(ctx context.Context, password, hint string, autom
 		return err
 	}
 	defer func() { wipe(vaultKey) }()
-	key, err := createKeyFile(password, hint, identifier, vaultKey, params)
+	key, err := createKeyFile(password, hint, identifier, vaultKey, parameters)
 	if err != nil {
 		return err
 	}

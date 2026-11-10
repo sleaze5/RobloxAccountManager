@@ -44,8 +44,8 @@ type Game struct {
 	Versions              *PlaceVersions `json:"versions"`
 	CopyingAllowed        bool           `json:"copyingAllowed"`
 	PrivateServersAllowed bool           `json:"privateServersAllowed"`
-	CreatedAtMS           int64          `json:"createdAtMs"`
-	UpdatedAtMS           int64          `json:"updatedAtMs"`
+	CreatedAtMs           int64          `json:"createdAtMs"`
+	UpdatedAtMs           int64          `json:"updatedAtMs"`
 }
 
 type AvatarRules struct {
@@ -103,7 +103,7 @@ type Server struct {
 	Playing         int64         `json:"playing"`
 	MaxPlayers      int64         `json:"maxPlayers"`
 	FPS             float64       `json:"fps"`
-	PingMS          *int64        `json:"pingMs"`
+	PingMs          *int64        `json:"pingMs"`
 	LanguageMatches *int64        `json:"languageMatches"`
 	Friends         *int64        `json:"friends"`
 	PlayerImages    []string      `json:"playerImages"`
@@ -272,12 +272,12 @@ func ValidID(id int64) bool {
 	return id > 0 && id <= javaScriptMaxSafeInteger
 }
 
-func ValidJobID(value string) bool {
+func ValidJobID(jobID string) bool {
 	// Canonical UUID: 36 characters with dashes at 8, 13, 18, and 23.
-	if len(value) != 36 {
+	if len(jobID) != 36 {
 		return false
 	}
-	for index, char := range value {
+	for index, char := range jobID {
 		if index == 8 || index == 13 || index == 18 || index == 23 {
 			if char != '-' {
 				return false

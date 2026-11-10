@@ -142,6 +142,6 @@ func (service *Service) SavePrivateServerLink(ctx context.Context, placeID, acco
 	return service.core.SavePrivateServerLink(ctx, placeID, accountID, name, link)
 }
 
-func (service *Service) RemoveSavedPrivateServer(ctx context.Context, id int64) error {
-	return service.core.RemoveSavedPrivateServer(ctx, id)
+func (service *Service) RemoveSavedPrivateServer(ctx context.Context, savedPrivateServerID int64) error {
+	return service.core.RemoveSavedPrivateServer(ctx, savedPrivateServerID)
 }

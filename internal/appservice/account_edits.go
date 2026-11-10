@@ -59,7 +59,7 @@ func (service *Service) ChangeDisplayName(ctx context.Context, accountID int64, 
 	if displayName == "" || utf8.RuneCountInString(displayName) > maxDisplayNameLength || strings.ContainsFunc(displayName, unicode.IsControl) {
 		return accountEditError("display-name-update", "Enter a valid display name.")
 	}
-	account, err := service.repo.GetView(ctx, accountID)
+	account, err := service.accountRepository.GetView(ctx, accountID)
 	if err != nil {
 		return mapRepositoryError(err)
 	}
@@ -133,7 +133,7 @@ func (service *Service) ChangeAccountPassword(ctx context.Context, accountID int
 	}
 	defer unlock()
 	return service.editAccount(ctx, accountID, "password-change", "Roblox rejected the change. Check the current password and try again.", func(ctx context.Context, version int64) error {
-		account, err := service.repo.GetView(ctx, accountID)
+		account, err := service.accountRepository.GetView(ctx, accountID)
 		if err != nil {
 			return mapRepositoryError(err)
 		}
@@ -179,15 +179,15 @@ func (service *Service) GetBlockedUsers(ctx context.Context, accountID int64) ([
 		return nil, err
 	}
 	blocked := make([]BlockedUser, 0, len(users))
-	ids := make([]int64, 0, len(users))
+	userIDs := make([]int64, 0, len(users))
 	for _, user := range users {
 		blocked = append(blocked, BlockedUser{UserID: user.UserID, Username: user.Username, DisplayName: user.DisplayName})
-		ids = append(ids, user.UserID)
+		userIDs = append(userIDs, user.UserID)
 	}
-	if len(ids) == 0 {
+	if len(userIDs) == 0 {
 		return blocked, nil
 	}
-	images, err := service.headshotImages(ctx, ids)
+	images, err := service.headshotImages(ctx, userIDs)
 	if err != nil {
 		service.logger.Warn("blocked user avatars unavailable", "operation", "blocked-users", "account_id", accountID, "error", err)
 		return blocked, nil

@@ -121,11 +121,11 @@ func (service *Service) launchAccount(ctx context.Context, accountID int64, inpu
 			return true, err
 		}
 		return service.executeLaunch(ctx, confirm, func() error {
-			value, err := ticket()
+			authenticationTicket, err := ticket()
 			if err != nil {
 				return err
 			}
-			if err := service.launcher.Launch(ctx, value, browserID, target); err != nil {
+			if err := service.launcher.Launch(ctx, authenticationTicket, browserID, target); err != nil {
 				return &roblox.Error{Kind: roblox.KindProtocol, Endpoint: "game-launch", Message: userLaunchMessage(err, "Roblox Player could not be started. Check that Roblox is installed and try again."), Cause: err}
 			}
 			return nil
@@ -166,11 +166,11 @@ func (service *Service) CopyLaunchOptions(ctx context.Context, accountIDs []int6
 func (service *Service) accountLaunchOptions(ctx context.Context, accountID int64, input gamelaunch.Input) (string, error) {
 	var command string
 	err := service.runLaunchOperation(ctx, accountID, input, "copy-launch-options", func(ctx context.Context, ticket func() (string, error), browserID string, target gamelaunch.Request) error {
-		value, err := ticket()
+		authenticationTicket, err := ticket()
 		if err != nil {
 			return err
 		}
-		command, err = service.launcher.CommandLine(ctx, value, browserID, target)
+		command, err = service.launcher.CommandLine(ctx, authenticationTicket, browserID, target)
 		if err != nil {
 			return &roblox.Error{Kind: roblox.KindProtocol, Endpoint: "copy-launch-options", Message: userLaunchMessage(err, "Launch options could not be prepared. Check that Roblox is installed and try again."), Cause: err}
 		}
@@ -230,7 +230,7 @@ func (service *Service) runLaunchOperation(ctx context.Context, accountID int64,
 	loadTicket := func() (string, error) {
 		if ticketValue == "" {
 			stage = "authentication-ticket"
-			ticket, err := service.auth.AuthenticationTicket(ctx, accountID)
+			ticket, err := service.authentication.AuthenticationTicket(ctx, accountID)
 			if err != nil {
 				return "", err
 			}

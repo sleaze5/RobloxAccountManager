@@ -50,11 +50,11 @@ func capAccountSettingAudience(snapshot *AccountSettingsSnapshot, view *AccountS
 	}
 }
 
-func settingAudienceRank(value *string) int {
-	if value == nil {
+func settingAudienceRank(audience *string) int {
+	if audience == nil {
 		return -1
 	}
-	switch *value {
+	switch *audience {
 	case "All", "AllUsers", "AllAuthenticatedUsers":
 		return 5
 	case "Followers", "FriendsFollowingAndFollowers":

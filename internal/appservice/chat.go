@@ -143,7 +143,7 @@ func (service *Service) MarkAllChatConversationsRead(ctx context.Context, accoun
 		return 0, err
 	}
 	defer done()
-	ids, seen, cursor := []string{}, map[string]bool{}, ""
+	conversationIDs, seen, cursor := []string{}, map[string]bool{}, ""
 	for range maxChatMarkAllPages {
 		page, err := service.chat.Conversations(ctx, accountID, version, cursor)
 		if err != nil {
@@ -152,20 +152,20 @@ func (service *Service) MarkAllChatConversationsRead(ctx context.Context, accoun
 		for _, conversation := range page.Conversations {
 			if conversation.UnreadMessageCount > 0 && realChatConversation(conversation.ID) && !seen[conversation.ID] {
 				seen[conversation.ID] = true
-				ids = append(ids, conversation.ID)
+				conversationIDs = append(conversationIDs, conversation.ID)
 			}
 		}
 		if cursor = page.NextCursor; cursor == "" {
 			break
 		}
 	}
-	for chunk := range slices.Chunk(ids, robloxservices.ChatPageSize) {
+	for chunk := range slices.Chunk(conversationIDs, robloxservices.ChatPageSize) {
 		if err := service.markChatRead(ctx, logger, accountID, version, chunk); err != nil {
 			return 0, err
 		}
 	}
-	logger.DebugContext(ctx, "chat conversations marked read", "count", len(ids))
-	return len(ids), nil
+	logger.DebugContext(ctx, "chat conversations marked read", "count", len(conversationIDs))
+	return len(conversationIDs), nil
 }
 
 // CreateChatConversation opens a direct chat with one user, or creates a group
@@ -354,15 +354,15 @@ func (service *Service) beginChat(parent context.Context, accountID int64, opera
 }
 
 func (service *Service) chatSelfID(ctx context.Context, accountID int64) (int64, error) {
-	account, err := service.repo.GetView(ctx, accountID)
+	account, err := service.accountRepository.GetView(ctx, accountID)
 	if err != nil {
 		return 0, mapRepositoryError(err)
 	}
 	return account.RobloxUserID, nil
 }
 
-func (service *Service) markChatRead(ctx context.Context, logger *slog.Logger, accountID, version int64, ids []string) error {
-	results, err := service.chat.MarkRead(ctx, accountID, version, ids)
+func (service *Service) markChatRead(ctx context.Context, logger *slog.Logger, accountID, version int64, conversationIDs []string) error {
+	results, err := service.chat.MarkRead(ctx, accountID, version, conversationIDs)
 	if err != nil {
 		return chatFailure(ctx, logger, err)
 	}
@@ -506,21 +506,21 @@ func chatPiecesText(pieces []robloxservices.ChatMessagePiece) string {
 	return text.String()
 }
 
-func chatTime(value string) int64 {
-	parsed, err := time.Parse(time.RFC3339Nano, value)
+func chatTime(timestamp string) int64 {
+	parsed, err := time.Parse(time.RFC3339Nano, timestamp)
 	if err != nil {
 		return 0
 	}
 	return parsed.UnixMilli()
 }
 
-func realChatConversation(id string) bool {
-	return id != "" && !strings.HasPrefix(id, "friends-")
+func realChatConversation(conversationID string) bool {
+	return conversationID != "" && !strings.HasPrefix(conversationID, "friends-")
 }
 
-func validateChatConversationID(id string) error {
+func validateChatConversationID(conversationID string) error {
 	// 0x7f is the DEL control character.
-	if !realChatConversation(id) || len(id) > 256 || !utf8.ValidString(id) || strings.ContainsFunc(id, func(character rune) bool { return character <= ' ' || character == 0x7f }) {
+	if !realChatConversation(conversationID) || len(conversationID) > 256 || !utf8.ValidString(conversationID) || strings.ContainsFunc(conversationID, func(character rune) bool { return character <= ' ' || character == 0x7f }) {
 		return chatInputError("This chat is unavailable. Refresh chats.")
 	}
 	return nil

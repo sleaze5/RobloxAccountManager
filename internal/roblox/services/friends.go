@@ -42,7 +42,7 @@ func (service *Users) TrustedFriendIDs(ctx context.Context, accountID, version, 
 }
 
 func (service *Users) findFriendIDs(ctx context.Context, accountID, version, userID int64, endpoint, findFriendsType string) ([]int64, error) {
-	ids := []int64{}
+	friendIDs := []int64{}
 	seen, seenCursors := map[int64]bool{}, map[string]bool{}
 	cursor := ""
 	for range maxFriendsPages {
@@ -69,11 +69,11 @@ func (service *Users) findFriendIDs(ctx context.Context, accountID, version, use
 		for _, friend := range *payload.PageItems {
 			if friend.ID > 0 && !seen[friend.ID] {
 				seen[friend.ID] = true
-				ids = append(ids, friend.ID)
+				friendIDs = append(friendIDs, friend.ID)
 			}
 		}
 		if payload.NextCursor == nil || *payload.NextCursor == "" {
-			return ids, nil
+			return friendIDs, nil
 		}
 		cursor = *payload.NextCursor
 		if len(cursor) > 4096 || seenCursors[cursor] {
@@ -311,17 +311,17 @@ func (service *Users) userIDPage(ctx context.Context, accountID, version int64, 
 	if payload.Data == nil || len(*payload.Data) > limit {
 		return nil, "", invalidProfileDetails(endpoint)
 	}
-	ids := make([]int64, 0, len(*payload.Data))
+	userIDs := make([]int64, 0, len(*payload.Data))
 	for _, user := range *payload.Data {
 		if user.ID > 0 {
-			ids = append(ids, user.ID)
+			userIDs = append(userIDs, user.ID)
 		}
 	}
 	next := ""
 	if payload.NextPageCursor != nil {
 		next = *payload.NextPageCursor
 	}
-	return ids, next, nil
+	return userIDs, next, nil
 }
 
 type FollowState struct {
@@ -435,7 +435,7 @@ func (service *Users) Unfollow(ctx context.Context, accountID, version, userID i
 	return service.friendAction(ctx, accountID, version, userID, "unfollow", "unfollow")
 }
 
-func (service *Users) postRead(ctx context.Context, accountID, version int64, endpoint, address string, payload, result any) error {
+func (service *Users) postRead(ctx context.Context, accountID, version int64, endpoint, address string, payload, target any) error {
 	body, err := json.Marshal(payload)
 	if err != nil {
 		return &roblox.Error{Kind: roblox.KindProtocol, Endpoint: endpoint, Message: "The request could not be encoded.", Cause: err}
@@ -452,7 +452,7 @@ func (service *Users) postRead(ctx context.Context, accountID, version int64, en
 	if err != nil {
 		return err
 	}
-	if err := json.Unmarshal(response.Body, result); err != nil {
+	if err := json.Unmarshal(response.Body, target); err != nil {
 		return invalidProfileDetails(endpoint)
 	}
 	return nil

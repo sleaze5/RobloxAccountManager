@@ -27,7 +27,7 @@ const (
 
 type TransferPreview struct {
 	ID                     string            `json:"id"`
-	ExportedAtMS           int64             `json:"exportedAtMs"`
+	ExportedAtMs           int64             `json:"exportedAtMs"`
 	Accounts               []TransferAccount `json:"accounts"`
 	FavoritePlaces         int               `json:"favoritePlaces"`
 	NewFavoritePlaces      int               `json:"newFavoritePlaces"`
@@ -171,7 +171,7 @@ func (service *Service) OpenVaultExport(ctx context.Context, path, password stri
 		service.logger.Warn("exported settings could not be decoded", "operation", "vault-import", "error", err)
 		return TransferPreview{}, transferError("The settings in this export could not be read. Update the app and try again.", err)
 	}
-	preview, err := service.transferPreview(ctx, payload, openedExport.CreatedAtMS)
+	preview, err := service.transferPreview(ctx, payload, openedExport.CreatedAtMs)
 	if err != nil {
 		return TransferPreview{}, err
 	}
@@ -197,10 +197,10 @@ func (service *Service) exportReadError(err error) error {
 	return transferError("The export file could not be read.", err)
 }
 
-func (service *Service) transferPreview(ctx context.Context, payload transferstore.Payload, exportedAtMS int64) (TransferPreview, error) {
-	preview := TransferPreview{ExportedAtMS: exportedAtMS, Accounts: make([]TransferAccount, 0, len(payload.Accounts)), FavoritePlaces: len(payload.FavoritePlaces), SavedPrivateServers: len(payload.SavedPrivateServers)}
+func (service *Service) transferPreview(ctx context.Context, payload transferstore.Payload, exportedAtMs int64) (TransferPreview, error) {
+	preview := TransferPreview{ExportedAtMs: exportedAtMs, Accounts: make([]TransferAccount, 0, len(payload.Accounts)), FavoritePlaces: len(payload.FavoritePlaces), SavedPrivateServers: len(payload.SavedPrivateServers)}
 	for _, account := range payload.Accounts {
-		_, err := service.repo.FindByRobloxUserID(ctx, account.RobloxUserID)
+		_, err := service.accountRepository.FindByRobloxUserID(ctx, account.RobloxUserID)
 		if err != nil && !errors.Is(err, accounts.ErrNotFound) {
 			return TransferPreview{}, mapRepositoryError(err)
 		}
@@ -244,13 +244,13 @@ func (service *Service) transferPreview(ctx context.Context, payload transfersto
 	return preview, nil
 }
 
-func (service *Service) ImportVaultExport(ctx context.Context, id string, request TransferRequest) (TransferResult, error) {
+func (service *Service) ImportVaultExport(ctx context.Context, transferID string, request TransferRequest) (TransferResult, error) {
 	for _, section := range request.SettingsSections {
 		if !slices.Contains(appsettings.Sections, section) {
 			return TransferResult{}, transferError("The selected settings are invalid.", nil)
 		}
 	}
-	pending, ok := service.takePendingTransfer(id)
+	pending, ok := service.takePendingTransfer(transferID)
 	if !ok {
 		return TransferResult{}, transferError("The opened export expired. Open it again.", nil)
 	}
@@ -265,8 +265,8 @@ func (service *Service) ImportVaultExport(ctx context.Context, id string, reques
 	}
 }
 
-func (service *Service) DiscardVaultExport(id string) {
-	if pending, ok := service.takePendingTransfer(id); ok {
+func (service *Service) DiscardVaultExport(transferID string) {
+	if pending, ok := service.takePendingTransfer(transferID); ok {
 		clearPendingTransfer(pending)
 	}
 }
@@ -423,14 +423,14 @@ func selectedTransferAccounts(available []transferstore.Account, robloxUserIDs [
 func (service *Service) validateTransferCookies(ctx context.Context, selected []transferstore.Account) (map[int64]transferstore.Replacement, []TransferKeptCookie, error) {
 	candidates := make([]transferstore.Account, 0, len(selected))
 	for _, account := range selected {
-		existing, err := service.repo.FindByRobloxUserID(ctx, account.RobloxUserID)
+		existing, err := service.accountRepository.FindByRobloxUserID(ctx, account.RobloxUserID)
 		if errors.Is(err, accounts.ErrNotFound) {
 			continue
 		}
 		if err != nil {
 			return nil, nil, mapRepositoryError(err)
 		}
-		session, err := service.repo.GetSession(ctx, existing.ID)
+		session, err := service.accountRepository.GetSession(ctx, existing.ID)
 		if err != nil {
 			return nil, nil, mapRepositoryError(err)
 		}
@@ -484,11 +484,11 @@ func (service *Service) storePendingTransfer(pending *pendingTransfer) {
 	}
 }
 
-func (service *Service) takePendingTransfer(id string) (*pendingTransfer, bool) {
+func (service *Service) takePendingTransfer(transferID string) (*pendingTransfer, bool) {
 	service.transferMutex.Lock()
 	defer service.transferMutex.Unlock()
 	pending := service.pendingTransfer
-	if pending == nil || id == "" || pending.id != id {
+	if pending == nil || transferID == "" || pending.id != transferID {
 		return nil, false
 	}
 	service.pendingTransfer = nil

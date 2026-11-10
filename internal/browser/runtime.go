@@ -685,17 +685,17 @@ func removeEmptyDirectory(directory string) error {
 	return nil
 }
 
-func randomID(bytes int) (string, error) {
-	value := make([]byte, bytes)
-	if _, err := rand.Read(value); err != nil {
+func randomID(byteCount int) (string, error) {
+	randomBytes := make([]byte, byteCount)
+	if _, err := rand.Read(randomBytes); err != nil {
 		return "", fmt.Errorf("generate random ID: %w", err)
 	}
-	return base64.RawURLEncoding.EncodeToString(value), nil
+	return base64.RawURLEncoding.EncodeToString(randomBytes), nil
 }
 
-func validRandomID(value string, bytes int) bool {
-	decoded, err := base64.RawURLEncoding.DecodeString(value)
-	return err == nil && len(decoded) == bytes
+func validRandomID(encodedID string, byteCount int) bool {
+	decoded, err := base64.RawURLEncoding.DecodeString(encodedID)
+	return err == nil && len(decoded) == byteCount
 }
 
 func validateManifestDownload(manifest Manifest) error {

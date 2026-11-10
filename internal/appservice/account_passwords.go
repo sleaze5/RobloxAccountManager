@@ -26,12 +26,12 @@ func (service *Service) SaveAccountPassword(ctx context.Context, accountID int64
 }
 
 func (service *Service) storeAccountPassword(ctx context.Context, accountID int64, password string) error {
-	if err := service.repo.SetPassword(ctx, accountID, password); err != nil {
+	if err := service.accountRepository.SetPassword(ctx, accountID, password); err != nil {
 		service.logger.Error("account password could not be saved", "operation", "password-save", "account_id", accountID, "error", err)
 		return mapRepositoryError(err)
 	}
 	service.logger.Info("account password saved", "operation", "password-save", "account_id", accountID)
-	view, err := service.repo.GetView(ctx, accountID)
+	view, err := service.accountRepository.GetView(ctx, accountID)
 	if err != nil {
 		return mapRepositoryError(err)
 	}
@@ -40,7 +40,7 @@ func (service *Service) storeAccountPassword(ctx context.Context, accountID int6
 }
 
 func (service *Service) GetAccountPassword(ctx context.Context, accountID int64) (string, error) {
-	password, err := service.repo.GetPassword(ctx, accountID)
+	password, err := service.accountRepository.GetPassword(ctx, accountID)
 	if err != nil {
 		service.logger.Error("saved account password could not be read", "operation", "password-read", "account_id", accountID, "error", err)
 		return "", mapRepositoryError(err)

@@ -295,17 +295,17 @@ func privateServerPath(serverID int64, suffix string) string {
 	return path
 }
 
-func privateServerText(value string) string {
-	value = strings.TrimSpace(value)
-	if !utf8.ValidString(value) || utf8.RuneCountInString(value) > maxPrivateServerTextLength {
+func privateServerText(rawText string) string {
+	rawText = strings.TrimSpace(rawText)
+	if !utf8.ValidString(rawText) || utf8.RuneCountInString(rawText) > maxPrivateServerTextLength {
 		return ""
 	}
-	return value
+	return rawText
 }
 
-func privateServerTime(value string) int64 {
-	value = strings.TrimSpace(value)
-	for _, candidate := range []string{value, value + "Z"} {
+func privateServerTime(timestamp string) int64 {
+	timestamp = strings.TrimSpace(timestamp)
+	for _, candidate := range []string{timestamp, timestamp + "Z"} {
 		if parsed, err := time.Parse(time.RFC3339Nano, candidate); err == nil {
 			return parsed.UnixMilli()
 		}

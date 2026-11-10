@@ -205,7 +205,7 @@ func (service *Service) robloxNotificationViews(ctx context.Context, logger *slo
 	var users []robloxservices.UserView
 	reads := []accountRead{{"images", func() error {
 		var readError error
-		images, readError = service.avatars.Images(ctx, targets)
+		images, readError = service.thumbnails.Images(ctx, targets)
 		return readError
 	}}}
 	if len(userIDs) > 0 {
@@ -302,13 +302,13 @@ func robloxNotificationCategory(notificationType string) RobloxNotificationCateg
 // robloxNotificationUniverseID reads universe_id from the analytics payload of
 // an experience invite. Roblox sends it as a string, as observed on 2026-11-09.
 func robloxNotificationUniverseID(payload json.RawMessage) int64 {
-	var ids struct {
+	var analytics struct {
 		UniverseID json.Number `json:"universe_id"`
 	}
-	if json.Unmarshal(payload, &ids) != nil {
+	if json.Unmarshal(payload, &analytics) != nil {
 		return 0
 	}
-	universeID, err := ids.UniverseID.Int64()
+	universeID, err := analytics.UniverseID.Int64()
 	if err != nil || universeID <= 0 {
 		return 0
 	}
@@ -449,20 +449,20 @@ func parseRobloxAppLink(path string) (string, url.Values, bool) {
 }
 
 func positiveQueryID(query url.Values, name string) int64 {
-	value, err := strconv.ParseInt(query.Get(name), 10, 64)
-	if err != nil || value <= 0 {
+	id, err := strconv.ParseInt(query.Get(name), 10, 64)
+	if err != nil || id <= 0 {
 		return 0
 	}
-	return value
+	return id
 }
 
 // isRobloxNotificationToken accepts the notification IDs (UUIDs) and action
 // names (such as GroupShoutIgnoreAction) that go into the action URL path.
-func isRobloxNotificationToken(value string, maxLength int) bool {
-	if value == "" || len(value) > maxLength {
+func isRobloxNotificationToken(token string, maxLength int) bool {
+	if token == "" || len(token) > maxLength {
 		return false
 	}
-	for _, character := range value {
+	for _, character := range token {
 		if ('a' > character || character > 'z') && ('A' > character || character > 'Z') && ('0' > character || character > '9') && character != '-' && character != '_' {
 			return false
 		}

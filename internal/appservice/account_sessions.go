@@ -73,7 +73,7 @@ func (service *Service) SignOutOtherSessions(ctx context.Context, accountID int6
 	}
 	defer done()
 	logger := service.logger.With("operation_id", fmt.Sprintf("sessions-sign-out-%d", sessionsSignOutOperationID.Add(1)), "operation", "sessions-sign-out", "account_id", accountID)
-	if err := service.auth.SignOutOtherSessions(ctx, accountID, version); err != nil {
+	if err := service.authentication.SignOutOtherSessions(ctx, accountID, version); err != nil {
 		kind, status := roblox.KindProtocol, 0
 		if remote, ok := errors.AsType[*roblox.Error](err); ok {
 			kind, status = remote.Kind, remote.Status

@@ -770,11 +770,11 @@ func (client *Client) prepareAttemptHeaders(request *http.Request, contract Requ
 	return nil
 }
 
-func (client *Client) storeRotatedCookie(ctx context.Context, request Request, snapshot SessionSnapshot, value string, expires *time.Time) (int64, error) {
+func (client *Client) storeRotatedCookie(ctx context.Context, request Request, snapshot SessionSnapshot, rotatedCookie string, expires *time.Time) (int64, error) {
 	if client.store == nil {
 		return 0, &Error{Kind: KindProtocol, Endpoint: request.Endpoint, Message: "Session rotation storage is unavailable."}
 	}
-	record, err := client.store.RotateCookie(ctx, snapshot.AccountID, snapshot.SecretVersion, value, expires)
+	record, err := client.store.RotateCookie(ctx, snapshot.AccountID, snapshot.SecretVersion, rotatedCookie, expires)
 	if err != nil {
 		if errors.Is(err, accounts.ErrStaleSecret) {
 			return 0, &Error{Kind: KindCancelled, Endpoint: request.Endpoint, Message: "The saved session changed. The newer cookie was not overwritten.", Cause: err}

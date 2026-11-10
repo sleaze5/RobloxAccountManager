@@ -118,7 +118,7 @@ type SocialProfile struct {
 }
 
 type socialEntries struct {
-	ids        []int64
+	userIDs    []int64
 	requests   []robloxservices.FriendRequest
 	nextCursor string
 }
@@ -135,7 +135,7 @@ func (service *Service) GetSocialPage(ctx context.Context, accountID, userID int
 		return SocialPage{}, err
 	}
 	defer done()
-	account, err := service.repo.GetView(ctx, accountID)
+	account, err := service.accountRepository.GetView(ctx, accountID)
 	if err != nil {
 		return SocialPage{}, mapRepositoryError(err)
 	}
@@ -170,14 +170,14 @@ func (service *Service) SearchPlayers(ctx context.Context, accountID int64, keyw
 	defer done()
 	var entries socialEntries
 	if match != nil {
-		entries.ids, err = service.playerByID(ctx, match[1])
+		entries.userIDs, err = service.playerByID(ctx, match[1])
 	} else {
-		entries.ids, entries.nextCursor, err = service.users.SearchUsers(ctx, accountID, version, keyword, cursor)
+		entries.userIDs, entries.nextCursor, err = service.users.SearchUsers(ctx, accountID, version, keyword, cursor)
 	}
 	if err != nil {
 		return SocialPage{}, socialFailure(logger, err)
 	}
-	account, err := service.repo.GetView(ctx, accountID)
+	account, err := service.accountRepository.GetView(ctx, accountID)
 	if err != nil {
 		return SocialPage{}, mapRepositoryError(err)
 	}
@@ -185,8 +185,8 @@ func (service *Service) SearchPlayers(ctx context.Context, accountID int64, keyw
 }
 
 // playerByID returns the user ID when Roblox knows the user, or no IDs.
-func (service *Service) playerByID(ctx context.Context, value string) ([]int64, error) {
-	userID, err := strconv.ParseInt(value, 10, 64)
+func (service *Service) playerByID(ctx context.Context, userIDText string) ([]int64, error) {
+	userID, err := strconv.ParseInt(userIDText, 10, 64)
 	if err != nil {
 		return nil, fmt.Errorf("parse player id: %w", err)
 	}
@@ -212,7 +212,7 @@ type socialPageReads struct {
 }
 
 func (service *Service) socialPage(ctx context.Context, accountID, version int64, logger *slog.Logger, entries socialEntries, optional socialPageReads) (SocialPage, error) {
-	users, err := service.users.Names(ctx, entries.ids)
+	users, err := service.users.Names(ctx, entries.userIDs)
 	if err != nil {
 		return SocialPage{}, socialFailure(logger, err)
 	}
@@ -221,17 +221,17 @@ func (service *Service) socialPage(ctx context.Context, accountID, version int64
 	var images, nicknames map[int64]string
 	reads := []accountRead{{"avatars", func() error {
 		var readError error
-		images, readError = service.headshotImages(ctx, entries.ids)
+		images, readError = service.headshotImages(ctx, entries.userIDs)
 		return readError
 	}}, {"nicknames", func() error {
 		var readError error
-		nicknames, readError = service.users.Nicknames(ctx, accountID, version, entries.ids)
+		nicknames, readError = service.users.Nicknames(ctx, accountID, version, entries.userIDs)
 		return readError
 	}}}
 	if optional.presence {
 		reads = append(reads, accountRead{"presence", func() error {
 			var readError error
-			presences, readError = service.presence.UserPresences(ctx, accountID, version, entries.ids)
+			presences, readError = service.presence.UserPresences(ctx, accountID, version, entries.userIDs)
 			return readError
 		}})
 	}
@@ -267,18 +267,18 @@ func (service *Service) socialEntries(ctx context.Context, accountID, version, u
 	var err error
 	switch list {
 	case SocialFriends:
-		entries.ids, err = service.users.FriendIDs(ctx, accountID, version, userID)
+		entries.userIDs, err = service.users.FriendIDs(ctx, accountID, version, userID)
 	case SocialFollowers:
-		entries.ids, entries.nextCursor, err = service.users.Follows(ctx, accountID, version, userID, "followers", cursor)
+		entries.userIDs, entries.nextCursor, err = service.users.Follows(ctx, accountID, version, userID, "followers", cursor)
 	case SocialFollowing:
-		entries.ids, entries.nextCursor, err = service.users.Follows(ctx, accountID, version, userID, "followings", cursor)
+		entries.userIDs, entries.nextCursor, err = service.users.Follows(ctx, accountID, version, userID, "followings", cursor)
 	case SocialRequests:
 		if !own {
 			return entries, socialInputError("Friend requests are only available for the selected account.")
 		}
 		entries.requests, entries.nextCursor, err = service.users.FriendRequests(ctx, accountID, version, cursor)
 		for _, request := range entries.requests {
-			entries.ids = append(entries.ids, request.UserID)
+			entries.userIDs = append(entries.userIDs, request.UserID)
 		}
 	default:
 		return entries, socialInputError("Choose friends, followers, following, or requests.")
@@ -359,7 +359,7 @@ func (service *Service) GetSocialProfile(ctx context.Context, accountID, userID 
 		return SocialProfile{}, err
 	}
 	defer done()
-	account, err := service.repo.GetView(ctx, accountID)
+	account, err := service.accountRepository.GetView(ctx, accountID)
 	if err != nil {
 		return SocialProfile{}, mapRepositoryError(err)
 	}
@@ -443,7 +443,7 @@ func (service *Service) GetSocialRelationship(ctx context.Context, accountID, us
 		return SocialRelationshipSnapshot{}, err
 	}
 	defer done()
-	account, err := service.repo.GetView(ctx, accountID)
+	account, err := service.accountRepository.GetView(ctx, accountID)
 	if err != nil {
 		return SocialRelationshipSnapshot{}, mapRepositoryError(err)
 	}
@@ -654,7 +654,7 @@ func (service *Service) beginSocial(parent context.Context, accountID int64, ope
 }
 
 func (service *Service) headshotImages(ctx context.Context, userIDs []int64) (map[int64]string, error) {
-	headshots, err := service.avatars.AvatarHeadshots(ctx, userIDs)
+	headshots, err := service.thumbnails.AvatarHeadshots(ctx, userIDs)
 	if err != nil {
 		return nil, err
 	}

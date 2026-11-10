@@ -222,7 +222,7 @@ func (service *Service) rovalraError(ctx context.Context, operation string, plac
 func (service *Service) gameAccount(ctx context.Context) (int64, error) {
 	var cursor *accounts.AccountCursor
 	for {
-		page, err := service.repo.Page(ctx, accounts.AccountQuery{Cursor: cursor})
+		page, err := service.accountRepository.Page(ctx, accounts.AccountQuery{Cursor: cursor})
 		if err != nil {
 			return 0, mapRepositoryError(err)
 		}
@@ -238,8 +238,8 @@ func (service *Service) gameAccount(ctx context.Context) (int64, error) {
 }
 
 func (service *Service) GetGamePlace(ctx context.Context, universeID, placeID int64) (games.PlaceSummary, error) {
-	for _, id := range []int64{universeID, placeID} {
-		if err := validGameID(id); err != nil {
+	for _, gameID := range []int64{universeID, placeID} {
+		if err := validGameID(gameID); err != nil {
 			return games.PlaceSummary{}, err
 		}
 	}
@@ -387,8 +387,8 @@ func (service *Service) gamesError(ctx context.Context, operation string, err er
 	return &roblox.Error{Kind: roblox.KindProtocol, Endpoint: operation, Message: "The game operation could not be completed. Try again.", Cause: err}
 }
 
-func validGameID(id int64) error {
-	if !games.ValidID(id) {
+func validGameID(gameID int64) error {
+	if !games.ValidID(gameID) {
 		return gamesInputError("The game identifier is invalid.")
 	}
 	return nil

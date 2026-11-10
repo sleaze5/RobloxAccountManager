@@ -12,9 +12,9 @@ import (
 )
 
 const (
-	FormatVersion           = 3
-	maxFavoriteNicknameLen  = 50
-	maxPrivateServerNameLen = 50
+	FormatVersion              = 3
+	maxFavoriteNicknameLength  = 50
+	maxPrivateServerNameLength = 50
 )
 
 var (
@@ -82,9 +82,9 @@ type Account struct {
 	RobloxUserID      int64    `json:"robloxUserId"`
 	Username          string   `json:"username"`
 	DisplayName       string   `json:"displayName"`
-	CreatedAtMS       int64    `json:"createdAtMs"`
+	CreatedAtMs       int64    `json:"createdAtMs"`
 	Cookie            string   `json:"cookie"`
-	CookieExpiresAtMS *int64   `json:"cookieExpiresAtMs"`
+	CookieExpiresAtMs *int64   `json:"cookieExpiresAtMs"`
 	Password          string   `json:"password"`
 	Favorite          bool     `json:"favorite"`
 	Tags              []string `json:"tags"`
@@ -163,14 +163,14 @@ func validateSavedPrivateServers(servers []SavedPrivateServer) error {
 		if server.PlaceID <= 0 || (server.AccessCode == "") == (server.LinkCode == "") ||
 			server.AccessCode != "" && !privateServerCodePattern.MatchString(server.AccessCode) ||
 			server.LinkCode != "" && !privateServerCodePattern.MatchString(server.LinkCode) ||
-			!utf8.ValidString(server.Name) || utf8.RuneCountInString(server.Name) > maxPrivateServerNameLen {
+			!utf8.ValidString(server.Name) || utf8.RuneCountInString(server.Name) > maxPrivateServerNameLength {
 			return errors.New("invalid saved private server")
 		}
-		id := key{server.PlaceID, server.AccessCode, server.LinkCode}
-		if _, duplicate := seen[id]; duplicate {
+		serverKey := key{server.PlaceID, server.AccessCode, server.LinkCode}
+		if _, duplicate := seen[serverKey]; duplicate {
 			return fmt.Errorf("duplicate saved private server for place %d", server.PlaceID)
 		}
-		seen[id] = struct{}{}
+		seen[serverKey] = struct{}{}
 	}
 	return nil
 }
@@ -214,7 +214,7 @@ func validateAccounts(accounts []Account, tags map[string]struct{}) error {
 func validateFavoritePlaces(places []FavoritePlace) error {
 	seen := make(map[int64]struct{}, len(places))
 	for _, place := range places {
-		if place.PlaceID <= 0 || !utf8.ValidString(place.Nickname) || utf8.RuneCountInString(place.Nickname) > maxFavoriteNicknameLen {
+		if place.PlaceID <= 0 || !utf8.ValidString(place.Nickname) || utf8.RuneCountInString(place.Nickname) > maxFavoriteNicknameLength {
 			return errors.New("invalid favorite place")
 		}
 		if _, duplicate := seen[place.PlaceID]; duplicate {

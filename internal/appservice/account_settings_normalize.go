@@ -63,8 +63,8 @@ func accountSettingDocuments(settingKey AccountSettingKey, reads accountSettings
 	return plain, optionsRaw, plainPresent || optionsPresent
 }
 
-func isNullSetting(value json.RawMessage) bool {
-	return bytes.Equal(bytes.TrimSpace(value), []byte("null"))
+func isNullSetting(raw json.RawMessage) bool {
+	return bytes.Equal(bytes.TrimSpace(raw), []byte("null"))
 }
 
 func settingValueView(definition accountSettingDefinition, raw json.RawMessage) AccountSettingView {
@@ -106,32 +106,32 @@ var accountSettingLabels = map[string]string{
 	"Enabled": "On", "Disabled": "Off", "Yes": "On", "No": "Off", "Default": "Default",
 }
 
-func settingValueLabel(key AccountSettingKey, value string) (string, bool) {
-	if !supportedSettingToken(key, value) {
-		return value + " (unrecognized value)", false
+func settingValueLabel(key AccountSettingKey, token string) (string, bool) {
+	if !supportedSettingToken(key, token) {
+		return token + " (unrecognized value)", false
 	}
 	if key == SettingExperienceChat || key == SettingDirectExperienceChat || key == SettingParty {
-		if value == "NoOne" {
+		if token == "NoOne" {
 			return "Off", true
 		}
 		return "On", true
 	}
 	if key == SettingExperienceJoins || key == SettingTradeAudience {
-		if value == "Followers" {
+		if token == "Followers" {
 			return "Friends, followers & people I follow", true
 		}
-		if value == "Following" {
+		if token == "Following" {
 			return "Friends & people I follow", true
 		}
 	}
-	label, known := accountSettingLabels[value]
+	label, known := accountSettingLabels[token]
 	if !known {
-		return value + " (unrecognized value)", false
+		return token + " (unrecognized value)", false
 	}
 	return label, true
 }
 
-func supportedSettingToken(key AccountSettingKey, value string) bool {
+func supportedSettingToken(key AccountSettingKey, token string) bool {
 	var tokens []string
 	switch key {
 	case SettingContentMaturity:
@@ -159,7 +159,7 @@ func supportedSettingToken(key AccountSettingKey, value string) bool {
 	default:
 		tokens = []string{"NoOne", "Friends", "FriendsAndFollowing", "FriendsFollowingAndFollowers", "AllUsers", "TrustedFriends"}
 	}
-	return slices.Contains(tokens, value)
+	return slices.Contains(tokens, token)
 }
 
 func settingKnownValue(view AccountSettingView) bool {

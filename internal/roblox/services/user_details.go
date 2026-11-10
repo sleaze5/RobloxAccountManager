@@ -320,7 +320,7 @@ func (service *Users) PrimaryGroup(ctx context.Context, accountID, version, user
 	}, nil
 }
 
-func (service *Users) readAccountDetails(ctx context.Context, accountID, version int64, endpoint, address string, result any) error {
+func (service *Users) readAccountDetails(ctx context.Context, accountID, version int64, endpoint, address string, target any) error {
 	ctx, cancel := context.WithTimeout(ctx, 15*time.Second)
 	defer cancel()
 	endpointURL, _ := url.Parse(address)
@@ -333,7 +333,7 @@ func (service *Users) readAccountDetails(ctx context.Context, accountID, version
 	if err != nil {
 		return err
 	}
-	if err := json.Unmarshal(response.Body, result); err != nil {
+	if err := json.Unmarshal(response.Body, target); err != nil {
 		return invalidProfileDetails(endpoint)
 	}
 	return nil

@@ -52,7 +52,7 @@ func NewCDPClient(input io.WriteCloser, output io.ReadCloser, onFailure func(err
 	return client
 }
 
-func (client *CDPClient) Call(ctx context.Context, method string, params any, sessionID string, result any) error {
+func (client *CDPClient) Call(ctx context.Context, method string, parameters any, sessionID string, target any) error {
 	client.mutex.Lock()
 	if client.err != nil {
 		err := client.err
@@ -60,18 +60,18 @@ func (client *CDPClient) Call(ctx context.Context, method string, params any, se
 		return err
 	}
 	client.nextID++
-	id := client.nextID
+	callID := client.nextID
 	response := make(chan cdpMessage, 1)
-	client.pending[id] = response
+	client.pending[callID] = response
 	client.mutex.Unlock()
 	payload, err := json.Marshal(struct {
 		ID        int64  `json:"id"`
 		Method    string `json:"method"`
 		Params    any    `json:"params,omitempty"`
 		SessionID string `json:"sessionId,omitempty"`
-	}{ID: id, Method: method, Params: params, SessionID: sessionID})
+	}{ID: callID, Method: method, Params: parameters, SessionID: sessionID})
 	if err != nil {
-		client.removePending(id)
+		client.removePending(callID)
 		return fmt.Errorf("encode CDP command: %w", err)
 	}
 	client.writeMutex.Lock()
@@ -79,7 +79,7 @@ func (client *CDPClient) Call(ctx context.Context, method string, params any, se
 	client.writeMutex.Unlock()
 	if err != nil {
 		err = fmt.Errorf("write browser CDP input: %w", err)
-		client.removePending(id)
+		client.removePending(callID)
 		client.fail(err)
 		return err
 	}
@@ -88,14 +88,14 @@ func (client *CDPClient) Call(ctx context.Context, method string, params any, se
 		if message.Error != nil {
 			return message.Error
 		}
-		if result != nil && len(message.Result) > 0 {
-			if err := json.Unmarshal(message.Result, result); err != nil {
+		if target != nil && len(message.Result) > 0 {
+			if err := json.Unmarshal(message.Result, target); err != nil {
 				return fmt.Errorf("decode %s response: %w", method, err)
 			}
 		}
 		return nil
 	case <-ctx.Done():
-		client.removePending(id)
+		client.removePending(callID)
 		return ctx.Err()
 	case <-client.done:
 		client.mutex.Lock()
@@ -167,8 +167,8 @@ func (client *CDPClient) stop(err error, notify bool) {
 		return
 	}
 	client.err = err
-	for id := range client.pending {
-		delete(client.pending, id)
+	for callID := range client.pending {
+		delete(client.pending, callID)
 	}
 	close(client.done)
 	client.mutex.Unlock()
@@ -177,9 +177,9 @@ func (client *CDPClient) stop(err error, notify bool) {
 	}
 }
 
-func (client *CDPClient) removePending(id int64) {
+func (client *CDPClient) removePending(callID int64) {
 	client.mutex.Lock()
-	delete(client.pending, id)
+	delete(client.pending, callID)
 	client.mutex.Unlock()
 }
 
@@ -275,8 +275,8 @@ func (client *CDPClient) Cookies(ctx context.Context, sessionID string) ([]Cooki
 	return filtered, nil
 }
 
-func (client *CDPClient) SetRobloxCookie(ctx context.Context, sessionID, value string) error {
-	return client.setCookie(ctx, sessionID, map[string]any{"name": accounts.RoblosecurityCookieName, "value": value, "httpOnly": true}, "chrome rejected the Roblox cookie")
+func (client *CDPClient) SetRobloxCookie(ctx context.Context, sessionID, cookieValue string) error {
+	return client.setCookie(ctx, sessionID, map[string]any{"name": accounts.RoblosecurityCookieName, "value": cookieValue, "httpOnly": true}, "chrome rejected the Roblox cookie")
 }
 
 func (client *CDPClient) SetBrowserID(ctx context.Context, sessionID, browserID string) error {

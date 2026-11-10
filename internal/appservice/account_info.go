@@ -35,7 +35,7 @@ func (service *Service) GetAccountInfo(ctx context.Context, accountID int64) (Ac
 		return AccountInfoSnapshot{}, err
 	}
 	defer done()
-	account, err := service.repo.GetView(ctx, accountID)
+	account, err := service.accountRepository.GetView(ctx, accountID)
 	if err != nil {
 		return AccountInfoSnapshot{}, mapRepositoryError(err)
 	}

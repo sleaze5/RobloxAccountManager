@@ -44,7 +44,7 @@ var _ = [1]struct{}{}[len(exportDecoders)-int(exportFormatVersion)]
 type ExportFile struct {
 	Name        string `json:"name"`
 	Path        string `json:"path"`
-	CreatedAtMS int64  `json:"createdAtMs"`
+	CreatedAtMs int64  `json:"createdAtMs"`
 }
 
 // ExportsDirectory creates the export folder and returns it. If the folder cannot be created, it returns the data folder,
@@ -77,12 +77,12 @@ func (manager *Manager) WriteExport(path, password, hint string, payload []byte)
 	if err := writeExportFile(path, sealed); err != nil {
 		return ExportFile{}, err
 	}
-	return ExportFile{Name: filepath.Base(path), Path: path, CreatedAtMS: now.UnixMilli()}, nil
+	return ExportFile{Name: filepath.Base(path), Path: path, CreatedAtMs: now.UnixMilli()}, nil
 }
 
 // writeExportFile does not set a private access list, because the user can choose a drive that has none, such as FAT32.
 // The file is encrypted, and the export folder that the app creates is already private.
-func writeExportFile(path string, data []byte) error {
+func writeExportFile(path string, encodedExport []byte) error {
 	file, err := os.CreateTemp(filepath.Dir(path), "."+filepath.Base(path)+".*.tmp")
 	if err != nil {
 		return fmt.Errorf("create export file: %w", err)
@@ -95,7 +95,7 @@ func writeExportFile(path string, data []byte) error {
 			_ = os.Remove(temporary)
 		}
 	}()
-	if _, err := file.Write(data); err != nil {
+	if _, err := file.Write(encodedExport); err != nil {
 		return fmt.Errorf("write export file: %w", err)
 	}
 	if err := file.Sync(); err != nil {
@@ -120,7 +120,7 @@ func (manager *Manager) ReadExport(path, password string) (ExportFile, []byte, e
 	if err != nil {
 		return ExportFile{}, nil, err
 	}
-	return ExportFile{Name: filepath.Base(path), Path: path, CreatedAtMS: int64(binary.BigEndian.Uint64(encodedExport[len(exportMagic)+2:]))}, payload, nil
+	return ExportFile{Name: filepath.Base(path), Path: path, CreatedAtMs: int64(binary.BigEndian.Uint64(encodedExport[len(exportMagic)+2:]))}, payload, nil
 }
 
 // ExportDetails describes an export file before it is opened with its password.
@@ -175,19 +175,19 @@ func ValidateExportHint(hint, password string) error {
 	return nil
 }
 
-func sealExport(password, hint string, payload []byte, createdAtMS int64) ([]byte, error) {
+func sealExport(password, hint string, payload []byte, createdAtMs int64) ([]byte, error) {
 	if err := ValidateExportPassword(password); err != nil {
 		return nil, err
 	}
 	if err := ValidateExportHint(hint, password); err != nil {
 		return nil, err
 	}
-	params := calibrateKDF(password)
+	parameters := calibrateKDF(password)
 	salt, err := newRandomBytes(saltBytes, "export salt")
 	if err != nil {
 		return nil, err
 	}
-	aead, err := passwordCipher(password, params, salt)
+	aead, err := passwordCipher(password, parameters, salt)
 	if err != nil {
 		return nil, err
 	}
@@ -195,17 +195,17 @@ func sealExport(password, hint string, payload []byte, createdAtMS int64) ([]byt
 	if err != nil {
 		return nil, err
 	}
-	header := exportHeader(createdAtMS, params, salt, nonce)
+	header := exportHeader(createdAtMs, parameters, salt, nonce)
 	header = binary.BigEndian.AppendUint16(header, uint16(len(hint)))
 	header = append(header, hint...)
 	return aead.Seal(bytes.Clone(header), nonce, payload, header), nil
 }
 
-func exportVersion(data []byte) (uint16, error) {
-	if len(data) < exportPrefixBytes || !bytes.Equal(data[:len(exportMagic)], exportMagic[:]) {
+func exportVersion(encodedExport []byte) (uint16, error) {
+	if len(encodedExport) < exportPrefixBytes || !bytes.Equal(encodedExport[:len(exportMagic)], exportMagic[:]) {
 		return 0, ErrInvalidExport
 	}
-	version := binary.BigEndian.Uint16(data[len(exportMagic):])
+	version := binary.BigEndian.Uint16(encodedExport[len(exportMagic):])
 	if version == 0 {
 		return 0, ErrInvalidExport
 	}
@@ -215,38 +215,38 @@ func exportVersion(data []byte) (uint16, error) {
 	return version, nil
 }
 
-func openExport(data []byte, password string) ([]byte, error) {
-	version, err := exportVersion(data)
+func openExport(encodedExport []byte, password string) ([]byte, error) {
+	version, err := exportVersion(encodedExport)
 	if err != nil {
 		return nil, err
 	}
-	return exportDecoders[version-1](data, password)
+	return exportDecoders[version-1](encodedExport, password)
 }
 
-func openExportV1(data []byte, password string) ([]byte, error) {
-	if len(data) < exportHeaderBytes {
+func openExportV1(encodedExport []byte, password string) ([]byte, error) {
+	if len(encodedExport) < exportHeaderBytes {
 		return nil, ErrInvalidExport
 	}
-	return openSealedExport(data, password, exportHeaderBytes)
+	return openSealedExport(encodedExport, password, exportHeaderBytes)
 }
 
-func openExportV2(data []byte, password string) ([]byte, error) {
-	headerEnd, err := exportHeaderEnd(data)
+func openExportV2(encodedExport []byte, password string) ([]byte, error) {
+	headerEnd, err := exportHeaderEnd(encodedExport)
 	if err != nil {
 		return nil, err
 	}
-	return openSealedExport(data, password, headerEnd)
+	return openSealedExport(encodedExport, password, headerEnd)
 }
 
 // exportHeaderEnd returns where the version 2 header, which ends with the
 // password hint, stops and the encrypted payload starts.
-func exportHeaderEnd(data []byte) (int, error) {
-	if len(data) < exportHeaderBytes+exportHintLengthBytes {
+func exportHeaderEnd(encodedExport []byte) (int, error) {
+	if len(encodedExport) < exportHeaderBytes+exportHintLengthBytes {
 		return 0, ErrInvalidExport
 	}
-	hintLength := int(binary.BigEndian.Uint16(data[exportHeaderBytes:]))
+	hintLength := int(binary.BigEndian.Uint16(encodedExport[exportHeaderBytes:]))
 	headerEnd := exportHeaderBytes + exportHintLengthBytes + hintLength
-	if len(data) < headerEnd || validateHint(string(data[exportHeaderBytes+exportHintLengthBytes:headerEnd])) != nil {
+	if len(encodedExport) < headerEnd || validateHint(string(encodedExport[exportHeaderBytes+exportHintLengthBytes:headerEnd])) != nil {
 		return 0, ErrInvalidExport
 	}
 	return headerEnd, nil
@@ -254,38 +254,38 @@ func exportHeaderEnd(data []byte) (int, error) {
 
 // openSealedExport decrypts the payload after headerEnd. The whole header,
 // including the version 2 hint, is the authenticated data.
-func openSealedExport(data []byte, password string, headerEnd int) ([]byte, error) {
+func openSealedExport(encodedExport []byte, password string, headerEnd int) ([]byte, error) {
 	offset := exportPrefixBytes
-	params := argon2Parameters{
-		Time:      binary.BigEndian.Uint32(data[offset:]),
-		MemoryKiB: binary.BigEndian.Uint32(data[offset+4:]),
-		Threads:   data[offset+8],
+	parameters := argon2Parameters{
+		Time:      binary.BigEndian.Uint32(encodedExport[offset:]),
+		MemoryKiB: binary.BigEndian.Uint32(encodedExport[offset+4:]),
+		Threads:   encodedExport[offset+8],
 	}
 	offset += 9
-	salt := data[offset : offset+saltBytes]
-	nonce := data[offset+saltBytes : exportHeaderBytes]
-	aead, err := passwordCipher(password, params, salt)
+	salt := encodedExport[offset : offset+saltBytes]
+	nonce := encodedExport[offset+saltBytes : exportHeaderBytes]
+	aead, err := passwordCipher(password, parameters, salt)
 	if errors.Is(err, ErrInvalidPassword) {
 		return nil, ErrExportPassword
 	}
 	if err != nil {
 		return nil, fmt.Errorf("%w: %w", ErrInvalidExport, err)
 	}
-	payload, err := aead.Open(nil, nonce, data[headerEnd:], data[:headerEnd])
+	payload, err := aead.Open(nil, nonce, encodedExport[headerEnd:], encodedExport[:headerEnd])
 	if err != nil {
 		return nil, ErrExportPassword
 	}
 	return payload, nil
 }
 
-func exportHeader(createdAtMS int64, params argon2Parameters, salt, nonce []byte) []byte {
+func exportHeader(createdAtMs int64, parameters argon2Parameters, salt, nonce []byte) []byte {
 	header := make([]byte, 0, exportHeaderBytes)
 	header = append(header, exportMagic[:]...)
 	header = binary.BigEndian.AppendUint16(header, exportFormatVersion)
-	header = binary.BigEndian.AppendUint64(header, uint64(createdAtMS))
-	header = binary.BigEndian.AppendUint32(header, params.Time)
-	header = binary.BigEndian.AppendUint32(header, params.MemoryKiB)
-	header = append(header, params.Threads)
+	header = binary.BigEndian.AppendUint64(header, uint64(createdAtMs))
+	header = binary.BigEndian.AppendUint32(header, parameters.Time)
+	header = binary.BigEndian.AppendUint32(header, parameters.MemoryKiB)
+	header = append(header, parameters.Threads)
 	header = append(header, salt...)
 	return append(header, nonce...)
 }
