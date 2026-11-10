@@ -1158,7 +1158,7 @@ func (queue *cleanupQueue) createDirectory(browserSessionID string) (string, err
 		return "", fmt.Errorf("create browser temporary root: %w", err)
 	}
 	directory := filepath.Join(queue.root, browserSessionID)
-	if err := os.Mkdir(directory, 0o755); err != nil {
+	if err := os.Mkdir(directory, 0o700); err != nil {
 		return "", fmt.Errorf("create browser session directory: %w", err)
 	}
 	return directory, nil
