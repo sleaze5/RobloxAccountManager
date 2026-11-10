@@ -3,7 +3,12 @@
 	import keyIcon from "@phosphor-icons/core/regular/key.svg?raw"
 	import pencilSimpleIcon from "@phosphor-icons/core/regular/pencil-simple.svg?raw"
 	import Icon from "../shared/Icon.svelte"
-	import { menuIn, menuOut, placeMenuAtAnchor } from "../shared/presence"
+	import {
+		focusMenuItemForKey,
+		menuIn,
+		menuOut,
+		placeMenuAtAnchor,
+	} from "../shared/presence"
 
 	let {
 		hasSavedPassword,
@@ -57,20 +62,10 @@
 			close()
 			return
 		}
-		if (!["ArrowDown", "ArrowUp", "Home", "End"].includes(event.key)) return
-		event.preventDefault()
-		const buttons = Array.from(
-				menu?.querySelectorAll<HTMLButtonElement>("button") ?? [],
-			),
-			current = buttons.indexOf(document.activeElement as HTMLButtonElement),
-			direction = event.key === "ArrowUp" ? -1 : 1,
-			next =
-				event.key === "Home"
-					? 0
-					: event.key === "End"
-						? buttons.length - 1
-						: (current + direction + buttons.length) % buttons.length
-		buttons[next]?.focus()
+		focusMenuItemForKey(
+			event,
+			Array.from(menu?.querySelectorAll<HTMLButtonElement>("button") ?? []),
+		)
 	}
 </script>
 

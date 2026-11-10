@@ -9,7 +9,7 @@
 
 <script lang="ts">
 	import Icon from "./Icon.svelte"
-	import { menuIn, menuOut, placeMenuAtAnchor } from "./presence"
+	import { focusMenuItemForKey, menuIn, menuOut, placeMenuAtAnchor } from "./presence"
 
 	let {
 		id,
@@ -61,38 +61,19 @@
 	}
 
 	function handleKeydown(event: KeyboardEvent): void {
-		const buttons = Array.from(
-				menu?.querySelectorAll<HTMLButtonElement>("button") ?? [],
-			),
-			current = buttons.indexOf(document.activeElement as HTMLButtonElement)
-		let next: number
-		switch (event.key) {
-			case "Escape":
-				event.preventDefault()
-				event.stopPropagation()
-				restoreFocus = true
-				onClose()
-				return
-			case "Tab":
-				onClose()
-				return
-			case "ArrowDown":
-				next = (current + 1) % buttons.length
-				break
-			case "ArrowUp":
-				next = (current - 1 + buttons.length) % buttons.length
-				break
-			case "Home":
-				next = 0
-				break
-			case "End":
-				next = buttons.length - 1
-				break
-			default:
-				return
+		if (event.key === "Escape") {
+			event.preventDefault()
+			event.stopPropagation()
+			restoreFocus = true
+			onClose()
+		} else if (event.key === "Tab") {
+			onClose()
+		} else {
+			focusMenuItemForKey(
+				event,
+				Array.from(menu?.querySelectorAll<HTMLButtonElement>("button") ?? []),
+			)
 		}
-		event.preventDefault()
-		buttons[next]?.focus()
 	}
 </script>
 
