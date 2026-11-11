@@ -24,7 +24,7 @@
 	</h3>
 	{#if connections.length === 0}
 		<p class="text-xs text-fg-faint">
-			None of your other saved accounts are connected to them.
+			None of your other saved accounts are connected.
 		</p>
 	{:else}
 		<ul
