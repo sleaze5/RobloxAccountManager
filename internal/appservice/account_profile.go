@@ -2,6 +2,7 @@ package appservice
 
 import (
 	"context"
+	"log/slog"
 	"slices"
 	"strings"
 	"time"
@@ -35,6 +36,7 @@ const (
 	ProfileSectionActivity      AccountProfileSection = "activity"
 	ProfileSectionPremium       AccountProfileSection = "premium"
 	ProfileSectionTrading       AccountProfileSection = "trading"
+	ProfileSectionConnections   AccountProfileSection = "connections"
 )
 
 type PremiumSubscription struct {
@@ -86,6 +88,8 @@ type AccountProfileSnapshot struct {
 	// PremiumSubscription is nil when the account has no Premium.
 	PremiumSubscription *PremiumSubscription `json:"premiumSubscription"`
 	TradeEligibility    *TradeEligibility    `json:"tradeEligibility"`
+	// Connections lists how the other saved accounts are connected to the account.
+	Connections []FriendConnection `json:"connections"`
 }
 
 func (service *Service) GetAccountProfile(ctx context.Context, accountID int64, section AccountProfileSection) (AccountProfileSnapshot, error) {
@@ -114,7 +118,7 @@ func (service *Service) GetAccountProfile(ctx context.Context, accountID int64, 
 	started := time.Now()
 	profile := AccountProfileSnapshot{AccountID: accountID, Section: section}
 	var age accountAge
-	reads := service.profileSectionReads(ctx, accountID, session.SecretVersion, account.RobloxUserID, section, &profile, &age)
+	reads := service.profileSectionReads(ctx, accountID, session.SecretVersion, account.RobloxUserID, section, logger, &profile, &age)
 	if len(reads) == 0 {
 		return AccountProfileSnapshot{}, profileError(roblox.KindProtocol, "This profile section does not exist.")
 	}
@@ -130,7 +134,7 @@ func (service *Service) GetAccountProfile(ctx context.Context, accountID int64, 
 	return profile, nil
 }
 
-func (service *Service) profileSectionReads(ctx context.Context, accountID, version, userID int64, section AccountProfileSection, profile *AccountProfileSnapshot, age *accountAge) []accountRead {
+func (service *Service) profileSectionReads(ctx context.Context, accountID, version, userID int64, section AccountProfileSection, logger *slog.Logger, profile *AccountProfileSnapshot, age *accountAge) []accountRead {
 	users := service.users
 	readsBySection := map[AccountProfileSection]func() []accountRead{
 		ProfileSectionAccount: func() []accountRead {
@@ -228,6 +232,13 @@ func (service *Service) profileSectionReads(ctx context.Context, accountID, vers
 			}, func(eligibility robloxservices.UserTradeEligibility) {
 				profile.TradeEligibility = &TradeEligibility{CanTrade: eligibility.CanTrade, Eligibility: eligibility.Eligibility, FreeTrades: eligibility.FreeTrades}
 			})}
+		},
+		ProfileSectionConnections: func() []accountRead {
+			return []accountRead{{"connections", func() error {
+				var readError error
+				_, profile.Connections, readError = service.friendConnections(ctx, logger, accountID, userID)
+				return readError
+			}}}
 		},
 	}
 	sectionReads, ok := readsBySection[section]

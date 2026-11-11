@@ -96,6 +96,10 @@ const profileSections: SectionFields<AccountProfileSnapshot, AccountProfileSecti
 			section: AccountProfileSection.ProfileSectionCollectibles,
 			fields: ["collectibleCount", "collectibleRecentAveragePriceTotal"],
 		},
+		{
+			section: AccountProfileSection.ProfileSectionConnections,
+			fields: ["connections"],
+		},
 	]
 
 function emptyProfile(accountId: number): AccountProfileSnapshot {
@@ -133,6 +137,7 @@ function emptyProfile(accountId: number): AccountProfileSnapshot {
 		unreadNotificationCount: null,
 		premiumSubscription: null,
 		tradeEligibility: null,
+		connections: null,
 	}
 }
 

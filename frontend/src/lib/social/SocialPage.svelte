@@ -188,7 +188,7 @@
 
 	function rowLabel(person: SocialUser): string {
 		const name = `${personName(person)}${person.username ? ` (@${person.username})` : ""}${person.trusted ? ", trusted friend" : ""}`
-		if (person.request) return `${name}, friend request`
+		if (person.request) return `${name}, friend request incoming`
 		if (!person.presence) return name
 		const detail = presenceDetail(person.presence)
 		return `${name}, ${presenceLabel(person.presence)}${detail ? `: ${detail}` : ""}`

@@ -1,3 +1,4 @@
+import arrowsLeftRightIcon from "@phosphor-icons/core/regular/arrows-left-right.svg?raw"
 import handshakeIcon from "@phosphor-icons/core/regular/handshake.svg?raw"
 import paperPlaneTiltIcon from "@phosphor-icons/core/regular/paper-plane-tilt.svg?raw"
 import prohibitIcon from "@phosphor-icons/core/regular/prohibit.svg?raw"
@@ -138,7 +139,7 @@ export const relationshipActionsById: Record<RelationshipActionId, RelationshipA
 		"cancel-trusted": {
 			id: "cancel-trusted",
 			tone: "warning",
-			label: "Cancel trusted request",
+			label: "Cancel trusted friend request",
 			progress: "Canceling…",
 			icon: shieldSlashIcon,
 			question: (name) => `Cancel your trusted friend request to ${name}?`,
@@ -315,7 +316,8 @@ export function relationshipMenuItemClass(tone: RelationshipTone): string {
 }
 
 // relationshipBadges describes a relationship. A trusted friendship replaces
-// the friend badge, because a trusted friend is always a friend.
+// the friend badge, because a trusted friend is always a friend. Mutuals is
+// inferred from following and being followed, and replaces both follow badges.
 export function relationshipBadges(
 	relationship: RelationshipState,
 ): RelationshipBadge[] {
@@ -337,44 +339,52 @@ export function relationshipBadges(
 	}
 	if (relationship.friend === FriendStatus.FriendStatusRequestSent) {
 		badges.push({
-			label: "Friend request pending",
+			label: "Friend request outgoing",
 			icon: paperPlaneTiltIcon,
-			tooltip: "This account sent a friend request that they have not answered",
+			tooltip:
+				"This account sent them a friend request. They have not answered it yet.",
 			isStrong: false,
 		})
 	} else if (relationship.friend === FriendStatus.FriendStatusRequestReceived) {
 		badges.push({
-			label: "Friend request received",
+			label: "Friend request incoming",
 			icon: userPlusIcon,
-			tooltip: "They sent a friend request",
+			tooltip: "They sent this account a friend request. Accept or decline it.",
 			isStrong: false,
 		})
 	}
 	if (relationship.trusted === TrustedStatus.TrustedStatusRequestSent) {
 		badges.push({
-			label: "Trusted request pending",
+			label: "Trusted friend request outgoing",
 			icon: paperPlaneTiltIcon,
 			tooltip:
-				"This account sent a trusted friend request that they have not answered",
+				"This account sent them a trusted friend request. They have not answered it yet.",
 			isStrong: false,
 		})
 	} else if (relationship.trusted === TrustedStatus.TrustedStatusRequestReceived) {
 		badges.push({
-			label: "Trusted request received",
+			label: "Trusted friend request incoming",
 			icon: shieldCheckIcon,
-			tooltip: "They sent a trusted friend request",
+			tooltip:
+				"They sent this account a trusted friend request. Accept or decline it.",
 			isStrong: false,
 		})
 	}
-	if (relationship.followedBy) {
+	if (relationship.following && relationship.followedBy) {
+		badges.push({
+			label: "Mutuals",
+			icon: arrowsLeftRightIcon,
+			tooltip: "This account follows them and they follow this account back",
+			isStrong: false,
+		})
+	} else if (relationship.followedBy) {
 		badges.push({
 			label: "Follower",
 			icon: userCheckIcon,
 			tooltip: "They follow this account",
 			isStrong: false,
 		})
-	}
-	if (relationship.following) {
+	} else if (relationship.following) {
 		badges.push({
 			label: "Following",
 			icon: userFocusIcon,

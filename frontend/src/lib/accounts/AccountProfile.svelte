@@ -24,6 +24,7 @@
 	import type { SocialListKind } from "../social/social-store.svelte"
 	import ChatsPage from "../chats/ChatsPage.svelte"
 	import RobloxNotificationsPage from "../roblox-notifications/RobloxNotificationsPage.svelte"
+	import FriendConnections from "../social/FriendConnections.svelte"
 	import SocialCounts from "../social/SocialCounts.svelte"
 	import type { WorkspaceState } from "../layout/workspace-state.svelte"
 	import type { NotificationCenter } from "../notifications/notification-center.svelte"
@@ -482,6 +483,11 @@
 			{/if}
 
 			<AccountProfileDetails account={selectedAccount} snapshot={profile} />
+			{#if profile && profileState?.sections.hasSection(AccountProfileSection.ProfileSectionConnections) && store.accountTotal > 1}
+				<FriendConnections
+					connections={profile.connections ?? []}
+					accounts={store} />
+			{/if}
 			{#if profileVisible && profileState?.error}
 				<p class="text-xs text-danger-muted" role="alert">
 					{profileState.error}
