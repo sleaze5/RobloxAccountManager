@@ -75,3 +75,4 @@ jobs:
               uses: ./.github/actions/land
               with:
                   branch: deps/update
+                  deploy-key: ${{ secrets.LAND_DEPLOY_KEY }}
