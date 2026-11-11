@@ -138,7 +138,7 @@ export const relationshipActionsById: Record<RelationshipActionId, RelationshipA
 		"cancel-trusted": {
 			id: "cancel-trusted",
 			tone: "warning",
-			label: "Cancel trusted request",
+			label: "Cancel trusted friend request",
 			progress: "Canceling…",
 			icon: shieldSlashIcon,
 			question: (name) => `Cancel your trusted friend request to ${name}?`,
@@ -337,32 +337,33 @@ export function relationshipBadges(
 	}
 	if (relationship.friend === FriendStatus.FriendStatusRequestSent) {
 		badges.push({
-			label: "Friend request pending",
+			label: "Friend request outgoing",
 			icon: paperPlaneTiltIcon,
-			tooltip: "This account sent a friend request that they have not answered",
+			tooltip: "This account sent them a friend request. They have not answered it yet.",
 			isStrong: false,
 		})
 	} else if (relationship.friend === FriendStatus.FriendStatusRequestReceived) {
 		badges.push({
-			label: "Friend request received",
+			label: "Friend request incoming",
 			icon: userPlusIcon,
-			tooltip: "They sent a friend request",
+			tooltip: "They sent this account a friend request. Accept or decline it.",
 			isStrong: false,
 		})
 	}
 	if (relationship.trusted === TrustedStatus.TrustedStatusRequestSent) {
 		badges.push({
-			label: "Trusted request pending",
+			label: "Trusted friend request outgoing",
 			icon: paperPlaneTiltIcon,
 			tooltip:
-				"This account sent a trusted friend request that they have not answered",
+				"This account sent them a trusted friend request. They have not answered it yet.",
 			isStrong: false,
 		})
 	} else if (relationship.trusted === TrustedStatus.TrustedStatusRequestReceived) {
 		badges.push({
-			label: "Trusted request received",
+			label: "Trusted friend request incoming",
 			icon: shieldCheckIcon,
-			tooltip: "They sent a trusted friend request",
+			tooltip:
+				"They sent this account a trusted friend request. Accept or decline it.",
 			isStrong: false,
 		})
 	}
