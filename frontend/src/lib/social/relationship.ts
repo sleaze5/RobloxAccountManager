@@ -341,7 +341,8 @@ export function relationshipBadges(
 		badges.push({
 			label: "Friend request outgoing",
 			icon: paperPlaneTiltIcon,
-			tooltip: "This account sent them a friend request. They have not answered it yet.",
+			tooltip:
+				"This account sent them a friend request. They have not answered it yet.",
 			isStrong: false,
 		})
 	} else if (relationship.friend === FriendStatus.FriendStatusRequestReceived) {

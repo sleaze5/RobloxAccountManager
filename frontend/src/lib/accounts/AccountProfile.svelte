@@ -484,7 +484,9 @@
 
 			<AccountProfileDetails account={selectedAccount} snapshot={profile} />
 			{#if profile && profileState?.sections.hasSection(AccountProfileSection.ProfileSectionConnections) && store.accountTotal > 1}
-				<FriendConnections connections={profile.connections ?? []} accounts={store} />
+				<FriendConnections
+					connections={profile.connections ?? []}
+					accounts={store} />
 			{/if}
 			{#if profileVisible && profileState?.error}
 				<p class="text-xs text-danger-muted" role="alert">
