@@ -78,11 +78,7 @@ const profileSections: SectionFields<AccountProfileSnapshot, AccountProfileSecti
 		},
 		{
 			section: AccountProfileSection.ProfileSectionActivity,
-			fields: [
-				"unreadMessageCount",
-				"inboundTradeCount",
-				"unreadNotificationCount",
-			],
+			fields: ["unreadNotificationCount"],
 		},
 		{
 			section: AccountProfileSection.ProfileSectionTrading,
@@ -132,8 +128,6 @@ function emptyProfile(accountId: number): AccountProfileSnapshot {
 		robloxBadges: null,
 		collectibleCount: null,
 		collectibleRecentAveragePriceTotal: null,
-		unreadMessageCount: null,
-		inboundTradeCount: null,
 		unreadNotificationCount: null,
 		premiumSubscription: null,
 		tradeEligibility: null,

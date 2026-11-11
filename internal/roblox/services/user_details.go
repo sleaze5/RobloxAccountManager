@@ -353,18 +353,8 @@ func (service *Users) CommunityCount(ctx context.Context, accountID, version, us
 	return int64(len(*payload.Data)), nil
 }
 
-// Shapes of the unread and inbound counts verified against signed-in
-// responses captured on 2026-10-15.
-
-func (service *Users) UnreadMessageCount(ctx context.Context, accountID, version int64) (int64, error) {
-	return service.readCount(ctx, accountID, version, "profile-unread-messages", "https://privatemessages.roblox.com/v1/messages/unread/count")
-}
-
-// InboundTradeCount names the trade status, because Roblox reads a number in
-// its place as a trade ID.
-func (service *Users) InboundTradeCount(ctx context.Context, accountID, version int64) (int64, error) {
-	return service.readCount(ctx, accountID, version, "profile-inbound-trades", "https://trades.roblox.com/v1/trades/Inbound/count")
-}
+// Shape of the unread count verified against signed-in responses captured on
+// 2026-10-15.
 
 func (service *Users) UnreadNotificationCount(ctx context.Context, accountID, version int64) (int64, error) {
 	var payload struct {
