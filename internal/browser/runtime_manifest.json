@@ -1,12 +1,12 @@
 {
 	"schemaVersion": 1,
-	"version": "157.0.8103.38",
+	"version": "157.0.8103.50",
 	"sourceUrl": "https://googlechromelabs.github.io/chrome-for-testing/last-known-good-versions-with-downloads.json",
-	"generatedAt": "2026-11-08T00:53:05.215Z",
+	"generatedAt": "2026-11-11T17:11:34.408Z",
 	"downloads": {
-		"linux64": "https://storage.googleapis.com/chrome-for-testing-public/157.0.8103.38/linux64/chrome-linux64.zip",
-		"mac-arm64": "https://storage.googleapis.com/chrome-for-testing-public/157.0.8103.38/mac-arm64/chrome-mac-arm64.zip",
-		"mac-x64": "https://storage.googleapis.com/chrome-for-testing-public/157.0.8103.38/mac-x64/chrome-mac-x64.zip",
-		"win64": "https://storage.googleapis.com/chrome-for-testing-public/157.0.8103.38/win64/chrome-win64.zip"
+		"linux64": "https://storage.googleapis.com/chrome-for-testing-public/157.0.8103.50/linux64/chrome-linux64.zip",
+		"mac-arm64": "https://storage.googleapis.com/chrome-for-testing-public/157.0.8103.50/mac-arm64/chrome-mac-arm64.zip",
+		"mac-x64": "https://storage.googleapis.com/chrome-for-testing-public/157.0.8103.50/mac-x64/chrome-mac-x64.zip",
+		"win64": "https://storage.googleapis.com/chrome-for-testing-public/157.0.8103.50/win64/chrome-win64.zip"
 	}
 }

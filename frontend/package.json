@@ -39,13 +39,13 @@
 		"@tsconfig/svelte": "5.0.8",
 		"@types/bun": "1.4.4",
 		"@typescript/native": "npm:typescript@7.0.2",
-		"oxlint": "1.92.0",
+		"oxlint": "1.93.0",
 		"oxlint-tsgolint": "7.0.2006",
 		"svelte": "5.57.3",
 		"svelte-check": "4.7.8",
 		"tailwindcss": "4.3.5",
 		"typescript": "6.0.3",
-		"vite": "8.3.6"
+		"vite": "8.3.8"
 	},
 	"devEngines": {
 		"packageManager": {
