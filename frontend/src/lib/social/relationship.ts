@@ -1,3 +1,4 @@
+import arrowsLeftRightIcon from "@phosphor-icons/core/regular/arrows-left-right.svg?raw"
 import handshakeIcon from "@phosphor-icons/core/regular/handshake.svg?raw"
 import paperPlaneTiltIcon from "@phosphor-icons/core/regular/paper-plane-tilt.svg?raw"
 import prohibitIcon from "@phosphor-icons/core/regular/prohibit.svg?raw"
@@ -315,7 +316,8 @@ export function relationshipMenuItemClass(tone: RelationshipTone): string {
 }
 
 // relationshipBadges describes a relationship. A trusted friendship replaces
-// the friend badge, because a trusted friend is always a friend.
+// the friend badge, because a trusted friend is always a friend. Mutuals is
+// inferred from following and being followed, and replaces both follow badges.
 export function relationshipBadges(
 	relationship: RelationshipState,
 ): RelationshipBadge[] {
@@ -367,15 +369,21 @@ export function relationshipBadges(
 			isStrong: false,
 		})
 	}
-	if (relationship.followedBy) {
+	if (relationship.following && relationship.followedBy) {
+		badges.push({
+			label: "Mutuals",
+			icon: arrowsLeftRightIcon,
+			tooltip: "This account follows them and they follow this account back",
+			isStrong: false,
+		})
+	} else if (relationship.followedBy) {
 		badges.push({
 			label: "Follower",
 			icon: userCheckIcon,
 			tooltip: "They follow this account",
 			isStrong: false,
 		})
-	}
-	if (relationship.following) {
+	} else if (relationship.following) {
 		badges.push({
 			label: "Following",
 			icon: userFocusIcon,
