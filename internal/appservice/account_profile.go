@@ -82,8 +82,6 @@ type AccountProfileSnapshot struct {
 	RobloxBadges                       []string                         `json:"robloxBadges"`
 	CollectibleCount                   *int64                           `json:"collectibleCount"`
 	CollectibleRecentAveragePriceTotal *int64                           `json:"collectibleRecentAveragePriceTotal"`
-	UnreadMessageCount                 *int64                           `json:"unreadMessageCount"`
-	InboundTradeCount                  *int64                           `json:"inboundTradeCount"`
 	UnreadNotificationCount            *int64                           `json:"unreadNotificationCount"`
 	// PremiumSubscription is nil when the account has no Premium.
 	PremiumSubscription *PremiumSubscription `json:"premiumSubscription"`
@@ -212,8 +210,6 @@ func (service *Service) profileSectionReads(ctx context.Context, accountID, vers
 		},
 		ProfileSectionActivity: func() []accountRead {
 			return []accountRead{
-				applyRead("unreadMessages", func() (int64, error) { return users.UnreadMessageCount(ctx, accountID, version) }, func(count int64) { profile.UnreadMessageCount = &count }),
-				applyRead("inboundTrades", func() (int64, error) { return users.InboundTradeCount(ctx, accountID, version) }, func(count int64) { profile.InboundTradeCount = &count }),
 				applyRead("unreadNotifications", func() (int64, error) { return users.UnreadNotificationCount(ctx, accountID, version) }, func(count int64) {
 					profile.UnreadNotificationCount = &count
 				}),
