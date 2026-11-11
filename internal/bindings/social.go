@@ -33,11 +33,11 @@ func (service *Service) GetSocialPresences(ctx context.Context, accountID int64,
 	return service.core.GetSocialPresences(ctx, accountID, userIDs)
 }
 
-func (service *Service) GetSocialProfile(ctx context.Context, accountID, userID int64) (appservice.SocialProfile, error) {
+func (service *Service) GetSocialProfile(ctx context.Context, accountID, userID int64, section appservice.SocialProfileSection) (appservice.SocialProfile, error) {
 	if err := socialTarget(accountID, userID, "social-profile"); err != nil {
 		return appservice.SocialProfile{}, err
 	}
-	return service.core.GetSocialProfile(ctx, accountID, userID)
+	return service.core.GetSocialProfile(ctx, accountID, userID, section)
 }
 
 func (service *Service) GetSocialRelationship(ctx context.Context, accountID, userID int64) (appservice.SocialRelationshipSnapshot, error) {

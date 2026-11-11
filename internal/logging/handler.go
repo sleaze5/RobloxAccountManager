@@ -106,8 +106,8 @@ func (handler *redactingHandler) Enabled(ctx context.Context, level slog.Level) 
 
 func (handler *redactingHandler) Handle(ctx context.Context, record slog.Record) error {
 	clean := slog.NewRecord(record.Time, record.Level, record.Message, record.PC)
-	if id, _ := ctx.Value(operationContextKey{}).(string); id != "" {
-		clean.AddAttrs(slog.String("operation_id", id))
+	if operationID, _ := ctx.Value(operationContextKey{}).(string); operationID != "" {
+		clean.AddAttrs(slog.String("operation_id", operationID))
 	}
 	record.Attrs(func(attribute slog.Attr) bool {
 		clean.AddAttrs(cleanAttribute(attribute))

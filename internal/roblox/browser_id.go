@@ -12,11 +12,11 @@ const EventTrackerCookieName = "RBXEventTrackerV2"
 
 func NewBrowserID() string {
 	for {
-		var data [8]byte
-		_, _ = rand.Read(data[:])
+		var randomBytes [8]byte
+		_, _ = rand.Read(randomBytes[:])
 		// Keep 53 bits, so the ID fits in a JavaScript number.
-		if value := binary.BigEndian.Uint64(data[:]) >> 11; value != 0 {
-			return strconv.FormatUint(value, 10)
+		if browserID := binary.BigEndian.Uint64(randomBytes[:]) >> 11; browserID != 0 {
+			return strconv.FormatUint(browserID, 10)
 		}
 	}
 }
@@ -42,8 +42,8 @@ func (manager *SessionManager) ResetBrowserIDs() {
 }
 
 func (manager *SessionManager) browserIDLocked(accountID int64, preferred string) string {
-	if value := manager.browserIDs[accountID]; value != "" {
-		return value
+	if browserID := manager.browserIDs[accountID]; browserID != "" {
+		return browserID
 	}
 	for {
 		if preferred == "" {

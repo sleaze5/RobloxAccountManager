@@ -125,18 +125,25 @@ func (service *Service) RestartToUpdate(ctx context.Context) error {
 	return service.updates.Restart(ctx)
 }
 
-func (service *Service) GetAccountProfile(ctx context.Context, accountID int64) (appservice.AccountProfileSnapshot, error) {
+func (service *Service) GetAccountProfile(ctx context.Context, accountID int64, section appservice.AccountProfileSection) (appservice.AccountProfileSnapshot, error) {
 	if err := positiveID(accountID, "account-profile"); err != nil {
 		return appservice.AccountProfileSnapshot{}, err
 	}
-	return service.core.GetAccountProfile(ctx, accountID)
+	return service.core.GetAccountProfile(ctx, accountID, section)
 }
 
-func (service *Service) GetAccountInfo(ctx context.Context, accountID int64) (appservice.AccountInfoSnapshot, error) {
+func (service *Service) GetRobuxTransactions(ctx context.Context, accountID int64, transactionType appservice.RobuxTransactionType, cursor string) (appservice.RobuxTransactionPage, error) {
+	if err := positiveID(accountID, "robux-transactions"); err != nil {
+		return appservice.RobuxTransactionPage{}, err
+	}
+	return service.core.GetRobuxTransactions(ctx, accountID, transactionType, cursor)
+}
+
+func (service *Service) GetAccountInfo(ctx context.Context, accountID int64, section appservice.AccountInfoSection) (appservice.AccountInfoSnapshot, error) {
 	if err := positiveID(accountID, "account-info"); err != nil {
 		return appservice.AccountInfoSnapshot{}, err
 	}
-	return service.core.GetAccountInfo(ctx, accountID)
+	return service.core.GetAccountInfo(ctx, accountID, section)
 }
 
 func (service *Service) GetAccountSettings(ctx context.Context, accountID int64) (appservice.AccountSettingsSnapshot, error) {
@@ -310,6 +317,13 @@ func (service *Service) GetRobloxNotifications(ctx context.Context, accountID in
 	return service.core.GetRobloxNotifications(ctx, accountID, startIndex)
 }
 
+func (service *Service) MarkRobloxNotificationsSeen(ctx context.Context, accountID int64) error {
+	if err := positiveID(accountID, "roblox-notifications"); err != nil {
+		return err
+	}
+	return service.core.MarkRobloxNotificationsSeen(ctx, accountID)
+}
+
 func (service *Service) DismissRobloxNotification(ctx context.Context, accountID int64, notificationID, dismissAction string) error {
 	if err := positiveID(accountID, "roblox-notifications"); err != nil {
 		return err
@@ -349,8 +363,8 @@ func (service *Service) GetLaunchConfirmation() appservice.LaunchConfirmation {
 	return service.core.GetLaunchConfirmation()
 }
 
-func (service *Service) ResolveLaunchConfirmation(id string, approved bool) {
-	service.core.ResolveLaunchConfirmation(id, approved)
+func (service *Service) ResolveLaunchConfirmation(confirmationID string, approved bool) {
+	service.core.ResolveLaunchConfirmation(confirmationID, approved)
 }
 
 func (service *Service) SetMultiInstanceEnabled(enabled bool) (robloxmulti.Snapshot, error) {
@@ -523,14 +537,16 @@ func (service *Service) OpenVaultExport(ctx context.Context, path, password stri
 	return service.core.OpenVaultExport(ctx, path, password)
 }
 
-func (service *Service) ImportVaultExport(ctx context.Context, id string, request appservice.TransferRequest, confirmation string) (appservice.TransferResult, error) {
+func (service *Service) ImportVaultExport(ctx context.Context, transferID string, request appservice.TransferRequest, confirmation string) (appservice.TransferResult, error) {
 	if request.Mode == appservice.TransferOverwrite && confirmation != "CONFIRM" {
 		return appservice.TransferResult{}, &roblox.Error{Kind: roblox.KindProtocol, Endpoint: "vault-transfer", Message: "Type CONFIRM to overwrite the vault."}
 	}
-	return service.core.ImportVaultExport(ctx, id, request)
+	return service.core.ImportVaultExport(ctx, transferID, request)
 }
 
-func (service *Service) DiscardVaultExport(id string) { service.core.DiscardVaultExport(id) }
+func (service *Service) DiscardVaultExport(transferID string) {
+	service.core.DiscardVaultExport(transferID)
+}
 
 func (service *Service) ValidateCookies(ctx context.Context, input string) (appservice.ImportPreview, error) {
 	return service.core.ValidateCookies(ctx, input)
@@ -679,8 +695,8 @@ func accountSelection(accountIDs []int64, endpoint string) error {
 	return nil
 }
 
-func positiveID(value int64, endpoint string) error {
-	if value > 0 {
+func positiveID(id int64, endpoint string) error {
+	if id > 0 {
 		return nil
 	}
 	return &roblox.Error{Kind: roblox.KindProtocol, Endpoint: endpoint, Message: "The requested identifier is invalid."}

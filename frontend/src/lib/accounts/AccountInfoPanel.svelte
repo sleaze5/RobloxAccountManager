@@ -25,6 +25,12 @@
 			id: "voiceVerification",
 			search: "voice chat verification verified age check",
 		},
+		{
+			id: "twoStep",
+			search: "2-step two step verification 2fa authenticator security",
+		},
+		{ id: "recoveryCodes", search: "recovery codes backup security 2fa" },
+		{ id: "passkeys", search: "passkeys passkey security key sign in" },
 	] as const
 
 	export type AccountInfoFieldId = (typeof accountInfoFields)[number]["id"]
@@ -33,6 +39,10 @@
 <script lang="ts">
 	import atIcon from "@phosphor-icons/core/regular/at.svg?raw"
 	import cakeIcon from "@phosphor-icons/core/regular/cake.svg?raw"
+	import fingerprintIcon from "@phosphor-icons/core/regular/fingerprint.svg?raw"
+	import lifebuoyIcon from "@phosphor-icons/core/regular/lifebuoy.svg?raw"
+	import shieldCheckIcon from "@phosphor-icons/core/regular/shield-check.svg?raw"
+	import shieldSlashIcon from "@phosphor-icons/core/regular/shield-slash.svg?raw"
 	import calendarIcon from "@phosphor-icons/core/regular/calendar.svg?raw"
 	import circleNotchIcon from "@phosphor-icons/core/regular/circle-notch.svg?raw"
 	import envelopeIcon from "@phosphor-icons/core/regular/envelope.svg?raw"
@@ -52,7 +62,12 @@
 	import Icon from "../shared/Icon.svelte"
 	import Timestamp from "../shared/Timestamp.svelte"
 	import SensitiveValue from "../shared/SensitiveValue.svelte"
-	import { AgeVerification, PinState, VoiceChatState } from "../backend/bridge"
+	import {
+		AccountInfoSection,
+		AgeVerification,
+		PinState,
+		VoiceChatState,
+	} from "../backend/bridge"
 	import type { AccountEditKind } from "../dialogs/AccountEditDialog.svelte"
 	import type { AccountInfoState } from "./account-info-state.svelte"
 	import { ageVerificationLabels } from "./account-model"
@@ -85,6 +100,12 @@
 			[PinState.PinLocked]: "Locked",
 			[PinState.PinUnlocked]: "Unlocked",
 		},
+		verificationMethods: Record<string, string> = {
+			email: "Email",
+			authenticator: "Authenticator app",
+			securityKey: "Security key",
+			sms: "SMS",
+		},
 		birthdayFormat = new Intl.DateTimeFormat("en-US", {
 			month: "long",
 			day: "2-digit",
@@ -109,8 +130,8 @@
 		return `${birthdayFormat.format(date)} (${age}y)`
 	}
 
-	function missing(source: string): boolean {
-		return snapshot?.unavailable?.includes(source) ?? false
+	function missing(section: AccountInfoSection): boolean {
+		return !info.sections.hasSection(section)
 	}
 
 	function any(...ids: AccountInfoFieldId[]): boolean {
@@ -127,6 +148,11 @@
 		onclick={() => onEdit(kind)}>
 		<Icon svg={pencilSimpleIcon} size={14} aria-hidden="true" />
 	</button>
+{/snippet}
+
+{#snippet unavailableValue(section: AccountInfoSection)}
+	<span class="text-fg-faint"
+		>{info.sections.isSectionPending(section) ? "Loading…" : "Unavailable"}</span>
 {/snippet}
 
 {#snippet passwordFact()}
@@ -156,7 +182,7 @@
 
 {#if info.error}
 	<div class="notice-error" role="alert">{info.error}</div>
-{:else if (snapshot?.unavailable?.length ?? 0) > 0}
+{:else if info.sections.failedSections.length > 0}
 	<div class="notice-error" role="alert">
 		Some details could not be loaded. Refresh to retry.
 	</div>
@@ -214,8 +240,10 @@
 								aria-hidden="true" />Account PIN
 						</dt>
 						<dd>
-							{#if missing("pin") || !pinLabels[snapshot.pin]}
-								<span class="text-fg-faint">Unavailable</span>
+							{#if missing(AccountInfoSection.InfoSectionPin) || !pinLabels[snapshot.pin]}
+								{@render unavailableValue(
+									AccountInfoSection.InfoSectionPin,
+								)}
 							{:else}
 								<span>{pinLabels[snapshot.pin]}</span>
 								{#if snapshot.pin === PinState.PinLocked}
@@ -237,8 +265,10 @@
 								aria-hidden="true" />Gender
 						</dt>
 						<dd>
-							{#if missing("gender")}
-								<span class="text-fg-faint">Unavailable</span>
+							{#if missing(AccountInfoSection.InfoSectionGender)}
+								{@render unavailableValue(
+									AccountInfoSection.InfoSectionGender,
+								)}
 							{:else if genders[snapshot.gender]}
 								<span>{genders[snapshot.gender]}</span>
 							{:else}
@@ -262,7 +292,9 @@
 										]}</small
 									>{/if}
 							{:else}
-								<span class="text-fg-faint">Unavailable</span>
+								{@render unavailableValue(
+									AccountInfoSection.InfoSectionAge,
+								)}
 							{/if}
 						</dd>
 					</div>
@@ -282,7 +314,9 @@
 										]}</small
 									>{/if}
 							{:else}
-								<span class="text-fg-faint">Unavailable</span>
+								{@render unavailableValue(
+									AccountInfoSection.InfoSectionBirthdate,
+								)}
 							{/if}
 						</dd>
 					</div>
@@ -295,7 +329,9 @@
 						</dt>
 						<dd>
 							{#if snapshot.firstAccount == null}
-								<span class="text-fg-faint">Unavailable</span>
+								{@render unavailableValue(
+									AccountInfoSection.InfoSectionFirstAccount,
+								)}
 							{:else}
 								<button
 									class="cursor-help rounded-md tabular-nums focus-visible:outline-offset-2"
@@ -324,8 +360,10 @@
 								aria-hidden="true" />Email
 						</dt>
 						<dd>
-							{#if missing("email")}
-								<span class="text-fg-faint">Unavailable</span>
+							{#if missing(AccountInfoSection.InfoSectionEmail)}
+								{@render unavailableValue(
+									AccountInfoSection.InfoSectionEmail,
+								)}
 							{:else if snapshot.email}
 								<SensitiveValue label="Email"
 									>{snapshot.email}</SensitiveValue>
@@ -336,7 +374,7 @@
 							{:else}
 								<span class="text-fg-faint">Not set</span>
 							{/if}
-							{#if !missing("email")}
+							{#if !missing(AccountInfoSection.InfoSectionEmail)}
 								{@render edit("email", "Change email")}
 							{/if}
 						</dd>
@@ -349,8 +387,10 @@
 							number
 						</dt>
 						<dd>
-							{#if missing("phone")}
-								<span class="text-fg-faint">Unavailable</span>
+							{#if missing(AccountInfoSection.InfoSectionPhone)}
+								{@render unavailableValue(
+									AccountInfoSection.InfoSectionPhone,
+								)}
 							{:else if snapshot.phone}
 								<SensitiveValue label="Phone number"
 									>{snapshot.phone}</SensitiveValue>
@@ -384,7 +424,9 @@
 							{#if snapshot.language}
 								<span>{snapshot.language}</span>
 							{:else}
-								<span class="text-fg-faint">Unavailable</span>
+								{@render unavailableValue(
+									AccountInfoSection.InfoSectionLocale,
+								)}
 							{/if}
 						</dd>
 					</div>
@@ -399,7 +441,9 @@
 						</dt>
 						<dd>
 							{#if snapshot.autoTranslations == null}
-								<span class="text-fg-faint">Unavailable</span>
+								{@render unavailableValue(
+									AccountInfoSection.InfoSectionLocale,
+								)}
 							{:else}
 								<span>{snapshot.autoTranslations ? "On" : "Off"}</span>
 							{/if}
@@ -415,8 +459,10 @@
 								aria-hidden="true" />Account location
 						</dt>
 						<dd>
-							{#if missing("location")}
-								<span class="text-fg-faint">Unavailable</span>
+							{#if missing(AccountInfoSection.InfoSectionLocation)}
+								{@render unavailableValue(
+									AccountInfoSection.InfoSectionLocation,
+								)}
 							{:else if snapshot.location}
 								<SensitiveValue label="Account location"
 									>{snapshot.location}</SensitiveValue>
@@ -464,7 +510,9 @@
 										>Enrollment disabled</small
 									>{/if}
 							{:else}
-								<span class="text-fg-faint">Unavailable</span>
+								{@render unavailableValue(
+									AccountInfoSection.InfoSectionVoiceChat,
+								)}
 							{/if}
 						</dd>
 					</div>
@@ -487,7 +535,111 @@
 										>Age check available</small
 									>{/if}
 							{:else}
-								<span class="text-fg-faint">Unavailable</span>
+								{@render unavailableValue(
+									AccountInfoSection.InfoSectionVoiceChat,
+								)}
+							{/if}
+						</dd>
+					</div>
+				{/if}
+			</dl>
+		</section>
+	{/if}
+	{#if any("twoStep", "recoveryCodes", "passkeys")}
+		<section class="settings-section" aria-labelledby="account-info-security">
+			<h3 id="account-info-security">Security</h3>
+			<dl class="facts">
+				{#if visible.has("twoStep")}
+					<div
+						data-tone={snapshot.twoStepMethods?.length === 0
+							? "warning"
+							: undefined}>
+						<dt>
+							{#if snapshot.twoStepMethods?.length === 0}<Icon
+									svg={shieldSlashIcon}
+									size={16}
+									aria-hidden="true" />{:else}<Icon
+									svg={shieldCheckIcon}
+									size={16}
+									aria-hidden="true" />{/if}2-step verification
+						</dt>
+						<dd>
+							{#if snapshot.twoStepMethods === null}
+								{@render unavailableValue(
+									AccountInfoSection.InfoSectionTwoStep,
+								)}
+							{:else if snapshot.twoStepMethods.length}
+								<span>On</span>
+								<small
+									>{snapshot.twoStepMethods
+										.map(
+											(method) =>
+												verificationMethods[method] ?? method,
+										)
+										.join(", ")}</small>
+							{:else}
+								<span>Off</span>
+							{/if}
+						</dd>
+					</div>
+				{/if}
+				{#if visible.has("recoveryCodes")}
+					<div
+						data-tone={snapshot.recoveryCodeCount === 0
+							? "muted"
+							: undefined}>
+						<dt>
+							<Icon
+								svg={lifebuoyIcon}
+								size={16}
+								aria-hidden="true" />Recovery codes
+						</dt>
+						<dd>
+							{#if snapshot.recoveryCodeCount === null}
+								{@render unavailableValue(
+									AccountInfoSection.InfoSectionRecoveryCodes,
+								)}
+							{:else if snapshot.recoveryCodeCount > 0}
+								<span
+									>{snapshot.recoveryCodeCount} unused {snapshot.recoveryCodeCount ===
+									1
+										? "code"
+										: "codes"}</span>
+								{#if snapshot.recoveryCodesCreatedAtMs}<small
+										>Created <Timestamp
+											value={snapshot.recoveryCodesCreatedAtMs} /></small
+									>{/if}
+							{:else}
+								<span>None</span>
+							{/if}
+						</dd>
+					</div>
+				{/if}
+				{#if visible.has("passkeys")}
+					<div
+						data-tone={snapshot.passkeyNames?.length === 0
+							? "muted"
+							: undefined}>
+						<dt>
+							<Icon
+								svg={fingerprintIcon}
+								size={16}
+								aria-hidden="true" />Passkeys
+						</dt>
+						<dd>
+							{#if snapshot.passkeyNames === null}
+								{@render unavailableValue(
+									AccountInfoSection.InfoSectionPasskeys,
+								)}
+							{:else if snapshot.passkeyNames.length}
+								<span>{snapshot.passkeyNames.length}</span>
+								{#if snapshot.passkeyNames.some(Boolean)}<small
+										>{snapshot.passkeyNames
+											.filter(Boolean)
+											.join(", ")}</small
+									>{/if}
+							{:else}
+								<span>None</span>
 							{/if}
 						</dd>
 					</div>

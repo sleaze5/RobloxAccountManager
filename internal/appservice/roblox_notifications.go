@@ -9,7 +9,6 @@ import (
 	"slices"
 	"strconv"
 	"strings"
-	"sync/atomic"
 
 	"github.com/sleaze5/RobloxAccountManager/internal/logging"
 	"github.com/sleaze5/RobloxAccountManager/internal/roblox"
@@ -23,8 +22,6 @@ const (
 	// Dismiss all reads at most this many pages of 20 before it dismisses.
 	maxRobloxNotificationDismissPages = 25
 )
-
-var robloxNotificationOperationID atomic.Uint64
 
 type RobloxNotificationImageKind string
 
@@ -177,12 +174,25 @@ func (service *Service) DismissAllRobloxNotifications(ctx context.Context, accou
 	return len(dismissals), nil
 }
 
+// MarkRobloxNotificationsSeen clears the unread notification count on Roblox.
+func (service *Service) MarkRobloxNotificationsSeen(ctx context.Context, accountID int64) error {
+	ctx, version, logger, done, err := service.beginRobloxNotifications(ctx, accountID, "mark-seen")
+	if err != nil {
+		return err
+	}
+	defer done()
+	if err := service.notificationStream.ClearUnread(ctx, accountID, version); err != nil {
+		return robloxNotificationFailure(ctx, logger, err)
+	}
+	return nil
+}
+
 func (service *Service) beginRobloxNotifications(parent context.Context, accountID int64, operation string) (context.Context, int64, *slog.Logger, func(), error) {
 	ctx, version, done, err := service.beginAccountSession(parent, accountID, "roblox-notifications")
 	if err != nil {
 		return nil, 0, nil, nil, err
 	}
-	ctx = logging.WithOperation(ctx, fmt.Sprintf("roblox-notifications-%d", robloxNotificationOperationID.Add(1)))
+	ctx = logging.WithOperation(ctx, logging.NewOperationID("roblox-notifications"))
 	logger := service.logs.Module("application.roblox-notifications").With("operation", operation)
 	return ctx, version, logger, done, nil
 }
@@ -205,7 +215,7 @@ func (service *Service) robloxNotificationViews(ctx context.Context, logger *slo
 	var users []robloxservices.UserView
 	reads := []accountRead{{"images", func() error {
 		var readError error
-		images, readError = service.avatars.Images(ctx, targets)
+		images, readError = service.thumbnails.Images(ctx, targets)
 		return readError
 	}}}
 	if len(userIDs) > 0 {
@@ -246,7 +256,7 @@ func robloxNotificationView(entry robloxservices.NotificationStreamEntry) (Roblo
 	}
 	view := RobloxNotificationView{
 		ID:            entry.ID,
-		CreatedAtMs:   chatTime(entry.EventDate),
+		CreatedAtMs:   unixMillisecondsFromRFC3339(entry.EventDate),
 		ImageKind:     RobloxNotificationImageOther,
 		Category:      robloxNotificationCategory(entry.Content.NotificationType),
 		DismissAction: robloxNotificationDismissAction(entry),
@@ -302,13 +312,13 @@ func robloxNotificationCategory(notificationType string) RobloxNotificationCateg
 // robloxNotificationUniverseID reads universe_id from the analytics payload of
 // an experience invite. Roblox sends it as a string, as observed on 2026-11-09.
 func robloxNotificationUniverseID(payload json.RawMessage) int64 {
-	var ids struct {
+	var analytics struct {
 		UniverseID json.Number `json:"universe_id"`
 	}
-	if json.Unmarshal(payload, &ids) != nil {
+	if json.Unmarshal(payload, &analytics) != nil {
 		return 0
 	}
-	universeID, err := ids.UniverseID.Int64()
+	universeID, err := analytics.UniverseID.Int64()
 	if err != nil || universeID <= 0 {
 		return 0
 	}
@@ -449,20 +459,20 @@ func parseRobloxAppLink(path string) (string, url.Values, bool) {
 }
 
 func positiveQueryID(query url.Values, name string) int64 {
-	value, err := strconv.ParseInt(query.Get(name), 10, 64)
-	if err != nil || value <= 0 {
+	id, err := strconv.ParseInt(query.Get(name), 10, 64)
+	if err != nil || id <= 0 {
 		return 0
 	}
-	return value
+	return id
 }
 
 // isRobloxNotificationToken accepts the notification IDs (UUIDs) and action
 // names (such as GroupShoutIgnoreAction) that go into the action URL path.
-func isRobloxNotificationToken(value string, maxLength int) bool {
-	if value == "" || len(value) > maxLength {
+func isRobloxNotificationToken(token string, maxLength int) bool {
+	if token == "" || len(token) > maxLength {
 		return false
 	}
-	for _, character := range value {
+	for _, character := range token {
 		if ('a' > character || character > 'z') && ('A' > character || character > 'Z') && ('0' > character || character > '9') && character != '-' && character != '_' {
 			return false
 		}

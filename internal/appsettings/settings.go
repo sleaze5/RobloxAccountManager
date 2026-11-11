@@ -610,12 +610,12 @@ func (store *Store) saveLocked() error {
 
 var utf8BOM = []byte{0xef, 0xbb, 0xbf}
 
-func decodeJSON(encoded []byte, value any) error {
+func decodeJSON(encoded []byte, target any) error {
 	encoded = bytes.TrimPrefix(encoded, utf8BOM)
 	if !utf8.Valid(encoded) {
 		return errors.New("settings must use valid UTF-8 encoding")
 	}
-	if err := json.Unmarshal(encoded, value); err != nil {
+	if err := json.Unmarshal(encoded, target); err != nil {
 		return fmt.Errorf("parse JSON: %w", err)
 	}
 	return nil
@@ -697,13 +697,13 @@ func cloneLoggingLevels(levels map[string]bool) map[string]bool {
 	return cloned
 }
 
-func latestTime(values ...int64) time.Time {
+func latestTime(timestamps ...int64) time.Time {
 	var latest time.Time
-	for _, value := range values {
-		if value == 0 {
+	for _, timestamp := range timestamps {
+		if timestamp == 0 {
 			continue
 		}
-		parsed := time.UnixMilli(value).UTC()
+		parsed := time.UnixMilli(timestamp).UTC()
 		if parsed.After(latest) {
 			latest = parsed
 		}

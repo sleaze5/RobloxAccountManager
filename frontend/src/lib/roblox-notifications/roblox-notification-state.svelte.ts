@@ -25,9 +25,11 @@ export class RobloxNotificationState {
 	)
 	#listGeneration = 0
 	readonly #scope: AccountScope
+	readonly #store: AccountStore
 
 	constructor(accountId: number, store: AccountStore) {
 		this.#scope = new AccountScope(accountId, store)
+		this.#store = store
 	}
 
 	get hasDismissible(): boolean {
@@ -49,6 +51,7 @@ export class RobloxNotificationState {
 			if (!this.#scope.isCurrent || generation !== this.#listGeneration) return
 			this.notifications = page.notifications ?? []
 			this.nextStartIndex = page.nextStartIndex
+			void this.#markSeen()
 		} catch (error) {
 			if (this.#scope.isCurrent && generation === this.#listGeneration) {
 				this.error = errorMessage(
@@ -58,6 +61,22 @@ export class RobloxNotificationState {
 			}
 		} finally {
 			if (generation === this.#listGeneration) this.loading = false
+		}
+	}
+
+	// Showing the stream marks it seen on Roblox, as the website does. A failure
+	// only leaves the unread badge in place, and the backend logs it.
+	async #markSeen(): Promise<void> {
+		try {
+			await this.#scope.track(
+				accountBackend.MarkRobloxNotificationsSeen(this.#scope.accountId),
+			)
+			if (!this.#scope.isCurrent) return
+			this.#store.getAccountProfile(
+				this.#scope.accountId,
+			).snapshot.unreadNotificationCount = 0
+		} catch {
+			// The unread badge stays until the next successful mark.
 		}
 	}
 

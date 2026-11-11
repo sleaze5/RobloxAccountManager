@@ -4,15 +4,12 @@ import (
 	"cmp"
 	"context"
 	"errors"
-	"fmt"
 	"slices"
 	"strings"
-	"sync/atomic"
 
+	"github.com/sleaze5/RobloxAccountManager/internal/logging"
 	"github.com/sleaze5/RobloxAccountManager/internal/roblox"
 )
-
-var sessionsSignOutOperationID atomic.Uint64
 
 // AccountSession is never persisted or logged.
 type AccountSession struct {
@@ -72,8 +69,8 @@ func (service *Service) SignOutOtherSessions(ctx context.Context, accountID int6
 		return CookieRenewalResult{}, err
 	}
 	defer done()
-	logger := service.logger.With("operation_id", fmt.Sprintf("sessions-sign-out-%d", sessionsSignOutOperationID.Add(1)), "operation", "sessions-sign-out", "account_id", accountID)
-	if err := service.auth.SignOutOtherSessions(ctx, accountID, version); err != nil {
+	logger := service.logger.With("operation_id", logging.NewOperationID("sessions-sign-out"), "operation", "sessions-sign-out", "account_id", accountID)
+	if err := service.authentication.SignOutOtherSessions(ctx, accountID, version); err != nil {
 		kind, status := roblox.KindProtocol, 0
 		if remote, ok := errors.AsType[*roblox.Error](err); ok {
 			kind, status = remote.Kind, remote.Status

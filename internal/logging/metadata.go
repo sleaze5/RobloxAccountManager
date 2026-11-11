@@ -20,8 +20,8 @@ func Diagnostic(logger *slog.Logger, message string, attributes ...any) {
 	logger.InfoContext(ctx, message, append([]any{"record_type", "component"}, attributes...)...)
 }
 
-func launchHeader(id string) ([]byte, error) {
-	stamp, process, ok := strings.Cut(id, "-")
+func launchHeader(launchID string) ([]byte, error) {
+	stamp, process, ok := strings.Cut(launchID, "-")
 	started, err := strconv.ParseInt(stamp, 10, 64)
 	pid, pidError := strconv.Atoi(process)
 	if !ok || err != nil || started <= 0 || strconv.FormatInt(started, 10) != stamp || pidError != nil || pid <= 0 || strconv.Itoa(pid) != process {
@@ -41,7 +41,7 @@ func launchHeader(id string) ([]byte, error) {
 	}{
 		Time: started, Level: "INFO", Module: "startup", Operation: "application-launch",
 		Message: "launch log created", RecordType: "launch", FormatVersion: logFormatVersion,
-		LaunchID: id, PID: pid, Build: appmeta.CurrentBuild(),
+		LaunchID: launchID, PID: pid, Build: appmeta.CurrentBuild(),
 	}
 	headerJSON, err := json.Marshal(header)
 	return append(headerJSON, '\n'), err

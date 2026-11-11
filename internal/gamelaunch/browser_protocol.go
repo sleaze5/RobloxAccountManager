@@ -6,14 +6,14 @@ import (
 	"strings"
 )
 
-func ValidateBrowserProtocolURL(value string) error {
+func ValidateBrowserProtocolURL(protocolURL string) error {
 	const prefix = "roblox-player:1+"
-	if len(value) > 30000 || !strings.HasPrefix(strings.ToLower(value), prefix) || strings.IndexFunc(value, func(character rune) bool {
+	if len(protocolURL) > 30000 || !strings.HasPrefix(strings.ToLower(protocolURL), prefix) || strings.IndexFunc(protocolURL, func(character rune) bool {
 		return character <= ' ' || character > '~' || character == '"' || character == '\\'
 	}) >= 0 {
 		return errors.New("the browser supplied an invalid Roblox launch URL")
 	}
-	parameters, err := browserProtocolParameters(value[len(prefix):])
+	parameters, err := browserProtocolParameters(protocolURL[len(prefix):])
 	if err != nil {
 		return err
 	}
@@ -23,9 +23,9 @@ func ValidateBrowserProtocolURL(value string) error {
 	return validateBrowserLauncher(parameters["placelauncherurl"])
 }
 
-func browserProtocolParameters(value string) (map[string]string, error) {
+func browserProtocolParameters(encodedParameters string) (map[string]string, error) {
 	parameters := make(map[string]string)
-	for part := range strings.SplitSeq(value, "+") {
+	for part := range strings.SplitSeq(encodedParameters, "+") {
 		name, raw, found := strings.Cut(part, ":")
 		name = strings.ToLower(name)
 		if _, duplicate := parameters[name]; !found || name == "" || duplicate {
@@ -40,8 +40,8 @@ func browserProtocolParameters(value string) (map[string]string, error) {
 	return parameters, nil
 }
 
-func validateBrowserLauncher(value string) error {
-	launcher, err := url.Parse(value)
+func validateBrowserLauncher(launcherURL string) error {
+	launcher, err := url.Parse(launcherURL)
 	if err != nil || launcher.Scheme != "https" || launcher.User != nil || launcher.Fragment != "" ||
 		launcher.Host != "www.roblox.com" ||
 		!strings.EqualFold(launcher.Path, "/game/PlaceLauncher.ashx") {

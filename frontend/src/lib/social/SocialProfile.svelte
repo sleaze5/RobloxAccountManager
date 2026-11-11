@@ -7,6 +7,9 @@
 	import clockIcon from "@phosphor-icons/core/regular/clock.svg?raw"
 	import dotsThreeIcon from "@phosphor-icons/core/regular/dots-three.svg?raw"
 	import linkIcon from "@phosphor-icons/core/regular/link.svg?raw"
+	import swapIcon from "@phosphor-icons/core/regular/swap.svg?raw"
+	import diamondIcon from "@phosphor-icons/core/regular/diamond.svg?raw"
+	import usersFourIcon from "@phosphor-icons/core/regular/users-four.svg?raw"
 	import medalIcon from "@phosphor-icons/core/regular/medal.svg?raw"
 	import pencilSimpleIcon from "@phosphor-icons/core/regular/pencil-simple.svg?raw"
 	import sealCheckIcon from "@phosphor-icons/core/regular/seal-check.svg?raw"
@@ -14,10 +17,11 @@
 	import usersThreeIcon from "@phosphor-icons/core/regular/users-three.svg?raw"
 	import Icon from "../shared/Icon.svelte"
 	import RefreshIcon from "../shared/RefreshIcon.svelte"
-	import { FriendStatus } from "../backend/bridge"
+	import { FriendStatus, SocialProfileSection } from "../backend/bridge"
 	import type { SocialUser } from "../backend/bridge"
 	import type { AccountStore } from "../accounts/account-store.svelte"
 	import AccountPresence from "../accounts/AccountPresence.svelte"
+	import PrimaryGroupFact from "../shared/PrimaryGroupFact.svelte"
 	import Timestamp from "../shared/Timestamp.svelte"
 	import { relativeTime } from "../shared/timestamp"
 	import FriendConnections from "./FriendConnections.svelte"
@@ -62,6 +66,14 @@
 			QrCode: "QR code",
 			UserProfile: "Profile page",
 		},
+		exactNumbers = new Intl.NumberFormat("en-US"),
+		// Roblox mutual trade eligibility statuses from the trades v2 API.
+		tradeEligibilityLabels: Record<string, string> = {
+			CallingUserIneligible: "This account cannot trade",
+			TargetUserIneligible: "They cannot trade",
+			CallingUserPrivacySettingsRestricted: "Blocked by privacy settings",
+			CallingUserAgeCheckRequired: "Needs an age check",
+		},
 		numbers = new Intl.NumberFormat("en-US", {
 			notation: "compact",
 			maximumFractionDigits: 1,
@@ -71,18 +83,27 @@
 		profile = $derived(
 			store.profile?.userId === person.userId ? store.profile : null,
 		),
-		relationship = $derived(profile?.relationship ?? requestRelationship(person)),
+		profileRelationship = $derived(profile ? store.profileRelationship : null),
+		relationship = $derived(
+			profileRelationship?.relationship ?? requestRelationship(person),
+		),
 		actions = $derived(
 			relationship
-				? relationshipActions(relationship, profile?.unavailable ?? []).filter(
-						(action) => pendingRequestActionIds.has(action.id),
-					)
+				? relationshipActions(
+						relationship,
+						profileRelationship?.unavailable ?? [],
+					).filter((action) => pendingRequestActionIds.has(action.id))
 				: [],
 		),
 		origin = $derived(request ? (origins[request.origin] ?? "") : ""),
-		nickname = $derived(profile ? profile.relationship.nickname : person.nickname),
+		nickname = $derived(
+			profileRelationship
+				? profileRelationship.relationship.nickname
+				: person.nickname,
+		),
 		canNickname = $derived(
-			profile?.relationship.friend === FriendStatus.FriendStatusFriends,
+			profileRelationship?.relationship.friend ===
+				FriendStatus.FriendStatusFriends,
 		),
 		hasFacts = $derived(
 			!!request ||
@@ -90,7 +111,10 @@
 				!!profile?.previousNames?.length ||
 				!!profile?.primaryGroup ||
 				!!profile?.robloxBadges?.length ||
-				(profile?.inventoryVisible ?? null) !== null,
+				(profile?.inventoryVisible ?? null) !== null ||
+				(profile?.communityCount ?? null) !== null ||
+				(profile?.tradeEligibility ?? null) !== null ||
+				(profile?.collectibleCount ?? null) !== null,
 		)
 </script>
 
@@ -153,7 +177,9 @@
 						{onSearchPlace}
 						{onSearchUniverse} />
 				{/if}
-				{#if profile}<SocialBadges {profile} />{/if}
+				{#if profile}<SocialBadges
+						{profile}
+						relationship={profileRelationship?.relationship ?? null} />{/if}
 			</div>
 		</div>
 		<div class="flex flex-wrap items-center justify-end gap-1 @max-xl:self-end">
@@ -215,7 +241,7 @@
 			onShow={(list) => store.explore(person, list)} />
 	{/if}
 
-	{#if profile && !profile.unavailable?.includes("about")}
+	{#if profile && store.profileLoad?.hasSection(SocialProfileSection.SocialSectionAbout)}
 		<section class="flex flex-col gap-2" aria-labelledby="social-about-heading">
 			<h3 id="social-about-heading" class="text-xs font-semibold text-fg-muted">
 				About
@@ -249,7 +275,7 @@
 		</section>
 	{/if}
 
-	{#if profile && !profile.unavailable?.includes("connections") && accounts.accountTotal > 1}
+	{#if profile && store.profileLoad?.hasSection(SocialProfileSection.SocialSectionConnections) && accounts.accountTotal > 1}
 		<FriendConnections connections={profile.connections ?? []} {accounts} />
 	{/if}
 
@@ -321,28 +347,7 @@
 					</div>
 				{/if}
 				{#if profile?.primaryGroup}
-					{@const group = profile.primaryGroup}
-					<div>
-						<dt>
-							<Icon
-								svg={usersThreeIcon}
-								size={16}
-								aria-hidden="true" />Primary group
-						</dt>
-						<dd>
-							<span class="inline-flex min-w-0 items-center gap-1"
-								>{group.name}{#if group.verified}<Icon
-										svg={sealCheckIcon}
-										class="shrink-0 text-fg-muted"
-										size={14}
-										aria-label="Verified group" />{/if}</span>
-							<small
-								>{group.role ? `${group.role} - ` : ""}{numbers.format(
-									group.members,
-								)}
-								{group.members === 1 ? "member" : "members"}</small>
-						</dd>
-					</div>
+					<PrimaryGroupFact group={profile.primaryGroup} />
 				{/if}
 				{#if profile?.robloxBadges?.length}
 					<div>
@@ -351,6 +356,59 @@
 							badges
 						</dt>
 						<dd><span>{profile.robloxBadges.join(", ")}</span></dd>
+					</div>
+				{/if}
+				{#if profile?.tradeEligibility}
+					{@const trading = profile.tradeEligibility}
+					<div
+						class="animate-enter"
+						data-tone={trading.canTrade ? undefined : "warning"}>
+						<dt>
+							<Icon svg={swapIcon} size={16} aria-hidden="true" />Trading
+						</dt>
+						<dd>
+							<span
+								>{trading.canTrade
+									? "Can trade"
+									: (tradeEligibilityLabels[trading.eligibility] ??
+										"Cannot trade")}</span>
+						</dd>
+					</div>
+				{/if}
+				{#if profile && profile.communityCount !== null}
+					<div class="animate-enter">
+						<dt>
+							<Icon
+								svg={usersFourIcon}
+								size={16}
+								aria-hidden="true" />Communities
+						</dt>
+						<dd>
+							<span>{exactNumbers.format(profile.communityCount)}</span>
+						</dd>
+					</div>
+				{/if}
+				{#if profile && profile.collectibleCount !== null}
+					<div class="animate-enter">
+						<dt>
+							<Icon
+								svg={diamondIcon}
+								size={16}
+								aria-hidden="true" />Collectibles
+						</dt>
+						<dd>
+							<span
+								>{exactNumbers.format(profile.collectibleCount)}
+								{profile.collectibleCount === 1
+									? "item"
+									: "items"}</span>
+							{#if profile.collectibleCount > 0 && profile.collectibleRecentAveragePriceTotal !== null}<small
+									class="font-mono"
+									>RAP R$ {exactNumbers.format(
+										profile.collectibleRecentAveragePriceTotal,
+									)}</small
+								>{/if}
+						</dd>
 					</div>
 				{/if}
 				{#if profile && profile.inventoryVisible !== null}
@@ -375,7 +433,7 @@
 
 	{#if store.profileError}
 		<p class="text-xs text-danger-muted" role="alert">{store.profileError}</p>
-	{:else if (profile?.unavailable?.length ?? 0) > 0}
+	{:else if (store.profileLoad?.failedSections.length ?? 0) > 0 || (profileRelationship?.unavailable?.length ?? 0) > 0}
 		<p class="text-xs text-danger-muted" role="alert">
 			Some profile details could not be loaded. Refresh to retry.
 		</p>

@@ -1,6 +1,5 @@
 <script lang="ts">
 	import { matchesSearch, searchTerms } from "../shared/search"
-	import caretLeftIcon from "@phosphor-icons/core/regular/caret-left.svg?raw"
 	import circleNotchIcon from "@phosphor-icons/core/regular/circle-notch.svg?raw"
 	import devicesIcon from "@phosphor-icons/core/regular/devices.svg?raw"
 	import hardDrivesIcon from "@phosphor-icons/core/regular/hard-drives.svg?raw"
@@ -9,6 +8,7 @@
 	import userCircleIcon from "@phosphor-icons/core/regular/user-circle.svg?raw"
 	import xIcon from "@phosphor-icons/core/regular/x.svg?raw"
 	import Icon from "../shared/Icon.svelte"
+	import AccountPageHeader from "./AccountPageHeader.svelte"
 	import RefreshIcon from "../shared/RefreshIcon.svelte"
 	import { onMount, tick, untrack } from "svelte"
 	import SidebarResizer from "../layout/SidebarResizer.svelte"
@@ -25,6 +25,9 @@
 	import type { AccountStore } from "./account-store.svelte"
 	import AccountInfoPanel, { accountInfoFields } from "./AccountInfoPanel.svelte"
 	import AccountSessionsList from "./AccountSessionsList.svelte"
+	import RobuxHistoryList from "./RobuxHistoryList.svelte"
+	import { RobuxHistoryState } from "./robux-history-state.svelte"
+	import coinsIcon from "@phosphor-icons/core/regular/coins.svg?raw"
 	import { AccountSessionsState } from "./account-sessions-state.svelte"
 	import type { AccountInfoFieldId } from "./AccountInfoPanel.svelte"
 	import { AccountInfoState } from "./account-info-state.svelte"
@@ -410,9 +413,21 @@
 				icon: devicesIcon,
 				search: "sessions signed in devices browsers apps location ip address last active sign out log out security",
 			},
+			{
+				id: "robux",
+				label: "Robux history",
+				icon: coinsIcon,
+				search: "robux history transactions purchases sales bought premium stipends group payouts spent",
+			},
 		] as const
 
 	type PageId = (typeof pages)[number]["id"]
+
+	interface ActivePageData {
+		isLoading: boolean
+		isReady: boolean
+		refresh: () => Promise<void>
+	}
 
 	let {
 			store,
@@ -426,13 +441,13 @@
 			onBack: () => void
 		} = $props(),
 		restoringScroll = $state(true),
-		heading = $state<HTMLHeadingElement | undefined>(undefined),
 		contentElement = $state<HTMLElement | undefined>(undefined),
 		settingsState = $state<AccountSettingsState | null>(null),
 		infoState = $state<AccountInfoState | null>(null),
 		blockedState = $state<BlockedUsersState | null>(null),
 		ownedState = $state<OwnedPrivateServersState | null>(null),
 		sessionsState = $state<AccountSessionsState | null>(null),
+		robuxState = $state<RobuxHistoryState | null>(null),
 		signOutOpen = $state(false),
 		managingServer = $state<OwnedPrivateServer | null>(null),
 		editing = $state<AccountEditKind | null>(null),
@@ -499,18 +514,56 @@
 		busy = $derived(
 			!settingsState || settingsState.loading || settingsState.saving !== null,
 		),
-		refreshing = $derived(
-			activePage?.id === "info"
-				? (infoState?.loading ?? false)
-				: activePage?.id === "servers"
-					? (ownedState?.loading ?? false)
-					: activePage?.id === "sessions"
-						? (sessionsState?.loading ?? false) ||
-							(sessionsState?.signingOut ?? false)
-						: blockedUsersOpen
-							? (blockedState?.loading ?? false)
-							: busy,
-		)
+		activeData = $derived.by((): ActivePageData | null => {
+			const info = infoState,
+				owned = ownedState,
+				sessions = sessionsState,
+				robux = robuxState,
+				blocked = blockedState,
+				settings = settingsState
+			switch (activePage?.id) {
+				case "info":
+					return (
+						info &&
+						pageData(info.loading, !!info.snapshot, () => info.refresh())
+					)
+				case "servers":
+					return (
+						owned &&
+						pageData(owned.loading, !!owned.servers, () => owned.refresh())
+					)
+				case "sessions":
+					return (
+						sessions &&
+						pageData(
+							sessions.loading || sessions.signingOut,
+							!!sessions.sessions,
+							() => sessions.refresh(),
+						)
+					)
+				case "robux":
+					return (
+						robux &&
+						pageData(robux.loading, !!robux.transactions, () =>
+							robux.refresh(),
+						)
+					)
+				default:
+					if (blockedUsersOpen) {
+						return (
+							blocked &&
+							pageData(blocked.loading, !!blocked.users, () =>
+								blocked.refresh(),
+							)
+						)
+					}
+					return (
+						settings &&
+						pageData(busy, !!settings.snapshot, () => settings.refresh())
+					)
+			}
+		}),
+		refreshing = $derived(activeData?.isLoading ?? busy)
 
 	$effect(() => {
 		if (activePage && activePage.id !== workspace.accountSettingsPage) {
@@ -522,22 +575,9 @@
 	})
 
 	$effect(() => {
-		const page = activePage?.id,
-			info = infoState,
-			settings = settingsState,
-			owned = ownedState,
-			sessions = sessionsState,
-			blocked = blockedUsersOpen ? blockedState : null
+		const data = activeData
 		untrack(() => {
-			if (page === "info" && info && !info.snapshot) void info.refresh()
-			if (page === "servers" && owned && !owned.servers) void owned.refresh()
-			if (page === "sessions" && sessions && !sessions.sessions) {
-				void sessions.refresh()
-			}
-			if (page === "privacy" && settings && !settings.snapshot) {
-				void settings.refresh()
-			}
-			if (blocked && !blocked.users) void blocked.refresh()
+			if (data && !data.isReady) void data.refresh()
 		})
 	})
 
@@ -546,16 +586,7 @@
 		void activeSubpage?.id
 		void normalizedQuery
 		const element = contentElement,
-			ready =
-				activePage?.id === "info"
-					? !!infoState?.snapshot
-					: activePage?.id === "servers"
-						? !!ownedState?.servers
-						: activePage?.id === "sessions"
-							? !!sessionsState?.sessions
-							: blockedUsersOpen
-								? !!blockedState?.users
-								: !!settingsState?.snapshot,
+			ready = activeData?.isReady ?? false,
 			scrollTop = untrack(() => workspace.accountSettingsScrollTop),
 			anchor = untrack(() => workspace.accountSettingsScrollAnchor)
 		let cancelled = false
@@ -602,11 +633,15 @@
 	}
 
 	function refresh(): void {
-		if (activePage?.id === "info") void infoState?.refresh()
-		else if (activePage?.id === "servers") void ownedState?.refresh()
-		else if (activePage?.id === "sessions") void sessionsState?.refresh()
-		else if (blockedUsersOpen) void blockedState?.refresh()
-		else void settingsState?.refresh()
+		void activeData?.refresh()
+	}
+
+	function pageData(
+		isLoading: boolean,
+		isReady: boolean,
+		refreshPage: () => Promise<void>,
+	): ActivePageData {
+		return { isLoading, isReady, refresh: refreshPage }
 	}
 
 	function resetScroll(): void {
@@ -766,33 +801,25 @@
 		blockedState = blocked
 		ownedState = owned
 		sessionsState = sessions
-		heading?.closest("[data-workspace-scroll]")?.scrollTo({ top: 0 })
-		heading?.focus({ preventScroll: true })
+		const robux = new RobuxHistoryState(store.selectedAccount.id, store)
+		robuxState = robux
 		return () => {
 			settings.dispose()
 			info.dispose()
 			blocked.dispose()
 			owned.dispose()
 			sessions.dispose()
+			robux.dispose()
 		}
 	})
 </script>
 
 <section class="settings-page" aria-labelledby="account-settings-title">
-	<header class="settings-header">
-		<button
-			class="button-ghost"
-			type="button"
-			aria-label="Back to profile"
-			data-tooltip="Back to profile"
-			onclick={onBack}>
-			<Icon svg={caretLeftIcon} data-nudge="left" size={16} aria-hidden="true" />
-		</button>
-		<h1 id="account-settings-title" tabindex="-1" bind:this={heading}>
-			Account settings
-		</h1>
-		<span class="mr-auto min-w-0 text-xs wrap-anywhere text-fg-muted"
-			>@{store.selectedAccount.username}</span>
+	<AccountPageHeader
+		titleId="account-settings-title"
+		title="Account settings"
+		username={store.selectedAccount.username}
+		{onBack}>
 		<button
 			class="button-ghost"
 			type="button"
@@ -802,7 +829,7 @@
 			onclick={refresh}>
 			<RefreshIcon isRefreshing={refreshing} />
 		</button>
-	</header>
+	</AccountPageHeader>
 
 	<div
 		class="settings-layout"
@@ -904,6 +931,9 @@
 							username={store.selectedAccount.username}
 							onManage={(server) => (managingServer = server)} />
 					{/if}
+				{:else if activePage.id === "robux"}
+					<h2>Robux history</h2>
+					{#if robuxState}<RobuxHistoryList history={robuxState} />{/if}
 				{:else if activePage.id === "sessions"}
 					<h2>Sessions</h2>
 					{#if sessionsState}

@@ -25,6 +25,7 @@
 	import usersThreeIcon from "@phosphor-icons/core/regular/users-three.svg?raw"
 	import videoCameraIcon from "@phosphor-icons/core/regular/video-camera.svg?raw"
 	import warningIcon from "@phosphor-icons/core/regular/warning.svg?raw"
+	import { GameSection } from "../backend/bridge"
 	import Icon from "../shared/Icon.svelte"
 	import RefreshIcon from "../shared/RefreshIcon.svelte"
 	import { untrack } from "svelte"
@@ -55,6 +56,7 @@
 		icon: string
 		value: string | undefined
 		detail?: string
+		isLoading?: boolean
 	}
 
 	const exact = (value: number | undefined) =>
@@ -74,6 +76,9 @@
 		nameEnd = $derived(place?.name.slice(nameSplit).trimEnd() ?? ""),
 		menuOpen = $derived(!!place && store.menu?.place.placeId === place.placeId),
 		rootPlace = $derived(game?.rootPlace ?? null),
+		hasVotes = $derived(
+			store.loadedGameSections.includes(GameSection.GameSectionVotes),
+		),
 		votes = $derived(game ? game.upVotes + game.downVotes : 0),
 		likeShare = $derived(game && votes ? game.upVotes / votes : 0),
 		genre = $derived(
@@ -83,6 +88,7 @@
 		),
 		contentRating = $derived(
 			game &&
+				!store.isGameSectionPending(GameSection.GameSectionMaturity) &&
 				[game.maturity || "Unknown", ...(game.maturityDescriptors ?? [])].join(
 					"; ",
 				),
@@ -92,13 +98,15 @@
 			{
 				label: "Rating",
 				icon: thumbsUpIcon,
-				value: game
-					? votes
-						? `${percent.format(likeShare)} liked`
-						: "No votes"
-					: undefined,
+				isLoading: store.isGameSectionPending(GameSection.GameSectionVotes),
+				value:
+					game && hasVotes
+						? votes
+							? `${percent.format(likeShare)} liked`
+							: "No votes"
+						: undefined,
 				detail:
-					game && votes
+					game && hasVotes && votes
 						? `${count(game.upVotes, "like", "likes")} - ${count(game.downVotes, "dislike", "dislikes")}`
 						: "",
 			},
@@ -123,6 +131,7 @@
 				label: "Content rating",
 				icon: shieldCheckIcon,
 				value: contentRating || undefined,
+				isLoading: store.isGameSectionPending(GameSection.GameSectionMaturity),
 			},
 			...(rootPlace ? [] : universeStats),
 		]),
@@ -141,11 +150,13 @@
 				label: "Saved version",
 				icon: gitCommitIcon,
 				value: game?.versions?.saved?.toString(),
+				isLoading: store.isGameSectionPending(GameSection.GameSectionVersions),
 			},
 			{
 				label: "Published version",
 				icon: uploadSimpleIcon,
 				value: game?.versions?.published?.toString(),
+				isLoading: store.isGameSectionPending(GameSection.GameSectionVersions),
 			},
 		]),
 		features = $derived<Fact[]>(
@@ -155,11 +166,17 @@
 							label: "Voice chat",
 							icon: microphoneIcon,
 							value: supported(game.communication?.voiceChat),
+							isLoading: store.isGameSectionPending(
+								GameSection.GameSectionCommunication,
+							),
 						},
 						{
 							label: "Camera",
 							icon: videoCameraIcon,
 							value: supported(game.communication?.camera),
+							isLoading: store.isGameSectionPending(
+								GameSection.GameSectionCommunication,
+							),
 						},
 						{
 							label: "Access",
@@ -181,7 +198,14 @@
 								? game.avatarRules.customAnimationsAllowed
 									? "Custom allowed"
 									: "Roblox defaults only"
-								: "Unknown",
+								: store.isGameSectionPending(
+											GameSection.GameSectionAvatarRules,
+									  )
+									? undefined
+									: "Unknown",
+							isLoading: store.isGameSectionPending(
+								GameSection.GameSectionAvatarRules,
+							),
 						},
 						...(game.avatarRules?.itemOverrides
 							? [
@@ -252,7 +276,8 @@
 				<span class={[mono && "font-mono select-text"]}>{fact.value}</span>
 				{#if fact.detail}<small>{fact.detail}</small>{/if}
 			{:else}
-				<span class="text-fg-faint">{game ? "Unavailable" : "-"}</span>
+				<span class="text-fg-faint"
+					>{fact.isLoading ? "Loading…" : game ? "Unavailable" : "-"}</span>
 			{/if}
 		</dd>
 	</div>

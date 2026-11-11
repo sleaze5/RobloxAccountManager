@@ -105,7 +105,7 @@ func (repository *Repository) Remove(ctx context.Context, placeID int64) error {
 	return repository.write(ctx, placeID, "favorite-place-remove", false, `DELETE FROM favorite_places WHERE place_id = ?`, placeID)
 }
 
-func (repository *Repository) write(ctx context.Context, placeID int64, operation string, existing bool, query string, args ...any) error {
+func (repository *Repository) write(ctx context.Context, placeID int64, operation string, existing bool, query string, arguments ...any) error {
 	database, release, err := repository.provider.Lease(ctx)
 	if err != nil {
 		return err
@@ -113,7 +113,7 @@ func (repository *Repository) write(ctx context.Context, placeID int64, operatio
 	defer release()
 	var wasChanged bool
 	err = vault.RunWriteTransaction(ctx, database, "favorite update", func(transaction *sql.Tx) (bool, error) {
-		change, err := transaction.ExecContext(ctx, query, args...)
+		change, err := transaction.ExecContext(ctx, query, arguments...)
 		if err != nil {
 			return false, fmt.Errorf("update favorite place: %w", err)
 		}

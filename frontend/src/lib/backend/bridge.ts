@@ -28,6 +28,8 @@ export type {
 	RobloxNotificationJoin,
 	RobloxNotificationUser,
 	RobloxNotificationView,
+	RobuxTransaction,
+	RobuxTransactionPage,
 	RobloxPlayerPathCheck,
 	TransferPreview,
 	TransferResult,
@@ -54,13 +56,17 @@ export {
 export type { PresenceSettings } from "../../../bindings/github.com/sleaze5/RobloxAccountManager/internal/appsettings/models.js"
 export {
 	AccountCopyField,
+	AccountInfoSection,
+	AccountProfileSection,
 	AccountSettingKey,
 	AgeVerification,
 	ImportStatus,
 	PinState,
 	RobloxNotificationCategory,
 	RobloxNotificationImageKind,
+	RobuxTransactionType,
 	SocialList,
+	SocialProfileSection,
 	TransferMode,
 	TransferSettingsStatus,
 	VoiceChatState,
@@ -92,6 +98,7 @@ export type {
 	AvatarHeadshotView,
 	TextFilter,
 	UserPresence,
+	UserPrimaryGroup,
 	UserSocialLink,
 } from "../../../bindings/github.com/sleaze5/RobloxAccountManager/internal/roblox/services/models.js"
 export type {
@@ -129,6 +136,7 @@ export type {
 	ServerStats as GameServerStats,
 } from "../../../bindings/github.com/sleaze5/RobloxAccountManager/internal/games/models.js"
 export {
+	GameSection,
 	PrivateServerOption,
 	RecordOrder as GameServerRecordOrder,
 	ServerOrder as GameServerOrder,

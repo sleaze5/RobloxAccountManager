@@ -19,20 +19,20 @@ type AuthenticationTicket struct {
 
 func (ticket AuthenticationTicket) Value() string { return ticket.value }
 
-type Auth struct {
+type Authentication struct {
 	client                  *roblox.Client
 	logger                  *slog.Logger
 	authenticationTicketURL *url.URL
 	clientAssertionURL      *url.URL
 }
 
-func NewAuth(client *roblox.Client, logger *slog.Logger) *Auth {
+func NewAuthentication(client *roblox.Client, logger *slog.Logger) *Authentication {
 	authenticationTicketURL, _ := url.Parse("https://auth.roblox.com/v1/authentication-ticket")
 	clientAssertionURL, _ := url.Parse("https://auth.roblox.com/v1/client-assertion")
-	return &Auth{client: client, logger: logger, authenticationTicketURL: authenticationTicketURL, clientAssertionURL: clientAssertionURL}
+	return &Authentication{client: client, logger: logger, authenticationTicketURL: authenticationTicketURL, clientAssertionURL: clientAssertionURL}
 }
 
-func (service *Auth) RefreshCookie(ctx context.Context, accountID, version int64) error {
+func (service *Authentication) RefreshCookie(ctx context.Context, accountID, version int64) error {
 	endpoint, _ := url.Parse("https://auth.roblox.com/v2/session/refresh")
 	response, err := service.client.Do(ctx, roblox.Request{
 		Endpoint: "session-refresh", AccountID: accountID, ExpectedSecretVersion: version,
@@ -58,7 +58,7 @@ type authenticationTicketBody struct {
 // Play button on www.roblox.com does. The Roblox Player does not join with a
 // ticket that was issued without one. Like the website, a failed assertion
 // request still requests the ticket.
-func (service *Auth) AuthenticationTicket(ctx context.Context, accountID int64) (AuthenticationTicket, error) {
+func (service *Authentication) AuthenticationTicket(ctx context.Context, accountID int64) (AuthenticationTicket, error) {
 	clientAssertion, err := service.clientAssertion(ctx, accountID)
 	if err != nil {
 		if ctx.Err() != nil {
@@ -86,17 +86,17 @@ func (service *Auth) AuthenticationTicket(ctx context.Context, accountID int64) 
 	if err != nil {
 		return AuthenticationTicket{}, err
 	}
-	value := strings.TrimSpace(response.Header.Get("Rbx-Authentication-Ticket"))
-	if value == "" {
+	ticket := strings.TrimSpace(response.Header.Get("Rbx-Authentication-Ticket"))
+	if ticket == "" {
 		return AuthenticationTicket{}, &roblox.Error{Kind: roblox.KindProtocol, Endpoint: "authentication-ticket", Status: response.Status, Message: "Roblox did not return an authentication ticket."}
 	}
-	if strings.ContainsAny(value, "\r\n\x00+") {
+	if strings.ContainsAny(ticket, "\r\n\x00+") {
 		return AuthenticationTicket{}, &roblox.Error{Kind: roblox.KindProtocol, Endpoint: "authentication-ticket", Status: response.Status, Message: "Roblox returned an invalid authentication ticket."}
 	}
-	return AuthenticationTicket{value: value}, nil
+	return AuthenticationTicket{value: ticket}, nil
 }
 
-func (service *Auth) clientAssertion(ctx context.Context, accountID int64) (string, error) {
+func (service *Authentication) clientAssertion(ctx context.Context, accountID int64) (string, error) {
 	response, err := service.client.Do(ctx, roblox.Request{
 		Endpoint:        "client-assertion",
 		AccountID:       accountID,

@@ -109,11 +109,11 @@ func validateHint(hint string) error {
 }
 
 func newRandomBytes(size int, label string) ([]byte, error) {
-	value := make([]byte, size)
-	if _, err := rand.Read(value); err != nil {
+	randomBytes := make([]byte, size)
+	if _, err := rand.Read(randomBytes); err != nil {
 		return nil, fmt.Errorf("generate %s: %w", label, err)
 	}
-	return value, nil
+	return randomBytes, nil
 }
 
 func newVaultKey() ([]byte, error) { return newRandomBytes(vaultKeyBytes, "database key") }
@@ -129,38 +129,38 @@ func newVaultID() ([vaultIDBytes]byte, error) {
 
 func calibrateKDF(password string) argon2Parameters {
 	threads := max(min(runtime.NumCPU(), 4), 1)
-	params := argon2Parameters{Time: 1, MemoryKiB: minArgonMemoryKiB, Threads: uint8(threads)}
+	parameters := argon2Parameters{Time: 1, MemoryKiB: minArgonMemoryKiB, Threads: uint8(threads)}
 	started := time.Now()
-	wipe(argon2.IDKey([]byte(password), make([]byte, saltBytes), 1, params.MemoryKiB, params.Threads, argonKeyBytes))
+	wipe(argon2.IDKey([]byte(password), make([]byte, saltBytes), 1, parameters.MemoryKiB, parameters.Threads, argonKeyBytes))
 	if elapsed := time.Since(started); elapsed > 0 {
 		// Aim for about 500 ms per key derivation.
-		params.Time = min(uint32((500*time.Millisecond+elapsed-1)/elapsed), uint32(maxArgonTime))
+		parameters.Time = min(uint32((500*time.Millisecond+elapsed-1)/elapsed), uint32(maxArgonTime))
 	}
-	return params
+	return parameters
 }
 
-func validateArgon2(params argon2Parameters) error {
-	if params.Time == 0 || params.Time > maxArgonTime || params.MemoryKiB < minArgonMemoryKiB || params.MemoryKiB > maxArgonMemoryKiB || params.Threads == 0 || params.Threads > maxArgonThreads {
+func validateArgon2(parameters argon2Parameters) error {
+	if parameters.Time == 0 || parameters.Time > maxArgonTime || parameters.MemoryKiB < minArgonMemoryKiB || parameters.MemoryKiB > maxArgonMemoryKiB || parameters.Threads == 0 || parameters.Threads > maxArgonThreads {
 		return errors.New("invalid vault password derivation parameters")
 	}
 	return nil
 }
 
-func deriveKEK(password string, params argon2Parameters, salt []byte) ([]byte, error) {
+func deriveKEK(password string, parameters argon2Parameters, salt []byte) ([]byte, error) {
 	if len(password) > 1024 || !utf8.ValidString(password) {
 		return nil, ErrInvalidPassword
 	}
-	if err := validateArgon2(params); err != nil {
+	if err := validateArgon2(parameters); err != nil {
 		return nil, err
 	}
 	if len(salt) != saltBytes {
 		return nil, errors.New("invalid vault password salt")
 	}
-	return argon2.IDKey([]byte(password), salt, params.Time, params.MemoryKiB, params.Threads, argonKeyBytes), nil
+	return argon2.IDKey([]byte(password), salt, parameters.Time, parameters.MemoryKiB, parameters.Threads, argonKeyBytes), nil
 }
 
-func passwordCipher(password string, params argon2Parameters, salt []byte) (cipher.AEAD, error) {
-	key, err := deriveKEK(password, params, salt)
+func passwordCipher(password string, parameters argon2Parameters, salt []byte) (cipher.AEAD, error) {
+	key, err := deriveKEK(password, parameters, salt)
 	if err != nil {
 		return nil, err
 	}
@@ -176,7 +176,7 @@ func passwordCipher(password string, params argon2Parameters, salt []byte) (ciph
 	return aead, nil
 }
 
-func createKeyFile(password, hint string, vaultID [vaultIDBytes]byte, vaultKey []byte, params argon2Parameters) (keyFile, error) {
+func createKeyFile(password, hint string, vaultID [vaultIDBytes]byte, vaultKey []byte, parameters argon2Parameters) (keyFile, error) {
 	if err := validatePassword(password); err != nil {
 		return keyFile{}, err
 	}
@@ -190,8 +190,8 @@ func createKeyFile(password, hint string, vaultID [vaultIDBytes]byte, vaultKey [
 	if err != nil {
 		return keyFile{}, err
 	}
-	key := keyFile{Version: keyFormatVersion, VaultID: vaultID, KDF: params, Salt: salt, Hint: hint}
-	aead, err := passwordCipher(password, params, salt)
+	key := keyFile{Version: keyFormatVersion, VaultID: vaultID, KDF: parameters, Salt: salt, Hint: hint}
+	aead, err := passwordCipher(password, parameters, salt)
 	if err != nil {
 		return keyFile{}, err
 	}

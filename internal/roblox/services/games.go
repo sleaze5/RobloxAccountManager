@@ -11,7 +11,6 @@ import (
 	"net/url"
 	"strconv"
 	"strings"
-	"sync"
 	"time"
 
 	"github.com/sleaze5/RobloxAccountManager/internal/games"
@@ -58,7 +57,7 @@ func (service *Games) Search(ctx context.Context, query games.SearchQuery) (game
 	if err := service.get(ctx, "game-search", "apis.roblox.com", "/search-api/omni-search", parameters, &payload); err != nil {
 		return games.SearchPage{}, err
 	}
-	ids := make([]int64, 0)
+	universeIDs := make([]int64, 0)
 	seen := make(map[int64]bool)
 	for _, section := range payload.SearchResults {
 		if section.ContentGroupType != "Game" {
@@ -67,15 +66,15 @@ func (service *Games) Search(ctx context.Context, query games.SearchQuery) (game
 		for _, content := range section.Contents {
 			if games.ValidID(content.ContentID) && !seen[content.ContentID] {
 				seen[content.ContentID] = true
-				ids = append(ids, content.ContentID)
+				universeIDs = append(universeIDs, content.ContentID)
 			}
 		}
 	}
-	if len(ids) > 200 || len(payload.NextPageToken) > 2048 {
+	if len(universeIDs) > 200 || len(payload.NextPageToken) > 2048 {
 		return games.SearchPage{}, gameDataError("Roblox returned an oversized search page.")
 	}
 	page := games.SearchPage{Places: []games.Place{}, SessionID: query.SessionID, NextPageToken: payload.NextPageToken}
-	if err := service.loadSearchPlaces(ctx, ids, &page); err != nil {
+	if err := service.loadSearchPlaces(ctx, universeIDs, &page); err != nil {
 		return games.SearchPage{}, err
 	}
 	if page.NextPageToken == query.PageToken {
@@ -181,11 +180,11 @@ func (service *Games) UniversePlaces(ctx context.Context, universeID int64) ([]g
 	}
 	for start := 1; start < len(places); start += gameBatchSize {
 		batch := places[start:min(start+gameBatchSize, len(places))]
-		ids := make([]int64, len(batch))
+		placeIDs := make([]int64, len(batch))
 		for index, place := range batch {
-			ids[index] = place.PlaceID
+			placeIDs[index] = place.PlaceID
 		}
-		icons, err := service.placeIcons(ctx, ids)
+		icons, err := service.placeIcons(ctx, placeIDs)
 		if ctx.Err() != nil {
 			return nil, false, ctx.Err()
 		}
@@ -241,7 +240,7 @@ func (service *Games) subplaces(ctx context.Context, root games.Place, visit fun
 	return nil
 }
 
-func (service *Games) Get(ctx context.Context, universeID, placeID, accountID int64) (games.Game, error) {
+func (service *Games) Get(ctx context.Context, universeID, placeID int64) (games.Game, error) {
 	details, err := service.details(ctx, []int64{universeID})
 	if err != nil {
 		return games.Game{}, err
@@ -260,10 +259,6 @@ func (service *Games) Get(ctx context.Context, universeID, placeID, accountID in
 			return games.Game{}, gameUnavailableError()
 		}
 		game.Place, game.Description, game.RootPlace = place, description, &root
-	}
-	service.loadGameExtras(ctx, accountID, &game)
-	if ctx.Err() != nil {
-		return games.Game{}, ctx.Err()
 	}
 	return game, nil
 }
@@ -402,8 +397,8 @@ func (service *Games) maturity(ctx context.Context, game *games.Game) error {
 	return nil
 }
 
-func (service *Games) details(ctx context.Context, ids []int64) (map[int64]games.Game, error) {
-	parameters := url.Values{"universeIds": {gameIDs(ids)}}
+func (service *Games) details(ctx context.Context, universeIDs []int64) (map[int64]games.Game, error) {
+	parameters := url.Values{"universeIds": {gameIDs(universeIDs)}}
 	var payload struct {
 		Data []struct {
 			ID          int64  `json:"id"`
@@ -433,9 +428,9 @@ func (service *Games) details(ctx context.Context, ids []int64) (map[int64]games
 	if err := service.get(ctx, "game-details", "games.roblox.com", "/v1/games", parameters, &payload); err != nil {
 		return nil, err
 	}
-	requested := make(map[int64]bool, len(ids))
-	for _, id := range ids {
-		requested[id] = true
+	requested := make(map[int64]bool, len(universeIDs))
+	for _, universeID := range universeIDs {
+		requested[universeID] = true
 	}
 	gamesByUniverseID := make(map[int64]games.Game, len(payload.Data))
 	for _, universe := range payload.Data {
@@ -451,7 +446,7 @@ func (service *Games) details(ctx context.Context, ids []int64) (map[int64]games
 			Playing: universe.Playing, Visits: universe.Visits, Favorites: universe.FavoritedCount, MaxPlayers: universe.MaxPlayers,
 			Genre: gameGenre(universe.Genre), Subgenre: gameGenre(universe.Subgenre), AvatarType: gameAvatarType(universe.AvatarType),
 			CopyingAllowed: universe.CopyingAllowed, PrivateServersAllowed: universe.PrivateServersAllowed,
-			CreatedAtMS: gameTimestamp(universe.Created), UpdatedAtMS: gameTimestamp(universe.Updated),
+			CreatedAtMs: gameTimestamp(universe.Created), UpdatedAtMs: gameTimestamp(universe.Updated),
 		}
 		if universe.Price != nil {
 			game.Price = max(*universe.Price, 0)
@@ -461,26 +456,26 @@ func (service *Games) details(ctx context.Context, ids []int64) (map[int64]games
 	if len(gamesByUniverseID) == 0 {
 		return gamesByUniverseID, nil
 	}
-	icons, err := service.thumbnails(ctx, "/v1/games/icons", parameters)
+	icons, err := service.icons(ctx, "/v1/games/icons", parameters)
 	if ctx.Err() != nil {
 		return nil, ctx.Err()
 	}
 	if err != nil {
 		service.logger.WarnContext(ctx, "game icons unavailable", "operation", "game-icons", "error", err)
 	}
-	for id, game := range gamesByUniverseID {
-		game.Place.IconURL = icons[id]
-		gamesByUniverseID[id] = game
+	for universeID, game := range gamesByUniverseID {
+		game.Place.IconURL = icons[universeID]
+		gamesByUniverseID[universeID] = game
 		service.cache.SavePlace(ctx, game.Place)
 	}
 	return gamesByUniverseID, nil
 }
 
-func (service *Games) placeIcons(ctx context.Context, ids []int64) (map[int64]string, error) {
-	return service.thumbnails(ctx, "/v1/places/gameicons", url.Values{"placeIds": {gameIDs(ids)}})
+func (service *Games) placeIcons(ctx context.Context, placeIDs []int64) (map[int64]string, error) {
+	return service.icons(ctx, "/v1/places/gameicons", url.Values{"placeIds": {gameIDs(placeIDs)}})
 }
 
-func (service *Games) thumbnails(ctx context.Context, path string, parameters url.Values) (map[int64]string, error) {
+func (service *Games) icons(ctx context.Context, path string, parameters url.Values) (map[int64]string, error) {
 	parameters.Set("returnPolicy", "PlaceHolder")
 	parameters.Set("size", "150x150")
 	parameters.Set("format", "Png")
@@ -495,13 +490,13 @@ func (service *Games) thumbnails(ctx context.Context, path string, parameters ur
 	if err := service.get(ctx, "game-icons", "thumbnails.roblox.com", path, parameters, &payload); err != nil {
 		return nil, err
 	}
-	namesByUniverseID := make(map[int64]string, len(payload.Data))
-	for _, universe := range payload.Data {
-		if universe.State == "Completed" && safeThumbnailURL(universe.ImageURL) {
-			namesByUniverseID[universe.TargetID] = universe.ImageURL
+	imageURLByTargetID := make(map[int64]string, len(payload.Data))
+	for _, thumbnail := range payload.Data {
+		if thumbnail.State == "Completed" && safeThumbnailURL(thumbnail.ImageURL) {
+			imageURLByTargetID[thumbnail.TargetID] = thumbnail.ImageURL
 		}
 	}
-	return namesByUniverseID, nil
+	return imageURLByTargetID, nil
 }
 
 func (service *Games) get(ctx context.Context, operation, host, path string, parameters url.Values, target any) error {
@@ -548,30 +543,30 @@ func (service *Games) account(ctx context.Context, operation string, accountID i
 }
 
 func gameIDs(ids []int64) string {
-	values := make([]string, len(ids))
+	formattedIDs := make([]string, len(ids))
 	for index, id := range ids {
-		values[index] = strconv.FormatInt(id, 10)
+		formattedIDs[index] = strconv.FormatInt(id, 10)
 	}
-	return strings.Join(values, ",")
+	return strings.Join(formattedIDs, ",")
 }
 
-func gameTimestamp(value time.Time) int64 {
-	if value.IsZero() {
+func gameTimestamp(timestamp time.Time) int64 {
+	if timestamp.IsZero() {
 		return 0
 	}
-	return value.UnixMilli()
+	return timestamp.UnixMilli()
 }
 
-func gameGenre(value string) string {
-	value = strings.TrimSpace(value)
-	if strings.EqualFold(value, "All") {
+func gameGenre(genre string) string {
+	genre = strings.TrimSpace(genre)
+	if strings.EqualFold(genre, "All") {
 		return ""
 	}
-	return value
+	return genre
 }
 
-func gameAvatarType(value string) string {
-	switch value {
+func gameAvatarType(avatarType string) string {
+	switch avatarType {
 	case "MorphToR6":
 		return "R6"
 	case "MorphToR15":
@@ -590,15 +585,15 @@ func gameDataError(message string) error {
 	return &roblox.Error{Kind: roblox.KindProtocol, Endpoint: "games", Message: message}
 }
 
-func (service *Games) loadSearchPlaces(ctx context.Context, ids []int64, page *games.SearchPage) error {
-	for start := 0; start < len(ids); start += gameBatchSize {
-		batch := ids[start:min(start+gameBatchSize, len(ids))]
+func (service *Games) loadSearchPlaces(ctx context.Context, universeIDs []int64, page *games.SearchPage) error {
+	for start := 0; start < len(universeIDs); start += gameBatchSize {
+		batch := universeIDs[start:min(start+gameBatchSize, len(universeIDs))]
 		details, err := service.details(ctx, batch)
 		if err != nil {
 			return err
 		}
-		for _, id := range batch {
-			if game, exists := details[id]; exists {
+		for _, universeID := range batch {
+			if game, exists := details[universeID]; exists {
 				page.Places = append(page.Places, game.Place)
 			}
 		}
@@ -606,42 +601,36 @@ func (service *Games) loadSearchPlaces(ctx context.Context, ids []int64, page *g
 	return nil
 }
 
-func (service *Games) loadGameExtras(ctx context.Context, accountID int64, game *games.Game) {
-	var group sync.WaitGroup
-	group.Go(func() {
-		if err := service.votes(ctx, game); err != nil && ctx.Err() == nil {
-			service.logger.WarnContext(ctx, "game votes unavailable", "operation", "game-votes", "error", err)
+// Section reads one part of the game details for the universe. The sections
+// that need a signed-in account stay empty without one.
+func (service *Games) Section(ctx context.Context, universeID, placeID, accountID int64, section games.GameSection) (games.Game, error) {
+	game := games.Game{Place: games.Place{UniverseID: universeID, PlaceID: placeID}}
+	var err error
+	switch section {
+	case games.GameSectionVotes:
+		err = service.votes(ctx, &game)
+	case games.GameSectionMaturity:
+		err = service.maturity(ctx, &game)
+	case games.GameSectionAvatarRules:
+		err = service.avatarRules(ctx, &game)
+	case games.GameSectionCommunication:
+		if accountID > 0 {
+			err = service.communication(ctx, accountID, &game)
 		}
-	})
-	group.Go(func() {
-		if err := service.maturity(ctx, game); err != nil && ctx.Err() == nil {
-			service.logger.WarnContext(ctx, "game maturity unavailable", "operation", "game-maturity", "error", err)
+	case games.GameSectionVersions:
+		if accountID > 0 {
+			err = service.versions(ctx, accountID, &game)
 		}
-	})
-	group.Go(func() {
-		if err := service.avatarRules(ctx, game); err != nil && ctx.Err() == nil {
-			service.logger.WarnContext(ctx, "game avatar rules unavailable", "operation", "game-avatar-rules", "error", err)
-		}
-	})
-	if accountID > 0 {
-		group.Go(func() {
-			if err := service.communication(ctx, accountID, game); err != nil && ctx.Err() == nil {
-				service.logger.WarnContext(ctx, "game communication unavailable", "operation", "game-communication", "error", err)
-			}
-		})
-		group.Go(func() {
-			if err := service.versions(ctx, accountID, game); err != nil && ctx.Err() == nil {
-				service.logger.WarnContext(ctx, "game versions unavailable", "operation", "game-versions", "error", err)
-			}
-		})
+	default:
+		return games.Game{}, gameDataError("This game section does not exist.")
 	}
-	group.Wait()
+	return game, err
 }
 
-func validGameCreator(id int64, kind string) bool {
-	return id > 0 && id < 1<<53 && (kind == "User" || kind == "Group")
+func validGameCreator(creatorID int64, kind string) bool {
+	return creatorID > 0 && creatorID < 1<<53 && (kind == "User" || kind == "Group")
 }
 
-func (service *Games) CachedPlace(ctx context.Context, id int64) (games.Place, bool) {
-	return service.cache.Place(ctx, id)
+func (service *Games) CachedPlace(ctx context.Context, placeID int64) (games.Place, bool) {
+	return service.cache.Place(ctx, placeID)
 }

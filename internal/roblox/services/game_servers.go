@@ -72,7 +72,7 @@ func (service *Games) Servers(ctx context.Context, query games.ServerQuery, acco
 		}
 		page.Servers = append(page.Servers, games.Server{
 			JobID: server.ID, Playing: max(server.Playing, 0), MaxPlayers: max(server.MaxPlayers, 0),
-			FPS: max(framesPerSecond, 0), PingMS: nonNegative(server.Ping), PlayerImages: []string{},
+			FPS: max(framesPerSecond, 0), PingMs: nonNegative(server.Ping), PlayerImages: []string{},
 			LanguageMatches: nonNegative(server.LanguageMatchCount),
 		})
 		if accountID > 0 {
@@ -154,11 +154,11 @@ func nonNegative(value *int64) *int64 {
 	return &nonNegative
 }
 
-func validPlayerToken(value string) bool {
-	if value == "" || len(value) > 64 {
+func validPlayerToken(token string) bool {
+	if token == "" || len(token) > 64 {
 		return false
 	}
-	for _, char := range value {
+	for _, char := range token {
 		if !isHex(char) {
 			return false
 		}

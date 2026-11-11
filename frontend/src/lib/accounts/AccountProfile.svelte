@@ -13,7 +13,7 @@
 	import { tick, untrack } from "svelte"
 	import arrowCounterClockwiseIcon from "@phosphor-icons/core/regular/arrow-counter-clockwise.svg?raw"
 	import circleNotchIcon from "@phosphor-icons/core/regular/circle-notch.svg?raw"
-	import { SessionState } from "../backend/bridge"
+	import { AccountProfileSection, SessionState } from "../backend/bridge"
 	import type { RobloxNotificationUser } from "../backend/bridge"
 	import AccountModerationPanel from "./AccountModerationPanel.svelte"
 	import {
@@ -97,9 +97,29 @@
 			profileVisible ? store.getAccountProfile(profileAccountId) : null,
 		),
 		profile = $derived(
-			profileState?.snapshot?.accountId === profileAccountId
-				? profileState.snapshot
-				: null,
+			profileState?.sections.hasAnySection ? profileState.snapshot : null,
+		),
+		isBalanceLoading = $derived(
+			!!profileState &&
+				!profileState.sections.hasSection(
+					AccountProfileSection.ProfileSectionRobux,
+				) &&
+				!profileState.sections.isSectionUnavailable(
+					AccountProfileSection.ProfileSectionRobux,
+				) &&
+				!profileState.error,
+		),
+		unreadNotifications = $derived(
+			moderated ? 0 : (profile?.unreadNotificationCount ?? 0),
+		),
+		hasAbout = $derived(
+			!!profileState &&
+				(profileState.sections.hasSection(
+					AccountProfileSection.ProfileSectionAbout,
+				) ||
+					profileState.sections.isSectionUnavailable(
+						AccountProfileSection.ProfileSectionAbout,
+					)),
 		),
 		refreshing = $derived(
 			moderated ? checkingModeration : (profileState?.loading ?? false),
@@ -252,8 +272,7 @@
 							<div class="flex flex-wrap items-center gap-2">
 								<AccountProfileBalance
 									snapshot={profile}
-									loading={profileState?.loading ||
-										(!profile && !profileState?.error)} />
+									loading={isBalanceLoading} />
 								{#if profile}<AccountMembershipBadges
 										snapshot={profile} />{/if}
 							</div>
@@ -311,16 +330,27 @@
 					<RefreshIcon isRefreshing={refreshing} />
 				</button>
 				<button
-					class="button-icon"
+					class="relative button-icon"
 					type="button"
-					aria-label="Notifications"
+					aria-label={unreadNotifications
+						? `Notifications, ${unreadNotifications} unread`
+						: "Notifications"}
 					data-tooltip={moderated
 						? "Notifications are unavailable while moderated"
-						: "Notifications"}
+						: unreadNotifications
+							? `Notifications (${unreadNotifications} unread)`
+							: "Notifications"}
 					disabled={!hasAccount || !store.vault.unlocked || moderated}
 					bind:this={notificationsButton}
 					onclick={() => openPage("notifications")}>
 					<Icon svg={bellIcon} size={16} aria-hidden="true" />
+					{#if unreadNotifications}<span
+							class="absolute -top-1.5 -right-1.5 min-w-4 animate-bloom rounded-sm bg-solid px-0.5 text-center text-2xs leading-4 font-bold text-on-solid"
+							aria-hidden="true"
+							>{unreadNotifications > 99
+								? "99+"
+								: unreadNotifications}</span
+						>{/if}
 				</button>
 				<button
 					class="button-icon"
@@ -426,14 +456,29 @@
 					onShow={onShowSocial} />
 			{/if}
 
-			{#if profile}
+			{#if profileState && hasAbout}
 				<AccountProfileAbout
-					snapshot={profile}
+					snapshot={profileState.snapshot}
+					isDescriptionUnavailable={!profileState.sections.hasSection(
+						AccountProfileSection.ProfileSectionAbout,
+					)}
 					disabled={store.busy ||
-						!!profileState?.loading ||
+						profileState.sections.loadingSections.includes(
+							AccountProfileSection.ProfileSectionAbout,
+						) ||
 						!store.vault.unlocked}
 					{notifications}
 					{onEditDescription} />
+			{:else if profileVisible && profileState?.sections.isSectionPending(AccountProfileSection.ProfileSectionAbout)}
+				<p
+					class="flex items-center gap-2 text-xs text-fg-muted"
+					aria-busy="true">
+					<Icon
+						svg={circleNotchIcon}
+						class="spinner"
+						size={14}
+						aria-hidden="true" />Loading profile…
+				</p>
 			{/if}
 
 			<AccountProfileDetails account={selectedAccount} snapshot={profile} />
@@ -441,7 +486,7 @@
 				<p class="text-xs text-danger-muted" role="alert">
 					{profileState.error}
 				</p>
-			{:else if (profile?.unavailable?.length ?? 0) > 0}
+			{:else if profileVisible && (profileState?.sections.failedSections.length ?? 0) > 0}
 				<p class="text-xs text-danger-muted" role="alert">
 					Some profile details could not be refreshed. Refresh to retry.
 				</p>

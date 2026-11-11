@@ -4,6 +4,7 @@ import {
 	accountBackend,
 	FriendStatus,
 	SocialList,
+	SocialProfileSection,
 	TrustedStatus,
 } from "../backend/bridge"
 import type {
@@ -18,8 +19,97 @@ import type { NotificationCenter } from "../notifications/notification-center.sv
 import { errorMessage } from "../shared/errors"
 import { detailsKeepMs, isFresh } from "../shared/freshness"
 import { menuPointFor } from "../shared/presence"
+import { SectionLoad } from "../shared/section-load.svelte"
+import type { SectionFields } from "../shared/section-load.svelte"
 import { relationshipActionsById } from "./relationship"
 import type { RelationshipActionId } from "./relationship"
+
+// Sections load in this order, so that the header and the actions fill first.
+const socialProfileSections: SectionFields<
+	SocialProfileSnapshot,
+	SocialProfileSection
+>[] = [
+	{
+		section: SocialProfileSection.SocialSectionRelationship,
+		fields: ["relationship", "unavailable"],
+	},
+	{
+		section: SocialProfileSection.SocialSectionAbout,
+		fields: ["description", "verified", "banned", "createdAtMs"],
+	},
+	{ section: SocialProfileSection.SocialSectionFriends, fields: ["friendCount"] },
+	{ section: SocialProfileSection.SocialSectionFollowers, fields: ["followerCount"] },
+	{
+		section: SocialProfileSection.SocialSectionFollowing,
+		fields: ["followingCount"],
+	},
+	{ section: SocialProfileSection.SocialSectionPremium, fields: ["premium"] },
+	{ section: SocialProfileSection.SocialSectionSocialLinks, fields: ["socialLinks"] },
+	{
+		section: SocialProfileSection.SocialSectionPrimaryGroup,
+		fields: ["primaryGroup"],
+	},
+	{
+		section: SocialProfileSection.SocialSectionRobloxBadges,
+		fields: ["robloxBadges"],
+	},
+	{
+		section: SocialProfileSection.SocialSectionInventory,
+		fields: ["inventoryVisible"],
+	},
+	{
+		section: SocialProfileSection.SocialSectionConnections,
+		fields: ["savedAccountId", "connections"],
+	},
+	{
+		section: SocialProfileSection.SocialSectionCommunities,
+		fields: ["communityCount"],
+	},
+	{
+		section: SocialProfileSection.SocialSectionPreviousNames,
+		fields: ["previousNames"],
+	},
+	{
+		section: SocialProfileSection.SocialSectionCollectibles,
+		fields: ["collectibleCount", "collectibleRecentAveragePriceTotal"],
+	},
+]
+
+function emptySocialProfile(userId: number): SocialProfileSnapshot {
+	return {
+		userId,
+		section: SocialProfileSection.$zero,
+		isComplete: false,
+		description: "",
+		verified: false,
+		banned: false,
+		premium: null,
+		inventoryVisible: null,
+		createdAtMs: 0,
+		friendCount: null,
+		followerCount: null,
+		followingCount: null,
+		previousNames: null,
+		primaryGroup: null,
+		robloxBadges: null,
+		socialLinks: null,
+		savedAccountId: 0,
+		connections: null,
+		relationship: {
+			self: false,
+			friend: FriendStatus.$zero,
+			trusted: TrustedStatus.$zero,
+			following: false,
+			followedBy: false,
+			nickname: "",
+		},
+		communityCount: null,
+		tradeEligibility: null,
+		collectibleCount: null,
+		collectibleRecentAveragePriceTotal: null,
+		unavailable: null,
+	}
+}
 
 export interface SocialSubject {
 	userId: number
@@ -120,9 +210,10 @@ export class SocialStore {
 	loadError = $state("")
 	requestCount = $state<number | null>(null)
 	selectedPerson = $state<SocialUser | null>(null)
-	profile = $state<SocialProfileSnapshot | null>(null)
-	loadingProfile = $state(false)
-	profileError = $state("")
+	profileLoad = $state<SectionLoad<
+		SocialProfileSnapshot,
+		SocialProfileSection
+	> | null>(null)
 	savingNickname = $state(false)
 	relationshipError = $state("")
 	menuRelationship = $state<SocialRelationshipSnapshot | null>(null)
@@ -140,7 +231,6 @@ export class SocialStore {
 	)
 	#epoch = 0
 	#listRequest: ReturnType<typeof accountBackend.GetSocialPage> | null = null
-	#profileRequest: ReturnType<typeof accountBackend.GetSocialProfile> | null = null
 	#relationshipRequest: ReturnType<
 		typeof accountBackend.GetSocialRelationship
 	> | null = null
@@ -149,7 +239,10 @@ export class SocialStore {
 	readonly #pages = new Map<string, { page: SocialListPage; fetchedAt: number }>()
 	readonly #profiles = new Map<
 		number,
-		{ profile: SocialProfileSnapshot; fetchedAt: number }
+		{
+			load: SectionLoad<SocialProfileSnapshot, SocialProfileSection>
+			fetchedAt: number
+		}
 	>()
 
 	constructor(private readonly notifications: NotificationCenter) {}
@@ -267,6 +360,30 @@ export class SocialStore {
 			return false
 		} finally {
 			if (epoch === this.#epoch) this.removingSelected = false
+		}
+	}
+
+	get profile(): SocialProfileSnapshot | null {
+		return this.profileLoad?.hasAnySection ? this.profileLoad.snapshot : null
+	}
+
+	get loadingProfile(): boolean {
+		return this.profileLoad?.isLoading ?? false
+	}
+
+	get profileError(): string {
+		return this.profileLoad?.error ?? ""
+	}
+
+	// profileRelationship is null until the relationship section arrives, so
+	// that the profile never offers actions for a relationship it has not read.
+	get profileRelationship(): SocialRelationshipSnapshot | null {
+		const load = this.profileLoad
+		if (!load?.hasSection(SocialProfileSection.SocialSectionRelationship))
+			return null
+		return {
+			relationship: load.snapshot.relationship,
+			unavailable: load.snapshot.unavailable,
 		}
 	}
 
@@ -466,42 +583,41 @@ export class SocialStore {
 	select(person: SocialUser | null): void {
 		if (person?.userId === this.selectedUserId) return
 		this.selectedPerson = person
-		void this.#profileRequest?.cancel()
-		this.#profileRequest = null
-		this.profile = null
-		this.profileError = ""
-		this.loadingProfile = false
+		this.profileLoad?.cancel()
+		this.profileLoad = null
 		if (person) void this.loadProfile(person.userId)
 	}
 
 	async loadProfile(userId: number, force = false): Promise<void> {
-		const cached = this.#profiles.get(userId)
-		if (cached && Date.now() - cached.fetchedAt < detailsKeepMs) {
-			this.profile = cached.profile
-			if (!force && isFresh(cached.fetchedAt)) return
-		}
-		void this.#profileRequest?.cancel()
-		const request = accountBackend.GetSocialProfile(this.accountId, userId)
-		this.#profileRequest = request
-		this.loadingProfile = true
-		this.profileError = ""
-		try {
-			const profile = await request
-			if (request !== this.#profileRequest) return
-			this.#profiles.set(userId, { profile, fetchedAt: Date.now() })
-			this.profile = profile
-		} catch (error) {
-			if (request !== this.#profileRequest) return
-			this.profileError = errorMessage(
-				error,
-				"Could not load this profile. Refresh to retry.",
-			)
-		} finally {
-			if (request === this.#profileRequest) {
-				this.#profileRequest = null
-				this.loadingProfile = false
+		const now = Date.now()
+		for (const [cachedUserId, entry] of this.#profiles) {
+			if (now - entry.fetchedAt >= detailsKeepMs && !entry.load.isLoading) {
+				entry.load.reset()
+				this.#profiles.delete(cachedUserId)
 			}
 		}
+		let entry = this.#profiles.get(userId)
+		if (!entry) {
+			entry = {
+				load: new SectionLoad(
+					socialProfileSections,
+					() => emptySocialProfile(userId),
+					"Could not load this profile. Refresh to retry.",
+				),
+				fetchedAt: 0,
+			}
+			this.#profiles.set(userId, entry)
+		}
+		const { load } = entry,
+			epoch = this.#epoch,
+			accountId = this.accountId
+		this.profileLoad = load
+		if (load.isLoading || (!force && isFresh(entry.fetchedAt))) return
+		const isCurrentLoad = await load.load(
+			(section) => accountBackend.GetSocialProfile(accountId, userId, section),
+			() => epoch === this.#epoch,
+		)
+		if (isCurrentLoad && !load.error) entry.fetchedAt = Date.now()
 	}
 
 	// runRelationshipAction runs a confirmed relationship action and returns
@@ -672,13 +788,10 @@ export class SocialStore {
 	}
 
 	#patchRelationship(userId: number, change: Partial<SocialRelationship>): void {
-		const cached = this.#profiles.get(userId),
-			patch = (profile: SocialProfileSnapshot): SocialProfileSnapshot => ({
-				...profile,
-				relationship: { ...profile.relationship, ...change },
-			})
-		if (cached) cached.profile = patch(cached.profile)
-		if (this.profile?.userId === userId) this.profile = patch(this.profile)
+		const load = this.#profiles.get(userId)?.load
+		if (load) {
+			load.snapshot.relationship = { ...load.snapshot.relationship, ...change }
+		}
 		const relationship = this.#relationships.get(userId)
 		if (relationship) {
 			this.#relationships.set(userId, {
@@ -721,13 +834,13 @@ export class SocialStore {
 
 	async #loadMenuRelationship(userId: number): Promise<void> {
 		void this.#relationshipRequest?.cancel()
-		const profile = this.#profiles.get(userId)?.profile
+		const load = this.#profiles.get(userId)?.load
 		this.menuRelationship =
 			this.#relationships.get(userId) ??
-			(profile
+			(load?.hasSection(SocialProfileSection.SocialSectionRelationship)
 				? {
-						relationship: profile.relationship,
-						unavailable: profile.unavailable,
+						relationship: load.snapshot.relationship,
+						unavailable: load.snapshot.unavailable,
 					}
 				: null)
 		this.menuRelationshipFailed = false
@@ -745,12 +858,12 @@ export class SocialStore {
 		}
 	}
 
-	async copy(value: string | number, label: string): Promise<void> {
+	async copy(text: string | number, label: string): Promise<void> {
 		this.closeMenu()
 		if (
 			!(await copyText(
 				this.notifications,
-				String(value),
+				String(text),
 				`${label} copied to clipboard.`,
 			))
 		) {
@@ -820,21 +933,21 @@ export class SocialStore {
 	#switchAccount(accountId: number, selfUserId: number): void {
 		this.#epoch++
 		void this.#listRequest?.cancel()
-		void this.#profileRequest?.cancel()
 		void this.#presenceRequest?.cancel()
 		void this.#relationshipRequest?.cancel()
-		this.#listRequest = this.#profileRequest = this.#presenceRequest = null
+		this.#listRequest = this.#presenceRequest = null
 		this.#relationshipRequest = null
 		this.#pages.clear()
+		for (const entry of this.#profiles.values()) entry.load.reset()
 		this.#profiles.clear()
 		this.#relationships.clear()
 		this.accountId = accountId
 		this.selfUserId = selfUserId
-		this.page = this.profile = this.menu = this.selectedPerson = null
+		this.page = this.profileLoad = this.menu = this.selectedPerson = null
 		this.requestCount = this.menuRelationship = this.pendingAction = null
-		this.loading = this.loadingMore = this.loadingProfile = false
+		this.loading = this.loadingMore = false
 		this.savingNickname = this.menuRelationshipFailed = false
-		this.loadError = this.profileError = this.error = this.relationshipError = ""
+		this.loadError = this.error = this.relationshipError = ""
 		this.nicknameError = ""
 		this.trustedOnly = this.selecting = this.removingSelected = false
 		this.selectedUserIds = []

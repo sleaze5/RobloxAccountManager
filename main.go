@@ -137,7 +137,7 @@ func run() (runError error) {
 		robloxservices.NewAccountSettings(client),
 		robloxservices.NewChat(client),
 		robloxservices.NewNotificationStream(client),
-		robloxservices.NewAuth(client, logSystem.Module("roblox.auth")),
+		robloxservices.NewAuthentication(client, logSystem.Module("roblox.auth")),
 		robloxservices.NewThumbnails(client),
 		robloxservices.NewPresence(client),
 		robloxservices.NewGameLinks(client),

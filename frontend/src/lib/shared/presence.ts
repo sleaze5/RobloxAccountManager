@@ -177,6 +177,29 @@ export function liftToTopLayer(node: HTMLElement): void {
 	node.showPopover()
 }
 
+export function focusMenuItemForKey(event: KeyboardEvent, items: HTMLElement[]): void {
+	const current = items.indexOf(document.activeElement as HTMLElement)
+	let next: number
+	switch (event.key) {
+		case "ArrowDown":
+			next = (current + 1) % items.length
+			break
+		case "ArrowUp":
+			next = (current - 1 + items.length) % items.length
+			break
+		case "Home":
+			next = 0
+			break
+		case "End":
+			next = items.length - 1
+			break
+		default:
+			return
+	}
+	event.preventDefault()
+	items[next]?.focus()
+}
+
 export function menuKeyboard(node: HTMLElement): { destroy: () => void } {
 	const previousFocus = document.activeElement,
 		items = () =>
@@ -190,20 +213,7 @@ export function menuKeyboard(node: HTMLElement): { destroy: () => void } {
 				}
 				return
 			}
-			if (!["ArrowDown", "ArrowUp", "Home", "End"].includes(event.key)) return
-			event.preventDefault()
-			const buttons = items(),
-				current = buttons.findIndex(
-					(button) => button === document.activeElement,
-				),
-				direction = event.key === "ArrowUp" ? -1 : 1,
-				next =
-					event.key === "Home"
-						? 0
-						: event.key === "End"
-							? buttons.length - 1
-							: (current + direction + buttons.length) % buttons.length
-			buttons[next]?.focus()
+			focusMenuItemForKey(event, items())
 		}
 	// A menu whose items are all disabled while it loads takes focus itself, so
 	// the keyboard still reaches it.

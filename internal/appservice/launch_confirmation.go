@@ -27,11 +27,11 @@ func (service *Service) GetLaunchConfirmation() LaunchConfirmation {
 	return service.launchConfirmation.state
 }
 
-func (service *Service) ResolveLaunchConfirmation(id string, approved bool) {
+func (service *Service) ResolveLaunchConfirmation(confirmationID string, approved bool) {
 	service.mutex.Lock()
 	defer service.mutex.Unlock()
 	pending := service.launchConfirmation
-	if pending == nil || pending.state.ID != id {
+	if pending == nil || pending.state.ID != confirmationID {
 		return
 	}
 	select {

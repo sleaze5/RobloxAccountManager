@@ -24,13 +24,13 @@ func (repository *Repository) AllPrivateServers(ctx context.Context) ([]games.Sa
 	return repository.listPrivateServers(ctx, `SELECT id, place_id, name, access_code, link_code, created_at_ms FROM saved_private_servers ORDER BY id`)
 }
 
-func (repository *Repository) listPrivateServers(ctx context.Context, query string, args ...any) ([]games.SavedPrivateServer, error) {
+func (repository *Repository) listPrivateServers(ctx context.Context, query string, arguments ...any) ([]games.SavedPrivateServer, error) {
 	database, release, err := repository.provider.Lease(ctx)
 	if err != nil {
 		return nil, err
 	}
 	defer release()
-	rows, err := database.QueryContext(ctx, query, args...)
+	rows, err := database.QueryContext(ctx, query, arguments...)
 	if err != nil {
 		return nil, fmt.Errorf("list saved private servers: %w", err)
 	}
@@ -80,14 +80,14 @@ func (repository *Repository) SavePrivateServer(ctx context.Context, server game
 	return server, nil
 }
 
-func (repository *Repository) RemovePrivateServer(ctx context.Context, id int64) error {
+func (repository *Repository) RemovePrivateServer(ctx context.Context, savedPrivateServerID int64) error {
 	database, release, err := repository.provider.Lease(ctx)
 	if err != nil {
 		return err
 	}
 	defer release()
 	err = vault.RunWriteTransaction(ctx, database, "saved private server removal", func(transaction *sql.Tx) (bool, error) {
-		deletion, err := transaction.ExecContext(ctx, `DELETE FROM saved_private_servers WHERE id = ?`, id)
+		deletion, err := transaction.ExecContext(ctx, `DELETE FROM saved_private_servers WHERE id = ?`, savedPrivateServerID)
 		if err != nil {
 			return false, fmt.Errorf("remove saved private server: %w", err)
 		}
@@ -101,6 +101,6 @@ func (repository *Repository) RemovePrivateServer(ctx context.Context, id int64)
 	if err != nil {
 		return err
 	}
-	repository.logger.InfoContext(ctx, "private server link removed", "operation", "private-server-link-remove", "saved_server_id", id)
+	repository.logger.InfoContext(ctx, "private server link removed", "operation", "private-server-link-remove", "saved_server_id", savedPrivateServerID)
 	return nil
 }

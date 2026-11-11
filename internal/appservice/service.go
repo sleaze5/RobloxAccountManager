@@ -24,14 +24,14 @@ import (
 
 type Service struct {
 	vault              Vault
-	repo               AccountRepository
+	accountRepository  AccountRepository
 	sessions           *roblox.SessionManager
 	users              *robloxservices.Users
 	accountSettings    *robloxservices.AccountSettings
 	chat               *robloxservices.Chat
 	notificationStream *robloxservices.NotificationStream
-	auth               *robloxservices.Auth
-	avatars            *robloxservices.Thumbnails
+	authentication     *robloxservices.Authentication
+	thumbnails         *robloxservices.Thumbnails
 	presence           *robloxservices.Presence
 	gameLinks          *robloxservices.GameLinks
 	games              *robloxservices.Games
@@ -83,8 +83,8 @@ func New(
 	accountSettings *robloxservices.AccountSettings,
 	chat *robloxservices.Chat,
 	notificationStream *robloxservices.NotificationStream,
-	auth *robloxservices.Auth,
-	avatars *robloxservices.Thumbnails,
+	authentication *robloxservices.Authentication,
+	thumbnails *robloxservices.Thumbnails,
 	presence *robloxservices.Presence,
 	gameLinks *robloxservices.GameLinks,
 	games *robloxservices.Games,
@@ -104,15 +104,15 @@ func New(
 	return &Service{
 		vault:                vaultManager,
 		metadataSlots:        make(chan struct{}, 3),
-		repo:                 repository,
+		accountRepository:    repository,
 		sessions:             sessions,
 		users:                users,
 		accountSettings:      accountSettings,
 		accountSettingsLocks: make(map[int64]*accountSettingsLock),
 		chat:                 chat,
 		notificationStream:   notificationStream,
-		auth:                 auth,
-		avatars:              avatars,
+		authentication:       authentication,
+		thumbnails:           thumbnails,
 		presence:             presence,
 		gameLinks:            gameLinks,
 		games:                games,
@@ -176,22 +176,22 @@ func (service *Service) beginValidation(parent context.Context) (context.Context
 	ctx, cancel := context.WithCancel(parent)
 	service.validationMutex.Lock()
 	service.validationNext++
-	id := service.validationNext
-	service.validationCancels[id] = cancel
+	validationID := service.validationNext
+	service.validationCancels[validationID] = cancel
 	service.validationMutex.Unlock()
 	return ctx, func() {
 		cancel()
 		service.validationMutex.Lock()
-		delete(service.validationCancels, id)
+		delete(service.validationCancels, validationID)
 		service.validationMutex.Unlock()
 	}
 }
 
 func (service *Service) cancelPendingValidations() {
 	service.validationMutex.Lock()
-	for id, cancel := range service.validationCancels {
+	for validationID, cancel := range service.validationCancels {
 		cancel()
-		delete(service.validationCancels, id)
+		delete(service.validationCancels, validationID)
 	}
 	service.validationMutex.Unlock()
 }

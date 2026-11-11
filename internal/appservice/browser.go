@@ -3,7 +3,6 @@ package appservice
 import (
 	"context"
 	"errors"
-	"fmt"
 
 	"github.com/sleaze5/RobloxAccountManager/internal/browser"
 	"github.com/sleaze5/RobloxAccountManager/internal/gamelaunch"
@@ -67,7 +66,7 @@ func (service *Service) LaunchBrowserGame(ctx context.Context, sessionID, protoc
 	if ctx.Err() != nil || !service.vault.Unlocked() {
 		return
 	}
-	ctx = logging.WithOperation(ctx, fmt.Sprintf("launch-%d", launchOperationID.Add(1)))
+	ctx = logging.WithOperation(ctx, logging.NewOperationID("launch"))
 	logger := service.logger.With("operation", "browser-game-launch", "session_id", sessionID)
 	if err := gamelaunch.ValidateBrowserProtocolURL(protocolURL); err != nil {
 		logger.WarnContext(ctx, "invalid browser game launch rejected", "error", err)

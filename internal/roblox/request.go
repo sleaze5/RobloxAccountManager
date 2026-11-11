@@ -87,14 +87,14 @@ func (request Request) validate(policy func(*url.URL) bool) error {
 
 // IsRobloxURL reports whether value is an HTTPS URL on roblox.com or one of its
 // subdomains, without credentials or a nonstandard port.
-func IsRobloxURL(value *url.URL) bool {
-	if value == nil || !strings.EqualFold(value.Scheme, "https") || value.User != nil {
+func IsRobloxURL(address *url.URL) bool {
+	if address == nil || !strings.EqualFold(address.Scheme, "https") || address.User != nil {
 		return false
 	}
-	if value.Port() != "" && value.Port() != "443" {
+	if address.Port() != "" && address.Port() != "443" {
 		return false
 	}
-	host := strings.ToLower(strings.TrimSuffix(value.Hostname(), "."))
+	host := strings.ToLower(strings.TrimSuffix(address.Hostname(), "."))
 	return host == "roblox.com" || strings.HasSuffix(host, ".roblox.com")
 }
 

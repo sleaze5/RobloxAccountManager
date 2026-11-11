@@ -45,7 +45,7 @@ func (service *Service) ListPlacePrivateServers(ctx context.Context, query games
 		return games.PrivateServerPage{}, err
 	}
 	defer done()
-	account, err := service.repo.GetView(ctx, query.AccountID)
+	account, err := service.accountRepository.GetView(ctx, query.AccountID)
 	if err != nil {
 		return games.PrivateServerPage{}, mapRepositoryError(err)
 	}
@@ -232,11 +232,11 @@ func (service *Service) privateServerSettings(ctx context.Context, accountID, ve
 	if err != nil || len(settings.Users) == 0 {
 		return settings, err
 	}
-	ids := make([]int64, len(settings.Users))
+	userIDs := make([]int64, len(settings.Users))
 	for index, user := range settings.Users {
-		ids[index] = user.UserID
+		userIDs[index] = user.UserID
 	}
-	images, err := service.headshotImages(ctx, ids)
+	images, err := service.headshotImages(ctx, userIDs)
 	if err != nil {
 		service.logger.Warn("private server user avatars unavailable", "operation", "private-server", "account_id", accountID, "error", err)
 		return settings, nil
@@ -347,7 +347,7 @@ func (service *Service) resolvePrivateServerTarget(ctx context.Context, accountI
 	if target.ShareCode != "" {
 		return service.gameLinks.ResolveShare(ctx, accountID, version, target)
 	}
-	account, err := service.repo.GetView(ctx, accountID)
+	account, err := service.accountRepository.GetView(ctx, accountID)
 	if err != nil {
 		return gamelaunch.Request{}, mapRepositoryError(err)
 	}
@@ -361,8 +361,8 @@ func (service *Service) resolvePrivateServerTarget(ctx context.Context, accountI
 	return target, nil
 }
 
-func (service *Service) RemoveSavedPrivateServer(ctx context.Context, id int64) error {
-	if !games.ValidID(id) {
+func (service *Service) RemoveSavedPrivateServer(ctx context.Context, savedPrivateServerID int64) error {
+	if !games.ValidID(savedPrivateServerID) {
 		return privateServerInputError("The saved link is invalid. Refresh the private servers.")
 	}
 	ctx, done, err := service.beginGames(ctx)
@@ -370,7 +370,7 @@ func (service *Service) RemoveSavedPrivateServer(ctx context.Context, id int64) 
 		return err
 	}
 	defer done()
-	if err := service.favoritePlaces.RemovePrivateServer(ctx, id); errors.Is(err, gamestore.ErrPrivateServerNotSaved) {
+	if err := service.favoritePlaces.RemovePrivateServer(ctx, savedPrivateServerID); errors.Is(err, gamestore.ErrPrivateServerNotSaved) {
 		return privateServerInputError("This link was already removed. Refresh the private servers.")
 	} else if err != nil {
 		return service.gamesError(ctx, "private-server-link-remove", err)

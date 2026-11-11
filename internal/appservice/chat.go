@@ -10,7 +10,6 @@ import (
 	"slices"
 	"strconv"
 	"strings"
-	"sync/atomic"
 	"time"
 	"unicode/utf8"
 
@@ -29,8 +28,6 @@ const (
 	maxChatGroupMembers    = 6
 	maxChatGroupNameLength = 150
 )
-
-var chatOperationID atomic.Uint64
 
 type ChatParticipant struct {
 	UserID      int64  `json:"userId"`
@@ -143,7 +140,7 @@ func (service *Service) MarkAllChatConversationsRead(ctx context.Context, accoun
 		return 0, err
 	}
 	defer done()
-	ids, seen, cursor := []string{}, map[string]bool{}, ""
+	conversationIDs, seen, cursor := []string{}, map[string]bool{}, ""
 	for range maxChatMarkAllPages {
 		page, err := service.chat.Conversations(ctx, accountID, version, cursor)
 		if err != nil {
@@ -152,20 +149,20 @@ func (service *Service) MarkAllChatConversationsRead(ctx context.Context, accoun
 		for _, conversation := range page.Conversations {
 			if conversation.UnreadMessageCount > 0 && realChatConversation(conversation.ID) && !seen[conversation.ID] {
 				seen[conversation.ID] = true
-				ids = append(ids, conversation.ID)
+				conversationIDs = append(conversationIDs, conversation.ID)
 			}
 		}
 		if cursor = page.NextCursor; cursor == "" {
 			break
 		}
 	}
-	for chunk := range slices.Chunk(ids, robloxservices.ChatPageSize) {
+	for chunk := range slices.Chunk(conversationIDs, robloxservices.ChatPageSize) {
 		if err := service.markChatRead(ctx, logger, accountID, version, chunk); err != nil {
 			return 0, err
 		}
 	}
-	logger.DebugContext(ctx, "chat conversations marked read", "count", len(ids))
-	return len(ids), nil
+	logger.DebugContext(ctx, "chat conversations marked read", "count", len(conversationIDs))
+	return len(conversationIDs), nil
 }
 
 // CreateChatConversation opens a direct chat with one user, or creates a group
@@ -348,21 +345,21 @@ func (service *Service) beginChat(parent context.Context, accountID int64, opera
 	if err != nil {
 		return nil, 0, nil, nil, err
 	}
-	ctx = logging.WithOperation(ctx, fmt.Sprintf("chat-%d", chatOperationID.Add(1)))
+	ctx = logging.WithOperation(ctx, logging.NewOperationID("chat"))
 	logger := service.logs.Module("application.chat").With("operation", operation)
 	return ctx, version, logger, done, nil
 }
 
 func (service *Service) chatSelfID(ctx context.Context, accountID int64) (int64, error) {
-	account, err := service.repo.GetView(ctx, accountID)
+	account, err := service.accountRepository.GetView(ctx, accountID)
 	if err != nil {
 		return 0, mapRepositoryError(err)
 	}
 	return account.RobloxUserID, nil
 }
 
-func (service *Service) markChatRead(ctx context.Context, logger *slog.Logger, accountID, version int64, ids []string) error {
-	results, err := service.chat.MarkRead(ctx, accountID, version, ids)
+func (service *Service) markChatRead(ctx context.Context, logger *slog.Logger, accountID, version int64, conversationIDs []string) error {
+	results, err := service.chat.MarkRead(ctx, accountID, version, conversationIDs)
 	if err != nil {
 		return chatFailure(ctx, logger, err)
 	}
@@ -412,7 +409,7 @@ func chatConversationView(selfID int64, conversation robloxservices.ChatConversa
 		ID:           conversation.ID,
 		Group:        conversation.Type == "group",
 		UnreadCount:  max(conversation.UnreadMessageCount, 0),
-		UpdatedAtMs:  chatTime(conversation.UpdatedAt),
+		UpdatedAtMs:  unixMillisecondsFromRFC3339(conversation.UpdatedAt),
 		Participants: []ChatParticipant{},
 	}
 	var self *ChatParticipant
@@ -441,7 +438,7 @@ func chatConversationView(selfID int64, conversation robloxservices.ChatConversa
 	}
 	if preview := chatPreviewMessage(conversation); preview != nil {
 		view.Preview = chatPreviewText(*preview)
-		if createdAt := chatTime(preview.CreatedAt); createdAt > 0 {
+		if createdAt := unixMillisecondsFromRFC3339(preview.CreatedAt); createdAt > 0 {
 			view.UpdatedAtMs = createdAt
 		}
 	}
@@ -455,7 +452,7 @@ func chatPreviewMessage(conversation robloxservices.ChatConversation) *robloxser
 	var latest *robloxservices.ChatMessage
 	for index := range conversation.Messages {
 		message := &conversation.Messages[index]
-		if message.IsPreviewable && chatMessageVisible(*message) && (latest == nil || chatTime(message.CreatedAt) > chatTime(latest.CreatedAt)) {
+		if message.IsPreviewable && chatMessageVisible(*message) && (latest == nil || unixMillisecondsFromRFC3339(message.CreatedAt) > unixMillisecondsFromRFC3339(latest.CreatedAt)) {
 			latest = message
 		}
 	}
@@ -482,7 +479,7 @@ func chatMessageView(message robloxservices.ChatMessage) ChatMessageView {
 		ID:           message.ID,
 		SenderUserID: message.SenderUserID,
 		Text:         text,
-		CreatedAtMs:  chatTime(message.CreatedAt),
+		CreatedAtMs:  unixMillisecondsFromRFC3339(message.CreatedAt),
 		System:       message.Type == "system",
 		Moderated:    strings.EqualFold(message.Status, "moderated"),
 	}
@@ -506,21 +503,13 @@ func chatPiecesText(pieces []robloxservices.ChatMessagePiece) string {
 	return text.String()
 }
 
-func chatTime(value string) int64 {
-	parsed, err := time.Parse(time.RFC3339Nano, value)
-	if err != nil {
-		return 0
-	}
-	return parsed.UnixMilli()
+func realChatConversation(conversationID string) bool {
+	return conversationID != "" && !strings.HasPrefix(conversationID, "friends-")
 }
 
-func realChatConversation(id string) bool {
-	return id != "" && !strings.HasPrefix(id, "friends-")
-}
-
-func validateChatConversationID(id string) error {
+func validateChatConversationID(conversationID string) error {
 	// 0x7f is the DEL control character.
-	if !realChatConversation(id) || len(id) > 256 || !utf8.ValidString(id) || strings.ContainsFunc(id, func(character rune) bool { return character <= ' ' || character == 0x7f }) {
+	if !realChatConversation(conversationID) || len(conversationID) > 256 || !utf8.ValidString(conversationID) || strings.ContainsFunc(conversationID, func(character rune) bool { return character <= ' ' || character == 0x7f }) {
 		return chatInputError("This chat is unavailable. Refresh chats.")
 	}
 	return nil

@@ -94,11 +94,7 @@ func (service *Service) GetGame(ctx context.Context, universeID, placeID int64) 
 		}
 		universeID = place.UniverseID
 	}
-	accountID, err := service.gameAccount(ctx)
-	if err != nil {
-		return games.Game{}, service.gamesError(ctx, "game-details", err)
-	}
-	game, err := service.games.Get(ctx, universeID, placeID, accountID)
+	game, err := service.games.Get(ctx, universeID, placeID)
 	if err != nil {
 		return games.Game{}, service.gamesError(ctx, "game-details", err)
 	}
@@ -106,6 +102,30 @@ func (service *Service) GetGame(ctx context.Context, universeID, placeID int64) 
 	service.events.send("game:metadata-changed", game.Place)
 	if game.RootPlace != nil {
 		service.events.send("game:metadata-changed", *game.RootPlace)
+	}
+	return game, nil
+}
+
+// GetGameSection reads one part of the game details that GetGame leaves out.
+func (service *Service) GetGameSection(ctx context.Context, universeID, placeID int64, section games.GameSection) (games.Game, error) {
+	if err := validGameID(placeID); err != nil {
+		return games.Game{}, err
+	}
+	if err := validGameID(universeID); err != nil {
+		return games.Game{}, err
+	}
+	ctx, done, err := service.beginGames(ctx)
+	if err != nil {
+		return games.Game{}, err
+	}
+	defer done()
+	accountID, err := service.gameAccount(ctx)
+	if err != nil {
+		return games.Game{}, service.gamesError(ctx, "game-"+string(section), err)
+	}
+	game, err := service.games.Section(ctx, universeID, placeID, accountID, section)
+	if err != nil {
+		return games.Game{}, service.gamesError(ctx, "game-"+string(section), err)
 	}
 	return game, nil
 }
@@ -222,7 +242,7 @@ func (service *Service) rovalraError(ctx context.Context, operation string, plac
 func (service *Service) gameAccount(ctx context.Context) (int64, error) {
 	var cursor *accounts.AccountCursor
 	for {
-		page, err := service.repo.Page(ctx, accounts.AccountQuery{Cursor: cursor})
+		page, err := service.accountRepository.Page(ctx, accounts.AccountQuery{Cursor: cursor})
 		if err != nil {
 			return 0, mapRepositoryError(err)
 		}
@@ -238,8 +258,8 @@ func (service *Service) gameAccount(ctx context.Context) (int64, error) {
 }
 
 func (service *Service) GetGamePlace(ctx context.Context, universeID, placeID int64) (games.PlaceSummary, error) {
-	for _, id := range []int64{universeID, placeID} {
-		if err := validGameID(id); err != nil {
+	for _, gameID := range []int64{universeID, placeID} {
+		if err := validGameID(gameID); err != nil {
 			return games.PlaceSummary{}, err
 		}
 	}
@@ -387,8 +407,8 @@ func (service *Service) gamesError(ctx context.Context, operation string, err er
 	return &roblox.Error{Kind: roblox.KindProtocol, Endpoint: operation, Message: "The game operation could not be completed. Try again.", Cause: err}
 }
 
-func validGameID(id int64) error {
-	if !games.ValidID(id) {
+func validGameID(gameID int64) error {
+	if !games.ValidID(gameID) {
 		return gamesInputError("The game identifier is invalid.")
 	}
 	return nil

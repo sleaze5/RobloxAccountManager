@@ -195,10 +195,10 @@ func (store *Store) write(ctx context.Context, kind string, id int64, value any)
 	})
 }
 
-func (store *Store) Place(ctx context.Context, id int64) (games.Place, bool) {
-	place := games.Place{PlaceID: id, Name: fmt.Sprintf("Place %d", id)}
-	fresh := store.read(ctx, "place", id, &place)
-	place.PlaceID, place.Nickname = id, ""
+func (store *Store) Place(ctx context.Context, placeID int64) (games.Place, bool) {
+	place := games.Place{PlaceID: placeID, Name: fmt.Sprintf("Place %d", placeID)}
+	fresh := store.read(ctx, "place", placeID, &place)
+	place.PlaceID, place.Nickname = placeID, ""
 	return place, fresh
 }
 

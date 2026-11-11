@@ -82,15 +82,15 @@ func cookieFieldValue(input string) (string, error) {
 	return found, nil
 }
 
-func ValidateCookieValue(value string) error {
-	if value == "" {
+func ValidateCookieValue(cookieValue string) error {
+	if cookieValue == "" {
 		return fmt.Errorf("%w: cookie is empty", ErrInvalidCookieInput)
 	}
-	if len(value) > maxCookieInputBytes {
+	if len(cookieValue) > maxCookieInputBytes {
 		return fmt.Errorf("%w: input is too large", ErrInvalidCookieInput)
 	}
-	for index := range len(value) {
-		character := value[index]
+	for index := range len(cookieValue) {
+		character := cookieValue[index]
 		// 0x21 to 0x7e is printable ASCII without the space.
 		if character < 0x21 || character > 0x7e || character == '"' || character == ',' || character == ';' || character == '\\' {
 			return fmt.Errorf("%w: cookie contains a character that Roblox cookies do not use", ErrInvalidCookieInput)

@@ -119,3 +119,17 @@ func (service *NotificationStream) RunAction(ctx context.Context, accountID, ver
 	})
 	return err
 }
+
+// ClearUnread marks every notification as seen, as the Roblox website does
+// when it opens the notification stream. The response shape was captured on
+// 2026-10-15.
+func (service *NotificationStream) ClearUnread(ctx context.Context, accountID, version int64) error {
+	endpointURL, _ := url.Parse(notificationStreamBaseURL + "clear-unread")
+	_, err := service.client.Do(ctx, roblox.Request{
+		Endpoint: "notification-clear-unread", AccountID: accountID, ExpectedSecretVersion: version,
+		Authenticated: true, Method: http.MethodPost, URL: endpointURL, Body: []byte("{}"),
+		ContentType: "application/json", RequiresCSRF: true, MaxResponseSize: notificationStreamResponseBytes,
+		Retry: roblox.RetryPolicy{MaxAttempts: 3, Idempotent: true, RetryServerErrors: true, RetryRateLimit: true},
+	})
+	return err
+}

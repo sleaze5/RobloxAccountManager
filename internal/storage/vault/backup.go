@@ -23,7 +23,7 @@ const (
 
 type Backup struct {
 	Name        string `json:"name"`
-	CreatedAtMS int64  `json:"createdAtMs"`
+	CreatedAtMs int64  `json:"createdAtMs"`
 }
 
 type execer interface {
@@ -57,7 +57,7 @@ func (manager *Manager) MaybeCreateBackup(ctx context.Context) error {
 	}
 	if len(backups) > 0 {
 		newest := backups[0]
-		if time.Since(time.UnixMilli(newest.CreatedAtMS)) < 24*time.Hour {
+		if time.Since(time.UnixMilli(newest.CreatedAtMs)) < 24*time.Hour {
 			return nil
 		}
 		backupRevision, verifyError := manager.backupRevision(ctx, newest.Name)
@@ -202,7 +202,7 @@ func (manager *Manager) listBackups() ([]Backup, error) {
 		if _, err := readKeyFile(filepath.Join(manager.paths.BackupsRoot, entry.Name(), "vault.key")); errors.Is(err, ErrLegacyVault) {
 			continue
 		}
-		backups = append(backups, Backup{Name: entry.Name(), CreatedAtMS: created.UnixMilli()})
+		backups = append(backups, Backup{Name: entry.Name(), CreatedAtMs: created.UnixMilli()})
 	}
 	sort.Slice(backups, func(left, right int) bool { return backups[left].Name > backups[right].Name })
 	return backups, nil

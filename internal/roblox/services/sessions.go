@@ -90,7 +90,7 @@ func (service *Users) Sessions(ctx context.Context, accountID, version int64) ([
 }
 
 // Roblox replaces the session cookie in this response. The client saves it.
-func (service *Auth) SignOutOtherSessions(ctx context.Context, accountID, version int64) error {
+func (service *Authentication) SignOutOtherSessions(ctx context.Context, accountID, version int64) error {
 	endpoint, _ := url.Parse("https://auth.roblox.com/v2/logoutfromallsessionsandreauthenticate")
 	response, err := service.client.Do(ctx, roblox.Request{
 		Endpoint: "sessions-sign-out", AccountID: accountID, ExpectedSecretVersion: version,
@@ -108,11 +108,11 @@ func (service *Auth) SignOutOtherSessions(ctx context.Context, accountID, versio
 }
 
 // Roblox writes "Unknown" when it cannot identify a value.
-func sessionText(value *string) string {
-	if value == nil {
+func sessionText(rawText *string) string {
+	if rawText == nil {
 		return ""
 	}
-	text := strings.TrimSpace(*value)
+	text := strings.TrimSpace(*rawText)
 	if strings.EqualFold(text, "unknown") || len(text) > 256 {
 		return ""
 	}

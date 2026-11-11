@@ -69,9 +69,8 @@ export class ChatState {
 		this.error = ""
 		this.loadMoreFailed = false
 		try {
-			const page = await accountBackend.GetChatConversations(
-				this.#scope.accountId,
-				"",
+			const page = await this.#scope.track(
+				accountBackend.GetChatConversations(this.#scope.accountId, ""),
 			)
 			if (!this.#scope.isCurrent || generation !== this.#listGeneration) return
 			const conversations = page.conversations ?? [],
@@ -110,9 +109,11 @@ export class ChatState {
 		this.loadMoreFailed = false
 		this.error = ""
 		try {
-			const page = await accountBackend.GetChatConversations(
-				this.#scope.accountId,
-				this.conversationsCursor,
+			const page = await this.#scope.track(
+				accountBackend.GetChatConversations(
+					this.#scope.accountId,
+					this.conversationsCursor,
+				),
 			)
 			if (!this.#scope.isCurrent || generation !== this.#listGeneration) return
 			const incoming = page.conversations ?? [],
@@ -153,10 +154,12 @@ export class ChatState {
 		this.olderLoading = false
 		this.messagesError = ""
 		try {
-			const page = await accountBackend.GetChatMessages(
-				this.#scope.accountId,
-				conversationId,
-				"",
+			const page = await this.#scope.track(
+				accountBackend.GetChatMessages(
+					this.#scope.accountId,
+					conversationId,
+					"",
+				),
 			)
 			if (!this.#scope.isCurrent || generation !== this.#messagesGeneration)
 				return
@@ -201,10 +204,12 @@ export class ChatState {
 		this.olderLoading = true
 		this.messagesError = ""
 		try {
-			const page = await accountBackend.GetChatMessages(
-				this.#scope.accountId,
-				this.openId,
-				this.messagesCursor,
+			const page = await this.#scope.track(
+				accountBackend.GetChatMessages(
+					this.#scope.accountId,
+					this.openId,
+					this.messagesCursor,
+				),
 			)
 			if (!this.#scope.isCurrent || generation !== this.#messagesGeneration)
 				return

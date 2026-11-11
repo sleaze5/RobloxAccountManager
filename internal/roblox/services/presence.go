@@ -215,8 +215,8 @@ func invalidPresence(status int, cause error) error {
 	}
 }
 
-func presenceType(value int) PresenceType {
-	switch value {
+func presenceType(code int) PresenceType {
+	switch code {
 	case 1:
 		return PresenceTypeOnline
 	case 2:

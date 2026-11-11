@@ -63,8 +63,8 @@ func (location Location) Candidate(mode Mode) (Candidate, bool) {
 	return Candidate{}, false
 }
 
-func ParseMode(value string) (Mode, error) {
-	switch mode := Mode(value); mode {
+func ParseMode(modeName string) (Mode, error) {
+	switch mode := Mode(modeName); mode {
 	case ModeStandard:
 		return mode, nil
 	case ModePortable:
@@ -72,7 +72,7 @@ func ParseMode(value string) (Mode, error) {
 			return mode, nil
 		}
 	}
-	return "", fmt.Errorf("storage mode %q is not supported", value)
+	return "", fmt.Errorf("storage mode %q is not supported", modeName)
 }
 
 func Inspect(requested Mode) (Location, error) {

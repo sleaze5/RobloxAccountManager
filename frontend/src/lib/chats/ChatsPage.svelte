@@ -1,10 +1,10 @@
 <script lang="ts">
-	import caretLeftIcon from "@phosphor-icons/core/regular/caret-left.svg?raw"
 	import checksIcon from "@phosphor-icons/core/regular/checks.svg?raw"
 	import circleNotchIcon from "@phosphor-icons/core/regular/circle-notch.svg?raw"
 	import chatsCircleIcon from "@phosphor-icons/core/regular/chats-circle.svg?raw"
 	import notePencilIcon from "@phosphor-icons/core/regular/note-pencil.svg?raw"
 	import Icon from "../shared/Icon.svelte"
+	import AccountPageHeader from "../accounts/AccountPageHeader.svelte"
 	import RefreshIcon from "../shared/RefreshIcon.svelte"
 	import { onMount, untrack } from "svelte"
 	import type { AccountStore } from "../accounts/account-store.svelte"
@@ -25,8 +25,7 @@
 		selfUserId = Number(account.userId),
 		chat = untrack(() => new ChatState(account.id, selfUserId, store))
 
-	let heading = $state<HTMLHeadingElement | undefined>(undefined),
-		peopleDialog = $state<"create" | "add" | null>(null),
+	let peopleDialog = $state<"create" | "add" | null>(null),
 		openConversation = $derived(chat.openConversation)
 
 	function openPeopleDialog(mode: "create" | "add"): void {
@@ -43,8 +42,6 @@
 	}
 
 	onMount(() => {
-		heading?.closest("[data-workspace-scroll]")?.scrollTo({ top: 0 })
-		heading?.focus({ preventScroll: true })
 		void loadChats(workspace.chatUserIdToOpen)
 		workspace.chatUserIdToOpen = 0
 		return () => chat.dispose()
@@ -52,18 +49,11 @@
 </script>
 
 <section class="settings-page" aria-labelledby="chats-title">
-	<header class="settings-header">
-		<button
-			class="button-ghost"
-			type="button"
-			aria-label="Back to profile"
-			data-tooltip="Back to profile"
-			onclick={onBack}>
-			<Icon svg={caretLeftIcon} data-nudge="left" size={16} aria-hidden="true" />
-		</button>
-		<h1 id="chats-title" tabindex="-1" bind:this={heading}>Chats</h1>
-		<span class="mr-auto min-w-0 text-xs wrap-anywhere text-fg-muted"
-			>@{account.username}</span>
+	<AccountPageHeader
+		titleId="chats-title"
+		title="Chats"
+		username={account.username}
+		{onBack}>
 		<button
 			class="button-ghost"
 			type="button"
@@ -101,7 +91,7 @@
 			onclick={() => void chat.refresh()}>
 			<RefreshIcon isRefreshing={chat.loading} />
 		</button>
-	</header>
+	</AccountPageHeader>
 
 	<div
 		class="settings-layout"

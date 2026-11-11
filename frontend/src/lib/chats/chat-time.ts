@@ -9,14 +9,14 @@ const time = new Intl.DateTimeFormat("en-US", { hour: "numeric", minute: "2-digi
 		minute: "2-digit",
 	})
 
-function isToday(value: number): boolean {
-	return new Date(value).toDateString() === new Date().toDateString()
+function isToday(timestampMs: number): boolean {
+	return new Date(timestampMs).toDateString() === new Date().toDateString()
 }
 
-export function chatListTime(value: number): string {
-	return value ? (isToday(value) ? time : day).format(value) : ""
+export function chatListTime(timestampMs: number): string {
+	return timestampMs ? (isToday(timestampMs) ? time : day).format(timestampMs) : ""
 }
 
-export function chatMessageTime(value: number): string {
-	return (isToday(value) ? time : dayTime).format(value)
+export function chatMessageTime(timestampMs: number): string {
+	return (isToday(timestampMs) ? time : dayTime).format(timestampMs)
 }

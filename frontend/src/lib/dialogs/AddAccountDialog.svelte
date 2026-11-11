@@ -136,10 +136,10 @@
 		return item.sameAccountAsIndex || item.index
 	}
 
-	function defaultSelectedIndexes(value: ImportPreview | null): number[] {
+	function defaultSelectedIndexes(importPreview: ImportPreview | null): number[] {
 		const groups = new Set<number>(),
 			indexes: number[] = []
-		for (const item of value?.items ?? []) {
+		for (const item of importPreview?.items ?? []) {
 			if (!item.ready) {
 				continue
 			}

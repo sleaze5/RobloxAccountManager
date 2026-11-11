@@ -3,13 +3,10 @@ package appservice
 import (
 	"context"
 	"errors"
-	"fmt"
-	"sync/atomic"
 
+	"github.com/sleaze5/RobloxAccountManager/internal/logging"
 	"github.com/sleaze5/RobloxAccountManager/internal/roblox"
 )
-
-var cookieRenewalOperationID atomic.Uint64
 
 type CookieRenewalResult struct {
 	Warning string `json:"warning,omitempty"`
@@ -29,9 +26,9 @@ func (service *Service) RenewCookie(ctx context.Context, accountID int64) (Cooki
 	if err != nil {
 		return CookieRenewalResult{}, err
 	}
-	logger := service.logger.With("operation_id", fmt.Sprintf("renewal-%d", cookieRenewalOperationID.Add(1)), "operation", "cookie-renewal", "account_id", accountID)
+	logger := service.logger.With("operation_id", logging.NewOperationID("renewal"), "operation", "cookie-renewal", "account_id", accountID)
 	logger.Debug("cookie renewal started")
-	if err := service.auth.RefreshCookie(ctx, accountID, snapshot.SecretVersion); err != nil {
+	if err := service.authentication.RefreshCookie(ctx, accountID, snapshot.SecretVersion); err != nil {
 		kind, status := roblox.KindProtocol, 0
 		if remote, ok := errors.AsType[*roblox.Error](err); ok {
 			kind, status = remote.Kind, remote.Status

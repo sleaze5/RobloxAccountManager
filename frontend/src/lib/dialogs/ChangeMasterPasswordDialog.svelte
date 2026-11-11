@@ -1,10 +1,8 @@
 <script lang="ts">
-	import CheckboxMark from "../shared/CheckboxMark.svelte"
-	import { automaticUnlockDialogDescription } from "../shared/automatic-unlock"
+	import AutomaticUnlockCheckbox from "./AutomaticUnlockCheckbox.svelte"
 	import checkIcon from "@phosphor-icons/core/regular/check.svg?raw"
 	import eyeIcon from "@phosphor-icons/core/regular/eye.svg?raw"
 	import eyeSlashIcon from "@phosphor-icons/core/regular/eye-slash.svg?raw"
-	import infoIcon from "@phosphor-icons/core/regular/info.svg?raw"
 	import keyIcon from "@phosphor-icons/core/regular/key.svg?raw"
 	import xIcon from "@phosphor-icons/core/regular/x.svg?raw"
 	import Icon from "../shared/Icon.svelte"
@@ -142,22 +140,7 @@
 		<div class="mt-3 notice-warning">
 			The hint is stored in plain text. Do not include sensitive information.
 		</div>
-		<div class="mt-2 flex items-center justify-start gap-1 text-xs text-fg-muted">
-			<label class="flex items-center gap-1">
-				<span class="checkbox">
-					<input bind:checked={automaticUnlock} type="checkbox" />
-					<CheckboxMark />
-				</span>
-				Enable automatic unlock
-			</label>
-			<button
-				class="flex size-5 cursor-help items-center justify-center text-fg-faint transition-colors duration-100 hover:text-fg focus-visible:text-fg"
-				type="button"
-				aria-label="About automatic unlock"
-				data-tooltip={automaticUnlockDialogDescription}>
-				<Icon svg={infoIcon} size={14} aria-hidden="true" />
-			</button>
-		</div>
+		<AutomaticUnlockCheckbox bind:checked={automaticUnlock} />
 		<div class="dialog-actions">
 			<button class="button" type="button" disabled={store.busy} onclick={onClose}
 				>Cancel</button>

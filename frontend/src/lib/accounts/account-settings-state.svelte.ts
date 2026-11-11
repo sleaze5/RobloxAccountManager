@@ -8,6 +8,7 @@ import type {
 	AccountSettingView,
 } from "../backend/bridge"
 import type { NotificationCenter } from "../notifications/notification-center.svelte"
+import { AccountScope } from "./account-scope"
 import type { AccountStore } from "./account-store.svelte"
 import { errorMessage } from "../shared/errors"
 
@@ -22,9 +23,8 @@ export class AccountSettingsState {
 		message: string
 		success: boolean
 	} | null>(null)
-	#active = true
 	#generation = 0
-	readonly #accountId: number
+	readonly #scope: AccountScope
 	readonly #store: AccountStore
 	readonly #notifications: NotificationCenter
 
@@ -33,29 +33,29 @@ export class AccountSettingsState {
 		store: AccountStore,
 		notifications: NotificationCenter,
 	) {
-		this.#accountId = accountId
+		this.#scope = new AccountScope(accountId, store)
 		this.#store = store
 		this.#notifications = notifications
 	}
 
 	#current(generation: number): boolean {
-		return (
-			this.#active &&
-			generation === this.#generation &&
-			this.#store.vault.unlocked &&
-			this.#store.selectedAccount.id === this.#accountId
-		)
+		return this.#scope.isCurrent && generation === this.#generation
 	}
 
 	async refresh(): Promise<void> {
-		if (!this.#active || this.loading || this.saving !== null) return
+		if (!this.#scope.isCurrent || this.loading || this.saving !== null) return
 		const generation = ++this.#generation
 		this.loading = true
 		this.error = ""
 		this.feedback = null
 		try {
-			const snapshot = await accountBackend.GetAccountSettings(this.#accountId)
-			if (!this.#current(generation) || snapshot.accountId !== this.#accountId) {
+			const snapshot = await this.#scope.track(
+				accountBackend.GetAccountSettings(this.#scope.accountId),
+			)
+			if (
+				!this.#current(generation) ||
+				snapshot.accountId !== this.#scope.accountId
+			) {
 				return
 			}
 			this.snapshot = snapshot
@@ -77,7 +77,7 @@ export class AccountSettingsState {
 		option: AccountSettingOption,
 	): Promise<void> {
 		if (
-			!this.#active ||
+			!this.#scope.isCurrent ||
 			!current.editable ||
 			!option.enabled ||
 			this.loading ||
@@ -98,7 +98,7 @@ export class AccountSettingsState {
 		this.feedback = null
 		try {
 			const updateResult = await accountBackend.UpdateAccountSetting(
-				this.#accountId,
+				this.#scope.accountId,
 				change,
 			)
 			this.#handleSaveSuccess(updateResult, current.key, generation)
@@ -120,7 +120,7 @@ export class AccountSettingsState {
 			if (!success) this.#notifyFailure(key)
 			return
 		}
-		if (updateResult.snapshot.accountId !== this.#accountId) return
+		if (updateResult.snapshot.accountId !== this.#scope.accountId) return
 		this.snapshot = updateResult.snapshot
 		this.refreshRequired = updateResult.outcome === "unconfirmed"
 		this.feedback = { key, message: updateResult.message, success }
@@ -144,11 +144,11 @@ export class AccountSettingsState {
 
 	#notifyFailure(key: AccountSettingKey): void {
 		const account = this.#store.accounts.find(
-			(listedAccount) => listedAccount.id === this.#accountId,
+			(listedAccount) => listedAccount.id === this.#scope.accountId,
 		)
 		if (!this.#store.vault.unlocked || !account) return
 		this.#notifications.show({
-			id: `account-setting-${this.#accountId}-${key}`,
+			id: `account-setting-${this.#scope.accountId}-${key}`,
 			title: "Check account settings",
 			tone: "warning",
 			message: `A setting change for @${account.username} could not be confirmed. Open that account's settings and refresh before trying again.`,
@@ -156,7 +156,7 @@ export class AccountSettingsState {
 	}
 
 	dispose(): void {
-		this.#active = false
+		this.#scope.dispose()
 		this.#generation++
 		this.snapshot = null
 		this.feedback = null

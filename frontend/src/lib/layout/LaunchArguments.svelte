@@ -64,6 +64,25 @@
 	})
 </script>
 
+{#snippet dialogLink(label: string, isIndented: boolean, openDialog: () => void)}
+	<button
+		class={[
+			"inline-flex items-center gap-1 text-xs font-medium text-fg transition-colors duration-100 enabled:hover:text-fg-bright",
+			isIndented && "ml-5",
+		]}
+		type="button"
+		aria-haspopup="dialog"
+		disabled={store.launching}
+		onclick={() => {
+			trigger?.focus()
+			open = false
+			openDialog()
+		}}>
+		{label}
+		<Icon svg={arrowRightIcon} data-nudge="right" size={12} aria-hidden="true" />
+	</button>
+{/snippet}
+
 <svelte:window
 	onclick={(event) => {
 		if (event.target instanceof Node && !root?.contains(event.target)) open = false
@@ -119,23 +138,7 @@
 								of using the registered Roblox launcher.</small
 							></span>
 					</label>
-					<button
-						class="ml-5 inline-flex items-center gap-1 text-xs font-medium text-fg transition-colors duration-100 enabled:hover:text-fg-bright"
-						type="button"
-						aria-haspopup="dialog"
-						disabled={store.launching}
-						onclick={() => {
-							trigger?.focus()
-							open = false
-							pathOpen = true
-						}}>
-						Set location
-						<Icon
-							svg={arrowRightIcon}
-							data-nudge="right"
-							size={12}
-							aria-hidden="true" />
-					</button>
+					{@render dialogLink("Set location", true, () => (pathOpen = true))}
 				</div>
 			{:else if clients?.choiceSupported}
 				<div class="flex flex-col items-start gap-2">
@@ -145,23 +148,11 @@
 						><small class="text-2xs leading-normal text-fg-muted"
 							>{clientLabel}</small
 						></span>
-					<button
-						class="inline-flex items-center gap-1 text-xs font-medium text-fg transition-colors duration-100 enabled:hover:text-fg-bright"
-						type="button"
-						aria-haspopup="dialog"
-						disabled={store.launching}
-						onclick={() => {
-							trigger?.focus()
-							open = false
-							clientOpen = true
-						}}>
-						Choose client
-						<Icon
-							svg={arrowRightIcon}
-							data-nudge="right"
-							size={12}
-							aria-hidden="true" />
-					</button>
+					{@render dialogLink(
+						"Choose client",
+						false,
+						() => (clientOpen = true),
+					)}
 				</div>
 			{/if}
 			<label class="check-option">
@@ -192,23 +183,7 @@
 							>Set the launchData flag to pass custom data to the game.</small
 						></span>
 				</label>
-				<button
-					class="ml-5 inline-flex items-center gap-1 text-xs font-medium text-fg transition-colors duration-100 enabled:hover:text-fg-bright"
-					type="button"
-					aria-haspopup="dialog"
-					disabled={store.launching}
-					onclick={() => {
-						trigger?.focus()
-						open = false
-						launchDataOpen = true
-					}}>
-					Set data
-					<Icon
-						svg={arrowRightIcon}
-						data-nudge="right"
-						size={12}
-						aria-hidden="true" />
-				</button>
+				{@render dialogLink("Set data", true, () => (launchDataOpen = true))}
 			</div>
 		</section>
 	{/if}

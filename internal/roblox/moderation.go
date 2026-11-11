@@ -70,11 +70,11 @@ func DecodeModeration(body []byte) (accounts.Moderation, int64, bool) {
 		moderation.Kind = accounts.ModerationTerminated
 	}
 	if begins, err := time.Parse(time.RFC3339, payload.BeginDate); err == nil {
-		moderation.BeginsAtMS = begins.UnixMilli()
+		moderation.BeginsAtMs = begins.UnixMilli()
 	}
 	if ends, err := time.Parse(time.RFC3339, payload.EndDate); err == nil && moderation.Kind == accounts.ModerationBanned {
-		endsAtMS := ends.UnixMilli()
-		moderation.EndsAtMS = &endsAtMS
+		endsAtMs := ends.UnixMilli()
+		moderation.EndsAtMs = &endsAtMs
 	}
 	return moderation, payload.PunishedUserID, true
 }

@@ -53,11 +53,11 @@ func (service *Thumbnails) AvatarHeadshots(ctx context.Context, userIDs []int64)
 		end := min(start+headshotBatchSize, len(unique))
 		requestURL := *service.endpoint
 		query := requestURL.Query()
-		values := make([]string, 0, end-start)
+		batchUserIDs := make([]string, 0, end-start)
 		for _, userID := range unique[start:end] {
-			values = append(values, strconv.FormatInt(userID, 10))
+			batchUserIDs = append(batchUserIDs, strconv.FormatInt(userID, 10))
 		}
-		query.Set("userIds", strings.Join(values, ","))
+		query.Set("userIds", strings.Join(batchUserIDs, ","))
 		query.Set("size", "720x720")
 		query.Set("format", "Png")
 		query.Set("isCircular", "false")
@@ -165,8 +165,8 @@ func (service *Thumbnails) Images(ctx context.Context, targets []ThumbnailTarget
 	return images, nil
 }
 
-func safeThumbnailURL(value string) bool {
-	parsed, err := url.Parse(value)
+func safeThumbnailURL(imageURL string) bool {
+	parsed, err := url.Parse(imageURL)
 	if err != nil || !strings.EqualFold(parsed.Scheme, "https") || parsed.User != nil || parsed.Fragment != "" {
 		return false
 	}

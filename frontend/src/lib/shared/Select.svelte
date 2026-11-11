@@ -4,7 +4,7 @@
 	import Icon from "./Icon.svelte"
 	import ProfileImage from "./ProfileImage.svelte"
 	import { tick } from "svelte"
-	import { liftToTopLayer, menuIn, menuOut } from "./presence"
+	import { focusMenuItemForKey, liftToTopLayer, menuIn, menuOut } from "./presence"
 
 	let {
 		label,
@@ -88,29 +88,12 @@
 			close(true)
 			return
 		}
-		const buttons = Array.from(
-			root?.querySelectorAll<HTMLButtonElement>("[role='option']") ?? [],
+		focusMenuItemForKey(
+			event,
+			Array.from(
+				root?.querySelectorAll<HTMLButtonElement>("[role='option']") ?? [],
+			),
 		)
-		const current = buttons.indexOf(document.activeElement as HTMLButtonElement)
-		let next: number
-		switch (event.key) {
-			case "ArrowDown":
-				next = (current + 1) % buttons.length
-				break
-			case "ArrowUp":
-				next = (current - 1 + buttons.length) % buttons.length
-				break
-			case "Home":
-				next = 0
-				break
-			case "End":
-				next = buttons.length - 1
-				break
-			default:
-				return
-		}
-		event.preventDefault()
-		buttons[next]?.focus()
 	}
 </script>
 

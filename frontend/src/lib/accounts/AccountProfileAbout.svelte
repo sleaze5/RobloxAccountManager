@@ -11,11 +11,13 @@
 
 	let {
 		snapshot,
+		isDescriptionUnavailable,
 		disabled,
 		notifications,
 		onEditDescription,
 	}: {
 		snapshot: AccountProfileSnapshot
+		isDescriptionUnavailable: boolean
 		disabled: boolean
 		notifications: NotificationCenter
 		onEditDescription: (description: string) => void
@@ -51,12 +53,12 @@
 			type="button"
 			aria-label="Edit description"
 			data-tooltip="Edit description"
-			disabled={disabled || snapshot.unavailable?.includes("about")}
+			disabled={disabled || isDescriptionUnavailable}
 			onclick={() => onEditDescription(snapshot.description)}>
 			<Icon svg={pencilSimpleIcon} size={14} aria-hidden="true" />
 		</button>
 	</div>
-	{#if snapshot.unavailable?.includes("about") && !snapshot.description}
+	{#if isDescriptionUnavailable}
 		<p class="text-xs text-danger-muted" role="alert">
 			The description is unavailable. Refresh to retry.
 		</p>

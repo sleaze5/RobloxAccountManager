@@ -3,6 +3,7 @@ package services
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"net/http"
 	"net/url"
 	"strconv"
@@ -15,6 +16,9 @@ import (
 const (
 	usernameHistoryPageSize = 100
 	maxUsernameHistoryPages = 20
+	collectiblePageSize     = 100
+	transactionPageSize     = 25
+	maxCollectiblePages     = 50
 )
 
 type UserAccountDetails struct {
@@ -53,16 +57,29 @@ func (service *Users) Robux(ctx context.Context, accountID, version int64) (*int
 	return payload.Robux, err
 }
 
-func (service *Users) PendingRobux(ctx context.Context, accountID, version, userID int64) (*int64, error) {
+type UserTransactionTotals struct {
+	PendingRobux  int64
+	IncomingRobux int64
+	OutgoingRobux int64
+}
+
+// TransactionTotals reads the Robux totals of the past month. Roblox reports
+// outgoing Robux as a negative number. Shape verified against a signed-in
+// summary response captured on 2026-10-15.
+func (service *Users) TransactionTotals(ctx context.Context, accountID, version, userID int64) (UserTransactionTotals, error) {
 	var payload struct {
-		PendingRobux *int64 `json:"pendingRobuxTotal"`
+		PendingRobux  *int64 `json:"pendingRobuxTotal"`
+		IncomingRobux *int64 `json:"incomingRobuxTotal"`
+		OutgoingRobux *int64 `json:"outgoingRobuxTotal"`
 	}
-	address := "https://apis.roblox.com/transaction-records/v1/users/" + strconv.FormatInt(userID, 10) + "/transaction-totals?timeFrame=Month&transactionType=pendingRobux"
-	err := service.readAccountDetails(ctx, accountID, version, "profile-pending-robux", address, &payload)
-	if err == nil && (payload.PendingRobux == nil || *payload.PendingRobux < 0) {
-		err = invalidProfileDetails("profile-pending-robux")
+	address := "https://apis.roblox.com/transaction-records/v1/users/" + strconv.FormatInt(userID, 10) + "/transaction-totals?timeFrame=Month&transactionType=summary"
+	if err := service.readAccountDetails(ctx, accountID, version, "profile-transaction-totals", address, &payload); err != nil {
+		return UserTransactionTotals{}, err
 	}
-	return payload.PendingRobux, err
+	if payload.PendingRobux == nil || *payload.PendingRobux < 0 || payload.IncomingRobux == nil || *payload.IncomingRobux < 0 || payload.OutgoingRobux == nil || *payload.OutgoingRobux > 0 {
+		return UserTransactionTotals{}, invalidProfileDetails("profile-transaction-totals")
+	}
+	return UserTransactionTotals{PendingRobux: *payload.PendingRobux, IncomingRobux: *payload.IncomingRobux, OutgoingRobux: -*payload.OutgoingRobux}, nil
 }
 
 func (service *Users) AgeVerified(ctx context.Context, accountID, version int64) (*bool, error) {
@@ -320,7 +337,287 @@ func (service *Users) PrimaryGroup(ctx context.Context, accountID, version, user
 	}, nil
 }
 
-func (service *Users) readAccountDetails(ctx context.Context, accountID, version int64, endpoint, address string, result any) error {
+// CommunityCount counts the communities a user belongs to. The v2 list leaves
+// out descriptions and shouts, so it stays small for users in many communities.
+func (service *Users) CommunityCount(ctx context.Context, accountID, version, userID int64) (int64, error) {
+	var payload struct {
+		Data *[]json.RawMessage `json:"data"`
+	}
+	address := "https://groups.roblox.com/v2/users/" + strconv.FormatInt(userID, 10) + "/groups/roles"
+	if err := service.readAccountDetails(ctx, accountID, version, "profile-communities", address, &payload); err != nil {
+		return 0, err
+	}
+	if payload.Data == nil {
+		return 0, invalidProfileDetails("profile-communities")
+	}
+	return int64(len(*payload.Data)), nil
+}
+
+// Shapes of the unread and inbound counts verified against signed-in
+// responses captured on 2026-10-15.
+
+func (service *Users) UnreadMessageCount(ctx context.Context, accountID, version int64) (int64, error) {
+	return service.readCount(ctx, accountID, version, "profile-unread-messages", "https://privatemessages.roblox.com/v1/messages/unread/count")
+}
+
+// InboundTradeCount names the trade status, because Roblox reads a number in
+// its place as a trade ID.
+func (service *Users) InboundTradeCount(ctx context.Context, accountID, version int64) (int64, error) {
+	return service.readCount(ctx, accountID, version, "profile-inbound-trades", "https://trades.roblox.com/v1/trades/Inbound/count")
+}
+
+func (service *Users) UnreadNotificationCount(ctx context.Context, accountID, version int64) (int64, error) {
+	var payload struct {
+		UnreadNotifications *int64 `json:"unreadNotifications"`
+	}
+	if err := service.readAccountDetails(ctx, accountID, version, "profile-unread-notifications", "https://notifications.roblox.com/v2/stream-notifications/unread-count", &payload); err != nil {
+		return 0, err
+	}
+	if payload.UnreadNotifications == nil || *payload.UnreadNotifications < 0 {
+		return 0, invalidProfileDetails("profile-unread-notifications")
+	}
+	return *payload.UnreadNotifications, nil
+}
+
+func (service *Users) readCount(ctx context.Context, accountID, version int64, endpoint, address string) (int64, error) {
+	var payload struct {
+		Count *int64 `json:"count"`
+	}
+	if err := service.readAccountDetails(ctx, accountID, version, endpoint, address, &payload); err != nil {
+		return 0, err
+	}
+	if payload.Count == nil || *payload.Count < 0 {
+		return 0, invalidProfileDetails(endpoint)
+	}
+	return *payload.Count, nil
+}
+
+type UserPremiumSubscription struct {
+	Name         string
+	RobuxStipend int64
+	RenewsAt     time.Time
+	ExpiresAt    time.Time
+}
+
+// PremiumSubscription returns nil for an account without Premium, because
+// Roblox answers 404 then. The shape follows the Roblox billing page on
+// 2026-10-16. A response without a renewal or expiration date is still valid.
+func (service *Users) PremiumSubscription(ctx context.Context, accountID, version, userID int64) (*UserPremiumSubscription, error) {
+	var payload struct {
+		Product *struct {
+			Name         string `json:"subscriptionName"`
+			RobuxStipend int64  `json:"robuxStipendAmount"`
+			Renewal      string `json:"renewal"`
+			Expiration   string `json:"expiration"`
+		} `json:"subscriptionProductModel"`
+	}
+	address := "https://premiumfeatures.roblox.com/v1/users/" + strconv.FormatInt(userID, 10) + "/subscriptions/details"
+	err := service.readAccountDetails(ctx, accountID, version, "profile-premium-subscription", address, &payload)
+	if remote, ok := errors.AsType[*roblox.Error](err); ok && remote.Status == http.StatusNotFound {
+		return nil, nil
+	}
+	if err != nil {
+		return nil, err
+	}
+	if payload.Product == nil || len(payload.Product.Name) > 128 || payload.Product.RobuxStipend < 0 {
+		return nil, invalidProfileDetails("profile-premium-subscription")
+	}
+	subscription := &UserPremiumSubscription{Name: strings.TrimSpace(payload.Product.Name), RobuxStipend: payload.Product.RobuxStipend}
+	if renewsAt, err := time.Parse(time.RFC3339, strings.TrimSpace(payload.Product.Renewal)); err == nil {
+		subscription.RenewsAt = renewsAt.UTC()
+	}
+	if expiresAt, err := time.Parse(time.RFC3339, strings.TrimSpace(payload.Product.Expiration)); err == nil {
+		subscription.ExpiresAt = expiresAt.UTC()
+	}
+	return subscription, nil
+}
+
+type UserTradeEligibility struct {
+	CanTrade bool
+	// Eligibility is the Roblox status name, such as Eligible or
+	// IneligibleMissingPremiumMembership.
+	Eligibility string
+	// FreeTrades is nil when Roblox sends no free trade allowance.
+	FreeTrades *UserFreeTrades
+}
+
+type UserFreeTrades struct {
+	Remaining int64  `json:"remaining"`
+	Limit     int64  `json:"limit"`
+	Window    string `json:"window"`
+}
+
+// TradeEligibility follows the Roblox trades v2 API schema.
+func (service *Users) TradeEligibility(ctx context.Context, accountID, version int64) (UserTradeEligibility, error) {
+	var payload struct {
+		CanTrade    *bool  `json:"canTrade"`
+		Eligibility string `json:"tradeEligibility"`
+		Allowance   *struct {
+			Limit     *int64 `json:"limit"`
+			Remaining *int64 `json:"remaining"`
+			Window    string `json:"window"`
+		} `json:"freeTradesAllowance"`
+	}
+	if err := service.readAccountDetails(ctx, accountID, version, "profile-trade-eligibility", "https://trades.roblox.com/v2/users/me/can-trade", &payload); err != nil {
+		return UserTradeEligibility{}, err
+	}
+	if payload.CanTrade == nil || len(payload.Eligibility) > 64 {
+		return UserTradeEligibility{}, invalidProfileDetails("profile-trade-eligibility")
+	}
+	eligibility := UserTradeEligibility{CanTrade: *payload.CanTrade, Eligibility: payload.Eligibility}
+	if allowance := payload.Allowance; allowance != nil && allowance.Limit != nil && allowance.Remaining != nil && *allowance.Limit >= 0 && *allowance.Remaining >= 0 && len(allowance.Window) <= 16 {
+		eligibility.FreeTrades = &UserFreeTrades{Remaining: *allowance.Remaining, Limit: *allowance.Limit, Window: strings.ToLower(allowance.Window)}
+	}
+	return eligibility, nil
+}
+
+// CanTradeWith follows the Roblox trades v2 API schema. The eligibility is the
+// Roblox status name, such as Eligible or TargetUserIneligible.
+func (service *Users) CanTradeWith(ctx context.Context, accountID, version, userID int64) (UserTradeEligibility, error) {
+	var payload struct {
+		CanTrade    *bool  `json:"canTrade"`
+		Eligibility string `json:"mutualTradeEligibility"`
+	}
+	address := "https://trades.roblox.com/v2/users/" + strconv.FormatInt(userID, 10) + "/can-trade-with"
+	if err := service.readAccountDetails(ctx, accountID, version, "friend-trade-eligibility", address, &payload); err != nil {
+		return UserTradeEligibility{}, err
+	}
+	if payload.CanTrade == nil || len(payload.Eligibility) > 64 {
+		return UserTradeEligibility{}, invalidProfileDetails("friend-trade-eligibility")
+	}
+	return UserTradeEligibility{CanTrade: *payload.CanTrade, Eligibility: payload.Eligibility}, nil
+}
+
+type UserTransaction struct {
+	IDHash     string
+	CreatedAt  time.Time
+	Amount     int64
+	IsPending  bool
+	ItemName   string
+	ItemType   string
+	AgentName  string
+	AgentType  string
+	PlaceName  string
+	PlaceID    int64
+	UniverseID int64
+}
+
+// Transactions reads one page of Robux transactions of one Roblox type, such
+// as Purchase or Sale, newest first. Shape verified against signed-in
+// responses captured on 2026-10-15.
+func (service *Users) Transactions(ctx context.Context, accountID, version, userID int64, transactionType, cursor string) ([]UserTransaction, string, error) {
+	var payload struct {
+		Data *[]struct {
+			IDHash    string `json:"idHash"`
+			Created   string `json:"created"`
+			IsPending bool   `json:"isPending"`
+			Agent     *struct {
+				Name string `json:"name"`
+			} `json:"agent"`
+			Currency *struct {
+				Amount *int64 `json:"amount"`
+			} `json:"currency"`
+			Details *struct {
+				Name  string `json:"name"`
+				Type  string `json:"type"`
+				Place *struct {
+					Name string `json:"name"`
+				} `json:"place"`
+			} `json:"details"`
+		} `json:"data"`
+		NextPageCursor *string `json:"nextPageCursor"`
+	}
+	query := url.Values{"limit": {strconv.Itoa(transactionPageSize)}, "transactionType": {transactionType}}
+	if cursor != "" {
+		query.Set("cursor", cursor)
+	}
+	address := "https://apis.roblox.com/transaction-records/v1/users/" + strconv.FormatInt(userID, 10) + "/transactions?" + query.Encode()
+	if err := service.readAccountDetails(ctx, accountID, version, "robux-transactions", address, &payload); err != nil {
+		return nil, "", err
+	}
+	if payload.Data == nil || len(*payload.Data) > transactionPageSize {
+		return nil, "", invalidProfileDetails("robux-transactions")
+	}
+	transactions := make([]UserTransaction, 0, len(*payload.Data))
+	for _, listedTransaction := range *payload.Data {
+		if listedTransaction.Currency == nil || listedTransaction.Currency.Amount == nil {
+			return nil, "", invalidProfileDetails("robux-transactions")
+		}
+		transaction := UserTransaction{IDHash: listedTransaction.IDHash, Amount: *listedTransaction.Currency.Amount, IsPending: listedTransaction.IsPending}
+		if createdAt, err := time.Parse(time.RFC3339, strings.TrimSpace(listedTransaction.Created)); err == nil {
+			transaction.CreatedAt = createdAt.UTC()
+		}
+		if agent := listedTransaction.Agent; agent != nil {
+			transaction.AgentName = strings.TrimSpace(agent.Name)
+		}
+		if details := listedTransaction.Details; details != nil {
+			transaction.ItemName, transaction.ItemType = strings.TrimSpace(details.Name), details.Type
+			if place := details.Place; place != nil {
+				transaction.PlaceName = strings.TrimSpace(place.Name)
+			}
+		}
+		transactions = append(transactions, transaction)
+	}
+	nextCursor := ""
+	if payload.NextPageCursor != nil {
+		nextCursor = *payload.NextPageCursor
+	}
+	if len(nextCursor) > 4096 {
+		return nil, "", invalidProfileDetails("robux-transactions")
+	}
+	return transactions, nextCursor, nil
+}
+
+type UserCollectibles struct {
+	Count                   int64
+	RecentAveragePriceTotal int64
+}
+
+// Collectibles counts a user's limited items and adds up their recent average
+// prices. Shape verified against a collectibles response captured on 2026-10-15.
+func (service *Users) Collectibles(ctx context.Context, accountID, version, userID int64) (UserCollectibles, error) {
+	ctx, cancel := context.WithTimeout(ctx, 30*time.Second)
+	defer cancel()
+	collectibles := UserCollectibles{}
+	seenCursors := map[string]bool{}
+	cursor := ""
+	for range maxCollectiblePages {
+		var payload struct {
+			Data *[]struct {
+				RecentAveragePrice *int64 `json:"recentAveragePrice"`
+			} `json:"data"`
+			NextPageCursor *string `json:"nextPageCursor"`
+		}
+		query := url.Values{"limit": {strconv.Itoa(collectiblePageSize)}, "sortOrder": {"Desc"}}
+		if cursor != "" {
+			query.Set("cursor", cursor)
+		}
+		address := "https://inventory.roblox.com/v1/users/" + strconv.FormatInt(userID, 10) + "/assets/collectibles?" + query.Encode()
+		if err := service.readAccountDetails(ctx, accountID, version, "profile-collectibles", address, &payload); err != nil {
+			return UserCollectibles{}, err
+		}
+		if payload.Data == nil || len(*payload.Data) > collectiblePageSize {
+			return UserCollectibles{}, invalidProfileDetails("profile-collectibles")
+		}
+		for _, listedCollectible := range *payload.Data {
+			collectibles.Count++
+			if listedCollectible.RecentAveragePrice != nil && *listedCollectible.RecentAveragePrice > 0 {
+				collectibles.RecentAveragePriceTotal += *listedCollectible.RecentAveragePrice
+			}
+		}
+		if payload.NextPageCursor == nil || *payload.NextPageCursor == "" {
+			return collectibles, nil
+		}
+		cursor = *payload.NextPageCursor
+		if len(cursor) > 4096 || seenCursors[cursor] {
+			return UserCollectibles{}, invalidProfileDetails("profile-collectibles")
+		}
+		seenCursors[cursor] = true
+	}
+	return UserCollectibles{}, &roblox.Error{Kind: roblox.KindProtocol, Endpoint: "profile-collectibles", Message: "This account has too many collectibles to count."}
+}
+
+func (service *Users) readAccountDetails(ctx context.Context, accountID, version int64, endpoint, address string, target any) error {
 	ctx, cancel := context.WithTimeout(ctx, 15*time.Second)
 	defer cancel()
 	endpointURL, _ := url.Parse(address)
@@ -333,7 +630,7 @@ func (service *Users) readAccountDetails(ctx context.Context, accountID, version
 	if err != nil {
 		return err
 	}
-	if err := json.Unmarshal(response.Body, result); err != nil {
+	if err := json.Unmarshal(response.Body, target); err != nil {
 		return invalidProfileDetails(endpoint)
 	}
 	return nil

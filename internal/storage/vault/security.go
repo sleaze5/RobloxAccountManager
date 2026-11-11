@@ -53,7 +53,7 @@ func (manager *Manager) SetAutomaticUnlock(enabled bool) error {
 }
 
 func (manager *Manager) rotateDatabaseKey(ctx context.Context, password, hint string, automaticUnlock bool) error {
-	params := calibrateKDF(password)
+	parameters := calibrateKDF(password)
 	manager.mutex.Lock()
 	if manager.database == nil || manager.closing {
 		manager.mutex.Unlock()
@@ -66,7 +66,7 @@ func (manager *Manager) rotateDatabaseKey(ctx context.Context, password, hint st
 		return err
 	}
 	defer wipe(newVaultKey)
-	key, err := createKeyFile(password, hint, identifier, newVaultKey, params)
+	key, err := createKeyFile(password, hint, identifier, newVaultKey, parameters)
 	if err != nil {
 		return err
 	}

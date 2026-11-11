@@ -17,7 +17,7 @@ import (
 
 type LaunchStage struct {
 	Name       string  `json:"name"`
-	DurationMS float64 `json:"duration_ms"`
+	DurationMs float64 `json:"duration_ms"`
 }
 
 type Launch struct {
@@ -27,7 +27,7 @@ type Launch struct {
 	stage          string
 	since          time.Time
 	stages         []LaunchStage
-	readyMS        float64
+	readyMs        float64
 	components     *componentRegistry
 	system         *System
 	logger         *slog.Logger
@@ -108,9 +108,9 @@ func (launch *Launch) completeStage() {
 	if launch.stage == "" {
 		return
 	}
-	stage := LaunchStage{Name: launch.stage, DurationMS: milliseconds(time.Since(launch.since))}
+	stage := LaunchStage{Name: launch.stage, DurationMs: milliseconds(time.Since(launch.since))}
 	launch.stages = append(launch.stages, stage)
-	launch.logger.Info("startup stage completed", "stage", stage.Name, "duration_ms", stage.DurationMS,
+	launch.logger.Info("startup stage completed", "stage", stage.Name, "duration_ms", stage.DurationMs,
 		"elapsed_ms", milliseconds(time.Since(launch.started)))
 }
 
@@ -141,7 +141,7 @@ func (launch *Launch) Ready() {
 	launch.completeStage()
 	launch.stage = "running"
 	launch.since = time.Now()
-	launch.readyMS = milliseconds(time.Since(launch.started))
+	launch.readyMs = milliseconds(time.Since(launch.started))
 	launch.logger.Info("application backend and webview runtime ready", "elapsed_ms", milliseconds(time.Since(launch.started)), "stages", launch.stages)
 }
 
@@ -149,7 +149,7 @@ type LaunchReport struct {
 	LaunchID   string            `json:"launchId"`
 	StartedAt  int64             `json:"startedAt"`
 	Ready      bool              `json:"ready"`
-	ReadyMS    float64           `json:"readyMs"`
+	ReadyMs    float64           `json:"readyMs"`
 	Stages     []LaunchStage     `json:"stages"`
 	Build      appmeta.Build     `json:"build"`
 	Components []ComponentRecord `json:"components"`
@@ -158,7 +158,7 @@ type LaunchReport struct {
 func (launch *Launch) Report() LaunchReport {
 	launch.mutex.Lock()
 	report := LaunchReport{LaunchID: launch.id, StartedAt: launch.started.UnixMilli(), Ready: launch.ready,
-		ReadyMS: launch.readyMS, Stages: append([]LaunchStage{}, launch.stages...)}
+		ReadyMs: launch.readyMs, Stages: append([]LaunchStage{}, launch.stages...)}
 	launch.mutex.Unlock()
 	report.Build = appmeta.CurrentBuild()
 	report.Components = launch.components.snapshot()

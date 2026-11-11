@@ -1,7 +1,7 @@
 import { Browser, Events } from "@wailsio/runtime"
 import { copyText } from "../shared/clipboard"
 import { createContext } from "svelte"
-import { accountBackend } from "../backend/bridge"
+import { accountBackend, GameSection } from "../backend/bridge"
 import type {
 	Game,
 	GamePlace,
@@ -15,6 +15,27 @@ import { detailsKeepMs, isFresh } from "../shared/freshness"
 import { ServerPageCache, type ServerSource } from "./game-servers-state.svelte"
 import { errorMessage } from "../shared/errors"
 import { menuPointFor } from "../shared/presence"
+
+// Roblox serves these parts of the game details from their own endpoints, so
+// they load beside the main details and fill in as they arrive.
+const gameSectionFields: { section: GameSection; fields: (keyof Game)[] }[] = [
+	{ section: GameSection.GameSectionVotes, fields: ["upVotes", "downVotes"] },
+	{
+		section: GameSection.GameSectionMaturity,
+		fields: ["maturity", "maturityDescriptors"],
+	},
+	{ section: GameSection.GameSectionCommunication, fields: ["communication"] },
+	{ section: GameSection.GameSectionAvatarRules, fields: ["avatarRules"] },
+	{ section: GameSection.GameSectionVersions, fields: ["versions"] },
+]
+
+function pickSectionFields(game: Game, sections: GameSection[]): Partial<Game> {
+	return Object.fromEntries(
+		gameSectionFields
+			.filter(({ section }) => sections.includes(section))
+			.flatMap(({ fields }) => fields.map((field) => [field, game[field]])),
+	)
+}
 
 export interface GameMenu {
 	place: GamePlace
@@ -65,8 +86,18 @@ export class GamesStore {
 	#pendingMetadata = new Map<number, GamePlace>()
 	#removeMetadataListener: (() => void) | null = null
 	#searchRequest: ReturnType<typeof accountBackend.SearchGames> | null = null
+	loadedGameSections = $state<GameSection[]>([])
+	loadingGameSections = $state<GameSection[]>([])
 	#detailsRequest: ReturnType<typeof accountBackend.GetGame> | null = null
-	readonly #details = new Map<number, { game: Game; fetchedAt: number }>()
+	#sectionLoadCount = 0
+	#pendingSectionFields: Partial<Game> = {}
+	readonly #sectionRequests = new Set<
+		ReturnType<typeof accountBackend.GetGameSection>
+	>()
+	readonly #details = new Map<
+		number,
+		{ game: Game; loadedSections: GameSection[]; fetchedAt: number }
+	>()
 	readonly serverPages = new ServerPageCache<GameServerPage>()
 	readonly recordPages = new ServerPageCache<GameServerRecordPage>()
 	readonly privatePages = new ServerPageCache<PrivateServerPage>()
@@ -151,12 +182,12 @@ export class GamesStore {
 		this.menu = null
 	}
 
-	async copy(value: string | number, label: string): Promise<void> {
+	async copy(text: string | number, label: string): Promise<void> {
 		this.closeMenu()
 		if (
 			!(await copyText(
 				this.notifications,
-				String(value),
+				String(text),
 				`${label} copied to clipboard.`,
 			))
 		) {
@@ -274,6 +305,8 @@ export class GamesStore {
 	select(place: GamePlace | null): void {
 		void this.#detailsRequest?.cancel()
 		this.#detailsRequest = null
+		this.#cancelGameSections()
+		this.loadedGameSections = []
 		this.selected = place
 		this.detailsPage = "details"
 		this.game = null
@@ -283,6 +316,7 @@ export class GamesStore {
 		const cached = this.#details.get(place.placeId)
 		if (cached && Date.now() - cached.fetchedAt < detailsKeepMs) {
 			this.game = cached.game
+			this.loadedGameSections = [...cached.loadedSections]
 			this.selected = cached.game.place
 		}
 		this.revalidate()
@@ -294,6 +328,13 @@ export class GamesStore {
 		if (place && !(cached && isFresh(cached.fetchedAt))) void this.refreshDetails()
 	}
 
+	isGameSectionPending(section: GameSection): boolean {
+		return (
+			!this.loadedGameSections.includes(section) &&
+			this.loadingGameSections.includes(section)
+		)
+	}
+
 	async refreshDetails(): Promise<void> {
 		const place = this.selected
 		if (!place || this.loadingDetails) return
@@ -301,22 +342,39 @@ export class GamesStore {
 		this.detailsError = ""
 		const request = accountBackend.GetGame(place.universeId, place.placeId)
 		this.#detailsRequest = request
+		const sectionLoad = place.universeId
+			? this.#loadGameSections(place.universeId, place.placeId)
+			: null
 		try {
 			const game = await request
 			if (this.#detailsRequest !== request) return
-			this.#remember(game)
-			this.game = game
+			const previousGame =
+					this.game?.place.placeId === game.place.placeId ? this.game : null,
+				merged = {
+					...game,
+					...(previousGame
+						? pickSectionFields(previousGame, this.loadedGameSections)
+						: {}),
+					...this.#pendingSectionFields,
+				}
+			this.#pendingSectionFields = {}
+			this.game = merged
+			this.#remember(merged)
 			this.selected = {
 				...game.place,
 				nickname: this.nicknameFor(game.place.placeId),
 			}
 			this.updateMetadata(game.place)
+			if (!sectionLoad) {
+				void this.#loadGameSections(game.place.universeId, game.place.placeId)
+			}
 		} catch (error) {
 			if (this.#detailsRequest === request) {
 				this.detailsError = errorMessage(
 					error,
 					"Game details are unavailable. Try again.",
 				)
+				this.#cancelGameSections()
 			}
 		} finally {
 			if (this.#detailsRequest === request) {
@@ -324,6 +382,61 @@ export class GamesStore {
 				this.loadingDetails = false
 			}
 		}
+	}
+
+	// A failed section keeps its last values. The details show it as unavailable
+	// when it never loaded, and the backend logs why.
+	async #loadGameSections(universeId: number, placeId: number): Promise<void> {
+		this.#cancelGameSections()
+		const loadCount = this.#sectionLoadCount,
+			isCurrentLoad = () =>
+				loadCount === this.#sectionLoadCount &&
+				this.selected?.placeId === placeId
+		this.loadingGameSections = gameSectionFields.map(({ section }) => section)
+		await Promise.allSettled(
+			gameSectionFields.map(async ({ section }) => {
+				const request = accountBackend.GetGameSection(
+					universeId,
+					placeId,
+					section,
+				)
+				this.#sectionRequests.add(request)
+				try {
+					const sectionGame = await request
+					if (!isCurrentLoad()) return
+					const sectionFields = pickSectionFields(sectionGame, [section])
+					if (!this.loadedGameSections.includes(section)) {
+						this.loadedGameSections.push(section)
+					}
+					if (this.game?.place.placeId === placeId) {
+						this.game = { ...this.game, ...sectionFields }
+						this.#remember(this.game)
+					} else {
+						this.#pendingSectionFields = {
+							...this.#pendingSectionFields,
+							...sectionFields,
+						}
+					}
+				} catch {
+					// The backend logs the failure, and the details show the part as unavailable.
+				} finally {
+					this.#sectionRequests.delete(request)
+					if (isCurrentLoad()) {
+						this.loadingGameSections = this.loadingGameSections.filter(
+							(loadingSection) => loadingSection !== section,
+						)
+					}
+				}
+			}),
+		)
+	}
+
+	#cancelGameSections(): void {
+		this.#sectionLoadCount++
+		for (const request of this.#sectionRequests) void request.cancel()
+		this.#sectionRequests.clear()
+		this.#pendingSectionFields = {}
+		this.loadingGameSections = []
 	}
 
 	updateMetadataList(places: GamePlace[] | null): void {
@@ -351,7 +464,11 @@ export class GamesStore {
 		for (const [placeId, entry] of this.#details) {
 			if (now - entry.fetchedAt >= detailsKeepMs) this.#details.delete(placeId)
 		}
-		this.#details.set(game.place.placeId, { game, fetchedAt: now })
+		this.#details.set(game.place.placeId, {
+			game,
+			loadedSections: [...this.loadedGameSections],
+			fetchedAt: now,
+		})
 	}
 
 	async toggleFavorite(place: GamePlace): Promise<void> {
@@ -489,6 +606,8 @@ export class GamesStore {
 		this.#pendingMetadata.clear()
 		void this.#searchRequest?.cancel()
 		void this.#detailsRequest?.cancel()
+		this.#cancelGameSections()
+		this.loadedGameSections = []
 		void this.#favoritesRequest?.cancel()
 		void this.#saveRequest?.cancel()
 		this.#searchRequest = null

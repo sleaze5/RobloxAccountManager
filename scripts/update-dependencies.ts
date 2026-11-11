@@ -57,8 +57,10 @@ function parseVersion(text: string): Version | undefined {
 	}
 }
 
-function compareRelease(a: Version, b: Version): number {
-	return a.major - b.major || a.minor - b.minor || a.patch - b.patch
+function compareRelease(left: Version, right: Version): number {
+	return (
+		left.major - right.major || left.minor - right.minor || left.patch - right.patch
+	)
 }
 
 function prereleaseLine(
@@ -85,9 +87,9 @@ function rank(from: Version, version: Version): number[] | undefined {
 	return line && candidate?.tag === line.tag ? [candidate.number] : undefined
 }
 
-function compareRanks(a: number[], b: number[]): number {
-	for (const [index, value] of a.entries()) {
-		const difference = value - (b[index] ?? 0)
+function compareRanks(left: number[], right: number[]): number {
+	for (const [index, leftPart] of left.entries()) {
+		const difference = leftPart - (right[index] ?? 0)
 		if (difference !== 0) {
 			return difference
 		}

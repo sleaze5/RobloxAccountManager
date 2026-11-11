@@ -1,5 +1,5 @@
 <script lang="ts" module>
-	export interface ServerMenuAction {
+	export interface MenuAction {
 		label: string
 		icon: string
 		danger?: boolean
@@ -8,18 +8,20 @@
 </script>
 
 <script lang="ts">
-	import Icon from "../shared/Icon.svelte"
-	import { menuIn, menuOut, placeMenuAtAnchor } from "../shared/presence"
+	import Icon from "./Icon.svelte"
+	import { focusMenuItemForKey, menuIn, menuOut, placeMenuAtAnchor } from "./presence"
 
 	let {
 		id,
+		label,
 		anchor,
 		actions,
 		onClose,
 	}: {
 		id: string
+		label: string
 		anchor: HTMLElement
-		actions: ServerMenuAction[]
+		actions: MenuAction[]
 		onClose: () => void
 	} = $props()
 	let menu = $state<HTMLElement>()
@@ -59,38 +61,19 @@
 	}
 
 	function handleKeydown(event: KeyboardEvent): void {
-		const buttons = Array.from(
-				menu?.querySelectorAll<HTMLButtonElement>("button") ?? [],
-			),
-			current = buttons.indexOf(document.activeElement as HTMLButtonElement)
-		let next: number
-		switch (event.key) {
-			case "Escape":
-				event.preventDefault()
-				event.stopPropagation()
-				restoreFocus = true
-				onClose()
-				return
-			case "Tab":
-				onClose()
-				return
-			case "ArrowDown":
-				next = (current + 1) % buttons.length
-				break
-			case "ArrowUp":
-				next = (current - 1 + buttons.length) % buttons.length
-				break
-			case "Home":
-				next = 0
-				break
-			case "End":
-				next = buttons.length - 1
-				break
-			default:
-				return
+		if (event.key === "Escape") {
+			event.preventDefault()
+			event.stopPropagation()
+			restoreFocus = true
+			onClose()
+		} else if (event.key === "Tab") {
+			onClose()
+		} else {
+			focusMenuItemForKey(
+				event,
+				Array.from(menu?.querySelectorAll<HTMLButtonElement>("button") ?? []),
+			)
 		}
-		event.preventDefault()
-		buttons[next]?.focus()
 	}
 </script>
 
@@ -104,7 +87,7 @@
 	bind:this={menu}
 	{id}
 	role="menu"
-	aria-label="Server actions"
+	aria-label={label}
 	tabindex="-1"
 	onkeydown={handleKeydown}
 	use:positionMenu={anchor}

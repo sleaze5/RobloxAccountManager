@@ -77,13 +77,13 @@ func (client *Client) Regions(ctx context.Context, refresh bool) ([]Region, erro
 	return regions, nil
 }
 
-func newRegion(name, country, countryCode string, latLong []string) (Region, bool) {
-	if len(latLong) != 2 || len(countryCode) != 2 || !ValidRegionCode(countryCode) {
+func newRegion(name, country, countryCode string, coordinates []string) (Region, bool) {
+	if len(coordinates) != 2 || len(countryCode) != 2 || !ValidRegionCode(countryCode) {
 		return Region{}, false
 	}
-	latitude, latError := strconv.ParseFloat(latLong[0], 64)
-	longitude, lonError := strconv.ParseFloat(latLong[1], 64)
-	if latError != nil || lonError != nil || !validCoordinates(latitude, longitude) {
+	latitude, latitudeError := strconv.ParseFloat(coordinates[0], 64)
+	longitude, longitudeError := strconv.ParseFloat(coordinates[1], 64)
+	if latitudeError != nil || longitudeError != nil || !validCoordinates(latitude, longitude) {
 		return Region{}, false
 	}
 	if country = text(country); country == "" {

@@ -72,7 +72,7 @@ func (service *Service) refreshAccountMetadata(accountID, userID int64) {
 			}
 			return
 		}
-		if err := service.repo.RestoreNames(ctx, accountID, identity); err != nil {
+		if err := service.accountRepository.RestoreNames(ctx, accountID, identity); err != nil {
 			service.logger.WarnContext(ctx, "saved account names could not be restored", "operation", "account-name-recovery", "account_id", accountID, "error", err)
 			return
 		}

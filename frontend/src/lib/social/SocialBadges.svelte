@@ -2,39 +2,43 @@
 	import prohibitIcon from "@phosphor-icons/core/regular/prohibit.svg?raw"
 	import vaultIcon from "@phosphor-icons/core/regular/vault.svg?raw"
 	import Icon from "../shared/Icon.svelte"
-	import type { SocialProfileSnapshot } from "../backend/bridge"
+	import type { SocialProfileSnapshot, SocialRelationship } from "../backend/bridge"
 	import AccountMembershipBadges from "../accounts/AccountMembershipBadges.svelte"
 	import RelationshipBadges from "./RelationshipBadges.svelte"
 	import { relationshipBadges } from "./relationship"
 	import type { RelationshipBadge } from "./relationship"
 
-	let { profile }: { profile: SocialProfileSnapshot } = $props()
+	let {
+		profile,
+		relationship,
+	}: { profile: SocialProfileSnapshot; relationship: SocialRelationship | null } =
+		$props()
 
-	const relationship = $derived(profile.relationship),
-		badges = $derived.by((): RelationshipBadge[] => {
-			if (relationship.self) {
-				return [
-					{
-						icon: vaultIcon,
-						label: "This account",
-						tooltip: "The account you are browsing with",
-						isStrong: false,
-					},
-				]
-			}
-			const saved: RelationshipBadge[] =
-				profile.savedAccountId > 0
-					? [
-							{
-								icon: vaultIcon,
-								label: "Saved account",
-								tooltip: "Saved in this vault",
-								isStrong: false,
-							},
-						]
-					: []
-			return [...saved, ...relationshipBadges(relationship)]
-		})
+	const badges = $derived.by((): RelationshipBadge[] => {
+		if (!relationship) return []
+		if (relationship.self) {
+			return [
+				{
+					icon: vaultIcon,
+					label: "This account",
+					tooltip: "The account you are browsing with",
+					isStrong: false,
+				},
+			]
+		}
+		const saved: RelationshipBadge[] =
+			profile.savedAccountId > 0
+				? [
+						{
+							icon: vaultIcon,
+							label: "Saved account",
+							tooltip: "Saved in this vault",
+							isStrong: false,
+						},
+					]
+				: []
+		return [...saved, ...relationshipBadges(relationship)]
+	})
 </script>
 
 {#if badges.length || profile.premium || profile.banned}

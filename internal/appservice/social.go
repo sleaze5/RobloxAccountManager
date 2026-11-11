@@ -12,10 +12,10 @@ import (
 	"strconv"
 	"strings"
 	"sync"
-	"sync/atomic"
 	"unicode/utf8"
 
 	"github.com/sleaze5/RobloxAccountManager/internal/accounts"
+	"github.com/sleaze5/RobloxAccountManager/internal/logging"
 	"github.com/sleaze5/RobloxAccountManager/internal/roblox"
 	robloxservices "github.com/sleaze5/RobloxAccountManager/internal/roblox/services"
 )
@@ -30,9 +30,8 @@ const (
 )
 
 var (
-	socialOperationID atomic.Uint64
-	playerIDSearch    = regexp.MustCompile(`^(?i)id:\s*(\d{1,18})$`)
-	playerUsername    = regexp.MustCompile(`^[A-Za-z0-9_]{3,20}$`)
+	playerIDSearch = regexp.MustCompile(`^(?i)id:\s*(\d{1,18})$`)
+	playerUsername = regexp.MustCompile(`^[A-Za-z0-9_]{3,20}$`)
 )
 
 type SocialList string
@@ -96,8 +95,33 @@ type FriendConnection struct {
 	FollowedBy  bool                         `json:"followedBy"`
 }
 
+// SocialProfileSection names one part of a social profile. The frontend reads
+// each part on its own so that it shows every part as soon as it arrives.
+type SocialProfileSection string
+
+const (
+	SocialSectionAbout         SocialProfileSection = "about"
+	SocialSectionRelationship  SocialProfileSection = "relationship"
+	SocialSectionFriends       SocialProfileSection = "friends"
+	SocialSectionFollowers     SocialProfileSection = "followers"
+	SocialSectionFollowing     SocialProfileSection = "following"
+	SocialSectionPremium       SocialProfileSection = "premium"
+	SocialSectionPrimaryGroup  SocialProfileSection = "primaryGroup"
+	SocialSectionRobloxBadges  SocialProfileSection = "robloxBadges"
+	SocialSectionSocialLinks   SocialProfileSection = "socialLinks"
+	SocialSectionInventory     SocialProfileSection = "inventory"
+	SocialSectionConnections   SocialProfileSection = "connections"
+	SocialSectionPreviousNames SocialProfileSection = "previousNames"
+	SocialSectionCommunities   SocialProfileSection = "communities"
+	SocialSectionCollectibles  SocialProfileSection = "collectibles"
+	SocialSectionTrading       SocialProfileSection = "trading"
+)
+
+// SocialProfile holds the fields of the one section that was read.
 type SocialProfile struct {
 	UserID           int64                            `json:"userId"`
+	Section          SocialProfileSection             `json:"section"`
+	IsComplete       bool                             `json:"isComplete"`
 	Description      string                           `json:"description"`
 	Verified         bool                             `json:"verified"`
 	Banned           bool                             `json:"banned"`
@@ -114,11 +138,19 @@ type SocialProfile struct {
 	SavedAccountID   int64                            `json:"savedAccountId"`
 	Connections      []FriendConnection               `json:"connections"`
 	Relationship     SocialRelationship               `json:"relationship"`
-	Unavailable      []string                         `json:"unavailable"`
+	CommunityCount   *int64                           `json:"communityCount"`
+	// TradeEligibility says whether the account can trade with the user.
+	TradeEligibility *TradeEligibility `json:"tradeEligibility"`
+	// The collectible fields stay nil when the user's inventory is private.
+	CollectibleCount                   *int64 `json:"collectibleCount"`
+	CollectibleRecentAveragePriceTotal *int64 `json:"collectibleRecentAveragePriceTotal"`
+	// Unavailable lists the relationship reads that failed. The relationship
+	// section stays complete without them, because the others still apply.
+	Unavailable []string `json:"unavailable"`
 }
 
 type socialEntries struct {
-	ids        []int64
+	userIDs    []int64
 	requests   []robloxservices.FriendRequest
 	nextCursor string
 }
@@ -135,7 +167,7 @@ func (service *Service) GetSocialPage(ctx context.Context, accountID, userID int
 		return SocialPage{}, err
 	}
 	defer done()
-	account, err := service.repo.GetView(ctx, accountID)
+	account, err := service.accountRepository.GetView(ctx, accountID)
 	if err != nil {
 		return SocialPage{}, mapRepositoryError(err)
 	}
@@ -170,14 +202,14 @@ func (service *Service) SearchPlayers(ctx context.Context, accountID int64, keyw
 	defer done()
 	var entries socialEntries
 	if match != nil {
-		entries.ids, err = service.playerByID(ctx, match[1])
+		entries.userIDs, err = service.playerByID(ctx, match[1])
 	} else {
-		entries.ids, entries.nextCursor, err = service.users.SearchUsers(ctx, accountID, version, keyword, cursor)
+		entries.userIDs, entries.nextCursor, err = service.users.SearchUsers(ctx, accountID, version, keyword, cursor)
 	}
 	if err != nil {
 		return SocialPage{}, socialFailure(logger, err)
 	}
-	account, err := service.repo.GetView(ctx, accountID)
+	account, err := service.accountRepository.GetView(ctx, accountID)
 	if err != nil {
 		return SocialPage{}, mapRepositoryError(err)
 	}
@@ -185,8 +217,8 @@ func (service *Service) SearchPlayers(ctx context.Context, accountID int64, keyw
 }
 
 // playerByID returns the user ID when Roblox knows the user, or no IDs.
-func (service *Service) playerByID(ctx context.Context, value string) ([]int64, error) {
-	userID, err := strconv.ParseInt(value, 10, 64)
+func (service *Service) playerByID(ctx context.Context, userIDText string) ([]int64, error) {
+	userID, err := strconv.ParseInt(userIDText, 10, 64)
 	if err != nil {
 		return nil, fmt.Errorf("parse player id: %w", err)
 	}
@@ -212,7 +244,7 @@ type socialPageReads struct {
 }
 
 func (service *Service) socialPage(ctx context.Context, accountID, version int64, logger *slog.Logger, entries socialEntries, optional socialPageReads) (SocialPage, error) {
-	users, err := service.users.Names(ctx, entries.ids)
+	users, err := service.users.Names(ctx, entries.userIDs)
 	if err != nil {
 		return SocialPage{}, socialFailure(logger, err)
 	}
@@ -221,17 +253,17 @@ func (service *Service) socialPage(ctx context.Context, accountID, version int64
 	var images, nicknames map[int64]string
 	reads := []accountRead{{"avatars", func() error {
 		var readError error
-		images, readError = service.headshotImages(ctx, entries.ids)
+		images, readError = service.headshotImages(ctx, entries.userIDs)
 		return readError
 	}}, {"nicknames", func() error {
 		var readError error
-		nicknames, readError = service.users.Nicknames(ctx, accountID, version, entries.ids)
+		nicknames, readError = service.users.Nicknames(ctx, accountID, version, entries.userIDs)
 		return readError
 	}}}
 	if optional.presence {
 		reads = append(reads, accountRead{"presence", func() error {
 			var readError error
-			presences, readError = service.presence.UserPresences(ctx, accountID, version, entries.ids)
+			presences, readError = service.presence.UserPresences(ctx, accountID, version, entries.userIDs)
 			return readError
 		}})
 	}
@@ -267,18 +299,18 @@ func (service *Service) socialEntries(ctx context.Context, accountID, version, u
 	var err error
 	switch list {
 	case SocialFriends:
-		entries.ids, err = service.users.FriendIDs(ctx, accountID, version, userID)
+		entries.userIDs, err = service.users.FriendIDs(ctx, accountID, version, userID)
 	case SocialFollowers:
-		entries.ids, entries.nextCursor, err = service.users.Follows(ctx, accountID, version, userID, "followers", cursor)
+		entries.userIDs, entries.nextCursor, err = service.users.Follows(ctx, accountID, version, userID, "followers", cursor)
 	case SocialFollowing:
-		entries.ids, entries.nextCursor, err = service.users.Follows(ctx, accountID, version, userID, "followings", cursor)
+		entries.userIDs, entries.nextCursor, err = service.users.Follows(ctx, accountID, version, userID, "followings", cursor)
 	case SocialRequests:
 		if !own {
 			return entries, socialInputError("Friend requests are only available for the selected account.")
 		}
 		entries.requests, entries.nextCursor, err = service.users.FriendRequests(ctx, accountID, version, cursor)
 		for _, request := range entries.requests {
-			entries.ids = append(entries.ids, request.UserID)
+			entries.userIDs = append(entries.userIDs, request.UserID)
 		}
 	default:
 		return entries, socialInputError("Choose friends, followers, following, or requests.")
@@ -353,86 +385,132 @@ func (service *Service) GetSocialPresences(ctx context.Context, accountID int64,
 	return complete, nil
 }
 
-func (service *Service) GetSocialProfile(ctx context.Context, accountID, userID int64) (SocialProfile, error) {
+func (service *Service) GetSocialProfile(ctx context.Context, accountID, userID int64, section SocialProfileSection) (SocialProfile, error) {
 	ctx, version, logger, done, err := service.beginSocial(ctx, accountID, "profile")
 	if err != nil {
 		return SocialProfile{}, err
 	}
 	defer done()
-	account, err := service.repo.GetView(ctx, accountID)
+	account, err := service.accountRepository.GetView(ctx, accountID)
 	if err != nil {
 		return SocialProfile{}, mapRepositoryError(err)
 	}
-	profile := SocialProfile{UserID: userID, Relationship: newSocialRelationship(account.RobloxUserID, userID)}
-	reads := []accountRead{
-		{"about", func() error {
-			about, readError := service.users.About(ctx, accountID, version, userID)
-			if readError == nil {
+	logger = logger.With("section", section)
+	profile := SocialProfile{UserID: userID, Section: section, Relationship: newSocialRelationship(account.RobloxUserID, userID), Unavailable: []string{}}
+	if section == SocialSectionRelationship {
+		if !profile.Relationship.Self {
+			reads := service.relationshipReads(ctx, accountID, version, account.RobloxUserID, userID, &profile.Relationship)
+			if profile.Unavailable, err = service.runAccountReads(ctx, accountID, version, "social-profile", logger, reads); err != nil {
+				return SocialProfile{}, err
+			}
+		}
+		profile.IsComplete = true
+		return profile, nil
+	}
+	reads := service.socialProfileSectionReads(ctx, logger, accountID, version, userID, section, &profile)
+	if reads == nil {
+		return SocialProfile{}, socialInputError("This profile section does not exist.")
+	}
+	unavailable, err := service.runAccountReads(ctx, accountID, version, "social-profile", logger, reads)
+	if err != nil {
+		return SocialProfile{}, err
+	}
+	profile.IsComplete = len(unavailable) == 0
+	return profile, nil
+}
+
+func (service *Service) socialProfileSectionReads(ctx context.Context, logger *slog.Logger, accountID, version, userID int64, section SocialProfileSection, profile *SocialProfile) []accountRead {
+	users := service.users
+	readsBySection := map[SocialProfileSection]func() []accountRead{
+		SocialSectionAbout: func() []accountRead {
+			return []accountRead{applyRead("about", func() (robloxservices.UserAbout, error) { return users.About(ctx, accountID, version, userID) }, func(about robloxservices.UserAbout) {
 				profile.Description, profile.Verified, profile.Banned = about.Description, about.VerifiedBadge, about.Banned
 				if !about.CreatedAt.IsZero() {
 					profile.CreatedAtMs = about.CreatedAt.UnixMilli()
 				}
+			})}
+		},
+		SocialSectionFriends: func() []accountRead {
+			return []accountRead{service.socialCountRead(ctx, accountID, version, userID, "friends", &profile.FriendCount)}
+		},
+		SocialSectionFollowers: func() []accountRead {
+			return []accountRead{service.socialCountRead(ctx, accountID, version, userID, "followers", &profile.FollowerCount)}
+		},
+		SocialSectionFollowing: func() []accountRead {
+			return []accountRead{service.socialCountRead(ctx, accountID, version, userID, "followings", &profile.FollowingCount)}
+		},
+		SocialSectionPreviousNames: func() []accountRead {
+			return []accountRead{applyRead("previousNames", func() ([]string, error) {
+				names, err := users.PreviousNames(ctx, accountID, version, userID)
+				return names, ignoreTerminatedUser(err)
+			}, func(names []string) { profile.PreviousNames = names })}
+		},
+		SocialSectionPrimaryGroup: func() []accountRead {
+			return []accountRead{applyRead("primaryGroup", func() (*robloxservices.UserPrimaryGroup, error) {
+				return users.PrimaryGroup(ctx, accountID, version, userID)
+			}, func(group *robloxservices.UserPrimaryGroup) {
+				profile.PrimaryGroup = group
+			})}
+		},
+		SocialSectionRobloxBadges: func() []accountRead {
+			return []accountRead{applyRead("robloxBadges", func() ([]string, error) { return users.RobloxBadges(ctx, accountID, version, userID) }, func(badges []string) { profile.RobloxBadges = badges })}
+		},
+		SocialSectionSocialLinks: func() []accountRead {
+			return []accountRead{applyRead("socialLinks", func() ([]robloxservices.UserSocialLink, error) {
+				return users.UserSocialLinks(ctx, accountID, version, userID)
+			}, func(links []robloxservices.UserSocialLink) { profile.SocialLinks = links })}
+		},
+		SocialSectionPremium: func() []accountRead {
+			return []accountRead{applyRead("premium", func() (*bool, error) { return users.Premium(ctx, accountID, version, userID) }, func(premium *bool) { profile.Premium = premium })}
+		},
+		SocialSectionInventory: func() []accountRead {
+			return []accountRead{applyRead("inventory", func() (*bool, error) {
+				visible, err := users.InventoryVisible(ctx, accountID, version, userID)
+				return visible, ignoreTerminatedUser(err)
+			}, func(visible *bool) { profile.InventoryVisible = visible })}
+		},
+		SocialSectionCommunities: func() []accountRead {
+			return []accountRead{applyRead("communities", func() (int64, error) { return users.CommunityCount(ctx, accountID, version, userID) }, func(count int64) {
+				profile.CommunityCount = &count
+			})}
+		},
+		SocialSectionCollectibles: func() []accountRead {
+			return []accountRead{applyRead("collectibles", func() (*robloxservices.UserCollectibles, error) {
+				collectibles, err := users.Collectibles(ctx, accountID, version, userID)
+				// Roblox refuses to list a private inventory, which is not a failure.
+				if remote, ok := errors.AsType[*roblox.Error](err); ok && remote.Status == http.StatusForbidden {
+					return nil, nil
+				}
+				return &collectibles, ignoreTerminatedUser(err)
+			}, func(collectibles *robloxservices.UserCollectibles) {
+				if collectibles != nil {
+					profile.CollectibleCount, profile.CollectibleRecentAveragePriceTotal = &collectibles.Count, &collectibles.RecentAveragePriceTotal
+				}
+			})}
+		},
+		SocialSectionTrading: func() []accountRead {
+			if profile.Relationship.Self {
+				return []accountRead{}
 			}
-			return readError
-		}},
-		{"friends", func() error {
-			var readError error
-			profile.FriendCount, readError = service.users.SocialCount(ctx, accountID, version, userID, "friends")
-			return readError
-		}},
-		{"followers", func() error {
-			var readError error
-			profile.FollowerCount, readError = service.users.SocialCount(ctx, accountID, version, userID, "followers")
-			return readError
-		}},
-		{"following", func() error {
-			var readError error
-			profile.FollowingCount, readError = service.users.SocialCount(ctx, accountID, version, userID, "followings")
-			return readError
-		}},
-		{"previousNames", func() error {
-			var readError error
-			profile.PreviousNames, readError = service.users.PreviousNames(ctx, accountID, version, userID)
-			return ignoreTerminatedUser(readError)
-		}},
-		{"primaryGroup", func() error {
-			var readError error
-			profile.PrimaryGroup, readError = service.users.PrimaryGroup(ctx, accountID, version, userID)
-			return readError
-		}},
-		{"robloxBadges", func() error {
-			var readError error
-			profile.RobloxBadges, readError = service.users.RobloxBadges(ctx, accountID, version, userID)
-			return readError
-		}},
-		{"socialLinks", func() error {
-			var readError error
-			profile.SocialLinks, readError = service.users.UserSocialLinks(ctx, accountID, version, userID)
-			return readError
-		}},
-		{"premium", func() error {
-			var readError error
-			profile.Premium, readError = service.users.Premium(ctx, accountID, version, userID)
-			return readError
-		}},
-		{"inventory", func() error {
-			var readError error
-			profile.InventoryVisible, readError = service.users.InventoryVisible(ctx, accountID, version, userID)
-			return ignoreTerminatedUser(readError)
-		}},
-		{"connections", func() error {
-			var readError error
-			profile.SavedAccountID, profile.Connections, readError = service.friendConnections(ctx, logger, accountID, userID)
-			return readError
-		}},
+			return []accountRead{applyRead("trading", func() (robloxservices.UserTradeEligibility, error) {
+				return users.CanTradeWith(ctx, accountID, version, userID)
+			}, func(eligibility robloxservices.UserTradeEligibility) {
+				profile.TradeEligibility = &TradeEligibility{CanTrade: eligibility.CanTrade, Eligibility: eligibility.Eligibility}
+			})}
+		},
+		SocialSectionConnections: func() []accountRead {
+			return []accountRead{{"connections", func() error {
+				var readError error
+				profile.SavedAccountID, profile.Connections, readError = service.friendConnections(ctx, logger, accountID, userID)
+				return readError
+			}}}
+		},
 	}
-	if !profile.Relationship.Self {
-		reads = append(reads, service.relationshipReads(ctx, accountID, version, account.RobloxUserID, userID, &profile.Relationship)...)
+	sectionReads, ok := readsBySection[section]
+	if !ok {
+		return nil
 	}
-	if profile.Unavailable, err = service.runAccountReads(ctx, accountID, version, "social-profile", logger, reads); err != nil {
-		return SocialProfile{}, err
-	}
-	return profile, nil
+	return sectionReads()
 }
 
 // GetSocialRelationship reads only how the account relates to the user, for
@@ -443,7 +521,7 @@ func (service *Service) GetSocialRelationship(ctx context.Context, accountID, us
 		return SocialRelationshipSnapshot{}, err
 	}
 	defer done()
-	account, err := service.repo.GetView(ctx, accountID)
+	account, err := service.accountRepository.GetView(ctx, accountID)
 	if err != nil {
 		return SocialRelationshipSnapshot{}, mapRepositoryError(err)
 	}
@@ -649,12 +727,12 @@ func (service *Service) beginSocial(parent context.Context, accountID int64, ope
 	if err != nil {
 		return nil, 0, nil, nil, err
 	}
-	logger := service.logs.Module("application.social").With("operation_id", fmt.Sprintf("social-%d", socialOperationID.Add(1)), "operation", operation, "account_id", accountID)
+	logger := service.logs.Module("application.social").With("operation_id", logging.NewOperationID("social"), "operation", operation, "account_id", accountID)
 	return ctx, version, logger, done, nil
 }
 
 func (service *Service) headshotImages(ctx context.Context, userIDs []int64) (map[int64]string, error) {
-	headshots, err := service.avatars.AvatarHeadshots(ctx, userIDs)
+	headshots, err := service.thumbnails.AvatarHeadshots(ctx, userIDs)
 	if err != nil {
 		return nil, err
 	}
