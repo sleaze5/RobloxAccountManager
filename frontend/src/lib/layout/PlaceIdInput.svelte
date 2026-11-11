@@ -161,45 +161,46 @@
 </label>
 {#if shown}
 	<div
-		class="fixed z-10 flex max-h-(--place-menu-space) flex-col gap-0.5 overflow-y-auto rounded-xl border border-line-strong bg-overlay p-1 shadow-menu"
-		bind:this={list}
+		class="fixed z-10 flex max-h-(--place-menu-space) flex-col overflow-hidden rounded-xl border border-line-strong bg-overlay shadow-menu"
 		id={listID}
 		role="listbox"
 		aria-label="Favorite games"
 		style={listStyle}
 		in:menuIn
 		out:menuOut>
-		{#each suggestions as place, index (place.placeId)}
-			<div
-				class="flex min-h-11 shrink-0 cursor-pointer items-center gap-2 rounded-md py-1 pr-2 pl-1 text-xs font-semibold text-fg-muted aria-selected:bg-hover aria-selected:text-fg"
-				id={`${listID}-${index}`}
-				role="option"
-				tabindex="-1"
-				aria-selected={index === activeIndex}
-				onmousemove={() => (active = index)}
-				onmousedown={(event) => {
-					event.preventDefault()
-					accept(place)
-				}}>
-				<GameIcon url={place.iconUrl} size="sm" />
-				<span class="flex min-w-0 flex-1 flex-col">
-					<span class="truncate">{place.nickname || place.name}</span>
-					<small class="font-mono text-2xs font-normal text-fg-faint"
-						>{place.placeId}</small>
-				</span>
-				{#if index === activeIndex}<kbd
-						class="rounded-sm border border-line-strong px-1 py-0.5 font-mono text-2xs leading-none font-medium text-fg-faint"
-						>Tab</kbd
-					>{/if}
-			</div>
-		{:else}
-			<div class="p-2 text-xs text-fg-muted" role="status">
-				{games.loadingFavorites
-					? "Loading favorite games…"
-					: games.favoritesLoaded
-						? "No favorite games yet"
-						: "Favorite games unavailable"}
-			</div>
-		{/each}
+		<div class="flex min-h-0 flex-col gap-0.5 overflow-y-auto p-1" bind:this={list}>
+			{#each suggestions as place, index (place.placeId)}
+				<div
+					class="flex min-h-11 shrink-0 cursor-pointer items-center gap-2 rounded-md py-1 pr-2 pl-1 text-xs font-semibold text-fg-muted aria-selected:bg-hover aria-selected:text-fg"
+					id={`${listID}-${index}`}
+					role="option"
+					tabindex="-1"
+					aria-selected={index === activeIndex}
+					onmousemove={() => (active = index)}
+					onmousedown={(event) => {
+						event.preventDefault()
+						accept(place)
+					}}>
+					<GameIcon url={place.iconUrl} size="sm" />
+					<span class="flex min-w-0 flex-1 flex-col">
+						<span class="truncate">{place.nickname || place.name}</span>
+						<small class="font-mono text-2xs font-normal text-fg-faint"
+							>{place.placeId}</small>
+					</span>
+					{#if index === activeIndex}<kbd
+							class="rounded-sm border border-line-strong px-1 py-0.5 font-mono text-2xs leading-none font-medium text-fg-faint"
+							>Tab</kbd
+						>{/if}
+				</div>
+			{:else}
+				<div class="p-2 text-xs text-fg-muted" role="status">
+					{games.loadingFavorites
+						? "Loading favorite games…"
+						: games.favoritesLoaded
+							? "No favorite games yet"
+							: "Favorite games unavailable"}
+				</div>
+			{/each}
+		</div>
 	</div>
 {/if}

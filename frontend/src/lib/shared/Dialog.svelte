@@ -43,6 +43,8 @@
 		use:modalFocus
 		in:modalCardIn
 		out:modalCardOut>
-		{@render children()}
+		<div class="dialog-content">
+			{@render children()}
+		</div>
 	</div>
 </div>

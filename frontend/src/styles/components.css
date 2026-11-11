@@ -292,7 +292,11 @@
 }
 
 @utility dialog-card {
-	@apply max-h-full w-full max-w-sm overflow-x-hidden overflow-y-auto overscroll-contain rounded-xl border border-line bg-overlay p-4 shadow-float;
+	@apply grid max-h-full w-full max-w-sm grid-rows-1 overflow-hidden rounded-xl border border-line bg-overlay shadow-float;
+}
+
+@utility dialog-content {
+	@apply min-h-0 overflow-x-hidden overflow-y-auto overscroll-contain p-4;
 
 	:where(&) h2 {
 		@apply text-base font-semibold text-fg;

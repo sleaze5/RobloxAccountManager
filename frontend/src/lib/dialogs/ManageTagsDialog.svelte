@@ -167,61 +167,63 @@
 		<strong class="font-semibold">Tags</strong>
 		<span class="font-mono text-2xs text-fg-faint">{store.customTags.length}</span>
 	</div>
-	<div
-		class="max-h-48 overflow-y-auto rounded-md border border-line bg-fill *:not-first:border-t *:not-first:border-line-subtle">
-		{#each store.customTags as tag (tag.id)}
-			{#if confirmingTagId === tag.id}
-				<div
-					class="flex animate-enter flex-col gap-2 bg-danger/5 p-2 text-xs text-fg"
-					role="group"
-					aria-labelledby="delete-tag-prompt">
-					<p id="delete-tag-prompt">
-						Delete the <strong class="font-semibold">{tag.name}</strong> tag?
-						It is removed from every account and cannot be undone.
-					</p>
-					<div class="flex justify-end gap-2">
-						<button
-							class="button"
-							type="button"
-							data-cancel-tag-delete
-							disabled={store.busy}
-							onkeydown={cancelOnEscape}
-							onclick={() => void cancelDelete()}>Cancel</button>
-						<button
-							class="button-danger"
-							type="button"
-							disabled={store.busy}
-							onkeydown={cancelOnEscape}
-							onclick={() => void deleteTag(tag.id)}
-							>{deleting ? "Deleting…" : "Delete tag"}</button>
+	<div class="overflow-hidden rounded-md border border-line bg-fill">
+		<div
+			class="max-h-48 min-h-0 overflow-y-auto *:not-first:border-t *:not-first:border-line-subtle">
+			{#each store.customTags as tag (tag.id)}
+				{#if confirmingTagId === tag.id}
+					<div
+						class="flex animate-enter flex-col gap-2 bg-danger/5 p-2 text-xs text-fg"
+						role="group"
+						aria-labelledby="delete-tag-prompt">
+						<p id="delete-tag-prompt">
+							Delete the <strong class="font-semibold">{tag.name}</strong> tag?
+							It is removed from every account and cannot be undone.
+						</p>
+						<div class="flex justify-end gap-2">
+							<button
+								class="button"
+								type="button"
+								data-cancel-tag-delete
+								disabled={store.busy}
+								onkeydown={cancelOnEscape}
+								onclick={() => void cancelDelete()}>Cancel</button>
+							<button
+								class="button-danger"
+								type="button"
+								disabled={store.busy}
+								onkeydown={cancelOnEscape}
+								onclick={() => void deleteTag(tag.id)}
+								>{deleting ? "Deleting…" : "Delete tag"}</button>
+						</div>
 					</div>
-				</div>
+				{:else}
+					<div class="flex min-h-8 items-center gap-2 pl-2 text-xs text-fg">
+						<Icon
+							svg={hashIcon}
+							class="shrink-0 text-fg-faint"
+							size={16}
+							aria-hidden="true" />
+						<span class="min-w-0 flex-1 truncate">{tag.name}</span>
+						<button
+							class="grid size-8 shrink-0 place-items-center text-fg-faint transition-colors duration-100 hover:bg-danger/10 hover:text-danger"
+							type="button"
+							aria-label={`Delete ${tag.name} tag`}
+							data-tooltip={`Delete ${tag.name}`}
+							data-tooltip-side="left"
+							data-delete-tag={tag.id}
+							disabled={store.busy}
+							onclick={() => void confirmDelete(tag.id)}>
+							<Icon svg={trashIcon} size={16} aria-hidden="true" />
+						</button>
+					</div>
+				{/if}
 			{:else}
-				<div class="flex min-h-8 items-center gap-2 pl-2 text-xs text-fg">
-					<Icon
-						svg={hashIcon}
-						class="shrink-0 text-fg-faint"
-						size={16}
-						aria-hidden="true" />
-					<span class="min-w-0 flex-1 truncate">{tag.name}</span>
-					<button
-						class="grid size-8 shrink-0 place-items-center text-fg-faint transition-colors duration-100 hover:bg-danger/10 hover:text-danger"
-						type="button"
-						aria-label={`Delete ${tag.name} tag`}
-						data-tooltip={`Delete ${tag.name}`}
-						data-tooltip-side="left"
-						data-delete-tag={tag.id}
-						disabled={store.busy}
-						onclick={() => void confirmDelete(tag.id)}>
-						<Icon svg={trashIcon} size={16} aria-hidden="true" />
-					</button>
+				<div class="px-2 py-3 text-center text-xs text-fg-faint">
+					No custom tags
 				</div>
-			{/if}
-		{:else}
-			<div class="px-2 py-3 text-center text-xs text-fg-faint">
-				No custom tags
-			</div>
-		{/each}
+			{/each}
+		</div>
 	</div>
 	<div class="dialog-actions">
 		<button class="button" type="button" disabled={store.busy} onclick={close}

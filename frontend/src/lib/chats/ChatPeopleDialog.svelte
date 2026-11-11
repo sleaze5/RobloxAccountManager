@@ -271,69 +271,71 @@
 		</div>
 
 		<div
-			class="max-h-64 min-h-24 overflow-y-auto rounded-md border border-line bg-fill"
+			class="overflow-hidden rounded-md border border-line bg-fill"
 			aria-busy={chat.friendsLoading || lookupStatus === "loading"}>
-			{#if lookupStatus === "waiting" || lookupStatus === "loading"}
-				<p
-					class="flex h-12 items-center gap-2 border-b border-line-subtle px-3 text-xs text-fg-faint">
-					<Icon
-						svg={circleNotchIcon}
-						class="spinner"
-						size={16}
-						aria-hidden="true" />
-					Looking up @{term}…
-				</p>
-			{:else if lookupStatus === "found" && lookupPerson}
-				<div class="animate-enter" role="group" aria-label="Roblox user">
-					{@render personRow(lookupPerson, "Roblox user")}
-				</div>
-			{:else if lookupStatus === "missing" || lookupStatus === "failed"}
-				<p
-					class="flex h-12 items-center gap-2 border-b border-line-subtle px-3 text-xs text-fg-muted"
-					role={lookupStatus === "failed" ? "alert" : undefined}>
-					<Icon svg={userCirclePlusIcon} size={16} aria-hidden="true" />
-					{lookupError || `No Roblox user is named @${term}.`}
-				</p>
-			{/if}
-			{#if chat.friendsLoading && chat.friends.length === 0}
-				<p
-					class="flex h-12 items-center gap-2 px-3 text-xs text-fg-faint"
-					role="status">
-					<Icon
-						svg={circleNotchIcon}
-						class="spinner"
-						size={16}
-						aria-hidden="true" />
-					Loading friends…
-				</p>
-			{:else if chat.friendsError}
-				<p
-					class="flex h-12 items-center justify-between gap-2 px-3 text-xs text-danger-muted"
-					role="alert">
-					{chat.friendsError}
-					<button
-						class="button"
-						type="button"
-						onclick={() => void chat.loadFriends()}>Try again</button>
-				</p>
-			{:else if matches.length === 0 && lookupStatus === "idle"}
-				<div
-					class="flex h-24 flex-col items-center justify-center gap-1 px-3 text-center text-xs text-fg-faint">
-					<Icon svg={usersIcon} size={20} aria-hidden="true" />
-					{term
-						? "No friends match. Type a full username to look it up."
-						: "No friends to show. Type a username to find someone."}
-				</div>
-			{:else if matches.length > 0}
-				<div role="group" aria-label="Friends">
-					{#each matches as friend (friend.userId)}
-						{@render personRow(
-							friend,
-							friend.presence ? presenceLabel(friend.presence) : "",
-						)}
-					{/each}
-				</div>
-			{/if}
+			<div class="max-h-64 min-h-24 overflow-y-auto">
+				{#if lookupStatus === "waiting" || lookupStatus === "loading"}
+					<p
+						class="flex h-12 items-center gap-2 border-b border-line-subtle px-3 text-xs text-fg-faint">
+						<Icon
+							svg={circleNotchIcon}
+							class="spinner"
+							size={16}
+							aria-hidden="true" />
+						Looking up @{term}…
+					</p>
+				{:else if lookupStatus === "found" && lookupPerson}
+					<div class="animate-enter" role="group" aria-label="Roblox user">
+						{@render personRow(lookupPerson, "Roblox user")}
+					</div>
+				{:else if lookupStatus === "missing" || lookupStatus === "failed"}
+					<p
+						class="flex h-12 items-center gap-2 border-b border-line-subtle px-3 text-xs text-fg-muted"
+						role={lookupStatus === "failed" ? "alert" : undefined}>
+						<Icon svg={userCirclePlusIcon} size={16} aria-hidden="true" />
+						{lookupError || `No Roblox user is named @${term}.`}
+					</p>
+				{/if}
+				{#if chat.friendsLoading && chat.friends.length === 0}
+					<p
+						class="flex h-12 items-center gap-2 px-3 text-xs text-fg-faint"
+						role="status">
+						<Icon
+							svg={circleNotchIcon}
+							class="spinner"
+							size={16}
+							aria-hidden="true" />
+						Loading friends…
+					</p>
+				{:else if chat.friendsError}
+					<p
+						class="flex h-12 items-center justify-between gap-2 px-3 text-xs text-danger-muted"
+						role="alert">
+						{chat.friendsError}
+						<button
+							class="button"
+							type="button"
+							onclick={() => void chat.loadFriends()}>Try again</button>
+					</p>
+				{:else if matches.length === 0 && lookupStatus === "idle"}
+					<div
+						class="flex h-24 flex-col items-center justify-center gap-1 px-3 text-center text-xs text-fg-faint">
+						<Icon svg={usersIcon} size={20} aria-hidden="true" />
+						{term
+							? "No friends match. Type a full username to look it up."
+							: "No friends to show. Type a username to find someone."}
+					</div>
+				{:else if matches.length > 0}
+					<div role="group" aria-label="Friends">
+						{#each matches as friend (friend.userId)}
+							{@render personRow(
+								friend,
+								friend.presence ? presenceLabel(friend.presence) : "",
+							)}
+						{/each}
+					</div>
+				{/if}
+			</div>
 		</div>
 
 		{#if mode === "create" && isGroup}
