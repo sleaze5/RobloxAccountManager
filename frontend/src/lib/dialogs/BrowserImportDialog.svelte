@@ -8,7 +8,7 @@
 	import xIcon from "@phosphor-icons/core/regular/x.svg?raw"
 	import Icon from "../shared/Icon.svelte"
 	import Dialog from "../shared/Dialog.svelte"
-	import { onMount, untrack } from "svelte"
+	import { untrack } from "svelte"
 	import CandidateList from "../accounts/CandidateList.svelte"
 	import type { AccountStore } from "../accounts/account-store.svelte"
 	import type { CandidateListItem } from "../accounts/candidate-model"
@@ -40,20 +40,16 @@
 
 	let selected = $state<string[]>([]),
 		saving = $state(false),
+		isClosingBrowsersToSave = $state(false),
 		savedCreated = $state(0),
 		savedUpdated = $state(0),
-		initializedUsers = $state<number[]>([]),
-		launchingInitial = $state(true)
+		initializedUsers = $state<number[]>([])
 	const sessions = $derived(browser.loginSessions),
 		activeLoginSessions = $derived(browser.activeLoginSessions),
 		candidates = $derived(browser.candidates),
 		canClose = $derived(
-			!launchingInitial &&
-				!browser.loading &&
-				sessions.length === 0 &&
-				candidates.length === 0,
+			!browser.loading && sessions.length === 0 && candidates.length === 0,
 		),
-		canCommit = $derived(activeLoginSessions.length === 0 && candidates.length > 0),
 		candidateItems = $derived<CandidateListItem[]>(
 			candidates.map((candidate, index) => ({
 				avatarUrl: candidate.avatarUrl,
@@ -83,17 +79,23 @@
 					: `Save ${selected.length} ${selected.length === 1 ? "account" : "accounts"}`,
 		)
 
-	onMount(() => {
-		if (activeLoginSessions.length > 0) {
-			launchingInitial = false
-			return
-		}
-		void browser.startLogin().finally(() => (launchingInitial = false))
-	})
-
 	$effect(() => {
 		const currentCandidates = candidates
 		untrack(() => reconcileCandidateSelection(currentCandidates))
+	})
+
+	// Closing a browser checks its final cookie and can add or update candidates,
+	// so the save waits until every browser is closed and the selection is reconciled.
+	$effect(() => {
+		if (!isClosingBrowsersToSave || activeLoginSessions.length > 0) return
+		untrack(() => {
+			isClosingBrowsersToSave = false
+			if (selected.length === 0) {
+				saving = false
+				return
+			}
+			void save()
+		})
 	})
 
 	function reconcileCandidateSelection(currentCandidates: typeof candidates): void {
@@ -170,6 +172,19 @@
 			.map((candidate) => candidate.id)
 	}
 
+	async function closeBrowsersAndSave(): Promise<void> {
+		saving = true
+		if (activeLoginSessions.length === 0) {
+			await save()
+			return
+		}
+		isClosingBrowsersToSave = true
+		if (!(await browser.closeAllLogin())) {
+			isClosingBrowsersToSave = false
+			saving = false
+		}
+	}
+
 	async function save(): Promise<void> {
 		saving = true
 		const saveResult = await browser.save(selected).finally(() => (saving = false))
@@ -242,24 +257,16 @@
 	{#if sessions.length === 0 && candidates.length === 0}
 		<div
 			class="empty-state rounded-md border border-dashed border-line-strong py-8"
-			aria-busy={launchingInitial}>
-			{#if launchingInitial}
-				<Icon
-					svg={circleNotchIcon}
-					class="spinner"
-					size={28}
-					aria-hidden="true" />
-				<p>Opening browser…</p>
-			{:else}
-				<Icon svg={browserIcon} size={28} aria-hidden="true" />
-				<h2>No browser open</h2>
-				<p>Open a browser and sign in to Roblox to add an account.</p>
-				<button
-					type="button"
-					class="mt-1 button-primary"
-					disabled={browser.loading}
-					onclick={() => void browser.startLogin()}>Open browser</button>
-			{/if}
+			aria-busy={browser.loading}>
+			<Icon svg={browserIcon} size={28} aria-hidden="true" />
+			<h2>No browser open</h2>
+			<p>Open a browser and sign in to Roblox to add an account.</p>
+			<button
+				type="button"
+				class="mt-1 button-primary"
+				disabled={browser.loading}
+				onclick={() => void browser.startLogin()}
+				>{browser.loading ? "Opening…" : "Open browser"}</button>
 		</div>
 	{:else}
 		<ul class="overflow-hidden rounded-md border border-line bg-fill">
@@ -326,7 +333,7 @@
 				<button
 					type="button"
 					class="flex h-9 w-full items-center gap-2 px-2 text-xs text-fg-muted transition-colors duration-100 hover:bg-hover hover:text-fg"
-					disabled={browser.loading}
+					disabled={browser.loading || saving}
 					onclick={() => void browser.startLogin()}>
 					<span class="grid size-6 place-items-center" aria-hidden="true"
 						><Icon svg={plusIcon} size={14} /></span>
@@ -343,9 +350,9 @@
 				onToggle={toggleCandidate}
 				onToggleAll={toggleAll} />
 			{#if activeLoginSessions.length > 0}<p class="mt-2 text-xs text-fg-faint">
-					Close {activeLoginSessions.length === 1
+					Saving closes {activeLoginSessions.length === 1
 						? "the browser"
-						: "all browsers"} to save these accounts.
+						: "all browsers"}.
 				</p>{/if}
 		{:else}
 			<p
@@ -358,6 +365,7 @@
 		{#if activeLoginSessions.length > 1}<button
 				type="button"
 				class="mr-auto button"
+				disabled={saving}
 				onclick={() => void browser.closeAllLogin()}>Close all browsers</button
 			>{/if}
 		{#if candidates.length > 0 && activeLoginSessions.length === 0}<button
@@ -372,8 +380,8 @@
 		{#if candidates.length > 0}<button
 				type="button"
 				class="button-primary"
-				disabled={!canCommit || selected.length === 0 || saving}
-				onclick={() => void save()}>{saveLabel}</button
+				disabled={selected.length === 0 || saving}
+				onclick={() => void closeBrowsersAndSave()}>{saveLabel}</button
 			>{/if}
 	</div>
 </Dialog>

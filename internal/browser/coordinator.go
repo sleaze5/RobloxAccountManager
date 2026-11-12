@@ -19,6 +19,8 @@ import (
 	"github.com/sleaze5/RobloxAccountManager/internal/roblox"
 )
 
+const browserExitAfterPipeCloseTimeout = 2 * time.Second
+
 var (
 	errLaunchesBlocked        = errors.New("browser launches are unavailable while the browser is stopping")
 	errBrowserVersionMismatch = errors.New("browser product version does not match the runtime manifest")
@@ -288,7 +290,7 @@ func (coordinator *Coordinator) start(ctx context.Context, mode Mode, accountID 
 	checkpointGate <- struct{}{}
 	current := &session{state: state, process: process, directory: directory, secretVersion: record.SecretVersion, robloxUserID: account.RobloxUserID, browserID: record.BrowserID, trigger: make(chan struct{}, 1), checkpointGate: checkpointGate, ctx: currentContext, cancel: cancel, downloads: make(map[string]struct{}), targetSessions: make(map[string]string), pages: make(map[string]struct{})}
 	input, output := process.CDPPipes()
-	current.cdp = NewCDPClient(input, output, func(failure error) { coordinator.failSession(browserSessionID, failure) })
+	current.cdp = NewCDPClient(input, output, func(failure error) { coordinator.handleCDPFailure(current, failure) })
 	coordinator.mutex.Lock()
 	if coordinator.launchesBlocked || currentContext.Err() != nil || ctx.Err() != nil {
 		coordinator.mutex.Unlock()
@@ -770,9 +772,11 @@ func (coordinator *Coordinator) closeGracefully(current *session) {
 		coordinator.bumpLocked()
 	}
 	coordinator.mutex.Unlock()
-	checkpointContext, cancel := context.WithTimeout(context.Background(), 3*time.Second)
-	coordinator.checkpoint(checkpointContext, current, true)
-	cancel()
+	if !current.process.Wait(0) {
+		checkpointContext, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+		coordinator.checkpoint(checkpointContext, current, true)
+		cancel()
+	}
 	closeContext, closeCancel := context.WithTimeout(context.Background(), 2*time.Second)
 	if err := current.cdp.CloseBrowser(closeContext); err != nil && !errors.Is(err, context.Canceled) {
 		coordinator.logger.Debug("graceful browser close unavailable", "operation", "browser-session-close", "session_id", current.state.ID, "session_mode", current.state.Mode, "account_id", current.state.AccountID, "error", err)
@@ -841,6 +845,19 @@ func (coordinator *Coordinator) watchProcess(current *session) {
 			return
 		}
 	}
+}
+
+// Chrome closes its CDP pipe while it exits, so the pipe usually breaks just
+// before the process exit is observed when the user closes the last window.
+// watchProcess tells that close from a crash once the process has exited.
+func (coordinator *Coordinator) handleCDPFailure(current *session, cause error) {
+	coordinator.mutex.Lock()
+	isWatchingProcess := current.state.Lifecycle == LifecycleActive
+	coordinator.mutex.Unlock()
+	if isWatchingProcess && current.process.Wait(browserExitAfterPipeCloseTimeout) {
+		return
+	}
+	coordinator.failSession(current.state.ID, cause)
 }
 
 func (coordinator *Coordinator) failSession(browserSessionID string, cause error) {
