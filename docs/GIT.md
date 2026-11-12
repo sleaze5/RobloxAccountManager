@@ -12,12 +12,16 @@ Always use the writing skill for commit messages, pull request titles, and pull 
 
 - Write short, direct titles in sentence case, following the same rules as commit messages.
 - Keep the descriptions short, concise, and straightforward.
-- Disclose AI involvement only on the final line of the initial description, using exactly the line below. Replace `{model_slug}` with the current model slug and `{harness}` with the harness it is running in.
+- Disclose AI involvement on the last line of the initial description, using exactly the line below. Replace `{model_slug}` with the current model slug and `{harness}` with the harness it is running in.
     ```markdown
     This was written by `{model_slug}` in `{harness}` on behalf of the author.
     ```
+- When you edit a pull request or issue description while reviewing it, add one line at the end of the description, using exactly the line below. Keep the author's text unchanged.
+    ```markdown
+    This was also edited by `{model_slug}` in `{harness}`.
+    ```
 - Never add chat session links (ie. `claude.ai/code/session_...`, `chatgpt.com/c/...`) to titles, descriptions, or comments.
-- Never add AI attribution anywhere else, including commits, code comments, documentation, or subsequent messages.
+- Never add AI attribution anywhere else, including commits, code comments, documentation, or subsequent messages, except the edit line above.
 
 ## Merging
 
