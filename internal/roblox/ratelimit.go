@@ -26,10 +26,10 @@ func newRequestLimits() *requestLimits {
 	return &requestLimits{global: make(chan struct{}, 16), hosts: make(map[string]chan struct{}), users: make(map[int64]chan struct{}), retryAtByRequest: make(map[requestLimitKey]time.Time)}
 }
 
-func (limits *requestLimits) isRateLimited(key requestLimitKey) bool {
+func (limits *requestLimits) remainingCooldown(key requestLimitKey) time.Duration {
 	limits.mutex.Lock()
 	defer limits.mutex.Unlock()
-	return limits.retryAtByRequest[key].After(time.Now())
+	return max(time.Until(limits.retryAtByRequest[key]), 0)
 }
 
 func (limits *requestLimits) deferRequestsUntil(key requestLimitKey, retryAt time.Time) {
