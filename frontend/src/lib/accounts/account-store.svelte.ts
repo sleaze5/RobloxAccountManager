@@ -83,9 +83,11 @@ export class AccountStore {
 	#remoteDataVersion = 0
 	#accountListVersion = 0
 	readonly #profiles = new Map<number, AccountProfileState>()
+	// Each kept entry has a timer that removes it once it is older than the
+	// keep time, so that no page data stays in memory longer.
 	readonly #keptPageDataByAccountId = new Map<
 		number,
-		Map<string, KeptPageData<unknown>>
+		Map<string, { kept: KeptPageData<unknown>; expiryTimer: number }>
 	>()
 	#presenceRequest = 0
 	#filterTimer = 0
@@ -199,23 +201,39 @@ export class AccountStore {
 		return profile
 	}
 
+	// readKeptPageData also removes an expired entry, in case its timer was
+	// delayed.
 	readKeptPageData(
 		accountId: number,
 		pageName: string,
 	): KeptPageData<unknown> | null {
-		const kept = this.#keptPageDataByAccountId.get(accountId)?.get(pageName)
-		if (!kept || Date.now() - kept.fetchedAt >= detailsKeepMs) return null
-		return kept
+		const entry = this.#keptPageDataByAccountId.get(accountId)?.get(pageName)
+		if (entry && Date.now() - entry.kept.fetchedAt < detailsKeepMs) {
+			return entry.kept
+		}
+		this.forgetPageData(accountId, pageName)
+		return null
 	}
 
-	// keepPageData keeps nothing after the vault locked or the account was
-	// removed, because the page closes after those changes.
+	// remoteDataVersion changes each time the vault locks.
+	get remoteDataVersion(): number {
+		return this.#remoteDataVersion
+	}
+
+	// keepPageData replaces what the page kept before. It keeps nothing for a
+	// removed account, or when the vault locked after the page opened, because a
+	// page can close only after the vault is unlocked again.
 	keepPageData(
 		accountId: number,
 		pageName: string,
 		kept: KeptPageData<unknown>,
+		openedInRemoteDataVersion: number,
 	): void {
+		this.forgetPageData(accountId, pageName)
+		const keepMs = kept.fetchedAt + detailsKeepMs - Date.now()
 		if (
+			keepMs <= 0 ||
+			openedInRemoteDataVersion !== this.#remoteDataVersion ||
 			!this.vault.unlocked ||
 			!this.accounts.some((account) => account.id === accountId)
 		) {
@@ -226,7 +244,30 @@ export class AccountStore {
 			keptByPageName = new Map()
 			this.#keptPageDataByAccountId.set(accountId, keptByPageName)
 		}
-		keptByPageName.set(pageName, kept)
+		keptByPageName.set(pageName, {
+			kept,
+			expiryTimer: window.setTimeout(
+				() => this.forgetPageData(accountId, pageName),
+				keepMs,
+			),
+		})
+	}
+
+	forgetPageData(accountId: number, pageName: string): void {
+		const keptByPageName = this.#keptPageDataByAccountId.get(accountId),
+			entry = keptByPageName?.get(pageName)
+		if (!keptByPageName || !entry) return
+		window.clearTimeout(entry.expiryTimer)
+		keptByPageName.delete(pageName)
+		if (keptByPageName.size === 0) this.#keptPageDataByAccountId.delete(accountId)
+	}
+
+	#forgetAccountPageData(accountId: number): void {
+		for (const entry of this.#keptPageDataByAccountId.get(accountId)?.values() ??
+			[]) {
+			window.clearTimeout(entry.expiryTimer)
+		}
+		this.#keptPageDataByAccountId.delete(accountId)
 	}
 
 	mount(): () => void {
@@ -1174,13 +1215,15 @@ export class AccountStore {
 	#removeProfile(accountId: number): void {
 		this.#profiles.get(accountId)?.dispose()
 		this.#profiles.delete(accountId)
-		this.#keptPageDataByAccountId.delete(accountId)
+		this.#forgetAccountPageData(accountId)
 	}
 
 	#clearProfiles(): void {
 		for (const profile of this.#profiles.values()) profile.dispose()
 		this.#profiles.clear()
-		this.#keptPageDataByAccountId.clear()
+		for (const accountId of [...this.#keptPageDataByAccountId.keys()]) {
+			this.#forgetAccountPageData(accountId)
+		}
 	}
 }
 

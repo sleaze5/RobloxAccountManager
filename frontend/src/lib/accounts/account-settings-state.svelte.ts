@@ -100,6 +100,10 @@ export class AccountSettingsState {
 		) {
 			return
 		}
+		// The kept settings stop being trusted once a save starts. dispose keeps
+		// them again only after the save is confirmed, so a page that reopens
+		// after an unconfirmed save loads the settings before allowing edits.
+		this.#scope.forgetKept(keptPageName)
 		const generation = ++this.#generation,
 			change: AccountSettingChange = {
 				key: current.key,
