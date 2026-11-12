@@ -383,21 +383,29 @@ func (client *Client) forbiddenResponse(ctx context.Context, request Request, sn
 	challengeType := strings.TrimSpace(response.Header.Get(challengeTypeHeader))
 	if challengeType != "" {
 		message := "Roblox requires user interaction."
+		if strings.EqualFold(challengeType, "captcha") {
+			message = "Roblox requires a CAPTCHA. Open this account in the browser and complete the action there."
+		}
 		client.setState(ctx, snapshot, accounts.StateChallenged, message)
 		return &Error{Kind: KindChallengeRequired, Endpoint: request.Endpoint, Status: response.Status, Message: message}
 	}
 	kind := KindForbidden
 	message := "Roblox rejected this operation."
+	robloxCode := responseError(request, response).RobloxCode
+	if request.URL.Hostname() == "friends.roblox.com" && robloxCode == 14 {
+		return &Error{Kind: KindChallengeRequired, Endpoint: request.Endpoint, Status: response.Status, RobloxCode: robloxCode, Message: "Roblox requires a CAPTCHA. Open this account in the browser and complete the action there."}
+	}
 	if request.RequiresCSRF && strings.TrimSpace(response.Header.Get(csrfHeader)) != "" {
 		kind = KindCSRFRejected
 		message = "Roblox rejected the CSRF token."
 	}
-	return &Error{Kind: kind, Endpoint: request.Endpoint, Status: response.Status, RobloxCode: responseError(request, response).RobloxCode, Message: message}
+	return &Error{Kind: kind, Endpoint: request.Endpoint, Status: response.Status, RobloxCode: robloxCode, Message: message}
 }
 
 func (client *Client) rateLimitedResponse(ctx context.Context, execution *requestExecution, response *Response) (*Response, bool, error) {
 	request := execution.request
 	delay := retryDelay(response.Header, execution.serverAttempt)
+	client.limits.deferRequestsUntil(requestLimitKey{host: request.URL.Hostname(), accountID: request.AccountID, endpoint: request.Endpoint}, time.Now().Add(delay))
 	if client.observer != nil {
 		client.observer.RateLimited(time.Now().Add(delay))
 	}
@@ -407,7 +415,7 @@ func (client *Client) rateLimitedResponse(ctx context.Context, execution *reques
 		}
 		return nil, true, nil
 	}
-	return nil, false, &Error{Kind: KindRateLimited, Endpoint: request.Endpoint, Status: response.Status, Message: "Roblox is rate limiting requests."}
+	return nil, false, &Error{Kind: KindRateLimited, Endpoint: request.Endpoint, Status: response.Status, Message: "Roblox is rate limiting requests. Wait before trying again."}
 }
 
 func (client *Client) sendAttempt(ctx context.Context, contract Request, snapshot SessionSnapshot, csrfToken string) (*Response, error) {
@@ -426,6 +434,10 @@ func (client *Client) sendAttempt(ctx context.Context, contract Request, snapsho
 		return nil, err
 	}
 	defer release()
+	limitKey := requestLimitKey{host: request.URL.Hostname(), accountID: contract.AccountID, endpoint: contract.Endpoint}
+	if client.limits.isRateLimited(limitKey) {
+		return nil, &Error{Kind: KindRateLimited, Endpoint: contract.Endpoint, Status: http.StatusTooManyRequests, Message: "Roblox is rate limiting requests. Wait before trying again."}
+	}
 	started := time.Now()
 	client.logger.Log(ctx, logging.TraceLevel, "Roblox request started",
 		"endpoint", contract.Endpoint,
@@ -627,16 +639,11 @@ func isRetryableStatus(status int) bool {
 
 func retryDelay(headers http.Header, attempt int) time.Duration {
 	if raw := strings.TrimSpace(headers.Get("Retry-After")); raw != "" {
-		if seconds, err := strconv.Atoi(raw); err == nil && seconds >= 0 {
-			if seconds >= 30 {
-				return 30 * time.Second
-			}
+		if seconds, err := strconv.ParseInt(raw, 10, 64); err == nil && seconds >= 0 && seconds <= math.MaxInt64/int64(time.Second) {
 			return time.Duration(seconds) * time.Second
 		}
 		if when, err := http.ParseTime(raw); err == nil {
-			if wait := time.Until(when); wait > 0 {
-				return min(wait, 30*time.Second)
-			}
+			return max(time.Until(when), 0)
 		}
 	}
 	return backoff(attempt, secureSample())

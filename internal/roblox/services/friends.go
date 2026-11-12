@@ -153,8 +153,11 @@ func (service *Users) Unfriend(ctx context.Context, accountID, version, userID i
 
 func (service *Users) SendFriendRequest(ctx context.Context, accountID, version, userID int64) error {
 	address := "https://friends.roblox.com/v1/users/" + strconv.FormatInt(userID, 10) + "/request-friendship"
-	_, err := service.writeAccount(ctx, accountID, version, "friend-request-send", http.MethodPost, address, map[string]int{"friendshipOriginSourceType": 0})
-	return err
+	response, err := service.writeAccount(ctx, accountID, version, "friend-request-send", http.MethodPost, address, map[string]int{"friendshipOriginSourceType": 0})
+	if err != nil {
+		return err
+	}
+	return validateSocialActionResponse("friend-request-send", response, true)
 }
 
 func (service *Users) SendTrustedFriendRequest(ctx context.Context, accountID, version, userID int64) error {
@@ -184,8 +187,40 @@ func (service *Users) trustedFriendAction(ctx context.Context, accountID, versio
 
 func (service *Users) friendAction(ctx context.Context, accountID, version, userID int64, endpoint, action string) error {
 	address := "https://friends.roblox.com/v1/users/" + strconv.FormatInt(userID, 10) + "/" + action
-	_, err := service.writeAccount(ctx, accountID, version, endpoint, http.MethodPost, address, nil)
-	return err
+	response, err := service.writeAccount(ctx, accountID, version, endpoint, http.MethodPost, address, nil)
+	if err != nil {
+		return err
+	}
+	return validateSocialActionResponse(endpoint, response, endpoint == "follow")
+}
+
+func validateSocialActionResponse(endpoint string, response *roblox.Response, requiresSuccess bool) error {
+	if !requiresSuccess && strings.TrimSpace(string(response.Body)) == "" {
+		return nil
+	}
+	var payload *struct {
+		Success           *bool `json:"success"`
+		IsCaptchaRequired *bool `json:"isCaptchaRequired"`
+	}
+	if err := json.Unmarshal(response.Body, &payload); err != nil {
+		return &roblox.Error{Kind: roblox.KindProtocol, Endpoint: endpoint, Status: response.Status, Message: "Roblox did not confirm the action. Refresh to check its status.", Cause: err}
+	}
+	if payload == nil {
+		return &roblox.Error{Kind: roblox.KindProtocol, Endpoint: endpoint, Status: response.Status, Message: "Roblox did not confirm the action. Refresh to check its status."}
+	}
+	if payload.IsCaptchaRequired != nil && *payload.IsCaptchaRequired {
+		return &roblox.Error{Kind: roblox.KindChallengeRequired, Endpoint: endpoint, Status: response.Status, Message: "Roblox requires a CAPTCHA. Open this account in the browser and complete the action there."}
+	}
+	if payload.Success == nil {
+		if !requiresSuccess {
+			return nil
+		}
+		return &roblox.Error{Kind: roblox.KindProtocol, Endpoint: endpoint, Status: response.Status, Message: "Roblox did not confirm the action. Refresh to check its status."}
+	}
+	if !*payload.Success {
+		return &roblox.Error{Kind: roblox.KindForbidden, Endpoint: endpoint, Status: response.Status, Message: "Roblox did not complete the action. Open this account in the browser to check its status."}
+	}
+	return nil
 }
 
 type FriendStatus string

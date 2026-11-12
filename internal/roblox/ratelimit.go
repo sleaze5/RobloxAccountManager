@@ -5,17 +5,44 @@ import (
 	"errors"
 	"fmt"
 	"sync"
+	"time"
 )
 
+type requestLimitKey struct {
+	host      string
+	accountID int64
+	endpoint  string
+}
+
 type requestLimits struct {
-	global chan struct{}
-	mutex  sync.Mutex
-	hosts  map[string]chan struct{}
-	users  map[int64]chan struct{}
+	global           chan struct{}
+	mutex            sync.Mutex
+	hosts            map[string]chan struct{}
+	users            map[int64]chan struct{}
+	retryAtByRequest map[requestLimitKey]time.Time
 }
 
 func newRequestLimits() *requestLimits {
-	return &requestLimits{global: make(chan struct{}, 16), hosts: make(map[string]chan struct{}), users: make(map[int64]chan struct{})}
+	return &requestLimits{global: make(chan struct{}, 16), hosts: make(map[string]chan struct{}), users: make(map[int64]chan struct{}), retryAtByRequest: make(map[requestLimitKey]time.Time)}
+}
+
+func (limits *requestLimits) isRateLimited(key requestLimitKey) bool {
+	limits.mutex.Lock()
+	defer limits.mutex.Unlock()
+	return limits.retryAtByRequest[key].After(time.Now())
+}
+
+func (limits *requestLimits) deferRequestsUntil(key requestLimitKey, retryAt time.Time) {
+	limits.mutex.Lock()
+	defer limits.mutex.Unlock()
+	for previousKey, previousRetryAt := range limits.retryAtByRequest {
+		if !previousRetryAt.After(time.Now()) {
+			delete(limits.retryAtByRequest, previousKey)
+		}
+	}
+	if retryAt.After(limits.retryAtByRequest[key]) {
+		limits.retryAtByRequest[key] = retryAt
+	}
 }
 
 func (limits *requestLimits) acquire(ctx context.Context, host string, accountID int64) (func(), error) {
