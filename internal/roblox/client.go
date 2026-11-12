@@ -353,10 +353,12 @@ func (client *Client) handleFailedResponse(ctx context.Context, execution *reque
 		return client.rateLimitedResponse(ctx, execution, response)
 	}
 	if isRetryableStatus(response.Status) && request.Retry.RetryServerErrors && execution.serverAttempt < execution.maxAttempts {
-		if err := waitForRetry(ctx, retryDelay(response.Header, execution.serverAttempt)); err != nil {
-			return nil, false, contextError(request.Endpoint, err)
+		if delay := retryDelay(response.Header, execution.serverAttempt); canWaitBeforeDeadline(ctx, delay) {
+			if err := waitForRetry(ctx, delay); err != nil {
+				return nil, false, contextError(request.Endpoint, err)
+			}
+			return nil, true, nil
 		}
-		return nil, true, nil
 	}
 	return nil, false, responseError(request, response)
 }
