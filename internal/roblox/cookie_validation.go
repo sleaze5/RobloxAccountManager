@@ -129,24 +129,29 @@ func (client *Client) cookieValidationResponse(ctx context.Context, response *Re
 		}
 		return CookieValidation{}, false, &Error{Kind: KindForbidden, Endpoint: "cookie-import", Status: response.Status, Message: "Roblox rejected cookie validation."}
 	case response.Status == http.StatusTooManyRequests:
-		if attempt < 3 {
-			if err := waitForRetry(ctx, retryDelay(response.Header, attempt)); err != nil {
-				return CookieValidation{}, false, contextError("cookie-import", err)
-			}
-			return CookieValidation{}, true, nil
+		if shouldRetry, err := waitForCookieValidationRetry(ctx, response, attempt); shouldRetry || err != nil {
+			return CookieValidation{}, shouldRetry, err
 		}
 		return CookieValidation{}, false, &Error{Kind: KindRateLimited, Endpoint: "cookie-import", Status: response.Status, Message: "Roblox is rate limiting cookie validation."}
 	case response.Status >= 500:
-		if attempt < 3 {
-			if err := waitForRetry(ctx, retryDelay(response.Header, attempt)); err != nil {
-				return CookieValidation{}, false, contextError("cookie-import", err)
-			}
-			return CookieValidation{}, true, nil
+		if shouldRetry, err := waitForCookieValidationRetry(ctx, response, attempt); shouldRetry || err != nil {
+			return CookieValidation{}, shouldRetry, err
 		}
 		return CookieValidation{}, false, &Error{Kind: KindServer, Endpoint: "cookie-import", Status: response.Status, Message: "Roblox is temporarily unavailable. The cookie was not stored."}
 	default:
 		return CookieValidation{}, false, &Error{Kind: KindProtocol, Endpoint: "cookie-import", Status: response.Status, Message: fmt.Sprintf("Roblox returned status %d. The cookie was not stored.", response.Status)}
 	}
+}
+
+func waitForCookieValidationRetry(ctx context.Context, response *Response, attempt int) (bool, error) {
+	delay := retryDelay(response.Header, attempt)
+	if attempt >= 3 || !canWaitBeforeDeadline(ctx, delay) {
+		return false, nil
+	}
+	if err := waitForRetry(ctx, delay); err != nil {
+		return false, contextError("cookie-import", err)
+	}
+	return true, nil
 }
 
 func cookieValidationIdentity(response *Response, validation CookieValidation) (CookieValidation, error) {
