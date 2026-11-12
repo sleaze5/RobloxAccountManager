@@ -7,6 +7,21 @@ import type {
 import type { AccountStore } from "../accounts/account-store.svelte"
 import { AccountScope } from "../accounts/account-scope"
 import { errorMessage } from "../shared/errors"
+import { isFresh } from "../shared/freshness"
+
+const keptPageName = "chats"
+
+interface KeptChats {
+	conversations: ChatConversationView[]
+	conversationsCursor: string
+	groupMemberLimit: number
+	groupNameMaxLength: number
+	openId: string
+	messages: ChatMessageView[]
+	messagesCursor: string
+	friends: SocialUser[]
+	friendsLoaded: boolean
+}
 
 export interface PendingChatMessage {
 	key: number
@@ -48,12 +63,22 @@ export class ChatState {
 	#messagesGeneration = 0
 	#deliveredWhileLoading: ChatMessageView[] = []
 	#nextPendingKey = 0
+	#fetchedAt = 0
 	readonly #scope: AccountScope
 	readonly selfUserId: number
 
 	constructor(accountId: number, selfUserId: number, store: AccountStore) {
 		this.selfUserId = selfUserId
 		this.#scope = new AccountScope(accountId, store)
+		const kept = this.#scope.readKept<KeptChats>(keptPageName)
+		if (kept) {
+			Object.assign(this, kept.value)
+			this.#fetchedAt = kept.fetchedAt
+		}
+	}
+
+	get isFresh(): boolean {
+		return isFresh(this.#fetchedAt)
 	}
 
 	get openConversation(): ChatConversationView | undefined {
@@ -85,6 +110,7 @@ export class ChatState {
 			this.conversationsCursor = page.nextCursor
 			this.groupMemberLimit = page.groupMemberLimit
 			this.groupNameMaxLength = page.groupNameMaxLength
+			this.#fetchedAt = Date.now()
 		} catch (error) {
 			if (this.#scope.isCurrent && generation === this.#listGeneration) {
 				this.error = errorMessage(error, "Could not load chats. Try again.")
@@ -471,7 +497,25 @@ export class ChatState {
 		)
 	}
 
+	// The list, the open chat, and the friends are kept, so that the next visit
+	// shows them at once. Messages that are still sending are not kept, and an
+	// open chat whose messages did not load closes.
 	dispose(): void {
+		if (this.#fetchedAt) {
+			const hasOpenMessages = !this.messagesLoading && !this.messagesError,
+				kept: KeptChats = {
+					conversations: this.conversations,
+					conversationsCursor: this.conversationsCursor,
+					groupMemberLimit: this.groupMemberLimit,
+					groupNameMaxLength: this.groupNameMaxLength,
+					openId: hasOpenMessages ? this.openId : "",
+					messages: hasOpenMessages ? this.messages : [],
+					messagesCursor: hasOpenMessages ? this.messagesCursor : "",
+					friends: this.friends,
+					friendsLoaded: this.friendsLoaded,
+				}
+			this.#scope.keep(keptPageName, { value: kept, fetchedAt: this.#fetchedAt })
+		}
 		this.#scope.dispose()
 		this.#listGeneration++
 		this.#messagesGeneration++

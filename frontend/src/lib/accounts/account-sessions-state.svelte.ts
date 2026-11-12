@@ -4,6 +4,9 @@ import type { NotificationCenter } from "../notifications/notification-center.sv
 import type { AccountStore } from "./account-store.svelte"
 import { AccountScope } from "./account-scope"
 import { errorMessage } from "../shared/errors"
+import { isFresh } from "../shared/freshness"
+
+const keptPageName = "account-sessions"
 
 export class AccountSessionsState {
 	sessions = $state<AccountSession[] | null>(null)
@@ -11,6 +14,7 @@ export class AccountSessionsState {
 	signingOut = $state(false)
 	error = $state("")
 	signOutError = $state("")
+	#fetchedAt = 0
 	readonly #scope: AccountScope
 	readonly #store: AccountStore
 	readonly #notifications: NotificationCenter
@@ -23,6 +27,15 @@ export class AccountSessionsState {
 		this.#scope = new AccountScope(accountId, store)
 		this.#store = store
 		this.#notifications = notifications
+		const kept = this.#scope.readKept<AccountSession[]>(keptPageName)
+		if (kept) {
+			this.sessions = kept.value
+			this.#fetchedAt = kept.fetchedAt
+		}
+	}
+
+	get isFresh(): boolean {
+		return isFresh(this.#fetchedAt)
 	}
 
 	async refresh(): Promise<void> {
@@ -35,6 +48,7 @@ export class AccountSessionsState {
 			)
 			if (!this.#scope.isCurrent) return
 			this.sessions = sessions ?? []
+			this.#fetchedAt = Date.now()
 		} catch (error) {
 			if (!this.#scope.isCurrent) return
 			this.error = errorMessage(
@@ -90,6 +104,12 @@ export class AccountSessionsState {
 	}
 
 	dispose(): void {
+		if (this.sessions) {
+			this.#scope.keep(keptPageName, {
+				value: this.sessions,
+				fetchedAt: this.#fetchedAt,
+			})
+		}
 		this.#scope.dispose()
 		this.sessions = null
 		this.loading = false

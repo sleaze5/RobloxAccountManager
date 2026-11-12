@@ -143,7 +143,7 @@
 			selfUserId = Number(account.userId) || 0
 		if (!accounts.vault.unlocked) return
 		if (accountModerated) {
-			untrack(() => store.reset())
+			untrack(() => store.closeAccount())
 			return
 		}
 		untrack(() => store.show(accountId, selfUserId))

@@ -22,12 +22,14 @@ import type {
 import { accountFromView, accountWithPresence, emptyAccount } from "./account-model"
 import type { Account } from "./account-model"
 import { AccountProfileState } from "./account-profile-state.svelte"
+import type { KeptPageData } from "./account-scope"
 import { isValidTagName, tagNameError } from "./tag-name"
 import { appSettings } from "../settings/settings-store.svelte"
 import type { NotificationCenter } from "../notifications/notification-center.svelte"
 import { notifyCopied } from "../shared/clipboard"
 import { coalesce } from "../shared/coalesce"
 import { errorMessage } from "../shared/errors"
+import { detailsKeepMs } from "../shared/freshness"
 
 const operationError = "The operation failed.",
 	presenceRefreshError = "Account presence could not be refreshed."
@@ -81,6 +83,10 @@ export class AccountStore {
 	#remoteDataVersion = 0
 	#accountListVersion = 0
 	readonly #profiles = new Map<number, AccountProfileState>()
+	readonly #keptPageDataByAccountId = new Map<
+		number,
+		Map<string, KeptPageData<unknown>>
+	>()
 	#presenceRequest = 0
 	#filterTimer = 0
 	#importSummary: { created: number; updated: number } | null = null
@@ -191,6 +197,36 @@ export class AccountStore {
 			this.#profiles.set(accountId, profile)
 		}
 		return profile
+	}
+
+	readKeptPageData(
+		accountId: number,
+		pageName: string,
+	): KeptPageData<unknown> | null {
+		const kept = this.#keptPageDataByAccountId.get(accountId)?.get(pageName)
+		if (!kept || Date.now() - kept.fetchedAt >= detailsKeepMs) return null
+		return kept
+	}
+
+	// keepPageData keeps nothing after the vault locked or the account was
+	// removed, because the page closes after those changes.
+	keepPageData(
+		accountId: number,
+		pageName: string,
+		kept: KeptPageData<unknown>,
+	): void {
+		if (
+			!this.vault.unlocked ||
+			!this.accounts.some((account) => account.id === accountId)
+		) {
+			return
+		}
+		let keptByPageName = this.#keptPageDataByAccountId.get(accountId)
+		if (!keptByPageName) {
+			keptByPageName = new Map()
+			this.#keptPageDataByAccountId.set(accountId, keptByPageName)
+		}
+		keptByPageName.set(pageName, kept)
 	}
 
 	mount(): () => void {
@@ -1138,11 +1174,13 @@ export class AccountStore {
 	#removeProfile(accountId: number): void {
 		this.#profiles.get(accountId)?.dispose()
 		this.#profiles.delete(accountId)
+		this.#keptPageDataByAccountId.delete(accountId)
 	}
 
 	#clearProfiles(): void {
 		for (const profile of this.#profiles.values()) profile.dispose()
 		this.#profiles.clear()
+		this.#keptPageDataByAccountId.clear()
 	}
 }
 

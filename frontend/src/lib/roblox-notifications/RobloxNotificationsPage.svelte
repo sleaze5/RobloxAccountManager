@@ -110,7 +110,7 @@
 	}
 
 	onMount(() => {
-		void stream.refresh()
+		if (!stream.isFresh) void stream.refresh()
 		return () => stream.dispose()
 	})
 </script>

@@ -3,16 +3,29 @@ import type { BlockedUser } from "../backend/bridge"
 import type { AccountStore } from "./account-store.svelte"
 import { AccountScope } from "./account-scope"
 import { errorMessage } from "../shared/errors"
+import { isFresh } from "../shared/freshness"
+
+const keptPageName = "blocked-users"
 
 export class BlockedUsersState {
 	users = $state<BlockedUser[] | null>(null)
 	loading = $state(false)
 	unblocking = $state<number | null>(null)
 	error = $state("")
+	#fetchedAt = 0
 	readonly #scope: AccountScope
 
 	constructor(accountId: number, store: AccountStore) {
 		this.#scope = new AccountScope(accountId, store)
+		const kept = this.#scope.readKept<BlockedUser[]>(keptPageName)
+		if (kept) {
+			this.users = kept.value
+			this.#fetchedAt = kept.fetchedAt
+		}
+	}
+
+	get isFresh(): boolean {
+		return isFresh(this.#fetchedAt)
 	}
 
 	async refresh(): Promise<void> {
@@ -25,6 +38,7 @@ export class BlockedUsersState {
 			)
 			if (!this.#scope.isCurrent) return
 			this.users = users
+			this.#fetchedAt = Date.now()
 		} catch (error) {
 			if (!this.#scope.isCurrent) return
 			this.error = errorMessage(
@@ -58,6 +72,12 @@ export class BlockedUsersState {
 	}
 
 	dispose(): void {
+		if (this.users) {
+			this.#scope.keep(keptPageName, {
+				value: this.users,
+				fetchedAt: this.#fetchedAt,
+			})
+		}
 		this.#scope.dispose()
 		this.users = null
 		this.loading = false
