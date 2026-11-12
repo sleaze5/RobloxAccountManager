@@ -409,13 +409,46 @@ func (client *Client) rateLimitedResponse(ctx context.Context, execution *reques
 	if client.observer != nil {
 		client.observer.RateLimited(time.Now().Add(delay))
 	}
-	if request.Retry.RetryRateLimit && execution.serverAttempt < execution.maxAttempts {
+	if request.Retry.RetryRateLimit && execution.serverAttempt < execution.maxAttempts && canWaitBeforeDeadline(ctx, delay) {
 		if err := waitForRetry(ctx, delay); err != nil {
 			return nil, false, contextError(request.Endpoint, err)
 		}
 		return nil, true, nil
 	}
-	return nil, false, &Error{Kind: KindRateLimited, Endpoint: request.Endpoint, Status: response.Status, Message: "Roblox is rate limiting requests. Wait before trying again."}
+	return nil, false, rateLimitedError(request.Endpoint)
+}
+
+func (client *Client) acquireAfterCooldown(ctx context.Context, contract Request, host string) (func(), error) {
+	limitKey := requestLimitKey{host: host, accountID: contract.AccountID, endpoint: contract.Endpoint}
+	for {
+		if cooldown := client.limits.remainingCooldown(limitKey); cooldown > 0 {
+			if !contract.Retry.RetryRateLimit || !canWaitBeforeDeadline(ctx, cooldown) {
+				return nil, rateLimitedError(contract.Endpoint)
+			}
+			if err := waitForRetry(ctx, cooldown); err != nil {
+				return nil, err
+			}
+			continue
+		}
+		release, err := client.limits.acquire(ctx, host, contract.AccountID)
+		if err != nil {
+			return nil, err
+		}
+		// Another request can extend the cooldown while this one waits for a slot.
+		if client.limits.remainingCooldown(limitKey) == 0 {
+			return release, nil
+		}
+		release()
+	}
+}
+
+func canWaitBeforeDeadline(ctx context.Context, delay time.Duration) bool {
+	deadline, hasDeadline := ctx.Deadline()
+	return !hasDeadline || time.Until(deadline) > delay
+}
+
+func rateLimitedError(endpoint string) *Error {
+	return &Error{Kind: KindRateLimited, Endpoint: endpoint, Status: http.StatusTooManyRequests, Message: "Roblox is rate limiting requests. Wait before trying again."}
 }
 
 func (client *Client) sendAttempt(ctx context.Context, contract Request, snapshot SessionSnapshot, csrfToken string) (*Response, error) {
@@ -429,15 +462,11 @@ func (client *Client) sendAttempt(ctx context.Context, contract Request, snapsho
 	if err := client.prepareAttemptHeaders(request, contract, snapshot, csrfToken); err != nil {
 		return nil, err
 	}
-	release, err := client.limits.acquire(ctx, request.URL.Hostname(), contract.AccountID)
+	release, err := client.acquireAfterCooldown(ctx, contract, request.URL.Hostname())
 	if err != nil {
 		return nil, err
 	}
 	defer release()
-	limitKey := requestLimitKey{host: request.URL.Hostname(), accountID: contract.AccountID, endpoint: contract.Endpoint}
-	if client.limits.isRateLimited(limitKey) {
-		return nil, &Error{Kind: KindRateLimited, Endpoint: contract.Endpoint, Status: http.StatusTooManyRequests, Message: "Roblox is rate limiting requests. Wait before trying again."}
-	}
 	started := time.Now()
 	client.logger.Log(ctx, logging.TraceLevel, "Roblox request started",
 		"endpoint", contract.Endpoint,
