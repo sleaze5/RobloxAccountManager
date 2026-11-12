@@ -20,7 +20,7 @@ interface KeptChats {
 	messages: ChatMessageView[]
 	messagesCursor: string
 	friends: SocialUser[]
-	friendsLoaded: boolean
+	friendsFetchedAt: number
 }
 
 export interface PendingChatMessage {
@@ -54,7 +54,6 @@ export class ChatState {
 	renameError = $state("")
 	friends = $state<SocialUser[]>([])
 	friendsLoading = $state(false)
-	friendsLoaded = $state(false)
 	friendsError = $state("")
 	groupMemberLimit = $state(0)
 	groupNameMaxLength = $state(0)
@@ -64,6 +63,7 @@ export class ChatState {
 	#deliveredWhileLoading: ChatMessageView[] = []
 	#nextPendingKey = 0
 	#fetchedAt = 0
+	#friendsFetchedAt = 0
 	readonly #scope: AccountScope
 	readonly selfUserId: number
 
@@ -72,8 +72,10 @@ export class ChatState {
 		this.#scope = new AccountScope(accountId, store)
 		const kept = this.#scope.readKept<KeptChats>(keptPageName)
 		if (kept) {
-			Object.assign(this, kept.value)
+			const { friendsFetchedAt, ...listed } = kept.value
+			Object.assign(this, listed)
 			this.#fetchedAt = kept.fetchedAt
+			this.#friendsFetchedAt = friendsFetchedAt
 		}
 	}
 
@@ -396,9 +398,18 @@ export class ChatState {
 		}
 	}
 
-	// The friends list feeds the people picker. It loads once per page.
+	// The friends list feeds the people picker. It has its own fetch time, so
+	// that a conversation refresh does not make it fresh. Opening the picker
+	// loads it again once it is no longer fresh, and the last list stays visible
+	// while it loads.
 	async loadFriends(): Promise<void> {
-		if (!this.#scope.isCurrent || this.friendsLoading || this.friendsLoaded) return
+		if (
+			!this.#scope.isCurrent ||
+			this.friendsLoading ||
+			isFresh(this.#friendsFetchedAt)
+		) {
+			return
+		}
 		this.friendsLoading = true
 		this.friendsError = ""
 		try {
@@ -412,7 +423,7 @@ export class ChatState {
 			)
 			if (!this.#scope.isCurrent) return
 			this.friends = page.people ?? []
-			this.friendsLoaded = true
+			this.#friendsFetchedAt = Date.now()
 		} catch (error) {
 			if (this.#scope.isCurrent) {
 				this.friendsError = errorMessage(error, "Could not load friends.")
@@ -512,7 +523,7 @@ export class ChatState {
 					messages: hasOpenMessages ? this.messages : [],
 					messagesCursor: hasOpenMessages ? this.messagesCursor : "",
 					friends: this.friends,
-					friendsLoaded: this.friendsLoaded,
+					friendsFetchedAt: this.#friendsFetchedAt,
 				}
 			this.#scope.keep(keptPageName, { value: kept, fetchedAt: this.#fetchedAt })
 		}
