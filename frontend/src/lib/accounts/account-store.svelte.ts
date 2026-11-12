@@ -1212,9 +1212,13 @@ export class AccountStore {
 		this.presencesRefreshedAt = 0
 	}
 
-	#removeProfile(accountId: number): void {
+	forgetAccountProfile(accountId: number): void {
 		this.#profiles.get(accountId)?.dispose()
 		this.#profiles.delete(accountId)
+	}
+
+	#removeProfile(accountId: number): void {
+		this.forgetAccountProfile(accountId)
 		this.#forgetAccountPageData(accountId)
 	}
 
