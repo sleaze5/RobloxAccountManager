@@ -5,6 +5,7 @@
 	import userPlusIcon from "@phosphor-icons/core/regular/user-plus.svg?raw"
 	import warningIcon from "@phosphor-icons/core/regular/warning.svg?raw"
 	import Icon from "../shared/Icon.svelte"
+	import ServerListSkeleton from "./ServerListSkeleton.svelte"
 	import { untrack } from "svelte"
 	import type { AccountStore } from "../accounts/account-store.svelte"
 	import Select from "../shared/Select.svelte"
@@ -88,14 +89,7 @@
 					>Try again</button>
 			</div>
 		{:else if !servers.page}
-			<div class="empty-state" role="status">
-				<Icon
-					svg={circleNotchIcon}
-					class="spinner"
-					size={28}
-					aria-hidden="true" />
-				<h2>Loading private servers…</h2>
-			</div>
+			<ServerListSkeleton label="Loading private servers" />
 		{:else if !shown.length}
 			<div class="empty-state" role="status">
 				<Icon svg={lockKeyIcon} size={28} aria-hidden="true" />

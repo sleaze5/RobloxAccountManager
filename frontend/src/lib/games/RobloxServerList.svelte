@@ -1,8 +1,8 @@
 <script lang="ts">
-	import circleNotchIcon from "@phosphor-icons/core/regular/circle-notch.svg?raw"
 	import hardDrivesIcon from "@phosphor-icons/core/regular/hard-drives.svg?raw"
 	import warningIcon from "@phosphor-icons/core/regular/warning.svg?raw"
 	import Icon from "../shared/Icon.svelte"
+	import ServerListSkeleton from "./ServerListSkeleton.svelte"
 	import { untrack } from "svelte"
 	import { GameServerOrder } from "../backend/bridge"
 	import ProfileImage from "../shared/ProfileImage.svelte"
@@ -128,10 +128,7 @@
 				>Try again</button>
 		</div>
 	{:else if !servers.page}
-		<div class="empty-state" role="status">
-			<Icon svg={circleNotchIcon} class="spinner" size={28} aria-hidden="true" />
-			<h2>Loading servers…</h2>
-		</div>
+		<ServerListSkeleton label="Loading servers" />
 	{:else if !loaded.length}
 		<div class="empty-state" role="status">
 			<Icon svg={hardDrivesIcon} size={28} aria-hidden="true" />

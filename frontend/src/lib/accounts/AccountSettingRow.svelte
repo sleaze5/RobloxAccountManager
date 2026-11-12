@@ -17,6 +17,7 @@
 		type,
 		view,
 		disabled = false,
+		isLoading = false,
 		saving = false,
 		radioOptions = [],
 		error = "",
@@ -29,6 +30,7 @@
 		type: "toggle" | "radio"
 		view?: AccountSettingView
 		disabled?: boolean
+		isLoading?: boolean
 		saving?: boolean
 		radioOptions?: SettingRadioOption[]
 		error?: string
@@ -65,14 +67,16 @@
 				(!view ? "This setting is unavailable for this account." : ""),
 		),
 		notes = $derived(
-			[
-				...new Set([
-					unavailable,
-					...radioOptions.map((option) =>
-						option.disabled ? (option.reason ?? "") : "",
-					),
-				]),
-			].filter(Boolean),
+			isLoading
+				? []
+				: [
+						...new Set([
+							unavailable,
+							...radioOptions.map((option) =>
+								option.disabled ? (option.reason ?? "") : "",
+							),
+						]),
+					].filter(Boolean),
 		),
 		controlDisabled = $derived(disabled || saving || !view?.editable)
 </script>
@@ -105,19 +109,24 @@
 		<div class="settings-row-copy">
 			{@render details()}
 		</div>
-		<label class="switch">
-			<input
-				type="checkbox"
-				role="switch"
-				aria-labelledby={`setting-label-${id}`}
-				aria-describedby={notes.length > 0
-					? `setting-description-${id} setting-notes-${id}`
-					: `setting-description-${id}`}
-				checked={isChecked}
-				disabled={controlDisabled}
-				onchange={(event) => onToggle?.(event.currentTarget.checked)} />
-			<span aria-hidden="true"></span>
-		</label>
+		{#if isLoading}
+			<span class="inline-flex h-7 w-9 shrink-0 items-center" aria-hidden="true"
+				><span class="h-5 w-full skeleton rounded-full"></span></span>
+		{:else}
+			<label class="switch">
+				<input
+					type="checkbox"
+					role="switch"
+					aria-labelledby={`setting-label-${id}`}
+					aria-describedby={notes.length > 0
+						? `setting-description-${id} setting-notes-${id}`
+						: `setting-description-${id}`}
+					checked={isChecked}
+					disabled={controlDisabled}
+					onchange={(event) => onToggle?.(event.currentTarget.checked)} />
+				<span aria-hidden="true"></span>
+			</label>
+		{/if}
 	</div>
 {:else}
 	<div
@@ -131,24 +140,33 @@
 			role="radiogroup"
 			aria-labelledby={`setting-label-${id}`}>
 			{#each radioOptions as option (option.value)}
-				<label
-					class="radio-option"
-					data-disabled={controlDisabled || option.disabled || undefined}>
-					<span class="radio">
-						<input
-							type="radio"
-							name={id}
-							value={option.value}
-							checked={currentRadioValue === option.value}
-							aria-describedby={notes.length > 0
-								? `setting-description-${id} setting-notes-${id}`
-								: `setting-description-${id}`}
-							disabled={controlDisabled || option.disabled}
-							onchange={() => onRadioSelect?.(option.value)} />
-						<span aria-hidden="true"></span>
+				{#if isLoading}
+					<span
+						class="flex min-h-7 items-center gap-2 px-2"
+						aria-hidden="true">
+						<span class="size-4 shrink-0 skeleton rounded-full"></span>
+						<span class="text-xs text-fg-muted">{option.label}</span>
 					</span>
-					<span class="text-xs text-fg">{option.label}</span>
-				</label>
+				{:else}
+					<label
+						class="radio-option"
+						data-disabled={controlDisabled || option.disabled || undefined}>
+						<span class="radio">
+							<input
+								type="radio"
+								name={id}
+								value={option.value}
+								checked={currentRadioValue === option.value}
+								aria-describedby={notes.length > 0
+									? `setting-description-${id} setting-notes-${id}`
+									: `setting-description-${id}`}
+								disabled={controlDisabled || option.disabled}
+								onchange={() => onRadioSelect?.(option.value)} />
+							<span aria-hidden="true"></span>
+						</span>
+						<span class="text-xs text-fg">{option.label}</span>
+					</label>
+				{/if}
 			{/each}
 		</div>
 	</div>

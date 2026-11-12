@@ -1,6 +1,5 @@
 <script lang="ts">
 	import { matchesSearch, searchTerms } from "../shared/search"
-	import circleNotchIcon from "@phosphor-icons/core/regular/circle-notch.svg?raw"
 	import devicesIcon from "@phosphor-icons/core/regular/devices.svg?raw"
 	import hardDrivesIcon from "@phosphor-icons/core/regular/hard-drives.svg?raw"
 	import lockKeyIcon from "@phosphor-icons/core/regular/lock-key.svg?raw"
@@ -578,6 +577,11 @@
 			}
 		}),
 		refreshing = $derived(activeData?.isLoading ?? busy),
+		// The setting rows show while the settings load, with placeholders for
+		// their values, so that the page does not move when the values arrive.
+		areSettingsLoading = $derived(
+			!settingsState || (settingsState.loading && !settingsState.snapshot),
+		),
 		activePageKey = $derived(
 			blockedUsersOpen ? blockedUsersPage.id : activePage?.id,
 		)
@@ -983,17 +987,6 @@
 						{#if blockedState}
 							<BlockedUsersList blocked={blockedState} />
 						{/if}
-					{:else if !settingsState || (settingsState.loading && !settingsState.snapshot)}
-						<div
-							class="flex items-center gap-2 text-xs text-fg-muted"
-							role="status">
-							<Icon
-								svg={circleNotchIcon}
-								class="spinner"
-								size={16}
-								aria-hidden="true" />
-							Loading settings…
-						</div>
 					{:else}
 						{#each activeCategory.sections as section (section.id)}
 							{@const matchingFields = filterFields(
@@ -1020,9 +1013,9 @@
 											{@const fieldOptions =
 												computeRadioOptions(field)}
 											{@const isSaving =
-												settingsState.saving === field.key}
+												settingsState?.saving === field.key}
 											{@const fieldError =
-												settingsState.feedback?.key ===
+												settingsState?.feedback?.key ===
 													field.key &&
 												!settingsState.feedback.success
 													? settingsState.feedback.message
@@ -1034,6 +1027,7 @@
 												type={field.type}
 												{view}
 												disabled={fieldDisabled}
+												isLoading={areSettingsLoading}
 												saving={isSaving}
 												radioOptions={fieldOptions}
 												error={fieldError}

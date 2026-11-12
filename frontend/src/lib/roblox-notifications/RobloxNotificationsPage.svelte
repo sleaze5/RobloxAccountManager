@@ -5,6 +5,7 @@
 	import funnelIcon from "@phosphor-icons/core/regular/funnel.svg?raw"
 	import { Browser } from "@wailsio/runtime"
 	import Icon from "../shared/Icon.svelte"
+	import SkeletonList from "../shared/SkeletonList.svelte"
 	import AccountPageHeader from "../accounts/AccountPageHeader.svelte"
 	import RefreshIcon from "../shared/RefreshIcon.svelte"
 	import Select from "../shared/Select.svelte"
@@ -155,13 +156,30 @@
 		data-roblox-notifications-scroll
 		aria-busy={stream.loading}>
 		{#if stream.loading && stream.notifications.length === 0}
-			<div class="empty-state h-full" role="status">
-				<Icon
-					svg={circleNotchIcon}
-					class="spinner"
-					size={28}
-					aria-hidden="true" />
-				<p>Loading notifications…</p>
+			<div class="max-w-2xl p-3">
+				<SkeletonList label="Loading notifications" rowCount={5}>
+					{#snippet row(index)}
+						<div class="mb-2 flex gap-3 rounded-lg border border-line p-3">
+							<span class="size-9 shrink-0 skeleton rounded-md"></span>
+							<div class="flex min-w-0 flex-1 flex-col gap-0.5 text-sm">
+								<span
+									><span
+										class={[
+											"skeleton-line",
+											index % 2 ? "w-32" : "w-44",
+										]}></span
+									></span>
+								<span
+									><span
+										class={[
+											"skeleton-line",
+											index % 2 ? "w-72" : "w-56",
+										]}></span
+									></span>
+							</div>
+						</div>
+					{/snippet}
+				</SkeletonList>
 			</div>
 		{:else if stream.notifications.length === 0 && stream.error}
 			<div class="empty-state h-full">

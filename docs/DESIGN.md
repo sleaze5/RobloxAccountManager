@@ -41,7 +41,7 @@ The frontend is styled with Tailwind CSS 4. Markup carries utility classes. Styl
 - z-index: `z-0`, `z-10`, `z-20`, `z-30`, `z-40`, `z-50`, and `z-auto`.
 - Durations and delays: `75`, `100`, and `150`.
 - Scale: `0`, `50`, `75`, `90`, `95`, `100`, `105`, and `110`. Rotation: `0`, `1`, `2`, `3`, `6`, `12`, `45`, `90`, and `180`.
-- Not allowed: bare `transition`, `transition-all`, `animate-ping`, `animate-pulse`, and `animate-bounce`.
+- Not allowed: bare `transition`, `transition-all`, `animate-ping`, `animate-pulse`, and `animate-bounce`. Loading placeholders pulse with `skeleton`, not `animate-pulse`.
 
 ## Building blocks
 
@@ -78,6 +78,10 @@ Surfaces and feedback:
 - `lib/shared/Tooltip.svelte`: tooltips, through the `data-tooltip` attribute.
 - `transfer` and `progress-bar`: download and install progress.
 - `spinner`: the busy spinner on an icon. `lib/shared/RefreshIcon.svelte` shows the refresh icon, or the spinner while `isRefreshing` is true.
+- `skeleton` and `skeleton-line`: placeholders for content that is loading. See [Loading, empty, and error states](#loading-empty-and-error-states). `skeleton` is a pulsing block that takes its size and radius from utilities. `skeleton-line` is as tall as a line of the surrounding text and paints a bar as tall as its font.
+- `lib/shared/Skeleton.svelte`: one `skeleton-line` with a screen reader label. Pass its width with `className`.
+- `lib/shared/SkeletonList.svelte`: placeholder rows for a list, in a `role="status"` region. `lib/shared/SkeletonMediaRow.svelte` is a row with an image and two lines, and `lib/shared/SettingsRowsSkeleton.svelte` is a set of `settings-row` placeholders.
+- `lib/shared/MissingFactValue.svelte`: the value of a fact whose section has no value yet. It shows a skeleton while the section loads, "Unavailable" when it failed, and "N/A" or another empty label when the value does not apply.
 
 Content:
 
@@ -265,7 +269,11 @@ Color:
 
 ### Loading, empty, and error states
 
-- Show loading with a spinner and short text, such as "Loading accounts…". Set `aria-busy` on the region that is loading.
+- Never let loading move the layout. Content that arrives must take the place of a placeholder of the same size, not push other content.
+- Show the first load of content as a skeleton shaped like that content: `skeleton-line` for text, `skeleton` blocks for images and controls, and `SkeletonList` rows as tall as the real rows. Show the parts that are already known, such as labels, headings, and setting descriptions, as real text, and use skeletons only for the values.
+- Keep each row of a facts list, details pane, or settings list in place from the first frame. While its value loads, show a skeleton. When the value does not apply, show "N/A" in `text-fg-muted`. Use "None" when the account has nothing of that kind. When the value failed to load, show "Unavailable" in `text-fg-muted`. `MissingFactValue` does this for section-based data.
+- Give the loading region `role="status"` or `aria-busy="true"`, and give every skeleton a screen reader label, as `Skeleton` and `SkeletonList` do.
+- Use the spinner for actions in progress: a pressed button, a refresh, a list that loads more rows below its existing rows, and a pane that waits for another region to load.
 - When content refreshes, keep the existing content visible and replace the refresh icon with the spinner.
 - Build an `empty-state` from a 28px icon, a title that says what is missing, one sentence that says how to fill it, and an action button when one exists.
 - Show an error next to the thing that failed, in a `role="alert"` element. Use `OperationError` when the failure has no specific place. Use a notification for the result of background work.
@@ -366,7 +374,7 @@ These are examples, not a complete list.
 - Move an element at most 2px. The `toastMove` slide is the only exception.
 - Scale from 50% only small marks and badges, with `animate-bloom`. Scale larger surfaces from `scale-95` at most.
 - Do not use bounce, spring overshoot, slow fades, decorative loops, or staggered rows.
-- The only continuous animation is a functional busy spinner, `animate-spin`. Do not run an idle `requestAnimationFrame` loop. Apply `will-change` only to an element that is about to animate.
+- The only continuous animations are the functional loading indicators: the busy spinner, `animate-spin`, and the skeleton pulse, `animate-skeleton`, which fades a skeleton's opacity in a 1200ms loop. Do not run an idle `requestAnimationFrame` loop. Apply `will-change` only to an element that is about to animate.
 
 ## Reduced motion
 
@@ -376,5 +384,5 @@ The Animations setting in Settings > User Interface chooses System (the default)
 
 - Keep opacity and color transitions at their normal durations, so that state changes still fade instead of snapping.
 - Remove all movement: transforms, scale, slides, hover nudges, and press feedback apply instantly or not at all.
-- The spinner stops but stays visible as a static busy indicator: `motion-reduce:animate-none`.
+- The spinner and the skeleton pulse stop but stay visible as static loading indicators: `motion-reduce:animate-none`.
 - Selected, expanded, loading, success, warning, and error states stay understandable without animation.

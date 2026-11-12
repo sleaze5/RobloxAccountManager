@@ -1,16 +1,20 @@
 <script lang="ts">
 	import { SocialList } from "../backend/bridge"
+	import Skeleton from "../shared/Skeleton.svelte"
 	import type { SocialListKind } from "./social-store.svelte"
 
+	// A pending count holds its place with a placeholder until it loads.
 	let {
 		friends,
 		followers,
 		following,
+		isCountPending = () => false,
 		onShow,
 	}: {
 		friends: number | null
 		followers: number | null
 		following: number | null
+		isCountPending?: (list: SocialListKind) => boolean
 		onShow: (list: SocialListKind) => void
 	} = $props()
 
@@ -43,12 +47,15 @@
 				},
 			] as const
 		).flatMap((count) =>
-			count.value === null
+			count.value === null && !isCountPending(count.list)
 				? []
 				: [
 						{
 							...count,
-							tooltip: `Show ${exact.format(count.value)} ${count.noun}`,
+							tooltip:
+								count.value === null
+									? ""
+									: `Show ${exact.format(count.value)} ${count.noun}`,
 						},
 					],
 		),
@@ -61,19 +68,29 @@
 		role="group"
 		aria-label="Connections">
 		{#each items as count (count.list)}
-			<button
-				class="group/count flex items-baseline gap-1 rounded-sm focus-visible:outline-offset-2"
-				type="button"
-				aria-label={count.tooltip}
-				data-tooltip={count.tooltip}
-				data-tooltip-side="top"
-				onclick={() => onShow(count.list)}>
-				<span class="text-sm font-semibold text-fg tabular-nums"
-					>{compact.format(count.value ?? 0)}</span>
-				<span
-					class="text-xs text-fg-muted transition-colors duration-100 group-hover/count:text-fg"
-					>{count.label}</span>
-			</button>
+			{#if count.value === null}
+				<span class="flex items-baseline gap-1">
+					<span class="text-sm"
+						><Skeleton
+							className="w-6"
+							label={`Loading ${count.noun}`} /></span>
+					<span class="text-xs text-fg-muted">{count.label}</span>
+				</span>
+			{:else}
+				<button
+					class="group/count flex items-baseline gap-1 rounded-sm focus-visible:outline-offset-2"
+					type="button"
+					aria-label={count.tooltip}
+					data-tooltip={count.tooltip}
+					data-tooltip-side="top"
+					onclick={() => onShow(count.list)}>
+					<span class="text-sm font-semibold text-fg tabular-nums"
+						>{compact.format(count.value ?? 0)}</span>
+					<span
+						class="text-xs text-fg-muted transition-colors duration-100 group-hover/count:text-fg"
+						>{count.label}</span>
+				</button>
+			{/if}
 		{/each}
 	</div>
 {/if}

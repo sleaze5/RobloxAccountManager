@@ -1,10 +1,10 @@
 <script lang="ts">
-	import circleNotchIcon from "@phosphor-icons/core/regular/circle-notch.svg?raw"
 	import desktopIcon from "@phosphor-icons/core/regular/desktop.svg?raw"
 	import deviceMobileIcon from "@phosphor-icons/core/regular/device-mobile.svg?raw"
 	import devicesIcon from "@phosphor-icons/core/regular/devices.svg?raw"
 	import globeIcon from "@phosphor-icons/core/regular/globe.svg?raw"
 	import Icon from "../shared/Icon.svelte"
+	import SettingsRowsSkeleton from "../shared/SettingsRowsSkeleton.svelte"
 	import SensitiveValue from "../shared/SensitiveValue.svelte"
 	import Timestamp from "../shared/Timestamp.svelte"
 	import type { AccountSession } from "../backend/bridge"
@@ -50,9 +50,8 @@
 
 {#if !sessions.sessions}
 	{#if sessions.loading}
-		<div class="flex items-center gap-2 text-xs text-fg-muted" role="status">
-			<Icon svg={circleNotchIcon} class="spinner" size={16} aria-hidden="true" />
-			Loading sessions…
+		<div class="settings-section">
+			<SettingsRowsSkeleton label="Loading sessions" />
 		</div>
 	{/if}
 {:else}

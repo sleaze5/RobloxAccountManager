@@ -1,6 +1,8 @@
 <script lang="ts">
 	import circleNotchIcon from "@phosphor-icons/core/regular/circle-notch.svg?raw"
 	import Icon from "../shared/Icon.svelte"
+	import SkeletonMediaRow from "../shared/SkeletonMediaRow.svelte"
+	import SkeletonList from "../shared/SkeletonList.svelte"
 	import ChatAvatar from "./ChatAvatar.svelte"
 	import type { ChatState } from "./chat-state.svelte"
 	import { chatListTime } from "./chat-time"
@@ -34,10 +36,11 @@
 </script>
 
 {#if chat.loading && chat.conversations.length === 0}
-	<p class="flex items-center gap-2 p-2 text-xs text-fg-faint" role="status">
-		<Icon svg={circleNotchIcon} class="spinner" size={16} aria-hidden="true" />
-		Loading chats
-	</p>
+	<div class="-mx-2">
+		<SkeletonList label="Loading chats">
+			{#snippet row(index)}<SkeletonMediaRow {index} />{/snippet}
+		</SkeletonList>
+	</div>
 {:else if chat.conversations.length === 0 && !chat.error}
 	<p class="flex items-center gap-2 p-2 text-xs text-fg-faint">
 		No chats yet. Start one with New chat.
