@@ -122,6 +122,7 @@ export type {
 	Badge as GameBadge,
 	Game,
 	ListedPrivateServerPage,
+	NearbyRegion as NearbyServerRegion,
 	OwnedPrivateServer,
 	Place as GamePlace,
 	PlaceSummary as GamePlaceSummary,

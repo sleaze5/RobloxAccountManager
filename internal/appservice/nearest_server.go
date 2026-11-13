@@ -12,10 +12,9 @@ import (
 	"github.com/sleaze5/RobloxAccountManager/internal/logging"
 )
 
-const (
-	nearestServerChecksPerRegion = 5
-	nearestServerChecks          = 15
-)
+// Each join check is one Roblox request, so a region stops after a few
+// servers that cannot be joined instead of checking its whole page.
+const nearestServerChecksPerRegion = 5
 
 func (service *Service) ListServerRegions(ctx context.Context, refresh bool) ([]games.Region, error) {
 	ctx = logging.WithOperation(ctx, "rovalra-"+rand.Text())
@@ -64,59 +63,70 @@ func (service *Service) serverRegions(ctx context.Context, refresh bool) ([]rova
 	return regions, nil
 }
 
-func (service *Service) FindNearestGameServer(ctx context.Context, placeID, accountID int64) (games.NearestServer, error) {
+func (service *Service) ListNearbyServerRegions(ctx context.Context, placeID int64) ([]games.NearbyRegion, error) {
 	if err := validGameID(placeID); err != nil {
-		return games.NearestServer{}, err
-	}
-	if accountID < 0 {
-		return games.NearestServer{}, gamesInputError("The account is invalid.")
+		return nil, err
 	}
 	ctx, done, err := service.beginRoValra(ctx)
 	if err != nil {
-		return games.NearestServer{}, err
+		return nil, err
 	}
 	defer done()
 	regions, err := service.serverRegions(ctx, false)
 	if err != nil {
-		return games.NearestServer{}, err
+		return nil, err
 	}
 	preferred := service.settings.Integrations().RoValraRegion
 	origin := slices.IndexFunc(regions, func(region rovalra.Region) bool { return region.Code == preferred })
 	if origin < 0 {
-		return games.NearestServer{}, gamesInputError("Choose a preferred region in Settings under Integrations.")
+		return nil, gamesInputError("Choose a preferred region in Settings under Integrations.")
 	}
 	stats, err := service.rovalra.Stats(ctx, placeID)
 	if err != nil {
-		return games.NearestServer{}, service.rovalraError(ctx, "rovalra-stats", placeID, err)
+		return nil, service.rovalraError(ctx, "rovalra-stats", placeID, err)
 	}
-	return service.nearestServer(ctx, placeID, accountID, regionsByDistance(regions, regions[origin], stats))
+	return nearbyRegions(regions, regions[origin], stats), nil
 }
 
-func (service *Service) nearestServer(ctx context.Context, placeID, accountID int64, regions []rovalra.Region) (games.NearestServer, error) {
-	checksLeft := nearestServerChecks
-	for searched, region := range regions {
-		page, err := service.rovalra.Servers(ctx, games.RecordQuery{
-			PlaceID: placeID, Region: region.Code, Order: games.RecordOrderNewest, Limit: 100,
-		})
-		if err != nil {
-			return games.NearestServer{}, service.rovalraError(ctx, "rovalra-region-servers", placeID, err)
-		}
-		jobID, err := service.firstJoinable(ctx, placeID, accountID, page.Servers, &checksLeft)
-		if err != nil {
-			return games.NearestServer{}, service.gamesError(ctx, "game-server-join-check", err)
-		}
-		if jobID != "" {
-			service.logs.Module("integration.rovalra").DebugContext(ctx, "nearest server found", "operation", "rovalra-nearest-server", "place_id", placeID, "region", region.Code, "regions_searched", searched+1, "join_checks", nearestServerChecks-checksLeft)
-			return games.NearestServer{JobID: jobID, Region: region.Region}, nil
-		}
-		if checksLeft == 0 {
-			break
-		}
+func (service *Service) FindRegionServer(ctx context.Context, query games.RegionServerQuery) (string, error) {
+	if err := validGameID(query.PlaceID); err != nil {
+		return "", err
 	}
-	return games.NearestServer{}, gamesInputError("No open server of this place was found. Try again later.")
+	if query.AccountID < 0 {
+		return "", gamesInputError("The account is invalid.")
+	}
+	ctx, done, err := service.beginRoValra(ctx)
+	if err != nil {
+		return "", err
+	}
+	defer done()
+	regions, err := service.serverRegions(ctx, false)
+	if err != nil {
+		return "", err
+	}
+	if !slices.ContainsFunc(regions, func(region rovalra.Region) bool { return region.Code == query.Region }) {
+		return "", gamesInputError("Choose a region from the list.")
+	}
+	page, err := service.rovalra.Servers(ctx, games.RecordQuery{
+		PlaceID: query.PlaceID, Region: query.Region, Order: games.RecordOrderNewest, Limit: 100,
+	})
+	if err != nil {
+		return "", service.rovalraError(ctx, "rovalra-region-servers", query.PlaceID, err)
+	}
+	servers := slices.DeleteFunc(page.Servers, func(server games.ServerRecord) bool {
+		return slices.Contains(query.SkippedJobIDs, server.JobID)
+	})
+	jobID, err := service.firstJoinable(ctx, query.PlaceID, query.AccountID, servers)
+	if err != nil {
+		return "", service.gamesError(ctx, "game-server-join-check", err)
+	}
+	if jobID != "" {
+		service.logs.Module("integration.rovalra").DebugContext(ctx, "region server found", "operation", "rovalra-region-server", "place_id", query.PlaceID, "region", query.Region, "skipped_servers", len(query.SkippedJobIDs))
+	}
+	return jobID, nil
 }
 
-func (service *Service) firstJoinable(ctx context.Context, placeID, accountID int64, servers []games.ServerRecord, checksLeft *int) (string, error) {
+func (service *Service) firstJoinable(ctx context.Context, placeID, accountID int64, servers []games.ServerRecord) (string, error) {
 	if accountID == 0 {
 		if len(servers) == 0 {
 			return "", nil
@@ -124,10 +134,6 @@ func (service *Service) firstJoinable(ctx context.Context, placeID, accountID in
 		return servers[0].JobID, nil
 	}
 	for _, server := range servers[:min(len(servers), nearestServerChecksPerRegion)] {
-		if *checksLeft == 0 {
-			break
-		}
-		*checksLeft--
 		joinable, err := service.games.Joinable(ctx, accountID, placeID, server.JobID)
 		if err != nil || joinable {
 			return server.JobID, err
@@ -136,23 +142,28 @@ func (service *Service) firstJoinable(ctx context.Context, placeID, accountID in
 	return "", nil
 }
 
-func regionsByDistance(regions []rovalra.Region, origin rovalra.Region, stats games.ServerStats) []rovalra.Region {
-	distances := make(map[string]float64, len(stats.Regions))
-	for _, region := range stats.Regions {
-		distances[region.Code] = 0
+// nearbyRegions lists the regions that have servers of the place, with the
+// origin first and the others from nearest to farthest.
+func nearbyRegions(regions []rovalra.Region, origin rovalra.Region, stats games.ServerStats) []games.NearbyRegion {
+	serversByRegionCode := make(map[string]int64, len(stats.Regions))
+	for _, statsRegion := range stats.Regions {
+		serversByRegionCode[statsRegion.Code] += statsRegion.Servers
 	}
-	available := make([]rovalra.Region, 0, len(regions))
+	nearby := make([]games.NearbyRegion, 0, len(serversByRegionCode))
 	for _, region := range regions {
-		if _, exists := distances[region.Code]; exists {
-			distances[region.Code] = regionDistanceKilometers(origin, region)
-			available = append(available, region)
+		servers, hasServers := serversByRegionCode[region.Code]
+		if !hasServers || region.Code == origin.Code {
+			continue
 		}
+		nearby = append(nearby, games.NearbyRegion{Region: region.Region, DistanceKilometers: regionDistanceKilometers(origin, region), Servers: servers})
 	}
-	distances[origin.Code] = -1
-	slices.SortStableFunc(available, func(left, right rovalra.Region) int {
-		return cmp.Compare(distances[left.Code], distances[right.Code])
+	slices.SortStableFunc(nearby, func(left, right games.NearbyRegion) int {
+		return cmp.Compare(left.DistanceKilometers, right.DistanceKilometers)
 	})
-	return available
+	if servers, hasServers := serversByRegionCode[origin.Code]; hasServers {
+		nearby = slices.Insert(nearby, 0, games.NearbyRegion{Region: origin.Region, Servers: servers})
+	}
+	return nearby
 }
 
 func regionDistanceKilometers(from, to rovalra.Region) float64 {
