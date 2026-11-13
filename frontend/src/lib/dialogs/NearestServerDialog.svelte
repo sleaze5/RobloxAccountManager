@@ -3,7 +3,7 @@
 	import checkCircleIcon from "@phosphor-icons/core/regular/check-circle.svg?raw"
 	import xIcon from "@phosphor-icons/core/regular/x.svg?raw"
 	import { Browser } from "@wailsio/runtime"
-	import { onMount, tick } from "svelte"
+	import { tick } from "svelte"
 	import Dialog from "../shared/Dialog.svelte"
 	import Icon from "../shared/Icon.svelte"
 	import NearestServerRoute from "../layout/NearestServerRoute.svelte"
@@ -42,11 +42,6 @@
 	$effect(() => {
 		if (search.phase !== "found") return
 		void tick().then(() => useServerButton?.focus())
-	})
-
-	onMount(() => {
-		void search.start()
-		return () => search.dispose()
 	})
 </script>
 
