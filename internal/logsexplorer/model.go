@@ -74,6 +74,13 @@ type Session struct {
 	Issue        string       `json:"issue"`
 }
 
+// ServerVisit says whether the Roblox Player logs on this computer record a
+// visit to one server, by any Roblox user.
+type ServerVisit struct {
+	HasVisited      bool  `json:"hasVisited"`
+	LastVisitedAtMs int64 `json:"lastVisitedAtMs"`
+}
+
 type Snapshot struct {
 	Sessions []Session `json:"sessions"`
 }

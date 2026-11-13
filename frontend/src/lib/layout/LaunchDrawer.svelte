@@ -6,6 +6,7 @@
 	import prohibitIcon from "@phosphor-icons/core/regular/prohibit.svg?raw"
 	import Icon from "../shared/Icon.svelte"
 	import type { AccountStore } from "../accounts/account-store.svelte"
+	import type { NotificationCenter } from "../notifications/notification-center.svelte"
 	import { LaunchMethod } from "../backend/bridge"
 	import RobloxProcessesDialog from "../dialogs/RobloxProcessesDialog.svelte"
 	import { appSettings } from "../settings/settings-store.svelte"
@@ -15,8 +16,15 @@
 	import PlaceIdInput from "./PlaceIdInput.svelte"
 	import type { WorkspaceState } from "./workspace-state.svelte"
 
-	let { store, workspace }: { store: AccountStore; workspace: WorkspaceState } =
-		$props()
+	let {
+		store,
+		workspace,
+		notifications,
+	}: {
+		store: AccountStore
+		workspace: WorkspaceState
+		notifications: NotificationCenter
+	} = $props()
 	let drawer = $state<HTMLElement>()
 	let processesOpen = $state(false)
 	let measuredMethod: LaunchMethod | undefined
@@ -185,7 +193,7 @@
 									disabled={store.launching} />
 							</label>
 							{#if appSettings.roValraEnabled}
-								<NearestServerButton {store} />
+								<NearestServerButton {store} {notifications} />
 							{/if}
 						</div>
 					{:else if store.launchInput.method === LaunchMethod.MethodLink}

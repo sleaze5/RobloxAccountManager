@@ -1,17 +1,19 @@
 <script lang="ts">
 	import checkIcon from "@phosphor-icons/core/regular/check.svg?raw"
+	import clockCounterClockwiseIcon from "@phosphor-icons/core/regular/clock-counter-clockwise.svg?raw"
 	import circleNotchIcon from "@phosphor-icons/core/regular/circle-notch.svg?raw"
 	import minusIcon from "@phosphor-icons/core/regular/minus.svg?raw"
 	import skipForwardIcon from "@phosphor-icons/core/regular/skip-forward.svg?raw"
 	import xIcon from "@phosphor-icons/core/regular/x.svg?raw"
 	import Icon from "../shared/Icon.svelte"
 	import { appSettings } from "../settings/settings-store.svelte"
+	import { relativeTime } from "../shared/timestamp"
 	import type {
 		NearestServerSearch,
 		RegionCheck,
 	} from "./nearest-server-search.svelte"
 
-	type LabelAlignment = "start" | "center" | "end"
+	type TrackPosition = "previous" | "current" | "next"
 
 	let { search }: { search: NearestServerSearch } = $props()
 
@@ -21,6 +23,7 @@
 			{ length: 5 },
 			(_unused, index) => index,
 		),
+		middlePlaceholderIndex = Math.floor((placeholderServerIndexes.length - 1) / 2),
 		numberFormat = new Intl.NumberFormat()
 
 	const previousCheck = $derived(
@@ -32,6 +35,13 @@
 		nextCheck = $derived(search.regionChecks.at(search.activeRegionIndex + 1)),
 		hiddenAfterCount = $derived(
 			Math.max(search.regionChecks.length - search.activeRegionIndex - 2, 0),
+		),
+		visitLabel = $derived(
+			!search.foundServerVisit?.hasVisited
+				? ""
+				: search.foundServerVisit.lastVisitedAtMs > 0
+					? `You joined this server ${relativeTime(search.foundServerVisit.lastVisitedAtMs)}`
+					: "You joined this server before",
 		),
 		foundServerNumber = $derived(
 			(currentCheck?.servers.findIndex((server) => server.status === "found") ??
@@ -45,7 +55,13 @@
 	}
 </script>
 
-{#snippet regionNode(check: RegionCheck, isCurrent: boolean, alignment: LabelAlignment)}
+{#snippet serversLabel()}
+	<span
+		class="absolute top-full left-1/2 mt-1.5 -translate-x-1/2 text-2xs whitespace-nowrap text-fg-faint"
+		>Servers</span>
+{/snippet}
+
+{#snippet regionNode(check: RegionCheck, position: TrackPosition)}
 	<span class="relative grid shrink-0 animate-enter place-items-center">
 		<span
 			class={[
@@ -74,11 +90,14 @@
 		</span>
 		<span
 			class={[
-				"absolute top-full mt-1.5 max-w-24 truncate text-2xs font-medium whitespace-nowrap",
-				alignment === "start" && "left-0",
-				alignment === "center" && "left-1/2 -translate-x-1/2",
-				alignment === "end" && "right-0",
-				isCurrent ? "text-fg" : "text-fg-muted",
+				"absolute top-full mt-1.5 truncate text-2xs font-medium whitespace-nowrap",
+				// The current name starts at its node, so the previous name only
+				// has the width of one node and line before it.
+				position === "previous" && "left-0 max-w-14 text-fg-muted",
+				position === "current" && "left-0 max-w-24 text-fg",
+				position === "next" && "max-w-24 text-fg-muted",
+				position === "next" &&
+					(hiddenAfterCount > 0 ? "left-1/2 -translate-x-1/2" : "right-0"),
 			]}>{check.nearbyRegion.region.name}</span>
 	</span>
 {/snippet}
@@ -103,83 +122,76 @@
 	     track itself is only visual. -->
 	<div class="flex items-center gap-1.5 pb-6" aria-hidden="true">
 		{#if previousCheck}
-			{@render regionNode(previousCheck, false, "start")}
+			{@render regionNode(previousCheck, "previous")}
 			{#key currentCheck.nearbyRegion.region.code}
 				<span
-					class="min-w-4 flex-1 origin-left scale-x-100 border-t border-fg-faint transition-transform duration-150 ease-out starting:scale-x-0"
+					class="min-w-3 flex-1 origin-left scale-x-100 border-t border-fg-faint transition-transform duration-150 ease-out starting:scale-x-0"
 				></span>
 			{/key}
 		{/if}
-		{@render regionNode(currentCheck, true, previousCheck ? "center" : "start")}
-		<span class="w-4 shrink-0 border-t border-fg-faint"></span>
-		<span class="relative flex shrink-0 items-center gap-1.5">
-			{#if currentCheck.servers.length === 0}
-				{#each placeholderServerIndexes as placeholderIndex (placeholderIndex)}
-					{#if placeholderIndex > 0}
-						<span class="w-3 border-t border-dashed border-line-strong"
-						></span>
-					{/if}
-					<span
-						class="size-4 rounded-full border border-dashed border-line-strong"
-					></span>
-				{/each}
-			{:else}
-				{#each currentCheck.servers as server, serverIndex (server.jobId)}
-					{#if serverIndex > 0}
-						<span class="w-3 border-t border-dashed border-line-focus"
-						></span>
-					{/if}
-					<span
-						class={[
-							"grid size-4 animate-enter place-items-center rounded-full border transition-colors duration-100",
-							server.status === "checking" && "border-line-focus text-fg",
-							server.status === "open" &&
-								"border-line-focus text-fg-muted",
-							(server.status === "closed" ||
-								server.status === "skipped") &&
-								"border-line-strong text-fg-muted",
-							server.status === "found" &&
-								"border-success/40 bg-success/10 text-success",
-							server.status === "failed" &&
-								"border-danger/40 bg-danger/10 text-danger-muted",
-						]}>
-						{#key server.status}
-							{#if server.status === "checking"}
-								<Icon svg={circleNotchIcon} class="spinner" size={12} />
-							{:else if server.status === "open"}
-								<Icon svg={checkIcon} class="animate-pop" size={12} />
-							{:else if server.status === "found"}
-								<Icon svg={checkIcon} class="animate-bloom" size={12} />
-							{:else if server.status === "closed"}
-								<Icon svg={minusIcon} class="animate-pop" size={12} />
-							{:else if server.status === "skipped"}
-								<Icon
-									svg={skipForwardIcon}
-									class="animate-pop"
-									size={12} />
-							{:else}
-								<Icon svg={xIcon} class="animate-pop" size={12} />
-							{/if}
-						{/key}
-					</span>
-				{/each}
-			{/if}
-			{#if currentCheck.servers.length !== 1}
+		{@render regionNode(currentCheck, "current")}
+		{#if currentCheck.servers.length === 0}
+			{#each placeholderServerIndexes as placeholderIndex (placeholderIndex)}
 				<span
-					class="absolute top-full left-1/2 mt-1.5 -translate-x-1/2 text-2xs whitespace-nowrap text-fg-faint"
-					>Servers</span>
-			{/if}
-		</span>
-		{#if nextCheck}
-			<span class="min-w-4 flex-1 border-t border-dotted border-line-focus"
-			></span>
-			{@render regionNode(
-				nextCheck,
-				false,
-				hiddenAfterCount > 0 ? "center" : "end",
-			)}
+					class={[
+						"min-w-3 flex-1 border-t",
+						placeholderIndex === 0
+							? "border-fg-faint"
+							: "border-dashed border-line-strong",
+					]}></span>
+				<span
+					class="relative size-4 shrink-0 rounded-full border border-dashed border-line-strong">
+					{#if placeholderIndex === middlePlaceholderIndex}
+						{@render serversLabel()}
+					{/if}
+				</span>
+			{/each}
 		{:else}
-			<span class="flex-1"></span>
+			{#each currentCheck.servers as server, serverIndex (server.jobId)}
+				<span
+					class={[
+						"min-w-3 flex-1 border-t",
+						serverIndex === 0
+							? "border-fg-faint"
+							: "border-dashed border-line-focus",
+					]}></span>
+				<span
+					class={[
+						"relative grid size-4 shrink-0 animate-enter place-items-center rounded-full border transition-colors duration-100",
+						server.status === "checking" && "border-line-focus text-fg",
+						server.status === "open" && "border-line-focus text-fg-muted",
+						(server.status === "closed" || server.status === "skipped") &&
+							"border-line-strong text-fg-muted",
+						server.status === "found" &&
+							"border-success/40 bg-success/10 text-success",
+						server.status === "failed" &&
+							"border-danger/40 bg-danger/10 text-danger-muted",
+					]}>
+					{#key server.status}
+						{#if server.status === "checking"}
+							<Icon svg={circleNotchIcon} class="spinner" size={12} />
+						{:else if server.status === "open"}
+							<Icon svg={checkIcon} class="animate-pop" size={12} />
+						{:else if server.status === "found"}
+							<Icon svg={checkIcon} class="animate-bloom" size={12} />
+						{:else if server.status === "closed"}
+							<Icon svg={minusIcon} class="animate-pop" size={12} />
+						{:else if server.status === "skipped"}
+							<Icon svg={skipForwardIcon} class="animate-pop" size={12} />
+						{:else}
+							<Icon svg={xIcon} class="animate-pop" size={12} />
+						{/if}
+					{/key}
+					{#if currentCheck.servers.length > 1 && serverIndex === Math.floor((currentCheck.servers.length - 1) / 2)}
+						{@render serversLabel()}
+					{/if}
+				</span>
+			{/each}
+		{/if}
+		{#if nextCheck}
+			<span class="min-w-3 flex-1 border-t border-dotted border-line-focus"
+			></span>
+			{@render regionNode(nextCheck, "next")}
 		{/if}
 		{#if hiddenAfterCount > 0}
 			<span class="shrink-0 pl-1 font-mono text-2xs text-fg-faint"
@@ -201,6 +213,18 @@
 			<span class="text-xs font-medium text-success">Found</span>
 			<span class="truncate font-mono text-2xs text-fg-muted"
 				>{search.foundJobId}</span>
+			{#if visitLabel}
+				<span
+					class="grid size-5 shrink-0 animate-pop place-items-center rounded-sm text-warning"
+					role="img"
+					aria-label={visitLabel}
+					data-tooltip={visitLabel}>
+					<Icon
+						svg={clockCounterClockwiseIcon}
+						size={14}
+						aria-hidden="true" />
+				</span>
+			{/if}
 			<span class="ml-auto shrink-0 text-2xs text-fg-faint"
 				>{search.accountId === 0
 					? "Not checked"

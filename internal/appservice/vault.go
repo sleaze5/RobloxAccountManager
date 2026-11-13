@@ -103,8 +103,10 @@ func (service *Service) finishUnlock(automatic bool) {
 		service.gamesCancel()
 	}
 	service.gamesContext, service.gamesCancel = context.WithCancel(service.lifecycle)
+	logsContext := service.gamesContext
 	service.reminderDue = automatic && due
 	service.mutex.Unlock()
+	go service.readRobloxLogsAhead(logsContext)
 	service.startBackground()
 	service.browser.AllowLaunches()
 	go func() {

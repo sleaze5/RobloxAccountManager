@@ -696,7 +696,10 @@
 							{/key}
 						{/if}
 					</div>
-					<LaunchDrawer {store} {workspace} />
+					<LaunchDrawer
+						{store}
+						{workspace}
+						notifications={notificationCenter} />
 				</main>
 			</div>
 		{/if}

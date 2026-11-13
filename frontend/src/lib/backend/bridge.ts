@@ -157,6 +157,7 @@ export {
 	VisitKind,
 } from "../../../bindings/github.com/sleaze5/RobloxAccountManager/internal/logsexplorer/models.js"
 export type {
+	ServerVisit as GameServerVisit,
 	Session as LogsExplorerSession,
 	Visit as LogsExplorerVisit,
 } from "../../../bindings/github.com/sleaze5/RobloxAccountManager/internal/logsexplorer/models.js"
