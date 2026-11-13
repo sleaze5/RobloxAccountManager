@@ -3,6 +3,9 @@ import type { RobuxTransaction } from "../backend/bridge"
 import type { AccountStore } from "./account-store.svelte"
 import { AccountScope } from "./account-scope"
 import { errorMessage } from "../shared/errors"
+import { isFresh } from "../shared/freshness"
+
+const keptPageName = "robux-history"
 
 export class RobuxHistoryState {
 	transactionType = $state<RobuxTransactionType>(RobuxTransactionType.RobuxPurchases)
@@ -12,10 +15,26 @@ export class RobuxHistoryState {
 	loadingMore = $state(false)
 	error = $state("")
 	#requestCount = 0
+	#fetchedAt = 0
 	readonly #scope: AccountScope
 
 	constructor(accountId: number, store: AccountStore) {
 		this.#scope = new AccountScope(accountId, store)
+		const kept = this.#scope.readKept<{
+			transactionType: RobuxTransactionType
+			transactions: RobuxTransaction[]
+			nextCursor: string
+		}>(keptPageName)
+		if (kept) {
+			this.transactionType = kept.value.transactionType
+			this.transactions = kept.value.transactions
+			this.nextCursor = kept.value.nextCursor
+			this.#fetchedAt = kept.fetchedAt
+		}
+	}
+
+	get isFresh(): boolean {
+		return isFresh(this.#fetchedAt)
 	}
 
 	selectType(transactionType: RobuxTransactionType): void {
@@ -23,6 +42,7 @@ export class RobuxHistoryState {
 		this.transactionType = transactionType
 		this.transactions = null
 		this.nextCursor = ""
+		this.#fetchedAt = 0
 		this.loading = false
 		this.loadingMore = false
 		void this.refresh()
@@ -67,6 +87,7 @@ export class RobuxHistoryState {
 				? [...(this.transactions ?? []), ...received]
 				: received
 			this.nextCursor = page.nextCursor
+			if (!isMore) this.#fetchedAt = Date.now()
 		} catch (error) {
 			if (!isCurrentRequest()) return
 			this.error = errorMessage(
@@ -82,6 +103,16 @@ export class RobuxHistoryState {
 	}
 
 	dispose(): void {
+		if (this.transactions) {
+			this.#scope.keep(keptPageName, {
+				value: {
+					transactionType: this.transactionType,
+					transactions: this.transactions,
+					nextCursor: this.nextCursor,
+				},
+				fetchedAt: this.#fetchedAt,
+			})
+		}
 		this.#scope.dispose()
 		this.#requestCount++
 		this.transactions = null

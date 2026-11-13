@@ -1,8 +1,8 @@
 <script lang="ts">
-	import circleNotchIcon from "@phosphor-icons/core/regular/circle-notch.svg?raw"
 	import lockKeyIcon from "@phosphor-icons/core/regular/lock-key.svg?raw"
 	import warningIcon from "@phosphor-icons/core/regular/warning.svg?raw"
 	import Icon from "../shared/Icon.svelte"
+	import ServerListSkeleton from "./ServerListSkeleton.svelte"
 	import ServerActionsButton from "./ServerActionsButton.svelte"
 	import { openServerMenuFromRow } from "./server-row-menu"
 	import type { ServerMenuOpener } from "./server-row-menu"
@@ -34,10 +34,7 @@
 				>Try again</button>
 		</div>
 	{:else if !servers.page}
-		<div class="empty-state" role="status">
-			<Icon svg={circleNotchIcon} class="spinner" size={28} aria-hidden="true" />
-			<h2>Loading servers…</h2>
-		</div>
+		<ServerListSkeleton label="Loading RBXServers servers" />
 	{:else if !shown.length}
 		<div class="empty-state" role="status">
 			<Icon svg={lockKeyIcon} size={28} aria-hidden="true" />

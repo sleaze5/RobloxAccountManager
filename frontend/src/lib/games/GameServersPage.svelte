@@ -24,15 +24,7 @@
 	import RBXServersList from "./RBXServersList.svelte"
 	import RecordedServerList from "./RecordedServerList.svelte"
 	import RobloxServerList from "./RobloxServerList.svelte"
-	import {
-		GameServers,
-		ListedServers,
-		PrivateServers,
-		RecordedServers,
-		SavedServers,
-		type ServerSource,
-		ServerStatsLoader,
-	} from "./game-servers-state.svelte"
+	import type { ServerSource } from "./game-servers-state.svelte"
 	import type { GamesStore } from "./games-store.svelte"
 
 	let {
@@ -75,30 +67,15 @@
 	]
 
 	const place = untrack(() => store.selected!),
-		robloxServers = untrack(
-			() =>
-				new GameServers(
-					place.placeId,
-					store.serverPages,
-					() => appSettings.roValraEnabled,
-				),
+		placeServers = untrack(() =>
+			store.serversFor(place.placeId, accounts.selectedAccount.id),
 		),
-		recordedServers = untrack(
-			() => new RecordedServers(place.placeId, store.recordPages),
-		),
-		privateServers = untrack(
-			() =>
-				new PrivateServers(
-					place.placeId,
-					store.privatePages,
-					() => accounts.selectedAccount.id,
-				),
-		),
-		listedServers = untrack(
-			() => new ListedServers(place.placeId, store.listedPages),
-		),
-		savedServers = untrack(() => new SavedServers(place.placeId)),
-		stats = untrack(() => new ServerStatsLoader(place.placeId)),
+		robloxServers = placeServers.roblox,
+		recordedServers = placeServers.recorded,
+		privateServers = placeServers.private,
+		listedServers = placeServers.listed,
+		savedServers = placeServers.saved,
+		stats = placeServers.stats,
 		menuID = $props.id()
 	let heading = $state<HTMLHeadingElement | undefined>(undefined),
 		activeMenu = $state<{
@@ -137,37 +114,28 @@
 		openKey = $derived(activeMenu?.open ? activeMenu.key : undefined),
 		menuActions = $derived(activeMenu ? actionsFor(activeMenu.key) : [])
 
+	// The store keeps the server lists after the page closes, so that it
+	// reopens on the same source, options, and page. Opening a list shows its
+	// kept page and requests it again only when that page is no longer fresh.
 	onMount(() => {
 		heading?.focus({ preventScroll: true })
-		return () => {
-			robloxServers.dispose()
-			recordedServers.dispose()
-			privateServers.dispose()
-			listedServers.dispose()
-			savedServers.dispose()
-			stats.dispose()
-		}
+	})
+
+	// The account effect runs first, so that the private list never loads the
+	// servers of the account that was selected when the page last closed.
+	$effect(() => {
+		const accountId = accounts.selectedAccount.id
+		untrack(() => privateServers.showAccount(accountId, active === privateServers))
 	})
 
 	$effect(() => {
-		const current = active,
-			accountId = accounts.selectedAccount.id
+		const current = active
 		untrack(() => {
 			if (current === privateServers && !savedServers.servers) {
 				void savedServers.load()
 			}
-			if (current === privateServers && accountId === 0) return
-			if (!current.page && !current.loading) void current.load()
-		})
-	})
-
-	$effect(() => {
-		const accountId = accounts.selectedAccount.id
-		untrack(() => {
-			if (accountId && (privateServers.page || privateServers.error)) {
-				privateServers.page = null
-				privateServers.first()
-			}
+			if (current === privateServers && accounts.selectedAccount.id === 0) return
+			void current.load()
 		})
 	})
 
@@ -179,14 +147,23 @@
 	$effect(() => {
 		void appSettings.roValraEnabled
 		untrack(() => {
-			if (robloxServers.page) void robloxServers.load()
+			if (active === robloxServers && robloxServers.page)
+				void robloxServers.load()
 		})
 	})
 
+	// Only the Roblox and RoValra lists show the stats.
 	$effect(() => {
+		const current = active
 		if (appSettings.roValraEnabled) {
 			untrack(() => {
-				if (!stats.stats && !stats.loading) void stats.load()
+				if (
+					(current === robloxServers || current === recordedServers) &&
+					!stats.isFresh &&
+					!stats.loading
+				) {
+					void stats.load()
+				}
 			})
 		}
 	})

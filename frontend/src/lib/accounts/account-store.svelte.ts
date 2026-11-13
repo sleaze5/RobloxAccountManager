@@ -22,12 +22,14 @@ import type {
 import { accountFromView, accountWithPresence, emptyAccount } from "./account-model"
 import type { Account } from "./account-model"
 import { AccountProfileState } from "./account-profile-state.svelte"
+import type { KeptPageData } from "./account-scope"
 import { isValidTagName, tagNameError } from "./tag-name"
 import { appSettings } from "../settings/settings-store.svelte"
 import type { NotificationCenter } from "../notifications/notification-center.svelte"
 import { notifyCopied } from "../shared/clipboard"
 import { coalesce } from "../shared/coalesce"
 import { errorMessage } from "../shared/errors"
+import { detailsKeepMs } from "../shared/freshness"
 
 const operationError = "The operation failed.",
 	presenceRefreshError = "Account presence could not be refreshed."
@@ -81,6 +83,12 @@ export class AccountStore {
 	#remoteDataVersion = 0
 	#accountListVersion = 0
 	readonly #profiles = new Map<number, AccountProfileState>()
+	// Each kept entry has a timer that removes it once it is older than the
+	// keep time, so that no page data stays in memory longer.
+	readonly #keptPageDataByAccountId = new Map<
+		number,
+		Map<string, { kept: KeptPageData<unknown>; expiryTimer: number }>
+	>()
 	#presenceRequest = 0
 	#filterTimer = 0
 	#importSummary: { created: number; updated: number } | null = null
@@ -191,6 +199,75 @@ export class AccountStore {
 			this.#profiles.set(accountId, profile)
 		}
 		return profile
+	}
+
+	// readKeptPageData also removes an expired entry, in case its timer was
+	// delayed.
+	readKeptPageData(
+		accountId: number,
+		pageName: string,
+	): KeptPageData<unknown> | null {
+		const entry = this.#keptPageDataByAccountId.get(accountId)?.get(pageName)
+		if (entry && Date.now() - entry.kept.fetchedAt < detailsKeepMs) {
+			return entry.kept
+		}
+		this.forgetPageData(accountId, pageName)
+		return null
+	}
+
+	// remoteDataVersion changes each time the vault locks.
+	get remoteDataVersion(): number {
+		return this.#remoteDataVersion
+	}
+
+	// keepPageData replaces what the page kept before. It keeps nothing for a
+	// removed account, or when the vault locked after the page opened, because a
+	// page can close only after the vault is unlocked again.
+	keepPageData(
+		accountId: number,
+		pageName: string,
+		kept: KeptPageData<unknown>,
+		openedInRemoteDataVersion: number,
+	): void {
+		this.forgetPageData(accountId, pageName)
+		const keepMs = kept.fetchedAt + detailsKeepMs - Date.now()
+		if (
+			keepMs <= 0 ||
+			openedInRemoteDataVersion !== this.#remoteDataVersion ||
+			!this.vault.unlocked ||
+			!this.accounts.some((account) => account.id === accountId)
+		) {
+			return
+		}
+		let keptByPageName = this.#keptPageDataByAccountId.get(accountId)
+		if (!keptByPageName) {
+			keptByPageName = new Map()
+			this.#keptPageDataByAccountId.set(accountId, keptByPageName)
+		}
+		keptByPageName.set(pageName, {
+			kept,
+			expiryTimer: window.setTimeout(
+				() => this.forgetPageData(accountId, pageName),
+				keepMs,
+			),
+		})
+	}
+
+	forgetPageData(accountId: number, pageName: string): void {
+		const keptByPageName = this.#keptPageDataByAccountId.get(accountId),
+			entry = keptByPageName?.get(pageName)
+		if (!keptByPageName || !entry) return
+		window.clearTimeout(entry.expiryTimer)
+		keptByPageName.delete(pageName)
+		if (keptByPageName.size === 0) this.#keptPageDataByAccountId.delete(accountId)
+	}
+
+	#forgetAccountPageData(accountId: number): void {
+		for (const entry of this.#keptPageDataByAccountId.get(accountId)?.values() ??
+			[]) {
+			window.clearTimeout(entry.expiryTimer)
+		}
+		this.#keptPageDataByAccountId.delete(accountId)
 	}
 
 	mount(): () => void {
@@ -1135,14 +1212,22 @@ export class AccountStore {
 		this.presencesRefreshedAt = 0
 	}
 
-	#removeProfile(accountId: number): void {
+	forgetAccountProfile(accountId: number): void {
 		this.#profiles.get(accountId)?.dispose()
 		this.#profiles.delete(accountId)
+	}
+
+	#removeProfile(accountId: number): void {
+		this.forgetAccountProfile(accountId)
+		this.#forgetAccountPageData(accountId)
 	}
 
 	#clearProfiles(): void {
 		for (const profile of this.#profiles.values()) profile.dispose()
 		this.#profiles.clear()
+		for (const accountId of [...this.#keptPageDataByAccountId.keys()]) {
+			this.#forgetAccountPageData(accountId)
+		}
 	}
 }
 

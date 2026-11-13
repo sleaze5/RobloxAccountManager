@@ -84,6 +84,7 @@
 	--animate-enter: enter 100ms var(--ease-out);
 	--animate-pop: pop 100ms var(--ease-out);
 	--animate-bloom: bloom 150ms var(--ease-out);
+	--animate-skeleton: skeleton 1200ms var(--ease-in-out) infinite;
 
 	@keyframes fade {
 		from {
@@ -109,6 +110,12 @@
 		from {
 			opacity: 0;
 			scale: 0.5;
+		}
+	}
+
+	@keyframes skeleton {
+		50% {
+			opacity: 0.4;
 		}
 	}
 }

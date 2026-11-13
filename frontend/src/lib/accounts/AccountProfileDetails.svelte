@@ -16,22 +16,43 @@
 	import shieldCheckIcon from "@phosphor-icons/core/regular/shield-check.svg?raw"
 	import shieldSlashIcon from "@phosphor-icons/core/regular/shield-slash.svg?raw"
 	import userCircleIcon from "@phosphor-icons/core/regular/user-circle.svg?raw"
+	import microphoneSlashIcon from "@phosphor-icons/core/regular/microphone-slash.svg?raw"
+	import usersThreeIcon from "@phosphor-icons/core/regular/users-three.svg?raw"
 	import warningCircleIcon from "@phosphor-icons/core/regular/warning-circle.svg?raw"
 	import Icon from "../shared/Icon.svelte"
-	import { AgeVerification, ModerationKind, SessionState } from "../backend/bridge"
+	import {
+		AccountProfileSection,
+		AgeVerification,
+		ModerationKind,
+		SessionState,
+	} from "../backend/bridge"
 	import { moderationLabel, resolvesInBrowser } from "./moderation.svelte"
 	import type { AccountProfileSnapshot } from "../backend/bridge"
 	import PrimaryGroupFact from "../shared/PrimaryGroupFact.svelte"
+	import type { SectionLoad } from "../shared/section-load.svelte"
+	import MissingFactValue from "../shared/MissingFactValue.svelte"
 	import Timestamp from "../shared/Timestamp.svelte"
 	import { relativeTime } from "../shared/timestamp"
 	import { ageVerificationLabels } from "./account-model"
 	import type { Account } from "./account-model"
 	import AccountVoiceChat from "./AccountVoiceChat.svelte"
 
+	// The profile rows stay in place while their sections load, so that the
+	// page does not move when a value arrives. Without sections, such as for a
+	// moderated account, only the saved account details show.
 	let {
 		account,
 		snapshot,
-	}: { account: Account; snapshot: AccountProfileSnapshot | null } = $props()
+		sections,
+	}: {
+		account: Account
+		snapshot: AccountProfileSnapshot | null
+		sections: SectionLoad<AccountProfileSnapshot, AccountProfileSection> | null
+	} = $props()
+
+	function isLoaded(section: AccountProfileSection): boolean {
+		return !!sections?.hasSection(section)
+	}
 
 	const regions = new Intl.DisplayNames(undefined, { type: "region" }),
 		verificationMethods: Record<string, string> = {
@@ -146,6 +167,10 @@
 		})
 </script>
 
+{#snippet missing(section: AccountProfileSection, emptyLabel = "N/A")}
+	{#if sections}<MissingFactValue {sections} {section} {emptyLabel} />{/if}
+{/snippet}
+
 <section class="flex flex-col gap-2" aria-labelledby="profile-account-heading">
 	<h3 id="profile-account-heading" class="text-xs font-semibold text-fg-muted">
 		Account
@@ -175,8 +200,18 @@
 					<small class="font-mono">{snapshot?.countryCode}</small>
 				</dd>
 			</div>
+		{:else if sections}
+			<div>
+				<dt>
+					<Icon
+						svg={globeHemisphereWestIcon}
+						size={16}
+						aria-hidden="true" />Country
+				</dt>
+				<dd>{@render missing(AccountProfileSection.ProfileSectionAccount)}</dd>
+			</div>
 		{/if}
-		{#if age || ageVerification}
+		{#if (age || ageVerification) && isLoaded(AccountProfileSection.ProfileSectionAge)}
 			<div>
 				<dt>
 					{#if snapshot?.ageVerification === AgeVerification.AgeVerifiedFaceScan || snapshot?.ageVerification === AgeVerification.AgeVerifiedID}<Icon
@@ -193,8 +228,15 @@
 					{#if ageVerification}<small>{ageVerification}</small>{/if}
 				</dd>
 			</div>
+		{:else if sections}
+			<div>
+				<dt>
+					<Icon svg={userCircleIcon} size={16} aria-hidden="true" />Age group
+				</dt>
+				<dd>{@render missing(AccountProfileSection.ProfileSectionAge)}</dd>
+			</div>
 		{/if}
-		{#if snapshot && snapshot.twoStepEnabled !== null}
+		{#if snapshot && snapshot.twoStepEnabled !== null && isLoaded(AccountProfileSection.ProfileSectionTwoStep)}
 			<div data-tone={snapshot.twoStepEnabled ? undefined : "warning"}>
 				<dt>
 					{#if snapshot.twoStepEnabled}<Icon
@@ -211,16 +253,47 @@
 					{#if methods}<small>{methods}</small>{/if}
 				</dd>
 			</div>
+		{:else if sections}
+			<div>
+				<dt>
+					<Icon svg={shieldCheckIcon} size={16} aria-hidden="true" />2-step
+					verification
+				</dt>
+				<dd>{@render missing(AccountProfileSection.ProfileSectionTwoStep)}</dd>
+			</div>
 		{/if}
-		{#if snapshot?.voiceChat}
+		{#if snapshot?.voiceChat && isLoaded(AccountProfileSection.ProfileSectionVoiceChat)}
 			<AccountVoiceChat voiceChat={snapshot.voiceChat} label="Voice chat" />
+		{:else if sections}
+			<div>
+				<dt>
+					<Icon svg={microphoneSlashIcon} size={16} aria-hidden="true" />Voice
+					chat
+				</dt>
+				<dd>
+					{@render missing(AccountProfileSection.ProfileSectionVoiceChat)}
+				</dd>
+			</div>
 		{/if}
-		{#if snapshot?.primaryGroup}
+		{#if snapshot?.primaryGroup && isLoaded(AccountProfileSection.ProfileSectionPrimaryGroup)}
 			<PrimaryGroupFact group={snapshot.primaryGroup} />
+		{:else if sections}
+			<div>
+				<dt>
+					<Icon svg={usersThreeIcon} size={16} aria-hidden="true" />Primary
+					group
+				</dt>
+				<dd>
+					{@render missing(
+						AccountProfileSection.ProfileSectionPrimaryGroup,
+						"None",
+					)}
+				</dd>
+			</div>
 		{/if}
-		{#if snapshot?.premiumSubscription}
+		{#if snapshot?.premiumSubscription && isLoaded(AccountProfileSection.ProfileSectionPremium)}
 			{@const subscription = snapshot.premiumSubscription}
-			<div class="animate-enter">
+			<div>
 				<dt>
 					<Icon
 						svg={crownSimpleIcon}
@@ -244,36 +317,67 @@
 							.join(" - ")}</small>
 				</dd>
 			</div>
+		{:else if sections}
+			<div>
+				<dt>
+					<Icon svg={crownSimpleIcon} size={16} aria-hidden="true" />Premium
+				</dt>
+				<dd>{@render missing(AccountProfileSection.ProfileSectionPremium)}</dd>
+			</div>
 		{/if}
-		{#if trading}
-			<div
-				class="animate-enter"
-				data-tone={trading.isWarning ? "warning" : undefined}>
+		{#if trading && isLoaded(AccountProfileSection.ProfileSectionTrading)}
+			<div data-tone={trading.isWarning ? "warning" : undefined}>
 				<dt><Icon svg={swapIcon} size={16} aria-hidden="true" />Trading</dt>
 				<dd>
 					<span>{trading.label}</span>
 					{#if trading.detail}<small>{trading.detail}</small>{/if}
 				</dd>
 			</div>
+		{:else if sections}
+			<div>
+				<dt><Icon svg={swapIcon} size={16} aria-hidden="true" />Trading</dt>
+				<dd>{@render missing(AccountProfileSection.ProfileSectionTrading)}</dd>
+			</div>
 		{/if}
-		{#if snapshot && snapshot.communityCount !== null}
-			<div class="animate-enter">
+		{#if snapshot && snapshot.communityCount !== null && isLoaded(AccountProfileSection.ProfileSectionCommunities)}
+			<div>
 				<dt>
 					<Icon svg={usersFourIcon} size={16} aria-hidden="true" />Communities
 				</dt>
 				<dd><span>{exactNumbers.format(snapshot.communityCount)}</span></dd>
 			</div>
+		{:else if sections}
+			<div>
+				<dt>
+					<Icon svg={usersFourIcon} size={16} aria-hidden="true" />Communities
+				</dt>
+				<dd>
+					{@render missing(AccountProfileSection.ProfileSectionCommunities)}
+				</dd>
+			</div>
 		{/if}
-		{#if snapshot?.robloxBadges?.length}
-			<div class="animate-enter">
+		{#if snapshot?.robloxBadges?.length && isLoaded(AccountProfileSection.ProfileSectionRobloxBadges)}
+			<div>
 				<dt>
 					<Icon svg={medalIcon} size={16} aria-hidden="true" />Roblox badges
 				</dt>
 				<dd><span>{snapshot.robloxBadges.join(", ")}</span></dd>
 			</div>
+		{:else if sections}
+			<div>
+				<dt>
+					<Icon svg={medalIcon} size={16} aria-hidden="true" />Roblox badges
+				</dt>
+				<dd>
+					{@render missing(
+						AccountProfileSection.ProfileSectionRobloxBadges,
+						"None",
+					)}
+				</dd>
+			</div>
 		{/if}
-		{#if snapshot && snapshot.collectibleCount !== null}
-			<div class="animate-enter">
+		{#if snapshot && snapshot.collectibleCount !== null && isLoaded(AccountProfileSection.ProfileSectionCollectibles)}
+			<div>
 				<dt>
 					<Icon svg={diamondIcon} size={16} aria-hidden="true" />Collectibles
 				</dt>
@@ -287,6 +391,15 @@
 								snapshot.collectibleRecentAveragePriceTotal,
 							)}</small
 						>{/if}
+				</dd>
+			</div>
+		{:else if sections}
+			<div>
+				<dt>
+					<Icon svg={diamondIcon} size={16} aria-hidden="true" />Collectibles
+				</dt>
+				<dd>
+					{@render missing(AccountProfileSection.ProfileSectionCollectibles)}
 				</dd>
 			</div>
 		{/if}

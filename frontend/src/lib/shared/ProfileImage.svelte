@@ -12,6 +12,7 @@
 		class="block size-full bg-raised object-cover"
 		src={url}
 		alt=""
+		loading="lazy"
 		decoding="async"
 		draggable="false"
 		referrerpolicy="no-referrer"

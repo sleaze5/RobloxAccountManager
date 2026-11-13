@@ -34,7 +34,7 @@
 	}
 
 	async function loadChats(userIdToOpen: number): Promise<void> {
-		await chat.refresh()
+		if (!chat.isFresh) await chat.refresh()
 		if (userIdToOpen && !(await chat.create([userIdToOpen], ""))) {
 			chat.error = chat.createError
 			chat.createError = ""

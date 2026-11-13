@@ -1,6 +1,7 @@
 <script lang="ts">
 	import circleNotchIcon from "@phosphor-icons/core/regular/circle-notch.svg?raw"
 	import Icon from "../shared/Icon.svelte"
+	import SettingsRowsSkeleton from "../shared/SettingsRowsSkeleton.svelte"
 	import type { BlockedUser } from "../backend/bridge"
 	import ProfileImage from "../shared/ProfileImage.svelte"
 	import type { BlockedUsersState } from "./blocked-users-state.svelte"
@@ -18,9 +19,8 @@
 
 {#if !blocked.users}
 	{#if blocked.loading}
-		<div class="flex items-center gap-2 text-xs text-fg-muted" role="status">
-			<Icon svg={circleNotchIcon} class="spinner" size={16} aria-hidden="true" />
-			Loading blocked users
+		<div class="settings-section">
+			<SettingsRowsSkeleton label="Loading blocked users" />
 		</div>
 	{/if}
 {:else if blocked.users.length === 0}

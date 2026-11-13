@@ -3,16 +3,33 @@ import type { OwnedPrivateServer, PrivateServerSettings } from "../backend/bridg
 import type { AccountStore } from "./account-store.svelte"
 import { AccountScope } from "./account-scope"
 import { errorMessage } from "../shared/errors"
+import { isFresh } from "../shared/freshness"
+
+const keptPageName = "owned-private-servers"
 
 export class OwnedPrivateServersState {
 	servers = $state<OwnedPrivateServer[] | null>(null)
 	nextCursor = $state("")
 	loading = $state(false)
 	error = $state("")
+	#fetchedAt = 0
 	readonly #scope: AccountScope
 
 	constructor(accountId: number, store: AccountStore) {
 		this.#scope = new AccountScope(accountId, store)
+		const kept = this.#scope.readKept<{
+			servers: OwnedPrivateServer[]
+			nextCursor: string
+		}>(keptPageName)
+		if (kept) {
+			this.servers = kept.value.servers
+			this.nextCursor = kept.value.nextCursor
+			this.#fetchedAt = kept.fetchedAt
+		}
+	}
+
+	get isFresh(): boolean {
+		return isFresh(this.#fetchedAt)
 	}
 
 	refresh(): Promise<void> {
@@ -50,6 +67,7 @@ export class OwnedPrivateServersState {
 				...(page.servers ?? []).filter((server) => !known.has(server.serverId)),
 			]
 			this.nextCursor = page.nextCursor
+			if (!cursor) this.#fetchedAt = Date.now()
 		} catch (error) {
 			if (!this.#scope.isCurrent) return
 			this.error = errorMessage(
@@ -62,6 +80,12 @@ export class OwnedPrivateServersState {
 	}
 
 	dispose(): void {
+		if (this.servers) {
+			this.#scope.keep(keptPageName, {
+				value: { servers: this.servers, nextCursor: this.nextCursor },
+				fetchedAt: this.#fetchedAt,
+			})
+		}
 		this.#scope.dispose()
 		this.servers = null
 		this.nextCursor = ""

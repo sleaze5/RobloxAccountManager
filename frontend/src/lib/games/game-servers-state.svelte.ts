@@ -14,7 +14,9 @@ import type {
 	PrivateServerPage,
 	SavedPrivateServer,
 } from "../backend/bridge"
+import { appSettings } from "../settings/settings-store.svelte"
 import { errorMessage } from "../shared/errors"
+import { detailsKeepMs, isFresh } from "../shared/freshness"
 
 export type ServerSource = "roblox" | "private" | "rovalra" | "rbxservers"
 export type ServerPageSize = 10 | 25 | 50 | 100
@@ -26,17 +28,22 @@ const serverPageFreshMs = 30_000,
 type PageKey = { placeId: number } & Record<string, string | number | boolean>
 type CancellableRequest<T> = Promise<T> & { cancel(): unknown }
 
+// A page stays after it stops being fresh, so that a revisit shows it at once
+// while it refreshes.
 export class ServerPageCache<Page> {
 	readonly #pages = new Map<
 		string,
 		{ placeId: number; page: Page; fetchedAt: number }
 	>()
 
-	get(key: PageKey): Page | null {
+	get(key: PageKey): { page: Page; isFresh: boolean } | null {
 		const id = JSON.stringify(key),
 			entry = this.#pages.get(id)
 		if (!entry) return null
-		if (Date.now() - entry.fetchedAt < serverPageFreshMs) return entry.page
+		const ageMs = Date.now() - entry.fetchedAt
+		if (ageMs < detailsKeepMs) {
+			return { page: entry.page, isFresh: ageMs < serverPageFreshMs }
+		}
 		this.#pages.delete(id)
 		return null
 	}
@@ -44,7 +51,7 @@ export class ServerPageCache<Page> {
 	set(key: PageKey, page: Page): void {
 		const now = Date.now()
 		for (const [id, entry] of this.#pages) {
-			if (now - entry.fetchedAt >= serverPageFreshMs) this.#pages.delete(id)
+			if (now - entry.fetchedAt >= detailsKeepMs) this.#pages.delete(id)
 		}
 		const id = JSON.stringify(key)
 		this.#pages.delete(id)
@@ -74,6 +81,7 @@ abstract class ServerPager<Cursor extends string | number, Page> {
 	#cursors: Cursor[]
 	#pageNumber = $state(1)
 	#request: CancellableRequest<Page> | null = null
+	#requestKeyId = ""
 
 	constructor(
 		readonly placeId: number,
@@ -118,21 +126,38 @@ abstract class ServerPager<Cursor extends string | number, Page> {
 		void this.load()
 	}
 
-	async load(): Promise<void> {
+	// clear forgets the shown page and goes back to the first page without
+	// loading it.
+	protected clear(): void {
 		void this.#request?.cancel()
 		this.#request = null
+		this.#cursors = [this.firstCursor]
+		this.#pageNumber = 1
+		this.page = null
+		this.loading = false
+		this.error = ""
+	}
+
+	// load shows the cached page at once. It requests the page when the cache
+	// has no fresh copy, unless that request is already running.
+	async load(): Promise<void> {
 		this.#pageNumber = this.#cursors.length
 		const key = this.key(this.#cursors.at(-1) ?? this.firstCursor),
+			keyId = JSON.stringify(key),
 			cached = this.cache.get(key)
+		if (this.#request && this.#requestKeyId === keyId) return
+		void this.#request?.cancel()
+		this.#request = null
 		this.error = ""
-		if (cached) {
-			this.page = cached
+		if (cached) this.page = cached.page
+		if (cached?.isFresh) {
 			this.loading = false
 			return
 		}
 		this.loading = true
 		const request = this.fetch(key)
 		this.#request = request
+		this.#requestKeyId = keyId
 		try {
 			const page = await request
 			if (this.#request !== request) return
@@ -267,16 +292,28 @@ export class RecordedServers extends ServerPager<number, GameServerRecordPage> {
 }
 
 export class PrivateServers extends ServerPager<string, PrivateServerPage> {
+	#accountId: number
+
 	constructor(
 		placeId: number,
 		cache: ServerPageCache<PrivateServerPage>,
-		private readonly accountId: () => number,
+		accountId: number,
 	) {
 		super(placeId, "", cache)
+		this.#accountId = accountId
+	}
+
+	// showAccount lists the private servers of another account, and loads them
+	// only while the list is visible.
+	showAccount(accountId: number, isVisible: boolean): void {
+		if (accountId === this.#accountId) return
+		this.#accountId = accountId
+		this.clear()
+		if (isVisible && accountId) void this.load()
 	}
 
 	protected key(cursor: string): PageKey {
-		return { placeId: this.placeId, cursor, accountId: this.accountId() }
+		return { placeId: this.placeId, cursor, accountId: this.#accountId }
 	}
 
 	protected fetch(key: PageKey): CancellableRequest<PrivateServerPage> {
@@ -443,9 +480,14 @@ export class ServerStatsLoader {
 	stats = $state<GameServerStats | null>(null)
 	loading = $state(false)
 	failed = $state(false)
+	#fetchedAt = 0
 	#request: ReturnType<typeof accountBackend.GetGameServerStats> | null = null
 
 	constructor(readonly placeId: number) {}
+
+	get isFresh(): boolean {
+		return isFresh(this.#fetchedAt)
+	}
 
 	async load(): Promise<void> {
 		void this.#request?.cancel()
@@ -455,7 +497,10 @@ export class ServerStatsLoader {
 		this.failed = false
 		try {
 			const stats = await request
-			if (this.#request === request) this.stats = stats
+			if (this.#request === request) {
+				this.stats = stats
+				this.#fetchedAt = Date.now()
+			}
 		} catch {
 			if (this.#request === request) this.failed = true
 		} finally {
@@ -469,6 +514,49 @@ export class ServerStatsLoader {
 	dispose(): void {
 		void this.#request?.cancel()
 		this.#request = null
+	}
+}
+
+// PlaceServers holds the server lists of one place. The games store keeps it
+// while the place stays selected, so that the Servers page reopens with its
+// source, options, and pages.
+export class PlaceServers {
+	readonly roblox: GameServers
+	readonly recorded: RecordedServers
+	readonly private: PrivateServers
+	readonly listed: ListedServers
+	readonly saved: SavedServers
+	readonly stats: ServerStatsLoader
+
+	constructor(
+		readonly placeId: number,
+		accountId: number,
+		caches: {
+			serverPages: ServerPageCache<GameServerPage>
+			recordPages: ServerPageCache<GameServerRecordPage>
+			privatePages: ServerPageCache<PrivateServerPage>
+			listedPages: ServerPageCache<ListedPrivateServerPage>
+		},
+	) {
+		this.roblox = new GameServers(
+			placeId,
+			caches.serverPages,
+			() => appSettings.roValraEnabled,
+		)
+		this.recorded = new RecordedServers(placeId, caches.recordPages)
+		this.private = new PrivateServers(placeId, caches.privatePages, accountId)
+		this.listed = new ListedServers(placeId, caches.listedPages)
+		this.saved = new SavedServers(placeId)
+		this.stats = new ServerStatsLoader(placeId)
+	}
+
+	dispose(): void {
+		this.roblox.dispose()
+		this.recorded.dispose()
+		this.private.dispose()
+		this.listed.dispose()
+		this.saved.dispose()
+		this.stats.dispose()
 	}
 }
 

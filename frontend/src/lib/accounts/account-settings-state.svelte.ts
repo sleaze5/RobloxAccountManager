@@ -11,6 +11,9 @@ import type { NotificationCenter } from "../notifications/notification-center.sv
 import { AccountScope } from "./account-scope"
 import type { AccountStore } from "./account-store.svelte"
 import { errorMessage } from "../shared/errors"
+import { isFresh } from "../shared/freshness"
+
+const keptPageName = "account-settings"
 
 export class AccountSettingsState {
 	snapshot = $state<AccountSettingsSnapshot | null>(null)
@@ -24,6 +27,7 @@ export class AccountSettingsState {
 		success: boolean
 	} | null>(null)
 	#generation = 0
+	#fetchedAt = 0
 	readonly #scope: AccountScope
 	readonly #store: AccountStore
 	readonly #notifications: NotificationCenter
@@ -36,6 +40,15 @@ export class AccountSettingsState {
 		this.#scope = new AccountScope(accountId, store)
 		this.#store = store
 		this.#notifications = notifications
+		const kept = this.#scope.readKept<AccountSettingsSnapshot>(keptPageName)
+		if (kept) {
+			this.snapshot = kept.value
+			this.#fetchedAt = kept.fetchedAt
+		}
+	}
+
+	get isFresh(): boolean {
+		return isFresh(this.#fetchedAt)
 	}
 
 	#current(generation: number): boolean {
@@ -60,6 +73,7 @@ export class AccountSettingsState {
 			}
 			this.snapshot = snapshot
 			this.refreshRequired = false
+			this.#fetchedAt = Date.now()
 		} catch (error) {
 			if (!this.#current(generation)) return
 			this.error = errorMessage(
@@ -86,6 +100,10 @@ export class AccountSettingsState {
 		) {
 			return
 		}
+		// The kept settings stop being trusted once a save starts. dispose keeps
+		// them again only after the save is confirmed, so a page that reopens
+		// after an unconfirmed save loads the settings before allowing edits.
+		this.#scope.forgetKept(keptPageName)
 		const generation = ++this.#generation,
 			change: AccountSettingChange = {
 				key: current.key,
@@ -155,7 +173,15 @@ export class AccountSettingsState {
 		})
 	}
 
+	// A snapshot that needs a refresh is not kept, because a save left its
+	// values unconfirmed.
 	dispose(): void {
+		if (this.snapshot && !this.refreshRequired && this.saving === null) {
+			this.#scope.keep(keptPageName, {
+				value: this.snapshot,
+				fetchedAt: this.#fetchedAt,
+			})
+		}
 		this.#scope.dispose()
 		this.#generation++
 		this.snapshot = null

@@ -11,6 +11,8 @@
 	import warningIcon from "@phosphor-icons/core/regular/warning.svg?raw"
 	import xIcon from "@phosphor-icons/core/regular/x.svg?raw"
 	import Icon from "../shared/Icon.svelte"
+	import SkeletonList from "../shared/SkeletonList.svelte"
+	import SkeletonMediaRow from "../shared/SkeletonMediaRow.svelte"
 	import type { AccountStore } from "../accounts/account-store.svelte"
 	import WorkbenchSidebar from "../layout/WorkbenchSidebar.svelte"
 	import type { WorkspaceState } from "../layout/workspace-state.svelte"
@@ -282,6 +284,14 @@
 					aria-busy={favoritesMode
 						? store.loadingFavorites
 						: store.searching}>
+					{#if store.places.length === 0 && (favoritesMode ? store.loadingFavorites : store.searching)}
+						<SkeletonList
+							label={favoritesMode
+								? "Loading favorites"
+								: "Searching games"}>
+							{#snippet row(index)}<SkeletonMediaRow {index} />{/snippet}
+						</SkeletonList>
+					{/if}
 					{#each store.places as place (place.placeId)}
 						{@const active = store.selected?.placeId === place.placeId}
 						<button

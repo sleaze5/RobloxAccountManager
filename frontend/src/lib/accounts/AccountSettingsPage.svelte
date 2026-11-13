@@ -1,6 +1,5 @@
 <script lang="ts">
 	import { matchesSearch, searchTerms } from "../shared/search"
-	import circleNotchIcon from "@phosphor-icons/core/regular/circle-notch.svg?raw"
 	import devicesIcon from "@phosphor-icons/core/regular/devices.svg?raw"
 	import hardDrivesIcon from "@phosphor-icons/core/regular/hard-drives.svg?raw"
 	import lockKeyIcon from "@phosphor-icons/core/regular/lock-key.svg?raw"
@@ -426,6 +425,7 @@
 	interface ActivePageData {
 		isLoading: boolean
 		isReady: boolean
+		isFresh: boolean
 		refresh: () => Promise<void>
 	}
 
@@ -525,12 +525,16 @@
 				case "info":
 					return (
 						info &&
-						pageData(info.loading, !!info.snapshot, () => info.refresh())
+						pageData(info.loading, !!info.snapshot, info.isFresh, () =>
+							info.refresh(),
+						)
 					)
 				case "servers":
 					return (
 						owned &&
-						pageData(owned.loading, !!owned.servers, () => owned.refresh())
+						pageData(owned.loading, !!owned.servers, owned.isFresh, () =>
+							owned.refresh(),
+						)
 					)
 				case "sessions":
 					return (
@@ -538,32 +542,49 @@
 						pageData(
 							sessions.loading || sessions.signingOut,
 							!!sessions.sessions,
+							sessions.isFresh,
 							() => sessions.refresh(),
 						)
 					)
 				case "robux":
 					return (
 						robux &&
-						pageData(robux.loading, !!robux.transactions, () =>
-							robux.refresh(),
+						pageData(
+							robux.loading,
+							!!robux.transactions,
+							robux.isFresh,
+							() => robux.refresh(),
 						)
 					)
 				default:
 					if (blockedUsersOpen) {
 						return (
 							blocked &&
-							pageData(blocked.loading, !!blocked.users, () =>
-								blocked.refresh(),
+							pageData(
+								blocked.loading,
+								!!blocked.users,
+								blocked.isFresh,
+								() => blocked.refresh(),
 							)
 						)
 					}
 					return (
 						settings &&
-						pageData(busy, !!settings.snapshot, () => settings.refresh())
+						pageData(busy, !!settings.snapshot, settings.isFresh, () =>
+							settings.refresh(),
+						)
 					)
 			}
 		}),
-		refreshing = $derived(activeData?.isLoading ?? busy)
+		refreshing = $derived(activeData?.isLoading ?? busy),
+		// The setting rows show while the settings load, with placeholders for
+		// their values, so that the page does not move when the values arrive.
+		areSettingsLoading = $derived(
+			!settingsState || (settingsState.loading && !settingsState.snapshot),
+		),
+		activePageKey = $derived(
+			blockedUsersOpen ? blockedUsersPage.id : activePage?.id,
+		)
 
 	$effect(() => {
 		if (activePage && activePage.id !== workspace.accountSettingsPage) {
@@ -574,10 +595,15 @@
 		}
 	})
 
+	// Opening a page shows its kept data and requests it only when the data is
+	// missing or no longer fresh. The effect runs when the open page changes,
+	// not when a load ends, so that a failed load waits for Refresh.
 	$effect(() => {
-		const data = activeData
+		void activePageKey
+		void settingsState
 		untrack(() => {
-			if (data && !data.isReady) void data.refresh()
+			const data = activeData
+			if (data && (!data.isReady || !data.isFresh)) void data.refresh()
 		})
 	})
 
@@ -639,9 +665,10 @@
 	function pageData(
 		isLoading: boolean,
 		isReady: boolean,
+		isFresh: boolean,
 		refreshPage: () => Promise<void>,
 	): ActivePageData {
-		return { isLoading, isReady, refresh: refreshPage }
+		return { isLoading, isReady, isFresh, refresh: refreshPage }
 	}
 
 	function resetScroll(): void {
@@ -960,17 +987,6 @@
 						{#if blockedState}
 							<BlockedUsersList blocked={blockedState} />
 						{/if}
-					{:else if !settingsState || (settingsState.loading && !settingsState.snapshot)}
-						<div
-							class="flex items-center gap-2 text-xs text-fg-muted"
-							role="status">
-							<Icon
-								svg={circleNotchIcon}
-								class="spinner"
-								size={16}
-								aria-hidden="true" />
-							Loading settings…
-						</div>
 					{:else}
 						{#each activeCategory.sections as section (section.id)}
 							{@const matchingFields = filterFields(
@@ -997,9 +1013,9 @@
 											{@const fieldOptions =
 												computeRadioOptions(field)}
 											{@const isSaving =
-												settingsState.saving === field.key}
+												settingsState?.saving === field.key}
 											{@const fieldError =
-												settingsState.feedback?.key ===
+												settingsState?.feedback?.key ===
 													field.key &&
 												!settingsState.feedback.success
 													? settingsState.feedback.message
@@ -1011,6 +1027,7 @@
 												type={field.type}
 												{view}
 												disabled={fieldDisabled}
+												isLoading={areSettingsLoading}
 												saving={isSaving}
 												radioOptions={fieldOptions}
 												error={fieldError}

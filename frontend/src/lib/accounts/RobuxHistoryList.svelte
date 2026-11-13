@@ -1,7 +1,7 @@
 <script lang="ts">
-	import circleNotchIcon from "@phosphor-icons/core/regular/circle-notch.svg?raw"
 	import coinsIcon from "@phosphor-icons/core/regular/coins.svg?raw"
 	import Icon from "../shared/Icon.svelte"
+	import SettingsRowsSkeleton from "../shared/SettingsRowsSkeleton.svelte"
 	import Select from "../shared/Select.svelte"
 	import Timestamp from "../shared/Timestamp.svelte"
 	import { RobuxTransactionType } from "../backend/bridge"
@@ -62,14 +62,7 @@
 	</h3>
 	{#if !history.transactions}
 		{#if history.loading}
-			<div class="flex items-center gap-2 text-xs text-fg-muted" role="status">
-				<Icon
-					svg={circleNotchIcon}
-					class="spinner"
-					size={16}
-					aria-hidden="true" />
-				Loading transactions…
-			</div>
+			<SettingsRowsSkeleton label="Loading transactions" hasIcon={false} />
 		{/if}
 	{:else if history.transactions.length === 0}
 		<div class="empty-state">

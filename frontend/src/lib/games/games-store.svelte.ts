@@ -12,7 +12,11 @@ import type {
 } from "../backend/bridge"
 import type { NotificationCenter } from "../notifications/notification-center.svelte"
 import { detailsKeepMs, isFresh } from "../shared/freshness"
-import { ServerPageCache, type ServerSource } from "./game-servers-state.svelte"
+import {
+	PlaceServers,
+	ServerPageCache,
+	type ServerSource,
+} from "./game-servers-state.svelte"
 import { errorMessage } from "../shared/errors"
 import { menuPointFor } from "../shared/presence"
 
@@ -102,6 +106,7 @@ export class GamesStore {
 	readonly recordPages = new ServerPageCache<GameServerRecordPage>()
 	readonly privatePages = new ServerPageCache<PrivateServerPage>()
 	readonly listedPages = new ServerPageCache<ListedPrivateServerPage>()
+	#placeServers: PlaceServers | null = null
 	#favoritesRequest: ReturnType<typeof accountBackend.ListFavoritePlaces> | null =
 		null
 	#saveRequest:
@@ -302,7 +307,23 @@ export class GamesStore {
 		}
 	}
 
+	// serversFor returns the server lists of the place, and keeps them until
+	// another place is selected.
+	serversFor(placeId: number, accountId: number): PlaceServers {
+		if (this.#placeServers?.placeId !== placeId) {
+			this.#placeServers?.dispose()
+			this.#placeServers = new PlaceServers(placeId, accountId, this)
+		}
+		return this.#placeServers
+	}
+
+	#forgetPlaceServers(): void {
+		this.#placeServers?.dispose()
+		this.#placeServers = null
+	}
+
 	select(place: GamePlace | null): void {
+		if (place?.placeId !== this.selected?.placeId) this.#forgetPlaceServers()
 		void this.#detailsRequest?.cancel()
 		this.#detailsRequest = null
 		this.#cancelGameSections()
@@ -613,6 +634,7 @@ export class GamesStore {
 		this.#searchRequest = null
 		this.#detailsRequest = null
 		this.#details.clear()
+		this.#forgetPlaceServers()
 		this.serverPages.clear()
 		this.recordPages.clear()
 		this.privatePages.clear()

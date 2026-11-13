@@ -53,12 +53,20 @@ export class SectionLoad<Snapshot extends object, Section> {
 		return this.loadedSections.includes(section)
 	}
 
+	// isSectionPending is true until the section loads or becomes unavailable,
+	// including before the first load starts, so that a placeholder holds its
+	// place from the first frame.
 	isSectionPending(section: Section): boolean {
-		return !this.hasSection(section) && this.loadingSections.includes(section)
+		return !this.hasSection(section) && !this.isSectionUnavailable(section)
 	}
 
+	// A failed request ends the other requests of its load, so the sections that
+	// they would have read are unavailable too.
 	isSectionUnavailable(section: Section): boolean {
-		return this.failedSections.includes(section)
+		return (
+			this.failedSections.includes(section) ||
+			(!!this.error && !this.isLoading && !this.hasSection(section))
+		)
 	}
 
 	// load reads every section at once, in the order of the section list. It

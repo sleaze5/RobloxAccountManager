@@ -27,6 +27,7 @@
 	import warningIcon from "@phosphor-icons/core/regular/warning.svg?raw"
 	import { GameSection } from "../backend/bridge"
 	import Icon from "../shared/Icon.svelte"
+	import Skeleton from "../shared/Skeleton.svelte"
 	import RefreshIcon from "../shared/RefreshIcon.svelte"
 	import { untrack } from "svelte"
 	import type { WorkspaceState } from "../layout/workspace-state.svelte"
@@ -65,6 +66,9 @@
 			`${numbers.format(value)} ${value === 1 ? one : many}`
 	const place = $derived(store.selected),
 		game = $derived(store.game),
+		// Until the details arrive, every row holds its place with a placeholder,
+		// so that the pane does not move when they fill in.
+		isWaitingForGame = $derived(!game && !store.detailsError),
 		favorite = $derived(place ? store.isFavorite(place.placeId) : false),
 		nickname = $derived(place ? store.nicknameFor(place.placeId) : ""),
 		// Keep the final character and star together, even when a long word wraps.
@@ -159,84 +163,84 @@
 				isLoading: store.isGameSectionPending(GameSection.GameSectionVersions),
 			},
 		]),
-		features = $derived<Fact[]>(
-			game
+		features = $derived<Fact[]>([
+			{
+				label: "Voice chat",
+				icon: microphoneIcon,
+				value: supported(game?.communication?.voiceChat),
+				isLoading: store.isGameSectionPending(
+					GameSection.GameSectionCommunication,
+				),
+			},
+			{
+				label: "Camera",
+				icon: videoCameraIcon,
+				value: supported(game?.communication?.camera),
+				isLoading: store.isGameSectionPending(
+					GameSection.GameSectionCommunication,
+				),
+			},
+			{
+				label: "Access",
+				icon: ticketIcon,
+				value: game
+					? game.price > 0
+						? `Paid access - R$ ${numbers.format(game.price)}`
+						: "Free"
+					: undefined,
+			},
+			{
+				label: "Avatar type",
+				icon: personArmsSpreadIcon,
+				value: game ? game.avatarType || "Unknown" : undefined,
+			},
+			{
+				label: "Animations",
+				icon: footprintsIcon,
+				value: game?.avatarRules
+					? game.avatarRules.customAnimationsAllowed
+						? "Custom allowed"
+						: "Roblox defaults only"
+					: !game ||
+						  store.isGameSectionPending(GameSection.GameSectionAvatarRules)
+						? undefined
+						: "Unknown",
+				isLoading: store.isGameSectionPending(
+					GameSection.GameSectionAvatarRules,
+				),
+			},
+			...(game?.avatarRules?.itemOverrides
 				? [
 						{
-							label: "Voice chat",
-							icon: microphoneIcon,
-							value: supported(game.communication?.voiceChat),
-							isLoading: store.isGameSectionPending(
-								GameSection.GameSectionCommunication,
-							),
+							label: "Avatar items",
+							icon: tShirtIcon,
+							value: `${numbers.format(game.avatarRules.itemOverrides)} replaced by the game`,
 						},
-						{
-							label: "Camera",
-							icon: videoCameraIcon,
-							value: supported(game.communication?.camera),
-							isLoading: store.isGameSectionPending(
-								GameSection.GameSectionCommunication,
-							),
-						},
-						{
-							label: "Access",
-							icon: ticketIcon,
-							value:
-								game.price > 0
-									? `Paid access - R$ ${numbers.format(game.price)}`
-									: "Free",
-						},
-						{
-							label: "Avatar type",
-							icon: personArmsSpreadIcon,
-							value: game.avatarType || "Unknown",
-						},
-						{
-							label: "Animations",
-							icon: footprintsIcon,
-							value: game.avatarRules
-								? game.avatarRules.customAnimationsAllowed
-									? "Custom allowed"
-									: "Roblox defaults only"
-								: store.isGameSectionPending(
-											GameSection.GameSectionAvatarRules,
-									  )
-									? undefined
-									: "Unknown",
-							isLoading: store.isGameSectionPending(
-								GameSection.GameSectionAvatarRules,
-							),
-						},
-						...(game.avatarRules?.itemOverrides
-							? [
-									{
-										label: "Avatar items",
-										icon: tShirtIcon,
-										value: `${numbers.format(game.avatarRules.itemOverrides)} replaced by the game`,
-									},
-								]
-							: []),
-						{
-							label: "Private servers",
-							icon: hardDrivesIcon,
-							value: game.privateServersAllowed
-								? "Allowed"
-								: "Not allowed",
-						},
-						...(rootPlace
-							? []
-							: [
-									{
-										label: "Copying",
-										icon: copyIcon,
-										value: game.copyingAllowed
-											? "Allowed"
-											: "Not allowed",
-									},
-								]),
 					]
-				: [],
-		)
+				: []),
+			{
+				label: "Private servers",
+				icon: hardDrivesIcon,
+				value: game
+					? game.privateServersAllowed
+						? "Allowed"
+						: "Not allowed"
+					: undefined,
+			},
+			...(rootPlace
+				? []
+				: [
+						{
+							label: "Copying",
+							icon: copyIcon,
+							value: game
+								? game.copyingAllowed
+									? "Allowed"
+									: "Not allowed"
+								: undefined,
+						},
+					]),
+		])
 	let draft = $state(""),
 		editing = $state(false)
 
@@ -275,9 +279,10 @@
 			{#if fact.value}
 				<span class={[mono && "font-mono select-text"]}>{fact.value}</span>
 				{#if fact.detail}<small>{fact.detail}</small>{/if}
+			{:else if fact.isLoading || isWaitingForGame}
+				<Skeleton className="w-28" />
 			{:else}
-				<span class="text-fg-faint"
-					>{fact.isLoading ? "Loading…" : game ? "Unavailable" : "-"}</span>
+				<span class="text-fg-faint">Unavailable</span>
 			{/if}
 		</dd>
 	</div>
@@ -292,8 +297,10 @@
 			{#if fact.value}
 				<Timestamp value={fact.value} />
 				<small>{relativeTime(fact.value)}</small>
+			{:else if isWaitingForGame}
+				<Skeleton className="w-28" />
 			{:else}
-				<span class="text-fg-faint">{game ? "Unavailable" : "-"}</span>
+				<span class="text-fg-faint">Unavailable</span>
 			{/if}
 		</dd>
 	</div>
@@ -419,7 +426,13 @@
 								<span>{place.creatorType} ID: {place.creatorId}</span>
 							{/if}
 						</div>
-						{#if game}
+						{#if isWaitingForGame}
+							<p
+								class="inline-flex items-center gap-1 text-xs font-medium text-fg-faint">
+								<Icon svg={pulseIcon} size={14} aria-hidden="true" />
+								<Skeleton className="w-20" label="Loading players" />
+							</p>
+						{:else if game}
 							<p
 								class={[
 									"inline-flex items-center gap-1 text-xs font-medium tabular-nums",
@@ -550,7 +563,7 @@
 				</section>
 			{/if}
 
-			{#if game}
+			{#if game || isWaitingForGame}
 				<section
 					class="flex flex-col gap-3 pt-3"
 					aria-labelledby="game-features">
@@ -577,6 +590,13 @@
 					{:else}
 						<p class="text-xs text-fg-muted">No description provided.</p>
 					{/if}
+				</section>
+			{:else if isWaitingForGame}
+				<section class="flex flex-col gap-3 pt-3" aria-busy="true">
+					<h3 class={sectionHeadingClass}>Description</h3>
+					<p class="text-block" data-variant="prose">
+						<Skeleton className="w-72" label="Loading the description" />
+					</p>
 				</section>
 			{/if}
 		</div>

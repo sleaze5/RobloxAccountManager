@@ -8,6 +8,7 @@
 	import warningIcon from "@phosphor-icons/core/regular/warning.svg?raw"
 	import xIcon from "@phosphor-icons/core/regular/x.svg?raw"
 	import Icon from "../shared/Icon.svelte"
+	import SkeletonList from "../shared/SkeletonList.svelte"
 	import RefreshIcon from "../shared/RefreshIcon.svelte"
 	import { moveListFocus } from "../shared/move-shortcut"
 	import { appSettings } from "../settings/settings-store.svelte"
@@ -129,7 +130,22 @@
 					</button>
 				{:else}
 					{#if store.refreshing}
-						<p class="p-3 text-2xs text-fg-muted">Loading sessions…</p>
+						<SkeletonList label="Loading sessions">
+							{#snippet row(index)}
+								<div
+									class="flex h-12 flex-col justify-center gap-1 border-b border-line-subtle px-3">
+									<span class="text-xs"
+										><span
+											class={[
+												"skeleton-line",
+												index % 2 ? "w-32" : "w-40",
+											]}></span
+										></span>
+									<span class="pl-6 text-2xs"
+										><span class="skeleton-line w-14"></span></span>
+								</div>
+							{/snippet}
+						</SkeletonList>
 					{:else if store.query}
 						<p class="p-3 text-2xs text-fg-muted">No matching sessions.</p>
 					{/if}

@@ -195,6 +195,33 @@ export const bulkRemovalCopy: Record<
 	},
 }
 
+type SocialProfileLoad = SectionLoad<SocialProfileSnapshot, SocialProfileSection>
+
+// SocialAccountCache holds the lists, profiles, and relationships that one
+// account read, so that switching back to the account shows them at once. The
+// cache is keyed by the Roblox user ID, because the vault can reuse the ID of a
+// removed account.
+interface SocialAccountCache {
+	pages: Map<string, { page: SocialListPage; fetchedAt: number }>
+	profiles: Map<number, { load: SocialProfileLoad; fetchedAt: number }>
+	relationships: Map<
+		number,
+		{ snapshot: SocialRelationshipSnapshot; fetchedAt: number }
+	>
+	requestCount: number | null
+	leftAt: number
+}
+
+function emptySocialAccountCache(): SocialAccountCache {
+	return {
+		pages: new Map(),
+		profiles: new Map(),
+		relationships: new Map(),
+		requestCount: null,
+		leftAt: 0,
+	}
+}
+
 export class SocialStore {
 	sidebarCollapsed = $state(false)
 	sidebarWidth = $state(220)
@@ -210,10 +237,7 @@ export class SocialStore {
 	loadError = $state("")
 	requestCount = $state<number | null>(null)
 	selectedPerson = $state<SocialUser | null>(null)
-	profileLoad = $state<SectionLoad<
-		SocialProfileSnapshot,
-		SocialProfileSection
-	> | null>(null)
+	profileLoad = $state<SocialProfileLoad | null>(null)
 	savingNickname = $state(false)
 	relationshipError = $state("")
 	menuRelationship = $state<SocialRelationshipSnapshot | null>(null)
@@ -234,16 +258,12 @@ export class SocialStore {
 	#relationshipRequest: ReturnType<
 		typeof accountBackend.GetSocialRelationship
 	> | null = null
-	readonly #relationships = new Map<number, SocialRelationshipSnapshot>()
 	#presenceRequest: ReturnType<typeof accountBackend.GetSocialPresences> | null = null
-	readonly #pages = new Map<string, { page: SocialListPage; fetchedAt: number }>()
-	readonly #profiles = new Map<
-		number,
-		{
-			load: SectionLoad<SocialProfileSnapshot, SocialProfileSection>
-			fetchedAt: number
-		}
-	>()
+	readonly #cacheByUserId = new Map<number, SocialAccountCache>()
+	#cache = emptySocialAccountCache()
+	#pages = this.#cache.pages
+	#profiles = this.#cache.profiles
+	#relationships = this.#cache.relationships
 
 	constructor(private readonly notifications: NotificationCenter) {}
 
@@ -795,8 +815,11 @@ export class SocialStore {
 		const relationship = this.#relationships.get(userId)
 		if (relationship) {
 			this.#relationships.set(userId, {
-				...relationship,
-				relationship: { ...relationship.relationship, ...change },
+				snapshot: {
+					...relationship.snapshot,
+					relationship: { ...relationship.snapshot.relationship, ...change },
+				},
+				fetchedAt: relationship.fetchedAt,
 			})
 		}
 		if (change.trusted !== undefined) {
@@ -832,24 +855,43 @@ export class SocialStore {
 		this.#relationshipRequest = null
 	}
 
+	// #newestRelationship returns the newer of the relationships that a menu and
+	// the profile read.
+	#newestRelationship(
+		userId: number,
+	): { snapshot: SocialRelationshipSnapshot; fetchedAt: number } | null {
+		const relationship = this.#relationships.get(userId) ?? null,
+			profile = this.#profiles.get(userId)
+		if (
+			!profile?.load.hasSection(SocialProfileSection.SocialSectionRelationship) ||
+			(relationship && relationship.fetchedAt > profile.fetchedAt)
+		) {
+			return relationship
+		}
+		return {
+			snapshot: {
+				relationship: profile.load.snapshot.relationship,
+				unavailable: profile.load.snapshot.unavailable,
+			},
+			fetchedAt: profile.fetchedAt,
+		}
+	}
+
+	// A menu requests the relationship only when neither the menu nor the
+	// profile read it within the freshness window.
 	async #loadMenuRelationship(userId: number): Promise<void> {
 		void this.#relationshipRequest?.cancel()
-		const load = this.#profiles.get(userId)?.load
-		this.menuRelationship =
-			this.#relationships.get(userId) ??
-			(load?.hasSection(SocialProfileSection.SocialSectionRelationship)
-				? {
-						relationship: load.snapshot.relationship,
-						unavailable: load.snapshot.unavailable,
-					}
-				: null)
+		this.#relationshipRequest = null
+		const newest = this.#newestRelationship(userId)
+		this.menuRelationship = newest?.snapshot ?? null
 		this.menuRelationshipFailed = false
+		if (newest && isFresh(newest.fetchedAt)) return
 		const request = accountBackend.GetSocialRelationship(this.accountId, userId)
 		this.#relationshipRequest = request
 		try {
 			const snapshot = await request
 			if (request !== this.#relationshipRequest) return
-			this.#relationships.set(userId, snapshot)
+			this.#relationships.set(userId, { snapshot, fetchedAt: Date.now() })
 			this.menuRelationship = snapshot
 		} catch {
 			if (request === this.#relationshipRequest) {
@@ -884,8 +926,18 @@ export class SocialStore {
 		}
 	}
 
+	// closeAccount stops showing the account and keeps what it read.
+	closeAccount(): void {
+		this.#switchAccount(0, 0)
+	}
+
+	// reset forgets what every account read, such as after the vault locks.
 	reset(): void {
 		this.#switchAccount(0, 0)
+		for (const cache of this.#cacheByUserId.values()) {
+			for (const entry of cache.profiles.values()) entry.load.reset()
+		}
+		this.#cacheByUserId.clear()
 		this.trail = []
 		this.query = this.playerQuery = ""
 		this.list = SocialList.SocialFriends
@@ -930,6 +982,9 @@ export class SocialStore {
 		if (this.selectedUserId === userId) this.select(null)
 	}
 
+	// #switchAccount keeps what the previous account read, so that switching
+	// back shows it at once, and forgets accounts left more than the keep time
+	// ago.
 	#switchAccount(accountId: number, selfUserId: number): void {
 		this.#epoch++
 		void this.#listRequest?.cancel()
@@ -937,14 +992,30 @@ export class SocialStore {
 		void this.#relationshipRequest?.cancel()
 		this.#listRequest = this.#presenceRequest = null
 		this.#relationshipRequest = null
-		this.#pages.clear()
-		for (const entry of this.#profiles.values()) entry.load.reset()
-		this.#profiles.clear()
-		this.#relationships.clear()
+		for (const entry of this.#profiles.values()) entry.load.cancel()
+		const now = Date.now()
+		this.#cache.requestCount = this.requestCount
+		this.#cache.leftAt = now
+		for (const [cachedUserId, cache] of this.#cacheByUserId) {
+			if (now - cache.leftAt < detailsKeepMs) continue
+			for (const entry of cache.profiles.values()) entry.load.reset()
+			this.#cacheByUserId.delete(cachedUserId)
+		}
+		let cache = this.#cacheByUserId.get(selfUserId)
+		if (!cache) {
+			cache = emptySocialAccountCache()
+			if (accountId > 0 && selfUserId > 0)
+				this.#cacheByUserId.set(selfUserId, cache)
+		}
+		this.#cache = cache
+		this.#pages = cache.pages
+		this.#profiles = cache.profiles
+		this.#relationships = cache.relationships
 		this.accountId = accountId
 		this.selfUserId = selfUserId
 		this.page = this.profileLoad = this.menu = this.selectedPerson = null
-		this.requestCount = this.menuRelationship = this.pendingAction = null
+		this.requestCount = cache.requestCount
+		this.menuRelationship = this.pendingAction = null
 		this.loading = this.loadingMore = false
 		this.savingNickname = this.menuRelationshipFailed = false
 		this.loadError = this.error = this.relationshipError = ""
