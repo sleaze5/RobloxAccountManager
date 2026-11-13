@@ -1,6 +1,7 @@
 <script lang="ts">
 	import circleNotchIcon from "@phosphor-icons/core/regular/circle-notch.svg?raw"
 	import Icon from "../shared/Icon.svelte"
+	import SettingsRowsSkeleton from "../shared/SettingsRowsSkeleton.svelte"
 	import type { OwnedPrivateServer } from "../backend/bridge"
 	import GameIcon from "../games/GameIcon.svelte"
 	import { loadGamePlace } from "../games/game-place-cache"
@@ -38,9 +39,8 @@
 
 {#if !owned.servers}
 	{#if owned.loading}
-		<div class="flex items-center gap-2 text-xs text-fg-muted" role="status">
-			<Icon svg={circleNotchIcon} class="spinner" size={16} aria-hidden="true" />
-			Loading private servers
+		<div class="settings-section">
+			<SettingsRowsSkeleton label="Loading private servers" />
 		</div>
 	{/if}
 {:else if owned.servers.length === 0}

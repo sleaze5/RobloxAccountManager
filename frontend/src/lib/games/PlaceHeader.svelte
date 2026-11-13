@@ -5,6 +5,7 @@
 	import Icon from "../shared/Icon.svelte"
 	import type { GamePlaceSummary } from "../backend/bridge"
 	import { loadGamePlace } from "./game-place-cache"
+	import Skeleton from "../shared/Skeleton.svelte"
 	import PlaceIcon from "./PlaceIcon.svelte"
 	import { creatorByline, getGamesStore } from "./games-store.svelte"
 
@@ -62,7 +63,9 @@
 							size={14}
 							aria-label="Verified creator" />{/if}</span>
 			{:else}
-				<strong class="font-medium text-fg-faint">Loading game…</strong>
+				<span class="text-sm"
+					><Skeleton className="w-36" label="Loading game" /></span>
+				<span class="text-xs"><Skeleton className="w-24" label="" /></span>
 			{/if}
 		</div>
 		{#if place && onSearch}<button

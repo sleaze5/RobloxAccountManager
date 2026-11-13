@@ -15,6 +15,8 @@
 	import shieldCheckFillIcon from "@phosphor-icons/core/fill/shield-check-fill.svg?raw"
 	import shieldCheckIcon from "@phosphor-icons/core/regular/shield-check.svg?raw"
 	import Icon from "../shared/Icon.svelte"
+	import SkeletonList from "../shared/SkeletonList.svelte"
+	import SkeletonMediaRow from "../shared/SkeletonMediaRow.svelte"
 	import CheckboxMark from "../shared/CheckboxMark.svelte"
 	import RefreshIcon from "../shared/RefreshIcon.svelte"
 	import { PresenceType, SessionState, SocialList } from "../backend/bridge"
@@ -143,7 +145,7 @@
 			selfUserId = Number(account.userId) || 0
 		if (!accounts.vault.unlocked) return
 		if (accountModerated) {
-			untrack(() => store.reset())
+			untrack(() => store.closeAccount())
 			return
 		}
 		untrack(() => store.show(accountId, selfUserId))
@@ -445,6 +447,14 @@
 					]}
 					aria-label={current.label}
 					aria-busy={store.loading || store.loadingMore}>
+					{#if !store.page && store.loading}
+						<SkeletonList
+							label={players
+								? "Searching Roblox"
+								: `Loading ${current.noun}`}>
+							{#snippet row(index)}<SkeletonMediaRow {index} />{/snippet}
+						</SkeletonList>
+					{/if}
 					{#each store.people as person (person.userId)}
 						{@const active = store.selectedUserId === person.userId}
 						{@const detail = person.presence

@@ -5,6 +5,7 @@ import {
 	accountBackend,
 } from "../backend/bridge"
 import type { AccountInfoSnapshot } from "../backend/bridge"
+import { isFresh } from "../shared/freshness"
 import { SectionLoad } from "../shared/section-load.svelte"
 import type { SectionFields } from "../shared/section-load.svelte"
 import type { AccountStore } from "./account-store.svelte"
@@ -67,17 +68,31 @@ function emptyInfo(accountId: number): AccountInfoSnapshot {
 	}
 }
 
+const keptPageName = "account-info"
+
 export class AccountInfoState {
 	readonly sections: SectionLoad<AccountInfoSnapshot, AccountInfoSection>
+	#fetchedAt = 0
 	readonly #scope: AccountScope
 
 	constructor(accountId: number, store: AccountStore) {
 		this.#scope = new AccountScope(accountId, store)
-		this.sections = new SectionLoad(
-			infoSections,
-			() => emptyInfo(accountId),
-			"Could not load account info. Refresh to retry.",
-		)
+		const kept =
+			this.#scope.readKept<SectionLoad<AccountInfoSnapshot, AccountInfoSection>>(
+				keptPageName,
+			)
+		this.#fetchedAt = kept?.fetchedAt ?? 0
+		this.sections =
+			kept?.value ??
+			new SectionLoad(
+				infoSections,
+				() => emptyInfo(accountId),
+				"Could not load account info. Refresh to retry.",
+			)
+	}
+
+	get isFresh(): boolean {
+		return isFresh(this.#fetchedAt)
 	}
 
 	get snapshot(): AccountInfoSnapshot | null {
@@ -94,14 +109,22 @@ export class AccountInfoState {
 
 	async refresh(): Promise<void> {
 		if (!this.#scope.isCurrent || this.loading) return
-		await this.sections.load(
+		const isCurrentLoad = await this.sections.load(
 			(section) => accountBackend.GetAccountInfo(this.#scope.accountId, section),
 			() => this.#scope.isCurrent,
 		)
+		if (isCurrentLoad && !this.error) this.#fetchedAt = Date.now()
 	}
 
+	// The loaded sections are kept, so that the next visit shows them at once.
 	dispose(): void {
+		this.sections.cancel()
+		if (this.sections.hasAnySection) {
+			this.#scope.keep(keptPageName, {
+				value: this.sections,
+				fetchedAt: this.#fetchedAt,
+			})
+		}
 		this.#scope.dispose()
-		this.sections.reset()
 	}
 }

@@ -373,6 +373,18 @@
 	@apply animate-spin motion-reduce:rotate-45 motion-reduce:animate-none;
 }
 
+@utility skeleton {
+	@apply animate-skeleton bg-hover-overlay motion-reduce:animate-none;
+}
+
+/* skeleton-line is as tall as a line of the surrounding text and paints a bar
+   as tall as its font, so it takes the place of the text without moving it. */
+@utility skeleton-line {
+	@apply inline-block max-w-full skeleton rounded-sm bg-clip-content align-top;
+	height: 1lh;
+	padding-block: calc((1lh - 1em) / 2);
+}
+
 @utility scrollbar-stable {
 	scrollbar-gutter: stable;
 }

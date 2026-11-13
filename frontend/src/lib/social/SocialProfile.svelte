@@ -17,11 +17,13 @@
 	import usersThreeIcon from "@phosphor-icons/core/regular/users-three.svg?raw"
 	import Icon from "../shared/Icon.svelte"
 	import RefreshIcon from "../shared/RefreshIcon.svelte"
-	import { FriendStatus, SocialProfileSection } from "../backend/bridge"
+	import { FriendStatus, SocialList, SocialProfileSection } from "../backend/bridge"
 	import type { SocialUser } from "../backend/bridge"
 	import type { AccountStore } from "../accounts/account-store.svelte"
 	import AccountPresence from "../accounts/AccountPresence.svelte"
+	import MissingFactValue from "../shared/MissingFactValue.svelte"
 	import PrimaryGroupFact from "../shared/PrimaryGroupFact.svelte"
+	import Skeleton from "../shared/Skeleton.svelte"
 	import Timestamp from "../shared/Timestamp.svelte"
 	import { relativeTime } from "../shared/timestamp"
 	import FriendConnections from "./FriendConnections.svelte"
@@ -79,9 +81,16 @@
 			maximumFractionDigits: 1,
 		})
 
+	// The profile rows stay in place while their sections load, so that the
+	// pane does not move when a value arrives.
 	const request = $derived(person.request),
 		profile = $derived(
 			store.profile?.userId === person.userId ? store.profile : null,
+		),
+		sections = $derived(
+			store.profileLoad?.snapshot.userId === person.userId
+				? store.profileLoad
+				: null,
 		),
 		profileRelationship = $derived(profile ? store.profileRelationship : null),
 		relationship = $derived(
@@ -104,17 +113,6 @@
 		canNickname = $derived(
 			profileRelationship?.relationship.friend ===
 				FriendStatus.FriendStatusFriends,
-		),
-		hasFacts = $derived(
-			!!request ||
-				!!profile?.createdAtMs ||
-				!!profile?.previousNames?.length ||
-				!!profile?.primaryGroup ||
-				!!profile?.robloxBadges?.length ||
-				(profile?.inventoryVisible ?? null) !== null ||
-				(profile?.communityCount ?? null) !== null ||
-				(profile?.tradeEligibility ?? null) !== null ||
-				(profile?.collectibleCount ?? null) !== null,
 		)
 </script>
 
@@ -233,11 +231,19 @@
 		</div>
 	</div>
 
-	{#if profile}
+	{#if sections}
 		<SocialCounts
-			friends={profile.friendCount}
-			followers={profile.followerCount}
-			following={profile.followingCount}
+			friends={profile?.friendCount ?? null}
+			followers={profile?.followerCount ?? null}
+			following={profile?.followingCount ?? null}
+			isCountPending={(list) =>
+				sections.isSectionPending(
+					list === SocialList.SocialFollowers
+						? SocialProfileSection.SocialSectionFollowers
+						: list === SocialList.SocialFollowing
+							? SocialProfileSection.SocialSectionFollowing
+							: SocialProfileSection.SocialSectionFriends,
+				)}
 			onShow={(list) => store.explore(person, list)} />
 	{/if}
 
@@ -273,13 +279,20 @@
 				</div>
 			{/if}
 		</section>
+	{:else if sections?.isSectionPending(SocialProfileSection.SocialSectionAbout)}
+		<section class="flex flex-col gap-2" aria-busy="true">
+			<h3 class="text-xs font-semibold text-fg-muted">About</h3>
+			<p class="text-block" data-variant="prose">
+				<Skeleton className="w-72" label="Loading the description" />
+			</p>
+		</section>
 	{/if}
 
 	{#if profile && store.profileLoad?.hasSection(SocialProfileSection.SocialSectionConnections) && accounts.accountTotal > 1}
 		<FriendConnections connections={profile.connections ?? []} {accounts} />
 	{/if}
 
-	{#if hasFacts}
+	{#if request || sections}
 		<section class="flex flex-col gap-2" aria-labelledby="social-details-heading">
 			<h3 id="social-details-heading" class="text-xs font-semibold text-fg-muted">
 				Details
@@ -297,6 +310,20 @@
 							<Timestamp value={profile.createdAtMs} />
 							<small
 								>{relativeTime(profile.createdAtMs, Date.now(), false)} old</small>
+						</dd>
+					</div>
+				{:else if sections}
+					<div>
+						<dt>
+							<Icon
+								svg={calendarDotsIcon}
+								size={16}
+								aria-hidden="true" />Joined
+						</dt>
+						<dd>
+							<MissingFactValue
+								{sections}
+								section={SocialProfileSection.SocialSectionAbout} />
 						</dd>
 					</div>
 				{/if}
@@ -345,9 +372,39 @@
 						</dt>
 						<dd><span>{profile.previousNames.join(", ")}</span></dd>
 					</div>
+				{:else if sections}
+					<div>
+						<dt>
+							<Icon
+								svg={clockCounterClockwiseIcon}
+								size={16}
+								aria-hidden="true" />Previous names
+						</dt>
+						<dd>
+							<MissingFactValue
+								{sections}
+								section={SocialProfileSection.SocialSectionPreviousNames}
+								emptyLabel="None" />
+						</dd>
+					</div>
 				{/if}
 				{#if profile?.primaryGroup}
 					<PrimaryGroupFact group={profile.primaryGroup} />
+				{:else if sections}
+					<div>
+						<dt>
+							<Icon
+								svg={usersThreeIcon}
+								size={16}
+								aria-hidden="true" />Primary group
+						</dt>
+						<dd>
+							<MissingFactValue
+								{sections}
+								section={SocialProfileSection.SocialSectionPrimaryGroup}
+								emptyLabel="None" />
+						</dd>
+					</div>
 				{/if}
 				{#if profile?.robloxBadges?.length}
 					<div>
@@ -357,12 +414,23 @@
 						</dt>
 						<dd><span>{profile.robloxBadges.join(", ")}</span></dd>
 					</div>
+				{:else if sections}
+					<div>
+						<dt>
+							<Icon svg={medalIcon} size={16} aria-hidden="true" />Roblox
+							badges
+						</dt>
+						<dd>
+							<MissingFactValue
+								{sections}
+								section={SocialProfileSection.SocialSectionRobloxBadges}
+								emptyLabel="None" />
+						</dd>
+					</div>
 				{/if}
 				{#if profile?.tradeEligibility}
 					{@const trading = profile.tradeEligibility}
-					<div
-						class="animate-enter"
-						data-tone={trading.canTrade ? undefined : "warning"}>
+					<div data-tone={trading.canTrade ? undefined : "warning"}>
 						<dt>
 							<Icon svg={swapIcon} size={16} aria-hidden="true" />Trading
 						</dt>
@@ -376,7 +444,7 @@
 					</div>
 				{/if}
 				{#if profile && profile.communityCount !== null}
-					<div class="animate-enter">
+					<div>
 						<dt>
 							<Icon
 								svg={usersFourIcon}
@@ -387,9 +455,23 @@
 							<span>{exactNumbers.format(profile.communityCount)}</span>
 						</dd>
 					</div>
+				{:else if sections}
+					<div>
+						<dt>
+							<Icon
+								svg={usersFourIcon}
+								size={16}
+								aria-hidden="true" />Communities
+						</dt>
+						<dd>
+							<MissingFactValue
+								{sections}
+								section={SocialProfileSection.SocialSectionCommunities} />
+						</dd>
+					</div>
 				{/if}
 				{#if profile && profile.collectibleCount !== null}
-					<div class="animate-enter">
+					<div>
 						<dt>
 							<Icon
 								svg={diamondIcon}
@@ -410,6 +492,20 @@
 								>{/if}
 						</dd>
 					</div>
+				{:else if sections}
+					<div>
+						<dt>
+							<Icon
+								svg={diamondIcon}
+								size={16}
+								aria-hidden="true" />Collectibles
+						</dt>
+						<dd>
+							<MissingFactValue
+								{sections}
+								section={SocialProfileSection.SocialSectionCollectibles} />
+						</dd>
+					</div>
 				{/if}
 				{#if profile && profile.inventoryVisible !== null}
 					<div data-tone={profile.inventoryVisible ? undefined : "muted"}>
@@ -426,6 +522,20 @@
 									: "Private"}</span>
 						</dd>
 					</div>
+				{:else if sections}
+					<div>
+						<dt>
+							<Icon
+								svg={backpackIcon}
+								size={16}
+								aria-hidden="true" />Inventory
+						</dt>
+						<dd>
+							<MissingFactValue
+								{sections}
+								section={SocialProfileSection.SocialSectionInventory} />
+						</dd>
+					</div>
 				{/if}
 			</dl>
 		</section>
@@ -437,10 +547,5 @@
 		<p class="text-xs text-danger-muted" role="alert">
 			Some profile details could not be loaded. Refresh to retry.
 		</p>
-	{:else if !profile && store.loadingProfile}
-		<div class="flex items-center gap-2 text-xs text-fg-muted" role="status">
-			<Icon svg={circleNotchIcon} class="spinner" size={16} aria-hidden="true" />
-			Loading profile…
-		</div>
 	{/if}
 </section>

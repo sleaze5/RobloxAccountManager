@@ -3,6 +3,9 @@ import type { RobloxNotificationView } from "../backend/bridge"
 import type { AccountStore } from "../accounts/account-store.svelte"
 import { AccountScope } from "../accounts/account-scope"
 import { errorMessage } from "../shared/errors"
+import { isFresh } from "../shared/freshness"
+
+const keptPageName = "roblox-notifications"
 
 export class RobloxNotificationState {
 	notifications = $state<RobloxNotificationView[]>([])
@@ -24,12 +27,28 @@ export class RobloxNotificationState {
 			: this.notifications,
 	)
 	#listGeneration = 0
+	#fetchedAt = 0
 	readonly #scope: AccountScope
 	readonly #store: AccountStore
 
 	constructor(accountId: number, store: AccountStore) {
 		this.#scope = new AccountScope(accountId, store)
 		this.#store = store
+		const kept = this.#scope.readKept<{
+			notifications: RobloxNotificationView[]
+			nextStartIndex: number
+			category: RobloxNotificationCategory
+		}>(keptPageName)
+		if (kept) {
+			this.notifications = kept.value.notifications
+			this.nextStartIndex = kept.value.nextStartIndex
+			this.category = kept.value.category
+			this.#fetchedAt = kept.fetchedAt
+		}
+	}
+
+	get isFresh(): boolean {
+		return isFresh(this.#fetchedAt)
 	}
 
 	get hasDismissible(): boolean {
@@ -51,6 +70,7 @@ export class RobloxNotificationState {
 			if (!this.#scope.isCurrent || generation !== this.#listGeneration) return
 			this.notifications = page.notifications ?? []
 			this.nextStartIndex = page.nextStartIndex
+			this.#fetchedAt = Date.now()
 			void this.#markSeen()
 		} catch (error) {
 			if (this.#scope.isCurrent && generation === this.#listGeneration) {
@@ -188,6 +208,16 @@ export class RobloxNotificationState {
 	}
 
 	dispose(): void {
+		if (this.#fetchedAt) {
+			this.#scope.keep(keptPageName, {
+				value: {
+					notifications: this.notifications,
+					nextStartIndex: this.nextStartIndex,
+					category: this.category,
+				},
+				fetchedAt: this.#fetchedAt,
+			})
+		}
 		this.#scope.dispose()
 		this.#listGeneration++
 	}

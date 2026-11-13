@@ -11,17 +11,30 @@ import (
 	"path/filepath"
 	"slices"
 	"strings"
+	"sync"
 	"sync/atomic"
+	"time"
 )
 
+// parsedLog is a parsed log file with the size and modification time that it
+// had when it was parsed. Roblox only appends to a log, so a file with the same
+// size and modification time parses to the same session.
+type parsedLog struct {
+	sizeBytes  int64
+	modifiedAt time.Time
+	session    Session
+}
+
 type Reader struct {
-	directories func() ([]string, error)
-	logger      *slog.Logger
-	operation   atomic.Uint64
+	directories     func() ([]string, error)
+	logger          *slog.Logger
+	operation       atomic.Uint64
+	parsedLogMutex  sync.Mutex
+	parsedLogByPath map[string]parsedLog
 }
 
 func NewReader(directories func() ([]string, error), logger *slog.Logger) *Reader {
-	return &Reader{directories: directories, logger: logger}
+	return &Reader{directories: directories, logger: logger, parsedLogByPath: map[string]parsedLog{}}
 }
 
 func (reader *Reader) ReadAll(ctx context.Context) (Snapshot, error) {
@@ -32,8 +45,9 @@ func (reader *Reader) ReadAll(ctx context.Context) (Snapshot, error) {
 		logger.Warn("could not locate Roblox logs folders", "error", err)
 		return snapshot, errors.New("could not open Roblox logs folder")
 	}
+	listedPaths := map[string]bool{}
 	for _, directory := range directories {
-		sessions, err := readDirectory(ctx, logger, directory)
+		sessions, err := reader.readDirectory(ctx, logger, directory, listedPaths)
 		if ctx.Err() != nil {
 			return Snapshot{}, ctx.Err()
 		}
@@ -42,6 +56,7 @@ func (reader *Reader) ReadAll(ctx context.Context) (Snapshot, error) {
 		}
 		snapshot.Sessions = append(snapshot.Sessions, sessions...)
 	}
+	reader.forgetUnlistedLogs(listedPaths)
 	slices.SortFunc(snapshot.Sessions, func(a, b Session) int {
 		if a.StartedAtMs > b.StartedAtMs {
 			return -1
@@ -65,7 +80,7 @@ func (reader *Reader) ReadFile(ctx context.Context, name string) (Session, error
 		logger.Warn("could not locate Roblox logs folders", "error", err)
 		return Session{}, errors.New("could not open Roblox logs folder")
 	}
-	session, err := readFromDirectories(ctx, directories, name)
+	session, err := reader.readFromDirectories(ctx, directories, name)
 	if err != nil {
 		logger.Warn("could not refresh Roblox log", "error", err)
 		return Session{}, errors.New("could not read Roblox log")
@@ -74,7 +89,7 @@ func (reader *Reader) ReadFile(ctx context.Context, name string) (Session, error
 	return session, nil
 }
 
-func readDirectory(ctx context.Context, logger *slog.Logger, directory string) ([]Session, error) {
+func (reader *Reader) readDirectory(ctx context.Context, logger *slog.Logger, directory string, listedPaths map[string]bool) ([]Session, error) {
 	root, err := os.OpenRoot(directory)
 	if errors.Is(err, os.ErrNotExist) {
 		return nil, nil
@@ -97,7 +112,8 @@ func readDirectory(ctx context.Context, logger *slog.Logger, directory string) (
 		if !entry.Type().IsRegular() || !validFileName(entry.Name()) {
 			continue
 		}
-		session, err := readFile(ctx, root, entry.Name())
+		listedPaths[filepath.Join(directory, entry.Name())] = true
+		session, err := reader.readFile(ctx, root, directory, entry.Name())
 		if ctx.Err() != nil {
 			return nil, ctx.Err()
 		}
@@ -110,7 +126,7 @@ func readDirectory(ctx context.Context, logger *slog.Logger, directory string) (
 	return sessions, nil
 }
 
-func readFromDirectories(ctx context.Context, directories []string, name string) (Session, error) {
+func (reader *Reader) readFromDirectories(ctx context.Context, directories []string, name string) (Session, error) {
 	for _, directory := range directories {
 		root, err := os.OpenRoot(directory)
 		if errors.Is(err, os.ErrNotExist) {
@@ -119,7 +135,7 @@ func readFromDirectories(ctx context.Context, directories []string, name string)
 		if err != nil {
 			return Session{}, fmt.Errorf("open Roblox logs folder: %w", err)
 		}
-		session, err := readFile(ctx, root, name)
+		session, err := reader.readFile(ctx, root, directory, name)
 		_ = root.Close()
 		if errors.Is(err, os.ErrNotExist) {
 			continue
@@ -140,7 +156,9 @@ func validFileName(name string) bool {
 		strings.HasSuffix(lower, ".log")
 }
 
-func readFile(ctx context.Context, root *os.Root, name string) (Session, error) {
+// readFile returns the parsed session of a log file, and parses the file again
+// only when its size or modification time changed since the last parse.
+func (reader *Reader) readFile(ctx context.Context, root *os.Root, directory, name string) (Session, error) {
 	session := newSession(name)
 	file, err := root.Open(name)
 	if err != nil {
@@ -154,7 +172,38 @@ func readFile(ctx context.Context, root *os.Root, name string) (Session, error) 
 	if !logFileStatus.Mode().IsRegular() {
 		return session, errors.New("not a regular log file")
 	}
+	path := filepath.Join(directory, name)
+	if parsed, isParsed := reader.parsedLogAt(path); isParsed && parsed.sizeBytes == logFileStatus.Size() && parsed.modifiedAt.Equal(logFileStatus.ModTime()) {
+		return parsed.session, nil
+	}
 	session.SizeBytes = logFileStatus.Size()
-	err = parse(ctx, io.LimitReader(file, logFileStatus.Size()), &session)
-	return session, err
+	if err := parse(ctx, io.LimitReader(file, logFileStatus.Size()), &session); err != nil {
+		return session, err
+	}
+	reader.rememberParsedLog(path, parsedLog{sizeBytes: logFileStatus.Size(), modifiedAt: logFileStatus.ModTime(), session: session})
+	return session, nil
+}
+
+func (reader *Reader) parsedLogAt(path string) (parsedLog, bool) {
+	reader.parsedLogMutex.Lock()
+	defer reader.parsedLogMutex.Unlock()
+	parsed, isParsed := reader.parsedLogByPath[path]
+	return parsed, isParsed
+}
+
+func (reader *Reader) rememberParsedLog(path string, parsed parsedLog) {
+	reader.parsedLogMutex.Lock()
+	defer reader.parsedLogMutex.Unlock()
+	reader.parsedLogByPath[path] = parsed
+}
+
+// forgetUnlistedLogs drops the parsed logs of files that Roblox removed.
+func (reader *Reader) forgetUnlistedLogs(listedPaths map[string]bool) {
+	reader.parsedLogMutex.Lock()
+	defer reader.parsedLogMutex.Unlock()
+	for path := range reader.parsedLogByPath {
+		if !listedPaths[path] {
+			delete(reader.parsedLogByPath, path)
+		}
+	}
 }

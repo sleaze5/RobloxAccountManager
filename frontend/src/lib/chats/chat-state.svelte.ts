@@ -7,6 +7,21 @@ import type {
 import type { AccountStore } from "../accounts/account-store.svelte"
 import { AccountScope } from "../accounts/account-scope"
 import { errorMessage } from "../shared/errors"
+import { isFresh } from "../shared/freshness"
+
+const keptPageName = "chats"
+
+interface KeptChats {
+	conversations: ChatConversationView[]
+	conversationsCursor: string
+	groupMemberLimit: number
+	groupNameMaxLength: number
+	openId: string
+	messages: ChatMessageView[]
+	messagesCursor: string
+	friends: SocialUser[]
+	friendsFetchedAt: number
+}
 
 export interface PendingChatMessage {
 	key: number
@@ -39,7 +54,6 @@ export class ChatState {
 	renameError = $state("")
 	friends = $state<SocialUser[]>([])
 	friendsLoading = $state(false)
-	friendsLoaded = $state(false)
 	friendsError = $state("")
 	groupMemberLimit = $state(0)
 	groupNameMaxLength = $state(0)
@@ -48,12 +62,25 @@ export class ChatState {
 	#messagesGeneration = 0
 	#deliveredWhileLoading: ChatMessageView[] = []
 	#nextPendingKey = 0
+	#fetchedAt = 0
+	#friendsFetchedAt = 0
 	readonly #scope: AccountScope
 	readonly selfUserId: number
 
 	constructor(accountId: number, selfUserId: number, store: AccountStore) {
 		this.selfUserId = selfUserId
 		this.#scope = new AccountScope(accountId, store)
+		const kept = this.#scope.readKept<KeptChats>(keptPageName)
+		if (kept) {
+			const { friendsFetchedAt, ...listed } = kept.value
+			Object.assign(this, listed)
+			this.#fetchedAt = kept.fetchedAt
+			this.#friendsFetchedAt = friendsFetchedAt
+		}
+	}
+
+	get isFresh(): boolean {
+		return isFresh(this.#fetchedAt)
 	}
 
 	get openConversation(): ChatConversationView | undefined {
@@ -85,6 +112,7 @@ export class ChatState {
 			this.conversationsCursor = page.nextCursor
 			this.groupMemberLimit = page.groupMemberLimit
 			this.groupNameMaxLength = page.groupNameMaxLength
+			this.#fetchedAt = Date.now()
 		} catch (error) {
 			if (this.#scope.isCurrent && generation === this.#listGeneration) {
 				this.error = errorMessage(error, "Could not load chats. Try again.")
@@ -370,9 +398,18 @@ export class ChatState {
 		}
 	}
 
-	// The friends list feeds the people picker. It loads once per page.
+	// The friends list feeds the people picker. It has its own fetch time, so
+	// that a conversation refresh does not make it fresh. Opening the picker
+	// loads it again once it is no longer fresh, and the last list stays visible
+	// while it loads.
 	async loadFriends(): Promise<void> {
-		if (!this.#scope.isCurrent || this.friendsLoading || this.friendsLoaded) return
+		if (
+			!this.#scope.isCurrent ||
+			this.friendsLoading ||
+			isFresh(this.#friendsFetchedAt)
+		) {
+			return
+		}
 		this.friendsLoading = true
 		this.friendsError = ""
 		try {
@@ -386,7 +423,7 @@ export class ChatState {
 			)
 			if (!this.#scope.isCurrent) return
 			this.friends = page.people ?? []
-			this.friendsLoaded = true
+			this.#friendsFetchedAt = Date.now()
 		} catch (error) {
 			if (this.#scope.isCurrent) {
 				this.friendsError = errorMessage(error, "Could not load friends.")
@@ -471,7 +508,25 @@ export class ChatState {
 		)
 	}
 
+	// The list, the open chat, and the friends are kept, so that the next visit
+	// shows them at once. Messages that are still sending are not kept, and an
+	// open chat whose messages did not load closes.
 	dispose(): void {
+		if (this.#fetchedAt) {
+			const hasOpenMessages = !this.messagesLoading && !this.messagesError,
+				kept: KeptChats = {
+					conversations: this.conversations,
+					conversationsCursor: this.conversationsCursor,
+					groupMemberLimit: this.groupMemberLimit,
+					groupNameMaxLength: this.groupNameMaxLength,
+					openId: hasOpenMessages ? this.openId : "",
+					messages: hasOpenMessages ? this.messages : [],
+					messagesCursor: hasOpenMessages ? this.messagesCursor : "",
+					friends: this.friends,
+					friendsFetchedAt: this.#friendsFetchedAt,
+				}
+			this.#scope.keep(keptPageName, { value: kept, fetchedAt: this.#fetchedAt })
+		}
 		this.#scope.dispose()
 		this.#listGeneration++
 		this.#messagesGeneration++

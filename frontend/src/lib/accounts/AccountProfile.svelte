@@ -10,10 +10,11 @@
 	import warningCircleIcon from "@phosphor-icons/core/regular/warning-circle.svg?raw"
 	import Icon from "../shared/Icon.svelte"
 	import RefreshIcon from "../shared/RefreshIcon.svelte"
+	import Skeleton from "../shared/Skeleton.svelte"
 	import { tick, untrack } from "svelte"
 	import arrowCounterClockwiseIcon from "@phosphor-icons/core/regular/arrow-counter-clockwise.svg?raw"
 	import circleNotchIcon from "@phosphor-icons/core/regular/circle-notch.svg?raw"
-	import { AccountProfileSection, SessionState } from "../backend/bridge"
+	import { AccountProfileSection, SessionState, SocialList } from "../backend/bridge"
 	import type { RobloxNotificationUser } from "../backend/bridge"
 	import AccountModerationPanel from "./AccountModerationPanel.svelte"
 	import {
@@ -449,11 +450,20 @@
 				</div>
 			</div>
 
-			{#if profile}
+			{#if profileState}
+				{@const sections = profileState.sections}
 				<SocialCounts
-					friends={profile.friendCount}
-					followers={profile.followerCount}
-					following={profile.followingCount}
+					friends={profile?.friendCount ?? null}
+					followers={profile?.followerCount ?? null}
+					following={profile?.followingCount ?? null}
+					isCountPending={(list) =>
+						sections.isSectionPending(
+							list === SocialList.SocialFollowers
+								? AccountProfileSection.ProfileSectionFollowers
+								: list === SocialList.SocialFollowing
+									? AccountProfileSection.ProfileSectionFollowing
+									: AccountProfileSection.ProfileSectionFriends,
+						)}
 					onShow={onShowSocial} />
 			{/if}
 
@@ -471,18 +481,21 @@
 					{notifications}
 					{onEditDescription} />
 			{:else if profileVisible && profileState?.sections.isSectionPending(AccountProfileSection.ProfileSectionAbout)}
-				<p
-					class="flex items-center gap-2 text-xs text-fg-muted"
-					aria-busy="true">
-					<Icon
-						svg={circleNotchIcon}
-						class="spinner"
-						size={14}
-						aria-hidden="true" />Loading profile…
-				</p>
+				<section class="flex flex-col gap-2" aria-busy="true">
+					<h3
+						class="flex h-6 items-center text-xs font-semibold text-fg-muted">
+						About
+					</h3>
+					<p class="text-block" data-variant="prose">
+						<Skeleton className="w-72" label="Loading the description" />
+					</p>
+				</section>
 			{/if}
 
-			<AccountProfileDetails account={selectedAccount} snapshot={profile} />
+			<AccountProfileDetails
+				account={selectedAccount}
+				snapshot={profile}
+				sections={profileState?.sections ?? null} />
 			{#if profile && profileState?.sections.hasSection(AccountProfileSection.ProfileSectionConnections) && store.accountTotal > 1}
 				<FriendConnections
 					connections={profile.connections ?? []}

@@ -44,7 +44,6 @@
 	import shieldCheckIcon from "@phosphor-icons/core/regular/shield-check.svg?raw"
 	import shieldSlashIcon from "@phosphor-icons/core/regular/shield-slash.svg?raw"
 	import calendarIcon from "@phosphor-icons/core/regular/calendar.svg?raw"
-	import circleNotchIcon from "@phosphor-icons/core/regular/circle-notch.svg?raw"
 	import envelopeIcon from "@phosphor-icons/core/regular/envelope.svg?raw"
 	import flagIcon from "@phosphor-icons/core/regular/flag.svg?raw"
 	import globeHemisphereWestIcon from "@phosphor-icons/core/regular/globe-hemisphere-west.svg?raw"
@@ -60,6 +59,7 @@
 	import userCheckIcon from "@phosphor-icons/core/regular/user-check.svg?raw"
 	import userCircleIcon from "@phosphor-icons/core/regular/user-circle.svg?raw"
 	import Icon from "../shared/Icon.svelte"
+	import Skeleton from "../shared/Skeleton.svelte"
 	import Timestamp from "../shared/Timestamp.svelte"
 	import SensitiveValue from "../shared/SensitiveValue.svelte"
 	import {
@@ -112,7 +112,9 @@
 			year: "numeric",
 		})
 
-	const snapshot = $derived(info.snapshot),
+	// The rows show from the start, with a placeholder for each section that is
+	// still loading, so that the page does not move when the sections arrive.
+	const snapshot = $derived(info.sections.snapshot),
 		birthday = $derived(formatBirthday(snapshot?.birthdate ?? ""))
 
 	function formatBirthday(birthdate: string): string {
@@ -151,8 +153,9 @@
 {/snippet}
 
 {#snippet unavailableValue(section: AccountInfoSection)}
-	<span class="text-fg-faint"
-		>{info.sections.isSectionPending(section) ? "Loading…" : "Unavailable"}</span>
+	{#if info.sections.isSectionPending(section)}<Skeleton
+			className="w-28" />{:else}<span class="text-fg-faint">Unavailable</span
+		>{/if}
 {/snippet}
 
 {#snippet passwordFact()}
@@ -188,463 +191,425 @@
 	</div>
 {/if}
 
-{#if !snapshot}
-	{#if visible.has("password")}
-		<section class="settings-section" aria-labelledby="account-info-account">
-			<h3 id="account-info-account">Account</h3>
-			<dl class="facts">{@render passwordFact()}</dl>
-		</section>
-	{/if}
-	{#if info.loading}
-		<div class="flex items-center gap-2 text-xs text-fg-muted" role="status">
-			<Icon svg={circleNotchIcon} class="spinner" size={16} aria-hidden="true" />
-			Loading account info
-		</div>
-	{/if}
-{:else}
-	{#if any("displayName", "username", "password", "pin", "gender", "ageGroup", "birthday", "firstAccount")}
-		<section class="settings-section" aria-labelledby="account-info-account">
-			<h3 id="account-info-account">Account</h3>
-			<dl class="facts">
-				{#if visible.has("displayName")}
-					<div>
-						<dt>
-							<Icon
-								svg={identificationCardIcon}
-								size={16}
-								aria-hidden="true" />Display name
-						</dt>
-						<dd>
-							<span>{account.displayName}</span>
-							{@render edit("displayName", "Change display name")}
-						</dd>
-					</div>
-				{/if}
-				{#if visible.has("username")}
-					<div>
-						<dt>
-							<Icon svg={atIcon} size={16} aria-hidden="true" />Username
-						</dt>
-						<dd><span>{account.username}</span></dd>
-					</div>
-				{/if}
-				{#if visible.has("password")}
-					{@render passwordFact()}
-				{/if}
-				{#if visible.has("pin")}
-					<div>
-						<dt>
-							<Icon
-								svg={lockKeyIcon}
-								size={16}
-								aria-hidden="true" />Account PIN
-						</dt>
-						<dd>
-							{#if missing(AccountInfoSection.InfoSectionPin) || !pinLabels[snapshot.pin]}
-								{@render unavailableValue(
-									AccountInfoSection.InfoSectionPin,
-								)}
-							{:else}
-								<span>{pinLabels[snapshot.pin]}</span>
-								{#if snapshot.pin === PinState.PinLocked}
-									<button
-										class="-my-1 button h-6 self-center"
-										type="button"
-										onclick={() => onEdit("pin")}>Unlock</button>
-								{/if}
-							{/if}
-						</dd>
-					</div>
-				{/if}
-				{#if visible.has("gender")}
-					<div>
-						<dt>
-							<Icon
-								svg={userCircleIcon}
-								size={16}
-								aria-hidden="true" />Gender
-						</dt>
-						<dd>
-							{#if missing(AccountInfoSection.InfoSectionGender)}
-								{@render unavailableValue(
-									AccountInfoSection.InfoSectionGender,
-								)}
-							{:else if genders[snapshot.gender]}
-								<span>{genders[snapshot.gender]}</span>
-							{:else}
-								<span class="text-fg-faint">Not set</span>
-							{/if}
-						</dd>
-					</div>
-				{/if}
-				{#if visible.has("ageGroup")}
-					<div>
-						<dt>
-							<Icon svg={calendarIcon} size={16} aria-hidden="true" />Age
-							group
-						</dt>
-						<dd>
-							{#if snapshot.ageGroup}
-								<span>{snapshot.ageGroup}</span>
-								{#if ageVerificationLabels[snapshot.ageVerification]}<small
-										>{ageVerificationLabels[
-											snapshot.ageVerification
-										]}</small
-									>{/if}
-							{:else}
-								{@render unavailableValue(
-									AccountInfoSection.InfoSectionAge,
-								)}
-							{/if}
-						</dd>
-					</div>
-				{/if}
-				{#if visible.has("birthday")}
-					<div>
-						<dt>
-							<Icon svg={cakeIcon} size={16} aria-hidden="true" />Birthday
-						</dt>
-						<dd>
-							{#if birthday}
-								<SensitiveValue label="Birthday"
-									>{birthday}</SensitiveValue>
-								{#if snapshot.ageVerification === AgeVerification.AgeVerifiedID}<small
-										>{ageVerificationLabels[
-											snapshot.ageVerification
-										]}</small
-									>{/if}
-							{:else}
-								{@render unavailableValue(
-									AccountInfoSection.InfoSectionBirthdate,
-								)}
-							{/if}
-						</dd>
-					</div>
-				{/if}
-				{#if visible.has("firstAccount")}
-					<div>
-						<dt>
-							<Icon svg={flagIcon} size={16} aria-hidden="true" />First
-							account
-						</dt>
-						<dd>
-							{#if snapshot.firstAccount == null}
-								{@render unavailableValue(
-									AccountInfoSection.InfoSectionFirstAccount,
-								)}
-							{:else}
+{#if any("displayName", "username", "password", "pin", "gender", "ageGroup", "birthday", "firstAccount")}
+	<section class="settings-section" aria-labelledby="account-info-account">
+		<h3 id="account-info-account">Account</h3>
+		<dl class="facts">
+			{#if visible.has("displayName")}
+				<div>
+					<dt>
+						<Icon
+							svg={identificationCardIcon}
+							size={16}
+							aria-hidden="true" />Display name
+					</dt>
+					<dd>
+						<span>{account.displayName}</span>
+						{@render edit("displayName", "Change display name")}
+					</dd>
+				</div>
+			{/if}
+			{#if visible.has("username")}
+				<div>
+					<dt>
+						<Icon svg={atIcon} size={16} aria-hidden="true" />Username
+					</dt>
+					<dd><span>{account.username}</span></dd>
+				</div>
+			{/if}
+			{#if visible.has("password")}
+				{@render passwordFact()}
+			{/if}
+			{#if visible.has("pin")}
+				<div>
+					<dt>
+						<Icon svg={lockKeyIcon} size={16} aria-hidden="true" />Account
+						PIN
+					</dt>
+					<dd>
+						{#if missing(AccountInfoSection.InfoSectionPin) || !pinLabels[snapshot.pin]}
+							{@render unavailableValue(
+								AccountInfoSection.InfoSectionPin,
+							)}
+						{:else}
+							<span>{pinLabels[snapshot.pin]}</span>
+							{#if snapshot.pin === PinState.PinLocked}
 								<button
-									class="cursor-help rounded-md tabular-nums focus-visible:outline-offset-2"
+									class="-my-1 button h-6 self-center"
 									type="button"
-									aria-label={`${snapshot.firstAccount ? "Yes" : "No"}. ${firstAccountHint}`}
-									data-tooltip={firstAccountHint}
-									>{snapshot.firstAccount ? "Yes" : "No"}</button>
+									onclick={() => onEdit("pin")}>Unlock</button>
 							{/if}
-						</dd>
-					</div>
-				{/if}
-			</dl>
-		</section>
-	{/if}
+						{/if}
+					</dd>
+				</div>
+			{/if}
+			{#if visible.has("gender")}
+				<div>
+					<dt>
+						<Icon svg={userCircleIcon} size={16} aria-hidden="true" />Gender
+					</dt>
+					<dd>
+						{#if missing(AccountInfoSection.InfoSectionGender)}
+							{@render unavailableValue(
+								AccountInfoSection.InfoSectionGender,
+							)}
+						{:else if genders[snapshot.gender]}
+							<span>{genders[snapshot.gender]}</span>
+						{:else}
+							<span class="text-fg-faint">Not set</span>
+						{/if}
+					</dd>
+				</div>
+			{/if}
+			{#if visible.has("ageGroup")}
+				<div>
+					<dt>
+						<Icon svg={calendarIcon} size={16} aria-hidden="true" />Age
+						group
+					</dt>
+					<dd>
+						{#if snapshot.ageGroup}
+							<span>{snapshot.ageGroup}</span>
+							{#if ageVerificationLabels[snapshot.ageVerification]}<small
+									>{ageVerificationLabels[
+										snapshot.ageVerification
+									]}</small
+								>{/if}
+						{:else}
+							{@render unavailableValue(
+								AccountInfoSection.InfoSectionAge,
+							)}
+						{/if}
+					</dd>
+				</div>
+			{/if}
+			{#if visible.has("birthday")}
+				<div>
+					<dt>
+						<Icon svg={cakeIcon} size={16} aria-hidden="true" />Birthday
+					</dt>
+					<dd>
+						{#if birthday}
+							<SensitiveValue label="Birthday">{birthday}</SensitiveValue>
+							{#if snapshot.ageVerification === AgeVerification.AgeVerifiedID}<small
+									>{ageVerificationLabels[
+										snapshot.ageVerification
+									]}</small
+								>{/if}
+						{:else}
+							{@render unavailableValue(
+								AccountInfoSection.InfoSectionBirthdate,
+							)}
+						{/if}
+					</dd>
+				</div>
+			{/if}
+			{#if visible.has("firstAccount")}
+				<div>
+					<dt>
+						<Icon svg={flagIcon} size={16} aria-hidden="true" />First
+						account
+					</dt>
+					<dd>
+						{#if snapshot.firstAccount == null}
+							{@render unavailableValue(
+								AccountInfoSection.InfoSectionFirstAccount,
+							)}
+						{:else}
+							<button
+								class="cursor-help rounded-md tabular-nums focus-visible:outline-offset-2"
+								type="button"
+								aria-label={`${snapshot.firstAccount ? "Yes" : "No"}. ${firstAccountHint}`}
+								data-tooltip={firstAccountHint}
+								>{snapshot.firstAccount ? "Yes" : "No"}</button>
+						{/if}
+					</dd>
+				</div>
+			{/if}
+		</dl>
+	</section>
+{/if}
 
-	{#if any("email", "phone")}
-		<section class="settings-section" aria-labelledby="account-info-contact">
-			<h3 id="account-info-contact">Contact</h3>
-			<dl class="facts">
-				{#if visible.has("email")}
-					<div>
-						<dt>
-							<Icon
-								svg={envelopeIcon}
-								size={16}
-								aria-hidden="true" />Email
-						</dt>
-						<dd>
-							{#if missing(AccountInfoSection.InfoSectionEmail)}
-								{@render unavailableValue(
-									AccountInfoSection.InfoSectionEmail,
-								)}
-							{:else if snapshot.email}
-								<SensitiveValue label="Email"
-									>{snapshot.email}</SensitiveValue>
-								<small
-									>{snapshot.emailVerified
-										? "Verified"
-										: "Not verified"}</small>
-							{:else}
-								<span class="text-fg-faint">Not set</span>
-							{/if}
-							{#if !missing(AccountInfoSection.InfoSectionEmail)}
-								{@render edit("email", "Change email")}
-							{/if}
-						</dd>
-					</div>
-				{/if}
-				{#if visible.has("phone")}
-					<div>
-						<dt>
-							<Icon svg={phoneIcon} size={16} aria-hidden="true" />Phone
-							number
-						</dt>
-						<dd>
-							{#if missing(AccountInfoSection.InfoSectionPhone)}
-								{@render unavailableValue(
-									AccountInfoSection.InfoSectionPhone,
-								)}
-							{:else if snapshot.phone}
-								<SensitiveValue label="Phone number"
-									>{snapshot.phone}</SensitiveValue>
-								<small
-									>{snapshot.phoneVerified
-										? "Verified"
-										: "Not verified"}</small>
-							{:else}
-								<span class="text-fg-faint">Not set</span>
-							{/if}
-						</dd>
-					</div>
-				{/if}
-			</dl>
-		</section>
-	{/if}
+{#if any("email", "phone")}
+	<section class="settings-section" aria-labelledby="account-info-contact">
+		<h3 id="account-info-contact">Contact</h3>
+		<dl class="facts">
+			{#if visible.has("email")}
+				<div>
+					<dt>
+						<Icon svg={envelopeIcon} size={16} aria-hidden="true" />Email
+					</dt>
+					<dd>
+						{#if missing(AccountInfoSection.InfoSectionEmail)}
+							{@render unavailableValue(
+								AccountInfoSection.InfoSectionEmail,
+							)}
+						{:else if snapshot.email}
+							<SensitiveValue label="Email"
+								>{snapshot.email}</SensitiveValue>
+							<small
+								>{snapshot.emailVerified
+									? "Verified"
+									: "Not verified"}</small>
+						{:else}
+							<span class="text-fg-faint">Not set</span>
+						{/if}
+						{#if !missing(AccountInfoSection.InfoSectionEmail)}
+							{@render edit("email", "Change email")}
+						{/if}
+					</dd>
+				</div>
+			{/if}
+			{#if visible.has("phone")}
+				<div>
+					<dt>
+						<Icon svg={phoneIcon} size={16} aria-hidden="true" />Phone
+						number
+					</dt>
+					<dd>
+						{#if missing(AccountInfoSection.InfoSectionPhone)}
+							{@render unavailableValue(
+								AccountInfoSection.InfoSectionPhone,
+							)}
+						{:else if snapshot.phone}
+							<SensitiveValue label="Phone number"
+								>{snapshot.phone}</SensitiveValue>
+							<small
+								>{snapshot.phoneVerified
+									? "Verified"
+									: "Not verified"}</small>
+						{:else}
+							<span class="text-fg-faint">Not set</span>
+						{/if}
+					</dd>
+				</div>
+			{/if}
+		</dl>
+	</section>
+{/if}
 
-	{#if any("language", "translations", "location")}
-		<section class="settings-section" aria-labelledby="account-info-region">
-			<h3 id="account-info-region">Language &amp; region</h3>
-			<dl class="facts">
-				{#if visible.has("language")}
-					<div>
-						<dt>
-							<Icon
-								svg={translateIcon}
-								size={16}
-								aria-hidden="true" />Language
-						</dt>
-						<dd>
-							{#if snapshot.language}
-								<span>{snapshot.language}</span>
-							{:else}
-								{@render unavailableValue(
-									AccountInfoSection.InfoSectionLocale,
-								)}
-							{/if}
-						</dd>
-					</div>
-				{/if}
-				{#if visible.has("translations")}
-					<div>
-						<dt>
-							<Icon
-								svg={globeHemisphereWestIcon}
-								size={16}
-								aria-hidden="true" />Automatic translations
-						</dt>
-						<dd>
-							{#if snapshot.autoTranslations == null}
-								{@render unavailableValue(
-									AccountInfoSection.InfoSectionLocale,
-								)}
-							{:else}
-								<span>{snapshot.autoTranslations ? "On" : "Off"}</span>
-							{/if}
-						</dd>
-					</div>
-				{/if}
-				{#if visible.has("location")}
-					<div>
-						<dt>
-							<Icon
-								svg={mapPinIcon}
-								size={16}
-								aria-hidden="true" />Account location
-						</dt>
-						<dd>
-							{#if missing(AccountInfoSection.InfoSectionLocation)}
-								{@render unavailableValue(
-									AccountInfoSection.InfoSectionLocation,
-								)}
-							{:else if snapshot.location}
-								<SensitiveValue label="Account location"
-									>{snapshot.location}</SensitiveValue>
-							{:else}
-								<span class="text-fg-faint">Not set</span>
-							{/if}
-						</dd>
-					</div>
-				{/if}
-			</dl>
-		</section>
-	{/if}
+{#if any("language", "translations", "location")}
+	<section class="settings-section" aria-labelledby="account-info-region">
+		<h3 id="account-info-region">Language &amp; region</h3>
+		<dl class="facts">
+			{#if visible.has("language")}
+				<div>
+					<dt>
+						<Icon
+							svg={translateIcon}
+							size={16}
+							aria-hidden="true" />Language
+					</dt>
+					<dd>
+						{#if snapshot.language}
+							<span>{snapshot.language}</span>
+						{:else}
+							{@render unavailableValue(
+								AccountInfoSection.InfoSectionLocale,
+							)}
+						{/if}
+					</dd>
+				</div>
+			{/if}
+			{#if visible.has("translations")}
+				<div>
+					<dt>
+						<Icon
+							svg={globeHemisphereWestIcon}
+							size={16}
+							aria-hidden="true" />Automatic translations
+					</dt>
+					<dd>
+						{#if snapshot.autoTranslations == null}
+							{@render unavailableValue(
+								AccountInfoSection.InfoSectionLocale,
+							)}
+						{:else}
+							<span>{snapshot.autoTranslations ? "On" : "Off"}</span>
+						{/if}
+					</dd>
+				</div>
+			{/if}
+			{#if visible.has("location")}
+				<div>
+					<dt>
+						<Icon svg={mapPinIcon} size={16} aria-hidden="true" />Account
+						location
+					</dt>
+					<dd>
+						{#if missing(AccountInfoSection.InfoSectionLocation)}
+							{@render unavailableValue(
+								AccountInfoSection.InfoSectionLocation,
+							)}
+						{:else if snapshot.location}
+							<SensitiveValue label="Account location"
+								>{snapshot.location}</SensitiveValue>
+						{:else}
+							<span class="text-fg-faint">Not set</span>
+						{/if}
+					</dd>
+				</div>
+			{/if}
+		</dl>
+	</section>
+{/if}
 
-	{#if any("voiceChat", "voiceOptIn", "voiceVerification")}
-		{@const voice = snapshot.voiceChat}
-		<section class="settings-section" aria-labelledby="account-info-voice">
-			<h3 id="account-info-voice">Voice chat</h3>
-			<dl class="facts">
-				{#if visible.has("voiceChat")}
-					<AccountVoiceChat voiceChat={voice} label="Status" />
-					{#if voice?.state === VoiceChatState.VoiceChatSuspended && voice.suspendedUntilMs}
-						<div>
-							<dt>
-								<Icon
-									svg={hourglassIcon}
-									size={16}
-									aria-hidden="true" />Suspension ends
-							</dt>
-							<dd><Timestamp value={voice.suspendedUntilMs} /></dd>
-						</div>
-					{/if}
-				{/if}
-				{#if visible.has("voiceOptIn")}
+{#if any("voiceChat", "voiceOptIn", "voiceVerification")}
+	{@const voice = snapshot.voiceChat}
+	<section class="settings-section" aria-labelledby="account-info-voice">
+		<h3 id="account-info-voice">Voice chat</h3>
+		<dl class="facts">
+			{#if visible.has("voiceChat")}
+				<AccountVoiceChat voiceChat={voice} label="Status" />
+				{#if voice?.state === VoiceChatState.VoiceChatSuspended && voice.suspendedUntilMs}
 					<div>
 						<dt>
 							<Icon
-								svg={toggleRightIcon}
+								svg={hourglassIcon}
 								size={16}
-								aria-hidden="true" />Opted in
+								aria-hidden="true" />Suspension ends
 						</dt>
-						<dd>
-							{#if voice}
-								<span>{voice.optedIn ? "Yes" : "No"}</span>
-								{#if voice.enrollmentDisabled}<small
-										>Enrollment disabled</small
-									>{/if}
-							{:else}
-								{@render unavailableValue(
-									AccountInfoSection.InfoSectionVoiceChat,
-								)}
-							{/if}
-						</dd>
+						<dd><Timestamp value={voice.suspendedUntilMs} /></dd>
 					</div>
 				{/if}
-				{#if visible.has("voiceVerification")}
-					<div>
-						<dt>
-							<Icon
-								svg={userCheckIcon}
+			{/if}
+			{#if visible.has("voiceOptIn")}
+				<div>
+					<dt>
+						<Icon svg={toggleRightIcon} size={16} aria-hidden="true" />Opted
+						in
+					</dt>
+					<dd>
+						{#if voice}
+							<span>{voice.optedIn ? "Yes" : "No"}</span>
+							{#if voice.enrollmentDisabled}<small
+									>Enrollment disabled</small
+								>{/if}
+						{:else}
+							{@render unavailableValue(
+								AccountInfoSection.InfoSectionVoiceChat,
+							)}
+						{/if}
+					</dd>
+				</div>
+			{/if}
+			{#if visible.has("voiceVerification")}
+				<div>
+					<dt>
+						<Icon svg={userCheckIcon} size={16} aria-hidden="true" />Voice
+						verification
+					</dt>
+					<dd>
+						{#if voice}
+							<span>{voice.verified ? "Verified" : "Not verified"}</span>
+							{#if !voice.verified && voice.canVerifyAge}<small
+									>Age check available</small
+								>{/if}
+						{:else}
+							{@render unavailableValue(
+								AccountInfoSection.InfoSectionVoiceChat,
+							)}
+						{/if}
+					</dd>
+				</div>
+			{/if}
+		</dl>
+	</section>
+{/if}
+{#if any("twoStep", "recoveryCodes", "passkeys")}
+	<section class="settings-section" aria-labelledby="account-info-security">
+		<h3 id="account-info-security">Security</h3>
+		<dl class="facts">
+			{#if visible.has("twoStep")}
+				<div
+					data-tone={snapshot.twoStepMethods?.length === 0
+						? "warning"
+						: undefined}>
+					<dt>
+						{#if snapshot.twoStepMethods?.length === 0}<Icon
+								svg={shieldSlashIcon}
 								size={16}
-								aria-hidden="true" />Voice verification
-						</dt>
-						<dd>
-							{#if voice}
-								<span
-									>{voice.verified
-										? "Verified"
-										: "Not verified"}</span>
-								{#if !voice.verified && voice.canVerifyAge}<small
-										>Age check available</small
-									>{/if}
-							{:else}
-								{@render unavailableValue(
-									AccountInfoSection.InfoSectionVoiceChat,
-								)}
-							{/if}
-						</dd>
-					</div>
-				{/if}
-			</dl>
-		</section>
-	{/if}
-	{#if any("twoStep", "recoveryCodes", "passkeys")}
-		<section class="settings-section" aria-labelledby="account-info-security">
-			<h3 id="account-info-security">Security</h3>
-			<dl class="facts">
-				{#if visible.has("twoStep")}
-					<div
-						data-tone={snapshot.twoStepMethods?.length === 0
-							? "warning"
-							: undefined}>
-						<dt>
-							{#if snapshot.twoStepMethods?.length === 0}<Icon
-									svg={shieldSlashIcon}
-									size={16}
-									aria-hidden="true" />{:else}<Icon
-									svg={shieldCheckIcon}
-									size={16}
-									aria-hidden="true" />{/if}2-step verification
-						</dt>
-						<dd>
-							{#if snapshot.twoStepMethods === null}
-								{@render unavailableValue(
-									AccountInfoSection.InfoSectionTwoStep,
-								)}
-							{:else if snapshot.twoStepMethods.length}
-								<span>On</span>
-								<small
-									>{snapshot.twoStepMethods
-										.map(
-											(method) =>
-												verificationMethods[method] ?? method,
-										)
-										.join(", ")}</small>
-							{:else}
-								<span>Off</span>
-							{/if}
-						</dd>
-					</div>
-				{/if}
-				{#if visible.has("recoveryCodes")}
-					<div
-						data-tone={snapshot.recoveryCodeCount === 0
-							? "muted"
-							: undefined}>
-						<dt>
-							<Icon
-								svg={lifebuoyIcon}
+								aria-hidden="true" />{:else}<Icon
+								svg={shieldCheckIcon}
 								size={16}
-								aria-hidden="true" />Recovery codes
-						</dt>
-						<dd>
-							{#if snapshot.recoveryCodeCount === null}
-								{@render unavailableValue(
-									AccountInfoSection.InfoSectionRecoveryCodes,
-								)}
-							{:else if snapshot.recoveryCodeCount > 0}
-								<span
-									>{snapshot.recoveryCodeCount} unused {snapshot.recoveryCodeCount ===
-									1
-										? "code"
-										: "codes"}</span>
-								{#if snapshot.recoveryCodesCreatedAtMs}<small
-										>Created <Timestamp
-											value={snapshot.recoveryCodesCreatedAtMs} /></small
-									>{/if}
-							{:else}
-								<span>None</span>
-							{/if}
-						</dd>
-					</div>
-				{/if}
-				{#if visible.has("passkeys")}
-					<div
-						data-tone={snapshot.passkeyNames?.length === 0
-							? "muted"
-							: undefined}>
-						<dt>
-							<Icon
-								svg={fingerprintIcon}
-								size={16}
-								aria-hidden="true" />Passkeys
-						</dt>
-						<dd>
-							{#if snapshot.passkeyNames === null}
-								{@render unavailableValue(
-									AccountInfoSection.InfoSectionPasskeys,
-								)}
-							{:else if snapshot.passkeyNames.length}
-								<span>{snapshot.passkeyNames.length}</span>
-								{#if snapshot.passkeyNames.some(Boolean)}<small
-										>{snapshot.passkeyNames
-											.filter(Boolean)
-											.join(", ")}</small
-									>{/if}
-							{:else}
-								<span>None</span>
-							{/if}
-						</dd>
-					</div>
-				{/if}
-			</dl>
-		</section>
-	{/if}
+								aria-hidden="true" />{/if}2-step verification
+					</dt>
+					<dd>
+						{#if snapshot.twoStepMethods === null}
+							{@render unavailableValue(
+								AccountInfoSection.InfoSectionTwoStep,
+							)}
+						{:else if snapshot.twoStepMethods.length}
+							<span>On</span>
+							<small
+								>{snapshot.twoStepMethods
+									.map(
+										(method) =>
+											verificationMethods[method] ?? method,
+									)
+									.join(", ")}</small>
+						{:else}
+							<span>Off</span>
+						{/if}
+					</dd>
+				</div>
+			{/if}
+			{#if visible.has("recoveryCodes")}
+				<div data-tone={snapshot.recoveryCodeCount === 0 ? "muted" : undefined}>
+					<dt>
+						<Icon svg={lifebuoyIcon} size={16} aria-hidden="true" />Recovery
+						codes
+					</dt>
+					<dd>
+						{#if snapshot.recoveryCodeCount === null}
+							{@render unavailableValue(
+								AccountInfoSection.InfoSectionRecoveryCodes,
+							)}
+						{:else if snapshot.recoveryCodeCount > 0}
+							<span
+								>{snapshot.recoveryCodeCount} unused {snapshot.recoveryCodeCount ===
+								1
+									? "code"
+									: "codes"}</span>
+							{#if snapshot.recoveryCodesCreatedAtMs}<small
+									>Created <Timestamp
+										value={snapshot.recoveryCodesCreatedAtMs} /></small
+								>{/if}
+						{:else}
+							<span>None</span>
+						{/if}
+					</dd>
+				</div>
+			{/if}
+			{#if visible.has("passkeys")}
+				<div
+					data-tone={snapshot.passkeyNames?.length === 0
+						? "muted"
+						: undefined}>
+					<dt>
+						<Icon
+							svg={fingerprintIcon}
+							size={16}
+							aria-hidden="true" />Passkeys
+					</dt>
+					<dd>
+						{#if snapshot.passkeyNames === null}
+							{@render unavailableValue(
+								AccountInfoSection.InfoSectionPasskeys,
+							)}
+						{:else if snapshot.passkeyNames.length}
+							<span>{snapshot.passkeyNames.length}</span>
+							{#if snapshot.passkeyNames.some(Boolean)}<small
+									>{snapshot.passkeyNames
+										.filter(Boolean)
+										.join(", ")}</small
+								>{/if}
+						{:else}
+							<span>None</span>
+						{/if}
+					</dd>
+				</div>
+			{/if}
+		</dl>
+	</section>
 {/if}

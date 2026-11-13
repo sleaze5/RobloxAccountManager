@@ -3,6 +3,8 @@
 	import dotsSixVerticalIcon from "@phosphor-icons/core/regular/dots-six-vertical.svg?raw"
 	import starFillIcon from "@phosphor-icons/core/fill/star-fill.svg?raw"
 	import Icon from "../shared/Icon.svelte"
+	import SkeletonMediaRow from "../shared/SkeletonMediaRow.svelte"
+	import SkeletonList from "../shared/SkeletonList.svelte"
 	import { tick } from "svelte"
 	import { isMoveShortcut, moveListFocus } from "../shared/move-shortcut"
 	import type { WorkspaceState } from "../layout/workspace-state.svelte"
@@ -243,16 +245,21 @@
 			</button>
 		</div>
 	{:else}
-		<div
-			class="flex h-24 flex-col items-center justify-center gap-0.5 text-xs text-fg-faint">
-			{#if store.loadingAccounts}
-				<span>Loading accounts…</span>
-			{:else if !store.vault.unlocked}
-				<span>Unlock the vault to see accounts.</span>
-			{:else if store.query || store.selectedTagIds.length > 0}
-				<strong class="font-medium text-fg-muted">No matching accounts</strong>
-			{/if}
-		</div>
+		{#if store.loadingAccounts}
+			<SkeletonList label="Loading accounts" rowCount={6}>
+				{#snippet row(index)}<SkeletonMediaRow {index} />{/snippet}
+			</SkeletonList>
+		{:else}
+			<div
+				class="flex h-24 flex-col items-center justify-center gap-0.5 text-xs text-fg-faint">
+				{#if !store.vault.unlocked}
+					<span>Unlock the vault to see accounts.</span>
+				{:else if store.query || store.selectedTagIds.length > 0}
+					<strong class="font-medium text-fg-muted"
+						>No matching accounts</strong>
+				{/if}
+			</div>
+		{/if}
 	{/each}
 	{#if store.loadingMore}
 		<div class="flex h-24 items-center justify-center text-xs text-fg-faint">
