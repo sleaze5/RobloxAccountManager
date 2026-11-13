@@ -1,4 +1,5 @@
 <script lang="ts">
+	import caretRightIcon from "@phosphor-icons/core/regular/caret-right.svg?raw"
 	import checkIcon from "@phosphor-icons/core/regular/check.svg?raw"
 	import circleNotchIcon from "@phosphor-icons/core/regular/circle-notch.svg?raw"
 	import minusIcon from "@phosphor-icons/core/regular/minus.svg?raw"
@@ -11,7 +12,7 @@
 		RegionCheck,
 	} from "./nearest-server-search.svelte"
 
-	type ArcKind = "travelled" | "found" | "next" | "upcoming"
+	type ConnectorKind = "travelled" | "found" | "next" | "upcoming"
 
 	let { search }: { search: NearestServerSearch } = $props()
 
@@ -24,16 +25,17 @@
 			"grid-cols-3",
 			"grid-cols-4",
 		],
-		// Each region spans two arc columns, so an arc from the middle of one
-		// region to the middle of the next spans the two columns between them.
-		arcColumnsByRegionCount = [
+		// Each region spans two connector columns, so a connector from the middle
+		// of one region to the middle of the next spans the two columns between
+		// them.
+		connectorColumnsByRegionCount = [
 			"grid-cols-2",
 			"grid-cols-2",
 			"grid-cols-4",
 			"grid-cols-6",
 			"grid-cols-8",
 		],
-		arcStartColumns = ["col-start-2", "col-start-4", "col-start-6"]
+		connectorStartColumns = ["col-start-2", "col-start-4", "col-start-6"]
 
 	const firstVisibleIndex = $derived(
 			Math.min(
@@ -50,19 +52,22 @@
 		hiddenAfterCount = $derived(
 			search.regionChecks.length - firstVisibleIndex - visibleChecks.length,
 		),
-		arcs = $derived(
+		connectors = $derived(
 			visibleChecks.slice(1).map((destination, offset) => {
 				const source = visibleChecks[offset],
-					kind = arcKind(source, destination)
+					kind = connectorKind(source, destination)
 				return {
 					key: `${source.nearbyRegion.region.code}>${destination.nearbyRegion.region.code}:${kind}`,
 					kind,
-					startColumn: arcStartColumns[offset],
+					startColumn: connectorStartColumns[offset],
 				}
 			}),
 		)
 
-	function arcKind(source: RegionCheck, destination: RegionCheck): ArcKind {
+	function connectorKind(
+		source: RegionCheck,
+		destination: RegionCheck,
+	): ConnectorKind {
 		if (destination.status === "found") return "found"
 		if (destination.status !== "waiting") return "travelled"
 		return source.status === "checking" ? "next" : "upcoming"
@@ -102,9 +107,8 @@
 	</div>
 
 	{#if search.phase === "loading"}
-		<div role="status" aria-busy="true">
+		<div class="mt-3" role="status" aria-busy="true">
 			<span class="sr-only">Loading regions</span>
-			<div class="h-10" aria-hidden="true"></div>
 			<div class="grid grid-cols-4" aria-hidden="true">
 				{#each ["w-16", "w-12", "w-14", "w-12"] as nameWidth, index (index)}
 					<div class="flex min-w-0 flex-col items-center px-1">
@@ -113,60 +117,46 @@
 							><span class={["skeleton-line", nameWidth]}></span></span>
 						<span class="text-2xs"
 							><span class="skeleton-line w-10"></span></span>
-						<span class="text-2xs"
+						<span class="h-4 text-2xs leading-4"
 							><span class="skeleton-line w-12"></span></span>
 					</div>
 				{/each}
 			</div>
 		</div>
 	{:else}
-		<div
-			class={[
-				"grid h-10 grid-rows-1",
-				arcColumnsByRegionCount[visibleChecks.length],
-			]}
-			aria-hidden="true">
-			{#each arcs as arc (arc.key)}
-				<span
-					class={[
-						"relative col-span-2 row-start-1",
-						arc.startColumn,
-						arc.kind !== "travelled" &&
-							arc.kind !== "found" &&
-							"animate-enter",
-					]}>
-					<svg
+		<div class="relative mt-3">
+			<!-- The connectors sit level with the middle of the size-7 markers and
+			     stop short of them by the marker radius plus a small gap. -->
+			<div
+				class={[
+					"absolute inset-x-0 top-3.5 grid",
+					connectorColumnsByRegionCount[visibleChecks.length],
+				]}
+				aria-hidden="true">
+				{#each connectors as connector (connector.key)}
+					<span
 						class={[
-							"absolute inset-0 size-full overflow-visible",
-							arc.kind === "found" && "stroke-success",
-							arc.kind === "travelled" && "stroke-fg-faint",
-							arc.kind === "next" && "stroke-fg-faint",
-							arc.kind === "upcoming" && "stroke-line-focus",
-						]}
-						viewBox="0 0 100 40"
-						preserveAspectRatio="none">
-						<path
-							d="M 0 40 C 0 6 100 6 100 40"
-							fill="none"
-							stroke-width="1.5"
-							stroke-linecap="round"
-							stroke-dasharray={arc.kind === "next" ||
-							arc.kind === "upcoming"
-								? "3 5"
-								: undefined}
-							vector-effect="non-scaling-stroke" />
-					</svg>
-					{#if arc.kind === "travelled" || arc.kind === "found"}
-						<!-- The cover shrinks toward the destination, so the arc
-						     draws from the source to the destination. -->
-						<span
-							class="absolute -inset-1 origin-right scale-x-0 bg-overlay transition-transform duration-150 ease-out starting:scale-x-100"
-						></span>
-					{/if}
-				</span>
-			{/each}
-		</div>
-		<div class="relative">
+							"relative col-span-2 mx-5 border-t",
+							connector.startColumn,
+							connector.kind === "found" && "border-success",
+							connector.kind === "travelled" && "border-fg-faint",
+							(connector.kind === "travelled" ||
+								connector.kind === "found") &&
+								"origin-left scale-x-100 transition-transform duration-150 ease-out starting:scale-x-0",
+							connector.kind === "next" &&
+								"animate-enter border-dashed border-fg-faint",
+							connector.kind === "upcoming" &&
+								"animate-enter border-dotted border-line-focus",
+						]}>
+						{#if connector.kind === "next"}
+							<Icon
+								svg={caretRightIcon}
+								class="absolute -top-1.5 -right-1.5 text-fg-faint"
+								size={12} />
+						{/if}
+					</span>
+				{/each}
+			</div>
 			{#if firstVisibleIndex > 0}
 				<span
 					class="absolute top-1.5 left-0 font-mono text-2xs text-fg-faint"
@@ -248,20 +238,24 @@
 						<span
 							class="font-mono text-2xs whitespace-nowrap text-fg-muted tabular-nums"
 							>{distanceLabel(check)}</span>
+						<!-- A region without an open server shows only its marker, so
+						     its status is spoken but not shown. -->
 						<span
 							class={[
-								"w-full truncate text-2xs",
+								"h-4 w-full truncate text-2xs leading-4",
 								check.status === "found" && "font-medium text-success",
 								check.status === "failed" && "text-danger-muted",
 								check.status === "waiting" &&
 									!isUpNext &&
 									"text-fg-faint",
 								(check.status === "checking" ||
-									check.status === "empty" ||
 									check.status === "skipped" ||
 									isUpNext) &&
 									"text-fg-muted",
-							]}>{statusLabel(check, isUpNext)}</span>
+							]}
+							><span class={[check.status === "empty" && "sr-only"]}
+								>{statusLabel(check, isUpNext)}</span
+							></span>
 					</li>
 				{/each}
 				{#if hiddenAfterCount > 0}
