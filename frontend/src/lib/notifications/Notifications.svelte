@@ -6,8 +6,6 @@
 	import warningCircleIcon from "@phosphor-icons/core/regular/warning-circle.svg?raw"
 	import warningIcon from "@phosphor-icons/core/regular/warning.svg?raw"
 	import xIcon from "@phosphor-icons/core/regular/x.svg?raw"
-	import type { Attachment } from "svelte/attachments"
-	import { SvelteSet } from "svelte/reactivity"
 	import Icon from "../shared/Icon.svelte"
 	import { snackbarIn, snackbarOut, toastMove } from "../shared/presence"
 	import type {
@@ -36,8 +34,7 @@
 		runningAction = $state(""),
 		isStackExpanded = $state(false)
 
-	const wrappedNotificationIds = new SvelteSet<string>(),
-		hiddenNotificationCount = $derived(
+	const hiddenNotificationCount = $derived(
 			Math.max(0, center.items.length - maxCollapsedNotificationCount),
 		),
 		visibleNotifications = $derived(
@@ -72,27 +69,6 @@
 		event.stopPropagation()
 		center.dismiss(notification.id)
 	}
-
-	// A pill only fits one line of text, so a snackbar whose message wraps switches to rounded corners.
-	function trackMessageWrapping(notificationId: string): Attachment<HTMLElement> {
-		return (message) => {
-			const observer = new ResizeObserver(() => {
-				const style = getComputedStyle(message),
-					textHeightPixels =
-						message.clientHeight -
-						Number.parseFloat(style.paddingTop) -
-						Number.parseFloat(style.paddingBottom)
-				if (textHeightPixels > Number.parseFloat(style.lineHeight))
-					wrappedNotificationIds.add(notificationId)
-				else wrappedNotificationIds.delete(notificationId)
-			})
-			observer.observe(message)
-			return () => {
-				observer.disconnect()
-				wrappedNotificationIds.delete(notificationId)
-			}
-		}
-	}
 </script>
 
 <section
@@ -101,13 +77,13 @@
 	aria-live="polite">
 	{#if hiddenNotificationCount > 0}
 		<button
-			class="pointer-events-auto inline-flex h-6 items-center gap-1 rounded-full border border-line-strong bg-overlay px-2.5 text-2xs font-medium text-fg-muted shadow-float transition-colors duration-100 hover:bg-raised-hover hover:text-fg"
+			class="pointer-events-auto button h-6 border-line-strong bg-overlay shadow-float"
 			type="button"
 			aria-expanded={isStackExpanded}
 			onclick={() => (isStackExpanded = !isStackExpanded)}>
 			<Icon
 				svg={caretUpIcon}
-				size={12}
+				size={14}
 				class={[
 					"transition-transform duration-100",
 					isStackExpanded && "rotate-180",
@@ -117,12 +93,8 @@
 		</button>
 	{/if}
 	{#each visibleNotifications as notification (notification.id)}
-		{@const isPill = !wrappedNotificationIds.has(notification.id)}
 		<article
-			class={[
-				"pointer-events-auto flex w-fit max-w-lg min-w-72 items-center gap-2.5 border border-line-strong bg-overlay py-1.5 pr-1.5 pl-3 shadow-float",
-				isPill ? "rounded-full" : "rounded-xl",
-			]}
+			class="pointer-events-auto flex w-fit max-w-lg min-w-72 items-center gap-2.5 rounded-xl border border-line-strong bg-overlay py-1.5 pr-1.5 pl-3 shadow-float"
 			role="status"
 			in:snackbarIn
 			out:snackbarOut
@@ -148,9 +120,7 @@
 				]}>
 				<Icon svg={toneIcons[notification.tone]} size={16} aria-hidden="true" />
 			</span>
-			<p
-				class="min-w-0 flex-1 py-0.5 text-xs leading-5"
-				{@attach trackMessageWrapping(notification.id)}>
+			<p class="min-w-0 flex-1 py-0.5 text-xs leading-5">
 				<strong class="font-semibold text-fg">{notification.title}</strong>
 				<span class="text-fg-muted">{notification.message}</span>
 			</p>
@@ -158,12 +128,9 @@
 				<div class="flex shrink-0 items-center gap-1.5">
 					{#each notification.actions as action, index}
 						<button
-							class={[
-								action.emphasis
-									? "button-primary h-6 px-2.5"
-									: "button h-6 px-2.5",
-								isPill && "rounded-full",
-							]}
+							class={action.emphasis
+								? "button-primary h-6 px-2.5"
+								: "button h-6 px-2.5"}
 							type="button"
 							disabled={runningAction !== ""}
 							onkeydown={(event) => dismissOnEscape(event, notification)}
@@ -183,10 +150,7 @@
 			{/if}
 			{#if notification.dismissible}
 				<button
-					class={[
-						"button-close text-fg-faint hover:bg-hover hover:text-fg",
-						isPill && "rounded-full",
-					]}
+					class="button-close text-fg-faint hover:text-fg"
 					type="button"
 					aria-label={`Dismiss ${notification.title}`}
 					disabled={runningAction !== ""}
