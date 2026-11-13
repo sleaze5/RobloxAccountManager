@@ -133,6 +133,24 @@ export function toastOut(node: Element): TransitionConfig {
 	})
 }
 
+export function snackbarIn(node: Element): TransitionConfig {
+	return motion({
+		duration: tokenNumber(node, "--duration-enter", 150),
+		easing: sharp,
+		scale: tokenNumber(node, "--motion-scale", 0.99),
+		y: tokenNumber(node, "--motion-distance", 2),
+	})
+}
+
+export function snackbarOut(node: Element): TransitionConfig {
+	return motion({
+		duration: tokenNumber(node, "--duration-exit", 75),
+		easing: standard,
+		scale: tokenNumber(node, "--motion-scale", 0.99),
+		y: tokenNumber(node, "--motion-distance", 2) / 2,
+	})
+}
+
 export function toastMove(
 	node: Element,
 	positions: { from: DOMRect; to: DOMRect },
