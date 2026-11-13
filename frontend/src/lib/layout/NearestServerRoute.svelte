@@ -1,5 +1,4 @@
 <script lang="ts">
-	import caretRightIcon from "@phosphor-icons/core/regular/caret-right.svg?raw"
 	import checkIcon from "@phosphor-icons/core/regular/check.svg?raw"
 	import circleNotchIcon from "@phosphor-icons/core/regular/circle-notch.svg?raw"
 	import minusIcon from "@phosphor-icons/core/regular/minus.svg?raw"
@@ -136,7 +135,7 @@
 				{#each connectors as connector (connector.key)}
 					<span
 						class={[
-							"relative col-span-2 mx-5 border-t",
+							"col-span-2 mx-5 border-t",
 							connector.startColumn,
 							connector.kind === "found" && "border-success",
 							connector.kind === "travelled" && "border-fg-faint",
@@ -148,12 +147,6 @@
 							connector.kind === "upcoming" &&
 								"animate-enter border-dotted border-line-focus",
 						]}>
-						{#if connector.kind === "next"}
-							<Icon
-								svg={caretRightIcon}
-								class="absolute -top-1.5 -right-1.5 text-fg-faint"
-								size={12} />
-						{/if}
 					</span>
 				{/each}
 			</div>
