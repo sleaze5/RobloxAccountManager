@@ -1,10 +1,12 @@
 <script lang="ts">
+	import arrowSquareOutIcon from "@phosphor-icons/core/regular/arrow-square-out.svg?raw"
 	import checkCircleIcon from "@phosphor-icons/core/regular/check-circle.svg?raw"
 	import checkIcon from "@phosphor-icons/core/regular/check.svg?raw"
 	import circleNotchIcon from "@phosphor-icons/core/regular/circle-notch.svg?raw"
 	import minusIcon from "@phosphor-icons/core/regular/minus.svg?raw"
 	import skipForwardIcon from "@phosphor-icons/core/regular/skip-forward.svg?raw"
 	import xIcon from "@phosphor-icons/core/regular/x.svg?raw"
+	import { Browser } from "@wailsio/runtime"
 	import { onMount, tick } from "svelte"
 	import Dialog from "../shared/Dialog.svelte"
 	import Icon from "../shared/Icon.svelte"
@@ -122,6 +124,19 @@
 			<Icon svg={xIcon} size={14} aria-hidden="true" />
 		</button>
 	</div>
+	<p class="-mt-2 mb-3 flex items-center gap-1 text-xs text-fg-muted">
+		Powered by
+		<button
+			class="inline-flex items-center gap-1 rounded-sm font-medium text-fg underline-offset-2 hover:underline"
+			type="button"
+			aria-label="Powered by RoValra, open RoValra website"
+			data-tooltip="Open RoValra website"
+			onclick={() => void Browser.OpenURL("https://www.rovalra.com/")}
+			>RoValra<Icon
+				svg={arrowSquareOutIcon}
+				size={12}
+				aria-hidden="true" /></button>
+	</p>
 
 	{#if search.phase === "loading" || search.regionChecks.length > 0}
 		<div class="overflow-hidden rounded-lg border border-line">
