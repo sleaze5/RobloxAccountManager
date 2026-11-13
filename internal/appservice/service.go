@@ -36,6 +36,7 @@ type Service struct {
 	gameLinks          *robloxservices.GameLinks
 	games              *robloxservices.Games
 	privateServers     *robloxservices.PrivateServers
+	badges             *robloxservices.Badges
 	rovalra            *rovalra.Client
 	rbxservers         *rbxservers.Client
 	favoritePlaces     *gamestore.Repository
@@ -89,6 +90,7 @@ func New(
 	gameLinks *robloxservices.GameLinks,
 	games *robloxservices.Games,
 	privateServers *robloxservices.PrivateServers,
+	badges *robloxservices.Badges,
 	rovalraClient *rovalra.Client,
 	rbxserversClient *rbxservers.Client,
 	favoritePlaces *gamestore.Repository,
@@ -117,6 +119,7 @@ func New(
 		gameLinks:            gameLinks,
 		games:                games,
 		privateServers:       privateServers,
+		badges:               badges,
 		rovalra:              rovalraClient,
 		rbxservers:           rbxserversClient,
 		favoritePlaces:       favoritePlaces,

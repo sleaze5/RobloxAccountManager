@@ -5,7 +5,10 @@
 	const gap = 6,
 		margin = 8,
 		openDelayMs = 500,
-		skipDelayMs = 300
+		skipDelayMs = 300,
+		// Text longer than this wraps inside a fixed width instead of running
+		// past the window, as a long badge or game description would.
+		maxSingleLineLength = 48
 
 	type Side = "top" | "bottom" | "left" | "right"
 	interface Placement {
@@ -27,7 +30,8 @@
 		openTimer = 0,
 		requestedSide: Side = "bottom",
 		tip: HTMLDivElement | undefined = $state()
-	const strongAt = $derived(strong ? text.indexOf(strong) : -1)
+	const strongAt = $derived(strong ? text.indexOf(strong) : -1),
+		isWrapping = $derived(text.includes("\n") || text.length > maxSingleLineLength)
 
 	function placementOf(element: HTMLElement): Placement {
 		switch (element.dataset.tooltipSide) {
@@ -187,8 +191,8 @@
 	<div
 		class={[
 			"pointer-events-none fixed top-0 left-0 rounded-md border border-line bg-raised px-2 py-1 text-2xs font-medium text-fg shadow-float",
-			text.includes("\n")
-				? "leading-snug whitespace-pre-line"
+			isWrapping
+				? "max-w-xs leading-snug whitespace-pre-line"
 				: "leading-none whitespace-nowrap",
 		]}
 		role="tooltip"

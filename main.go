@@ -143,6 +143,7 @@ func run() (runError error) {
 		robloxservices.NewGameLinks(client),
 		robloxservices.NewGames(client, logSystem.Module("roblox.games"), publicCache),
 		robloxservices.NewPrivateServers(client),
+		robloxservices.NewBadges(client),
 		rovalra.New(),
 		rbxservers.New(),
 		gamestore.NewRepository(vaultManager, logSystem.Module("storage.games"), publicCache),

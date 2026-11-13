@@ -79,7 +79,7 @@ type AccountProfileSnapshot struct {
 	FollowingCount                     *int64                           `json:"followingCount"`
 	PrimaryGroup                       *robloxservices.UserPrimaryGroup `json:"primaryGroup"`
 	CommunityCount                     *int64                           `json:"communityCount"`
-	RobloxBadges                       []string                         `json:"robloxBadges"`
+	RobloxBadges                       []robloxservices.RobloxBadge     `json:"robloxBadges"`
 	CollectibleCount                   *int64                           `json:"collectibleCount"`
 	CollectibleRecentAveragePriceTotal *int64                           `json:"collectibleRecentAveragePriceTotal"`
 	UnreadNotificationCount            *int64                           `json:"unreadNotificationCount"`
@@ -197,7 +197,9 @@ func (service *Service) profileSectionReads(ctx context.Context, accountID, vers
 			})}
 		},
 		ProfileSectionRobloxBadges: func() []accountRead {
-			return []accountRead{applyRead("robloxBadges", func() ([]string, error) { return users.RobloxBadges(ctx, accountID, version, userID) }, func(badges []string) {
+			return []accountRead{applyRead("robloxBadges", func() ([]robloxservices.RobloxBadge, error) {
+				return users.RobloxBadges(ctx, accountID, version, userID)
+			}, func(badges []robloxservices.RobloxBadge) {
 				profile.RobloxBadges = badges
 			})}
 		},

@@ -21,6 +21,7 @@
 	import OperationError from "../shared/OperationError.svelte"
 	import { menuIn, menuOut } from "../shared/presence"
 	import GameContextMenu from "./GameContextMenu.svelte"
+	import GameBadgesPage from "./GameBadgesPage.svelte"
 	import GameDetails from "./GameDetails.svelte"
 	import GameServersPage from "./GameServersPage.svelte"
 	import GameIcon from "./GameIcon.svelte"
@@ -125,10 +126,10 @@
 		}
 	}
 
-	async function closeServers(): Promise<void> {
+	async function returnToDetails(triggerSelector: string): Promise<void> {
 		store.detailsPage = "details"
 		await tick()
-		document.querySelector<HTMLButtonElement>("[data-game-servers]")?.focus()
+		document.querySelector<HTMLButtonElement>(triggerSelector)?.focus()
 	}
 
 	async function searchUniverse(universeId: number): Promise<void> {
@@ -416,9 +417,14 @@
 							{store}
 							{accounts}
 							{notifications}
-							onBack={() => void closeServers()}
+							onBack={() => void returnToDetails("[data-game-servers]")}
 							{onFillLaunch}
 							{onFillLaunchLink} />
+					{:else if store.detailsPage === "badges"}
+						<GameBadgesPage
+							{store}
+							{accounts}
+							onBack={() => void returnToDetails("[data-game-badges]")} />
 					{:else}
 						<GameDetails
 							{store}

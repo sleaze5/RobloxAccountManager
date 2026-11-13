@@ -270,6 +270,30 @@ type ListedPrivateServer struct {
 	URL  string `json:"url"`
 }
 
+// Badge is a badge of a universe. Roblox owns badges per universe, so every
+// place of the universe shares them.
+type Badge struct {
+	BadgeID            int64   `json:"badgeId"`
+	Name               string  `json:"name"`
+	Description        string  `json:"description"`
+	IconURL            string  `json:"iconUrl"`
+	Enabled            bool    `json:"enabled"`
+	AwardedCount       int64   `json:"awardedCount"`
+	AwardedPastDay     int64   `json:"awardedPastDay"`
+	PastDayWinFraction float64 `json:"pastDayWinFraction"`
+	CreatedAtMs        int64   `json:"createdAtMs"`
+}
+
+type BadgeAwardQuery struct {
+	AccountID int64   `json:"accountId"`
+	BadgeIDs  []int64 `json:"badgeIds"`
+}
+
+type BadgeAward struct {
+	BadgeID     int64 `json:"badgeId"`
+	AwardedAtMs int64 `json:"awardedAtMs"`
+}
+
 func PrivateServerLaunchLink(placeID int64, accessCode, linkCode string) string {
 	if linkCode != "" {
 		link := url.URL{Scheme: "https", Host: "www.roblox.com", Path: "/games/" + strconv.FormatInt(placeID, 10)}

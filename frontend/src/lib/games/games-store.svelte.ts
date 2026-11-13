@@ -18,6 +18,7 @@ import {
 	type ServerSource,
 } from "./game-servers-state.svelte"
 import { errorMessage } from "../shared/errors"
+import { UniverseBadges } from "./game-badges-state.svelte"
 import { menuPointFor } from "../shared/presence"
 
 // Roblox serves these parts of the game details from their own endpoints, so
@@ -70,7 +71,7 @@ export class GamesStore {
 	favorites = $state<GamePlace[]>([])
 	selected = $state<GamePlace | null>(null)
 	game = $state<Game | null>(null)
-	detailsPage = $state<"details" | "servers">("details")
+	detailsPage = $state<"details" | "servers" | "badges">("details")
 	serverSource = $state<ServerSource>("roblox")
 	menu = $state<GameMenu | null>(null)
 	searching = $state(false)
@@ -107,6 +108,7 @@ export class GamesStore {
 	readonly privatePages = new ServerPageCache<PrivateServerPage>()
 	readonly listedPages = new ServerPageCache<ListedPrivateServerPage>()
 	#placeServers: PlaceServers | null = null
+	#universeBadges: UniverseBadges | null = null
 	#favoritesRequest: ReturnType<typeof accountBackend.ListFavoritePlaces> | null =
 		null
 	#saveRequest:
@@ -322,8 +324,26 @@ export class GamesStore {
 		this.#placeServers = null
 	}
 
+	// badgesFor returns the badges of the universe, and keeps them until another
+	// place is selected.
+	badgesFor(universeId: number): UniverseBadges {
+		if (this.#universeBadges?.universeId !== universeId) {
+			this.#universeBadges?.dispose()
+			this.#universeBadges = new UniverseBadges(universeId)
+		}
+		return this.#universeBadges
+	}
+
+	#forgetUniverseBadges(): void {
+		this.#universeBadges?.dispose()
+		this.#universeBadges = null
+	}
+
 	select(place: GamePlace | null): void {
-		if (place?.placeId !== this.selected?.placeId) this.#forgetPlaceServers()
+		if (place?.placeId !== this.selected?.placeId) {
+			this.#forgetPlaceServers()
+			this.#forgetUniverseBadges()
+		}
 		void this.#detailsRequest?.cancel()
 		this.#detailsRequest = null
 		this.#cancelGameSections()
@@ -635,6 +655,7 @@ export class GamesStore {
 		this.#detailsRequest = null
 		this.#details.clear()
 		this.#forgetPlaceServers()
+		this.#forgetUniverseBadges()
 		this.serverPages.clear()
 		this.recordPages.clear()
 		this.privatePages.clear()

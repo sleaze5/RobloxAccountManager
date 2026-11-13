@@ -133,7 +133,7 @@ type SocialProfile struct {
 	FollowingCount   *int64                           `json:"followingCount"`
 	PreviousNames    []string                         `json:"previousNames"`
 	PrimaryGroup     *robloxservices.UserPrimaryGroup `json:"primaryGroup"`
-	RobloxBadges     []string                         `json:"robloxBadges"`
+	RobloxBadges     []robloxservices.RobloxBadge     `json:"robloxBadges"`
 	SocialLinks      []robloxservices.UserSocialLink  `json:"socialLinks"`
 	SavedAccountID   int64                            `json:"savedAccountId"`
 	Connections      []FriendConnection               `json:"connections"`
@@ -453,7 +453,9 @@ func (service *Service) socialProfileSectionReads(ctx context.Context, logger *s
 			})}
 		},
 		SocialSectionRobloxBadges: func() []accountRead {
-			return []accountRead{applyRead("robloxBadges", func() ([]string, error) { return users.RobloxBadges(ctx, accountID, version, userID) }, func(badges []string) { profile.RobloxBadges = badges })}
+			return []accountRead{applyRead("robloxBadges", func() ([]robloxservices.RobloxBadge, error) {
+				return users.RobloxBadges(ctx, accountID, version, userID)
+			}, func(badges []robloxservices.RobloxBadge) { profile.RobloxBadges = badges })}
 		},
 		SocialSectionSocialLinks: func() []accountRead {
 			return []accountRead{applyRead("socialLinks", func() ([]robloxservices.UserSocialLink, error) {
