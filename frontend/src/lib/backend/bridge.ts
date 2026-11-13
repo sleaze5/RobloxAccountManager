@@ -96,6 +96,7 @@ export type {
 } from "../../../bindings/github.com/sleaze5/RobloxAccountManager/internal/storage/vault/models.js"
 export type {
 	AvatarHeadshotView,
+	RobloxBadge,
 	TextFilter,
 	UserPresence,
 	UserPrimaryGroup,

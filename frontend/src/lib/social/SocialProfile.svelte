@@ -21,6 +21,7 @@
 	import type { SocialUser } from "../backend/bridge"
 	import type { AccountStore } from "../accounts/account-store.svelte"
 	import AccountPresence from "../accounts/AccountPresence.svelte"
+	import RobloxBadgeList from "../accounts/RobloxBadgeList.svelte"
 	import MissingFactValue from "../shared/MissingFactValue.svelte"
 	import PrimaryGroupFact from "../shared/PrimaryGroupFact.svelte"
 	import Skeleton from "../shared/Skeleton.svelte"
@@ -412,7 +413,7 @@
 							<Icon svg={medalIcon} size={16} aria-hidden="true" />Roblox
 							badges
 						</dt>
-						<dd><span>{profile.robloxBadges.join(", ")}</span></dd>
+						<dd><RobloxBadgeList badges={profile.robloxBadges} /></dd>
 					</div>
 				{:else if sections}
 					<div>

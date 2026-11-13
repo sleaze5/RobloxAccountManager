@@ -36,6 +36,7 @@
 	import { ageVerificationLabels } from "./account-model"
 	import type { Account } from "./account-model"
 	import AccountVoiceChat from "./AccountVoiceChat.svelte"
+	import RobloxBadgeList from "./RobloxBadgeList.svelte"
 
 	// The profile rows stay in place while their sections load, so that the
 	// page does not move when a value arrives. Without sections, such as for a
@@ -361,7 +362,7 @@
 				<dt>
 					<Icon svg={medalIcon} size={16} aria-hidden="true" />Roblox badges
 				</dt>
-				<dd><span>{snapshot.robloxBadges.join(", ")}</span></dd>
+				<dd><RobloxBadgeList badges={snapshot.robloxBadges} /></dd>
 			</div>
 		{:else if sections}
 			<div>

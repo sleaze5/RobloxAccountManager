@@ -266,9 +266,19 @@ func (service *Users) FriendStatus(ctx context.Context, accountID, version, self
 	return "", invalidProfileDetails("friend-status")
 }
 
-func (service *Users) RobloxBadges(ctx context.Context, accountID, version, userID int64) ([]string, error) {
+// RobloxBadge is a badge that Roblox itself awards, such as Veteran or
+// Friendship, as opposed to a badge of a game.
+type RobloxBadge struct {
+	Name        string `json:"name"`
+	Description string `json:"description"`
+	ImageURL    string `json:"imageUrl"`
+}
+
+func (service *Users) RobloxBadges(ctx context.Context, accountID, version, userID int64) ([]RobloxBadge, error) {
 	var payload *[]struct {
-		Name string `json:"name"`
+		Name        string `json:"name"`
+		Description string `json:"description"`
+		ImageURL    string `json:"imageUrl"`
 	}
 	address := "https://accountinformation.roblox.com/v1/users/" + strconv.FormatInt(userID, 10) + "/roblox-badges"
 	if err := service.readAccountDetails(ctx, accountID, version, "friend-roblox-badges", address, &payload); err != nil {
@@ -277,13 +287,19 @@ func (service *Users) RobloxBadges(ctx context.Context, accountID, version, user
 	if payload == nil {
 		return nil, invalidProfileDetails("friend-roblox-badges")
 	}
-	names := make([]string, 0, len(*payload))
-	for _, badge := range *payload {
-		if name := strings.TrimSpace(badge.Name); name != "" && len(name) <= 64 {
-			names = append(names, name)
+	badges := make([]RobloxBadge, 0, len(*payload))
+	for _, listedBadge := range *payload {
+		name := badgeText(listedBadge.Name, maxBadgeNameLength)
+		if name == "" {
+			continue
 		}
+		badge := RobloxBadge{Name: name, Description: badgeText(listedBadge.Description, maxBadgeDescriptionLength)}
+		if safeThumbnailURL(listedBadge.ImageURL) {
+			badge.ImageURL = listedBadge.ImageURL
+		}
+		badges = append(badges, badge)
 	}
-	return names, nil
+	return badges, nil
 }
 
 func (service *Users) Premium(ctx context.Context, accountID, version, userID int64) (*bool, error) {
