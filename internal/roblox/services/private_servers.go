@@ -7,7 +7,6 @@ import (
 	"net/url"
 	"strconv"
 	"strings"
-	"time"
 	"unicode/utf8"
 
 	"github.com/sleaze5/RobloxAccountManager/internal/gamelaunch"
@@ -80,7 +79,7 @@ func (service *PrivateServers) Owned(ctx context.Context, accountID, version int
 		}
 		server := games.OwnedPrivateServer{
 			ServerID: listedServer.PrivateServerID, Name: privateServerText(listedServer.Name), Active: listedServer.Active,
-			GameName: privateServerText(listedServer.UniverseName), Renews: listedServer.WillRenew, ExpiresAtMs: privateServerTime(listedServer.ExpirationDate),
+			GameName: privateServerText(listedServer.UniverseName), Renews: listedServer.WillRenew, ExpiresAtMs: robloxTimeMs(listedServer.ExpirationDate),
 		}
 		if games.ValidID(listedServer.UniverseID) {
 			server.UniverseID = listedServer.UniverseID
@@ -217,7 +216,7 @@ func (service *PrivateServers) Settings(ctx context.Context, accountID, version,
 	}
 	if subscription := payload.Subscription; subscription != nil {
 		settings.Renews, settings.Expired = subscription.Active, subscription.Expired
-		settings.ExpiresAtMs = privateServerTime(subscription.ExpirationDate)
+		settings.ExpiresAtMs = robloxTimeMs(subscription.ExpirationDate)
 		if subscription.Price != nil {
 			settings.Price = max(*subscription.Price, 0)
 		}
@@ -301,16 +300,6 @@ func privateServerText(rawText string) string {
 		return ""
 	}
 	return rawText
-}
-
-func privateServerTime(timestamp string) int64 {
-	timestamp = strings.TrimSpace(timestamp)
-	for _, candidate := range []string{timestamp, timestamp + "Z"} {
-		if parsed, err := time.Parse(time.RFC3339Nano, candidate); err == nil {
-			return parsed.UnixMilli()
-		}
-	}
-	return 0
 }
 
 func privateServerDataError(endpoint string) error {

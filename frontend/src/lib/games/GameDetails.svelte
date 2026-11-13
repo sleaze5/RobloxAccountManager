@@ -8,6 +8,7 @@
 	import gitCommitIcon from "@phosphor-icons/core/regular/git-commit.svg?raw"
 	import hardDrivesIcon from "@phosphor-icons/core/regular/hard-drives.svg?raw"
 	import magnifyingGlassIcon from "@phosphor-icons/core/regular/magnifying-glass.svg?raw"
+	import medalIcon from "@phosphor-icons/core/regular/medal.svg?raw"
 	import microphoneIcon from "@phosphor-icons/core/regular/microphone.svg?raw"
 	import pencilIcon from "@phosphor-icons/core/regular/pencil.svg?raw"
 	import personArmsSpreadIcon from "@phosphor-icons/core/regular/person-arms-spread.svg?raw"
@@ -80,6 +81,9 @@
 		nameEnd = $derived(place?.name.slice(nameSplit).trimEnd() ?? ""),
 		menuOpen = $derived(!!place && store.menu?.place.placeId === place.placeId),
 		rootPlace = $derived(game?.rootPlace ?? null),
+		// Roblox owns badges per universe, so a subplace would only repeat the
+		// badges of its root place.
+		hasBadgesButton = $derived(!rootPlace && (!!game || isWaitingForGame)),
 		hasVotes = $derived(
 			store.loadedGameSections.includes(GameSection.GameSectionVotes),
 		),
@@ -473,6 +477,21 @@
 						}}>
 						<Icon svg={hardDrivesIcon} size={16} aria-hidden="true" />
 					</button>
+					{#if hasBadgesButton}
+						<button
+							class="button-icon"
+							type="button"
+							aria-label="Badges"
+							data-tooltip="Badges"
+							data-game-badges
+							disabled={!game}
+							onclick={() => {
+								store.closeMenu()
+								store.detailsPage = "badges"
+							}}>
+							<Icon svg={medalIcon} size={16} aria-hidden="true" />
+						</button>
+					{/if}
 					<button
 						class="button-icon"
 						type="button"

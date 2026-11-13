@@ -557,6 +557,18 @@ func gameTimestamp(timestamp time.Time) int64 {
 	return timestamp.UnixMilli()
 }
 
+// robloxTimeMs reads a Roblox timestamp, which some endpoints write without a
+// time zone although they mean UTC. It returns 0 for an invalid timestamp.
+func robloxTimeMs(timestamp string) int64 {
+	timestamp = strings.TrimSpace(timestamp)
+	for _, candidate := range []string{timestamp, timestamp + "Z"} {
+		if parsed, err := time.Parse(time.RFC3339Nano, candidate); err == nil {
+			return parsed.UnixMilli()
+		}
+	}
+	return 0
+}
+
 func gameGenre(genre string) string {
 	genre = strings.TrimSpace(genre)
 	if strings.EqualFold(genre, "All") {

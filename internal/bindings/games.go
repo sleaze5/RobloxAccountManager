@@ -149,3 +149,14 @@ func (service *Service) SavePrivateServerLink(ctx context.Context, placeID, acco
 func (service *Service) RemoveSavedPrivateServer(ctx context.Context, savedPrivateServerID int64) error {
 	return service.core.RemoveSavedPrivateServer(ctx, savedPrivateServerID)
 }
+
+func (service *Service) ListGameBadges(ctx context.Context, universeID int64) ([]games.Badge, error) {
+	return service.core.ListGameBadges(ctx, universeID)
+}
+
+func (service *Service) ListBadgeAwards(ctx context.Context, query games.BadgeAwardQuery) ([]games.BadgeAward, error) {
+	if err := positiveID(query.AccountID, "badge-awards"); err != nil {
+		return nil, err
+	}
+	return service.core.ListBadgeAwards(ctx, query)
+}

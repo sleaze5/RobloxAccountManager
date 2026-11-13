@@ -118,6 +118,7 @@ export {
 export const accountBackend = Service
 
 export type {
+	Badge as GameBadge,
 	Game,
 	ListedPrivateServerPage,
 	OwnedPrivateServer,
