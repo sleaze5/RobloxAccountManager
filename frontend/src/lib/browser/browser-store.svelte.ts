@@ -282,8 +282,8 @@ export class BrowserStore {
 		await this.#attempt(() => accountBackend.CloseBrowserSession(id))
 	}
 
-	async closeAllLogin(): Promise<void> {
-		await this.#attempt(() => accountBackend.CloseAllLoginBrowsers())
+	async closeAllLogin(): Promise<boolean> {
+		return this.#attempt(() => accountBackend.CloseAllLoginBrowsers())
 	}
 
 	async save(selected: string[]): Promise<SaveResult | null> {
@@ -340,12 +340,14 @@ export class BrowserStore {
 		await this.#attempt(() => accountBackend.RetryBrowserCleanup())
 	}
 
-	async #attempt(action: () => Promise<unknown>): Promise<void> {
+	async #attempt(action: () => Promise<unknown>): Promise<boolean> {
 		try {
 			await action()
 			await this.refresh()
+			return true
 		} catch (error) {
 			this.error = errorMessage(error, browserOperationError)
+			return false
 		}
 	}
 }
