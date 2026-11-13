@@ -21,24 +21,29 @@ export class UniverseBadges {
 
 	constructor(readonly universeId: number) {}
 
-	// showAccount shows the awards of another account. It loads them when the
-	// kept awards belong to another account or are no longer fresh.
+	// showAccount shows the awards of another account. It does nothing for the
+	// shown account, so that a failed request is retried only on request
+	// instead of each time the account list refreshes.
 	showAccount(accountId: number): void {
-		if (accountId === this.#accountId && isFresh(this.#awardsFetchedAt)) return
-		if (accountId !== this.#accountId) {
-			this.#cancelAwards()
-			this.awardedAtByBadgeId = null
-			this.awardsError = ""
-			this.#accountId = accountId
-		}
+		if (accountId === this.#accountId) return
+		this.#cancelAwards()
+		this.awardedAtByBadgeId = null
+		this.awardsError = ""
+		this.#accountId = accountId
 		if (this.badges) void this.#loadAwards()
 	}
 
-	// load shows the kept badges at once and requests them again when they are
-	// no longer fresh. The awards load after the badges, because Roblox reads
-	// them by badge ID.
+	reloadAwards(): void {
+		if (this.badges && !this.#awardRequest) void this.#loadAwards()
+	}
+
+	// load shows the kept badges and awards at once and requests them again when
+	// they are no longer fresh. The awards load after the badges, because Roblox
+	// reads them by badge ID.
 	async load(): Promise<void> {
-		if (this.#badgeRequest || (this.badges && isFresh(this.#badgesFetchedAt))) {
+		if (this.#badgeRequest) return
+		if (this.badges && isFresh(this.#badgesFetchedAt)) {
+			if (!isFresh(this.#awardsFetchedAt)) this.reloadAwards()
 			return
 		}
 		await this.refresh()

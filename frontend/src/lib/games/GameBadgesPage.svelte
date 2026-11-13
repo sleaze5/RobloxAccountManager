@@ -75,14 +75,18 @@
 			{ id: "unearned", label: "Not earned" },
 		]
 
+	// The account list replaces its accounts when it refreshes, so the effect
+	// reads the ID alone and runs only when another account is selected. It runs
+	// before the first load, so that the load requests the shown account.
+	const accountId = $derived(account.id)
+	$effect(() => {
+		const shownAccountId = accountId
+		untrack(() => universeBadges.showAccount(shownAccountId))
+	})
+
 	onMount(() => {
 		heading?.focus({ preventScroll: true })
 		void universeBadges.load()
-	})
-
-	$effect(() => {
-		const accountId = account.id
-		untrack(() => universeBadges.showAccount(accountId))
 	})
 </script>
 
@@ -186,8 +190,7 @@
 			<button
 				class="button"
 				type="button"
-				onclick={() => universeBadges.showAccount(account.id)}
-				>Try again</button>
+				onclick={() => universeBadges.reloadAwards()}>Try again</button>
 		</div>
 	{/if}
 

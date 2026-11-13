@@ -82,8 +82,9 @@
 		menuOpen = $derived(!!place && store.menu?.place.placeId === place.placeId),
 		rootPlace = $derived(game?.rootPlace ?? null),
 		// Roblox owns badges per universe, so a subplace would only repeat the
-		// badges of its root place.
-		hasBadgesButton = $derived(!rootPlace && (!!game || isWaitingForGame)),
+		// badges of its root place. Until the details load, the button stays in
+		// place disabled, so that a failed load does not move the header.
+		hasBadgesButton = $derived(!rootPlace),
 		hasVotes = $derived(
 			store.loadedGameSections.includes(GameSection.GameSectionVotes),
 		),
