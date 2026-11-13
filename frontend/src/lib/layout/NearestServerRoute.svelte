@@ -1,11 +1,13 @@
 <script lang="ts">
 	import checkIcon from "@phosphor-icons/core/regular/check.svg?raw"
+	import clockCounterClockwiseIcon from "@phosphor-icons/core/regular/clock-counter-clockwise.svg?raw"
 	import circleNotchIcon from "@phosphor-icons/core/regular/circle-notch.svg?raw"
 	import minusIcon from "@phosphor-icons/core/regular/minus.svg?raw"
 	import skipForwardIcon from "@phosphor-icons/core/regular/skip-forward.svg?raw"
 	import xIcon from "@phosphor-icons/core/regular/x.svg?raw"
 	import Icon from "../shared/Icon.svelte"
 	import { appSettings } from "../settings/settings-store.svelte"
+	import { relativeTime } from "../shared/timestamp"
 	import type {
 		NearestServerSearch,
 		RegionCheck,
@@ -32,6 +34,13 @@
 		nextCheck = $derived(search.regionChecks.at(search.activeRegionIndex + 1)),
 		hiddenAfterCount = $derived(
 			Math.max(search.regionChecks.length - search.activeRegionIndex - 2, 0),
+		),
+		visitLabel = $derived(
+			!search.foundServerVisit?.hasVisited
+				? ""
+				: search.foundServerVisit.lastVisitedAtMs > 0
+					? `You joined this server ${relativeTime(search.foundServerVisit.lastVisitedAtMs)}`
+					: "You joined this server before",
 		),
 		foundServerNumber = $derived(
 			(currentCheck?.servers.findIndex((server) => server.status === "found") ??
@@ -111,7 +120,7 @@
 			{/key}
 		{/if}
 		{@render regionNode(currentCheck, true, previousCheck ? "center" : "start")}
-		<span class="w-4 shrink-0 border-t border-fg-faint"></span>
+		<span class="w-3 shrink-0 border-t border-fg-faint"></span>
 		<span class="relative flex shrink-0 items-center gap-1.5">
 			{#if currentCheck.servers.length === 0}
 				{#each placeholderServerIndexes as placeholderIndex (placeholderIndex)}
@@ -201,6 +210,18 @@
 			<span class="text-xs font-medium text-success">Found</span>
 			<span class="truncate font-mono text-2xs text-fg-muted"
 				>{search.foundJobId}</span>
+			{#if visitLabel}
+				<span
+					class="grid size-5 shrink-0 animate-pop place-items-center rounded-sm text-warning"
+					role="img"
+					aria-label={visitLabel}
+					data-tooltip={visitLabel}>
+					<Icon
+						svg={clockCounterClockwiseIcon}
+						size={14}
+						aria-hidden="true" />
+				</span>
+			{/if}
 			<span class="ml-auto shrink-0 text-2xs text-fg-faint"
 				>{search.accountId === 0
 					? "Not checked"

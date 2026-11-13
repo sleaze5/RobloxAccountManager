@@ -1,5 +1,5 @@
 import { accountBackend } from "../backend/bridge"
-import type { NearbyServerRegion } from "../backend/bridge"
+import type { GameServerVisit, NearbyServerRegion } from "../backend/bridge"
 import { errorMessage } from "../shared/errors"
 
 export type RegionCheckStatus =
@@ -45,9 +45,11 @@ export class NearestServerSearch {
 	phase = $state<NearestServerSearchPhase>("loading")
 	activeRegionIndex = $state(0)
 	foundJobId = $state("")
+	foundServerVisit = $state<GameServerVisit | null>(null)
 	error = $state("")
 
 	#requests: { cancel: () => unknown }[] = []
+	#visitRequest: { cancel: () => unknown } | null = null
 	#version = 0
 	#hasLoadedRegions = false
 
@@ -108,6 +110,8 @@ export class NearestServerSearch {
 
 	dispose(): void {
 		this.#beginRequests()
+		void this.#visitRequest?.cancel()
+		this.#visitRequest = null
 	}
 
 	#beginRequests(): number {
@@ -123,7 +127,24 @@ export class NearestServerSearch {
 		check.status = "found"
 		this.foundJobId = openServer.jobId
 		this.phase = "found"
+		void this.#findServerVisit(openServer.jobId)
 		return true
+	}
+
+	async #findServerVisit(jobId: string): Promise<void> {
+		void this.#visitRequest?.cancel()
+		this.foundServerVisit = null
+		const request = accountBackend.FindGameServerVisit(this.placeId, jobId)
+		this.#visitRequest = request
+		try {
+			const visit = await request
+			if (this.phase === "found" && this.foundJobId === jobId) {
+				this.foundServerVisit = visit
+			}
+		} catch {
+			// The visit badge is extra information, so a search whose Roblox
+			// logs cannot be read only shows no badge.
+		}
 	}
 
 	// Regions are checked one at a time, nearest first, so that the search

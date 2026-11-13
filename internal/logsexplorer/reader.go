@@ -39,24 +39,14 @@ func NewReader(directories func() ([]string, error), logger *slog.Logger) *Reade
 
 func (reader *Reader) ReadAll(ctx context.Context) (Snapshot, error) {
 	logger := reader.operationLogger("refresh-all")
-	snapshot := Snapshot{Sessions: []Session{}}
-	directories, err := reader.directories()
+	sessions, err := reader.readSessions(ctx, logger)
+	if ctx.Err() != nil {
+		return Snapshot{}, ctx.Err()
+	}
+	snapshot := Snapshot{Sessions: sessions}
 	if err != nil {
-		logger.Warn("could not locate Roblox logs folders", "error", err)
-		return snapshot, errors.New("could not open Roblox logs folder")
+		return snapshot, err
 	}
-	listedPaths := map[string]bool{}
-	for _, directory := range directories {
-		sessions, err := reader.readDirectory(ctx, logger, directory, listedPaths)
-		if ctx.Err() != nil {
-			return Snapshot{}, ctx.Err()
-		}
-		if err != nil {
-			return snapshot, err
-		}
-		snapshot.Sessions = append(snapshot.Sessions, sessions...)
-	}
-	reader.forgetUnlistedLogs(listedPaths)
 	slices.SortFunc(snapshot.Sessions, func(a, b Session) int {
 		if a.StartedAtMs > b.StartedAtMs {
 			return -1
@@ -68,6 +58,45 @@ func (reader *Reader) ReadAll(ctx context.Context) (Snapshot, error) {
 	})
 	logger.Info("Roblox logs refreshed", "sessions", len(snapshot.Sessions))
 	return snapshot, nil
+}
+
+func (reader *Reader) FindServerVisit(ctx context.Context, placeID, jobID string) (ServerVisit, error) {
+	sessions, err := reader.readSessions(ctx, reader.operationLogger("server-visit"))
+	if err != nil {
+		return ServerVisit{}, err
+	}
+	var visit ServerVisit
+	for _, session := range sessions {
+		for _, recordedVisit := range session.Visits {
+			if recordedVisit.PlaceID == placeID && strings.EqualFold(recordedVisit.JobID, jobID) {
+				visit.HasVisited = true
+				visit.LastVisitedAtMs = max(visit.LastVisitedAtMs, recordedVisit.StartedAtMs)
+			}
+		}
+	}
+	return visit, nil
+}
+
+func (reader *Reader) readSessions(ctx context.Context, logger *slog.Logger) ([]Session, error) {
+	allSessions := []Session{}
+	directories, err := reader.directories()
+	if err != nil {
+		logger.Warn("could not locate Roblox logs folders", "error", err)
+		return allSessions, errors.New("could not open Roblox logs folder")
+	}
+	listedPaths := map[string]bool{}
+	for _, directory := range directories {
+		sessions, err := reader.readDirectory(ctx, logger, directory, listedPaths)
+		if ctx.Err() != nil {
+			return nil, ctx.Err()
+		}
+		if err != nil {
+			return allSessions, err
+		}
+		allSessions = append(allSessions, sessions...)
+	}
+	reader.forgetUnlistedLogs(listedPaths)
+	return allSessions, nil
 }
 
 func (reader *Reader) ReadFile(ctx context.Context, name string) (Session, error) {
