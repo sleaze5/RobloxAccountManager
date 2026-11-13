@@ -145,23 +145,22 @@ func (service *Service) firstJoinable(ctx context.Context, placeID, accountID in
 // nearbyRegions lists the regions that have servers of the place, with the
 // origin first and the others from nearest to farthest.
 func nearbyRegions(regions []rovalra.Region, origin rovalra.Region, stats games.ServerStats) []games.NearbyRegion {
-	serversByRegionCode := make(map[string]int64, len(stats.Regions))
+	hasServersByRegionCode := make(map[string]bool, len(stats.Regions))
 	for _, statsRegion := range stats.Regions {
-		serversByRegionCode[statsRegion.Code] += statsRegion.Servers
+		hasServersByRegionCode[statsRegion.Code] = true
 	}
-	nearby := make([]games.NearbyRegion, 0, len(serversByRegionCode))
+	nearby := make([]games.NearbyRegion, 0, len(hasServersByRegionCode))
 	for _, region := range regions {
-		servers, hasServers := serversByRegionCode[region.Code]
-		if !hasServers || region.Code == origin.Code {
+		if !hasServersByRegionCode[region.Code] || region.Code == origin.Code {
 			continue
 		}
-		nearby = append(nearby, games.NearbyRegion{Region: region.Region, DistanceKilometers: regionDistanceKilometers(origin, region), Servers: servers})
+		nearby = append(nearby, games.NearbyRegion{Region: region.Region, DistanceKilometers: regionDistanceKilometers(origin, region)})
 	}
 	slices.SortStableFunc(nearby, func(left, right games.NearbyRegion) int {
 		return cmp.Compare(left.DistanceKilometers, right.DistanceKilometers)
 	})
-	if servers, hasServers := serversByRegionCode[origin.Code]; hasServers {
-		nearby = slices.Insert(nearby, 0, games.NearbyRegion{Region: origin.Region, Servers: servers})
+	if hasServersByRegionCode[origin.Code] {
+		nearby = slices.Insert(nearby, 0, games.NearbyRegion{Region: origin.Region})
 	}
 	return nearby
 }

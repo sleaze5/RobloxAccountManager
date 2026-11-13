@@ -178,7 +178,6 @@ type Region struct {
 type NearbyRegion struct {
 	Region             Region  `json:"region"`
 	DistanceKilometers float64 `json:"distanceKilometers"`
-	Servers            int64   `json:"servers"`
 }
 
 type RegionServerQuery struct {
