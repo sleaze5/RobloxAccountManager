@@ -24,7 +24,6 @@ import type { Account } from "./account-model"
 import { AccountProfileState } from "./account-profile-state.svelte"
 import type { KeptPageData } from "./account-scope"
 import { isValidTagName, tagNameError } from "./tag-name"
-import { appSettings } from "../settings/settings-store.svelte"
 import type { NotificationCenter } from "../notifications/notification-center.svelte"
 import { notifyCopied } from "../shared/clipboard"
 import { coalesce } from "../shared/coalesce"
@@ -58,7 +57,6 @@ export class AccountStore {
 	launchDataEnabled = $state(false)
 	launching = $state(false)
 	copyingLaunchOptions = $state(false)
-	findingServer = $state(false)
 	reactivatingAccountId = $state<number | null>(null)
 	checkingAccountId = $state<number | null>(null)
 	refreshing = $state(false)
@@ -937,51 +935,6 @@ export class AccountStore {
 			this.#removeProfile(accountId)
 			await this.refreshAccounts()
 		})
-	}
-
-	async fillNearestServer(): Promise<void> {
-		const placeInput = this.launchInput.placeId.trim(),
-			placeId = Number(placeInput),
-			accountId = this.selectedAccountId ?? 0,
-			region = appSettings.roValraRegion,
-			regionLabel = appSettings.preferredRegionLabel
-		if (
-			this.findingServer ||
-			this.launching ||
-			!/^\d+$/.test(placeInput) ||
-			!Number.isSafeInteger(placeId) ||
-			placeId <= 0
-		) {
-			return
-		}
-		this.findingServer = true
-		this.error = ""
-		try {
-			const server = await accountBackend.FindNearestGameServer(
-				placeId,
-				accountId,
-			)
-			if (
-				!this.vault.unlocked ||
-				this.launchInput.placeId.trim() !== placeInput ||
-				(this.selectedAccountId ?? 0) !== accountId ||
-				appSettings.roValraRegion !== region
-			) {
-				return
-			}
-			this.launchInput.jobId = server.jobId
-			if (server.region.code !== region) {
-				this.notifications.show({
-					id: "nearest-server",
-					title: "Nearest server filled",
-					message: `No server was found in ${regionLabel}, so a server in the nearest available region (${server.region.name}) was filled.`,
-				})
-			}
-		} catch (error) {
-			if (this.vault.unlocked) this.error = errorMessage(error, operationError)
-		} finally {
-			this.findingServer = false
-		}
 	}
 
 	async launchSelectedAccounts(): Promise<void> {

@@ -39,8 +39,12 @@ func (service *Service) SetRoValraRegion(ctx context.Context, region string) err
 	return service.core.SetRoValraRegion(ctx, region)
 }
 
-func (service *Service) FindNearestGameServer(ctx context.Context, placeID, accountID int64) (games.NearestServer, error) {
-	return service.core.FindNearestGameServer(ctx, placeID, accountID)
+func (service *Service) ListNearbyServerRegions(ctx context.Context, placeID int64) ([]games.NearbyRegion, error) {
+	return service.core.ListNearbyServerRegions(ctx, placeID)
+}
+
+func (service *Service) FindRegionServer(ctx context.Context, query games.RegionServerQuery) (string, error) {
+	return service.core.FindRegionServer(ctx, query)
 }
 
 func (service *Service) GetGamePlace(ctx context.Context, universeID, placeID int64) (games.PlaceSummary, error) {

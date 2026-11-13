@@ -175,9 +175,16 @@ type Region struct {
 	CountryCode string `json:"countryCode"`
 }
 
-type NearestServer struct {
-	JobID  string `json:"jobId"`
-	Region Region `json:"region"`
+type NearbyRegion struct {
+	Region             Region  `json:"region"`
+	DistanceKilometers float64 `json:"distanceKilometers"`
+}
+
+type RegionServerQuery struct {
+	PlaceID       int64    `json:"placeId"`
+	AccountID     int64    `json:"accountId"`
+	Region        string   `json:"region"`
+	SkippedJobIDs []string `json:"skippedJobIds"`
 }
 
 type PrivateServerQuery struct {
