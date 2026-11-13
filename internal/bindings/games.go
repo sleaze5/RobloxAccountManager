@@ -43,8 +43,15 @@ func (service *Service) ListNearbyServerRegions(ctx context.Context, placeID int
 	return service.core.ListNearbyServerRegions(ctx, placeID)
 }
 
-func (service *Service) FindRegionServer(ctx context.Context, query games.RegionServerQuery) (string, error) {
-	return service.core.FindRegionServer(ctx, query)
+func (service *Service) ListRegionServers(ctx context.Context, query games.RegionServerQuery) ([]string, error) {
+	return service.core.ListRegionServers(ctx, query)
+}
+
+func (service *Service) CheckGameServerJoinable(ctx context.Context, placeID, accountID int64, jobID string) (bool, error) {
+	if err := positiveID(accountID, "game-server-join-check"); err != nil {
+		return false, err
+	}
+	return service.core.CheckGameServerJoinable(ctx, placeID, accountID, jobID)
 }
 
 func (service *Service) GetGamePlace(ctx context.Context, universeID, placeID int64) (games.PlaceSummary, error) {

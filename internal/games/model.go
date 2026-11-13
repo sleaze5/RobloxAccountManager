@@ -181,10 +181,9 @@ type NearbyRegion struct {
 }
 
 type RegionServerQuery struct {
-	PlaceID       int64    `json:"placeId"`
-	AccountID     int64    `json:"accountId"`
-	Region        string   `json:"region"`
-	SkippedJobIDs []string `json:"skippedJobIds"`
+	PlaceID        int64    `json:"placeId"`
+	Region         string   `json:"region"`
+	ExcludedJobIDs []string `json:"excludedJobIds"`
 }
 
 type PrivateServerQuery struct {

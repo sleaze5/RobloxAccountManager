@@ -10,10 +10,25 @@ export type RegionCheckStatus =
 	| "skipped"
 	| "failed"
 
+export type ServerCheckStatus =
+	| "checking"
+	| "open"
+	| "closed"
+	| "found"
+	| "skipped"
+	| "failed"
+
+export interface ServerCheck {
+	jobId: string
+	status: ServerCheckStatus
+}
+
 export interface RegionCheck {
 	nearbyRegion: NearbyServerRegion
 	status: RegionCheckStatus
-	skippedJobIds: string[]
+	servers: ServerCheck[]
+	listedJobIds: string[]
+	hasSkippedServer: boolean
 }
 
 export type NearestServerSearchPhase =
@@ -32,23 +47,17 @@ export class NearestServerSearch {
 	foundJobId = $state("")
 	error = $state("")
 
-	#request: { cancel: () => unknown } | null = null
+	#requests: { cancel: () => unknown }[] = []
 	#version = 0
 	#hasLoadedRegions = false
 
 	constructor(
 		private readonly placeId: number,
-		private readonly accountId: number,
+		readonly accountId: number,
 	) {}
 
-	get checkedRegionCount(): number {
-		return this.regionChecks.filter(
-			(check) => check.status !== "waiting" && check.status !== "checking",
-		).length
-	}
-
 	async start(): Promise<void> {
-		const version = ++this.#version
+		const version = this.#beginRequests()
 		this.phase = "loading"
 		this.error = ""
 		this.foundJobId = ""
@@ -56,14 +65,16 @@ export class NearestServerSearch {
 		this.activeRegionIndex = 0
 		this.#hasLoadedRegions = false
 		const request = accountBackend.ListNearbyServerRegions(this.placeId)
-		this.#request = request
+		this.#requests = [request]
 		try {
 			const nearbyRegions = await request
 			if (version !== this.#version) return
 			this.regionChecks = (nearbyRegions ?? []).map((nearbyRegion) => ({
 				nearbyRegion,
 				status: "waiting",
-				skippedJobIds: [],
+				servers: [],
+				listedJobIds: [],
+				hasSkippedServer: false,
 			}))
 			this.#hasLoadedRegions = true
 		} catch (error) {
@@ -72,74 +83,144 @@ export class NearestServerSearch {
 			this.phase = "failed"
 			return
 		}
-		await this.#checkRegionsFrom(0)
+		await this.#checkRegion(0, version)
 	}
 
 	async skipFoundServer(): Promise<void> {
-		const check = this.regionChecks[this.activeRegionIndex]
-		if (this.phase !== "found" || !check) return
-		check.skippedJobIds.push(this.foundJobId)
+		const check = this.regionChecks[this.activeRegionIndex],
+			foundServer = check?.servers.find((server) => server.status === "found")
+		if (this.phase !== "found" || !check || !foundServer) return
+		foundServer.status = "skipped"
+		check.hasSkippedServer = true
 		this.foundJobId = ""
-		await this.#checkRegionsFrom(this.activeRegionIndex)
+		if (this.#chooseOpenServer(check)) return
+		await this.#checkRegion(this.activeRegionIndex, this.#beginRequests())
 	}
 
 	async retry(): Promise<void> {
 		if (this.phase !== "failed") return
 		if (this.#hasLoadedRegions) {
-			await this.#checkRegionsFrom(this.activeRegionIndex)
+			await this.#checkRegion(this.activeRegionIndex, this.#beginRequests())
 		} else {
 			await this.start()
 		}
 	}
 
 	dispose(): void {
-		this.#version++
-		void this.#request?.cancel()
-		this.#request = null
+		this.#beginRequests()
 	}
 
-	async #checkRegionsFrom(startIndex: number): Promise<void> {
-		this.error = ""
-		await this.#checkRegion(startIndex, ++this.#version)
+	#beginRequests(): number {
+		for (const request of this.#requests) void request.cancel()
+		this.#requests = []
+		return ++this.#version
+	}
+
+	#chooseOpenServer(check: RegionCheck): boolean {
+		const openServer = check.servers.find((server) => server.status === "open")
+		if (!openServer) return false
+		openServer.status = "found"
+		check.status = "found"
+		this.foundJobId = openServer.jobId
+		this.phase = "found"
+		return true
 	}
 
 	// Regions are checked one at a time, nearest first, so that the search
-	// stops at the first region with an open server.
+	// stops at the first region with an open server. The servers of a region
+	// are checked together as one batch.
 	async #checkRegion(index: number, version: number): Promise<void> {
 		const check = this.regionChecks.at(index)
 		if (!check) {
-			this.#request = null
 			this.phase = "exhausted"
 			return
 		}
 		this.activeRegionIndex = index
+		this.error = ""
 		check.status = "checking"
+		check.servers = []
 		this.phase = "checking"
-		const request = accountBackend.FindRegionServer({
+		const listRequest = accountBackend.ListRegionServers({
 			placeId: this.placeId,
-			accountId: this.accountId,
 			region: check.nearbyRegion.region.code,
-			skippedJobIds: [...check.skippedJobIds],
+			excludedJobIds: [...check.listedJobIds],
 		})
-		this.#request = request
-		let jobId: string
+		this.#requests = [listRequest]
+		let jobIds: string[]
 		try {
-			jobId = await request
+			jobIds = (await listRequest) ?? []
 		} catch (error) {
 			if (version !== this.#version) return
-			check.status = "failed"
-			this.error = errorMessage(error, searchError)
-			this.phase = "failed"
+			this.#failRegion(check, error)
 			return
 		}
 		if (version !== this.#version) return
-		if (jobId) {
-			check.status = "found"
-			this.foundJobId = jobId
-			this.phase = "found"
+		if (jobIds.length === 0) {
+			check.status = check.hasSkippedServer ? "skipped" : "empty"
+			await this.#checkRegion(index + 1, version)
 			return
 		}
-		check.status = check.skippedJobIds.length > 0 ? "skipped" : "empty"
+		// Without a selected account no server can be join-checked, so the
+		// first listed server is used as it is.
+		if (this.accountId === 0) {
+			check.listedJobIds.push(jobIds[0])
+			check.servers = [{ jobId: jobIds[0], status: "open" }]
+			this.#chooseOpenServer(check)
+			return
+		}
+		check.listedJobIds.push(...jobIds)
+		check.servers = jobIds.map((jobId) => ({ jobId, status: "checking" }))
+		const servers = check.servers,
+			checkRequests = jobIds.map((jobId) =>
+				accountBackend.CheckGameServerJoinable(
+					this.placeId,
+					this.accountId,
+					jobId,
+				),
+			)
+		this.#requests = checkRequests
+		const errors = await Promise.all(
+			checkRequests.map((request, serverIndex) =>
+				request.then(
+					(isJoinable) => {
+						if (version === this.#version) {
+							servers[serverIndex].status = isJoinable ? "open" : "closed"
+						}
+						return null
+					},
+					(error: unknown) => {
+						if (version === this.#version)
+							servers[serverIndex].status = "failed"
+						return error
+					},
+				),
+			),
+		)
+		if (version !== this.#version) return
+		this.#requests = []
+		if (this.#chooseOpenServer(check)) return
+		if (servers.some((server) => server.status === "failed")) {
+			// A failed server is listed again on retry instead of being skipped.
+			check.listedJobIds = check.listedJobIds.filter(
+				(jobId) =>
+					!servers.some(
+						(server) =>
+							server.jobId === jobId && server.status === "failed",
+					),
+			)
+			this.#failRegion(
+				check,
+				errors.find((error) => error !== null),
+			)
+			return
+		}
+		check.status = check.hasSkippedServer ? "skipped" : "empty"
 		await this.#checkRegion(index + 1, version)
+	}
+
+	#failRegion(check: RegionCheck, error: unknown): void {
+		check.status = "failed"
+		this.error = errorMessage(error, searchError)
+		this.phase = "failed"
 	}
 }
