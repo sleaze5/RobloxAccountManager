@@ -148,3 +148,24 @@ func (service *Service) GetInventoryPage(ctx context.Context, accountID, userID 
 	}
 	return service.core.GetInventoryPage(ctx, accountID, userID, category, cursor)
 }
+
+func (service *Service) IsInventoryItemFavorite(ctx context.Context, accountID int64, itemType robloxservices.CatalogItemType, itemID int64) (bool, error) {
+	if err := socialTarget(accountID, itemID, "item-favorite"); err != nil {
+		return false, err
+	}
+	return service.core.IsInventoryItemFavorite(ctx, accountID, itemType, itemID)
+}
+
+func (service *Service) SetInventoryItemFavorite(ctx context.Context, accountID int64, itemType robloxservices.CatalogItemType, itemID int64, isFavorite bool) error {
+	if err := socialTarget(accountID, itemID, "item-favorite-update"); err != nil {
+		return err
+	}
+	return service.core.SetInventoryItemFavorite(ctx, accountID, itemType, itemID, isFavorite)
+}
+
+func (service *Service) DeleteInventoryAsset(ctx context.Context, accountID, assetID int64) error {
+	if err := socialTarget(accountID, assetID, "inventory-asset-delete"); err != nil {
+		return err
+	}
+	return service.core.DeleteInventoryAsset(ctx, accountID, assetID)
+}

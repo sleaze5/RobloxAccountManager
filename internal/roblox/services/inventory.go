@@ -77,10 +77,9 @@ type InventoryItem struct {
 	CreatorHasVerifiedBadge bool                   `json:"creatorHasVerifiedBadge"`
 	Market                  *InventoryItemMarket   `json:"market"`
 	Badge                   *InventoryBadgeDetails `json:"badge"`
-	thumbnailType           string
-	// catalogItemType is the catalog API item type, Asset or Bundle, of an
-	// item that the catalog may sell.
-	catalogItemType string
+	// CatalogItemType is empty for an item that the catalog does not sell.
+	CatalogItemType CatalogItemType `json:"catalogItemType"`
+	thumbnailType   string
 }
 
 // InventoryItemMarket is how Roblox sells an item, in the catalog or as a game
@@ -157,15 +156,15 @@ func (service *Users) assetsPage(ctx context.Context, accountID, version int64, 
 	if payload.Data == nil {
 		return InventoryPage{}, invalidInventory("inventory-assets")
 	}
-	catalogItemType := ""
+	var catalogItemType CatalogItemType
 	if isCatalogCategory {
-		catalogItemType = "Asset"
+		catalogItemType = CatalogAsset
 	}
 	items := make([]InventoryItem, 0, len(*payload.Data))
 	for _, listedAsset := range *payload.Data {
 		items = append(items, InventoryItem{
 			ItemID: listedAsset.AssetID, Name: boundedText(listedAsset.Name, maxInventoryItemNameLength), TypeName: listedAsset.AssetType,
-			thumbnailType: "Asset", catalogItemType: catalogItemType,
+			thumbnailType: "Asset", CatalogItemType: catalogItemType,
 		})
 	}
 	return inventoryPageOf(items, payload.NextPageCursor, "inventory-assets")
@@ -192,7 +191,7 @@ func (service *Users) collectiblesPage(ctx context.Context, accountID, version i
 	for _, listedCollectible := range *payload.Data {
 		item := InventoryItem{
 			ItemID: listedCollectible.AssetID, Name: boundedText(listedCollectible.Name, maxInventoryItemNameLength),
-			thumbnailType: "Asset", catalogItemType: "Asset",
+			thumbnailType: "Asset", CatalogItemType: CatalogAsset,
 		}
 		if listedCollectible.SerialNumber != nil && *listedCollectible.SerialNumber > 0 {
 			item.SerialNumber = listedCollectible.SerialNumber
@@ -271,7 +270,7 @@ func (service *Users) bundlesPage(ctx context.Context, accountID, version int64,
 	for _, listedBundle := range *payload.Data {
 		items = append(items, InventoryItem{
 			ItemID: listedBundle.ID, Name: boundedText(listedBundle.Name, maxInventoryItemNameLength), TypeName: listedBundle.BundleType,
-			thumbnailType: "BundleThumbnail", catalogItemType: "Bundle",
+			thumbnailType: "BundleThumbnail", CatalogItemType: CatalogBundle,
 		})
 	}
 	return inventoryPageOf(items, payload.NextPageCursor, "inventory-bundles")
@@ -328,21 +327,21 @@ func (service *Users) gamePassesPage(ctx context.Context, accountID, version int
 }
 
 type catalogItemKey struct {
-	ItemType string `json:"itemType"`
-	ID       int64  `json:"id"`
+	ItemType CatalogItemType `json:"itemType"`
+	ID       int64           `json:"id"`
 }
 
 type catalogItemDetails struct {
-	ID                      int64    `json:"id"`
-	ItemType                string   `json:"itemType"`
-	Description             string   `json:"description"`
-	CreatorName             string   `json:"creatorName"`
-	CreatorHasVerifiedBadge bool     `json:"creatorHasVerifiedBadge"`
-	Price                   *int64   `json:"price"`
-	IsOffSale               bool     `json:"isOffSale"`
-	LowestResalePrice       *int64   `json:"lowestResalePrice"`
-	FavoriteCount           *int64   `json:"favoriteCount"`
-	ItemRestrictions        []string `json:"itemRestrictions"`
+	ID                      int64           `json:"id"`
+	ItemType                CatalogItemType `json:"itemType"`
+	Description             string          `json:"description"`
+	CreatorName             string          `json:"creatorName"`
+	CreatorHasVerifiedBadge bool            `json:"creatorHasVerifiedBadge"`
+	Price                   *int64          `json:"price"`
+	IsOffSale               bool            `json:"isOffSale"`
+	LowestResalePrice       *int64          `json:"lowestResalePrice"`
+	FavoriteCount           *int64          `json:"favoriteCount"`
+	ItemRestrictions        []string        `json:"itemRestrictions"`
 }
 
 // AddCatalogDetails adds the description, creator, and price that the catalog
@@ -351,8 +350,8 @@ type catalogItemDetails struct {
 func (service *Users) AddCatalogDetails(ctx context.Context, accountID, version int64, items []InventoryItem) error {
 	requestedItems := make([]catalogItemKey, 0, len(items))
 	for _, item := range items {
-		if item.catalogItemType != "" {
-			requestedItems = append(requestedItems, catalogItemKey{ItemType: item.catalogItemType, ID: item.ItemID})
+		if item.CatalogItemType != "" {
+			requestedItems = append(requestedItems, catalogItemKey{ItemType: item.CatalogItemType, ID: item.ItemID})
 		}
 	}
 	if len(requestedItems) == 0 {
@@ -367,8 +366,8 @@ func (service *Users) AddCatalogDetails(ctx context.Context, accountID, version 
 		listedItemByKey[catalogItemKey{ItemType: listedItem.ItemType, ID: listedItem.ID}] = listedItem
 	}
 	for index := range items {
-		listedItem, ok := listedItemByKey[catalogItemKey{ItemType: items[index].catalogItemType, ID: items[index].ItemID}]
-		if items[index].catalogItemType == "" || !ok {
+		listedItem, ok := listedItemByKey[catalogItemKey{ItemType: items[index].CatalogItemType, ID: items[index].ItemID}]
+		if items[index].CatalogItemType == "" || !ok {
 			continue
 		}
 		items[index].Market = catalogMarket(listedItem)
