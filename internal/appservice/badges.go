@@ -26,7 +26,7 @@ func (service *Service) ListGameBadges(ctx context.Context, universeID int64) ([
 	for index, badge := range badges {
 		targets[index] = robloxservices.ThumbnailTarget{Type: "BadgeIcon", TargetID: badge.BadgeID}
 	}
-	icons, err := service.thumbnails.Images(ctx, targets)
+	icons, err := service.thumbnails.Images(ctx, targets, robloxservices.SmallThumbnailSize)
 	if ctx.Err() != nil {
 		return nil, service.gamesError(ctx, "game-badges", ctx.Err())
 	}

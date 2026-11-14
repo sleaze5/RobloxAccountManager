@@ -215,7 +215,7 @@ func (service *Service) robloxNotificationViews(ctx context.Context, logger *slo
 	var users []robloxservices.UserView
 	reads := []accountRead{{"images", func() error {
 		var readError error
-		images, readError = service.thumbnails.Images(ctx, targets)
+		images, readError = service.thumbnails.Images(ctx, targets, robloxservices.SmallThumbnailSize)
 		return readError
 	}}}
 	if len(userIDs) > 0 {

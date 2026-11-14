@@ -149,6 +149,20 @@ func (service *Service) GetInventoryPage(ctx context.Context, accountID, userID 
 	return service.core.GetInventoryPage(ctx, accountID, userID, category, cursor)
 }
 
+func (service *Service) GetInventoryItemDetails(ctx context.Context, accountID int64, category robloxservices.InventoryCategory, itemID int64) (robloxservices.InventoryItemDetails, error) {
+	if err := socialTarget(accountID, itemID, "inventory-item-details"); err != nil {
+		return robloxservices.InventoryItemDetails{}, err
+	}
+	return service.core.GetInventoryItemDetails(ctx, accountID, category, itemID)
+}
+
+func (service *Service) IsInventoryItemOwned(ctx context.Context, accountID int64, category robloxservices.InventoryCategory, itemID int64) (bool, error) {
+	if err := socialTarget(accountID, itemID, "inventory-item-ownership"); err != nil {
+		return false, err
+	}
+	return service.core.IsInventoryItemOwned(ctx, accountID, category, itemID)
+}
+
 func (service *Service) IsInventoryItemFavorite(ctx context.Context, accountID int64, itemType robloxservices.CatalogItemType, itemID int64) (bool, error) {
 	if err := socialTarget(accountID, itemID, "item-favorite"); err != nil {
 		return false, err

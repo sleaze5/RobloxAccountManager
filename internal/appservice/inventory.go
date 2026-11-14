@@ -28,7 +28,7 @@ func (service *Service) GetInventoryPage(ctx context.Context, accountID, userID 
 	for index, item := range page.Items {
 		targets[index] = item.ThumbnailTarget()
 	}
-	images, err := service.thumbnails.Images(ctx, targets)
+	images, err := service.thumbnails.Images(ctx, targets, robloxservices.SmallThumbnailSize)
 	if err != nil {
 		logger.WarnContext(ctx, "inventory images unavailable", "error", err)
 	}
@@ -36,6 +36,49 @@ func (service *Service) GetInventoryPage(ctx context.Context, accountID, userID 
 		page.Items[index].ImageURL = images[targets[index]]
 	}
 	return page, nil
+}
+
+// GetInventoryItemDetails reads the large image, dates, and collectible IDs
+// of one item. A missing large image leaves the details without it.
+func (service *Service) GetInventoryItemDetails(ctx context.Context, accountID int64, category robloxservices.InventoryCategory, itemID int64) (robloxservices.InventoryItemDetails, error) {
+	ctx, version, done, err := service.beginAccountSession(ctx, accountID, "inventory-item-details")
+	if err != nil {
+		return robloxservices.InventoryItemDetails{}, err
+	}
+	defer done()
+	logger := service.logs.Module("application.inventory").With("operation", "inventory-item-details", "account_id", accountID, "category", category)
+	details, err := service.users.InventoryItemDetails(ctx, accountID, version, category, itemID)
+	if err != nil {
+		logger.WarnContext(ctx, "item details unavailable", "error", err)
+		return robloxservices.InventoryItemDetails{}, err
+	}
+	if target, ok := robloxservices.LargeImageTarget(category, itemID); ok {
+		images, err := service.thumbnails.Images(ctx, []robloxservices.ThumbnailTarget{target}, robloxservices.LargeThumbnailSize)
+		if err != nil {
+			logger.WarnContext(ctx, "item large image unavailable", "error", err)
+		}
+		details.LargeImageURL = images[target]
+	}
+	return details, nil
+}
+
+// IsInventoryItemOwned reads whether the account owns the item.
+func (service *Service) IsInventoryItemOwned(ctx context.Context, accountID int64, category robloxservices.InventoryCategory, itemID int64) (bool, error) {
+	account, err := service.accountRepository.GetView(ctx, accountID)
+	if err != nil {
+		return false, mapRepositoryError(err)
+	}
+	ctx, version, done, err := service.beginAccountSession(ctx, accountID, "inventory-item-ownership")
+	if err != nil {
+		return false, err
+	}
+	defer done()
+	isOwned, err := service.users.IsInventoryItemOwned(ctx, accountID, version, account.RobloxUserID, category, itemID)
+	if err != nil {
+		service.logs.Module("application.inventory").WarnContext(ctx, "item ownership unavailable", "operation", "inventory-item-ownership", "account_id", accountID, "category", category, "error", err)
+		return false, err
+	}
+	return isOwned, nil
 }
 
 // IsInventoryItemFavorite reads whether the account favorited the catalog item.

@@ -92,6 +92,42 @@ type InventoryItemMarket struct {
 	// another user resells.
 	LowestResalePriceInRobux *int64 `json:"lowestResalePriceInRobux"`
 	FavoriteCount            *int64 `json:"favoriteCount"`
+	// TotalQuantity is how many copies exist of an item that Roblox sells in
+	// a limited quantity, and RemainingQuantity is how many it still sells.
+	TotalQuantity     *int64 `json:"totalQuantity"`
+	RemainingQuantity *int64 `json:"remainingQuantity"`
+	// SaleLocation is empty for an item that is not for sale.
+	SaleLocation InventorySaleLocation `json:"saleLocation"`
+	// OffSaleDeadlineMs is when a timed item goes off sale, or 0.
+	OffSaleDeadlineMs int64 `json:"offSaleDeadlineMs"`
+}
+
+// InventorySaleLocation is where Roblox sells a catalog item.
+type InventorySaleLocation string
+
+const (
+	SaleInMarketplace                   InventorySaleLocation = "marketplace"
+	SaleInMarketplaceAndAllExperiences  InventorySaleLocation = "marketplaceAndAllExperiences"
+	SaleInMarketplaceAndSomeExperiences InventorySaleLocation = "marketplaceAndSomeExperiences"
+	SaleInExperiences                   InventorySaleLocation = "experiences"
+)
+
+// saleLocationOf reads the catalog saleLocationType, whose values RoSeal
+// lists as ShopOnly, MyExperiencesOnly, ShopAndMyExperiences,
+// ExperiencesById, ShopAndAllExperiences, ExperiencesDevApiOnly, and
+// ShopAndExperiencesById.
+func saleLocationOf(saleLocationType string) InventorySaleLocation {
+	switch saleLocationType {
+	case "ShopOnly":
+		return SaleInMarketplace
+	case "ShopAndAllExperiences":
+		return SaleInMarketplaceAndAllExperiences
+	case "ShopAndMyExperiences", "ShopAndExperiencesById":
+		return SaleInMarketplaceAndSomeExperiences
+	case "MyExperiencesOnly", "ExperiencesById", "ExperiencesDevApiOnly":
+		return SaleInExperiences
+	}
+	return ""
 }
 
 type InventoryBadgeDetails struct {
@@ -342,6 +378,10 @@ type catalogItemDetails struct {
 	LowestResalePrice       *int64          `json:"lowestResalePrice"`
 	FavoriteCount           *int64          `json:"favoriteCount"`
 	ItemRestrictions        []string        `json:"itemRestrictions"`
+	TotalQuantity           *int64          `json:"totalQuantity"`
+	UnitsAvailable          *int64          `json:"unitsAvailableForConsumption"`
+	SaleLocationType        string          `json:"saleLocationType"`
+	OffSaleDeadline         *string         `json:"offSaleDeadline"`
 }
 
 // AddCatalogDetails adds the description, creator, and price that the catalog
@@ -422,7 +462,26 @@ func catalogMarket(listedItem catalogItemDetails) *InventoryItemMarket {
 	if listedItem.FavoriteCount != nil && *listedItem.FavoriteCount >= 0 {
 		market.FavoriteCount = listedItem.FavoriteCount
 	}
+	addCatalogAvailability(market, listedItem)
 	return market
+}
+
+// addCatalogAvailability adds how many copies the catalog sells, where, and
+// until when.
+func addCatalogAvailability(market *InventoryItemMarket, listedItem catalogItemDetails) {
+	// Roblox writes a total quantity of 0 for an item without a limit.
+	if listedItem.TotalQuantity != nil && *listedItem.TotalQuantity > 0 {
+		market.TotalQuantity = listedItem.TotalQuantity
+		if market.IsForSale && listedItem.UnitsAvailable != nil && *listedItem.UnitsAvailable >= 0 {
+			market.RemainingQuantity = listedItem.UnitsAvailable
+		}
+	}
+	if market.IsForSale {
+		market.SaleLocation = saleLocationOf(listedItem.SaleLocationType)
+		if listedItem.OffSaleDeadline != nil {
+			market.OffSaleDeadlineMs = robloxTimeMs(*listedItem.OffSaleDeadline)
+		}
+	}
 }
 
 func pagedInventoryQuery(cursor string) url.Values {
