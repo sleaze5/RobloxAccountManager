@@ -473,3 +473,19 @@ func (service *Users) readInventory(ctx context.Context, accountID, version int6
 func invalidInventory(endpoint string) error {
 	return &roblox.Error{Kind: roblox.KindProtocol, Endpoint: endpoint, Message: "Roblox returned invalid inventory data."}
 }
+
+// WornAssetIDs lists the assets that the user wears now, including the parts
+// of worn bundles. Roblox lists them for any user. Verified on 2026-11-14.
+func (service *Users) WornAssetIDs(ctx context.Context, accountID, version, userID int64) ([]int64, error) {
+	var payload struct {
+		AssetIDs *[]int64 `json:"assetIds"`
+	}
+	address := "https://avatar.roblox.com/v1/users/" + strconv.FormatInt(userID, 10) + "/currently-wearing"
+	if err := service.readAccountDetails(ctx, accountID, version, "inventory-worn-assets", address, &payload); err != nil {
+		return nil, err
+	}
+	if payload.AssetIDs == nil {
+		return nil, invalidInventory("inventory-worn-assets")
+	}
+	return *payload.AssetIDs, nil
+}

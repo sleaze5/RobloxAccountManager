@@ -9,11 +9,13 @@
 	let {
 		item,
 		category,
+		isWorn,
 		actionLabel,
 		onOpen,
 	}: {
 		item: InventoryItem
 		category: InventoryCategoryOption
+		isWorn: boolean
 		actionLabel: string
 		onOpen: (item: InventoryItem) => void
 	} = $props()
@@ -63,6 +65,11 @@
 				><span class="sr-only">Serial number </span>#{exactNumbers.format(
 					item.serialNumber,
 				)}</span>
+		{/if}
+		{#if isWorn}
+			<span
+				class="absolute top-1 right-1 rounded-sm border border-line-strong bg-overlay px-1 text-2xs leading-4 font-medium text-success"
+				>Wearing</span>
 		{/if}
 		{#if item.market?.isLimited && category.id !== InventoryCategory.InventoryCollectibles}
 			<span

@@ -169,3 +169,10 @@ func (service *Service) DeleteInventoryAsset(ctx context.Context, accountID, ass
 	}
 	return service.core.DeleteInventoryAsset(ctx, accountID, assetID)
 }
+
+func (service *Service) GetWornAssetIDs(ctx context.Context, accountID, userID int64) ([]int64, error) {
+	if err := socialTarget(accountID, userID, "inventory-worn-assets"); err != nil {
+		return nil, err
+	}
+	return service.core.GetWornAssetIDs(ctx, accountID, userID)
+}

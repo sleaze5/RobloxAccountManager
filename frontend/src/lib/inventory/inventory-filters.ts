@@ -1,12 +1,13 @@
 import type { InventoryItem } from "../backend/bridge"
 import { matchesSearch } from "../shared/search"
 
-export type InventorySaleFilter = "all" | "forSale" | "offSale" | "limited"
+export type InventoryItemFilter = "all" | "wearing" | "forSale" | "offSale" | "limited"
 
 export type InventorySortOrder = "newest" | "name" | "highestValue" | "lowestValue"
 
-export const saleFilterOptions: { value: InventorySaleFilter; label: string }[] = [
+export const itemFilterOptions: { value: InventoryItemFilter; label: string }[] = [
 	{ value: "all", label: "All items" },
+	{ value: "wearing", label: "Wearing" },
 	{ value: "forSale", label: "For sale" },
 	{ value: "offSale", label: "Off sale" },
 	{ value: "limited", label: "Limited" },
@@ -29,11 +30,14 @@ export function itemValueInRobux(item: InventoryItem): number | null {
 	return item.market?.isForSale ? item.market.priceInRobux : null
 }
 
-function matchesSaleFilter(
+function matchesItemFilter(
 	item: InventoryItem,
-	saleFilter: InventorySaleFilter,
+	itemFilter: InventoryItemFilter,
+	wornAssetIds: Set<number>,
 ): boolean {
-	switch (saleFilter) {
+	switch (itemFilter) {
+		case "wearing":
+			return wornAssetIds.has(item.itemId)
 		case "forSale":
 			return !!item.market?.isForSale
 		case "offSale":
@@ -54,19 +58,22 @@ export function shapeInventoryItems(
 	{
 		searchTerms,
 		typeName,
-		saleFilter,
+		itemFilter,
+		wornAssetIds,
 		sortOrder,
 	}: {
 		searchTerms: string[]
 		typeName: string
-		saleFilter: InventorySaleFilter
+		itemFilter: InventoryItemFilter
+		// wornAssetIds is empty for a category that does not hold assets.
+		wornAssetIds: Set<number>
 		sortOrder: InventorySortOrder
 	},
 ): InventoryItem[] {
 	const shownItems = items.filter(
 		(item) =>
 			(!typeName || item.typeName === typeName) &&
-			matchesSaleFilter(item, saleFilter) &&
+			matchesItemFilter(item, itemFilter, wornAssetIds) &&
 			(searchTerms.length === 0 ||
 				(searchTerms.length === 1 && searchTerms[0] === String(item.itemId)) ||
 				matchesSearch(searchTerms, `${item.name} ${item.creatorName}`)),

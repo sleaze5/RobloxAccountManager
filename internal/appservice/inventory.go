@@ -78,3 +78,18 @@ func (service *Service) DeleteInventoryAsset(ctx context.Context, accountID, ass
 		return service.users.DeleteInventoryAsset(ctx, accountID, version, assetID)
 	})
 }
+
+// GetWornAssetIDs lists the assets that the user wears now.
+func (service *Service) GetWornAssetIDs(ctx context.Context, accountID, userID int64) ([]int64, error) {
+	ctx, version, done, err := service.beginAccountSession(ctx, accountID, "inventory-worn-assets")
+	if err != nil {
+		return nil, err
+	}
+	defer done()
+	assetIDs, err := service.users.WornAssetIDs(ctx, accountID, version, userID)
+	if err != nil {
+		service.logs.Module("application.inventory").WarnContext(ctx, "worn assets unavailable", "operation", "inventory-worn-assets", "account_id", accountID, "error", err)
+		return nil, err
+	}
+	return assetIDs, nil
+}

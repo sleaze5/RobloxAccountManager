@@ -14,11 +14,11 @@
 	import { searchTerms } from "../shared/search"
 	import { inventoryCategoryGroups, inventoryTypeLabel } from "./inventory-categories"
 	import {
-		saleFilterOptions,
+		itemFilterOptions,
 		shapeInventoryItems,
 		sortOrderOptions,
 	} from "./inventory-filters"
-	import type { InventorySaleFilter, InventorySortOrder } from "./inventory-filters"
+	import type { InventoryItemFilter, InventorySortOrder } from "./inventory-filters"
 	import { formatRobux } from "./inventory-prices"
 	import InventoryItemDialog from "./InventoryItemDialog.svelte"
 	import InventoryItemTile from "./InventoryItemTile.svelte"
@@ -51,7 +51,7 @@
 		filterInput = $state<HTMLInputElement | undefined>(undefined),
 		contentElement = $state<HTMLElement | undefined>(undefined),
 		typeName = $state(""),
-		saleFilter = $state<InventorySaleFilter>("all"),
+		itemFilter = $state<InventoryItemFilter>("all"),
 		sortOrder = $state<InventorySortOrder>("newest"),
 		detailedItemKey = $state("")
 	const category = $derived(
@@ -77,6 +77,22 @@
 				: []
 		}),
 		hasMarket = $derived(items.some((item) => item.market)),
+		// Badges, game passes, and bundles have IDs of their own, which can
+		// match the ID of a worn asset.
+		wornAssetIds = $derived(
+			category.isDeletable ||
+				category.id === InventoryCategory.InventoryCollectibles
+				? inventory.wornAssetIds
+				: new Set<number>(),
+		),
+		isWearingAny = $derived(items.some((item) => wornAssetIds.has(item.itemId))),
+		shownItemFilterOptions = $derived(
+			itemFilterOptions.filter(
+				(option) =>
+					(option.value !== "wearing" || isWearingAny) &&
+					(hasMarket || option.value === "all" || option.value === "wearing"),
+			),
+		),
 		hasValue = $derived(
 			hasMarket || items.some((item) => item.recentAveragePrice !== null),
 		),
@@ -84,12 +100,13 @@
 			shapeInventoryItems(items, {
 				searchTerms: terms,
 				typeName,
-				saleFilter,
+				itemFilter,
+				wornAssetIds,
 				sortOrder,
 			}),
 		),
 		isFiltered = $derived(
-			terms.length > 0 || typeName !== "" || saleFilter !== "all",
+			terms.length > 0 || typeName !== "" || itemFilter !== "all",
 		),
 		collectiblesValue = $derived(
 			category.itemDetail === "price"
@@ -117,7 +134,7 @@
 
 	function clearFilters(): void {
 		filterText = typeName = ""
-		saleFilter = "all"
+		itemFilter = "all"
 	}
 
 	function showCategory(categoryId: InventoryCategory): void {
@@ -234,13 +251,13 @@
 							className="w-32"
 							onChange={(value) => (typeName = value)} />
 					{/if}
-					{#if hasMarket}
+					{#if shownItemFilterOptions.length > 1}
 						<Select
-							label="Sale status"
-							value={saleFilter}
-							options={saleFilterOptions}
+							label="Show"
+							value={itemFilter}
+							options={shownItemFilterOptions}
 							className="w-28"
-							onChange={(value) => (saleFilter = value)} />
+							onChange={(value) => (itemFilter = value)} />
 					{/if}
 					<Select
 						label="Sort by"
@@ -333,6 +350,7 @@
 									<InventoryItemTile
 										{item}
 										{category}
+										isWorn={wornAssetIds.has(item.itemId)}
 										actionLabel={isPlaceCategory
 											? "Find place in Games"
 											: "Show details"}

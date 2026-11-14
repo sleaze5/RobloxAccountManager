@@ -33,6 +33,7 @@ export class InventoryState {
 	isSavingFavorite = $state(false)
 	isDeletingItem = $state(false)
 	itemActionError = $state("")
+	wornAssetIds = $state.raw(new Set<number>())
 	readonly userId: number
 	readonly #scope: AccountScope
 	#request: ReturnType<typeof accountBackend.GetInventoryPage> | null = null
@@ -58,6 +59,7 @@ export class InventoryState {
 	}
 
 	async refresh(): Promise<void> {
+		void this.#loadWornAssets()
 		await this.#load("")
 	}
 
@@ -194,6 +196,18 @@ export class InventoryState {
 	dispose(): void {
 		this.#request = null
 		this.#scope.dispose()
+	}
+
+	async #loadWornAssets(): Promise<void> {
+		try {
+			const assetIds = await this.#scope.track(
+				accountBackend.GetWornAssetIDs(this.#scope.accountId, this.userId),
+			)
+			if (this.#scope.isCurrent) this.wornAssetIds = new Set(assetIds ?? [])
+		} catch {
+			// The inventory stays usable without the worn marks, and the backend
+			// logs the failure.
+		}
 	}
 
 	#changeItems(change: (items: InventoryItem[]) => InventoryItem[]): void {
