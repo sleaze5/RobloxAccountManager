@@ -68,15 +68,19 @@ type InventoryItem struct {
 	Name   string `json:"name"`
 	// TypeName is the Roblox asset type of an asset, such as HairAccessory, or
 	// the Roblox bundle type of a bundle, such as DynamicHead.
-	TypeName                string                 `json:"typeName"`
-	SerialNumber            *int64                 `json:"serialNumber"`
-	RecentAveragePrice      *int64                 `json:"recentAveragePrice"`
-	ImageURL                string                 `json:"imageUrl"`
-	Description             string                 `json:"description"`
-	CreatorName             string                 `json:"creatorName"`
-	CreatorHasVerifiedBadge bool                   `json:"creatorHasVerifiedBadge"`
-	Market                  *InventoryItemMarket   `json:"market"`
-	Badge                   *InventoryBadgeDetails `json:"badge"`
+	TypeName                string `json:"typeName"`
+	SerialNumber            *int64 `json:"serialNumber"`
+	RecentAveragePrice      *int64 `json:"recentAveragePrice"`
+	ImageURL                string `json:"imageUrl"`
+	Description             string `json:"description"`
+	CreatorName             string `json:"creatorName"`
+	CreatorHasVerifiedBadge bool   `json:"creatorHasVerifiedBadge"`
+	// CreatorID is 0 and CreatorType is empty when Roblox does not list the
+	// creator. CreatorType is User or Group.
+	CreatorID   int64                  `json:"creatorId"`
+	CreatorType string                 `json:"creatorType"`
+	Market      *InventoryItemMarket   `json:"market"`
+	Badge       *InventoryBadgeDetails `json:"badge"`
 	// CatalogItemType is empty for an item that the catalog does not sell.
 	CatalogItemType CatalogItemType `json:"catalogItemType"`
 	thumbnailType   string
@@ -134,6 +138,13 @@ type InventoryBadgeDetails struct {
 	AwardedCount       int64   `json:"awardedCount"`
 	PastDayWinFraction float64 `json:"pastDayWinFraction"`
 	AwardingPlaceID    int64   `json:"awardingPlaceId"`
+}
+
+// setCreator keeps only a creator that Roblox lists as a user or a group.
+func (item *InventoryItem) setCreator(creatorID int64, creatorType string) {
+	if validGameCreator(creatorID, creatorType) {
+		item.CreatorID, item.CreatorType = creatorID, creatorType
+	}
 }
 
 // ThumbnailTarget names the image of the item for the thumbnails batch API.
@@ -248,7 +259,9 @@ func (service *Users) badgesPage(ctx context.Context, accountID, version int64, 
 			Name        string `json:"name"`
 			Description string `json:"description"`
 			Creator     struct {
+				ID   int64  `json:"id"`
 				Name string `json:"name"`
+				Type string `json:"type"`
 			} `json:"creator"`
 			Awarder struct {
 				ID   int64  `json:"id"`
@@ -276,12 +289,14 @@ func (service *Users) badgesPage(ctx context.Context, accountID, version int64, 
 		if listedBadge.Awarder.Type == "Place" && listedBadge.Awarder.ID > 0 {
 			badge.AwardingPlaceID = listedBadge.Awarder.ID
 		}
-		items = append(items, InventoryItem{
+		item := InventoryItem{
 			ItemID: listedBadge.ID, Name: boundedText(listedBadge.Name, maxInventoryItemNameLength),
 			Description: boundedText(listedBadge.Description, maxInventoryDescriptionLength),
 			CreatorName: boundedText(listedBadge.Creator.Name, maxInventoryItemNameLength),
 			Badge:       badge, thumbnailType: "BadgeIcon",
-		})
+		}
+		item.setCreator(listedBadge.Creator.ID, listedBadge.Creator.Type)
+		items = append(items, item)
 	}
 	return inventoryPageOf(items, payload.NextPageCursor, "inventory-badges")
 }
@@ -330,7 +345,9 @@ func (service *Users) gamePassesPage(ctx context.Context, accountID, version int
 			IsForSale   bool   `json:"isForSale"`
 			Price       *int64 `json:"price"`
 			Creator     struct {
-				Name string `json:"name"`
+				CreatorID   int64  `json:"creatorId"`
+				CreatorType string `json:"creatorType"`
+				Name        string `json:"name"`
 			} `json:"creator"`
 		} `json:"gamePasses"`
 	}
@@ -347,12 +364,14 @@ func (service *Users) gamePassesPage(ctx context.Context, accountID, version int
 		if listedGamePass.IsForSale && listedGamePass.Price != nil && *listedGamePass.Price >= 0 {
 			market.IsForSale, market.PriceInRobux = true, *listedGamePass.Price
 		}
-		items = append(items, InventoryItem{
+		item := InventoryItem{
 			ItemID: listedGamePass.GamePassID, Name: boundedText(listedGamePass.Name, maxInventoryItemNameLength),
 			Description: boundedText(listedGamePass.Description, maxInventoryDescriptionLength),
 			CreatorName: boundedText(listedGamePass.Creator.Name, maxInventoryItemNameLength),
 			Market:      market, thumbnailType: "GamePass",
-		})
+		}
+		item.setCreator(listedGamePass.Creator.CreatorID, listedGamePass.Creator.CreatorType)
+		items = append(items, item)
 	}
 	var nextCursor *string
 	if len(items) == inventoryPageSize {
@@ -373,6 +392,8 @@ type catalogItemDetails struct {
 	Description             string          `json:"description"`
 	CreatorName             string          `json:"creatorName"`
 	CreatorHasVerifiedBadge bool            `json:"creatorHasVerifiedBadge"`
+	CreatorTargetID         int64           `json:"creatorTargetId"`
+	CreatorType             string          `json:"creatorType"`
 	Price                   *int64          `json:"price"`
 	IsOffSale               bool            `json:"isOffSale"`
 	LowestResalePrice       *int64          `json:"lowestResalePrice"`
@@ -414,6 +435,7 @@ func (service *Users) AddCatalogDetails(ctx context.Context, accountID, version 
 		items[index].Description = boundedText(listedItem.Description, maxInventoryDescriptionLength)
 		items[index].CreatorName = boundedText(listedItem.CreatorName, maxInventoryItemNameLength)
 		items[index].CreatorHasVerifiedBadge = listedItem.CreatorHasVerifiedBadge
+		items[index].setCreator(listedItem.CreatorTargetID, listedItem.CreatorType)
 	}
 	return nil
 }
