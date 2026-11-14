@@ -21,9 +21,12 @@ export interface InventoryCategoryOption {
 	label: string
 	noun: string
 	icon: string
-	// The second line of each item: its Roblox type in a category that holds
-	// several types, or the recent average price of a collectible.
+	// What leads the second line of each item: its Roblox type in a category
+	// that holds several types, or the recent average price of a collectible.
 	itemDetail: "type" | "price" | "none"
+	// Whether the account may delete its own items of the category. Roblox
+	// deletes only assets, and refuses limited ones.
+	isDeletable: boolean
 }
 
 export const inventoryCategoryGroups: {
@@ -39,6 +42,7 @@ export const inventoryCategoryGroups: {
 				noun: "accessories",
 				icon: baseballCapIcon,
 				itemDetail: "type",
+				isDeletable: true,
 			},
 			{
 				id: InventoryCategory.InventoryClassicClothing,
@@ -46,6 +50,7 @@ export const inventoryCategoryGroups: {
 				noun: "classic clothing",
 				icon: tShirtIcon,
 				itemDetail: "type",
+				isDeletable: true,
 			},
 			{
 				id: InventoryCategory.InventoryLayeredClothing,
@@ -53,6 +58,7 @@ export const inventoryCategoryGroups: {
 				noun: "layered clothing",
 				icon: coatHangerIcon,
 				itemDetail: "type",
+				isDeletable: true,
 			},
 			{
 				id: InventoryCategory.InventoryHeadsAndBodies,
@@ -60,6 +66,7 @@ export const inventoryCategoryGroups: {
 				noun: "heads or body parts",
 				icon: personIcon,
 				itemDetail: "type",
+				isDeletable: true,
 			},
 			{
 				id: InventoryCategory.InventoryFaces,
@@ -67,6 +74,7 @@ export const inventoryCategoryGroups: {
 				noun: "faces",
 				icon: smileyIcon,
 				itemDetail: "none",
+				isDeletable: true,
 			},
 			{
 				id: InventoryCategory.InventoryBundles,
@@ -74,6 +82,7 @@ export const inventoryCategoryGroups: {
 				noun: "bundles",
 				icon: packageIcon,
 				itemDetail: "type",
+				isDeletable: false,
 			},
 			{
 				id: InventoryCategory.InventoryEmotes,
@@ -81,6 +90,7 @@ export const inventoryCategoryGroups: {
 				noun: "emotes",
 				icon: handWavingIcon,
 				itemDetail: "none",
+				isDeletable: true,
 			},
 			{
 				id: InventoryCategory.InventoryAnimations,
@@ -88,6 +98,7 @@ export const inventoryCategoryGroups: {
 				noun: "animations",
 				icon: personSimpleRunIcon,
 				itemDetail: "type",
+				isDeletable: true,
 			},
 		],
 	},
@@ -100,6 +111,7 @@ export const inventoryCategoryGroups: {
 				noun: "collectibles",
 				icon: diamondIcon,
 				itemDetail: "price",
+				isDeletable: false,
 			},
 			{
 				id: InventoryCategory.InventoryGear,
@@ -107,6 +119,7 @@ export const inventoryCategoryGroups: {
 				noun: "gear",
 				icon: swordIcon,
 				itemDetail: "none",
+				isDeletable: true,
 			},
 		],
 	},
@@ -119,6 +132,7 @@ export const inventoryCategoryGroups: {
 				noun: "badges",
 				icon: medalIcon,
 				itemDetail: "none",
+				isDeletable: false,
 			},
 			{
 				id: InventoryCategory.InventoryGamePasses,
@@ -126,6 +140,7 @@ export const inventoryCategoryGroups: {
 				noun: "game passes",
 				icon: ticketIcon,
 				itemDetail: "none",
+				isDeletable: false,
 			},
 			{
 				id: InventoryCategory.InventoryPlaces,
@@ -133,6 +148,7 @@ export const inventoryCategoryGroups: {
 				noun: "places",
 				icon: mapTrifoldIcon,
 				itemDetail: "none",
+				isDeletable: false,
 			},
 		],
 	},
@@ -145,6 +161,7 @@ export const inventoryCategoryGroups: {
 				noun: "models",
 				icon: cubeIcon,
 				itemDetail: "none",
+				isDeletable: true,
 			},
 			{
 				id: InventoryCategory.InventoryDecals,
@@ -152,6 +169,7 @@ export const inventoryCategoryGroups: {
 				noun: "decals",
 				icon: imageIcon,
 				itemDetail: "none",
+				isDeletable: true,
 			},
 			{
 				id: InventoryCategory.InventoryAudio,
@@ -159,6 +177,7 @@ export const inventoryCategoryGroups: {
 				noun: "audio",
 				icon: musicNotesIcon,
 				itemDetail: "none",
+				isDeletable: true,
 			},
 		],
 	},

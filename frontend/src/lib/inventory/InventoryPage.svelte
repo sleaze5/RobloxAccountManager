@@ -10,11 +10,19 @@
 	import SidebarResizer from "../layout/SidebarResizer.svelte"
 	import Icon from "../shared/Icon.svelte"
 	import RefreshIcon from "../shared/RefreshIcon.svelte"
-	import { matchesSearch, searchTerms } from "../shared/search"
-	import { inventoryCategoryGroups } from "./inventory-categories"
+	import Select from "../shared/Select.svelte"
+	import { searchTerms } from "../shared/search"
+	import { inventoryCategoryGroups, inventoryTypeLabel } from "./inventory-categories"
+	import {
+		saleFilterOptions,
+		shapeInventoryItems,
+		sortOrderOptions,
+	} from "./inventory-filters"
+	import type { InventorySaleFilter, InventorySortOrder } from "./inventory-filters"
+	import { formatRobux } from "./inventory-prices"
 	import InventoryItemDialog from "./InventoryItemDialog.svelte"
 	import InventoryItemTile from "./InventoryItemTile.svelte"
-	import { InventoryState } from "./inventory-state.svelte"
+	import { InventoryState, inventoryItemKey } from "./inventory-state.svelte"
 
 	let {
 		accounts,
@@ -42,7 +50,10 @@
 	let filterText = $state(""),
 		filterInput = $state<HTMLInputElement | undefined>(undefined),
 		contentElement = $state<HTMLElement | undefined>(undefined),
-		detailedItem = $state<InventoryItem | null>(null)
+		typeName = $state(""),
+		saleFilter = $state<InventorySaleFilter>("all"),
+		sortOrder = $state<InventorySortOrder>("newest"),
+		detailedItemKey = $state("")
 	const category = $derived(
 			categories.find((option) => option.id === inventory.category) ??
 				categories[0],
@@ -50,26 +61,80 @@
 		page = $derived(inventory.page),
 		items = $derived(page?.items ?? []),
 		terms = $derived(searchTerms(filterText)),
-		shownItems = $derived(
-			terms.length
-				? items.filter((item) => matchesSearch(terms, item.name))
-				: items,
+		typeOptions = $derived.by(() => {
+			if (category.itemDetail !== "type") return []
+			const typeNames = [...new Set(items.map((item) => item.typeName))].filter(
+				(listedTypeName) => inventoryTypeLabel(listedTypeName),
+			)
+			return typeNames.length > 1
+				? [
+						{ value: "", label: "All types" },
+						...typeNames.map((listedTypeName) => ({
+							value: listedTypeName,
+							label: inventoryTypeLabel(listedTypeName),
+						})),
+					]
+				: []
+		}),
+		hasMarket = $derived(items.some((item) => item.market)),
+		hasValue = $derived(
+			hasMarket || items.some((item) => item.recentAveragePrice !== null),
 		),
+		shownItems = $derived(
+			shapeInventoryItems(items, {
+				searchTerms: terms,
+				typeName,
+				saleFilter,
+				sortOrder,
+			}),
+		),
+		isFiltered = $derived(
+			terms.length > 0 || typeName !== "" || saleFilter !== "all",
+		),
+		collectiblesValue = $derived(
+			category.itemDetail === "price"
+				? items.reduce(
+						(total, item) => total + (item.recentAveragePrice ?? 0),
+						0,
+					)
+				: 0,
+		),
+		detailedItem = $derived(
+			detailedItemKey
+				? items.find((item) => inventoryItemKey(item) === detailedItemKey)
+				: undefined,
+		),
+		isOwnInventory = $derived(Number(accounts.selectedAccount.userId) === userId),
 		isPlaceCategory = $derived(category.id === InventoryCategory.InventoryPlaces),
+		loadedCountLabel = $derived(
+			`${exactNumbers.format(items.length)}${page?.nextCursor ? "+" : ""}`,
+		),
 		itemCountLabel = $derived(
-			`${exactNumbers.format(items.length)}${page?.nextCursor ? "+" : ""} ${items.length === 1 && !page?.nextCursor ? "item" : "items"}`,
+			isFiltered
+				? `${exactNumbers.format(shownItems.length)} of ${loadedCountLabel}`
+				: `${loadedCountLabel} ${items.length === 1 && !page?.nextCursor ? "item" : "items"}`,
 		)
+
+	function clearFilters(): void {
+		filterText = typeName = ""
+		saleFilter = "all"
+	}
 
 	function showCategory(categoryId: InventoryCategory): void {
 		if (categoryId === inventory.category) return
-		filterText = ""
+		clearFilters()
 		inventory.show(categoryId)
 		contentElement?.scrollTo({ top: 0 })
 	}
 
 	function openItem(item: InventoryItem): void {
-		if (isPlaceCategory) onSearchPlace(item.itemId)
-		else detailedItem = item
+		if (isPlaceCategory) {
+			onSearchPlace(item.itemId)
+			return
+		}
+		inventory.clearItemActionError()
+		detailedItemKey = inventoryItemKey(item)
+		void inventory.checkFavorite(item)
 	}
 
 	onMount(() => {
@@ -139,7 +204,7 @@
 							bind:this={filterInput}
 							bind:value={filterText}
 							type="search"
-							aria-label={`Filter ${category.noun}`}
+							aria-label={`Filter ${category.noun} by name, creator, or ID`}
 							placeholder={`Filter ${category.noun}`}
 							disabled={items.length === 0} />
 						{#if filterText}
@@ -156,6 +221,51 @@
 					</div>
 				</div>
 			</div>
+			{#if items.length > 0}
+				<div
+					class="flex h-10 shrink-0 animate-enter items-center gap-2 border-b border-line-subtle px-3"
+					role="toolbar"
+					aria-label={`Filter and sort ${category.noun}`}>
+					{#if typeOptions.length > 0}
+						<Select
+							label="Type"
+							value={typeName}
+							options={typeOptions}
+							className="w-32"
+							onChange={(value) => (typeName = value)} />
+					{/if}
+					{#if hasMarket}
+						<Select
+							label="Sale status"
+							value={saleFilter}
+							options={saleFilterOptions}
+							className="w-28"
+							onChange={(value) => (saleFilter = value)} />
+					{/if}
+					<Select
+						label="Sort by"
+						value={sortOrder}
+						options={hasValue
+							? sortOrderOptions
+							: sortOrderOptions.filter(
+									(option) =>
+										option.value === "newest" ||
+										option.value === "name",
+								)}
+						className="w-32"
+						onChange={(value) => (sortOrder = value)} />
+					{#if collectiblesValue > 0}
+						<span
+							class="ml-auto shrink-0 text-2xs text-fg-muted"
+							data-tooltip={`Total recent average price of the ${loadedCountLabel} loaded collectibles`}
+							>Total RAP <span class="font-mono text-fg"
+								>{formatRobux(collectiblesValue, true)}{page?.nextCursor
+									? "+"
+									: ""}</span
+							></span>
+					{/if}
+				</div>
+			{/if}
 
 			<div
 				class="min-h-0 flex-1 scrollbar-stable overflow-y-auto"
@@ -207,16 +317,11 @@
 							<Icon svg={funnelIcon} size={28} aria-hidden="true" />
 							<h2>No matching {category.noun}</h2>
 							<p>
-								Nothing loaded matches “{filterText.trim()}”. Clear the
-								filter or load more items.
+								Nothing loaded matches these filters. Clear them or load
+								more items.
 							</p>
-							<button
-								class="button"
-								type="button"
-								onclick={() => {
-									filterText = ""
-									filterInput?.focus()
-								}}>Clear filter</button>
+							<button class="button" type="button" onclick={clearFilters}
+								>Clear filters</button>
 						</div>
 					{:else}
 						<ul
@@ -259,9 +364,12 @@
 	<InventoryItemDialog
 		item={detailedItem}
 		{category}
+		{inventory}
+		{username}
+		{isOwnInventory}
 		onSearchPlace={(placeId) => {
-			detailedItem = null
+			detailedItemKey = ""
 			onSearchPlace(placeId)
 		}}
-		onClose={() => (detailedItem = null)} />
+		onClose={() => (detailedItemKey = "")} />
 {/if}

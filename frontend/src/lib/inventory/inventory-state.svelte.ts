@@ -1,4 +1,4 @@
-import { accountBackend, InventoryCategory } from "../backend/bridge"
+import { accountBackend, CatalogItemType, InventoryCategory } from "../backend/bridge"
 import type { InventoryItem } from "../backend/bridge"
 import type { AccountStore } from "../accounts/account-store.svelte"
 import { AccountScope } from "../accounts/account-scope"
@@ -9,6 +9,11 @@ interface InventoryCategoryPage {
 	items: InventoryItem[]
 	nextCursor: string
 	fetchedAt: number
+}
+
+// inventoryItemKey tells apart an asset and a bundle that share an ID.
+export function inventoryItemKey(item: InventoryItem): string {
+	return `${item.catalogItemType}:${item.itemId}`
 }
 
 // InventoryState lists what one Roblox user owns, as the account sees it. Each
@@ -22,6 +27,12 @@ export class InventoryState {
 	loading = $state(false)
 	loadingMore = $state(false)
 	error = $state("")
+	// Whether the account favorited each catalog item, by inventoryItemKey.
+	favoriteByItemKey = $state.raw(new Map<string, boolean>())
+	checkingFavoriteKey = $state("")
+	isSavingFavorite = $state(false)
+	isDeletingItem = $state(false)
+	itemActionError = $state("")
 	readonly userId: number
 	readonly #scope: AccountScope
 	#request: ReturnType<typeof accountBackend.GetInventoryPage> | null = null
@@ -56,9 +67,142 @@ export class InventoryState {
 		await this.#load(cursor)
 	}
 
+	clearItemActionError(): void {
+		this.itemActionError = ""
+	}
+
+	async checkFavorite(item: InventoryItem): Promise<void> {
+		const key = inventoryItemKey(item),
+			itemType = item.catalogItemType
+		if (
+			!itemType ||
+			this.favoriteByItemKey.has(key) ||
+			this.checkingFavoriteKey === key
+		) {
+			return
+		}
+		this.checkingFavoriteKey = key
+		try {
+			const isFavorite = await this.#scope.track(
+				accountBackend.IsInventoryItemFavorite(
+					this.#scope.accountId,
+					itemType,
+					item.itemId,
+				),
+			)
+			if (!this.#scope.isCurrent) return
+			this.favoriteByItemKey = new Map(this.favoriteByItemKey).set(
+				key,
+				isFavorite,
+			)
+		} catch (error) {
+			if (this.#scope.isCurrent) {
+				this.itemActionError = errorMessage(
+					error,
+					"Could not check whether this item is a favorite.",
+				)
+			}
+		} finally {
+			if (this.checkingFavoriteKey === key) this.checkingFavoriteKey = ""
+		}
+	}
+
+	async setFavorite(item: InventoryItem, isFavorite: boolean): Promise<void> {
+		const key = inventoryItemKey(item),
+			itemType = item.catalogItemType
+		if (!itemType || this.isSavingFavorite) return
+		this.isSavingFavorite = true
+		this.itemActionError = ""
+		try {
+			await this.#scope.track(
+				accountBackend.SetInventoryItemFavorite(
+					this.#scope.accountId,
+					itemType,
+					item.itemId,
+					isFavorite,
+				),
+			)
+			if (!this.#scope.isCurrent) return
+			this.favoriteByItemKey = new Map(this.favoriteByItemKey).set(
+				key,
+				isFavorite,
+			)
+			const countChange = isFavorite ? 1 : -1
+			this.#changeItems((items) =>
+				items.map((listedItem) =>
+					inventoryItemKey(listedItem) === key &&
+					listedItem.market?.favoriteCount != null
+						? {
+								...listedItem,
+								market: {
+									...listedItem.market,
+									favoriteCount: Math.max(
+										listedItem.market.favoriteCount + countChange,
+										0,
+									),
+								},
+							}
+						: listedItem,
+				),
+			)
+		} catch (error) {
+			if (this.#scope.isCurrent) {
+				this.itemActionError = errorMessage(
+					error,
+					isFavorite
+						? "Could not add the item to favorites. Try again."
+						: "Could not remove the item from favorites. Try again.",
+				)
+			}
+		} finally {
+			this.isSavingFavorite = false
+		}
+	}
+
+	// deleteItem removes an asset from the inventory of the account, and
+	// reports whether Roblox deleted it.
+	async deleteItem(item: InventoryItem): Promise<boolean> {
+		if (this.isDeletingItem) return false
+		this.isDeletingItem = true
+		this.itemActionError = ""
+		try {
+			await this.#scope.track(
+				accountBackend.DeleteInventoryAsset(this.#scope.accountId, item.itemId),
+			)
+			if (!this.#scope.isCurrent) return false
+			this.#changeItems((items) =>
+				items.filter(
+					(listedItem) =>
+						listedItem.itemId !== item.itemId ||
+						listedItem.catalogItemType === CatalogItemType.CatalogBundle,
+				),
+			)
+			return true
+		} catch (error) {
+			if (this.#scope.isCurrent) {
+				this.itemActionError = errorMessage(
+					error,
+					"Could not delete the item. Try again.",
+				)
+			}
+			return false
+		} finally {
+			this.isDeletingItem = false
+		}
+	}
+
 	dispose(): void {
 		this.#request = null
 		this.#scope.dispose()
+	}
+
+	#changeItems(change: (items: InventoryItem[]) => InventoryItem[]): void {
+		const pagesByCategory: typeof this.pagesByCategory = {}
+		for (const category of Object.values(InventoryCategory)) {
+			const page = this.pagesByCategory[category]
+			if (page) pagesByCategory[category] = { ...page, items: change(page.items) }
+		}
+		this.pagesByCategory = pagesByCategory
 	}
 
 	async #load(cursor: string): Promise<void> {

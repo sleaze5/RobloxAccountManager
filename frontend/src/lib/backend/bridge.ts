@@ -77,6 +77,7 @@ export {
 	TagKind,
 } from "../../../bindings/github.com/sleaze5/RobloxAccountManager/internal/accounts/models.js"
 export {
+	CatalogItemType,
 	FriendStatus,
 	InventoryCategory,
 	PresenceType,
