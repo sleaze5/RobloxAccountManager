@@ -39,6 +39,10 @@ export class InventoryState {
 	checkingFavoriteKey = $state("")
 	isSavingFavorite = $state(false)
 	isDeletingItem = $state(false)
+	isBuyingItem = $state(false)
+	// The items that the account bought and that Roblox still delivers, by
+	// categoryItemKey.
+	pendingPurchaseKeys = $state.raw(new Set<string>())
 	itemActionError = $state("")
 	wornAssetIds = $state.raw(new Set<number>())
 	// The details and the ownership by the account of each opened item, by
@@ -204,6 +208,42 @@ export class InventoryState {
 			}
 		} finally {
 			this.isSavingFavorite = false
+		}
+	}
+
+	// buyItem buys an item of the current category for the account at the
+	// price that the user confirmed, and reports whether Roblox sold it.
+	async buyItem(item: InventoryItem, priceInRobux: number): Promise<boolean> {
+		if (this.isBuyingItem) return false
+		const category = this.category,
+			key = categoryItemKey(category, item.itemId)
+		this.isBuyingItem = true
+		this.itemActionError = ""
+		try {
+			const isPending = await this.#scope.track(
+				accountBackend.BuyInventoryItem(
+					this.#scope.accountId,
+					category,
+					item.itemId,
+					priceInRobux,
+				),
+			)
+			if (!this.#scope.isCurrent) return false
+			this.isOwnedByItemKey = new Map(this.isOwnedByItemKey).set(key, true)
+			if (isPending) {
+				this.pendingPurchaseKeys = new Set(this.pendingPurchaseKeys).add(key)
+			}
+			return true
+		} catch (error) {
+			if (this.#scope.isCurrent) {
+				this.itemActionError = errorMessage(
+					error,
+					"Could not buy the item. Try again.",
+				)
+			}
+			return false
+		} finally {
+			this.isBuyingItem = false
 		}
 	}
 

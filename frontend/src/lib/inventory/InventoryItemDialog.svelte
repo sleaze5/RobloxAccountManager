@@ -3,7 +3,6 @@
 	import barcodeIcon from "@phosphor-icons/core/regular/barcode.svg?raw"
 	import calendarDotsIcon from "@phosphor-icons/core/regular/calendar-dots.svg?raw"
 	import checkCircleFillIcon from "@phosphor-icons/core/fill/check-circle-fill.svg?raw"
-	import circleDashedIcon from "@phosphor-icons/core/regular/circle-dashed.svg?raw"
 	import clockCounterClockwiseIcon from "@phosphor-icons/core/regular/clock-counter-clockwise.svg?raw"
 	import diamondIcon from "@phosphor-icons/core/regular/diamond.svg?raw"
 	import fingerprintIcon from "@phosphor-icons/core/regular/fingerprint.svg?raw"
@@ -14,6 +13,7 @@
 	import mapPinIcon from "@phosphor-icons/core/regular/map-pin.svg?raw"
 	import packageIcon from "@phosphor-icons/core/regular/package.svg?raw"
 	import sealCheckIcon from "@phosphor-icons/core/regular/seal-check.svg?raw"
+	import shoppingCartIcon from "@phosphor-icons/core/regular/shopping-cart.svg?raw"
 	import shapesIcon from "@phosphor-icons/core/regular/shapes.svg?raw"
 	import stackIcon from "@phosphor-icons/core/regular/stack.svg?raw"
 	import storefrontIcon from "@phosphor-icons/core/regular/storefront.svg?raw"
@@ -48,6 +48,7 @@
 		category,
 		inventory,
 		username,
+		accountUsername,
 		isOwnInventory,
 		isWorn,
 		onSearchPlace,
@@ -57,13 +58,15 @@
 		category: InventoryCategoryOption
 		inventory: InventoryState
 		username: string
+		// accountUsername names the account that buys and favorites items.
+		accountUsername: string
 		isOwnInventory: boolean
 		isWorn: boolean
 		onSearchPlace: (placeId: number) => void
 		onClose: () => void
 	} = $props()
 
-	let isConfirmingDeletion = $state(false),
+	let confirmation = $state<"deletion" | "purchase" | null>(null),
 		card = $state<HTMLDivElement | undefined>(undefined)
 
 	const exactNumbers = new Intl.NumberFormat("en-US"),
@@ -110,7 +113,23 @@
 				!market?.isLimited &&
 				item.creatorName !== "Roblox",
 		),
-		isBusy = $derived(inventory.isSavingFavorite || inventory.isDeletingItem),
+		isBusy = $derived(
+			inventory.isSavingFavorite ||
+				inventory.isDeletingItem ||
+				inventory.isBuyingItem,
+		),
+		// Roblox sells new copies of catalog items and game passes. The button
+		// stays disabled while the ownership check runs, and leaves once the
+		// account owns the item.
+		canBuy = $derived(
+			!isOwnInventory &&
+				isOwnedByAccount !== true &&
+				!!market?.isForSale &&
+				(isCatalogItem ||
+					category.id === InventoryCategory.InventoryGamePasses) &&
+				market.saleLocation !== InventorySaleLocation.SaleInExperiences,
+		),
+		isPurchasePending = $derived(inventory.pendingPurchaseKeys.has(detailsKey)),
 		priceLabel = $derived(
 			!market
 				? ""
@@ -137,18 +156,33 @@
 	// The dialog keeps its card while it switches between the details and the
 	// deletion confirmation, so focus moves to the control that replaced the
 	// one the user pressed.
-	async function showDeletionConfirmation(isShown: boolean): Promise<void> {
+	async function showConfirmation(
+		shownConfirmation: "deletion" | "purchase" | null,
+	): Promise<void> {
+		const previousConfirmation = confirmation
 		inventory.clearItemActionError()
-		isConfirmingDeletion = isShown
+		confirmation = shownConfirmation
 		await tick()
-		card?.querySelector<HTMLButtonElement>(
-			isShown ? "[data-cancel-deletion]" : "[data-begin-deletion]",
-		)?.focus()
+		// A purchase removes its button, so focus falls back to the close button.
+		const focusTarget =
+			card?.querySelector<HTMLButtonElement>(
+				shownConfirmation
+					? "[data-cancel-confirmation]"
+					: `[data-begin-${previousConfirmation}]`,
+			) ?? card?.querySelector<HTMLButtonElement>("[data-close-item-details]")
+		focusTarget?.focus()
+	}
+
+	async function buy(): Promise<void> {
+		if (!market) return
+		if (await inventory.buyItem(item, market.priceInRobux)) {
+			await showConfirmation(null)
+		}
 	}
 
 	function close(): void {
-		if (inventory.isDeletingItem) return
-		if (isConfirmingDeletion) void showDeletionConfirmation(false)
+		if (inventory.isDeletingItem || inventory.isBuyingItem) return
+		if (confirmation) void showConfirmation(null)
 		else onClose()
 	}
 </script>
@@ -206,27 +240,42 @@
 {/snippet}
 
 <Dialog
-	class={isConfirmingDeletion ? "max-w-md text-left" : "max-w-2xl text-left"}
-	role={isConfirmingDeletion ? "alertdialog" : "dialog"}
-	aria-labelledby={isConfirmingDeletion
-		? "inventory-delete-title"
+	class={confirmation ? "max-w-md text-left" : "max-w-2xl text-left"}
+	role={confirmation ? "alertdialog" : "dialog"}
+	aria-labelledby={confirmation
+		? "inventory-confirmation-title"
 		: "inventory-item-title"}
-	aria-describedby={isConfirmingDeletion ? "inventory-delete-description" : undefined}
+	aria-describedby={confirmation ? "inventory-confirmation-description" : undefined}
 	bind:card
 	onBackdropClick={close}>
-	{#if isConfirmingDeletion}
+	{#if confirmation}
+		{@const isWorking = inventory.isDeletingItem || inventory.isBuyingItem}
+		{@const price = market?.priceInRobux ?? 0}
 		<div class="dialog-heading">
 			<div>
-				<h2 id="inventory-delete-title">Delete item?</h2>
-				<p id="inventory-delete-description">
-					{name} will be removed from @{username}'s inventory. Robux spent on
-					it is not refunded, and this can't be undone.
-				</p>
+				{#if confirmation === "deletion"}
+					<h2 id="inventory-confirmation-title">Delete item?</h2>
+					<p id="inventory-confirmation-description">
+						{name} will be removed from @{username}'s inventory. Robux spent
+						on it is not refunded, and this can't be undone.
+					</p>
+				{:else if price === 0}
+					<h2 id="inventory-confirmation-title">Get item?</h2>
+					<p id="inventory-confirmation-description">
+						@{accountUsername} gets {name} for free.
+					</p>
+				{:else}
+					<h2 id="inventory-confirmation-title">Buy item?</h2>
+					<p id="inventory-confirmation-description">
+						@{accountUsername} pays {formatRobux(price, false)} for {name}.
+						Roblox doesn't refund Robux spent on items.
+					</p>
+				{/if}
 			</div>
 			<button
 				type="button"
-				aria-label="Close delete confirmation"
-				disabled={inventory.isDeletingItem}
+				aria-label="Close confirmation"
+				disabled={isWorking}
 				onclick={close}>
 				<Icon svg={xIcon} size={14} aria-hidden="true" />
 			</button>
@@ -238,16 +287,30 @@
 			<button
 				class="button"
 				type="button"
-				data-cancel-deletion
-				disabled={inventory.isDeletingItem}
+				data-cancel-confirmation
+				disabled={isWorking}
 				onclick={close}>Cancel</button>
-			<button
-				class="button-danger"
-				type="button"
-				aria-busy={inventory.isDeletingItem}
-				disabled={inventory.isDeletingItem}
-				onclick={() => void inventory.deleteItem(item)}
-				>{inventory.isDeletingItem ? "Deleting…" : "Delete item"}</button>
+			{#if confirmation === "deletion"}
+				<button
+					class="button-danger"
+					type="button"
+					aria-busy={inventory.isDeletingItem}
+					disabled={isWorking}
+					onclick={() => void inventory.deleteItem(item)}
+					>{inventory.isDeletingItem ? "Deleting…" : "Delete item"}</button>
+			{:else}
+				<button
+					class="button-primary"
+					type="button"
+					aria-busy={inventory.isBuyingItem}
+					disabled={isWorking}
+					onclick={() => void buy()}
+					>{inventory.isBuyingItem
+						? "Buying…"
+						: price === 0
+							? "Get item"
+							: `Buy for ${formatRobux(price, false)}`}</button>
+			{/if}
 		</div>
 	{:else}
 		<div class="flex flex-col gap-4">
@@ -274,6 +337,7 @@
 						<button
 							class="button-close"
 							type="button"
+							data-close-item-details
 							aria-label="Close item details"
 							onclick={close}>
 							<Icon svg={xIcon} size={14} aria-hidden="true" />
@@ -337,14 +401,6 @@
 									aria-hidden="true" />
 								<span>You own this</span>
 							</li>
-						{:else if isOwnedByAccount === false}
-							<li class="tag-pill">
-								<Icon
-									svg={circleDashedIcon}
-									size={12}
-									aria-hidden="true" />
-								<span>You don't own this</span>
-							</li>
 						{/if}
 						{#if isWorn}
 							<li class="tag-pill-success">
@@ -358,16 +414,75 @@
 								<span>Limited</span>
 							</li>
 						{/if}
-						{#if isFavorite}
-							<li class="tag-pill-favorite">
-								<Icon
-									svg={heartFillIcon}
-									size={12}
-									aria-hidden="true" />
-								<span>Favorite</span>
-							</li>
-						{/if}
 					</ul>
+
+					{#if canBuy || canFavorite || (badge && badge.awardingPlaceId > 0)}
+						<div class="mt-2 flex flex-wrap items-center gap-2">
+							{#if canBuy && market}
+								<button
+									class="button-primary"
+									type="button"
+									data-begin-purchase
+									disabled={isBusy || isOwnedByAccount === undefined}
+									onclick={() => void showConfirmation("purchase")}>
+									<Icon
+										svg={shoppingCartIcon}
+										size={16}
+										aria-hidden="true" />
+									{market.priceInRobux === 0
+										? "Get for free"
+										: `Buy for ${formatRobux(market.priceInRobux, false)}`}
+								</button>
+							{/if}
+							{#if canFavorite}
+								<button
+									class="button"
+									type="button"
+									aria-pressed={isFavorite ?? false}
+									aria-busy={isCheckingFavorite ||
+										inventory.isSavingFavorite}
+									data-tooltip={isFavorite
+										? "Remove from favorites"
+										: "Add to favorites"}
+									disabled={isBusy || isFavorite === undefined}
+									onclick={() =>
+										void inventory.setFavorite(item, !isFavorite)}>
+									{#if isFavorite}
+										<Icon
+											svg={heartFillIcon}
+											class="animate-pop text-accent-strong"
+											size={16}
+											aria-hidden="true" />
+										Favorited
+									{:else}
+										<Icon
+											svg={heartIcon}
+											size={16}
+											aria-hidden="true" />
+										Favorite
+									{/if}
+								</button>
+							{/if}
+							{#if badge && badge.awardingPlaceId > 0}
+								<button
+									class="button"
+									type="button"
+									onclick={() =>
+										onSearchPlace(badge.awardingPlaceId)}>
+									<Icon
+										svg={magnifyingGlassIcon}
+										size={16}
+										aria-hidden="true" />
+									Find game in Games
+								</button>
+							{/if}
+						</div>
+					{/if}
+					{#if isPurchasePending}
+						<p class="text-xs text-fg-muted" role="status">
+							Bought. It can take a minute to show up in the inventory.
+						</p>
+					{/if}
 				</div>
 			</div>
 
@@ -539,52 +654,17 @@
 			<p class="mt-3 notice-error" role="alert">{inventory.itemActionError}</p>
 		{/if}
 
-		{#if canDelete || canFavorite || (badge && badge.awardingPlaceId > 0)}
+		{#if canDelete}
 			<div class="dialog-actions">
-				{#if canDelete}
-					<button
-						class="mr-auto button"
-						type="button"
-						data-begin-deletion
-						disabled={isBusy}
-						onclick={() => void showDeletionConfirmation(true)}>
-						<Icon svg={trashIcon} size={16} aria-hidden="true" />
-						Delete…
-					</button>
-				{/if}
-				{#if canFavorite}
-					<button
-						class="button"
-						type="button"
-						aria-pressed={isFavorite ?? false}
-						aria-busy={isCheckingFavorite || inventory.isSavingFavorite}
-						data-tooltip={isFavorite
-							? "Remove from favorites"
-							: "Add to favorites"}
-						disabled={isBusy || isFavorite === undefined}
-						onclick={() => void inventory.setFavorite(item, !isFavorite)}>
-						{#if isFavorite}
-							<Icon
-								svg={heartFillIcon}
-								class="animate-pop text-accent-strong"
-								size={16}
-								aria-hidden="true" />
-							Favorited
-						{:else}
-							<Icon svg={heartIcon} size={16} aria-hidden="true" />
-							Favorite
-						{/if}
-					</button>
-				{/if}
-				{#if badge && badge.awardingPlaceId > 0}
-					<button
-						class="button"
-						type="button"
-						onclick={() => onSearchPlace(badge.awardingPlaceId)}>
-						<Icon svg={magnifyingGlassIcon} size={16} aria-hidden="true" />
-						Find game in Games
-					</button>
-				{/if}
+				<button
+					class="mr-auto button"
+					type="button"
+					data-begin-deletion
+					disabled={isBusy}
+					onclick={() => void showConfirmation("deletion")}>
+					<Icon svg={trashIcon} size={16} aria-hidden="true" />
+					Delete…
+				</button>
 			</div>
 		{/if}
 	{/if}

@@ -385,6 +385,7 @@
 		{category}
 		{inventory}
 		{username}
+		accountUsername={accounts.selectedAccount.username}
 		{isOwnInventory}
 		isWorn={wornAssetIds.has(detailedItem.itemId)}
 		onSearchPlace={(placeId) => {
