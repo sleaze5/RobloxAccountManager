@@ -116,6 +116,25 @@ func (service *Service) SetInventoryItemFavorite(ctx context.Context, accountID 
 	})
 }
 
+// BuyInventoryItem buys the item for the account at the price that the user
+// confirmed, and reports whether Roblox still delivers it.
+func (service *Service) BuyInventoryItem(ctx context.Context, accountID int64, category robloxservices.InventoryCategory, itemID, expectedPriceInRobux int64) (bool, error) {
+	if expectedPriceInRobux < 0 {
+		return false, accountEditError("inventory-item-purchase", "The price of this item is invalid.")
+	}
+	account, err := service.accountRepository.GetView(ctx, accountID)
+	if err != nil {
+		return false, mapRepositoryError(err)
+	}
+	var isPending bool
+	err = service.editAccount(ctx, accountID, "inventory-item-purchase", "", func(ctx context.Context, version int64) error {
+		var purchaseError error
+		isPending, purchaseError = service.users.BuyInventoryItem(ctx, accountID, version, account.RobloxUserID, category, itemID, expectedPriceInRobux)
+		return purchaseError
+	})
+	return isPending, err
+}
+
 func (service *Service) DeleteInventoryAsset(ctx context.Context, accountID, assetID int64) error {
 	return service.editAccount(ctx, accountID, "inventory-asset-delete", "Roblox does not allow deleting this item.", func(ctx context.Context, version int64) error {
 		return service.users.DeleteInventoryAsset(ctx, accountID, version, assetID)

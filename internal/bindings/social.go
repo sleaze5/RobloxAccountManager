@@ -177,6 +177,13 @@ func (service *Service) SetInventoryItemFavorite(ctx context.Context, accountID 
 	return service.core.SetInventoryItemFavorite(ctx, accountID, itemType, itemID, isFavorite)
 }
 
+func (service *Service) BuyInventoryItem(ctx context.Context, accountID int64, category robloxservices.InventoryCategory, itemID, expectedPriceInRobux int64) (bool, error) {
+	if err := socialTarget(accountID, itemID, "inventory-item-purchase"); err != nil {
+		return false, err
+	}
+	return service.core.BuyInventoryItem(ctx, accountID, category, itemID, expectedPriceInRobux)
+}
+
 func (service *Service) DeleteInventoryAsset(ctx context.Context, accountID, assetID int64) error {
 	if err := socialTarget(accountID, assetID, "inventory-asset-delete"); err != nil {
 		return err
