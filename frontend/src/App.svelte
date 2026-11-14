@@ -108,7 +108,11 @@
 		state: AccountProfileState
 		description: string
 	} | null>(null)
-	let pendingBrowserAccountId = $state<number | null | undefined>(undefined),
+	// The browser to open once the browser runtime is ready: a page in the
+	// browser of an account, or the import browser when accountId is null.
+	let pendingBrowserOpening = $state<
+			{ accountId: number | null; pageUrl: string } | undefined
+		>(undefined),
 		lockEffects = $state<ShutdownEffects>({
 			accountCandidates: 0,
 			accountChecks: false,
@@ -336,28 +340,31 @@
 		descriptionEditor = null
 	}
 
-	async function openManagedBrowser(accountId: number | null): Promise<void> {
+	async function openManagedBrowser(
+		accountId: number | null,
+		pageUrl = "https://www.roblox.com/home",
+	): Promise<void> {
 		workspace.closeAccountMenus()
 		await browserStore.refresh()
 		if (!browserStore.runtimeReady) {
-			pendingBrowserAccountId = accountId
+			pendingBrowserOpening = { accountId, pageUrl }
 			activeDialog = "browser-runtime"
 			return
 		}
 		if (accountId === null) activeDialog = "browser-import"
-		else await browserStore.openAccount(accountId)
+		else await browserStore.openAccount(accountId, pageUrl)
 	}
 
 	function browserRuntimeReady(): void {
-		const accountId = pendingBrowserAccountId
-		pendingBrowserAccountId = undefined
+		const opening = pendingBrowserOpening
+		pendingBrowserOpening = undefined
 		activeDialog = null
-		if (accountId !== undefined) void openManagedBrowser(accountId)
+		if (opening) void openManagedBrowser(opening.accountId, opening.pageUrl)
 	}
 
 	function dismissBrowserRuntime(): void {
 		if (!browserStore.runtimeDownloadActive) {
-			pendingBrowserAccountId = undefined
+			pendingBrowserOpening = undefined
 		}
 		activeDialog = null
 	}
@@ -373,7 +380,7 @@
 	}
 
 	$effect(() => {
-		if (browserStore.runtimeReady && pendingBrowserAccountId !== undefined) {
+		if (browserStore.runtimeReady && pendingBrowserOpening) {
 			browserRuntimeReady()
 		}
 	})
@@ -382,12 +389,12 @@
 		const runtime = browserStore.snapshot.runtime
 		if (
 			activeDialog !== "browser-runtime" &&
-			pendingBrowserAccountId !== undefined &&
+			pendingBrowserOpening &&
 			!browserStore.runtimeDownloadActive &&
 			runtime.status === RuntimeStatus.RuntimeMissing &&
 			!runtime.error
 		) {
-			pendingBrowserAccountId = undefined
+			pendingBrowserOpening = undefined
 		}
 	})
 
@@ -418,7 +425,7 @@
 		if (!store.vault.unlocked && activeDialog !== null) {
 			activeDialog = null
 			descriptionEditor = null
-			pendingBrowserAccountId = undefined
+			pendingBrowserOpening = undefined
 		}
 	})
 
@@ -629,7 +636,9 @@
 					void searchGames(`universe:${universeId}`)}
 				onRelationshipAction={openRelationshipAction}
 				onEditNickname={openNickname}
-				onRemoveSelected={openRemoveConnections} />
+				onRemoveSelected={openRemoveConnections}
+				onOpenInBrowser={(accountId, pageUrl) =>
+					void openManagedBrowser(accountId, pageUrl)} />
 		{:else if activePage === "games"}
 			<GamesPage
 				store={games}
@@ -638,7 +647,9 @@
 				{workspace}
 				onFillLaunch={(placeId, jobId) =>
 					void fillGameLaunchOptions(placeId, jobId)}
-				onFillLaunchLink={(link) => void fillGameLaunchLink(link)} />
+				onFillLaunchLink={(link) => void fillGameLaunchLink(link)}
+				onOpenInBrowser={(accountId, pageUrl) =>
+					void openManagedBrowser(accountId, pageUrl)} />
 		{:else if activePage === "logs-explorer"}
 			<LogsExplorerPage
 				store={logsExplorer}

@@ -1,6 +1,6 @@
 import type { AccountStore } from "./account-store.svelte"
 
-interface CancellableRequest<T> extends Promise<T> {
+export interface CancellableRequest<T> extends Promise<T> {
 	cancel(): unknown
 }
 

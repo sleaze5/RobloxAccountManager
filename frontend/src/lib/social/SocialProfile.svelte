@@ -50,6 +50,7 @@
 		onSearchUniverse,
 		onEditNickname,
 		onRelationshipAction,
+		onOpenInventory,
 	}: {
 		store: SocialStore
 		accounts: AccountStore
@@ -59,6 +60,7 @@
 		onSearchUniverse: (universeId: number) => void
 		onEditNickname: (nickname: string) => void
 		onRelationshipAction: (person: SocialUser, action: RelationshipActionId) => void
+		onOpenInventory: () => void
 	} = $props()
 
 	const origins: Record<string, string> = {
@@ -114,6 +116,20 @@
 		canNickname = $derived(
 			profileRelationship?.relationship.friend ===
 				FriendStatus.FriendStatusFriends,
+		),
+		// Roblox always shows an account its own inventory.
+		isSelf = $derived(person.userId === store.selfUserId),
+		inventoryLabel = $derived(
+			isSelf || profile?.inventoryVisible
+				? "Inventory"
+				: profile?.inventoryVisible === false
+					? "Inventory is private"
+					: !sections ||
+						  sections.isSectionPending(
+								SocialProfileSection.SocialSectionInventory,
+						  )
+						? "Checking inventory access…"
+						: "Inventory is unavailable",
 		)
 </script>
 
@@ -212,6 +228,16 @@
 				disabled={store.loadingProfile}
 				onclick={() => void store.loadProfile(person.userId, true)}>
 				<RefreshIcon isRefreshing={store.loadingProfile} />
+			</button>
+			<button
+				class="button-icon"
+				type="button"
+				aria-label={inventoryLabel}
+				data-tooltip={inventoryLabel}
+				data-inventory-button
+				disabled={!isSelf && !profile?.inventoryVisible}
+				onclick={onOpenInventory}>
+				<Icon svg={backpackIcon} size={16} aria-hidden="true" />
 			</button>
 			<button
 				class="button-icon"

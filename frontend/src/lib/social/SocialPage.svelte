@@ -36,6 +36,7 @@
 	import SocialAvatar from "./SocialAvatar.svelte"
 	import SocialMenu from "./SocialMenu.svelte"
 	import SocialProfile from "./SocialProfile.svelte"
+	import InventoryPage from "../inventory/InventoryPage.svelte"
 	import {
 		bulkRemovalCopy,
 		isBulkRemovalList,
@@ -54,6 +55,7 @@
 		onRelationshipAction,
 		onEditNickname,
 		onRemoveSelected,
+		onOpenInBrowser,
 	}: {
 		store: SocialStore
 		accounts: AccountStore
@@ -63,6 +65,7 @@
 		onRelationshipAction: (person: SocialUser, action: RelationshipActionId) => void
 		onEditNickname: (person: SocialUser, nickname: string) => void
 		onRemoveSelected: () => void
+		onOpenInBrowser: (accountId: number, pageUrl: string) => void
 	} = $props()
 
 	const minimumSearchLength = 3,
@@ -88,6 +91,7 @@
 		}
 
 	let searchInput = $state<HTMLInputElement | undefined>(undefined),
+		detailPane = $state<HTMLDivElement | undefined>(undefined),
 		searchError = $state("")
 	const account = $derived(accounts.selectedAccount),
 		subject = $derived(store.subject),
@@ -175,6 +179,15 @@
 		}
 		searchError = ""
 		store.searchPlayers(filterText)
+	}
+
+	async function closeInventory(): Promise<void> {
+		store.inventoryOpen = false
+		await tick()
+		detailPane?.scrollTo({ top: 0 })
+		detailPane
+			?.querySelector<HTMLButtonElement>("[data-inventory-button]")
+			?.focus({ preventScroll: true })
 	}
 
 	function subtitle(person: SocialUser): string {
@@ -595,8 +608,26 @@
 				{/if}
 			</div>
 		</WorkbenchSidebar>
-		<div class="@container min-w-0 flex-1 overflow-x-hidden overflow-y-auto">
-			{#if selected}
+		<div
+			class={[
+				"@container min-w-0 flex-1",
+				selected && store.inventoryOpen
+					? "overflow-hidden"
+					: "overflow-x-hidden overflow-y-auto",
+			]}
+			bind:this={detailPane}>
+			{#if selected && store.inventoryOpen}
+				{#key `${account.id}:${selected.userId}`}
+					<InventoryPage
+						{accounts}
+						accountId={account.id}
+						userId={selected.userId}
+						username={selected.username || String(selected.userId)}
+						bind:sidebarWidth={store.inventorySidebarWidth}
+						{onSearchPlace}
+						onBack={() => void closeInventory()} />
+				{/key}
+			{:else if selected}
 				{#key selected.userId}
 					<div class="animate-enter">
 						<SocialProfile
@@ -608,7 +639,8 @@
 							{onSearchUniverse}
 							onEditNickname={(nickname) =>
 								onEditNickname(selected, nickname)}
-							{onRelationshipAction} />
+							{onRelationshipAction}
+							onOpenInventory={() => (store.inventoryOpen = true)} />
 					</div>
 				{/key}
 			{:else}
@@ -720,5 +752,6 @@
 		menu={store.menu}
 		{onFillLaunch}
 		{onSearchPlace}
-		{onRelationshipAction} />
+		{onRelationshipAction}
+		onOpenInBrowser={(pageUrl) => onOpenInBrowser(store.accountId, pageUrl)} />
 {/if}

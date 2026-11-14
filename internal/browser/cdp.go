@@ -244,6 +244,13 @@ func (client *CDPClient) EnableNetwork(ctx context.Context, sessionID string) er
 func (client *CDPClient) Activate(ctx context.Context, targetID string) error {
 	return client.Call(ctx, "Target.activateTarget", map[string]string{"targetId": targetID}, "", nil)
 }
+func (client *CDPClient) CreateTarget(ctx context.Context, url string) (string, error) {
+	var result struct {
+		TargetID string `json:"targetId"`
+	}
+	err := client.Call(ctx, "Target.createTarget", map[string]string{"url": url}, "", &result)
+	return result.TargetID, err
+}
 func (client *CDPClient) Navigate(ctx context.Context, sessionID, url string) error {
 	return client.Call(ctx, "Page.navigate", map[string]string{"url": url}, sessionID, nil)
 }

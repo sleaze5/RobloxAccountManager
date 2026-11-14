@@ -77,7 +77,10 @@ export {
 	TagKind,
 } from "../../../bindings/github.com/sleaze5/RobloxAccountManager/internal/accounts/models.js"
 export {
+	CatalogItemType,
 	FriendStatus,
+	InventoryCategory,
+	InventorySaleLocation,
 	PresenceType,
 	TextModeration,
 	TrustedStatus,
@@ -97,6 +100,9 @@ export type {
 } from "../../../bindings/github.com/sleaze5/RobloxAccountManager/internal/storage/vault/models.js"
 export type {
 	AvatarHeadshotView,
+	InventoryItem,
+	InventoryItemDetails,
+	InventoryItemMarket,
 	RobloxBadge,
 	TextFilter,
 	UserPresence,

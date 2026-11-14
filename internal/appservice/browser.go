@@ -3,6 +3,8 @@ package appservice
 import (
 	"context"
 	"errors"
+	"net/url"
+	"strings"
 
 	"github.com/sleaze5/RobloxAccountManager/internal/browser"
 	"github.com/sleaze5/RobloxAccountManager/internal/gamelaunch"
@@ -42,11 +44,16 @@ func (service *Service) StartLoginBrowser(ctx context.Context) (browser.SessionS
 	return service.browser.StartLogin(ctx)
 }
 
-func (service *Service) OpenAccountBrowser(ctx context.Context, accountID int64) (browser.SessionState, error) {
+// OpenAccountBrowser shows the Roblox page in the browser of the account.
+func (service *Service) OpenAccountBrowser(ctx context.Context, accountID int64, pageURL string) (browser.SessionState, error) {
 	if !service.vault.Unlocked() {
 		return browser.SessionState{}, errors.New("unlock the vault before opening a browser")
 	}
-	return service.browser.OpenAccount(ctx, accountID)
+	address, err := url.Parse(pageURL)
+	if err != nil || address.Scheme != "https" || address.User != nil || (address.Hostname() != "roblox.com" && !strings.HasSuffix(address.Hostname(), ".roblox.com")) {
+		return browser.SessionState{}, errors.New("the browser opens only Roblox pages")
+	}
+	return service.browser.OpenAccount(ctx, accountID, address.String())
 }
 
 func (service *Service) FocusBrowserSession(sessionID string) error {

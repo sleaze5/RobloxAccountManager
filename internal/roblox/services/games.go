@@ -35,11 +35,7 @@ func NewGames(client *roblox.Client, logger *slog.Logger, cache *caches.Store) *
 
 func (service *Games) Search(ctx context.Context, query games.SearchQuery) (games.SearchPage, error) {
 	if query.SessionID == "" {
-		var id [16]byte
-		rand.Read(id[:])
-		// Mark the ID as a random (version 4) UUID with the RFC 4122 variant.
-		id[6], id[8] = id[6]&0x0f|0x40, id[8]&0x3f|0x80
-		query.SessionID = fmt.Sprintf("%x-%x-%x-%x-%x", id[:4], id[4:6], id[6:8], id[8:10], id[10:])
+		query.SessionID = randomUUID()
 	}
 	parameters := url.Values{"searchQuery": {query.Text}, "sessionId": {query.SessionID}}
 	if query.PageToken != "" {
@@ -540,6 +536,14 @@ func (service *Games) account(ctx context.Context, operation string, accountID i
 		return &roblox.Error{Kind: roblox.KindProtocol, Endpoint: operation, Message: "Roblox returned invalid game data.", Cause: err}
 	}
 	return nil
+}
+
+func randomUUID() string {
+	var id [16]byte
+	rand.Read(id[:])
+	// Mark the ID as a random (version 4) UUID with the RFC 4122 variant.
+	id[6], id[8] = id[6]&0x0f|0x40, id[8]&0x3f|0x80
+	return fmt.Sprintf("%x-%x-%x-%x-%x", id[:4], id[4:6], id[6:8], id[8:10], id[10:])
 }
 
 func gameIDs(ids []int64) string {

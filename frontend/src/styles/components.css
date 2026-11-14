@@ -361,6 +361,22 @@
 	}
 }
 
+@utility tag-pill-success {
+	@apply tag-pill text-fg;
+
+	& > svg {
+		@apply text-success;
+	}
+}
+
+@utility tag-pill-warning {
+	@apply tag-pill text-fg;
+
+	& > svg {
+		@apply text-warning;
+	}
+}
+
 @utility text-block {
 	@apply max-w-2xl rounded-lg border border-line bg-fill px-3 py-2 font-mono text-xs leading-5 wrap-anywhere whitespace-pre-wrap text-fg select-text;
 

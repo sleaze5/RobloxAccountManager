@@ -289,11 +289,11 @@ func (service *Users) RobloxBadges(ctx context.Context, accountID, version, user
 	}
 	badges := make([]RobloxBadge, 0, len(*payload))
 	for _, listedBadge := range *payload {
-		name := badgeText(listedBadge.Name, maxBadgeNameLength)
+		name := boundedText(listedBadge.Name, maxBadgeNameLength)
 		if name == "" {
 			continue
 		}
-		badge := RobloxBadge{Name: name, Description: badgeText(listedBadge.Description, maxBadgeDescriptionLength)}
+		badge := RobloxBadge{Name: name, Description: boundedText(listedBadge.Description, maxBadgeDescriptionLength)}
 		if safeThumbnailURL(listedBadge.ImageURL) {
 			badge.ImageURL = listedBadge.ImageURL
 		}

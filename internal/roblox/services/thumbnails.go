@@ -106,9 +106,16 @@ type ThumbnailTarget struct {
 	TargetID int64
 }
 
-// Images reads one 150x150 image per target. Targets that Roblox cannot render
-// are left out of the map.
-func (service *Thumbnails) Images(ctx context.Context, targets []ThumbnailTarget) (map[ThumbnailTarget]string, error) {
+// The image sizes that the thumbnails batch endpoint renders. Roblox renders
+// LargeThumbnailSize only for some types, such as Asset and BundleThumbnail.
+const (
+	SmallThumbnailSize = "150x150"
+	LargeThumbnailSize = "420x420"
+)
+
+// Images reads one image of the size per target. Targets that Roblox cannot
+// render are left out of the map.
+func (service *Thumbnails) Images(ctx context.Context, targets []ThumbnailTarget, size string) (map[ThumbnailTarget]string, error) {
 	if len(targets) > maxHeadshotIDs {
 		return nil, &roblox.Error{Kind: roblox.KindProtocol, Endpoint: "thumbnails-batch", Message: "Too many images were requested."}
 	}
@@ -128,7 +135,7 @@ func (service *Thumbnails) Images(ctx context.Context, targets []ThumbnailTarget
 			continue
 		}
 		targetByRequestID[requestID] = target
-		requests = append(requests, batchRequest{RequestID: requestID, TargetID: target.TargetID, Type: target.Type, Size: "150x150", Format: "Png"})
+		requests = append(requests, batchRequest{RequestID: requestID, TargetID: target.TargetID, Type: target.Type, Size: size, Format: "Png"})
 	}
 	endpoint := &url.URL{Scheme: "https", Host: "thumbnails.roblox.com", Path: "/v1/batch"}
 	images := make(map[ThumbnailTarget]string, len(requests))
