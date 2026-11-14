@@ -10,6 +10,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/sleaze5/RobloxAccountManager/internal/accounts"
 	"github.com/sleaze5/RobloxAccountManager/internal/roblox"
 )
 
@@ -143,6 +144,18 @@ func (service *Users) VoiceChat(ctx context.Context, accountID, version int64) (
 		voice.SuspendedUntil = time.Unix(payload.BannedUntil.Seconds, 0)
 	}
 	return voice, nil
+}
+
+// CachedVoiceSuspension returns the last voice chat suspension read for a
+// user, or nil.
+func (service *Users) CachedVoiceSuspension(ctx context.Context, userID int64) *accounts.VoiceSuspension {
+	return service.cache.VoiceSuspension(ctx, userID)
+}
+
+// SaveVoiceSuspension caches the voice chat suspension of a user, or that the
+// user has none, so that the account list can show it.
+func (service *Users) SaveVoiceSuspension(ctx context.Context, userID int64, suspension *accounts.VoiceSuspension) {
+	service.cache.SaveVoiceSuspension(ctx, userID, suspension)
 }
 
 type UserAbout struct {

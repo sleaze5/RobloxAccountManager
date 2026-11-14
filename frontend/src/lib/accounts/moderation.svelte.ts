@@ -96,22 +96,9 @@ export function moderationStatus(
 		: { label: "Ban ended", detail: `(${banLength(moderation)})`, tone: "warning" }
 }
 
-// ModerationClock keeps the current time for a ban countdown. It ticks once a
-// second only while the ban is still running.
-export class ModerationClock {
-	nowMs = $state(Date.now())
-
-	track(moderation: Moderation | null): () => void {
-		this.nowMs = Date.now()
-		const endsAtMs =
-			moderation?.kind === ModerationKind.ModerationBanned
-				? (moderation.endsAtMs ?? 0)
-				: 0
-		if (endsAtMs <= this.nowMs) return () => undefined
-		const timer = window.setInterval(() => {
-			this.nowMs = Date.now()
-			if (this.nowMs >= endsAtMs) window.clearInterval(timer)
-		}, 1000)
-		return () => window.clearInterval(timer)
-	}
+// banEndsAtMs is the end of a running ban countdown, or 0 without one.
+export function banEndsAtMs(moderation: Moderation | null): number {
+	return moderation?.kind === ModerationKind.ModerationBanned
+		? (moderation.endsAtMs ?? 0)
+		: 0
 }

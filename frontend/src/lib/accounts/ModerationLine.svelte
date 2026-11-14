@@ -4,18 +4,19 @@
 	import warningIcon from "@phosphor-icons/core/regular/warning.svg?raw"
 	import Icon from "../shared/Icon.svelte"
 	import type { Moderation } from "../backend/bridge"
+	import { CountdownClock } from "../shared/countdown-clock.svelte"
 	import {
-		ModerationClock,
+		banEndsAtMs,
 		moderationStatus,
 		resolvesInBrowser,
 	} from "./moderation.svelte"
 
 	let { moderation }: { moderation: Moderation | null } = $props()
 
-	const clock = new ModerationClock(),
+	const clock = new CountdownClock(),
 		status = $derived(moderationStatus(moderation, clock.nowMs))
 
-	$effect(() => clock.track(moderation))
+	$effect(() => clock.track(banEndsAtMs(moderation)))
 </script>
 
 <small class="flex w-full min-w-0 items-center gap-1 text-2xs text-fg">

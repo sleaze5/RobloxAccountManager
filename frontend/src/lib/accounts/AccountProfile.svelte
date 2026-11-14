@@ -17,11 +17,8 @@
 	import { AccountProfileSection, SessionState, SocialList } from "../backend/bridge"
 	import type { RobloxNotificationUser } from "../backend/bridge"
 	import AccountModerationPanel from "./AccountModerationPanel.svelte"
-	import {
-		canReactivate,
-		hasReactivation,
-		ModerationClock,
-	} from "./moderation.svelte"
+	import { banEndsAtMs, canReactivate, hasReactivation } from "./moderation.svelte"
+	import { CountdownClock } from "../shared/countdown-clock.svelte"
 	import type { SocialListKind } from "../social/social-store.svelte"
 	import ChatsPage from "../chats/ChatsPage.svelte"
 	import RobloxNotificationsPage from "../roblox-notifications/RobloxNotificationsPage.svelte"
@@ -81,7 +78,7 @@
 				!moderated &&
 				workspace.accountPage === "profile",
 		),
-		moderationClock = new ModerationClock(),
+		moderationClock = new CountdownClock(),
 		canBeReactivated = $derived(
 			moderated && hasReactivation(selectedAccount.moderation),
 		),
@@ -133,7 +130,7 @@
 		}
 	})
 
-	$effect(() => moderationClock.track(selectedAccount.moderation))
+	$effect(() => moderationClock.track(banEndsAtMs(selectedAccount.moderation)))
 
 	$effect(() => {
 		const state = profileState

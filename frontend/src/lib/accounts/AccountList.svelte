@@ -15,6 +15,7 @@
 	import ModerationLine from "./ModerationLine.svelte"
 	import { moderationLabel } from "./moderation.svelte"
 	import PresenceLine from "./PresenceLine.svelte"
+	import VoiceSuspensionIcon from "./VoiceSuspensionIcon.svelte"
 
 	interface DropTarget {
 		accountId: number
@@ -199,7 +200,7 @@
 				type="button"
 				aria-pressed={store.selectedAccountIds.includes(account.id)}
 				aria-keyshortcuts="Control+Shift+ArrowUp Control+Shift+ArrowDown"
-				aria-label={`${account.displayName} (@${account.username}), ${moderated ? moderationLabel(account.moderation) : presenceLabel(account.presence)}${account.favorite ? ", favorite" : ""}`}
+				aria-label={`${account.displayName} (@${account.username}), ${moderated ? moderationLabel(account.moderation) : presenceLabel(account.presence)}${account.favorite ? ", favorite" : ""}${account.voiceSuspension ? ", voice chat suspended" : ""}`}
 				onclick={(event) =>
 					selectAccount(account.id, event.ctrlKey || event.metaKey)}
 				onkeydown={(event) => {
@@ -224,7 +225,7 @@
 						{account}
 						className="size-9 text-xs"
 						showPresence={!moderated} />
-					<span class="block min-w-0">
+					<span class="block min-w-0 flex-1">
 						<strong
 							class="mb-0.5 flex min-w-0 items-center gap-1 text-sm font-semibold text-fg">
 							<span class="truncate">{account.displayName}</span>
@@ -233,6 +234,10 @@
 									class="shrink-0 animate-pop text-accent-strong"
 									size={12}
 									aria-hidden="true" />{/if}
+							{#if account.voiceSuspension}<VoiceSuspensionIcon
+									voiceSuspension={account.voiceSuspension}
+									onVerify={() =>
+										store.verifyVoiceSuspension(account.id)} />{/if}
 						</strong>
 						<small
 							class="block truncate text-2xs text-fg-faint group-hover/row:text-fg-muted group-data-selected/row:text-fg-muted"

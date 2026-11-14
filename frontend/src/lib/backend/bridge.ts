@@ -87,6 +87,7 @@ export type {
 	AccountView,
 	Moderation,
 	TagView,
+	VoiceSuspension,
 } from "../../../bindings/github.com/sleaze5/RobloxAccountManager/internal/accounts/models.js"
 export { FileState } from "../../../bindings/github.com/sleaze5/RobloxAccountManager/internal/storage/vault/models.js"
 export type {

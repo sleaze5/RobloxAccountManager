@@ -184,6 +184,7 @@ func (service *Service) ListAccounts(ctx context.Context, query accounts.Account
 		if service.attachModeration(ctx, account) {
 			service.refreshAccountModeration(account.ID, account.RobloxUserID)
 		}
+		service.attachVoiceSuspension(ctx, account)
 	}
 	return page, nil
 }
@@ -250,6 +251,7 @@ func (service *Service) GetAccountPresences(ctx context.Context, accountID *int6
 		return nil, err
 	}
 	presences, err := service.presence.AccountPresences(ctx, targets)
+	service.refreshOnlineVoiceSuspensions(ctx, targets, presences)
 	if err != nil {
 		service.logger.Warn("account presence update failed", "operation", "presence-read", "accounts", len(targets), "error", err)
 	} else if len(presences) != len(targets) {
