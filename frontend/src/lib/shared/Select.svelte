@@ -1,5 +1,6 @@
 <script lang="ts" generics="T extends string | number">
 	import caretDownIcon from "@phosphor-icons/core/regular/caret-down.svg?raw"
+	import caretUpIcon from "@phosphor-icons/core/regular/caret-up.svg?raw"
 	import checkIcon from "@phosphor-icons/core/regular/check.svg?raw"
 	import Icon from "./Icon.svelte"
 	import ProfileImage from "./ProfileImage.svelte"
@@ -12,6 +13,7 @@
 		options,
 		disabled = false,
 		className = "w-36",
+		variant = "field",
 		onChange,
 	}: {
 		label: string
@@ -25,6 +27,7 @@
 		}[]
 		disabled?: boolean
 		className?: string
+		variant?: "field" | "status-strip"
 		onChange: (value: T) => void
 	} = $props()
 	let open = $state(false),
@@ -52,6 +55,7 @@
 				)
 					? 320
 					: 0,
+				variant === "status-strip" ? 256 : 0,
 			),
 			window.innerWidth - 24,
 		)
@@ -110,10 +114,12 @@
 
 <div class={["relative", className]} bind:this={root}>
 	<button
-		class={[
-			"flex w-full items-center justify-between gap-2 rounded-md border border-line bg-transparent px-2 text-xs font-medium text-fg-muted transition-colors duration-100 hover:border-line-strong hover:bg-hover hover:text-fg focus-visible:border-line-focus aria-expanded:border-line-strong aria-expanded:bg-hover aria-expanded:text-fg",
-			selected?.image === undefined ? "h-7" : "h-10 pl-1.5",
-		]}
+		class={variant === "status-strip"
+			? "group flex h-5 max-w-full items-center gap-1.5 rounded-md px-1.5 text-2xs transition-colors duration-100 hover:bg-hover aria-expanded:bg-hover"
+			: [
+					"flex w-full items-center justify-between gap-2 rounded-md border border-line bg-transparent px-2 text-xs font-medium text-fg-muted transition-colors duration-100 hover:border-line-strong hover:bg-hover hover:text-fg focus-visible:border-line-focus aria-expanded:border-line-strong aria-expanded:bg-hover aria-expanded:text-fg",
+					selected?.image === undefined ? "h-7" : "h-10 pl-1.5",
+				]}
 		type="button"
 		bind:this={trigger}
 		aria-label={label}
@@ -131,7 +137,25 @@
 				void show()
 			}
 		}}>
-		{#if selected?.image !== undefined}
+		{#if variant === "status-strip"}
+			{#if selected?.image !== undefined}<span
+					class="relative grid size-4 shrink-0 place-items-center overflow-hidden rounded-sm border border-line-strong bg-raised"
+					aria-hidden="true"><ProfileImage url={selected.image} /></span
+				>{/if}<span
+				class="truncate font-medium text-fg-muted group-hover:text-fg group-aria-expanded:text-fg"
+				>{selectedLabel}</span
+			>{#if selected?.description}<span
+					class="truncate text-fg-faint group-hover:text-fg-muted group-aria-expanded:text-fg-muted"
+					>{selected.description}</span
+				>{/if}<Icon
+				svg={caretUpIcon}
+				class={[
+					"shrink-0 text-fg-faint transition-transform duration-100 group-hover:text-fg-muted group-aria-expanded:text-fg-muted",
+					open && "rotate-180",
+				]}
+				size={12}
+				aria-hidden="true" />
+		{:else if selected?.image !== undefined}
 			<span class="flex min-w-0 items-center gap-2">
 				<span
 					class="relative grid size-7 shrink-0 place-items-center overflow-hidden rounded-md border border-line-strong bg-raised"
@@ -146,11 +170,14 @@
 			</span>
 		{:else}
 			<span class="truncate">{selectedLabel}</span>
-		{/if}<Icon
-			svg={caretDownIcon}
-			class={["shrink-0 transition-transform duration-100", open && "rotate-180"]}
-			size={16}
-			aria-hidden="true" />
+		{/if}{#if variant === "field"}<Icon
+				svg={caretDownIcon}
+				class={[
+					"shrink-0 transition-transform duration-100",
+					open && "rotate-180",
+				]}
+				size={16}
+				aria-hidden="true" />{/if}
 	</button>
 	{#if open}
 		<div

@@ -199,6 +199,14 @@
 		}
 	})
 
+	// The other pages work with one account, so a multiple selection ends when
+	// the Accounts page closes.
+	$effect(() => {
+		if (activePage !== "accounts") {
+			untrack(() => store.reduceSelectionToTopAccount())
+		}
+	})
+
 	$effect(() => {
 		const presence = appSettings.presence.accounts,
 			intervalMs = presence.intervalSeconds * 1000
@@ -566,7 +574,7 @@
 			if (hasOpenAccountMenu() || event.defaultPrevented) {
 				workspace.closeAccountMenus()
 			} else if (activePage === "accounts" && store.multipleSelected) {
-				store.clearSelection()
+				store.reduceSelectionToTopAccount()
 			}
 		} else {
 			closeDialog()
@@ -634,6 +642,7 @@
 		{:else if activePage === "logs-explorer"}
 			<LogsExplorerPage
 				store={logsExplorer}
+				accounts={store}
 				onFillLaunch={(visit) => void fillLaunchOptions(visit)}
 				onSearchPlace={(placeId) => void searchGames(`id:${placeId}`)} />
 		{:else}

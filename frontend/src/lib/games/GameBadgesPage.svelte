@@ -11,7 +11,6 @@
 	import Icon from "../shared/Icon.svelte"
 	import ProfileImage from "../shared/ProfileImage.svelte"
 	import RefreshIcon from "../shared/RefreshIcon.svelte"
-	import Select from "../shared/Select.svelte"
 	import Skeleton from "../shared/Skeleton.svelte"
 	import SkeletonList from "../shared/SkeletonList.svelte"
 	import SkeletonMediaRow from "../shared/SkeletonMediaRow.svelte"
@@ -60,14 +59,6 @@
 				: badges.filter(
 						(badge) => awards.has(badge.badgeId) === (filter === "earned"),
 					),
-		),
-		accountOptions = $derived(
-			accounts.accounts.map((savedAccount) => ({
-				value: savedAccount.id,
-				label: savedAccount.displayName,
-				description: `@${savedAccount.username}`,
-				image: savedAccount.avatarUrl,
-			})),
 		),
 		filterOptions: { id: BadgeFilter; label: string }[] = [
 			{ id: "all", label: "All" },
@@ -121,16 +112,6 @@
 		class="flex flex-wrap items-end gap-x-3 gap-y-2 border-b border-line-subtle p-3"
 		role="group"
 		aria-label="Badge filters">
-		<div class="flex flex-col gap-1 text-2xs text-fg-muted">
-			<span>Account</span>
-			<Select
-				className="w-56"
-				label="Account used to check earned badges"
-				value={account.id}
-				options={accountOptions}
-				disabled={accountOptions.length === 0 || universeBadges.loadingAwards}
-				onChange={(accountId) => accounts.selectAccount(accountId)} />
-		</div>
 		<div class="flex flex-col gap-1 text-2xs text-fg-muted">
 			<span id={`${filterID}-filter`}>Show</span>
 			<div

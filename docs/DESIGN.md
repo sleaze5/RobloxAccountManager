@@ -60,7 +60,7 @@ Buttons (`@utility` classes):
 Inputs:
 
 - `field`: a text field. `search-field` wraps a search input with a leading icon and a clear button.
-- `lib/shared/Select.svelte`: a dropdown. Use it instead of `<select>`. Pass its width with `className`.
+- `lib/shared/Select.svelte`: a dropdown. Use it instead of `<select>`. Pass its width with `className`. Set `variant="status-strip"` for its compact, borderless form in a status strip.
 - `lib/shared/NumberStepper.svelte`: a numeric input.
 - `checkbox`: a checkbox. `check-option` is a checkbox with a label and an optional description. Render the check mark with `lib/shared/CheckboxMark.svelte`, and set `isIndeterminate` for a partial selection.
 - `switch`: a switch. Its input has `role="switch"`.
@@ -98,7 +98,8 @@ Content:
 Layout:
 
 - `tab`: a page tab, with `aria-current="page"` on the selected tab.
-- The workbench: the sidebar and detail pane layout of Accounts, Games, and Logs Explorer, with `lib/layout/SidebarResizer.svelte` as the resizer and `lib/layout/StatusBar.svelte` as the status strip.
+- The workbench: the sidebar and detail pane layout of Accounts, Games, and Logs Explorer, with `lib/layout/SidebarResizer.svelte` as the resizer and `lib/layout/StatusBar.svelte` as the status strip of Accounts.
+- `lib/layout/AccountSwitcher.svelte`: the account switcher at the left of the status strip of Social, Games, and Logs Explorer.
 - `settings-page`, `settings-header`, `settings-layout`, `settings-sidebar`, `settings-nav` with `nav-item`, and `settings-content`: Settings, account settings, chats, and other sub-pages with a navigation sidebar.
 - `settings-section`, `settings-rows`, `settings-row`, and `settings-row-copy`: groups of settings.
 - `scrollbar-stable`: reserve the scrollbar gutter in a scrolling list.
@@ -133,6 +134,12 @@ Accounts, Games, and Logs Explorer share one page anatomy:
 2. A resizable, collapsible sidebar on `bg-surface` holds a header row (title, count, and icon actions), a search row, and a list.
 3. A detail pane on `bg-canvas` shows the selected item, or an `empty-state` when nothing is selected.
 4. A status strip at the bottom shows context for the current selection.
+
+Social uses the same status strip. Every page works with one selected account:
+
+- Social, Games, and Logs Explorer show the selected account in the account switcher at the left of the status strip, with its 16px avatar, display name, and username. Switch the account there. Do not add another account picker to a page.
+- Accounts selects in its list, so its status strip has no account switcher.
+- An account stays selected whenever the vault has one. The first account in the list is selected when nothing else is. When the Accounts page closes, a multiple selection keeps only the selected account that is highest in the list.
 
 Settings replaces the page tabs with a header that has a back button.
 

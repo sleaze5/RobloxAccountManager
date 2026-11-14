@@ -365,14 +365,24 @@ export class AccountStore {
 		this.selectedAccountIds = accountId > 0 ? [accountId] : []
 	}
 
-	clearSelection(): void {
-		this.selectedAccountIds = []
+	reduceSelectionToTopAccount(): void {
+		if (!this.multipleSelected) return
+		const topAccount = this.accounts.find((account) =>
+			this.selectedAccountIds.includes(account.id),
+		)
+		if (topAccount) this.selectedAccountIds = [topAccount.id]
 	}
 
+	// toggleAccount keeps the last selected account selected, because every page
+	// works with the selected account.
 	toggleAccount(accountId: number): void {
-		this.selectedAccountIds = this.selectedAccountIds.includes(accountId)
-			? this.selectedAccountIds.filter((id) => id !== accountId)
-			: [...this.selectedAccountIds, accountId]
+		if (!this.selectedAccountIds.includes(accountId)) {
+			this.selectedAccountIds = [...this.selectedAccountIds, accountId]
+		} else if (this.multipleSelected) {
+			this.selectedAccountIds = this.selectedAccountIds.filter(
+				(id) => id !== accountId,
+			)
+		}
 	}
 
 	async initialize(): Promise<void> {
@@ -602,8 +612,6 @@ export class AccountStore {
 			}
 			await loadPage()
 			if (version !== this.#accountListVersion || !this.vault.unlocked) return
-			const selectFirst =
-				this.accounts.length === 0 || this.selectedAccountIds.length > 0
 			this.nextCursor = cursor
 			this.accountTotal = total
 			this.accounts = records.map((record) => this.createAccount(record))
@@ -611,7 +619,7 @@ export class AccountStore {
 			this.selectedAccountIds = this.selectedAccountIds.filter((id) =>
 				availableIds.has(id),
 			)
-			if (selectFirst && this.selectedAccountIds.length === 0) {
+			if (this.selectedAccountIds.length === 0) {
 				this.selectAccount(this.accounts[0]?.id ?? 0)
 			}
 
