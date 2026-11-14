@@ -103,9 +103,7 @@
 								class="button-primary"
 								type="button"
 								aria-busy={isWearing}
-								disabled={avatar.isChanged ||
-									avatar.isSaving ||
-									avatar.wearingOutfitId !== 0 ||
+								disabled={!avatar.canWearOutfit ||
 									avatar.isChangingOutfit}
 								onclick={() => void wear()}>
 								<Icon

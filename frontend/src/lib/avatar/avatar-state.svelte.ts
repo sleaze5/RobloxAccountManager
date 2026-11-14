@@ -44,6 +44,10 @@ export class AvatarState {
 	draft = $state.raw<AvatarDraft | null>(null)
 	isSaving = $state(false)
 	saveError = $state("")
+	// Whether Roblox saved the draft but the saved avatar could not be read, so
+	// avatar still shows how it looked before the save. The draft shows what was
+	// saved until a refresh reads the saved avatar.
+	isAvatarOutdated = $state(false)
 	// Whether Roblox still renders the full-body image after a change.
 	isRenderingImage = $state(false)
 	outfits = $state.raw<AvatarOutfit[] | null>(null)
@@ -84,7 +88,34 @@ export class AvatarState {
 	}
 
 	get isChanged(): boolean {
-		return !!this.avatar && !!this.draft && isDraftChanged(this.avatar, this.draft)
+		return (
+			!!this.avatar &&
+			!!this.draft &&
+			!this.isAvatarOutdated &&
+			isDraftChanged(this.avatar, this.draft)
+		)
+	}
+
+	// Whether the draft must not change now: a running request replaces it when
+	// it finishes, or it holds a save that the page could not read back.
+	get isDraftLocked(): boolean {
+		return (
+			this.loading ||
+			this.isSaving ||
+			this.wearingOutfitId !== 0 ||
+			this.isAvatarOutdated
+		)
+	}
+
+	// Whether an outfit can replace the avatar now: the draft has no changes,
+	// and no other request replaces the avatar.
+	get canWearOutfit(): boolean {
+		return (
+			!this.isChanged &&
+			!this.loading &&
+			!this.isSaving &&
+			this.wearingOutfitId === 0
+		)
 	}
 
 	get maxWornCountByTypeName(): Record<string, number | undefined> {
@@ -101,7 +132,8 @@ export class AvatarState {
 		try {
 			const avatar = await this.#scope.track(request)
 			if (request !== this.#loadRequest || !this.#scope.isCurrent) return
-			this.#showAvatar(avatar)
+			if (this.isAvatarOutdated) this.#showChangedAvatar(avatar)
+			else this.#showAvatar(avatar)
 		} catch (error) {
 			if (request !== this.#loadRequest || !this.#scope.isCurrent) return
 			this.error = errorMessage(error, "Could not load the avatar. Try again.")
@@ -131,7 +163,7 @@ export class AvatarState {
 	}
 
 	changeDraft(change: (draft: AvatarDraft) => AvatarDraft): void {
-		if (this.draft && !this.isSaving) this.draft = change(this.draft)
+		if (this.draft && !this.isDraftLocked) this.draft = change(this.draft)
 	}
 
 	wear(item: InventoryItem, category: InventoryCategory): void {
@@ -152,7 +184,7 @@ export class AvatarState {
 	}
 
 	discardChanges(): void {
-		if (this.avatar && !this.isSaving) {
+		if (this.avatar && !this.isDraftLocked) {
 			this.draft = draftOf(this.avatar)
 			this.saveError = ""
 		}
@@ -160,7 +192,7 @@ export class AvatarState {
 
 	async save(): Promise<void> {
 		const draft = this.draft
-		if (!draft || !this.isChanged || this.isSaving) return
+		if (!draft || !this.isChanged || this.isDraftLocked) return
 		this.isSaving = true
 		this.saveError = ""
 		const nameByAssetId = new Map(
@@ -171,7 +203,11 @@ export class AvatarState {
 				accountBackend.SaveAvatar(this.#scope.accountId, avatarChangeOf(draft)),
 			)
 			if (!this.#scope.isCurrent) return
-			this.#showAvatar(saved.avatar)
+			if (!saved.avatar) {
+				this.isAvatarOutdated = true
+				return
+			}
+			this.#showChangedAvatar(saved.avatar)
 			const skippedNames = (saved.skippedAssetIds ?? []).map(
 				(assetId) => nameByAssetId.get(assetId) || `Item ${assetId}`,
 			)
@@ -252,7 +288,7 @@ export class AvatarState {
 	// Roblox put it on. The page allows it only while the draft has no changes,
 	// because the outfit replaces the avatar.
 	async wearOutfit(outfit: AvatarOutfit): Promise<boolean> {
-		if (this.wearingOutfitId || this.isChanged || this.isSaving) return false
+		if (!this.canWearOutfit) return false
 		this.wearingOutfitId = outfit.outfitId
 		this.outfitActionError = ""
 		try {
@@ -260,7 +296,7 @@ export class AvatarState {
 				accountBackend.WearAvatarOutfit(this.#scope.accountId, outfit.outfitId),
 			)
 			if (!this.#scope.isCurrent) return false
-			this.#showAvatar(avatar)
+			this.#showChangedAvatar(avatar)
 			this.#notifications.show({
 				id: "avatar-outfit-wear",
 				tone: "success",
@@ -327,7 +363,15 @@ export class AvatarState {
 			: { ...avatar, imageUrl: previousImageUrl }
 		this.draft = draftOf(avatar)
 		this.saveError = ""
+		this.isAvatarOutdated = false
 		if (!avatar.imageUrl && this.isEditable) void this.#waitForImage()
+	}
+
+	// #showChangedAvatar also shows the new image in the account list. While
+	// Roblox renders the image, #waitForImage updates the list once it is ready.
+	#showChangedAvatar(avatar: Avatar): void {
+		this.#showAvatar(avatar)
+		if (avatar.imageUrl) void this.#refreshAccountImage()
 	}
 
 	// #waitForImage keeps the previous image while Roblox renders the new one,

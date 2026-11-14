@@ -8,6 +8,7 @@
 	import textTIcon from "@phosphor-icons/core/regular/text-t.svg?raw"
 	import userListIcon from "@phosphor-icons/core/regular/user-list.svg?raw"
 	import Icon from "../shared/Icon.svelte"
+	import { unsavedChangesGuard } from "../layout/unsaved-changes-guard"
 	import { PresenceType, SocialList } from "../backend/bridge"
 	import type { SocialUser } from "../backend/bridge"
 	import { floatMenuAtPoint, menuIn, menuKeyboard, menuOut } from "../shared/presence"
@@ -131,8 +132,11 @@
 		type="button"
 		role="menuitem"
 		onclick={() => {
-			store.explore(person, SocialList.SocialFriends)
+			const exploredPerson = person
 			store.closeMenu()
+			unsavedChangesGuard.leave(() =>
+				store.explore(exploredPerson, SocialList.SocialFriends),
+			)
 		}}
 		><Icon svg={userListIcon} size={16} aria-hidden="true" /><span
 			>View friends</span

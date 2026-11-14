@@ -10,6 +10,7 @@
 	import type { NotificationCenter } from "../notifications/notification-center.svelte"
 	import Icon from "../shared/Icon.svelte"
 	import RefreshIcon from "../shared/RefreshIcon.svelte"
+	import { unsavedChangesGuard } from "../layout/unsaved-changes-guard"
 	import AvatarBodyPanel from "./AvatarBodyPanel.svelte"
 	import AvatarConfirmation from "./AvatarConfirmation.svelte"
 	import AvatarEmotesPanel from "./AvatarEmotesPanel.svelte"
@@ -70,8 +71,9 @@
 		// and shows again when the item dialog closes.
 		viewedOutfit = $state<AvatarOutfit | null>(null),
 		isConfirmingDiscard = $state(false),
-		// Whether the page closes once the user confirms discarding changes.
-		isLeavingAfterDiscard = false
+		// The navigation that closes the page once the user confirms discarding
+		// changes, or null when the page stays open.
+		pendingLeave = $state<(() => void) | null>(null)
 
 	const draft = $derived(avatar.draft),
 		canEdit = $derived(avatar.isEditable && !!avatar.rules && !!draft),
@@ -91,20 +93,36 @@
 		void inventory.checkFavorite(item)
 	}
 
+	// confirmLeaving holds a navigation while the draft has changes, and asks
+	// whether to discard them first. It returns whether it held the navigation.
+	function confirmLeaving(leave: () => void): boolean {
+		if (!isChanged) return false
+		pendingLeave = leave
+		isConfirmingDiscard = true
+		return true
+	}
+
 	function requestBack(): void {
-		if (isChanged && !avatar.isSaving) {
-			isLeavingAfterDiscard = true
-			isConfirmingDiscard = true
-		} else if (!avatar.isSaving) {
-			onBack()
-		}
+		if (!confirmLeaving(onBack)) onBack()
 	}
 
 	function confirmDiscard(): void {
+		const leave = pendingLeave
 		avatar.discardChanges()
 		isConfirmingDiscard = false
-		if (isLeavingAfterDiscard) onBack()
+		pendingLeave = null
+		leave?.()
 	}
+
+	function cancelDiscard(): void {
+		isConfirmingDiscard = false
+		pendingLeave = null
+	}
+
+	// A save that finishes while the user leaves leaves nothing to discard.
+	$effect(() => {
+		if (pendingLeave && !isChanged && !avatar.isSaving) untrack(confirmDiscard)
+	})
 
 	async function deleteOutfit(outfit: AvatarOutfit): Promise<void> {
 		if (await avatar.deleteOutfit(outfit)) deletedOutfit = null
@@ -135,9 +153,11 @@
 	}
 
 	onMount(() => {
+		const releaseUnsavedChangesGuard = unsavedChangesGuard.hold(confirmLeaving)
 		void avatar.refresh()
 		void avatar.loadRules()
 		return () => {
+			releaseUnsavedChangesGuard()
 			avatar.dispose()
 			inventory.dispose()
 		}
@@ -168,9 +188,9 @@
 			<button
 				class="button animate-enter"
 				type="button"
-				disabled={avatar.isSaving}
+				disabled={avatar.isDraftLocked}
 				onclick={() => {
-					isLeavingAfterDiscard = false
+					pendingLeave = null
 					isConfirmingDiscard = true
 				}}>Discard…</button>
 		{/if}
@@ -181,7 +201,7 @@
 				aria-busy={avatar.isSaving}
 				aria-keyshortcuts="Control+S"
 				data-tooltip={isChanged ? "Save avatar (Ctrl+S)" : "No changes to save"}
-				disabled={!canEdit || !isChanged || avatar.isSaving}
+				disabled={!canEdit || !isChanged || avatar.isDraftLocked}
 				onclick={() => void avatar.save()}
 				>{avatar.isSaving ? "Saving…" : "Save avatar"}</button>
 		{/if}
@@ -262,6 +282,22 @@
 								type="button"
 								onclick={() => void avatar.loadRules()}
 								>Try again</button>
+						</div>
+					{/if}
+					{#if avatar.isAvatarOutdated}
+						<div
+							class="mx-3 mt-3 flex items-center gap-2 notice-warning"
+							role="status">
+							<span class="min-w-0 flex-1"
+								>The avatar was saved but couldn't be reloaded. Reload
+								it to see what Roblox put on.</span>
+							<button
+								class="button"
+								type="button"
+								aria-busy={avatar.loading}
+								disabled={avatar.loading}
+								onclick={() => void avatar.refresh()}
+								>{avatar.loading ? "Reloading…" : "Reload"}</button>
 						</div>
 					{/if}
 					{#if avatar.saveError}
@@ -411,10 +447,10 @@
 		title="Discard changes?"
 		description="The avatar goes back to how it was last saved. Your unsaved changes are lost."
 		actionLabel="Discard changes"
-		progressLabel="Discarding…"
+		progressLabel="Saving…"
 		tone="warning"
-		isWorking={false}
-		error=""
+		isWorking={avatar.isSaving}
+		error={avatar.saveError}
 		onConfirm={confirmDiscard}
-		onCancel={() => (isConfirmingDiscard = false)} />
+		onCancel={cancelDiscard} />
 {/if}

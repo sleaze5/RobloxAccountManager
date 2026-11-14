@@ -2,6 +2,7 @@
 	import type { AccountStore } from "../accounts/account-store.svelte"
 	import Select from "../shared/Select.svelte"
 	import Skeleton from "../shared/Skeleton.svelte"
+	import { unsavedChangesGuard } from "./unsaved-changes-guard"
 
 	let { store }: { store: AccountStore } = $props()
 
@@ -25,7 +26,11 @@
 			label={`Account: ${account.displayName} (@${account.username})`}
 			value={account.id}
 			options={accountOptions}
-			onChange={(accountId) => store.selectAccount(accountId)} />
+			onChange={(accountId) => {
+				if (accountId !== account.id) {
+					unsavedChangesGuard.leave(() => store.selectAccount(accountId))
+				}
+			}} />
 	{:else if store.loadingAccounts}
 		<Skeleton label="Loading accounts" />
 	{:else}

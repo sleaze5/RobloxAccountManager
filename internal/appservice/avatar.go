@@ -11,12 +11,13 @@ import (
 	robloxservices "github.com/sleaze5/RobloxAccountManager/internal/roblox/services"
 )
 
-// SavedAvatar is the avatar after a save. SkippedAssetIDs lists the requested
-// assets that Roblox did not put on the avatar, such as items that the account
-// does not own.
+// SavedAvatar is the avatar after a save, or a nil Avatar when the save
+// succeeded but the avatar could not be read again. SkippedAssetIDs lists the
+// requested assets that Roblox did not put on the avatar, such as items that
+// the account does not own.
 type SavedAvatar struct {
-	Avatar          robloxservices.Avatar `json:"avatar"`
-	SkippedAssetIDs []int64               `json:"skippedAssetIds"`
+	Avatar          *robloxservices.Avatar `json:"avatar"`
+	SkippedAssetIDs []int64                `json:"skippedAssetIds"`
 }
 
 // GetAvatar reads how the user looks now, as the account sees it, with the
@@ -60,6 +61,9 @@ func (service *Service) GetAvatarOutfitDetails(ctx context.Context, accountID, o
 // addAvatarDetails adds the catalog details and images of the worn items, and
 // the large image of the target, such as the avatar or the outfit.
 func (service *Service) addAvatarDetails(ctx context.Context, accountID, version int64, avatar *robloxservices.Avatar, imageTarget robloxservices.ThumbnailTarget, logger *slog.Logger) {
+	// The catalog details replace the worn items while the images load, so
+	// the image targets are read before either starts.
+	itemImageTargets := avatar.ThumbnailTargets()
 	var group sync.WaitGroup
 	group.Go(func() {
 		if err := service.users.AddAvatarCatalogDetails(ctx, accountID, version, avatar); err != nil {
@@ -69,7 +73,7 @@ func (service *Service) addAvatarDetails(ctx context.Context, accountID, version
 	var itemImages, avatarImages map[robloxservices.ThumbnailTarget]string
 	group.Go(func() {
 		var imageError error
-		if itemImages, imageError = service.thumbnails.Images(ctx, avatar.ThumbnailTargets(), robloxservices.SmallThumbnailSize); imageError != nil {
+		if itemImages, imageError = service.thumbnails.Images(ctx, itemImageTargets, robloxservices.SmallThumbnailSize); imageError != nil {
 			logger.WarnContext(ctx, "avatar item images unavailable", "error", imageError)
 		}
 	})
@@ -100,7 +104,8 @@ func (service *Service) GetAvatarRules(ctx context.Context, accountID int64) (ro
 }
 
 // SaveAvatar replaces the avatar of the account and reads it again, so that
-// the result shows what Roblox kept.
+// the result shows what Roblox kept. A failed read returns no avatar instead
+// of an error, because the save itself succeeded.
 func (service *Service) SaveAvatar(ctx context.Context, accountID int64, change robloxservices.AvatarChange) (SavedAvatar, error) {
 	account, err := service.accountRepository.GetView(ctx, accountID)
 	if err != nil {
@@ -112,15 +117,16 @@ func (service *Service) SaveAvatar(ctx context.Context, accountID int64, change 
 	if err != nil {
 		return SavedAvatar{}, err
 	}
-	avatar, err := service.GetAvatar(ctx, accountID, account.RobloxUserID)
-	if err != nil {
-		return SavedAvatar{}, &roblox.Error{Kind: roblox.KindProtocol, Endpoint: "avatar-save", Message: "The avatar was saved but could not be reloaded. Refresh the avatar.", Cause: err}
-	}
-	saved := SavedAvatar{Avatar: avatar, SkippedAssetIDs: []int64{}}
-	for _, assetID := range change.AssetIDs {
-		isWorn := slices.ContainsFunc(avatar.Assets, func(asset robloxservices.AvatarAsset) bool { return asset.Item.ItemID == assetID })
-		if !isWorn {
-			saved.SkippedAssetIDs = append(saved.SkippedAssetIDs, assetID)
+	saved := SavedAvatar{SkippedAssetIDs: []int64{}}
+	// GetAvatar logs a failed read.
+	avatar, readError := service.GetAvatar(ctx, accountID, account.RobloxUserID)
+	if readError == nil {
+		saved.Avatar = &avatar
+		for _, assetID := range change.AssetIDs {
+			isWorn := slices.ContainsFunc(avatar.Assets, func(asset robloxservices.AvatarAsset) bool { return asset.Item.ItemID == assetID })
+			if !isWorn {
+				saved.SkippedAssetIDs = append(saved.SkippedAssetIDs, assetID)
+			}
 		}
 	}
 	return saved, nil

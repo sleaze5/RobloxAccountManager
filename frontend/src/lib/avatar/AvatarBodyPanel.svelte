@@ -205,6 +205,7 @@
 								<button
 									type="button"
 									aria-pressed={draft.avatarType === avatarType}
+									disabled={avatar.isDraftLocked}
 									onclick={() => setAvatarType(avatarType)}
 									>{avatarType}</button>
 							{/each}
@@ -238,7 +239,7 @@
 								style:--range-fill={fillOf(value, limit)}
 								aria-labelledby={`avatar-scale-${row.scale}`}
 								aria-valuetext={percent.format(value)}
-								disabled={!isR15 || avatar.isSaving}
+								disabled={!isR15 || avatar.isDraftLocked}
 								oninput={(event) =>
 									setScale(
 										row.scale,
@@ -320,7 +321,7 @@
 										data-tooltip={colorLabelOf(
 											paletteColor.hexColor,
 										)}
-										disabled={avatar.isSaving ||
+										disabled={avatar.isDraftLocked ||
 											selectedParts.size === 0}
 										onclick={() => setColor(paletteColor.hexColor)}
 									></button>
@@ -360,7 +361,7 @@
 											: "Mixed"}
 										aria-invalid={isHexTouched && !expandedHexColor}
 										aria-describedby="avatar-hex-error"
-										disabled={avatar.isSaving ||
+										disabled={avatar.isDraftLocked ||
 											selectedParts.size === 0}
 										oninput={(event) =>
 											showHexDigits(
@@ -404,7 +405,7 @@
 								type="submit"
 								aria-label="Apply custom color"
 								data-tooltip="Apply custom color"
-								disabled={avatar.isSaving ||
+								disabled={avatar.isDraftLocked ||
 									!hexText ||
 									selectedParts.size === 0}>
 								<Icon svg={checkIcon} size={16} aria-hidden="true" />

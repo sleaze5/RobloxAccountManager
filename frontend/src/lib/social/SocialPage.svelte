@@ -25,6 +25,7 @@
 	import type { AccountStore } from "../accounts/account-store.svelte"
 	import { presenceDetail, presenceLabel } from "../accounts/account-model"
 	import AccountSwitcher from "../layout/AccountSwitcher.svelte"
+	import { unsavedChangesGuard } from "../layout/unsaved-changes-guard"
 	import WorkbenchSidebar from "../layout/WorkbenchSidebar.svelte"
 	import { appSettings } from "../settings/settings-store.svelte"
 	import OperationError from "../shared/OperationError.svelte"
@@ -182,7 +183,8 @@
 			return
 		}
 		searchError = ""
-		store.searchPlayers(filterText)
+		const text = filterText
+		unsavedChangesGuard.leave(() => store.searchPlayers(text))
 	}
 
 	async function closeSubpage(): Promise<void> {
@@ -324,7 +326,8 @@
 							type="button"
 							aria-label={backLabel}
 							data-tooltip={backLabel}
-							onclick={() => store.back()}
+							onclick={() =>
+								unsavedChangesGuard.leave(() => store.back())}
 							><Icon
 								svg={caretLeftIcon}
 								data-nudge="left"
@@ -334,7 +337,9 @@
 							class="max-w-24 shrink-0 truncate rounded-sm text-fg-faint transition-colors duration-100 hover:text-fg"
 							type="button"
 							aria-label={`Return to @${account.username}`}
-							onclick={() => store.back(0)}>@{account.username}</button>
+							onclick={() =>
+								unsavedChangesGuard.leave(() => store.back(0))}
+							>@{account.username}</button>
 						<Icon
 							svg={caretRightIcon}
 							class="shrink-0 text-fg-faint"
@@ -363,7 +368,11 @@
 					options={viewOptions}
 					disabled={account.id === 0 || accountModerated}
 					className="w-full"
-					onChange={(view) => void changeView(view)} />
+					onChange={(view) => {
+						if (view !== store.list) {
+							unsavedChangesGuard.leave(() => void changeView(view))
+						}
+					}} />
 				{#if store.showsTrustedFilter && store.page && !accountModerated}
 					<div
 						class="segmented animate-enter"
@@ -508,7 +517,13 @@
 								aria-haspopup="menu"
 								data-list-item
 								aria-label={rowLabel(person)}
-								onclick={() => store.select(person)}
+								onclick={() => {
+									if (person.userId !== store.selectedUserId) {
+										unsavedChangesGuard.leave(() =>
+											store.select(person),
+										)
+									}
+								}}
 								oncontextmenu={(event) => store.openMenu(event, person)}
 								onkeydown={(event) => {
 									if (
@@ -603,11 +618,12 @@
 							type="button"
 							in:menuIn
 							out:menuOut
-							onclick={() => {
-								store.clearPlayers()
-								searchError = ""
-								searchInput?.focus()
-							}}>
+							onclick={() =>
+								unsavedChangesGuard.leave(() => {
+									store.clearPlayers()
+									searchError = ""
+									searchInput?.focus()
+								})}>
 							<Icon svg={xIcon} size={14} aria-hidden="true" />
 							<span>Clear search</span>
 						</button>

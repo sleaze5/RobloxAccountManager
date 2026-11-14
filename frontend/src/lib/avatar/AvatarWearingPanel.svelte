@@ -39,7 +39,7 @@
 			<button
 				class="button"
 				type="button"
-				disabled={avatar.isSaving}
+				disabled={avatar.isDraftLocked}
 				onclick={onAddItems}>
 				<Icon svg={plusIcon} size={16} aria-hidden="true" />
 				Add items
@@ -72,7 +72,7 @@
 					type="button"
 					aria-label={`Take off ${asset.item.name || "item"}`}
 					data-tooltip="Take off"
-					disabled={avatar.isSaving}
+					disabled={avatar.isDraftLocked}
 					onclick={() => avatar.takeOff(asset.item.itemId)}>
 					<Icon svg={xIcon} size={14} aria-hidden="true" />
 				</button>

@@ -49,7 +49,7 @@
 							type="button"
 							aria-label={`Clear slot ${slot}`}
 							data-tooltip="Clear slot"
-							disabled={avatar.isSaving}
+							disabled={avatar.isDraftLocked}
 							onclick={() => avatar.clearEmote(slot)}>
 							<Icon svg={xIcon} size={14} aria-hidden="true" />
 						</button>
@@ -59,7 +59,7 @@
 						class="flex aspect-square w-full flex-col items-center justify-center gap-1 rounded-lg border border-dashed border-line-strong text-xs text-fg-muted transition-colors duration-100 hover:border-line-focus hover:bg-hover hover:text-fg"
 						type="button"
 						aria-label={`Add an emote to slot ${slot}`}
-						disabled={avatar.isSaving}
+						disabled={avatar.isDraftLocked}
 						onclick={() => onChooseEmote(slot)}>
 						<Icon svg={plusIcon} size={16} aria-hidden="true" />
 						Add emote
