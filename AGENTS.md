@@ -100,6 +100,7 @@ Check each applicable item before you finish a change. The change does only what
     - Do not suppress lint or type errors.
     - Handle every error. Wrap Go errors with context.
     - Do not add abstractions, options, or parameters for hypothetical future needs. Add a parameter only when two callers pass different values.
+    - Do not choose behavior by comparing a string such as an endpoint name. Pass the difference as a parameter.
     - Search for an existing helper before you write one, and reuse or extend it. Never leave two implementations of the same behavior. Define a type or value that several modules need once, in `frontend/src/lib/shared/` or the Go package that owns it.
     - Name everything as described in [Naming](#naming).
     - Prefer self-documenting code. Write a comment only for a fact the code cannot show, such as an operating system or Roblox behavior, a format layout, or the reason for an ordering. Do not write comments that restate the code.
