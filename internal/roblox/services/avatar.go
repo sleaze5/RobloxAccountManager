@@ -164,7 +164,13 @@ type AvatarOutfit struct {
 
 // ThumbnailTarget names the image of the outfit.
 func (outfit AvatarOutfit) ThumbnailTarget() ThumbnailTarget {
-	return ThumbnailTarget{Type: "Outfit", TargetID: outfit.OutfitID}
+	return AvatarOutfitImageTarget(outfit.OutfitID)
+}
+
+// AvatarOutfitImageTarget names the image of an outfit. Roblox renders it in
+// the small and the large size. Verified on 2026-11-14.
+func AvatarOutfitImageTarget(outfitID int64) ThumbnailTarget {
+	return ThumbnailTarget{Type: "Outfit", TargetID: outfitID}
 }
 
 type AvatarOutfitPage struct {
@@ -386,21 +392,44 @@ func (service *Users) SaveAvatar(ctx context.Context, accountID, version int64, 
 	})
 }
 
+// outfitPayload is an outfit as the v3 outfit details API lists it. Roblox
+// lists the outfits of any user. Verified against the API on 2026-11-14.
+type outfitPayload struct {
+	Scale            *AvatarScales        `json:"scale"`
+	PlayerAvatarType AvatarType           `json:"playerAvatarType"`
+	BodyColors       *listedBodyColors    `json:"bodyColor3s"`
+	Assets           *[]listedAvatarAsset `json:"assets"`
+}
+
+func (service *Users) readOutfit(ctx context.Context, accountID, version int64, endpoint string, outfitID int64) (outfitPayload, error) {
+	var payload outfitPayload
+	address := "https://avatar.roblox.com/v3/outfits/" + strconv.FormatInt(outfitID, 10) + "/details"
+	if err := service.readAvatarDetails(ctx, accountID, version, endpoint, address, &payload); err != nil {
+		return outfitPayload{}, err
+	}
+	if payload.Scale == nil || payload.BodyColors == nil || payload.Assets == nil || !validAvatarType(payload.PlayerAvatarType) {
+		return outfitPayload{}, invalidAvatar(endpoint)
+	}
+	return payload, nil
+}
+
+// AvatarOutfitDetails reads how the outfit looks, as an avatar without emotes.
+func (service *Users) AvatarOutfitDetails(ctx context.Context, accountID, version, outfitID int64) (Avatar, error) {
+	payload, err := service.readOutfit(ctx, accountID, version, "avatar-outfit-details", outfitID)
+	if err != nil {
+		return Avatar{}, err
+	}
+	return avatarOf(avatarPayload{
+		Scales: payload.Scale, PlayerAvatarType: payload.PlayerAvatarType, BodyColors: payload.BodyColors, Assets: payload.Assets,
+	})
+}
+
 // WearAvatarOutfit puts the outfit on the avatar of the account. It keeps the
 // equipped emotes, because outfits have none.
 func (service *Users) WearAvatarOutfit(ctx context.Context, accountID, version, outfitID int64) error {
-	var payload struct {
-		Scale            *AvatarScales        `json:"scale"`
-		PlayerAvatarType AvatarType           `json:"playerAvatarType"`
-		BodyColors       *listedBodyColors    `json:"bodyColor3s"`
-		Assets           *[]listedAvatarAsset `json:"assets"`
-	}
-	address := "https://avatar.roblox.com/v3/outfits/" + strconv.FormatInt(outfitID, 10) + "/details"
-	if err := service.readAvatarDetails(ctx, accountID, version, "avatar-outfit-wear", address, &payload); err != nil {
+	payload, err := service.readOutfit(ctx, accountID, version, "avatar-outfit-wear", outfitID)
+	if err != nil {
 		return err
-	}
-	if payload.Scale == nil || payload.BodyColors == nil || payload.Assets == nil || !validAvatarType(payload.PlayerAvatarType) {
-		return invalidAvatar("avatar-outfit-wear")
 	}
 	assets := make([]avatarUpdateAsset, 0, len(*payload.Assets))
 	for _, listedAsset := range *payload.Assets {

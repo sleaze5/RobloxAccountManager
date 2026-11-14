@@ -2,6 +2,7 @@ package appservice
 
 import (
 	"context"
+	"log/slog"
 	"slices"
 	"sync"
 	"time"
@@ -33,9 +34,35 @@ func (service *Service) GetAvatar(ctx context.Context, accountID, userID int64) 
 		logger.WarnContext(ctx, "avatar unavailable", "error", err)
 		return robloxservices.Avatar{}, err
 	}
+	service.addAvatarDetails(ctx, accountID, version, &avatar, robloxservices.AvatarImageTarget(userID), logger)
+	return avatar, nil
+}
+
+// GetAvatarOutfitDetails reads how the outfit looks, with the images and
+// catalog details of its items. A missing image or catalog detail leaves the
+// outfit without it.
+func (service *Service) GetAvatarOutfitDetails(ctx context.Context, accountID, outfitID int64) (robloxservices.Avatar, error) {
+	ctx, version, done, err := service.beginAccountSession(ctx, accountID, "avatar-outfit-details")
+	if err != nil {
+		return robloxservices.Avatar{}, err
+	}
+	defer done()
+	logger := service.logs.Module("application.avatar").With("operation", "avatar-outfit-details", "account_id", accountID)
+	outfit, err := service.users.AvatarOutfitDetails(ctx, accountID, version, outfitID)
+	if err != nil {
+		logger.WarnContext(ctx, "avatar outfit details unavailable", "error", err)
+		return robloxservices.Avatar{}, err
+	}
+	service.addAvatarDetails(ctx, accountID, version, &outfit, robloxservices.AvatarOutfitImageTarget(outfitID), logger)
+	return outfit, nil
+}
+
+// addAvatarDetails adds the catalog details and images of the worn items, and
+// the large image of the target, such as the avatar or the outfit.
+func (service *Service) addAvatarDetails(ctx context.Context, accountID, version int64, avatar *robloxservices.Avatar, imageTarget robloxservices.ThumbnailTarget, logger *slog.Logger) {
 	var group sync.WaitGroup
 	group.Go(func() {
-		if err := service.users.AddAvatarCatalogDetails(ctx, accountID, version, &avatar); err != nil {
+		if err := service.users.AddAvatarCatalogDetails(ctx, accountID, version, avatar); err != nil {
 			logger.WarnContext(ctx, "avatar catalog details unavailable", "error", err)
 		}
 	})
@@ -48,14 +75,13 @@ func (service *Service) GetAvatar(ctx context.Context, accountID, userID int64) 
 	})
 	group.Go(func() {
 		var imageError error
-		if avatarImages, imageError = service.thumbnails.Images(ctx, []robloxservices.ThumbnailTarget{robloxservices.AvatarImageTarget(userID)}, robloxservices.LargeThumbnailSize); imageError != nil {
+		if avatarImages, imageError = service.thumbnails.Images(ctx, []robloxservices.ThumbnailTarget{imageTarget}, robloxservices.LargeThumbnailSize); imageError != nil {
 			logger.WarnContext(ctx, "avatar image unavailable", "error", imageError)
 		}
 	})
 	group.Wait()
 	avatar.AddImages(itemImages)
-	avatar.ImageURL = avatarImages[robloxservices.AvatarImageTarget(userID)]
-	return avatar, nil
+	avatar.ImageURL = avatarImages[imageTarget]
 }
 
 // GetAvatarRules reads what the account may change on its avatar.

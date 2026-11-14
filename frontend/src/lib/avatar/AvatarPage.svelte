@@ -14,6 +14,7 @@
 	import AvatarConfirmation from "./AvatarConfirmation.svelte"
 	import AvatarEmotesPanel from "./AvatarEmotesPanel.svelte"
 	import AvatarItemPicker from "./AvatarItemPicker.svelte"
+	import AvatarOutfitDialog from "./AvatarOutfitDialog.svelte"
 	import AvatarOutfitNameDialog from "./AvatarOutfitNameDialog.svelte"
 	import AvatarOutfitsPanel from "./AvatarOutfitsPanel.svelte"
 	import AvatarStage from "./AvatarStage.svelte"
@@ -65,6 +66,9 @@
 		pickerEmoteSlot = $state<number | null | undefined>(undefined),
 		outfitNaming = $state<{ renamedOutfit: AvatarOutfit | null } | null>(null),
 		deletedOutfit = $state<AvatarOutfit | null>(null),
+		// The outfit dialog hides while an item of the outfit shows its details,
+		// and shows again when the item dialog closes.
+		viewedOutfit = $state<AvatarOutfit | null>(null),
 		isConfirmingDiscard = $state(false),
 		// Whether the page closes once the user confirms discarding changes.
 		isLeavingAfterDiscard = false
@@ -321,6 +325,8 @@
 										{avatar}
 										canEdit={avatar.isEditable}
 										{username}
+										onOpenOutfit={(outfit) =>
+											(viewedOutfit = outfit)}
 										onCreateOutfit={() => {
 											avatar.clearOutfitActionError()
 											outfitNaming = { renamedOutfit: null }
@@ -356,9 +362,19 @@
 		isWorn={savedAssetIds.has(detailedItem.item.itemId)}
 		onSearchPlace={(placeId) => {
 			detailedItem = null
+			viewedOutfit = null
 			onSearchPlace(placeId)
 		}}
 		onClose={() => (detailedItem = null)} />
+{/if}
+
+{#if viewedOutfit && !detailedItem}
+	<AvatarOutfitDialog
+		{avatar}
+		outfit={viewedOutfit}
+		canWear={avatar.isEditable}
+		onOpenItem={(asset) => openItem(asset.item, avatarItemCategory(asset.category))}
+		onClose={() => (viewedOutfit = null)} />
 {/if}
 
 {#if pickerEmoteSlot !== undefined}

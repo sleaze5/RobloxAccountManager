@@ -31,6 +31,16 @@ export class AvatarState {
 	// What the account may change. undefined while it loads, and null when it
 	// failed.
 	rules = $state.raw<AvatarRules | null | undefined>(undefined)
+	// The BrickColors of the palette by their hex colors, which name the body
+	// colors.
+	paletteColorByHex = $derived(
+		new Map(
+			(this.rules?.bodyColorPalette ?? []).map((paletteColor) => [
+				paletteColor.hexColor,
+				paletteColor,
+			]),
+		),
+	)
 	draft = $state.raw<AvatarDraft | null>(null)
 	isSaving = $state(false)
 	saveError = $state("")
@@ -45,6 +55,9 @@ export class AvatarState {
 	wearingOutfitId = $state(0)
 	isChangingOutfit = $state(false)
 	outfitActionError = $state("")
+	// How each opened outfit looks, by outfit ID. null means that the request
+	// failed.
+	outfitDetailsById = $state.raw(new Map<number, Avatar | null>())
 	readonly userId: number
 	readonly isEditable: boolean
 	readonly #scope: AccountScope
@@ -205,17 +218,48 @@ export class AvatarState {
 		this.outfitActionError = ""
 	}
 
-	// wearOutfit puts the outfit on the saved avatar. The page allows it only
-	// while the draft has no changes, because the outfit replaces the avatar.
-	async wearOutfit(outfit: AvatarOutfit): Promise<void> {
-		if (this.wearingOutfitId || this.isChanged || this.isSaving) return
+	// loadOutfitDetails reads how the outfit looks, unless it is already
+	// loaded. A failed read loads again when the outfit opens again.
+	async loadOutfitDetails(outfit: AvatarOutfit): Promise<void> {
+		if (this.outfitDetailsById.get(outfit.outfitId)) return
+		if (this.outfitDetailsById.has(outfit.outfitId)) {
+			const outfitDetailsById = new Map(this.outfitDetailsById)
+			outfitDetailsById.delete(outfit.outfitId)
+			this.outfitDetailsById = outfitDetailsById
+		}
+		let outfitDetails: Avatar | null
+		try {
+			outfitDetails = await this.#scope.track(
+				accountBackend.GetAvatarOutfitDetails(
+					this.#scope.accountId,
+					outfit.outfitId,
+				),
+			)
+		} catch {
+			// The outfit dialog shows the outfit as unavailable, and the backend
+			// logs the failure.
+			outfitDetails = null
+		}
+		if (this.#scope.isCurrent) {
+			this.outfitDetailsById = new Map(this.outfitDetailsById).set(
+				outfit.outfitId,
+				outfitDetails,
+			)
+		}
+	}
+
+	// wearOutfit puts the outfit on the saved avatar, and reports whether
+	// Roblox put it on. The page allows it only while the draft has no changes,
+	// because the outfit replaces the avatar.
+	async wearOutfit(outfit: AvatarOutfit): Promise<boolean> {
+		if (this.wearingOutfitId || this.isChanged || this.isSaving) return false
 		this.wearingOutfitId = outfit.outfitId
 		this.outfitActionError = ""
 		try {
 			const avatar = await this.#scope.track(
 				accountBackend.WearAvatarOutfit(this.#scope.accountId, outfit.outfitId),
 			)
-			if (!this.#scope.isCurrent) return
+			if (!this.#scope.isCurrent) return false
 			this.#showAvatar(avatar)
 			this.#notifications.show({
 				id: "avatar-outfit-wear",
@@ -223,6 +267,7 @@ export class AvatarState {
 				title: "Outfit put on",
 				message: `The avatar now wears ${outfit.name || "the outfit"}.`,
 			})
+			return true
 		} catch (error) {
 			if (this.#scope.isCurrent) {
 				this.outfitActionError = errorMessage(
@@ -230,6 +275,7 @@ export class AvatarState {
 					"Could not put on the outfit. Try again.",
 				)
 			}
+			return false
 		} finally {
 			this.wearingOutfitId = 0
 		}

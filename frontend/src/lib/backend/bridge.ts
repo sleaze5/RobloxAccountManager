@@ -107,6 +107,7 @@ export type {
 	AvatarEmote,
 	AvatarHeadshotView,
 	AvatarOutfit,
+	AvatarPaletteColor,
 	AvatarRules,
 	AvatarScaleLimit,
 	AvatarScales,

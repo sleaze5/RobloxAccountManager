@@ -5,6 +5,7 @@
 	import Icon from "../shared/Icon.svelte"
 	import Skeleton from "../shared/Skeleton.svelte"
 	import { replayValidationNudge } from "../shared/presence"
+	import AvatarBodyColorFacts from "./AvatarBodyColorFacts.svelte"
 	import AvatarBodyFigure from "./AvatarBodyFigure.svelte"
 	import { bodyParts } from "./avatar-draft"
 	import type { AvatarDraft, BodyPart } from "./avatar-draft"
@@ -55,15 +56,7 @@
 		}),
 		expandedHexColor = $derived(expandHexColor(hexText)),
 		isAllSelected = $derived(selectedParts.size === bodyParts.length),
-		paletteColorByHex = $derived(
-			new Map(
-				(rules?.bodyColorPalette ?? []).map((paletteColor) => [
-					paletteColor.hexColor,
-					paletteColor,
-				]),
-			),
-		),
-		selectedPaletteColor = $derived(paletteColorByHex.get(selectedColor))
+		selectedPaletteColor = $derived(avatar.paletteColorByHex.get(selectedColor))
 
 	$effect(() => {
 		hexText = selectedColor
@@ -169,7 +162,7 @@
 	// colorLabelOf names a palette color with its BrickColor, such as "Light
 	// orange (#EAB892, BrickColor 125)".
 	function colorLabelOf(hexColor: string): string {
-		const paletteColor = paletteColorByHex.get(hexColor)
+		const paletteColor = avatar.paletteColorByHex.get(hexColor)
 		if (!paletteColor) return `custom color #${hexColor}`
 		return `${paletteColor.name || "BrickColor"} (#${hexColor}, BrickColor ${paletteColor.brickColorId})`
 	}
@@ -419,40 +412,10 @@
 						</form>
 					</div>
 				{:else}
-					<dl class="facts min-w-0 flex-1">
-						{#each bodyParts as { part, label } (part)}
-							<div>
-								<dt>
-									<span
-										class="size-3 shrink-0 rounded-sm border border-line-strong"
-										style:background-color={draft.bodyColors[part]
-											? `#${draft.bodyColors[part]}`
-											: undefined}></span
-									>{label}
-								</dt>
-								<dd>
-									{#if draft.bodyColors[part]}
-										{@const paletteColor = paletteColorByHex.get(
-											draft.bodyColors[part],
-										)}
-										<span class="font-mono select-text"
-											>#{draft.bodyColors[part]}</span>
-										{#if paletteColor}
-											{#if paletteColor.name}<span
-													>{paletteColor.name}</span
-												>{/if}
-											<small class="font-mono select-text"
-												>BrickColor {paletteColor.brickColorId}</small>
-										{:else if rules}
-											<small>Custom color</small>
-										{/if}
-									{:else}
-										<span class="text-fg-muted">Unavailable</span>
-									{/if}
-								</dd>
-							</div>
-						{/each}
-					</dl>
+					<AvatarBodyColorFacts
+						bodyColors={draft.bodyColors}
+						paletteColorByHex={avatar.paletteColorByHex}
+						isPaletteLoaded={!!rules} />
 				{/if}
 			</div>
 		</section>

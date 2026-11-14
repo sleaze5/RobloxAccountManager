@@ -3,9 +3,8 @@
 	import tShirtIcon from "@phosphor-icons/core/regular/t-shirt.svg?raw"
 	import xIcon from "@phosphor-icons/core/regular/x.svg?raw"
 	import type { AvatarAsset } from "../backend/bridge"
-	import InventoryItemTile from "../inventory/InventoryItemTile.svelte"
 	import Icon from "../shared/Icon.svelte"
-	import { groupWornAssets } from "./avatar-categories"
+	import AvatarItemGroups from "./AvatarItemGroups.svelte"
 	import type { AvatarState } from "./avatar-state.svelte"
 
 	let {
@@ -24,7 +23,6 @@
 
 	const exactNumbers = new Intl.NumberFormat("en-US"),
 		assets = $derived(avatar.draft?.assets ?? []),
-		groups = $derived(groupWornAssets(assets)),
 		savedAssetIds = $derived(
 			new Set((avatar.avatar?.assets ?? []).map((asset) => asset.item.itemId)),
 		)
@@ -61,51 +59,24 @@
 		</div>
 	{/if}
 
-	{#each groups as group, groupIndex (group.category.label)}
-		<section
-			class="flex flex-col gap-2"
-			aria-labelledby={`avatar-group-${groupIndex}`}>
-			<h3
-				id={`avatar-group-${groupIndex}`}
-				class="flex items-center gap-2 text-xs font-semibold text-fg-muted">
-				<Icon
-					svg={group.category.icon}
-					class="text-fg-faint"
-					size={14}
-					aria-hidden="true" />
-				{group.category.label}
-				<span class="font-mono text-2xs font-normal text-fg-faint"
-					>{group.assets.length}</span>
-			</h3>
-			<ul
-				class="grid grid-cols-3 gap-2 @lg:grid-cols-4 @2xl:grid-cols-5 @4xl:grid-cols-6 @6xl:grid-cols-8">
-				{#each group.assets as asset (asset.item.itemId)}
-					<li class="relative min-w-0 animate-enter">
-						<InventoryItemTile
-							item={asset.item}
-							category={group.category}
-							isWorn={false}
-							actionLabel="Show details"
-							onOpen={() => onOpenItem(asset)} />
-						{#if canEdit && !savedAssetIds.has(asset.item.itemId)}
-							<span
-								class="pointer-events-none absolute top-2 left-2 animate-pop rounded-sm border border-line-strong bg-overlay px-1 text-2xs leading-4 font-medium text-fg"
-								>New</span>
-						{/if}
-						{#if canEdit}
-							<button
-								class="absolute top-2 right-2 button-icon size-6 bg-overlay"
-								type="button"
-								aria-label={`Take off ${asset.item.name || "item"}`}
-								data-tooltip="Take off"
-								disabled={avatar.isSaving}
-								onclick={() => avatar.takeOff(asset.item.itemId)}>
-								<Icon svg={xIcon} size={14} aria-hidden="true" />
-							</button>
-						{/if}
-					</li>
-				{/each}
-			</ul>
-		</section>
-	{/each}
+	<AvatarItemGroups {assets} headingIdPrefix="avatar-group" {onOpenItem}>
+		{#snippet itemControls(asset)}
+			{#if canEdit && !savedAssetIds.has(asset.item.itemId)}
+				<span
+					class="pointer-events-none absolute top-2 left-2 animate-pop rounded-sm border border-line-strong bg-overlay px-1 text-2xs leading-4 font-medium text-fg"
+					>New</span>
+			{/if}
+			{#if canEdit}
+				<button
+					class="absolute top-2 right-2 button-icon size-6 bg-overlay"
+					type="button"
+					aria-label={`Take off ${asset.item.name || "item"}`}
+					data-tooltip="Take off"
+					disabled={avatar.isSaving}
+					onclick={() => avatar.takeOff(asset.item.itemId)}>
+					<Icon svg={xIcon} size={14} aria-hidden="true" />
+				</button>
+			{/if}
+		{/snippet}
+	</AvatarItemGroups>
 </div>

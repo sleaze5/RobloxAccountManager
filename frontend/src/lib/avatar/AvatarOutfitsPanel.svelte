@@ -19,6 +19,7 @@
 		canEdit,
 		username,
 		onCreateOutfit,
+		onOpenOutfit,
 		onRenameOutfit,
 		onDeleteOutfit,
 	}: {
@@ -26,6 +27,7 @@
 		canEdit: boolean
 		username: string
 		onCreateOutfit: () => void
+		onOpenOutfit: (outfit: AvatarOutfit) => void
 		onRenameOutfit: (outfit: AvatarOutfit) => void
 		onDeleteOutfit: (outfit: AvatarOutfit) => void
 	} = $props()
@@ -151,55 +153,60 @@
 			aria-busy={avatar.outfitsLoading}>
 			{#each outfits as outfit (outfit.outfitId)}
 				{@const isWearing = avatar.wearingOutfitId === outfit.outfitId}
-				<li
-					class="relative flex min-w-0 flex-col gap-1 rounded-lg border border-line-subtle bg-surface p-1">
-					<span
-						class="relative grid aspect-square w-full place-items-center overflow-hidden rounded-sm bg-raised"
-						aria-hidden="true">
-						<ProfileImage
-							url={outfit.imageUrl}
-							fallbackIcon={coatHangerIcon} />
-						{#if isWearing}
-							<span
-								class="absolute inset-0 grid animate-enter place-items-center bg-scrim">
-								<Icon
-									svg={circleNotchIcon}
-									class="spinner text-fg"
-									size={16} />
-							</span>
-						{/if}
-					</span>
-					<span class="flex min-w-0 items-center gap-1 pb-0.5 pl-1">
+				<li class="relative min-w-0">
+					<button
+						class="group/tile flex w-full min-w-0 flex-col gap-1 rounded-lg border border-line-subtle bg-surface p-1 text-left transition-colors duration-100 hover:border-line hover:bg-hover"
+						type="button"
+						data-tooltip="Show outfit details"
+						data-tooltip-strong={outfit.name || "Unnamed outfit"}
+						onclick={() => onOpenOutfit(outfit)}>
 						<span
-							class="min-w-0 flex-1 truncate text-xs font-medium text-fg"
-							>{outfit.name || "Unnamed outfit"}</span>
-						{#if canEdit}
-							<button
-								class="button-ghost-sm"
-								type="button"
-								aria-label={`Actions for ${outfit.name || "outfit"}`}
-								aria-haspopup="menu"
-								aria-expanded={menu?.outfit.outfitId ===
-									outfit.outfitId}
-								data-open={menu?.outfit.outfitId === outfit.outfitId ||
-									undefined}
-								data-tooltip="Show outfit actions"
-								disabled={avatar.isChangingOutfit ||
-									avatar.wearingOutfitId !== 0}
-								onclick={(event) => {
-									const trigger = event.currentTarget
-									menu =
-										menu?.outfit.outfitId === outfit.outfitId
-											? null
-											: { outfit, trigger }
-								}}>
-								<Icon
-									svg={dotsThreeIcon}
-									size={14}
-									aria-hidden="true" />
-							</button>
-						{/if}
-					</span>
+							class="relative grid aspect-square w-full place-items-center overflow-hidden rounded-sm bg-raised"
+							aria-hidden="true">
+							<span
+								class="grid size-full place-items-center transition-transform duration-150 ease-out motion-safe:group-hover/tile:scale-105">
+								<ProfileImage
+									url={outfit.imageUrl}
+									fallbackIcon={coatHangerIcon} />
+							</span>
+							{#if isWearing}
+								<span
+									class="absolute inset-0 grid animate-enter place-items-center bg-scrim">
+									<Icon
+										svg={circleNotchIcon}
+										class="spinner text-fg"
+										size={16} />
+								</span>
+							{/if}
+						</span>
+						<span
+							class={[
+								"block min-w-0 truncate px-1 pb-0.5 text-xs font-medium text-fg",
+								canEdit && "pr-7",
+							]}>{outfit.name || "Unnamed outfit"}</span>
+					</button>
+					{#if canEdit}
+						<button
+							class="absolute right-1 bottom-0.5 button-ghost-sm"
+							type="button"
+							aria-label={`Actions for ${outfit.name || "outfit"}`}
+							aria-haspopup="menu"
+							aria-expanded={menu?.outfit.outfitId === outfit.outfitId}
+							data-open={menu?.outfit.outfitId === outfit.outfitId ||
+								undefined}
+							data-tooltip="Show outfit actions"
+							disabled={avatar.isChangingOutfit ||
+								avatar.wearingOutfitId !== 0}
+							onclick={(event) => {
+								const trigger = event.currentTarget
+								menu =
+									menu?.outfit.outfitId === outfit.outfitId
+										? null
+										: { outfit, trigger }
+							}}>
+							<Icon svg={dotsThreeIcon} size={14} aria-hidden="true" />
+						</button>
+					{/if}
 					{#if isWearing}
 						<span class="sr-only" role="status"
 							>Putting on {outfit.name}…</span>
