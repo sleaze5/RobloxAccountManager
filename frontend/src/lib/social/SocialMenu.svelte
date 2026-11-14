@@ -56,9 +56,11 @@
 				: [],
 		)
 
+	// Closing the menu clears the menu prop that person derives from, so the
+	// action must read person first.
 	function run(action: RelationshipActionId): void {
-		store.closeMenu()
 		onRelationshipAction(person, action)
+		store.closeMenu()
 	}
 
 	function closeOnTab(event: KeyboardEvent): void {
