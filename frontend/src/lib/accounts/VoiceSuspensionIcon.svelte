@@ -67,5 +67,5 @@
 <span
 	class="ml-auto grid shrink-0 animate-pop place-items-center text-warning"
 	data-tooltip={tooltip}>
-	<Icon svg={microphoneSlashIcon} size={12} aria-hidden="true" />
+	<Icon svg={microphoneSlashIcon} size={14} aria-hidden="true" />
 </span>
