@@ -183,6 +183,18 @@ export const inventoryCategoryGroups: {
 	},
 ]
 
+// Badges, game passes, and bundles have IDs of their own, which can match the
+// ID of an asset. Every other category lists assets.
+const categoriesWithOwnIDs = new Set<InventoryCategory>([
+	InventoryCategory.InventoryBadges,
+	InventoryCategory.InventoryGamePasses,
+	InventoryCategory.InventoryBundles,
+])
+
+export const assetCategories: readonly InventoryCategory[] = Object.values(
+	InventoryCategory,
+).filter((category) => !categoriesWithOwnIDs.has(category))
+
 // Labels for the Roblox asset and bundle types that the inventory lists.
 const typeLabels: Record<string, string> = {
 	Hat: "Hat",

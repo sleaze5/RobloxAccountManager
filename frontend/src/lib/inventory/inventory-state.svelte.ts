@@ -1,7 +1,6 @@
 import {
 	accountBackend,
 	AccountProfileSection,
-	CatalogItemType,
 	InventoryCategory,
 } from "../backend/bridge"
 import type { InventoryItem, InventoryItemDetails } from "../backend/bridge"
@@ -10,6 +9,7 @@ import { AccountScope } from "../accounts/account-scope"
 import type { CancellableRequest } from "../accounts/account-scope"
 import { errorMessage } from "../shared/errors"
 import { isFresh } from "../shared/freshness"
+import { assetCategories } from "./inventory-categories"
 
 interface InventoryCategoryPage {
 	items: InventoryItem[]
@@ -20,6 +20,12 @@ interface InventoryCategoryPage {
 // inventoryItemKey tells apart an asset and a bundle that share an ID.
 export function inventoryItemKey(item: InventoryItem): string {
 	return `${item.catalogItemType}:${item.itemId}`
+}
+
+// ownedCopyKey tells apart the copies of a collectible by their serial numbers.
+// Copies without a serial number show the same details.
+export function ownedCopyKey(item: InventoryItem): string {
+	return `${inventoryItemKey(item)}:${item.serialNumber ?? ""}`
 }
 
 // categoryItemKey tells apart the items of different categories that share an
@@ -188,7 +194,7 @@ export class InventoryState {
 				isFavorite,
 			)
 			const countChange = isFavorite ? 1 : -1
-			this.#changeItems((items) =>
+			this.#changeItems(Object.values(InventoryCategory), (items) =>
 				items.map((listedItem) =>
 					inventoryItemKey(listedItem) === key &&
 					listedItem.market?.favoriteCount != null
@@ -285,12 +291,8 @@ export class InventoryState {
 				accountBackend.DeleteInventoryAsset(this.#scope.accountId, item.itemId),
 			)
 			if (!this.#scope.isCurrent) return false
-			this.#changeItems((items) =>
-				items.filter(
-					(listedItem) =>
-						listedItem.itemId !== item.itemId ||
-						listedItem.catalogItemType === CatalogItemType.CatalogBundle,
-				),
+			this.#changeItems(assetCategories, (items) =>
+				items.filter((listedItem) => listedItem.itemId !== item.itemId),
 			)
 			return true
 		} catch (error) {
@@ -338,10 +340,13 @@ export class InventoryState {
 		if (this.#scope.isCurrent) store(fact)
 	}
 
-	#changeItems(change: (items: InventoryItem[]) => InventoryItem[]): void {
-		const pagesByCategory: typeof this.pagesByCategory = {}
-		for (const category of Object.values(InventoryCategory)) {
-			const page = this.pagesByCategory[category]
+	#changeItems(
+		categories: readonly InventoryCategory[],
+		change: (items: InventoryItem[]) => InventoryItem[],
+	): void {
+		const pagesByCategory = { ...this.pagesByCategory }
+		for (const category of categories) {
+			const page = pagesByCategory[category]
 			if (page) pagesByCategory[category] = { ...page, items: change(page.items) }
 		}
 		this.pagesByCategory = pagesByCategory

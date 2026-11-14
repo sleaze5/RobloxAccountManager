@@ -12,7 +12,11 @@
 	import RefreshIcon from "../shared/RefreshIcon.svelte"
 	import Select from "../shared/Select.svelte"
 	import { searchTerms } from "../shared/search"
-	import { inventoryCategoryGroups, inventoryTypeLabel } from "./inventory-categories"
+	import {
+		assetCategories,
+		inventoryCategoryGroups,
+		inventoryTypeLabel,
+	} from "./inventory-categories"
 	import {
 		itemFilterOptions,
 		shapeInventoryItems,
@@ -22,7 +26,7 @@
 	import { formatRobux } from "./inventory-prices"
 	import InventoryItemDialog from "./InventoryItemDialog.svelte"
 	import InventoryItemTile from "./InventoryItemTile.svelte"
-	import { InventoryState, inventoryItemKey } from "./inventory-state.svelte"
+	import { InventoryState, ownedCopyKey } from "./inventory-state.svelte"
 
 	let {
 		accounts,
@@ -53,7 +57,7 @@
 		typeName = $state(""),
 		itemFilter = $state<InventoryItemFilter>("all"),
 		sortOrder = $state<InventorySortOrder>("newest"),
-		detailedItemKey = $state("")
+		detailedCopyKey = $state("")
 	const category = $derived(
 			categories.find((option) => option.id === inventory.category) ??
 				categories[0],
@@ -77,11 +81,8 @@
 				: []
 		}),
 		hasMarket = $derived(items.some((item) => item.market)),
-		// Badges, game passes, and bundles have IDs of their own, which can
-		// match the ID of a worn asset.
 		wornAssetIds = $derived(
-			category.isDeletable ||
-				category.id === InventoryCategory.InventoryCollectibles
+			assetCategories.includes(category.id)
 				? inventory.wornAssetIds
 				: new Set<number>(),
 		),
@@ -117,8 +118,8 @@
 				: 0,
 		),
 		detailedItem = $derived(
-			detailedItemKey
-				? items.find((item) => inventoryItemKey(item) === detailedItemKey)
+			detailedCopyKey
+				? items.find((item) => ownedCopyKey(item) === detailedCopyKey)
 				: undefined,
 		),
 		isOwnInventory = $derived(Number(accounts.selectedAccount.userId) === userId),
@@ -150,7 +151,7 @@
 			return
 		}
 		inventory.clearItemActionError()
-		detailedItemKey = inventoryItemKey(item)
+		detailedCopyKey = ownedCopyKey(item)
 		inventory.loadItemDetails(item, !isOwnInventory)
 		void inventory.checkFavorite(item)
 	}
@@ -389,8 +390,8 @@
 		{isOwnInventory}
 		isWorn={wornAssetIds.has(detailedItem.itemId)}
 		onSearchPlace={(placeId) => {
-			detailedItemKey = ""
+			detailedCopyKey = ""
 			onSearchPlace(placeId)
 		}}
-		onClose={() => (detailedItemKey = "")} />
+		onClose={() => (detailedCopyKey = "")} />
 {/if}
