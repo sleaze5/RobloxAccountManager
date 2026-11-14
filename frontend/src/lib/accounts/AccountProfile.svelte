@@ -343,20 +343,6 @@
 					<RefreshIcon isRefreshing={refreshing} />
 				</button>
 				<button
-					class="button-icon"
-					type="button"
-					aria-label={moderated
-						? "Inventory is unavailable while moderated"
-						: "Inventory"}
-					data-tooltip={moderated
-						? "Inventory is unavailable while moderated"
-						: "Inventory"}
-					disabled={!hasAccount || !store.vault.unlocked || moderated}
-					bind:this={inventoryButton}
-					onclick={() => openPage("inventory")}>
-					<Icon svg={backpackIcon} size={16} aria-hidden="true" />
-				</button>
-				<button
 					class="relative button-icon"
 					type="button"
 					aria-label={unreadNotifications
@@ -378,6 +364,20 @@
 								? "99+"
 								: unreadNotifications}</span
 						>{/if}
+				</button>
+				<button
+					class="button-icon"
+					type="button"
+					aria-label={moderated
+						? "Inventory is unavailable while moderated"
+						: "Inventory"}
+					data-tooltip={moderated
+						? "Inventory is unavailable while moderated"
+						: "Inventory"}
+					disabled={!hasAccount || !store.vault.unlocked || moderated}
+					bind:this={inventoryButton}
+					onclick={() => openPage("inventory")}>
+					<Icon svg={backpackIcon} size={16} aria-hidden="true" />
 				</button>
 				<button
 					class="button-icon"
