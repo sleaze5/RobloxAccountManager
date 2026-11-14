@@ -24,16 +24,16 @@ const robloxCurrencyRobux = 1
 // that the user confirmed, and reports whether Roblox still delivers it.
 func (service *Users) BuyInventoryItem(ctx context.Context, accountID, version, userID int64, category InventoryCategory, itemID, expectedPriceInRobux int64) (bool, error) {
 	itemType, ok := inventoryItemTypeOf(category)
-	if !ok || itemType == "Badge" {
+	if !ok || itemType == inventoryItemBadge {
 		return false, purchaseRefusal("Only catalog items and game passes can be bought.")
 	}
 	item := strconv.FormatInt(itemID, 10)
-	if itemType == "GamePass" {
+	if itemType == inventoryItemGamePass {
 		return service.buyGamePass(ctx, accountID, version, item, expectedPriceInRobux)
 	}
 	var details InventoryItemDetails
 	var err error
-	if itemType == "Bundle" {
+	if itemType == inventoryItemBundle {
 		details, err = service.bundleItemDetails(ctx, accountID, version, item)
 	} else {
 		details, err = service.assetItemDetails(ctx, accountID, version, item)
@@ -97,7 +97,7 @@ func (service *Users) buyCollectibleItem(ctx context.Context, accountID, version
 	if sale.UnitsAvailable != nil && *sale.UnitsAvailable == 0 && sale.AssetStock != nil && *sale.AssetStock > 0 {
 		return false, purchaseRefusal("This item is sold out.")
 	}
-	if slices.Contains([]string{"MyExperiencesOnly", "ExperiencesById", "ExperiencesDevApiOnly"}, sale.SaleLocationType) {
+	if saleLocationOf(sale.SaleLocationType) == SaleInExperiences {
 		return false, purchaseRefusal("This item is only sold inside experiences.")
 	}
 	if err := checkPurchasePrice(sale.Price, expectedPriceInRobux); err != nil {

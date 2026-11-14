@@ -386,7 +386,7 @@ func (client *Client) forbiddenResponse(ctx context.Context, request Request, sn
 	if challengeType != "" {
 		message := "Roblox requires user interaction."
 		if strings.EqualFold(challengeType, "captcha") {
-			message = "Roblox requires a CAPTCHA. Open this account in the browser and complete the action there."
+			message = CaptchaRequiredMessage
 		}
 		client.setState(ctx, snapshot, accounts.StateChallenged, message)
 		return &Error{Kind: KindChallengeRequired, Endpoint: request.Endpoint, Status: response.Status, Message: message}
@@ -394,8 +394,10 @@ func (client *Client) forbiddenResponse(ctx context.Context, request Request, sn
 	kind := KindForbidden
 	message := "Roblox rejected this operation."
 	robloxCode := responseError(request, response).RobloxCode
+	// The friends API answers 403 with code 14 instead of a challenge header
+	// when an action needs a CAPTCHA.
 	if request.URL.Hostname() == "friends.roblox.com" && robloxCode == 14 {
-		return &Error{Kind: KindChallengeRequired, Endpoint: request.Endpoint, Status: response.Status, RobloxCode: robloxCode, Message: "Roblox requires a CAPTCHA. Open this account in the browser and complete the action there."}
+		return &Error{Kind: KindChallengeRequired, Endpoint: request.Endpoint, Status: response.Status, RobloxCode: robloxCode, Message: CaptchaRequiredMessage}
 	}
 	if request.RequiresCSRF && strings.TrimSpace(response.Header.Get(csrfHeader)) != "" {
 		kind = KindCSRFRejected
