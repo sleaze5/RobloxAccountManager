@@ -100,8 +100,9 @@ export class AvatarState {
 		}
 	}
 
+	// loadRules also runs for another user's avatar, because the palette names
+	// the BrickColors of the body colors.
 	async loadRules(): Promise<void> {
-		if (!this.isEditable) return
 		this.rules = undefined
 		let rules: AvatarRules | null
 		try {

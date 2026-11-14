@@ -27,7 +27,10 @@
 			style: "percent",
 			maximumFractionDigits: 0,
 		}),
-		hexColorPattern = /^#?([0-9a-f]{6})$/i
+		hexDigitPattern = /[0-9a-f]/gi,
+		fullHexColorPattern = /[0-9a-f]{6}/i,
+		shortHexColorPattern = /[0-9a-f]{3}/i,
+		maxHexDigits = 6
 
 	let selectedParts = $state(new Set<BodyPart>(bodyParts.map(({ part }) => part))),
 		hexInput = $state<HTMLInputElement | undefined>(undefined),
@@ -50,8 +53,17 @@
 			)
 			return colors.size === 1 ? [...colors][0] : ""
 		}),
-		isHexValid = $derived(hexColorPattern.test(hexText.trim())),
-		isAllSelected = $derived(selectedParts.size === bodyParts.length)
+		expandedHexColor = $derived(expandHexColor(hexText)),
+		isAllSelected = $derived(selectedParts.size === bodyParts.length),
+		paletteColorByHex = $derived(
+			new Map(
+				(rules?.bodyColorPalette ?? []).map((paletteColor) => [
+					paletteColor.hexColor,
+					paletteColor,
+				]),
+			),
+		),
+		selectedPaletteColor = $derived(paletteColorByHex.get(selectedColor))
 
 	$effect(() => {
 		hexText = selectedColor
@@ -97,19 +109,80 @@
 			return
 		}
 		const parts = new Set(selectedParts)
-		if (parts.has(part) && parts.size > 1) parts.delete(part)
+		if (parts.has(part)) parts.delete(part)
 		else parts.add(part)
 		selectedParts = parts
 	}
 
+	function hexDigitsOf(text: string): string {
+		return (text.match(hexDigitPattern) ?? []).join("")
+	}
+
+	// expandHexColor writes a color of 1 or 3 hex digits in full, so that "0"
+	// becomes 000000 and "1a2" becomes 11AA22. It returns null for any other
+	// length than 1, 3, or 6.
+	function expandHexColor(digits: string): string | null {
+		const upperDigits = digits.toUpperCase()
+		switch (upperDigits.length) {
+			case 1:
+				return upperDigits.repeat(6)
+			case 3:
+				return [...upperDigits].map((digit) => digit + digit).join("")
+			case 6:
+				return upperDigits
+			default:
+				return null
+		}
+	}
+
+	// showHexDigits keeps the first 6 hex digits of the text, and keeps the
+	// caret after the same digit that it followed in the text.
+	function showHexDigits(input: HTMLInputElement, text: string, caret: number): void {
+		const digits = hexDigitsOf(text).slice(0, maxHexDigits),
+			position = Math.min(hexDigitsOf(text.slice(0, caret)).length, digits.length)
+		hexText = digits
+		input.value = digits
+		input.setSelectionRange(position, position)
+	}
+
+	// pasteHexText takes the first full color in the pasted text, such as the
+	// A3A2A5 in "#A3A2A5;", then the first short color, such as the FFF in
+	// "rgb #fff". It inserts other pasted hex digits at the caret.
+	function pasteHexText(input: HTMLInputElement, pastedText: string): void {
+		const pastedColor =
+			fullHexColorPattern.exec(pastedText)?.[0] ??
+			shortHexColorPattern.exec(pastedText)?.[0]
+		if (pastedColor) {
+			showHexDigits(input, pastedColor, pastedColor.length)
+			return
+		}
+		const selectionStart = input.selectionStart ?? input.value.length,
+			selectionEnd = input.selectionEnd ?? selectionStart,
+			textBeforeCaret = input.value.slice(0, selectionStart) + pastedText
+		showHexDigits(
+			input,
+			textBeforeCaret + input.value.slice(selectionEnd),
+			textBeforeCaret.length,
+		)
+	}
+
+	// colorLabelOf names a palette color with its BrickColor, such as "Light
+	// orange (#EAB892, BrickColor 125)".
+	function colorLabelOf(hexColor: string): string {
+		const paletteColor = paletteColorByHex.get(hexColor)
+		if (!paletteColor) return `custom color #${hexColor}`
+		return `${paletteColor.name || "BrickColor"} (#${hexColor}, BrickColor ${paletteColor.brickColorId})`
+	}
+
 	function applyHexText(): void {
 		isHexTouched = true
-		const match = hexColorPattern.exec(hexText.trim())
-		if (!match) {
+		const hexColor = expandHexColor(hexText)
+		if (!hexColor) {
 			replayValidationNudge(hexInput)
 			return
 		}
-		setColor(match[1].toUpperCase())
+		hexText = hexColor
+		setColor(hexColor)
 	}
 
 	function setAvatarType(avatarType: AvatarType): void {
@@ -198,6 +271,7 @@
 						<AvatarBodyFigure
 							bodyColors={draft.bodyColors}
 							{selectedParts}
+							{colorLabelOf}
 							onSelectPart={selectPart} />
 					{:else}
 						<AvatarBodyFigure bodyColors={draft.bodyColors} />
@@ -209,14 +283,18 @@
 							<p
 								class="min-w-0 flex-1 text-xs text-fg-muted"
 								aria-live="polite">
-								{isAllSelected
-									? "Coloring every part. Select a part to color only it."
-									: `Coloring ${bodyParts
-											.filter(({ part }) =>
-												selectedParts.has(part),
-											)
-											.map(({ label }) => label.toLowerCase())
-											.join(", ")}. Ctrl+click adds parts.`}
+								{selectedParts.size === 0
+									? "No parts selected. Select parts on the figure to color them."
+									: isAllSelected
+										? "Coloring every part. Select a part to color only it."
+										: `Coloring ${bodyParts
+												.filter(({ part }) =>
+													selectedParts.has(part),
+												)
+												.map(({ label }) => label.toLowerCase())
+												.join(
+													", ",
+												)}. Ctrl+click adds or removes parts.`}
 							</p>
 							<button
 								class="button"
@@ -225,7 +303,13 @@
 								onclick={() =>
 									(selectedParts = new Set(
 										bodyParts.map(({ part }) => part),
-									))}>Select all parts</button>
+									))}>Select all</button>
+							<button
+								class="button"
+								type="button"
+								disabled={selectedParts.size === 0}
+								onclick={() => (selectedParts = new Set())}
+								>Clear selection</button>
 						</div>
 						<ul
 							class="flex flex-wrap gap-1"
@@ -238,12 +322,13 @@
 										class="grid size-6 place-items-center rounded-sm border border-line-strong outline-offset-2 transition-colors duration-100 hover:border-line-focus focus-visible:outline-2 focus-visible:outline-focus aria-pressed:ring-2 aria-pressed:ring-fg-bright aria-pressed:ring-offset-1 aria-pressed:ring-offset-surface"
 										style:background-color={`#${paletteColor.hexColor}`}
 										type="button"
-										aria-label={paletteColor.name ||
-											`#${paletteColor.hexColor}`}
+										aria-label={colorLabelOf(paletteColor.hexColor)}
 										aria-pressed={isCurrent}
-										data-tooltip={paletteColor.name ||
-											`#${paletteColor.hexColor}`}
-										disabled={avatar.isSaving}
+										data-tooltip={colorLabelOf(
+											paletteColor.hexColor,
+										)}
+										disabled={avatar.isSaving ||
+											selectedParts.size === 0}
 										onclick={() => setColor(paletteColor.hexColor)}
 									></button>
 								</li>
@@ -261,35 +346,64 @@
 								<span class="relative flex items-center">
 									<span
 										class="pointer-events-none absolute left-2 size-4 rounded-sm border border-line-strong"
-										style:background-color={isHexValid
-											? `#${hexText.trim().replace("#", "")}`
+										style:background-color={expandedHexColor
+											? `#${expandedHexColor}`
 											: undefined}
 										aria-hidden="true"></span>
+									<span
+										class="pointer-events-none absolute left-7 font-mono text-xs text-fg-muted"
+										aria-hidden="true">#</span>
 									<input
 										bind:this={hexInput}
-										bind:value={hexText}
-										class="field pl-8 font-mono text-xs uppercase"
+										value={hexText}
+										class="field pl-10 font-mono text-xs"
 										type="text"
 										spellcheck="false"
 										autocomplete="off"
-										maxlength="7"
-										placeholder={selectedColor ? "" : "Mixed"}
-										aria-invalid={isHexTouched && !isHexValid}
+										maxlength={maxHexDigits}
+										placeholder={selectedColor ||
+										selectedParts.size === 0
+											? ""
+											: "Mixed"}
+										aria-invalid={isHexTouched && !expandedHexColor}
 										aria-describedby="avatar-hex-error"
-										disabled={avatar.isSaving}
-										onblur={() => {
-											if (
-												hexText.trim() &&
-												hexText.trim() !== selectedColor
+										disabled={avatar.isSaving ||
+											selectedParts.size === 0}
+										oninput={(event) =>
+											showHexDigits(
+												event.currentTarget,
+												event.currentTarget.value,
+												event.currentTarget.selectionStart ??
+													event.currentTarget.value.length,
+											)}
+										onpaste={(event) => {
+											event.preventDefault()
+											pasteHexText(
+												event.currentTarget,
+												event.clipboardData?.getData("text") ??
+													"",
 											)
-												applyHexText()
+										}}
+										onblur={() => {
+											if (hexText) applyHexText()
 										}} />
 								</span>
-								{#if isHexTouched && !isHexValid}
+								{#if isHexTouched && !expandedHexColor}
 									<span
 										id="avatar-hex-error"
 										class="text-xs text-danger-muted"
-										>Enter 6 hex digits, such as A3A2A5.</span>
+										>Enter 1, 3, or 6 hex digits, such as A3A2A5.</span>
+								{:else if selectedPaletteColor}
+									<span class="text-xs text-fg-muted"
+										>{selectedPaletteColor.name
+											? `${selectedPaletteColor.name}, `
+											: ""}BrickColor
+										<span class="font-mono"
+											>{selectedPaletteColor.brickColorId}</span
+										></span>
+								{:else if selectedColor}
+									<span class="text-xs text-fg-muted"
+										>Not a BrickColor</span>
 								{/if}
 							</label>
 							<button
@@ -297,7 +411,9 @@
 								type="submit"
 								aria-label="Apply custom color"
 								data-tooltip="Apply custom color"
-								disabled={avatar.isSaving || !hexText.trim()}>
+								disabled={avatar.isSaving ||
+									!hexText ||
+									selectedParts.size === 0}>
 								<Icon svg={checkIcon} size={16} aria-hidden="true" />
 							</button>
 						</form>
@@ -316,8 +432,20 @@
 								</dt>
 								<dd>
 									{#if draft.bodyColors[part]}
+										{@const paletteColor = paletteColorByHex.get(
+											draft.bodyColors[part],
+										)}
 										<span class="font-mono select-text"
 											>#{draft.bodyColors[part]}</span>
+										{#if paletteColor}
+											{#if paletteColor.name}<span
+													>{paletteColor.name}</span
+												>{/if}
+											<small class="font-mono select-text"
+												>BrickColor {paletteColor.brickColorId}</small>
+										{:else if rules}
+											<small>Custom color</small>
+										{/if}
 									{:else}
 										<span class="text-fg-muted">Unavailable</span>
 									{/if}

@@ -6,12 +6,14 @@
 	let {
 		bodyColors,
 		selectedParts,
+		colorLabelOf,
 		onSelectPart,
 	}: {
 		bodyColors: AvatarBodyColors
 		// selectedParts and onSelectPart are undefined when the figure only
 		// shows the colors.
 		selectedParts?: Set<BodyPart>
+		colorLabelOf?: (hexColor: string) => string
 		onSelectPart?: (part: BodyPart, isAdding: boolean) => void
 	} = $props()
 
@@ -53,7 +55,9 @@
 				aria-label={label}
 				aria-pressed={selectedParts?.has(part) ?? false}
 				data-selected={selectedParts?.has(part) || undefined}
-				data-tooltip={hexColor ? `${label} #${hexColor}` : label}
+				data-tooltip={hexColor
+					? `${label}: ${colorLabelOf?.(hexColor) ?? `#${hexColor}`}`
+					: label}
 				onclick={(event) =>
 					onSelectPart(
 						part,

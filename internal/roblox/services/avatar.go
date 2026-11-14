@@ -136,9 +136,11 @@ type AvatarScaleLimits struct {
 	BodyType   AvatarScaleLimit `json:"bodyType"`
 }
 
+// AvatarPaletteColor is a BrickColor that the avatar editor offers.
 type AvatarPaletteColor struct {
-	Name     string `json:"name"`
-	HexColor string `json:"hexColor"`
+	BrickColorID int64  `json:"brickColorId"`
+	Name         string `json:"name"`
+	HexColor     string `json:"hexColor"`
 }
 
 // AvatarRules is what the account may change on its avatar.
@@ -307,8 +309,9 @@ func (service *Users) AvatarRules(ctx context.Context, accountID, version int64)
 			Name      string `json:"name"`
 		} `json:"wearableAssetTypes"`
 		BodyColorsPalette []struct {
-			HexColor string `json:"hexColor"`
-			Name     string `json:"name"`
+			BrickColorID int64  `json:"brickColorId"`
+			HexColor     string `json:"hexColor"`
+			Name         string `json:"name"`
 		} `json:"bodyColorsPalette"`
 		ProportionsAndBodyTypeEnabledForUser bool `json:"proportionsAndBodyTypeEnabledForUser"`
 	}
@@ -332,7 +335,9 @@ func (service *Users) AvatarRules(ctx context.Context, accountID, version int64)
 	}
 	for _, listedColor := range payload.BodyColorsPalette {
 		if hexColor := avatarColorOf(listedColor.HexColor); hexColor != "" {
-			rules.BodyColorPalette = append(rules.BodyColorPalette, AvatarPaletteColor{Name: boundedText(listedColor.Name, maxInventoryItemNameLength), HexColor: hexColor})
+			rules.BodyColorPalette = append(rules.BodyColorPalette, AvatarPaletteColor{
+				BrickColorID: max(listedColor.BrickColorID, 0), Name: boundedText(listedColor.Name, maxInventoryItemNameLength), HexColor: hexColor,
+			})
 		}
 	}
 	// The rules name asset types with spaces and hyphens, such as "T-Shirt
