@@ -291,7 +291,7 @@ func (service *Service) overwriteVaultData(ctx context.Context, pending *pending
 		}{AccountID: accountID})
 	}
 	settings := service.finishSettingsImport(ctx, logger)
-	service.events.CredentialBackupChanged(service.refreshCredentialBackup(ctx, logger, false))
+	service.events.credentialBackupChanged(service.refreshCredentialBackup(ctx, logger, false))
 	return TransferResult{Added: len(pending.payload.Accounts), FavoritePlaces: len(pending.payload.FavoritePlaces), SavedPrivateServers: len(pending.payload.SavedPrivateServers), KeptCookies: []TransferKeptCookie{}, Settings: settings}, nil
 }
 
@@ -331,7 +331,7 @@ func (service *Service) mergeVaultData(ctx context.Context, pending *pendingTran
 		settings = service.finishSettingsImport(ctx, logger)
 	}
 	if len(merged.Replaced) > 0 {
-		service.events.CredentialBackupChanged(service.refreshCredentialBackup(ctx, logger, true))
+		service.events.credentialBackupChanged(service.refreshCredentialBackup(ctx, logger, true))
 	}
 	return TransferResult{
 		Added:               len(merged.Added),

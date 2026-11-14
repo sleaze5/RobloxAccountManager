@@ -15,22 +15,18 @@ import (
 
 var ErrNotFavorite = errors.New("place is not a favorite")
 
-type DatabaseProvider interface {
-	Lease(context.Context) (*sql.DB, func(), error)
-}
-
 type Repository struct {
-	provider DatabaseProvider
-	cache    *caches.Store
-	logger   *slog.Logger
+	vault  *vault.Manager
+	cache  *caches.Store
+	logger *slog.Logger
 }
 
-func NewRepository(provider DatabaseProvider, logger *slog.Logger, cache *caches.Store) *Repository {
-	return &Repository{provider: provider, logger: logger, cache: cache}
+func NewRepository(vaultManager *vault.Manager, logger *slog.Logger, cache *caches.Store) *Repository {
+	return &Repository{vault: vaultManager, logger: logger, cache: cache}
 }
 
 func (repository *Repository) List(ctx context.Context) ([]games.Place, error) {
-	database, release, err := repository.provider.Lease(ctx)
+	database, release, err := repository.vault.Lease(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -68,7 +64,7 @@ func (repository *Repository) SetNickname(ctx context.Context, placeID int64, ni
 }
 
 func (repository *Repository) Reorder(ctx context.Context, placeIDs []int64) error {
-	database, release, err := repository.provider.Lease(ctx)
+	database, release, err := repository.vault.Lease(ctx)
 	if err != nil {
 		return err
 	}
@@ -106,7 +102,7 @@ func (repository *Repository) Remove(ctx context.Context, placeID int64) error {
 }
 
 func (repository *Repository) write(ctx context.Context, placeID int64, operation string, existing bool, query string, arguments ...any) error {
-	database, release, err := repository.provider.Lease(ctx)
+	database, release, err := repository.vault.Lease(ctx)
 	if err != nil {
 		return err
 	}

@@ -172,7 +172,7 @@ func run() (runError error) {
 	bindingService := bindings.NewService(coreService, appLocation, updates, events, launch)
 
 	launch.Begin("desktop-shell")
-	windowProc, err := shellidentity.New(logSystem.Module("platform.shell"))
+	windowMessageInterceptor, err := shellidentity.New(logSystem.Module("platform.shell"))
 	if err != nil {
 		return fmt.Errorf("initialize desktop identity: %w", err)
 	}
@@ -195,7 +195,7 @@ func run() (runError error) {
 			ApplicationShouldTerminateAfterLastWindowClosed: true,
 		},
 		Windows: application.WindowsOptions{
-			WndProcInterceptor: windowProc,
+			WndProcInterceptor: windowMessageInterceptor,
 		},
 		// WebKitGTK keeps its data in $XDG_DATA_HOME/<program name>, and the
 		// default program name would place it in the Standard root.

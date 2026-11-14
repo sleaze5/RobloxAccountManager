@@ -61,12 +61,12 @@ func (service *Service) confirmLaunch(ctx context.Context, state LaunchConfirmat
 	}
 	service.launchConfirmation = pending
 	service.mutex.Unlock()
-	service.events.LaunchConfirmationRequested()
+	service.events.launchConfirmationRequested()
 	defer func() {
 		service.mutex.Lock()
 		service.launchConfirmation = nil
 		service.mutex.Unlock()
-		service.events.LaunchConfirmationChanged()
+		service.events.launchConfirmationChanged()
 	}()
 	select {
 	case approved := <-pending.reply:

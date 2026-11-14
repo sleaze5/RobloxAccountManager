@@ -13,13 +13,9 @@ import (
 	"github.com/sleaze5/RobloxAccountManager/internal/storage/vault"
 )
 
-type DatabaseProvider interface {
-	Lease(context.Context) (*sql.DB, func(), error)
-}
-
 type Repository struct {
-	provider DatabaseProvider
-	logger   *slog.Logger
+	vault  *vault.Manager
+	logger *slog.Logger
 }
 
 type Replacement struct {
@@ -49,12 +45,12 @@ type MergeResult struct {
 	SavedPrivateServers int
 }
 
-func NewRepository(provider DatabaseProvider, logger *slog.Logger) *Repository {
-	return &Repository{provider: provider, logger: logger}
+func NewRepository(vaultManager *vault.Manager, logger *slog.Logger) *Repository {
+	return &Repository{vault: vaultManager, logger: logger}
 }
 
 func (repository *Repository) Read(ctx context.Context) (Payload, error) {
-	database, release, err := repository.provider.Lease(ctx)
+	database, release, err := repository.vault.Lease(ctx)
 	if err != nil {
 		return Payload{}, err
 	}
@@ -204,7 +200,7 @@ func readSavedPrivateServers(ctx context.Context, transaction *sql.Tx) ([]SavedP
 // Replace keeps new row IDs above the removed ones, so account and tag IDs that the
 // application still holds for removed rows never point at imported rows.
 func (repository *Repository) Replace(ctx context.Context, payload Payload, settings *PendingSettings) ([]int64, error) {
-	database, release, err := repository.provider.Lease(ctx)
+	database, release, err := repository.vault.Lease(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -303,7 +299,7 @@ func insertSavedPrivateServers(ctx context.Context, transaction *sql.Tx, servers
 }
 
 func (repository *Repository) Merge(ctx context.Context, input MergeInput) (MergeResult, error) {
-	database, release, err := repository.provider.Lease(ctx)
+	database, release, err := repository.vault.Lease(ctx)
 	if err != nil {
 		return MergeResult{}, err
 	}
@@ -520,7 +516,7 @@ func storePendingSettings(ctx context.Context, transaction *sql.Tx, settings *Pe
 }
 
 func (repository *Repository) PendingSettings(ctx context.Context) (*PendingSettings, error) {
-	database, release, err := repository.provider.Lease(ctx)
+	database, release, err := repository.vault.Lease(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -541,7 +537,7 @@ func (repository *Repository) PendingSettings(ctx context.Context) (*PendingSett
 }
 
 func (repository *Repository) ClearPendingSettings(ctx context.Context) error {
-	database, release, err := repository.provider.Lease(ctx)
+	database, release, err := repository.vault.Lease(ctx)
 	if err != nil {
 		return err
 	}

@@ -17,14 +17,15 @@ import (
 	"github.com/sleaze5/RobloxAccountManager/internal/platform/robloxmulti"
 	"github.com/sleaze5/RobloxAccountManager/internal/roblox"
 	robloxservices "github.com/sleaze5/RobloxAccountManager/internal/roblox/services"
+	accountstore "github.com/sleaze5/RobloxAccountManager/internal/storage/accounts"
 	gamestore "github.com/sleaze5/RobloxAccountManager/internal/storage/games"
 	transferstore "github.com/sleaze5/RobloxAccountManager/internal/storage/transfer"
 	"github.com/sleaze5/RobloxAccountManager/internal/storage/vault"
 )
 
 type Service struct {
-	vault              Vault
-	accountRepository  AccountRepository
+	vault              *vault.Manager
+	accountRepository  *accountstore.Repository
 	sessions           *roblox.SessionManager
 	users              *robloxservices.Users
 	accountSettings    *robloxservices.AccountSettings
@@ -77,8 +78,8 @@ type Service struct {
 }
 
 func New(
-	vaultManager Vault,
-	repository AccountRepository,
+	vaultManager *vault.Manager,
+	repository *accountstore.Repository,
 	sessions *roblox.SessionManager,
 	users *robloxservices.Users,
 	accountSettings *robloxservices.AccountSettings,

@@ -28,7 +28,7 @@ type Paths struct {
 	BrowserTempRoot string
 }
 
-func ExecutableDirectory() (string, error) {
+func resolveExecutableDirectory() (string, error) {
 	executable, err := os.Executable()
 	if err != nil {
 		return "", fmt.Errorf("resolve executable path: %w", err)

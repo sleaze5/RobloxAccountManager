@@ -62,7 +62,6 @@ func (service *Service) GetInventoryItemDetails(ctx context.Context, accountID i
 	return details, nil
 }
 
-// IsInventoryItemOwned reads whether the account owns the item.
 func (service *Service) IsInventoryItemOwned(ctx context.Context, accountID int64, category robloxservices.InventoryCategory, itemID int64) (bool, error) {
 	account, err := service.accountRepository.GetView(ctx, accountID)
 	if err != nil {
@@ -141,7 +140,6 @@ func (service *Service) DeleteInventoryAsset(ctx context.Context, accountID, ass
 	})
 }
 
-// GetWornAssetIDs lists the assets that the user wears now.
 func (service *Service) GetWornAssetIDs(ctx context.Context, accountID, userID int64) ([]int64, error) {
 	ctx, version, done, err := service.beginAccountSession(ctx, accountID, "inventory-worn-assets")
 	if err != nil {

@@ -310,16 +310,12 @@ func (service *Users) SocialCount(ctx context.Context, accountID, version, userI
 	default:
 		return nil, invalidProfileDetails("profile-social")
 	}
-	var payload struct {
-		Count *int64 `json:"count"`
-	}
-	endpoint := "profile-" + counter
 	address := "https://friends.roblox.com/v1/users/" + strconv.FormatInt(userID, 10) + "/" + counter + "/count"
-	err := service.readAccountDetails(ctx, accountID, version, endpoint, address, &payload)
-	if err == nil && (payload.Count == nil || *payload.Count < 0) {
-		err = invalidProfileDetails(endpoint)
+	count, err := service.readCount(ctx, accountID, version, "profile-"+counter, address)
+	if err != nil {
+		return nil, err
 	}
-	return payload.Count, err
+	return &count, nil
 }
 
 func (service *Users) PrimaryGroup(ctx context.Context, accountID, version, userID int64) (*UserPrimaryGroup, error) {
@@ -368,7 +364,6 @@ func (service *Users) CommunityCount(ctx context.Context, accountID, version, us
 
 // Shape of the unread count verified against signed-in responses captured on
 // 2026-10-15.
-
 func (service *Users) UnreadNotificationCount(ctx context.Context, accountID, version int64) (int64, error) {
 	var payload struct {
 		UnreadNotifications *int64 `json:"unreadNotifications"`

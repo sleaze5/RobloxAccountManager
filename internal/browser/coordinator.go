@@ -170,7 +170,7 @@ func NewCoordinator(paths appdata.Paths, runtimeManager *RuntimeManager, backend
 	ctx, cancel := context.WithCancel(context.Background())
 	coordinator := &Coordinator{paths: paths, runtime: runtimeManager, backend: backend, logger: logger, changed: changed, sessions: make(map[string]*session), candidates: make(map[string]*candidate), root: ctx, cancel: cancel}
 	coordinator.cleanup = newCleanupQueue(paths.BrowserTempRoot, logger, coordinator.bump)
-	runtimeManager.SetChanged(coordinator.bump)
+	runtimeManager.setChanged(coordinator.bump)
 	coordinator.queueStaleSessions()
 	coordinator.cleanup.retry()
 	return coordinator
@@ -368,7 +368,7 @@ func (coordinator *Coordinator) initializeLogin(ctx context.Context, current *se
 func (coordinator *Coordinator) initializeCDP(ctx context.Context, current *session) error {
 	if err := current.cdp.VerifyVersion(ctx, coordinator.runtime.Manifest().Version); err != nil {
 		if errors.Is(err, errBrowserVersionMismatch) {
-			coordinator.runtime.MarkDamaged()
+			coordinator.runtime.markDamaged()
 		}
 		return fmt.Errorf("verify managed browser: %w", err)
 	}
@@ -1060,7 +1060,7 @@ func (coordinator *Coordinator) forceShutdown() error {
 		coordinator.finishSession(current, false, "")
 	}
 	coordinator.starts.Wait()
-	err := coordinator.runtime.StopDownload(30 * time.Second)
+	err := coordinator.runtime.stopDownload(30 * time.Second)
 	coordinator.mutex.Lock()
 	for id := range coordinator.sessions {
 		delete(coordinator.sessions, id)

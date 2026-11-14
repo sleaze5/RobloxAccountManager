@@ -63,7 +63,7 @@ func (location Location) Candidate(mode Mode) (Candidate, bool) {
 	return Candidate{}, false
 }
 
-func ParseMode(modeName string) (Mode, error) {
+func parseMode(modeName string) (Mode, error) {
 	switch mode := Mode(modeName); mode {
 	case ModeStandard:
 		return mode, nil
@@ -76,7 +76,7 @@ func ParseMode(modeName string) (Mode, error) {
 }
 
 func Inspect(requested Mode) (Location, error) {
-	executableDirectory, err := ExecutableDirectory()
+	executableDirectory, err := resolveExecutableDirectory()
 	if err != nil {
 		return Location{}, err
 	}
@@ -270,7 +270,7 @@ func sameDirectory(first, second string) bool {
 
 func FallbackRoot() (string, error) {
 	if portableSupported {
-		return ExecutableDirectory()
+		return resolveExecutableDirectory()
 	}
 	return StandardRoot()
 }
@@ -299,7 +299,7 @@ func RequestedMove(arguments []string) (Mode, error) {
 func argumentMode(arguments []string, prefix string) (Mode, error) {
 	for _, argument := range arguments {
 		if value, ok := strings.CutPrefix(argument, prefix); ok {
-			return ParseMode(value)
+			return parseMode(value)
 		}
 	}
 	return "", nil

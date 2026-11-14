@@ -138,17 +138,17 @@ func (service *Users) FriendRequests(ctx context.Context, accountID, version int
 }
 
 func (service *Users) AcceptFriendRequest(ctx context.Context, accountID, version, userID int64) error {
-	return service.friendAction(ctx, accountID, version, userID, "friend-request-accept", "accept-friend-request")
+	return service.friendAction(ctx, accountID, version, userID, "friend-request-accept", "accept-friend-request", false)
 }
 
 func (service *Users) DeclineFriendRequest(ctx context.Context, accountID, version, userID int64) error {
-	return service.friendAction(ctx, accountID, version, userID, "friend-request-decline", "decline-friend-request")
+	return service.friendAction(ctx, accountID, version, userID, "friend-request-decline", "decline-friend-request", false)
 }
 
 // Unfriend ends a friendship, or cancels a friend request that the account
 // sent. Roblox uses the same request for both, as RoSeal does.
 func (service *Users) Unfriend(ctx context.Context, accountID, version, userID int64) error {
-	return service.friendAction(ctx, accountID, version, userID, "unfriend", "unfriend")
+	return service.friendAction(ctx, accountID, version, userID, "unfriend", "unfriend", false)
 }
 
 func (service *Users) SendFriendRequest(ctx context.Context, accountID, version, userID int64) error {
@@ -185,28 +185,30 @@ func (service *Users) trustedFriendAction(ctx context.Context, accountID, versio
 	return err
 }
 
-func (service *Users) friendAction(ctx context.Context, accountID, version, userID int64, endpoint, action string) error {
+func (service *Users) friendAction(ctx context.Context, accountID, version, userID int64, endpoint, action string, requiresSuccess bool) error {
 	address := "https://friends.roblox.com/v1/users/" + strconv.FormatInt(userID, 10) + "/" + action
 	response, err := service.writeAccount(ctx, accountID, version, endpoint, http.MethodPost, address, nil)
 	if err != nil {
 		return err
 	}
-	return validateSocialActionResponse(endpoint, response, endpoint == "follow")
+	return validateSocialActionResponse(endpoint, response, requiresSuccess)
 }
 
 func validateSocialActionResponse(endpoint string, response *roblox.Response, requiresSuccess bool) error {
 	if !requiresSuccess && strings.TrimSpace(string(response.Body)) == "" {
 		return nil
 	}
+	unconfirmed := &roblox.Error{Kind: roblox.KindProtocol, Endpoint: endpoint, Status: response.Status, Message: "Roblox did not confirm the action. Refresh to check its status."}
 	var payload *struct {
 		Success           *bool `json:"success"`
 		IsCaptchaRequired *bool `json:"isCaptchaRequired"`
 	}
 	if err := json.Unmarshal(response.Body, &payload); err != nil {
-		return &roblox.Error{Kind: roblox.KindProtocol, Endpoint: endpoint, Status: response.Status, Message: "Roblox did not confirm the action. Refresh to check its status.", Cause: err}
+		unconfirmed.Cause = err
+		return unconfirmed
 	}
 	if payload == nil {
-		return &roblox.Error{Kind: roblox.KindProtocol, Endpoint: endpoint, Status: response.Status, Message: "Roblox did not confirm the action. Refresh to check its status."}
+		return unconfirmed
 	}
 	if payload.IsCaptchaRequired != nil && *payload.IsCaptchaRequired {
 		return &roblox.Error{Kind: roblox.KindChallengeRequired, Endpoint: endpoint, Status: response.Status, Message: roblox.CaptchaRequiredMessage}
@@ -215,7 +217,7 @@ func validateSocialActionResponse(endpoint string, response *roblox.Response, re
 		if !requiresSuccess {
 			return nil
 		}
-		return &roblox.Error{Kind: roblox.KindProtocol, Endpoint: endpoint, Status: response.Status, Message: "Roblox did not confirm the action. Refresh to check its status."}
+		return unconfirmed
 	}
 	if !*payload.Success {
 		return &roblox.Error{Kind: roblox.KindForbidden, Endpoint: endpoint, Status: response.Status, Message: "Roblox did not complete the action. Open this account in the browser to check its status."}
@@ -476,11 +478,11 @@ func (service *Users) SetNickname(ctx context.Context, accountID, version, userI
 }
 
 func (service *Users) Follow(ctx context.Context, accountID, version, userID int64) error {
-	return service.friendAction(ctx, accountID, version, userID, "follow", "follow")
+	return service.friendAction(ctx, accountID, version, userID, "follow", "follow", true)
 }
 
 func (service *Users) Unfollow(ctx context.Context, accountID, version, userID int64) error {
-	return service.friendAction(ctx, accountID, version, userID, "unfollow", "unfollow")
+	return service.friendAction(ctx, accountID, version, userID, "unfollow", "unfollow", false)
 }
 
 func (service *Users) postRead(ctx context.Context, accountID, version int64, endpoint, address string, payload, target any) error {

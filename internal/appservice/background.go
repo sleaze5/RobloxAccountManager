@@ -64,7 +64,7 @@ func (service *Service) backgroundValidation(ctx context.Context) {
 		case <-timer.C:
 		}
 
-		if !service.events.BackgroundPaused(time.Now()) {
+		if !service.events.isBackgroundPaused(time.Now()) {
 			if !service.enqueueBackgroundValidation(ctx, jobs) {
 				return
 			}

@@ -91,7 +91,7 @@ func (launch *Launch) Release(root string) error {
 }
 
 func (launch *Launch) captureCrashes() {
-	if err := launch.system.CaptureCrashes(launch.id); err != nil {
+	if err := launch.system.captureCrashes(launch.id); err != nil {
 		launch.Error("could not enable runtime crash capture", err)
 	}
 }

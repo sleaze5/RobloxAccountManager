@@ -158,16 +158,16 @@ func validPlayerToken(token string) bool {
 	if token == "" || len(token) > 64 {
 		return false
 	}
-	for _, char := range token {
-		if !isHex(char) {
+	for _, character := range token {
+		if !isHexadecimalDigit(character) {
 			return false
 		}
 	}
 	return true
 }
 
-func isHex(char rune) bool {
-	return '0' <= char && char <= '9' || 'a' <= char && char <= 'f' || 'A' <= char && char <= 'F'
+func isHexadecimalDigit(character rune) bool {
+	return '0' <= character && character <= '9' || 'a' <= character && character <= 'f' || 'A' <= character && character <= 'F'
 }
 
 func (service *Games) loadServerPlayerImages(ctx context.Context, tokens [][]string, page *games.ServerPage) error {

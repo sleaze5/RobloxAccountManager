@@ -7,7 +7,6 @@ import (
 	"net/url"
 	"strconv"
 	"strings"
-	"unicode/utf8"
 
 	"github.com/sleaze5/RobloxAccountManager/internal/gamelaunch"
 	"github.com/sleaze5/RobloxAccountManager/internal/games"
@@ -78,8 +77,8 @@ func (service *PrivateServers) Owned(ctx context.Context, accountID, version int
 			continue
 		}
 		server := games.OwnedPrivateServer{
-			ServerID: listedServer.PrivateServerID, Name: privateServerText(listedServer.Name), Active: listedServer.Active,
-			GameName: privateServerText(listedServer.UniverseName), Renews: listedServer.WillRenew, ExpiresAtMs: robloxTimeMs(listedServer.ExpirationDate),
+			ServerID: listedServer.PrivateServerID, Name: boundedText(listedServer.Name, maxPrivateServerTextLength), Active: listedServer.Active,
+			GameName: boundedText(listedServer.UniverseName, maxPrivateServerTextLength), Renews: listedServer.WillRenew, ExpiresAtMs: robloxTimeMs(listedServer.ExpirationDate),
 		}
 		if games.ValidID(listedServer.UniverseID) {
 			server.UniverseID = listedServer.UniverseID
@@ -119,8 +118,8 @@ func (service *PrivateServers) ForPlace(ctx context.Context, accountID, version,
 			continue
 		}
 		server := games.PrivateServer{
-			ServerID: listedServer.VipServerID, Name: privateServerText(listedServer.Name),
-			OwnerID: max(listedServer.Owner.ID, 0), OwnerName: privateServerText(listedServer.Owner.Name), OwnerDisplayName: privateServerText(listedServer.Owner.DisplayName),
+			ServerID: listedServer.VipServerID, Name: boundedText(listedServer.Name, maxPrivateServerTextLength),
+			OwnerID: max(listedServer.Owner.ID, 0), OwnerName: boundedText(listedServer.Owner.Name, maxPrivateServerTextLength), OwnerDisplayName: boundedText(listedServer.Owner.DisplayName, maxPrivateServerTextLength),
 			Owned: ownerID > 0 && listedServer.Owner.ID == ownerID, Playing: max(listedServer.Playing, 0), MaxPlayers: max(listedServer.MaxPlayers, 0),
 			Running: games.ValidJobID(listedServer.ID),
 		}
@@ -207,9 +206,9 @@ func (service *PrivateServers) Settings(ctx context.Context, accountID, version,
 	if payload.ID != serverID {
 		return games.PrivateServerSettings{}, privateServerDataError("private-server")
 	}
-	settings := games.PrivateServerSettings{ServerID: serverID, Name: privateServerText(payload.Name), Active: payload.Active, Users: []games.PrivateServerUser{}}
+	settings := games.PrivateServerSettings{ServerID: serverID, Name: boundedText(payload.Name, maxPrivateServerTextLength), Active: payload.Active, Users: []games.PrivateServerUser{}}
 	if payload.Game != nil {
-		settings.GameName = privateServerText(payload.Game.Name)
+		settings.GameName = boundedText(payload.Game.Name, maxPrivateServerTextLength)
 	}
 	if link, err := url.Parse(payload.Link); err == nil && link.Scheme == "https" && strings.EqualFold(link.Hostname(), "www.roblox.com") {
 		settings.JoinLink = link.String()
@@ -225,7 +224,7 @@ func (service *PrivateServers) Settings(ctx context.Context, accountID, version,
 		settings.FriendsAllowed = permissions.FriendsAllowed
 		for _, user := range permissions.Users {
 			if games.ValidID(user.ID) {
-				settings.Users = append(settings.Users, games.PrivateServerUser{UserID: user.ID, Username: privateServerText(user.Name), DisplayName: privateServerText(user.DisplayName)})
+				settings.Users = append(settings.Users, games.PrivateServerUser{UserID: user.ID, Username: boundedText(user.Name, maxPrivateServerTextLength), DisplayName: boundedText(user.DisplayName, maxPrivateServerTextLength)})
 			}
 		}
 	}
@@ -292,14 +291,6 @@ func privateServerPath(serverID int64, suffix string) string {
 		path += "/" + suffix
 	}
 	return path
-}
-
-func privateServerText(rawText string) string {
-	rawText = strings.TrimSpace(rawText)
-	if !utf8.ValidString(rawText) || utf8.RuneCountInString(rawText) > maxPrivateServerTextLength {
-		return ""
-	}
-	return rawText
 }
 
 func privateServerDataError(endpoint string) error {
