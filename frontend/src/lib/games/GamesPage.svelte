@@ -34,6 +34,7 @@
 		workspace,
 		onFillLaunch,
 		onFillLaunchLink,
+		onOpenInBrowser,
 	}: {
 		store: GamesStore
 		accounts: AccountStore
@@ -41,6 +42,7 @@
 		workspace: WorkspaceState
 		onFillLaunch: (placeId: number, jobId?: string) => void
 		onFillLaunchLink: (link: string) => void
+		onOpenInBrowser: (accountId: number, pageUrl: string) => void
 	} = $props()
 	const favoritesMode = $derived(store.mode === "favorites"),
 		count = $derived(store.places.length),
@@ -530,5 +532,11 @@
 </main>
 
 {#if store.menu}
-	<GameContextMenu {store} menu={store.menu} {onFillLaunch} />
+	<GameContextMenu
+		{store}
+		menu={store.menu}
+		canOpenInBrowser={accounts.selectedAccount.id !== 0}
+		{onFillLaunch}
+		onOpenInBrowser={(pageUrl) =>
+			onOpenInBrowser(accounts.selectedAccount.id, pageUrl)} />
 {/if}

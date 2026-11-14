@@ -1,7 +1,8 @@
 <script lang="ts">
-	import arrowSquareOutIcon from "@phosphor-icons/core/regular/arrow-square-out.svg?raw"
 	import atIcon from "@phosphor-icons/core/regular/at.svg?raw"
+	import globeIcon from "@phosphor-icons/core/regular/globe.svg?raw"
 	import hashIcon from "@phosphor-icons/core/regular/hash.svg?raw"
+	import linkIcon from "@phosphor-icons/core/regular/link.svg?raw"
 	import listPlusIcon from "@phosphor-icons/core/regular/list-plus.svg?raw"
 	import magnifyingGlassIcon from "@phosphor-icons/core/regular/magnifying-glass.svg?raw"
 	import textTIcon from "@phosphor-icons/core/regular/text-t.svg?raw"
@@ -25,14 +26,17 @@
 		onFillLaunch,
 		onSearchPlace,
 		onRelationshipAction,
+		onOpenInBrowser,
 	}: {
 		store: SocialStore
 		menu: SocialMenu
 		onFillLaunch: (placeId: number, jobId: string) => void
 		onSearchPlace: (placeId: number) => void
 		onRelationshipAction: (person: SocialUser, action: RelationshipActionId) => void
+		onOpenInBrowser: (pageUrl: string) => void
 	} = $props()
 	const person = $derived(menu.person),
+		profileUrl = $derived(`https://www.roblox.com/users/${person.userId}/profile`),
 		presence = $derived(person.presence),
 		placeId = $derived(presence?.placeId ?? 0),
 		inExperience = $derived(
@@ -137,9 +141,13 @@
 		class="menu-item"
 		type="button"
 		role="menuitem"
-		onclick={() => void store.openProfile(person)}
-		><Icon svg={arrowSquareOutIcon} size={16} aria-hidden="true" /><span
-			>Open Roblox profile</span
+		onclick={() => {
+			const pageUrl = profileUrl
+			store.closeMenu()
+			onOpenInBrowser(pageUrl)
+		}}
+		><Icon svg={globeIcon} size={16} aria-hidden="true" /><span
+			>Open in browser</span
 		></button>
 
 	<div role="group" aria-label="Copy user details">
@@ -169,6 +177,15 @@
 			aria-label="Copy user ID"
 			onclick={() => void store.copy(person.userId, "User ID")}
 			><Icon svg={hashIcon} size={16} aria-hidden="true" /><span>User ID</span
+			></button>
+		<button
+			class="menu-item"
+			type="button"
+			role="menuitem"
+			aria-label="Copy profile link"
+			onclick={() => void store.copy(profileUrl, "Profile link")}
+			><Icon svg={linkIcon} size={16} aria-hidden="true" /><span
+				>Profile link</span
 			></button>
 	</div>
 	{#if !relationship?.self}

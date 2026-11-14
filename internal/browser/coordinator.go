@@ -210,27 +210,48 @@ func (coordinator *Coordinator) Effects() ShutdownEffects {
 }
 
 func (coordinator *Coordinator) StartLogin(ctx context.Context) (SessionState, error) {
-	return coordinator.start(ctx, ModeLogin, 0)
+	return coordinator.start(ctx, ModeLogin, 0, "https://www.roblox.com/Login")
 }
-func (coordinator *Coordinator) OpenAccount(ctx context.Context, accountID int64) (SessionState, error) {
+
+// OpenAccount shows the page in the browser of the account. A browser that
+// is already open for the account shows the page in a new tab.
+func (coordinator *Coordinator) OpenAccount(ctx context.Context, accountID int64, pageURL string) (SessionState, error) {
 	coordinator.savedStartMutex.Lock()
 	defer coordinator.savedStartMutex.Unlock()
 	coordinator.mutex.Lock()
 	for _, current := range coordinator.sessions {
-		if current.state.Mode == ModeSaved && current.state.AccountID == accountID && current.state.Lifecycle != LifecycleClosed && current.state.Lifecycle != LifecycleFailed {
-			state := current.state
-			coordinator.mutex.Unlock()
-			if err := coordinator.Focus(state.ID); err != nil {
-				return state, err
-			}
-			return state, nil
+		if current.state.Mode != ModeSaved || current.state.AccountID != accountID || current.state.Lifecycle == LifecycleClosed || current.state.Lifecycle == LifecycleFailed {
+			continue
 		}
+		state := current.state
+		coordinator.mutex.Unlock()
+		if err := coordinator.openTab(ctx, current, pageURL); err != nil {
+			return state, err
+		}
+		if err := coordinator.Focus(state.ID); err != nil {
+			return state, err
+		}
+		return state, nil
 	}
 	coordinator.mutex.Unlock()
-	return coordinator.start(ctx, ModeSaved, accountID)
+	return coordinator.start(ctx, ModeSaved, accountID, pageURL)
 }
 
-func (coordinator *Coordinator) start(ctx context.Context, mode Mode, accountID int64) (SessionState, error) {
+func (coordinator *Coordinator) openTab(ctx context.Context, current *session, pageURL string) error {
+	tabContext, cancel := context.WithTimeout(ctx, 5*time.Second)
+	defer cancel()
+	targetID, err := current.cdp.CreateTarget(tabContext, pageURL)
+	if err != nil {
+		coordinator.logger.WarnContext(ctx, "browser tab could not open", "operation", "browser-open-page", "session_id", current.state.ID, "account_id", current.state.AccountID, "error", err)
+		return fmt.Errorf("open browser tab: %w", err)
+	}
+	coordinator.mutex.Lock()
+	current.targetID = targetID
+	coordinator.mutex.Unlock()
+	return nil
+}
+
+func (coordinator *Coordinator) start(ctx context.Context, mode Mode, accountID int64, pageURL string) (SessionState, error) {
 	coordinator.mutex.Lock()
 	if coordinator.launchesBlocked || coordinator.stopped {
 		coordinator.mutex.Unlock()
@@ -304,13 +325,13 @@ func (coordinator *Coordinator) start(ctx context.Context, mode Mode, accountID 
 	coordinator.mutex.Unlock()
 	coordinator.logger.InfoContext(ctx, "managed browser session starting", "operation", "browser-session-start", "session_id", browserSessionID, "session_mode", mode, "account_id", accountID)
 	if mode == ModeLogin {
-		go coordinator.initializeLogin(currentContext, current)
+		go coordinator.initializeLogin(currentContext, current, pageURL)
 		return state, nil
 	}
-	return coordinator.initializeSavedSession(ctx, current, state, record.Cookie)
+	return coordinator.initializeSavedSession(ctx, current, state, record.Cookie, pageURL)
 }
 
-func (coordinator *Coordinator) initializeLogin(ctx context.Context, current *session) {
+func (coordinator *Coordinator) initializeLogin(ctx context.Context, current *session, pageURL string) {
 	startupContext, cancel := context.WithTimeout(ctx, 12*time.Second)
 	defer cancel()
 	if err := coordinator.initializeCDP(startupContext, current); err != nil {
@@ -325,7 +346,7 @@ func (coordinator *Coordinator) initializeLogin(ctx context.Context, current *se
 		err = current.cdp.SetBrowserID(startupContext, sessionID, current.browserID)
 	}
 	if err == nil {
-		err = current.cdp.Navigate(startupContext, sessionID, "https://www.roblox.com/Login")
+		err = current.cdp.Navigate(startupContext, sessionID, pageURL)
 	}
 	if err != nil {
 		if ctx.Err() != nil {
@@ -1268,7 +1289,7 @@ func (coordinator *Coordinator) finishStart(registered bool) {
 	coordinator.starts.Done()
 }
 
-func (coordinator *Coordinator) initializeSavedSession(ctx context.Context, current *session, state SessionState, cookie string) (SessionState, error) {
+func (coordinator *Coordinator) initializeSavedSession(ctx context.Context, current *session, state SessionState, cookie, pageURL string) (SessionState, error) {
 	browserSessionID, mode, accountID := state.ID, state.Mode, state.AccountID
 	startupContext, startupCancel := context.WithTimeout(ctx, 12*time.Second)
 	defer startupCancel()
@@ -1290,7 +1311,7 @@ func (coordinator *Coordinator) initializeSavedSession(ctx context.Context, curr
 		return SessionState{}, errors.New("the saved account cookie could not be prepared in the browser")
 	}
 	current.lastCookie = cookie
-	if err := current.cdp.Navigate(startupContext, sessionID, "https://www.roblox.com/home"); err != nil {
+	if err := current.cdp.Navigate(startupContext, sessionID, pageURL); err != nil {
 		coordinator.abortStartup(current, err)
 		return SessionState{}, err
 	}

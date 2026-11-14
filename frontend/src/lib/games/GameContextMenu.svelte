@@ -1,5 +1,7 @@
 <script lang="ts">
+	import globeIcon from "@phosphor-icons/core/regular/globe.svg?raw"
 	import hashIcon from "@phosphor-icons/core/regular/hash.svg?raw"
+	import linkIcon from "@phosphor-icons/core/regular/link.svg?raw"
 	import listPlusIcon from "@phosphor-icons/core/regular/list-plus.svg?raw"
 	import pencilLineIcon from "@phosphor-icons/core/regular/pencil-line.svg?raw"
 	import starFillIcon from "@phosphor-icons/core/fill/star-fill.svg?raw"
@@ -14,13 +16,18 @@
 	let {
 		store,
 		menu,
+		canOpenInBrowser,
 		onFillLaunch,
+		onOpenInBrowser,
 	}: {
 		store: GamesStore
 		menu: GameMenu
+		canOpenInBrowser: boolean
 		onFillLaunch: (placeId: number) => void
+		onOpenInBrowser: (pageUrl: string) => void
 	} = $props()
 	const place = $derived(menu.place),
+		gameUrl = $derived(`https://www.roblox.com/games/${place.placeId}`),
 		favorite = $derived(store.isFavorite(place.placeId)),
 		group = $derived(place.creatorType === "Group"),
 		owner = $derived(group ? "Group" : "Creator"),
@@ -86,6 +93,18 @@
 				>Add to favorites</span
 			></button>
 	{/if}
+	<button
+		class="menu-item"
+		type="button"
+		disabled={!canOpenInBrowser}
+		onclick={() => {
+			const pageUrl = gameUrl
+			store.closeMenu()
+			onOpenInBrowser(pageUrl)
+		}}
+		><Icon svg={globeIcon} size={16} aria-hidden="true" /><span
+			>Open in browser</span
+		></button>
 
 	<div role="group" aria-label="Copy game details">
 		<div class="menu-heading" aria-hidden="true">Copy</div>
@@ -102,6 +121,13 @@
 			aria-label="Copy place ID"
 			onclick={() => void store.copy(place.placeId, "Place ID")}
 			><Icon svg={hashIcon} size={16} aria-hidden="true" /><span>Place ID</span
+			></button>
+		<button
+			class="menu-item"
+			type="button"
+			aria-label="Copy game link"
+			onclick={() => void store.copy(gameUrl, "Game link")}
+			><Icon svg={linkIcon} size={16} aria-hidden="true" /><span>Game link</span
 			></button>
 		<button
 			class="menu-item"

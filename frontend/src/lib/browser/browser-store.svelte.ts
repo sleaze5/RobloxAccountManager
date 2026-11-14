@@ -239,10 +239,10 @@ export class BrowserStore {
 		}
 	}
 
-	async openAccount(accountId: number): Promise<void> {
+	async openAccount(accountId: number, pageUrl: string): Promise<void> {
 		this.error = ""
 		try {
-			await accountBackend.OpenAccountBrowser(accountId)
+			await accountBackend.OpenAccountBrowser(accountId, pageUrl)
 			await this.refresh()
 		} catch (error) {
 			this.#notifications?.show({

@@ -54,6 +54,7 @@
 		onRelationshipAction,
 		onEditNickname,
 		onRemoveSelected,
+		onOpenInBrowser,
 	}: {
 		store: SocialStore
 		accounts: AccountStore
@@ -63,6 +64,7 @@
 		onRelationshipAction: (person: SocialUser, action: RelationshipActionId) => void
 		onEditNickname: (person: SocialUser, nickname: string) => void
 		onRemoveSelected: () => void
+		onOpenInBrowser: (accountId: number, pageUrl: string) => void
 	} = $props()
 
 	const minimumSearchLength = 3,
@@ -773,5 +775,6 @@
 		menu={store.menu}
 		{onFillLaunch}
 		{onSearchPlace}
-		{onRelationshipAction} />
+		{onRelationshipAction}
+		onOpenInBrowser={(pageUrl) => onOpenInBrowser(store.accountId, pageUrl)} />
 {/if}

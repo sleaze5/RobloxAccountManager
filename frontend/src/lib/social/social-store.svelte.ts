@@ -916,10 +916,6 @@ export class SocialStore {
 		}
 	}
 
-	async openProfile(person: SocialSubject): Promise<void> {
-		await this.openLink(`https://www.roblox.com/users/${person.userId}/profile`)
-	}
-
 	async openLink(url: string): Promise<void> {
 		this.closeMenu()
 		try {
