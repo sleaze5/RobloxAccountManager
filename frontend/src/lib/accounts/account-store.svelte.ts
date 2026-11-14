@@ -2,6 +2,7 @@ import { Events } from "@wailsio/runtime"
 import {
 	accountBackend,
 	AccountCopyField,
+	AccountInfoSection,
 	FileState,
 	ImportStatus,
 	LaunchMethod,
@@ -1058,6 +1059,22 @@ export class AccountStore {
 			const presence = this.#presences.get(Number(account.userId))
 			return presence ? accountWithPresence(account, presence) : account
 		})
+	}
+
+	// verifyVoiceSuspension reads the voice chat status of an account again and
+	// reports whether Roblox answered. The backend refreshes the account list
+	// when the suspension changed.
+	async verifyVoiceSuspension(accountId: number): Promise<boolean> {
+		if (!this.vault.unlocked) return false
+		try {
+			const snapshot = await accountBackend.GetAccountInfo(
+				accountId,
+				AccountInfoSection.InfoSectionVoiceChat,
+			)
+			return snapshot.isComplete
+		} catch {
+			return false
+		}
 	}
 
 	async refreshAccountAvatar(accountId: number): Promise<void> {

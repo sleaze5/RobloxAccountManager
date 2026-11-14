@@ -235,7 +235,9 @@
 									size={12}
 									aria-hidden="true" />{/if}
 							{#if account.voiceSuspension}<VoiceSuspensionIcon
-									voiceSuspension={account.voiceSuspension} />{/if}
+									voiceSuspension={account.voiceSuspension}
+									onVerify={() =>
+										store.verifyVoiceSuspension(account.id)} />{/if}
 						</strong>
 						<small
 							class="block truncate text-2xs text-fg-faint group-hover/row:text-fg-muted group-data-selected/row:text-fg-muted"

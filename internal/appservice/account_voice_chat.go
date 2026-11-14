@@ -2,7 +2,6 @@ package appservice
 
 import (
 	"context"
-	"time"
 
 	"github.com/sleaze5/RobloxAccountManager/internal/accounts"
 	robloxservices "github.com/sleaze5/RobloxAccountManager/internal/roblox/services"
@@ -59,13 +58,10 @@ func (service *Service) recordVoiceSuspension(ctx context.Context, accountID, us
 }
 
 // attachVoiceSuspension adds the cached voice chat suspension of an account to
-// its view, unless the suspension already ended.
+// its view. A suspension past its end stays until a new read shows that Roblox
+// lifted it.
 func (service *Service) attachVoiceSuspension(ctx context.Context, view *accounts.AccountView) {
-	suspension := service.users.CachedVoiceSuspension(ctx, view.RobloxUserID)
-	if suspension != nil && suspension.EndsAtMs != nil && *suspension.EndsAtMs <= time.Now().UnixMilli() {
-		return
-	}
-	view.VoiceSuspension = suspension
+	view.VoiceSuspension = service.users.CachedVoiceSuspension(ctx, view.RobloxUserID)
 }
 
 func voiceSuspension(voice robloxservices.UserVoiceChat) *accounts.VoiceSuspension {
