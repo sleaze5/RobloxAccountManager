@@ -184,6 +184,7 @@ func (service *Service) ListAccounts(ctx context.Context, query accounts.Account
 		if service.attachModeration(ctx, account) {
 			service.refreshAccountModeration(account.ID, account.RobloxUserID)
 		}
+		service.attachVoiceSuspension(ctx, account)
 	}
 	return page, nil
 }

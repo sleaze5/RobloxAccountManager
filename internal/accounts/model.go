@@ -45,6 +45,12 @@ type Moderation struct {
 	Message    string         `json:"message"`
 }
 
+// VoiceSuspension is a Roblox voice chat suspension of a saved account.
+// EndsAtMs is nil when Roblox did not say when the suspension ends.
+type VoiceSuspension struct {
+	EndsAtMs *int64 `json:"endsAtMs,omitempty"`
+}
+
 type Identity struct {
 	RobloxUserID int64
 	Username     string
@@ -76,22 +82,23 @@ type SessionRecord struct {
 }
 
 type AccountView struct {
-	ID                int64        `json:"id"`
-	RobloxUserID      int64        `json:"robloxUserId"`
-	Username          string       `json:"username"`
-	DisplayName       string       `json:"displayName"`
-	HasSavedPassword  bool         `json:"hasSavedPassword"`
-	Tags              []TagView    `json:"tags"`
-	State             SessionState `json:"state"`
-	StateReason       string       `json:"stateReason,omitempty"`
-	Moderation        *Moderation  `json:"moderation,omitempty"`
-	SecretVersion     int64        `json:"secretVersion"`
-	CookieExpiresAtMs *int64       `json:"cookieExpiresAtMs,omitempty"`
-	CreatedAtMs       int64        `json:"createdAtMs"`
-	ImportedAtMs      int64        `json:"importedAtMs"`
-	RotatedAtMs       *int64       `json:"rotatedAtMs,omitempty"`
-	LastValidatedAtMs *int64       `json:"lastValidatedAtMs,omitempty"`
-	UpdatedAtMs       int64        `json:"updatedAtMs"`
+	ID                int64            `json:"id"`
+	RobloxUserID      int64            `json:"robloxUserId"`
+	Username          string           `json:"username"`
+	DisplayName       string           `json:"displayName"`
+	HasSavedPassword  bool             `json:"hasSavedPassword"`
+	Tags              []TagView        `json:"tags"`
+	State             SessionState     `json:"state"`
+	StateReason       string           `json:"stateReason,omitempty"`
+	Moderation        *Moderation      `json:"moderation,omitempty"`
+	VoiceSuspension   *VoiceSuspension `json:"voiceSuspension,omitempty"`
+	SecretVersion     int64            `json:"secretVersion"`
+	CookieExpiresAtMs *int64           `json:"cookieExpiresAtMs,omitempty"`
+	CreatedAtMs       int64            `json:"createdAtMs"`
+	ImportedAtMs      int64            `json:"importedAtMs"`
+	RotatedAtMs       *int64           `json:"rotatedAtMs,omitempty"`
+	LastValidatedAtMs *int64           `json:"lastValidatedAtMs,omitempty"`
+	UpdatedAtMs       int64            `json:"updatedAtMs"`
 }
 
 type AccountCursor struct {

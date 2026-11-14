@@ -4,6 +4,7 @@
 	import Icon from "../shared/Icon.svelte"
 	import { VoiceChatState } from "../backend/bridge"
 	import type { VoiceChat } from "../backend/bridge"
+	import { CountdownClock } from "../shared/countdown-clock.svelte"
 	import { formatClock } from "../shared/duration"
 
 	let { voiceChat, label }: { voiceChat: VoiceChat | null; label: string } = $props()
@@ -16,26 +17,15 @@
 		[VoiceChatState.VoiceChatSuspended]: { tone: "warning", label: "Suspended" },
 	}
 
-	let now = $state(Date.now())
-
-	const status = $derived(states[voiceChat?.state ?? VoiceChatState.$zero]),
+	const clock = new CountdownClock(),
+		status = $derived(states[voiceChat?.state ?? VoiceChatState.$zero]),
 		suspendedUntil = $derived(
 			voiceChat?.state === VoiceChatState.VoiceChatSuspended
 				? voiceChat.suspendedUntilMs
 				: 0,
 		)
 
-	$effect(() => {
-		const until = suspendedUntil,
-			current = Date.now()
-		now = current
-		if (until <= current) return
-		const timer = window.setInterval(() => {
-			now = Date.now()
-			if (now >= until) window.clearInterval(timer)
-		}, 1000)
-		return () => window.clearInterval(timer)
-	})
+	$effect(() => clock.track(suspendedUntil))
 </script>
 
 <div data-tone={status.tone || undefined}>
@@ -51,11 +41,11 @@
 	</dt>
 	<dd>
 		<span>{status.label}</span>
-		{#if suspendedUntil > now}
+		{#if suspendedUntil > clock.nowMs}
 			<small class="tabular-nums"
 				>Ends in <time datetime={new Date(suspendedUntil).toISOString()}
 					>{formatClock(
-						Math.ceil((suspendedUntil - now) / 1000),
+						Math.ceil((suspendedUntil - clock.nowMs) / 1000),
 						"days",
 					)}</time
 				></small>

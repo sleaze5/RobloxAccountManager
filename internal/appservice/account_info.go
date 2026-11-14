@@ -124,7 +124,7 @@ func (service *Service) accountInfoSectionReads(ctx context.Context, accountID, 
 			return []accountRead{applyRead("pin", func() (robloxservices.AccountPin, error) { return users.Pin(ctx, accountID, version) }, func(pin robloxservices.AccountPin) { snapshot.Pin = pinState(pin) })}
 		},
 		InfoSectionVoiceChat: func() []accountRead {
-			return []accountRead{service.voiceChatRead(ctx, accountID, version, &snapshot.VoiceChat)}
+			return []accountRead{service.voiceChatRead(ctx, accountID, version, userID, &snapshot.VoiceChat)}
 		},
 		InfoSectionTwoStep: func() []accountRead {
 			return []accountRead{applyRead("twoStep", func() ([]robloxservices.UserVerificationMethod, error) {

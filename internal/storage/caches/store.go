@@ -217,3 +217,17 @@ func (store *Store) Moderation(ctx context.Context, userID int64) *accounts.Mode
 func (store *Store) SaveModeration(ctx context.Context, userID int64, moderation accounts.Moderation) {
 	store.write(ctx, "moderation", userID, moderation)
 }
+
+// VoiceSuspension returns the last voice chat suspension saved for a Roblox
+// user, or nil.
+func (store *Store) VoiceSuspension(ctx context.Context, userID int64) *accounts.VoiceSuspension {
+	var suspension *accounts.VoiceSuspension
+	store.read(ctx, "voice-suspension", userID, &suspension)
+	return suspension
+}
+
+// SaveVoiceSuspension also saves a nil suspension, so that a lifted
+// suspension replaces the saved one.
+func (store *Store) SaveVoiceSuspension(ctx context.Context, userID int64, suspension *accounts.VoiceSuspension) {
+	store.write(ctx, "voice-suspension", userID, suspension)
+}

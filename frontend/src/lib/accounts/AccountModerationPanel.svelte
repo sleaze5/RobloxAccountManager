@@ -7,12 +7,13 @@
 	import Timestamp from "../shared/Timestamp.svelte"
 	import { ModerationKind } from "../backend/bridge"
 	import type { Moderation } from "../backend/bridge"
+	import { CountdownClock } from "../shared/countdown-clock.svelte"
 	import { formatClock } from "../shared/duration"
 	import {
+		banEndsAtMs,
 		banLength,
 		banRemainingSeconds,
 		canReactivate,
-		ModerationClock,
 		resolvesInBrowser,
 	} from "./moderation.svelte"
 
@@ -21,7 +22,7 @@
 		onOpenBrowser,
 	}: { moderation: Moderation | null; onOpenBrowser: () => void } = $props()
 
-	const clock = new ModerationClock(),
+	const clock = new CountdownClock(),
 		kind = $derived(moderation?.kind),
 		reactivatable = $derived(canReactivate(moderation, clock.nowMs)),
 		inBrowser = $derived(resolvesInBrowser(moderation)),
@@ -69,7 +70,7 @@
 			}
 		})
 
-	$effect(() => clock.track(moderation))
+	$effect(() => clock.track(banEndsAtMs(moderation)))
 </script>
 
 <section

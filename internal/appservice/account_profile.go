@@ -158,7 +158,7 @@ func (service *Service) profileSectionReads(ctx context.Context, accountID, vers
 			})}
 		},
 		ProfileSectionVoiceChat: func() []accountRead {
-			return []accountRead{service.voiceChatRead(ctx, accountID, version, &profile.VoiceChat)}
+			return []accountRead{service.voiceChatRead(ctx, accountID, version, userID, &profile.VoiceChat)}
 		},
 		ProfileSectionAbout: func() []accountRead {
 			return []accountRead{applyRead("about", func() (robloxservices.UserAbout, error) { return users.About(ctx, accountID, version, userID) }, func(about robloxservices.UserAbout) {

@@ -24,6 +24,7 @@
 		instant = $state(false),
 		alignEnd = false,
 		anchor: HTMLElement | null = null,
+		anchorTextObserver: MutationObserver | null = null,
 		frame = 0,
 		ignoreFocusUntil = 0,
 		skipDelayUntil = 0,
@@ -75,6 +76,11 @@
 		alignEnd = placement.alignEnd
 		text = element.dataset.tooltip.trim()
 		strong = element.dataset.tooltipStrong?.trim() ?? ""
+		// A countdown changes its tooltip text while the tooltip is open.
+		anchorTextObserver = new MutationObserver(updateAnchorText)
+		anchorTextObserver.observe(element, {
+			attributeFilter: ["data-tooltip", "data-tooltip-strong"],
+		})
 		instant = performance.now() < skipDelayUntil
 		const delayMs = instant ? 0 : openDelayMs
 		openTimer = window.setTimeout(() => {
@@ -143,8 +149,23 @@
 		top = y
 	}
 
+	function updateAnchorText(): void {
+		const nextText = anchor?.dataset.tooltip?.trim()
+		if (!anchor || !nextText) {
+			hide()
+			return
+		}
+		text = nextText
+		strong = anchor.dataset.tooltipStrong?.trim() ?? ""
+		if (!visible) return
+		cancelAnimationFrame(frame)
+		frame = requestAnimationFrame(place)
+	}
+
 	function hide(): void {
 		if (visible) skipDelayUntil = performance.now() + skipDelayMs
+		anchorTextObserver?.disconnect()
+		anchorTextObserver = null
 		window.clearTimeout(openTimer)
 		openTimer = 0
 		cancelAnimationFrame(frame)
