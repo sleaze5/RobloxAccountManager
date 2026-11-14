@@ -366,7 +366,6 @@
 			activeKey={openKey}
 			{menuID}
 			onMenu={openMenu}
-			onAccount={(accountId) => accounts.selectAccount(accountId)}
 			onAddLink={() => (addingLink = true)} />
 	{:else if source === "rbxservers"}
 		<RBXServersList

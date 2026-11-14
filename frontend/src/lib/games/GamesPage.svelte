@@ -14,6 +14,7 @@
 	import SkeletonList from "../shared/SkeletonList.svelte"
 	import SkeletonMediaRow from "../shared/SkeletonMediaRow.svelte"
 	import type { AccountStore } from "../accounts/account-store.svelte"
+	import AccountSwitcher from "../layout/AccountSwitcher.svelte"
 	import WorkbenchSidebar from "../layout/WorkbenchSidebar.svelte"
 	import type { WorkspaceState } from "../layout/workspace-state.svelte"
 	import type { NotificationCenter } from "../notifications/notification-center.svelte"
@@ -515,11 +516,16 @@
 	<footer
 		class="flex h-6 shrink-0 items-center justify-between border-t border-line-subtle bg-surface pl-3 text-2xs text-fg-faint"
 		aria-label="Game list">
+		<div class="flex min-w-0 items-center gap-4">
+			<AccountSwitcher store={accounts} />
+			{#if store.selected}
+				<span class="shrink-0"
+					>Place ID: <span class="font-mono">{store.selected.placeId}</span
+					></span>
+			{/if}
+		</div>
 		{#if store.selected}
-			<span
-				>Place ID: <span class="font-mono">{store.selected.placeId}</span
-				></span>
-			<div class="flex items-center gap-4 pr-3">
+			<div class="flex shrink-0 items-center gap-4 pr-3">
 				<span
 					>Universe ID: <span class="font-mono"
 						>{store.selected.universeId}</span

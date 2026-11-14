@@ -13,6 +13,8 @@
 	import { moveListFocus } from "../shared/move-shortcut"
 	import { appSettings } from "../settings/settings-store.svelte"
 	import type { LogsExplorerVisit } from "../backend/bridge"
+	import type { AccountStore } from "../accounts/account-store.svelte"
+	import AccountSwitcher from "../layout/AccountSwitcher.svelte"
 	import WorkbenchSidebar from "../layout/WorkbenchSidebar.svelte"
 	import OperationError from "../shared/OperationError.svelte"
 	import { formatTimestamp } from "../shared/timestamp"
@@ -21,10 +23,12 @@
 
 	let {
 		store,
+		accounts,
 		onFillLaunch,
 		onSearchPlace,
 	}: {
 		store: LogsExplorerStore
+		accounts: AccountStore
 		onFillLaunch: (visit: LogsExplorerVisit) => void
 		onSearchPlace: (placeId: number) => void
 	} = $props()
@@ -221,12 +225,17 @@
 	<footer
 		class="flex h-6 shrink-0 items-center justify-between border-t border-line-subtle bg-surface pl-3 text-2xs text-fg-faint"
 		aria-label="Log details">
+		<div class="flex min-w-0 items-center gap-4">
+			<AccountSwitcher store={accounts} />
+			{#if selected}
+				<span class="shrink-0"
+					>User ID: <span class="font-mono"
+						>{selected.userId || "Not recorded"}</span
+					></span>
+			{/if}
+		</div>
 		{#if selected}
-			<span
-				>User ID: <span class="font-mono"
-					>{selected.userId || "Not recorded"}</span
-				></span>
-			<div class="flex items-center gap-4 pr-3">
+			<div class="flex shrink-0 items-center gap-4 pr-3">
 				<span
 					>Channel: <span class="font-mono"
 						>{selected.channel || "Not recorded"}</span
