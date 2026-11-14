@@ -6,7 +6,7 @@ import {
 import type { InventoryItem, InventoryItemDetails } from "../backend/bridge"
 import type { AccountStore } from "../accounts/account-store.svelte"
 import { AccountScope } from "../accounts/account-scope"
-import type { CancellableRequest } from "../accounts/account-scope"
+import type { CancellableRequest } from "../shared/cancellable-request"
 import { errorMessage } from "../shared/errors"
 import { isFresh } from "../shared/freshness"
 import { assetCategories } from "./inventory-categories"

@@ -22,7 +22,7 @@ export const sortOrderOptions: { value: InventorySortOrder; label: string }[] = 
 
 // itemValueInRobux is what the item is worth: the recent average price of a
 // collectible, the cheapest resale of a limited item, or its price.
-export function itemValueInRobux(item: InventoryItem): number | null {
+function itemValueInRobux(item: InventoryItem): number | null {
 	if (item.recentAveragePrice !== null) return item.recentAveragePrice
 	if (item.market?.lowestResalePriceInRobux != null) {
 		return item.market.lowestResalePriceInRobux

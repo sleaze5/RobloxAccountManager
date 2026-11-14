@@ -209,7 +209,7 @@ func validateSocialActionResponse(endpoint string, response *roblox.Response, re
 		return &roblox.Error{Kind: roblox.KindProtocol, Endpoint: endpoint, Status: response.Status, Message: "Roblox did not confirm the action. Refresh to check its status."}
 	}
 	if payload.IsCaptchaRequired != nil && *payload.IsCaptchaRequired {
-		return &roblox.Error{Kind: roblox.KindChallengeRequired, Endpoint: endpoint, Status: response.Status, Message: "Roblox requires a CAPTCHA. Open this account in the browser and complete the action there."}
+		return &roblox.Error{Kind: roblox.KindChallengeRequired, Endpoint: endpoint, Status: response.Status, Message: roblox.CaptchaRequiredMessage}
 	}
 	if payload.Success == nil {
 		if !requiresSuccess {

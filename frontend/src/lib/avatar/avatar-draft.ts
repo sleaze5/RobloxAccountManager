@@ -30,6 +30,20 @@ export const bodyParts: { part: BodyPart; label: string }[] = [
 	{ part: "rightLeg", label: "Right leg" },
 ]
 
+// bodyScales lists the scales of an R15 avatar. Roblox lets an account change
+// the body shape scales only when AvatarRules.isBodyShapeEnabled is true.
+export const bodyScales: {
+	scale: keyof AvatarScales
+	label: string
+	isBodyShape: boolean
+}[] = [
+	{ scale: "height", label: "Height", isBodyShape: false },
+	{ scale: "width", label: "Width", isBodyShape: false },
+	{ scale: "head", label: "Head", isBodyShape: false },
+	{ scale: "proportion", label: "Proportions", isBodyShape: true },
+	{ scale: "bodyType", label: "Body type", isBodyShape: true },
+]
+
 export const emoteSlotCount = 8
 
 export function draftOf(avatar: Avatar): AvatarDraft {

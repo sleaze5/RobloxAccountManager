@@ -15,6 +15,7 @@ import type {
 	SavedPrivateServer,
 } from "../backend/bridge"
 import { appSettings } from "../settings/settings-store.svelte"
+import type { CancellableRequest } from "../shared/cancellable-request"
 import { errorMessage } from "../shared/errors"
 import { detailsKeepMs, isFresh } from "../shared/freshness"
 
@@ -26,7 +27,6 @@ const serverPageFreshMs = 30_000,
 	maxCachedServerPages = 50
 
 type PageKey = { placeId: number } & Record<string, string | number | boolean>
-type CancellableRequest<T> = Promise<T> & { cancel(): unknown }
 
 // A page stays after it stops being fresh, so that a revisit shows it at once
 // while it refreshes.

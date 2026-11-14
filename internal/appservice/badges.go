@@ -58,5 +58,9 @@ func (service *Service) ListBadgeAwards(ctx context.Context, query games.BadgeAw
 	if err != nil {
 		return nil, mapRepositoryError(err)
 	}
-	return service.badges.Awards(ctx, query.AccountID, version, account.RobloxUserID, query.BadgeIDs)
+	awards, err := service.badges.Awards(ctx, query.AccountID, version, account.RobloxUserID, query.BadgeIDs)
+	if err != nil {
+		return nil, service.gamesError(ctx, "badge-awards", err)
+	}
+	return awards, nil
 }

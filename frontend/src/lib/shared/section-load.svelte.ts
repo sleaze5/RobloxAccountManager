@@ -1,8 +1,5 @@
+import type { CancellableRequest } from "./cancellable-request"
 import { errorMessage } from "./errors"
-
-interface CancellableRequest<T> extends Promise<T> {
-	cancel(): unknown
-}
 
 export interface SectionFields<Snapshot, Section> {
 	section: Section

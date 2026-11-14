@@ -701,3 +701,12 @@ func positiveID(id int64, endpoint string) error {
 	}
 	return &roblox.Error{Kind: roblox.KindProtocol, Endpoint: endpoint, Message: "The requested identifier is invalid."}
 }
+
+// validateAccountAndTargetIDs checks the account that sends a request and the
+// user, item, or outfit that the request is about.
+func validateAccountAndTargetIDs(accountID, targetID int64, endpoint string) error {
+	if err := positiveID(accountID, endpoint); err != nil {
+		return err
+	}
+	return positiveID(targetID, endpoint)
+}

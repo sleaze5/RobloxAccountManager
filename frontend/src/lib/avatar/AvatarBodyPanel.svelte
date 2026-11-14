@@ -7,24 +7,13 @@
 	import { replayValidationNudge } from "../shared/presence"
 	import AvatarBodyColorFacts from "./AvatarBodyColorFacts.svelte"
 	import AvatarBodyFigure from "./AvatarBodyFigure.svelte"
-	import { bodyParts } from "./avatar-draft"
+	import { bodyParts, bodyScales } from "./avatar-draft"
 	import type { AvatarDraft, BodyPart } from "./avatar-draft"
 	import type { AvatarState } from "./avatar-state.svelte"
 
 	let { avatar, canEdit }: { avatar: AvatarState; canEdit: boolean } = $props()
 
-	const scaleRows: {
-			scale: keyof AvatarScales
-			label: string
-			isBodyShape: boolean
-		}[] = [
-			{ scale: "height", label: "Height", isBodyShape: false },
-			{ scale: "width", label: "Width", isBodyShape: false },
-			{ scale: "head", label: "Head", isBodyShape: false },
-			{ scale: "proportion", label: "Proportions", isBodyShape: true },
-			{ scale: "bodyType", label: "Body type", isBodyShape: true },
-		],
-		percent = new Intl.NumberFormat("en-US", {
+	const percent = new Intl.NumberFormat("en-US", {
 			style: "percent",
 			maximumFractionDigits: 0,
 		}),
@@ -42,7 +31,7 @@
 		rules = $derived(avatar.rules),
 		isR15 = $derived(draft?.avatarType === AvatarType.AvatarR15),
 		shownScaleRows = $derived(
-			scaleRows.filter(
+			bodyScales.filter(
 				(row) => !canEdit || !row.isBodyShape || rules?.isBodyShapeEnabled,
 			),
 		),

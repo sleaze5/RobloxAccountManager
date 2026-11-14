@@ -15,7 +15,7 @@ The Svelte frontend is a presentation layer. The Go backend owns application log
 - Every store action that calls the backend catches its errors and shows them through the store's error state or a notification. A component may call an action without awaiting it, as in `void store.action()`, only when the action handles its own errors.
 - Ignore a response that arrives after a newer request or after the vault locked. Check a version or request counter before you apply the response.
 - Keep state only when the UI reads it.
-- Reuse the shared helpers in `frontend/src/lib/shared/` instead of writing the behavior again: `coalesce.ts` for refreshes that must not overlap, `search.ts` for search terms and matching, `clipboard.ts` for copying and the copy notification, `errors.ts` for error messages, and `text-filter-check.svelte.ts` for Roblox text filter results that apply only while the text is unchanged.
+- Reuse the shared helpers in `frontend/src/lib/shared/` instead of writing the behavior again: `coalesce.ts` for refreshes that must not overlap, `search.ts` for search terms and matching, `clipboard.ts` for copying and the copy notification, `errors.ts` for error messages, `cancellable-request.ts` for the type of a backend call that can be cancelled, and `text-filter-check.svelte.ts` for Roblox text filter results that apply only while the text is unchanged.
 - Give state that belongs to one account's page an `AccountScope` from `frontend/src/lib/accounts/account-scope.ts`. Apply a response only while `isCurrent` is true, pass each request through `track` so that `dispose` cancels it, and call `dispose` when the page closes.
 
 ## Backend
