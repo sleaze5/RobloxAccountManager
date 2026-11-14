@@ -62,6 +62,7 @@ Inputs:
 - `field`: a text field. `search-field` wraps a search input with a leading icon and a clear button.
 - `lib/shared/Select.svelte`: a dropdown. Use it instead of `<select>`. Pass its width with `className`. Set `variant="status-strip"` for its compact, borderless form in a status strip.
 - `lib/shared/NumberStepper.svelte`: a numeric input.
+- `range`: a slider. Set `--range-fill` to the filled share of the track, such as `40%`, because the track cannot read the value of its input.
 - `checkbox`: a checkbox. `check-option` is a checkbox with a label and an optional description. Render the check mark with `lib/shared/CheckboxMark.svelte`, and set `isIndeterminate` for a partial selection.
 - `switch`: a switch. Its input has `role="switch"`.
 - `radio` inside `radio-option`: a radio button with its label.
@@ -81,12 +82,13 @@ Surfaces and feedback:
 - `skeleton` and `skeleton-line`: placeholders for content that is loading. See [Loading, empty, and error states](#loading-empty-and-error-states). `skeleton` is a pulsing block that takes its size and radius from utilities. `skeleton-line` is as tall as a line of the surrounding text and paints a bar as tall as its font.
 - `lib/shared/Skeleton.svelte`: one `skeleton-line` with a screen reader label. Pass its width with `className`.
 - `lib/shared/SkeletonList.svelte`: placeholder rows for a list, in a `role="status"` region. `lib/shared/SkeletonMediaRow.svelte` is a row with an image and two lines, and `lib/shared/SettingsRowsSkeleton.svelte` is a set of `settings-row` placeholders.
+- `lib/shared/SkeletonTile.svelte`: a placeholder item tile in a grid. Set `hasDetailLine={false}` when the real tiles show only a name.
 - `lib/shared/MissingFactValue.svelte`: the value of a fact whose section has no value yet. It shows a skeleton while the section loads, "Unavailable" when it failed, and "N/A" or another empty label when the value does not apply.
 
 Content:
 
 - `empty-state`: empty, loading, and unavailable states for a page or pane.
-- `tag-pill` and `tag-pill-favorite`: tags.
+- `tag-pill` and `tag-pill-favorite`: tags. `tag-pill-success` and `tag-pill-warning` are status pills that color only their icon.
 - `list-row`: a row in a selectable list, with `data-selected` and `data-open`. Show a drop position while dragging with `shadow-drop-before` or `shadow-drop-after`.
 - `facts`: a list of labels and values, written as a `<dl>`. Set `data-tone` on a row for a success, warning, or muted value.
 - `detail-grid`: compact label and value pairs in columns.
@@ -238,7 +240,9 @@ Color:
 
 - Give list rows the `list-row` building block, `h-12` (`h-16` when its presence names a game or place), and a 1px `border-line-subtle` separator. Set `aria-selected="true"` or `data-selected` on the selected row and `data-open` while its menu is open. `list-row` draws the hover and selection treatment from [Controls and states](#controls-and-states).
 - When a list can be reordered, support dragging and `Ctrl+Shift+ArrowUp` and `Ctrl+Shift+ArrowDown`. Announce the new position through a polite live region.
-- Distinguish an empty list ("No accounts yet") from a list with no matches ("No matching accounts"). Tell the user how to change each state.
+- Distinguish an empty list ("No accounts yet") from a list with no matches ("No matching accounts"). Tell the user how to change each state. Give the no-matches state a button that clears the filter.
+- In a grid of item tiles, make every tile in a row the same height. Keep the badges on a tile in one row, so that they never overlap, and let the lower-priority badge truncate.
+- When the user switches a tab or category that replaces the content of a scrolling region, scroll the region back to the top.
 
 ### Menus
 
@@ -250,7 +254,7 @@ Color:
 
 ### Dialogs
 
-1. Render the dialog as a `dialog-card` inside a `dialog-backdrop`. Set its width with a `max-w-*` container size. Put the title and description in a `dialog-heading`, fields in `dialog-field`, and actions in `dialog-actions`. Use `modalFocus` and the dialog transitions from `presence.ts`. `modalFocus` moves focus to the first text field, or to the first control when the dialog has no text field.
+1. Render the dialog as a `dialog-card` inside a `dialog-backdrop`. Set its width with a `max-w-*` container size. Put the title and description in a `dialog-heading`, fields in `dialog-field`, and actions in `dialog-actions`. Use `modalFocus` and the dialog transitions from `presence.ts`. `modalFocus` moves focus to the first text field, or to the first control when the dialog has no text field. When a region inside the dialog scrolls, such as an item grid, set `hasFlexibleBody` on `lib/shared/Dialog.svelte` and give the region `min-h-0`, so that the heading and the actions stay in view.
 2. Use `role="dialog"`. Use `role="alertdialog"` for a confirmation.
 3. Put the title and an optional one-sentence description at the top.
 4. Put a `button-close` in the top-right corner. Omit the close button only when the user must complete the dialog, such as the vault lock screen.
@@ -295,6 +299,7 @@ Color:
 ### Notifications
 
 - Show notifications only through the notification center.
+- Notifications appear as snackbars at the bottom center, above the status strip. When more than 3 are open, the older ones collapse behind a "Show N more" button.
 - Give each notification a short title and one sentence. Use a past-tense title for a result, such as "Accounts saved".
 - Give an error notification an action that helps the user recover when one exists.
 
