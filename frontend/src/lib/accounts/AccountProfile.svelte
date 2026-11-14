@@ -1,5 +1,6 @@
 <script lang="ts">
 	import backpackIcon from "@phosphor-icons/core/regular/backpack.svg?raw"
+	import personArmsSpreadIcon from "@phosphor-icons/core/regular/person-arms-spread.svg?raw"
 	import bellIcon from "@phosphor-icons/core/regular/bell.svg?raw"
 	import chatsIcon from "@phosphor-icons/core/regular/chats.svg?raw"
 	import dotsThreeIcon from "@phosphor-icons/core/regular/dots-three.svg?raw"
@@ -21,6 +22,7 @@
 	import { banEndsAtMs, canReactivate, hasReactivation } from "./moderation.svelte"
 	import { CountdownClock } from "../shared/countdown-clock.svelte"
 	import type { SocialListKind } from "../social/social-store.svelte"
+	import AvatarPage from "../avatar/AvatarPage.svelte"
 	import ChatsPage from "../chats/ChatsPage.svelte"
 	import InventoryPage from "../inventory/InventoryPage.svelte"
 	import RobloxNotificationsPage from "../roblox-notifications/RobloxNotificationsPage.svelte"
@@ -93,6 +95,7 @@
 	let settingsButton = $state<HTMLButtonElement | undefined>(undefined),
 		chatsButton = $state<HTMLButtonElement | undefined>(undefined),
 		notificationsButton = $state<HTMLButtonElement | undefined>(undefined),
+		avatarButton = $state<HTMLButtonElement | undefined>(undefined),
 		inventoryButton = $state<HTMLButtonElement | undefined>(undefined),
 		tagsButton = $state<HTMLButtonElement | undefined>(undefined)
 	const profileState = $derived(
@@ -154,7 +157,7 @@
 	})
 
 	function openPage(
-		page: "settings" | "chats" | "notifications" | "inventory",
+		page: "settings" | "chats" | "notifications" | "avatar" | "inventory",
 	): void {
 		workspace.closeAccountMenus()
 		workspace.accountPage = page
@@ -166,6 +169,7 @@
 			settings: settingsButton,
 			chats: chatsButton,
 			notifications: notificationsButton,
+			avatar: avatarButton,
 			inventory: inventoryButton,
 		}[workspace.accountPage]
 		workspace.accountPage = "profile"
@@ -183,6 +187,15 @@
 		onBack={() => void backToProfile()} />
 {:else if workspace.accountPage === "chats" && hasAccount && store.vault.unlocked}
 	<ChatsPage {store} {workspace} onBack={() => void backToProfile()} />
+{:else if workspace.accountPage === "avatar" && hasAccount && store.vault.unlocked}
+	<AvatarPage
+		accounts={store}
+		{notifications}
+		accountId={selectedAccount.id}
+		userId={Number(selectedAccount.userId)}
+		username={selectedAccount.username}
+		{onSearchPlace}
+		onBack={() => void backToProfile()} />
 {:else if workspace.accountPage === "inventory" && hasAccount && store.vault.unlocked}
 	<InventoryPage
 		accounts={store}
@@ -365,6 +378,20 @@
 								? "99+"
 								: unreadNotifications}</span
 						>{/if}
+				</button>
+				<button
+					class="button-icon"
+					type="button"
+					aria-label={moderated
+						? "Avatar is unavailable while moderated"
+						: "Avatar"}
+					data-tooltip={moderated
+						? "Avatar is unavailable while moderated"
+						: "Avatar"}
+					disabled={!hasAccount || !store.vault.unlocked || moderated}
+					bind:this={avatarButton}
+					onclick={() => openPage("avatar")}>
+					<Icon svg={personArmsSpreadIcon} size={16} aria-hidden="true" />
 				</button>
 				<button
 					class="button-icon"

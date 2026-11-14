@@ -8,6 +8,7 @@
 	import { tick } from "svelte"
 	import { isMoveShortcut, moveListFocus } from "../shared/move-shortcut"
 	import type { WorkspaceState } from "../layout/workspace-state.svelte"
+	import { unsavedChangesGuard } from "../layout/unsaved-changes-guard"
 	import AccountAvatar from "./AccountAvatar.svelte"
 	import type { AccountStore } from "./account-store.svelte"
 	import { SessionState } from "../backend/bridge"
@@ -34,9 +35,14 @@
 		moveAnnouncement = $state("")
 
 	function selectAccount(accountId: number, toggle = false): void {
-		if (toggle) store.toggleAccount(accountId)
-		else store.selectAccount(accountId)
 		workspace.closeAccountMenus()
+		const isOnlySelected =
+			!store.multipleSelected && store.selectedAccount.id === accountId
+		if (isOnlySelected) return
+		unsavedChangesGuard.leave(() => {
+			if (toggle) store.toggleAccount(accountId)
+			else store.selectAccount(accountId)
+		})
 	}
 
 	function openContextMenu(
@@ -44,9 +50,13 @@
 		accountId: number,
 	): void {
 		if (!store.selectedAccountIds.includes(accountId)) {
-			store.selectAccount(accountId)
+			unsavedChangesGuard.leave(() => store.selectAccount(accountId))
 		}
-		workspace.openAccountContextMenu(event, accountId)
+		// The menu opens only when the account is selected now, not after a
+		// confirmation to discard unsaved changes.
+		if (store.selectedAccountIds.includes(accountId)) {
+			workspace.openAccountContextMenu(event, accountId)
+		}
 	}
 
 	function handleContextKey(event: KeyboardEvent, accountId: number): void {

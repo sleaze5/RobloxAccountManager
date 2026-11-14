@@ -185,7 +185,7 @@
 
 	async function buy(): Promise<void> {
 		if (!market) return
-		if (await inventory.buyItem(item, market.priceInRobux)) {
+		if (await inventory.buyItem(item, category.id, market.priceInRobux)) {
 			await showConfirmation(null)
 		}
 	}

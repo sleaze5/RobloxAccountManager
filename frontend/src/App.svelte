@@ -54,6 +54,7 @@
 	import StatusBar from "./lib/layout/StatusBar.svelte"
 	import WindowTitleBar from "./lib/layout/WindowTitleBar.svelte"
 	import { WorkspaceState } from "./lib/layout/workspace-state.svelte"
+	import { unsavedChangesGuard } from "./lib/layout/unsaved-changes-guard"
 	import Notifications from "./lib/notifications/Notifications.svelte"
 	import { NotificationCenter } from "./lib/notifications/notification-center.svelte"
 	import SettingsPage from "./lib/settings/SettingsPage.svelte"
@@ -262,57 +263,72 @@
 		activeDialog = "remove-account"
 	}
 
+	// showPage changes the page once a page with unsaved changes lets it close,
+	// and then runs onShown.
+	function showPage(page: ActivePage, onShown?: () => void): void {
+		if (page === activePage) {
+			onShown?.()
+			return
+		}
+		unsavedChangesGuard.leave(() => {
+			activePage = page
+			onShown?.()
+		})
+	}
+
+	async function focusAfterRender(selector: string): Promise<void> {
+		await tick()
+		document.querySelector<HTMLInputElement>(selector)?.focus()
+	}
+
 	function openSettings(): void {
 		store.clearError()
 		workspace.closeAccountMenus()
-		if (activePage !== "settings") settingsReturnPage = activePage
-		activePage = "settings"
+		const returnPage = activePage
+		showPage("settings", () => {
+			if (returnPage !== "settings") settingsReturnPage = returnPage
+		})
 	}
 
-	async function showLaunchDrawer(focusSelector: string): Promise<void> {
-		workspace.launchOpen = true
-		activePage = "accounts"
-		await tick()
-		document.querySelector<HTMLInputElement>(focusSelector)?.focus()
+	function showLaunchDrawer(focusSelector: string): void {
+		showPage("accounts", () => {
+			workspace.launchOpen = true
+			void focusAfterRender(focusSelector)
+		})
 	}
 
-	async function fillLaunchOptions(server: {
-		placeId: string
-		jobId: string
-	}): Promise<void> {
+	function fillLaunchOptions(server: { placeId: string; jobId: string }): void {
 		store.launchInput.method = LaunchMethod.MethodPlace
 		store.launchInput.placeId = server.placeId
 		store.launchInput.jobId = server.jobId
-		await showLaunchDrawer("[data-place-input]")
+		showLaunchDrawer("[data-place-input]")
 	}
 
-	async function fillGameLaunchOptions(placeId: number, jobId = ""): Promise<void> {
+	function fillGameLaunchOptions(placeId: number, jobId = ""): void {
 		store.launchInput.launchData = ""
-		await fillLaunchOptions({ placeId: String(placeId), jobId })
+		fillLaunchOptions({ placeId: String(placeId), jobId })
 	}
 
 	// Joining the user who sent an invite follows them into their server.
-	async function fillFollowUserLaunchOptions(
-		user: RobloxNotificationUser,
-	): Promise<void> {
+	function fillFollowUserLaunchOptions(user: RobloxNotificationUser): void {
 		store.launchInput.method = LaunchMethod.MethodUser
 		store.launchInput.user = user.username || `id=${user.userId}`
 		store.launchInput.resolveCurrentGame = false
-		await showLaunchDrawer("[data-launch-user]")
+		showLaunchDrawer("[data-launch-user]")
 	}
 
-	async function fillGameLaunchLink(link: string): Promise<void> {
+	function fillGameLaunchLink(link: string): void {
 		store.launchInput.method = LaunchMethod.MethodLink
 		store.launchInput.link = link
 		store.launchInput.launchData = ""
-		await showLaunchDrawer("[data-launch-link]")
+		showLaunchDrawer("[data-launch-link]")
 	}
 
-	async function searchGames(text: string): Promise<void> {
-		void games.searchFor(text)
-		activePage = "games"
-		await tick()
-		document.querySelector<HTMLInputElement>("[data-games-search]")?.focus()
+	function searchGames(text: string): void {
+		showPage("games", () => {
+			void games.searchFor(text)
+			void focusAfterRender("[data-games-search]")
+		})
 	}
 
 	function openRenewCookie(accountId: number): void {
@@ -367,6 +383,12 @@
 			pendingBrowserOpening = undefined
 		}
 		activeDialog = null
+	}
+
+	// requestLockVault asks before locking discards unsaved changes, because
+	// locking closes every page.
+	function requestLockVault(): void {
+		unsavedChangesGuard.leave(() => void openLockVault())
 	}
 
 	async function openLockVault(): Promise<void> {
@@ -544,7 +566,7 @@
 		if (activeDialog !== null || activePage === "settings") return
 		const index = pageOrder.indexOf(activePage)
 		workspace.closeAccountMenus()
-		activePage = pageOrder[(index + step + pageOrder.length) % pageOrder.length]
+		showPage(pageOrder[(index + step + pageOrder.length) % pageOrder.length])
 	}
 
 	function hasOpenAccountMenu(): boolean {
@@ -609,17 +631,17 @@
 			{workspace}
 			backLabel={`Back to ${pageLabels[settingsReturnPage]}`}
 			onBack={() => (activePage = settingsReturnPage)}
-			onLock={() => void openLockVault()} />
+			onLock={requestLockVault} />
 	{:else}
 		<PageNavigation
 			{store}
 			{activePage}
 			onPage={(page) => {
 				workspace.closeAccountMenus()
-				activePage = page
+				showPage(page)
 			}}
 			onSettings={openSettings}
-			onLock={() => void openLockVault()} />
+			onLock={requestLockVault} />
 
 		{#if activePage === "accounts" && store.error && activeDialog === null && store.vault.unlocked}
 			<OperationError {store} />
@@ -629,11 +651,10 @@
 			<SocialPage
 				store={social}
 				accounts={store}
-				onFillLaunch={(placeId, jobId) =>
-					void fillGameLaunchOptions(placeId, jobId)}
-				onSearchPlace={(placeId) => void searchGames(`id:${placeId}`)}
-				onSearchUniverse={(universeId) =>
-					void searchGames(`universe:${universeId}`)}
+				notifications={notificationCenter}
+				onFillLaunch={(placeId, jobId) => fillGameLaunchOptions(placeId, jobId)}
+				onSearchPlace={(placeId) => searchGames(`id:${placeId}`)}
+				onSearchUniverse={(universeId) => searchGames(`universe:${universeId}`)}
 				onRelationshipAction={openRelationshipAction}
 				onEditNickname={openNickname}
 				onRemoveSelected={openRemoveConnections}
@@ -645,17 +666,16 @@
 				accounts={store}
 				notifications={notificationCenter}
 				{workspace}
-				onFillLaunch={(placeId, jobId) =>
-					void fillGameLaunchOptions(placeId, jobId)}
-				onFillLaunchLink={(link) => void fillGameLaunchLink(link)}
+				onFillLaunch={(placeId, jobId) => fillGameLaunchOptions(placeId, jobId)}
+				onFillLaunchLink={(link) => fillGameLaunchLink(link)}
 				onOpenInBrowser={(accountId, pageUrl) =>
 					void openManagedBrowser(accountId, pageUrl)} />
 		{:else if activePage === "logs-explorer"}
 			<LogsExplorerPage
 				store={logsExplorer}
 				accounts={store}
-				onFillLaunch={(visit) => void fillLaunchOptions(visit)}
-				onSearchPlace={(placeId) => void searchGames(`id:${placeId}`)} />
+				onFillLaunch={(visit) => fillLaunchOptions(visit)}
+				onSearchPlace={(placeId) => searchGames(`id:${placeId}`)} />
 		{:else}
 			<div
 				class="flex min-h-0 flex-1"
@@ -697,16 +717,16 @@
 										notifications={notificationCenter}
 										onManageTags={openManageTags}
 										onJoinServer={(placeId, jobId) =>
-											void fillLaunchOptions({
+											fillLaunchOptions({
 												placeId: String(placeId),
 												jobId,
 											})}
 										onFollowUser={(user) =>
-											void fillFollowUserLaunchOptions(user)}
+											fillFollowUserLaunchOptions(user)}
 										onSearchPlace={(placeId) =>
-											void searchGames(`id:${placeId}`)}
+											searchGames(`id:${placeId}`)}
 										onSearchUniverse={(universeId) =>
-											void searchGames(`universe:${universeId}`)}
+											searchGames(`universe:${universeId}`)}
 										onReplaceCookie={openAddAccount}
 										onEditDescription={openDescriptionEditor}
 										onShowSocial={showSocial}

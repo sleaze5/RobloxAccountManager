@@ -25,6 +25,7 @@
 	import type { AccountStore } from "../accounts/account-store.svelte"
 	import { presenceDetail, presenceLabel } from "../accounts/account-model"
 	import AccountSwitcher from "../layout/AccountSwitcher.svelte"
+	import { unsavedChangesGuard } from "../layout/unsaved-changes-guard"
 	import WorkbenchSidebar from "../layout/WorkbenchSidebar.svelte"
 	import { appSettings } from "../settings/settings-store.svelte"
 	import OperationError from "../shared/OperationError.svelte"
@@ -36,7 +37,9 @@
 	import SocialAvatar from "./SocialAvatar.svelte"
 	import SocialMenu from "./SocialMenu.svelte"
 	import SocialProfile from "./SocialProfile.svelte"
+	import AvatarPage from "../avatar/AvatarPage.svelte"
 	import InventoryPage from "../inventory/InventoryPage.svelte"
+	import type { NotificationCenter } from "../notifications/notification-center.svelte"
 	import {
 		bulkRemovalCopy,
 		isBulkRemovalList,
@@ -49,6 +52,7 @@
 	let {
 		store,
 		accounts,
+		notifications,
 		onFillLaunch,
 		onSearchPlace,
 		onSearchUniverse,
@@ -59,6 +63,7 @@
 	}: {
 		store: SocialStore
 		accounts: AccountStore
+		notifications: NotificationCenter
 		onFillLaunch: (placeId: number, jobId: string) => void
 		onSearchPlace: (placeId: number) => void
 		onSearchUniverse: (universeId: number) => void
@@ -178,15 +183,19 @@
 			return
 		}
 		searchError = ""
-		store.searchPlayers(filterText)
+		const text = filterText
+		unsavedChangesGuard.leave(() => store.searchPlayers(text))
 	}
 
-	async function closeInventory(): Promise<void> {
-		store.inventoryOpen = false
+	async function closeSubpage(): Promise<void> {
+		const closedSubpage = store.subpage
+		store.subpage = null
 		await tick()
 		detailPane?.scrollTo({ top: 0 })
 		detailPane
-			?.querySelector<HTMLButtonElement>("[data-inventory-button]")
+			?.querySelector<HTMLButtonElement>(
+				`[data-subpage-button="${closedSubpage}"]`,
+			)
 			?.focus({ preventScroll: true })
 	}
 
@@ -317,7 +326,8 @@
 							type="button"
 							aria-label={backLabel}
 							data-tooltip={backLabel}
-							onclick={() => store.back()}
+							onclick={() =>
+								unsavedChangesGuard.leave(() => store.back())}
 							><Icon
 								svg={caretLeftIcon}
 								data-nudge="left"
@@ -327,7 +337,9 @@
 							class="max-w-24 shrink-0 truncate rounded-sm text-fg-faint transition-colors duration-100 hover:text-fg"
 							type="button"
 							aria-label={`Return to @${account.username}`}
-							onclick={() => store.back(0)}>@{account.username}</button>
+							onclick={() =>
+								unsavedChangesGuard.leave(() => store.back(0))}
+							>@{account.username}</button>
 						<Icon
 							svg={caretRightIcon}
 							class="shrink-0 text-fg-faint"
@@ -356,7 +368,11 @@
 					options={viewOptions}
 					disabled={account.id === 0 || accountModerated}
 					className="w-full"
-					onChange={(view) => void changeView(view)} />
+					onChange={(view) => {
+						if (view !== store.list) {
+							unsavedChangesGuard.leave(() => void changeView(view))
+						}
+					}} />
 				{#if store.showsTrustedFilter && store.page && !accountModerated}
 					<div
 						class="segmented animate-enter"
@@ -501,7 +517,13 @@
 								aria-haspopup="menu"
 								data-list-item
 								aria-label={rowLabel(person)}
-								onclick={() => store.select(person)}
+								onclick={() => {
+									if (person.userId !== store.selectedUserId) {
+										unsavedChangesGuard.leave(() =>
+											store.select(person),
+										)
+									}
+								}}
 								oncontextmenu={(event) => store.openMenu(event, person)}
 								onkeydown={(event) => {
 									if (
@@ -596,11 +618,12 @@
 							type="button"
 							in:menuIn
 							out:menuOut
-							onclick={() => {
-								store.clearPlayers()
-								searchError = ""
-								searchInput?.focus()
-							}}>
+							onclick={() =>
+								unsavedChangesGuard.leave(() => {
+									store.clearPlayers()
+									searchError = ""
+									searchInput?.focus()
+								})}>
 							<Icon svg={xIcon} size={14} aria-hidden="true" />
 							<span>Clear search</span>
 						</button>
@@ -611,12 +634,23 @@
 		<div
 			class={[
 				"@container min-w-0 flex-1",
-				selected && store.inventoryOpen
+				selected && store.subpage
 					? "overflow-hidden"
 					: "overflow-x-hidden overflow-y-auto",
 			]}
 			bind:this={detailPane}>
-			{#if selected && store.inventoryOpen}
+			{#if selected && store.subpage === "avatar"}
+				{#key `${account.id}:${selected.userId}`}
+					<AvatarPage
+						{accounts}
+						{notifications}
+						accountId={account.id}
+						userId={selected.userId}
+						username={selected.username || String(selected.userId)}
+						{onSearchPlace}
+						onBack={() => void closeSubpage()} />
+				{/key}
+			{:else if selected && store.subpage === "inventory"}
 				{#key `${account.id}:${selected.userId}`}
 					<InventoryPage
 						{accounts}
@@ -625,7 +659,7 @@
 						username={selected.username || String(selected.userId)}
 						bind:sidebarWidth={store.inventorySidebarWidth}
 						{onSearchPlace}
-						onBack={() => void closeInventory()} />
+						onBack={() => void closeSubpage()} />
 				{/key}
 			{:else if selected}
 				{#key selected.userId}
@@ -640,7 +674,7 @@
 							onEditNickname={(nickname) =>
 								onEditNickname(selected, nickname)}
 							{onRelationshipAction}
-							onOpenInventory={() => (store.inventoryOpen = true)} />
+							onOpenSubpage={(subpage) => (store.subpage = subpage)} />
 					</div>
 				{/key}
 			{:else}

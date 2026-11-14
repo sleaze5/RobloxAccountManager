@@ -1,6 +1,7 @@
 <script lang="ts">
 	import arrowSquareOutIcon from "@phosphor-icons/core/regular/arrow-square-out.svg?raw"
 	import backpackIcon from "@phosphor-icons/core/regular/backpack.svg?raw"
+	import personArmsSpreadIcon from "@phosphor-icons/core/regular/person-arms-spread.svg?raw"
 	import calendarDotsIcon from "@phosphor-icons/core/regular/calendar-dots.svg?raw"
 	import circleNotchIcon from "@phosphor-icons/core/regular/circle-notch.svg?raw"
 	import clockCounterClockwiseIcon from "@phosphor-icons/core/regular/clock-counter-clockwise.svg?raw"
@@ -39,7 +40,7 @@
 	} from "./relationship"
 	import type { RelationshipActionId } from "./relationship"
 	import { personName } from "./social-store.svelte"
-	import type { SocialStore } from "./social-store.svelte"
+	import type { SocialStore, SocialSubpage } from "./social-store.svelte"
 
 	let {
 		store,
@@ -50,7 +51,7 @@
 		onSearchUniverse,
 		onEditNickname,
 		onRelationshipAction,
-		onOpenInventory,
+		onOpenSubpage,
 	}: {
 		store: SocialStore
 		accounts: AccountStore
@@ -60,7 +61,7 @@
 		onSearchUniverse: (universeId: number) => void
 		onEditNickname: (nickname: string) => void
 		onRelationshipAction: (person: SocialUser, action: RelationshipActionId) => void
-		onOpenInventory: () => void
+		onOpenSubpage: (subpage: SocialSubpage) => void
 	} = $props()
 
 	const origins: Record<string, string> = {
@@ -232,11 +233,20 @@
 			<button
 				class="button-icon"
 				type="button"
+				aria-label="Avatar"
+				data-tooltip="Avatar"
+				data-subpage-button="avatar"
+				onclick={() => onOpenSubpage("avatar")}>
+				<Icon svg={personArmsSpreadIcon} size={16} aria-hidden="true" />
+			</button>
+			<button
+				class="button-icon"
+				type="button"
 				aria-label={inventoryLabel}
 				data-tooltip={inventoryLabel}
-				data-inventory-button
+				data-subpage-button="inventory"
 				disabled={!isSelf && !profile?.inventoryVisible}
-				onclick={onOpenInventory}>
+				onclick={() => onOpenSubpage("inventory")}>
 				<Icon svg={backpackIcon} size={16} aria-hidden="true" />
 			</button>
 			<button

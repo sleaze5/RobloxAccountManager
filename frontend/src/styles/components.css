@@ -119,6 +119,31 @@
 	}
 }
 
+/* range is a slider. Set --range-fill to the filled share of the track, such
+   as 40%, because the track cannot read the value of its input. */
+@utility range {
+	@apply h-4 w-full min-w-0 cursor-pointer appearance-none bg-transparent outline-0 disabled:cursor-not-allowed disabled:opacity-45;
+
+	&::-webkit-slider-runnable-track {
+		@apply h-1 rounded-full bg-raised;
+		background-image: linear-gradient(var(--color-accent), var(--color-accent));
+		background-repeat: no-repeat;
+		background-size: var(--range-fill, 0%) 100%;
+	}
+
+	&::-webkit-slider-thumb {
+		@apply -mt-1.5 size-4 appearance-none rounded-full border border-line-strong bg-fg transition-colors duration-100;
+	}
+
+	&:hover:not(:disabled)::-webkit-slider-thumb {
+		@apply bg-fg-bright;
+	}
+
+	&:focus-visible::-webkit-slider-thumb {
+		@apply outline-1 outline-offset-2 outline-focus;
+	}
+}
+
 @utility switch {
 	@apply relative inline-flex h-7 w-9 shrink-0 cursor-pointer items-center;
 
@@ -223,14 +248,14 @@
 }
 
 @utility tab {
-	@apply relative flex shrink-0 items-center justify-center gap-2 border-r border-line-subtle px-4 text-xs font-medium whitespace-nowrap text-fg-muted transition-colors duration-100 hover:text-fg aria-[current=page]:text-fg;
+	@apply relative flex shrink-0 items-center justify-center gap-2 border-r border-line-subtle px-4 text-xs font-medium whitespace-nowrap text-fg-muted transition-colors duration-100 hover:text-fg aria-selected:text-fg aria-[current=page]:text-fg;
 
 	&::after {
 		@apply pointer-events-none absolute inset-x-0 bottom-0 h-0.5 scale-x-0 bg-accent transition-transform duration-150 ease-out;
 		content: "";
 	}
 
-	&[aria-current="page"]::after {
+	&:is([aria-current="page"], [aria-selected="true"])::after {
 		@apply scale-x-100;
 	}
 }

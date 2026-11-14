@@ -534,19 +534,26 @@ func inventoryPageOf(listedItems []InventoryItem, nextCursor *string, endpoint s
 // readInventory reports a private inventory with its own message, because
 // Roblox answers 403 for an inventory that the account may not view.
 func (service *Users) readInventory(ctx context.Context, accountID, version int64, endpoint string, address *url.URL, target any) error {
+	err := service.readLargeAccountDetails(ctx, accountID, version, endpoint, address, target, "Roblox returned invalid inventory data.")
+	if remote, ok := errors.AsType[*roblox.Error](err); ok && remote.Kind == roblox.KindForbidden && remote.Status == http.StatusForbidden {
+		return &roblox.Error{Kind: roblox.KindForbidden, Endpoint: endpoint, Status: remote.Status, RobloxCode: remote.RobloxCode, Message: "This inventory is private.", Cause: err}
+	}
+	return err
+}
+
+// readLargeAccountDetails reads a response that can be larger than the profile
+// details that readAccountDetails expects.
+func (service *Users) readLargeAccountDetails(ctx context.Context, accountID, version int64, endpoint string, address *url.URL, target any, invalidMessage string) error {
 	response, err := service.client.Do(ctx, roblox.Request{
 		Endpoint: endpoint, AccountID: accountID, ExpectedSecretVersion: version,
 		Authenticated: true, Method: http.MethodGet, URL: address, MaxResponseSize: maxInventoryResponseBytes,
 		Retry: roblox.RetryPolicy{MaxAttempts: 3, Idempotent: true, RetryServerErrors: true, RetryRateLimit: true},
 	})
-	if remote, ok := errors.AsType[*roblox.Error](err); ok && remote.Kind == roblox.KindForbidden && remote.Status == http.StatusForbidden {
-		return &roblox.Error{Kind: roblox.KindForbidden, Endpoint: endpoint, Status: remote.Status, RobloxCode: remote.RobloxCode, Message: "This inventory is private.", Cause: err}
-	}
 	if err != nil {
 		return err
 	}
 	if err := json.Unmarshal(response.Body, target); err != nil {
-		return &roblox.Error{Kind: roblox.KindProtocol, Endpoint: endpoint, Status: response.Status, Message: "Roblox returned invalid inventory data.", Cause: err}
+		return &roblox.Error{Kind: roblox.KindProtocol, Endpoint: endpoint, Status: response.Status, Message: invalidMessage, Cause: err}
 	}
 	return nil
 }

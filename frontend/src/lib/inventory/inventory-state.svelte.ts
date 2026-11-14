@@ -102,11 +102,14 @@ export class InventoryState {
 		this.itemActionError = ""
 	}
 
-	// loadItemDetails reads the details of an item in the current category, and
-	// whether the account owns it when the inventory belongs to another user.
-	loadItemDetails(item: InventoryItem, shouldCheckOwnership: boolean): void {
-		const category = this.category,
-			key = categoryItemKey(category, item.itemId)
+	// loadItemDetails reads the details of an item, and whether the account
+	// owns it when the item belongs to another user.
+	loadItemDetails(
+		item: InventoryItem,
+		category: InventoryCategory,
+		shouldCheckOwnership: boolean,
+	): void {
+		const key = categoryItemKey(category, item.itemId)
 		if (!this.detailsByItemKey.has(key)) {
 			void this.#loadItemFact(
 				accountBackend.GetInventoryItemDetails(
@@ -244,12 +247,15 @@ export class InventoryState {
 		if (this.#scope.isCurrent) this.robuxBalance = robuxBalance
 	}
 
-	// buyItem buys an item of the current category for the account at the
-	// price that the user confirmed, and reports whether Roblox sold it.
-	async buyItem(item: InventoryItem, priceInRobux: number): Promise<boolean> {
+	// buyItem buys an item for the account at the price that the user
+	// confirmed, and reports whether Roblox sold it.
+	async buyItem(
+		item: InventoryItem,
+		category: InventoryCategory,
+		priceInRobux: number,
+	): Promise<boolean> {
 		if (this.isBuyingItem) return false
-		const category = this.category,
-			key = categoryItemKey(category, item.itemId)
+		const key = categoryItemKey(category, item.itemId)
 		this.isBuyingItem = true
 		this.itemActionError = ""
 		try {
