@@ -1,5 +1,4 @@
 <script lang="ts">
-	import cursorClickIcon from "@phosphor-icons/core/regular/cursor-click.svg?raw"
 	import dotsThreeIcon from "@phosphor-icons/core/regular/dots-three.svg?raw"
 	import magnifyingGlassIcon from "@phosphor-icons/core/regular/magnifying-glass.svg?raw"
 	import plusIcon from "@phosphor-icons/core/regular/plus.svg?raw"
@@ -75,7 +74,7 @@
 				class="button"
 				type="button"
 				onclick={() => {
-					store.clearSelection()
+					store.reduceSelectionToTopAccount()
 					workspace.closeAccountMenus()
 					document
 						.querySelector<HTMLButtonElement>("[data-account-select]")
@@ -117,10 +116,6 @@
 			<button class="button" type="button" onclick={clearFilters}>
 				Clear search and filters
 			</button>
-		{:else}
-			<Icon svg={cursorClickIcon} size={28} aria-hidden="true" />
-			<h2>No account selected</h2>
-			<p>Select an account in the list to see its profile.</p>
 		{/if}
 	</div>
 {/if}

@@ -24,6 +24,7 @@
 	import type { SocialUser } from "../backend/bridge"
 	import type { AccountStore } from "../accounts/account-store.svelte"
 	import { presenceDetail, presenceLabel } from "../accounts/account-model"
+	import AccountSwitcher from "../layout/AccountSwitcher.svelte"
 	import WorkbenchSidebar from "../layout/WorkbenchSidebar.svelte"
 	import { appSettings } from "../settings/settings-store.svelte"
 	import OperationError from "../shared/OperationError.svelte"
@@ -93,14 +94,6 @@
 		detailPane = $state<HTMLDivElement | undefined>(undefined),
 		searchError = $state("")
 	const account = $derived(accounts.selectedAccount),
-		accountOptions = $derived(
-			accounts.accounts.map((savedAccount) => ({
-				value: savedAccount.id,
-				label: savedAccount.displayName,
-				description: `@${savedAccount.username}`,
-				image: savedAccount.avatarUrl,
-			})),
-		),
 		subject = $derived(store.subject),
 		owner = $derived(subject ? personName(subject) : `@${account.username}`),
 		players = $derived(store.list === playersView),
@@ -313,13 +306,6 @@
 				</button>
 			{/snippet}
 			{#snippet tools()}
-				<Select
-					label="Account used to browse"
-					value={account.id}
-					options={accountOptions}
-					disabled={accountOptions.length === 0}
-					className="w-full"
-					onChange={(accountId) => accounts.selectAccount(accountId)} />
 				{#if subject}
 					{@const previous = store.trail.at(-2)}
 					{@const backLabel = `Back to ${previous ? personName(previous) : `@${account.username}`}`}
@@ -672,7 +658,7 @@
 						</h2>
 						<p>
 							Roblox blocks friends and player search for this account.
-							Choose another account above.
+							Choose another account in the status bar.
 						</p>
 					{:else if account.id === 0 && accounts.loadingAccounts}<Icon
 							svg={circleNotchIcon}
@@ -684,18 +670,8 @@
 							svg={usersIcon}
 							size={28}
 							aria-hidden="true" />
-						{#if accountOptions.length}
-							<h2>Select an account</h2>
-							<p>
-								Choose the account to browse friends and players with.
-							</p>
-						{:else}
-							<h2>No accounts yet</h2>
-							<p>
-								Add an account in Accounts to browse friends and
-								players.
-							</p>
-						{/if}
+						<h2>No accounts yet</h2>
+						<p>Add an account in Accounts to browse friends and players.</p>
 					{:else if players && !store.playerQuery}<Icon
 							svg={magnifyingGlassIcon}
 							size={28}
@@ -762,6 +738,7 @@
 	<footer
 		class="flex h-6 shrink-0 items-center justify-between border-t border-line-subtle bg-surface pl-3 text-2xs text-fg-faint"
 		aria-label="Social status">
+		<AccountSwitcher store={accounts} />
 		{#if store.page}
 			<span class="ml-auto truncate pr-3" aria-live="polite"
 				>{statusSummary()}</span>

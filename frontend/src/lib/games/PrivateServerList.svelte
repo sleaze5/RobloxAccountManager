@@ -8,7 +8,6 @@
 	import ServerListSkeleton from "./ServerListSkeleton.svelte"
 	import { untrack } from "svelte"
 	import type { AccountStore } from "../accounts/account-store.svelte"
-	import Select from "../shared/Select.svelte"
 	import ServerActionsButton from "./ServerActionsButton.svelte"
 	import { openServerMenuFromRow } from "./server-row-menu"
 	import type { ServerMenuOpener } from "./server-row-menu"
@@ -22,7 +21,6 @@
 		activeKey,
 		menuID,
 		onMenu,
-		onAccount,
 		onAddLink,
 	}: {
 		servers: PrivateServers
@@ -31,7 +29,6 @@
 		activeKey: string | undefined
 		menuID: string
 		onMenu: ServerMenuOpener
-		onAccount: (accountId: number) => void
 		onAddLink: () => void
 	} = $props()
 
@@ -39,15 +36,7 @@
 	let list = $state<HTMLElement | undefined>(undefined)
 	const account = $derived(accounts.selectedAccount),
 		shown = $derived(servers.page?.servers ?? []),
-		savedShown = $derived(saved.servers ?? []),
-		accountOptions = $derived(
-			accounts.accounts.map((savedAccount) => ({
-				value: savedAccount.id,
-				label: savedAccount.displayName,
-				description: `@${savedAccount.username}`,
-				image: savedAccount.avatarUrl,
-			})),
-		)
+		savedShown = $derived(saved.servers ?? [])
 
 	$effect(() => {
 		void servers.page
@@ -60,16 +49,6 @@
 		class="flex flex-wrap items-end gap-x-3 gap-y-2 border-b border-line-subtle p-3"
 		role="group"
 		aria-label="Server filters">
-		<div class="flex flex-col gap-1 text-2xs text-fg-muted">
-			<span>Account</span>
-			<Select
-				className="w-56"
-				label="Account used to list private servers"
-				value={account.id}
-				options={accountOptions}
-				disabled={accountOptions.length === 0 || servers.loading}
-				onChange={onAccount} />
-		</div>
 		<ServerPagerNav pager={servers} />
 	</div>
 
