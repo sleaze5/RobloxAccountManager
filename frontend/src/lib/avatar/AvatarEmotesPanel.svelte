@@ -27,12 +27,15 @@
 </script>
 
 <div class="flex flex-col gap-4 p-3">
-	<p class="flex h-7 items-center text-xs text-fg-muted">
+	<p class="flex min-h-7 items-center text-xs text-fg-muted">
 		{canEdit
 			? "Emotes play from the emote wheel in experiences. Choose a slot to change it."
 			: "The emotes on the emote wheel in experiences."}
 	</p>
-	<ol class="grid grid-cols-4 gap-2 @2xl:grid-cols-8" aria-label="Emote slots">
+	<!-- Equal rows let an empty slot stretch to the height of an emote tile. -->
+	<ol
+		class="grid auto-rows-fr grid-cols-4 gap-2 @2xl:grid-cols-8"
+		aria-label="Emote slots">
 		{#each slots as slot (slot)}
 			{@const emote = emoteBySlot.get(slot)}
 			<li class="relative min-w-0">
@@ -56,7 +59,7 @@
 					{/if}
 				{:else if canEdit}
 					<button
-						class="flex aspect-square w-full flex-col items-center justify-center gap-1 rounded-lg border border-dashed border-line-strong text-xs text-fg-muted transition-colors duration-100 hover:border-line-focus hover:bg-hover hover:text-fg"
+						class="flex aspect-square h-full w-full flex-col items-center justify-center gap-1 rounded-lg border border-dashed border-line-strong text-xs text-fg-muted transition-colors duration-100 hover:border-line-focus hover:bg-hover hover:text-fg"
 						type="button"
 						aria-label={`Add an emote to slot ${slot}`}
 						disabled={avatar.isDraftLocked}
@@ -66,7 +69,7 @@
 					</button>
 				{:else}
 					<span
-						class="flex aspect-square w-full items-center justify-center rounded-lg border border-dashed border-line text-xs text-fg-faint"
+						class="flex aspect-square h-full w-full items-center justify-center rounded-lg border border-dashed border-line text-xs text-fg-faint"
 						>Empty</span>
 				{/if}
 				<span

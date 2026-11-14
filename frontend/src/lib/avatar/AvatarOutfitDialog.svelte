@@ -9,6 +9,7 @@
 	import Icon from "../shared/Icon.svelte"
 	import ProfileImage from "../shared/ProfileImage.svelte"
 	import Skeleton from "../shared/Skeleton.svelte"
+	import SkeletonTile from "../shared/SkeletonTile.svelte"
 	import AvatarBodyColorFacts from "./AvatarBodyColorFacts.svelte"
 	import AvatarBodyFigure from "./AvatarBodyFigure.svelte"
 	import AvatarItemGroups from "./AvatarItemGroups.svelte"
@@ -160,13 +161,7 @@
 					class="grid grid-cols-3 gap-2 @lg:grid-cols-4 @2xl:grid-cols-5"
 					aria-hidden="true">
 					{#each Array.from({ length: 5 }, (_unused, index) => index) as index (index)}
-						<li
-							class="flex flex-col gap-1 rounded-lg border border-line-subtle bg-surface p-1">
-							<span class="block aspect-square w-full skeleton rounded-sm"
-							></span>
-							<span class="flex px-1 pb-0.5 text-xs"
-								><span class="skeleton-line w-3/4"></span></span>
-						</li>
+						<SkeletonTile />
 					{/each}
 				</ul>
 			</div>

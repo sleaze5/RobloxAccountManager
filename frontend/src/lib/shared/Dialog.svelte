@@ -15,6 +15,7 @@
 		class: className,
 		role = "dialog",
 		strong = false,
+		hasFlexibleBody = false,
 		onBackdropClick,
 		...rest
 	}: HTMLAttributes<HTMLDivElement> & {
@@ -22,6 +23,10 @@
 		children: Snippet
 		role?: "dialog" | "alertdialog"
 		strong?: boolean
+		// hasFlexibleBody lays the content out as a column, so that a region
+		// with min-h-0 shrinks and scrolls on its own while the heading and the
+		// actions stay in view.
+		hasFlexibleBody?: boolean
 		onBackdropClick?: () => void
 	} = $props()
 </script>
@@ -43,7 +48,7 @@
 		use:modalFocus
 		in:modalCardIn
 		out:modalCardOut>
-		<div class="dialog-content">
+		<div class={["dialog-content", hasFlexibleBody && "flex flex-col"]}>
 			{@render children()}
 		</div>
 	</div>

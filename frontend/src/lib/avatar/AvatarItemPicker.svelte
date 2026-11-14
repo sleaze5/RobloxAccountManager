@@ -10,6 +10,7 @@
 	import Dialog from "../shared/Dialog.svelte"
 	import Icon from "../shared/Icon.svelte"
 	import { searchTerms } from "../shared/search"
+	import SkeletonTile from "../shared/SkeletonTile.svelte"
 	import { emoteCategory, wearableCategories } from "./avatar-categories"
 	import { isWornInDraft } from "./avatar-draft"
 	import type { AvatarState } from "./avatar-state.svelte"
@@ -33,7 +34,8 @@
 		exactNumbers = new Intl.NumberFormat("en-US")
 
 	let filterText = $state(""),
-		filterInput = $state<HTMLInputElement | undefined>(undefined)
+		filterInput = $state<HTMLInputElement | undefined>(undefined),
+		itemsElement = $state<HTMLDivElement | undefined>(undefined)
 
 	const categories = $derived(
 			emoteSlot === null ? wearableCategories : [emoteCategory],
@@ -58,6 +60,7 @@
 	function showCategory(categoryId: InventoryCategory): void {
 		filterText = ""
 		inventory.show(categoryId)
+		itemsElement?.scrollTo({ top: 0 })
 	}
 
 	function maxWornCountOf(item: InventoryItem): number {
@@ -102,6 +105,7 @@
 
 <Dialog
 	class="max-w-3xl text-left"
+	hasFlexibleBody
 	aria-labelledby="avatar-picker-title"
 	aria-describedby="avatar-picker-description"
 	onBackdropClick={onClose}>
@@ -123,7 +127,7 @@
 		</button>
 	</div>
 
-	<div class="flex h-80 min-h-0 gap-3">
+	<div class="flex h-80 min-h-40 gap-3">
 		{#if categories.length > 1}
 			<nav
 				class="flex w-40 shrink-0 flex-col gap-1 overflow-y-auto"
@@ -164,7 +168,9 @@
 				{/if}
 			</div>
 
-			<div class="min-h-0 flex-1 scrollbar-stable overflow-y-auto">
+			<div
+				class="min-h-0 flex-1 scrollbar-stable overflow-y-auto"
+				bind:this={itemsElement}>
 				{#key category.id}
 					{#if !page && inventory.error}
 						<div class="empty-state h-full" role="alert">
@@ -184,15 +190,7 @@
 								class="grid grid-cols-3 gap-2 @md:grid-cols-4 @xl:grid-cols-5"
 								aria-hidden="true">
 								{#each skeletonTileIndexes as index (index)}
-									<li
-										class="flex flex-col gap-1 rounded-lg border border-line-subtle bg-surface p-1">
-										<span
-											class="block aspect-square w-full skeleton rounded-sm"
-										></span>
-										<span class="flex px-1 pb-0.5 text-xs"
-											><span class="skeleton-line w-3/4"></span
-											></span>
-									</li>
+									<SkeletonTile />
 								{/each}
 							</ul>
 						</div>
@@ -210,6 +208,13 @@
 								Nothing loaded matches the filter. Clear it or load more
 								items.
 							</p>
+							<button
+								class="button"
+								type="button"
+								onclick={() => {
+									filterText = ""
+									filterInput?.focus()
+								}}>Clear filter</button>
 						</div>
 					{:else}
 						{#if inventory.error}
