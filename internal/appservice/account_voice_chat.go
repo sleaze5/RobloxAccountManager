@@ -2,6 +2,8 @@ package appservice
 
 import (
 	"context"
+	"fmt"
+	"time"
 
 	"github.com/sleaze5/RobloxAccountManager/internal/accounts"
 	robloxservices "github.com/sleaze5/RobloxAccountManager/internal/roblox/services"
@@ -27,14 +29,56 @@ type VoiceChat struct {
 
 func (service *Service) voiceChatRead(ctx context.Context, accountID, version, userID int64, target **VoiceChat) accountRead {
 	return accountRead{"voiceChat", func() error {
-		voice, err := service.users.VoiceChat(ctx, accountID, version)
-		if err != nil {
-			return err
+		voice, err := service.readVoiceChat(ctx, accountID, version, userID)
+		if err == nil {
+			*target = voiceChat(voice)
 		}
-		*target = voiceChat(voice)
-		service.recordVoiceSuspension(ctx, accountID, userID, voiceSuspension(voice))
-		return nil
+		return err
 	}}
+}
+
+func (service *Service) readVoiceChat(ctx context.Context, accountID, version, userID int64) (robloxservices.UserVoiceChat, error) {
+	voice, err := service.users.VoiceChat(ctx, accountID, version)
+	if err != nil {
+		return robloxservices.UserVoiceChat{}, err
+	}
+	service.recordVoiceSuspension(ctx, accountID, userID, voiceSuspension(voice))
+	return voice, nil
+}
+
+// refreshOnlineVoiceSuspensions reads the voice chat status of each online
+// account in the background. A suspension that has not ended yet is read again
+// only when the user opens the account's details.
+func (service *Service) refreshOnlineVoiceSuspensions(ctx context.Context, targets []robloxservices.PresenceTarget, presences []robloxservices.UserPresence) {
+	accountIDByRobloxUserID := make(map[int64]int64, len(targets))
+	for _, target := range targets {
+		accountIDByRobloxUserID[target.RobloxUserID] = target.AccountID
+	}
+	nowMs := time.Now().UnixMilli()
+	for _, presence := range presences {
+		accountID, found := accountIDByRobloxUserID[presence.UserID]
+		if !found || presence.UserPresenceType == robloxservices.PresenceTypeOffline {
+			continue
+		}
+		suspension := service.users.CachedVoiceSuspension(ctx, presence.UserID)
+		if suspension != nil && (suspension.EndsAtMs == nil || *suspension.EndsAtMs > nowMs) {
+			continue
+		}
+		service.refreshAccountVoiceSuspension(accountID, presence.UserID)
+	}
+}
+
+func (service *Service) refreshAccountVoiceSuspension(accountID, userID int64) {
+	service.refreshMetadata(fmt.Sprintf("voice-suspension-%d", userID), func(parent context.Context) {
+		ctx, version, done, err := service.beginAccountSession(parent, accountID, "voice-suspension-refresh")
+		if err != nil {
+			return
+		}
+		defer done()
+		if _, err := service.readVoiceChat(ctx, accountID, version, userID); err != nil && ctx.Err() == nil {
+			service.logger.WarnContext(ctx, "voice chat suspension could not be refreshed; retrying with the next presence update", "operation", "voice-suspension-refresh", "account_id", accountID, "error", err)
+		}
+	})
 }
 
 // recordVoiceSuspension caches the voice chat suspension of an account, and
