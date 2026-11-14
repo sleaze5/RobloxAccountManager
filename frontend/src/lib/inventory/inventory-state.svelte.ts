@@ -1,4 +1,9 @@
-import { accountBackend, CatalogItemType, InventoryCategory } from "../backend/bridge"
+import {
+	accountBackend,
+	AccountProfileSection,
+	CatalogItemType,
+	InventoryCategory,
+} from "../backend/bridge"
 import type { InventoryItem, InventoryItemDetails } from "../backend/bridge"
 import type { AccountStore } from "../accounts/account-store.svelte"
 import { AccountScope } from "../accounts/account-scope"
@@ -43,6 +48,9 @@ export class InventoryState {
 	// The items that the account bought and that Roblox still delivers, by
 	// categoryItemKey.
 	pendingPurchaseKeys = $state.raw(new Set<string>())
+	// The Robux of the account, read when a purchase confirmation opens.
+	// undefined while it loads, and null when it failed.
+	robuxBalance = $state<number | null | undefined>(undefined)
 	itemActionError = $state("")
 	wornAssetIds = $state.raw(new Set<number>())
 	// The details and the ownership by the account of each opened item, by
@@ -209,6 +217,25 @@ export class InventoryState {
 		} finally {
 			this.isSavingFavorite = false
 		}
+	}
+
+	async loadRobuxBalance(): Promise<void> {
+		this.robuxBalance = undefined
+		let robuxBalance: number | null
+		try {
+			const profile = await this.#scope.track(
+				accountBackend.GetAccountProfile(
+					this.#scope.accountId,
+					AccountProfileSection.ProfileSectionRobux,
+				),
+			)
+			robuxBalance = profile.robux
+		} catch {
+			// The confirmation shows the balance as unavailable, and the backend
+			// logs the failure.
+			robuxBalance = null
+		}
+		if (this.#scope.isCurrent) this.robuxBalance = robuxBalance
 	}
 
 	// buyItem buys an item of the current category for the account at the

@@ -151,6 +151,15 @@
 		),
 		hasMarketSection = $derived(
 			!!market || item.recentAveragePrice !== null || item.serialNumber !== null,
+		),
+		// null while the balance loads or when it is unavailable.
+		balanceAfterPurchase = $derived(
+			typeof inventory.robuxBalance === "number" && market
+				? inventory.robuxBalance - market.priceInRobux
+				: null,
+		),
+		isShortOfRobux = $derived(
+			balanceAfterPurchase !== null && balanceAfterPurchase < 0,
 		)
 
 	// The dialog keeps its card while it switches between the details and the
@@ -162,6 +171,7 @@
 		const previousConfirmation = confirmation
 		inventory.clearItemActionError()
 		confirmation = shownConfirmation
+		if (shownConfirmation === "purchase") void inventory.loadRobuxBalance()
 		await tick()
 		// A purchase removes its button, so focus falls back to the close button.
 		const focusTarget =
@@ -267,8 +277,8 @@
 				{:else}
 					<h2 id="inventory-confirmation-title">Buy item?</h2>
 					<p id="inventory-confirmation-description">
-						@{accountUsername} pays {formatRobux(price, false)} for {name}.
-						Roblox doesn't refund Robux spent on items.
+						@{accountUsername} buys {name}. Roblox doesn't refund Robux
+						spent on items.
 					</p>
 				{/if}
 			</div>
@@ -280,8 +290,70 @@
 				<Icon svg={xIcon} size={14} aria-hidden="true" />
 			</button>
 		</div>
+		{#if confirmation === "purchase" && price > 0}
+			<div
+				class="flex items-center gap-3 rounded-lg border border-line-subtle bg-fill p-2">
+				<span
+					class="grid size-12 shrink-0 place-items-center overflow-hidden rounded-md bg-raised"
+					aria-hidden="true">
+					<ProfileImage url={imageUrl} fallbackIcon={category.icon} />
+				</span>
+				<div class="min-w-0">
+					<p class="truncate text-sm font-medium text-fg">{name}</p>
+					<p class="truncate text-xs text-fg-muted">{typeLabel}</p>
+				</div>
+			</div>
+			<dl class="mt-3 flex flex-col gap-1.5 px-1 text-xs">
+				<div class="flex items-baseline justify-between gap-3">
+					<dt class="text-fg-muted">Price</dt>
+					<dd class="font-mono text-fg">{formatRobux(price, false)}</dd>
+				</div>
+				<div class="flex items-baseline justify-between gap-3">
+					<dt class="min-w-0 truncate text-fg-muted">
+						@{accountUsername}'s Robux
+					</dt>
+					<dd class="font-mono text-fg">
+						{#if inventory.robuxBalance === undefined}
+							<Skeleton
+								className="w-16"
+								label="Loading the Robux balance" />
+						{:else if inventory.robuxBalance === null}
+							<span class="font-sans text-fg-muted">Unavailable</span>
+						{:else}
+							{formatRobux(inventory.robuxBalance, false)}
+						{/if}
+					</dd>
+				</div>
+				<div
+					class="flex items-baseline justify-between gap-3 border-t border-line-subtle pt-1.5">
+					<dt class="font-medium text-fg">After purchase</dt>
+					<dd
+						class={[
+							"font-mono font-semibold",
+							isShortOfRobux ? "text-danger-muted" : "text-fg",
+						]}>
+						{#if inventory.robuxBalance === undefined}
+							<Skeleton
+								className="w-16"
+								label="Loading the Robux balance" />
+						{:else if balanceAfterPurchase === null}
+							<span class="font-sans font-normal text-fg-muted"
+								>Unavailable</span>
+						{:else}
+							{formatRobux(balanceAfterPurchase, false)}
+						{/if}
+					</dd>
+				</div>
+			</dl>
+			{#if isShortOfRobux && balanceAfterPurchase !== null}
+				<p class="mt-3 notice-error" role="alert">
+					@{accountUsername} needs {formatRobux(-balanceAfterPurchase, false)}
+					more to buy this item.
+				</p>
+			{/if}
+		{/if}
 		{#if inventory.itemActionError}
-			<p class="notice-error" role="alert">{inventory.itemActionError}</p>
+			<p class="mt-3 notice-error" role="alert">{inventory.itemActionError}</p>
 		{/if}
 		<div class="dialog-actions">
 			<button
@@ -303,7 +375,7 @@
 					class="button-primary"
 					type="button"
 					aria-busy={inventory.isBuyingItem}
-					disabled={isWorking}
+					disabled={isWorking || isShortOfRobux}
 					onclick={() => void buy()}
 					>{inventory.isBuyingItem
 						? "Buying…"
@@ -328,20 +400,78 @@
 				</span>
 
 				<div class="flex min-w-0 flex-1 flex-col gap-1">
-					<div class="flex items-start justify-between gap-3">
+					<div class="flex items-start gap-3">
 						<h2
 							id="inventory-item-title"
-							class="min-w-0 leading-6 tracking-tight wrap-anywhere">
+							class="min-w-0 flex-1 leading-7 tracking-tight wrap-anywhere">
 							{name}
 						</h2>
-						<button
-							class="button-close"
-							type="button"
-							data-close-item-details
-							aria-label="Close item details"
-							onclick={close}>
-							<Icon svg={xIcon} size={14} aria-hidden="true" />
-						</button>
+						<div class="flex shrink-0 items-center gap-1">
+							{#if canBuy && market}
+								<button
+									class="button-primary"
+									type="button"
+									data-begin-purchase
+									disabled={isBusy || isOwnedByAccount === undefined}
+									onclick={() => void showConfirmation("purchase")}>
+									<Icon
+										svg={shoppingCartIcon}
+										size={16}
+										aria-hidden="true" />
+									{market.priceInRobux === 0 ? "Get" : "Buy"}
+								</button>
+							{/if}
+							{#if canFavorite}
+								<button
+									class="button-icon"
+									type="button"
+									aria-label="Favorite"
+									aria-pressed={isFavorite ?? false}
+									aria-busy={isCheckingFavorite ||
+										inventory.isSavingFavorite}
+									data-tooltip={isFavorite
+										? "Remove from favorites"
+										: "Add to favorites"}
+									disabled={isBusy || isFavorite === undefined}
+									onclick={() =>
+										void inventory.setFavorite(item, !isFavorite)}>
+									{#if isFavorite}
+										<Icon
+											svg={heartFillIcon}
+											class="animate-pop text-accent-strong"
+											size={16}
+											aria-hidden="true" />
+									{:else}
+										<Icon
+											svg={heartIcon}
+											size={16}
+											aria-hidden="true" />
+									{/if}
+								</button>
+							{/if}
+							{#if badge && badge.awardingPlaceId > 0}
+								<button
+									class="button-icon"
+									type="button"
+									aria-label="Find game in Games"
+									data-tooltip="Find game in Games"
+									onclick={() =>
+										onSearchPlace(badge.awardingPlaceId)}>
+									<Icon
+										svg={magnifyingGlassIcon}
+										size={16}
+										aria-hidden="true" />
+								</button>
+							{/if}
+							<button
+								class="ml-1 button-close"
+								type="button"
+								data-close-item-details
+								aria-label="Close item details"
+								onclick={close}>
+								<Icon svg={xIcon} size={14} aria-hidden="true" />
+							</button>
+						</div>
 					</div>
 					<div class={metaClass}>
 						<span class="select-text">ID: {item.itemId}</span>
@@ -416,68 +546,6 @@
 						{/if}
 					</ul>
 
-					{#if canBuy || canFavorite || (badge && badge.awardingPlaceId > 0)}
-						<div class="mt-2 flex flex-wrap items-center gap-2">
-							{#if canBuy && market}
-								<button
-									class="button-primary"
-									type="button"
-									data-begin-purchase
-									disabled={isBusy || isOwnedByAccount === undefined}
-									onclick={() => void showConfirmation("purchase")}>
-									<Icon
-										svg={shoppingCartIcon}
-										size={16}
-										aria-hidden="true" />
-									{market.priceInRobux === 0
-										? "Get for free"
-										: `Buy for ${formatRobux(market.priceInRobux, false)}`}
-								</button>
-							{/if}
-							{#if canFavorite}
-								<button
-									class="button"
-									type="button"
-									aria-pressed={isFavorite ?? false}
-									aria-busy={isCheckingFavorite ||
-										inventory.isSavingFavorite}
-									data-tooltip={isFavorite
-										? "Remove from favorites"
-										: "Add to favorites"}
-									disabled={isBusy || isFavorite === undefined}
-									onclick={() =>
-										void inventory.setFavorite(item, !isFavorite)}>
-									{#if isFavorite}
-										<Icon
-											svg={heartFillIcon}
-											class="animate-pop text-accent-strong"
-											size={16}
-											aria-hidden="true" />
-										Favorited
-									{:else}
-										<Icon
-											svg={heartIcon}
-											size={16}
-											aria-hidden="true" />
-										Favorite
-									{/if}
-								</button>
-							{/if}
-							{#if badge && badge.awardingPlaceId > 0}
-								<button
-									class="button"
-									type="button"
-									onclick={() =>
-										onSearchPlace(badge.awardingPlaceId)}>
-									<Icon
-										svg={magnifyingGlassIcon}
-										size={16}
-										aria-hidden="true" />
-									Find game in Games
-								</button>
-							{/if}
-						</div>
-					{/if}
 					{#if isPurchasePending}
 						<p class="text-xs text-fg-muted" role="status">
 							Bought. It can take a minute to show up in the inventory.
