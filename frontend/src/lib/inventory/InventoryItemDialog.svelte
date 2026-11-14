@@ -39,7 +39,7 @@
 	import { relativeTime } from "../shared/timestamp"
 	import { inventoryTypeLabel } from "./inventory-categories"
 	import type { InventoryCategoryOption } from "./inventory-categories"
-	import { formatRobux } from "./inventory-prices"
+	import { formatRobux, salePriceLabel } from "./inventory-prices"
 	import { categoryItemKey, inventoryItemKey } from "./inventory-state.svelte"
 	import type { InventoryState } from "./inventory-state.svelte"
 
@@ -130,15 +130,7 @@
 				market.saleLocation !== InventorySaleLocation.SaleInExperiences,
 		),
 		isPurchasePending = $derived(inventory.pendingPurchaseKeys.has(detailsKey)),
-		priceLabel = $derived(
-			!market
-				? ""
-				: !market.isForSale
-					? "Off sale"
-					: market.priceInRobux === 0
-						? "Free"
-						: formatRobux(market.priceInRobux, false),
-		),
+		priceLabel = $derived(market ? salePriceLabel(market, false) : ""),
 		stockLabel = $derived(
 			market?.totalQuantity == null
 				? ""

@@ -62,7 +62,7 @@ Names exist so that a reader understands what the code does without reading its 
     - `x` and `y` for coordinates, and `x1`, `y1`, `x2`, `y2` for curve control points.
     - The `Err` prefix of Go sentinel errors, such as `ErrLocked`, which golangci-lint requires.
 - Never use single letters, `tmp`, `temp`, `val`, `value`, `data`, `info`, `item`, `result`, `obj`, or numbered names (`file1`) when a more specific name exists. Name loop variables after what they hold (`for _, account := range accounts`, `for index := range accounts`).
-- Make a name match the behavior completely. A function named `get` or `read` must not change state. A function that does two things names both, or is split. Rename a name when its behavior changes.
+- Make a name match the behavior completely. A function named `get` or `read` must not change state. A function that does two things names both, or is split. A validator names everything it checks: `validateAccountAndTargetIDs`, not `socialTarget`. Rename a name when its behavior changes.
 - Start a function or method with a verb that says what it does: `refreshAccountMetadata`, `removeManagedDirectory`, `validateCookie`.
 - Start a boolean with `is`, `has`, `can`, `should`, or `was`, and state it positively: `isUnlocked`, not `notLocked`. Existing Go getters such as `Unlocked()` may keep their form.
 - Name a collection in the plural (`accounts`) and a map by both sides (`accountByRobloxUserID`, `imagesByUserID`).
@@ -93,13 +93,14 @@ Check each applicable item before you finish a change. The change does only what
 5. Code stays in the correct layer, as described in `docs/ARCHITECTURE.md` and `docs/PLATFORM.md`.
     - Platform-specific code stays isolated so that support for other operating systems can be added later.
     - The frontend calls the backend through the Wails bridge. It does not duplicate backend logic.
-    - Public interfaces and data models are minimal, typed, and consistent with existing code.
+    - Public interfaces and data models are minimal, typed, and consistent with existing code. Export only what another module uses.
+    - Each feature's Wails bindings go in their own file in `internal/bindings`, such as `inventory.go`.
 6. Code stays simple, readable, and statically checked.
     - The project has no tests. Do not add tests. Correctness relies on strict static checks and linters.
     - Do not suppress lint or type errors.
     - Handle every error. Wrap Go errors with context.
     - Do not add abstractions, options, or parameters for hypothetical future needs. Add a parameter only when two callers pass different values.
-    - Search for an existing helper before you write one, and reuse or extend it. Never leave two implementations of the same behavior.
+    - Search for an existing helper before you write one, and reuse or extend it. Never leave two implementations of the same behavior. Define a type or value that several modules need once, in `frontend/src/lib/shared/` or the Go package that owns it.
     - Name everything as described in [Naming](#naming).
     - Prefer self-documenting code. Write a comment only for a fact the code cannot show, such as an operating system or Roblox behavior, a format layout, or the reason for an ordering. Do not write comments that restate the code.
     - Remove dead code, commented-out code, and debug output. When a change makes a function, field, binding, event, or parameter unused, remove it in the same change.

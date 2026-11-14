@@ -230,6 +230,12 @@ type avatarPayload struct {
 	} `json:"emotes"`
 }
 
+// isComplete reports whether the payload lists everything that an avatar
+// needs. Emotes are optional, because outfits have none.
+func (payload avatarPayload) isComplete() bool {
+	return payload.Scales != nil && payload.BodyColors != nil && payload.Assets != nil && validAvatarType(payload.PlayerAvatarType)
+}
+
 // Avatar reads how the user looks now. Roblox lists the avatar of any user.
 func (service *Users) Avatar(ctx context.Context, accountID, version, userID int64) (Avatar, error) {
 	var payload avatarPayload
@@ -241,7 +247,7 @@ func (service *Users) Avatar(ctx context.Context, accountID, version, userID int
 }
 
 func avatarOf(payload avatarPayload) (Avatar, error) {
-	if payload.Scales == nil || payload.BodyColors == nil || payload.Assets == nil || !validAvatarType(payload.PlayerAvatarType) {
+	if !payload.isComplete() {
 		return Avatar{}, invalidAvatar("avatar")
 	}
 	avatar := Avatar{
@@ -297,19 +303,8 @@ func avatarItem(assetID int64, name, typeName string) InventoryItem {
 
 // AvatarRules reads what the account may change on its avatar.
 func (service *Users) AvatarRules(ctx context.Context, accountID, version int64) (AvatarRules, error) {
-	type listedScaleLimit struct {
-		Min       float64 `json:"min"`
-		Max       float64 `json:"max"`
-		Increment float64 `json:"increment"`
-	}
 	var payload struct {
-		Scales *struct {
-			Height     listedScaleLimit `json:"height"`
-			Width      listedScaleLimit `json:"width"`
-			Head       listedScaleLimit `json:"head"`
-			Proportion listedScaleLimit `json:"proportion"`
-			BodyType   listedScaleLimit `json:"bodyType"`
-		} `json:"scales"`
+		Scales             *AvatarScaleLimits `json:"scales"`
 		WearableAssetTypes []struct {
 			MaxNumber int    `json:"maxNumber"`
 			Name      string `json:"name"`
@@ -327,14 +322,8 @@ func (service *Users) AvatarRules(ctx context.Context, accountID, version int64)
 	if payload.Scales == nil {
 		return AvatarRules{}, invalidAvatar("avatar-rules")
 	}
-	scaleLimitOf := func(listed listedScaleLimit) AvatarScaleLimit {
-		return AvatarScaleLimit(listed)
-	}
 	rules := AvatarRules{
-		ScaleLimits: AvatarScaleLimits{
-			Height: scaleLimitOf(payload.Scales.Height), Width: scaleLimitOf(payload.Scales.Width), Head: scaleLimitOf(payload.Scales.Head),
-			Proportion: scaleLimitOf(payload.Scales.Proportion), BodyType: scaleLimitOf(payload.Scales.BodyType),
-		},
+		ScaleLimits:            *payload.Scales,
 		BodyColorPalette:       make([]AvatarPaletteColor, 0, len(payload.BodyColorsPalette)),
 		MaxWornCountByTypeName: make(map[string]int, len(payload.WearableAssetTypes)),
 		IsBodyShapeEnabled:     payload.ProportionsAndBodyTypeEnabledForUser,
@@ -401,44 +390,44 @@ type outfitPayload struct {
 	Assets           *[]listedAvatarAsset `json:"assets"`
 }
 
-func (service *Users) readOutfit(ctx context.Context, accountID, version int64, endpoint string, outfitID int64) (outfitPayload, error) {
+// readOutfit reads the outfit as an avatar without emotes.
+func (service *Users) readOutfit(ctx context.Context, accountID, version int64, endpoint string, outfitID int64) (avatarPayload, error) {
 	var payload outfitPayload
 	address := "https://avatar.roblox.com/v3/outfits/" + strconv.FormatInt(outfitID, 10) + "/details"
 	if err := service.readAvatarDetails(ctx, accountID, version, endpoint, address, &payload); err != nil {
-		return outfitPayload{}, err
+		return avatarPayload{}, err
 	}
-	if payload.Scale == nil || payload.BodyColors == nil || payload.Assets == nil || !validAvatarType(payload.PlayerAvatarType) {
-		return outfitPayload{}, invalidAvatar(endpoint)
+	outfit := avatarPayload{Scales: payload.Scale, PlayerAvatarType: payload.PlayerAvatarType, BodyColors: payload.BodyColors, Assets: payload.Assets}
+	if !outfit.isComplete() {
+		return avatarPayload{}, invalidAvatar(endpoint)
 	}
-	return payload, nil
+	return outfit, nil
 }
 
 // AvatarOutfitDetails reads how the outfit looks, as an avatar without emotes.
 func (service *Users) AvatarOutfitDetails(ctx context.Context, accountID, version, outfitID int64) (Avatar, error) {
-	payload, err := service.readOutfit(ctx, accountID, version, "avatar-outfit-details", outfitID)
+	outfit, err := service.readOutfit(ctx, accountID, version, "avatar-outfit-details", outfitID)
 	if err != nil {
 		return Avatar{}, err
 	}
-	return avatarOf(avatarPayload{
-		Scales: payload.Scale, PlayerAvatarType: payload.PlayerAvatarType, BodyColors: payload.BodyColors, Assets: payload.Assets,
-	})
+	return avatarOf(outfit)
 }
 
 // WearAvatarOutfit puts the outfit on the avatar of the account. It keeps the
 // equipped emotes, because outfits have none.
 func (service *Users) WearAvatarOutfit(ctx context.Context, accountID, version, outfitID int64) error {
-	payload, err := service.readOutfit(ctx, accountID, version, "avatar-outfit-wear", outfitID)
+	outfit, err := service.readOutfit(ctx, accountID, version, "avatar-outfit-wear", outfitID)
 	if err != nil {
 		return err
 	}
-	assets := make([]avatarUpdateAsset, 0, len(*payload.Assets))
-	for _, listedAsset := range *payload.Assets {
+	assets := make([]avatarUpdateAsset, 0, len(*outfit.Assets))
+	for _, listedAsset := range *outfit.Assets {
 		if listedAsset.ID > 0 {
 			assets = append(assets, listedAsset.updateAsset())
 		}
 	}
 	return service.updateAvatar(ctx, accountID, version, "avatar-outfit-wear", avatarUpdate{
-		AvatarType: payload.PlayerAvatarType, Scales: *payload.Scale, BodyColors: payload.BodyColors.bodyColors(), Assets: assets,
+		AvatarType: outfit.PlayerAvatarType, Scales: *outfit.Scales, BodyColors: outfit.BodyColors.bodyColors(), Assets: assets,
 	})
 }
 
@@ -567,7 +556,7 @@ func (service *Users) CreateAvatarOutfit(ctx context.Context, accountID, version
 	if err := service.readAvatarDetails(ctx, accountID, version, "avatar-outfit-create", "https://avatar.roblox.com/v2/avatar/avatar", &current); err != nil {
 		return err
 	}
-	if current.Scales == nil || current.BodyColors == nil || current.Assets == nil || !validAvatarType(current.PlayerAvatarType) {
+	if !current.isComplete() {
 		return invalidAvatar("avatar-outfit-create")
 	}
 	assets := make([]avatarUpdateAsset, len(*current.Assets))

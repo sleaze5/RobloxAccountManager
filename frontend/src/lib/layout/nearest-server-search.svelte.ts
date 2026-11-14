@@ -1,8 +1,9 @@
 import { accountBackend } from "../backend/bridge"
 import type { GameServerVisit, NearbyServerRegion } from "../backend/bridge"
+import type { CancellableRequest } from "../shared/cancellable-request"
 import { errorMessage } from "../shared/errors"
 
-export type RegionCheckStatus =
+type RegionCheckStatus =
 	| "waiting"
 	| "checking"
 	| "found"
@@ -10,15 +11,9 @@ export type RegionCheckStatus =
 	| "skipped"
 	| "failed"
 
-export type ServerCheckStatus =
-	| "checking"
-	| "open"
-	| "closed"
-	| "found"
-	| "skipped"
-	| "failed"
+type ServerCheckStatus = "checking" | "open" | "closed" | "found" | "skipped" | "failed"
 
-export interface ServerCheck {
+interface ServerCheck {
 	jobId: string
 	status: ServerCheckStatus
 }
@@ -31,7 +26,7 @@ export interface RegionCheck {
 	hasSkippedServer: boolean
 }
 
-export type NearestServerSearchPhase =
+type NearestServerSearchPhase =
 	| "loading"
 	| "checking"
 	| "found"
@@ -48,8 +43,8 @@ export class NearestServerSearch {
 	foundServerVisit = $state<GameServerVisit | null>(null)
 	error = $state("")
 
-	#requests: { cancel: () => unknown }[] = []
-	#visitRequest: { cancel: () => unknown } | null = null
+	#requests: CancellableRequest<unknown>[] = []
+	#visitRequest: CancellableRequest<unknown> | null = null
 	#version = 0
 	#hasLoadedRegions = false
 

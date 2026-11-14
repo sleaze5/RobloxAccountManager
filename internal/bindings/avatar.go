@@ -8,7 +8,7 @@ import (
 )
 
 func (service *Service) GetAvatar(ctx context.Context, accountID, userID int64) (robloxservices.Avatar, error) {
-	if err := socialTarget(accountID, userID, "avatar"); err != nil {
+	if err := validateAccountAndTargetIDs(accountID, userID, "avatar"); err != nil {
 		return robloxservices.Avatar{}, err
 	}
 	return service.core.GetAvatar(ctx, accountID, userID)
@@ -36,21 +36,21 @@ func (service *Service) WaitForAvatarImage(ctx context.Context, accountID int64)
 }
 
 func (service *Service) GetAvatarOutfits(ctx context.Context, accountID, userID int64, cursor string) (robloxservices.AvatarOutfitPage, error) {
-	if err := socialTarget(accountID, userID, "avatar-outfits"); err != nil {
+	if err := validateAccountAndTargetIDs(accountID, userID, "avatar-outfits"); err != nil {
 		return robloxservices.AvatarOutfitPage{}, err
 	}
 	return service.core.GetAvatarOutfits(ctx, accountID, userID, cursor)
 }
 
 func (service *Service) GetAvatarOutfitDetails(ctx context.Context, accountID, outfitID int64) (robloxservices.Avatar, error) {
-	if err := socialTarget(accountID, outfitID, "avatar-outfit-details"); err != nil {
+	if err := validateAccountAndTargetIDs(accountID, outfitID, "avatar-outfit-details"); err != nil {
 		return robloxservices.Avatar{}, err
 	}
 	return service.core.GetAvatarOutfitDetails(ctx, accountID, outfitID)
 }
 
 func (service *Service) WearAvatarOutfit(ctx context.Context, accountID, outfitID int64) (*robloxservices.Avatar, error) {
-	if err := socialTarget(accountID, outfitID, "avatar-outfit-wear"); err != nil {
+	if err := validateAccountAndTargetIDs(accountID, outfitID, "avatar-outfit-wear"); err != nil {
 		return nil, err
 	}
 	return service.core.WearAvatarOutfit(ctx, accountID, outfitID)
@@ -64,14 +64,14 @@ func (service *Service) CreateAvatarOutfit(ctx context.Context, accountID int64,
 }
 
 func (service *Service) RenameAvatarOutfit(ctx context.Context, accountID, outfitID int64, name string) error {
-	if err := socialTarget(accountID, outfitID, "avatar-outfit-rename"); err != nil {
+	if err := validateAccountAndTargetIDs(accountID, outfitID, "avatar-outfit-rename"); err != nil {
 		return err
 	}
 	return service.core.RenameAvatarOutfit(ctx, accountID, outfitID, name)
 }
 
 func (service *Service) DeleteAvatarOutfit(ctx context.Context, accountID, outfitID int64) error {
-	if err := socialTarget(accountID, outfitID, "avatar-outfit-delete"); err != nil {
+	if err := validateAccountAndTargetIDs(accountID, outfitID, "avatar-outfit-delete"); err != nil {
 		return err
 	}
 	return service.core.DeleteAvatarOutfit(ctx, accountID, outfitID)

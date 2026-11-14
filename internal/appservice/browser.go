@@ -4,13 +4,13 @@ import (
 	"context"
 	"errors"
 	"net/url"
-	"strings"
 
 	"github.com/sleaze5/RobloxAccountManager/internal/browser"
 	"github.com/sleaze5/RobloxAccountManager/internal/gamelaunch"
 	"github.com/sleaze5/RobloxAccountManager/internal/logging"
 	"github.com/sleaze5/RobloxAccountManager/internal/platform/robloxmulti"
 	"github.com/sleaze5/RobloxAccountManager/internal/roblox"
+	"github.com/sleaze5/RobloxAccountManager/internal/storage/vault"
 )
 
 func (service *Service) GetBrowserState() browser.Snapshot {
@@ -39,7 +39,7 @@ func (service *Service) RemoveBrowserRuntime() error {
 
 func (service *Service) StartLoginBrowser(ctx context.Context) (browser.SessionState, error) {
 	if !service.vault.Unlocked() {
-		return browser.SessionState{}, errors.New("unlock the vault before opening a browser")
+		return browser.SessionState{}, mapRepositoryError(vault.ErrLocked)
 	}
 	return service.browser.StartLogin(ctx)
 }
@@ -47,11 +47,11 @@ func (service *Service) StartLoginBrowser(ctx context.Context) (browser.SessionS
 // OpenAccountBrowser shows the Roblox page in the browser of the account.
 func (service *Service) OpenAccountBrowser(ctx context.Context, accountID int64, pageURL string) (browser.SessionState, error) {
 	if !service.vault.Unlocked() {
-		return browser.SessionState{}, errors.New("unlock the vault before opening a browser")
+		return browser.SessionState{}, mapRepositoryError(vault.ErrLocked)
 	}
 	address, err := url.Parse(pageURL)
-	if err != nil || address.Scheme != "https" || address.User != nil || (address.Hostname() != "roblox.com" && !strings.HasSuffix(address.Hostname(), ".roblox.com")) {
-		return browser.SessionState{}, errors.New("the browser opens only Roblox pages")
+	if err != nil || !roblox.IsRobloxURL(address) {
+		return browser.SessionState{}, &roblox.Error{Kind: roblox.KindProtocol, Endpoint: "browser-open", Message: "The browser opens only Roblox pages.", Cause: err}
 	}
 	return service.browser.OpenAccount(ctx, accountID, address.String())
 }

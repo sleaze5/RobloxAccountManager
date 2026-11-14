@@ -25,21 +25,29 @@ type InventoryItemDetails struct {
 	AwardingGameName string `json:"awardingGameName"`
 }
 
-// inventoryItemTypeOf is the item type that the inventory ownership API takes
-// for the items of the category.
-func inventoryItemTypeOf(category InventoryCategory) (string, bool) {
+// inventoryItemType is the item type that the inventory ownership API takes.
+type inventoryItemType string
+
+const (
+	inventoryItemAsset    inventoryItemType = "Asset"
+	inventoryItemBundle   inventoryItemType = "Bundle"
+	inventoryItemBadge    inventoryItemType = "Badge"
+	inventoryItemGamePass inventoryItemType = "GamePass"
+)
+
+func inventoryItemTypeOf(category InventoryCategory) (inventoryItemType, bool) {
 	switch category {
 	case InventoryBadges:
-		return "Badge", true
+		return inventoryItemBadge, true
 	case InventoryGamePasses:
-		return "GamePass", true
+		return inventoryItemGamePass, true
 	case InventoryBundles:
-		return "Bundle", true
+		return inventoryItemBundle, true
 	case InventoryCollectibles:
-		return "Asset", true
+		return inventoryItemAsset, true
 	default:
 		_, ok := inventoryAssetTypesByCategory[category]
-		return "Asset", ok
+		return inventoryItemAsset, ok
 	}
 }
 
@@ -50,9 +58,9 @@ func LargeImageTarget(category InventoryCategory, itemID int64) (ThumbnailTarget
 	switch {
 	case !ok:
 		return ThumbnailTarget{}, false
-	case itemType == "Asset":
+	case itemType == inventoryItemAsset:
 		return ThumbnailTarget{Type: "Asset", TargetID: itemID}, true
-	case itemType == "Bundle":
+	case itemType == inventoryItemBundle:
 		return ThumbnailTarget{Type: "BundleThumbnail", TargetID: itemID}, true
 	}
 	return ThumbnailTarget{}, false
@@ -67,11 +75,11 @@ func (service *Users) InventoryItemDetails(ctx context.Context, accountID, versi
 	}
 	item := strconv.FormatInt(itemID, 10)
 	switch itemType {
-	case "Badge":
+	case inventoryItemBadge:
 		return service.badgeItemDetails(ctx, accountID, version, item)
-	case "GamePass":
+	case inventoryItemGamePass:
 		return service.gamePassItemDetails(ctx, accountID, version, item)
-	case "Bundle":
+	case inventoryItemBundle:
 		return service.bundleItemDetails(ctx, accountID, version, item)
 	default:
 		return service.assetItemDetails(ctx, accountID, version, item)
@@ -161,7 +169,7 @@ func (service *Users) IsInventoryItemOwned(ctx context.Context, accountID, versi
 		return false, &roblox.Error{Kind: roblox.KindProtocol, Endpoint: "inventory-item-ownership", Message: "Choose an inventory category."}
 	}
 	var isOwned bool
-	address := "https://inventory.roblox.com/v1/users/" + strconv.FormatInt(userID, 10) + "/items/" + itemType + "/" + strconv.FormatInt(itemID, 10) + "/is-owned"
+	address := "https://inventory.roblox.com/v1/users/" + strconv.FormatInt(userID, 10) + "/items/" + string(itemType) + "/" + strconv.FormatInt(itemID, 10) + "/is-owned"
 	if err := service.readAccountDetails(ctx, accountID, version, "inventory-item-ownership", address, &isOwned); err != nil {
 		return false, err
 	}

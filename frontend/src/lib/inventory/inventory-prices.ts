@@ -11,7 +11,7 @@ export function formatRobux(amount: number, isCompact: boolean): string {
 }
 
 // marketPriceLabel names what the item costs now: the cheapest resale of a
-// limited item, its price, Free, or Off sale.
+// limited item, or else its sale price.
 export function marketPriceLabel(
 	market: InventoryItemMarket,
 	isCompact: boolean,
@@ -19,6 +19,15 @@ export function marketPriceLabel(
 	if (market.lowestResalePriceInRobux !== null) {
 		return formatRobux(market.lowestResalePriceInRobux, isCompact)
 	}
+	return salePriceLabel(market, isCompact)
+}
+
+// salePriceLabel names what the seller asks for a new copy: its price, Free,
+// or Off sale.
+export function salePriceLabel(
+	market: InventoryItemMarket,
+	isCompact: boolean,
+): string {
 	if (!market.isForSale) return "Off sale"
 	return market.priceInRobux === 0
 		? "Free"

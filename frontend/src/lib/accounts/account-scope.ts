@@ -1,8 +1,5 @@
+import type { CancellableRequest } from "../shared/cancellable-request"
 import type { AccountStore } from "./account-store.svelte"
-
-export interface CancellableRequest<T> extends Promise<T> {
-	cancel(): unknown
-}
 
 export interface KeptPageData<Value> {
 	value: Value
