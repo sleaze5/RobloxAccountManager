@@ -44,9 +44,10 @@ export class AvatarState {
 	draft = $state.raw<AvatarDraft | null>(null)
 	isSaving = $state(false)
 	saveError = $state("")
-	// Whether Roblox saved the draft but the saved avatar could not be read, so
-	// avatar still shows how it looked before the save. The draft shows what was
-	// saved until a refresh reads the saved avatar.
+	// Whether Roblox changed the avatar with a save or an outfit but the changed
+	// avatar could not be read, so avatar still shows how it looked before. The
+	// draft stays locked until a refresh reads the changed avatar, because a
+	// save from it would undo the change.
 	isAvatarOutdated = $state(false)
 	// Whether Roblox still renders the full-body image after a change.
 	isRenderingImage = $state(false)
@@ -96,26 +97,22 @@ export class AvatarState {
 		)
 	}
 
+	// Whether a save or an outfit change runs. It shows the changed avatar when
+	// it finishes, so a read that overlaps it could show the avatar from before.
+	get isChangingAvatar(): boolean {
+		return this.isSaving || this.wearingOutfitId !== 0
+	}
+
 	// Whether the draft must not change now: a running request replaces it when
-	// it finishes, or it holds a save that the page could not read back.
+	// it finishes, or the avatar changed and could not be read back.
 	get isDraftLocked(): boolean {
-		return (
-			this.loading ||
-			this.isSaving ||
-			this.wearingOutfitId !== 0 ||
-			this.isAvatarOutdated
-		)
+		return this.loading || this.isChangingAvatar || this.isAvatarOutdated
 	}
 
 	// Whether an outfit can replace the avatar now: the draft has no changes,
 	// and no other request replaces the avatar.
 	get canWearOutfit(): boolean {
-		return (
-			!this.isChanged &&
-			!this.loading &&
-			!this.isSaving &&
-			this.wearingOutfitId === 0
-		)
+		return !this.isChanged && !this.loading && !this.isChangingAvatar
 	}
 
 	get maxWornCountByTypeName(): Record<string, number | undefined> {
@@ -123,7 +120,7 @@ export class AvatarState {
 	}
 
 	async refresh(): Promise<void> {
-		if (!this.#scope.isCurrent) return
+		if (!this.#scope.isCurrent || this.isChangingAvatar) return
 		void this.#loadRequest?.cancel()
 		const request = accountBackend.GetAvatar(this.#scope.accountId, this.userId)
 		this.#loadRequest = request
@@ -296,7 +293,8 @@ export class AvatarState {
 				accountBackend.WearAvatarOutfit(this.#scope.accountId, outfit.outfitId),
 			)
 			if (!this.#scope.isCurrent) return false
-			this.#showChangedAvatar(avatar)
+			if (avatar) this.#showChangedAvatar(avatar)
+			else this.isAvatarOutdated = true
 			this.#notifications.show({
 				id: "avatar-outfit-wear",
 				tone: "success",

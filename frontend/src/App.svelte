@@ -385,6 +385,12 @@
 		activeDialog = null
 	}
 
+	// requestLockVault asks before locking discards unsaved changes, because
+	// locking closes every page.
+	function requestLockVault(): void {
+		unsavedChangesGuard.leave(() => void openLockVault())
+	}
+
 	async function openLockVault(): Promise<void> {
 		try {
 			lockEffects = await browserStore.effects()
@@ -625,7 +631,7 @@
 			{workspace}
 			backLabel={`Back to ${pageLabels[settingsReturnPage]}`}
 			onBack={() => (activePage = settingsReturnPage)}
-			onLock={() => void openLockVault()} />
+			onLock={requestLockVault} />
 	{:else}
 		<PageNavigation
 			{store}
@@ -635,7 +641,7 @@
 				showPage(page)
 			}}
 			onSettings={openSettings}
-			onLock={() => void openLockVault()} />
+			onLock={requestLockVault} />
 
 		{#if activePage === "accounts" && store.error && activeDialog === null && store.vault.unlocked}
 			<OperationError {store} />

@@ -214,7 +214,7 @@
 				: "Refresh avatar"}
 			data-tooltip-side="bottom-end"
 			aria-busy={avatar.loading}
-			disabled={avatar.loading || avatar.isSaving || isChanged}
+			disabled={avatar.loading || avatar.isChangingAvatar || isChanged}
 			onclick={() => {
 				void avatar.refresh()
 				if (avatar.outfits) void avatar.loadOutfits()
@@ -289,13 +289,13 @@
 							class="mx-3 mt-3 flex items-center gap-2 notice-warning"
 							role="status">
 							<span class="min-w-0 flex-1"
-								>The avatar was saved but couldn't be reloaded. Reload
-								it to see what Roblox put on.</span>
+								>Roblox changed the avatar, but it couldn't be reloaded.
+								Reload it to see what Roblox put on.</span>
 							<button
 								class="button"
 								type="button"
 								aria-busy={avatar.loading}
-								disabled={avatar.loading}
+								disabled={avatar.loading || avatar.isChangingAvatar}
 								onclick={() => void avatar.refresh()}
 								>{avatar.loading ? "Reloading…" : "Reload"}</button>
 						</div>

@@ -49,9 +49,9 @@ func (service *Service) GetAvatarOutfitDetails(ctx context.Context, accountID, o
 	return service.core.GetAvatarOutfitDetails(ctx, accountID, outfitID)
 }
 
-func (service *Service) WearAvatarOutfit(ctx context.Context, accountID, outfitID int64) (robloxservices.Avatar, error) {
+func (service *Service) WearAvatarOutfit(ctx context.Context, accountID, outfitID int64) (*robloxservices.Avatar, error) {
 	if err := socialTarget(accountID, outfitID, "avatar-outfit-wear"); err != nil {
-		return robloxservices.Avatar{}, err
+		return nil, err
 	}
 	return service.core.WearAvatarOutfit(ctx, accountID, outfitID)
 }

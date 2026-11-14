@@ -194,23 +194,25 @@ func (service *Service) GetAvatarOutfits(ctx context.Context, accountID, userID 
 }
 
 // WearAvatarOutfit puts the outfit on the avatar of the account and reads the
-// avatar again.
-func (service *Service) WearAvatarOutfit(ctx context.Context, accountID, outfitID int64) (robloxservices.Avatar, error) {
+// avatar again. A failed read returns a nil avatar instead of an error,
+// because the outfit was put on.
+func (service *Service) WearAvatarOutfit(ctx context.Context, accountID, outfitID int64) (*robloxservices.Avatar, error) {
 	account, err := service.accountRepository.GetView(ctx, accountID)
 	if err != nil {
-		return robloxservices.Avatar{}, mapRepositoryError(err)
+		return nil, mapRepositoryError(err)
 	}
 	err = service.editAccount(ctx, accountID, "avatar-outfit-wear", "", func(ctx context.Context, version int64) error {
 		return service.users.WearAvatarOutfit(ctx, accountID, version, outfitID)
 	})
 	if err != nil {
-		return robloxservices.Avatar{}, err
+		return nil, err
 	}
-	avatar, err := service.GetAvatar(ctx, accountID, account.RobloxUserID)
-	if err != nil {
-		return robloxservices.Avatar{}, &roblox.Error{Kind: roblox.KindProtocol, Endpoint: "avatar-outfit-wear", Message: "The outfit was put on but the avatar could not be reloaded. Refresh the avatar.", Cause: err}
+	var reloadedAvatar *robloxservices.Avatar
+	// GetAvatar logs a failed read.
+	if avatar, readError := service.GetAvatar(ctx, accountID, account.RobloxUserID); readError == nil {
+		reloadedAvatar = &avatar
 	}
-	return avatar, nil
+	return reloadedAvatar, nil
 }
 
 func (service *Service) CreateAvatarOutfit(ctx context.Context, accountID int64, name string) error {
