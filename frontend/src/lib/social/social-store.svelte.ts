@@ -237,6 +237,8 @@ export class SocialStore {
 	loadError = $state("")
 	requestCount = $state<number | null>(null)
 	selectedPerson = $state<SocialUser | null>(null)
+	inventoryOpen = $state(false)
+	inventorySidebarWidth = $state(192)
 	profileLoad = $state<SocialProfileLoad | null>(null)
 	savingNickname = $state(false)
 	relationshipError = $state("")
@@ -603,6 +605,7 @@ export class SocialStore {
 	select(person: SocialUser | null): void {
 		if (person?.userId === this.selectedUserId) return
 		this.selectedPerson = person
+		this.inventoryOpen = false
 		this.profileLoad?.cancel()
 		this.profileLoad = null
 		if (person) void this.loadProfile(person.userId)
@@ -1014,6 +1017,7 @@ export class SocialStore {
 		this.accountId = accountId
 		this.selfUserId = selfUserId
 		this.page = this.profileLoad = this.menu = this.selectedPerson = null
+		this.inventoryOpen = false
 		this.requestCount = cache.requestCount
 		this.menuRelationship = this.pendingAction = null
 		this.loading = this.loadingMore = false

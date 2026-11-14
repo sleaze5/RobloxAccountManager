@@ -77,8 +77,8 @@ func (service *Badges) ForUniverse(ctx context.Context, universeID int64) ([]gam
 				continue
 			}
 			badges = append(badges, games.Badge{
-				BadgeID: listedBadge.ID, Name: badgeText(listedBadge.DisplayName, maxBadgeNameLength),
-				Description: badgeText(listedBadge.DisplayDescription, maxBadgeDescriptionLength), Enabled: listedBadge.Enabled,
+				BadgeID: listedBadge.ID, Name: boundedText(listedBadge.DisplayName, maxBadgeNameLength),
+				Description: boundedText(listedBadge.DisplayDescription, maxBadgeDescriptionLength), Enabled: listedBadge.Enabled,
 				AwardedCount: max(listedBadge.Statistics.AwardedCount, 0), AwardedPastDay: max(listedBadge.Statistics.PastDayAwardedCount, 0),
 				PastDayWinFraction: min(max(listedBadge.Statistics.WinRatePercentage, 0), 1), CreatedAtMs: robloxTimeMs(listedBadge.Created),
 			})
@@ -132,7 +132,7 @@ func (service *Badges) Awards(ctx context.Context, accountID, version, robloxUse
 	return awards, nil
 }
 
-func badgeText(rawText string, maxLength int) string {
+func boundedText(rawText string, maxLength int) string {
 	rawText = strings.TrimSpace(rawText)
 	if !utf8.ValidString(rawText) || utf8.RuneCountInString(rawText) > maxLength {
 		return ""

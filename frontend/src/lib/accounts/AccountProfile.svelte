@@ -1,4 +1,5 @@
 <script lang="ts">
+	import backpackIcon from "@phosphor-icons/core/regular/backpack.svg?raw"
 	import bellIcon from "@phosphor-icons/core/regular/bell.svg?raw"
 	import chatsIcon from "@phosphor-icons/core/regular/chats.svg?raw"
 	import dotsThreeIcon from "@phosphor-icons/core/regular/dots-three.svg?raw"
@@ -21,6 +22,7 @@
 	import { CountdownClock } from "../shared/countdown-clock.svelte"
 	import type { SocialListKind } from "../social/social-store.svelte"
 	import ChatsPage from "../chats/ChatsPage.svelte"
+	import InventoryPage from "../inventory/InventoryPage.svelte"
 	import RobloxNotificationsPage from "../roblox-notifications/RobloxNotificationsPage.svelte"
 	import FriendConnections from "../social/FriendConnections.svelte"
 	import SocialCounts from "../social/SocialCounts.svelte"
@@ -91,6 +93,7 @@
 	let settingsButton = $state<HTMLButtonElement | undefined>(undefined),
 		chatsButton = $state<HTMLButtonElement | undefined>(undefined),
 		notificationsButton = $state<HTMLButtonElement | undefined>(undefined),
+		inventoryButton = $state<HTMLButtonElement | undefined>(undefined),
 		tagsButton = $state<HTMLButtonElement | undefined>(undefined)
 	const profileState = $derived(
 			profileVisible ? store.getAccountProfile(profileAccountId) : null,
@@ -150,7 +153,9 @@
 		return () => window.clearInterval(timer)
 	})
 
-	function openPage(page: "settings" | "chats" | "notifications"): void {
+	function openPage(
+		page: "settings" | "chats" | "notifications" | "inventory",
+	): void {
 		workspace.closeAccountMenus()
 		workspace.accountPage = page
 	}
@@ -161,6 +166,7 @@
 			settings: settingsButton,
 			chats: chatsButton,
 			notifications: notificationsButton,
+			inventory: inventoryButton,
 		}[workspace.accountPage]
 		workspace.accountPage = "profile"
 		await tick()
@@ -177,6 +183,14 @@
 		onBack={() => void backToProfile()} />
 {:else if workspace.accountPage === "chats" && hasAccount && store.vault.unlocked}
 	<ChatsPage {store} {workspace} onBack={() => void backToProfile()} />
+{:else if workspace.accountPage === "inventory" && hasAccount && store.vault.unlocked}
+	<InventoryPage
+		accounts={store}
+		accountId={selectedAccount.id}
+		userId={Number(selectedAccount.userId)}
+		username={selectedAccount.username}
+		bind:sidebarWidth={workspace.accountSettingsSidebarWidth}
+		onBack={() => void backToProfile()} />
 {:else if workspace.accountPage === "notifications" && hasAccount && store.vault.unlocked}
 	<RobloxNotificationsPage
 		{store}
@@ -327,6 +341,20 @@
 							? void store.refreshModeration(selectedAccount.id)
 							: void profileState?.refresh(true)}>
 					<RefreshIcon isRefreshing={refreshing} />
+				</button>
+				<button
+					class="button-icon"
+					type="button"
+					aria-label={moderated
+						? "Inventory is unavailable while moderated"
+						: "Inventory"}
+					data-tooltip={moderated
+						? "Inventory is unavailable while moderated"
+						: "Inventory"}
+					disabled={!hasAccount || !store.vault.unlocked || moderated}
+					bind:this={inventoryButton}
+					onclick={() => openPage("inventory")}>
+					<Icon svg={backpackIcon} size={16} aria-hidden="true" />
 				</button>
 				<button
 					class="relative button-icon"

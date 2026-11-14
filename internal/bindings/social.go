@@ -141,3 +141,10 @@ func (service *Service) RemoveSocialConnections(ctx context.Context, accountID i
 func (service *Service) FindPlayerByUsername(ctx context.Context, username string) (*appservice.SocialUser, error) {
 	return service.core.FindPlayerByUsername(ctx, username)
 }
+
+func (service *Service) GetInventoryPage(ctx context.Context, accountID, userID int64, category robloxservices.InventoryCategory, cursor string) (robloxservices.InventoryPage, error) {
+	if err := socialTarget(accountID, userID, "inventory"); err != nil {
+		return robloxservices.InventoryPage{}, err
+	}
+	return service.core.GetInventoryPage(ctx, accountID, userID, category, cursor)
+}
