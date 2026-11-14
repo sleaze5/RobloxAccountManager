@@ -1,23 +1,28 @@
 <script lang="ts">
 	import arrowsLeftRightIcon from "@phosphor-icons/core/regular/arrows-left-right.svg?raw"
 	import barcodeIcon from "@phosphor-icons/core/regular/barcode.svg?raw"
-	import calendarPlusIcon from "@phosphor-icons/core/regular/calendar-plus.svg?raw"
+	import calendarDotsIcon from "@phosphor-icons/core/regular/calendar-dots.svg?raw"
 	import checkCircleFillIcon from "@phosphor-icons/core/fill/check-circle-fill.svg?raw"
 	import circleDashedIcon from "@phosphor-icons/core/regular/circle-dashed.svg?raw"
-	import clockClockwiseIcon from "@phosphor-icons/core/regular/clock-clockwise.svg?raw"
+	import clockCounterClockwiseIcon from "@phosphor-icons/core/regular/clock-counter-clockwise.svg?raw"
+	import diamondIcon from "@phosphor-icons/core/regular/diamond.svg?raw"
 	import fingerprintIcon from "@phosphor-icons/core/regular/fingerprint.svg?raw"
 	import gameControllerIcon from "@phosphor-icons/core/regular/game-controller.svg?raw"
-	import hashIcon from "@phosphor-icons/core/regular/hash.svg?raw"
 	import heartFillIcon from "@phosphor-icons/core/fill/heart-fill.svg?raw"
 	import heartIcon from "@phosphor-icons/core/regular/heart.svg?raw"
 	import magnifyingGlassIcon from "@phosphor-icons/core/regular/magnifying-glass.svg?raw"
 	import mapPinIcon from "@phosphor-icons/core/regular/map-pin.svg?raw"
 	import packageIcon from "@phosphor-icons/core/regular/package.svg?raw"
 	import sealCheckIcon from "@phosphor-icons/core/regular/seal-check.svg?raw"
+	import shapesIcon from "@phosphor-icons/core/regular/shapes.svg?raw"
 	import stackIcon from "@phosphor-icons/core/regular/stack.svg?raw"
+	import storefrontIcon from "@phosphor-icons/core/regular/storefront.svg?raw"
 	import tShirtIcon from "@phosphor-icons/core/regular/t-shirt.svg?raw"
+	import tagIcon from "@phosphor-icons/core/regular/tag.svg?raw"
 	import timerIcon from "@phosphor-icons/core/regular/timer.svg?raw"
 	import trashIcon from "@phosphor-icons/core/regular/trash.svg?raw"
+	import trendUpIcon from "@phosphor-icons/core/regular/trend-up.svg?raw"
+	import trophyIcon from "@phosphor-icons/core/regular/trophy.svg?raw"
 	import xIcon from "@phosphor-icons/core/regular/x.svg?raw"
 	import { tick } from "svelte"
 	import {
@@ -30,6 +35,8 @@
 	import Icon from "../shared/Icon.svelte"
 	import ProfileImage from "../shared/ProfileImage.svelte"
 	import Skeleton from "../shared/Skeleton.svelte"
+	import Timestamp from "../shared/Timestamp.svelte"
+	import { relativeTime } from "../shared/timestamp"
 	import { inventoryTypeLabel } from "./inventory-categories"
 	import type { InventoryCategoryOption } from "./inventory-categories"
 	import { formatRobux } from "./inventory-prices"
@@ -64,10 +71,6 @@
 			style: "percent",
 			maximumFractionDigits: 1,
 		}),
-		dates = new Intl.DateTimeFormat(undefined, {
-			dateStyle: "medium",
-			timeStyle: "short",
-		}),
 		saleLocationLabels: Record<InventorySaleLocation, string> = {
 			[InventorySaleLocation.$zero]: "",
 			[InventorySaleLocation.SaleInMarketplace]: "Marketplace only",
@@ -77,8 +80,11 @@
 				"Marketplace and some experiences",
 			[InventorySaleLocation.SaleInExperiences]: "Experiences only",
 		},
+		metaClass =
+			"flex min-w-0 flex-wrap items-center gap-1 font-mono text-2xs wrap-anywhere text-fg-muted",
+		sectionHeadingClass = "text-xs font-semibold text-fg-muted",
 		name = $derived(item.name || "Unnamed item"),
-		typeLabel = $derived(inventoryTypeLabel(item.typeName)),
+		typeLabel = $derived(inventoryTypeLabel(item.typeName) || category.label),
 		market = $derived(item.market),
 		badge = $derived(item.badge),
 		isCatalogItem = $derived(!!item.catalogItemType),
@@ -123,6 +129,9 @@
 		),
 		saleLocationLabel = $derived(
 			market ? saleLocationLabels[market.saleLocation] : "",
+		),
+		hasMarketSection = $derived(
+			!!market || item.recentAveragePrice !== null || item.serialNumber !== null,
 		)
 
 	// The dialog keeps its card while it switches between the details and the
@@ -152,27 +161,46 @@
 		}
 	}} />
 
-{#snippet detailValue(value: string | undefined, isMono: boolean)}
+{#snippet fact(icon: string, label: string, value: string, isMono = false)}
+	<div>
+		<dt><Icon svg={icon} size={16} aria-hidden="true" />{label}</dt>
+		<dd><span class={[isMono && "font-mono select-text"]}>{value}</span></dd>
+	</div>
+{/snippet}
+
+{#snippet missingDetail()}
 	{#if details === undefined}
-		<Skeleton className="w-32" />
+		<Skeleton className="w-28" />
 	{:else if details === null}
 		<span class="text-fg-muted">Unavailable</span>
-	{:else if value}
-		<span class={[isMono && "font-mono select-text"]}>{value}</span>
 	{:else}
 		<span class="text-fg-muted">N/A</span>
 	{/if}
 {/snippet}
 
-{#snippet stat(label: string, value: string, isMuted: boolean)}
-	<div class="min-w-0">
-		<dt class="text-2xs text-fg-muted">{label}</dt>
-		<dd
-			class={[
-				"truncate font-mono text-sm font-semibold",
-				isMuted ? "text-fg-muted" : "text-fg",
-			]}>
-			{value}
+{#snippet detailFact(icon: string, label: string, value: string | undefined)}
+	<div>
+		<dt><Icon svg={icon} size={16} aria-hidden="true" />{label}</dt>
+		<dd>
+			{#if value}
+				<span class="font-mono select-text">{value}</span>
+			{:else}
+				{@render missingDetail()}
+			{/if}
+		</dd>
+	</div>
+{/snippet}
+
+{#snippet dateFact(icon: string, label: string, valueMs: number | undefined)}
+	<div>
+		<dt><Icon svg={icon} size={16} aria-hidden="true" />{label}</dt>
+		<dd>
+			{#if valueMs}
+				<Timestamp value={valueMs} />
+				<small>{relativeTime(valueMs)}</small>
+			{:else}
+				{@render missingDetail()}
+			{/if}
 		</dd>
 	</div>
 {/snippet}
@@ -183,9 +211,7 @@
 	aria-labelledby={isConfirmingDeletion
 		? "inventory-delete-title"
 		: "inventory-item-title"}
-	aria-describedby={isConfirmingDeletion
-		? "inventory-delete-description"
-		: "inventory-item-subtitle"}
+	aria-describedby={isConfirmingDeletion ? "inventory-delete-description" : undefined}
 	bind:card
 	onBackdropClick={close}>
 	{#if isConfirmingDeletion}
@@ -224,287 +250,290 @@
 				>{inventory.isDeletingItem ? "Deleting…" : "Delete item"}</button>
 		</div>
 	{:else}
-		<div class="flex items-start gap-4">
-			<span
-				class="grid size-64 shrink-0 place-items-center overflow-hidden rounded-lg border border-line-subtle bg-raised"
-				aria-hidden="true">
+		<div class="flex flex-col gap-4">
+			<div class="flex items-start gap-4">
 				<span
-					class={[
-						"grid place-items-center",
-						isSmallIcon ? "size-36" : "size-full",
-					]}>
-					<ProfileImage url={imageUrl} fallbackIcon={category.icon} />
+					class="grid size-48 shrink-0 place-items-center overflow-hidden rounded-lg border border-line-subtle bg-raised"
+					aria-hidden="true">
+					<span
+						class={[
+							"grid place-items-center",
+							isSmallIcon ? "size-36" : "size-full",
+						]}>
+						<ProfileImage url={imageUrl} fallbackIcon={category.icon} />
+					</span>
 				</span>
-			</span>
 
-			<div class="flex min-w-0 flex-1 flex-col gap-3 self-stretch">
-				<div class="flex items-start justify-between gap-3">
-					<div class="min-w-0">
-						<h2 id="inventory-item-title" class="wrap-anywhere">{name}</h2>
-						<p
-							id="inventory-item-subtitle"
-							class="mt-1 text-sm leading-normal text-fg-muted">
-							{typeLabel || category.label}
-						</p>
+				<div class="flex min-w-0 flex-1 flex-col gap-1">
+					<div class="flex items-start justify-between gap-3">
+						<h2
+							id="inventory-item-title"
+							class="min-w-0 leading-6 tracking-tight wrap-anywhere">
+							{name}
+						</h2>
+						<button
+							class="button-close"
+							type="button"
+							aria-label="Close item details"
+							onclick={close}>
+							<Icon svg={xIcon} size={14} aria-hidden="true" />
+						</button>
 					</div>
-					<button
-						class="button-close"
-						type="button"
-						aria-label="Close item details"
-						onclick={close}>
-						<Icon svg={xIcon} size={14} aria-hidden="true" />
-					</button>
-				</div>
-
-				{#if item.creatorName}
-					<p class="flex min-w-0 items-center gap-1 text-xs text-fg-muted">
-						By <span class="truncate font-medium text-fg"
-							>{item.creatorName}</span
-						>{#if item.creatorHasVerifiedBadge}<Icon
-								svg={sealCheckIcon}
-								class="shrink-0 text-accent-strong"
-								size={14}
-								aria-label="Verified" />{/if}
-					</p>
-				{/if}
-
-				<ul class="flex min-h-6 flex-wrap gap-1.5" aria-label="Status">
-					{#if isOwnInventory}
-						<li
-							class="inline-flex h-6 items-center gap-1 rounded-sm border border-line-subtle bg-fill px-2 text-xs font-medium text-fg">
-							<Icon
-								svg={checkCircleFillIcon}
-								class="text-success"
-								size={14}
-								aria-hidden="true" />Owned
-						</li>
-					{:else if isOwnedByAccount === undefined}
-						<li class="h-6 w-24 skeleton rounded-sm">
-							<span class="sr-only">Checking whether you own this</span>
-						</li>
-					{:else if isOwnedByAccount}
-						<li
-							class="inline-flex h-6 animate-pop items-center gap-1 rounded-sm border border-line-subtle bg-fill px-2 text-xs font-medium text-fg">
-							<Icon
-								svg={checkCircleFillIcon}
-								class="text-success"
-								size={14}
-								aria-hidden="true" />You own this
-						</li>
-					{:else if isOwnedByAccount === false}
-						<li
-							class="inline-flex h-6 items-center gap-1 rounded-sm border border-line-subtle bg-fill px-2 text-xs font-medium text-fg-muted">
-							<Icon
-								svg={circleDashedIcon}
-								class="text-fg-faint"
-								size={14}
-								aria-hidden="true" />You don't own this
-						</li>
-					{/if}
-					{#if isWorn}
-						<li
-							class="inline-flex h-6 items-center gap-1 rounded-sm border border-line-subtle bg-fill px-2 text-xs font-medium text-success">
-							<Icon
-								svg={tShirtIcon}
-								size={14}
-								aria-hidden="true" />Wearing
-						</li>
-					{/if}
-					{#if market?.isLimited}
-						<li
-							class="inline-flex h-6 items-center rounded-sm border border-line-subtle bg-fill px-2 text-xs font-medium text-warning">
-							Limited
-						</li>
-					{/if}
-				</ul>
-
-				{#if market || badge || item.recentAveragePrice !== null}
-					<dl
-						class="mt-auto grid grid-cols-3 gap-3 rounded-lg border border-line-subtle bg-fill px-3 py-2">
-						{#if market}
-							{@render stat("Price", priceLabel, !market.isForSale)}
-							{#if market.lowestResalePriceInRobux !== null}
-								{@render stat(
-									"Lowest resale",
-									formatRobux(market.lowestResalePriceInRobux, false),
-									false,
-								)}
+					<div class={metaClass}>
+						<span class="select-text">ID: {item.itemId}</span>
+						<span class="text-fg-faint" aria-hidden="true">-</span>
+						<span>{typeLabel}</span>
+					</div>
+					{#if item.creatorName}
+						<div class={metaClass}>
+							<span class="inline-flex items-center gap-1"
+								>by {item.creatorName}{#if item.creatorHasVerifiedBadge}<Icon
+										svg={sealCheckIcon}
+										size={14}
+										aria-label="Verified creator" />{/if}</span>
+							{#if item.creatorId}
+								<span class="text-fg-faint" aria-hidden="true">-</span>
+								<span class="select-text"
+									>{item.creatorType} ID: {item.creatorId}</span>
 							{/if}
+						</div>
+					{/if}
+					{#if market}
+						<p
+							class={[
+								"inline-flex items-center gap-1 text-xs font-medium tabular-nums",
+								market.isForSale ? "text-fg" : "text-fg-muted",
+							]}>
+							<Icon svg={storefrontIcon} size={14} aria-hidden="true" />
+							{priceLabel}
+						</p>
+					{:else if badge}
+						<p
+							class="inline-flex items-center gap-1 text-xs font-medium text-fg tabular-nums">
+							<Icon svg={trophyIcon} size={14} aria-hidden="true" />
+							Won by {percent.format(badge.pastDayWinFraction)} of players yesterday
+						</p>
+					{/if}
+
+					<ul class="mt-2 flex min-h-6 flex-wrap gap-1" aria-label="Status">
+						{#if isOwnInventory}
+							<li class="tag-pill-success">
+								<Icon
+									svg={checkCircleFillIcon}
+									size={12}
+									aria-hidden="true" />
+								<span>Owned</span>
+							</li>
+						{:else if isOwnedByAccount === undefined}
+							<li class="h-6 w-24 skeleton rounded-sm">
+								<span class="sr-only"
+									>Checking whether you own this</span>
+							</li>
+						{:else if isOwnedByAccount}
+							<li class="tag-pill-success animate-pop">
+								<Icon
+									svg={checkCircleFillIcon}
+									size={12}
+									aria-hidden="true" />
+								<span>You own this</span>
+							</li>
+						{:else if isOwnedByAccount === false}
+							<li class="tag-pill">
+								<Icon
+									svg={circleDashedIcon}
+									size={12}
+									aria-hidden="true" />
+								<span>You don't own this</span>
+							</li>
+						{/if}
+						{#if isWorn}
+							<li class="tag-pill-success">
+								<Icon svg={tShirtIcon} size={12} aria-hidden="true" />
+								<span>Wearing</span>
+							</li>
+						{/if}
+						{#if market?.isLimited}
+							<li class="tag-pill-warning">
+								<Icon svg={diamondIcon} size={12} aria-hidden="true" />
+								<span>Limited</span>
+							</li>
+						{/if}
+						{#if isFavorite}
+							<li class="tag-pill-favorite">
+								<Icon
+									svg={heartFillIcon}
+									size={12}
+									aria-hidden="true" />
+								<span>Favorite</span>
+							</li>
+						{/if}
+					</ul>
+				</div>
+			</div>
+
+			{#if hasMarketSection}
+				<section
+					class="flex flex-col gap-3"
+					aria-labelledby="inventory-item-market">
+					<h3 id="inventory-item-market" class={sectionHeadingClass}>
+						Market
+					</h3>
+					<dl class="facts">
+						{#if market?.lowestResalePriceInRobux != null}
+							{@render fact(
+								tagIcon,
+								"Lowest resale",
+								formatRobux(market.lowestResalePriceInRobux, false),
+							)}
 						{/if}
 						{#if item.recentAveragePrice !== null}
-							{@render stat(
-								"Recent average",
+							{@render fact(
+								trendUpIcon,
+								"Recent average price",
 								formatRobux(item.recentAveragePrice, false),
-								false,
 							)}
+						{/if}
+						{#if item.serialNumber !== null}
+							{@render fact(
+								barcodeIcon,
+								"Serial number",
+								`#${exactNumbers.format(item.serialNumber)}`,
+							)}
+						{/if}
+						{#if stockLabel}
+							{@render fact(packageIcon, "Stock", stockLabel)}
+						{/if}
+						{#if isCatalogItem && market}
+							{@render fact(
+								arrowsLeftRightIcon,
+								"Tradable",
+								market.isLimited ? "Yes" : "No",
+							)}
+						{/if}
+						{#if saleLocationLabel}
+							{@render fact(mapPinIcon, "Sold in", saleLocationLabel)}
+						{/if}
+						{#if market && market.offSaleDeadlineMs > 0}
+							<div data-tone="warning">
+								<dt>
+									<Icon
+										svg={timerIcon}
+										size={16}
+										aria-hidden="true" />Leaves sale
+								</dt>
+								<dd>
+									<Timestamp value={market.offSaleDeadlineMs} />
+									<small
+										>{relativeTime(
+											market.offSaleDeadlineMs,
+										)}</small>
+								</dd>
+							</div>
 						{/if}
 						{#if market?.favoriteCount != null}
-							{@render stat(
+							{@render fact(
+								heartIcon,
 								"Favorites",
 								exactNumbers.format(market.favoriteCount),
-								false,
-							)}
-						{/if}
-						{#if badge}
-							{@render stat(
-								"Awarded",
-								exactNumbers.format(badge.awardedCount),
-								false,
-							)}
-							{@render stat(
-								"Won yesterday",
-								percent.format(badge.pastDayWinFraction),
-								false,
 							)}
 						{/if}
 					</dl>
-				{/if}
-			</div>
-		</div>
+				</section>
+			{/if}
 
-		<dl class="mt-3 facts">
-			{#if item.serialNumber !== null}
-				<div>
-					<dt>
-						<Icon svg={barcodeIcon} size={16} aria-hidden="true" />Serial
-						number
-					</dt>
-					<dd>
-						<span class="font-mono"
-							>#{exactNumbers.format(item.serialNumber)}</span>
-					</dd>
-				</div>
-			{/if}
-			{#if stockLabel}
-				<div>
-					<dt>
-						<Icon svg={packageIcon} size={16} aria-hidden="true" />Stock
-					</dt>
-					<dd><span class="font-mono">{stockLabel}</span></dd>
-				</div>
-			{/if}
-			{#if isCatalogItem && market}
-				<div data-tone={market.isLimited ? undefined : "muted"}>
-					<dt>
-						<Icon
-							svg={arrowsLeftRightIcon}
-							size={16}
-							aria-hidden="true" />Tradable
-					</dt>
-					<dd><span>{market.isLimited ? "Yes" : "No"}</span></dd>
-				</div>
-			{/if}
-			{#if saleLocationLabel}
-				<div>
-					<dt>
-						<Icon svg={mapPinIcon} size={16} aria-hidden="true" />Sold in
-					</dt>
-					<dd><span>{saleLocationLabel}</span></dd>
-				</div>
-			{/if}
-			{#if market && market.offSaleDeadlineMs > 0}
-				<div data-tone="warning">
-					<dt>
-						<Icon svg={timerIcon} size={16} aria-hidden="true" />Leaves sale
-					</dt>
-					<dd><span>{dates.format(market.offSaleDeadlineMs)}</span></dd>
-				</div>
-			{/if}
-			{#if badge}
-				<div>
-					<dt>
-						<Icon
-							svg={gameControllerIcon}
-							size={16}
-							aria-hidden="true" />Game
-					</dt>
-					<dd>{@render detailValue(details?.awardingGameName, false)}</dd>
-				</div>
-			{/if}
-			{#if isBundle}
-				<div>
-					<dt>
-						<Icon svg={stackIcon} size={16} aria-hidden="true" />Includes
-					</dt>
-					<dd>
-						{#if details?.includedItemNames?.length}
-							<ul class="flex flex-wrap gap-1">
-								{#each details.includedItemNames as includedItemName, index (index)}
-									<li class="tag-pill">
-										<span>{includedItemName}</span>
-									</li>
-								{/each}
-							</ul>
-						{:else}
-							{@render detailValue("", false)}
-						{/if}
-					</dd>
-				</div>
-			{/if}
-			<div>
-				<dt>
-					<Icon svg={calendarPlusIcon} size={16} aria-hidden="true" />Created
-				</dt>
-				<dd>
-					{@render detailValue(
-						details?.createdAtMs ? dates.format(details.createdAtMs) : "",
-						false,
-					)}
-				</dd>
-			</div>
-			{#if !isBundle}
-				<div>
-					<dt>
-						<Icon
-							svg={clockClockwiseIcon}
-							size={16}
-							aria-hidden="true" />Updated
-					</dt>
-					<dd>
-						{@render detailValue(
-							details?.updatedAtMs
-								? dates.format(details.updatedAtMs)
-								: "",
-							false,
+			<section
+				class="flex flex-col gap-3"
+				aria-labelledby="inventory-item-details">
+				<h3 id="inventory-item-details" class={sectionHeadingClass}>Details</h3>
+				<dl class="facts">
+					{@render fact(shapesIcon, "Type", typeLabel)}
+					{#if badge}
+						{@render fact(
+							trophyIcon,
+							"Awarded",
+							exactNumbers.format(badge.awardedCount),
 						)}
-					</dd>
-				</div>
-			{/if}
-			<div>
-				<dt><Icon svg={hashIcon} size={16} aria-hidden="true" />ID</dt>
-				<dd><span class="font-mono select-text">{item.itemId}</span></dd>
-			</div>
-			{#if isCatalogItem}
-				<div>
-					<dt>
-						<Icon
-							svg={fingerprintIcon}
-							size={16}
-							aria-hidden="true" />Collectible item ID
-					</dt>
-					<dd>{@render detailValue(details?.collectibleItemId, true)}</dd>
-				</div>
-				{#if !isBundle}
-					<div>
-						<dt>
-							<Icon
-								svg={fingerprintIcon}
-								size={16}
-								aria-hidden="true" />Collectible product ID
-						</dt>
-						<dd>
-							{@render detailValue(details?.collectibleProductId, true)}
-						</dd>
-					</div>
-				{/if}
-			{/if}
-		</dl>
+						<div>
+							<dt>
+								<Icon
+									svg={gameControllerIcon}
+									size={16}
+									aria-hidden="true" />Game
+							</dt>
+							<dd>
+								{#if details?.awardingGameName}
+									<span>{details.awardingGameName}</span>
+								{:else}
+									{@render missingDetail()}
+								{/if}
+							</dd>
+						</div>
+					{/if}
+					{#if isBundle}
+						<div>
+							<dt>
+								<Icon
+									svg={stackIcon}
+									size={16}
+									aria-hidden="true" />Includes
+							</dt>
+							<dd>
+								{#if details?.includedItemNames?.length}
+									<ul class="flex flex-wrap gap-1">
+										{#each details.includedItemNames as includedItemName, index (index)}
+											<li class="tag-pill">
+												<span>{includedItemName}</span>
+											</li>
+										{/each}
+									</ul>
+								{:else}
+									{@render missingDetail()}
+								{/if}
+							</dd>
+						</div>
+					{/if}
+					{#if !isBundle}
+						{@render dateFact(
+							clockCounterClockwiseIcon,
+							"Updated",
+							details?.updatedAtMs,
+						)}
+					{/if}
+					{@render dateFact(
+						calendarDotsIcon,
+						"Created",
+						details?.createdAtMs,
+					)}
+					{#if isCatalogItem}
+						{@render detailFact(
+							fingerprintIcon,
+							"Collectible item ID",
+							details?.collectibleItemId,
+						)}
+						{#if !isBundle}
+							{@render detailFact(
+								fingerprintIcon,
+								"Collectible product ID",
+								details?.collectibleProductId,
+							)}
+						{/if}
+					{/if}
+				</dl>
+			</section>
 
-		{#if item.description}
-			<p class="mt-3 max-h-40 text-block overflow-y-auto" data-variant="prose">
-				{item.description}
-			</p>
-		{/if}
+			{#if item.description}
+				<section
+					class="flex flex-col gap-3"
+					aria-labelledby="inventory-item-description">
+					<h3 id="inventory-item-description" class={sectionHeadingClass}>
+						Description
+					</h3>
+					<p class="max-h-40 text-block overflow-y-auto" data-variant="prose">
+						{item.description}
+					</p>
+				</section>
+			{/if}
+		</div>
 
 		{#if inventory.itemActionError}
 			<p class="mt-3 notice-error" role="alert">{inventory.itemActionError}</p>
