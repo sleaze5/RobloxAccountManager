@@ -18,6 +18,7 @@
 	import WorkbenchSidebar from "../layout/WorkbenchSidebar.svelte"
 	import type { WorkspaceState } from "../layout/workspace-state.svelte"
 	import type { NotificationCenter } from "../notifications/notification-center.svelte"
+	import { loadMoreWhenVisible } from "../shared/load-more-when-visible"
 	import { isMoveShortcut, moveListFocus } from "../shared/move-shortcut"
 	import OperationError from "../shared/OperationError.svelte"
 	import { menuIn, menuOut } from "../shared/presence"
@@ -150,27 +151,8 @@
 	onMount(() => store.revalidate())
 	onDestroy(() => store.closeMenu())
 
-	function loadMoreWhenVisible(node: HTMLElement, _pageToken: string) {
-		const observer = new IntersectionObserver(
-			(entries) => {
-				if (
-					entries.some((entry) => entry.isIntersecting) &&
-					!store.searching &&
-					!store.loadMoreFailed
-				) {
-					void store.search(true)
-				}
-			},
-			{ root: node.parentElement, rootMargin: "0px 0px 160px 0px" },
-		)
-		observer.observe(node)
-		return {
-			update() {
-				observer.unobserve(node)
-				observer.observe(node)
-			},
-			destroy: () => observer.disconnect(),
-		}
+	function loadMoreResults(): void {
+		if (!store.searching && !store.loadMoreFailed) void store.search(true)
 	}
 </script>
 
@@ -285,6 +267,7 @@
 						hasSearch && "pb-12",
 					]}
 					aria-label={favoritesMode ? "Favorite places" : "Search results"}
+					data-load-more-root
 					aria-busy={favoritesMode
 						? store.loadingFavorites
 						: store.searching}>
@@ -375,7 +358,10 @@
 					{#if hasMore}
 						<div
 							class="flex min-h-12 items-center justify-center text-fg-faint"
-							use:loadMoreWhenVisible={store.nextPageToken}>
+							use:loadMoreWhenVisible={{
+								pageKey: store.nextPageToken,
+								loadMore: loadMoreResults,
+							}}>
 							{#if store.loadMoreFailed}
 								<button
 									class="button"

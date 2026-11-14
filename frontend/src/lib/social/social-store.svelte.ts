@@ -142,7 +142,7 @@ export function personName(person: SocialSubject): string {
 
 const presenceRefreshError = "Presence could not be refreshed."
 
-export type BulkRemovalList =
+type BulkRemovalList =
 	| SocialList.SocialFriends
 	| SocialList.SocialFollowing
 	| SocialList.SocialRequests

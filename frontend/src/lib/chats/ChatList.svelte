@@ -3,35 +3,15 @@
 	import Icon from "../shared/Icon.svelte"
 	import SkeletonMediaRow from "../shared/SkeletonMediaRow.svelte"
 	import SkeletonList from "../shared/SkeletonList.svelte"
+	import { loadMoreWhenVisible } from "../shared/load-more-when-visible"
 	import ChatAvatar from "./ChatAvatar.svelte"
 	import type { ChatState } from "./chat-state.svelte"
 	import { chatListTime } from "./chat-time"
 
 	let { chat }: { chat: ChatState } = $props()
 
-	function loadMoreWhenVisible(node: HTMLElement, _cursor: string) {
-		const observer = new IntersectionObserver(
-			(entries) => {
-				if (
-					entries.some((entry) => entry.isIntersecting) &&
-					!chat.loadMoreFailed
-				) {
-					void chat.loadMore()
-				}
-			},
-			{
-				root: node.closest("[data-chat-sidebar]"),
-				rootMargin: "0px 0px 160px 0px",
-			},
-		)
-		observer.observe(node)
-		return {
-			update() {
-				observer.unobserve(node)
-				observer.observe(node)
-			},
-			destroy: () => observer.disconnect(),
-		}
+	function loadMoreChats(): void {
+		if (!chat.loadMoreFailed) void chat.loadMore()
 	}
 </script>
 
@@ -89,7 +69,10 @@
 	{#if chat.conversationsCursor}
 		<div
 			class="flex min-h-7 items-center justify-center text-fg-faint"
-			use:loadMoreWhenVisible={chat.conversationsCursor}>
+			use:loadMoreWhenVisible={{
+				pageKey: chat.conversationsCursor,
+				loadMore: loadMoreChats,
+			}}>
 			{#if chat.loadMoreFailed}
 				<button
 					type="button"

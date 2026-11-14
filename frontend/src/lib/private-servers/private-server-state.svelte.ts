@@ -8,7 +8,7 @@ import type {
 import type { NotificationCenter } from "../notifications/notification-center.svelte"
 import { errorMessage } from "../shared/errors"
 
-export type PrivateServerAction =
+type PrivateServerAction =
 	| "load"
 	| "rename"
 	| "link"

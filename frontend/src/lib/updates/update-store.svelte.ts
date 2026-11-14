@@ -6,7 +6,7 @@ import { coalesce } from "../shared/coalesce"
 
 const notificationId = "application-update"
 
-export class UpdateStore {
+class UpdateStore {
 	state = $state<UpdateState>({
 		currentVersion: "",
 		downloadedBytes: 0,

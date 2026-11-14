@@ -14,6 +14,7 @@
 	import { RobloxNotificationCategory } from "../backend/bridge"
 	import type { RobloxNotificationUser } from "../backend/bridge"
 	import { errorMessage } from "../shared/errors"
+	import { loadMoreWhenVisible } from "../shared/load-more-when-visible"
 	import DismissAllRobloxNotificationsDialog from "./DismissAllRobloxNotificationsDialog.svelte"
 	import RobloxNotificationCard from "./RobloxNotificationCard.svelte"
 	import { RobloxNotificationState } from "./roblox-notification-state.svelte"
@@ -85,29 +86,8 @@
 		}
 	}
 
-	function loadMoreWhenVisible(node: HTMLElement, _nextStartIndex: number) {
-		const observer = new IntersectionObserver(
-			(entries) => {
-				if (
-					entries.some((entry) => entry.isIntersecting) &&
-					!stream.loadMoreFailed
-				) {
-					void stream.loadMore()
-				}
-			},
-			{
-				root: node.closest("[data-roblox-notifications-scroll]"),
-				rootMargin: "0px 0px 160px 0px",
-			},
-		)
-		observer.observe(node)
-		return {
-			update() {
-				observer.unobserve(node)
-				observer.observe(node)
-			},
-			destroy: () => observer.disconnect(),
-		}
+	function loadMoreNotifications(): void {
+		if (!stream.loadMoreFailed) void stream.loadMore()
 	}
 
 	onMount(() => {
@@ -153,7 +133,7 @@
 
 	<div
 		class="min-h-0 flex-1 overflow-y-auto"
-		data-roblox-notifications-scroll
+		data-load-more-root
 		aria-busy={stream.loading}>
 		{#if stream.loading && stream.notifications.length === 0}
 			<div class="max-w-2xl p-3">
@@ -237,7 +217,10 @@
 				{#if stream.nextStartIndex}
 					<div
 						class="flex min-h-7 items-center justify-center text-fg-faint"
-						use:loadMoreWhenVisible={stream.nextStartIndex}>
+						use:loadMoreWhenVisible={{
+							pageKey: stream.nextStartIndex,
+							loadMore: loadMoreNotifications,
+						}}>
 						{#if stream.loadMoreFailed}
 							<button
 								type="button"

@@ -422,7 +422,7 @@
 
 	type PageId = (typeof pages)[number]["id"]
 
-	interface ActivePageData {
+	interface PageLoadState {
 		isLoading: boolean
 		isReady: boolean
 		isFresh: boolean
@@ -514,7 +514,7 @@
 		busy = $derived(
 			!settingsState || settingsState.loading || settingsState.saving !== null,
 		),
-		activeData = $derived.by((): ActivePageData | null => {
+		activePageLoad = $derived.by((): PageLoadState | null => {
 			const info = infoState,
 				owned = ownedState,
 				sessions = sessionsState,
@@ -525,21 +525,27 @@
 				case "info":
 					return (
 						info &&
-						pageData(info.loading, !!info.snapshot, info.isFresh, () =>
-							info.refresh(),
+						createPageLoadState(
+							info.loading,
+							!!info.snapshot,
+							info.isFresh,
+							() => info.refresh(),
 						)
 					)
 				case "servers":
 					return (
 						owned &&
-						pageData(owned.loading, !!owned.servers, owned.isFresh, () =>
-							owned.refresh(),
+						createPageLoadState(
+							owned.loading,
+							!!owned.servers,
+							owned.isFresh,
+							() => owned.refresh(),
 						)
 					)
 				case "sessions":
 					return (
 						sessions &&
-						pageData(
+						createPageLoadState(
 							sessions.loading || sessions.signingOut,
 							!!sessions.sessions,
 							sessions.isFresh,
@@ -549,7 +555,7 @@
 				case "robux":
 					return (
 						robux &&
-						pageData(
+						createPageLoadState(
 							robux.loading,
 							!!robux.transactions,
 							robux.isFresh,
@@ -560,7 +566,7 @@
 					if (blockedUsersOpen) {
 						return (
 							blocked &&
-							pageData(
+							createPageLoadState(
 								blocked.loading,
 								!!blocked.users,
 								blocked.isFresh,
@@ -570,13 +576,16 @@
 					}
 					return (
 						settings &&
-						pageData(busy, !!settings.snapshot, settings.isFresh, () =>
-							settings.refresh(),
+						createPageLoadState(
+							busy,
+							!!settings.snapshot,
+							settings.isFresh,
+							() => settings.refresh(),
 						)
 					)
 			}
 		}),
-		refreshing = $derived(activeData?.isLoading ?? busy),
+		refreshing = $derived(activePageLoad?.isLoading ?? busy),
 		// The setting rows show while the settings load, with placeholders for
 		// their values, so that the page does not move when the values arrive.
 		areSettingsLoading = $derived(
@@ -602,8 +611,9 @@
 		void activePageKey
 		void settingsState
 		untrack(() => {
-			const data = activeData
-			if (data && (!data.isReady || !data.isFresh)) void data.refresh()
+			const pageLoad = activePageLoad
+			if (pageLoad && (!pageLoad.isReady || !pageLoad.isFresh))
+				void pageLoad.refresh()
 		})
 	})
 
@@ -612,7 +622,7 @@
 		void activeSubpage?.id
 		void normalizedQuery
 		const element = contentElement,
-			ready = activeData?.isReady ?? false,
+			ready = activePageLoad?.isReady ?? false,
 			scrollTop = untrack(() => workspace.accountSettingsScrollTop),
 			anchor = untrack(() => workspace.accountSettingsScrollAnchor)
 		let cancelled = false
@@ -659,15 +669,15 @@
 	}
 
 	function refresh(): void {
-		void activeData?.refresh()
+		void activePageLoad?.refresh()
 	}
 
-	function pageData(
+	function createPageLoadState(
 		isLoading: boolean,
 		isReady: boolean,
 		isFresh: boolean,
 		refreshPage: () => Promise<void>,
-	): ActivePageData {
+	): PageLoadState {
 		return { isLoading, isReady, isFresh, refresh: refreshPage }
 	}
 

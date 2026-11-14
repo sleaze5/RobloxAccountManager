@@ -1,6 +1,6 @@
 import type { GamePlace } from "../backend/bridge"
 
-export interface PlaceSearchEntry {
+interface PlaceSearchEntry {
 	place: GamePlace
 	id: string
 	names: string[]

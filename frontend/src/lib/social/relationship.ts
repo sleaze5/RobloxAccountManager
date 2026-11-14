@@ -16,7 +16,7 @@ import type { SocialRelationship, SocialUser } from "../backend/bridge"
 
 // The parts of a relationship that both a profile and a saved account
 // connection report.
-export type RelationshipState = Pick<
+type RelationshipState = Pick<
 	SocialRelationship,
 	"friend" | "trusted" | "following" | "followedBy"
 >
@@ -38,9 +38,9 @@ export type RelationshipActionId =
 
 // neutral adds or accepts a connection, warning withdraws a request the
 // account sent, and danger ends or refuses a connection.
-export type RelationshipTone = "neutral" | "warning" | "danger"
+type RelationshipTone = "neutral" | "warning" | "danger"
 
-export interface RelationshipAction {
+interface RelationshipAction {
 	id: RelationshipActionId
 	tone: RelationshipTone
 	label: string
