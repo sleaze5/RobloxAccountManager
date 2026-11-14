@@ -45,7 +45,7 @@ export function avatarItemCategory(
 	)
 }
 
-export interface WornItemGroup {
+interface WornItemGroup {
 	category: InventoryCategoryOption
 	assets: AvatarAsset[]
 }

@@ -4,7 +4,7 @@
 	import xIcon from "@phosphor-icons/core/regular/x.svg?raw"
 	import { onMount } from "svelte"
 	import { AvatarType } from "../backend/bridge"
-	import type { AvatarAsset, AvatarOutfit, AvatarScales } from "../backend/bridge"
+	import type { AvatarAsset, AvatarOutfit } from "../backend/bridge"
 	import Dialog from "../shared/Dialog.svelte"
 	import Icon from "../shared/Icon.svelte"
 	import ProfileImage from "../shared/ProfileImage.svelte"
@@ -12,6 +12,7 @@
 	import AvatarBodyColorFacts from "./AvatarBodyColorFacts.svelte"
 	import AvatarBodyFigure from "./AvatarBodyFigure.svelte"
 	import AvatarItemGroups from "./AvatarItemGroups.svelte"
+	import { bodyScales } from "./avatar-draft"
 	import type { AvatarState } from "./avatar-state.svelte"
 
 	let {
@@ -29,14 +30,7 @@
 		onClose: () => void
 	} = $props()
 
-	const scaleRows: { scale: keyof AvatarScales; label: string }[] = [
-			{ scale: "height", label: "Height" },
-			{ scale: "width", label: "Width" },
-			{ scale: "head", label: "Head" },
-			{ scale: "proportion", label: "Proportions" },
-			{ scale: "bodyType", label: "Body type" },
-		],
-		percent = new Intl.NumberFormat("en-US", {
+	const percent = new Intl.NumberFormat("en-US", {
 			style: "percent",
 			maximumFractionDigits: 0,
 		}),
@@ -206,7 +200,7 @@
 								{/if}
 							</dd>
 						</div>
-						{#each scaleRows as row (row.scale)}
+						{#each bodyScales as row (row.scale)}
 							<div>
 								<dt>{row.label}</dt>
 								<dd>
