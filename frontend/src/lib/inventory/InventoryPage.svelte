@@ -14,6 +14,7 @@
 	import { searchTerms } from "../shared/search"
 	import {
 		assetCategories,
+		inventoryCategories,
 		inventoryCategoryGroups,
 		inventoryTypeLabel,
 	} from "./inventory-categories"
@@ -47,7 +48,6 @@
 	} = $props()
 
 	const inventory = untrack(() => new InventoryState(accountId, userId, accounts)),
-		categories = inventoryCategoryGroups.flatMap((group) => group.categories),
 		skeletonTileIndexes = Array.from({ length: 12 }, (_unused, index) => index),
 		exactNumbers = new Intl.NumberFormat("en-US")
 
@@ -59,8 +59,8 @@
 		sortOrder = $state<InventorySortOrder>("newest"),
 		detailedCopyKey = $state("")
 	const category = $derived(
-			categories.find((option) => option.id === inventory.category) ??
-				categories[0],
+			inventoryCategories.find((option) => option.id === inventory.category) ??
+				inventoryCategories[0],
 		),
 		page = $derived(inventory.page),
 		items = $derived(page?.items ?? []),
@@ -152,7 +152,7 @@
 		}
 		inventory.clearItemActionError()
 		detailedCopyKey = ownedCopyKey(item)
-		inventory.loadItemDetails(item, !isOwnInventory)
+		inventory.loadItemDetails(item, category.id, !isOwnInventory)
 		void inventory.checkFavorite(item)
 	}
 

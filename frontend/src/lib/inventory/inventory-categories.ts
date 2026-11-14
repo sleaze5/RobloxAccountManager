@@ -183,6 +183,10 @@ export const inventoryCategoryGroups: {
 	},
 ]
 
+export const inventoryCategories = inventoryCategoryGroups.flatMap(
+	(group) => group.categories,
+)
+
 // Badges, game passes, and bundles have IDs of their own, which can match the
 // ID of an asset. Every other category lists assets.
 const categoriesWithOwnIDs = new Set<InventoryCategory>([

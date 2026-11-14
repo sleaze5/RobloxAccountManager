@@ -10,12 +10,16 @@
 		item,
 		category,
 		isWorn,
+		isDisabled = false,
 		actionLabel,
 		onOpen,
 	}: {
 		item: InventoryItem
 		category: InventoryCategoryOption
 		isWorn: boolean
+		// isDisabled keeps the tile focusable, so that its tooltip can say why
+		// the action is unavailable.
+		isDisabled?: boolean
 		actionLabel: string
 		onOpen: (item: InventoryItem) => void
 	} = $props()
@@ -47,11 +51,14 @@
 </script>
 
 <button
-	class="group/tile flex w-full min-w-0 flex-col gap-1 rounded-lg border border-line-subtle bg-surface p-1 text-left transition-colors duration-100 hover:border-line hover:bg-hover"
+	class="group/tile flex w-full min-w-0 flex-col gap-1 rounded-lg border border-line-subtle bg-surface p-1 text-left transition-colors duration-100 hover:border-line hover:bg-hover aria-disabled:cursor-not-allowed aria-disabled:opacity-45 aria-disabled:hover:border-line-subtle aria-disabled:hover:bg-surface"
 	type="button"
+	aria-disabled={isDisabled || undefined}
 	data-tooltip={actionLabel}
 	data-tooltip-strong={name}
-	onclick={() => onOpen(item)}>
+	onclick={() => {
+		if (!isDisabled) onOpen(item)
+	}}>
 	<span
 		class="relative grid aspect-square w-full place-items-center overflow-hidden rounded-sm bg-raised">
 		<span

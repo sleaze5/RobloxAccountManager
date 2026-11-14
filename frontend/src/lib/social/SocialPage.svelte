@@ -36,7 +36,9 @@
 	import SocialAvatar from "./SocialAvatar.svelte"
 	import SocialMenu from "./SocialMenu.svelte"
 	import SocialProfile from "./SocialProfile.svelte"
+	import AvatarPage from "../avatar/AvatarPage.svelte"
 	import InventoryPage from "../inventory/InventoryPage.svelte"
+	import type { NotificationCenter } from "../notifications/notification-center.svelte"
 	import {
 		bulkRemovalCopy,
 		isBulkRemovalList,
@@ -49,6 +51,7 @@
 	let {
 		store,
 		accounts,
+		notifications,
 		onFillLaunch,
 		onSearchPlace,
 		onSearchUniverse,
@@ -59,6 +62,7 @@
 	}: {
 		store: SocialStore
 		accounts: AccountStore
+		notifications: NotificationCenter
 		onFillLaunch: (placeId: number, jobId: string) => void
 		onSearchPlace: (placeId: number) => void
 		onSearchUniverse: (universeId: number) => void
@@ -181,12 +185,15 @@
 		store.searchPlayers(filterText)
 	}
 
-	async function closeInventory(): Promise<void> {
-		store.inventoryOpen = false
+	async function closeSubpage(): Promise<void> {
+		const closedSubpage = store.subpage
+		store.subpage = null
 		await tick()
 		detailPane?.scrollTo({ top: 0 })
 		detailPane
-			?.querySelector<HTMLButtonElement>("[data-inventory-button]")
+			?.querySelector<HTMLButtonElement>(
+				`[data-subpage-button="${closedSubpage}"]`,
+			)
 			?.focus({ preventScroll: true })
 	}
 
@@ -611,12 +618,23 @@
 		<div
 			class={[
 				"@container min-w-0 flex-1",
-				selected && store.inventoryOpen
+				selected && store.subpage
 					? "overflow-hidden"
 					: "overflow-x-hidden overflow-y-auto",
 			]}
 			bind:this={detailPane}>
-			{#if selected && store.inventoryOpen}
+			{#if selected && store.subpage === "avatar"}
+				{#key `${account.id}:${selected.userId}`}
+					<AvatarPage
+						{accounts}
+						{notifications}
+						accountId={account.id}
+						userId={selected.userId}
+						username={selected.username || String(selected.userId)}
+						{onSearchPlace}
+						onBack={() => void closeSubpage()} />
+				{/key}
+			{:else if selected && store.subpage === "inventory"}
 				{#key `${account.id}:${selected.userId}`}
 					<InventoryPage
 						{accounts}
@@ -625,7 +643,7 @@
 						username={selected.username || String(selected.userId)}
 						bind:sidebarWidth={store.inventorySidebarWidth}
 						{onSearchPlace}
-						onBack={() => void closeInventory()} />
+						onBack={() => void closeSubpage()} />
 				{/key}
 			{:else if selected}
 				{#key selected.userId}
@@ -640,7 +658,7 @@
 							onEditNickname={(nickname) =>
 								onEditNickname(selected, nickname)}
 							{onRelationshipAction}
-							onOpenInventory={() => (store.inventoryOpen = true)} />
+							onOpenSubpage={(subpage) => (store.subpage = subpage)} />
 					</div>
 				{/key}
 			{:else}

@@ -222,6 +222,8 @@ function emptySocialAccountCache(): SocialAccountCache {
 	}
 }
 
+export type SocialSubpage = "avatar" | "inventory"
+
 export class SocialStore {
 	sidebarCollapsed = $state(false)
 	sidebarWidth = $state(220)
@@ -237,7 +239,8 @@ export class SocialStore {
 	loadError = $state("")
 	requestCount = $state<number | null>(null)
 	selectedPerson = $state<SocialUser | null>(null)
-	inventoryOpen = $state(false)
+	// The page that replaces the profile of the selected person, or null.
+	subpage = $state<SocialSubpage | null>(null)
 	inventorySidebarWidth = $state(192)
 	profileLoad = $state<SocialProfileLoad | null>(null)
 	savingNickname = $state(false)
@@ -605,7 +608,7 @@ export class SocialStore {
 	select(person: SocialUser | null): void {
 		if (person?.userId === this.selectedUserId) return
 		this.selectedPerson = person
-		this.inventoryOpen = false
+		this.subpage = null
 		this.profileLoad?.cancel()
 		this.profileLoad = null
 		if (person) void this.loadProfile(person.userId)
@@ -1013,7 +1016,7 @@ export class SocialStore {
 		this.accountId = accountId
 		this.selfUserId = selfUserId
 		this.page = this.profileLoad = this.menu = this.selectedPerson = null
-		this.inventoryOpen = false
+		this.subpage = null
 		this.requestCount = cache.requestCount
 		this.menuRelationship = this.pendingAction = null
 		this.loading = this.loadingMore = false

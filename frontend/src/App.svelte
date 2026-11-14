@@ -629,6 +629,7 @@
 			<SocialPage
 				store={social}
 				accounts={store}
+				notifications={notificationCenter}
 				onFillLaunch={(placeId, jobId) =>
 					void fillGameLaunchOptions(placeId, jobId)}
 				onSearchPlace={(placeId) => void searchGames(`id:${placeId}`)}

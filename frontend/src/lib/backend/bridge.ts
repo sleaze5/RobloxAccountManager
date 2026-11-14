@@ -77,6 +77,7 @@ export {
 	TagKind,
 } from "../../../bindings/github.com/sleaze5/RobloxAccountManager/internal/accounts/models.js"
 export {
+	AvatarType,
 	CatalogItemType,
 	FriendStatus,
 	InventoryCategory,
@@ -99,7 +100,16 @@ export type {
 	ExportFile,
 } from "../../../bindings/github.com/sleaze5/RobloxAccountManager/internal/storage/vault/models.js"
 export type {
+	Avatar,
+	AvatarAsset,
+	AvatarBodyColors,
+	AvatarChange,
+	AvatarEmote,
 	AvatarHeadshotView,
+	AvatarOutfit,
+	AvatarRules,
+	AvatarScaleLimit,
+	AvatarScales,
 	InventoryItem,
 	InventoryItemDetails,
 	InventoryItemMarket,
