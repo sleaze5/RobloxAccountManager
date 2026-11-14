@@ -190,6 +190,7 @@
 		userId={Number(selectedAccount.userId)}
 		username={selectedAccount.username}
 		bind:sidebarWidth={workspace.accountSettingsSidebarWidth}
+		{onSearchPlace}
 		onBack={() => void backToProfile()} />
 {:else if workspace.accountPage === "notifications" && hasAccount && store.vault.unlocked}
 	<RobloxNotificationsPage

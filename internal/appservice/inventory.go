@@ -7,8 +7,8 @@ import (
 )
 
 // GetInventoryPage reads one page of what the user owns in the category, as
-// the account sees it, with item images. A missing image leaves the item
-// without one.
+// the account sees it, with item images and catalog details. A missing image
+// or catalog detail leaves the item without it.
 func (service *Service) GetInventoryPage(ctx context.Context, accountID, userID int64, category robloxservices.InventoryCategory, cursor string) (robloxservices.InventoryPage, error) {
 	ctx, version, done, err := service.beginAccountSession(ctx, accountID, "inventory")
 	if err != nil {
@@ -20,6 +20,9 @@ func (service *Service) GetInventoryPage(ctx context.Context, accountID, userID 
 	if err != nil {
 		logger.WarnContext(ctx, "inventory page unavailable", "error", err)
 		return robloxservices.InventoryPage{}, err
+	}
+	if err := service.users.AddCatalogDetails(ctx, accountID, version, page.Items); err != nil {
+		logger.WarnContext(ctx, "inventory catalog details unavailable", "error", err)
 	}
 	targets := make([]robloxservices.ThumbnailTarget, len(page.Items))
 	for index, item := range page.Items {

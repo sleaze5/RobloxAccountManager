@@ -6,6 +6,7 @@ import (
 	"errors"
 	"net/http"
 	"net/url"
+	"slices"
 	"strconv"
 	"strings"
 	"time"
@@ -14,10 +15,11 @@ import (
 )
 
 const (
-	inventoryPageSize          = 100
-	maxInventoryCursorLength   = 4096
-	maxInventoryItemNameLength = 200
-	maxInventoryResponseBytes  = 2 << 20
+	inventoryPageSize             = 100
+	maxInventoryCursorLength      = 4096
+	maxInventoryItemNameLength    = 200
+	maxInventoryDescriptionLength = 4000
+	maxInventoryResponseBytes     = 2 << 20
 )
 
 // InventoryCategory names one group of things that a user owns.
@@ -66,12 +68,37 @@ type InventoryItem struct {
 	Name   string `json:"name"`
 	// TypeName is the Roblox asset type of an asset, such as HairAccessory, or
 	// the Roblox bundle type of a bundle, such as DynamicHead.
-	TypeName           string `json:"typeName"`
-	SerialNumber       *int64 `json:"serialNumber"`
-	RecentAveragePrice *int64 `json:"recentAveragePrice"`
-	ImageURL           string `json:"imageUrl"`
-	PageURL            string `json:"pageUrl"`
-	thumbnailType      string
+	TypeName                string                 `json:"typeName"`
+	SerialNumber            *int64                 `json:"serialNumber"`
+	RecentAveragePrice      *int64                 `json:"recentAveragePrice"`
+	ImageURL                string                 `json:"imageUrl"`
+	Description             string                 `json:"description"`
+	CreatorName             string                 `json:"creatorName"`
+	CreatorHasVerifiedBadge bool                   `json:"creatorHasVerifiedBadge"`
+	Market                  *InventoryItemMarket   `json:"market"`
+	Badge                   *InventoryBadgeDetails `json:"badge"`
+	thumbnailType           string
+	// catalogItemType is the catalog API item type, Asset or Bundle, of an
+	// item that the catalog may sell.
+	catalogItemType string
+}
+
+// InventoryItemMarket is how Roblox sells an item, in the catalog or as a game
+// pass.
+type InventoryItemMarket struct {
+	IsForSale    bool  `json:"isForSale"`
+	PriceInRobux int64 `json:"priceInRobux"`
+	IsLimited    bool  `json:"isLimited"`
+	// LowestResalePriceInRobux is the cheapest copy of a limited item that
+	// another user resells.
+	LowestResalePriceInRobux *int64 `json:"lowestResalePriceInRobux"`
+	FavoriteCount            *int64 `json:"favoriteCount"`
+}
+
+type InventoryBadgeDetails struct {
+	AwardedCount       int64   `json:"awardedCount"`
+	PastDayWinFraction float64 `json:"pastDayWinFraction"`
+	AwardingPlaceID    int64   `json:"awardingPlaceId"`
 }
 
 // ThumbnailTarget names the image of the item for the thumbnails batch API.
@@ -85,7 +112,7 @@ type InventoryPage struct {
 }
 
 // InventoryPage reads one page of what the user owns in the category, newest
-// first, without images.
+// first, without images or catalog details.
 func (service *Users) InventoryPage(ctx context.Context, accountID, version, userID int64, category InventoryCategory, cursor string) (InventoryPage, error) {
 	if len(cursor) > maxInventoryCursorLength {
 		return InventoryPage{}, &roblox.Error{Kind: roblox.KindProtocol, Endpoint: "inventory", Message: "This page has expired. Refresh the inventory."}
@@ -107,11 +134,12 @@ func (service *Users) InventoryPage(ctx context.Context, accountID, version, use
 		if !ok {
 			return InventoryPage{}, &roblox.Error{Kind: roblox.KindProtocol, Endpoint: "inventory", Message: "Choose an inventory category."}
 		}
-		return service.assetsPage(ctx, accountID, version, user, assetTypes, category == InventoryPlaces, cursor)
+		isCatalogCategory := category != InventoryPlaces && category != InventoryModels && category != InventoryDecals && category != InventoryAudio
+		return service.assetsPage(ctx, accountID, version, user, assetTypes, isCatalogCategory, cursor)
 	}
 }
 
-func (service *Users) assetsPage(ctx context.Context, accountID, version int64, user string, assetTypes []string, isPlace bool, cursor string) (InventoryPage, error) {
+func (service *Users) assetsPage(ctx context.Context, accountID, version int64, user string, assetTypes []string, isCatalogCategory bool, cursor string) (InventoryPage, error) {
 	var payload struct {
 		NextPageCursor *string `json:"nextPageCursor"`
 		Data           *[]struct {
@@ -129,15 +157,15 @@ func (service *Users) assetsPage(ctx context.Context, accountID, version int64, 
 	if payload.Data == nil {
 		return InventoryPage{}, invalidInventory("inventory-assets")
 	}
-	pageURL := "https://www.roblox.com/catalog/"
-	if isPlace {
-		pageURL = "https://www.roblox.com/games/"
+	catalogItemType := ""
+	if isCatalogCategory {
+		catalogItemType = "Asset"
 	}
 	items := make([]InventoryItem, 0, len(*payload.Data))
 	for _, listedAsset := range *payload.Data {
 		items = append(items, InventoryItem{
 			ItemID: listedAsset.AssetID, Name: boundedText(listedAsset.Name, maxInventoryItemNameLength), TypeName: listedAsset.AssetType,
-			PageURL: pageURL + strconv.FormatInt(listedAsset.AssetID, 10), thumbnailType: "Asset",
+			thumbnailType: "Asset", catalogItemType: catalogItemType,
 		})
 	}
 	return inventoryPageOf(items, payload.NextPageCursor, "inventory-assets")
@@ -164,7 +192,7 @@ func (service *Users) collectiblesPage(ctx context.Context, accountID, version i
 	for _, listedCollectible := range *payload.Data {
 		item := InventoryItem{
 			ItemID: listedCollectible.AssetID, Name: boundedText(listedCollectible.Name, maxInventoryItemNameLength),
-			PageURL: "https://www.roblox.com/catalog/" + strconv.FormatInt(listedCollectible.AssetID, 10), thumbnailType: "Asset",
+			thumbnailType: "Asset", catalogItemType: "Asset",
 		}
 		if listedCollectible.SerialNumber != nil && *listedCollectible.SerialNumber > 0 {
 			item.SerialNumber = listedCollectible.SerialNumber
@@ -181,8 +209,20 @@ func (service *Users) badgesPage(ctx context.Context, accountID, version int64, 
 	var payload struct {
 		NextPageCursor *string `json:"nextPageCursor"`
 		Data           *[]struct {
-			ID   int64  `json:"id"`
-			Name string `json:"name"`
+			ID          int64  `json:"id"`
+			Name        string `json:"name"`
+			Description string `json:"description"`
+			Creator     struct {
+				Name string `json:"name"`
+			} `json:"creator"`
+			Awarder struct {
+				ID   int64  `json:"id"`
+				Type string `json:"type"`
+			} `json:"awarder"`
+			Statistics struct {
+				AwardedCount      int64   `json:"awardedCount"`
+				WinRatePercentage float64 `json:"winRatePercentage"`
+			} `json:"statistics"`
 		} `json:"data"`
 	}
 	address := &url.URL{Scheme: "https", Host: "badges.roblox.com", Path: "/v1/users/" + user + "/badges", RawQuery: pagedInventoryQuery(cursor).Encode()}
@@ -194,9 +234,18 @@ func (service *Users) badgesPage(ctx context.Context, accountID, version int64, 
 	}
 	items := make([]InventoryItem, 0, len(*payload.Data))
 	for _, listedBadge := range *payload.Data {
+		badge := &InventoryBadgeDetails{
+			AwardedCount:       max(listedBadge.Statistics.AwardedCount, 0),
+			PastDayWinFraction: min(max(listedBadge.Statistics.WinRatePercentage, 0), 1),
+		}
+		if listedBadge.Awarder.Type == "Place" && listedBadge.Awarder.ID > 0 {
+			badge.AwardingPlaceID = listedBadge.Awarder.ID
+		}
 		items = append(items, InventoryItem{
 			ItemID: listedBadge.ID, Name: boundedText(listedBadge.Name, maxInventoryItemNameLength),
-			PageURL: "https://www.roblox.com/badges/" + strconv.FormatInt(listedBadge.ID, 10), thumbnailType: "BadgeIcon",
+			Description: boundedText(listedBadge.Description, maxInventoryDescriptionLength),
+			CreatorName: boundedText(listedBadge.Creator.Name, maxInventoryItemNameLength),
+			Badge:       badge, thumbnailType: "BadgeIcon",
 		})
 	}
 	return inventoryPageOf(items, payload.NextPageCursor, "inventory-badges")
@@ -222,7 +271,7 @@ func (service *Users) bundlesPage(ctx context.Context, accountID, version int64,
 	for _, listedBundle := range *payload.Data {
 		items = append(items, InventoryItem{
 			ItemID: listedBundle.ID, Name: boundedText(listedBundle.Name, maxInventoryItemNameLength), TypeName: listedBundle.BundleType,
-			PageURL: "https://www.roblox.com/bundles/" + strconv.FormatInt(listedBundle.ID, 10), thumbnailType: "BundleThumbnail",
+			thumbnailType: "BundleThumbnail", catalogItemType: "Bundle",
 		})
 	}
 	return inventoryPageOf(items, payload.NextPageCursor, "inventory-bundles")
@@ -240,8 +289,14 @@ func (service *Users) gamePassesPage(ctx context.Context, accountID, version int
 	}
 	var payload struct {
 		GamePasses *[]struct {
-			GamePassID int64  `json:"gamePassId"`
-			Name       string `json:"name"`
+			GamePassID  int64  `json:"gamePassId"`
+			Name        string `json:"name"`
+			Description string `json:"description"`
+			IsForSale   bool   `json:"isForSale"`
+			Price       *int64 `json:"price"`
+			Creator     struct {
+				Name string `json:"name"`
+			} `json:"creator"`
 		} `json:"gamePasses"`
 	}
 	address := &url.URL{Scheme: "https", Host: "apis.roblox.com", Path: "/game-passes/v1/users/" + user + "/game-passes", RawQuery: query.Encode()}
@@ -253,9 +308,15 @@ func (service *Users) gamePassesPage(ctx context.Context, accountID, version int
 	}
 	items := make([]InventoryItem, 0, len(*payload.GamePasses))
 	for _, listedGamePass := range *payload.GamePasses {
+		market := &InventoryItemMarket{}
+		if listedGamePass.IsForSale && listedGamePass.Price != nil && *listedGamePass.Price >= 0 {
+			market.IsForSale, market.PriceInRobux = true, *listedGamePass.Price
+		}
 		items = append(items, InventoryItem{
 			ItemID: listedGamePass.GamePassID, Name: boundedText(listedGamePass.Name, maxInventoryItemNameLength),
-			PageURL: "https://www.roblox.com/game-pass/" + strconv.FormatInt(listedGamePass.GamePassID, 10), thumbnailType: "GamePass",
+			Description: boundedText(listedGamePass.Description, maxInventoryDescriptionLength),
+			CreatorName: boundedText(listedGamePass.Creator.Name, maxInventoryItemNameLength),
+			Market:      market, thumbnailType: "GamePass",
 		})
 	}
 	var nextCursor *string
@@ -264,6 +325,105 @@ func (service *Users) gamePassesPage(ctx context.Context, accountID, version int
 		nextCursor = &lastGamePassID
 	}
 	return inventoryPageOf(items, nextCursor, "inventory-game-passes")
+}
+
+type catalogItemKey struct {
+	ItemType string `json:"itemType"`
+	ID       int64  `json:"id"`
+}
+
+type catalogItemDetails struct {
+	ID                      int64    `json:"id"`
+	ItemType                string   `json:"itemType"`
+	Description             string   `json:"description"`
+	CreatorName             string   `json:"creatorName"`
+	CreatorHasVerifiedBadge bool     `json:"creatorHasVerifiedBadge"`
+	Price                   *int64   `json:"price"`
+	IsOffSale               bool     `json:"isOffSale"`
+	LowestResalePrice       *int64   `json:"lowestResalePrice"`
+	FavoriteCount           *int64   `json:"favoriteCount"`
+	ItemRestrictions        []string `json:"itemRestrictions"`
+}
+
+// AddCatalogDetails adds the description, creator, and price that the catalog
+// shows for each item that it sells. The catalog leaves out an item that it
+// does not sell.
+func (service *Users) AddCatalogDetails(ctx context.Context, accountID, version int64, items []InventoryItem) error {
+	requestedItems := make([]catalogItemKey, 0, len(items))
+	for _, item := range items {
+		if item.catalogItemType != "" {
+			requestedItems = append(requestedItems, catalogItemKey{ItemType: item.catalogItemType, ID: item.ItemID})
+		}
+	}
+	if len(requestedItems) == 0 {
+		return nil
+	}
+	listedItems, err := service.readCatalogDetails(ctx, accountID, version, requestedItems)
+	if err != nil {
+		return err
+	}
+	listedItemByKey := make(map[catalogItemKey]catalogItemDetails, len(listedItems))
+	for _, listedItem := range listedItems {
+		listedItemByKey[catalogItemKey{ItemType: listedItem.ItemType, ID: listedItem.ID}] = listedItem
+	}
+	for index := range items {
+		listedItem, ok := listedItemByKey[catalogItemKey{ItemType: items[index].catalogItemType, ID: items[index].ItemID}]
+		if items[index].catalogItemType == "" || !ok {
+			continue
+		}
+		items[index].Market = catalogMarket(listedItem)
+		items[index].Description = boundedText(listedItem.Description, maxInventoryDescriptionLength)
+		items[index].CreatorName = boundedText(listedItem.CreatorName, maxInventoryItemNameLength)
+		items[index].CreatorHasVerifiedBadge = listedItem.CreatorHasVerifiedBadge
+	}
+	return nil
+}
+
+// readCatalogDetails reads up to 120 items in one request, more than one
+// inventory page holds. Verified against the API on 2026-11-14.
+func (service *Users) readCatalogDetails(ctx context.Context, accountID, version int64, requestedItems []catalogItemKey) ([]catalogItemDetails, error) {
+	body, err := json.Marshal(map[string]any{"items": requestedItems})
+	if err != nil {
+		return nil, &roblox.Error{Kind: roblox.KindProtocol, Endpoint: "inventory-catalog-details", Message: "The catalog request could not be created.", Cause: err}
+	}
+	ctx, cancel := context.WithTimeout(ctx, 30*time.Second)
+	defer cancel()
+	response, err := service.client.Do(ctx, roblox.Request{
+		Endpoint: "inventory-catalog-details", AccountID: accountID, ExpectedSecretVersion: version,
+		Authenticated: true, Method: http.MethodPost, URL: &url.URL{Scheme: "https", Host: "catalog.roblox.com", Path: "/v1/catalog/items/details"},
+		Body: body, ContentType: "application/json", RequiresCSRF: true, MaxResponseSize: maxInventoryResponseBytes,
+		Retry: roblox.RetryPolicy{MaxAttempts: 3, Idempotent: true, RetryServerErrors: true, RetryRateLimit: true},
+	})
+	if err != nil {
+		return nil, err
+	}
+	var payload struct {
+		Data *[]catalogItemDetails `json:"data"`
+	}
+	if err := json.Unmarshal(response.Body, &payload); err != nil || payload.Data == nil {
+		return nil, &roblox.Error{Kind: roblox.KindProtocol, Endpoint: "inventory-catalog-details", Status: response.Status, Message: "Roblox returned invalid catalog data.", Cause: err}
+	}
+	return *payload.Data, nil
+}
+
+func catalogMarket(listedItem catalogItemDetails) *InventoryItemMarket {
+	// Roblox keeps the last price of an item that is off sale.
+	market := &InventoryItemMarket{
+		IsForSale: !listedItem.IsOffSale && listedItem.Price != nil && *listedItem.Price >= 0,
+		IsLimited: slices.ContainsFunc(listedItem.ItemRestrictions, func(restriction string) bool {
+			return restriction == "Limited" || restriction == "LimitedUnique" || restriction == "Collectible"
+		}),
+	}
+	if market.IsForSale {
+		market.PriceInRobux = *listedItem.Price
+	}
+	if market.IsLimited && listedItem.LowestResalePrice != nil && *listedItem.LowestResalePrice > 0 {
+		market.LowestResalePriceInRobux = listedItem.LowestResalePrice
+	}
+	if listedItem.FavoriteCount != nil && *listedItem.FavoriteCount >= 0 {
+		market.FavoriteCount = listedItem.FavoriteCount
+	}
+	return market
 }
 
 func pagedInventoryQuery(cursor string) url.Values {

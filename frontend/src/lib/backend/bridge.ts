@@ -99,6 +99,7 @@ export type {
 export type {
 	AvatarHeadshotView,
 	InventoryItem,
+	InventoryItemMarket,
 	RobloxBadge,
 	TextFilter,
 	UserPresence,

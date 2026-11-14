@@ -1,4 +1,3 @@
-import { Browser } from "@wailsio/runtime"
 import { accountBackend, InventoryCategory } from "../backend/bridge"
 import type { InventoryItem } from "../backend/bridge"
 import type { AccountStore } from "../accounts/account-store.svelte"
@@ -55,14 +54,6 @@ export class InventoryState {
 		const cursor = this.page?.nextCursor
 		if (!cursor || this.loading || this.loadingMore) return
 		await this.#load(cursor)
-	}
-
-	async openItem(item: InventoryItem): Promise<void> {
-		try {
-			await Browser.OpenURL(item.pageUrl)
-		} catch (error) {
-			this.error = errorMessage(error, "Could not open the item. Try again.")
-		}
 	}
 
 	dispose(): void {

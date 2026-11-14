@@ -5,12 +5,14 @@
 	import { onMount, untrack } from "svelte"
 	import AccountPageHeader from "../accounts/AccountPageHeader.svelte"
 	import type { AccountStore } from "../accounts/account-store.svelte"
-	import type { InventoryCategory } from "../backend/bridge"
+	import { InventoryCategory } from "../backend/bridge"
+	import type { InventoryItem } from "../backend/bridge"
 	import SidebarResizer from "../layout/SidebarResizer.svelte"
 	import Icon from "../shared/Icon.svelte"
 	import RefreshIcon from "../shared/RefreshIcon.svelte"
 	import { matchesSearch, searchTerms } from "../shared/search"
 	import { inventoryCategoryGroups } from "./inventory-categories"
+	import InventoryItemDialog from "./InventoryItemDialog.svelte"
 	import InventoryItemTile from "./InventoryItemTile.svelte"
 	import { InventoryState } from "./inventory-state.svelte"
 
@@ -20,6 +22,7 @@
 		userId,
 		username,
 		sidebarWidth = $bindable(),
+		onSearchPlace,
 		onBack,
 	}: {
 		accounts: AccountStore
@@ -27,6 +30,7 @@
 		userId: number
 		username: string
 		sidebarWidth: number
+		onSearchPlace: (placeId: number) => void
 		onBack: () => void
 	} = $props()
 
@@ -37,7 +41,8 @@
 
 	let filterText = $state(""),
 		filterInput = $state<HTMLInputElement | undefined>(undefined),
-		contentElement = $state<HTMLElement | undefined>(undefined)
+		contentElement = $state<HTMLElement | undefined>(undefined),
+		detailedItem = $state<InventoryItem | null>(null)
 	const category = $derived(
 			categories.find((option) => option.id === inventory.category) ??
 				categories[0],
@@ -50,6 +55,7 @@
 				? items.filter((item) => matchesSearch(terms, item.name))
 				: items,
 		),
+		isPlaceCategory = $derived(category.id === InventoryCategory.InventoryPlaces),
 		itemCountLabel = $derived(
 			`${exactNumbers.format(items.length)}${page?.nextCursor ? "+" : ""} ${items.length === 1 && !page?.nextCursor ? "item" : "items"}`,
 		)
@@ -59,6 +65,11 @@
 		filterText = ""
 		inventory.show(categoryId)
 		contentElement?.scrollTo({ top: 0 })
+	}
+
+	function openItem(item: InventoryItem): void {
+		if (isPlaceCategory) onSearchPlace(item.itemId)
+		else detailedItem = item
 	}
 
 	onMount(() => {
@@ -217,8 +228,10 @@
 									<InventoryItemTile
 										{item}
 										{category}
-										onOpen={(openedItem) =>
-											void inventory.openItem(openedItem)} />
+										actionLabel={isPlaceCategory
+											? "Find place in Games"
+											: "Show details"}
+										onOpen={openItem} />
 								</li>
 							{/each}
 						</ul>
@@ -241,3 +254,14 @@
 		</main>
 	</div>
 </section>
+
+{#if detailedItem}
+	<InventoryItemDialog
+		item={detailedItem}
+		{category}
+		onSearchPlace={(placeId) => {
+			detailedItem = null
+			onSearchPlace(placeId)
+		}}
+		onClose={() => (detailedItem = null)} />
+{/if}

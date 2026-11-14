@@ -636,6 +636,7 @@
 						userId={selected.userId}
 						username={selected.username || String(selected.userId)}
 						bind:sidebarWidth={store.inventorySidebarWidth}
+						{onSearchPlace}
 						onBack={() => void closeInventory()} />
 				{/key}
 			{:else if selected}
