@@ -1,7 +1,8 @@
 import { accountBackend, CatalogItemType, InventoryCategory } from "../backend/bridge"
-import type { InventoryItem } from "../backend/bridge"
+import type { InventoryItem, InventoryItemDetails } from "../backend/bridge"
 import type { AccountStore } from "../accounts/account-store.svelte"
 import { AccountScope } from "../accounts/account-scope"
+import type { CancellableRequest } from "../accounts/account-scope"
 import { errorMessage } from "../shared/errors"
 import { isFresh } from "../shared/freshness"
 
@@ -14,6 +15,12 @@ interface InventoryCategoryPage {
 // inventoryItemKey tells apart an asset and a bundle that share an ID.
 export function inventoryItemKey(item: InventoryItem): string {
 	return `${item.catalogItemType}:${item.itemId}`
+}
+
+// categoryItemKey tells apart the items of different categories that share an
+// ID, such as a badge and a game pass.
+export function categoryItemKey(category: InventoryCategory, itemId: number): string {
+	return `${category}:${itemId}`
 }
 
 // InventoryState lists what one Roblox user owns, as the account sees it. Each
@@ -34,6 +41,10 @@ export class InventoryState {
 	isDeletingItem = $state(false)
 	itemActionError = $state("")
 	wornAssetIds = $state.raw(new Set<number>())
+	// The details and the ownership by the account of each opened item, by
+	// categoryItemKey. null means that the request failed.
+	detailsByItemKey = $state.raw(new Map<string, InventoryItemDetails | null>())
+	isOwnedByItemKey = $state.raw(new Map<string, boolean | null>())
 	readonly userId: number
 	readonly #scope: AccountScope
 	#request: ReturnType<typeof accountBackend.GetInventoryPage> | null = null
@@ -71,6 +82,41 @@ export class InventoryState {
 
 	clearItemActionError(): void {
 		this.itemActionError = ""
+	}
+
+	// loadItemDetails reads the details of an item in the current category, and
+	// whether the account owns it when the inventory belongs to another user.
+	loadItemDetails(item: InventoryItem, shouldCheckOwnership: boolean): void {
+		const category = this.category,
+			key = categoryItemKey(category, item.itemId)
+		if (!this.detailsByItemKey.has(key)) {
+			void this.#loadItemFact(
+				accountBackend.GetInventoryItemDetails(
+					this.#scope.accountId,
+					category,
+					item.itemId,
+				),
+				(details) =>
+					(this.detailsByItemKey = new Map(this.detailsByItemKey).set(
+						key,
+						details,
+					)),
+			)
+		}
+		if (shouldCheckOwnership && !this.isOwnedByItemKey.has(key)) {
+			void this.#loadItemFact(
+				accountBackend.IsInventoryItemOwned(
+					this.#scope.accountId,
+					category,
+					item.itemId,
+				),
+				(isOwned) =>
+					(this.isOwnedByItemKey = new Map(this.isOwnedByItemKey).set(
+						key,
+						isOwned,
+					)),
+			)
+		}
 	}
 
 	async checkFavorite(item: InventoryItem): Promise<void> {
@@ -208,6 +254,21 @@ export class InventoryState {
 			// The inventory stays usable without the worn marks, and the backend
 			// logs the failure.
 		}
+	}
+
+	// #loadItemFact stores null when the request fails, so that the dialog
+	// shows the fact as unavailable. The backend logs the failure.
+	async #loadItemFact<Fact>(
+		request: CancellableRequest<Fact>,
+		store: (fact: Fact | null) => void,
+	): Promise<void> {
+		let fact: Fact | null
+		try {
+			fact = await this.#scope.track(request)
+		} catch {
+			fact = null
+		}
+		if (this.#scope.isCurrent) store(fact)
 	}
 
 	#changeItems(change: (items: InventoryItem[]) => InventoryItem[]): void {

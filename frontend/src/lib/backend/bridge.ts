@@ -80,6 +80,7 @@ export {
 	CatalogItemType,
 	FriendStatus,
 	InventoryCategory,
+	InventorySaleLocation,
 	PresenceType,
 	TextModeration,
 	TrustedStatus,
@@ -100,6 +101,7 @@ export type {
 export type {
 	AvatarHeadshotView,
 	InventoryItem,
+	InventoryItemDetails,
 	InventoryItemMarket,
 	RobloxBadge,
 	TextFilter,

@@ -151,6 +151,7 @@
 		}
 		inventory.clearItemActionError()
 		detailedItemKey = inventoryItemKey(item)
+		inventory.loadItemDetails(item, !isOwnInventory)
 		void inventory.checkFavorite(item)
 	}
 
@@ -385,6 +386,7 @@
 		{inventory}
 		{username}
 		{isOwnInventory}
+		isWorn={wornAssetIds.has(detailedItem.itemId)}
 		onSearchPlace={(placeId) => {
 			detailedItemKey = ""
 			onSearchPlace(placeId)
