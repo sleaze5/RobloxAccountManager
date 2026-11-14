@@ -29,7 +29,7 @@
 </script>
 
 <div class="flex flex-col gap-4 p-3">
-	<div class="flex h-7 items-center gap-2">
+	<div class="flex min-h-7 items-center gap-2">
 		<p class="min-w-0 flex-1 text-xs text-fg-muted" aria-live="polite">
 			{assets.length === 0
 				? "Nothing worn"

@@ -51,7 +51,7 @@
 </script>
 
 <button
-	class="group/tile flex w-full min-w-0 flex-col gap-1 rounded-lg border border-line-subtle bg-surface p-1 text-left transition-colors duration-100 hover:border-line hover:bg-hover aria-disabled:cursor-not-allowed aria-disabled:opacity-45 aria-disabled:hover:border-line-subtle aria-disabled:hover:bg-surface"
+	class="group/tile flex h-full w-full min-w-0 flex-col gap-1 rounded-lg border border-line-subtle bg-surface p-1 text-left transition-colors duration-100 hover:border-line hover:bg-hover aria-disabled:cursor-not-allowed aria-disabled:opacity-45 aria-disabled:hover:border-line-subtle aria-disabled:hover:bg-surface"
 	type="button"
 	aria-disabled={isDisabled || undefined}
 	data-tooltip={actionLabel}
@@ -66,17 +66,21 @@
 			aria-hidden="true">
 			<ProfileImage url={item.imageUrl} fallbackIcon={category.icon} />
 		</span>
-		{#if item.serialNumber !== null}
-			<span
-				class="absolute top-1 left-1 rounded-sm border border-line-strong bg-overlay px-1 font-mono text-2xs leading-4 font-medium text-fg"
-				><span class="sr-only">Serial number </span>#{exactNumbers.format(
-					item.serialNumber,
-				)}</span>
-		{/if}
-		{#if isWorn}
-			<span
-				class="absolute top-1 right-1 rounded-sm border border-line-strong bg-overlay px-1 text-2xs leading-4 font-medium text-success"
-				>Wearing</span>
+		{#if item.serialNumber !== null || isWorn}
+			<span class="absolute inset-x-1 top-1 flex items-start gap-1">
+				{#if item.serialNumber !== null}
+					<span
+						class="min-w-0 truncate rounded-sm border border-line-strong bg-overlay px-1 font-mono text-2xs leading-4 font-medium text-fg"
+						><span class="sr-only"
+							>Serial number
+						</span>#{exactNumbers.format(item.serialNumber)}</span>
+				{/if}
+				{#if isWorn}
+					<span
+						class="ml-auto shrink-0 rounded-sm border border-line-strong bg-overlay px-1 text-2xs leading-4 font-medium text-success"
+						>Wearing</span>
+				{/if}
+			</span>
 		{/if}
 		{#if item.market?.isLimited && category.id !== InventoryCategory.InventoryCollectibles}
 			<span

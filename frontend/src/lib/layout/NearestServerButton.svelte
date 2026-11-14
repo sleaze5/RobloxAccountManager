@@ -39,7 +39,7 @@
 				? "Choose a preferred region in Settings first"
 				: !hasPlace
 					? "Enter a Place ID first"
-					: `Find a server in or near your preferred region (${appSettings.preferredRegionLabel}). Can be changed in settings`,
+					: `Find a server in or near ${appSettings.preferredRegionLabel}, the preferred region in Settings`,
 		)
 
 	function openSearch(): void {

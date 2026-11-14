@@ -10,6 +10,7 @@
 	import type { NotificationCenter } from "../notifications/notification-center.svelte"
 	import Icon from "../shared/Icon.svelte"
 	import RefreshIcon from "../shared/RefreshIcon.svelte"
+	import SkeletonTile from "../shared/SkeletonTile.svelte"
 	import { unsavedChangesGuard } from "../layout/unsaved-changes-guard"
 	import AvatarBodyPanel from "./AvatarBodyPanel.svelte"
 	import AvatarConfirmation from "./AvatarConfirmation.svelte"
@@ -58,6 +59,7 @@
 		]
 
 	let tab = $state<AvatarTab>("wearing"),
+		tabPanel = $state<HTMLDivElement | undefined>(undefined),
 		detailedItem = $state<{
 			item: InventoryItem
 			category: InventoryCategoryOption
@@ -129,6 +131,7 @@
 	}
 
 	async function selectTab(nextTab: AvatarTab, shouldFocus: boolean): Promise<void> {
+		if (nextTab !== tab) tabPanel?.scrollTo({ top: 0 })
 		tab = nextTab
 		if (!shouldFocus) return
 		await tick()
@@ -266,6 +269,7 @@
 
 				<div
 					id="avatar-tab-panel"
+					bind:this={tabPanel}
 					class="min-h-0 flex-1 scrollbar-stable overflow-y-auto"
 					role="tabpanel"
 					aria-labelledby={`avatar-tab-${tab}`}
@@ -312,25 +316,25 @@
 					{/if}
 					{#if !draft}
 						<div
-							class="flex flex-col gap-2 p-3"
+							class="flex flex-col gap-4 p-3"
 							role="status"
 							aria-busy="true">
 							<span class="sr-only">Loading the avatar</span>
-							<ul
-								class="grid grid-cols-3 gap-2 @lg:grid-cols-4 @2xl:grid-cols-5"
+							<div
+								class="flex min-h-7 items-center text-xs"
 								aria-hidden="true">
-								{#each Array.from({ length: 8 }, (_unused, index) => index) as index (index)}
-									<li
-										class="flex flex-col gap-1 rounded-lg border border-line-subtle bg-surface p-1">
-										<span
-											class="block aspect-square w-full skeleton rounded-sm"
-										></span>
-										<span class="flex px-1 pb-0.5 text-xs"
-											><span class="skeleton-line w-3/4"></span
-											></span>
-									</li>
-								{/each}
-							</ul>
+								<span class="skeleton-line w-56"></span>
+							</div>
+							<div class="flex flex-col gap-2" aria-hidden="true">
+								<span class="text-xs"
+									><span class="skeleton-line w-24"></span></span>
+								<ul
+									class="grid grid-cols-3 gap-2 @lg:grid-cols-4 @2xl:grid-cols-5 @4xl:grid-cols-6 @6xl:grid-cols-8">
+									{#each Array.from({ length: 8 }, (_unused, index) => index) as index (index)}
+										<SkeletonTile />
+									{/each}
+								</ul>
+							</div>
 						</div>
 					{:else}
 						{#key tab}

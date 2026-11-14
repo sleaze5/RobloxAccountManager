@@ -12,6 +12,7 @@
 	import type { MenuAction } from "../shared/AnchoredActionMenu.svelte"
 	import Icon from "../shared/Icon.svelte"
 	import ProfileImage from "../shared/ProfileImage.svelte"
+	import SkeletonTile from "../shared/SkeletonTile.svelte"
 	import type { AvatarState } from "./avatar-state.svelte"
 
 	let {
@@ -123,13 +124,7 @@
 				class="grid grid-cols-3 gap-2 @lg:grid-cols-4 @2xl:grid-cols-5 @4xl:grid-cols-6"
 				aria-hidden="true">
 				{#each skeletonTileIndexes as index (index)}
-					<li
-						class="flex flex-col gap-1 rounded-lg border border-line-subtle bg-surface p-1">
-						<span class="block aspect-square w-full skeleton rounded-sm"
-						></span>
-						<span class="flex px-1 pb-0.5 text-xs"
-							><span class="skeleton-line w-2/3"></span></span>
-					</li>
+					<SkeletonTile hasDetailLine={false} />
 				{/each}
 			</ul>
 		</div>

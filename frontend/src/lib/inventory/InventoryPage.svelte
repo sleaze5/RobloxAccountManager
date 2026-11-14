@@ -11,6 +11,7 @@
 	import Icon from "../shared/Icon.svelte"
 	import RefreshIcon from "../shared/RefreshIcon.svelte"
 	import Select from "../shared/Select.svelte"
+	import SkeletonTile from "../shared/SkeletonTile.svelte"
 	import { searchTerms } from "../shared/search"
 	import {
 		assetCategories,
@@ -284,6 +285,15 @@
 							></span>
 					{/if}
 				</div>
+			{:else if !page && !inventory.error}
+				<!-- The filters take their place while the first page loads, so
+				     the items do not move down when they arrive. -->
+				<div
+					class="flex h-10 shrink-0 items-center gap-2 border-b border-line-subtle px-3"
+					aria-hidden="true">
+					<span class="h-7 w-28 skeleton rounded-md"></span>
+					<span class="h-7 w-32 skeleton rounded-md"></span>
+				</div>
 			{/if}
 
 			<div
@@ -313,15 +323,7 @@
 								class="grid animate-enter grid-cols-4 gap-2 @lg:grid-cols-5 @2xl:grid-cols-6 @3xl:grid-cols-7 @4xl:grid-cols-8 @6xl:grid-cols-10"
 								aria-hidden="true">
 								{#each skeletonTileIndexes as index (index)}
-									<li
-										class="flex flex-col gap-1 rounded-lg border border-line-subtle bg-surface p-1">
-										<span
-											class="block aspect-square w-full skeleton rounded-sm"
-										></span>
-										<span class="flex flex-col px-1 pb-0.5 text-xs">
-											<span class="skeleton-line w-3/4"></span>
-										</span>
-									</li>
+									<SkeletonTile hasDetailLine={!isPlaceCategory} />
 								{/each}
 							</ul>
 						</div>
