@@ -238,9 +238,7 @@
 		<div class="flex min-h-0 flex-1">
 			<AvatarStage {avatar} {username} />
 
-			<main
-				class="@container flex min-w-0 flex-1 flex-col"
-				aria-labelledby="avatar-title">
+			<div class="@container flex min-w-0 flex-1 flex-col">
 				<div
 					class="flex h-9 shrink-0 items-stretch border-b border-line-subtle bg-surface"
 					role="tablist"
@@ -384,7 +382,7 @@
 						{/key}
 					{/if}
 				</div>
-			</main>
+			</div>
 		</div>
 	{/if}
 </section>

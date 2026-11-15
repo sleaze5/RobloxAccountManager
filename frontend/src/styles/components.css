@@ -56,6 +56,14 @@
 	}
 }
 
+@utility button-text {
+	@apply flex items-center gap-1 rounded-md py-1 text-xs text-fg-muted transition-colors duration-100 focus-visible:outline-offset-2;
+
+	&:hover:where(:not(:disabled)) {
+		@apply text-fg;
+	}
+}
+
 @utility button-close {
 	@apply grid size-6 shrink-0 place-items-center rounded-md text-inherit transition-colors duration-100;
 
@@ -92,7 +100,7 @@
 	}
 
 	& > span {
-		@apply grid size-3.5 place-items-center rounded-sm border border-line-strong bg-transparent text-on-solid transition-colors duration-100;
+		@apply grid size-3.5 place-items-center rounded-sm border border-line-control bg-transparent text-on-solid transition-colors duration-100;
 	}
 
 	& svg {
@@ -152,7 +160,7 @@
 	}
 
 	& > span {
-		@apply relative h-5 w-full rounded-full border border-line-strong bg-raised transition-colors duration-100;
+		@apply relative h-5 w-full rounded-full border border-line-control bg-raised transition-colors duration-100;
 	}
 
 	& > span::after {
@@ -187,7 +195,7 @@
 	}
 
 	& > span {
-		@apply relative size-4 rounded-full border border-line-strong bg-raised transition-colors duration-100;
+		@apply relative size-4 rounded-full border border-line-control bg-raised transition-colors duration-100;
 	}
 
 	& > span::after {

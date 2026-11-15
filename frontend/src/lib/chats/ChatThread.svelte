@@ -224,6 +224,7 @@
 						class="button-ghost-sm"
 						type="button"
 						aria-label="Cancel renaming"
+						data-tooltip="Cancel renaming"
 						disabled={chat.renaming}
 						onclick={() => (renamingOpen = false)}>
 						<Icon svg={xIcon} size={14} aria-hidden="true" />
@@ -466,7 +467,7 @@
 		</form>
 	</section>
 	{#if conversation.group && membersOpen}
-		<aside
+		<section
 			id="chat-members"
 			class="flex w-52 shrink-0 animate-enter flex-col border-l border-line-subtle bg-surface"
 			aria-labelledby="chat-members-title">
@@ -509,6 +510,6 @@
 					{memberSlots > 0 ? "Add members" : "Group is full"}
 				</button>
 			</div>
-		</aside>
+		</section>
 	{/if}
 </div>

@@ -96,20 +96,22 @@
 	<div
 		class="settings-layout"
 		style={`--sidebar-width: ${workspace.accountSettingsSidebarWidth}px;`}>
-		<aside class="flex settings-sidebar flex-col gap-2 p-2" data-load-more-root>
+		<div class="flex settings-sidebar flex-col gap-2 p-2" data-load-more-root>
 			{#if chat.error}
 				<p class="notice-error" role="alert">
 					{chat.error}
 				</p>
 			{/if}
 			<ChatList {chat} />
-		</aside>
+		</div>
 		<SidebarResizer
 			bind:width={workspace.accountSettingsSidebarWidth}
 			name="chats"
 			minimumWidth={192} />
 
-		<main class="grid h-full min-h-0 min-w-0 flex-1 grid-rows-1" aria-label="Chat">
+		<section
+			class="grid h-full min-h-0 min-w-0 flex-1 grid-rows-1"
+			aria-label="Chat">
 			{#if openConversation}
 				{#key openConversation.id}
 					<ChatThread
@@ -133,7 +135,7 @@
 					</button>
 				</div>
 			{/if}
-		</main>
+		</section>
 	</div>
 </section>
 

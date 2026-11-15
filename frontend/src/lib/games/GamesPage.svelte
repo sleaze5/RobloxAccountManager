@@ -51,6 +51,13 @@
 		hasSearch = $derived(!favoritesMode && !!store.searchedText),
 		hasMore = $derived(
 			!favoritesMode && store.results.length > 0 && !!store.nextPageToken,
+		),
+		tabStopPlaceId = $derived(
+			(
+				store.places.find(
+					(place) => place.placeId === store.selected?.placeId,
+				) ?? store.places[0]
+			)?.placeId,
 		)
 	let searchInput = $state<HTMLInputElement | undefined>(undefined),
 		grabbedPlaceId: number | null = null,
@@ -305,6 +312,7 @@
 							aria-current={active ? "true" : undefined}
 							aria-haspopup="menu"
 							data-list-item
+							tabindex={place.placeId === tabStopPlaceId ? 0 : -1}
 							aria-keyshortcuts={favoritesMode
 								? "Control+Shift+ArrowUp Control+Shift+ArrowDown"
 								: undefined}

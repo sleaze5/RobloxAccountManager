@@ -99,6 +99,7 @@
 		class="button-icon size-8"
 		type="button"
 		aria-label={`Decrease ${label.toLowerCase()}`}
+		data-tooltip={`Decrease ${label.toLowerCase()}`}
 		disabled={disabled || saving || normalized(draft ?? value) <= min}
 		onclick={() => adjust(-1)}>
 		<Icon svg={minusIcon} size={16} aria-hidden="true" />
@@ -107,6 +108,7 @@
 		class="button-icon size-8"
 		type="button"
 		aria-label={`Increase ${label.toLowerCase()}`}
+		data-tooltip={`Increase ${label.toLowerCase()}`}
 		disabled={disabled || saving || normalized(draft ?? value) >= max}
 		onclick={() => adjust(1)}>
 		<Icon svg={plusIcon} size={16} aria-hidden="true" />

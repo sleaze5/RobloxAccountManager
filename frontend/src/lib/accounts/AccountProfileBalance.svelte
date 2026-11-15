@@ -1,5 +1,6 @@
 <script lang="ts">
 	import type { AccountProfileSnapshot } from "../backend/bridge"
+	import Skeleton from "../shared/Skeleton.svelte"
 
 	let {
 		snapshot,
@@ -24,11 +25,7 @@
 		pending = $derived(snapshot?.pendingRobux),
 		unavailable = $derived(robux === null || robux === undefined),
 		balance = $derived(
-			robux === null || robux === undefined
-				? loading
-					? "…"
-					: "Unavailable"
-				: amount(robux),
+			robux === null || robux === undefined ? "Unavailable" : amount(robux),
 		),
 		tooltip = $derived(
 			`Robux: ${
@@ -56,7 +53,9 @@
 	]}
 	aria-label={tooltip}
 	data-tooltip={tooltip}>
-	R$ {balance}{#if pending !== null && pending !== undefined && pending > 0}<span
+	R$ {#if unavailable && loading}<Skeleton
+			className="w-12"
+			label="Loading Robux" />{:else}{balance}{/if}{#if pending !== null && pending !== undefined && pending > 0}<span
 			class="text-fg-muted">{` (+${amount(pending)})`}</span
 		>{/if}
 </button>

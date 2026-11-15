@@ -108,8 +108,8 @@
 	})
 </script>
 
-<section class="settings-page" aria-labelledby="settings-title">
-	<header class="settings-header">
+<div class="settings-page">
+	<div class="settings-header">
 		<button
 			class="button-ghost"
 			type="button"
@@ -118,8 +118,8 @@
 			onclick={onBack}>
 			<Icon svg={caretLeftIcon} data-nudge="left" size={16} aria-hidden="true" />
 		</button>
-		<h1 id="settings-title">Settings</h1>
-	</header>
+		<h1>Settings</h1>
+	</div>
 
 	<div
 		class="settings-layout"
@@ -193,4 +193,4 @@
 			{/key}
 		</main>
 	</div>
-</section>
+</div>

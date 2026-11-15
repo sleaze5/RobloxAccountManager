@@ -99,6 +99,12 @@
 		detailPane = $state<HTMLDivElement | undefined>(undefined),
 		searchError = $state("")
 	const account = $derived(accounts.selectedAccount),
+		tabStopUserId = $derived(
+			(
+				store.people.find((person) => person.userId === store.selectedUserId) ??
+				store.people[0]
+			)?.userId,
+		),
 		subject = $derived(store.subject),
 		owner = $derived(subject ? personName(subject) : `@${account.username}`),
 		players = $derived(store.list === playersView),
@@ -460,6 +466,7 @@
 						"min-h-0 scrollbar-stable overflow-y-auto",
 						((players && store.playerQuery) || store.selecting) && "pb-12",
 					]}
+					role="group"
 					aria-label={current.label}
 					aria-busy={store.loading || store.loadingMore}>
 					{#if !store.page && store.loading}
@@ -493,6 +500,9 @@
 									<input
 										type="checkbox"
 										data-list-item
+										tabindex={person.userId === tabStopUserId
+											? 0
+											: -1}
 										aria-label={`Select ${rowLabel(person)}`}
 										{checked}
 										disabled={store.removingSelected}
@@ -516,6 +526,7 @@
 								aria-current={active ? "true" : undefined}
 								aria-haspopup="menu"
 								data-list-item
+								tabindex={person.userId === tabStopUserId ? 0 : -1}
 								aria-label={rowLabel(person)}
 								onclick={() => {
 									if (person.userId !== store.selectedUserId) {

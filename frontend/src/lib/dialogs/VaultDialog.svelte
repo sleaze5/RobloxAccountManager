@@ -30,6 +30,7 @@
 	const creating = $derived(store.vault.fileState === FileState.FileStateEmpty),
 		incomplete = $derived(store.vault.fileState === FileState.FileStateIncomplete),
 		recoveryMode = $derived(incomplete || recovery),
+		passwordNoun = $derived(creating || incomplete ? "passwords" : "password"),
 		requirements = $derived(passwordRequirements(password)),
 		canCreate = $derived(
 			passwordValid(password) && password === confirmation && !store.busy,
@@ -129,7 +130,7 @@
 			<div class="mt-3 notice-warning">{store.vault.startupError}</div>
 			{#if !creating && !recoveryMode}
 				<button
-					class="mt-2 flex items-center gap-1 py-1 text-xs text-fg-muted transition-colors duration-100 *:animate-pop"
+					class="mt-2 button-text *:animate-pop"
 					type="button"
 					onclick={() => void showRecovery()}>Recovery options</button>
 			{/if}
@@ -140,7 +141,7 @@
 			</div>
 			{#if !recoveryMode && !creating}
 				<button
-					class="mt-2 flex items-center gap-1 py-1 text-xs text-fg-muted transition-colors duration-100 *:animate-pop"
+					class="mt-2 button-text *:animate-pop"
 					type="button"
 					onclick={() => void showRecovery()}>Recovery options</button>
 			{/if}
@@ -210,12 +211,15 @@
 					required />
 			</label>
 			<button
-				class="mt-2 flex items-center gap-1 py-1 text-xs text-fg-muted transition-colors duration-100 *:animate-pop"
+				class="mt-2 button-text *:animate-pop"
 				type="button"
 				onclick={() => (visible = !visible)}>
 				{#if visible}<Icon svg={eyeSlashIcon} size={16} aria-hidden="true" /> Hide
-					passwords{:else}<Icon svg={eyeIcon} size={16} aria-hidden="true" /> Show
-					passwords{/if}
+					{passwordNoun}{:else}<Icon
+						svg={eyeIcon}
+						size={16}
+						aria-hidden="true" /> Show
+					{passwordNoun}{/if}
 			</button>
 			{#if !creating && !incomplete && store.vault.passwordHint}
 				<div class="mt-3 notice-note">Hint: {store.vault.passwordHint}</div>

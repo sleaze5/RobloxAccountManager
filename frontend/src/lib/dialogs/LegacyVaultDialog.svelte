@@ -65,7 +65,7 @@
 					required />
 			</label>
 			<button
-				class="mt-2 flex items-center gap-1 py-1 text-xs text-fg-muted transition-colors duration-100 *:animate-pop"
+				class="mt-2 button-text *:animate-pop"
 				type="button"
 				aria-pressed={visible}
 				onclick={() => (visible = !visible)}>
@@ -84,7 +84,7 @@
 			</button>
 		</form>
 		<button
-			class="mt-2 flex items-center gap-1 py-1 text-xs text-fg-muted transition-colors duration-100"
+			class="mt-2 button-text"
 			type="button"
 			disabled={store.busy}
 			onclick={() => (manual = true)}>Other options</button>
@@ -138,7 +138,7 @@
 		</form>
 		{#if store.vault.migrationAvailable}
 			<button
-				class="mt-2 flex items-center gap-1 py-1 text-xs text-fg-muted transition-colors duration-100"
+				class="mt-2 button-text"
 				type="button"
 				disabled={store.busy}
 				onclick={() => (manual = false)}>Back to moving your data</button>

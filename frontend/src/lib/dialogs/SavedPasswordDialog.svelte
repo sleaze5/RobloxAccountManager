@@ -209,7 +209,7 @@
 						aria-hidden="true" />Password is incorrect</span>
 			{:else}
 				<button
-					class="flex items-center gap-1 py-1 text-xs text-fg-muted transition-colors duration-100 *:animate-pop"
+					class="button-text *:animate-pop"
 					type="button"
 					disabled={busy || !password}
 					onclick={() => void validate()}>

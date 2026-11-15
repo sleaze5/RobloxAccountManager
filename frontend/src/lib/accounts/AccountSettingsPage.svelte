@@ -871,7 +871,7 @@
 	<div
 		class="settings-layout"
 		style={`--sidebar-width: ${workspace.accountSettingsSidebarWidth}px;`}>
-		<aside class="settings-sidebar">
+		<div class="settings-sidebar">
 			<div class="m-3 search-field">
 				<Icon svg={magnifyingGlassIcon} size={16} aria-hidden="true" />
 				<input
@@ -934,13 +934,13 @@
 			{#if visiblePages.length === 0}
 				<p class="px-3 text-xs text-fg-faint">No settings found.</p>
 			{/if}
-		</aside>
+		</div>
 		<SidebarResizer
 			bind:width={workspace.accountSettingsSidebarWidth}
 			name="account settings"
 			minimumWidth={192} />
 
-		<main
+		<section
 			bind:this={contentElement}
 			onscroll={rememberScroll}
 			class="settings-content"
@@ -1059,7 +1059,7 @@
 					{/if}
 				{/if}
 			{/key}
-		</main>
+		</section>
 	</div>
 </section>
 

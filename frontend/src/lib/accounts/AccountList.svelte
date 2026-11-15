@@ -141,6 +141,14 @@
 		}
 	}
 
+	const tabStopAccountId = $derived(
+		(
+			store.accounts.find((account) =>
+				store.selectedAccountIds.includes(account.id),
+			) ?? store.accounts[0]
+		)?.id,
+	)
+
 	function loadNearEnd(event: Event): void {
 		const list = event.currentTarget as HTMLElement
 		if (list.scrollHeight - list.scrollTop - list.clientHeight < 120) {
@@ -153,6 +161,11 @@
 	class={["min-h-0 scrollbar-stable overflow-y-auto"]}
 	aria-busy={store.loadingAccounts || store.loadingMore}
 	onscroll={loadNearEnd}>
+	{#if store.accountListError && store.accounts.length > 0}
+		<p class="px-3 py-2 text-xs text-danger-muted" role="alert">
+			{store.accountListError}
+		</p>
+	{/if}
 	{#each store.accounts as account (account.id)}
 		{@const moderated = account.state === SessionState.StateModerated}
 		{@const detail = moderated ? "" : presenceDetail(account.presence)}
@@ -207,6 +220,7 @@
 				class="flex h-full min-w-0 flex-1 flex-col justify-center pr-2 text-left"
 				data-account-select
 				data-list-item
+				tabindex={account.id === tabStopAccountId ? 0 : -1}
 				type="button"
 				aria-pressed={store.selectedAccountIds.includes(account.id)}
 				aria-keyshortcuts="Control+Shift+ArrowUp Control+Shift+ArrowDown"
@@ -269,7 +283,7 @@
 				class="flex h-24 flex-col items-center justify-center gap-0.5 text-xs text-fg-faint">
 				{#if !store.vault.unlocked}
 					<span>Unlock the vault to see accounts.</span>
-				{:else if store.query || store.selectedTagIds.length > 0}
+				{:else if !store.accountListError && (store.query || store.selectedTagIds.length > 0)}
 					<strong class="font-medium text-fg-muted"
 						>No matching accounts</strong>
 				{/if}
