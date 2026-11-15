@@ -54,6 +54,7 @@ Buttons (`@utility` classes):
 - `button-icon`: a bordered icon-only button.
 - `button-ghost`: a borderless icon-only button. `button-ghost-sm` is its 24px form.
 - `button-close`: the 24px close button of a dialog, notice, or error. It inherits the text color.
+- `button-text`: a borderless text button for a secondary action below a field, such as Show password or Recovery options.
 - `button-danger` and `button-warning`: confirmation actions with a danger or warning tone. See [Destructive actions](#destructive-actions).
 - Set `data-open` on a button while the menu it opens is open.
 
@@ -204,7 +205,8 @@ Use `rounded-full` for status dots, radio buttons, switch thumbs, and the switch
 
 Inputs:
 
-- Style inputs as outlines: a transparent background that takes the shade of the surface below, a 1px `border-line` border, `rounded-md`, and `text-fg-faint` placeholders. On focus, use `border-line-focus`. The `field` building block does this.
+- Style inputs as outlines: a transparent background that takes the shade of the surface below, a 1px `border-line` border, `rounded-md`, and `text-fg-faint` placeholders. On focus, use `border-line-focus`, which keeps a 3:1 contrast on every surface. The `field` building block does this.
+- Draw the boundary of an unchecked checkbox, radio button, or switch track with `border-line-control`, which keeps a 3:1 contrast on every surface. The `checkbox`, `radio`, and `switch` building blocks do this.
 - Give every text field a visible label. With a visible label, the field border may stay subtle.
 
 Buttons:
@@ -239,6 +241,7 @@ Color:
 ### Lists
 
 - Give list rows the `list-row` building block, `h-12` (`h-16` when its presence names a game or place), and a 1px `border-line-subtle` separator. Set `aria-selected="true"` or `data-selected` on the selected row and `data-open` while its menu is open. `list-row` draws the hover and selection treatment from [Controls and states](#controls-and-states).
+- Make a list one tab stop. Give the selected row `tabindex="0"`, or the first row when no row is selected, and every other row `tabindex="-1"`. Mark the rows with `data-list-item`, and move between them with `ArrowUp`, `ArrowDown`, `Home`, and `End` through `moveListFocus`.
 - When a list can be reordered, support dragging and `Ctrl+Shift+ArrowUp` and `Ctrl+Shift+ArrowDown`. Announce the new position through a polite live region.
 - Distinguish an empty list ("No accounts yet") from a list with no matches ("No matching accounts"). Tell the user how to change each state. Give the no-matches state a button that clears the filter.
 - In a grid of item tiles, make every tile in a row the same height. Keep the badges on a tile in one row, so that they never overlap, and let the lower-priority badge truncate.
@@ -288,6 +291,7 @@ Color:
 - When content refreshes, keep the existing content visible and replace the refresh icon with the spinner.
 - Build an `empty-state` from a 28px icon, a title that says what is missing, one sentence that says how to fill it, and an action button when one exists.
 - Show an error next to the thing that failed, in a `role="alert"` element. Use `OperationError` when the failure has no specific place. Use a notification for the result of background work.
+- When content fails to load, never show its empty state, such as "No accounts yet". Show an `empty-state` with a warning icon, a title such as "Accounts unavailable", the error message, and a Try again button. When earlier content is still shown, keep it and show the error in a `role="alert"` line above it.
 
 ### Tooltips
 
@@ -312,6 +316,7 @@ Color:
 - Give a switch input `role="switch"`.
 - Give a resizer `role="slider"`, `tabindex="0"`, `aria-orientation`, `aria-valuenow`, `aria-valuemin`, and `aria-valuemax`. Resize it with the arrow keys. Do not use `role="separator"`, because the Svelte checker rejects a focusable separator.
 - Announce notifications through one polite live region. Use `role="alert"` for an error that blocks the current task.
+- Give each page one banner and one `main` landmark. The window title bar is the only top-level `header`. An account sub-page renders inside the `main` of Accounts, so it uses labeled `section` regions instead of another `main` or an `aside`. Give a container with an `aria-label` a role, such as `role="group"` on a list.
 
 ## Writing
 
