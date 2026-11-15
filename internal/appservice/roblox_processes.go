@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 
+	"github.com/sleaze5/RobloxAccountManager/internal/platform/elevation"
 	"github.com/sleaze5/RobloxAccountManager/internal/platform/robloxmulti"
 )
 
@@ -17,9 +18,15 @@ func (service *Service) GetRobloxProcesses() (robloxmulti.ProcessSnapshot, error
 }
 
 func (service *Service) KillRobloxProcesses(ctx context.Context, processes []robloxmulti.Process) error {
-	if err := robloxmulti.KillProcesses(ctx, processes, service.logger); err != nil {
+	var err error
+	if service.shouldUseElevatedHelper() {
+		_, err = elevation.Run(ctx, robloxmulti.KillProcessesTaskName, robloxmulti.ProcessArguments(processes))
+	} else {
+		err = robloxmulti.KillProcesses(ctx, processes, service.logger)
+	}
+	if err != nil {
 		service.logger.Warn("could not kill selected Roblox processes", "operation", "roblox-processes-kill", "error", err)
-		return errors.New("some Roblox processes could not be killed; try again")
+		return cleanerError("roblox-processes-kill", elevationMessage(err, "Some Roblox processes could not be closed. Try again."), err)
 	}
 	return nil
 }

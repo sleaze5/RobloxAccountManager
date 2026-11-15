@@ -8,6 +8,9 @@
 		submitting = $state(false),
 		error = $state("")
 	let revision = 0
+	const isBlockedByCleaning = $derived(
+		pending !== null && pending.accountCount > 1 && pending.isCleaningBeforeLaunch,
+	)
 
 	async function refresh(): Promise<void> {
 		const current = ++revision
@@ -68,12 +71,22 @@
 		<div class="dialog-heading mb-2">
 			<div>
 				<h2 id="replace-roblox-title">
-					{pending.accountCount > 1
-						? "Launch without multi-instance?"
-						: "Close Roblox and join?"}
+					{#if isBlockedByCleaning}
+						Can't launch several accounts
+					{:else if pending.accountCount > 1}
+						Launch without multi-instance?
+					{:else}
+						Close Roblox and join?
+					{/if}
 				</h2>
 				<p id="replace-roblox-description">
-					{#if pending.accountCount > 1}
+					{#if isBlockedByCleaning}
+						Clean before launch is on and multi-instance is off, so each
+						launch would clean Roblox and close the game before it. To
+						launch the {pending.accountCount}
+						selected accounts together, turn on multi-instance or turn off Clean
+						before launch in Client options.
+					{:else if pending.accountCount > 1}
 						{pending.multiInstanceEnabled
 							? "Multi-instance is not ready."
 							: "Multi-instance is off."}
@@ -89,25 +102,35 @@
 							? "the running Roblox game"
 							: `all ${pending.processCount} running Roblox games`} and join
 						the new game. Unsaved progress may be lost.
+						{#if pending.isCleaningBeforeLaunch}Roblox data is cleaned
+							before the new game opens.{/if}
 					{/if}
 				</p>
 			</div>
 		</div>
 		{#if error}<div class="mt-3 notice-error" role="alert">{error}</div>{/if}
 		<div class="dialog-actions">
-			<button
-				class="button"
-				type="button"
-				disabled={submitting}
-				onclick={() => void respond(false)}>Cancel</button>
-			<button
-				class="button-danger"
-				type="button"
-				disabled={submitting}
-				onclick={() => void respond(true)}
-				>{pending.accountCount > 1
-					? "Launch anyway"
-					: "Close Roblox and join"}</button>
+			{#if isBlockedByCleaning}
+				<button
+					class="button"
+					type="button"
+					disabled={submitting}
+					onclick={() => void respond(false)}>Cancel launch</button>
+			{:else}
+				<button
+					class="button"
+					type="button"
+					disabled={submitting}
+					onclick={() => void respond(false)}>Cancel</button>
+				<button
+					class="button-danger"
+					type="button"
+					disabled={submitting}
+					onclick={() => void respond(true)}
+					>{pending.accountCount > 1
+						? "Launch anyway"
+						: "Close Roblox and join"}</button>
+			{/if}
 		</div>
 	</Dialog>
 {/if}

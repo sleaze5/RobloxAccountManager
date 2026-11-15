@@ -84,6 +84,11 @@ func (service *Service) executeLaunch(ctx context.Context, confirm func(context.
 		}
 		return launchPreparationError(err)
 	}
+	if service.shouldCleanBeforeLaunch() {
+		if err := service.cleanBeforeLaunch(ctx); err != nil {
+			return err
+		}
+	}
 	if ctx.Err() != nil || !service.vault.Unlocked() {
 		return launchError(roblox.KindCancelled, "The launch was cancelled or the vault is locked.")
 	}
@@ -95,12 +100,18 @@ func (service *Service) executeLaunch(ctx context.Context, confirm func(context.
 }
 
 func (service *Service) confirmBatchLaunch(ctx context.Context, count int) (bool, error) {
+	ctx, cancel := context.WithTimeout(ctx, 90*time.Second)
+	defer cancel()
+	// Each launch would clean Roblox and close the game that the previous
+	// account opened, so several accounts cannot launch together.
+	if service.shouldCleanBeforeLaunch() {
+		_, err := service.confirmLaunch(ctx, LaunchConfirmation{AccountCount: count, IsCleaningBeforeLaunch: true})
+		return false, err
+	}
 	state := service.multiInstance.Snapshot()
 	if state.Enabled && state.Ready {
 		return true, nil
 	}
-	ctx, cancel := context.WithTimeout(ctx, 90*time.Second)
-	defer cancel()
 	return service.confirmLaunch(ctx, LaunchConfirmation{
 		AccountCount: count, MultiInstanceEnabled: state.Enabled, MultiInstanceMessage: state.Message,
 	})

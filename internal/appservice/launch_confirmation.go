@@ -11,6 +11,9 @@ type LaunchConfirmation struct {
 	MultiInstanceEnabled bool   `json:"multiInstanceEnabled"`
 	AccountCount         int    `json:"accountCount"`
 	MultiInstanceMessage string `json:"multiInstanceMessage"`
+	// IsCleaningBeforeLaunch blocks a launch of several accounts, and tells a
+	// single launch that Roblox is cleaned before the new game opens.
+	IsCleaningBeforeLaunch bool `json:"isCleaningBeforeLaunch"`
 }
 
 type pendingLaunchConfirmation struct {
@@ -45,7 +48,7 @@ func (service *Service) cancelLaunchConfirmation() {
 }
 
 func (service *Service) confirmRobloxReplacement(ctx context.Context, count int, multiInstance bool) (bool, error) {
-	return service.confirmLaunch(ctx, LaunchConfirmation{ProcessCount: count, MultiInstanceEnabled: multiInstance})
+	return service.confirmLaunch(ctx, LaunchConfirmation{ProcessCount: count, MultiInstanceEnabled: multiInstance, IsCleaningBeforeLaunch: service.shouldCleanBeforeLaunch()})
 }
 
 func (service *Service) confirmLaunch(ctx context.Context, state LaunchConfirmation) (bool, error) {

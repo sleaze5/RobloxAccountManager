@@ -10,8 +10,10 @@
 		type RobloxProcess,
 		type RobloxProcessSnapshot,
 	} from "../backend/bridge"
+	import { robloxClientOptions } from "../settings/roblox-client-options.svelte"
+	import { errorMessage } from "../shared/errors"
 
-	let { onClose }: { onClose: () => void } = $props()
+	let { onClose, onClean }: { onClose: () => void; onClean: () => void } = $props()
 	let snapshot = $state<RobloxProcessSnapshot | null>(null),
 		selected = $state<string[]>([]),
 		loading = $state(true),
@@ -70,9 +72,12 @@
 		error = ""
 		try {
 			await accountBackend.KillRobloxProcesses(targets)
-		} catch {
+		} catch (cause) {
 			if (!disposed) {
-				error = "Some Roblox processes could not be closed. Try again."
+				error = errorMessage(
+					cause,
+					"Some Roblox processes could not be closed. Try again.",
+				)
 			}
 		} finally {
 			if (!disposed) {
@@ -90,6 +95,7 @@
 
 	onMount(() => {
 		void refresh()
+		void robloxClientOptions.refreshCleaner()
 		return () => {
 			disposed = true
 		}
@@ -198,6 +204,14 @@
 			{error || loadError}
 		</div>{/if}
 	<div class="dialog-actions">
+		{#if robloxClientOptions.cleaner?.supported}
+			<button
+				class="mr-auto button"
+				type="button"
+				aria-haspopup="dialog"
+				disabled={killing}
+				onclick={onClean}>Clean Roblox data</button>
+		{/if}
 		<button
 			class="button"
 			bind:this={cancelButton}

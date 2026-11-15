@@ -2,85 +2,29 @@
 	import { onMount } from "svelte"
 	import {
 		accountBackend,
-		type MultiInstanceSnapshot,
+		RobloxCleanScope,
 		type RobloxClientState,
 	} from "../backend/bridge"
+	import RobloxCleanDialog from "../dialogs/RobloxCleanDialog.svelte"
+	import type { NotificationCenter } from "../notifications/notification-center.svelte"
 	import Select from "../shared/Select.svelte"
 	import { linuxClientOptions } from "./linux-clients"
+	import { robloxClientOptions as options } from "./roblox-client-options.svelte"
 	import SettingsStatus from "./SettingsStatus.svelte"
 	import { errorMessage } from "../shared/errors"
 
-	let snapshot = $state<MultiInstanceSnapshot | null>(null),
-		loading = $state(true),
-		saving = $state(false),
-		error = $state(""),
-		statusError = $state(""),
-		clients = $state<RobloxClientState | null>(null),
+	let { notifications }: { notifications: NotificationCenter } = $props()
+	let clients = $state<RobloxClientState | null>(null),
 		clientsLoading = $state(true),
 		clientsSaving = $state(false),
-		clientsError = $state("")
-	const clientOptions = $derived(clients ? linuxClientOptions(clients) : []),
+		clientsError = $state(""),
+		cleanScope = $state<RobloxCleanScope | null>(null)
+	const snapshot = $derived(options.multiInstance),
+		cleaner = $derived(options.cleaner),
+		clientOptions = $derived(clients ? linuxClientOptions(clients) : []),
 		installedClients = $derived(
 			(clients?.clients ?? []).filter((client) => client.installed).length,
 		)
-	const statusText = $derived.by(() => {
-			if (loading) return "Checking…"
-			if (saving) return "Saving…"
-			if (!snapshot) return "Not checked"
-			if (!snapshot.supported) return "Unavailable - Windows only"
-			if (!snapshot.enabled) return "Off"
-			if (snapshot.ready) return "Ready"
-			return `Not ready - ${snapshot.message}`
-		}),
-		statusTone = $derived(
-			saving || loading || !snapshot?.enabled
-				? "neutral"
-				: snapshot.ready
-					? "success"
-					: "warning",
-		)
-	let checking = false,
-		disposed = false,
-		revision = 0
-
-	async function load(): Promise<void> {
-		if (checking || saving || disposed) return
-		checking = true
-		loading = snapshot === null
-		const requestRevision = revision
-		try {
-			const state = await accountBackend.GetMultiInstanceState()
-			if (disposed || requestRevision !== revision) return
-			snapshot = state
-			statusError = ""
-		} catch {
-			if (disposed || requestRevision !== revision) return
-			statusError = "The multi-instance status could not be checked. Try again."
-		} finally {
-			checking = false
-			if (!disposed && requestRevision === revision) loading = false
-		}
-	}
-
-	async function setEnabled(enabled: boolean): Promise<void> {
-		if (saving || loading || !snapshot?.supported) return
-		const previous = snapshot
-		revision++
-		saving = true
-		error = ""
-		try {
-			snapshot = await accountBackend.SetMultiInstanceEnabled(enabled)
-			statusError = ""
-		} catch (cause) {
-			snapshot = previous
-			error = errorMessage(
-				cause,
-				"The multi-instance setting could not be saved. Try again.",
-			)
-		} finally {
-			saving = false
-		}
-	}
 
 	async function loadClients(): Promise<void> {
 		clientsLoading = clients === null
@@ -114,15 +58,13 @@
 	}
 
 	onMount(() => {
-		void load()
+		void options.load()
 		void loadClients()
 		const interval = setInterval(() => {
-			if (snapshot?.supported && snapshot.enabled) void load()
+			if (snapshot?.supported && snapshot.enabled)
+				void options.refreshMultiInstance()
 		}, 500)
-		return () => {
-			disposed = true
-			clearInterval(interval)
-		}
+		return () => clearInterval(interval)
 	})
 </script>
 
@@ -139,8 +81,8 @@
 					Account Manager is open.</span>
 				<SettingsStatus
 					id="multi-instance-status"
-					value={statusText}
-					tone={statusTone} />
+					value={options.multiInstanceStatus.text}
+					tone={options.multiInstanceStatus.tone} />
 			</div>
 			<label class="switch">
 				<input
@@ -149,29 +91,174 @@
 					aria-labelledby="multi-instance-title"
 					aria-describedby="multi-instance-description multi-instance-status"
 					checked={snapshot?.enabled ?? false}
-					disabled={loading || saving || !snapshot?.supported}
+					disabled={options.isLoadingMultiInstance ||
+						options.isSavingMultiInstance ||
+						!snapshot?.supported}
 					onchange={(event) => {
 						const enabled = event.currentTarget.checked
 						event.currentTarget.checked = snapshot?.enabled ?? false
-						void setEnabled(enabled)
+						void options.setMultiInstanceEnabled(enabled)
 					}} />
 				<span aria-hidden="true"></span>
 			</label>
 		</div>
 	</div>
-	{#if error || statusError}
-		<div class="notice-error" role="alert">{error || statusError}</div>
+	{#if options.multiInstanceError || options.multiInstanceStatusError}
+		<div class="notice-error" role="alert">
+			{options.multiInstanceError || options.multiInstanceStatusError}
+		</div>
 		{#if !snapshot}
 			<div class="flex justify-end gap-2">
 				<button
 					class="button"
 					type="button"
-					disabled={loading}
-					onclick={() => void load()}>Retry</button>
+					disabled={options.isLoadingMultiInstance}
+					onclick={() => void options.refreshMultiInstance()}>Retry</button>
 			</div>
 		{/if}
 	{/if}
 </section>
+
+{#snippet settingSwitch(
+	id: string,
+	isChecked: boolean,
+	isDisabled: boolean,
+	onToggle: (enabled: boolean) => void,
+)}
+	<label class="switch">
+		<input
+			type="checkbox"
+			role="switch"
+			aria-labelledby={`${id}-title`}
+			aria-describedby={`${id}-description ${id}-status`}
+			checked={isChecked}
+			disabled={isDisabled}
+			onchange={(event) => {
+				const enabled = event.currentTarget.checked
+				event.currentTarget.checked = isChecked
+				onToggle(enabled)
+			}} />
+		<span aria-hidden="true"></span>
+	</label>
+{/snippet}
+
+{#if cleaner?.supported}
+	<section class="settings-section" aria-labelledby="roblox-cleaning-title">
+		<h3 id="roblox-cleaning-title">Cleaning</h3>
+		<div class="settings-rows">
+			<div class="settings-row">
+				<div class="settings-row-copy">
+					<strong id="clean-before-launch-title">Clean before launch</strong>
+					<span id="clean-before-launch-description"
+						>Delete Roblox caches, cookies, and sign-in data before each
+						launch, so the next account starts without traces of the
+						previous one. Roblox, its settings, and Studio plugins stay
+						installed, and only one account can launch at a time.</span>
+					{#if cleaner.isBlockedByMultiInstance}
+						<SettingsStatus
+							id="clean-before-launch-status"
+							value="Paused while multi-instance is on"
+							tone="warning" />
+					{/if}
+				</div>
+				{@render settingSwitch(
+					"clean-before-launch",
+					cleaner.cleanBeforeLaunch,
+					options.isSavingCleanBeforeLaunch ||
+						cleaner.isBlockedByMultiInstance,
+					(enabled) => void options.setCleanBeforeLaunch(enabled),
+				)}
+			</div>
+			<div class="settings-row">
+				<div class="settings-row-copy">
+					<strong id="delete-logs-title">Delete logs when cleaning</strong>
+					<span id="delete-logs-description"
+						>Also delete Roblox logs, which name the accounts and games you
+						played. Logs Explorer reads these logs, so the games it lists
+						are cleared too. Uninstalling always deletes them.</span>
+				</div>
+				{@render settingSwitch(
+					"delete-logs",
+					cleaner.deleteLogsWhenCleaning,
+					options.isSavingDeleteLogs,
+					(enabled) => void options.setDeleteLogsWhenCleaning(enabled),
+				)}
+			</div>
+			{#if cleaner.elevationSupported}
+				<div class="settings-row">
+					<div class="settings-row-copy">
+						<strong id="administrator-rights-title"
+							>Use administrator rights</strong>
+						<span id="administrator-rights-description"
+							>Ask Windows for administrator rights each time Roblox is
+							closed or cleaned. This includes files and registry entries
+							shared by all Windows users, and Roblox processes started as
+							administrator. Roblox Account Manager itself keeps running
+							without them.</span>
+						{#if cleaner.isElevated}
+							<SettingsStatus
+								id="administrator-rights-status"
+								value="Already running as administrator"
+								tone="success" />
+						{/if}
+					</div>
+					{@render settingSwitch(
+						"administrator-rights",
+						cleaner.useAdministratorRights,
+						options.isSavingAdministratorRights,
+						(enabled) => void options.setUseAdministratorRights(enabled),
+					)}
+				</div>
+			{/if}
+			<div class="settings-row">
+				<div class="settings-row-copy">
+					<strong id="clean-now-title">Clean Roblox data</strong>
+					<span id="clean-now-description"
+						>Close every Roblox process, then delete caches, cookies, and
+						sign-in data from this computer. Roblox stays installed and
+						keeps its settings.</span>
+				</div>
+				<button
+					class="button"
+					type="button"
+					aria-haspopup="dialog"
+					aria-describedby="clean-now-description"
+					onclick={() => (cleanScope = RobloxCleanScope.ScopeData)}
+					>Clean now</button>
+			</div>
+			<div class="settings-row">
+				<div class="settings-row-copy">
+					<strong id="uninstall-title">Uninstall Roblox</strong>
+					<span id="uninstall-description"
+						>Close every Roblox process, then delete Roblox Player, Roblox
+						Studio, their settings, shortcuts, file associations, registry
+						entries, and the Roblox folders in Documents, Pictures, and
+						Videos. Bootstrappers such as Bloxstrap keep their files but
+						must register Roblox links again.</span>
+				</div>
+				<button
+					class="button"
+					type="button"
+					aria-haspopup="dialog"
+					aria-describedby="uninstall-description"
+					onclick={() => (cleanScope = RobloxCleanScope.ScopeUninstall)}
+					>Uninstall</button>
+			</div>
+		</div>
+		{#if options.cleanerError}
+			<div class="notice-error" role="alert">{options.cleanerError}</div>
+		{/if}
+	</section>
+{:else if options.cleanerError}
+	<div class="notice-error" role="alert">{options.cleanerError}</div>
+{/if}
+
+{#if cleanScope}
+	<RobloxCleanDialog
+		scope={cleanScope}
+		{notifications}
+		onClose={() => (cleanScope = null)} />
+{/if}
 
 {#if clients?.choiceSupported}
 	<section class="settings-section" aria-labelledby="linux-client-title">
