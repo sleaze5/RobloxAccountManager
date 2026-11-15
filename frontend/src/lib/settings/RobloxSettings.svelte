@@ -110,17 +110,6 @@
 	{/if}
 </section>
 
-{#snippet cleanReportStatus(scope: RobloxCleanScope)}
-	{@const report = options.cleanReports[scope]}
-	{#if report}
-		<SettingsStatus
-			value={report.skippedCount > 0
-				? `Done - ${report.deletedCount} deleted, ${report.skippedCount} skipped`
-				: `Done - ${report.deletedCount} deleted`}
-			tone={report.skippedCount > 0 ? "warning" : "success"} />
-	{/if}
-{/snippet}
-
 {#if cleaner?.supported}
 	<section class="settings-section" aria-labelledby="roblox-cleaning-title">
 		<h3 id="roblox-cleaning-title">Cleaning</h3>
@@ -129,11 +118,8 @@
 				<div class="settings-row-copy">
 					<strong id="clean-before-launch-title">Clean before launch</strong>
 					<span id="clean-before-launch-description"
-						>Delete Roblox caches, cookies, and sign-in data before each
-						launch, so the next account starts without traces of the
-						previous one. Everything else in the Roblox folder is deleted
-						too, except Roblox itself, its settings, and Studio plugins.
-						Only one account can launch at a time.</span>
+						>Clear caches and sign-in data before each launch. Launches one
+						account at a time.</span>
 					{#if cleaner.isBlockedByMultiInstance}
 						<SettingsStatus
 							id="clean-before-launch-status"
@@ -151,18 +137,13 @@
 					onToggle={(enabled) =>
 						void options.setCleanBeforeLaunch(enabled)} />
 			</div>
-			<div
-				class="settings-suboptions"
-				role="group"
-				aria-label="Options for every Roblox cleaning">
+			<div class="settings-suboptions" role="group" aria-label="Cleaning options">
 				<div class="settings-row">
 					<div class="settings-row-copy">
 						<strong id="delete-logs-title"
 							>Delete logs when cleaning</strong>
 						<span id="delete-logs-description"
-							>Also delete Roblox logs, which name the accounts and games
-							you played. Logs Explorer loses the games it lists.
-							Uninstalling always deletes them.</span>
+							>Also clears Logs Explorer history.</span>
 					</div>
 					<SettingSwitch
 						labelledBy="delete-logs-title"
@@ -178,14 +159,12 @@
 							<strong id="administrator-rights-title"
 								>Use administrator rights</strong>
 							<span id="administrator-rights-description"
-								>Ask Windows once per session when Roblox is closed or
-								cleaned, so files, registry entries, and processes
-								shared by all Windows users are included. Only a small
-								helper gets the rights.</span>
+								>Ask Windows once per session, to also clean shared
+								files and processes.</span>
 							{#if cleaner.isElevated}
 								<SettingsStatus
 									id="administrator-rights-status"
-									value="Already running as administrator"
+									value="Running as administrator"
 									tone="success" />
 							{/if}
 						</div>
@@ -205,10 +184,7 @@
 				<div class="settings-row-copy">
 					<strong id="clean-now-title">Clean Roblox data</strong>
 					<span id="clean-now-description"
-						>Close every Roblox process, then delete caches, cookies, and
-						sign-in data from this computer. Roblox stays installed and
-						keeps its settings.</span>
-					{@render cleanReportStatus(RobloxCleanScope.ScopeData)}
+						>Close Roblox and delete its caches and sign-in data.</span>
 				</div>
 				<button
 					class="button-warning"
@@ -224,14 +200,8 @@
 				<div class="settings-row-copy">
 					<strong id="uninstall-title">Uninstall Roblox</strong>
 					<span id="uninstall-description"
-						>Close every Roblox process, then delete Roblox Player, Roblox
-						Studio, their settings and plugins, shortcuts, file
-						associations, and registry entries. Your saved places,
-						autosaves, screenshots, and videos in the Roblox folders in
-						Documents, Pictures, and Videos are deleted too. Bootstrappers
-						such as Bloxstrap keep their files but must register Roblox
-						links again.</span>
-					{@render cleanReportStatus(RobloxCleanScope.ScopeUninstall)}
+						>Remove Roblox, Studio, and their files, including saved places,
+						screenshots, and videos.</span>
 				</div>
 				<button
 					class="button-danger"

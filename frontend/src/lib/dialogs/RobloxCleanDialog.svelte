@@ -47,13 +47,11 @@
 		cleaner = $derived(options.cleaner),
 		notes = $derived(
 			[
-				runningProcessCount === 1 &&
-					"The running Roblox process closes first, so unsaved progress may be lost.",
-				runningProcessCount > 1 &&
-					`${runningProcessCount} running Roblox processes close first, so unsaved progress may be lost.`,
+				runningProcessCount > 0 &&
+					`Closes ${runningProcessCount} running Roblox ${runningProcessCount === 1 ? "process" : "processes"}.`,
 				!isUninstall &&
 					cleaner?.deleteLogsWhenCleaning &&
-					"Roblox logs are deleted too, so Logs Explorer loses the games it lists.",
+					"Clears Logs Explorer history.",
 			].filter((note) => typeof note === "string"),
 		),
 		progressPercent = $derived(
@@ -70,7 +68,6 @@
 		error = ""
 		try {
 			const cleanReport = await accountBackend.CleanRoblox(scope)
-			options.recordCleanReport(scope, cleanReport)
 			if (disposed) {
 				// The vault locked while cleaning, so the result goes to a notification.
 				notifications.show({
@@ -143,14 +140,11 @@
 				{#if report}
 					{cleanReportSummary(report)}
 				{:else if isUninstall}
-					Deletes Roblox Player, Roblox Studio, their settings and plugins,
-					shortcuts, file associations, and registry entries. It also deletes
-					your saved places, autosaves, screenshots, and videos in the Roblox
-					folders. This cannot be undone.
+					Removes Roblox, Studio, and their files, including saved places,
+					screenshots, and videos. This can't be undone.
 				{:else}
-					Deletes everything in the Roblox folder except Roblox Player, Roblox
-					Studio, their settings, and Studio plugins. That includes caches,
-					cookies, and other sign-in data.
+					Deletes Roblox caches and sign-in data. Roblox and its settings
+					stay.
 				{/if}
 			</p>
 		</div>

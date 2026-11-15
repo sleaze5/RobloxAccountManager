@@ -3,7 +3,6 @@ import {
 	type MultiInstanceSnapshot,
 	type RobloxCleanerState,
 	type RobloxCleanReport,
-	type RobloxCleanScope,
 } from "../backend/bridge"
 import { errorMessage } from "../shared/errors"
 
@@ -19,14 +18,11 @@ const multiInstancePollIntervalMilliseconds = 500
 
 // Client options are shared by the Client options menu in the launch panel
 // and Settings > Roblox, so a change in one place shows in the other.
-function itemCount(count: number): string {
-	return count === 1 ? "1 item" : `${count} items`
-}
-
 export function cleanReportSummary(report: RobloxCleanReport): string {
-	const deleted = `Deleted ${itemCount(report.deletedCount)}.`
-	if (report.skippedCount === 0) return deleted
-	return `${deleted} Skipped ${itemCount(report.skippedCount)} that were in use, need administrator rights, or are links.`
+	const deleted = `Deleted ${report.deletedCount} ${report.deletedCount === 1 ? "item" : "items"}.`
+	return report.skippedCount > 0
+		? `${deleted} ${report.skippedCount} skipped.`
+		: deleted
 }
 
 class RobloxClientOptions {
@@ -40,8 +36,6 @@ class RobloxClientOptions {
 	multiInstanceError = $state("")
 	multiInstanceStatusError = $state("")
 	cleanerError = $state("")
-	// The last cleaning result of each scope in this session, shown in Settings.
-	cleanReports = $state<Partial<Record<RobloxCleanScope, RobloxCleanReport>>>({})
 	#isCheckingMultiInstance = false
 	#multiInstanceRevision = 0
 	#cleanerRevision = 0
@@ -103,7 +97,7 @@ class RobloxClientOptions {
 		return this.#requestCleaner(
 			() => accountBackend.GetRobloxCleanerState(),
 			false,
-			"The cleaning settings could not be loaded. Try again.",
+			"Cleaning settings could not be loaded. Try again.",
 		)
 	}
 
@@ -140,7 +134,7 @@ class RobloxClientOptions {
 		await this.#saveCleanerSetting(
 			"isSavingCleanBeforeLaunch",
 			() => accountBackend.SetCleanBeforeLaunch(enabled),
-			"The cleaning setting could not be saved. Try again.",
+			"The setting could not be saved. Try again.",
 		)
 	}
 
@@ -149,7 +143,7 @@ class RobloxClientOptions {
 		await this.#saveCleanerSetting(
 			"isSavingDeleteLogs",
 			() => accountBackend.SetDeleteLogsWhenCleaning(enabled),
-			"The log cleaning setting could not be saved. Try again.",
+			"The setting could not be saved. Try again.",
 		)
 	}
 
@@ -158,7 +152,7 @@ class RobloxClientOptions {
 		await this.#saveCleanerSetting(
 			"isSavingAdministratorRights",
 			() => accountBackend.SetUseAdministratorRights(enabled),
-			"The administrator rights setting could not be saved. Try again.",
+			"The setting could not be saved. Try again.",
 		)
 	}
 
@@ -199,10 +193,6 @@ class RobloxClientOptions {
 		const queued = this.#cleanerQueue.then(run)
 		this.#cleanerQueue = queued
 		return queued
-	}
-
-	recordCleanReport(scope: RobloxCleanScope, report: RobloxCleanReport): void {
-		this.cleanReports = { ...this.cleanReports, [scope]: report }
 	}
 }
 

@@ -81,11 +81,8 @@
 				</h2>
 				<p id="replace-roblox-description">
 					{#if isBlockedByCleaning}
-						Clean before launch is on and multi-instance is off, so each
-						launch would clean Roblox and close the game before it. To
-						launch the {pending.accountCount}
-						selected accounts together, turn on multi-instance or turn off Clean
-						before launch in Client options.
+						Clean before launch allows one account at a time. Turn it off or
+						turn on multi-instance in Client options.
 					{:else if pending.accountCount > 1}
 						{pending.multiInstanceEnabled
 							? "Multi-instance is not ready."
@@ -102,8 +99,7 @@
 							? "the running Roblox game"
 							: `all ${pending.processCount} running Roblox games`} and join
 						the new game. Unsaved progress may be lost.
-						{#if pending.isCleaningBeforeLaunch}Roblox data is cleaned
-							before the new game opens.{/if}
+						{#if pending.isCleaningBeforeLaunch}Roblox is cleaned first.{/if}
 					{/if}
 				</p>
 			</div>

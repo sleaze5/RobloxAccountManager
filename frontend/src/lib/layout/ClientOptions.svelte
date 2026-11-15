@@ -22,10 +22,8 @@
 		),
 		cleanBeforeLaunchNote = $derived(
 			cleaner?.isBlockedByMultiInstance
-				? "Unavailable while multi-instance is on."
-				: cleaner?.deleteLogsWhenCleaning
-					? "Deletes caches, logs, and sign-in data. Keeps Roblox and its settings."
-					: "Deletes caches and sign-in data. Keeps logs, Roblox, and its settings.",
+				? "Off while multi-instance is on."
+				: "Clear caches and sign-in data before each launch.",
 		)
 </script>
 
@@ -77,7 +75,7 @@
 			{@render optionSwitch(
 				`${optionIDPrefix}-multi-instance`,
 				"Multi-instance",
-				"Launch several games at once while Roblox Account Manager is open.",
+				"Run several games at once.",
 				options.multiInstance?.enabled ?? false,
 				options.isLoadingMultiInstance ||
 					options.isSavingMultiInstance ||
