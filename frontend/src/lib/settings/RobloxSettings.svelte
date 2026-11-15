@@ -14,6 +14,7 @@
 	import { linuxClientOptions } from "./linux-clients"
 	import { robloxClientOptions as options } from "./roblox-client-options.svelte"
 	import SettingsStatus from "./SettingsStatus.svelte"
+	import SettingSwitch from "./SettingSwitch.svelte"
 	import { errorMessage } from "../shared/errors"
 
 	let { notifications }: { notifications: NotificationCenter } = $props()
@@ -63,11 +64,7 @@
 	onMount(() => {
 		void options.load()
 		void loadClients()
-		const interval = setInterval(() => {
-			if (snapshot?.supported && snapshot.enabled)
-				void options.refreshMultiInstance()
-		}, 500)
-		return () => clearInterval(interval)
+		return options.pollMultiInstanceWhileEnabled()
 	})
 </script>
 
@@ -87,23 +84,14 @@
 					value={options.multiInstanceStatus.text}
 					tone={options.multiInstanceStatus.tone} />
 			</div>
-			<label class="switch">
-				<input
-					type="checkbox"
-					role="switch"
-					aria-labelledby="multi-instance-title"
-					aria-describedby="multi-instance-description multi-instance-status"
-					checked={snapshot?.enabled ?? false}
-					disabled={options.isLoadingMultiInstance ||
-						options.isSavingMultiInstance ||
-						!snapshot?.supported}
-					onchange={(event) => {
-						const enabled = event.currentTarget.checked
-						event.currentTarget.checked = snapshot?.enabled ?? false
-						void options.setMultiInstanceEnabled(enabled)
-					}} />
-				<span aria-hidden="true"></span>
-			</label>
+			<SettingSwitch
+				labelledBy="multi-instance-title"
+				describedBy="multi-instance-description multi-instance-status"
+				isChecked={snapshot?.enabled ?? false}
+				isDisabled={options.isLoadingMultiInstance ||
+					options.isSavingMultiInstance ||
+					!snapshot?.supported}
+				onToggle={(enabled) => void options.setMultiInstanceEnabled(enabled)} />
 		</div>
 	</div>
 	{#if options.multiInstanceError || options.multiInstanceStatusError}
@@ -121,29 +109,6 @@
 		{/if}
 	{/if}
 </section>
-
-{#snippet settingSwitch(
-	id: string,
-	isChecked: boolean,
-	isDisabled: boolean,
-	onToggle: (enabled: boolean) => void,
-)}
-	<label class="switch">
-		<input
-			type="checkbox"
-			role="switch"
-			aria-labelledby={`${id}-title`}
-			aria-describedby={`${id}-description ${id}-status`}
-			checked={isChecked}
-			disabled={isDisabled}
-			onchange={(event) => {
-				const enabled = event.currentTarget.checked
-				event.currentTarget.checked = isChecked
-				onToggle(enabled)
-			}} />
-		<span aria-hidden="true"></span>
-	</label>
-{/snippet}
 
 {#if cleaner?.supported}
 	<section class="settings-section" aria-labelledby="roblox-cleaning-title">
@@ -163,13 +128,16 @@
 							value="Paused while multi-instance is on" />
 					{/if}
 				</div>
-				{@render settingSwitch(
-					"clean-before-launch",
-					cleaner.cleanBeforeLaunch,
-					options.isSavingCleanBeforeLaunch ||
-						cleaner.isBlockedByMultiInstance,
-					(enabled) => void options.setCleanBeforeLaunch(enabled),
-				)}
+				<SettingSwitch
+					labelledBy="clean-before-launch-title"
+					describedBy={cleaner.isBlockedByMultiInstance
+						? "clean-before-launch-description clean-before-launch-status"
+						: "clean-before-launch-description"}
+					isChecked={cleaner.cleanBeforeLaunch}
+					isDisabled={options.isSavingCleanBeforeLaunch ||
+						cleaner.isBlockedByMultiInstance}
+					onToggle={(enabled) =>
+						void options.setCleanBeforeLaunch(enabled)} />
 			</div>
 			<div
 				class="settings-suboptions"
@@ -184,12 +152,13 @@
 							you played. Logs Explorer loses the games it lists.
 							Uninstalling always deletes them.</span>
 					</div>
-					{@render settingSwitch(
-						"delete-logs",
-						cleaner.deleteLogsWhenCleaning,
-						options.isSavingDeleteLogs,
-						(enabled) => void options.setDeleteLogsWhenCleaning(enabled),
-					)}
+					<SettingSwitch
+						labelledBy="delete-logs-title"
+						describedBy="delete-logs-description"
+						isChecked={cleaner.deleteLogsWhenCleaning}
+						isDisabled={options.isSavingDeleteLogs}
+						onToggle={(enabled) =>
+							void options.setDeleteLogsWhenCleaning(enabled)} />
 				</div>
 				{#if cleaner.elevationSupported}
 					<div class="settings-row">
@@ -208,13 +177,15 @@
 									tone="success" />
 							{/if}
 						</div>
-						{@render settingSwitch(
-							"administrator-rights",
-							cleaner.useAdministratorRights,
-							options.isSavingAdministratorRights,
-							(enabled) =>
-								void options.setUseAdministratorRights(enabled),
-						)}
+						<SettingSwitch
+							labelledBy="administrator-rights-title"
+							describedBy={cleaner.isElevated
+								? "administrator-rights-description administrator-rights-status"
+								: "administrator-rights-description"}
+							isChecked={cleaner.useAdministratorRights}
+							isDisabled={options.isSavingAdministratorRights}
+							onToggle={(enabled) =>
+								void options.setUseAdministratorRights(enabled)} />
 					</div>
 				{/if}
 			</div>

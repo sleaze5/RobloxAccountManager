@@ -7,9 +7,17 @@ import { errorMessage } from "../shared/errors"
 
 type StatusTone = "neutral" | "success" | "warning"
 
+type CleanerSavingFlag =
+	| "isSavingCleanBeforeLaunch"
+	| "isSavingDeleteLogs"
+	| "isSavingAdministratorRights"
+
+// The multi-instance status changes while Roblox processes start and stop.
+const multiInstancePollIntervalMilliseconds = 500
+
 // Client options are shared by the Client options menu in the launch panel
 // and Settings > Roblox, so a change in one place shows in the other.
-export class RobloxClientOptions {
+class RobloxClientOptions {
 	multiInstance = $state<MultiInstanceSnapshot | null>(null)
 	cleaner = $state<RobloxCleanerState | null>(null)
 	isLoadingMultiInstance = $state(true)
@@ -22,6 +30,7 @@ export class RobloxClientOptions {
 	cleanerError = $state("")
 	#isCheckingMultiInstance = false
 	#multiInstanceRevision = 0
+	#cleanerRevision = 0
 
 	get multiInstanceStatus(): { text: string; tone: StatusTone } {
 		const snapshot = this.multiInstance
@@ -43,6 +52,14 @@ export class RobloxClientOptions {
 
 	async load(): Promise<void> {
 		await Promise.all([this.refreshMultiInstance(), this.refreshCleaner()])
+	}
+
+	// Returns the function that stops polling.
+	pollMultiInstanceWhileEnabled(): () => void {
+		const interval = setInterval(() => {
+			if (this.multiInstance?.enabled) void this.refreshMultiInstance()
+		}, multiInstancePollIntervalMilliseconds)
+		return () => clearInterval(interval)
 	}
 
 	async refreshMultiInstance(): Promise<void> {
@@ -68,10 +85,14 @@ export class RobloxClientOptions {
 	}
 
 	async refreshCleaner(): Promise<void> {
+		const requestRevision = this.#cleanerRevision
 		try {
-			this.cleaner = await accountBackend.GetRobloxCleanerState()
+			const state = await accountBackend.GetRobloxCleanerState()
+			if (requestRevision !== this.#cleanerRevision) return
+			this.cleaner = state
 			this.cleanerError = ""
 		} catch {
+			if (requestRevision !== this.#cleanerRevision) return
 			this.cleanerError = "The cleaning settings could not be loaded. Try again."
 		}
 	}
@@ -105,51 +126,47 @@ export class RobloxClientOptions {
 	}
 
 	async setCleanBeforeLaunch(enabled: boolean): Promise<void> {
-		if (this.isSavingCleanBeforeLaunch || !this.cleaner?.supported) return
-		this.isSavingCleanBeforeLaunch = true
-		this.cleanerError = ""
-		try {
-			this.cleaner = await accountBackend.SetCleanBeforeLaunch(enabled)
-		} catch (error) {
-			this.cleanerError = errorMessage(
-				error,
-				"The cleaning setting could not be saved. Try again.",
-			)
-		} finally {
-			this.isSavingCleanBeforeLaunch = false
-		}
+		if (!this.cleaner?.supported) return
+		await this.#saveCleanerSetting(
+			"isSavingCleanBeforeLaunch",
+			() => accountBackend.SetCleanBeforeLaunch(enabled),
+			"The cleaning setting could not be saved. Try again.",
+		)
 	}
 
 	async setDeleteLogsWhenCleaning(enabled: boolean): Promise<void> {
-		if (this.isSavingDeleteLogs || !this.cleaner?.supported) return
-		this.isSavingDeleteLogs = true
-		this.cleanerError = ""
-		try {
-			this.cleaner = await accountBackend.SetDeleteLogsWhenCleaning(enabled)
-		} catch (error) {
-			this.cleanerError = errorMessage(
-				error,
-				"The log cleaning setting could not be saved. Try again.",
-			)
-		} finally {
-			this.isSavingDeleteLogs = false
-		}
+		if (!this.cleaner?.supported) return
+		await this.#saveCleanerSetting(
+			"isSavingDeleteLogs",
+			() => accountBackend.SetDeleteLogsWhenCleaning(enabled),
+			"The log cleaning setting could not be saved. Try again.",
+		)
 	}
 
 	async setUseAdministratorRights(enabled: boolean): Promise<void> {
-		if (this.isSavingAdministratorRights || !this.cleaner?.elevationSupported)
-			return
-		this.isSavingAdministratorRights = true
+		if (!this.cleaner?.elevationSupported) return
+		await this.#saveCleanerSetting(
+			"isSavingAdministratorRights",
+			() => accountBackend.SetUseAdministratorRights(enabled),
+			"The administrator rights setting could not be saved. Try again.",
+		)
+	}
+
+	async #saveCleanerSetting(
+		savingFlag: CleanerSavingFlag,
+		save: () => Promise<RobloxCleanerState>,
+		fallbackMessage: string,
+	): Promise<void> {
+		if (this[savingFlag]) return
+		this.#cleanerRevision++
+		this[savingFlag] = true
 		this.cleanerError = ""
 		try {
-			this.cleaner = await accountBackend.SetUseAdministratorRights(enabled)
+			this.cleaner = await save()
 		} catch (error) {
-			this.cleanerError = errorMessage(
-				error,
-				"The administrator rights setting could not be saved. Try again.",
-			)
+			this.cleanerError = errorMessage(error, fallbackMessage)
 		} finally {
-			this.isSavingAdministratorRights = false
+			this[savingFlag] = false
 		}
 	}
 }

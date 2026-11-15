@@ -12,9 +12,9 @@ const Supported = false
 func IsElevated() bool { return false }
 
 func startHelper(context.Context) (*helperConnection, error) {
-	return nil, ErrUnsupported
+	return nil, errUnsupported
 }
 
 func connectToApplication([]string) (io.ReadCloser, io.WriteCloser, error) {
-	return nil, nil, ErrUnsupported
+	return nil, nil, errUnsupported
 }

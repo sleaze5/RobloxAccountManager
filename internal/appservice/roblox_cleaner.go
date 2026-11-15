@@ -45,14 +45,14 @@ func (service *Service) SetCleanBeforeLaunch(enabled bool) (RobloxCleanerState, 
 	defer service.launchMutex.Unlock()
 	state := service.GetRobloxCleanerState()
 	if !state.Supported {
-		return state, cleanerError("clean-before-launch", "Cleaning Roblox is only available on Windows.", nil)
+		return state, robloxClientError("clean-before-launch", "Cleaning Roblox is only available on Windows.", nil)
 	}
 	if state.IsBlockedByMultiInstance {
-		return state, cleanerError("clean-before-launch", "Turn off multi-instance before you change this setting.", nil)
+		return state, robloxClientError("clean-before-launch", "Turn off multi-instance before you change this setting.", nil)
 	}
 	if err := service.settings.SetCleanBeforeLaunch(enabled); err != nil {
 		service.logger.Warn("could not save Roblox settings", "operation", "clean-before-launch", "error", err)
-		return state, cleanerError("clean-before-launch", "The cleaning setting could not be saved. Try again.", err)
+		return state, robloxClientError("clean-before-launch", "The cleaning setting could not be saved. Try again.", err)
 	}
 	service.logger.Info("clean before launch saved", "operation", "clean-before-launch", "enabled", enabled)
 	return service.GetRobloxCleanerState(), nil
@@ -62,11 +62,11 @@ func (service *Service) SetDeleteLogsWhenCleaning(enabled bool) (RobloxCleanerSt
 	service.launchMutex.Lock()
 	defer service.launchMutex.Unlock()
 	if !robloxcleaner.Supported {
-		return service.GetRobloxCleanerState(), cleanerError("delete-logs-when-cleaning", "Cleaning Roblox is only available on Windows.", nil)
+		return service.GetRobloxCleanerState(), robloxClientError("delete-logs-when-cleaning", "Cleaning Roblox is only available on Windows.", nil)
 	}
 	if err := service.settings.SetDeleteLogsWhenCleaning(enabled); err != nil {
 		service.logger.Warn("could not save Roblox settings", "operation", "delete-logs-when-cleaning", "error", err)
-		return service.GetRobloxCleanerState(), cleanerError("delete-logs-when-cleaning", "The log cleaning setting could not be saved. Try again.", err)
+		return service.GetRobloxCleanerState(), robloxClientError("delete-logs-when-cleaning", "The log cleaning setting could not be saved. Try again.", err)
 	}
 	service.logger.Info("log cleaning setting saved", "operation", "delete-logs-when-cleaning", "enabled", enabled)
 	return service.GetRobloxCleanerState(), nil
@@ -76,11 +76,11 @@ func (service *Service) SetUseAdministratorRights(enabled bool) (RobloxCleanerSt
 	service.launchMutex.Lock()
 	defer service.launchMutex.Unlock()
 	if !elevation.Supported {
-		return service.GetRobloxCleanerState(), cleanerError("administrator-rights", "Administrator rights are only available on Windows.", nil)
+		return service.GetRobloxCleanerState(), robloxClientError("administrator-rights", "Administrator rights are only available on Windows.", nil)
 	}
 	if err := service.settings.SetUseAdministratorRights(enabled); err != nil {
 		service.logger.Warn("could not save Roblox settings", "operation", "administrator-rights", "error", err)
-		return service.GetRobloxCleanerState(), cleanerError("administrator-rights", "The administrator rights setting could not be saved. Try again.", err)
+		return service.GetRobloxCleanerState(), robloxClientError("administrator-rights", "The administrator rights setting could not be saved. Try again.", err)
 	}
 	if !enabled {
 		service.elevatedHelper.Close()
@@ -102,7 +102,7 @@ func (service *Service) CleanRoblox(ctx context.Context, scope robloxcleaner.Sco
 	})
 	if err != nil {
 		logger.Warn("could not clean Roblox", "error", err)
-		return RobloxCleanReport{}, cleanerError("roblox-clean", elevationMessage(err, "Roblox could not be cleaned. Close Roblox and try again."), err)
+		return RobloxCleanReport{}, robloxClientError("roblox-clean", elevationMessage(err, "Roblox could not be cleaned. Close Roblox and try again."), err)
 	}
 	logger.Info("Roblox cleaned", "has_skipped_items", hasSkippedItems)
 	return RobloxCleanReport{HasSkippedItems: hasSkippedItems}, nil
@@ -121,7 +121,7 @@ func (service *Service) cleanBeforeLaunch(ctx context.Context) error {
 	})
 	if err != nil {
 		service.logger.Warn("could not clean Roblox before launch", "operation", "clean-before-launch", "error", err)
-		return cleanerError("game-launch", elevationMessage(err, "Roblox could not be cleaned before the launch. Try again, or turn off Clean before launch."), err)
+		return robloxClientError("game-launch", elevationMessage(err, "Roblox could not be cleaned before the launch. Try again, or turn off Clean before launch."), err)
 	}
 	if hasSkippedItems {
 		service.logger.Warn("some Roblox items were in use or need administrator rights and were not cleaned", "operation", "clean-before-launch")
@@ -153,6 +153,6 @@ func elevationMessage(err error, fallback string) string {
 	}
 }
 
-func cleanerError(endpoint, message string, cause error) error {
+func robloxClientError(endpoint, message string, cause error) error {
 	return &roblox.Error{Kind: roblox.KindProtocol, Endpoint: endpoint, Message: message, Cause: cause}
 }

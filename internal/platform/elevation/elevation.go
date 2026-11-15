@@ -22,7 +22,7 @@ const (
 var (
 	ErrDeclined    = errors.New("administrator rights were declined")
 	ErrOtherUser   = errors.New("administrator rights were given by another Windows user")
-	ErrUnsupported = errors.New("administrator rights are only available on Windows")
+	errUnsupported = errors.New("administrator rights are only available on Windows")
 	errStopped     = errors.New("the elevated helper stopped")
 )
 
