@@ -3,6 +3,7 @@
 	import Icon from "../shared/Icon.svelte"
 	import type { AccountStore } from "../accounts/account-store.svelte"
 	import { robloxClientOptions as options } from "../settings/roblox-client-options.svelte"
+	import SettingsStatus from "../settings/SettingsStatus.svelte"
 	import { menuIn, menuOut } from "../shared/presence"
 
 	let { store }: { store: AccountStore } = $props()
@@ -15,7 +16,6 @@
 			[
 				options.multiInstance?.enabled && "Multi-instance",
 				options.isCleanBeforeLaunchActive && "Clean before launch",
-				cleaner?.useAdministratorRights && "Administrator rights",
 			].filter((option) => typeof option === "string"),
 		),
 		triggerLabel = $derived(
@@ -29,11 +29,6 @@
 				: cleaner?.deleteLogsWhenCleaning
 					? "Deletes caches, logs, and sign-in data. Keeps Roblox and its settings."
 					: "Deletes caches and sign-in data. Keeps logs, Roblox, and its settings.",
-		),
-		administratorRightsNote = $derived(
-			cleaner?.isElevated
-				? "Roblox Account Manager already runs as administrator."
-				: "Windows asks once, the first time Roblox is closed or cleaned.",
 		)
 
 	$effect(() => {
@@ -55,6 +50,7 @@
 	isChecked: boolean,
 	isDisabled: boolean,
 	onToggle: (enabled: boolean) => void,
+	status?: { text: string; tone: "neutral" | "success" | "warning" },
 )}
 	{@const optionID = `${panelID}-${title.toLowerCase().replaceAll(" ", "-")}`}
 	<div class="flex items-start justify-between gap-3">
@@ -63,13 +59,21 @@
 				>{title}</strong>
 			<small id={`${optionID}-note`} class="text-2xs leading-normal text-fg-muted"
 				>{note}</small>
+			{#if status}
+				<SettingsStatus
+					id={`${optionID}-status`}
+					value={status.text}
+					tone={status.tone} />
+			{/if}
 		</span>
 		<label class="switch">
 			<input
 				type="checkbox"
 				role="switch"
 				aria-labelledby={`${optionID}-title`}
-				aria-describedby={`${optionID}-note`}
+				aria-describedby={status
+					? `${optionID}-note ${optionID}-status`
+					: `${optionID}-note`}
 				checked={isChecked}
 				disabled={isDisabled}
 				onchange={(event) => {
@@ -123,12 +127,13 @@
 			<strong class="text-xs font-semibold text-fg">Client options</strong>
 			{@render optionSwitch(
 				"Multi-instance",
-				`Launch several games at once. Status: ${options.multiInstanceStatus.text}`,
+				"Launch several games at once while Roblox Account Manager is open.",
 				options.multiInstance?.enabled ?? false,
 				options.isLoadingMultiInstance ||
 					options.isSavingMultiInstance ||
 					!options.multiInstance?.supported,
 				(enabled) => void options.setMultiInstanceEnabled(enabled),
+				options.multiInstanceStatus,
 			)}
 			{#if cleaner?.supported}
 				{@render optionSwitch(
@@ -138,15 +143,6 @@
 					options.isSavingCleanBeforeLaunch ||
 						cleaner.isBlockedByMultiInstance,
 					(enabled) => void options.setCleanBeforeLaunch(enabled),
-				)}
-			{/if}
-			{#if cleaner?.elevationSupported}
-				{@render optionSwitch(
-					"Use administrator rights",
-					administratorRightsNote,
-					cleaner.useAdministratorRights,
-					options.isSavingAdministratorRights,
-					(enabled) => void options.setUseAdministratorRights(enabled),
 				)}
 			{/if}
 			{#if options.multiInstanceError || options.multiInstanceStatusError || options.cleanerError}

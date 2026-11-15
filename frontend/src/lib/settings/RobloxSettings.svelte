@@ -157,8 +157,7 @@
 					{#if cleaner.isBlockedByMultiInstance}
 						<SettingsStatus
 							id="clean-before-launch-status"
-							value="Paused while multi-instance is on"
-							tone="warning" />
+							value="Paused while multi-instance is on" />
 					{/if}
 				</div>
 				{@render settingSwitch(

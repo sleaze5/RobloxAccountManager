@@ -17,26 +17,26 @@
 		notifications: NotificationCenter
 		onClose: () => void
 	} = $props()
-	const confirmationWord = "UNINSTALL"
 	let runningProcessCount = $state(0),
 		isCleaning = $state(false),
-		error = $state(""),
-		typedConfirmation = $state("")
+		error = $state("")
 	let disposed = false
 	const isUninstall = $derived(scope === RobloxCleanScope.ScopeUninstall),
 		cleaner = $derived(options.cleaner),
-		administratorNote = $derived.by(() => {
-			if (!cleaner?.elevationSupported || cleaner.isElevated) return ""
-			return cleaner.useAdministratorRights
-				? "Windows may ask for administrator rights first."
-				: "Without administrator rights, items shared by all Windows users are skipped. Turn on Use administrator rights to include them."
-		}),
-		canConfirm = $derived(
-			!isCleaning && (!isUninstall || typedConfirmation === confirmationWord),
+		notes = $derived(
+			[
+				runningProcessCount === 1 &&
+					"The running Roblox process closes first, so unsaved progress may be lost.",
+				runningProcessCount > 1 &&
+					`${runningProcessCount} running Roblox processes close first, so unsaved progress may be lost.`,
+				!isUninstall &&
+					cleaner?.deleteLogsWhenCleaning &&
+					"Roblox logs are deleted too, so Logs Explorer loses the games it lists.",
+			].filter((note) => typeof note === "string"),
 		)
 
 	async function clean(): Promise<void> {
-		if (!canConfirm) return
+		if (isCleaning) return
 		isCleaning = true
 		error = ""
 		try {
@@ -104,8 +104,8 @@
 			<p id="roblox-clean-description">
 				{#if isUninstall}
 					Deletes Roblox Player, Roblox Studio, their settings, shortcuts,
-					file associations, and registry entries, and the Roblox folders in
-					Documents, Pictures, and Videos. This cannot be undone.
+					file associations, registry entries, and the screenshots and videos
+					in the Roblox folders. This cannot be undone.
 				{:else}
 					Deletes Roblox caches, cookies, and other sign-in data. Roblox
 					Player, Roblox Studio, their settings, and Studio plugins stay
@@ -121,43 +121,8 @@
 			<Icon svg={xIcon} size={14} aria-hidden="true" />
 		</button>
 	</div>
-	<div class="flex flex-col gap-2">
-		{#if runningProcessCount > 0}
-			<div class="notice-warning">
-				{runningProcessCount === 1
-					? "1 running Roblox process is"
-					: `${runningProcessCount} running Roblox processes are`} closed first.
-				Unsaved progress may be lost.
-			</div>
-		{/if}
-		{#if isUninstall}
-			<div class="notice-warning">
-				Screenshots and videos in the Roblox folders are deleted with Roblox.
-				Download Roblox again to play.
-			</div>
-		{:else if cleaner?.deleteLogsWhenCleaning}
-			<div class="notice-note">
-				Roblox logs are deleted too, so Logs Explorer loses the games it lists.
-				Turn off Delete logs when cleaning in Roblox settings to keep them.
-			</div>
-		{:else if cleaner}
-			<div class="notice-note">
-				Roblox logs are kept, so Logs Explorer keeps the games it lists.
-			</div>
-		{/if}
-		{#if administratorNote}
-			<div class="notice-note">{administratorNote}</div>
-		{/if}
-	</div>
-	{#if isUninstall}
-		<label class="dialog-field">
-			<span>Type {confirmationWord} to confirm</span>
-			<input
-				bind:value={typedConfirmation}
-				autocomplete="off"
-				spellcheck="false"
-				disabled={isCleaning} />
-		</label>
+	{#if notes.length > 0}
+		<div class="notice-note">{notes.join(" ")}</div>
 	{/if}
 	{#if error}<div class="mt-3 notice-error" role="alert">{error}</div>{/if}
 	<div class="dialog-actions">
@@ -166,7 +131,7 @@
 		<button
 			class="button-danger"
 			type="button"
-			disabled={!canConfirm}
+			disabled={isCleaning}
 			onclick={() => void clean()}>
 			{#if isUninstall}
 				{isCleaning ? "Uninstalling…" : "Uninstall Roblox"}
