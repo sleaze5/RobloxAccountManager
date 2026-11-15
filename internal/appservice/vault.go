@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/sleaze5/RobloxAccountManager/internal/accounts"
 	"github.com/sleaze5/RobloxAccountManager/internal/appsettings"
 	"github.com/sleaze5/RobloxAccountManager/internal/roblox"
 	transferstore "github.com/sleaze5/RobloxAccountManager/internal/storage/transfer"
@@ -84,17 +83,12 @@ func (service *Service) finishUnlock(automatic bool) {
 	if err := service.applyPendingSettings(service.lifecycle); err != nil {
 		service.logger.Warn("imported settings could not be saved after unlock", "operation", "vault-import", "error", err)
 	}
-	var cursor *accounts.AccountCursor
-	for {
-		page, err := service.ListAccounts(service.lifecycle, accounts.AccountQuery{Cursor: cursor})
-		if err != nil {
-			service.logger.Warn("account browser IDs could not be initialized", "error", err)
-			break
-		}
-		if page.NextCursor == nil {
-			break
-		}
-		cursor = page.NextCursor
+	views, err := service.savedAccounts(service.lifecycle)
+	if err != nil {
+		service.logger.Warn("account browser IDs could not be initialized", "operation", "vault-unlock", "error", err)
+	}
+	for _, view := range views {
+		service.sessions.BrowserID(view.ID)
 	}
 	due := service.settings.PasswordReminderDue(time.Now())
 	service.mutex.Lock()
