@@ -202,18 +202,19 @@ func (service *Service) editAccount(ctx context.Context, accountID int64, operat
 		return err
 	}
 	defer done()
-	logger := service.logger.With("operation_id", logging.NewOperationID(operation), "operation", operation, "account_id", accountID)
+	ctx = logging.StartOperation(ctx, operation)
+	logger := service.logger.With("operation", operation, "account_id", accountID)
 	err = edit(ctx, version)
 	if err == nil {
-		logger.Info("account edit finished")
+		logger.InfoContext(ctx, "account edit finished")
 		return nil
 	}
 	var remote *roblox.Error
 	if !errors.As(err, &remote) {
-		logger.Warn("account edit failed", "error", err)
+		logger.WarnContext(ctx, "account edit failed", "error", err)
 		return fmt.Errorf("%s: %w", operation, err)
 	}
-	logger.Warn("account edit failed", "error_kind", remote.Kind, "status", remote.Status, "roblox_code", remote.RobloxCode)
+	logger.WarnContext(ctx, "account edit failed", "error_kind", remote.Kind, "status", remote.Status, "roblox_code", remote.RobloxCode)
 	switch {
 	case remote.Kind == roblox.KindChallengeRequired:
 		return &roblox.Error{Kind: remote.Kind, Endpoint: operation, Status: remote.Status, Message: "Roblox requires extra verification for this change. Make it on the Roblox website.", Cause: err}

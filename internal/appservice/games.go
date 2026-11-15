@@ -2,7 +2,6 @@ package appservice
 
 import (
 	"context"
-	"crypto/rand"
 	"errors"
 	"strconv"
 	"strings"
@@ -365,7 +364,7 @@ func (service *Service) beginGames(parent context.Context) (context.Context, fun
 		return nil, nil, mapRepositoryError(vault.ErrLocked)
 	}
 	ctx, cancel := context.WithTimeout(parent, 45*time.Second)
-	ctx = logging.WithOperation(ctx, "games-"+rand.Text())
+	ctx = logging.StartOperation(ctx, "games")
 	stop := context.AfterFunc(unlocked, cancel)
 	return ctx, func() { stop(); cancel() }, nil
 }

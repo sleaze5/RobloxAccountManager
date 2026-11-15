@@ -67,7 +67,8 @@ func (service *Service) GetAccountInfo(ctx context.Context, accountID int64, sec
 	if err != nil {
 		return AccountInfoSnapshot{}, mapRepositoryError(err)
 	}
-	logger := service.logger.With("operation_id", logging.NewOperationID("account-info"), "operation", "account-info-read", "section", section)
+	ctx = logging.StartOperation(ctx, "account-info")
+	logger := service.logger.With("operation", "account-info-read", "section", section)
 	started := time.Now()
 	snapshot := AccountInfoSnapshot{AccountID: accountID, Section: section}
 	var age accountAge
@@ -83,7 +84,7 @@ func (service *Service) GetAccountInfo(ctx context.Context, accountID int64, sec
 	if section == InfoSectionAge {
 		snapshot.AgeGroup, snapshot.AgeVerification = age.group, age.verification()
 	}
-	logger.Debug("account info section read finished", "duration_ms", time.Since(started).Milliseconds(), "failed_reads", len(unavailable))
+	logger.DebugContext(ctx, "account info section read finished", "duration_ms", time.Since(started).Milliseconds(), "failed_reads", len(unavailable))
 	return snapshot, nil
 }
 

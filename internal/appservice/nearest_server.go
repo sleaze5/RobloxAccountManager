@@ -3,7 +3,6 @@ package appservice
 import (
 	"cmp"
 	"context"
-	"crypto/rand"
 	"math"
 	"slices"
 
@@ -17,7 +16,7 @@ import (
 const regionServerBatchSize = 5
 
 func (service *Service) ListServerRegions(ctx context.Context, refresh bool) ([]games.Region, error) {
-	ctx = logging.WithOperation(ctx, "rovalra-"+rand.Text())
+	ctx = logging.StartOperation(ctx, "rovalra")
 	regions, err := service.serverRegions(ctx, refresh)
 	if err != nil {
 		return nil, err
@@ -36,7 +35,7 @@ func (service *Service) ListServerRegions(ctx context.Context, refresh bool) ([]
 }
 
 func (service *Service) SetRoValraRegion(ctx context.Context, code string) error {
-	ctx = logging.WithOperation(ctx, "rovalra-"+rand.Text())
+	ctx = logging.StartOperation(ctx, "rovalra")
 	regions, err := service.serverRegions(ctx, false)
 	if err != nil {
 		return err

@@ -12,7 +12,6 @@ import (
 	"slices"
 	"strings"
 	"sync"
-	"sync/atomic"
 	"time"
 )
 
@@ -28,7 +27,6 @@ type parsedLog struct {
 type Reader struct {
 	directories     func() ([]string, error)
 	logger          *slog.Logger
-	operation       atomic.Uint64
 	parsedLogMutex  sync.Mutex
 	parsedLogByPath map[string]parsedLog
 }
@@ -38,7 +36,7 @@ func NewReader(directories func() ([]string, error), logger *slog.Logger) *Reade
 }
 
 func (reader *Reader) ReadAll(ctx context.Context) (Snapshot, error) {
-	logger := reader.operationLogger("refresh-all")
+	logger := reader.logger.With("operation", "refresh-all")
 	sessions, err := reader.readSessions(ctx, logger)
 	if ctx.Err() != nil {
 		return Snapshot{}, ctx.Err()
@@ -47,21 +45,21 @@ func (reader *Reader) ReadAll(ctx context.Context) (Snapshot, error) {
 	if err != nil {
 		return snapshot, err
 	}
-	slices.SortFunc(snapshot.Sessions, func(a, b Session) int {
-		if a.StartedAtMs > b.StartedAtMs {
+	slices.SortFunc(snapshot.Sessions, func(left, right Session) int {
+		if left.StartedAtMs > right.StartedAtMs {
 			return -1
 		}
-		if a.StartedAtMs < b.StartedAtMs {
+		if left.StartedAtMs < right.StartedAtMs {
 			return 1
 		}
-		return strings.Compare(a.FileName, b.FileName)
+		return strings.Compare(left.FileName, right.FileName)
 	})
-	logger.Info("Roblox logs refreshed", "sessions", len(snapshot.Sessions))
+	logger.InfoContext(ctx, "Roblox logs refreshed", "sessions", len(snapshot.Sessions))
 	return snapshot, nil
 }
 
 func (reader *Reader) FindServerVisit(ctx context.Context, placeID, jobID string) (ServerVisit, error) {
-	sessions, err := reader.readSessions(ctx, reader.operationLogger("server-visit"))
+	sessions, err := reader.readSessions(ctx, reader.logger.With("operation", "server-visit"))
 	if err != nil {
 		return ServerVisit{}, err
 	}
@@ -81,7 +79,7 @@ func (reader *Reader) readSessions(ctx context.Context, logger *slog.Logger) ([]
 	allSessions := []Session{}
 	directories, err := reader.directories()
 	if err != nil {
-		logger.Warn("could not locate Roblox logs folders", "error", err)
+		logger.WarnContext(ctx, "could not locate Roblox logs folders", "error", err)
 		return allSessions, errors.New("could not open Roblox logs folder")
 	}
 	listedPaths := map[string]bool{}
@@ -103,18 +101,18 @@ func (reader *Reader) ReadFile(ctx context.Context, name string) (Session, error
 	if !validFileName(name) {
 		return Session{}, errors.New("invalid Roblox Player log filename")
 	}
-	logger := reader.operationLogger("refresh-log").With("file", name)
+	logger := reader.logger.With("operation", "refresh-log", "file", name)
 	directories, err := reader.directories()
 	if err != nil {
-		logger.Warn("could not locate Roblox logs folders", "error", err)
+		logger.WarnContext(ctx, "could not locate Roblox logs folders", "error", err)
 		return Session{}, errors.New("could not open Roblox logs folder")
 	}
 	session, err := reader.readFromDirectories(ctx, directories, name)
 	if err != nil {
-		logger.Warn("could not refresh Roblox log", "error", err)
+		logger.WarnContext(ctx, "could not refresh Roblox log", "error", err)
 		return Session{}, errors.New("could not read Roblox log")
 	}
-	logger.Info("Roblox log refreshed", "visits", len(session.Visits))
+	logger.InfoContext(ctx, "Roblox log refreshed", "visits", len(session.Visits))
 	return session, nil
 }
 
@@ -124,13 +122,13 @@ func (reader *Reader) readDirectory(ctx context.Context, logger *slog.Logger, di
 		return nil, nil
 	}
 	if err != nil {
-		logger.Warn("could not open Roblox logs folder", "error", err)
+		logger.WarnContext(ctx, "could not open Roblox logs folder", "error", err)
 		return nil, errors.New("could not open Roblox logs folder")
 	}
 	defer func() { _ = root.Close() }()
 	entries, err := fs.ReadDir(root.FS(), ".")
 	if err != nil {
-		logger.Warn("could not list Roblox logs", "error", err)
+		logger.WarnContext(ctx, "could not list Roblox logs", "error", err)
 		return nil, errors.New("could not list Roblox logs")
 	}
 	var sessions []Session
@@ -147,7 +145,7 @@ func (reader *Reader) readDirectory(ctx context.Context, logger *slog.Logger, di
 			return nil, ctx.Err()
 		}
 		if err != nil {
-			logger.Warn("could not fully parse Roblox log", "file", entry.Name(), "error", err)
+			logger.WarnContext(ctx, "could not fully parse Roblox log", "file", entry.Name(), "error", err)
 			session.Issue = "This log could not be fully read. Refresh this session to try again."
 		}
 		sessions = append(sessions, session)
@@ -172,10 +170,6 @@ func (reader *Reader) readFromDirectories(ctx context.Context, directories []str
 		return session, err
 	}
 	return Session{}, os.ErrNotExist
-}
-
-func (reader *Reader) operationLogger(operation string) *slog.Logger {
-	return reader.logger.With("operation", operation, "operation_id", fmt.Sprintf("logs-explorer-%d", reader.operation.Add(1)))
 }
 
 func validFileName(name string) bool {

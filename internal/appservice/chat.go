@@ -13,7 +13,6 @@ import (
 	"time"
 	"unicode/utf8"
 
-	"github.com/sleaze5/RobloxAccountManager/internal/logging"
 	"github.com/sleaze5/RobloxAccountManager/internal/roblox"
 	robloxservices "github.com/sleaze5/RobloxAccountManager/internal/roblox/services"
 )
@@ -72,7 +71,7 @@ func (service *Service) GetChatConversations(ctx context.Context, accountID int6
 	if len(cursor) > maxChatCursorLength {
 		return ChatConversationPage{}, chatInputError("This chat list has expired. Refresh chats.")
 	}
-	ctx, version, logger, done, err := service.beginChat(ctx, accountID, "list")
+	ctx, version, logger, done, err := service.beginFeatureOperation(ctx, accountID, "chat", "list")
 	if err != nil {
 		return ChatConversationPage{}, err
 	}
@@ -101,7 +100,7 @@ func (service *Service) GetChatMessages(ctx context.Context, accountID int64, co
 	if len(cursor) > maxChatCursorLength {
 		return ChatMessagePage{}, chatInputError("This chat history has expired. Reopen the chat.")
 	}
-	ctx, version, logger, done, err := service.beginChat(ctx, accountID, "messages")
+	ctx, version, logger, done, err := service.beginFeatureOperation(ctx, accountID, "chat", "messages")
 	if err != nil {
 		return ChatMessagePage{}, err
 	}
@@ -126,7 +125,7 @@ func (service *Service) MarkChatConversationRead(ctx context.Context, accountID 
 	if err := validateChatConversationID(conversationID); err != nil {
 		return err
 	}
-	ctx, version, logger, done, err := service.beginChat(ctx, accountID, "mark-read")
+	ctx, version, logger, done, err := service.beginFeatureOperation(ctx, accountID, "chat", "mark-read")
 	if err != nil {
 		return err
 	}
@@ -135,7 +134,7 @@ func (service *Service) MarkChatConversationRead(ctx context.Context, accountID 
 }
 
 func (service *Service) MarkAllChatConversationsRead(ctx context.Context, accountID int64) (int, error) {
-	ctx, version, logger, done, err := service.beginChat(ctx, accountID, "mark-all-read")
+	ctx, version, logger, done, err := service.beginFeatureOperation(ctx, accountID, "chat", "mark-all-read")
 	if err != nil {
 		return 0, err
 	}
@@ -172,7 +171,7 @@ func (service *Service) CreateChatConversation(ctx context.Context, accountID in
 	if err != nil {
 		return ChatConversationView{}, err
 	}
-	ctx, version, logger, done, err := service.beginChat(ctx, accountID, "create")
+	ctx, version, logger, done, err := service.beginFeatureOperation(ctx, accountID, "chat", "create")
 	if err != nil {
 		return ChatConversationView{}, err
 	}
@@ -209,7 +208,7 @@ func (service *Service) AddChatMembers(ctx context.Context, accountID int64, con
 	if err != nil {
 		return ChatConversationView{}, err
 	}
-	ctx, version, logger, done, err := service.beginChat(ctx, accountID, "add-members")
+	ctx, version, logger, done, err := service.beginFeatureOperation(ctx, accountID, "chat", "add-members")
 	if err != nil {
 		return ChatConversationView{}, err
 	}
@@ -251,7 +250,7 @@ func (service *Service) RenameChatConversation(ctx context.Context, accountID in
 	if name == "" || !utf8.ValidString(name) || utf8.RuneCountInString(name) > maxChatGroupNameLength {
 		return ChatConversationView{}, chatInputError(fmt.Sprintf("Enter a name of up to %d characters.", maxChatGroupNameLength))
 	}
-	ctx, version, logger, done, err := service.beginChat(ctx, accountID, "rename")
+	ctx, version, logger, done, err := service.beginFeatureOperation(ctx, accountID, "chat", "rename")
 	if err != nil {
 		return ChatConversationView{}, err
 	}
@@ -313,7 +312,7 @@ func (service *Service) SendChatMessage(ctx context.Context, accountID int64, co
 	if utf8.RuneCountInString(text) > maxChatMessageLength {
 		return ChatMessageView{}, chatInputError("This message is too long.")
 	}
-	ctx, version, logger, done, err := service.beginChat(ctx, accountID, "send")
+	ctx, version, logger, done, err := service.beginFeatureOperation(ctx, accountID, "chat", "send")
 	if err != nil {
 		return ChatMessageView{}, err
 	}
@@ -338,16 +337,6 @@ func (service *Service) SendChatMessage(ctx context.Context, accountID int64, co
 	}
 	logger.DebugContext(ctx, "chat message sent", "moderated", view.Moderated)
 	return view, nil
-}
-
-func (service *Service) beginChat(parent context.Context, accountID int64, operation string) (context.Context, int64, *slog.Logger, func(), error) {
-	ctx, version, done, err := service.beginAccountSession(parent, accountID, "chat")
-	if err != nil {
-		return nil, 0, nil, nil, err
-	}
-	ctx = logging.WithOperation(ctx, logging.NewOperationID("chat"))
-	logger := service.logs.Module("application.chat").With("operation", operation)
-	return ctx, version, logger, done, nil
 }
 
 func (service *Service) chatSelfID(ctx context.Context, accountID int64) (int64, error) {

@@ -30,7 +30,8 @@ func (service *Service) GetAccountSettings(ctx context.Context, accountID int64)
 		return AccountSettingsSnapshot{}, err
 	}
 	defer done()
-	logger := service.logger.With("operation_id", logging.NewOperationID("settings"), "operation", "read")
+	ctx = logging.StartOperation(ctx, "settings")
+	logger := service.logger.With("operation", "read")
 	return service.readAccountSettings(ctx, accountID, version, logger)
 }
 
@@ -80,7 +81,7 @@ func (service *Service) readAccountSettings(ctx context.Context, accountID, vers
 			status = remote.Status
 			code = remote.RobloxCode
 		}
-		logger.Warn("account settings section unavailable", "source", section.source, "error_kind", failure.Kind, "status", status, "roblox_code", code)
+		logger.WarnContext(ctx, "account settings section unavailable", "source", section.source, "error_kind", failure.Kind, "status", status, "roblox_code", code)
 	}
 	for _, definition := range accountSettingDefinitions {
 		if view, present := normalizeAccountSetting(definition, reads); present {
@@ -88,7 +89,7 @@ func (service *Service) readAccountSettings(ctx context.Context, accountID, vers
 		}
 	}
 	applyAccountSettingDependencies(&snapshot)
-	logger.Debug("account settings read finished", "duration_ms", time.Since(started).Milliseconds(), "failed_sections", len(snapshot.SectionErrors))
+	logger.DebugContext(ctx, "account settings read finished", "duration_ms", time.Since(started).Milliseconds(), "failed_sections", len(snapshot.SectionErrors))
 	return snapshot, nil
 }
 
@@ -166,7 +167,8 @@ func (service *Service) UpdateAccountSetting(ctx context.Context, accountID int6
 		return AccountSettingUpdateResult{}, err
 	}
 	defer unlock()
-	logger := service.logger.With("operation_id", logging.NewOperationID("settings"), "operation", "update", "setting_key", change.Key)
+	ctx = logging.StartOperation(ctx, "settings")
+	logger := service.logger.With("operation", "update", "setting_key", change.Key)
 	before, err := service.readAccountSettings(ctx, accountID, version, logger)
 	if err != nil {
 		return AccountSettingUpdateResult{}, err
@@ -174,12 +176,12 @@ func (service *Service) UpdateAccountSetting(ctx context.Context, accountID int6
 	current := findAccountSetting(before, change.Key)
 	expected := AccountSettingView{ValueState: "known", StringValue: change.ExpectedStringValue, BoolValue: change.ExpectedBoolValue}
 	if current.UnavailableReason == conflictingSettingReason || !sameSettingValue(current, expected) {
-		logger.Info("account setting update finished", "outcome", "conflict")
+		logger.InfoContext(ctx, "account setting update finished", "outcome", "conflict")
 		return AccountSettingUpdateResult{Snapshot: before, Outcome: "conflict", Message: "This setting changed on Roblox. Review the current value before saving again."}, nil
 	}
 	desired := AccountSettingView{ValueState: "known", StringValue: change.StringValue, BoolValue: change.BoolValue}
 	if sameSettingValue(current, desired) {
-		logger.Info("account setting update finished", "outcome", "unchanged")
+		logger.InfoContext(ctx, "account setting update finished", "outcome", "unchanged")
 		return AccountSettingUpdateResult{Snapshot: before, Outcome: "unchanged", Message: "This value is already applied."}, nil
 	}
 	if !current.Editable || !accountSettingAllows(current, desired) {
@@ -218,17 +220,17 @@ func accountSettingAllows(current, desired AccountSettingView) bool {
 func (service *Service) confirmAccountSetting(ctx context.Context, accountID, version int64, before AccountSettingsSnapshot, key AccountSettingKey, desired AccountSettingView, writeError error, logger *slog.Logger) (AccountSettingUpdateResult, error) {
 	after, readError := service.readAccountSettings(ctx, accountID, version, logger)
 	if readError == nil && settingsReadBackConfirmed(after, key, desired) {
-		logger.Info("account setting update finished", "outcome", "applied")
+		logger.InfoContext(ctx, "account setting update finished", "outcome", "applied")
 		return AccountSettingUpdateResult{Snapshot: after, Outcome: "applied", Message: "Saved"}, nil
 	}
 	if writeError != nil {
 		failure := accountSettingsSectionError("settings", writeError)
-		logger.Warn("account setting write not confirmed", "error_kind", failure.Kind)
+		logger.WarnContext(ctx, "account setting write not confirmed", "error_kind", failure.Kind)
 		if definiteSettingRejection(writeError) {
 			return AccountSettingUpdateResult{}, writeError
 		}
 	}
-	logger.Warn("account setting update finished", "outcome", "unconfirmed")
+	logger.WarnContext(ctx, "account setting update finished", "outcome", "unconfirmed")
 	if !service.vault.Unlocked() || !service.sessions.VersionCurrent(accountID, version) {
 		before = AccountSettingsSnapshot{AccountID: accountID, Settings: []AccountSettingView{}, SectionErrors: []AccountSettingsSectionError{}}
 	}
