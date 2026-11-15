@@ -58,11 +58,7 @@
 				data-tooltip={hexColor
 					? `${label}: ${colorLabelOf?.(hexColor) ?? `#${hexColor}`}`
 					: label}
-				onclick={(event) =>
-					onSelectPart(
-						part,
-						event.ctrlKey || event.shiftKey || event.metaKey,
-					)}></button>
+				onclick={() => onTogglePart(part)}></button>
 		{:else}
 			<span
 				class={[
