@@ -817,7 +817,9 @@ export class AccountStore {
 		}
 		try {
 			await accountBackend.DiscardValidatedCookies(batchId)
-		} catch {}
+		} catch {
+			// The backend discards a validated batch on its own after 10 minutes.
+		}
 	}
 
 	async createTag(name: string, accountId: number | null): Promise<TagView | null> {
@@ -1030,6 +1032,7 @@ export class AccountStore {
 		const key = accountId ?? 0,
 			pending = this.#presenceRequests.get(key)
 		if (pending) {
+			// The call that started the request reports its failure.
 			await pending.catch(() => undefined)
 			return
 		}
