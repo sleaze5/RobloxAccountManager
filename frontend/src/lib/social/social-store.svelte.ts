@@ -17,6 +17,7 @@ import type {
 } from "../backend/bridge"
 import type { NotificationCenter } from "../notifications/notification-center.svelte"
 import { errorMessage } from "../shared/errors"
+import { matchesSearch, searchTerms } from "../shared/search"
 import { detailsKeepMs, isFresh } from "../shared/freshness"
 import { menuPointFor } from "../shared/presence"
 import { SectionLoad } from "../shared/section-load.svelte"
@@ -282,14 +283,13 @@ export class SocialStore {
 
 	get people(): SocialUser[] {
 		const people = this.page?.people ?? [],
-			text = this.query.trim().toLowerCase().replace(/^@/, ""),
+			terms = searchTerms(this.query).map((term) => term.replace(/^@/, "")),
 			trusted = this.showsTrustedFilter && this.trustedOnly
-		if ((!text && !trusted) || this.list === playersView) return people
+		if ((terms.length === 0 && !trusted) || this.list === playersView) return people
 		return people.filter(
 			(person) =>
 				(!trusted || person.trusted) &&
-				(person.displayName.toLowerCase().includes(text) ||
-					person.username.toLowerCase().includes(text)),
+				matchesSearch(terms, `${person.displayName} ${person.username}`),
 		)
 	}
 

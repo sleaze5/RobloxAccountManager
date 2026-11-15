@@ -2,6 +2,7 @@ import { SvelteSet } from "svelte/reactivity"
 import { accountBackend } from "../backend/bridge"
 import type { LogsExplorerSession } from "../backend/bridge"
 import { errorMessage } from "../shared/errors"
+import { matchesSearch, searchTerms } from "../shared/search"
 
 export class LogsExplorerStore {
 	sessions = $state<LogsExplorerSession[]>([])
@@ -20,21 +21,24 @@ export class LogsExplorerStore {
 	readonly #appliedRequests = new Map<string, number>()
 
 	get filteredSessions(): LogsExplorerSession[] {
-		const query = this.query.trim().toLowerCase()
-		if (!query) return this.sessions
+		const terms = searchTerms(this.query)
+		if (terms.length === 0) return this.sessions
 		return this.sessions.filter((session) =>
-			[
-				session.fileName,
-				session.userId,
-				session.version,
-				session.channel,
-				...(session.visits ?? []).flatMap((visit) => [
-					visit.placeId,
-					visit.jobId,
-					visit.universeId,
-					visit.datacenterId,
-				]),
-			].some((value) => value.toLowerCase().includes(query)),
+			matchesSearch(
+				terms,
+				[
+					session.fileName,
+					session.userId,
+					session.version,
+					session.channel,
+					...(session.visits ?? []).flatMap((visit) => [
+						visit.placeId,
+						visit.jobId,
+						visit.universeId,
+						visit.datacenterId,
+					]),
+				].join(" "),
+			),
 		)
 	}
 

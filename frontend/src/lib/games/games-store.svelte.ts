@@ -18,6 +18,7 @@ import {
 	type ServerSource,
 } from "./game-servers-state.svelte"
 import { errorMessage } from "../shared/errors"
+import { matchesSearch, searchTerms } from "../shared/search"
 import { UniverseBadges } from "./game-badges-state.svelte"
 import { menuPointFor } from "../shared/presence"
 
@@ -128,13 +129,13 @@ export class GamesStore {
 
 	get places(): GamePlace[] {
 		if (this.mode !== "favorites") return this.results
-		const text = this.favoritesQuery.trim().toLowerCase()
-		if (!text) return this.favorites
-		return this.favorites.filter(
-			(place) =>
-				place.nickname.toLowerCase().includes(text) ||
-				place.name.toLowerCase().includes(text) ||
-				place.creatorName.toLowerCase().includes(text),
+		const terms = searchTerms(this.favoritesQuery)
+		if (terms.length === 0) return this.favorites
+		return this.favorites.filter((place) =>
+			matchesSearch(
+				terms,
+				`${place.nickname} ${place.name} ${place.creatorName}`,
+			),
 		)
 	}
 
