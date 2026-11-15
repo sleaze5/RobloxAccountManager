@@ -7,14 +7,14 @@
 		bodyColors,
 		selectedParts,
 		colorLabelOf,
-		onSelectPart,
+		onTogglePart,
 	}: {
 		bodyColors: AvatarBodyColors
-		// selectedParts and onSelectPart are undefined when the figure only
+		// selectedParts and onTogglePart are undefined when the figure only
 		// shows the colors.
 		selectedParts?: Set<BodyPart>
 		colorLabelOf?: (hexColor: string) => string
-		onSelectPart?: (part: BodyPart, isAdding: boolean) => void
+		onTogglePart?: (part: BodyPart) => void
 	} = $props()
 
 	// The figure faces the viewer, so the right arm and leg are on the left.
@@ -39,12 +39,12 @@
 
 <div
 	class="grid w-fit shrink-0 grid-cols-4 gap-0.5"
-	role={onSelectPart ? "group" : "img"}
-	aria-label={onSelectPart ? "Body parts" : "Body colors"}>
+	role={onTogglePart ? "group" : "img"}
+	aria-label={onTogglePart ? "Body parts" : "Body colors"}>
 	{#each figureOrder as part (part)}
 		{@const hexColor = bodyColors[part]}
 		{@const label = labelByPart.get(part) ?? part}
-		{#if onSelectPart}
+		{#if onTogglePart}
 			<button
 				class={[
 					partClasses[part],
