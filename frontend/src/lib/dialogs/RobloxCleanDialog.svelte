@@ -110,13 +110,14 @@
 			</h2>
 			<p id="roblox-clean-description">
 				{#if isUninstall}
-					Deletes Roblox Player, Roblox Studio, their settings, shortcuts,
-					file associations, registry entries, and the screenshots and videos
-					in the Roblox folders. This cannot be undone.
+					Deletes Roblox Player, Roblox Studio, their settings and plugins,
+					shortcuts, file associations, and registry entries. It also deletes
+					your saved places, autosaves, screenshots, and videos in the Roblox
+					folders. This cannot be undone.
 				{:else}
 					Deletes Roblox caches, cookies, and other sign-in data. Roblox
-					Player, Roblox Studio, their settings, and Studio plugins stay
-					installed.
+					Player, Roblox Studio, their settings, and your Studio plugins and
+					places stay.
 				{/if}
 			</p>
 		</div>

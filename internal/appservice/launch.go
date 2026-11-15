@@ -89,6 +89,9 @@ func (service *Service) executeLaunch(ctx context.Context, confirm func(context.
 			return err
 		}
 	}
+	if err := service.elevatedHelper.WaitForStoppedTask(ctx); err != nil {
+		return launchError(roblox.KindCancelled, "Roblox is still being cleaned. Try again when it finishes.")
+	}
 	if ctx.Err() != nil || !service.vault.Unlocked() {
 		return launchError(roblox.KindCancelled, "The launch was cancelled or the vault is locked.")
 	}

@@ -31,6 +31,7 @@ class RobloxClientOptions {
 	#isCheckingMultiInstance = false
 	#multiInstanceRevision = 0
 	#cleanerRevision = 0
+	#cleanerQueue: Promise<void> = Promise.resolve()
 
 	get multiInstanceStatus(): { text: string; tone: StatusTone } {
 		const snapshot = this.multiInstance
@@ -84,17 +85,12 @@ class RobloxClientOptions {
 		}
 	}
 
-	async refreshCleaner(): Promise<void> {
-		const requestRevision = this.#cleanerRevision
-		try {
-			const state = await accountBackend.GetRobloxCleanerState()
-			if (requestRevision !== this.#cleanerRevision) return
-			this.cleaner = state
-			this.cleanerError = ""
-		} catch {
-			if (requestRevision !== this.#cleanerRevision) return
-			this.cleanerError = "The cleaning settings could not be loaded. Try again."
-		}
+	refreshCleaner(): Promise<void> {
+		return this.#requestCleaner(
+			() => accountBackend.GetRobloxCleanerState(),
+			false,
+			"The cleaning settings could not be loaded. Try again.",
+		)
 	}
 
 	async setMultiInstanceEnabled(enabled: boolean): Promise<void> {
@@ -158,16 +154,37 @@ class RobloxClientOptions {
 		fallbackMessage: string,
 	): Promise<void> {
 		if (this[savingFlag]) return
-		this.#cleanerRevision++
 		this[savingFlag] = true
-		this.cleanerError = ""
-		try {
-			this.cleaner = await save()
-		} catch (error) {
-			this.cleanerError = errorMessage(error, fallbackMessage)
-		} finally {
-			this[savingFlag] = false
+		await this.#requestCleaner(save, true, fallbackMessage)
+		this[savingFlag] = false
+	}
+
+	// Cleaner requests run one at a time, in the order they were made, so a
+	// refresh never reads the backend while a save is still changing it, and
+	// two saves never finish out of order. A response applies only while no
+	// newer save was requested.
+	#requestCleaner(
+		request: () => Promise<RobloxCleanerState>,
+		isSave: boolean,
+		failureMessage: string,
+	): Promise<void> {
+		if (isSave) this.#cleanerRevision++
+		const revision = this.#cleanerRevision
+		const run = async (): Promise<void> => {
+			try {
+				const state = await request()
+				if (revision !== this.#cleanerRevision) return
+				this.cleaner = state
+				this.cleanerError = ""
+			} catch (error) {
+				if (revision === this.#cleanerRevision) {
+					this.cleanerError = errorMessage(error, failureMessage)
+				}
+			}
 		}
+		const queued = this.#cleanerQueue.then(run)
+		this.#cleanerQueue = queued
+		return queued
 	}
 }
 

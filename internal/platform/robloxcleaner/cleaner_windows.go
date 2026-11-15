@@ -40,9 +40,17 @@ type environmentPath struct {
 	relative string
 }
 
-func (path environmentPath) resolve() (string, bool) {
+func (path environmentPath) base() (string, bool) {
 	base := os.Getenv(path.variable)
 	if base == "" || !filepath.IsAbs(base) {
+		return "", false
+	}
+	return filepath.Clean(base), true
+}
+
+func (path environmentPath) resolve() (string, bool) {
+	base, ok := path.base()
+	if !ok {
 		return "", false
 	}
 	return filepath.Join(base, path.relative), true
@@ -97,19 +105,21 @@ var (
 	}
 )
 
-// isKeptLocalEntry reports whether an entry of %LOCALAPPDATA%\Roblox survives
-// data cleaning: the installed versions, the Roblox settings files, the fast
-// flag settings, the user's Roblox Studio plugins, and optionally the logs.
-func isKeptLocalEntry(name string, shouldDeleteLogs bool) bool {
+// isCleanedLocalEntry reports whether data cleaning deletes an entry of
+// %LOCALAPPDATA%\Roblox. Only known caches and account traces are deleted:
+// the HTTP cache, downloads, update backups, the cookie and app storage, the
+// storage database, and optionally the logs. Everything else, such as the
+// installed versions, settings, and Roblox Studio plugins and work, stays.
+func isCleanedLocalEntry(name string, shouldDeleteLogs bool) bool {
 	lowercaseName := strings.ToLower(name)
-	if slices.Contains([]string{"versions", "clientsettings", "plugins"}, lowercaseName) {
+	switch {
+	case slices.Contains([]string{"http", "downloads", "otapatchbackups", "localstorage"}, lowercaseName):
 		return true
+	case lowercaseName == "logs":
+		return shouldDeleteLogs
+	default:
+		return strings.HasPrefix(lowercaseName, "rbx-storage.")
 	}
-	if lowercaseName == "logs" {
-		return !shouldDeleteLogs
-	}
-	return strings.HasSuffix(lowercaseName, ".xml") &&
-		(strings.HasPrefix(lowercaseName, "globalbasicsettings_") || strings.HasPrefix(lowercaseName, "globalsettings_"))
 }
 
 type registryKey struct {
@@ -212,11 +222,11 @@ func uninstallPaths() []environmentPath {
 }
 
 func (run *cleanup) cleanLocalRobloxFolder(shouldDeleteLogs bool) {
-	folder, ok := localRobloxFolder.resolve()
+	base, ok := localRobloxFolder.base()
 	if !ok {
 		return
 	}
-	entries, err := os.ReadDir(folder)
+	release, err := lockFolders(base, localRobloxFolder.relative)
 	if errors.Is(err, os.ErrNotExist) {
 		return
 	}
@@ -224,8 +234,14 @@ func (run *cleanup) cleanLocalRobloxFolder(shouldDeleteLogs bool) {
 		run.skip(localRobloxFolder.label(), err)
 		return
 	}
+	defer release()
+	entries, err := os.ReadDir(filepath.Join(base, localRobloxFolder.relative))
+	if err != nil {
+		run.skip(localRobloxFolder.label(), err)
+		return
+	}
 	for _, entry := range entries {
-		if !isKeptLocalEntry(entry.Name(), shouldDeleteLogs) {
+		if isCleanedLocalEntry(entry.Name(), shouldDeleteLogs) {
 			run.removePath(localRobloxFolder.join(entry.Name()))
 		}
 	}
@@ -241,23 +257,109 @@ func (run *cleanup) removePath(path environmentPath) {
 	if run.ctx.Err() != nil {
 		return
 	}
-	resolved, ok := path.resolve()
+	base, ok := path.base()
 	if !ok {
 		return
 	}
-	if _, err := os.Lstat(resolved); err != nil {
-		if !errors.Is(err, os.ErrNotExist) {
-			run.skip(path.label(), err)
-		}
+	release, err := lockFolders(base, filepath.Dir(path.relative))
+	if errors.Is(err, os.ErrNotExist) {
 		return
 	}
-	// RemoveAll removes links without following them, so a junction inside a
-	// Roblox folder can never lead the deletion outside of it.
+	if err != nil {
+		run.skip(path.label(), err)
+		return
+	}
+	defer release()
+	resolved := filepath.Join(base, path.relative)
+	targetStatus, err := os.Lstat(resolved)
+	if errors.Is(err, os.ErrNotExist) {
+		return
+	}
+	if err != nil {
+		run.skip(path.label(), err)
+		return
+	}
+	if isReparsePoint(targetStatus) {
+		run.skip(path.label(), errReparsePoint)
+		return
+	}
+	// RemoveAll deletes relative to open folder handles and removes links
+	// inside the target without following them.
 	if err := os.RemoveAll(resolved); err != nil {
 		run.skip(path.label(), err)
 		return
 	}
 	run.deletedCount++
+}
+
+var errReparsePoint = errors.New("the path is a link or junction")
+
+// lockFolders opens the base folder and every folder of relativeFolder below
+// it, and fails if one is a link or junction. The handles share reading and
+// writing but not deletion, so while they are open no process can rename or
+// delete a folder and put a link in its place, which would turn a deletion,
+// possibly an elevated one, toward files outside of Roblox.
+func lockFolders(base, relativeFolder string) (release func(), err error) {
+	folders := []string{base}
+	if relativeFolder != "." {
+		folder := base
+		for name := range strings.SplitSeq(relativeFolder, string(filepath.Separator)) {
+			folder = filepath.Join(folder, name)
+			folders = append(folders, folder)
+		}
+	}
+	handles := make([]windows.Handle, 0, len(folders))
+	release = func() {
+		for _, handle := range handles {
+			windows.CloseHandle(handle)
+		}
+	}
+	for _, folder := range folders {
+		handle, err := openFolderWithoutLinks(folder)
+		if err != nil {
+			release()
+			return nil, err
+		}
+		handles = append(handles, handle)
+	}
+	return release, nil
+}
+
+func openFolderWithoutLinks(folder string) (windows.Handle, error) {
+	path, err := windows.UTF16PtrFromString(folder)
+	if err != nil {
+		return 0, fmt.Errorf("encode folder path: %w", err)
+	}
+	// Windows records the share mode only for handles with data access, so
+	// FILE_LIST_DIRECTORY is needed for the share mode to block renaming.
+	handle, err := windows.CreateFile(path, windows.FILE_LIST_DIRECTORY|windows.FILE_READ_ATTRIBUTES,
+		windows.FILE_SHARE_READ|windows.FILE_SHARE_WRITE, nil, windows.OPEN_EXISTING,
+		windows.FILE_FLAG_BACKUP_SEMANTICS|windows.FILE_FLAG_OPEN_REPARSE_POINT, 0)
+	if errors.Is(err, windows.ERROR_FILE_NOT_FOUND) || errors.Is(err, windows.ERROR_PATH_NOT_FOUND) {
+		return 0, os.ErrNotExist
+	}
+	if err != nil {
+		return 0, fmt.Errorf("open folder: %w", err)
+	}
+	var information windows.ByHandleFileInformation
+	if err := windows.GetFileInformationByHandle(handle, &information); err != nil {
+		windows.CloseHandle(handle)
+		return 0, fmt.Errorf("read folder attributes: %w", err)
+	}
+	switch {
+	case information.FileAttributes&windows.FILE_ATTRIBUTE_REPARSE_POINT != 0:
+		windows.CloseHandle(handle)
+		return 0, errReparsePoint
+	case information.FileAttributes&windows.FILE_ATTRIBUTE_DIRECTORY == 0:
+		windows.CloseHandle(handle)
+		return 0, os.ErrNotExist
+	}
+	return handle, nil
+}
+
+func isReparsePoint(status os.FileInfo) bool {
+	attributes, ok := status.Sys().(*syscall.Win32FileAttributeData)
+	return ok && attributes.FileAttributes&windows.FILE_ATTRIBUTE_REPARSE_POINT != 0
 }
 
 func (run *cleanup) removeLooseRobloxFiles() {

@@ -120,8 +120,8 @@
 					<span id="clean-before-launch-description"
 						>Delete Roblox caches, cookies, and sign-in data before each
 						launch, so the next account starts without traces of the
-						previous one. Roblox, its settings, and Studio plugins stay
-						installed, and only one account can launch at a time.</span>
+						previous one. Roblox, its settings, and your Studio plugins and
+						places stay, and only one account can launch at a time.</span>
 					{#if cleaner.isBlockedByMultiInstance}
 						<SettingsStatus
 							id="clean-before-launch-status"
@@ -212,10 +212,12 @@
 					<strong id="uninstall-title">Uninstall Roblox</strong>
 					<span id="uninstall-description"
 						>Close every Roblox process, then delete Roblox Player, Roblox
-						Studio, their settings, shortcuts, file associations, registry
-						entries, and the Roblox folders in Documents, Pictures, and
-						Videos. Bootstrappers such as Bloxstrap keep their files but
-						must register Roblox links again.</span>
+						Studio, their settings and plugins, shortcuts, file
+						associations, and registry entries. Your saved places,
+						autosaves, screenshots, and videos in the Roblox folders in
+						Documents, Pictures, and Videos are deleted too. Bootstrappers
+						such as Bloxstrap keep their files but must register Roblox
+						links again.</span>
 				</div>
 				<button
 					class="button-danger"

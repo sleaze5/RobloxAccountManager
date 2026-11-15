@@ -64,6 +64,9 @@ type Helper struct {
 	mutex      sync.Mutex
 	logger     *slog.Logger
 	connection *helperConnection
+	// finishing belongs to a stopped helper that may still run the task it
+	// received last. It closes when that helper exits.
+	finishing <-chan taskResponse
 }
 
 func NewHelper(logger *slog.Logger) *Helper {
@@ -75,6 +78,9 @@ func (helper *Helper) Run(ctx context.Context, taskName string, arguments []stri
 	defer helper.mutex.Unlock()
 	ctx, cancel := context.WithTimeout(ctx, taskTimeout+30*time.Second)
 	defer cancel()
+	if err := helper.waitForStoppedLocked(ctx); err != nil {
+		return false, err
+	}
 	encoded, err := json.Marshal(taskRequest{Task: taskName, Arguments: arguments})
 	if err != nil {
 		return false, fmt.Errorf("encode elevated task: %w", err)
@@ -98,10 +104,36 @@ func (helper *Helper) Run(ctx context.Context, taskName string, arguments []stri
 		}
 	case <-ctx.Done():
 		// The helper finishes the task by itself, then exits because its
-		// request pipe is closed. The next task starts a new helper.
+		// request pipe is closed. The caller holds the launch lock, so waiting
+		// here keeps games from starting while the task still deletes files.
+		// The helper ends every task within taskTimeout.
 		helper.stopLocked()
-		return false, ctx.Err()
+		stopContext, stopCancel := context.WithTimeout(context.Background(), taskTimeout+30*time.Second)
+		defer stopCancel()
+		return false, errors.Join(ctx.Err(), helper.waitForStoppedLocked(stopContext))
 	}
+}
+
+// WaitForStoppedTask waits until a stopped helper has finished its last task.
+// A launch calls it, so that a game never starts while Roblox is cleaned.
+func (helper *Helper) WaitForStoppedTask(ctx context.Context) error {
+	helper.mutex.Lock()
+	defer helper.mutex.Unlock()
+	return helper.waitForStoppedLocked(ctx)
+}
+
+func (helper *Helper) waitForStoppedLocked(ctx context.Context) error {
+	for helper.finishing != nil {
+		select {
+		case _, isOpen := <-helper.finishing:
+			if !isOpen {
+				helper.finishing = nil
+			}
+		case <-ctx.Done():
+			return fmt.Errorf("wait for the stopped elevated helper: %w", ctx.Err())
+		}
+	}
+	return nil
 }
 
 // sendLocked writes a request to the running helper. It starts the helper if
@@ -139,6 +171,7 @@ func (helper *Helper) stopLocked() {
 		return
 	}
 	_ = helper.connection.requests.Close()
+	helper.finishing = helper.connection.responses
 	helper.connection = nil
 	helper.logger.Info("elevated helper stopped", "operation", "elevated-helper")
 }
