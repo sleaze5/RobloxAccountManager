@@ -48,7 +48,7 @@
 			<button
 				class={[
 					partClasses[part],
-					"border border-line-strong outline-offset-2 transition-colors duration-100 hover:border-line-focus focus-visible:outline-2 focus-visible:outline-focus data-selected:ring-2 data-selected:ring-fg-bright data-selected:ring-offset-2 data-selected:ring-offset-canvas",
+					"border border-line-strong outline-offset-2 transition-colors duration-100 hover:border-line-focus focus-visible:outline-2 focus-visible:outline-focus data-selected:inset-ring-2 data-selected:inset-ring-fg-bright",
 				]}
 				style:background-color={hexColor ? `#${hexColor}` : undefined}
 				type="button"
