@@ -110,6 +110,17 @@
 	{/if}
 </section>
 
+{#snippet cleanReportStatus(scope: RobloxCleanScope)}
+	{@const report = options.cleanReports[scope]}
+	{#if report}
+		<SettingsStatus
+			value={report.skippedCount > 0
+				? `Done - ${report.deletedCount} deleted, ${report.skippedCount} skipped`
+				: `Done - ${report.deletedCount} deleted`}
+			tone={report.skippedCount > 0 ? "warning" : "success"} />
+	{/if}
+{/snippet}
+
 {#if cleaner?.supported}
 	<section class="settings-section" aria-labelledby="roblox-cleaning-title">
 		<h3 id="roblox-cleaning-title">Cleaning</h3>
@@ -197,6 +208,7 @@
 						>Close every Roblox process, then delete caches, cookies, and
 						sign-in data from this computer. Roblox stays installed and
 						keeps its settings.</span>
+					{@render cleanReportStatus(RobloxCleanScope.ScopeData)}
 				</div>
 				<button
 					class="button-warning"
@@ -219,6 +231,7 @@
 						Documents, Pictures, and Videos are deleted too. Bootstrappers
 						such as Bloxstrap keep their files but must register Roblox
 						links again.</span>
+					{@render cleanReportStatus(RobloxCleanScope.ScopeUninstall)}
 				</div>
 				<button
 					class="button-danger"

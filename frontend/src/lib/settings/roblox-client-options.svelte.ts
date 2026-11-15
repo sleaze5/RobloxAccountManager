@@ -2,6 +2,8 @@ import {
 	accountBackend,
 	type MultiInstanceSnapshot,
 	type RobloxCleanerState,
+	type RobloxCleanReport,
+	type RobloxCleanScope,
 } from "../backend/bridge"
 import { errorMessage } from "../shared/errors"
 
@@ -17,6 +19,16 @@ const multiInstancePollIntervalMilliseconds = 500
 
 // Client options are shared by the Client options menu in the launch panel
 // and Settings > Roblox, so a change in one place shows in the other.
+function itemCount(count: number): string {
+	return count === 1 ? "1 item" : `${count} items`
+}
+
+export function cleanReportSummary(report: RobloxCleanReport): string {
+	const deleted = `Deleted ${itemCount(report.deletedCount)}.`
+	if (report.skippedCount === 0) return deleted
+	return `${deleted} Skipped ${itemCount(report.skippedCount)} that were in use, need administrator rights, or are links.`
+}
+
 class RobloxClientOptions {
 	multiInstance = $state<MultiInstanceSnapshot | null>(null)
 	cleaner = $state<RobloxCleanerState | null>(null)
@@ -28,6 +40,8 @@ class RobloxClientOptions {
 	multiInstanceError = $state("")
 	multiInstanceStatusError = $state("")
 	cleanerError = $state("")
+	// The last cleaning result of each scope in this session, shown in Settings.
+	cleanReports = $state<Partial<Record<RobloxCleanScope, RobloxCleanReport>>>({})
 	#isCheckingMultiInstance = false
 	#multiInstanceRevision = 0
 	#cleanerRevision = 0
@@ -185,6 +199,10 @@ class RobloxClientOptions {
 		const queued = this.#cleanerQueue.then(run)
 		this.#cleanerQueue = queued
 		return queued
+	}
+
+	recordCleanReport(scope: RobloxCleanScope, report: RobloxCleanReport): void {
+		this.cleanReports = { ...this.cleanReports, [scope]: report }
 	}
 }
 

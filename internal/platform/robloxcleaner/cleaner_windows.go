@@ -183,30 +183,60 @@ type cleanup struct {
 	skippedCount int
 }
 
-func clean(ctx context.Context, scope Scope, shouldDeleteLogs bool, logger *slog.Logger) (bool, error) {
+// cleanupStep is one file, folder, registry key, or registry value to delete.
+type cleanupStep struct {
+	stage  Stage
+	delete func()
+}
+
+func clean(ctx context.Context, scope Scope, shouldDeleteLogs bool, reportProgress func(Progress), logger *slog.Logger) (Outcome, error) {
 	logger = logger.With("scope", scope, "should_delete_logs", shouldDeleteLogs)
 	run := &cleanup{ctx: ctx, logger: logger}
+	steps := run.plan(scope, shouldDeleteLogs)
+	for index, step := range steps {
+		if ctx.Err() != nil {
+			break
+		}
+		reportProgress(Progress{Stage: step.stage, CompletedCount: index, TotalCount: len(steps)})
+		step.delete()
+	}
+	if err := ctx.Err(); err != nil {
+		return Outcome{}, fmt.Errorf("clean Roblox: %w", err)
+	}
+	logger.Info("Roblox cleaned", "deleted_count", run.deletedCount, "skipped_count", run.skippedCount)
+	return Outcome{DeletedCount: run.deletedCount, SkippedCount: run.skippedCount}, nil
+}
+
+// plan lists every deletion first, so that progress can show the total.
+func (run *cleanup) plan(scope Scope, shouldDeleteLogs bool) []cleanupStep {
+	var paths []environmentPath
+	var keys []registryKey
+	var values []registryValue
 	if shouldDeleteLogs {
-		run.removePaths(logFolders)
+		paths = append(paths, logFolders...)
 	}
 	switch scope {
 	case ScopeData:
-		run.cleanLocalRobloxFolder(shouldDeleteLogs)
-		run.removePaths(dataFolders)
-		run.removeLooseRobloxFiles()
-		run.deleteRegistryKeys(dataRegistryKeys)
+		paths = append(paths, run.localRobloxEntriesToDelete(shouldDeleteLogs)...)
+		keys = dataRegistryKeys
 	case ScopeUninstall:
-		run.deleteRegistryKeys(uninstallRegistryKeys())
-		run.deleteRegistryValues(uninstallRegistryValues())
-		run.removePaths(uninstallPaths())
-		run.removePaths(dataFolders)
-		run.removeLooseRobloxFiles()
+		paths = append(paths, uninstallPaths()...)
+		keys = uninstallRegistryKeys()
+		values = uninstallRegistryValues()
 	}
-	if err := ctx.Err(); err != nil {
-		return false, fmt.Errorf("clean Roblox: %w", err)
+	paths = append(paths, dataFolders...)
+	paths = append(paths, run.looseRobloxFiles()...)
+	steps := make([]cleanupStep, 0, len(paths)+len(keys)+len(values))
+	for _, path := range paths {
+		steps = append(steps, cleanupStep{StageDeletingFiles, func() { run.removePath(path) }})
 	}
-	logger.Info("Roblox cleaned", "deleted_count", run.deletedCount, "skipped_count", run.skippedCount)
-	return run.skippedCount > 0, nil
+	for _, key := range keys {
+		steps = append(steps, cleanupStep{StageDeletingRegistryEntries, func() { run.deleteRegistryKeyIfPresent(key) }})
+	}
+	for _, value := range values {
+		steps = append(steps, cleanupStep{StageDeletingRegistryEntries, func() { run.deleteRegistryValueIfPresent(value) }})
+	}
+	return steps
 }
 
 func uninstallPaths() []environmentPath {
@@ -222,36 +252,32 @@ func uninstallPaths() []environmentPath {
 	return append(paths, userContentFolders...)
 }
 
-func (run *cleanup) cleanLocalRobloxFolder(shouldDeleteLogs bool) {
+func (run *cleanup) localRobloxEntriesToDelete(shouldDeleteLogs bool) []environmentPath {
 	base, ok := localRobloxFolder.base()
 	if !ok {
-		return
+		return nil
 	}
 	release, err := lockFolders(base, localRobloxFolder.relative)
 	if errors.Is(err, os.ErrNotExist) {
-		return
+		return nil
 	}
 	if err != nil {
 		run.skip(localRobloxFolder.label(), err)
-		return
+		return nil
 	}
 	defer release()
 	entries, err := os.ReadDir(filepath.Join(base, localRobloxFolder.relative))
 	if err != nil {
 		run.skip(localRobloxFolder.label(), err)
-		return
+		return nil
 	}
+	var paths []environmentPath
 	for _, entry := range entries {
 		if !isKeptLocalEntry(entry.Name(), shouldDeleteLogs) {
-			run.removePath(localRobloxFolder.join(entry.Name()))
+			paths = append(paths, localRobloxFolder.join(entry.Name()))
 		}
 	}
-}
-
-func (run *cleanup) removePaths(paths []environmentPath) {
-	for _, path := range paths {
-		run.removePath(path)
-	}
+	return paths
 }
 
 func (run *cleanup) removePath(path environmentPath) {
@@ -363,7 +389,8 @@ func isReparsePoint(status os.FileInfo) bool {
 	return ok && attributes.FileAttributes&windows.FILE_ATTRIBUTE_REPARSE_POINT != 0
 }
 
-func (run *cleanup) removeLooseRobloxFiles() {
+func (run *cleanup) looseRobloxFiles() []environmentPath {
+	var paths []environmentPath
 	for _, folder := range foldersWithLooseRobloxFiles {
 		resolved, ok := folder.resolve()
 		if !ok {
@@ -379,32 +406,28 @@ func (run *cleanup) removeLooseRobloxFiles() {
 		}
 		for _, entry := range entries {
 			if entry.Type().IsRegular() && strings.HasPrefix(strings.ToLower(entry.Name()), "roblox") {
-				run.removePath(folder.join(entry.Name()))
+				paths = append(paths, folder.join(entry.Name()))
 			}
 		}
 	}
+	return paths
 }
 
-func (run *cleanup) deleteRegistryKeys(keys []registryKey) {
-	for _, key := range keys {
-		if run.ctx.Err() != nil {
-			return
-		}
-		existing, err := registry.OpenKey(key.root, key.path, registry.QUERY_VALUE)
-		if errors.Is(err, registry.ErrNotExist) {
-			continue
-		}
-		if err != nil {
-			run.skip(registryLabel(key), err)
-			continue
-		}
-		_ = existing.Close()
-		if err := deleteRegistryTree(key); err != nil {
-			run.skip(registryLabel(key), err)
-			continue
-		}
-		run.deletedCount++
+func (run *cleanup) deleteRegistryKeyIfPresent(key registryKey) {
+	existing, err := registry.OpenKey(key.root, key.path, registry.QUERY_VALUE)
+	if errors.Is(err, registry.ErrNotExist) {
+		return
 	}
+	if err != nil {
+		run.skip(registryLabel(key), err)
+		return
+	}
+	_ = existing.Close()
+	if err := deleteRegistryTree(key); err != nil {
+		run.skip(registryLabel(key), err)
+		return
+	}
+	run.deletedCount++
 }
 
 // deleteRegistryTree deletes a key with all of its subkeys and values.
@@ -424,31 +447,26 @@ func deleteRegistryTree(key registryKey) error {
 	return nil
 }
 
-func (run *cleanup) deleteRegistryValues(values []registryValue) {
-	for _, value := range values {
-		if run.ctx.Err() != nil {
-			return
-		}
-		label := registryLabel(value.key) + `\` + value.name
-		reader, err := registry.OpenKey(value.key.root, value.key.path, registry.QUERY_VALUE)
-		if errors.Is(err, registry.ErrNotExist) {
-			continue
-		}
-		if err != nil {
-			run.skip(label, err)
-			continue
-		}
-		_, _, readError := reader.GetValue(value.name, nil)
-		_ = reader.Close()
-		if errors.Is(readError, registry.ErrNotExist) {
-			continue
-		}
-		if err := deleteRegistryValue(value); err != nil {
-			run.skip(label, err)
-			continue
-		}
-		run.deletedCount++
+func (run *cleanup) deleteRegistryValueIfPresent(value registryValue) {
+	label := registryLabel(value.key) + `\` + value.name
+	reader, err := registry.OpenKey(value.key.root, value.key.path, registry.QUERY_VALUE)
+	if errors.Is(err, registry.ErrNotExist) {
+		return
 	}
+	if err != nil {
+		run.skip(label, err)
+		return
+	}
+	_, _, readError := reader.GetValue(value.name, nil)
+	_ = reader.Close()
+	if errors.Is(readError, registry.ErrNotExist) {
+		return
+	}
+	if err := deleteRegistryValue(value); err != nil {
+		run.skip(label, err)
+		return
+	}
+	run.deletedCount++
 }
 
 func deleteRegistryValue(value registryValue) error {

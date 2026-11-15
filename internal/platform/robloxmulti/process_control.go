@@ -49,10 +49,10 @@ func parseProcessArguments(arguments []string) ([]Process, error) {
 
 // KillProcessesTask closes processes that ProcessArguments encoded. The
 // elevated helper runs it, and KillProcesses verifies each process again.
-func KillProcessesTask(ctx context.Context, arguments []string, logger *slog.Logger) (bool, error) {
+func KillProcessesTask(ctx context.Context, arguments []string, _ func(any), logger *slog.Logger) (any, error) {
 	processes, err := parseProcessArguments(arguments)
 	if err != nil {
-		return false, err
+		return nil, err
 	}
-	return false, KillProcesses(ctx, processes, logger)
+	return nil, KillProcesses(ctx, processes, logger)
 }

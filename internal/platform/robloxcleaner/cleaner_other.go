@@ -10,6 +10,6 @@ import (
 
 const Supported = false
 
-func clean(context.Context, Scope, bool, *slog.Logger) (bool, error) {
-	return false, errors.New("cleaning Roblox is only available on Windows")
+func clean(context.Context, Scope, bool, func(Progress), *slog.Logger) (Outcome, error) {
+	return Outcome{}, errors.New("cleaning Roblox is only available on Windows")
 }

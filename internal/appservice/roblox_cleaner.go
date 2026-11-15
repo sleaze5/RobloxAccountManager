@@ -2,7 +2,9 @@ package appservice
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
+	"fmt"
 
 	"github.com/sleaze5/RobloxAccountManager/internal/platform/elevation"
 	"github.com/sleaze5/RobloxAccountManager/internal/platform/robloxcleaner"
@@ -24,7 +26,8 @@ type RobloxCleanerState struct {
 }
 
 type RobloxCleanReport struct {
-	HasSkippedItems bool `json:"hasSkippedItems"`
+	DeletedCount int `json:"deletedCount"`
+	SkippedCount int `json:"skippedCount"`
 }
 
 func (service *Service) GetRobloxCleanerState() RobloxCleanerState {
@@ -95,17 +98,17 @@ func (service *Service) CleanRoblox(ctx context.Context, scope robloxcleaner.Sco
 	service.launchMutex.Lock()
 	defer service.launchMutex.Unlock()
 	logger := service.logger.With("operation", "roblox-clean", "scope", scope)
-	hasSkippedItems, err := service.runRobloxCleaning(ctx, robloxcleaner.CleanRequest{
+	outcome, err := service.runRobloxCleaning(ctx, robloxcleaner.CleanRequest{
 		Scope:                scope,
 		ShouldCloseProcesses: true,
 		ShouldDeleteLogs:     service.settings.Roblox().DeleteLogsWhenCleaning,
-	})
+	}, service.events.robloxCleanProgressed)
 	if err != nil {
 		logger.Warn("could not clean Roblox", "error", err)
 		return RobloxCleanReport{}, robloxClientError("roblox-clean", elevationMessage(err, "Roblox could not be cleaned. Close Roblox and try again."), err)
 	}
-	logger.Info("Roblox cleaned", "has_skipped_items", hasSkippedItems)
-	return RobloxCleanReport{HasSkippedItems: hasSkippedItems}, nil
+	logger.Info("Roblox cleaned", "deleted_count", outcome.DeletedCount, "skipped_count", outcome.SkippedCount)
+	return RobloxCleanReport{DeletedCount: outcome.DeletedCount, SkippedCount: outcome.SkippedCount}, nil
 }
 
 func (service *Service) shouldCleanBeforeLaunch() bool {
@@ -115,25 +118,38 @@ func (service *Service) shouldCleanBeforeLaunch() bool {
 func (service *Service) cleanBeforeLaunch(ctx context.Context) error {
 	// Running games were closed after confirmation. Other Roblox processes,
 	// such as Roblox Studio, keep running, and the files they hold are skipped.
-	hasSkippedItems, err := service.runRobloxCleaning(ctx, robloxcleaner.CleanRequest{
+	outcome, err := service.runRobloxCleaning(ctx, robloxcleaner.CleanRequest{
 		Scope:            robloxcleaner.ScopeData,
 		ShouldDeleteLogs: service.settings.Roblox().DeleteLogsWhenCleaning,
-	})
+	}, func(robloxcleaner.Progress) {})
 	if err != nil {
 		service.logger.Warn("could not clean Roblox before launch", "operation", "clean-before-launch", "error", err)
 		return robloxClientError("game-launch", elevationMessage(err, "Roblox could not be cleaned before the launch. Try again, or turn off Clean before launch."), err)
 	}
-	if hasSkippedItems {
-		service.logger.Warn("some Roblox items were in use or need administrator rights and were not cleaned", "operation", "clean-before-launch")
+	if outcome.SkippedCount > 0 {
+		service.logger.Warn("some Roblox items were in use or need administrator rights and were not cleaned", "operation", "clean-before-launch", "skipped_count", outcome.SkippedCount)
 	}
 	return nil
 }
 
-func (service *Service) runRobloxCleaning(ctx context.Context, request robloxcleaner.CleanRequest) (bool, error) {
-	if service.shouldUseElevatedHelper() {
-		return service.elevatedHelper.Run(ctx, robloxcleaner.CleanTaskName, request.Arguments())
+func (service *Service) runRobloxCleaning(ctx context.Context, request robloxcleaner.CleanRequest, reportProgress func(robloxcleaner.Progress)) (robloxcleaner.Outcome, error) {
+	if !service.shouldUseElevatedHelper() {
+		return robloxcleaner.Clean(ctx, request, reportProgress, service.logger)
 	}
-	return robloxcleaner.Clean(ctx, request, service.logger)
+	encodedOutcome, err := service.elevatedHelper.Run(ctx, robloxcleaner.CleanTaskName, request.Arguments(), func(encodedProgress json.RawMessage) {
+		var progress robloxcleaner.Progress
+		if json.Unmarshal(encodedProgress, &progress) == nil {
+			reportProgress(progress)
+		}
+	})
+	if err != nil {
+		return robloxcleaner.Outcome{}, err
+	}
+	var outcome robloxcleaner.Outcome
+	if err := json.Unmarshal(encodedOutcome, &outcome); err != nil {
+		return robloxcleaner.Outcome{}, fmt.Errorf("decode the elevated cleaning outcome: %w", err)
+	}
+	return outcome, nil
 }
 
 // shouldUseElevatedHelper reports whether Roblox processes are closed and

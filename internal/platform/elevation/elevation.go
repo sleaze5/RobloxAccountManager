@@ -25,18 +25,19 @@ var (
 	errStopped   = errors.New("the elevated helper stopped")
 )
 
-// Task runs inside the elevated helper process and reports whether it skipped
-// items that it could not change.
-type Task func(ctx context.Context, arguments []string, logger *slog.Logger) (hasSkippedItems bool, err error)
+// Task runs inside the elevated helper process. It may call reportProgress
+// while it works, and its outcome goes back to the application. The
+// application decodes both from JSON into the task's own types.
+type Task func(ctx context.Context, arguments []string, reportProgress func(any), logger *slog.Logger) (outcome any, err error)
 
 type responseStatus string
 
 const (
-	statusReady                     responseStatus = "ready"
-	statusOtherUser                 responseStatus = "other-user"
-	statusCompleted                 responseStatus = "completed"
-	statusCompletedWithSkippedItems responseStatus = "completed-with-skipped-items"
-	statusFailed                    responseStatus = "failed"
+	statusReady     responseStatus = "ready"
+	statusOtherUser responseStatus = "other-user"
+	statusProgress  responseStatus = "progress"
+	statusCompleted responseStatus = "completed"
+	statusFailed    responseStatus = "failed"
 )
 
 type taskRequest struct {
@@ -45,7 +46,8 @@ type taskRequest struct {
 }
 
 type taskResponse struct {
-	Status responseStatus `json:"status"`
+	Status responseStatus  `json:"status"`
+	Data   json.RawMessage `json:"data,omitempty"`
 }
 
 // helperConnection is the application side of a running helper. Requests
@@ -72,45 +74,53 @@ func NewHelper(logger *slog.Logger) *Helper {
 	return &Helper{logger: logger}
 }
 
-func (helper *Helper) Run(ctx context.Context, taskName string, arguments []string) (hasSkippedItems bool, err error) {
+// Run runs a task in the helper and returns its JSON outcome. It passes each
+// JSON progress report of the task to onProgress.
+func (helper *Helper) Run(ctx context.Context, taskName string, arguments []string, onProgress func(json.RawMessage)) (json.RawMessage, error) {
 	helper.mutex.Lock()
 	defer helper.mutex.Unlock()
 	ctx, cancel := context.WithTimeout(ctx, taskTimeout+30*time.Second)
 	defer cancel()
 	if err := helper.waitForStoppedLocked(ctx); err != nil {
-		return false, err
+		return nil, err
 	}
 	encoded, err := json.Marshal(taskRequest{Task: taskName, Arguments: arguments})
 	if err != nil {
-		return false, fmt.Errorf("encode elevated task: %w", err)
+		return nil, fmt.Errorf("encode elevated task: %w", err)
 	}
 	if err := helper.sendLocked(ctx, append(encoded, '\n')); err != nil {
-		return false, err
+		return nil, err
 	}
-	select {
-	case response, isOpen := <-helper.connection.responses:
-		if !isOpen {
-			helper.stopLocked()
-			return false, errStopped
+	for {
+		select {
+		case response, isOpen := <-helper.connection.responses:
+			if !isOpen {
+				helper.stopLocked()
+				return nil, errStopped
+			}
+			switch response.Status {
+			case statusProgress:
+				onProgress(response.Data)
+			case statusCompleted:
+				return response.Data, nil
+			default:
+				return nil, fmt.Errorf("elevated task %s failed", taskName)
+			}
+		case <-ctx.Done():
+			return nil, helper.stopAfterCancelLocked(ctx.Err())
 		}
-		switch response.Status {
-		case statusCompleted:
-			return false, nil
-		case statusCompletedWithSkippedItems:
-			return true, nil
-		default:
-			return false, fmt.Errorf("elevated task %s failed", taskName)
-		}
-	case <-ctx.Done():
-		// The helper finishes the task by itself, then exits because its
-		// request pipe is closed. The caller holds the launch lock, so waiting
-		// here keeps games from starting while the task still deletes files.
-		// The helper ends every task within taskTimeout.
-		helper.stopLocked()
-		stopContext, stopCancel := context.WithTimeout(context.Background(), taskTimeout+30*time.Second)
-		defer stopCancel()
-		return false, errors.Join(ctx.Err(), helper.waitForStoppedLocked(stopContext))
 	}
+}
+
+// stopAfterCancelLocked stops the helper and waits until it exits. The helper
+// finishes its task by itself, then exits because its request pipe is closed.
+// The caller holds the launch lock, so waiting keeps games from starting while
+// the task still deletes files. The helper ends every task within taskTimeout.
+func (helper *Helper) stopAfterCancelLocked(cause error) error {
+	helper.stopLocked()
+	stopContext, stopCancel := context.WithTimeout(context.Background(), taskTimeout+30*time.Second)
+	defer stopCancel()
+	return errors.Join(cause, helper.waitForStoppedLocked(stopContext))
 }
 
 // WaitForStoppedTask waits until a stopped helper has finished its last task.
@@ -204,7 +214,7 @@ func HandleHelperMode(tasks map[string]Task, logger *slog.Logger) (isHelper bool
 		if err := decoder.Decode(&request); err != nil {
 			return true, 0
 		}
-		if err := encoder.Encode(taskResponse{Status: runTask(tasks, request, logger)}); err != nil {
+		if err := encoder.Encode(runTask(tasks, request, encoder, logger)); err != nil {
 			logger.Error("elevated helper could not answer the application", "error", err)
 			return true, 1
 		}
@@ -220,22 +230,42 @@ func closePipes(requests, responses io.Closer) {
 	}
 }
 
-func runTask(tasks map[string]Task, request taskRequest, logger *slog.Logger) responseStatus {
+func runTask(tasks map[string]Task, request taskRequest, encoder *json.Encoder, logger *slog.Logger) taskResponse {
+	logger = logger.With("task", request.Task)
 	task, exists := tasks[request.Task]
 	if !exists {
-		logger.Error("elevated helper received an unknown task", "task", request.Task)
-		return statusFailed
+		logger.Error("elevated helper received an unknown task")
+		return taskResponse{Status: statusFailed}
 	}
 	ctx, cancel := context.WithTimeout(context.Background(), taskTimeout)
 	defer cancel()
-	hasSkippedItems, err := task(ctx, request.Arguments, logger.With("task", request.Task))
-	switch {
-	case err != nil:
-		logger.Error("elevated task failed", "task", request.Task, "error", err)
-		return statusFailed
-	case hasSkippedItems:
-		return statusCompletedWithSkippedItems
-	default:
-		return statusCompleted
+	reportProgress := func(progress any) {
+		response, err := encodeResponse(statusProgress, progress)
+		if err == nil {
+			err = encoder.Encode(response)
+		}
+		if err != nil {
+			// Progress is only shown to the user, so the task keeps going.
+			logger.Warn("elevated helper could not report progress", "error", err)
+		}
 	}
+	outcome, err := task(ctx, request.Arguments, reportProgress, logger)
+	if err != nil {
+		logger.Error("elevated task failed", "error", err)
+		return taskResponse{Status: statusFailed}
+	}
+	response, err := encodeResponse(statusCompleted, outcome)
+	if err != nil {
+		logger.Error("elevated helper could not encode the task outcome", "error", err)
+		return taskResponse{Status: statusFailed}
+	}
+	return response
+}
+
+func encodeResponse(status responseStatus, data any) (taskResponse, error) {
+	encoded, err := json.Marshal(data)
+	if err != nil {
+		return taskResponse{}, fmt.Errorf("encode elevated task data: %w", err)
+	}
+	return taskResponse{Status: status, Data: encoded}, nil
 }
