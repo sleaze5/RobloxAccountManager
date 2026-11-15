@@ -330,7 +330,7 @@ func (client *Client) retryCSRF(execution *requestExecution, snapshot SessionSna
 	if response.Status == http.StatusForbidden && request.RequiresCSRF && response.Header.Get(challengeTypeHeader) == "" {
 		newToken := strings.TrimSpace(response.Header.Get(csrfHeader))
 		if newToken != "" {
-			client.sessions.SetCSRF(snapshot.AccountID, snapshot.SecretVersion, newToken)
+			client.sessions.setCSRF(snapshot.AccountID, snapshot.SecretVersion, newToken)
 			if !execution.csrfRetried && (sentCSRFToken == "" || sentCSRFToken != newToken) {
 				execution.csrfRetried = true
 				execution.serverAttempt--

@@ -7,8 +7,22 @@ import (
 	"sync"
 	"time"
 
+	"github.com/sleaze5/RobloxAccountManager/internal/logging"
 	"github.com/sleaze5/RobloxAccountManager/internal/roblox"
 )
+
+// beginFeatureOperation begins an account session for one operation of a
+// feature. The context carries a new operation ID, and the logger writes to the
+// module of the feature.
+func (service *Service) beginFeatureOperation(parent context.Context, accountID int64, feature, operation string) (context.Context, int64, *slog.Logger, func(), error) {
+	ctx, version, done, err := service.beginAccountSession(parent, accountID, feature)
+	if err != nil {
+		return nil, 0, nil, nil, err
+	}
+	ctx = logging.StartOperation(ctx, feature)
+	logger := service.logs.Module("application."+feature).With("operation", operation, "account_id", accountID)
+	return ctx, version, logger, done, nil
+}
 
 func (service *Service) beginAccountSession(parent context.Context, accountID int64, endpoint string) (context.Context, int64, func(), error) {
 	if accountID <= 0 {
@@ -54,7 +68,7 @@ func (service *Service) runAccountReads(ctx context.Context, accountID, version 
 		if remote, ok := errors.AsType[*roblox.Error](failure); ok {
 			kind, status = remote.Kind, remote.Status
 		}
-		logger.Warn("account section unavailable", "source", reads[index].source, "error_kind", kind, "status", status)
+		logger.WarnContext(ctx, "account section unavailable", "source", reads[index].source, "error_kind", kind, "status", status)
 		if kind == roblox.KindReauthRequired || kind == roblox.KindInvalidSession || kind == roblox.KindVaultLocked || kind == roblox.KindModerated {
 			return nil, failure
 		}

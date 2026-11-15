@@ -16,7 +16,7 @@ const launchBinding = "__ramLaunchRoblox"
 var launchBridgeScript string
 
 type launchBridge struct {
-	client   *CDPClient
+	client   *cdpClient
 	events   chan cdpMessage
 	launch   func(string)
 	contexts map[string]map[int64]bool
@@ -25,7 +25,7 @@ type launchBridge struct {
 	changed  chan struct{}
 }
 
-func (client *CDPClient) InterceptRobloxLaunches(ctx context.Context, launch func(string)) error {
+func (client *cdpClient) interceptRobloxLaunches(ctx context.Context, launch func(string)) error {
 	bridge := &launchBridge{
 		client: client, events: make(chan cdpMessage, 128), launch: launch,
 		contexts: make(map[string]map[int64]bool), sessions: make(map[string]string), changed: make(chan struct{}),
@@ -34,7 +34,7 @@ func (client *CDPClient) InterceptRobloxLaunches(ctx context.Context, launch fun
 	client.launchBridge = bridge
 	client.mutex.Unlock()
 	go bridge.run()
-	return client.Call(ctx, "Target.setAutoAttach", map[string]any{
+	return client.call(ctx, "Target.setAutoAttach", map[string]any{
 		"autoAttach": true, "waitForDebuggerOnStart": true, "flatten": true,
 		"filter": []map[string]any{{"type": "page"}, {"exclude": true}},
 	}, "", nil)
@@ -58,7 +58,7 @@ func (bridge *launchBridge) session(ctx context.Context, targetID string) (strin
 	}
 }
 
-func (client *CDPClient) routeLaunchEvent(message cdpMessage) bool {
+func (client *cdpClient) routeLaunchEvent(message cdpMessage) bool {
 	switch message.Method {
 	case "Target.attachedToTarget", "Target.detachedFromTarget", "Runtime.executionContextCreated", "Runtime.executionContextDestroyed", "Runtime.executionContextsCleared", "Runtime.bindingCalled":
 	default:
@@ -106,7 +106,7 @@ func (bridge *launchBridge) handle(event cdpMessage) {
 	case "Target.attachedToTarget":
 		var params struct {
 			SessionID string    `json:"sessionId"`
-			Target    CDPTarget `json:"targetInfo"`
+			Target    cdpTarget `json:"targetInfo"`
 		}
 		if json.Unmarshal(event.Params, &params) == nil && params.Target.Type == "page" {
 			bridge.attach(params.Target.TargetID, params.SessionID)
@@ -189,7 +189,7 @@ func (bridge *launchBridge) attach(targetID, sessionID string) {
 func (bridge *launchBridge) handleAttachFailure(targetID string, cause error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
 	defer cancel()
-	targets, err := bridge.client.Targets(ctx)
+	targets, err := bridge.client.targets(ctx)
 	if err == nil {
 		found := false
 		for _, target := range targets {
@@ -203,17 +203,17 @@ func (bridge *launchBridge) handleAttachFailure(targetID string, cause error) {
 }
 
 func (bridge *launchBridge) install(ctx context.Context, sessionID string) error {
-	if err := bridge.client.EnablePage(ctx, sessionID); err != nil {
+	if err := bridge.client.enablePage(ctx, sessionID); err != nil {
 		return err
 	}
-	if err := bridge.client.Call(ctx, "Runtime.enable", nil, sessionID, nil); err != nil {
+	if err := bridge.client.call(ctx, "Runtime.enable", nil, sessionID, nil); err != nil {
 		return err
 	}
-	if err := bridge.client.Call(ctx, "Runtime.addBinding", map[string]string{"name": launchBinding}, sessionID, nil); err != nil {
+	if err := bridge.client.call(ctx, "Runtime.addBinding", map[string]string{"name": launchBinding}, sessionID, nil); err != nil {
 		return err
 	}
-	if err := bridge.client.Call(ctx, "Page.addScriptToEvaluateOnNewDocument", map[string]any{"source": launchBridgeScript, "runImmediately": true}, sessionID, nil); err != nil {
+	if err := bridge.client.call(ctx, "Page.addScriptToEvaluateOnNewDocument", map[string]any{"source": launchBridgeScript, "runImmediately": true}, sessionID, nil); err != nil {
 		return err
 	}
-	return bridge.client.Call(ctx, "Runtime.runIfWaitingForDebugger", nil, sessionID, nil)
+	return bridge.client.call(ctx, "Runtime.runIfWaitingForDebugger", nil, sessionID, nil)
 }

@@ -231,9 +231,8 @@ func (service *Users) PreviousNames(ctx context.Context, accountID, version, use
 	ctx, cancel := context.WithTimeout(ctx, 30*time.Second)
 	defer cancel()
 	names := []string{}
-	seenNames, seenCursors := map[string]bool{}, map[string]bool{}
-	cursor := ""
-	for range maxUsernameHistoryPages {
+	seenNames := map[string]bool{}
+	err := readCursorPages("profile-previous-names", maxUsernameHistoryPages, "Roblox returned too many previous names to list.", func(cursor string) (string, error) {
 		var payload struct {
 			Data *[]struct {
 				Name string `json:"name"`
@@ -246,15 +245,15 @@ func (service *Users) PreviousNames(ctx context.Context, accountID, version, use
 		}
 		address := "https://users.roblox.com/v1/users/" + strconv.FormatInt(userID, 10) + "/username-history?" + query.Encode()
 		if err := service.readAccountDetails(ctx, accountID, version, "profile-previous-names", address, &payload); err != nil {
-			return nil, err
+			return "", err
 		}
 		if payload.Data == nil || len(*payload.Data) > usernameHistoryPageSize {
-			return nil, invalidProfileDetails("profile-previous-names")
+			return "", invalidProfileDetails("profile-previous-names")
 		}
 		for _, entry := range *payload.Data {
 			name := strings.TrimSpace(entry.Name)
 			if name == "" || len(name) > 64 {
-				return nil, invalidProfileDetails("profile-previous-names")
+				return "", invalidProfileDetails("profile-previous-names")
 			}
 			key := strings.ToLower(name)
 			if !seenNames[key] {
@@ -262,16 +261,15 @@ func (service *Users) PreviousNames(ctx context.Context, accountID, version, use
 				names = append(names, name)
 			}
 		}
-		if payload.NextPageCursor == nil || *payload.NextPageCursor == "" {
-			return names, nil
+		if payload.NextPageCursor == nil {
+			return "", nil
 		}
-		cursor = *payload.NextPageCursor
-		if len(cursor) > 4096 || seenCursors[cursor] {
-			return nil, invalidProfileDetails("profile-previous-names")
-		}
-		seenCursors[cursor] = true
+		return *payload.NextPageCursor, nil
+	})
+	if err != nil {
+		return nil, err
 	}
-	return nil, &roblox.Error{Kind: roblox.KindProtocol, Endpoint: "profile-previous-names", Message: "Roblox returned too many previous names to list."}
+	return names, nil
 }
 
 type UserPrimaryGroup struct {
@@ -310,16 +308,12 @@ func (service *Users) SocialCount(ctx context.Context, accountID, version, userI
 	default:
 		return nil, invalidProfileDetails("profile-social")
 	}
-	var payload struct {
-		Count *int64 `json:"count"`
-	}
-	endpoint := "profile-" + counter
 	address := "https://friends.roblox.com/v1/users/" + strconv.FormatInt(userID, 10) + "/" + counter + "/count"
-	err := service.readAccountDetails(ctx, accountID, version, endpoint, address, &payload)
-	if err == nil && (payload.Count == nil || *payload.Count < 0) {
-		err = invalidProfileDetails(endpoint)
+	count, err := service.readCount(ctx, accountID, version, "profile-"+counter, address)
+	if err != nil {
+		return nil, err
 	}
-	return payload.Count, err
+	return &count, nil
 }
 
 func (service *Users) PrimaryGroup(ctx context.Context, accountID, version, userID int64) (*UserPrimaryGroup, error) {
@@ -368,7 +362,6 @@ func (service *Users) CommunityCount(ctx context.Context, accountID, version, us
 
 // Shape of the unread count verified against signed-in responses captured on
 // 2026-10-15.
-
 func (service *Users) UnreadNotificationCount(ctx context.Context, accountID, version int64) (int64, error) {
 	var payload struct {
 		UnreadNotifications *int64 `json:"unreadNotifications"`
@@ -565,7 +558,7 @@ func (service *Users) Transactions(ctx context.Context, accountID, version, user
 	if payload.NextPageCursor != nil {
 		nextCursor = *payload.NextPageCursor
 	}
-	if len(nextCursor) > 4096 {
+	if len(nextCursor) > maxCursorLength {
 		return nil, "", invalidProfileDetails("robux-transactions")
 	}
 	return transactions, nextCursor, nil
@@ -582,9 +575,7 @@ func (service *Users) Collectibles(ctx context.Context, accountID, version, user
 	ctx, cancel := context.WithTimeout(ctx, 30*time.Second)
 	defer cancel()
 	collectibles := UserCollectibles{}
-	seenCursors := map[string]bool{}
-	cursor := ""
-	for range maxCollectiblePages {
+	err := readCursorPages("profile-collectibles", maxCollectiblePages, "This account has too many collectibles to count.", func(cursor string) (string, error) {
 		var payload struct {
 			Data *[]struct {
 				RecentAveragePrice *int64 `json:"recentAveragePrice"`
@@ -597,10 +588,10 @@ func (service *Users) Collectibles(ctx context.Context, accountID, version, user
 		}
 		address := "https://inventory.roblox.com/v1/users/" + strconv.FormatInt(userID, 10) + "/assets/collectibles?" + query.Encode()
 		if err := service.readAccountDetails(ctx, accountID, version, "profile-collectibles", address, &payload); err != nil {
-			return UserCollectibles{}, err
+			return "", err
 		}
 		if payload.Data == nil || len(*payload.Data) > collectiblePageSize {
-			return UserCollectibles{}, invalidProfileDetails("profile-collectibles")
+			return "", invalidProfileDetails("profile-collectibles")
 		}
 		for _, listedCollectible := range *payload.Data {
 			collectibles.Count++
@@ -608,16 +599,15 @@ func (service *Users) Collectibles(ctx context.Context, accountID, version, user
 				collectibles.RecentAveragePriceTotal += *listedCollectible.RecentAveragePrice
 			}
 		}
-		if payload.NextPageCursor == nil || *payload.NextPageCursor == "" {
-			return collectibles, nil
+		if payload.NextPageCursor == nil {
+			return "", nil
 		}
-		cursor = *payload.NextPageCursor
-		if len(cursor) > 4096 || seenCursors[cursor] {
-			return UserCollectibles{}, invalidProfileDetails("profile-collectibles")
-		}
-		seenCursors[cursor] = true
+		return *payload.NextPageCursor, nil
+	})
+	if err != nil {
+		return UserCollectibles{}, err
 	}
-	return UserCollectibles{}, &roblox.Error{Kind: roblox.KindProtocol, Endpoint: "profile-collectibles", Message: "This account has too many collectibles to count."}
+	return collectibles, nil
 }
 
 func (service *Users) readAccountDetails(ctx context.Context, accountID, version int64, endpoint, address string, target any) error {

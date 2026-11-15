@@ -39,7 +39,7 @@ func (events *Events) SessionChanged(accountID int64) {
 	}{AccountID: accountID})
 }
 
-func (events *Events) CredentialBackupChanged(message string) {
+func (events *Events) credentialBackupChanged(message string) {
 	events.send("vault:credential-backup-changed", struct {
 		Message string `json:"message"`
 	}{Message: message})
@@ -51,7 +51,7 @@ func (events *Events) BrowserChanged(revision uint64) {
 	}{Revision: revision})
 }
 
-func (events *Events) BrowserLaunchFailed(sessionID, message string) {
+func (events *Events) browserLaunchFailed(sessionID, message string) {
 	events.send("browser:launch-failed", struct {
 		SessionID string `json:"sessionId"`
 		Message   string `json:"message"`
@@ -62,14 +62,14 @@ func (events *Events) UpdateChanged() {
 	events.send("update:state-changed", struct{}{})
 }
 
-func (events *Events) LaunchConfirmationChanged() {
+func (events *Events) launchConfirmationChanged() {
 	events.send("game:launch-confirmation-changed", struct{}{})
 }
 
-// LaunchConfirmationRequested also brings the window forward, because the
+// launchConfirmationRequested also brings the window forward, because the
 // launch waits until the user answers.
-func (events *Events) LaunchConfirmationRequested() {
-	events.LaunchConfirmationChanged()
+func (events *Events) launchConfirmationRequested() {
+	events.launchConfirmationChanged()
 	events.mutex.RLock()
 	showWindow := events.showWindow
 	events.mutex.RUnlock()
@@ -86,7 +86,7 @@ func (events *Events) RateLimited(retryAt time.Time) {
 	}
 }
 
-func (events *Events) BackgroundPaused(now time.Time) bool {
+func (events *Events) isBackgroundPaused(now time.Time) bool {
 	events.mutex.RLock()
 	defer events.mutex.RUnlock()
 	return events.rateUntil.After(now)

@@ -1,6 +1,6 @@
 import type { GamePlace } from "../backend/bridge"
 
-export interface PlaceSearchEntry {
+interface PlaceSearchEntry {
 	place: GamePlace
 	id: string
 	names: string[]
@@ -40,9 +40,9 @@ function nameScore(name: string, query: string): number {
 	if (name.includes(query)) return 2
 	let first = -1,
 		at = 0
-	for (const char of query) {
-		if (char === " ") continue
-		at = name.indexOf(char, at + 1)
+	for (const character of query) {
+		if (character === " ") continue
+		at = name.indexOf(character, at + 1)
 		if (at < 0) return Infinity
 		if (first < 0) first = at
 	}

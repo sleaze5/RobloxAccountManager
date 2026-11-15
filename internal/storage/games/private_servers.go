@@ -25,7 +25,7 @@ func (repository *Repository) AllPrivateServers(ctx context.Context) ([]games.Sa
 }
 
 func (repository *Repository) listPrivateServers(ctx context.Context, query string, arguments ...any) ([]games.SavedPrivateServer, error) {
-	database, release, err := repository.provider.Lease(ctx)
+	database, release, err := repository.vault.Lease(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -51,7 +51,7 @@ func (repository *Repository) listPrivateServers(ctx context.Context, query stri
 }
 
 func (repository *Repository) SavePrivateServer(ctx context.Context, server games.SavedPrivateServer) (games.SavedPrivateServer, error) {
-	database, release, err := repository.provider.Lease(ctx)
+	database, release, err := repository.vault.Lease(ctx)
 	if err != nil {
 		return games.SavedPrivateServer{}, err
 	}
@@ -81,7 +81,7 @@ func (repository *Repository) SavePrivateServer(ctx context.Context, server game
 }
 
 func (repository *Repository) RemovePrivateServer(ctx context.Context, savedPrivateServerID int64) error {
-	database, release, err := repository.provider.Lease(ctx)
+	database, release, err := repository.vault.Lease(ctx)
 	if err != nil {
 		return err
 	}

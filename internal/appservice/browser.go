@@ -73,11 +73,11 @@ func (service *Service) LaunchBrowserGame(ctx context.Context, sessionID, protoc
 	if ctx.Err() != nil || !service.vault.Unlocked() {
 		return
 	}
-	ctx = logging.WithOperation(ctx, logging.NewOperationID("launch"))
+	ctx = logging.StartOperation(ctx, "launch")
 	logger := service.logger.With("operation", "browser-game-launch", "session_id", sessionID)
 	if err := gamelaunch.ValidateBrowserProtocolURL(protocolURL); err != nil {
 		logger.WarnContext(ctx, "invalid browser game launch rejected", "error", err)
-		service.events.BrowserLaunchFailed(sessionID, "The browser supplied an invalid game launch. Try joining again.")
+		service.events.browserLaunchFailed(sessionID, "The browser supplied an invalid game launch. Try joining again.")
 		return
 	}
 	err := service.serializeLaunch(ctx, func() error {
@@ -99,7 +99,7 @@ func (service *Service) LaunchBrowserGame(ctx context.Context, sessionID, protoc
 			message = failure.Message
 		}
 		logger.WarnContext(ctx, "browser game launch failed", "error_message", message)
-		service.events.BrowserLaunchFailed(sessionID, message)
+		service.events.browserLaunchFailed(sessionID, message)
 		return
 	}
 	logger.InfoContext(ctx, "browser game launched")

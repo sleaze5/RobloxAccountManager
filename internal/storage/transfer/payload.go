@@ -9,17 +9,14 @@ import (
 	"unicode/utf8"
 
 	accountdomain "github.com/sleaze5/RobloxAccountManager/internal/accounts"
+	"github.com/sleaze5/RobloxAccountManager/internal/games"
 )
 
-const (
-	FormatVersion              = 3
-	maxFavoriteNicknameLength  = 50
-	maxPrivateServerNameLength = 50
-)
+const FormatVersion = 3
 
 var (
 	ErrUnsupportedVersion = errors.New("export data is from a newer version")
-	ErrInvalidPayload     = errors.New("export data is damaged")
+	errInvalidPayload     = errors.New("export data is damaged")
 )
 
 type object = map[string]json.RawMessage
@@ -107,11 +104,11 @@ func Encode(payload Payload) ([]byte, error) {
 func Decode(payloadJSON []byte) (Payload, error) {
 	var document object
 	if err := json.Unmarshal(payloadJSON, &document); err != nil || document == nil {
-		return Payload{}, ErrInvalidPayload
+		return Payload{}, errInvalidPayload
 	}
 	var version int
 	if err := json.Unmarshal(document["version"], &version); err != nil || version < 1 {
-		return Payload{}, ErrInvalidPayload
+		return Payload{}, errInvalidPayload
 	}
 	if version > FormatVersion {
 		return Payload{}, fmt.Errorf("%w: export data version %d", ErrUnsupportedVersion, version)
@@ -119,7 +116,7 @@ func Decode(payloadJSON []byte) (Payload, error) {
 	for from := version; from < FormatVersion; from++ {
 		var err error
 		if document, err = migrations[from-1](document); err != nil {
-			return Payload{}, fmt.Errorf("%w: migrate export data from version %d: %w", ErrInvalidPayload, from, err)
+			return Payload{}, fmt.Errorf("%w: migrate export data from version %d: %w", errInvalidPayload, from, err)
 		}
 	}
 	migrated, err := json.Marshal(document)
@@ -130,10 +127,10 @@ func Decode(payloadJSON []byte) (Payload, error) {
 	decoder.DisallowUnknownFields()
 	var payload Payload
 	if err := decoder.Decode(&payload); err != nil {
-		return Payload{}, fmt.Errorf("%w: %w", ErrInvalidPayload, err)
+		return Payload{}, fmt.Errorf("%w: %w", errInvalidPayload, err)
 	}
 	if err := payload.validate(); err != nil {
-		return Payload{}, fmt.Errorf("%w: %w", ErrInvalidPayload, err)
+		return Payload{}, fmt.Errorf("%w: %w", errInvalidPayload, err)
 	}
 	return payload, nil
 }
@@ -163,7 +160,7 @@ func validateSavedPrivateServers(servers []SavedPrivateServer) error {
 		if server.PlaceID <= 0 || (server.AccessCode == "") == (server.LinkCode == "") ||
 			server.AccessCode != "" && !privateServerCodePattern.MatchString(server.AccessCode) ||
 			server.LinkCode != "" && !privateServerCodePattern.MatchString(server.LinkCode) ||
-			!utf8.ValidString(server.Name) || utf8.RuneCountInString(server.Name) > maxPrivateServerNameLength {
+			!utf8.ValidString(server.Name) || utf8.RuneCountInString(server.Name) > games.MaxPrivateServerNameLength {
 			return errors.New("invalid saved private server")
 		}
 		serverKey := key{server.PlaceID, server.AccessCode, server.LinkCode}
@@ -214,7 +211,7 @@ func validateAccounts(accounts []Account, tags map[string]struct{}) error {
 func validateFavoritePlaces(places []FavoritePlace) error {
 	seen := make(map[int64]struct{}, len(places))
 	for _, place := range places {
-		if place.PlaceID <= 0 || !utf8.ValidString(place.Nickname) || utf8.RuneCountInString(place.Nickname) > maxFavoriteNicknameLength {
+		if place.PlaceID <= 0 || !utf8.ValidString(place.Nickname) || utf8.RuneCountInString(place.Nickname) > games.MaxFavoriteNicknameLength {
 			return errors.New("invalid favorite place")
 		}
 		if _, duplicate := seen[place.PlaceID]; duplicate {

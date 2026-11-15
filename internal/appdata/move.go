@@ -49,10 +49,10 @@ func Move(target Mode) (moved bool, err error) {
 }
 
 func moveRoots(target Mode) (Paths, Paths, error) {
-	if _, err := ParseMode(string(target)); err != nil {
+	if _, err := parseMode(string(target)); err != nil {
 		return Paths{}, Paths{}, moveError("This storage option is unavailable.", err)
 	}
-	executableDirectory, err := ExecutableDirectory()
+	executableDirectory, err := resolveExecutableDirectory()
 	if err != nil {
 		return Paths{}, Paths{}, moveError("The app folder could not be found.", err)
 	}

@@ -73,16 +73,16 @@ func (service *Users) InventoryItemDetails(ctx context.Context, accountID, versi
 	if !ok {
 		return InventoryItemDetails{}, &roblox.Error{Kind: roblox.KindProtocol, Endpoint: "inventory-item-details", Message: "Choose an inventory category."}
 	}
-	item := strconv.FormatInt(itemID, 10)
+	itemIDText := strconv.FormatInt(itemID, 10)
 	switch itemType {
 	case inventoryItemBadge:
-		return service.badgeItemDetails(ctx, accountID, version, item)
+		return service.badgeItemDetails(ctx, accountID, version, itemIDText)
 	case inventoryItemGamePass:
-		return service.gamePassItemDetails(ctx, accountID, version, item)
+		return service.gamePassItemDetails(ctx, accountID, version, itemIDText)
 	case inventoryItemBundle:
-		return service.bundleItemDetails(ctx, accountID, version, item)
+		return service.bundleItemDetails(ctx, accountID, version, itemIDText)
 	default:
-		return service.assetItemDetails(ctx, accountID, version, item)
+		return service.assetItemDetails(ctx, accountID, version, itemIDText)
 	}
 }
 

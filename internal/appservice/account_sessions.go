@@ -69,13 +69,14 @@ func (service *Service) SignOutOtherSessions(ctx context.Context, accountID int6
 		return CookieRenewalResult{}, err
 	}
 	defer done()
-	logger := service.logger.With("operation_id", logging.NewOperationID("sessions-sign-out"), "operation", "sessions-sign-out", "account_id", accountID)
+	ctx = logging.StartOperation(ctx, "sessions-sign-out")
+	logger := service.logger.With("operation", "sessions-sign-out", "account_id", accountID)
 	if err := service.authentication.SignOutOtherSessions(ctx, accountID, version); err != nil {
 		kind, status := roblox.KindProtocol, 0
 		if remote, ok := errors.AsType[*roblox.Error](err); ok {
 			kind, status = remote.Kind, remote.Status
 		}
-		logger.Warn("signing out other sessions failed", "error_kind", kind, "status", status)
+		logger.WarnContext(ctx, "signing out other sessions failed", "error_kind", kind, "status", status)
 		if kind == roblox.KindChallengeRequired {
 			return CookieRenewalResult{}, &roblox.Error{Kind: kind, Endpoint: "sessions-sign-out", Status: status, Message: "Roblox requires extra verification to sign out other sessions. Do it on the Roblox website.", Cause: err}
 		}
@@ -84,6 +85,6 @@ func (service *Service) SignOutOtherSessions(ctx context.Context, accountID int6
 	service.browser.DetachAccount(accountID, "Other sessions were signed out. Reopen this account's browser to use the new session.")
 	service.events.SessionChanged(accountID)
 	renewalResult := CookieRenewalResult{Warning: service.refreshCredentialBackup(ctx, logger, false)}
-	logger.Info("signed out other sessions", "backup_warning", renewalResult.Warning != "")
+	logger.InfoContext(ctx, "signed out other sessions", "backup_warning", renewalResult.Warning != "")
 	return renewalResult, nil
 }

@@ -27,16 +27,16 @@ func (service *Users) BuyInventoryItem(ctx context.Context, accountID, version, 
 	if !ok || itemType == inventoryItemBadge {
 		return false, purchaseRefusal("Only catalog items and game passes can be bought.")
 	}
-	item := strconv.FormatInt(itemID, 10)
+	itemIDText := strconv.FormatInt(itemID, 10)
 	if itemType == inventoryItemGamePass {
-		return service.buyGamePass(ctx, accountID, version, item, expectedPriceInRobux)
+		return service.buyGamePass(ctx, accountID, version, itemIDText, expectedPriceInRobux)
 	}
 	var details InventoryItemDetails
 	var err error
 	if itemType == inventoryItemBundle {
-		details, err = service.bundleItemDetails(ctx, accountID, version, item)
+		details, err = service.bundleItemDetails(ctx, accountID, version, itemIDText)
 	} else {
-		details, err = service.assetItemDetails(ctx, accountID, version, item)
+		details, err = service.assetItemDetails(ctx, accountID, version, itemIDText)
 	}
 	if err != nil {
 		return false, err

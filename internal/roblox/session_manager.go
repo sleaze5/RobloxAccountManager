@@ -158,7 +158,7 @@ func (manager *SessionManager) CSRF(accountID, version int64) string {
 	return session.csrfToken
 }
 
-func (manager *SessionManager) SetCSRF(accountID, version int64, token string) {
+func (manager *SessionManager) setCSRF(accountID, version int64, token string) {
 	session := manager.get(accountID)
 	if session == nil || token == "" {
 		return

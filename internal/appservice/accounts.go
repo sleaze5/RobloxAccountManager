@@ -123,7 +123,7 @@ func (service *Service) SynchronizeBrowserCookie(ctx context.Context, accountID,
 		return 0, applyError
 	}
 	logger := service.logger.With("operation", "browser-cookie-synchronization", "account_id", accountID)
-	service.events.CredentialBackupChanged(service.refreshCredentialBackup(ctx, logger, true))
+	service.events.credentialBackupChanged(service.refreshCredentialBackup(ctx, logger, true))
 	return record.SecretVersion, nil
 }
 
@@ -148,7 +148,7 @@ func (service *Service) replaceValidatedCookie(ctx context.Context, accountID in
 	}
 	service.events.send("account:updated", view)
 	service.browser.DetachAccount(accountID, "The saved cookie changed elsewhere. This browser is no longer synchronized.")
-	service.events.CredentialBackupChanged(service.refreshCredentialBackup(ctx, logger, false))
+	service.events.credentialBackupChanged(service.refreshCredentialBackup(ctx, logger, false))
 	return view, nil
 }
 

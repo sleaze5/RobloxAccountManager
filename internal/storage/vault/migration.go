@@ -22,8 +22,8 @@ const (
 )
 
 var (
-	ErrNoMigration      = errors.New("no migration file was found")
-	ErrInvalidMigration = errors.New("the migration file is damaged")
+	errNoMigration      = errors.New("no migration file was found")
+	errInvalidMigration = errors.New("the migration file is damaged")
 	migrationMagic      = [8]byte{'R', 'A', 'M', 'M', 'I', 'G', 'R', 0}
 )
 
@@ -74,19 +74,19 @@ func (manager *Manager) MigrationAvailable() bool { return fileExists(manager.pa
 func (manager *Manager) readMigration(vaultKey []byte, identifier [vaultIDBytes]byte) ([]byte, error) {
 	encodedMigration, err := readBounded(manager.paths.Migration, exportFileLimit)
 	if errors.Is(err, os.ErrNotExist) {
-		return nil, ErrNoMigration
+		return nil, errNoMigration
 	}
 	if err != nil {
 		return nil, err
 	}
 	if len(encodedMigration) < migrationHeaderBytes || !bytes.Equal(encodedMigration[:len(migrationMagic)], migrationMagic[:]) {
-		return nil, ErrInvalidMigration
+		return nil, errInvalidMigration
 	}
 	if version := binary.BigEndian.Uint16(encodedMigration[len(migrationMagic):]); version != migrationFormatVersion {
-		return nil, fmt.Errorf("%w: migration format version %d", ErrInvalidMigration, version)
+		return nil, fmt.Errorf("%w: migration format version %d", errInvalidMigration, version)
 	}
 	if !bytes.Equal(encodedMigration[len(migrationMagic)+2:len(migrationMagic)+2+vaultIDBytes], identifier[:]) {
-		return nil, fmt.Errorf("%w: the migration file belongs to another vault", ErrInvalidMigration)
+		return nil, fmt.Errorf("%w: the migration file belongs to another vault", errInvalidMigration)
 	}
 	key, err := migrationKey(vaultKey)
 	if err != nil {
@@ -104,7 +104,7 @@ func (manager *Manager) readMigration(vaultKey []byte, identifier [vaultIDBytes]
 	header := encodedMigration[:migrationHeaderBytes]
 	payload, err := gcm.Open(nil, header[len(migrationMagic)+2+vaultIDBytes:], encodedMigration[migrationHeaderBytes:], header)
 	if err != nil {
-		return nil, fmt.Errorf("%w: %w", ErrInvalidMigration, err)
+		return nil, fmt.Errorf("%w: %w", errInvalidMigration, err)
 	}
 	return payload, nil
 }

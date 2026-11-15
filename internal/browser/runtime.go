@@ -127,7 +127,7 @@ func NewRuntimeManager(paths appdata.Paths, logger *slog.Logger) (*RuntimeManage
 }
 
 func (manager *RuntimeManager) Manifest() Manifest { return manager.manifest }
-func (manager *RuntimeManager) MarkDamaged() {
+func (manager *RuntimeManager) markDamaged() {
 	manager.mutex.Lock()
 	manager.state.Status = RuntimeDamaged
 	manager.state.Error = invalidRuntimeError
@@ -135,7 +135,7 @@ func (manager *RuntimeManager) MarkDamaged() {
 	manager.logger.Warn("CfT runtime marked damaged", "version", manager.manifest.Version)
 	manager.notify()
 }
-func (manager *RuntimeManager) SetChanged(changed func()) {
+func (manager *RuntimeManager) setChanged(changed func()) {
 	manager.mutex.Lock()
 	manager.changed = changed
 	manager.mutex.Unlock()
@@ -264,7 +264,7 @@ func (manager *RuntimeManager) install(ctx context.Context) error {
 }
 
 func (manager *RuntimeManager) Remove() error {
-	if err := manager.StopDownload(30 * time.Second); err != nil {
+	if err := manager.stopDownload(30 * time.Second); err != nil {
 		return err
 	}
 	manager.mutex.Lock()
@@ -303,7 +303,7 @@ func (manager *RuntimeManager) managedRuntimeDirectories() []string {
 	return directories
 }
 
-func (manager *RuntimeManager) StopDownload(timeout time.Duration) error {
+func (manager *RuntimeManager) stopDownload(timeout time.Duration) error {
 	manager.mutex.Lock()
 	cancel, done := manager.cancel, manager.done
 	manager.mutex.Unlock()

@@ -16,7 +16,6 @@ import (
 
 const (
 	inventoryPageSize             = 100
-	maxInventoryCursorLength      = 4096
 	maxInventoryItemNameLength    = 200
 	maxInventoryDescriptionLength = 4000
 	maxInventoryResponseBytes     = 2 << 20
@@ -160,7 +159,7 @@ type InventoryPage struct {
 // InventoryPage reads one page of what the user owns in the category, newest
 // first, without images or catalog details.
 func (service *Users) InventoryPage(ctx context.Context, accountID, version, userID int64, category InventoryCategory, cursor string) (InventoryPage, error) {
-	if len(cursor) > maxInventoryCursorLength {
+	if len(cursor) > maxCursorLength {
 		return InventoryPage{}, &roblox.Error{Kind: roblox.KindProtocol, Endpoint: "inventory", Message: "This page has expired. Refresh the inventory."}
 	}
 	ctx, cancel := context.WithTimeout(ctx, 30*time.Second)
@@ -516,7 +515,7 @@ func pagedInventoryQuery(cursor string) url.Values {
 
 // inventoryPageOf drops entries without a valid ID and checks the page bounds.
 func inventoryPageOf(listedItems []InventoryItem, nextCursor *string, endpoint string) (InventoryPage, error) {
-	if len(listedItems) > inventoryPageSize || (nextCursor != nil && len(*nextCursor) > maxInventoryCursorLength) {
+	if len(listedItems) > inventoryPageSize || (nextCursor != nil && len(*nextCursor) > maxCursorLength) {
 		return InventoryPage{}, invalidInventory(endpoint)
 	}
 	page := InventoryPage{Items: make([]InventoryItem, 0, len(listedItems))}

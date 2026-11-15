@@ -17,8 +17,6 @@ import (
 	gamestore "github.com/sleaze5/RobloxAccountManager/internal/storage/games"
 )
 
-const maxPrivateServerNameLength = 50
-
 var privateServerUsernamePattern = regexp.MustCompile(`^[a-zA-Z0-9_]{1,20}$`)
 
 func (service *Service) ListOwnedPrivateServers(ctx context.Context, accountID int64, cursor string) (games.OwnedPrivateServerPage, error) {
@@ -249,7 +247,7 @@ func (service *Service) privateServerSettings(ctx context.Context, accountID, ve
 
 func privateServerName(name string) (string, error) {
 	name = strings.TrimSpace(name)
-	if name == "" || utf8.RuneCountInString(name) > maxPrivateServerNameLength || strings.ContainsFunc(name, unicode.IsControl) {
+	if name == "" || utf8.RuneCountInString(name) > games.MaxPrivateServerNameLength || strings.ContainsFunc(name, unicode.IsControl) {
 		return "", privateServerInputError("Enter a name of up to 50 characters.")
 	}
 	return name, nil
@@ -284,7 +282,7 @@ func (service *Service) SavePrivateServerLink(ctx context.Context, placeID, acco
 		return games.SavedPrivateServer{}, err
 	}
 	name = strings.TrimSpace(name)
-	if utf8.RuneCountInString(name) > maxPrivateServerNameLength || strings.ContainsFunc(name, unicode.IsControl) {
+	if utf8.RuneCountInString(name) > games.MaxPrivateServerNameLength || strings.ContainsFunc(name, unicode.IsControl) {
 		return games.SavedPrivateServer{}, privateServerInputError("Enter a name of up to 50 characters.")
 	}
 	target, err := service.privateServerTarget(ctx, accountID, link)

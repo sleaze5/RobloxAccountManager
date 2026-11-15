@@ -96,7 +96,7 @@
 	<div
 		class="settings-layout"
 		style={`--sidebar-width: ${workspace.accountSettingsSidebarWidth}px;`}>
-		<aside class="flex settings-sidebar flex-col gap-2 p-2" data-chat-sidebar>
+		<aside class="flex settings-sidebar flex-col gap-2 p-2" data-load-more-root>
 			{#if chat.error}
 				<p class="notice-error" role="alert">
 					{chat.error}

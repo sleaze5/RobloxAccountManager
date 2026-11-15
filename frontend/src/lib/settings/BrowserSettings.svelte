@@ -10,6 +10,7 @@
 	import type { ShutdownEffects } from "../backend/bridge"
 	import { formatCompactBytes } from "../shared/bytes"
 	import Dialog from "../shared/Dialog.svelte"
+	import { matchesSearch, searchTerms } from "../shared/search"
 	import ConnectionHosts from "./ConnectionHosts.svelte"
 	import SectionLink from "./SectionLink.svelte"
 	import SettingsStatus from "./SettingsStatus.svelte"
@@ -22,12 +23,10 @@
 			runtime.status === RuntimeStatus.RuntimeDownloading ||
 				runtime.status === RuntimeStatus.RuntimeInstalling,
 		),
-		terms = $derived(query.trim().toLowerCase().split(/\s+/).filter(Boolean)),
 		visible = $derived(
-			terms.every((term) =>
-				`integrations browser chrome testing runtime version download redownload remove disk usage installed manage hosts connect storage.googleapis.com`.includes(
-					term,
-				),
+			matchesSearch(
+				searchTerms(query),
+				"integrations browser chrome testing runtime version download redownload remove disk usage installed manage hosts connect storage.googleapis.com",
 			),
 		)
 

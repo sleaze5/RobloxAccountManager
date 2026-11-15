@@ -228,8 +228,8 @@ func ValidRegionCode(code string) bool {
 	if len(code) < 2 || len(code) > 64 {
 		return false
 	}
-	for _, char := range code {
-		if (char < 'A' || char > 'Z') && char != '-' && char != ' ' {
+	for _, character := range code {
+		if (character < 'A' || character > 'Z') && character != '-' && character != ' ' {
 			return false
 		}
 	}

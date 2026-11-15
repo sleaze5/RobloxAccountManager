@@ -5,6 +5,7 @@ import (
 	"strconv"
 
 	"github.com/sleaze5/RobloxAccountManager/internal/games"
+	"github.com/sleaze5/RobloxAccountManager/internal/logging"
 	"github.com/sleaze5/RobloxAccountManager/internal/logsexplorer"
 	"github.com/sleaze5/RobloxAccountManager/internal/roblox"
 	"github.com/sleaze5/RobloxAccountManager/internal/storage/vault"
@@ -14,6 +15,7 @@ func (service *Service) GetLogsExplorer(ctx context.Context) (logsexplorer.Snaps
 	if !service.vault.Unlocked() {
 		return logsexplorer.Snapshot{}, mapRepositoryError(vault.ErrLocked)
 	}
+	ctx = logging.StartOperation(ctx, "logs-explorer")
 	snapshot, err := service.logsExplorer.ReadAll(ctx)
 	if err != nil {
 		return logsexplorer.Snapshot{}, &roblox.Error{
@@ -28,6 +30,7 @@ func (service *Service) RefreshLogsExplorerLog(ctx context.Context, fileName str
 	if !service.vault.Unlocked() {
 		return logsexplorer.Session{}, mapRepositoryError(vault.ErrLocked)
 	}
+	ctx = logging.StartOperation(ctx, "logs-explorer")
 	session, err := service.logsExplorer.ReadFile(ctx, fileName)
 	if err != nil {
 		return logsexplorer.Session{}, &roblox.Error{
@@ -48,6 +51,7 @@ func (service *Service) FindGameServerVisit(ctx context.Context, placeID int64, 
 	if !games.ValidJobID(jobID) {
 		return logsexplorer.ServerVisit{}, gamesInputError("The server is invalid. Search again.")
 	}
+	ctx = logging.StartOperation(ctx, "logs-explorer")
 	visit, err := service.logsExplorer.FindServerVisit(ctx, strconv.FormatInt(placeID, 10), jobID)
 	if err != nil {
 		return logsexplorer.ServerVisit{}, &roblox.Error{
@@ -62,7 +66,8 @@ func (service *Service) FindGameServerVisit(ctx context.Context, placeID int64, 
 // is filled before the first server visit is looked up. Parsing many logs can
 // take a while, and a later read only parses logs that changed.
 func (service *Service) readRobloxLogsAhead(ctx context.Context) {
+	ctx = logging.StartOperation(ctx, "logs-explorer")
 	if _, err := service.logsExplorer.ReadAll(ctx); err != nil && ctx.Err() == nil {
-		service.logs.Module("logs-explorer").Debug("Roblox logs could not be read ahead", "operation", "logs-read-ahead", "error", err)
+		service.logs.Module("logs-explorer").DebugContext(ctx, "Roblox logs could not be read ahead", "operation", "logs-read-ahead", "error", err)
 	}
 }

@@ -2,7 +2,6 @@ package appservice
 
 import (
 	"context"
-	"crypto/rand"
 	"errors"
 	"strconv"
 	"strings"
@@ -18,8 +17,6 @@ import (
 	gamestore "github.com/sleaze5/RobloxAccountManager/internal/storage/games"
 	"github.com/sleaze5/RobloxAccountManager/internal/storage/vault"
 )
-
-const maxFavoriteNicknameLength = 50
 
 func (service *Service) SearchGames(ctx context.Context, query games.SearchQuery) (games.SearchPage, error) {
 	query.Text = strings.TrimSpace(query.Text)
@@ -240,21 +237,16 @@ func (service *Service) rovalraError(ctx context.Context, operation string, plac
 }
 
 func (service *Service) gameAccount(ctx context.Context) (int64, error) {
-	var cursor *accounts.AccountCursor
-	for {
-		page, err := service.accountRepository.Page(ctx, accounts.AccountQuery{Cursor: cursor})
-		if err != nil {
-			return 0, mapRepositoryError(err)
-		}
-		for _, view := range page.Accounts {
-			if view.State == accounts.StateActive {
-				return view.ID, nil
-			}
-		}
-		if cursor = page.NextCursor; cursor == nil {
-			return 0, nil
+	views, err := service.savedAccounts(ctx)
+	if err != nil {
+		return 0, err
+	}
+	for _, view := range views {
+		if view.State == accounts.StateActive {
+			return view.ID, nil
 		}
 	}
+	return 0, nil
 }
 
 func (service *Service) GetGamePlace(ctx context.Context, universeID, placeID int64) (games.PlaceSummary, error) {
@@ -312,7 +304,7 @@ func (service *Service) SetFavoritePlaceNickname(ctx context.Context, placeID in
 		return "", err
 	}
 	nickname = strings.TrimSpace(nickname)
-	if utf8.RuneCountInString(nickname) > maxFavoriteNicknameLength || strings.ContainsFunc(nickname, unicode.IsControl) {
+	if utf8.RuneCountInString(nickname) > games.MaxFavoriteNicknameLength || strings.ContainsFunc(nickname, unicode.IsControl) {
 		return "", gamesInputError("Enter a nickname of up to 50 characters.")
 	}
 	ctx, done, err := service.beginGames(ctx)
@@ -372,7 +364,7 @@ func (service *Service) beginGames(parent context.Context) (context.Context, fun
 		return nil, nil, mapRepositoryError(vault.ErrLocked)
 	}
 	ctx, cancel := context.WithTimeout(parent, 45*time.Second)
-	ctx = logging.WithOperation(ctx, "games-"+rand.Text())
+	ctx = logging.StartOperation(ctx, "games")
 	stop := context.AfterFunc(unlocked, cancel)
 	return ctx, func() { stop(); cancel() }, nil
 }

@@ -14,7 +14,7 @@ export interface ImageContextMenu {
 	y: number
 }
 
-export type ActiveAccountMenu =
+type ActiveAccountMenu =
 	| "add-account"
 	| "empty-add-account"
 	| "profile-tags"

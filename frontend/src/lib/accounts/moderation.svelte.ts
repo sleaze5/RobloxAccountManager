@@ -5,7 +5,7 @@ import { formatClock } from "../shared/duration"
 const hourMs = 3_600_000,
 	dayMs = 24 * hourMs
 
-export interface ModerationStatus {
+interface ModerationStatus {
 	label: string
 	detail: string
 	tone: "danger" | "warning"
@@ -28,7 +28,7 @@ export function moderationLabel(moderation: Moderation | null): string {
 
 // A locked account has no punishment to accept. Roblox unlocks it after a
 // human verification on its website.
-export function isLocked(moderation: Moderation | null): boolean {
+function isLocked(moderation: Moderation | null): boolean {
 	return moderation?.kind === ModerationKind.ModerationLocked
 }
 

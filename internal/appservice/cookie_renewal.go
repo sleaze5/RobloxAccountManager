@@ -26,14 +26,15 @@ func (service *Service) RenewCookie(ctx context.Context, accountID int64) (Cooki
 	if err != nil {
 		return CookieRenewalResult{}, err
 	}
-	logger := service.logger.With("operation_id", logging.NewOperationID("renewal"), "operation", "cookie-renewal", "account_id", accountID)
-	logger.Debug("cookie renewal started")
+	ctx = logging.StartOperation(ctx, "renewal")
+	logger := service.logger.With("operation", "cookie-renewal", "account_id", accountID)
+	logger.DebugContext(ctx, "cookie renewal started")
 	if err := service.authentication.RefreshCookie(ctx, accountID, snapshot.SecretVersion); err != nil {
 		kind, status := roblox.KindProtocol, 0
 		if remote, ok := errors.AsType[*roblox.Error](err); ok {
 			kind, status = remote.Kind, remote.Status
 		}
-		logger.Warn("cookie renewal failed", "error_kind", kind, "status", status)
+		logger.WarnContext(ctx, "cookie renewal failed", "error_kind", kind, "status", status)
 		if kind == roblox.KindTransport || kind == roblox.KindTimeout || kind == roblox.KindServer {
 			return CookieRenewalResult{}, &roblox.Error{Kind: kind, Endpoint: "cookie-renewal", Status: status, Message: "The renewal could not be confirmed. If the saved session stops working, sign in again.", Cause: err}
 		}
@@ -42,6 +43,6 @@ func (service *Service) RenewCookie(ctx context.Context, accountID int64) (Cooki
 	service.browser.DetachAccount(accountID, "The saved cookie was renewed. Reopen this account's browser to use the new session.")
 	service.events.SessionChanged(accountID)
 	renewalResult := CookieRenewalResult{Warning: service.refreshCredentialBackup(ctx, logger, true)}
-	logger.Info("cookie renewal completed", "backup_warning", renewalResult.Warning != "")
+	logger.InfoContext(ctx, "cookie renewal completed", "backup_warning", renewalResult.Warning != "")
 	return renewalResult, nil
 }

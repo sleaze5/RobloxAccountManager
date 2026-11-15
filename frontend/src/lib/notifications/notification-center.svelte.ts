@@ -4,9 +4,9 @@ export interface NotificationAction {
 	onClick: () => void | Promise<void>
 }
 
-export type NotificationTone = "info" | "success" | "warning" | "error"
+type NotificationTone = "info" | "success" | "warning" | "error"
 
-export interface NotificationInput {
+interface NotificationInput {
 	id?: string
 	tone?: NotificationTone
 	title: string

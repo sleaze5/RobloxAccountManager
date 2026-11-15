@@ -31,7 +31,7 @@ type cdpError struct {
 
 func (err *cdpError) Error() string { return fmt.Sprintf("CDP error %d: %s", err.Code, err.Message) }
 
-type CDPClient struct {
+type cdpClient struct {
 	input        io.WriteCloser
 	output       io.ReadCloser
 	writeMutex   sync.Mutex
@@ -46,13 +46,13 @@ type CDPClient struct {
 	launchBridge *launchBridge
 }
 
-func NewCDPClient(input io.WriteCloser, output io.ReadCloser, onFailure func(error)) *CDPClient {
-	client := &CDPClient{input: input, output: output, pending: make(map[int64]chan cdpMessage), events: make(chan cdpMessage, 128), done: make(chan struct{}), onFailure: onFailure}
+func newCDPClient(input io.WriteCloser, output io.ReadCloser, onFailure func(error)) *cdpClient {
+	client := &cdpClient{input: input, output: output, pending: make(map[int64]chan cdpMessage), events: make(chan cdpMessage, 128), done: make(chan struct{}), onFailure: onFailure}
 	go client.readLoop()
 	return client
 }
 
-func (client *CDPClient) Call(ctx context.Context, method string, parameters any, sessionID string, target any) error {
+func (client *cdpClient) call(ctx context.Context, method string, parameters any, sessionID string, target any) error {
 	client.mutex.Lock()
 	if client.err != nil {
 		err := client.err
@@ -108,14 +108,11 @@ func (client *CDPClient) Call(ctx context.Context, method string, parameters any
 	}
 }
 
-func (client *CDPClient) Events() <-chan cdpMessage { return client.events }
-
-func (client *CDPClient) Close() error {
+func (client *cdpClient) closeConnection() {
 	client.stop(io.EOF, false)
-	return nil
 }
 
-func (client *CDPClient) readLoop() {
+func (client *cdpClient) readLoop() {
 	reader := bufio.NewReader(client.output)
 	for {
 		frame, err := reader.ReadBytes(0)
@@ -155,11 +152,11 @@ func (client *CDPClient) readLoop() {
 	}
 }
 
-func (client *CDPClient) fail(err error) {
+func (client *cdpClient) fail(err error) {
 	client.stop(err, true)
 }
 
-func (client *CDPClient) stop(err error, notify bool) {
+func (client *cdpClient) stop(err error, notify bool) {
 	client.closeOnce.Do(func() { _ = client.input.Close(); _ = client.output.Close() })
 	client.mutex.Lock()
 	if client.err != nil {
@@ -177,22 +174,22 @@ func (client *CDPClient) stop(err error, notify bool) {
 	}
 }
 
-func (client *CDPClient) removePending(callID int64) {
+func (client *cdpClient) removePending(callID int64) {
 	client.mutex.Lock()
 	delete(client.pending, callID)
 	client.mutex.Unlock()
 }
 
-type CDPTarget struct {
+type cdpTarget struct {
 	TargetID string `json:"targetId"`
 	Type     string `json:"type"`
 }
 
-func (client *CDPClient) VerifyVersion(ctx context.Context, expected string) error {
+func (client *cdpClient) verifyVersion(ctx context.Context, expected string) error {
 	var result struct {
 		Product string `json:"product"`
 	}
-	if err := client.Call(ctx, "Browser.getVersion", nil, "", &result); err != nil {
+	if err := client.call(ctx, "Browser.getVersion", nil, "", &result); err != nil {
 		return err
 	}
 	if result.Product != "Chrome/"+expected {
@@ -201,25 +198,25 @@ func (client *CDPClient) VerifyVersion(ctx context.Context, expected string) err
 	return nil
 }
 
-func (client *CDPClient) DiscoverTargets(ctx context.Context) error {
-	return client.Call(ctx, "Target.setDiscoverTargets", map[string]any{"discover": true}, "", nil)
+func (client *cdpClient) discoverTargets(ctx context.Context) error {
+	return client.call(ctx, "Target.setDiscoverTargets", map[string]any{"discover": true}, "", nil)
 }
 
-func (client *CDPClient) EnableDownloadEvents(ctx context.Context) error {
-	return client.Call(ctx, "Browser.setDownloadBehavior", map[string]any{"behavior": "default", "eventsEnabled": true}, "", nil)
+func (client *cdpClient) enableDownloadEvents(ctx context.Context) error {
+	return client.call(ctx, "Browser.setDownloadBehavior", map[string]any{"behavior": "default", "eventsEnabled": true}, "", nil)
 }
 
-func (client *CDPClient) Targets(ctx context.Context) ([]CDPTarget, error) {
+func (client *cdpClient) targets(ctx context.Context) ([]cdpTarget, error) {
 	var result struct {
-		TargetInfos []CDPTarget `json:"targetInfos"`
+		TargetInfos []cdpTarget `json:"targetInfos"`
 	}
-	if err := client.Call(ctx, "Target.getTargets", nil, "", &result); err != nil {
+	if err := client.call(ctx, "Target.getTargets", nil, "", &result); err != nil {
 		return nil, err
 	}
 	return result.TargetInfos, nil
 }
 
-func (client *CDPClient) Attach(ctx context.Context, targetID string) (string, error) {
+func (client *cdpClient) attach(ctx context.Context, targetID string) (string, error) {
 	client.mutex.Lock()
 	bridge := client.launchBridge
 	client.mutex.Unlock()
@@ -229,47 +226,47 @@ func (client *CDPClient) Attach(ctx context.Context, targetID string) (string, e
 	var result struct {
 		SessionID string `json:"sessionId"`
 	}
-	err := client.Call(ctx, "Target.attachToTarget", map[string]any{"targetId": targetID, "flatten": true}, "", &result)
+	err := client.call(ctx, "Target.attachToTarget", map[string]any{"targetId": targetID, "flatten": true}, "", &result)
 	return result.SessionID, err
 }
 
-func (client *CDPClient) EnablePage(ctx context.Context, sessionID string) error {
-	return client.Call(ctx, "Page.enable", nil, sessionID, nil)
+func (client *cdpClient) enablePage(ctx context.Context, sessionID string) error {
+	return client.call(ctx, "Page.enable", nil, sessionID, nil)
 }
 
-func (client *CDPClient) EnableNetwork(ctx context.Context, sessionID string) error {
-	return client.Call(ctx, "Network.enable", nil, sessionID, nil)
+func (client *cdpClient) enableNetwork(ctx context.Context, sessionID string) error {
+	return client.call(ctx, "Network.enable", nil, sessionID, nil)
 }
 
-func (client *CDPClient) Activate(ctx context.Context, targetID string) error {
-	return client.Call(ctx, "Target.activateTarget", map[string]string{"targetId": targetID}, "", nil)
+func (client *cdpClient) activate(ctx context.Context, targetID string) error {
+	return client.call(ctx, "Target.activateTarget", map[string]string{"targetId": targetID}, "", nil)
 }
-func (client *CDPClient) CreateTarget(ctx context.Context, url string) (string, error) {
+func (client *cdpClient) createTarget(ctx context.Context, url string) (string, error) {
 	var result struct {
 		TargetID string `json:"targetId"`
 	}
-	err := client.Call(ctx, "Target.createTarget", map[string]string{"url": url}, "", &result)
+	err := client.call(ctx, "Target.createTarget", map[string]string{"url": url}, "", &result)
 	return result.TargetID, err
 }
-func (client *CDPClient) Navigate(ctx context.Context, sessionID, url string) error {
-	return client.Call(ctx, "Page.navigate", map[string]string{"url": url}, sessionID, nil)
+func (client *cdpClient) navigate(ctx context.Context, sessionID, url string) error {
+	return client.call(ctx, "Page.navigate", map[string]string{"url": url}, sessionID, nil)
 }
-func (client *CDPClient) CloseBrowser(ctx context.Context) error {
-	return client.Call(ctx, "Browser.close", nil, "", nil)
+func (client *cdpClient) closeBrowser(ctx context.Context) error {
+	return client.call(ctx, "Browser.close", nil, "", nil)
 }
 
-type Cookie struct {
+type cdpCookie struct {
 	Name   string `json:"name"`
 	Value  string `json:"value"`
 	Domain string `json:"domain"`
 	Secure bool   `json:"secure"`
 }
 
-func (client *CDPClient) Cookies(ctx context.Context, sessionID string) ([]Cookie, error) {
+func (client *cdpClient) cookies(ctx context.Context, sessionID string) ([]cdpCookie, error) {
 	var result struct {
-		Cookies []Cookie `json:"cookies"`
+		Cookies []cdpCookie `json:"cookies"`
 	}
-	if err := client.Call(ctx, "Network.getCookies", map[string]any{"urls": []string{"https://www.roblox.com/"}}, sessionID, &result); err != nil {
+	if err := client.call(ctx, "Network.getCookies", map[string]any{"urls": []string{"https://www.roblox.com/"}}, sessionID, &result); err != nil {
 		return nil, err
 	}
 	filtered := result.Cookies[:0]
@@ -282,21 +279,21 @@ func (client *CDPClient) Cookies(ctx context.Context, sessionID string) ([]Cooki
 	return filtered, nil
 }
 
-func (client *CDPClient) SetRobloxCookie(ctx context.Context, sessionID, cookieValue string) error {
+func (client *cdpClient) setRobloxCookie(ctx context.Context, sessionID, cookieValue string) error {
 	return client.setCookie(ctx, sessionID, map[string]any{"name": accounts.RoblosecurityCookieName, "value": cookieValue, "httpOnly": true}, "chrome rejected the Roblox cookie")
 }
 
-func (client *CDPClient) SetBrowserID(ctx context.Context, sessionID, browserID string) error {
+func (client *cdpClient) setBrowserID(ctx context.Context, sessionID, browserID string) error {
 	return client.setCookie(ctx, sessionID, map[string]any{"name": roblox.EventTrackerCookieName, "value": roblox.EventTrackerCookieValue(browserID)}, "chrome rejected the account browser ID")
 }
 
-func (client *CDPClient) setCookie(ctx context.Context, sessionID string, fields map[string]any, rejected string) error {
+func (client *cdpClient) setCookie(ctx context.Context, sessionID string, fields map[string]any, rejected string) error {
 	cookie := map[string]any{"url": "https://www.roblox.com/", "domain": ".roblox.com", "path": "/", "secure": true, "sameSite": "Lax"}
 	maps.Copy(cookie, fields)
 	var result struct {
 		Success bool `json:"success"`
 	}
-	if err := client.Call(ctx, "Network.setCookie", cookie, sessionID, &result); err != nil {
+	if err := client.call(ctx, "Network.setCookie", cookie, sessionID, &result); err != nil {
 		return err
 	}
 	if !result.Success {

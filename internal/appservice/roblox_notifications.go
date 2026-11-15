@@ -10,7 +10,6 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/sleaze5/RobloxAccountManager/internal/logging"
 	"github.com/sleaze5/RobloxAccountManager/internal/roblox"
 	robloxservices "github.com/sleaze5/RobloxAccountManager/internal/roblox/services"
 )
@@ -92,7 +91,7 @@ func (service *Service) GetRobloxNotifications(ctx context.Context, accountID in
 	if startIndex < 0 || startIndex > maxRobloxNotificationStartIndex {
 		return RobloxNotificationPage{}, robloxNotificationInputError("These notifications have expired. Refresh notifications.")
 	}
-	ctx, version, logger, done, err := service.beginRobloxNotifications(ctx, accountID, "list")
+	ctx, version, logger, done, err := service.beginFeatureOperation(ctx, accountID, "roblox-notifications", "list")
 	if err != nil {
 		return RobloxNotificationPage{}, err
 	}
@@ -116,7 +115,7 @@ func (service *Service) DismissRobloxNotification(ctx context.Context, accountID
 	if !isRobloxNotificationToken(notificationID, maxRobloxNotificationIDLength) || !isRobloxNotificationToken(dismissAction, maxRobloxNotificationActionSize) {
 		return robloxNotificationInputError("This notification is unavailable. Refresh notifications.")
 	}
-	ctx, version, logger, done, err := service.beginRobloxNotifications(ctx, accountID, "dismiss")
+	ctx, version, logger, done, err := service.beginFeatureOperation(ctx, accountID, "roblox-notifications", "dismiss")
 	if err != nil {
 		return err
 	}
@@ -137,7 +136,7 @@ func (service *Service) DismissAllRobloxNotifications(ctx context.Context, accou
 	default:
 		return 0, robloxNotificationInputError("Choose a notification type to dismiss.")
 	}
-	ctx, version, logger, done, err := service.beginRobloxNotifications(ctx, accountID, "dismiss-all")
+	ctx, version, logger, done, err := service.beginFeatureOperation(ctx, accountID, "roblox-notifications", "dismiss-all")
 	if err != nil {
 		return 0, err
 	}
@@ -176,7 +175,7 @@ func (service *Service) DismissAllRobloxNotifications(ctx context.Context, accou
 
 // MarkRobloxNotificationsSeen clears the unread notification count on Roblox.
 func (service *Service) MarkRobloxNotificationsSeen(ctx context.Context, accountID int64) error {
-	ctx, version, logger, done, err := service.beginRobloxNotifications(ctx, accountID, "mark-seen")
+	ctx, version, logger, done, err := service.beginFeatureOperation(ctx, accountID, "roblox-notifications", "mark-seen")
 	if err != nil {
 		return err
 	}
@@ -185,16 +184,6 @@ func (service *Service) MarkRobloxNotificationsSeen(ctx context.Context, account
 		return robloxNotificationFailure(ctx, logger, err)
 	}
 	return nil
-}
-
-func (service *Service) beginRobloxNotifications(parent context.Context, accountID int64, operation string) (context.Context, int64, *slog.Logger, func(), error) {
-	ctx, version, done, err := service.beginAccountSession(parent, accountID, "roblox-notifications")
-	if err != nil {
-		return nil, 0, nil, nil, err
-	}
-	ctx = logging.WithOperation(ctx, logging.NewOperationID("roblox-notifications"))
-	logger := service.logs.Module("application.roblox-notifications").With("operation", operation)
-	return ctx, version, logger, done, nil
 }
 
 func (service *Service) robloxNotificationViews(ctx context.Context, logger *slog.Logger, accountID, version int64, entries []robloxservices.NotificationStreamEntry) ([]RobloxNotificationView, error) {

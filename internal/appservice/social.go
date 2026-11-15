@@ -15,7 +15,6 @@ import (
 	"unicode/utf8"
 
 	"github.com/sleaze5/RobloxAccountManager/internal/accounts"
-	"github.com/sleaze5/RobloxAccountManager/internal/logging"
 	"github.com/sleaze5/RobloxAccountManager/internal/roblox"
 	robloxservices "github.com/sleaze5/RobloxAccountManager/internal/roblox/services"
 )
@@ -162,7 +161,7 @@ func (service *Service) GetSocialPage(ctx context.Context, accountID, userID int
 	if len(cursor) > maxSocialCursorLength {
 		return SocialPage{}, socialInputError("This list has expired. Refresh it.")
 	}
-	ctx, version, logger, done, err := service.beginSocial(ctx, accountID, string(list))
+	ctx, version, logger, done, err := service.beginFeatureOperation(ctx, accountID, "social", string(list))
 	if err != nil {
 		return SocialPage{}, err
 	}
@@ -195,7 +194,7 @@ func (service *Service) SearchPlayers(ctx context.Context, accountID int64, keyw
 	if len(cursor) > maxSocialCursorLength {
 		return SocialPage{}, socialInputError("These search results have expired. Search again.")
 	}
-	ctx, version, logger, done, err := service.beginSocial(ctx, accountID, "player-search")
+	ctx, version, logger, done, err := service.beginFeatureOperation(ctx, accountID, "social", "player-search")
 	if err != nil {
 		return SocialPage{}, err
 	}
@@ -290,7 +289,7 @@ func (service *Service) socialPage(ctx context.Context, accountID, version int64
 		person := &page.People[index]
 		person.ImageURL, person.Nickname, person.Trusted = images[person.UserID], nicknames[person.UserID], trustedUsers[person.UserID]
 	}
-	logger.Debug("social list read", "count", len(page.People), "failed_sections", len(page.Unavailable))
+	logger.DebugContext(ctx, "social list read", "count", len(page.People), "failed_sections", len(page.Unavailable))
 	return page, nil
 }
 
@@ -367,7 +366,7 @@ func (service *Service) GetSocialPresences(ctx context.Context, accountID int64,
 	if len(userIDs) > maxSocialPresenceUsers {
 		return nil, socialInputError("Too many users were requested. Refresh the list.")
 	}
-	ctx, version, logger, done, err := service.beginSocial(ctx, accountID, "presence")
+	ctx, version, logger, done, err := service.beginFeatureOperation(ctx, accountID, "social", "presence")
 	if err != nil {
 		return nil, err
 	}
@@ -381,12 +380,12 @@ func (service *Service) GetSocialPresences(ctx context.Context, accountID int64,
 	for _, userID := range userIDs {
 		complete = append(complete, presenceOrOffline(byUser, userID))
 	}
-	logger.Debug("social presence read", "count", len(complete))
+	logger.DebugContext(ctx, "social presence read", "count", len(complete))
 	return complete, nil
 }
 
 func (service *Service) GetSocialProfile(ctx context.Context, accountID, userID int64, section SocialProfileSection) (SocialProfile, error) {
-	ctx, version, logger, done, err := service.beginSocial(ctx, accountID, "profile")
+	ctx, version, logger, done, err := service.beginFeatureOperation(ctx, accountID, "social", "profile")
 	if err != nil {
 		return SocialProfile{}, err
 	}
@@ -518,7 +517,7 @@ func (service *Service) socialProfileSectionReads(ctx context.Context, logger *s
 // GetSocialRelationship reads only how the account relates to the user, for
 // places that do not need the whole profile.
 func (service *Service) GetSocialRelationship(ctx context.Context, accountID, userID int64) (SocialRelationshipSnapshot, error) {
-	ctx, version, logger, done, err := service.beginSocial(ctx, accountID, "relationship")
+	ctx, version, logger, done, err := service.beginFeatureOperation(ctx, accountID, "social", "relationship")
 	if err != nil {
 		return SocialRelationshipSnapshot{}, err
 	}
@@ -622,7 +621,7 @@ func (service *Service) friendConnections(ctx context.Context, logger *slog.Logg
 		}
 	}
 	if failed > 0 {
-		logger.Debug("friend connections incomplete", "accounts", len(candidates), "failed", failed)
+		logger.DebugContext(ctx, "friend connections incomplete", "accounts", len(candidates), "failed", failed)
 	}
 	if failed > 0 && failed == len(candidates) {
 		return savedID, nil, &roblox.Error{Kind: roblox.KindProtocol, Endpoint: "friend-connections", Message: "Your other accounts could not be checked.", Cause: failures[0]}
@@ -722,15 +721,6 @@ func (service *Service) RemoveTrustedFriend(ctx context.Context, accountID, user
 	return service.editAccount(ctx, accountID, "trusted-friend-remove", "", func(ctx context.Context, version int64) error {
 		return service.users.RemoveTrustedFriend(ctx, accountID, version, userID)
 	})
-}
-
-func (service *Service) beginSocial(parent context.Context, accountID int64, operation string) (context.Context, int64, *slog.Logger, func(), error) {
-	ctx, version, done, err := service.beginAccountSession(parent, accountID, "social")
-	if err != nil {
-		return nil, 0, nil, nil, err
-	}
-	logger := service.logs.Module("application.social").With("operation_id", logging.NewOperationID("social"), "operation", operation, "account_id", accountID)
-	return ctx, version, logger, done, nil
 }
 
 func (service *Service) headshotImages(ctx context.Context, userIDs []int64) (map[int64]string, error) {

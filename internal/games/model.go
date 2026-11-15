@@ -6,6 +6,11 @@ import (
 	"strings"
 )
 
+const (
+	MaxFavoriteNicknameLength  = 50
+	MaxPrivateServerNameLength = 50
+)
+
 type Place struct {
 	PlaceID         int64  `json:"placeId"`
 	UniverseID      int64  `json:"universeId"`
@@ -320,12 +325,12 @@ func ValidJobID(jobID string) bool {
 	if len(jobID) != 36 {
 		return false
 	}
-	for index, char := range jobID {
+	for index, character := range jobID {
 		if index == 8 || index == 13 || index == 18 || index == 23 {
-			if char != '-' {
+			if character != '-' {
 				return false
 			}
-		} else if !strings.ContainsRune("0123456789abcdefABCDEF", char) {
+		} else if !strings.ContainsRune("0123456789abcdefABCDEF", character) {
 			return false
 		}
 	}

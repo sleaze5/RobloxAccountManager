@@ -1,6 +1,6 @@
 import type { RobloxClientState } from "../backend/bridge"
 
-export type LinuxClientOption = {
+type LinuxClientOption = {
 	value: string
 	label: string
 	description: string

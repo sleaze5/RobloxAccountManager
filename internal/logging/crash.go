@@ -29,7 +29,7 @@ type crashCapture struct {
 	command   *exec.Cmd
 }
 
-func (system *System) CaptureCrashes(launchID string) error {
+func (system *System) captureCrashes(launchID string) error {
 	system.mutex.Lock()
 	defer system.mutex.Unlock()
 	capture := &crashCapture{launchID: launchID, directory: filepath.Dir(system.writer.path)}
@@ -171,8 +171,8 @@ func crashFrames(lines []string) []string {
 			continue
 		}
 		function := lines[index-1]
-		if args := strings.LastIndexByte(function, '('); args >= 0 {
-			function = function[:args]
+		if argumentsStart := strings.LastIndexByte(function, '('); argumentsStart >= 0 {
+			function = function[:argumentsStart]
 		}
 		if crashFunction.MatchString(function) {
 			frames = append(frames, function+" at "+location[1])

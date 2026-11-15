@@ -112,7 +112,8 @@ func (service *Service) GetAccountProfile(ctx context.Context, accountID int64, 
 	if session.Context.Err() != nil {
 		cancel()
 	}
-	logger := service.logger.With("operation_id", logging.NewOperationID("profile"), "operation", "profile-read", "section", section)
+	ctx = logging.StartOperation(ctx, "profile")
+	logger := service.logger.With("operation", "profile-read", "section", section)
 	started := time.Now()
 	profile := AccountProfileSnapshot{AccountID: accountID, Section: section}
 	var age accountAge
@@ -128,7 +129,7 @@ func (service *Service) GetAccountProfile(ctx context.Context, accountID int64, 
 	if section == ProfileSectionAge {
 		profile.AgeGroup, profile.AgeVerification = age.group, age.verification()
 	}
-	logger.Debug("account profile section read finished", "duration_ms", time.Since(started).Milliseconds(), "failed_reads", len(unavailable))
+	logger.DebugContext(ctx, "account profile section read finished", "duration_ms", time.Since(started).Milliseconds(), "failed_reads", len(unavailable))
 	return profile, nil
 }
 

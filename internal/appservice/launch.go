@@ -179,7 +179,7 @@ func (service *Service) accountLaunchOptions(ctx context.Context, accountID int6
 }
 
 func (service *Service) runLaunchOperation(ctx context.Context, accountID int64, input gamelaunch.Input, operation string, action func(context.Context, func() (string, error), string, gamelaunch.Request) error) (operationError error) {
-	ctx = logging.WithOperation(ctx, logging.NewOperationID("launch"))
+	ctx = logging.StartOperation(ctx, "launch")
 	logger := service.logger.With("operation", operation, "account_id", accountID)
 	stage := "parse-input"
 	defer func() {

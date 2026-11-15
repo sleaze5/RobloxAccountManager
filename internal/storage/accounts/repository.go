@@ -16,21 +16,17 @@ import (
 
 const accountPageSize = 10
 
-type DatabaseProvider interface {
-	Lease(context.Context) (*sql.DB, func(), error)
-}
-
 type Repository struct {
-	provider DatabaseProvider
-	logger   *slog.Logger
+	vault  *vault.Manager
+	logger *slog.Logger
 }
 
-func NewRepository(provider DatabaseProvider, logger *slog.Logger) *Repository {
-	return &Repository{provider: provider, logger: logger}
+func NewRepository(vaultManager *vault.Manager, logger *slog.Logger) *Repository {
+	return &Repository{vault: vaultManager, logger: logger}
 }
 
 func (repository *Repository) leaseDatabase(ctx context.Context) (*sql.DB, func(), error) {
-	database, release, err := repository.provider.Lease(ctx)
+	database, release, err := repository.vault.Lease(ctx)
 	if err != nil {
 		return nil, nil, fmt.Errorf("%w: %w", accountdomain.ErrUnavailable, err)
 	}
@@ -72,7 +68,7 @@ VALUES(?, ?, ?, ?, 1, ?, ?, ?, ?)`, accountID, cookie, nullableUnixMilliseconds(
 	if err != nil {
 		return accountdomain.AccountView{}, accountdomain.SessionRecord{}, err
 	}
-	session := accountdomain.SessionRecord{AccountID: accountID, Roblosecurity: cookie, CookieExpiresAt: copyTime(expiresAt), State: state, SecretVersion: 1, ImportedAt: now, LastValidatedAt: &now}
+	session := accountdomain.SessionRecord{AccountID: accountID, Roblosecurity: cookie, CookieExpiresAt: truncateToMilliseconds(expiresAt), State: state, SecretVersion: 1, ImportedAt: now, LastValidatedAt: &now}
 	repository.logger.InfoContext(ctx, "account stored", "operation", "account-store", "account_id", accountID, "roblox_user_id", identity.RobloxUserID)
 	return viewFrom(identity, accountID, session, now), session, nil
 }
@@ -216,9 +212,14 @@ func (repository *Repository) Page(ctx context.Context, query accountdomain.Acco
 	defer release()
 	where := []string{"1 = 1"}
 	arguments := make([]any, 0, 6)
-	if search := strings.TrimSpace(query.Search); search != "" {
+	for word := range strings.FieldsSeq(query.Search) {
+		// The list shows usernames after an @, so a search may include it.
+		term := strings.TrimPrefix(word, "@")
+		if term == "" {
+			continue
+		}
 		where = append(where, `(instr(lower(a.username), lower(?)) > 0 OR instr(lower(a.display_name), lower(?)) > 0 OR instr(CAST(a.roblox_user_id AS TEXT), ?) > 0)`)
-		arguments = append(arguments, search, search, search)
+		arguments = append(arguments, term, term, term)
 	}
 	for _, tagID := range query.TagIDs {
 		where = append(where, `EXISTS (SELECT 1 FROM account_tags filter_tags WHERE filter_tags.account_id = a.id AND filter_tags.tag_id = ?)`)
@@ -485,7 +486,7 @@ func int64PointerFromNull(value sql.NullInt64) *int64 {
 	return &milliseconds
 }
 
-func copyTime(value *time.Time) *time.Time {
+func truncateToMilliseconds(value *time.Time) *time.Time {
 	if value == nil {
 		return nil
 	}
