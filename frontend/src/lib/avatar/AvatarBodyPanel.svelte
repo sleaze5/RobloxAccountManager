@@ -85,11 +85,7 @@
 		})
 	}
 
-	function selectPart(part: BodyPart, isAdding: boolean): void {
-		if (!isAdding) {
-			selectedParts = new Set([part])
-			return
-		}
+	function togglePart(part: BodyPart): void {
 		const parts = new Set(selectedParts)
 		if (parts.has(part)) parts.delete(part)
 		else parts.add(part)
@@ -249,51 +245,37 @@
 		<section class="settings-section" aria-labelledby="avatar-colors-heading">
 			<h3 id="avatar-colors-heading">Body colors</h3>
 			<div class="flex flex-wrap items-start gap-6 @max-md:flex-col">
-				<div class="rounded-lg border border-line-subtle bg-canvas p-4">
+				<div class="flex flex-col gap-2">
+					<div class="rounded-lg border border-line-subtle bg-canvas p-4">
+						{#if canEdit}
+							<AvatarBodyFigure
+								bodyColors={draft.bodyColors}
+								{selectedParts}
+								{colorLabelOf}
+								onTogglePart={togglePart} />
+						{:else}
+							<AvatarBodyFigure bodyColors={draft.bodyColors} />
+						{/if}
+					</div>
 					{#if canEdit}
-						<AvatarBodyFigure
-							bodyColors={draft.bodyColors}
-							{selectedParts}
-							{colorLabelOf}
-							onSelectPart={selectPart} />
-					{:else}
-						<AvatarBodyFigure bodyColors={draft.bodyColors} />
+						<button
+							class="button"
+							type="button"
+							disabled={isAllSelected}
+							onclick={() =>
+								(selectedParts = new Set(
+									bodyParts.map(({ part }) => part),
+								))}>Select all</button>
+						<button
+							class="button"
+							type="button"
+							disabled={selectedParts.size === 0}
+							onclick={() => (selectedParts = new Set())}
+							>Clear selection</button>
 					{/if}
 				</div>
 				{#if canEdit}
 					<div class="flex min-w-0 flex-1 flex-col gap-3">
-						<div class="flex items-center gap-2">
-							<p
-								class="min-w-0 flex-1 text-xs text-fg-muted"
-								aria-live="polite">
-								{selectedParts.size === 0
-									? "No parts selected. Select parts on the figure to color them."
-									: isAllSelected
-										? "Coloring every part. Select a part to color only it."
-										: `Coloring ${bodyParts
-												.filter(({ part }) =>
-													selectedParts.has(part),
-												)
-												.map(({ label }) => label.toLowerCase())
-												.join(
-													", ",
-												)}. Ctrl+click adds or removes parts.`}
-							</p>
-							<button
-								class="button"
-								type="button"
-								disabled={isAllSelected}
-								onclick={() =>
-									(selectedParts = new Set(
-										bodyParts.map(({ part }) => part),
-									))}>Select all</button>
-							<button
-								class="button"
-								type="button"
-								disabled={selectedParts.size === 0}
-								onclick={() => (selectedParts = new Set())}
-								>Clear selection</button>
-						</div>
 						<ul
 							class="flex flex-wrap gap-1"
 							aria-label="Roblox body colors">
