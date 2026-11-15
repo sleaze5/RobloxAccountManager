@@ -81,7 +81,8 @@ func (service *Service) LaunchBrowserGame(ctx context.Context, sessionID, protoc
 		return
 	}
 	err := service.serializeLaunch(ctx, func() error {
-		return service.executeLaunch(ctx, service.confirmRobloxReplacement, func() error {
+		shouldClean := service.shouldCleanBeforeLaunch()
+		return service.executeLaunch(ctx, shouldClean, service.replacementConfirmation(shouldClean), func() error {
 			if err := service.launcher.LaunchProtocol(ctx, protocolURL); err != nil {
 				return &roblox.Error{Kind: roblox.KindProtocol, Endpoint: "browser-game-launch", Message: userLaunchMessage(err, "Roblox could not be started. Check that Roblox is installed and try joining again."), Cause: err}
 			}

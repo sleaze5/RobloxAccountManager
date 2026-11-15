@@ -8,7 +8,7 @@
 		submitting = $state(false),
 		error = $state("")
 	let revision = 0
-	const isBlockedByCleaning = $derived(
+	const isAskingToSkipCleaning = $derived(
 		pending !== null && pending.accountCount > 1 && pending.isCleaningBeforeLaunch,
 	)
 
@@ -71,8 +71,8 @@
 		<div class="dialog-heading mb-2">
 			<div>
 				<h2 id="replace-roblox-title">
-					{#if isBlockedByCleaning}
-						Can't launch several accounts
+					{#if isAskingToSkipCleaning}
+						Launch without cleaning?
 					{:else if pending.accountCount > 1}
 						Launch without multi-instance?
 					{:else}
@@ -80,9 +80,9 @@
 					{/if}
 				</h2>
 				<p id="replace-roblox-description">
-					{#if isBlockedByCleaning}
-						Clean before launch allows one account at a time. Turn it off or
-						turn on multi-instance in Client options.
+					{#if isAskingToSkipCleaning}
+						Clean before launch allows one account at a time. Multi-instance
+						is off, so the {pending.accountCount} accounts may replace each other.
 					{:else if pending.accountCount > 1}
 						{pending.multiInstanceEnabled
 							? "Multi-instance is not ready."
@@ -106,27 +106,24 @@
 		</div>
 		{#if error}<div class="mt-3 notice-error" role="alert">{error}</div>{/if}
 		<div class="dialog-actions">
-			{#if isBlockedByCleaning}
-				<button
-					class="button"
-					type="button"
-					disabled={submitting}
-					onclick={() => void respond(false)}>Cancel launch</button>
-			{:else}
-				<button
-					class="button"
-					type="button"
-					disabled={submitting}
-					onclick={() => void respond(false)}>Cancel</button>
-				<button
-					class="button-danger"
-					type="button"
-					disabled={submitting}
-					onclick={() => void respond(true)}
-					>{pending.accountCount > 1
-						? "Launch anyway"
-						: "Close Roblox and join"}</button>
-			{/if}
+			<button
+				class="button"
+				type="button"
+				disabled={submitting}
+				onclick={() => void respond(false)}>Cancel</button>
+			<button
+				class="button-danger"
+				type="button"
+				disabled={submitting}
+				onclick={() => void respond(true)}>
+				{#if isAskingToSkipCleaning}
+					Launch without cleaning
+				{:else if pending.accountCount > 1}
+					Launch anyway
+				{:else}
+					Close Roblox and join
+				{/if}
+			</button>
 		</div>
 	</Dialog>
 {/if}
