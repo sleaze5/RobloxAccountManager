@@ -4,10 +4,13 @@ package elevation
 
 import (
 	"context"
+	"errors"
 	"io"
 )
 
 const Supported = false
+
+var errUnsupported = errors.New("administrator rights are only available on Windows")
 
 func IsElevated() bool { return false }
 

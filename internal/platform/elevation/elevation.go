@@ -20,10 +20,9 @@ const (
 )
 
 var (
-	ErrDeclined    = errors.New("administrator rights were declined")
-	ErrOtherUser   = errors.New("administrator rights were given by another Windows user")
-	errUnsupported = errors.New("administrator rights are only available on Windows")
-	errStopped     = errors.New("the elevated helper stopped")
+	ErrDeclined  = errors.New("administrator rights were declined")
+	ErrOtherUser = errors.New("administrator rights were given by another Windows user")
+	errStopped   = errors.New("the elevated helper stopped")
 )
 
 // Task runs inside the elevated helper process and reports whether it skipped
