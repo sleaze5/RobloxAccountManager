@@ -122,6 +122,8 @@ func run() (runError error) {
 	multiInstance := robloxmulti.New(logSystem.Module("platform.roblox-multi-instance"))
 	defer multiInstance.Close()
 	multiInstance.SetEnabled(settingsStore.Roblox().MultiInstance)
+	elevatedHelper := elevation.NewHelper(logSystem.Module("platform.elevation"))
+	defer elevatedHelper.Close()
 
 	launch.Begin("application-services")
 	vaultManager := vault.NewManager(dataPaths, protection.New(), logSystem.Module("vault"))
@@ -159,6 +161,7 @@ func run() (runError error) {
 		logsexplorer.NewReader(robloxlogs.Directories, logSystem.Module("logs-explorer")),
 		gamelaunch.New(func() string { return settingsStore.Roblox().LinuxClient }),
 		multiInstance,
+		elevatedHelper,
 		settingsStore,
 		logSystem,
 		events,

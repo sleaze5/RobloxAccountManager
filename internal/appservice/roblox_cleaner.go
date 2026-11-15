@@ -82,6 +82,9 @@ func (service *Service) SetUseAdministratorRights(enabled bool) (RobloxCleanerSt
 		service.logger.Warn("could not save Roblox settings", "operation", "administrator-rights", "error", err)
 		return service.GetRobloxCleanerState(), cleanerError("administrator-rights", "The administrator rights setting could not be saved. Try again.", err)
 	}
+	if !enabled {
+		service.elevatedHelper.Close()
+	}
 	service.logger.Info("administrator rights setting saved", "operation", "administrator-rights", "enabled", enabled)
 	return service.GetRobloxCleanerState(), nil
 }
@@ -128,13 +131,13 @@ func (service *Service) cleanBeforeLaunch(ctx context.Context) error {
 
 func (service *Service) runRobloxCleaning(ctx context.Context, request robloxcleaner.CleanRequest) (bool, error) {
 	if service.shouldUseElevatedHelper() {
-		return elevation.Run(ctx, robloxcleaner.CleanTaskName, request.Arguments())
+		return service.elevatedHelper.Run(ctx, robloxcleaner.CleanTaskName, request.Arguments())
 	}
 	return robloxcleaner.Clean(ctx, request, service.logger)
 }
 
 // shouldUseElevatedHelper reports whether Roblox processes are closed and
-// Roblox is cleaned in an elevated helper. An elevated application does it itself.
+// Roblox is cleaned in the elevated helper. An elevated application does it itself.
 func (service *Service) shouldUseElevatedHelper() bool {
 	return elevation.Supported && service.settings.Roblox().UseAdministratorRights && !elevation.IsElevated()
 }

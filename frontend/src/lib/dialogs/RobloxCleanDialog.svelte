@@ -28,7 +28,7 @@
 		administratorNote = $derived.by(() => {
 			if (!cleaner?.elevationSupported || cleaner.isElevated) return ""
 			return cleaner.useAdministratorRights
-				? "Windows asks for administrator rights before Roblox is cleaned."
+				? "Windows may ask for administrator rights first."
 				: "Without administrator rights, items shared by all Windows users are skipped. Turn on Use administrator rights to include them."
 		}),
 		canConfirm = $derived(

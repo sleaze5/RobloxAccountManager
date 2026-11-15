@@ -190,9 +190,11 @@
 						<strong id="administrator-rights-title"
 							>Use administrator rights</strong>
 						<span id="administrator-rights-description"
-							>Ask Windows for administrator rights each time Roblox is
-							closed or cleaned. This includes files and registry entries
-							shared by all Windows users, and Roblox processes started as
+							>Ask Windows for administrator rights the first time Roblox
+							is closed or cleaned, then keep a small helper with them
+							until Roblox Account Manager closes or this is turned off.
+							This includes files and registry entries shared by all
+							Windows users, and Roblox processes started as
 							administrator. Roblox Account Manager itself keeps running
 							without them.</span>
 						{#if cleaner.isElevated}

@@ -14,6 +14,7 @@ import (
 	"github.com/sleaze5/RobloxAccountManager/internal/integration/rovalra"
 	"github.com/sleaze5/RobloxAccountManager/internal/logging"
 	"github.com/sleaze5/RobloxAccountManager/internal/logsexplorer"
+	"github.com/sleaze5/RobloxAccountManager/internal/platform/elevation"
 	"github.com/sleaze5/RobloxAccountManager/internal/platform/robloxmulti"
 	"github.com/sleaze5/RobloxAccountManager/internal/roblox"
 	robloxservices "github.com/sleaze5/RobloxAccountManager/internal/roblox/services"
@@ -45,6 +46,7 @@ type Service struct {
 	logsExplorer       *logsexplorer.Reader
 	launcher           gamelaunch.Launcher
 	multiInstance      *robloxmulti.Manager
+	elevatedHelper     *elevation.Helper
 	settings           *appsettings.Store
 	logs               *logging.System
 	events             *Events
@@ -99,6 +101,7 @@ func New(
 	logsExplorerReader *logsexplorer.Reader,
 	launcher gamelaunch.Launcher,
 	multiInstance *robloxmulti.Manager,
+	elevatedHelper *elevation.Helper,
 	settings *appsettings.Store,
 	logs *logging.System,
 	events *Events,
@@ -128,6 +131,7 @@ func New(
 		logsExplorer:         logsExplorerReader,
 		launcher:             launcher,
 		multiInstance:        multiInstance,
+		elevatedHelper:       elevatedHelper,
 		settings:             settings,
 		logs:                 logs,
 		events:               events,

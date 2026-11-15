@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 
-	"github.com/sleaze5/RobloxAccountManager/internal/platform/elevation"
 	"github.com/sleaze5/RobloxAccountManager/internal/platform/robloxmulti"
 )
 
@@ -20,7 +19,7 @@ func (service *Service) GetRobloxProcesses() (robloxmulti.ProcessSnapshot, error
 func (service *Service) KillRobloxProcesses(ctx context.Context, processes []robloxmulti.Process) error {
 	var err error
 	if service.shouldUseElevatedHelper() {
-		_, err = elevation.Run(ctx, robloxmulti.KillProcessesTaskName, robloxmulti.ProcessArguments(processes))
+		_, err = service.elevatedHelper.Run(ctx, robloxmulti.KillProcessesTaskName, robloxmulti.ProcessArguments(processes))
 	} else {
 		err = robloxmulti.KillProcesses(ctx, processes, service.logger)
 	}

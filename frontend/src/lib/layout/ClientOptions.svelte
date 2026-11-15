@@ -26,12 +26,14 @@
 		cleanBeforeLaunchNote = $derived(
 			cleaner?.isBlockedByMultiInstance
 				? "Unavailable while multi-instance is on."
-				: "Deletes caches, logs, and sign-in data. Keeps Roblox and its settings.",
+				: cleaner?.deleteLogsWhenCleaning
+					? "Deletes caches, logs, and sign-in data. Keeps Roblox and its settings."
+					: "Deletes caches and sign-in data. Keeps logs, Roblox, and its settings.",
 		),
 		administratorRightsNote = $derived(
 			cleaner?.isElevated
 				? "Roblox Account Manager already runs as administrator."
-				: "Windows asks before Roblox is closed or cleaned.",
+				: "Windows asks once, the first time Roblox is closed or cleaned.",
 		)
 
 	$effect(() => {

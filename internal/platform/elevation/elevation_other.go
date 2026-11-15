@@ -2,14 +2,19 @@
 
 package elevation
 
-import "context"
+import (
+	"context"
+	"io"
+)
 
 const Supported = false
 
 func IsElevated() bool { return false }
 
-func currentUserSID() (string, error) { return "", ErrUnsupported }
+func startHelper(context.Context) (*helperConnection, error) {
+	return nil, ErrUnsupported
+}
 
-func requireCurrentUser(string) error { return ErrUnsupported }
-
-func runElevated(context.Context, []string) (uint32, error) { return 0, ErrUnsupported }
+func connectToApplication([]string) (io.ReadCloser, io.WriteCloser, error) {
+	return nil, nil, ErrUnsupported
+}
