@@ -212,9 +212,14 @@ func (repository *Repository) Page(ctx context.Context, query accountdomain.Acco
 	defer release()
 	where := []string{"1 = 1"}
 	arguments := make([]any, 0, 6)
-	if search := strings.TrimSpace(query.Search); search != "" {
+	for word := range strings.FieldsSeq(query.Search) {
+		// The list shows usernames after an @, so a search may include it.
+		term := strings.TrimPrefix(word, "@")
+		if term == "" {
+			continue
+		}
 		where = append(where, `(instr(lower(a.username), lower(?)) > 0 OR instr(lower(a.display_name), lower(?)) > 0 OR instr(CAST(a.roblox_user_id AS TEXT), ?) > 0)`)
-		arguments = append(arguments, search, search, search)
+		arguments = append(arguments, term, term, term)
 	}
 	for _, tagID := range query.TagIDs {
 		where = append(where, `EXISTS (SELECT 1 FROM account_tags filter_tags WHERE filter_tags.account_id = a.id AND filter_tags.tag_id = ?)`)
