@@ -43,9 +43,8 @@ func (service *Users) TrustedFriendIDs(ctx context.Context, accountID, version, 
 
 func (service *Users) findFriendIDs(ctx context.Context, accountID, version, userID int64, endpoint, findFriendsType string) ([]int64, error) {
 	friendIDs := []int64{}
-	seen, seenCursors := map[int64]bool{}, map[string]bool{}
-	cursor := ""
-	for range maxFriendsPages {
+	seen := map[int64]bool{}
+	err := readCursorPages(endpoint, maxFriendsPages, "Roblox returned too many friends to list.", func(cursor string) (string, error) {
 		var payload struct {
 			PageItems *[]struct {
 				ID int64 `json:"id"`
@@ -61,10 +60,10 @@ func (service *Users) findFriendIDs(ctx context.Context, accountID, version, use
 		}
 		address := "https://friends.roblox.com/v1/users/" + strconv.FormatInt(userID, 10) + "/friends/find?" + query.Encode()
 		if err := service.readAccountDetails(ctx, accountID, version, endpoint, address, &payload); err != nil {
-			return nil, err
+			return "", err
 		}
 		if payload.PageItems == nil {
-			return nil, invalidProfileDetails(endpoint)
+			return "", invalidProfileDetails(endpoint)
 		}
 		for _, friend := range *payload.PageItems {
 			if friend.ID > 0 && !seen[friend.ID] {
@@ -72,16 +71,15 @@ func (service *Users) findFriendIDs(ctx context.Context, accountID, version, use
 				friendIDs = append(friendIDs, friend.ID)
 			}
 		}
-		if payload.NextCursor == nil || *payload.NextCursor == "" {
-			return friendIDs, nil
+		if payload.NextCursor == nil {
+			return "", nil
 		}
-		cursor = *payload.NextCursor
-		if len(cursor) > 4096 || seenCursors[cursor] {
-			return nil, invalidProfileDetails(endpoint)
-		}
-		seenCursors[cursor] = true
+		return *payload.NextCursor, nil
+	})
+	if err != nil {
+		return nil, err
 	}
-	return nil, &roblox.Error{Kind: roblox.KindProtocol, Endpoint: endpoint, Message: "Roblox returned too many friends to list."}
+	return friendIDs, nil
 }
 
 func (service *Users) FriendRequestCount(ctx context.Context, accountID, version int64) (*int64, error) {

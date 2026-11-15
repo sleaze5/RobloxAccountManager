@@ -17,11 +17,10 @@ import (
 )
 
 const (
-	maxWornAssetCount     = 100
-	maxEmoteSlot          = 8
-	maxOutfitNameLength   = 100
-	maxOutfitCursorLength = 4096
-	outfitPageSize        = 50
+	maxWornAssetCount   = 100
+	maxEmoteSlot        = 8
+	maxOutfitNameLength = 100
+	outfitPageSize      = 50
 )
 
 // AvatarType is the rig that an avatar uses.
@@ -516,7 +515,7 @@ func (service *Users) updateAvatar(ctx context.Context, accountID, version int64
 // AvatarOutfits reads one page of the outfits that the user created. Roblox
 // lists them for any user. Verified against the API on 2026-11-14.
 func (service *Users) AvatarOutfits(ctx context.Context, accountID, version, userID int64, cursor string) (AvatarOutfitPage, error) {
-	if len(cursor) > maxOutfitCursorLength {
+	if len(cursor) > maxCursorLength {
 		return AvatarOutfitPage{}, &roblox.Error{Kind: roblox.KindProtocol, Endpoint: "avatar-outfits", Message: "This page has expired. Refresh the outfits."}
 	}
 	query := url.Values{"outfitType": {"Avatar"}, "itemsPerPage": {strconv.Itoa(outfitPageSize)}, "isEditable": {"true"}}
@@ -534,7 +533,7 @@ func (service *Users) AvatarOutfits(ctx context.Context, accountID, version, use
 	if err := service.readAvatarDetails(ctx, accountID, version, "avatar-outfits", address, &payload); err != nil {
 		return AvatarOutfitPage{}, err
 	}
-	if payload.Data == nil || len(*payload.Data) > outfitPageSize || len(payload.PaginationToken) > maxOutfitCursorLength {
+	if payload.Data == nil || len(*payload.Data) > outfitPageSize || len(payload.PaginationToken) > maxCursorLength {
 		return AvatarOutfitPage{}, invalidAvatar("avatar-outfits")
 	}
 	page := AvatarOutfitPage{Outfits: make([]AvatarOutfit, 0, len(*payload.Data)), NextCursor: payload.PaginationToken}
