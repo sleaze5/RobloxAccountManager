@@ -91,9 +91,12 @@ type PresenceUpdateSettings struct {
 }
 
 type RobloxSettings struct {
-	MultiInstance bool   `json:"multiInstance"`
-	LinuxClient   string `json:"linuxClient"`
-	PlayerPath    string `json:"playerPath"`
+	MultiInstance          bool   `json:"multiInstance"`
+	CleanBeforeLaunch      bool   `json:"cleanBeforeLaunch"`
+	DeleteLogsWhenCleaning bool   `json:"deleteLogsWhenCleaning"`
+	UseAdministratorRights bool   `json:"useAdministratorRights"`
+	LinuxClient            string `json:"linuxClient"`
+	PlayerPath             string `json:"playerPath"`
 }
 
 type IntegrationSettings struct {
@@ -261,6 +264,9 @@ func (store *Store) Import(imported Settings, sections []Section) error {
 				settings.Presence = imported.Presence
 			case SectionRoblox:
 				settings.Roblox.MultiInstance = imported.Roblox.MultiInstance
+				settings.Roblox.CleanBeforeLaunch = imported.Roblox.CleanBeforeLaunch
+				settings.Roblox.DeleteLogsWhenCleaning = imported.Roblox.DeleteLogsWhenCleaning
+				settings.Roblox.UseAdministratorRights = imported.Roblox.UseAdministratorRights
 				settings.Roblox.LinuxClient = imported.Roblox.LinuxClient
 			case SectionIntegrations:
 				settings.Integrations = imported.Integrations
@@ -287,6 +293,9 @@ func decodeCurrent(document object) (Settings, []string) {
 	fields.presence(fields.object(presence, "presence.social"), "presence.social", &settings.Presence.Social)
 	roblox := fields.object(document, "roblox")
 	decodeField(fields, roblox, "roblox.multiInstance", &settings.Roblox.MultiInstance, nil)
+	decodeField(fields, roblox, "roblox.cleanBeforeLaunch", &settings.Roblox.CleanBeforeLaunch, nil)
+	decodeField(fields, roblox, "roblox.deleteLogsWhenCleaning", &settings.Roblox.DeleteLogsWhenCleaning, nil)
+	decodeField(fields, roblox, "roblox.useAdministratorRights", &settings.Roblox.UseAdministratorRights, nil)
 	decodeField(fields, roblox, "roblox.linuxClient", &settings.Roblox.LinuxClient, validLinuxClient)
 	decodeField(fields, roblox, "roblox.playerPath", &settings.Roblox.PlayerPath, validPlayerPath)
 	integrations := fields.object(document, "integrations")
@@ -355,6 +364,7 @@ func defaults() Settings {
 			Profile:  PresenceUpdateSettings{Enabled: true, IntervalSeconds: DefaultProfilePresenceIntervalSeconds},
 			Social:   PresenceUpdateSettings{Enabled: true, IntervalSeconds: DefaultSocialPresenceIntervalSeconds},
 		},
+		Roblox:       RobloxSettings{DeleteLogsWhenCleaning: true},
 		Integrations: IntegrationSettings{RoValra: true, RBXServers: true},
 		Vault:        VaultSettings{PasswordTestIntervalDays: DefaultPasswordTestIntervalDays},
 		Logging:      LoggingSettings{EnabledLevels: defaultEnabledLoggingLevels()},
@@ -440,6 +450,18 @@ func (store *Store) SetPresenceUpdates(scope PresenceScope, enabled bool, interv
 
 func (store *Store) SetMultiInstance(enabled bool) error {
 	return store.set(func(settings *Settings) { settings.Roblox.MultiInstance = enabled })
+}
+
+func (store *Store) SetCleanBeforeLaunch(enabled bool) error {
+	return store.set(func(settings *Settings) { settings.Roblox.CleanBeforeLaunch = enabled })
+}
+
+func (store *Store) SetDeleteLogsWhenCleaning(enabled bool) error {
+	return store.set(func(settings *Settings) { settings.Roblox.DeleteLogsWhenCleaning = enabled })
+}
+
+func (store *Store) SetUseAdministratorRights(enabled bool) error {
+	return store.set(func(settings *Settings) { settings.Roblox.UseAdministratorRights = enabled })
 }
 
 func (store *Store) SetLinuxClient(client string) error {

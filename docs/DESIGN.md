@@ -272,7 +272,7 @@ Color:
 - Confirm every destructive action in a dialog that names the affected item and the consequence.
 - Use `button-danger` only for actions that delete data or end something that cannot resume. Use the primary style for a reversible action, such as locking the vault.
 - State when an action cannot be undone.
-- When an action can delete data that has no backup, require the user to type a confirmation word, such as `RESET`.
+- When an action can delete Roblox Account Manager data that has no backup, such as the vault, require the user to type a confirmation word, such as `RESET`. Actions on the data of other programs, such as cleaning or uninstalling Roblox, need only the confirmation dialog.
 
 ### Forms and validation
 

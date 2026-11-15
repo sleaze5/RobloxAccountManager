@@ -50,7 +50,7 @@
 			icon: gameControllerIcon,
 			id: "roblox",
 			label: "Roblox",
-			search: "roblox multi instance multi-instance launch multiple games same time windows processes close ready status enabled disabled account manager open linux client sober mocktail automatic desktop default join",
+			search: "roblox multi instance multi-instance launch multiple games same time windows processes close ready status enabled disabled account manager open linux client sober mocktail automatic desktop default join cleaning clean before launch cache caches cookies sign-in traces logs delete logs explorer administrator rights admin elevation uac uninstall deep remove registry shortcuts studio",
 		},
 		{
 			icon: plugIcon,
@@ -173,7 +173,7 @@
 						<StorageSettings {store} {notifications} {query} />
 						<TransferSettings {store} {notifications} {query} />
 					{:else if activeCategory.id === "roblox"}
-						<RobloxSettings />
+						<RobloxSettings {notifications} />
 					{:else if activeCategory.id === "integrations"}
 						<BrowserSettings {browser} {query} />
 						<IntegrationsSettings store={appSettings} {query} />

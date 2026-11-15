@@ -33,19 +33,23 @@ func (service *Service) LaunchAccounts(ctx context.Context, accountIDs []int64, 
 		return launchResult, launchPreparationError(err)
 	}
 	err := service.serializeLaunch(ctx, func() error {
+		shouldClean := service.shouldCleanBeforeLaunch()
 		if len(accountIDs) > 1 {
-			approved, err := service.confirmBatchLaunch(ctx, len(accountIDs))
+			approved, err := service.confirmBatchLaunch(ctx, len(accountIDs), shouldClean)
 			if err != nil || !approved {
 				launchResult.Cancelled = true
 				return err
 			}
+			// Approving a batch while cleaning is on skips cleaning for this
+			// batch only, because each cleaning would close the previous game.
+			shouldClean = false
 		}
 		for _, accountID := range accountIDs {
 			if ctx.Err() != nil || !service.vault.Unlocked() {
 				launchResult.Cancelled = true
 				break
 			}
-			err := service.launchAccount(ctx, accountID, input)
+			err := service.launchAccount(ctx, accountID, input, shouldClean)
 			if errors.Is(err, robloxmulti.ErrLaunchCancelled) {
 				launchResult.Cancelled = true
 				break
@@ -74,7 +78,7 @@ func (service *Service) serializeLaunch(ctx context.Context, action func() error
 	return action()
 }
 
-func (service *Service) executeLaunch(ctx context.Context, confirm func(context.Context, int, bool) (bool, error), action func() error) error {
+func (service *Service) executeLaunch(ctx context.Context, shouldClean bool, confirm func(context.Context, int, bool) (bool, error), action func() error) error {
 	if err := service.multiInstance.PrepareForLaunch(ctx, confirm); err != nil {
 		if errors.Is(err, robloxmulti.ErrLaunchCancelled) {
 			return err
@@ -83,6 +87,14 @@ func (service *Service) executeLaunch(ctx context.Context, confirm func(context.
 			return failure
 		}
 		return launchPreparationError(err)
+	}
+	if shouldClean {
+		if err := service.cleanBeforeLaunch(ctx); err != nil {
+			return err
+		}
+	}
+	if err := service.elevatedHelper.WaitForStoppedTask(ctx); err != nil {
+		return launchError(roblox.KindCancelled, "Roblox is still being cleaned. Try again shortly.")
 	}
 	if ctx.Err() != nil || !service.vault.Unlocked() {
 		return launchError(roblox.KindCancelled, "The launch was cancelled or the vault is locked.")
@@ -94,29 +106,32 @@ func (service *Service) executeLaunch(ctx context.Context, confirm func(context.
 	return nil
 }
 
-func (service *Service) confirmBatchLaunch(ctx context.Context, count int) (bool, error) {
+func (service *Service) confirmBatchLaunch(ctx context.Context, count int, shouldClean bool) (bool, error) {
+	ctx, cancel := context.WithTimeout(ctx, 90*time.Second)
+	defer cancel()
+	if shouldClean {
+		return service.confirmLaunch(ctx, LaunchConfirmation{AccountCount: count, IsCleaningBeforeLaunch: true})
+	}
 	state := service.multiInstance.Snapshot()
 	if state.Enabled && state.Ready {
 		return true, nil
 	}
-	ctx, cancel := context.WithTimeout(ctx, 90*time.Second)
-	defer cancel()
 	return service.confirmLaunch(ctx, LaunchConfirmation{
 		AccountCount: count, MultiInstanceEnabled: state.Enabled, MultiInstanceMessage: state.Message,
 	})
 }
 
-func (service *Service) launchAccount(ctx context.Context, accountID int64, input gamelaunch.Input) error {
+func (service *Service) launchAccount(ctx context.Context, accountID int64, input gamelaunch.Input, shouldClean bool) error {
 	return service.runLaunchOperation(ctx, accountID, input, "game-launch", func(ctx context.Context, ticket func() (string, error), browserID string, target gamelaunch.Request) error {
 		confirm := func(ctx context.Context, count int, multiInstance bool) (bool, error) {
-			approved, err := service.confirmRobloxReplacement(ctx, count, multiInstance)
+			approved, err := service.replacementConfirmation(shouldClean)(ctx, count, multiInstance)
 			if err != nil || !approved {
 				return approved, err
 			}
 			_, err = ticket()
 			return true, err
 		}
-		return service.executeLaunch(ctx, confirm, func() error {
+		return service.executeLaunch(ctx, shouldClean, confirm, func() error {
 			authenticationTicket, err := ticket()
 			if err != nil {
 				return err

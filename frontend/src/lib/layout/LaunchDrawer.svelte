@@ -7,9 +7,11 @@
 	import Icon from "../shared/Icon.svelte"
 	import type { AccountStore } from "../accounts/account-store.svelte"
 	import type { NotificationCenter } from "../notifications/notification-center.svelte"
-	import { LaunchMethod } from "../backend/bridge"
+	import { LaunchMethod, RobloxCleanScope } from "../backend/bridge"
+	import RobloxCleanDialog from "../dialogs/RobloxCleanDialog.svelte"
 	import RobloxProcessesDialog from "../dialogs/RobloxProcessesDialog.svelte"
 	import { appSettings } from "../settings/settings-store.svelte"
+	import ClientOptions from "./ClientOptions.svelte"
 	import LaunchArguments from "./LaunchArguments.svelte"
 	import LaunchButton from "./LaunchButton.svelte"
 	import NearestServerButton from "./NearestServerButton.svelte"
@@ -26,7 +28,8 @@
 		notifications: NotificationCenter
 	} = $props()
 	let drawer = $state<HTMLElement>()
-	let processesOpen = $state(false)
+	let processesOpen = $state(false),
+		cleanOpen = $state(false)
 	let measuredMethod: LaunchMethod | undefined
 	const methods = [
 		{
@@ -72,7 +75,10 @@
 	})
 
 	$effect(() => {
-		if (!store.vault.unlocked) processesOpen = false
+		if (!store.vault.unlocked) {
+			processesOpen = false
+			cleanOpen = false
+		}
 	})
 </script>
 
@@ -119,6 +125,7 @@
 				>Launch options</strong>
 		</span>
 		<div class="flex items-center gap-1">
+			<ClientOptions {store} />
 			<button
 				class="button-ghost-sm hover:bg-danger/5 hover:text-danger aria-expanded:bg-danger/5 aria-expanded:text-danger"
 				type="button"
@@ -276,6 +283,17 @@
 		</form>
 	{/if}
 	{#if processesOpen}
-		<RobloxProcessesDialog onClose={() => (processesOpen = false)} />
+		<RobloxProcessesDialog
+			onClose={() => (processesOpen = false)}
+			onClean={() => {
+				processesOpen = false
+				cleanOpen = true
+			}} />
+	{/if}
+	{#if cleanOpen}
+		<RobloxCleanDialog
+			scope={RobloxCleanScope.ScopeData}
+			{notifications}
+			onClose={() => (cleanOpen = false)} />
 	{/if}
 </section>

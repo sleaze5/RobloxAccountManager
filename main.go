@@ -22,7 +22,9 @@ import (
 	"github.com/sleaze5/RobloxAccountManager/internal/integration/rovalra"
 	"github.com/sleaze5/RobloxAccountManager/internal/logging"
 	"github.com/sleaze5/RobloxAccountManager/internal/logsexplorer"
+	"github.com/sleaze5/RobloxAccountManager/internal/platform/elevation"
 	"github.com/sleaze5/RobloxAccountManager/internal/platform/protection"
+	"github.com/sleaze5/RobloxAccountManager/internal/platform/robloxcleaner"
 	"github.com/sleaze5/RobloxAccountManager/internal/platform/robloxlogs"
 	"github.com/sleaze5/RobloxAccountManager/internal/platform/robloxmulti"
 	"github.com/sleaze5/RobloxAccountManager/internal/platform/shellidentity"
@@ -43,6 +45,12 @@ var assets embed.FS
 
 func main() {
 	appupdate.HandleHelperMode()
+	if isHelper, exitCode := elevation.HandleHelperMode(map[string]elevation.Task{
+		robloxcleaner.CleanTaskName:       robloxcleaner.CleanTask,
+		robloxmulti.KillProcessesTaskName: robloxmulti.KillProcessesTask,
+	}, logging.NewConsole()); isHelper {
+		os.Exit(exitCode)
+	}
 	if monitor, err := logging.RunCrashMonitor(); monitor {
 		if err != nil {
 			logging.NewConsole().Error("crash monitor failed", "module", "logging", "error", err)
@@ -114,6 +122,8 @@ func run() (runError error) {
 	multiInstance := robloxmulti.New(logSystem.Module("platform.roblox-multi-instance"))
 	defer multiInstance.Close()
 	multiInstance.SetEnabled(settingsStore.Roblox().MultiInstance)
+	elevatedHelper := elevation.NewHelper(logSystem.Module("platform.elevation"))
+	defer elevatedHelper.Close()
 
 	launch.Begin("application-services")
 	vaultManager := vault.NewManager(dataPaths, protection.New(), logSystem.Module("vault"))
@@ -151,6 +161,7 @@ func run() (runError error) {
 		logsexplorer.NewReader(robloxlogs.Directories, logSystem.Module("logs-explorer")),
 		gamelaunch.New(func() string { return settingsStore.Roblox().LinuxClient }),
 		multiInstance,
+		elevatedHelper,
 		settingsStore,
 		logSystem,
 		events,

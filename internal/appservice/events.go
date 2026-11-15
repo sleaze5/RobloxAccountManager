@@ -3,6 +3,8 @@ package appservice
 import (
 	"sync"
 	"time"
+
+	"github.com/sleaze5/RobloxAccountManager/internal/platform/robloxcleaner"
 )
 
 type Events struct {
@@ -60,6 +62,10 @@ func (events *Events) browserLaunchFailed(sessionID, message string) {
 
 func (events *Events) UpdateChanged() {
 	events.send("update:state-changed", struct{}{})
+}
+
+func (events *Events) robloxCleanProgressed(progress robloxcleaner.Progress) {
+	events.send("roblox:clean-progress", progress)
 }
 
 func (events *Events) launchConfirmationChanged() {

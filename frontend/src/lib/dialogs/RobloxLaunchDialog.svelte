@@ -8,6 +8,9 @@
 		submitting = $state(false),
 		error = $state("")
 	let revision = 0
+	const isAskingToSkipCleaning = $derived(
+		pending !== null && pending.accountCount > 1 && pending.isCleaningBeforeLaunch,
+	)
 
 	async function refresh(): Promise<void> {
 		const current = ++revision
@@ -68,12 +71,19 @@
 		<div class="dialog-heading mb-2">
 			<div>
 				<h2 id="replace-roblox-title">
-					{pending.accountCount > 1
-						? "Launch without multi-instance?"
-						: "Close Roblox and join?"}
+					{#if isAskingToSkipCleaning}
+						Launch without cleaning?
+					{:else if pending.accountCount > 1}
+						Launch without multi-instance?
+					{:else}
+						Close Roblox and join?
+					{/if}
 				</h2>
 				<p id="replace-roblox-description">
-					{#if pending.accountCount > 1}
+					{#if isAskingToSkipCleaning}
+						Clean before launch allows one account at a time. Multi-instance
+						is off, so the {pending.accountCount} accounts may replace each other.
+					{:else if pending.accountCount > 1}
 						{pending.multiInstanceEnabled
 							? "Multi-instance is not ready."
 							: "Multi-instance is off."}
@@ -89,6 +99,7 @@
 							? "the running Roblox game"
 							: `all ${pending.processCount} running Roblox games`} and join
 						the new game. Unsaved progress may be lost.
+						{#if pending.isCleaningBeforeLaunch}Roblox is cleaned first.{/if}
 					{/if}
 				</p>
 			</div>
@@ -101,13 +112,18 @@
 				disabled={submitting}
 				onclick={() => void respond(false)}>Cancel</button>
 			<button
-				class="button-danger"
+				class={isAskingToSkipCleaning ? "button-warning" : "button-danger"}
 				type="button"
 				disabled={submitting}
-				onclick={() => void respond(true)}
-				>{pending.accountCount > 1
-					? "Launch anyway"
-					: "Close Roblox and join"}</button>
+				onclick={() => void respond(true)}>
+				{#if isAskingToSkipCleaning}
+					Launch without cleaning
+				{:else if pending.accountCount > 1}
+					Launch anyway
+				{:else}
+					Close Roblox and join
+				{/if}
+			</button>
 		</div>
 	</Dialog>
 {/if}
