@@ -112,7 +112,7 @@
 				disabled={submitting}
 				onclick={() => void respond(false)}>Cancel</button>
 			<button
-				class="button-danger"
+				class={isAskingToSkipCleaning ? "button-warning" : "button-danger"}
 				type="button"
 				disabled={submitting}
 				onclick={() => void respond(true)}>
