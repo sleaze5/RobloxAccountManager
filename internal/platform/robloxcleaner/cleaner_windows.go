@@ -105,20 +105,21 @@ var (
 	}
 )
 
-// isCleanedLocalEntry reports whether data cleaning deletes an entry of
-// %LOCALAPPDATA%\Roblox. Only known caches and account traces are deleted:
-// the HTTP cache, downloads, update backups, the cookie and app storage, the
-// storage database, and optionally the logs. Everything else, such as the
-// installed versions, settings, and Roblox Studio plugins and work, stays.
-func isCleanedLocalEntry(name string, shouldDeleteLogs bool) bool {
+// isKeptLocalEntry reports whether an entry of %LOCALAPPDATA%\Roblox survives
+// data cleaning. Everything not listed is deleted, so files that new Roblox
+// versions add are cleaned too. The list keeps the installed versions, the
+// Roblox settings files, the fast flag settings, Roblox Studio plugins, and
+// the logs when the user keeps them.
+func isKeptLocalEntry(name string, shouldDeleteLogs bool) bool {
 	lowercaseName := strings.ToLower(name)
 	switch {
-	case slices.Contains([]string{"http", "downloads", "otapatchbackups", "localstorage"}, lowercaseName):
+	case slices.Contains([]string{"versions", "clientsettings", "plugins"}, lowercaseName):
 		return true
 	case lowercaseName == "logs":
-		return shouldDeleteLogs
+		return !shouldDeleteLogs
 	default:
-		return strings.HasPrefix(lowercaseName, "rbx-storage.")
+		return strings.HasSuffix(lowercaseName, ".xml") &&
+			(strings.HasPrefix(lowercaseName, "globalbasicsettings_") || strings.HasPrefix(lowercaseName, "globalsettings_"))
 	}
 }
 
@@ -241,7 +242,7 @@ func (run *cleanup) cleanLocalRobloxFolder(shouldDeleteLogs bool) {
 		return
 	}
 	for _, entry := range entries {
-		if isCleanedLocalEntry(entry.Name(), shouldDeleteLogs) {
+		if !isKeptLocalEntry(entry.Name(), shouldDeleteLogs) {
 			run.removePath(localRobloxFolder.join(entry.Name()))
 		}
 	}

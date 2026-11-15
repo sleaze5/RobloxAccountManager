@@ -115,9 +115,9 @@
 					your saved places, autosaves, screenshots, and videos in the Roblox
 					folders. This cannot be undone.
 				{:else}
-					Deletes Roblox caches, cookies, and other sign-in data. Roblox
-					Player, Roblox Studio, their settings, and your Studio plugins and
-					places stay.
+					Deletes everything in the Roblox folder except Roblox Player, Roblox
+					Studio, their settings, and Studio plugins. That includes caches,
+					cookies, and other sign-in data.
 				{/if}
 			</p>
 		</div>

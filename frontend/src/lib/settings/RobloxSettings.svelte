@@ -120,8 +120,9 @@
 					<span id="clean-before-launch-description"
 						>Delete Roblox caches, cookies, and sign-in data before each
 						launch, so the next account starts without traces of the
-						previous one. Roblox, its settings, and your Studio plugins and
-						places stay, and only one account can launch at a time.</span>
+						previous one. Everything else in the Roblox folder is deleted
+						too, except Roblox itself, its settings, and Studio plugins.
+						Only one account can launch at a time.</span>
 					{#if cleaner.isBlockedByMultiInstance}
 						<SettingsStatus
 							id="clean-before-launch-status"
