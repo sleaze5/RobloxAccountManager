@@ -17,11 +17,18 @@
 		notifications: NotificationCenter
 		onClose: () => void
 	} = $props()
+	// Uninstalling deletes the user's Roblox screenshots, videos, and places,
+	// which have no backup, so it needs a typed confirmation.
+	const uninstallConfirmationWord = "UNINSTALL"
 	let runningProcessCount = $state(0),
 		isCleaning = $state(false),
-		error = $state("")
+		error = $state(""),
+		uninstallConfirmation = $state("")
 	let disposed = false
 	const isUninstall = $derived(scope === RobloxCleanScope.ScopeUninstall),
+		isConfirmed = $derived(
+			!isUninstall || uninstallConfirmation === uninstallConfirmationWord,
+		),
 		cleaner = $derived(options.cleaner),
 		notes = $derived(
 			[
@@ -36,7 +43,7 @@
 		)
 
 	async function clean(): Promise<void> {
-		if (isCleaning) return
+		if (isCleaning || !isConfirmed) return
 		isCleaning = true
 		error = ""
 		try {
@@ -124,6 +131,16 @@
 	{#if notes.length > 0}
 		<div class="notice-note">{notes.join(" ")}</div>
 	{/if}
+	{#if isUninstall}
+		<label class="dialog-field">
+			<span>Type {uninstallConfirmationWord} to confirm</span>
+			<input
+				bind:value={uninstallConfirmation}
+				autocomplete="off"
+				spellcheck="false"
+				disabled={isCleaning} />
+		</label>
+	{/if}
 	{#if error}<div class="mt-3 notice-error" role="alert">{error}</div>{/if}
 	<div class="dialog-actions">
 		<button class="button" type="button" disabled={isCleaning} onclick={dismiss}
@@ -131,7 +148,7 @@
 		<button
 			class="button-danger"
 			type="button"
-			disabled={isCleaning}
+			disabled={isCleaning || !isConfirmed}
 			onclick={() => void clean()}>
 			{#if isUninstall}
 				{isCleaning ? "Uninstalling…" : "Uninstall Roblox"}
