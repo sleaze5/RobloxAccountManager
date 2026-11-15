@@ -1,4 +1,7 @@
 <script lang="ts">
+	import broomIcon from "@phosphor-icons/core/regular/broom.svg?raw"
+	import trashIcon from "@phosphor-icons/core/regular/trash.svg?raw"
+	import Icon from "../shared/Icon.svelte"
 	import { onMount } from "svelte"
 	import {
 		accountBackend,
@@ -168,49 +171,53 @@
 					(enabled) => void options.setCleanBeforeLaunch(enabled),
 				)}
 			</div>
-			<div class="settings-row">
-				<div class="settings-row-copy">
-					<strong id="delete-logs-title">Delete logs when cleaning</strong>
-					<span id="delete-logs-description"
-						>Also delete Roblox logs, which name the accounts and games you
-						played. Logs Explorer reads these logs, so the games it lists
-						are cleared too. Uninstalling always deletes them.</span>
-				</div>
-				{@render settingSwitch(
-					"delete-logs",
-					cleaner.deleteLogsWhenCleaning,
-					options.isSavingDeleteLogs,
-					(enabled) => void options.setDeleteLogsWhenCleaning(enabled),
-				)}
-			</div>
-			{#if cleaner.elevationSupported}
+			<div
+				class="settings-suboptions"
+				role="group"
+				aria-label="Options for every Roblox cleaning">
 				<div class="settings-row">
 					<div class="settings-row-copy">
-						<strong id="administrator-rights-title"
-							>Use administrator rights</strong>
-						<span id="administrator-rights-description"
-							>Ask Windows for administrator rights the first time Roblox
-							is closed or cleaned, then keep a small helper with them
-							until Roblox Account Manager closes or this is turned off.
-							This includes files and registry entries shared by all
-							Windows users, and Roblox processes started as
-							administrator. Roblox Account Manager itself keeps running
-							without them.</span>
-						{#if cleaner.isElevated}
-							<SettingsStatus
-								id="administrator-rights-status"
-								value="Already running as administrator"
-								tone="success" />
-						{/if}
+						<strong id="delete-logs-title"
+							>Delete logs when cleaning</strong>
+						<span id="delete-logs-description"
+							>Also delete Roblox logs, which name the accounts and games
+							you played. Logs Explorer loses the games it lists.
+							Uninstalling always deletes them.</span>
 					</div>
 					{@render settingSwitch(
-						"administrator-rights",
-						cleaner.useAdministratorRights,
-						options.isSavingAdministratorRights,
-						(enabled) => void options.setUseAdministratorRights(enabled),
+						"delete-logs",
+						cleaner.deleteLogsWhenCleaning,
+						options.isSavingDeleteLogs,
+						(enabled) => void options.setDeleteLogsWhenCleaning(enabled),
 					)}
 				</div>
-			{/if}
+				{#if cleaner.elevationSupported}
+					<div class="settings-row">
+						<div class="settings-row-copy">
+							<strong id="administrator-rights-title"
+								>Use administrator rights</strong>
+							<span id="administrator-rights-description"
+								>Ask Windows once per session when Roblox is closed or
+								cleaned, so files, registry entries, and processes
+								shared by all Windows users are included. Only a small
+								helper gets the rights.</span>
+							{#if cleaner.isElevated}
+								<SettingsStatus
+									id="administrator-rights-status"
+									value="Already running as administrator"
+									tone="success" />
+							{/if}
+						</div>
+						{@render settingSwitch(
+							"administrator-rights",
+							cleaner.useAdministratorRights,
+							options.isSavingAdministratorRights,
+							(enabled) =>
+								void options.setUseAdministratorRights(enabled),
+						)}
+					</div>
+				{/if}
+			</div>
 			<div class="settings-row">
 				<div class="settings-row-copy">
 					<strong id="clean-now-title">Clean Roblox data</strong>
@@ -220,12 +227,14 @@
 						keeps its settings.</span>
 				</div>
 				<button
-					class="button"
+					class="button-warning"
 					type="button"
 					aria-haspopup="dialog"
 					aria-describedby="clean-now-description"
-					onclick={() => (cleanScope = RobloxCleanScope.ScopeData)}
-					>Clean now</button>
+					onclick={() => (cleanScope = RobloxCleanScope.ScopeData)}>
+					<Icon svg={broomIcon} size={14} aria-hidden="true" />
+					Clean now
+				</button>
 			</div>
 			<div class="settings-row">
 				<div class="settings-row-copy">
@@ -238,12 +247,14 @@
 						must register Roblox links again.</span>
 				</div>
 				<button
-					class="button"
+					class="button-danger"
 					type="button"
 					aria-haspopup="dialog"
 					aria-describedby="uninstall-description"
-					onclick={() => (cleanScope = RobloxCleanScope.ScopeUninstall)}
-					>Uninstall</button>
+					onclick={() => (cleanScope = RobloxCleanScope.ScopeUninstall)}>
+					<Icon svg={trashIcon} size={14} aria-hidden="true" />
+					Uninstall
+				</button>
 			</div>
 		</div>
 		{#if options.cleanerError}

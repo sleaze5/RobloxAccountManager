@@ -1,5 +1,6 @@
 <script lang="ts">
 	import CheckboxMark from "../shared/CheckboxMark.svelte"
+	import broomIcon from "@phosphor-icons/core/regular/broom.svg?raw"
 	import xIcon from "@phosphor-icons/core/regular/x.svg?raw"
 	import Icon from "../shared/Icon.svelte"
 	import RefreshIcon from "../shared/RefreshIcon.svelte"
@@ -206,11 +207,14 @@
 	<div class="dialog-actions">
 		{#if robloxClientOptions.cleaner?.supported}
 			<button
-				class="mr-auto button"
+				class="mr-auto button-warning"
 				type="button"
 				aria-haspopup="dialog"
 				disabled={killing}
-				onclick={onClean}>Clean Roblox data</button>
+				onclick={onClean}>
+				<Icon svg={broomIcon} size={14} aria-hidden="true" />
+				Clean Roblox data
+			</button>
 		{/if}
 		<button
 			class="button"
