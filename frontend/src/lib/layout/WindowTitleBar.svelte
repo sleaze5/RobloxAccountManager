@@ -1,14 +1,23 @@
 <script lang="ts">
+	import discordLogoLightIcon from "@phosphor-icons/core/light/discord-logo-light.svg?raw"
 	import gitBranchLightIcon from "@phosphor-icons/core/light/git-branch-light.svg?raw"
 	import minusLightIcon from "@phosphor-icons/core/light/minus-light.svg?raw"
 	import squareLightIcon from "@phosphor-icons/core/light/square-light.svg?raw"
 	import xLightIcon from "@phosphor-icons/core/light/x-light.svg?raw"
 	import Icon from "../shared/Icon.svelte"
-	import { Browser, Window } from "@wailsio/runtime"
-	import { repository } from "../../../package.json"
+	import type { NotificationCenter } from "../notifications/notification-center.svelte"
+	import TitleBarLinkButton from "./TitleBarLinkButton.svelte"
+	import { Window } from "@wailsio/runtime"
+	import { discordInviteCode, repository } from "../../../package.json"
 
-	let { version, release }: { version: string; release: boolean } = $props()
+	let {
+		version,
+		release,
+		notifications,
+	}: { version: string; release: boolean; notifications: NotificationCenter } =
+		$props()
 	const repositoryURL = repository.url.replace(/^git\+/, "").replace(/\.git$/, "")
+	const discordInviteURL = `https://discord.com/invite/${discordInviteCode}`
 	const controlClass =
 		"grid h-full w-11 cursor-default place-items-center text-fg-muted transition-colors duration-100 hover:bg-hover hover:text-fg-bright"
 </script>
@@ -31,14 +40,18 @@
 		{/if}
 	</div>
 	<div class="ml-auto flex h-full" style="--wails-draggable: no-drag">
-		<button
-			class="button-ghost self-center"
-			type="button"
-			aria-label="Open repository"
-			data-tooltip="Open repository"
-			onclick={() => void Browser.OpenURL(repositoryURL)}>
-			<Icon svg={gitBranchLightIcon} size={18} aria-hidden="true" />
-		</button>
+		<TitleBarLinkButton
+			url={discordInviteURL}
+			label="Join the Discord server"
+			urlName="Discord invite URL"
+			icon={discordLogoLightIcon}
+			{notifications} />
+		<TitleBarLinkButton
+			url={repositoryURL}
+			label="Open repository"
+			urlName="Repository URL"
+			icon={gitBranchLightIcon}
+			{notifications} />
 		<div class="mx-2 h-4 w-px self-center bg-line-strong" aria-hidden="true"></div>
 		<button
 			class={controlClass}

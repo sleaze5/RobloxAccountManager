@@ -3,6 +3,7 @@
 	import crosshairIcon from "@phosphor-icons/core/regular/crosshair.svg?raw"
 	import { untrack } from "svelte"
 	import Icon from "../shared/Icon.svelte"
+	import { LongPress } from "../shared/long-press"
 	import type { AccountStore } from "../accounts/account-store.svelte"
 	import NearestServerDialog from "../dialogs/NearestServerDialog.svelte"
 	import type { NotificationCenter } from "../notifications/notification-center.svelte"
@@ -18,15 +19,13 @@
 	// dialog and fills the nearest server directly, as the button did before
 	// the dialog existed. It has no visible hint or tooltip on purpose, so that
 	// the button stays simple for everyone else. A click still opens the dialog.
-	const holdDelayMs = 500
+	const longPress = new LongPress(() => void fillNearestServer())
 
 	// The search stays set after the dialog closes, because the dialog still
 	// reads it during its exit transition.
 	let search = $state<NearestServerSearch | null>(null),
 		isSearchOpen = $state(false),
 		backgroundSearch = $state<NearestServerSearch | null>(null)
-	let holdTimer = 0,
-		wasHeld = false
 	const region = $derived(appSettings.roValraRegion),
 		placeId = $derived(
 			/^\d+$/.test(store.launchInput.placeId.trim())
@@ -52,20 +51,6 @@
 	function closeSearch(): void {
 		search?.dispose()
 		isSearchOpen = false
-	}
-
-	function beginHold(event: PointerEvent): void {
-		if (event.button !== 0) return
-		wasHeld = false
-		window.clearTimeout(holdTimer)
-		holdTimer = window.setTimeout(() => {
-			wasHeld = true
-			void fillNearestServer()
-		}, holdDelayMs)
-	}
-
-	function endHold(): void {
-		window.clearTimeout(holdTimer)
 	}
 
 	async function fillNearestServer(): Promise<void> {
@@ -107,7 +92,7 @@
 
 	function cancelSearches(): void {
 		closeSearch()
-		window.clearTimeout(holdTimer)
+		longPress.endPress()
 		backgroundSearch?.dispose()
 		backgroundSearch = null
 	}
@@ -125,16 +110,13 @@
 		aria-haspopup="dialog"
 		aria-busy={backgroundSearch !== null}
 		disabled={!region || !hasPlace || store.launching || backgroundSearch !== null}
-		onpointerdown={beginHold}
-		onpointerup={endHold}
-		onpointerleave={endHold}
-		onpointercancel={endHold}
-		onkeydown={() => (wasHeld = false)}
+		onpointerdown={longPress.beginPress}
+		onpointerup={longPress.endPress}
+		onpointerleave={longPress.endPress}
+		onpointercancel={longPress.endPress}
+		onkeydown={longPress.forgetLongPress}
 		onclick={() => {
-			if (wasHeld) {
-				wasHeld = false
-				return
-			}
+			if (longPress.consumeLongPress()) return
 			openSearch()
 		}}>
 		{#if backgroundSearch}

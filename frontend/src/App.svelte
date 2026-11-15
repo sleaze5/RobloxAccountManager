@@ -621,7 +621,10 @@
 	onkeydown={handleWindowKeydown} />
 
 <div class="flex h-screen flex-col bg-canvas">
-	<WindowTitleBar version={build?.version ?? ""} release={build?.release ?? true} />
+	<WindowTitleBar
+		version={build?.version ?? ""}
+		release={build?.release ?? true}
+		notifications={notificationCenter} />
 
 	{#if activePage === "settings"}
 		<SettingsPage

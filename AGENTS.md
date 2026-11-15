@@ -11,6 +11,7 @@ displayName: Roblox Account Manager
 name: RobloxAccountManager
 description: A portable desktop application for storing and managing Roblox accounts.
 url: https://github.com/sleaze5/RobloxAccountManager
+discordInviteCode: BUchHun3Uc
 identifier: com.github.sleaze5.robloxaccountmanager
 license: MIT
 copyright: Copyright (c) 2026 sleaze
