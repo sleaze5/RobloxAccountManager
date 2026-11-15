@@ -78,8 +78,6 @@
 			<span
 				class="relative grid size-48 shrink-0 place-items-center overflow-hidden rounded-lg border border-line-subtle bg-canvas"
 				aria-hidden="true">
-				<span class="absolute bottom-4 h-2.5 w-24 rounded-full bg-hover-overlay"
-				></span>
 				<span class="relative grid size-full place-items-center">
 					<ProfileImage url={imageUrl} fallbackIcon={coatHangerIcon} />
 				</span>

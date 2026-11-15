@@ -18,10 +18,6 @@
 	aria-label="Avatar image">
 	<figure
 		class="relative grid aspect-square w-full place-items-center overflow-hidden rounded-lg border border-line-subtle bg-canvas">
-		<!-- The plinth grounds the render, which Roblox draws without a floor. -->
-		<span
-			class="absolute bottom-5 h-3 w-28 rounded-full bg-hover-overlay"
-			aria-hidden="true"></span>
 		{#if imageUrl && failedImageUrl !== imageUrl}
 			{#key imageUrl}
 				<img
