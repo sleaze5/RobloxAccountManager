@@ -63,6 +63,7 @@ export class AccountStore {
 	refreshing = $state(false)
 	presencesRefreshedAt = 0
 	error = $state("")
+	accountListError = $state("")
 	nextCursor = $state<AccountCursor | null>(null)
 	accountTotal = $state(0)
 	loadingAccounts = $state(false)
@@ -623,11 +624,13 @@ export class AccountStore {
 				this.selectAccount(this.accounts[0]?.id ?? 0)
 			}
 
+			this.accountListError = ""
+
 			const userIDs = records.map((record) => record.robloxUserId)
 			void this.refreshAvatarHeadshots(userIDs)
 		} catch (error) {
 			if (version !== this.#accountListVersion || !this.vault.unlocked) return
-			this.error = errorMessage(error, operationError)
+			this.accountListError = errorMessage(error, operationError)
 		} finally {
 			if (version === this.#accountListVersion) this.loadingAccounts = false
 		}
@@ -1181,6 +1184,7 @@ export class AccountStore {
 		this.selectedAccountIds = []
 		this.nextCursor = null
 		this.accountTotal = 0
+		this.accountListError = ""
 		this.#avatarUrls.clear()
 		this.#presences.clear()
 		this.#presenceVersions.clear()

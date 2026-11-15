@@ -59,7 +59,7 @@
 				required />
 		</label>
 		<button
-			class="mt-2 flex items-center gap-1 py-1 text-xs text-fg-muted transition-colors duration-100 *:animate-pop"
+			class="mt-2 button-text *:animate-pop"
 			type="button"
 			onclick={() => (visible = !visible)}>
 			{#if visible}<Icon svg={eyeSlashIcon} size={16} aria-hidden="true" /> Hide password{:else}<Icon

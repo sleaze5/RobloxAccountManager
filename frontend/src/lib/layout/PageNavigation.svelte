@@ -26,7 +26,7 @@
 		"flex w-8 items-center justify-center text-fg-muted transition-colors duration-100 hover:text-fg"
 </script>
 
-<header
+<div
 	class="flex h-9 shrink-0 items-stretch border-b border-line-subtle bg-surface pr-3">
 	<nav class="flex items-stretch" aria-label="Page navigation">
 		<button
@@ -91,4 +91,4 @@
 			<Icon svg={gearIcon} class="animate-pop" size={16} aria-hidden="true" />
 		</button>
 	</div>
-</header>
+</div>

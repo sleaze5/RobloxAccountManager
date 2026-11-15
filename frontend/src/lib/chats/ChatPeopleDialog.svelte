@@ -236,6 +236,7 @@
 						class="button-ghost-sm"
 						type="button"
 						aria-label={`Remove ${person.displayName}`}
+						data-tooltip={`Remove ${person.displayName}`}
 						disabled={submitting}
 						onclick={() => toggle(person)}>
 						<Icon svg={xIcon} size={12} aria-hidden="true" />

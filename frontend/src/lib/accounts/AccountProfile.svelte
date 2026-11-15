@@ -296,7 +296,7 @@
 								onJoin={onJoinServer}
 								{onSearchPlace}
 								{onSearchUniverse} />
-							<div class="flex flex-wrap items-center gap-2">
+							<div class="flex min-h-5 flex-wrap items-center gap-2">
 								<AccountProfileBalance
 									snapshot={profile}
 									loading={isBalanceLoading} />

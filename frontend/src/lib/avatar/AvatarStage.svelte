@@ -13,7 +13,7 @@
 		draftType = $derived(avatar.draft?.avatarType ?? "")
 </script>
 
-<aside
+<section
 	class="flex w-60 shrink-0 flex-col gap-3 overflow-y-auto border-r border-line-subtle bg-surface p-3"
 	aria-label="Avatar image">
 	<figure
@@ -69,4 +69,4 @@
 				: ""}. Save to see your changes.
 		</p>
 	{/if}
-</aside>
+</section>

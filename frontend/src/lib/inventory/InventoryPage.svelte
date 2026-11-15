@@ -181,7 +181,7 @@
 	</AccountPageHeader>
 
 	<div class="settings-layout" style={`--sidebar-width: ${sidebarWidth}px;`}>
-		<aside class="settings-sidebar pt-1">
+		<div class="settings-sidebar pt-1">
 			<nav class="settings-nav" aria-label="Inventory categories">
 				{#each inventoryCategoryGroups as group (group.label)}
 					<h2 class="menu-heading">{group.label}</h2>
@@ -199,10 +199,10 @@
 					{/each}
 				{/each}
 			</nav>
-		</aside>
+		</div>
 		<SidebarResizer bind:width={sidebarWidth} name="inventory" minimumWidth={176} />
 
-		<main
+		<section
 			class="@container flex min-h-0 min-w-0 flex-1 flex-col"
 			aria-labelledby="inventory-category-title">
 			<div
@@ -378,7 +378,7 @@
 					{/if}
 				{/key}
 			</div>
-		</main>
+		</section>
 	</div>
 </section>
 

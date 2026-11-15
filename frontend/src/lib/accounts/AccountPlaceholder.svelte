@@ -4,6 +4,7 @@
 	import plusIcon from "@phosphor-icons/core/regular/plus.svg?raw"
 	import userPlusIcon from "@phosphor-icons/core/regular/user-plus.svg?raw"
 	import usersThreeIcon from "@phosphor-icons/core/regular/users-three.svg?raw"
+	import warningIcon from "@phosphor-icons/core/regular/warning.svg?raw"
 	import Icon from "../shared/Icon.svelte"
 	import type { WorkspaceState } from "../layout/workspace-state.svelte"
 	import type { AccountStore } from "./account-store.svelte"
@@ -86,7 +87,15 @@
 	</div>
 {:else if store.vault.unlocked && !store.loadingAccounts}
 	<div class="empty-state min-h-full animate-enter">
-		{#if noAccounts}
+		{#if store.accountListError && store.accounts.length === 0}
+			<Icon svg={warningIcon} size={28} aria-hidden="true" />
+			<h2>Accounts unavailable</h2>
+			<p role="alert">{store.accountListError}</p>
+			<button
+				class="button"
+				type="button"
+				onclick={() => void store.refreshAccounts()}>Try again</button>
+		{:else if noAccounts}
 			<Icon svg={userPlusIcon} size={28} aria-hidden="true" />
 			<h2>No accounts yet</h2>
 			<p>Sign in with a browser, paste a cookie, or import an export file.</p>
@@ -111,7 +120,7 @@
 			</div>
 		{:else if noMatches}
 			<Icon svg={magnifyingGlassIcon} size={28} aria-hidden="true" />
-			<h2>Nothing to show</h2>
+			<h2>No matching accounts</h2>
 			<p>Change the search or tag filter to find an account.</p>
 			<button class="button" type="button" onclick={clearFilters}>
 				Clear search and filters

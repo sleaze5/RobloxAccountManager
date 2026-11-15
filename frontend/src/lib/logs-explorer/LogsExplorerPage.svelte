@@ -33,7 +33,13 @@
 		onSearchPlace: (placeId: number) => void
 	} = $props()
 	const sessions = $derived(store.filteredSessions),
-		selected = $derived(store.selectedSession)
+		selected = $derived(store.selectedSession),
+		tabStopFileName = $derived(
+			(
+				sessions.find((session) => session.fileName === store.selectedFile) ??
+				sessions[0]
+			)?.fileName,
+		)
 
 	onMount(() => store.initialize())
 </script>
@@ -105,6 +111,7 @@
 							? "true"
 							: undefined}
 						data-list-item
+						tabindex={session.fileName === tabStopFileName ? 0 : -1}
 						onclick={() => (store.selectedFile = session.fileName)}
 						onkeydown={moveListFocus}
 						data-tooltip={session.fileName}

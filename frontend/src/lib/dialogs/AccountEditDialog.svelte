@@ -232,7 +232,7 @@
 			{/if}
 			{#if kind === "email" || kind === "password"}
 				<button
-					class="mt-2 flex items-center gap-1 py-1 text-xs text-fg-muted transition-colors duration-100 *:animate-pop"
+					class="mt-2 button-text *:animate-pop"
 					type="button"
 					onclick={() => (visible = !visible)}>
 					{#if visible}<Icon

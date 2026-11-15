@@ -45,7 +45,8 @@
 	--color-line-subtle: rgb(255 255 255 / 6%);
 	--color-line: #1c1c1c;
 	--color-line-strong: #282828;
-	--color-line-focus: rgb(255 255 255 / 22%);
+	--color-line-control: #6b6b6b;
+	--color-line-focus: rgb(255 255 255 / 36%);
 	--color-focus: rgb(255 255 255 / 40%);
 	--color-scrollbar: rgb(163 163 163 / 22%);
 
