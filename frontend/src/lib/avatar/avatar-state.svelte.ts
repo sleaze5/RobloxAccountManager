@@ -79,8 +79,10 @@ export class AvatarState {
 	readonly #scope: AccountScope
 	readonly #accounts: AccountStore
 	readonly #notifications: NotificationCenter
-	// The draft that previewImageUrl or the running preview request shows.
+	// The draft that previewImageUrl shows.
 	#previewDraft = $state.raw<AvatarDraft | null>(null)
+	// The draft that the running preview request renders.
+	#renderingPreviewDraft: AvatarDraft | null = null
 	#previewRequest: ReturnType<typeof accountBackend.RenderAvatarPreview> | null = null
 	#loadRequest: ReturnType<typeof accountBackend.GetAvatar> | null = null
 	#outfitsRequest: ReturnType<typeof accountBackend.GetAvatarOutfits> | null = null
@@ -408,38 +410,42 @@ export class AvatarState {
 		if (!this.#scope.isCurrent || !this.isEditable || !draft || !this.isChanged) {
 			return
 		}
-		if (
-			draft === this.#previewDraft &&
-			(this.previewImageUrl || this.isRenderingPreview)
-		) {
-			return
-		}
+		if (this.#isPreviewShownOrRendering(draft)) return
 		void this.#previewRequest?.cancel()
 		const request = accountBackend.RenderAvatarPreview(
 			this.#scope.accountId,
 			avatarChangeOf(draft),
 		)
 		this.#previewRequest = request
-		this.#previewDraft = draft
+		this.#renderingPreviewDraft = draft
 		this.isRenderingPreview = true
 		this.previewError = ""
 		try {
 			const previewImageUrl = await this.#scope.track(request)
 			if (request !== this.#previewRequest || !this.#scope.isCurrent) return
 			this.previewImageUrl = previewImageUrl
+			this.#previewDraft = draft
 		} catch (error) {
 			if (request !== this.#previewRequest || !this.#scope.isCurrent) return
 			this.previewImageUrl = ""
+			this.#previewDraft = null
 			this.previewError = errorMessage(
 				error,
 				"Could not preview the changes. Save to see them.",
 			)
 		} finally {
 			if (request === this.#previewRequest) {
-				this.#previewRequest = null
+				this.#previewRequest = this.#renderingPreviewDraft = null
 				this.isRenderingPreview = false
 			}
 		}
+	}
+
+	#isPreviewShownOrRendering(draft: AvatarDraft): boolean {
+		return (
+			(draft === this.#previewDraft && !!this.previewImageUrl) ||
+			(draft === this.#renderingPreviewDraft && this.isRenderingPreview)
+		)
 	}
 
 	// loadModel reads the 3D avatar that matches the shown full-body image.
@@ -474,7 +480,7 @@ export class AvatarState {
 
 	#clearPreview(): void {
 		void this.#previewRequest?.cancel()
-		this.#previewRequest = this.#previewDraft = null
+		this.#previewRequest = this.#previewDraft = this.#renderingPreviewDraft = null
 		this.previewImageUrl = this.previewError = ""
 		this.isRenderingPreview = false
 	}

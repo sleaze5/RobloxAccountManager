@@ -23,14 +23,18 @@ export class RenderedModelLoad {
 	}
 
 	// load reads the model that key names, unless it is already loaded or
-	// loading. A failed read loads again on the next call.
+	// loading. A failed read loads again on the next call. The empty key of a
+	// new load matches no model, so its first call always reads.
 	async load(
 		key: string,
 		readModel: () => CancellableRequest<RenderedModel>,
 		fallbackError: string,
 	): Promise<void> {
 		if (!this.#scope.isCurrent) return
-		if (key === this.requestedKey && (key === this.modelKey || this.isLoading)) {
+		if (
+			key === this.requestedKey &&
+			((key === this.modelKey && this.model) || this.isLoading)
+		) {
 			return
 		}
 		void this.#request?.cancel()

@@ -110,8 +110,10 @@ func unpackGzip(contents []byte) ([]byte, error) {
 	if err != nil {
 		return nil, errInvalidModelFile
 	}
-	unpacked, err := io.ReadAll(io.LimitReader(reader, maxModelFileDecompressedBytes))
-	if err != nil {
+	// Reading one byte past the limit tells an oversized file apart from one
+	// that is exactly the limit, so that a cut-off file is never returned.
+	unpacked, err := io.ReadAll(io.LimitReader(reader, maxModelFileDecompressedBytes+1))
+	if err != nil || len(unpacked) > maxModelFileDecompressedBytes {
 		return nil, errInvalidModelFile
 	}
 	return unpacked, nil

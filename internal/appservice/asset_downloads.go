@@ -2,7 +2,9 @@ package appservice
 
 import (
 	"context"
+	"errors"
 	"fmt"
+	"io/fs"
 	"os"
 	"path/filepath"
 	"strings"
@@ -91,15 +93,35 @@ func (service *Service) DownloadFileName(itemName string, itemID int64, extensio
 }
 
 // SaveDownloadedFile writes the file where the user chose, with the extension
-// added when the save dialog left it out.
+// added when the save dialog left it out. The save dialog confirmed replacing
+// only the path it returned, so a path with an added extension must not exist.
 func (service *Service) SaveDownloadedFile(path, extension string, contents []byte) (string, error) {
+	fileFlags := os.O_WRONLY | os.O_CREATE | os.O_TRUNC
 	if !strings.EqualFold(filepath.Ext(path), "."+extension) {
 		path += "." + extension
+		fileFlags = os.O_WRONLY | os.O_CREATE | os.O_EXCL
 	}
-	if err := os.WriteFile(path, contents, 0o600); err != nil {
+	if err := writeDownloadedFile(path, fileFlags, contents); errors.Is(err, fs.ErrExist) {
+		return "", &roblox.Error{Kind: roblox.KindProtocol, Endpoint: "asset-download", Message: fmt.Sprintf("%s already exists. Choose another name, then try again.", filepath.Base(path)), Cause: err}
+	} else if err != nil {
 		service.logs.Module("application.inventory").Warn("downloaded file could not be written", "operation", "asset-download", "error", err)
 		return "", &roblox.Error{Kind: roblox.KindProtocol, Endpoint: "asset-download", Message: "The file could not be saved. Check that the folder is writable and has free space, then try again.", Cause: err}
 	}
 	service.logs.Module("application.inventory").Info("item file saved", "operation", "asset-download", "extension", extension)
 	return path, nil
+}
+
+func writeDownloadedFile(path string, fileFlags int, contents []byte) error {
+	file, err := os.OpenFile(path, fileFlags, 0o600)
+	if err != nil {
+		return fmt.Errorf("open downloaded file: %w", err)
+	}
+	if _, err := file.Write(contents); err != nil {
+		_ = file.Close()
+		return fmt.Errorf("write downloaded file: %w", err)
+	}
+	if err := file.Close(); err != nil {
+		return fmt.Errorf("close downloaded file: %w", err)
+	}
+	return nil
 }
