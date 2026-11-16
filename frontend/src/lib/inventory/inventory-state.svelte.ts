@@ -1,8 +1,4 @@
-import {
-	accountBackend,
-	AccountProfileSection,
-	InventoryCategory,
-} from "../backend/bridge"
+import { accountBackend, InventoryCategory } from "../backend/bridge"
 import type {
 	InventoryItem,
 	InventoryItemDetails,
@@ -11,6 +7,7 @@ import type {
 } from "../backend/bridge"
 import type { AccountStore } from "../accounts/account-store.svelte"
 import { AccountScope } from "../accounts/account-scope"
+import { readRobuxBalance } from "../accounts/robux-balance"
 import type { NotificationCenter } from "../notifications/notification-center.svelte"
 import type { CancellableRequest } from "../shared/cancellable-request"
 import { errorMessage } from "../shared/errors"
@@ -377,20 +374,9 @@ export class InventoryState {
 
 	async loadRobuxBalance(): Promise<void> {
 		this.robuxBalance = undefined
-		let robuxBalance: number | null
-		try {
-			const profile = await this.#scope.track(
-				accountBackend.GetAccountProfile(
-					this.#scope.accountId,
-					AccountProfileSection.ProfileSectionRobux,
-				),
-			)
-			robuxBalance = profile.robux
-		} catch {
-			// The confirmation shows the balance as unavailable, and the backend
-			// logs the failure.
-			robuxBalance = null
-		}
+		const robuxBalance = await readRobuxBalance(this.#scope.accountId, (request) =>
+			this.#scope.track(request),
+		)
 		if (this.#scope.isCurrent) this.robuxBalance = robuxBalance
 	}
 

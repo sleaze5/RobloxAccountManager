@@ -20,6 +20,7 @@
 	import AnchoredActionMenu, {
 		type MenuAction,
 	} from "../shared/AnchoredActionMenu.svelte"
+	import FriendServerList from "./FriendServerList.svelte"
 	import PrivateServerList from "./PrivateServerList.svelte"
 	import RBXServersList from "./RBXServersList.svelte"
 	import RecordedServerList from "./RecordedServerList.svelte"
@@ -71,6 +72,7 @@
 			store.serversFor(place.placeId, accounts.selectedAccount.id),
 		),
 		robloxServers = placeServers.roblox,
+		friendServers = placeServers.friends,
 		recordedServers = placeServers.recorded,
 		privateServers = placeServers.private,
 		listedServers = placeServers.listed,
@@ -125,7 +127,10 @@
 	// servers of the account that was selected when the page last closed.
 	$effect(() => {
 		const accountId = accounts.selectedAccount.id
-		untrack(() => privateServers.showAccount(accountId, active === privateServers))
+		untrack(() => {
+			privateServers.showAccount(accountId, active === privateServers)
+			friendServers.showAccount(accountId, active === robloxServers)
+		})
 	})
 
 	$effect(() => {
@@ -134,6 +139,7 @@
 			if (current === privateServers && !savedServers.servers) {
 				void savedServers.load()
 			}
+			if (current === robloxServers) void friendServers.load()
 			if (current === privateServers && accounts.selectedAccount.id === 0) return
 			void current.load()
 		})
@@ -290,22 +296,26 @@
 					: []),
 			]
 		}
+		// The rows of friends' servers prefix their keys, so that a server that
+		// both lists show opens its menu only in the row that was used.
+		const jobId = key.startsWith("friend-") ? key.slice("friend-".length) : key
 		return [
 			{
 				label: "Fill launch options",
 				icon: listPlusIcon,
-				onSelect: select(() => onFillLaunch(place.placeId, key)),
+				onSelect: select(() => onFillLaunch(place.placeId, jobId)),
 			},
 			{
 				label: "Copy job ID",
 				icon: hashIcon,
-				onSelect: select(() => void store.copy(key, "Job ID")),
+				onSelect: select(() => void store.copy(jobId, "Job ID")),
 			},
 		]
 	}
 
 	function refresh(): void {
 		if (active === privateServers) void savedServers.load()
+		if (active === robloxServers) void friendServers.refresh()
 		if (active === privateServers && !accounts.selectedAccount.id) return
 		active.refresh()
 		if (appSettings.roValraEnabled) void stats.load()
@@ -374,6 +384,14 @@
 			{menuID}
 			onMenu={openMenu} />
 	{:else}
+		{#if accounts.selectedAccount.id !== 0}
+			<FriendServerList
+				{friendServers}
+				accountUsername={accounts.selectedAccount.username}
+				activeKey={openKey}
+				{menuID}
+				onMenu={openMenu} />
+		{/if}
 		<RobloxServerList
 			servers={robloxServers}
 			records={appSettings.roValraEnabled}

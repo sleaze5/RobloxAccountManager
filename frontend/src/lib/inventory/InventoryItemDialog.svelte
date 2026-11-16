@@ -52,7 +52,12 @@
 	} from "./inventory-categories"
 	import type { InventoryCategoryOption } from "./inventory-categories"
 	import InventoryItemTile from "./InventoryItemTile.svelte"
-	import { formatRobux, salePriceLabel } from "./inventory-prices"
+	import {
+		formatRobux,
+		robuxBalanceAfterPurchase,
+		salePriceLabel,
+	} from "./inventory-prices"
+	import RobuxPurchaseSummary from "./RobuxPurchaseSummary.svelte"
 	import { categoryItemKey, inventoryItemKey } from "./inventory-state.svelte"
 	import type { InventoryState } from "./inventory-state.svelte"
 
@@ -208,10 +213,9 @@
 		hasMarketSection = $derived(
 			!!market || item.recentAveragePrice !== null || item.serialNumber !== null,
 		),
-		// null while the balance loads or when it is unavailable.
 		balanceAfterPurchase = $derived(
-			typeof inventory.robuxBalance === "number" && market
-				? inventory.robuxBalance - market.priceInRobux
+			market
+				? robuxBalanceAfterPurchase(inventory.robuxBalance, market.priceInRobux)
 				: null,
 		),
 		isShortOfRobux = $derived(
@@ -472,66 +476,14 @@
 			</button>
 		</div>
 		{#if confirmation === "purchase" && price > 0}
-			<div
-				class="flex items-center gap-3 rounded-lg border border-line-subtle bg-fill p-2">
-				<span
-					class="grid size-12 shrink-0 place-items-center overflow-hidden rounded-md bg-raised"
-					aria-hidden="true">
-					<ProfileImage url={imageUrl} fallbackIcon={category.icon} />
-				</span>
-				<div class="min-w-0">
-					<p class="truncate text-sm font-medium text-fg">{name}</p>
-					<p class="truncate text-xs text-fg-muted">{typeLabel}</p>
-				</div>
-			</div>
-			<dl class="mt-3 flex flex-col gap-1.5 px-1 text-xs">
-				<div class="flex items-baseline justify-between gap-3">
-					<dt class="text-fg-muted">Price</dt>
-					<dd class="font-mono text-fg">{formatRobux(price, false)}</dd>
-				</div>
-				<div class="flex items-baseline justify-between gap-3">
-					<dt class="min-w-0 truncate text-fg-muted">
-						@{accountUsername}'s Robux
-					</dt>
-					<dd class="font-mono text-fg">
-						{#if inventory.robuxBalance === undefined}
-							<Skeleton
-								className="w-16"
-								label="Loading the Robux balance" />
-						{:else if inventory.robuxBalance === null}
-							<span class="font-sans text-fg-muted">Unavailable</span>
-						{:else}
-							{formatRobux(inventory.robuxBalance, false)}
-						{/if}
-					</dd>
-				</div>
-				<div
-					class="flex items-baseline justify-between gap-3 border-t border-line-subtle pt-1.5">
-					<dt class="font-medium text-fg">After purchase</dt>
-					<dd
-						class={[
-							"font-mono font-semibold",
-							isShortOfRobux ? "text-danger-muted" : "text-fg",
-						]}>
-						{#if inventory.robuxBalance === undefined}
-							<Skeleton
-								className="w-16"
-								label="Loading the Robux balance" />
-						{:else if balanceAfterPurchase === null}
-							<span class="font-sans font-normal text-fg-muted"
-								>Unavailable</span>
-						{:else}
-							{formatRobux(balanceAfterPurchase, false)}
-						{/if}
-					</dd>
-				</div>
-			</dl>
-			{#if isShortOfRobux && balanceAfterPurchase !== null}
-				<p class="mt-3 notice-error" role="alert">
-					@{accountUsername} needs {formatRobux(-balanceAfterPurchase, false)}
-					more to buy this item.
-				</p>
-			{/if}
+			<RobuxPurchaseSummary
+				{name}
+				detail={typeLabel}
+				{imageUrl}
+				fallbackIcon={category.icon}
+				priceInRobux={price}
+				{accountUsername}
+				robuxBalance={inventory.robuxBalance} />
 		{/if}
 		{#if inventory.itemActionError}
 			<p class="mt-3 notice-error" role="alert">{inventory.itemActionError}</p>

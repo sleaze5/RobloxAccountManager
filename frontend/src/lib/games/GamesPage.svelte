@@ -25,6 +25,7 @@
 	import GameContextMenu from "./GameContextMenu.svelte"
 	import GameBadgesPage from "./GameBadgesPage.svelte"
 	import GameDetails from "./GameDetails.svelte"
+	import GamePassesPage from "./GamePassesPage.svelte"
 	import GameServersPage from "./GameServersPage.svelte"
 	import GameIcon from "./GameIcon.svelte"
 	import { creatorByline, type GamesStore } from "./games-store.svelte"
@@ -422,6 +423,11 @@
 							{store}
 							{accounts}
 							onBack={() => void returnToDetails("[data-game-badges]")} />
+					{:else if store.detailsPage === "gamePasses"}
+						<GamePassesPage
+							{store}
+							{accounts}
+							onBack={() => void returnToDetails("[data-game-passes]")} />
 					{:else}
 						<GameDetails
 							{store}
