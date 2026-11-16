@@ -118,13 +118,21 @@
 			camera.updateProjectionMatrix()
 			keyLight.intensity = keyLightIntensity * sceneSettings.lightIntensity
 			ambientLight.intensity = ambientLightIntensity * sceneSettings.brightness
-			const lightAngleRadians = MathUtils.degToRad(
-				sceneSettings.lightAngleDegrees,
-			)
+			const lightAngleXRadians = MathUtils.degToRad(
+					sceneSettings.lightAngleXDegrees,
+				),
+				lightAngleYRadians = MathUtils.degToRad(
+					sceneSettings.lightAngleYDegrees,
+				)
+			// The light sits on a sphere around its target, which lies at the
+			// model in front of the camera.
 			keyLight.position.set(
-				Math.sin(lightAngleRadians) * initialDistance,
-				initialDistance / 2,
-				(Math.cos(lightAngleRadians) - 1) * initialDistance,
+				Math.sin(lightAngleXRadians) *
+					Math.cos(lightAngleYRadians) *
+					initialDistance,
+				Math.sin(lightAngleYRadians) * initialDistance,
+				(Math.cos(lightAngleXRadians) * Math.cos(lightAngleYRadians) - 1) *
+					initialDistance,
 			)
 			render()
 		}
@@ -270,4 +278,4 @@
 	class="relative size-full animate-pop cursor-grab rounded-lg outline-offset-2 focus-visible:outline-2 focus-visible:outline-focus active:cursor-grabbing"
 	tabindex="0"
 	aria-label={`3D view of ${label}. Drag or use the arrow keys to turn it, hold Control while you drag or press the arrow keys to move it, and scroll or use plus and minus to zoom. Home resets the view.`}
-	data-tooltip="Drag to turn, Ctrl+drag to move, scroll to zoom"></canvas>
+></canvas>

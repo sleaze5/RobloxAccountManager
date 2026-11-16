@@ -31,9 +31,48 @@
 		onClose: () => void
 	} = $props()
 
-	let failedImageUrl = $state("")
+	let failedImageUrl = $state(""),
+		card = $state<HTMLDivElement>(),
+		frame = $state<HTMLDivElement>(),
+		frameSize = $state(0)
 
 	const titleId = $props.id()
+
+	// The frame is the largest square that fits the window together with the
+	// rest of the dialog, so that the whole image or model shows whichever side
+	// of the window is shorter.
+	$effect(() => {
+		const backdrop = card?.parentElement
+		if (!card || !frame || !backdrop) return
+		const fittedCard = card,
+			fittedFrame = frame
+		const fitFrame = (): void => {
+			const backdropStyle = getComputedStyle(backdrop),
+				availableWidth =
+					backdrop.clientWidth -
+					Number.parseFloat(backdropStyle.paddingLeft) -
+					Number.parseFloat(backdropStyle.paddingRight),
+				availableHeight =
+					backdrop.clientHeight -
+					Number.parseFloat(backdropStyle.paddingTop) -
+					Number.parseFloat(backdropStyle.paddingBottom),
+				surroundingWidth = fittedCard.offsetWidth - fittedFrame.offsetWidth,
+				surroundingHeight = fittedCard.offsetHeight - fittedFrame.offsetHeight
+			frameSize = Math.max(
+				0,
+				Math.floor(
+					Math.min(
+						availableWidth - surroundingWidth,
+						availableHeight - surroundingHeight,
+					),
+				),
+			)
+		}
+		const resizeObserver = new ResizeObserver(fitFrame)
+		resizeObserver.observe(backdrop)
+		resizeObserver.observe(fittedCard)
+		return () => resizeObserver.disconnect()
+	})
 </script>
 
 <!-- The dialog opens above another dialog, such as the item details, so it
@@ -54,11 +93,13 @@ Escape handles that Escape itself. -->
 	}} />
 
 <Dialog
-	class="h-full max-w-5xl"
-	hasFlexibleBody
+	class="w-auto max-w-full"
 	aria-labelledby={titleId}
+	bind:card
 	onBackdropClick={onClose}>
-	<div class="dialog-heading">
+	<!-- The heading and the controls take the width of the frame, so that a
+	long name wraps instead of widening the dialog. -->
+	<div class="dialog-heading w-0 min-w-full">
 		<div>
 			<h2 id={titleId} class="wrap-anywhere">{label}</h2>
 		</div>
@@ -67,7 +108,9 @@ Escape handles that Escape itself. -->
 		</button>
 	</div>
 	<div
-		class="relative grid min-h-0 flex-1 place-items-center overflow-hidden rounded-lg border border-line-subtle bg-canvas">
+		bind:this={frame}
+		class="relative grid size-(--expanded-frame-size) place-items-center overflow-hidden rounded-lg border border-line-subtle bg-canvas"
+		style:--expanded-frame-size={`${frameSize}px`}>
 		{#if hasModel && view === "3D"}
 			<RenderedModelView
 				{model}
@@ -93,7 +136,7 @@ Escape handles that Escape itself. -->
 		{/if}
 	</div>
 	{#if hasModel}
-		<div class="mt-3 flex items-center">
+		<div class="mt-3 flex w-0 min-w-full items-center">
 			<ImageViewToggle bind:view />
 		</div>
 	{/if}
