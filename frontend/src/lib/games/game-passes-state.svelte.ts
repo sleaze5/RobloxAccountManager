@@ -21,6 +21,8 @@ export class UniverseGamePasses {
 	// The page reads accountId, so the scope is state.
 	#scope: AccountScope
 	#fetchedAt = 0
+	// Lists fetched before or just after a purchase can still read unowned.
+	#boughtGamePassIds = new Set<number>()
 	#listRequest: ReturnType<typeof accountBackend.ListGamePasses> | null = null
 
 	constructor(
@@ -42,11 +44,9 @@ export class UniverseGamePasses {
 		)
 	}
 
-	// showAccount reloads for another account. The same account is a no-op, so
-	// a failure retries only on request.
+	// showAccount reloads for another account. Only the open page calls it.
 	showAccount(accountId: number): void {
 		if (accountId === this.#scope.accountId) return
-		const wasRequested = this.gamePasses !== null || this.#listRequest !== null
 		this.#scope.dispose()
 		this.#scope = new AccountScope(accountId, this.#accounts)
 		this.#listRequest = null
@@ -55,7 +55,8 @@ export class UniverseGamePasses {
 		this.loading = this.isBuying = false
 		this.error = this.purchaseError = ""
 		this.pendingPurchaseGamePassIds = new Set()
-		if (wasRequested) void this.refresh()
+		this.#boughtGamePassIds = new Set()
+		void this.refresh()
 	}
 
 	// load shows kept passes and refetches stale ones.
@@ -74,7 +75,13 @@ export class UniverseGamePasses {
 		try {
 			const gamePasses = await scope.track(request)
 			if (this.#listRequest !== request || !scope.isCurrent) return
-			this.gamePasses = gamePasses ?? []
+			const listedGamePasses = gamePasses ?? []
+			this.#endDeliveredPurchases(listedGamePasses)
+			for (const gamePass of listedGamePasses) {
+				if (this.#boughtGamePassIds.has(gamePass.gamePassId))
+					gamePass.isOwned = true
+			}
+			this.gamePasses = listedGamePasses
 			this.#fetchedAt = Date.now()
 		} catch (error) {
 			if (this.#listRequest === request && scope.isCurrent) {
@@ -91,6 +98,21 @@ export class UniverseGamePasses {
 		}
 	}
 
+	// Pending ends once Roblox lists the pass as owned.
+	#endDeliveredPurchases(listedGamePasses: GamePass[]): void {
+		const ownedIds = new Set(
+				listedGamePasses
+					.filter((gamePass) => gamePass.isOwned)
+					.map((gamePass) => gamePass.gamePassId),
+			),
+			pendingIds = [...this.pendingPurchaseGamePassIds]
+		if (pendingIds.some((gamePassId) => ownedIds.has(gamePassId))) {
+			this.pendingPurchaseGamePassIds = new Set(
+				pendingIds.filter((gamePassId) => !ownedIds.has(gamePassId)),
+			)
+		}
+	}
+
 	async loadRobuxBalance(): Promise<void> {
 		const scope = this.#scope
 		this.robuxBalance = undefined
@@ -104,10 +126,13 @@ export class UniverseGamePasses {
 		this.purchaseError = ""
 	}
 
-	// buy buys at the confirmed price and reports success.
-	async buy(gamePass: GamePass): Promise<boolean> {
+	// buy buys at the confirmed price for the confirmed account and reports
+	// success.
+	async buy(gamePass: GamePass, accountId: number): Promise<boolean> {
 		const scope = this.#scope
-		if (this.isBuying || !scope.accountId) return false
+		if (this.isBuying || !accountId || accountId !== scope.accountId) {
+			return false
+		}
 		this.isBuying = true
 		this.purchaseError = ""
 		try {
@@ -120,6 +145,7 @@ export class UniverseGamePasses {
 				),
 			)
 			if (!scope.isCurrent) return false
+			this.#boughtGamePassIds.add(gamePass.gamePassId)
 			this.gamePasses =
 				this.gamePasses?.map((listedGamePass) =>
 					listedGamePass.gamePassId === gamePass.gamePassId

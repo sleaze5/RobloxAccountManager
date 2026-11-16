@@ -30,7 +30,19 @@ const (
 // signed-in request. Verified on 2026-11-16.
 func (service *Games) GamePasses(ctx context.Context, universeID, accountID int64) ([]games.GamePass, error) {
 	gamePasses := []games.GamePass{}
-	err := readCursorPages("game-passes", maxUniverseGamePasses/universeGamePassesPageSize, "This game has too many game passes.", func(pageToken string) (string, error) {
+	err := service.readGamePassPages(ctx, universeID, accountID, func(page []games.GamePass) bool {
+		gamePasses = append(gamePasses, page...)
+		return false
+	})
+	if err != nil {
+		return nil, err
+	}
+	return gamePasses, nil
+}
+
+// readGamePassPages passes each page to readPage until it returns true.
+func (service *Games) readGamePassPages(ctx context.Context, universeID, accountID int64, readPage func([]games.GamePass) (isDone bool)) error {
+	return readCursorPages("game-passes", maxUniverseGamePasses/universeGamePassesPageSize, "This game has too many game passes.", func(pageToken string) (string, error) {
 		parameters := url.Values{"passView": {"Full"}, "pageSize": {strconv.Itoa(universeGamePassesPageSize)}}
 		if pageToken != "" {
 			parameters.Set("pageToken", pageToken)
@@ -67,6 +79,7 @@ func (service *Games) GamePasses(ctx context.Context, universeID, accountID int6
 		if payload.GamePasses == nil || len(*payload.GamePasses) > universeGamePassesPageSize {
 			return "", &roblox.Error{Kind: roblox.KindProtocol, Endpoint: "game-passes", Status: response.Status, Message: "Roblox returned invalid game pass data."}
 		}
+		page := make([]games.GamePass, 0, len(*payload.GamePasses))
 		for _, listedGamePass := range *payload.GamePasses {
 			if !games.ValidID(listedGamePass.ID) {
 				continue
@@ -85,14 +98,24 @@ func (service *Games) GamePasses(ctx context.Context, universeID, accountID int6
 			if listedGamePass.IsForSale && listedGamePass.Price != nil && *listedGamePass.Price >= 0 {
 				gamePass.IsForSale, gamePass.PriceInRobux = true, *listedGamePass.Price
 			}
-			gamePasses = append(gamePasses, gamePass)
+			page = append(page, gamePass)
+		}
+		if readPage(page) {
+			return "", nil
 		}
 		return payload.NextPageToken, nil
 	})
-	if err != nil {
-		return nil, err
-	}
-	return gamePasses, nil
+}
+
+// universeSellsGamePass stops paging at the pass, so a later page's failure
+// can't hide it.
+func (service *Games) universeSellsGamePass(ctx context.Context, universeID, gamePassID int64) (bool, error) {
+	isSold := false
+	err := service.readGamePassPages(ctx, universeID, 0, func(page []games.GamePass) bool {
+		isSold = slices.ContainsFunc(page, func(gamePass games.GamePass) bool { return gamePass.GamePassID == gamePassID })
+		return isSold
+	})
+	return isSold, err
 }
 
 type creatorGame struct {
@@ -147,12 +170,12 @@ func (service *Games) findGameSellingGamePass(ctx context.Context, creatorGames 
 	for range min(gamePassSearchWorkerLimit, len(creatorGames)) {
 		workers.Go(func() {
 			for game := range jobs {
-				gamePasses, err := service.GamePasses(searchContext, game.universeID, 0)
+				isSold, err := service.universeSellsGamePass(searchContext, game.universeID, gamePassID)
 				mutex.Lock()
 				if err != nil && firstError == nil && searchContext.Err() == nil {
 					firstError = err
 				}
-				if err == nil && slices.ContainsFunc(gamePasses, func(gamePass games.GamePass) bool { return gamePass.GamePassID == gamePassID }) && rootPlaceID == 0 {
+				if isSold && rootPlaceID == 0 {
 					rootPlaceID = game.rootPlaceID
 					cancel()
 				}

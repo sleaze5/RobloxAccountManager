@@ -46,7 +46,7 @@
 				>({friendCount} {friendCount === 1 ? "friend" : "friends"})</span>
 		{/if}
 	</h2>
-	{#if friendServers.error && !servers}
+	{#if friendServers.error}
 		<div class="mx-3 mb-2 flex items-center gap-3 notice-error" role="alert">
 			<span class="flex-1">{friendServers.error}</span>
 			<button
@@ -54,10 +54,13 @@
 				type="button"
 				onclick={() => void friendServers.refresh()}>Try again</button>
 		</div>
-	{:else if !servers}
-		<p class="px-3 pb-2 text-xs">
-			<Skeleton className="w-48" label="Loading friends' servers" />
-		</p>
+	{/if}
+	{#if !servers}
+		{#if !friendServers.error}
+			<p class="px-3 pb-2 text-xs">
+				<Skeleton className="w-48" label="Loading friends' servers" />
+			</p>
+		{/if}
 	{:else if servers.length === 0}
 		<p class="px-3 pb-2 text-xs text-fg-muted" role="status">
 			No friends are playing here.

@@ -27,7 +27,7 @@
 	import trendUpIcon from "@phosphor-icons/core/regular/trend-up.svg?raw"
 	import trophyIcon from "@phosphor-icons/core/regular/trophy.svg?raw"
 	import xIcon from "@phosphor-icons/core/regular/x.svg?raw"
-	import { tick, untrack } from "svelte"
+	import { onDestroy, tick, untrack } from "svelte"
 	import {
 		CatalogItemType,
 		InventoryCategory,
@@ -303,6 +303,9 @@
 			await showConfirmation(null)
 		}
 	}
+
+	// A lookup that ends after the dialog closes must not navigate.
+	onDestroy(() => inventory.cancelFindingGamePassPlace())
 
 	async function showGamePass(
 		show: (place: GamePlace, gamePassId: number) => void,

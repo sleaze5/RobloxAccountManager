@@ -58,6 +58,8 @@ export class InventoryState {
 	isBuyingItem = $state(false)
 	isDownloadingItem = $state(false)
 	isFindingGamePassPlace = $state(false)
+	#gamePassPlaceRequest: ReturnType<typeof accountBackend.FindGamePassPlace> | null =
+		null
 	// The items that the account bought and that Roblox still delivers, by
 	// categoryItemKey.
 	pendingPurchaseKeys = $state.raw(new Set<string>())
@@ -286,18 +288,22 @@ export class InventoryState {
 		}
 	}
 
-	// findGamePassPlace returns the pass's game, or null with an error.
+	// findGamePassPlace returns the pass's game, or null when it fails or is
+	// cancelled.
 	async findGamePassPlace(gamePassId: number): Promise<GamePlace | null> {
-		if (this.isFindingGamePassPlace) return null
+		if (this.#gamePassPlaceRequest) return null
+		const scope = this.#scope,
+			request = accountBackend.FindGamePassPlace(gamePassId)
+		this.#gamePassPlaceRequest = request
 		this.isFindingGamePassPlace = true
 		this.itemActionError = ""
 		try {
-			const place = await this.#scope.track(
-				accountBackend.FindGamePassPlace(gamePassId),
-			)
-			return this.#scope.isCurrent ? place : null
+			const place = await scope.track(request)
+			return this.#gamePassPlaceRequest === request && scope.isCurrent
+				? place
+				: null
 		} catch (error) {
-			if (this.#scope.isCurrent) {
+			if (this.#gamePassPlaceRequest === request && scope.isCurrent) {
 				this.itemActionError = errorMessage(
 					error,
 					"Couldn't find this pass's game. Try again.",
@@ -305,8 +311,17 @@ export class InventoryState {
 			}
 			return null
 		} finally {
-			this.isFindingGamePassPlace = false
+			if (this.#gamePassPlaceRequest === request) {
+				this.#gamePassPlaceRequest = null
+				this.isFindingGamePassPlace = false
+			}
 		}
+	}
+
+	cancelFindingGamePassPlace(): void {
+		void this.#gamePassPlaceRequest?.cancel()
+		this.#gamePassPlaceRequest = null
+		this.isFindingGamePassPlace = false
 	}
 
 	async checkFavorite(item: InventoryItem): Promise<void> {

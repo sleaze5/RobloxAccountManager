@@ -6,7 +6,7 @@
 	import storefrontIcon from "@phosphor-icons/core/regular/storefront.svg?raw"
 	import ticketIcon from "@phosphor-icons/core/regular/ticket.svg?raw"
 	import xIcon from "@phosphor-icons/core/regular/x.svg?raw"
-	import { onMount, tick } from "svelte"
+	import { onMount, tick, untrack } from "svelte"
 	import type { Account } from "../accounts/account-model"
 	import type { GamePass } from "../backend/bridge"
 	import { salePriceLabel } from "../inventory/inventory-prices"
@@ -43,16 +43,24 @@
 			"flex min-w-0 flex-wrap items-center gap-1 font-mono text-2xs wrap-anywhere text-fg-muted",
 		sectionHeadingClass = "text-xs font-semibold text-fg-muted"
 	let view = $state<GamePassView>("details"),
-		card = $state<HTMLDivElement | undefined>(undefined)
-	// The listed copy, which a purchase updates.
+		card = $state<HTMLDivElement | undefined>(undefined),
+		// What the open confirmation buys, fixed while it is open.
+		confirmation = $state.raw<{ gamePass: GamePass; accountId: number } | null>(
+			null,
+		),
+		hasPriceChanged = $state(false)
+	// The listed copy, which a refresh or purchase updates.
 	const gamePass = $derived(
 			universeGamePasses.gamePasses?.find(
 				(listedGamePass) =>
 					listedGamePass.gamePassId === openedGamePass.gamePassId,
 			) ?? openedGamePass,
 		),
-		name = $derived(gamePass.name || "Unnamed game pass"),
-		price = $derived(gamePass.priceInRobux),
+		shownGamePass = $derived(
+			view === "purchase" && confirmation ? confirmation.gamePass : gamePass,
+		),
+		name = $derived(shownGamePass.name || "Unnamed game pass"),
+		price = $derived(shownGamePass.priceInRobux),
 		hasOwnership = $derived(universeGamePasses.hasOwnershipFor(account.id)),
 		isPending = $derived(
 			universeGamePasses.pendingPurchaseGamePassIds.has(gamePass.gamePassId),
@@ -64,12 +72,36 @@
 		void showView(openedView)
 	})
 
+	// A refresh that changes the price ends the confirmation.
+	$effect(() => {
+		const confirmedGamePass = confirmation?.gamePass
+		if (view !== "purchase" || !confirmedGamePass || universeGamePasses.isBuying) {
+			return
+		}
+		if (
+			gamePass.priceInRobux !== confirmedGamePass.priceInRobux ||
+			gamePass.isForSale !== confirmedGamePass.isForSale
+		) {
+			untrack(() => {
+				hasPriceChanged = true
+				void showView("details")
+			})
+		}
+	})
+
 	// Focus moves to the control that replaced the pressed one. Robux is reread
 	// each time, since it can change outside the app.
 	async function showView(shownView: GamePassView): Promise<void> {
 		universeGamePasses.clearPurchaseError()
+		if (shownView === "purchase") {
+			confirmation = {
+				gamePass: $state.snapshot(gamePass),
+				accountId: account.id,
+			}
+			hasPriceChanged = false
+			void universeGamePasses.loadRobuxBalance()
+		}
 		view = shownView
-		if (shownView === "purchase") void universeGamePasses.loadRobuxBalance()
 		await tick()
 		const focusTarget =
 			card?.querySelector<HTMLButtonElement>(
@@ -90,7 +122,9 @@
 	}
 
 	async function buy(): Promise<void> {
-		if (!(await universeGamePasses.buy(gamePass))) return
+		if (!confirmation) return
+		const { gamePass: confirmedGamePass, accountId } = confirmation
+		if (!(await universeGamePasses.buy(confirmedGamePass, accountId))) return
 		if (openedView === "purchase") onClose()
 		else await showView("details")
 	}
@@ -150,7 +184,7 @@
 		<PurchaseItemSummary
 			{name}
 			detail={`Game pass - ${gameName}`}
-			imageUrl={gamePass.iconUrl}
+			imageUrl={shownGamePass.iconUrl}
 			fallbackIcon={ticketIcon}
 			priceInRobux={price} />
 		{#if universeGamePasses.purchaseError}
@@ -218,6 +252,11 @@
 						<Icon svg={storefrontIcon} size={14} aria-hidden="true" />
 						{priceLabel}
 					</p>
+					{#if hasPriceChanged}
+						<p class="mt-1 notice-warning" role="status">
+							The price changed.
+						</p>
+					{/if}
 					{#if hasOwnership && gamePass.isOwned}
 						<ul
 							class="mt-2 flex min-h-6 flex-wrap gap-1"
