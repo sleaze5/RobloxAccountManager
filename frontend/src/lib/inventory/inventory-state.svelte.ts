@@ -73,6 +73,8 @@ export class InventoryState {
 	tryOnImageUrl = $state("")
 	isLoadingTryOn = $state(false)
 	tryOnError = $state("")
+	// The same as a 3D model. Its key is the categoryItemKey of the item.
+	readonly tryOnModel: RenderedModelLoad
 	readonly userId: number
 	readonly #scope: AccountScope
 	#request: ReturnType<typeof accountBackend.GetInventoryPage> | null = null
@@ -81,6 +83,7 @@ export class InventoryState {
 	constructor(accountId: number, userId: number, store: AccountStore) {
 		this.#scope = new AccountScope(accountId, store)
 		this.itemModel = new RenderedModelLoad(this.#scope)
+		this.tryOnModel = new RenderedModelLoad(this.#scope)
 		this.userId = userId
 	}
 
@@ -165,6 +168,22 @@ export class InventoryState {
 					item.itemId,
 				),
 			"Could not load the 3D model. Try again.",
+		)
+	}
+
+	async loadTryOnModel(
+		item: InventoryItem,
+		category: InventoryCategory,
+	): Promise<void> {
+		await this.tryOnModel.load(
+			categoryItemKey(category, item.itemId),
+			() =>
+				accountBackend.GetInventoryItemTryOnModel(
+					this.#scope.accountId,
+					category,
+					item.itemId,
+				),
+			"Could not try on the item in 3D. Try again.",
 		)
 	}
 

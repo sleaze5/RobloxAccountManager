@@ -471,10 +471,21 @@ func (service *Users) avatarUpdateAssetsOf(ctx context.Context, accountID, versi
 	return assets, nil
 }
 
-// RenderAvatarPreview asks Roblox to render the change as a full-body image
-// without saving it. It returns the image address, or an empty address while
+// AvatarPreviewFormat is what the render API makes of an avatar, by its
+// thumbnail type.
+type AvatarPreviewFormat string
+
+const (
+	AvatarPreviewImage AvatarPreviewFormat = "2dWebp"
+	// AvatarPreviewModel is a 3D model, whose address names a manifest that
+	// RenderedModel downloads.
+	AvatarPreviewModel AvatarPreviewFormat = "3d"
+)
+
+// RenderAvatarPreview asks Roblox to render the change in the format without
+// saving it. It returns the address of the render, or an empty address while
 // Roblox renders it, until a later call with the same change finds it.
-func (service *Users) RenderAvatarPreview(ctx context.Context, accountID, version int64, change AvatarChange) (string, error) {
+func (service *Users) RenderAvatarPreview(ctx context.Context, accountID, version int64, change AvatarChange, format AvatarPreviewFormat) (string, error) {
 	const endpoint = "avatar-preview"
 	if err := validateAvatarChange(change); err != nil {
 		return "", err
@@ -508,7 +519,7 @@ func (service *Users) RenderAvatarPreview(ctx context.Context, accountID, versio
 		ThumbnailConfig  thumbnailConfig  `json:"thumbnailConfig"`
 		AvatarDefinition renderDefinition `json:"avatarDefinition"`
 	}{
-		ThumbnailConfig: thumbnailConfig{ThumbnailID: 3, ThumbnailType: "2dWebp", Size: LargeThumbnailSize},
+		ThumbnailConfig: thumbnailConfig{ThumbnailID: 3, ThumbnailType: string(format), Size: LargeThumbnailSize},
 		AvatarDefinition: renderDefinition{
 			Assets: assets, BodyColors: avatarColorsUpdateOf(change.BodyColors),
 			Scales:           renderScales{AvatarScales: change.Scales, Depth: change.Scales.Width},
@@ -516,6 +527,9 @@ func (service *Users) RenderAvatarPreview(ctx context.Context, accountID, versio
 		},
 	}
 	response, err := service.writeAccount(ctx, accountID, version, endpoint, http.MethodPost, "https://avatar.roblox.com/v1/avatar/render", request)
+	if remote, ok := errors.AsType[*roblox.Error](err); ok && remote.Status == http.StatusBadRequest {
+		return "", &roblox.Error{Kind: remote.Kind, Endpoint: endpoint, Status: remote.Status, RobloxCode: remote.RobloxCode, Message: "Roblox couldn't render this preview.", Cause: err}
+	}
 	if err != nil {
 		return "", err
 	}
@@ -530,7 +544,7 @@ func (service *Users) RenderAvatarPreview(ctx context.Context, accountID, versio
 	case strings.EqualFold(payload.State, "Pending"):
 		return "", nil
 	case !strings.EqualFold(payload.State, "Completed") || !safeThumbnailURL(payload.ImageURL):
-		return "", &roblox.Error{Kind: roblox.KindProtocol, Endpoint: endpoint, Status: response.Status, Message: "Roblox couldn't preview these changes. Save to see them."}
+		return "", &roblox.Error{Kind: roblox.KindProtocol, Endpoint: endpoint, Status: response.Status, Message: "Roblox couldn't render this preview."}
 	}
 	return payload.ImageURL, nil
 }

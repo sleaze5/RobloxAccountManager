@@ -119,13 +119,27 @@
 		isOwnedByAccount = $derived(inventory.isOwnedByItemKey.get(detailsKey)),
 		imageUrl = $derived(details?.largeImageUrl || item.imageUrl),
 		hasModel = $derived(!!details?.hasModel),
-		isModelShown = $derived(hasModel && view === "3D"),
 		canTryOn = $derived(!!details?.canTryOn),
-		// Trying on shows a still image, so the 3D view ends it.
-		isTryOnShown = $derived(canTryOn && isTryingOn && view === "2D"),
+		// Try on stays on while the view switches between 2D and 3D.
+		isTryOnShown = $derived(canTryOn && isTryingOn),
+		// An item without a model of its own has a 3D view only on the avatar.
+		hasThreeDimensionalView = $derived(hasModel || isTryOnShown),
+		shownView = $derived<ImageView>(hasThreeDimensionalView ? view : "2D"),
+		isModelShown = $derived(shownView === "3D"),
+		tryOnLabel = $derived(`@${accountUsername}'s avatar wearing ${name}`),
 		isTryOnForItem = $derived(inventory.tryOnKey === detailsKey),
 		tryOnImageUrl = $derived(isTryOnForItem ? inventory.tryOnImageUrl : ""),
 		tryOnError = $derived(isTryOnForItem ? inventory.tryOnError : ""),
+		tryOnModel = $derived(
+			inventory.tryOnModel.modelKey === detailsKey
+				? inventory.tryOnModel.model
+				: null,
+		),
+		tryOnModelError = $derived(
+			inventory.tryOnModel.requestedKey === detailsKey
+				? inventory.tryOnModel.error
+				: "",
+		),
 		// The model of another item stays loaded until this item's model loads.
 		itemModel = $derived(
 			inventory.itemModel.modelKey === detailsKey
@@ -189,27 +203,20 @@
 			balanceAfterPurchase !== null && balanceAfterPurchase < 0,
 		)
 
-	// The avatar wearing the item renders when Try on is pressed.
+	// What the frame shows loads when it opens: the avatar wearing the item
+	// while Try on is on, or the item, in the shown view.
 	$effect(() => {
 		const shownItem = item,
-			shownCategory = category.id
-		if (isTryOnShown) {
-			untrack(() => void inventory.tryOnItem(shownItem, shownCategory))
-		}
-	})
-
-	function toggleTryOn(): void {
-		isTryingOn = !isTryOnShown
-		if (isTryingOn) view = "2D"
-	}
-
-	// The 3D model loads when the 3D view opens.
-	$effect(() => {
-		const shownItem = item,
-			shownCategory = category.id
-		if (isModelShown) {
-			untrack(() => void inventory.loadItemModel(shownItem, shownCategory))
-		}
+			shownCategory = category.id,
+			isTryingOnInModel = isTryOnShown && isModelShown,
+			isTryingOnInImage = isTryOnShown && !isModelShown,
+			isItemModelShown = !isTryOnShown && isModelShown
+		untrack(() => {
+			if (isTryingOnInModel)
+				void inventory.loadTryOnModel(shownItem, shownCategory)
+			if (isTryingOnInImage) void inventory.tryOnItem(shownItem, shownCategory)
+			if (isItemModelShown) void inventory.loadItemModel(shownItem, shownCategory)
+		})
 	})
 
 	// The dialog keeps its card while it switches between the details and the
@@ -256,13 +263,19 @@
 	}} />
 
 {#snippet imageFrame()}
-	{#if isTryOnShown}
+	{#if isTryOnShown && isModelShown}
+		<RenderedModelView
+			model={tryOnModel}
+			error={tryOnModelError}
+			label={tryOnLabel}
+			onRetry={() => void inventory.loadTryOnModel(item, category.id)} />
+	{:else if isTryOnShown}
 		{#if tryOnImageUrl}
 			{#key tryOnImageUrl}
 				<img
 					class="relative size-full animate-pop object-contain"
 					src={tryOnImageUrl}
-					alt={`@${accountUsername}'s avatar wearing ${name}`}
+					alt={tryOnLabel}
 					decoding="async"
 					draggable="false"
 					referrerpolicy="no-referrer" />
@@ -292,7 +305,7 @@
 {/snippet}
 
 {#snippet imageControls(isExpandedView: boolean)}
-	{#if hasModel}
+	{#if hasThreeDimensionalView}
 		<ImageViewToggle bind:view />
 	{/if}
 	{#if canTryOn}
@@ -300,7 +313,8 @@
 			class="button"
 			type="button"
 			data-tooltip={`Show the item on @${accountUsername}'s saved avatar`}
-			onclick={toggleTryOn}>{isTryOnShown ? "Take off" : "Try on"}</button>
+			onclick={() => (isTryingOn = !isTryingOn)}
+			>{isTryOnShown ? "Take off" : "Try on"}</button>
 	{/if}
 	{#if !isExpandedView}
 		<button

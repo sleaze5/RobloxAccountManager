@@ -200,6 +200,24 @@ func (service *Service) TryOnInventoryItem(ctx context.Context, accountID int64,
 	return service.renderAvatarPreview(ctx, accountID, version, "avatar-try-on", change)
 }
 
+// GetInventoryItemTryOnModel renders the avatar of the account wearing the
+// item as a 3D model, without saving it.
+func (service *Service) GetInventoryItemTryOnModel(ctx context.Context, accountID int64, category robloxservices.InventoryCategory, itemID int64) (robloxservices.RenderedModel, error) {
+	var change *robloxservices.AvatarChange
+	return service.readRenderedModel(ctx, accountID, "avatar-try-on-model", func(ctx context.Context, version int64) (string, error) {
+		// The avatar to render is read once, and each repeated request renders
+		// the same one.
+		if change == nil {
+			tryOnChange, err := service.users.TryOnChange(ctx, accountID, version, category, itemID)
+			if err != nil {
+				return "", err
+			}
+			change = &tryOnChange
+		}
+		return service.users.RenderAvatarPreview(ctx, accountID, version, *change, robloxservices.AvatarPreviewModel)
+	})
+}
+
 // renderAvatarPreview renders the change as a full-body image. Roblox answers
 // Pending until the image is ready and renders it only when asked again, so
 // the request repeats a bounded number of times.
@@ -216,7 +234,7 @@ func (service *Service) renderAvatarPreview(ctx context.Context, accountID, vers
 			case <-time.After(retryDelay):
 			}
 		}
-		imageURL, err := service.users.RenderAvatarPreview(ctx, accountID, version, change)
+		imageURL, err := service.users.RenderAvatarPreview(ctx, accountID, version, change, robloxservices.AvatarPreviewImage)
 		if err != nil {
 			service.logs.Module("application.avatar").WarnContext(ctx, "avatar preview unavailable", "operation", operation, "account_id", accountID, "error", err)
 			return "", err
