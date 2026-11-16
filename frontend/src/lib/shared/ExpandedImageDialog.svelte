@@ -1,39 +1,27 @@
 <script lang="ts">
 	import xIcon from "@phosphor-icons/core/regular/x.svg?raw"
-	import type { RenderedModel } from "../backend/bridge"
+	import type { Snippet } from "svelte"
 	import Dialog from "./Dialog.svelte"
 	import Icon from "./Icon.svelte"
-	import ImageViewToggle from "./ImageViewToggle.svelte"
-	import type { ImageView } from "./ImageViewToggle.svelte"
-	import RenderedModelView from "./RenderedModelView.svelte"
 
-	// ExpandedImageDialog shows an image or a 3D model as large as the window
-	// allows. label names what it shows, such as "@builderman's avatar".
+	// ExpandedImageDialog shows what an image frame shows, such as an image or
+	// a 3D model, as large as the window allows, with the controls of the
+	// frame below it. label names what it shows, such as "@builderman's
+	// avatar".
 	let {
 		label,
-		imageUrl,
-		fallbackIcon,
-		view = $bindable(),
-		hasModel,
-		model,
-		modelError,
-		onRetryModel,
+		frame,
+		controls,
 		onClose,
 	}: {
 		label: string
-		imageUrl: string
-		fallbackIcon: string
-		view: ImageView
-		hasModel: boolean
-		model: RenderedModel | null
-		modelError: string
-		onRetryModel: () => void
+		frame: Snippet
+		controls: Snippet
 		onClose: () => void
 	} = $props()
 
-	let failedImageUrl = $state(""),
-		card = $state<HTMLDivElement>(),
-		frame = $state<HTMLDivElement>(),
+	let card = $state<HTMLDivElement>(),
+		frameElement = $state<HTMLDivElement>(),
 		frameSize = $state(0)
 
 	const titleId = $props.id()
@@ -43,9 +31,9 @@
 	// of the window is shorter.
 	$effect(() => {
 		const backdrop = card?.parentElement
-		if (!card || !frame || !backdrop) return
+		if (!card || !frameElement || !backdrop) return
 		const fittedCard = card,
-			fittedFrame = frame
+			fittedFrame = frameElement
 		const fitFrame = (): void => {
 			const backdropStyle = getComputedStyle(backdrop),
 				availableWidth =
@@ -108,36 +96,12 @@ Escape handles that Escape itself. -->
 		</button>
 	</div>
 	<div
-		bind:this={frame}
+		bind:this={frameElement}
 		class="relative grid size-(--expanded-frame-size) place-items-center overflow-hidden rounded-lg border border-line-subtle bg-canvas"
 		style:--expanded-frame-size={`${frameSize}px`}>
-		{#if hasModel && view === "3D"}
-			<RenderedModelView
-				{model}
-				error={modelError}
-				{label}
-				onRetry={onRetryModel} />
-		{:else if imageUrl && failedImageUrl !== imageUrl}
-			{#key imageUrl}
-				<img
-					class="relative size-full animate-pop object-contain"
-					src={imageUrl}
-					alt={label}
-					decoding="async"
-					draggable="false"
-					referrerpolicy="no-referrer"
-					onerror={() => (failedImageUrl = imageUrl)} />
-			{/key}
-		{:else}
-			<Icon
-				svg={fallbackIcon}
-				class="relative size-1/4 text-fg-faint"
-				aria-label="The image is unavailable" />
-		{/if}
+		{@render frame()}
 	</div>
-	{#if hasModel}
-		<div class="mt-3 flex w-0 min-w-full items-center">
-			<ImageViewToggle bind:view />
-		</div>
-	{/if}
+	<div class="mt-3 flex w-0 min-w-full items-center gap-2">
+		{@render controls()}
+	</div>
 </Dialog>

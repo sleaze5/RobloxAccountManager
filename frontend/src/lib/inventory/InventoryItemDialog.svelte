@@ -255,6 +255,65 @@
 		}
 	}} />
 
+{#snippet imageFrame()}
+	{#if isTryOnShown}
+		{#if tryOnImageUrl}
+			{#key tryOnImageUrl}
+				<img
+					class="relative size-full animate-pop object-contain"
+					src={tryOnImageUrl}
+					alt={`@${accountUsername}'s avatar wearing ${name}`}
+					decoding="async"
+					draggable="false"
+					referrerpolicy="no-referrer" />
+			{/key}
+		{:else if tryOnError}
+			<FrameUnavailable
+				icon={category.icon}
+				message={tryOnError}
+				onRetry={() => void inventory.tryOnItem(item, category.id)} />
+		{:else}
+			<span class="absolute inset-3 skeleton rounded-md" role="status">
+				<span class="sr-only">Trying on the item</span>
+			</span>
+		{/if}
+	{:else if isModelShown}
+		<RenderedModelView
+			model={itemModel}
+			error={itemModelError}
+			label={name}
+			onRetry={() => void inventory.loadItemModel(item, category.id)} />
+	{:else}
+		<span
+			class={["grid place-items-center", isSmallIcon ? "size-36" : "size-full"]}>
+			<ProfileImage url={imageUrl} fallbackIcon={category.icon} />
+		</span>
+	{/if}
+{/snippet}
+
+{#snippet imageControls(isExpandedView: boolean)}
+	{#if hasModel}
+		<ImageViewToggle bind:view />
+	{/if}
+	{#if canTryOn}
+		<button
+			class="button"
+			type="button"
+			data-tooltip={`Show the item on @${accountUsername}'s saved avatar`}
+			onclick={toggleTryOn}>{isTryOnShown ? "Take off" : "Try on"}</button>
+	{/if}
+	{#if !isExpandedView}
+		<button
+			class="button-icon"
+			type="button"
+			aria-label="Expand item image"
+			data-tooltip="Expand"
+			onclick={() => (isExpanded = true)}>
+			<Icon svg={arrowsOutIcon} size={16} aria-hidden="true" />
+		</button>
+	{/if}
+{/snippet}
+
 {#snippet fact(icon: string, label: string, value: string, isMono = false)}
 	<div>
 		<dt><Icon svg={icon} size={16} aria-hidden="true" />{label}</dt>
@@ -441,69 +500,10 @@
 					<div
 						class="relative grid size-72 place-items-center overflow-hidden rounded-lg border border-line-subtle bg-raised"
 						aria-hidden={isModelShown || isTryOnShown ? undefined : true}>
-						{#if isTryOnShown}
-							{#if tryOnImageUrl}
-								{#key tryOnImageUrl}
-									<img
-										class="relative size-full animate-pop object-contain"
-										src={tryOnImageUrl}
-										alt={`@${accountUsername}'s avatar wearing ${name}`}
-										decoding="async"
-										draggable="false"
-										referrerpolicy="no-referrer" />
-								{/key}
-							{:else if tryOnError}
-								<FrameUnavailable
-									icon={category.icon}
-									message={tryOnError}
-									onRetry={() =>
-										void inventory.tryOnItem(item, category.id)} />
-							{:else}
-								<span
-									class="absolute inset-3 skeleton rounded-md"
-									role="status">
-									<span class="sr-only">Trying on the item</span>
-								</span>
-							{/if}
-						{:else if isModelShown}
-							<RenderedModelView
-								model={itemModel}
-								error={itemModelError}
-								label={name}
-								onRetry={() =>
-									void inventory.loadItemModel(item, category.id)} />
-						{:else}
-							<span
-								class={[
-									"grid place-items-center",
-									isSmallIcon ? "size-36" : "size-full",
-								]}>
-								<ProfileImage
-									url={imageUrl}
-									fallbackIcon={category.icon} />
-							</span>
-						{/if}
+						{@render imageFrame()}
 					</div>
 					<div class="flex items-center gap-2">
-						{#if hasModel}
-							<ImageViewToggle bind:view />
-						{/if}
-						{#if canTryOn}
-							<button
-								class="button aria-pressed:border-line-strong aria-pressed:bg-active aria-pressed:text-fg"
-								type="button"
-								aria-pressed={isTryOnShown}
-								data-tooltip={`Show the item on @${accountUsername}'s saved avatar`}
-								onclick={toggleTryOn}>Try on</button>
-						{/if}
-						<button
-							class="button-icon"
-							type="button"
-							aria-label="Expand item image"
-							data-tooltip="Expand"
-							onclick={() => (isExpanded = true)}>
-							<Icon svg={arrowsOutIcon} size={16} aria-hidden="true" />
-						</button>
+						{@render imageControls(false)}
 					</div>
 				</div>
 
@@ -847,14 +847,12 @@
 </Dialog>
 
 {#if isExpanded && !confirmation}
-	<ExpandedImageDialog
-		label={name}
-		imageUrl={isTryOnShown ? tryOnImageUrl : imageUrl}
-		fallbackIcon={category.icon}
-		bind:view
-		{hasModel}
-		model={itemModel}
-		modelError={itemModelError}
-		onRetryModel={() => void inventory.loadItemModel(item, category.id)}
-		onClose={() => (isExpanded = false)} />
+	<ExpandedImageDialog label={name} onClose={() => (isExpanded = false)}>
+		{#snippet frame()}
+			{@render imageFrame()}
+		{/snippet}
+		{#snippet controls()}
+			{@render imageControls(true)}
+		{/snippet}
+	</ExpandedImageDialog>
 {/if}
