@@ -21,18 +21,19 @@ const (
 // RelatedInventoryItem is an asset that another item includes or uses, such as
 // a part of a bundle or the mesh of an accessory.
 type RelatedInventoryItem struct {
-	// Category is empty for an asset type that no inventory category lists,
-	// such as a mesh or an image.
+	// Category is InventoryOtherAssets for an asset type that no other
+	// category lists, such as a mesh or an image.
 	Category InventoryCategory `json:"category"`
 	Item     InventoryItem     `json:"item"`
 }
 
 // hasDependencies reports whether the assets of the category are model files
 // that name other assets, such as the mesh and the texture of an accessory.
+// Images, meshes, and decals are the assets that others use.
 func hasDependencies(category InventoryCategory) bool {
 	switch category {
 	case InventoryCollectibles, InventoryAccessories, InventoryClassicClothing, InventoryLayeredClothing,
-		InventoryHeadsAndBodies, InventoryFaces, InventoryGear, InventoryModels, InventoryDecals:
+		InventoryHeadsAndBodies, InventoryFaces, InventoryGear, InventoryModels:
 		return true
 	default:
 		return false
@@ -146,7 +147,10 @@ func (service *Users) relatedItemOf(ctx context.Context, accountID, version, ass
 	if err := service.readAccountDetails(ctx, accountID, version, relatedItemDetailEndpoint, "https://economy.roblox.com/v2/assets/"+strconv.FormatInt(assetID, 10)+"/details", &payload); err != nil {
 		return nil, err
 	}
-	typeName := assetTypeNameByID[payload.AssetTypeID]
+	typeName, category := assetTypeNameByID[payload.AssetTypeID], InventoryOtherAssets
+	if listedCategory := inventoryCategoryOfAssetType(typeName); listedCategory != "" {
+		category = listedCategory
+	}
 	item := InventoryItem{
 		ItemID: assetID, Name: boundedText(payload.Name, maxInventoryItemNameLength), TypeName: typeName,
 		Description:             boundedText(payload.Description, maxInventoryDescriptionLength),
@@ -155,5 +159,5 @@ func (service *Users) relatedItemOf(ctx context.Context, accountID, version, ass
 		thumbnailType:           "Asset", CatalogItemType: CatalogAsset,
 	}
 	item.setCreator(payload.Creator.CreatorTargetID, payload.Creator.CreatorType)
-	return &RelatedInventoryItem{Category: inventoryCategoryOfAssetType(typeName), Item: item}, nil
+	return &RelatedInventoryItem{Category: category, Item: item}, nil
 }

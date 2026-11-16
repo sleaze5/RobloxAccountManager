@@ -47,7 +47,7 @@ func inventoryItemTypeOf(category InventoryCategory) (inventoryItemType, bool) {
 		return inventoryItemGamePass, true
 	case InventoryBundles:
 		return inventoryItemBundle, true
-	case InventoryCollectibles:
+	case InventoryCollectibles, InventoryOtherAssets:
 		return inventoryItemAsset, true
 	default:
 		_, ok := inventoryAssetTypesByCategory[category]

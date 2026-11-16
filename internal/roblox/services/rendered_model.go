@@ -198,11 +198,12 @@ func (model RenderedModel) hasFiniteGeometry() bool {
 	return true
 }
 
-// downloadCDNFile downloads a file from the Roblox CDN, which serves files
-// without credentials.
+// downloadCDNFile downloads a file from the Roblox CDN, or from the
+// content delivery host on roblox.com that the asset delivery API names, both
+// of which serve files without credentials.
 func (service *Users) downloadCDNFile(ctx context.Context, address string, maxResponseSizeBytes int64) ([]byte, error) {
 	fileURL, err := url.Parse(address)
-	if err != nil || !safeThumbnailURL(address) {
+	if err != nil || (!safeThumbnailURL(address) && !roblox.IsRobloxURL(fileURL)) {
 		return nil, &roblox.Error{Kind: roblox.KindProtocol, Endpoint: "cdn-file", Message: "Roblox returned an invalid download address."}
 	}
 	response, err := service.client.Do(ctx, roblox.Request{

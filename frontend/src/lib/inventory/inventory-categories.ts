@@ -187,11 +187,10 @@ export const inventoryCategories = inventoryCategoryGroups.flatMap(
 	(group) => group.categories,
 )
 
-// relatedAssetCategory stands for the assets that no inventory category lists,
-// such as the meshes and images that an item uses. Models list assets, so
-// their details load like the details of any asset.
-const relatedAssetCategory: InventoryCategoryOption = {
-	id: InventoryCategory.InventoryModels,
+// otherAssetsCategory holds the assets that no category in the inventory
+// lists, such as the meshes and images that an item uses.
+const otherAssetsCategory: InventoryCategoryOption = {
+	id: InventoryCategory.InventoryOtherAssets,
 	label: "Assets",
 	noun: "assets",
 	icon: cubeIcon,
@@ -200,11 +199,11 @@ const relatedAssetCategory: InventoryCategoryOption = {
 }
 
 export function inventoryCategoryOptionOf(
-	category: InventoryCategory | "",
+	category: InventoryCategory,
 ): InventoryCategoryOption {
 	return (
 		inventoryCategories.find((option) => option.id === category) ??
-		relatedAssetCategory
+		otherAssetsCategory
 	)
 }
 

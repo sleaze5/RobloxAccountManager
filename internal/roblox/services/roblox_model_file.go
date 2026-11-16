@@ -2,9 +2,11 @@ package services
 
 import (
 	"bytes"
+	"compress/gzip"
 	"encoding/binary"
 	"errors"
 	"fmt"
+	"io"
 	"regexp"
 	"strconv"
 
@@ -21,6 +23,7 @@ var (
 	binaryModelFileSignature = []byte("<roblox!\x89\xff\x0d\x0a\x1a\x0a")
 	xmlModelFileSignature    = []byte("<roblox ")
 	zstdFrameMagic           = []byte{0x28, 0xb5, 0x2f, 0xfd}
+	gzipMagic                = []byte{0x1f, 0x8b}
 	// assetReferencePattern finds the asset IDs in content values, such as
 	// rbxassetid://123 and http://www.roblox.com/asset/?id=123.
 	assetReferencePattern = regexp.MustCompile(`(?i)(?:rbxassetid://|[?&]id=)(\d{1,19})`)
@@ -32,6 +35,19 @@ var (
 // the order in which they first appear. A file that is not a model file, such
 // as an image, references nothing.
 func assetIDsReferencedByModelFile(modelFile []byte) ([]int64, error) {
+	// The content delivery host sends files gzipped. The HTTP client unpacks
+	// them unless the file itself is gzipped.
+	if bytes.HasPrefix(modelFile, gzipMagic) {
+		reader, err := gzip.NewReader(bytes.NewReader(modelFile))
+		if err != nil {
+			return nil, errInvalidModelFile
+		}
+		unpackedFile, err := io.ReadAll(io.LimitReader(reader, maxModelFileDecompressedBytes))
+		if err != nil || bytes.HasPrefix(unpackedFile, gzipMagic) {
+			return nil, errInvalidModelFile
+		}
+		modelFile = unpackedFile
+	}
 	switch {
 	case bytes.HasPrefix(modelFile, binaryModelFileSignature):
 		return assetIDsReferencedByBinaryModelFile(modelFile)
