@@ -1,13 +1,22 @@
 <script lang="ts">
 	import {
 		AmbientLight,
+		CanvasTexture,
+		CylinderGeometry,
 		DirectionalLight,
+		Group,
 		LoadingManager,
 		MathUtils,
 		Mesh,
+		MeshBasicMaterial,
+		OrthographicCamera,
 		PerspectiveCamera,
 		Scene,
+		Sprite,
+		SpriteMaterial,
+		SRGBColorSpace,
 		Texture,
+		Vector2,
 		Vector3,
 		WebGLRenderer,
 	} from "three"
@@ -31,7 +40,9 @@
 	// applyScene changes the camera and the lights of the built scene.
 	let applyScene: ((sceneSettings: RenderedModelScene) => void) | undefined
 
-	const turnStepRadians = Math.PI / 12,
+	const axisIndicatorSizePx = 56,
+		axisIndicatorMarginPx = 4,
+		turnStepRadians = Math.PI / 12,
 		zoomStepFactor = 1.15,
 		panStepShare = 0.05,
 		keyLightIntensity = 1.6,
@@ -50,6 +61,9 @@
 			return
 		}
 		renderer.setPixelRatio(window.devicePixelRatio)
+		// The axis indicator renders over the model in a second pass, so the
+		// canvas clears once per frame instead of before each pass.
+		renderer.autoClear = false
 		let isDisposed = false
 		const initialScene = untrack(() => ({ ...renderedModelScene })),
 			loadingManager = new LoadingManager(),
@@ -104,8 +118,25 @@
 		controls.minDistance = Math.min(boundsSize * 0.3, initialDistance)
 		controls.maxDistance = Math.max(initialDistance * 3, controls.minDistance)
 
+		const axisIndicator = createAxisIndicator(getComputedStyle(canvas).fontFamily),
+			canvasSize = new Vector2()
 		const render = (): void => {
-			if (!isDisposed) renderer.render(scene, camera)
+			if (isDisposed) return
+			renderer.clear()
+			renderer.render(scene, camera)
+			// The indicator turns opposite to the camera, so that each axis
+			// points where the axis of the model points on screen.
+			axisIndicator.axes.quaternion.copy(camera.quaternion).invert()
+			renderer.getSize(canvasSize)
+			renderer.clearDepth()
+			renderer.setViewport(
+				axisIndicatorMarginPx,
+				axisIndicatorMarginPx,
+				axisIndicatorSizePx,
+				axisIndicatorSizePx,
+			)
+			renderer.render(axisIndicator.scene, axisIndicator.camera)
+			renderer.setViewport(0, 0, canvasSize.x, canvasSize.y)
 		}
 		controls.addEventListener("change", render)
 		// The textures decode after the first render, and the canvas renders
@@ -217,6 +248,7 @@
 			controls.removeEventListener("change", render)
 			controls.dispose()
 			disposeModelObject(modelObject)
+			disposeAxisIndicator(axisIndicator.axes)
 			renderer.dispose()
 			// Each canvas keeps its WebGL context until the browser collects it,
 			// and browsers allow only a few at a time.
@@ -254,6 +286,77 @@
 		return new OBJLoader(loadingManager)
 			.setMaterials(materials)
 			.parse(renderedModel.mesh)
+	}
+
+	// createAxisIndicator builds the X, Y, and Z axes of the model as short
+	// rods with labels, colored red, green, and blue as in 3D tools.
+	function createAxisIndicator(labelFontFamily: string): {
+		scene: Scene
+		camera: OrthographicCamera
+		axes: Group
+	} {
+		const scene = new Scene(),
+			camera = new OrthographicCamera(-1.5, 1.5, 1.5, -1.5, 0, 4),
+			axes = new Group()
+		camera.position.set(0, 0, 2)
+		scene.add(axes)
+		for (const axis of [
+			{ name: "X", color: "#e5484d", direction: new Vector3(1, 0, 0) },
+			{ name: "Y", color: "#46a758", direction: new Vector3(0, 1, 0) },
+			{ name: "Z", color: "#3e8ae6", direction: new Vector3(0, 0, 1) },
+		]) {
+			// A cylinder stands along the Y axis until it turns onto its axis.
+			const rod = new Mesh(
+				new CylinderGeometry(0.05, 0.05, 1, 8),
+				new MeshBasicMaterial({ color: axis.color }),
+			)
+			rod.quaternion.setFromUnitVectors(new Vector3(0, 1, 0), axis.direction)
+			rod.position.copy(axis.direction).multiplyScalar(0.5)
+			const axisLabel = new Sprite(
+				new SpriteMaterial({
+					map: createAxisLabelTexture(axis.name, axis.color, labelFontFamily),
+					depthTest: false,
+				}),
+			)
+			axisLabel.position.copy(axis.direction).multiplyScalar(1.3)
+			axisLabel.scale.setScalar(0.7)
+			axes.add(rod, axisLabel)
+		}
+		return { scene, camera, axes }
+	}
+
+	function createAxisLabelTexture(
+		axisName: string,
+		color: string,
+		fontFamily: string,
+	): CanvasTexture {
+		const labelCanvas = document.createElement("canvas")
+		labelCanvas.width = labelCanvas.height = 64
+		const context = labelCanvas.getContext("2d")
+		if (context) {
+			context.font = `600 44px ${fontFamily}`
+			context.fillStyle = color
+			context.textAlign = "center"
+			context.textBaseline = "middle"
+			context.fillText(axisName, 32, 34)
+		}
+		const texture = new CanvasTexture(labelCanvas)
+		texture.colorSpace = SRGBColorSpace
+		return texture
+	}
+
+	// disposeAxisIndicator leaves the geometry of the labels, which three.js
+	// shares among every sprite.
+	function disposeAxisIndicator(axes: Group): void {
+		for (const child of axes.children) {
+			if (child instanceof Mesh) {
+				child.geometry.dispose()
+				;(child.material as Material).dispose()
+			} else if (child instanceof Sprite) {
+				child.material.map?.dispose()
+				child.material.dispose()
+			}
+		}
 	}
 
 	function disposeModelObject(modelObject: Object3D): void {
