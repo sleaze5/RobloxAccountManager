@@ -45,8 +45,7 @@
 			openedView: "details" | "purchase"
 		} | null>(null)
 	const account = $derived(accounts.selectedAccount),
-		// Ownership belongs to the account that the list was read for, so it
-		// shows only once the list of the selected account arrives.
+		// Ownership shows once the selected account's list arrives.
 		hasOwnership = $derived(
 			account.id !== 0 &&
 				universeGamePasses.accountId === account.id &&
@@ -67,9 +66,8 @@
 			{ id: "unowned", label: "Not owned" },
 		]
 
-	// The account list replaces its accounts when it refreshes, so the effect
-	// reads the ID alone and runs only when another account is selected. It runs
-	// before the first load, so that the load requests the shown account.
+	// Reads the ID alone, so it runs only on account change, before the first
+	// load.
 	const accountId = $derived(account.id)
 	$effect(() => {
 		const shownAccountId = accountId
@@ -85,7 +83,7 @@
 		void universeGamePasses.load()
 	})
 
-	// The pass that Inventory opened scrolls into view once the list shows it.
+	// Scroll the pass opened from Inventory into view.
 	$effect(() => {
 		const highlightedGamePassId = store.highlightedGamePassId
 		if (!highlightedGamePassId || !universeGamePasses.gamePasses) return
@@ -98,8 +96,7 @@
 		})
 	})
 
-	// A purchase can replace the Buy button of the pass, so focus returns to
-	// the details button of the pass, which stays.
+	// A purchase can remove the Buy button, so focus the details button.
 	async function closeGamePass(gamePassId: number): Promise<void> {
 		shown = null
 		await tick()
@@ -166,10 +163,9 @@
 			</div>
 			{#if hasOwnership && gamePasses.length > 0}
 				<p class="ml-auto font-mono text-2xs text-fg-muted" role="status">
-					@{account.username} owns
 					<strong class="font-semibold text-fg"
 						>{numbers.format(ownedCount)}</strong>
-					of {numbers.format(gamePasses.length)}
+					of {numbers.format(gamePasses.length)} owned
 				</p>
 			{/if}
 		</div>
@@ -196,7 +192,6 @@
 			<div class="empty-state h-full" role="status">
 				<Icon svg={ticketIcon} size={28} aria-hidden="true" />
 				<h2>No game passes</h2>
-				<p>This game has no game passes for sale.</p>
 			</div>
 		{:else if shownGamePasses.length === 0}
 			<div class="empty-state h-full" role="status">
@@ -206,13 +201,8 @@
 						? "No owned game passes"
 						: "All game passes owned"}
 				</h2>
-				<p>
-					{filter === "owned"
-						? `@${account.username} doesn't own a game pass in this game yet.`
-						: `@${account.username} owns every game pass in this game.`}
-				</p>
 				<button class="button" type="button" onclick={() => (filter = "all")}
-					>Show all game passes</button>
+					>Show all</button>
 			</div>
 		{:else}
 			{#if universeGamePasses.error}
@@ -231,7 +221,7 @@
 				<p
 					class="flex items-center gap-2 border-b border-line-subtle px-3 py-2 text-xs text-fg-muted">
 					<Icon svg={userPlusIcon} size={14} aria-hidden="true" />
-					Add an account on the Accounts page to buy game passes.
+					Add an account to buy game passes.
 				</p>
 			{/if}
 			<ol
@@ -254,7 +244,7 @@
 						<button
 							class="flex min-w-0 flex-1 items-center gap-3 self-stretch px-3 py-2 text-left"
 							type="button"
-							aria-label={`Show details of ${name}`}
+							aria-label={`${name} details`}
 							data-show-game-pass
 							onclick={() =>
 								(shown = { gamePass, openedView: "details" })}>
@@ -292,7 +282,7 @@
 								{#if isPending}
 									<span
 										class="inline-flex items-center gap-1 font-medium text-fg-muted"
-										data-tooltip="Roblox is still delivering this game pass"
+										data-tooltip="Still being delivered"
 										data-tooltip-side="bottom-end">
 										<Icon
 											svg={clockIcon}

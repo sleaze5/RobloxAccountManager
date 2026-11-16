@@ -17,27 +17,21 @@ import (
 
 const (
 	universeGamePassesPageSize = 100
-	// MaxUniverseGamePasses bounds the game passes read for one universe, so
-	// that a universe with thousands of passes cannot make one request run
-	// for minutes.
+	// MaxUniverseGamePasses bounds a universe's read.
 	MaxUniverseGamePasses        = 500
 	maxGamePassNameLength        = 100
 	maxGamePassDescriptionLength = 1000
 	creatorGamesPageSize         = 50
-	// maxCreatorGamesSearched bounds the games searched for the universe of a
-	// game pass, so that a creator with hundreds of games cannot make one
-	// search run for minutes.
+	// maxCreatorGamesSearched bounds the search for a pass's game.
 	maxCreatorGamesSearched   = 100
 	gamePassSearchWorkerLimit = 4
 )
 
-// GamePasses lists the game passes of the universe without icons. Roblox
-// reports whether the account owns each pass when the request is signed in
-// as the account, so a request without an account reads every pass as not
-// owned. Shape verified on 2026-11-16.
+// GamePasses lists a universe's game passes without icons. Ownership needs a
+// signed-in request. Verified on 2026-11-16.
 func (service *Games) GamePasses(ctx context.Context, universeID, accountID int64) ([]games.GamePass, error) {
 	gamePasses := []games.GamePass{}
-	err := readCursorPages("game-passes", MaxUniverseGamePasses/universeGamePassesPageSize, "This game has too many game passes to list.", func(pageToken string) (string, error) {
+	err := readCursorPages("game-passes", MaxUniverseGamePasses/universeGamePassesPageSize, "This game has too many game passes.", func(pageToken string) (string, error) {
 		parameters := url.Values{"passView": {"Full"}, "pageSize": {strconv.Itoa(universeGamePassesPageSize)}}
 		if pageToken != "" {
 			parameters.Set("pageToken", pageToken)
@@ -108,11 +102,9 @@ type creatorGame struct {
 	visits      int64
 }
 
-// GamePassRootPlaceID finds the root place of the universe that sells the game
-// pass. Roblox does not report the universe of a pass to buyers, so it searches
-// the public games of the creator of the pass, the most visited first. It
-// reports false when the pass or a game that sells it is not found. Verified on
-// 2026-11-16.
+// GamePassRootPlaceID finds the root place of the game selling the pass.
+// Roblox doesn't expose it, so this searches the creator's public games, most
+// visited first. Verified on 2026-11-16.
 func (service *Games) GamePassRootPlaceID(ctx context.Context, gamePassID int64) (int64, bool, error) {
 	var productPayload struct {
 		Creator struct {
@@ -139,8 +131,8 @@ func (service *Games) GamePassRootPlaceID(ctx context.Context, gamePassID int64)
 	return service.findGameSellingGamePass(ctx, creatorGames, gamePassID)
 }
 
-// findGameSellingGamePass reads the game passes of the games in order with a
-// few workers, and stops the other reads once one game sells the pass.
+// findGameSellingGamePass checks games with a few workers and stops at the
+// first match.
 func (service *Games) findGameSellingGamePass(ctx context.Context, creatorGames []creatorGame, gamePassID int64) (int64, bool, error) {
 	searchContext, cancel := context.WithCancel(ctx)
 	defer cancel()
@@ -181,8 +173,7 @@ func (service *Games) findGameSellingGamePass(ctx context.Context, creatorGames 
 	return 0, false, nil
 }
 
-// creatorGames lists at most maxCreatorGamesSearched public games of the user
-// or group.
+// creatorGames lists up to maxCreatorGamesSearched public games of a creator.
 func (service *Games) creatorGames(ctx context.Context, creatorType string, creatorID int64) ([]creatorGame, error) {
 	path := "/v2/users/" + strconv.FormatInt(creatorID, 10) + "/games"
 	if creatorType == "Group" {

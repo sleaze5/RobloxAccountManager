@@ -79,13 +79,12 @@
 		category: InventoryCategoryOption
 		inventory: InventoryState
 		username: string
-		// account is the account that buys and favorites items.
+		// The account that buys and favorites items.
 		account: Account
 		isOwnInventory: boolean
 		isWorn: boolean
 		onSearchPlace: (placeId: number) => void
-		// onShowGamePass opens the Game passes page of the game that sells the
-		// pass. Pages that never show game passes leave it out.
+		// Opens the pass in Games. Pages without game passes omit it.
 		onShowGamePass?: (place: GamePlace, gamePassId: number) => void
 		onClose: () => void
 	} = $props()
@@ -463,14 +462,11 @@
 					</p>
 				{:else if price === 0}
 					<h2 id="inventory-confirmation-title">Get item?</h2>
-					<p id="inventory-confirmation-description">
-						{name} is added to the account below for free.
-					</p>
+					<p id="inventory-confirmation-description">This item is free.</p>
 				{:else}
 					<h2 id="inventory-confirmation-title">Buy item?</h2>
 					<p id="inventory-confirmation-description">
-						{name} is bought with the account below. Roblox doesn't refund Robux
-						spent on items.
+						Roblox doesn't refund items.
 					</p>
 				{/if}
 			</div>
@@ -499,7 +495,6 @@
 				priceInRobux={price}
 				robuxBalance={inventory.robuxBalance}
 				isBuying={inventory.isBuyingItem}
-				getLabel="Get item"
 				onCancel={close}
 				onBuy={() => void buy()} />
 		{:else}

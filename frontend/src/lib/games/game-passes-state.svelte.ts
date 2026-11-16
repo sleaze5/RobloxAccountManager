@@ -6,17 +6,15 @@ import type { GamePass } from "../backend/bridge"
 import { errorMessage } from "../shared/errors"
 import { isFresh } from "../shared/freshness"
 
-// UniverseGamePasses holds the game passes of one universe as the shown
-// account sees them, because Roblox reports ownership per account. The games
-// store keeps it while the place stays selected, so that the Game passes page
-// reopens at once.
+// UniverseGamePasses holds a universe's game passes as the shown account sees
+// them. The store keeps it while the place is selected.
 export class UniverseGamePasses {
 	gamePasses = $state<GamePass[] | null>(null)
 	loading = $state(false)
 	error = $state("")
 	isBuying = $state(false)
 	purchaseError = $state("")
-	// undefined while the balance loads, and null when it is unavailable.
+	// undefined while loading, null if unavailable.
 	robuxBalance = $state<number | null | undefined>(undefined)
 	pendingPurchaseGamePassIds = $state(new Set<number>())
 	readonly #accounts: AccountStore
@@ -39,9 +37,8 @@ export class UniverseGamePasses {
 		return this.#scope.accountId
 	}
 
-	// showAccount lists the game passes as another account sees them. It does
-	// nothing for the shown account, so that a failed request is retried only
-	// on request instead of each time the account list refreshes.
+	// showAccount reloads for another account. The same account is a no-op, so
+	// a failure retries only on request.
 	showAccount(accountId: number): void {
 		if (accountId === this.#scope.accountId) return
 		const wasRequested = this.gamePasses !== null || this.#listRequest !== null
@@ -56,8 +53,7 @@ export class UniverseGamePasses {
 		if (wasRequested) void this.refresh()
 	}
 
-	// load shows the kept game passes at once and requests them again when they
-	// are no longer fresh.
+	// load shows kept passes and refetches stale ones.
 	async load(): Promise<void> {
 		if (this.#listRequest || (this.gamePasses && isFresh(this.#fetchedAt))) return
 		await this.refresh()
@@ -79,7 +75,7 @@ export class UniverseGamePasses {
 			if (this.#listRequest === request && scope.isCurrent) {
 				this.error = errorMessage(
 					error,
-					"Game passes could not be loaded. Try again.",
+					"Couldn't load game passes. Try again.",
 				)
 			}
 		} finally {
@@ -103,8 +99,7 @@ export class UniverseGamePasses {
 		this.purchaseError = ""
 	}
 
-	// buy buys the game pass for the shown account at the price that the user
-	// confirmed, and reports whether Roblox sold it.
+	// buy buys at the confirmed price and reports success.
 	async buy(gamePass: GamePass): Promise<boolean> {
 		const scope = this.#scope
 		if (this.isBuying || !scope.accountId) return false
@@ -136,7 +131,7 @@ export class UniverseGamePasses {
 			if (scope.isCurrent) {
 				this.purchaseError = errorMessage(
 					error,
-					"Could not buy the game pass. Try again.",
+					"Couldn't buy the game pass. Try again.",
 				)
 			}
 			return false

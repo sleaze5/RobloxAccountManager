@@ -7,9 +7,8 @@ import (
 	robloxservices "github.com/sleaze5/RobloxAccountManager/internal/roblox/services"
 )
 
-// ListGamePasses lists the game passes of a universe with their icons, and
-// whether the account owns each of them. Without an account, every pass reads
-// as not owned. A missing icon leaves the pass without one.
+// ListGamePasses lists a universe's game passes with icons and ownership.
+// Without an account, none read as owned.
 func (service *Service) ListGamePasses(ctx context.Context, accountID, universeID int64) ([]games.GamePass, error) {
 	if err := validGameID(universeID); err != nil {
 		return nil, err
@@ -40,7 +39,7 @@ func (service *Service) ListGamePasses(ctx context.Context, accountID, universeI
 	return gamePasses, nil
 }
 
-// FindGamePassPlace finds the root place of the game that sells the game pass.
+// FindGamePassPlace returns the root place of the game selling the pass.
 func (service *Service) FindGamePassPlace(ctx context.Context, gamePassID int64) (games.Place, error) {
 	if err := validGameID(gamePassID); err != nil {
 		return games.Place{}, err
@@ -55,14 +54,14 @@ func (service *Service) FindGamePassPlace(ctx context.Context, gamePassID int64)
 		return games.Place{}, service.gamesError(ctx, "game-pass-place", err)
 	}
 	if !found {
-		return games.Place{}, gamesInputError("The game that sells this game pass couldn't be found.")
+		return games.Place{}, gamesInputError("Couldn't find the game that sells this pass.")
 	}
 	place, found, err := service.games.PlaceByID(ctx, rootPlaceID)
 	if err != nil {
 		return games.Place{}, service.gamesError(ctx, "game-pass-place", err)
 	}
 	if !found {
-		return games.Place{}, gamesInputError("The game that sells this game pass is unavailable.")
+		return games.Place{}, gamesInputError("The game that sells this pass is unavailable.")
 	}
 	return place, nil
 }

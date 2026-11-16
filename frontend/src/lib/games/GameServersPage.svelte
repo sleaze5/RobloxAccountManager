@@ -296,8 +296,8 @@
 					: []),
 			]
 		}
-		// The rows of friends' servers prefix their keys, so that a server that
-		// both lists show opens its menu only in the row that was used.
+		// Friend rows prefix their keys, so a server in both lists opens its menu
+		// only in the clicked row.
 		const jobId = key.startsWith("friend-") ? key.slice("friend-".length) : key
 		return [
 			{
@@ -387,7 +387,6 @@
 		{#if accounts.selectedAccount.id !== 0}
 			<FriendServerList
 				{friendServers}
-				accountUsername={accounts.selectedAccount.username}
 				activeKey={openKey}
 				{menuID}
 				onMenu={openMenu} />

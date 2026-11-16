@@ -10,20 +10,17 @@
 
 	let {
 		friendServers,
-		accountUsername,
 		activeKey,
 		menuID,
 		onMenu,
 	}: {
 		friendServers: FriendServers
-		accountUsername: string
 		activeKey: string | undefined
 		menuID: string
 		onMenu: ServerMenuOpener
 	} = $props()
 
-	// Four avatars and the count of the rest fit the fixed width of the
-	// avatar column, so that the names of every row line up.
+	// Four avatars and a count fit the fixed avatar column, so names line up.
 	const maxShownAvatars = 4,
 		headingID = $props.id(),
 		servers = $derived(friendServers.servers),
@@ -63,7 +60,7 @@
 		</p>
 	{:else if servers.length === 0}
 		<p class="px-3 pb-2 text-xs text-fg-muted" role="status">
-			No friends of @{accountUsername} are in a server you can see.
+			No friends are playing here.
 		</p>
 	{:else}
 		<ol

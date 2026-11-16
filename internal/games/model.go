@@ -305,8 +305,7 @@ type BadgeAward struct {
 	AwardedAtMs int64 `json:"awardedAtMs"`
 }
 
-// GamePass is a game pass of a universe. Roblox sells game passes per
-// universe, so every place of the universe shares them.
+// GamePass belongs to a universe and is shared by its places.
 type GamePass struct {
 	GamePassID   int64  `json:"gamePassId"`
 	Name         string `json:"name"`
@@ -319,7 +318,7 @@ type GamePass struct {
 	UpdatedAtMs  int64  `json:"updatedAtMs"`
 }
 
-// FriendServer is a server of a place that friends of the account play in.
+// FriendServer is a server that friends of the account are in.
 type FriendServer struct {
 	JobID   string           `json:"jobId"`
 	Friends []FriendInServer `json:"friends"`

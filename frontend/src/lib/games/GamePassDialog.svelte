@@ -32,10 +32,8 @@
 		universeGamePasses: UniverseGamePasses
 		gamePass: GamePass
 		gameName: string
-		// account is the account that buys the game pass.
 		account: Account
-		// openedView is purchase when the Buy button of the list opened the
-		// dialog, which then closes when the purchase ends.
+		// purchase when opened from a row's Buy, which closes the dialog after.
 		openedView: GamePassView
 		onClose: () => void
 	} = $props()
@@ -46,8 +44,7 @@
 		sectionHeadingClass = "text-xs font-semibold text-fg-muted"
 	let view = $state<GamePassView>("details"),
 		card = $state<HTMLDivElement | undefined>(undefined)
-	// The list replaces a pass when it is bought, so the dialog shows the
-	// listed copy.
+	// The listed copy, which a purchase updates.
 	const gamePass = $derived(
 			universeGamePasses.gamePasses?.find(
 				(listedGamePass) =>
@@ -75,10 +72,8 @@
 		void showView(openedView)
 	})
 
-	// The dialog keeps its card while it switches between the details and the
-	// purchase, so focus moves to the control that replaced the one the user
-	// pressed. The balance is read each time the purchase opens, because Robux
-	// can be bought outside the application.
+	// Focus moves to the control that replaced the pressed one. Robux is reread
+	// each time, since it can change outside the app.
 	async function showView(shownView: GamePassView): Promise<void> {
 		universeGamePasses.clearPurchaseError()
 		view = shownView
@@ -146,10 +141,9 @@
 				</h2>
 				<p id={`${id}-purchase-description`} class="wrap-anywhere">
 					{#if price === 0}
-						{name} is added to the account below for free.
+						This game pass is free.
 					{:else}
-						{name} is bought with the account below. Roblox doesn't refund Robux
-						spent on game passes.
+						Roblox doesn't refund game passes.
 					{/if}
 				</p>
 			</div>
@@ -177,7 +171,6 @@
 			priceInRobux={price}
 			robuxBalance={universeGamePasses.robuxBalance}
 			isBuying={universeGamePasses.isBuying}
-			getLabel="Get game pass"
 			onCancel={close}
 			onBuy={() => void buy()} />
 	{:else}
@@ -242,13 +235,13 @@
 									svg={checkCircleFillIcon}
 									size={12}
 									aria-hidden="true" />
-								<span>@{account.username} owns this</span>
+								<span>Owned</span>
 							</li>
 						</ul>
 					{/if}
 					{#if isPending}
 						<p class="text-xs text-fg-muted" role="status">
-							Bought. It can take a minute for the game to see it.
+							Bought. It may take a minute to show up.
 						</p>
 					{/if}
 				</div>

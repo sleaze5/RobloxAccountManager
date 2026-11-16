@@ -477,8 +477,8 @@ export class SavedServers {
 	}
 }
 
-// FriendServers lists the servers of the place that friends of the shown
-// account play in. It loads only for an account.
+// FriendServers lists the place's servers that the shown account's friends
+// are in.
 export class FriendServers {
 	servers = $state<FriendServer[] | null>(null)
 	loading = $state(false)
@@ -494,8 +494,7 @@ export class FriendServers {
 		this.#accountId = accountId
 	}
 
-	// showAccount lists the friends of another account, and loads them only
-	// while the list is visible.
+	// showAccount switches accounts and loads only while visible.
 	showAccount(accountId: number, isVisible: boolean): void {
 		if (accountId === this.#accountId) return
 		this.#accountId = accountId
@@ -507,8 +506,7 @@ export class FriendServers {
 		if (isVisible) void this.load()
 	}
 
-	// load shows the kept servers at once and requests them again when they
-	// are no longer fresh, unless that request is already running.
+	// load shows kept servers and refetches stale ones.
 	async load(): Promise<void> {
 		if (this.#request) return
 		if (this.servers && Date.now() - this.#fetchedAt < serverPageFreshMs) return
@@ -531,7 +529,7 @@ export class FriendServers {
 			if (this.#request === request) {
 				this.error = errorMessage(
 					error,
-					"Friends' servers could not be loaded. Try again.",
+					"Couldn't load friends' servers. Try again.",
 				)
 			}
 		} finally {

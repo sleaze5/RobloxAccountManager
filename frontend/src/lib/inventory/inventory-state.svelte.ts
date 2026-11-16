@@ -286,8 +286,7 @@ export class InventoryState {
 		}
 	}
 
-	// findGamePassPlace finds the game that sells the game pass, or returns
-	// null and shows why.
+	// findGamePassPlace returns the pass's game, or null with an error.
 	async findGamePassPlace(gamePassId: number): Promise<GamePlace | null> {
 		if (this.isFindingGamePassPlace) return null
 		this.isFindingGamePassPlace = true
@@ -301,7 +300,7 @@ export class InventoryState {
 			if (this.#scope.isCurrent) {
 				this.itemActionError = errorMessage(
 					error,
-					"The game of this game pass couldn't be found. Try again.",
+					"Couldn't find this pass's game. Try again.",
 				)
 			}
 			return null

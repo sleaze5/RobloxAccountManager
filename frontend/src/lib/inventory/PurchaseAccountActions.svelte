@@ -11,25 +11,21 @@
 		priceInRobux,
 		robuxBalance,
 		isBuying,
-		getLabel,
 		onCancel,
 		onBuy,
 	}: {
-		// account is the account that pays.
+		// The paying account.
 		account: Account
 		priceInRobux: number
-		// undefined while the balance loads, and null when it is unavailable.
+		// undefined while loading, null if unavailable.
 		robuxBalance: number | null | undefined
 		isBuying: boolean
-		// getLabel names the action for a free item, such as Get item.
-		getLabel: string
 		onCancel: () => void
 		onBuy: () => void
 	} = $props()
 
-	// Buy stays enabled when the balance looks too low, because the balance
-	// can change outside the application. Roblox refuses the purchase then, and
-	// the dialog shows why.
+	// Buy stays enabled on a low balance, which can change outside the app.
+	// Roblox's refusal is shown instead.
 	const balanceAfterPurchase = $derived(
 			typeof robuxBalance === "number" ? robuxBalance - priceInRobux : null,
 		),
@@ -37,8 +33,8 @@
 			typeof robuxBalance !== "number" || balanceAfterPurchase === null
 				? ""
 				: priceInRobux === 0
-					? `@${account.username} has ${formatRobux(robuxBalance, false)}`
-					: `@${account.username} has ${formatRobux(robuxBalance, false)}, and ${formatRobux(balanceAfterPurchase, false)} after this purchase`,
+					? `${formatRobux(robuxBalance, false)} now`
+					: `${formatRobux(robuxBalance, false)} now, ${formatRobux(balanceAfterPurchase, false)} after`,
 		)
 </script>
 
@@ -50,7 +46,7 @@
 			<span class="truncate text-xs font-medium text-fg"
 				>@{account.username}</span>
 			{#if robuxBalance === undefined}
-				<Skeleton className="w-28 text-2xs" label="Loading the Robux balance" />
+				<Skeleton className="w-28 text-2xs" label="Loading Robux" />
 			{:else if robuxBalance === null || balanceAfterPurchase === null}
 				<span class="truncate text-2xs text-fg-muted">Robux unavailable</span>
 			{:else}
@@ -95,7 +91,7 @@
 			>{isBuying
 				? "Buying…"
 				: priceInRobux === 0
-					? getLabel
+					? "Get"
 					: `Buy for ${formatRobux(priceInRobux, false)}`}</button>
 	</div>
 </div>

@@ -81,10 +81,8 @@
 		nameEnd = $derived(place?.name.slice(nameSplit).trimEnd() ?? ""),
 		menuOpen = $derived(!!place && store.menu?.place.placeId === place.placeId),
 		rootPlace = $derived(game?.rootPlace ?? null),
-		// Roblox owns badges and game passes per universe, so a subplace would
-		// only repeat those of its root place. Until the details load, the
-		// buttons stay in place disabled, so that a failed load does not move
-		// the header.
+		// Badges and game passes belong to the universe, so subplaces hide them.
+		// Disabled until details load, so the header doesn't shift.
 		hasUniverseButtons = $derived(!rootPlace),
 		hasVotes = $derived(
 			store.loadedGameSections.includes(GameSection.GameSectionVotes),

@@ -75,7 +75,7 @@ export class GamesStore {
 	selected = $state<GamePlace | null>(null)
 	game = $state<Game | null>(null)
 	detailsPage = $state<"details" | "servers" | "badges" | "gamePasses">("details")
-	// highlightedGamePassId marks the game pass that another page opened.
+	// The game pass opened from another page.
 	highlightedGamePassId = $state<number | null>(null)
 	serverSource = $state<ServerSource>("roblox")
 	menu = $state<GameMenu | null>(null)
@@ -345,8 +345,8 @@ export class GamesStore {
 		this.#universeBadges = null
 	}
 
-	// gamePassesFor returns the game passes of the universe, and keeps them
-	// until another place is selected.
+	// gamePassesFor returns the universe's game passes, kept until another place
+	// is selected.
 	gamePassesFor(universeId: number, accounts: AccountStore): UniverseGamePasses {
 		if (this.#universeGamePasses?.universeId !== universeId) {
 			this.#universeGamePasses?.dispose()
@@ -386,8 +386,7 @@ export class GamesStore {
 		this.revalidate()
 	}
 
-	// showGamePass opens the Game passes page of the place and highlights the
-	// game pass.
+	// showGamePass opens the place's Game passes page with the pass highlighted.
 	showGamePass(place: GamePlace, gamePassId: number): void {
 		this.closeMenu()
 		this.select(place)

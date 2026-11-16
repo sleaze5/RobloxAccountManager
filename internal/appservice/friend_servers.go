@@ -10,10 +10,8 @@ import (
 	robloxservices "github.com/sleaze5/RobloxAccountManager/internal/roblox/services"
 )
 
-// ListFriendServers lists the servers of the place that friends of the account
-// play in, with the most friends first. Roblox shares the server of a friend
-// only with viewers that the friend's privacy settings allow to join, so
-// friends who hide it are left out.
+// ListFriendServers lists the place's servers that the account's friends are
+// in, most friends first. Roblox omits friends whose privacy hides their server.
 func (service *Service) ListFriendServers(ctx context.Context, accountID, placeID int64) ([]games.FriendServer, error) {
 	if err := validGameID(placeID); err != nil {
 		return nil, err
@@ -61,8 +59,8 @@ func (service *Service) ListFriendServers(ctx context.Context, accountID, placeI
 	return servers, nil
 }
 
-// groupFriendsByJobID groups the friends who play the place by the server
-// they play in, and returns every friend who plays it.
+// groupFriendsByJobID groups the place's playing friends by server, and
+// returns them all.
 func groupFriendsByJobID(presences []robloxservices.UserPresence, placeID int64) (map[string][]int64, []int64) {
 	friendIDsByJobID := map[string][]int64{}
 	playingFriendIDs := []int64{}
@@ -76,8 +74,7 @@ func groupFriendsByJobID(presences []robloxservices.UserPresence, placeID int64)
 	return friendIDsByJobID, playingFriendIDs
 }
 
-// friendServers builds the servers with the most friends first, and leaves out
-// friends that Roblox returned no name for.
+// friendServers sorts servers by friend count and drops unnamed friends.
 func friendServers(friendIDsByJobID map[string][]int64, friendByUserID map[int64]games.FriendInServer) []games.FriendServer {
 	servers := make([]games.FriendServer, 0, len(friendIDsByJobID))
 	for jobID, userIDs := range friendIDsByJobID {
