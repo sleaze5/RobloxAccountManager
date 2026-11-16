@@ -42,9 +42,9 @@ func (service *Service) RedrawAvatarImage(ctx context.Context, accountID int64) 
 	return service.core.RedrawAvatarImage(ctx, accountID)
 }
 
-func (service *Service) GetAvatarModel(ctx context.Context, accountID, userID int64) (robloxservices.AvatarModel, error) {
+func (service *Service) GetAvatarModel(ctx context.Context, accountID, userID int64) (robloxservices.RenderedModel, error) {
 	if err := validateAccountAndTargetIDs(accountID, userID, "avatar-model"); err != nil {
-		return robloxservices.AvatarModel{}, err
+		return robloxservices.RenderedModel{}, err
 	}
 	return service.core.GetAvatarModel(ctx, accountID, userID)
 }

@@ -24,7 +24,7 @@
 	import trendUpIcon from "@phosphor-icons/core/regular/trend-up.svg?raw"
 	import trophyIcon from "@phosphor-icons/core/regular/trophy.svg?raw"
 	import xIcon from "@phosphor-icons/core/regular/x.svg?raw"
-	import { tick } from "svelte"
+	import { tick, untrack } from "svelte"
 	import {
 		CatalogItemType,
 		InventoryCategory,
@@ -33,7 +33,10 @@
 	import type { InventoryItem } from "../backend/bridge"
 	import Dialog from "../shared/Dialog.svelte"
 	import Icon from "../shared/Icon.svelte"
+	import ImageViewToggle from "../shared/ImageViewToggle.svelte"
+	import type { ImageView } from "../shared/ImageViewToggle.svelte"
 	import ProfileImage from "../shared/ProfileImage.svelte"
+	import RenderedModelView from "../shared/RenderedModelView.svelte"
 	import Skeleton from "../shared/Skeleton.svelte"
 	import Timestamp from "../shared/Timestamp.svelte"
 	import { relativeTime } from "../shared/timestamp"
@@ -67,7 +70,8 @@
 	} = $props()
 
 	let confirmation = $state<"deletion" | "purchase" | null>(null),
-		card = $state<HTMLDivElement | undefined>(undefined)
+		card = $state<HTMLDivElement | undefined>(undefined),
+		view = $state<ImageView>("2D")
 
 	const exactNumbers = new Intl.NumberFormat("en-US"),
 		percent = new Intl.NumberFormat("en-US", {
@@ -102,6 +106,8 @@
 		details = $derived(inventory.detailsByItemKey.get(detailsKey)),
 		isOwnedByAccount = $derived(inventory.isOwnedByItemKey.get(detailsKey)),
 		imageUrl = $derived(details?.largeImageUrl || item.imageUrl),
+		hasModel = $derived(!!details?.hasModel),
+		isModelShown = $derived(hasModel && view === "3D"),
 		key = $derived(inventoryItemKey(item)),
 		canFavorite = $derived(isCatalogItem && !!market),
 		isFavorite = $derived(inventory.favoriteByItemKey.get(key)),
@@ -153,6 +159,15 @@
 		isShortOfRobux = $derived(
 			balanceAfterPurchase !== null && balanceAfterPurchase < 0,
 		)
+
+	// The 3D model loads when the 3D view opens.
+	$effect(() => {
+		const shownItem = item,
+			shownCategory = category.id
+		if (isModelShown) {
+			untrack(() => void inventory.loadItemModel(shownItem, shownCategory))
+		}
+	})
 
 	// The dialog keeps its card while it switches between the details and the
 	// deletion confirmation, so focus moves to the control that replaced the
@@ -379,17 +394,37 @@
 	{:else}
 		<div class="flex flex-col gap-4">
 			<div class="flex items-start gap-4">
-				<span
-					class="grid size-48 shrink-0 place-items-center overflow-hidden rounded-lg border border-line-subtle bg-raised"
-					aria-hidden="true">
-					<span
-						class={[
-							"grid place-items-center",
-							isSmallIcon ? "size-36" : "size-full",
-						]}>
-						<ProfileImage url={imageUrl} fallbackIcon={category.icon} />
-					</span>
-				</span>
+				<div class="flex w-48 shrink-0 flex-col gap-2">
+					<div
+						class="relative grid size-48 place-items-center overflow-hidden rounded-lg border border-line-subtle bg-raised"
+						aria-hidden={isModelShown ? undefined : true}>
+						{#if isModelShown}
+							<RenderedModelView
+								model={inventory.itemModel.modelKey === detailsKey
+									? inventory.itemModel.model
+									: null}
+								error={inventory.itemModel.requestedKey === detailsKey
+									? inventory.itemModel.error
+									: ""}
+								label={name}
+								onRetry={() =>
+									void inventory.loadItemModel(item, category.id)} />
+						{:else}
+							<span
+								class={[
+									"grid place-items-center",
+									isSmallIcon ? "size-36" : "size-full",
+								]}>
+								<ProfileImage
+									url={imageUrl}
+									fallbackIcon={category.icon} />
+							</span>
+						{/if}
+					</div>
+					{#if hasModel}
+						<ImageViewToggle bind:view />
+					{/if}
+				</div>
 
 				<div class="flex min-w-0 flex-1 flex-col gap-1">
 					<div class="flex items-start gap-3">

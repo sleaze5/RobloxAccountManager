@@ -9,6 +9,7 @@ import { AccountScope } from "../accounts/account-scope"
 import type { CancellableRequest } from "../shared/cancellable-request"
 import { errorMessage } from "../shared/errors"
 import { isFresh } from "../shared/freshness"
+import { RenderedModelLoad } from "../shared/rendered-model-load.svelte"
 import { assetCategories } from "./inventory-categories"
 
 interface InventoryCategoryPage {
@@ -63,12 +64,16 @@ export class InventoryState {
 	// categoryItemKey. null means that the request failed.
 	detailsByItemKey = $state.raw(new Map<string, InventoryItemDetails | null>())
 	isOwnedByItemKey = $state.raw(new Map<string, boolean | null>())
+	// The 3D model of the opened item. Its key is the categoryItemKey of the
+	// item.
+	readonly itemModel: RenderedModelLoad
 	readonly userId: number
 	readonly #scope: AccountScope
 	#request: ReturnType<typeof accountBackend.GetInventoryPage> | null = null
 
 	constructor(accountId: number, userId: number, store: AccountStore) {
 		this.#scope = new AccountScope(accountId, store)
+		this.itemModel = new RenderedModelLoad(this.#scope)
 		this.userId = userId
 	}
 
@@ -138,6 +143,22 @@ export class InventoryState {
 					)),
 			)
 		}
+	}
+
+	async loadItemModel(
+		item: InventoryItem,
+		category: InventoryCategory,
+	): Promise<void> {
+		await this.itemModel.load(
+			categoryItemKey(category, item.itemId),
+			() =>
+				accountBackend.GetInventoryItemModel(
+					this.#scope.accountId,
+					category,
+					item.itemId,
+				),
+			"Could not load the 3D model. Try again.",
+		)
 	}
 
 	async checkFavorite(item: InventoryItem): Promise<void> {

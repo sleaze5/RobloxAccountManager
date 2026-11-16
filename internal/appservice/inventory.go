@@ -38,6 +38,14 @@ func (service *Service) GetInventoryPage(ctx context.Context, accountID, userID 
 	return page, nil
 }
 
+// GetInventoryItemModel reads the 3D model of the item, as the account sees
+// it.
+func (service *Service) GetInventoryItemModel(ctx context.Context, accountID int64, category robloxservices.InventoryCategory, itemID int64) (robloxservices.RenderedModel, error) {
+	return service.readRenderedModel(ctx, accountID, "inventory-item-model", func(ctx context.Context, version int64) (string, error) {
+		return service.users.InventoryItemModelManifestURL(ctx, accountID, version, category, itemID)
+	})
+}
+
 // GetInventoryItemDetails reads the large image, dates, and collectible IDs
 // of one item. A missing large image leaves the details without it.
 func (service *Service) GetInventoryItemDetails(ctx context.Context, accountID int64, category robloxservices.InventoryCategory, itemID int64) (robloxservices.InventoryItemDetails, error) {

@@ -20,6 +20,13 @@ func (service *Service) GetInventoryItemDetails(ctx context.Context, accountID i
 	return service.core.GetInventoryItemDetails(ctx, accountID, category, itemID)
 }
 
+func (service *Service) GetInventoryItemModel(ctx context.Context, accountID int64, category robloxservices.InventoryCategory, itemID int64) (robloxservices.RenderedModel, error) {
+	if err := validateAccountAndTargetIDs(accountID, itemID, "inventory-item-model"); err != nil {
+		return robloxservices.RenderedModel{}, err
+	}
+	return service.core.GetInventoryItemModel(ctx, accountID, category, itemID)
+}
+
 func (service *Service) IsInventoryItemOwned(ctx context.Context, accountID int64, category robloxservices.InventoryCategory, itemID int64) (bool, error) {
 	if err := validateAccountAndTargetIDs(accountID, itemID, "inventory-item-ownership"); err != nil {
 		return false, err

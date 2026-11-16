@@ -1,7 +1,6 @@
 import { accountBackend } from "../backend/bridge"
 import type {
 	Avatar,
-	AvatarModel,
 	AvatarOutfit,
 	AvatarRules,
 	InventoryCategory,
@@ -11,6 +10,7 @@ import type { AccountStore } from "../accounts/account-store.svelte"
 import { AccountScope } from "../accounts/account-scope"
 import type { NotificationCenter } from "../notifications/notification-center.svelte"
 import { errorMessage } from "../shared/errors"
+import { RenderedModelLoad } from "../shared/rendered-model-load.svelte"
 import {
 	avatarChangeOf,
 	clearEmoteSlot,
@@ -53,10 +53,10 @@ export class AvatarState {
 	// Whether Roblox still renders the full-body image after a change.
 	isRenderingImage = $state(false)
 	isRedrawingImage = $state(false)
-	// The 3D avatar, which loads only when the page shows it.
-	model = $state.raw<AvatarModel | null>(null)
-	isModelLoading = $state(false)
-	modelError = $state("")
+	// The 3D avatar, which loads only when the page shows it. Its key is the
+	// full-body image that it matches, because Roblox renders both from the
+	// same avatar.
+	readonly model: RenderedModelLoad
 	outfits = $state.raw<AvatarOutfit[] | null>(null)
 	outfitsNextCursor = $state("")
 	outfitsLoading = $state(false)
@@ -76,10 +76,6 @@ export class AvatarState {
 	readonly #notifications: NotificationCenter
 	#loadRequest: ReturnType<typeof accountBackend.GetAvatar> | null = null
 	#outfitsRequest: ReturnType<typeof accountBackend.GetAvatarOutfits> | null = null
-	#modelRequest: ReturnType<typeof accountBackend.GetAvatarModel> | null = null
-	// The full-body image that the loaded or loading model belongs to, because
-	// Roblox renders both from the same avatar.
-	#modelImageUrl = ""
 
 	constructor(
 		accountId: number,
@@ -88,6 +84,7 @@ export class AvatarState {
 		notifications: NotificationCenter,
 	) {
 		this.#scope = new AccountScope(accountId, store)
+		this.model = new RenderedModelLoad(this.#scope)
 		this.#accounts = store
 		this.#notifications = notifications
 		this.userId = userId
@@ -386,47 +383,17 @@ export class AvatarState {
 		}
 	}
 
-	// loadModel reads the 3D avatar that matches the shown full-body image,
-	// unless it is already loaded or loading. A failed read loads again on the
-	// next call.
+	// loadModel reads the 3D avatar that matches the shown full-body image.
 	async loadModel(shownImageUrl: string): Promise<void> {
-		if (!this.#scope.isCurrent) return
-		if (
-			shownImageUrl === this.#modelImageUrl &&
-			(this.model || this.isModelLoading)
-		) {
-			return
-		}
-		void this.#modelRequest?.cancel()
-		const request = accountBackend.GetAvatarModel(
-			this.#scope.accountId,
-			this.userId,
+		await this.model.load(
+			shownImageUrl,
+			() => accountBackend.GetAvatarModel(this.#scope.accountId, this.userId),
+			"Could not load the 3D avatar. Try again.",
 		)
-		this.#modelRequest = request
-		this.#modelImageUrl = shownImageUrl
-		this.isModelLoading = true
-		this.modelError = ""
-		try {
-			const model = await this.#scope.track(request)
-			if (request !== this.#modelRequest || !this.#scope.isCurrent) return
-			this.model = model
-		} catch (error) {
-			if (request !== this.#modelRequest || !this.#scope.isCurrent) return
-			this.model = null
-			this.modelError = errorMessage(
-				error,
-				"Could not load the 3D avatar. Try again.",
-			)
-		} finally {
-			if (request === this.#modelRequest) {
-				this.#modelRequest = null
-				this.isModelLoading = false
-			}
-		}
 	}
 
 	dispose(): void {
-		this.#loadRequest = this.#outfitsRequest = this.#modelRequest = null
+		this.#loadRequest = this.#outfitsRequest = null
 		this.#scope.dispose()
 	}
 

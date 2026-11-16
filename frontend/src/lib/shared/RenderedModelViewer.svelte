@@ -14,13 +14,14 @@
 	import { OrbitControls } from "three/addons/controls/OrbitControls.js"
 	import { MTLLoader } from "three/addons/loaders/MTLLoader.js"
 	import { OBJLoader } from "three/addons/loaders/OBJLoader.js"
-	import type { AvatarModel } from "../backend/bridge"
+	import type { RenderedModel } from "../backend/bridge"
 
+	// label names what the model shows, such as "@builderman's avatar".
 	let {
 		model,
-		username,
+		label,
 		onerror,
-	}: { model: AvatarModel; username: string; onerror: () => void } = $props()
+	}: { model: RenderedModel; label: string; onerror: () => void } = $props()
 
 	let canvas = $state<HTMLCanvasElement>()
 
@@ -43,7 +44,7 @@
 		let isDisposed = false
 		const loadingManager = new LoadingManager(),
 			scene = new Scene(),
-			avatarObject = parseAvatarObject(model, loadingManager),
+			modelObject = parseModelObject(model, loadingManager),
 			center = new Vector3(
 				(model.bounds.minimum.x + model.bounds.maximum.x) / 2,
 				(model.bounds.minimum.y + model.bounds.maximum.y) / 2,
@@ -66,7 +67,7 @@
 				model.camera.position.z,
 			),
 			cameraLight = new DirectionalLight(0xffffff, 1.6)
-		scene.add(avatarObject)
+		scene.add(modelObject)
 		scene.add(new AmbientLight(0xffffff, 1.4))
 		cameraLight.position.set(1, 1, 2)
 		camera.add(cameraLight)
@@ -152,7 +153,7 @@
 			resizeObserver.disconnect()
 			controls.removeEventListener("change", render)
 			controls.dispose()
-			disposeAvatarObject(avatarObject)
+			disposeModelObject(modelObject)
 			renderer.dispose()
 			// Each canvas keeps its WebGL context until the browser collects it,
 			// and browsers allow only a few at a time.
@@ -160,31 +161,34 @@
 		}
 	})
 
-	// parseAvatarObject builds the meshes of the model. The MTL names each
+	// parseModelObject builds the meshes of the model. The MTL names each
 	// texture by its file hash, which the loading manager resolves to the data
 	// URL of the texture.
-	function parseAvatarObject(
-		avatarModel: AvatarModel,
+	function parseModelObject(
+		renderedModel: RenderedModel,
 		loadingManager: LoadingManager,
 	): Object3D {
 		loadingManager.setURLModifier((textureUrl) => {
 			const fileHash = textureUrl.slice(textureUrl.lastIndexOf("/") + 1)
-			return avatarModel.textureDataUrlByFileHash?.[fileHash] ?? textureUrl
+			return renderedModel.textureDataUrlByFileHash?.[fileHash] ?? textureUrl
 		})
-		const materials = new MTLLoader(loadingManager).parse(avatarModel.materials, "")
+		const materials = new MTLLoader(loadingManager).parse(
+			renderedModel.materials,
+			"",
+		)
 		materials.preload()
 		// Roblox exports an opacity map with every material, which would make the
-		// whole avatar see-through.
+		// whole model see-through.
 		for (const material of Object.values(materials.materials)) {
 			material.transparent = false
 		}
 		return new OBJLoader(loadingManager)
 			.setMaterials(materials)
-			.parse(avatarModel.mesh)
+			.parse(renderedModel.mesh)
 	}
 
-	function disposeAvatarObject(avatarObject: Object3D): void {
-		avatarObject.traverse((child) => {
+	function disposeModelObject(modelObject: Object3D): void {
+		modelObject.traverse((child) => {
 			if (!(child instanceof Mesh)) return
 			child.geometry.dispose()
 			const childMaterials: Material[] = Array.isArray(child.material)
@@ -204,5 +208,5 @@
 	bind:this={canvas}
 	class="relative size-full animate-pop cursor-grab rounded-lg outline-offset-2 focus-visible:outline-2 focus-visible:outline-focus active:cursor-grabbing"
 	tabindex="0"
-	aria-label={`3D view of @${username}'s avatar`}
-	aria-describedby="avatar-model-controls"></canvas>
+	aria-label={`3D view of ${label}. Drag or use the arrow keys to turn it, and scroll or use plus and minus to zoom.`}
+	data-tooltip="Drag to turn, scroll to zoom"></canvas>

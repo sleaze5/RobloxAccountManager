@@ -23,6 +23,8 @@ type InventoryItemDetails struct {
 	IncludedItemNames []string `json:"includedItemNames"`
 	// AwardingGameName names the game that awards a badge.
 	AwardingGameName string `json:"awardingGameName"`
+	// HasModel reports whether Roblox renders the item as a 3D model.
+	HasModel bool `json:"hasModel"`
 }
 
 // inventoryItemType is the item type that the inventory ownership API takes.
@@ -74,16 +76,60 @@ func (service *Users) InventoryItemDetails(ctx context.Context, accountID, versi
 		return InventoryItemDetails{}, &roblox.Error{Kind: roblox.KindProtocol, Endpoint: "inventory-item-details", Message: "Choose an inventory category."}
 	}
 	itemIDText := strconv.FormatInt(itemID, 10)
+	var (
+		details InventoryItemDetails
+		err     error
+	)
 	switch itemType {
 	case inventoryItemBadge:
-		return service.badgeItemDetails(ctx, accountID, version, itemIDText)
+		details, err = service.badgeItemDetails(ctx, accountID, version, itemIDText)
 	case inventoryItemGamePass:
-		return service.gamePassItemDetails(ctx, accountID, version, itemIDText)
+		details, err = service.gamePassItemDetails(ctx, accountID, version, itemIDText)
 	case inventoryItemBundle:
-		return service.bundleItemDetails(ctx, accountID, version, itemIDText)
+		details, err = service.bundleItemDetails(ctx, accountID, version, itemIDText)
 	default:
-		return service.assetItemDetails(ctx, accountID, version, itemIDText)
+		details, err = service.assetItemDetails(ctx, accountID, version, itemIDText)
 	}
+	if err != nil {
+		return InventoryItemDetails{}, err
+	}
+	details.HasModel = hasRenderedModel(category)
+	return details, nil
+}
+
+// hasRenderedModel reports whether Roblox renders the items of the category as
+// 3D models: the items that a character wears or holds, and models. Roblox
+// renders no model of a bundle, so a bundle shows the outfit that it lists.
+func hasRenderedModel(category InventoryCategory) bool {
+	switch category {
+	case InventoryCollectibles, InventoryAccessories, InventoryClassicClothing, InventoryLayeredClothing,
+		InventoryHeadsAndBodies, InventoryFaces, InventoryBundles, InventoryGear, InventoryModels:
+		return true
+	default:
+		return false
+	}
+}
+
+// InventoryItemModelManifestURL reads the address of the 3D model manifest of
+// the item, or an empty address while Roblox renders the model.
+func (service *Users) InventoryItemModelManifestURL(ctx context.Context, accountID, version int64, category InventoryCategory, itemID int64) (string, error) {
+	const endpoint = "inventory-item-model"
+	if !hasRenderedModel(category) {
+		return "", &roblox.Error{Kind: roblox.KindProtocol, Endpoint: endpoint, Message: "Roblox can't show this item in 3D."}
+	}
+	if category != InventoryBundles {
+		return service.renderedModelManifestURL(ctx, accountID, version, endpoint, "https://thumbnails.roblox.com/v1/assets-thumbnail-3d?assetId="+strconv.FormatInt(itemID, 10))
+	}
+	payload, err := service.readBundleDetails(ctx, accountID, version, endpoint, strconv.FormatInt(itemID, 10))
+	if err != nil {
+		return "", err
+	}
+	for _, bundledItem := range payload.BundledItems {
+		if bundledItem.Type == "UserOutfit" && bundledItem.ID > 0 {
+			return service.renderedModelManifestURL(ctx, accountID, version, endpoint, "https://thumbnails.roblox.com/v1/users/outfit-3d?outfitId="+strconv.FormatInt(bundledItem.ID, 10))
+		}
+	}
+	return "", &roblox.Error{Kind: roblox.KindProtocol, Endpoint: endpoint, Message: "Roblox can't show this bundle in 3D."}
 }
 
 // assetItemDetails reads the economy details, which Roblox lists for every
@@ -105,18 +151,29 @@ func (service *Users) assetItemDetails(ctx context.Context, accountID, version i
 	}, nil
 }
 
+// bundleDetailsPayload is a bundle as the catalog details API lists it. The
+// bundled items are assets, and the UserOutfit that shows the bundle.
+type bundleDetailsPayload struct {
+	ItemCreatedUtc    string `json:"itemCreatedUtc"`
+	CollectibleItemID string `json:"collectibleItemId"`
+	BundledItems      []struct {
+		ID   int64  `json:"id"`
+		Name string `json:"name"`
+		Type string `json:"type"`
+	} `json:"bundledItems"`
+}
+
+func (service *Users) readBundleDetails(ctx context.Context, accountID, version int64, endpoint, bundleID string) (bundleDetailsPayload, error) {
+	var payload bundleDetailsPayload
+	err := service.readAccountDetails(ctx, accountID, version, endpoint, "https://catalog.roblox.com/v1/catalog/items/"+bundleID+"/details?itemType=Bundle", &payload)
+	return payload, err
+}
+
 // bundleItemDetails reads the catalog details of the bundle, which list no
 // update time.
 func (service *Users) bundleItemDetails(ctx context.Context, accountID, version int64, bundleID string) (InventoryItemDetails, error) {
-	var payload struct {
-		ItemCreatedUtc    string `json:"itemCreatedUtc"`
-		CollectibleItemID string `json:"collectibleItemId"`
-		BundledItems      []struct {
-			Name string `json:"name"`
-			Type string `json:"type"`
-		} `json:"bundledItems"`
-	}
-	if err := service.readAccountDetails(ctx, accountID, version, "inventory-bundle-details", "https://catalog.roblox.com/v1/catalog/items/"+bundleID+"/details?itemType=Bundle", &payload); err != nil {
+	payload, err := service.readBundleDetails(ctx, accountID, version, "inventory-bundle-details", bundleID)
+	if err != nil {
 		return InventoryItemDetails{}, err
 	}
 	details := InventoryItemDetails{
