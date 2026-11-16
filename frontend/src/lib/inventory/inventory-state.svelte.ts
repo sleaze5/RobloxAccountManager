@@ -1,5 +1,6 @@
 import { accountBackend, InventoryCategory } from "../backend/bridge"
 import type {
+	GamePlace,
 	InventoryItem,
 	InventoryItemDetails,
 	RelatedInventoryItem,
@@ -56,6 +57,7 @@ export class InventoryState {
 	isDeletingItem = $state(false)
 	isBuyingItem = $state(false)
 	isDownloadingItem = $state(false)
+	isFindingGamePassPlace = $state(false)
 	// The items that the account bought and that Roblox still delivers, by
 	// categoryItemKey.
 	pendingPurchaseKeys = $state.raw(new Set<string>())
@@ -281,6 +283,30 @@ export class InventoryState {
 			}
 		} finally {
 			this.isDownloadingItem = false
+		}
+	}
+
+	// findGamePassPlace finds the game that sells the game pass, or returns
+	// null and shows why.
+	async findGamePassPlace(gamePassId: number): Promise<GamePlace | null> {
+		if (this.isFindingGamePassPlace) return null
+		this.isFindingGamePassPlace = true
+		this.itemActionError = ""
+		try {
+			const place = await this.#scope.track(
+				accountBackend.FindGamePassPlace(gamePassId),
+			)
+			return this.#scope.isCurrent ? place : null
+		} catch (error) {
+			if (this.#scope.isCurrent) {
+				this.itemActionError = errorMessage(
+					error,
+					"The game of this game pass couldn't be found. Try again.",
+				)
+			}
+			return null
+		} finally {
+			this.isFindingGamePassPlace = false
 		}
 	}
 

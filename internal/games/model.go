@@ -315,6 +315,8 @@ type GamePass struct {
 	IsForSale    bool   `json:"isForSale"`
 	PriceInRobux int64  `json:"priceInRobux"`
 	IsOwned      bool   `json:"isOwned"`
+	CreatedAtMs  int64  `json:"createdAtMs"`
+	UpdatedAtMs  int64  `json:"updatedAtMs"`
 }
 
 // FriendServer is a server of a place that friends of the account play in.

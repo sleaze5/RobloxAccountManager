@@ -21,7 +21,7 @@
 	import RefreshIcon from "../shared/RefreshIcon.svelte"
 	import { PresenceType, SessionState, SocialList } from "../backend/bridge"
 	import { moderationLabel } from "../accounts/moderation.svelte"
-	import type { SocialUser } from "../backend/bridge"
+	import type { GamePlace, SocialUser } from "../backend/bridge"
 	import type { AccountStore } from "../accounts/account-store.svelte"
 	import { presenceDetail, presenceLabel } from "../accounts/account-model"
 	import AccountSwitcher from "../layout/AccountSwitcher.svelte"
@@ -55,6 +55,7 @@
 		notifications,
 		onFillLaunch,
 		onSearchPlace,
+		onShowGamePass,
 		onSearchUniverse,
 		onRelationshipAction,
 		onEditNickname,
@@ -66,6 +67,7 @@
 		notifications: NotificationCenter
 		onFillLaunch: (placeId: number, jobId: string) => void
 		onSearchPlace: (placeId: number) => void
+		onShowGamePass: (place: GamePlace, gamePassId: number) => void
 		onSearchUniverse: (universeId: number) => void
 		onRelationshipAction: (person: SocialUser, action: RelationshipActionId) => void
 		onEditNickname: (person: SocialUser, nickname: string) => void
@@ -672,6 +674,7 @@
 						username={selected.username || String(selected.userId)}
 						bind:sidebarWidth={store.inventorySidebarWidth}
 						{onSearchPlace}
+						{onShowGamePass}
 						onBack={() => void closeSubpage()} />
 				{/key}
 			{:else if selected}

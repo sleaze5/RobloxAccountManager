@@ -75,6 +75,8 @@ export class GamesStore {
 	selected = $state<GamePlace | null>(null)
 	game = $state<Game | null>(null)
 	detailsPage = $state<"details" | "servers" | "badges" | "gamePasses">("details")
+	// highlightedGamePassId marks the game pass that another page opened.
+	highlightedGamePassId = $state<number | null>(null)
 	serverSource = $state<ServerSource>("roblox")
 	menu = $state<GameMenu | null>(null)
 	searching = $state(false)
@@ -370,6 +372,7 @@ export class GamesStore {
 		this.loadedGameSections = []
 		this.selected = place
 		this.detailsPage = "details"
+		this.highlightedGamePassId = null
 		this.game = null
 		this.detailsError = ""
 		this.loadingDetails = false
@@ -381,6 +384,15 @@ export class GamesStore {
 			this.selected = cached.game.place
 		}
 		this.revalidate()
+	}
+
+	// showGamePass opens the Game passes page of the place and highlights the
+	// game pass.
+	showGamePass(place: GamePlace, gamePassId: number): void {
+		this.closeMenu()
+		this.select(place)
+		this.detailsPage = "gamePasses"
+		this.highlightedGamePassId = gamePassId
 	}
 
 	revalidate(): void {
@@ -698,6 +710,7 @@ export class GamesStore {
 		this.favoritesQuery = ""
 		this.mode = "favorites"
 		this.detailsPage = "details"
+		this.highlightedGamePassId = null
 		this.serverSource = "roblox"
 		this.error = this.searchError = this.detailsError = ""
 	}

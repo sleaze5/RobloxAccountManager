@@ -16,7 +16,7 @@
 	import RefreshIcon from "../shared/RefreshIcon.svelte"
 	import SkeletonList from "../shared/SkeletonList.svelte"
 	import SkeletonMediaRow from "../shared/SkeletonMediaRow.svelte"
-	import GamePassPurchaseDialog from "./GamePassPurchaseDialog.svelte"
+	import GamePassDialog from "./GamePassDialog.svelte"
 	import type { GamesStore } from "./games-store.svelte"
 
 	let {
@@ -40,7 +40,10 @@
 	let heading = $state<HTMLHeadingElement | undefined>(undefined),
 		list = $state<HTMLOListElement | undefined>(undefined),
 		filter = $state<GamePassFilter>("all"),
-		buying = $state<GamePass | null>(null)
+		shown = $state<{
+			gamePass: GamePass
+			openedView: "details" | "purchase"
+		} | null>(null)
 	const account = $derived(accounts.selectedAccount),
 		// Ownership belongs to the account that the list was read for, so it
 		// shows only once the list of the selected account arrives.
@@ -71,7 +74,7 @@
 	$effect(() => {
 		const shownAccountId = accountId
 		untrack(() => {
-			buying = null
+			shown = null
 			filter = "all"
 			universeGamePasses.showAccount(shownAccountId)
 		})
@@ -82,16 +85,29 @@
 		void universeGamePasses.load()
 	})
 
-	// A purchase replaces the Buy button of the pass, so focus moves to the
-	// heading. A cancelled purchase returns focus to the Buy button.
-	async function closePurchase(gamePassId: number, isBought: boolean): Promise<void> {
-		buying = null
+	// The pass that Inventory opened scrolls into view once the list shows it.
+	$effect(() => {
+		const highlightedGamePassId = store.highlightedGamePassId
+		if (!highlightedGamePassId || !universeGamePasses.gamePasses) return
+		untrack(async () => {
+			filter = "all"
+			await tick()
+			list?.querySelector(
+				`[data-game-pass="${highlightedGamePassId}"]`,
+			)?.scrollIntoView({ block: "center" })
+		})
+	})
+
+	// A purchase can replace the Buy button of the pass, so focus returns to
+	// the details button of the pass, which stays.
+	async function closeGamePass(gamePassId: number): Promise<void> {
+		shown = null
 		await tick()
-		const buyButton = list?.querySelector<HTMLButtonElement>(
-			`[data-buy-game-pass="${gamePassId}"]`,
+		const detailsButton = list?.querySelector<HTMLButtonElement>(
+			`[data-game-pass="${gamePassId}"] [data-show-game-pass]`,
 		)
-		if (isBought || !buyButton) heading?.focus({ preventScroll: true })
-		else buyButton.focus()
+		if (detailsButton) detailsButton.focus()
+		else heading?.focus({ preventScroll: true })
 	}
 </script>
 
@@ -229,39 +245,50 @@
 							gamePass.gamePassId,
 						)}
 					<li
-						class="flex min-h-16 items-center gap-3 border-b border-line-subtle px-3 py-2">
-						<span
-							class={[
-								"grid size-9 shrink-0 place-items-center overflow-hidden rounded-md border border-line-strong bg-raised",
-								!gamePass.isForSale &&
-									!gamePass.isOwned &&
-									"opacity-45",
-							]}
-							aria-hidden="true">
-							<ProfileImage
-								url={gamePass.iconUrl}
-								fallbackIcon={ticketIcon} />
-						</span>
-						<div class="flex min-w-0 flex-1 flex-col gap-0.5">
-							<strong
-								class="flex min-w-0 items-center gap-1.5 text-xs font-semibold text-fg">
-								<span class="truncate">{name}</span>
-							</strong>
-							{#if gamePass.description}
-								<span
-									class="truncate text-xs text-fg-muted"
-									data-tooltip={gamePass.description}
-									>{gamePass.description}</span>
-							{/if}
-							<span class="font-mono text-2xs text-fg-faint"
-								>{gamePass.isForSale
-									? gamePass.priceInRobux === 0
-										? "Free"
-										: formatRobux(gamePass.priceInRobux, false)
-									: "Off sale"}</span>
-						</div>
+						class="list-row flex min-h-16 items-center border-b border-line-subtle"
+						data-game-pass={gamePass.gamePassId}
+						data-selected={store.highlightedGamePassId ===
+							gamePass.gamePassId || undefined}
+						data-open={shown?.gamePass.gamePassId === gamePass.gamePassId ||
+							undefined}>
+						<button
+							class="flex min-w-0 flex-1 items-center gap-3 self-stretch px-3 py-2 text-left"
+							type="button"
+							aria-label={`Show details of ${name}`}
+							data-show-game-pass
+							onclick={() =>
+								(shown = { gamePass, openedView: "details" })}>
+							<span
+								class={[
+									"grid size-9 shrink-0 place-items-center overflow-hidden rounded-md border border-line-strong bg-raised",
+									!gamePass.isForSale &&
+										!gamePass.isOwned &&
+										"opacity-45",
+								]}
+								aria-hidden="true">
+								<ProfileImage
+									url={gamePass.iconUrl}
+									fallbackIcon={ticketIcon} />
+							</span>
+							<span class="flex min-w-0 flex-1 flex-col gap-0.5">
+								<strong
+									class="flex min-w-0 items-center gap-1.5 text-xs font-semibold text-fg">
+									<span class="truncate">{name}</span>
+								</strong>
+								{#if gamePass.description}
+									<span class="truncate text-xs text-fg-muted"
+										>{gamePass.description}</span>
+								{/if}
+								<span class="font-mono text-2xs text-fg-faint"
+									>{gamePass.isForSale
+										? gamePass.priceInRobux === 0
+											? "Free"
+											: formatRobux(gamePass.priceInRobux, false)
+										: "Off sale"}</span>
+							</span>
+						</button>
 						{#if hasOwnership}
-							<div class="flex shrink-0 items-center text-xs">
+							<div class="flex shrink-0 items-center pr-3 text-xs">
 								{#if isPending}
 									<span
 										class="inline-flex items-center gap-1 font-medium text-fg-muted"
@@ -289,9 +316,12 @@
 										aria-label={gamePass.priceInRobux === 0
 											? `Get ${name}`
 											: `Buy ${name} for ${formatRobux(gamePass.priceInRobux, false)}`}
-										data-buy-game-pass={gamePass.gamePassId}
 										disabled={universeGamePasses.isBuying}
-										onclick={() => (buying = gamePass)}>
+										onclick={() =>
+											(shown = {
+												gamePass,
+												openedView: "purchase",
+											})}>
 										<Icon
 											svg={shoppingCartIcon}
 											size={16}
@@ -310,12 +340,13 @@
 	</div>
 </section>
 
-{#if buying}
-	{@const gamePassId = buying.gamePassId}
-	<GamePassPurchaseDialog
+{#if shown}
+	{@const gamePassId = shown.gamePass.gamePassId}
+	<GamePassDialog
 		{universeGamePasses}
-		gamePass={buying}
+		gamePass={shown.gamePass}
 		gameName={store.displayName(place)}
-		accountUsername={account.username}
-		onClose={(isBought) => void closePurchase(gamePassId, isBought)} />
+		{account}
+		openedView={shown.openedView}
+		onClose={() => void closeGamePass(gamePassId)} />
 {/if}

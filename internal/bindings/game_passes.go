@@ -16,3 +16,7 @@ func (service *Service) ListGamePasses(ctx context.Context, accountID, universeI
 	}
 	return service.core.ListGamePasses(ctx, accountID, universeID)
 }
+
+func (service *Service) FindGamePassPlace(ctx context.Context, gamePassID int64) (games.Place, error) {
+	return service.core.FindGamePassPlace(ctx, gamePassID)
+}

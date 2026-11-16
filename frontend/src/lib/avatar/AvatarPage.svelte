@@ -397,7 +397,7 @@
 		category={detailedItem.category}
 		{inventory}
 		{username}
-		accountUsername={accounts.selectedAccount.username}
+		account={accounts.selectedAccount}
 		isOwnInventory={false}
 		isWorn={savedAssetIds.has(detailedItem.item.itemId)}
 		onSearchPlace={(placeId) => {

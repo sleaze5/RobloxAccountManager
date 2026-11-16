@@ -39,3 +39,30 @@ func (service *Service) ListGamePasses(ctx context.Context, accountID, universeI
 	}
 	return gamePasses, nil
 }
+
+// FindGamePassPlace finds the root place of the game that sells the game pass.
+func (service *Service) FindGamePassPlace(ctx context.Context, gamePassID int64) (games.Place, error) {
+	if err := validGameID(gamePassID); err != nil {
+		return games.Place{}, err
+	}
+	ctx, done, err := service.beginGames(ctx)
+	if err != nil {
+		return games.Place{}, err
+	}
+	defer done()
+	rootPlaceID, found, err := service.games.GamePassRootPlaceID(ctx, gamePassID)
+	if err != nil {
+		return games.Place{}, service.gamesError(ctx, "game-pass-place", err)
+	}
+	if !found {
+		return games.Place{}, gamesInputError("The game that sells this game pass couldn't be found.")
+	}
+	place, found, err := service.games.PlaceByID(ctx, rootPlaceID)
+	if err != nil {
+		return games.Place{}, service.gamesError(ctx, "game-pass-place", err)
+	}
+	if !found {
+		return games.Place{}, gamesInputError("The game that sells this game pass is unavailable.")
+	}
+	return place, nil
+}

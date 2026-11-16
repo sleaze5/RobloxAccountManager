@@ -33,12 +33,3 @@ export function salePriceLabel(
 		? "Free"
 		: formatRobux(market.priceInRobux, isCompact)
 }
-
-// robuxBalanceAfterPurchase is null while the balance loads or when it is
-// unavailable.
-export function robuxBalanceAfterPurchase(
-	robuxBalance: number | null | undefined,
-	priceInRobux: number,
-): number | null {
-	return typeof robuxBalance === "number" ? robuxBalance - priceInRobux : null
-}

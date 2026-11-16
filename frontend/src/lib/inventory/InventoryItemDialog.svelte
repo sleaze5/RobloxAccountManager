@@ -33,7 +33,11 @@
 		InventoryCategory,
 		InventorySaleLocation,
 	} from "../backend/bridge"
-	import type { InventoryItem, RelatedInventoryItem } from "../backend/bridge"
+	import type {
+		GamePlace,
+		InventoryItem,
+		RelatedInventoryItem,
+	} from "../backend/bridge"
 	import Dialog from "../shared/Dialog.svelte"
 	import FrameUnavailable from "../shared/FrameUnavailable.svelte"
 	import ExpandedImageDialog from "../shared/ExpandedImageDialog.svelte"
@@ -51,13 +55,11 @@
 		inventoryTypeLabel,
 	} from "./inventory-categories"
 	import type { InventoryCategoryOption } from "./inventory-categories"
+	import type { Account } from "../accounts/account-model"
 	import InventoryItemTile from "./InventoryItemTile.svelte"
-	import {
-		formatRobux,
-		robuxBalanceAfterPurchase,
-		salePriceLabel,
-	} from "./inventory-prices"
-	import RobuxPurchaseSummary from "./RobuxPurchaseSummary.svelte"
+	import { formatRobux, salePriceLabel } from "./inventory-prices"
+	import PurchaseAccountActions from "./PurchaseAccountActions.svelte"
+	import PurchaseItemSummary from "./PurchaseItemSummary.svelte"
 	import { categoryItemKey, inventoryItemKey } from "./inventory-state.svelte"
 	import type { InventoryState } from "./inventory-state.svelte"
 
@@ -66,21 +68,25 @@
 		category: openedCategory,
 		inventory,
 		username,
-		accountUsername,
+		account,
 		isOwnInventory: isOpenedFromOwnInventory,
 		isWorn: isOpenedItemWorn,
 		onSearchPlace,
+		onShowGamePass,
 		onClose,
 	}: {
 		item: InventoryItem
 		category: InventoryCategoryOption
 		inventory: InventoryState
 		username: string
-		// accountUsername names the account that buys and favorites items.
-		accountUsername: string
+		// account is the account that buys and favorites items.
+		account: Account
 		isOwnInventory: boolean
 		isWorn: boolean
 		onSearchPlace: (placeId: number) => void
+		// onShowGamePass opens the Game passes page of the game that sells the
+		// pass. Pages that never show game passes leave it out.
+		onShowGamePass?: (place: GamePlace, gamePassId: number) => void
 		onClose: () => void
 	} = $props()
 
@@ -90,7 +96,8 @@
 		{ item: InventoryItem; category: InventoryCategoryOption }[]
 	>([])
 
-	const item = $derived(openedRelatedItems.at(-1)?.item ?? openedItem),
+	const accountUsername = $derived(account.username),
+		item = $derived(openedRelatedItems.at(-1)?.item ?? openedItem),
 		category = $derived(openedRelatedItems.at(-1)?.category ?? openedCategory),
 		previousItemName = $derived(
 			(openedRelatedItems.at(-2)?.item ?? openedItem).name || "Unnamed item",
@@ -212,14 +219,6 @@
 		),
 		hasMarketSection = $derived(
 			!!market || item.recentAveragePrice !== null || item.serialNumber !== null,
-		),
-		balanceAfterPurchase = $derived(
-			market
-				? robuxBalanceAfterPurchase(inventory.robuxBalance, market.priceInRobux)
-				: null,
-		),
-		isShortOfRobux = $derived(
-			balanceAfterPurchase !== null && balanceAfterPurchase < 0,
 		)
 
 	$effect(() => {
@@ -305,6 +304,14 @@
 		if (await inventory.buyItem(item, category.id, market.priceInRobux)) {
 			await showConfirmation(null)
 		}
+	}
+
+	async function showGamePass(
+		show: (place: GamePlace, gamePassId: number) => void,
+	): Promise<void> {
+		const gamePassId = item.itemId,
+			place = await inventory.findGamePassPlace(gamePassId)
+		if (place && item.itemId === gamePassId) show(place, gamePassId)
 	}
 
 	function close(): void {
@@ -457,12 +464,12 @@
 				{:else if price === 0}
 					<h2 id="inventory-confirmation-title">Get item?</h2>
 					<p id="inventory-confirmation-description">
-						@{accountUsername} gets {name} for free.
+						{name} is added to the account below for free.
 					</p>
 				{:else}
 					<h2 id="inventory-confirmation-title">Buy item?</h2>
 					<p id="inventory-confirmation-description">
-						@{accountUsername} buys {name}. Roblox doesn't refund Robux
+						{name} is bought with the account below. Roblox doesn't refund Robux
 						spent on items.
 					</p>
 				{/if}
@@ -475,27 +482,34 @@
 				<Icon svg={xIcon} size={14} aria-hidden="true" />
 			</button>
 		</div>
-		{#if confirmation === "purchase" && price > 0}
-			<RobuxPurchaseSummary
+		{#if confirmation === "purchase"}
+			<PurchaseItemSummary
 				{name}
 				detail={typeLabel}
 				{imageUrl}
 				fallbackIcon={category.icon}
-				priceInRobux={price}
-				{accountUsername}
-				robuxBalance={inventory.robuxBalance} />
+				priceInRobux={price} />
 		{/if}
 		{#if inventory.itemActionError}
 			<p class="mt-3 notice-error" role="alert">{inventory.itemActionError}</p>
 		{/if}
-		<div class="dialog-actions">
-			<button
-				class="button"
-				type="button"
-				data-cancel-confirmation
-				disabled={isWorking}
-				onclick={close}>Cancel</button>
-			{#if confirmation === "deletion"}
+		{#if confirmation === "purchase"}
+			<PurchaseAccountActions
+				{account}
+				priceInRobux={price}
+				robuxBalance={inventory.robuxBalance}
+				isBuying={inventory.isBuyingItem}
+				getLabel="Get item"
+				onCancel={close}
+				onBuy={() => void buy()} />
+		{:else}
+			<div class="dialog-actions">
+				<button
+					class="button"
+					type="button"
+					data-cancel-confirmation
+					disabled={isWorking}
+					onclick={close}>Cancel</button>
 				<button
 					class="button-danger"
 					type="button"
@@ -503,20 +517,8 @@
 					disabled={isWorking}
 					onclick={() => void inventory.deleteItem(item)}
 					>{inventory.isDeletingItem ? "Deleting…" : "Delete item"}</button>
-			{:else}
-				<button
-					class="button-primary"
-					type="button"
-					aria-busy={inventory.isBuyingItem}
-					disabled={isWorking || isShortOfRobux}
-					onclick={() => void buy()}
-					>{inventory.isBuyingItem
-						? "Buying…"
-						: price === 0
-							? "Get item"
-							: `Buy for ${formatRobux(price, false)}`}</button>
-			{/if}
-		</div>
+			</div>
+		{/if}
 	{:else}
 		<div class="flex flex-col gap-4">
 			<div class="flex items-start gap-4">
@@ -609,6 +611,26 @@
 										onSearchPlace(badge.awardingPlaceId)}>
 									<Icon
 										svg={magnifyingGlassIcon}
+										size={16}
+										aria-hidden="true" />
+								</button>
+							{/if}
+							{#if onShowGamePass && category.id === InventoryCategory.InventoryGamePasses}
+								<button
+									class="button-icon"
+									type="button"
+									aria-label="Show in Games"
+									aria-busy={inventory.isFindingGamePassPlace}
+									data-tooltip="Show in Games"
+									disabled={inventory.isFindingGamePassPlace}
+									onclick={() => void showGamePass(onShowGamePass)}>
+									<Icon
+										svg={inventory.isFindingGamePassPlace
+											? circleNotchIcon
+											: magnifyingGlassIcon}
+										class={inventory.isFindingGamePassPlace
+											? "spinner"
+											: undefined}
 										size={16}
 										aria-hidden="true" />
 								</button>
