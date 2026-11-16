@@ -145,7 +145,7 @@ export class BrowserStore {
 			this.#notifications?.show({
 				actions: [
 					{
-						label: "Retry",
+						label: "Try again",
 						onClick: () => this.download(replacing),
 					},
 				],
@@ -211,7 +211,7 @@ export class BrowserStore {
 			this.#cleanupNotified = true
 			this.#notifications?.show({
 				actions: [
-					{ label: "Retry cleanup", onClick: () => this.retryCleanup() },
+					{ label: "Try cleanup again", onClick: () => this.retryCleanup() },
 				],
 				id: "browser-cleanup",
 				message: "A temporary browser profile could not be removed.",

@@ -352,8 +352,9 @@
 							size={12}
 							aria-hidden="true" />
 						{#if store.trail.length > 1}
-							<span class="shrink-0 text-fg-faint" aria-hidden="true"
-								>…</span>
+							<span
+								class="shrink-0 font-mono text-2xs text-fg-faint"
+								aria-hidden="true">+{store.trail.length - 1}</span>
 							<Icon
 								svg={caretRightIcon}
 								class="shrink-0 text-fg-faint"

@@ -80,7 +80,7 @@
 				type="text"
 				autocomplete="off"
 				spellcheck="false"
-				placeholder="https://www.roblox.com/share?code=…&type=Server"
+				placeholder="Paste a share link or access code"
 				aria-describedby={`${id}-link-help`}
 				disabled={saved.saving}
 				bind:value={link} />

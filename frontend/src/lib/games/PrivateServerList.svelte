@@ -76,7 +76,7 @@
 					<h2>No more private servers</h2>
 					<p>The servers on this page changed. Go back to the first page.</p>
 					<button class="button" type="button" onclick={() => servers.first()}
-						>First page</button>
+						>Go to first page</button>
 				{:else}
 					<h2>No private servers</h2>
 					<p>

@@ -693,7 +693,7 @@
 										svg={trashIcon}
 										size={16}
 										aria-hidden="true" />
-									Delete…
+									Delete
 								</button>
 							{/if}
 							<button

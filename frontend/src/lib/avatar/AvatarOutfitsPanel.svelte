@@ -56,7 +56,7 @@
 							},
 						]),
 				{
-					label: "Rename outfit…",
+					label: "Rename outfit",
 					icon: pencilSimpleIcon,
 					onSelect: () => {
 						menu = null
@@ -64,7 +64,7 @@
 					},
 				},
 				{
-					label: "Delete outfit…",
+					label: "Delete outfit",
 					icon: trashIcon,
 					danger: true,
 					onSelect: () => {
@@ -98,7 +98,7 @@
 				disabled={isChanged || avatar.isSaving || avatar.isChangingOutfit}
 				onclick={onCreateOutfit}>
 				<Icon svg={floppyDiskIcon} size={16} aria-hidden="true" />
-				Save as outfit…
+				Save as outfit
 			</button>
 		{/if}
 	</div>

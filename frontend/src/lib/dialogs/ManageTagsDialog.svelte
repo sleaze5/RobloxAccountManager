@@ -227,6 +227,6 @@
 	</div>
 	<div class="dialog-actions">
 		<button class="button" type="button" disabled={store.busy} onclick={close}
-			>Done</button>
+			>Close</button>
 	</div>
 </Dialog>

@@ -314,7 +314,7 @@
 						class={linkButtonClass}
 						type="button"
 						onclick={() => void chat.reloadMessages()}>
-						Retry
+						Try again
 					</button>
 				</p>
 			{/if}
@@ -399,7 +399,7 @@
 											class={linkButtonClass}
 											type="button"
 											onclick={() => chat.retry(pending.key)}>
-											Retry
+											Send again
 										</button>
 										<button
 											class={linkButtonClass}
@@ -499,7 +499,10 @@
 					</li>
 				{/each}
 			</ul>
-			<div class="shrink-0 border-t border-line-subtle p-2">
+			<div class="flex shrink-0 flex-col gap-1.5 border-t border-line-subtle p-2">
+				{#if memberSlots === 0}
+					<p class="text-center text-2xs text-fg-muted">The group is full.</p>
+				{/if}
 				<button
 					class="button w-full"
 					type="button"
@@ -507,7 +510,7 @@
 					disabled={memberSlots === 0}
 					onclick={onAddMembers}>
 					<Icon svg={userPlusIcon} size={14} aria-hidden="true" />
-					{memberSlots > 0 ? "Add members" : "Group is full"}
+					Add members
 				</button>
 			</div>
 		</section>

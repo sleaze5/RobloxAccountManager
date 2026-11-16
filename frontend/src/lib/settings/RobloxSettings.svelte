@@ -104,7 +104,8 @@
 					class="button"
 					type="button"
 					disabled={options.isLoadingMultiInstance}
-					onclick={() => void options.refreshMultiInstance()}>Retry</button>
+					onclick={() => void options.refreshMultiInstance()}
+					>Try again</button>
 			</div>
 		{/if}
 	{/if}
@@ -261,6 +262,6 @@
 			class="button"
 			type="button"
 			disabled={clientsLoading}
-			onclick={() => void loadClients()}>Retry</button>
+			onclick={() => void loadClients()}>Try again</button>
 	</div>
 {/if}

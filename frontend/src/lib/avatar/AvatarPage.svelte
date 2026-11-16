@@ -197,7 +197,7 @@
 				onclick={() => {
 					pendingLeave = null
 					isConfirmingDiscard = true
-				}}>Discard…</button>
+				}}>Discard</button>
 		{/if}
 		{#if avatar.isEditable}
 			<button

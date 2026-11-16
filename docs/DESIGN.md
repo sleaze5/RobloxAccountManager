@@ -324,7 +324,7 @@ Color:
 - Start a button label or menu item with a verb. Name the object when the context does not make it clear.
 - Use the same verb for an action in every place: the button, the progress label, and the result. For example, use "Remove account", "Removing…", and "Account removed".
 - Write an error as what happened, then what the user can do. Do not apologize or blame the user.
-- Use the ellipsis character "…" in progress labels, not three periods.
+- Use the ellipsis character "…" only at the end of a progress label, such as "Saving…" or "Loading accounts…", and never three periods. Do not use it in any other text: not in button labels or menu items, even when they open a dialog, and not in placeholders, examples, or truncation markers.
 - Use digits for numbers. Do not use exclamation marks.
 - Keep labels to a few words and descriptions to one sentence.
 

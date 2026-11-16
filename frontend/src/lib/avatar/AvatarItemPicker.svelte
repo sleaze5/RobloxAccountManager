@@ -269,7 +269,8 @@
 				{wornCount === 1 ? "item" : "items"} on the avatar. Save the avatar to keep
 				changes.
 			</p>
-			<button class="button-primary" type="button" onclick={onClose}>Done</button>
+			<button class="button-primary" type="button" onclick={onClose}
+				>Close</button>
 		</div>
 	{/if}
 </Dialog>
