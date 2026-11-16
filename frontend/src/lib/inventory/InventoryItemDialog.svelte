@@ -368,7 +368,9 @@
 		<button
 			class="button"
 			type="button"
-			data-tooltip={`Show the item on @${accountUsername}'s saved avatar`}
+			data-tooltip={isTryOnShown
+				? "Show the item without the avatar"
+				: `Show the item on @${accountUsername}'s saved avatar`}
 			onclick={() => (isTryingOn = !isTryingOn)}
 			>{isTryOnShown ? "Take off" : "Try on"}</button>
 	{/if}
@@ -691,7 +693,7 @@
 										svg={trashIcon}
 										size={16}
 										aria-hidden="true" />
-									Delete
+									Delete…
 								</button>
 							{/if}
 							<button

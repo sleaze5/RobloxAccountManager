@@ -41,7 +41,8 @@
 	// applyScene changes the camera and the lights of the built scene.
 	let applyScene: ((sceneSettings: RenderedModelScene) => void) | undefined
 
-	const axisIndicatorSizePx = 56,
+	const controlsDescriptionId = $props.id(),
+		axisIndicatorSizePx = 56,
 		axisIndicatorMarginPx = 4,
 		turnStepRadians = Math.PI / 12,
 		zoomStepFactor = 1.15,
@@ -423,7 +424,10 @@
 
 <canvas
 	bind:this={canvas}
-	class="relative size-full animate-pop cursor-grab rounded-lg outline-offset-2 focus-visible:outline-2 focus-visible:outline-focus active:cursor-grabbing"
+	class="relative size-full animate-pop cursor-grab rounded-lg -outline-offset-2 focus-visible:outline-2 focus-visible:outline-focus active:cursor-grabbing"
 	tabindex="0"
-	aria-label={`3D view of ${label}. Drag or use the arrow keys to turn it, hold Control while you drag or press the arrow keys to move it, and scroll or use plus and minus to zoom. Home resets the view.`}
-></canvas>
+	aria-label={`3D view of ${label}`}
+	aria-describedby={controlsDescriptionId}></canvas>
+<span id={controlsDescriptionId} class="sr-only"
+	>Drag or use the arrow keys to turn it. Hold Control while you drag or press the
+	arrow keys to move it. Scroll or use plus and minus to zoom. Home resets the view.</span>

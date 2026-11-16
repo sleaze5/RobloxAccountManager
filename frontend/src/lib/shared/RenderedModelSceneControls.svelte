@@ -53,8 +53,16 @@
 				label: "Light",
 				sliders: [
 					{ setting: "lightIntensity", label: "Intensity", ...shareSlider },
-					{ setting: "lightAngleXDegrees", label: "Angle X", ...angleSlider },
-					{ setting: "lightAngleYDegrees", label: "Angle Y", ...angleSlider },
+					{
+						setting: "lightAngleXDegrees",
+						label: "Horizontal angle",
+						...angleSlider,
+					},
+					{
+						setting: "lightAngleYDegrees",
+						label: "Vertical angle",
+						...angleSlider,
+					},
 				],
 			},
 		],

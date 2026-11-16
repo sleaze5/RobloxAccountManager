@@ -272,7 +272,7 @@ export class InventoryState {
 			this.#notifications.show({
 				id: "inventory-download",
 				tone: "success",
-				title: "Item saved",
+				title: "Item downloaded",
 				message: savedPath,
 			})
 		} catch (error) {
