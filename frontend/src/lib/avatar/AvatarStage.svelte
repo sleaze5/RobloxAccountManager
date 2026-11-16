@@ -128,7 +128,7 @@
 	{/if}
 	{#if avatar.isEditable}
 		<button
-			class="button min-w-0 flex-1 justify-center"
+			class="ml-auto button"
 			type="button"
 			aria-busy={avatar.isRedrawingImage}
 			disabled={!canRedraw}
