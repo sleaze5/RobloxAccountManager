@@ -12,7 +12,7 @@ func (service *Service) ExportVault(ctx context.Context, password, confirmation,
 	if err := service.core.ValidateExportPassword(password, confirmation, hint); err != nil {
 		return vault.ExportFile{}, err
 	}
-	path, err := chooseSaveFile(service.core.ExportsDirectory(), service.core.DefaultExportName())
+	path, err := chooseSaveFile(service.core.ExportsDirectory(), service.core.DefaultExportName(), exportFilterName, exportFilterPattern)
 	if err != nil {
 		return vault.ExportFile{}, &roblox.Error{Kind: roblox.KindProtocol, Endpoint: "vault-transfer", Message: "The save dialog could not be opened.", Cause: err}
 	}

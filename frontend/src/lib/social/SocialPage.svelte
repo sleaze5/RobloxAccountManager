@@ -665,6 +665,7 @@
 				{#key `${account.id}:${selected.userId}`}
 					<InventoryPage
 						{accounts}
+						{notifications}
 						accountId={account.id}
 						userId={selected.userId}
 						username={selected.username || String(selected.userId)}

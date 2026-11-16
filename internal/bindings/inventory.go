@@ -3,6 +3,7 @@ package bindings
 import (
 	"context"
 
+	"github.com/sleaze5/RobloxAccountManager/internal/roblox"
 	robloxservices "github.com/sleaze5/RobloxAccountManager/internal/roblox/services"
 )
 
@@ -46,6 +47,26 @@ func (service *Service) GetInventoryRelatedItems(ctx context.Context, accountID 
 		return nil, err
 	}
 	return service.core.GetInventoryRelatedItems(ctx, accountID, category, itemID)
+}
+
+// DownloadInventoryItem downloads the file of the item, then asks where to save
+// it. An empty path without an error means the user cancelled the dialog.
+func (service *Service) DownloadInventoryItem(ctx context.Context, accountID int64, category robloxservices.InventoryCategory, itemID int64, itemName string) (string, error) {
+	if err := validateAccountAndTargetIDs(accountID, itemID, "asset-download"); err != nil {
+		return "", err
+	}
+	file, err := service.core.ReadInventoryItemFile(ctx, accountID, category, itemID)
+	if err != nil {
+		return "", err
+	}
+	path, err := chooseSaveFile(service.core.DownloadsDirectory(), service.core.DownloadFileName(itemName, itemID, file.Extension), file.FormatName, "*."+file.Extension)
+	if err != nil {
+		return "", &roblox.Error{Kind: roblox.KindProtocol, Endpoint: "asset-download", Message: "The save dialog could not be opened.", Cause: err}
+	}
+	if path == "" {
+		return "", nil
+	}
+	return service.core.SaveDownloadedFile(path, file.Extension, file.Contents)
 }
 
 func (service *Service) IsInventoryItemOwned(ctx context.Context, accountID int64, category robloxservices.InventoryCategory, itemID int64) (bool, error) {

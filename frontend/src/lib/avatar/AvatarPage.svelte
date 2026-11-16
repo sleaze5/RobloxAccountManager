@@ -50,7 +50,9 @@
 		),
 		// The item dialog and the item picker read the inventory of the user,
 		// which is the account itself whenever the picker opens.
-		inventory = untrack(() => new InventoryState(accountId, userId, accounts)),
+		inventory = untrack(
+			() => new InventoryState(accountId, userId, accounts, notifications),
+		),
 		tabs: { id: AvatarTab; label: string }[] = [
 			{ id: "wearing", label: "Wearing" },
 			{ id: "body", label: "Body" },

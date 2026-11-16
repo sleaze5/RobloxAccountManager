@@ -27,6 +27,8 @@ type InventoryItemDetails struct {
 	// CanHaveRelatedItems reports whether the item can include or use other
 	// assets, as a bundle or a model file does.
 	CanHaveRelatedItems bool `json:"canHaveRelatedItems"`
+	// CanDownload reports whether the account can save the file of the item.
+	CanDownload bool `json:"canDownload"`
 }
 
 // inventoryItemType is the item type that the inventory ownership API takes.
@@ -98,6 +100,7 @@ func (service *Users) InventoryItemDetails(ctx context.Context, accountID, versi
 	details.HasModel = hasRenderedModel(category)
 	details.CanTryOn = canTryOn(category)
 	details.CanHaveRelatedItems = category == InventoryBundles || hasDependencies(category)
+	details.CanDownload = canDownload(category)
 	return details, nil
 }
 
@@ -135,7 +138,7 @@ func (service *Users) InventoryItemModelManifestURL(ctx context.Context, account
 		return "", &roblox.Error{Kind: roblox.KindProtocol, Endpoint: endpoint, Message: "Roblox can't show this item in 3D."}
 	}
 	if category != InventoryBundles {
-		return service.renderedModelManifestURL(ctx, accountID, version, endpoint, "https://thumbnails.roblox.com/v1/assets-thumbnail-3d?assetId="+strconv.FormatInt(itemID, 10))
+		return service.AssetModelManifestURL(ctx, accountID, version, itemID)
 	}
 	payload, err := service.readBundleDetails(ctx, accountID, version, endpoint, strconv.FormatInt(itemID, 10))
 	if err != nil {

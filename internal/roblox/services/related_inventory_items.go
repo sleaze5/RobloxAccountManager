@@ -77,26 +77,13 @@ func (service *Users) bundleAssetIDs(ctx context.Context, accountID, version, bu
 }
 
 // assetDependencyIDs downloads the model file of the asset and lists the
-// assets that it names. The asset delivery API answers with the address of the
-// file on the CDN. An asset that the account may not download has no
+// assets that it names. An asset that the account may not download has no
 // dependencies that it can see.
 func (service *Users) assetDependencyIDs(ctx context.Context, accountID, version, assetID int64) ([]int64, error) {
-	var payload struct {
-		Locations []struct {
-			Location string `json:"location"`
-		} `json:"locations"`
-	}
-	err := service.readAccountDetails(ctx, accountID, version, relatedItemsEndpoint, "https://assetdelivery.roblox.com/v2/asset/?id="+strconv.FormatInt(assetID, 10), &payload)
+	modelFile, _, err := service.downloadAssetFile(ctx, accountID, version, relatedItemsEndpoint, assetID, maxDependencyFileBytes)
 	if remote, ok := errors.AsType[*roblox.Error](err); ok && (remote.Status == http.StatusForbidden || remote.Status == http.StatusNotFound) {
 		return nil, nil
 	}
-	if err != nil {
-		return nil, err
-	}
-	if len(payload.Locations) == 0 {
-		return nil, nil
-	}
-	modelFile, err := service.downloadCDNFile(ctx, payload.Locations[0].Location, maxDependencyFileBytes)
 	if err != nil {
 		return nil, err
 	}

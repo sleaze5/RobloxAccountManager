@@ -6,7 +6,9 @@
 	import calendarDotsIcon from "@phosphor-icons/core/regular/calendar-dots.svg?raw"
 	import checkCircleFillIcon from "@phosphor-icons/core/fill/check-circle-fill.svg?raw"
 	import clockCounterClockwiseIcon from "@phosphor-icons/core/regular/clock-counter-clockwise.svg?raw"
+	import circleNotchIcon from "@phosphor-icons/core/regular/circle-notch.svg?raw"
 	import diamondIcon from "@phosphor-icons/core/regular/diamond.svg?raw"
+	import downloadSimpleIcon from "@phosphor-icons/core/regular/download-simple.svg?raw"
 	import fingerprintIcon from "@phosphor-icons/core/regular/fingerprint.svg?raw"
 	import gameControllerIcon from "@phosphor-icons/core/regular/game-controller.svg?raw"
 	import heartFillIcon from "@phosphor-icons/core/fill/heart-fill.svg?raw"
@@ -147,6 +149,7 @@
 		hasModel = $derived(!!details?.hasModel),
 		canTryOn = $derived(!!details?.canTryOn),
 		canHaveRelatedItems = $derived(!!details?.canHaveRelatedItems),
+		canDownload = $derived(!!details?.canDownload),
 		// undefined while the related items load, and null when they failed.
 		relatedItems = $derived(inventory.relatedItemsByItemKey.get(detailsKey)),
 		// Try on stays on while the view switches between 2D and 3D.
@@ -669,6 +672,27 @@
 										onSearchPlace(badge.awardingPlaceId)}>
 									<Icon
 										svg={magnifyingGlassIcon}
+										size={16}
+										aria-hidden="true" />
+								</button>
+							{/if}
+							{#if canDownload}
+								<button
+									class="button-icon"
+									type="button"
+									aria-label="Download"
+									aria-busy={inventory.isDownloadingItem}
+									data-tooltip="Download"
+									disabled={inventory.isDownloadingItem}
+									onclick={() =>
+										void inventory.downloadItem(item, category.id)}>
+									<Icon
+										svg={inventory.isDownloadingItem
+											? circleNotchIcon
+											: downloadSimpleIcon}
+										class={inventory.isDownloadingItem
+											? "spinner"
+											: undefined}
 										size={16}
 										aria-hidden="true" />
 								</button>

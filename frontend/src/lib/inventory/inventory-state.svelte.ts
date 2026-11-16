@@ -10,6 +10,7 @@ import type {
 } from "../backend/bridge"
 import type { AccountStore } from "../accounts/account-store.svelte"
 import { AccountScope } from "../accounts/account-scope"
+import type { NotificationCenter } from "../notifications/notification-center.svelte"
 import type { CancellableRequest } from "../shared/cancellable-request"
 import { errorMessage } from "../shared/errors"
 import { isFresh } from "../shared/freshness"
@@ -56,6 +57,7 @@ export class InventoryState {
 	isSavingFavorite = $state(false)
 	isDeletingItem = $state(false)
 	isBuyingItem = $state(false)
+	isDownloadingItem = $state(false)
 	// The items that the account bought and that Roblox still delivers, by
 	// categoryItemKey.
 	pendingPurchaseKeys = $state.raw(new Set<string>())
@@ -87,9 +89,16 @@ export class InventoryState {
 	#request: ReturnType<typeof accountBackend.GetInventoryPage> | null = null
 	#tryOnRequest: ReturnType<typeof accountBackend.TryOnInventoryItem> | null = null
 	readonly #loadingRelatedItemKeys = new Set<string>()
+	readonly #notifications: NotificationCenter
 
-	constructor(accountId: number, userId: number, store: AccountStore) {
+	constructor(
+		accountId: number,
+		userId: number,
+		store: AccountStore,
+		notifications: NotificationCenter,
+	) {
 		this.#scope = new AccountScope(accountId, store)
+		this.#notifications = notifications
 		this.itemModel = new RenderedModelLoad(this.#scope)
 		this.tryOnModel = new RenderedModelLoad(this.#scope)
 		this.userId = userId
@@ -263,6 +272,42 @@ export class InventoryState {
 			)
 		} finally {
 			this.#loadingRelatedItemKeys.delete(key)
+		}
+	}
+
+	// downloadItem downloads the file of the item and asks where to save it.
+	async downloadItem(
+		item: InventoryItem,
+		category: InventoryCategory,
+	): Promise<void> {
+		if (this.isDownloadingItem) return
+		this.isDownloadingItem = true
+		this.itemActionError = ""
+		try {
+			const savedPath = await this.#scope.track(
+				accountBackend.DownloadInventoryItem(
+					this.#scope.accountId,
+					category,
+					item.itemId,
+					item.name,
+				),
+			)
+			if (!this.#scope.isCurrent || !savedPath) return
+			this.#notifications.show({
+				id: "inventory-download",
+				tone: "success",
+				title: "Item saved",
+				message: savedPath,
+			})
+		} catch (error) {
+			if (this.#scope.isCurrent) {
+				this.itemActionError = errorMessage(
+					error,
+					"Could not download the item. Try again.",
+				)
+			}
+		} finally {
+			this.isDownloadingItem = false
 		}
 	}
 

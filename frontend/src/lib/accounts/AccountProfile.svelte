@@ -199,6 +199,7 @@
 {:else if workspace.accountPage === "inventory" && hasAccount && store.vault.unlocked}
 	<InventoryPage
 		accounts={store}
+		{notifications}
 		accountId={selectedAccount.id}
 		userId={Number(selectedAccount.userId)}
 		username={selectedAccount.username}
