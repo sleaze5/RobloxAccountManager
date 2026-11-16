@@ -67,9 +67,16 @@ export class InventoryState {
 	// The 3D model of the opened item. Its key is the categoryItemKey of the
 	// item.
 	readonly itemModel: RenderedModelLoad
+	// The avatar of the account wearing the opened item, which Roblox renders
+	// without saving it. tryOnKey is the categoryItemKey of the item.
+	tryOnKey = $state("")
+	tryOnImageUrl = $state("")
+	isLoadingTryOn = $state(false)
+	tryOnError = $state("")
 	readonly userId: number
 	readonly #scope: AccountScope
 	#request: ReturnType<typeof accountBackend.GetInventoryPage> | null = null
+	#tryOnRequest: ReturnType<typeof accountBackend.TryOnInventoryItem> | null = null
 
 	constructor(accountId: number, userId: number, store: AccountStore) {
 		this.#scope = new AccountScope(accountId, store)
@@ -159,6 +166,41 @@ export class InventoryState {
 				),
 			"Could not load the 3D model. Try again.",
 		)
+	}
+
+	// tryOnItem renders the avatar of the account wearing the item, unless it
+	// is already shown or rendering. A failed render runs again on the next
+	// call.
+	async tryOnItem(item: InventoryItem, category: InventoryCategory): Promise<void> {
+		const key = categoryItemKey(category, item.itemId)
+		if (!this.#scope.isCurrent) return
+		if (key === this.tryOnKey && (this.tryOnImageUrl || this.isLoadingTryOn)) return
+		void this.#tryOnRequest?.cancel()
+		const request = accountBackend.TryOnInventoryItem(
+			this.#scope.accountId,
+			category,
+			item.itemId,
+		)
+		this.#tryOnRequest = request
+		this.tryOnKey = key
+		this.tryOnImageUrl = this.tryOnError = ""
+		this.isLoadingTryOn = true
+		try {
+			const tryOnImageUrl = await this.#scope.track(request)
+			if (request !== this.#tryOnRequest || !this.#scope.isCurrent) return
+			this.tryOnImageUrl = tryOnImageUrl
+		} catch (error) {
+			if (request !== this.#tryOnRequest || !this.#scope.isCurrent) return
+			this.tryOnError = errorMessage(
+				error,
+				"Could not try on the item. Try again.",
+			)
+		} finally {
+			if (request === this.#tryOnRequest) {
+				this.#tryOnRequest = null
+				this.isLoadingTryOn = false
+			}
+		}
 	}
 
 	async checkFavorite(item: InventoryItem): Promise<void> {
@@ -336,7 +378,7 @@ export class InventoryState {
 	}
 
 	dispose(): void {
-		this.#request = null
+		this.#request = this.#tryOnRequest = null
 		this.#scope.dispose()
 	}
 

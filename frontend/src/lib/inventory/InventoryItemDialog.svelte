@@ -33,6 +33,7 @@
 	} from "../backend/bridge"
 	import type { InventoryItem } from "../backend/bridge"
 	import Dialog from "../shared/Dialog.svelte"
+	import FrameUnavailable from "../shared/FrameUnavailable.svelte"
 	import ExpandedImageDialog from "../shared/ExpandedImageDialog.svelte"
 	import Icon from "../shared/Icon.svelte"
 	import ImageViewToggle from "../shared/ImageViewToggle.svelte"
@@ -74,7 +75,8 @@
 	let confirmation = $state<"deletion" | "purchase" | null>(null),
 		card = $state<HTMLDivElement | undefined>(undefined),
 		view = $state<ImageView>("2D"),
-		isExpanded = $state(false)
+		isExpanded = $state(false),
+		isTryingOn = $state(false)
 
 	const exactNumbers = new Intl.NumberFormat("en-US"),
 		percent = new Intl.NumberFormat("en-US", {
@@ -118,6 +120,12 @@
 		imageUrl = $derived(details?.largeImageUrl || item.imageUrl),
 		hasModel = $derived(!!details?.hasModel),
 		isModelShown = $derived(hasModel && view === "3D"),
+		canTryOn = $derived(!!details?.canTryOn),
+		// Trying on shows a still image, so the 3D view ends it.
+		isTryOnShown = $derived(canTryOn && isTryingOn && view === "2D"),
+		isTryOnForItem = $derived(inventory.tryOnKey === detailsKey),
+		tryOnImageUrl = $derived(isTryOnForItem ? inventory.tryOnImageUrl : ""),
+		tryOnError = $derived(isTryOnForItem ? inventory.tryOnError : ""),
 		// The model of another item stays loaded until this item's model loads.
 		itemModel = $derived(
 			inventory.itemModel.modelKey === detailsKey
@@ -180,6 +188,20 @@
 		isShortOfRobux = $derived(
 			balanceAfterPurchase !== null && balanceAfterPurchase < 0,
 		)
+
+	// The avatar wearing the item renders when Try on is pressed.
+	$effect(() => {
+		const shownItem = item,
+			shownCategory = category.id
+		if (isTryOnShown) {
+			untrack(() => void inventory.tryOnItem(shownItem, shownCategory))
+		}
+	})
+
+	function toggleTryOn(): void {
+		isTryingOn = !isTryOnShown
+		if (isTryingOn) view = "2D"
+	}
 
 	// The 3D model loads when the 3D view opens.
 	$effect(() => {
@@ -418,8 +440,32 @@
 				<div class="flex w-72 shrink-0 flex-col gap-2">
 					<div
 						class="relative grid size-72 place-items-center overflow-hidden rounded-lg border border-line-subtle bg-raised"
-						aria-hidden={isModelShown ? undefined : true}>
-						{#if isModelShown}
+						aria-hidden={isModelShown || isTryOnShown ? undefined : true}>
+						{#if isTryOnShown}
+							{#if tryOnImageUrl}
+								{#key tryOnImageUrl}
+									<img
+										class="relative size-full animate-pop object-contain"
+										src={tryOnImageUrl}
+										alt={`@${accountUsername}'s avatar wearing ${name}`}
+										decoding="async"
+										draggable="false"
+										referrerpolicy="no-referrer" />
+								{/key}
+							{:else if tryOnError}
+								<FrameUnavailable
+									icon={category.icon}
+									message={tryOnError}
+									onRetry={() =>
+										void inventory.tryOnItem(item, category.id)} />
+							{:else}
+								<span
+									class="absolute inset-3 skeleton rounded-md"
+									role="status">
+									<span class="sr-only">Trying on the item</span>
+								</span>
+							{/if}
+						{:else if isModelShown}
 							<RenderedModelView
 								model={itemModel}
 								error={itemModelError}
@@ -441,6 +487,14 @@
 					<div class="flex items-center gap-2">
 						{#if hasModel}
 							<ImageViewToggle bind:view />
+						{/if}
+						{#if canTryOn}
+							<button
+								class="button aria-pressed:border-line-strong aria-pressed:bg-active aria-pressed:text-fg"
+								type="button"
+								aria-pressed={isTryOnShown}
+								data-tooltip={`Show the item on @${accountUsername}'s saved avatar`}
+								onclick={toggleTryOn}>Try on</button>
 						{/if}
 						<button
 							class="button-icon"
@@ -795,7 +849,7 @@
 {#if isExpanded && !confirmation}
 	<ExpandedImageDialog
 		label={name}
-		{imageUrl}
+		imageUrl={isTryOnShown ? tryOnImageUrl : imageUrl}
 		fallbackIcon={category.icon}
 		bind:view
 		{hasModel}

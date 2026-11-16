@@ -25,6 +25,9 @@ type InventoryItemDetails struct {
 	AwardingGameName string `json:"awardingGameName"`
 	// HasModel reports whether Roblox renders the item as a 3D model.
 	HasModel bool `json:"hasModel"`
+	// CanTryOn reports whether an avatar can wear the item, so that a preview
+	// can show it on the avatar of the account.
+	CanTryOn bool `json:"canTryOn"`
 }
 
 // inventoryItemType is the item type that the inventory ownership API takes.
@@ -94,7 +97,20 @@ func (service *Users) InventoryItemDetails(ctx context.Context, accountID, versi
 		return InventoryItemDetails{}, err
 	}
 	details.HasModel = hasRenderedModel(category)
+	details.CanTryOn = canTryOn(category)
 	return details, nil
+}
+
+// canTryOn reports whether the items of the category are assets that an
+// avatar wears, other than animations, which a still image cannot show.
+func canTryOn(category InventoryCategory) bool {
+	switch category {
+	case InventoryCollectibles, InventoryAccessories, InventoryClassicClothing, InventoryLayeredClothing,
+		InventoryHeadsAndBodies, InventoryFaces, InventoryGear:
+		return true
+	default:
+		return false
+	}
 }
 
 // hasRenderedModel reports whether Roblox renders the items of the category as

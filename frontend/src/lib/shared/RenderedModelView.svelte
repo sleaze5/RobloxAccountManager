@@ -3,6 +3,7 @@
 	import slidersHorizontalIcon from "@phosphor-icons/core/regular/sliders-horizontal.svg?raw"
 	import { tick } from "svelte"
 	import type { RenderedModel } from "../backend/bridge"
+	import FrameUnavailable from "./FrameUnavailable.svelte"
 	import Icon from "./Icon.svelte"
 	import RenderedModelSceneControls from "./RenderedModelSceneControls.svelte"
 
@@ -41,23 +42,10 @@
 	}
 </script>
 
-{#snippet unavailable(message: string, canRetry: boolean)}
-	<div
-		class="relative flex animate-enter flex-col items-center gap-2 p-3 text-center text-xs text-fg-muted"
-		role="alert">
-		<Icon svg={cubeIcon} size={28} class="animate-bloom" aria-hidden="true" />
-		<p>{message}</p>
-		{#if canRetry}
-			<button class="button" type="button" onclick={onRetry}>Try again</button>
-		{/if}
-	</div>
-{/snippet}
-
 {#if isWebGLUnavailable}
-	{@render unavailable(
-		"3D needs graphics acceleration, which isn't available on this computer.",
-		false,
-	)}
+	<FrameUnavailable
+		icon={cubeIcon}
+		message="3D needs graphics acceleration, which isn't available on this computer." />
 {:else if model && viewerImport}
 	{#await viewerImport then { default: RenderedModelViewer }}
 		{#key model}
@@ -84,10 +72,10 @@
 				onClose={() => void closeSceneControls()} />
 		{/if}
 	{:catch}
-		{@render unavailable("The 3D viewer couldn't start.", false)}
+		<FrameUnavailable icon={cubeIcon} message="The 3D viewer couldn't start." />
 	{/await}
 {:else if error}
-	{@render unavailable(error, true)}
+	<FrameUnavailable icon={cubeIcon} message={error} {onRetry} />
 {:else}
 	<span class="absolute inset-3 skeleton rounded-md" role="status">
 		<span class="sr-only">Loading the 3D model</span>
