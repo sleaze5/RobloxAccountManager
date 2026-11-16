@@ -1,10 +1,14 @@
 <script lang="ts">
 	import arrowsLeftRightIcon from "@phosphor-icons/core/regular/arrows-left-right.svg?raw"
+	import arrowsOutIcon from "@phosphor-icons/core/regular/arrows-out.svg?raw"
 	import barcodeIcon from "@phosphor-icons/core/regular/barcode.svg?raw"
+	import caretLeftIcon from "@phosphor-icons/core/regular/caret-left.svg?raw"
 	import calendarDotsIcon from "@phosphor-icons/core/regular/calendar-dots.svg?raw"
 	import checkCircleFillIcon from "@phosphor-icons/core/fill/check-circle-fill.svg?raw"
 	import clockCounterClockwiseIcon from "@phosphor-icons/core/regular/clock-counter-clockwise.svg?raw"
+	import circleNotchIcon from "@phosphor-icons/core/regular/circle-notch.svg?raw"
 	import diamondIcon from "@phosphor-icons/core/regular/diamond.svg?raw"
+	import downloadSimpleIcon from "@phosphor-icons/core/regular/download-simple.svg?raw"
 	import fingerprintIcon from "@phosphor-icons/core/regular/fingerprint.svg?raw"
 	import gameControllerIcon from "@phosphor-icons/core/regular/game-controller.svg?raw"
 	import heartFillIcon from "@phosphor-icons/core/fill/heart-fill.svg?raw"
@@ -15,7 +19,6 @@
 	import sealCheckIcon from "@phosphor-icons/core/regular/seal-check.svg?raw"
 	import shoppingCartIcon from "@phosphor-icons/core/regular/shopping-cart.svg?raw"
 	import shapesIcon from "@phosphor-icons/core/regular/shapes.svg?raw"
-	import stackIcon from "@phosphor-icons/core/regular/stack.svg?raw"
 	import storefrontIcon from "@phosphor-icons/core/regular/storefront.svg?raw"
 	import tShirtIcon from "@phosphor-icons/core/regular/t-shirt.svg?raw"
 	import tagIcon from "@phosphor-icons/core/regular/tag.svg?raw"
@@ -24,33 +27,43 @@
 	import trendUpIcon from "@phosphor-icons/core/regular/trend-up.svg?raw"
 	import trophyIcon from "@phosphor-icons/core/regular/trophy.svg?raw"
 	import xIcon from "@phosphor-icons/core/regular/x.svg?raw"
-	import { tick } from "svelte"
+	import { tick, untrack } from "svelte"
 	import {
 		CatalogItemType,
 		InventoryCategory,
 		InventorySaleLocation,
 	} from "../backend/bridge"
-	import type { InventoryItem } from "../backend/bridge"
+	import type { InventoryItem, RelatedInventoryItem } from "../backend/bridge"
 	import Dialog from "../shared/Dialog.svelte"
+	import FrameUnavailable from "../shared/FrameUnavailable.svelte"
+	import ExpandedImageDialog from "../shared/ExpandedImageDialog.svelte"
 	import Icon from "../shared/Icon.svelte"
+	import ImageViewToggle from "../shared/ImageViewToggle.svelte"
+	import type { ImageView } from "../shared/ImageViewToggle.svelte"
 	import ProfileImage from "../shared/ProfileImage.svelte"
+	import RenderedModelView from "../shared/RenderedModelView.svelte"
 	import Skeleton from "../shared/Skeleton.svelte"
+	import SkeletonTile from "../shared/SkeletonTile.svelte"
 	import Timestamp from "../shared/Timestamp.svelte"
 	import { relativeTime } from "../shared/timestamp"
-	import { inventoryTypeLabel } from "./inventory-categories"
+	import {
+		inventoryCategoryOptionOf,
+		inventoryTypeLabel,
+	} from "./inventory-categories"
 	import type { InventoryCategoryOption } from "./inventory-categories"
+	import InventoryItemTile from "./InventoryItemTile.svelte"
 	import { formatRobux, salePriceLabel } from "./inventory-prices"
 	import { categoryItemKey, inventoryItemKey } from "./inventory-state.svelte"
 	import type { InventoryState } from "./inventory-state.svelte"
 
 	let {
-		item,
-		category,
+		item: openedItem,
+		category: openedCategory,
 		inventory,
 		username,
 		accountUsername,
-		isOwnInventory,
-		isWorn,
+		isOwnInventory: isOpenedFromOwnInventory,
+		isWorn: isOpenedItemWorn,
 		onSearchPlace,
 		onClose,
 	}: {
@@ -66,8 +79,32 @@
 		onClose: () => void
 	} = $props()
 
+	// The related items that the user opened inside the dialog, the latest
+	// last. Back returns to the one before.
+	let openedRelatedItems = $state.raw<
+		{ item: InventoryItem; category: InventoryCategoryOption }[]
+	>([])
+
+	const item = $derived(openedRelatedItems.at(-1)?.item ?? openedItem),
+		category = $derived(openedRelatedItems.at(-1)?.category ?? openedCategory),
+		previousItemName = $derived(
+			(openedRelatedItems.at(-2)?.item ?? openedItem).name || "Unnamed item",
+		),
+		// A related item belongs to no inventory that the page lists.
+		isOwnInventory = $derived(
+			isOpenedFromOwnInventory && openedRelatedItems.length === 0,
+		),
+		isWorn = $derived(
+			openedRelatedItems.length === 0
+				? isOpenedItemWorn
+				: inventory.wornAssetIds.has(item.itemId),
+		)
+
 	let confirmation = $state<"deletion" | "purchase" | null>(null),
-		card = $state<HTMLDivElement | undefined>(undefined)
+		card = $state<HTMLDivElement | undefined>(undefined),
+		view = $state<ImageView>("2D"),
+		isExpanded = $state(false),
+		isTryingOn = $state(false)
 
 	const exactNumbers = new Intl.NumberFormat("en-US"),
 		percent = new Intl.NumberFormat("en-US", {
@@ -87,7 +124,14 @@
 			"flex min-w-0 flex-wrap items-center gap-1 font-mono text-2xs wrap-anywhere text-fg-muted",
 		sectionHeadingClass = "text-xs font-semibold text-fg-muted",
 		name = $derived(item.name || "Unnamed item"),
-		typeLabel = $derived(inventoryTypeLabel(item.typeName) || category.label),
+		subtypeLabel = $derived(inventoryTypeLabel(item.typeName)),
+		// The category names the kind of item and the type narrows it, as in
+		// "Accessories; Shoulder".
+		typeLabel = $derived(
+			subtypeLabel && subtypeLabel !== category.label
+				? [category.label, subtypeLabel].join("; ")
+				: category.label,
+		),
 		market = $derived(item.market),
 		badge = $derived(item.badge),
 		isCatalogItem = $derived(!!item.catalogItemType),
@@ -102,6 +146,26 @@
 		details = $derived(inventory.detailsByItemKey.get(detailsKey)),
 		isOwnedByAccount = $derived(inventory.isOwnedByItemKey.get(detailsKey)),
 		imageUrl = $derived(details?.largeImageUrl || item.imageUrl),
+		hasModel = $derived(!!details?.hasModel),
+		canTryOn = $derived(!!details?.canTryOn),
+		canHaveRelatedItems = $derived(!!details?.canHaveRelatedItems),
+		canDownload = $derived(!!details?.canDownload),
+		// undefined while the related items load, and null when they failed.
+		relatedItems = $derived(inventory.relatedItemsByItemKey.get(detailsKey)),
+		// Try on stays on while the view switches between 2D and 3D.
+		isTryOnShown = $derived(canTryOn && isTryingOn),
+		// An item without a model of its own has a 3D view only on the avatar.
+		hasThreeDimensionalView = $derived(hasModel || isTryOnShown),
+		shownView = $derived<ImageView>(hasThreeDimensionalView ? view : "2D"),
+		isModelShown = $derived(shownView === "3D"),
+		tryOnLabel = $derived(`@${accountUsername}'s avatar wearing ${name}`),
+		tryOnImageUrl = $derived(inventory.tryOnImage.loadedFor(detailsKey) ?? ""),
+		tryOnError = $derived(inventory.tryOnImage.errorFor(detailsKey)),
+		tryOnModel = $derived(inventory.tryOnModel.loadedFor(detailsKey)),
+		tryOnModelError = $derived(inventory.tryOnModel.errorFor(detailsKey)),
+		// The model of another item stays loaded until this item's model loads.
+		itemModel = $derived(inventory.itemModel.loadedFor(detailsKey)),
+		itemModelError = $derived(inventory.itemModel.errorFor(detailsKey)),
 		key = $derived(inventoryItemKey(item)),
 		canFavorite = $derived(isCatalogItem && !!market),
 		isFavorite = $derived(inventory.favoriteByItemKey.get(key)),
@@ -154,6 +218,63 @@
 			balanceAfterPurchase !== null && balanceAfterPurchase < 0,
 		)
 
+	$effect(() => {
+		const shownItem = item,
+			shownCategory = category.id
+		if (canHaveRelatedItems) {
+			untrack(() => void inventory.loadRelatedItems(shownItem, shownCategory))
+		}
+	})
+
+	// showOpenedRelatedItems shows the last of the opened related items, or the
+	// item that the dialog opened with, from its top.
+	async function showOpenedRelatedItems(
+		nextOpenedRelatedItems: {
+			item: InventoryItem
+			category: InventoryCategoryOption
+		}[],
+	): Promise<void> {
+		openedRelatedItems = nextOpenedRelatedItems
+		view = "2D"
+		isTryingOn = isExpanded = false
+		inventory.clearItemActionError()
+		await tick()
+		card?.querySelector<HTMLElement>("#inventory-item-title")?.scrollIntoView({
+			block: "nearest",
+		})
+		card?.querySelector<HTMLElement>(
+			nextOpenedRelatedItems.length > 0
+				? "[data-item-back]"
+				: "[data-close-item-details]",
+		)?.focus()
+	}
+
+	function openRelatedItem(relatedItem: RelatedInventoryItem): void {
+		const relatedCategory = inventoryCategoryOptionOf(relatedItem.category)
+		inventory.loadItemDetails(relatedItem.item, relatedCategory.id, true)
+		void inventory.checkFavorite(relatedItem.item)
+		void showOpenedRelatedItems([
+			...openedRelatedItems,
+			{ item: relatedItem.item, category: relatedCategory },
+		])
+	}
+
+	// What the frame shows loads when it opens: the avatar wearing the item
+	// while Try on is on, or the item, in the shown view.
+	$effect(() => {
+		const shownItem = item,
+			shownCategory = category.id,
+			isTryingOnInModel = isTryOnShown && isModelShown,
+			isTryingOnInImage = isTryOnShown && !isModelShown,
+			isItemModelShown = !isTryOnShown && isModelShown
+		untrack(() => {
+			if (isTryingOnInModel)
+				void inventory.loadTryOnModel(shownItem, shownCategory)
+			if (isTryingOnInImage) void inventory.tryOnItem(shownItem, shownCategory)
+			if (isItemModelShown) void inventory.loadItemModel(shownItem, shownCategory)
+		})
+	})
+
 	// The dialog keeps its card while it switches between the details and the
 	// deletion confirmation, so focus moves to the control that replaced the
 	// one the user pressed.
@@ -196,6 +317,74 @@
 			close()
 		}
 	}} />
+
+{#snippet imageFrame()}
+	{#if isTryOnShown && isModelShown}
+		<RenderedModelView
+			model={tryOnModel}
+			error={tryOnModelError}
+			label={tryOnLabel}
+			onRetry={() => void inventory.loadTryOnModel(item, category.id)} />
+	{:else if isTryOnShown}
+		{#if tryOnImageUrl}
+			{#key tryOnImageUrl}
+				<img
+					class="relative size-full animate-pop object-contain"
+					src={tryOnImageUrl}
+					alt={tryOnLabel}
+					decoding="async"
+					draggable="false"
+					referrerpolicy="no-referrer" />
+			{/key}
+		{:else if tryOnError}
+			<FrameUnavailable
+				icon={category.icon}
+				message={tryOnError}
+				onRetry={() => void inventory.tryOnItem(item, category.id)} />
+		{:else}
+			<span class="absolute inset-3 skeleton rounded-md" role="status">
+				<span class="sr-only">Trying on the item</span>
+			</span>
+		{/if}
+	{:else if isModelShown}
+		<RenderedModelView
+			model={itemModel}
+			error={itemModelError}
+			label={name}
+			onRetry={() => void inventory.loadItemModel(item, category.id)} />
+	{:else}
+		<span
+			class={["grid place-items-center", isSmallIcon ? "size-36" : "size-full"]}>
+			<ProfileImage url={imageUrl} fallbackIcon={category.icon} />
+		</span>
+	{/if}
+{/snippet}
+
+{#snippet imageControls(isExpandedView: boolean)}
+	{#if hasThreeDimensionalView}
+		<ImageViewToggle bind:view />
+	{/if}
+	{#if canTryOn}
+		<button
+			class="button"
+			type="button"
+			data-tooltip={isTryOnShown
+				? "Show the item without the avatar"
+				: `Show the item on @${accountUsername}'s saved avatar`}
+			onclick={() => (isTryingOn = !isTryingOn)}
+			>{isTryOnShown ? "Take off" : "Try on"}</button>
+	{/if}
+	{#if !isExpandedView}
+		<button
+			class="button-icon"
+			type="button"
+			aria-label="Expand item image"
+			data-tooltip="Expand"
+			onclick={() => (isExpanded = true)}>
+			<Icon svg={arrowsOutIcon} size={16} aria-hidden="true" />
+		</button>
+	{/if}
+{/snippet}
 
 {#snippet fact(icon: string, label: string, value: string, isMono = false)}
 	<div>
@@ -242,7 +431,7 @@
 {/snippet}
 
 <Dialog
-	class={confirmation ? "max-w-md text-left" : "max-w-2xl text-left"}
+	class={confirmation ? "max-w-md text-left" : "max-w-3xl text-left"}
 	role={confirmation ? "alertdialog" : "dialog"}
 	aria-labelledby={confirmation
 		? "inventory-confirmation-title"
@@ -379,20 +568,37 @@
 	{:else}
 		<div class="flex flex-col gap-4">
 			<div class="flex items-start gap-4">
-				<span
-					class="grid size-48 shrink-0 place-items-center overflow-hidden rounded-lg border border-line-subtle bg-raised"
-					aria-hidden="true">
-					<span
-						class={[
-							"grid place-items-center",
-							isSmallIcon ? "size-36" : "size-full",
-						]}>
-						<ProfileImage url={imageUrl} fallbackIcon={category.icon} />
-					</span>
-				</span>
+				<div class="flex w-72 shrink-0 flex-col gap-2">
+					<div
+						class="relative grid size-72 place-items-center overflow-hidden rounded-lg border border-line-subtle bg-raised"
+						aria-hidden={isModelShown || isTryOnShown ? undefined : true}>
+						{@render imageFrame()}
+					</div>
+					<div class="flex items-center gap-2">
+						{@render imageControls(false)}
+					</div>
+				</div>
 
 				<div class="flex min-w-0 flex-1 flex-col gap-1">
 					<div class="flex items-start gap-3">
+						{#if openedRelatedItems.length > 0}
+							<button
+								class="-ml-1 button-ghost"
+								type="button"
+								data-item-back
+								aria-label={`Back to ${previousItemName}`}
+								data-tooltip={`Back to ${previousItemName}`}
+								onclick={() =>
+									void showOpenedRelatedItems(
+										openedRelatedItems.slice(0, -1),
+									)}>
+								<Icon
+									svg={caretLeftIcon}
+									data-nudge="left"
+									size={16}
+									aria-hidden="true" />
+							</button>
+						{/if}
 						<h2
 							id="inventory-item-title"
 							class="min-w-0 flex-1 leading-7 tracking-tight wrap-anywhere">
@@ -453,6 +659,41 @@
 										svg={magnifyingGlassIcon}
 										size={16}
 										aria-hidden="true" />
+								</button>
+							{/if}
+							{#if canDownload}
+								<button
+									class="button-icon"
+									type="button"
+									aria-label="Download"
+									aria-busy={inventory.isDownloadingItem}
+									data-tooltip="Download"
+									disabled={inventory.isDownloadingItem}
+									onclick={() =>
+										void inventory.downloadItem(item, category.id)}>
+									<Icon
+										svg={inventory.isDownloadingItem
+											? circleNotchIcon
+											: downloadSimpleIcon}
+										class={inventory.isDownloadingItem
+											? "spinner"
+											: undefined}
+										size={16}
+										aria-hidden="true" />
+								</button>
+							{/if}
+							{#if canDelete}
+								<button
+									class="button"
+									type="button"
+									data-begin-deletion
+									disabled={isBusy}
+									onclick={() => void showConfirmation("deletion")}>
+									<Icon
+										svg={trashIcon}
+										size={16}
+										aria-hidden="true" />
+									Delete
 								</button>
 							{/if}
 							<button
@@ -644,29 +885,6 @@
 							</dd>
 						</div>
 					{/if}
-					{#if isBundle}
-						<div>
-							<dt>
-								<Icon
-									svg={stackIcon}
-									size={16}
-									aria-hidden="true" />Includes
-							</dt>
-							<dd>
-								{#if details?.includedItemNames?.length}
-									<ul class="flex flex-wrap gap-1">
-										{#each details.includedItemNames as includedItemName, index (index)}
-											<li class="tag-pill">
-												<span>{includedItemName}</span>
-											</li>
-										{/each}
-									</ul>
-								{:else}
-									{@render missingDetail()}
-								{/if}
-							</dd>
-						</div>
-					{/if}
 					{#if !isBundle}
 						{@render dateFact(
 							clockCounterClockwiseIcon,
@@ -708,24 +926,84 @@
 					</p>
 				</section>
 			{/if}
+
+			{#if canHaveRelatedItems}
+				<section
+					class="flex flex-col gap-3"
+					aria-labelledby="inventory-item-related">
+					<h3
+						id="inventory-item-related"
+						class={["flex items-center gap-2", sectionHeadingClass]}>
+						{isBundle ? "Includes" : "Dependencies"}
+						{#if relatedItems?.length}
+							<span class="font-mono text-2xs font-normal text-fg-faint"
+								>{relatedItems.length}</span>
+						{/if}
+					</h3>
+					{#if relatedItems === undefined}
+						<ul class="grid grid-cols-5 gap-2" aria-busy="true">
+							{#each Array.from({ length: 5 }, (_unused, index) => index) as index (index)}
+								<SkeletonTile />
+							{/each}
+						</ul>
+						<span class="sr-only" role="status"
+							>Loading the {isBundle
+								? "items in the bundle"
+								: "dependencies"}</span>
+					{:else if relatedItems === null}
+						<div class="flex items-center gap-2 notice-error" role="alert">
+							<span class="min-w-0 flex-1"
+								>The {isBundle
+									? "items in this bundle"
+									: "dependencies"} couldn't be loaded.</span>
+							<button
+								class="button"
+								type="button"
+								onclick={() =>
+									void inventory.loadRelatedItems(item, category.id)}
+								>Try again</button>
+						</div>
+					{:else if relatedItems.length === 0}
+						<p class="text-xs text-fg-muted">
+							{isBundle
+								? "This bundle lists no items."
+								: "This item uses no other assets that this account can see."}
+						</p>
+					{:else}
+						<ul class="grid animate-enter grid-cols-5 gap-2">
+							{#each relatedItems as relatedItem (relatedItem.item.itemId)}
+								<li class="min-w-0">
+									<InventoryItemTile
+										item={relatedItem.item}
+										category={inventoryCategoryOptionOf(
+											relatedItem.category,
+										)}
+										isWorn={inventory.wornAssetIds.has(
+											relatedItem.item.itemId,
+										)}
+										actionLabel="Open details"
+										onOpen={() => openRelatedItem(relatedItem)} />
+								</li>
+							{/each}
+						</ul>
+					{/if}
+				</section>
+			{/if}
 		</div>
 
 		{#if inventory.itemActionError}
 			<p class="mt-3 notice-error" role="alert">{inventory.itemActionError}</p>
 		{/if}
-
-		{#if canDelete}
-			<div class="dialog-actions">
-				<button
-					class="mr-auto button"
-					type="button"
-					data-begin-deletion
-					disabled={isBusy}
-					onclick={() => void showConfirmation("deletion")}>
-					<Icon svg={trashIcon} size={16} aria-hidden="true" />
-					Delete…
-				</button>
-			</div>
-		{/if}
 	{/if}
 </Dialog>
+
+{#if isExpanded && !confirmation}
+	<ExpandedImageDialog label={name} onClose={() => (isExpanded = false)}>
+		{#snippet frame()}
+			{@render imageFrame()}
+		{/snippet}
+		{#snippet controls()}
+			{@render imageControls(true)}
+		{/snippet}
+	</ExpandedImageDialog>
+{/if}

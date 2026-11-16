@@ -28,11 +28,32 @@ func (service *Service) SaveAvatar(ctx context.Context, accountID int64, change 
 	return service.core.SaveAvatar(ctx, accountID, change)
 }
 
-func (service *Service) WaitForAvatarImage(ctx context.Context, accountID int64) (string, error) {
+func (service *Service) WaitForAvatarImage(ctx context.Context, accountID int64, previousImageURL string) (string, error) {
 	if err := positiveID(accountID, "avatar-image"); err != nil {
 		return "", err
 	}
-	return service.core.WaitForAvatarImage(ctx, accountID)
+	return service.core.WaitForAvatarImage(ctx, accountID, previousImageURL)
+}
+
+func (service *Service) RenderAvatarPreview(ctx context.Context, accountID int64, change robloxservices.AvatarChange) (string, error) {
+	if err := positiveID(accountID, "avatar-preview"); err != nil {
+		return "", err
+	}
+	return service.core.RenderAvatarPreview(ctx, accountID, change)
+}
+
+func (service *Service) RedrawAvatarImage(ctx context.Context, accountID int64) error {
+	if err := positiveID(accountID, "avatar-redraw"); err != nil {
+		return err
+	}
+	return service.core.RedrawAvatarImage(ctx, accountID)
+}
+
+func (service *Service) GetAvatarModel(ctx context.Context, accountID, userID int64) (robloxservices.RenderedModel, error) {
+	if err := validateAccountAndTargetIDs(accountID, userID, "avatar-model"); err != nil {
+		return robloxservices.RenderedModel{}, err
+	}
+	return service.core.GetAvatarModel(ctx, accountID, userID)
 }
 
 func (service *Service) GetAvatarOutfits(ctx context.Context, accountID, userID int64, cursor string) (robloxservices.AvatarOutfitPage, error) {

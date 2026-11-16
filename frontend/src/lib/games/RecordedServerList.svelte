@@ -128,7 +128,7 @@
 				<h2>No more servers</h2>
 				<p>RoValra has no more servers for this list.</p>
 				<button class="button" type="button" onclick={() => servers.first()}
-					>First page</button>
+					>Go to first page</button>
 			{:else if servers.region}
 				<h2>No servers in this region</h2>
 				<p>RoValra has not seen a server of this place in this region.</p>

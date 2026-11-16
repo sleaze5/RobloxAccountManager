@@ -26,6 +26,7 @@
 	} from "./inventory-filters"
 	import type { InventoryItemFilter, InventorySortOrder } from "./inventory-filters"
 	import { formatRobux } from "./inventory-prices"
+	import type { NotificationCenter } from "../notifications/notification-center.svelte"
 	import InventoryItemDialog from "./InventoryItemDialog.svelte"
 	import InventoryItemTile from "./InventoryItemTile.svelte"
 	import { InventoryState, ownedCopyKey } from "./inventory-state.svelte"
@@ -35,11 +36,13 @@
 		accountId,
 		userId,
 		username,
+		notifications,
 		sidebarWidth = $bindable(),
 		onSearchPlace,
 		onBack,
 	}: {
 		accounts: AccountStore
+		notifications: NotificationCenter
 		accountId: number
 		userId: number
 		username: string
@@ -48,7 +51,9 @@
 		onBack: () => void
 	} = $props()
 
-	const inventory = untrack(() => new InventoryState(accountId, userId, accounts)),
+	const inventory = untrack(
+			() => new InventoryState(accountId, userId, accounts, notifications),
+		),
 		skeletonTileIndexes = Array.from({ length: 12 }, (_unused, index) => index),
 		exactNumbers = new Intl.NumberFormat("en-US")
 

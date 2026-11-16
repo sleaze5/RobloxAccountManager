@@ -3,12 +3,19 @@ import {
 	AccountProfileSection,
 	InventoryCategory,
 } from "../backend/bridge"
-import type { InventoryItem, InventoryItemDetails } from "../backend/bridge"
+import type {
+	InventoryItem,
+	InventoryItemDetails,
+	RelatedInventoryItem,
+	RenderedModel,
+} from "../backend/bridge"
 import type { AccountStore } from "../accounts/account-store.svelte"
 import { AccountScope } from "../accounts/account-scope"
+import type { NotificationCenter } from "../notifications/notification-center.svelte"
 import type { CancellableRequest } from "../shared/cancellable-request"
 import { errorMessage } from "../shared/errors"
 import { isFresh } from "../shared/freshness"
+import { KeyedLoad } from "../shared/keyed-load.svelte"
 import { assetCategories } from "./inventory-categories"
 
 interface InventoryCategoryPage {
@@ -51,6 +58,7 @@ export class InventoryState {
 	isSavingFavorite = $state(false)
 	isDeletingItem = $state(false)
 	isBuyingItem = $state(false)
+	isDownloadingItem = $state(false)
 	// The items that the account bought and that Roblox still delivers, by
 	// categoryItemKey.
 	pendingPurchaseKeys = $state.raw(new Set<string>())
@@ -63,12 +71,33 @@ export class InventoryState {
 	// categoryItemKey. null means that the request failed.
 	detailsByItemKey = $state.raw(new Map<string, InventoryItemDetails | null>())
 	isOwnedByItemKey = $state.raw(new Map<string, boolean | null>())
+	// The assets that each opened item includes or uses, by categoryItemKey.
+	// null means that the request failed.
+	relatedItemsByItemKey = $state.raw(new Map<string, RelatedInventoryItem[] | null>())
+	// The 3D model of the opened item, by the categoryItemKey of the item.
+	readonly itemModel: KeyedLoad<RenderedModel>
+	// The full-body image of the account wearing the opened item, which Roblox
+	// renders without saving it, by the categoryItemKey of the item.
+	readonly tryOnImage: KeyedLoad<string>
+	// The same as a 3D model.
+	readonly tryOnModel: KeyedLoad<RenderedModel>
 	readonly userId: number
 	readonly #scope: AccountScope
 	#request: ReturnType<typeof accountBackend.GetInventoryPage> | null = null
+	readonly #loadingRelatedItemKeys = new Set<string>()
+	readonly #notifications: NotificationCenter
 
-	constructor(accountId: number, userId: number, store: AccountStore) {
+	constructor(
+		accountId: number,
+		userId: number,
+		store: AccountStore,
+		notifications: NotificationCenter,
+	) {
 		this.#scope = new AccountScope(accountId, store)
+		this.#notifications = notifications
+		this.itemModel = new KeyedLoad(this.#scope)
+		this.tryOnImage = new KeyedLoad(this.#scope)
+		this.tryOnModel = new KeyedLoad(this.#scope)
 		this.userId = userId
 	}
 
@@ -137,6 +166,124 @@ export class InventoryState {
 						isOwned,
 					)),
 			)
+		}
+	}
+
+	async loadItemModel(
+		item: InventoryItem,
+		category: InventoryCategory,
+	): Promise<void> {
+		await this.itemModel.load(
+			categoryItemKey(category, item.itemId),
+			() =>
+				accountBackend.GetInventoryItemModel(
+					this.#scope.accountId,
+					category,
+					item.itemId,
+				),
+			"Could not load the 3D model. Try again.",
+		)
+	}
+
+	async loadTryOnModel(
+		item: InventoryItem,
+		category: InventoryCategory,
+	): Promise<void> {
+		await this.tryOnModel.load(
+			categoryItemKey(category, item.itemId),
+			() =>
+				accountBackend.GetInventoryItemTryOnModel(
+					this.#scope.accountId,
+					category,
+					item.itemId,
+				),
+			"Could not try on the item in 3D. Try again.",
+		)
+	}
+
+	// tryOnItem renders the avatar of the account wearing the item.
+	async tryOnItem(item: InventoryItem, category: InventoryCategory): Promise<void> {
+		await this.tryOnImage.load(
+			categoryItemKey(category, item.itemId),
+			() =>
+				accountBackend.TryOnInventoryItem(
+					this.#scope.accountId,
+					category,
+					item.itemId,
+				),
+			"Could not try on the item. Try again.",
+		)
+	}
+
+	// loadRelatedItems reads the assets that the item includes or uses, unless
+	// they are loaded or loading. A failed read loads again.
+	async loadRelatedItems(
+		item: InventoryItem,
+		category: InventoryCategory,
+	): Promise<void> {
+		const key = categoryItemKey(category, item.itemId)
+		if (
+			this.relatedItemsByItemKey.get(key) ||
+			this.#loadingRelatedItemKeys.has(key)
+		) {
+			return
+		}
+		this.#loadingRelatedItemKeys.add(key)
+		if (this.relatedItemsByItemKey.has(key)) {
+			const relatedItemsByItemKey = new Map(this.relatedItemsByItemKey)
+			relatedItemsByItemKey.delete(key)
+			this.relatedItemsByItemKey = relatedItemsByItemKey
+		}
+		try {
+			await this.#loadItemFact(
+				accountBackend.GetInventoryRelatedItems(
+					this.#scope.accountId,
+					category,
+					item.itemId,
+				),
+				(relatedItems) =>
+					(this.relatedItemsByItemKey = new Map(
+						this.relatedItemsByItemKey,
+					).set(key, relatedItems)),
+			)
+		} finally {
+			this.#loadingRelatedItemKeys.delete(key)
+		}
+	}
+
+	// downloadItem downloads the file of the item and asks where to save it.
+	async downloadItem(
+		item: InventoryItem,
+		category: InventoryCategory,
+	): Promise<void> {
+		if (this.isDownloadingItem) return
+		this.isDownloadingItem = true
+		this.itemActionError = ""
+		try {
+			const savedPath = await this.#scope.track(
+				accountBackend.DownloadInventoryItem(
+					this.#scope.accountId,
+					category,
+					item.itemId,
+					item.name,
+				),
+			)
+			if (!this.#scope.isCurrent || !savedPath) return
+			this.#notifications.show({
+				id: "inventory-download",
+				tone: "success",
+				title: "Item downloaded",
+				message: savedPath,
+			})
+		} catch (error) {
+			if (this.#scope.isCurrent) {
+				this.itemActionError = errorMessage(
+					error,
+					"Could not download the item. Try again.",
+				)
+			}
+		} finally {
+			this.isDownloadingItem = false
 		}
 	}
 

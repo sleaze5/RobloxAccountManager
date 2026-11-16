@@ -70,7 +70,7 @@
 				bind:this={textarea}
 				bind:value={draft}
 				class="h-36 break-all whitespace-pre-wrap"
-				placeholder="Enter launch data…"
+				placeholder="Enter launch data"
 				wrap="soft"
 				spellcheck="false"
 				autocomplete="off"

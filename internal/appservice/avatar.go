@@ -133,9 +133,12 @@ func (service *Service) SaveAvatar(ctx context.Context, accountID int64, change 
 }
 
 // WaitForAvatarImage reads the full-body image of the account after a change.
-// Roblox renders a changed avatar a few seconds after the save and answers
-// Pending until then, so the read repeats a bounded number of times.
-func (service *Service) WaitForAvatarImage(ctx context.Context, accountID int64) (string, error) {
+// Roblox renders a changed avatar a few seconds after the change. Until then
+// it answers Pending, or keeps serving the previous image, so the read repeats
+// a bounded number of times until the image differs from previousImageURL. A
+// change that keeps the look keeps the image, so the last image is returned
+// when every read returns the previous one.
+func (service *Service) WaitForAvatarImage(ctx context.Context, accountID int64, previousImageURL string) (string, error) {
 	const (
 		maxAttempts = 10
 		retryDelay  = 2 * time.Second
@@ -145,24 +148,110 @@ func (service *Service) WaitForAvatarImage(ctx context.Context, accountID int64)
 		return "", mapRepositoryError(err)
 	}
 	target := robloxservices.AvatarImageTarget(account.RobloxUserID)
-	for attempt := range maxAttempts {
-		if attempt > 0 {
-			select {
-			case <-ctx.Done():
-				return "", &roblox.Error{Kind: roblox.KindCancelled, Endpoint: "avatar-image", Message: "The avatar image was not loaded.", Cause: ctx.Err()}
-			case <-time.After(retryDelay):
-			}
-		}
+	latestImageURL := ""
+	_, err = pollUntilReady(ctx, "avatar-image", "The avatar image was not loaded.", maxAttempts, retryDelay, func() (bool, error) {
 		images, err := service.thumbnails.Images(ctx, []robloxservices.ThumbnailTarget{target}, robloxservices.LargeThumbnailSize)
 		if err != nil {
 			service.logs.Module("application.avatar").WarnContext(ctx, "avatar image unavailable", "operation", "avatar-image", "account_id", accountID, "error", err)
-			return "", err
+			return false, err
 		}
-		if imageURL := images[target]; imageURL != "" {
-			return imageURL, nil
-		}
+		latestImageURL = images[target]
+		return latestImageURL != "" && latestImageURL != previousImageURL, nil
+	})
+	if err != nil {
+		return "", err
+	}
+	if latestImageURL != "" {
+		return latestImageURL, nil
 	}
 	return "", &roblox.Error{Kind: roblox.KindTimeout, Endpoint: "avatar-image", Message: "Roblox is still rendering the avatar. Refresh it in a minute."}
+}
+
+// RenderAvatarPreview renders the change as a full-body image without saving
+// it, so that the page can show unsaved changes.
+func (service *Service) RenderAvatarPreview(ctx context.Context, accountID int64, change robloxservices.AvatarChange) (string, error) {
+	ctx, version, done, err := service.beginAccountSession(ctx, accountID, "avatar-preview")
+	if err != nil {
+		return "", err
+	}
+	defer done()
+	return service.renderAvatarPreview(ctx, accountID, version, "avatar-preview", change)
+}
+
+// TryOnInventoryItem renders the avatar of the account wearing the item,
+// without saving it.
+func (service *Service) TryOnInventoryItem(ctx context.Context, accountID int64, category robloxservices.InventoryCategory, itemID int64) (string, error) {
+	ctx, version, done, err := service.beginAccountSession(ctx, accountID, "avatar-try-on")
+	if err != nil {
+		return "", err
+	}
+	defer done()
+	change, err := service.users.TryOnChange(ctx, accountID, version, category, itemID)
+	if err != nil {
+		service.logs.Module("application.avatar").WarnContext(ctx, "avatar try-on unavailable", "operation", "avatar-try-on", "account_id", accountID, "category", category, "error", err)
+		return "", err
+	}
+	return service.renderAvatarPreview(ctx, accountID, version, "avatar-try-on", change)
+}
+
+// GetInventoryItemTryOnModel renders the avatar of the account wearing the
+// item as a 3D model, without saving it.
+func (service *Service) GetInventoryItemTryOnModel(ctx context.Context, accountID int64, category robloxservices.InventoryCategory, itemID int64) (robloxservices.RenderedModel, error) {
+	var change *robloxservices.AvatarChange
+	return service.readRenderedModel(ctx, accountID, "avatar-try-on-model", func(ctx context.Context, version int64) (string, error) {
+		// The avatar to render is read once, and each repeated request renders
+		// the same one.
+		if change == nil {
+			tryOnChange, err := service.users.TryOnChange(ctx, accountID, version, category, itemID)
+			if err != nil {
+				return "", err
+			}
+			change = &tryOnChange
+		}
+		return service.users.RenderAvatarPreview(ctx, accountID, version, *change, robloxservices.AvatarPreviewModel)
+	})
+}
+
+// renderAvatarPreview renders the change as a full-body image. Roblox answers
+// Pending until the image is ready and renders it only when asked again, so
+// the request repeats a bounded number of times.
+func (service *Service) renderAvatarPreview(ctx context.Context, accountID, version int64, operation string, change robloxservices.AvatarChange) (string, error) {
+	const (
+		maxAttempts = 8
+		retryDelay  = 1500 * time.Millisecond
+	)
+	imageURL := ""
+	isRendered, err := pollUntilReady(ctx, operation, "The avatar preview was not loaded.", maxAttempts, retryDelay, func() (bool, error) {
+		var err error
+		imageURL, err = service.users.RenderAvatarPreview(ctx, accountID, version, change, robloxservices.AvatarPreviewImage)
+		if err != nil {
+			service.logs.Module("application.avatar").WarnContext(ctx, "avatar preview unavailable", "operation", operation, "account_id", accountID, "error", err)
+			return false, err
+		}
+		return imageURL != "", nil
+	})
+	if err != nil {
+		return "", err
+	}
+	if !isRendered {
+		return "", &roblox.Error{Kind: roblox.KindTimeout, Endpoint: operation, Message: "Roblox is still rendering the preview. Try again in a moment."}
+	}
+	return imageURL, nil
+}
+
+// RedrawAvatarImage asks Roblox to render the avatar images of the account
+// again, such as when an image shows an outdated look.
+func (service *Service) RedrawAvatarImage(ctx context.Context, accountID int64) error {
+	return service.editAccount(ctx, accountID, "avatar-redraw", "", func(ctx context.Context, version int64) error {
+		return service.users.RedrawAvatarImage(ctx, accountID, version)
+	})
+}
+
+// GetAvatarModel reads the 3D avatar of the user, as the account sees it.
+func (service *Service) GetAvatarModel(ctx context.Context, accountID, userID int64) (robloxservices.RenderedModel, error) {
+	return service.readRenderedModel(ctx, accountID, "avatar-model", func(ctx context.Context, version int64) (string, error) {
+		return service.users.AvatarModelManifestURL(ctx, accountID, version, userID)
+	})
 }
 
 // GetAvatarOutfits reads one page of the outfits that the user created, with

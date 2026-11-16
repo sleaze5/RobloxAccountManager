@@ -41,6 +41,10 @@ const (
 	InventoryModels          InventoryCategory = "models"
 	InventoryDecals          InventoryCategory = "decals"
 	InventoryAudio           InventoryCategory = "audio"
+	// InventoryOtherAssets holds the assets of the types that no other
+	// category lists, such as the meshes and images that an item uses. The
+	// inventory lists no page of it.
+	InventoryOtherAssets InventoryCategory = "otherAssets"
 )
 
 // The asset type names that the inventory v2 API accepts in its assetTypes

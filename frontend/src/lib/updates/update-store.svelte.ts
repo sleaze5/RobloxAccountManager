@@ -40,7 +40,11 @@ class UpdateStore {
 		if (next.status === UpdateStatus.StatusAvailable && next.error) {
 			this.#notifications?.show({
 				actions: [
-					{ emphasis: true, label: "Retry", onClick: () => this.install() },
+					{
+						emphasis: true,
+						label: "Try again",
+						onClick: () => this.install(),
+					},
 				],
 				id: notificationId,
 				message: next.error,

@@ -15,7 +15,7 @@ const (
 var errDialogsUnavailable = errors.New("file dialogs are unavailable")
 
 // An empty path without an error means the user cancelled the dialog.
-func chooseSaveFile(directory, name string) (string, error) {
+func chooseSaveFile(directory, name, filterName, filterPattern string) (string, error) {
 	app := application.Get()
 	if app == nil {
 		return "", errDialogsUnavailable
@@ -23,7 +23,7 @@ func chooseSaveFile(directory, name string) (string, error) {
 	dialog := app.Dialog.SaveFile().
 		SetDirectory(directory).
 		SetFilename(name).
-		AddFilter(exportFilterName, exportFilterPattern).
+		AddFilter(filterName, filterPattern).
 		CanCreateDirectories(true)
 	if window := app.Window.Current(); window != nil {
 		dialog.AttachToWindow(window)

@@ -316,7 +316,8 @@
 			</div>
 		{/if}
 		<div class="dialog-actions">
-			<button class="button-primary" type="button" onclick={onClose}>Done</button>
+			<button class="button-primary" type="button" onclick={onClose}
+				>Close</button>
 		</div>
 	{:else if preview}
 		<form

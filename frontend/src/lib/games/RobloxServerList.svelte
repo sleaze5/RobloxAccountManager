@@ -136,7 +136,7 @@
 				<h2>No more servers</h2>
 				<p>The servers on this page closed. Go back to the first page.</p>
 				<button class="button" type="button" onclick={() => servers.first()}
-					>First page</button>
+					>Go to first page</button>
 			{:else if servers.excludeFull}
 				<h2>No servers have open slots</h2>
 				<p>Every running server is full. Show full servers to see them.</p>

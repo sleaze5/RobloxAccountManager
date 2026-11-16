@@ -187,6 +187,26 @@ export const inventoryCategories = inventoryCategoryGroups.flatMap(
 	(group) => group.categories,
 )
 
+// otherAssetsCategory holds the assets that no category in the inventory
+// lists, such as the meshes and images that an item uses.
+const otherAssetsCategory: InventoryCategoryOption = {
+	id: InventoryCategory.InventoryOtherAssets,
+	label: "Assets",
+	noun: "assets",
+	icon: cubeIcon,
+	itemDetail: "type",
+	isDeletable: false,
+}
+
+export function inventoryCategoryOptionOf(
+	category: InventoryCategory,
+): InventoryCategoryOption {
+	return (
+		inventoryCategories.find((option) => option.id === category) ??
+		otherAssetsCategory
+	)
+}
+
 // Badges, game passes, and bundles have IDs of their own, which can match the
 // ID of an asset. Every other category lists assets.
 const categoriesWithOwnIDs = new Set<InventoryCategory>([
@@ -238,6 +258,26 @@ const typeLabels: Record<string, string> = {
 	SwimAnimation: "Swim",
 	WalkAnimation: "Walk",
 	MoodAnimation: "Mood",
+	Face: "Face",
+	EarAccessory: "Ear",
+	EyeAccessory: "Eye",
+	DeathAnimation: "Death",
+	PoseAnimation: "Pose",
+	EmoteAnimation: "Emote",
+	Gear: "Gear",
+	Image: "Image",
+	Mesh: "Mesh",
+	MeshPart: "Mesh part",
+	Decal: "Decal",
+	Model: "Model",
+	Package: "Package",
+	Animation: "Animation",
+	Audio: "Audio",
+	Video: "Video",
+	Place: "Place",
+	Lua: "Script",
+	Plugin: "Plugin",
+	FontFamily: "Font",
 	BodyParts: "Body",
 	AvatarAnimations: "Animations",
 	Shoes: "Shoes",

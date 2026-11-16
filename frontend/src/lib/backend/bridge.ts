@@ -116,6 +116,8 @@ export type {
 	InventoryItem,
 	InventoryItemDetails,
 	InventoryItemMarket,
+	RelatedInventoryItem,
+	RenderedModel,
 	RobloxBadge,
 	TextFilter,
 	UserPresence,

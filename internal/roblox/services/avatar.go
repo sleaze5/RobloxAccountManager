@@ -300,22 +300,35 @@ func avatarItem(assetID int64, name, typeName string) InventoryItem {
 	}
 }
 
+type avatarRulesPayload struct {
+	Scales             *AvatarScaleLimits `json:"scales"`
+	WearableAssetTypes []struct {
+		MaxNumber int    `json:"maxNumber"`
+		ID        int64  `json:"id"`
+		Name      string `json:"name"`
+	} `json:"wearableAssetTypes"`
+	BodyColorsPalette []struct {
+		BrickColorID int64  `json:"brickColorId"`
+		HexColor     string `json:"hexColor"`
+		Name         string `json:"name"`
+	} `json:"bodyColorsPalette"`
+	ProportionsAndBodyTypeEnabledForUser bool `json:"proportionsAndBodyTypeEnabledForUser"`
+}
+
+// The rules name asset types with spaces and hyphens, such as "T-Shirt
+// Accessory", where the avatar and inventory APIs write TShirtAccessory.
+var ruleTypeNameReplacer = strings.NewReplacer(" ", "", "-", "")
+
+func (service *Users) readAvatarRules(ctx context.Context, accountID, version int64, endpoint string) (avatarRulesPayload, error) {
+	var payload avatarRulesPayload
+	err := service.readAvatarDetails(ctx, accountID, version, endpoint, "https://avatar.roblox.com/v1/avatar-rules", &payload)
+	return payload, err
+}
+
 // AvatarRules reads what the account may change on its avatar.
 func (service *Users) AvatarRules(ctx context.Context, accountID, version int64) (AvatarRules, error) {
-	var payload struct {
-		Scales             *AvatarScaleLimits `json:"scales"`
-		WearableAssetTypes []struct {
-			MaxNumber int    `json:"maxNumber"`
-			Name      string `json:"name"`
-		} `json:"wearableAssetTypes"`
-		BodyColorsPalette []struct {
-			BrickColorID int64  `json:"brickColorId"`
-			HexColor     string `json:"hexColor"`
-			Name         string `json:"name"`
-		} `json:"bodyColorsPalette"`
-		ProportionsAndBodyTypeEnabledForUser bool `json:"proportionsAndBodyTypeEnabledForUser"`
-	}
-	if err := service.readAvatarDetails(ctx, accountID, version, "avatar-rules", "https://avatar.roblox.com/v1/avatar-rules", &payload); err != nil {
+	payload, err := service.readAvatarRules(ctx, accountID, version, "avatar-rules")
+	if err != nil {
 		return AvatarRules{}, err
 	}
 	if payload.Scales == nil {
@@ -334,15 +347,82 @@ func (service *Users) AvatarRules(ctx context.Context, accountID, version int64)
 			})
 		}
 	}
-	// The rules name asset types with spaces and hyphens, such as "T-Shirt
-	// Accessory", where the avatar and inventory APIs write TShirtAccessory.
-	typeNameReplacer := strings.NewReplacer(" ", "", "-", "")
 	for _, wearableType := range payload.WearableAssetTypes {
 		if wearableType.MaxNumber > 0 {
-			rules.MaxWornCountByTypeName[typeNameReplacer.Replace(wearableType.Name)] = wearableType.MaxNumber
+			rules.MaxWornCountByTypeName[ruleTypeNameReplacer.Replace(wearableType.Name)] = wearableType.MaxNumber
 		}
 	}
 	return rules, nil
+}
+
+// TryOnChange returns the avatar of the account with the asset put on, as a
+// change that a preview renders.
+func (service *Users) TryOnChange(ctx context.Context, accountID, version int64, category InventoryCategory, assetID int64) (AvatarChange, error) {
+	const endpoint = "avatar-try-on"
+	if !canTryOn(category) {
+		return AvatarChange{}, &roblox.Error{Kind: roblox.KindProtocol, Endpoint: endpoint, Message: "This item can't be tried on."}
+	}
+	typeName, maxWornCount, err := service.wearableAssetTypeOf(ctx, accountID, version, endpoint, assetID)
+	if err != nil {
+		return AvatarChange{}, err
+	}
+	var current avatarPayload
+	if err := service.readAvatarDetails(ctx, accountID, version, endpoint, "https://avatar.roblox.com/v2/avatar/avatar", &current); err != nil {
+		return AvatarChange{}, err
+	}
+	avatar, err := avatarOf(current)
+	if err != nil {
+		return AvatarChange{}, err
+	}
+	return AvatarChange{
+		AvatarType: avatar.AvatarType, Scales: avatar.Scales, BodyColors: avatar.BodyColors,
+		AssetIDs: assetIDsWearing(avatar.Assets, assetID, typeName, maxWornCount),
+	}, nil
+}
+
+// wearableAssetTypeOf reads the type name of the asset and how many assets of
+// the type an avatar may wear, or fails when an avatar cannot wear it.
+func (service *Users) wearableAssetTypeOf(ctx context.Context, accountID, version int64, endpoint string, assetID int64) (string, int, error) {
+	rules, err := service.readAvatarRules(ctx, accountID, version, endpoint)
+	if err != nil {
+		return "", 0, err
+	}
+	var assetDetails struct {
+		AssetTypeID int64 `json:"AssetTypeId"`
+	}
+	if err := service.readAccountDetails(ctx, accountID, version, endpoint, "https://economy.roblox.com/v2/assets/"+strconv.FormatInt(assetID, 10)+"/details", &assetDetails); err != nil {
+		return "", 0, err
+	}
+	for _, wearableType := range rules.WearableAssetTypes {
+		if wearableType.ID == assetDetails.AssetTypeID && wearableType.MaxNumber > 0 {
+			return ruleTypeNameReplacer.Replace(wearableType.Name), wearableType.MaxNumber, nil
+		}
+	}
+	return "", 0, &roblox.Error{Kind: roblox.KindProtocol, Endpoint: endpoint, Message: "Roblox doesn't let avatars wear this item."}
+}
+
+// assetIDsWearing lists the worn assets with the asset put on. When the avatar
+// already wears as many assets of the type as Roblox allows, the asset
+// replaces the ones that the avatar lists first.
+func assetIDsWearing(wornAssets []AvatarAsset, assetID int64, typeName string, maxWornCount int) []int64 {
+	sameTypeCount := 0
+	for _, asset := range wornAssets {
+		if asset.Item.TypeName == typeName && asset.Item.ItemID != assetID {
+			sameTypeCount++
+		}
+	}
+	replacedCount := max(sameTypeCount-maxWornCount+1, 0)
+	assetIDs := make([]int64, 0, len(wornAssets)+1)
+	for _, asset := range wornAssets {
+		isReplaced := asset.Item.TypeName == typeName && asset.Item.ItemID != assetID && replacedCount > 0
+		if isReplaced {
+			replacedCount--
+		}
+		if !isReplaced && asset.Item.ItemID != assetID {
+			assetIDs = append(assetIDs, asset.Item.ItemID)
+		}
+	}
+	return append(assetIDs, assetID)
 }
 
 // SaveAvatar replaces the whole avatar of the account in one request, as the
@@ -352,24 +432,9 @@ func (service *Users) SaveAvatar(ctx context.Context, accountID, version int64, 
 	if err := validateAvatarChange(change); err != nil {
 		return err
 	}
-	var current avatarPayload
-	if err := service.readAvatarDetails(ctx, accountID, version, "avatar-save", "https://avatar.roblox.com/v2/avatar/avatar", &current); err != nil {
+	assets, err := service.avatarUpdateAssetsOf(ctx, accountID, version, "avatar-save", change.AssetIDs)
+	if err != nil {
 		return err
-	}
-	if current.Assets == nil {
-		return invalidAvatar("avatar-save")
-	}
-	wornAssetByID := make(map[int64]avatarUpdateAsset, len(*current.Assets))
-	for _, listedAsset := range *current.Assets {
-		wornAssetByID[listedAsset.ID] = listedAsset.updateAsset()
-	}
-	assets := make([]avatarUpdateAsset, len(change.AssetIDs))
-	for index, assetID := range change.AssetIDs {
-		if wornAsset, isWorn := wornAssetByID[assetID]; isWorn {
-			assets[index] = wornAsset
-		} else {
-			assets[index] = avatarUpdateAsset{ID: assetID}
-		}
 	}
 	emotes := make([]avatarUpdateEmote, len(change.Emotes))
 	for index, emote := range change.Emotes {
@@ -378,6 +443,117 @@ func (service *Users) SaveAvatar(ctx context.Context, accountID, version int64, 
 	return service.updateAvatar(ctx, accountID, version, "avatar-save", avatarUpdate{
 		AvatarType: change.AvatarType, Scales: change.Scales, BodyColors: change.BodyColors, Assets: assets, Emotes: &emotes,
 	})
+}
+
+// avatarUpdateAssetsOf lists the assets with the meta that Roblox keeps for
+// the ones the account wears, such as the position of an accessory, so that a
+// change keeps it.
+func (service *Users) avatarUpdateAssetsOf(ctx context.Context, accountID, version int64, endpoint string, assetIDs []int64) ([]avatarUpdateAsset, error) {
+	var current avatarPayload
+	if err := service.readAvatarDetails(ctx, accountID, version, endpoint, "https://avatar.roblox.com/v2/avatar/avatar", &current); err != nil {
+		return nil, err
+	}
+	if current.Assets == nil {
+		return nil, invalidAvatar(endpoint)
+	}
+	wornAssetByID := make(map[int64]avatarUpdateAsset, len(*current.Assets))
+	for _, listedAsset := range *current.Assets {
+		wornAssetByID[listedAsset.ID] = listedAsset.updateAsset()
+	}
+	assets := make([]avatarUpdateAsset, len(assetIDs))
+	for index, assetID := range assetIDs {
+		if wornAsset, isWorn := wornAssetByID[assetID]; isWorn {
+			assets[index] = wornAsset
+		} else {
+			assets[index] = avatarUpdateAsset{ID: assetID}
+		}
+	}
+	return assets, nil
+}
+
+// AvatarPreviewFormat is what the render API makes of an avatar, by its
+// thumbnail type.
+type AvatarPreviewFormat string
+
+const (
+	AvatarPreviewImage AvatarPreviewFormat = "2dWebp"
+	// AvatarPreviewModel is a 3D model, whose address names a manifest that
+	// RenderedModel downloads.
+	AvatarPreviewModel AvatarPreviewFormat = "3d"
+)
+
+// RenderAvatarPreview asks Roblox to render the change in the format without
+// saving it. It returns the address of the render, or an empty address while
+// Roblox renders it, until a later call with the same change finds it.
+func (service *Users) RenderAvatarPreview(ctx context.Context, accountID, version int64, change AvatarChange, format AvatarPreviewFormat) (string, error) {
+	const endpoint = "avatar-preview"
+	if err := validateAvatarChange(change); err != nil {
+		return "", err
+	}
+	assets, err := service.avatarUpdateAssetsOf(ctx, accountID, version, endpoint, change.AssetIDs)
+	if err != nil {
+		return "", err
+	}
+	// The render API takes the avatar in the form of the v1 avatar API, with
+	// the depth that the avatar editor derives from the width.
+	type renderScales struct {
+		AvatarScales
+
+		Depth float64 `json:"depth"`
+	}
+	type renderAvatarType struct {
+		PlayerAvatarType AvatarType `json:"playerAvatarType"`
+	}
+	type renderDefinition struct {
+		Assets           []avatarUpdateAsset `json:"assets"`
+		BodyColors       avatarColorsUpdate  `json:"bodyColors"`
+		Scales           renderScales        `json:"scales"`
+		PlayerAvatarType renderAvatarType    `json:"playerAvatarType"`
+	}
+	type thumbnailConfig struct {
+		ThumbnailID   int    `json:"thumbnailId"`
+		ThumbnailType string `json:"thumbnailType"`
+		Size          string `json:"size"`
+	}
+	request := struct {
+		ThumbnailConfig  thumbnailConfig  `json:"thumbnailConfig"`
+		AvatarDefinition renderDefinition `json:"avatarDefinition"`
+	}{
+		ThumbnailConfig: thumbnailConfig{ThumbnailID: 3, ThumbnailType: string(format), Size: LargeThumbnailSize},
+		AvatarDefinition: renderDefinition{
+			Assets: assets, BodyColors: avatarColorsUpdateOf(change.BodyColors),
+			Scales:           renderScales{AvatarScales: change.Scales, Depth: change.Scales.Width},
+			PlayerAvatarType: renderAvatarType{PlayerAvatarType: change.AvatarType},
+		},
+	}
+	response, err := service.writeAccount(ctx, accountID, version, endpoint, http.MethodPost, "https://avatar.roblox.com/v1/avatar/render", request)
+	if remote, ok := errors.AsType[*roblox.Error](err); ok && remote.Status == http.StatusBadRequest {
+		return "", &roblox.Error{Kind: remote.Kind, Endpoint: endpoint, Status: remote.Status, RobloxCode: remote.RobloxCode, Message: "Roblox couldn't render this preview.", Cause: err}
+	}
+	if err != nil {
+		return "", err
+	}
+	var payload struct {
+		State    string `json:"state"`
+		ImageURL string `json:"imageUrl"`
+	}
+	if err := json.Unmarshal(response.Body, &payload); err != nil {
+		return "", &roblox.Error{Kind: roblox.KindProtocol, Endpoint: endpoint, Status: response.Status, Message: "Roblox returned an invalid avatar preview.", Cause: err}
+	}
+	switch {
+	case strings.EqualFold(payload.State, "Pending"):
+		return "", nil
+	case !strings.EqualFold(payload.State, "Completed") || !safeThumbnailURL(payload.ImageURL):
+		return "", &roblox.Error{Kind: roblox.KindProtocol, Endpoint: endpoint, Status: response.Status, Message: "Roblox couldn't render this preview."}
+	}
+	return payload.ImageURL, nil
+}
+
+// RedrawAvatarImage asks Roblox to render the avatar images of the account
+// again. Roblox limits how often it accepts the request.
+func (service *Users) RedrawAvatarImage(ctx context.Context, accountID, version int64) error {
+	_, err := service.writeAccount(ctx, accountID, version, "avatar-redraw", http.MethodPost, "https://avatar.roblox.com/v1/avatar/redraw-thumbnail", nil)
+	return err
 }
 
 // outfitPayload is an outfit as the v3 outfit details API lists it. Roblox
