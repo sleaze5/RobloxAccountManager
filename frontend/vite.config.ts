@@ -30,7 +30,10 @@ function installedVersion(name: string): string {
 export default defineConfig({
 	define: {
 		FRONTEND_DEPENDENCIES: JSON.stringify({
-			runtime: [{ name: "svelte", version: installedVersion("svelte") }],
+			runtime: [
+				{ name: "svelte", version: installedVersion("svelte") },
+				{ name: "three", version: installedVersion("three") },
+			],
 			build: [
 				{ name: "bun", version: process.versions.bun ?? "unavailable" },
 				{ name: "vite", version: installedVersion("vite") },
