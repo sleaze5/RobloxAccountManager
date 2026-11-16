@@ -48,14 +48,15 @@
 		confirmation = $state.raw<{ gamePass: GamePass; accountId: number } | null>(
 			null,
 		),
-		hasPriceChanged = $state(false)
-	// The listed copy, which a refresh or purchase updates.
-	const gamePass = $derived(
+		changeNotice = $state("")
+	// The listed copy, which a refresh or purchase updates. null once a refresh
+	// drops the pass.
+	const listedGamePass = $derived(
 			universeGamePasses.gamePasses?.find(
-				(listedGamePass) =>
-					listedGamePass.gamePassId === openedGamePass.gamePassId,
-			) ?? openedGamePass,
+				(gamePass) => gamePass.gamePassId === openedGamePass.gamePassId,
+			) ?? null,
 		),
+		gamePass = $derived(listedGamePass ?? openedGamePass),
 		shownGamePass = $derived(
 			view === "purchase" && confirmation ? confirmation.gamePass : gamePass,
 		),
@@ -65,29 +66,53 @@
 		isPending = $derived(
 			universeGamePasses.pendingPurchaseGamePassIds.has(gamePass.gamePassId),
 		),
-		canBuy = $derived(hasOwnership && !gamePass.isOwned && gamePass.isForSale),
+		canBuy = $derived(
+			hasOwnership &&
+				!!listedGamePass &&
+				!listedGamePass.isOwned &&
+				listedGamePass.isForSale,
+		),
 		priceLabel = $derived(salePriceLabel(gamePass, false))
 
 	onMount(() => {
 		void showView(openedView)
 	})
 
-	// A refresh that changes the price ends the confirmation.
 	$effect(() => {
-		const confirmedGamePass = confirmation?.gamePass
-		if (view !== "purchase" || !confirmedGamePass || universeGamePasses.isBuying) {
-			return
-		}
-		if (
-			gamePass.priceInRobux !== confirmedGamePass.priceInRobux ||
-			gamePass.isForSale !== confirmedGamePass.isForSale
-		) {
-			untrack(() => {
-				hasPriceChanged = true
-				void showView("details")
-			})
+		if (view === "purchase" && !universeGamePasses.isBuying) {
+			endStaleConfirmation()
 		}
 	})
+
+	// endStaleConfirmation returns to details when the account or the listed
+	// pass no longer matches the confirmation, and reports whether it did.
+	function endStaleConfirmation(): boolean {
+		if (!confirmation) return true
+		const confirmedGamePass = confirmation.gamePass
+		let notice: string
+		if (account.id !== confirmation.accountId || listedGamePass?.isOwned) {
+			notice = ""
+		} else if (!listedGamePass) {
+			notice = "This pass is no longer listed."
+		} else if (
+			listedGamePass.priceInRobux !== confirmedGamePass.priceInRobux ||
+			listedGamePass.isForSale !== confirmedGamePass.isForSale
+		) {
+			notice = "The price changed."
+		} else {
+			return false
+		}
+		untrack(() => {
+			changeNotice = notice
+			void showView("details")
+		})
+		return true
+	}
+
+	function reloadGamePasses(): void {
+		universeGamePasses.clearPurchaseError()
+		void universeGamePasses.refresh()
+	}
 
 	// Focus moves to the control that replaced the pressed one. Robux is reread
 	// each time, since it can change outside the app.
@@ -98,7 +123,7 @@
 				gamePass: $state.snapshot(gamePass),
 				accountId: account.id,
 			}
-			hasPriceChanged = false
+			changeNotice = ""
 			void universeGamePasses.loadRobuxBalance()
 		}
 		view = shownView
@@ -122,7 +147,7 @@
 	}
 
 	async function buy(): Promise<void> {
-		if (!confirmation) return
+		if (!confirmation || endStaleConfirmation()) return
 		const { gamePass: confirmedGamePass, accountId } = confirmation
 		if (!(await universeGamePasses.buy(confirmedGamePass, accountId))) return
 		if (openedView === "purchase") onClose()
@@ -188,9 +213,14 @@
 			fallbackIcon={ticketIcon}
 			priceInRobux={price} />
 		{#if universeGamePasses.purchaseError}
-			<p class="mt-3 notice-error" role="alert">
-				{universeGamePasses.purchaseError}
-			</p>
+			<div class="mt-3 flex items-center gap-3 notice-error" role="alert">
+				<span class="flex-1">{universeGamePasses.purchaseError}</span>
+				<button
+					class="button"
+					type="button"
+					disabled={universeGamePasses.loading}
+					onclick={reloadGamePasses}>Reload</button>
+			</div>
 		{/if}
 		<PurchaseAccountActions
 			{account}
@@ -252,10 +282,8 @@
 						<Icon svg={storefrontIcon} size={14} aria-hidden="true" />
 						{priceLabel}
 					</p>
-					{#if hasPriceChanged}
-						<p class="mt-1 notice-warning" role="status">
-							The price changed.
-						</p>
+					{#if changeNotice}
+						<p class="mt-1 notice-warning" role="status">{changeNotice}</p>
 					{/if}
 					{#if hasOwnership && gamePass.isOwned}
 						<ul

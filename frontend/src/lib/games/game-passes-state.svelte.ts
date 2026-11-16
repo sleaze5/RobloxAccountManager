@@ -21,7 +21,8 @@ export class UniverseGamePasses {
 	// The page reads accountId, so the scope is state.
 	#scope: AccountScope
 	#fetchedAt = 0
-	// Lists fetched before or just after a purchase can still read unowned.
+	// Lists fetched before or just after a purchase can still read unowned, so
+	// these read owned until Roblox first lists them as owned.
 	#boughtGamePassIds = new Set<number>()
 	#listRequest: ReturnType<typeof accountBackend.ListGamePasses> | null = null
 
@@ -78,8 +79,10 @@ export class UniverseGamePasses {
 			const listedGamePasses = gamePasses ?? []
 			this.#endDeliveredPurchases(listedGamePasses)
 			for (const gamePass of listedGamePasses) {
-				if (this.#boughtGamePassIds.has(gamePass.gamePassId))
-					gamePass.isOwned = true
+				if (!this.#boughtGamePassIds.has(gamePass.gamePassId)) continue
+				if (gamePass.isOwned)
+					this.#boughtGamePassIds.delete(gamePass.gamePassId)
+				else gamePass.isOwned = true
 			}
 			this.gamePasses = listedGamePasses
 			this.#fetchedAt = Date.now()

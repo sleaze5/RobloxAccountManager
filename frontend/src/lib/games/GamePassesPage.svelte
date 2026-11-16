@@ -78,10 +78,19 @@
 		void universeGamePasses.load()
 	})
 
-	// Scroll the pass opened from Inventory into view.
+	// Scroll the pass opened from Inventory into view once, when the list first
+	// loads. The page remounts on each navigation from Inventory.
+	let hasRevealedHighlight = false
 	$effect(() => {
 		const highlightedGamePassId = store.highlightedGamePassId
-		if (!highlightedGamePassId || !universeGamePasses.gamePasses) return
+		if (
+			hasRevealedHighlight ||
+			!highlightedGamePassId ||
+			!universeGamePasses.gamePasses
+		) {
+			return
+		}
+		hasRevealedHighlight = true
 		untrack(async () => {
 			filter = "all"
 			await tick()
