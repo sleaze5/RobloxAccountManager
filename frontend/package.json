@@ -29,7 +29,8 @@
 		"format:check": "bun fmt --check && bun fmt --config .oxfmtrc.json --check ../scripts"
 	},
 	"dependencies": {
-		"@wailsio/runtime": "3.1.0"
+		"@wailsio/runtime": "3.1.0",
+		"three": "0.187.0"
 	},
 	"devDependencies": {
 		"@phosphor-icons/core": "2.1.1",
@@ -39,6 +40,7 @@
 		"@tailwindcss/vite": "4.3.5",
 		"@tsconfig/svelte": "5.0.8",
 		"@types/bun": "1.4.4",
+		"@types/three": "0.187.0",
 		"@typescript/native": "npm:typescript@7.0.2",
 		"oxlint": "1.93.0",
 		"oxlint-tsgolint": "7.0.2006",

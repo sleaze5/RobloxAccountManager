@@ -36,6 +36,7 @@ The application bundles unmodified upright variable WOFF2 fonts from Vercel's Ge
 
 - [Phosphor Icons](https://phosphoricons.com/)
 - [Svelte](https://svelte.dev/)
+- [three.js](https://threejs.org/)
 - [Wails](https://wails.io/)
 - [SQLite](https://sqlite.org/) through [go-sqlite3](https://github.com/ncruces/go-sqlite3)
 - [Go](https://go.dev/) and its `golang.org/x` modules

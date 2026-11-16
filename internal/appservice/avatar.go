@@ -133,9 +133,12 @@ func (service *Service) SaveAvatar(ctx context.Context, accountID int64, change 
 }
 
 // WaitForAvatarImage reads the full-body image of the account after a change.
-// Roblox renders a changed avatar a few seconds after the save and answers
-// Pending until then, so the read repeats a bounded number of times.
-func (service *Service) WaitForAvatarImage(ctx context.Context, accountID int64) (string, error) {
+// Roblox renders a changed avatar a few seconds after the change. Until then
+// it answers Pending, or keeps serving the previous image, so the read repeats
+// a bounded number of times until the image differs from previousImageURL. A
+// change that keeps the look keeps the image, so the last image is returned
+// when every read returns the previous one.
+func (service *Service) WaitForAvatarImage(ctx context.Context, accountID int64, previousImageURL string) (string, error) {
 	const (
 		maxAttempts = 10
 		retryDelay  = 2 * time.Second
@@ -145,6 +148,7 @@ func (service *Service) WaitForAvatarImage(ctx context.Context, accountID int64)
 		return "", mapRepositoryError(err)
 	}
 	target := robloxservices.AvatarImageTarget(account.RobloxUserID)
+	latestImageURL := ""
 	for attempt := range maxAttempts {
 		if attempt > 0 {
 			select {
@@ -158,11 +162,63 @@ func (service *Service) WaitForAvatarImage(ctx context.Context, accountID int64)
 			service.logs.Module("application.avatar").WarnContext(ctx, "avatar image unavailable", "operation", "avatar-image", "account_id", accountID, "error", err)
 			return "", err
 		}
-		if imageURL := images[target]; imageURL != "" {
-			return imageURL, nil
+		latestImageURL = images[target]
+		if latestImageURL != "" && latestImageURL != previousImageURL {
+			return latestImageURL, nil
 		}
 	}
+	if latestImageURL != "" {
+		return latestImageURL, nil
+	}
 	return "", &roblox.Error{Kind: roblox.KindTimeout, Endpoint: "avatar-image", Message: "Roblox is still rendering the avatar. Refresh it in a minute."}
+}
+
+// RedrawAvatarImage asks Roblox to render the avatar images of the account
+// again, such as when an image shows an outdated look.
+func (service *Service) RedrawAvatarImage(ctx context.Context, accountID int64) error {
+	return service.editAccount(ctx, accountID, "avatar-redraw", "", func(ctx context.Context, version int64) error {
+		return service.users.RedrawAvatarImage(ctx, accountID, version)
+	})
+}
+
+// GetAvatarModel reads the 3D avatar of the user, as the account sees it.
+// Roblox renders the model on the first request and answers Pending until it
+// is ready, so the read repeats a bounded number of times.
+func (service *Service) GetAvatarModel(ctx context.Context, accountID, userID int64) (robloxservices.AvatarModel, error) {
+	const (
+		maxAttempts = 8
+		retryDelay  = 2 * time.Second
+	)
+	ctx, version, done, err := service.beginAccountSession(ctx, accountID, "avatar-model")
+	if err != nil {
+		return robloxservices.AvatarModel{}, err
+	}
+	defer done()
+	logger := service.logs.Module("application.avatar").With("operation", "avatar-model", "account_id", accountID)
+	for attempt := range maxAttempts {
+		if attempt > 0 {
+			select {
+			case <-ctx.Done():
+				return robloxservices.AvatarModel{}, &roblox.Error{Kind: roblox.KindCancelled, Endpoint: "avatar-model", Message: "The 3D avatar was not loaded.", Cause: ctx.Err()}
+			case <-time.After(retryDelay):
+			}
+		}
+		manifestURL, err := service.users.AvatarModelManifestURL(ctx, accountID, version, userID)
+		if err != nil {
+			logger.WarnContext(ctx, "avatar model unavailable", "error", err)
+			return robloxservices.AvatarModel{}, err
+		}
+		if manifestURL == "" {
+			continue
+		}
+		model, err := service.users.AvatarModel(ctx, manifestURL)
+		if err != nil {
+			logger.WarnContext(ctx, "avatar model files unavailable", "error", err)
+			return robloxservices.AvatarModel{}, err
+		}
+		return model, nil
+	}
+	return robloxservices.AvatarModel{}, &roblox.Error{Kind: roblox.KindTimeout, Endpoint: "avatar-model", Message: "Roblox is still rendering the 3D avatar. Try again in a minute."}
 }
 
 // GetAvatarOutfits reads one page of the outfits that the user created, with

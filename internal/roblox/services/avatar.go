@@ -380,6 +380,13 @@ func (service *Users) SaveAvatar(ctx context.Context, accountID, version int64, 
 	})
 }
 
+// RedrawAvatarImage asks Roblox to render the avatar images of the account
+// again. Roblox limits how often it accepts the request.
+func (service *Users) RedrawAvatarImage(ctx context.Context, accountID, version int64) error {
+	_, err := service.writeAccount(ctx, accountID, version, "avatar-redraw", http.MethodPost, "https://avatar.roblox.com/v1/avatar/redraw-thumbnail", nil)
+	return err
+}
+
 // outfitPayload is an outfit as the v3 outfit details API lists it. Roblox
 // lists the outfits of any user. Verified against the API on 2026-11-14.
 type outfitPayload struct {
