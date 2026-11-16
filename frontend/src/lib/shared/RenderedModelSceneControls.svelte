@@ -98,18 +98,16 @@
 	<div
 		bind:this={panel}
 		{id}
-		class="pointer-events-auto flex max-h-full w-56 animate-enter flex-col gap-2 overflow-y-auto rounded-lg border border-line-strong bg-overlay p-3 shadow-float"
+		class="pointer-events-auto flex max-h-full w-56 animate-enter flex-col gap-1 overflow-y-auto rounded-lg border border-line-strong bg-overlay p-3 shadow-float"
 		role="group"
 		aria-label="Camera and lighting"
 		data-closes-on-escape>
 		{#each sliderGroups as group (group.label)}
-			<div class="flex flex-col gap-1.5" role="group" aria-label={group.label}>
-				<div
-					class="flex items-center gap-2 text-2xs font-medium text-fg-muted"
-					aria-hidden="true">
-					{group.label}
-					<span class="h-px flex-1 bg-line-subtle"></span>
-				</div>
+			<div
+				class="flex flex-col gap-1.5 first:-mt-2"
+				role="group"
+				aria-label={group.label}>
+				<div class="menu-heading mx-0" aria-hidden="true">{group.label}</div>
 				{#each group.sliders as slider (slider.setting)}
 					{@const value = renderedModelScene[slider.setting]}
 					<label class="flex flex-col gap-0.5 text-xs">
