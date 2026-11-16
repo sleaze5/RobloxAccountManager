@@ -41,3 +41,4 @@ The application bundles unmodified upright variable WOFF2 fonts from Vercel's Ge
 - [SQLite](https://sqlite.org/) through [go-sqlite3](https://github.com/ncruces/go-sqlite3)
 - [Go](https://go.dev/) and its `golang.org/x` modules
 - [go-keyring](https://github.com/zalando/go-keyring), [dbus](https://github.com/godbus/dbus), [go-ole](https://github.com/go-ole/go-ole), and [xdg](https://github.com/adrg/xdg)
+- [compress](https://github.com/klauspost/compress), for reading Roblox model files
