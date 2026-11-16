@@ -33,8 +33,13 @@ export class UniverseGamePasses {
 		)
 	}
 
-	get accountId(): number {
-		return this.#scope.accountId
+	// hasOwnershipFor reports whether isOwned is loaded for the account.
+	hasOwnershipFor(accountId: number): boolean {
+		return (
+			accountId !== 0 &&
+			this.#scope.accountId === accountId &&
+			this.gamePasses !== null
+		)
 	}
 
 	// showAccount reloads for another account. The same account is a no-op, so

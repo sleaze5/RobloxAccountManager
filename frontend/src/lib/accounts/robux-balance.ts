@@ -15,6 +15,7 @@ export async function readRobuxBalance(
 		)
 		return profile.robux
 	} catch {
+		// The backend logs the failure.
 		return null
 	}
 }

@@ -10,7 +10,7 @@
 	import { onMount, tick, untrack } from "svelte"
 	import type { AccountStore } from "../accounts/account-store.svelte"
 	import type { GamePass } from "../backend/bridge"
-	import { formatRobux } from "../inventory/inventory-prices"
+	import { formatRobux, salePriceLabel } from "../inventory/inventory-prices"
 	import Icon from "../shared/Icon.svelte"
 	import ProfileImage from "../shared/ProfileImage.svelte"
 	import RefreshIcon from "../shared/RefreshIcon.svelte"
@@ -45,12 +45,7 @@
 			openedView: "details" | "purchase"
 		} | null>(null)
 	const account = $derived(accounts.selectedAccount),
-		// Ownership shows once the selected account's list arrives.
-		hasOwnership = $derived(
-			account.id !== 0 &&
-				universeGamePasses.accountId === account.id &&
-				!!universeGamePasses.gamePasses,
-		),
+		hasOwnership = $derived(universeGamePasses.hasOwnershipFor(account.id)),
 		gamePasses = $derived(universeGamePasses.gamePasses ?? []),
 		ownedCount = $derived(gamePasses.filter((gamePass) => gamePass.isOwned).length),
 		shownGamePasses = $derived(
@@ -270,11 +265,7 @@
 										>{gamePass.description}</span>
 								{/if}
 								<span class="font-mono text-2xs text-fg-faint"
-									>{gamePass.isForSale
-										? gamePass.priceInRobux === 0
-											? "Free"
-											: formatRobux(gamePass.priceInRobux, false)
-										: "Off sale"}</span>
+									>{salePriceLabel(gamePass, false)}</span>
 							</span>
 						</button>
 						{#if hasOwnership}

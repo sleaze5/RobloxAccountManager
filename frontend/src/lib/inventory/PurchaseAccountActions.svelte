@@ -26,16 +26,6 @@
 
 	// Buy stays enabled on a low balance, which can change outside the app.
 	// Roblox's refusal is shown instead.
-	const balanceAfterPurchase = $derived(
-			typeof robuxBalance === "number" ? robuxBalance - priceInRobux : null,
-		),
-		balanceDescription = $derived(
-			typeof robuxBalance !== "number" || balanceAfterPurchase === null
-				? ""
-				: priceInRobux === 0
-					? `${formatRobux(robuxBalance, false)} now`
-					: `${formatRobux(robuxBalance, false)} now, ${formatRobux(balanceAfterPurchase, false)} after`,
-		)
 </script>
 
 <div
@@ -47,9 +37,14 @@
 				>@{account.username}</span>
 			{#if robuxBalance === undefined}
 				<Skeleton className="w-28 text-2xs" label="Loading Robux" />
-			{:else if robuxBalance === null || balanceAfterPurchase === null}
+			{:else if robuxBalance === null}
 				<span class="truncate text-2xs text-fg-muted">Robux unavailable</span>
 			{:else}
+				{@const balanceAfterPurchase = robuxBalance - priceInRobux}
+				{@const balanceDescription =
+					priceInRobux === 0
+						? `${formatRobux(robuxBalance, false)} now`
+						: `${formatRobux(robuxBalance, false)} now, ${formatRobux(balanceAfterPurchase, false)} after`}
 				<span
 					class="flex min-w-0 items-center gap-1 font-mono text-2xs text-fg-muted"
 					data-tooltip={balanceDescription}>

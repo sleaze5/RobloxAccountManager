@@ -9,7 +9,7 @@
 	import { onMount, tick } from "svelte"
 	import type { Account } from "../accounts/account-model"
 	import type { GamePass } from "../backend/bridge"
-	import { formatRobux } from "../inventory/inventory-prices"
+	import { salePriceLabel } from "../inventory/inventory-prices"
 	import PurchaseAccountActions from "../inventory/PurchaseAccountActions.svelte"
 	import PurchaseItemSummary from "../inventory/PurchaseItemSummary.svelte"
 	import Dialog from "../shared/Dialog.svelte"
@@ -53,20 +53,12 @@
 		),
 		name = $derived(gamePass.name || "Unnamed game pass"),
 		price = $derived(gamePass.priceInRobux),
-		hasOwnership = $derived(
-			account.id !== 0 && universeGamePasses.accountId === account.id,
-		),
+		hasOwnership = $derived(universeGamePasses.hasOwnershipFor(account.id)),
 		isPending = $derived(
 			universeGamePasses.pendingPurchaseGamePassIds.has(gamePass.gamePassId),
 		),
 		canBuy = $derived(hasOwnership && !gamePass.isOwned && gamePass.isForSale),
-		priceLabel = $derived(
-			gamePass.isForSale
-				? price === 0
-					? "Free"
-					: formatRobux(price, false)
-				: "Off sale",
-		)
+		priceLabel = $derived(salePriceLabel(gamePass, false))
 
 	onMount(() => {
 		void showView(openedView)

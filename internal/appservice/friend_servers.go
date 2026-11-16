@@ -3,6 +3,7 @@ package appservice
 import (
 	"cmp"
 	"context"
+	"maps"
 	"slices"
 	"strings"
 
@@ -33,10 +34,11 @@ func (service *Service) ListFriendServers(ctx context.Context, accountID, placeI
 	if err != nil {
 		return nil, service.gamesError(ctx, "friend-servers", err)
 	}
-	friendIDsByJobID, playingFriendIDs := groupFriendsByJobID(presences, placeID)
-	if len(playingFriendIDs) == 0 {
+	friendIDsByJobID := groupFriendsByJobID(presences, placeID)
+	if len(friendIDsByJobID) == 0 {
 		return []games.FriendServer{}, nil
 	}
+	playingFriendIDs := slices.Concat(slices.Collect(maps.Values(friendIDsByJobID))...)
 	users, err := service.users.Names(ctx, playingFriendIDs)
 	if err != nil {
 		return nil, service.gamesError(ctx, "friend-servers", err)
@@ -59,19 +61,15 @@ func (service *Service) ListFriendServers(ctx context.Context, accountID, placeI
 	return servers, nil
 }
 
-// groupFriendsByJobID groups the place's playing friends by server, and
-// returns them all.
-func groupFriendsByJobID(presences []robloxservices.UserPresence, placeID int64) (map[string][]int64, []int64) {
+func groupFriendsByJobID(presences []robloxservices.UserPresence, placeID int64) map[string][]int64 {
 	friendIDsByJobID := map[string][]int64{}
-	playingFriendIDs := []int64{}
 	for _, presence := range presences {
 		if presence.UserPresenceType != robloxservices.PresenceTypeInGame || presence.PlaceID == nil || *presence.PlaceID != placeID || !games.ValidJobID(presence.GameID) {
 			continue
 		}
 		friendIDsByJobID[presence.GameID] = append(friendIDsByJobID[presence.GameID], presence.UserID)
-		playingFriendIDs = append(playingFriendIDs, presence.UserID)
 	}
-	return friendIDsByJobID, playingFriendIDs
+	return friendIDsByJobID
 }
 
 // friendServers sorts servers by friend count and drops unnamed friends.

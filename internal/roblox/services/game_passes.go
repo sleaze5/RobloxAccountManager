@@ -16,9 +16,8 @@ import (
 )
 
 const (
-	universeGamePassesPageSize = 100
-	// MaxUniverseGamePasses bounds a universe's read.
-	MaxUniverseGamePasses        = 500
+	universeGamePassesPageSize   = 100
+	maxUniverseGamePasses        = 500
 	maxGamePassNameLength        = 100
 	maxGamePassDescriptionLength = 1000
 	creatorGamesPageSize         = 50
@@ -31,7 +30,7 @@ const (
 // signed-in request. Verified on 2026-11-16.
 func (service *Games) GamePasses(ctx context.Context, universeID, accountID int64) ([]games.GamePass, error) {
 	gamePasses := []games.GamePass{}
-	err := readCursorPages("game-passes", MaxUniverseGamePasses/universeGamePassesPageSize, "This game has too many game passes.", func(pageToken string) (string, error) {
+	err := readCursorPages("game-passes", maxUniverseGamePasses/universeGamePassesPageSize, "This game has too many game passes.", func(pageToken string) (string, error) {
 		parameters := url.Values{"passView": {"Full"}, "pageSize": {strconv.Itoa(universeGamePassesPageSize)}}
 		if pageToken != "" {
 			parameters.Set("pageToken", pageToken)

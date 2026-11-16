@@ -95,8 +95,7 @@
 		{ item: InventoryItem; category: InventoryCategoryOption }[]
 	>([])
 
-	const accountUsername = $derived(account.username),
-		item = $derived(openedRelatedItems.at(-1)?.item ?? openedItem),
+	const item = $derived(openedRelatedItems.at(-1)?.item ?? openedItem),
 		category = $derived(openedRelatedItems.at(-1)?.category ?? openedCategory),
 		previousItemName = $derived(
 			(openedRelatedItems.at(-2)?.item ?? openedItem).name || "Unnamed item",
@@ -169,7 +168,7 @@
 		hasThreeDimensionalView = $derived(hasModel || isTryOnShown),
 		shownView = $derived<ImageView>(hasThreeDimensionalView ? view : "2D"),
 		isModelShown = $derived(shownView === "3D"),
-		tryOnLabel = $derived(`@${accountUsername}'s avatar wearing ${name}`),
+		tryOnLabel = $derived(`@${account.username}'s avatar wearing ${name}`),
 		tryOnImageUrl = $derived(inventory.tryOnImage.loadedFor(detailsKey) ?? ""),
 		tryOnError = $derived(inventory.tryOnImage.errorFor(detailsKey)),
 		tryOnModel = $derived(inventory.tryOnModel.loadedFor(detailsKey)),
@@ -380,7 +379,7 @@
 			type="button"
 			data-tooltip={isTryOnShown
 				? "Show the item without the avatar"
-				: `Show the item on @${accountUsername}'s saved avatar`}
+				: `Show the item on @${account.username}'s saved avatar`}
 			onclick={() => (isTryingOn = !isTryingOn)}
 			>{isTryOnShown ? "Take off" : "Try on"}</button>
 	{/if}
