@@ -35,7 +35,7 @@
 				? "Rendering…"
 				: view === "2D" && avatar.isRenderingPreview
 					? "Previewing…"
-					: view === "3D" && avatar.model.isLoading && avatar.model.model
+					: view === "3D" && avatar.model.isLoading && avatar.model.loaded
 						? "Loading…"
 						: "",
 		),
@@ -73,7 +73,7 @@
 {#snippet imageFrame()}
 	{#if view === "3D"}
 		<RenderedModelView
-			model={avatar.model.model}
+			model={avatar.model.loaded}
 			error={avatar.model.error}
 			{label}
 			onRetry={() => void avatar.loadModel(imageUrl)} />

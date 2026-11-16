@@ -149,23 +149,17 @@ func (service *Service) WaitForAvatarImage(ctx context.Context, accountID int64,
 	}
 	target := robloxservices.AvatarImageTarget(account.RobloxUserID)
 	latestImageURL := ""
-	for attempt := range maxAttempts {
-		if attempt > 0 {
-			select {
-			case <-ctx.Done():
-				return "", &roblox.Error{Kind: roblox.KindCancelled, Endpoint: "avatar-image", Message: "The avatar image was not loaded.", Cause: ctx.Err()}
-			case <-time.After(retryDelay):
-			}
-		}
+	_, err = pollUntilReady(ctx, "avatar-image", "The avatar image was not loaded.", maxAttempts, retryDelay, func() (bool, error) {
 		images, err := service.thumbnails.Images(ctx, []robloxservices.ThumbnailTarget{target}, robloxservices.LargeThumbnailSize)
 		if err != nil {
 			service.logs.Module("application.avatar").WarnContext(ctx, "avatar image unavailable", "operation", "avatar-image", "account_id", accountID, "error", err)
-			return "", err
+			return false, err
 		}
 		latestImageURL = images[target]
-		if latestImageURL != "" && latestImageURL != previousImageURL {
-			return latestImageURL, nil
-		}
+		return latestImageURL != "" && latestImageURL != previousImageURL, nil
+	})
+	if err != nil {
+		return "", err
 	}
 	if latestImageURL != "" {
 		return latestImageURL, nil
@@ -226,24 +220,23 @@ func (service *Service) renderAvatarPreview(ctx context.Context, accountID, vers
 		maxAttempts = 8
 		retryDelay  = 1500 * time.Millisecond
 	)
-	for attempt := range maxAttempts {
-		if attempt > 0 {
-			select {
-			case <-ctx.Done():
-				return "", &roblox.Error{Kind: roblox.KindCancelled, Endpoint: operation, Message: "The avatar preview was not loaded.", Cause: ctx.Err()}
-			case <-time.After(retryDelay):
-			}
-		}
-		imageURL, err := service.users.RenderAvatarPreview(ctx, accountID, version, change, robloxservices.AvatarPreviewImage)
+	imageURL := ""
+	isRendered, err := pollUntilReady(ctx, operation, "The avatar preview was not loaded.", maxAttempts, retryDelay, func() (bool, error) {
+		var err error
+		imageURL, err = service.users.RenderAvatarPreview(ctx, accountID, version, change, robloxservices.AvatarPreviewImage)
 		if err != nil {
 			service.logs.Module("application.avatar").WarnContext(ctx, "avatar preview unavailable", "operation", operation, "account_id", accountID, "error", err)
-			return "", err
+			return false, err
 		}
-		if imageURL != "" {
-			return imageURL, nil
-		}
+		return imageURL != "", nil
+	})
+	if err != nil {
+		return "", err
 	}
-	return "", &roblox.Error{Kind: roblox.KindTimeout, Endpoint: operation, Message: "Roblox is still rendering the preview. Try again in a moment."}
+	if !isRendered {
+		return "", &roblox.Error{Kind: roblox.KindTimeout, Endpoint: operation, Message: "Roblox is still rendering the preview. Try again in a moment."}
+	}
+	return imageURL, nil
 }
 
 // RedrawAvatarImage asks Roblox to render the avatar images of the account

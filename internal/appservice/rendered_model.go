@@ -23,28 +23,26 @@ func (service *Service) readRenderedModel(ctx context.Context, accountID int64, 
 	}
 	defer done()
 	logger := service.logs.Module("application.rendered-model").With("operation", operation, "account_id", accountID)
-	for attempt := range maxAttempts {
-		if attempt > 0 {
-			select {
-			case <-ctx.Done():
-				return robloxservices.RenderedModel{}, &roblox.Error{Kind: roblox.KindCancelled, Endpoint: operation, Message: "The 3D model was not loaded.", Cause: ctx.Err()}
-			case <-time.After(retryDelay):
-			}
-		}
-		manifestURL, err := readManifestURL(ctx, version)
+	manifestURL := ""
+	isRendered, err := pollUntilReady(ctx, operation, "The 3D model was not loaded.", maxAttempts, retryDelay, func() (bool, error) {
+		var err error
+		manifestURL, err = readManifestURL(ctx, version)
 		if err != nil {
 			logger.WarnContext(ctx, "rendered model unavailable", "error", err)
-			return robloxservices.RenderedModel{}, err
+			return false, err
 		}
-		if manifestURL == "" {
-			continue
-		}
-		model, err := service.users.RenderedModel(ctx, manifestURL)
-		if err != nil {
-			logger.WarnContext(ctx, "rendered model files unavailable", "error", err)
-			return robloxservices.RenderedModel{}, err
-		}
-		return model, nil
+		return manifestURL != "", nil
+	})
+	if err != nil {
+		return robloxservices.RenderedModel{}, err
 	}
-	return robloxservices.RenderedModel{}, &roblox.Error{Kind: roblox.KindTimeout, Endpoint: operation, Message: "Roblox is still rendering the 3D model. Try again in a minute."}
+	if !isRendered {
+		return robloxservices.RenderedModel{}, &roblox.Error{Kind: roblox.KindTimeout, Endpoint: operation, Message: "Roblox is still rendering the 3D model. Try again in a minute."}
+	}
+	model, err := service.users.RenderedModel(ctx, manifestURL)
+	if err != nil {
+		logger.WarnContext(ctx, "rendered model files unavailable", "error", err)
+		return robloxservices.RenderedModel{}, err
+	}
+	return model, nil
 }

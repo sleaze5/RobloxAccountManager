@@ -159,30 +159,13 @@
 		shownView = $derived<ImageView>(hasThreeDimensionalView ? view : "2D"),
 		isModelShown = $derived(shownView === "3D"),
 		tryOnLabel = $derived(`@${accountUsername}'s avatar wearing ${name}`),
-		isTryOnForItem = $derived(inventory.tryOnKey === detailsKey),
-		tryOnImageUrl = $derived(isTryOnForItem ? inventory.tryOnImageUrl : ""),
-		tryOnError = $derived(isTryOnForItem ? inventory.tryOnError : ""),
-		tryOnModel = $derived(
-			inventory.tryOnModel.modelKey === detailsKey
-				? inventory.tryOnModel.model
-				: null,
-		),
-		tryOnModelError = $derived(
-			inventory.tryOnModel.requestedKey === detailsKey
-				? inventory.tryOnModel.error
-				: "",
-		),
+		tryOnImageUrl = $derived(inventory.tryOnImage.loadedFor(detailsKey) ?? ""),
+		tryOnError = $derived(inventory.tryOnImage.errorFor(detailsKey)),
+		tryOnModel = $derived(inventory.tryOnModel.loadedFor(detailsKey)),
+		tryOnModelError = $derived(inventory.tryOnModel.errorFor(detailsKey)),
 		// The model of another item stays loaded until this item's model loads.
-		itemModel = $derived(
-			inventory.itemModel.modelKey === detailsKey
-				? inventory.itemModel.model
-				: null,
-		),
-		itemModelError = $derived(
-			inventory.itemModel.requestedKey === detailsKey
-				? inventory.itemModel.error
-				: "",
-		),
+		itemModel = $derived(inventory.itemModel.loadedFor(detailsKey)),
+		itemModelError = $derived(inventory.itemModel.errorFor(detailsKey)),
 		key = $derived(inventoryItemKey(item)),
 		canFavorite = $derived(isCatalogItem && !!market),
 		isFavorite = $derived(inventory.favoriteByItemKey.get(key)),

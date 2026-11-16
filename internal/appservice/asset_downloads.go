@@ -69,8 +69,10 @@ func (service *Service) readAssetFile(ctx context.Context, accountID int64, cate
 	return assetFile, nil
 }
 
-// DownloadsDirectory is where the save dialog for a download opens.
-func (service *Service) DownloadsDirectory() string { return appdata.DownloadsDirectory() }
+// DefaultDownloadDirectory is where the save dialog for a download opens.
+func (service *Service) DefaultDownloadDirectory() string {
+	return appdata.DefaultDownloadDirectory()
+}
 
 // DownloadFileName names the file of an item after the item, without the
 // characters that a file system rejects. An item without a usable name is

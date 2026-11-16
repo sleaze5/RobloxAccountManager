@@ -7,6 +7,7 @@ import type {
 	InventoryItem,
 	InventoryItemDetails,
 	RelatedInventoryItem,
+	RenderedModel,
 } from "../backend/bridge"
 import type { AccountStore } from "../accounts/account-store.svelte"
 import { AccountScope } from "../accounts/account-scope"
@@ -14,7 +15,7 @@ import type { NotificationCenter } from "../notifications/notification-center.sv
 import type { CancellableRequest } from "../shared/cancellable-request"
 import { errorMessage } from "../shared/errors"
 import { isFresh } from "../shared/freshness"
-import { RenderedModelLoad } from "../shared/rendered-model-load.svelte"
+import { KeyedLoad } from "../shared/keyed-load.svelte"
 import { assetCategories } from "./inventory-categories"
 
 interface InventoryCategoryPage {
@@ -73,21 +74,16 @@ export class InventoryState {
 	// The assets that each opened item includes or uses, by categoryItemKey.
 	// null means that the request failed.
 	relatedItemsByItemKey = $state.raw(new Map<string, RelatedInventoryItem[] | null>())
-	// The 3D model of the opened item. Its key is the categoryItemKey of the
-	// item.
-	readonly itemModel: RenderedModelLoad
-	// The avatar of the account wearing the opened item, which Roblox renders
-	// without saving it. tryOnKey is the categoryItemKey of the item.
-	tryOnKey = $state("")
-	tryOnImageUrl = $state("")
-	isLoadingTryOn = $state(false)
-	tryOnError = $state("")
-	// The same as a 3D model. Its key is the categoryItemKey of the item.
-	readonly tryOnModel: RenderedModelLoad
+	// The 3D model of the opened item, by the categoryItemKey of the item.
+	readonly itemModel: KeyedLoad<RenderedModel>
+	// The full-body image of the account wearing the opened item, which Roblox
+	// renders without saving it, by the categoryItemKey of the item.
+	readonly tryOnImage: KeyedLoad<string>
+	// The same as a 3D model.
+	readonly tryOnModel: KeyedLoad<RenderedModel>
 	readonly userId: number
 	readonly #scope: AccountScope
 	#request: ReturnType<typeof accountBackend.GetInventoryPage> | null = null
-	#tryOnRequest: ReturnType<typeof accountBackend.TryOnInventoryItem> | null = null
 	readonly #loadingRelatedItemKeys = new Set<string>()
 	readonly #notifications: NotificationCenter
 
@@ -99,8 +95,9 @@ export class InventoryState {
 	) {
 		this.#scope = new AccountScope(accountId, store)
 		this.#notifications = notifications
-		this.itemModel = new RenderedModelLoad(this.#scope)
-		this.tryOnModel = new RenderedModelLoad(this.#scope)
+		this.itemModel = new KeyedLoad(this.#scope)
+		this.tryOnImage = new KeyedLoad(this.#scope)
+		this.tryOnModel = new KeyedLoad(this.#scope)
 		this.userId = userId
 	}
 
@@ -204,39 +201,18 @@ export class InventoryState {
 		)
 	}
 
-	// tryOnItem renders the avatar of the account wearing the item, unless it
-	// is already shown or rendering. A failed render runs again on the next
-	// call.
+	// tryOnItem renders the avatar of the account wearing the item.
 	async tryOnItem(item: InventoryItem, category: InventoryCategory): Promise<void> {
-		const key = categoryItemKey(category, item.itemId)
-		if (!this.#scope.isCurrent) return
-		if (key === this.tryOnKey && (this.tryOnImageUrl || this.isLoadingTryOn)) return
-		void this.#tryOnRequest?.cancel()
-		const request = accountBackend.TryOnInventoryItem(
-			this.#scope.accountId,
-			category,
-			item.itemId,
+		await this.tryOnImage.load(
+			categoryItemKey(category, item.itemId),
+			() =>
+				accountBackend.TryOnInventoryItem(
+					this.#scope.accountId,
+					category,
+					item.itemId,
+				),
+			"Could not try on the item. Try again.",
 		)
-		this.#tryOnRequest = request
-		this.tryOnKey = key
-		this.tryOnImageUrl = this.tryOnError = ""
-		this.isLoadingTryOn = true
-		try {
-			const tryOnImageUrl = await this.#scope.track(request)
-			if (request !== this.#tryOnRequest || !this.#scope.isCurrent) return
-			this.tryOnImageUrl = tryOnImageUrl
-		} catch (error) {
-			if (request !== this.#tryOnRequest || !this.#scope.isCurrent) return
-			this.tryOnError = errorMessage(
-				error,
-				"Could not try on the item. Try again.",
-			)
-		} finally {
-			if (request === this.#tryOnRequest) {
-				this.#tryOnRequest = null
-				this.isLoadingTryOn = false
-			}
-		}
 	}
 
 	// loadRelatedItems reads the assets that the item includes or uses, unless
@@ -486,7 +462,7 @@ export class InventoryState {
 	}
 
 	dispose(): void {
-		this.#request = this.#tryOnRequest = null
+		this.#request = null
 		this.#scope.dispose()
 	}
 

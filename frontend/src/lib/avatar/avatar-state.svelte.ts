@@ -5,12 +5,13 @@ import type {
 	AvatarRules,
 	InventoryCategory,
 	InventoryItem,
+	RenderedModel,
 } from "../backend/bridge"
 import type { AccountStore } from "../accounts/account-store.svelte"
 import { AccountScope } from "../accounts/account-scope"
 import type { NotificationCenter } from "../notifications/notification-center.svelte"
 import { errorMessage } from "../shared/errors"
-import { RenderedModelLoad } from "../shared/rendered-model-load.svelte"
+import { KeyedLoad } from "../shared/keyed-load.svelte"
 import {
 	avatarChangeOf,
 	clearEmoteSlot,
@@ -61,7 +62,7 @@ export class AvatarState {
 	// The 3D avatar, which loads only when the page shows it. Its key is the
 	// full-body image that it matches, because Roblox renders both from the
 	// same avatar.
-	readonly model: RenderedModelLoad
+	readonly model: KeyedLoad<RenderedModel>
 	outfits = $state.raw<AvatarOutfit[] | null>(null)
 	outfitsNextCursor = $state("")
 	outfitsLoading = $state(false)
@@ -94,7 +95,7 @@ export class AvatarState {
 		notifications: NotificationCenter,
 	) {
 		this.#scope = new AccountScope(accountId, store)
-		this.model = new RenderedModelLoad(this.#scope)
+		this.model = new KeyedLoad(this.#scope)
 		this.#accounts = store
 		this.#notifications = notifications
 		this.userId = userId

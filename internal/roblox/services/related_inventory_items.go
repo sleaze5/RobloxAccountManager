@@ -2,8 +2,6 @@ package services
 
 import (
 	"context"
-	"errors"
-	"net/http"
 	"slices"
 	"strconv"
 	"sync"
@@ -81,7 +79,7 @@ func (service *Users) bundleAssetIDs(ctx context.Context, accountID, version, bu
 // dependencies that it can see.
 func (service *Users) assetDependencyIDs(ctx context.Context, accountID, version, assetID int64) ([]int64, error) {
 	modelFile, _, err := service.downloadAssetFile(ctx, accountID, version, relatedItemsEndpoint, assetID, maxDependencyFileBytes)
-	if remote, ok := errors.AsType[*roblox.Error](err); ok && (remote.Status == http.StatusForbidden || remote.Status == http.StatusNotFound) {
+	if _, isRefused := assetFileRefusal(err); isRefused {
 		return nil, nil
 	}
 	if err != nil {

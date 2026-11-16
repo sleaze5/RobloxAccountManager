@@ -5,6 +5,7 @@ import (
 	"compress/gzip"
 	"context"
 	"errors"
+	"fmt"
 	"io"
 	"net/http"
 	"strconv"
@@ -13,9 +14,10 @@ import (
 )
 
 const (
-	maxAssetFileBytes = 16 << 20
-	meshAssetTypeID   = 4
-	assetFileEndpoint = "asset-file"
+	maxAssetFileBytes         = 16 << 20
+	maxUnpackedAssetFileBytes = 64 << 20
+	meshAssetTypeID           = 4
+	assetFileEndpoint         = "asset-file"
 )
 
 // AssetFileFormat is the format of the file of an asset.
@@ -40,7 +42,11 @@ type AssetFile struct {
 	Format   AssetFileFormat
 }
 
-var errUnknownAssetFileFormat = errors.New("unknown asset file format")
+var (
+	gzipMagic                 = []byte{0x1f, 0x8b}
+	errUnknownAssetFileFormat = errors.New("unknown asset file format")
+	errOversizedAssetFile     = errors.New("unpacked asset file exceeds the size limit")
+)
 
 // canDownload reports whether the items of the category are assets whose
 // files the account can save. Places can be too large, and badges, game
@@ -58,7 +64,7 @@ func (service *Users) AssetFile(ctx context.Context, accountID, version int64, c
 		return AssetFile{}, &roblox.Error{Kind: roblox.KindProtocol, Endpoint: assetFileEndpoint, Message: "This item has no file to download."}
 	}
 	contents, assetTypeID, err := service.downloadAssetFile(ctx, accountID, version, assetFileEndpoint, assetID, maxAssetFileBytes)
-	if remote, ok := errors.AsType[*roblox.Error](err); ok && (remote.Status == http.StatusForbidden || remote.Status == http.StatusNotFound) {
+	if remote, isRefused := assetFileRefusal(err); isRefused {
 		return AssetFile{}, &roblox.Error{Kind: remote.Kind, Endpoint: assetFileEndpoint, Status: remote.Status, Message: "Roblox doesn't let this account download this item.", Cause: err}
 	}
 	if err != nil {
@@ -72,6 +78,16 @@ func (service *Users) AssetFile(ctx context.Context, accountID, version int64, c
 		return AssetFile{}, &roblox.Error{Kind: roblox.KindProtocol, Endpoint: assetFileEndpoint, Message: "This kind of item can't be downloaded yet.", Cause: err}
 	}
 	return AssetFile{Contents: contents, Format: format}, nil
+}
+
+// assetFileRefusal returns the error with which Roblox refuses to give the
+// account the file of an asset, which it answers with 403 or 404.
+func assetFileRefusal(err error) (*roblox.Error, bool) {
+	remote, ok := errors.AsType[*roblox.Error](err)
+	if ok && (remote.Status == http.StatusForbidden || remote.Status == http.StatusNotFound) {
+		return remote, true
+	}
+	return nil, false
 }
 
 // downloadAssetFile downloads the file of the asset and reports its asset type
@@ -108,13 +124,16 @@ func unpackGzip(contents []byte) ([]byte, error) {
 	}
 	reader, err := gzip.NewReader(bytes.NewReader(contents))
 	if err != nil {
-		return nil, errInvalidModelFile
+		return nil, fmt.Errorf("open gzipped asset file: %w", err)
 	}
 	// Reading one byte past the limit tells an oversized file apart from one
 	// that is exactly the limit, so that a cut-off file is never returned.
-	unpacked, err := io.ReadAll(io.LimitReader(reader, maxModelFileDecompressedBytes+1))
-	if err != nil || len(unpacked) > maxModelFileDecompressedBytes {
-		return nil, errInvalidModelFile
+	unpacked, err := io.ReadAll(io.LimitReader(reader, maxUnpackedAssetFileBytes+1))
+	if err != nil {
+		return nil, fmt.Errorf("unpack gzipped asset file: %w", err)
+	}
+	if len(unpacked) > maxUnpackedAssetFileBytes {
+		return nil, errOversizedAssetFile
 	}
 	return unpacked, nil
 }

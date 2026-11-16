@@ -300,7 +300,6 @@ func avatarItem(assetID int64, name, typeName string) InventoryItem {
 	}
 }
 
-// AvatarRules reads what the account may change on its avatar.
 type avatarRulesPayload struct {
 	Scales             *AvatarScaleLimits `json:"scales"`
 	WearableAssetTypes []struct {
@@ -326,6 +325,7 @@ func (service *Users) readAvatarRules(ctx context.Context, accountID, version in
 	return payload, err
 }
 
+// AvatarRules reads what the account may change on its avatar.
 func (service *Users) AvatarRules(ctx context.Context, accountID, version int64) (AvatarRules, error) {
 	payload, err := service.readAvatarRules(ctx, accountID, version, "avatar-rules")
 	if err != nil {

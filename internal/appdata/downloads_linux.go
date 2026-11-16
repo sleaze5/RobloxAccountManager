@@ -9,16 +9,14 @@ import (
 	"strings"
 )
 
-// DownloadsDirectory is where a save dialog for a download opens: the XDG
-// download folder, then ~/Downloads, then the home folder.
-func DownloadsDirectory() string {
-	home, _ := os.UserHomeDir()
-	for _, downloads := range []string{xdgDownloadDirectory(home), filepath.Join(home, "Downloads")} {
-		if info, err := os.Stat(downloads); downloads != "" && err == nil && info.IsDir() {
-			return downloads
-		}
+// downloadDirectoryCandidates lists the XDG download folder, then
+// ~/Downloads.
+func downloadDirectoryCandidates(home string) []string {
+	downloads := filepath.Join(home, "Downloads")
+	if xdgDownloads := xdgDownloadDirectory(home); xdgDownloads != "" {
+		return []string{xdgDownloads, downloads}
 	}
-	return home
+	return []string{downloads}
 }
 
 // xdgDownloadDirectory reads XDG_DOWNLOAD_DIR from user-dirs.dirs, which

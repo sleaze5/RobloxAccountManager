@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"regexp"
+	"slices"
 	"strconv"
 
 	"github.com/klauspost/compress/zstd"
@@ -21,7 +22,6 @@ var (
 	binaryModelFileSignature = []byte("<roblox!\x89\xff\x0d\x0a\x1a\x0a")
 	xmlModelFileSignature    = []byte("<roblox ")
 	zstdFrameMagic           = []byte{0x28, 0xb5, 0x2f, 0xfd}
-	gzipMagic                = []byte{0x1f, 0x8b}
 	// assetReferencePattern finds the asset IDs in content values, such as
 	// rbxassetid://123 and http://www.roblox.com/asset/?id=123.
 	assetReferencePattern = regexp.MustCompile(`(?i)(?:rbxassetid://|[?&]id=)(\d{1,19})`)
@@ -181,11 +181,7 @@ func assetIDsReferencedByText(text []byte, assetIDs []int64) []int64 {
 		if err != nil || assetID <= 0 {
 			continue
 		}
-		isListed := false
-		for _, listedAssetID := range assetIDs {
-			isListed = isListed || listedAssetID == assetID
-		}
-		if !isListed {
+		if !slices.Contains(assetIDs, assetID) {
 			assetIDs = append(assetIDs, assetID)
 		}
 		if len(assetIDs) >= maxReferencedAssetCount {

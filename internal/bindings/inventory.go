@@ -59,7 +59,7 @@ func (service *Service) DownloadInventoryItem(ctx context.Context, accountID int
 	if err != nil {
 		return "", err
 	}
-	path, err := chooseSaveFile(service.core.DownloadsDirectory(), service.core.DownloadFileName(itemName, itemID, file.Extension), file.FormatName, "*."+file.Extension)
+	path, err := chooseSaveFile(service.core.DefaultDownloadDirectory(), service.core.DownloadFileName(itemName, itemID, file.Extension), file.FormatName, "*."+file.Extension)
 	if err != nil {
 		return "", &roblox.Error{Kind: roblox.KindProtocol, Endpoint: "asset-download", Message: "The save dialog could not be opened.", Cause: err}
 	}
