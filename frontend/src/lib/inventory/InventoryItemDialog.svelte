@@ -1,5 +1,6 @@
 <script lang="ts">
 	import arrowsLeftRightIcon from "@phosphor-icons/core/regular/arrows-left-right.svg?raw"
+	import arrowsOutIcon from "@phosphor-icons/core/regular/arrows-out.svg?raw"
 	import barcodeIcon from "@phosphor-icons/core/regular/barcode.svg?raw"
 	import calendarDotsIcon from "@phosphor-icons/core/regular/calendar-dots.svg?raw"
 	import checkCircleFillIcon from "@phosphor-icons/core/fill/check-circle-fill.svg?raw"
@@ -32,6 +33,7 @@
 	} from "../backend/bridge"
 	import type { InventoryItem } from "../backend/bridge"
 	import Dialog from "../shared/Dialog.svelte"
+	import ExpandedImageDialog from "../shared/ExpandedImageDialog.svelte"
 	import Icon from "../shared/Icon.svelte"
 	import ImageViewToggle from "../shared/ImageViewToggle.svelte"
 	import type { ImageView } from "../shared/ImageViewToggle.svelte"
@@ -71,7 +73,8 @@
 
 	let confirmation = $state<"deletion" | "purchase" | null>(null),
 		card = $state<HTMLDivElement | undefined>(undefined),
-		view = $state<ImageView>("2D")
+		view = $state<ImageView>("2D"),
+		isExpanded = $state(false)
 
 	const exactNumbers = new Intl.NumberFormat("en-US"),
 		percent = new Intl.NumberFormat("en-US", {
@@ -91,7 +94,14 @@
 			"flex min-w-0 flex-wrap items-center gap-1 font-mono text-2xs wrap-anywhere text-fg-muted",
 		sectionHeadingClass = "text-xs font-semibold text-fg-muted",
 		name = $derived(item.name || "Unnamed item"),
-		typeLabel = $derived(inventoryTypeLabel(item.typeName) || category.label),
+		subtypeLabel = $derived(inventoryTypeLabel(item.typeName)),
+		// The category names the kind of item and the type narrows it, as in
+		// "Accessories; Shoulder".
+		typeLabel = $derived(
+			subtypeLabel && subtypeLabel !== category.label
+				? [category.label, subtypeLabel].join("; ")
+				: category.label,
+		),
 		market = $derived(item.market),
 		badge = $derived(item.badge),
 		isCatalogItem = $derived(!!item.catalogItemType),
@@ -108,6 +118,17 @@
 		imageUrl = $derived(details?.largeImageUrl || item.imageUrl),
 		hasModel = $derived(!!details?.hasModel),
 		isModelShown = $derived(hasModel && view === "3D"),
+		// The model of another item stays loaded until this item's model loads.
+		itemModel = $derived(
+			inventory.itemModel.modelKey === detailsKey
+				? inventory.itemModel.model
+				: null,
+		),
+		itemModelError = $derived(
+			inventory.itemModel.requestedKey === detailsKey
+				? inventory.itemModel.error
+				: "",
+		),
 		key = $derived(inventoryItemKey(item)),
 		canFavorite = $derived(isCatalogItem && !!market),
 		isFavorite = $derived(inventory.favoriteByItemKey.get(key)),
@@ -257,7 +278,7 @@
 {/snippet}
 
 <Dialog
-	class={confirmation ? "max-w-md text-left" : "max-w-2xl text-left"}
+	class={confirmation ? "max-w-md text-left" : "max-w-3xl text-left"}
 	role={confirmation ? "alertdialog" : "dialog"}
 	aria-labelledby={confirmation
 		? "inventory-confirmation-title"
@@ -394,18 +415,14 @@
 	{:else}
 		<div class="flex flex-col gap-4">
 			<div class="flex items-start gap-4">
-				<div class="flex w-48 shrink-0 flex-col gap-2">
+				<div class="flex w-72 shrink-0 flex-col gap-2">
 					<div
-						class="relative grid size-48 place-items-center overflow-hidden rounded-lg border border-line-subtle bg-raised"
+						class="relative grid size-72 place-items-center overflow-hidden rounded-lg border border-line-subtle bg-raised"
 						aria-hidden={isModelShown ? undefined : true}>
 						{#if isModelShown}
 							<RenderedModelView
-								model={inventory.itemModel.modelKey === detailsKey
-									? inventory.itemModel.model
-									: null}
-								error={inventory.itemModel.requestedKey === detailsKey
-									? inventory.itemModel.error
-									: ""}
+								model={itemModel}
+								error={itemModelError}
 								label={name}
 								onRetry={() =>
 									void inventory.loadItemModel(item, category.id)} />
@@ -421,9 +438,19 @@
 							</span>
 						{/if}
 					</div>
-					{#if hasModel}
-						<ImageViewToggle bind:view />
-					{/if}
+					<div class="flex items-center gap-2">
+						{#if hasModel}
+							<ImageViewToggle bind:view />
+						{/if}
+						<button
+							class="button-icon"
+							type="button"
+							aria-label="Expand item image"
+							data-tooltip="Expand"
+							onclick={() => (isExpanded = true)}>
+							<Icon svg={arrowsOutIcon} size={16} aria-hidden="true" />
+						</button>
+					</div>
 				</div>
 
 				<div class="flex min-w-0 flex-1 flex-col gap-1">
@@ -488,6 +515,20 @@
 										svg={magnifyingGlassIcon}
 										size={16}
 										aria-hidden="true" />
+								</button>
+							{/if}
+							{#if canDelete}
+								<button
+									class="button"
+									type="button"
+									data-begin-deletion
+									disabled={isBusy}
+									onclick={() => void showConfirmation("deletion")}>
+									<Icon
+										svg={trashIcon}
+										size={16}
+										aria-hidden="true" />
+									Delete
 								</button>
 							{/if}
 							<button
@@ -748,19 +789,18 @@
 		{#if inventory.itemActionError}
 			<p class="mt-3 notice-error" role="alert">{inventory.itemActionError}</p>
 		{/if}
-
-		{#if canDelete}
-			<div class="dialog-actions">
-				<button
-					class="mr-auto button"
-					type="button"
-					data-begin-deletion
-					disabled={isBusy}
-					onclick={() => void showConfirmation("deletion")}>
-					<Icon svg={trashIcon} size={16} aria-hidden="true" />
-					Delete…
-				</button>
-			</div>
-		{/if}
 	{/if}
 </Dialog>
+
+{#if isExpanded && !confirmation}
+	<ExpandedImageDialog
+		label={name}
+		{imageUrl}
+		fallbackIcon={category.icon}
+		bind:view
+		{hasModel}
+		model={itemModel}
+		modelError={itemModelError}
+		onRetryModel={() => void inventory.loadItemModel(item, category.id)}
+		onClose={() => (isExpanded = false)} />
+{/if}

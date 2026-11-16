@@ -3,6 +3,7 @@
 		AmbientLight,
 		DirectionalLight,
 		LoadingManager,
+		MathUtils,
 		Mesh,
 		PerspectiveCamera,
 		Scene,
@@ -14,7 +15,10 @@
 	import { OrbitControls } from "three/addons/controls/OrbitControls.js"
 	import { MTLLoader } from "three/addons/loaders/MTLLoader.js"
 	import { OBJLoader } from "three/addons/loaders/OBJLoader.js"
+	import { untrack } from "svelte"
 	import type { RenderedModel } from "../backend/bridge"
+	import { renderedModelScene } from "./rendered-model-scene.svelte"
+	import type { RenderedModelScene } from "./rendered-model-scene.svelte"
 
 	// label names what the model shows, such as "@builderman's avatar".
 	let {
@@ -24,9 +28,14 @@
 	}: { model: RenderedModel; label: string; onerror: () => void } = $props()
 
 	let canvas = $state<HTMLCanvasElement>()
+	// applyScene changes the camera and the lights of the built scene.
+	let applyScene: ((sceneSettings: RenderedModelScene) => void) | undefined
 
 	const turnStepRadians = Math.PI / 12,
 		zoomStepFactor = 1.15,
+		panStepShare = 0.05,
+		keyLightIntensity = 1.6,
+		ambientLightIntensity = 1.4,
 		upAxis = new Vector3(0, 1, 0)
 
 	$effect(() => {
@@ -42,7 +51,8 @@
 		}
 		renderer.setPixelRatio(window.devicePixelRatio)
 		let isDisposed = false
-		const loadingManager = new LoadingManager(),
+		const initialScene = untrack(() => ({ ...renderedModelScene })),
+			loadingManager = new LoadingManager(),
 			scene = new Scene(),
 			modelObject = parseModelObject(model, loadingManager),
 			center = new Vector3(
@@ -56,30 +66,43 @@
 				model.bounds.maximum.z - model.bounds.minimum.z,
 			).length(),
 			camera = new PerspectiveCamera(
-				model.camera.fieldOfViewDegrees,
+				initialScene.fieldOfViewDegrees,
 				1,
 				0.1,
 				1000,
 			),
+			// Roblox places the camera for its own field of view, so the camera
+			// moves to keep the model framed at the chosen one.
+			framingScale =
+				Math.tan(MathUtils.degToRad(model.camera.fieldOfViewDegrees) / 2) /
+				Math.tan(MathUtils.degToRad(initialScene.fieldOfViewDegrees) / 2),
 			initialCameraPosition = new Vector3(
 				model.camera.position.x,
 				model.camera.position.y,
 				model.camera.position.z,
-			),
-			cameraLight = new DirectionalLight(0xffffff, 1.6)
+			)
+				.sub(center)
+				.multiplyScalar(framingScale)
+				.add(center),
+			initialDistance = initialCameraPosition.distanceTo(center),
+			keyLight = new DirectionalLight(0xffffff, keyLightIntensity),
+			ambientLight = new AmbientLight(0xffffff, ambientLightIntensity)
 		scene.add(modelObject)
-		scene.add(new AmbientLight(0xffffff, 1.4))
-		cameraLight.position.set(1, 1, 2)
-		camera.add(cameraLight)
+		scene.add(ambientLight)
+		// The light and its target move with the camera, so that the light angle
+		// stays relative to the view.
+		keyLight.target.position.set(0, 0, -initialDistance)
+		camera.add(keyLight, keyLight.target)
 		scene.add(camera)
 		camera.position.copy(initialCameraPosition)
 
-		const controls = new OrbitControls(camera, canvas),
-			initialDistance = initialCameraPosition.distanceTo(center)
+		const controls = new OrbitControls(camera, canvas)
 		controls.target.copy(center)
-		controls.enablePan = false
-		controls.minDistance = Math.min(boundsSize * 0.6, initialDistance)
-		controls.maxDistance = Math.max(initialDistance * 2, controls.minDistance)
+		// OrbitControls moves the view while Control, Command, or Shift is held
+		// during a drag, and on a right drag.
+		controls.enablePan = true
+		controls.minDistance = Math.min(boundsSize * 0.3, initialDistance)
+		controls.maxDistance = Math.max(initialDistance * 3, controls.minDistance)
 
 		const render = (): void => {
 			if (!isDisposed) renderer.render(scene, camera)
@@ -89,6 +112,22 @@
 		// only when the view changes.
 		loadingManager.onLoad = render
 		controls.update()
+
+		applyScene = (sceneSettings) => {
+			camera.fov = sceneSettings.fieldOfViewDegrees
+			camera.updateProjectionMatrix()
+			keyLight.intensity = keyLightIntensity * sceneSettings.lightIntensity
+			ambientLight.intensity = ambientLightIntensity * sceneSettings.brightness
+			const lightAngleRadians = MathUtils.degToRad(
+				sceneSettings.lightAngleDegrees,
+			)
+			keyLight.position.set(
+				Math.sin(lightAngleRadians) * initialDistance,
+				initialDistance / 2,
+				(Math.cos(lightAngleRadians) - 1) * initialDistance,
+			)
+			render()
+		}
 
 		const resizeObserver = new ResizeObserver(([entry]) => {
 			if (!entry) return
@@ -101,6 +140,8 @@
 		})
 		resizeObserver.observe(canvas)
 
+		const cameraAxis = (column: number): Vector3 =>
+			new Vector3().setFromMatrixColumn(camera.matrixWorld, column).normalize()
 		const turnCamera = (axis: Vector3, angle: number): void => {
 			const offset = camera.position.clone().sub(controls.target)
 			offset.applyAxisAngle(axis, angle)
@@ -113,21 +154,33 @@
 			camera.position.copy(controls.target).add(offset)
 			controls.update()
 		}
-		const rightAxis = (): Vector3 =>
-			new Vector3().setFromMatrixColumn(camera.matrixWorld, 0).normalize()
+		const panCamera = (rightSteps: number, upSteps: number): void => {
+			const step = camera.position.distanceTo(controls.target) * panStepShare,
+				offset = cameraAxis(0)
+					.multiplyScalar(rightSteps * step)
+					.add(cameraAxis(1).multiplyScalar(upSteps * step))
+			camera.position.add(offset)
+			controls.target.add(offset)
+			controls.update()
+		}
 		const handleKeydown = (event: KeyboardEvent): void => {
+			const isPanning = event.ctrlKey || event.metaKey
 			switch (event.key) {
 				case "ArrowLeft":
-					turnCamera(upAxis, -turnStepRadians)
+					if (isPanning) panCamera(1, 0)
+					else turnCamera(upAxis, -turnStepRadians)
 					break
 				case "ArrowRight":
-					turnCamera(upAxis, turnStepRadians)
+					if (isPanning) panCamera(-1, 0)
+					else turnCamera(upAxis, turnStepRadians)
 					break
 				case "ArrowUp":
-					turnCamera(rightAxis(), -turnStepRadians)
+					if (isPanning) panCamera(0, -1)
+					else turnCamera(cameraAxis(0), -turnStepRadians)
 					break
 				case "ArrowDown":
-					turnCamera(rightAxis(), turnStepRadians)
+					if (isPanning) panCamera(0, 1)
+					else turnCamera(cameraAxis(0), turnStepRadians)
 					break
 				case "+":
 				case "=":
@@ -138,6 +191,7 @@
 					break
 				case "Home":
 					camera.position.copy(initialCameraPosition)
+					controls.target.copy(center)
 					controls.update()
 					break
 				default:
@@ -149,6 +203,7 @@
 
 		return () => {
 			isDisposed = true
+			applyScene = undefined
 			canvas?.removeEventListener("keydown", handleKeydown)
 			resizeObserver.disconnect()
 			controls.removeEventListener("change", render)
@@ -159,6 +214,12 @@
 			// and browsers allow only a few at a time.
 			renderer.forceContextLoss()
 		}
+	})
+
+	// The scene follows the camera and lighting controls without rebuilding.
+	$effect(() => {
+		const sceneSettings = { ...renderedModelScene }
+		applyScene?.(sceneSettings)
 	})
 
 	// parseModelObject builds the meshes of the model. The MTL names each
@@ -208,5 +269,5 @@
 	bind:this={canvas}
 	class="relative size-full animate-pop cursor-grab rounded-lg outline-offset-2 focus-visible:outline-2 focus-visible:outline-focus active:cursor-grabbing"
 	tabindex="0"
-	aria-label={`3D view of ${label}. Drag or use the arrow keys to turn it, and scroll or use plus and minus to zoom.`}
-	data-tooltip="Drag to turn, scroll to zoom"></canvas>
+	aria-label={`3D view of ${label}. Drag or use the arrow keys to turn it, hold Control while you drag or press the arrow keys to move it, and scroll or use plus and minus to zoom. Home resets the view.`}
+	data-tooltip="Drag to turn, Ctrl+drag to move, scroll to zoom"></canvas>

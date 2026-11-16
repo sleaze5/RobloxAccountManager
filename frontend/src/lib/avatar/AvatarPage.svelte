@@ -240,7 +240,7 @@
 
 			<div class="@container flex min-w-0 flex-1 flex-col">
 				<div
-					class="flex h-9 shrink-0 items-stretch border-b border-line-subtle bg-surface"
+					class="flex h-9 shrink-0 items-stretch overflow-x-auto border-b border-line-subtle bg-surface"
 					role="tablist"
 					aria-label="Avatar sections"
 					tabindex="-1"

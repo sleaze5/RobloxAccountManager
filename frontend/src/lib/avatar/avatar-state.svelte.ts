@@ -53,6 +53,11 @@ export class AvatarState {
 	// Whether Roblox still renders the full-body image after a change.
 	isRenderingImage = $state(false)
 	isRedrawingImage = $state(false)
+	// The full-body image of the draft, which Roblox renders without saving
+	// the draft. It stays while the preview of a newer draft renders.
+	previewImageUrl = $state("")
+	isRenderingPreview = $state(false)
+	previewError = $state("")
 	// The 3D avatar, which loads only when the page shows it. Its key is the
 	// full-body image that it matches, because Roblox renders both from the
 	// same avatar.
@@ -74,6 +79,9 @@ export class AvatarState {
 	readonly #scope: AccountScope
 	readonly #accounts: AccountStore
 	readonly #notifications: NotificationCenter
+	// The draft that previewImageUrl or the running preview request shows.
+	#previewDraft = $state.raw<AvatarDraft | null>(null)
+	#previewRequest: ReturnType<typeof accountBackend.RenderAvatarPreview> | null = null
 	#loadRequest: ReturnType<typeof accountBackend.GetAvatar> | null = null
 	#outfitsRequest: ReturnType<typeof accountBackend.GetAvatarOutfits> | null = null
 
@@ -101,6 +109,15 @@ export class AvatarState {
 			!!this.draft &&
 			!this.isAvatarOutdated &&
 			isDraftChanged(this.avatar, this.draft)
+		)
+	}
+
+	// Whether previewImageUrl shows the current draft.
+	get isPreviewCurrent(): boolean {
+		return (
+			this.isChanged &&
+			!!this.previewImageUrl &&
+			this.#previewDraft === this.draft
 		)
 	}
 
@@ -190,6 +207,7 @@ export class AvatarState {
 	discardChanges(): void {
 		if (this.avatar && !this.isDraftLocked) {
 			this.draft = draftOf(this.avatar)
+			this.#clearPreview()
 			this.saveError = ""
 		}
 	}
@@ -383,6 +401,47 @@ export class AvatarState {
 		}
 	}
 
+	// renderPreview asks Roblox to render the draft without saving it, unless
+	// the preview of the draft is already shown or rendering.
+	async renderPreview(): Promise<void> {
+		const draft = this.draft
+		if (!this.#scope.isCurrent || !this.isEditable || !draft || !this.isChanged) {
+			return
+		}
+		if (
+			draft === this.#previewDraft &&
+			(this.previewImageUrl || this.isRenderingPreview)
+		) {
+			return
+		}
+		void this.#previewRequest?.cancel()
+		const request = accountBackend.RenderAvatarPreview(
+			this.#scope.accountId,
+			avatarChangeOf(draft),
+		)
+		this.#previewRequest = request
+		this.#previewDraft = draft
+		this.isRenderingPreview = true
+		this.previewError = ""
+		try {
+			const previewImageUrl = await this.#scope.track(request)
+			if (request !== this.#previewRequest || !this.#scope.isCurrent) return
+			this.previewImageUrl = previewImageUrl
+		} catch (error) {
+			if (request !== this.#previewRequest || !this.#scope.isCurrent) return
+			this.previewImageUrl = ""
+			this.previewError = errorMessage(
+				error,
+				"Could not preview the changes. Save to see them.",
+			)
+		} finally {
+			if (request === this.#previewRequest) {
+				this.#previewRequest = null
+				this.isRenderingPreview = false
+			}
+		}
+	}
+
 	// loadModel reads the 3D avatar that matches the shown full-body image.
 	async loadModel(shownImageUrl: string): Promise<void> {
 		await this.model.load(
@@ -393,7 +452,7 @@ export class AvatarState {
 	}
 
 	dispose(): void {
-		this.#loadRequest = this.#outfitsRequest = null
+		this.#loadRequest = this.#outfitsRequest = this.#previewRequest = null
 		this.#scope.dispose()
 	}
 
@@ -405,11 +464,19 @@ export class AvatarState {
 			? avatar
 			: { ...avatar, imageUrl: previousImageUrl }
 		this.draft = draftOf(avatar)
+		this.#clearPreview()
 		this.saveError = ""
 		this.isAvatarOutdated = false
 		if (!avatar.imageUrl && this.isEditable) {
 			void this.#waitForImage(previousImageUrl)
 		}
+	}
+
+	#clearPreview(): void {
+		void this.#previewRequest?.cancel()
+		this.#previewRequest = this.#previewDraft = null
+		this.previewImageUrl = this.previewError = ""
+		this.isRenderingPreview = false
 	}
 
 	// #showChangedAvatar also shows the new image in the account list. Roblox

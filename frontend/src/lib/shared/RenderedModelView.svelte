@@ -1,7 +1,10 @@
 <script lang="ts">
 	import cubeIcon from "@phosphor-icons/core/regular/cube.svg?raw"
+	import slidersHorizontalIcon from "@phosphor-icons/core/regular/sliders-horizontal.svg?raw"
+	import { tick } from "svelte"
 	import type { RenderedModel } from "../backend/bridge"
 	import Icon from "./Icon.svelte"
+	import RenderedModelSceneControls from "./RenderedModelSceneControls.svelte"
 
 	// RenderedModelView fills its container with a 3D model, or with its
 	// loading or error state. label names what the model shows, such as
@@ -18,7 +21,11 @@
 		onRetry: () => void
 	} = $props()
 
-	let isWebGLUnavailable = $state(false)
+	let isWebGLUnavailable = $state(false),
+		isSceneControlsOpen = $state(false),
+		sceneButton = $state<HTMLButtonElement>()
+
+	const sceneControlsId = $props.id()
 
 	// three.js is large, so the viewer loads only when a model is shown.
 	const viewerImport = $derived(
@@ -26,6 +33,12 @@
 			? import("./RenderedModelViewer.svelte")
 			: undefined,
 	)
+
+	async function closeSceneControls(): Promise<void> {
+		isSceneControlsOpen = false
+		await tick()
+		sceneButton?.focus()
+	}
 </script>
 
 {#snippet unavailable(message: string, canRetry: boolean)}
@@ -53,6 +66,23 @@
 				{label}
 				onerror={() => (isWebGLUnavailable = true)} />
 		{/key}
+		<button
+			bind:this={sceneButton}
+			class="absolute top-2 right-2 z-10 button-icon bg-overlay"
+			type="button"
+			aria-label="Camera and lighting"
+			aria-expanded={isSceneControlsOpen}
+			aria-controls={sceneControlsId}
+			data-open={isSceneControlsOpen || undefined}
+			data-tooltip="Camera and lighting"
+			onclick={() => (isSceneControlsOpen = !isSceneControlsOpen)}>
+			<Icon svg={slidersHorizontalIcon} size={16} aria-hidden="true" />
+		</button>
+		{#if isSceneControlsOpen}
+			<RenderedModelSceneControls
+				id={sceneControlsId}
+				onClose={() => void closeSceneControls()} />
+		{/if}
 	{:catch}
 		{@render unavailable("The 3D viewer couldn't start.", false)}
 	{/await}

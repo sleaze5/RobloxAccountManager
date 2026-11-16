@@ -352,24 +352,9 @@ func (service *Users) SaveAvatar(ctx context.Context, accountID, version int64, 
 	if err := validateAvatarChange(change); err != nil {
 		return err
 	}
-	var current avatarPayload
-	if err := service.readAvatarDetails(ctx, accountID, version, "avatar-save", "https://avatar.roblox.com/v2/avatar/avatar", &current); err != nil {
+	assets, err := service.avatarUpdateAssetsOf(ctx, accountID, version, "avatar-save", change.AssetIDs)
+	if err != nil {
 		return err
-	}
-	if current.Assets == nil {
-		return invalidAvatar("avatar-save")
-	}
-	wornAssetByID := make(map[int64]avatarUpdateAsset, len(*current.Assets))
-	for _, listedAsset := range *current.Assets {
-		wornAssetByID[listedAsset.ID] = listedAsset.updateAsset()
-	}
-	assets := make([]avatarUpdateAsset, len(change.AssetIDs))
-	for index, assetID := range change.AssetIDs {
-		if wornAsset, isWorn := wornAssetByID[assetID]; isWorn {
-			assets[index] = wornAsset
-		} else {
-			assets[index] = avatarUpdateAsset{ID: assetID}
-		}
 	}
 	emotes := make([]avatarUpdateEmote, len(change.Emotes))
 	for index, emote := range change.Emotes {
@@ -378,6 +363,96 @@ func (service *Users) SaveAvatar(ctx context.Context, accountID, version int64, 
 	return service.updateAvatar(ctx, accountID, version, "avatar-save", avatarUpdate{
 		AvatarType: change.AvatarType, Scales: change.Scales, BodyColors: change.BodyColors, Assets: assets, Emotes: &emotes,
 	})
+}
+
+// avatarUpdateAssetsOf lists the assets with the meta that Roblox keeps for
+// the ones the account wears, such as the position of an accessory, so that a
+// change keeps it.
+func (service *Users) avatarUpdateAssetsOf(ctx context.Context, accountID, version int64, endpoint string, assetIDs []int64) ([]avatarUpdateAsset, error) {
+	var current avatarPayload
+	if err := service.readAvatarDetails(ctx, accountID, version, endpoint, "https://avatar.roblox.com/v2/avatar/avatar", &current); err != nil {
+		return nil, err
+	}
+	if current.Assets == nil {
+		return nil, invalidAvatar(endpoint)
+	}
+	wornAssetByID := make(map[int64]avatarUpdateAsset, len(*current.Assets))
+	for _, listedAsset := range *current.Assets {
+		wornAssetByID[listedAsset.ID] = listedAsset.updateAsset()
+	}
+	assets := make([]avatarUpdateAsset, len(assetIDs))
+	for index, assetID := range assetIDs {
+		if wornAsset, isWorn := wornAssetByID[assetID]; isWorn {
+			assets[index] = wornAsset
+		} else {
+			assets[index] = avatarUpdateAsset{ID: assetID}
+		}
+	}
+	return assets, nil
+}
+
+// RenderAvatarPreview asks Roblox to render the change as a full-body image
+// without saving it. It returns the image address, or an empty address while
+// Roblox renders it, until a later call with the same change finds it.
+func (service *Users) RenderAvatarPreview(ctx context.Context, accountID, version int64, change AvatarChange) (string, error) {
+	const endpoint = "avatar-preview"
+	if err := validateAvatarChange(change); err != nil {
+		return "", err
+	}
+	assets, err := service.avatarUpdateAssetsOf(ctx, accountID, version, endpoint, change.AssetIDs)
+	if err != nil {
+		return "", err
+	}
+	// The render API takes the avatar in the form of the v1 avatar API, with
+	// the depth that the avatar editor derives from the width.
+	type renderScales struct {
+		AvatarScales
+
+		Depth float64 `json:"depth"`
+	}
+	type renderAvatarType struct {
+		PlayerAvatarType AvatarType `json:"playerAvatarType"`
+	}
+	type renderDefinition struct {
+		Assets           []avatarUpdateAsset `json:"assets"`
+		BodyColors       avatarColorsUpdate  `json:"bodyColors"`
+		Scales           renderScales        `json:"scales"`
+		PlayerAvatarType renderAvatarType    `json:"playerAvatarType"`
+	}
+	type thumbnailConfig struct {
+		ThumbnailID   int    `json:"thumbnailId"`
+		ThumbnailType string `json:"thumbnailType"`
+		Size          string `json:"size"`
+	}
+	request := struct {
+		ThumbnailConfig  thumbnailConfig  `json:"thumbnailConfig"`
+		AvatarDefinition renderDefinition `json:"avatarDefinition"`
+	}{
+		ThumbnailConfig: thumbnailConfig{ThumbnailID: 3, ThumbnailType: "2dWebp", Size: LargeThumbnailSize},
+		AvatarDefinition: renderDefinition{
+			Assets: assets, BodyColors: avatarColorsUpdateOf(change.BodyColors),
+			Scales:           renderScales{AvatarScales: change.Scales, Depth: change.Scales.Width},
+			PlayerAvatarType: renderAvatarType{PlayerAvatarType: change.AvatarType},
+		},
+	}
+	response, err := service.writeAccount(ctx, accountID, version, endpoint, http.MethodPost, "https://avatar.roblox.com/v1/avatar/render", request)
+	if err != nil {
+		return "", err
+	}
+	var payload struct {
+		State    string `json:"state"`
+		ImageURL string `json:"imageUrl"`
+	}
+	if err := json.Unmarshal(response.Body, &payload); err != nil {
+		return "", &roblox.Error{Kind: roblox.KindProtocol, Endpoint: endpoint, Status: response.Status, Message: "Roblox returned an invalid avatar preview.", Cause: err}
+	}
+	switch {
+	case strings.EqualFold(payload.State, "Pending"):
+		return "", nil
+	case !strings.EqualFold(payload.State, "Completed") || !safeThumbnailURL(payload.ImageURL):
+		return "", &roblox.Error{Kind: roblox.KindProtocol, Endpoint: endpoint, Status: response.Status, Message: "Roblox couldn't preview these changes. Save to see them."}
+	}
+	return payload.ImageURL, nil
 }
 
 // RedrawAvatarImage asks Roblox to render the avatar images of the account

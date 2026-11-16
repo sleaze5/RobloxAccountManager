@@ -173,6 +173,40 @@ func (service *Service) WaitForAvatarImage(ctx context.Context, accountID int64,
 	return "", &roblox.Error{Kind: roblox.KindTimeout, Endpoint: "avatar-image", Message: "Roblox is still rendering the avatar. Refresh it in a minute."}
 }
 
+// RenderAvatarPreview renders the change as a full-body image without saving
+// it, so that the page can show unsaved changes. Roblox answers Pending until
+// the image is ready and renders it only when asked again, so the request
+// repeats a bounded number of times.
+func (service *Service) RenderAvatarPreview(ctx context.Context, accountID int64, change robloxservices.AvatarChange) (string, error) {
+	const (
+		maxAttempts = 8
+		retryDelay  = 1500 * time.Millisecond
+	)
+	ctx, version, done, err := service.beginAccountSession(ctx, accountID, "avatar-preview")
+	if err != nil {
+		return "", err
+	}
+	defer done()
+	for attempt := range maxAttempts {
+		if attempt > 0 {
+			select {
+			case <-ctx.Done():
+				return "", &roblox.Error{Kind: roblox.KindCancelled, Endpoint: "avatar-preview", Message: "The avatar preview was not loaded.", Cause: ctx.Err()}
+			case <-time.After(retryDelay):
+			}
+		}
+		imageURL, err := service.users.RenderAvatarPreview(ctx, accountID, version, change)
+		if err != nil {
+			service.logs.Module("application.avatar").WarnContext(ctx, "avatar preview unavailable", "operation", "avatar-preview", "account_id", accountID, "error", err)
+			return "", err
+		}
+		if imageURL != "" {
+			return imageURL, nil
+		}
+	}
+	return "", &roblox.Error{Kind: roblox.KindTimeout, Endpoint: "avatar-preview", Message: "Roblox is still rendering the preview. Try again in a moment."}
+}
+
 // RedrawAvatarImage asks Roblox to render the avatar images of the account
 // again, such as when an image shows an outdated look.
 func (service *Service) RedrawAvatarImage(ctx context.Context, accountID int64) error {

@@ -98,11 +98,12 @@ func (service *Users) InventoryItemDetails(ctx context.Context, accountID, versi
 }
 
 // hasRenderedModel reports whether Roblox renders the items of the category as
-// 3D models: the items that a character wears or holds, and models. Roblox
-// renders no model of a bundle, so a bundle shows the outfit that it lists.
+// 3D models: the items that a character wears or holds, and models. Classic
+// clothing is flat and has no model of its own. Roblox renders no model of a
+// bundle, so a bundle shows the outfit that it lists.
 func hasRenderedModel(category InventoryCategory) bool {
 	switch category {
-	case InventoryCollectibles, InventoryAccessories, InventoryClassicClothing, InventoryLayeredClothing,
+	case InventoryCollectibles, InventoryAccessories, InventoryLayeredClothing,
 		InventoryHeadsAndBodies, InventoryFaces, InventoryBundles, InventoryGear, InventoryModels:
 		return true
 	default:
