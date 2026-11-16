@@ -22,7 +22,9 @@
 		onMenu: ServerMenuOpener
 	} = $props()
 
-	const maxShownAvatars = 5,
+	// Four avatars and the count of the rest fit the fixed width of the
+	// avatar column, so that the names of every row line up.
+	const maxShownAvatars = 4,
 		headingID = $props.id(),
 		servers = $derived(friendServers.servers),
 		friendCount = $derived(
@@ -77,7 +79,7 @@
 					oncontextmenu={(event) =>
 						openServerMenuFromRow(event, key, onMenu)}>
 					<div
-						class="flex shrink-0 items-center"
+						class="flex w-24 shrink-0 items-center"
 						aria-label={`${friends.length} ${friends.length === 1 ? "friend" : "friends"} in this server`}>
 						{#each friends.slice(0, maxShownAvatars) as friend (friend.userId)}
 							<span
