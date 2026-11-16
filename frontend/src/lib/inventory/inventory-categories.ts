@@ -187,6 +187,27 @@ export const inventoryCategories = inventoryCategoryGroups.flatMap(
 	(group) => group.categories,
 )
 
+// relatedAssetCategory stands for the assets that no inventory category lists,
+// such as the meshes and images that an item uses. Models list assets, so
+// their details load like the details of any asset.
+const relatedAssetCategory: InventoryCategoryOption = {
+	id: InventoryCategory.InventoryModels,
+	label: "Assets",
+	noun: "assets",
+	icon: cubeIcon,
+	itemDetail: "type",
+	isDeletable: false,
+}
+
+export function inventoryCategoryOptionOf(
+	category: InventoryCategory | "",
+): InventoryCategoryOption {
+	return (
+		inventoryCategories.find((option) => option.id === category) ??
+		relatedAssetCategory
+	)
+}
+
 // Badges, game passes, and bundles have IDs of their own, which can match the
 // ID of an asset. Every other category lists assets.
 const categoriesWithOwnIDs = new Set<InventoryCategory>([
@@ -238,6 +259,26 @@ const typeLabels: Record<string, string> = {
 	SwimAnimation: "Swim",
 	WalkAnimation: "Walk",
 	MoodAnimation: "Mood",
+	Face: "Face",
+	EarAccessory: "Ear",
+	EyeAccessory: "Eye",
+	DeathAnimation: "Death",
+	PoseAnimation: "Pose",
+	EmoteAnimation: "Emote",
+	Gear: "Gear",
+	Image: "Image",
+	Mesh: "Mesh",
+	MeshPart: "Mesh part",
+	Decal: "Decal",
+	Model: "Model",
+	Package: "Package",
+	Animation: "Animation",
+	Audio: "Audio",
+	Video: "Video",
+	Place: "Place",
+	Lua: "Script",
+	Plugin: "Plugin",
+	FontFamily: "Font",
 	BodyParts: "Body",
 	AvatarAnimations: "Animations",
 	Shoes: "Shoes",

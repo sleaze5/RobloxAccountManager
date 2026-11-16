@@ -117,7 +117,7 @@ func decodeRenderedModelManifest(manifestBody []byte) (renderedModelManifest, er
 // RenderedModel downloads the manifest and the files of a model from the
 // Roblox CDN, which serves them without credentials.
 func (service *Users) RenderedModel(ctx context.Context, manifestURL string) (RenderedModel, error) {
-	manifestBody, err := service.downloadRenderedModelFile(ctx, manifestURL, maxRenderedModelManifestBytes)
+	manifestBody, err := service.downloadCDNFile(ctx, manifestURL, maxRenderedModelManifestBytes)
 	if err != nil {
 		return RenderedModel{}, err
 	}
@@ -151,7 +151,7 @@ func (service *Users) downloadRenderedModelFiles(ctx context.Context, manifest r
 	)
 	download := func(fileHash string, maxResponseSizeBytes int64, addToModel func([]byte) error) {
 		group.Go(func() {
-			fileBody, err := service.downloadRenderedModelFile(ctx, renderedModelFileURL(fileHash), maxResponseSizeBytes)
+			fileBody, err := service.downloadCDNFile(ctx, renderedModelFileURL(fileHash), maxResponseSizeBytes)
 			modelMutex.Lock()
 			defer modelMutex.Unlock()
 			if err == nil {
@@ -198,13 +198,15 @@ func (model RenderedModel) hasFiniteGeometry() bool {
 	return true
 }
 
-func (service *Users) downloadRenderedModelFile(ctx context.Context, address string, maxResponseSizeBytes int64) ([]byte, error) {
+// downloadCDNFile downloads a file from the Roblox CDN, which serves files
+// without credentials.
+func (service *Users) downloadCDNFile(ctx context.Context, address string, maxResponseSizeBytes int64) ([]byte, error) {
 	fileURL, err := url.Parse(address)
 	if err != nil || !safeThumbnailURL(address) {
-		return nil, invalidRenderedModel()
+		return nil, &roblox.Error{Kind: roblox.KindProtocol, Endpoint: "cdn-file", Message: "Roblox returned an invalid download address."}
 	}
 	response, err := service.client.Do(ctx, roblox.Request{
-		Endpoint: "rendered-model-file", Method: http.MethodGet, URL: fileURL, MaxResponseSize: maxResponseSizeBytes,
+		Endpoint: "cdn-file", Method: http.MethodGet, URL: fileURL, MaxResponseSize: maxResponseSizeBytes,
 		Retry: roblox.RetryPolicy{MaxAttempts: 3, Idempotent: true, RetryServerErrors: true, RetryRateLimit: true},
 	})
 	if err != nil {

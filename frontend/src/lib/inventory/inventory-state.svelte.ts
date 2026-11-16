@@ -3,7 +3,11 @@ import {
 	AccountProfileSection,
 	InventoryCategory,
 } from "../backend/bridge"
-import type { InventoryItem, InventoryItemDetails } from "../backend/bridge"
+import type {
+	InventoryItem,
+	InventoryItemDetails,
+	RelatedInventoryItem,
+} from "../backend/bridge"
 import type { AccountStore } from "../accounts/account-store.svelte"
 import { AccountScope } from "../accounts/account-scope"
 import type { CancellableRequest } from "../shared/cancellable-request"
@@ -64,6 +68,9 @@ export class InventoryState {
 	// categoryItemKey. null means that the request failed.
 	detailsByItemKey = $state.raw(new Map<string, InventoryItemDetails | null>())
 	isOwnedByItemKey = $state.raw(new Map<string, boolean | null>())
+	// The assets that each opened item includes or uses, by categoryItemKey.
+	// null means that the request failed.
+	relatedItemsByItemKey = $state.raw(new Map<string, RelatedInventoryItem[] | null>())
 	// The 3D model of the opened item. Its key is the categoryItemKey of the
 	// item.
 	readonly itemModel: RenderedModelLoad
@@ -79,6 +86,7 @@ export class InventoryState {
 	readonly #scope: AccountScope
 	#request: ReturnType<typeof accountBackend.GetInventoryPage> | null = null
 	#tryOnRequest: ReturnType<typeof accountBackend.TryOnInventoryItem> | null = null
+	readonly #loadingRelatedItemKeys = new Set<string>()
 
 	constructor(accountId: number, userId: number, store: AccountStore) {
 		this.#scope = new AccountScope(accountId, store)
@@ -219,6 +227,42 @@ export class InventoryState {
 				this.#tryOnRequest = null
 				this.isLoadingTryOn = false
 			}
+		}
+	}
+
+	// loadRelatedItems reads the assets that the item includes or uses, unless
+	// they are loaded or loading. A failed read loads again.
+	async loadRelatedItems(
+		item: InventoryItem,
+		category: InventoryCategory,
+	): Promise<void> {
+		const key = categoryItemKey(category, item.itemId)
+		if (
+			this.relatedItemsByItemKey.get(key) ||
+			this.#loadingRelatedItemKeys.has(key)
+		) {
+			return
+		}
+		this.#loadingRelatedItemKeys.add(key)
+		if (this.relatedItemsByItemKey.has(key)) {
+			const relatedItemsByItemKey = new Map(this.relatedItemsByItemKey)
+			relatedItemsByItemKey.delete(key)
+			this.relatedItemsByItemKey = relatedItemsByItemKey
+		}
+		try {
+			await this.#loadItemFact(
+				accountBackend.GetInventoryRelatedItems(
+					this.#scope.accountId,
+					category,
+					item.itemId,
+				),
+				(relatedItems) =>
+					(this.relatedItemsByItemKey = new Map(
+						this.relatedItemsByItemKey,
+					).set(key, relatedItems)),
+			)
+		} finally {
+			this.#loadingRelatedItemKeys.delete(key)
 		}
 	}
 

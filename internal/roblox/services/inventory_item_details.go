@@ -7,8 +7,6 @@ import (
 	"github.com/sleaze5/RobloxAccountManager/internal/roblox"
 )
 
-const maxIncludedItemCount = 50
-
 // InventoryItemDetails is what the item dialog shows beyond the inventory
 // page. A timestamp is 0 and an ID is empty when Roblox does not list it for
 // the kind of item.
@@ -19,8 +17,6 @@ type InventoryItemDetails struct {
 	UpdatedAtMs          int64  `json:"updatedAtMs"`
 	CollectibleItemID    string `json:"collectibleItemId"`
 	CollectibleProductID string `json:"collectibleProductId"`
-	// IncludedItemNames lists the assets of a bundle.
-	IncludedItemNames []string `json:"includedItemNames"`
 	// AwardingGameName names the game that awards a badge.
 	AwardingGameName string `json:"awardingGameName"`
 	// HasModel reports whether Roblox renders the item as a 3D model.
@@ -28,6 +24,9 @@ type InventoryItemDetails struct {
 	// CanTryOn reports whether an avatar can wear the item, so that a preview
 	// can show it on the avatar of the account.
 	CanTryOn bool `json:"canTryOn"`
+	// CanHaveRelatedItems reports whether the item can include or use other
+	// assets, as a bundle or a model file does.
+	CanHaveRelatedItems bool `json:"canHaveRelatedItems"`
 }
 
 // inventoryItemType is the item type that the inventory ownership API takes.
@@ -98,6 +97,7 @@ func (service *Users) InventoryItemDetails(ctx context.Context, accountID, versi
 	}
 	details.HasModel = hasRenderedModel(category)
 	details.CanTryOn = canTryOn(category)
+	details.CanHaveRelatedItems = category == InventoryBundles || hasDependencies(category)
 	return details, nil
 }
 
@@ -193,18 +193,10 @@ func (service *Users) bundleItemDetails(ctx context.Context, accountID, version 
 	if err != nil {
 		return InventoryItemDetails{}, err
 	}
-	details := InventoryItemDetails{
+	return InventoryItemDetails{
 		CreatedAtMs:       robloxTimeMs(payload.ItemCreatedUtc),
 		CollectibleItemID: boundedText(payload.CollectibleItemID, maxInventoryItemNameLength),
-		IncludedItemNames: []string{},
-	}
-	// A bundle also lists the outfit that shows it, which is not an item.
-	for _, bundledItem := range payload.BundledItems {
-		if bundledItem.Type == "Asset" && bundledItem.Name != "" && len(details.IncludedItemNames) < maxIncludedItemCount {
-			details.IncludedItemNames = append(details.IncludedItemNames, boundedText(bundledItem.Name, maxInventoryItemNameLength))
-		}
-	}
-	return details, nil
+	}, nil
 }
 
 func (service *Users) badgeItemDetails(ctx context.Context, accountID, version int64, badgeID string) (InventoryItemDetails, error) {

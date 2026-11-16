@@ -2,6 +2,7 @@ package appservice
 
 import (
 	"context"
+	"log/slog"
 
 	robloxservices "github.com/sleaze5/RobloxAccountManager/internal/roblox/services"
 )
@@ -21,21 +22,52 @@ func (service *Service) GetInventoryPage(ctx context.Context, accountID, userID 
 		logger.WarnContext(ctx, "inventory page unavailable", "error", err)
 		return robloxservices.InventoryPage{}, err
 	}
-	if err := service.users.AddCatalogDetails(ctx, accountID, version, page.Items); err != nil {
+	service.addCatalogDetailsAndImages(ctx, accountID, version, page.Items, logger)
+	return page, nil
+}
+
+// addCatalogDetailsAndImages adds the catalog details and the small image of
+// each item. A missing detail or image leaves the item without it.
+func (service *Service) addCatalogDetailsAndImages(ctx context.Context, accountID, version int64, items []robloxservices.InventoryItem, logger *slog.Logger) {
+	if err := service.users.AddCatalogDetails(ctx, accountID, version, items); err != nil {
 		logger.WarnContext(ctx, "inventory catalog details unavailable", "error", err)
 	}
-	targets := make([]robloxservices.ThumbnailTarget, len(page.Items))
-	for index, item := range page.Items {
+	targets := make([]robloxservices.ThumbnailTarget, len(items))
+	for index, item := range items {
 		targets[index] = item.ThumbnailTarget()
 	}
 	images, err := service.thumbnails.Images(ctx, targets, robloxservices.SmallThumbnailSize)
 	if err != nil {
 		logger.WarnContext(ctx, "inventory images unavailable", "error", err)
 	}
-	for index := range page.Items {
-		page.Items[index].ImageURL = images[targets[index]]
+	for index := range items {
+		items[index].ImageURL = images[targets[index]]
 	}
-	return page, nil
+}
+
+// GetInventoryRelatedItems lists the assets that the item includes or uses,
+// such as the parts of a bundle or the mesh and texture of an accessory.
+func (service *Service) GetInventoryRelatedItems(ctx context.Context, accountID int64, category robloxservices.InventoryCategory, itemID int64) ([]robloxservices.RelatedInventoryItem, error) {
+	ctx, version, done, err := service.beginAccountSession(ctx, accountID, "inventory-related-items")
+	if err != nil {
+		return nil, err
+	}
+	defer done()
+	logger := service.logs.Module("application.inventory").With("operation", "inventory-related-items", "account_id", accountID, "category", category)
+	relatedItems, err := service.users.RelatedInventoryItems(ctx, accountID, version, category, itemID)
+	if err != nil {
+		logger.WarnContext(ctx, "related items unavailable", "error", err)
+		return nil, err
+	}
+	items := make([]robloxservices.InventoryItem, len(relatedItems))
+	for index, relatedItem := range relatedItems {
+		items[index] = relatedItem.Item
+	}
+	service.addCatalogDetailsAndImages(ctx, accountID, version, items, logger)
+	for index := range relatedItems {
+		relatedItems[index].Item = items[index]
+	}
+	return relatedItems, nil
 }
 
 // GetInventoryItemModel reads the 3D model of the item, as the account sees
