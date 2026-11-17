@@ -11,8 +11,8 @@ import (
 	robloxservices "github.com/sleaze5/RobloxAccountManager/internal/roblox/services"
 )
 
-// SavedAvatar is the avatar after a save, or a nil Avatar when the save
-// succeeded but the avatar could not be read again. SkippedAssetIDs lists the
+// SavedAvatar is the avatar after a save or an outfit change, or a nil Avatar
+// when the change succeeded but the avatar could not be read again. SkippedAssetIDs lists the
 // requested assets that Roblox did not put on the avatar, such as items that
 // the account does not own. UnkeptAdjustmentAssetIDs lists the worn
 // accessories whose saved placement differs from the requested one.
@@ -300,25 +300,33 @@ func (service *Service) GetAvatarOutfits(ctx context.Context, accountID, userID 
 }
 
 // WearAvatarOutfit puts the outfit on the avatar of the account and reads the
-// avatar again. A failed read returns a nil avatar instead of an error,
-// because the outfit was put on.
-func (service *Service) WearAvatarOutfit(ctx context.Context, accountID, outfitID int64) (*robloxservices.Avatar, error) {
+// avatar again, so that the result shows what Roblox kept. A failed read
+// returns no avatar instead of an error, because the outfit was put on.
+func (service *Service) WearAvatarOutfit(ctx context.Context, accountID, outfitID int64) (SavedAvatar, error) {
 	account, err := service.accountRepository.GetView(ctx, accountID)
 	if err != nil {
-		return nil, mapRepositoryError(err)
+		return SavedAvatar{}, mapRepositoryError(err)
 	}
+	var outfitAssetIDs, rejectedAssetIDs []int64
 	err = service.editAccount(ctx, accountID, "avatar-outfit-wear", "", func(ctx context.Context, version int64) error {
-		return service.users.WearAvatarOutfit(ctx, accountID, version, outfitID)
+		var wearError error
+		outfitAssetIDs, rejectedAssetIDs, wearError = service.users.WearAvatarOutfit(ctx, accountID, version, outfitID)
+		return wearError
 	})
 	if err != nil {
-		return nil, err
+		return SavedAvatar{}, err
 	}
-	var reloadedAvatar *robloxservices.Avatar
+	worn := SavedAvatar{SkippedAssetIDs: rejectedAssetIDs, UnkeptAdjustmentAssetIDs: []int64{}}
 	// GetAvatar logs a failed read.
 	if avatar, readError := service.GetAvatar(ctx, accountID, account.RobloxUserID); readError == nil {
-		reloadedAvatar = &avatar
+		worn.Avatar = &avatar
+		outfitAssets := make([]robloxservices.AvatarChangeAsset, len(outfitAssetIDs))
+		for index, assetID := range outfitAssetIDs {
+			outfitAssets[index] = robloxservices.AvatarChangeAsset{AssetID: assetID}
+		}
+		worn.addUnwornAndUnkeptAssets(outfitAssets)
 	}
-	return reloadedAvatar, nil
+	return worn, nil
 }
 
 func (service *Service) CreateAvatarOutfit(ctx context.Context, accountID int64, name string) error {

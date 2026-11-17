@@ -401,17 +401,24 @@ export class AvatarState {
 		this.wearingOutfitId = outfit.outfitId
 		this.outfitActionError = ""
 		try {
-			const avatar = await this.#scope.track(
+			const worn = await this.#scope.track(
 				accountBackend.WearAvatarOutfit(this.#scope.accountId, outfit.outfitId),
 			)
 			if (!this.#scope.isCurrent) return false
-			if (avatar) this.#showChangedAvatar(avatar)
+			if (worn.avatar) this.#showChangedAvatar(worn.avatar)
 			else this.isAvatarOutdated = true
-			this.#notifications.show({
+			const outfitAssets =
+				this.outfitDetailsById.get(outfit.outfitId)?.assets ?? []
+			this.#showChangeResult({
 				id: "avatar-outfit-wear",
-				tone: "success",
 				title: "Outfit put on",
-				message: `The avatar now wears ${outfit.name || "the outfit"}.`,
+				successMessage: `The avatar now wears ${outfit.name || "the outfit"}.`,
+				isAvatarRead: !!worn.avatar,
+				skippedAssetIds: worn.skippedAssetIds ?? [],
+				unkeptAdjustmentAssetIds: worn.unkeptAdjustmentAssetIds ?? [],
+				nameByAssetId: new Map(
+					outfitAssets.map((asset) => [asset.item.itemId, asset.item.name]),
+				),
 			})
 			return true
 		} catch (error) {
