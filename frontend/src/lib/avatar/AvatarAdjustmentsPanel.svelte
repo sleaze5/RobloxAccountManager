@@ -15,6 +15,7 @@
 		canEdit,
 		username,
 		expandedAssetId = $bindable(),
+		focusedAssetId = $bindable(),
 	}: {
 		avatar: AvatarState
 		canEdit: boolean
@@ -22,6 +23,9 @@
 		// expandedAssetId is the accessory whose controls are open, or 0. The
 		// Wearing tab sets it to open an accessory here.
 		expandedAssetId: number
+		// focusedAssetId is the accessory that the Wearing tab asked to focus,
+		// or 0. The panel focuses it once and then clears it.
+		focusedAssetId: number
 	} = $props()
 
 	const assets = $derived(avatar.draft?.assets ?? []),
@@ -53,10 +57,12 @@
 		)
 
 	// The accessory that the Wearing tab opened scrolls into view and takes
-	// focus, because the button that opened it left with the Wearing tab.
+	// focus, because the button that opened it left with the Wearing tab. A
+	// row that was only left open keeps the focus on the tab.
 	onMount(() => {
-		if (!expandedAssetId) return
-		const row = document.getElementById(`avatar-adjust-row-${expandedAssetId}`)
+		if (!focusedAssetId) return
+		const row = document.getElementById(`avatar-adjust-row-${focusedAssetId}`)
+		focusedAssetId = 0
 		row?.scrollIntoView({ block: "nearest" })
 		row?.querySelector<HTMLButtonElement>("button[aria-expanded]")?.focus({
 			preventScroll: true,

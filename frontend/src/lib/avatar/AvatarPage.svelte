@@ -79,6 +79,9 @@
 		viewedOutfit = $state<AvatarOutfit | null>(null),
 		// The accessory whose controls the Adjustments tab opens, or 0.
 		adjustedAssetId = $state(0),
+		// The accessory that the Adjust shortcut asked the Adjustments tab to
+		// focus, or 0.
+		focusedAdjustmentAssetId = $state(0),
 		isConfirmingDiscard = $state(false),
 		// The navigation that closes the page once the user confirms discarding
 		// changes, or null when the page stays open.
@@ -403,7 +406,8 @@
 											)}
 										onAddItems={() => (pickerEmoteSlot = null)}
 										onAdjustItem={(assetId) => {
-											adjustedAssetId = assetId
+											adjustedAssetId = focusedAdjustmentAssetId =
+												assetId
 											void selectTab("adjustments", false)
 										}} />
 								{:else if tab === "adjustments"}
@@ -411,7 +415,10 @@
 										{avatar}
 										{canEdit}
 										{username}
-										bind:expandedAssetId={adjustedAssetId} />
+										bind:expandedAssetId={adjustedAssetId}
+										bind:focusedAssetId={
+											focusedAdjustmentAssetId
+										} />
 								{:else if tab === "body"}
 									<AvatarBodyPanel {avatar} {canEdit} />
 								{:else if tab === "emotes"}
