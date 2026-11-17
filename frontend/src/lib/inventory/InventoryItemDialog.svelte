@@ -124,9 +124,9 @@
 		// The item whose model the 3D viewer could not build, which shows the
 		// model that Roblox renders instead.
 		failedLiveItemKey = $state(""),
-		// The animations of the 3D view in the dialog and in the expanded view.
-		framePlayback = $state<AnimationPlayback>(),
-		expandedPlayback = $state<AnimationPlayback>()
+		playbackByView = $state<
+			Record<"dialog" | "expanded", AnimationPlayback | undefined>
+		>({ dialog: undefined, expanded: undefined })
 
 	const exactNumbers = new Intl.NumberFormat("en-US"),
 		percent = new Intl.NumberFormat("en-US", {
@@ -395,11 +395,7 @@
 				subject={tryOnSubject}
 				label={tryOnLabel}
 				bind:playback={
-					() => (isExpandedView ? expandedPlayback : framePlayback),
-					(playback) => {
-						if (isExpandedView) expandedPlayback = playback
-						else framePlayback = playback
-					}
+					playbackByView[isExpandedView ? "expanded" : "dialog"]
 				} />
 		{/if}
 	{:else if isTryOnShown}
@@ -428,13 +424,7 @@
 			accountId={inventory.accountId}
 			subject={itemSubject}
 			label={name}
-			bind:playback={
-				() => (isExpandedView ? expandedPlayback : framePlayback),
-				(playback) => {
-					if (isExpandedView) expandedPlayback = playback
-					else framePlayback = playback
-				}
-			}
+			bind:playback={playbackByView[isExpandedView ? "expanded" : "dialog"]}
 			onLiveFailure={() => (failedLiveItemKey = detailsKey)} />
 	{:else}
 		<span
@@ -468,9 +458,9 @@
 			<Icon svg={arrowsOutIcon} size={16} aria-hidden="true" />
 		</button>
 	{/if}
-	{#if isExpandedView && isModelShown && expandedPlayback}
+	{#if isExpandedView && isModelShown && playbackByView.expanded}
 		<div class="min-w-0 flex-1">
-			<AnimationControls playback={expandedPlayback} isWide />
+			<AnimationControls playback={playbackByView.expanded} isWide />
 		</div>
 	{/if}
 {/snippet}
@@ -605,9 +595,9 @@
 					<div class="flex items-center gap-2">
 						{@render imageControls(false)}
 					</div>
-					{#if isModelShown && framePlayback}
+					{#if isModelShown && playbackByView.dialog}
 						<div class="animate-enter">
-							<AnimationControls playback={framePlayback} />
+							<AnimationControls playback={playbackByView.dialog} />
 						</div>
 					{/if}
 				</div>

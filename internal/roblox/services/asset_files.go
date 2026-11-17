@@ -42,9 +42,13 @@ type AssetRepresentation struct {
 }
 
 // representationNamePattern accepts the names of asset formats, such as
-// avatar_meshpart_head and Roundy_SpecialMesh, and nothing that could change
-// the meaning of a header or a query.
-var representationNamePattern = regexp.MustCompile(`^[A-Za-z0-9_]{1,64}$`)
+// avatar_meshpart_head and Roundy_SpecialMesh, and majorVersionPattern their
+// major versions, such as 1. Neither accepts anything that could change the
+// meaning of a header or a query.
+var (
+	representationNamePattern = regexp.MustCompile(`^[A-Za-z0-9_]{1,64}$`)
+	majorVersionPattern       = regexp.MustCompile(`^\d{1,4}$`)
+)
 
 // isValid reports whether the representation names only formats and major
 // versions, so that it adds nothing else to a request.
@@ -67,19 +71,7 @@ func (representation AssetRepresentation) isValid() bool {
 		return false
 	}
 	for _, listedRepresentation := range listedRepresentations {
-		if !representationNamePattern.MatchString(listedRepresentation.Format) || !isDecimalNumber(listedRepresentation.MajorVersion) {
-			return false
-		}
-	}
-	return true
-}
-
-func isDecimalNumber(text string) bool {
-	if text == "" || len(text) > 4 {
-		return false
-	}
-	for _, character := range text {
-		if character < '0' || character > '9' {
+		if !representationNamePattern.MatchString(listedRepresentation.Format) || !majorVersionPattern.MatchString(listedRepresentation.MajorVersion) {
 			return false
 		}
 	}

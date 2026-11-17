@@ -97,11 +97,7 @@ func (service *Users) InventoryItemDetails(ctx context.Context, accountID, versi
 	if err != nil {
 		return InventoryItemDetails{}, err
 	}
-	// Roblox renders no model of classic clothing, animations, or emotes. The
-	// 3D viewer of the application shows classic clothing on a plain avatar,
-	// and plays animations and emotes on the avatar of the account.
-	details.HasModel = hasRenderedModel(category) || category == InventoryClassicClothing ||
-		category == InventoryAnimations || category == InventoryEmotes
+	details.HasModel = hasModelView(category)
 	details.CanTryOn = canTryOn(category)
 	details.CanHaveRelatedItems = category == InventoryBundles || hasDependencies(category)
 	details.CanDownload = canDownload(category)
@@ -118,6 +114,14 @@ func canTryOn(category InventoryCategory) bool {
 	default:
 		return false
 	}
+}
+
+// hasModelView reports whether the 3D viewer shows the items of the category:
+// every item that Roblox renders as a model, classic clothing on a plain
+// avatar, and animations and emotes played on the avatar of the account.
+func hasModelView(category InventoryCategory) bool {
+	return hasRenderedModel(category) || category == InventoryClassicClothing ||
+		category == InventoryAnimations || category == InventoryEmotes
 }
 
 // hasRenderedModel reports whether Roblox renders the items of the category as
@@ -148,12 +152,11 @@ func (service *Users) InventoryItemModelManifestURL(ctx context.Context, account
 	if err != nil {
 		return "", err
 	}
-	for _, bundledItem := range payload.BundledItems {
-		if bundledItem.Type == "UserOutfit" && bundledItem.ID > 0 {
-			return service.renderedModelManifestURL(ctx, accountID, version, endpoint, "https://thumbnails.roblox.com/v1/users/outfit-3d?outfitId="+strconv.FormatInt(bundledItem.ID, 10))
-		}
+	outfitID, hasOutfit := payload.outfitID()
+	if !hasOutfit {
+		return "", &roblox.Error{Kind: roblox.KindProtocol, Endpoint: endpoint, Message: "Roblox can't show this bundle in 3D."}
 	}
-	return "", &roblox.Error{Kind: roblox.KindProtocol, Endpoint: endpoint, Message: "Roblox can't show this bundle in 3D."}
+	return service.renderedModelManifestURL(ctx, accountID, version, endpoint, "https://thumbnails.roblox.com/v1/users/outfit-3d?outfitId="+strconv.FormatInt(outfitID, 10))
 }
 
 // assetItemDetails reads the economy details, which Roblox lists for every
@@ -184,6 +187,16 @@ type bundleDetailsPayload struct {
 		ID   int64  `json:"id"`
 		Type string `json:"type"`
 	} `json:"bundledItems"`
+}
+
+// outfitID finds the UserOutfit that Roblox lists to show the bundle.
+func (payload bundleDetailsPayload) outfitID() (int64, bool) {
+	for _, bundledItem := range payload.BundledItems {
+		if bundledItem.Type == "UserOutfit" && bundledItem.ID > 0 {
+			return bundledItem.ID, true
+		}
+	}
+	return 0, false
 }
 
 func (service *Users) readBundleDetails(ctx context.Context, accountID, version int64, endpoint, bundleID string) (bundleDetailsPayload, error) {

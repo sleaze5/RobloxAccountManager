@@ -1,5 +1,10 @@
 import type { PerspectiveCamera, Vector3 } from "three"
 import type { OrbitControls } from "three/addons/controls/OrbitControls.js"
+import type { CameraPose } from "./model-subject"
+
+// This module works on the orbit camera of both 3D viewers. It builds every
+// vector from a vector of the camera, so that it works with the copy of
+// three.js that the avatar renderer bundles.
 
 const turnStepRadians = Math.PI / 12,
 	zoomStepFactor = 1.15,
@@ -11,9 +16,7 @@ export const orbitViewKeysDescription =
 	"Drag or use the arrow keys to turn it. Hold Control while you drag or press the arrow keys to move it. Scroll or use plus and minus to zoom. Home resets the view."
 
 // moveOrbitViewByKey turns, moves, or zooms the view for the key, or calls
-// resetView for Home, and reports whether the key changed the view. It builds
-// every vector from a vector of the camera, so that it works with the copy of
-// three.js that the avatar renderer bundles.
+// resetView for Home, and reports whether the key changed the view.
 export function moveOrbitViewByKey(
 	event: KeyboardEvent,
 	camera: PerspectiveCamera,
@@ -77,4 +80,34 @@ export function moveOrbitViewByKey(
 		default:
 			return false
 	}
+}
+
+// cameraPoseOf reads where the camera stands and looks.
+export function cameraPoseOf(
+	camera: PerspectiveCamera,
+	controls: OrbitControls,
+): CameraPose {
+	return {
+		position: [camera.position.x, camera.position.y, camera.position.z],
+		target: [controls.target.x, controls.target.y, controls.target.z],
+		orientation: [
+			camera.quaternion.x,
+			camera.quaternion.y,
+			camera.quaternion.z,
+			camera.quaternion.w,
+		],
+	}
+}
+
+// framingScaleOf is the factor of the distance from a camera to its target
+// that keeps a subject framed at one field of view framed the same at
+// another.
+export function framingScaleOf(
+	framedFieldOfViewDegrees: number,
+	fieldOfViewDegrees: number,
+): number {
+	return (
+		Math.tan((framedFieldOfViewDegrees * Math.PI) / 360) /
+		Math.tan((fieldOfViewDegrees * Math.PI) / 360)
+	)
 }

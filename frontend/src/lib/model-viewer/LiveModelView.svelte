@@ -2,8 +2,10 @@
 	import cubeIcon from "@phosphor-icons/core/regular/cube.svg?raw"
 	import { untrack } from "svelte"
 	import FrameUnavailable from "../shared/FrameUnavailable.svelte"
+	import ModelLoadingPlaceholder from "./ModelLoadingPlaceholder.svelte"
 	import ModelViewerControls from "./ModelViewerControls.svelte"
-	import { orbitViewKeysDescription } from "./orbit-view-keys"
+	import ModelViewerUnavailable from "./ModelViewerUnavailable.svelte"
+	import { orbitViewKeysDescription } from "./orbit-camera"
 	import { modelViewerScene } from "./model-viewer-scene.svelte"
 	import ViewerReadout from "./ViewerReadout.svelte"
 	import {
@@ -105,9 +107,7 @@
 </script>
 
 {#if isUnavailable}
-	<FrameUnavailable
-		icon={cubeIcon}
-		message="3D needs graphics acceleration, which isn't available on this computer." />
+	<ModelViewerUnavailable isGraphicsAccelerationMissing />
 {:else}
 	<div
 		bind:this={host}
@@ -132,9 +132,7 @@
 				onRetry={() => viewport?.retry()} />
 		</div>
 	{:else if !viewport?.hasShownSubject}
-		<span class="absolute inset-3 skeleton rounded-md" role="status">
-			<span class="sr-only">Loading the 3D model</span>
-		</span>
+		<ModelLoadingPlaceholder />
 	{:else if viewport && !viewport.coveredFrameUrl}
 		{#if viewport.cameraPose}
 			<ViewerReadout pose={viewport.cameraPose} />

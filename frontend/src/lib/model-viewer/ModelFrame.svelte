@@ -1,7 +1,7 @@
 <script lang="ts">
-	import cubeIcon from "@phosphor-icons/core/regular/cube.svg?raw"
-	import FrameUnavailable from "../shared/FrameUnavailable.svelte"
 	import type { AnimationPlayback, ModelSubject } from "./model-subject"
+	import ModelLoadingPlaceholder from "./ModelLoadingPlaceholder.svelte"
+	import ModelViewerUnavailable from "./ModelViewerUnavailable.svelte"
 	import RenderedModelView from "./RenderedModelView.svelte"
 
 	// ModelFrame is the one 3D viewer of the application. It shows a subject
@@ -45,9 +45,7 @@
 		onRetry={subject.onRetry} />
 {:else if subject && liveViewImport}
 	{#await liveViewImport}
-		<span class="absolute inset-3 skeleton rounded-md" role="status">
-			<span class="sr-only">Loading the 3D model</span>
-		</span>
+		<ModelLoadingPlaceholder />
 	{:then { default: LiveModelView }}
 		<LiveModelView
 			{accountId}
@@ -57,10 +55,8 @@
 			bind:playback
 			onFailure={onLiveFailure} />
 	{:catch}
-		<FrameUnavailable icon={cubeIcon} message="The 3D viewer couldn't start." />
+		<ModelViewerUnavailable isGraphicsAccelerationMissing={false} />
 	{/await}
 {:else}
-	<span class="absolute inset-3 skeleton rounded-md" role="status">
-		<span class="sr-only">Loading the 3D model</span>
-	</span>
+	<ModelLoadingPlaceholder />
 {/if}

@@ -3,7 +3,9 @@
 	import type { RenderedModel } from "../backend/bridge"
 	import FrameUnavailable from "../shared/FrameUnavailable.svelte"
 	import type { CameraPose } from "./model-subject"
+	import ModelLoadingPlaceholder from "./ModelLoadingPlaceholder.svelte"
 	import ModelViewerControls from "./ModelViewerControls.svelte"
+	import ModelViewerUnavailable from "./ModelViewerUnavailable.svelte"
 	import ViewerReadout from "./ViewerReadout.svelte"
 
 	// RenderedModelView fills its container with a 3D model, or with its
@@ -34,9 +36,7 @@
 </script>
 
 {#if isWebGLUnavailable}
-	<FrameUnavailable
-		icon={cubeIcon}
-		message="3D needs graphics acceleration, which isn't available on this computer." />
+	<ModelViewerUnavailable isGraphicsAccelerationMissing />
 {:else if model && viewerImport}
 	{#await viewerImport then { default: RenderedModelViewer }}
 		{#key model}
@@ -52,12 +52,10 @@
 		{/if}
 		<ModelViewerControls onResetView={() => viewer?.resetView()} />
 	{:catch}
-		<FrameUnavailable icon={cubeIcon} message="The 3D viewer couldn't start." />
+		<ModelViewerUnavailable isGraphicsAccelerationMissing={false} />
 	{/await}
 {:else if error}
 	<FrameUnavailable icon={cubeIcon} message={error} {onRetry} />
 {:else}
-	<span class="absolute inset-3 skeleton rounded-md" role="status">
-		<span class="sr-only">Loading the 3D model</span>
-	</span>
+	<ModelLoadingPlaceholder />
 {/if}

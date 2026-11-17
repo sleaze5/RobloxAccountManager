@@ -10,14 +10,6 @@ import (
 // the 3D viewer, the Medium stone grey of Roblox.
 const plainAvatarBodyColor = "A3A2A5"
 
-// shapeKeepingAccessoryTypeNames are the accessory types that keep their shape
-// on every body, so the 3D viewer shows them on their own. Layered clothing
-// and the parts of a head fit the body that wears them.
-var shapeKeepingAccessoryTypeNames = []string{
-	"Hat", "HairAccessory", "FaceAccessory", "NeckAccessory", "ShoulderAccessory",
-	"FrontAccessory", "BackAccessory", "WaistAccessory",
-}
-
 // InventoryItemLook is how the 3D viewer of the application shows an item.
 // AccessoryAssetID names an accessory that shows on its own. Avatar is an
 // avatar that shows the item: a plain avatar wearing it, the outfit of a
@@ -35,8 +27,13 @@ func (service *Users) InventoryItemLook(ctx context.Context, accountID, version 
 	if category == InventoryBundles {
 		return service.bundleLook(ctx, accountID, version, endpoint, itemID)
 	}
-	if category == InventoryEmotes || category == InventoryAnimations {
-		return service.playingAvatarLook(ctx, accountID, version, endpoint, category, itemID)
+	// An emote plays on the saved avatar of the account, and an animation on
+	// the saved avatar wearing it in place of the animation of the same kind.
+	if category == InventoryEmotes {
+		return avatarLook(service.savedAvatar(ctx, accountID, version, endpoint))
+	}
+	if category == InventoryAnimations {
+		return avatarLook(service.savedAvatarWearing(ctx, accountID, version, endpoint, category, itemID))
 	}
 	if !canTryOn(category) {
 		return InventoryItemLook{}, nil
@@ -46,52 +43,40 @@ func (service *Users) InventoryItemLook(ctx context.Context, accountID, version 
 		return InventoryItemLook{}, err
 	}
 	switch {
-	case slices.Contains(shapeKeepingAccessoryTypeNames, typeName):
+	case slices.Contains(inventoryAssetTypesByCategory[InventoryAccessories], typeName):
+		// These accessories keep their shape on every body, so they show on
+		// their own. Layered clothing and the parts of a head fit the body
+		// that wears them.
 		return InventoryItemLook{AccessoryAssetID: itemID}, nil
-	case typeName == "Gear":
+	case slices.Contains(inventoryAssetTypesByCategory[InventoryGear], typeName):
 		// A plain avatar would hold the gear away from the camera, and Roblox
 		// renders gear on its own.
 		return InventoryItemLook{}, nil
 	}
-	avatar := plainAvatarWearing(AvatarAsset{Category: category, Item: avatarItem(itemID, "", typeName)})
-	return InventoryItemLook{Avatar: &avatar}, nil
+	return avatarLook(plainAvatarWearing(AvatarAsset{Category: category, Item: avatarItem(itemID, "", typeName)}), nil)
 }
 
-// playingAvatarLook reads the saved avatar of the account that plays the
-// item: the avatar itself for an emote, and the avatar wearing an animation
-// for an animation, which replaces the animation of the same kind.
-func (service *Users) playingAvatarLook(ctx context.Context, accountID, version int64, endpoint string, category InventoryCategory, itemID int64) (InventoryItemLook, error) {
-	var (
-		avatar Avatar
-		err    error
-	)
-	if category == InventoryEmotes {
-		avatar, err = service.savedAvatar(ctx, accountID, version, endpoint)
-	} else {
-		avatar, err = service.savedAvatarWearing(ctx, accountID, version, endpoint, category, itemID)
-	}
+// avatarLook shows the item on the avatar, or fails with the error that
+// reading the avatar returned.
+func avatarLook(avatar Avatar, err error) (InventoryItemLook, error) {
 	if err != nil {
 		return InventoryItemLook{}, err
 	}
 	return InventoryItemLook{Avatar: &avatar}, nil
 }
 
-// bundleLook reads the outfit that Roblox lists to show the bundle.
+// bundleLook reads the outfit that Roblox lists to show the bundle. A bundle
+// without one shows the model that Roblox renders.
 func (service *Users) bundleLook(ctx context.Context, accountID, version int64, endpoint string, bundleID int64) (InventoryItemLook, error) {
 	payload, err := service.readBundleDetails(ctx, accountID, version, endpoint, strconv.FormatInt(bundleID, 10))
 	if err != nil {
 		return InventoryItemLook{}, err
 	}
-	for _, bundledItem := range payload.BundledItems {
-		if bundledItem.Type == "UserOutfit" && bundledItem.ID > 0 {
-			outfit, err := service.AvatarOutfitDetails(ctx, accountID, version, bundledItem.ID)
-			if err != nil {
-				return InventoryItemLook{}, err
-			}
-			return InventoryItemLook{Avatar: &outfit}, nil
-		}
+	outfitID, hasOutfit := payload.outfitID()
+	if !hasOutfit {
+		return InventoryItemLook{}, nil
 	}
-	return InventoryItemLook{}, nil
+	return avatarLook(service.AvatarOutfitDetails(ctx, accountID, version, outfitID))
 }
 
 // plainAvatarWearing is a grey R15 avatar of the default size that wears only

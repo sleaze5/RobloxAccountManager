@@ -18,7 +18,12 @@
 	import { untrack } from "svelte"
 	import type { RenderedModel } from "../backend/bridge"
 	import type { CameraPose } from "./model-subject"
-	import { moveOrbitViewByKey, orbitViewKeysDescription } from "./orbit-view-keys"
+	import {
+		cameraPoseOf,
+		framingScaleOf,
+		moveOrbitViewByKey,
+		orbitViewKeysDescription,
+	} from "./orbit-camera"
 	import { modelViewerScene } from "./model-viewer-scene.svelte"
 	import type { ModelViewerScene } from "./model-viewer-scene.svelte"
 
@@ -87,9 +92,10 @@
 			),
 			// Roblox places the camera for its own field of view, so the camera
 			// moves to keep the model framed at the chosen one.
-			framingScale =
-				Math.tan(MathUtils.degToRad(model.camera.fieldOfViewDegrees) / 2) /
-				Math.tan(MathUtils.degToRad(initialScene.fieldOfViewDegrees) / 2),
+			framingScale = framingScaleOf(
+				model.camera.fieldOfViewDegrees,
+				initialScene.fieldOfViewDegrees,
+			),
 			initialCameraPosition = new Vector3(
 				model.camera.position.x,
 				model.camera.position.y,
@@ -121,16 +127,7 @@
 		const render = (): void => {
 			if (isDisposed) return
 			renderer.render(scene, camera)
-			onposechange({
-				position: [camera.position.x, camera.position.y, camera.position.z],
-				target: [controls.target.x, controls.target.y, controls.target.z],
-				orientation: [
-					camera.quaternion.x,
-					camera.quaternion.y,
-					camera.quaternion.z,
-					camera.quaternion.w,
-				],
-			})
+			onposechange(cameraPoseOf(camera, controls))
 		}
 		controls.addEventListener("change", render)
 		// The textures decode after the first render, and the canvas renders

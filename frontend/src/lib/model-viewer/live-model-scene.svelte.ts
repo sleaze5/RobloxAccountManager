@@ -11,7 +11,7 @@ import {
 import type { CFrame, Instance, Vector3 as RobloxVector3 } from "roavatar-renderer"
 import { AvatarType } from "../backend/bridge"
 import { reducedMotion } from "../shared/motion"
-import { moveOrbitViewByKey } from "./orbit-view-keys"
+import { cameraPoseOf, framingScaleOf, moveOrbitViewByKey } from "./orbit-camera"
 import { defaultModelViewerScene, modelViewerScene } from "./model-viewer-scene.svelte"
 import type { ModelViewerScene } from "./model-viewer-scene.svelte"
 import {
@@ -32,13 +32,13 @@ import type {
 // CameraView is where the camera of a view stood when another view took the
 // canvas, so that the view returns to it.
 interface CameraView {
-	position: [number, number, number]
-	target: [number, number, number]
+	pose: CameraPose
 	fieldOfViewDegrees: number
 }
 
 // The renderer places the camera of an avatar for this field of view, and
-// Roblox places the thumbnail camera of an accessory for it too.
+// Roblox places the thumbnail camera of an accessory for it unless the
+// accessory has a camera of its own.
 const robloxFieldOfViewDegrees = 70,
 	keyLightDistance = 15,
 	maxCameraDistance = 200,
@@ -299,6 +299,8 @@ function activateViewport(viewport: LiveModelViewport): void {
 		requestFrame()
 	})
 	hostResizeObserver.observe(viewport.host)
+	// The loading state of a covered view stopped following the renderer.
+	viewport.isLoading = API.Misc.getCurrentlyLoading()
 	if (viewport.subject) showSubject(viewport)
 	if (viewport.cameraView) restoreCameraView(viewport.cameraView)
 	requestFrame()
@@ -508,6 +510,7 @@ function frameSubject(subject: LiveModelSubject | undefined): void {
 				target[2] + z * distance,
 			],
 			target,
+			robloxFieldOfViewDegrees,
 		)
 		outfitRenderer?.centerCamera()
 		return
@@ -515,6 +518,10 @@ function frameSubject(subject: LiveModelSubject | undefined): void {
 	if (!shownAccessory) return
 	const thumbnailCamera = getThumbnailCamera(shownAccessory.accessory),
 		cameraFrame = thumbnailCamera.Prop("CFrame") as CFrame | undefined,
+		cameraFieldOfViewDegrees = thumbnailCamera.PropOrDefault(
+			"FieldOfView",
+			robloxFieldOfViewDegrees,
+		) as number,
 		handle = shownAccessory.accessory.FindFirstChild("Handle"),
 		handlePosition = handle?.Prop("Position") as RobloxVector3 | undefined
 	if (
@@ -523,26 +530,27 @@ function frameSubject(subject: LiveModelSubject | undefined): void {
 		thumbnailCamera.Destroy()
 	}
 	if (!cameraFrame || !handlePosition) return
-	placeCamera(cameraFrame.Position, [
-		handlePosition.X,
-		handlePosition.Y,
-		handlePosition.Z,
-	])
+	placeCamera(
+		cameraFrame.Position,
+		[handlePosition.X, handlePosition.Y, handlePosition.Z],
+		cameraFieldOfViewDegrees,
+	)
 }
 
 // placeCamera points the camera at the target from a position that Roblox
-// chose for its own field of view, moved to keep the same framing at the field
-// of view of the viewer.
+// chose for the framed field of view, moved to keep the same framing at the
+// field of view of the viewer.
 function placeCamera(
 	robloxPosition: readonly [number, number, number],
 	target: readonly [number, number, number],
+	framedFieldOfViewDegrees: number,
 ): void {
 	const camera = RBXRenderer.firstScene.camera,
 		controls = RBXRenderer.getRendererControls()
 	if (!controls) return
 	controls.target.set(...target)
 	camera.position.set(...robloxPosition)
-	moveCameraForFieldOfView(robloxFieldOfViewDegrees, camera.fov)
+	moveCameraForFieldOfView(framedFieldOfViewDegrees, camera.fov)
 	controls.update()
 	requestFrame()
 }
@@ -556,13 +564,10 @@ function moveCameraForFieldOfView(
 	const camera = RBXRenderer.firstScene.camera,
 		controls = RBXRenderer.getRendererControls()
 	if (!controls) return
-	const framingScale =
-			Math.tan((framedFieldOfViewDegrees * Math.PI) / 360) /
-			Math.tan((fieldOfViewDegrees * Math.PI) / 360),
-		offset = camera.position
-			.clone()
-			.sub(controls.target)
-			.multiplyScalar(framingScale)
+	const offset = camera.position
+		.clone()
+		.sub(controls.target)
+		.multiplyScalar(framingScaleOf(framedFieldOfViewDegrees, fieldOfViewDegrees))
 	camera.position.copy(controls.target).add(offset)
 }
 
@@ -570,19 +575,15 @@ function currentCameraView(): CameraView | undefined {
 	const camera = RBXRenderer.firstScene.camera,
 		controls = RBXRenderer.getRendererControls()
 	if (!controls) return undefined
-	return {
-		position: [camera.position.x, camera.position.y, camera.position.z],
-		target: [controls.target.x, controls.target.y, controls.target.z],
-		fieldOfViewDegrees: camera.fov,
-	}
+	return { pose: cameraPoseOf(camera, controls), fieldOfViewDegrees: camera.fov }
 }
 
 function restoreCameraView(cameraView: CameraView): void {
 	const camera = RBXRenderer.firstScene.camera,
 		controls = RBXRenderer.getRendererControls()
 	if (!controls) return
-	controls.target.set(...cameraView.target)
-	camera.position.set(...cameraView.position)
+	controls.target.set(...cameraView.pose.target)
+	camera.position.set(...cameraView.pose.position)
 	moveCameraForFieldOfView(cameraView.fieldOfViewDegrees, camera.fov)
 	controls.update()
 }
@@ -695,16 +696,7 @@ function drawFrame(): void {
 		camera = RBXRenderer.firstScene.camera,
 		controls = RBXRenderer.getRendererControls()
 	if (!viewport || !controls) return
-	viewport.cameraPose = {
-		position: [camera.position.x, camera.position.y, camera.position.z],
-		target: [controls.target.x, controls.target.y, controls.target.z],
-		orientation: [
-			camera.quaternion.x,
-			camera.quaternion.y,
-			camera.quaternion.z,
-			camera.quaternion.w,
-		],
-	}
+	viewport.cameraPose = cameraPoseOf(camera, controls)
 }
 
 // placeKeyLight keeps the key light at its angle to the view, as in the other

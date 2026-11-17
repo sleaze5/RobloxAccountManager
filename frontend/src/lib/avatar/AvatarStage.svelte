@@ -18,9 +18,12 @@
 		view = $state<ImageView>("2D"),
 		isExpanded = $state(false),
 		isLiveViewLoading = $state(false),
-		// The animations of the 3D view on the page and in the expanded view.
-		stagePlayback = $state<AnimationPlayback>(),
-		expandedPlayback = $state<AnimationPlayback>()
+		playbackByView = $state<
+			Record<"page" | "expanded", AnimationPlayback | undefined>
+		>({
+			page: undefined,
+			expanded: undefined,
+		})
 
 	// Roblox needs a moment between draft changes, so a preview renders only
 	// once the draft stops changing.
@@ -81,13 +84,7 @@
 			subject={draftSubject}
 			{label}
 			bind:isLoading={isLiveViewLoading}
-			bind:playback={
-				() => (isExpandedView ? expandedPlayback : stagePlayback),
-				(playback) => {
-					if (isExpandedView) expandedPlayback = playback
-					else stagePlayback = playback
-				}
-			} />
+			bind:playback={playbackByView[isExpandedView ? "expanded" : "page"]} />
 	{:else if shownImageUrl && failedImageUrl !== shownImageUrl}
 		{#key shownImageUrl}
 			<img
@@ -155,9 +152,9 @@
 			{avatar.isRedrawingImage ? "Redrawing…" : "Redraw"}
 		</button>
 	{/if}
-	{#if isExpandedView && view === "3D" && expandedPlayback}
+	{#if isExpandedView && view === "3D" && playbackByView.expanded}
 		<div class="min-w-0 flex-1">
-			<AnimationControls playback={expandedPlayback} isWide />
+			<AnimationControls playback={playbackByView.expanded} isWide />
 		</div>
 	{/if}
 {/snippet}
@@ -174,9 +171,9 @@
 		{@render imageControls(false)}
 	</div>
 
-	{#if view === "3D" && stagePlayback}
+	{#if view === "3D" && playbackByView.page}
 		<div class="animate-enter">
-			<AnimationControls playback={stagePlayback} />
+			<AnimationControls playback={playbackByView.page} />
 		</div>
 	{/if}
 
