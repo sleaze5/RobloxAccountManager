@@ -264,11 +264,22 @@ func (service *Service) RedrawAvatarImage(ctx context.Context, accountID int64) 
 	})
 }
 
-// GetAvatarModel reads the 3D avatar of the user, as the account sees it.
-func (service *Service) GetAvatarModel(ctx context.Context, accountID, userID int64) (robloxservices.RenderedModel, error) {
-	return service.readRenderedModel(ctx, accountID, "avatar-model", func(ctx context.Context, version int64) (string, error) {
-		return service.users.AvatarModelManifestURL(ctx, accountID, version, userID)
-	})
+// GetAvatarRenderFile downloads the file of an asset that the 3D avatar on
+// the avatar page reads, in the representation that it asks for.
+func (service *Service) GetAvatarRenderFile(ctx context.Context, accountID, assetID int64, representation robloxservices.AssetRepresentation) ([]byte, error) {
+	ctx, version, done, err := service.beginAccountSession(ctx, accountID, "avatar-render-file")
+	if err != nil {
+		return nil, err
+	}
+	defer done()
+	contents, err := service.users.AvatarRenderFile(ctx, accountID, version, assetID, representation)
+	if err != nil {
+		// The 3D avatar shows the rest of the avatar without the asset, so a
+		// missing asset is not a warning.
+		service.logs.Module("application.avatar").DebugContext(ctx, "avatar render file unavailable", "operation", "avatar-render-file", "account_id", accountID, "asset_id", assetID, "error", err)
+		return nil, err
+	}
+	return contents, nil
 }
 
 // GetAvatarOutfits reads one page of the outfits that the user created, with

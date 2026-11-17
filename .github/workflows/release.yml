@@ -170,6 +170,7 @@ jobs:
                   arguments=(
                       release create "$TAG"
                       "${assets[@]}"
+                      LICENSE
                       THIRD_PARTY_LICENSES.txt
                       --target "$GITHUB_SHA"
                       --title "$TAG"

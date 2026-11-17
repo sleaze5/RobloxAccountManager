@@ -102,6 +102,7 @@ export type {
 	ExportFile,
 } from "../../../bindings/github.com/sleaze5/RobloxAccountManager/internal/storage/vault/models.js"
 export type {
+	AssetRepresentation,
 	Avatar,
 	AvatarAccessoryAdjustment,
 	AvatarAccessoryAdjustmentLimits,

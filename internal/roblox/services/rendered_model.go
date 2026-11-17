@@ -82,12 +82,6 @@ func (service *Users) AssetModelManifestURL(ctx context.Context, accountID, vers
 	return service.renderedModelManifestURL(ctx, accountID, version, "asset-model", "https://thumbnails.roblox.com/v1/assets-thumbnail-3d?assetId="+strconv.FormatInt(assetID, 10))
 }
 
-// AvatarModelManifestURL reads the address of the 3D avatar manifest of the
-// user, or an empty address while Roblox renders the model.
-func (service *Users) AvatarModelManifestURL(ctx context.Context, accountID, version, userID int64) (string, error) {
-	return service.renderedModelManifestURL(ctx, accountID, version, "avatar-model", "https://thumbnails.roblox.com/v1/users/avatar-3d?userId="+strconv.FormatInt(userID, 10))
-}
-
 // renderedModelManifest names the files of the model by hash, such as
 // 30DAY- followed by hex digits.
 type renderedModelManifest struct {

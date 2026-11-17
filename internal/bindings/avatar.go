@@ -49,11 +49,11 @@ func (service *Service) RedrawAvatarImage(ctx context.Context, accountID int64) 
 	return service.core.RedrawAvatarImage(ctx, accountID)
 }
 
-func (service *Service) GetAvatarModel(ctx context.Context, accountID, userID int64) (robloxservices.RenderedModel, error) {
-	if err := validateAccountAndTargetIDs(accountID, userID, "avatar-model"); err != nil {
-		return robloxservices.RenderedModel{}, err
+func (service *Service) GetAvatarRenderFile(ctx context.Context, accountID, assetID int64, representation robloxservices.AssetRepresentation) ([]byte, error) {
+	if err := validateAccountAndTargetIDs(accountID, assetID, "avatar-render-file"); err != nil {
+		return nil, err
 	}
-	return service.core.GetAvatarModel(ctx, accountID, userID)
+	return service.core.GetAvatarRenderFile(ctx, accountID, assetID, representation)
 }
 
 func (service *Service) GetAvatarOutfits(ctx context.Context, accountID, userID int64, cursor string) (robloxservices.AvatarOutfitPage, error) {

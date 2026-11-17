@@ -1,21 +1,22 @@
 <script lang="ts">
 	import arrowsOutIcon from "@phosphor-icons/core/regular/arrows-out.svg?raw"
 	import circleNotchIcon from "@phosphor-icons/core/regular/circle-notch.svg?raw"
+	import cubeIcon from "@phosphor-icons/core/regular/cube.svg?raw"
 	import paintBrushIcon from "@phosphor-icons/core/regular/paint-brush.svg?raw"
 	import personArmsSpreadIcon from "@phosphor-icons/core/regular/person-arms-spread.svg?raw"
-	import { untrack } from "svelte"
 	import ExpandedImageDialog from "../shared/ExpandedImageDialog.svelte"
+	import FrameUnavailable from "../shared/FrameUnavailable.svelte"
 	import Icon from "../shared/Icon.svelte"
 	import ImageViewToggle from "../shared/ImageViewToggle.svelte"
 	import type { ImageView } from "../shared/ImageViewToggle.svelte"
-	import RenderedModelView from "../shared/RenderedModelView.svelte"
 	import type { AvatarState } from "./avatar-state.svelte"
 
 	let { avatar, username }: { avatar: AvatarState; username: string } = $props()
 
 	let failedImageUrl = $state(""),
 		view = $state<ImageView>("2D"),
-		isExpanded = $state(false)
+		isExpanded = $state(false),
+		isLiveViewLoading = $state(false)
 
 	// Roblox needs a moment between draft changes, so a preview renders only
 	// once the draft stops changing.
@@ -29,14 +30,24 @@
 		),
 		savedType = $derived(avatar.avatar?.avatarType ?? ""),
 		draftType = $derived(avatar.draft?.avatarType ?? ""),
-		shownType = $derived(avatar.isPreviewCurrent ? draftType : savedType),
+		// The 3D view builds the draft itself, so it always shows the draft.
+		shownType = $derived(
+			view === "3D" || avatar.isPreviewCurrent ? draftType : savedType,
+		),
+		// The 3D avatar loads only when the 3D view opens, because its renderer
+		// is large.
+		liveViewImport = $derived(
+			view === "3D" ? import("./AvatarLiveView.svelte") : undefined,
+		),
 		busyLabel = $derived(
-			avatar.isRenderingImage
-				? "Rendering…"
-				: view === "2D" && avatar.isRenderingPreview
-					? "Previewing…"
-					: view === "3D" && avatar.model.isLoading && avatar.model.loaded
-						? "Loading…"
+			view === "3D"
+				? isLiveViewLoading
+					? "Loading…"
+					: ""
+				: avatar.isRenderingImage
+					? "Rendering…"
+					: avatar.isRenderingPreview
+						? "Previewing…"
 						: "",
 		),
 		canRedraw = $derived(
@@ -46,16 +57,6 @@
 				!avatar.isRedrawingImage &&
 				!avatar.isRenderingImage,
 		)
-
-	// The 3D avatar loads when the 3D view opens, and again when the full-body
-	// image changes, because Roblox renders both from the same avatar.
-	$effect(() => {
-		const modelImageUrl = imageUrl,
-			shouldLoadModel = view === "3D" && !!avatar.avatar
-		untrack(() => {
-			if (shouldLoadModel) void avatar.loadModel(modelImageUrl)
-		})
-	})
 
 	// The 2D view previews the unsaved draft.
 	$effect(() => {
@@ -71,12 +72,20 @@
 </script>
 
 {#snippet imageFrame()}
-	{#if view === "3D"}
-		<RenderedModelView
-			model={avatar.model.loaded}
-			error={avatar.model.error}
-			{label}
-			onRetry={() => void avatar.loadModel(imageUrl)} />
+	{#if liveViewImport && avatar.draft}
+		{#await liveViewImport then { default: AvatarLiveView }}
+			<AvatarLiveView
+				accountId={avatar.accountId}
+				draft={avatar.draft}
+				{label}
+				bind:isLoading={isLiveViewLoading} />
+		{:catch}
+			<FrameUnavailable icon={cubeIcon} message="The 3D viewer couldn't start." />
+		{/await}
+	{:else if view === "3D"}
+		<span class="absolute inset-3 skeleton rounded-md" role="status">
+			<span class="sr-only">Loading the 3D avatar</span>
+		</span>
 	{:else if shownImageUrl && failedImageUrl !== shownImageUrl}
 		{#key shownImageUrl}
 			<img
@@ -155,9 +164,7 @@
 	{#if avatar.isEditable && avatar.isChanged}
 		<p class="animate-enter notice-note" role="status">
 			{#if view === "3D"}
-				The model shows the saved avatar{savedType !== draftType
-					? ` as ${savedType}`
-					: ""}. Save to see your changes.
+				The model shows your changes. Save to keep them.
 			{:else if avatar.isPreviewCurrent}
 				The image is a preview. Save to keep your changes.
 			{:else if avatar.previewError}

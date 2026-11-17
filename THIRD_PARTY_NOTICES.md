@@ -42,3 +42,13 @@ The application bundles unmodified upright variable WOFF2 fonts from Vercel's Ge
 - [Go](https://go.dev/) and its `golang.org/x` modules
 - [go-keyring](https://github.com/zalando/go-keyring), [dbus](https://github.com/godbus/dbus), [go-ole](https://github.com/go-ole/go-ole), and [xdg](https://github.com/adrg/xdg)
 - [compress](https://github.com/klauspost/compress), for reading Roblox model files
+- [RoAvatar Renderer](https://github.com/steinann/RoAvatar-Renderer) `1.10.3`, for the 3D avatar on the avatar page, with the [Draco](https://github.com/google/draco) mesh decoder, [postprocessing](https://github.com/pmndrs/postprocessing), [N8AO](https://github.com/N8python/n8ao), and [fzstd](https://github.com/101arrowz/fzstd) that it bundles
+
+## RoAvatar Renderer
+
+The 3D avatar is drawn by RoAvatar Renderer, by the RoAvatar authors and steinann, under the GNU General Public License version 3. Its use is why Roblox Account Manager is released under the same license. RoAvatar's name and branding are not part of that license, and the application does not use them.
+
+The renderer downloads the files it draws, such as the avatar rig and the classic body meshes, from Roblox through the signed-in account. The application does not bundle these files.
+
+- Source: <https://github.com/steinann/RoAvatar-Renderer>
+- Package: <https://www.npmjs.com/package/roavatar-renderer>

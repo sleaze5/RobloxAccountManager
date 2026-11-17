@@ -7,13 +7,11 @@ import type {
 	AvatarRules,
 	InventoryCategory,
 	InventoryItem,
-	RenderedModel,
 } from "../backend/bridge"
 import type { AccountStore } from "../accounts/account-store.svelte"
 import { AccountScope } from "../accounts/account-scope"
 import type { NotificationCenter } from "../notifications/notification-center.svelte"
 import { errorMessage } from "../shared/errors"
-import { KeyedLoad } from "../shared/keyed-load.svelte"
 import {
 	adjustAsset,
 	avatarChangeOf,
@@ -78,10 +76,6 @@ export class AvatarState {
 	previewImageUrl = $state("")
 	isRenderingPreview = $state(false)
 	previewError = $state("")
-	// The 3D avatar, which loads only when the page shows it. Its key is the
-	// full-body image that it matches, because Roblox renders both from the
-	// same avatar.
-	readonly model: KeyedLoad<RenderedModel>
 	outfits = $state.raw<AvatarOutfit[] | null>(null)
 	outfitsNextCursor = $state("")
 	outfitsLoading = $state(false)
@@ -117,7 +111,6 @@ export class AvatarState {
 		notifications: NotificationCenter,
 	) {
 		this.#scope = new AccountScope(accountId, store)
-		this.model = new KeyedLoad(this.#scope)
 		this.#accounts = store
 		this.#notifications = notifications
 		this.userId = userId
@@ -564,15 +557,6 @@ export class AvatarState {
 		return (
 			(draft === this.#previewDraft && !!this.previewImageUrl) ||
 			(draft === this.#renderingPreviewDraft && this.isRenderingPreview)
-		)
-	}
-
-	// loadModel reads the 3D avatar that matches the shown full-body image.
-	async loadModel(shownImageUrl: string): Promise<void> {
-		await this.model.load(
-			shownImageUrl,
-			() => accountBackend.GetAvatarModel(this.#scope.accountId, this.userId),
-			"Could not load the 3D avatar. Try again.",
 		)
 	}
 

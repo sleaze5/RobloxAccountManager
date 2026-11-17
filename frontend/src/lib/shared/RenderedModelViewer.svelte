@@ -27,6 +27,7 @@
 	import { OBJLoader } from "three/addons/loaders/OBJLoader.js"
 	import { untrack } from "svelte"
 	import type { RenderedModel } from "../backend/bridge"
+	import { moveOrbitViewByKey, orbitViewKeysDescription } from "./orbit-view-keys"
 	import { renderedModelScene } from "./rendered-model-scene.svelte"
 	import type { RenderedModelScene } from "./rendered-model-scene.svelte"
 
@@ -44,12 +45,8 @@
 	const controlsDescriptionId = $props.id(),
 		axisIndicatorSizePx = 56,
 		axisIndicatorMarginPx = 4,
-		turnStepRadians = Math.PI / 12,
-		zoomStepFactor = 1.15,
-		panStepShare = 0.05,
 		keyLightIntensity = 1.6,
-		ambientLightIntensity = 1.4,
-		upAxis = new Vector3(0, 1, 0)
+		ambientLightIntensity = 1.4
 
 	$effect(() => {
 		if (!canvas) return
@@ -182,64 +179,13 @@
 		})
 		resizeObserver.observe(canvas)
 
-		const cameraAxis = (column: number): Vector3 =>
-			new Vector3().setFromMatrixColumn(camera.matrixWorld, column).normalize()
-		const turnCamera = (axis: Vector3, angle: number): void => {
-			const offset = camera.position.clone().sub(controls.target)
-			offset.applyAxisAngle(axis, angle)
-			camera.position.copy(controls.target).add(offset)
-			controls.update()
-		}
-		const zoomCamera = (factor: number): void => {
-			const offset = camera.position.clone().sub(controls.target)
-			offset.multiplyScalar(factor)
-			camera.position.copy(controls.target).add(offset)
-			controls.update()
-		}
-		const panCamera = (rightSteps: number, upSteps: number): void => {
-			const step = camera.position.distanceTo(controls.target) * panStepShare,
-				offset = cameraAxis(0)
-					.multiplyScalar(rightSteps * step)
-					.add(cameraAxis(1).multiplyScalar(upSteps * step))
-			camera.position.add(offset)
-			controls.target.add(offset)
-			controls.update()
-		}
 		const handleKeydown = (event: KeyboardEvent): void => {
-			const isPanning = event.ctrlKey || event.metaKey
-			switch (event.key) {
-				case "ArrowLeft":
-					if (isPanning) panCamera(1, 0)
-					else turnCamera(upAxis, -turnStepRadians)
-					break
-				case "ArrowRight":
-					if (isPanning) panCamera(-1, 0)
-					else turnCamera(upAxis, turnStepRadians)
-					break
-				case "ArrowUp":
-					if (isPanning) panCamera(0, -1)
-					else turnCamera(cameraAxis(0), -turnStepRadians)
-					break
-				case "ArrowDown":
-					if (isPanning) panCamera(0, 1)
-					else turnCamera(cameraAxis(0), turnStepRadians)
-					break
-				case "+":
-				case "=":
-					zoomCamera(1 / zoomStepFactor)
-					break
-				case "-":
-					zoomCamera(zoomStepFactor)
-					break
-				case "Home":
-					camera.position.copy(initialCameraPosition)
-					controls.target.copy(center)
-					controls.update()
-					break
-				default:
-					return
-			}
-			event.preventDefault()
+			const isViewMoved = moveOrbitViewByKey(event, camera, controls, () => {
+				camera.position.copy(initialCameraPosition)
+				controls.target.copy(center)
+				controls.update()
+			})
+			if (isViewMoved) event.preventDefault()
 		}
 		canvas.addEventListener("keydown", handleKeydown)
 
@@ -428,6 +374,4 @@
 	tabindex="0"
 	aria-label={`3D view of ${label}`}
 	aria-describedby={controlsDescriptionId}></canvas>
-<span id={controlsDescriptionId} class="sr-only"
-	>Drag or use the arrow keys to turn it. Hold Control while you drag or press the
-	arrow keys to move it. Scroll or use plus and minus to zoom. Home resets the view.</span>
+<span id={controlsDescriptionId} class="sr-only">{orbitViewKeysDescription}</span>
