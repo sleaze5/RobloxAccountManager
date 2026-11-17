@@ -7,7 +7,7 @@
 		assets,
 		headingId,
 	}: {
-		// assets lists the layered items, which each have a layer.
+		// assets may include items without a layer, which the list leaves out.
 		assets: AvatarAsset[]
 		headingId: string
 	} = $props()
@@ -29,28 +29,38 @@
 
 {#if layeredAssets.length > 0}
 	<section class="flex flex-col gap-2" aria-labelledby={headingId}>
-		<h3 id={headingId} class="text-xs font-semibold text-fg-muted">
-			Layered clothing
-		</h3>
-		<p class="text-xs text-fg-muted">
-			Roblox puts higher layers over lower ones.{hasPuffiness
-				? " Puffiness is kept from older avatar editors."
-				: ""}
-		</p>
-		<ul class="flex flex-col rounded-lg border border-line-subtle">
+		<div class="flex flex-col gap-0.5">
+			<h3
+				id={headingId}
+				class="flex items-center gap-2 text-xs font-semibold text-fg-muted">
+				Layered clothing
+				<span class="font-mono text-2xs font-normal text-fg-faint"
+					>{layeredAssets.length}</span>
+			</h3>
+			<p class="text-xs text-fg-muted">
+				Outer layers are listed first.{hasPuffiness
+					? " Puffiness comes from older avatar editors and stays as it is."
+					: ""}
+			</p>
+		</div>
+		<ul
+			class="flex flex-col overflow-hidden rounded-lg border border-line-subtle bg-surface">
 			{#each layeredAssets as asset (asset.item.itemId)}
 				{@const layer = asset.layer}
 				{#if layer}
 					{@const puffiness = formatPuffiness(layer)}
 					<li
-						class="flex min-w-0 items-center gap-3 border-line-subtle px-3 py-2 not-first:border-t">
-						<AvatarAssetSummary {asset} detail="" />
-						<span class="flex shrink-0 flex-col items-end text-xs">
-							<span class="font-mono text-fg tabular-nums"
-								>Layer {exactNumbers.format(layer.order)}</span>
+						class="flex h-12 min-w-0 items-center gap-3 border-line-subtle px-3 not-first:border-t">
+						<AvatarAssetSummary {asset} />
+						<span class="flex shrink-0 flex-col items-end">
+							<span class="text-xs text-fg"
+								>Layer <span class="font-mono tabular-nums"
+									>{exactNumbers.format(layer.order)}</span
+								></span>
 							{#if puffiness}
-								<span class="font-mono text-2xs text-fg-muted"
-									>Puffiness {puffiness}</span>
+								<span class="text-2xs text-fg-muted"
+									>Puffiness <span class="font-mono">{puffiness}</span
+									></span>
 							{/if}
 						</span>
 					</li>

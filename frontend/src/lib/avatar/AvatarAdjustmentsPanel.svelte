@@ -1,31 +1,37 @@
 <script lang="ts">
-	import caretDownIcon from "@phosphor-icons/core/regular/caret-down.svg?raw"
 	import slidersHorizontalIcon from "@phosphor-icons/core/regular/sliders-horizontal.svg?raw"
+	import { tick } from "svelte"
 	import Icon from "../shared/Icon.svelte"
 	import AvatarAccessoryAdjuster from "./AvatarAccessoryAdjuster.svelte"
 	import AvatarAdjustmentFacts from "./AvatarAdjustmentFacts.svelte"
+	import AvatarAdjustmentRow from "./AvatarAdjustmentRow.svelte"
 	import AvatarAdjustmentSummary from "./AvatarAdjustmentSummary.svelte"
-	import AvatarAssetSummary from "./AvatarAssetSummary.svelte"
 	import AvatarClothingLayers from "./AvatarClothingLayers.svelte"
-	import { isDefaultAdjustment } from "./avatar-draft"
+	import { isDefaultAdjustment, isSameAdjustment } from "./avatar-draft"
 	import type { AvatarState } from "./avatar-state.svelte"
 
 	let {
 		avatar,
 		canEdit,
 		username,
+		expandedAssetId = $bindable(),
 	}: {
 		avatar: AvatarState
 		canEdit: boolean
 		username: string
+		// expandedAssetId is the accessory whose controls are open, or 0. The
+		// Wearing tab sets it to open an accessory here.
+		expandedAssetId: number
 	} = $props()
 
-	// The accessory whose controls are open, or 0.
-	let expandedAssetId = $state(0)
-
 	const assets = $derived(avatar.draft?.assets ?? []),
-		savedAssetIds = $derived(
-			new Set((avatar.avatar?.assets ?? []).map((asset) => asset.item.itemId)),
+		savedAssetById = $derived(
+			new Map(
+				(avatar.avatar?.assets ?? []).map((asset) => [
+					asset.item.itemId,
+					asset,
+				]),
+			),
 		),
 		// The editor lists every accessory that the account may adjust, and
 		// any other accessory that Roblox lists with an adjustment.
@@ -45,12 +51,21 @@
 				? adjustableAssets.length === 0 && !hasLayers
 				: !hasAdjustments && !hasLayers,
 		)
+
+	// The accessory that the Wearing tab opened scrolls into view.
+	$effect(() => {
+		if (!expandedAssetId) return
+		const rowId = `avatar-adjust-row-${expandedAssetId}`
+		void tick().then(() =>
+			document.getElementById(rowId)?.scrollIntoView({ block: "nearest" }),
+		)
+	})
 </script>
 
-<div class="flex flex-col gap-4 p-3">
+<div class="flex flex-col gap-5 p-3">
 	<p class="flex min-h-7 items-center text-xs text-fg-muted">
 		{canEdit
-			? "Move, turn, and resize accessories within the limits that Roblox allows. The image previews your changes."
+			? "Move, turn, and resize accessories. The image previews your changes."
 			: `How @${username} placed accessories and stacked layered clothing.`}
 	</p>
 
@@ -71,57 +86,41 @@
 				aria-labelledby="avatar-adjust-accessories">
 				<h3
 					id="avatar-adjust-accessories"
-					class="text-xs font-semibold text-fg-muted">
+					class="flex items-center gap-2 text-xs font-semibold text-fg-muted">
 					Accessories
+					<span class="font-mono text-2xs font-normal text-fg-faint"
+						>{adjustableAssets.length}</span>
 				</h3>
-				<ul class="flex flex-col gap-2">
+				<ul
+					class="flex flex-col overflow-hidden rounded-lg border border-line-subtle bg-surface">
 					{#each adjustableAssets as asset (asset.item.itemId)}
 						{@const assetId = asset.item.itemId}
 						{@const limits = avatar.adjustmentLimitsOf(asset.item.typeName)}
-						{@const isSaved = savedAssetIds.has(assetId)}
-						{@const isExpanded = expandedAssetId === assetId}
-						{@const canAdjust = !!limits && isSaved}
-						{@const detail = !isSaved
-							? "Save the avatar to adjust it"
-							: !limits
-								? "Roblox doesn't let this account adjust it"
-								: isDefaultAdjustment(asset.adjustment)
-									? "Default placement"
-									: "Adjusted"}
-						<li
-							class="flex animate-enter flex-col rounded-lg border border-line-subtle bg-surface">
-							<button
-								class="group flex min-w-0 items-center gap-3 rounded-lg px-3 py-2 text-left transition-colors duration-100 hover:bg-hover disabled:hover:bg-transparent"
-								type="button"
-								aria-expanded={isExpanded}
-								aria-controls={`avatar-adjust-${assetId}`}
-								disabled={!canAdjust &&
-									isDefaultAdjustment(asset.adjustment)}
-								onclick={() =>
-									(expandedAssetId = isExpanded ? 0 : assetId)}>
-								<AvatarAssetSummary {asset} {detail} />
-								<Icon
-									svg={caretDownIcon}
-									class="shrink-0 text-fg-muted transition-transform duration-100 group-aria-expanded:rotate-180"
-									size={16}
-									aria-hidden="true" />
-							</button>
-							{#if isExpanded}
-								<div
-									id={`avatar-adjust-${assetId}`}
-									class="animate-enter border-t border-line-subtle px-3 py-3">
-									{#if limits && canAdjust}
-										<AvatarAccessoryAdjuster
-											{avatar}
-											{asset}
-											{limits} />
-									{:else if asset.adjustment}
-										<AvatarAdjustmentFacts
-											adjustment={asset.adjustment} />
-									{/if}
-								</div>
+						{@const savedAsset = savedAssetById.get(assetId)}
+						<AvatarAdjustmentRow
+							{asset}
+							rowId={`avatar-adjust-row-${assetId}`}
+							controlsId={`avatar-adjust-${assetId}`}
+							isExpanded={expandedAssetId === assetId}
+							isEdited={!!savedAsset &&
+								!isSameAdjustment(
+									savedAsset.adjustment,
+									asset.adjustment,
+								)}
+							unavailableReason={!savedAsset
+								? "Save to adjust"
+								: !limits
+									? "Can't be adjusted"
+									: ""}
+							onToggle={() =>
+								(expandedAssetId =
+									expandedAssetId === assetId ? 0 : assetId)}>
+							{#if limits && savedAsset}
+								<AvatarAccessoryAdjuster {avatar} {asset} {limits} />
+							{:else if asset.adjustment}
+								<AvatarAdjustmentFacts adjustment={asset.adjustment} />
 							{/if}
-						</li>
+						</AvatarAdjustmentRow>
 					{/each}
 				</ul>
 			</section>

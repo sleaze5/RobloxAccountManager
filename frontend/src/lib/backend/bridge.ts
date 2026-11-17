@@ -106,7 +106,6 @@ export type {
 	AvatarAccessoryAdjustment,
 	AvatarAccessoryAdjustmentLimits,
 	AvatarAsset,
-	AvatarAxisLimits,
 	AvatarBodyColors,
 	AvatarChange,
 	AvatarClothingLayer,

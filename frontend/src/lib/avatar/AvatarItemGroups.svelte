@@ -4,6 +4,7 @@
 	import InventoryItemTile from "../inventory/InventoryItemTile.svelte"
 	import Icon from "../shared/Icon.svelte"
 	import { groupWornAssets } from "./avatar-categories"
+	import { isDefaultAdjustment } from "./avatar-draft"
 
 	let {
 		assets,
@@ -48,6 +49,11 @@
 						isWorn={false}
 						actionLabel="Show details"
 						onOpen={() => onOpenItem(asset)} />
+					{#if !isDefaultAdjustment(asset.adjustment)}
+						<span
+							class="pointer-events-none absolute top-2 left-2 animate-pop rounded-sm border border-line-strong bg-overlay px-1 text-2xs leading-4 font-medium text-fg"
+							>Adjusted</span>
+					{/if}
 					{@render itemControls?.(asset)}
 				</li>
 			{/each}

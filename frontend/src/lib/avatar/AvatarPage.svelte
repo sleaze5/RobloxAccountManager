@@ -77,6 +77,8 @@
 		// The outfit dialog hides while an item of the outfit shows its details,
 		// and shows again when the item dialog closes.
 		viewedOutfit = $state<AvatarOutfit | null>(null),
+		// The accessory whose controls the Adjustments tab opens, or 0.
+		adjustedAssetId = $state(0),
 		isConfirmingDiscard = $state(false),
 		// The navigation that closes the page once the user confirms discarding
 		// changes, or null when the page stays open.
@@ -116,12 +118,15 @@
 	}
 
 	// isTextEntry tells whether the target undoes its own typing, such as the
-	// custom color field.
+	// custom color field. A number field applies each value at once, so the
+	// avatar undo covers it.
 	function isTextEntry(target: EventTarget | null): boolean {
 		return (
 			target instanceof HTMLTextAreaElement ||
 			(target instanceof HTMLInputElement &&
-				!["range", "checkbox", "radio", "button"].includes(target.type))
+				!["range", "checkbox", "radio", "button", "number"].includes(
+					target.type,
+				))
 		)
 	}
 
@@ -383,12 +388,17 @@
 												asset.item,
 												avatarItemCategory(asset.category),
 											)}
-										onAddItems={() => (pickerEmoteSlot = null)} />
+										onAddItems={() => (pickerEmoteSlot = null)}
+										onAdjustItem={(assetId) => {
+											adjustedAssetId = assetId
+											void selectTab("adjustments", false)
+										}} />
 								{:else if tab === "adjustments"}
 									<AvatarAdjustmentsPanel
 										{avatar}
 										{canEdit}
-										{username} />
+										{username}
+										bind:expandedAssetId={adjustedAssetId} />
 								{:else if tab === "body"}
 									<AvatarBodyPanel {avatar} {canEdit} />
 								{:else if tab === "emotes"}

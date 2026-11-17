@@ -17,9 +17,11 @@ import { KeyedLoad } from "../shared/keyed-load.svelte"
 import {
 	adjustAsset,
 	avatarChangeOf,
+	clampedAdjustment,
 	clearEmoteSlot,
 	draftOf,
 	isDraftChanged,
+	mirroredAdjustment,
 	putEmoteInSlot,
 	takeOffItem,
 	wearItem,
@@ -27,6 +29,12 @@ import {
 import type { AvatarDraft } from "./avatar-draft"
 
 const maxDraftHistoryLength = 100
+
+interface CopiedAdjustment {
+	sourceAssetId: number
+	sourceName: string
+	adjustment: AvatarAccessoryAdjustment
+}
 
 // AvatarState shows how one Roblox user looks, as the account sees it. When
 // the user is the account itself, it also edits a draft of the avatar and
@@ -51,6 +59,9 @@ export class AvatarState {
 	draft = $state.raw<AvatarDraft | null>(null)
 	// The drafts before each change, newest last, which undo restores.
 	draftHistory = $state.raw<AvatarDraft[]>([])
+	// The accessory placement that Copy placement took, which Paste puts on
+	// another accessory.
+	copiedAdjustment = $state.raw<CopiedAdjustment | null>(null)
 	isSaving = $state(false)
 	saveError = $state("")
 	// Whether Roblox changed the avatar with a save or an outfit but the changed
@@ -242,6 +253,28 @@ export class AvatarState {
 		changeKey = "",
 	): void {
 		this.changeDraft((draft) => adjustAsset(draft, assetId, adjustment), changeKey)
+	}
+
+	copyAdjustment(
+		sourceAssetId: number,
+		sourceName: string,
+		adjustment: AvatarAccessoryAdjustment,
+	): void {
+		this.copiedAdjustment = { sourceAssetId, sourceName, adjustment }
+	}
+
+	// pasteAdjustment puts the copied placement on the accessory, mirrored for
+	// the other side when isMirrored is true, and kept within the limits of
+	// the accessory type.
+	pasteAdjustment(
+		assetId: number,
+		limits: AvatarAccessoryAdjustmentLimits,
+		isMirrored: boolean,
+	): void {
+		if (!this.copiedAdjustment) return
+		const copied = this.copiedAdjustment.adjustment,
+			pasted = isMirrored ? mirroredAdjustment(copied) : copied
+		this.adjust(assetId, clampedAdjustment(pasted, limits))
 	}
 
 	wear(item: InventoryItem, category: InventoryCategory): void {

@@ -1,6 +1,7 @@
 import type {
 	Avatar,
 	AvatarAccessoryAdjustment,
+	AvatarAccessoryAdjustmentLimits,
 	AvatarAsset,
 	AvatarBodyColors,
 	AvatarChange,
@@ -53,16 +54,43 @@ export type AdjustmentAxis = keyof AvatarVector
 
 export const adjustmentAxes: AdjustmentAxis[] = ["x", "y", "z"]
 
-// adjustmentKinds lists what an accessory adjustment changes. The steps match
-// the precision of the values that the Roblox avatar editor stores.
+// adjustmentKinds lists what an accessory adjustment changes, with each axis
+// named by the way it moves the accessory on the avatar: Roblox points X to
+// the avatar's side, Y up, and Z to its back. A value field shows a scale as a
+// percentage, so its factor is 100. The steps match the precision of the
+// values that the Roblox avatar editor stores.
 export const adjustmentKinds: {
 	kind: AdjustmentKind
 	label: string
+	unitLabel: string
+	axisLabels: Record<AdjustmentAxis, string>
 	step: number
+	fieldFactor: number
 }[] = [
-	{ kind: "position", label: "Position", step: 0.01 },
-	{ kind: "rotation", label: "Rotation", step: 0.1 },
-	{ kind: "scale", label: "Scale", step: 0.01 },
+	{
+		kind: "position",
+		label: "Position",
+		unitLabel: "studs",
+		axisLabels: { x: "Side", y: "Height", z: "Depth" },
+		step: 0.01,
+		fieldFactor: 1,
+	},
+	{
+		kind: "rotation",
+		label: "Rotation",
+		unitLabel: "degrees",
+		axisLabels: { x: "Tilt", y: "Turn", z: "Roll" },
+		step: 0.1,
+		fieldFactor: 1,
+	},
+	{
+		kind: "scale",
+		label: "Scale",
+		unitLabel: "percent",
+		axisLabels: { x: "Width", y: "Height", z: "Depth" },
+		step: 0.01,
+		fieldFactor: 100,
+	},
 ]
 
 // defaultAdjustment is the placement of an accessory that Roblox lists
@@ -77,17 +105,72 @@ export function adjustmentOf(asset: AvatarAsset): AvatarAccessoryAdjustment {
 	return asset.adjustment ?? defaultAdjustment
 }
 
-export function isDefaultAdjustment(
+export function isDefaultAdjustmentKind(
 	adjustment: AvatarAccessoryAdjustment | null,
+	kind: AdjustmentKind,
 ): boolean {
 	return (
 		!adjustment ||
-		adjustmentKinds.every(({ kind }) =>
-			adjustmentAxes.every(
-				(axis) => adjustment[kind][axis] === defaultAdjustment[kind][axis],
-			),
+		adjustmentAxes.every(
+			(axis) => adjustment[kind][axis] === defaultAdjustment[kind][axis],
 		)
 	)
+}
+
+export function isDefaultAdjustment(
+	adjustment: AvatarAccessoryAdjustment | null,
+): boolean {
+	return adjustmentKinds.every(({ kind }) =>
+		isDefaultAdjustmentKind(adjustment, kind),
+	)
+}
+
+export function isSameAdjustment(
+	first: AvatarAccessoryAdjustment | null,
+	second: AvatarAccessoryAdjustment | null,
+): boolean {
+	const firstAdjustment = first ?? defaultAdjustment,
+		secondAdjustment = second ?? defaultAdjustment
+	return adjustmentKinds.every(({ kind }) =>
+		adjustmentAxes.every(
+			(axis) => firstAdjustment[kind][axis] === secondAdjustment[kind][axis],
+		),
+	)
+}
+
+// mirroredAdjustment reflects the placement across the middle of the avatar,
+// so that the placement of a left accessory fits its right counterpart: the
+// side moves to the other side, and the turn and roll reverse.
+export function mirroredAdjustment(
+	adjustment: AvatarAccessoryAdjustment,
+): AvatarAccessoryAdjustment {
+	return {
+		position: { ...adjustment.position, x: -adjustment.position.x },
+		rotation: {
+			x: adjustment.rotation.x,
+			y: -adjustment.rotation.y,
+			z: -adjustment.rotation.z,
+		},
+		scale: { ...adjustment.scale },
+	}
+}
+
+// clampedAdjustment keeps each axis within the limits, such as when a pasted
+// placement comes from an accessory type with a wider range.
+export function clampedAdjustment(
+	adjustment: AvatarAccessoryAdjustment,
+	limits: AvatarAccessoryAdjustmentLimits,
+): AvatarAccessoryAdjustment {
+	const clamped = structuredClone(adjustment)
+	for (const { kind } of adjustmentKinds) {
+		for (const axis of adjustmentAxes) {
+			clamped[kind][axis] = Math.min(
+				Math.max(clamped[kind][axis], limits[kind].min[axis]),
+				limits[kind].max[axis],
+			)
+		}
+	}
+	return clamped
 }
 
 export function draftOf(avatar: Avatar): AvatarDraft {
@@ -173,11 +256,17 @@ export function wearItem(
 	}
 }
 
+// adjustAsset returns the same draft when the placement does not change, so
+// that applying a value again adds no step to the history.
 export function adjustAsset(
 	draft: AvatarDraft,
 	assetId: number,
 	adjustment: AvatarAccessoryAdjustment,
 ): AvatarDraft {
+	const adjustedAsset = draft.assets.find((asset) => asset.item.itemId === assetId)
+	if (!adjustedAsset || isSameAdjustment(adjustedAsset.adjustment, adjustment)) {
+		return draft
+	}
 	return {
 		...draft,
 		assets: draft.assets.map((asset) =>
