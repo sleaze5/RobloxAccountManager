@@ -17,7 +17,7 @@
 	import arrowCounterClockwiseIcon from "@phosphor-icons/core/regular/arrow-counter-clockwise.svg?raw"
 	import circleNotchIcon from "@phosphor-icons/core/regular/circle-notch.svg?raw"
 	import { AccountProfileSection, SessionState, SocialList } from "../backend/bridge"
-	import type { RobloxNotificationUser } from "../backend/bridge"
+	import type { GamePlace, RobloxNotificationUser } from "../backend/bridge"
 	import AccountModerationPanel from "./AccountModerationPanel.svelte"
 	import { banEndsAtMs, canReactivate, hasReactivation } from "./moderation.svelte"
 	import { CountdownClock } from "../shared/countdown-clock.svelte"
@@ -50,6 +50,7 @@
 		onJoinServer,
 		onFollowUser,
 		onSearchPlace,
+		onShowGamePass,
 		onSearchUniverse,
 		onReplaceCookie,
 		onEditDescription,
@@ -63,6 +64,7 @@
 		onJoinServer: (placeId: number, jobId: string) => void
 		onFollowUser: (user: RobloxNotificationUser) => void
 		onSearchPlace: (placeId: number) => void
+		onShowGamePass: (place: GamePlace, gamePassId: number) => void
 		onSearchUniverse: (universeId: number) => void
 		onReplaceCookie: () => void
 		onEditDescription: (description: string) => void
@@ -205,6 +207,7 @@
 		username={selectedAccount.username}
 		bind:sidebarWidth={workspace.accountSettingsSidebarWidth}
 		{onSearchPlace}
+		{onShowGamePass}
 		onBack={() => void backToProfile()} />
 {:else if workspace.accountPage === "notifications" && hasAccount && store.vault.unlocked}
 	<RobloxNotificationsPage

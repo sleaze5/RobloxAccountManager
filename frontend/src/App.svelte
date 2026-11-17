@@ -37,6 +37,7 @@
 	import type {
 		AppBuild,
 		AppLocation,
+		GamePlace,
 		RobloxNotificationUser,
 		ShutdownEffects,
 		SocialUser,
@@ -322,6 +323,10 @@
 		store.launchInput.link = link
 		store.launchInput.launchData = ""
 		showLaunchDrawer("[data-launch-link]")
+	}
+
+	function onShowGamePass(place: GamePlace, gamePassId: number): void {
+		showPage("games", () => games.showGamePass(place, gamePassId))
 	}
 
 	function searchGames(text: string): void {
@@ -657,6 +662,7 @@
 				notifications={notificationCenter}
 				onFillLaunch={(placeId, jobId) => fillGameLaunchOptions(placeId, jobId)}
 				onSearchPlace={(placeId) => searchGames(`id:${placeId}`)}
+				{onShowGamePass}
 				onSearchUniverse={(universeId) => searchGames(`universe:${universeId}`)}
 				onRelationshipAction={openRelationshipAction}
 				onEditNickname={openNickname}
@@ -728,6 +734,7 @@
 											fillFollowUserLaunchOptions(user)}
 										onSearchPlace={(placeId) =>
 											searchGames(`id:${placeId}`)}
+										{onShowGamePass}
 										onSearchUniverse={(universeId) =>
 											searchGames(`universe:${universeId}`)}
 										onReplaceCookie={openAddAccount}

@@ -25,7 +25,7 @@ export function marketPriceLabel(
 // salePriceLabel names what the seller asks for a new copy: its price, Free,
 // or Off sale.
 export function salePriceLabel(
-	market: InventoryItemMarket,
+	market: Pick<InventoryItemMarket, "isForSale" | "priceInRobux">,
 	isCompact: boolean,
 ): string {
 	if (!market.isForSale) return "Off sale"

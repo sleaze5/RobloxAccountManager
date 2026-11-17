@@ -6,7 +6,7 @@
 	import AccountPageHeader from "../accounts/AccountPageHeader.svelte"
 	import type { AccountStore } from "../accounts/account-store.svelte"
 	import { InventoryCategory } from "../backend/bridge"
-	import type { InventoryItem } from "../backend/bridge"
+	import type { GamePlace, InventoryItem } from "../backend/bridge"
 	import SidebarResizer from "../layout/SidebarResizer.svelte"
 	import Icon from "../shared/Icon.svelte"
 	import RefreshIcon from "../shared/RefreshIcon.svelte"
@@ -39,6 +39,7 @@
 		notifications,
 		sidebarWidth = $bindable(),
 		onSearchPlace,
+		onShowGamePass,
 		onBack,
 	}: {
 		accounts: AccountStore
@@ -48,6 +49,7 @@
 		username: string
 		sidebarWidth: number
 		onSearchPlace: (placeId: number) => void
+		onShowGamePass: (place: GamePlace, gamePassId: number) => void
 		onBack: () => void
 	} = $props()
 
@@ -393,12 +395,16 @@
 		{category}
 		{inventory}
 		{username}
-		accountUsername={accounts.selectedAccount.username}
+		account={accounts.selectedAccount}
 		{isOwnInventory}
 		isWorn={wornAssetIds.has(detailedItem.itemId)}
 		onSearchPlace={(placeId) => {
 			detailedCopyKey = ""
 			onSearchPlace(placeId)
+		}}
+		onShowGamePass={(place, gamePassId) => {
+			detailedCopyKey = ""
+			onShowGamePass(place, gamePassId)
 		}}
 		onClose={() => (detailedCopyKey = "")} />
 {/if}

@@ -1,9 +1,6 @@
-import {
-	accountBackend,
-	AccountProfileSection,
-	InventoryCategory,
-} from "../backend/bridge"
+import { accountBackend, InventoryCategory } from "../backend/bridge"
 import type {
+	GamePlace,
 	InventoryItem,
 	InventoryItemDetails,
 	RelatedInventoryItem,
@@ -11,6 +8,7 @@ import type {
 } from "../backend/bridge"
 import type { AccountStore } from "../accounts/account-store.svelte"
 import { AccountScope } from "../accounts/account-scope"
+import { readRobuxBalance } from "../accounts/robux-balance"
 import type { NotificationCenter } from "../notifications/notification-center.svelte"
 import type { CancellableRequest } from "../shared/cancellable-request"
 import { errorMessage } from "../shared/errors"
@@ -59,6 +57,9 @@ export class InventoryState {
 	isDeletingItem = $state(false)
 	isBuyingItem = $state(false)
 	isDownloadingItem = $state(false)
+	isFindingGamePassPlace = $state(false)
+	#gamePassPlaceRequest: ReturnType<typeof accountBackend.FindGamePassPlace> | null =
+		null
 	// The items that the account bought and that Roblox still delivers, by
 	// categoryItemKey.
 	pendingPurchaseKeys = $state.raw(new Set<string>())
@@ -287,6 +288,42 @@ export class InventoryState {
 		}
 	}
 
+	// findGamePassPlace returns the pass's game, or null when it fails or is
+	// cancelled.
+	async findGamePassPlace(gamePassId: number): Promise<GamePlace | null> {
+		if (this.#gamePassPlaceRequest) return null
+		const scope = this.#scope,
+			request = accountBackend.FindGamePassPlace(gamePassId)
+		this.#gamePassPlaceRequest = request
+		this.isFindingGamePassPlace = true
+		this.itemActionError = ""
+		try {
+			const place = await scope.track(request)
+			return this.#gamePassPlaceRequest === request && scope.isCurrent
+				? place
+				: null
+		} catch (error) {
+			if (this.#gamePassPlaceRequest === request && scope.isCurrent) {
+				this.itemActionError = errorMessage(
+					error,
+					"Couldn't find this pass's game. Try again.",
+				)
+			}
+			return null
+		} finally {
+			if (this.#gamePassPlaceRequest === request) {
+				this.#gamePassPlaceRequest = null
+				this.isFindingGamePassPlace = false
+			}
+		}
+	}
+
+	cancelFindingGamePassPlace(): void {
+		void this.#gamePassPlaceRequest?.cancel()
+		this.#gamePassPlaceRequest = null
+		this.isFindingGamePassPlace = false
+	}
+
 	async checkFavorite(item: InventoryItem): Promise<void> {
 		const key = inventoryItemKey(item),
 			itemType = item.catalogItemType
@@ -377,20 +414,9 @@ export class InventoryState {
 
 	async loadRobuxBalance(): Promise<void> {
 		this.robuxBalance = undefined
-		let robuxBalance: number | null
-		try {
-			const profile = await this.#scope.track(
-				accountBackend.GetAccountProfile(
-					this.#scope.accountId,
-					AccountProfileSection.ProfileSectionRobux,
-				),
-			)
-			robuxBalance = profile.robux
-		} catch {
-			// The confirmation shows the balance as unavailable, and the backend
-			// logs the failure.
-			robuxBalance = null
-		}
+		const robuxBalance = await readRobuxBalance(this.#scope.accountId, (request) =>
+			this.#scope.track(request),
+		)
 		if (this.#scope.isCurrent) this.robuxBalance = robuxBalance
 	}
 
