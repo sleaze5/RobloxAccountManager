@@ -4,7 +4,22 @@ This file is the authoritative specification for visual design, component stylin
 
 The interface is quiet, precise, technical, dense, and fast. It is a flat, near-black, almost grayscale UI with thin borders, small brightness steps, consistent geometry, and very short transitions. The content sits one small step darker than the chrome around it.
 
-When this file does not cover a case, copy the closest existing pattern in the application. If no pattern fits, follow the description above and name the new pattern in the change summary.
+When this file does not cover a case, copy the closest existing pattern in the application. If no pattern fits, follow the description above and the [Design principles](#design-principles), and name the new pattern in the change summary.
+
+## Design principles
+
+Design the interface as one system. Take every value from a token, and judge every change against the full screen. The sections below set the concrete values. These principles tell you how to apply them and how to decide cases they do not cover. If a principle and a rule conflict, obey the rule.
+
+1. **Geometric harmony.** Derive each radius, inset, border width, and proportion from adjacent elements. Keep nested corners concentric: inner radius = outer radius − padding − border width. Use one radius per component family, and only radii from the radius scale.
+2. **Optical precision.** Align to perceived edges and visual weight, not to bounding boxes. Center asymmetric glyphs optically. Align adjacent text on one baseline. Balance icon size and stroke against adjacent text. Adjust padding until it looks even, with spacing-scale steps only.
+3. **System-wide consistency.** Use one spacing scale, type scale, set of color roles, elevation order, radius scale, and motion set. A one-off value is a defect. Give a role the same appearance and behavior on all screens.
+4. **Intentional microdetails.** Hairlines, separators, icon stroke, shadows, focus rings, and interaction states are part of the design. Small inconsistencies accumulate. Fix each one.
+5. **Environmental harmony.** Make the interface feel native to a dense desktop tool: desktop density, window chrome, and pointer and keyboard conventions. Do not use web page patterns, such as hero sections, oversized cards, gradients, or glass surfaces.
+6. **Refinement over decoration.** Give each element a function. Do not add gradients, glows, blur, decorative illustration, or decorative shadows. Make hierarchy with weight, color step, spacing, and grouping.
+7. **Interaction craftsmanship.** Show clear cause and effect. Give feedback immediately and in proportion to the action. Keep spatial continuity: a surface enters from its trigger and exits toward it. Entrances decelerate, and exits are faster than entrances.
+8. **Quality control.** Inspect each change at the real window size and in a 2× screenshot. Complete the [Design review checklist](#design-review-checklist) before you finish.
+
+Nothing must look arbitrary or accidentally assembled. Each component must extend the system. Do not optimize one component at the cost of the full experience. Refine until the experience is coherent, precise, and complete.
 
 ## Sources of truth
 
@@ -405,3 +420,22 @@ The Animations setting in Settings > User Interface chooses System (the default)
 - Remove all movement: transforms, scale, slides, hover nudges, and press feedback apply instantly or not at all.
 - The spinner and the skeleton pulse stop but stay visible as static loading indicators: `motion-reduce:animate-none`.
 - Selected, expanded, loading, success, warning, and error states stay understandable without animation.
+
+## Design review checklist
+
+Review the full screen, then each component in each state. Use a 900px by 500px window at 100% scaling, then a 2× screenshot.
+
+- [ ] **Tokens:** All values come from tokens or stock scales.
+- [ ] **Patterns:** The change reuses building blocks. A new pattern has a name and a reason.
+- [ ] **Geometry:** Each radius matches its role, and nested corners are concentric. Borders are 1px, or 2px for indicators.
+- [ ] **Proportions:** Control, row, and thumbnail sizes match across adjacent components.
+- [ ] **Spacing:** Related items are closer than unrelated items. Sibling surfaces use the same padding.
+- [ ] **Alignment:** Edges share axes across components, with no 1px or 2px near-misses. Adjacent text shares a baseline.
+- [ ] **Layout:** The layout holds at the minimum window size, truncates in priority order, and does not shift on load.
+- [ ] **Typography:** Size, weight, and color match the role. The hierarchy reads in a squint test.
+- [ ] **Optical balance:** Icons look centered, and their weight matches adjacent text. Controls in a group have equal visual weight.
+- [ ] **Color and elevation:** Surfaces follow the elevation order. Contrast meets [Accessibility](#accessibility). Semantic color shows meaning only.
+- [ ] **States:** Each applicable state exists and matches across components: hover, pressed, focus-visible, selected, disabled, loading, empty, success, and error. Focus rings are not clipped.
+- [ ] **Motion:** Feedback is immediate. Duration and easing match the role. Surfaces enter from their trigger. States stay clear under reduced motion.
+- [ ] **Restraint:** Each element has a function. No decoration, redundant labels, or repeated values. At most one dominant action per surface.
+- [ ] **Coherence:** The screen feels like a desktop application and matches its neighbors in anatomy, alignment axes, and spacing rhythm.
