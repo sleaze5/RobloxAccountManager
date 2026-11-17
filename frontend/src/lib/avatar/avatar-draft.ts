@@ -220,17 +220,15 @@ export function isDraftChanged(avatar: Avatar, draft: AvatarDraft): boolean {
 	)
 }
 
+// normalizedChange orders the assets and emotes. It keeps a placement reset to
+// the default, because avatarChangeOf writes a placement only when the draft
+// edited it.
 function normalizedChange(change: AvatarChange): AvatarChange {
 	return {
 		...change,
-		assets: (change.assets ?? [])
-			.map((asset) => ({
-				assetId: asset.assetId,
-				adjustment: isDefaultAdjustment(asset.adjustment)
-					? null
-					: asset.adjustment,
-			}))
-			.sort((first, second) => first.assetId - second.assetId),
+		assets: [...(change.assets ?? [])].sort(
+			(first, second) => first.assetId - second.assetId,
+		),
 		emotes: [...(change.emotes ?? [])].sort(
 			(first, second) => first.slot - second.slot,
 		),
