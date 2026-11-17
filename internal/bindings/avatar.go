@@ -70,9 +70,9 @@ func (service *Service) GetAvatarOutfitDetails(ctx context.Context, accountID, o
 	return service.core.GetAvatarOutfitDetails(ctx, accountID, outfitID)
 }
 
-func (service *Service) WearAvatarOutfit(ctx context.Context, accountID, outfitID int64) (*robloxservices.Avatar, error) {
+func (service *Service) WearAvatarOutfit(ctx context.Context, accountID, outfitID int64) (appservice.SavedAvatar, error) {
 	if err := validateAccountAndTargetIDs(accountID, outfitID, "avatar-outfit-wear"); err != nil {
-		return nil, err
+		return appservice.SavedAvatar{}, err
 	}
 	return service.core.WearAvatarOutfit(ctx, accountID, outfitID)
 }

@@ -243,6 +243,8 @@ Disabled and other states:
 
 - Every interactive element exposes the hover, focus, disabled, loading, and error states that apply to it.
 - Show a disabled control with `opacity-45` and `cursor-not-allowed`. Do not also change its colors. Base styles do this for disabled buttons. When the reason is not obvious, explain it in visible text near the control.
+- When a control's own action disables or removes it, such as a Reset button or the last Undo, move the focus to the next relevant control, such as the first control that it reset or the selected tab. Otherwise the keyboard focus drops to the page.
+- Keep a Copy button enabled after it copies. Confirm the copy in the button with a check icon that blooms in and the label "Copied", as the Launch button does.
 
 Color:
 

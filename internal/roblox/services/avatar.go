@@ -1,7 +1,6 @@
 package services
 
 import (
-	"bytes"
 	"context"
 	"encoding/json"
 	"errors"
@@ -58,6 +57,11 @@ type AvatarAsset struct {
 	// Category is empty for an asset type that no inventory category lists.
 	Category InventoryCategory `json:"category"`
 	Item     InventoryItem     `json:"item"`
+	// Adjustment is nil when the avatar wears the accessory where it attaches
+	// by default.
+	Adjustment *AvatarAccessoryAdjustment `json:"adjustment"`
+	// Layer is nil for an asset that is not layered.
+	Layer *AvatarClothingLayer `json:"layer"`
 }
 
 // AvatarEmote is an emote in one of the eight slots of the emote wheel.
@@ -111,13 +115,22 @@ type AvatarEmoteSlot struct {
 	Slot    int   `json:"slot"`
 }
 
+// AvatarChangeAsset is an asset that a changed avatar wears.
+type AvatarChangeAsset struct {
+	AssetID int64 `json:"assetId"`
+	// Adjustment is the placement of a rigid accessory, or nil to keep the
+	// placement that Roblox stores. Only an asset that the avatar wears now
+	// can change its placement.
+	Adjustment *AvatarAccessoryAdjustment `json:"adjustment"`
+}
+
 // AvatarChange is the whole avatar that an account saves.
 type AvatarChange struct {
-	AvatarType AvatarType        `json:"avatarType"`
-	Scales     AvatarScales      `json:"scales"`
-	BodyColors AvatarBodyColors  `json:"bodyColors"`
-	AssetIDs   []int64           `json:"assetIds"`
-	Emotes     []AvatarEmoteSlot `json:"emotes"`
+	AvatarType AvatarType          `json:"avatarType"`
+	Scales     AvatarScales        `json:"scales"`
+	BodyColors AvatarBodyColors    `json:"bodyColors"`
+	Assets     []AvatarChangeAsset `json:"assets"`
+	Emotes     []AvatarEmoteSlot   `json:"emotes"`
 }
 
 // AvatarScaleLimit is the range of one scale and the step between values.
@@ -152,6 +165,9 @@ type AvatarRules struct {
 	// IsBodyShapeEnabled tells whether the account may change the proportion
 	// and body type scales.
 	IsBodyShapeEnabled bool `json:"isBodyShapeEnabled"`
+	// AccessoryAdjustmentLimitsByTypeName holds every accessory type that the
+	// account may adjust, by the type names of InventoryItem.TypeName.
+	AccessoryAdjustmentLimitsByTypeName map[string]AvatarAccessoryAdjustmentLimits `json:"accessoryAdjustmentLimitsByTypeName"`
 }
 
 // AvatarOutfit is an outfit that a user saved.
@@ -192,7 +208,7 @@ type listedAvatarAsset struct {
 // lists none.
 func (listed listedAvatarAsset) updateAsset() avatarUpdateAsset {
 	asset := avatarUpdateAsset{ID: listed.ID}
-	if trimmedMeta := bytes.TrimSpace(listed.Meta); len(trimmedMeta) > 0 && !bytes.Equal(trimmedMeta, []byte("null")) {
+	if hasMeta(listed.Meta) {
 		asset.Meta = listed.Meta
 	}
 	return asset
@@ -255,9 +271,11 @@ func avatarOf(payload avatarPayload) (Avatar, error) {
 	}
 	for _, listedAsset := range *payload.Assets {
 		if listedAsset.ID > 0 {
+			adjustment, layer := assetLayoutOf(listedAsset.Meta)
 			avatar.Assets = append(avatar.Assets, AvatarAsset{
-				Category: inventoryCategoryOfAssetType(listedAsset.AssetType.Name),
-				Item:     avatarItem(listedAsset.ID, listedAsset.Name, listedAsset.AssetType.Name),
+				Category:   inventoryCategoryOfAssetType(listedAsset.AssetType.Name),
+				Item:       avatarItem(listedAsset.ID, listedAsset.Name, listedAsset.AssetType.Name),
+				Adjustment: adjustment, Layer: layer,
 			})
 		}
 	}
@@ -312,7 +330,10 @@ type avatarRulesPayload struct {
 		HexColor     string `json:"hexColor"`
 		Name         string `json:"name"`
 	} `json:"bodyColorsPalette"`
-	ProportionsAndBodyTypeEnabledForUser bool `json:"proportionsAndBodyTypeEnabledForUser"`
+	ProportionsAndBodyTypeEnabledForUser bool                              `json:"proportionsAndBodyTypeEnabledForUser"`
+	AccessoryRefinementTypes             []int64                           `json:"accessoryRefinementTypes"`
+	AccessoryRefinementLowerBounds       map[string]listedRefinementBounds `json:"accessoryRefinementLowerBounds"`
+	AccessoryRefinementUpperBounds       map[string]listedRefinementBounds `json:"accessoryRefinementUpperBounds"`
 }
 
 // The rules name asset types with spaces and hyphens, such as "T-Shirt
@@ -335,10 +356,11 @@ func (service *Users) AvatarRules(ctx context.Context, accountID, version int64)
 		return AvatarRules{}, invalidAvatar("avatar-rules")
 	}
 	rules := AvatarRules{
-		ScaleLimits:            *payload.Scales,
-		BodyColorPalette:       make([]AvatarPaletteColor, 0, len(payload.BodyColorsPalette)),
-		MaxWornCountByTypeName: make(map[string]int, len(payload.WearableAssetTypes)),
-		IsBodyShapeEnabled:     payload.ProportionsAndBodyTypeEnabledForUser,
+		ScaleLimits:                         *payload.Scales,
+		BodyColorPalette:                    make([]AvatarPaletteColor, 0, len(payload.BodyColorsPalette)),
+		MaxWornCountByTypeName:              make(map[string]int, len(payload.WearableAssetTypes)),
+		IsBodyShapeEnabled:                  payload.ProportionsAndBodyTypeEnabledForUser,
+		AccessoryAdjustmentLimitsByTypeName: accessoryAdjustmentLimitsOf(payload),
 	}
 	for _, listedColor := range payload.BodyColorsPalette {
 		if hexColor := avatarColorOf(listedColor.HexColor); hexColor != "" {
@@ -374,10 +396,12 @@ func (service *Users) TryOnChange(ctx context.Context, accountID, version int64,
 	if err != nil {
 		return AvatarChange{}, err
 	}
-	return AvatarChange{
-		AvatarType: avatar.AvatarType, Scales: avatar.Scales, BodyColors: avatar.BodyColors,
-		AssetIDs: assetIDsWearing(avatar.Assets, assetID, typeName, maxWornCount),
-	}, nil
+	assetIDs := assetIDsWearing(avatar.Assets, assetID, typeName, maxWornCount)
+	assets := make([]AvatarChangeAsset, len(assetIDs))
+	for index, wornAssetID := range assetIDs {
+		assets[index] = AvatarChangeAsset{AssetID: wornAssetID}
+	}
+	return AvatarChange{AvatarType: avatar.AvatarType, Scales: avatar.Scales, BodyColors: avatar.BodyColors, Assets: assets}, nil
 }
 
 // wearableAssetTypeOf reads the type name of the asset and how many assets of
@@ -426,49 +450,110 @@ func assetIDsWearing(wornAssets []AvatarAsset, assetID int64, typeName string, m
 }
 
 // SaveAvatar replaces the whole avatar of the account in one request, as the
-// Roblox avatar editor does. Roblox skips an asset that the account cannot
-// wear without reporting it. Verified against the API on 2026-11-14.
-func (service *Users) SaveAvatar(ctx context.Context, accountID, version int64, change AvatarChange) error {
+// Roblox avatar editor does. It returns the assets that Roblox lists as
+// invalid. Roblox can also skip an asset that the account cannot wear without
+// reporting it. Verified against the API on 2026-11-14.
+func (service *Users) SaveAvatar(ctx context.Context, accountID, version int64, change AvatarChange) ([]int64, error) {
+	const endpoint = "avatar-save"
 	if err := validateAvatarChange(change); err != nil {
-		return err
+		return nil, err
 	}
-	assets, err := service.avatarUpdateAssetsOf(ctx, accountID, version, "avatar-save", change.AssetIDs)
+	assets, changedAdjustments, err := service.avatarUpdateAssetsOf(ctx, accountID, version, endpoint, change.Assets)
 	if err != nil {
-		return err
+		return nil, err
+	}
+	if len(changedAdjustments) > 0 {
+		// The rules can change between the read that showed the controls and
+		// the save, so each changed adjustment is checked against the current
+		// rules.
+		if err := service.validateAccessoryAdjustments(ctx, accountID, version, endpoint, changedAdjustments); err != nil {
+			return nil, err
+		}
 	}
 	emotes := make([]avatarUpdateEmote, len(change.Emotes))
 	for index, emote := range change.Emotes {
 		emotes[index] = avatarUpdateEmote{AssetID: emote.AssetID, Position: emote.Slot}
 	}
-	return service.updateAvatar(ctx, accountID, version, "avatar-save", avatarUpdate{
+	return service.updateAvatar(ctx, accountID, version, endpoint, avatarUpdate{
 		AvatarType: change.AvatarType, Scales: change.Scales, BodyColors: change.BodyColors, Assets: assets, Emotes: &emotes,
 	})
 }
 
-// avatarUpdateAssetsOf lists the assets with the meta that Roblox keeps for
-// the ones the account wears, such as the position of an accessory, so that a
-// change keeps it.
-func (service *Users) avatarUpdateAssetsOf(ctx context.Context, accountID, version int64, endpoint string, assetIDs []int64) ([]avatarUpdateAsset, error) {
-	var current avatarPayload
-	if err := service.readAvatarDetails(ctx, accountID, version, endpoint, "https://avatar.roblox.com/v2/avatar/avatar", &current); err != nil {
-		return nil, err
+// changedAccessoryAdjustment is an adjustment that differs from the one that
+// Roblox stores for a worn accessory.
+type changedAccessoryAdjustment struct {
+	typeName   string
+	adjustment AvatarAccessoryAdjustment
+}
+
+// validateAccessoryAdjustments checks that the account may adjust each
+// accessory type, and that each axis stays within its current range.
+func (service *Users) validateAccessoryAdjustments(ctx context.Context, accountID, version int64, endpoint string, changedAdjustments []changedAccessoryAdjustment) error {
+	rulesPayload, err := service.readAvatarRules(ctx, accountID, version, endpoint)
+	if err != nil {
+		return err
 	}
-	if current.Assets == nil {
-		return nil, invalidAvatar(endpoint)
-	}
-	wornAssetByID := make(map[int64]avatarUpdateAsset, len(*current.Assets))
-	for _, listedAsset := range *current.Assets {
-		wornAssetByID[listedAsset.ID] = listedAsset.updateAsset()
-	}
-	assets := make([]avatarUpdateAsset, len(assetIDs))
-	for index, assetID := range assetIDs {
-		if wornAsset, isWorn := wornAssetByID[assetID]; isWorn {
-			assets[index] = wornAsset
-		} else {
-			assets[index] = avatarUpdateAsset{ID: assetID}
+	limitsByTypeName := accessoryAdjustmentLimitsOf(rulesPayload)
+	for _, changed := range changedAdjustments {
+		limits, isAdjustable := limitsByTypeName[changed.typeName]
+		if !isAdjustable {
+			return invalidAvatarChange("Roblox doesn't let this account adjust one of the accessories. Reset it and try again.")
+		}
+		if !limits.contains(changed.adjustment) {
+			return invalidAvatarChange("An accessory adjustment is outside the range that Roblox allows. Refresh the avatar and try again.")
 		}
 	}
-	return assets, nil
+	return nil
+}
+
+// avatarUpdateAssetsOf lists the assets with the meta that Roblox keeps for
+// the ones the account wears, such as the order of layered clothing, so that a
+// change keeps it. It writes each changed adjustment into the meta, and lists
+// the changed adjustments. An edited placement replaces the stored one, as
+// every other part of a save does.
+func (service *Users) avatarUpdateAssetsOf(ctx context.Context, accountID, version int64, endpoint string, changeAssets []AvatarChangeAsset) ([]avatarUpdateAsset, []changedAccessoryAdjustment, error) {
+	var current avatarPayload
+	if err := service.readAvatarDetails(ctx, accountID, version, endpoint, "https://avatar.roblox.com/v2/avatar/avatar", &current); err != nil {
+		return nil, nil, err
+	}
+	if current.Assets == nil {
+		return nil, nil, invalidAvatar(endpoint)
+	}
+	wornAssetByID := make(map[int64]listedAvatarAsset, len(*current.Assets))
+	for _, listedAsset := range *current.Assets {
+		wornAssetByID[listedAsset.ID] = listedAsset
+	}
+	assets := make([]avatarUpdateAsset, len(changeAssets))
+	var changedAdjustments []changedAccessoryAdjustment
+	for index, changeAsset := range changeAssets {
+		wornAsset, isWorn := wornAssetByID[changeAsset.AssetID]
+		if !isWorn {
+			// The page sends a placement only for an accessory that it edited,
+			// even a reset to the default, so an accessory that is no longer
+			// worn was taken off since the page loaded the avatar.
+			if changeAsset.Adjustment != nil {
+				return nil, nil, &roblox.Error{Kind: roblox.KindProtocol, Endpoint: endpoint, Message: "An adjusted accessory was taken off in Roblox since the avatar loaded. Discard your changes and refresh the avatar to see what it wears now."}
+			}
+			assets[index] = avatarUpdateAsset{ID: changeAsset.AssetID}
+			continue
+		}
+		assets[index] = wornAsset.updateAsset()
+		if changeAsset.Adjustment == nil {
+			continue
+		}
+		if storedAdjustment, _ := assetLayoutOf(wornAsset.Meta); IsSameAdjustment(*changeAsset.Adjustment, storedAdjustment) {
+			continue
+		}
+		meta, err := metaWithAdjustment(wornAsset.Meta, *changeAsset.Adjustment)
+		if err != nil {
+			return nil, nil, &roblox.Error{Kind: roblox.KindProtocol, Endpoint: endpoint, Message: "Roblox returned invalid avatar data.", Cause: err}
+		}
+		assets[index].Meta = meta
+		changedAdjustments = append(changedAdjustments, changedAccessoryAdjustment{
+			typeName: ruleTypeNameReplacer.Replace(wornAsset.AssetType.Name), adjustment: *changeAsset.Adjustment,
+		})
+	}
+	return assets, changedAdjustments, nil
 }
 
 // AvatarPreviewFormat is what the render API makes of an avatar, by its
@@ -490,7 +575,9 @@ func (service *Users) RenderAvatarPreview(ctx context.Context, accountID, versio
 	if err := validateAvatarChange(change); err != nil {
 		return "", err
 	}
-	assets, err := service.avatarUpdateAssetsOf(ctx, accountID, version, endpoint, change.AssetIDs)
+	// A preview leaves the bounds to Roblox, because it saves nothing and
+	// repeats until Roblox renders it.
+	assets, _, err := service.avatarUpdateAssetsOf(ctx, accountID, version, endpoint, change.Assets)
 	if err != nil {
 		return "", err
 	}
@@ -506,7 +593,7 @@ func (service *Users) RenderAvatarPreview(ctx context.Context, accountID, versio
 	}
 	type renderDefinition struct {
 		Assets           []avatarUpdateAsset `json:"assets"`
-		BodyColors       avatarColorsUpdate  `json:"bodyColors"`
+		BodyColors       v4BodyColors        `json:"bodyColors"`
 		Scales           renderScales        `json:"scales"`
 		PlayerAvatarType renderAvatarType    `json:"playerAvatarType"`
 	}
@@ -521,7 +608,7 @@ func (service *Users) RenderAvatarPreview(ctx context.Context, accountID, versio
 	}{
 		ThumbnailConfig: thumbnailConfig{ThumbnailID: 3, ThumbnailType: string(format), Size: LargeThumbnailSize},
 		AvatarDefinition: renderDefinition{
-			Assets: assets, BodyColors: avatarColorsUpdateOf(change.BodyColors),
+			Assets: assets, BodyColors: v4BodyColorsOf(change.BodyColors),
 			Scales:           renderScales{AvatarScales: change.Scales, Depth: change.Scales.Width},
 			PlayerAvatarType: renderAvatarType{PlayerAvatarType: change.AvatarType},
 		},
@@ -556,23 +643,32 @@ func (service *Users) RedrawAvatarImage(ctx context.Context, accountID, version 
 	return err
 }
 
-// outfitPayload is an outfit as the v3 outfit details API lists it. Roblox
-// lists the outfits of any user. Verified against the API on 2026-11-14.
+// outfitPayload is an outfit as the v4 outfit details API lists it, which
+// replaces the deprecated v3 API. Roblox lists the outfits of any user, and
+// writes the avatar type as a name and the body colors without a leading #.
+// Verified against the API on 2026-11-17.
 type outfitPayload struct {
-	Scale            *AvatarScales        `json:"scale"`
-	PlayerAvatarType AvatarType           `json:"playerAvatarType"`
-	BodyColors       *listedBodyColors    `json:"bodyColor3s"`
-	Assets           *[]listedAvatarAsset `json:"assets"`
+	OutfitModel *struct {
+		Scale            *AvatarScales        `json:"scale"`
+		PlayerAvatarType AvatarType           `json:"playerAvatarType"`
+		BodyColors       *v4BodyColors        `json:"bodyColors"`
+		Assets           *[]listedAvatarAsset `json:"assets"`
+	} `json:"outfitModel"`
 }
 
 // readOutfit reads the outfit as an avatar without emotes.
 func (service *Users) readOutfit(ctx context.Context, accountID, version int64, endpoint string, outfitID int64) (avatarPayload, error) {
 	var payload outfitPayload
-	address := "https://avatar.roblox.com/v3/outfits/" + strconv.FormatInt(outfitID, 10) + "/details"
+	address := "https://avatar.roblox.com/v4/outfits/" + strconv.FormatInt(outfitID, 10) + "/details"
 	if err := service.readAvatarDetails(ctx, accountID, version, endpoint, address, &payload); err != nil {
 		return avatarPayload{}, err
 	}
-	outfit := avatarPayload{Scales: payload.Scale, PlayerAvatarType: payload.PlayerAvatarType, BodyColors: payload.BodyColors, Assets: payload.Assets}
+	if payload.OutfitModel == nil || payload.OutfitModel.BodyColors == nil {
+		return avatarPayload{}, invalidAvatar(endpoint)
+	}
+	model := payload.OutfitModel
+	bodyColors := listedBodyColors(*model.BodyColors)
+	outfit := avatarPayload{Scales: model.Scale, PlayerAvatarType: model.PlayerAvatarType, BodyColors: &bodyColors, Assets: model.Assets}
 	if !outfit.isComplete() {
 		return avatarPayload{}, invalidAvatar(endpoint)
 	}
@@ -588,22 +684,34 @@ func (service *Users) AvatarOutfitDetails(ctx context.Context, accountID, versio
 	return avatarOf(outfit)
 }
 
-// WearAvatarOutfit puts the outfit on the avatar of the account. It keeps the
-// equipped emotes, because outfits have none.
-func (service *Users) WearAvatarOutfit(ctx context.Context, accountID, version, outfitID int64) error {
+// WearAvatarOutfit puts the outfit on the avatar of the account. It returns
+// the assets of the outfit with the placements that the outfit stores, so that
+// a read afterwards can find what Roblox changed, and the assets that Roblox
+// lists as invalid. It keeps the equipped emotes, because outfits have none.
+func (service *Users) WearAvatarOutfit(ctx context.Context, accountID, version, outfitID int64) (outfitAssets []AvatarChangeAsset, rejectedAssetIDs []int64, err error) {
 	outfit, err := service.readOutfit(ctx, accountID, version, "avatar-outfit-wear", outfitID)
 	if err != nil {
-		return err
+		return nil, nil, err
 	}
 	assets := make([]avatarUpdateAsset, 0, len(*outfit.Assets))
+	outfitAssets = make([]AvatarChangeAsset, 0, len(*outfit.Assets))
 	for _, listedAsset := range *outfit.Assets {
 		if listedAsset.ID > 0 {
 			assets = append(assets, listedAsset.updateAsset())
+			// An outfit without a placement for an asset stores the default
+			// one, which the comparison after the write checks as well.
+			adjustment, _ := assetLayoutOf(listedAsset.Meta)
+			if adjustment == nil {
+				defaultAdjustment := defaultAccessoryAdjustment
+				adjustment = &defaultAdjustment
+			}
+			outfitAssets = append(outfitAssets, AvatarChangeAsset{AssetID: listedAsset.ID, Adjustment: adjustment})
 		}
 	}
-	return service.updateAvatar(ctx, accountID, version, "avatar-outfit-wear", avatarUpdate{
+	rejectedAssetIDs, err = service.updateAvatar(ctx, accountID, version, "avatar-outfit-wear", avatarUpdate{
 		AvatarType: outfit.PlayerAvatarType, Scales: *outfit.Scales, BodyColors: outfit.BodyColors.bodyColors(), Assets: assets,
 	})
+	return outfitAssets, rejectedAssetIDs, err
 }
 
 type avatarUpdateAsset struct {
@@ -629,11 +737,13 @@ type avatarUpdate struct {
 type avatarModelUpdate struct {
 	Scales           AvatarScales        `json:"scales"`
 	PlayerAvatarType AvatarType          `json:"playerAvatarType"`
-	BodyColors       avatarColorsUpdate  `json:"bodyColors"`
+	BodyColors       v4BodyColors        `json:"bodyColors"`
 	Assets           []avatarUpdateAsset `json:"assets"`
 }
 
-type avatarColorsUpdate struct {
+// v4BodyColors are the body colors as the v4 avatar and outfit APIs read and
+// write them.
+type v4BodyColors struct {
 	HeadColor     string `json:"headColor"`
 	TorsoColor    string `json:"torsoColor"`
 	LeftArmColor  string `json:"leftArmColor"`
@@ -642,16 +752,17 @@ type avatarColorsUpdate struct {
 	RightLegColor string `json:"rightLegColor"`
 }
 
-func avatarColorsUpdateOf(colors AvatarBodyColors) avatarColorsUpdate {
-	return avatarColorsUpdate{
+func v4BodyColorsOf(colors AvatarBodyColors) v4BodyColors {
+	return v4BodyColors{
 		HeadColor: colors.Head, TorsoColor: colors.Torso, LeftArmColor: colors.LeftArm,
 		RightArmColor: colors.RightArm, LeftLegColor: colors.LeftLeg, RightLegColor: colors.RightLeg,
 	}
 }
 
 // updateAvatar writes the avatar with the v4 avatar API, which names the parts
-// that a request changes in updateTypes. Verified on 2026-11-14.
-func (service *Users) updateAvatar(ctx context.Context, accountID, version int64, endpoint string, update avatarUpdate) error {
+// that a request changes in updateTypes, and returns the assets that Roblox
+// lists as invalid. Verified on 2026-11-14.
+func (service *Users) updateAvatar(ctx context.Context, accountID, version int64, endpoint string, update avatarUpdate) ([]int64, error) {
 	type avatarConfigUpdate struct {
 		EmoteRequestModels []avatarUpdateEmote `json:"emoteRequestModels"`
 	}
@@ -665,7 +776,7 @@ func (service *Users) updateAvatar(ctx context.Context, accountID, version int64
 	}{
 		UpdateTypes: []string{"UpdateAvatarType", "UpdateScales", "UpdateBodyColors", "UpdateAssets"},
 		AvatarDefinition: avatarDefinition{UpdateAvatarModel: avatarModelUpdate{
-			Scales: update.Scales, PlayerAvatarType: update.AvatarType, BodyColors: avatarColorsUpdateOf(update.BodyColors), Assets: update.Assets,
+			Scales: update.Scales, PlayerAvatarType: update.AvatarType, BodyColors: v4BodyColorsOf(update.BodyColors), Assets: update.Assets,
 		}},
 	}
 	if update.Emotes != nil {
@@ -674,18 +785,37 @@ func (service *Users) updateAvatar(ctx context.Context, accountID, version int64
 	}
 	response, err := service.writeAccount(ctx, accountID, version, endpoint, http.MethodPatch, "https://avatar.roblox.com/v4/avatar", request)
 	if remote, ok := errors.AsType[*roblox.Error](err); ok && remote.Status == http.StatusBadRequest {
-		return &roblox.Error{Kind: remote.Kind, Endpoint: endpoint, Status: remote.Status, RobloxCode: remote.RobloxCode, Message: "Roblox rejected these avatar settings. Refresh the avatar and try again.", Cause: err}
+		return nil, &roblox.Error{Kind: remote.Kind, Endpoint: endpoint, Status: remote.Status, RobloxCode: remote.RobloxCode, Message: "Roblox rejected these avatar settings. Refresh the avatar and try again.", Cause: err}
 	}
 	if err != nil {
-		return err
+		return nil, err
+	}
+	// Roblox lists the assets that it did not put on in validation, and also
+	// at the top level while it moves the field. success is false when it
+	// skipped any part of the change.
+	type invalidAsset struct {
+		ID int64 `json:"id"`
 	}
 	var payload struct {
-		Success bool `json:"success"`
+		Success       bool           `json:"success"`
+		InvalidAssets []invalidAsset `json:"invalidAssets"`
+		Validation    struct {
+			InvalidAssets []invalidAsset `json:"invalidAssets"`
+		} `json:"validation"`
 	}
-	if err := json.Unmarshal(response.Body, &payload); err != nil || !payload.Success {
-		return &roblox.Error{Kind: roblox.KindProtocol, Endpoint: endpoint, Status: response.Status, Message: "Roblox did not save the avatar. Try again.", Cause: err}
+	if err := json.Unmarshal(response.Body, &payload); err != nil {
+		return nil, &roblox.Error{Kind: roblox.KindProtocol, Endpoint: endpoint, Status: response.Status, Message: "Roblox did not save the avatar. Try again.", Cause: err}
 	}
-	return nil
+	rejectedAssetIDs := []int64{}
+	for _, rejected := range slices.Concat(payload.InvalidAssets, payload.Validation.InvalidAssets) {
+		if rejected.ID > 0 && !slices.Contains(rejectedAssetIDs, rejected.ID) {
+			rejectedAssetIDs = append(rejectedAssetIDs, rejected.ID)
+		}
+	}
+	if !payload.Success && len(rejectedAssetIDs) == 0 {
+		return nil, &roblox.Error{Kind: roblox.KindProtocol, Endpoint: endpoint, Status: response.Status, Message: "Roblox did not save the avatar. Try again."}
+	}
+	return rejectedAssetIDs, nil
 }
 
 // AvatarOutfits reads one page of the outfits that the user created. Roblox
@@ -742,7 +872,7 @@ func (service *Users) CreateAvatarOutfit(ctx context.Context, accountID, version
 		Name             string              `json:"name"`
 		Scale            AvatarScales        `json:"scale"`
 		PlayerAvatarType AvatarType          `json:"playerAvatarType"`
-		BodyColors       avatarColorsUpdate  `json:"bodyColors"`
+		BodyColors       v4BodyColors        `json:"bodyColors"`
 		Assets           []avatarUpdateAsset `json:"assets"`
 	}
 	type outfitDefinition struct {
@@ -752,7 +882,7 @@ func (service *Users) CreateAvatarOutfit(ctx context.Context, accountID, version
 		OutfitDefinition outfitDefinition `json:"outfitDefinition"`
 	}{OutfitDefinition: outfitDefinition{UpdateOutfitModel: outfitModel{
 		Name: name, Scale: *current.Scales, PlayerAvatarType: current.PlayerAvatarType,
-		BodyColors: avatarColorsUpdateOf(current.BodyColors.bodyColors()), Assets: assets,
+		BodyColors: v4BodyColorsOf(current.BodyColors.bodyColors()), Assets: assets,
 	}}}
 	_, err = service.writeAccount(ctx, accountID, version, "avatar-outfit-create", http.MethodPost, "https://avatar.roblox.com/v4/outfits/create", request)
 	return outfitWriteError(err, "avatar-outfit-create")
@@ -828,14 +958,18 @@ func validateAvatarChange(change AvatarChange) error {
 	return validateAvatarItems(change)
 }
 
-// validateAvatarItems checks the worn assets and the emote slots of a change.
+// validateAvatarItems checks the worn assets, their adjustments, and the emote
+// slots of a change.
 func validateAvatarItems(change AvatarChange) error {
-	if len(change.AssetIDs) > maxWornAssetCount {
+	if len(change.Assets) > maxWornAssetCount {
 		return invalidAvatarChange("The avatar wears too many items.")
 	}
-	for _, assetID := range change.AssetIDs {
-		if assetID <= 0 {
+	for _, asset := range change.Assets {
+		if asset.AssetID <= 0 {
 			return invalidAvatarChange("An item on the avatar is invalid. Refresh the avatar and try again.")
+		}
+		if asset.Adjustment != nil && !asset.Adjustment.isFinite() {
+			return invalidAvatarChange("An accessory adjustment is invalid. Reset it and try again.")
 		}
 	}
 	isSlotTaken := make(map[int]bool, len(change.Emotes))

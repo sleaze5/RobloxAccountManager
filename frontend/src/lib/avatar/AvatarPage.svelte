@@ -1,4 +1,5 @@
 <script lang="ts">
+	import arrowUUpLeftIcon from "@phosphor-icons/core/regular/arrow-u-up-left.svg?raw"
 	import personArmsSpreadIcon from "@phosphor-icons/core/regular/person-arms-spread.svg?raw"
 	import { onMount, tick, untrack } from "svelte"
 	import AccountPageHeader from "../accounts/AccountPageHeader.svelte"
@@ -12,6 +13,7 @@
 	import RefreshIcon from "../shared/RefreshIcon.svelte"
 	import SkeletonTile from "../shared/SkeletonTile.svelte"
 	import { unsavedChangesGuard } from "../layout/unsaved-changes-guard"
+	import AvatarAdjustmentsPanel from "./AvatarAdjustmentsPanel.svelte"
 	import AvatarBodyPanel from "./AvatarBodyPanel.svelte"
 	import AvatarConfirmation from "./AvatarConfirmation.svelte"
 	import AvatarEmotesPanel from "./AvatarEmotesPanel.svelte"
@@ -22,10 +24,10 @@
 	import AvatarStage from "./AvatarStage.svelte"
 	import AvatarWearingPanel from "./AvatarWearingPanel.svelte"
 	import { avatarItemCategory, emoteCategory } from "./avatar-categories"
-	import { emoteSlotCount } from "./avatar-draft"
+	import { emoteSlotCount, isDefaultAdjustment } from "./avatar-draft"
 	import { AvatarState } from "./avatar-state.svelte"
 
-	type AvatarTab = "wearing" | "body" | "emotes" | "outfits"
+	type AvatarTab = "wearing" | "adjustments" | "body" | "emotes" | "outfits"
 
 	let {
 		accounts,
@@ -55,6 +57,7 @@
 		),
 		tabs: { id: AvatarTab; label: string }[] = [
 			{ id: "wearing", label: "Wearing" },
+			{ id: "adjustments", label: "Adjustments" },
 			{ id: "body", label: "Body" },
 			{ id: "emotes", label: "Emotes" },
 			{ id: "outfits", label: "Outfits" },
@@ -74,6 +77,11 @@
 		// The outfit dialog hides while an item of the outfit shows its details,
 		// and shows again when the item dialog closes.
 		viewedOutfit = $state<AvatarOutfit | null>(null),
+		// The accessory whose controls the Adjustments tab opens, or 0.
+		adjustedAssetId = $state(0),
+		// The accessory that the Adjust shortcut asked the Adjustments tab to
+		// focus, or 0.
+		focusedAdjustmentAssetId = $state(0),
 		isConfirmingDiscard = $state(false),
 		// The navigation that closes the page once the user confirms discarding
 		// changes, or null when the page stays open.
@@ -85,8 +93,14 @@
 		savedAssetIds = $derived(
 			new Set((avatar.avatar?.assets ?? []).map((asset) => asset.item.itemId)),
 		),
+		adjustedCount = $derived(
+			(draft?.assets ?? []).filter(
+				(asset) => !isDefaultAdjustment(asset.adjustment),
+			).length,
+		),
 		countByTab = $derived<Partial<Record<AvatarTab, string>>>({
 			wearing: draft ? String(draft.assets.length) : undefined,
+			adjustments: adjustedCount > 0 ? String(adjustedCount) : undefined,
 			emotes: draft ? `${draft.emotes.length}/${emoteSlotCount}` : undefined,
 		})
 
@@ -104,6 +118,37 @@
 		pendingLeave = leave
 		isConfirmingDiscard = true
 		return true
+	}
+
+	// isTextEntry tells whether the target undoes its own typing, such as the
+	// custom color field. A number field applies each value at once, so the
+	// avatar undo covers it.
+	function isTextEntry(target: EventTarget | null): boolean {
+		return (
+			target instanceof HTMLTextAreaElement ||
+			(target instanceof HTMLInputElement &&
+				!["range", "checkbox", "radio", "button", "number"].includes(
+					target.type,
+				))
+		)
+	}
+
+	// applyFocusedField applies a value that the user typed but has not
+	// confirmed. A field applies its value when it loses focus, so focus leaves
+	// the field and comes back.
+	function applyFocusedField(): void {
+		const field = document.activeElement
+		if (!(field instanceof HTMLInputElement)) return
+		field.blur()
+		field.focus()
+	}
+
+	// undoFromButton moves the focus to the selected tab after the last step,
+	// because the Undo button leaves with the history and would drop the
+	// keyboard focus.
+	function undoFromButton(): void {
+		avatar.undo()
+		if (avatar.draftHistory.length === 0) void selectTab(tab, true)
 	}
 
 	function requestBack(): void {
@@ -171,13 +216,17 @@
 
 <svelte:window
 	onkeydown={(event) => {
-		if (
-			(event.ctrlKey || event.metaKey) &&
-			event.key.toLowerCase() === "s" &&
-			canEdit
-		) {
+		if (!(event.ctrlKey || event.metaKey) || !canEdit || event.defaultPrevented) {
+			return
+		}
+		const key = event.key.toLowerCase()
+		if (key === "s") {
 			event.preventDefault()
+			applyFocusedField()
 			void avatar.save()
+		} else if (key === "z" && !event.shiftKey && !isTextEntry(event.target)) {
+			event.preventDefault()
+			avatar.undo()
 		}
 	}} />
 
@@ -190,6 +239,20 @@
 		{#if avatar.isEditable && isChanged}
 			<span class="animate-enter text-2xs text-fg-muted" aria-live="polite"
 				>Unsaved changes</span>
+		{/if}
+		{#if avatar.isEditable && avatar.draftHistory.length > 0}
+			<button
+				class="button-icon animate-enter"
+				type="button"
+				aria-label="Undo"
+				aria-keyshortcuts="Control+Z"
+				data-tooltip="Undo (Ctrl+Z)"
+				disabled={!avatar.canUndo}
+				onclick={undoFromButton}>
+				<Icon svg={arrowUUpLeftIcon} size={16} aria-hidden="true" />
+			</button>
+		{/if}
+		{#if avatar.isEditable && isChanged}
 			<button
 				class="button animate-enter"
 				type="button"
@@ -349,7 +412,21 @@
 												asset.item,
 												avatarItemCategory(asset.category),
 											)}
-										onAddItems={() => (pickerEmoteSlot = null)} />
+										onAddItems={() => (pickerEmoteSlot = null)}
+										onAdjustItem={(assetId) => {
+											adjustedAssetId = focusedAdjustmentAssetId =
+												assetId
+											void selectTab("adjustments", false)
+										}} />
+								{:else if tab === "adjustments"}
+									<AvatarAdjustmentsPanel
+										{avatar}
+										{canEdit}
+										{username}
+										bind:expandedAssetId={adjustedAssetId}
+										bind:focusedAssetId={
+											focusedAdjustmentAssetId
+										} />
 								{:else if tab === "body"}
 									<AvatarBodyPanel {avatar} {canEdit} />
 								{:else if tab === "emotes"}

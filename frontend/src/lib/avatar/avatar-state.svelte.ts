@@ -1,6 +1,8 @@
 import { accountBackend } from "../backend/bridge"
 import type {
 	Avatar,
+	AvatarAccessoryAdjustment,
+	AvatarAccessoryAdjustmentLimits,
 	AvatarOutfit,
 	AvatarRules,
 	InventoryCategory,
@@ -13,15 +15,27 @@ import type { NotificationCenter } from "../notifications/notification-center.sv
 import { errorMessage } from "../shared/errors"
 import { KeyedLoad } from "../shared/keyed-load.svelte"
 import {
+	adjustAsset,
 	avatarChangeOf,
+	clampedAdjustment,
 	clearEmoteSlot,
 	draftOf,
 	isDraftChanged,
+	isSameDraft,
+	mirroredAdjustment,
 	putEmoteInSlot,
 	takeOffItem,
 	wearItem,
 } from "./avatar-draft"
 import type { AvatarDraft } from "./avatar-draft"
+
+const maxDraftHistoryLength = 100
+
+interface CopiedAdjustment {
+	sourceAssetId: number
+	sourceName: string
+	adjustment: AvatarAccessoryAdjustment
+}
 
 // AvatarState shows how one Roblox user looks, as the account sees it. When
 // the user is the account itself, it also edits a draft of the avatar and
@@ -44,6 +58,11 @@ export class AvatarState {
 		),
 	)
 	draft = $state.raw<AvatarDraft | null>(null)
+	// The drafts before each change, newest last, which undo restores.
+	draftHistory = $state.raw<AvatarDraft[]>([])
+	// The accessory placement that Copy placement took, which Paste puts on
+	// another accessory.
+	copiedAdjustment = $state.raw<CopiedAdjustment | null>(null)
 	isSaving = $state(false)
 	saveError = $state("")
 	// Whether Roblox changed the avatar with a save or an outfit but the changed
@@ -87,6 +106,9 @@ export class AvatarState {
 	#previewRequest: ReturnType<typeof accountBackend.RenderAvatarPreview> | null = null
 	#loadRequest: ReturnType<typeof accountBackend.GetAvatar> | null = null
 	#outfitsRequest: ReturnType<typeof accountBackend.GetAvatarOutfits> | null = null
+	// The key of the last draft change. A change with the same key continues
+	// it, so that dragging a slider is one step in the history.
+	#lastChangeKey = ""
 
 	constructor(
 		accountId: number,
@@ -146,6 +168,16 @@ export class AvatarState {
 		return this.rules?.maxWornCountByTypeName ?? {}
 	}
 
+	get canUndo(): boolean {
+		return this.draftHistory.length > 0 && !this.isDraftLocked
+	}
+
+	// adjustmentLimitsOf returns how far the account may adjust an accessory of
+	// the type, or undefined when it may not adjust the type.
+	adjustmentLimitsOf(typeName: string): AvatarAccessoryAdjustmentLimits | undefined {
+		return this.rules?.accessoryAdjustmentLimitsByTypeName?.[typeName]
+	}
+
 	async refresh(): Promise<void> {
 		if (!this.#scope.isCurrent || this.isChangingAvatar) return
 		void this.#loadRequest?.cancel()
@@ -186,13 +218,94 @@ export class AvatarState {
 		if (this.#scope.isCurrent) this.rules = rules
 	}
 
-	changeDraft(change: (draft: AvatarDraft) => AvatarDraft): void {
-		if (this.draft && !this.isDraftLocked) this.draft = change(this.draft)
+	// changeDraft adds a step to the history, unless the change continues the
+	// previous change with the same changeKey, such as a slider that moves.
+	changeDraft(change: (draft: AvatarDraft) => AvatarDraft, changeKey = ""): void {
+		if (!this.draft || this.isDraftLocked) return
+		const previousDraft = this.draft,
+			nextDraft = change(previousDraft)
+		if (nextDraft === previousDraft) return
+		if (!changeKey || changeKey !== this.#lastChangeKey) {
+			this.draftHistory = [...this.draftHistory, previousDraft]
+		}
+		this.#lastChangeKey = changeKey
+		this.draft = nextDraft
+		if (!changeKey) this.#trimDraftHistory()
 	}
 
+	// finishDraftChange ends the change that continues with the same key, such
+	// as when a slider is released. A change that ends where it began, such as
+	// a slider dragged away and back, leaves no step in the history.
+	finishDraftChange(): void {
+		const previousDraft = this.draftHistory.at(-1)
+		if (
+			this.#lastChangeKey &&
+			previousDraft &&
+			this.draft &&
+			isSameDraft(previousDraft, this.draft)
+		) {
+			this.draft = previousDraft
+			this.draftHistory = this.draftHistory.slice(0, -1)
+		}
+		this.#lastChangeKey = ""
+		this.#trimDraftHistory()
+	}
+
+	// #trimDraftHistory drops the oldest steps beyond the limit. It runs only
+	// once a change is finished, so that a slider that ends where it began
+	// never costs an older step.
+	#trimDraftHistory(): void {
+		if (this.draftHistory.length > maxDraftHistoryLength) {
+			this.draftHistory = this.draftHistory.slice(-maxDraftHistoryLength)
+		}
+	}
+
+	undo(): void {
+		if (!this.canUndo) return
+		this.draft = this.draftHistory.at(-1) ?? this.draft
+		this.draftHistory = this.draftHistory.slice(0, -1)
+		this.#lastChangeKey = ""
+	}
+
+	adjust(
+		assetId: number,
+		adjustment: AvatarAccessoryAdjustment,
+		changeKey = "",
+	): void {
+		this.changeDraft((draft) => adjustAsset(draft, assetId, adjustment), changeKey)
+	}
+
+	copyAdjustment(
+		sourceAssetId: number,
+		sourceName: string,
+		adjustment: AvatarAccessoryAdjustment,
+	): void {
+		this.copiedAdjustment = { sourceAssetId, sourceName, adjustment }
+	}
+
+	// pasteAdjustment puts the copied placement on the accessory, mirrored for
+	// the other side when isMirrored is true, and kept within the limits of
+	// the accessory type.
+	pasteAdjustment(
+		assetId: number,
+		limits: AvatarAccessoryAdjustmentLimits,
+		isMirrored: boolean,
+	): void {
+		if (!this.copiedAdjustment) return
+		const copied = this.copiedAdjustment.adjustment,
+			pasted = isMirrored ? mirroredAdjustment(copied) : copied
+		this.adjust(assetId, clampedAdjustment(pasted, limits))
+	}
+
+	// wear puts the item on the draft. An item that the saved avatar wears
+	// comes back with its saved placement and layer, which a save keeps.
 	wear(item: InventoryItem, category: InventoryCategory): void {
-		const maxWornCount = this.maxWornCountByTypeName[item.typeName] ?? 0
-		this.changeDraft((draft) => wearItem(draft, item, category, maxWornCount))
+		const maxWornCount = this.maxWornCountByTypeName[item.typeName] ?? 0,
+			savedAsset = this.avatar?.assets?.find(
+				(asset) => asset.item.itemId === item.itemId,
+			),
+			wornAsset = savedAsset ?? { category, item, adjustment: null, layer: null }
+		this.changeDraft((draft) => wearItem(draft, wornAsset, maxWornCount))
 	}
 
 	takeOff(assetId: number): void {
@@ -209,15 +322,16 @@ export class AvatarState {
 
 	discardChanges(): void {
 		if (this.avatar && !this.isDraftLocked) {
-			this.draft = draftOf(this.avatar)
+			this.#resetDraft(this.avatar)
 			this.#clearPreview()
 			this.saveError = ""
 		}
 	}
 
 	async save(): Promise<void> {
-		const draft = this.draft
-		if (!draft || !this.isChanged || this.isDraftLocked) return
+		const draft = this.draft,
+			savedAvatar = this.avatar
+		if (!draft || !savedAvatar || !this.isChanged || this.isDraftLocked) return
 		this.isSaving = true
 		this.saveError = ""
 		const nameByAssetId = new Map(
@@ -225,33 +339,23 @@ export class AvatarState {
 		)
 		try {
 			const saved = await this.#scope.track(
-				accountBackend.SaveAvatar(this.#scope.accountId, avatarChangeOf(draft)),
+				accountBackend.SaveAvatar(
+					this.#scope.accountId,
+					avatarChangeOf(draft, savedAvatar),
+				),
 			)
 			if (!this.#scope.isCurrent) return
-			if (!saved.avatar) {
-				this.isAvatarOutdated = true
-				return
-			}
-			this.#showChangedAvatar(saved.avatar)
-			const skippedNames = (saved.skippedAssetIds ?? []).map(
-				(assetId) => nameByAssetId.get(assetId) || `Item ${assetId}`,
-			)
-			this.#notifications.show(
-				skippedNames.length > 0
-					? {
-							id: "avatar-save",
-							tone: "warning",
-							title: "Avatar saved",
-							message: `Roblox didn't put on ${skippedNames.join(", ")}. The account may not own ${skippedNames.length === 1 ? "it" : "them"}.`,
-							durationMs: 10_000,
-						}
-					: {
-							id: "avatar-save",
-							tone: "success",
-							title: "Avatar saved",
-							message: "Roblox is updating the avatar image.",
-						},
-			)
+			if (saved.avatar) this.#showChangedAvatar(saved.avatar)
+			else this.isAvatarOutdated = true
+			this.#showChangeResult({
+				id: "avatar-save",
+				title: "Avatar saved",
+				successMessage: "Roblox is updating the avatar image.",
+				isAvatarRead: !!saved.avatar,
+				skippedAssetIds: saved.skippedAssetIds ?? [],
+				unkeptAdjustmentAssetIds: saved.unkeptAdjustmentAssetIds ?? [],
+				nameByAssetId,
+			})
 		} catch (error) {
 			if (this.#scope.isCurrent) {
 				this.saveError = errorMessage(
@@ -317,17 +421,24 @@ export class AvatarState {
 		this.wearingOutfitId = outfit.outfitId
 		this.outfitActionError = ""
 		try {
-			const avatar = await this.#scope.track(
+			const worn = await this.#scope.track(
 				accountBackend.WearAvatarOutfit(this.#scope.accountId, outfit.outfitId),
 			)
 			if (!this.#scope.isCurrent) return false
-			if (avatar) this.#showChangedAvatar(avatar)
+			if (worn.avatar) this.#showChangedAvatar(worn.avatar)
 			else this.isAvatarOutdated = true
-			this.#notifications.show({
+			const outfitAssets =
+				this.outfitDetailsById.get(outfit.outfitId)?.assets ?? []
+			this.#showChangeResult({
 				id: "avatar-outfit-wear",
-				tone: "success",
 				title: "Outfit put on",
-				message: `The avatar now wears ${outfit.name || "the outfit"}.`,
+				successMessage: `The avatar now wears ${outfit.name || "the outfit"}.`,
+				isAvatarRead: !!worn.avatar,
+				skippedAssetIds: worn.skippedAssetIds ?? [],
+				unkeptAdjustmentAssetIds: worn.unkeptAdjustmentAssetIds ?? [],
+				nameByAssetId: new Map(
+					outfitAssets.map((asset) => [asset.item.itemId, asset.item.name]),
+				),
 			})
 			return true
 		} catch (error) {
@@ -407,15 +518,22 @@ export class AvatarState {
 	// renderPreview asks Roblox to render the draft without saving it, unless
 	// the preview of the draft is already shown or rendering.
 	async renderPreview(): Promise<void> {
-		const draft = this.draft
-		if (!this.#scope.isCurrent || !this.isEditable || !draft || !this.isChanged) {
+		const draft = this.draft,
+			savedAvatar = this.avatar
+		if (
+			!this.#scope.isCurrent ||
+			!this.isEditable ||
+			!draft ||
+			!savedAvatar ||
+			!this.isChanged
+		) {
 			return
 		}
 		if (this.#isPreviewShownOrRendering(draft)) return
 		void this.#previewRequest?.cancel()
 		const request = accountBackend.RenderAvatarPreview(
 			this.#scope.accountId,
-			avatarChangeOf(draft),
+			avatarChangeOf(draft, savedAvatar),
 		)
 		this.#previewRequest = request
 		this.#renderingPreviewDraft = draft
@@ -470,13 +588,60 @@ export class AvatarState {
 		this.avatar = avatar.imageUrl
 			? avatar
 			: { ...avatar, imageUrl: previousImageUrl }
-		this.draft = draftOf(avatar)
+		this.#resetDraft(avatar)
 		this.#clearPreview()
 		this.saveError = ""
 		this.isAvatarOutdated = false
 		if (!avatar.imageUrl && this.isEditable) {
 			void this.#waitForImage(previousImageUrl)
 		}
+	}
+
+	// #showChangeResult reports what Roblox did not keep from a change, in one
+	// notification that names both the skipped items and the accessories that
+	// Roblox placed differently. Without a reread avatar and nothing to warn
+	// about, the page's outdated notice is the only feedback.
+	#showChangeResult(result: {
+		id: string
+		title: string
+		successMessage: string
+		isAvatarRead: boolean
+		skippedAssetIds: number[]
+		unkeptAdjustmentAssetIds: number[]
+		nameByAssetId: Map<number, string>
+	}): void {
+		const nameOf = (assetId: number): string =>
+				result.nameByAssetId.get(assetId) || `Item ${assetId}`,
+			skippedNames = result.skippedAssetIds.map(nameOf),
+			unkeptAdjustmentNames = result.unkeptAdjustmentAssetIds.map(nameOf),
+			warnings = [
+				skippedNames.length > 0 &&
+					`Roblox didn't put on ${skippedNames.join(", ")}. The account may not own ${skippedNames.length === 1 ? "it" : "them"}.`,
+				unkeptAdjustmentNames.length > 0 &&
+					`Roblox placed ${unkeptAdjustmentNames.join(", ")} differently than requested. Check the Adjustments tab.`,
+			].filter((warning) => warning !== false)
+		if (warnings.length > 0) {
+			this.#notifications.show({
+				id: result.id,
+				tone: "warning",
+				title: result.title,
+				message: warnings.join(" "),
+				durationMs: 10_000,
+			})
+		} else if (result.isAvatarRead) {
+			this.#notifications.show({
+				id: result.id,
+				tone: "success",
+				title: result.title,
+				message: result.successMessage,
+			})
+		}
+	}
+
+	#resetDraft(avatar: Avatar): void {
+		this.draft = draftOf(avatar)
+		this.draftHistory = []
+		this.#lastChangeKey = ""
 	}
 
 	#clearPreview(): void {

@@ -1,5 +1,6 @@
 <script lang="ts">
 	import plusIcon from "@phosphor-icons/core/regular/plus.svg?raw"
+	import slidersHorizontalIcon from "@phosphor-icons/core/regular/sliders-horizontal.svg?raw"
 	import tShirtIcon from "@phosphor-icons/core/regular/t-shirt.svg?raw"
 	import xIcon from "@phosphor-icons/core/regular/x.svg?raw"
 	import type { AvatarAsset } from "../backend/bridge"
@@ -13,12 +14,14 @@
 		username,
 		onOpenItem,
 		onAddItems,
+		onAdjustItem,
 	}: {
 		avatar: AvatarState
 		canEdit: boolean
 		username: string
 		onOpenItem: (asset: AvatarAsset) => void
 		onAddItems: () => void
+		onAdjustItem: (assetId: number) => void
 	} = $props()
 
 	const exactNumbers = new Intl.NumberFormat("en-US"),
@@ -63,19 +66,34 @@
 		{#snippet itemControls(asset)}
 			{#if canEdit && !savedAssetIds.has(asset.item.itemId)}
 				<span
-					class="pointer-events-none absolute top-2 left-2 animate-pop rounded-sm border border-line-strong bg-overlay px-1 text-2xs leading-4 font-medium text-fg"
+					class="animate-pop rounded-sm border border-line-strong bg-overlay px-1 text-2xs leading-4 font-medium text-fg"
 					>New</span>
 			{/if}
 			{#if canEdit}
-				<button
-					class="absolute top-2 right-2 button-icon size-6 bg-overlay"
-					type="button"
-					aria-label={`Take off ${asset.item.name || "item"}`}
-					data-tooltip="Take off"
-					disabled={avatar.isDraftLocked}
-					onclick={() => avatar.takeOff(asset.item.itemId)}>
-					<Icon svg={xIcon} size={14} aria-hidden="true" />
-				</button>
+				<span class="pointer-events-auto ml-auto flex gap-1">
+					{#if savedAssetIds.has(asset.item.itemId) && avatar.adjustmentLimitsOf(asset.item.typeName)}
+						<button
+							class="button-icon size-6 bg-overlay"
+							type="button"
+							aria-label={`Adjust ${asset.item.name || "item"}`}
+							data-tooltip="Adjust placement"
+							onclick={() => onAdjustItem(asset.item.itemId)}>
+							<Icon
+								svg={slidersHorizontalIcon}
+								size={14}
+								aria-hidden="true" />
+						</button>
+					{/if}
+					<button
+						class="button-icon size-6 bg-overlay"
+						type="button"
+						aria-label={`Take off ${asset.item.name || "item"}`}
+						data-tooltip="Take off"
+						disabled={avatar.isDraftLocked}
+						onclick={() => avatar.takeOff(asset.item.itemId)}>
+						<Icon svg={xIcon} size={14} aria-hidden="true" />
+					</button>
+				</span>
 			{/if}
 		{/snippet}
 	</AvatarItemGroups>
