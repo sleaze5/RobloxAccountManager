@@ -325,41 +325,17 @@ export class AvatarState {
 				),
 			)
 			if (!this.#scope.isCurrent) return
-			if (!saved.avatar) {
-				this.isAvatarOutdated = true
-				return
-			}
-			this.#showChangedAvatar(saved.avatar)
-			const nameOf = (assetId: number): string =>
-					nameByAssetId.get(assetId) || `Item ${assetId}`,
-				skippedNames = (saved.skippedAssetIds ?? []).map(nameOf),
-				unkeptAdjustmentNames = (saved.unkeptAdjustmentAssetIds ?? []).map(
-					nameOf,
-				)
-			this.#notifications.show(
-				skippedNames.length > 0
-					? {
-							id: "avatar-save",
-							tone: "warning",
-							title: "Avatar saved",
-							message: `Roblox didn't put on ${skippedNames.join(", ")}. The account may not own ${skippedNames.length === 1 ? "it" : "them"}.`,
-							durationMs: 10_000,
-						}
-					: unkeptAdjustmentNames.length > 0
-						? {
-								id: "avatar-save",
-								tone: "warning",
-								title: "Avatar saved",
-								message: `Roblox placed ${unkeptAdjustmentNames.join(", ")} differently than requested. Check the Adjustments tab.`,
-								durationMs: 10_000,
-							}
-						: {
-								id: "avatar-save",
-								tone: "success",
-								title: "Avatar saved",
-								message: "Roblox is updating the avatar image.",
-							},
-			)
+			if (saved.avatar) this.#showChangedAvatar(saved.avatar)
+			else this.isAvatarOutdated = true
+			this.#showChangeResult({
+				id: "avatar-save",
+				title: "Avatar saved",
+				successMessage: "Roblox is updating the avatar image.",
+				isAvatarRead: !!saved.avatar,
+				skippedAssetIds: saved.skippedAssetIds ?? [],
+				unkeptAdjustmentAssetIds: saved.unkeptAdjustmentAssetIds ?? [],
+				nameByAssetId,
+			})
 		} catch (error) {
 			if (this.#scope.isCurrent) {
 				this.saveError = errorMessage(
@@ -591,6 +567,47 @@ export class AvatarState {
 		this.isAvatarOutdated = false
 		if (!avatar.imageUrl && this.isEditable) {
 			void this.#waitForImage(previousImageUrl)
+		}
+	}
+
+	// #showChangeResult reports what Roblox did not keep from a change, in one
+	// notification that names both the skipped items and the accessories that
+	// Roblox placed differently. Without a reread avatar and nothing to warn
+	// about, the page's outdated notice is the only feedback.
+	#showChangeResult(result: {
+		id: string
+		title: string
+		successMessage: string
+		isAvatarRead: boolean
+		skippedAssetIds: number[]
+		unkeptAdjustmentAssetIds: number[]
+		nameByAssetId: Map<number, string>
+	}): void {
+		const nameOf = (assetId: number): string =>
+				result.nameByAssetId.get(assetId) || `Item ${assetId}`,
+			skippedNames = result.skippedAssetIds.map(nameOf),
+			unkeptAdjustmentNames = result.unkeptAdjustmentAssetIds.map(nameOf),
+			warnings = [
+				skippedNames.length > 0 &&
+					`Roblox didn't put on ${skippedNames.join(", ")}. The account may not own ${skippedNames.length === 1 ? "it" : "them"}.`,
+				unkeptAdjustmentNames.length > 0 &&
+					`Roblox placed ${unkeptAdjustmentNames.join(", ")} differently than requested. Check the Adjustments tab.`,
+			].filter((warning) => warning !== false)
+		if (warnings.length > 0) {
+			this.#notifications.show({
+				id: result.id,
+				tone: "warning",
+				title: result.title,
+				message: warnings.join(" "),
+				durationMs: 10_000,
+			})
+		} else if (result.isAvatarRead) {
+			this.#notifications.show({
+				id: result.id,
+				tone: "success",
+				title: result.title,
+				message: result.successMessage,
+			})
 		}
 	}
 
