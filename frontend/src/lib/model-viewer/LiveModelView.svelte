@@ -128,7 +128,7 @@
 		<div class="absolute inset-0 grid place-items-center bg-canvas">
 			<FrameUnavailable
 				icon={cubeIcon}
-				message="Could not load the 3D model. Try again."
+				message="The 3D model couldn't load."
 				onRetry={() => viewport?.retry()} />
 		</div>
 	{:else if !viewport?.hasShownSubject}

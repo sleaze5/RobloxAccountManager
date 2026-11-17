@@ -6,9 +6,12 @@
 	let { pose }: { pose: CameraPose } = $props()
 
 	const studs = new Intl.NumberFormat("en-US", {
-		minimumFractionDigits: 1,
-		maximumFractionDigits: 1,
-	})
+			minimumFractionDigits: 1,
+			maximumFractionDigits: 1,
+		}),
+		// The columns show the axes in their colors, and screen readers read
+		// their names.
+		axisNames = ["X", "Y", "Z"]
 
 	// Each row names its point in short, as technical readouts do, and in
 	// full for screen readers.
@@ -25,34 +28,37 @@
 	)
 </script>
 
-<dl
-	class="flex animate-enter flex-col border-l border-line-subtle px-1.5"
+<div
+	class="animate-enter border-l border-line-subtle px-1.5"
 	role="group"
 	aria-label="Camera coordinates in studs">
-	{#each rows as row (row.label)}
+	<dl class="flex flex-col">
+		{#each rows as row (row.label)}
+			<div class="flex items-baseline gap-1.5">
+				<dt class="w-7 text-fg-faint">
+					<span aria-hidden="true">{row.shortLabel}</span>
+					<span class="sr-only">{row.label}</span>
+				</dt>
+				{#each row.point as coordinate, axisIndex (axisIndex)}
+					<dd
+						class={[
+							"w-9 text-right",
+							axisIndex === 0 && "text-axis-x",
+							axisIndex === 1 && "text-axis-y",
+							axisIndex === 2 && "text-axis-z",
+						]}>
+						<span class="sr-only">{axisNames[axisIndex]}</span>
+						{studs.format(coordinate)}
+					</dd>
+				{/each}
+			</div>
+		{/each}
 		<div class="flex items-baseline gap-1.5">
 			<dt class="w-7 text-fg-faint">
-				<span aria-hidden="true">{row.shortLabel}</span>
-				<span class="sr-only">{row.label}</span>
+				<span aria-hidden="true">dist</span>
+				<span class="sr-only">Distance</span>
 			</dt>
-			{#each row.point as coordinate, axisIndex (axisIndex)}
-				<dd
-					class={[
-						"w-9 text-right",
-						axisIndex === 0 && "text-axis-x",
-						axisIndex === 1 && "text-axis-y",
-						axisIndex === 2 && "text-axis-z",
-					]}>
-					{studs.format(coordinate)}
-				</dd>
-			{/each}
+			<dd class="text-fg">{studs.format(distance)}</dd>
 		</div>
-	{/each}
-	<div class="flex items-baseline gap-1.5">
-		<dt class="w-7 text-fg-faint">
-			<span aria-hidden="true">dist</span>
-			<span class="sr-only">Distance</span>
-		</dt>
-		<dd class="text-fg">{studs.format(distance)}</dd>
-	</div>
-</dl>
+	</dl>
+</div>

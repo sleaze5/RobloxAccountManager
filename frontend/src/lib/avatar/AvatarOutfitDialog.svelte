@@ -1,11 +1,13 @@
 <script lang="ts">
 	import coatHangerIcon from "@phosphor-icons/core/regular/coat-hanger.svg?raw"
+	import cubeIcon from "@phosphor-icons/core/regular/cube.svg?raw"
 	import personArmsSpreadIcon from "@phosphor-icons/core/regular/person-arms-spread.svg?raw"
 	import xIcon from "@phosphor-icons/core/regular/x.svg?raw"
 	import { onMount } from "svelte"
 	import { AvatarType } from "../backend/bridge"
 	import type { AvatarAsset, AvatarOutfit } from "../backend/bridge"
 	import Dialog from "../shared/Dialog.svelte"
+	import FrameUnavailable from "../shared/FrameUnavailable.svelte"
 	import Icon from "../shared/Icon.svelte"
 	import ImageViewToggle from "../shared/ImageViewToggle.svelte"
 	import type { ImageView } from "../shared/ImageViewToggle.svelte"
@@ -89,9 +91,13 @@
 	<div class="@container flex flex-col gap-4">
 		<div class="flex items-start gap-4">
 			<div class="flex w-64 shrink-0 flex-col gap-2">
-				<span
+				<div
 					class="relative grid size-64 place-items-center overflow-hidden rounded-lg border border-line-subtle bg-canvas">
-					{#if view === "3D" && details !== null}
+					{#if view === "3D" && details === null}
+						<FrameUnavailable
+							icon={cubeIcon}
+							message="The 3D view needs the outfit details, which couldn't load." />
+					{:else if view === "3D"}
 						<ModelFrame
 							accountId={avatar.accountId}
 							subject={outfitSubject}
@@ -106,9 +112,9 @@
 								fallbackIcon={coatHangerIcon} />
 						</span>
 					{/if}
-				</span>
+				</div>
 				<ImageViewToggle bind:view />
-				{#if view === "3D" && playback}
+				{#if view === "3D" && details !== null}
 					<div class="animate-enter">
 						<AnimationControls {playback} />
 					</div>

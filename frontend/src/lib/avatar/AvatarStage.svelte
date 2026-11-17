@@ -152,7 +152,7 @@
 			{avatar.isRedrawingImage ? "Redrawing…" : "Redraw"}
 		</button>
 	{/if}
-	{#if isExpandedView && view === "3D" && playbackByView.expanded}
+	{#if isExpandedView && view === "3D"}
 		<div class="min-w-0 flex-1">
 			<AnimationControls playback={playbackByView.expanded} isWide />
 		</div>
@@ -171,7 +171,7 @@
 		{@render imageControls(false)}
 	</div>
 
-	{#if view === "3D" && playbackByView.page}
+	{#if view === "3D"}
 		<div class="animate-enter">
 			<AnimationControls playback={playbackByView.page} />
 		</div>

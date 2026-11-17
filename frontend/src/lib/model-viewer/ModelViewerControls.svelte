@@ -31,9 +31,7 @@
 		aria-label="Show coordinates"
 		aria-pressed={viewerOverlays.isCoordinatesShown}
 		data-open={viewerOverlays.isCoordinatesShown || undefined}
-		data-tooltip={viewerOverlays.isCoordinatesShown
-			? "Hide coordinates"
-			: "Show coordinates"}
+		data-tooltip="Show coordinates"
 		onclick={() =>
 			(viewerOverlays.isCoordinatesShown = !viewerOverlays.isCoordinatesShown)}>
 		<Icon svg={rulerIcon} size={16} aria-hidden="true" />

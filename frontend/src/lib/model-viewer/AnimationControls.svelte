@@ -8,11 +8,13 @@
 
 	// AnimationControls plays the animations and emotes of the avatar in a 3D
 	// viewer: a play button, the animation, its speed, and a seek bar. A wide
-	// bar, such as under an expanded viewer, puts them in one row.
+	// bar, such as under an expanded viewer, puts them in one row. playback is
+	// undefined until the avatar shows, which disables the controls, so that
+	// the bar keeps its place while the avatar loads.
 	let {
 		playback,
 		isWide = false,
-	}: { playback: AnimationPlayback; isWide?: boolean } = $props()
+	}: { playback: AnimationPlayback | undefined; isWide?: boolean } = $props()
 
 	const speedOptions = [0.25, 0.5, 1, 1.5, 2].map((speed) => ({
 			value: speed,
@@ -28,23 +30,36 @@
 	let wasPlayingBeforeSeek = false
 
 	const animationOptions = $derived(
-			playback.animationChoices.map((choice) => ({
+			(playback?.animationChoices ?? []).map((choice) => ({
 				value: choice.id,
 				label: choice.label,
 				group: choice.isEmote ? "Emotes" : "Animations",
 			})),
 		),
-		canSeek = $derived(!playback.isAnimationLoading && playback.lengthSeconds > 0),
+		isPlaying = $derived(!!playback?.isPlaying),
+		isAnimationLoading = $derived(!!playback?.isAnimationLoading),
+		timeSeconds = $derived(playback?.timeSeconds ?? 0),
+		lengthSeconds = $derived(playback?.lengthSeconds ?? 0),
+		canSeek = $derived(!!playback && !isAnimationLoading && lengthSeconds > 0),
 		timeLabel = $derived(
-			`${seconds.format(playback.timeSeconds)} / ${seconds.format(playback.lengthSeconds)} s`,
+			`${seconds.format(timeSeconds)} / ${seconds.format(lengthSeconds)} s`,
 		),
-		fillPercent = $derived(
-			canSeek ? (playback.timeSeconds / playback.lengthSeconds) * 100 : 0,
-		)
+		fillPercent = $derived(canSeek ? (timeSeconds / lengthSeconds) * 100 : 0),
+		playLabel = $derived(isPlaying ? "Pause animation" : "Play animation")
 
 	function togglePlay(): void {
-		if (playback.isPlaying) playback.pause()
-		else playback.play()
+		if (isPlaying) playback?.pause()
+		else playback?.play()
+	}
+
+	function pauseForSeek(): void {
+		wasPlayingBeforeSeek = isPlaying
+		playback?.pause()
+	}
+
+	function resumeAfterSeek(): void {
+		if (wasPlayingBeforeSeek) playback?.play()
+		wasPlayingBeforeSeek = false
 	}
 </script>
 
@@ -55,23 +70,18 @@
 			class="range min-w-0 flex-1"
 			type="range"
 			min="0"
-			max={playback.lengthSeconds}
+			max={lengthSeconds}
 			step="0.01"
-			value={playback.timeSeconds}
+			value={timeSeconds}
 			disabled={!canSeek}
 			style:--range-fill={`${fillPercent}%`}
 			aria-valuetext={timeLabel}
-			onpointerdown={() => {
-				wasPlayingBeforeSeek = playback.isPlaying
-				playback.pause()
-			}}
-			oninput={(event) => playback.seek(event.currentTarget.valueAsNumber)}
-			onchange={() => {
-				if (wasPlayingBeforeSeek) playback.play()
-				wasPlayingBeforeSeek = false
-			}} />
+			onpointerdown={pauseForSeek}
+			oninput={(event) => playback?.seek(event.currentTarget.valueAsNumber)}
+			onchange={resumeAfterSeek}
+			onpointercancel={resumeAfterSeek} />
 		<span class="shrink-0 font-mono text-2xs text-fg-muted tabular-nums"
-			>{playback.isAnimationLoading ? "Loading…" : timeLabel}</span>
+			>{isAnimationLoading ? "Loading…" : timeLabel}</span>
 	</label>
 {/snippet}
 
@@ -83,20 +93,21 @@
 		<button
 			class="button-icon"
 			type="button"
-			aria-label={playback.isPlaying ? "Pause animation" : "Play animation"}
-			aria-busy={playback.isAnimationLoading}
-			data-tooltip={playback.isPlaying ? "Pause" : "Play"}
+			aria-label={playLabel}
+			aria-busy={isAnimationLoading}
+			data-tooltip={playLabel}
+			disabled={!playback}
 			onclick={togglePlay}>
-			{#if playback.isAnimationLoading && playback.isPlaying}
+			{#if isAnimationLoading && isPlaying}
 				<Icon
 					svg={circleNotchIcon}
 					class="spinner"
 					size={16}
 					aria-hidden="true" />
 			{:else}
-				{#key playback.isPlaying}
+				{#key isPlaying}
 					<Icon
-						svg={playback.isPlaying ? pauseIcon : playIcon}
+						svg={isPlaying ? pauseIcon : playIcon}
 						class="animate-pop"
 						size={16}
 						aria-hidden="true" />
@@ -105,19 +116,21 @@
 		</button>
 		<Select
 			label="Animation"
-			value={playback.animationId}
+			value={playback?.animationId ?? ""}
 			options={animationOptions}
+			disabled={!playback}
 			className={isWide ? "w-40" : "min-w-0 flex-1"}
-			onChange={(animationId) => playback.chooseAnimation(animationId)} />
+			onChange={(animationId) => playback?.chooseAnimation(animationId)} />
 		{#if isWide}
 			{@render seekBar()}
 		{/if}
 		<Select
 			label="Playback speed"
-			value={playback.speed}
+			value={playback?.speed ?? 1}
 			options={speedOptions}
+			disabled={!playback}
 			className="w-20"
-			onChange={(speed) => playback.setSpeed(speed)} />
+			onChange={(speed) => playback?.setSpeed(speed)} />
 	</div>
 	{#if !isWide}
 		{@render seekBar()}

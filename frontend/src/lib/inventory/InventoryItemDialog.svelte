@@ -224,6 +224,11 @@
 						? { kind: "accessory", assetId: itemLook.accessoryAssetId }
 						: null,
 		),
+		// Whether the 3D view shows an avatar, which has animations to play.
+		isAvatarModelShown = $derived(
+			isModelShown &&
+				(isTryOnShown ? !tryOnAvatarError : itemSubject?.kind === "avatar"),
+		),
 		key = $derived(inventoryItemKey(item)),
 		canFavorite = $derived(isCatalogItem && !!market),
 		isFavorite = $derived(inventory.favoriteByItemKey.get(key)),
@@ -458,7 +463,7 @@
 			<Icon svg={arrowsOutIcon} size={16} aria-hidden="true" />
 		</button>
 	{/if}
-	{#if isExpandedView && isModelShown && playbackByView.expanded}
+	{#if isExpandedView && isAvatarModelShown}
 		<div class="min-w-0 flex-1">
 			<AnimationControls playback={playbackByView.expanded} isWide />
 		</div>
@@ -588,14 +593,17 @@
 			<div class="flex items-start gap-4">
 				<div class="flex w-72 shrink-0 flex-col gap-2">
 					<div
-						class="relative grid size-72 place-items-center overflow-hidden rounded-lg border border-line-subtle bg-raised"
+						class={[
+							"relative grid size-72 place-items-center overflow-hidden rounded-lg border border-line-subtle",
+							isModelShown ? "bg-canvas" : "bg-raised",
+						]}
 						aria-hidden={isModelShown || isTryOnShown ? undefined : true}>
 						{@render imageFrame(false)}
 					</div>
 					<div class="flex items-center gap-2">
 						{@render imageControls(false)}
 					</div>
-					{#if isModelShown && playbackByView.dialog}
+					{#if isAvatarModelShown}
 						<div class="animate-enter">
 							<AnimationControls playback={playbackByView.dialog} />
 						</div>
