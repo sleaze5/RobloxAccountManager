@@ -127,16 +127,23 @@
 	}
 }
 
-/* range is a slider. Set --range-fill to the filled share of the track, such
-   as 40%, because the track cannot read the value of its input. */
+/* range is a slider. Set --range-fill to the share of the track where the
+   fill ends, such as 40%, because the track cannot read the value of its
+   input. Set --range-fill-start where the fill begins when it grows from a
+   default inside the range, such as 50% for a range centered on 0. */
 @utility range {
 	@apply h-4 w-full min-w-0 cursor-pointer appearance-none bg-transparent outline-0 disabled:cursor-not-allowed disabled:opacity-45;
 
 	&::-webkit-slider-runnable-track {
 		@apply h-1 rounded-full bg-raised;
-		background-image: linear-gradient(var(--color-accent), var(--color-accent));
+		background-image: linear-gradient(
+			to right,
+			transparent var(--range-fill-start, 0%),
+			var(--color-accent) var(--range-fill-start, 0%),
+			var(--color-accent) var(--range-fill, 0%),
+			transparent var(--range-fill, 0%)
+		);
 		background-repeat: no-repeat;
-		background-size: var(--range-fill, 0%) 100%;
 	}
 
 	&::-webkit-slider-thumb {

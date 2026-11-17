@@ -10,6 +10,7 @@
 	import { bodyParts, bodyScales } from "./avatar-draft"
 	import type { AvatarDraft, BodyPart } from "./avatar-draft"
 	import type { AvatarState } from "./avatar-state.svelte"
+	import { rangeShareOf, roundedToStep } from "./range-slider"
 
 	let { avatar, canEdit }: { avatar: AvatarState; canEdit: boolean } = $props()
 
@@ -57,28 +58,36 @@
 	}
 
 	function fillOf(value: number, limit: AvatarScaleLimit): string {
-		const share =
-			limit.max > limit.min ? (value - limit.min) / (limit.max - limit.min) : 0
-		return `${Math.min(Math.max(share, 0), 1) * 100}%`
+		return `${rangeShareOf(value, limit.min, limit.max) * 100}%`
 	}
 
-	// setScale rounds to the increment, because range inputs add floating point
-	// noise such as 0.9500000001.
 	function setScale(
 		scale: keyof AvatarScales,
 		rawValue: number,
 		limit: AvatarScaleLimit,
 	): void {
 		const increment = limit.increment > 0 ? limit.increment : 0.01,
-			value = Number((Math.round(rawValue / increment) * increment).toFixed(4))
-		avatar.changeDraft((current) => ({
-			...current,
-			scales: { ...current.scales, [scale]: value },
-		}))
+			value = roundedToStep(rawValue, increment)
+		avatar.changeDraft(
+			(current) => ({
+				...current,
+				scales: { ...current.scales, [scale]: value },
+			}),
+			`scale:${scale}`,
+		)
 	}
 
+	// setColor keeps the draft when every selected part already has the color,
+	// so that applying it again adds no step to the history.
 	function setColor(hexColor: string): void {
 		avatar.changeDraft((current) => {
+			if (
+				[...selectedParts].every(
+					(part) => current.bodyColors[part] === hexColor,
+				)
+			) {
+				return current
+			}
 			const bodyColors = { ...current.bodyColors }
 			for (const part of selectedParts) bodyColors[part] = hexColor
 			return { ...current, bodyColors }
@@ -230,7 +239,9 @@
 										row.scale,
 										event.currentTarget.valueAsNumber,
 										limit,
-									)} />
+									)}
+								onpointerup={() => avatar.finishDraftChange()}
+								onchange={() => avatar.finishDraftChange()} />
 						{:else}
 							<span class="flex-1"></span>
 						{/if}

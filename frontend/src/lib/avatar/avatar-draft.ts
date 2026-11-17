@@ -1,12 +1,14 @@
 import type {
 	Avatar,
+	AvatarAccessoryAdjustment,
+	AvatarAccessoryAdjustmentLimits,
 	AvatarAsset,
 	AvatarBodyColors,
 	AvatarChange,
 	AvatarEmote,
 	AvatarScales,
 	AvatarType,
-	InventoryCategory,
+	AvatarVector,
 	InventoryItem,
 } from "../backend/bridge"
 
@@ -46,6 +48,129 @@ export const bodyScales: {
 
 export const emoteSlotCount = 8
 
+export type AdjustmentKind = keyof AvatarAccessoryAdjustment
+export type AdjustmentAxis = keyof AvatarVector
+
+export const adjustmentAxes: AdjustmentAxis[] = ["x", "y", "z"]
+
+// adjustmentKinds lists what an accessory adjustment changes, with each axis
+// named by the way it moves the accessory on the avatar: Roblox points X to
+// the avatar's side, Y up, and Z to its back. A value field shows a scale as a
+// percentage, so its factor is 100. The steps match the precision of the
+// values that the Roblox avatar editor stores.
+export const adjustmentKinds: {
+	kind: AdjustmentKind
+	label: string
+	unitLabel: string
+	axisLabels: Record<AdjustmentAxis, string>
+	step: number
+	fieldFactor: number
+}[] = [
+	{
+		kind: "position",
+		label: "Position",
+		unitLabel: "studs",
+		axisLabels: { x: "Side", y: "Height", z: "Depth" },
+		step: 0.01,
+		fieldFactor: 1,
+	},
+	{
+		kind: "rotation",
+		label: "Rotation",
+		unitLabel: "degrees",
+		axisLabels: { x: "Tilt", y: "Turn", z: "Roll" },
+		step: 0.1,
+		fieldFactor: 1,
+	},
+	{
+		kind: "scale",
+		label: "Scale",
+		unitLabel: "percent",
+		axisLabels: { x: "Width", y: "Height", z: "Depth" },
+		step: 0.01,
+		fieldFactor: 100,
+	},
+]
+
+// defaultAdjustment is the placement of an accessory that Roblox lists
+// without an adjustment.
+export const defaultAdjustment: AvatarAccessoryAdjustment = {
+	position: { x: 0, y: 0, z: 0 },
+	rotation: { x: 0, y: 0, z: 0 },
+	scale: { x: 1, y: 1, z: 1 },
+}
+
+export function adjustmentOf(asset: AvatarAsset): AvatarAccessoryAdjustment {
+	return asset.adjustment ?? defaultAdjustment
+}
+
+function isSameVector(first: AvatarVector, second: AvatarVector): boolean {
+	return adjustmentAxes.every((axis) => first[axis] === second[axis])
+}
+
+export function isEvenScale(scale: AvatarVector): boolean {
+	return scale.x === scale.y && scale.y === scale.z
+}
+
+export function isDefaultAdjustmentKind(
+	adjustment: AvatarAccessoryAdjustment | null,
+	kind: AdjustmentKind,
+): boolean {
+	return !adjustment || isSameVector(adjustment[kind], defaultAdjustment[kind])
+}
+
+export function isDefaultAdjustment(
+	adjustment: AvatarAccessoryAdjustment | null,
+): boolean {
+	return isSameAdjustment(adjustment, null)
+}
+
+export function isSameAdjustment(
+	first: AvatarAccessoryAdjustment | null,
+	second: AvatarAccessoryAdjustment | null,
+): boolean {
+	const firstAdjustment = first ?? defaultAdjustment,
+		secondAdjustment = second ?? defaultAdjustment
+	return adjustmentKinds.every(({ kind }) =>
+		isSameVector(firstAdjustment[kind], secondAdjustment[kind]),
+	)
+}
+
+// mirroredAdjustment reflects the placement across the middle of the avatar,
+// so that the placement of a left accessory fits its right counterpart: the
+// side moves to the other side, and the turn and roll reverse.
+export function mirroredAdjustment(
+	adjustment: AvatarAccessoryAdjustment,
+): AvatarAccessoryAdjustment {
+	return {
+		position: { ...adjustment.position, x: -adjustment.position.x },
+		rotation: {
+			x: adjustment.rotation.x,
+			y: -adjustment.rotation.y,
+			z: -adjustment.rotation.z,
+		},
+		scale: { ...adjustment.scale },
+	}
+}
+
+// clampedAdjustment keeps each axis within the limits, such as when a pasted
+// placement comes from an accessory type with a wider range.
+export function clampedAdjustment(
+	adjustment: AvatarAccessoryAdjustment,
+	limits: AvatarAccessoryAdjustmentLimits,
+): AvatarAccessoryAdjustment {
+	const clamped = structuredClone(adjustment)
+	for (const { kind } of adjustmentKinds) {
+		for (const axis of adjustmentAxes) {
+			clamped[kind][axis] = Math.min(
+				Math.max(clamped[kind][axis], limits[kind].min[axis]),
+				limits[kind].max[axis],
+			)
+		}
+	}
+	return clamped
+}
+
 export function draftOf(avatar: Avatar): AvatarDraft {
 	return {
 		avatarType: avatar.avatarType,
@@ -56,12 +181,27 @@ export function draftOf(avatar: Avatar): AvatarDraft {
 	}
 }
 
-export function avatarChangeOf(draft: AvatarDraft): AvatarChange {
+// avatarChangeOf writes the draft as a change of the saved avatar. A change
+// carries the placement of an accessory only when the draft edited it, so
+// that a save keeps a placement that Roblox changed since the avatar loaded.
+export function avatarChangeOf(draft: AvatarDraft, savedAvatar: Avatar): AvatarChange {
+	const savedAssetById = new Map(
+		(savedAvatar.assets ?? []).map((asset) => [asset.item.itemId, asset]),
+	)
 	return {
 		avatarType: draft.avatarType,
 		scales: draft.scales,
 		bodyColors: draft.bodyColors,
-		assetIds: draft.assets.map((asset) => asset.item.itemId),
+		assets: draft.assets.map((asset) => {
+			const savedAsset = savedAssetById.get(asset.item.itemId),
+				isEdited =
+					!!savedAsset &&
+					!isSameAdjustment(savedAsset.adjustment, asset.adjustment)
+			return {
+				assetId: asset.item.itemId,
+				adjustment: isEdited ? asset.adjustment : null,
+			}
+		}),
 		emotes: draft.emotes.map((emote) => ({
 			assetId: emote.item.itemId,
 			slot: emote.slot,
@@ -70,22 +210,44 @@ export function avatarChangeOf(draft: AvatarDraft): AvatarChange {
 }
 
 // isDraftChanged compares what a save would write, so that wearing an item
-// and taking it off again leaves the draft unchanged.
+// and taking it off again, or moving an accessory and moving it back, leaves
+// the draft unchanged.
 export function isDraftChanged(avatar: Avatar, draft: AvatarDraft): boolean {
 	return (
-		JSON.stringify(normalizedChange(avatarChangeOf(draftOf(avatar)))) !==
-		JSON.stringify(normalizedChange(avatarChangeOf(draft)))
+		JSON.stringify(normalizedChange(avatarChangeOf(draftOf(avatar), avatar))) !==
+		JSON.stringify(normalizedChange(avatarChangeOf(draft, avatar)))
 	)
 }
 
+// normalizedChange orders the assets and emotes. It keeps a placement reset to
+// the default, because avatarChangeOf writes a placement only when the draft
+// edited it.
 function normalizedChange(change: AvatarChange): AvatarChange {
 	return {
 		...change,
-		assetIds: [...(change.assetIds ?? [])].sort((first, second) => first - second),
+		assets: [...(change.assets ?? [])].sort(
+			(first, second) => first.assetId - second.assetId,
+		),
 		emotes: [...(change.emotes ?? [])].sort(
 			(first, second) => first.slot - second.slot,
 		),
 	}
+}
+
+// isSameDraft compares what two drafts show, where an accessory without a
+// placement matches one at the default placement.
+export function isSameDraft(first: AvatarDraft, second: AvatarDraft): boolean {
+	const withoutAssets = (draft: AvatarDraft): string =>
+		JSON.stringify({
+			...draft,
+			assets: draft.assets.map((asset) => asset.item.itemId),
+		})
+	return (
+		withoutAssets(first) === withoutAssets(second) &&
+		first.assets.every((asset, index) =>
+			isSameAdjustment(asset.adjustment, second.assets[index].adjustment),
+		)
+	)
 }
 
 export function isWornInDraft(draft: AvatarDraft, assetId: number): boolean {
@@ -97,13 +259,12 @@ export function isWornInDraft(draft: AvatarDraft, assetId: number): boolean {
 // that the avatar wore first, as the Roblox avatar editor does.
 export function wearItem(
 	draft: AvatarDraft,
-	item: InventoryItem,
-	category: InventoryCategory,
+	wornAsset: AvatarAsset,
 	maxWornCount: number,
 ): AvatarDraft {
-	if (isWornInDraft(draft, item.itemId) || maxWornCount < 1) return draft
+	if (isWornInDraft(draft, wornAsset.item.itemId) || maxWornCount < 1) return draft
 	const sameTypeAssets = draft.assets.filter(
-			(asset) => asset.item.typeName === item.typeName,
+			(asset) => asset.item.typeName === wornAsset.item.typeName,
 		),
 		replacedAssets = sameTypeAssets.slice(
 			0,
@@ -113,8 +274,27 @@ export function wearItem(
 		...draft,
 		assets: [
 			...draft.assets.filter((asset) => !replacedAssets.includes(asset)),
-			{ category, item },
+			wornAsset,
 		],
+	}
+}
+
+// adjustAsset returns the same draft when the placement does not change, so
+// that applying a value again adds no step to the history.
+export function adjustAsset(
+	draft: AvatarDraft,
+	assetId: number,
+	adjustment: AvatarAccessoryAdjustment,
+): AvatarDraft {
+	const adjustedAsset = draft.assets.find((asset) => asset.item.itemId === assetId)
+	if (!adjustedAsset || isSameAdjustment(adjustedAsset.adjustment, adjustment)) {
+		return draft
+	}
+	return {
+		...draft,
+		assets: draft.assets.map((asset) =>
+			asset.item.itemId === assetId ? { ...asset, adjustment } : asset,
+		),
 	}
 }
 
