@@ -307,10 +307,11 @@ func (service *Service) WearAvatarOutfit(ctx context.Context, accountID, outfitI
 	if err != nil {
 		return SavedAvatar{}, mapRepositoryError(err)
 	}
-	var outfitAssetIDs, rejectedAssetIDs []int64
+	var outfitAssets []robloxservices.AvatarChangeAsset
+	var rejectedAssetIDs []int64
 	err = service.editAccount(ctx, accountID, "avatar-outfit-wear", "", func(ctx context.Context, version int64) error {
 		var wearError error
-		outfitAssetIDs, rejectedAssetIDs, wearError = service.users.WearAvatarOutfit(ctx, accountID, version, outfitID)
+		outfitAssets, rejectedAssetIDs, wearError = service.users.WearAvatarOutfit(ctx, accountID, version, outfitID)
 		return wearError
 	})
 	if err != nil {
@@ -320,10 +321,6 @@ func (service *Service) WearAvatarOutfit(ctx context.Context, accountID, outfitI
 	// GetAvatar logs a failed read.
 	if avatar, readError := service.GetAvatar(ctx, accountID, account.RobloxUserID); readError == nil {
 		worn.Avatar = &avatar
-		outfitAssets := make([]robloxservices.AvatarChangeAsset, len(outfitAssetIDs))
-		for index, assetID := range outfitAssetIDs {
-			outfitAssets[index] = robloxservices.AvatarChangeAsset{AssetID: assetID}
-		}
 		worn.addUnwornAndUnkeptAssets(outfitAssets)
 	}
 	return worn, nil

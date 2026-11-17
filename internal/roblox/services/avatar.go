@@ -701,26 +701,28 @@ func (service *Users) AvatarOutfitDetails(ctx context.Context, accountID, versio
 	return avatarOf(outfit)
 }
 
-// WearAvatarOutfit puts the outfit on the avatar of the account, and returns
-// the assets of the outfit and the ones that Roblox lists as invalid. It keeps
-// the equipped emotes, because outfits have none.
-func (service *Users) WearAvatarOutfit(ctx context.Context, accountID, version, outfitID int64) (outfitAssetIDs, rejectedAssetIDs []int64, err error) {
+// WearAvatarOutfit puts the outfit on the avatar of the account. It returns
+// the assets of the outfit with the placements that the outfit stores, so that
+// a read afterwards can find what Roblox changed, and the assets that Roblox
+// lists as invalid. It keeps the equipped emotes, because outfits have none.
+func (service *Users) WearAvatarOutfit(ctx context.Context, accountID, version, outfitID int64) (outfitAssets []AvatarChangeAsset, rejectedAssetIDs []int64, err error) {
 	outfit, err := service.readOutfit(ctx, accountID, version, "avatar-outfit-wear", outfitID)
 	if err != nil {
 		return nil, nil, err
 	}
 	assets := make([]avatarUpdateAsset, 0, len(*outfit.Assets))
-	outfitAssetIDs = make([]int64, 0, len(*outfit.Assets))
+	outfitAssets = make([]AvatarChangeAsset, 0, len(*outfit.Assets))
 	for _, listedAsset := range *outfit.Assets {
 		if listedAsset.ID > 0 {
 			assets = append(assets, listedAsset.updateAsset())
-			outfitAssetIDs = append(outfitAssetIDs, listedAsset.ID)
+			adjustment, _ := assetLayoutOf(listedAsset.Meta)
+			outfitAssets = append(outfitAssets, AvatarChangeAsset{AssetID: listedAsset.ID, Adjustment: adjustment})
 		}
 	}
 	rejectedAssetIDs, err = service.updateAvatar(ctx, accountID, version, "avatar-outfit-wear", avatarUpdate{
 		AvatarType: outfit.PlayerAvatarType, Scales: *outfit.Scales, BodyColors: outfit.BodyColors.bodyColors(), Assets: assets,
 	})
-	return outfitAssetIDs, rejectedAssetIDs, err
+	return outfitAssets, rejectedAssetIDs, err
 }
 
 type avatarUpdateAsset struct {
