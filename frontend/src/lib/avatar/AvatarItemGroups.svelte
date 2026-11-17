@@ -17,6 +17,8 @@
 		// and an outfit dialog both show groups.
 		headingIdPrefix: string
 		onOpenItem: (asset: AvatarAsset) => void
+		// itemControls renders in a row along the top of each tile, with its
+		// tags first and its buttons at the end.
 		itemControls?: Snippet<[AvatarAsset]>
 	} = $props()
 
@@ -49,12 +51,17 @@
 						isWorn={false}
 						actionLabel="Show details"
 						onOpen={() => onOpenItem(asset)} />
-					{#if !isDefaultAdjustment(asset.adjustment)}
-						<span
-							class="pointer-events-none absolute top-2 left-2 animate-pop rounded-sm border border-line-strong bg-overlay px-1 text-2xs leading-4 font-medium text-fg"
-							>Adjusted</span>
-					{/if}
-					{@render itemControls?.(asset)}
+					<!-- The tags and the controls share one row, so that they center
+					     on the same line. -->
+					<span
+						class="pointer-events-none absolute inset-x-2 top-2 flex h-6 items-center gap-1">
+						{#if !isDefaultAdjustment(asset.adjustment)}
+							<span
+								class="rounded-sm border border-line-strong bg-overlay px-1 text-2xs leading-4 font-medium text-fg"
+								>Adjusted</span>
+						{/if}
+						{@render itemControls?.(asset)}
+					</span>
 				</li>
 			{/each}
 		</ul>

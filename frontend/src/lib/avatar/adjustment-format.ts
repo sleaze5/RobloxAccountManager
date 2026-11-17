@@ -2,15 +2,13 @@ import type { AvatarAccessoryAdjustment, AvatarClothingLayer } from "../backend/
 import { isDefaultAdjustmentKind } from "./avatar-draft"
 import type { AdjustmentKind } from "./avatar-draft"
 
+// The values read as the editor's fields write them, with a sign only when
+// negative.
 const studs = new Intl.NumberFormat("en-US", {
 		minimumFractionDigits: 2,
 		maximumFractionDigits: 2,
-		signDisplay: "exceptZero",
 	}),
-	degrees = new Intl.NumberFormat("en-US", {
-		maximumFractionDigits: 1,
-		signDisplay: "exceptZero",
-	}),
+	degrees = new Intl.NumberFormat("en-US", { maximumFractionDigits: 1 }),
 	percent = new Intl.NumberFormat("en-US", {
 		style: "percent",
 		maximumFractionDigits: 0,

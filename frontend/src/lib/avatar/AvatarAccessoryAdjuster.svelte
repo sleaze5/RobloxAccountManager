@@ -228,7 +228,7 @@
 			}}
 			onchange={() => avatar.finishDraftChange()} />
 		<input
-			class="field h-7 w-20 shrink-0 px-2 text-right font-mono text-xs tabular-nums"
+			class="field h-7 w-16 shrink-0 px-2 text-right font-mono text-xs tabular-nums"
 			type="number"
 			inputmode="decimal"
 			min={fieldValueOf(range.min, fieldFactor)}
@@ -357,7 +357,7 @@
 				Reset all
 			</button>
 		</div>
-		<p class="text-2xs text-fg-muted" aria-live="polite">
+		<p class="text-xs text-fg-muted" aria-live="polite">
 			{#if copied && canPaste}
 				Paste uses the placement copied from {copied.sourceName}, within this
 				accessory's limits.

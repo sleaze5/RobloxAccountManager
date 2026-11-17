@@ -49,8 +49,10 @@
 				{@const layer = asset.layer}
 				{#if layer}
 					{@const puffiness = formatPuffiness(layer)}
+					<!-- The right padding keeps the layer in line with the status of
+					     the accessory rows above, which end in a caret. -->
 					<li
-						class="flex h-12 min-w-0 items-center gap-3 border-line-subtle px-3 not-first:border-t">
+						class="flex h-12 min-w-0 items-center gap-2 border-line-subtle pr-9 pl-3 not-first:border-t">
 						<AvatarAssetSummary {asset} />
 						<span class="flex shrink-0 flex-col items-end">
 							<span class="text-xs text-fg"
