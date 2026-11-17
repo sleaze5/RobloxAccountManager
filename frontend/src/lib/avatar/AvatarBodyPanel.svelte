@@ -243,6 +243,7 @@
 										event.currentTarget.valueAsNumber,
 										limit,
 									)}
+								onpointerup={() => avatar.finishDraftChange()}
 								onchange={() => avatar.finishDraftChange()} />
 						{:else}
 							<span class="flex-1"></span>

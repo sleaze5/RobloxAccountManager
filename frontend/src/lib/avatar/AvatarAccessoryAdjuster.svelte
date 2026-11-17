@@ -241,6 +241,7 @@
 			onkeyup={(event) => {
 				if (event.key.startsWith("Arrow")) avatar.finishDraftChange()
 			}}
+			onpointerup={() => avatar.finishDraftChange()}
 			onchange={() => avatar.finishDraftChange()} />
 		<input
 			class="field h-7 w-16 shrink-0 px-2 text-right font-mono text-xs tabular-nums"

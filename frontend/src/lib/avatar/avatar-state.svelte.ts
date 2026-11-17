@@ -21,6 +21,7 @@ import {
 	clearEmoteSlot,
 	draftOf,
 	isDraftChanged,
+	isSameDraft,
 	mirroredAdjustment,
 	putEmoteInSlot,
 	takeOffItem,
@@ -235,8 +236,19 @@ export class AvatarState {
 	}
 
 	// finishDraftChange ends the change that continues with the same key, such
-	// as when a slider is released.
+	// as when a slider is released. A change that ends where it began, such as
+	// a slider dragged away and back, leaves no step in the history.
 	finishDraftChange(): void {
+		const previousDraft = this.draftHistory.at(-1)
+		if (
+			this.#lastChangeKey &&
+			previousDraft &&
+			this.draft &&
+			isSameDraft(previousDraft, this.draft)
+		) {
+			this.draft = previousDraft
+			this.draftHistory = this.draftHistory.slice(0, -1)
+		}
 		this.#lastChangeKey = ""
 	}
 

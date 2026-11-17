@@ -238,6 +238,22 @@ function normalizedChange(change: AvatarChange): AvatarChange {
 	}
 }
 
+// isSameDraft compares what two drafts show, where an accessory without a
+// placement matches one at the default placement.
+export function isSameDraft(first: AvatarDraft, second: AvatarDraft): boolean {
+	const withoutAssets = (draft: AvatarDraft): string =>
+		JSON.stringify({
+			...draft,
+			assets: draft.assets.map((asset) => asset.item.itemId),
+		})
+	return (
+		withoutAssets(first) === withoutAssets(second) &&
+		first.assets.every((asset, index) =>
+			isSameAdjustment(asset.adjustment, second.assets[index].adjustment),
+		)
+	)
+}
+
 export function isWornInDraft(draft: AvatarDraft, assetId: number): boolean {
 	return draft.assets.some((asset) => asset.item.itemId === assetId)
 }
