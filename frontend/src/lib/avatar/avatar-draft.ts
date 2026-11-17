@@ -183,10 +183,8 @@ export function draftOf(avatar: Avatar): AvatarDraft {
 }
 
 // avatarChangeOf writes the draft as a change of the saved avatar. A change
-// carries the placement of an accessory only when the draft edited it, with
-// the saved placement that the edit started from, so that a save neither
-// restores nor overwrites a placement that Roblox changed since the avatar
-// loaded.
+// carries the placement of an accessory only when the draft edited it, so
+// that a save keeps a placement that Roblox changed since the avatar loaded.
 export function avatarChangeOf(draft: AvatarDraft, savedAvatar: Avatar): AvatarChange {
 	const savedAssetById = new Map(
 		(savedAvatar.assets ?? []).map((asset) => [asset.item.itemId, asset]),
@@ -203,7 +201,6 @@ export function avatarChangeOf(draft: AvatarDraft, savedAvatar: Avatar): AvatarC
 			return {
 				assetId: asset.item.itemId,
 				adjustment: isEdited ? asset.adjustment : null,
-				previousAdjustment: isEdited ? (savedAsset.adjustment ?? null) : null,
 			}
 		}),
 		emotes: draft.emotes.map((emote) => ({
