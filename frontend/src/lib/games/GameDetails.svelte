@@ -81,10 +81,9 @@
 		nameEnd = $derived(place?.name.slice(nameSplit).trimEnd() ?? ""),
 		menuOpen = $derived(!!place && store.menu?.place.placeId === place.placeId),
 		rootPlace = $derived(game?.rootPlace ?? null),
-		// Roblox owns badges per universe, so a subplace would only repeat the
-		// badges of its root place. Until the details load, the button stays in
-		// place disabled, so that a failed load does not move the header.
-		hasBadgesButton = $derived(!rootPlace),
+		// Badges and game passes belong to the universe, so subplaces hide them.
+		// Disabled until details load, so the header doesn't shift.
+		hasUniverseButtons = $derived(!rootPlace),
 		hasVotes = $derived(
 			store.loadedGameSections.includes(GameSection.GameSectionVotes),
 		),
@@ -478,7 +477,7 @@
 						}}>
 						<Icon svg={hardDrivesIcon} size={16} aria-hidden="true" />
 					</button>
-					{#if hasBadgesButton}
+					{#if hasUniverseButtons}
 						<button
 							class="button-icon"
 							type="button"
@@ -491,6 +490,19 @@
 								store.detailsPage = "badges"
 							}}>
 							<Icon svg={medalIcon} size={16} aria-hidden="true" />
+						</button>
+						<button
+							class="button-icon"
+							type="button"
+							aria-label="Game passes"
+							data-tooltip="Game passes"
+							data-game-passes
+							disabled={!game}
+							onclick={() => {
+								store.closeMenu()
+								store.detailsPage = "gamePasses"
+							}}>
+							<Icon svg={ticketIcon} size={16} aria-hidden="true" />
 						</button>
 					{/if}
 					<button

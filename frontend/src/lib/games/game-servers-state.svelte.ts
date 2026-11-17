@@ -4,6 +4,7 @@ import {
 	GameServerRecordOrder,
 } from "../backend/bridge"
 import type {
+	FriendServer,
 	GameServer,
 	GameServerPage,
 	GameServerRecord,
@@ -476,6 +477,75 @@ export class SavedServers {
 	}
 }
 
+// FriendServers lists the place's servers that the shown account's friends
+// are in.
+export class FriendServers {
+	servers = $state<FriendServer[] | null>(null)
+	loading = $state(false)
+	error = $state("")
+	#accountId: number
+	#fetchedAt = 0
+	#request: ReturnType<typeof accountBackend.ListFriendServers> | null = null
+
+	constructor(
+		readonly placeId: number,
+		accountId: number,
+	) {
+		this.#accountId = accountId
+	}
+
+	// showAccount switches accounts and loads only while visible.
+	showAccount(accountId: number, isVisible: boolean): void {
+		if (accountId === this.#accountId) return
+		this.#accountId = accountId
+		this.dispose()
+		this.servers = null
+		this.loading = false
+		this.error = ""
+		this.#fetchedAt = 0
+		if (isVisible) void this.load()
+	}
+
+	// load shows kept servers and refetches stale ones.
+	async load(): Promise<void> {
+		if (this.#request) return
+		if (this.servers && Date.now() - this.#fetchedAt < serverPageFreshMs) return
+		await this.refresh()
+	}
+
+	async refresh(): Promise<void> {
+		if (!this.#accountId) return
+		void this.#request?.cancel()
+		const request = accountBackend.ListFriendServers(this.#accountId, this.placeId)
+		this.#request = request
+		this.loading = true
+		this.error = ""
+		try {
+			const servers = await request
+			if (this.#request !== request) return
+			this.servers = servers ?? []
+			this.#fetchedAt = Date.now()
+		} catch (error) {
+			if (this.#request === request) {
+				this.error = errorMessage(
+					error,
+					"Couldn't load friends' servers. Try again.",
+				)
+			}
+		} finally {
+			if (this.#request === request) {
+				this.#request = null
+				this.loading = false
+			}
+		}
+	}
+
+	dispose(): void {
+		void this.#request?.cancel()
+		this.#request = null
+	}
+}
+
 export class ServerStatsLoader {
 	stats = $state<GameServerStats | null>(null)
 	loading = $state(false)
@@ -522,6 +592,7 @@ export class ServerStatsLoader {
 // source, options, and pages.
 export class PlaceServers {
 	readonly roblox: GameServers
+	readonly friends: FriendServers
 	readonly recorded: RecordedServers
 	readonly private: PrivateServers
 	readonly listed: ListedServers
@@ -543,6 +614,7 @@ export class PlaceServers {
 			caches.serverPages,
 			() => appSettings.roValraEnabled,
 		)
+		this.friends = new FriendServers(placeId, accountId)
 		this.recorded = new RecordedServers(placeId, caches.recordPages)
 		this.private = new PrivateServers(placeId, caches.privatePages, accountId)
 		this.listed = new ListedServers(placeId, caches.listedPages)
@@ -552,6 +624,7 @@ export class PlaceServers {
 
 	dispose(): void {
 		this.roblox.dispose()
+		this.friends.dispose()
 		this.recorded.dispose()
 		this.private.dispose()
 		this.listed.dispose()

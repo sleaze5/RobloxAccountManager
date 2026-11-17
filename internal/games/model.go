@@ -305,6 +305,32 @@ type BadgeAward struct {
 	AwardedAtMs int64 `json:"awardedAtMs"`
 }
 
+// GamePass belongs to a universe and is shared by its places.
+type GamePass struct {
+	GamePassID   int64  `json:"gamePassId"`
+	Name         string `json:"name"`
+	Description  string `json:"description"`
+	IconURL      string `json:"iconUrl"`
+	IsForSale    bool   `json:"isForSale"`
+	PriceInRobux int64  `json:"priceInRobux"`
+	IsOwned      bool   `json:"isOwned"`
+	CreatedAtMs  int64  `json:"createdAtMs"`
+	UpdatedAtMs  int64  `json:"updatedAtMs"`
+}
+
+// FriendServer is a server that friends of the account are in.
+type FriendServer struct {
+	JobID   string           `json:"jobId"`
+	Friends []FriendInServer `json:"friends"`
+}
+
+type FriendInServer struct {
+	UserID      int64  `json:"userId"`
+	Username    string `json:"username"`
+	DisplayName string `json:"displayName"`
+	ImageURL    string `json:"imageUrl"`
+}
+
 func PrivateServerLaunchLink(placeID int64, accessCode, linkCode string) string {
 	if linkCode != "" {
 		link := url.URL{Scheme: "https", Host: "www.roblox.com", Path: "/games/" + strconv.FormatInt(placeID, 10)}
