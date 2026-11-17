@@ -143,7 +143,7 @@ func (saved *SavedAvatar) addUnwornAndUnkeptAssets(changeAssets []robloxservices
 			if !slices.Contains(saved.SkippedAssetIDs, changeAsset.AssetID) {
 				saved.SkippedAssetIDs = append(saved.SkippedAssetIDs, changeAsset.AssetID)
 			}
-		case changeAsset.Adjustment != nil && !robloxservices.IsAdjustmentKept(*changeAsset.Adjustment, saved.Avatar.Assets[wornIndex].Adjustment):
+		case changeAsset.Adjustment != nil && !robloxservices.IsSameAdjustment(*changeAsset.Adjustment, saved.Avatar.Assets[wornIndex].Adjustment):
 			saved.UnkeptAdjustmentAssetIDs = append(saved.UnkeptAdjustmentAssetIDs, changeAsset.AssetID)
 		}
 	}

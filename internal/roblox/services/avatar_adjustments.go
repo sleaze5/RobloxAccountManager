@@ -254,12 +254,11 @@ func accessoryAdjustmentLimitsOf(payload avatarRulesPayload) map[string]AvatarAc
 	return limitsByTypeName
 }
 
-// IsAdjustmentKept reports whether the adjustment that Roblox lists for a worn
-// accessory, which is nil for the default placement, matches the requested
-// one.
-func IsAdjustmentKept(requested AvatarAccessoryAdjustment, listed *AvatarAccessoryAdjustment) bool {
-	if listed == nil {
-		return requested.equals(defaultAccessoryAdjustment)
+// IsSameAdjustment reports whether two placements match, where a nil other
+// placement stands for the default placement, as Roblox lists it.
+func IsSameAdjustment(adjustment AvatarAccessoryAdjustment, other *AvatarAccessoryAdjustment) bool {
+	if other == nil {
+		return adjustment.equals(defaultAccessoryAdjustment)
 	}
-	return requested.equals(*listed)
+	return adjustment.equals(*other)
 }

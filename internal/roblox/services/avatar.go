@@ -122,6 +122,10 @@ type AvatarChangeAsset struct {
 	// placement that Roblox stores. Only an asset that the avatar wears now
 	// can change its placement.
 	Adjustment *AvatarAccessoryAdjustment `json:"adjustment"`
+	// PreviousAdjustment is the placement that the edit started from, or nil
+	// for the default placement. A change stops when Roblox stores another
+	// placement, so that it never overwrites a newer one.
+	PreviousAdjustment *AvatarAccessoryAdjustment `json:"previousAdjustment"`
 }
 
 // AvatarChange is the whole avatar that an account saves.
@@ -510,7 +514,9 @@ func (service *Users) validateAccessoryAdjustments(ctx context.Context, accountI
 // the ones the account wears, such as the order of layered clothing, so that a
 // change keeps it. It writes each changed adjustment into the meta, and lists
 // the changed adjustments. A changed adjustment of an asset that the avatar
-// does not wear now means that the avatar changed since the page read it.
+// does not wear now, or of an asset whose stored placement differs from the
+// one that the edit started from, means that the avatar changed since the
+// page read it.
 func (service *Users) avatarUpdateAssetsOf(ctx context.Context, accountID, version int64, endpoint string, changeAssets []AvatarChangeAsset) ([]avatarUpdateAsset, []changedAccessoryAdjustment, error) {
 	var current avatarPayload
 	if err := service.readAvatarDetails(ctx, accountID, version, endpoint, "https://avatar.roblox.com/v2/avatar/avatar", &current); err != nil {
@@ -545,6 +551,9 @@ func (service *Users) avatarUpdateAssetsOf(ctx context.Context, accountID, versi
 		if storedAdjustment == nil {
 			storedAdjustment = &defaultAccessoryAdjustment
 		}
+		if !IsSameAdjustment(*storedAdjustment, changeAsset.PreviousAdjustment) {
+			return nil, nil, avatarChangedError(endpoint)
+		}
 		if changeAsset.Adjustment.equals(*storedAdjustment) {
 			continue
 		}
@@ -561,7 +570,7 @@ func (service *Users) avatarUpdateAssetsOf(ctx context.Context, accountID, versi
 }
 
 func avatarChangedError(endpoint string) error {
-	return &roblox.Error{Kind: roblox.KindProtocol, Endpoint: endpoint, Message: "The avatar changed since it was loaded. Refresh it and adjust the accessory again."}
+	return &roblox.Error{Kind: roblox.KindProtocol, Endpoint: endpoint, Message: "An adjusted accessory changed in Roblox since the avatar loaded. Discard your changes, then adjust it again."}
 }
 
 // AvatarPreviewFormat is what the render API makes of an avatar, by its
