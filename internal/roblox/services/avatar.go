@@ -528,7 +528,10 @@ func (service *Users) avatarUpdateAssetsOf(ctx context.Context, accountID, versi
 	for index, changeAsset := range changeAssets {
 		wornAsset, isWorn := wornAssetByID[changeAsset.AssetID]
 		if !isWorn {
-			if changeAsset.Adjustment != nil && !changeAsset.Adjustment.equals(defaultAccessoryAdjustment) {
+			// The page sends a placement only for an accessory that it edited,
+			// even a reset to the default, so an accessory that is no longer
+			// worn was taken off since the page loaded the avatar.
+			if changeAsset.Adjustment != nil {
 				return nil, nil, avatarChangedError(endpoint)
 			}
 			assets[index] = avatarUpdateAsset{ID: changeAsset.AssetID}
