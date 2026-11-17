@@ -1,6 +1,6 @@
 <script lang="ts">
 	import slidersHorizontalIcon from "@phosphor-icons/core/regular/sliders-horizontal.svg?raw"
-	import { tick } from "svelte"
+	import { onMount } from "svelte"
 	import Icon from "../shared/Icon.svelte"
 	import AvatarAccessoryAdjuster from "./AvatarAccessoryAdjuster.svelte"
 	import AvatarAdjustmentFacts from "./AvatarAdjustmentFacts.svelte"
@@ -52,13 +52,15 @@
 				: !hasAdjustments && !hasLayers,
 		)
 
-	// The accessory that the Wearing tab opened scrolls into view.
-	$effect(() => {
+	// The accessory that the Wearing tab opened scrolls into view and takes
+	// focus, because the button that opened it left with the Wearing tab.
+	onMount(() => {
 		if (!expandedAssetId) return
-		const rowId = `avatar-adjust-row-${expandedAssetId}`
-		void tick().then(() =>
-			document.getElementById(rowId)?.scrollIntoView({ block: "nearest" }),
-		)
+		const row = document.getElementById(`avatar-adjust-row-${expandedAssetId}`)
+		row?.scrollIntoView({ block: "nearest" })
+		row?.querySelector<HTMLButtonElement>("button[aria-expanded]")?.focus({
+			preventScroll: true,
+		})
 	})
 </script>
 
