@@ -86,7 +86,7 @@
 			{#if canEdit && isChanged}
 				Save or discard your changes to put on an outfit or save a new one.
 			{:else if canEdit}
-				Putting on an outfit replaces the avatar.
+				Outfits save a look to put on later. Putting one on replaces the avatar.
 			{:else}
 				The outfits that @{username} saved.
 			{/if}
@@ -134,7 +134,7 @@
 			<h2>No outfits</h2>
 			<p>
 				{canEdit
-					? "Save the avatar as an outfit."
+					? "Save the avatar as an outfit to put it on later."
 					: `@${username} has not saved any outfits.`}
 			</p>
 		</div>

@@ -116,9 +116,9 @@ func RunCrashMonitor() (bool, error) {
 	}
 	lines := strings.Split(string(crashOutput), "\n")
 	reason := "unhandled Go panic or fatal runtime error (payload omitted)"
-	message := "application crashed"
+	message := "app crashed"
 	if len(crashOutput) == 0 {
-		message = "application exited unexpectedly"
+		message = "app quit unexpectedly"
 		reason = "process terminated without a shutdown record or Go crash report; cause unavailable"
 	}
 	for _, line := range lines {

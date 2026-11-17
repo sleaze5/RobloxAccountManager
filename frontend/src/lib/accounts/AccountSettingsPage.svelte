@@ -119,7 +119,7 @@
 		{
 			id: "content-maturity",
 			label: "Content maturity",
-			search: "content maturity minimal mild moderate restricted sensitive issues",
+			search: "content maturity rating age restrictions parental controls mature minimal mild moderate restricted sensitive issues themes",
 			sections: [
 				{
 					id: "maturity-section",
@@ -135,7 +135,8 @@
 						{
 							key: Key.SettingSensitiveIssues,
 							label: "Sensitive issues",
-							description: "Allow games with sensitive themes.",
+							description:
+								"Allow games with sensitive themes and topics.",
 							type: "toggle",
 						},
 					],
@@ -145,7 +146,7 @@
 		{
 			id: "communication",
 			label: "Communication",
-			search: "communication experience direct chat party friends voice data product improvements camera input gameplay coordination quick words",
+			search: "communication chat messages messaging game chat direct chat party voice microphone mic data product improvements camera face tracking input gameplay coordination quick words quick chat",
 			sections: [
 				{
 					id: "experience-chat-section",
@@ -205,7 +206,7 @@
 							key: Key.SettingVoiceDataUsage,
 							label: "Voice data for product improvements",
 							description:
-								"Let Roblox use voice recordings to improve its products.",
+								"Let Roblox use voice recordings to improve its products and services.",
 							type: "toggle",
 						},
 					],
@@ -218,7 +219,7 @@
 							key: Key.SettingCamera,
 							label: "Camera input",
 							description:
-								"Use the camera to animate your avatar's face.",
+								"Use camera tracking to animate your avatar's facial expressions.",
 							type: "toggle",
 						},
 					],
@@ -240,7 +241,7 @@
 		{
 			id: "visibility-private-servers",
 			label: "Visibility and private servers",
-			search: "visibility private servers online status current game activity updates social links who can add friend suggestions contacts phone",
+			search: "visibility privacy online status offline appear offline current game join me follow activity updates social links who can add private servers invites friend suggestions recommendations contacts phone number discovery",
 			sections: [
 				{
 					id: "visibility-section",
@@ -320,7 +321,7 @@
 		{
 			id: "trading-inventory",
 			label: "Trading and inventory",
-			search: "trading inventory visibility trade audience quality filter",
+			search: "trading trades trade requests inventory visibility private inventory trade audience quality filter value",
 			sections: [
 				{
 					id: "inventory-trading-section",
@@ -352,7 +353,7 @@
 		{
 			id: "ads-preferences",
 			label: "Ads preferences",
-			search: "ads preferences personalize advertising data selling sharing",
+			search: "ads advertising preferences personalized ads tracking data selling sharing partners privacy",
 			sections: [
 				{
 					id: "ads-section",
@@ -381,7 +382,7 @@
 	const blockedUsersPage = {
 			id: "blocked-users",
 			label: "Blocked users",
-			search: "blocked users block unblock",
+			search: "blocked users block unblock blocklist ignore",
 		},
 		privacyLabel = "Privacy and content restrictions",
 		pages = [
@@ -389,31 +390,31 @@
 				id: "info",
 				label: "Account info",
 				icon: userCircleIcon,
-				search: "account info",
+				search: "account info details profile",
 			},
 			{
 				id: "privacy",
 				label: "Privacy and content",
 				icon: lockKeyIcon,
-				search: "privacy content restrictions",
+				search: "privacy content restrictions parental controls",
 			},
 			{
 				id: "servers",
 				label: "Private servers",
 				icon: hardDrivesIcon,
-				search: "private servers vip owned active renew subscription join link allowed users",
+				search: "private servers vip servers owned active renew subscription cancel join link invite allowed users",
 			},
 			{
 				id: "sessions",
 				label: "Sessions",
 				icon: devicesIcon,
-				search: "sessions signed in devices browsers apps location ip address last active sign out log out security",
+				search: "sessions logins signed in devices browsers apps location ip address last active sign out log out logout security",
 			},
 			{
 				id: "robux",
 				label: "Robux history",
 				icon: coinsIcon,
-				search: "robux history transactions purchases sales bought premium stipends group payouts spent",
+				search: "robux history transactions purchases sales bought spent earned balance money premium stipends group payouts",
 			},
 		] as const
 

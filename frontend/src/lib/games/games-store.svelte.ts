@@ -1,5 +1,5 @@
 import { Browser, Events } from "@wailsio/runtime"
-import { copyText } from "../shared/clipboard"
+import { copyFailureMessage, copyText } from "../shared/clipboard"
 import { createContext } from "svelte"
 import { accountBackend, GameSection } from "../backend/bridge"
 import type {
@@ -204,7 +204,7 @@ export class GamesStore {
 				`${label} copied to clipboard.`,
 			))
 		) {
-			this.error = `${label} could not be copied. Try again.`
+			this.error = copyFailureMessage(label)
 		}
 	}
 

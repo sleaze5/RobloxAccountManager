@@ -1,5 +1,6 @@
 <script lang="ts">
-	import { matchesSearch, searchTerms } from "../shared/search"
+	import { searchTerms } from "../shared/search"
+	import { matchesSetting } from "./settings-search"
 	import { copyText } from "../shared/clipboard"
 	import arrowsLeftRightIcon from "@phosphor-icons/core/regular/arrows-left-right.svg?raw"
 	import copyIcon from "@phosphor-icons/core/regular/copy.svg?raw"
@@ -38,10 +39,6 @@
 		return mode === StorageMode.ModePortable ? "Portable" : "Standard"
 	}
 
-	function matches(name: string, description: string): boolean {
-		return matchesSearch(terms, `vault storage ${name} ${description}`)
-	}
-
 	onMount(() => {
 		let disposed = false
 		void (async () => {
@@ -66,17 +63,17 @@
 				"Data folder path copied to clipboard.",
 			))
 		) {
-			error = "Could not copy to the clipboard. Try again."
+			error = "Could not copy the data folder path. Try again."
 		}
 	}
 </script>
 
-{#if (location || error) && (matches("Storage location", "data folder path portable standard copy") || (other && matches(`Move to ${otherLabel} storage`, "move data vault backups settings restart")))}
+{#if (location || error) && (matchesSetting(terms, "storageLocation") || (other && matchesSetting(terms, "moveStorage")))}
 	<section class="settings-section" aria-labelledby="vault-storage-title">
 		<h3 id="vault-storage-title">Storage</h3>
 		{#if error}<div class="notice-error" role="alert">{error}</div>{/if}
 		{#if location}<div class="settings-rows">
-				{#if matches("Storage location", "data folder path portable standard copy")}
+				{#if matchesSetting(terms, "storageLocation")}
 					<div class="settings-row">
 						<div class="settings-row-copy">
 							<strong>Storage location</strong>
@@ -98,7 +95,7 @@
 					</div>
 				{/if}
 
-				{#if other && matches(`Move to ${otherLabel} storage`, "move data vault backups settings restart")}
+				{#if other && matchesSetting(terms, "moveStorage")}
 					<div class="settings-row">
 						<div class="settings-row-copy">
 							<strong>Move to {otherLabel} storage</strong>

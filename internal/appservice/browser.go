@@ -92,14 +92,14 @@ func (service *Service) LaunchBrowserGame(ctx context.Context, sessionID, protoc
 	if err != nil {
 		var failure *roblox.Error
 		if errors.Is(err, robloxmulti.ErrLaunchCancelled) || ctx.Err() != nil || errors.As(err, &failure) && failure.Kind == roblox.KindCancelled {
-			logger.InfoContext(ctx, "browser game launch cancelled")
+			logger.InfoContext(ctx, "browser game launch canceled")
 			return
 		}
 		message := "Could not start Roblox. Try joining again."
 		if errors.As(err, &failure) {
 			message = failure.Message
 		}
-		logger.WarnContext(ctx, "browser game launch failed", "error_message", message)
+		logger.WarnContext(ctx, "could not launch the browser game", "error_message", message)
 		service.events.browserLaunchFailed(sessionID, message)
 		return
 	}

@@ -62,7 +62,7 @@
 		<h2 id="change-password-title">Change master password</h2>
 		<p>
 			This changes the vault encryption key and deletes backups that hold old
-			data.
+			secrets.
 		</p>
 		{#if store.error}<div class="mt-3 notice-error" role="alert">
 				{store.error}

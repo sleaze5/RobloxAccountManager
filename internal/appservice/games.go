@@ -232,7 +232,7 @@ func (service *Service) rovalraError(ctx context.Context, operation string, plac
 	if errors.Is(err, context.Canceled) && ctx.Err() != nil {
 		return &roblox.Error{Kind: roblox.KindCancelled, Endpoint: operation, Message: "The RoValra request was canceled."}
 	}
-	service.logs.Module("integration.rovalra").WarnContext(ctx, "rovalra request failed", "operation", operation, "place_id", placeID, "error", err)
+	service.logs.Module("integration.rovalra").WarnContext(ctx, "RoValra request failed", "operation", operation, "place_id", placeID, "error", err)
 	return &roblox.Error{Kind: roblox.KindServer, Endpoint: operation, Message: "Could not reach RoValra. Try again later.", Cause: err}
 }
 
@@ -389,7 +389,7 @@ func (service *Service) gamesError(ctx context.Context, operation string, err er
 		return &roblox.Error{Kind: roblox.KindCancelled, Endpoint: operation, Message: "The game request was canceled."}
 	}
 	logger := service.logs.Module("application.games")
-	logger.WarnContext(ctx, "game operation failed", "operation", operation, "error", err)
+	logger.WarnContext(ctx, "game request failed", "operation", operation, "error", err)
 	if _, ok := errors.AsType[*roblox.Error](err); ok {
 		return err
 	}

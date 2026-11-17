@@ -78,7 +78,7 @@
 				<p>
 					{renamedOutfit
 						? "The outfit keeps its items and body."
-						: "Save the current avatar as an outfit."}
+						: "Save the current avatar as an outfit to put it on later."}
 				</p>
 			</div>
 			<button

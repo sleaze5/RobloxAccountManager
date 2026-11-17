@@ -242,7 +242,7 @@ func (coordinator *Coordinator) openTab(ctx context.Context, current *session, p
 	defer cancel()
 	targetID, err := current.cdp.createTarget(tabContext, pageURL)
 	if err != nil {
-		coordinator.logger.WarnContext(ctx, "browser tab could not open", "operation", "browser-open-page", "session_id", current.state.ID, "account_id", current.state.AccountID, "error", err)
+		coordinator.logger.WarnContext(ctx, "could not open a browser tab", "operation", "browser-open-page", "session_id", current.state.ID, "account_id", current.state.AccountID, "error", err)
 		return fmt.Errorf("open browser tab: %w", err)
 	}
 	coordinator.mutex.Lock()
@@ -429,7 +429,7 @@ func (coordinator *Coordinator) abortStartup(current *session, cause error) {
 	current.closeOnce.Do(func() {
 		cause = errors.Join(cause, current.process.ExitError())
 		if err := current.process.Terminate(); err != nil {
-			coordinator.logger.Warn("browser startup teardown failed", "operation", "browser-session-start", "session_id", current.state.ID, "session_mode", current.state.Mode, "account_id", current.state.AccountID, "error", err)
+			coordinator.logger.Warn("could not clean up after browser startup", "operation", "browser-session-start", "session_id", current.state.ID, "session_mode", current.state.Mode, "account_id", current.state.AccountID, "error", err)
 		}
 		if !current.process.Wait(2 * time.Second) {
 			coordinator.logger.Warn("browser startup process did not exit before deadline", "operation", "browser-session-start", "session_id", current.state.ID, "session_mode", current.state.Mode, "account_id", current.state.AccountID)
@@ -438,7 +438,7 @@ func (coordinator *Coordinator) abortStartup(current *session, cause error) {
 		_ = current.process.Close()
 	})
 	coordinator.cleanup.enqueue(current.state.ID)
-	coordinator.logger.Error("browser startup failed", "operation", "browser-session-start", "session_id", current.state.ID, "session_mode", current.state.Mode, "account_id", current.state.AccountID, "error", cause)
+	coordinator.logger.Error("could not start the browser", "operation", "browser-session-start", "session_id", current.state.ID, "session_mode", current.state.Mode, "account_id", current.state.AccountID, "error", cause)
 }
 
 func (coordinator *Coordinator) observe(ctx context.Context, current *session) {
@@ -594,7 +594,7 @@ func (coordinator *Coordinator) installCandidate(ctx context.Context, current *s
 	}
 	candidateID, err := randomID(24)
 	if err != nil {
-		coordinator.logger.ErrorContext(ctx, "browser candidate identifier generation failed", "operation", "browser-account-capture", "session_id", current.state.ID, "session_mode", current.state.Mode, "error", err)
+		coordinator.logger.ErrorContext(ctx, "could not create a browser candidate ID", "operation", "browser-account-capture", "session_id", current.state.ID, "session_mode", current.state.Mode, "error", err)
 		return
 	}
 	avatar := coordinator.backend.BrowserAvatar(ctx, validation.Identity.RobloxUserID)
@@ -650,11 +650,11 @@ func (coordinator *Coordinator) Focus(browserSessionID string) error {
 	}
 	if target != "" {
 		if err := current.cdp.activate(ctx, target); err != nil {
-			coordinator.logger.Debug("browser target activation failed", "operation", "browser-focus", "session_id", browserSessionID, "session_mode", current.state.Mode, "error", err)
+			coordinator.logger.Debug("could not focus the browser tab", "operation", "browser-focus", "session_id", browserSessionID, "session_mode", current.state.Mode, "error", err)
 		}
 	}
 	if err := current.process.Focus(); err != nil {
-		coordinator.logger.Warn("browser window focus failed", "operation", "browser-focus", "session_id", browserSessionID, "session_mode", current.state.Mode, "error", err)
+		coordinator.logger.Warn("could not focus the browser window", "operation", "browser-focus", "session_id", browserSessionID, "session_mode", current.state.Mode, "error", err)
 		return err
 	}
 	return nil
@@ -805,7 +805,7 @@ func (coordinator *Coordinator) closeGracefully(current *session) {
 	closeCancel()
 	if !current.process.Wait(2 * time.Second) {
 		if err := current.process.Terminate(); err != nil {
-			coordinator.logger.Warn("browser process termination failed", "operation", "browser-session-close", "session_id", current.state.ID, "session_mode", current.state.Mode, "account_id", current.state.AccountID, "error", err)
+			coordinator.logger.Warn("could not close the browser process", "operation", "browser-session-close", "session_id", current.state.ID, "session_mode", current.state.Mode, "account_id", current.state.AccountID, "error", err)
 		}
 		if !current.process.Wait(2 * time.Second) {
 			coordinator.logger.Warn("browser process did not exit before deadline", "operation", "browser-session-close", "session_id", current.state.ID, "session_mode", current.state.Mode, "account_id", current.state.AccountID)
@@ -904,7 +904,7 @@ func (coordinator *Coordinator) failSession(browserSessionID string, cause error
 	if cause == nil {
 		coordinator.logger.Warn("browser session exited unexpectedly", "operation", "browser-session-failure", "session_id", current.state.ID, "session_mode", current.state.Mode, "account_id", current.state.AccountID)
 	} else {
-		coordinator.logger.Warn("browser session failed", "operation", "browser-session-failure", "session_id", current.state.ID, "session_mode", current.state.Mode, "account_id", current.state.AccountID, "error", cause)
+		coordinator.logger.Warn("browser session stopped with an error", "operation", "browser-session-failure", "session_id", current.state.ID, "session_mode", current.state.Mode, "account_id", current.state.AccountID, "error", cause)
 	}
 }
 
@@ -914,10 +914,10 @@ func (coordinator *Coordinator) finishSession(current *session, failed bool, war
 		finished = true
 		current.cancel()
 		if err := current.process.Terminate(); err != nil {
-			coordinator.logger.Warn("browser process containment termination failed", "operation", "browser-session-close", "session_id", current.state.ID, "session_mode", current.state.Mode, "account_id", current.state.AccountID, "error", err)
+			coordinator.logger.Warn("could not close the browser process group", "operation", "browser-session-close", "session_id", current.state.ID, "session_mode", current.state.Mode, "account_id", current.state.AccountID, "error", err)
 		}
 		if !current.process.Wait(time.Second) {
-			coordinator.logger.Warn("browser process containment did not stop before cleanup", "operation", "browser-session-close", "session_id", current.state.ID, "session_mode", current.state.Mode, "account_id", current.state.AccountID)
+			coordinator.logger.Warn("browser process group did not stop before cleanup", "operation", "browser-session-close", "session_id", current.state.ID, "session_mode", current.state.Mode, "account_id", current.state.AccountID)
 		}
 		current.cdp.closeConnection()
 		_ = current.process.Close()
@@ -1260,7 +1260,7 @@ func (queue *cleanupQueue) process() {
 			delete(queue.pending, browserSessionID)
 		} else {
 			queue.pending[browserSessionID] = "Could not remove a temporary browser profile."
-			queue.logger.Warn("browser profile cleanup failed", "operation", "browser-cleanup", "error", err)
+			queue.logger.Warn("could not clean up the browser profile", "operation", "browser-cleanup", "error", err)
 		}
 		queue.mutex.Unlock()
 	}
@@ -1268,7 +1268,7 @@ func (queue *cleanupQueue) process() {
 	err := removeEmptyDirectory(queue.root)
 	queue.mutex.Unlock()
 	if err != nil {
-		queue.logger.Warn("browser temporary root cleanup failed", "operation", "browser-cleanup", "error", err)
+		queue.logger.Warn("could not clean up the browser temporary folder", "operation", "browser-cleanup", "error", err)
 	}
 	if queue.changed != nil {
 		queue.changed()
@@ -1364,7 +1364,7 @@ func (coordinator *Coordinator) handleTargetDetached(current *session, paramsDat
 func (coordinator *Coordinator) completeCheckpointValidation(ctx context.Context, current *session, final bool, generation uint64, err error) bool {
 	if err != nil && ctx.Err() == nil {
 		coordinator.setCheckpointWarning(current, "Could not check the browser cookie. Sign in again.")
-		coordinator.logger.WarnContext(ctx, "browser cookie validation failed", "operation", "browser-cookie-checkpoint", "session_id", current.state.ID, "session_mode", current.state.Mode, "account_id", current.state.AccountID, "error", err)
+		coordinator.logger.WarnContext(ctx, "could not check the browser cookie", "operation", "browser-cookie-checkpoint", "session_id", current.state.ID, "session_mode", current.state.Mode, "account_id", current.state.AccountID, "error", err)
 	} else if err == nil {
 		coordinator.setCheckpointWarning(current, "")
 	}

@@ -1,36 +1,51 @@
 <script lang="ts" module>
 	export const accountInfoFields = [
-		{ id: "email", search: "email address contact verified change edit" },
-		{ id: "phone", search: "phone number contact verified" },
-		{ id: "displayName", search: "display name change edit" },
-		{ id: "username", search: "username name" },
-		{ id: "password", search: "password change save edit validate vault security" },
-		{ id: "pin", search: "account pin parental lock unlock security" },
-		{ id: "gender", search: "gender" },
-		{ id: "ageGroup", search: "age group checked" },
-		{ id: "birthday", search: "birthday birthdate date of birth verified" },
-		{ id: "firstAccount", search: "first account original alt" },
+		{
+			id: "email",
+			search: "email e-mail address contact verified verify change edit",
+		},
+		{ id: "phone", search: "phone number mobile sms contact verified verify" },
+		{ id: "displayName", search: "display name nickname change edit rename" },
+		{ id: "username", search: "username name handle" },
+		{
+			id: "password",
+			search: "password change save edit check saved password vault security",
+		},
+		{
+			id: "pin",
+			search: "account pin code parental controls lock unlock security",
+		},
+		{ id: "gender", search: "gender sex" },
+		{ id: "ageGroup", search: "age group age check verified 13 under 13 adult" },
+		{ id: "birthday", search: "birthday birthdate date of birth dob age verified" },
+		{ id: "firstAccount", search: "first account original main alt" },
 		{ id: "language", search: "language locale" },
-		{ id: "translations", search: "automatic translations experience" },
+		{
+			id: "translations",
+			search: "automatic translations translate chat game language",
+		},
 		{ id: "location", search: "account location country region" },
 		{
 			id: "voiceChat",
-			search: "voice chat microphone status suspended suspension banned",
+			search: "voice chat microphone mic status suspended suspension banned ban",
 		},
 		{
 			id: "voiceOptIn",
-			search: "voice chat opted in enrollment microphone setting",
+			search: "voice chat opted in opt in enrollment microphone mic setting",
 		},
 		{
 			id: "voiceVerification",
-			search: "voice chat verification verified age check",
+			search: "voice chat verification verified age check id",
 		},
 		{
 			id: "twoStep",
-			search: "2-step two step verification 2fa authenticator security",
+			search: "2-step two step verification 2fa mfa two factor authenticator app email code security",
 		},
-		{ id: "recoveryCodes", search: "recovery codes backup security 2fa" },
-		{ id: "passkeys", search: "passkeys passkey security key sign in" },
+		{ id: "recoveryCodes", search: "recovery codes backup codes security 2fa" },
+		{
+			id: "passkeys",
+			search: "passkeys passkey security key yubikey sign in login",
+		},
 	] as const
 
 	export type AccountInfoFieldId = (typeof accountInfoFields)[number]["id"]

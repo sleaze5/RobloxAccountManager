@@ -115,7 +115,7 @@ func (service *Service) ExportVault(ctx context.Context, path, password, confirm
 	defer clear(payloadJSON)
 	writtenExport, err := service.vault.WriteExport(path, password, hint, payloadJSON)
 	if err != nil {
-		service.logger.Error("export file could not be written", "operation", "vault-export", "error", err)
+		service.logger.Error("could not write the export file", "operation", "vault-export", "error", err)
 		return vault.ExportFile{}, transferError("Could not save the export file. Check that the folder is writable and has free space, then try again.", err)
 	}
 	service.logger.Info("vault exported", "operation", "vault-export")
@@ -128,16 +128,16 @@ func (service *Service) exportData(ctx context.Context, operation string) ([]byt
 		if errors.Is(err, vault.ErrLocked) {
 			return nil, mapRepositoryError(err)
 		}
-		service.logger.Error("vault data could not be read", "operation", operation, "error", err)
+		service.logger.Error("could not read the vault data", "operation", operation, "error", err)
 		return nil, transferError("Could not read the vault data.", err)
 	}
 	if payload.Settings, err = service.settings.Export(); err != nil {
-		service.logger.Error("settings could not be read", "operation", operation, "error", err)
+		service.logger.Error("could not read settings", "operation", operation, "error", err)
 		return nil, transferError("Could not read the settings.", err)
 	}
 	payloadJSON, err := transferstore.Encode(payload)
 	if err != nil {
-		service.logger.Error("vault data could not be encoded", "operation", operation, "error", err)
+		service.logger.Error("could not encode the vault data", "operation", operation, "error", err)
 		return nil, transferError("Could not encode the vault data.", err)
 	}
 	service.logger.Info("vault data read", "operation", operation, "accounts", len(payload.Accounts), "tags", len(payload.Tags), "favorite_places", len(payload.FavoritePlaces), "saved_private_servers", len(payload.SavedPrivateServers))
@@ -164,11 +164,11 @@ func (service *Service) OpenVaultExport(ctx context.Context, path, password stri
 		return TransferPreview{}, transferError("This export is from a newer version. Update the app to import it.", err)
 	}
 	if err != nil {
-		service.logger.Warn("export data could not be decoded", "operation", "vault-import", "error", err)
+		service.logger.Warn("could not read the export data", "operation", "vault-import", "error", err)
 		return TransferPreview{}, transferError("The export file is damaged.", err)
 	}
 	if _, err := appsettings.Decode(payload.Settings); err != nil {
-		service.logger.Warn("exported settings could not be decoded", "operation", "vault-import", "error", err)
+		service.logger.Warn("could not read the exported settings", "operation", "vault-import", "error", err)
 		return TransferPreview{}, transferError("Could not read the settings in this export. Update the app and try again.", err)
 	}
 	preview, err := service.transferPreview(ctx, payload, openedExport.CreatedAtMs)
@@ -193,7 +193,7 @@ func (service *Service) exportReadError(err error) error {
 	case errors.Is(err, vault.ErrInvalidExport):
 		return transferError("This file is not a valid export.", err)
 	}
-	service.logger.Warn("export file could not be read", "operation", "vault-import", "error", err)
+	service.logger.Warn("could not read the export file", "operation", "vault-import", "error", err)
 	return transferError("Could not read the export file.", err)
 }
 
@@ -274,12 +274,12 @@ func (service *Service) DiscardVaultExport(transferID string) {
 func (service *Service) overwriteVaultData(ctx context.Context, pending *pendingTransfer) (TransferResult, error) {
 	logger := service.logger.With("operation", "vault-import", "mode", TransferOverwrite)
 	if err := service.vault.CreateBackup(ctx); err != nil {
-		logger.Error("vault could not be backed up before replacing it", "error", err)
+		logger.Error("could not back up the vault before replacing it", "error", err)
 		return TransferResult{}, transferError("Could not back up the current vault, so nothing was imported. Check free disk space and try again.", err)
 	}
 	removed, err := service.transfers.Replace(ctx, pending.payload, pendingSettings(pending, appsettings.Sections))
 	if err != nil {
-		logger.Error("vault data could not be replaced", "error", err)
+		logger.Error("could not replace the vault data", "error", err)
 		return TransferResult{}, transferError("Could not import the export. Nothing was changed.", err)
 	}
 	service.clearPendingImports()
@@ -317,12 +317,12 @@ func (service *Service) mergeVaultData(ctx context.Context, pending *pendingTran
 	}
 	merged, err := service.transfers.Merge(ctx, input)
 	if err != nil {
-		logger.Error("vault data could not be merged", "error", err)
+		logger.Error("could not merge the vault data", "error", err)
 		return TransferResult{}, transferError("Could not import the export. Nothing was changed.", err)
 	}
 	for _, record := range merged.Replaced {
 		if err := service.sessions.ApplyRotation(record); err != nil {
-			logger.Warn("imported cookie saved but runtime session changed before reconciliation", "account_id", record.AccountID, "error", err)
+			logger.Warn("imported cookie saved, but the session changed before it could be applied", "account_id", record.AccountID, "error", err)
 		}
 		service.browser.DetachAccount(record.AccountID, "The saved cookie changed. This browser no longer syncs with it.")
 	}
@@ -385,7 +385,7 @@ func (service *Service) applyPendingSettings(ctx context.Context) error {
 	}
 	if slices.Contains(sections, appsettings.SectionLogging) {
 		if err := service.applyLoggingSettings(); err != nil {
-			service.logger.Warn("imported logging settings could not be applied", "operation", "vault-import", "error", err)
+			service.logger.Warn("could not apply the imported logging settings", "operation", "vault-import", "error", err)
 		}
 	}
 	if slices.Contains(sections, appsettings.SectionRoblox) {
@@ -454,7 +454,7 @@ func (service *Service) validateTransferCookies(ctx context.Context, selected []
 		account := candidates[index]
 		switch {
 		case outcome.err != nil:
-			reason := importErrorMessage(outcome.err)
+			_, reason := importErrorDetails(outcome.err)
 			kept = append(kept, TransferKeptCookie{Username: transferUsername(account), Reason: reason})
 		case outcome.validation.Identity.RobloxUserID != account.RobloxUserID:
 			kept = append(kept, TransferKeptCookie{Username: transferUsername(account), Reason: "The imported cookie belongs to a different Roblox account."})

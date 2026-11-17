@@ -179,7 +179,7 @@ func inspectCandidate(mode Mode, directory string) (Candidate, error) {
 	}
 	entries, err := os.ReadDir(directory)
 	if err != nil {
-		return Candidate{}, fmt.Errorf("list application directory: %w", err)
+		return Candidate{}, fmt.Errorf("list the app folder: %w", err)
 	}
 	for _, entry := range entries {
 		if isExecutable(executable, directory, entry) {

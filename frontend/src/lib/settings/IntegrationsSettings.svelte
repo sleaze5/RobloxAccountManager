@@ -5,15 +5,14 @@
 	import SectionLink from "./SectionLink.svelte"
 	import { untrack } from "svelte"
 	import Select from "../shared/Select.svelte"
-	import { matchesSearch, searchTerms } from "../shared/search"
+	import { searchTerms } from "../shared/search"
+	import { matchesSetting } from "./settings-search"
 	import type { SettingsStore } from "./settings-store.svelte"
 
 	let { store, query = "" }: { store: SettingsStore; query?: string } = $props()
 	const visible = $derived(
-			matchesSearch(
-				searchTerms(query),
-				"integrations rovalra rbxservers api private server browser servers information features enabled disabled on off preferred region country nearest launch join refresh regions hosts connect domain data sent apis.rovalra.com rbxservers.xyz api.rbxservers.xyz",
-			),
+			matchesSetting(searchTerms(query), "serverData") ||
+				matchesSetting(searchTerms(query), "sharedPrivateServers"),
 		),
 		regions = $derived(store.serverRegions),
 		code = $derived(store.roValraRegion),

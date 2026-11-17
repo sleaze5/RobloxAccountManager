@@ -53,7 +53,7 @@ func (service *Service) removeStaging(directory string) {
 			continue
 		}
 		if err := os.RemoveAll(path); err != nil {
-			service.logger.Warn("update staging could not be removed", "operation", "update-cleanup", "path", path, "error", err)
+			service.logger.Warn("could not remove the update staging files", "operation", "update-cleanup", "path", path, "error", err)
 		}
 	}
 }
@@ -72,7 +72,7 @@ func (service *Service) removeAll(paths []string, last bool) []string {
 		case err == nil || os.IsNotExist(err):
 			service.logger.Debug("update leftover removed", "operation", "update-cleanup", "path", path)
 		case last:
-			service.logger.Warn("update leftover could not be removed", "operation", "update-cleanup", "path", path, "error", err)
+			service.logger.Warn("could not remove the update leftover", "operation", "update-cleanup", "path", path, "error", err)
 		default:
 			remaining = append(remaining, path)
 		}

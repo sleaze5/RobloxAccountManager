@@ -27,7 +27,7 @@ func (service *Service) startBackground() {
 	ctx, cancel := context.WithCancel(service.lifecycle)
 	service.backgroundCancel = cancel
 	service.mutex.Unlock()
-	service.logger.Debug("background validation started", "worker_count", backgroundWorkers)
+	service.logger.Debug("background account check started", "worker_count", backgroundWorkers)
 	go service.backgroundValidation(ctx)
 }
 
@@ -38,7 +38,7 @@ func (service *Service) stopBackground() {
 	service.mutex.Unlock()
 	if cancel != nil {
 		cancel()
-		service.logger.Debug("background validation stopped")
+		service.logger.Debug("background account check stopped")
 	}
 }
 
@@ -83,7 +83,7 @@ func (service *Service) validateBackgroundJobs(ctx context.Context, jobs <-chan 
 				return
 			}
 			if _, err := service.ValidateAccount(ctx, accountID); err != nil && ctx.Err() == nil {
-				service.logger.Warn("background account validation failed", "account_id", accountID, "error", err)
+				service.logger.Warn("could not check accounts in the background", "account_id", accountID, "error", err)
 			}
 		}
 	}
@@ -98,7 +98,7 @@ func (service *Service) enqueueBackgroundValidation(ctx context.Context, jobs ch
 			if ctx.Err() != nil {
 				return false
 			}
-			service.logger.Error("background account list failed", "error", err)
+			service.logger.Error("could not refresh the account list in the background", "error", err)
 			return true
 		}
 		for _, view := range page.Accounts {

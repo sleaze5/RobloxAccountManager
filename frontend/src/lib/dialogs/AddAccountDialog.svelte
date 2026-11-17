@@ -38,7 +38,7 @@
 				: undefined,
 			error: previewItem.authenticated
 				? undefined
-				: `Could not sign in. ${previewItem.errorMessage}`,
+				: `failed to authenticate - ${previewItem.errorStatus}: ${previewItem.errorMessage}`,
 			id: String(previewItem.index),
 			indexLabel: `${previewItem.index}.`,
 			robloxUserId: previewItem.robloxUserId,
@@ -240,8 +240,8 @@
 			<div>
 				<h2 id="add-account-title">Paste cookies</h2>
 				<p>
-					Paste one .ROBLOSECURITY cookie per line, as a value, a cookie pair,
-					or a Cookie header.
+					Paste one .ROBLOSECURITY cookie per line, as a raw value, a cookie
+					pair, or a Cookie header.
 				</p>
 			</div>
 			<button

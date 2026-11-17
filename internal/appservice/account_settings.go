@@ -225,7 +225,7 @@ func (service *Service) confirmAccountSetting(ctx context.Context, accountID, ve
 	}
 	if writeError != nil {
 		failure := accountSettingsSectionError("settings", writeError)
-		logger.WarnContext(ctx, "account setting write not confirmed", "error_kind", failure.Kind)
+		logger.WarnContext(ctx, "account setting change not confirmed", "error_kind", failure.Kind)
 		if definiteSettingRejection(writeError) {
 			return AccountSettingUpdateResult{}, writeError
 		}

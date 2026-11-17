@@ -178,7 +178,7 @@ func settingKnownValue(view AccountSettingView) bool {
 
 func settingReadOnlyReason(view AccountSettingView) string {
 	if !settingKnownValue(view) {
-		return "This app cannot change this value."
+		return "The current value is unavailable, or this app cannot change it."
 	}
 	return ""
 }

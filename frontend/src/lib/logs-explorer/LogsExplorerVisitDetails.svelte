@@ -52,7 +52,7 @@
 						? ` (${visit.disconnectReason})`
 						: ""}
 				{:else}
-					{visit.disconnectReason || "Unknown"}
+					{visit.disconnectReason || "Not recorded"}
 				{/if}
 			</dd>
 		</div>

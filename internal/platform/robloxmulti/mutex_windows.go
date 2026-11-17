@@ -59,7 +59,7 @@ func (holder *mutexHolder) run(ready chan<- error, logger *slog.Logger) {
 		waitStatus, err = windows.WaitForMultipleObjects([]windows.Handle{holder.stop, mutex}, false, windows.INFINITE)
 		if err != nil {
 			holder.failed.Store(true)
-			logger.Warn("waiting for Roblox singleton mutex failed", "error", err)
+			logger.Warn("could not wait for the Roblox singleton mutex", "error", err)
 			return
 		}
 		if waitStatus == windows.WAIT_OBJECT_0 {
@@ -75,11 +75,11 @@ func (holder *mutexHolder) run(ready chan<- error, logger *slog.Logger) {
 	logger.Info("holding Roblox singleton mutex")
 	if _, err := windows.WaitForSingleObject(holder.stop, windows.INFINITE); err != nil {
 		holder.failed.Store(true)
-		logger.Warn("waiting for multi-instance shutdown failed", "error", err)
+		logger.Warn("could not wait for multi-instance to stop", "error", err)
 	}
 	holder.owned.Store(false)
 	if err := windows.ReleaseMutex(mutex); err != nil {
-		logger.Warn("releasing Roblox singleton mutex failed", "error", err)
+		logger.Warn("could not release the Roblox singleton mutex", "error", err)
 	}
 }
 

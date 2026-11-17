@@ -108,7 +108,7 @@ func (service *Users) ValidatePassword(ctx context.Context, accountID, version i
 	if err != nil {
 		return false, err
 	}
-	return false, &roblox.Error{Kind: roblox.KindProtocol, Endpoint: "password-validate", Message: "Roblox returned an unexpected answer. Check the account on the Roblox website, then try again."}
+	return false, &roblox.Error{Kind: roblox.KindProtocol, Endpoint: "password-validate", Message: "Roblox accepted the password request when it should not have. Check the account on the Roblox website, then try again."}
 }
 
 func (service *Users) Pin(ctx context.Context, accountID, version int64) (AccountPin, error) {

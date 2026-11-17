@@ -62,7 +62,7 @@ func (service *Service) GetRobuxTransactions(ctx context.Context, accountID int6
 	}
 	listedTransactions, nextCursor, err := service.users.Transactions(ctx, accountID, version, account.RobloxUserID, robloxType, cursor)
 	if err != nil {
-		service.logger.WarnContext(ctx, "robux history unavailable", "operation", "robux-transactions", "error", err)
+		service.logger.WarnContext(ctx, "Robux history unavailable", "operation", "robux-transactions", "error", err)
 		return RobuxTransactionPage{}, err
 	}
 	page := RobuxTransactionPage{Transactions: make([]RobuxTransaction, 0, len(listedTransactions)), NextCursor: nextCursor}

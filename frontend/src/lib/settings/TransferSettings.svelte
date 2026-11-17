@@ -1,5 +1,6 @@
 <script lang="ts">
-	import { matchesSearch, searchTerms } from "../shared/search"
+	import { searchTerms } from "../shared/search"
+	import { matchesSetting } from "./settings-search"
 	import fileArrowDownIcon from "@phosphor-icons/core/regular/file-arrow-down.svg?raw"
 	import fileArrowUpIcon from "@phosphor-icons/core/regular/file-arrow-up.svg?raw"
 	import Icon from "../shared/Icon.svelte"
@@ -22,28 +23,16 @@
 		importPath = $state(""),
 		terms = $derived(searchTerms(query))
 
-	const exportTerms =
-			"encrypted file password hint accounts saved passwords tags favorite places settings backup move computer save",
-		importTerms =
-			"merge overwrite export file password hint accounts cookies tags favorite places settings open"
-
-	function matches(name: string, description: string): boolean {
-		return matchesSearch(
-			terms,
-			`vault transfer export import ${name} ${description}`,
-		)
-	}
-
 	async function chooseImport(): Promise<void> {
 		importPath = await chooseExportFile(notifications)
 	}
 </script>
 
-{#if matches("Export vault data", exportTerms) || matches("Import vault data", importTerms)}
+{#if matchesSetting(terms, "exportData") || matchesSetting(terms, "importData")}
 	<section class="settings-section" aria-labelledby="vault-transfer-title">
 		<h3 id="vault-transfer-title">Export and import</h3>
 		<div class="settings-rows">
-			{#if matches("Export vault data", exportTerms)}
+			{#if matchesSetting(terms, "exportData")}
 				<div class="settings-row">
 					<div class="settings-row-copy">
 						<strong>Export vault data</strong>
@@ -61,7 +50,7 @@
 					</button>
 				</div>
 			{/if}
-			{#if matches("Import vault data", importTerms)}
+			{#if matchesSetting(terms, "importData")}
 				<div class="settings-row">
 					<div class="settings-row-copy">
 						<strong>Import vault data</strong>

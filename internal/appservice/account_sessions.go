@@ -76,7 +76,7 @@ func (service *Service) SignOutOtherSessions(ctx context.Context, accountID int6
 		if remote, ok := errors.AsType[*roblox.Error](err); ok {
 			kind, status = remote.Kind, remote.Status
 		}
-		logger.WarnContext(ctx, "signing out other sessions failed", "error_kind", kind, "status", status)
+		logger.WarnContext(ctx, "could not sign out other sessions", "error_kind", kind, "status", status)
 		if kind == roblox.KindChallengeRequired {
 			return CookieRenewalResult{}, &roblox.Error{Kind: kind, Endpoint: "sessions-sign-out", Status: status, Message: "Roblox requires extra verification to sign out other sessions. Do it on the Roblox website.", Cause: err}
 		}

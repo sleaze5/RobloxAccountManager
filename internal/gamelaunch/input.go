@@ -70,7 +70,7 @@ func placeRequest(place, job string) (Request, error) {
 	}
 	job = strings.TrimSpace(job)
 	if job != "" && !jobIDPattern.MatchString(job) {
-		return Request{}, errors.New("enter a valid job ID, or leave it empty to join any server")
+		return Request{}, errors.New("enter a valid job ID (UUID), or leave it empty to join a public server")
 	}
 	return Request{PlaceID: placeID, JobID: job}, nil
 }
@@ -103,7 +103,7 @@ func parseLink(linkText string) (Request, error) {
 	}
 	link, err := url.Parse(linkText)
 	if err != nil || !allowedWebLink(link) {
-		return Request{}, errors.New("enter a game link, private server link, game invite, or server share code")
+		return Request{}, errors.New("enter a game link, private server link, game invite, or 32-character server share code")
 	}
 	query, err := launchQuery(link.RawQuery)
 	if err != nil {
@@ -142,7 +142,7 @@ func allowedWebLink(link *url.URL) bool {
 
 func parseDeepLink(body string) (Request, error) {
 	if strings.Contains(body, "#") {
-		return Request{}, errors.New("this link is not a supported game or server link")
+		return Request{}, errors.New("the roblox:// link must not have a fragment (#)")
 	}
 	path, rawQuery, hasQuery := strings.Cut(body, "?")
 	if !hasQuery {
@@ -158,22 +158,22 @@ func parseDeepLink(body string) (Request, error) {
 	case "", "experiences/start":
 		return queryRequest(query.Get("placeId"), query)
 	default:
-		return Request{}, errors.New("this link is not a supported game or server link")
+		return Request{}, errors.New("this roblox:// link is not a supported game or server link")
 	}
 }
 
 func launchQuery(raw string) (url.Values, error) {
 	query, err := url.ParseQuery(raw)
 	if err != nil {
-		return nil, errors.New("the link is invalid")
+		return nil, errors.New("the link has invalid URL parameters")
 	}
 	for _, key := range []string{"placeId", "gameInstanceId", "privateServerLinkCode", "linkCode", "accessCode", "code", "type"} {
 		if values, exists := query[key]; exists && (len(values) != 1 || strings.TrimSpace(values[0]) == "") {
-			return nil, errors.New("the link is invalid")
+			return nil, errors.New("the link has empty or repeated launch parameters")
 		}
 	}
 	if len(query["launchData"]) > 1 {
-		return nil, errors.New("the link is invalid")
+		return nil, errors.New("the link has repeated launch data")
 	}
 	if query.Has("userId") {
 		return nil, errors.New("use User to join a user")
@@ -189,20 +189,20 @@ func shareRequest(query url.Values) (Request, error) {
 	case strings.EqualFold(query.Get("type"), string(ShareExperienceInvite)):
 		shareType = ShareExperienceInvite
 	default:
-		return Request{}, errors.New("use a server share link or a game invite")
+		return Request{}, errors.New("use a share link with type=Server or type=ExperienceInvite")
 	}
 	if !codePattern.MatchString(query.Get("code")) {
 		return Request{}, errors.New("the share link has an invalid code")
 	}
 	if slices.ContainsFunc([]string{"placeId", "gameInstanceId", "privateServerLinkCode", "linkCode", "accessCode"}, query.Has) {
-		return Request{}, errors.New("the share link is invalid")
+		return Request{}, errors.New("the share link has conflicting launch parameters")
 	}
 	return Request{ShareCode: query.Get("code"), ShareType: shareType, LaunchData: query.Get("launchData")}, nil
 }
 
 func queryRequest(place string, query url.Values) (Request, error) {
 	if query.Has("code") || query.Has("type") {
-		return Request{}, errors.New("paste the full share link")
+		return Request{}, errors.New("paste the full Roblox share link for a share code")
 	}
 	request, err := placeRequest(place, query.Get("gameInstanceId"))
 	if err != nil {

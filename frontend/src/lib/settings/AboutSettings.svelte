@@ -67,7 +67,7 @@
 				{#if build.build_time}
 					<Timestamp value={build.build_time * 1000} />
 				{:else}
-					<span class="text-fg-faint">N/A</span>
+					<span class="text-fg-faint">Not recorded</span>
 				{/if}
 			</dd>
 		</dl>

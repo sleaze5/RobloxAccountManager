@@ -776,7 +776,7 @@
 						<p>
 							{requestsOpen
 								? "Select a request to see who sent it, then accept or decline it."
-								: "Select a user to see their profile."}
+								: "Select a user to see their profile. Select a friend or follower count to browse that list."}
 						</p>
 					{/if}
 				</div>

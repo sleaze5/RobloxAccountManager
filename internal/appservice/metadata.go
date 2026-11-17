@@ -68,12 +68,12 @@ func (service *Service) refreshAccountMetadata(accountID, userID int64) {
 		identity, err := service.users.Profile(ctx, userID)
 		if err != nil {
 			if ctx.Err() == nil {
-				service.logger.WarnContext(ctx, "saved account names unavailable; retry the account list later", "operation", "account-name-recovery", "account_id", accountID)
+				service.logger.WarnContext(ctx, "saved account names unavailable; the account list tries again later", "operation", "account-name-recovery", "account_id", accountID)
 			}
 			return
 		}
 		if err := service.accountRepository.RestoreNames(ctx, accountID, identity); err != nil {
-			service.logger.WarnContext(ctx, "saved account names could not be restored", "operation", "account-name-recovery", "account_id", accountID, "error", err)
+			service.logger.WarnContext(ctx, "could not restore saved account names", "operation", "account-name-recovery", "account_id", accountID, "error", err)
 			return
 		}
 		if ctx.Err() == nil {
@@ -87,7 +87,7 @@ func (service *Service) refreshAccountMetadata(accountID, userID int64) {
 func (service *Service) refreshAccountModeration(accountID, userID int64) {
 	service.refreshMetadata(fmt.Sprintf("moderation-%d", userID), func(ctx context.Context) {
 		if _, err := service.ValidateAccount(ctx, accountID); err != nil && ctx.Err() == nil {
-			service.logger.WarnContext(ctx, "account moderation could not be refreshed; retry the account list later", "operation", "account-moderation-refresh", "account_id", accountID, "error", err)
+			service.logger.WarnContext(ctx, "could not refresh account moderation; the account list tries again later", "operation", "account-moderation-refresh", "account_id", accountID, "error", err)
 		}
 	})
 }

@@ -354,7 +354,7 @@ func (service *Service) markChatRead(ctx context.Context, logger *slog.Logger, a
 	}
 	for _, conversationStatus := range results {
 		if conversationStatus.Status != "" && !strings.EqualFold(conversationStatus.Status, "success") {
-			logger.WarnContext(ctx, "chat mark-read returned an unexpected status", "status", conversationStatus.Status)
+			logger.WarnContext(ctx, "marking the chat as read returned an unexpected status", "status", conversationStatus.Status)
 		}
 	}
 	return nil

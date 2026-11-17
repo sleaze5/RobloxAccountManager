@@ -25,7 +25,7 @@ func (service *Service) KillRobloxProcesses(ctx context.Context, processes []rob
 		err = robloxmulti.KillProcesses(ctx, processes, service.logger)
 	}
 	if err != nil {
-		service.logger.Warn("could not kill selected Roblox processes", "operation", "roblox-processes-kill", "error", err)
+		service.logger.Warn("could not close selected Roblox processes", "operation", "roblox-processes-kill", "error", err)
 		return robloxClientError("roblox-processes-kill", elevationMessage(err, "Could not close some Roblox processes. Try again."), err)
 	}
 	return nil

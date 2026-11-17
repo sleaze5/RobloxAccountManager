@@ -1,5 +1,5 @@
 import { Browser } from "@wailsio/runtime"
-import { copyText } from "../shared/clipboard"
+import { copyFailureMessage, copyText } from "../shared/clipboard"
 import {
 	accountBackend,
 	FriendStatus,
@@ -915,7 +915,7 @@ export class SocialStore {
 				`${label} copied to clipboard.`,
 			))
 		) {
-			this.error = "Could not copy to the clipboard. Try again."
+			this.error = copyFailureMessage(label)
 		}
 	}
 

@@ -200,7 +200,7 @@ func (service *Service) rbxserversError(ctx context.Context, operation string, p
 	if errors.Is(err, context.Canceled) && ctx.Err() != nil {
 		return &roblox.Error{Kind: roblox.KindCancelled, Endpoint: operation, Message: "The RBXServers request was canceled."}
 	}
-	service.logs.Module("integration.rbxservers").WarnContext(ctx, "rbxservers request failed", "operation", operation, "place_id", placeID, "error", err)
+	service.logs.Module("integration.rbxservers").WarnContext(ctx, "RBXServers request failed", "operation", operation, "place_id", placeID, "error", err)
 	return &roblox.Error{Kind: roblox.KindServer, Endpoint: operation, Message: "Could not reach RBXServers. Try again later.", Cause: err}
 }
 

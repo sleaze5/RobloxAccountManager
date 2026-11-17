@@ -68,6 +68,6 @@ func (service *Service) FindGameServerVisit(ctx context.Context, placeID int64, 
 func (service *Service) readRobloxLogsAhead(ctx context.Context) {
 	ctx = logging.StartOperation(ctx, "logs-explorer")
 	if _, err := service.logsExplorer.ReadAll(ctx); err != nil && ctx.Err() == nil {
-		service.logs.Module("logs-explorer").DebugContext(ctx, "Roblox logs could not be read ahead", "operation", "logs-read-ahead", "error", err)
+		service.logs.Module("logs-explorer").DebugContext(ctx, "could not read Roblox logs ahead", "operation", "logs-read-ahead", "error", err)
 	}
 }

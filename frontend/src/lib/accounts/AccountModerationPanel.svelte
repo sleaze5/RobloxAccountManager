@@ -64,9 +64,9 @@
 						? "You can reactivate this account when the ban ends."
 						: "Roblox did not share when this ban ends."
 				case ModerationKind.ModerationLocked:
-					return "Roblox needs a human check. Open the account in the browser and complete it."
+					return "Roblox wants you to confirm you are human. Open the account in the browser and complete the check there."
 				default:
-					return "Open the account in the browser to see what Roblox needs."
+					return "Open the account in the browser to see what Roblox needs and resolve it there."
 			}
 		})
 

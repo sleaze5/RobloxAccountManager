@@ -46,10 +46,10 @@ func (service *Service) GetAppSettings() (AppSettingsState, error) {
 
 func (service *Service) SetPresenceUpdates(scope appsettings.PresenceScope, enabled bool, intervalSeconds int) error {
 	if err := service.settings.SetPresenceUpdates(scope, enabled, intervalSeconds); err != nil {
-		service.logger.Warn("could not save presence settings", "operation", "presence-settings", "error", err)
+		service.logger.Warn("could not save online status settings", "operation", "presence-settings", "error", err)
 		return err
 	}
-	service.logger.Debug("presence settings saved", "operation", "presence-settings", "scope", scope, "enabled", enabled, "interval_seconds", intervalSeconds)
+	service.logger.Debug("online status settings saved", "operation", "presence-settings", "scope", scope, "enabled", enabled, "interval_seconds", intervalSeconds)
 	return nil
 }
 

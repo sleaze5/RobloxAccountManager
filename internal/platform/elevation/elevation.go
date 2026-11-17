@@ -198,12 +198,12 @@ func HandleHelperMode(tasks map[string]Task, logger *slog.Logger) (isHelper bool
 		err = errors.Join(err, json.NewEncoder(responses).Encode(taskResponse{Status: statusOtherUser}))
 	}
 	if err != nil {
-		logger.Error("elevated helper could not connect to the application", "error", err)
+		logger.Error("elevated helper could not connect to the app", "error", err)
 		return true, 1
 	}
 	encoder := json.NewEncoder(responses)
 	if err := encoder.Encode(taskResponse{Status: statusReady}); err != nil {
-		logger.Error("elevated helper could not answer the application", "error", err)
+		logger.Error("elevated helper could not answer the app", "error", err)
 		return true, 1
 	}
 	decoder := json.NewDecoder(requests)
@@ -215,7 +215,7 @@ func HandleHelperMode(tasks map[string]Task, logger *slog.Logger) (isHelper bool
 			return true, 0
 		}
 		if err := encoder.Encode(runTask(tasks, request, encoder, logger)); err != nil {
-			logger.Error("elevated helper could not answer the application", "error", err)
+			logger.Error("elevated helper could not answer the app", "error", err)
 			return true, 1
 		}
 	}
@@ -251,7 +251,7 @@ func runTask(tasks map[string]Task, request taskRequest, encoder *json.Encoder, 
 	}
 	outcome, err := task(ctx, request.Arguments, reportProgress, logger)
 	if err != nil {
-		logger.Error("elevated task failed", "error", err)
+		logger.Error("elevated task stopped with an error", "error", err)
 		return taskResponse{Status: statusFailed}
 	}
 	response, err := encodeResponse(statusCompleted, outcome)

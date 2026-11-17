@@ -35,7 +35,7 @@
 			case UpdateStatus.StatusDownloading:
 				return `Downloading version ${version}.`
 			case UpdateStatus.StatusReady:
-				return `Version ${version} is downloaded. Restart to install it.`
+				return `Version ${version} is downloaded and checked. Restart to install it.`
 			case UpdateStatus.StatusRestarting:
 				return `Restarting to install version ${version}.`
 			case UpdateStatus.StatusDisabled:

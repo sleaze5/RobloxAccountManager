@@ -380,7 +380,7 @@ func (service *Service) GetSocialPresences(ctx context.Context, accountID int64,
 	for _, userID := range userIDs {
 		complete = append(complete, presenceOrOffline(byUser, userID))
 	}
-	logger.DebugContext(ctx, "social presence read", "count", len(complete))
+	logger.DebugContext(ctx, "social online status read", "count", len(complete))
 	return complete, nil
 }
 

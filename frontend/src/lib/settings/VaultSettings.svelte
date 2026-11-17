@@ -1,5 +1,6 @@
 <script lang="ts">
-	import { matchesSearch, searchTerms } from "../shared/search"
+	import { searchTerms } from "../shared/search"
+	import { matchesSetting } from "./settings-search"
 	import keyIcon from "@phosphor-icons/core/regular/key.svg?raw"
 	import lockKeyIcon from "@phosphor-icons/core/regular/lock-key.svg?raw"
 	import shieldCheckIcon from "@phosphor-icons/core/regular/shield-check.svg?raw"
@@ -28,10 +29,6 @@
 		activeDialog = $state<ActiveDialog>(null),
 		terms = $derived(searchTerms(query))
 
-	function matches(name: string, description: string): boolean {
-		return matchesSearch(terms, `vault security ${name} ${description}`)
-	}
-
 	function openDialog(dialog: Exclude<ActiveDialog, null>): void {
 		store.clearError()
 		activeDialog = dialog
@@ -55,7 +52,7 @@
 			{store.error}
 		</div>{/if}
 	<div class="settings-rows">
-		{#if matches("Vault status", "Unlocked lock vault test master password last tested not tested yet")}
+		{#if matchesSetting(terms, "vaultStatus")}
 			<div class="settings-row">
 				<div class="settings-row-copy">
 					<strong>Vault status</strong>
@@ -90,7 +87,7 @@
 			</div>
 		{/if}
 
-		{#if matches("Automatic unlock", "Unlock vault when the app starts without master password enable disable on off operating system user account")}
+		{#if matchesSetting(terms, "automaticUnlock")}
 			<div class="settings-row">
 				<div class="settings-row-copy">
 					<strong id="automatic-unlock-title">Automatic unlock</strong>
@@ -116,7 +113,7 @@
 			</div>
 		{/if}
 
-		{#if matches("Change master password", "Rotate vault encryption key update automatic unlock")}
+		{#if matchesSetting(terms, "changeMasterPassword")}
 			<div class="settings-row">
 				<div class="settings-row-copy">
 					<strong>Change master password</strong>
@@ -134,7 +131,7 @@
 			</div>
 		{/if}
 
-		{#if matches("Password test reminder", "Select how often automatic unlock asks confirm master password")}
+		{#if matchesSetting(terms, "passwordTestReminder")}
 			<div class="settings-row">
 				<div class="settings-row-copy">
 					<strong>Password test reminder</strong>

@@ -67,7 +67,7 @@ func (service *Service) ChangeDisplayName(ctx context.Context, accountID int64, 
 		return err
 	}
 	if _, err := service.ValidateAccount(ctx, accountID); err != nil {
-		service.logger.Warn("display name refresh failed after change", "operation", "display-name-update", "account_id", accountID, "error", err)
+		service.logger.Warn("could not refresh the display name after the change", "operation", "display-name-update", "account_id", accountID, "error", err)
 	}
 	return nil
 }

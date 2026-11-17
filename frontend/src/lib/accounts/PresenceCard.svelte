@@ -84,7 +84,7 @@
 				{#if presence.gameId}<dd class="font-mono select-text">
 						{presence.gameId}
 					</dd>
-				{:else}<dd class="text-fg-muted">Unknown</dd>{/if}
+				{:else}<dd class="text-fg-muted">Not shared by Roblox</dd>{/if}
 			</div>{/if}
 	</dl>
 	{#if isJoinable}

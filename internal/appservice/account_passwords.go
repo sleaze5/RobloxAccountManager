@@ -27,7 +27,7 @@ func (service *Service) SaveAccountPassword(ctx context.Context, accountID int64
 
 func (service *Service) storeAccountPassword(ctx context.Context, accountID int64, password string) error {
 	if err := service.accountRepository.SetPassword(ctx, accountID, password); err != nil {
-		service.logger.Error("account password could not be saved", "operation", "password-save", "account_id", accountID, "error", err)
+		service.logger.Error("could not save the account password", "operation", "password-save", "account_id", accountID, "error", err)
 		return mapRepositoryError(err)
 	}
 	service.logger.Info("account password saved", "operation", "password-save", "account_id", accountID)
@@ -42,7 +42,7 @@ func (service *Service) storeAccountPassword(ctx context.Context, accountID int6
 func (service *Service) GetAccountPassword(ctx context.Context, accountID int64) (string, error) {
 	password, err := service.accountRepository.GetPassword(ctx, accountID)
 	if err != nil {
-		service.logger.Error("saved account password could not be read", "operation", "password-read", "account_id", accountID, "error", err)
+		service.logger.Error("could not read the saved account password", "operation", "password-read", "account_id", accountID, "error", err)
 		return "", mapRepositoryError(err)
 	}
 	return password, nil
@@ -70,7 +70,7 @@ func (service *Service) ValidateAccountPassword(ctx context.Context, accountID i
 	kind := roblox.KindProtocol
 	if remote, ok := errors.AsType[*roblox.Error](err); ok {
 		kind = remote.Kind
-		service.logger.Warn("account password validation unavailable", "operation", "password-validate", "account_id", accountID, "error_kind", remote.Kind, "status", remote.Status, "roblox_code", remote.RobloxCode)
+		service.logger.Warn("account password check unavailable", "operation", "password-validate", "account_id", accountID, "error_kind", remote.Kind, "status", remote.Status, "roblox_code", remote.RobloxCode)
 		switch remote.Kind {
 		case roblox.KindChallengeRequired:
 			message = "Could not check the password. Roblox requires extra verification. Check it on the Roblox website."

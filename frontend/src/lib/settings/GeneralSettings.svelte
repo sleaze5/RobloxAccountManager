@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { matchesSearch, searchTerms } from "../shared/search"
+	import { matchesSetting, settingWords } from "./settings-search"
 	import { PresenceScope } from "../backend/bridge"
 	import NumberStepper from "../shared/NumberStepper.svelte"
 	import type { LoggingLevel, SettingsStore } from "./settings-store.svelte"
@@ -56,7 +57,7 @@
 			levels.filter((level) =>
 				matchesSearch(
 					terms,
-					`general logging ${level.name} ${level.description}`,
+					`${settingWords("logging")} ${level.name} ${level.description}`,
 				),
 			),
 		),
@@ -64,16 +65,11 @@
 			presenceScopes.filter((scope) =>
 				matchesSearch(
 					terms,
-					`general presence updates automatic enabled disabled interval seconds minutes online offline in game ${scope.name} ${scope.description}`,
+					`${settingWords("onlineStatusUpdates")} ${scope.name} ${scope.description}`,
 				),
 			),
 		),
-		showAllLevels = $derived(
-			matchesSearch(
-				terms,
-				"general logging all log levels enable disable every level at once",
-			),
-		)
+		showAllLevels = $derived(matchesSetting(terms, "allLogLevels"))
 </script>
 
 {#if store.error}<div class="notice-error" role="alert">

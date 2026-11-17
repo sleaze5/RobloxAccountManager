@@ -150,7 +150,7 @@
 		{#if recoveryMode && !store.vault.unlocked}
 			<div class="mt-3 notice-note">
 				vault.key and autounlock.key are security files. Do not edit them. Use
-				backup and restore to copy them.
+				the built-in backup and restore to copy them.
 			</div>
 			{#if backups.length > 0}
 				<div class="dialog-field">

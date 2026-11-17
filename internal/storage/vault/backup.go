@@ -432,7 +432,7 @@ func (manager *Manager) restoreLegacyVault(recovery string) error {
 		}
 	}
 	if err := os.Remove(recovery); err != nil {
-		manager.logger.Warn("empty recovery folder could not be removed", "operation", "vault-legacy", "error", err)
+		manager.logger.Warn("could not remove the empty recovery folder", "operation", "vault-legacy", "error", err)
 	}
 	manager.logger.Info("legacy vault restored from the recovery folder", "operation", "vault-legacy")
 	return nil

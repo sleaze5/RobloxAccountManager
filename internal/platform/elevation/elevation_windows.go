@@ -66,7 +66,7 @@ func startHelper(ctx context.Context) (*helperConnection, error) {
 	}
 	executable, err := os.Executable()
 	if err != nil {
-		return nil, fmt.Errorf("find the application executable: %w", err)
+		return nil, fmt.Errorf("find the app executable: %w", err)
 	}
 	var requestRead, requestWrite, responseRead, responseWrite windows.Handle
 	if err := windows.CreatePipe(&requestRead, &requestWrite, nil, 0); err != nil {
@@ -133,7 +133,7 @@ func connectToApplication(arguments []string) (io.ReadCloser, io.WriteCloser, er
 	}
 	application, err := windows.OpenProcess(windows.PROCESS_DUP_HANDLE|windows.PROCESS_QUERY_LIMITED_INFORMATION, false, uint32(applicationID))
 	if err != nil {
-		return nil, nil, fmt.Errorf("open the application process: %w", err)
+		return nil, nil, fmt.Errorf("open the app process: %w", err)
 	}
 	defer windows.CloseHandle(application)
 	if err := requireSameExecutable(application); err != nil {
@@ -182,12 +182,12 @@ func processImagePath(process windows.Handle) (string, error) {
 func requireSameUser(application windows.Handle) error {
 	var token windows.Token
 	if err := windows.OpenProcessToken(application, windows.TOKEN_QUERY, &token); err != nil {
-		return fmt.Errorf("open the application token: %w", err)
+		return fmt.Errorf("open the app token: %w", err)
 	}
 	defer token.Close()
 	applicationUser, err := token.GetTokenUser()
 	if err != nil {
-		return fmt.Errorf("read the application user: %w", err)
+		return fmt.Errorf("read the app user: %w", err)
 	}
 	helperUser, err := windows.GetCurrentProcessToken().GetTokenUser()
 	if err != nil {
@@ -228,7 +228,7 @@ func startElevated(executable, parameters string) (windows.Handle, error) {
 	}
 	file, err := windows.UTF16PtrFromString(executable)
 	if err != nil {
-		return 0, fmt.Errorf("encode application executable: %w", err)
+		return 0, fmt.Errorf("encode the app executable: %w", err)
 	}
 	encodedParameters, err := windows.UTF16PtrFromString(parameters)
 	if err != nil {

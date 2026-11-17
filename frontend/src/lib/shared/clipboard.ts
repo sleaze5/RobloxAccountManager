@@ -22,3 +22,9 @@ export function notifyCopied(notifications: NotificationCenter, message: string)
 		message,
 	})
 }
+
+// copyFailureMessage names what failed to copy. label is a sentence-case name,
+// such as "Job ID", and starts lowercase inside the sentence.
+export function copyFailureMessage(label: string): string {
+	return `Could not copy the ${label.charAt(0).toLowerCase()}${label.slice(1)}. Try again.`
+}

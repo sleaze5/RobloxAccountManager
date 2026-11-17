@@ -64,7 +64,7 @@ func (service *Authentication) AuthenticationTicket(ctx context.Context, account
 		if ctx.Err() != nil {
 			return AuthenticationTicket{}, err
 		}
-		service.logger.WarnContext(ctx, "Requesting the authentication ticket without a client assertion", "operation", "client-assertion", "account_id", accountID, "error", err)
+		service.logger.WarnContext(ctx, "requesting the authentication ticket without a client assertion", "operation", "client-assertion", "account_id", accountID, "error", err)
 	}
 	body, err := json.Marshal(authenticationTicketBody{ClientAssertion: clientAssertion})
 	if err != nil {

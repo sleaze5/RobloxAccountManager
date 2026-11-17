@@ -35,13 +35,13 @@
 		{
 			value: LaunchMethod.MethodPlace,
 			label: "Place ID",
-			description: "Join a game by place ID and an optional job ID.",
+			description: "Join a game by place ID and an optional job ID (UUID).",
 		},
 		{
 			value: LaunchMethod.MethodLink,
 			label: "Link",
 			description:
-				"Join with a game link, private server link, game invite, or server share code.",
+				"Join with a game link, private server link, game invite, or 32-character server share code.",
 		},
 		{
 			value: LaunchMethod.MethodUser,

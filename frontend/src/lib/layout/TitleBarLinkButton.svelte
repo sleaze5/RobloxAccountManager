@@ -29,7 +29,7 @@
 				id: "clipboard-copy",
 				title: "Not copied",
 				tone: "error",
-				message: "Could not copy to the clipboard. Try again.",
+				message: `Could not copy the ${urlName}. Try again.`,
 			})
 		}
 	}

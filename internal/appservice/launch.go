@@ -169,7 +169,7 @@ func (service *Service) CopyLaunchOptions(ctx context.Context, accountIDs []int6
 	}
 	if !copyText(strings.Join(commands, "\n")) {
 		service.logger.Warn("launch options clipboard write failed", "operation", "copy-launch-options", "account_count", len(accountIDs))
-		return clipboardError("Could not copy to the clipboard. Try again.")
+		return clipboardError("Could not copy the launch options. Try again.")
 	}
 	return nil
 }
@@ -220,7 +220,7 @@ func (service *Service) runLaunchOperation(ctx context.Context, accountID int64,
 	if session.Context.Err() != nil {
 		cancel()
 	}
-	logger.DebugContext(ctx, "Preparing Roblox launch")
+	logger.DebugContext(ctx, "preparing Roblox launch")
 	if input.Method == gamelaunch.MethodUser {
 		stage = "resolve-user"
 		target, err = service.resolveLaunchUser(ctx, accountID, target, input.ResolveCurrentGame)
@@ -314,7 +314,7 @@ func launchPreparationError(err error) *roblox.Error {
 
 func logLaunchResult(ctx context.Context, logger *slog.Logger, operation, stage string, launchError error) {
 	if errors.Is(launchError, robloxmulti.ErrLaunchCancelled) {
-		logger.InfoContext(ctx, "Roblox launch cancelled")
+		logger.InfoContext(ctx, "Roblox launch canceled")
 		return
 	}
 	if launchError == nil {

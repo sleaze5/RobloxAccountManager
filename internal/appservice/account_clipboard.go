@@ -47,8 +47,8 @@ func (service *Service) CopyAccountFields(ctx context.Context, accountIDs []int6
 		}
 	}
 	if !copyText(strings.Join(fieldValues, "\n")) {
-		service.logger.Warn("account field clipboard write failed", "operation", "account-copy", "account_count", len(accountIDs), "field", field)
-		return clipboardError("Could not copy to the clipboard. Try again.")
+		service.logger.Warn("could not copy the account field", "operation", "account-copy", "account_count", len(accountIDs), "field", field)
+		return clipboardError("Could not copy the account details. Try again.")
 	}
 	return nil
 }
