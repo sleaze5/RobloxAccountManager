@@ -708,7 +708,13 @@ func (service *Users) WearAvatarOutfit(ctx context.Context, accountID, version, 
 	for _, listedAsset := range *outfit.Assets {
 		if listedAsset.ID > 0 {
 			assets = append(assets, listedAsset.updateAsset())
+			// An outfit without a placement for an asset stores the default
+			// one, which the comparison after the write checks as well.
 			adjustment, _ := assetLayoutOf(listedAsset.Meta)
+			if adjustment == nil {
+				defaultAdjustment := defaultAccessoryAdjustment
+				adjustment = &defaultAdjustment
+			}
 			outfitAssets = append(outfitAssets, AvatarChangeAsset{AssetID: listedAsset.ID, Adjustment: adjustment})
 		}
 	}
