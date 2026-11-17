@@ -112,6 +112,9 @@ Content:
 - `server-table`, `server-columns`, `server-row`, `server-number`, and `server-tag`: the game server tables.
 - `text-block`: multi-line technical text.
 - `lib/shared/Timestamp.svelte`, `lib/shared/CompactNumber.svelte`, and `lib/shared/SensitiveValue.svelte`: formatted dates, compact numbers, and hidden secrets.
+- `lib/model-viewer/ModelFrame.svelte`: the one 3D viewer, with its toolbar for coordinates, reset view, and camera and lighting. Show every 3D model through it.
+- `lib/model-viewer/AnimationControls.svelte`: the playback bar of a 3D avatar, with play and pause, the animation, the speed, and a seek bar.
+- `frame-readout-top-left` and `frame-readout-bottom-left`: small technical readouts docked into a corner of a frame, such as camera coordinates.
 
 Layout:
 
@@ -263,6 +266,7 @@ Color:
 - Distinguish an empty list ("No accounts yet") from a list with no matches ("No matching accounts"). Tell the user how to change each state. Give the no-matches state a button that clears the filter.
 - In a grid of item tiles, make every tile in a row the same height. Keep the badges on a tile in one row, so that they never overlap, and let the lower-priority badge truncate.
 - When the user switches a tab or category that replaces the content of a scrolling region, scroll the region back to the top.
+- Settings search reads its words from `lib/settings/settings-search.ts`. Give each new setting an entry with its label, its description, and other words people use for the same thing, and add the entry to its category. The account settings pages keep their search words next to each section.
 
 ### Menus
 
@@ -300,9 +304,9 @@ Color:
 
 ### Loading, empty, and error states
 
-- Never let loading move the layout. Content that arrives must take the place of a placeholder of the same size, not push other content.
+- Never let loading move the layout. Content that arrives must take the place of a placeholder of the same size, not push other content. For example, a 3D frame shows its playback bar disabled while the avatar loads, instead of adding the bar after the model appears.
 - Show the first load of content as a skeleton shaped like that content: `skeleton-line` for text, `skeleton` blocks for images and controls, and `SkeletonList` rows as tall as the real rows. Show the parts that are already known, such as labels, headings, and setting descriptions, as real text, and use skeletons only for the values.
-- Keep each row of a facts list, details pane, or settings list in place from the first frame. While its value loads, show a skeleton. When the value does not apply, show "N/A" in `text-fg-muted`. Use "None" when the account has nothing of that kind. When the value failed to load, show "Unavailable" in `text-fg-muted`. `MissingFactValue` does this for section-based data.
+- Keep each row of a facts list, details pane, or settings list in place from the first frame. While its value loads, show a skeleton. When the value does not apply, show "N/A" in `text-fg-muted`. Use "None" when the account has nothing of that kind. When the value failed to load, show "Unavailable" in `text-fg-muted`. When the value applies but is not known, show "Unknown". When a log or build has no record of it, show "Not recorded". When Roblox hides it, show "Not shared by Roblox". `MissingFactValue` does this for section-based data.
 - Give the loading region `role="status"` or `aria-busy="true"`, and give every skeleton a screen reader label, as `Skeleton` and `SkeletonList` do.
 - Use the spinner for actions in progress: a pressed button, a refresh, a list that loads more rows below its existing rows, and a pane that waits for another region to load.
 - When content refreshes, keep the existing content visible and replace the refresh icon with the spinner.
@@ -329,6 +333,7 @@ Color:
 - Give all text a contrast ratio of at least 4.5:1 against its background.
 - Give meaningful icons, state indicators, focus rings, and the boundaries of checkboxes, radio buttons, and switches a contrast ratio of at least 3:1 against their background.
 - Do not rely on color alone. Pair semantic color with text, an icon, or another cue.
+- Use `--color-axis-x`, `--color-axis-y`, and `--color-axis-z` only to mark the X, Y, and Z axes. Give each value shown in an axis color its axis name for screen readers.
 - Make every action available from the keyboard. Keep a visible focus indicator, and keep the focus order the same as the visual order.
 - Give a switch input `role="switch"`.
 - Give a resizer `role="slider"`, `tabindex="0"`, `aria-orientation`, `aria-valuenow`, `aria-valuemin`, and `aria-valuemax`. Resize it with the arrow keys. Do not use `role="separator"`, because the Svelte checker rejects a focusable separator.
@@ -344,6 +349,14 @@ Color:
 - Use the ellipsis character "…" only at the end of a progress label, such as "Saving…" or "Loading accounts…", and never three periods. Do not use it in any other text: not in button labels or menu items, even when they open a dialog, and not in placeholders, examples, or truncation markers.
 - Use digits for numbers. Do not use exclamation marks.
 - Keep labels to a few words and descriptions to one sentence.
+- Write short sentences in the active voice, with one idea in each. Shorten the wording, not the information: keep every detail the user needs, such as codes, statuses, flag names, and formats.
+- Do not use contractions. Use US spelling, such as "canceled".
+- Write an error as "Could not" with a verb and the thing that failed, then the recovery, such as "Could not load the badges. Try again." Use these recovery phrases: "Try again.", "Try again later.", "Refresh to try again.", and "Refresh to check." for a change that Roblox did not confirm. Use a specific instruction when one helps more, such as "Unlock the vault first."
+- Title a failure notification with the noun and "not" with the past participle, such as "Browser not opened" or "Data not moved".
+- Title a page or pane that failed to load with the noun and "unavailable", such as "Badges unavailable".
+- Write a loading label as "Loading" with the noun and the ellipsis, such as "Loading badges…".
+- Separate inline facts with " · ", and put ":" before a detail, such as "Paid access: R$ 100". Do not use " - " as a dash. Write "and", not "&".
+- Give the same action the same label everywhere: "Close dialog" for the close button of a dialog, "More actions" for an overflow button, "Clear search" for the clear button of a search field, and "Show in Games" for opening a place in Games. A menu item and the dialog that it opens use the same words, such as "Sign in with browser".
 
 ### Capitalization
 
@@ -364,6 +377,18 @@ Use these terms consistently:
 - **Clear**: empty a field, search, filter, or selection.
 - **Lock** and **Unlock**: change the vault state.
 - **Launch**: start Roblox with one or more accounts.
+- **Select**: mark an option, item, or person. Do not use "choose" or "pick".
+- **Check**: test something, such as a cookie with Roblox or a name against the Roblox text filter. Do not use "validate". "Verified" names only a status that Roblox gives, such as a verified email.
+- **Show** and **Hide**: make something visible or not visible. Do not use "reveal".
+- **Refresh**: load data again. Do not use "reload".
+- **Turn on** and **Turn off**: change a switch, whose states are "On" and "Off". Do not use "enable" or "disable". "Disabled" names only a state that Roblox sets.
+- **Dismiss**: hide a notification or a message.
+- **Put on** and **Take off**: change what the avatar wears. "Worn" names the state.
+- **Update cookie**: give a saved account a new cookie.
+- **game**: a Roblox experience. Do not use "experience".
+- **user**: a Roblox account outside a server. **player**: a person in a game server.
+- **app**: Roblox Account Manager. Do not use "application".
+- **online status**: whether a user is online, in a game, or in Studio. Do not use "presence".
 
 ## Motion
 
