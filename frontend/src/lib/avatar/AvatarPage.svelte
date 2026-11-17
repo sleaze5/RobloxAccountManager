@@ -143,6 +143,14 @@
 		field.focus()
 	}
 
+	// undoFromButton moves the focus to the selected tab after the last step,
+	// because the Undo button leaves with the history and would drop the
+	// keyboard focus.
+	function undoFromButton(): void {
+		avatar.undo()
+		if (avatar.draftHistory.length === 0) void selectTab(tab, true)
+	}
+
 	function requestBack(): void {
 		if (!confirmLeaving(onBack)) onBack()
 	}
@@ -240,7 +248,7 @@
 				aria-keyshortcuts="Control+Z"
 				data-tooltip="Undo (Ctrl+Z)"
 				disabled={!avatar.canUndo}
-				onclick={() => avatar.undo()}>
+				onclick={undoFromButton}>
 				<Icon svg={arrowUUpLeftIcon} size={16} aria-hidden="true" />
 			</button>
 		{/if}

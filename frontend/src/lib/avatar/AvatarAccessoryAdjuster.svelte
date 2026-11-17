@@ -1,9 +1,10 @@
 <script lang="ts">
 	import arrowCounterClockwiseIcon from "@phosphor-icons/core/regular/arrow-counter-clockwise.svg?raw"
+	import checkIcon from "@phosphor-icons/core/regular/check.svg?raw"
 	import clipboardTextIcon from "@phosphor-icons/core/regular/clipboard-text.svg?raw"
 	import copyIcon from "@phosphor-icons/core/regular/copy.svg?raw"
 	import flipHorizontalIcon from "@phosphor-icons/core/regular/flip-horizontal.svg?raw"
-	import { untrack } from "svelte"
+	import { tick, untrack } from "svelte"
 	import type {
 		AvatarAccessoryAdjustmentLimits,
 		AvatarAsset,
@@ -55,7 +56,8 @@
 
 	// The size changes on every axis at once while the axes are equal, as the
 	// Roblox avatar editor offers it.
-	let isUniformScale = $state(untrack(() => isEvenScale(adjustmentOf(asset).scale)))
+	let isUniformScale = $state(untrack(() => isEvenScale(adjustmentOf(asset).scale))),
+		adjusterControls = $state<HTMLDivElement>()
 
 	// An undo or a paste can bring a size that differs between the axes, which
 	// one size slider cannot show.
@@ -176,7 +178,20 @@
 		avatar.adjust(assetId, { ...adjustment, scale: { x: size, y: size, z: size } })
 	}
 
-	function resetKind(kind: AdjustmentKind): void {
+	// focusFirstSliderAfterReset moves the focus from a Reset button to the
+	// first slider it reset, because the reset disables the button and a
+	// disabled button drops the keyboard focus.
+	async function focusFirstSliderAfterReset(
+		resetButton: HTMLButtonElement,
+		resetControls: Element | null | undefined,
+	): Promise<void> {
+		if (document.activeElement !== resetButton) return
+		await tick()
+		resetControls?.querySelector<HTMLInputElement>('input[type="range"]')?.focus()
+	}
+
+	function resetKind(kind: AdjustmentKind, resetButton: HTMLButtonElement): void {
+		void focusFirstSliderAfterReset(resetButton, resetButton.closest("section"))
 		avatar.adjust(assetId, {
 			...adjustment,
 			[kind]: { ...defaultAdjustment[kind] },
@@ -184,7 +199,8 @@
 		if (kind === "scale") isUniformScale = true
 	}
 
-	function resetAll(): void {
+	function resetAll(resetButton: HTMLButtonElement): void {
+		void focusFirstSliderAfterReset(resetButton, adjusterControls)
 		avatar.adjust(assetId, defaultAdjustment)
 		isUniformScale = true
 	}
@@ -268,7 +284,7 @@
 {/snippet}
 
 <div class="flex flex-col gap-4">
-	<div class="grid gap-x-6 gap-y-4 @4xl:grid-cols-3">
+	<div class="grid gap-x-6 gap-y-4 @4xl:grid-cols-3" bind:this={adjusterControls}>
 		{#each adjustmentKinds as { kind, label, unitLabel, axisLabels, step, fieldFactor } (kind)}
 			{@const headingId = `avatar-adjust-${assetId}-${kind}`}
 			<section class="flex min-w-0 flex-col gap-1" aria-labelledby={headingId}>
@@ -285,7 +301,8 @@
 						aria-label={`Reset ${label.toLowerCase()}`}
 						disabled={avatar.isDraftLocked ||
 							isDefaultAdjustmentKind(asset.adjustment, kind)}
-						onclick={() => resetKind(kind)}>Reset</button>
+						onclick={(event) => resetKind(kind, event.currentTarget)}
+						>Reset</button>
 				</div>
 				{#if kind === "scale" && isUniformScale}
 					{@render axisControl(
@@ -338,9 +355,16 @@
 			<button
 				class="button"
 				type="button"
-				disabled={isCopiedFromHere}
 				onclick={() => avatar.copyAdjustment(assetId, name, adjustment)}>
-				<Icon svg={copyIcon} size={16} aria-hidden="true" />
+				{#if isCopiedFromHere}
+					<Icon
+						svg={checkIcon}
+						class="animate-bloom"
+						size={16}
+						aria-hidden="true" />
+				{:else}
+					<Icon svg={copyIcon} size={16} aria-hidden="true" />
+				{/if}
 				{isCopiedFromHere ? "Copied" : "Copy placement"}
 			</button>
 			<button
@@ -364,7 +388,7 @@
 				class="ml-auto button"
 				type="button"
 				disabled={avatar.isDraftLocked || isDefaultAdjustment(asset.adjustment)}
-				onclick={resetAll}>
+				onclick={(event) => resetAll(event.currentTarget)}>
 				<Icon svg={arrowCounterClockwiseIcon} size={16} aria-hidden="true" />
 				Reset all
 			</button>
