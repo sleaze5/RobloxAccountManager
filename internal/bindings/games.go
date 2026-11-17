@@ -23,6 +23,13 @@ func (service *Service) ListGameServers(ctx context.Context, query games.ServerQ
 	return service.core.ListGameServers(ctx, query)
 }
 
+func (service *Service) ListFriendServers(ctx context.Context, accountID, placeID int64) ([]games.FriendServer, error) {
+	if err := positiveID(accountID, "friend-servers"); err != nil {
+		return nil, err
+	}
+	return service.core.ListFriendServers(ctx, accountID, placeID)
+}
+
 func (service *Service) ListRecordedGameServers(ctx context.Context, query games.RecordQuery) (games.RecordPage, error) {
 	return service.core.ListRecordedGameServers(ctx, query)
 }

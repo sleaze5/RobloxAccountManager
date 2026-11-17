@@ -10,6 +10,7 @@ import type {
 	ListedPrivateServerPage,
 	PrivateServerPage,
 } from "../backend/bridge"
+import type { AccountStore } from "../accounts/account-store.svelte"
 import type { NotificationCenter } from "../notifications/notification-center.svelte"
 import { detailsKeepMs, isFresh } from "../shared/freshness"
 import {
@@ -20,6 +21,7 @@ import {
 import { errorMessage } from "../shared/errors"
 import { matchesSearch, searchTerms } from "../shared/search"
 import { UniverseBadges } from "./game-badges-state.svelte"
+import { UniverseGamePasses } from "./game-passes-state.svelte"
 import { menuPointFor } from "../shared/presence"
 
 // Roblox serves these parts of the game details from their own endpoints, so
@@ -72,7 +74,9 @@ export class GamesStore {
 	favorites = $state<GamePlace[]>([])
 	selected = $state<GamePlace | null>(null)
 	game = $state<Game | null>(null)
-	detailsPage = $state<"details" | "servers" | "badges">("details")
+	detailsPage = $state<"details" | "servers" | "badges" | "gamePasses">("details")
+	// The game pass opened from another page.
+	highlightedGamePassId = $state<number | null>(null)
 	serverSource = $state<ServerSource>("roblox")
 	menu = $state<GameMenu | null>(null)
 	searching = $state(false)
@@ -110,6 +114,7 @@ export class GamesStore {
 	readonly listedPages = new ServerPageCache<ListedPrivateServerPage>()
 	#placeServers: PlaceServers | null = null
 	#universeBadges: UniverseBadges | null = null
+	#universeGamePasses: UniverseGamePasses | null = null
 	#favoritesRequest: ReturnType<typeof accountBackend.ListFavoritePlaces> | null =
 		null
 	#saveRequest:
@@ -340,10 +345,26 @@ export class GamesStore {
 		this.#universeBadges = null
 	}
 
+	// gamePassesFor returns the universe's game passes, kept until another place
+	// is selected.
+	gamePassesFor(universeId: number, accounts: AccountStore): UniverseGamePasses {
+		if (this.#universeGamePasses?.universeId !== universeId) {
+			this.#universeGamePasses?.dispose()
+			this.#universeGamePasses = new UniverseGamePasses(universeId, accounts)
+		}
+		return this.#universeGamePasses
+	}
+
+	#forgetUniverseGamePasses(): void {
+		this.#universeGamePasses?.dispose()
+		this.#universeGamePasses = null
+	}
+
 	select(place: GamePlace | null): void {
 		if (place?.placeId !== this.selected?.placeId) {
 			this.#forgetPlaceServers()
 			this.#forgetUniverseBadges()
+			this.#forgetUniverseGamePasses()
 		}
 		void this.#detailsRequest?.cancel()
 		this.#detailsRequest = null
@@ -351,6 +372,7 @@ export class GamesStore {
 		this.loadedGameSections = []
 		this.selected = place
 		this.detailsPage = "details"
+		this.highlightedGamePassId = null
 		this.game = null
 		this.detailsError = ""
 		this.loadingDetails = false
@@ -362,6 +384,14 @@ export class GamesStore {
 			this.selected = cached.game.place
 		}
 		this.revalidate()
+	}
+
+	// showGamePass opens the place's Game passes page with the pass highlighted.
+	showGamePass(place: GamePlace, gamePassId: number): void {
+		this.closeMenu()
+		this.select(place)
+		this.detailsPage = "gamePasses"
+		this.highlightedGamePassId = gamePassId
 	}
 
 	revalidate(): void {
@@ -657,6 +687,7 @@ export class GamesStore {
 		this.#details.clear()
 		this.#forgetPlaceServers()
 		this.#forgetUniverseBadges()
+		this.#forgetUniverseGamePasses()
 		this.serverPages.clear()
 		this.recordPages.clear()
 		this.privatePages.clear()
@@ -678,6 +709,7 @@ export class GamesStore {
 		this.favoritesQuery = ""
 		this.mode = "favorites"
 		this.detailsPage = "details"
+		this.highlightedGamePassId = null
 		this.serverSource = "roblox"
 		this.error = this.searchError = this.detailsError = ""
 	}

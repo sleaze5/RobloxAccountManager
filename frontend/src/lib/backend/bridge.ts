@@ -146,7 +146,9 @@ export const accountBackend = Service
 
 export type {
 	Badge as GameBadge,
+	FriendServer,
 	Game,
+	GamePass,
 	ListedPrivateServerPage,
 	NearbyRegion as NearbyServerRegion,
 	OwnedPrivateServer,
