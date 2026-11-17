@@ -226,13 +226,11 @@ export class AvatarState {
 			nextDraft = change(previousDraft)
 		if (nextDraft === previousDraft) return
 		if (!changeKey || changeKey !== this.#lastChangeKey) {
-			this.draftHistory = [
-				...this.draftHistory.slice(-(maxDraftHistoryLength - 1)),
-				previousDraft,
-			]
+			this.draftHistory = [...this.draftHistory, previousDraft]
 		}
 		this.#lastChangeKey = changeKey
 		this.draft = nextDraft
+		if (!changeKey) this.#trimDraftHistory()
 	}
 
 	// finishDraftChange ends the change that continues with the same key, such
@@ -250,6 +248,16 @@ export class AvatarState {
 			this.draftHistory = this.draftHistory.slice(0, -1)
 		}
 		this.#lastChangeKey = ""
+		this.#trimDraftHistory()
+	}
+
+	// #trimDraftHistory drops the oldest steps beyond the limit. It runs only
+	// once a change is finished, so that a slider that ends where it began
+	// never costs an older step.
+	#trimDraftHistory(): void {
+		if (this.draftHistory.length > maxDraftHistoryLength) {
+			this.draftHistory = this.draftHistory.slice(-maxDraftHistoryLength)
+		}
 	}
 
 	undo(): void {
