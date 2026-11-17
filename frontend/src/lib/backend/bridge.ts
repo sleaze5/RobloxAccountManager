@@ -120,6 +120,7 @@ export type {
 	AvatarVector,
 	InventoryItem,
 	InventoryItemDetails,
+	InventoryItemLook,
 	InventoryItemMarket,
 	RelatedInventoryItem,
 	RenderedModel,

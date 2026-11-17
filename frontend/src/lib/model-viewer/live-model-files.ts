@@ -6,7 +6,7 @@ import type { AssetRepresentation } from "../backend/bridge"
 // from that location. The backend downloads the file at the first request, and
 // the answer names a location in this module, which holds the file until the
 // renderer reads it. No request from the renderer reaches Roblox directly.
-const locationPrefix = "live-avatar-file:",
+const locationPrefix = "live-model-file:",
 	assetDeliveryHost = "assetdelivery.roblox.com",
 	assetDeliveryPaths = ["/v2/asset", "/v2/asset/"],
 	// The renderer writes the priority list into the address as raw base64,
@@ -17,21 +17,21 @@ const fileBase64ByLocation = new Map<string, string>()
 let lastLocationNumber = 0,
 	requestingAccountId = 0
 
-// setLiveAvatarAccount chooses the account whose session downloads the files.
-export function setLiveAvatarAccount(accountId: number): void {
+// setLiveModelAccount chooses the account whose session downloads the files.
+export function setLiveModelAccount(accountId: number): void {
 	requestingAccountId = accountId
 }
 
-// clearLiveAvatarFiles forgets the files that the renderer did not read, such
+// clearLiveModelFiles forgets the files that the renderer did not read, such
 // as when the 3D avatar closes.
-export function clearLiveAvatarFiles(): void {
+export function clearLiveModelFiles(): void {
 	fileBase64ByLocation.clear()
 }
 
-// fetchLiveAvatarFile answers a request of the renderer. It answers a request
+// fetchLiveModelFile answers a request of the renderer. It answers a request
 // for an asset with the location of the downloaded file, and a request for a
 // location with the file. It refuses every other request.
-export async function fetchLiveAvatarFile(
+export async function fetchLiveModelFile(
 	input: RequestInfo | URL,
 	init?: RequestInit,
 ): Promise<Response> {
@@ -57,9 +57,9 @@ export async function fetchLiveAvatarFile(
 	}
 }
 
-// liveAvatarImageUrl turns the location of an image file into an address that
+// liveModelImageUrl turns the location of an image file into an address that
 // an image element loads.
-export async function liveAvatarImageUrl(location: string): Promise<string> {
+export async function liveModelImageUrl(location: string): Promise<string> {
 	const fileBase64 = takeFile(location)
 	if (fileBase64 === undefined) return ""
 	return `data:${imageTypeOf(fileBase64)};base64,${fileBase64}`

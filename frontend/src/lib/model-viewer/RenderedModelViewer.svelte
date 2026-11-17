@@ -28,8 +28,8 @@
 	import { untrack } from "svelte"
 	import type { RenderedModel } from "../backend/bridge"
 	import { moveOrbitViewByKey, orbitViewKeysDescription } from "./orbit-view-keys"
-	import { renderedModelScene } from "./rendered-model-scene.svelte"
-	import type { RenderedModelScene } from "./rendered-model-scene.svelte"
+	import { modelViewerScene } from "./model-viewer-scene.svelte"
+	import type { ModelViewerScene } from "./model-viewer-scene.svelte"
 
 	// label names what the model shows, such as "@builderman's avatar".
 	let {
@@ -40,7 +40,14 @@
 
 	let canvas = $state<HTMLCanvasElement>()
 	// applyScene changes the camera and the lights of the built scene.
-	let applyScene: ((sceneSettings: RenderedModelScene) => void) | undefined
+	let applyScene: ((sceneSettings: ModelViewerScene) => void) | undefined
+	// resetCameraView returns the camera of the built scene to where it starts.
+	let resetCameraView: (() => void) | undefined
+
+	// resetView returns the camera to where it starts, as Home does.
+	export function resetView(): void {
+		resetCameraView?.()
+	}
 
 	const controlsDescriptionId = $props.id(),
 		axisIndicatorSizePx = 56,
@@ -64,7 +71,7 @@
 		// canvas clears once per frame instead of before each pass.
 		renderer.autoClear = false
 		let isDisposed = false
-		const initialScene = untrack(() => ({ ...renderedModelScene })),
+		const initialScene = untrack(() => ({ ...modelViewerScene })),
 			loadingManager = new LoadingManager(),
 			scene = new Scene(),
 			modelObject = parseModelObject(model, loadingManager),
@@ -179,19 +186,21 @@
 		})
 		resizeObserver.observe(canvas)
 
+		resetCameraView = () => {
+			camera.position.copy(initialCameraPosition)
+			controls.target.copy(center)
+			controls.update()
+		}
 		const handleKeydown = (event: KeyboardEvent): void => {
-			const isViewMoved = moveOrbitViewByKey(event, camera, controls, () => {
-				camera.position.copy(initialCameraPosition)
-				controls.target.copy(center)
-				controls.update()
-			})
-			if (isViewMoved) event.preventDefault()
+			if (moveOrbitViewByKey(event, camera, controls, resetView)) {
+				event.preventDefault()
+			}
 		}
 		canvas.addEventListener("keydown", handleKeydown)
 
 		return () => {
 			isDisposed = true
-			applyScene = undefined
+			applyScene = resetCameraView = undefined
 			canvas?.removeEventListener("keydown", handleKeydown)
 			resizeObserver.disconnect()
 			controls.removeEventListener("change", render)
@@ -207,7 +216,7 @@
 
 	// The scene follows the camera and lighting controls without rebuilding.
 	$effect(() => {
-		const sceneSettings = { ...renderedModelScene }
+		const sceneSettings = { ...modelViewerScene }
 		applyScene?.(sceneSettings)
 	})
 

@@ -7,6 +7,10 @@
 	import type { AvatarAsset, AvatarOutfit } from "../backend/bridge"
 	import Dialog from "../shared/Dialog.svelte"
 	import Icon from "../shared/Icon.svelte"
+	import ImageViewToggle from "../shared/ImageViewToggle.svelte"
+	import type { ImageView } from "../shared/ImageViewToggle.svelte"
+	import ModelFrame from "../model-viewer/ModelFrame.svelte"
+	import type { ModelSubject } from "../model-viewer/model-subject"
 	import ProfileImage from "../shared/ProfileImage.svelte"
 	import Skeleton from "../shared/Skeleton.svelte"
 	import SkeletonTile from "../shared/SkeletonTile.svelte"
@@ -41,12 +45,18 @@
 			"flex min-w-0 flex-wrap items-center gap-1 font-mono text-2xs wrap-anywhere text-fg-muted",
 		sectionHeadingClass = "text-xs font-semibold text-fg-muted"
 
+	let view = $state<ImageView>("2D")
+
 	// undefined while the details load, and null when they failed.
 	const details = $derived(avatar.outfitDetailsById.get(outfit.outfitId)),
 		name = $derived(outfit.name || "Unnamed outfit"),
 		assets = $derived(details?.assets ?? []),
 		isWearing = $derived(avatar.wearingOutfitId === outfit.outfitId),
-		imageUrl = $derived(details?.imageUrl || outfit.imageUrl)
+		imageUrl = $derived(details?.imageUrl || outfit.imageUrl),
+		// The 3D view builds the outfit, so that it shows before it is put on.
+		outfitSubject = $derived<ModelSubject | null>(
+			details ? { kind: "avatar", look: details } : null,
+		)
 
 	async function wear(): Promise<void> {
 		if (await avatar.wearOutfit(outfit)) onClose()
@@ -76,13 +86,26 @@
 	onBackdropClick={close}>
 	<div class="@container flex flex-col gap-4">
 		<div class="flex items-start gap-4">
-			<span
-				class="relative grid size-48 shrink-0 place-items-center overflow-hidden rounded-lg border border-line-subtle bg-canvas"
-				aria-hidden="true">
-				<span class="relative grid size-full place-items-center">
-					<ProfileImage url={imageUrl} fallbackIcon={coatHangerIcon} />
+			<div class="flex shrink-0 flex-col gap-2">
+				<span
+					class="relative grid size-48 place-items-center overflow-hidden rounded-lg border border-line-subtle bg-canvas">
+					{#if view === "3D" && details !== null}
+						<ModelFrame
+							accountId={avatar.accountId}
+							subject={outfitSubject}
+							label={`the outfit ${name}`} />
+					{:else}
+						<span
+							class="relative grid size-full place-items-center"
+							aria-hidden="true">
+							<ProfileImage
+								url={imageUrl}
+								fallbackIcon={coatHangerIcon} />
+						</span>
+					{/if}
 				</span>
-			</span>
+				<ImageViewToggle bind:view />
+			</div>
 
 			<div class="flex min-w-0 flex-1 flex-col gap-1">
 				<div class="flex items-start gap-3">

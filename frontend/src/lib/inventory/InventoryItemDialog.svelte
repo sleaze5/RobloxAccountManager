@@ -45,7 +45,8 @@
 	import ImageViewToggle from "../shared/ImageViewToggle.svelte"
 	import type { ImageView } from "../shared/ImageViewToggle.svelte"
 	import ProfileImage from "../shared/ProfileImage.svelte"
-	import RenderedModelView from "../shared/RenderedModelView.svelte"
+	import ModelFrame from "../model-viewer/ModelFrame.svelte"
+	import type { ModelSubject } from "../model-viewer/model-subject"
 	import Skeleton from "../shared/Skeleton.svelte"
 	import SkeletonTile from "../shared/SkeletonTile.svelte"
 	import Timestamp from "../shared/Timestamp.svelte"
@@ -114,7 +115,10 @@
 		card = $state<HTMLDivElement | undefined>(undefined),
 		view = $state<ImageView>("2D"),
 		isExpanded = $state(false),
-		isTryingOn = $state(false)
+		isTryingOn = $state(false),
+		// The item whose model the 3D viewer could not build, which shows the
+		// model that Roblox renders instead.
+		failedLiveItemKey = $state("")
 
 	const exactNumbers = new Intl.NumberFormat("en-US"),
 		percent = new Intl.NumberFormat("en-US", {
@@ -171,11 +175,35 @@
 		tryOnLabel = $derived(`@${account.username}'s avatar wearing ${name}`),
 		tryOnImageUrl = $derived(inventory.tryOnImage.loadedFor(detailsKey) ?? ""),
 		tryOnError = $derived(inventory.tryOnImage.errorFor(detailsKey)),
-		tryOnModel = $derived(inventory.tryOnModel.loadedFor(detailsKey)),
-		tryOnModelError = $derived(inventory.tryOnModel.errorFor(detailsKey)),
-		// The model of another item stays loaded until this item's model loads.
+		tryOnAvatar = $derived(inventory.tryOnAvatar.loadedFor(detailsKey)),
+		tryOnAvatarError = $derived(inventory.tryOnAvatar.errorFor(detailsKey)),
+		tryOnSubject = $derived<ModelSubject | null>(
+			tryOnAvatar ? { kind: "avatar", look: tryOnAvatar } : null,
+		),
+		itemLook = $derived(inventory.itemLook.loadedFor(detailsKey)),
+		// An item shows the model that Roblox renders when the 3D viewer does
+		// not build its kind, such as models and gear, or could not build it.
+		isItemModelRendered = $derived(
+			!!inventory.itemLook.errorFor(detailsKey) ||
+				failedLiveItemKey === detailsKey ||
+				(!!itemLook && !itemLook.avatar && !itemLook.accessoryAssetId),
+		),
 		itemModel = $derived(inventory.itemModel.loadedFor(detailsKey)),
 		itemModelError = $derived(inventory.itemModel.errorFor(detailsKey)),
+		itemSubject = $derived<ModelSubject | null>(
+			isItemModelRendered
+				? {
+						kind: "rendered",
+						model: itemModel,
+						error: itemModelError,
+						onRetry: () => void inventory.loadItemModel(item, category.id),
+					}
+				: itemLook?.avatar
+					? { kind: "avatar", look: itemLook.avatar }
+					: itemLook
+						? { kind: "accessory", assetId: itemLook.accessoryAssetId }
+						: null,
+		),
 		key = $derived(inventoryItemKey(item)),
 		canFavorite = $derived(isCatalogItem && !!market),
 		isFavorite = $derived(inventory.favoriteByItemKey.get(key)),
@@ -267,12 +295,16 @@
 			shownCategory = category.id,
 			isTryingOnInModel = isTryOnShown && isModelShown,
 			isTryingOnInImage = isTryOnShown && !isModelShown,
-			isItemModelShown = !isTryOnShown && isModelShown
+			isItemModelShown = !isTryOnShown && isModelShown,
+			isRenderedModelShown = isItemModelShown && isItemModelRendered
 		untrack(() => {
 			if (isTryingOnInModel)
-				void inventory.loadTryOnModel(shownItem, shownCategory)
+				void inventory.loadTryOnAvatar(shownItem, shownCategory)
 			if (isTryingOnInImage) void inventory.tryOnItem(shownItem, shownCategory)
-			if (isItemModelShown) void inventory.loadItemModel(shownItem, shownCategory)
+			if (isItemModelShown) void inventory.loadItemLook(shownItem, shownCategory)
+			if (isRenderedModelShown) {
+				void inventory.loadItemModel(shownItem, shownCategory)
+			}
 		})
 	})
 
@@ -332,11 +364,17 @@
 
 {#snippet imageFrame()}
 	{#if isTryOnShown && isModelShown}
-		<RenderedModelView
-			model={tryOnModel}
-			error={tryOnModelError}
-			label={tryOnLabel}
-			onRetry={() => void inventory.loadTryOnModel(item, category.id)} />
+		{#if tryOnAvatarError}
+			<FrameUnavailable
+				icon={category.icon}
+				message={tryOnAvatarError}
+				onRetry={() => void inventory.loadTryOnAvatar(item, category.id)} />
+		{:else}
+			<ModelFrame
+				accountId={inventory.accountId}
+				subject={tryOnSubject}
+				label={tryOnLabel} />
+		{/if}
 	{:else if isTryOnShown}
 		{#if tryOnImageUrl}
 			{#key tryOnImageUrl}
@@ -359,11 +397,11 @@
 			</span>
 		{/if}
 	{:else if isModelShown}
-		<RenderedModelView
-			model={itemModel}
-			error={itemModelError}
+		<ModelFrame
+			accountId={inventory.accountId}
+			subject={itemSubject}
 			label={name}
-			onRetry={() => void inventory.loadItemModel(item, category.id)} />
+			onLiveFailure={() => (failedLiveItemKey = detailsKey)} />
 	{:else}
 		<span
 			class={["grid place-items-center", isSmallIcon ? "size-36" : "size-full"]}>

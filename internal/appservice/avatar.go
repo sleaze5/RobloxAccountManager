@@ -211,22 +211,20 @@ func (service *Service) TryOnInventoryItem(ctx context.Context, accountID int64,
 	return service.renderAvatarPreview(ctx, accountID, version, "avatar-try-on", change)
 }
 
-// GetInventoryItemTryOnModel renders the avatar of the account wearing the
-// item as a 3D model, without saving it.
-func (service *Service) GetInventoryItemTryOnModel(ctx context.Context, accountID int64, category robloxservices.InventoryCategory, itemID int64) (robloxservices.RenderedModel, error) {
-	var change *robloxservices.AvatarChange
-	return service.readRenderedModel(ctx, accountID, "avatar-try-on-model", func(ctx context.Context, version int64) (string, error) {
-		// The avatar to render is read once, and each repeated request renders
-		// the same one.
-		if change == nil {
-			tryOnChange, err := service.users.TryOnChange(ctx, accountID, version, category, itemID)
-			if err != nil {
-				return "", err
-			}
-			change = &tryOnChange
-		}
-		return service.users.RenderAvatarPreview(ctx, accountID, version, *change, robloxservices.AvatarPreviewModel)
-	})
+// GetInventoryItemTryOnAvatar reads the saved avatar of the account wearing
+// the item, which the 3D viewer builds without saving it.
+func (service *Service) GetInventoryItemTryOnAvatar(ctx context.Context, accountID int64, category robloxservices.InventoryCategory, itemID int64) (robloxservices.Avatar, error) {
+	ctx, version, done, err := service.beginAccountSession(ctx, accountID, "avatar-try-on")
+	if err != nil {
+		return robloxservices.Avatar{}, err
+	}
+	defer done()
+	avatar, err := service.users.TryOnAvatar(ctx, accountID, version, category, itemID)
+	if err != nil {
+		service.logs.Module("application.avatar").WarnContext(ctx, "avatar try-on unavailable", "operation", "avatar-try-on", "account_id", accountID, "category", category, "error", err)
+		return robloxservices.Avatar{}, err
+	}
+	return avatar, nil
 }
 
 // renderAvatarPreview renders the change as a full-body image. Roblox answers
@@ -240,7 +238,7 @@ func (service *Service) renderAvatarPreview(ctx context.Context, accountID, vers
 	imageURL := ""
 	isRendered, err := pollUntilReady(ctx, operation, "The avatar preview was not loaded.", maxAttempts, retryDelay, func() (bool, error) {
 		var err error
-		imageURL, err = service.users.RenderAvatarPreview(ctx, accountID, version, change, robloxservices.AvatarPreviewImage)
+		imageURL, err = service.users.RenderAvatarPreview(ctx, accountID, version, change)
 		if err != nil {
 			service.logs.Module("application.avatar").WarnContext(ctx, "avatar preview unavailable", "operation", operation, "account_id", accountID, "error", err)
 			return false, err

@@ -35,11 +35,18 @@ func (service *Service) TryOnInventoryItem(ctx context.Context, accountID int64,
 	return service.core.TryOnInventoryItem(ctx, accountID, category, itemID)
 }
 
-func (service *Service) GetInventoryItemTryOnModel(ctx context.Context, accountID int64, category robloxservices.InventoryCategory, itemID int64) (robloxservices.RenderedModel, error) {
-	if err := validateAccountAndTargetIDs(accountID, itemID, "avatar-try-on-model"); err != nil {
-		return robloxservices.RenderedModel{}, err
+func (service *Service) GetInventoryItemTryOnAvatar(ctx context.Context, accountID int64, category robloxservices.InventoryCategory, itemID int64) (robloxservices.Avatar, error) {
+	if err := validateAccountAndTargetIDs(accountID, itemID, "avatar-try-on"); err != nil {
+		return robloxservices.Avatar{}, err
 	}
-	return service.core.GetInventoryItemTryOnModel(ctx, accountID, category, itemID)
+	return service.core.GetInventoryItemTryOnAvatar(ctx, accountID, category, itemID)
+}
+
+func (service *Service) GetInventoryItemLook(ctx context.Context, accountID int64, category robloxservices.InventoryCategory, itemID int64) (robloxservices.InventoryItemLook, error) {
+	if err := validateAccountAndTargetIDs(accountID, itemID, "inventory-item-look"); err != nil {
+		return robloxservices.InventoryItemLook{}, err
+	}
+	return service.core.GetInventoryItemLook(ctx, accountID, category, itemID)
 }
 
 func (service *Service) GetInventoryRelatedItems(ctx context.Context, accountID int64, category robloxservices.InventoryCategory, itemID int64) ([]robloxservices.RelatedInventoryItem, error) {

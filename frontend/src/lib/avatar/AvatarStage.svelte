@@ -1,15 +1,15 @@
 <script lang="ts">
 	import arrowsOutIcon from "@phosphor-icons/core/regular/arrows-out.svg?raw"
 	import circleNotchIcon from "@phosphor-icons/core/regular/circle-notch.svg?raw"
-	import cubeIcon from "@phosphor-icons/core/regular/cube.svg?raw"
 	import paintBrushIcon from "@phosphor-icons/core/regular/paint-brush.svg?raw"
 	import personArmsSpreadIcon from "@phosphor-icons/core/regular/person-arms-spread.svg?raw"
 	import ExpandedImageDialog from "../shared/ExpandedImageDialog.svelte"
-	import FrameUnavailable from "../shared/FrameUnavailable.svelte"
 	import Icon from "../shared/Icon.svelte"
 	import ImageViewToggle from "../shared/ImageViewToggle.svelte"
 	import type { ImageView } from "../shared/ImageViewToggle.svelte"
 	import type { AvatarState } from "./avatar-state.svelte"
+	import ModelFrame from "../model-viewer/ModelFrame.svelte"
+	import type { ModelSubject } from "../model-viewer/model-subject"
 
 	let { avatar, username }: { avatar: AvatarState; username: string } = $props()
 
@@ -34,10 +34,9 @@
 		shownType = $derived(
 			view === "3D" || avatar.isPreviewCurrent ? draftType : savedType,
 		),
-		// The 3D avatar loads only when the 3D view opens, because its renderer
-		// is large.
-		liveViewImport = $derived(
-			view === "3D" ? import("./AvatarLiveView.svelte") : undefined,
+		// The 3D view builds the draft, so that every change shows at once.
+		draftSubject = $derived<ModelSubject | null>(
+			avatar.draft ? { kind: "avatar", look: avatar.draft } : null,
 		),
 		busyLabel = $derived(
 			view === "3D"
@@ -72,20 +71,12 @@
 </script>
 
 {#snippet imageFrame()}
-	{#if liveViewImport && avatar.draft}
-		{#await liveViewImport then { default: AvatarLiveView }}
-			<AvatarLiveView
-				accountId={avatar.accountId}
-				draft={avatar.draft}
-				{label}
-				bind:isLoading={isLiveViewLoading} />
-		{:catch}
-			<FrameUnavailable icon={cubeIcon} message="The 3D viewer couldn't start." />
-		{/await}
-	{:else if view === "3D"}
-		<span class="absolute inset-3 skeleton rounded-md" role="status">
-			<span class="sr-only">Loading the 3D avatar</span>
-		</span>
+	{#if view === "3D"}
+		<ModelFrame
+			accountId={avatar.accountId}
+			subject={draftSubject}
+			{label}
+			bind:isLoading={isLiveViewLoading} />
 	{:else if shownImageUrl && failedImageUrl !== shownImageUrl}
 		{#key shownImageUrl}
 			<img

@@ -78,6 +78,22 @@ func (service *Service) GetInventoryItemModel(ctx context.Context, accountID int
 	})
 }
 
+// GetInventoryItemLook reads how the 3D viewer shows the item.
+func (service *Service) GetInventoryItemLook(ctx context.Context, accountID int64, category robloxservices.InventoryCategory, itemID int64) (robloxservices.InventoryItemLook, error) {
+	ctx, version, done, err := service.beginAccountSession(ctx, accountID, "inventory-item-look")
+	if err != nil {
+		return robloxservices.InventoryItemLook{}, err
+	}
+	defer done()
+	look, err := service.users.InventoryItemLook(ctx, accountID, version, category, itemID)
+	if err != nil {
+		// The viewer shows the model that Roblox renders instead.
+		service.logs.Module("application.inventory").WarnContext(ctx, "inventory item look unavailable", "operation", "inventory-item-look", "account_id", accountID, "category", category, "error", err)
+		return robloxservices.InventoryItemLook{}, err
+	}
+	return look, nil
+}
+
 // GetInventoryItemDetails reads the large image, dates, and collectible IDs
 // of one item. A missing large image leaves the details without it.
 func (service *Service) GetInventoryItemDetails(ctx context.Context, accountID int64, category robloxservices.InventoryCategory, itemID int64) (robloxservices.InventoryItemDetails, error) {

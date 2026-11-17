@@ -1,13 +1,13 @@
 <script lang="ts">
 	import {
-		defaultRenderedModelScene,
-		renderedModelScene,
-		resetRenderedModelScene,
-	} from "./rendered-model-scene.svelte"
-	import type { RenderedModelScene } from "./rendered-model-scene.svelte"
+		defaultModelViewerScene,
+		modelViewerScene,
+		resetModelViewerScene,
+	} from "./model-viewer-scene.svelte"
+	import type { ModelViewerScene } from "./model-viewer-scene.svelte"
 
 	interface SceneSlider {
-		setting: keyof RenderedModelScene
+		setting: keyof ModelViewerScene
 		label: string
 		min: number
 		max: number
@@ -70,8 +70,7 @@
 			sliderGroups.every(({ sliders }) =>
 				sliders.every(
 					({ setting }) =>
-						renderedModelScene[setting] ===
-						defaultRenderedModelScene[setting],
+						modelViewerScene[setting] === defaultModelViewerScene[setting],
 				),
 			),
 		)
@@ -79,7 +78,7 @@
 	// setSetting rounds to the step, because range inputs add floating point
 	// noise such as 0.9500000001.
 	function setSetting(slider: SceneSlider, rawValue: number): void {
-		renderedModelScene[slider.setting] = Number(
+		modelViewerScene[slider.setting] = Number(
 			(Math.round(rawValue / slider.step) * slider.step).toFixed(2),
 		)
 	}
@@ -117,7 +116,7 @@
 				aria-label={group.label}>
 				<div class="menu-heading mx-0" aria-hidden="true">{group.label}</div>
 				{#each group.sliders as slider (slider.setting)}
-					{@const value = renderedModelScene[slider.setting]}
+					{@const value = modelViewerScene[slider.setting]}
 					<label class="flex flex-col gap-0.5 text-xs">
 						<span class="flex items-center justify-between gap-2">
 							<span class="text-fg-muted">{slider.label}</span>
@@ -146,6 +145,6 @@
 			class="button self-end"
 			type="button"
 			disabled={isDefault}
-			onclick={resetRenderedModelScene}>Reset</button>
+			onclick={resetModelViewerScene}>Reset</button>
 	</div>
 </div>

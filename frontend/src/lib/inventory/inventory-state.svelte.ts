@@ -1,8 +1,10 @@
 import { accountBackend, InventoryCategory } from "../backend/bridge"
 import type {
+	Avatar,
 	GamePlace,
 	InventoryItem,
 	InventoryItemDetails,
+	InventoryItemLook,
 	RelatedInventoryItem,
 	RenderedModel,
 } from "../backend/bridge"
@@ -75,13 +77,18 @@ export class InventoryState {
 	// The assets that each opened item includes or uses, by categoryItemKey.
 	// null means that the request failed.
 	relatedItemsByItemKey = $state.raw(new Map<string, RelatedInventoryItem[] | null>())
-	// The 3D model of the opened item, by the categoryItemKey of the item.
+	// How the 3D viewer shows the opened item, by the categoryItemKey of the
+	// item.
+	readonly itemLook: KeyedLoad<InventoryItemLook>
+	// The 3D model that Roblox renders of the opened item, for an item that
+	// the 3D viewer cannot build, by the categoryItemKey of the item.
 	readonly itemModel: KeyedLoad<RenderedModel>
 	// The full-body image of the account wearing the opened item, which Roblox
 	// renders without saving it, by the categoryItemKey of the item.
 	readonly tryOnImage: KeyedLoad<string>
-	// The same as a 3D model.
-	readonly tryOnModel: KeyedLoad<RenderedModel>
+	// The saved avatar of the account wearing the opened item, which the 3D
+	// viewer builds, by the categoryItemKey of the item.
+	readonly tryOnAvatar: KeyedLoad<Avatar>
 	readonly userId: number
 	readonly #scope: AccountScope
 	#request: ReturnType<typeof accountBackend.GetInventoryPage> | null = null
@@ -96,10 +103,15 @@ export class InventoryState {
 	) {
 		this.#scope = new AccountScope(accountId, store)
 		this.#notifications = notifications
+		this.itemLook = new KeyedLoad(this.#scope)
 		this.itemModel = new KeyedLoad(this.#scope)
 		this.tryOnImage = new KeyedLoad(this.#scope)
-		this.tryOnModel = new KeyedLoad(this.#scope)
+		this.tryOnAvatar = new KeyedLoad(this.#scope)
 		this.userId = userId
+	}
+
+	get accountId(): number {
+		return this.#scope.accountId
 	}
 
 	get page(): InventoryCategoryPage | null {
@@ -170,6 +182,22 @@ export class InventoryState {
 		}
 	}
 
+	async loadItemLook(
+		item: InventoryItem,
+		category: InventoryCategory,
+	): Promise<void> {
+		await this.itemLook.load(
+			categoryItemKey(category, item.itemId),
+			() =>
+				accountBackend.GetInventoryItemLook(
+					this.#scope.accountId,
+					category,
+					item.itemId,
+				),
+			"Could not load the 3D model. Try again.",
+		)
+	}
+
 	async loadItemModel(
 		item: InventoryItem,
 		category: InventoryCategory,
@@ -186,14 +214,14 @@ export class InventoryState {
 		)
 	}
 
-	async loadTryOnModel(
+	async loadTryOnAvatar(
 		item: InventoryItem,
 		category: InventoryCategory,
 	): Promise<void> {
-		await this.tryOnModel.load(
+		await this.tryOnAvatar.load(
 			categoryItemKey(category, item.itemId),
 			() =>
-				accountBackend.GetInventoryItemTryOnModel(
+				accountBackend.GetInventoryItemTryOnAvatar(
 					this.#scope.accountId,
 					category,
 					item.itemId,

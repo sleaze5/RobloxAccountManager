@@ -380,28 +380,39 @@ func (service *Users) AvatarRules(ctx context.Context, accountID, version int64)
 // TryOnChange returns the avatar of the account with the asset put on, as a
 // change that a preview renders.
 func (service *Users) TryOnChange(ctx context.Context, accountID, version int64, category InventoryCategory, assetID int64) (AvatarChange, error) {
+	avatar, err := service.TryOnAvatar(ctx, accountID, version, category, assetID)
+	if err != nil {
+		return AvatarChange{}, err
+	}
+	assets := make([]AvatarChangeAsset, len(avatar.Assets))
+	for index, asset := range avatar.Assets {
+		assets[index] = AvatarChangeAsset{AssetID: asset.Item.ItemID}
+	}
+	return AvatarChange{AvatarType: avatar.AvatarType, Scales: avatar.Scales, BodyColors: avatar.BodyColors, Assets: assets}, nil
+}
+
+// TryOnAvatar returns the saved avatar of the account with the asset put on.
+// The other worn assets keep their placements and layers.
+func (service *Users) TryOnAvatar(ctx context.Context, accountID, version int64, category InventoryCategory, assetID int64) (Avatar, error) {
 	const endpoint = "avatar-try-on"
 	if !canTryOn(category) {
-		return AvatarChange{}, &roblox.Error{Kind: roblox.KindProtocol, Endpoint: endpoint, Message: "This item can't be tried on."}
+		return Avatar{}, &roblox.Error{Kind: roblox.KindProtocol, Endpoint: endpoint, Message: "This item can't be tried on."}
 	}
 	typeName, maxWornCount, err := service.wearableAssetTypeOf(ctx, accountID, version, endpoint, assetID)
 	if err != nil {
-		return AvatarChange{}, err
+		return Avatar{}, err
 	}
 	var current avatarPayload
 	if err := service.readAvatarDetails(ctx, accountID, version, endpoint, "https://avatar.roblox.com/v2/avatar/avatar", &current); err != nil {
-		return AvatarChange{}, err
+		return Avatar{}, err
 	}
 	avatar, err := avatarOf(current)
 	if err != nil {
-		return AvatarChange{}, err
+		return Avatar{}, err
 	}
-	assetIDs := assetIDsWearing(avatar.Assets, assetID, typeName, maxWornCount)
-	assets := make([]AvatarChangeAsset, len(assetIDs))
-	for index, wornAssetID := range assetIDs {
-		assets[index] = AvatarChangeAsset{AssetID: wornAssetID}
-	}
-	return AvatarChange{AvatarType: avatar.AvatarType, Scales: avatar.Scales, BodyColors: avatar.BodyColors, Assets: assets}, nil
+	triedAsset := AvatarAsset{Category: category, Item: avatarItem(assetID, "", typeName)}
+	avatar.Assets = assetsWearing(avatar.Assets, triedAsset, maxWornCount)
+	return avatar, nil
 }
 
 // wearableAssetTypeOf reads the type name of the asset and how many assets of
@@ -425,10 +436,11 @@ func (service *Users) wearableAssetTypeOf(ctx context.Context, accountID, versio
 	return "", 0, &roblox.Error{Kind: roblox.KindProtocol, Endpoint: endpoint, Message: "Roblox doesn't let avatars wear this item."}
 }
 
-// assetIDsWearing lists the worn assets with the asset put on. When the avatar
-// already wears as many assets of the type as Roblox allows, the asset
-// replaces the ones that the avatar lists first.
-func assetIDsWearing(wornAssets []AvatarAsset, assetID int64, typeName string, maxWornCount int) []int64 {
+// assetsWearing lists the worn assets with the tried asset put on. When the
+// avatar already wears as many assets of the type as Roblox allows, the tried
+// asset replaces the ones that the avatar lists first.
+func assetsWearing(wornAssets []AvatarAsset, triedAsset AvatarAsset, maxWornCount int) []AvatarAsset {
+	typeName, assetID := triedAsset.Item.TypeName, triedAsset.Item.ItemID
 	sameTypeCount := 0
 	for _, asset := range wornAssets {
 		if asset.Item.TypeName == typeName && asset.Item.ItemID != assetID {
@@ -436,17 +448,17 @@ func assetIDsWearing(wornAssets []AvatarAsset, assetID int64, typeName string, m
 		}
 	}
 	replacedCount := max(sameTypeCount-maxWornCount+1, 0)
-	assetIDs := make([]int64, 0, len(wornAssets)+1)
+	assets := make([]AvatarAsset, 0, len(wornAssets)+1)
 	for _, asset := range wornAssets {
 		isReplaced := asset.Item.TypeName == typeName && asset.Item.ItemID != assetID && replacedCount > 0
 		if isReplaced {
 			replacedCount--
 		}
 		if !isReplaced && asset.Item.ItemID != assetID {
-			assetIDs = append(assetIDs, asset.Item.ItemID)
+			assets = append(assets, asset)
 		}
 	}
-	return append(assetIDs, assetID)
+	return append(assets, triedAsset)
 }
 
 // SaveAvatar replaces the whole avatar of the account in one request, as the
@@ -556,21 +568,11 @@ func (service *Users) avatarUpdateAssetsOf(ctx context.Context, accountID, versi
 	return assets, changedAdjustments, nil
 }
 
-// AvatarPreviewFormat is what the render API makes of an avatar, by its
-// thumbnail type.
-type AvatarPreviewFormat string
-
-const (
-	AvatarPreviewImage AvatarPreviewFormat = "2dWebp"
-	// AvatarPreviewModel is a 3D model, whose address names a manifest that
-	// RenderedModel downloads.
-	AvatarPreviewModel AvatarPreviewFormat = "3d"
-)
-
-// RenderAvatarPreview asks Roblox to render the change in the format without
-// saving it. It returns the address of the render, or an empty address while
-// Roblox renders it, until a later call with the same change finds it.
-func (service *Users) RenderAvatarPreview(ctx context.Context, accountID, version int64, change AvatarChange, format AvatarPreviewFormat) (string, error) {
+// RenderAvatarPreview asks Roblox to render the change as a full-body WebP
+// image without saving it. It returns the address of the image, or an empty
+// address while Roblox renders it, until a later call with the same change
+// finds it.
+func (service *Users) RenderAvatarPreview(ctx context.Context, accountID, version int64, change AvatarChange) (string, error) {
 	const endpoint = "avatar-preview"
 	if err := validateAvatarChange(change); err != nil {
 		return "", err
@@ -606,7 +608,7 @@ func (service *Users) RenderAvatarPreview(ctx context.Context, accountID, versio
 		ThumbnailConfig  thumbnailConfig  `json:"thumbnailConfig"`
 		AvatarDefinition renderDefinition `json:"avatarDefinition"`
 	}{
-		ThumbnailConfig: thumbnailConfig{ThumbnailID: 3, ThumbnailType: string(format), Size: LargeThumbnailSize},
+		ThumbnailConfig: thumbnailConfig{ThumbnailID: 3, ThumbnailType: "2dWebp", Size: LargeThumbnailSize},
 		AvatarDefinition: renderDefinition{
 			Assets: assets, BodyColors: v4BodyColorsOf(change.BodyColors),
 			Scales:           renderScales{AvatarScales: change.Scales, Depth: change.Scales.Width},
