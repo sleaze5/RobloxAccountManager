@@ -97,9 +97,11 @@ func (service *Users) InventoryItemDetails(ctx context.Context, accountID, versi
 	if err != nil {
 		return InventoryItemDetails{}, err
 	}
-	// Roblox renders no model of classic clothing, which the 3D viewer of the
-	// application shows on a plain avatar.
-	details.HasModel = hasRenderedModel(category) || category == InventoryClassicClothing
+	// Roblox renders no model of classic clothing, animations, or emotes. The
+	// 3D viewer of the application shows classic clothing on a plain avatar,
+	// and plays animations and emotes on the avatar of the account.
+	details.HasModel = hasRenderedModel(category) || category == InventoryClassicClothing ||
+		category == InventoryAnimations || category == InventoryEmotes
 	details.CanTryOn = canTryOn(category)
 	details.CanHaveRelatedItems = category == InventoryBundles || hasDependencies(category)
 	details.CanDownload = canDownload(category)

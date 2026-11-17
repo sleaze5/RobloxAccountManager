@@ -1,13 +1,15 @@
 <script lang="ts">
 	import arrowCounterClockwiseIcon from "@phosphor-icons/core/regular/arrow-counter-clockwise.svg?raw"
+	import rulerIcon from "@phosphor-icons/core/regular/ruler.svg?raw"
 	import slidersHorizontalIcon from "@phosphor-icons/core/regular/sliders-horizontal.svg?raw"
 	import { tick } from "svelte"
 	import Icon from "../shared/Icon.svelte"
+	import { viewerOverlays } from "./model-viewer-scene.svelte"
 	import ModelViewerSceneControls from "./ModelViewerSceneControls.svelte"
 
-	// ModelViewerControls is the toolbar in the corner of every 3D viewer: a
-	// button that returns the camera to where it starts, and the camera and
-	// lighting panel.
+	// ModelViewerControls is the toolbar in the corner of every 3D viewer: the
+	// coordinates of the camera, a button that returns the camera to where it
+	// starts, and the camera and lighting panel.
 	let { onResetView }: { onResetView: () => void } = $props()
 
 	let isSceneControlsOpen = $state(false),
@@ -23,6 +25,19 @@
 </script>
 
 <div class="absolute top-2 right-2 z-10 flex gap-1">
+	<button
+		class="button-icon bg-overlay"
+		type="button"
+		aria-label="Show coordinates"
+		aria-pressed={viewerOverlays.isCoordinatesShown}
+		data-open={viewerOverlays.isCoordinatesShown || undefined}
+		data-tooltip={viewerOverlays.isCoordinatesShown
+			? "Hide coordinates"
+			: "Show coordinates"}
+		onclick={() =>
+			(viewerOverlays.isCoordinatesShown = !viewerOverlays.isCoordinatesShown)}>
+		<Icon svg={rulerIcon} size={16} aria-hidden="true" />
+	</button>
 	<button
 		class="button-icon bg-overlay"
 		type="button"

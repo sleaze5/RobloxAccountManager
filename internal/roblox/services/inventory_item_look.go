@@ -20,9 +20,10 @@ var shapeKeepingAccessoryTypeNames = []string{
 
 // InventoryItemLook is how the 3D viewer of the application shows an item.
 // AccessoryAssetID names an accessory that shows on its own. Avatar is an
-// avatar that shows the item: a plain avatar wearing it, or the outfit of a
-// bundle. When neither is set, the viewer shows the model that Roblox renders
-// of the item, such as for models and gear.
+// avatar that shows the item: a plain avatar wearing it, the outfit of a
+// bundle, the saved avatar of the account wearing an animation, or the saved
+// avatar that plays an emote. When neither is set, the viewer shows the model
+// that Roblox renders of the item, such as for models and gear.
 type InventoryItemLook struct {
 	AccessoryAssetID int64   `json:"accessoryAssetId"`
 	Avatar           *Avatar `json:"avatar"`
@@ -33,6 +34,9 @@ func (service *Users) InventoryItemLook(ctx context.Context, accountID, version 
 	const endpoint = "inventory-item-look"
 	if category == InventoryBundles {
 		return service.bundleLook(ctx, accountID, version, endpoint, itemID)
+	}
+	if category == InventoryEmotes || category == InventoryAnimations {
+		return service.playingAvatarLook(ctx, accountID, version, endpoint, category, itemID)
 	}
 	if !canTryOn(category) {
 		return InventoryItemLook{}, nil
@@ -50,6 +54,25 @@ func (service *Users) InventoryItemLook(ctx context.Context, accountID, version 
 		return InventoryItemLook{}, nil
 	}
 	avatar := plainAvatarWearing(AvatarAsset{Category: category, Item: avatarItem(itemID, "", typeName)})
+	return InventoryItemLook{Avatar: &avatar}, nil
+}
+
+// playingAvatarLook reads the saved avatar of the account that plays the
+// item: the avatar itself for an emote, and the avatar wearing an animation
+// for an animation, which replaces the animation of the same kind.
+func (service *Users) playingAvatarLook(ctx context.Context, accountID, version int64, endpoint string, category InventoryCategory, itemID int64) (InventoryItemLook, error) {
+	var (
+		avatar Avatar
+		err    error
+	)
+	if category == InventoryEmotes {
+		avatar, err = service.savedAvatar(ctx, accountID, version, endpoint)
+	} else {
+		avatar, err = service.savedAvatarWearing(ctx, accountID, version, endpoint, category, itemID)
+	}
+	if err != nil {
+		return InventoryItemLook{}, err
+	}
 	return InventoryItemLook{Avatar: &avatar}, nil
 }
 

@@ -60,6 +60,12 @@
 	--color-presence-game: #70a981;
 	--color-presence-studio: #b99a69;
 
+	/* The axes of the 3D viewers, colored as in 3D tools: X red, Y green, and
+	   Z blue. */
+	--color-axis-x: #e5484d;
+	--color-axis-y: #46a758;
+	--color-axis-z: #3e8ae6;
+
 	--font-sans: "Geist", sans-serif;
 	--font-mono: "Geist Mono", monospace;
 

@@ -2,7 +2,11 @@
 	import cubeIcon from "@phosphor-icons/core/regular/cube.svg?raw"
 	import type { RenderedModel } from "../backend/bridge"
 	import FrameUnavailable from "../shared/FrameUnavailable.svelte"
+	import type { CameraPose } from "./model-subject"
+	import { viewerOverlays } from "./model-viewer-scene.svelte"
 	import ModelViewerControls from "./ModelViewerControls.svelte"
+	import ViewerAxes from "./ViewerAxes.svelte"
+	import ViewerCoordinates from "./ViewerCoordinates.svelte"
 
 	// RenderedModelView fills its container with a 3D model, or with its
 	// loading or error state. label names what the model shows, such as
@@ -20,7 +24,8 @@
 	} = $props()
 
 	let isWebGLUnavailable = $state(false),
-		viewer = $state<{ resetView: () => void }>()
+		viewer = $state<{ resetView: () => void }>(),
+		cameraPose = $state.raw<CameraPose>()
 
 	// three.js is large, so the viewer loads only when a model is shown.
 	const viewerImport = $derived(
@@ -41,8 +46,15 @@
 				bind:this={viewer}
 				{model}
 				{label}
-				onerror={() => (isWebGLUnavailable = true)} />
+				onerror={() => (isWebGLUnavailable = true)}
+				onposechange={(pose) => (cameraPose = pose)} />
 		{/key}
+		{#if cameraPose}
+			<ViewerAxes pose={cameraPose} />
+			{#if viewerOverlays.isCoordinatesShown}
+				<ViewerCoordinates pose={cameraPose} />
+			{/if}
+		{/if}
 		<ModelViewerControls onResetView={() => viewer?.resetView()} />
 	{:catch}
 		<FrameUnavailable icon={cubeIcon} message="The 3D viewer couldn't start." />

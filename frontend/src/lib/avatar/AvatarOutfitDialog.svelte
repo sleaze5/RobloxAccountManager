@@ -9,8 +9,9 @@
 	import Icon from "../shared/Icon.svelte"
 	import ImageViewToggle from "../shared/ImageViewToggle.svelte"
 	import type { ImageView } from "../shared/ImageViewToggle.svelte"
+	import AnimationControls from "../model-viewer/AnimationControls.svelte"
 	import ModelFrame from "../model-viewer/ModelFrame.svelte"
-	import type { ModelSubject } from "../model-viewer/model-subject"
+	import type { AnimationPlayback, ModelSubject } from "../model-viewer/model-subject"
 	import ProfileImage from "../shared/ProfileImage.svelte"
 	import Skeleton from "../shared/Skeleton.svelte"
 	import SkeletonTile from "../shared/SkeletonTile.svelte"
@@ -45,7 +46,8 @@
 			"flex min-w-0 flex-wrap items-center gap-1 font-mono text-2xs wrap-anywhere text-fg-muted",
 		sectionHeadingClass = "text-xs font-semibold text-fg-muted"
 
-	let view = $state<ImageView>("2D")
+	let view = $state<ImageView>("2D"),
+		playback = $state<AnimationPlayback>()
 
 	// undefined while the details load, and null when they failed.
 	const details = $derived(avatar.outfitDetailsById.get(outfit.outfitId)),
@@ -86,14 +88,15 @@
 	onBackdropClick={close}>
 	<div class="@container flex flex-col gap-4">
 		<div class="flex items-start gap-4">
-			<div class="flex shrink-0 flex-col gap-2">
+			<div class="flex w-64 shrink-0 flex-col gap-2">
 				<span
-					class="relative grid size-48 place-items-center overflow-hidden rounded-lg border border-line-subtle bg-canvas">
+					class="relative grid size-64 place-items-center overflow-hidden rounded-lg border border-line-subtle bg-canvas">
 					{#if view === "3D" && details !== null}
 						<ModelFrame
 							accountId={avatar.accountId}
 							subject={outfitSubject}
-							label={`the outfit ${name}`} />
+							label={`the outfit ${name}`}
+							bind:playback />
 					{:else}
 						<span
 							class="relative grid size-full place-items-center"
@@ -105,6 +108,11 @@
 					{/if}
 				</span>
 				<ImageViewToggle bind:view />
+				{#if view === "3D" && playback}
+					<div class="animate-enter">
+						<AnimationControls {playback} />
+					</div>
+				{/if}
 			</div>
 
 			<div class="flex min-w-0 flex-1 flex-col gap-1">

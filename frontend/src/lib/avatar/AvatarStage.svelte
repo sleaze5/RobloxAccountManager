@@ -8,15 +8,19 @@
 	import ImageViewToggle from "../shared/ImageViewToggle.svelte"
 	import type { ImageView } from "../shared/ImageViewToggle.svelte"
 	import type { AvatarState } from "./avatar-state.svelte"
+	import AnimationControls from "../model-viewer/AnimationControls.svelte"
 	import ModelFrame from "../model-viewer/ModelFrame.svelte"
-	import type { ModelSubject } from "../model-viewer/model-subject"
+	import type { AnimationPlayback, ModelSubject } from "../model-viewer/model-subject"
 
 	let { avatar, username }: { avatar: AvatarState; username: string } = $props()
 
 	let failedImageUrl = $state(""),
 		view = $state<ImageView>("2D"),
 		isExpanded = $state(false),
-		isLiveViewLoading = $state(false)
+		isLiveViewLoading = $state(false),
+		// The animations of the 3D view on the page and in the expanded view.
+		stagePlayback = $state<AnimationPlayback>(),
+		expandedPlayback = $state<AnimationPlayback>()
 
 	// Roblox needs a moment between draft changes, so a preview renders only
 	// once the draft stops changing.
@@ -70,13 +74,20 @@
 	})
 </script>
 
-{#snippet imageFrame()}
+{#snippet imageFrame(isExpandedView: boolean)}
 	{#if view === "3D"}
 		<ModelFrame
 			accountId={avatar.accountId}
 			subject={draftSubject}
 			{label}
-			bind:isLoading={isLiveViewLoading} />
+			bind:isLoading={isLiveViewLoading}
+			bind:playback={
+				() => (isExpandedView ? expandedPlayback : stagePlayback),
+				(playback) => {
+					if (isExpandedView) expandedPlayback = playback
+					else stagePlayback = playback
+				}
+			} />
 	{:else if shownImageUrl && failedImageUrl !== shownImageUrl}
 		{#key shownImageUrl}
 			<img
@@ -138,6 +149,11 @@
 			{avatar.isRedrawingImage ? "Redrawing…" : "Redraw"}
 		</button>
 	{/if}
+	{#if isExpandedView && view === "3D" && expandedPlayback}
+		<div class="min-w-0 flex-1">
+			<AnimationControls playback={expandedPlayback} isWide />
+		</div>
+	{/if}
 {/snippet}
 
 <section
@@ -145,12 +161,18 @@
 	aria-label="Avatar image">
 	<figure
 		class="relative grid aspect-square w-full place-items-center overflow-hidden rounded-lg border border-line-subtle bg-canvas">
-		{@render imageFrame()}
+		{@render imageFrame(false)}
 	</figure>
 
 	<div class="flex items-center gap-2">
 		{@render imageControls(false)}
 	</div>
+
+	{#if view === "3D" && stagePlayback}
+		<div class="animate-enter">
+			<AnimationControls playback={stagePlayback} />
+		</div>
+	{/if}
 
 	{#if avatar.isEditable && avatar.isChanged}
 		<p class="animate-enter notice-note" role="status">
@@ -170,7 +192,7 @@
 {#if isExpanded}
 	<ExpandedImageDialog {label} onClose={() => (isExpanded = false)}>
 		{#snippet frame()}
-			{@render imageFrame()}
+			{@render imageFrame(true)}
 		{/snippet}
 		{#snippet controls()}
 			{@render imageControls(true)}

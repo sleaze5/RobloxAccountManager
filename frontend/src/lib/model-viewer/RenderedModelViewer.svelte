@@ -1,23 +1,13 @@
 <script lang="ts">
 	import {
 		AmbientLight,
-		CanvasTexture,
-		CylinderGeometry,
 		DirectionalLight,
-		Group,
 		LoadingManager,
 		MathUtils,
 		Mesh,
-		MeshBasicMaterial,
-		OrthographicCamera,
 		PerspectiveCamera,
 		Scene,
-		SphereGeometry,
-		Sprite,
-		SpriteMaterial,
-		SRGBColorSpace,
 		Texture,
-		Vector2,
 		Vector3,
 		WebGLRenderer,
 	} from "three"
@@ -27,16 +17,25 @@
 	import { OBJLoader } from "three/addons/loaders/OBJLoader.js"
 	import { untrack } from "svelte"
 	import type { RenderedModel } from "../backend/bridge"
+	import type { CameraPose } from "./model-subject"
 	import { moveOrbitViewByKey, orbitViewKeysDescription } from "./orbit-view-keys"
 	import { modelViewerScene } from "./model-viewer-scene.svelte"
 	import type { ModelViewerScene } from "./model-viewer-scene.svelte"
 
 	// label names what the model shows, such as "@builderman's avatar".
+	// onposechange receives where the camera stands after each frame, for the
+	// axes and the coordinates around the viewer.
 	let {
 		model,
 		label,
 		onerror,
-	}: { model: RenderedModel; label: string; onerror: () => void } = $props()
+		onposechange,
+	}: {
+		model: RenderedModel
+		label: string
+		onerror: () => void
+		onposechange: (pose: CameraPose) => void
+	} = $props()
 
 	let canvas = $state<HTMLCanvasElement>()
 	// applyScene changes the camera and the lights of the built scene.
@@ -50,8 +49,6 @@
 	}
 
 	const controlsDescriptionId = $props.id(),
-		axisIndicatorSizePx = 56,
-		axisIndicatorMarginPx = 4,
 		keyLightIntensity = 1.6,
 		ambientLightIntensity = 1.4
 
@@ -67,9 +64,6 @@
 			return
 		}
 		renderer.setPixelRatio(window.devicePixelRatio)
-		// The axis indicator renders over the model in a second pass, so the
-		// canvas clears once per frame instead of before each pass.
-		renderer.autoClear = false
 		let isDisposed = false
 		const initialScene = untrack(() => ({ ...modelViewerScene })),
 			loadingManager = new LoadingManager(),
@@ -124,26 +118,19 @@
 		controls.minDistance = Math.min(boundsSize * 0.3, initialDistance)
 		controls.maxDistance = Math.max(initialDistance * 3, controls.minDistance)
 
-		const axisIndicator = createAxisIndicator(getComputedStyle(canvas).fontFamily),
-			canvasSize = new Vector2()
 		const render = (): void => {
 			if (isDisposed) return
-			renderer.clear()
 			renderer.render(scene, camera)
-			// The indicator turns opposite to the camera, so that each axis
-			// points where the axis of the model points on screen.
-			axisIndicator.axes.quaternion.copy(camera.quaternion).invert()
-			fadeEdgeOnAxisLabels(axisIndicator.axes, axisIndicator.labels)
-			renderer.getSize(canvasSize)
-			renderer.clearDepth()
-			renderer.setViewport(
-				axisIndicatorMarginPx,
-				axisIndicatorMarginPx,
-				axisIndicatorSizePx,
-				axisIndicatorSizePx,
-			)
-			renderer.render(axisIndicator.scene, axisIndicator.camera)
-			renderer.setViewport(0, 0, canvasSize.x, canvasSize.y)
+			onposechange({
+				position: [camera.position.x, camera.position.y, camera.position.z],
+				target: [controls.target.x, controls.target.y, controls.target.z],
+				orientation: [
+					camera.quaternion.x,
+					camera.quaternion.y,
+					camera.quaternion.z,
+					camera.quaternion.w,
+				],
+			})
 		}
 		controls.addEventListener("change", render)
 		// The textures decode after the first render, and the canvas renders
@@ -206,7 +193,6 @@
 			controls.removeEventListener("change", render)
 			controls.dispose()
 			disposeModelObject(modelObject)
-			disposeAxisIndicator(axisIndicator.axes)
 			renderer.dispose()
 			// Each canvas keeps its WebGL context until the browser collects it,
 			// and browsers allow only a few at a time.
@@ -244,120 +230,6 @@
 		return new OBJLoader(loadingManager)
 			.setMaterials(materials)
 			.parse(renderedModel.mesh)
-	}
-
-	// createAxisIndicator builds the X, Y, and Z axes of the model as short
-	// rods with labels, colored red, green, and blue as in 3D tools. A ball
-	// marks the positive end and a faint, shorter rod the negative end, so
-	// that an axis that points at the camera still shows as a dot.
-	function createAxisIndicator(labelFontFamily: string): {
-		scene: Scene
-		camera: OrthographicCamera
-		axes: Group
-		labels: { sprite: Sprite; direction: Vector3 }[]
-	} {
-		const scene = new Scene(),
-			camera = new OrthographicCamera(-1.5, 1.5, 1.5, -1.5, 0, 4),
-			axes = new Group(),
-			labels: { sprite: Sprite; direction: Vector3 }[] = [],
-			cylinderAxis = new Vector3(0, 1, 0)
-		camera.position.set(0, 0, 2)
-		scene.add(axes)
-		for (const axis of [
-			{ name: "X", color: "#e5484d", direction: new Vector3(1, 0, 0) },
-			{ name: "Y", color: "#46a758", direction: new Vector3(0, 1, 0) },
-			{ name: "Z", color: "#3e8ae6", direction: new Vector3(0, 0, 1) },
-		]) {
-			// A cylinder stands along the Y axis until it turns onto its axis.
-			const rod = new Mesh(
-					new CylinderGeometry(0.05, 0.05, 1, 8),
-					new MeshBasicMaterial({ color: axis.color }),
-				),
-				negativeRod = new Mesh(
-					new CylinderGeometry(0.035, 0.035, 0.6, 8),
-					new MeshBasicMaterial({
-						color: axis.color,
-						transparent: true,
-						opacity: 0.35,
-					}),
-				),
-				tip = new Mesh(
-					new SphereGeometry(0.11, 12, 8),
-					new MeshBasicMaterial({ color: axis.color }),
-				),
-				axisLabel = new Sprite(
-					new SpriteMaterial({
-						map: createAxisLabelTexture(
-							axis.name,
-							axis.color,
-							labelFontFamily,
-						),
-						depthTest: false,
-						transparent: true,
-					}),
-				)
-			rod.quaternion.setFromUnitVectors(cylinderAxis, axis.direction)
-			rod.position.copy(axis.direction).multiplyScalar(0.5)
-			negativeRod.quaternion.copy(rod.quaternion)
-			negativeRod.position.copy(axis.direction).multiplyScalar(-0.3)
-			tip.position.copy(axis.direction)
-			axisLabel.position.copy(axis.direction).multiplyScalar(1.35)
-			axisLabel.scale.setScalar(0.7)
-			axes.add(rod, negativeRod, tip, axisLabel)
-			labels.push({ sprite: axisLabel, direction: axis.direction })
-		}
-		return { scene, camera, axes, labels }
-	}
-
-	// fadeEdgeOnAxisLabels hides the label of an axis that points at or away
-	// from the camera, because it would sit on the center of the indicator.
-	function fadeEdgeOnAxisLabels(
-		axes: Group,
-		labels: { sprite: Sprite; direction: Vector3 }[],
-	): void {
-		const screenDirection = new Vector3()
-		for (const { sprite, direction } of labels) {
-			screenDirection.copy(direction).applyQuaternion(axes.quaternion)
-			sprite.material.opacity = MathUtils.smoothstep(
-				Math.hypot(screenDirection.x, screenDirection.y),
-				0.2,
-				0.5,
-			)
-		}
-	}
-
-	function createAxisLabelTexture(
-		axisName: string,
-		color: string,
-		fontFamily: string,
-	): CanvasTexture {
-		const labelCanvas = document.createElement("canvas")
-		labelCanvas.width = labelCanvas.height = 64
-		const context = labelCanvas.getContext("2d")
-		if (context) {
-			context.font = `600 44px ${fontFamily}`
-			context.fillStyle = color
-			context.textAlign = "center"
-			context.textBaseline = "middle"
-			context.fillText(axisName, 32, 34)
-		}
-		const texture = new CanvasTexture(labelCanvas)
-		texture.colorSpace = SRGBColorSpace
-		return texture
-	}
-
-	// disposeAxisIndicator leaves the geometry of the labels, which three.js
-	// shares among every sprite.
-	function disposeAxisIndicator(axes: Group): void {
-		for (const child of axes.children) {
-			if (child instanceof Mesh) {
-				child.geometry.dispose()
-				;(child.material as Material).dispose()
-			} else if (child instanceof Sprite) {
-				child.material.map?.dispose()
-				child.material.dispose()
-			}
-		}
 	}
 
 	function disposeModelObject(modelObject: Object3D): void {

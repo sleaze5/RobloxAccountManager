@@ -1,7 +1,7 @@
 <script lang="ts">
 	import cubeIcon from "@phosphor-icons/core/regular/cube.svg?raw"
 	import FrameUnavailable from "../shared/FrameUnavailable.svelte"
-	import type { ModelSubject } from "./model-subject"
+	import type { AnimationPlayback, ModelSubject } from "./model-subject"
 	import RenderedModelView from "./RenderedModelView.svelte"
 
 	// ModelFrame is the one 3D viewer of the application. It shows a subject
@@ -10,18 +10,21 @@
 	// the subject, such as "@builderman's avatar". isLoading is true while a
 	// part of a live subject downloads or builds. onLiveFailure lets the caller
 	// show a model that Roblox renders instead, when the live renderer cannot
-	// build the subject.
+	// build the subject. playback plays the animations of a live avatar, for
+	// the AnimationControls that the caller places next to the frame.
 	let {
 		accountId,
 		subject,
 		label,
 		isLoading = $bindable(false),
+		playback = $bindable(),
 		onLiveFailure,
 	}: {
 		accountId: number
 		subject: ModelSubject | null
 		label: string
 		isLoading?: boolean
+		playback?: AnimationPlayback
 		onLiveFailure?: () => void
 	} = $props()
 
@@ -51,6 +54,7 @@
 			{subject}
 			{label}
 			bind:isLoading
+			bind:playback
 			onFailure={onLiveFailure} />
 	{:catch}
 		<FrameUnavailable icon={cubeIcon} message="The 3D viewer couldn't start." />

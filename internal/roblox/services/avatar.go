@@ -398,21 +398,32 @@ func (service *Users) TryOnAvatar(ctx context.Context, accountID, version int64,
 	if !canTryOn(category) {
 		return Avatar{}, &roblox.Error{Kind: roblox.KindProtocol, Endpoint: endpoint, Message: "This item can't be tried on."}
 	}
+	return service.savedAvatarWearing(ctx, accountID, version, endpoint, category, assetID)
+}
+
+// savedAvatarWearing returns the saved avatar of the account with the asset
+// put on, such as an accessory or an animation.
+func (service *Users) savedAvatarWearing(ctx context.Context, accountID, version int64, endpoint string, category InventoryCategory, assetID int64) (Avatar, error) {
 	typeName, maxWornCount, err := service.wearableAssetTypeOf(ctx, accountID, version, endpoint, assetID)
 	if err != nil {
 		return Avatar{}, err
 	}
-	var current avatarPayload
-	if err := service.readAvatarDetails(ctx, accountID, version, endpoint, "https://avatar.roblox.com/v2/avatar/avatar", &current); err != nil {
-		return Avatar{}, err
-	}
-	avatar, err := avatarOf(current)
+	avatar, err := service.savedAvatar(ctx, accountID, version, endpoint)
 	if err != nil {
 		return Avatar{}, err
 	}
 	triedAsset := AvatarAsset{Category: category, Item: avatarItem(assetID, "", typeName)}
 	avatar.Assets = assetsWearing(avatar.Assets, triedAsset, maxWornCount)
 	return avatar, nil
+}
+
+// savedAvatar reads the avatar of the account itself, with its emotes.
+func (service *Users) savedAvatar(ctx context.Context, accountID, version int64, endpoint string) (Avatar, error) {
+	var current avatarPayload
+	if err := service.readAvatarDetails(ctx, accountID, version, endpoint, "https://avatar.roblox.com/v2/avatar/avatar", &current); err != nil {
+		return Avatar{}, err
+	}
+	return avatarOf(current)
 }
 
 // wearableAssetTypeOf reads the type name of the asset and how many assets of

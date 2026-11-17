@@ -45,8 +45,13 @@
 	import ImageViewToggle from "../shared/ImageViewToggle.svelte"
 	import type { ImageView } from "../shared/ImageViewToggle.svelte"
 	import ProfileImage from "../shared/ProfileImage.svelte"
+	import AnimationControls from "../model-viewer/AnimationControls.svelte"
 	import ModelFrame from "../model-viewer/ModelFrame.svelte"
-	import type { ModelSubject } from "../model-viewer/model-subject"
+	import type {
+		AnimationPlayback,
+		AnimationStart,
+		ModelSubject,
+	} from "../model-viewer/model-subject"
 	import Skeleton from "../shared/Skeleton.svelte"
 	import SkeletonTile from "../shared/SkeletonTile.svelte"
 	import Timestamp from "../shared/Timestamp.svelte"
@@ -118,7 +123,10 @@
 		isTryingOn = $state(false),
 		// The item whose model the 3D viewer could not build, which shows the
 		// model that Roblox renders instead.
-		failedLiveItemKey = $state("")
+		failedLiveItemKey = $state(""),
+		// The animations of the 3D view in the dialog and in the expanded view.
+		framePlayback = $state<AnimationPlayback>(),
+		expandedPlayback = $state<AnimationPlayback>()
 
 	const exactNumbers = new Intl.NumberFormat("en-US"),
 		percent = new Intl.NumberFormat("en-US", {
@@ -190,6 +198,14 @@
 		),
 		itemModel = $derived(inventory.itemModel.loadedFor(detailsKey)),
 		itemModelError = $derived(inventory.itemModel.errorFor(detailsKey)),
+		// An animation or an emote plays on the avatar that shows it.
+		itemStartAnimation = $derived<AnimationStart | undefined>(
+			category.id === InventoryCategory.InventoryEmotes
+				? { kind: "emote", emote: item }
+				: category.id === InventoryCategory.InventoryAnimations
+					? { kind: "animation", assetTypeName: item.typeName }
+					: undefined,
+		),
 		itemSubject = $derived<ModelSubject | null>(
 			isItemModelRendered
 				? {
@@ -199,7 +215,11 @@
 						onRetry: () => void inventory.loadItemModel(item, category.id),
 					}
 				: itemLook?.avatar
-					? { kind: "avatar", look: itemLook.avatar }
+					? {
+							kind: "avatar",
+							look: itemLook.avatar,
+							startAnimation: itemStartAnimation,
+						}
 					: itemLook
 						? { kind: "accessory", assetId: itemLook.accessoryAssetId }
 						: null,
@@ -362,7 +382,7 @@
 		}
 	}} />
 
-{#snippet imageFrame()}
+{#snippet imageFrame(isExpandedView: boolean)}
 	{#if isTryOnShown && isModelShown}
 		{#if tryOnAvatarError}
 			<FrameUnavailable
@@ -373,7 +393,14 @@
 			<ModelFrame
 				accountId={inventory.accountId}
 				subject={tryOnSubject}
-				label={tryOnLabel} />
+				label={tryOnLabel}
+				bind:playback={
+					() => (isExpandedView ? expandedPlayback : framePlayback),
+					(playback) => {
+						if (isExpandedView) expandedPlayback = playback
+						else framePlayback = playback
+					}
+				} />
 		{/if}
 	{:else if isTryOnShown}
 		{#if tryOnImageUrl}
@@ -401,6 +428,13 @@
 			accountId={inventory.accountId}
 			subject={itemSubject}
 			label={name}
+			bind:playback={
+				() => (isExpandedView ? expandedPlayback : framePlayback),
+				(playback) => {
+					if (isExpandedView) expandedPlayback = playback
+					else framePlayback = playback
+				}
+			}
 			onLiveFailure={() => (failedLiveItemKey = detailsKey)} />
 	{:else}
 		<span
@@ -433,6 +467,11 @@
 			onclick={() => (isExpanded = true)}>
 			<Icon svg={arrowsOutIcon} size={16} aria-hidden="true" />
 		</button>
+	{/if}
+	{#if isExpandedView && isModelShown && expandedPlayback}
+		<div class="min-w-0 flex-1">
+			<AnimationControls playback={expandedPlayback} isWide />
+		</div>
 	{/if}
 {/snippet}
 
@@ -561,11 +600,16 @@
 					<div
 						class="relative grid size-72 place-items-center overflow-hidden rounded-lg border border-line-subtle bg-raised"
 						aria-hidden={isModelShown || isTryOnShown ? undefined : true}>
-						{@render imageFrame()}
+						{@render imageFrame(false)}
 					</div>
 					<div class="flex items-center gap-2">
 						{@render imageControls(false)}
 					</div>
+					{#if isModelShown && framePlayback}
+						<div class="animate-enter">
+							<AnimationControls playback={framePlayback} />
+						</div>
+					{/if}
 				</div>
 
 				<div class="flex min-w-0 flex-1 flex-col gap-1">
@@ -1009,7 +1053,7 @@
 {#if isExpanded && !confirmation}
 	<ExpandedImageDialog label={name} onClose={() => (isExpanded = false)}>
 		{#snippet frame()}
-			{@render imageFrame()}
+			{@render imageFrame(true)}
 		{/snippet}
 		{#snippet controls()}
 			{@render imageControls(true)}

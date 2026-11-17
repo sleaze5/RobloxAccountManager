@@ -4,31 +4,37 @@
 	import FrameUnavailable from "../shared/FrameUnavailable.svelte"
 	import ModelViewerControls from "./ModelViewerControls.svelte"
 	import { orbitViewKeysDescription } from "./orbit-view-keys"
-	import { modelViewerScene } from "./model-viewer-scene.svelte"
+	import { modelViewerScene, viewerOverlays } from "./model-viewer-scene.svelte"
+	import ViewerAxes from "./ViewerAxes.svelte"
+	import ViewerCoordinates from "./ViewerCoordinates.svelte"
 	import {
 		applyLiveModelSceneSettings,
 		attachLiveModelView,
 		startLiveModelScene,
 	} from "./live-model-scene.svelte"
 	import type { LiveModelViewport } from "./live-model-scene.svelte"
-	import type { LiveModelSubject } from "./model-subject"
+	import type { AnimationPlayback, LiveModelSubject } from "./model-subject"
 
 	// LiveModelView fills its container with the subject, which the
 	// application builds itself, so that every change shows at once. label
 	// names the subject, such as "@builderman's avatar". isLoading is true
-	// while a part of the subject downloads or builds. When onFailure is set,
-	// a subject that cannot be built calls it instead of offering to try again.
+	// while a part of the subject downloads or builds. playback plays the
+	// animations of an avatar, and is undefined for an accessory. When
+	// onFailure is set, a subject that cannot be built calls it instead of
+	// offering to try again.
 	let {
 		accountId,
 		subject,
 		label,
 		isLoading = $bindable(false),
+		playback = $bindable(),
 		onFailure,
 	}: {
 		accountId: number
 		subject: LiveModelSubject
 		label: string
 		isLoading?: boolean
+		playback?: AnimationPlayback
 		onFailure?: () => void
 	} = $props()
 
@@ -85,6 +91,16 @@
 	})
 
 	$effect(() => {
+		playback =
+			viewport && subject.kind === "avatar" && viewport.hasShownSubject
+				? viewport
+				: undefined
+		return () => {
+			playback = undefined
+		}
+	})
+
+	$effect(() => {
 		if (viewport?.isFailed && onFailure) untrack(onFailure)
 	})
 </script>
@@ -98,7 +114,10 @@
 		bind:this={host}
 		class="relative size-full animate-pop overflow-hidden rounded-lg">
 	</div>
-	<span id={controlsDescriptionId} class="sr-only">{orbitViewKeysDescription}</span>
+	<span id={controlsDescriptionId} class="sr-only"
+		>{orbitViewKeysDescription}{subject.kind === "avatar"
+			? " Space plays or pauses the animation."
+			: ""}</span>
 	{#if viewport?.coveredFrameUrl}
 		<img
 			class="absolute inset-0 size-full object-contain"
@@ -118,6 +137,12 @@
 			<span class="sr-only">Loading the 3D model</span>
 		</span>
 	{:else if viewport && !viewport.coveredFrameUrl}
+		{#if viewport.cameraPose}
+			<ViewerAxes pose={viewport.cameraPose} />
+			{#if viewerOverlays.isCoordinatesShown}
+				<ViewerCoordinates pose={viewport.cameraPose} />
+			{/if}
+		{/if}
 		<ModelViewerControls onResetView={() => viewport?.resetView()} />
 	{/if}
 {/if}

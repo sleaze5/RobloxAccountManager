@@ -32,3 +32,7 @@ export const modelViewerScene = $state<ModelViewerScene>({
 export function resetModelViewerScene(): void {
 	Object.assign(modelViewerScene, defaultModelViewerScene)
 }
+
+// viewerOverlays chooses what every 3D viewer draws over its model for the
+// session.
+export const viewerOverlays = $state({ isCoordinatesShown: false })

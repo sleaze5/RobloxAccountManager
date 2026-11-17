@@ -10,6 +10,7 @@ import {
 } from "roavatar-renderer"
 import type { CFrame, Instance, Vector3 as RobloxVector3 } from "roavatar-renderer"
 import { AvatarType } from "../backend/bridge"
+import { reducedMotion } from "../shared/motion"
 import { moveOrbitViewByKey } from "./orbit-view-keys"
 import { defaultModelViewerScene, modelViewerScene } from "./model-viewer-scene.svelte"
 import type { ModelViewerScene } from "./model-viewer-scene.svelte"
@@ -19,7 +20,14 @@ import {
 	liveModelImageUrl,
 	setLiveModelAccount,
 } from "./live-model-files"
-import type { AvatarLook, LiveModelSubject } from "./model-subject"
+import type {
+	AnimationChoice,
+	AnimationPlayback,
+	AnimationStart,
+	AvatarLook,
+	CameraPose,
+	LiveModelSubject,
+} from "./model-subject"
 
 // CameraView is where the camera of a view stood when another view took the
 // canvas, so that the view returns to it.
@@ -33,7 +41,37 @@ interface CameraView {
 // Roblox places the thumbnail camera of an accessory for it too.
 const robloxFieldOfViewDegrees = 70,
 	keyLightDistance = 15,
-	maxCameraDistance = 200
+	maxCameraDistance = 200,
+	shadowResolutionPx = 2048,
+	// A frame after a long pause, such as while the window was hidden, moves
+	// an animation at most this far.
+	maxPlaybackStepSeconds = 0.1,
+	idleAnimationId = "idle"
+
+// The animations of an avatar animation set that the viewer offers, by the
+// name that the renderer gives them.
+const animationSetChoices: AnimationChoice[] = [
+	{ id: idleAnimationId, label: "Idle", isEmote: false },
+	{ id: "walk", label: "Walk", isEmote: false },
+	{ id: "run", label: "Run", isEmote: false },
+	{ id: "jump", label: "Jump", isEmote: false },
+	{ id: "fall", label: "Fall", isEmote: false },
+	{ id: "climb", label: "Climb", isEmote: false },
+	{ id: "swim", label: "Swim", isEmote: false },
+]
+
+// The animation of the set that shows an animation asset, by its asset type.
+// A mood plays on the face, which shows best while the avatar idles.
+const animationIdByAssetTypeName: Record<string, string> = {
+	IdleAnimation: idleAnimationId,
+	MoodAnimation: idleAnimationId,
+	WalkAnimation: "walk",
+	RunAnimation: "run",
+	JumpAnimation: "jump",
+	FallAnimation: "fall",
+	ClimbAnimation: "climb",
+	SwimAnimation: "swim",
+}
 
 // The renderer is one scene on one canvas for the whole application. Every
 // view of a 3D model shares it: the newest view shows the canvas, and a view
@@ -47,6 +85,8 @@ let rendererSetup: Promise<boolean> | undefined,
 	accessoryLoadNumber = 0,
 	hostResizeObserver: ResizeObserver | undefined,
 	isFramePending = false,
+	playbackFrameRequest = 0,
+	lastPlaybackFrameMs = 0,
 	// The base strengths of the lights, which the camera and lighting
 	// settings scale.
 	ambientLightIntensity = 0,
@@ -55,8 +95,9 @@ let rendererSetup: Promise<boolean> | undefined,
 const authentication = new Authentication()
 
 // LiveModelViewport is one view of the scene. It holds what the view shows,
-// and the state that the view draws around the canvas.
-export class LiveModelViewport {
+// the playback of its animations, and the state that the view draws around
+// the canvas.
+export class LiveModelViewport implements AnimationPlayback {
 	// Whether the renderer downloads or builds a part of the subject.
 	isLoading = $state(false)
 	// Whether the subject has been built since the view opened.
@@ -66,12 +107,23 @@ export class LiveModelViewport {
 	isFailed = $state(false)
 	// The last frame of the view, while another view shows the canvas.
 	coveredFrameUrl = $state("")
+	cameraPose = $state.raw<CameraPose | undefined>(undefined)
+	animationChoices = $state.raw<AnimationChoice[]>([])
+	animationId = $state(idleAnimationId)
+	isPlaying = $state(false)
+	isAnimationLoading = $state(false)
+	timeSeconds = $state(0)
+	lengthSeconds = $state(0)
+	speed = $state(1)
 	readonly host: HTMLElement
 	readonly canvasLabel: string
 	readonly descriptionId: string
 	accountId = 0
 	subject: LiveModelSubject | undefined
 	cameraView: CameraView | undefined
+	// The animation start of the subject that chose the animation, so that a
+	// changed draft keeps the animation that the user chose.
+	#appliedAnimationStart: AnimationStart | undefined
 
 	constructor(host: HTMLElement, canvasLabel: string, descriptionId: string) {
 		this.host = host
@@ -85,7 +137,59 @@ export class LiveModelViewport {
 	show(accountId: number, subject: LiveModelSubject): void {
 		this.accountId = accountId
 		this.subject = subject
+		if (subject.kind === "avatar") {
+			this.animationChoices = animationChoicesOf(
+				subject.look,
+				subject.startAnimation,
+			)
+			if (
+				!isSameAnimationStart(
+					subject.startAnimation,
+					this.#appliedAnimationStart,
+				)
+			) {
+				this.#appliedAnimationStart = subject.startAnimation
+				this.animationId = animationIdOf(subject.startAnimation)
+				this.timeSeconds = 0
+				// A preview plays what it shows, unless motion is reduced.
+				this.isPlaying = !!subject.startAnimation && !reducedMotion()
+			}
+		} else {
+			this.animationChoices = []
+			this.isPlaying = false
+		}
 		if (activeViewport() === this) showSubject(this)
+	}
+
+	chooseAnimation(animationId: string): void {
+		this.animationId = animationId
+		this.timeSeconds = 0
+		if (activeViewport() === this) void poseAvatar(this)
+	}
+
+	play(): void {
+		this.isPlaying = true
+		if (activeViewport() === this) startPlayback()
+	}
+
+	pause(): void {
+		this.isPlaying = false
+	}
+
+	// seek shows the animation at the time. A playing animation goes on from
+	// there.
+	seek(timeSeconds: number): void {
+		this.timeSeconds = timeSeconds
+		if (activeViewport() !== this || !outfitRenderer || this.isAnimationLoading) {
+			return
+		}
+		outfitRenderer.animateOnce(0, timeSeconds)
+		readAnimationTime(this)
+		requestFrame()
+	}
+
+	setSpeed(speed: number): void {
+		this.speed = speed
 	}
 
 	// retry builds the subject again after it failed.
@@ -229,8 +333,9 @@ function showOutfit(outfit: Outfit): void {
 	const createdRenderer = new OutfitRenderer(authentication, outfit)
 	createdRenderer.onSuccess.Connect(() => {
 		const viewport = activeViewport()
-		if (viewport) viewport.hasShownSubject = true
-		void poseAvatar(createdRenderer)
+		if (!viewport) return
+		viewport.hasShownSubject = true
+		void poseAvatar(viewport)
 		requestFrame()
 	})
 	createdRenderer.onError.Connect(() => {
@@ -241,13 +346,105 @@ function showOutfit(outfit: Outfit): void {
 	outfitRenderer = createdRenderer
 }
 
-// poseAvatar puts the avatar in the first frame of its idle animation, which
-// is the pose of the Roblox avatar editor. Without it, the rig stands in its
-// bind pose. The animation does not run, so the canvas draws only on changes.
-async function poseAvatar(posedRenderer: OutfitRenderer): Promise<void> {
-	await posedRenderer.setMainAnimation("idle:0")
-	posedRenderer.animateOnce(0)
+// poseAvatar loads the chosen animation of the view and shows it at the time
+// of the view, then plays it when the view plays. Without an animation, the
+// rig stands in its bind pose. The first variant of the idle animation is the
+// pose of the Roblox avatar editor.
+async function poseAvatar(viewport: LiveModelViewport): Promise<void> {
+	const posedRenderer = outfitRenderer
+	if (!posedRenderer) return
+	const animationId = viewport.animationId
+	viewport.isAnimationLoading = true
+	await posedRenderer.setMainAnimation(
+		animationId === idleAnimationId ? `${idleAnimationId}:0` : animationId,
+	)
+	if (
+		posedRenderer !== outfitRenderer ||
+		activeViewport() !== viewport ||
+		animationId !== viewport.animationId
+	) {
+		return
+	}
+	viewport.isAnimationLoading = false
+	posedRenderer.animateOnce(0, viewport.timeSeconds)
+	readAnimationTime(viewport)
+	if (viewport.isPlaying) startPlayback()
 	requestFrame()
+}
+
+// startPlayback draws a frame on every animation frame while the active view
+// plays, and stops when it pauses. Only playback draws continuously.
+function startPlayback(): void {
+	if (playbackFrameRequest) return
+	lastPlaybackFrameMs = performance.now()
+	playbackFrameRequest = requestAnimationFrame(playNextFrame)
+}
+
+function playNextFrame(frameMs: number): void {
+	playbackFrameRequest = 0
+	const viewport = activeViewport()
+	if (!viewport?.isPlaying || !outfitRenderer || viewport.isAnimationLoading) {
+		return
+	}
+	const elapsedSeconds = Math.min(
+		(frameMs - lastPlaybackFrameMs) / 1000,
+		maxPlaybackStepSeconds,
+	)
+	lastPlaybackFrameMs = frameMs
+	outfitRenderer.animateOnce(elapsedSeconds * viewport.speed)
+	readAnimationTime(viewport)
+	drawFrame()
+	playbackFrameRequest = requestAnimationFrame(playNextFrame)
+}
+
+function readAnimationTime(viewport: LiveModelViewport): void {
+	const track = outfitRenderer?.animatorW?.data.currentAnimationTrack
+	viewport.timeSeconds = track?.timePosition ?? 0
+	viewport.lengthSeconds = track?.length ?? 0
+}
+
+// animationChoicesOf lists the animation set and the emotes of the look. The
+// emote that a preview starts with comes first among the emotes.
+function animationChoicesOf(
+	look: AvatarLook,
+	startAnimation: AnimationStart | undefined,
+): AnimationChoice[] {
+	const emotes = [...(look.emotes ?? [])]
+			.sort((first, second) => first.slot - second.slot)
+			.map((emote) => emote.item),
+		startEmote =
+			startAnimation?.kind === "emote" ? startAnimation.emote : undefined,
+		listedEmotes = startEmote
+			? [
+					startEmote,
+					...emotes.filter((emote) => emote.itemId !== startEmote.itemId),
+				]
+			: emotes
+	return [
+		...animationSetChoices,
+		...listedEmotes.map((emote) => ({
+			id: `emote.${emote.itemId}`,
+			label: emote.name || `Emote ${emote.itemId}`,
+			isEmote: true,
+		})),
+	]
+}
+
+function animationIdOf(startAnimation: AnimationStart | undefined): string {
+	if (startAnimation?.kind === "emote") return `emote.${startAnimation.emote.itemId}`
+	if (startAnimation?.kind === "animation") {
+		return (
+			animationIdByAssetTypeName[startAnimation.assetTypeName] ?? idleAnimationId
+		)
+	}
+	return idleAnimationId
+}
+
+function isSameAnimationStart(
+	first: AnimationStart | undefined,
+	second: AnimationStart | undefined,
+): boolean {
+	return animationIdOf(first) === animationIdOf(second) && !!first === !!second
 }
 
 // showAccessory downloads the accessory as a mesh part, the form in which an
@@ -395,7 +592,7 @@ function restoreCameraView(cameraView: CameraView): void {
 function captureFrame(): string {
 	const canvas = RBXRenderer.getRendererDom()
 	if (!canvas) return ""
-	RBXRenderer.animateAll(false)
+	drawFrame()
 	return canvas.toDataURL("image/png")
 }
 
@@ -408,16 +605,25 @@ async function setUpRenderer(): Promise<boolean> {
 	// The backend already repeats a failed download.
 	FLAGS.API_REQUEST_RETRY = false
 	FLAGS.AUDIO_ENABLED = false
+	// Ambient occlusion shades the creases of the avatar, SMAA smooths its
+	// edges, and bloom lets neon parts glow. The renderer draws only on
+	// changes, so the passes cost nothing while the view stands still.
+	FLAGS.USE_POST_PROCESSING = true
 	RBXRenderer.createLoadingIcon = false
-	const canvas = document.createElement("canvas")
+	RBXRenderer.firstScene.shadowResolution = [shadowResolutionPx, shadowResolutionPx]
+	const canvas = document.createElement("canvas"),
+		// The scene is opaque in the color of the content plane, because the
+		// ambient occlusion pass needs a background behind the avatar.
+		backgroundColor = getComputedStyle(document.documentElement)
+			.getPropertyValue("--color-canvas")
+			.trim()
 	try {
 		await loadDracoDecoder()
 		RBXRenderer.createContainer()
 		await RBXRenderer.boilerplateSetup()
 		RBXRenderer.create(canvas)
-		RBXRenderer.setupScene()
+		RBXRenderer.setupScene("WellLit", backgroundColor)
 		RBXRenderer.setupControls()
-		RBXRenderer.setBackgroundTransparent(true)
 	} catch {
 		// WebGL 2 is unavailable, such as on a computer without a usable GPU
 		// driver, or the decoder did not load.
@@ -433,6 +639,13 @@ async function setUpRenderer(): Promise<boolean> {
 		controls.maxDistance = maxCameraDistance
 		controls.addEventListener("change", requestFrame)
 		canvas.addEventListener("keydown", (event) => {
+			const viewport = activeViewport()
+			if (event.key === " " && viewport && viewport.animationChoices.length > 0) {
+				event.preventDefault()
+				if (viewport.isPlaying) viewport.pause()
+				else viewport.play()
+				return
+			}
 			const isViewMoved = moveOrbitViewByKey(event, camera, controls, () =>
 				activeViewport()?.resetView(),
 			)
@@ -465,15 +678,33 @@ function loadDracoDecoder(): Promise<void> {
 }
 
 // requestFrame draws one frame on the next animation frame. The canvas draws
-// only when the subject or the view changes.
+// only when the subject or the view changes, or while an animation plays.
 function requestFrame(): void {
-	if (isFramePending || viewports.length === 0) return
+	if (isFramePending || playbackFrameRequest || viewports.length === 0) return
 	isFramePending = true
 	requestAnimationFrame(() => {
 		isFramePending = false
-		placeKeyLight(modelViewerScene)
-		RBXRenderer.animateAll(false)
+		drawFrame()
 	})
+}
+
+function drawFrame(): void {
+	placeKeyLight(modelViewerScene)
+	RBXRenderer.animateAll(false)
+	const viewport = activeViewport(),
+		camera = RBXRenderer.firstScene.camera,
+		controls = RBXRenderer.getRendererControls()
+	if (!viewport || !controls) return
+	viewport.cameraPose = {
+		position: [camera.position.x, camera.position.y, camera.position.z],
+		target: [controls.target.x, controls.target.y, controls.target.z],
+		orientation: [
+			camera.quaternion.x,
+			camera.quaternion.y,
+			camera.quaternion.z,
+			camera.quaternion.w,
+		],
+	}
 }
 
 // placeKeyLight keeps the key light at its angle to the view, as in the other
