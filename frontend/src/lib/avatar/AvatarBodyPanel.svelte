@@ -80,8 +80,17 @@
 		)
 	}
 
+	// setColor keeps the draft when every selected part already has the color,
+	// so that applying it again adds no step to the history.
 	function setColor(hexColor: string): void {
 		avatar.changeDraft((current) => {
+			if (
+				[...selectedParts].every(
+					(part) => current.bodyColors[part] === hexColor,
+				)
+			) {
+				return current
+			}
 			const bodyColors = { ...current.bodyColors }
 			for (const part of selectedParts) bodyColors[part] = hexColor
 			return { ...current, bodyColors }
