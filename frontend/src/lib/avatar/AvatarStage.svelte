@@ -27,17 +27,31 @@
 				? avatar.previewImageUrl
 				: imageUrl,
 		),
+		// The 3D view shows the model of the draft while the draft has changes,
+		// and the saved model until the first preview model loads.
+		shownModel = $derived(
+			(avatar.isChanged ? avatar.previewModel.loaded : null) ??
+				avatar.model.loaded,
+		),
+		isPreviewShown = $derived(
+			view === "3D" ? avatar.isPreviewModelCurrent : avatar.isPreviewCurrent,
+		),
+		previewError = $derived(
+			view === "3D" ? avatar.previewModel.error : avatar.previewError,
+		),
 		savedType = $derived(avatar.avatar?.avatarType ?? ""),
 		draftType = $derived(avatar.draft?.avatarType ?? ""),
-		shownType = $derived(avatar.isPreviewCurrent ? draftType : savedType),
+		shownType = $derived(isPreviewShown ? draftType : savedType),
 		busyLabel = $derived(
 			avatar.isRenderingImage
 				? "Rendering…"
 				: view === "2D" && avatar.isRenderingPreview
 					? "Previewing…"
-					: view === "3D" && avatar.model.isLoading && avatar.model.loaded
-						? "Loading…"
-						: "",
+					: view === "3D" && avatar.previewModel.isLoading
+						? "Previewing…"
+						: view === "3D" && avatar.model.isLoading && avatar.model.loaded
+							? "Loading…"
+							: "",
 		),
 		canRedraw = $derived(
 			!!avatar.avatar &&
@@ -57,15 +71,16 @@
 		})
 	})
 
-	// The 2D view previews the unsaved draft.
+	// The shown view previews the unsaved draft: the 2D view as a full-body
+	// image, and the 3D view as a model.
 	$effect(() => {
-		const shouldPreview =
-			view === "2D" && avatar.isEditable && avatar.isChanged && !!avatar.draft
+		const isModelPreview = view === "3D",
+			shouldPreview = avatar.isEditable && avatar.isChanged && !!avatar.draft
 		if (!shouldPreview) return
-		const previewTimer = setTimeout(
-			() => void avatar.renderPreview(),
-			previewDelayMs,
-		)
+		const previewTimer = setTimeout(() => {
+			if (isModelPreview) void avatar.loadPreviewModel()
+			else void avatar.renderPreview()
+		}, previewDelayMs)
 		return () => clearTimeout(previewTimer)
 	})
 </script>
@@ -73,7 +88,7 @@
 {#snippet imageFrame()}
 	{#if view === "3D"}
 		<RenderedModelView
-			model={avatar.model.loaded}
+			model={shownModel}
 			error={avatar.model.error}
 			{label}
 			onRetry={() => void avatar.loadModel(imageUrl)} />
@@ -154,14 +169,10 @@
 
 	{#if avatar.isEditable && avatar.isChanged}
 		<p class="animate-enter notice-note" role="status">
-			{#if view === "3D"}
-				The model shows the saved avatar{savedType !== draftType
-					? ` as ${savedType}`
-					: ""}. Save to see your changes.
-			{:else if avatar.isPreviewCurrent}
-				The image is a preview. Save to keep your changes.
-			{:else if avatar.previewError}
-				The image shows the saved avatar. {avatar.previewError}
+			{#if isPreviewShown}
+				The {view === "3D" ? "model" : "image"} is a preview. Save to keep your changes.
+			{:else if previewError}
+				The {view === "3D" ? "model" : "image"} shows the saved avatar. {previewError}
 			{:else}
 				Updating the preview…
 			{/if}

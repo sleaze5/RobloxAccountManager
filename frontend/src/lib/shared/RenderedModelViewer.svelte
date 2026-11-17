@@ -37,9 +37,20 @@
 		onerror,
 	}: { model: RenderedModel; label: string; onerror: () => void } = $props()
 
+	// ModelFraming is where the camera starts for a model, and how near and far
+	// it may move.
+	interface ModelFraming {
+		center: Vector3
+		initialCameraPosition: Vector3
+		minimumDistance: number
+		maximumDistance: number
+	}
+
 	let canvas = $state<HTMLCanvasElement>()
 	// applyScene changes the camera and the lights of the built scene.
 	let applyScene: ((sceneSettings: RenderedModelScene) => void) | undefined
+	// showModel puts a model in the built scene in place of the shown one.
+	let showModel: ((nextModel: RenderedModel) => void) | undefined
 
 	const controlsDescriptionId = $props.id(),
 		axisIndicatorSizePx = 56,
@@ -66,64 +77,40 @@
 		// The axis indicator renders over the model in a second pass, so the
 		// canvas clears once per frame instead of before each pass.
 		renderer.autoClear = false
-		let isDisposed = false
+		let isDisposed = false,
+			requestedModel: RenderedModel | undefined,
+			// The model that waits for its textures before it replaces the shown
+			// one.
+			pendingModelObject: Object3D | undefined,
+			shownModelObject: Object3D | undefined,
+			shownModelFraming: ModelFraming | undefined
 		const initialScene = untrack(() => ({ ...renderedModelScene })),
-			loadingManager = new LoadingManager(),
 			scene = new Scene(),
-			modelObject = parseModelObject(model, loadingManager),
-			center = new Vector3(
-				(model.bounds.minimum.x + model.bounds.maximum.x) / 2,
-				(model.bounds.minimum.y + model.bounds.maximum.y) / 2,
-				(model.bounds.minimum.z + model.bounds.maximum.z) / 2,
-			),
-			boundsSize = new Vector3(
-				model.bounds.maximum.x - model.bounds.minimum.x,
-				model.bounds.maximum.y - model.bounds.minimum.y,
-				model.bounds.maximum.z - model.bounds.minimum.z,
-			).length(),
 			camera = new PerspectiveCamera(
 				initialScene.fieldOfViewDegrees,
 				1,
 				0.1,
 				1000,
 			),
-			// Roblox places the camera for its own field of view, so the camera
-			// moves to keep the model framed at the chosen one.
-			framingScale =
-				Math.tan(MathUtils.degToRad(model.camera.fieldOfViewDegrees) / 2) /
-				Math.tan(MathUtils.degToRad(initialScene.fieldOfViewDegrees) / 2),
-			initialCameraPosition = new Vector3(
-				model.camera.position.x,
-				model.camera.position.y,
-				model.camera.position.z,
-			)
-				.sub(center)
-				.multiplyScalar(framingScale)
-				.add(center),
-			initialDistance = initialCameraPosition.distanceTo(center),
 			keyLight = new DirectionalLight(0xffffff, keyLightIntensity),
 			ambientLight = new AmbientLight(0xffffff, ambientLightIntensity)
-		scene.add(modelObject)
 		scene.add(ambientLight)
 		// The light and its target move with the camera, so that the light angle
-		// stays relative to the view.
-		keyLight.target.position.set(0, 0, -initialDistance)
+		// stays relative to the view. A directional light shines from its
+		// position toward its target, so only their direction matters.
+		keyLight.target.position.set(0, 0, -1)
 		camera.add(keyLight, keyLight.target)
 		scene.add(camera)
-		camera.position.copy(initialCameraPosition)
 
 		const controls = new OrbitControls(camera, canvas)
-		controls.target.copy(center)
 		// OrbitControls moves the view while Control, Command, or Shift is held
 		// during a drag, and on a right drag.
 		controls.enablePan = true
-		controls.minDistance = Math.min(boundsSize * 0.3, initialDistance)
-		controls.maxDistance = Math.max(initialDistance * 3, controls.minDistance)
 
 		const axisIndicator = createAxisIndicator(getComputedStyle(canvas).fontFamily),
 			canvasSize = new Vector2()
 		const render = (): void => {
-			if (isDisposed) return
+			if (isDisposed || !shownModelObject) return
 			renderer.clear()
 			renderer.render(scene, camera)
 			// The indicator turns opposite to the camera, so that each axis
@@ -142,10 +129,63 @@
 			renderer.setViewport(0, 0, canvasSize.x, canvasSize.y)
 		}
 		controls.addEventListener("change", render)
-		// The textures decode after the first render, and the canvas renders
-		// only when the view changes.
-		loadingManager.onLoad = render
-		controls.update()
+
+		// placeModelObject puts the model in the scene in place of the shown one.
+		// The first model starts at the camera that Roblox chose. A later model
+		// keeps the view and follows the center of the model, because a page
+		// replaces a model only with another look of the same subject, such as
+		// the avatar after a change.
+		const placeModelObject = (
+			modelObject: Object3D,
+			modelFraming: ModelFraming,
+		): void => {
+			if (shownModelObject) {
+				scene.remove(shownModelObject)
+				disposeModelObject(shownModelObject)
+			}
+			scene.add(modelObject)
+			shownModelObject = modelObject
+			if (shownModelFraming) {
+				const centerShift = modelFraming.center
+					.clone()
+					.sub(shownModelFraming.center)
+				camera.position.add(centerShift)
+				controls.target.add(centerShift)
+			} else {
+				camera.position.copy(modelFraming.initialCameraPosition)
+				controls.target.copy(modelFraming.center)
+			}
+			shownModelFraming = modelFraming
+			controls.minDistance = modelFraming.minimumDistance
+			controls.maxDistance = modelFraming.maximumDistance
+			controls.update()
+			render()
+		}
+
+		// The model replaces the shown one once its textures decode, so that
+		// the view never shows it without them. A model without textures
+		// starts no load, so it replaces the shown one at once.
+		showModel = (nextModel) => {
+			if (nextModel === requestedModel) return
+			requestedModel = nextModel
+			if (pendingModelObject) disposeModelObject(pendingModelObject)
+			const loadingManager = new LoadingManager()
+			let hasTextures = false
+			loadingManager.onStart = () => {
+				hasTextures = true
+			}
+			const modelObject = parseModelObject(nextModel, loadingManager),
+				modelFraming = framingOf(nextModel, camera.fov),
+				placeDecodedModelObject = (): void => {
+					if (isDisposed || pendingModelObject !== modelObject) return
+					pendingModelObject = undefined
+					placeModelObject(modelObject, modelFraming)
+				}
+			pendingModelObject = modelObject
+			loadingManager.onLoad = placeDecodedModelObject
+			if (!hasTextures) placeDecodedModelObject()
+		}
+		showModel(untrack(() => model))
 
 		applyScene = (sceneSettings) => {
 			camera.fov = sceneSettings.fieldOfViewDegrees
@@ -158,15 +198,12 @@
 				lightAngleYRadians = MathUtils.degToRad(
 					sceneSettings.lightAngleYDegrees,
 				)
-			// The light sits on a sphere around its target, which lies at the
-			// model in front of the camera.
+			// The light sits on a sphere around its target, which lies in front
+			// of the camera.
 			keyLight.position.set(
-				Math.sin(lightAngleXRadians) *
-					Math.cos(lightAngleYRadians) *
-					initialDistance,
-				Math.sin(lightAngleYRadians) * initialDistance,
-				(Math.cos(lightAngleXRadians) * Math.cos(lightAngleYRadians) - 1) *
-					initialDistance,
+				Math.sin(lightAngleXRadians) * Math.cos(lightAngleYRadians),
+				Math.sin(lightAngleYRadians),
+				Math.cos(lightAngleXRadians) * Math.cos(lightAngleYRadians) - 1,
 			)
 			render()
 		}
@@ -232,8 +269,9 @@
 					zoomCamera(zoomStepFactor)
 					break
 				case "Home":
-					camera.position.copy(initialCameraPosition)
-					controls.target.copy(center)
+					if (!shownModelFraming) return
+					camera.position.copy(shownModelFraming.initialCameraPosition)
+					controls.target.copy(shownModelFraming.center)
 					controls.update()
 					break
 				default:
@@ -245,12 +283,13 @@
 
 		return () => {
 			isDisposed = true
-			applyScene = undefined
+			applyScene = showModel = undefined
 			canvas?.removeEventListener("keydown", handleKeydown)
 			resizeObserver.disconnect()
 			controls.removeEventListener("change", render)
 			controls.dispose()
-			disposeModelObject(modelObject)
+			if (pendingModelObject) disposeModelObject(pendingModelObject)
+			if (shownModelObject) disposeModelObject(shownModelObject)
 			disposeAxisIndicator(axisIndicator.axes)
 			renderer.dispose()
 			// Each canvas keeps its WebGL context until the browser collects it,
@@ -259,11 +298,57 @@
 		}
 	})
 
+	// A model that replaces the shown one goes into the built scene.
+	$effect(() => {
+		const nextModel = model
+		untrack(() => showModel?.(nextModel))
+	})
+
 	// The scene follows the camera and lighting controls without rebuilding.
 	$effect(() => {
 		const sceneSettings = { ...renderedModelScene }
 		applyScene?.(sceneSettings)
 	})
+
+	// framingOf places the camera where Roblox placed it for the model. Roblox
+	// places the camera for its own field of view, so the camera moves to keep
+	// the model framed at the viewer's.
+	function framingOf(
+		renderedModel: RenderedModel,
+		fieldOfViewDegrees: number,
+	): ModelFraming {
+		const { minimum, maximum } = renderedModel.bounds,
+			center = new Vector3(
+				(minimum.x + maximum.x) / 2,
+				(minimum.y + maximum.y) / 2,
+				(minimum.z + maximum.z) / 2,
+			),
+			boundsSize = new Vector3(
+				maximum.x - minimum.x,
+				maximum.y - minimum.y,
+				maximum.z - minimum.z,
+			).length(),
+			framingScale =
+				Math.tan(
+					MathUtils.degToRad(renderedModel.camera.fieldOfViewDegrees) / 2,
+				) / Math.tan(MathUtils.degToRad(fieldOfViewDegrees) / 2),
+			initialCameraPosition = new Vector3(
+				renderedModel.camera.position.x,
+				renderedModel.camera.position.y,
+				renderedModel.camera.position.z,
+			)
+				.sub(center)
+				.multiplyScalar(framingScale)
+				.add(center),
+			initialDistance = initialCameraPosition.distanceTo(center),
+			minimumDistance = Math.min(boundsSize * 0.3, initialDistance)
+		return {
+			center,
+			initialCameraPosition,
+			minimumDistance,
+			maximumDistance: Math.max(initialDistance * 3, minimumDistance),
+		}
+	}
 
 	// parseModelObject builds the meshes of the model. The MTL names each
 	// texture by its file hash, which the loading manager resolves to the data

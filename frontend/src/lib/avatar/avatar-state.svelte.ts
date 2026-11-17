@@ -82,6 +82,10 @@ export class AvatarState {
 	// full-body image that it matches, because Roblox renders both from the
 	// same avatar.
 	readonly model: KeyedLoad<RenderedModel>
+	// The 3D avatar of the draft, which Roblox renders without saving the
+	// draft. Its key is the change that it shows, and it stays while the model
+	// of a newer draft renders.
+	readonly previewModel: KeyedLoad<RenderedModel>
 	outfits = $state.raw<AvatarOutfit[] | null>(null)
 	outfitsNextCursor = $state("")
 	outfitsLoading = $state(false)
@@ -106,6 +110,13 @@ export class AvatarState {
 	#previewRequest: ReturnType<typeof accountBackend.RenderAvatarPreview> | null = null
 	#loadRequest: ReturnType<typeof accountBackend.GetAvatar> | null = null
 	#outfitsRequest: ReturnType<typeof accountBackend.GetAvatarOutfits> | null = null
+	// The change that a save of the draft would write, which names the 3D
+	// preview of the draft.
+	#draftChangeKey = $derived(
+		this.draft && this.avatar
+			? JSON.stringify(avatarChangeOf(this.draft, this.avatar))
+			: "",
+	)
 	// The key of the last draft change. A change with the same key continues
 	// it, so that dragging a slider is one step in the history.
 	#lastChangeKey = ""
@@ -118,6 +129,7 @@ export class AvatarState {
 	) {
 		this.#scope = new AccountScope(accountId, store)
 		this.model = new KeyedLoad(this.#scope)
+		this.previewModel = new KeyedLoad(this.#scope)
 		this.#accounts = store
 		this.#notifications = notifications
 		this.userId = userId
@@ -143,6 +155,15 @@ export class AvatarState {
 			this.isChanged &&
 			!!this.previewImageUrl &&
 			this.#previewDraft === this.draft
+		)
+	}
+
+	// Whether previewModel shows the current draft.
+	get isPreviewModelCurrent(): boolean {
+		return (
+			this.isChanged &&
+			!!this.previewModel.loaded &&
+			this.previewModel.loadedKey === this.#draftChangeKey
 		)
 	}
 
@@ -576,6 +597,20 @@ export class AvatarState {
 		)
 	}
 
+	// loadPreviewModel asks Roblox to render the draft as a 3D model without
+	// saving it, unless the model of the draft is already loaded or loading.
+	async loadPreviewModel(): Promise<void> {
+		const draft = this.draft,
+			savedAvatar = this.avatar
+		if (!this.isEditable || !draft || !savedAvatar || !this.isChanged) return
+		const change = avatarChangeOf(draft, savedAvatar)
+		await this.previewModel.load(
+			this.#draftChangeKey,
+			() => accountBackend.GetAvatarPreviewModel(this.#scope.accountId, change),
+			"Could not preview the changes in 3D. Save to see them.",
+		)
+	}
+
 	dispose(): void {
 		this.#loadRequest = this.#outfitsRequest = this.#previewRequest = null
 		this.#scope.dispose()
@@ -649,6 +684,7 @@ export class AvatarState {
 		this.#previewRequest = this.#previewDraft = this.#renderingPreviewDraft = null
 		this.previewImageUrl = this.previewError = ""
 		this.isRenderingPreview = false
+		this.previewModel.clear()
 	}
 
 	// #showChangedAvatar also shows the new image in the account list. Roblox

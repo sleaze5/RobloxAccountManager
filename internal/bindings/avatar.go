@@ -42,6 +42,13 @@ func (service *Service) RenderAvatarPreview(ctx context.Context, accountID int64
 	return service.core.RenderAvatarPreview(ctx, accountID, change)
 }
 
+func (service *Service) GetAvatarPreviewModel(ctx context.Context, accountID int64, change robloxservices.AvatarChange) (robloxservices.RenderedModel, error) {
+	if err := positiveID(accountID, "avatar-preview-model"); err != nil {
+		return robloxservices.RenderedModel{}, err
+	}
+	return service.core.GetAvatarPreviewModel(ctx, accountID, change)
+}
+
 func (service *Service) RedrawAvatarImage(ctx context.Context, accountID int64) error {
 	if err := positiveID(accountID, "avatar-redraw"); err != nil {
 		return err

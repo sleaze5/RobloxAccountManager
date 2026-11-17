@@ -32,6 +32,14 @@ export class KeyedLoad<Loaded> {
 		return this.requestedKey === key ? this.error : ""
 	}
 
+	// clear cancels the running load and forgets what is loaded.
+	clear(): void {
+		void this.#request?.cancel()
+		this.#request = this.loaded = null
+		this.loadedKey = this.requestedKey = this.error = ""
+		this.isLoading = false
+	}
+
 	// load reads what key names, unless it is already loaded or loading. A
 	// failed read loads again on the next call. The empty key of a new load
 	// matches nothing, so its first call always reads.

@@ -195,6 +195,14 @@ func (service *Service) RenderAvatarPreview(ctx context.Context, accountID int64
 	return service.renderAvatarPreview(ctx, accountID, version, "avatar-preview", change)
 }
 
+// GetAvatarPreviewModel renders the change as a 3D model without saving it,
+// so that the page can show unsaved changes in 3D.
+func (service *Service) GetAvatarPreviewModel(ctx context.Context, accountID int64, change robloxservices.AvatarChange) (robloxservices.RenderedModel, error) {
+	return service.readRenderedModel(ctx, accountID, "avatar-preview-model", func(ctx context.Context, version int64) (string, error) {
+		return service.users.RenderAvatarPreview(ctx, accountID, version, change, robloxservices.AvatarPreviewModel)
+	})
+}
+
 // TryOnInventoryItem renders the avatar of the account wearing the item,
 // without saving it.
 func (service *Service) TryOnInventoryItem(ctx context.Context, accountID int64, category robloxservices.InventoryCategory, itemID int64) (string, error) {

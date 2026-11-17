@@ -28,12 +28,13 @@
 
 	const sceneControlsId = $props.id()
 
-	// three.js is large, so the viewer loads only when a model is shown.
-	const viewerImport = $derived(
-		model && !isWebGLUnavailable
-			? import("./RenderedModelViewer.svelte")
-			: undefined,
-	)
+	// three.js is large, so the viewer loads only when a model is shown. The
+	// import depends only on whether a model is shown, so that a model that
+	// replaces the shown one keeps the viewer.
+	const isViewerShown = $derived(!!model && !isWebGLUnavailable),
+		viewerImport = $derived(
+			isViewerShown ? import("./RenderedModelViewer.svelte") : undefined,
+		)
 
 	async function closeSceneControls(): Promise<void> {
 		isSceneControlsOpen = false
@@ -48,12 +49,10 @@
 		message="3D needs graphics acceleration, which isn't available on this computer." />
 {:else if model && viewerImport}
 	{#await viewerImport then { default: RenderedModelViewer }}
-		{#key model}
-			<RenderedModelViewer
-				{model}
-				{label}
-				onerror={() => (isWebGLUnavailable = true)} />
-		{/key}
+		<RenderedModelViewer
+			{model}
+			{label}
+			onerror={() => (isWebGLUnavailable = true)} />
 		<button
 			bind:this={sceneButton}
 			class="absolute top-2 right-2 z-10 button-icon bg-overlay"
