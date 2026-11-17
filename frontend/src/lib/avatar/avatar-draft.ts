@@ -8,7 +8,6 @@ import type {
 	AvatarEmote,
 	AvatarScales,
 	AvatarType,
-	InventoryCategory,
 	AvatarVector,
 	InventoryItem,
 } from "../backend/bridge"
@@ -247,13 +246,12 @@ export function isWornInDraft(draft: AvatarDraft, assetId: number): boolean {
 // that the avatar wore first, as the Roblox avatar editor does.
 export function wearItem(
 	draft: AvatarDraft,
-	item: InventoryItem,
-	category: InventoryCategory,
+	wornAsset: AvatarAsset,
 	maxWornCount: number,
 ): AvatarDraft {
-	if (isWornInDraft(draft, item.itemId) || maxWornCount < 1) return draft
+	if (isWornInDraft(draft, wornAsset.item.itemId) || maxWornCount < 1) return draft
 	const sameTypeAssets = draft.assets.filter(
-			(asset) => asset.item.typeName === item.typeName,
+			(asset) => asset.item.typeName === wornAsset.item.typeName,
 		),
 		replacedAssets = sameTypeAssets.slice(
 			0,
@@ -263,7 +261,7 @@ export function wearItem(
 		...draft,
 		assets: [
 			...draft.assets.filter((asset) => !replacedAssets.includes(asset)),
-			{ category, item, adjustment: null, layer: null },
+			wornAsset,
 		],
 	}
 }
