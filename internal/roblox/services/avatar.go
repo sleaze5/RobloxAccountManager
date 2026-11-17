@@ -563,7 +563,7 @@ func (service *Users) avatarUpdateAssetsOf(ctx context.Context, accountID, versi
 }
 
 func adjustedAccessoryTakenOffError(endpoint string) error {
-	return &roblox.Error{Kind: roblox.KindProtocol, Endpoint: endpoint, Message: "An adjusted accessory was taken off in Roblox since the avatar loaded. Discard your changes, then adjust it again."}
+	return &roblox.Error{Kind: roblox.KindProtocol, Endpoint: endpoint, Message: "An adjusted accessory was taken off in Roblox since the avatar loaded. Discard your changes and refresh the avatar to see what it wears now."}
 }
 
 // AvatarPreviewFormat is what the render API makes of an avatar, by its
