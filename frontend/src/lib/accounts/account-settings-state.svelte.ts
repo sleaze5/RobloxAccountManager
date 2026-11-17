@@ -154,7 +154,7 @@ export class AccountSettingsState {
 			key,
 			message: errorMessage(
 				error,
-				"Could not save this setting. Refresh settings to check.",
+				"Could not save this setting. Refresh to check.",
 			),
 			success: false,
 		}

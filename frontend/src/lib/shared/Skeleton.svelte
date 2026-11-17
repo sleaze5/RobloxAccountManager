@@ -4,7 +4,7 @@
 	// arrives.
 	let {
 		className = "w-24",
-		label = "Loading",
+		label = "Loading…",
 	}: { className?: string; label?: string } = $props()
 </script>
 

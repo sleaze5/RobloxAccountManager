@@ -115,8 +115,8 @@
 			<button
 				class="flex max-w-full min-w-0 animate-enter items-center gap-2 self-start rounded-lg border border-line-subtle p-1.5 pr-3 text-left transition-colors duration-100 ease-in-out hover:bg-hover"
 				type="button"
-				aria-label={`Find ${games.displayName(place)} in Games`}
-				data-tooltip="Find this place in Games"
+				aria-label={`Show ${games.displayName(place)} in Games`}
+				data-tooltip="Show in Games"
 				onclick={() => onSearchPlace(placeId)}>
 				<span
 					class="relative grid size-10 shrink-0 place-items-center overflow-hidden rounded-md border border-line-strong bg-raised"

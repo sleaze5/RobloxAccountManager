@@ -38,7 +38,7 @@
 				: undefined,
 			error: previewItem.authenticated
 				? undefined
-				: `failed to authenticate - ${previewItem.errorStatus}: ${previewItem.errorMessage}`,
+				: `Could not sign in. ${previewItem.errorMessage}`,
 			id: String(previewItem.index),
 			indexLabel: `${previewItem.index}.`,
 			robloxUserId: previewItem.robloxUserId,
@@ -246,7 +246,7 @@
 			</div>
 			<button
 				type="button"
-				aria-label="Close add account dialog"
+				aria-label="Close dialog"
 				disabled={store.busy}
 				onclick={close}>
 				<Icon svg={xIcon} size={14} aria-hidden="true" />
@@ -282,7 +282,7 @@
 				>Cancel</button>
 			{#if preview?.batchId && preview.readyCount > 0}
 				<button class="button" type="submit" disabled={store.busy}>
-					{operation === "validate" ? "Validating…" : "Validate"}
+					{operation === "validate" ? "Checking…" : "Check"}
 				</button>
 				<button
 					class="button-primary"
@@ -296,7 +296,7 @@
 					class="button-primary"
 					type="submit"
 					disabled={store.busy || !cookieInput.trim()}>
-					{operation === "validate" ? "Validating…" : "Validate"}
+					{operation === "validate" ? "Checking…" : "Check"}
 				</button>
 			{/if}
 		</div>

@@ -222,7 +222,7 @@ func (service *Games) creatorGames(ctx context.Context, creatorType string, crea
 			return nil, err
 		}
 		if len(payload.Data) > creatorGamesPageSize || len(payload.NextPageCursor) > maxServerCursorLength {
-			return nil, gameDataError("Roblox returned an oversized game list.")
+			return nil, gameDataError("Roblox returned too many games.")
 		}
 		for _, listedGame := range payload.Data {
 			if games.ValidID(listedGame.ID) && games.ValidID(listedGame.RootPlace.ID) {

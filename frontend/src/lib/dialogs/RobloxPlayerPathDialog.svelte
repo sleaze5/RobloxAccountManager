@@ -61,7 +61,7 @@
 			}
 			versions = loaded
 		} catch {
-			error = "Roblox versions could not be loaded. Try again."
+			error = "Could not load Roblox versions. Try again."
 		} finally {
 			loading = false
 		}
@@ -93,7 +93,7 @@
 					result: {
 						path: "",
 						found: false,
-						problem: "The custom path could not be checked. Try again.",
+						problem: "Could not check the custom path. Try again.",
 					},
 				}
 			}
@@ -120,7 +120,7 @@
 		} catch (cause) {
 			error = errorMessage(
 				cause,
-				"The custom Roblox Player path could not be saved. Try again.",
+				"Could not save the custom Roblox Player path. Try again.",
 			)
 		} finally {
 			validating = false
@@ -146,7 +146,7 @@
 		} catch (cause) {
 			error = errorMessage(
 				cause,
-				"The custom Roblox Player path could not be saved. Try again.",
+				"Could not save the custom Roblox Player path. Try again.",
 			)
 		} finally {
 			saving = false
@@ -178,14 +178,14 @@
 		<div class="dialog-heading mb-2">
 			<div>
 				<h2 id="player-path-title">Roblox Player location</h2>
-				<p>Choose the RobloxPlayerBeta.exe that direct launch starts.</p>
+				<p>Select the RobloxPlayerBeta.exe that direct launch starts.</p>
 			</div>
 			<div class="flex gap-1">
 				<button
 					class="button-ghost"
 					type="button"
-					aria-label="Reload Roblox versions"
-					data-tooltip="Reload Roblox versions"
+					aria-label="Refresh Roblox versions"
+					data-tooltip="Refresh Roblox versions"
 					disabled={loading || busy}
 					onclick={() => void load()}>
 					<RefreshIcon isRefreshing={loading} />
@@ -193,7 +193,7 @@
 				<button
 					class="button-ghost-sm"
 					type="button"
-					aria-label="Close Roblox Player location dialog"
+					aria-label="Close dialog"
 					onclick={onClose}>
 					<Icon svg={xIcon} size={14} aria-hidden="true" />
 				</button>
@@ -285,7 +285,7 @@
 							class="spinner"
 							size={14}
 							aria-hidden="true" />{/if}
-					Validate
+					Check
 				</button>
 				<button
 					class="button-ghost"

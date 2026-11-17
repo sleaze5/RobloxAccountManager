@@ -53,7 +53,7 @@ export class AccountSessionsState {
 			if (!this.#scope.isCurrent) return
 			this.error = errorMessage(
 				error,
-				"Could not load sessions. Refresh to retry.",
+				"Could not load sessions. Refresh to try again.",
 			)
 		} finally {
 			if (this.#scope.isCurrent) this.loading = false
@@ -89,7 +89,7 @@ export class AccountSessionsState {
 			if (this.#scope.isCurrent) {
 				this.signOutError = errorMessage(
 					error,
-					"Could not sign out other sessions. Refresh sessions to check.",
+					"Could not sign out other sessions. Refresh to check.",
 				)
 			}
 			return false

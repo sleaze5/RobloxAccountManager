@@ -57,7 +57,7 @@
 			disabled={refreshing}
 			aria-busy={refreshing}
 			onclick={onRefresh}
-			aria-label={refreshing ? "Refreshing log" : "Refresh log"}
+			aria-label={refreshing ? "Refreshing log…" : "Refresh log"}
 			data-tooltip="Refresh log">
 			<RefreshIcon isRefreshing={refreshing} />
 		</button>

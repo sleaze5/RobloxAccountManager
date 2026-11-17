@@ -357,7 +357,7 @@ func (manager *RuntimeManager) finishDownload(downloadError error) {
 			manager.state.Error = ""
 			manager.logger.Info("CfT runtime download cancelled", "version", manager.manifest.Version)
 		} else {
-			manager.state.Error = "The browser could not be installed. Try again."
+			manager.state.Error = "Could not install the browser. Try again."
 			manager.logger.Error("CfT installation failed", "error", downloadError)
 		}
 	} else {

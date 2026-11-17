@@ -21,7 +21,7 @@
 			error = ""
 		} catch {
 			if (current === revision && pending) {
-				error = "The launch could not be checked. Cancel and try joining again."
+				error = "Could not check the launch. Cancel and try joining again."
 			}
 		}
 	}
@@ -35,7 +35,7 @@
 			await accountBackend.ResolveLaunchConfirmation(id, approved)
 			if (pending?.id === id) pending = null
 		} catch {
-			error = "Your choice could not be sent. Try again."
+			error = "Could not send your choice. Try again."
 		} finally {
 			submitting = false
 		}

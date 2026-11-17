@@ -99,7 +99,7 @@ func contextError(endpoint string, err error) error {
 		return nil
 	}
 	kind := KindCancelled
-	message := "The request was cancelled."
+	message := "The request was canceled."
 	if errors.Is(err, context.DeadlineExceeded) {
 		kind = KindTimeout
 		message = "The request timed out."

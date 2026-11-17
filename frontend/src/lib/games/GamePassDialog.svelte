@@ -194,13 +194,13 @@
 					{#if price === 0}
 						This game pass is free.
 					{:else}
-						Roblox doesn't refund game passes.
+						Roblox does not refund game passes.
 					{/if}
 				</p>
 			</div>
 			<button
 				type="button"
-				aria-label="Close confirmation"
+				aria-label="Close dialog"
 				disabled={universeGamePasses.isBuying}
 				onclick={close}>
 				<Icon svg={xIcon} size={14} aria-hidden="true" />
@@ -208,7 +208,7 @@
 		</div>
 		<PurchaseItemSummary
 			{name}
-			detail={`Game pass - ${gameName}`}
+			detail={`Game pass · ${gameName}`}
 			imageUrl={shownGamePass.iconUrl}
 			fallbackIcon={ticketIcon}
 			priceInRobux={price} />
@@ -219,7 +219,7 @@
 					class="button"
 					type="button"
 					disabled={universeGamePasses.loading}
-					onclick={reloadGamePasses}>Reload</button>
+					onclick={reloadGamePasses}>Refresh</button>
 			</div>
 		{/if}
 		<PurchaseAccountActions
@@ -262,7 +262,7 @@
 								class="ml-1 button-close"
 								type="button"
 								data-close-game-pass
-								aria-label="Close game pass details"
+								aria-label="Close dialog"
 								onclick={close}>
 								<Icon svg={xIcon} size={14} aria-hidden="true" />
 							</button>

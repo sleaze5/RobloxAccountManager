@@ -7,7 +7,7 @@ export type InventorySortOrder = "newest" | "name" | "highestValue" | "lowestVal
 
 export const itemFilterOptions: { value: InventoryItemFilter; label: string }[] = [
 	{ value: "all", label: "All items" },
-	{ value: "wearing", label: "Wearing" },
+	{ value: "wearing", label: "Worn" },
 	{ value: "forSale", label: "For sale" },
 	{ value: "offSale", label: "Off sale" },
 	{ value: "limited", label: "Limited" },

@@ -123,7 +123,7 @@ func (service *Users) AssetFile(ctx context.Context, accountID, version int64, c
 	}
 	contents, assetTypeID, err := service.downloadAssetFile(ctx, accountID, version, assetFileEndpoint, assetID, AssetRepresentation{}, maxAssetFileBytes)
 	if remote, isRefused := assetFileRefusal(err); isRefused {
-		return AssetFile{}, &roblox.Error{Kind: remote.Kind, Endpoint: assetFileEndpoint, Status: remote.Status, Message: "Roblox doesn't let this account download this item.", Cause: err}
+		return AssetFile{}, &roblox.Error{Kind: remote.Kind, Endpoint: assetFileEndpoint, Status: remote.Status, Message: "Roblox does not let this account download this item.", Cause: err}
 	}
 	if err != nil {
 		return AssetFile{}, err
@@ -133,7 +133,7 @@ func (service *Users) AssetFile(ctx context.Context, accountID, version int64, c
 	}
 	format, err := assetFileFormatOf(contents)
 	if err != nil {
-		return AssetFile{}, &roblox.Error{Kind: roblox.KindProtocol, Endpoint: assetFileEndpoint, Message: "This kind of item can't be downloaded yet.", Cause: err}
+		return AssetFile{}, &roblox.Error{Kind: roblox.KindProtocol, Endpoint: assetFileEndpoint, Message: "This kind of item cannot be downloaded yet.", Cause: err}
 	}
 	return AssetFile{Contents: contents, Format: format}, nil
 }
@@ -188,7 +188,7 @@ func (service *Users) downloadAssetFile(ctx context.Context, accountID, version 
 	}
 	contents, err = unpackGzip(contents)
 	if err != nil {
-		return nil, 0, &roblox.Error{Kind: roblox.KindProtocol, Endpoint: endpoint, Message: "Roblox returned a file that couldn't be read.", Cause: err}
+		return nil, 0, &roblox.Error{Kind: roblox.KindProtocol, Endpoint: endpoint, Message: "Roblox returned a file that could not be read.", Cause: err}
 	}
 	return contents, payload.AssetTypeID, nil
 }

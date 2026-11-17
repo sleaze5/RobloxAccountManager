@@ -94,7 +94,7 @@
 				label: "Requests",
 				noun: "friend requests",
 			},
-			[playersView]: { label: "Player search", noun: "players" },
+			[playersView]: { label: "User search", noun: "users" },
 		}
 
 	let searchInput = $state<HTMLInputElement | undefined>(undefined),
@@ -118,7 +118,7 @@
 				.map((list) => ({
 					value: list,
 					label: views[list].label,
-					group: "Connections",
+					group: "Lists",
 				})),
 			{ value: playersView, label: views[playersView].label, group: "Search" },
 		]),
@@ -222,13 +222,13 @@
 	function emptyCopy(): { title: string; text: string } {
 		switch (store.list) {
 			case playersView:
-				return { title: "No players found", text: "Try a different name." }
+				return { title: "No users found", text: "Try a different name." }
 			case SocialList.SocialFollowers:
 				return { title: "No followers", text: `Nobody follows ${owner} yet.` }
 			case SocialList.SocialFollowing:
 				return {
 					title: "Not following anyone",
-					text: `${owner} doesn't follow anyone yet.`,
+					text: `${owner} does not follow anyone yet.`,
 				}
 			case SocialList.SocialRequests:
 				return {
@@ -313,7 +313,7 @@
 				<button
 					class="button-ghost"
 					type="button"
-					aria-label={store.loading ? "Refreshing list" : "Refresh list"}
+					aria-label={store.loading ? "Refreshing list…" : "Refresh list"}
 					aria-busy={store.loading}
 					data-tooltip="Refresh list"
 					data-tooltip-side="bottom-end"
@@ -418,11 +418,11 @@
 							aria-hidden="true" /><input
 							type="text"
 							placeholder={players
-								? "Search players or id:123"
+								? "Search users or id:123"
 								: `Filter ${current.noun}`}
 							aria-label={players
-								? "Search Roblox players by username, display name, or id: and a user ID"
-								: `Filter ${current.noun}, or press Enter to search Roblox players`}
+								? "Search Roblox users by username, display name, or id: and a user ID"
+								: `Filter ${current.noun}, or press Enter to search Roblox users`}
 							aria-invalid={searchError ? "true" : undefined}
 							maxlength={50}
 							disabled={account.id === 0 || accountModerated}
@@ -456,11 +456,11 @@
 				</p>
 			{:else if store.page?.unavailable?.includes("presence")}
 				<p class="px-3 pb-2 text-xs text-danger-muted" role="alert">
-					Online status could not be loaded. Refresh to retry.
+					Could not load the online status. Refresh to try again.
 				</p>
 			{:else if store.page?.unavailable?.includes("trusted")}
 				<p class="px-3 pb-2 text-xs text-danger-muted" role="alert">
-					Trusted friends could not be loaded. Refresh to retry.
+					Could not load the trusted friends. Refresh to try again.
 				</p>
 			{/if}
 			<div class="relative grid min-h-0 flex-1 grid-rows-1">
@@ -476,7 +476,7 @@
 						<SkeletonList
 							label={players
 								? "Searching Roblox"
-								: `Loading ${current.noun}`}>
+								: `Loading ${current.noun}…`}>
 							{#snippet row(index)}<SkeletonMediaRow {index} />{/snippet}
 						</SkeletonList>
 					{/if}
@@ -562,7 +562,7 @@
 								size={16}
 								aria-hidden="true" />
 							<span class="min-w-0 flex-1 truncate"
-								>Search players for <strong class="font-medium text-fg"
+								>Search users for <strong class="font-medium text-fg"
 									>"{filterText}"</strong
 								></span>
 							<Icon
@@ -590,7 +590,7 @@
 					<div
 						class="absolute inset-x-0 bottom-0 flex h-11 animate-enter items-center gap-2 border-t border-line bg-overlay px-3"
 						role="toolbar"
-						aria-label="Selected people">
+						aria-label="Selected users">
 						<span class="checkbox shrink-0">
 							<input
 								type="checkbox"
@@ -708,7 +708,7 @@
 						</h2>
 						<p>
 							Roblox blocks friends and player search for this account.
-							Choose another account in the status bar.
+							Select another account in the status bar.
 						</p>
 					{:else if account.id === 0 && accounts.loadingAccounts}<Icon
 							svg={circleNotchIcon}
@@ -721,12 +721,12 @@
 							size={28}
 							aria-hidden="true" />
 						<h2>No accounts yet</h2>
-						<p>Add an account in Accounts to browse friends and players.</p>
+						<p>Add an account in Accounts to browse friends and users.</p>
 					{:else if players && !store.playerQuery}<Icon
 							svg={magnifyingGlassIcon}
 							size={28}
 							aria-hidden="true" />
-						<h2>Search Roblox players</h2>
+						<h2>Search Roblox users</h2>
 						<p>Enter a username or display name, then press Enter.</p>
 					{:else if !store.page && store.loading}<Icon
 							svg={circleNotchIcon}
@@ -741,9 +741,7 @@
 							size={28}
 							aria-hidden="true" />
 						<h2>
-							{players
-								? "Player search is unavailable"
-								: "This list is unavailable"}
+							{players ? "User search unavailable" : "List unavailable"}
 						</h2>
 						<p>{store.loadError}</p>
 						<button
@@ -777,8 +775,8 @@
 						</h2>
 						<p>
 							{requestsOpen
-								? "Choose a request to see who sent it, then accept or decline it."
-								: "Choose someone to see their profile. Select their friend or follower counts to browse those lists."}
+								? "Select a request to see who sent it, then accept or decline it."
+								: "Select someone to see their profile. Select their friend or follower counts to browse those lists."}
 						</p>
 					{/if}
 				</div>

@@ -81,7 +81,7 @@
 			report = cleanReport
 		} catch (cause) {
 			if (!disposed) {
-				error = errorMessage(cause, "Roblox could not be cleaned. Try again.")
+				error = errorMessage(cause, "Could not clean Roblox. Try again.")
 			}
 		} finally {
 			if (!disposed) isCleaning = false
@@ -141,7 +141,7 @@
 					{cleanReportSummary(report)}
 				{:else if isUninstall}
 					Removes Roblox, Studio, and their files, including saved places,
-					screenshots, and videos. This can't be undone.
+					screenshots, and videos. This cannot be undone.
 				{:else}
 					Deletes Roblox caches and sign-in data. Roblox and its settings
 					stay.

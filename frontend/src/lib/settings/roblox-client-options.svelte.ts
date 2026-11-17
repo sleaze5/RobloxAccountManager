@@ -46,11 +46,10 @@ class RobloxClientOptions {
 		if (this.isLoadingMultiInstance) return { text: "Checking…", tone: "neutral" }
 		if (this.isSavingMultiInstance) return { text: "Saving…", tone: "neutral" }
 		if (!snapshot) return { text: "Not checked", tone: "neutral" }
-		if (!snapshot.supported)
-			return { text: "Unavailable - Windows only", tone: "neutral" }
+		if (!snapshot.supported) return { text: "Windows only", tone: "neutral" }
 		if (!snapshot.enabled) return { text: "Off", tone: "neutral" }
 		if (snapshot.ready) return { text: "Ready", tone: "success" }
-		return { text: `Not ready - ${snapshot.message}`, tone: "warning" }
+		return { text: `Not ready: ${snapshot.message}`, tone: "warning" }
 	}
 
 	get isCleanBeforeLaunchActive(): boolean {
@@ -84,7 +83,7 @@ class RobloxClientOptions {
 		} catch {
 			if (requestRevision !== this.#multiInstanceRevision) return
 			this.multiInstanceStatusError =
-				"The multi-instance status could not be checked. Try again."
+				"Could not check the multi-instance status. Try again."
 		} finally {
 			this.#isCheckingMultiInstance = false
 			if (requestRevision === this.#multiInstanceRevision) {
@@ -97,7 +96,7 @@ class RobloxClientOptions {
 		return this.#requestCleaner(
 			() => accountBackend.GetRobloxCleanerState(),
 			false,
-			"Cleaning settings could not be loaded. Try again.",
+			"Could not load the cleaning settings. Try again.",
 		)
 	}
 
@@ -120,7 +119,7 @@ class RobloxClientOptions {
 			this.multiInstance = previous
 			this.multiInstanceError = errorMessage(
 				error,
-				"The multi-instance setting could not be saved. Try again.",
+				"Could not save the multi-instance setting. Try again.",
 			)
 		} finally {
 			this.isSavingMultiInstance = false
@@ -134,7 +133,7 @@ class RobloxClientOptions {
 		await this.#saveCleanerSetting(
 			"isSavingCleanBeforeLaunch",
 			() => accountBackend.SetCleanBeforeLaunch(enabled),
-			"The setting could not be saved. Try again.",
+			"Could not save the setting. Try again.",
 		)
 	}
 
@@ -143,7 +142,7 @@ class RobloxClientOptions {
 		await this.#saveCleanerSetting(
 			"isSavingDeleteLogs",
 			() => accountBackend.SetDeleteLogsWhenCleaning(enabled),
-			"The setting could not be saved. Try again.",
+			"Could not save the setting. Try again.",
 		)
 	}
 
@@ -152,7 +151,7 @@ class RobloxClientOptions {
 		await this.#saveCleanerSetting(
 			"isSavingAdministratorRights",
 			() => accountBackend.SetUseAdministratorRights(enabled),
-			"The setting could not be saved. Try again.",
+			"Could not save the setting. Try again.",
 		)
 	}
 

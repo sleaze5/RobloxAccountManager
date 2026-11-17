@@ -134,7 +134,7 @@ func (service *Service) DismissAllRobloxNotifications(ctx context.Context, accou
 	switch category {
 	case "", RobloxNotificationInvites, RobloxNotificationFriends, RobloxNotificationCommunities, RobloxNotificationExperiences, RobloxNotificationOther:
 	default:
-		return 0, robloxNotificationInputError("Choose a notification type to dismiss.")
+		return 0, robloxNotificationInputError("Select a notification type to dismiss.")
 	}
 	ctx, version, logger, done, err := service.beginFeatureOperation(ctx, accountID, "roblox-notifications", "dismiss-all")
 	if err != nil {

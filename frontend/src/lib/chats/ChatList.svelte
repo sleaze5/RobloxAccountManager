@@ -17,7 +17,7 @@
 
 {#if chat.loading && chat.conversations.length === 0}
 	<div class="-mx-2">
-		<SkeletonList label="Loading chats">
+		<SkeletonList label="Loading chats…">
 			{#snippet row(index)}<SkeletonMediaRow {index} />{/snippet}
 		</SkeletonList>
 	</div>
@@ -85,7 +85,7 @@
 					svg={circleNotchIcon}
 					class="spinner"
 					size={16}
-					aria-label="Loading more chats" />
+					aria-label="Loading more chats…" />
 			{/if}
 		</div>
 	{/if}

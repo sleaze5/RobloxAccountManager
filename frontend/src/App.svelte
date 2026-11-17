@@ -149,7 +149,7 @@
 			id,
 			title,
 			tone: "error",
-			message: errorMessage(error, "Restart the application and try again."),
+			message: errorMessage(error, "Restart the app and try again."),
 		})
 	}
 
@@ -313,7 +313,7 @@
 	// Joining the user who sent an invite follows them into their server.
 	function fillFollowUserLaunchOptions(user: RobloxNotificationUser): void {
 		store.launchInput.method = LaunchMethod.MethodUser
-		store.launchInput.user = user.username || `id=${user.userId}`
+		store.launchInput.user = user.username || `id:${user.userId}`
 		store.launchInput.resolveCurrentGame = false
 		showLaunchDrawer("[data-launch-user]")
 	}

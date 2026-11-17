@@ -46,7 +46,7 @@ type RobuxTransactionPage struct {
 func (service *Service) GetRobuxTransactions(ctx context.Context, accountID int64, transactionType RobuxTransactionType, cursor string) (RobuxTransactionPage, error) {
 	robloxType, ok := robloxTransactionTypes[transactionType]
 	if !ok {
-		return RobuxTransactionPage{}, &roblox.Error{Kind: roblox.KindProtocol, Endpoint: "robux-transactions", Message: "Choose a transaction type."}
+		return RobuxTransactionPage{}, &roblox.Error{Kind: roblox.KindProtocol, Endpoint: "robux-transactions", Message: "Select a transaction type."}
 	}
 	if len(cursor) > 4096 {
 		return RobuxTransactionPage{}, &roblox.Error{Kind: roblox.KindProtocol, Endpoint: "robux-transactions", Message: "This page has expired. Refresh the history."}

@@ -22,7 +22,7 @@ func openLinuxClient(ctx context.Context, preferred, protocolURL string) error {
 	}
 	gioPath, err := exec.LookPath("gio")
 	if err != nil {
-		return &ClientError{Message: "gio is required to open the Roblox client"}
+		return &ClientError{Message: "install gio to open the Roblox client"}
 	}
 	command := exec.CommandContext(ctx, gioPath, "launch", desktop, protocolURL)
 	command.Stdout = io.Discard
@@ -31,7 +31,7 @@ func openLinuxClient(ctx context.Context, preferred, protocolURL string) error {
 		if ctx.Err() != nil {
 			return ctx.Err()
 		}
-		return &ClientError{Message: strings.ToLower(client.name) + " could not be started"}
+		return &ClientError{Message: strings.ToLower(client.name) + " could not start"}
 	}
 	return nil
 }

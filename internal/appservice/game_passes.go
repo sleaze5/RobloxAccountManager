@@ -54,7 +54,7 @@ func (service *Service) FindGamePassPlace(ctx context.Context, gamePassID int64)
 		return games.Place{}, service.gamesError(ctx, "game-pass-place", err)
 	}
 	if !found {
-		return games.Place{}, gamesInputError("Couldn't find the game that sells this pass.")
+		return games.Place{}, gamesInputError("Could not find the game that sells this pass.")
 	}
 	place, found, err := service.games.PlaceByID(ctx, rootPlaceID)
 	if err != nil {

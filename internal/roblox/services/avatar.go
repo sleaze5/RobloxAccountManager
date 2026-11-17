@@ -396,7 +396,7 @@ func (service *Users) TryOnChange(ctx context.Context, accountID, version int64,
 func (service *Users) TryOnAvatar(ctx context.Context, accountID, version int64, category InventoryCategory, assetID int64) (Avatar, error) {
 	const endpoint = "avatar-try-on"
 	if !canTryOn(category) {
-		return Avatar{}, &roblox.Error{Kind: roblox.KindProtocol, Endpoint: endpoint, Message: "This item can't be tried on."}
+		return Avatar{}, &roblox.Error{Kind: roblox.KindProtocol, Endpoint: endpoint, Message: "This item cannot be tried on."}
 	}
 	return service.savedAvatarWearing(ctx, accountID, version, endpoint, category, assetID)
 }
@@ -444,7 +444,7 @@ func (service *Users) wearableAssetTypeOf(ctx context.Context, accountID, versio
 			return ruleTypeNameReplacer.Replace(wearableType.Name), wearableType.MaxNumber, nil
 		}
 	}
-	return "", 0, &roblox.Error{Kind: roblox.KindProtocol, Endpoint: endpoint, Message: "Roblox doesn't let avatars wear this item."}
+	return "", 0, &roblox.Error{Kind: roblox.KindProtocol, Endpoint: endpoint, Message: "Roblox does not allow this item on avatars."}
 }
 
 // assetsWearing lists the worn assets with the tried asset put on. When the
@@ -520,7 +520,7 @@ func (service *Users) validateAccessoryAdjustments(ctx context.Context, accountI
 	for _, changed := range changedAdjustments {
 		limits, isAdjustable := limitsByTypeName[changed.typeName]
 		if !isAdjustable {
-			return invalidAvatarChange("Roblox doesn't let this account adjust one of the accessories. Reset it and try again.")
+			return invalidAvatarChange("Roblox does not let this account adjust one of the accessories. Reset it and try again.")
 		}
 		if !limits.contains(changed.adjustment) {
 			return invalidAvatarChange("An accessory adjustment is outside the range that Roblox allows. Refresh the avatar and try again.")
@@ -555,7 +555,7 @@ func (service *Users) avatarUpdateAssetsOf(ctx context.Context, accountID, versi
 			// even a reset to the default, so an accessory that is no longer
 			// worn was taken off since the page loaded the avatar.
 			if changeAsset.Adjustment != nil {
-				return nil, nil, &roblox.Error{Kind: roblox.KindProtocol, Endpoint: endpoint, Message: "An adjusted accessory was taken off in Roblox since the avatar loaded. Discard your changes and refresh the avatar to see what it wears now."}
+				return nil, nil, &roblox.Error{Kind: roblox.KindProtocol, Endpoint: endpoint, Message: "An adjusted accessory was taken off on Roblox. Discard your changes, then refresh the avatar."}
 			}
 			assets[index] = avatarUpdateAsset{ID: changeAsset.AssetID}
 			continue
@@ -628,7 +628,7 @@ func (service *Users) RenderAvatarPreview(ctx context.Context, accountID, versio
 	}
 	response, err := service.writeAccount(ctx, accountID, version, endpoint, http.MethodPost, "https://avatar.roblox.com/v1/avatar/render", request)
 	if remote, ok := errors.AsType[*roblox.Error](err); ok && remote.Status == http.StatusBadRequest {
-		return "", &roblox.Error{Kind: remote.Kind, Endpoint: endpoint, Status: remote.Status, RobloxCode: remote.RobloxCode, Message: "Roblox couldn't render this preview.", Cause: err}
+		return "", &roblox.Error{Kind: remote.Kind, Endpoint: endpoint, Status: remote.Status, RobloxCode: remote.RobloxCode, Message: "Roblox could not render this preview.", Cause: err}
 	}
 	if err != nil {
 		return "", err
@@ -644,7 +644,7 @@ func (service *Users) RenderAvatarPreview(ctx context.Context, accountID, versio
 	case strings.EqualFold(payload.State, "Pending"):
 		return "", nil
 	case !strings.EqualFold(payload.State, "Completed") || !safeThumbnailURL(payload.ImageURL):
-		return "", &roblox.Error{Kind: roblox.KindProtocol, Endpoint: endpoint, Status: response.Status, Message: "Roblox couldn't render this preview."}
+		return "", &roblox.Error{Kind: roblox.KindProtocol, Endpoint: endpoint, Status: response.Status, Message: "Roblox could not render this preview."}
 	}
 	return payload.ImageURL, nil
 }
@@ -955,7 +955,7 @@ func validOutfitName(name, endpoint string) (string, error) {
 
 func validateAvatarChange(change AvatarChange) error {
 	if !validAvatarType(change.AvatarType) {
-		return invalidAvatarChange("Choose R6 or R15.")
+		return invalidAvatarChange("Select R6 or R15.")
 	}
 	for _, scale := range []float64{change.Scales.Height, change.Scales.Width, change.Scales.Head, change.Scales.Proportion, change.Scales.BodyType} {
 		if math.IsNaN(scale) || scale < 0 || scale > 2 {

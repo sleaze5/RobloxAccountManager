@@ -24,7 +24,7 @@
 					size={14}
 					aria-label="Verified group" />{/if}</span>
 		<small
-			>{group.role ? `${group.role} - ` : ""}{memberCounts.format(group.members)}
+			>{group.role ? `${group.role} · ` : ""}{memberCounts.format(group.members)}
 			{group.members === 1 ? "member" : "members"}</small>
 	</dd>
 </div>

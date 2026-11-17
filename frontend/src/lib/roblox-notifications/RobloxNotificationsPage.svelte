@@ -62,8 +62,8 @@
 			},
 			{
 				value: RobloxNotificationCategory.RobloxNotificationExperiences,
-				label: "Experiences",
-				noun: "experience notifications",
+				label: "Games",
+				noun: "game notifications",
 			},
 			{
 				value: RobloxNotificationCategory.RobloxNotificationOther,
@@ -137,7 +137,7 @@
 		aria-busy={stream.loading}>
 		{#if stream.loading && stream.notifications.length === 0}
 			<div class="max-w-2xl p-3">
-				<SkeletonList label="Loading notifications" rowCount={5}>
+				<SkeletonList label="Loading notifications…" rowCount={5}>
 					{#snippet row(index)}
 						<div class="mb-2 flex gap-3 rounded-lg border border-line p-3">
 							<span class="size-9 shrink-0 skeleton rounded-md"></span>
@@ -189,7 +189,7 @@
 					<div class="empty-state py-10">
 						<Icon svg={funnelIcon} size={28} aria-hidden="true" />
 						<h2>No {categoryNoun}</h2>
-						<p>Choose All types to see every notification.</p>
+						<p>Select All types to see every notification.</p>
 						<button
 							class="button-primary"
 							type="button"
@@ -233,7 +233,7 @@
 								svg={circleNotchIcon}
 								class="spinner"
 								size={16}
-								aria-label="Loading more notifications" />
+								aria-label="Loading more notifications…" />
 						{/if}
 					</div>
 				{/if}

@@ -142,7 +142,7 @@ func (service *Thumbnails) Images(ctx context.Context, targets []ThumbnailTarget
 	for batch := range slices.Chunk(requests, headshotBatchSize) {
 		body, err := json.Marshal(batch)
 		if err != nil {
-			return nil, &roblox.Error{Kind: roblox.KindProtocol, Endpoint: "thumbnails-batch", Message: "The image request could not be encoded.", Cause: err}
+			return nil, &roblox.Error{Kind: roblox.KindProtocol, Endpoint: "thumbnails-batch", Message: "Could not encode the image request.", Cause: err}
 		}
 		response, err := service.client.Do(ctx, roblox.Request{
 			Endpoint: "thumbnails-batch", Method: http.MethodPost, URL: endpoint, Body: body,

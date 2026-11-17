@@ -62,7 +62,7 @@
 	</h3>
 	{#if !history.transactions}
 		{#if history.loading}
-			<SettingsRowsSkeleton label="Loading transactions" hasIcon={false} />
+			<SettingsRowsSkeleton label="Loading transactions…" hasIcon={false} />
 		{/if}
 	{:else if history.transactions.length === 0}
 		<div class="empty-state">

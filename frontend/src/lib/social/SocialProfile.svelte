@@ -66,7 +66,7 @@
 
 	const origins: Record<string, string> = {
 			FriendRecommendations: "Friend recommendations",
-			InGame: "An experience",
+			InGame: "A game",
 			PhoneContactImporter: "Phone contacts",
 			PlayerSearch: "Player search",
 			QrCode: "QR code",
@@ -130,7 +130,7 @@
 								SocialProfileSection.SocialSectionInventory,
 						  )
 						? "Checking inventory access…"
-						: "Inventory is unavailable",
+						: "Inventory unavailable",
 		)
 </script>
 
@@ -223,7 +223,7 @@
 				type="button"
 				data-tooltip="Refresh profile"
 				aria-label={store.loadingProfile
-					? "Refreshing profile"
+					? "Refreshing profile…"
 					: "Refresh profile"}
 				aria-busy={store.loadingProfile}
 				disabled={store.loadingProfile}
@@ -252,12 +252,12 @@
 			<button
 				class="button-icon"
 				type="button"
-				aria-label={`More actions for ${personName(person)}`}
+				aria-label="More actions"
 				aria-haspopup="menu"
 				aria-expanded={store.menu?.person.userId === person.userId}
 				data-open={store.menu?.person.userId === person.userId || undefined}
 				data-social-menu
-				data-tooltip="Show more actions"
+				data-tooltip="More actions"
 				data-tooltip-side="bottom-end"
 				onclick={(event) => {
 					if (store.menu) store.closeMenu()
@@ -320,7 +320,7 @@
 		<section class="flex flex-col gap-2" aria-busy="true">
 			<h3 class="text-xs font-semibold text-fg-muted">About</h3>
 			<p class="text-block" data-variant="prose">
-				<Skeleton className="w-72" label="Loading the description" />
+				<Skeleton className="w-72" label="Loading description…" />
 			</p>
 		</section>
 	{/if}
@@ -582,7 +582,7 @@
 		<p class="text-xs text-danger-muted" role="alert">{store.profileError}</p>
 	{:else if (store.profileLoad?.failedSections.length ?? 0) > 0 || (profileRelationship?.unavailable?.length ?? 0) > 0}
 		<p class="text-xs text-danger-muted" role="alert">
-			Some profile details could not be loaded. Refresh to retry.
+			Could not load some profile details. Refresh to try again.
 		</p>
 	{/if}
 </section>

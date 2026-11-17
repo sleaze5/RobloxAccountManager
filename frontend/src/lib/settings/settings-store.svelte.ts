@@ -72,7 +72,7 @@ export class SettingsStore {
 				})
 			}
 		} catch (error) {
-			this.error = errorMessage(error, "Settings could not be loaded.")
+			this.error = errorMessage(error, "Could not load the settings.")
 		} finally {
 			this.initialized = true
 		}
@@ -108,7 +108,7 @@ export class SettingsStore {
 					title: "Preferred region unavailable",
 					tone: "warning",
 					message:
-						"Your saved region is no longer listed by RoValra. Choose another one in Settings under Integrations.",
+						"Your saved region is no longer listed by RoValra. Select another one in Settings under Integrations.",
 					durationMs: 0,
 				})
 			} else {
@@ -119,7 +119,7 @@ export class SettingsStore {
 			if (refresh) {
 				this.error = errorMessage(
 					error,
-					"Regions could not be refreshed. Try again.",
+					"Could not refresh the regions. Try again.",
 				)
 			}
 		} finally {
@@ -139,7 +139,7 @@ export class SettingsStore {
 			await accountBackend.SetPresenceUpdates(scope, enabled, intervalSeconds)
 			this.presence = { ...this.presence, [scope]: { enabled, intervalSeconds } }
 		} catch (error) {
-			this.error = errorMessage(error, "Presence settings could not be saved.")
+			this.error = errorMessage(error, "Could not save the presence settings.")
 		} finally {
 			this.busyPresence = false
 		}
@@ -154,7 +154,7 @@ export class SettingsStore {
 			this.roValraEnabled = enabled
 			if (enabled) void this.loadServerRegions()
 		} catch (error) {
-			this.error = errorMessage(error, "The RoValra setting could not be saved.")
+			this.error = errorMessage(error, "Could not save the RoValra setting.")
 		} finally {
 			this.busyRoValra = false
 		}
@@ -168,10 +168,7 @@ export class SettingsStore {
 			await accountBackend.SetRBXServersEnabled(enabled)
 			this.rbxServersEnabled = enabled
 		} catch (error) {
-			this.error = errorMessage(
-				error,
-				"The RBXServers setting could not be saved.",
-			)
+			this.error = errorMessage(error, "Could not save the RBXServers setting.")
 		} finally {
 			this.busyRBXServers = false
 		}
@@ -186,7 +183,7 @@ export class SettingsStore {
 			this.roValraRegion = code
 			this.#notifications?.dismiss("rovalra-region-missing")
 		} catch (error) {
-			this.error = errorMessage(error, "The preferred region could not be saved.")
+			this.error = errorMessage(error, "Could not save the preferred region.")
 		} finally {
 			this.busyRoValraRegion = false
 		}
@@ -212,7 +209,7 @@ export class SettingsStore {
 			await accountBackend.SetLoggingLevelEnabled(level, enabled)
 		} catch (error) {
 			this.enabledLoggingLevels = previous
-			this.error = errorMessage(error, "The logging setting could not be saved.")
+			this.error = errorMessage(error, "Could not save the logging setting.")
 		} finally {
 			this.busyLevel = null
 		}
@@ -232,7 +229,7 @@ export class SettingsStore {
 			await accountBackend.SetAllLoggingLevelsEnabled(enabled)
 		} catch (error) {
 			this.enabledLoggingLevels = previous
-			this.error = errorMessage(error, "The logging settings could not be saved.")
+			this.error = errorMessage(error, "Could not save the logging settings.")
 		} finally {
 			this.busyLevel = null
 		}
@@ -247,7 +244,7 @@ export class SettingsStore {
 			this.motion = motion
 			setMotionPreference(motion)
 		} catch (error) {
-			this.error = errorMessage(error, "The motion setting could not be saved.")
+			this.error = errorMessage(error, "Could not save the motion setting.")
 		} finally {
 			this.busyMotion = false
 		}
@@ -271,10 +268,7 @@ export class SettingsStore {
 			this.timestampHoverFormat = formats.hover
 			return true
 		} catch (error) {
-			this.error = errorMessage(
-				error,
-				"The timestamp formats could not be saved.",
-			)
+			this.error = errorMessage(error, "Could not save the timestamp formats.")
 			return false
 		} finally {
 			this.busyTimestampFormats = false

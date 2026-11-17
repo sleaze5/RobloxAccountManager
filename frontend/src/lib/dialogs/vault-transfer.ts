@@ -13,10 +13,7 @@ export async function chooseExportFile(
 			id: "vault-import",
 			title: "File not opened",
 			tone: "error",
-			message: errorMessage(
-				cause,
-				"The open dialog could not be opened. Try again.",
-			),
+			message: errorMessage(cause, "Could not open the file dialog. Try again."),
 		})
 		return ""
 	}
@@ -29,9 +26,9 @@ export async function copyPath(
 	if (!(await copyText(notifications, path, "File path copied to clipboard."))) {
 		notifications.show({
 			id: "clipboard-copy",
-			title: "Path not copied",
+			title: "Not copied",
 			tone: "error",
-			message: "The file path could not be copied. Try again.",
+			message: "Could not copy to the clipboard. Try again.",
 		})
 	}
 }

@@ -97,7 +97,9 @@
 		<button
 			class="button-ghost"
 			type="button"
-			aria-label={universeBadges.loading ? "Refreshing badges" : "Refresh badges"}
+			aria-label={universeBadges.loading
+				? "Refreshing badges…"
+				: "Refresh badges"}
 			data-tooltip="Refresh badges"
 			data-tooltip-side="bottom-end"
 			aria-busy={universeBadges.loading || universeBadges.loadingAwards}
@@ -149,7 +151,7 @@
 					{:else if universeBadges.awardsError}
 						<span>Unavailable</span>
 					{:else}
-						<Skeleton className="w-20" label="Loading completion" />
+						<Skeleton className="w-20" label="Loading completion…" />
 					{/if}
 				</span>
 				<div
@@ -179,7 +181,7 @@
 		{#if universeBadges.error && !universeBadges.badges}
 			<div class="empty-state h-full" role="alert">
 				<Icon svg={warningIcon} size={28} aria-hidden="true" />
-				<h2>Badges are unavailable</h2>
+				<h2>Badges unavailable</h2>
 				<p>{universeBadges.error}</p>
 				<button
 					class="button"
@@ -187,7 +189,7 @@
 					onclick={() => void universeBadges.refresh()}>Try again</button>
 			</div>
 		{:else if !universeBadges.badges}
-			<SkeletonList label="Loading badges">
+			<SkeletonList label="Loading badges…">
 				{#snippet row(index)}<SkeletonMediaRow
 						{index}
 						className="h-16" />{/snippet}

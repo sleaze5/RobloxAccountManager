@@ -58,7 +58,7 @@
 	{#if !servers}
 		{#if !friendServers.error}
 			<p class="px-3 pb-2 text-xs">
-				<Skeleton className="w-48" label="Loading friends' servers" />
+				<Skeleton className="w-48" label="Loading friends' servers…" />
 			</p>
 		{/if}
 	{:else if servers.length === 0}

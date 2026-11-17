@@ -131,7 +131,7 @@
 					return {
 						tone: "warning",
 						label: "Sign-in required",
-						detail: account.stateReason || "Replace the cookie.",
+						detail: account.stateReason || "Update the cookie.",
 					}
 				case SessionState.StateChallenged:
 					return {
@@ -161,7 +161,7 @@
 				default:
 					return {
 						tone: "muted",
-						label: "Not validated yet",
+						label: "Not checked yet",
 						detail: "Refresh to check the session.",
 					}
 			}
@@ -448,7 +448,7 @@
 		{#if account.lastValidatedAtMs}
 			<div>
 				<dt>
-					<Icon svg={checkCircleIcon} size={16} aria-hidden="true" />Validated
+					<Icon svg={checkCircleIcon} size={16} aria-hidden="true" />Checked
 				</dt>
 				<dd>
 					<Timestamp value={account.lastValidatedAtMs} />

@@ -25,7 +25,7 @@
 	aria-expanded={open}
 	aria-controls={open ? menuID : undefined}
 	aria-busy={busy}
-	data-tooltip={busy ? "Loading launch link" : "Server actions"}
+	data-tooltip={busy ? "Loading launch link…" : "Server actions"}
 	data-tooltip-side="bottom-end"
 	onclick={(event) => onMenu(event.currentTarget, true)}
 	onkeydown={(event) => {

@@ -11,5 +11,5 @@
 <FrameUnavailable
 	icon={cubeIcon}
 	message={isGraphicsAccelerationMissing
-		? "3D needs graphics acceleration, which isn't available on this computer."
-		: "The 3D viewer couldn't start."} />
+		? "3D needs graphics acceleration, which is not available on this computer."
+		: "The 3D viewer could not start."} />

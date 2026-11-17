@@ -14,7 +14,7 @@ func (service *Service) ExportVault(ctx context.Context, password, confirmation,
 	}
 	path, err := chooseSaveFile(service.core.ExportsDirectory(), service.core.DefaultExportName(), exportFilterName, exportFilterPattern)
 	if err != nil {
-		return vault.ExportFile{}, &roblox.Error{Kind: roblox.KindProtocol, Endpoint: "vault-transfer", Message: "The save dialog could not be opened.", Cause: err}
+		return vault.ExportFile{}, &roblox.Error{Kind: roblox.KindProtocol, Endpoint: "vault-transfer", Message: "Could not open the save dialog.", Cause: err}
 	}
 	if path == "" {
 		return vault.ExportFile{}, nil
@@ -25,7 +25,7 @@ func (service *Service) ExportVault(ctx context.Context, password, confirmation,
 func (service *Service) ChooseVaultExport() (string, error) {
 	path, err := chooseOpenFile(service.core.ExportsDirectory())
 	if err != nil {
-		return "", &roblox.Error{Kind: roblox.KindProtocol, Endpoint: "vault-transfer", Message: "The open dialog could not be opened.", Cause: err}
+		return "", &roblox.Error{Kind: roblox.KindProtocol, Endpoint: "vault-transfer", Message: "Could not open the file dialog.", Cause: err}
 	}
 	return path, nil
 }

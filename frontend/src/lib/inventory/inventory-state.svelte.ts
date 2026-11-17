@@ -334,7 +334,7 @@ export class InventoryState {
 			if (this.#gamePassPlaceRequest === request && scope.isCurrent) {
 				this.itemActionError = errorMessage(
 					error,
-					"Couldn't find this pass's game. Try again.",
+					"Could not find this pass's game. Try again.",
 				)
 			}
 			return null

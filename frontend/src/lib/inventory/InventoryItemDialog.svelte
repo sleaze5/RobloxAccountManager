@@ -137,10 +137,10 @@
 			[InventorySaleLocation.$zero]: "",
 			[InventorySaleLocation.SaleInMarketplace]: "Marketplace only",
 			[InventorySaleLocation.SaleInMarketplaceAndAllExperiences]:
-				"Marketplace and experiences",
+				"Marketplace and games",
 			[InventorySaleLocation.SaleInMarketplaceAndSomeExperiences]:
-				"Marketplace and some experiences",
-			[InventorySaleLocation.SaleInExperiences]: "Experiences only",
+				"Marketplace and some games",
+			[InventorySaleLocation.SaleInExperiences]: "Games only",
 		},
 		metaClass =
 			"flex min-w-0 flex-wrap items-center gap-1 font-mono text-2xs wrap-anywhere text-fg-muted",
@@ -532,7 +532,7 @@
 					<h2 id="inventory-confirmation-title">Delete item?</h2>
 					<p id="inventory-confirmation-description">
 						{name} will be removed from @{username}'s inventory. Robux spent
-						on it is not refunded, and this can't be undone.
+						on it is not refunded, and this cannot be undone.
 					</p>
 				{:else if price === 0}
 					<h2 id="inventory-confirmation-title">Get item?</h2>
@@ -540,13 +540,13 @@
 				{:else}
 					<h2 id="inventory-confirmation-title">Buy item?</h2>
 					<p id="inventory-confirmation-description">
-						Roblox doesn't refund items.
+						Roblox does not refund items.
 					</p>
 				{/if}
 			</div>
 			<button
 				type="button"
-				aria-label="Close confirmation"
+				aria-label="Close dialog"
 				disabled={isWorking}
 				onclick={close}>
 				<Icon svg={xIcon} size={14} aria-hidden="true" />
@@ -682,8 +682,8 @@
 								<button
 									class="button-icon"
 									type="button"
-									aria-label="Find game in Games"
-									data-tooltip="Find game in Games"
+									aria-label="Show in Games"
+									data-tooltip="Show in Games"
 									onclick={() =>
 										onSearchPlace(badge.awardingPlaceId)}>
 									<Icon
@@ -751,7 +751,7 @@
 								class="ml-1 button-close"
 								type="button"
 								data-close-item-details
-								aria-label="Close item details"
+								aria-label="Close dialog"
 								onclick={close}>
 								<Icon svg={xIcon} size={14} aria-hidden="true" />
 							</button>
@@ -819,7 +819,7 @@
 						{#if isWorn}
 							<li class="tag-pill-success">
 								<Icon svg={tShirtIcon} size={12} aria-hidden="true" />
-								<span>Wearing</span>
+								<span>Worn</span>
 							</li>
 						{/if}
 						{#if market?.isLimited}
@@ -998,15 +998,15 @@
 							{/each}
 						</ul>
 						<span class="sr-only" role="status"
-							>Loading the {isBundle
-								? "items in the bundle"
-								: "dependencies"}</span>
+							>Loading {isBundle
+								? "bundle items"
+								: "dependencies"}…</span>
 					{:else if relatedItems === null}
 						<div class="flex items-center gap-2 notice-error" role="alert">
 							<span class="min-w-0 flex-1"
-								>The {isBundle
-									? "items in this bundle"
-									: "dependencies"} couldn't be loaded.</span>
+								>Could not load the {isBundle
+									? "bundle items"
+									: "dependencies"}.</span>
 							<button
 								class="button"
 								type="button"

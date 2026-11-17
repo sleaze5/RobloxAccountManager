@@ -57,7 +57,7 @@ func (service *Service) runAccountReads(ctx context.Context, accountID, version 
 	}
 	group.Wait()
 	if ctx.Err() != nil || !service.vault.Unlocked() || !service.sessions.VersionCurrent(accountID, version) {
-		return nil, &roblox.Error{Kind: roblox.KindCancelled, Endpoint: endpoint, Message: "The request ended or the account session changed. Refresh to retry."}
+		return nil, &roblox.Error{Kind: roblox.KindCancelled, Endpoint: endpoint, Message: "The request ended or the account session changed. Refresh to try again."}
 	}
 	unavailable := []string{}
 	for index, failure := range failures {

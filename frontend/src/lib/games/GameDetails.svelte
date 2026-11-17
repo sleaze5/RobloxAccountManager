@@ -115,7 +115,7 @@
 						: undefined,
 				detail:
 					game && hasVotes && votes
-						? `${count(game.upVotes, "like", "likes")} - ${count(game.downVotes, "dislike", "dislikes")}`
+						? `${count(game.upVotes, "like", "likes")} · ${count(game.downVotes, "dislike", "dislikes")}`
 						: "",
 			},
 			{ label: "Visits", icon: eyeIcon, value: exact(game?.visits) },
@@ -189,7 +189,7 @@
 				icon: ticketIcon,
 				value: game
 					? game.price > 0
-						? `Paid access - R$ ${numbers.format(game.price)}`
+						? `Paid access: R$ ${numbers.format(game.price)}`
 						: "Free"
 					: undefined,
 			},
@@ -434,7 +434,7 @@
 							<p
 								class="inline-flex items-center gap-1 text-xs font-medium text-fg-faint">
 								<Icon svg={pulseIcon} size={14} aria-hidden="true" />
-								<Skeleton className="w-20" label="Loading players" />
+								<Skeleton className="w-20" label="Loading players…" />
 							</p>
 						{:else if game}
 							<p
@@ -457,7 +457,7 @@
 						class="button-icon"
 						type="button"
 						aria-label={store.loadingDetails
-							? "Refreshing game details"
+							? "Refreshing game details…"
 							: "Refresh game details"}
 						aria-busy={store.loadingDetails}
 						data-tooltip="Refresh game details"
@@ -508,11 +508,11 @@
 					<button
 						class="button-icon"
 						type="button"
-						aria-label="More game actions"
+						aria-label="More actions"
 						aria-haspopup="menu"
 						aria-expanded={menuOpen}
 						data-open={menuOpen || undefined}
-						data-tooltip="Show more game actions"
+						data-tooltip="More actions"
 						data-tooltip-side="bottom-end"
 						data-game-menu
 						onclick={(event) => {
@@ -627,7 +627,7 @@
 				<section class="flex flex-col gap-3 pt-3" aria-busy="true">
 					<h3 class={sectionHeadingClass}>Description</h3>
 					<p class="text-block" data-variant="prose">
-						<Skeleton className="w-72" label="Loading the description" />
+						<Skeleton className="w-72" label="Loading description…" />
 					</p>
 				</section>
 			{/if}

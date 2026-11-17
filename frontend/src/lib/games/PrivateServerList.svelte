@@ -62,13 +62,13 @@
 		{:else if servers.error}
 			<div class="empty-state" role="alert">
 				<Icon svg={warningIcon} size={28} aria-hidden="true" />
-				<h2>Private servers are unavailable</h2>
+				<h2>Private servers unavailable</h2>
 				<p>{servers.error}</p>
 				<button class="button" type="button" onclick={() => void servers.load()}
 					>Try again</button>
 			</div>
 		{:else if !servers.page}
-			<ServerListSkeleton label="Loading private servers" />
+			<ServerListSkeleton label="Loading private servers…" />
 		{:else if !shown.length}
 			<div class="empty-state" role="status">
 				<Icon svg={lockKeyIcon} size={28} aria-hidden="true" />

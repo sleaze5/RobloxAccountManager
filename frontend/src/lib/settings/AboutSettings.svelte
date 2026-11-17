@@ -36,7 +36,7 @@
 					location = nextLocation
 				}
 			} catch {
-				if (!disposed) error = "Build and launch details could not be loaded."
+				if (!disposed) error = "Could not load the build and launch details."
 			}
 		})()
 		return () => {

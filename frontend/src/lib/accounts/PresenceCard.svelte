@@ -62,7 +62,7 @@
 	<dl class="detail-grid" aria-label="Game identifiers">
 		{#if placeId > 0}<div>
 				<dt>Place ID</dt>
-				{@render searchableId(placeId, "Find this place in Games", () =>
+				{@render searchableId(placeId, "Show in Games", () =>
 					onSearchPlace(placeId),
 				)}
 			</div>{/if}
@@ -74,7 +74,7 @@
 			</div>{/if}
 		{#if rootPlaceId > 0 && rootPlaceId !== placeId}<div>
 				<dt>Root place ID</dt>
-				{@render searchableId(rootPlaceId, "Find the root place in Games", () =>
+				{@render searchableId(rootPlaceId, "Show root place in Games", () =>
 					onSearchPlace(rootPlaceId),
 				)}
 			</div>{/if}

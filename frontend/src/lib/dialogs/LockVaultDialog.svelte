@@ -34,15 +34,14 @@
 		<div>
 			<h2 id="lock-title">Lock vault?</h2>
 			<p>
-				You will need your master password to unlock it.{store.vault
-					.automaticUnlock
-					? " Automatic unlock will be disabled."
+				You need the master password to unlock it.{store.vault.automaticUnlock
+					? " Automatic unlock turns off."
 					: ""}
 			</p>
 		</div>
 		<button
 			type="button"
-			aria-label="Close lock vault dialog"
+			aria-label="Close dialog"
 			disabled={store.busy}
 			onclick={onClose}>
 			<Icon svg={xIcon} size={14} aria-hidden="true" />

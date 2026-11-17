@@ -8,7 +8,7 @@
 </script>
 
 {#if check.isClean}
-	<span class="sr-only">Roblox's filter won't tag this {noun}.</span>
+	<span class="sr-only">Roblox's filter will not tag this {noun}.</span>
 {:else if moderation === TextModeration.TextModerationPartial}
 	<span class="sr-only">Roblox will tag part of this {noun}.</span>
 {:else if moderation === TextModeration.TextModerationFull}

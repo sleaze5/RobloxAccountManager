@@ -101,7 +101,7 @@
 			</li>
 			<li>
 				Or, if you have an export file, set the old vault aside below and create
-				a new vault. Then open Add account, choose Import export file, and
+				a new vault. Then open Add account, select Import export file, and
 				select your file.
 			</li>
 		</ul>

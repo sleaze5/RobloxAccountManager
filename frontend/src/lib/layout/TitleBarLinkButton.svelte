@@ -27,9 +27,9 @@
 		if (!(await copyText(notifications, url, `${urlName} copied to clipboard.`))) {
 			notifications.show({
 				id: "clipboard-copy",
-				title: "URL not copied",
+				title: "Not copied",
 				tone: "error",
-				message: `The ${urlName.toLowerCase()} could not be copied. Try again.`,
+				message: "Could not copy to the clipboard. Try again.",
 			})
 		}
 	}

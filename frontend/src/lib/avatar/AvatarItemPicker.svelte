@@ -71,8 +71,8 @@
 		if (emoteSlot !== null) return `Put in slot ${emoteSlot}`
 		if (draft && isWornInDraft(draft, item.itemId)) return "Take off"
 		return maxWornCountOf(item) > 0
-			? "Wear"
-			: "Roblox doesn't allow wearing this type"
+			? "Put on"
+			: "Roblox does not allow this type on avatars"
 	}
 
 	function pick(item: InventoryItem): void {
@@ -114,15 +114,15 @@
 			<h2 id="avatar-picker-title">
 				{emoteSlot === null
 					? "Add items"
-					: `Choose an emote for slot ${emoteSlot}`}
+					: `Select an emote for slot ${emoteSlot}`}
 			</h2>
 			<p id="avatar-picker-description">
 				{emoteSlot === null
-					? "Select items to wear or take off. An item replaces one of the same type when the avatar wears the most that Roblox allows."
+					? "Select items to put on or take off. When the avatar has the most items of a type that Roblox allows, a new item replaces one."
 					: "Select an emote that the account owns."}
 			</p>
 		</div>
-		<button type="button" aria-label="Close" onclick={onClose}>
+		<button type="button" aria-label="Close dialog" onclick={onClose}>
 			<Icon svg={xIcon} size={14} aria-hidden="true" />
 		</button>
 	</div>
@@ -185,7 +185,7 @@
 						</div>
 					{:else if !page}
 						<div role="status" aria-busy="true">
-							<span class="sr-only">Loading {category.noun}</span>
+							<span class="sr-only">Loading {category.noun}…</span>
 							<ul
 								class="grid grid-cols-3 gap-2 @md:grid-cols-4 @xl:grid-cols-5"
 								aria-hidden="true">
@@ -198,7 +198,7 @@
 						<div class="empty-state h-full" role="status">
 							<Icon svg={category.icon} size={28} aria-hidden="true" />
 							<h2>No {category.noun}</h2>
-							<p>The account doesn't own any {category.noun} yet.</p>
+							<p>The account does not own any {category.noun} yet.</p>
 						</div>
 					{:else if items.length === 0}
 						<div class="empty-state h-full" role="status">

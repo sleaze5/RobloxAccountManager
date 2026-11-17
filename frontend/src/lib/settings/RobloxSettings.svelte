@@ -36,7 +36,7 @@
 			clients = await accountBackend.GetRobloxClients()
 			clientsError = ""
 		} catch {
-			clientsError = "The Linux client list could not be loaded. Try again."
+			clientsError = "Could not load the Linux client list. Try again."
 		} finally {
 			clientsLoading = false
 		}
@@ -54,7 +54,7 @@
 			clients = previous
 			clientsError = errorMessage(
 				cause,
-				"The Linux client could not be saved. Try again.",
+				"Could not save the Linux client. Try again.",
 			)
 		} finally {
 			clientsSaving = false
@@ -77,8 +77,8 @@
 					class={[snapshot?.supported === false && "text-fg-faint"]}
 					>Multi-instance</strong>
 				<span id="multi-instance-description"
-					>Launch multiple games at the same time. Only works while Roblox
-					Account Manager is open.</span>
+					>Launch several games at once. Works only while Roblox Account
+					Manager is open.</span>
 				<SettingsStatus
 					id="multi-instance-status"
 					value={options.multiInstanceStatus.text}

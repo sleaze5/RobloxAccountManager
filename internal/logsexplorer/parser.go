@@ -58,7 +58,7 @@ func parse(ctx context.Context, input io.Reader, session *Session) error {
 		line, err := reader.ReadSlice('\n')
 		if errors.Is(err, bufio.ErrBufferFull) {
 			skipping = true
-			session.Issue = "Some oversized log lines were skipped. Session details may be incomplete."
+			session.Issue = "Some log lines were too long and were skipped. Session details may be incomplete."
 			continue
 		}
 		if !skipping {

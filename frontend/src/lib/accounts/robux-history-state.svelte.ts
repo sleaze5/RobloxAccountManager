@@ -92,7 +92,7 @@ export class RobuxHistoryState {
 			if (!isCurrentRequest()) return
 			this.error = errorMessage(
 				error,
-				"Could not load the Robux history. Refresh to retry.",
+				"Could not load the Robux history. Refresh to try again.",
 			)
 		} finally {
 			if (isCurrentRequest()) {

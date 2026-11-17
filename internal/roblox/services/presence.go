@@ -151,7 +151,7 @@ func (service *Presence) request(ctx context.Context, accountID, version int64, 
 		return nil, &roblox.Error{
 			Kind:     roblox.KindProtocol,
 			Endpoint: "user-presences",
-			Message:  "The presence request could not be created.",
+			Message:  "Could not create the presence request.",
 			Cause:    err,
 		}
 	}

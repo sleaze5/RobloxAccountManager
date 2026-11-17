@@ -45,13 +45,13 @@
 				Remove {server.name || "Saved server"}?
 			</h2>
 			<p id={`${id}-description`}>
-				The link is deleted from the vault and can't be restored. The private
-				server itself doesn't change.
+				The link is deleted from the vault and cannot be restored. The private
+				server itself does not change.
 			</p>
 		</div>
 		<button
 			type="button"
-			aria-label="Close remove private server link"
+			aria-label="Close dialog"
 			disabled={removing}
 			onclick={close}>
 			<Icon svg={xIcon} size={14} aria-hidden="true" />

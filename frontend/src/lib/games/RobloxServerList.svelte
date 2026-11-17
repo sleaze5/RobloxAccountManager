@@ -122,13 +122,13 @@
 	{#if servers.error}
 		<div class="empty-state" role="alert">
 			<Icon svg={warningIcon} size={28} aria-hidden="true" />
-			<h2>Servers are unavailable</h2>
+			<h2>Servers unavailable</h2>
 			<p>{servers.error}</p>
 			<button class="button" type="button" onclick={() => void servers.load()}
 				>Try again</button>
 		</div>
 	{:else if !servers.page}
-		<ServerListSkeleton label="Loading servers" />
+		<ServerListSkeleton label="Loading servers…" />
 	{:else if !loaded.length}
 		<div class="empty-state" role="status">
 			<Icon svg={hardDrivesIcon} size={28} aria-hidden="true" />

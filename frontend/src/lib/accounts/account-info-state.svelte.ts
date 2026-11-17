@@ -87,7 +87,7 @@ export class AccountInfoState {
 			new SectionLoad(
 				infoSections,
 				() => emptyInfo(accountId),
-				"Could not load account info. Refresh to retry.",
+				"Could not load account info. Refresh to try again.",
 			)
 	}
 

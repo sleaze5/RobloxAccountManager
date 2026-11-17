@@ -79,7 +79,9 @@ export function moderationStatus(
 	if (resolvesInBrowser(moderation)) {
 		return {
 			label: `${label}:`,
-			detail: isLocked(moderation) ? "verify you're human" : "resolve in browser",
+			detail: isLocked(moderation)
+				? "verify you are human"
+				: "resolve in browser",
 			tone: "warning",
 		}
 	}

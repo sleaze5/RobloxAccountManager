@@ -21,7 +21,7 @@
 		try {
 			await accountBackend.MoveAppData(target.mode)
 		} catch (cause) {
-			error = errorMessage(cause, "The data could not be moved.")
+			error = errorMessage(cause, "Could not move the data.")
 			busy = false
 		}
 	}
@@ -48,7 +48,7 @@
 		</div>
 		<button
 			type="button"
-			aria-label="Close move data dialog"
+			aria-label="Close dialog"
 			disabled={busy}
 			onclick={onClose}>
 			<Icon svg={xIcon} size={14} aria-hidden="true" />

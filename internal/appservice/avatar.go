@@ -249,7 +249,7 @@ func (service *Service) renderAvatarPreview(ctx context.Context, accountID, vers
 		return "", err
 	}
 	if !isRendered {
-		return "", &roblox.Error{Kind: roblox.KindTimeout, Endpoint: operation, Message: "Roblox is still rendering the preview. Try again in a moment."}
+		return "", &roblox.Error{Kind: roblox.KindTimeout, Endpoint: operation, Message: "Roblox is still rendering the preview. Try again in a minute."}
 	}
 	return imageURL, nil
 }

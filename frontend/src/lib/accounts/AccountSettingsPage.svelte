@@ -61,10 +61,10 @@
 	const privacyPlaceholders: SettingRadioOption[] = [
 			{ label: "Everyone", value: "AllUsers" },
 			{
-				label: "Friends, followers & people I follow",
+				label: "Friends, followers, and people I follow",
 				value: "FriendsFollowingAndFollowers",
 			},
-			{ label: "Friends & people I follow", value: "FriendsAndFollowing" },
+			{ label: "Friends and people I follow", value: "FriendsAndFollowing" },
 			{ label: "Friends", value: "Friends" },
 			{ label: "No one", value: "NoOne" },
 		],
@@ -129,14 +129,13 @@
 							key: Key.SettingContentMaturity,
 							label: "Content maturity",
 							description:
-								"Choose the level of mature content and experiences allowed on this account.",
+								"Select the content maturity level allowed on this account.",
 							type: "radio",
 						},
 						{
 							key: Key.SettingSensitiveIssues,
 							label: "Sensitive issues",
-							description:
-								"Allow experiences that depict sensitive themes and topics.",
+							description: "Allow games with sensitive themes.",
 							type: "toggle",
 						},
 					],
@@ -150,19 +149,19 @@
 			sections: [
 				{
 					id: "experience-chat-section",
-					title: "Experience chat",
+					title: "Game chat",
 					fields: [
 						{
 							key: Key.SettingExperienceChat,
-							label: "Experience chat",
-							description: "Enable text chat within Roblox experiences.",
+							label: "Game chat",
+							description: "Allow text chat in games.",
 							type: "toggle",
 						},
 						{
 							key: Key.SettingDirectExperienceChat,
 							label: "Direct chat",
 							description:
-								"Allow direct messaging with other players inside experiences.",
+								"Allow direct messages with other players in games.",
 							type: "toggle",
 						},
 					],
@@ -181,20 +180,19 @@
 						{
 							key: Key.SettingPartyChat,
 							label: "Friends chat",
-							description: "Choose who can chat with you in parties.",
+							description: "Select who can chat with you in parties.",
 							type: "radio",
 						},
 						{
 							key: Key.SettingPartyVoice,
 							label: "Voice chat with friends",
-							description: "Choose who can speak with you in parties.",
+							description: "Select who can speak with you in parties.",
 							type: "radio",
 						},
 						{
 							key: Key.SettingVoiceOptIn,
 							label: "Voice chat",
-							description:
-								"Enable spatial voice chat in supported experiences.",
+							description: "Allow spatial voice chat in supported games.",
 							type: "toggle",
 						},
 					],
@@ -242,7 +240,7 @@
 		},
 		{
 			id: "visibility-private-servers",
-			label: "Visibility & private servers",
+			label: "Visibility and private servers",
 			search: "visibility private servers online status current game activity updates social links who can add friend suggestions contacts phone",
 			sections: [
 				{
@@ -252,14 +250,14 @@
 						{
 							key: Key.SettingOnlineStatus,
 							label: "Online status",
-							description: "Choose who can see when you are online.",
+							description: "Select who can see when you are online.",
 							type: "radio",
 						},
 						{
 							key: Key.SettingExperienceJoins,
 							label: "Show current game",
 							description:
-								"Choose who can see the game you are playing and join you.",
+								"Select who can see the game you are playing and join you.",
 							type: "radio",
 						},
 						{
@@ -273,7 +271,7 @@
 							key: Key.SettingSocialNetworks,
 							label: "Social links",
 							description:
-								"Choose who can view links to your social networks on your profile.",
+								"Select who can view links to your social networks on your profile.",
 							type: "radio",
 						},
 					],
@@ -286,14 +284,14 @@
 							key: Key.SettingPrivateServerAdditions,
 							label: "Who can add me to private servers",
 							description:
-								"Choose who can add you to their private servers.",
+								"Select who can add you to their private servers.",
 							type: "radio",
 						},
 					],
 				},
 				{
 					id: "friends-contacts-section",
-					title: "Friends & contacts",
+					title: "Friends and contacts",
 					fields: [
 						{
 							key: Key.SettingFriendSuggestions,
@@ -322,23 +320,23 @@
 		},
 		{
 			id: "trading-inventory",
-			label: "Trading & inventory",
+			label: "Trading and inventory",
 			search: "trading inventory visibility trade audience quality filter",
 			sections: [
 				{
 					id: "inventory-trading-section",
-					title: "Trading & inventory",
+					title: "Trading and inventory",
 					fields: [
 						{
 							key: Key.SettingInventoryVisibility,
 							label: "Inventory visibility",
-							description: "Choose who can view items in your inventory.",
+							description: "Select who can view items in your inventory.",
 							type: "radio",
 						},
 						{
 							key: Key.SettingTradeAudience,
 							label: "Trade audience",
-							description: "Choose who can send you trade requests.",
+							description: "Select who can send you trade requests.",
 							type: "radio",
 						},
 						{
@@ -386,7 +384,7 @@
 			label: "Blocked users",
 			search: "blocked users block unblock",
 		},
-		privacyLabel = "Privacy & content restrictions",
+		privacyLabel = "Privacy and content restrictions",
 		pages = [
 			{
 				id: "info",
@@ -396,7 +394,7 @@
 			},
 			{
 				id: "privacy",
-				label: "Privacy & content",
+				label: "Privacy and content",
 				icon: lockKeyIcon,
 				search: "privacy content restrictions",
 			},
@@ -883,7 +881,7 @@
 				{#if workspace.accountSettingsQuery}
 					<button
 						type="button"
-						aria-label="Clear settings search"
+						aria-label="Clear search"
 						onclick={() => {
 							resetScroll()
 							workspace.accountSettingsQuery = ""

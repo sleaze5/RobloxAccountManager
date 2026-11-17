@@ -61,7 +61,7 @@ func (service *Service) GetAccountSessions(ctx context.Context, accountID int64)
 
 func (service *Service) SignOutOtherSessions(ctx context.Context, accountID int64) (CookieRenewalResult, error) {
 	if _, running := service.cookieRenewals.LoadOrStore(accountID, struct{}{}); running {
-		return CookieRenewalResult{}, &roblox.Error{Kind: roblox.KindForbidden, Endpoint: "sessions-sign-out", Message: "This account's cookie is already being replaced. Try again in a moment."}
+		return CookieRenewalResult{}, &roblox.Error{Kind: roblox.KindForbidden, Endpoint: "sessions-sign-out", Message: "This account's cookie is already being updated. Try again in a moment."}
 	}
 	defer service.cookieRenewals.Delete(accountID)
 	ctx, version, done, err := service.beginAccountSession(ctx, accountID, "sessions-sign-out")

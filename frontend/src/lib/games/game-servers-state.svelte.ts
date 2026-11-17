@@ -168,7 +168,7 @@ abstract class ServerPager<Cursor extends string | number, Page> {
 			if (this.#request === request) {
 				this.error = errorMessage(
 					error,
-					"Servers could not be loaded. Try again.",
+					"Could not load the servers. Try again.",
 				)
 			}
 		} finally {
@@ -405,7 +405,7 @@ export class SavedServers {
 			if (current()) {
 				this.error = errorMessage(
 					error,
-					"Saved links could not be loaded. Try again.",
+					"Could not load the saved links. Try again.",
 				)
 			}
 		} finally {
@@ -439,7 +439,7 @@ export class SavedServers {
 			if (this.#active) {
 				this.actionError = errorMessage(
 					error,
-					"The link could not be saved. Try again.",
+					"Could not save the link. Try again.",
 				)
 			}
 			return false
@@ -463,7 +463,7 @@ export class SavedServers {
 			if (this.#active) {
 				this.actionError = errorMessage(
 					error,
-					"The link could not be removed. Try again.",
+					"Could not remove the link. Try again.",
 				)
 			}
 			return false
@@ -529,7 +529,7 @@ export class FriendServers {
 			if (this.#request === request) {
 				this.error = errorMessage(
 					error,
-					"Couldn't load friends' servers. Try again.",
+					"Could not load friends' servers. Try again.",
 				)
 			}
 		} finally {

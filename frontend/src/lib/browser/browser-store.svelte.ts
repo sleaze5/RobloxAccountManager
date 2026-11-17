@@ -214,7 +214,7 @@ export class BrowserStore {
 					{ label: "Try cleanup again", onClick: () => this.retryCleanup() },
 				],
 				id: "browser-cleanup",
-				message: "A temporary browser profile could not be removed.",
+				message: "Could not remove a temporary browser profile.",
 				title: "Browser cleanup needed",
 				tone: "warning",
 			})
@@ -272,7 +272,7 @@ export class BrowserStore {
 			this.#notifications?.show({
 				id: `browser-focus-${id}`,
 				message: errorMessage(error, browserOperationError),
-				title: "Browser could not be focused",
+				title: "Could not focus the browser",
 				tone: "error",
 			})
 		}

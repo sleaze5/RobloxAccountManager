@@ -58,7 +58,7 @@ func (service *Games) Servers(ctx context.Context, query games.ServerQuery, acco
 		return games.ServerPage{}, &roblox.Error{Kind: roblox.KindProtocol, Endpoint: "game-servers", Message: "Roblox returned invalid server data.", Cause: err}
 	}
 	if len(payload.Data) > 100 || len(payload.NextPageCursor) > maxServerCursorLength || len(payload.PreviousPageCursor) > maxServerCursorLength {
-		return games.ServerPage{}, gameDataError("Roblox returned an oversized server page.")
+		return games.ServerPage{}, gameDataError("Roblox returned too many servers.")
 	}
 	page := games.ServerPage{Servers: make([]games.Server, 0, len(payload.Data)), NextCursor: payload.NextPageCursor, PreviousCursor: payload.PreviousPageCursor}
 	tokens := make([][]string, 0, len(payload.Data))

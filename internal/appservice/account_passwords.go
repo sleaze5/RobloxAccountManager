@@ -66,24 +66,24 @@ func (service *Service) ValidateAccountPassword(ctx context.Context, accountID i
 	if err == nil {
 		return valid, nil
 	}
-	message := "Could not validate the password. Check the account on the Roblox website."
+	message := "Could not check the password. Check the account on the Roblox website."
 	kind := roblox.KindProtocol
 	if remote, ok := errors.AsType[*roblox.Error](err); ok {
 		kind = remote.Kind
 		service.logger.Warn("account password validation unavailable", "operation", "password-validate", "account_id", accountID, "error_kind", remote.Kind, "status", remote.Status, "roblox_code", remote.RobloxCode)
 		switch remote.Kind {
 		case roblox.KindChallengeRequired:
-			message = "Could not validate: Roblox requires extra verification. Check the password on the Roblox website."
+			message = "Could not check the password. Roblox requires extra verification. Check it on the Roblox website."
 		case roblox.KindRateLimited:
-			message = "Could not validate: Roblox is rate limiting requests. Wait before trying again."
+			message = "Could not check the password. Roblox is limiting requests. Wait, then try again."
 		case roblox.KindReauthRequired, roblox.KindInvalidSession:
-			message = "Could not validate: the Roblox session has expired. Sign in again first."
+			message = "Could not check the password. The Roblox session expired. Sign in again first."
 		case roblox.KindVaultLocked:
-			message = "Could not validate: unlock the vault first."
+			message = "Could not check the password. Unlock the vault first."
 		case roblox.KindCancelled:
-			message = "Password validation was cancelled because the account session changed."
+			message = "The password check was canceled because the account session changed."
 		case roblox.KindTransport, roblox.KindTimeout, roblox.KindServer:
-			message = "Could not validate: Roblox could not be reached. Try again later."
+			message = "Could not reach Roblox to check the password. Try again later."
 		default:
 		}
 	}

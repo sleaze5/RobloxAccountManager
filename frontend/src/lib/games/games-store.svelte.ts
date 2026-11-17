@@ -265,7 +265,7 @@ export class GamesStore {
 			if (this.#searchRequest === request) {
 				const reason = errorMessage(
 					error,
-					"Games could not be loaded. Try again.",
+					"Could not load the games. Try again.",
 				)
 				if (more) {
 					this.error = reason
@@ -304,7 +304,7 @@ export class GamesStore {
 			if (this.#favoritesRequest === request) {
 				this.error = errorMessage(
 					error,
-					"Favorites could not be loaded. Try again.",
+					"Could not load the favorites. Try again.",
 				)
 			}
 		} finally {
@@ -444,7 +444,7 @@ export class GamesStore {
 			if (this.#detailsRequest === request) {
 				this.detailsError = errorMessage(
 					error,
-					"Game details are unavailable. Try again.",
+					"Could not load the game details. Try again.",
 				)
 				this.#cancelGameSections()
 			}
@@ -574,7 +574,7 @@ export class GamesStore {
 			if (this.#epoch === epoch) {
 				this.error = errorMessage(
 					error,
-					"Favorites could not be updated. Try again.",
+					"Could not update the favorites. Try again.",
 				)
 			}
 		} finally {
@@ -615,7 +615,7 @@ export class GamesStore {
 				this.favorites = previous
 				this.error = errorMessage(
 					error,
-					"Favorites could not be reordered. Try again.",
+					"Could not reorder the favorites. Try again.",
 				)
 			}
 		} finally {
@@ -659,7 +659,7 @@ export class GamesStore {
 			if (this.#epoch === epoch) {
 				this.error = errorMessage(
 					error,
-					"The nickname could not be saved. Try again.",
+					"Could not save the nickname. Try again.",
 				)
 			}
 			return false

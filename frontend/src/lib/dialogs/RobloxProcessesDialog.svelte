@@ -49,7 +49,7 @@
 			loadError = ""
 		} catch {
 			if (!disposed) {
-				loadError = "Could not load Roblox processes. Try refreshing."
+				loadError = "Could not load Roblox processes. Refresh to try again."
 			}
 		} finally {
 			if (!disposed) loading = false
@@ -77,7 +77,7 @@
 			if (!disposed) {
 				error = errorMessage(
 					cause,
-					"Some Roblox processes could not be closed. Try again.",
+					"Could not close some Roblox processes. Try again.",
 				)
 			}
 		} finally {

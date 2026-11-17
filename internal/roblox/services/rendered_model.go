@@ -69,7 +69,7 @@ func (service *Users) renderedModelManifestURL(ctx context.Context, accountID, v
 	case strings.EqualFold(payload.State, "Pending"):
 		return "", nil
 	case !strings.EqualFold(payload.State, "Completed"):
-		return "", &roblox.Error{Kind: roblox.KindProtocol, Endpoint: endpoint, Message: "Roblox can't show this in 3D."}
+		return "", &roblox.Error{Kind: roblox.KindProtocol, Endpoint: endpoint, Message: "Roblox cannot show this in 3D."}
 	case !safeThumbnailURL(payload.ImageURL):
 		return "", invalidRenderedModel()
 	}

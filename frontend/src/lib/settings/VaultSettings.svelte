@@ -134,12 +134,12 @@
 			</div>
 		{/if}
 
-		{#if matches("Password test reminder", "Choose how often automatic unlock asks confirm master password")}
+		{#if matches("Password test reminder", "Select how often automatic unlock asks confirm master password")}
 			<div class="settings-row">
 				<div class="settings-row-copy">
 					<strong>Password test reminder</strong>
 					<span
-						>Choose how often automatic unlock asks you to confirm the
+						>Select how often automatic unlock asks you to confirm the
 						master password.</span>
 				</div>
 				<Select

@@ -600,7 +600,7 @@ export class AvatarState {
 			unkeptAdjustmentNames = result.unkeptAdjustmentAssetIds.map(nameOf),
 			warnings = [
 				skippedNames.length > 0 &&
-					`Roblox didn't put on ${skippedNames.join(", ")}. The account may not own ${skippedNames.length === 1 ? "it" : "them"}.`,
+					`Roblox did not put on ${skippedNames.join(", ")}. The account may not own ${skippedNames.length === 1 ? "it" : "them"}.`,
 				unkeptAdjustmentNames.length > 0 &&
 					`Roblox placed ${unkeptAdjustmentNames.join(", ")} differently than requested. Check the Adjustments tab.`,
 			].filter((warning) => warning !== false)

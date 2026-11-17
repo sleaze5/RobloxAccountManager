@@ -486,7 +486,7 @@ func (service *Users) Unfollow(ctx context.Context, accountID, version, userID i
 func (service *Users) postRead(ctx context.Context, accountID, version int64, endpoint, address string, payload, target any) error {
 	body, err := json.Marshal(payload)
 	if err != nil {
-		return &roblox.Error{Kind: roblox.KindProtocol, Endpoint: endpoint, Message: "The request could not be encoded.", Cause: err}
+		return &roblox.Error{Kind: roblox.KindProtocol, Endpoint: endpoint, Message: "Could not encode the request.", Cause: err}
 	}
 	ctx, cancel := context.WithTimeout(ctx, 15*time.Second)
 	defer cancel()

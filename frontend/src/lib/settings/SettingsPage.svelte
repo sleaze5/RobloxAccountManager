@@ -32,7 +32,7 @@
 			icon: keyIcon,
 			id: "vault",
 			label: "Vault",
-			search: "vault security vault status unlocked automatic unlock without master password when the app starts enable disable on off operating system user account lock vault test master password last tested not tested change master password rotate encryption key update password test reminder choose how often asks confirm storage location data folder path copy portable standard move data backups settings restart export import encrypted file password hint merge replace favorite places",
+			search: "vault security vault status unlocked automatic unlock without master password when the app starts enable disable on off operating system user account lock vault test master password last tested not tested change master password rotate encryption key update password test reminder select how often asks confirm storage location data folder path copy portable standard move data backups settings restart export import encrypted file password hint merge replace favorite places",
 		},
 		{
 			icon: slidersHorizontalIcon,
@@ -135,7 +135,7 @@
 				{#if query}
 					<button
 						type="button"
-						aria-label="Clear settings search"
+						aria-label="Clear search"
 						onclick={() => (query = "")}>
 						<Icon svg={xIcon} size={14} aria-hidden="true" />
 					</button>

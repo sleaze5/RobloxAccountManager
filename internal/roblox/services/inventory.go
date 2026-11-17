@@ -181,7 +181,7 @@ func (service *Users) InventoryPage(ctx context.Context, accountID, version, use
 	default:
 		assetTypes, ok := inventoryAssetTypesByCategory[category]
 		if !ok {
-			return InventoryPage{}, &roblox.Error{Kind: roblox.KindProtocol, Endpoint: "inventory", Message: "Choose an inventory category."}
+			return InventoryPage{}, &roblox.Error{Kind: roblox.KindProtocol, Endpoint: "inventory", Message: "Select an inventory category."}
 		}
 		isCatalogCategory := category != InventoryPlaces && category != InventoryModels && category != InventoryDecals && category != InventoryAudio
 		return service.assetsPage(ctx, accountID, version, user, assetTypes, isCatalogCategory, cursor)
@@ -448,7 +448,7 @@ func (service *Users) AddCatalogDetails(ctx context.Context, accountID, version 
 func (service *Users) readCatalogDetails(ctx context.Context, accountID, version int64, requestedItems []catalogItemKey) ([]catalogItemDetails, error) {
 	body, err := json.Marshal(map[string]any{"items": requestedItems})
 	if err != nil {
-		return nil, &roblox.Error{Kind: roblox.KindProtocol, Endpoint: "inventory-catalog-details", Message: "The catalog request could not be created.", Cause: err}
+		return nil, &roblox.Error{Kind: roblox.KindProtocol, Endpoint: "inventory-catalog-details", Message: "Could not create the catalog request.", Cause: err}
 	}
 	ctx, cancel := context.WithTimeout(ctx, 30*time.Second)
 	defer cancel()

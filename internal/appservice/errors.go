@@ -64,7 +64,7 @@ func safeVaultError(err error) error {
 	return &roblox.Error{
 		Kind:     roblox.KindProtocol,
 		Endpoint: "vault-unlock",
-		Message:  vaultFailureMessage(err, "The vault could not be unlocked."),
+		Message:  vaultFailureMessage(err, "Could not unlock the vault."),
 		Cause:    err,
 	}
 }

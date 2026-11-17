@@ -105,9 +105,9 @@
 				>User ID {userId}</span>
 		{:else}
 			<span class="text-sm"
-				><Skeleton className="w-28" label="Loading user" /></span>
+				><Skeleton className="w-28" label="Loading user…" /></span>
 			<span class="text-xs"
-				><Skeleton className="w-20" label="Loading username" /></span>
+				><Skeleton className="w-20" label="Loading username…" /></span>
 		{/if}
 	</div>
 </div>

@@ -60,7 +60,7 @@
 	</div>
 	{#if isDescriptionUnavailable}
 		<p class="text-xs text-danger-muted" role="alert">
-			The description is unavailable. Refresh to retry.
+			The description is unavailable. Refresh to try again.
 		</p>
 	{:else}
 		<p class="text-block" data-variant="prose">

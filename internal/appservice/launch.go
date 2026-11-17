@@ -55,7 +55,7 @@ func (service *Service) LaunchAccounts(ctx context.Context, accountIDs []int64, 
 				break
 			}
 			if err != nil {
-				message := "The account could not be launched. Try again."
+				message := "Could not launch the account. Try again."
 				if failure, ok := errors.AsType[*roblox.Error](err); ok {
 					message = failure.Message
 				}
@@ -73,7 +73,7 @@ func (service *Service) serializeLaunch(ctx context.Context, action func() error
 	service.launchMutex.Lock()
 	defer service.launchMutex.Unlock()
 	if ctx.Err() != nil || !service.vault.Unlocked() {
-		return launchError(roblox.KindCancelled, "The launch was cancelled or the vault is locked.")
+		return launchError(roblox.KindCancelled, "The launch was canceled, or the vault is locked.")
 	}
 	return action()
 }
@@ -94,10 +94,10 @@ func (service *Service) executeLaunch(ctx context.Context, shouldClean bool, con
 		}
 	}
 	if err := service.elevatedHelper.WaitForStoppedTask(ctx); err != nil {
-		return launchError(roblox.KindCancelled, "Roblox is still being cleaned. Try again shortly.")
+		return launchError(roblox.KindCancelled, "Roblox is still being cleaned. Try again in a minute.")
 	}
 	if ctx.Err() != nil || !service.vault.Unlocked() {
-		return launchError(roblox.KindCancelled, "The launch was cancelled or the vault is locked.")
+		return launchError(roblox.KindCancelled, "The launch was canceled, or the vault is locked.")
 	}
 	if err := action(); err != nil {
 		return err
@@ -137,7 +137,7 @@ func (service *Service) launchAccount(ctx context.Context, accountID int64, inpu
 				return err
 			}
 			if err := service.launcher.Launch(ctx, authenticationTicket, browserID, target); err != nil {
-				return &roblox.Error{Kind: roblox.KindProtocol, Endpoint: "game-launch", Message: userLaunchMessage(err, "Roblox Player could not be started. Check that Roblox is installed and try again."), Cause: err}
+				return &roblox.Error{Kind: roblox.KindProtocol, Endpoint: "game-launch", Message: userLaunchMessage(err, "Could not start Roblox Player. Check that Roblox is installed and try again."), Cause: err}
 			}
 			return nil
 		})
@@ -169,7 +169,7 @@ func (service *Service) CopyLaunchOptions(ctx context.Context, accountIDs []int6
 	}
 	if !copyText(strings.Join(commands, "\n")) {
 		service.logger.Warn("launch options clipboard write failed", "operation", "copy-launch-options", "account_count", len(accountIDs))
-		return clipboardError("Launch options could not be copied. Try again.")
+		return clipboardError("Could not copy to the clipboard. Try again.")
 	}
 	return nil
 }
@@ -183,7 +183,7 @@ func (service *Service) accountLaunchOptions(ctx context.Context, accountID int6
 		}
 		command, err = service.launcher.CommandLine(ctx, authenticationTicket, browserID, target)
 		if err != nil {
-			return &roblox.Error{Kind: roblox.KindProtocol, Endpoint: "copy-launch-options", Message: userLaunchMessage(err, "Launch options could not be prepared. Check that Roblox is installed and try again."), Cause: err}
+			return &roblox.Error{Kind: roblox.KindProtocol, Endpoint: "copy-launch-options", Message: userLaunchMessage(err, "Could not prepare the launch options. Check that Roblox is installed and try again."), Cause: err}
 		}
 		if ctx.Err() != nil {
 			return launchError(roblox.KindCancelled, "The account session changed. Try again.")
@@ -295,7 +295,7 @@ func userLaunchMessage(err error, fallback string) string {
 		return strings.ToUpper(message[:1]) + message[1:] + "."
 	}
 	if errors.Is(err, gamelaunch.ErrDesktopUnavailable) {
-		return "Roblox could not be launched without administrator permissions. Restart Windows Explorer normally and try again."
+		return "Could not launch Roblox without administrator permissions. Restart Windows Explorer normally and try again."
 	}
 	return fallback
 }
@@ -306,7 +306,7 @@ func launchError(kind roblox.ErrorKind, message string) error {
 
 func launchPreparationError(err error) *roblox.Error {
 	if errors.Is(err, context.Canceled) || errors.Is(err, context.DeadlineExceeded) {
-		return &roblox.Error{Kind: roblox.KindCancelled, Endpoint: "game-launch", Message: "The launch was cancelled or timed out. Try joining again."}
+		return &roblox.Error{Kind: roblox.KindCancelled, Endpoint: "game-launch", Message: "The launch was canceled or timed out. Try joining again."}
 	}
 	message := err.Error()
 	return &roblox.Error{Kind: roblox.KindProtocol, Endpoint: "game-launch", Message: strings.ToUpper(message[:1]) + message[1:] + "."}

@@ -135,7 +135,10 @@
 			} catch (error) {
 				draft = {
 					format: null,
-					error: errorMessage(error, "The format could not be read."),
+					error: errorMessage(
+						error,
+						"Could not read the format. Check it and try again.",
+					),
 				}
 			}
 			if (current) apply(draft)
@@ -184,7 +187,7 @@
 			<div class="settings-row">
 				<div class="settings-row-copy">
 					<strong>Animations</strong>
-					<span>Choose whether the interface animates.</span>
+					<span>Select whether the interface animates.</span>
 				</div>
 				<Select
 					label="Animations"

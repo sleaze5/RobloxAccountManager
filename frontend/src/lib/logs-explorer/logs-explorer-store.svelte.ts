@@ -82,7 +82,7 @@ export class LogsExplorerStore {
 		} catch (error) {
 			this.error = errorMessage(
 				error,
-				"Logs could not be loaded. Try refreshing again.",
+				"Could not load the logs. Refresh to try again.",
 			)
 		} finally {
 			this.refreshing = false
@@ -104,7 +104,7 @@ export class LogsExplorerStore {
 		} catch (error) {
 			this.error = errorMessage(
 				error,
-				"This session could not be refreshed. Try refreshing all logs.",
+				"Could not refresh this session. Refresh all logs to try again.",
 			)
 		} finally {
 			this.refreshingFiles.delete(fileName)

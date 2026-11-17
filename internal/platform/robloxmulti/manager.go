@@ -190,7 +190,7 @@ func (manager *Manager) snapshotLocked() Snapshot {
 		return state
 	}
 	if manager.startError != nil || manager.holder == nil || manager.holder.failed.Load() {
-		state.Message = "turn multi-instance off and on to retry"
+		state.Message = "turn multi-instance off and on to try again"
 		return state
 	}
 	if !manager.holder.owned.Load() {

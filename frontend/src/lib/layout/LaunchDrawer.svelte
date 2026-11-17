@@ -41,7 +41,7 @@
 			value: LaunchMethod.MethodLink,
 			label: "Link",
 			description:
-				"Join using a Roblox game link, private server link, experience invite, or server-share code.",
+				"Join with a game link, private server link, game invite, or server share code.",
 		},
 		{
 			value: LaunchMethod.MethodUser,
@@ -227,7 +227,7 @@
 								data-launch-user
 								bind:value={store.launchInput.user}
 								type="text"
-								placeholder="Username or id=123"
+								placeholder="Username or id:123"
 								required
 								disabled={store.launching} />
 						</label>
@@ -270,7 +270,7 @@
 						class="button-ghost"
 						type="button"
 						aria-label="Clear join fields"
-						data-tooltip="Clear join fields and reset to Place ID"
+						data-tooltip="Clear join fields"
 						data-tooltip-side="top"
 						disabled={store.launching}
 						onclick={() => store.clearJoinTarget()}>

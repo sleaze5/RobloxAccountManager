@@ -178,7 +178,7 @@
 			</div>
 			<button
 				type="button"
-				aria-label="Close browser confirmation"
+				aria-label="Close dialog"
 				onclick={() => {
 					pendingAction = null
 					effects = null
@@ -203,7 +203,7 @@
 						? "candidate"
 						: "candidates"}.
 				</li>{/if}
-			{#if effects.accountChecks}<li>Cancel account validations.</li>{/if}
+			{#if effects.accountChecks}<li>Cancel account checks.</li>{/if}
 		</ul>
 		<div class="dialog-actions">
 			<button

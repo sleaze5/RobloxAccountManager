@@ -290,7 +290,7 @@
 									type="button"
 									disabled={store.busy}
 									onclick={onReplaceCookie}>
-									Replace cookie
+									Update cookie
 								</button>
 							</div>
 						{/if}
@@ -350,7 +350,7 @@
 					aria-label={moderated
 						? "Check moderation status"
 						: refreshing
-							? "Refreshing account data"
+							? "Refreshing account data…"
 							: "Refresh account data"}
 					aria-busy={refreshing}
 					disabled={!hasAccount || !store.vault.unlocked || refreshing}
@@ -367,7 +367,7 @@
 						? `Notifications, ${unreadNotifications} unread`
 						: "Notifications"}
 					data-tooltip={moderated
-						? "Notifications are unavailable while moderated"
+						? "Notifications unavailable while moderated"
 						: unreadNotifications
 							? `Notifications (${unreadNotifications} unread)`
 							: "Notifications"}
@@ -387,10 +387,10 @@
 					class="button-icon"
 					type="button"
 					aria-label={moderated
-						? "Avatar is unavailable while moderated"
+						? "Avatar unavailable while moderated"
 						: "Avatar"}
 					data-tooltip={moderated
-						? "Avatar is unavailable while moderated"
+						? "Avatar unavailable while moderated"
 						: "Avatar"}
 					disabled={!hasAccount || !store.vault.unlocked || moderated}
 					bind:this={avatarButton}
@@ -401,10 +401,10 @@
 					class="button-icon"
 					type="button"
 					aria-label={moderated
-						? "Inventory is unavailable while moderated"
+						? "Inventory unavailable while moderated"
 						: "Inventory"}
 					data-tooltip={moderated
-						? "Inventory is unavailable while moderated"
+						? "Inventory unavailable while moderated"
 						: "Inventory"}
 					disabled={!hasAccount || !store.vault.unlocked || moderated}
 					bind:this={inventoryButton}
@@ -416,7 +416,7 @@
 					type="button"
 					aria-label="Chats"
 					data-tooltip={moderated
-						? "Chats are unavailable while moderated"
+						? "Chats unavailable while moderated"
 						: "Chats"}
 					disabled={!hasAccount || !store.vault.unlocked || moderated}
 					bind:this={chatsButton}
@@ -428,7 +428,7 @@
 					type="button"
 					aria-label="Account settings"
 					data-tooltip={moderated
-						? "Settings are unavailable while moderated"
+						? "Settings unavailable while moderated"
 						: "Account settings"}
 					disabled={!hasAccount || !store.vault.unlocked || moderated}
 					bind:this={settingsButton}
@@ -439,10 +439,10 @@
 					class="button-icon"
 					data-account-menu
 					type="button"
-					aria-label="More account actions"
+					aria-label="More actions"
 					aria-expanded={workspace.accountContextMenu?.accountId ===
 						selectedAccount.id}
-					data-tooltip="Show more account actions"
+					data-tooltip="More actions"
 					data-tooltip-side="bottom-end"
 					disabled={!hasAccount}
 					onclick={(event) => {
@@ -544,7 +544,7 @@
 						About
 					</h3>
 					<p class="text-block" data-variant="prose">
-						<Skeleton className="w-72" label="Loading the description" />
+						<Skeleton className="w-72" label="Loading description…" />
 					</p>
 				</section>
 			{/if}
@@ -564,7 +564,7 @@
 				</p>
 			{:else if profileVisible && (profileState?.sections.failedSections.length ?? 0) > 0}
 				<p class="text-xs text-danger-muted" role="alert">
-					Some profile details could not be refreshed. Refresh to retry.
+					Could not refresh some profile details. Refresh to try again.
 				</p>
 			{/if}
 		{/if}

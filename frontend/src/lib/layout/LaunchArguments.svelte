@@ -120,7 +120,7 @@
 						>{clientLabel}</small
 					></span>
 				{@render dialogLink(
-					"Choose client",
+					"Select client",
 					false,
 					closePanel,
 					() => (clientOpen = true),

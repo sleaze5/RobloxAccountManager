@@ -25,10 +25,10 @@
 		),
 		heading = $derived(
 			conflict
-				? "Choose which data to use"
+				? "Select which data to use"
 				: location.choice === ChoiceReason.ChoicePortableWithoutVault
 					? "Continue in this folder?"
-					: "Choose where to store data",
+					: "Select where to store data",
 		),
 		summary = $derived(
 			conflict

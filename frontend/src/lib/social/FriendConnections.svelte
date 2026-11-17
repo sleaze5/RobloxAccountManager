@@ -20,16 +20,16 @@
 
 <section class="flex flex-col gap-2" aria-labelledby="social-connections-heading">
 	<h3 id="social-connections-heading" class="text-xs font-semibold text-fg-muted">
-		Saved account connections
+		Saved accounts
 	</h3>
 	{#if connections.length === 0}
 		<p class="text-xs text-fg-faint">
-			None of your other saved accounts are connected.
+			No other saved account follows or is friends with this user.
 		</p>
 	{:else}
 		<ul
 			class="grid max-w-2xl grid-cols-1 gap-2 @md:grid-cols-2 @3xl:grid-cols-3"
-			aria-label="Saved account connections">
+			aria-label="Saved accounts">
 			{#each connections as connection (connection.accountId)}
 				<li
 					class="flex min-w-0 animate-enter flex-col gap-2 rounded-lg border border-line p-2">
@@ -48,7 +48,7 @@
 					</div>
 					<div
 						class="flex flex-wrap items-center gap-1"
-						aria-label={`How @${connection.username} is connected`}>
+						aria-label={`Relationship with @${connection.username}`}>
 						<RelationshipBadges badges={relationshipBadges(connection)} />
 					</div>
 				</li>

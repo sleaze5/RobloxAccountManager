@@ -217,7 +217,7 @@
 		} catch (error) {
 			store.error = errorMessage(
 				error,
-				"The launch link could not be loaded. Try again.",
+				"Could not load the launch link. Try again.",
 			)
 		}
 	}
@@ -351,7 +351,7 @@
 		<button
 			class="button-ghost"
 			type="button"
-			aria-label={active.loading ? "Refreshing servers" : "Refresh servers"}
+			aria-label={active.loading ? "Refreshing servers…" : "Refresh servers"}
 			data-tooltip="Refresh servers"
 			data-tooltip-side="bottom-end"
 			aria-busy={active.loading}

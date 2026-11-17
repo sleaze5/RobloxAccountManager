@@ -64,15 +64,15 @@
 							aria-label="Verified creator" />{/if}</span>
 			{:else}
 				<span class="text-sm"
-					><Skeleton className="w-36" label="Loading game" /></span>
+					><Skeleton className="w-36" label="Loading game…" /></span>
 				<span class="text-xs"><Skeleton className="w-24" label="" /></span>
 			{/if}
 		</div>
 		{#if place && onSearch}<button
 				class="-ms-2 button-ghost-sm shrink-0 self-start"
 				type="button"
-				aria-label="Find this place in Games"
-				data-tooltip="Find this place in Games"
+				aria-label="Show in Games"
+				data-tooltip="Show in Games"
 				onclick={onSearch}
 				><Icon svg={magnifyingGlassIcon} size={14} aria-hidden="true" /></button
 			>{/if}

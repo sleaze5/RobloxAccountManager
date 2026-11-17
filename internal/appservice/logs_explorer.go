@@ -20,7 +20,7 @@ func (service *Service) GetLogsExplorer(ctx context.Context) (logsexplorer.Snaps
 	if err != nil {
 		return logsexplorer.Snapshot{}, &roblox.Error{
 			Kind: roblox.KindProtocol, Endpoint: "logs-explorer", Cause: err,
-			Message: "Roblox logs could not be read. Refresh all to try again.",
+			Message: "Could not read Roblox logs. Refresh all logs to try again.",
 		}
 	}
 	return snapshot, nil
@@ -35,7 +35,7 @@ func (service *Service) RefreshLogsExplorerLog(ctx context.Context, fileName str
 	if err != nil {
 		return logsexplorer.Session{}, &roblox.Error{
 			Kind: roblox.KindProtocol, Endpoint: "logs-explorer", Cause: err,
-			Message: "This log could not be read. It may have been removed or be unavailable. Refresh all to update the list.",
+			Message: "Could not read this log. It may be gone. Refresh all logs to update the list.",
 		}
 	}
 	return session, nil
@@ -56,7 +56,7 @@ func (service *Service) FindGameServerVisit(ctx context.Context, placeID int64, 
 	if err != nil {
 		return logsexplorer.ServerVisit{}, &roblox.Error{
 			Kind: roblox.KindProtocol, Endpoint: "logs-explorer", Cause: err,
-			Message: "Roblox logs could not be read.",
+			Message: "Could not read Roblox logs.",
 		}
 	}
 	return visit, nil

@@ -421,7 +421,7 @@ func (coordinator *Coordinator) abortStartup(current *session, cause error) {
 	}
 	current.state.Attached = false
 	current.state.Lifecycle = LifecycleFailed
-	current.state.Error = "The browser session could not be started."
+	current.state.Error = "Could not start the browser session."
 	coordinator.bumpLocked()
 	coordinator.mutex.Unlock()
 
@@ -524,7 +524,7 @@ func (coordinator *Coordinator) checkpoint(ctx context.Context, current *session
 	select {
 	case <-ctx.Done():
 		if final {
-			coordinator.setCheckpointWarning(current, "The final browser cookie could not be checked.")
+			coordinator.setCheckpointWarning(current, "Could not check the final browser cookie.")
 		}
 		return
 	case <-current.checkpointGate:
@@ -540,7 +540,7 @@ func (coordinator *Coordinator) checkpoint(ctx context.Context, current *session
 	if err != nil {
 		coordinator.recordCheckpointFailure(current, err)
 		if final {
-			coordinator.setCheckpointWarning(current, "The final browser cookie could not be checked.")
+			coordinator.setCheckpointWarning(current, "Could not check the final browser cookie.")
 		}
 		return
 	}
@@ -898,7 +898,7 @@ func (coordinator *Coordinator) failSession(browserSessionID string, cause error
 		return
 	}
 	coordinator.mutex.Unlock()
-	if !coordinator.finishSession(current, true, "The browser closed unexpectedly. The final cookie could not be checked.") {
+	if !coordinator.finishSession(current, true, "The browser closed before the cookie could be checked.") {
 		return
 	}
 	if cause == nil {
@@ -1013,7 +1013,7 @@ func (coordinator *Coordinator) SaveCandidates(ctx context.Context, selected []s
 		chosenCandidate.validation.Cookie = ""
 		resultItem := SaveResultItem{CandidateID: chosenCandidate.state.ID, Status: status, Account: account}
 		if err != nil {
-			resultItem.Status, resultItem.Error = SaveFailed, "The account could not be saved."
+			resultItem.Status, resultItem.Error = SaveFailed, "Could not save the account."
 		}
 		saveResult.Items = append(saveResult.Items, resultItem)
 	}
@@ -1259,7 +1259,7 @@ func (queue *cleanupQueue) process() {
 		if err == nil || errors.Is(err, os.ErrNotExist) {
 			delete(queue.pending, browserSessionID)
 		} else {
-			queue.pending[browserSessionID] = "A temporary browser profile could not be removed."
+			queue.pending[browserSessionID] = "Could not remove a temporary browser profile."
 			queue.logger.Warn("browser profile cleanup failed", "operation", "browser-cleanup", "error", err)
 		}
 		queue.mutex.Unlock()
@@ -1363,7 +1363,7 @@ func (coordinator *Coordinator) handleTargetDetached(current *session, paramsDat
 
 func (coordinator *Coordinator) completeCheckpointValidation(ctx context.Context, current *session, final bool, generation uint64, err error) bool {
 	if err != nil && ctx.Err() == nil {
-		coordinator.setCheckpointWarning(current, "The browser cookie could not be validated. Sign in again and retry.")
+		coordinator.setCheckpointWarning(current, "The browser cookie could not be validated. Sign in again and try again.")
 		coordinator.logger.WarnContext(ctx, "browser cookie validation failed", "operation", "browser-cookie-checkpoint", "session_id", current.state.ID, "session_mode", current.state.Mode, "account_id", current.state.AccountID, "error", err)
 	} else if err == nil {
 		coordinator.setCheckpointWarning(current, "")
@@ -1405,7 +1405,7 @@ func (coordinator *Coordinator) checkpointCookie(ctx context.Context, current *s
 		validation.BrowserID = roblox.NewBrowserID()
 	}
 	if err := current.cdp.setBrowserID(ctx, sessionID, validation.BrowserID); err != nil {
-		coordinator.setCheckpointWarning(current, "The account browser ID could not be synchronized.")
+		coordinator.setCheckpointWarning(current, "Could not sync the account browser ID.")
 		return
 	}
 	coordinator.mutex.Lock()
@@ -1417,7 +1417,7 @@ func (coordinator *Coordinator) checkpointCookie(ctx context.Context, current *s
 	coordinator.mutex.Unlock()
 	if validation.Cookie != cookieValue {
 		if injectionError := current.cdp.setRobloxCookie(ctx, sessionID, validation.Cookie); injectionError != nil {
-			coordinator.setCheckpointWarning(current, "A rotated browser cookie could not be returned to the browser.")
+			coordinator.setCheckpointWarning(current, "Could not return a rotated browser cookie to the browser.")
 		} else {
 			coordinator.mutex.Lock()
 			current.lastCookie = validation.Cookie
@@ -1434,13 +1434,13 @@ func (coordinator *Coordinator) synchronizeCheckpoint(ctx context.Context, curre
 	}
 	if validation.Identity.RobloxUserID != current.robloxUserID {
 		validation.Cookie = ""
-		coordinator.detach(current, "This browser signed in to a different Roblox account and is no longer synchronized.")
+		coordinator.detach(current, "This browser signed in to a different Roblox account. It no longer syncs with the saved account.")
 		return
 	}
 	newVersion, err := coordinator.backend.SynchronizeBrowserCookie(ctx, current.state.AccountID, current.secretVersion, *validation)
 	validation.Cookie = ""
 	if err != nil {
-		coordinator.detach(current, "The saved account changed elsewhere. This browser is no longer synchronized.")
+		coordinator.detach(current, "The saved account changed. This browser no longer syncs with it.")
 		return
 	}
 	coordinator.mutex.Lock()

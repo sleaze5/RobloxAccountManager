@@ -134,10 +134,10 @@ func (service *Service) ListGameServers(ctx context.Context, query games.ServerQ
 	switch query.Order {
 	case games.ServerOrderRecommended, games.ServerOrderBestPing, games.ServerOrderMostPlayers, games.ServerOrderFewest:
 	default:
-		return games.ServerPage{}, gamesInputError("Choose how to sort the servers.")
+		return games.ServerPage{}, gamesInputError("Select how to sort the servers.")
 	}
 	if query.Limit != 10 && query.Limit != 25 && query.Limit != 50 && query.Limit != 100 {
-		return games.ServerPage{}, gamesInputError("Choose 10, 25, 50, or 100 servers per page.")
+		return games.ServerPage{}, gamesInputError("Select 10, 25, 50, or 100 servers per page.")
 	}
 	if len(query.Cursor) > 2048 {
 		return games.ServerPage{}, gamesInputError("This server page has expired. Refresh the server list.")
@@ -185,13 +185,13 @@ func (service *Service) ListRecordedGameServers(ctx context.Context, query games
 		return games.RecordPage{}, err
 	}
 	if query.Order != games.RecordOrderNewest && query.Order != games.RecordOrderOldest {
-		return games.RecordPage{}, gamesInputError("Choose how to sort the servers.")
+		return games.RecordPage{}, gamesInputError("Select how to sort the servers.")
 	}
 	if query.Region != "" && (query.Order != games.RecordOrderNewest || !rovalra.ValidRegionCode(query.Region)) {
-		return games.RecordPage{}, gamesInputError("Choose a region from the list.")
+		return games.RecordPage{}, gamesInputError("Select a region from the list.")
 	}
 	if query.Limit != 10 && query.Limit != 50 && query.Limit != 100 {
-		return games.RecordPage{}, gamesInputError("Choose 10, 50, or 100 servers per page.")
+		return games.RecordPage{}, gamesInputError("Select 10, 50, or 100 servers per page.")
 	}
 	if query.Cursor < 0 {
 		return games.RecordPage{}, gamesInputError("This server page has expired. Refresh the server list.")
@@ -230,10 +230,10 @@ func (service *Service) rovalraError(ctx context.Context, operation string, plac
 		return nil
 	}
 	if errors.Is(err, context.Canceled) && ctx.Err() != nil {
-		return &roblox.Error{Kind: roblox.KindCancelled, Endpoint: operation, Message: "The RoValra request was cancelled."}
+		return &roblox.Error{Kind: roblox.KindCancelled, Endpoint: operation, Message: "The RoValra request was canceled."}
 	}
 	service.logs.Module("integration.rovalra").WarnContext(ctx, "rovalra request failed", "operation", operation, "place_id", placeID, "error", err)
-	return &roblox.Error{Kind: roblox.KindServer, Endpoint: operation, Message: "RoValra could not be reached. Try again later.", Cause: err}
+	return &roblox.Error{Kind: roblox.KindServer, Endpoint: operation, Message: "Could not reach RoValra. Try again later.", Cause: err}
 }
 
 func (service *Service) gameAccount(ctx context.Context) (int64, error) {
@@ -386,7 +386,7 @@ func (service *Service) gamesError(ctx context.Context, operation string, err er
 		return mapRepositoryError(err)
 	}
 	if errors.Is(err, context.Canceled) {
-		return &roblox.Error{Kind: roblox.KindCancelled, Endpoint: operation, Message: "The game request was cancelled."}
+		return &roblox.Error{Kind: roblox.KindCancelled, Endpoint: operation, Message: "The game request was canceled."}
 	}
 	logger := service.logs.Module("application.games")
 	logger.WarnContext(ctx, "game operation failed", "operation", operation, "error", err)
@@ -396,7 +396,7 @@ func (service *Service) gamesError(ctx context.Context, operation string, err er
 	if errors.Is(err, context.DeadlineExceeded) {
 		return &roblox.Error{Kind: roblox.KindTimeout, Endpoint: operation, Message: "The game request timed out. Try again."}
 	}
-	return &roblox.Error{Kind: roblox.KindProtocol, Endpoint: operation, Message: "The game operation could not be completed. Try again.", Cause: err}
+	return &roblox.Error{Kind: roblox.KindProtocol, Endpoint: operation, Message: "Could not complete the game request. Try again.", Cause: err}
 }
 
 func validGameID(gameID int64) error {

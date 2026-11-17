@@ -59,7 +59,7 @@
 		</div>
 		<button
 			type="button"
-			aria-label="Close add private server link"
+			aria-label="Close dialog"
 			disabled={saved.saving}
 			onclick={close}>
 			<Icon svg={xIcon} size={14} aria-hidden="true" />

@@ -72,7 +72,7 @@ func resolveLinuxClient(preferred string) (knownClient, string, error) {
 			return match.client, match.path, nil
 		}
 	}
-	return knownClient{}, "", &ClientError{Message: "sober and Mocktail are both installed; choose one in Settings under Roblox"}
+	return knownClient{}, "", &ClientError{Message: "Sober and Mocktail are both installed. Select one in Settings under Roblox"}
 }
 
 func findDesktop(name string) (string, bool) {

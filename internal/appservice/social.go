@@ -189,7 +189,7 @@ func (service *Service) SearchPlayers(ctx context.Context, accountID int64, keyw
 	keyword = strings.TrimSpace(keyword)
 	match := playerIDSearch.FindStringSubmatch(keyword)
 	if length := utf8.RuneCountInString(keyword); match == nil && (length < minPlayerSearchLength || length > maxPlayerSearchLength) {
-		return SocialPage{}, socialInputError(fmt.Sprintf("Enter %d to %d characters, or id: and a user ID, to search for players.", minPlayerSearchLength, maxPlayerSearchLength))
+		return SocialPage{}, socialInputError(fmt.Sprintf("Enter %d to %d characters, or id: and a user ID, to search for users.", minPlayerSearchLength, maxPlayerSearchLength))
 	}
 	if len(cursor) > maxSocialCursorLength {
 		return SocialPage{}, socialInputError("These search results have expired. Search again.")
@@ -312,7 +312,7 @@ func (service *Service) socialEntries(ctx context.Context, accountID, version, u
 			entries.userIDs = append(entries.userIDs, request.UserID)
 		}
 	default:
-		return entries, socialInputError("Choose friends, followers, following, or requests.")
+		return entries, socialInputError("Select friends, followers, following, or requests.")
 	}
 	return entries, err
 }
@@ -624,7 +624,7 @@ func (service *Service) friendConnections(ctx context.Context, logger *slog.Logg
 		logger.DebugContext(ctx, "friend connections incomplete", "accounts", len(candidates), "failed", failed)
 	}
 	if failed > 0 && failed == len(candidates) {
-		return savedID, nil, &roblox.Error{Kind: roblox.KindProtocol, Endpoint: "friend-connections", Message: "Your other accounts could not be checked.", Cause: failures[0]}
+		return savedID, nil, &roblox.Error{Kind: roblox.KindProtocol, Endpoint: "friend-connections", Message: "Could not check your other accounts.", Cause: failures[0]}
 	}
 	return savedID, connections, nil
 }
@@ -783,7 +783,7 @@ type SocialRemoval struct {
 // several users of the account's own list, one at a time.
 func (service *Service) RemoveSocialConnections(ctx context.Context, accountID int64, list SocialList, userIDs []int64) (SocialRemoval, error) {
 	if len(userIDs) == 0 || len(userIDs) > maxSocialRemovalUsers {
-		return SocialRemoval{}, socialInputError(fmt.Sprintf("Select 1 to %d people.", maxSocialRemovalUsers))
+		return SocialRemoval{}, socialInputError(fmt.Sprintf("Select 1 to %d users.", maxSocialRemovalUsers))
 	}
 	var remove func(context.Context, int64) error
 	switch list {
@@ -796,7 +796,7 @@ func (service *Service) RemoveSocialConnections(ctx context.Context, accountID i
 			return service.DeclineFriendRequest(ctx, accountID, userID)
 		}
 	default:
-		return SocialRemoval{}, socialInputError("Choose friends, following, or requests.")
+		return SocialRemoval{}, socialInputError("Select friends, following, or requests.")
 	}
 	removal := SocialRemoval{Removed: []int64{}}
 	for _, userID := range slices.Compact(slices.Sorted(slices.Values(userIDs))) {

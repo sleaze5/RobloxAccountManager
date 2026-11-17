@@ -34,7 +34,7 @@
 			name: "Debug",
 		},
 		{
-			description: "Normal application activity and completed operations.",
+			description: "Normal app activity and completed operations.",
 			id: "info",
 			name: "Info",
 		},
@@ -149,13 +149,13 @@
 				<div class="settings-row border-b-line-strong">
 					<div class="settings-row-copy">
 						<strong>All log levels</strong>
-						<span>Enable or disable every log level at once.</span>
+						<span>Turn every log level on or off.</span>
 					</div>
 					<label class="switch">
 						<input
 							type="checkbox"
 							role="switch"
-							aria-label="Enable all log levels"
+							aria-label="All log levels"
 							checked={store.areAllLoggingLevelsEnabled()}
 							disabled={store.busyLevel !== null}
 							onchange={(event) =>
@@ -176,7 +176,7 @@
 						<input
 							type="checkbox"
 							role="switch"
-							aria-label={`Enable ${level.name} logs`}
+							aria-label={`${level.name} logs`}
 							checked={store.isLoggingLevelEnabled(level.id)}
 							disabled={store.busyLevel !== null}
 							onchange={(event) =>

@@ -124,7 +124,7 @@ export const inventoryCategoryGroups: {
 		],
 	},
 	{
-		label: "Experiences",
+		label: "Games",
 		categories: [
 			{
 				id: InventoryCategory.InventoryBadges,

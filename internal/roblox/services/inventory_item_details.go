@@ -77,7 +77,7 @@ func LargeImageTarget(category InventoryCategory, itemID int64) (ThumbnailTarget
 func (service *Users) InventoryItemDetails(ctx context.Context, accountID, version int64, category InventoryCategory, itemID int64) (InventoryItemDetails, error) {
 	itemType, ok := inventoryItemTypeOf(category)
 	if !ok {
-		return InventoryItemDetails{}, &roblox.Error{Kind: roblox.KindProtocol, Endpoint: "inventory-item-details", Message: "Choose an inventory category."}
+		return InventoryItemDetails{}, &roblox.Error{Kind: roblox.KindProtocol, Endpoint: "inventory-item-details", Message: "Select an inventory category."}
 	}
 	itemIDText := strconv.FormatInt(itemID, 10)
 	var (
@@ -143,7 +143,7 @@ func hasRenderedModel(category InventoryCategory) bool {
 func (service *Users) InventoryItemModelManifestURL(ctx context.Context, accountID, version int64, category InventoryCategory, itemID int64) (string, error) {
 	const endpoint = "inventory-item-model"
 	if !hasRenderedModel(category) {
-		return "", &roblox.Error{Kind: roblox.KindProtocol, Endpoint: endpoint, Message: "Roblox can't show this item in 3D."}
+		return "", &roblox.Error{Kind: roblox.KindProtocol, Endpoint: endpoint, Message: "Roblox cannot show this item in 3D."}
 	}
 	if category != InventoryBundles {
 		return service.AssetModelManifestURL(ctx, accountID, version, itemID)
@@ -154,7 +154,7 @@ func (service *Users) InventoryItemModelManifestURL(ctx context.Context, account
 	}
 	outfitID, hasOutfit := payload.outfitID()
 	if !hasOutfit {
-		return "", &roblox.Error{Kind: roblox.KindProtocol, Endpoint: endpoint, Message: "Roblox can't show this bundle in 3D."}
+		return "", &roblox.Error{Kind: roblox.KindProtocol, Endpoint: endpoint, Message: "Roblox cannot show this bundle in 3D."}
 	}
 	return service.renderedModelManifestURL(ctx, accountID, version, endpoint, "https://thumbnails.roblox.com/v1/users/outfit-3d?outfitId="+strconv.FormatInt(outfitID, 10))
 }
@@ -251,7 +251,7 @@ func (service *Users) gamePassItemDetails(ctx context.Context, accountID, versio
 func (service *Users) IsInventoryItemOwned(ctx context.Context, accountID, version, userID int64, category InventoryCategory, itemID int64) (bool, error) {
 	itemType, ok := inventoryItemTypeOf(category)
 	if !ok {
-		return false, &roblox.Error{Kind: roblox.KindProtocol, Endpoint: "inventory-item-ownership", Message: "Choose an inventory category."}
+		return false, &roblox.Error{Kind: roblox.KindProtocol, Endpoint: "inventory-item-ownership", Message: "Select an inventory category."}
 	}
 	var isOwned bool
 	address := "https://inventory.roblox.com/v1/users/" + strconv.FormatInt(userID, 10) + "/items/" + string(itemType) + "/" + strconv.FormatInt(itemID, 10) + "/is-owned"

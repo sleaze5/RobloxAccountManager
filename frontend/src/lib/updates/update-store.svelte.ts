@@ -30,7 +30,7 @@ class UpdateStore {
 			this.state = next
 			this.#notify(previous, next)
 		} catch {
-			this.error = "The update status could not be loaded."
+			this.error = "Could not load the update status."
 		}
 	})
 
@@ -81,28 +81,28 @@ class UpdateStore {
 	async check(): Promise<void> {
 		await this.#run(
 			() => accountBackend.CheckForUpdate(),
-			"Updates could not be checked. Try again.",
+			"Could not check the updates. Try again.",
 		)
 	}
 
 	async install(): Promise<void> {
 		await this.#run(
 			() => accountBackend.InstallUpdate(),
-			"The update could not be downloaded. Try again.",
+			"Could not download the update. Try again.",
 		)
 	}
 
 	async cancelDownload(): Promise<void> {
 		await this.#run(
 			() => accountBackend.CancelUpdateDownload(),
-			"The download could not be canceled.",
+			"Could not cancel the download.",
 		)
 	}
 
 	async restart(): Promise<void> {
 		await this.#run(
 			() => accountBackend.RestartToUpdate(),
-			"The application could not restart to install the update. Try again.",
+			"Could not restart the app to install the update. Try again.",
 		)
 	}
 

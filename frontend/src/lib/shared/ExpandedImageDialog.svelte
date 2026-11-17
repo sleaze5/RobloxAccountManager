@@ -91,7 +91,7 @@ Escape handles that Escape itself. -->
 		<div>
 			<h2 id={titleId} class="wrap-anywhere">{label}</h2>
 		</div>
-		<button type="button" aria-label="Close expanded view" onclick={onClose}>
+		<button type="button" aria-label="Close dialog" onclick={onClose}>
 			<Icon svg={xIcon} size={14} aria-hidden="true" />
 		</button>
 	</div>

@@ -52,7 +52,7 @@
 		</div>
 		<button
 			type="button"
-			aria-label="Close remove account dialog"
+			aria-label="Close dialog"
 			disabled={store.busy}
 			onclick={close}>
 			<Icon svg={xIcon} size={14} aria-hidden="true" />

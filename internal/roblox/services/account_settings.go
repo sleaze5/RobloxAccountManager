@@ -86,7 +86,7 @@ func (service *AccountSettings) Update(ctx context.Context, accountID, version i
 	}
 	body, err := json.Marshal(map[string]string{key: value})
 	if err != nil {
-		return &roblox.Error{Kind: roblox.KindProtocol, Endpoint: "account-settings-update", Message: "The setting could not be encoded."}
+		return &roblox.Error{Kind: roblox.KindProtocol, Endpoint: "account-settings-update", Message: "Could not encode the setting."}
 	}
 	return service.update(ctx, accountID, version, userSettingsURL, body)
 }
@@ -104,7 +104,7 @@ func (service *AccountSettings) UpdateBool(ctx context.Context, accountID, versi
 	}
 	body, err := json.Marshal(map[string]bool{payloadKey: value})
 	if err != nil {
-		return &roblox.Error{Kind: roblox.KindProtocol, Endpoint: "account-settings-update", Message: "The setting could not be encoded."}
+		return &roblox.Error{Kind: roblox.KindProtocol, Endpoint: "account-settings-update", Message: "Could not encode the setting."}
 	}
 	return service.update(ctx, accountID, version, address, body)
 }

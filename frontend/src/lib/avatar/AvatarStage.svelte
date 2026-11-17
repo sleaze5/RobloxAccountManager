@@ -100,10 +100,10 @@
 		<Icon
 			svg={personArmsSpreadIcon}
 			class="relative size-1/3 text-fg-faint"
-			aria-label="The avatar image is unavailable" />
+			aria-label="Avatar image unavailable" />
 	{:else}
 		<span class="absolute inset-3 skeleton rounded-md" role="status">
-			<span class="sr-only">Loading the avatar image</span>
+			<span class="sr-only">Loading avatar image…</span>
 		</span>
 	{/if}
 	{#if shownType || busyLabel}

@@ -187,7 +187,7 @@
 	<div class="notice-error" role="alert">{info.error}</div>
 {:else if info.sections.failedSections.length > 0}
 	<div class="notice-error" role="alert">
-		Some details could not be loaded. Refresh to retry.
+		Could not load some details. Refresh to try again.
 	</div>
 {/if}
 
@@ -390,7 +390,7 @@
 
 {#if any("language", "translations", "location")}
 	<section class="settings-section" aria-labelledby="account-info-region">
-		<h3 id="account-info-region">Language &amp; region</h3>
+		<h3 id="account-info-region">Language and region</h3>
 		<dl class="facts">
 			{#if visible.has("language")}
 				<div>

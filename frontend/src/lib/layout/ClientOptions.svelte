@@ -75,7 +75,7 @@
 			{@render optionSwitch(
 				`${optionIDPrefix}-multi-instance`,
 				"Multi-instance",
-				"Run several games at once.",
+				"Launch several games at once.",
 				options.multiInstance?.enabled ?? false,
 				options.isLoadingMultiInstance ||
 					options.isSavingMultiInstance ||

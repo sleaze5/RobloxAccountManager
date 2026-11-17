@@ -59,7 +59,7 @@
 		</div>
 		<button
 			type="button"
-			aria-label="Close cookie renewal"
+			aria-label="Close dialog"
 			disabled={pending}
 			onclick={onClose}>
 			<Icon svg={xIcon} size={14} aria-hidden="true" />
@@ -84,7 +84,7 @@
 					aria-hidden="true" />
 				<span>Renewing the cookie and saving it…</span>
 			{:else if error}
-				<span>Renewal could not be confirmed.</span>
+				<span>Could not confirm the renewal.</span>
 			{:else}
 				<Icon
 					svg={checkIcon}

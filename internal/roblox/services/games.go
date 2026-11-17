@@ -67,7 +67,7 @@ func (service *Games) Search(ctx context.Context, query games.SearchQuery) (game
 		}
 	}
 	if len(universeIDs) > 200 || len(payload.NextPageToken) > 2048 {
-		return games.SearchPage{}, gameDataError("Roblox returned an oversized search page.")
+		return games.SearchPage{}, gameDataError("Roblox returned too many search results.")
 	}
 	page := games.SearchPage{Places: []games.Place{}, SessionID: query.SessionID, NextPageToken: payload.NextPageToken}
 	if err := service.loadSearchPlaces(ctx, universeIDs, &page); err != nil {

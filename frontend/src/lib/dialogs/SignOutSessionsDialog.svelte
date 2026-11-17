@@ -45,7 +45,7 @@
 		</div>
 		<button
 			type="button"
-			aria-label="Close sign out dialog"
+			aria-label="Close dialog"
 			disabled={sessions.signingOut}
 			onclick={close}>
 			<Icon svg={xIcon} size={14} aria-hidden="true" />

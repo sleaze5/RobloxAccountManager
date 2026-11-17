@@ -124,7 +124,7 @@
 				<div class="empty-state h-full">
 					<Icon svg={chatsCircleIcon} size={28} aria-hidden="true" />
 					<h2>Select a chat</h2>
-					<p>Choose a chat to read it, or start a new one with friends.</p>
+					<p>Select a chat to read it, or start a new one with friends.</p>
 					<button
 						class="button-primary"
 						type="button"

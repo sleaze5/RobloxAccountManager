@@ -640,5 +640,5 @@ func invalidProfileDetails(endpoint string) error {
 }
 
 func profileIdentityError() error {
-	return &roblox.Error{Kind: roblox.KindReauthRequired, Endpoint: "account-profile", Message: "The session identity changed. Replace the cookie."}
+	return &roblox.Error{Kind: roblox.KindReauthRequired, Endpoint: "account-profile", Message: "The cookie now belongs to a different Roblox account. Update the cookie."}
 }

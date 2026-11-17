@@ -96,7 +96,7 @@
 					{#if view === "3D" && details === null}
 						<FrameUnavailable
 							icon={cubeIcon}
-							message="The 3D view needs the outfit details, which couldn't load." />
+							message="The 3D view needs the outfit details, which could not load." />
 					{:else if view === "3D"}
 						<ModelFrame
 							accountId={avatar.accountId}
@@ -147,7 +147,7 @@
 						<button
 							class="ml-1 button-close"
 							type="button"
-							aria-label="Close outfit details"
+							aria-label="Close dialog"
 							disabled={isWearing}
 							onclick={close}>
 							<Icon svg={xIcon} size={14} aria-hidden="true" />
@@ -185,8 +185,8 @@
 
 		{#if details === undefined}
 			<div class="flex flex-col gap-2" role="status" aria-busy="true">
-				<span class="sr-only">Loading the outfit</span>
-				<Skeleton className="w-24" label="Loading the items" />
+				<span class="sr-only">Loading outfit…</span>
+				<Skeleton className="w-24" label="Loading items…" />
 				<ul
 					class="grid grid-cols-3 gap-2 @lg:grid-cols-4 @2xl:grid-cols-5"
 					aria-hidden="true">
@@ -197,8 +197,7 @@
 			</div>
 		{:else if details === null}
 			<div class="flex items-center gap-2 notice-error" role="alert">
-				<span class="min-w-0 flex-1"
-					>The outfit details could not be loaded.</span>
+				<span class="min-w-0 flex-1">Could not load the outfit details.</span>
 				<button
 					class="button"
 					type="button"

@@ -49,7 +49,7 @@
 				const next = await accountBackend.GetAppLocation()
 				if (!disposed) location = next
 			} catch {
-				if (!disposed) error = "The storage location could not be loaded."
+				if (!disposed) error = "Could not load the storage location."
 			}
 		})()
 		return () => {
@@ -66,7 +66,7 @@
 				"Data folder path copied to clipboard.",
 			))
 		) {
-			error = "The path could not be copied. Try again."
+			error = "Could not copy to the clipboard. Try again."
 		}
 	}
 </script>

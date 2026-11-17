@@ -87,7 +87,7 @@ func (service *Users) assetDependencyIDs(ctx context.Context, accountID, version
 	}
 	assetIDs, err := assetIDsReferencedByModelFile(modelFile)
 	if err != nil {
-		return nil, &roblox.Error{Kind: roblox.KindProtocol, Endpoint: relatedItemsEndpoint, Message: "Roblox returned a file that couldn't be read.", Cause: err}
+		return nil, &roblox.Error{Kind: roblox.KindProtocol, Endpoint: relatedItemsEndpoint, Message: "Roblox returned a file that could not be read.", Cause: err}
 	}
 	return slices.DeleteFunc(assetIDs, func(referencedAssetID int64) bool { return referencedAssetID == assetID }), nil
 }

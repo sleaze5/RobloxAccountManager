@@ -126,7 +126,7 @@ func (service *Users) buyCollectibleItem(ctx context.Context, accountID, version
 func (service *Users) readCollectibleSale(ctx context.Context, accountID, version int64, collectibleItemID string) (collectibleSale, error) {
 	body, err := json.Marshal(map[string][]string{"itemIds": {collectibleItemID}})
 	if err != nil {
-		return collectibleSale{}, &roblox.Error{Kind: roblox.KindProtocol, Endpoint: "inventory-item-sale", Message: "The sale request could not be created.", Cause: err}
+		return collectibleSale{}, &roblox.Error{Kind: roblox.KindProtocol, Endpoint: "inventory-item-sale", Message: "Could not create the sale request.", Cause: err}
 	}
 	ctx, cancel := context.WithTimeout(ctx, 15*time.Second)
 	defer cancel()
@@ -148,7 +148,7 @@ func (service *Users) readCollectibleSale(ctx context.Context, accountID, versio
 			return sale, nil
 		}
 	}
-	return collectibleSale{}, purchaseRefusal("This item can't be bought.")
+	return collectibleSale{}, purchaseRefusal("This item cannot be bought.")
 }
 
 func checkPurchasePrice(currentPriceInRobux *int64, expectedPriceInRobux int64) error {
@@ -195,15 +195,15 @@ func readPurchaseOutcome(response *roblox.Response, endpoint string) (bool, erro
 	case slices.Contains(reasons, "TwoStepVerificationRequired"):
 		return false, purchaseRefusal("Roblox wants to verify this purchase. Buy it on the Roblox website.")
 	case slices.Contains(reasons, "InsufficientBalance") || slices.Contains(reasons, "InsufficientFunds"):
-		return false, purchaseRefusal("This account doesn't have enough Robux.")
+		return false, purchaseRefusal("This account does not have enough Robux.")
 	case slices.Contains(reasons, "Flooded"):
-		return false, purchaseRefusal("Too many purchases. Wait a minute and try again.")
+		return false, purchaseRefusal("Too many purchases. Wait a minute, then try again.")
 	case slices.Contains(reasons, "AlreadyOwned"):
 		return false, purchaseRefusal("This account already owns this item.")
 	case slices.Contains(reasons, "QuantityLimitExceeded"):
 		return false, purchaseRefusal("This account owns as many copies as Roblox allows.")
 	}
-	return false, purchaseRefusal("Roblox didn't complete the purchase.")
+	return false, purchaseRefusal("Roblox did not complete the purchase.")
 }
 
 func purchaseRefusal(message string) error {

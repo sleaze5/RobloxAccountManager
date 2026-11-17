@@ -103,7 +103,7 @@ export class SectionLoad<Snapshot extends object, Section> {
 			const sectionSnapshot = await request
 			if (!isCurrentLoad()) return
 			if (sectionSnapshot.section !== section) {
-				throw new Error("The data changed while loading. Refresh to retry.")
+				throw new Error("The data changed while loading. Refresh to try again.")
 			}
 			if (!sectionSnapshot.isComplete) {
 				this.failedSections.push(section)

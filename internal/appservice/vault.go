@@ -244,7 +244,7 @@ func (service *Service) MigrateLegacyVault(ctx context.Context, password string)
 			return safeVaultError(err)
 		}
 		service.logger.Error("legacy vault could not be migrated", "operation", "vault-migration", "error", err)
-		return transferError("Your data could not be moved to the new vault format. Download version 0.9.2 to export it instead.", err)
+		return transferError("Could not move your data to the new vault format. Download version 0.9.2 to export it instead.", err)
 	}
 	if _, err := service.transfers.Replace(ctx, payload, pendingSettings(&pendingTransfer{payload: payload}, appsettings.Sections)); err != nil {
 		service.logger.Error("migrated data could not be imported", "operation", "vault-migration", "error", err)

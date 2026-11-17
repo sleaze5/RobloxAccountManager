@@ -53,7 +53,7 @@
 	{#if assets.length === 0}
 		<div class="empty-state py-10" role="status">
 			<Icon svg={tShirtIcon} size={28} aria-hidden="true" />
-			<h2>Wearing nothing</h2>
+			<h2>Nothing worn</h2>
 			<p>
 				{canEdit
 					? "Add items from the inventory, then save the avatar."

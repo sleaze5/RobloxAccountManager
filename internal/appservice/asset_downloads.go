@@ -104,10 +104,10 @@ func (service *Service) SaveDownloadedFile(path, extension string, contents []by
 		fileFlags = os.O_WRONLY | os.O_CREATE | os.O_EXCL
 	}
 	if err := writeDownloadedFile(path, fileFlags, contents); errors.Is(err, fs.ErrExist) {
-		return "", &roblox.Error{Kind: roblox.KindProtocol, Endpoint: "asset-download", Message: fmt.Sprintf("%s already exists. Choose another name, then try again.", filepath.Base(path)), Cause: err}
+		return "", &roblox.Error{Kind: roblox.KindProtocol, Endpoint: "asset-download", Message: fmt.Sprintf("%s already exists. Select another name, then try again.", filepath.Base(path)), Cause: err}
 	} else if err != nil {
 		service.logs.Module("application.inventory").Warn("downloaded file could not be written", "operation", "asset-download", "error", err)
-		return "", &roblox.Error{Kind: roblox.KindProtocol, Endpoint: "asset-download", Message: "The file could not be saved. Check that the folder is writable and has free space, then try again.", Cause: err}
+		return "", &roblox.Error{Kind: roblox.KindProtocol, Endpoint: "asset-download", Message: "Could not save the file. Check that the folder is writable and has free space, then try again.", Cause: err}
 	}
 	service.logs.Module("application.inventory").Info("item file saved", "operation", "asset-download", "extension", extension)
 	return path, nil

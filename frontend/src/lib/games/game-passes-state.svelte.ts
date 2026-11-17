@@ -90,7 +90,7 @@ export class UniverseGamePasses {
 			if (this.#listRequest === request && scope.isCurrent) {
 				this.error = errorMessage(
 					error,
-					"Couldn't load game passes. Try again.",
+					"Could not load game passes. Try again.",
 				)
 			}
 		} finally {
@@ -165,7 +165,7 @@ export class UniverseGamePasses {
 			if (scope.isCurrent) {
 				this.purchaseError = errorMessage(
 					error,
-					"Couldn't buy the game pass. Try again.",
+					"Could not buy the game pass. Try again.",
 				)
 			}
 			return false

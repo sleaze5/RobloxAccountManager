@@ -30,7 +30,7 @@
 								: store.serverRegionsFailed
 									? "Regions unavailable"
 									: regions
-										? "Choose a region"
+										? "Select a region"
 										: "Loading regions…",
 						},
 					]),

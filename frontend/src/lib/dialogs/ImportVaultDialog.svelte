@@ -156,7 +156,7 @@
 			if (file === target) details = exportDetails
 		} catch (cause) {
 			if (file === target)
-				error = errorMessage(cause, "The export file could not be read.")
+				error = errorMessage(cause, "Could not read the export file.")
 		}
 	}
 
@@ -179,7 +179,7 @@
 			favoritePlaces = preview.newFavoritePlaces > 0
 			savedPrivateServers = preview.newSavedPrivateServers > 0
 		} catch (cause) {
-			error = errorMessage(cause, "The export could not be opened. Try again.")
+			error = errorMessage(cause, "Could not open the export. Try again.")
 			replayValidationNudge(card)
 		} finally {
 			opening = false
@@ -209,7 +209,7 @@
 			games.initialize()
 			void appSettings.initialize(notifications)
 		} catch (cause) {
-			error = errorMessage(cause, "The export could not be imported. Try again.")
+			error = errorMessage(cause, "Could not import the export. Try again.")
 			preview = null
 			replayValidationNudge(card)
 		} finally {
@@ -271,11 +271,7 @@
 				{/if}
 			</p>
 		</div>
-		<button
-			type="button"
-			aria-label="Close import dialog"
-			disabled={busy}
-			onclick={close}>
+		<button type="button" aria-label="Close dialog" disabled={busy} onclick={close}>
 			<Icon svg={xIcon} size={14} aria-hidden="true" />
 		</button>
 	</div>

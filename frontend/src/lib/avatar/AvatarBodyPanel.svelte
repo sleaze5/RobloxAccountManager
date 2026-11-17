@@ -188,7 +188,7 @@
 						<span
 							>{isR15
 								? "15 parts that bend at the elbows and knees. Scales apply."
-								: "6 rigid parts, as in classic Roblox. Scales don't apply."}</span>
+								: "6 rigid parts, as in classic Roblox. Scales do not apply."}</span>
 					</div>
 					{#if canEdit}
 						<div
@@ -405,6 +405,6 @@
 	</div>
 {:else}
 	<div class="flex flex-col gap-3 p-3" role="status" aria-busy="true">
-		<Skeleton className="w-48" label="Loading the body" />
+		<Skeleton className="w-48" label="Loading body…" />
 	</div>
 {/if}

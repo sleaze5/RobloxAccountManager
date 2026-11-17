@@ -167,7 +167,7 @@ func (service *Service) finishCheck(release *updater.Release, err error) {
 	switch {
 	case err != nil:
 		service.logger.Warn("update check failed", "operation", "update-check", "error", err)
-		service.state = State{Status: StatusIdle, CurrentVersion: appmeta.Version, Error: "Updates could not be checked. Check your connection and try again."}
+		service.state = State{Status: StatusIdle, CurrentVersion: appmeta.Version, Error: "Could not check the updates. Check your connection and try again."}
 	case release == nil:
 		service.logger.Info("application is up to date", "operation", "update-check", "version", appmeta.Version)
 		service.state = State{Status: StatusUpToDate, CurrentVersion: appmeta.Version}
@@ -255,7 +255,7 @@ func (service *Service) Restart(ctx context.Context) error {
 		service.logger.Warn("update restart failed", "operation", "update-install", "error", err)
 		service.mutex.Lock()
 		service.state.Status = StatusReady
-		service.state.Error = "The application could not restart to install the update. Try again."
+		service.state.Error = "Could not restart the app to install the update. Try again."
 		service.mutex.Unlock()
 		service.changed()
 	}
