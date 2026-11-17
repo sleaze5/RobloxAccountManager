@@ -1,6 +1,7 @@
 <script lang="ts">
 	import type { AvatarAsset } from "../backend/bridge"
 	import AvatarAssetSummary from "./AvatarAssetSummary.svelte"
+	import AvatarCountedHeading from "./AvatarCountedHeading.svelte"
 	import { formatPuffiness } from "./adjustment-format"
 
 	let {
@@ -30,13 +31,10 @@
 {#if layeredAssets.length > 0}
 	<section class="flex flex-col gap-2" aria-labelledby={headingId}>
 		<div class="flex flex-col gap-0.5">
-			<h3
+			<AvatarCountedHeading
 				id={headingId}
-				class="flex items-center gap-2 text-xs font-semibold text-fg-muted">
-				Layered clothing
-				<span class="font-mono text-2xs font-normal text-fg-faint"
-					>{layeredAssets.length}</span>
-			</h3>
+				label="Layered clothing"
+				count={layeredAssets.length} />
 			<p class="text-xs text-fg-muted">
 				Outer layers are listed first.{hasPuffiness
 					? " Puffiness comes from older avatar editors and stays as it is."

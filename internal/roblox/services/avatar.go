@@ -509,10 +509,8 @@ func (service *Users) validateAccessoryAdjustments(ctx context.Context, accountI
 // avatarUpdateAssetsOf lists the assets with the meta that Roblox keeps for
 // the ones the account wears, such as the order of layered clothing, so that a
 // change keeps it. It writes each changed adjustment into the meta, and lists
-// the changed adjustments. A changed adjustment of an asset that the avatar
-// does not wear now means that the asset was taken off since the page read
-// the avatar. An edited placement replaces the stored one, as every other
-// part of a save does.
+// the changed adjustments. An edited placement replaces the stored one, as
+// every other part of a save does.
 func (service *Users) avatarUpdateAssetsOf(ctx context.Context, accountID, version int64, endpoint string, changeAssets []AvatarChangeAsset) ([]avatarUpdateAsset, []changedAccessoryAdjustment, error) {
 	var current avatarPayload
 	if err := service.readAvatarDetails(ctx, accountID, version, endpoint, "https://avatar.roblox.com/v2/avatar/avatar", &current); err != nil {
@@ -534,7 +532,7 @@ func (service *Users) avatarUpdateAssetsOf(ctx context.Context, accountID, versi
 			// even a reset to the default, so an accessory that is no longer
 			// worn was taken off since the page loaded the avatar.
 			if changeAsset.Adjustment != nil {
-				return nil, nil, adjustedAccessoryTakenOffError(endpoint)
+				return nil, nil, &roblox.Error{Kind: roblox.KindProtocol, Endpoint: endpoint, Message: "An adjusted accessory was taken off in Roblox since the avatar loaded. Discard your changes and refresh the avatar to see what it wears now."}
 			}
 			assets[index] = avatarUpdateAsset{ID: changeAsset.AssetID}
 			continue
@@ -543,11 +541,7 @@ func (service *Users) avatarUpdateAssetsOf(ctx context.Context, accountID, versi
 		if changeAsset.Adjustment == nil {
 			continue
 		}
-		storedAdjustment, _ := assetLayoutOf(wornAsset.Meta)
-		if storedAdjustment == nil {
-			storedAdjustment = &defaultAccessoryAdjustment
-		}
-		if changeAsset.Adjustment.equals(*storedAdjustment) {
+		if storedAdjustment, _ := assetLayoutOf(wornAsset.Meta); IsSameAdjustment(*changeAsset.Adjustment, storedAdjustment) {
 			continue
 		}
 		meta, err := metaWithAdjustment(wornAsset.Meta, *changeAsset.Adjustment)
@@ -560,10 +554,6 @@ func (service *Users) avatarUpdateAssetsOf(ctx context.Context, accountID, versi
 		})
 	}
 	return assets, changedAdjustments, nil
-}
-
-func adjustedAccessoryTakenOffError(endpoint string) error {
-	return &roblox.Error{Kind: roblox.KindProtocol, Endpoint: endpoint, Message: "An adjusted accessory was taken off in Roblox since the avatar loaded. Discard your changes and refresh the avatar to see what it wears now."}
 }
 
 // AvatarPreviewFormat is what the render API makes of an avatar, by its

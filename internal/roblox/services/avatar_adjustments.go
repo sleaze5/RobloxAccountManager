@@ -117,10 +117,6 @@ type metaVector struct {
 	Z float64 `json:"Z"`
 }
 
-func (vector metaVector) avatarVector() AvatarVector {
-	return AvatarVector(vector)
-}
-
 // listedAssetMeta is the part of asset meta that the application shows.
 // Roblox lists order and puffiness for layered clothing, and position,
 // rotation, and scale for an adjusted rigid accessory, each with version 1.
@@ -153,13 +149,13 @@ func assetLayoutOf(rawMeta json.RawMessage) (*AvatarAccessoryAdjustment, *Avatar
 	if meta.Position != nil || meta.Rotation != nil || meta.Scale != nil {
 		listedAdjustment := defaultAccessoryAdjustment
 		if meta.Position != nil {
-			listedAdjustment.Position = meta.Position.avatarVector()
+			listedAdjustment.Position = AvatarVector(*meta.Position)
 		}
 		if meta.Rotation != nil {
-			listedAdjustment.Rotation = meta.Rotation.avatarVector()
+			listedAdjustment.Rotation = AvatarVector(*meta.Rotation)
 		}
 		if meta.Scale != nil {
-			listedAdjustment.Scale = meta.Scale.avatarVector()
+			listedAdjustment.Scale = AvatarVector(*meta.Scale)
 		}
 		if listedAdjustment.isFinite() {
 			adjustment = &listedAdjustment

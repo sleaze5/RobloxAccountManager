@@ -1,5 +1,5 @@
 import type { AvatarAccessoryAdjustment, AvatarClothingLayer } from "../backend/bridge"
-import { isDefaultAdjustmentKind } from "./avatar-draft"
+import { isDefaultAdjustmentKind, isEvenScale } from "./avatar-draft"
 import type { AdjustmentKind } from "./avatar-draft"
 
 // The values read as the editor's fields write them, with a sign only when
@@ -37,9 +37,8 @@ export function describeAdjustment(
 		isTurned = !isDefaultAdjustmentKind(adjustment, "rotation"),
 		isResized = !isDefaultAdjustmentKind(adjustment, "scale")
 	if (!isMoved && !isTurned && !isResized) return "Default placement"
-	const { x, y, z } = adjustment.scale
-	if (!isMoved && !isTurned && x === y && y === z) {
-		return `Resized to ${percent.format(x)}`
+	if (!isMoved && !isTurned && isEvenScale(adjustment.scale)) {
+		return `Resized to ${percent.format(adjustment.scale.x)}`
 	}
 	const changes = [
 		isMoved && "moved",

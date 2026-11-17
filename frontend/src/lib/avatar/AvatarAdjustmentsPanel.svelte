@@ -7,6 +7,7 @@
 	import AvatarAdjustmentRow from "./AvatarAdjustmentRow.svelte"
 	import AvatarAdjustmentSummary from "./AvatarAdjustmentSummary.svelte"
 	import AvatarClothingLayers from "./AvatarClothingLayers.svelte"
+	import AvatarCountedHeading from "./AvatarCountedHeading.svelte"
 	import { isDefaultAdjustment, isSameAdjustment } from "./avatar-draft"
 	import type { AvatarState } from "./avatar-state.svelte"
 
@@ -92,13 +93,10 @@
 			<section
 				class="flex flex-col gap-2"
 				aria-labelledby="avatar-adjust-accessories">
-				<h3
+				<AvatarCountedHeading
 					id="avatar-adjust-accessories"
-					class="flex items-center gap-2 text-xs font-semibold text-fg-muted">
-					Accessories
-					<span class="font-mono text-2xs font-normal text-fg-faint"
-						>{adjustableAssets.length}</span>
-				</h3>
+					label="Accessories"
+					count={adjustableAssets.length} />
 				<ul
 					class="flex flex-col overflow-hidden rounded-lg border border-line-subtle bg-surface">
 					{#each adjustableAssets as asset (asset.item.itemId)}

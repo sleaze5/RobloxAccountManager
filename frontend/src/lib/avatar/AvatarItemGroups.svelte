@@ -2,7 +2,7 @@
 	import type { Snippet } from "svelte"
 	import type { AvatarAsset } from "../backend/bridge"
 	import InventoryItemTile from "../inventory/InventoryItemTile.svelte"
-	import Icon from "../shared/Icon.svelte"
+	import AvatarCountedHeading from "./AvatarCountedHeading.svelte"
 	import { groupWornAssets } from "./avatar-categories"
 	import { isDefaultAdjustment } from "./avatar-draft"
 
@@ -29,18 +29,11 @@
 	<section
 		class="flex flex-col gap-2"
 		aria-labelledby={`${headingIdPrefix}-${groupIndex}`}>
-		<h3
+		<AvatarCountedHeading
 			id={`${headingIdPrefix}-${groupIndex}`}
-			class="flex items-center gap-2 text-xs font-semibold text-fg-muted">
-			<Icon
-				svg={group.category.icon}
-				class="text-fg-faint"
-				size={14}
-				aria-hidden="true" />
-			{group.category.label}
-			<span class="font-mono text-2xs font-normal text-fg-faint"
-				>{group.assets.length}</span>
-		</h3>
+			label={group.category.label}
+			count={group.assets.length}
+			icon={group.category.icon} />
 		<ul
 			class="grid grid-cols-3 gap-2 @lg:grid-cols-4 @2xl:grid-cols-5 @4xl:grid-cols-6 @6xl:grid-cols-8">
 			{#each group.assets as asset (asset.item.itemId)}

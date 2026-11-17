@@ -104,24 +104,25 @@ export function adjustmentOf(asset: AvatarAsset): AvatarAccessoryAdjustment {
 	return asset.adjustment ?? defaultAdjustment
 }
 
+function isSameVector(first: AvatarVector, second: AvatarVector): boolean {
+	return adjustmentAxes.every((axis) => first[axis] === second[axis])
+}
+
+export function isEvenScale(scale: AvatarVector): boolean {
+	return scale.x === scale.y && scale.y === scale.z
+}
+
 export function isDefaultAdjustmentKind(
 	adjustment: AvatarAccessoryAdjustment | null,
 	kind: AdjustmentKind,
 ): boolean {
-	return (
-		!adjustment ||
-		adjustmentAxes.every(
-			(axis) => adjustment[kind][axis] === defaultAdjustment[kind][axis],
-		)
-	)
+	return !adjustment || isSameVector(adjustment[kind], defaultAdjustment[kind])
 }
 
 export function isDefaultAdjustment(
 	adjustment: AvatarAccessoryAdjustment | null,
 ): boolean {
-	return adjustmentKinds.every(({ kind }) =>
-		isDefaultAdjustmentKind(adjustment, kind),
-	)
+	return isSameAdjustment(adjustment, null)
 }
 
 export function isSameAdjustment(
@@ -131,9 +132,7 @@ export function isSameAdjustment(
 	const firstAdjustment = first ?? defaultAdjustment,
 		secondAdjustment = second ?? defaultAdjustment
 	return adjustmentKinds.every(({ kind }) =>
-		adjustmentAxes.every(
-			(axis) => firstAdjustment[kind][axis] === secondAdjustment[kind][axis],
-		),
+		isSameVector(firstAdjustment[kind], secondAdjustment[kind]),
 	)
 }
 

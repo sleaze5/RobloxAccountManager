@@ -5,7 +5,6 @@
 	import flipHorizontalIcon from "@phosphor-icons/core/regular/flip-horizontal.svg?raw"
 	import { untrack } from "svelte"
 	import type {
-		AvatarAccessoryAdjustment,
 		AvatarAccessoryAdjustmentLimits,
 		AvatarAsset,
 	} from "../backend/bridge"
@@ -19,10 +18,12 @@
 		defaultAdjustment,
 		isDefaultAdjustment,
 		isDefaultAdjustmentKind,
+		isEvenScale,
 		isSameAdjustment,
 	} from "./avatar-draft"
 	import type { AdjustmentAxis, AdjustmentKind } from "./avatar-draft"
 	import type { AvatarState } from "./avatar-state.svelte"
+	import { rangeShareOf, roundedToStep } from "./range-slider"
 
 	type AxisRange = { min: number; max: number }
 
@@ -54,18 +55,13 @@
 
 	// The size changes on every axis at once while the axes are equal, as the
 	// Roblox avatar editor offers it.
-	let isUniformScale = $state(untrack(() => isEvenScale(adjustmentOf(asset))))
+	let isUniformScale = $state(untrack(() => isEvenScale(adjustmentOf(asset).scale)))
 
 	// An undo or a paste can bring a size that differs between the axes, which
 	// one size slider cannot show.
 	$effect(() => {
-		if (!isEvenScale(adjustment)) untrack(() => (isUniformScale = false))
+		if (!isEvenScale(adjustment.scale)) untrack(() => (isUniformScale = false))
 	})
-
-	function isEvenScale(shownAdjustment: AvatarAccessoryAdjustment): boolean {
-		const { x, y, z } = shownAdjustment.scale
-		return x === y && y === z
-	}
 
 	// fillOf fills the track from the default value to the current one, so
 	// that a range centered on 0 shows which way the accessory moved.
@@ -74,26 +70,20 @@
 		defaultValue: number,
 		range: AxisRange,
 	): { start: string; end: string } {
-		const shareOf = (point: number): number =>
-				range.max > range.min
-					? Math.min(
-							Math.max((point - range.min) / (range.max - range.min), 0),
-							1,
-						)
-					: 0,
-			valueShare = shareOf(value),
-			defaultShare = shareOf(defaultValue)
+		const valueShare = rangeShareOf(value, range.min, range.max),
+			defaultShare = rangeShareOf(defaultValue, range.min, range.max)
 		return {
 			start: `${Math.min(valueShare, defaultShare) * 100}%`,
 			end: `${Math.max(valueShare, defaultShare) * 100}%`,
 		}
 	}
 
-	// roundedToStep rounds to the step and keeps the value within the range,
-	// because range inputs add floating point noise such as 0.1500000001.
-	function roundedToStep(rawValue: number, step: number, range: AxisRange): number {
-		const value = Number((Math.round(rawValue / step) * step).toFixed(4))
-		return Math.min(Math.max(value, range.min), range.max)
+	function steppedValueInRange(
+		rawValue: number,
+		step: number,
+		range: AxisRange,
+	): number {
+		return Math.min(Math.max(roundedToStep(rawValue, step), range.min), range.max)
 	}
 
 	function setAxes(
@@ -103,7 +93,7 @@
 		step: number,
 		range: AxisRange,
 	): void {
-		const value = roundedToStep(rawValue, step, range),
+		const value = steppedValueInRange(rawValue, step, range),
 			vector = { ...adjustment[kind] }
 		for (const axis of axes) vector[axis] = value
 		avatar.adjust(
@@ -153,7 +143,7 @@
 		const typedValue = field.valueAsNumber
 		let shownValue = adjustment[kind][axes[0]]
 		if (Number.isFinite(typedValue)) {
-			shownValue = roundedToStep(typedValue / fieldFactor, step, range)
+			shownValue = steppedValueInRange(typedValue / fieldFactor, step, range)
 			setAxes(kind, axes, shownValue, step, range)
 			avatar.finishDraftChange()
 		}

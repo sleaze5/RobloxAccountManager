@@ -10,6 +10,7 @@
 	import { bodyParts, bodyScales } from "./avatar-draft"
 	import type { AvatarDraft, BodyPart } from "./avatar-draft"
 	import type { AvatarState } from "./avatar-state.svelte"
+	import { rangeShareOf, roundedToStep } from "./range-slider"
 
 	let { avatar, canEdit }: { avatar: AvatarState; canEdit: boolean } = $props()
 
@@ -57,20 +58,16 @@
 	}
 
 	function fillOf(value: number, limit: AvatarScaleLimit): string {
-		const share =
-			limit.max > limit.min ? (value - limit.min) / (limit.max - limit.min) : 0
-		return `${Math.min(Math.max(share, 0), 1) * 100}%`
+		return `${rangeShareOf(value, limit.min, limit.max) * 100}%`
 	}
 
-	// setScale rounds to the increment, because range inputs add floating point
-	// noise such as 0.9500000001.
 	function setScale(
 		scale: keyof AvatarScales,
 		rawValue: number,
 		limit: AvatarScaleLimit,
 	): void {
 		const increment = limit.increment > 0 ? limit.increment : 0.01,
-			value = Number((Math.round(rawValue / increment) * increment).toFixed(4))
+			value = roundedToStep(rawValue, increment)
 		avatar.changeDraft(
 			(current) => ({
 				...current,

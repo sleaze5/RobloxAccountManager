@@ -3,6 +3,7 @@
 	import AvatarAdjustmentFacts from "./AvatarAdjustmentFacts.svelte"
 	import AvatarAdjustmentRow from "./AvatarAdjustmentRow.svelte"
 	import AvatarClothingLayers from "./AvatarClothingLayers.svelte"
+	import AvatarCountedHeading from "./AvatarCountedHeading.svelte"
 	import { isDefaultAdjustment } from "./avatar-draft"
 
 	let {
@@ -27,13 +28,10 @@
 	<section
 		class="flex flex-col gap-2"
 		aria-labelledby={`${headingIdPrefix}-adjusted`}>
-		<h3
+		<AvatarCountedHeading
 			id={`${headingIdPrefix}-adjusted`}
-			class="flex items-center gap-2 text-xs font-semibold text-fg-muted">
-			Adjusted accessories
-			<span class="font-mono text-2xs font-normal text-fg-faint"
-				>{adjustedAssets.length}</span>
-		</h3>
+			label="Adjusted accessories"
+			count={adjustedAssets.length} />
 		<ul
 			class="flex flex-col overflow-hidden rounded-lg border border-line-subtle bg-surface">
 			{#each adjustedAssets as asset (asset.item.itemId)}
