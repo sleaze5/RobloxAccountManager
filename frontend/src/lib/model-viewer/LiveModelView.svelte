@@ -4,9 +4,8 @@
 	import FrameUnavailable from "../shared/FrameUnavailable.svelte"
 	import ModelViewerControls from "./ModelViewerControls.svelte"
 	import { orbitViewKeysDescription } from "./orbit-view-keys"
-	import { modelViewerScene, viewerOverlays } from "./model-viewer-scene.svelte"
-	import ViewerAxes from "./ViewerAxes.svelte"
-	import ViewerCoordinates from "./ViewerCoordinates.svelte"
+	import { modelViewerScene } from "./model-viewer-scene.svelte"
+	import ViewerReadout from "./ViewerReadout.svelte"
 	import {
 		applyLiveModelSceneSettings,
 		attachLiveModelView,
@@ -138,10 +137,7 @@
 		</span>
 	{:else if viewport && !viewport.coveredFrameUrl}
 		{#if viewport.cameraPose}
-			<ViewerAxes pose={viewport.cameraPose} />
-			{#if viewerOverlays.isCoordinatesShown}
-				<ViewerCoordinates pose={viewport.cameraPose} />
-			{/if}
+			<ViewerReadout pose={viewport.cameraPose} />
 		{/if}
 		<ModelViewerControls onResetView={() => viewport?.resetView()} />
 	{/if}

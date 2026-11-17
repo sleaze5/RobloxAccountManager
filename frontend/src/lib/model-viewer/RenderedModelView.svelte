@@ -3,10 +3,8 @@
 	import type { RenderedModel } from "../backend/bridge"
 	import FrameUnavailable from "../shared/FrameUnavailable.svelte"
 	import type { CameraPose } from "./model-subject"
-	import { viewerOverlays } from "./model-viewer-scene.svelte"
 	import ModelViewerControls from "./ModelViewerControls.svelte"
-	import ViewerAxes from "./ViewerAxes.svelte"
-	import ViewerCoordinates from "./ViewerCoordinates.svelte"
+	import ViewerReadout from "./ViewerReadout.svelte"
 
 	// RenderedModelView fills its container with a 3D model, or with its
 	// loading or error state. label names what the model shows, such as
@@ -50,10 +48,7 @@
 				onposechange={(pose) => (cameraPose = pose)} />
 		{/key}
 		{#if cameraPose}
-			<ViewerAxes pose={cameraPose} />
-			{#if viewerOverlays.isCoordinatesShown}
-				<ViewerCoordinates pose={cameraPose} />
-			{/if}
+			<ViewerReadout pose={cameraPose} />
 		{/if}
 		<ModelViewerControls onResetView={() => viewer?.resetView()} />
 	{:catch}

@@ -109,17 +109,23 @@
 			<span class="sr-only">Loading the avatar image</span>
 		</span>
 	{/if}
-	{#if shownType}
-		<span
-			class="pointer-events-none absolute top-2 left-2 rounded-sm border border-line-strong bg-overlay px-1 font-mono text-2xs leading-4 font-medium text-fg-muted"
-			>{shownType}</span>
-	{/if}
-	{#if busyLabel}
-		<span
-			class="pointer-events-none absolute right-2 bottom-2 flex animate-enter items-center gap-1 rounded-sm border border-line-strong bg-overlay px-1.5 text-2xs leading-5 font-medium text-fg"
-			role="status">
-			<Icon svg={circleNotchIcon} class="spinner" size={12} aria-hidden="true" />
-			{busyLabel}
+	{#if shownType || busyLabel}
+		<span class="frame-readout-top-left divide-x divide-line-subtle leading-5">
+			{#if shownType}
+				<span class="px-1.5 font-medium">{shownType}</span>
+			{/if}
+			{#if busyLabel}
+				<span
+					class="flex animate-enter items-center gap-1 px-1.5 text-fg"
+					role="status">
+					<Icon
+						svg={circleNotchIcon}
+						class="spinner"
+						size={12}
+						aria-hidden="true" />
+					{busyLabel}
+				</span>
+			{/if}
 		</span>
 	{/if}
 {/snippet}

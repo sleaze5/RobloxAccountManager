@@ -417,6 +417,21 @@
 	}
 }
 
+/* A readout docked in a corner of an image or 3D frame. It shares the border
+   of the frame, which draws its outer edges, so it draws only its inner edges
+   and rounds its inner corner. */
+@utility frame-readout {
+	@apply pointer-events-none absolute z-10 flex items-center border-line-subtle bg-surface font-mono text-2xs leading-4 text-fg-muted tabular-nums;
+}
+
+@utility frame-readout-top-left {
+	@apply frame-readout top-0 left-0 rounded-br-md border-r border-b;
+}
+
+@utility frame-readout-bottom-left {
+	@apply frame-readout bottom-0 left-0 rounded-tr-md border-t border-r;
+}
+
 @utility text-block {
 	@apply max-w-2xl rounded-lg border border-line bg-fill px-3 py-2 font-mono text-xs leading-5 wrap-anywhere whitespace-pre-wrap text-fg select-text;
 

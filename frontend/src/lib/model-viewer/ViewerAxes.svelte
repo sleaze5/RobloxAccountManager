@@ -41,10 +41,7 @@
 	})
 </script>
 
-<svg
-	class="pointer-events-none absolute bottom-1 left-1 size-14"
-	viewBox="-1.6 -1.6 3.2 3.2"
-	aria-hidden="true">
+<svg class="size-12 shrink-0" viewBox="-1.6 -1.6 3.2 3.2" aria-hidden="true">
 	{#each axes as axis (axis.name)}
 		<g
 			class={[

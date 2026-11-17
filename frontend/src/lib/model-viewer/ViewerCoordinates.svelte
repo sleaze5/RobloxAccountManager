@@ -2,7 +2,7 @@
 	import type { CameraPose } from "./model-subject"
 
 	// ViewerCoordinates shows where the camera stands, where it looks, and how
-	// far apart they are, in studs.
+	// far apart they are, in studs, in three rows as tall as the axes.
 	let { pose }: { pose: CameraPose } = $props()
 
 	const studs = new Intl.NumberFormat("en-US", {
@@ -10,9 +10,11 @@
 		maximumFractionDigits: 1,
 	})
 
+	// Each row names its point in short, as technical readouts do, and in
+	// full for screen readers.
 	const rows = $derived([
-		{ label: "Camera", point: pose.position },
-		{ label: "Target", point: pose.target },
+		{ label: "Camera", shortLabel: "cam", point: pose.position },
+		{ label: "Target", shortLabel: "tgt", point: pose.target },
 	])
 	const distance = $derived(
 		Math.hypot(
@@ -24,16 +26,19 @@
 </script>
 
 <dl
-	class="pointer-events-none absolute bottom-2 left-16 flex animate-enter flex-col gap-0.5 rounded-md border border-line-strong bg-overlay px-1.5 py-1 font-mono text-2xs text-fg-muted tabular-nums"
+	class="flex animate-enter flex-col border-l border-line-subtle px-1.5"
 	role="group"
 	aria-label="Camera coordinates in studs">
 	{#each rows as row (row.label)}
 		<div class="flex items-baseline gap-1.5">
-			<dt class="w-12 font-sans font-medium text-fg">{row.label}</dt>
+			<dt class="w-7 text-fg-faint">
+				<span aria-hidden="true">{row.shortLabel}</span>
+				<span class="sr-only">{row.label}</span>
+			</dt>
 			{#each row.point as coordinate, axisIndex (axisIndex)}
 				<dd
 					class={[
-						"w-10 text-right",
+						"w-9 text-right",
 						axisIndex === 0 && "text-axis-x",
 						axisIndex === 1 && "text-axis-y",
 						axisIndex === 2 && "text-axis-z",
@@ -44,7 +49,10 @@
 		</div>
 	{/each}
 	<div class="flex items-baseline gap-1.5">
-		<dt class="w-12 font-sans font-medium text-fg">Distance</dt>
-		<dd>{studs.format(distance)} studs</dd>
+		<dt class="w-7 text-fg-faint">
+			<span aria-hidden="true">dist</span>
+			<span class="sr-only">Distance</span>
+		</dt>
+		<dd class="text-fg">{studs.format(distance)}</dd>
 	</div>
 </dl>
