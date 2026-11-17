@@ -160,6 +160,21 @@
 		field.value = String(fieldValueOf(shownValue, fieldFactor))
 	}
 
+	// revertPendingField brings back the applied value when the field holds a
+	// typed value that is not applied yet, so that Undo clears the typing
+	// before it undoes an earlier change.
+	function revertPendingField(event: KeyboardEvent, appliedValue: number): void {
+		const field = event.currentTarget
+		if (
+			!(field instanceof HTMLInputElement) ||
+			field.value === String(appliedValue)
+		) {
+			return
+		}
+		event.preventDefault()
+		field.value = String(appliedValue)
+	}
+
 	function setUniformScale(isUniform: boolean): void {
 		isUniformScale = isUniform
 		if (!isUniform) return
@@ -250,6 +265,12 @@
 						fieldFactor,
 						range,
 					)
+				} else if (
+					(event.ctrlKey || event.metaKey) &&
+					event.key.toLowerCase() === "z" &&
+					!event.shiftKey
+				) {
+					revertPendingField(event, fieldValueOf(value, fieldFactor))
 				}
 			}} />
 	</div>

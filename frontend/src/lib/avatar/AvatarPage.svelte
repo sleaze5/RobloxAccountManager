@@ -130,6 +130,16 @@
 		)
 	}
 
+	// applyFocusedField applies a value that the user typed but has not
+	// confirmed. A field applies its value when it loses focus, so focus leaves
+	// the field and comes back.
+	function applyFocusedField(): void {
+		const field = document.activeElement
+		if (!(field instanceof HTMLInputElement)) return
+		field.blur()
+		field.focus()
+	}
+
 	function requestBack(): void {
 		if (!confirmLeaving(onBack)) onBack()
 	}
@@ -195,10 +205,13 @@
 
 <svelte:window
 	onkeydown={(event) => {
-		if (!(event.ctrlKey || event.metaKey) || !canEdit) return
+		if (!(event.ctrlKey || event.metaKey) || !canEdit || event.defaultPrevented) {
+			return
+		}
 		const key = event.key.toLowerCase()
 		if (key === "s") {
 			event.preventDefault()
+			applyFocusedField()
 			void avatar.save()
 		} else if (key === "z" && !event.shiftKey && !isTextEntry(event.target)) {
 			event.preventDefault()
