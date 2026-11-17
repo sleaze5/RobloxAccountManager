@@ -1,4 +1,5 @@
 <script lang="ts">
+	import arrowUUpLeftIcon from "@phosphor-icons/core/regular/arrow-u-up-left.svg?raw"
 	import personArmsSpreadIcon from "@phosphor-icons/core/regular/person-arms-spread.svg?raw"
 	import { onMount, tick, untrack } from "svelte"
 	import AccountPageHeader from "../accounts/AccountPageHeader.svelte"
@@ -12,6 +13,7 @@
 	import RefreshIcon from "../shared/RefreshIcon.svelte"
 	import SkeletonTile from "../shared/SkeletonTile.svelte"
 	import { unsavedChangesGuard } from "../layout/unsaved-changes-guard"
+	import AvatarAdjustmentsPanel from "./AvatarAdjustmentsPanel.svelte"
 	import AvatarBodyPanel from "./AvatarBodyPanel.svelte"
 	import AvatarConfirmation from "./AvatarConfirmation.svelte"
 	import AvatarEmotesPanel from "./AvatarEmotesPanel.svelte"
@@ -22,10 +24,10 @@
 	import AvatarStage from "./AvatarStage.svelte"
 	import AvatarWearingPanel from "./AvatarWearingPanel.svelte"
 	import { avatarItemCategory, emoteCategory } from "./avatar-categories"
-	import { emoteSlotCount } from "./avatar-draft"
+	import { emoteSlotCount, isDefaultAdjustment } from "./avatar-draft"
 	import { AvatarState } from "./avatar-state.svelte"
 
-	type AvatarTab = "wearing" | "body" | "emotes" | "outfits"
+	type AvatarTab = "wearing" | "adjustments" | "body" | "emotes" | "outfits"
 
 	let {
 		accounts,
@@ -55,6 +57,7 @@
 		),
 		tabs: { id: AvatarTab; label: string }[] = [
 			{ id: "wearing", label: "Wearing" },
+			{ id: "adjustments", label: "Adjustments" },
 			{ id: "body", label: "Body" },
 			{ id: "emotes", label: "Emotes" },
 			{ id: "outfits", label: "Outfits" },
@@ -85,8 +88,14 @@
 		savedAssetIds = $derived(
 			new Set((avatar.avatar?.assets ?? []).map((asset) => asset.item.itemId)),
 		),
+		adjustedCount = $derived(
+			(draft?.assets ?? []).filter(
+				(asset) => !isDefaultAdjustment(asset.adjustment),
+			).length,
+		),
 		countByTab = $derived<Partial<Record<AvatarTab, string>>>({
 			wearing: draft ? String(draft.assets.length) : undefined,
+			adjustments: adjustedCount > 0 ? String(adjustedCount) : undefined,
 			emotes: draft ? `${draft.emotes.length}/${emoteSlotCount}` : undefined,
 		})
 
@@ -104,6 +113,16 @@
 		pendingLeave = leave
 		isConfirmingDiscard = true
 		return true
+	}
+
+	// isTextEntry tells whether the target undoes its own typing, such as the
+	// custom color field.
+	function isTextEntry(target: EventTarget | null): boolean {
+		return (
+			target instanceof HTMLTextAreaElement ||
+			(target instanceof HTMLInputElement &&
+				!["range", "checkbox", "radio", "button"].includes(target.type))
+		)
 	}
 
 	function requestBack(): void {
@@ -171,13 +190,14 @@
 
 <svelte:window
 	onkeydown={(event) => {
-		if (
-			(event.ctrlKey || event.metaKey) &&
-			event.key.toLowerCase() === "s" &&
-			canEdit
-		) {
+		if (!(event.ctrlKey || event.metaKey) || !canEdit) return
+		const key = event.key.toLowerCase()
+		if (key === "s") {
 			event.preventDefault()
 			void avatar.save()
+		} else if (key === "z" && !event.shiftKey && !isTextEntry(event.target)) {
+			event.preventDefault()
+			avatar.undo()
 		}
 	}} />
 
@@ -190,6 +210,20 @@
 		{#if avatar.isEditable && isChanged}
 			<span class="animate-enter text-2xs text-fg-muted" aria-live="polite"
 				>Unsaved changes</span>
+		{/if}
+		{#if avatar.isEditable && avatar.draftHistory.length > 0}
+			<button
+				class="button-icon animate-enter"
+				type="button"
+				aria-label="Undo"
+				aria-keyshortcuts="Control+Z"
+				data-tooltip="Undo (Ctrl+Z)"
+				disabled={!avatar.canUndo}
+				onclick={() => avatar.undo()}>
+				<Icon svg={arrowUUpLeftIcon} size={16} aria-hidden="true" />
+			</button>
+		{/if}
+		{#if avatar.isEditable && isChanged}
 			<button
 				class="button animate-enter"
 				type="button"
@@ -350,6 +384,11 @@
 												avatarItemCategory(asset.category),
 											)}
 										onAddItems={() => (pickerEmoteSlot = null)} />
+								{:else if tab === "adjustments"}
+									<AvatarAdjustmentsPanel
+										{avatar}
+										{canEdit}
+										{username} />
 								{:else if tab === "body"}
 									<AvatarBodyPanel {avatar} {canEdit} />
 								{:else if tab === "emotes"}

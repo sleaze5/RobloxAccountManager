@@ -10,6 +10,7 @@
 	import ProfileImage from "../shared/ProfileImage.svelte"
 	import Skeleton from "../shared/Skeleton.svelte"
 	import SkeletonTile from "../shared/SkeletonTile.svelte"
+	import AvatarAdjustmentSummary from "./AvatarAdjustmentSummary.svelte"
 	import AvatarBodyColorFacts from "./AvatarBodyColorFacts.svelte"
 	import AvatarBodyFigure from "./AvatarBodyFigure.svelte"
 	import AvatarItemGroups from "./AvatarItemGroups.svelte"
@@ -176,6 +177,8 @@
 					headingIdPrefix="avatar-outfit-group"
 					{onOpenItem} />
 			{/if}
+
+			<AvatarAdjustmentSummary {assets} headingIdPrefix="avatar-outfit-adjust" />
 
 			<section class="flex flex-col gap-3" aria-labelledby="avatar-outfit-body">
 				<h3 id="avatar-outfit-body" class={sectionHeadingClass}>Body</h3>

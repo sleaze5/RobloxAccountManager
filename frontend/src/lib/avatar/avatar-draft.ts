@@ -1,5 +1,6 @@
 import type {
 	Avatar,
+	AvatarAccessoryAdjustment,
 	AvatarAsset,
 	AvatarBodyColors,
 	AvatarChange,
@@ -7,6 +8,7 @@ import type {
 	AvatarScales,
 	AvatarType,
 	InventoryCategory,
+	AvatarVector,
 	InventoryItem,
 } from "../backend/bridge"
 
@@ -46,6 +48,48 @@ export const bodyScales: {
 
 export const emoteSlotCount = 8
 
+export type AdjustmentKind = keyof AvatarAccessoryAdjustment
+export type AdjustmentAxis = keyof AvatarVector
+
+export const adjustmentAxes: AdjustmentAxis[] = ["x", "y", "z"]
+
+// adjustmentKinds lists what an accessory adjustment changes. The steps match
+// the precision of the values that the Roblox avatar editor stores.
+export const adjustmentKinds: {
+	kind: AdjustmentKind
+	label: string
+	step: number
+}[] = [
+	{ kind: "position", label: "Position", step: 0.01 },
+	{ kind: "rotation", label: "Rotation", step: 0.1 },
+	{ kind: "scale", label: "Scale", step: 0.01 },
+]
+
+// defaultAdjustment is the placement of an accessory that Roblox lists
+// without an adjustment.
+export const defaultAdjustment: AvatarAccessoryAdjustment = {
+	position: { x: 0, y: 0, z: 0 },
+	rotation: { x: 0, y: 0, z: 0 },
+	scale: { x: 1, y: 1, z: 1 },
+}
+
+export function adjustmentOf(asset: AvatarAsset): AvatarAccessoryAdjustment {
+	return asset.adjustment ?? defaultAdjustment
+}
+
+export function isDefaultAdjustment(
+	adjustment: AvatarAccessoryAdjustment | null,
+): boolean {
+	return (
+		!adjustment ||
+		adjustmentKinds.every(({ kind }) =>
+			adjustmentAxes.every(
+				(axis) => adjustment[kind][axis] === defaultAdjustment[kind][axis],
+			),
+		)
+	)
+}
+
 export function draftOf(avatar: Avatar): AvatarDraft {
 	return {
 		avatarType: avatar.avatarType,
@@ -61,7 +105,10 @@ export function avatarChangeOf(draft: AvatarDraft): AvatarChange {
 		avatarType: draft.avatarType,
 		scales: draft.scales,
 		bodyColors: draft.bodyColors,
-		assetIds: draft.assets.map((asset) => asset.item.itemId),
+		assets: draft.assets.map((asset) => ({
+			assetId: asset.item.itemId,
+			adjustment: asset.adjustment,
+		})),
 		emotes: draft.emotes.map((emote) => ({
 			assetId: emote.item.itemId,
 			slot: emote.slot,
@@ -70,7 +117,8 @@ export function avatarChangeOf(draft: AvatarDraft): AvatarChange {
 }
 
 // isDraftChanged compares what a save would write, so that wearing an item
-// and taking it off again leaves the draft unchanged.
+// and taking it off again, or moving an accessory and moving it back, leaves
+// the draft unchanged.
 export function isDraftChanged(avatar: Avatar, draft: AvatarDraft): boolean {
 	return (
 		JSON.stringify(normalizedChange(avatarChangeOf(draftOf(avatar)))) !==
@@ -81,7 +129,14 @@ export function isDraftChanged(avatar: Avatar, draft: AvatarDraft): boolean {
 function normalizedChange(change: AvatarChange): AvatarChange {
 	return {
 		...change,
-		assetIds: [...(change.assetIds ?? [])].sort((first, second) => first - second),
+		assets: (change.assets ?? [])
+			.map((asset) => ({
+				assetId: asset.assetId,
+				adjustment: isDefaultAdjustment(asset.adjustment)
+					? null
+					: asset.adjustment,
+			}))
+			.sort((first, second) => first.assetId - second.assetId),
 		emotes: [...(change.emotes ?? [])].sort(
 			(first, second) => first.slot - second.slot,
 		),
@@ -113,8 +168,21 @@ export function wearItem(
 		...draft,
 		assets: [
 			...draft.assets.filter((asset) => !replacedAssets.includes(asset)),
-			{ category, item },
+			{ category, item, adjustment: null, layer: null },
 		],
+	}
+}
+
+export function adjustAsset(
+	draft: AvatarDraft,
+	assetId: number,
+	adjustment: AvatarAccessoryAdjustment,
+): AvatarDraft {
+	return {
+		...draft,
+		assets: draft.assets.map((asset) =>
+			asset.item.itemId === assetId ? { ...asset, adjustment } : asset,
+		),
 	}
 }
 

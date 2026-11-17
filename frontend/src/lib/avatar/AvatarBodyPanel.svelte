@@ -71,10 +71,13 @@
 	): void {
 		const increment = limit.increment > 0 ? limit.increment : 0.01,
 			value = Number((Math.round(rawValue / increment) * increment).toFixed(4))
-		avatar.changeDraft((current) => ({
-			...current,
-			scales: { ...current.scales, [scale]: value },
-		}))
+		avatar.changeDraft(
+			(current) => ({
+				...current,
+				scales: { ...current.scales, [scale]: value },
+			}),
+			`scale:${scale}`,
+		)
 	}
 
 	function setColor(hexColor: string): void {
@@ -230,7 +233,8 @@
 										row.scale,
 										event.currentTarget.valueAsNumber,
 										limit,
-									)} />
+									)}
+								onchange={() => avatar.finishDraftChange()} />
 						{:else}
 							<span class="flex-1"></span>
 						{/if}

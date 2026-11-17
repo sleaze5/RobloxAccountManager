@@ -103,9 +103,13 @@ export type {
 } from "../../../bindings/github.com/sleaze5/RobloxAccountManager/internal/storage/vault/models.js"
 export type {
 	Avatar,
+	AvatarAccessoryAdjustment,
+	AvatarAccessoryAdjustmentLimits,
 	AvatarAsset,
+	AvatarAxisLimits,
 	AvatarBodyColors,
 	AvatarChange,
+	AvatarClothingLayer,
 	AvatarEmote,
 	AvatarHeadshotView,
 	AvatarOutfit,
@@ -113,6 +117,7 @@ export type {
 	AvatarRules,
 	AvatarScaleLimit,
 	AvatarScales,
+	AvatarVector,
 	InventoryItem,
 	InventoryItemDetails,
 	InventoryItemMarket,

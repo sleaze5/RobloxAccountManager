@@ -14,10 +14,12 @@ import (
 // SavedAvatar is the avatar after a save, or a nil Avatar when the save
 // succeeded but the avatar could not be read again. SkippedAssetIDs lists the
 // requested assets that Roblox did not put on the avatar, such as items that
-// the account does not own.
+// the account does not own. UnkeptAdjustmentAssetIDs lists the worn
+// accessories whose saved placement differs from the requested one.
 type SavedAvatar struct {
-	Avatar          *robloxservices.Avatar `json:"avatar"`
-	SkippedAssetIDs []int64                `json:"skippedAssetIds"`
+	Avatar                   *robloxservices.Avatar `json:"avatar"`
+	SkippedAssetIDs          []int64                `json:"skippedAssetIds"`
+	UnkeptAdjustmentAssetIDs []int64                `json:"unkeptAdjustmentAssetIds"`
 }
 
 // GetAvatar reads how the user looks now, as the account sees it, with the
@@ -111,25 +113,40 @@ func (service *Service) SaveAvatar(ctx context.Context, accountID int64, change 
 	if err != nil {
 		return SavedAvatar{}, mapRepositoryError(err)
 	}
+	var rejectedAssetIDs []int64
 	err = service.editAccount(ctx, accountID, "avatar-save", "", func(ctx context.Context, version int64) error {
-		return service.users.SaveAvatar(ctx, accountID, version, change)
+		var saveError error
+		rejectedAssetIDs, saveError = service.users.SaveAvatar(ctx, accountID, version, change)
+		return saveError
 	})
 	if err != nil {
 		return SavedAvatar{}, err
 	}
-	saved := SavedAvatar{SkippedAssetIDs: []int64{}}
+	saved := SavedAvatar{SkippedAssetIDs: rejectedAssetIDs, UnkeptAdjustmentAssetIDs: []int64{}}
 	// GetAvatar logs a failed read.
-	avatar, readError := service.GetAvatar(ctx, accountID, account.RobloxUserID)
-	if readError == nil {
+	if avatar, readError := service.GetAvatar(ctx, accountID, account.RobloxUserID); readError == nil {
 		saved.Avatar = &avatar
-		for _, assetID := range change.AssetIDs {
-			isWorn := slices.ContainsFunc(avatar.Assets, func(asset robloxservices.AvatarAsset) bool { return asset.Item.ItemID == assetID })
-			if !isWorn {
-				saved.SkippedAssetIDs = append(saved.SkippedAssetIDs, assetID)
-			}
-		}
+		saved.addUnwornAndUnkeptAssets(change.Assets)
 	}
 	return saved, nil
+}
+
+// addUnwornAndUnkeptAssets compares the change with the saved avatar. It adds
+// each requested asset that the avatar does not wear to SkippedAssetIDs, and
+// each worn accessory whose placement differs from the requested one to
+// UnkeptAdjustmentAssetIDs.
+func (saved *SavedAvatar) addUnwornAndUnkeptAssets(changeAssets []robloxservices.AvatarChangeAsset) {
+	for _, changeAsset := range changeAssets {
+		wornIndex := slices.IndexFunc(saved.Avatar.Assets, func(asset robloxservices.AvatarAsset) bool { return asset.Item.ItemID == changeAsset.AssetID })
+		switch {
+		case wornIndex < 0:
+			if !slices.Contains(saved.SkippedAssetIDs, changeAsset.AssetID) {
+				saved.SkippedAssetIDs = append(saved.SkippedAssetIDs, changeAsset.AssetID)
+			}
+		case changeAsset.Adjustment != nil && !robloxservices.IsAdjustmentKept(*changeAsset.Adjustment, saved.Avatar.Assets[wornIndex].Adjustment):
+			saved.UnkeptAdjustmentAssetIDs = append(saved.UnkeptAdjustmentAssetIDs, changeAsset.AssetID)
+		}
+	}
 }
 
 // WaitForAvatarImage reads the full-body image of the account after a change.
