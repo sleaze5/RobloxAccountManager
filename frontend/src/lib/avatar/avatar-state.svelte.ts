@@ -303,8 +303,9 @@ export class AvatarState {
 	}
 
 	async save(): Promise<void> {
-		const draft = this.draft
-		if (!draft || !this.isChanged || this.isDraftLocked) return
+		const draft = this.draft,
+			savedAvatar = this.avatar
+		if (!draft || !savedAvatar || !this.isChanged || this.isDraftLocked) return
 		this.isSaving = true
 		this.saveError = ""
 		const nameByAssetId = new Map(
@@ -312,7 +313,10 @@ export class AvatarState {
 		)
 		try {
 			const saved = await this.#scope.track(
-				accountBackend.SaveAvatar(this.#scope.accountId, avatarChangeOf(draft)),
+				accountBackend.SaveAvatar(
+					this.#scope.accountId,
+					avatarChangeOf(draft, savedAvatar),
+				),
 			)
 			if (!this.#scope.isCurrent) return
 			if (!saved.avatar) {
@@ -505,15 +509,22 @@ export class AvatarState {
 	// renderPreview asks Roblox to render the draft without saving it, unless
 	// the preview of the draft is already shown or rendering.
 	async renderPreview(): Promise<void> {
-		const draft = this.draft
-		if (!this.#scope.isCurrent || !this.isEditable || !draft || !this.isChanged) {
+		const draft = this.draft,
+			savedAvatar = this.avatar
+		if (
+			!this.#scope.isCurrent ||
+			!this.isEditable ||
+			!draft ||
+			!savedAvatar ||
+			!this.isChanged
+		) {
 			return
 		}
 		if (this.#isPreviewShownOrRendering(draft)) return
 		void this.#previewRequest?.cancel()
 		const request = accountBackend.RenderAvatarPreview(
 			this.#scope.accountId,
-			avatarChangeOf(draft),
+			avatarChangeOf(draft, savedAvatar),
 		)
 		this.#previewRequest = request
 		this.#renderingPreviewDraft = draft

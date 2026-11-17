@@ -183,15 +183,27 @@ export function draftOf(avatar: Avatar): AvatarDraft {
 	}
 }
 
-export function avatarChangeOf(draft: AvatarDraft): AvatarChange {
+// avatarChangeOf writes the draft as a change of the saved avatar. A change
+// carries the placement of an accessory only when the draft edited it, so
+// that a save keeps a placement that Roblox changed since the avatar loaded.
+export function avatarChangeOf(draft: AvatarDraft, savedAvatar: Avatar): AvatarChange {
+	const savedAssetById = new Map(
+		(savedAvatar.assets ?? []).map((asset) => [asset.item.itemId, asset]),
+	)
 	return {
 		avatarType: draft.avatarType,
 		scales: draft.scales,
 		bodyColors: draft.bodyColors,
-		assets: draft.assets.map((asset) => ({
-			assetId: asset.item.itemId,
-			adjustment: asset.adjustment,
-		})),
+		assets: draft.assets.map((asset) => {
+			const savedAsset = savedAssetById.get(asset.item.itemId),
+				isEdited =
+					!!savedAsset &&
+					!isSameAdjustment(savedAsset.adjustment, asset.adjustment)
+			return {
+				assetId: asset.item.itemId,
+				adjustment: isEdited ? asset.adjustment : null,
+			}
+		}),
 		emotes: draft.emotes.map((emote) => ({
 			assetId: emote.item.itemId,
 			slot: emote.slot,
@@ -204,8 +216,8 @@ export function avatarChangeOf(draft: AvatarDraft): AvatarChange {
 // the draft unchanged.
 export function isDraftChanged(avatar: Avatar, draft: AvatarDraft): boolean {
 	return (
-		JSON.stringify(normalizedChange(avatarChangeOf(draftOf(avatar)))) !==
-		JSON.stringify(normalizedChange(avatarChangeOf(draft)))
+		JSON.stringify(normalizedChange(avatarChangeOf(draftOf(avatar), avatar))) !==
+		JSON.stringify(normalizedChange(avatarChangeOf(draft, avatar)))
 	)
 }
 
