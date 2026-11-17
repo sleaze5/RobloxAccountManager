@@ -76,89 +76,6 @@ Names exist so that a reader understands what the code does without reading its 
 - Do not add temporal or implementation words: `newAccountStore`, `accountStoreV2`, `accountsMap`, unless two variants exist in the same scope.
 - If no accurate name fits, the code probably does too much. Split it before you name it.
 
-## Design principles
-
-Design the interface as one system, not as a set of components that each look good alone. Make every visual and interactive decision on purpose, take it from the shared tokens, and judge it against the whole screen. `docs/DESIGN.md` defines the concrete values: tokens, scales, building blocks, states, and motion limits. These principles say how to apply those values and how to decide a case they do not cover. When a principle and `docs/DESIGN.md` disagree on a value, follow `docs/DESIGN.md`.
-
-1. **Geometric harmony.** Derive every corner radius, inset, border width, and proportion from the elements around it. Keep nested corners concentric: inner radius = outer radius − padding − border width. Give each component family one radius, and do not add a shape or radius that the radius scale does not contain.
-2. **Optical precision.** Align by perceived edges and visual weight, not by bounding boxes. Center asymmetric glyphs, such as carets, arrows, and play icons, optically inside their containers. Align adjacent text on a shared baseline. Balance icon size and stroke against the weight of the text beside it. Adjust padding until it looks even, for example beside a leading icon, using only steps from the spacing scale.
-3. **System-wide consistency.** Use one visual language: one spacing scale, one type scale, one set of color roles, one elevation order, one radius scale, and one set of durations and easing curves. Take every value from a token or stock scale. Treat a one-off value as a defect. Give the same role the same appearance and behavior on every screen.
-4. **Intentional microdetails.** Treat hairline borders, separators, icon stroke weight, shadows, focus rings, and the hover, pressed, selected, focus, and disabled states as part of the design, not as finishing. Small inconsistencies compound into an interface that feels assembled.
-5. **Environmental harmony.** Make the interface feel native to a dense desktop tool. Match desktop density, window chrome, pointer and keyboard conventions, context menus, and scroll behavior. Do not import web page patterns, such as hero sections, oversized cards, gradients, or translucent glass surfaces.
-6. **Refinement over decoration.** Give every element a function. Leave out ornament: gradients, glows, blur, decorative illustration, and shadows used only for depth. Build hierarchy from weight, color step, spacing, and grouping. Restraint is the result of refinement, not a lack of detail.
-7. **Interaction craftsmanship.** Make every interaction show clear cause and effect. Respond to input immediately. Keep spatial continuity: a surface appears from its trigger and returns to it. Let entrances decelerate and make exits faster than entrances. Make feedback proportionate to the action.
-8. **Relentless quality control.** Inspect every change at the real window size and in a magnified screenshot. Find and fix inconsistent radii, uneven spacing, near-miss alignments, unbalanced visual weight, broken proportions, and patterns that do not match the rest of the application before you call the work done.
-
-The goal is design inevitability: nothing looks arbitrary, disconnected, or accidentally assembled. Each component reads as a natural extension of the system, and each curve, space, interaction, and treatment follows the same logic. Do not optimize one component at the expense of the whole experience. Do not stop at an interface that works or looks good. Refine it until the whole experience is coherent, precise, and complete.
-
-### Design review checklist
-
-Review the whole screen first, then each component in each of its states. Check at 900px by 500px and 100% display scaling, then inspect details in a 2× screenshot.
-
-System and tokens:
-
-- [ ] Every color, spacing, size, radius, text size, shadow, duration, and easing comes from a token or a stock scale.
-- [ ] The change reuses an existing building block or pattern. A new pattern is named and justified.
-- [ ] Each role looks and behaves the same everywhere it appears.
-
-Geometry:
-
-- [ ] Each element uses the radius that its role defines.
-- [ ] Nested corners are concentric: inner radius = outer radius − inset.
-- [ ] Border weights are consistent for each role: 1px for boundaries and separators, 2px only for indicators.
-- [ ] Control heights, row heights, and thumbnail sizes match across adjacent components.
-
-Layout and spacing:
-
-- [ ] Spacing follows the 4px scale, and related items sit closer together than unrelated ones.
-- [ ] Edges share alignment axes across components, with no near-misses of 1px or 2px.
-- [ ] Sibling surfaces use the same gutters and inner padding.
-- [ ] The layout holds at the minimum window size, truncates in a deliberate order, and does not shift while content loads.
-
-Typography:
-
-- [ ] Every text element uses the size, weight, and color that its role defines.
-- [ ] The hierarchy still reads when you squint at the screen.
-- [ ] Adjacent text shares a baseline, and technical values use the monospace font.
-
-Optical balance:
-
-- [ ] Icons look centered in their containers, including asymmetric glyphs.
-- [ ] Icon size and stroke weight balance the text beside them.
-- [ ] Controls in one group carry equal visual weight, whether they show an icon, a label, or both.
-- [ ] Padding looks even, not only measures even.
-
-Color, contrast, and elevation:
-
-- [ ] Surfaces follow the elevation order from content to chrome to floating surfaces to raised controls.
-- [ ] Text has 4.5:1 contrast, and icons, boundaries, and focus rings have 3:1 contrast.
-- [ ] Semantic color carries meaning only, and never as the only cue.
-
-States:
-
-- [ ] Every interactive element has each state that applies: default, hover, pressed, focus-visible, selected, disabled, loading, and error.
-- [ ] The same state looks the same across components.
-- [ ] The focus ring is visible on every surface and is never clipped.
-- [ ] Loading, empty, success, and error states are designed, not left to defaults.
-
-Motion and feedback:
-
-- [ ] Every state change gives immediate, proportionate feedback.
-- [ ] Each transition uses the duration and easing of its role. Entrances decelerate, and exits are faster.
-- [ ] Surfaces enter from and exit toward their trigger.
-- [ ] Under reduced motion, every state stays understandable.
-
-Platform fit and restraint:
-
-- [ ] Density, chrome, and keyboard behavior feel native to a desktop application, and nothing looks like exposed browser UI.
-- [ ] Every element has a purpose. Decoration, redundant labels, and repeated values are gone.
-- [ ] Each surface has at most one dominant action.
-
-Whole experience:
-
-- [ ] The screen shares its anatomy, alignment axes, and spacing rhythm with neighboring screens.
-- [ ] No component was refined in isolation at the cost of the whole.
-
 ## Checklist
 
 Check each applicable item before you finish a change. The change does only what the task asks, with no unrelated refactoring. If items conflict, the earlier numbered item wins.
@@ -169,7 +86,7 @@ Check each applicable item before you finish a change. The change does only what
 2. The application stays responsive and resource-efficient. Do not trade correctness, account safety, or maintainability for a speculative performance improvement.
 3. The application stays portable and self-contained.
 4. The UI stays consistent and accessible.
-    - The UI follows `docs/DESIGN.md` and the [Design principles](#design-principles), passes the [Design review checklist](#design-review-checklist), and is usable without instructions.
+    - The UI follows `docs/DESIGN.md` and is usable without instructions.
     - The UI works from the keyboard, with visible focus, sufficient contrast, labels, and accessible tooltips.
     - The UI handles loading, empty, success, disabled, and error states where they apply.
     - User-facing text is clear and short.
