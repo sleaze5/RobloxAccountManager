@@ -139,7 +139,10 @@ export class SettingsStore {
 			await accountBackend.SetPresenceUpdates(scope, enabled, intervalSeconds)
 			this.presence = { ...this.presence, [scope]: { enabled, intervalSeconds } }
 		} catch (error) {
-			this.error = errorMessage(error, "Could not save the presence settings.")
+			this.error = errorMessage(
+				error,
+				"Could not save the online status settings.",
+			)
 		} finally {
 			this.busyPresence = false
 		}

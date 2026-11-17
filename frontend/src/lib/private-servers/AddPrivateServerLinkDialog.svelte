@@ -86,7 +86,7 @@
 				bind:value={link} />
 			<small id={`${id}-link-help`} class="text-xs text-fg-muted"
 				>{accountId
-					? `Share links and access codes are read from Roblox as @${username}. An access code becomes a link code only if @${username} owns the server.`
+					? `The app reads the link from Roblox as @${username}.`
 					: "Share links need an account. Access codes are saved as they are."}</small>
 		</div>
 		<div class="dialog-field">

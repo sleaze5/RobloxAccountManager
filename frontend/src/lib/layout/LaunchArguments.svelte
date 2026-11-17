@@ -101,8 +101,8 @@
 					</span>
 					<span
 						><strong>Launch binary directly</strong><small
-							>Find and launch RobloxPlayerBeta.exe directly instead of
-							using the registered Roblox launcher.</small
+							>Start RobloxPlayerBeta.exe directly, without the Roblox
+							launcher.</small
 						></span>
 				</label>
 				{@render dialogLink(
@@ -137,7 +137,7 @@
 			</span>
 			<span
 				><strong>Mark launch as a teleport</strong><small
-					>Set the isTeleport flag to launch the game as an in-game teleport.</small
+					>Launch the game as if from an in-game teleport.</small
 				></span>
 		</label>
 		<div class="flex flex-col items-start gap-2">
@@ -151,7 +151,7 @@
 				</span>
 				<span
 					><strong>Use custom launch data</strong><small
-						>Set the launchData flag to pass custom data to the game.</small
+						>Pass custom data to the game.</small
 					></span>
 			</label>
 			{@render dialogLink(

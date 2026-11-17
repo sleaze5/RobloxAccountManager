@@ -67,8 +67,7 @@
 	</div>
 	{#if phase === "confirm"}
 		<p id="renew-cookie-description">
-			This replaces the saved session cookie. Any open browser for this account
-			will need to be reopened.
+			This replaces the saved cookie. Reopen any open browser for this account.
 		</p>
 	{:else}
 		<div

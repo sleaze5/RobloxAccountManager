@@ -32,12 +32,12 @@
 		),
 		summary = $derived(
 			conflict
-				? "App data exists next to the app and in your user folder. The other copy stays unchanged. Move or delete it to stop this question."
+				? "App data is next to the app and in your user folder. The app does not change the other copy. Move or delete it to stop this question."
 				: location.choice === ChoiceReason.ChoicePortableWithoutVault
 					? portable?.state === RootState.RootIncomplete
 						? "This folder has an incomplete vault. Keep using it to recover the vault, or start fresh in your user folder."
 						: "This folder has app data but no vault. Keep using it, or start fresh in your user folder."
-					: "The vault, settings, and logs are stored together in one folder.",
+					: "The vault, settings, and logs are saved together in one folder.",
 		),
 		selectedCandidate = $derived(
 			candidates.find((candidate) => candidate.mode === selected),

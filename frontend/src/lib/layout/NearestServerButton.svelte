@@ -35,10 +35,10 @@
 		hasPlace = $derived(Number.isSafeInteger(placeId) && placeId > 0),
 		tooltip = $derived(
 			!region
-				? "Select a preferred region in Settings first"
+				? "Select a preferred region in Settings under Integrations"
 				: !hasPlace
 					? "Enter a Place ID first"
-					: `Find a server in or near ${appSettings.preferredRegionLabel}, the preferred region in Settings`,
+					: `Find a server in or near ${appSettings.preferredRegionLabel}`,
 		)
 
 	function openSearch(): void {

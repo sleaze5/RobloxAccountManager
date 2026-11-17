@@ -29,8 +29,7 @@
 	const accountId = untrack(() => account.id),
 		replacing = untrack(() => account.hasSavedPassword),
 		title = replacing ? "Update saved password" : "Save password",
-		validationHint =
-			"Checks the password with Roblox. Too many checks can block checks for a while."
+		validationHint = "Too many checks can make Roblox block them for a while."
 	let saved = $state(""),
 		password = $state(""),
 		visible = $state(false),

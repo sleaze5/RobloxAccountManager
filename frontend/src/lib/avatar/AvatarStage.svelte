@@ -180,13 +180,13 @@
 	{#if avatar.isEditable && avatar.isChanged}
 		<p class="animate-enter notice-note" role="status">
 			{#if view === "3D"}
-				The model shows your changes. Save to keep them.
+				This shows your changes. Save to keep them.
 			{:else if avatar.isPreviewCurrent}
-				The image is a preview. Save to keep your changes.
+				This shows your changes. Save to keep them.
 			{:else if avatar.previewError}
 				The image shows the saved avatar. {avatar.previewError}
 			{:else}
-				Updating the preview…
+				Previewing…
 			{/if}
 		</p>
 	{/if}

@@ -240,7 +240,7 @@
 <Dialog class="max-w-lg" aria-labelledby="browser-import-title">
 	<div class="dialog-heading">
 		<div>
-			<h2 id="browser-import-title">Add accounts with a browser</h2>
+			<h2 id="browser-import-title">Sign in with browser</h2>
 			<p>Sign in to Roblox, then select which accounts to save.</p>
 		</div>
 		<button

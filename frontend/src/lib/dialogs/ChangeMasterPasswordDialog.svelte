@@ -61,8 +61,8 @@
 		</div>
 		<h2 id="change-password-title">Change master password</h2>
 		<p>
-			Changing the password rotates the database encryption key and removes
-			backups that contain old secrets.
+			This changes the vault encryption key and deletes backups that hold old
+			data.
 		</p>
 		{#if store.error}<div class="mt-3 notice-error" role="alert">
 				{store.error}
@@ -70,8 +70,8 @@
 
 		{#if store.vault.validAutomaticUnlock}
 			<div class="mt-3 notice-note">
-				Automatic unlock has verified your access. You can change your master
-				password without entering the current one.
+				Automatic unlock confirmed your access, so you do not need the current
+				password.
 			</div>
 		{:else}
 			<label class="dialog-field">
@@ -138,7 +138,7 @@
 				maxlength="480"
 				autocomplete="off" /></label>
 		<div class="mt-3 notice-warning">
-			The hint is stored in plain text. Do not include sensitive information.
+			The hint is saved as plain text. Do not include sensitive information.
 		</div>
 		<AutomaticUnlockCheckbox bind:checked={automaticUnlock} />
 		<div class="dialog-actions">

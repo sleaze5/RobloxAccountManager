@@ -205,7 +205,7 @@
 							key: Key.SettingVoiceDataUsage,
 							label: "Voice data for product improvements",
 							description:
-								"Allow Roblox to use voice recordings to improve products and services.",
+								"Let Roblox use voice recordings to improve its products.",
 							type: "toggle",
 						},
 					],
@@ -218,7 +218,7 @@
 							key: Key.SettingCamera,
 							label: "Camera input",
 							description:
-								"Use camera tracking to animate your avatar with facial expressions.",
+								"Use the camera to animate your avatar's face.",
 							type: "toggle",
 						},
 					],
@@ -230,8 +230,7 @@
 						{
 							key: Key.SettingQuickWords,
 							label: "Quick words",
-							description:
-								"Use suggested preset phrases for quick chat during gameplay.",
+							description: "Use preset phrases for quick chat in games.",
 							type: "toggle",
 						},
 					],
@@ -271,7 +270,7 @@
 							key: Key.SettingSocialNetworks,
 							label: "Social links",
 							description:
-								"Select who can view links to your social networks on your profile.",
+								"Select who can see the social links on your profile.",
 							type: "radio",
 						},
 					],
@@ -311,7 +310,7 @@
 							key: Key.SettingPhoneDiscovery,
 							label: "Phone number discovery",
 							description:
-								"Allow people who have your phone number to find your account.",
+								"Let people with your phone number find your account.",
 							type: "toggle",
 						},
 					],
@@ -363,14 +362,14 @@
 							key: Key.SettingPersonalizedAdvertising,
 							label: "Personalize your ads",
 							description:
-								"Receive personalized advertising based on your activity and interests.",
+								"Show ads based on your activity and interests.",
 							type: "toggle",
 						},
 						{
 							key: Key.SettingDataSharing,
 							label: "Data selling and sharing",
 							description:
-								"Allow sharing personal information with advertising partners.",
+								"Allow sharing personal data with ad partners.",
 							type: "toggle",
 						},
 					],

@@ -186,14 +186,14 @@
 						{:else}
 							<span
 								class="justify-self-end text-right text-fg-faint"
-								aria-label="Datacenter unknown">-</span>
+								aria-label="Unknown datacenter">-</span>
 						{/if}
 						{#if server.address}
 							<span
 								class="truncate font-mono text-2xs text-fg-faint select-text"
 								>{server.address}</span>
 						{:else}
-							<span class="text-fg-faint" aria-label="IP address unknown"
+							<span class="text-fg-faint" aria-label="Unknown IP address"
 								>-</span>
 						{/if}
 						<ServerVersion version={server.placeVersion} {newestVersion} />

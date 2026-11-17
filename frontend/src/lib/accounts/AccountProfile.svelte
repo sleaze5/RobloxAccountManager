@@ -481,11 +481,11 @@
 						bind:this={tagsButton}
 						class="button-icon size-6"
 						type="button"
-						aria-label="Edit account tags"
+						aria-label="Edit tags"
 						aria-expanded={workspace.activeAccountMenu === "profile-tags"}
 						data-open={workspace.activeAccountMenu === "profile-tags" ||
 							undefined}
-						data-tooltip="Edit account tags"
+						data-tooltip="Edit tags"
 						disabled={store.busy}
 						onclick={() => workspace.toggleAccountMenu("profile-tags")}>
 						<Icon svg={tagIcon} size={14} aria-hidden="true" />

@@ -342,8 +342,8 @@
 							class="mx-3 mt-3 flex items-center gap-2 notice-error"
 							role="alert">
 							<span class="min-w-0 flex-1"
-								>The avatar limits could not be loaded, so the avatar
-								cannot be edited.</span>
+								>Could not load the avatar limits, so you cannot edit
+								the avatar.</span>
 							<button
 								class="button"
 								type="button"
@@ -356,8 +356,8 @@
 							class="mx-3 mt-3 flex items-center gap-2 notice-warning"
 							role="status">
 							<span class="min-w-0 flex-1"
-								>Roblox changed the avatar, but it could not be
-								refreshed. Reload it to see what Roblox put on.</span>
+								>Roblox changed the avatar, but it did not refresh.
+								Refresh to see the change.</span>
 							<button
 								class="button"
 								type="button"

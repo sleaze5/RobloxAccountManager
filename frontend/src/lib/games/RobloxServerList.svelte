@@ -229,7 +229,7 @@
 							{#if server.pingMs === null}
 								<span
 									class="justify-self-end text-right text-fg-faint"
-									aria-label="Ping unavailable">-</span>
+									aria-label="Unknown ping">-</span>
 							{:else}
 								<span
 									class="server-number justify-self-end text-right"

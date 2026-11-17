@@ -90,9 +90,7 @@
 		votes = $derived(game ? game.upVotes + game.downVotes : 0),
 		likeShare = $derived(game && votes ? game.upVotes / votes : 0),
 		genre = $derived(
-			game &&
-				([game.genre, game.subgenre].filter(Boolean).join("; ") ||
-					"Not specified"),
+			game && ([game.genre, game.subgenre].filter(Boolean).join("; ") || "None"),
 		),
 		contentRating = $derived(
 			game &&

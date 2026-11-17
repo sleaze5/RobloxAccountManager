@@ -707,7 +707,7 @@
 							).toLowerCase()}
 						</h2>
 						<p>
-							Roblox blocks friends and player search for this account.
+							Roblox blocks friends and user search for this account.
 							Select another account in the status bar.
 						</p>
 					{:else if account.id === 0 && accounts.loadingAccounts}<Icon
@@ -776,7 +776,7 @@
 						<p>
 							{requestsOpen
 								? "Select a request to see who sent it, then accept or decline it."
-								: "Select someone to see their profile. Select their friend or follower counts to browse those lists."}
+								: "Select a user to see their profile."}
 						</p>
 					{/if}
 				</div>

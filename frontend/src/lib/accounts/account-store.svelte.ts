@@ -287,7 +287,7 @@ export class AccountStore {
 					if (message) {
 						this.notifications.show({
 							id: "credential-backup",
-							title: "Cookie saved; backup needs attention",
+							title: "Cookie saved without backup",
 							tone: "warning",
 							message,
 							durationMs: 0,

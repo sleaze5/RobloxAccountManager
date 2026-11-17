@@ -33,7 +33,7 @@
 		} catch (error) {
 			notifications.show({
 				id: `profile-social-link-${snapshot.accountId}-${link.name}`,
-				title: "Could not open social link",
+				title: "Link not opened",
 				message: errorMessage(error, "Try opening the link again."),
 				tone: "error",
 			})

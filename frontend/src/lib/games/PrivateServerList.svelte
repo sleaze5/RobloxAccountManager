@@ -134,7 +134,7 @@
 									{/if}
 								</span>
 							{:else}
-								<span class="text-fg-faint" aria-label="Owner unknown"
+								<span class="text-fg-faint" aria-label="Unknown owner"
 									>-</span>
 							{/if}
 							<span
@@ -183,7 +183,7 @@
 							>{/if}
 					</h3>
 					<p class="text-2xs text-fg-faint">
-						Place IDs and link codes stored in the vault for this game.
+						Private server links saved in the vault for this game.
 					</p>
 				</div>
 				<button class="button" type="button" onclick={onAddLink}>

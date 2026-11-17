@@ -113,17 +113,17 @@
 		</div>
 		<h2 id="vault-title">
 			{creating
-				? "Create account vault"
+				? "Create vault"
 				: recoveryMode
-					? "Recover account vault"
+					? "Recover vault"
 					: "Unlock vault"}
 		</h2>
 		<p>
 			{creating
-				? "Create a master password for the encrypted account vault."
+				? "Create a master password for the encrypted vault."
 				: recoveryMode
 					? "The active vault files are missing or damaged. Repair the portable key, restore a backup, or reset the vault."
-					: "Enter the master password to unlock Roblox account sessions."}
+					: "Enter the master password to unlock the vault."}
 		</p>
 
 		{#if store.vault.startupError}
@@ -149,8 +149,8 @@
 
 		{#if recoveryMode && !store.vault.unlocked}
 			<div class="mt-3 notice-note">
-				vault.key and autounlock.key are security files. Use the built-in backup
-				and restore operations to copy them, and do not edit them.
+				vault.key and autounlock.key are security files. Do not edit them. Use
+				backup and restore to copy them.
 			</div>
 			{#if backups.length > 0}
 				<div class="dialog-field">
@@ -182,7 +182,7 @@
 				</button>
 			{/if}
 			<div class="mt-3 notice-warning">
-				Reset deletes vault.db, vault.key, and autounlock.key. Stored accounts
+				Reset deletes vault.db, vault.key, and autounlock.key. Saved accounts
 				cannot be recovered without a valid backup.
 			</div>
 			<label class="dialog-field">
@@ -267,7 +267,7 @@
 					<input bind:value={hint} maxlength="480" autocomplete="off" />
 				</label>
 				<div class="mt-3 notice-warning">
-					The hint is stored in plain text. Do not include sensitive
+					The hint is saved as plain text. Do not include sensitive
 					information.
 				</div>
 			{/if}

@@ -256,7 +256,7 @@
 						{:else if genders[snapshot.gender]}
 							<span>{genders[snapshot.gender]}</span>
 						{:else}
-							<span class="text-fg-faint">Not set</span>
+							<span class="text-fg-faint">None</span>
 						{/if}
 					</dd>
 				</div>
@@ -352,7 +352,7 @@
 									? "Verified"
 									: "Not verified"}</small>
 						{:else}
-							<span class="text-fg-faint">Not set</span>
+							<span class="text-fg-faint">None</span>
 						{/if}
 						{#if !missing(AccountInfoSection.InfoSectionEmail)}
 							{@render edit("email", "Change email")}
@@ -379,7 +379,7 @@
 									? "Verified"
 									: "Not verified"}</small>
 						{:else}
-							<span class="text-fg-faint">Not set</span>
+							<span class="text-fg-faint">None</span>
 						{/if}
 					</dd>
 				</div>
@@ -445,7 +445,7 @@
 							<SensitiveValue label="Account location"
 								>{snapshot.location}</SensitiveValue>
 						{:else}
-							<span class="text-fg-faint">Not set</span>
+							<span class="text-fg-faint">None</span>
 						{/if}
 					</dd>
 				</div>

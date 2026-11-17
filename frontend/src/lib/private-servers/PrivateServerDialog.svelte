@@ -175,7 +175,7 @@
 				</button>
 			</div>
 			<div class="notice-warning">
-				The current link stops working. People who already joined keep access.
+				The current link stops working. Users who already joined keep access.
 			</div>
 			<div class="dialog-actions">
 				<button class="button" type="button" disabled={busy} onclick={close}

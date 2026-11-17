@@ -8,18 +8,18 @@
 		{
 			id: PresenceScope.PresenceAccounts,
 			name: "Account list",
-			description: "Update presence for all stored accounts.",
+			description: "Update online status for all saved accounts.",
 		},
 		{
 			id: PresenceScope.PresenceProfile,
 			name: "Active profile",
 			description:
-				"Update presence for the selected account while its profile is open.",
+				"Update online status for the selected account while its profile is open.",
 		},
 		{
 			id: PresenceScope.PresenceSocial,
 			name: "Social",
-			description: "Update presence for the listed users while Social is open.",
+			description: "Update online status for listed users while Social is open.",
 		},
 	] as const
 	const levels: { id: LoggingLevel; name: string; description: string }[] = [
@@ -82,7 +82,7 @@
 
 {#if visiblePresenceScopes.length > 0}
 	<section class="settings-section" aria-labelledby="presence-updates-title">
-		<h3 id="presence-updates-title">Presence updates</h3>
+		<h3 id="presence-updates-title">Online status updates</h3>
 		{#each visiblePresenceScopes as scope (scope.id)}
 			{@const settings = store.presence[scope.id]}
 			<div class="settings-rows">
@@ -118,7 +118,7 @@
 						<span>Seconds</span>
 					</div>
 					<NumberStepper
-						label={`${scope.name} presence update interval in seconds`}
+						label={`${scope.name} update interval in seconds`}
 						value={settings.intervalSeconds}
 						min={30}
 						max={900}

@@ -32,10 +32,10 @@
 	</button>
 	<button class="menu-item" type="button" {disabled} onclick={onPasteCookie}>
 		<Icon svg={clipboardTextIcon} size={16} aria-hidden="true" />
-		<span>Paste cookie</span>
+		<span>Paste cookies</span>
 	</button>
 	<button class="menu-item" type="button" {disabled} onclick={onImportFile}>
 		<Icon svg={fileArrowDownIcon} size={16} aria-hidden="true" />
-		<span>Import export file</span>
+		<span>Import data</span>
 	</button>
 </div>

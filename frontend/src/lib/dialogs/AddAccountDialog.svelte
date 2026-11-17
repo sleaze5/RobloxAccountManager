@@ -240,8 +240,8 @@
 			<div>
 				<h2 id="add-account-title">Paste cookies</h2>
 				<p>
-					Paste one .ROBLOSECURITY cookie per line. Each line can contain a
-					raw value, cookie pair, or Cookie header.
+					Paste one .ROBLOSECURITY cookie per line, as a value, a cookie pair,
+					or a Cookie header.
 				</p>
 			</div>
 			<button

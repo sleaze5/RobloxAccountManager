@@ -45,8 +45,8 @@
 				Remove {server.name || "Saved server"}?
 			</h2>
 			<p id={`${id}-description`}>
-				The link is deleted from the vault and cannot be restored. The private
-				server itself does not change.
+				The link is removed from the vault. This cannot be undone. The private
+				server does not change.
 			</p>
 		</div>
 		<button

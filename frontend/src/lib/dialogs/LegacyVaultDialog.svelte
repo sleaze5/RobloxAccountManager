@@ -97,12 +97,12 @@
 		<ul class="mt-3 flex list-disc flex-col gap-1 pl-5 text-xs text-fg-muted">
 			<li>
 				Download version 0.9.2, replace this app with it, and update from
-				Settings > About. Your data moves over automatically.
+				Settings under About. Your data moves over automatically.
 			</li>
 			<li>
 				Or, if you have an export file, set the old vault aside below and create
-				a new vault. Then open Add account, select Import export file, and
-				select your file.
+				a new vault. Then open Add account, select Import data, and select your
+				file.
 			</li>
 		</ul>
 		<button

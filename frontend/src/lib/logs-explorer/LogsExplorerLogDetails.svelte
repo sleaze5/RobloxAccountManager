@@ -33,7 +33,7 @@
 	const launch = $derived(
 		[sources[session.launchSource], modes[session.launchMode]]
 			.filter(Boolean)
-			.join("; ") || "Not recorded",
+			.join("; ") || "Unknown",
 	)
 </script>
 
@@ -72,7 +72,7 @@
 			<dt>Client start</dt>
 			<dd>
 				{#if session.startedAtMs}<Timestamp
-						value={session.startedAtMs} />{:else}Not recorded{/if}
+						value={session.startedAtMs} />{:else}Unknown{/if}
 			</dd>
 		</div>
 		<div>
@@ -96,7 +96,7 @@
 		<div>
 			<dt>Version hash</dt>
 			<dd class="font-mono">
-				{session.versionHash || "Not recorded"}
+				{session.versionHash || "Unknown"}
 			</dd>
 		</div>
 	</dl>

@@ -399,7 +399,7 @@
 				accessory's limits.
 			{:else}
 				Copy a placement to reuse it. Paste mirrored fits a left accessory to
-				its right counterpart.
+				the right side.
 			{/if}
 		</p>
 	</div>

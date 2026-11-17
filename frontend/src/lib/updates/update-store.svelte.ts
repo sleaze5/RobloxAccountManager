@@ -48,7 +48,7 @@ class UpdateStore {
 				],
 				id: notificationId,
 				message: next.error,
-				title: "Update failed",
+				title: "Update not completed",
 				tone: "error",
 			})
 		} else if (next.status === UpdateStatus.StatusAvailable) {

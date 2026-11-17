@@ -25,7 +25,7 @@ const (
 
 // CaptchaRequiredMessage tells the user to finish an action that Roblox
 // guards with a CAPTCHA, which the application cannot show.
-const CaptchaRequiredMessage = "Roblox requires a CAPTCHA. Open this account in the browser and complete the action there."
+const CaptchaRequiredMessage = "Roblox needs a human check. Open the account in the browser and complete it."
 
 type Error struct {
 	Kind       ErrorKind

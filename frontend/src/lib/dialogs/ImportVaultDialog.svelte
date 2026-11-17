@@ -44,7 +44,7 @@
 	const games = getGamesStore()
 
 	const settingsSections = [
-			{ value: SettingsSection.SectionPresence, label: "Presence updates" },
+			{ value: SettingsSection.SectionPresence, label: "Online status updates" },
 			{
 				value: SettingsSection.SectionRoblox,
 				label: "Roblox multi-instance and Linux client",
@@ -267,7 +267,7 @@
 				{:else if preview}
 					Exported <Timestamp value={preview.exportedAtMs} />.
 				{:else}
-					Enter the export password that was set when this file was exported.
+					Enter the password that was set when this file was exported.
 				{/if}
 			</p>
 		</div>

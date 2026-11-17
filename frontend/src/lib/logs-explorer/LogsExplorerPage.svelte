@@ -237,7 +237,7 @@
 			{#if selected}
 				<span class="shrink-0"
 					>User ID: <span class="font-mono"
-						>{selected.userId || "Not recorded"}</span
+						>{selected.userId || "Unknown"}</span
 					></span>
 			{/if}
 		</div>
@@ -245,11 +245,11 @@
 			<div class="flex shrink-0 items-center gap-4 pr-3">
 				<span
 					>Channel: <span class="font-mono"
-						>{selected.channel || "Not recorded"}</span
+						>{selected.channel || "Unknown"}</span
 					></span>
 				<span
 					>Client version: <span class="font-mono"
-						>{selected.version || "Not recorded"}</span
+						>{selected.version || "Unknown"}</span
 					></span>
 			</div>
 		{/if}
