@@ -37,7 +37,7 @@
 			!region
 				? "Select a preferred region in Settings under Integrations"
 				: !hasPlace
-					? "Enter a Place ID first"
+					? "Enter a place ID first"
 					: `Find a server in or near ${appSettings.preferredRegionLabel}`,
 		)
 

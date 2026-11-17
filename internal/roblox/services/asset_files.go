@@ -188,7 +188,7 @@ func (service *Users) downloadAssetFile(ctx context.Context, accountID, version 
 	}
 	contents, err = unpackGzip(contents)
 	if err != nil {
-		return nil, 0, &roblox.Error{Kind: roblox.KindProtocol, Endpoint: endpoint, Message: "Roblox returned a file that could not be read.", Cause: err}
+		return nil, 0, &roblox.Error{Kind: roblox.KindProtocol, Endpoint: endpoint, Message: "Roblox returned a file that the app cannot read.", Cause: err}
 	}
 	return contents, payload.AssetTypeID, nil
 }

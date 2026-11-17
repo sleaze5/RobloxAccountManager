@@ -248,7 +248,7 @@ func (service *Service) MigrateLegacyVault(ctx context.Context, password string)
 	}
 	if _, err := service.transfers.Replace(ctx, payload, pendingSettings(&pendingTransfer{payload: payload}, appsettings.Sections)); err != nil {
 		service.logger.Error("migrated data could not be imported", "operation", "vault-migration", "error", err)
-		return transferError("The new vault was created, but your data could not be imported. The old vault is in the recovery folder in storage/vault.", err)
+		return transferError("The new vault was created, but your data was not imported. The old vault is in the recovery folder in storage/vault.", err)
 	}
 	if err := service.settings.RecordPasswordTested(time.Now()); err != nil {
 		service.logger.Error("record master password after migration failed", "error", err)

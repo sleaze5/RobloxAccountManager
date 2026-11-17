@@ -1363,7 +1363,7 @@ func (coordinator *Coordinator) handleTargetDetached(current *session, paramsDat
 
 func (coordinator *Coordinator) completeCheckpointValidation(ctx context.Context, current *session, final bool, generation uint64, err error) bool {
 	if err != nil && ctx.Err() == nil {
-		coordinator.setCheckpointWarning(current, "The browser cookie could not be validated. Sign in again and try again.")
+		coordinator.setCheckpointWarning(current, "Could not check the browser cookie. Sign in again.")
 		coordinator.logger.WarnContext(ctx, "browser cookie validation failed", "operation", "browser-cookie-checkpoint", "session_id", current.state.ID, "session_mode", current.state.Mode, "account_id", current.state.AccountID, "error", err)
 	} else if err == nil {
 		coordinator.setCheckpointWarning(current, "")

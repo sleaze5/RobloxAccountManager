@@ -67,7 +67,7 @@ export class SettingsStore {
 					title: "Settings reset",
 					tone: "warning",
 					message:
-						"settings.json was corrupted or could not be loaded. A new file was created with default values, and the old file was renamed to ./storage/settings.json.bak.",
+						"Could not read the settings, so the defaults are in use. The old file is saved as settings.json.bak.",
 					durationMs: 0,
 				})
 			}

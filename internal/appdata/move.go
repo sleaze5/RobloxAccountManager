@@ -43,7 +43,7 @@ func Move(target Mode) (moved bool, err error) {
 		return false, err
 	}
 	if err := removeStorage(source); err != nil {
-		return true, moveError("The data moved, but the old copy could not be removed. Delete it to stop the app from asking which data to use.", err)
+		return true, moveError("The data moved, but the old copy was not removed. Delete it to stop the app from asking which data to use.", err)
 	}
 	return true, nil
 }

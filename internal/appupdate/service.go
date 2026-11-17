@@ -217,7 +217,7 @@ func (service *Service) download(ctx context.Context, current *updater.Updater) 
 	default:
 		service.logger.Warn("update download failed", "operation", "update-install", "version", service.state.AvailableVersion, "error", err)
 		service.state.Status = StatusAvailable
-		service.state.Error = "The update could not be downloaded or verified. Try again."
+		service.state.Error = "Could not download or check the update. Try again."
 	}
 	service.mutex.Unlock()
 	service.changed()

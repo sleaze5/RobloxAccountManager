@@ -144,7 +144,7 @@ func (service *Service) ChangeAccountPassword(ctx context.Context, accountID int
 		saveContext, cancel := context.WithTimeout(context.WithoutCancel(ctx), 5*time.Second)
 		defer cancel()
 		if err := service.storeAccountPassword(saveContext, accountID, newPassword); err != nil {
-			return &roblox.Error{Kind: roblox.KindProtocol, Endpoint: "password-change", Message: "Roblox changed the password, but its saved copy could not be updated. Save the new password in the vault.", Cause: err}
+			return &roblox.Error{Kind: roblox.KindProtocol, Endpoint: "password-change", Message: "Roblox changed the password, but the vault copy was not updated. Save the new password in the vault.", Cause: err}
 		}
 		return nil
 	})

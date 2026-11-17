@@ -35,7 +35,7 @@
 		{
 			value: LaunchMethod.MethodPlace,
 			label: "Place ID",
-			description: "Join a game by its Place ID and, optionally, its Job ID.",
+			description: "Join a game by place ID and an optional job ID.",
 		},
 		{
 			value: LaunchMethod.MethodLink,
@@ -46,7 +46,7 @@
 		{
 			value: LaunchMethod.MethodUser,
 			label: "User",
-			description: "Join the game that a specific user is currently playing.",
+			description: "Join the game that a user is playing.",
 		},
 	]
 
