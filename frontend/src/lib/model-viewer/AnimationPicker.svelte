@@ -137,6 +137,13 @@
 		library?.loadOwned()
 		await tick()
 		searchInput?.focus()
+		// The panel lays out in the top layer on the next frame, before which
+		// its list cannot scroll.
+		requestAnimationFrame(() => {
+			list
+				?.querySelector("[role='option'][aria-selected='true']")
+				?.scrollIntoView({ block: "nearest" })
+		})
 	}
 
 	function close(shouldRestoreFocus: boolean): void {
@@ -145,8 +152,10 @@
 		if (shouldRestoreFocus) trigger?.focus()
 	}
 
+	// choose plays the choice at once, because the user picked it to see it.
 	function choose(choice: AnimationChoice): void {
 		playback?.chooseAnimation(choice)
+		playback?.play()
 		close(true)
 	}
 
