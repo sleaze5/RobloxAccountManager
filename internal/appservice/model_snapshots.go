@@ -2,6 +2,7 @@ package appservice
 
 import (
 	"bytes"
+	"image/png"
 
 	"github.com/sleaze5/RobloxAccountManager/internal/roblox"
 )
@@ -12,19 +13,20 @@ const (
 	maxModelSnapshotSizeBytes = 64 << 20
 )
 
-var pngSignature = []byte("\x89PNG\r\n\x1a\n")
-
 // ModelSnapshotFileName names the snapshot of a 3D view after the subject that
 // it shows.
 func (service *Service) ModelSnapshotFileName(subjectName string) string {
 	return fileNameOf(subjectName, "3D view", modelSnapshotExtension)
 }
 
-// ValidateModelSnapshotPNG checks that a snapshot of a 3D view is a PNG image of
-// a size that a frame can have.
+// ValidateModelSnapshotPNG checks the size and PNG header without decoding pixels.
 func (service *Service) ValidateModelSnapshotPNG(snapshotPNG []byte) error {
-	if len(snapshotPNG) > maxModelSnapshotSizeBytes || !bytes.HasPrefix(snapshotPNG, pngSignature) {
-		return &roblox.Error{Kind: roblox.KindProtocol, Endpoint: "model-snapshot", Message: "The snapshot is not a valid image. Try again."}
+	const operation = "model-snapshot"
+	if len(snapshotPNG) > maxModelSnapshotSizeBytes {
+		return &roblox.Error{Kind: roblox.KindProtocol, Endpoint: operation, Message: "The snapshot is too large to save."}
+	}
+	if _, err := png.DecodeConfig(bytes.NewReader(snapshotPNG)); err != nil {
+		return &roblox.Error{Kind: roblox.KindProtocol, Endpoint: operation, Message: "The snapshot is not a valid image. Try again.", Cause: err}
 	}
 	return nil
 }

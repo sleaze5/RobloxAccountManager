@@ -127,6 +127,20 @@ func (service *Service) GetGameSection(ctx context.Context, universeID, placeID 
 	return game, nil
 }
 
+func (service *Service) GetGamePlayability(ctx context.Context, accountID, universeID int64) (*games.Playability, error) {
+	const operation = "game-playability"
+	if err := validGameID(universeID); err != nil {
+		return nil, err
+	}
+	ctx, _, done, err := service.beginAccountSession(ctx, accountID, operation)
+	if err != nil {
+		return nil, err
+	}
+	defer done()
+	playability, err := service.games.ReadPlayability(ctx, accountID, universeID)
+	return playability, service.gamesError(ctx, operation, err)
+}
+
 func (service *Service) ListGameServers(ctx context.Context, query games.ServerQuery) (games.ServerPage, error) {
 	if err := validGameID(query.PlaceID); err != nil {
 		return games.ServerPage{}, err

@@ -21,8 +21,8 @@ type InventoryItemDetails struct {
 	CollectibleProductID string `json:"collectibleProductId"`
 	// AwardingGameName names the game that awards a badge.
 	AwardingGameName string `json:"awardingGameName"`
-	// HasModel reports whether Roblox renders the item as a 3D model.
-	HasModel bool `json:"hasModel"`
+	HasModelView     bool   `json:"hasModelView"`
+	HasRenderedModel bool   `json:"hasRenderedModel"`
 	// CanTryOn reports whether an avatar can wear the item, so that a preview
 	// can show it on the avatar of the account.
 	CanTryOn bool `json:"canTryOn"`
@@ -47,13 +47,15 @@ const (
 	ItemDeleted ItemAvailability = "deleted"
 )
 
-// Unavailable returns the details of an item that Roblox moderated or
-// deleted, which has no model, file, or related items left, and which an
-// avatar cannot try on.
-func (details InventoryItemDetails) Unavailable(availability ItemAvailability) InventoryItemDetails {
+// MarkUnavailable removes the actions that need an item's content after Roblox
+// moderates or deletes it.
+func (details *InventoryItemDetails) MarkUnavailable(availability ItemAvailability) {
 	details.Availability = availability
-	details.HasModel, details.CanTryOn, details.CanHaveRelatedItems, details.CanDownload = false, false, false, false
-	return details
+	details.HasModelView = false
+	details.HasRenderedModel = false
+	details.CanTryOn = false
+	details.CanHaveRelatedItems = false
+	details.CanDownload = false
 }
 
 // inventoryItemType is the item type that the inventory ownership API takes.
@@ -139,12 +141,13 @@ func (service *Users) InventoryItemDetails(ctx context.Context, accountID, versi
 	if details.Availability == "" {
 		details.Availability = ItemAvailable
 	}
-	details.HasModel = hasModelView(category)
+	details.HasModelView = hasModelView(category)
+	details.HasRenderedModel = hasRenderedModel(category)
 	details.CanTryOn = canTryOn(category)
 	details.CanHaveRelatedItems = category == InventoryBundles || hasDependencies(category)
 	details.CanDownload = canDownload(category)
 	if details.Availability != ItemAvailable {
-		details = details.Unavailable(details.Availability)
+		details.MarkUnavailable(details.Availability)
 	}
 	return details, nil
 }
@@ -169,10 +172,8 @@ func hasModelView(category InventoryCategory) bool {
 		category == InventoryAnimations || category == InventoryEmotes
 }
 
-// hasRenderedModel reports whether Roblox renders the items of the category as
-// 3D models: the items that a character wears or holds, and models. Classic
-// clothing is flat and has no model of its own. Roblox renders no model of a
-// bundle, so a bundle shows the outfit that it lists.
+// hasRenderedModel reports whether the model can come from Roblox. For
+// bundles, the model comes from the outfit that the bundle lists.
 func hasRenderedModel(category InventoryCategory) bool {
 	switch category {
 	case InventoryCollectibles, InventoryAccessories, InventoryLayeredClothing,

@@ -26,6 +26,7 @@ const (
 	// maxRepresentationCount bounds the content representations that one
 	// request lists. The avatar renderer lists at most two for a head.
 	maxRepresentationCount = 8
+	maxPriorityListLength  = 2048
 )
 
 // AssetRepresentation picks the form in which the asset delivery API returns
@@ -50,32 +51,39 @@ var (
 	majorVersionPattern       = regexp.MustCompile(`^\d{1,4}$`)
 )
 
-// isValid reports whether the representation names only formats and major
-// versions, so that it adds nothing else to a request.
-func (representation AssetRepresentation) isValid() bool {
+// normalize forwards only the format names and major versions that were checked.
+func (representation AssetRepresentation) normalize() (AssetRepresentation, bool) {
 	if representation.Format != "" && !representationNamePattern.MatchString(representation.Format) {
-		return false
+		return AssetRepresentation{}, false
 	}
 	if representation.PriorityList == "" {
-		return true
+		return representation, true
+	}
+	if len(representation.PriorityList) > maxPriorityListLength {
+		return AssetRepresentation{}, false
 	}
 	priorityListJSON, err := base64.StdEncoding.DecodeString(representation.PriorityList)
 	if err != nil {
-		return false
+		return AssetRepresentation{}, false
 	}
 	var listedRepresentations []struct {
 		Format       string `json:"format"`
 		MajorVersion string `json:"majorVersion"`
 	}
 	if err := json.Unmarshal(priorityListJSON, &listedRepresentations); err != nil || len(listedRepresentations) == 0 || len(listedRepresentations) > maxRepresentationCount {
-		return false
+		return AssetRepresentation{}, false
 	}
 	for _, listedRepresentation := range listedRepresentations {
 		if !representationNamePattern.MatchString(listedRepresentation.Format) || !majorVersionPattern.MatchString(listedRepresentation.MajorVersion) {
-			return false
+			return AssetRepresentation{}, false
 		}
 	}
-	return true
+	normalizedPriorityList, err := json.Marshal(listedRepresentations)
+	if err != nil {
+		return AssetRepresentation{}, false
+	}
+	representation.PriorityList = base64.StdEncoding.EncodeToString(normalizedPriorityList)
+	return representation, true
 }
 
 // AssetFileFormat is the format of the file of an asset.
@@ -142,10 +150,11 @@ func (service *Users) AssetFile(ctx context.Context, accountID, version int64, c
 // reads, such as a mesh, a texture, or an accessory model, in the
 // representation that the renderer asks for.
 func (service *Users) AvatarRenderFile(ctx context.Context, accountID, version, assetID int64, representation AssetRepresentation) ([]byte, error) {
-	if !representation.isValid() {
+	normalizedRepresentation, isValid := representation.normalize()
+	if !isValid {
 		return nil, &roblox.Error{Kind: roblox.KindProtocol, Endpoint: avatarRenderFileEndpoint, Message: "The 3D avatar asked for an asset in an unknown form."}
 	}
-	contents, _, err := service.downloadAssetFile(ctx, accountID, version, avatarRenderFileEndpoint, assetID, representation, maxAssetFileBytes)
+	contents, _, err := service.downloadAssetFile(ctx, accountID, version, avatarRenderFileEndpoint, assetID, normalizedRepresentation, maxAssetFileBytes)
 	return contents, err
 }
 

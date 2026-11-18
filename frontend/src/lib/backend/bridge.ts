@@ -158,6 +158,7 @@ export type {
 	OwnedPrivateServer,
 	Place as GamePlace,
 	PlaceSummary as GamePlaceSummary,
+	Playability,
 	PrivateServerPage,
 	PrivateServerSettings,
 	PrivateServerUser,

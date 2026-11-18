@@ -234,8 +234,14 @@ func (service *Service) withExactUsernameFirst(ctx context.Context, logger *slog
 		logger.WarnContext(ctx, "could not look up the exact username", "error", err)
 		return userIDs
 	}
-	otherUserIDs := slices.DeleteFunc(slices.Clone(userIDs), func(userID int64) bool { return userID == exactUserID })
-	return append([]int64{exactUserID}, otherUserIDs...)
+	orderedUserIDs := make([]int64, 0, len(userIDs)+1)
+	orderedUserIDs = append(orderedUserIDs, exactUserID)
+	for _, userID := range userIDs {
+		if userID != exactUserID {
+			orderedUserIDs = append(orderedUserIDs, userID)
+		}
+	}
+	return orderedUserIDs
 }
 
 // playerByID returns the user ID when Roblox knows the user, or no IDs.

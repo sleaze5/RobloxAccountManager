@@ -41,6 +41,8 @@ export function categoryItemKey(category: InventoryCategory, itemId: number): st
 	return `${category}:${itemId}`
 }
 
+export type InventoryDownloadKind = "file" | "model"
+
 // InventoryState lists what one Roblox user owns, as the account sees it. Each
 // category keeps its pages while the inventory stays open, so that switching
 // back to a category shows it at once.
@@ -280,19 +282,17 @@ export class InventoryState {
 		}
 	}
 
-	// downloadItem downloads the file of the item, or with isModel its 3D
-	// model with the textures, and asks where to save it.
 	async downloadItem(
 		item: InventoryItem,
 		category: InventoryCategory,
-		isModel: boolean,
+		downloadKind: InventoryDownloadKind,
 	): Promise<void> {
 		if (this.isDownloadingItem) return
 		this.isDownloadingItem = true
 		this.itemActionError = ""
 		try {
 			const savedPath = await this.#scope.track(
-				(isModel
+				(downloadKind === "model"
 					? accountBackend.DownloadInventoryItemModel
 					: accountBackend.DownloadInventoryItem)(
 					this.#scope.accountId,
@@ -312,7 +312,7 @@ export class InventoryState {
 			if (this.#scope.isCurrent) {
 				this.itemActionError = errorMessage(
 					error,
-					isModel
+					downloadKind === "model"
 						? "Could not download the 3D model. Try again."
 						: "Could not download the item. Try again.",
 				)

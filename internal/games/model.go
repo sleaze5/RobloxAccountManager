@@ -34,7 +34,6 @@ const (
 	GameSectionAvatarRules   GameSection = "avatarRules"
 	GameSectionCommunication GameSection = "communication"
 	GameSectionVersions      GameSection = "versions"
-	GameSectionPlayability   GameSection = "playability"
 )
 
 type PlaceSummary struct {
@@ -61,7 +60,6 @@ type Game struct {
 	AvatarRules         *AvatarRules   `json:"avatarRules"`
 	Communication       *Communication `json:"communication"`
 	Versions            *PlaceVersions `json:"versions"`
-	Playability         *Playability   `json:"playability"`
 	// IsUnlisted reports that the games API no longer lists the game, such
 	// as one that Roblox banned or put under review. Its details come from
 	// the develop API, which lists no player, visit, or favorite counts.

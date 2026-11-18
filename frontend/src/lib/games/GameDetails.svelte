@@ -27,7 +27,10 @@
 	import usersThreeIcon from "@phosphor-icons/core/regular/users-three.svg?raw"
 	import videoCameraIcon from "@phosphor-icons/core/regular/video-camera.svg?raw"
 	import warningIcon from "@phosphor-icons/core/regular/warning.svg?raw"
-	import { GameSection } from "../backend/bridge"
+	import { accountBackend, GameSection } from "../backend/bridge"
+	import type { Playability } from "../backend/bridge"
+	import { AccountScope } from "../accounts/account-scope"
+	import type { AccountStore } from "../accounts/account-store.svelte"
 	import Icon from "../shared/Icon.svelte"
 	import Skeleton from "../shared/Skeleton.svelte"
 	import RefreshIcon from "../shared/RefreshIcon.svelte"
@@ -40,9 +43,11 @@
 
 	let {
 		store,
+		accounts,
 		onSearchUniverse,
 	}: {
 		store: GamesStore
+		accounts: AccountStore
 		onSearchUniverse: (universeId: number) => void
 	} = $props()
 	const numbers = new Intl.NumberFormat(),
@@ -51,6 +56,39 @@
 			maximumFractionDigits: 1,
 		}),
 		graphemes = new Intl.Segmenter(undefined, { granularity: "grapheme" })
+
+	let playability = $state.raw<Playability | null>(null),
+		playabilityRefreshCount = $state(0)
+
+	$effect(() => {
+		const scope = new AccountScope(accounts.selectedAccount.id, accounts),
+			universeId = store.selected?.universeId
+		playability = null
+		if (!universeId || !scope.isCurrent || scope.accountId <= 0) return
+		// A details refresh also updates the status for the selected account.
+		void playabilityRefreshCount
+		void loadPlayability(scope, universeId)
+		return () => scope.dispose()
+	})
+
+	async function loadPlayability(
+		scope: AccountScope,
+		universeId: number,
+	): Promise<void> {
+		try {
+			const status = await scope.track(
+				accountBackend.GetGamePlayability(scope.accountId, universeId),
+			)
+			if (scope.isCurrent) playability = status
+		} catch {
+			// The backend logs the failure. A failed check cannot say the game is unplayable.
+		}
+	}
+
+	function refreshGameDetails(): void {
+		playabilityRefreshCount++
+		void store.refreshDetails()
+	}
 
 	type Fact = {
 		label: string
@@ -82,6 +120,27 @@
 		rootPlace = $derived(game?.rootPlace ?? null),
 		// The develop API lists an unlisted game without its counts and genre.
 		listedGame = $derived(game?.isUnlisted ? undefined : game),
+		isUnplayable = $derived(!!playability && !playability.isPlayable),
+		playabilityWarning = $derived(
+			playability?.isUnderReview
+				? {
+						label: "Under review",
+						message:
+							"Roblox put this game under review, so no one can join it.",
+					}
+				: isUnplayable
+					? {
+							label: "Unplayable",
+							message: "This account cannot join this game.",
+						}
+					: game?.isUnlisted
+						? {
+								label: "Unavailable",
+								message:
+									"Roblox no longer lists this game, so its player counts are unavailable.",
+							}
+						: null,
+		),
 		// Badges and game passes belong to the universe, so subplaces hide them.
 		// Disabled until details load, so the header doesn't shift.
 		hasUniverseButtons = $derived(!rootPlace),
@@ -436,7 +495,7 @@
 									: ""}
 							</p>
 						{/if}
-						{#if (game?.playability && !game.playability.isPlayable) || game?.isUnlisted}
+						{#if game && playabilityWarning}
 							<p
 								class="flex animate-enter flex-wrap items-center gap-x-2 gap-y-1 text-xs text-fg-muted">
 								<span class="tag-pill-warning">
@@ -444,22 +503,11 @@
 										svg={prohibitIcon}
 										size={12}
 										aria-hidden="true" />
-									<span
-										>{game.playability?.isUnderReview
-											? "Under review"
-											: game.playability &&
-												  !game.playability.isPlayable
-												? "Unplayable"
-												: "Unavailable"}</span>
+									<span>{playabilityWarning.label}</span>
 								</span>
 								<span
-									>{game.playability?.message ||
-										(game.playability?.isUnderReview
-											? "Roblox put this game under review, so no one can join it."
-											: game.playability &&
-												  !game.playability.isPlayable
-												? "This account cannot join this game."
-												: "Roblox no longer lists this game, so its player counts are unavailable.")}</span>
+									>{playability?.message ||
+										playabilityWarning.message}</span>
 							</p>
 						{/if}
 					</div>
@@ -474,7 +522,7 @@
 						aria-busy={store.loadingDetails}
 						data-tooltip="Refresh game details"
 						disabled={store.loadingDetails}
-						onclick={() => void store.refreshDetails()}>
+						onclick={refreshGameDetails}>
 						<RefreshIcon isRefreshing={store.loadingDetails} />
 					</button>
 					<button

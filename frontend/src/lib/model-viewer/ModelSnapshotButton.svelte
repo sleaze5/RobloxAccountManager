@@ -70,10 +70,10 @@
 	}
 
 	async function copySnapshot(pngBase64: string): Promise<void> {
-		const pngBytes = Uint8Array.from(atob(pngBase64), (character) =>
-			character.charCodeAt(0),
-		)
 		try {
+			const pngBytes = Uint8Array.from(atob(pngBase64), (character) =>
+				character.charCodeAt(0),
+			)
 			await navigator.clipboard.write([
 				new ClipboardItem({
 					"image/png": new Blob([pngBytes], { type: "image/png" }),

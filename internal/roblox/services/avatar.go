@@ -174,9 +174,10 @@ type AvatarRules struct {
 // AvatarWearLimit is how many assets of the types an avatar may wear at once.
 // Label names the assets in a message, such as "accessories".
 type AvatarWearLimit struct {
-	TypeNames    []string `json:"typeNames"`
-	MaxWornCount int      `json:"maxWornCount"`
-	Label        string   `json:"label"`
+	TypeNames             []string `json:"typeNames"`
+	MaxWornCount          int      `json:"maxWornCount"`
+	Label                 string   `json:"label"`
+	ShouldReplaceWornItem bool     `json:"shouldReplaceWornItem"`
 }
 
 // sharedWearLimits are the limits that Roblox checks when it saves an avatar,
@@ -227,7 +228,13 @@ func wearLimitsOf(payload avatarRulesPayload) []AvatarWearLimit {
 	}
 	for _, typeName := range wearableTypeNames {
 		if !sharedTypeNames[typeName] {
-			limits = append(limits, AvatarWearLimit{TypeNames: []string{typeName}, MaxWornCount: maxWornCountByTypeName[typeName]})
+			maxWornCount := maxWornCountByTypeName[typeName]
+			limits = append(limits, AvatarWearLimit{
+				TypeNames:             []string{typeName},
+				MaxWornCount:          maxWornCount,
+				Label:                 "items of this type",
+				ShouldReplaceWornItem: maxWornCount == 1,
+			})
 		}
 	}
 	return limits
@@ -241,10 +248,14 @@ func assetsWearing(wornAssets []AvatarAsset, putOnAsset AvatarAsset, limits []Av
 	if slices.ContainsFunc(wornAssets, func(asset AvatarAsset) bool { return asset.Item.ItemID == assetID }) {
 		return wornAssets, nil
 	}
-	var swappedTypeNames []string
+	shouldReplaceWornItem := false
 	for index := range limits {
 		limit := &limits[index]
 		if !slices.Contains(limit.TypeNames, typeName) {
+			continue
+		}
+		if limit.ShouldReplaceWornItem {
+			shouldReplaceWornItem = true
 			continue
 		}
 		wornCount := 0
@@ -253,17 +264,13 @@ func assetsWearing(wornAssets []AvatarAsset, putOnAsset AvatarAsset, limits []Av
 				wornCount++
 			}
 		}
-		switch {
-		case wornCount < limit.MaxWornCount:
-		case limit.MaxWornCount == 1 && len(limit.TypeNames) == 1:
-			swappedTypeNames = append(swappedTypeNames, typeName)
-		default:
+		if wornCount >= limit.MaxWornCount {
 			return wornAssets, limit
 		}
 	}
 	assets := make([]AvatarAsset, 0, len(wornAssets)+1)
 	for _, asset := range wornAssets {
-		if !slices.Contains(swappedTypeNames, asset.Item.TypeName) {
+		if !shouldReplaceWornItem || asset.Item.TypeName != typeName {
 			assets = append(assets, asset)
 		}
 	}

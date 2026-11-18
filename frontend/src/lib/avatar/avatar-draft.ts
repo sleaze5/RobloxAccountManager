@@ -263,12 +263,6 @@ export function isWearableType(limits: AvatarWearLimit[], typeName: string): boo
 	return limits.some((limit) => isTypeInLimit(limit, typeName))
 }
 
-// isSwapLimit tells whether a full limit swaps the worn item for the new one:
-// a limit of one item of one type, such as a shirt or an animation.
-function isSwapLimit(limit: AvatarWearLimit): boolean {
-	return limit.maxWornCount === 1 && limit.typeNames?.length === 1
-}
-
 // fullWearLimitOf returns the limit that keeps the item off the draft, when
 // the draft already wears as many items of the limit as Roblox allows.
 export function fullWearLimitOf(
@@ -279,7 +273,7 @@ export function fullWearLimitOf(
 	return limits.find(
 		(limit) =>
 			isTypeInLimit(limit, item.typeName) &&
-			!isSwapLimit(limit) &&
+			!limit.shouldReplaceWornItem &&
 			draft.assets.filter((asset) => isTypeInLimit(limit, asset.item.typeName))
 				.length >= limit.maxWornCount,
 	)
@@ -302,17 +296,15 @@ export function wearItem(
 	) {
 		return draft
 	}
-	const swapLimits = limits.filter(
-		(limit) => isTypeInLimit(limit, item.typeName) && isSwapLimit(limit),
+	const shouldReplaceWornItem = limits.some(
+		(limit) => isTypeInLimit(limit, item.typeName) && limit.shouldReplaceWornItem,
 	)
 	return {
 		...draft,
 		assets: [
 			...draft.assets.filter(
 				(asset) =>
-					!swapLimits.some((limit) =>
-						isTypeInLimit(limit, asset.item.typeName),
-					),
+					!shouldReplaceWornItem || asset.item.typeName !== item.typeName,
 			),
 			wornAsset,
 		],

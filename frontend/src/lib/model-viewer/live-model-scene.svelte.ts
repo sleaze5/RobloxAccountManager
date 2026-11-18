@@ -17,7 +17,7 @@ import { cameraPoseOf, framingScaleOf, moveOrbitViewByKey } from "./orbit-camera
 import { defaultModelViewerScene, modelViewerScene } from "./model-viewer-scene.svelte"
 import type { ModelViewerScene } from "./model-viewer-scene.svelte"
 import {
-	clearLiveModelFiles,
+	clearLiveModelCache,
 	fetchLiveModelFile,
 	liveModelImageUrl,
 	setLiveModelAccount,
@@ -83,12 +83,11 @@ const animationIdByAssetTypeName: Record<string, string> = {
 const viewports: LiveModelViewport[] = []
 let rendererSetup: Promise<boolean> | undefined,
 	outfitRenderer: OutfitRenderer | undefined,
+	animationPose: { renderer: OutfitRenderer; completion: Promise<void> } | undefined,
 	shownAccessory: { root: Instance; accessory: Instance } | undefined,
 	shownSubject: LiveModelSubject | undefined,
-	// Whether the scene finished building the shown subject, so that a view
-	// that opens on the same subject, such as an expanded view, shows it
-	// without waiting for a build that does not happen.
-	isShownSubjectBuilt = false,
+	shownAccountId = 0,
+	shownSubjectStatus: "loading" | "shown" | "failed" = "loading",
 	accessoryLoadNumber = 0,
 	hostResizeObserver: ResizeObserver | undefined,
 	isFramePending = false,
@@ -179,7 +178,7 @@ export class LiveModelViewport implements AnimationPlayback {
 	chooseAnimation(animationId: string): void {
 		this.animationId = animationId
 		this.timeSeconds = 0
-		if (activeViewport() === this) void poseAvatar(this)
+		if (activeViewport() === this) poseAvatar(this)
 	}
 
 	play(): void {
@@ -210,6 +209,8 @@ export class LiveModelViewport implements AnimationPlayback {
 	// retry builds the subject again after it failed.
 	retry(): void {
 		if (activeViewport() !== this) return
+		clearLiveModelCache()
+		discardOutfitRenderer()
 		shownSubject = undefined
 		showSubject(this)
 	}
@@ -243,7 +244,7 @@ export class LiveModelViewport implements AnimationPlayback {
 		hostResizeObserver?.disconnect()
 		RBXRenderer.getRendererElement().remove()
 		clearScene()
-		clearLiveModelFiles()
+		setLiveModelAccount(0)
 	}
 }
 
@@ -251,8 +252,10 @@ export class LiveModelViewport implements AnimationPlayback {
 // draw, which needs WebGL 2. The setup downloads the meshes that compose
 // clothing textures, so the account that downloads them is chosen first.
 export function startLiveModelScene(accountId: number): Promise<boolean> {
-	setLiveModelAccount(accountId)
-	rendererSetup ??= setUpRenderer()
+	if (!rendererSetup) {
+		setLiveModelAccount(accountId)
+		rendererSetup = setUpRenderer()
+	}
 	return rendererSetup
 }
 
@@ -332,16 +335,19 @@ function activateViewport(viewport: LiveModelViewport): void {
 function showSubject(viewport: LiveModelViewport): void {
 	const subject = viewport.subject
 	if (!subject) return
-	if (subject === shownSubject) {
-		if (isShownSubjectBuilt && !viewport.hasShownSubject) {
+	if (subject === shownSubject && viewport.accountId === shownAccountId) {
+		viewport.isFailed = shownSubjectStatus === "failed"
+		if (shownSubjectStatus === "shown") {
 			viewport.hasShownSubject = true
-			if (subject.kind === "avatar") void poseAvatar(viewport)
+			if (subject.kind === "avatar") poseAvatar(viewport)
 		}
 		return
 	}
+	if (viewport.accountId !== shownAccountId) clearScene()
 	const previousSubject = shownSubject
+	shownAccountId = viewport.accountId
 	shownSubject = subject
-	isShownSubjectBuilt = false
+	shownSubjectStatus = "loading"
 	setLiveModelAccount(viewport.accountId)
 	viewport.isFailed = false
 	if (subject.kind === "avatar") {
@@ -356,9 +362,8 @@ function showSubject(viewport: LiveModelViewport): void {
 		if (isFirstAvatar && !viewport.cameraView) frameSubject(subject)
 		return
 	}
-	outfitRenderer?.destroy()
-	outfitRenderer = undefined
-	void showAccessory(subject.assetId, viewport)
+	discardOutfitRenderer()
+	void showAccessory(subject)
 }
 
 function showOutfit(outfit: Outfit): void {
@@ -368,45 +373,95 @@ function showOutfit(outfit: Outfit): void {
 	}
 	const createdRenderer = new OutfitRenderer(authentication, outfit)
 	createdRenderer.onSuccess.Connect(() => {
-		const viewport = activeViewport()
-		isShownSubjectBuilt = true
-		if (!viewport) return
-		viewport.hasShownSubject = true
-		void poseAvatar(viewport)
+		if (outfitRenderer !== createdRenderer || createdRenderer.hasNewUpdate) return
+		const viewport = finishSubjectBuild("shown")
+		if (viewport) poseAvatar(viewport)
 		requestFrame()
 	})
 	createdRenderer.onError.Connect(() => {
-		const viewport = activeViewport()
-		if (viewport) viewport.isFailed = true
+		if (outfitRenderer === createdRenderer) finishSubjectBuild("failed")
 	})
 	createdRenderer.onRenderSuccess.Connect(requestFrame)
 	outfitRenderer = createdRenderer
+}
+
+function finishSubjectBuild(status: "shown" | "failed"): LiveModelViewport | undefined {
+	shownSubjectStatus = status
+	const viewport = activeViewport()
+	if (
+		!viewport ||
+		viewport.subject !== shownSubject ||
+		viewport.accountId !== shownAccountId
+	)
+		return undefined
+	viewport.isFailed = status === "failed"
+	if (status === "shown") viewport.hasShownSubject = true
+	return viewport
 }
 
 // poseAvatar loads the chosen animation of the view and shows it at the time
 // of the view, then plays it when the view plays. Without an animation, the
 // rig stands in its bind pose. The first variant of the idle animation is the
 // pose of the Roblox avatar editor.
-async function poseAvatar(viewport: LiveModelViewport): Promise<void> {
+function poseAvatar(viewport: LiveModelViewport): void {
 	const posedRenderer = outfitRenderer
 	if (!posedRenderer) return
-	const animationId = viewport.animationId
+	const animationId = viewport.animationId,
+		posedSubject = shownSubject,
+		previousPose =
+			animationPose?.renderer === posedRenderer
+				? animationPose.completion
+				: undefined
 	viewport.isAnimationLoading = true
-	await posedRenderer.setMainAnimation(
-		animationId === idleAnimationId ? `${idleAnimationId}:0` : animationId,
-	)
-	if (
-		posedRenderer !== outfitRenderer ||
-		activeViewport() !== viewport ||
-		animationId !== viewport.animationId
-	) {
-		return
+	const isCurrent = (): boolean =>
+		animationPose === requestedPose &&
+		posedRenderer === outfitRenderer &&
+		posedSubject === shownSubject &&
+		activeViewport() === viewport
+	// The renderer changes the animation as part of loading it. Finish an
+	// older load before asking the same renderer to play a different track.
+	const applyPose = async (): Promise<void> => {
+		await previousPose
+		if (!isCurrent()) return
+		try {
+			await posedRenderer.setMainAnimation(
+				animationId === idleAnimationId ? `${idleAnimationId}:0` : animationId,
+			)
+			if (!isCurrent()) return
+			posedRenderer.animateOnce(0, viewport.timeSeconds)
+			readAnimationTime(viewport)
+			if (viewport.isPlaying) startPlayback()
+			requestFrame()
+		} catch {
+			if (isCurrent()) viewport.pause()
+		} finally {
+			if (isCurrent()) viewport.isAnimationLoading = false
+		}
 	}
-	viewport.isAnimationLoading = false
-	posedRenderer.animateOnce(0, viewport.timeSeconds)
-	readAnimationTime(viewport)
-	if (viewport.isPlaying) startPlayback()
-	requestFrame()
+	const requestedPose = { renderer: posedRenderer, completion: applyPose() }
+	animationPose = requestedPose
+}
+
+function discardOutfitRenderer(): void {
+	const discardedRenderer = outfitRenderer
+	outfitRenderer = undefined
+	animationPose = undefined
+	if (!discardedRenderer) return
+	// RoAvatar can finish creating a rig after destroy(). Do not let it add
+	// the late rig to the shared scene or move the camera.
+	discardedRenderer.doAddInstance = false
+	discardedRenderer.doCameraUpdateOnLoad = false
+	const wasBuilding = discardedRenderer.currentlyUpdating
+	discardedRenderer.destroy()
+	if (wasBuilding) {
+		const destroyLateRig = (): void => {
+			discardedRenderer.currentRig?.Destroy()
+			discardedRenderer.onSuccess.Clear()
+			discardedRenderer.onError.Clear()
+		}
+		discardedRenderer.onSuccess.Connect(destroyLateRig)
+		discardedRenderer.onError.Connect(destroyLateRig)
+	}
 }
 
 // startPlayback draws a frame on every animation frame while the active view
@@ -420,7 +475,9 @@ function startPlayback(): void {
 function playNextFrame(frameMs: number): void {
 	playbackFrameRequest = 0
 	const viewport = activeViewport()
-	if (!viewport?.isPlaying || !outfitRenderer || viewport.isAnimationLoading) {
+	if (!viewport) return
+	if (!viewport.isPlaying || !outfitRenderer || viewport.isAnimationLoading) {
+		drawFrame()
 		return
 	}
 	const elapsedSeconds = Math.min(
@@ -487,31 +544,29 @@ function isSameAnimationStart(
 // showAccessory downloads the accessory as a mesh part, the form in which an
 // avatar wears it, and frames it with its thumbnail camera.
 async function showAccessory(
-	assetId: number,
-	viewport: LiveModelViewport,
+	subject: Extract<LiveModelSubject, { kind: "accessory" }>,
 ): Promise<void> {
 	removeAccessory()
 	const loadNumber = ++accessoryLoadNumber,
-		model = await API.Asset.GetRBX(`rbxassetid://${assetId}`, {
+		model = await API.Asset.GetRBX(`rbxassetid://${subject.assetId}`, {
 			"Roblox-AssetFormat": "avatar_meshpart_accessory",
-		})
+		}).catch(() => null)
 	if (loadNumber !== accessoryLoadNumber) return
-	if (model instanceof Response) {
-		viewport.isFailed = true
+	if (!model || model instanceof Response) {
+		finishSubjectBuild("failed")
 		return
 	}
 	const root = model.generateTree(),
 		accessory = root.FindFirstChildOfClass("Accessory")
 	if (!accessory) {
 		root.Destroy()
-		viewport.isFailed = true
+		finishSubjectBuild("failed")
 		return
 	}
 	shownAccessory = { root, accessory }
 	RBXRenderer.addInstance(accessory, authentication)
-	isShownSubjectBuilt = true
-	viewport.hasShownSubject = true
-	if (!viewport.cameraView) frameSubject(viewport.subject)
+	const viewport = finishSubjectBuild("shown")
+	if (!viewport?.cameraView) frameSubject(subject)
 	requestFrame()
 }
 
@@ -525,9 +580,10 @@ function removeAccessory(): void {
 
 function clearScene(): void {
 	removeAccessory()
-	outfitRenderer?.destroy()
-	outfitRenderer = shownSubject = undefined
-	isShownSubjectBuilt = false
+	discardOutfitRenderer()
+	shownSubject = undefined
+	shownAccountId = 0
+	shownSubjectStatus = "loading"
 	removeAdjustmentGuides()
 }
 
@@ -633,12 +689,16 @@ function restoreCameraView(cameraView: CameraView): void {
 function captureFrame(isBackgroundTransparent: boolean): string {
 	const canvas = RBXRenderer.getRendererDom()
 	if (!canvas) return ""
-	RBXRenderer.setBackgroundTransparent(isBackgroundTransparent)
-	drawFrame(false)
-	const frameUrl = canvas.toDataURL("image/png")
-	RBXRenderer.setBackgroundTransparent(false)
-	requestFrame()
-	return frameUrl
+	try {
+		RBXRenderer.setBackgroundTransparent(isBackgroundTransparent)
+		drawFrame(false)
+		return canvas.toDataURL("image/png")
+	} catch {
+		return ""
+	} finally {
+		RBXRenderer.setBackgroundTransparent(false)
+		requestFrame()
+	}
 }
 
 async function setUpRenderer(): Promise<boolean> {
@@ -729,7 +789,7 @@ function requestFrame(): void {
 	isFramePending = true
 	requestAnimationFrame(() => {
 		isFramePending = false
-		drawFrame()
+		if (viewports.length > 0) drawFrame()
 	})
 }
 

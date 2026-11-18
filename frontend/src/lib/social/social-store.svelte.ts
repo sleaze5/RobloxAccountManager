@@ -593,9 +593,16 @@ export class SocialStore {
 	}
 
 	#append(received: SocialListPage): SocialListPage {
+		const people = [...(this.page?.people ?? [])],
+			seenUserIds = new Set(people.map((person) => person.userId))
+		for (const person of received.people ?? []) {
+			if (seenUserIds.has(person.userId)) continue
+			seenUserIds.add(person.userId)
+			people.push(person)
+		}
 		return {
 			...received,
-			people: [...(this.page?.people ?? []), ...(received.people ?? [])],
+			people,
 		}
 	}
 

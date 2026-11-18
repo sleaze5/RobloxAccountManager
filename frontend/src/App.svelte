@@ -151,6 +151,7 @@
 	$effect(() => {
 		if (!store.vault.unlocked) {
 			workspace.closeAccountMenus()
+			workspace.viewedImage = null
 			untrack(() => {
 				games.reset()
 				social.reset()
@@ -203,7 +204,10 @@
 	}
 
 	onMount(() => {
-		for (const importPage of Object.values(pageImports)) void importPage()
+		// The page itself handles failure when opened.
+		void Promise.allSettled(
+			Object.values(pageImports).map((importPage) => importPage()),
+		)
 		void loadBuild()
 		void loadAppLocation()
 		void appSettings.initialize(notificationCenter)

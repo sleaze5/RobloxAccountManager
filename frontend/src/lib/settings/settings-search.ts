@@ -3,7 +3,7 @@ import { matchesSearch } from "../shared/search"
 // settingSearchWords lists, for each setting, the words that find it in the
 // Settings search: its label, its description, and other words people use for
 // the same thing.
-export const settingSearchWords = {
+const settingSearchWords = {
 	vaultStatus:
 		"vault status locked unlocked lock security test master password last tested",
 	automaticUnlock:

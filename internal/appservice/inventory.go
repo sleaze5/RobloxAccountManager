@@ -127,7 +127,7 @@ func (service *Service) GetInventoryItemDetails(ctx context.Context, accountID i
 	// Roblox blocks the image of an item that it moderated, even while its
 	// details API still lists the item.
 	if thumbnails[target].IsBlocked {
-		details = details.Unavailable(robloxservices.ItemModerated)
+		details.MarkUnavailable(robloxservices.ItemModerated)
 	}
 	if isLargeImage {
 		details.LargeImageURL = thumbnails[target].ImageURL

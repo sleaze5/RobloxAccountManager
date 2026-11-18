@@ -17,7 +17,7 @@
 	let failedImageUrl = $state(""),
 		view = $state<ImageView>("2D"),
 		isExpanded = $state(false),
-		isLiveViewLoading = $state(false),
+		isModelLoadingByView = $state({ page: false, expanded: false }),
 		playbackByView = $state<
 			Record<"page" | "expanded", AnimationPlayback | undefined>
 		>({
@@ -47,7 +47,7 @@
 		),
 		busyLabel = $derived(
 			view === "3D"
-				? isLiveViewLoading
+				? isModelLoadingByView[isExpanded ? "expanded" : "page"]
 					? "Loading…"
 					: ""
 				: avatar.isRenderingImage
@@ -84,7 +84,7 @@
 			subject={draftSubject}
 			{label}
 			adjustmentGuide={avatar.adjustmentGuide}
-			bind:isLoading={isLiveViewLoading}
+			bind:isLoading={isModelLoadingByView[isExpandedView ? "expanded" : "page"]}
 			bind:playback={playbackByView[isExpandedView ? "expanded" : "page"]} />
 	{:else if shownImageUrl && failedImageUrl !== shownImageUrl}
 		{#key shownImageUrl}
@@ -181,9 +181,7 @@
 	{#if avatar.isEditable && avatar.isChanged}
 		<div class="flex animate-enter flex-col gap-1 notice-note">
 			<p role="status">
-				{#if view === "3D"}
-					This shows your changes. Save to keep them.
-				{:else if avatar.isPreviewCurrent}
+				{#if view === "3D" || avatar.isPreviewCurrent}
 					This shows your changes. Save to keep them.
 				{:else if avatar.previewError}
 					The image shows the saved avatar. {avatar.previewError}

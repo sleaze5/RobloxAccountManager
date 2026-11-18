@@ -35,7 +35,6 @@ const gameSectionFields: { section: GameSection; fields: (keyof Game)[] }[] = [
 	{ section: GameSection.GameSectionCommunication, fields: ["communication"] },
 	{ section: GameSection.GameSectionAvatarRules, fields: ["avatarRules"] },
 	{ section: GameSection.GameSectionVersions, fields: ["versions"] },
-	{ section: GameSection.GameSectionPlayability, fields: ["playability"] },
 ]
 
 function pickSectionFields(game: Game, sections: GameSection[]): Partial<Game> {

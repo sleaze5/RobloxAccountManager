@@ -426,6 +426,7 @@
 					{:else}
 						<GameDetails
 							{store}
+							{accounts}
 							onSearchUniverse={(universeId) =>
 								void searchUniverse(universeId)} />
 					{/if}

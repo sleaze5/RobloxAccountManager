@@ -100,10 +100,10 @@ func fileNameOf(name, fallbackName, extension string) string {
 }
 
 // SaveDownloadedFile writes the file of an item where the user chose.
-func (service *Service) SaveDownloadedFile(path, extension string, contents []byte) (string, error) {
-	savedPath, err := service.saveChosenFile(path, extension, contents, "asset-download", "application.inventory")
+func (service *Service) SaveDownloadedFile(path, operation string, file DownloadableFile) (string, error) {
+	savedPath, err := service.saveChosenFile(path, file.Extension, file.Contents, operation, "application.inventory")
 	if err == nil {
-		service.logs.Module("application.inventory").Info("item file saved", "operation", "asset-download", "extension", extension)
+		service.logs.Module("application.inventory").Info("item file saved", "operation", operation, "extension", file.Extension)
 	}
 	return savedPath, err
 }

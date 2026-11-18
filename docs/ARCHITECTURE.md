@@ -11,6 +11,7 @@ The Svelte frontend is a presentation layer. The Go backend owns application log
 - Do not duplicate backend validation. Add lightweight input feedback only when it improves usability.
 - Import backend bindings only through `frontend/src/lib/backend/bridge.ts`.
 - Show 3D models only through `frontend/src/lib/model-viewer/ModelFrame.svelte`. The backend decides whether the app builds an item or shows the model that Roblox renders, and the renderer reaches Roblox only through the `GetAvatarRenderFile` binding.
+- Keep shared renderer state inside the viewer. Cancel its asset requests and clear its asset cache when the account changes or the last live view closes. Keep preview support separate from archive support: some items can be previewed in 3D but have no model that Roblox renders for download.
 - Show notifications only through `frontend/src/lib/notifications/notification-center.svelte.ts`.
 - Build small components with one responsibility.
 - Every store action that calls the backend catches its errors and shows them through the store's error state or a notification. A component may call an action without awaiting it, as in `void store.action()`, only when the action handles its own errors.
@@ -22,6 +23,7 @@ The Svelte frontend is a presentation layer. The Go backend owns application log
 ## Backend
 
 - Give each package one capability and a small, explicit interface. A new feature needs an obvious home.
+- Keep account-specific results, such as game playability, out of caches keyed only by the resource ID.
 - A change to one subsystem must not require changes to unrelated frontend, storage, Roblox, or platform code.
 - Keep Wails bindings thin. They validate UI input, call application services, and return UI-safe results. They contain no SQL.
 - Storage code does not launch Roblox.

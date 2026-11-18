@@ -73,7 +73,10 @@
 	import PurchaseAccountActions from "./PurchaseAccountActions.svelte"
 	import PurchaseItemSummary from "./PurchaseItemSummary.svelte"
 	import { categoryItemKey, inventoryItemKey } from "./inventory-state.svelte"
-	import type { InventoryState } from "./inventory-state.svelte"
+	import type {
+		InventoryDownloadKind,
+		InventoryState,
+	} from "./inventory-state.svelte"
 
 	let {
 		item: openedItem,
@@ -179,7 +182,8 @@
 		details = $derived(inventory.detailsByItemKey.get(detailsKey)),
 		isOwnedByAccount = $derived(inventory.isOwnedByItemKey.get(detailsKey)),
 		imageUrl = $derived(details?.largeImageUrl || item.imageUrl),
-		hasModel = $derived(!!details?.hasModel),
+		hasModelView = $derived(!!details?.hasModelView),
+		hasRenderedModel = $derived(!!details?.hasRenderedModel),
 		canTryOn = $derived(!!details?.canTryOn),
 		canHaveRelatedItems = $derived(!!details?.canHaveRelatedItems),
 		canDownload = $derived(!!details?.canDownload),
@@ -196,16 +200,16 @@
 						{
 							label: "Download file",
 							icon: fileArrowDownIcon,
-							onSelect: () => download(false),
+							onSelect: () => download("file"),
 						},
 					]
 				: []),
-			...(hasModel
+			...(hasRenderedModel
 				? [
 						{
 							label: "Download 3D model",
 							icon: cubeIcon,
-							onSelect: () => download(true),
+							onSelect: () => download("model"),
 						},
 					]
 				: []),
@@ -215,7 +219,7 @@
 		// Try on stays on while the view switches between 2D and 3D.
 		isTryOnShown = $derived(canTryOn && isTryingOn),
 		// An item without a model of its own has a 3D view only on the avatar.
-		hasThreeDimensionalView = $derived(hasModel || isTryOnShown),
+		hasThreeDimensionalView = $derived(hasModelView || isTryOnShown),
 		shownView = $derived<ImageView>(hasThreeDimensionalView ? view : "2D"),
 		isModelShown = $derived(shownView === "3D"),
 		tryOnLabel = $derived(`@${account.username}'s avatar wearing ${name}`),
@@ -227,12 +231,14 @@
 			tryOnAvatar ? { kind: "avatar", look: tryOnAvatar } : null,
 		),
 		itemLook = $derived(inventory.itemLook.loadedFor(detailsKey)),
+		itemLookError = $derived(inventory.itemLook.errorFor(detailsKey)),
 		// An item shows the model that Roblox renders when the 3D viewer does
 		// not build its kind, such as models and gear, or could not build it.
 		isItemModelRendered = $derived(
-			!!inventory.itemLook.errorFor(detailsKey) ||
-				failedLiveItemKey === detailsKey ||
-				(!!itemLook && !itemLook.avatar && !itemLook.accessoryAssetId),
+			hasRenderedModel &&
+				(!!itemLookError ||
+					failedLiveItemKey === detailsKey ||
+					(!!itemLook && !itemLook.avatar && !itemLook.accessoryAssetId)),
 		),
 		itemModel = $derived(inventory.itemModel.loadedFor(detailsKey)),
 		itemModelError = $derived(inventory.itemModel.errorFor(detailsKey)),
@@ -332,6 +338,7 @@
 		openedRelatedItems = nextOpenedRelatedItems
 		view = "2D"
 		isTryingOn = isExpanded = false
+		inventory.cancelFindingGamePassPlace()
 		inventory.clearItemActionError()
 		await tick()
 		card?.querySelector<HTMLElement>("#inventory-item-title")?.scrollIntoView({
@@ -361,17 +368,21 @@
 			shownCategory = category.id,
 			isTryingOnInModel = isTryOnShown && isModelShown,
 			isTryingOnInImage = isTryOnShown && !isModelShown,
-			isItemModelShown = !isTryOnShown && isModelShown,
-			isRenderedModelShown = isItemModelShown && isItemModelRendered
+			isItemModelShown = !isTryOnShown && isModelShown
 		untrack(() => {
 			if (isTryingOnInModel)
 				void inventory.loadTryOnAvatar(shownItem, shownCategory)
 			if (isTryingOnInImage) void inventory.tryOnItem(shownItem, shownCategory)
 			if (isItemModelShown) void inventory.loadItemLook(shownItem, shownCategory)
-			if (isRenderedModelShown) {
-				void inventory.loadItemModel(shownItem, shownCategory)
-			}
 		})
+	})
+
+	$effect(() => {
+		if (isModelShown && !isTryOnShown && isItemModelRendered) {
+			const shownItem = item,
+				shownCategory = category.id
+			untrack(() => void inventory.loadItemModel(shownItem, shownCategory))
+		}
 	})
 
 	// The dialog keeps its card while it switches between the details and the
@@ -409,13 +420,14 @@
 		show: (place: GamePlace, gamePassId: number) => void,
 	): Promise<void> {
 		const gamePassId = item.itemId,
+			gamePassKey = detailsKey,
 			place = await inventory.findGamePassPlace(gamePassId)
-		if (place && item.itemId === gamePassId) show(place, gamePassId)
+		if (place && detailsKey === gamePassKey) show(place, gamePassId)
 	}
 
-	function download(isModel: boolean): void {
+	function download(downloadKind: InventoryDownloadKind): void {
 		isDownloadMenuOpen = false
-		void inventory.downloadItem(item, category.id, isModel)
+		void inventory.downloadItem(item, category.id, downloadKind)
 	}
 
 	function close(): void {
@@ -471,12 +483,21 @@
 			</span>
 		{/if}
 	{:else if isModelShown}
-		<ModelFrame
-			accountId={inventory.accountId}
-			subject={itemSubject}
-			label={name}
-			bind:playback={playbackByView[isExpandedView ? "expanded" : "dialog"]}
-			onLiveFailure={() => (failedLiveItemKey = detailsKey)} />
+		{#if itemLookError && !hasRenderedModel}
+			<FrameUnavailable
+				icon={category.icon}
+				message={itemLookError}
+				onRetry={() => void inventory.loadItemLook(item, category.id)} />
+		{:else}
+			<ModelFrame
+				accountId={inventory.accountId}
+				subject={itemSubject}
+				label={name}
+				bind:playback={playbackByView[isExpandedView ? "expanded" : "dialog"]}
+				onLiveFailure={hasRenderedModel
+					? () => (failedLiveItemKey = detailsKey)
+					: undefined} />
+		{/if}
 	{:else}
 		<span
 			class={["grid place-items-center", isSmallIcon ? "size-36" : "size-full"]}>

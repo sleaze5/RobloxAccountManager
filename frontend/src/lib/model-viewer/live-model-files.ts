@@ -1,3 +1,4 @@
+import { CACHE } from "roavatar-renderer"
 import { accountBackend } from "../backend/bridge"
 import type { AssetRepresentation } from "../backend/bridge"
 
@@ -14,18 +15,26 @@ const locationPrefix = "live-model-file:",
 	priorityListPattern = /[?&]contentRepresentationPriorityList=([^&#]*)/
 
 const fileBase64ByLocation = new Map<string, string>()
+const pendingDownloads = new Set<
+	ReturnType<typeof accountBackend.GetAvatarRenderFile>
+>()
 let lastLocationNumber = 0,
 	requestingAccountId = 0
 
-// setLiveModelAccount chooses the account whose session downloads the files.
 export function setLiveModelAccount(accountId: number): void {
+	if (requestingAccountId === accountId) return
 	requestingAccountId = accountId
+	for (const request of pendingDownloads) void request.cancel()
+	pendingDownloads.clear()
+	fileBase64ByLocation.clear()
+	clearLiveModelCache()
 }
 
-// clearLiveModelFiles forgets the files that the renderer did not read, such
-// as when the 3D avatar closes.
-export function clearLiveModelFiles(): void {
-	fileBase64ByLocation.clear()
+// RoAvatar keys its caches by asset rather than account, and caches failed reads.
+export function clearLiveModelCache(): void {
+	for (const cache of [CACHE.AssetBuffer, CACHE.RBX, CACHE.Mesh, CACHE.Image]) {
+		for (const key of cache.map.keys()) cache.delete(key)
+	}
 }
 
 // fetchLiveModelFile answers a request of the renderer. It answers a request
@@ -35,25 +44,47 @@ export async function fetchLiveModelFile(
 	input: RequestInfo | URL,
 	init?: RequestInit,
 ): Promise<Response> {
-	const address = input instanceof Request ? input.url : String(input),
-		fileBase64 = takeFile(address)
+	const request = input instanceof Request ? input : undefined,
+		method = init?.method ?? request?.method ?? "GET"
+	if (method !== "GET") return new Response(null, { status: 405 })
+	const address = input instanceof Request ? input.url : input.toString()
+	const fileBase64 = takeFile(address)
 	if (fileBase64 !== undefined) return new Response(bytesOfBase64(fileBase64))
-	const assetRequest = assetRequestOf(address, new Headers(init?.headers))
+	const assetRequest = assetRequestOf(
+		address,
+		new Headers(init?.headers ?? request?.headers),
+	)
 	if (!assetRequest || requestingAccountId <= 0) {
 		return new Response(null, { status: 403 })
 	}
+	return await downloadLiveModelFile(
+		assetRequest.assetId,
+		assetRequest.representation,
+	)
+}
+
+async function downloadLiveModelFile(
+	assetId: number,
+	representation: AssetRepresentation,
+): Promise<Response> {
+	const download = accountBackend.GetAvatarRenderFile(
+		requestingAccountId,
+		assetId,
+		representation,
+	)
+	pendingDownloads.add(download)
 	try {
-		const downloadedBase64 = await accountBackend.GetAvatarRenderFile(
-			requestingAccountId,
-			assetRequest.assetId,
-			assetRequest.representation,
-		)
+		const downloadedBase64 = await download
+		if (!pendingDownloads.has(download)) return new Response(null, { status: 410 })
+		if (!downloadedBase64) return new Response(null, { status: 502 })
 		const location = `${locationPrefix}${++lastLocationNumber}`
-		fileBase64ByLocation.set(location, downloadedBase64 ?? "")
+		fileBase64ByLocation.set(location, downloadedBase64)
 		return Response.json({ locations: [{ location }] })
 	} catch {
 		// The renderer leaves out the asset, and the backend logs the failure.
 		return new Response(null, { status: 502 })
+	} finally {
+		pendingDownloads.delete(download)
 	}
 }
 
@@ -61,7 +92,7 @@ export async function fetchLiveModelFile(
 // an image element loads.
 export async function liveModelImageUrl(location: string): Promise<string> {
 	const fileBase64 = takeFile(location)
-	if (fileBase64 === undefined) return ""
+	if (fileBase64 === undefined) return "data:,"
 	return `data:${imageTypeOf(fileBase64)};base64,${fileBase64}`
 }
 
@@ -88,6 +119,9 @@ function assetRequestOf(
 	if (
 		requestUrl.protocol !== "https:" ||
 		requestUrl.hostname !== assetDeliveryHost ||
+		requestUrl.port ||
+		requestUrl.username ||
+		requestUrl.password ||
 		!assetDeliveryPaths.includes(requestUrl.pathname) ||
 		!Number.isSafeInteger(assetId) ||
 		assetId <= 0
