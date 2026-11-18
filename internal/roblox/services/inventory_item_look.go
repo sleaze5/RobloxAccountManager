@@ -15,10 +15,13 @@ const plainAvatarBodyColor = "A3A2A5"
 // avatar that shows the item: a plain avatar wearing it, the outfit of a
 // bundle, the saved avatar of the account wearing an animation, or the saved
 // avatar that plays an emote. When neither is set, the viewer shows the model
-// that Roblox renders of the item, such as for models and gear.
+// that Roblox renders of the item, such as for models and gear. RigAvatar is
+// a plain R15 rig that plays an animation or an emote, which the viewer offers
+// in place of the saved avatar.
 type InventoryItemLook struct {
 	AccessoryAssetID int64   `json:"accessoryAssetId"`
 	Avatar           *Avatar `json:"avatar"`
+	RigAvatar        *Avatar `json:"rigAvatar"`
 }
 
 // InventoryItemLook reads how the 3D viewer shows the item.
@@ -30,10 +33,13 @@ func (service *Users) InventoryItemLook(ctx context.Context, accountID, version 
 	// An emote plays on the saved avatar of the account, and an animation on
 	// the saved avatar wearing it in place of the animation of the same kind.
 	if category == InventoryEmotes {
-		return avatarLook(service.savedAvatar(ctx, accountID, version, endpoint))
+		avatar, err := service.savedAvatar(ctx, accountID, version, endpoint)
+		return animationLook(avatar, plainAvatarWearing(), err)
 	}
 	if category == InventoryAnimations {
-		return avatarLook(service.savedAvatarWearing(ctx, accountID, version, endpoint, category, itemID))
+		avatar, err := service.savedAvatarWearing(ctx, accountID, version, endpoint, category, itemID)
+		animation := AvatarAsset{Category: category, Item: avatarItem(itemID, "", animationTypeNameOf(avatar, itemID))}
+		return animationLook(avatar, plainAvatarWearing(animation), err)
 	}
 	if !canTryOn(category) {
 		return InventoryItemLook{}, nil
@@ -54,6 +60,28 @@ func (service *Users) InventoryItemLook(ctx context.Context, accountID, version 
 		return InventoryItemLook{}, nil
 	}
 	return avatarLook(plainAvatarWearing(AvatarAsset{Category: category, Item: avatarItem(itemID, "", typeName)}), nil)
+}
+
+// animationLook shows an animation or an emote on the saved avatar, or on the
+// plain rig. Roblox plays animations and emotes only on R15 avatars, so an R6
+// avatar shows as R15.
+func animationLook(avatar, rigAvatar Avatar, err error) (InventoryItemLook, error) {
+	if err != nil {
+		return InventoryItemLook{}, err
+	}
+	avatar.AvatarType = AvatarR15
+	return InventoryItemLook{Avatar: &avatar, RigAvatar: &rigAvatar}, nil
+}
+
+// animationTypeNameOf returns the type name of the animation that the avatar
+// wears, such as RunAnimation.
+func animationTypeNameOf(avatar Avatar, animationID int64) string {
+	for _, asset := range avatar.Assets {
+		if asset.Item.ItemID == animationID {
+			return asset.Item.TypeName
+		}
+	}
+	return ""
 }
 
 // avatarLook shows the item on the avatar, or fails with the error that
@@ -81,7 +109,7 @@ func (service *Users) bundleLook(ctx context.Context, accountID, version int64, 
 
 // plainAvatarWearing is a grey R15 avatar of the default size that wears only
 // the asset, so that clothing, faces, and body parts show on a body.
-func plainAvatarWearing(asset AvatarAsset) Avatar {
+func plainAvatarWearing(assets ...AvatarAsset) Avatar {
 	return Avatar{
 		AvatarType: AvatarR15,
 		Scales:     AvatarScales{Height: 1, Width: 1, Head: 1},
@@ -90,6 +118,6 @@ func plainAvatarWearing(asset AvatarAsset) Avatar {
 			LeftArm: plainAvatarBodyColor, RightArm: plainAvatarBodyColor,
 			LeftLeg: plainAvatarBodyColor, RightLeg: plainAvatarBodyColor,
 		},
-		Assets: []AvatarAsset{asset},
+		Assets: assets,
 	}
 }

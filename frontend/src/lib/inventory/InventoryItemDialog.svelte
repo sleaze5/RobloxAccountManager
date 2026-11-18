@@ -121,6 +121,9 @@
 		view = $state<ImageView>("2D"),
 		isExpanded = $state(false),
 		isTryingOn = $state(false),
+		// Whether an animation or an emote plays on the plain R15 rig instead
+		// of the saved avatar. The choice stays for the next item.
+		isRigShown = $state(false),
 		// The item whose model the 3D viewer could not build, which shows the
 		// model that Roblox renders instead.
 		failedLiveItemKey = $state(""),
@@ -217,7 +220,10 @@
 				: itemLook?.avatar
 					? {
 							kind: "avatar",
-							look: itemLook.avatar,
+							look:
+								isRigShown && itemLook.rigAvatar
+									? itemLook.rigAvatar
+									: itemLook.avatar,
 							startAnimation: itemStartAnimation,
 						}
 					: itemLook
@@ -442,6 +448,20 @@
 {#snippet imageControls(isExpandedView: boolean)}
 	{#if hasThreeDimensionalView}
 		<ImageViewToggle bind:view />
+	{/if}
+	{#if isModelShown && !isItemModelRendered && itemLook?.rigAvatar}
+		<div class="segmented shrink-0" role="group" aria-label="Animation shown on">
+			<button
+				type="button"
+				aria-pressed={!isRigShown}
+				data-tooltip={`Play on @${account.username}'s saved avatar`}
+				onclick={() => (isRigShown = false)}>Avatar</button>
+			<button
+				type="button"
+				aria-pressed={isRigShown}
+				data-tooltip="Play on a plain R15 rig. Roblox plays animations and emotes only on R15."
+				onclick={() => (isRigShown = true)}>R15 rig</button>
+		</div>
 	{/if}
 	{#if canTryOn}
 		<button
