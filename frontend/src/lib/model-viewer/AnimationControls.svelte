@@ -7,10 +7,10 @@
 	import type { AnimationPlayback } from "./model-subject"
 
 	// AnimationControls plays the animations and emotes of the avatar in a 3D
-	// viewer: a play button, the animation, its speed, and a seek bar. A wide
-	// bar, such as under an expanded viewer, puts them in one row. playback is
-	// undefined until the avatar shows, which disables the controls, so that
-	// the bar keeps its place while the avatar loads.
+	// viewer: the animation, a play button next to the seek bar, and the speed.
+	// A wide bar, such as under an expanded viewer, puts them in one row.
+	// playback is undefined until the avatar shows, which disables the
+	// controls, so that the bar keeps its place while the avatar loads.
 	let {
 		playback,
 		isWide = false,
@@ -63,7 +63,27 @@
 	}
 </script>
 
-{#snippet seekBar()}
+{#snippet playbackTimeline()}
+	<button
+		class="button-icon"
+		type="button"
+		aria-label={playLabel}
+		aria-busy={isAnimationLoading}
+		data-tooltip={playLabel}
+		disabled={!playback}
+		onclick={togglePlay}>
+		{#if isAnimationLoading && isPlaying}
+			<Icon svg={circleNotchIcon} class="spinner" size={16} aria-hidden="true" />
+		{:else}
+			{#key isPlaying}
+				<Icon
+					svg={isPlaying ? pauseIcon : playIcon}
+					class="animate-pop"
+					size={16}
+					aria-hidden="true" />
+			{/key}
+		{/if}
+	</button>
 	<label class="flex min-w-0 flex-1 items-center gap-2">
 		<span class="sr-only">Animation time</span>
 		<input
@@ -90,30 +110,6 @@
 	role="group"
 	aria-label="Animation">
 	<div class={["flex items-center gap-2", isWide ? "min-w-0 flex-1" : ""]}>
-		<button
-			class="button-icon"
-			type="button"
-			aria-label={playLabel}
-			aria-busy={isAnimationLoading}
-			data-tooltip={playLabel}
-			disabled={!playback}
-			onclick={togglePlay}>
-			{#if isAnimationLoading && isPlaying}
-				<Icon
-					svg={circleNotchIcon}
-					class="spinner"
-					size={16}
-					aria-hidden="true" />
-			{:else}
-				{#key isPlaying}
-					<Icon
-						svg={isPlaying ? pauseIcon : playIcon}
-						class="animate-pop"
-						size={16}
-						aria-hidden="true" />
-				{/key}
-			{/if}
-		</button>
 		<Select
 			label="Animation"
 			value={playback?.animationId ?? ""}
@@ -122,7 +118,7 @@
 			className={isWide ? "w-40" : "min-w-0 flex-1"}
 			onChange={(animationId) => playback?.chooseAnimation(animationId)} />
 		{#if isWide}
-			{@render seekBar()}
+			{@render playbackTimeline()}
 		{/if}
 		<Select
 			label="Playback speed"
@@ -133,6 +129,8 @@
 			onChange={(speed) => playback?.setSpeed(speed)} />
 	</div>
 	{#if !isWide}
-		{@render seekBar()}
+		<div class="flex items-center gap-2">
+			{@render playbackTimeline()}
+		</div>
 	{/if}
 </div>
