@@ -5,6 +5,7 @@ import type {
 	InventoryItem,
 	RenderedModel,
 } from "../backend/bridge"
+import type { AdjustmentAxis, AdjustmentKind } from "../avatar/avatar-draft"
 
 // AvatarLook is what the application builds an avatar from: a saved avatar,
 // an outfit, or a draft of the avatar editor. Its emotes are the emotes that
@@ -27,6 +28,16 @@ export type AnimationStart =
 export type LiveModelSubject =
 	| { kind: "avatar"; look: AvatarLook; startAnimation?: AnimationStart }
 	| { kind: "accessory"; assetId: number }
+
+// AdjustmentGuide is the accessory of an avatar whose adjustment the user
+// edits, with the kind of adjustment that its guides show. axis is the axis
+// that the user points at or edits, which the guides highlight, or undefined
+// for every axis.
+export interface AdjustmentGuide {
+	assetId: number
+	kind: AdjustmentKind
+	axis?: AdjustmentAxis
+}
 
 // AnimationChoice is an animation that an avatar can play: one of its
 // animation set, such as Run, or one of its emotes.

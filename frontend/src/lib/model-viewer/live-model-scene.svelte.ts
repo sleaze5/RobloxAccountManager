@@ -12,6 +12,7 @@ import type { CFrame, Instance, Vector3 as RobloxVector3 } from "roavatar-render
 import { AvatarType } from "../backend/bridge"
 import type { InventoryItem } from "../backend/bridge"
 import { reducedMotion } from "../shared/motion"
+import { placeAdjustmentGuide, removeAdjustmentGuides } from "./adjustment-guides"
 import { cameraPoseOf, framingScaleOf, moveOrbitViewByKey } from "./orbit-camera"
 import { defaultModelViewerScene, modelViewerScene } from "./model-viewer-scene.svelte"
 import type { ModelViewerScene } from "./model-viewer-scene.svelte"
@@ -22,6 +23,7 @@ import {
 	setLiveModelAccount,
 } from "./live-model-files"
 import type {
+	AdjustmentGuide,
 	AnimationChoice,
 	AnimationPlayback,
 	AnimationStart,
@@ -125,6 +127,7 @@ export class LiveModelViewport implements AnimationPlayback {
 	readonly descriptionId: string
 	accountId = 0
 	subject: LiveModelSubject | undefined
+	adjustmentGuide: AdjustmentGuide | undefined
 	cameraView: CameraView | undefined
 	// The animation start of the subject that chose the animation, so that a
 	// changed draft keeps the animation that the user chose.
@@ -164,6 +167,13 @@ export class LiveModelViewport implements AnimationPlayback {
 			this.isPlaying = false
 		}
 		if (activeViewport() === this) showSubject(this)
+	}
+
+	// showAdjustmentGuide shows the guides of the accessory that the user
+	// adjusts, or hides them without a guide.
+	showAdjustmentGuide(guide: AdjustmentGuide | undefined): void {
+		this.adjustmentGuide = guide
+		if (activeViewport() === this) requestFrame()
 	}
 
 	chooseAnimation(animationId: string): void {
@@ -518,6 +528,7 @@ function clearScene(): void {
 	outfitRenderer?.destroy()
 	outfitRenderer = shownSubject = undefined
 	isShownSubjectBuilt = false
+	removeAdjustmentGuides()
 }
 
 // frameSubject moves the camera to where it starts for the subject: in front
@@ -616,12 +627,15 @@ function restoreCameraView(cameraView: CameraView): void {
 }
 
 // captureFrame draws a frame and reads it at once, because the canvas keeps
-// its pixels only until the browser shows them.
+// its pixels only until the browser shows them. The frame leaves out the
+// adjustment guides, which the next frame shows again.
 function captureFrame(): string {
 	const canvas = RBXRenderer.getRendererDom()
 	if (!canvas) return ""
-	drawFrame()
-	return canvas.toDataURL("image/png")
+	drawFrame(false)
+	const frameUrl = canvas.toDataURL("image/png")
+	requestFrame()
+	return frameUrl
 }
 
 async function setUpRenderer(): Promise<boolean> {
@@ -716,8 +730,14 @@ function requestFrame(): void {
 	})
 }
 
-function drawFrame(): void {
+function drawFrame(isAdjustmentGuideShown = true): void {
 	placeKeyLight(modelViewerScene)
+	placeAdjustmentGuide(
+		isAdjustmentGuideShown && shownSubject?.kind === "avatar"
+			? activeViewport()?.adjustmentGuide
+			: undefined,
+		outfitRenderer?.currentRig,
+	)
 	RBXRenderer.animateAll(false)
 	const viewport = activeViewport(),
 		camera = RBXRenderer.firstScene.camera,

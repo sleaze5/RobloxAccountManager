@@ -11,6 +11,7 @@ import type {
 } from "../backend/bridge"
 import type { AccountStore } from "../accounts/account-store.svelte"
 import { AccountScope } from "../accounts/account-scope"
+import type { AdjustmentGuide } from "../model-viewer/model-subject"
 import type { NotificationCenter } from "../notifications/notification-center.svelte"
 import { errorMessage } from "../shared/errors"
 import {
@@ -62,6 +63,9 @@ export class AvatarState {
 	// The accessory placement that Copy placement took, which Paste puts on
 	// another accessory.
 	copiedAdjustment = $state.raw<CopiedAdjustment | null>(null)
+	// The accessory whose adjustment controls are open, which the 3D view
+	// marks with guides.
+	adjustmentGuide = $state.raw<AdjustmentGuide | undefined>(undefined)
 	isSaving = $state(false)
 	saveError = $state("")
 	// Whether Roblox changed the avatar with a save or an outfit but the changed

@@ -15,13 +15,19 @@
 		startLiveModelScene,
 	} from "./live-model-scene.svelte"
 	import type { LiveModelViewport } from "./live-model-scene.svelte"
-	import type { AnimationPlayback, LiveModelSubject } from "./model-subject"
+	import type {
+		AdjustmentGuide,
+		AnimationPlayback,
+		LiveModelSubject,
+	} from "./model-subject"
 
 	// LiveModelView fills its container with the subject, which the
 	// application builds itself, so that every change shows at once. label
 	// names the subject, such as "@builderman's avatar". isLoading is true
 	// while a part of the subject downloads or builds. playback plays the
-	// animations of an avatar, and is undefined for an accessory. When
+	// animations of an avatar, and is undefined for an accessory.
+	// adjustmentGuide shows the guides of the accessory that the user adjusts.
+	// When
 	// onFailure is set, a subject that cannot be built calls it instead of
 	// offering to try again.
 	let {
@@ -30,6 +36,7 @@
 		label,
 		isLoading = $bindable(false),
 		playback = $bindable(),
+		adjustmentGuide,
 		onFailure,
 	}: {
 		accountId: number
@@ -37,6 +44,7 @@
 		label: string
 		isLoading?: boolean
 		playback?: AnimationPlayback
+		adjustmentGuide?: AdjustmentGuide
 		onFailure?: () => void
 	} = $props()
 
@@ -79,6 +87,14 @@
 			shownViewport = viewport
 		if (shownViewport) {
 			untrack(() => shownViewport.show(shownAccountId, shownSubject))
+		}
+	})
+
+	$effect(() => {
+		const shownGuide = adjustmentGuide,
+			shownViewport = viewport
+		if (shownViewport) {
+			untrack(() => shownViewport.showAdjustmentGuide(shownGuide))
 		}
 	})
 

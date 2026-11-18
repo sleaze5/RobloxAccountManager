@@ -1,5 +1,9 @@
 <script lang="ts">
-	import type { AnimationPlayback, ModelSubject } from "./model-subject"
+	import type {
+		AdjustmentGuide,
+		AnimationPlayback,
+		ModelSubject,
+	} from "./model-subject"
 	import ModelLoadingPlaceholder from "./ModelLoadingPlaceholder.svelte"
 	import ModelViewerUnavailable from "./ModelViewerUnavailable.svelte"
 	import RenderedModelView from "./RenderedModelView.svelte"
@@ -12,12 +16,15 @@
 	// show a model that Roblox renders instead, when the live renderer cannot
 	// build the subject. playback plays the animations of a live avatar, for
 	// the AnimationControls that the caller places next to the frame.
+	// adjustmentGuide shows the guides of the accessory that the user adjusts
+	// on a live avatar.
 	let {
 		accountId,
 		subject,
 		label,
 		isLoading = $bindable(false),
 		playback = $bindable(),
+		adjustmentGuide,
 		onLiveFailure,
 	}: {
 		accountId: number
@@ -25,6 +32,7 @@
 		label: string
 		isLoading?: boolean
 		playback?: AnimationPlayback
+		adjustmentGuide?: AdjustmentGuide
 		onLiveFailure?: () => void
 	} = $props()
 
@@ -53,6 +61,7 @@
 			{label}
 			bind:isLoading
 			bind:playback
+			{adjustmentGuide}
 			onFailure={onLiveFailure} />
 	{:catch}
 		<ModelViewerUnavailable isGraphicsAccelerationMissing={false} />
