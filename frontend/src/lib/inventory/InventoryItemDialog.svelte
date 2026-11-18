@@ -203,7 +203,7 @@
 			...(hasModel
 				? [
 						{
-							label: "Download as OBJ",
+							label: "Download 3D model",
 							icon: cubeIcon,
 							onSelect: () => download(true),
 						},
