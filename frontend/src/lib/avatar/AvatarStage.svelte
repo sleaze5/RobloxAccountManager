@@ -83,6 +83,7 @@
 			accountId={avatar.accountId}
 			subject={draftSubject}
 			{label}
+			adjustmentGuide={avatar.adjustmentGuide}
 			bind:isLoading={isLiveViewLoading}
 			bind:playback={playbackByView[isExpandedView ? "expanded" : "page"]} />
 	{:else if shownImageUrl && failedImageUrl !== shownImageUrl}
@@ -178,17 +179,30 @@
 	{/if}
 
 	{#if avatar.isEditable && avatar.isChanged}
-		<p class="animate-enter notice-note" role="status">
-			{#if view === "3D"}
-				This shows your changes. Save to keep them.
-			{:else if avatar.isPreviewCurrent}
-				This shows your changes. Save to keep them.
-			{:else if avatar.previewError}
-				The image shows the saved avatar. {avatar.previewError}
-			{:else}
-				Previewing…
+		<div class="flex animate-enter flex-col gap-1 notice-note">
+			<p role="status">
+				{#if view === "3D"}
+					This shows your changes. Save to keep them.
+				{:else if avatar.isPreviewCurrent}
+					This shows your changes. Save to keep them.
+				{:else if avatar.previewError}
+					The image shows the saved avatar. {avatar.previewError}
+				{:else}
+					Previewing…
+				{/if}
+			</p>
+			<!-- Roblox renders the 2D image of a draft only after the draft stops
+			changing, while the 3D view builds every change itself. -->
+			{#if view === "2D"}
+				<p class="flex flex-wrap items-center gap-x-2">
+					<span>The 3D view shows each change at once.</span>
+					<button
+						class="button-text"
+						type="button"
+						onclick={() => (view = "3D")}>Switch to 3D</button>
+				</p>
 			{/if}
-		</p>
+		</div>
 	{/if}
 </section>
 
