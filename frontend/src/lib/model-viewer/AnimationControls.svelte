@@ -6,22 +6,25 @@
 	import speedometerIcon from "@phosphor-icons/core/regular/speedometer.svg?raw"
 	import { tick } from "svelte"
 	import Icon from "../shared/Icon.svelte"
-	import Select from "../shared/Select.svelte"
-	import type { AnimationPlayback } from "./model-subject"
+	import AnimationPicker from "./AnimationPicker.svelte"
+	import type { AnimationLibrary, AnimationPlayback } from "./model-subject"
 
 	// AnimationControls plays the animations and emotes of the avatar in a 3D
-	// viewer: the animation, and a seek row with a play button, the seek bar,
-	// and a speed button that opens a speed slider above it. A wide bar, such as under an expanded viewer, puts them in one row, and
-	// so does a bar without the picker, which plays one animation, such as the
-	// preview of an animation item. playback is undefined until the avatar
-	// shows, which disables the controls, so that the bar keeps its place
-	// while the avatar loads.
+	// viewer: the animation picker, and a seek row with a play button, the
+	// seek bar, and a speed button that opens a speed slider above it. A wide
+	// bar, such as under an expanded viewer, puts them in one row, and so does
+	// a bar without the picker, which plays one animation, such as the preview
+	// of an animation item. playback is undefined until the avatar shows, which
+	// disables the controls, so that the bar keeps its place while the avatar
+	// loads. library adds what the user owns and Play by ID to the picker.
 	let {
 		playback,
+		library,
 		isWide = false,
 		hasAnimationPicker = true,
 	}: {
 		playback: AnimationPlayback | undefined
+		library?: AnimationLibrary
 		isWide?: boolean
 		hasAnimationPicker?: boolean
 	} = $props()
@@ -53,15 +56,9 @@
 	// it plays on once the drag ends.
 	let wasPlayingBeforeSeek = false
 
-	const animationOptions = $derived(
-			(playback?.animationChoices ?? []).map((choice) => ({
-				value: choice.id,
-				label: choice.label,
-				group: choice.isEmote ? "Emotes" : "Animations",
-			})),
-		),
-		isPlaying = $derived(!!playback?.isPlaying),
+	const isPlaying = $derived(!!playback?.isPlaying),
 		isAnimationLoading = $derived(!!playback?.isAnimationLoading),
+		isAnimationFailed = $derived(!!playback?.isAnimationFailed),
 		timeSeconds = $derived(playback?.timeSeconds ?? 0),
 		lengthSeconds = $derived(playback?.lengthSeconds ?? 0),
 		canSeek = $derived(!!playback && !isAnimationLoading && lengthSeconds > 0),
@@ -242,13 +239,10 @@ and a press outside it closes it. -->
 	aria-label="Animation">
 	<div class={["flex items-center gap-2", isOneRow ? "min-w-0 flex-1" : ""]}>
 		{#if hasAnimationPicker}
-			<Select
-				label="Animation"
-				value={playback?.animationId ?? ""}
-				options={animationOptions}
-				disabled={!playback}
-				className={isWide ? "w-40" : "min-w-0 flex-1"}
-				onChange={(animationId) => playback?.chooseAnimation(animationId)} />
+			<AnimationPicker
+				{playback}
+				{library}
+				className={isWide ? "w-48" : "min-w-0 flex-1"} />
 		{/if}
 		{#if isOneRow}
 			{@render playbackTimeline()}
@@ -260,3 +254,8 @@ and a press outside it closes it. -->
 		</div>
 	{/if}
 </div>
+{#if isAnimationFailed}
+	<p class="mt-2 animate-enter text-xs text-danger-muted" role="alert">
+		Could not play this animation. Select another one.
+	</p>
+{/if}

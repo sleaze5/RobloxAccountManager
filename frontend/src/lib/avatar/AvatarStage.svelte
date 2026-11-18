@@ -7,12 +7,30 @@
 	import Icon from "../shared/Icon.svelte"
 	import ImageViewToggle from "../shared/ImageViewToggle.svelte"
 	import type { ImageView } from "../shared/ImageViewToggle.svelte"
+	import { AvatarType } from "../backend/bridge"
+	import type { InventoryItem } from "../backend/bridge"
 	import type { AvatarState } from "./avatar-state.svelte"
 	import AnimationControls from "../model-viewer/AnimationControls.svelte"
 	import ModelFrame from "../model-viewer/ModelFrame.svelte"
-	import type { AnimationPlayback, ModelSubject } from "../model-viewer/model-subject"
+	import type {
+		AnimationLibrary,
+		AnimationPlayback,
+		ModelSubject,
+	} from "../model-viewer/model-subject"
 
-	let { avatar, username }: { avatar: AvatarState; username: string } = $props()
+	// thumbnailAnimation is the pose of the full-body image, which the 3D view
+	// starts playing.
+	let {
+		avatar,
+		username,
+		library,
+		thumbnailAnimation,
+	}: {
+		avatar: AvatarState
+		username: string
+		library: AnimationLibrary
+		thumbnailAnimation: InventoryItem | undefined
+	} = $props()
 
 	let failedImageUrl = $state(""),
 		view = $state<ImageView>("2D"),
@@ -41,9 +59,19 @@
 		shownType = $derived(
 			view === "3D" || avatar.isPreviewCurrent ? draftType : savedType,
 		),
-		// The 3D view builds the draft, so that every change shows at once.
+		// The 3D view builds the draft, so that every change shows at once. Roblox
+		// poses only an R15 avatar with an emote.
 		draftSubject = $derived<ModelSubject | null>(
-			avatar.draft ? { kind: "avatar", look: avatar.draft } : null,
+			avatar.draft
+				? {
+						kind: "avatar",
+						look: avatar.draft,
+						thumbnailAnimation:
+							avatar.draft.avatarType === AvatarType.AvatarR15
+								? thumbnailAnimation
+								: undefined,
+					}
+				: null,
 		),
 		busyLabel = $derived(
 			view === "3D"
@@ -155,7 +183,7 @@
 	{/if}
 	{#if isExpandedView && view === "3D"}
 		<div class="min-w-0 flex-1">
-			<AnimationControls playback={playbackByView.expanded} isWide />
+			<AnimationControls playback={playbackByView.expanded} {library} isWide />
 		</div>
 	{/if}
 {/snippet}
@@ -174,7 +202,7 @@
 
 	{#if view === "3D"}
 		<div class="animate-enter">
-			<AnimationControls playback={playbackByView.page} />
+			<AnimationControls playback={playbackByView.page} {library} />
 		</div>
 	{/if}
 

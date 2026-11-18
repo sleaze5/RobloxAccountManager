@@ -4,7 +4,11 @@
 	import { onMount, tick, untrack } from "svelte"
 	import AccountPageHeader from "../accounts/AccountPageHeader.svelte"
 	import type { AccountStore } from "../accounts/account-store.svelte"
-	import type { AvatarOutfit, InventoryItem } from "../backend/bridge"
+	import type {
+		AvatarOutfit,
+		AvatarThumbnailChange,
+		InventoryItem,
+	} from "../backend/bridge"
 	import InventoryItemDialog from "../inventory/InventoryItemDialog.svelte"
 	import type { InventoryCategoryOption } from "../inventory/inventory-categories"
 	import { InventoryState } from "../inventory/inventory-state.svelte"
@@ -22,12 +26,21 @@
 	import AvatarOutfitNameDialog from "./AvatarOutfitNameDialog.svelte"
 	import AvatarOutfitsPanel from "./AvatarOutfitsPanel.svelte"
 	import AvatarStage from "./AvatarStage.svelte"
+	import AvatarThumbnailsPanel from "./AvatarThumbnailsPanel.svelte"
 	import AvatarWearingPanel from "./AvatarWearingPanel.svelte"
 	import { avatarItemCategory, emoteCategory } from "./avatar-categories"
 	import { emoteSlotCount, isDefaultAdjustment } from "./avatar-draft"
+	import { AvatarAnimationLibrary } from "./avatar-animation-library.svelte"
 	import { AvatarState } from "./avatar-state.svelte"
+	import { AvatarThumbnailsState } from "./avatar-thumbnails-state.svelte"
 
-	type AvatarTab = "wearing" | "adjustments" | "body" | "emotes" | "outfits"
+	type AvatarTab =
+		| "wearing"
+		| "adjustments"
+		| "body"
+		| "emotes"
+		| "thumbnails"
+		| "outfits"
 
 	let {
 		accounts,
@@ -55,11 +68,19 @@
 		inventory = untrack(
 			() => new InventoryState(accountId, userId, accounts, notifications),
 		),
+		thumbnails = untrack(
+			() => new AvatarThumbnailsState(accountId, userId, accounts, notifications),
+		),
+		// The 3D view and the thumbnail poses offer what the user owns.
+		animationLibrary = untrack(
+			() => new AvatarAnimationLibrary(accountId, userId, accounts),
+		),
 		tabs: { id: AvatarTab; label: string }[] = [
 			{ id: "wearing", label: "Worn" },
 			{ id: "adjustments", label: "Adjustments" },
 			{ id: "body", label: "Body" },
 			{ id: "emotes", label: "Emotes" },
+			{ id: "thumbnails", label: "Thumbnails" },
 			{ id: "outfits", label: "Outfits" },
 		]
 
@@ -173,6 +194,15 @@
 		if (pendingLeave && !isChanged && !avatar.isSaving) untrack(confirmDiscard)
 	})
 
+	// saveThumbnail saves a thumbnail customization, then reads the images again
+	// once Roblox renders the full-body image, which it renders with the
+	// close-up images.
+	async function saveThumbnail(change: AvatarThumbnailChange): Promise<void> {
+		if (!(await thumbnails.save(change))) return
+		await avatar.showRenderedImage()
+		void thumbnails.refresh()
+	}
+
 	async function deleteOutfit(outfit: AvatarOutfit): Promise<void> {
 		if (await avatar.deleteOutfit(outfit)) deletedOutfit = null
 	}
@@ -206,10 +236,13 @@
 		const releaseUnsavedChangesGuard = unsavedChangesGuard.hold(confirmLeaving)
 		void avatar.refresh()
 		void avatar.loadRules()
+		void thumbnails.refresh()
 		return () => {
 			releaseUnsavedChangesGuard()
 			avatar.dispose()
 			inventory.dispose()
+			thumbnails.dispose()
+			animationLibrary.dispose()
 		}
 	})
 </script>
@@ -285,6 +318,7 @@
 			disabled={avatar.loading || avatar.isChangingAvatar || isChanged}
 			onclick={() => {
 				void avatar.refresh()
+				void thumbnails.refresh()
 				if (avatar.outfits) void avatar.loadOutfits()
 			}}>
 			<RefreshIcon isRefreshing={avatar.loading} />
@@ -301,7 +335,12 @@
 		</div>
 	{:else}
 		<div class="flex min-h-0 flex-1">
-			<AvatarStage {avatar} {username} />
+			<AvatarStage
+				{avatar}
+				{username}
+				library={animationLibrary}
+				thumbnailAnimation={thumbnails.thumbnails?.fullBody.emote ??
+					undefined} />
 
 			<div class="@container flex min-w-0 flex-1 flex-col">
 				<div
@@ -429,6 +468,14 @@
 										} />
 								{:else if tab === "body"}
 									<AvatarBodyPanel {avatar} {canEdit} />
+								{:else if tab === "thumbnails"}
+									<AvatarThumbnailsPanel
+										{avatar}
+										{thumbnails}
+										library={animationLibrary}
+										canEdit={avatar.isEditable}
+										onSave={(change) =>
+											void saveThumbnail(change)} />
 								{:else if tab === "emotes"}
 									<AvatarEmotesPanel
 										{avatar}

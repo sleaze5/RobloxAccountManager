@@ -10,12 +10,21 @@ import {
 } from "roavatar-renderer"
 import type { CFrame, Instance, Vector3 as RobloxVector3 } from "roavatar-renderer"
 import { AvatarType } from "../backend/bridge"
-import type { InventoryItem } from "../backend/bridge"
 import { reducedMotion } from "../shared/motion"
 import { placeAdjustmentGuide, removeAdjustmentGuides } from "./adjustment-guides"
 import { cameraPoseOf, framingScaleOf, moveOrbitViewByKey } from "./orbit-camera"
 import { defaultModelViewerScene, modelViewerScene } from "./model-viewer-scene.svelte"
 import type { ModelViewerScene } from "./model-viewer-scene.svelte"
+import {
+	animationChoiceOfItem,
+	animationIdByAssetTypeName,
+	animationSetChoices,
+	assetAnimationPrefix,
+	emoteAnimationPrefix,
+	emoteChoiceOf,
+	idleAnimationId,
+	uploadedAnimationPrefix,
+} from "./animation-choices"
 import {
 	clearLiveModelCache,
 	fetchLiveModelFile,
@@ -39,6 +48,21 @@ interface CameraView {
 	fieldOfViewDegrees: number
 }
 
+// AnimationFrame is where an animation starts: at a time, at a keyframe, or
+// in its middle, which is where Roblox poses a thumbnail whose emote names no
+// frame.
+type AnimationFrame =
+	| { kind: "time"; timeSeconds: number }
+	| { kind: "keyframe"; keyframeIndex: number }
+	| { kind: "middle" }
+
+// AnimationAsset is what the viewer reads from an emote or animation asset:
+// the animation that it plays, and the frame that a thumbnail shows.
+interface AnimationAsset {
+	animationId: number
+	thumbnailFrame: AnimationFrame
+}
+
 // The renderer places the camera of an avatar for this field of view, and
 // Roblox places the thumbnail camera of an accessory for it unless the
 // accessory has a camera of its own.
@@ -49,32 +73,13 @@ const robloxFieldOfViewDegrees = 70,
 	// A frame after a long pause, such as while the window was hidden, moves
 	// an animation at most this far.
 	maxPlaybackStepSeconds = 0.1,
-	idleAnimationId = "idle"
+	// The renderer poses a forced time of -1 in the middle of the animation.
+	middleAnimationTimeSeconds = -1,
+	thumbnailDetail = "Thumbnail"
 
-// The animations of an avatar animation set that the viewer offers, by the
-// name that the renderer gives them.
-const animationSetChoices: AnimationChoice[] = [
-	{ id: idleAnimationId, label: "Idle", isEmote: false },
-	{ id: "walk", label: "Walk", isEmote: false },
-	{ id: "run", label: "Run", isEmote: false },
-	{ id: "jump", label: "Jump", isEmote: false },
-	{ id: "fall", label: "Fall", isEmote: false },
-	{ id: "climb", label: "Climb", isEmote: false },
-	{ id: "swim", label: "Swim", isEmote: false },
-]
-
-// The animation of the set that shows an animation asset, by its asset type.
-// A mood plays on the face, which shows best while the avatar idles.
-const animationIdByAssetTypeName: Record<string, string> = {
-	IdleAnimation: idleAnimationId,
-	MoodAnimation: idleAnimationId,
-	WalkAnimation: "walk",
-	RunAnimation: "run",
-	JumpAnimation: "jump",
-	FallAnimation: "fall",
-	ClimbAnimation: "climb",
-	SwimAnimation: "swim",
-}
+// The animation assets that the viewer read for the account, by asset ID. A
+// failed read leaves the map, so that the next choice reads it again.
+const animationAssetById = new Map<number, Promise<AnimationAsset>>()
 
 // The renderer is one scene on one canvas for the whole application. Every
 // view of a 3D model shares it: the newest view shows the canvas, and a view
@@ -118,6 +123,7 @@ export class LiveModelViewport implements AnimationPlayback {
 	animationId = $state(idleAnimationId)
 	isPlaying = $state(false)
 	isAnimationLoading = $state(false)
+	isAnimationFailed = $state(false)
 	timeSeconds = $state(0)
 	lengthSeconds = $state(0)
 	speed = $state(1)
@@ -128,9 +134,17 @@ export class LiveModelViewport implements AnimationPlayback {
 	subject: LiveModelSubject | undefined
 	adjustmentGuide: AdjustmentGuide | undefined
 	cameraView: CameraView | undefined
-	// The animation start of the subject that chose the animation, so that a
+	// The first animation of the subject that chose the animation, so that a
 	// changed draft keeps the animation that the user chose.
-	#appliedAnimationStart: AnimationStart | undefined
+	#appliedFirstAnimationId = ""
+	// Whether the user chose an animation, which a thumbnail that loads later
+	// keeps.
+	#isAnimationChosen = false
+	// The choices that the user played from outside the subject, such as an
+	// owned emote, newest last.
+	#playedChoices: AnimationChoice[] = []
+	// The frame that the next pose starts the animation at, once.
+	#startFrame: { animationId: string; frame: Promise<AnimationFrame> } | undefined
 
 	constructor(host: HTMLElement, canvasLabel: string, descriptionId: string) {
 		this.host = host
@@ -145,21 +159,26 @@ export class LiveModelViewport implements AnimationPlayback {
 		this.accountId = accountId
 		this.subject = subject
 		if (subject.kind === "avatar") {
-			this.animationChoices = animationChoicesOf(
-				subject.look,
-				subject.startAnimation,
-			)
+			const firstAnimationId = firstAnimationIdOf(subject)
+			this.animationChoices = animationChoicesOf(subject, this.#playedChoices)
 			if (
-				!isSameAnimationStart(
-					subject.startAnimation,
-					this.#appliedAnimationStart,
-				)
+				firstAnimationId !== this.#appliedFirstAnimationId &&
+				(!this.#isAnimationChosen || !!subject.startAnimation)
 			) {
-				this.#appliedAnimationStart = subject.startAnimation
-				this.animationId = animationIdOf(subject.startAnimation)
-				this.timeSeconds = 0
-				// A preview plays what it shows, unless motion is reduced.
-				this.isPlaying = !!subject.startAnimation && !reducedMotion()
+				this.#appliedFirstAnimationId = firstAnimationId
+				this.#isAnimationChosen = false
+				this.#selectAnimation(firstAnimationId)
+				if (!subject.startAnimation && subject.thumbnailAnimation) {
+					this.#startFrame = {
+						animationId: firstAnimationId,
+						frame: thumbnailFrameOf(firstAnimationId),
+					}
+				}
+				// A preview plays what it shows, and an avatar its thumbnail
+				// animation, unless motion is reduced.
+				this.isPlaying =
+					(!!subject.startAnimation || !!subject.thumbnailAnimation) &&
+					!reducedMotion()
 			}
 		} else {
 			this.animationChoices = []
@@ -175,10 +194,35 @@ export class LiveModelViewport implements AnimationPlayback {
 		if (activeViewport() === this) requestFrame()
 	}
 
-	chooseAnimation(animationId: string): void {
+	// chooseAnimation plays the choice, and keeps a choice from outside the
+	// subject, such as a pasted emote, among the choices.
+	chooseAnimation(choice: AnimationChoice): void {
+		if (!this.animationChoices.some((shown) => shown.id === choice.id)) {
+			this.#playedChoices = [
+				...this.#playedChoices.filter((played) => played.id !== choice.id),
+				choice,
+			]
+			this.animationChoices = [...this.animationChoices, choice]
+		}
+		this.#isAnimationChosen = true
+		this.#selectAnimation(choice.id)
+		if (activeViewport() === this) poseAvatar(this)
+	}
+
+	// takeStartFrame returns the frame that the animation starts at once,
+	// such as the frame of a thumbnail, or undefined to start at the time of
+	// the view.
+	takeStartFrame(animationId: string): Promise<AnimationFrame> | undefined {
+		const startFrame = this.#startFrame
+		this.#startFrame = undefined
+		return startFrame?.animationId === animationId ? startFrame.frame : undefined
+	}
+
+	#selectAnimation(animationId: string): void {
 		this.animationId = animationId
 		this.timeSeconds = 0
-		if (activeViewport() === this) poseAvatar(this)
+		this.isAnimationFailed = false
+		this.#startFrame = undefined
 	}
 
 	play(): void {
@@ -423,23 +467,126 @@ function poseAvatar(viewport: LiveModelViewport): void {
 	const applyPose = async (): Promise<void> => {
 		await previousPose
 		if (!isCurrent()) return
+		const startFrame = viewport.takeStartFrame(animationId)
 		try {
-			await posedRenderer.setMainAnimation(
-				animationId === idleAnimationId ? `${idleAnimationId}:0` : animationId,
+			const isPlayed = await posedRenderer.setMainAnimation(
+				await rendererAnimationNameOf(animationId),
 			)
 			if (!isCurrent()) return
-			posedRenderer.animateOnce(0, viewport.timeSeconds)
+			// The renderer resolves false for an emote or animation that did
+			// not load. An animation of the set that the rig lacks stands in
+			// its bind pose instead.
+			if (!isPlayed && !isAnimationSetChoice(animationId)) {
+				throw new Error("The animation did not play.")
+			}
+			const frame = await startFrame?.catch(() => undefined)
+			if (!isCurrent()) return
+			showAnimationFrame(
+				posedRenderer,
+				frame ?? { kind: "time", timeSeconds: viewport.timeSeconds },
+			)
 			readAnimationTime(viewport)
 			if (viewport.isPlaying) startPlayback()
 			requestFrame()
 		} catch {
-			if (isCurrent()) viewport.pause()
+			if (isCurrent()) {
+				viewport.pause()
+				viewport.isAnimationFailed = true
+			}
 		} finally {
 			if (isCurrent()) viewport.isAnimationLoading = false
 		}
 	}
 	const requestedPose = { renderer: posedRenderer, completion: applyPose() }
 	animationPose = requestedPose
+}
+
+function showAnimationFrame(renderer: OutfitRenderer, frame: AnimationFrame): void {
+	if (frame.kind === "keyframe")
+		renderer.animateOnce(0, undefined, frame.keyframeIndex)
+	else if (frame.kind === "middle")
+		renderer.animateOnce(0, middleAnimationTimeSeconds)
+	else renderer.animateOnce(0, frame.timeSeconds)
+}
+
+// rendererAnimationNameOf names the animation as the renderer plays it. The
+// first variant of the idle animation is the pose of the Roblox avatar
+// editor, and an asset of an animation set plays its first animation.
+async function rendererAnimationNameOf(animationId: string): Promise<string> {
+	if (animationId === idleAnimationId) return `${idleAnimationId}:0`
+	if (!animationId.startsWith(assetAnimationPrefix)) return animationId
+	const asset = await readAnimationAsset(assetIdOf(animationId))
+	return `${uploadedAnimationPrefix}${asset.animationId}`
+}
+
+function isAnimationSetChoice(animationId: string): boolean {
+	return animationSetChoices.some((choice) => choice.id === animationId)
+}
+
+function assetIdOf(animationId: string): number {
+	return Number(animationId.slice(animationId.indexOf(".") + 1))
+}
+
+// thumbnailFrameOf reads the frame of the animation that a thumbnail shows.
+// An emote or animation item names it with a ThumbnailKeyframe or a
+// ThumbnailTime value, as RoAvatar reads it. An uploaded animation names
+// none.
+async function thumbnailFrameOf(animationId: string): Promise<AnimationFrame> {
+	if (
+		!animationId.startsWith(emoteAnimationPrefix) &&
+		!animationId.startsWith(assetAnimationPrefix)
+	) {
+		return { kind: "middle" }
+	}
+	return (await readAnimationAsset(assetIdOf(animationId))).thumbnailFrame
+}
+
+function readAnimationAsset(assetId: number): Promise<AnimationAsset> {
+	const knownAsset = animationAssetById.get(assetId)
+	if (knownAsset) return knownAsset
+	const reading = downloadAnimationAsset(assetId)
+	animationAssetById.set(assetId, reading)
+	reading.catch(() => {
+		if (animationAssetById.get(assetId) === reading)
+			animationAssetById.delete(assetId)
+	})
+	return reading
+}
+
+// downloadAnimationAsset reads the first animation of the asset. An emote
+// holds one Animation, and an asset of an animation set holds a folder of
+// variants for each animation that it replaces.
+async function downloadAnimationAsset(assetId: number): Promise<AnimationAsset> {
+	const model = await API.Asset.GetRBX(`rbxassetid://${assetId}`)
+	if (model instanceof Response) throw new Error("The animation did not download.")
+	const root = model.generateTree()
+	try {
+		const animation = root
+			.GetDescendants()
+			.find(
+				(descendant) =>
+					descendant.className === "Animation" &&
+					String(descendant.PropOrDefault("AnimationId", "")).length > 0,
+			)
+		if (!animation) throw new Error("The asset holds no animation.")
+		const thumbnailKeyframe = animation
+				.FindFirstChild("ThumbnailKeyframe")
+				?.PropOrDefault("Value", undefined),
+			thumbnailTime = animation
+				.FindFirstChild("ThumbnailTime")
+				?.PropOrDefault("Value", undefined)
+		return {
+			animationId: API.Misc.idFromStr(String(animation.Prop("AnimationId"))),
+			thumbnailFrame:
+				typeof thumbnailKeyframe === "number"
+					? { kind: "keyframe", keyframeIndex: thumbnailKeyframe }
+					: typeof thumbnailTime === "number"
+						? { kind: "time", timeSeconds: thumbnailTime }
+						: { kind: "middle" },
+		}
+	} finally {
+		root.Destroy()
+	}
 }
 
 function discardOutfitRenderer(): void {
@@ -497,48 +644,75 @@ function readAnimationTime(viewport: LiveModelViewport): void {
 	viewport.lengthSeconds = track?.length ?? 0
 }
 
-// animationChoicesOf lists the animation set and the emotes of the look. A
-// preview of an animation or an emote offers only that one.
+// animationChoicesOf lists the animation set, the emotes of the look, the
+// thumbnail animation, and the choices that the user played. A preview of an
+// animation or an emote offers only that one.
 function animationChoicesOf(
-	look: AvatarLook,
-	startAnimation: AnimationStart | undefined,
+	subject: Extract<LiveModelSubject, { kind: "avatar" }>,
+	playedChoices: AnimationChoice[],
 ): AnimationChoice[] {
-	if (startAnimation?.kind === "emote") return [emoteChoiceOf(startAnimation.emote)]
+	const { startAnimation } = subject
+	if (startAnimation?.kind === "emote") {
+		return [emoteChoiceOf(startAnimation.emote, "emote")]
+	}
 	if (startAnimation?.kind === "animation") {
-		const animationId = animationIdOf(startAnimation)
+		const animationId = startAnimationIdOf(startAnimation)
 		return animationSetChoices.filter((choice) => choice.id === animationId)
 	}
-	return [
-		...animationSetChoices,
-		...[...(look.emotes ?? [])]
+	const thumbnailChoice = subject.thumbnailAnimation
+			? animationChoiceOfItem(subject.thumbnailAnimation, "emote")
+			: undefined,
+		emoteChoices = [...(subject.look.emotes ?? [])]
 			.sort((first, second) => first.slot - second.slot)
-			.map((emote) => emoteChoiceOf(emote.item)),
+			.map((emote) => {
+				const choice = emoteChoiceOf(emote.item, "emote")
+				choice.detail = `Slot ${emote.slot}`
+				choice.imageUrl = emote.item.imageUrl || undefined
+				return choice
+			}),
+		subjectChoices = [...animationSetChoices, ...emoteChoices]
+	if (thumbnailChoice) {
+		const slotIndex = subjectChoices.findIndex(
+			(choice) => choice.id === thumbnailChoice.id,
+		)
+		if (slotIndex < 0) {
+			subjectChoices.push({ ...thumbnailChoice, detail: thumbnailDetail })
+		} else {
+			const slotChoice = subjectChoices[slotIndex]
+			subjectChoices[slotIndex] = {
+				...slotChoice,
+				detail: `${slotChoice.detail} · ${thumbnailDetail}`,
+			}
+		}
+	}
+	return [
+		...subjectChoices,
+		...playedChoices.filter(
+			(played) => !subjectChoices.some((choice) => choice.id === played.id),
+		),
 	]
 }
 
-function emoteChoiceOf(emote: Pick<InventoryItem, "itemId" | "name">): AnimationChoice {
-	return {
-		id: `emote.${emote.itemId}`,
-		label: emote.name || `Emote ${emote.itemId}`,
-		isEmote: true,
-	}
-}
-
-function animationIdOf(startAnimation: AnimationStart | undefined): string {
-	if (startAnimation?.kind === "emote") return `emote.${startAnimation.emote.itemId}`
-	if (startAnimation?.kind === "animation") {
+// firstAnimationIdOf names the animation that the avatar starts with: the
+// animation that a preview shows, the thumbnail animation, or the idle pose.
+function firstAnimationIdOf(
+	subject: Extract<LiveModelSubject, { kind: "avatar" }>,
+): string {
+	if (subject.startAnimation) return startAnimationIdOf(subject.startAnimation)
+	if (subject.thumbnailAnimation) {
 		return (
-			animationIdByAssetTypeName[startAnimation.assetTypeName] ?? idleAnimationId
+			animationChoiceOfItem(subject.thumbnailAnimation, "emote")?.id ??
+			idleAnimationId
 		)
 	}
 	return idleAnimationId
 }
 
-function isSameAnimationStart(
-	first: AnimationStart | undefined,
-	second: AnimationStart | undefined,
-): boolean {
-	return animationIdOf(first) === animationIdOf(second) && !!first === !!second
+function startAnimationIdOf(startAnimation: AnimationStart): string {
+	if (startAnimation.kind === "emote") {
+		return `${emoteAnimationPrefix}${startAnimation.emote.itemId}`
+	}
+	return animationIdByAssetTypeName[startAnimation.assetTypeName] ?? idleAnimationId
 }
 
 // showAccessory downloads the accessory as a mesh part, the form in which an
@@ -579,6 +753,7 @@ function removeAccessory(): void {
 }
 
 function clearScene(): void {
+	animationAssetById.clear()
 	removeAccessory()
 	discardOutfitRenderer()
 	shownSubject = undefined
