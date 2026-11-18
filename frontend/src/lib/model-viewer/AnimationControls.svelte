@@ -8,13 +8,22 @@
 
 	// AnimationControls plays the animations and emotes of the avatar in a 3D
 	// viewer: the animation, a play button next to the seek bar, and the speed.
-	// A wide bar, such as under an expanded viewer, puts them in one row.
-	// playback is undefined until the avatar shows, which disables the
-	// controls, so that the bar keeps its place while the avatar loads.
+	// A wide bar, such as under an expanded viewer, puts them in one row, and
+	// so does a bar without the picker, which plays one animation, such as the
+	// preview of an animation item. playback is undefined until the avatar
+	// shows, which disables the controls, so that the bar keeps its place
+	// while the avatar loads.
 	let {
 		playback,
 		isWide = false,
-	}: { playback: AnimationPlayback | undefined; isWide?: boolean } = $props()
+		hasAnimationPicker = true,
+	}: {
+		playback: AnimationPlayback | undefined
+		isWide?: boolean
+		hasAnimationPicker?: boolean
+	} = $props()
+
+	const isOneRow = $derived(isWide || !hasAnimationPicker)
 
 	const speedOptions = [0.25, 0.5, 1, 1.5, 2].map((speed) => ({
 			value: speed,
@@ -106,18 +115,20 @@
 {/snippet}
 
 <div
-	class={["flex gap-2", isWide ? "items-center" : "flex-col"]}
+	class={["flex gap-2", isOneRow ? "items-center" : "flex-col"]}
 	role="group"
 	aria-label="Animation">
-	<div class={["flex items-center gap-2", isWide ? "min-w-0 flex-1" : ""]}>
-		<Select
-			label="Animation"
-			value={playback?.animationId ?? ""}
-			options={animationOptions}
-			disabled={!playback}
-			className={isWide ? "w-40" : "min-w-0 flex-1"}
-			onChange={(animationId) => playback?.chooseAnimation(animationId)} />
-		{#if isWide}
+	<div class={["flex items-center gap-2", isOneRow ? "min-w-0 flex-1" : ""]}>
+		{#if hasAnimationPicker}
+			<Select
+				label="Animation"
+				value={playback?.animationId ?? ""}
+				options={animationOptions}
+				disabled={!playback}
+				className={isWide ? "w-40" : "min-w-0 flex-1"}
+				onChange={(animationId) => playback?.chooseAnimation(animationId)} />
+		{/if}
+		{#if isOneRow}
 			{@render playbackTimeline()}
 		{/if}
 		<Select
@@ -128,7 +139,7 @@
 			className="w-20"
 			onChange={(speed) => playback?.setSpeed(speed)} />
 	</div>
-	{#if !isWide}
+	{#if !isOneRow}
 		<div class="flex items-center gap-2">
 			{@render playbackTimeline()}
 		</div>

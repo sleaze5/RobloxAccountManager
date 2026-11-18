@@ -10,6 +10,7 @@ import {
 } from "roavatar-renderer"
 import type { CFrame, Instance, Vector3 as RobloxVector3 } from "roavatar-renderer"
 import { AvatarType } from "../backend/bridge"
+import type { InventoryItem } from "../backend/bridge"
 import { reducedMotion } from "../shared/motion"
 import { cameraPoseOf, framingScaleOf, moveOrbitViewByKey } from "./orbit-camera"
 import { defaultModelViewerScene, modelViewerScene } from "./model-viewer-scene.svelte"
@@ -405,31 +406,31 @@ function readAnimationTime(viewport: LiveModelViewport): void {
 	viewport.lengthSeconds = track?.length ?? 0
 }
 
-// animationChoicesOf lists the animation set and the emotes of the look. The
-// emote that a preview starts with comes first among the emotes.
+// animationChoicesOf lists the animation set and the emotes of the look. A
+// preview of an animation or an emote offers only that one.
 function animationChoicesOf(
 	look: AvatarLook,
 	startAnimation: AnimationStart | undefined,
 ): AnimationChoice[] {
-	const emotes = [...(look.emotes ?? [])]
-			.sort((first, second) => first.slot - second.slot)
-			.map((emote) => emote.item),
-		startEmote =
-			startAnimation?.kind === "emote" ? startAnimation.emote : undefined,
-		listedEmotes = startEmote
-			? [
-					startEmote,
-					...emotes.filter((emote) => emote.itemId !== startEmote.itemId),
-				]
-			: emotes
+	if (startAnimation?.kind === "emote") return [emoteChoiceOf(startAnimation.emote)]
+	if (startAnimation?.kind === "animation") {
+		const animationId = animationIdOf(startAnimation)
+		return animationSetChoices.filter((choice) => choice.id === animationId)
+	}
 	return [
 		...animationSetChoices,
-		...listedEmotes.map((emote) => ({
-			id: `emote.${emote.itemId}`,
-			label: emote.name || `Emote ${emote.itemId}`,
-			isEmote: true,
-		})),
+		...[...(look.emotes ?? [])]
+			.sort((first, second) => first.slot - second.slot)
+			.map((emote) => emoteChoiceOf(emote.item)),
 	]
+}
+
+function emoteChoiceOf(emote: Pick<InventoryItem, "itemId" | "name">): AnimationChoice {
+	return {
+		id: `emote.${emote.itemId}`,
+		label: emote.name || `Emote ${emote.itemId}`,
+		isEmote: true,
+	}
 }
 
 function animationIdOf(startAnimation: AnimationStart | undefined): string {

@@ -465,7 +465,10 @@
 	{/if}
 	{#if isExpandedView && isAvatarModelShown}
 		<div class="min-w-0 flex-1">
-			<AnimationControls playback={playbackByView.expanded} isWide />
+			<AnimationControls
+				playback={playbackByView.expanded}
+				isWide
+				hasAnimationPicker={!itemStartAnimation} />
 		</div>
 	{/if}
 {/snippet}
@@ -605,7 +608,9 @@
 					</div>
 					{#if isAvatarModelShown}
 						<div class="animate-enter">
-							<AnimationControls playback={playbackByView.dialog} />
+							<AnimationControls
+								playback={playbackByView.dialog}
+								hasAnimationPicker={!itemStartAnimation} />
 						</div>
 					{/if}
 				</div>
