@@ -538,7 +538,7 @@
 {/snippet}
 
 <Dialog
-	class={confirmation ? "max-w-md text-left" : "max-w-5xl text-left"}
+	class={confirmation ? "max-w-md text-left" : "max-w-4xl text-left"}
 	role={confirmation ? "alertdialog" : "dialog"}
 	aria-labelledby={confirmation
 		? "inventory-confirmation-title"
@@ -614,10 +614,10 @@
 	{:else}
 		<div class="flex flex-col gap-4">
 			<div class="flex items-start gap-4">
-				<div class="flex w-80 shrink-0 flex-col gap-2">
+				<div class="flex w-96 shrink-0 flex-col gap-2">
 					<div
 						class={[
-							"relative grid size-80 place-items-center overflow-hidden rounded-lg border border-line-subtle",
+							"relative grid size-96 place-items-center overflow-hidden rounded-lg border border-line-subtle",
 							isModelShown ? "bg-canvas" : "bg-raised",
 						]}
 						aria-hidden={isModelShown || isTryOnShown ? undefined : true}>
