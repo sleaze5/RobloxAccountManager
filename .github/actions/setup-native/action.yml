@@ -20,6 +20,6 @@ runs:
           run: |
               set -eu
               sudo rm -f /var/lib/man-db/auto-update
-              apt="sudo timeout 300 apt-get -o Acquire::Retries=3 -o Acquire::http::Timeout=30"
+              apt="sudo timeout 900 apt-get -o Acquire::Retries=3 -o Acquire::http::Timeout=30"
               $apt update
               $apt install -y --no-install-recommends libgtk-4-dev libwebkitgtk-6.0-dev
