@@ -2,13 +2,15 @@
 	import circleNotchIcon from "@phosphor-icons/core/regular/circle-notch.svg?raw"
 	import pauseIcon from "@phosphor-icons/core/regular/pause.svg?raw"
 	import playIcon from "@phosphor-icons/core/regular/play.svg?raw"
+	import speedometerIcon from "@phosphor-icons/core/regular/speedometer.svg?raw"
+	import { tick } from "svelte"
 	import Icon from "../shared/Icon.svelte"
 	import Select from "../shared/Select.svelte"
 	import type { AnimationPlayback } from "./model-subject"
 
 	// AnimationControls plays the animations and emotes of the avatar in a 3D
-	// viewer: the animation, a play button next to the seek bar, and the speed.
-	// A wide bar, such as under an expanded viewer, puts them in one row, and
+	// viewer: the animation, and a seek row with a play button, the seek bar,
+	// and a speed button that opens a speed slider above it. A wide bar, such as under an expanded viewer, puts them in one row, and
 	// so does a bar without the picker, which plays one animation, such as the
 	// preview of an animation item. playback is undefined until the avatar
 	// shows, which disables the controls, so that the bar keeps its place
@@ -25,14 +27,24 @@
 
 	const isOneRow = $derived(isWide || !hasAnimationPicker)
 
-	const speedOptions = [0.25, 0.5, 1, 1.5, 2].map((speed) => ({
-			value: speed,
-			label: `${speed}×`,
-		})),
+	const minSpeed = 0.25,
+		maxSpeed = 3,
+		speedStep = 0.05,
+		defaultSpeed = 1,
 		seconds = new Intl.NumberFormat("en-US", {
 			minimumFractionDigits: 2,
 			maximumFractionDigits: 2,
-		})
+		}),
+		speedFactor = new Intl.NumberFormat("en-US", {
+			minimumFractionDigits: 1,
+			maximumFractionDigits: 2,
+		}),
+		speedPanelId = $props.id()
+
+	let isSpeedPanelOpen = $state(false),
+		speedArea = $state<HTMLDivElement>(),
+		speedButton = $state<HTMLButtonElement>(),
+		speedInput = $state<HTMLInputElement>()
 
 	// Whether the animation played when a drag of the seek bar began, so that
 	// it plays on once the drag ends.
@@ -54,7 +66,9 @@
 			`${seconds.format(timeSeconds)} / ${seconds.format(lengthSeconds)} s`,
 		),
 		fillPercent = $derived(canSeek ? (timeSeconds / lengthSeconds) * 100 : 0),
-		playLabel = $derived(isPlaying ? "Pause animation" : "Play animation")
+		playLabel = $derived(isPlaying ? "Pause animation" : "Play animation"),
+		speed = $derived(playback?.speed ?? defaultSpeed),
+		speedLabel = $derived(`${speedFactor.format(speed)}×`)
 
 	function togglePlay(): void {
 		if (isPlaying) playback?.pause()
@@ -70,7 +84,59 @@
 		if (wasPlayingBeforeSeek) playback?.play()
 		wasPlayingBeforeSeek = false
 	}
+
+	// setSpeed rounds to the step, because range inputs add floating point
+	// noise such as 0.9500000001.
+	function setSpeed(rawSpeed: number): void {
+		playback?.setSpeed(
+			Number((Math.round(rawSpeed / speedStep) * speedStep).toFixed(2)),
+		)
+	}
+
+	async function toggleSpeedPanel(): Promise<void> {
+		isSpeedPanelOpen = !isSpeedPanelOpen
+		await tick()
+		speedInput?.focus()
+	}
+
+	async function closeSpeedPanel(): Promise<void> {
+		isSpeedPanelOpen = false
+		await tick()
+		speedButton?.focus()
+	}
+
+	// The panel closes when the controls lose their avatar, such as while the
+	// next avatar loads.
+	$effect(() => {
+		if (!playback) isSpeedPanelOpen = false
+	})
 </script>
+
+<!-- Escape closes the speed panel before it reaches a dialog around the bar,
+and a press outside it closes it. -->
+<svelte:window
+	onkeydowncapture={(event) => {
+		if (
+			!isSpeedPanelOpen ||
+			event.key !== "Escape" ||
+			!(event.target instanceof Node) ||
+			!speedArea?.contains(event.target)
+		) {
+			return
+		}
+		event.preventDefault()
+		event.stopImmediatePropagation()
+		void closeSpeedPanel()
+	}}
+	onpointerdown={(event) => {
+		if (
+			isSpeedPanelOpen &&
+			event.target instanceof Node &&
+			!speedArea?.contains(event.target)
+		) {
+			isSpeedPanelOpen = false
+		}
+	}} />
 
 {#snippet playbackTimeline()}
 	<button
@@ -112,6 +178,53 @@
 		<span class="shrink-0 font-mono text-2xs text-fg-muted tabular-nums"
 			>{isAnimationLoading ? "Loading…" : timeLabel}</span>
 	</label>
+	<div bind:this={speedArea} class="relative shrink-0">
+		<button
+			bind:this={speedButton}
+			class="button-icon"
+			type="button"
+			aria-label={`Playback speed: ${speedLabel}`}
+			aria-expanded={isSpeedPanelOpen}
+			aria-controls={speedPanelId}
+			data-open={isSpeedPanelOpen || undefined}
+			data-tooltip={`Playback speed: ${speedLabel}`}
+			disabled={!playback}
+			onclick={() => void toggleSpeedPanel()}>
+			<Icon svg={speedometerIcon} size={16} aria-hidden="true" />
+		</button>
+		{#if isSpeedPanelOpen}
+			<div
+				id={speedPanelId}
+				class="absolute right-0 bottom-full z-20 mb-2 flex w-56 animate-enter flex-col gap-2 rounded-lg border border-line-strong bg-overlay p-3 shadow-float"
+				role="group"
+				aria-label="Playback speed"
+				data-closes-on-escape>
+				<label class="flex flex-col gap-0.5 text-xs">
+					<span class="flex items-center justify-between gap-2">
+						<span class="text-fg-muted">Speed</span>
+						<span class="font-mono text-2xs text-fg">{speedLabel}</span>
+					</span>
+					<input
+						bind:this={speedInput}
+						class="range"
+						type="range"
+						min={minSpeed}
+						max={maxSpeed}
+						step={speedStep}
+						value={speed}
+						style:--range-fill={`${((speed - minSpeed) / (maxSpeed - minSpeed)) * 100}%`}
+						aria-valuetext={speedLabel}
+						oninput={(event) =>
+							setSpeed(event.currentTarget.valueAsNumber)} />
+				</label>
+				<button
+					class="button self-end"
+					type="button"
+					disabled={speed === defaultSpeed}
+					onclick={() => playback?.setSpeed(defaultSpeed)}>Reset</button>
+			</div>
+		{/if}
+	</div>
 {/snippet}
 
 <div
@@ -131,13 +244,6 @@
 		{#if isOneRow}
 			{@render playbackTimeline()}
 		{/if}
-		<Select
-			label="Playback speed"
-			value={playback?.speed ?? 1}
-			options={speedOptions}
-			disabled={!playback}
-			className="w-20"
-			onChange={(speed) => playback?.setSpeed(speed)} />
 	</div>
 	{#if !isOneRow}
 		<div class="flex items-center gap-2">
