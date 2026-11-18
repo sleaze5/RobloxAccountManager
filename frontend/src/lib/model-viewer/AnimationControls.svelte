@@ -1,4 +1,5 @@
 <script lang="ts">
+	import arrowCounterClockwiseIcon from "@phosphor-icons/core/regular/arrow-counter-clockwise.svg?raw"
 	import circleNotchIcon from "@phosphor-icons/core/regular/circle-notch.svg?raw"
 	import pauseIcon from "@phosphor-icons/core/regular/pause.svg?raw"
 	import playIcon from "@phosphor-icons/core/regular/play.svg?raw"
@@ -35,11 +36,13 @@
 			minimumFractionDigits: 2,
 			maximumFractionDigits: 2,
 		}),
+		// Two decimals keep the width of the label while the speed changes.
 		speedFactor = new Intl.NumberFormat("en-US", {
-			minimumFractionDigits: 1,
+			minimumFractionDigits: 2,
 			maximumFractionDigits: 2,
 		}),
-		speedPanelId = $props.id()
+		speedPanelId = $props.id(),
+		speedLabelId = `${speedPanelId}-label`
 
 	let isSpeedPanelOpen = $state(false),
 		speedArea = $state<HTMLDivElement>(),
@@ -195,33 +198,39 @@ and a press outside it closes it. -->
 		{#if isSpeedPanelOpen}
 			<div
 				id={speedPanelId}
-				class="absolute right-0 bottom-full z-20 mb-2 flex w-56 animate-enter flex-col gap-2 rounded-lg border border-line-strong bg-overlay p-3 shadow-float"
+				class="absolute right-0 bottom-full z-20 mb-2 flex w-52 animate-enter flex-col gap-1 rounded-lg border border-line-strong bg-overlay py-2 pr-2 pl-3 shadow-float"
 				role="group"
 				aria-label="Playback speed"
 				data-closes-on-escape>
-				<label class="flex flex-col gap-0.5 text-xs">
-					<span class="flex items-center justify-between gap-2">
-						<span class="text-fg-muted">Speed</span>
-						<span class="font-mono text-2xs text-fg">{speedLabel}</span>
-					</span>
-					<input
-						bind:this={speedInput}
-						class="range"
-						type="range"
-						min={minSpeed}
-						max={maxSpeed}
-						step={speedStep}
-						value={speed}
-						style:--range-fill={`${((speed - minSpeed) / (maxSpeed - minSpeed)) * 100}%`}
-						aria-valuetext={speedLabel}
-						oninput={(event) =>
-							setSpeed(event.currentTarget.valueAsNumber)} />
-				</label>
-				<button
-					class="button self-end"
-					type="button"
-					disabled={speed === defaultSpeed}
-					onclick={() => playback?.setSpeed(defaultSpeed)}>Reset</button>
+				<div class="flex items-center gap-2 text-xs">
+					<span id={speedLabelId} class="mr-auto text-fg-muted">Speed</span>
+					<span class="font-mono text-2xs text-fg tabular-nums"
+						>{speedLabel}</span>
+					<button
+						class="button-ghost-sm"
+						type="button"
+						aria-label={`Reset speed to ${speedFactor.format(defaultSpeed)}×`}
+						data-tooltip={`Reset to ${speedFactor.format(defaultSpeed)}×`}
+						disabled={speed === defaultSpeed}
+						onclick={() => playback?.setSpeed(defaultSpeed)}>
+						<Icon
+							svg={arrowCounterClockwiseIcon}
+							size={14}
+							aria-hidden="true" />
+					</button>
+				</div>
+				<input
+					bind:this={speedInput}
+					class="range mr-1"
+					aria-labelledby={speedLabelId}
+					type="range"
+					min={minSpeed}
+					max={maxSpeed}
+					step={speedStep}
+					value={speed}
+					style:--range-fill={`${((speed - minSpeed) / (maxSpeed - minSpeed)) * 100}%`}
+					aria-valuetext={speedLabel}
+					oninput={(event) => setSpeed(event.currentTarget.valueAsNumber)} />
 			</div>
 		{/if}
 	</div>
