@@ -538,7 +538,7 @@
 {/snippet}
 
 <Dialog
-	class={confirmation ? "max-w-md text-left" : "max-w-3xl text-left"}
+	class={confirmation ? "max-w-md text-left" : "max-w-5xl text-left"}
 	role={confirmation ? "alertdialog" : "dialog"}
 	aria-labelledby={confirmation
 		? "inventory-confirmation-title"
@@ -614,10 +614,10 @@
 	{:else}
 		<div class="flex flex-col gap-4">
 			<div class="flex items-start gap-4">
-				<div class="flex w-72 shrink-0 flex-col gap-2">
+				<div class="flex w-80 shrink-0 flex-col gap-2">
 					<div
 						class={[
-							"relative grid size-72 place-items-center overflow-hidden rounded-lg border border-line-subtle",
+							"relative grid size-80 place-items-center overflow-hidden rounded-lg border border-line-subtle",
 							isModelShown ? "bg-canvas" : "bg-raised",
 						]}
 						aria-hidden={isModelShown || isTryOnShown ? undefined : true}>
@@ -635,373 +635,413 @@
 					{/if}
 				</div>
 
-				<div class="flex min-w-0 flex-1 flex-col gap-1">
-					<div class="flex items-start gap-3">
-						{#if openedRelatedItems.length > 0}
-							<button
-								class="-ml-1 button-ghost"
-								type="button"
-								data-item-back
-								aria-label={`Back to ${previousItemName}`}
-								data-tooltip={`Back to ${previousItemName}`}
-								onclick={() =>
-									void showOpenedRelatedItems(
-										openedRelatedItems.slice(0, -1),
-									)}>
-								<Icon
-									svg={caretLeftIcon}
-									data-nudge="left"
-									size={16}
-									aria-hidden="true" />
-							</button>
-						{/if}
-						<h2
-							id="inventory-item-title"
-							class="min-w-0 flex-1 leading-7 tracking-tight wrap-anywhere">
-							{name}
-						</h2>
-						<div class="flex shrink-0 items-center gap-1">
-							{#if canBuy && market}
+				<div class="flex min-w-0 flex-1 flex-col gap-4">
+					<div class="flex flex-col gap-1">
+						<div class="flex items-start gap-3">
+							{#if openedRelatedItems.length > 0}
 								<button
-									class="button-primary"
+									class="-ml-1 button-ghost"
 									type="button"
-									data-begin-purchase
-									disabled={isBusy || isOwnedByAccount === undefined}
-									onclick={() => void showConfirmation("purchase")}>
+									data-item-back
+									aria-label={`Back to ${previousItemName}`}
+									data-tooltip={`Back to ${previousItemName}`}
+									onclick={() =>
+										void showOpenedRelatedItems(
+											openedRelatedItems.slice(0, -1),
+										)}>
 									<Icon
-										svg={shoppingCartIcon}
+										svg={caretLeftIcon}
+										data-nudge="left"
 										size={16}
 										aria-hidden="true" />
-									{market.priceInRobux === 0 ? "Get" : "Buy"}
 								</button>
 							{/if}
-							{#if canFavorite}
-								<button
-									class="button-icon"
-									type="button"
-									aria-label="Favorite"
-									aria-pressed={isFavorite ?? false}
-									aria-busy={isCheckingFavorite ||
-										inventory.isSavingFavorite}
-									data-tooltip={isFavorite
-										? "Remove from favorites"
-										: "Add to favorites"}
-									disabled={isBusy || isFavorite === undefined}
-									onclick={() =>
-										void inventory.setFavorite(item, !isFavorite)}>
-									{#if isFavorite}
+							<h2
+								id="inventory-item-title"
+								class="min-w-0 flex-1 leading-7 tracking-tight wrap-anywhere">
+								{name}
+							</h2>
+							<div class="flex shrink-0 items-center gap-1">
+								{#if canBuy && market}
+									<button
+										class="button-primary"
+										type="button"
+										data-begin-purchase
+										disabled={isBusy ||
+											isOwnedByAccount === undefined}
+										onclick={() =>
+											void showConfirmation("purchase")}>
 										<Icon
-											svg={heartFillIcon}
-											class="animate-pop text-accent-strong"
+											svg={shoppingCartIcon}
 											size={16}
 											aria-hidden="true" />
-									{:else}
+										{market.priceInRobux === 0 ? "Get" : "Buy"}
+									</button>
+								{/if}
+								{#if canFavorite}
+									<button
+										class="button-icon"
+										type="button"
+										aria-label="Favorite"
+										aria-pressed={isFavorite ?? false}
+										aria-busy={isCheckingFavorite ||
+											inventory.isSavingFavorite}
+										data-tooltip={isFavorite
+											? "Remove from favorites"
+											: "Add to favorites"}
+										disabled={isBusy || isFavorite === undefined}
+										onclick={() =>
+											void inventory.setFavorite(
+												item,
+												!isFavorite,
+											)}>
+										{#if isFavorite}
+											<Icon
+												svg={heartFillIcon}
+												class="animate-pop text-accent-strong"
+												size={16}
+												aria-hidden="true" />
+										{:else}
+											<Icon
+												svg={heartIcon}
+												size={16}
+												aria-hidden="true" />
+										{/if}
+									</button>
+								{/if}
+								{#if badge && badge.awardingPlaceId > 0}
+									<button
+										class="button-icon"
+										type="button"
+										aria-label="Show in Games"
+										data-tooltip="Show in Games"
+										onclick={() =>
+											onSearchPlace(badge.awardingPlaceId)}>
 										<Icon
-											svg={heartIcon}
+											svg={magnifyingGlassIcon}
 											size={16}
 											aria-hidden="true" />
-									{/if}
-								</button>
-							{/if}
-							{#if badge && badge.awardingPlaceId > 0}
+									</button>
+								{/if}
+								{#if onShowGamePass && category.id === InventoryCategory.InventoryGamePasses}
+									<button
+										class="button-icon"
+										type="button"
+										aria-label="Show in Games"
+										aria-busy={inventory.isFindingGamePassPlace}
+										data-tooltip="Show in Games"
+										disabled={inventory.isFindingGamePassPlace}
+										onclick={() =>
+											void showGamePass(onShowGamePass)}>
+										<Icon
+											svg={inventory.isFindingGamePassPlace
+												? circleNotchIcon
+												: magnifyingGlassIcon}
+											class={inventory.isFindingGamePassPlace
+												? "spinner"
+												: undefined}
+											size={16}
+											aria-hidden="true" />
+									</button>
+								{/if}
+								{#if canDownload}
+									<button
+										class="button-icon"
+										type="button"
+										aria-label="Download"
+										aria-busy={inventory.isDownloadingItem}
+										data-tooltip="Download"
+										disabled={inventory.isDownloadingItem}
+										onclick={() =>
+											void inventory.downloadItem(
+												item,
+												category.id,
+											)}>
+										<Icon
+											svg={inventory.isDownloadingItem
+												? circleNotchIcon
+												: downloadSimpleIcon}
+											class={inventory.isDownloadingItem
+												? "spinner"
+												: undefined}
+											size={16}
+											aria-hidden="true" />
+									</button>
+								{/if}
+								{#if canDelete}
+									<button
+										class="button"
+										type="button"
+										data-begin-deletion
+										disabled={isBusy}
+										onclick={() =>
+											void showConfirmation("deletion")}>
+										<Icon
+											svg={trashIcon}
+											size={16}
+											aria-hidden="true" />
+										Delete
+									</button>
+								{/if}
 								<button
-									class="button-icon"
+									class="ml-1 button-close"
 									type="button"
-									aria-label="Show in Games"
-									data-tooltip="Show in Games"
-									onclick={() =>
-										onSearchPlace(badge.awardingPlaceId)}>
-									<Icon
-										svg={magnifyingGlassIcon}
-										size={16}
-										aria-hidden="true" />
+									data-close-item-details
+									aria-label="Close dialog"
+									onclick={close}>
+									<Icon svg={xIcon} size={14} aria-hidden="true" />
 								</button>
-							{/if}
-							{#if onShowGamePass && category.id === InventoryCategory.InventoryGamePasses}
-								<button
-									class="button-icon"
-									type="button"
-									aria-label="Show in Games"
-									aria-busy={inventory.isFindingGamePassPlace}
-									data-tooltip="Show in Games"
-									disabled={inventory.isFindingGamePassPlace}
-									onclick={() => void showGamePass(onShowGamePass)}>
-									<Icon
-										svg={inventory.isFindingGamePassPlace
-											? circleNotchIcon
-											: magnifyingGlassIcon}
-										class={inventory.isFindingGamePassPlace
-											? "spinner"
-											: undefined}
-										size={16}
-										aria-hidden="true" />
-								</button>
-							{/if}
-							{#if canDownload}
-								<button
-									class="button-icon"
-									type="button"
-									aria-label="Download"
-									aria-busy={inventory.isDownloadingItem}
-									data-tooltip="Download"
-									disabled={inventory.isDownloadingItem}
-									onclick={() =>
-										void inventory.downloadItem(item, category.id)}>
-									<Icon
-										svg={inventory.isDownloadingItem
-											? circleNotchIcon
-											: downloadSimpleIcon}
-										class={inventory.isDownloadingItem
-											? "spinner"
-											: undefined}
-										size={16}
-										aria-hidden="true" />
-								</button>
-							{/if}
-							{#if canDelete}
-								<button
-									class="button"
-									type="button"
-									data-begin-deletion
-									disabled={isBusy}
-									onclick={() => void showConfirmation("deletion")}>
-									<Icon
-										svg={trashIcon}
-										size={16}
-										aria-hidden="true" />
-									Delete
-								</button>
-							{/if}
-							<button
-								class="ml-1 button-close"
-								type="button"
-								data-close-item-details
-								aria-label="Close dialog"
-								onclick={close}>
-								<Icon svg={xIcon} size={14} aria-hidden="true" />
-							</button>
+							</div>
 						</div>
-					</div>
-					<div class={metaClass}>
-						<span class="select-text">ID: {item.itemId}</span>
-						<span class="text-fg-faint" aria-hidden="true">·</span>
-						<span>{typeLabel}</span>
-					</div>
-					{#if item.creatorName}
 						<div class={metaClass}>
-							<span class="inline-flex items-center gap-1"
-								>by {item.creatorName}{#if item.creatorHasVerifiedBadge}<Icon
-										svg={sealCheckIcon}
-										size={14}
-										aria-label="Verified creator" />{/if}</span>
-							{#if item.creatorId}
-								<span class="text-fg-faint" aria-hidden="true">·</span>
-								<span class="select-text"
-									>{item.creatorType} ID: {item.creatorId}</span>
-							{/if}
+							<span class="select-text">ID: {item.itemId}</span>
+							<span class="text-fg-faint" aria-hidden="true">·</span>
+							<span>{typeLabel}</span>
 						</div>
-					{/if}
-					{#if market}
-						<p
-							class={[
-								"inline-flex items-center gap-1 text-xs font-medium tabular-nums",
-								market.isForSale ? "text-fg" : "text-fg-muted",
-							]}>
-							<Icon svg={storefrontIcon} size={14} aria-hidden="true" />
-							{priceLabel}
-						</p>
-					{:else if badge}
-						<p
-							class="inline-flex items-center gap-1 text-xs font-medium text-fg tabular-nums">
-							<Icon svg={trophyIcon} size={14} aria-hidden="true" />
-							Won by {percent.format(badge.pastDayWinFraction)} of players yesterday
-						</p>
+						{#if item.creatorName}
+							<div class={metaClass}>
+								<span class="inline-flex items-center gap-1"
+									>by {item.creatorName}{#if item.creatorHasVerifiedBadge}<Icon
+											svg={sealCheckIcon}
+											size={14}
+											aria-label="Verified creator" />{/if}</span>
+								{#if item.creatorId}
+									<span class="text-fg-faint" aria-hidden="true"
+										>·</span>
+									<span class="select-text"
+										>{item.creatorType} ID: {item.creatorId}</span>
+								{/if}
+							</div>
+						{/if}
+						{#if market}
+							<p
+								class={[
+									"inline-flex items-center gap-1 text-xs font-medium tabular-nums",
+									market.isForSale ? "text-fg" : "text-fg-muted",
+								]}>
+								<Icon
+									svg={storefrontIcon}
+									size={14}
+									aria-hidden="true" />
+								{priceLabel}
+							</p>
+						{:else if badge}
+							<p
+								class="inline-flex items-center gap-1 text-xs font-medium text-fg tabular-nums">
+								<Icon svg={trophyIcon} size={14} aria-hidden="true" />
+								Won by {percent.format(badge.pastDayWinFraction)} of players
+								yesterday
+							</p>
+						{/if}
+
+						<ul
+							class="mt-2 flex min-h-6 flex-wrap gap-1"
+							aria-label="Status">
+							{#if isOwnInventory}
+								<li class="tag-pill-success">
+									<Icon
+										svg={checkCircleFillIcon}
+										size={12}
+										aria-hidden="true" />
+									<span>Owned</span>
+								</li>
+							{:else if isOwnedByAccount === undefined}
+								<li class="h-6 w-24 skeleton rounded-sm">
+									<span class="sr-only"
+										>Checking whether you own this</span>
+								</li>
+							{:else if isOwnedByAccount}
+								<li class="tag-pill-success animate-pop">
+									<Icon
+										svg={checkCircleFillIcon}
+										size={12}
+										aria-hidden="true" />
+									<span>You own this</span>
+								</li>
+							{/if}
+							{#if isWorn}
+								<li class="tag-pill-success">
+									<Icon
+										svg={tShirtIcon}
+										size={12}
+										aria-hidden="true" />
+									<span>Worn</span>
+								</li>
+							{/if}
+							{#if market?.isLimited}
+								<li class="tag-pill-warning">
+									<Icon
+										svg={diamondIcon}
+										size={12}
+										aria-hidden="true" />
+									<span>Limited</span>
+								</li>
+							{/if}
+						</ul>
+
+						{#if isPurchasePending}
+							<p class="text-xs text-fg-muted" role="status">
+								Bought. It can take a minute to show up in the
+								inventory.
+							</p>
+						{/if}
+					</div>
+
+					{#if hasMarketSection}
+						<section
+							class="flex flex-col gap-3"
+							aria-labelledby="inventory-item-market">
+							<h3 id="inventory-item-market" class={sectionHeadingClass}>
+								Market
+							</h3>
+							<dl class="facts">
+								{#if market?.lowestResalePriceInRobux != null}
+									{@render fact(
+										tagIcon,
+										"Lowest resale",
+										formatRobux(
+											market.lowestResalePriceInRobux,
+											false,
+										),
+									)}
+								{/if}
+								{#if item.recentAveragePrice !== null}
+									{@render fact(
+										trendUpIcon,
+										"Recent average price",
+										formatRobux(item.recentAveragePrice, false),
+									)}
+								{/if}
+								{#if item.serialNumber !== null}
+									{@render fact(
+										barcodeIcon,
+										"Serial number",
+										`#${exactNumbers.format(item.serialNumber)}`,
+									)}
+								{/if}
+								{#if stockLabel}
+									{@render fact(packageIcon, "Stock", stockLabel)}
+								{/if}
+								{#if isCatalogItem && market}
+									{@render fact(
+										arrowsLeftRightIcon,
+										"Tradable",
+										market.isLimited ? "Yes" : "No",
+									)}
+								{/if}
+								{#if saleLocationLabel}
+									{@render fact(
+										mapPinIcon,
+										"Sold in",
+										saleLocationLabel,
+									)}
+								{/if}
+								{#if market && market.offSaleDeadlineMs > 0}
+									<div data-tone="warning">
+										<dt>
+											<Icon
+												svg={timerIcon}
+												size={16}
+												aria-hidden="true" />Leaves sale
+										</dt>
+										<dd>
+											<Timestamp
+												value={market.offSaleDeadlineMs} />
+											<small
+												>{relativeTime(
+													market.offSaleDeadlineMs,
+												)}</small>
+										</dd>
+									</div>
+								{/if}
+								{#if market?.favoriteCount != null}
+									{@render fact(
+										heartIcon,
+										"Favorites",
+										exactNumbers.format(market.favoriteCount),
+									)}
+								{/if}
+							</dl>
+						</section>
 					{/if}
 
-					<ul class="mt-2 flex min-h-6 flex-wrap gap-1" aria-label="Status">
-						{#if isOwnInventory}
-							<li class="tag-pill-success">
-								<Icon
-									svg={checkCircleFillIcon}
-									size={12}
-									aria-hidden="true" />
-								<span>Owned</span>
-							</li>
-						{:else if isOwnedByAccount === undefined}
-							<li class="h-6 w-24 skeleton rounded-sm">
-								<span class="sr-only"
-									>Checking whether you own this</span>
-							</li>
-						{:else if isOwnedByAccount}
-							<li class="tag-pill-success animate-pop">
-								<Icon
-									svg={checkCircleFillIcon}
-									size={12}
-									aria-hidden="true" />
-								<span>You own this</span>
-							</li>
-						{/if}
-						{#if isWorn}
-							<li class="tag-pill-success">
-								<Icon svg={tShirtIcon} size={12} aria-hidden="true" />
-								<span>Worn</span>
-							</li>
-						{/if}
-						{#if market?.isLimited}
-							<li class="tag-pill-warning">
-								<Icon svg={diamondIcon} size={12} aria-hidden="true" />
-								<span>Limited</span>
-							</li>
-						{/if}
-					</ul>
+					<section
+						class="flex flex-col gap-3"
+						aria-labelledby="inventory-item-details">
+						<h3 id="inventory-item-details" class={sectionHeadingClass}>
+							Details
+						</h3>
+						<dl class="facts">
+							{@render fact(shapesIcon, "Type", typeLabel)}
+							{#if badge}
+								{@render fact(
+									trophyIcon,
+									"Awarded",
+									exactNumbers.format(badge.awardedCount),
+								)}
+								<div>
+									<dt>
+										<Icon
+											svg={gameControllerIcon}
+											size={16}
+											aria-hidden="true" />Game
+									</dt>
+									<dd>
+										{#if details?.awardingGameName}
+											<span>{details.awardingGameName}</span>
+										{:else}
+											{@render missingDetail()}
+										{/if}
+									</dd>
+								</div>
+							{/if}
+							{#if !isBundle}
+								{@render dateFact(
+									clockCounterClockwiseIcon,
+									"Updated",
+									details?.updatedAtMs,
+								)}
+							{/if}
+							{@render dateFact(
+								calendarDotsIcon,
+								"Created",
+								details?.createdAtMs,
+							)}
+							{#if isCatalogItem}
+								{@render detailFact(
+									fingerprintIcon,
+									"Collectible item ID",
+									details?.collectibleItemId,
+								)}
+								{#if !isBundle}
+									{@render detailFact(
+										fingerprintIcon,
+										"Collectible product ID",
+										details?.collectibleProductId,
+									)}
+								{/if}
+							{/if}
+						</dl>
+					</section>
 
-					{#if isPurchasePending}
-						<p class="text-xs text-fg-muted" role="status">
-							Bought. It can take a minute to show up in the inventory.
-						</p>
+					{#if item.description}
+						<section
+							class="flex flex-col gap-3"
+							aria-labelledby="inventory-item-description">
+							<h3
+								id="inventory-item-description"
+								class={sectionHeadingClass}>
+								Description
+							</h3>
+							<p
+								class="max-h-40 text-block overflow-y-auto"
+								data-variant="prose">
+								{item.description}
+							</p>
+						</section>
 					{/if}
 				</div>
 			</div>
-
-			{#if hasMarketSection}
-				<section
-					class="flex flex-col gap-3"
-					aria-labelledby="inventory-item-market">
-					<h3 id="inventory-item-market" class={sectionHeadingClass}>
-						Market
-					</h3>
-					<dl class="facts">
-						{#if market?.lowestResalePriceInRobux != null}
-							{@render fact(
-								tagIcon,
-								"Lowest resale",
-								formatRobux(market.lowestResalePriceInRobux, false),
-							)}
-						{/if}
-						{#if item.recentAveragePrice !== null}
-							{@render fact(
-								trendUpIcon,
-								"Recent average price",
-								formatRobux(item.recentAveragePrice, false),
-							)}
-						{/if}
-						{#if item.serialNumber !== null}
-							{@render fact(
-								barcodeIcon,
-								"Serial number",
-								`#${exactNumbers.format(item.serialNumber)}`,
-							)}
-						{/if}
-						{#if stockLabel}
-							{@render fact(packageIcon, "Stock", stockLabel)}
-						{/if}
-						{#if isCatalogItem && market}
-							{@render fact(
-								arrowsLeftRightIcon,
-								"Tradable",
-								market.isLimited ? "Yes" : "No",
-							)}
-						{/if}
-						{#if saleLocationLabel}
-							{@render fact(mapPinIcon, "Sold in", saleLocationLabel)}
-						{/if}
-						{#if market && market.offSaleDeadlineMs > 0}
-							<div data-tone="warning">
-								<dt>
-									<Icon
-										svg={timerIcon}
-										size={16}
-										aria-hidden="true" />Leaves sale
-								</dt>
-								<dd>
-									<Timestamp value={market.offSaleDeadlineMs} />
-									<small
-										>{relativeTime(
-											market.offSaleDeadlineMs,
-										)}</small>
-								</dd>
-							</div>
-						{/if}
-						{#if market?.favoriteCount != null}
-							{@render fact(
-								heartIcon,
-								"Favorites",
-								exactNumbers.format(market.favoriteCount),
-							)}
-						{/if}
-					</dl>
-				</section>
-			{/if}
-
-			<section
-				class="flex flex-col gap-3"
-				aria-labelledby="inventory-item-details">
-				<h3 id="inventory-item-details" class={sectionHeadingClass}>Details</h3>
-				<dl class="facts">
-					{@render fact(shapesIcon, "Type", typeLabel)}
-					{#if badge}
-						{@render fact(
-							trophyIcon,
-							"Awarded",
-							exactNumbers.format(badge.awardedCount),
-						)}
-						<div>
-							<dt>
-								<Icon
-									svg={gameControllerIcon}
-									size={16}
-									aria-hidden="true" />Game
-							</dt>
-							<dd>
-								{#if details?.awardingGameName}
-									<span>{details.awardingGameName}</span>
-								{:else}
-									{@render missingDetail()}
-								{/if}
-							</dd>
-						</div>
-					{/if}
-					{#if !isBundle}
-						{@render dateFact(
-							clockCounterClockwiseIcon,
-							"Updated",
-							details?.updatedAtMs,
-						)}
-					{/if}
-					{@render dateFact(
-						calendarDotsIcon,
-						"Created",
-						details?.createdAtMs,
-					)}
-					{#if isCatalogItem}
-						{@render detailFact(
-							fingerprintIcon,
-							"Collectible item ID",
-							details?.collectibleItemId,
-						)}
-						{#if !isBundle}
-							{@render detailFact(
-								fingerprintIcon,
-								"Collectible product ID",
-								details?.collectibleProductId,
-							)}
-						{/if}
-					{/if}
-				</dl>
-			</section>
-
-			{#if item.description}
-				<section
-					class="flex flex-col gap-3"
-					aria-labelledby="inventory-item-description">
-					<h3 id="inventory-item-description" class={sectionHeadingClass}>
-						Description
-					</h3>
-					<p class="max-h-40 text-block overflow-y-auto" data-variant="prose">
-						{item.description}
-					</p>
-				</section>
-			{/if}
 
 			{#if canHaveRelatedItems}
 				<section
@@ -1017,8 +1057,8 @@
 						{/if}
 					</h3>
 					{#if relatedItems === undefined}
-						<ul class="grid grid-cols-5 gap-2" aria-busy="true">
-							{#each Array.from({ length: 5 }, (_unused, index) => index) as index (index)}
+						<ul class="grid grid-cols-6 gap-2" aria-busy="true">
+							{#each Array.from({ length: 6 }, (_unused, index) => index) as index (index)}
 								<SkeletonTile />
 							{/each}
 						</ul>
@@ -1046,7 +1086,7 @@
 								: "This item uses no other assets that this account can see."}
 						</p>
 					{:else}
-						<ul class="grid animate-enter grid-cols-5 gap-2">
+						<ul class="grid animate-enter grid-cols-6 gap-2">
 							{#each relatedItems as relatedItem (relatedItem.item.itemId)}
 								<li class="min-w-0">
 									<InventoryItemTile

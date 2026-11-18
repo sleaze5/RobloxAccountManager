@@ -160,7 +160,7 @@
 {/snippet}
 
 <section
-	class="flex w-80 shrink-0 flex-col gap-3 overflow-y-auto border-r border-line-subtle bg-surface p-4"
+	class="flex w-1/3 max-w-lg min-w-80 shrink-0 flex-col gap-3 overflow-y-auto border-r border-line-subtle bg-surface p-4"
 	aria-label="Avatar image">
 	<figure
 		class="relative grid aspect-square w-full place-items-center overflow-hidden rounded-lg border border-line-subtle bg-canvas">

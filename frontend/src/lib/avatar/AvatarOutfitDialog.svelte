@@ -85,14 +85,14 @@
 	}} />
 
 <Dialog
-	class="max-w-3xl text-left"
+	class="max-w-4xl text-left"
 	aria-labelledby="avatar-outfit-title"
 	onBackdropClick={close}>
 	<div class="@container flex flex-col gap-4">
 		<div class="flex items-start gap-4">
-			<div class="flex w-64 shrink-0 flex-col gap-2">
+			<div class="flex w-80 shrink-0 flex-col gap-2">
 				<div
-					class="relative grid size-64 place-items-center overflow-hidden rounded-lg border border-line-subtle bg-canvas">
+					class="relative grid size-80 place-items-center overflow-hidden rounded-lg border border-line-subtle bg-canvas">
 					{#if view === "3D" && details === null}
 						<FrameUnavailable
 							icon={cubeIcon}
