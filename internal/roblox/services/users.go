@@ -114,11 +114,13 @@ func (service *Users) Profile(ctx context.Context, userID int64) (accounts.Ident
 	return accounts.Identity{RobloxUserID: profile.ID, Username: profile.Name, DisplayName: profile.DisplayName, CreatedAt: createdAt.UTC()}, nil
 }
 
-func (service *Users) UserIDFromUsername(ctx context.Context, username string) (int64, error) {
+// UserIDFromUsername finds the user with exactly the username. A banned user
+// is found only with isBannedUserIncluded.
+func (service *Users) UserIDFromUsername(ctx context.Context, username string, isBannedUserIncluded bool) (int64, error) {
 	body, err := json.Marshal(struct {
 		Usernames          []string `json:"usernames"`
 		ExcludeBannedUsers bool     `json:"excludeBannedUsers"`
-	}{Usernames: []string{username}, ExcludeBannedUsers: true})
+	}{Usernames: []string{username}, ExcludeBannedUsers: !isBannedUserIncluded})
 	if err != nil {
 		return 0, fmt.Errorf("encode username lookup: %w", err)
 	}

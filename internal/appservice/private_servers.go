@@ -118,7 +118,7 @@ func (service *Service) AddPrivateServerUser(ctx context.Context, accountID, ser
 	}
 	return service.updatePrivateServer(ctx, accountID, serverID, "private-server-user-add", func(ctx context.Context) (robloxservices.PrivateServerUpdate, error) {
 		if username != "" {
-			id, err := service.users.UserIDFromUsername(ctx, username)
+			id, err := service.users.UserIDFromUsername(ctx, username, false)
 			if err != nil {
 				return robloxservices.PrivateServerUpdate{}, err
 			}

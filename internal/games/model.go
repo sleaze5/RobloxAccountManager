@@ -43,29 +43,33 @@ type PlaceSummary struct {
 }
 
 type Game struct {
-	Place                 Place          `json:"place"`
-	RootPlace             *Place         `json:"rootPlace"`
-	Description           string         `json:"description"`
-	Playing               int64          `json:"playing"`
-	Visits                int64          `json:"visits"`
-	Favorites             int64          `json:"favorites"`
-	UpVotes               int64          `json:"upVotes"`
-	DownVotes             int64          `json:"downVotes"`
-	MaxPlayers            int64          `json:"maxPlayers"`
-	Price                 int64          `json:"price"`
-	Genre                 string         `json:"genre"`
-	Subgenre              string         `json:"subgenre"`
-	AvatarType            string         `json:"avatarType"`
-	Maturity              string         `json:"maturity"`
-	MaturityDescriptors   []string       `json:"maturityDescriptors"`
-	AvatarRules           *AvatarRules   `json:"avatarRules"`
-	Communication         *Communication `json:"communication"`
-	Versions              *PlaceVersions `json:"versions"`
-	Playability           *Playability   `json:"playability"`
-	CopyingAllowed        bool           `json:"copyingAllowed"`
-	PrivateServersAllowed bool           `json:"privateServersAllowed"`
-	CreatedAtMs           int64          `json:"createdAtMs"`
-	UpdatedAtMs           int64          `json:"updatedAtMs"`
+	Place               Place          `json:"place"`
+	RootPlace           *Place         `json:"rootPlace"`
+	Description         string         `json:"description"`
+	Playing             int64          `json:"playing"`
+	Visits              int64          `json:"visits"`
+	Favorites           int64          `json:"favorites"`
+	UpVotes             int64          `json:"upVotes"`
+	DownVotes           int64          `json:"downVotes"`
+	MaxPlayers          int64          `json:"maxPlayers"`
+	Price               int64          `json:"price"`
+	Genre               string         `json:"genre"`
+	Subgenre            string         `json:"subgenre"`
+	AvatarType          string         `json:"avatarType"`
+	Maturity            string         `json:"maturity"`
+	MaturityDescriptors []string       `json:"maturityDescriptors"`
+	AvatarRules         *AvatarRules   `json:"avatarRules"`
+	Communication       *Communication `json:"communication"`
+	Versions            *PlaceVersions `json:"versions"`
+	Playability         *Playability   `json:"playability"`
+	// IsUnlisted reports that the games API no longer lists the game, such
+	// as one that Roblox banned or put under review. Its details come from
+	// the develop API, which lists no player, visit, or favorite counts.
+	IsUnlisted            bool  `json:"isUnlisted"`
+	CopyingAllowed        bool  `json:"copyingAllowed"`
+	PrivateServersAllowed bool  `json:"privateServersAllowed"`
+	CreatedAtMs           int64 `json:"createdAtMs"`
+	UpdatedAtMs           int64 `json:"updatedAtMs"`
 }
 
 type AvatarRules struct {

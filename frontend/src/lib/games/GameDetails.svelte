@@ -80,6 +80,8 @@
 		nameEnd = $derived(place?.name.slice(nameSplit).trimEnd() ?? ""),
 		menuOpen = $derived(!!place && store.menu?.place.placeId === place.placeId),
 		rootPlace = $derived(game?.rootPlace ?? null),
+		// The develop API lists an unlisted game without its counts and genre.
+		listedGame = $derived(game?.isUnlisted ? undefined : game),
 		// Badges and game passes belong to the universe, so subplaces hide them.
 		// Disabled until details load, so the header doesn't shift.
 		hasUniverseButtons = $derived(!rootPlace),
@@ -89,7 +91,9 @@
 		votes = $derived(game ? game.upVotes + game.downVotes : 0),
 		likeShare = $derived(game && votes ? game.upVotes / votes : 0),
 		genre = $derived(
-			game && ([game.genre, game.subgenre].filter(Boolean).join("; ") || "None"),
+			listedGame &&
+				([listedGame.genre, listedGame.subgenre].filter(Boolean).join("; ") ||
+					"None"),
 		),
 		contentRating = $derived(
 			game &&
@@ -115,19 +119,19 @@
 						? `${count(game.upVotes, "like", "likes")} · ${count(game.downVotes, "dislike", "dislikes")}`
 						: "",
 			},
-			{ label: "Visits", icon: eyeIcon, value: exact(game?.visits) },
+			{ label: "Visits", icon: eyeIcon, value: exact(listedGame?.visits) },
 			{
 				label: "Favorites",
 				icon: starIcon,
-				value: exact(game?.favorites),
+				value: exact(listedGame?.favorites),
 			},
 			{
 				label: "Server capacity",
 				icon: usersThreeIcon,
 				value:
-					game?.maxPlayers === undefined
+					listedGame?.maxPlayers === undefined
 						? undefined
-						: count(game.maxPlayers, "player", "players"),
+						: count(listedGame.maxPlayers, "player", "players"),
 			},
 		]),
 		details = $derived<Fact[]>([
@@ -418,21 +422,21 @@
 								<Icon svg={pulseIcon} size={14} aria-hidden="true" />
 								<Skeleton className="w-20" label="Loading players…" />
 							</p>
-						{:else if game}
+						{:else if listedGame}
 							<p
 								class={[
 									"inline-flex items-center gap-1 text-xs font-medium tabular-nums",
-									game.playing > 0
+									listedGame.playing > 0
 										? "text-presence-game"
 										: "text-fg-muted",
 								]}>
 								<Icon svg={pulseIcon} size={14} aria-hidden="true" />
-								{numbers.format(game.playing)} playing{rootPlace
+								{numbers.format(listedGame.playing)} playing{rootPlace
 									? " in this universe"
 									: ""}
 							</p>
 						{/if}
-						{#if game?.playability && !game.playability.isPlayable}
+						{#if (game?.playability && !game.playability.isPlayable) || game?.isUnlisted}
 							<p
 								class="flex animate-enter flex-wrap items-center gap-x-2 gap-y-1 text-xs text-fg-muted">
 								<span class="tag-pill-warning">
@@ -441,15 +445,21 @@
 										size={12}
 										aria-hidden="true" />
 									<span
-										>{game.playability.isUnderReview
+										>{game.playability?.isUnderReview
 											? "Under review"
-											: "Unplayable"}</span>
+											: game.playability &&
+												  !game.playability.isPlayable
+												? "Unplayable"
+												: "Unavailable"}</span>
 								</span>
 								<span
-									>{game.playability.message ||
-										(game.playability.isUnderReview
+									>{game.playability?.message ||
+										(game.playability?.isUnderReview
 											? "Roblox put this game under review, so no one can join it."
-											: "This account cannot join this game.")}</span>
+											: game.playability &&
+												  !game.playability.isPlayable
+												? "This account cannot join this game."
+												: "Roblox no longer lists this game, so its player counts are unavailable.")}</span>
 							</p>
 						{/if}
 					</div>

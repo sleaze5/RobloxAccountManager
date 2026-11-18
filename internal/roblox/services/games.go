@@ -478,6 +478,9 @@ func (service *Games) details(ctx context.Context, universeIDs []int64) (map[int
 		}
 		gamesByUniverseID[universe.ID] = game
 	}
+	if err := service.addUnlistedGames(ctx, universeIDs, gamesByUniverseID); err != nil {
+		return nil, err
+	}
 	if len(gamesByUniverseID) == 0 {
 		return gamesByUniverseID, nil
 	}
@@ -494,6 +497,58 @@ func (service *Games) details(ctx context.Context, universeIDs []int64) (map[int
 		service.cache.SavePlace(ctx, game.Place)
 	}
 	return gamesByUniverseID, nil
+}
+
+// addUnlistedGames reads the requested games that the games API left out,
+// such as a banned game, from the develop API, which still lists them, as
+// RoSeal and RoValra read them. A failed read leaves the games out, and only
+// a cancelled context returns an error.
+func (service *Games) addUnlistedGames(ctx context.Context, universeIDs []int64, gamesByUniverseID map[int64]games.Game) error {
+	parameters := url.Values{}
+	requested := make(map[int64]bool, len(universeIDs))
+	for _, universeID := range universeIDs {
+		if _, isListed := gamesByUniverseID[universeID]; !isListed {
+			parameters.Add("ids", strconv.FormatInt(universeID, 10))
+			requested[universeID] = true
+		}
+	}
+	if len(requested) == 0 {
+		return nil
+	}
+	var payload struct {
+		Data []struct {
+			ID              int64     `json:"id"`
+			RootPlaceID     int64     `json:"rootPlaceId"`
+			Name            string    `json:"name"`
+			Description     string    `json:"description"`
+			CreatorType     string    `json:"creatorType"`
+			CreatorTargetID int64     `json:"creatorTargetId"`
+			CreatorName     string    `json:"creatorName"`
+			Created         time.Time `json:"created"`
+			Updated         time.Time `json:"updated"`
+		} `json:"data"`
+	}
+	if err := service.get(ctx, "game-unlisted-details", "develop.roblox.com", "/v1/universes/multiget", parameters, &payload); err != nil {
+		if ctx.Err() != nil {
+			return ctx.Err()
+		}
+		service.logger.WarnContext(ctx, "unlisted game details unavailable", "operation", "game-unlisted-details", "error", err)
+		return nil
+	}
+	for _, universe := range payload.Data {
+		if !requested[universe.ID] || !games.ValidID(universe.RootPlaceID) || strings.TrimSpace(universe.Name) == "" {
+			continue
+		}
+		place := games.Place{PlaceID: universe.RootPlaceID, UniverseID: universe.ID, Name: universe.Name, CreatorName: universe.CreatorName}
+		if validGameCreator(universe.CreatorTargetID, universe.CreatorType) {
+			place.CreatorID, place.CreatorType = universe.CreatorTargetID, universe.CreatorType
+		}
+		gamesByUniverseID[universe.ID] = games.Game{
+			Place: place, Description: universe.Description, IsUnlisted: true,
+			CreatedAtMs: gameTimestamp(universe.Created), UpdatedAtMs: gameTimestamp(universe.Updated),
+		}
+	}
+	return nil
 }
 
 func (service *Games) placeIcons(ctx context.Context, placeIDs []int64) (map[int64]string, error) {

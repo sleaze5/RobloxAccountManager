@@ -208,11 +208,34 @@ func (service *Service) SearchPlayers(ctx context.Context, accountID int64, keyw
 	if err != nil {
 		return SocialPage{}, socialFailure(logger, err)
 	}
+	if match == nil && cursor == "" {
+		entries.userIDs = service.withExactUsernameFirst(ctx, logger, keyword, entries.userIDs)
+	}
 	account, err := service.accountRepository.GetView(ctx, accountID)
 	if err != nil {
 		return SocialPage{}, mapRepositoryError(err)
 	}
 	return service.socialPage(ctx, accountID, version, logger, entries, socialPageReads{presence: true, selfUserID: account.RobloxUserID})
+}
+
+// withExactUsernameFirst puts the user whose username is the keyword first,
+// even a banned user, whom the search leaves out. Without such a user, or
+// when the lookup fails, the search results stay as they are.
+func (service *Service) withExactUsernameFirst(ctx context.Context, logger *slog.Logger, keyword string, userIDs []int64) []int64 {
+	username := strings.TrimPrefix(keyword, "@")
+	if !playerUsername.MatchString(username) {
+		return userIDs
+	}
+	exactUserID, err := service.users.UserIDFromUsername(ctx, username, true)
+	if errors.Is(err, robloxservices.ErrUsernameNotFound) {
+		return userIDs
+	}
+	if err != nil {
+		logger.WarnContext(ctx, "could not look up the exact username", "error", err)
+		return userIDs
+	}
+	otherUserIDs := slices.DeleteFunc(slices.Clone(userIDs), func(userID int64) bool { return userID == exactUserID })
+	return append([]int64{exactUserID}, otherUserIDs...)
 }
 
 // playerByID returns the user ID when Roblox knows the user, or no IDs.
@@ -824,7 +847,7 @@ func (service *Service) FindPlayerByUsername(ctx context.Context, username strin
 	if !playerUsername.MatchString(username) {
 		return nil, nil
 	}
-	userID, err := service.users.UserIDFromUsername(ctx, username)
+	userID, err := service.users.UserIDFromUsername(ctx, username, false)
 	if errors.Is(err, robloxservices.ErrUsernameNotFound) {
 		return nil, nil
 	}

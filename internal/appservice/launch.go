@@ -262,7 +262,7 @@ func (service *Service) resolveLaunchUser(ctx context.Context, accountID int64, 
 	userID := target.UserID
 	if target.Username != "" {
 		var err error
-		userID, err = service.users.UserIDFromUsername(ctx, target.Username)
+		userID, err = service.users.UserIDFromUsername(ctx, target.Username, false)
 		if err != nil {
 			return gamelaunch.Request{}, err
 		}
