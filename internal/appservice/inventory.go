@@ -108,12 +108,17 @@ func (service *Service) GetInventoryItemDetails(ctx context.Context, accountID i
 		logger.WarnContext(ctx, "item details unavailable", "error", err)
 		return robloxservices.InventoryItemDetails{}, err
 	}
-	if target, ok := robloxservices.LargeImageTarget(category, itemID); ok {
-		images, err := service.thumbnails.Images(ctx, []robloxservices.ThumbnailTarget{target}, robloxservices.LargeThumbnailSize)
+	if target, ok := robloxservices.LargeImageTarget(category, itemID); ok && details.Availability != robloxservices.ItemDeleted {
+		thumbnails, err := service.thumbnails.Thumbnails(ctx, []robloxservices.ThumbnailTarget{target}, robloxservices.LargeThumbnailSize)
 		if err != nil {
 			logger.WarnContext(ctx, "item large image unavailable", "error", err)
 		}
-		details.LargeImageURL = images[target]
+		// Roblox blocks the image of an item that it moderated, even while the
+		// economy API still lists the item.
+		if thumbnails[target].IsBlocked {
+			details = details.Unavailable(robloxservices.ItemModerated)
+		}
+		details.LargeImageURL = thumbnails[target].ImageURL
 	}
 	return details, nil
 }

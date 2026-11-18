@@ -116,6 +116,30 @@ const (
 // Images reads one image of the size per target. Targets that Roblox cannot
 // render are left out of the map.
 func (service *Thumbnails) Images(ctx context.Context, targets []ThumbnailTarget, size string) (map[ThumbnailTarget]string, error) {
+	thumbnails, err := service.Thumbnails(ctx, targets, size)
+	if err != nil {
+		return nil, err
+	}
+	images := make(map[ThumbnailTarget]string, len(thumbnails))
+	for target, thumbnail := range thumbnails {
+		if thumbnail.ImageURL != "" {
+			images[target] = thumbnail.ImageURL
+		}
+	}
+	return images, nil
+}
+
+// Thumbnail is the image of one target. IsBlocked reports that Roblox
+// blocked the image, which it does for an item that it moderated, as RoSeal
+// reads it. ImageURL is empty for a blocked image.
+type Thumbnail struct {
+	ImageURL  string
+	IsBlocked bool
+}
+
+// Thumbnails reads one image of the size per target, and whether Roblox
+// blocked it. Targets that Roblox renders later or not at all are left out.
+func (service *Thumbnails) Thumbnails(ctx context.Context, targets []ThumbnailTarget, size string) (map[ThumbnailTarget]Thumbnail, error) {
 	if len(targets) > maxHeadshotIDs {
 		return nil, &roblox.Error{Kind: roblox.KindProtocol, Endpoint: "thumbnails-batch", Message: "Too many images were requested."}
 	}
@@ -138,7 +162,7 @@ func (service *Thumbnails) Images(ctx context.Context, targets []ThumbnailTarget
 		requests = append(requests, batchRequest{RequestID: requestID, TargetID: target.TargetID, Type: target.Type, Size: size, Format: "Png"})
 	}
 	endpoint := &url.URL{Scheme: "https", Host: "thumbnails.roblox.com", Path: "/v1/batch"}
-	images := make(map[ThumbnailTarget]string, len(requests))
+	thumbnails := make(map[ThumbnailTarget]Thumbnail, len(requests))
 	for batch := range slices.Chunk(requests, headshotBatchSize) {
 		body, err := json.Marshal(batch)
 		if err != nil {
@@ -164,12 +188,16 @@ func (service *Thumbnails) Images(ctx context.Context, targets []ThumbnailTarget
 		}
 		for _, image := range payload.Data {
 			target, requested := targetByRequestID[image.RequestID]
-			if requested && strings.EqualFold(image.State, "Completed") && safeThumbnailURL(image.ImageURL) {
-				images[target] = image.ImageURL
+			switch {
+			case !requested:
+			case strings.EqualFold(image.State, "Blocked"):
+				thumbnails[target] = Thumbnail{IsBlocked: true}
+			case strings.EqualFold(image.State, "Completed") && safeThumbnailURL(image.ImageURL):
+				thumbnails[target] = Thumbnail{ImageURL: image.ImageURL}
 			}
 		}
 	}
-	return images, nil
+	return thumbnails, nil
 }
 
 func safeThumbnailURL(imageURL string) bool {

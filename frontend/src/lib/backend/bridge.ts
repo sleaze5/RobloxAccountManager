@@ -84,6 +84,7 @@ export {
 	FriendStatus,
 	InventoryCategory,
 	InventorySaleLocation,
+	ItemAvailability,
 	PresenceType,
 	TextModeration,
 	TrustedStatus,

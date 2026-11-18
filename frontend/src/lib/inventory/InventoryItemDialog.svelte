@@ -8,6 +8,7 @@
 	import clockCounterClockwiseIcon from "@phosphor-icons/core/regular/clock-counter-clockwise.svg?raw"
 	import circleNotchIcon from "@phosphor-icons/core/regular/circle-notch.svg?raw"
 	import diamondIcon from "@phosphor-icons/core/regular/diamond.svg?raw"
+	import prohibitIcon from "@phosphor-icons/core/regular/prohibit.svg?raw"
 	import cubeIcon from "@phosphor-icons/core/regular/cube.svg?raw"
 	import downloadSimpleIcon from "@phosphor-icons/core/regular/download-simple.svg?raw"
 	import fileArrowDownIcon from "@phosphor-icons/core/regular/file-arrow-down.svg?raw"
@@ -34,6 +35,7 @@
 		CatalogItemType,
 		InventoryCategory,
 		InventorySaleLocation,
+		ItemAvailability,
 	} from "../backend/bridge"
 	import type {
 		GamePlace,
@@ -181,6 +183,11 @@
 		canTryOn = $derived(!!details?.canTryOn),
 		canHaveRelatedItems = $derived(!!details?.canHaveRelatedItems),
 		canDownload = $derived(!!details?.canDownload),
+		// Whether Roblox moderated or deleted the item.
+		isRemoved = $derived(
+			details?.availability === ItemAvailability.ItemModerated ||
+				details?.availability === ItemAvailability.ItemDeleted,
+		),
 		// The file of the item, and the 3D model that Roblox renders of it with
 		// its textures, which 3D programs open.
 		downloadActions = $derived<MenuAction[]>([
@@ -888,6 +895,15 @@
 						<ul
 							class="mt-2 flex min-h-6 flex-wrap gap-1"
 							aria-label="Status">
+							{#if isRemoved}
+								<li class="tag-pill-warning animate-pop">
+									<Icon
+										svg={prohibitIcon}
+										size={12}
+										aria-hidden="true" />
+									<span>Deleted</span>
+								</li>
+							{/if}
 							{#if isOwnInventory}
 								<li class="tag-pill-success">
 									<Icon
@@ -929,6 +945,18 @@
 								</li>
 							{/if}
 						</ul>
+
+						{#if details?.availability === ItemAvailability.ItemModerated}
+							<p class="text-xs text-fg-muted">
+								Roblox moderated this item and deleted its content, so
+								its image, file, and 3D model are gone.
+							</p>
+						{:else if details?.availability === ItemAvailability.ItemDeleted}
+							<p class="text-xs text-fg-muted">
+								Roblox deleted this item. Only the name and type from
+								the list remain.
+							</p>
+						{/if}
 
 						{#if isPurchasePending}
 							<p class="text-xs text-fg-muted" role="status">

@@ -2,6 +2,8 @@ package services
 
 import (
 	"context"
+	"errors"
+	"net/http"
 	"strconv"
 
 	"github.com/sleaze5/RobloxAccountManager/internal/roblox"
@@ -29,6 +31,29 @@ type InventoryItemDetails struct {
 	CanHaveRelatedItems bool `json:"canHaveRelatedItems"`
 	// CanDownload reports whether the account can save the file of the item.
 	CanDownload bool `json:"canDownload"`
+	// Availability tells whether Roblox moderated or deleted the item.
+	Availability ItemAvailability `json:"availability"`
+}
+
+// ItemAvailability tells whether Roblox still has an item.
+type ItemAvailability string
+
+const (
+	ItemAvailable ItemAvailability = "available"
+	// ItemModerated is an item that Roblox moderated and deleted the content
+	// of, whose name and dates remain.
+	ItemModerated ItemAvailability = "moderated"
+	// ItemDeleted is an asset that Roblox lists nowhere anymore.
+	ItemDeleted ItemAvailability = "deleted"
+)
+
+// Unavailable returns the details of an item that Roblox moderated or
+// deleted, which has no model, file, or related items left, and which an
+// avatar cannot try on.
+func (details InventoryItemDetails) Unavailable(availability ItemAvailability) InventoryItemDetails {
+	details.Availability = availability
+	details.HasModel, details.CanTryOn, details.CanHaveRelatedItems, details.CanDownload = false, false, false, false
+	return details
 }
 
 // inventoryItemType is the item type that the inventory ownership API takes.
@@ -97,10 +122,17 @@ func (service *Users) InventoryItemDetails(ctx context.Context, accountID, versi
 	if err != nil {
 		return InventoryItemDetails{}, err
 	}
+	// Only the details of an asset tell that Roblox moderated or deleted it.
+	if details.Availability == "" {
+		details.Availability = ItemAvailable
+	}
 	details.HasModel = hasModelView(category)
 	details.CanTryOn = canTryOn(category)
 	details.CanHaveRelatedItems = category == InventoryBundles || hasDependencies(category)
 	details.CanDownload = canDownload(category)
+	if details.Availability != ItemAvailable {
+		details = details.Unavailable(details.Availability)
+	}
 	return details, nil
 }
 
@@ -168,7 +200,11 @@ func (service *Users) assetItemDetails(ctx context.Context, accountID, version i
 		CollectibleItemID    string `json:"CollectibleItemId"`
 		CollectibleProductID string `json:"CollectibleProductId"`
 	}
-	if err := service.readAccountDetails(ctx, accountID, version, "inventory-asset-details", "https://economy.roblox.com/v2/assets/"+assetID+"/details", &payload); err != nil {
+	err := service.readAccountDetails(ctx, accountID, version, "inventory-asset-details", "https://economy.roblox.com/v2/assets/"+assetID+"/details", &payload)
+	if remote, isRemote := errors.AsType[*roblox.Error](err); isRemote && (remote.Status == http.StatusBadRequest || remote.Status == http.StatusNotFound) {
+		return service.developAssetItemDetails(ctx, accountID, version, assetID, err)
+	}
+	if err != nil {
 		return InventoryItemDetails{}, err
 	}
 	return InventoryItemDetails{
@@ -176,6 +212,38 @@ func (service *Users) assetItemDetails(ctx context.Context, accountID, version i
 		CollectibleItemID:    boundedText(payload.CollectibleItemID, maxInventoryItemNameLength),
 		CollectibleProductID: boundedText(payload.CollectibleProductID, maxInventoryItemNameLength),
 	}, nil
+}
+
+// developAssetItemDetails reads the details of an asset that the economy API
+// no longer lists from the develop API, which still lists a hidden or
+// moderated asset, as RoSeal reads it. An asset that neither lists is
+// deleted. economyError is returned when the develop API fails too.
+func (service *Users) developAssetItemDetails(ctx context.Context, accountID, version int64, assetID string, economyError error) (InventoryItemDetails, error) {
+	var payload struct {
+		Data []struct {
+			ID          int64  `json:"id"`
+			Created     string `json:"created"`
+			Updated     string `json:"updated"`
+			IsModerated bool   `json:"isModerated"`
+		} `json:"data"`
+	}
+	if err := service.readAccountDetails(ctx, accountID, version, "inventory-asset-develop-details", "https://develop.roblox.com/v1/assets?assetIds="+assetID, &payload); err != nil {
+		return InventoryItemDetails{}, economyError
+	}
+	for _, listedAsset := range payload.Data {
+		if strconv.FormatInt(listedAsset.ID, 10) != assetID {
+			continue
+		}
+		availability := ItemAvailable
+		if listedAsset.IsModerated {
+			availability = ItemModerated
+		}
+		return InventoryItemDetails{
+			CreatedAtMs: robloxTimeMs(listedAsset.Created), UpdatedAtMs: robloxTimeMs(listedAsset.Updated),
+			Availability: availability,
+		}, nil
+	}
+	return InventoryItemDetails{Availability: ItemDeleted}, nil
 }
 
 // bundleDetailsPayload is a bundle as the catalog details API lists it. The
