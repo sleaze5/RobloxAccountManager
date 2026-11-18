@@ -12,7 +12,7 @@
 	import { searchTerms } from "../shared/search"
 	import SkeletonTile from "../shared/SkeletonTile.svelte"
 	import { emoteCategory, wearableCategories } from "./avatar-categories"
-	import { isWornInDraft } from "./avatar-draft"
+	import { fullWearLimitOf, isWearableType, isWornInDraft } from "./avatar-draft"
 	import type { AvatarState } from "./avatar-state.svelte"
 
 	let {
@@ -63,16 +63,25 @@
 		itemsElement?.scrollTo({ top: 0 })
 	}
 
-	function maxWornCountOf(item: InventoryItem): number {
-		return avatar.maxWornCountByTypeName[item.typeName] ?? 0
+	// canPutOn tells whether the item can go on the avatar: Roblox allows the
+	// type, and the avatar has room within the limits.
+	function canPutOn(item: InventoryItem): boolean {
+		return (
+			isWearableType(avatar.wearLimits, item.typeName) &&
+			!(draft && fullWearLimitOf(draft, item, avatar.wearLimits))
+		)
 	}
 
 	function actionLabelOf(item: InventoryItem): string {
 		if (emoteSlot !== null) return `Put in slot ${emoteSlot}`
 		if (draft && isWornInDraft(draft, item.itemId)) return "Take off"
-		return maxWornCountOf(item) > 0
-			? "Put on"
-			: "Roblox does not allow this type on avatars"
+		if (!isWearableType(avatar.wearLimits, item.typeName)) {
+			return "Roblox does not allow this type on avatars"
+		}
+		const fullLimit = draft && fullWearLimitOf(draft, item, avatar.wearLimits)
+		return fullLimit
+			? `The avatar wears ${exactNumbers.format(fullLimit.maxWornCount)} ${fullLimit.label}, the most Roblox allows. Take one off first.`
+			: "Put on"
 	}
 
 	function pick(item: InventoryItem): void {
@@ -237,7 +246,7 @@
 										{isWorn}
 										isDisabled={emoteSlot === null &&
 											!isWorn &&
-											maxWornCountOf(item) === 0}
+											!canPutOn(item)}
 										actionLabel={actionLabelOf(item)}
 										onOpen={pick} />
 								</li>

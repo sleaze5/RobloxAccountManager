@@ -118,6 +118,7 @@ export type {
 	AvatarScaleLimit,
 	AvatarScales,
 	AvatarVector,
+	AvatarWearLimit,
 	InventoryItem,
 	InventoryItemDetails,
 	InventoryItemLook,

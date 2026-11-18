@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"math"
 	"net/http"
 	"net/url"
@@ -159,15 +160,119 @@ type AvatarPaletteColor struct {
 type AvatarRules struct {
 	ScaleLimits      AvatarScaleLimits    `json:"scaleLimits"`
 	BodyColorPalette []AvatarPaletteColor `json:"bodyColorPalette"`
-	// MaxWornCountByTypeName holds every asset type that the account may
-	// wear, by the type names of InventoryItem.TypeName.
-	MaxWornCountByTypeName map[string]int `json:"maxWornCountByTypeName"`
+	// WearLimits covers every asset type that the account may wear, by the
+	// type names of InventoryItem.TypeName.
+	WearLimits []AvatarWearLimit `json:"wearLimits"`
 	// IsBodyShapeEnabled tells whether the account may change the proportion
 	// and body type scales.
 	IsBodyShapeEnabled bool `json:"isBodyShapeEnabled"`
 	// AccessoryAdjustmentLimitsByTypeName holds every accessory type that the
 	// account may adjust, by the type names of InventoryItem.TypeName.
 	AccessoryAdjustmentLimitsByTypeName map[string]AvatarAccessoryAdjustmentLimits `json:"accessoryAdjustmentLimitsByTypeName"`
+}
+
+// AvatarWearLimit is how many assets of the types an avatar may wear at once.
+// Label names the assets in a message, such as "accessories".
+type AvatarWearLimit struct {
+	TypeNames    []string `json:"typeNames"`
+	MaxWornCount int      `json:"maxWornCount"`
+	Label        string   `json:"label"`
+}
+
+// sharedWearLimits are the limits that Roblox checks when it saves an avatar,
+// shared by several types. The avatar rules list lower counts per type, such
+// as three hats and one hair, which the Roblox app enforces by replacing the
+// worn item. A save through the website's Advanced editor accepts any mix
+// within these totals. A hair counts as an accessory and as layered clothing.
+// The limits follow the checks of RoAvatar Renderer 1.10.3 and the Roblox
+// developer forum, and were not checked against a save.
+var sharedWearLimits = []AvatarWearLimit{
+	{
+		TypeNames:    []string{"Hat", "HairAccessory", "FaceAccessory", "NeckAccessory", "ShoulderAccessory", "FrontAccessory", "BackAccessory", "WaistAccessory"},
+		MaxWornCount: 10, Label: "accessories",
+	},
+	{
+		TypeNames:    []string{"TShirtAccessory", "ShirtAccessory", "PantsAccessory", "JacketAccessory", "SweaterAccessory", "ShortsAccessory", "LeftShoeAccessory", "RightShoeAccessory", "DressSkirtAccessory", "HairAccessory"},
+		MaxWornCount: 10, Label: "layered clothing items",
+	},
+	{TypeNames: []string{"FaceMakeup", "LipMakeup", "EyeMakeup"}, MaxWornCount: 6, Label: "makeup items"},
+}
+
+// wearLimitsOf lists the shared limits of the wearable types, and a limit of
+// its own for each other type, with the count that the rules list.
+func wearLimitsOf(payload avatarRulesPayload) []AvatarWearLimit {
+	wearableTypeNames := make([]string, 0, len(payload.WearableAssetTypes))
+	maxWornCountByTypeName := make(map[string]int, len(payload.WearableAssetTypes))
+	for _, wearableType := range payload.WearableAssetTypes {
+		if wearableType.MaxNumber > 0 {
+			typeName := ruleTypeNameReplacer.Replace(wearableType.Name)
+			wearableTypeNames = append(wearableTypeNames, typeName)
+			maxWornCountByTypeName[typeName] = wearableType.MaxNumber
+		}
+	}
+	limits := make([]AvatarWearLimit, 0, len(wearableTypeNames))
+	sharedTypeNames := make(map[string]bool)
+	for _, sharedLimit := range sharedWearLimits {
+		// A type that the rules no longer list as wearable stays off the avatar.
+		limit := AvatarWearLimit{MaxWornCount: sharedLimit.MaxWornCount, Label: sharedLimit.Label}
+		for _, typeName := range sharedLimit.TypeNames {
+			if _, isWearable := maxWornCountByTypeName[typeName]; isWearable {
+				limit.TypeNames = append(limit.TypeNames, typeName)
+				sharedTypeNames[typeName] = true
+			}
+		}
+		if len(limit.TypeNames) > 0 {
+			limits = append(limits, limit)
+		}
+	}
+	for _, typeName := range wearableTypeNames {
+		if !sharedTypeNames[typeName] {
+			limits = append(limits, AvatarWearLimit{TypeNames: []string{typeName}, MaxWornCount: maxWornCountByTypeName[typeName]})
+		}
+	}
+	return limits
+}
+
+// assetsWearing lists the worn assets with the asset put on. Items stack: a
+// full limit of one item swaps the worn item for the new one, and any other
+// full limit keeps the asset off, which returns the limit.
+func assetsWearing(wornAssets []AvatarAsset, putOnAsset AvatarAsset, limits []AvatarWearLimit) ([]AvatarAsset, *AvatarWearLimit) {
+	assetID, typeName := putOnAsset.Item.ItemID, putOnAsset.Item.TypeName
+	if slices.ContainsFunc(wornAssets, func(asset AvatarAsset) bool { return asset.Item.ItemID == assetID }) {
+		return wornAssets, nil
+	}
+	var swappedTypeNames []string
+	for index := range limits {
+		limit := &limits[index]
+		if !slices.Contains(limit.TypeNames, typeName) {
+			continue
+		}
+		wornCount := 0
+		for _, asset := range wornAssets {
+			if slices.Contains(limit.TypeNames, asset.Item.TypeName) {
+				wornCount++
+			}
+		}
+		switch {
+		case wornCount < limit.MaxWornCount:
+		case limit.MaxWornCount == 1 && len(limit.TypeNames) == 1:
+			swappedTypeNames = append(swappedTypeNames, typeName)
+		default:
+			return wornAssets, limit
+		}
+	}
+	assets := make([]AvatarAsset, 0, len(wornAssets)+1)
+	for _, asset := range wornAssets {
+		if !slices.Contains(swappedTypeNames, asset.Item.TypeName) {
+			assets = append(assets, asset)
+		}
+	}
+	return append(assets, putOnAsset), nil
+}
+
+// wearLimitError says which limit keeps an asset off the avatar.
+func wearLimitError(endpoint string, limit *AvatarWearLimit) error {
+	return &roblox.Error{Kind: roblox.KindProtocol, Endpoint: endpoint, Message: fmt.Sprintf("The avatar already wears %d %s, the most that Roblox allows. Take one off on the Avatar page to try this item on.", limit.MaxWornCount, limit.Label)}
 }
 
 // AvatarOutfit is an outfit that a user saved.
@@ -358,7 +463,7 @@ func (service *Users) AvatarRules(ctx context.Context, accountID, version int64)
 	rules := AvatarRules{
 		ScaleLimits:                         *payload.Scales,
 		BodyColorPalette:                    make([]AvatarPaletteColor, 0, len(payload.BodyColorsPalette)),
-		MaxWornCountByTypeName:              make(map[string]int, len(payload.WearableAssetTypes)),
+		WearLimits:                          wearLimitsOf(payload),
 		IsBodyShapeEnabled:                  payload.ProportionsAndBodyTypeEnabledForUser,
 		AccessoryAdjustmentLimitsByTypeName: accessoryAdjustmentLimitsOf(payload),
 	}
@@ -367,11 +472,6 @@ func (service *Users) AvatarRules(ctx context.Context, accountID, version int64)
 			rules.BodyColorPalette = append(rules.BodyColorPalette, AvatarPaletteColor{
 				BrickColorID: max(listedColor.BrickColorID, 0), Name: boundedText(listedColor.Name, maxInventoryItemNameLength), HexColor: hexColor,
 			})
-		}
-	}
-	for _, wearableType := range payload.WearableAssetTypes {
-		if wearableType.MaxNumber > 0 {
-			rules.MaxWornCountByTypeName[ruleTypeNameReplacer.Replace(wearableType.Name)] = wearableType.MaxNumber
 		}
 	}
 	return rules, nil
@@ -402,9 +502,10 @@ func (service *Users) TryOnAvatar(ctx context.Context, accountID, version int64,
 }
 
 // savedAvatarWearing returns the saved avatar of the account with the asset
-// put on, such as an accessory or an animation.
+// put on, such as an accessory or an animation, by the rules of the avatar
+// editor of the app.
 func (service *Users) savedAvatarWearing(ctx context.Context, accountID, version int64, endpoint string, category InventoryCategory, assetID int64) (Avatar, error) {
-	typeName, maxWornCount, err := service.wearableAssetTypeOf(ctx, accountID, version, endpoint, assetID)
+	typeName, limits, err := service.wearableAssetTypeOf(ctx, accountID, version, endpoint, assetID)
 	if err != nil {
 		return Avatar{}, err
 	}
@@ -413,7 +514,11 @@ func (service *Users) savedAvatarWearing(ctx context.Context, accountID, version
 		return Avatar{}, err
 	}
 	triedAsset := AvatarAsset{Category: category, Item: avatarItem(assetID, "", typeName)}
-	avatar.Assets = assetsWearing(avatar.Assets, triedAsset, maxWornCount)
+	assets, fullLimit := assetsWearing(avatar.Assets, triedAsset, limits)
+	if fullLimit != nil {
+		return Avatar{}, wearLimitError(endpoint, fullLimit)
+	}
+	avatar.Assets = assets
 	return avatar, nil
 }
 
@@ -426,50 +531,25 @@ func (service *Users) savedAvatar(ctx context.Context, accountID, version int64,
 	return avatarOf(current)
 }
 
-// wearableAssetTypeOf reads the type name of the asset and how many assets of
-// the type an avatar may wear, or fails when an avatar cannot wear it.
-func (service *Users) wearableAssetTypeOf(ctx context.Context, accountID, version int64, endpoint string, assetID int64) (string, int, error) {
+// wearableAssetTypeOf reads the type name of the asset and the wear limits of
+// the account, or fails when an avatar cannot wear the asset.
+func (service *Users) wearableAssetTypeOf(ctx context.Context, accountID, version int64, endpoint string, assetID int64) (string, []AvatarWearLimit, error) {
 	rules, err := service.readAvatarRules(ctx, accountID, version, endpoint)
 	if err != nil {
-		return "", 0, err
+		return "", nil, err
 	}
 	var assetDetails struct {
 		AssetTypeID int64 `json:"AssetTypeId"`
 	}
 	if err := service.readAccountDetails(ctx, accountID, version, endpoint, "https://economy.roblox.com/v2/assets/"+strconv.FormatInt(assetID, 10)+"/details", &assetDetails); err != nil {
-		return "", 0, err
+		return "", nil, err
 	}
 	for _, wearableType := range rules.WearableAssetTypes {
 		if wearableType.ID == assetDetails.AssetTypeID && wearableType.MaxNumber > 0 {
-			return ruleTypeNameReplacer.Replace(wearableType.Name), wearableType.MaxNumber, nil
+			return ruleTypeNameReplacer.Replace(wearableType.Name), wearLimitsOf(rules), nil
 		}
 	}
-	return "", 0, &roblox.Error{Kind: roblox.KindProtocol, Endpoint: endpoint, Message: "Roblox does not allow this item on avatars."}
-}
-
-// assetsWearing lists the worn assets with the tried asset put on. When the
-// avatar already wears as many assets of the type as Roblox allows, the tried
-// asset replaces the ones that the avatar lists first.
-func assetsWearing(wornAssets []AvatarAsset, triedAsset AvatarAsset, maxWornCount int) []AvatarAsset {
-	typeName, assetID := triedAsset.Item.TypeName, triedAsset.Item.ItemID
-	sameTypeCount := 0
-	for _, asset := range wornAssets {
-		if asset.Item.TypeName == typeName && asset.Item.ItemID != assetID {
-			sameTypeCount++
-		}
-	}
-	replacedCount := max(sameTypeCount-maxWornCount+1, 0)
-	assets := make([]AvatarAsset, 0, len(wornAssets)+1)
-	for _, asset := range wornAssets {
-		isReplaced := asset.Item.TypeName == typeName && asset.Item.ItemID != assetID && replacedCount > 0
-		if isReplaced {
-			replacedCount--
-		}
-		if !isReplaced && asset.Item.ItemID != assetID {
-			assets = append(assets, asset)
-		}
-	}
-	return append(assets, triedAsset)
+	return "", nil, &roblox.Error{Kind: roblox.KindProtocol, Endpoint: endpoint, Message: "Roblox does not allow this item on avatars."}
 }
 
 // SaveAvatar replaces the whole avatar of the account in one request, as the

@@ -5,6 +5,7 @@ import type {
 	AvatarAccessoryAdjustmentLimits,
 	AvatarOutfit,
 	AvatarRules,
+	AvatarWearLimit,
 	InventoryCategory,
 	InventoryItem,
 } from "../backend/bridge"
@@ -157,8 +158,8 @@ export class AvatarState {
 		return !this.isChanged && !this.loading && !this.isChangingAvatar
 	}
 
-	get maxWornCountByTypeName(): Record<string, number | undefined> {
-		return this.rules?.maxWornCountByTypeName ?? {}
+	get wearLimits(): AvatarWearLimit[] {
+		return this.rules?.wearLimits ?? []
 	}
 
 	get canUndo(): boolean {
@@ -293,12 +294,11 @@ export class AvatarState {
 	// wear puts the item on the draft. An item that the saved avatar wears
 	// comes back with its saved placement and layer, which a save keeps.
 	wear(item: InventoryItem, category: InventoryCategory): void {
-		const maxWornCount = this.maxWornCountByTypeName[item.typeName] ?? 0,
-			savedAsset = this.avatar?.assets?.find(
+		const savedAsset = this.avatar?.assets?.find(
 				(asset) => asset.item.itemId === item.itemId,
 			),
 			wornAsset = savedAsset ?? { category, item, adjustment: null, layer: null }
-		this.changeDraft((draft) => wearItem(draft, wornAsset, maxWornCount))
+		this.changeDraft((draft) => wearItem(draft, wornAsset, this.wearLimits))
 	}
 
 	takeOff(assetId: number): void {

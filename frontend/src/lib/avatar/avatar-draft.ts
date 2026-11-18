@@ -9,6 +9,7 @@ import type {
 	AvatarScales,
 	AvatarType,
 	AvatarVector,
+	AvatarWearLimit,
 	InventoryItem,
 } from "../backend/bridge"
 
@@ -254,26 +255,65 @@ export function isWornInDraft(draft: AvatarDraft, assetId: number): boolean {
 	return draft.assets.some((asset) => asset.item.itemId === assetId)
 }
 
-// wearItem adds the item to the draft. When the avatar already wears as many
-// items of the type as Roblox allows, the item replaces the one of that type
-// that the avatar wore first, as the Roblox avatar editor does.
+function isTypeInLimit(limit: AvatarWearLimit, typeName: string): boolean {
+	return limit.typeNames?.includes(typeName) ?? false
+}
+
+export function isWearableType(limits: AvatarWearLimit[], typeName: string): boolean {
+	return limits.some((limit) => isTypeInLimit(limit, typeName))
+}
+
+// isSwapLimit tells whether a full limit swaps the worn item for the new one:
+// a limit of one item of one type, such as a shirt or an animation.
+function isSwapLimit(limit: AvatarWearLimit): boolean {
+	return limit.maxWornCount === 1 && limit.typeNames?.length === 1
+}
+
+// fullWearLimitOf returns the limit that keeps the item off the draft, when
+// the draft already wears as many items of the limit as Roblox allows.
+export function fullWearLimitOf(
+	draft: AvatarDraft,
+	item: InventoryItem,
+	limits: AvatarWearLimit[],
+): AvatarWearLimit | undefined {
+	return limits.find(
+		(limit) =>
+			isTypeInLimit(limit, item.typeName) &&
+			!isSwapLimit(limit) &&
+			draft.assets.filter((asset) => isTypeInLimit(limit, asset.item.typeName))
+				.length >= limit.maxWornCount,
+	)
+}
+
+// wearItem adds the item to the draft. Items stack instead of replacing each
+// other, unlike in the Roblox app, as the website's Advanced editor allows.
+// Only a type that Roblox limits to one item, such as a shirt, swaps the worn
+// item for the new one. The backend puts an item on a try-on the same way.
 export function wearItem(
 	draft: AvatarDraft,
 	wornAsset: AvatarAsset,
-	maxWornCount: number,
+	limits: AvatarWearLimit[],
 ): AvatarDraft {
-	if (isWornInDraft(draft, wornAsset.item.itemId) || maxWornCount < 1) return draft
-	const sameTypeAssets = draft.assets.filter(
-			(asset) => asset.item.typeName === wornAsset.item.typeName,
-		),
-		replacedAssets = sameTypeAssets.slice(
-			0,
-			Math.max(sameTypeAssets.length - maxWornCount + 1, 0),
-		)
+	const { item } = wornAsset
+	if (
+		isWornInDraft(draft, item.itemId) ||
+		!isWearableType(limits, item.typeName) ||
+		fullWearLimitOf(draft, item, limits)
+	) {
+		return draft
+	}
+	const swapLimits = limits.filter(
+		(limit) => isTypeInLimit(limit, item.typeName) && isSwapLimit(limit),
+	)
 	return {
 		...draft,
 		assets: [
-			...draft.assets.filter((asset) => !replacedAssets.includes(asset)),
+			...draft.assets.filter(
+				(asset) =>
+					!swapLimits.some((limit) =>
+						isTypeInLimit(limit, asset.item.typeName),
+					),
+			),
 			wornAsset,
 		],
 	}
