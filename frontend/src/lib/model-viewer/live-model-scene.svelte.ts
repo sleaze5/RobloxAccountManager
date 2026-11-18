@@ -215,9 +215,9 @@ export class LiveModelViewport implements AnimationPlayback {
 	}
 
 	// captureShownFrame returns the frame that the view shows now as a PNG data
-	// URL.
+	// URL, with a transparent background.
 	captureShownFrame(): string {
-		return activeViewport() === this ? captureFrame() : this.coveredFrameUrl
+		return activeViewport() === this ? captureFrame(true) : this.coveredFrameUrl
 	}
 
 	// resetView returns the camera to where it starts for the subject.
@@ -265,7 +265,7 @@ export function attachLiveModelView(
 ): LiveModelViewport {
 	const coveredViewport = activeViewport()
 	if (coveredViewport) {
-		coveredViewport.coveredFrameUrl = captureFrame()
+		coveredViewport.coveredFrameUrl = captureFrame(false)
 		coveredViewport.cameraView = currentCameraView()
 	}
 	const viewport = new LiveModelViewport(host, canvasLabel, descriptionId)
@@ -628,12 +628,15 @@ function restoreCameraView(cameraView: CameraView): void {
 
 // captureFrame draws a frame and reads it at once, because the canvas keeps
 // its pixels only until the browser shows them. The frame leaves out the
-// adjustment guides, which the next frame shows again.
-function captureFrame(): string {
+// adjustment guides, and with isBackgroundTransparent the background and the
+// ground. The next frame shows them again.
+function captureFrame(isBackgroundTransparent: boolean): string {
 	const canvas = RBXRenderer.getRendererDom()
 	if (!canvas) return ""
+	RBXRenderer.setBackgroundTransparent(isBackgroundTransparent)
 	drawFrame(false)
 	const frameUrl = canvas.toDataURL("image/png")
+	RBXRenderer.setBackgroundTransparent(false)
 	requestFrame()
 	return frameUrl
 }
