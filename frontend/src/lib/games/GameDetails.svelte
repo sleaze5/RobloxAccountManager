@@ -400,7 +400,7 @@
 						</div>
 						<div class={metaClass}>
 							<span>ID: {place.placeId}</span>
-							<span class="text-fg-faint" aria-hidden="true">-</span>
+							<span class="text-fg-faint" aria-hidden="true">·</span>
 							<span>Universe ID: {place.universeId}</span>
 							<button
 								class="-my-1 -ms-1 button-ghost size-5"
@@ -413,7 +413,7 @@
 									size={14}
 									aria-hidden="true" /></button>
 							{#if rootPlace}
-								<span class="text-fg-faint" aria-hidden="true">-</span>
+								<span class="text-fg-faint" aria-hidden="true">·</span>
 								<span>Root place ID: {rootPlace.placeId}</span>
 							{/if}
 						</div>
@@ -424,7 +424,7 @@
 										size={14}
 										aria-label="Verified creator" />{/if}</span>
 							{#if place.creatorId}
-								<span class="text-fg-faint" aria-hidden="true">-</span>
+								<span class="text-fg-faint" aria-hidden="true">·</span>
 								<span>{place.creatorType} ID: {place.creatorId}</span>
 							{/if}
 						</div>

@@ -48,7 +48,7 @@
 			<span
 				>{numbers.format(shown.length)}
 				{shown.length === 1 ? "server" : "servers"}</span>
-			<span aria-hidden="true">-</span>
+			<span aria-hidden="true">·</span>
 			<span>Up to 30 shared on RBXServers</span>
 		</p>
 		<div

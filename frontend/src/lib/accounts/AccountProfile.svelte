@@ -271,7 +271,7 @@
 						<div
 							class="flex min-w-0 flex-wrap items-center gap-1 font-mono text-2xs wrap-anywhere text-fg-muted">
 							<span>@{selectedAccount.username}</span>
-							<span class="text-fg-faint" aria-hidden="true">-</span>
+							<span class="text-fg-faint" aria-hidden="true">·</span>
 							<span>ID: {selectedAccount.userId}</span>
 						</div>
 						{#if selectedAccount.state === SessionState.StateReauthRequired || selectedAccount.state === SessionState.StateChallenged}

@@ -764,7 +764,7 @@
 					</div>
 					<div class={metaClass}>
 						<span class="select-text">ID: {item.itemId}</span>
-						<span class="text-fg-faint" aria-hidden="true">-</span>
+						<span class="text-fg-faint" aria-hidden="true">·</span>
 						<span>{typeLabel}</span>
 					</div>
 					{#if item.creatorName}
@@ -775,7 +775,7 @@
 										size={14}
 										aria-label="Verified creator" />{/if}</span>
 							{#if item.creatorId}
-								<span class="text-fg-faint" aria-hidden="true">-</span>
+								<span class="text-fg-faint" aria-hidden="true">·</span>
 								<span class="select-text"
 									>{item.creatorType} ID: {item.creatorId}</span>
 							{/if}

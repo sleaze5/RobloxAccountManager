@@ -270,7 +270,7 @@
 					</div>
 					<div class={metaClass}>
 						<span class="select-text">ID: {gamePass.gamePassId}</span>
-						<span class="text-fg-faint" aria-hidden="true">-</span>
+						<span class="text-fg-faint" aria-hidden="true">·</span>
 						<span>Game pass</span>
 					</div>
 					<div class={metaClass}><span>{gameName}</span></div>

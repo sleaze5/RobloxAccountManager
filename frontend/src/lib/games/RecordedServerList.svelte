@@ -145,15 +145,15 @@
 	{:else}
 		<p class="flex gap-1 px-3 pt-2 font-mono text-2xs text-fg-faint" role="status">
 			<span>Page {servers.pageNumber}</span>
-			<span aria-hidden="true">-</span>
+			<span aria-hidden="true">·</span>
 			<span
 				>{numbers.format(shown.length)}
 				{shown.length === 1 ? "server" : "servers"}</span>
 			{#if stats.stats?.totalServers}
-				<span aria-hidden="true">-</span>
+				<span aria-hidden="true">·</span>
 				<span>{numbers.format(stats.stats.totalServers)} recorded</span>
 			{/if}
-			<span aria-hidden="true">-</span>
+			<span aria-hidden="true">·</span>
 			<span>Some may have closed</span>
 		</p>
 		<div

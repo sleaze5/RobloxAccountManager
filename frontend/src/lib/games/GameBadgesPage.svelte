@@ -257,7 +257,7 @@
 								<span
 									>Won by {percent.format(badge.pastDayWinFraction)} of
 									players yesterday</span>
-								<span aria-hidden="true">-</span>
+								<span aria-hidden="true">·</span>
 								<span
 									><CompactNumber
 										value={badge.awardedCount}

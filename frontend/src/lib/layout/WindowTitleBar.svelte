@@ -35,7 +35,7 @@
 		{#if !release}<span class="text-2xs font-medium text-fg-faint">[DEV BUILD]</span
 			>{/if}
 		{#if version}
-			<span class="text-fg-faint" aria-hidden="true">-</span>
+			<span class="text-fg-faint" aria-hidden="true">·</span>
 			<span class="font-mono text-2xs text-fg-faint">{version}</span>
 		{/if}
 	</div>

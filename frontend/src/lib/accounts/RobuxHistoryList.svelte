@@ -41,7 +41,7 @@
 			transaction.itemName ? transaction.agentName : "",
 		]
 			.filter(Boolean)
-			.join(" - ")
+			.join(" · ")
 	}
 </script>
 

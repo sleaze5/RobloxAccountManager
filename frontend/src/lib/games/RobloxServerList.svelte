@@ -148,13 +148,13 @@
 	{:else}
 		<p class="flex gap-1 px-3 pt-2 font-mono text-2xs text-fg-faint" role="status">
 			<span>Page {servers.pageNumber}</span>
-			<span aria-hidden="true">-</span>
+			<span aria-hidden="true">·</span>
 			<span
 				>{shown.length === loaded.length
 					? numbers.format(loaded.length)
 					: `${numbers.format(shown.length)} of ${numbers.format(loaded.length)}`}
 				{loaded.length === 1 ? "server" : "servers"}</span>
-			<span aria-hidden="true">-</span>
+			<span aria-hidden="true">·</span>
 			<span
 				>{numbers.format(players)}
 				{players === 1 ? "player" : "players"}</span>

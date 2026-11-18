@@ -157,9 +157,9 @@
 				<div class={metaClass}>
 					<span class="select-text">ID: {outfit.outfitId}</span>
 					{#if details}
-						<span class="text-fg-faint" aria-hidden="true">-</span>
+						<span class="text-fg-faint" aria-hidden="true">·</span>
 						<span>{details.avatarType}</span>
-						<span class="text-fg-faint" aria-hidden="true">-</span>
+						<span class="text-fg-faint" aria-hidden="true">·</span>
 						<span
 							>{exactNumbers.format(assets.length)}
 							{assets.length === 1 ? "item" : "items"}</span>

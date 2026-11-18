@@ -315,7 +315,7 @@
 								: "",
 						]
 							.filter(Boolean)
-							.join(" - ")}</small>
+							.join(" · ")}</small>
 				</dd>
 			</div>
 		{:else if sections}

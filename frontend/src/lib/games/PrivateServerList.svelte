@@ -90,11 +90,11 @@
 				class="flex gap-1 px-3 pt-2 font-mono text-2xs text-fg-faint"
 				role="status">
 				<span>Page {servers.pageNumber}</span>
-				<span aria-hidden="true">-</span>
+				<span aria-hidden="true">·</span>
 				<span
 					>{numbers.format(shown.length)}
 					{shown.length === 1 ? "server" : "servers"}</span>
-				<span aria-hidden="true">-</span>
+				<span aria-hidden="true">·</span>
 				<span>Owned by or shared with @{account.username}</span>
 			</p>
 			<div
