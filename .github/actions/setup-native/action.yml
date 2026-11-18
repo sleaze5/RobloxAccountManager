@@ -20,6 +20,12 @@ runs:
           run: |
               set -eu
               sudo rm -f /var/lib/man-db/auto-update
+              # The runner image picks an EC2 regional Ubuntu mirror, which can
+              # serve under 100 kB/s. apt tries these mirrors in order instead.
+              if [ -f /etc/apt/apt-mirrors.txt ]; then
+                  printf '%s\n' http://azure.archive.ubuntu.com/ubuntu/ http://archive.ubuntu.com/ubuntu/ |
+                      sudo tee /etc/apt/apt-mirrors.txt > /dev/null
+              fi
               apt="sudo timeout 900 apt-get -o Acquire::Retries=3 -o Acquire::http::Timeout=30"
               $apt update
               $apt install -y --no-install-recommends libgtk-4-dev libwebkitgtk-6.0-dev
