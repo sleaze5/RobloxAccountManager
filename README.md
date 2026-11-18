@@ -189,7 +189,7 @@ Other tasks:
 
 ## License
 
-Roblox Account Manager is released under the [MIT License](LICENSE).
+Roblox Account Manager is released under the [GNU General Public License v3.0 only](LICENSE).
 
 Copyright (c) 2026 sleaze
 
@@ -201,4 +201,4 @@ Roblox Account Manager is an unofficial, independent project. It is not affiliat
 
 - You are responsible for your use of this software and for following the [Roblox Terms of Use](https://en.help.roblox.com/hc/en-us/articles/115004647846-Roblox-Terms-of-Use).
 - A `.ROBLOSECURITY` cookie gives full access to its account. Never share cookies, vault files, or copied launch commands.
-- The software is provided "as is", without warranty of any kind. See the [MIT License](LICENSE).
+- The software is provided "as is", without warranty of any kind. See the [GNU General Public License v3.0](LICENSE).
