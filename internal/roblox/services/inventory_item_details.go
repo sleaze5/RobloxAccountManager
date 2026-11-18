@@ -97,6 +97,19 @@ func LargeImageTarget(category InventoryCategory, itemID int64) (ThumbnailTarget
 	return ThumbnailTarget{}, false
 }
 
+// IconTarget names the icon of a badge or a game pass, which Roblox renders
+// only small.
+func IconTarget(category InventoryCategory, itemID int64) (ThumbnailTarget, bool) {
+	switch category {
+	case InventoryBadges:
+		return ThumbnailTarget{Type: "BadgeIcon", TargetID: itemID}, true
+	case InventoryGamePasses:
+		return ThumbnailTarget{Type: "GamePass", TargetID: itemID}, true
+	default:
+		return ThumbnailTarget{}, false
+	}
+}
+
 // InventoryItemDetails reads the dates and collectible IDs of one item. Each
 // kind of item has its own endpoint. Verified against the API on 2026-11-14.
 func (service *Users) InventoryItemDetails(ctx context.Context, accountID, version int64, category InventoryCategory, itemID int64) (InventoryItemDetails, error) {

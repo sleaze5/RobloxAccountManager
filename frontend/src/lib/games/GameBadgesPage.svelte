@@ -242,8 +242,12 @@
 								class="flex min-w-0 items-center gap-1.5 text-xs font-semibold text-fg">
 								<span class="truncate"
 									>{badge.name || "Unnamed badge"}</span>
-								{#if !badge.enabled}<span class="shrink-0 server-tag"
-										>Disabled</span
+								{#if badge.isModerated}<span
+										class="shrink-0 server-tag"
+										data-tooltip="Roblox moderated this badge and deleted its icon"
+										>Deleted</span
+									>{:else if !badge.enabled}<span
+										class="shrink-0 server-tag">Disabled</span
 									>{/if}
 							</strong>
 							{#if badge.description}

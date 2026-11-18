@@ -26,7 +26,7 @@ func (service *Service) ListGamePasses(ctx context.Context, accountID, universeI
 	for index, gamePass := range gamePasses {
 		targets[index] = robloxservices.ThumbnailTarget{Type: "GamePass", TargetID: gamePass.GamePassID}
 	}
-	icons, err := service.thumbnails.Images(ctx, targets, robloxservices.SmallThumbnailSize)
+	icons, err := service.thumbnails.Thumbnails(ctx, targets, robloxservices.SmallThumbnailSize)
 	if ctx.Err() != nil {
 		return nil, service.gamesError(ctx, "game-passes", ctx.Err())
 	}
@@ -34,7 +34,7 @@ func (service *Service) ListGamePasses(ctx context.Context, accountID, universeI
 		service.logs.Module("application.games").WarnContext(ctx, "game pass icons unavailable", "operation", "game-pass-icons", "universe_id", universeID, "error", err)
 	}
 	for index := range gamePasses {
-		gamePasses[index].IconURL = icons[targets[index]]
+		gamePasses[index].IconURL, gamePasses[index].IsModerated = icons[targets[index]].ImageURL, icons[targets[index]].IsBlocked
 	}
 	return gamePasses, nil
 }

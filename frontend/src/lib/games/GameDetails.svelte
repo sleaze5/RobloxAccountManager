@@ -12,6 +12,7 @@
 	import microphoneIcon from "@phosphor-icons/core/regular/microphone.svg?raw"
 	import pencilIcon from "@phosphor-icons/core/regular/pencil.svg?raw"
 	import personArmsSpreadIcon from "@phosphor-icons/core/regular/person-arms-spread.svg?raw"
+	import prohibitIcon from "@phosphor-icons/core/regular/prohibit.svg?raw"
 	import pulseIcon from "@phosphor-icons/core/regular/pulse.svg?raw"
 	import sealCheckIcon from "@phosphor-icons/core/regular/seal-check.svg?raw"
 	import shapesIcon from "@phosphor-icons/core/regular/shapes.svg?raw"
@@ -429,6 +430,26 @@
 								{numbers.format(game.playing)} playing{rootPlace
 									? " in this universe"
 									: ""}
+							</p>
+						{/if}
+						{#if game?.playability && !game.playability.isPlayable}
+							<p
+								class="flex animate-enter flex-wrap items-center gap-x-2 gap-y-1 text-xs text-fg-muted">
+								<span class="tag-pill-warning">
+									<Icon
+										svg={prohibitIcon}
+										size={12}
+										aria-hidden="true" />
+									<span
+										>{game.playability.isUnderReview
+											? "Under review"
+											: "Unplayable"}</span>
+								</span>
+								<span
+									>{game.playability.message ||
+										(game.playability.isUnderReview
+											? "Roblox put this game under review, so no one can join it."
+											: "This account cannot join this game.")}</span>
 							</p>
 						{/if}
 					</div>

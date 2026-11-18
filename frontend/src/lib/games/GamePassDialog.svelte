@@ -1,6 +1,7 @@
 <script lang="ts">
 	import calendarDotsIcon from "@phosphor-icons/core/regular/calendar-dots.svg?raw"
 	import checkCircleFillIcon from "@phosphor-icons/core/fill/check-circle-fill.svg?raw"
+	import prohibitIcon from "@phosphor-icons/core/regular/prohibit.svg?raw"
 	import clockCounterClockwiseIcon from "@phosphor-icons/core/regular/clock-counter-clockwise.svg?raw"
 	import shoppingCartIcon from "@phosphor-icons/core/regular/shopping-cart.svg?raw"
 	import storefrontIcon from "@phosphor-icons/core/regular/storefront.svg?raw"
@@ -285,18 +286,34 @@
 					{#if changeNotice}
 						<p class="mt-1 notice-warning" role="status">{changeNotice}</p>
 					{/if}
-					{#if hasOwnership && gamePass.isOwned}
+					{#if (hasOwnership && gamePass.isOwned) || gamePass.isModerated}
 						<ul
 							class="mt-2 flex min-h-6 flex-wrap gap-1"
 							aria-label="Status">
-							<li class="tag-pill-success animate-pop">
-								<Icon
-									svg={checkCircleFillIcon}
-									size={12}
-									aria-hidden="true" />
-								<span>Owned</span>
-							</li>
+							{#if gamePass.isModerated}
+								<li class="tag-pill-warning animate-pop">
+									<Icon
+										svg={prohibitIcon}
+										size={12}
+										aria-hidden="true" />
+									<span>Deleted</span>
+								</li>
+							{/if}
+							{#if hasOwnership && gamePass.isOwned}
+								<li class="tag-pill-success animate-pop">
+									<Icon
+										svg={checkCircleFillIcon}
+										size={12}
+										aria-hidden="true" />
+									<span>Owned</span>
+								</li>
+							{/if}
 						</ul>
+					{/if}
+					{#if gamePass.isModerated}
+						<p class="mt-1 text-xs text-fg-muted">
+							Roblox moderated this pass and deleted its icon.
+						</p>
 					{/if}
 					{#if isPending}
 						<p class="text-xs text-fg-muted" role="status">

@@ -300,6 +300,35 @@ func (service *Games) avatarRules(ctx context.Context, game *games.Game) error {
 	return nil
 }
 
+// Roblox shows the reason for an unplayable game in one short sentence.
+const maxPlayabilityMessageLength = 300
+
+// playability reads whether the account can join the game, which depends on
+// the account, such as on its age and region.
+func (service *Games) playability(ctx context.Context, accountID int64, game *games.Game) error {
+	var payload []struct {
+		UniverseID        int64  `json:"universeId"`
+		IsPlayable        bool   `json:"isPlayable"`
+		PlayabilityStatus string `json:"playabilityStatus"`
+		UnplayableText    string `json:"unplayableDisplayText"`
+	}
+	endpoint := &url.URL{Scheme: "https", Host: "games.roblox.com", Path: "/v1/games/multiget-playability-status", RawQuery: url.Values{"universeIds": {strconv.FormatInt(game.Place.UniverseID, 10)}}.Encode()}
+	if err := service.account(ctx, "game-playability", accountID, http.MethodGet, endpoint, nil, &payload); err != nil {
+		return err
+	}
+	for _, status := range payload {
+		if status.UniverseID != game.Place.UniverseID {
+			continue
+		}
+		game.Playability = &games.Playability{
+			IsPlayable:    status.IsPlayable,
+			IsUnderReview: status.PlayabilityStatus == "UnderReview",
+			Message:       boundedText(strings.TrimSpace(status.UnplayableText), maxPlayabilityMessageLength),
+		}
+	}
+	return nil
+}
+
 func (service *Games) communication(ctx context.Context, accountID int64, game *games.Game) error {
 	var payload struct {
 		Voice  bool `json:"isUniverseEnabledForVoice"`
@@ -636,6 +665,10 @@ func (service *Games) Section(ctx context.Context, universeID, placeID, accountI
 	case games.GameSectionVersions:
 		if accountID > 0 {
 			err = service.versions(ctx, accountID, &game)
+		}
+	case games.GameSectionPlayability:
+		if accountID > 0 {
+			err = service.playability(ctx, accountID, &game)
 		}
 	default:
 		return games.Game{}, gameDataError("This game section does not exist.")
