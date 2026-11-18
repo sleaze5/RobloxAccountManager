@@ -280,17 +280,21 @@ export class InventoryState {
 		}
 	}
 
-	// downloadItem downloads the file of the item and asks where to save it.
+	// downloadItem downloads the file of the item, or with isModel its 3D
+	// model with the textures, and asks where to save it.
 	async downloadItem(
 		item: InventoryItem,
 		category: InventoryCategory,
+		isModel: boolean,
 	): Promise<void> {
 		if (this.isDownloadingItem) return
 		this.isDownloadingItem = true
 		this.itemActionError = ""
 		try {
 			const savedPath = await this.#scope.track(
-				accountBackend.DownloadInventoryItem(
+				(isModel
+					? accountBackend.DownloadInventoryItemModel
+					: accountBackend.DownloadInventoryItem)(
 					this.#scope.accountId,
 					category,
 					item.itemId,
@@ -308,7 +312,9 @@ export class InventoryState {
 			if (this.#scope.isCurrent) {
 				this.itemActionError = errorMessage(
 					error,
-					"Could not download the item. Try again.",
+					isModel
+						? "Could not download the 3D model. Try again."
+						: "Could not download the item. Try again.",
 				)
 			}
 		} finally {

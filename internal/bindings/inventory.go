@@ -76,6 +76,27 @@ func (service *Service) DownloadInventoryItem(ctx context.Context, accountID int
 	return service.core.SaveDownloadedFile(path, file.Extension, file.Contents)
 }
 
+// DownloadInventoryItemModel packs the 3D model of the item with its
+// textures, then asks where to save it. An empty path without an error means
+// the user cancelled the dialog.
+func (service *Service) DownloadInventoryItemModel(ctx context.Context, accountID int64, category robloxservices.InventoryCategory, itemID int64, itemName string) (string, error) {
+	if err := validateAccountAndTargetIDs(accountID, itemID, "model-download"); err != nil {
+		return "", err
+	}
+	archive, err := service.core.ReadInventoryItemModelArchive(ctx, accountID, category, itemID)
+	if err != nil {
+		return "", err
+	}
+	path, err := chooseSaveFile(service.core.DefaultDownloadDirectory(), service.core.DownloadFileName(itemName, itemID, "zip"), "ZIP archive of an OBJ model", "*.zip")
+	if err != nil {
+		return "", &roblox.Error{Kind: roblox.KindProtocol, Endpoint: "model-download", Message: "Could not open the save dialog.", Cause: err}
+	}
+	if path == "" {
+		return "", nil
+	}
+	return service.core.SaveDownloadedFile(path, "zip", archive)
+}
+
 func (service *Service) IsInventoryItemOwned(ctx context.Context, accountID int64, category robloxservices.InventoryCategory, itemID int64) (bool, error) {
 	if err := validateAccountAndTargetIDs(accountID, itemID, "inventory-item-ownership"); err != nil {
 		return false, err

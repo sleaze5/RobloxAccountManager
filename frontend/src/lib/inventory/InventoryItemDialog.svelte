@@ -8,7 +8,9 @@
 	import clockCounterClockwiseIcon from "@phosphor-icons/core/regular/clock-counter-clockwise.svg?raw"
 	import circleNotchIcon from "@phosphor-icons/core/regular/circle-notch.svg?raw"
 	import diamondIcon from "@phosphor-icons/core/regular/diamond.svg?raw"
+	import cubeIcon from "@phosphor-icons/core/regular/cube.svg?raw"
 	import downloadSimpleIcon from "@phosphor-icons/core/regular/download-simple.svg?raw"
+	import fileArrowDownIcon from "@phosphor-icons/core/regular/file-arrow-down.svg?raw"
 	import fingerprintIcon from "@phosphor-icons/core/regular/fingerprint.svg?raw"
 	import gameControllerIcon from "@phosphor-icons/core/regular/game-controller.svg?raw"
 	import heartFillIcon from "@phosphor-icons/core/fill/heart-fill.svg?raw"
@@ -40,6 +42,8 @@
 	} from "../backend/bridge"
 	import Dialog from "../shared/Dialog.svelte"
 	import FrameUnavailable from "../shared/FrameUnavailable.svelte"
+	import AnchoredActionMenu from "../shared/AnchoredActionMenu.svelte"
+	import type { MenuAction } from "../shared/AnchoredActionMenu.svelte"
 	import ExpandedImageDialog from "../shared/ExpandedImageDialog.svelte"
 	import Icon from "../shared/Icon.svelte"
 	import ImageViewToggle from "../shared/ImageViewToggle.svelte"
@@ -124,6 +128,8 @@
 		// Whether an animation or an emote plays on the plain R15 rig instead
 		// of the saved avatar. The choice stays for the next item.
 		isRigShown = $state(false),
+		downloadButton = $state<HTMLButtonElement>(),
+		isDownloadMenuOpen = $state(false),
 		// The item whose model the 3D viewer could not build, which shows the
 		// model that Roblox renders instead.
 		failedLiveItemKey = $state(""),
@@ -175,6 +181,28 @@
 		canTryOn = $derived(!!details?.canTryOn),
 		canHaveRelatedItems = $derived(!!details?.canHaveRelatedItems),
 		canDownload = $derived(!!details?.canDownload),
+		// The file of the item, and the 3D model that Roblox renders of it with
+		// its textures, which 3D programs open.
+		downloadActions = $derived<MenuAction[]>([
+			...(canDownload
+				? [
+						{
+							label: "Download file",
+							icon: fileArrowDownIcon,
+							onSelect: () => download(false),
+						},
+					]
+				: []),
+			...(hasModel
+				? [
+						{
+							label: "Download as OBJ with textures",
+							icon: cubeIcon,
+							onSelect: () => download(true),
+						},
+					]
+				: []),
+		]),
 		// undefined while the related items load, and null when they failed.
 		relatedItems = $derived(inventory.relatedItemsByItemKey.get(detailsKey)),
 		// Try on stays on while the view switches between 2D and 3D.
@@ -376,6 +404,11 @@
 		const gamePassId = item.itemId,
 			place = await inventory.findGamePassPlace(gamePassId)
 		if (place && item.itemId === gamePassId) show(place, gamePassId)
+	}
+
+	function download(isModel: boolean): void {
+		isDownloadMenuOpen = false
+		void inventory.downloadItem(item, category.id, isModel)
 	}
 
 	function close(): void {
@@ -744,19 +777,37 @@
 											aria-hidden="true" />
 									</button>
 								{/if}
-								{#if canDownload}
+								{#if downloadActions.length > 0}
+									{@const onlyDownloadAction =
+										downloadActions.length === 1
+											? downloadActions[0]
+											: undefined}
 									<button
+										bind:this={downloadButton}
 										class="button-icon"
 										type="button"
-										aria-label="Download"
+										aria-label={onlyDownloadAction?.label ??
+											"Download"}
+										aria-haspopup={onlyDownloadAction
+											? undefined
+											: "menu"}
+										aria-expanded={onlyDownloadAction
+											? undefined
+											: isDownloadMenuOpen}
+										aria-controls={isDownloadMenuOpen
+											? "inventory-download-menu"
+											: undefined}
 										aria-busy={inventory.isDownloadingItem}
-										data-tooltip="Download"
+										data-open={isDownloadMenuOpen || undefined}
+										data-tooltip={onlyDownloadAction?.label ??
+											"Download"}
 										disabled={inventory.isDownloadingItem}
-										onclick={() =>
-											void inventory.downloadItem(
-												item,
-												category.id,
-											)}>
+										onclick={() => {
+											if (onlyDownloadAction)
+												onlyDownloadAction.onSelect()
+											else
+												isDownloadMenuOpen = !isDownloadMenuOpen
+										}}>
 										<Icon
 											svg={inventory.isDownloadingItem
 												? circleNotchIcon
@@ -1112,6 +1163,15 @@
 		{/if}
 	{/if}
 </Dialog>
+
+{#if isDownloadMenuOpen && downloadButton && downloadActions.length > 1}
+	<AnchoredActionMenu
+		id="inventory-download-menu"
+		label="Download actions"
+		anchor={downloadButton}
+		actions={downloadActions}
+		onClose={() => (isDownloadMenuOpen = false)} />
+{/if}
 
 {#if isExpanded && !confirmation}
 	<ExpandedImageDialog label={name} onClose={() => (isExpanded = false)}>
