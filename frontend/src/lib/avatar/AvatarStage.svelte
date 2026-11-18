@@ -3,19 +3,27 @@
 	import circleNotchIcon from "@phosphor-icons/core/regular/circle-notch.svg?raw"
 	import paintBrushIcon from "@phosphor-icons/core/regular/paint-brush.svg?raw"
 	import personArmsSpreadIcon from "@phosphor-icons/core/regular/person-arms-spread.svg?raw"
-	import { untrack } from "svelte"
 	import ExpandedImageDialog from "../shared/ExpandedImageDialog.svelte"
 	import Icon from "../shared/Icon.svelte"
 	import ImageViewToggle from "../shared/ImageViewToggle.svelte"
 	import type { ImageView } from "../shared/ImageViewToggle.svelte"
-	import RenderedModelView from "../shared/RenderedModelView.svelte"
 	import type { AvatarState } from "./avatar-state.svelte"
+	import AnimationControls from "../model-viewer/AnimationControls.svelte"
+	import ModelFrame from "../model-viewer/ModelFrame.svelte"
+	import type { AnimationPlayback, ModelSubject } from "../model-viewer/model-subject"
 
 	let { avatar, username }: { avatar: AvatarState; username: string } = $props()
 
 	let failedImageUrl = $state(""),
 		view = $state<ImageView>("2D"),
-		isExpanded = $state(false)
+		isExpanded = $state(false),
+		isModelLoadingByView = $state({ page: false, expanded: false }),
+		playbackByView = $state<
+			Record<"page" | "expanded", AnimationPlayback | undefined>
+		>({
+			page: undefined,
+			expanded: undefined,
+		})
 
 	// Roblox needs a moment between draft changes, so a preview renders only
 	// once the draft stops changing.
@@ -29,14 +37,23 @@
 		),
 		savedType = $derived(avatar.avatar?.avatarType ?? ""),
 		draftType = $derived(avatar.draft?.avatarType ?? ""),
-		shownType = $derived(avatar.isPreviewCurrent ? draftType : savedType),
+		// The 3D view builds the draft itself, so it always shows the draft.
+		shownType = $derived(
+			view === "3D" || avatar.isPreviewCurrent ? draftType : savedType,
+		),
+		// The 3D view builds the draft, so that every change shows at once.
+		draftSubject = $derived<ModelSubject | null>(
+			avatar.draft ? { kind: "avatar", look: avatar.draft } : null,
+		),
 		busyLabel = $derived(
-			avatar.isRenderingImage
-				? "Rendering…"
-				: view === "2D" && avatar.isRenderingPreview
-					? "Previewing…"
-					: view === "3D" && avatar.model.isLoading && avatar.model.loaded
-						? "Loading…"
+			view === "3D"
+				? isModelLoadingByView[isExpanded ? "expanded" : "page"]
+					? "Loading…"
+					: ""
+				: avatar.isRenderingImage
+					? "Rendering…"
+					: avatar.isRenderingPreview
+						? "Previewing…"
 						: "",
 		),
 		canRedraw = $derived(
@@ -46,16 +63,6 @@
 				!avatar.isRedrawingImage &&
 				!avatar.isRenderingImage,
 		)
-
-	// The 3D avatar loads when the 3D view opens, and again when the full-body
-	// image changes, because Roblox renders both from the same avatar.
-	$effect(() => {
-		const modelImageUrl = imageUrl,
-			shouldLoadModel = view === "3D" && !!avatar.avatar
-		untrack(() => {
-			if (shouldLoadModel) void avatar.loadModel(modelImageUrl)
-		})
-	})
 
 	// The 2D view previews the unsaved draft.
 	$effect(() => {
@@ -70,13 +77,15 @@
 	})
 </script>
 
-{#snippet imageFrame()}
+{#snippet imageFrame(isExpandedView: boolean)}
 	{#if view === "3D"}
-		<RenderedModelView
-			model={avatar.model.loaded}
-			error={avatar.model.error}
+		<ModelFrame
+			accountId={avatar.accountId}
+			subject={draftSubject}
 			{label}
-			onRetry={() => void avatar.loadModel(imageUrl)} />
+			adjustmentGuide={avatar.adjustmentGuide}
+			bind:isLoading={isModelLoadingByView[isExpandedView ? "expanded" : "page"]}
+			bind:playback={playbackByView[isExpandedView ? "expanded" : "page"]} />
 	{:else if shownImageUrl && failedImageUrl !== shownImageUrl}
 		{#key shownImageUrl}
 			<img
@@ -92,23 +101,29 @@
 		<Icon
 			svg={personArmsSpreadIcon}
 			class="relative size-1/3 text-fg-faint"
-			aria-label="The avatar image is unavailable" />
+			aria-label="Avatar image unavailable" />
 	{:else}
 		<span class="absolute inset-3 skeleton rounded-md" role="status">
-			<span class="sr-only">Loading the avatar image</span>
+			<span class="sr-only">Loading avatar image…</span>
 		</span>
 	{/if}
-	{#if shownType}
-		<span
-			class="pointer-events-none absolute top-2 left-2 rounded-sm border border-line-strong bg-overlay px-1 font-mono text-2xs leading-4 font-medium text-fg-muted"
-			>{shownType}</span>
-	{/if}
-	{#if busyLabel}
-		<span
-			class="pointer-events-none absolute right-2 bottom-2 flex animate-enter items-center gap-1 rounded-sm border border-line-strong bg-overlay px-1.5 text-2xs leading-5 font-medium text-fg"
-			role="status">
-			<Icon svg={circleNotchIcon} class="spinner" size={12} aria-hidden="true" />
-			{busyLabel}
+	{#if shownType || busyLabel}
+		<span class="frame-readout-top-left divide-x divide-line-subtle leading-5">
+			{#if shownType}
+				<span class="px-1.5 font-medium">{shownType}</span>
+			{/if}
+			{#if busyLabel}
+				<span
+					class="flex animate-enter items-center gap-1 px-1.5 text-fg"
+					role="status">
+					<Icon
+						svg={circleNotchIcon}
+						class="spinner"
+						size={12}
+						aria-hidden="true" />
+					{busyLabel}
+				</span>
+			{/if}
 		</span>
 	{/if}
 {/snippet}
@@ -138,41 +153,61 @@
 			{avatar.isRedrawingImage ? "Redrawing…" : "Redraw"}
 		</button>
 	{/if}
+	{#if isExpandedView && view === "3D"}
+		<div class="min-w-0 flex-1">
+			<AnimationControls playback={playbackByView.expanded} isWide />
+		</div>
+	{/if}
 {/snippet}
 
 <section
-	class="flex w-80 shrink-0 flex-col gap-3 overflow-y-auto border-r border-line-subtle bg-surface p-4"
+	class="flex w-1/3 max-w-lg min-w-80 shrink-0 flex-col gap-3 overflow-y-auto border-r border-line-subtle bg-surface p-4"
 	aria-label="Avatar image">
 	<figure
 		class="relative grid aspect-square w-full place-items-center overflow-hidden rounded-lg border border-line-subtle bg-canvas">
-		{@render imageFrame()}
+		{@render imageFrame(false)}
 	</figure>
 
 	<div class="flex items-center gap-2">
 		{@render imageControls(false)}
 	</div>
 
+	{#if view === "3D"}
+		<div class="animate-enter">
+			<AnimationControls playback={playbackByView.page} />
+		</div>
+	{/if}
+
 	{#if avatar.isEditable && avatar.isChanged}
-		<p class="animate-enter notice-note" role="status">
-			{#if view === "3D"}
-				The model shows the saved avatar{savedType !== draftType
-					? ` as ${savedType}`
-					: ""}. Save to see your changes.
-			{:else if avatar.isPreviewCurrent}
-				The image is a preview. Save to keep your changes.
-			{:else if avatar.previewError}
-				The image shows the saved avatar. {avatar.previewError}
-			{:else}
-				Updating the preview…
+		<div class="flex animate-enter flex-col gap-1 notice-note">
+			<p role="status">
+				{#if view === "3D" || avatar.isPreviewCurrent}
+					This shows your changes. Save to keep them.
+				{:else if avatar.previewError}
+					The image shows the saved avatar. {avatar.previewError}
+				{:else}
+					Previewing…
+				{/if}
+			</p>
+			<!-- Roblox renders the 2D image of a draft only after the draft stops
+			changing, while the 3D view builds every change itself. -->
+			{#if view === "2D"}
+				<p class="flex flex-wrap items-center gap-x-2">
+					<span>The 3D view shows each change at once.</span>
+					<button
+						class="button-text"
+						type="button"
+						onclick={() => (view = "3D")}>Switch to 3D</button>
+				</p>
 			{/if}
-		</p>
+		</div>
 	{/if}
 </section>
 
 {#if isExpanded}
 	<ExpandedImageDialog {label} onClose={() => (isExpanded = false)}>
 		{#snippet frame()}
-			{@render imageFrame()}
+			{@render imageFrame(true)}
 		{/snippet}
 		{#snippet controls()}
 			{@render imageControls(true)}

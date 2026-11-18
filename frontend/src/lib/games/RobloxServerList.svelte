@@ -122,13 +122,13 @@
 	{#if servers.error}
 		<div class="empty-state" role="alert">
 			<Icon svg={warningIcon} size={28} aria-hidden="true" />
-			<h2>Servers are unavailable</h2>
+			<h2>Servers unavailable</h2>
 			<p>{servers.error}</p>
 			<button class="button" type="button" onclick={() => void servers.load()}
 				>Try again</button>
 		</div>
 	{:else if !servers.page}
-		<ServerListSkeleton label="Loading servers" />
+		<ServerListSkeleton label="Loading servers…" />
 	{:else if !loaded.length}
 		<div class="empty-state" role="status">
 			<Icon svg={hardDrivesIcon} size={28} aria-hidden="true" />
@@ -148,13 +148,13 @@
 	{:else}
 		<p class="flex gap-1 px-3 pt-2 font-mono text-2xs text-fg-faint" role="status">
 			<span>Page {servers.pageNumber}</span>
-			<span aria-hidden="true">-</span>
+			<span aria-hidden="true">·</span>
 			<span
 				>{shown.length === loaded.length
 					? numbers.format(loaded.length)
 					: `${numbers.format(shown.length)} of ${numbers.format(loaded.length)}`}
 				{loaded.length === 1 ? "server" : "servers"}</span>
-			<span aria-hidden="true">-</span>
+			<span aria-hidden="true">·</span>
 			<span
 				>{numbers.format(players)}
 				{players === 1 ? "player" : "players"}</span>
@@ -229,7 +229,7 @@
 							{#if server.pingMs === null}
 								<span
 									class="justify-self-end text-right text-fg-faint"
-									aria-label="Ping unavailable">-</span>
+									aria-label="Unknown ping">-</span>
 							{:else}
 								<span
 									class="server-number justify-self-end text-right"

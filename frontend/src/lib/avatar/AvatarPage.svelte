@@ -56,7 +56,7 @@
 			() => new InventoryState(accountId, userId, accounts, notifications),
 		),
 		tabs: { id: AvatarTab; label: string }[] = [
-			{ id: "wearing", label: "Wearing" },
+			{ id: "wearing", label: "Worn" },
 			{ id: "adjustments", label: "Adjustments" },
 			{ id: "body", label: "Body" },
 			{ id: "emotes", label: "Emotes" },
@@ -276,7 +276,7 @@
 		<button
 			class="button-ghost"
 			type="button"
-			aria-label={avatar.loading ? "Refreshing avatar" : "Refresh avatar"}
+			aria-label={avatar.loading ? "Refreshing avatar…" : "Refresh avatar"}
 			data-tooltip={isChanged
 				? "Save or discard your changes to refresh"
 				: "Refresh avatar"}
@@ -294,7 +294,7 @@
 	{#if !avatar.avatar && avatar.error}
 		<div class="empty-state flex-1" role="alert">
 			<Icon svg={personArmsSpreadIcon} size={28} aria-hidden="true" />
-			<h2>Avatar is unavailable</h2>
+			<h2>Avatar unavailable</h2>
 			<p>{avatar.error}</p>
 			<button class="button" type="button" onclick={() => void avatar.refresh()}
 				>Try again</button>
@@ -342,8 +342,8 @@
 							class="mx-3 mt-3 flex items-center gap-2 notice-error"
 							role="alert">
 							<span class="min-w-0 flex-1"
-								>The avatar limits could not be loaded, so the avatar
-								can't be edited.</span>
+								>Could not load the avatar limits, so you cannot edit
+								the avatar.</span>
 							<button
 								class="button"
 								type="button"
@@ -356,15 +356,15 @@
 							class="mx-3 mt-3 flex items-center gap-2 notice-warning"
 							role="status">
 							<span class="min-w-0 flex-1"
-								>Roblox changed the avatar, but it couldn't be reloaded.
-								Reload it to see what Roblox put on.</span>
+								>Roblox changed the avatar, but it did not refresh.
+								Refresh to see the change.</span>
 							<button
 								class="button"
 								type="button"
 								aria-busy={avatar.loading}
 								disabled={avatar.loading || avatar.isChangingAvatar}
 								onclick={() => void avatar.refresh()}
-								>{avatar.loading ? "Reloading…" : "Reload"}</button>
+								>{avatar.loading ? "Refreshing…" : "Refresh"}</button>
 						</div>
 					{/if}
 					{#if avatar.saveError}
@@ -382,7 +382,7 @@
 							class="flex flex-col gap-4 p-3"
 							role="status"
 							aria-busy="true">
-							<span class="sr-only">Loading the avatar</span>
+							<span class="sr-only">Loading avatar…</span>
 							<div
 								class="flex min-h-7 items-center text-xs"
 								aria-hidden="true">
@@ -513,7 +513,7 @@
 	{@const outfit = deletedOutfit}
 	<AvatarConfirmation
 		title="Delete outfit?"
-		description={`${outfit.name || "This outfit"} will be deleted from @${username}'s outfits. This can't be undone.`}
+		description={`${outfit.name || "This outfit"} will be deleted from @${username}'s outfits. This cannot be undone.`}
 		actionLabel="Delete outfit"
 		progressLabel="Deleting…"
 		tone="danger"

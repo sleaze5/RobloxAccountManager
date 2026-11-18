@@ -61,10 +61,10 @@
 	const privacyPlaceholders: SettingRadioOption[] = [
 			{ label: "Everyone", value: "AllUsers" },
 			{
-				label: "Friends, followers & people I follow",
+				label: "Friends, followers, and people I follow",
 				value: "FriendsFollowingAndFollowers",
 			},
-			{ label: "Friends & people I follow", value: "FriendsAndFollowing" },
+			{ label: "Friends and people I follow", value: "FriendsAndFollowing" },
 			{ label: "Friends", value: "Friends" },
 			{ label: "No one", value: "NoOne" },
 		],
@@ -119,7 +119,7 @@
 		{
 			id: "content-maturity",
 			label: "Content maturity",
-			search: "content maturity minimal mild moderate restricted sensitive issues",
+			search: "content maturity rating age restrictions parental controls mature minimal mild moderate restricted sensitive issues themes",
 			sections: [
 				{
 					id: "maturity-section",
@@ -129,14 +129,14 @@
 							key: Key.SettingContentMaturity,
 							label: "Content maturity",
 							description:
-								"Choose the level of mature content and experiences allowed on this account.",
+								"Select the content maturity level allowed on this account.",
 							type: "radio",
 						},
 						{
 							key: Key.SettingSensitiveIssues,
 							label: "Sensitive issues",
 							description:
-								"Allow experiences that depict sensitive themes and topics.",
+								"Allow games with sensitive themes and topics.",
 							type: "toggle",
 						},
 					],
@@ -146,23 +146,23 @@
 		{
 			id: "communication",
 			label: "Communication",
-			search: "communication experience direct chat party friends voice data product improvements camera input gameplay coordination quick words",
+			search: "communication chat messages messaging game chat direct chat party voice microphone mic data product improvements camera face tracking input gameplay coordination quick words quick chat",
 			sections: [
 				{
 					id: "experience-chat-section",
-					title: "Experience chat",
+					title: "Game chat",
 					fields: [
 						{
 							key: Key.SettingExperienceChat,
-							label: "Experience chat",
-							description: "Enable text chat within Roblox experiences.",
+							label: "Game chat",
+							description: "Allow text chat in games.",
 							type: "toggle",
 						},
 						{
 							key: Key.SettingDirectExperienceChat,
 							label: "Direct chat",
 							description:
-								"Allow direct messaging with other players inside experiences.",
+								"Allow direct messages with other players in games.",
 							type: "toggle",
 						},
 					],
@@ -181,20 +181,19 @@
 						{
 							key: Key.SettingPartyChat,
 							label: "Friends chat",
-							description: "Choose who can chat with you in parties.",
+							description: "Select who can chat with you in parties.",
 							type: "radio",
 						},
 						{
 							key: Key.SettingPartyVoice,
 							label: "Voice chat with friends",
-							description: "Choose who can speak with you in parties.",
+							description: "Select who can speak with you in parties.",
 							type: "radio",
 						},
 						{
 							key: Key.SettingVoiceOptIn,
 							label: "Voice chat",
-							description:
-								"Enable spatial voice chat in supported experiences.",
+							description: "Allow spatial voice chat in supported games.",
 							type: "toggle",
 						},
 					],
@@ -207,7 +206,7 @@
 							key: Key.SettingVoiceDataUsage,
 							label: "Voice data for product improvements",
 							description:
-								"Allow Roblox to use voice recordings to improve products and services.",
+								"Let Roblox use voice recordings to improve its products and services.",
 							type: "toggle",
 						},
 					],
@@ -220,7 +219,7 @@
 							key: Key.SettingCamera,
 							label: "Camera input",
 							description:
-								"Use camera tracking to animate your avatar with facial expressions.",
+								"Use camera tracking to animate your avatar's facial expressions.",
 							type: "toggle",
 						},
 					],
@@ -232,8 +231,7 @@
 						{
 							key: Key.SettingQuickWords,
 							label: "Quick words",
-							description:
-								"Use suggested preset phrases for quick chat during gameplay.",
+							description: "Use preset phrases for quick chat in games.",
 							type: "toggle",
 						},
 					],
@@ -242,8 +240,8 @@
 		},
 		{
 			id: "visibility-private-servers",
-			label: "Visibility & private servers",
-			search: "visibility private servers online status current game activity updates social links who can add friend suggestions contacts phone",
+			label: "Visibility and private servers",
+			search: "visibility privacy online status offline appear offline current game join me follow activity updates social links who can add private servers invites friend suggestions recommendations contacts phone number discovery",
 			sections: [
 				{
 					id: "visibility-section",
@@ -252,14 +250,14 @@
 						{
 							key: Key.SettingOnlineStatus,
 							label: "Online status",
-							description: "Choose who can see when you are online.",
+							description: "Select who can see when you are online.",
 							type: "radio",
 						},
 						{
 							key: Key.SettingExperienceJoins,
 							label: "Show current game",
 							description:
-								"Choose who can see the game you are playing and join you.",
+								"Select who can see the game you are playing and join you.",
 							type: "radio",
 						},
 						{
@@ -273,7 +271,7 @@
 							key: Key.SettingSocialNetworks,
 							label: "Social links",
 							description:
-								"Choose who can view links to your social networks on your profile.",
+								"Select who can see the social links on your profile.",
 							type: "radio",
 						},
 					],
@@ -286,14 +284,14 @@
 							key: Key.SettingPrivateServerAdditions,
 							label: "Who can add me to private servers",
 							description:
-								"Choose who can add you to their private servers.",
+								"Select who can add you to their private servers.",
 							type: "radio",
 						},
 					],
 				},
 				{
 					id: "friends-contacts-section",
-					title: "Friends & contacts",
+					title: "Friends and contacts",
 					fields: [
 						{
 							key: Key.SettingFriendSuggestions,
@@ -313,7 +311,7 @@
 							key: Key.SettingPhoneDiscovery,
 							label: "Phone number discovery",
 							description:
-								"Allow people who have your phone number to find your account.",
+								"Let people with your phone number find your account.",
 							type: "toggle",
 						},
 					],
@@ -322,23 +320,23 @@
 		},
 		{
 			id: "trading-inventory",
-			label: "Trading & inventory",
-			search: "trading inventory visibility trade audience quality filter",
+			label: "Trading and inventory",
+			search: "trading trades trade requests inventory visibility private inventory trade audience quality filter value",
 			sections: [
 				{
 					id: "inventory-trading-section",
-					title: "Trading & inventory",
+					title: "Trading and inventory",
 					fields: [
 						{
 							key: Key.SettingInventoryVisibility,
 							label: "Inventory visibility",
-							description: "Choose who can view items in your inventory.",
+							description: "Select who can view items in your inventory.",
 							type: "radio",
 						},
 						{
 							key: Key.SettingTradeAudience,
 							label: "Trade audience",
-							description: "Choose who can send you trade requests.",
+							description: "Select who can send you trade requests.",
 							type: "radio",
 						},
 						{
@@ -355,7 +353,7 @@
 		{
 			id: "ads-preferences",
 			label: "Ads preferences",
-			search: "ads preferences personalize advertising data selling sharing",
+			search: "ads advertising preferences personalized ads tracking data selling sharing partners privacy",
 			sections: [
 				{
 					id: "ads-section",
@@ -365,14 +363,14 @@
 							key: Key.SettingPersonalizedAdvertising,
 							label: "Personalize your ads",
 							description:
-								"Receive personalized advertising based on your activity and interests.",
+								"Show ads based on your activity and interests.",
 							type: "toggle",
 						},
 						{
 							key: Key.SettingDataSharing,
 							label: "Data selling and sharing",
 							description:
-								"Allow sharing personal information with advertising partners.",
+								"Allow sharing personal data with ad partners.",
 							type: "toggle",
 						},
 					],
@@ -384,39 +382,39 @@
 	const blockedUsersPage = {
 			id: "blocked-users",
 			label: "Blocked users",
-			search: "blocked users block unblock",
+			search: "blocked users block unblock blocklist ignore",
 		},
-		privacyLabel = "Privacy & content restrictions",
+		privacyLabel = "Privacy and content restrictions",
 		pages = [
 			{
 				id: "info",
 				label: "Account info",
 				icon: userCircleIcon,
-				search: "account info",
+				search: "account info details profile",
 			},
 			{
 				id: "privacy",
-				label: "Privacy & content",
+				label: "Privacy and content",
 				icon: lockKeyIcon,
-				search: "privacy content restrictions",
+				search: "privacy content restrictions parental controls",
 			},
 			{
 				id: "servers",
 				label: "Private servers",
 				icon: hardDrivesIcon,
-				search: "private servers vip owned active renew subscription join link allowed users",
+				search: "private servers vip servers owned active renew subscription cancel join link invite allowed users",
 			},
 			{
 				id: "sessions",
 				label: "Sessions",
 				icon: devicesIcon,
-				search: "sessions signed in devices browsers apps location ip address last active sign out log out security",
+				search: "sessions logins signed in devices browsers apps location ip address last active sign out log out logout security",
 			},
 			{
 				id: "robux",
 				label: "Robux history",
 				icon: coinsIcon,
-				search: "robux history transactions purchases sales bought premium stipends group payouts spent",
+				search: "robux history transactions purchases sales bought spent earned balance money premium stipends group payouts",
 			},
 		] as const
 
@@ -883,7 +881,7 @@
 				{#if workspace.accountSettingsQuery}
 					<button
 						type="button"
-						aria-label="Clear settings search"
+						aria-label="Clear search"
 						onclick={() => {
 							resetScroll()
 							workspace.accountSettingsQuery = ""

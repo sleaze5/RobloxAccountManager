@@ -29,7 +29,7 @@
 	<button
 		class="absolute top-3 right-3 button-close"
 		type="button"
-		aria-label="Close test master password dialog"
+		aria-label="Close dialog"
 		disabled={store.busy}
 		onclick={onClose}>
 		<Icon svg={xIcon} size={14} aria-hidden="true" />

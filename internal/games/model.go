@@ -42,28 +42,32 @@ type PlaceSummary struct {
 }
 
 type Game struct {
-	Place                 Place          `json:"place"`
-	RootPlace             *Place         `json:"rootPlace"`
-	Description           string         `json:"description"`
-	Playing               int64          `json:"playing"`
-	Visits                int64          `json:"visits"`
-	Favorites             int64          `json:"favorites"`
-	UpVotes               int64          `json:"upVotes"`
-	DownVotes             int64          `json:"downVotes"`
-	MaxPlayers            int64          `json:"maxPlayers"`
-	Price                 int64          `json:"price"`
-	Genre                 string         `json:"genre"`
-	Subgenre              string         `json:"subgenre"`
-	AvatarType            string         `json:"avatarType"`
-	Maturity              string         `json:"maturity"`
-	MaturityDescriptors   []string       `json:"maturityDescriptors"`
-	AvatarRules           *AvatarRules   `json:"avatarRules"`
-	Communication         *Communication `json:"communication"`
-	Versions              *PlaceVersions `json:"versions"`
-	CopyingAllowed        bool           `json:"copyingAllowed"`
-	PrivateServersAllowed bool           `json:"privateServersAllowed"`
-	CreatedAtMs           int64          `json:"createdAtMs"`
-	UpdatedAtMs           int64          `json:"updatedAtMs"`
+	Place               Place          `json:"place"`
+	RootPlace           *Place         `json:"rootPlace"`
+	Description         string         `json:"description"`
+	Playing             int64          `json:"playing"`
+	Visits              int64          `json:"visits"`
+	Favorites           int64          `json:"favorites"`
+	UpVotes             int64          `json:"upVotes"`
+	DownVotes           int64          `json:"downVotes"`
+	MaxPlayers          int64          `json:"maxPlayers"`
+	Price               int64          `json:"price"`
+	Genre               string         `json:"genre"`
+	Subgenre            string         `json:"subgenre"`
+	AvatarType          string         `json:"avatarType"`
+	Maturity            string         `json:"maturity"`
+	MaturityDescriptors []string       `json:"maturityDescriptors"`
+	AvatarRules         *AvatarRules   `json:"avatarRules"`
+	Communication       *Communication `json:"communication"`
+	Versions            *PlaceVersions `json:"versions"`
+	// IsUnlisted reports that the games API no longer lists the game, such
+	// as one that Roblox banned or put under review. Its details come from
+	// the develop API, which lists no player, visit, or favorite counts.
+	IsUnlisted            bool  `json:"isUnlisted"`
+	CopyingAllowed        bool  `json:"copyingAllowed"`
+	PrivateServersAllowed bool  `json:"privateServersAllowed"`
+	CreatedAtMs           int64 `json:"createdAtMs"`
+	UpdatedAtMs           int64 `json:"updatedAtMs"`
 }
 
 type AvatarRules struct {
@@ -74,6 +78,15 @@ type AvatarRules struct {
 type Communication struct {
 	VoiceChat bool `json:"voiceChat"`
 	Camera    bool `json:"camera"`
+}
+
+// Playability tells whether the account can join the game. Roblox puts a game
+// that it moderated under review, as RoSeal reads it. Message is the reason
+// that Roblox gives for a game that the account cannot join.
+type Playability struct {
+	IsPlayable    bool   `json:"isPlayable"`
+	IsUnderReview bool   `json:"isUnderReview"`
+	Message       string `json:"message"`
 }
 
 type PlaceVersions struct {
@@ -284,11 +297,13 @@ type ListedPrivateServer struct {
 // Badge is a badge of a universe. Roblox owns badges per universe, so every
 // place of the universe shares them.
 type Badge struct {
-	BadgeID            int64   `json:"badgeId"`
-	Name               string  `json:"name"`
-	Description        string  `json:"description"`
-	IconURL            string  `json:"iconUrl"`
-	Enabled            bool    `json:"enabled"`
+	BadgeID     int64  `json:"badgeId"`
+	Name        string `json:"name"`
+	Description string `json:"description"`
+	IconURL     string `json:"iconUrl"`
+	Enabled     bool   `json:"enabled"`
+	// IsModerated reports that Roblox moderated the badge, whose icon it blocks.
+	IsModerated        bool    `json:"isModerated"`
 	AwardedCount       int64   `json:"awardedCount"`
 	AwardedPastDay     int64   `json:"awardedPastDay"`
 	PastDayWinFraction float64 `json:"pastDayWinFraction"`
@@ -314,8 +329,10 @@ type GamePass struct {
 	IsForSale    bool   `json:"isForSale"`
 	PriceInRobux int64  `json:"priceInRobux"`
 	IsOwned      bool   `json:"isOwned"`
-	CreatedAtMs  int64  `json:"createdAtMs"`
-	UpdatedAtMs  int64  `json:"updatedAtMs"`
+	// IsModerated reports that Roblox moderated the pass, whose icon it blocks.
+	IsModerated bool  `json:"isModerated"`
+	CreatedAtMs int64 `json:"createdAtMs"`
+	UpdatedAtMs int64 `json:"updatedAtMs"`
 }
 
 // FriendServer is a server that friends of the account are in.

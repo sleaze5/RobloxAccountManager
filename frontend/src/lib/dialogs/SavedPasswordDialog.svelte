@@ -30,7 +30,7 @@
 		replacing = untrack(() => account.hasSavedPassword),
 		title = replacing ? "Update saved password" : "Save password",
 		validationHint =
-			"Checks the password with Roblox. Too many checks can temporarily block validation."
+			"Checks the password with Roblox. Too many checks can make Roblox block checks for a while."
 	let saved = $state(""),
 		password = $state(""),
 		visible = $state(false),
@@ -88,7 +88,7 @@
 			if (!active) return
 			error = errorMessage(
 				cause,
-				"Could not validate the password. Try again later.",
+				"Could not check the password. Try again later.",
 			)
 		} finally {
 			request = null
@@ -156,7 +156,7 @@
 			</div>
 			<button
 				type="button"
-				aria-label={`Close ${title.toLowerCase()}`}
+				aria-label="Close dialog"
 				disabled={pending !== null}
 				onclick={close}>
 				<Icon svg={xIcon} size={14} aria-hidden="true" />
@@ -217,10 +217,10 @@
 							svg={circleNotchIcon}
 							class="spinner"
 							size={16}
-							aria-hidden="true" /> Validating…{:else}<Icon
+							aria-hidden="true" /> Checking…{:else}<Icon
 							svg={shieldCheckIcon}
 							size={16}
-							aria-hidden="true" /> Validate with Roblox{/if}
+							aria-hidden="true" /> Check with Roblox{/if}
 				</button>
 				<button
 					class="flex size-5 cursor-help items-center justify-center text-fg-faint transition-colors duration-100 hover:text-fg focus-visible:text-fg"

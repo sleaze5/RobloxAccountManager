@@ -61,12 +61,12 @@ func (launch *Launch) Open(root string, hold bool) (*System, error) {
 	launch.mutex.Lock()
 	launch.system = system
 	launch.logger = system.Module("startup").With("operation", "application-launch")
-	launch.logger.Info("application starting", "version", appmeta.Version, "go_version", runtime.Version(),
+	launch.logger.Info("app starting", "version", appmeta.Version, "go_version", runtime.Version(),
 		"os", runtime.GOOS, "arch", runtime.GOARCH, "pid", os.Getpid(),
 		"started_at", launch.started.UTC(), "elapsed_ms", milliseconds(time.Since(launch.started)), "stages", launch.stages)
 	launch.mutex.Unlock()
 	if settingsError != nil {
-		launch.logger.Warn("logging preferences could not be loaded; using defaults", "error", settingsError)
+		launch.logger.Warn("could not load logging settings; using defaults", "error", settingsError)
 	}
 	logFile := "created"
 	if len(levels) == 0 {
@@ -142,7 +142,7 @@ func (launch *Launch) Ready() {
 	launch.stage = "running"
 	launch.since = time.Now()
 	launch.readyMs = milliseconds(time.Since(launch.started))
-	launch.logger.Info("application backend and webview runtime ready", "elapsed_ms", milliseconds(time.Since(launch.started)), "stages", launch.stages)
+	launch.logger.Info("app backend and webview ready", "elapsed_ms", milliseconds(time.Since(launch.started)), "stages", launch.stages)
 }
 
 type LaunchReport struct {
@@ -177,7 +177,7 @@ func (launch *Launch) Error(message string, err error, attributes ...any) {
 	launch.logger.Error(message, attributes...)
 	if launch.system != nil {
 		if err := launch.system.Sync(); err != nil {
-			launch.consoleError("could not flush application log", err)
+			launch.consoleError("could not flush the app log", err)
 		}
 	}
 }
@@ -205,7 +205,7 @@ func (launch *Launch) Finish(err error, attributes ...any) {
 		}
 	}
 	if err != nil {
-		launch.Error("application failed", err, attributes...)
+		launch.Error("app failed", err, attributes...)
 	}
 	launch.mutex.Lock()
 	defer launch.mutex.Unlock()
@@ -215,10 +215,10 @@ func (launch *Launch) Finish(err error, attributes ...any) {
 	}
 	if launch.system != nil {
 		if err == nil {
-			launch.logger.Info("application stopped", "startup_complete", launch.ready, "uptime_ms", milliseconds(time.Since(launch.started)))
+			launch.logger.Info("app stopped", "startup_complete", launch.ready, "uptime_ms", milliseconds(time.Since(launch.started)))
 		}
 		if closeError := launch.system.Close(); closeError != nil {
-			launch.consoleError("could not close application log", closeError)
+			launch.consoleError("could not close the app log", closeError)
 		}
 	}
 }

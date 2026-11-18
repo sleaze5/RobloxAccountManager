@@ -1,5 +1,5 @@
 import { Browser } from "@wailsio/runtime"
-import { copyText } from "../shared/clipboard"
+import { copyFailureMessage, copyText } from "../shared/clipboard"
 import {
 	accountBackend,
 	FriendStatus,
@@ -141,7 +141,7 @@ export function personName(person: SocialSubject): string {
 	)
 }
 
-const presenceRefreshError = "Presence could not be refreshed."
+const presenceRefreshError = "Could not refresh online status."
 
 type BulkRemovalList =
 	| SocialList.SocialFriends
@@ -370,7 +370,7 @@ export class SocialStore {
 				})
 			}
 			if (removal.failedCount > 0) {
-				this.removeSelectedError = `${counted(removal.failedCount, "person was", "people were")} not changed. ${removal.failureMessage}`
+				this.removeSelectedError = `${counted(removal.failedCount, "user was", "users were")} not changed. ${removal.failureMessage}`
 				return false
 			}
 			this.selecting = false
@@ -379,7 +379,7 @@ export class SocialStore {
 			if (epoch === this.#epoch) {
 				this.removeSelectedError = errorMessage(
 					error,
-					"Could not remove the selected people. Try again.",
+					"Could not remove the selected users. Try again.",
 				)
 			}
 			return false
@@ -593,9 +593,16 @@ export class SocialStore {
 	}
 
 	#append(received: SocialListPage): SocialListPage {
+		const people = [...(this.page?.people ?? [])],
+			seenUserIds = new Set(people.map((person) => person.userId))
+		for (const person of received.people ?? []) {
+			if (seenUserIds.has(person.userId)) continue
+			seenUserIds.add(person.userId)
+			people.push(person)
+		}
 		return {
 			...received,
-			people: [...(this.page?.people ?? []), ...(received.people ?? [])],
+			people,
 		}
 	}
 
@@ -628,7 +635,7 @@ export class SocialStore {
 				load: new SectionLoad(
 					socialProfileSections,
 					() => emptySocialProfile(userId),
-					"Could not load this profile. Refresh to retry.",
+					"Could not load this profile. Refresh to try again.",
 				),
 				fetchedAt: 0,
 			}
@@ -915,7 +922,7 @@ export class SocialStore {
 				`${label} copied to clipboard.`,
 			))
 		) {
-			this.error = `${label} could not be copied. Try again.`
+			this.error = copyFailureMessage(label)
 		}
 	}
 

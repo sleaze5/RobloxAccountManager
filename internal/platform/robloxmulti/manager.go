@@ -8,7 +8,7 @@ import (
 	"time"
 )
 
-var ErrLaunchCancelled = errors.New("game launch cancelled")
+var ErrLaunchCancelled = errors.New("game launch canceled")
 
 type Snapshot struct {
 	Supported bool   `json:"supported"`
@@ -42,7 +42,7 @@ func (manager *Manager) SetEnabled(enabled bool) {
 	manager.enabled = enabled
 	if !enabled {
 		manager.stopLocked()
-		manager.logger.Info("multi-instance disabled")
+		manager.logger.Info("multi-instance turned off")
 		return
 	}
 	manager.holder, manager.startError = newMutexHolder(manager.logger)
@@ -50,7 +50,7 @@ func (manager *Manager) SetEnabled(enabled bool) {
 		manager.logger.Warn("could not start multi-instance", "error", manager.startError)
 		return
 	}
-	manager.logger.Info("multi-instance enabled")
+	manager.logger.Info("multi-instance turned on")
 	_, _ = manager.cleanupLocked()
 	manager.scheduleLocked()
 }
@@ -190,7 +190,7 @@ func (manager *Manager) snapshotLocked() Snapshot {
 		return state
 	}
 	if manager.startError != nil || manager.holder == nil || manager.holder.failed.Load() {
-		state.Message = "turn multi-instance off and on to retry"
+		state.Message = "turn multi-instance off and on to try again"
 		return state
 	}
 	if !manager.holder.owned.Load() {

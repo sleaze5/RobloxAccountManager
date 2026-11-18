@@ -46,13 +46,13 @@
 				<span class="min-w-0">(@{account.username})?</span>
 			</h2>
 			<p>
-				The Roblox account stays, but its saved session and every older backup
-				are deleted, and this cannot be undone.
+				The Roblox account is not deleted. Its saved session and older backups
+				are deleted. This cannot be undone.
 			</p>
 		</div>
 		<button
 			type="button"
-			aria-label="Close remove account dialog"
+			aria-label="Close dialog"
 			disabled={store.busy}
 			onclick={close}>
 			<Icon svg={xIcon} size={14} aria-hidden="true" />

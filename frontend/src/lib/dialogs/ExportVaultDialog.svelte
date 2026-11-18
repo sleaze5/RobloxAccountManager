@@ -52,7 +52,7 @@
 			exported = saved
 			password = confirmation = hint = ""
 		} catch (cause) {
-			error = errorMessage(cause, "The data could not be exported. Try again.")
+			error = errorMessage(cause, "Could not export the data. Try again.")
 			replayValidationNudge(card)
 		} finally {
 			exporting = false
@@ -87,7 +87,7 @@
 		</div>
 		<button
 			type="button"
-			aria-label="Close export dialog"
+			aria-label="Close dialog"
 			disabled={exporting}
 			onclick={close}>
 			<Icon svg={xIcon} size={14} aria-hidden="true" />
@@ -122,7 +122,7 @@
 			</button>
 		</div>
 		<p class="mt-3 text-xs text-fg-muted">
-			To import it on another computer, choose Import data there and open this
+			To import it on another computer, select Import data there and open this
 			file.
 		</p>
 		<div class="dialog-actions">

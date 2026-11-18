@@ -49,7 +49,11 @@
 			<h2 id="avatar-confirmation-title">{title}</h2>
 			<p id="avatar-confirmation-description">{description}</p>
 		</div>
-		<button type="button" aria-label="Close" disabled={isWorking} onclick={cancel}>
+		<button
+			type="button"
+			aria-label="Close dialog"
+			disabled={isWorking}
+			onclick={cancel}>
 			<Icon svg={xIcon} size={14} aria-hidden="true" />
 		</button>
 	</div>

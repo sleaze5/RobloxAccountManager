@@ -101,7 +101,7 @@
 			if (request !== lookupRequest) return
 			if (person && existingUserIds.includes(person.userId)) {
 				lookupStatus = "missing"
-				lookupError = "This person is already in the chat."
+				lookupError = "This user is already in the chat."
 				return
 			}
 			lookupPerson = person
@@ -202,15 +202,15 @@
 			<h2 id="chat-people-title">{title}</h2>
 			<p id="chat-people-description">
 				{mode === "create"
-					? `Choose one friend for a direct chat, or up to ${selectionLimit} for a group.`
+					? `Select one friend for a direct chat, or up to ${selectionLimit} for a group.`
 					: selectionLimit > 0
-						? `This group has room for ${selectionLimit} more ${selectionLimit === 1 ? "person" : "people"}.`
+						? `This group has room for ${selectionLimit} more ${selectionLimit === 1 ? "user" : "users"}.`
 						: "This group is full."}
 			</p>
 		</div>
 		<button
 			type="button"
-			aria-label={`Close ${title.toLowerCase()} dialog`}
+			aria-label="Close dialog"
 			disabled={submitting}
 			onclick={close}>
 			<Icon svg={xIcon} size={14} aria-hidden="true" />

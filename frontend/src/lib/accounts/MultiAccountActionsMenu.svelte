@@ -61,7 +61,7 @@
 	</div>
 </div>
 <div role="group" aria-label="Copy selected account details">
-	<div class="menu-heading" aria-hidden="true">Copy - one per line</div>
+	<div class="menu-heading" aria-hidden="true">Copy, one per line</div>
 	{#each copyFields as fieldOption (fieldOption.field)}
 		<button
 			class={fieldOption.field === AccountCopyField.CopyCookie

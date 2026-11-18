@@ -29,7 +29,7 @@
 			(text === "" || check.current !== null))}
 	onclick={() => (check.filteredPreview === undefined ? onValidate() : onEdit())}>
 	{#if isValidating}
-		Validating…
+		Checking…
 	{:else if check.filteredPreview !== undefined}
 		Edit
 	{:else}
@@ -38,6 +38,6 @@
 				class="text-success"
 				size={14}
 				aria-hidden="true" />{/if}
-		Validate
+		Check
 	{/if}
 </button>

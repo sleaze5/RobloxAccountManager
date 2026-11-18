@@ -41,7 +41,7 @@ func (service *Service) SetRoValraRegion(ctx context.Context, code string) error
 		return err
 	}
 	if !slices.ContainsFunc(regions, func(region rovalra.Region) bool { return region.Code == code }) {
-		return gamesInputError("Choose a region from the list.")
+		return gamesInputError("Select a region from the list.")
 	}
 	if err := service.settings.SetRoValraRegion(code); err != nil {
 		service.logger.WarnContext(ctx, "could not save integration settings", "operation", "integration-settings", "integration", "rovalra", "error", err)
@@ -78,7 +78,7 @@ func (service *Service) ListNearbyServerRegions(ctx context.Context, placeID int
 	preferred := service.settings.Integrations().RoValraRegion
 	origin := slices.IndexFunc(regions, func(region rovalra.Region) bool { return region.Code == preferred })
 	if origin < 0 {
-		return nil, gamesInputError("Choose a preferred region in Settings under Integrations.")
+		return nil, gamesInputError("Select a preferred region in Settings under Integrations.")
 	}
 	stats, err := service.rovalra.Stats(ctx, placeID)
 	if err != nil {
@@ -101,7 +101,7 @@ func (service *Service) ListRegionServers(ctx context.Context, query games.Regio
 		return nil, err
 	}
 	if !slices.ContainsFunc(regions, func(region rovalra.Region) bool { return region.Code == query.Region }) {
-		return nil, gamesInputError("Choose a region from the list.")
+		return nil, gamesInputError("Select a region from the list.")
 	}
 	page, err := service.rovalra.Servers(ctx, games.RecordQuery{
 		PlaceID: query.PlaceID, Region: query.Region, Order: games.RecordOrderNewest, Limit: 100,

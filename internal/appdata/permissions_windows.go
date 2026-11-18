@@ -13,11 +13,11 @@ import (
 
 func rejectNetworkPath(path string) error {
 	if strings.HasPrefix(path, `\\`) {
-		return errors.New("network application paths are unsupported")
+		return errors.New("the data folder cannot be on a network drive")
 	}
 	volume := filepath.VolumeName(path)
 	if volume != "" && windows.GetDriveType(windows.StringToUTF16Ptr(volume+`\`)) == windows.DRIVE_REMOTE {
-		return errors.New("network application paths are unsupported")
+		return errors.New("the data folder cannot be on a network drive")
 	}
 	return nil
 }

@@ -110,7 +110,7 @@
 	{#if outfits === null && avatar.outfitsError}
 		<div class="empty-state py-10" role="alert">
 			<Icon svg={coatHangerIcon} size={28} aria-hidden="true" />
-			<h2>Outfits are unavailable</h2>
+			<h2>Outfits unavailable</h2>
 			<p>{avatar.outfitsError}</p>
 			<button
 				class="button"
@@ -119,7 +119,7 @@
 		</div>
 	{:else if outfits === null}
 		<div role="status" aria-busy="true">
-			<span class="sr-only">Loading outfits</span>
+			<span class="sr-only">Loading outfits…</span>
 			<ul
 				class="grid grid-cols-3 gap-2 @lg:grid-cols-4 @2xl:grid-cols-5 @4xl:grid-cols-6"
 				aria-hidden="true">
@@ -134,8 +134,8 @@
 			<h2>No outfits</h2>
 			<p>
 				{canEdit
-					? "Save the avatar as an outfit to put it on again later."
-					: `@${username} hasn't saved any outfits.`}
+					? "Save the avatar as an outfit to put it on later."
+					: `@${username} has not saved any outfits.`}
 			</p>
 		</div>
 	{:else}
@@ -184,12 +184,12 @@
 						<button
 							class="absolute right-1 bottom-0.5 button-ghost-sm"
 							type="button"
-							aria-label={`Actions for ${outfit.name || "outfit"}`}
+							aria-label={`More actions for ${outfit.name || "outfit"}`}
 							aria-haspopup="menu"
 							aria-expanded={menu?.outfit.outfitId === outfit.outfitId}
 							data-open={menu?.outfit.outfitId === outfit.outfitId ||
 								undefined}
-							data-tooltip="Show outfit actions"
+							data-tooltip="More actions"
 							disabled={avatar.isChangingOutfit ||
 								avatar.wearingOutfitId !== 0}
 							onclick={(event) => {

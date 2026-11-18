@@ -96,7 +96,7 @@
 		<button
 			class="button-ghost"
 			type="button"
-			aria-label={store.refreshing ? "Refreshing accounts" : "Refresh accounts"}
+			aria-label={store.refreshing ? "Refreshing accounts…" : "Refresh accounts"}
 			aria-busy={store.refreshing}
 			data-tooltip="Refresh accounts"
 			data-tooltip-side="bottom-end"
@@ -128,7 +128,7 @@
 				{#if store.query}
 					<button
 						type="button"
-						aria-label="Clear account search"
+						aria-label="Clear search"
 						onclick={() => store.setQuery("")}>
 						<Icon svg={xIcon} size={14} aria-hidden="true" />
 					</button>

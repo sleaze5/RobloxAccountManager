@@ -1,6 +1,7 @@
 <script lang="ts">
 	import calendarDotsIcon from "@phosphor-icons/core/regular/calendar-dots.svg?raw"
 	import checkCircleFillIcon from "@phosphor-icons/core/fill/check-circle-fill.svg?raw"
+	import prohibitIcon from "@phosphor-icons/core/regular/prohibit.svg?raw"
 	import clockCounterClockwiseIcon from "@phosphor-icons/core/regular/clock-counter-clockwise.svg?raw"
 	import shoppingCartIcon from "@phosphor-icons/core/regular/shopping-cart.svg?raw"
 	import storefrontIcon from "@phosphor-icons/core/regular/storefront.svg?raw"
@@ -194,13 +195,13 @@
 					{#if price === 0}
 						This game pass is free.
 					{:else}
-						Roblox doesn't refund game passes.
+						Roblox does not refund game passes.
 					{/if}
 				</p>
 			</div>
 			<button
 				type="button"
-				aria-label="Close confirmation"
+				aria-label="Close dialog"
 				disabled={universeGamePasses.isBuying}
 				onclick={close}>
 				<Icon svg={xIcon} size={14} aria-hidden="true" />
@@ -208,7 +209,7 @@
 		</div>
 		<PurchaseItemSummary
 			{name}
-			detail={`Game pass - ${gameName}`}
+			detail={`Game pass · ${gameName}`}
 			imageUrl={shownGamePass.iconUrl}
 			fallbackIcon={ticketIcon}
 			priceInRobux={price} />
@@ -219,7 +220,7 @@
 					class="button"
 					type="button"
 					disabled={universeGamePasses.loading}
-					onclick={reloadGamePasses}>Reload</button>
+					onclick={reloadGamePasses}>Refresh</button>
 			</div>
 		{/if}
 		<PurchaseAccountActions
@@ -262,7 +263,7 @@
 								class="ml-1 button-close"
 								type="button"
 								data-close-game-pass
-								aria-label="Close game pass details"
+								aria-label="Close dialog"
 								onclick={close}>
 								<Icon svg={xIcon} size={14} aria-hidden="true" />
 							</button>
@@ -270,7 +271,7 @@
 					</div>
 					<div class={metaClass}>
 						<span class="select-text">ID: {gamePass.gamePassId}</span>
-						<span class="text-fg-faint" aria-hidden="true">-</span>
+						<span class="text-fg-faint" aria-hidden="true">·</span>
 						<span>Game pass</span>
 					</div>
 					<div class={metaClass}><span>{gameName}</span></div>
@@ -285,18 +286,34 @@
 					{#if changeNotice}
 						<p class="mt-1 notice-warning" role="status">{changeNotice}</p>
 					{/if}
-					{#if hasOwnership && gamePass.isOwned}
+					{#if (hasOwnership && gamePass.isOwned) || gamePass.isModerated}
 						<ul
 							class="mt-2 flex min-h-6 flex-wrap gap-1"
 							aria-label="Status">
-							<li class="tag-pill-success animate-pop">
-								<Icon
-									svg={checkCircleFillIcon}
-									size={12}
-									aria-hidden="true" />
-								<span>Owned</span>
-							</li>
+							{#if gamePass.isModerated}
+								<li class="tag-pill-warning animate-pop">
+									<Icon
+										svg={prohibitIcon}
+										size={12}
+										aria-hidden="true" />
+									<span>Deleted</span>
+								</li>
+							{/if}
+							{#if hasOwnership && gamePass.isOwned}
+								<li class="tag-pill-success animate-pop">
+									<Icon
+										svg={checkCircleFillIcon}
+										size={12}
+										aria-hidden="true" />
+									<span>Owned</span>
+								</li>
+							{/if}
 						</ul>
+					{/if}
+					{#if gamePass.isModerated}
+						<p class="mt-1 text-xs text-fg-muted">
+							Roblox moderated this pass and deleted its icon.
+						</p>
 					{/if}
 					{#if isPending}
 						<p class="text-xs text-fg-muted" role="status">

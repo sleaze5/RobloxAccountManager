@@ -78,7 +78,7 @@
 				{#if isWorn}
 					<span
 						class="ml-auto shrink-0 rounded-sm border border-line-strong bg-overlay px-1 text-2xs leading-4 font-medium text-success"
-						>Wearing</span>
+						>Worn</span>
 				{/if}
 			</span>
 		{/if}

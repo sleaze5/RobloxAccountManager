@@ -34,9 +34,9 @@ func (service *Service) RenewCookie(ctx context.Context, accountID int64) (Cooki
 		if remote, ok := errors.AsType[*roblox.Error](err); ok {
 			kind, status = remote.Kind, remote.Status
 		}
-		logger.WarnContext(ctx, "cookie renewal failed", "error_kind", kind, "status", status)
+		logger.WarnContext(ctx, "could not renew the cookie", "error_kind", kind, "status", status)
 		if kind == roblox.KindTransport || kind == roblox.KindTimeout || kind == roblox.KindServer {
-			return CookieRenewalResult{}, &roblox.Error{Kind: kind, Endpoint: "cookie-renewal", Status: status, Message: "The renewal could not be confirmed. If the saved session stops working, sign in again.", Cause: err}
+			return CookieRenewalResult{}, &roblox.Error{Kind: kind, Endpoint: "cookie-renewal", Status: status, Message: "Could not confirm the renewal. If the saved session stops working, sign in again.", Cause: err}
 		}
 		return CookieRenewalResult{}, err
 	}

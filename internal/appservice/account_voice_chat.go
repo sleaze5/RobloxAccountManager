@@ -76,7 +76,7 @@ func (service *Service) refreshAccountVoiceSuspension(accountID, userID int64) {
 		}
 		defer done()
 		if _, err := service.readVoiceChat(ctx, accountID, version, userID); err != nil && ctx.Err() == nil {
-			service.logger.WarnContext(ctx, "voice chat suspension could not be refreshed; retrying with the next presence update", "operation", "voice-suspension-refresh", "account_id", accountID, "error", err)
+			service.logger.WarnContext(ctx, "could not refresh the voice chat suspension; trying again with the next online status update", "operation", "voice-suspension-refresh", "account_id", accountID, "error", err)
 		}
 	})
 }
@@ -92,7 +92,7 @@ func (service *Service) recordVoiceSuspension(ctx context.Context, accountID, us
 	view, err := service.accountRepository.GetView(ctx, accountID)
 	if err != nil {
 		if ctx.Err() == nil {
-			service.logger.Warn("account list could not show the voice chat suspension until the next refresh", "operation", "voice-suspension-record", "account_id", accountID, "error", err)
+			service.logger.Warn("voice chat suspension shows in the account list after the next refresh", "operation", "voice-suspension-record", "account_id", accountID, "error", err)
 		}
 		return
 	}

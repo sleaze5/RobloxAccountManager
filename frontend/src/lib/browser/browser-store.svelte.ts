@@ -89,7 +89,7 @@ export class BrowserStore {
 			}
 			notifications.show({
 				id: `browser-launch-${sessionId}`,
-				title: "Game launch failed",
+				title: "Game not launched",
 				tone: "error",
 				message,
 			})
@@ -151,7 +151,7 @@ export class BrowserStore {
 				],
 				id: "browser-runtime-download",
 				message: next.runtime.error,
-				title: "Browser download failed",
+				title: "Browser not downloaded",
 				tone: "error",
 			})
 		}
@@ -214,7 +214,7 @@ export class BrowserStore {
 					{ label: "Try cleanup again", onClick: () => this.retryCleanup() },
 				],
 				id: "browser-cleanup",
-				message: "A temporary browser profile could not be removed.",
+				message: "Could not remove a temporary browser profile.",
 				title: "Browser cleanup needed",
 				tone: "warning",
 			})
@@ -248,7 +248,7 @@ export class BrowserStore {
 			this.#notifications?.show({
 				id: `browser-account-${accountId}`,
 				message: errorMessage(error, browserOperationError),
-				title: "Browser could not open",
+				title: "Browser not opened",
 				tone: "error",
 			})
 		}
@@ -272,7 +272,7 @@ export class BrowserStore {
 			this.#notifications?.show({
 				id: `browser-focus-${id}`,
 				message: errorMessage(error, browserOperationError),
-				title: "Browser could not be focused",
+				title: "Browser not focused",
 				tone: "error",
 			})
 		}

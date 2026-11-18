@@ -211,22 +211,20 @@ func (service *Service) TryOnInventoryItem(ctx context.Context, accountID int64,
 	return service.renderAvatarPreview(ctx, accountID, version, "avatar-try-on", change)
 }
 
-// GetInventoryItemTryOnModel renders the avatar of the account wearing the
-// item as a 3D model, without saving it.
-func (service *Service) GetInventoryItemTryOnModel(ctx context.Context, accountID int64, category robloxservices.InventoryCategory, itemID int64) (robloxservices.RenderedModel, error) {
-	var change *robloxservices.AvatarChange
-	return service.readRenderedModel(ctx, accountID, "avatar-try-on-model", func(ctx context.Context, version int64) (string, error) {
-		// The avatar to render is read once, and each repeated request renders
-		// the same one.
-		if change == nil {
-			tryOnChange, err := service.users.TryOnChange(ctx, accountID, version, category, itemID)
-			if err != nil {
-				return "", err
-			}
-			change = &tryOnChange
-		}
-		return service.users.RenderAvatarPreview(ctx, accountID, version, *change, robloxservices.AvatarPreviewModel)
-	})
+// GetInventoryItemTryOnAvatar reads the saved avatar of the account wearing
+// the item, which the 3D viewer builds without saving it.
+func (service *Service) GetInventoryItemTryOnAvatar(ctx context.Context, accountID int64, category robloxservices.InventoryCategory, itemID int64) (robloxservices.Avatar, error) {
+	ctx, version, done, err := service.beginAccountSession(ctx, accountID, "avatar-try-on")
+	if err != nil {
+		return robloxservices.Avatar{}, err
+	}
+	defer done()
+	avatar, err := service.users.TryOnAvatar(ctx, accountID, version, category, itemID)
+	if err != nil {
+		service.logs.Module("application.avatar").WarnContext(ctx, "avatar try-on unavailable", "operation", "avatar-try-on", "account_id", accountID, "category", category, "error", err)
+		return robloxservices.Avatar{}, err
+	}
+	return avatar, nil
 }
 
 // renderAvatarPreview renders the change as a full-body image. Roblox answers
@@ -240,7 +238,7 @@ func (service *Service) renderAvatarPreview(ctx context.Context, accountID, vers
 	imageURL := ""
 	isRendered, err := pollUntilReady(ctx, operation, "The avatar preview was not loaded.", maxAttempts, retryDelay, func() (bool, error) {
 		var err error
-		imageURL, err = service.users.RenderAvatarPreview(ctx, accountID, version, change, robloxservices.AvatarPreviewImage)
+		imageURL, err = service.users.RenderAvatarPreview(ctx, accountID, version, change)
 		if err != nil {
 			service.logs.Module("application.avatar").WarnContext(ctx, "avatar preview unavailable", "operation", operation, "account_id", accountID, "error", err)
 			return false, err
@@ -251,7 +249,7 @@ func (service *Service) renderAvatarPreview(ctx context.Context, accountID, vers
 		return "", err
 	}
 	if !isRendered {
-		return "", &roblox.Error{Kind: roblox.KindTimeout, Endpoint: operation, Message: "Roblox is still rendering the preview. Try again in a moment."}
+		return "", &roblox.Error{Kind: roblox.KindTimeout, Endpoint: operation, Message: "Roblox is still rendering the preview. Try again in a minute."}
 	}
 	return imageURL, nil
 }
@@ -264,11 +262,22 @@ func (service *Service) RedrawAvatarImage(ctx context.Context, accountID int64) 
 	})
 }
 
-// GetAvatarModel reads the 3D avatar of the user, as the account sees it.
-func (service *Service) GetAvatarModel(ctx context.Context, accountID, userID int64) (robloxservices.RenderedModel, error) {
-	return service.readRenderedModel(ctx, accountID, "avatar-model", func(ctx context.Context, version int64) (string, error) {
-		return service.users.AvatarModelManifestURL(ctx, accountID, version, userID)
-	})
+// GetAvatarRenderFile downloads the file of an asset that the 3D avatar on
+// the avatar page reads, in the representation that it asks for.
+func (service *Service) GetAvatarRenderFile(ctx context.Context, accountID, assetID int64, representation robloxservices.AssetRepresentation) ([]byte, error) {
+	ctx, version, done, err := service.beginAccountSession(ctx, accountID, "avatar-render-file")
+	if err != nil {
+		return nil, err
+	}
+	defer done()
+	contents, err := service.users.AvatarRenderFile(ctx, accountID, version, assetID, representation)
+	if err != nil {
+		// The 3D avatar shows the rest of the avatar without the asset, so a
+		// missing asset is not a warning.
+		service.logs.Module("application.avatar").DebugContext(ctx, "avatar render file unavailable", "operation", "avatar-render-file", "account_id", accountID, "asset_id", assetID, "error", err)
+		return nil, err
+	}
+	return contents, nil
 }
 
 // GetAvatarOutfits reads one page of the outfits that the user created, with

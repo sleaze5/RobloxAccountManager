@@ -12,11 +12,11 @@ import (
 func rejectNetworkPath(path string) error {
 	var stat unix.Statfs_t
 	if err := unix.Statfs(path, &stat); err != nil {
-		return fmt.Errorf("inspect application filesystem: %w", err)
+		return fmt.Errorf("inspect the app file system: %w", err)
 	}
 	switch stat.Type {
 	case unix.NFS_SUPER_MAGIC, unix.CIFS_SUPER_MAGIC, unix.SMB_SUPER_MAGIC, unix.SMB2_SUPER_MAGIC, unix.AFS_SUPER_MAGIC, unix.CODA_SUPER_MAGIC, unix.CEPH_SUPER_MAGIC:
-		return errors.New("network application paths are unsupported")
+		return errors.New("the data folder cannot be on a network drive")
 	default:
 		return nil
 	}

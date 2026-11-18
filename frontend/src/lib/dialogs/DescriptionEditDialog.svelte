@@ -48,10 +48,7 @@
 				accountBackend.ValidateAccountDescription(account.id, validatedText),
 			)
 		} catch (cause) {
-			error = errorMessage(
-				cause,
-				"Could not validate the description. Try again.",
-			)
+			error = errorMessage(cause, "Could not check the description. Try again.")
 			return false
 		} finally {
 			pending = null
@@ -118,7 +115,7 @@
 			</div>
 			<button
 				type="button"
-				aria-label="Close edit description"
+				aria-label="Close dialog"
 				disabled={pending !== null}
 				onclick={close}>
 				<Icon svg={xIcon} size={14} aria-hidden="true" />
@@ -171,11 +168,11 @@
 				aria-busy={pending === "submit" || pending === "save"}
 				disabled={!changed || pending !== null}>
 				{#if pending === "submit"}
-					Validating…
+					Checking…
 				{:else if pending === "save"}
 					Saving…
 				{:else if check.current && !check.current.filter}
-					Save without validating
+					Save without checking
 				{:else if check.isTagged}
 					Save anyway
 				{:else}

@@ -240,13 +240,13 @@
 			<div>
 				<h2 id="add-account-title">Paste cookies</h2>
 				<p>
-					Paste one .ROBLOSECURITY cookie per line. Each line can contain a
-					raw value, cookie pair, or Cookie header.
+					Paste one .ROBLOSECURITY cookie per line, as a raw value, a cookie
+					pair, or a Cookie header.
 				</p>
 			</div>
 			<button
 				type="button"
-				aria-label="Close add account dialog"
+				aria-label="Close dialog"
 				disabled={store.busy}
 				onclick={close}>
 				<Icon svg={xIcon} size={14} aria-hidden="true" />
@@ -282,7 +282,7 @@
 				>Cancel</button>
 			{#if preview?.batchId && preview.readyCount > 0}
 				<button class="button" type="submit" disabled={store.busy}>
-					{operation === "validate" ? "Validating…" : "Validate"}
+					{operation === "validate" ? "Checking…" : "Check"}
 				</button>
 				<button
 					class="button-primary"
@@ -296,7 +296,7 @@
 					class="button-primary"
 					type="submit"
 					disabled={store.busy || !cookieInput.trim()}>
-					{operation === "validate" ? "Validating…" : "Validate"}
+					{operation === "validate" ? "Checking…" : "Check"}
 				</button>
 			{/if}
 		</div>

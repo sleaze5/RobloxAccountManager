@@ -72,7 +72,7 @@ export class OwnedPrivateServersState {
 			if (!this.#scope.isCurrent) return
 			this.error = errorMessage(
 				error,
-				"Could not load private servers. Refresh to retry.",
+				"Could not load private servers. Refresh to try again.",
 			)
 		} finally {
 			if (this.#scope.isCurrent) this.loading = false

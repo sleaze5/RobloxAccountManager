@@ -14,6 +14,20 @@ const (
 
 var errDialogsUnavailable = errors.New("file dialogs are unavailable")
 
+// On Windows, Wails reports a dialog that the user cancelled as an error with
+// this message, from an internal package that does not export the error. On
+// other systems a cancelled dialog returns an empty path.
+const windowsDialogCancelledMessage = "cancelled by user"
+
+func isDialogCancelled(err error) bool {
+	for ; err != nil; err = errors.Unwrap(err) {
+		if err.Error() == windowsDialogCancelledMessage {
+			return true
+		}
+	}
+	return false
+}
+
 // An empty path without an error means the user cancelled the dialog.
 func chooseSaveFile(directory, name, filterName, filterPattern string) (string, error) {
 	app := application.Get()
@@ -29,6 +43,9 @@ func chooseSaveFile(directory, name, filterName, filterPattern string) (string, 
 		dialog.AttachToWindow(window)
 	}
 	path, err := dialog.PromptForSingleSelection()
+	if isDialogCancelled(err) {
+		return "", nil
+	}
 	if err != nil {
 		return "", fmt.Errorf("show save dialog: %w", err)
 	}
@@ -49,6 +66,9 @@ func chooseOpenFile(directory string) (string, error) {
 		dialog.AttachToWindow(window)
 	}
 	path, err := dialog.PromptForSingleSelection()
+	if isDialogCancelled(err) {
+		return "", nil
+	}
 	if err != nil {
 		return "", fmt.Errorf("show open dialog: %w", err)
 	}

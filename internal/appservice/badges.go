@@ -26,7 +26,7 @@ func (service *Service) ListGameBadges(ctx context.Context, universeID int64) ([
 	for index, badge := range badges {
 		targets[index] = robloxservices.ThumbnailTarget{Type: "BadgeIcon", TargetID: badge.BadgeID}
 	}
-	icons, err := service.thumbnails.Images(ctx, targets, robloxservices.SmallThumbnailSize)
+	icons, err := service.thumbnails.Thumbnails(ctx, targets, robloxservices.SmallThumbnailSize)
 	if ctx.Err() != nil {
 		return nil, service.gamesError(ctx, "game-badges", ctx.Err())
 	}
@@ -34,7 +34,7 @@ func (service *Service) ListGameBadges(ctx context.Context, universeID int64) ([
 		service.logs.Module("application.games").WarnContext(ctx, "badge icons unavailable", "operation", "game-badge-icons", "universe_id", universeID, "error", err)
 	}
 	for index := range badges {
-		badges[index].IconURL = icons[targets[index]]
+		badges[index].IconURL, badges[index].IsModerated = icons[targets[index]].ImageURL, icons[targets[index]].IsBlocked
 	}
 	return badges, nil
 }

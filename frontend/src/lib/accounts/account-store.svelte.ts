@@ -32,7 +32,7 @@ import { errorMessage } from "../shared/errors"
 import { detailsKeepMs } from "../shared/freshness"
 
 const operationError = "The operation failed.",
-	presenceRefreshError = "Account presence could not be refreshed."
+	presenceRefreshError = "Could not refresh online status."
 
 export class AccountStore {
 	accounts = $state<Account[]>([])
@@ -134,7 +134,7 @@ export class AccountStore {
 			signal: AbortSignal.timeout(15_000),
 		})
 		if (!response.ok) {
-			throw new Error("The image could not be loaded. Try again.")
+			throw new Error("Could not load the image. Try again.")
 		}
 		const image = await response.blob()
 		if (image.type !== "image/png") {
@@ -287,7 +287,7 @@ export class AccountStore {
 					if (message) {
 						this.notifications.show({
 							id: "credential-backup",
-							title: "Cookie saved; backup needs attention",
+							title: "Cookie saved, backups need attention",
 							tone: "warning",
 							message,
 							durationMs: 0,
@@ -782,7 +782,7 @@ export class AccountStore {
 				return true
 			}
 			if (failed.length > 0) {
-				this.error = `${failed.length} ${failed.length === 1 ? "account" : "accounts"} could not be saved. Validate the cookies again.`
+				this.error = `${failed.length} ${failed.length === 1 ? "account" : "accounts"} could not be saved. Check the cookies again.`
 			} else if (duplicates.length > 0) {
 				this.error = `${duplicates.length} ${duplicates.length === 1 ? "account is" : "accounts are"} already in the vault. Their cookies were not changed.`
 			}
@@ -1114,7 +1114,7 @@ export class AccountStore {
 		} catch {
 			if (force) {
 				throw new Error(
-					"The profile image could not be refreshed. Refresh to retry.",
+					"Could not refresh the profile image. Refresh to try again.",
 				)
 			}
 			return
@@ -1132,7 +1132,9 @@ export class AccountStore {
 			force &&
 			!headshots.some((headshot) => headshot.robloxUserId === userIds[0])
 		) {
-			throw new Error("The profile image is not available yet. Refresh to retry.")
+			throw new Error(
+				"The profile image is not available yet. Refresh to try again.",
+			)
 		}
 	}
 

@@ -80,7 +80,7 @@ func KillProcesses(ctx context.Context, processes []Process, logger *slog.Logger
 			return errors.Join(killError, err)
 		}
 		if err := killProcess(ctx, process, logger); err != nil {
-			killError = errors.Join(killError, fmt.Errorf("kill Roblox process %d: %w", process.PID, err))
+			killError = errors.Join(killError, fmt.Errorf("close Roblox process %d: %w", process.PID, err))
 		}
 	}
 	return killError
@@ -107,7 +107,7 @@ func killProcess(ctx context.Context, process Process, logger *slog.Logger) erro
 		case <-ticker.C:
 		}
 		if signal == syscall.SIGTERM && time.Now().After(forceAt) {
-			logger.Warn("Roblox process did not quit; forcing it", "operation", "roblox-process-kill", "pid", process.PID, "name", process.Name)
+			logger.Warn("Roblox process did not quit; closing it by force", "operation", "roblox-process-kill", "pid", process.PID, "name", process.Name)
 			signal = syscall.SIGKILL
 		}
 	}

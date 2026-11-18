@@ -66,8 +66,8 @@
 		<button
 			class={actionClass}
 			type="button"
-			aria-label="Lock account vault"
-			data-tooltip="Lock account vault"
+			aria-label="Lock vault"
+			data-tooltip="Lock vault"
 			data-tooltip-side="bottom-end"
 			disabled={!store.vault.unlocked || store.busy}
 			onclick={onLock}>

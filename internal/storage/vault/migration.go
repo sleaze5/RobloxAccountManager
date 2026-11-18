@@ -65,7 +65,7 @@ func (manager *Manager) MigrateLegacyVault(ctx context.Context, password string,
 		}
 		return err
 	}
-	manager.logger.Info("legacy vault migrated", "operation", "vault-migration", "automatic_unlock", automaticUnlock)
+	manager.logger.Info("legacy vault moved", "operation", "vault-migration", "automatic_unlock", automaticUnlock)
 	return nil
 }
 

@@ -61,7 +61,7 @@ func (service *Service) GetAccountSessions(ctx context.Context, accountID int64)
 
 func (service *Service) SignOutOtherSessions(ctx context.Context, accountID int64) (CookieRenewalResult, error) {
 	if _, running := service.cookieRenewals.LoadOrStore(accountID, struct{}{}); running {
-		return CookieRenewalResult{}, &roblox.Error{Kind: roblox.KindForbidden, Endpoint: "sessions-sign-out", Message: "This account's cookie is already being replaced. Try again in a moment."}
+		return CookieRenewalResult{}, &roblox.Error{Kind: roblox.KindForbidden, Endpoint: "sessions-sign-out", Message: "This account's cookie is already being updated. Try again in a moment."}
 	}
 	defer service.cookieRenewals.Delete(accountID)
 	ctx, version, done, err := service.beginAccountSession(ctx, accountID, "sessions-sign-out")
@@ -76,7 +76,7 @@ func (service *Service) SignOutOtherSessions(ctx context.Context, accountID int6
 		if remote, ok := errors.AsType[*roblox.Error](err); ok {
 			kind, status = remote.Kind, remote.Status
 		}
-		logger.WarnContext(ctx, "signing out other sessions failed", "error_kind", kind, "status", status)
+		logger.WarnContext(ctx, "could not sign out other sessions", "error_kind", kind, "status", status)
 		if kind == roblox.KindChallengeRequired {
 			return CookieRenewalResult{}, &roblox.Error{Kind: kind, Endpoint: "sessions-sign-out", Status: status, Message: "Roblox requires extra verification to sign out other sessions. Do it on the Roblox website.", Cause: err}
 		}

@@ -15,8 +15,8 @@
 		<div>
 			<h2 id="development-build-title">Development build</h2>
 			<p id="development-build-summary">
-				Version <span class="font-mono">{version}</span> isn't a release. It may have
-				bugs that affect your vault, and it can't update itself.
+				Version <span class="font-mono">{version}</span> is not a release. It may
+				have bugs that affect your vault, and it cannot update itself.
 			</p>
 		</div>
 	</div>

@@ -116,7 +116,7 @@
 							unavailableReason={!savedAsset
 								? "Save to adjust"
 								: !limits
-									? "Can't be adjusted"
+									? "Cannot be adjusted"
 									: ""}
 							onToggle={() =>
 								(expandedAssetId =

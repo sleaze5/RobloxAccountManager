@@ -102,7 +102,7 @@ func (paths Paths) Prepare() error {
 
 func PreparePrivateDirectory(directory string) error {
 	if err := os.MkdirAll(directory, 0o700); err != nil {
-		return fmt.Errorf("create application directory %q: %w", filepath.Base(directory), err)
+		return fmt.Errorf("create the app folder %q: %w", filepath.Base(directory), err)
 	}
 	return restrictDirectory(directory)
 }

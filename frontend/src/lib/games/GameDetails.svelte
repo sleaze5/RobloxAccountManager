@@ -12,6 +12,7 @@
 	import microphoneIcon from "@phosphor-icons/core/regular/microphone.svg?raw"
 	import pencilIcon from "@phosphor-icons/core/regular/pencil.svg?raw"
 	import personArmsSpreadIcon from "@phosphor-icons/core/regular/person-arms-spread.svg?raw"
+	import prohibitIcon from "@phosphor-icons/core/regular/prohibit.svg?raw"
 	import pulseIcon from "@phosphor-icons/core/regular/pulse.svg?raw"
 	import sealCheckIcon from "@phosphor-icons/core/regular/seal-check.svg?raw"
 	import shapesIcon from "@phosphor-icons/core/regular/shapes.svg?raw"
@@ -26,12 +27,15 @@
 	import usersThreeIcon from "@phosphor-icons/core/regular/users-three.svg?raw"
 	import videoCameraIcon from "@phosphor-icons/core/regular/video-camera.svg?raw"
 	import warningIcon from "@phosphor-icons/core/regular/warning.svg?raw"
-	import { GameSection } from "../backend/bridge"
+	import { accountBackend, GameSection } from "../backend/bridge"
+	import type { Playability } from "../backend/bridge"
+	import { AccountScope } from "../accounts/account-scope"
+	import type { AccountStore } from "../accounts/account-store.svelte"
 	import Icon from "../shared/Icon.svelte"
 	import Skeleton from "../shared/Skeleton.svelte"
 	import RefreshIcon from "../shared/RefreshIcon.svelte"
 	import { untrack } from "svelte"
-	import type { WorkspaceState } from "../layout/workspace-state.svelte"
+	import ImageMenuTarget from "../layout/ImageMenuTarget.svelte"
 	import Timestamp from "../shared/Timestamp.svelte"
 	import { relativeTime } from "../shared/timestamp"
 	import { creatorByline, type GamesStore } from "./games-store.svelte"
@@ -39,11 +43,11 @@
 
 	let {
 		store,
-		workspace,
+		accounts,
 		onSearchUniverse,
 	}: {
 		store: GamesStore
-		workspace: WorkspaceState
+		accounts: AccountStore
 		onSearchUniverse: (universeId: number) => void
 	} = $props()
 	const numbers = new Intl.NumberFormat(),
@@ -52,6 +56,39 @@
 			maximumFractionDigits: 1,
 		}),
 		graphemes = new Intl.Segmenter(undefined, { granularity: "grapheme" })
+
+	let playability = $state.raw<Playability | null>(null),
+		playabilityRefreshCount = $state(0)
+
+	$effect(() => {
+		const scope = new AccountScope(accounts.selectedAccount.id, accounts),
+			universeId = store.selected?.universeId
+		playability = null
+		if (!universeId || !scope.isCurrent || scope.accountId <= 0) return
+		// A details refresh also updates the status for the selected account.
+		void playabilityRefreshCount
+		void loadPlayability(scope, universeId)
+		return () => scope.dispose()
+	})
+
+	async function loadPlayability(
+		scope: AccountScope,
+		universeId: number,
+	): Promise<void> {
+		try {
+			const status = await scope.track(
+				accountBackend.GetGamePlayability(scope.accountId, universeId),
+			)
+			if (scope.isCurrent) playability = status
+		} catch {
+			// The backend logs the failure. A failed check cannot say the game is unplayable.
+		}
+	}
+
+	function refreshGameDetails(): void {
+		playabilityRefreshCount++
+		void store.refreshDetails()
+	}
 
 	type Fact = {
 		label: string
@@ -81,6 +118,29 @@
 		nameEnd = $derived(place?.name.slice(nameSplit).trimEnd() ?? ""),
 		menuOpen = $derived(!!place && store.menu?.place.placeId === place.placeId),
 		rootPlace = $derived(game?.rootPlace ?? null),
+		// The develop API lists an unlisted game without its counts and genre.
+		listedGame = $derived(game?.isUnlisted ? undefined : game),
+		isUnplayable = $derived(!!playability && !playability.isPlayable),
+		playabilityWarning = $derived(
+			playability?.isUnderReview
+				? {
+						label: "Under review",
+						message:
+							"Roblox put this game under review, so no one can join it.",
+					}
+				: isUnplayable
+					? {
+							label: "Unplayable",
+							message: "This account cannot join this game.",
+						}
+					: game?.isUnlisted
+						? {
+								label: "Unavailable",
+								message:
+									"Roblox no longer lists this game, so its player counts are unavailable.",
+							}
+						: null,
+		),
 		// Badges and game passes belong to the universe, so subplaces hide them.
 		// Disabled until details load, so the header doesn't shift.
 		hasUniverseButtons = $derived(!rootPlace),
@@ -90,9 +150,9 @@
 		votes = $derived(game ? game.upVotes + game.downVotes : 0),
 		likeShare = $derived(game && votes ? game.upVotes / votes : 0),
 		genre = $derived(
-			game &&
-				([game.genre, game.subgenre].filter(Boolean).join("; ") ||
-					"Not specified"),
+			listedGame &&
+				([listedGame.genre, listedGame.subgenre].filter(Boolean).join("; ") ||
+					"None"),
 		),
 		contentRating = $derived(
 			game &&
@@ -115,22 +175,22 @@
 						: undefined,
 				detail:
 					game && hasVotes && votes
-						? `${count(game.upVotes, "like", "likes")} - ${count(game.downVotes, "dislike", "dislikes")}`
+						? `${count(game.upVotes, "like", "likes")} · ${count(game.downVotes, "dislike", "dislikes")}`
 						: "",
 			},
-			{ label: "Visits", icon: eyeIcon, value: exact(game?.visits) },
+			{ label: "Visits", icon: eyeIcon, value: exact(listedGame?.visits) },
 			{
 				label: "Favorites",
 				icon: starIcon,
-				value: exact(game?.favorites),
+				value: exact(listedGame?.favorites),
 			},
 			{
 				label: "Server capacity",
 				icon: usersThreeIcon,
 				value:
-					game?.maxPlayers === undefined
+					listedGame?.maxPlayers === undefined
 						? undefined
-						: count(game.maxPlayers, "player", "players"),
+						: count(listedGame.maxPlayers, "player", "players"),
 			},
 		]),
 		details = $derived<Fact[]>([
@@ -189,7 +249,7 @@
 				icon: ticketIcon,
 				value: game
 					? game.price > 0
-						? `Paid access - R$ ${numbers.format(game.price)}`
+						? `Paid access: R$ ${numbers.format(game.price)}`
 						: "Free"
 					: undefined,
 			},
@@ -318,26 +378,11 @@
 		<div class="flex flex-col gap-4 p-3 pb-4">
 			<div class="flex items-start gap-3 @max-xl:flex-col">
 				<div class="flex min-w-0 flex-1 items-start gap-4">
-					<button
-						type="button"
-						class="shrink-0 cursor-default rounded-md"
-						aria-label="Game icon"
-						aria-haspopup="menu"
-						aria-expanded={workspace.imageContextMenu?.imageUrl ===
-							place.iconUrl}
-						disabled={!place.iconUrl}
-						onkeydown={(event) => {
-							if (
-								event.key === "ContextMenu" ||
-								(event.shiftKey && event.key === "F10")
-							) {
-								workspace.openImageContextMenu(event, place.iconUrl)
-							}
-						}}
-						oncontextmenu={(event) =>
-							workspace.openImageContextMenu(event, place.iconUrl)}>
+					<ImageMenuTarget
+						imageUrl={place.iconUrl}
+						label={`${store.displayName(place)} icon`}>
 						<GameIcon url={place.iconUrl} size="xl" />
-					</button>
+					</ImageMenuTarget>
 					<div class="flex min-w-0 flex-col gap-1">
 						<div class="min-w-0 leading-6">
 							<h2
@@ -402,7 +447,7 @@
 						</div>
 						<div class={metaClass}>
 							<span>ID: {place.placeId}</span>
-							<span class="text-fg-faint" aria-hidden="true">-</span>
+							<span class="text-fg-faint" aria-hidden="true">·</span>
 							<span>Universe ID: {place.universeId}</span>
 							<button
 								class="-my-1 -ms-1 button-ghost size-5"
@@ -415,7 +460,7 @@
 									size={14}
 									aria-hidden="true" /></button>
 							{#if rootPlace}
-								<span class="text-fg-faint" aria-hidden="true">-</span>
+								<span class="text-fg-faint" aria-hidden="true">·</span>
 								<span>Root place ID: {rootPlace.placeId}</span>
 							{/if}
 						</div>
@@ -426,7 +471,7 @@
 										size={14}
 										aria-label="Verified creator" />{/if}</span>
 							{#if place.creatorId}
-								<span class="text-fg-faint" aria-hidden="true">-</span>
+								<span class="text-fg-faint" aria-hidden="true">·</span>
 								<span>{place.creatorType} ID: {place.creatorId}</span>
 							{/if}
 						</div>
@@ -434,20 +479,35 @@
 							<p
 								class="inline-flex items-center gap-1 text-xs font-medium text-fg-faint">
 								<Icon svg={pulseIcon} size={14} aria-hidden="true" />
-								<Skeleton className="w-20" label="Loading players" />
+								<Skeleton className="w-20" label="Loading players…" />
 							</p>
-						{:else if game}
+						{:else if listedGame}
 							<p
 								class={[
 									"inline-flex items-center gap-1 text-xs font-medium tabular-nums",
-									game.playing > 0
+									listedGame.playing > 0
 										? "text-presence-game"
 										: "text-fg-muted",
 								]}>
 								<Icon svg={pulseIcon} size={14} aria-hidden="true" />
-								{numbers.format(game.playing)} playing{rootPlace
+								{numbers.format(listedGame.playing)} playing{rootPlace
 									? " in this universe"
 									: ""}
+							</p>
+						{/if}
+						{#if game && playabilityWarning}
+							<p
+								class="flex animate-enter flex-wrap items-center gap-x-2 gap-y-1 text-xs text-fg-muted">
+								<span class="tag-pill-warning">
+									<Icon
+										svg={prohibitIcon}
+										size={12}
+										aria-hidden="true" />
+									<span>{playabilityWarning.label}</span>
+								</span>
+								<span
+									>{playability?.message ||
+										playabilityWarning.message}</span>
 							</p>
 						{/if}
 					</div>
@@ -457,12 +517,12 @@
 						class="button-icon"
 						type="button"
 						aria-label={store.loadingDetails
-							? "Refreshing game details"
+							? "Refreshing game details…"
 							: "Refresh game details"}
 						aria-busy={store.loadingDetails}
 						data-tooltip="Refresh game details"
 						disabled={store.loadingDetails}
-						onclick={() => void store.refreshDetails()}>
+						onclick={refreshGameDetails}>
 						<RefreshIcon isRefreshing={store.loadingDetails} />
 					</button>
 					<button
@@ -508,11 +568,11 @@
 					<button
 						class="button-icon"
 						type="button"
-						aria-label="More game actions"
+						aria-label="More actions"
 						aria-haspopup="menu"
 						aria-expanded={menuOpen}
 						data-open={menuOpen || undefined}
-						data-tooltip="Show more game actions"
+						data-tooltip="More actions"
 						data-tooltip-side="bottom-end"
 						data-game-menu
 						onclick={(event) => {
@@ -627,7 +687,7 @@
 				<section class="flex flex-col gap-3 pt-3" aria-busy="true">
 					<h3 class={sectionHeadingClass}>Description</h3>
 					<p class="text-block" data-variant="prose">
-						<Skeleton className="w-72" label="Loading the description" />
+						<Skeleton className="w-72" label="Loading description…" />
 					</p>
 				</section>
 			{/if}

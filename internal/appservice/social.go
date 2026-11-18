@@ -189,7 +189,7 @@ func (service *Service) SearchPlayers(ctx context.Context, accountID int64, keyw
 	keyword = strings.TrimSpace(keyword)
 	match := playerIDSearch.FindStringSubmatch(keyword)
 	if length := utf8.RuneCountInString(keyword); match == nil && (length < minPlayerSearchLength || length > maxPlayerSearchLength) {
-		return SocialPage{}, socialInputError(fmt.Sprintf("Enter %d to %d characters, or id: and a user ID, to search for players.", minPlayerSearchLength, maxPlayerSearchLength))
+		return SocialPage{}, socialInputError(fmt.Sprintf("Enter %d to %d characters, or id: and a user ID, to search for users.", minPlayerSearchLength, maxPlayerSearchLength))
 	}
 	if len(cursor) > maxSocialCursorLength {
 		return SocialPage{}, socialInputError("These search results have expired. Search again.")
@@ -208,11 +208,40 @@ func (service *Service) SearchPlayers(ctx context.Context, accountID int64, keyw
 	if err != nil {
 		return SocialPage{}, socialFailure(logger, err)
 	}
+	if match == nil && cursor == "" {
+		entries.userIDs = service.withExactUsernameFirst(ctx, logger, keyword, entries.userIDs)
+	}
 	account, err := service.accountRepository.GetView(ctx, accountID)
 	if err != nil {
 		return SocialPage{}, mapRepositoryError(err)
 	}
 	return service.socialPage(ctx, accountID, version, logger, entries, socialPageReads{presence: true, selfUserID: account.RobloxUserID})
+}
+
+// withExactUsernameFirst puts the user whose username is the keyword first,
+// even a banned user, whom the search leaves out. Without such a user, or
+// when the lookup fails, the search results stay as they are.
+func (service *Service) withExactUsernameFirst(ctx context.Context, logger *slog.Logger, keyword string, userIDs []int64) []int64 {
+	username := strings.TrimPrefix(keyword, "@")
+	if !playerUsername.MatchString(username) {
+		return userIDs
+	}
+	exactUserID, err := service.users.UserIDFromUsername(ctx, username, true)
+	if errors.Is(err, robloxservices.ErrUsernameNotFound) {
+		return userIDs
+	}
+	if err != nil {
+		logger.WarnContext(ctx, "could not look up the exact username", "error", err)
+		return userIDs
+	}
+	orderedUserIDs := make([]int64, 0, len(userIDs)+1)
+	orderedUserIDs = append(orderedUserIDs, exactUserID)
+	for _, userID := range userIDs {
+		if userID != exactUserID {
+			orderedUserIDs = append(orderedUserIDs, userID)
+		}
+	}
+	return orderedUserIDs
 }
 
 // playerByID returns the user ID when Roblox knows the user, or no IDs.
@@ -312,7 +341,7 @@ func (service *Service) socialEntries(ctx context.Context, accountID, version, u
 			entries.userIDs = append(entries.userIDs, request.UserID)
 		}
 	default:
-		return entries, socialInputError("Choose friends, followers, following, or requests.")
+		return entries, socialInputError("Select friends, followers, following, or requests.")
 	}
 	return entries, err
 }
@@ -380,7 +409,7 @@ func (service *Service) GetSocialPresences(ctx context.Context, accountID int64,
 	for _, userID := range userIDs {
 		complete = append(complete, presenceOrOffline(byUser, userID))
 	}
-	logger.DebugContext(ctx, "social presence read", "count", len(complete))
+	logger.DebugContext(ctx, "social online status read", "count", len(complete))
 	return complete, nil
 }
 
@@ -624,7 +653,7 @@ func (service *Service) friendConnections(ctx context.Context, logger *slog.Logg
 		logger.DebugContext(ctx, "friend connections incomplete", "accounts", len(candidates), "failed", failed)
 	}
 	if failed > 0 && failed == len(candidates) {
-		return savedID, nil, &roblox.Error{Kind: roblox.KindProtocol, Endpoint: "friend-connections", Message: "Your other accounts could not be checked.", Cause: failures[0]}
+		return savedID, nil, &roblox.Error{Kind: roblox.KindProtocol, Endpoint: "friend-connections", Message: "Could not check your other accounts.", Cause: failures[0]}
 	}
 	return savedID, connections, nil
 }
@@ -783,7 +812,7 @@ type SocialRemoval struct {
 // several users of the account's own list, one at a time.
 func (service *Service) RemoveSocialConnections(ctx context.Context, accountID int64, list SocialList, userIDs []int64) (SocialRemoval, error) {
 	if len(userIDs) == 0 || len(userIDs) > maxSocialRemovalUsers {
-		return SocialRemoval{}, socialInputError(fmt.Sprintf("Select 1 to %d people.", maxSocialRemovalUsers))
+		return SocialRemoval{}, socialInputError(fmt.Sprintf("Select 1 to %d users.", maxSocialRemovalUsers))
 	}
 	var remove func(context.Context, int64) error
 	switch list {
@@ -796,7 +825,7 @@ func (service *Service) RemoveSocialConnections(ctx context.Context, accountID i
 			return service.DeclineFriendRequest(ctx, accountID, userID)
 		}
 	default:
-		return SocialRemoval{}, socialInputError("Choose friends, following, or requests.")
+		return SocialRemoval{}, socialInputError("Select friends, following, or requests.")
 	}
 	removal := SocialRemoval{Removed: []int64{}}
 	for _, userID := range slices.Compact(slices.Sorted(slices.Values(userIDs))) {
@@ -824,7 +853,7 @@ func (service *Service) FindPlayerByUsername(ctx context.Context, username strin
 	if !playerUsername.MatchString(username) {
 		return nil, nil
 	}
-	userID, err := service.users.UserIDFromUsername(ctx, username)
+	userID, err := service.users.UserIDFromUsername(ctx, username, false)
 	if errors.Is(err, robloxservices.ErrUsernameNotFound) {
 		return nil, nil
 	}

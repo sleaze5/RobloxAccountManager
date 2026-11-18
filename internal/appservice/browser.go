@@ -77,14 +77,14 @@ func (service *Service) LaunchBrowserGame(ctx context.Context, sessionID, protoc
 	logger := service.logger.With("operation", "browser-game-launch", "session_id", sessionID)
 	if err := gamelaunch.ValidateBrowserProtocolURL(protocolURL); err != nil {
 		logger.WarnContext(ctx, "invalid browser game launch rejected", "error", err)
-		service.events.browserLaunchFailed(sessionID, "The browser supplied an invalid game launch. Try joining again.")
+		service.events.browserLaunchFailed(sessionID, "The browser sent an invalid game link. Try joining again.")
 		return
 	}
 	err := service.serializeLaunch(ctx, func() error {
 		shouldClean := service.shouldCleanBeforeLaunch()
 		return service.executeLaunch(ctx, shouldClean, service.replacementConfirmation(shouldClean), func() error {
 			if err := service.launcher.LaunchProtocol(ctx, protocolURL); err != nil {
-				return &roblox.Error{Kind: roblox.KindProtocol, Endpoint: "browser-game-launch", Message: userLaunchMessage(err, "Roblox could not be started. Check that Roblox is installed and try joining again."), Cause: err}
+				return &roblox.Error{Kind: roblox.KindProtocol, Endpoint: "browser-game-launch", Message: userLaunchMessage(err, "Could not start Roblox. Check that Roblox is installed and try joining again."), Cause: err}
 			}
 			return nil
 		})
@@ -92,14 +92,14 @@ func (service *Service) LaunchBrowserGame(ctx context.Context, sessionID, protoc
 	if err != nil {
 		var failure *roblox.Error
 		if errors.Is(err, robloxmulti.ErrLaunchCancelled) || ctx.Err() != nil || errors.As(err, &failure) && failure.Kind == roblox.KindCancelled {
-			logger.InfoContext(ctx, "browser game launch cancelled")
+			logger.InfoContext(ctx, "browser game launch canceled")
 			return
 		}
-		message := "Roblox could not be started. Try joining again."
+		message := "Could not start Roblox. Try joining again."
 		if errors.As(err, &failure) {
 			message = failure.Message
 		}
-		logger.WarnContext(ctx, "browser game launch failed", "error_message", message)
+		logger.WarnContext(ctx, "could not launch the browser game", "error_message", message)
 		service.events.browserLaunchFailed(sessionID, message)
 		return
 	}

@@ -53,18 +53,18 @@ func (location *Location) Confirm(mode appdata.Mode) (bool, error) {
 		}
 	}
 	if err := paths.Prepare(); err != nil {
-		location.logger.Error("data folder setup failed", "operation", "location-setup", "mode", mode, "error", err)
+		location.logger.Error("could not set up the data folder", "operation", "location-setup", "mode", mode, "error", err)
 		return false, errors.New("the storage folder could not be created")
 	}
 	if err := location.launch.Release(candidate.Directory); err != nil {
-		location.logger.Error("application log setup failed", "operation", "location-setup", "mode", mode, "error", err)
+		location.logger.Error("could not set up the app log", "operation", "location-setup", "mode", mode, "error", err)
 		return false, errors.New("the logs folder could not be created")
 	}
 	location.logger.Info("data folder set up", "operation", "location-setup", "mode", mode,
 		"choice", location.state.Choice, "state", candidate.State, "other_items", candidate.OtherItemCount, "restart", restart)
 	if restart {
 		if err := location.relaunch(appdata.RestartArguments(mode)); err != nil {
-			location.logger.Error("application restart failed", "operation", "location-setup", "mode", mode, "error", err)
+			location.logger.Error("could not restart the app", "operation", "location-setup", "mode", mode, "error", err)
 			return false, errors.New("the app could not restart. Open it again")
 		}
 		return true, nil
@@ -87,7 +87,7 @@ func (location *Location) Move(mode appdata.Mode) error {
 		return errors.New("the data could not be moved")
 	}
 	if err := location.relaunch(appdata.MoveArguments(mode)); err != nil {
-		location.logger.Error("application restart failed", "operation", "data-move", "target", mode, "error", err)
+		location.logger.Error("could not restart the app", "operation", "data-move", "target", mode, "error", err)
 		return errors.New("the app could not restart. Try again")
 	}
 	location.logger.Info("data move requested", "operation", "data-move", "target", mode)

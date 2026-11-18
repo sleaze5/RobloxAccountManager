@@ -43,10 +43,7 @@
 			onSaved(await accountBackend.SetLinuxClient(selection))
 			onClose()
 		} catch (cause) {
-			error = errorMessage(
-				cause,
-				"The Linux client could not be saved. Try again.",
-			)
+			error = errorMessage(cause, "Could not save the Linux client. Try again.")
 		} finally {
 			saving = false
 		}
@@ -75,12 +72,12 @@
 		<div class="dialog-heading mb-2">
 			<div>
 				<h2 id="linux-client-dialog-title">Linux client</h2>
-				<p>Choose the client that joins games.</p>
+				<p>Select the client that joins games.</p>
 			</div>
 			<button
 				class="button-ghost-sm"
 				type="button"
-				aria-label="Close Linux client dialog"
+				aria-label="Close dialog"
 				onclick={onClose}>
 				<Icon svg={xIcon} size={14} aria-hidden="true" />
 			</button>

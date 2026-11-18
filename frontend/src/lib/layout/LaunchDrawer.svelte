@@ -35,18 +35,18 @@
 		{
 			value: LaunchMethod.MethodPlace,
 			label: "Place ID",
-			description: "Join a game by its Place ID and, optionally, its Job ID.",
+			description: "Join a game by place ID and an optional job ID (UUID).",
 		},
 		{
 			value: LaunchMethod.MethodLink,
 			label: "Link",
 			description:
-				"Join using a Roblox game link, private server link, experience invite, or server-share code.",
+				"Join with a game link, private server link, game invite, or 32-character server share code.",
 		},
 		{
 			value: LaunchMethod.MethodUser,
 			label: "User",
-			description: "Join the game that a specific user is currently playing.",
+			description: "Join the game that a user is playing.",
 		},
 	]
 
@@ -227,7 +227,7 @@
 								data-launch-user
 								bind:value={store.launchInput.user}
 								type="text"
-								placeholder="Username or id=123"
+								placeholder="Username or id:123"
 								required
 								disabled={store.launching} />
 						</label>
@@ -270,7 +270,7 @@
 						class="button-ghost"
 						type="button"
 						aria-label="Clear join fields"
-						data-tooltip="Clear join fields and reset to Place ID"
+						data-tooltip="Clear join fields"
 						data-tooltip-side="top"
 						disabled={store.launching}
 						onclick={() => store.clearJoinTarget()}>

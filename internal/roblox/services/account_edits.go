@@ -51,10 +51,10 @@ func (service *Users) SetDescription(ctx context.Context, accountID, version int
 		Description *string `json:"description"`
 	}
 	if err := json.Unmarshal(response.Body, &payload); err != nil {
-		return "", &roblox.Error{Kind: roblox.KindProtocol, Endpoint: "description-update", Status: response.Status, Message: "Roblox did not confirm the description. Refresh the profile to check.", Cause: err}
+		return "", &roblox.Error{Kind: roblox.KindProtocol, Endpoint: "description-update", Status: response.Status, Message: "Roblox did not confirm the description. Refresh to check.", Cause: err}
 	}
 	if payload.Description == nil || len(*payload.Description) > 4096 {
-		return "", &roblox.Error{Kind: roblox.KindProtocol, Endpoint: "description-update", Status: response.Status, Message: "Roblox did not confirm the description. Refresh the profile to check."}
+		return "", &roblox.Error{Kind: roblox.KindProtocol, Endpoint: "description-update", Status: response.Status, Message: "Roblox did not confirm the description. Refresh to check."}
 	}
 	return strings.TrimSpace(*payload.Description), nil
 }
@@ -74,7 +74,7 @@ func (service *Users) FilterText(ctx context.Context, accountID, version int64, 
 	err = json.Unmarshal(response.Body, &payload)
 	moderation, known := levels[payload.ModerationLevel]
 	if err != nil || !known || payload.FilteredText == nil {
-		return TextFilter{}, &roblox.Error{Kind: roblox.KindProtocol, Endpoint: "description-validate", Status: response.Status, Message: "Roblox returned an invalid filter result. Validate the description again.", Cause: err}
+		return TextFilter{}, &roblox.Error{Kind: roblox.KindProtocol, Endpoint: "description-validate", Status: response.Status, Message: "Roblox returned an invalid filter result. Check the description again.", Cause: err}
 	}
 	return TextFilter{Moderation: moderation, FilteredText: *payload.FilteredText}, nil
 }
@@ -108,7 +108,7 @@ func (service *Users) ValidatePassword(ctx context.Context, accountID, version i
 	if err != nil {
 		return false, err
 	}
-	return false, &roblox.Error{Kind: roblox.KindProtocol, Endpoint: "password-validate", Message: "Roblox accepted the password request unexpectedly. Check the account on the Roblox website before trying again."}
+	return false, &roblox.Error{Kind: roblox.KindProtocol, Endpoint: "password-validate", Message: "Roblox accepted the password request when it should not have. Check the account on the Roblox website, then try again."}
 }
 
 func (service *Users) Pin(ctx context.Context, accountID, version int64) (AccountPin, error) {
@@ -200,7 +200,7 @@ func (service *Users) Names(ctx context.Context, userIDs []int64) ([]UserView, e
 			ExcludeBannedUsers bool    `json:"excludeBannedUsers"`
 		}{UserIDs: batch})
 		if err != nil {
-			return nil, &roblox.Error{Kind: roblox.KindProtocol, Endpoint: "user-names", Message: "The request could not be encoded.", Cause: err}
+			return nil, &roblox.Error{Kind: roblox.KindProtocol, Endpoint: "user-names", Message: "Could not encode the request.", Cause: err}
 		}
 		response, err := service.client.Do(ctx, roblox.Request{
 			Endpoint: "user-names", Method: http.MethodPost, URL: endpoint,
@@ -244,7 +244,7 @@ func (service *Users) writeAccount(ctx context.Context, accountID, version int64
 	} else if payload != nil {
 		var err error
 		if body, err = json.Marshal(payload); err != nil {
-			return nil, &roblox.Error{Kind: roblox.KindProtocol, Endpoint: endpoint, Message: "The request could not be encoded.", Cause: err}
+			return nil, &roblox.Error{Kind: roblox.KindProtocol, Endpoint: endpoint, Message: "Could not encode the request.", Cause: err}
 		}
 	}
 	endpointURL, _ := url.Parse(address)

@@ -164,8 +164,8 @@
 		<button
 			class="button-ghost-sm"
 			type="button"
-			aria-label="Find this place in Games"
-			data-tooltip="Find this place in Games"
+			aria-label="Show in Games"
+			data-tooltip="Show in Games"
 			onclick={() => onSearchPlace(joinPlaceId)}>
 			<Icon svg={magnifyingGlassIcon} size={14} aria-hidden="true" />
 		</button>

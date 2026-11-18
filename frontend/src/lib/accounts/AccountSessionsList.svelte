@@ -51,7 +51,7 @@
 {#if !sessions.sessions}
 	{#if sessions.loading}
 		<div class="settings-section">
-			<SettingsRowsSkeleton label="Loading sessions" />
+			<SettingsRowsSkeleton label="Loading sessions…" />
 		</div>
 	{/if}
 {:else}

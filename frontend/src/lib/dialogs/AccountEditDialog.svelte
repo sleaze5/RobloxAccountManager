@@ -141,7 +141,7 @@
 			</div>
 			<button
 				type="button"
-				aria-label={`Close ${titles[kind].toLowerCase()}`}
+				aria-label="Close dialog"
 				disabled={pending}
 				onclick={close}>
 				<Icon svg={xIcon} size={14} aria-hidden="true" />
@@ -152,7 +152,7 @@
 			{#if kind === "displayName"}
 				<p>The new display name will be “{value.trim()}”.</p>
 				<div class="mt-3 notice-warning">
-					You can't change the display name again for 7 days.
+					You cannot change the display name again for 7 days.
 				</div>
 			{:else if kind === "email"}
 				<p>The new email will be {value.trim()}.</p>
@@ -177,7 +177,7 @@
 						disabled={pending} />
 				</label>
 				<div class="mt-3 notice-warning">
-					After you change it, you can't change it again for 7 days.
+					After you change it, you cannot change it again for 7 days.
 				</div>
 			{:else if kind === "email"}
 				<label class="dialog-field">

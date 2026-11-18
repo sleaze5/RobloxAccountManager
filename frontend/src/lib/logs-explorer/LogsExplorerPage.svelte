@@ -68,7 +68,7 @@
 					aria-busy={store.refreshing}
 					onclick={() => void store.refreshAll()}
 					aria-label={store.refreshing
-						? "Refreshing all logs"
+						? "Refreshing all logs…"
 						: "Refresh all logs"}
 					data-tooltip="Refresh all logs"
 					data-tooltip-side="bottom-end">
@@ -87,7 +87,7 @@
 							aria-label="Search logs, user IDs, place IDs, or job IDs"
 							bind:value={store.query} />{#if store.query}<button
 								type="button"
-								aria-label="Clear logs search"
+								aria-label="Clear search"
 								onclick={() => (store.query = "")}
 								><Icon
 									svg={xIcon}
@@ -141,7 +141,7 @@
 					</button>
 				{:else}
 					{#if store.refreshing}
-						<SkeletonList label="Loading sessions">
+						<SkeletonList label="Loading sessions…">
 							{#snippet row(index)}
 								<div
 									class="flex h-12 flex-col justify-center gap-1 border-b border-line-subtle px-3">
@@ -187,7 +187,7 @@
 							svg={warningIcon}
 							size={28}
 							aria-hidden="true" />
-						<h2>Logs are unavailable</h2>
+						<h2>Logs unavailable</h2>
 						<p>Refresh the logs to try reading them again.</p>
 						<button
 							class="button"
@@ -224,7 +224,7 @@
 							size={28}
 							aria-hidden="true" />
 						<h2>Select a launch session</h2>
-						<p>Choose a log to explore its game timeline.</p>{/if}
+						<p>Select a log to explore its game timeline.</p>{/if}
 				</div>
 			{/if}
 		</div>

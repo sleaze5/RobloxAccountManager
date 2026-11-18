@@ -21,7 +21,7 @@ func (err *MoveError) Error() string { return err.Message }
 
 func (err *MoveError) Unwrap() error { return err.Err }
 
-const notMoved = "The data could not be moved. It stays in the current folder."
+const notMoved = "Could not move the data. It stays in the current folder."
 
 func moveError(message string, err error) error {
 	return &MoveError{Message: message, Err: err}
@@ -43,7 +43,7 @@ func Move(target Mode) (moved bool, err error) {
 		return false, err
 	}
 	if err := removeStorage(source); err != nil {
-		return true, moveError("The data moved, but the old copy could not be removed. Delete it to stop the app from asking which data to use.", err)
+		return true, moveError("The data moved, but the old copy was not removed. Delete it to stop the app from asking which data to use.", err)
 	}
 	return true, nil
 }
@@ -54,7 +54,7 @@ func moveRoots(target Mode) (Paths, Paths, error) {
 	}
 	executableDirectory, err := resolveExecutableDirectory()
 	if err != nil {
-		return Paths{}, Paths{}, moveError("The app folder could not be found.", err)
+		return Paths{}, Paths{}, moveError("Could not find the app folder.", err)
 	}
 	portable, standard, err := candidateDirectories(executableDirectory)
 	if err != nil || portable == "" {
@@ -81,15 +81,15 @@ func moveRoots(target Mode) (Paths, Paths, error) {
 func copyStorage(source, destination Paths) error {
 	storageRoot := filepath.Dir(destination.VaultRoot)
 	if err := PreparePrivateDirectory(storageRoot); err != nil {
-		return moveError("The storage folder could not be created.", err)
+		return moveError("Could not create the storage folder.", err)
 	}
 	staging, err := os.MkdirTemp(storageRoot, ".move-")
 	if err != nil {
-		return moveError("The storage folder could not be created.", err)
+		return moveError("Could not create the storage folder.", err)
 	}
 	defer func() { _ = os.RemoveAll(staging) }()
 	if err := restrictDirectory(staging); err != nil {
-		return moveError("The storage folder could not be created.", err)
+		return moveError("Could not create the storage folder.", err)
 	}
 	stagedSettings := filepath.Join(staging, filepath.Base(source.Settings))
 	stagedVault := filepath.Join(staging, filepath.Base(source.VaultRoot))

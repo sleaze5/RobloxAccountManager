@@ -54,7 +54,7 @@
 				),
 			)
 		} catch (cause) {
-			error = errorMessage(cause, "Could not validate the name. Try again.")
+			error = errorMessage(cause, "Could not check the name. Try again.")
 			return false
 		} finally {
 			validating = null
@@ -112,7 +112,7 @@
 			</div>
 			<button
 				type="button"
-				aria-label="Close rename private server"
+				aria-label="Close dialog"
 				disabled={busy}
 				onclick={close}>
 				<Icon svg={xIcon} size={14} aria-hidden="true" />
@@ -168,11 +168,11 @@
 				aria-busy={validating === "submit" || renaming}
 				disabled={!changed || busy}>
 				{#if validating === "submit"}
-					Validating…
+					Checking…
 				{:else if renaming}
 					Renaming…
 				{:else if check.current && !check.current.filter}
-					Rename without validating
+					Rename without checking
 				{:else if check.isTagged}
 					Rename anyway
 				{:else}

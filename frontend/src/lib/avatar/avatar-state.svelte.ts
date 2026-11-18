@@ -5,15 +5,15 @@ import type {
 	AvatarAccessoryAdjustmentLimits,
 	AvatarOutfit,
 	AvatarRules,
+	AvatarWearLimit,
 	InventoryCategory,
 	InventoryItem,
-	RenderedModel,
 } from "../backend/bridge"
 import type { AccountStore } from "../accounts/account-store.svelte"
 import { AccountScope } from "../accounts/account-scope"
+import type { AdjustmentGuide } from "../model-viewer/model-subject"
 import type { NotificationCenter } from "../notifications/notification-center.svelte"
 import { errorMessage } from "../shared/errors"
-import { KeyedLoad } from "../shared/keyed-load.svelte"
 import {
 	adjustAsset,
 	avatarChangeOf,
@@ -63,6 +63,9 @@ export class AvatarState {
 	// The accessory placement that Copy placement took, which Paste puts on
 	// another accessory.
 	copiedAdjustment = $state.raw<CopiedAdjustment | null>(null)
+	// The accessory whose adjustment controls are open, which the 3D view
+	// marks with guides.
+	adjustmentGuide = $state.raw<AdjustmentGuide | undefined>(undefined)
 	isSaving = $state(false)
 	saveError = $state("")
 	// Whether Roblox changed the avatar with a save or an outfit but the changed
@@ -78,10 +81,6 @@ export class AvatarState {
 	previewImageUrl = $state("")
 	isRenderingPreview = $state(false)
 	previewError = $state("")
-	// The 3D avatar, which loads only when the page shows it. Its key is the
-	// full-body image that it matches, because Roblox renders both from the
-	// same avatar.
-	readonly model: KeyedLoad<RenderedModel>
 	outfits = $state.raw<AvatarOutfit[] | null>(null)
 	outfitsNextCursor = $state("")
 	outfitsLoading = $state(false)
@@ -117,7 +116,6 @@ export class AvatarState {
 		notifications: NotificationCenter,
 	) {
 		this.#scope = new AccountScope(accountId, store)
-		this.model = new KeyedLoad(this.#scope)
 		this.#accounts = store
 		this.#notifications = notifications
 		this.userId = userId
@@ -164,8 +162,8 @@ export class AvatarState {
 		return !this.isChanged && !this.loading && !this.isChangingAvatar
 	}
 
-	get maxWornCountByTypeName(): Record<string, number | undefined> {
-		return this.rules?.maxWornCountByTypeName ?? {}
+	get wearLimits(): AvatarWearLimit[] {
+		return this.rules?.wearLimits ?? []
 	}
 
 	get canUndo(): boolean {
@@ -300,12 +298,11 @@ export class AvatarState {
 	// wear puts the item on the draft. An item that the saved avatar wears
 	// comes back with its saved placement and layer, which a save keeps.
 	wear(item: InventoryItem, category: InventoryCategory): void {
-		const maxWornCount = this.maxWornCountByTypeName[item.typeName] ?? 0,
-			savedAsset = this.avatar?.assets?.find(
+		const savedAsset = this.avatar?.assets?.find(
 				(asset) => asset.item.itemId === item.itemId,
 			),
 			wornAsset = savedAsset ?? { category, item, adjustment: null, layer: null }
-		this.changeDraft((draft) => wearItem(draft, wornAsset, maxWornCount))
+		this.changeDraft((draft) => wearItem(draft, wornAsset, this.wearLimits))
 	}
 
 	takeOff(assetId: number): void {
@@ -567,15 +564,6 @@ export class AvatarState {
 		)
 	}
 
-	// loadModel reads the 3D avatar that matches the shown full-body image.
-	async loadModel(shownImageUrl: string): Promise<void> {
-		await this.model.load(
-			shownImageUrl,
-			() => accountBackend.GetAvatarModel(this.#scope.accountId, this.userId),
-			"Could not load the 3D avatar. Try again.",
-		)
-	}
-
 	dispose(): void {
 		this.#loadRequest = this.#outfitsRequest = this.#previewRequest = null
 		this.#scope.dispose()
@@ -616,7 +604,7 @@ export class AvatarState {
 			unkeptAdjustmentNames = result.unkeptAdjustmentAssetIds.map(nameOf),
 			warnings = [
 				skippedNames.length > 0 &&
-					`Roblox didn't put on ${skippedNames.join(", ")}. The account may not own ${skippedNames.length === 1 ? "it" : "them"}.`,
+					`Roblox did not put on ${skippedNames.join(", ")}. The account may not own ${skippedNames.length === 1 ? "it" : "them"}.`,
 				unkeptAdjustmentNames.length > 0 &&
 					`Roblox placed ${unkeptAdjustmentNames.join(", ")} differently than requested. Check the Adjustments tab.`,
 			].filter((warning) => warning !== false)

@@ -123,7 +123,7 @@ func (service *Service) DismissRobloxNotification(ctx context.Context, accountID
 	if err := service.notificationStream.RunAction(ctx, accountID, version, notificationID, dismissAction); err != nil {
 		return robloxNotificationFailure(ctx, logger, err)
 	}
-	logger.DebugContext(ctx, "roblox notification dismissed")
+	logger.DebugContext(ctx, "Roblox notification dismissed")
 	return nil
 }
 
@@ -134,7 +134,7 @@ func (service *Service) DismissAllRobloxNotifications(ctx context.Context, accou
 	switch category {
 	case "", RobloxNotificationInvites, RobloxNotificationFriends, RobloxNotificationCommunities, RobloxNotificationExperiences, RobloxNotificationOther:
 	default:
-		return 0, robloxNotificationInputError("Choose a notification type to dismiss.")
+		return 0, robloxNotificationInputError("Select a notification type to dismiss.")
 	}
 	ctx, version, logger, done, err := service.beginFeatureOperation(ctx, accountID, "roblox-notifications", "dismiss-all")
 	if err != nil {
@@ -165,11 +165,11 @@ func (service *Service) DismissAllRobloxNotifications(ctx context.Context, accou
 	}
 	for index, pending := range dismissals {
 		if err := service.notificationStream.RunAction(ctx, accountID, version, pending.notificationID, pending.action); err != nil {
-			logger.WarnContext(ctx, "roblox notification dismissal stopped", "dismissed", index, "total", len(dismissals), "error", err)
+			logger.WarnContext(ctx, "Roblox notification dismissal stopped", "dismissed", index, "total", len(dismissals), "error", err)
 			return index, robloxNotificationInputError(fmt.Sprintf("Dismissed %d of %d notifications. Try again to dismiss the rest.", index, len(dismissals)))
 		}
 	}
-	logger.InfoContext(ctx, "roblox notifications dismissed", "count", len(dismissals))
+	logger.InfoContext(ctx, "Roblox notifications dismissed", "count", len(dismissals))
 	return len(dismissals), nil
 }
 

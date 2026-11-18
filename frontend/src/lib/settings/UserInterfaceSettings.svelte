@@ -1,5 +1,6 @@
 <script lang="ts">
-	import { matchesSearch, searchTerms } from "../shared/search"
+	import { searchTerms } from "../shared/search"
+	import { matchesSetting } from "./settings-search"
 	import arrowCounterClockwiseIcon from "@phosphor-icons/core/regular/arrow-counter-clockwise.svg?raw"
 	import caretRightIcon from "@phosphor-icons/core/regular/caret-right.svg?raw"
 	import floppyDiskIcon from "@phosphor-icons/core/regular/floppy-disk.svg?raw"
@@ -83,31 +84,11 @@
 			timestampFormat !== store.timestampFormat?.source ||
 				timestampHoverFormat !== store.timestampHoverFormat?.source,
 		),
-		showMotion = $derived(
-			matches(
-				"Animations",
-				"reduce reduced full system operating system animation effects",
-				"motion",
-			),
-		),
-		showTimestampFormat = $derived(
-			matches(
-				"Timestamp format",
-				"tokens token reference dollar date time display format",
-			),
-		),
-		showHoverFormat = $derived(
-			matches(
-				"Hover format",
-				"tokens token reference dollar tooltip relative time",
-			),
-		),
-		showPreview = $derived(
-			matches("Preview", "display hover tooltip formatted timestamp"),
-		),
-		showTimestampActions = $derived(
-			matches("Save restore defaults", "save reset timestamp formats"),
-		)
+		showMotion = $derived(matchesSetting(terms, "motion")),
+		showTimestampFormat = $derived(matchesSetting(terms, "timestampFormat")),
+		showHoverFormat = $derived(matchesSetting(terms, "hoverFormat")),
+		showPreview = $derived(matchesSetting(terms, "timestampPreview")),
+		showTimestampActions = $derived(matchesSetting(terms, "timestampActions"))
 
 	$effect(() => {
 		if (!store.timestampFormat || !store.timestampHoverFormat) {
@@ -135,7 +116,10 @@
 			} catch (error) {
 				draft = {
 					format: null,
-					error: errorMessage(error, "The format could not be read."),
+					error: errorMessage(
+						error,
+						"Could not read the format. Check it and try again.",
+					),
 				}
 			}
 			if (current) apply(draft)
@@ -143,14 +127,6 @@
 		return () => {
 			current = false
 		}
-	}
-
-	function matches(
-		name: string,
-		description: string,
-		section = "timestamps",
-	): boolean {
-		return matchesSearch(terms, `user interface ${section} ${name} ${description}`)
 	}
 
 	function restoreDefaults(): void {
@@ -184,7 +160,7 @@
 			<div class="settings-row">
 				<div class="settings-row-copy">
 					<strong>Animations</strong>
-					<span>Choose whether the interface animates.</span>
+					<span>Select whether the interface animates.</span>
 				</div>
 				<Select
 					label="Animations"
@@ -326,7 +302,7 @@
 							svg={arrowCounterClockwiseIcon}
 							size={16}
 							aria-hidden="true" />
-						Restore defaults
+						Reset to defaults
 					</button>
 					<button
 						class="button-primary"

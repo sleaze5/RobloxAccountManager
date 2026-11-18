@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { matchesSearch, searchTerms } from "../shared/search"
+	import { matchesSetting, settingWords } from "./settings-search"
 	import { PresenceScope } from "../backend/bridge"
 	import NumberStepper from "../shared/NumberStepper.svelte"
 	import type { LoggingLevel, SettingsStore } from "./settings-store.svelte"
@@ -8,18 +9,18 @@
 		{
 			id: PresenceScope.PresenceAccounts,
 			name: "Account list",
-			description: "Update presence for all stored accounts.",
+			description: "Update online status for all saved accounts.",
 		},
 		{
 			id: PresenceScope.PresenceProfile,
 			name: "Active profile",
 			description:
-				"Update presence for the selected account while its profile is open.",
+				"Update online status for the selected account while its profile is open.",
 		},
 		{
 			id: PresenceScope.PresenceSocial,
 			name: "Social",
-			description: "Update presence for the listed users while Social is open.",
+			description: "Update online status for listed users while Social is open.",
 		},
 	] as const
 	const levels: { id: LoggingLevel; name: string; description: string }[] = [
@@ -34,7 +35,7 @@
 			name: "Debug",
 		},
 		{
-			description: "Normal application activity and completed operations.",
+			description: "Normal app activity and completed operations.",
 			id: "info",
 			name: "Info",
 		},
@@ -56,7 +57,7 @@
 			levels.filter((level) =>
 				matchesSearch(
 					terms,
-					`general logging ${level.name} ${level.description}`,
+					`${settingWords("logging")} ${level.name} ${level.description}`,
 				),
 			),
 		),
@@ -64,16 +65,11 @@
 			presenceScopes.filter((scope) =>
 				matchesSearch(
 					terms,
-					`general presence updates automatic enabled disabled interval seconds minutes online offline in game ${scope.name} ${scope.description}`,
+					`${settingWords("onlineStatusUpdates")} ${scope.name} ${scope.description}`,
 				),
 			),
 		),
-		showAllLevels = $derived(
-			matchesSearch(
-				terms,
-				"general logging all log levels enable disable every level at once",
-			),
-		)
+		showAllLevels = $derived(matchesSetting(terms, "allLogLevels"))
 </script>
 
 {#if store.error}<div class="notice-error" role="alert">
@@ -82,7 +78,7 @@
 
 {#if visiblePresenceScopes.length > 0}
 	<section class="settings-section" aria-labelledby="presence-updates-title">
-		<h3 id="presence-updates-title">Presence updates</h3>
+		<h3 id="presence-updates-title">Online status updates</h3>
 		{#each visiblePresenceScopes as scope (scope.id)}
 			{@const settings = store.presence[scope.id]}
 			<div class="settings-rows">
@@ -118,7 +114,7 @@
 						<span>Seconds</span>
 					</div>
 					<NumberStepper
-						label={`${scope.name} presence update interval in seconds`}
+						label={`${scope.name} update interval in seconds`}
 						value={settings.intervalSeconds}
 						min={30}
 						max={900}
@@ -149,13 +145,13 @@
 				<div class="settings-row border-b-line-strong">
 					<div class="settings-row-copy">
 						<strong>All log levels</strong>
-						<span>Enable or disable every log level at once.</span>
+						<span>Turn every log level on or off.</span>
 					</div>
 					<label class="switch">
 						<input
 							type="checkbox"
 							role="switch"
-							aria-label="Enable all log levels"
+							aria-label="All log levels"
 							checked={store.areAllLoggingLevelsEnabled()}
 							disabled={store.busyLevel !== null}
 							onchange={(event) =>
@@ -176,7 +172,7 @@
 						<input
 							type="checkbox"
 							role="switch"
-							aria-label={`Enable ${level.name} logs`}
+							aria-label={`${level.name} logs`}
 							checked={store.isLoggingLevelEnabled(level.id)}
 							disabled={store.busyLevel !== null}
 							onchange={(event) =>

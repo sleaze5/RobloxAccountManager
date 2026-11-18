@@ -97,7 +97,7 @@ func (service *Service) SetPrivateServerOption(ctx context.Context, accountID, s
 	case games.PrivateServerRenews:
 		update.Renews = &enabled
 	default:
-		return games.PrivateServerSettings{}, privateServerInputError("Choose a private server setting.")
+		return games.PrivateServerSettings{}, privateServerInputError("Select a private server setting.")
 	}
 	return service.updatePrivateServer(ctx, accountID, serverID, "private-server-"+string(option), func(context.Context) (robloxservices.PrivateServerUpdate, error) {
 		return update, nil
@@ -118,7 +118,7 @@ func (service *Service) AddPrivateServerUser(ctx context.Context, accountID, ser
 	}
 	return service.updatePrivateServer(ctx, accountID, serverID, "private-server-user-add", func(ctx context.Context) (robloxservices.PrivateServerUpdate, error) {
 		if username != "" {
-			id, err := service.users.UserIDFromUsername(ctx, username)
+			id, err := service.users.UserIDFromUsername(ctx, username, false)
 			if err != nil {
 				return robloxservices.PrivateServerUpdate{}, err
 			}
@@ -130,15 +130,15 @@ func (service *Service) AddPrivateServerUser(ctx context.Context, accountID, ser
 
 func privateServerUserInput(user string) (int64, string, error) {
 	user = strings.TrimPrefix(strings.TrimSpace(user), "@")
-	if len(user) > 3 && strings.EqualFold(user[:3], "id=") {
+	if len(user) > 3 && (strings.EqualFold(user[:3], "id:") || strings.EqualFold(user[:3], "id=")) {
 		id, err := strconv.ParseInt(user[3:], 10, 64)
 		if err != nil || !games.ValidID(id) {
-			return 0, "", privateServerInputError("Enter a valid user ID after id=, such as id=1.")
+			return 0, "", privateServerInputError("Enter a valid user ID after id:, such as id:1.")
 		}
 		return id, "", nil
 	}
 	if !privateServerUsernamePattern.MatchString(user) {
-		return 0, "", privateServerInputError("Enter a username, or id= and a user ID.")
+		return 0, "", privateServerInputError("Enter a username, or id: and a user ID.")
 	}
 	return 0, user, nil
 }
@@ -198,10 +198,10 @@ func (service *Service) ResolveRBXServersLink(ctx context.Context, placeID int64
 
 func (service *Service) rbxserversError(ctx context.Context, operation string, placeID int64, err error) error {
 	if errors.Is(err, context.Canceled) && ctx.Err() != nil {
-		return &roblox.Error{Kind: roblox.KindCancelled, Endpoint: operation, Message: "The RBXServers request was cancelled."}
+		return &roblox.Error{Kind: roblox.KindCancelled, Endpoint: operation, Message: "The RBXServers request was canceled."}
 	}
-	service.logs.Module("integration.rbxservers").WarnContext(ctx, "rbxservers request failed", "operation", operation, "place_id", placeID, "error", err)
-	return &roblox.Error{Kind: roblox.KindServer, Endpoint: operation, Message: "RBXServers could not be reached. Try again later.", Cause: err}
+	service.logs.Module("integration.rbxservers").WarnContext(ctx, "RBXServers request failed", "operation", operation, "place_id", placeID, "error", err)
+	return &roblox.Error{Kind: roblox.KindServer, Endpoint: operation, Message: "Could not reach RBXServers. Try again later.", Cause: err}
 }
 
 func (service *Service) updatePrivateServer(ctx context.Context, accountID, serverID int64, operation string, change func(context.Context) (robloxservices.PrivateServerUpdate, error)) (games.PrivateServerSettings, error) {
@@ -218,7 +218,7 @@ func (service *Service) updatePrivateServer(ctx context.Context, accountID, serv
 			return err
 		}
 		if settings, err = service.privateServerSettings(ctx, accountID, version, serverID); err != nil {
-			return &roblox.Error{Kind: roblox.KindProtocol, Endpoint: operation, Message: "Roblox saved the change, but the private server could not be reloaded. Refresh to check.", Cause: err}
+			return &roblox.Error{Kind: roblox.KindProtocol, Endpoint: operation, Message: "Roblox saved the change, but the private server did not refresh. Refresh to check.", Cause: err}
 		}
 		return nil
 	})

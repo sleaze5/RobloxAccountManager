@@ -1,12 +1,19 @@
 <script lang="ts">
 	import coatHangerIcon from "@phosphor-icons/core/regular/coat-hanger.svg?raw"
+	import cubeIcon from "@phosphor-icons/core/regular/cube.svg?raw"
 	import personArmsSpreadIcon from "@phosphor-icons/core/regular/person-arms-spread.svg?raw"
 	import xIcon from "@phosphor-icons/core/regular/x.svg?raw"
 	import { onMount } from "svelte"
 	import { AvatarType } from "../backend/bridge"
 	import type { AvatarAsset, AvatarOutfit } from "../backend/bridge"
 	import Dialog from "../shared/Dialog.svelte"
+	import FrameUnavailable from "../shared/FrameUnavailable.svelte"
 	import Icon from "../shared/Icon.svelte"
+	import ImageViewToggle from "../shared/ImageViewToggle.svelte"
+	import type { ImageView } from "../shared/ImageViewToggle.svelte"
+	import AnimationControls from "../model-viewer/AnimationControls.svelte"
+	import ModelFrame from "../model-viewer/ModelFrame.svelte"
+	import type { AnimationPlayback, ModelSubject } from "../model-viewer/model-subject"
 	import ProfileImage from "../shared/ProfileImage.svelte"
 	import Skeleton from "../shared/Skeleton.svelte"
 	import SkeletonTile from "../shared/SkeletonTile.svelte"
@@ -41,12 +48,19 @@
 			"flex min-w-0 flex-wrap items-center gap-1 font-mono text-2xs wrap-anywhere text-fg-muted",
 		sectionHeadingClass = "text-xs font-semibold text-fg-muted"
 
+	let view = $state<ImageView>("2D"),
+		playback = $state<AnimationPlayback>()
+
 	// undefined while the details load, and null when they failed.
 	const details = $derived(avatar.outfitDetailsById.get(outfit.outfitId)),
 		name = $derived(outfit.name || "Unnamed outfit"),
 		assets = $derived(details?.assets ?? []),
 		isWearing = $derived(avatar.wearingOutfitId === outfit.outfitId),
-		imageUrl = $derived(details?.imageUrl || outfit.imageUrl)
+		imageUrl = $derived(details?.imageUrl || outfit.imageUrl),
+		// The 3D view builds the outfit, so that it shows before it is put on.
+		outfitSubject = $derived<ModelSubject | null>(
+			details ? { kind: "avatar", look: details } : null,
+		)
 
 	async function wear(): Promise<void> {
 		if (await avatar.wearOutfit(outfit)) onClose()
@@ -71,18 +85,41 @@
 	}} />
 
 <Dialog
-	class="max-w-3xl text-left"
+	class="max-w-4xl text-left"
 	aria-labelledby="avatar-outfit-title"
 	onBackdropClick={close}>
 	<div class="@container flex flex-col gap-4">
 		<div class="flex items-start gap-4">
-			<span
-				class="relative grid size-48 shrink-0 place-items-center overflow-hidden rounded-lg border border-line-subtle bg-canvas"
-				aria-hidden="true">
-				<span class="relative grid size-full place-items-center">
-					<ProfileImage url={imageUrl} fallbackIcon={coatHangerIcon} />
-				</span>
-			</span>
+			<div class="flex w-80 shrink-0 flex-col gap-2">
+				<div
+					class="relative grid size-80 place-items-center overflow-hidden rounded-lg border border-line-subtle bg-canvas">
+					{#if view === "3D" && details === null}
+						<FrameUnavailable
+							icon={cubeIcon}
+							message="The 3D view needs the outfit details, which could not load." />
+					{:else if view === "3D"}
+						<ModelFrame
+							accountId={avatar.accountId}
+							subject={outfitSubject}
+							label={`the outfit ${name}`}
+							bind:playback />
+					{:else}
+						<span
+							class="relative grid size-full place-items-center"
+							aria-hidden="true">
+							<ProfileImage
+								url={imageUrl}
+								fallbackIcon={coatHangerIcon} />
+						</span>
+					{/if}
+				</div>
+				<ImageViewToggle bind:view />
+				{#if view === "3D" && details !== null}
+					<div class="animate-enter">
+						<AnimationControls {playback} />
+					</div>
+				{/if}
+			</div>
 
 			<div class="flex min-w-0 flex-1 flex-col gap-1">
 				<div class="flex items-start gap-3">
@@ -110,7 +147,7 @@
 						<button
 							class="ml-1 button-close"
 							type="button"
-							aria-label="Close outfit details"
+							aria-label="Close dialog"
 							disabled={isWearing}
 							onclick={close}>
 							<Icon svg={xIcon} size={14} aria-hidden="true" />
@@ -120,9 +157,9 @@
 				<div class={metaClass}>
 					<span class="select-text">ID: {outfit.outfitId}</span>
 					{#if details}
-						<span class="text-fg-faint" aria-hidden="true">-</span>
+						<span class="text-fg-faint" aria-hidden="true">·</span>
 						<span>{details.avatarType}</span>
-						<span class="text-fg-faint" aria-hidden="true">-</span>
+						<span class="text-fg-faint" aria-hidden="true">·</span>
 						<span
 							>{exactNumbers.format(assets.length)}
 							{assets.length === 1 ? "item" : "items"}</span>
@@ -148,8 +185,8 @@
 
 		{#if details === undefined}
 			<div class="flex flex-col gap-2" role="status" aria-busy="true">
-				<span class="sr-only">Loading the outfit</span>
-				<Skeleton className="w-24" label="Loading the items" />
+				<span class="sr-only">Loading outfit…</span>
+				<Skeleton className="w-24" label="Loading items…" />
 				<ul
 					class="grid grid-cols-3 gap-2 @lg:grid-cols-4 @2xl:grid-cols-5"
 					aria-hidden="true">
@@ -160,8 +197,7 @@
 			</div>
 		{:else if details === null}
 			<div class="flex items-center gap-2 notice-error" role="alert">
-				<span class="min-w-0 flex-1"
-					>The outfit details could not be loaded.</span>
+				<span class="min-w-0 flex-1">Could not load the outfit details.</span>
 				<button
 					class="button"
 					type="button"

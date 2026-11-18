@@ -35,7 +35,7 @@ func (protocolLauncher) CommandLine(ctx context.Context, ticket, browserTrackerI
 		return "", err
 	}
 	if request.DirectLaunch {
-		return "", &ClientError{Message: "launching the Roblox Player binary directly is only available on Windows"}
+		return "", &ClientError{Message: "direct launch is only available on Windows"}
 	}
 	return buildProtocolURL(ticket, browserTrackerID, request, time.Now())
 }

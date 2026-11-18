@@ -1,5 +1,6 @@
 <script lang="ts">
-	import { matchesSearch, searchTerms } from "../shared/search"
+	import { searchTerms } from "../shared/search"
+	import { matchesCategory, settingsCategories } from "./settings-search"
 	import caretLeftIcon from "@phosphor-icons/core/regular/caret-left.svg?raw"
 	import gameControllerIcon from "@phosphor-icons/core/regular/game-controller.svg?raw"
 	import infoIcon from "@phosphor-icons/core/regular/info.svg?raw"
@@ -31,38 +32,32 @@
 		{
 			icon: keyIcon,
 			id: "vault",
-			label: "Vault",
-			search: "vault security vault status unlocked automatic unlock without master password when the app starts enable disable on off operating system user account lock vault test master password last tested not tested change master password rotate encryption key update password test reminder choose how often asks confirm storage location data folder path copy portable standard move data backups settings restart export import encrypted file password hint merge replace favorite places",
+			label: settingsCategories.vault.label,
 		},
 		{
 			icon: slidersHorizontalIcon,
 			id: "general",
-			label: "General",
-			search: "general presence updates automatic enabled disabled interval seconds minutes online offline in game accounts bar all stored accounts batches active profile selected account while its profile is open social friends followers following players listed users while social is open logging all log levels enable disable every level trace detailed requests internal operations debug diagnostic information development info normal application activity completed operations warning recoverable problems need attention error failed operations critical problems",
+			label: settingsCategories.general.label,
 		},
 		{
 			icon: monitorIcon,
 			id: "user-interface",
-			label: "User interface",
-			search: "user interface motion animations animation reduce reduced full system operating system effects timestamps timestamp date time display format hover tooltip relative preview tokens token reference dollar reset defaults save",
+			label: settingsCategories["user-interface"].label,
 		},
 		{
 			icon: gameControllerIcon,
 			id: "roblox",
-			label: "Roblox",
-			search: "roblox multi instance multi-instance launch multiple games same time windows processes close ready status enabled disabled account manager open linux client sober mocktail automatic desktop default join cleaning clean before launch cache caches cookies sign-in traces logs delete logs explorer administrator rights admin elevation uac uninstall deep remove registry shortcuts studio",
+			label: settingsCategories.roblox.label,
 		},
 		{
 			icon: plugIcon,
 			id: "integrations",
-			label: "Integrations",
-			search: "integrations rovalra rbxservers api private server browser servers information features enabled disabled on off domain domains data sent privacy browser chrome testing runtime version download redownload remove disk usage installed invalid manage",
+			label: settingsCategories.integrations.label,
 		},
 		{
 			icon: infoIcon,
 			id: "about",
-			label: "About",
-			search: "about updates update check latest download install restart new release version build time timestamp unix platform architecture arch os go wails revision commit launch id startup stages timings duration ready storage data folder loaded components schema format version settings vault database sqlite encryption key file automatic unlock browser runtime manifest log created loaded recovered",
+			label: settingsCategories.about.label,
 		},
 	] as const
 
@@ -90,7 +85,7 @@
 		contentElement = $state<HTMLElement | undefined>(undefined),
 		terms = $derived(searchTerms(query)),
 		visibleCategories = $derived(
-			categories.filter((category) => matchesSearch(terms, category.search)),
+			categories.filter((category) => matchesCategory(terms, category.id)),
 		)
 
 	$effect(() => {
@@ -135,7 +130,7 @@
 				{#if query}
 					<button
 						type="button"
-						aria-label="Clear settings search"
+						aria-label="Clear search"
 						onclick={() => (query = "")}>
 						<Icon svg={xIcon} size={14} aria-hidden="true" />
 					</button>

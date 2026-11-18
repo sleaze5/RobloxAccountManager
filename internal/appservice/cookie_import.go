@@ -160,7 +160,7 @@ func (service *Service) ValidateCookies(ctx context.Context, input string) (Impo
 	batchID, err := newImportBatchID()
 	if err != nil {
 		clearPendingImportBatch(&pending)
-		return ImportPreview{}, &roblox.Error{Kind: roblox.KindProtocol, Endpoint: "cookie-import", Message: "The validated cookies could not be staged.", Cause: err}
+		return ImportPreview{}, &roblox.Error{Kind: roblox.KindProtocol, Endpoint: "cookie-import", Message: "Could not prepare the checked cookies.", Cause: err}
 	}
 	service.importMutex.Lock()
 	now := time.Now().UTC()
@@ -179,11 +179,11 @@ func (service *Service) ValidateCookies(ctx context.Context, input string) (Impo
 func (service *Service) SaveValidatedCookies(ctx context.Context, batchID string, selectedIndexes []int) (ImportBatchResult, error) {
 	batch, ok := service.takePendingImport(batchID)
 	if !ok {
-		return ImportBatchResult{}, &roblox.Error{Kind: roblox.KindProtocol, Endpoint: "cookie-import", Message: "The validated cookies expired. Validate them again."}
+		return ImportBatchResult{}, &roblox.Error{Kind: roblox.KindProtocol, Endpoint: "cookie-import", Message: "The checked cookies expired. Check them again."}
 	}
 	defer clearPendingImportBatch(&batch)
 	if !retainSelectedImports(&batch, selectedIndexes) {
-		return ImportBatchResult{}, &roblox.Error{Kind: roblox.KindProtocol, Endpoint: "cookie-import", Message: "The selected accounts are invalid. Validate the cookies again."}
+		return ImportBatchResult{}, &roblox.Error{Kind: roblox.KindProtocol, Endpoint: "cookie-import", Message: "The selected accounts are invalid. Check the cookies again."}
 	}
 
 	batchResult := ImportBatchResult{Items: make([]ImportBatchItem, 0, len(batch.items))}
@@ -191,8 +191,8 @@ func (service *Service) SaveValidatedCookies(ctx context.Context, batchID string
 		if batchItem.existingAccountID > 0 {
 			view, err := service.replaceValidatedCookie(ctx, batchItem.existingAccountID, batchItem.validation)
 			if err != nil {
-				service.logger.Error("validated account update failed", "cookie_index", batchItem.index, "roblox_user_id", batchItem.validation.Identity.RobloxUserID, "error", err)
-				batchResult.Items = append(batchResult.Items, failedImportBatchItem(batchItem.index, "update error", "The cookie could not be updated."))
+				service.logger.Error("could not update the checked account", "cookie_index", batchItem.index, "roblox_user_id", batchItem.validation.Identity.RobloxUserID, "error", err)
+				batchResult.Items = append(batchResult.Items, failedImportBatchItem(batchItem.index, "update error", "Could not update the cookie."))
 				continue
 			}
 			batchResult.Items = append(batchResult.Items, ImportBatchItem{Index: batchItem.index, Status: ImportUpdated, Account: view})
@@ -208,13 +208,13 @@ func (service *Service) SaveValidatedCookies(ctx context.Context, batchID string
 					continue
 				}
 			}
-			service.logger.Error("validated account import failed", "cookie_index", batchItem.index, "roblox_user_id", batchItem.validation.Identity.RobloxUserID, "error", err)
-			batchResult.Items = append(batchResult.Items, failedImportBatchItem(batchItem.index, "storage error", "The account could not be added."))
+			service.logger.Error("could not import the checked account", "cookie_index", batchItem.index, "roblox_user_id", batchItem.validation.Identity.RobloxUserID, "error", err)
+			batchResult.Items = append(batchResult.Items, failedImportBatchItem(batchItem.index, "storage error", "Could not add the account."))
 			continue
 		}
 		if err := service.sessions.Put(session, batchItem.validation.BrowserID); err != nil {
 			if removeError := service.accountRepository.Remove(context.WithoutCancel(ctx), view.ID); removeError != nil {
-				service.logger.Error("failed import rollback failed", "account_id", view.ID, "error", removeError)
+				service.logger.Error("could not roll back the failed import", "account_id", view.ID, "error", removeError)
 			}
 			status, message := importErrorDetails(err)
 			batchResult.Items = append(batchResult.Items, failedImportBatchItem(batchItem.index, status, message))
@@ -360,11 +360,11 @@ func importErrorDetails(err error) (string, string) {
 		message := strings.TrimSpace(robloxError.Message)
 		message = strings.TrimPrefix(message, accounts.ErrInvalidCookieInput.Error()+": ")
 		if message == "" {
-			message = "The cookie could not be validated."
+			message = "Could not check the cookie."
 		}
 		return status, message
 	}
-	return "validation error", "The cookie could not be validated."
+	return "validation error", "Could not check the cookie."
 }
 
 func failedImportBatchItem(index int, status, message string) ImportBatchItem {

@@ -129,7 +129,7 @@
 			class="button-ghost"
 			type="button"
 			aria-label={universeGamePasses.loading
-				? "Refreshing game passes"
+				? "Refreshing game passes…"
 				: "Refresh game passes"}
 			data-tooltip="Refresh game passes"
 			data-tooltip-side="bottom-end"
@@ -179,7 +179,7 @@
 		{#if universeGamePasses.error && !universeGamePasses.gamePasses}
 			<div class="empty-state h-full" role="alert">
 				<Icon svg={warningIcon} size={28} aria-hidden="true" />
-				<h2>Game passes are unavailable</h2>
+				<h2>Game passes unavailable</h2>
 				<p>{universeGamePasses.error}</p>
 				<button
 					class="button"
@@ -187,7 +187,7 @@
 					onclick={() => void universeGamePasses.refresh()}>Try again</button>
 			</div>
 		{:else if !universeGamePasses.gamePasses}
-			<SkeletonList label="Loading game passes">
+			<SkeletonList label="Loading game passes…">
 				{#snippet row(index)}<SkeletonMediaRow
 						{index}
 						className="h-16" />{/snippet}

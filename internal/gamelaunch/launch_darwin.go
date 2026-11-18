@@ -26,7 +26,7 @@ func openRoblox(ctx context.Context, protocolURL string) error {
 	}
 	home, _ := os.UserHomeDir()
 	if err := removeStoredLogin(home); err != nil {
-		return &ClientError{Message: "the stored Roblox login could not be cleared"}
+		return &ClientError{Message: "could not clear the saved Roblox sign-in"}
 	}
 	arguments := []string{protocolURL}
 	// A bootstrapper that registered roblox-player: must not receive the ticket.
@@ -43,7 +43,7 @@ func openRoblox(ctx context.Context, protocolURL string) error {
 		if _, ok := errors.AsType[*exec.ExitError](err); ok {
 			return &ClientError{Message: protocolUnavailable}
 		}
-		return &ClientError{Message: "roblox could not be started"}
+		return &ClientError{Message: "Roblox could not start"}
 	}
 	return nil
 }

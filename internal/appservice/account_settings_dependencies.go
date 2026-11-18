@@ -8,14 +8,14 @@ func applyAccountSettingDependencies(snapshot *AccountSettingsSnapshot) {
 		}
 		switch view.Key {
 		case SettingDirectExperienceChat:
-			requireAccountSetting(snapshot, view, SettingExperienceChat, "AllUsers", "Enable Experience chat before changing Direct chat.")
+			requireAccountSetting(snapshot, view, SettingExperienceChat, "AllUsers", "Turn on Game chat before you change Direct chat.")
 		case SettingPartyChat, SettingPartyVoice:
-			requireAccountSetting(snapshot, view, SettingParty, "AllConnections", "Enable Chat and party with friends first.")
+			requireAccountSetting(snapshot, view, SettingParty, "AllConnections", "Turn on Chat and party with friends first.")
 			if view.Key == SettingPartyVoice {
 				capAccountSettingAudience(snapshot, view, SettingPartyChat, "Voice chat with friends cannot include more people than Friends chat.")
 			}
 		case SettingExperienceJoins:
-			capAccountSettingAudience(snapshot, view, SettingOnlineStatus, "Choose a broader Online status audience first.")
+			capAccountSettingAudience(snapshot, view, SettingOnlineStatus, "Select a broader Online status audience first.")
 		case SettingActivityUpdates:
 			parent := findAccountSetting(*snapshot, SettingExperienceJoins)
 			if settingAudienceRank(parent.StringValue) < 2 || !settingKnownValue(parent) || parent.UnavailableReason == conflictingSettingReason {
@@ -38,7 +38,7 @@ func capAccountSettingAudience(snapshot *AccountSettingsSnapshot, view *AccountS
 	parent := findAccountSetting(*snapshot, parentKey)
 	maximum := settingAudienceRank(parent.StringValue)
 	if !settingKnownValue(parent) || maximum < 0 || parent.UnavailableReason == conflictingSettingReason {
-		view.UnavailableReason = "Refresh settings to check the related audience before editing."
+		view.UnavailableReason = "Refresh to check the related setting before you change this one."
 		return
 	}
 	for index := range view.Options {

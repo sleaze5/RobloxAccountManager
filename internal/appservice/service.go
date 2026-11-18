@@ -157,7 +157,7 @@ func (service *Service) Start(ctx context.Context) error {
 		}
 	} else if !errors.Is(err, vault.ErrNotInitialized) && !errors.Is(err, vault.ErrLocked) && !errors.Is(err, vault.ErrLegacyVault) {
 		service.setStartupError(vaultFailureMessage(err, "Automatic unlock failed. Enter the master password to recover the vault."))
-		service.logger.Warn("automatic vault unlock failed", "error", err)
+		service.logger.Warn("could not unlock the vault automatically", "error", err)
 	} else {
 		service.logger.Debug("automatic vault unlock unavailable", "reason", err)
 	}
@@ -167,7 +167,7 @@ func (service *Service) Start(ctx context.Context) error {
 }
 
 func (service *Service) Shutdown() error {
-	service.logger.Info("application service shutting down")
+	service.logger.Info("app service shutting down")
 	service.stopGames()
 	service.cancelLaunchConfirmation()
 	service.browser.Shutdown()

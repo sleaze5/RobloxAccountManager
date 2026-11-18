@@ -69,7 +69,7 @@ func (service *Users) renderedModelManifestURL(ctx context.Context, accountID, v
 	case strings.EqualFold(payload.State, "Pending"):
 		return "", nil
 	case !strings.EqualFold(payload.State, "Completed"):
-		return "", &roblox.Error{Kind: roblox.KindProtocol, Endpoint: endpoint, Message: "Roblox can't show this in 3D."}
+		return "", &roblox.Error{Kind: roblox.KindProtocol, Endpoint: endpoint, Message: "Roblox cannot show this in 3D."}
 	case !safeThumbnailURL(payload.ImageURL):
 		return "", invalidRenderedModel()
 	}
@@ -80,12 +80,6 @@ func (service *Users) renderedModelManifestURL(ctx context.Context, accountID, v
 // asset, or an empty address while Roblox renders the model.
 func (service *Users) AssetModelManifestURL(ctx context.Context, accountID, version, assetID int64) (string, error) {
 	return service.renderedModelManifestURL(ctx, accountID, version, "asset-model", "https://thumbnails.roblox.com/v1/assets-thumbnail-3d?assetId="+strconv.FormatInt(assetID, 10))
-}
-
-// AvatarModelManifestURL reads the address of the 3D avatar manifest of the
-// user, or an empty address while Roblox renders the model.
-func (service *Users) AvatarModelManifestURL(ctx context.Context, accountID, version, userID int64) (string, error) {
-	return service.renderedModelManifestURL(ctx, accountID, version, "avatar-model", "https://thumbnails.roblox.com/v1/users/avatar-3d?userId="+strconv.FormatInt(userID, 10))
 }
 
 // renderedModelManifest names the files of the model by hash, such as

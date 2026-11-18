@@ -58,7 +58,7 @@ func (service *Service) readAccountSettings(ctx context.Context, accountID, vers
 	}()
 	group.Wait()
 	if ctx.Err() != nil || !service.sessions.VersionCurrent(accountID, version) {
-		return AccountSettingsSnapshot{}, accountSettingsError(roblox.KindCancelled, "The settings request ended or the account session changed. Refresh settings to continue.")
+		return AccountSettingsSnapshot{}, accountSettingsError(roblox.KindCancelled, "The settings request ended or the account session changed. Refresh to continue.")
 	}
 	snapshot := AccountSettingsSnapshot{
 		AccountID: accountID,
@@ -94,7 +94,7 @@ func (service *Service) readAccountSettings(ctx context.Context, accountID, vers
 }
 
 func accountSettingsSectionError(source string, err error) AccountSettingsSectionError {
-	failure := AccountSettingsSectionError{Source: source, Kind: string(roblox.KindProtocol), Message: "Could not load these settings. Refresh settings to retry."}
+	failure := AccountSettingsSectionError{Source: source, Kind: string(roblox.KindProtocol), Message: "Could not load these settings. Refresh to try again."}
 	if remote, ok := errors.AsType[*roblox.Error](err); ok {
 		failure.Kind = string(remote.Kind)
 		if remote.Message != "" {
@@ -177,7 +177,7 @@ func (service *Service) UpdateAccountSetting(ctx context.Context, accountID int6
 	expected := AccountSettingView{ValueState: "known", StringValue: change.ExpectedStringValue, BoolValue: change.ExpectedBoolValue}
 	if current.UnavailableReason == conflictingSettingReason || !sameSettingValue(current, expected) {
 		logger.InfoContext(ctx, "account setting update finished", "outcome", "conflict")
-		return AccountSettingUpdateResult{Snapshot: before, Outcome: "conflict", Message: "This setting changed on Roblox. Review the current value before saving again."}, nil
+		return AccountSettingUpdateResult{Snapshot: before, Outcome: "conflict", Message: "This setting changed on Roblox. Check the current value, then save again."}, nil
 	}
 	desired := AccountSettingView{ValueState: "known", StringValue: change.StringValue, BoolValue: change.BoolValue}
 	if sameSettingValue(current, desired) {
@@ -185,10 +185,10 @@ func (service *Service) UpdateAccountSetting(ctx context.Context, accountID int6
 		return AccountSettingUpdateResult{Snapshot: before, Outcome: "unchanged", Message: "This value is already applied."}, nil
 	}
 	if !current.Editable || !accountSettingAllows(current, desired) {
-		return AccountSettingUpdateResult{}, accountSettingsError(roblox.KindForbidden, "Roblox does not allow this change. Refresh settings to review available choices.")
+		return AccountSettingUpdateResult{}, accountSettingsError(roblox.KindForbidden, "Roblox does not allow this change. Refresh to see the available options.")
 	}
 	if ctx.Err() != nil || !service.sessions.VersionCurrent(accountID, version) {
-		return AccountSettingUpdateResult{}, accountSettingsError(roblox.KindCancelled, "The account session changed before saving. Refresh settings to continue.")
+		return AccountSettingUpdateResult{}, accountSettingsError(roblox.KindCancelled, "The account session changed before saving. Refresh to continue.")
 	}
 	var writeError error
 	if change.BoolValue != nil {
@@ -225,7 +225,7 @@ func (service *Service) confirmAccountSetting(ctx context.Context, accountID, ve
 	}
 	if writeError != nil {
 		failure := accountSettingsSectionError("settings", writeError)
-		logger.WarnContext(ctx, "account setting write not confirmed", "error_kind", failure.Kind)
+		logger.WarnContext(ctx, "account setting change not confirmed", "error_kind", failure.Kind)
 		if definiteSettingRejection(writeError) {
 			return AccountSettingUpdateResult{}, writeError
 		}
@@ -236,7 +236,7 @@ func (service *Service) confirmAccountSetting(ctx context.Context, accountID, ve
 	}
 	// Preserve the last confirmed baseline; never present a draft as applied or
 	// automatically repeat a POST whose result might have been lost.
-	return AccountSettingUpdateResult{Snapshot: before, Outcome: "unconfirmed", Message: "Could not confirm the change. Refresh settings to check."}, nil
+	return AccountSettingUpdateResult{Snapshot: before, Outcome: "unconfirmed", Message: "Roblox did not confirm the change. Refresh to check."}, nil
 }
 
 func settingsReadBackConfirmed(snapshot AccountSettingsSnapshot, key AccountSettingKey, desired AccountSettingView) bool {

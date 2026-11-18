@@ -16,7 +16,6 @@
 	import type { AccountStore } from "../accounts/account-store.svelte"
 	import AccountSwitcher from "../layout/AccountSwitcher.svelte"
 	import WorkbenchSidebar from "../layout/WorkbenchSidebar.svelte"
-	import type { WorkspaceState } from "../layout/workspace-state.svelte"
 	import type { NotificationCenter } from "../notifications/notification-center.svelte"
 	import { loadMoreWhenVisible } from "../shared/load-more-when-visible"
 	import { isMoveShortcut, moveListFocus } from "../shared/move-shortcut"
@@ -34,7 +33,6 @@
 		store,
 		accounts,
 		notifications,
-		workspace,
 		onFillLaunch,
 		onFillLaunchLink,
 		onOpenInBrowser,
@@ -42,7 +40,6 @@
 		store: GamesStore
 		accounts: AccountStore
 		notifications: NotificationCenter
-		workspace: WorkspaceState
 		onFillLaunch: (placeId: number, jobId?: string) => void
 		onFillLaunchLink: (link: string) => void
 		onOpenInBrowser: (accountId: number, pageUrl: string) => void
@@ -215,9 +212,7 @@
 								}
 							} />{#if favoritesMode ? store.favoritesQuery : store.query}<button
 								type="button"
-								aria-label={favoritesMode
-									? "Clear favorites filter"
-									: "Clear game search"}
+								aria-label="Clear search"
 								onclick={() => {
 									if (favoritesMode) store.favoritesQuery = ""
 									else store.query = ""
@@ -282,7 +277,7 @@
 					{#if store.places.length === 0 && (favoritesMode ? store.loadingFavorites : store.searching)}
 						<SkeletonList
 							label={favoritesMode
-								? "Loading favorites"
+								? "Loading favorites…"
 								: "Searching games"}>
 							{#snippet row(index)}<SkeletonMediaRow {index} />{/snippet}
 						</SkeletonList>
@@ -382,7 +377,7 @@
 									svg={circleNotchIcon}
 									class="spinner"
 									size={16}
-									aria-label="Loading more results" />
+									aria-label="Loading more results…" />
 							{/if}
 						</div>
 					{/if}
@@ -401,7 +396,7 @@
 								searchInput?.focus()
 							}}>
 							<Icon svg={xIcon} size={14} aria-hidden="true" />
-							<span>Clear results</span>
+							<span>Clear search</span>
 						</button>
 					</div>
 				{/if}
@@ -431,7 +426,7 @@
 					{:else}
 						<GameDetails
 							{store}
-							{workspace}
+							{accounts}
 							onSearchUniverse={(universeId) =>
 								void searchUniverse(universeId)} />
 					{/if}
@@ -449,7 +444,7 @@
 								svg={warningIcon}
 								size={28}
 								aria-hidden="true" />
-							<h2>Favorites are unavailable</h2>
+							<h2>Favorites unavailable</h2>
 							<button
 								class="button"
 								type="button"
@@ -477,7 +472,7 @@
 									aria-hidden="true" />Search games</button>
 						{:else}<Icon svg={starIcon} size={28} aria-hidden="true" />
 							<h2>Select a favorite place</h2>
-							<p>Choose a place to see its details.</p>{/if}
+							<p>Select a place to see its details.</p>{/if}
 					{:else if store.searching}<Icon
 							svg={circleNotchIcon}
 							class="spinner"
@@ -488,7 +483,7 @@
 							svg={warningIcon}
 							size={28}
 							aria-hidden="true" />
-						<h2>Search is unavailable</h2>
+						<h2>Search unavailable</h2>
 						<p>{store.searchError}</p>
 					{:else if store.searchedText && !count}<Icon
 							svg={magnifyingGlassIcon}
@@ -501,7 +496,7 @@
 							size={28}
 							aria-hidden="true" />
 						<h2>Select a game</h2>
-						<p>Choose a game to see its details.</p>
+						<p>Select a game to see its details.</p>
 					{:else}<Icon
 							svg={gameControllerIcon}
 							size={28}

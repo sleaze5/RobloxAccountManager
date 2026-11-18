@@ -104,7 +104,7 @@
 
 {#if search.phase === "loading"}
 	<div role="status" aria-busy="true">
-		<span class="sr-only">Loading regions</span>
+		<span class="sr-only">Loading regions…</span>
 		<div class="flex items-center gap-1.5 pb-6" aria-hidden="true">
 			<span class="size-5 shrink-0 skeleton rounded-full"></span>
 			<span class="h-px flex-1 skeleton"></span>

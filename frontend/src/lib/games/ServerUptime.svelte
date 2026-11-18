@@ -16,6 +16,6 @@
 		aria-label={tooltip}
 		data-tooltip={tooltip}>{uptime}</span>
 {:else}
-	<span class="justify-self-end text-right text-fg-faint" aria-label="Uptime unknown"
+	<span class="justify-self-end text-right text-fg-faint" aria-label="Unknown uptime"
 		>-</span>
 {/if}

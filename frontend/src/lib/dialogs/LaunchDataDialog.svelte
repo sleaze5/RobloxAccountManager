@@ -57,10 +57,7 @@
 					the link's data.
 				</p>
 			</div>
-			<button
-				type="button"
-				aria-label="Close launch data dialog"
-				onclick={onClose}>
+			<button type="button" aria-label="Close dialog" onclick={onClose}>
 				<Icon svg={xIcon} size={14} aria-hidden="true" />
 			</button>
 		</div>

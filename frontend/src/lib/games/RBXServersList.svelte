@@ -28,13 +28,13 @@
 	{#if servers.error}
 		<div class="empty-state" role="alert">
 			<Icon svg={warningIcon} size={28} aria-hidden="true" />
-			<h2>RBXServers servers are unavailable</h2>
+			<h2>RBXServers servers unavailable</h2>
 			<p>{servers.error}</p>
 			<button class="button" type="button" onclick={() => void servers.load()}
 				>Try again</button>
 		</div>
 	{:else if !servers.page}
-		<ServerListSkeleton label="Loading RBXServers servers" />
+		<ServerListSkeleton label="Loading RBXServers servers…" />
 	{:else if !shown.length}
 		<div class="empty-state" role="status">
 			<Icon svg={lockKeyIcon} size={28} aria-hidden="true" />
@@ -48,7 +48,7 @@
 			<span
 				>{numbers.format(shown.length)}
 				{shown.length === 1 ? "server" : "servers"}</span>
-			<span aria-hidden="true">-</span>
+			<span aria-hidden="true">·</span>
 			<span>Up to 30 shared on RBXServers</span>
 		</p>
 		<div

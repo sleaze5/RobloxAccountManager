@@ -146,7 +146,7 @@ func (reader *Reader) readDirectory(ctx context.Context, logger *slog.Logger, di
 		}
 		if err != nil {
 			logger.WarnContext(ctx, "could not fully parse Roblox log", "file", entry.Name(), "error", err)
-			session.Issue = "This log could not be fully read. Refresh this session to try again."
+			session.Issue = "Could not read all of this log. Refresh to try again."
 		}
 		sessions = append(sessions, session)
 	}

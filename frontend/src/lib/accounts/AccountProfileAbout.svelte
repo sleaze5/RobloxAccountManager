@@ -33,7 +33,7 @@
 		} catch (error) {
 			notifications.show({
 				id: `profile-social-link-${snapshot.accountId}-${link.name}`,
-				title: "Could not open social link",
+				title: "Link not opened",
 				message: errorMessage(error, "Try opening the link again."),
 				tone: "error",
 			})
@@ -60,7 +60,7 @@
 	</div>
 	{#if isDescriptionUnavailable}
 		<p class="text-xs text-danger-muted" role="alert">
-			The description is unavailable. Refresh to retry.
+			The description is unavailable. Refresh to try again.
 		</p>
 	{:else}
 		<p class="text-block" data-variant="prose">

@@ -101,8 +101,8 @@
 					</span>
 					<span
 						><strong>Launch binary directly</strong><small
-							>Find and launch RobloxPlayerBeta.exe directly instead of
-							using the registered Roblox launcher.</small
+							>Find RobloxPlayerBeta.exe and start it directly, without
+							the registered Roblox launcher.</small
 						></span>
 				</label>
 				{@render dialogLink(
@@ -120,7 +120,7 @@
 						>{clientLabel}</small
 					></span>
 				{@render dialogLink(
-					"Choose client",
+					"Select client",
 					false,
 					closePanel,
 					() => (clientOpen = true),

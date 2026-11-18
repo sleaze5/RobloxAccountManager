@@ -29,8 +29,8 @@
 <div class="flex flex-col gap-4 p-3">
 	<p class="flex min-h-7 items-center text-xs text-fg-muted">
 		{canEdit
-			? "Emotes play from the emote wheel in experiences. Choose a slot to change it."
-			: "The emotes on the emote wheel in experiences."}
+			? "Emotes play from the emote wheel in games. Select a slot to change it."
+			: "Emotes play from the emote wheel in games."}
 	</p>
 	<!-- Equal rows let an empty slot stretch to the height of an emote tile. -->
 	<ol

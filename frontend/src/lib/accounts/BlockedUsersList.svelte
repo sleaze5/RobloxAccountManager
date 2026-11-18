@@ -20,7 +20,7 @@
 {#if !blocked.users}
 	{#if blocked.loading}
 		<div class="settings-section">
-			<SettingsRowsSkeleton label="Loading blocked users" />
+			<SettingsRowsSkeleton label="Loading blocked users…" />
 		</div>
 	{/if}
 {:else if blocked.users.length === 0}

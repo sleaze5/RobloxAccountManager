@@ -94,7 +94,7 @@ export class PrivateServerState {
 		) {
 			this.error = {
 				action: "link",
-				message: "The join link could not be copied. Try again.",
+				message: "Could not copy the join link. Try again.",
 			}
 		}
 	}

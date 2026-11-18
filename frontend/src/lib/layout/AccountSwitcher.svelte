@@ -32,7 +32,7 @@
 				}
 			}} />
 	{:else if store.loadingAccounts}
-		<Skeleton label="Loading accounts" />
+		<Skeleton label="Loading accounts…" />
 	{:else}
 		<span class="truncate"
 			>{isFiltered ? "No matching accounts" : "No accounts"}</span>

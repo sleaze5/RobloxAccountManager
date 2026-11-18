@@ -87,7 +87,7 @@ func (service *Service) Start(ctx context.Context, app *application.App) {
 		})
 	}
 	if err != nil {
-		service.logger.Error("updater could not be configured", "operation", "update-startup", "error", err)
+		service.logger.Error("could not set up the updater", "operation", "update-startup", "error", err)
 		return
 	}
 	service.mutex.Lock()
@@ -114,7 +114,7 @@ func (service *Service) Shutdown() {
 	}
 	if directory := filepath.Dir(staged); staged != "" && strings.HasPrefix(filepath.Base(directory), wailsUpdatePrefix) {
 		if err := os.RemoveAll(directory); err != nil {
-			service.logger.Warn("downloaded update could not be removed", "operation", "update-cleanup", "path", directory, "error", err)
+			service.logger.Warn("could not remove the downloaded update", "operation", "update-cleanup", "path", directory, "error", err)
 		}
 	}
 }
@@ -166,10 +166,10 @@ func (service *Service) finishCheck(release *updater.Release, err error) {
 	service.mutex.Lock()
 	switch {
 	case err != nil:
-		service.logger.Warn("update check failed", "operation", "update-check", "error", err)
-		service.state = State{Status: StatusIdle, CurrentVersion: appmeta.Version, Error: "Updates could not be checked. Check your connection and try again."}
+		service.logger.Warn("could not check for updates", "operation", "update-check", "error", err)
+		service.state = State{Status: StatusIdle, CurrentVersion: appmeta.Version, Error: "Could not check the updates. Check your connection and try again."}
 	case release == nil:
-		service.logger.Info("application is up to date", "operation", "update-check", "version", appmeta.Version)
+		service.logger.Info("app is up to date", "operation", "update-check", "version", appmeta.Version)
 		service.state = State{Status: StatusUpToDate, CurrentVersion: appmeta.Version}
 	default:
 		service.logger.Info("update available", "operation", "update-check", "version", release.Version)
@@ -209,15 +209,15 @@ func (service *Service) download(ctx context.Context, current *updater.Updater) 
 	service.cancel = nil
 	switch {
 	case err == nil:
-		service.logger.Info("update downloaded and verified", "operation", "update-install", "version", service.state.AvailableVersion)
+		service.logger.Info("update downloaded and checked", "operation", "update-install", "version", service.state.AvailableVersion)
 		service.state.Status = StatusReady
 	case ctx.Err() != nil:
 		service.logger.Info("update download canceled", "operation", "update-install", "version", service.state.AvailableVersion)
 		service.state.Status = StatusAvailable
 	default:
-		service.logger.Warn("update download failed", "operation", "update-install", "version", service.state.AvailableVersion, "error", err)
+		service.logger.Warn("could not download the update", "operation", "update-install", "version", service.state.AvailableVersion, "error", err)
 		service.state.Status = StatusAvailable
-		service.state.Error = "The update could not be downloaded or verified. Try again."
+		service.state.Error = "Could not download or check the update. Try again."
 	}
 	service.mutex.Unlock()
 	service.changed()
@@ -252,10 +252,10 @@ func (service *Service) Restart(ctx context.Context) error {
 	_ = os.Setenv(helperLogVariable, helperLogPath())
 	if err := current.Restart(ctx); err != nil {
 		_ = os.Unsetenv(helperLogVariable)
-		service.logger.Warn("update restart failed", "operation", "update-install", "error", err)
+		service.logger.Warn("could not restart to install the update", "operation", "update-install", "error", err)
 		service.mutex.Lock()
 		service.state.Status = StatusReady
-		service.state.Error = "The application could not restart to install the update. Try again."
+		service.state.Error = "Could not restart the app to install the update. Try again."
 		service.mutex.Unlock()
 		service.changed()
 	}

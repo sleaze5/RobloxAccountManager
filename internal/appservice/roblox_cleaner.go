@@ -55,7 +55,7 @@ func (service *Service) SetCleanBeforeLaunch(enabled bool) (RobloxCleanerState, 
 	}
 	if err := service.settings.SetCleanBeforeLaunch(enabled); err != nil {
 		service.logger.Warn("could not save Roblox settings", "operation", "clean-before-launch", "error", err)
-		return state, robloxClientError("clean-before-launch", "The setting could not be saved. Try again.", err)
+		return state, robloxClientError("clean-before-launch", "Could not save the setting. Try again.", err)
 	}
 	service.logger.Info("clean before launch saved", "operation", "clean-before-launch", "enabled", enabled)
 	return service.GetRobloxCleanerState(), nil
@@ -69,7 +69,7 @@ func (service *Service) SetDeleteLogsWhenCleaning(enabled bool) (RobloxCleanerSt
 	}
 	if err := service.settings.SetDeleteLogsWhenCleaning(enabled); err != nil {
 		service.logger.Warn("could not save Roblox settings", "operation", "delete-logs-when-cleaning", "error", err)
-		return service.GetRobloxCleanerState(), robloxClientError("delete-logs-when-cleaning", "The setting could not be saved. Try again.", err)
+		return service.GetRobloxCleanerState(), robloxClientError("delete-logs-when-cleaning", "Could not save the setting. Try again.", err)
 	}
 	service.logger.Info("log cleaning setting saved", "operation", "delete-logs-when-cleaning", "enabled", enabled)
 	return service.GetRobloxCleanerState(), nil
@@ -83,7 +83,7 @@ func (service *Service) SetUseAdministratorRights(enabled bool) (RobloxCleanerSt
 	}
 	if err := service.settings.SetUseAdministratorRights(enabled); err != nil {
 		service.logger.Warn("could not save Roblox settings", "operation", "administrator-rights", "error", err)
-		return service.GetRobloxCleanerState(), robloxClientError("administrator-rights", "The setting could not be saved. Try again.", err)
+		return service.GetRobloxCleanerState(), robloxClientError("administrator-rights", "Could not save the setting. Try again.", err)
 	}
 	if !enabled {
 		service.elevatedHelper.Close()
@@ -105,7 +105,7 @@ func (service *Service) CleanRoblox(ctx context.Context, scope robloxcleaner.Sco
 	}, service.events.robloxCleanProgressed)
 	if err != nil {
 		logger.Warn("could not clean Roblox", "error", err)
-		return RobloxCleanReport{}, robloxClientError("roblox-clean", elevationMessage(err, "Roblox could not be cleaned. Try again."), err)
+		return RobloxCleanReport{}, robloxClientError("roblox-clean", elevationMessage(err, "Could not clean Roblox. Try again."), err)
 	}
 	logger.Info("Roblox cleaned", "deleted_count", outcome.DeletedCount, "skipped_count", outcome.SkippedCount)
 	return RobloxCleanReport{DeletedCount: outcome.DeletedCount, SkippedCount: outcome.SkippedCount}, nil
@@ -124,7 +124,7 @@ func (service *Service) cleanBeforeLaunch(ctx context.Context) error {
 	}, func(robloxcleaner.Progress) {})
 	if err != nil {
 		service.logger.Warn("could not clean Roblox before launch", "operation", "clean-before-launch", "error", err)
-		return robloxClientError("game-launch", elevationMessage(err, "Roblox could not be cleaned before launch. Try again."), err)
+		return robloxClientError("game-launch", elevationMessage(err, "Could not clean Roblox before launch. Try again."), err)
 	}
 	if outcome.SkippedCount > 0 {
 		service.logger.Warn("some Roblox items were in use or need administrator rights and were not cleaned", "operation", "clean-before-launch", "skipped_count", outcome.SkippedCount)

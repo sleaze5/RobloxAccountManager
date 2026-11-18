@@ -1,5 +1,5 @@
-// RenderedModelScene is the camera and the lights of the 3D viewers.
-export interface RenderedModelScene {
+// ModelViewerScene is the camera and the lights of the 3D viewers.
+export interface ModelViewerScene {
 	fieldOfViewDegrees: number
 	// The strength of the light that fills every side of the model, as a share
 	// of the default.
@@ -15,7 +15,7 @@ export interface RenderedModelScene {
 	lightAngleYDegrees: number
 }
 
-export const defaultRenderedModelScene: Readonly<RenderedModelScene> = {
+export const defaultModelViewerScene: Readonly<ModelViewerScene> = {
 	fieldOfViewDegrees: 30,
 	brightness: 2,
 	lightIntensity: 1,
@@ -23,12 +23,16 @@ export const defaultRenderedModelScene: Readonly<RenderedModelScene> = {
 	lightAngleYDegrees: 25,
 }
 
-// renderedModelScene applies to every viewer for the session, so that a change
+// modelViewerScene applies to every viewer for the session, so that a change
 // carries over to the expanded view and to the next model.
-export const renderedModelScene = $state<RenderedModelScene>({
-	...defaultRenderedModelScene,
+export const modelViewerScene = $state<ModelViewerScene>({
+	...defaultModelViewerScene,
 })
 
-export function resetRenderedModelScene(): void {
-	Object.assign(renderedModelScene, defaultRenderedModelScene)
+export function resetModelViewerScene(): void {
+	Object.assign(modelViewerScene, defaultModelViewerScene)
 }
+
+// viewerOverlays chooses what every 3D viewer draws over its model for the
+// session.
+export const viewerOverlays = $state({ isCoordinatesShown: false })

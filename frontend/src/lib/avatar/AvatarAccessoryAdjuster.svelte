@@ -4,7 +4,7 @@
 	import clipboardTextIcon from "@phosphor-icons/core/regular/clipboard-text.svg?raw"
 	import copyIcon from "@phosphor-icons/core/regular/copy.svg?raw"
 	import flipHorizontalIcon from "@phosphor-icons/core/regular/flip-horizontal.svg?raw"
-	import { tick, untrack } from "svelte"
+	import { onDestroy, tick, untrack } from "svelte"
 	import type {
 		AvatarAccessoryAdjustmentLimits,
 		AvatarAsset,
@@ -27,6 +27,9 @@
 	import { rangeShareOf, roundedToStep } from "./range-slider"
 
 	type AxisRange = { min: number; max: number }
+	// AxisTarget is the adjustment axis of a row, and undefined for the size
+	// row, which changes every axis.
+	type AxisTarget = { kind: AdjustmentKind; axis: AdjustmentAxis | undefined }
 
 	let {
 		avatar,
@@ -57,7 +60,35 @@
 	// The size changes on every axis at once while the axes are equal, as the
 	// Roblox avatar editor offers it.
 	let isUniformScale = $state(untrack(() => isEvenScale(adjustmentOf(asset).scale))),
-		adjusterControls = $state<HTMLDivElement>()
+		adjusterControls = $state<HTMLDivElement>(),
+		// The rows that the pointer is over and that hold the focus. The 3D
+		// view highlights the axis of the row under the pointer, else of the
+		// focused row, and shows the rotation until a row is used.
+		hoveredAxis = $state<AxisTarget>(),
+		focusedAxis = $state<AxisTarget>(),
+		guidedKind: AdjustmentKind = "rotation"
+
+	const axisLetterClassByAxis: Record<AdjustmentAxis, string> = {
+		x: "text-axis-x",
+		y: "text-axis-y",
+		z: "text-axis-z",
+	}
+
+	$effect(() => {
+		const target = hoveredAxis ?? focusedAxis
+		guidedKind = target?.kind ?? guidedKind
+		avatar.adjustmentGuide = { assetId, kind: guidedKind, axis: target?.axis }
+	})
+
+	onDestroy(() => {
+		if (avatar.adjustmentGuide?.assetId === untrack(() => assetId)) {
+			avatar.adjustmentGuide = undefined
+		}
+	})
+
+	function axisTargetOf(kind: AdjustmentKind, axes: AdjustmentAxis[]): AxisTarget {
+		return { kind, axis: axes.length === 1 ? axes[0] : undefined }
+	}
 
 	// An undo or a paste can bring a size that differs between the axes, which
 	// one size slider cannot show.
@@ -219,13 +250,24 @@
 	{@const value = adjustment[kind][axes[0]]}
 	{@const fill = fillOf(value, defaultAdjustment[kind][axes[0]], range)}
 	{@const accessibleLabel = `${kindLabel} ${axisLabel.toLowerCase()}`}
-	<div class="flex min-h-7 items-center gap-3">
+	{@const target = axisTargetOf(kind, axes)}
+	<div
+		class="flex min-h-7 items-center gap-3"
+		role="presentation"
+		onpointerenter={() => (hoveredAxis = target)}
+		onpointerleave={() => (hoveredAxis = undefined)}
+		onfocusin={() => (focusedAxis = target)}
+		onfocusout={() => (focusedAxis = undefined)}>
 		<span
 			class="flex w-16 shrink-0 items-baseline gap-1.5 text-xs"
 			aria-hidden="true">
 			<span class="text-fg">{axisLabel}</span>
 			{#if axisLetter}
-				<span class="font-mono text-2xs text-fg-faint">{axisLetter}</span>
+				<span
+					class={[
+						"font-mono text-2xs font-semibold",
+						axisLetterClassByAxis[axes[0]],
+					]}>{axisLetter}</span>
 			{/if}
 		</span>
 		<input
@@ -399,7 +441,7 @@
 				accessory's limits.
 			{:else}
 				Copy a placement to reuse it. Paste mirrored fits a left accessory to
-				its right counterpart.
+				the right side.
 			{/if}
 		</p>
 	</div>

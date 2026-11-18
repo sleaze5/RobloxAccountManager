@@ -10,6 +10,8 @@ The Svelte frontend is a presentation layer. The Go backend owns application log
 - Do not put business rules, credential handling, database access, Roblox API calls, launch logic, filesystem access, or operating-system behavior in the frontend.
 - Do not duplicate backend validation. Add lightweight input feedback only when it improves usability.
 - Import backend bindings only through `frontend/src/lib/backend/bridge.ts`.
+- Show 3D models only through `frontend/src/lib/model-viewer/ModelFrame.svelte`. The backend decides whether the app builds an item or shows the model that Roblox renders, and the renderer reaches Roblox only through the `GetAvatarRenderFile` binding.
+- Keep shared renderer state inside the viewer. Cancel its asset requests and clear its asset cache when the account changes or the last live view closes. Keep preview support separate from archive support: some items can be previewed in 3D but have no model that Roblox renders for download.
 - Show notifications only through `frontend/src/lib/notifications/notification-center.svelte.ts`.
 - Build small components with one responsibility.
 - Every store action that calls the backend catches its errors and shows them through the store's error state or a notification. A component may call an action without awaiting it, as in `void store.action()`, only when the action handles its own errors.
@@ -21,6 +23,7 @@ The Svelte frontend is a presentation layer. The Go backend owns application log
 ## Backend
 
 - Give each package one capability and a small, explicit interface. A new feature needs an obvious home.
+- Keep account-specific results, such as game playability, out of caches keyed only by the resource ID.
 - A change to one subsystem must not require changes to unrelated frontend, storage, Roblox, or platform code.
 - Keep Wails bindings thin. They validate UI input, call application services, and return UI-safe results. They contain no SQL.
 - Storage code does not launch Roblox.
@@ -34,6 +37,7 @@ The Svelte frontend is a presentation layer. The Go backend owns application log
 ## Errors
 
 - Return errors that the UI shows as `*roblox.Error` with a short, complete sentence in `Message` that tells the user what to do. `Error()` returns only `Message`, because the desktop runtime shows it as is. Do not convert or strip error text per binding.
+- Write `Message` as described in Writing in [DESIGN.md](./DESIGN.md#writing), such as "Could not load the badges. Try again."
 - Never put paths, URLs, cookies, tokens, or internal error text in `Message`. Put the underlying error in `Cause`. The frontend shows only `Message`.
 - Log an error once, where it is handled, with an `operation` attribute and the `error`. A `*roblox.Error` logs its endpoint, kind, status, and Roblox code itself.
 - Map storage and vault errors to user messages in one place per package, such as `mapRepositoryError` and `safeVaultError`, instead of at each call.
@@ -87,3 +91,4 @@ An export file holds the vault data and settings so that the user can import the
 - Get a module logger from `System.Module`. Do not log without a module.
 - Add an `operation` attribute to entries. When one user action produces work in several modules, use one stable operation ID.
 - Never log credentials, authentication tokens, cookies, account secrets, or other sensitive account data. The redacting handler is a safety net, not permission.
+- Write log messages in lowercase, except names such as Roblox and Chrome for Testing. Write a failure as "could not" with a verb and the thing, such as "could not save the account password", and a result in the past tense, such as "vault locked". Use the terms from [DESIGN.md](./DESIGN.md#capitalization). Do not change a message that code compares, such as the clean-shutdown record of crash capture.

@@ -55,7 +55,7 @@
 	data-tooltip={tooltip}>
 	R$ {#if unavailable && loading}<Skeleton
 			className="w-12"
-			label="Loading Robux" />{:else}{balance}{/if}{#if pending !== null && pending !== undefined && pending > 0}<span
+			label="Loading Robux…" />{:else}{balance}{/if}{#if pending !== null && pending !== undefined && pending > 0}<span
 			class="text-fg-muted">{` (+${amount(pending)})`}</span
 		>{/if}
 </button>

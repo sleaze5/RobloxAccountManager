@@ -56,17 +56,17 @@ func (store *Store) access(ctx context.Context, action func(*sql.DB) error) {
 		return
 	}
 	if closeError := store.closeDatabase(); closeError != nil {
-		store.logger.WarnContext(ctx, "public cache could not be closed", "operation", "cache-recover", "error", closeError)
+		store.logger.WarnContext(ctx, "could not close the public cache", "operation", "cache-recover", "error", closeError)
 		store.retryAt = time.Now().Add(time.Minute)
 		return
 	}
 	if errors.Is(err, errInvalidCache) || errors.Is(err, sqlite3.CORRUPT) || errors.Is(err, sqlite3.NOTADB) {
 		if removeError := os.Remove(store.path); removeError != nil && !errors.Is(removeError, os.ErrNotExist) {
-			store.logger.WarnContext(ctx, "damaged cache could not be removed; delete caches.db after closing the application", "operation", "cache-recover", "error", removeError)
+			store.logger.WarnContext(ctx, "could not remove the damaged cache; delete caches.db after closing the app", "operation", "cache-recover", "error", removeError)
 		}
 	}
 	store.retryAt = time.Now().Add(time.Minute)
-	store.logger.WarnContext(ctx, "public metadata cache unavailable; using ID placeholders and retrying later", "operation", "cache-access", "error", err)
+	store.logger.WarnContext(ctx, "public metadata cache unavailable; showing IDs and trying again later", "operation", "cache-access", "error", err)
 }
 
 func (store *Store) run(ctx context.Context, action func(*sql.DB) error) error {

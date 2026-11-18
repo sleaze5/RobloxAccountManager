@@ -150,7 +150,7 @@
 				: undefined}
 			onclick={fillJoinOptions}>
 			<Icon svg={gameControllerIcon} size={16} aria-hidden="true" /><span
-				>Fill join options</span>
+				>Fill launch options</span>
 		</button>
 	</div>
 {/if}

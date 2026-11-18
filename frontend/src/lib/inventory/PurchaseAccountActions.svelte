@@ -36,7 +36,7 @@
 			<span class="truncate text-xs font-medium text-fg"
 				>@{account.username}</span>
 			{#if robuxBalance === undefined}
-				<Skeleton className="w-28 text-2xs" label="Loading Robux" />
+				<Skeleton className="w-28 text-2xs" label="Loading Robux…" />
 			{:else if robuxBalance === null}
 				<span class="truncate text-2xs text-fg-muted">Robux unavailable</span>
 			{:else}

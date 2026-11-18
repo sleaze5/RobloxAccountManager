@@ -55,7 +55,7 @@ func (service *Service) CreateVault(ctx context.Context, password, confirmation,
 		return safeVaultError(err)
 	}
 	if err := service.settings.RecordPasswordTested(time.Now()); err != nil {
-		service.logger.Error("record master password setup failed", "error", err)
+		service.logger.Error("could not record the master password setup", "error", err)
 	}
 	service.finishUnlock(false)
 	return nil
@@ -69,7 +69,7 @@ func (service *Service) UnlockVault(ctx context.Context, password string) error 
 		return safeVaultError(err)
 	}
 	if err := service.settings.RecordPasswordTested(time.Now()); err != nil {
-		service.logger.Error("record master password verification failed", "error", err)
+		service.logger.Error("could not record the master password test", "error", err)
 	}
 	service.finishUnlock(false)
 	return nil
@@ -78,14 +78,14 @@ func (service *Service) UnlockVault(ctx context.Context, password string) error 
 func (service *Service) finishUnlock(automatic bool) {
 	service.sessions.Unlock()
 	if err := service.vault.RemoveMigration(); err != nil {
-		service.logger.Warn("stale vault migration file could not be removed", "operation", "vault-migration", "error", err)
+		service.logger.Warn("could not remove the old vault migration file", "operation", "vault-migration", "error", err)
 	}
 	if err := service.applyPendingSettings(service.lifecycle); err != nil {
-		service.logger.Warn("imported settings could not be saved after unlock", "operation", "vault-import", "error", err)
+		service.logger.Warn("could not save the imported settings after unlock", "operation", "vault-import", "error", err)
 	}
 	views, err := service.savedAccounts(service.lifecycle)
 	if err != nil {
-		service.logger.Warn("account browser IDs could not be initialized", "operation", "vault-unlock", "error", err)
+		service.logger.Warn("could not set up account browser IDs", "operation", "vault-unlock", "error", err)
 	}
 	for _, view := range views {
 		service.sessions.BrowserID(view.ID)
@@ -105,7 +105,7 @@ func (service *Service) finishUnlock(automatic bool) {
 	service.browser.AllowLaunches()
 	go func() {
 		if err := service.vault.MaybeCreateBackup(context.WithoutCancel(service.lifecycle)); err != nil {
-			service.logger.Warn("automatic vault backup failed", "error", err)
+			service.logger.Warn("could not back up the vault automatically", "error", err)
 		}
 	}()
 }
@@ -123,7 +123,7 @@ func (service *Service) LockVault() error {
 		} else {
 			service.finishLocked()
 		}
-		service.logger.Error("vault lock workflow failed", "error", err)
+		service.logger.Error("could not lock the vault", "error", err)
 		return err
 	}
 	service.finishLocked()
@@ -170,7 +170,7 @@ func (service *Service) ChangeVaultPassword(ctx context.Context, currentPassword
 		return err
 	}
 	if err := service.settings.RecordPasswordTested(time.Now()); err != nil {
-		service.logger.Error("record changed master password failed", "error", err)
+		service.logger.Error("could not record the changed master password", "error", err)
 	}
 	service.mutex.Lock()
 	service.reminderDue = false
@@ -187,7 +187,7 @@ func (service *Service) SetPasswordTestIntervalDays(days int) error {
 
 func (service *Service) SetAutomaticUnlock(enabled bool) error {
 	if err := service.vault.SetAutomaticUnlock(enabled); err != nil {
-		service.logger.Error("automatic unlock update failed", "enabled", enabled, "error", err)
+		service.logger.Error("could not update automatic unlock", "enabled", enabled, "error", err)
 		if enabled {
 			return errors.New("automatic unlock could not be turned on")
 		}
@@ -221,7 +221,7 @@ func (service *Service) ResetVault() error {
 
 func (service *Service) SetAsideLegacyVault() error {
 	if err := service.vault.SetAsideLegacyVault(); err != nil {
-		service.logger.Error("legacy vault could not be set aside", "operation", "vault-legacy", "error", err)
+		service.logger.Error("could not set the legacy vault aside", "operation", "vault-legacy", "error", err)
 		return errors.New("the old vault could not be set aside")
 	}
 	return nil
@@ -243,17 +243,17 @@ func (service *Service) MigrateLegacyVault(ctx context.Context, password string)
 		if errors.Is(err, vault.ErrInvalidPassword) {
 			return safeVaultError(err)
 		}
-		service.logger.Error("legacy vault could not be migrated", "operation", "vault-migration", "error", err)
-		return transferError("Your data could not be moved to the new vault format. Download version 0.9.2 to export it instead.", err)
+		service.logger.Error("could not move the legacy vault", "operation", "vault-migration", "error", err)
+		return transferError("Could not move your data to the new vault format. Download version 0.9.2 to export it instead.", err)
 	}
 	if _, err := service.transfers.Replace(ctx, payload, pendingSettings(&pendingTransfer{payload: payload}, appsettings.Sections)); err != nil {
-		service.logger.Error("migrated data could not be imported", "operation", "vault-migration", "error", err)
-		return transferError("The new vault was created, but your data could not be imported. The old vault is in the recovery folder in storage/vault.", err)
+		service.logger.Error("could not import the moved data", "operation", "vault-migration", "error", err)
+		return transferError("The new vault was created, but your data was not imported. The old vault is in the recovery folder in storage/vault.", err)
 	}
 	if err := service.settings.RecordPasswordTested(time.Now()); err != nil {
-		service.logger.Error("record master password after migration failed", "error", err)
+		service.logger.Error("could not record the master password after the move", "error", err)
 	}
 	service.finishUnlock(false)
-	service.logger.Info("vault data migrated", "operation", "vault-migration", "accounts", len(payload.Accounts))
+	service.logger.Info("vault data moved", "operation", "vault-migration", "accounts", len(payload.Accounts))
 	return nil
 }

@@ -151,7 +151,7 @@ func (service *Chat) Rename(ctx context.Context, accountID, version int64, conve
 	if err := service.post(ctx, accountID, version, "chat-rename", "update-conversations", true, body, &payload); err != nil {
 		return ChatConversation{}, err
 	}
-	return firstChatConversation("chat-rename", payload.Conversations, "Roblox did not confirm the new name. Refresh chats to check.")
+	return firstChatConversation("chat-rename", payload.Conversations, "Roblox did not confirm the new name. Refresh to check.")
 }
 
 func firstChatConversation(endpoint string, conversations []ChatConversation, missing string) (ChatConversation, error) {
@@ -168,7 +168,7 @@ func (service *Chat) Send(ctx context.Context, accountID, version int64, convers
 		return ChatMessage{}, err
 	}
 	if len(payload.Messages) == 0 {
-		return ChatMessage{}, &roblox.Error{Kind: roblox.KindProtocol, Endpoint: "chat-send", Message: "Roblox did not confirm the sent message. Refresh the chat to check."}
+		return ChatMessage{}, &roblox.Error{Kind: roblox.KindProtocol, Endpoint: "chat-send", Message: "Roblox did not confirm the sent message. Refresh to check."}
 	}
 	return payload.Messages[0], nil
 }
@@ -190,7 +190,7 @@ func (service *Chat) get(ctx context.Context, accountID, version int64, endpoint
 func (service *Chat) post(ctx context.Context, accountID, version int64, endpoint, path string, idempotent bool, payload, target any) error {
 	body, err := json.Marshal(payload)
 	if err != nil {
-		return &roblox.Error{Kind: roblox.KindProtocol, Endpoint: endpoint, Message: "The chat request could not be encoded.", Cause: err}
+		return &roblox.Error{Kind: roblox.KindProtocol, Endpoint: endpoint, Message: "Could not encode the chat request.", Cause: err}
 	}
 	endpointURL, _ := url.Parse(chatBaseURL + path)
 	var retry roblox.RetryPolicy

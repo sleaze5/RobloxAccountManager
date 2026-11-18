@@ -254,11 +254,11 @@ func (service *PrivateServers) Update(ctx context.Context, accountID, version, s
 			Active bool `json:"active"`
 		}{*update.Renews}
 	default:
-		return &roblox.Error{Kind: roblox.KindProtocol, Endpoint: "private-server-update", Message: "Choose a private server change."}
+		return &roblox.Error{Kind: roblox.KindProtocol, Endpoint: "private-server-update", Message: "Select a private server change."}
 	}
 	encoded, err := json.Marshal(body)
 	if err != nil {
-		return &roblox.Error{Kind: roblox.KindProtocol, Endpoint: "private-server-update", Message: "The request could not be encoded.", Cause: err}
+		return &roblox.Error{Kind: roblox.KindProtocol, Endpoint: "private-server-update", Message: "Could not encode the request.", Cause: err}
 	}
 	endpoint := &url.URL{Scheme: "https", Host: "games.roblox.com", Path: privateServerPath(serverID, path)}
 	_, err = service.client.Do(ctx, roblox.Request{

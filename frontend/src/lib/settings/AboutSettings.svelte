@@ -36,7 +36,7 @@
 					location = nextLocation
 				}
 			} catch {
-				if (!disposed) error = "Build and launch details could not be loaded."
+				if (!disposed) error = "Could not load the build and launch details."
 			}
 		})()
 		return () => {
@@ -67,7 +67,7 @@
 				{#if build.build_time}
 					<Timestamp value={build.build_time * 1000} />
 				{:else}
-					<span class="text-fg-faint">Not stamped</span>
+					<span class="text-fg-faint">Not recorded</span>
 				{/if}
 			</dd>
 		</dl>

@@ -13,6 +13,7 @@ To release, change `VERSION`, run `go tool -modfile build/tools/go.mod task fix`
 - `RobloxAccountManager-linux-x64.tar.gz`: the Linux updater artifact and manual download. The archive keeps the executable permission that a bare download loses.
 - `RobloxAccountManager-macos-arm64.zip` and `RobloxAccountManager-macos-x64.zip`: the macOS updater artifacts and manual downloads. Each contains `RobloxAccountManager.app`, packed with `ditto` to keep modes, links, and the signature.
 - `manifest.json`: the signed Wails update manifest. List only archives in it, because Wails treats every `.exe` as a Windows artifact.
+- `LICENSE`: the app's GPL-3.0 license text. It ships as its own asset.
 - `THIRD_PARTY_LICENSES.txt`: the license texts of the bundled third-party works. It ships as its own asset, because each archive must contain only the executable.
 
 Each archive must contain only the executable, or on macOS only the application bundle, because the updater accepts exactly one top-level entry. Wails reads the platform and architecture from each archive name, so keep the `<os>-x64`, `windows-arm64`, and `macos-<arch>` parts. Each installed copy updates within its own architecture. An x64 copy that runs through emulation on ARM64 keeps updating to x64.
@@ -33,7 +34,7 @@ The task reads the version from `VERSION` and runs the Wails CLI with `go tool w
 - **Production** signing reads the private key from `UPDATER_PRIVATE_KEY` and verifies against `internal/appmeta/updater.key.pub`, the key that the application embeds.
 - **Rehearsal** signing generates a throwaway key pair and verifies against its public key. It proves that preparation works, not that the production secret matches the embedded key.
 
-The publish job uploads every archive, `.exe`, and `manifest.json` from `RELEASE_DIR`, plus `THIRD_PARTY_LICENSES.txt`. Asset names are defined only by the packaging in `build-targets.yml`.
+The publish job uploads every archive, `.exe`, and `manifest.json` from `RELEASE_DIR`, plus `LICENSE` and `THIRD_PARTY_LICENSES.txt`. The packaging in `build-targets.yml` defines the built artifact names.
 
 To rehearse a release, run the "Release" workflow with **Rehearse** selected, from any branch. It builds every target and runs the `release:prepare` task with rehearsal signing. It never reads `UPDATER_PRIVATE_KEY`, skips the branch and tag checks, and uploads the prepared files as the `release-rehearsal` artifact instead of creating a release.
 

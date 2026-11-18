@@ -114,13 +114,13 @@
 	{#if servers.error}
 		<div class="empty-state" role="alert">
 			<Icon svg={warningIcon} size={28} aria-hidden="true" />
-			<h2>RoValra servers are unavailable</h2>
+			<h2>RoValra servers unavailable</h2>
 			<p>{servers.error}</p>
 			<button class="button" type="button" onclick={() => void servers.load()}
 				>Try again</button>
 		</div>
 	{:else if !servers.page}
-		<ServerListSkeleton label="Loading RoValra servers" />
+		<ServerListSkeleton label="Loading RoValra servers…" />
 	{:else if !shown.length}
 		<div class="empty-state" role="status">
 			<Icon svg={hardDrivesIcon} size={28} aria-hidden="true" />
@@ -145,15 +145,15 @@
 	{:else}
 		<p class="flex gap-1 px-3 pt-2 font-mono text-2xs text-fg-faint" role="status">
 			<span>Page {servers.pageNumber}</span>
-			<span aria-hidden="true">-</span>
+			<span aria-hidden="true">·</span>
 			<span
 				>{numbers.format(shown.length)}
 				{shown.length === 1 ? "server" : "servers"}</span>
 			{#if stats.stats?.totalServers}
-				<span aria-hidden="true">-</span>
+				<span aria-hidden="true">·</span>
 				<span>{numbers.format(stats.stats.totalServers)} recorded</span>
 			{/if}
-			<span aria-hidden="true">-</span>
+			<span aria-hidden="true">·</span>
 			<span>Some may have closed</span>
 		</p>
 		<div
@@ -186,14 +186,14 @@
 						{:else}
 							<span
 								class="justify-self-end text-right text-fg-faint"
-								aria-label="Datacenter unknown">-</span>
+								aria-label="Unknown datacenter">-</span>
 						{/if}
 						{#if server.address}
 							<span
 								class="truncate font-mono text-2xs text-fg-faint select-text"
 								>{server.address}</span>
 						{:else}
-							<span class="text-fg-faint" aria-label="IP address unknown"
+							<span class="text-fg-faint" aria-label="Unknown IP address"
 								>-</span>
 						{/if}
 						<ServerVersion version={server.placeVersion} {newestVersion} />

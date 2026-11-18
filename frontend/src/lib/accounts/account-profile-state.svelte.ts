@@ -158,7 +158,7 @@ export class AccountProfileState {
 		this.sections = new SectionLoad(
 			profileSections,
 			() => emptyProfile(accountId),
-			"Could not refresh profile details. Refresh to retry.",
+			"Could not refresh profile details. Refresh to try again.",
 		)
 	}
 
@@ -201,7 +201,7 @@ export class AccountProfileState {
 		if (identity.status === "rejected") {
 			this.identityError = errorMessage(
 				identity.reason,
-				"Could not refresh profile details. Refresh to retry.",
+				"Could not refresh profile details. Refresh to try again.",
 			)
 		}
 		if (sectionLoad.status === "fulfilled" && sectionLoad.value && !this.error) {

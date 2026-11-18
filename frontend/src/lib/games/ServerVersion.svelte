@@ -14,6 +14,6 @@
 		data-tooltip={tooltip}
 		>{#if old}<span class="server-tag">Old</span>{/if}{version}</span>
 {:else}
-	<span class="justify-self-end text-right text-fg-faint" aria-label="Version unknown"
+	<span class="justify-self-end text-right text-fg-faint" aria-label="Unknown version"
 		>-</span>
 {/if}

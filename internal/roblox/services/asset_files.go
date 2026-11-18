@@ -4,10 +4,14 @@ import (
 	"bytes"
 	"compress/gzip"
 	"context"
+	"encoding/base64"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
 	"net/http"
+	"net/url"
+	"regexp"
 	"strconv"
 
 	"github.com/sleaze5/RobloxAccountManager/internal/roblox"
@@ -18,7 +22,69 @@ const (
 	maxUnpackedAssetFileBytes = 64 << 20
 	meshAssetTypeID           = 4
 	assetFileEndpoint         = "asset-file"
+	avatarRenderFileEndpoint  = "avatar-render-file"
+	// maxRepresentationCount bounds the content representations that one
+	// request lists. The avatar renderer lists at most two for a head.
+	maxRepresentationCount = 8
+	maxPriorityListLength  = 2048
 )
+
+// AssetRepresentation picks the form in which the asset delivery API returns
+// an asset, such as a classic head as a mesh part. The zero value asks for
+// the form that Roblox stores.
+type AssetRepresentation struct {
+	// Format is the value of the Roblox-AssetFormat header, such as
+	// avatar_meshpart_accessory.
+	Format string `json:"format"`
+	// PriorityList is the contentRepresentationPriorityList query value: a
+	// base64 JSON list of the formats to try, in order, each with a major
+	// version.
+	PriorityList string `json:"priorityList"`
+}
+
+// representationNamePattern accepts the names of asset formats, such as
+// avatar_meshpart_head and Roundy_SpecialMesh, and majorVersionPattern their
+// major versions, such as 1. Neither accepts anything that could change the
+// meaning of a header or a query.
+var (
+	representationNamePattern = regexp.MustCompile(`^[A-Za-z0-9_]{1,64}$`)
+	majorVersionPattern       = regexp.MustCompile(`^\d{1,4}$`)
+)
+
+// normalize forwards only the format names and major versions that were checked.
+func (representation AssetRepresentation) normalize() (AssetRepresentation, bool) {
+	if representation.Format != "" && !representationNamePattern.MatchString(representation.Format) {
+		return AssetRepresentation{}, false
+	}
+	if representation.PriorityList == "" {
+		return representation, true
+	}
+	if len(representation.PriorityList) > maxPriorityListLength {
+		return AssetRepresentation{}, false
+	}
+	priorityListJSON, err := base64.StdEncoding.DecodeString(representation.PriorityList)
+	if err != nil {
+		return AssetRepresentation{}, false
+	}
+	var listedRepresentations []struct {
+		Format       string `json:"format"`
+		MajorVersion string `json:"majorVersion"`
+	}
+	if err := json.Unmarshal(priorityListJSON, &listedRepresentations); err != nil || len(listedRepresentations) == 0 || len(listedRepresentations) > maxRepresentationCount {
+		return AssetRepresentation{}, false
+	}
+	for _, listedRepresentation := range listedRepresentations {
+		if !representationNamePattern.MatchString(listedRepresentation.Format) || !majorVersionPattern.MatchString(listedRepresentation.MajorVersion) {
+			return AssetRepresentation{}, false
+		}
+	}
+	normalizedPriorityList, err := json.Marshal(listedRepresentations)
+	if err != nil {
+		return AssetRepresentation{}, false
+	}
+	representation.PriorityList = base64.StdEncoding.EncodeToString(normalizedPriorityList)
+	return representation, true
+}
 
 // AssetFileFormat is the format of the file of an asset.
 type AssetFileFormat string
@@ -63,9 +129,9 @@ func (service *Users) AssetFile(ctx context.Context, accountID, version int64, c
 	if !canDownload(category) {
 		return AssetFile{}, &roblox.Error{Kind: roblox.KindProtocol, Endpoint: assetFileEndpoint, Message: "This item has no file to download."}
 	}
-	contents, assetTypeID, err := service.downloadAssetFile(ctx, accountID, version, assetFileEndpoint, assetID, maxAssetFileBytes)
+	contents, assetTypeID, err := service.downloadAssetFile(ctx, accountID, version, assetFileEndpoint, assetID, AssetRepresentation{}, maxAssetFileBytes)
 	if remote, isRefused := assetFileRefusal(err); isRefused {
-		return AssetFile{}, &roblox.Error{Kind: remote.Kind, Endpoint: assetFileEndpoint, Status: remote.Status, Message: "Roblox doesn't let this account download this item.", Cause: err}
+		return AssetFile{}, &roblox.Error{Kind: remote.Kind, Endpoint: assetFileEndpoint, Status: remote.Status, Message: "Roblox does not let this account download this item.", Cause: err}
 	}
 	if err != nil {
 		return AssetFile{}, err
@@ -75,9 +141,21 @@ func (service *Users) AssetFile(ctx context.Context, accountID, version int64, c
 	}
 	format, err := assetFileFormatOf(contents)
 	if err != nil {
-		return AssetFile{}, &roblox.Error{Kind: roblox.KindProtocol, Endpoint: assetFileEndpoint, Message: "This kind of item can't be downloaded yet.", Cause: err}
+		return AssetFile{}, &roblox.Error{Kind: roblox.KindProtocol, Endpoint: assetFileEndpoint, Message: "This kind of item cannot be downloaded yet.", Cause: err}
 	}
 	return AssetFile{Contents: contents, Format: format}, nil
+}
+
+// AvatarRenderFile downloads the file of an asset that the avatar renderer
+// reads, such as a mesh, a texture, or an accessory model, in the
+// representation that the renderer asks for.
+func (service *Users) AvatarRenderFile(ctx context.Context, accountID, version, assetID int64, representation AssetRepresentation) ([]byte, error) {
+	normalizedRepresentation, isValid := representation.normalize()
+	if !isValid {
+		return nil, &roblox.Error{Kind: roblox.KindProtocol, Endpoint: avatarRenderFileEndpoint, Message: "The 3D avatar asked for an asset in an unknown form."}
+	}
+	contents, _, err := service.downloadAssetFile(ctx, accountID, version, avatarRenderFileEndpoint, assetID, normalizedRepresentation, maxAssetFileBytes)
+	return contents, err
 }
 
 // assetFileRefusal returns the error with which Roblox refuses to give the
@@ -90,16 +168,24 @@ func assetFileRefusal(err error) (*roblox.Error, bool) {
 	return nil, false
 }
 
-// downloadAssetFile downloads the file of the asset and reports its asset type
-// ID.
-func (service *Users) downloadAssetFile(ctx context.Context, accountID, version int64, endpoint string, assetID, maxResponseSizeBytes int64) ([]byte, int64, error) {
+// downloadAssetFile downloads the file of the asset in the representation and
+// reports its asset type ID.
+func (service *Users) downloadAssetFile(ctx context.Context, accountID, version int64, endpoint string, assetID int64, representation AssetRepresentation, maxResponseSizeBytes int64) ([]byte, int64, error) {
 	var payload struct {
 		AssetTypeID int64 `json:"assetTypeId"`
 		Locations   []struct {
 			Location string `json:"location"`
 		} `json:"locations"`
 	}
-	if err := service.readAccountDetails(ctx, accountID, version, endpoint, "https://assetdelivery.roblox.com/v2/asset/?id="+strconv.FormatInt(assetID, 10), &payload); err != nil {
+	query := url.Values{"id": {strconv.FormatInt(assetID, 10)}}
+	if representation.PriorityList != "" {
+		query.Set("contentRepresentationPriorityList", representation.PriorityList)
+	}
+	headers := http.Header{}
+	if representation.Format != "" {
+		headers.Set("Roblox-Assetformat", representation.Format)
+	}
+	if err := service.readAccountDetailsWithHeaders(ctx, accountID, version, endpoint, "https://assetdelivery.roblox.com/v2/asset/?"+query.Encode(), headers, &payload); err != nil {
 		return nil, 0, err
 	}
 	if len(payload.Locations) == 0 {
@@ -111,7 +197,7 @@ func (service *Users) downloadAssetFile(ctx context.Context, accountID, version 
 	}
 	contents, err = unpackGzip(contents)
 	if err != nil {
-		return nil, 0, &roblox.Error{Kind: roblox.KindProtocol, Endpoint: endpoint, Message: "Roblox returned a file that couldn't be read.", Cause: err}
+		return nil, 0, &roblox.Error{Kind: roblox.KindProtocol, Endpoint: endpoint, Message: "Roblox returned a file that the app cannot read.", Cause: err}
 	}
 	return contents, payload.AssetTypeID, nil
 }

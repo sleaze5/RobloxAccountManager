@@ -9,7 +9,7 @@ import (
 	robloxservices "github.com/sleaze5/RobloxAccountManager/internal/roblox/services"
 )
 
-const conflictingSettingReason = "Roblox returned conflicting values. Refresh settings before editing."
+const conflictingSettingReason = "Roblox returned conflicting values. Refresh before you change this setting."
 
 func normalizeAccountSetting(definition accountSettingDefinition, reads accountSettingsReads) (AccountSettingView, bool) {
 	plain, optionsRaw, present := accountSettingDocuments(definition.key, reads)
@@ -32,10 +32,10 @@ func normalizeAccountSetting(definition accountSettingDefinition, reads accountS
 	view.Options = []AccountSettingOption{}
 	view.UnavailableReason = settingReadOnlyReason(view)
 	if !definition.optionsV2 && !settingHasIndependentChoices(definition.key) && reads.optionsError != nil {
-		view.UnavailableReason = "Some settings could not be refreshed. Refresh settings before editing."
+		view.UnavailableReason = "Could not refresh some settings. Refresh before you change this setting."
 	}
 	if definition.optionsV2 && reads.optionsV2Error != nil {
-		view.UnavailableReason = "Communication permissions could not be refreshed. Refresh settings before editing."
+		view.UnavailableReason = "Could not refresh the communication permissions. Refresh before you change this setting."
 	}
 	if metadataOK {
 		appendSettingOptions(definition, metadata, &view)
@@ -96,8 +96,8 @@ func settingValueView(definition accountSettingDefinition, raw json.RawMessage) 
 
 var accountSettingLabels = map[string]string{
 	"NoOne": "No one", "Friends": "Friends", "AllUsers": "Everyone", "All": "Everyone",
-	"Following": "Following", "Followers": "Followers", "FriendsAndFollowing": "Friends & people I follow",
-	"FriendsFollowingAndFollowers": "Friends, followers & people I follow",
+	"Following": "Following", "Followers": "Followers", "FriendsAndFollowing": "Friends and people I follow",
+	"FriendsFollowingAndFollowers": "Friends, followers, and people I follow",
 	"TrustedFriends":               "Trusted friends", "AllConnections": "All friends", "TrustedConnectionsOnly": "Trusted friends",
 	"AllAuthenticatedUsers": "All signed-in users",
 	"AllAges":               "Minimal", "NinePlus": "Mild", "ThirteenPlus": "Moderate", "SeventeenPlus": "Restricted", "EighteenPlus": "Restricted",
@@ -118,10 +118,10 @@ func settingValueLabel(key AccountSettingKey, token string) (string, bool) {
 	}
 	if key == SettingExperienceJoins || key == SettingTradeAudience {
 		if token == "Followers" {
-			return "Friends, followers & people I follow", true
+			return "Friends, followers, and people I follow", true
 		}
 		if token == "Following" {
-			return "Friends & people I follow", true
+			return "Friends and people I follow", true
 		}
 	}
 	label, known := accountSettingLabels[token]
@@ -178,7 +178,7 @@ func settingKnownValue(view AccountSettingView) bool {
 
 func settingReadOnlyReason(view AccountSettingView) string {
 	if !settingKnownValue(view) {
-		return "The current value is unavailable or not supported for editing."
+		return "The current value is unavailable, or this app cannot change it."
 	}
 	return ""
 }
@@ -195,7 +195,7 @@ func settingOptionReason(definition accountSettingDefinition, value AccountSetti
 		}
 	}
 	if !settingKnownValue(value) {
-		return "This option is not supported for editing."
+		return "This app cannot select this option."
 	}
 	if requirement != nil && *requirement != "None" && *requirement != "SelfUpdateSetting" {
 		return "Roblox has not confirmed that this option can be changed here."
@@ -247,13 +247,13 @@ func settingRequiredActionsReason(definition accountSettingDefinition, value Acc
 func inheritedSettingReason(key AccountSettingKey) string {
 	switch key {
 	case SettingExperienceJoins:
-		return "Choose a broader Online status audience first."
+		return "Select a broader Online status audience first."
 	case SettingActivityUpdates:
 		return "Show current game must include Friends before sharing activity updates."
 	case SettingDirectExperienceChat:
-		return "Enable Experience chat before changing Direct chat."
+		return "Turn on Game chat before you change Direct chat."
 	case SettingPartyChat:
-		return "Enable Chat and party with friends first."
+		return "Turn on Chat and party with friends first."
 	case SettingPartyVoice:
 		return "Voice chat with friends cannot include more people than Friends chat."
 	default:

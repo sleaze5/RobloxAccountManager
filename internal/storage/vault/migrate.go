@@ -107,13 +107,13 @@ func runSchemaMigrations(ctx context.Context, transaction *sql.Tx, from int) err
 
 func (manager *Manager) upgradeKeyFiles(password string) {
 	if err := manager.upgradeAutoUnlock(); err != nil {
-		manager.logger.Warn("automatic unlock file upgrade failed", "operation", "vault-migrate", "error", err)
+		manager.logger.Warn("could not upgrade the automatic unlock file", "operation", "vault-migrate", "error", err)
 	}
 	if password == "" {
 		return
 	}
 	if err := manager.upgradeKeyFile(password); err != nil {
-		manager.logger.Warn("vault key file upgrade failed", "operation", "vault-migrate", "error", err)
+		manager.logger.Warn("could not upgrade the vault key file", "operation", "vault-migrate", "error", err)
 	}
 }
 

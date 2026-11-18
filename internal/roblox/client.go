@@ -159,7 +159,7 @@ func (client *Client) requestSnapshot(ctx context.Context, request Request) (Ses
 			return SessionSnapshot{}, err
 		}
 		if request.ExpectedSecretVersion != 0 && snapshot.SecretVersion != request.ExpectedSecretVersion {
-			return SessionSnapshot{}, &Error{Kind: KindCancelled, Endpoint: request.Endpoint, Message: "The account session changed. Refresh settings to continue."}
+			return SessionSnapshot{}, &Error{Kind: KindCancelled, Endpoint: request.Endpoint, Message: "The account session changed. Refresh to continue."}
 		}
 		if snapshot.State == accounts.StateDisabled {
 			return SessionSnapshot{}, &Error{Kind: KindForbidden, Endpoint: request.Endpoint, Message: "Network use is disabled for this account."}
@@ -237,7 +237,7 @@ func (client *Client) rotateResponseCookie(ctx context.Context, request *Request
 			return snapshotError
 		}
 		if latest.SecretVersion != version {
-			return &Error{Kind: KindCancelled, Endpoint: request.Endpoint, Message: "The account session changed while the replacement was being saved."}
+			return &Error{Kind: KindCancelled, Endpoint: request.Endpoint, Message: "The account session changed while the new cookie was being saved."}
 		}
 		*snapshot = latest
 		if request.ExpectedSecretVersion != 0 {
@@ -372,7 +372,7 @@ func (client *Client) unauthorizedResponse(ctx context.Context, request Request,
 	if invalid {
 		return &Error{Kind: KindReauthRequired, Endpoint: request.Endpoint, Status: response.Status, Message: "Roblox rejected this session."}
 	}
-	return &Error{Kind: KindForbidden, Endpoint: request.Endpoint, Status: response.Status, Message: "Roblox rejected this operation."}
+	return &Error{Kind: KindForbidden, Endpoint: request.Endpoint, Status: response.Status, Message: "Roblox rejected this request."}
 }
 
 func (client *Client) forbiddenResponse(ctx context.Context, request Request, snapshot SessionSnapshot, response *Response) error {
@@ -392,7 +392,7 @@ func (client *Client) forbiddenResponse(ctx context.Context, request Request, sn
 		return &Error{Kind: KindChallengeRequired, Endpoint: request.Endpoint, Status: response.Status, Message: message}
 	}
 	kind := KindForbidden
-	message := "Roblox rejected this operation."
+	message := "Roblox rejected this request."
 	robloxCode := responseError(request, response).RobloxCode
 	// The friends API answers 403 with code 14 instead of a challenge header
 	// when an action needs a CAPTCHA.
@@ -452,7 +452,7 @@ func canWaitBeforeDeadline(ctx context.Context, delay time.Duration) bool {
 }
 
 func rateLimitedError(endpoint string) *Error {
-	return &Error{Kind: KindRateLimited, Endpoint: endpoint, Status: http.StatusTooManyRequests, Message: "Roblox is rate limiting requests. Wait before trying again."}
+	return &Error{Kind: KindRateLimited, Endpoint: endpoint, Status: http.StatusTooManyRequests, Message: "Roblox is limiting requests. Wait, then try again."}
 }
 
 func (client *Client) sendAttempt(ctx context.Context, contract Request, snapshot SessionSnapshot, csrfToken string) (*Response, error) {
@@ -547,7 +547,7 @@ func (client *Client) processSetCookie(ctx context.Context, request Request, sna
 	case !found:
 		return 0, false, nil
 	case err != nil:
-		return 0, false, &Error{Kind: KindProtocol, Endpoint: request.Endpoint, Message: "Roblox returned an invalid replacement cookie.", Cause: err}
+		return 0, false, &Error{Kind: KindProtocol, Endpoint: request.Endpoint, Message: "Roblox returned an invalid new cookie.", Cause: err}
 	case replacement.deleted:
 		client.setState(ctx, snapshot, accounts.StateReauthRequired, "Roblox deleted the session cookie.")
 		return 0, true, nil
@@ -718,7 +718,7 @@ func responseError(request Request, response *Response) *Error {
 	message := "Roblox returned an unexpected response."
 	if response.Status >= 500 {
 		kind = KindServer
-		message = "Roblox is temporarily unavailable."
+		message = "Roblox is unavailable. Try again later."
 	}
 	robloxCode := 0
 	var body struct {
@@ -819,7 +819,7 @@ func (client *Client) storeRotatedCookie(ctx context.Context, request Request, s
 		if errors.Is(err, accounts.ErrStaleSecret) {
 			return 0, &Error{Kind: KindCancelled, Endpoint: request.Endpoint, Message: "The saved session changed. The newer cookie was not overwritten.", Cause: err}
 		}
-		return 0, &Error{Kind: KindProtocol, Endpoint: request.Endpoint, Message: "The rotated Roblox session could not be stored. Sign in again to restore access.", Cause: err}
+		return 0, &Error{Kind: KindProtocol, Endpoint: request.Endpoint, Message: "Could not save the rotated Roblox session. Sign in again to restore access.", Cause: err}
 	}
 	if err := client.sessions.ApplyRotation(record); err != nil {
 		return 0, err

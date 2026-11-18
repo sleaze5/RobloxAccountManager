@@ -40,7 +40,7 @@
 {#if !owned.servers}
 	{#if owned.loading}
 		<div class="settings-section">
-			<SettingsRowsSkeleton label="Loading private servers" />
+			<SettingsRowsSkeleton label="Loading private servers…" />
 		</div>
 	{/if}
 {:else if owned.servers.length === 0}
@@ -71,7 +71,7 @@
 								>{/if}
 						</strong>
 						<span class="truncate"
-							>{server.gameName || `Place ${server.placeId}`} - {renewal(
+							>{server.gameName || `Place ${server.placeId}`} · {renewal(
 								server,
 							)}</span>
 					</div>

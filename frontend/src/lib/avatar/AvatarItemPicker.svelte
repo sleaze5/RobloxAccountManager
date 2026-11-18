@@ -12,7 +12,7 @@
 	import { searchTerms } from "../shared/search"
 	import SkeletonTile from "../shared/SkeletonTile.svelte"
 	import { emoteCategory, wearableCategories } from "./avatar-categories"
-	import { isWornInDraft } from "./avatar-draft"
+	import { fullWearLimitOf, isWearableType, isWornInDraft } from "./avatar-draft"
 	import type { AvatarState } from "./avatar-state.svelte"
 
 	let {
@@ -63,16 +63,25 @@
 		itemsElement?.scrollTo({ top: 0 })
 	}
 
-	function maxWornCountOf(item: InventoryItem): number {
-		return avatar.maxWornCountByTypeName[item.typeName] ?? 0
+	// canPutOn tells whether the item can go on the avatar: Roblox allows the
+	// type, and the avatar has room within the limits.
+	function canPutOn(item: InventoryItem): boolean {
+		return (
+			isWearableType(avatar.wearLimits, item.typeName) &&
+			!(draft && fullWearLimitOf(draft, item, avatar.wearLimits))
+		)
 	}
 
 	function actionLabelOf(item: InventoryItem): string {
 		if (emoteSlot !== null) return `Put in slot ${emoteSlot}`
 		if (draft && isWornInDraft(draft, item.itemId)) return "Take off"
-		return maxWornCountOf(item) > 0
-			? "Wear"
-			: "Roblox doesn't allow wearing this type"
+		if (!isWearableType(avatar.wearLimits, item.typeName)) {
+			return "Roblox does not allow this type on avatars"
+		}
+		const fullLimit = draft && fullWearLimitOf(draft, item, avatar.wearLimits)
+		return fullLimit
+			? `The avatar wears ${exactNumbers.format(fullLimit.maxWornCount)} ${fullLimit.label}, the most Roblox allows. Take one off first.`
+			: "Put on"
 	}
 
 	function pick(item: InventoryItem): void {
@@ -114,15 +123,15 @@
 			<h2 id="avatar-picker-title">
 				{emoteSlot === null
 					? "Add items"
-					: `Choose an emote for slot ${emoteSlot}`}
+					: `Select an emote for slot ${emoteSlot}`}
 			</h2>
 			<p id="avatar-picker-description">
 				{emoteSlot === null
-					? "Select items to wear or take off. An item replaces one of the same type when the avatar wears the most that Roblox allows."
+					? "Select items to put on or take off. When the avatar has the most items of a type that Roblox allows, a new item replaces one."
 					: "Select an emote that the account owns."}
 			</p>
 		</div>
-		<button type="button" aria-label="Close" onclick={onClose}>
+		<button type="button" aria-label="Close dialog" onclick={onClose}>
 			<Icon svg={xIcon} size={14} aria-hidden="true" />
 		</button>
 	</div>
@@ -185,7 +194,7 @@
 						</div>
 					{:else if !page}
 						<div role="status" aria-busy="true">
-							<span class="sr-only">Loading {category.noun}</span>
+							<span class="sr-only">Loading {category.noun}…</span>
 							<ul
 								class="grid grid-cols-3 gap-2 @md:grid-cols-4 @xl:grid-cols-5"
 								aria-hidden="true">
@@ -198,7 +207,7 @@
 						<div class="empty-state h-full" role="status">
 							<Icon svg={category.icon} size={28} aria-hidden="true" />
 							<h2>No {category.noun}</h2>
-							<p>The account doesn't own any {category.noun} yet.</p>
+							<p>The account does not own any {category.noun} yet.</p>
 						</div>
 					{:else if items.length === 0}
 						<div class="empty-state h-full" role="status">
@@ -237,7 +246,7 @@
 										{isWorn}
 										isDisabled={emoteSlot === null &&
 											!isWorn &&
-											maxWornCountOf(item) === 0}
+											!canPutOn(item)}
 										actionLabel={actionLabelOf(item)}
 										onOpen={pick} />
 								</li>

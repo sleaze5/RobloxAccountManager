@@ -176,7 +176,7 @@
 			class="button-ghost"
 			type="button"
 			aria-label={inventory.loading
-				? "Refreshing inventory"
+				? "Refreshing inventory…"
 				: "Refresh inventory"}
 			data-tooltip="Refresh inventory"
 			data-tooltip-side="bottom-end"
@@ -315,7 +315,7 @@
 					{#if !page && inventory.error}
 						<div class="empty-state h-full" role="alert">
 							<Icon svg={category.icon} size={28} aria-hidden="true" />
-							<h2>Inventory is unavailable</h2>
+							<h2>Inventory unavailable</h2>
 							<p>{inventory.error}</p>
 							<button
 								class="button"
@@ -325,7 +325,7 @@
 						</div>
 					{:else if !page}
 						<div class="p-3" role="status" aria-busy="true">
-							<span class="sr-only">Loading {category.noun}</span>
+							<span class="sr-only">Loading {category.noun}…</span>
 							<ul
 								class="grid animate-enter grid-cols-4 gap-2 @lg:grid-cols-5 @2xl:grid-cols-6 @3xl:grid-cols-7 @4xl:grid-cols-8 @6xl:grid-cols-10"
 								aria-hidden="true">
@@ -338,7 +338,7 @@
 						<div class="empty-state h-full" role="status">
 							<Icon svg={category.icon} size={28} aria-hidden="true" />
 							<h2>No {category.noun}</h2>
-							<p>@{username} doesn't own any {category.noun} yet.</p>
+							<p>@{username} does not own any {category.noun} yet.</p>
 						</div>
 					{:else if shownItems.length === 0}
 						<div class="empty-state h-full" role="status">
@@ -363,7 +363,7 @@
 										{category}
 										isWorn={wornAssetIds.has(item.itemId)}
 										actionLabel={isPlaceCategory
-											? "Find place in Games"
+											? "Show in Games"
 											: "Show details"}
 										onOpen={openItem} />
 								</li>

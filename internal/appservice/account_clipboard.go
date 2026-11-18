@@ -47,8 +47,8 @@ func (service *Service) CopyAccountFields(ctx context.Context, accountIDs []int6
 		}
 	}
 	if !copyText(strings.Join(fieldValues, "\n")) {
-		service.logger.Warn("account field clipboard write failed", "operation", "account-copy", "account_count", len(accountIDs), "field", field)
-		return clipboardError("The account details could not be copied. Try again.")
+		service.logger.Warn("could not copy the account field", "operation", "account-copy", "account_count", len(accountIDs), "field", field)
+		return clipboardError("Could not copy the account details. Try again.")
 	}
 	return nil
 }
@@ -77,7 +77,7 @@ func (service *Service) accountFieldValue(ctx context.Context, accountID int64, 
 
 func (service *Service) checkClipboardAccount(ctx context.Context, accountID int64) error {
 	if ctx.Err() != nil || !service.vault.Unlocked() {
-		return clipboardError("The copy was cancelled or the vault is locked.")
+		return clipboardError("The copy was canceled, or the vault is locked.")
 	}
 	_, err := service.accountRepository.GetView(ctx, accountID)
 	return mapRepositoryError(err)

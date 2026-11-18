@@ -59,7 +59,7 @@
 		</div>
 		<button
 			type="button"
-			aria-label="Close add private server link"
+			aria-label="Close dialog"
 			disabled={saved.saving}
 			onclick={close}>
 			<Icon svg={xIcon} size={14} aria-hidden="true" />
@@ -86,7 +86,7 @@
 				bind:value={link} />
 			<small id={`${id}-link-help`} class="text-xs text-fg-muted"
 				>{accountId
-					? `Share links and access codes are read from Roblox as @${username}. An access code becomes a link code only if @${username} owns the server.`
+					? `The app reads share links and access codes from Roblox as @${username}. An access code becomes a link code only if @${username} owns the server.`
 					: "Share links need an account. Access codes are saved as they are."}</small>
 		</div>
 		<div class="dialog-field">

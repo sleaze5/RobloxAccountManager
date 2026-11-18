@@ -89,16 +89,16 @@ type RuntimeManager struct {
 func NewRuntimeManager(paths appdata.Paths, logger *slog.Logger) (*RuntimeManager, error) {
 	manifestJSON, err := manifestFS.ReadFile("runtime_manifest.json")
 	if err != nil {
-		return nil, fmt.Errorf("read embedded CfT manifest: %w", err)
+		return nil, fmt.Errorf("read embedded Chrome for Testing manifest: %w", err)
 	}
 	var manifest Manifest
 	if err := json.Unmarshal(manifestJSON, &manifest); err != nil {
-		return nil, errors.New("invalid embedded CfT manifest")
+		return nil, errors.New("invalid embedded Chrome for Testing manifest")
 	}
 	logging.Diagnostic(logger, "browser manifest loaded", "operation", "browser-runtime-load",
 		"schema_version", manifest.SchemaVersion, "supported_schema_version", runtimeManifestVersion, "browser_version", manifest.Version)
 	if manifest.SchemaVersion != runtimeManifestVersion || manifest.Version == "" {
-		return nil, fmt.Errorf("unsupported or incomplete embedded CfT manifest: schema version %d", manifest.SchemaVersion)
+		return nil, fmt.Errorf("unsupported or incomplete embedded Chrome for Testing manifest: schema version %d", manifest.SchemaVersion)
 	}
 	if err := validateManifestDownload(manifest); err != nil {
 		return nil, err
@@ -118,7 +118,7 @@ func NewRuntimeManager(paths appdata.Paths, logger *slog.Logger) (*RuntimeManage
 		"installed_version", manager.state.InstalledVersion, "supported_metadata_version", runtimeMetadataVersion)
 	if manager.state.Status == RuntimeDamaged {
 		manager.logger.Warn(
-			"invalid CfT runtime detected",
+			"invalid Chrome for Testing install found",
 			"required_version", manager.state.RequiredVersion,
 			"installed_version", manager.state.InstalledVersion,
 		)
@@ -132,7 +132,7 @@ func (manager *RuntimeManager) markDamaged() {
 	manager.state.Status = RuntimeDamaged
 	manager.state.Error = invalidRuntimeError
 	manager.mutex.Unlock()
-	manager.logger.Warn("CfT runtime marked damaged", "version", manager.manifest.Version)
+	manager.logger.Warn("Chrome for Testing marked damaged", "version", manager.manifest.Version)
 	manager.notify()
 }
 func (manager *RuntimeManager) setChanged(changed func()) {
@@ -180,7 +180,7 @@ func (manager *RuntimeManager) Download(parent context.Context, replace bool) er
 	manager.state.DownloadTotalBytes = 0
 	manager.state.CanCancel = true
 	manager.mutex.Unlock()
-	manager.logger.Info("CfT runtime download started", "version", manager.manifest.Version, "replacement", replace)
+	manager.logger.Info("Chrome for Testing download started", "version", manager.manifest.Version, "replacement", replace)
 	manager.notify()
 	go manager.download(ctx)
 	return nil
@@ -191,7 +191,7 @@ func (manager *RuntimeManager) CancelDownload() {
 	cancel := manager.cancel
 	manager.mutex.Unlock()
 	if cancel != nil {
-		manager.logger.Info("CfT runtime download cancellation requested", "version", manager.manifest.Version)
+		manager.logger.Info("Chrome for Testing download cancel requested", "version", manager.manifest.Version)
 		cancel()
 	}
 }
@@ -216,10 +216,10 @@ func (manager *RuntimeManager) install(ctx context.Context) error {
 		return err
 	}
 	if err := os.MkdirAll(manager.paths.CfTRuntimeRoot, 0o755); err != nil {
-		return fmt.Errorf("create CfT runtime root: %w", err)
+		return fmt.Errorf("create Chrome for Testing runtime folder: %w", err)
 	}
 	if err := os.MkdirAll(manager.paths.CfTInstallRoot, 0o755); err != nil {
-		return fmt.Errorf("create CfT staging root: %w", err)
+		return fmt.Errorf("create Chrome for Testing staging folder: %w", err)
 	}
 	stage := filepath.Join(manager.paths.CfTInstallRoot, stageID)
 	if err := os.Mkdir(stage, 0o755); err != nil {
@@ -275,7 +275,7 @@ func (manager *RuntimeManager) Remove() error {
 		}
 	}
 	manager.refreshLocked()
-	manager.logger.Info("CfT runtime removed", "version", manager.manifest.Version)
+	manager.logger.Info("Chrome for Testing removed", "version", manager.manifest.Version)
 	manager.notifyAsync()
 	return nil
 }
@@ -355,14 +355,14 @@ func (manager *RuntimeManager) finishDownload(downloadError error) {
 		manager.refreshLocked()
 		if errors.Is(downloadError, context.Canceled) {
 			manager.state.Error = ""
-			manager.logger.Info("CfT runtime download cancelled", "version", manager.manifest.Version)
+			manager.logger.Info("Chrome for Testing download canceled", "version", manager.manifest.Version)
 		} else {
-			manager.state.Error = "The browser could not be installed. Try again."
-			manager.logger.Error("CfT installation failed", "error", downloadError)
+			manager.state.Error = "Could not install the browser. Try again."
+			manager.logger.Error("could not install Chrome for Testing", "error", downloadError)
 		}
 	} else {
 		manager.refreshLocked()
-		manager.logger.Info("CfT runtime installed", "version", manager.manifest.Version)
+		manager.logger.Info("Chrome for Testing installed", "version", manager.manifest.Version)
 	}
 	manager.mutex.Unlock()
 	if done != nil {
@@ -394,7 +394,7 @@ func (manager *RuntimeManager) refreshLocked() {
 	decodeError := json.Unmarshal(metadataData, &metadata)
 	if manager.state.InstalledVersion != metadata.Version || manager.state.Status == "" {
 		if decodeError != nil {
-			manager.logger.Warn("browser runtime metadata could not be decoded", "operation", "browser-runtime-load", "error", decodeError)
+			manager.logger.Warn("could not read the browser runtime metadata", "operation", "browser-runtime-load", "error", decodeError)
 		} else {
 			logging.Diagnostic(manager.logger, "browser runtime metadata read", "operation", "browser-runtime-load",
 				"schema_version", metadata.SchemaVersion, "supported_schema_version", runtimeMetadataVersion, "browser_version", metadata.Version)
@@ -701,11 +701,11 @@ func validRandomID(encodedID string, byteCount int) bool {
 func validateManifestDownload(manifest Manifest) error {
 	parsed, err := url.Parse(manifest.Downloads[runtimeDownloadKey])
 	if err != nil || parsed.Scheme != "https" || parsed.Hostname() != "storage.googleapis.com" {
-		return fmt.Errorf("embedded CfT manifest has an invalid %s URL", runtimeDownloadKey)
+		return fmt.Errorf("embedded Chrome for Testing manifest has an invalid %s URL", runtimeDownloadKey)
 	}
 	expected := "/chrome-for-testing-public/" + manifest.Version + "/" + runtimeDownloadKey + "/"
 	if !strings.HasPrefix(parsed.Path, expected) {
-		return fmt.Errorf("embedded CfT manifest has a mismatched %s URL", runtimeDownloadKey)
+		return fmt.Errorf("embedded Chrome for Testing manifest has a mismatched %s URL", runtimeDownloadKey)
 	}
 	return nil
 }
@@ -716,18 +716,18 @@ func (manager *RuntimeManager) cleanupStaging() {
 		return
 	}
 	if err != nil {
-		manager.logger.Warn("CfT staging cleanup failed", "error", err)
+		manager.logger.Warn("could not clean up Chrome for Testing staging files", "error", err)
 		return
 	}
 	for _, entry := range entries {
 		if entry.IsDir() && validRandomID(entry.Name(), 18) {
 			if err := removeManagedDirectory(manager.paths.CfTInstallRoot, filepath.Join(manager.paths.CfTInstallRoot, entry.Name())); err != nil {
-				manager.logger.Warn("stale CfT staging cleanup failed", "error", err)
+				manager.logger.Warn("could not clean up old Chrome for Testing staging files", "error", err)
 			}
 		}
 	}
 	if err := removeEmptyDirectory(manager.paths.CfTInstallRoot); err != nil {
-		manager.logger.Warn("CfT staging root cleanup failed", "error", err)
+		manager.logger.Warn("could not clean up the Chrome for Testing staging folder", "error", err)
 	}
 }
 

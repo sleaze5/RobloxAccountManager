@@ -78,6 +78,22 @@ func (service *Service) GetInventoryItemModel(ctx context.Context, accountID int
 	})
 }
 
+// GetInventoryItemLook reads how the 3D viewer shows the item.
+func (service *Service) GetInventoryItemLook(ctx context.Context, accountID int64, category robloxservices.InventoryCategory, itemID int64) (robloxservices.InventoryItemLook, error) {
+	ctx, version, done, err := service.beginAccountSession(ctx, accountID, "inventory-item-look")
+	if err != nil {
+		return robloxservices.InventoryItemLook{}, err
+	}
+	defer done()
+	look, err := service.users.InventoryItemLook(ctx, accountID, version, category, itemID)
+	if err != nil {
+		// The viewer shows the model that Roblox renders instead.
+		service.logs.Module("application.inventory").WarnContext(ctx, "inventory item look unavailable", "operation", "inventory-item-look", "account_id", accountID, "category", category, "error", err)
+		return robloxservices.InventoryItemLook{}, err
+	}
+	return look, nil
+}
+
 // GetInventoryItemDetails reads the large image, dates, and collectible IDs
 // of one item. A missing large image leaves the details without it.
 func (service *Service) GetInventoryItemDetails(ctx context.Context, accountID int64, category robloxservices.InventoryCategory, itemID int64) (robloxservices.InventoryItemDetails, error) {
@@ -92,12 +108,29 @@ func (service *Service) GetInventoryItemDetails(ctx context.Context, accountID i
 		logger.WarnContext(ctx, "item details unavailable", "error", err)
 		return robloxservices.InventoryItemDetails{}, err
 	}
-	if target, ok := robloxservices.LargeImageTarget(category, itemID); ok {
-		images, err := service.thumbnails.Images(ctx, []robloxservices.ThumbnailTarget{target}, robloxservices.LargeThumbnailSize)
-		if err != nil {
-			logger.WarnContext(ctx, "item large image unavailable", "error", err)
+	if details.Availability == robloxservices.ItemDeleted {
+		return details, nil
+	}
+	target, isLargeImage := robloxservices.LargeImageTarget(category, itemID)
+	size := robloxservices.LargeThumbnailSize
+	if !isLargeImage {
+		var hasIcon bool
+		if target, hasIcon = robloxservices.IconTarget(category, itemID); !hasIcon {
+			return details, nil
 		}
-		details.LargeImageURL = images[target]
+		size = robloxservices.SmallThumbnailSize
+	}
+	thumbnails, err := service.thumbnails.Thumbnails(ctx, []robloxservices.ThumbnailTarget{target}, size)
+	if err != nil {
+		logger.WarnContext(ctx, "item image unavailable", "error", err)
+	}
+	// Roblox blocks the image of an item that it moderated, even while its
+	// details API still lists the item.
+	if thumbnails[target].IsBlocked {
+		details.MarkUnavailable(robloxservices.ItemModerated)
+	}
+	if isLargeImage {
+		details.LargeImageURL = thumbnails[target].ImageURL
 	}
 	return details, nil
 }

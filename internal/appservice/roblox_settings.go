@@ -20,7 +20,7 @@ func (service *Service) SetMultiInstanceEnabled(enabled bool) (robloxmulti.Snaps
 	}
 	if err := service.settings.SetMultiInstance(enabled); err != nil {
 		service.logger.Warn("could not save Roblox settings", "operation", "multi-instance", "error", err)
-		return service.multiInstance.Snapshot(), &roblox.Error{Kind: roblox.KindProtocol, Endpoint: "multi-instance", Message: "The multi-instance setting could not be saved. Try again."}
+		return service.multiInstance.Snapshot(), &roblox.Error{Kind: roblox.KindProtocol, Endpoint: "multi-instance", Message: "Could not save the multi-instance setting. Try again."}
 	}
 	service.multiInstance.SetEnabled(enabled)
 	return service.multiInstance.Snapshot(), nil
@@ -44,7 +44,7 @@ type RobloxPlayerPathCheck struct {
 func (service *Service) CheckRobloxPlayerPath(path string) RobloxPlayerPathCheck {
 	parsed, found, err := gamelaunch.CheckPlayerPath(path)
 	if err != nil {
-		return RobloxPlayerPathCheck{Problem: userLaunchMessage(err, "The custom path could not be read.")}
+		return RobloxPlayerPathCheck{Problem: userLaunchMessage(err, "Could not read the custom path.")}
 	}
 	return RobloxPlayerPathCheck{Path: parsed, Found: found}
 }
@@ -53,12 +53,12 @@ func (service *Service) SetRobloxPlayerPath(path string) error {
 	path = strings.TrimSpace(path)
 	if path != "" {
 		if _, _, err := gamelaunch.CheckPlayerPath(path); err != nil {
-			return &roblox.Error{Kind: roblox.KindProtocol, Endpoint: "roblox-player-path", Message: userLaunchMessage(err, "The custom path could not be read."), Cause: err}
+			return &roblox.Error{Kind: roblox.KindProtocol, Endpoint: "roblox-player-path", Message: userLaunchMessage(err, "Could not read the custom path."), Cause: err}
 		}
 	}
 	if err := service.settings.SetPlayerPath(path); err != nil {
 		service.logger.Warn("could not save Roblox Player path", "operation", "roblox-player-path", "error", err)
-		return &roblox.Error{Kind: roblox.KindProtocol, Endpoint: "roblox-player-path", Message: "The custom Roblox Player path could not be saved. Try again."}
+		return &roblox.Error{Kind: roblox.KindProtocol, Endpoint: "roblox-player-path", Message: "Could not save the custom Roblox Player path. Try again."}
 	}
 	return nil
 }
@@ -70,11 +70,11 @@ func (service *Service) GetRobloxClients() gamelaunch.ClientState {
 func (service *Service) SetLinuxClient(client string) (gamelaunch.ClientState, error) {
 	state := service.GetRobloxClients()
 	if !state.ChoiceSupported {
-		return state, &roblox.Error{Kind: roblox.KindProtocol, Endpoint: "linux-client", Message: "Choosing a Linux Roblox client is only available on Linux."}
+		return state, &roblox.Error{Kind: roblox.KindProtocol, Endpoint: "linux-client", Message: "Selecting a Linux Roblox client is only available on Linux."}
 	}
 	if err := service.settings.SetLinuxClient(client); err != nil {
 		service.logger.Warn("could not save Roblox client", "operation", "linux-client", "error", err)
-		return service.GetRobloxClients(), &roblox.Error{Kind: roblox.KindProtocol, Endpoint: "linux-client", Message: "The Linux client could not be saved. Try again."}
+		return service.GetRobloxClients(), &roblox.Error{Kind: roblox.KindProtocol, Endpoint: "linux-client", Message: "Could not save the Linux client. Try again."}
 	}
 	service.logger.Info("Roblox client saved", "operation", "linux-client", "client", client)
 	return service.GetRobloxClients(), nil

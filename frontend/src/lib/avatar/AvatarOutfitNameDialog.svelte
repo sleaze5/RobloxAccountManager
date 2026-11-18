@@ -78,12 +78,12 @@
 				<p>
 					{renamedOutfit
 						? "The outfit keeps its items and body."
-						: "Saves the avatar as it is now, so you can put it on again later."}
+						: "Save the current avatar as an outfit to put it on later."}
 				</p>
 			</div>
 			<button
 				type="button"
-				aria-label="Close"
+				aria-label="Close dialog"
 				disabled={isWorking}
 				onclick={close}>
 				<Icon svg={xIcon} size={14} aria-hidden="true" />

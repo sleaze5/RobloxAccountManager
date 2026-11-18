@@ -6,8 +6,8 @@
 
 	// ExpandedImageDialog shows what an image frame shows, such as an image or
 	// a 3D model, as large as the window allows, with the controls of the
-	// frame below it. label names what it shows, such as "@builderman's
-	// avatar".
+	// frame below it, if it has any. label names what it shows, such as
+	// "@builderman's avatar".
 	let {
 		label,
 		frame,
@@ -16,7 +16,7 @@
 	}: {
 		label: string
 		frame: Snippet
-		controls: Snippet
+		controls?: Snippet
 		onClose: () => void
 	} = $props()
 
@@ -91,7 +91,7 @@ Escape handles that Escape itself. -->
 		<div>
 			<h2 id={titleId} class="wrap-anywhere">{label}</h2>
 		</div>
-		<button type="button" aria-label="Close expanded view" onclick={onClose}>
+		<button type="button" aria-label="Close dialog" onclick={onClose}>
 			<Icon svg={xIcon} size={14} aria-hidden="true" />
 		</button>
 	</div>
@@ -101,7 +101,9 @@ Escape handles that Escape itself. -->
 		style:--expanded-frame-size={`${frameSize}px`}>
 		{@render frame()}
 	</div>
-	<div class="mt-3 flex w-0 min-w-full items-center gap-2">
-		{@render controls()}
-	</div>
+	{#if controls}
+		<div class="mt-3 flex w-0 min-w-full items-center gap-2">
+			{@render controls()}
+		</div>
+	{/if}
 </Dialog>

@@ -62,13 +62,13 @@
 		{:else if servers.error}
 			<div class="empty-state" role="alert">
 				<Icon svg={warningIcon} size={28} aria-hidden="true" />
-				<h2>Private servers are unavailable</h2>
+				<h2>Private servers unavailable</h2>
 				<p>{servers.error}</p>
 				<button class="button" type="button" onclick={() => void servers.load()}
 					>Try again</button>
 			</div>
 		{:else if !servers.page}
-			<ServerListSkeleton label="Loading private servers" />
+			<ServerListSkeleton label="Loading private servers…" />
 		{:else if !shown.length}
 			<div class="empty-state" role="status">
 				<Icon svg={lockKeyIcon} size={28} aria-hidden="true" />
@@ -90,11 +90,11 @@
 				class="flex gap-1 px-3 pt-2 font-mono text-2xs text-fg-faint"
 				role="status">
 				<span>Page {servers.pageNumber}</span>
-				<span aria-hidden="true">-</span>
+				<span aria-hidden="true">·</span>
 				<span
 					>{numbers.format(shown.length)}
 					{shown.length === 1 ? "server" : "servers"}</span>
-				<span aria-hidden="true">-</span>
+				<span aria-hidden="true">·</span>
 				<span>Owned by or shared with @{account.username}</span>
 			</p>
 			<div
@@ -134,7 +134,7 @@
 									{/if}
 								</span>
 							{:else}
-								<span class="text-fg-faint" aria-label="Owner unknown"
+								<span class="text-fg-faint" aria-label="Unknown owner"
 									>-</span>
 							{/if}
 							<span
@@ -183,7 +183,7 @@
 							>{/if}
 					</h3>
 					<p class="text-2xs text-fg-faint">
-						Place IDs and link codes stored in the vault for this game.
+						Private server links saved in the vault for this game.
 					</p>
 				</div>
 				<button class="button" type="button" onclick={onAddLink}>

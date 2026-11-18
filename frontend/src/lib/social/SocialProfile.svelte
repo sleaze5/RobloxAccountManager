@@ -28,6 +28,7 @@
 	import Skeleton from "../shared/Skeleton.svelte"
 	import Timestamp from "../shared/Timestamp.svelte"
 	import { relativeTime } from "../shared/timestamp"
+	import ImageMenuTarget from "../layout/ImageMenuTarget.svelte"
 	import FriendConnections from "./FriendConnections.svelte"
 	import SocialBadges from "./SocialBadges.svelte"
 	import SocialAvatar from "./SocialAvatar.svelte"
@@ -66,7 +67,7 @@
 
 	const origins: Record<string, string> = {
 			FriendRecommendations: "Friend recommendations",
-			InGame: "An experience",
+			InGame: "A game",
 			PhoneContactImporter: "Phone contacts",
 			PlayerSearch: "Player search",
 			QrCode: "QR code",
@@ -130,14 +131,18 @@
 								SocialProfileSection.SocialSectionInventory,
 						  )
 						? "Checking inventory access…"
-						: "Inventory is unavailable",
+						: "Inventory unavailable",
 		)
 </script>
 
 <section class="flex flex-col gap-4 p-3 pb-4" aria-labelledby="social-name">
 	<div class="flex items-start gap-3 @max-xl:flex-col">
 		<div class="flex min-w-0 flex-1 items-center gap-4">
-			<SocialAvatar imageUrl={person.imageUrl} className="size-20" />
+			<ImageMenuTarget
+				imageUrl={person.imageUrl}
+				label={`@${person.username || person.userId}'s profile image`}>
+				<SocialAvatar imageUrl={person.imageUrl} className="size-20" />
+			</ImageMenuTarget>
 			<div class="flex min-w-0 flex-col gap-1">
 				<div class="min-w-0 leading-6">
 					<h2
@@ -183,7 +188,7 @@
 				<div
 					class="flex min-w-0 flex-wrap items-center gap-1 font-mono text-2xs wrap-anywhere text-fg-muted">
 					{#if person.username}<span>@{person.username}</span>
-						<span class="text-fg-faint" aria-hidden="true">-</span>{/if}
+						<span class="text-fg-faint" aria-hidden="true">·</span>{/if}
 					<span>ID: {person.userId}</span>
 				</div>
 				{#if person.presence}
@@ -223,7 +228,7 @@
 				type="button"
 				data-tooltip="Refresh profile"
 				aria-label={store.loadingProfile
-					? "Refreshing profile"
+					? "Refreshing profile…"
 					: "Refresh profile"}
 				aria-busy={store.loadingProfile}
 				disabled={store.loadingProfile}
@@ -252,12 +257,12 @@
 			<button
 				class="button-icon"
 				type="button"
-				aria-label={`More actions for ${personName(person)}`}
+				aria-label="More actions"
 				aria-haspopup="menu"
 				aria-expanded={store.menu?.person.userId === person.userId}
 				data-open={store.menu?.person.userId === person.userId || undefined}
 				data-social-menu
-				data-tooltip="Show more actions"
+				data-tooltip="More actions"
 				data-tooltip-side="bottom-end"
 				onclick={(event) => {
 					if (store.menu) store.closeMenu()
@@ -320,7 +325,7 @@
 		<section class="flex flex-col gap-2" aria-busy="true">
 			<h3 class="text-xs font-semibold text-fg-muted">About</h3>
 			<p class="text-block" data-variant="prose">
-				<Skeleton className="w-72" label="Loading the description" />
+				<Skeleton className="w-72" label="Loading description…" />
 			</p>
 		</section>
 	{/if}
@@ -582,7 +587,7 @@
 		<p class="text-xs text-danger-muted" role="alert">{store.profileError}</p>
 	{:else if (store.profileLoad?.failedSections.length ?? 0) > 0 || (profileRelationship?.unavailable?.length ?? 0) > 0}
 		<p class="text-xs text-danger-muted" role="alert">
-			Some profile details could not be loaded. Refresh to retry.
+			Could not load some profile details. Refresh to try again.
 		</p>
 	{/if}
 </section>

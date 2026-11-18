@@ -26,7 +26,7 @@ func (service *Service) SetUseAdministratorRights(enabled bool) (appservice.Robl
 
 func (service *Service) CleanRoblox(ctx context.Context, scope robloxcleaner.Scope) (appservice.RobloxCleanReport, error) {
 	if !robloxcleaner.ValidScope(scope) {
-		return appservice.RobloxCleanReport{}, &roblox.Error{Kind: roblox.KindProtocol, Endpoint: "roblox-clean", Message: "Choose what to clean and try again."}
+		return appservice.RobloxCleanReport{}, &roblox.Error{Kind: roblox.KindProtocol, Endpoint: "roblox-clean", Message: "Select what to clean and try again."}
 	}
 	return service.core.CleanRoblox(ctx, scope)
 }

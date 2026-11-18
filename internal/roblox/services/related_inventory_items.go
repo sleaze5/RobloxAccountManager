@@ -78,7 +78,7 @@ func (service *Users) bundleAssetIDs(ctx context.Context, accountID, version, bu
 // assets that it names. An asset that the account may not download has no
 // dependencies that it can see.
 func (service *Users) assetDependencyIDs(ctx context.Context, accountID, version, assetID int64) ([]int64, error) {
-	modelFile, _, err := service.downloadAssetFile(ctx, accountID, version, relatedItemsEndpoint, assetID, maxDependencyFileBytes)
+	modelFile, _, err := service.downloadAssetFile(ctx, accountID, version, relatedItemsEndpoint, assetID, AssetRepresentation{}, maxDependencyFileBytes)
 	if _, isRefused := assetFileRefusal(err); isRefused {
 		return nil, nil
 	}
@@ -87,7 +87,7 @@ func (service *Users) assetDependencyIDs(ctx context.Context, accountID, version
 	}
 	assetIDs, err := assetIDsReferencedByModelFile(modelFile)
 	if err != nil {
-		return nil, &roblox.Error{Kind: roblox.KindProtocol, Endpoint: relatedItemsEndpoint, Message: "Roblox returned a file that couldn't be read.", Cause: err}
+		return nil, &roblox.Error{Kind: roblox.KindProtocol, Endpoint: relatedItemsEndpoint, Message: "Roblox returned a file that the app cannot read.", Cause: err}
 	}
 	return slices.DeleteFunc(assetIDs, func(referencedAssetID int64) bool { return referencedAssetID == assetID }), nil
 }

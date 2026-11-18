@@ -181,7 +181,7 @@ func (service *Service) CreateChatConversation(ctx context.Context, accountID in
 		return ChatConversationView{}, err
 	}
 	if slices.Contains(userIDs, selfID) {
-		return ChatConversationView{}, chatInputError("Choose other users. This account is already in the chat.")
+		return ChatConversationView{}, chatInputError("Select other users. This account is already in the chat.")
 	}
 	var conversation robloxservices.ChatConversation
 	if len(userIDs) == 1 && name == "" {
@@ -226,7 +226,7 @@ func (service *Service) AddChatMembers(ctx context.Context, accountID int64, con
 	}
 	userIDs = slices.DeleteFunc(userIDs, func(userID int64) bool { return slices.Contains(current.ParticipantUserIDs, userID) })
 	if len(userIDs) == 0 {
-		return ChatConversationView{}, chatInputError("Everyone you chose is already in this chat.")
+		return ChatConversationView{}, chatInputError("Everyone you selected is already in this chat.")
 	}
 	if len(current.ParticipantUserIDs)+len(userIDs) > maxChatGroupMembers {
 		return ChatConversationView{}, chatInputError(fmt.Sprintf("A group chat can have up to %d members.", maxChatGroupMembers))
@@ -279,7 +279,7 @@ func (service *Service) RenameChatConversation(ctx context.Context, accountID in
 func chatMembersInput(userIDs []int64, name string, maxUsers int) ([]int64, string, error) {
 	userIDs = slices.Compact(slices.Sorted(slices.Values(userIDs)))
 	if len(userIDs) == 0 || len(userIDs) > maxUsers || slices.ContainsFunc(userIDs, func(userID int64) bool { return userID <= 0 }) {
-		return nil, "", chatInputError(fmt.Sprintf("Choose 1 to %d people.", maxUsers))
+		return nil, "", chatInputError(fmt.Sprintf("Select 1 to %d users.", maxUsers))
 	}
 	name = strings.TrimSpace(name)
 	if !utf8.ValidString(name) || utf8.RuneCountInString(name) > maxChatGroupNameLength {
@@ -295,7 +295,7 @@ func chatConversationStatusError(status, failed string) error {
 	case "", "success":
 		return nil
 	case "moderated":
-		return chatInputError("Roblox blocked this chat name. Choose another name.")
+		return chatInputError("Roblox blocked this chat name. Select another name.")
 	default:
 		return chatInputError(failed)
 	}
@@ -354,7 +354,7 @@ func (service *Service) markChatRead(ctx context.Context, logger *slog.Logger, a
 	}
 	for _, conversationStatus := range results {
 		if conversationStatus.Status != "" && !strings.EqualFold(conversationStatus.Status, "success") {
-			logger.WarnContext(ctx, "chat mark-read returned an unexpected status", "status", conversationStatus.Status)
+			logger.WarnContext(ctx, "marking the chat as read returned an unexpected status", "status", conversationStatus.Status)
 		}
 	}
 	return nil

@@ -1,8 +1,10 @@
 <script lang="ts">
+	import warningIcon from "@phosphor-icons/core/regular/warning.svg?raw"
 	import { onMount, tick, untrack } from "svelte"
 	import AccountPlaceholder from "./lib/accounts/AccountPlaceholder.svelte"
 	import AccountProfile from "./lib/accounts/AccountProfile.svelte"
 	import AccountImageMenu from "./lib/accounts/AccountImageMenu.svelte"
+	import ExpandedImageDialog from "./lib/shared/ExpandedImageDialog.svelte"
 	import AccountContextMenu from "./lib/accounts/AccountContextMenu.svelte"
 	import AccountSidebar from "./lib/accounts/AccountSidebar.svelte"
 	import { AccountStore } from "./lib/accounts/account-store.svelte"
@@ -43,24 +45,24 @@
 		SocialUser,
 	} from "./lib/backend/bridge"
 	import { browserStore } from "./lib/browser/browser-store.svelte"
-	import SocialPage from "./lib/social/SocialPage.svelte"
 	import { SocialStore } from "./lib/social/social-store.svelte"
 	import type { SocialListKind } from "./lib/social/social-store.svelte"
-	import LogsExplorerPage from "./lib/logs-explorer/LogsExplorerPage.svelte"
-	import GamesPage from "./lib/games/GamesPage.svelte"
 	import { GamesStore, setGamesStore } from "./lib/games/games-store.svelte"
 	import { LogsExplorerStore } from "./lib/logs-explorer/logs-explorer-store.svelte"
 	import LaunchDrawer from "./lib/layout/LaunchDrawer.svelte"
 	import PageNavigation from "./lib/layout/PageNavigation.svelte"
 	import StatusBar from "./lib/layout/StatusBar.svelte"
 	import WindowTitleBar from "./lib/layout/WindowTitleBar.svelte"
-	import { WorkspaceState } from "./lib/layout/workspace-state.svelte"
+	import { setWorkspace, WorkspaceState } from "./lib/layout/workspace-state.svelte"
 	import { unsavedChangesGuard } from "./lib/layout/unsaved-changes-guard"
 	import Notifications from "./lib/notifications/Notifications.svelte"
-	import { NotificationCenter } from "./lib/notifications/notification-center.svelte"
-	import SettingsPage from "./lib/settings/SettingsPage.svelte"
+	import {
+		NotificationCenter,
+		setNotificationCenter,
+	} from "./lib/notifications/notification-center.svelte"
 	import { appSettings } from "./lib/settings/settings-store.svelte"
 	import { errorMessage } from "./lib/shared/errors"
+	import Icon from "./lib/shared/Icon.svelte"
 	import OperationError from "./lib/shared/OperationError.svelte"
 	import Tooltip from "./lib/shared/Tooltip.svelte"
 	import { updateStore } from "./lib/updates/update-store.svelte"
@@ -81,6 +83,16 @@
 		| "remove-connections"
 		| null
 	type ActivePage = "accounts" | "social" | "games" | "logs-explorer" | "settings"
+
+	// The pages other than Accounts load as separate files, so that the app
+	// starts faster. They begin to load once the app shows, so that opening a
+	// page rarely waits.
+	const pageImports = {
+		social: () => import("./lib/social/SocialPage.svelte"),
+		games: () => import("./lib/games/GamesPage.svelte"),
+		logsExplorer: () => import("./lib/logs-explorer/LogsExplorerPage.svelte"),
+		settings: () => import("./lib/settings/SettingsPage.svelte"),
+	}
 
 	const notificationCenter = new NotificationCenter(),
 		store = new AccountStore(notificationCenter),
@@ -122,6 +134,8 @@
 			browserSessions: 0,
 		})
 	setGamesStore(games)
+	setWorkspace(workspace)
+	setNotificationCenter(notificationCenter)
 	const accountSubpage = $derived(
 		workspace.accountPage !== "profile" &&
 			store.selectedAccount.id !== 0 &&
@@ -137,6 +151,7 @@
 	$effect(() => {
 		if (!store.vault.unlocked) {
 			workspace.closeAccountMenus()
+			workspace.viewedImage = null
 			untrack(() => {
 				games.reset()
 				social.reset()
@@ -149,7 +164,7 @@
 			id,
 			title,
 			tone: "error",
-			message: errorMessage(error, "Restart the application and try again."),
+			message: errorMessage(error, "Restart the app and try again."),
 		})
 	}
 
@@ -189,6 +204,10 @@
 	}
 
 	onMount(() => {
+		// The page itself handles failure when opened.
+		void Promise.allSettled(
+			Object.values(pageImports).map((importPage) => importPage()),
+		)
 		void loadBuild()
 		void loadAppLocation()
 		void appSettings.initialize(notificationCenter)
@@ -313,7 +332,7 @@
 	// Joining the user who sent an invite follows them into their server.
 	function fillFollowUserLaunchOptions(user: RobloxNotificationUser): void {
 		store.launchInput.method = LaunchMethod.MethodUser
-		store.launchInput.user = user.username || `id=${user.userId}`
+		store.launchInput.user = user.username || `id:${user.userId}`
 		store.launchInput.resolveCurrentGame = false
 		showLaunchDrawer("[data-launch-user]")
 	}
@@ -568,7 +587,13 @@
 	} satisfies Record<(typeof pageOrder)[number], string>
 
 	function cyclePage(step: 1 | -1): void {
-		if (activeDialog !== null || activePage === "settings") return
+		if (
+			activeDialog !== null ||
+			workspace.viewedImage !== null ||
+			activePage === "settings"
+		) {
+			return
+		}
 		const index = pageOrder.indexOf(activePage)
 		workspace.closeAccountMenus()
 		showPage(pageOrder[(index + step + pageOrder.length) % pageOrder.length])
@@ -616,6 +641,20 @@
 	}
 </script>
 
+{#snippet pageLoading()}
+	<div class="min-h-0 flex-1" role="status">
+		<span class="sr-only">Loading page…</span>
+	</div>
+{/snippet}
+
+{#snippet pageUnavailable()}
+	<div class="empty-state min-h-0 flex-1" role="alert">
+		<Icon svg={warningIcon} size={28} aria-hidden="true" />
+		<h2>Page unavailable</h2>
+		<p>Could not load the page. Restart the app.</p>
+	</div>
+{/snippet}
+
 <svelte:head>
 	<title>Roblox Account Manager{build ? `: ${build.version}` : ""}</title>
 </svelte:head>
@@ -632,14 +671,20 @@
 		notifications={notificationCenter} />
 
 	{#if activePage === "settings"}
-		<SettingsPage
-			{store}
-			browser={browserStore}
-			notifications={notificationCenter}
-			{workspace}
-			backLabel={`Back to ${pageLabels[settingsReturnPage]}`}
-			onBack={() => (activePage = settingsReturnPage)}
-			onLock={requestLockVault} />
+		{#await pageImports.settings()}
+			{@render pageLoading()}
+		{:then { default: SettingsPage }}
+			<SettingsPage
+				{store}
+				browser={browserStore}
+				notifications={notificationCenter}
+				{workspace}
+				backLabel={`Back to ${pageLabels[settingsReturnPage]}`}
+				onBack={() => (activePage = settingsReturnPage)}
+				onLock={requestLockVault} />
+		{:catch}
+			{@render pageUnavailable()}
+		{/await}
 	{:else}
 		<PageNavigation
 			{store}
@@ -656,35 +701,55 @@
 		{/if}
 
 		{#if activePage === "social"}
-			<SocialPage
-				store={social}
-				accounts={store}
-				notifications={notificationCenter}
-				onFillLaunch={(placeId, jobId) => fillGameLaunchOptions(placeId, jobId)}
-				onSearchPlace={(placeId) => searchGames(`id:${placeId}`)}
-				{onShowGamePass}
-				onSearchUniverse={(universeId) => searchGames(`universe:${universeId}`)}
-				onRelationshipAction={openRelationshipAction}
-				onEditNickname={openNickname}
-				onRemoveSelected={openRemoveConnections}
-				onOpenInBrowser={(accountId, pageUrl) =>
-					void openManagedBrowser(accountId, pageUrl)} />
+			{#await pageImports.social()}
+				{@render pageLoading()}
+			{:then { default: SocialPage }}
+				<SocialPage
+					store={social}
+					accounts={store}
+					notifications={notificationCenter}
+					onFillLaunch={(placeId, jobId) =>
+						fillGameLaunchOptions(placeId, jobId)}
+					onSearchPlace={(placeId) => searchGames(`id:${placeId}`)}
+					{onShowGamePass}
+					onSearchUniverse={(universeId) =>
+						searchGames(`universe:${universeId}`)}
+					onRelationshipAction={openRelationshipAction}
+					onEditNickname={openNickname}
+					onRemoveSelected={openRemoveConnections}
+					onOpenInBrowser={(accountId, pageUrl) =>
+						void openManagedBrowser(accountId, pageUrl)} />
+			{:catch}
+				{@render pageUnavailable()}
+			{/await}
 		{:else if activePage === "games"}
-			<GamesPage
-				store={games}
-				accounts={store}
-				notifications={notificationCenter}
-				{workspace}
-				onFillLaunch={(placeId, jobId) => fillGameLaunchOptions(placeId, jobId)}
-				onFillLaunchLink={(link) => fillGameLaunchLink(link)}
-				onOpenInBrowser={(accountId, pageUrl) =>
-					void openManagedBrowser(accountId, pageUrl)} />
+			{#await pageImports.games()}
+				{@render pageLoading()}
+			{:then { default: GamesPage }}
+				<GamesPage
+					store={games}
+					accounts={store}
+					notifications={notificationCenter}
+					onFillLaunch={(placeId, jobId) =>
+						fillGameLaunchOptions(placeId, jobId)}
+					onFillLaunchLink={(link) => fillGameLaunchLink(link)}
+					onOpenInBrowser={(accountId, pageUrl) =>
+						void openManagedBrowser(accountId, pageUrl)} />
+			{:catch}
+				{@render pageUnavailable()}
+			{/await}
 		{:else if activePage === "logs-explorer"}
-			<LogsExplorerPage
-				store={logsExplorer}
-				accounts={store}
-				onFillLaunch={(visit) => fillLaunchOptions(visit)}
-				onSearchPlace={(placeId) => searchGames(`id:${placeId}`)} />
+			{#await pageImports.logsExplorer()}
+				{@render pageLoading()}
+			{:then { default: LogsExplorerPage }}
+				<LogsExplorerPage
+					store={logsExplorer}
+					accounts={store}
+					onFillLaunch={(visit) => fillLaunchOptions(visit)}
+					onSearchPlace={(placeId) => searchGames(`id:${placeId}`)} />
+			{:catch}
+				{@render pageUnavailable()}
+			{/await}
 		{:else}
 			<div
 				class="flex min-h-0 flex-1"
@@ -776,6 +841,23 @@
 
 {#if workspace.imageContextMenu && store.vault.unlocked}
 	<AccountImageMenu {store} {workspace} menu={workspace.imageContextMenu} />
+{/if}
+
+{#if workspace.viewedImage && store.vault.unlocked}
+	{@const viewedImage = workspace.viewedImage}
+	<ExpandedImageDialog
+		label={viewedImage.label}
+		onClose={() => (workspace.viewedImage = null)}>
+		{#snippet frame()}
+			<img
+				class="size-full animate-pop object-contain"
+				src={viewedImage.imageUrl}
+				alt={viewedImage.label}
+				decoding="async"
+				draggable="false"
+				referrerpolicy="no-referrer" />
+		{/snippet}
+	</ExpandedImageDialog>
 {/if}
 
 {#if developmentWarning === "open" && build}

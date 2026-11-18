@@ -1,8 +1,10 @@
 import { accountBackend, InventoryCategory } from "../backend/bridge"
 import type {
+	Avatar,
 	GamePlace,
 	InventoryItem,
 	InventoryItemDetails,
+	InventoryItemLook,
 	RelatedInventoryItem,
 	RenderedModel,
 } from "../backend/bridge"
@@ -38,6 +40,8 @@ export function ownedCopyKey(item: InventoryItem): string {
 export function categoryItemKey(category: InventoryCategory, itemId: number): string {
 	return `${category}:${itemId}`
 }
+
+export type InventoryDownloadKind = "file" | "model"
 
 // InventoryState lists what one Roblox user owns, as the account sees it. Each
 // category keeps its pages while the inventory stays open, so that switching
@@ -75,13 +79,18 @@ export class InventoryState {
 	// The assets that each opened item includes or uses, by categoryItemKey.
 	// null means that the request failed.
 	relatedItemsByItemKey = $state.raw(new Map<string, RelatedInventoryItem[] | null>())
-	// The 3D model of the opened item, by the categoryItemKey of the item.
+	// How the 3D viewer shows the opened item, by the categoryItemKey of the
+	// item.
+	readonly itemLook: KeyedLoad<InventoryItemLook>
+	// The 3D model that Roblox renders of the opened item, for an item that
+	// the 3D viewer cannot build, by the categoryItemKey of the item.
 	readonly itemModel: KeyedLoad<RenderedModel>
 	// The full-body image of the account wearing the opened item, which Roblox
 	// renders without saving it, by the categoryItemKey of the item.
 	readonly tryOnImage: KeyedLoad<string>
-	// The same as a 3D model.
-	readonly tryOnModel: KeyedLoad<RenderedModel>
+	// The saved avatar of the account wearing the opened item, which the 3D
+	// viewer builds, by the categoryItemKey of the item.
+	readonly tryOnAvatar: KeyedLoad<Avatar>
 	readonly userId: number
 	readonly #scope: AccountScope
 	#request: ReturnType<typeof accountBackend.GetInventoryPage> | null = null
@@ -96,10 +105,15 @@ export class InventoryState {
 	) {
 		this.#scope = new AccountScope(accountId, store)
 		this.#notifications = notifications
+		this.itemLook = new KeyedLoad(this.#scope)
 		this.itemModel = new KeyedLoad(this.#scope)
 		this.tryOnImage = new KeyedLoad(this.#scope)
-		this.tryOnModel = new KeyedLoad(this.#scope)
+		this.tryOnAvatar = new KeyedLoad(this.#scope)
 		this.userId = userId
+	}
+
+	get accountId(): number {
+		return this.#scope.accountId
 	}
 
 	get page(): InventoryCategoryPage | null {
@@ -170,6 +184,22 @@ export class InventoryState {
 		}
 	}
 
+	async loadItemLook(
+		item: InventoryItem,
+		category: InventoryCategory,
+	): Promise<void> {
+		await this.itemLook.load(
+			categoryItemKey(category, item.itemId),
+			() =>
+				accountBackend.GetInventoryItemLook(
+					this.#scope.accountId,
+					category,
+					item.itemId,
+				),
+			"Could not load the 3D model. Try again.",
+		)
+	}
+
 	async loadItemModel(
 		item: InventoryItem,
 		category: InventoryCategory,
@@ -186,14 +216,14 @@ export class InventoryState {
 		)
 	}
 
-	async loadTryOnModel(
+	async loadTryOnAvatar(
 		item: InventoryItem,
 		category: InventoryCategory,
 	): Promise<void> {
-		await this.tryOnModel.load(
+		await this.tryOnAvatar.load(
 			categoryItemKey(category, item.itemId),
 			() =>
-				accountBackend.GetInventoryItemTryOnModel(
+				accountBackend.GetInventoryItemTryOnAvatar(
 					this.#scope.accountId,
 					category,
 					item.itemId,
@@ -252,17 +282,19 @@ export class InventoryState {
 		}
 	}
 
-	// downloadItem downloads the file of the item and asks where to save it.
 	async downloadItem(
 		item: InventoryItem,
 		category: InventoryCategory,
+		downloadKind: InventoryDownloadKind,
 	): Promise<void> {
 		if (this.isDownloadingItem) return
 		this.isDownloadingItem = true
 		this.itemActionError = ""
 		try {
 			const savedPath = await this.#scope.track(
-				accountBackend.DownloadInventoryItem(
+				(downloadKind === "model"
+					? accountBackend.DownloadInventoryItemModel
+					: accountBackend.DownloadInventoryItem)(
 					this.#scope.accountId,
 					category,
 					item.itemId,
@@ -280,7 +312,9 @@ export class InventoryState {
 			if (this.#scope.isCurrent) {
 				this.itemActionError = errorMessage(
 					error,
-					"Could not download the item. Try again.",
+					downloadKind === "model"
+						? "Could not download the 3D model. Try again."
+						: "Could not download the item. Try again.",
 				)
 			}
 		} finally {
@@ -306,7 +340,7 @@ export class InventoryState {
 			if (this.#gamePassPlaceRequest === request && scope.isCurrent) {
 				this.itemActionError = errorMessage(
 					error,
-					"Couldn't find this pass's game. Try again.",
+					"Could not find this pass's game. Try again.",
 				)
 			}
 			return null

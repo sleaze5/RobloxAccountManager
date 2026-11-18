@@ -52,7 +52,7 @@
 		</div>
 		<button
 			type="button"
-			aria-label="Close nickname dialog"
+			aria-label="Close dialog"
 			disabled={saving}
 			onclick={close}>
 			<Icon svg={xIcon} size={14} aria-hidden="true" />

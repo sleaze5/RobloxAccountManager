@@ -68,8 +68,7 @@
 						event,
 						store.selectedAccountIds[0],
 					)}>
-				<Icon svg={dotsThreeIcon} size={16} aria-hidden="true" />Edit tags or
-				copy
+				<Icon svg={dotsThreeIcon} size={16} aria-hidden="true" />More actions
 			</button>
 			<button
 				class="button"

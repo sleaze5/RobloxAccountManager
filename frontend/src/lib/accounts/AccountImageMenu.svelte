@@ -19,10 +19,16 @@
 
 	async function copy(urlOnly: boolean): Promise<void> {
 		copyingImage = !urlOnly
-		if (await store.copyAccountImage(menu.imageUrl, urlOnly)) {
+		if (await store.copyAccountImage(menu.image.imageUrl, urlOnly)) {
 			workspace.closeAccountMenus()
 		}
 		copyingImage = false
+	}
+
+	function viewImage(): void {
+		const { image } = menu
+		workspace.closeAccountMenus()
+		workspace.viewedImage = image
 	}
 </script>
 
@@ -36,6 +42,9 @@
 	use:menuKeyboard
 	in:menuIn
 	out:menuOut>
+	<button class="menu-item" type="button" role="menuitem" onclick={viewImage}>
+		<span>View image</span>
+	</button>
 	<button
 		class="menu-item"
 		type="button"

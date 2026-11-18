@@ -100,7 +100,7 @@ func (client *Client) moderatedCookieValidation(ctx context.Context, validation 
 	}
 	moderation, userID, found := DecodeModeration(response.Body)
 	if response.Status != http.StatusOK || !found || userID <= 0 {
-		return CookieValidation{}, &Error{Kind: KindProtocol, Endpoint: "cookie-import", Status: response.Status, Message: "Roblox moderated this account, but its details could not be read. Try again."}
+		return CookieValidation{}, &Error{Kind: KindProtocol, Endpoint: "cookie-import", Status: response.Status, Message: "Roblox moderated this account, but the app could not read the details. Try again."}
 	}
 	validation.Identity = accounts.Identity{RobloxUserID: userID}
 	validation.Moderation = &moderation

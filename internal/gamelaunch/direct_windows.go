@@ -39,7 +39,7 @@ func playerExecutable(path string) (string, error) {
 		return "", err
 	}
 	if !found {
-		return "", &ClientError{Message: "the Roblox Player binary was not found at the selected path"}
+		return "", &ClientError{Message: "Roblox Player is not at the selected path"}
 	}
 	return parsed, nil
 }
@@ -62,14 +62,14 @@ func parsePlayerPath(path string) (string, error) {
 	}
 	expanded, err := expandEnvironment(path)
 	if err != nil {
-		return "", &ClientError{Message: "the custom path contains characters that are not allowed"}
+		return "", &ClientError{Message: "the custom path has characters that are not allowed"}
 	}
 	path = filepath.Clean(expanded)
 	if !filepath.IsAbs(path) {
-		return "", &ClientError{Message: "enter a full path to the Roblox Player binary or its folder"}
+		return "", &ClientError{Message: "enter the full path to Roblox Player or its folder"}
 	}
 	if strings.ContainsAny(path[len(filepath.VolumeName(path)):], `<>:"|?*`) {
-		return "", &ClientError{Message: "the custom path contains characters that are not allowed"}
+		return "", &ClientError{Message: "the custom path has characters that are not allowed"}
 	}
 	if strings.EqualFold(filepath.Ext(path), ".exe") {
 		return path, nil
@@ -96,7 +96,7 @@ func expandEnvironment(path string) (string, error) {
 func findRobloxPlayer() (string, error) {
 	versions := PlayerVersions()
 	if len(versions) == 0 {
-		return "", &ClientError{Message: "no Roblox Player binary was found. Use Set location in Additional launch options"}
+		return "", &ClientError{Message: "could not find Roblox Player. Use Set location in Additional launch options"}
 	}
 	return versions[0].Path, nil
 }

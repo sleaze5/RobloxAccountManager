@@ -3,6 +3,7 @@ package bindings
 import (
 	"context"
 
+	"github.com/sleaze5/RobloxAccountManager/internal/appservice"
 	"github.com/sleaze5/RobloxAccountManager/internal/roblox"
 	robloxservices "github.com/sleaze5/RobloxAccountManager/internal/roblox/services"
 )
@@ -35,11 +36,18 @@ func (service *Service) TryOnInventoryItem(ctx context.Context, accountID int64,
 	return service.core.TryOnInventoryItem(ctx, accountID, category, itemID)
 }
 
-func (service *Service) GetInventoryItemTryOnModel(ctx context.Context, accountID int64, category robloxservices.InventoryCategory, itemID int64) (robloxservices.RenderedModel, error) {
-	if err := validateAccountAndTargetIDs(accountID, itemID, "avatar-try-on-model"); err != nil {
-		return robloxservices.RenderedModel{}, err
+func (service *Service) GetInventoryItemTryOnAvatar(ctx context.Context, accountID int64, category robloxservices.InventoryCategory, itemID int64) (robloxservices.Avatar, error) {
+	if err := validateAccountAndTargetIDs(accountID, itemID, "avatar-try-on"); err != nil {
+		return robloxservices.Avatar{}, err
 	}
-	return service.core.GetInventoryItemTryOnModel(ctx, accountID, category, itemID)
+	return service.core.GetInventoryItemTryOnAvatar(ctx, accountID, category, itemID)
+}
+
+func (service *Service) GetInventoryItemLook(ctx context.Context, accountID int64, category robloxservices.InventoryCategory, itemID int64) (robloxservices.InventoryItemLook, error) {
+	if err := validateAccountAndTargetIDs(accountID, itemID, "inventory-item-look"); err != nil {
+		return robloxservices.InventoryItemLook{}, err
+	}
+	return service.core.GetInventoryItemLook(ctx, accountID, category, itemID)
 }
 
 func (service *Service) GetInventoryRelatedItems(ctx context.Context, accountID int64, category robloxservices.InventoryCategory, itemID int64) ([]robloxservices.RelatedInventoryItem, error) {
@@ -52,21 +60,51 @@ func (service *Service) GetInventoryRelatedItems(ctx context.Context, accountID 
 // DownloadInventoryItem downloads the file of the item, then asks where to save
 // it. An empty path without an error means the user cancelled the dialog.
 func (service *Service) DownloadInventoryItem(ctx context.Context, accountID int64, category robloxservices.InventoryCategory, itemID int64, itemName string) (string, error) {
-	if err := validateAccountAndTargetIDs(accountID, itemID, "asset-download"); err != nil {
+	const operation = "asset-download"
+	if err := validateAccountAndTargetIDs(accountID, itemID, operation); err != nil {
 		return "", err
 	}
 	file, err := service.core.ReadInventoryItemFile(ctx, accountID, category, itemID)
 	if err != nil {
 		return "", err
 	}
+	return service.saveInventoryDownload(ctx, operation, itemID, itemName, file)
+}
+
+// DownloadInventoryItemModel packs the 3D model of the item with its
+// textures, then asks where to save it. An empty path without an error means
+// the user cancelled the dialog.
+func (service *Service) DownloadInventoryItemModel(ctx context.Context, accountID int64, category robloxservices.InventoryCategory, itemID int64, itemName string) (string, error) {
+	const operation = "model-download"
+	if err := validateAccountAndTargetIDs(accountID, itemID, operation); err != nil {
+		return "", err
+	}
+	file, err := service.core.ReadInventoryItemModelArchive(ctx, accountID, category, itemID)
+	if err != nil {
+		return "", err
+	}
+	return service.saveInventoryDownload(ctx, operation, itemID, itemName, file)
+}
+
+func (service *Service) saveInventoryDownload(ctx context.Context, operation string, itemID int64, itemName string, file appservice.DownloadableFile) (string, error) {
+	if err := ctx.Err(); err != nil {
+		return "", inventoryDownloadCanceled(operation, err)
+	}
 	path, err := chooseSaveFile(service.core.DefaultDownloadDirectory(), service.core.DownloadFileName(itemName, itemID, file.Extension), file.FormatName, "*."+file.Extension)
 	if err != nil {
-		return "", &roblox.Error{Kind: roblox.KindProtocol, Endpoint: "asset-download", Message: "The save dialog could not be opened.", Cause: err}
+		return "", &roblox.Error{Kind: roblox.KindProtocol, Endpoint: operation, Message: "Could not open the save dialog.", Cause: err}
+	}
+	if err := ctx.Err(); err != nil {
+		return "", inventoryDownloadCanceled(operation, err)
 	}
 	if path == "" {
 		return "", nil
 	}
-	return service.core.SaveDownloadedFile(path, file.Extension, file.Contents)
+	return service.core.SaveDownloadedFile(path, operation, file)
+}
+
+func inventoryDownloadCanceled(operation string, cause error) error {
+	return &roblox.Error{Kind: roblox.KindCancelled, Endpoint: operation, Message: "The download was canceled.", Cause: cause}
 }
 
 func (service *Service) IsInventoryItemOwned(ctx context.Context, accountID int64, category robloxservices.InventoryCategory, itemID int64) (bool, error) {

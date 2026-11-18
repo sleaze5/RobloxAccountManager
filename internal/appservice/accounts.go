@@ -50,7 +50,7 @@ func (service *Service) FindAccountByRobloxUserID(ctx context.Context, robloxUse
 func (service *Service) GetRobloxUser(ctx context.Context, robloxUserID int64) (robloxservices.UserView, error) {
 	identity, err := service.users.Profile(ctx, robloxUserID)
 	if err != nil {
-		service.logger.Warn("roblox user lookup failed", "operation", "user-profile", "roblox_user_id", robloxUserID, "error", err)
+		service.logger.Warn("could not look up the Roblox user", "operation", "user-profile", "roblox_user_id", robloxUserID, "error", err)
 		return robloxservices.UserView{}, err
 	}
 	return robloxservices.UserView{UserID: identity.RobloxUserID, Username: identity.Username, DisplayName: identity.DisplayName}, nil
@@ -97,7 +97,7 @@ func (service *Service) CommitBrowserCandidate(ctx context.Context, validation r
 	}
 	if err := service.sessions.Put(record, validation.BrowserID); err != nil {
 		if removeError := service.accountRepository.Remove(context.WithoutCancel(ctx), view.ID); removeError != nil {
-			service.logger.Error("browser account rollback failed", "operation", "browser-account-save", "account_id", view.ID, "error", removeError)
+			service.logger.Error("could not roll back the browser account", "operation", "browser-account-save", "account_id", view.ID, "error", removeError)
 		}
 		return accounts.AccountView{}, browser.SaveFailed, err
 	}
@@ -133,7 +133,7 @@ func (service *Service) replaceValidatedCookie(ctx context.Context, accountID in
 		return accounts.AccountView{}, mapRepositoryError(err)
 	}
 	if current.RobloxUserID != validated.Identity.RobloxUserID {
-		return accounts.AccountView{}, &roblox.Error{Kind: roblox.KindProtocol, Endpoint: "cookie-replacement", Message: "The replacement cookie belongs to a different Roblox account."}
+		return accounts.AccountView{}, &roblox.Error{Kind: roblox.KindProtocol, Endpoint: "cookie-replacement", Message: "This cookie belongs to a different Roblox account."}
 	}
 	if err := service.vault.PurgeBackups(); err != nil {
 		return accounts.AccountView{}, fmt.Errorf("remove backups containing the previous cookie: %w", err)
@@ -144,10 +144,10 @@ func (service *Service) replaceValidatedCookie(ctx context.Context, accountID in
 	}
 	logger := service.logger.With("operation", "cookie-replacement", "account_id", accountID)
 	if err := service.sessions.ApplyRotation(session); err != nil {
-		logger.Warn("cookie saved but runtime session changed before reconciliation", "error", err)
+		logger.Warn("cookie saved, but the session changed before it could be applied", "error", err)
 	}
 	service.events.send("account:updated", view)
-	service.browser.DetachAccount(accountID, "The saved cookie changed elsewhere. This browser is no longer synchronized.")
+	service.browser.DetachAccount(accountID, "The saved cookie changed. This browser no longer syncs with it.")
 	service.events.credentialBackupChanged(service.refreshCredentialBackup(ctx, logger, false))
 	return view, nil
 }
@@ -163,7 +163,7 @@ func (service *Service) RemoveAccount(ctx context.Context, accountID int64) erro
 	service.events.send("account:removed", struct {
 		AccountID int64 `json:"accountId"`
 	}{AccountID: accountID})
-	service.browser.DetachAccount(accountID, "The saved account was removed. This browser is no longer synchronized.")
+	service.browser.DetachAccount(accountID, "The saved account was removed. This browser no longer syncs with it.")
 	if err := service.vault.CreateBackup(ctx); err != nil {
 		return fmt.Errorf("the account was removed, but the fresh backup failed: %w", err)
 	}
@@ -253,9 +253,9 @@ func (service *Service) GetAccountPresences(ctx context.Context, accountID *int6
 	presences, err := service.presence.AccountPresences(ctx, targets)
 	service.refreshOnlineVoiceSuspensions(ctx, targets, presences)
 	if err != nil {
-		service.logger.Warn("account presence update failed", "operation", "presence-read", "accounts", len(targets), "error", err)
+		service.logger.Warn("could not update account online status", "operation", "presence-read", "accounts", len(targets), "error", err)
 	} else if len(presences) != len(targets) {
-		service.logger.Warn("account presence update incomplete", "operation", "presence-read", "accounts", len(targets), "updated", len(presences))
+		service.logger.Warn("account online status update incomplete", "operation", "presence-read", "accounts", len(targets), "updated", len(presences))
 	}
 	return presences, err
 }
@@ -319,10 +319,10 @@ func (service *Service) ValidateAccount(ctx context.Context, accountID int64) (a
 	}
 	if identity.RobloxUserID != current.RobloxUserID {
 		if err := service.accountRepository.MarkState(context.WithoutCancel(ctx), accountID, snapshot.SecretVersion, accounts.StateReauthRequired, "Roblox returned a different account identity."); err != nil && !errors.Is(err, accounts.ErrStaleSecret) {
-			service.logger.Warn("account reauthentication state could not be saved", "operation", "account-validation", "account_id", accountID, "error", err)
+			service.logger.Warn("could not save the account sign-in state", "operation", "account-validation", "account_id", accountID, "error", err)
 		}
 		service.sessions.UpdateState(accountID, snapshot.SecretVersion, accounts.StateReauthRequired)
-		return accounts.AccountView{}, &roblox.Error{Kind: roblox.KindReauthRequired, Endpoint: "authenticated-user", Message: "The session identity changed. Replace the cookie."}
+		return accounts.AccountView{}, &roblox.Error{Kind: roblox.KindReauthRequired, Endpoint: "authenticated-user", Message: "The cookie now belongs to a different Roblox account. Update the cookie."}
 	}
 	if err := service.accountRepository.RecordValidation(ctx, accountID, snapshot.SecretVersion, identity); err != nil && !errors.Is(err, accounts.ErrStaleSecret) {
 		return accounts.AccountView{}, mapRepositoryError(err)
@@ -354,7 +354,7 @@ func (service *Service) ReactivateAccount(ctx context.Context, accountID int64) 
 	defer timer.Stop()
 	select {
 	case <-ctx.Done():
-		return accounts.AccountView{}, &roblox.Error{Kind: roblox.KindCancelled, Endpoint: "account-reactivate", Message: "The account was reactivated. Refresh it to see its status.", Cause: ctx.Err()}
+		return accounts.AccountView{}, &roblox.Error{Kind: roblox.KindCancelled, Endpoint: "account-reactivate", Message: "The account was reactivated. Refresh to see its status.", Cause: ctx.Err()}
 	case <-timer.C:
 	}
 	view, err := service.ValidateAccount(ctx, accountID)

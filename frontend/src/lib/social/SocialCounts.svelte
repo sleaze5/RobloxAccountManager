@@ -66,14 +66,14 @@
 	<div
 		class="flex flex-wrap items-baseline gap-x-4 gap-y-1"
 		role="group"
-		aria-label="Connections">
+		aria-label="Relationship counts">
 		{#each items as count (count.list)}
 			{#if count.value === null}
 				<span class="flex items-baseline gap-1">
 					<span class="text-sm"
 						><Skeleton
 							className="w-6"
-							label={`Loading ${count.noun}`} /></span>
+							label={`Loading ${count.noun}…`} /></span>
 					<span class="text-xs text-fg-muted">{count.label}</span>
 				</span>
 			{:else}

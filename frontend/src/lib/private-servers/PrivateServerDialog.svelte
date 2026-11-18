@@ -175,7 +175,7 @@
 				</button>
 			</div>
 			<div class="notice-warning">
-				The current link stops working. People who already joined keep access.
+				The current link stops working. Users who already joined keep access.
 			</div>
 			<div class="dialog-actions">
 				<button class="button" type="button" disabled={busy} onclick={close}
@@ -199,7 +199,7 @@
 				</div>
 				<button
 					type="button"
-					aria-label="Close private server"
+					aria-label="Close dialog"
 					disabled={locked}
 					onclick={close}>
 					<Icon svg={xIcon} size={14} aria-hidden="true" />
@@ -219,7 +219,7 @@
 				{:else}
 					<div class="empty-state" role="alert">
 						<Icon svg={warningIcon} size={28} aria-hidden="true" />
-						<h2>Private server is unavailable</h2>
+						<h2>Private server unavailable</h2>
 						<p>{server.errorFor("load")}</p>
 						<button class="button" type="button" onclick={() => void load()}
 							>Try again</button>
@@ -438,7 +438,7 @@
 										<small
 											id={`${id}-user-help`}
 											class="text-xs text-fg-muted"
-											>Enter a username, or id=123 for a user ID.</small>
+											>Enter a username, or id: and a user ID.</small>
 									{/if}
 								</form>
 							</div>

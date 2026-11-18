@@ -611,12 +611,18 @@ func (service *Users) Collectibles(ctx context.Context, accountID, version, user
 }
 
 func (service *Users) readAccountDetails(ctx context.Context, accountID, version int64, endpoint, address string, target any) error {
+	return service.readAccountDetailsWithHeaders(ctx, accountID, version, endpoint, address, nil, target)
+}
+
+// readAccountDetailsWithHeaders reads the details with extra request headers,
+// such as the asset format that the asset delivery API reads.
+func (service *Users) readAccountDetailsWithHeaders(ctx context.Context, accountID, version int64, endpoint, address string, headers http.Header, target any) error {
 	ctx, cancel := context.WithTimeout(ctx, 15*time.Second)
 	defer cancel()
 	endpointURL, _ := url.Parse(address)
 	response, err := service.client.Do(ctx, roblox.Request{
 		Endpoint: endpoint, AccountID: accountID, ExpectedSecretVersion: version,
-		Authenticated: true, Method: http.MethodGet, URL: endpointURL,
+		Authenticated: true, Method: http.MethodGet, URL: endpointURL, Headers: headers,
 		ContentType: "application/json", MaxResponseSize: 64 << 10,
 		Retry: roblox.RetryPolicy{MaxAttempts: 2, RetryServerErrors: true, RetryRateLimit: true},
 	})
@@ -634,5 +640,5 @@ func invalidProfileDetails(endpoint string) error {
 }
 
 func profileIdentityError() error {
-	return &roblox.Error{Kind: roblox.KindReauthRequired, Endpoint: "account-profile", Message: "The session identity changed. Replace the cookie."}
+	return &roblox.Error{Kind: roblox.KindReauthRequired, Endpoint: "account-profile", Message: "The cookie now belongs to a different Roblox account. Update the cookie."}
 }

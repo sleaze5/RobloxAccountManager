@@ -7,7 +7,7 @@
 		"displayName": "sleaze",
 		"url": "https://github.com/sleaze5"
 	},
-	"license": "MIT",
+	"license": "GPL-3.0-only",
 	"repository": {
 		"type": "git",
 		"url": "git+https://github.com/sleaze5/RobloxAccountManager.git"
@@ -30,6 +30,7 @@
 	},
 	"dependencies": {
 		"@wailsio/runtime": "3.1.0",
+		"roavatar-renderer": "1.10.3",
 		"three": "0.187.0"
 	},
 	"devDependencies": {

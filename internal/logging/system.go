@@ -109,7 +109,7 @@ func (system *System) Close() error {
 	defer system.mutex.Unlock()
 	if system.crash != nil {
 		if err := system.crash.close(); err != nil {
-			system.Module("logging").Error("close crash capture", "error", err)
+			system.Module("logging").Error("could not close crash capture", "error", err)
 		}
 		system.crash = nil
 	}

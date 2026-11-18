@@ -275,7 +275,7 @@
 		</div>
 	{:else}
 		{#if store.loadingAccounts}
-			<SkeletonList label="Loading accounts" rowCount={6}>
+			<SkeletonList label="Loading accounts…" rowCount={6}>
 				{#snippet row(index)}<SkeletonMediaRow {index} />{/snippet}
 			</SkeletonList>
 		{:else}

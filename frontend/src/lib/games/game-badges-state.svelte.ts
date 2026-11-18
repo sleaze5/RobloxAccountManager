@@ -64,7 +64,7 @@ export class UniverseBadges {
 			if (this.#badgeRequest === request) {
 				this.error = errorMessage(
 					error,
-					"Badges could not be loaded. Try again.",
+					"Could not load the badges. Try again.",
 				)
 			}
 			return
@@ -100,7 +100,7 @@ export class UniverseBadges {
 			if (this.#awardRequest === request) {
 				this.awardsError = errorMessage(
 					error,
-					"Earned badges could not be loaded. Try again.",
+					"Could not load the earned badges. Try again.",
 				)
 			}
 		} finally {

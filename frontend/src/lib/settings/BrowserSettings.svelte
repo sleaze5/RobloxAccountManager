@@ -10,7 +10,8 @@
 	import type { ShutdownEffects } from "../backend/bridge"
 	import { formatCompactBytes } from "../shared/bytes"
 	import Dialog from "../shared/Dialog.svelte"
-	import { matchesSearch, searchTerms } from "../shared/search"
+	import { searchTerms } from "../shared/search"
+	import { matchesSetting } from "./settings-search"
 	import ConnectionHosts from "./ConnectionHosts.svelte"
 	import SectionLink from "./SectionLink.svelte"
 	import SettingsStatus from "./SettingsStatus.svelte"
@@ -23,12 +24,7 @@
 			runtime.status === RuntimeStatus.RuntimeDownloading ||
 				runtime.status === RuntimeStatus.RuntimeInstalling,
 		),
-		visible = $derived(
-			matchesSearch(
-				searchTerms(query),
-				"integrations browser chrome testing runtime version download redownload remove disk usage installed manage hosts connect storage.googleapis.com",
-			),
-		)
+		visible = $derived(matchesSetting(searchTerms(query), "browser"))
 
 	$effect(() => {
 		if (visible) return browser.trackRuntimeView()
@@ -178,7 +174,7 @@
 			</div>
 			<button
 				type="button"
-				aria-label="Close browser confirmation"
+				aria-label="Close dialog"
 				onclick={() => {
 					pendingAction = null
 					effects = null
@@ -203,7 +199,7 @@
 						? "candidate"
 						: "candidates"}.
 				</li>{/if}
-			{#if effects.accountChecks}<li>Cancel account validations.</li>{/if}
+			{#if effects.accountChecks}<li>Cancel account checks.</li>{/if}
 		</ul>
 		<div class="dialog-actions">
 			<button

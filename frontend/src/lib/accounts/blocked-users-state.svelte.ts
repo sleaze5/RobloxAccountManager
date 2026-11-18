@@ -43,7 +43,7 @@ export class BlockedUsersState {
 			if (!this.#scope.isCurrent) return
 			this.error = errorMessage(
 				error,
-				"Could not load blocked users. Refresh to retry.",
+				"Could not load blocked users. Refresh to try again.",
 			)
 		} finally {
 			if (this.#scope.isCurrent) this.loading = false

@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"math"
 	"net/http"
 	"net/url"
@@ -159,15 +160,126 @@ type AvatarPaletteColor struct {
 type AvatarRules struct {
 	ScaleLimits      AvatarScaleLimits    `json:"scaleLimits"`
 	BodyColorPalette []AvatarPaletteColor `json:"bodyColorPalette"`
-	// MaxWornCountByTypeName holds every asset type that the account may
-	// wear, by the type names of InventoryItem.TypeName.
-	MaxWornCountByTypeName map[string]int `json:"maxWornCountByTypeName"`
+	// WearLimits covers every asset type that the account may wear, by the
+	// type names of InventoryItem.TypeName.
+	WearLimits []AvatarWearLimit `json:"wearLimits"`
 	// IsBodyShapeEnabled tells whether the account may change the proportion
 	// and body type scales.
 	IsBodyShapeEnabled bool `json:"isBodyShapeEnabled"`
 	// AccessoryAdjustmentLimitsByTypeName holds every accessory type that the
 	// account may adjust, by the type names of InventoryItem.TypeName.
 	AccessoryAdjustmentLimitsByTypeName map[string]AvatarAccessoryAdjustmentLimits `json:"accessoryAdjustmentLimitsByTypeName"`
+}
+
+// AvatarWearLimit is how many assets of the types an avatar may wear at once.
+// Label names the assets in a message, such as "accessories".
+type AvatarWearLimit struct {
+	TypeNames             []string `json:"typeNames"`
+	MaxWornCount          int      `json:"maxWornCount"`
+	Label                 string   `json:"label"`
+	ShouldReplaceWornItem bool     `json:"shouldReplaceWornItem"`
+}
+
+// sharedWearLimits are the limits that Roblox checks when it saves an avatar,
+// shared by several types. The avatar rules list lower counts per type, such
+// as three hats and one hair, which the Roblox app enforces by replacing the
+// worn item. A save through the website's Advanced editor accepts any mix
+// within these totals. A hair counts as an accessory and as layered clothing.
+// The limits follow the checks of RoAvatar Renderer 1.10.3 and the Roblox
+// developer forum, and were not checked against a save.
+var sharedWearLimits = []AvatarWearLimit{
+	{
+		TypeNames:    []string{"Hat", "HairAccessory", "FaceAccessory", "NeckAccessory", "ShoulderAccessory", "FrontAccessory", "BackAccessory", "WaistAccessory"},
+		MaxWornCount: 10, Label: "accessories",
+	},
+	{
+		TypeNames:    []string{"TShirtAccessory", "ShirtAccessory", "PantsAccessory", "JacketAccessory", "SweaterAccessory", "ShortsAccessory", "LeftShoeAccessory", "RightShoeAccessory", "DressSkirtAccessory", "HairAccessory"},
+		MaxWornCount: 10, Label: "layered clothing items",
+	},
+	{TypeNames: []string{"FaceMakeup", "LipMakeup", "EyeMakeup"}, MaxWornCount: 6, Label: "makeup items"},
+}
+
+// wearLimitsOf lists the shared limits of the wearable types, and a limit of
+// its own for each other type, with the count that the rules list.
+func wearLimitsOf(payload avatarRulesPayload) []AvatarWearLimit {
+	wearableTypeNames := make([]string, 0, len(payload.WearableAssetTypes))
+	maxWornCountByTypeName := make(map[string]int, len(payload.WearableAssetTypes))
+	for _, wearableType := range payload.WearableAssetTypes {
+		if wearableType.MaxNumber > 0 {
+			typeName := ruleTypeNameReplacer.Replace(wearableType.Name)
+			wearableTypeNames = append(wearableTypeNames, typeName)
+			maxWornCountByTypeName[typeName] = wearableType.MaxNumber
+		}
+	}
+	limits := make([]AvatarWearLimit, 0, len(wearableTypeNames))
+	sharedTypeNames := make(map[string]bool)
+	for _, sharedLimit := range sharedWearLimits {
+		// A type that the rules no longer list as wearable stays off the avatar.
+		limit := AvatarWearLimit{MaxWornCount: sharedLimit.MaxWornCount, Label: sharedLimit.Label}
+		for _, typeName := range sharedLimit.TypeNames {
+			if _, isWearable := maxWornCountByTypeName[typeName]; isWearable {
+				limit.TypeNames = append(limit.TypeNames, typeName)
+				sharedTypeNames[typeName] = true
+			}
+		}
+		if len(limit.TypeNames) > 0 {
+			limits = append(limits, limit)
+		}
+	}
+	for _, typeName := range wearableTypeNames {
+		if !sharedTypeNames[typeName] {
+			maxWornCount := maxWornCountByTypeName[typeName]
+			limits = append(limits, AvatarWearLimit{
+				TypeNames:             []string{typeName},
+				MaxWornCount:          maxWornCount,
+				Label:                 "items of this type",
+				ShouldReplaceWornItem: maxWornCount == 1,
+			})
+		}
+	}
+	return limits
+}
+
+// assetsWearing lists the worn assets with the asset put on. Items stack: a
+// full limit of one item swaps the worn item for the new one, and any other
+// full limit keeps the asset off, which returns the limit.
+func assetsWearing(wornAssets []AvatarAsset, putOnAsset AvatarAsset, limits []AvatarWearLimit) ([]AvatarAsset, *AvatarWearLimit) {
+	assetID, typeName := putOnAsset.Item.ItemID, putOnAsset.Item.TypeName
+	if slices.ContainsFunc(wornAssets, func(asset AvatarAsset) bool { return asset.Item.ItemID == assetID }) {
+		return wornAssets, nil
+	}
+	shouldReplaceWornItem := false
+	for index := range limits {
+		limit := &limits[index]
+		if !slices.Contains(limit.TypeNames, typeName) {
+			continue
+		}
+		if limit.ShouldReplaceWornItem {
+			shouldReplaceWornItem = true
+			continue
+		}
+		wornCount := 0
+		for _, asset := range wornAssets {
+			if slices.Contains(limit.TypeNames, asset.Item.TypeName) {
+				wornCount++
+			}
+		}
+		if wornCount >= limit.MaxWornCount {
+			return wornAssets, limit
+		}
+	}
+	assets := make([]AvatarAsset, 0, len(wornAssets)+1)
+	for _, asset := range wornAssets {
+		if !shouldReplaceWornItem || asset.Item.TypeName != typeName {
+			assets = append(assets, asset)
+		}
+	}
+	return append(assets, putOnAsset), nil
+}
+
+// wearLimitError says which limit keeps an asset off the avatar.
+func wearLimitError(endpoint string, limit *AvatarWearLimit) error {
+	return &roblox.Error{Kind: roblox.KindProtocol, Endpoint: endpoint, Message: fmt.Sprintf("The avatar already wears %d %s, the most that Roblox allows. Take one off on the Avatar page to try this item on.", limit.MaxWornCount, limit.Label)}
 }
 
 // AvatarOutfit is an outfit that a user saved.
@@ -318,14 +430,16 @@ func avatarItem(assetID int64, name, typeName string) InventoryItem {
 	}
 }
 
+type avatarRulesWearableType struct {
+	MaxNumber int    `json:"maxNumber"`
+	ID        int64  `json:"id"`
+	Name      string `json:"name"`
+}
+
 type avatarRulesPayload struct {
-	Scales             *AvatarScaleLimits `json:"scales"`
-	WearableAssetTypes []struct {
-		MaxNumber int    `json:"maxNumber"`
-		ID        int64  `json:"id"`
-		Name      string `json:"name"`
-	} `json:"wearableAssetTypes"`
-	BodyColorsPalette []struct {
+	Scales             *AvatarScaleLimits        `json:"scales"`
+	WearableAssetTypes []avatarRulesWearableType `json:"wearableAssetTypes"`
+	BodyColorsPalette  []struct {
 		BrickColorID int64  `json:"brickColorId"`
 		HexColor     string `json:"hexColor"`
 		Name         string `json:"name"`
@@ -340,10 +454,31 @@ type avatarRulesPayload struct {
 // Accessory", where the avatar and inventory APIs write TShirtAccessory.
 var ruleTypeNameReplacer = strings.NewReplacer(" ", "", "-", "")
 
+// The avatar rules leave out the classic Head and Face types, which an avatar
+// still wears one of each of, so that the 3D views and try-on would refuse a
+// classic face or head. Asset type IDs from the Roblox AssetType enum.
+var unlistedWearableAssetTypes = []struct {
+	ID   int64
+	Name string
+}{
+	{ID: 17, Name: "Head"},
+	{ID: 18, Name: "Face"},
+}
+
 func (service *Users) readAvatarRules(ctx context.Context, accountID, version int64, endpoint string) (avatarRulesPayload, error) {
 	var payload avatarRulesPayload
-	err := service.readAvatarDetails(ctx, accountID, version, endpoint, "https://avatar.roblox.com/v1/avatar-rules", &payload)
-	return payload, err
+	if err := service.readAvatarDetails(ctx, accountID, version, endpoint, "https://avatar.roblox.com/v1/avatar-rules", &payload); err != nil {
+		return payload, err
+	}
+	for _, unlistedType := range unlistedWearableAssetTypes {
+		isListed := slices.ContainsFunc(payload.WearableAssetTypes, func(wearableType avatarRulesWearableType) bool {
+			return wearableType.ID == unlistedType.ID
+		})
+		if !isListed {
+			payload.WearableAssetTypes = append(payload.WearableAssetTypes, avatarRulesWearableType{MaxNumber: 1, ID: unlistedType.ID, Name: unlistedType.Name})
+		}
+	}
+	return payload, nil
 }
 
 // AvatarRules reads what the account may change on its avatar.
@@ -358,7 +493,7 @@ func (service *Users) AvatarRules(ctx context.Context, accountID, version int64)
 	rules := AvatarRules{
 		ScaleLimits:                         *payload.Scales,
 		BodyColorPalette:                    make([]AvatarPaletteColor, 0, len(payload.BodyColorsPalette)),
-		MaxWornCountByTypeName:              make(map[string]int, len(payload.WearableAssetTypes)),
+		WearLimits:                          wearLimitsOf(payload),
 		IsBodyShapeEnabled:                  payload.ProportionsAndBodyTypeEnabledForUser,
 		AccessoryAdjustmentLimitsByTypeName: accessoryAdjustmentLimitsOf(payload),
 	}
@@ -369,84 +504,82 @@ func (service *Users) AvatarRules(ctx context.Context, accountID, version int64)
 			})
 		}
 	}
-	for _, wearableType := range payload.WearableAssetTypes {
-		if wearableType.MaxNumber > 0 {
-			rules.MaxWornCountByTypeName[ruleTypeNameReplacer.Replace(wearableType.Name)] = wearableType.MaxNumber
-		}
-	}
 	return rules, nil
 }
 
 // TryOnChange returns the avatar of the account with the asset put on, as a
 // change that a preview renders.
 func (service *Users) TryOnChange(ctx context.Context, accountID, version int64, category InventoryCategory, assetID int64) (AvatarChange, error) {
-	const endpoint = "avatar-try-on"
-	if !canTryOn(category) {
-		return AvatarChange{}, &roblox.Error{Kind: roblox.KindProtocol, Endpoint: endpoint, Message: "This item can't be tried on."}
-	}
-	typeName, maxWornCount, err := service.wearableAssetTypeOf(ctx, accountID, version, endpoint, assetID)
+	avatar, err := service.TryOnAvatar(ctx, accountID, version, category, assetID)
 	if err != nil {
 		return AvatarChange{}, err
 	}
-	var current avatarPayload
-	if err := service.readAvatarDetails(ctx, accountID, version, endpoint, "https://avatar.roblox.com/v2/avatar/avatar", &current); err != nil {
-		return AvatarChange{}, err
-	}
-	avatar, err := avatarOf(current)
-	if err != nil {
-		return AvatarChange{}, err
-	}
-	assetIDs := assetIDsWearing(avatar.Assets, assetID, typeName, maxWornCount)
-	assets := make([]AvatarChangeAsset, len(assetIDs))
-	for index, wornAssetID := range assetIDs {
-		assets[index] = AvatarChangeAsset{AssetID: wornAssetID}
+	assets := make([]AvatarChangeAsset, len(avatar.Assets))
+	for index, asset := range avatar.Assets {
+		assets[index] = AvatarChangeAsset{AssetID: asset.Item.ItemID}
 	}
 	return AvatarChange{AvatarType: avatar.AvatarType, Scales: avatar.Scales, BodyColors: avatar.BodyColors, Assets: assets}, nil
 }
 
-// wearableAssetTypeOf reads the type name of the asset and how many assets of
-// the type an avatar may wear, or fails when an avatar cannot wear it.
-func (service *Users) wearableAssetTypeOf(ctx context.Context, accountID, version int64, endpoint string, assetID int64) (string, int, error) {
+// TryOnAvatar returns the saved avatar of the account with the asset put on.
+// The other worn assets keep their placements and layers.
+func (service *Users) TryOnAvatar(ctx context.Context, accountID, version int64, category InventoryCategory, assetID int64) (Avatar, error) {
+	const endpoint = "avatar-try-on"
+	if !canTryOn(category) {
+		return Avatar{}, &roblox.Error{Kind: roblox.KindProtocol, Endpoint: endpoint, Message: "This item cannot be tried on."}
+	}
+	return service.savedAvatarWearing(ctx, accountID, version, endpoint, category, assetID)
+}
+
+// savedAvatarWearing returns the saved avatar of the account with the asset
+// put on, such as an accessory or an animation, by the rules of the avatar
+// editor of the app.
+func (service *Users) savedAvatarWearing(ctx context.Context, accountID, version int64, endpoint string, category InventoryCategory, assetID int64) (Avatar, error) {
+	typeName, limits, err := service.wearableAssetTypeOf(ctx, accountID, version, endpoint, assetID)
+	if err != nil {
+		return Avatar{}, err
+	}
+	avatar, err := service.savedAvatar(ctx, accountID, version, endpoint)
+	if err != nil {
+		return Avatar{}, err
+	}
+	triedAsset := AvatarAsset{Category: category, Item: avatarItem(assetID, "", typeName)}
+	assets, fullLimit := assetsWearing(avatar.Assets, triedAsset, limits)
+	if fullLimit != nil {
+		return Avatar{}, wearLimitError(endpoint, fullLimit)
+	}
+	avatar.Assets = assets
+	return avatar, nil
+}
+
+// savedAvatar reads the avatar of the account itself, with its emotes.
+func (service *Users) savedAvatar(ctx context.Context, accountID, version int64, endpoint string) (Avatar, error) {
+	var current avatarPayload
+	if err := service.readAvatarDetails(ctx, accountID, version, endpoint, "https://avatar.roblox.com/v2/avatar/avatar", &current); err != nil {
+		return Avatar{}, err
+	}
+	return avatarOf(current)
+}
+
+// wearableAssetTypeOf reads the type name of the asset and the wear limits of
+// the account, or fails when an avatar cannot wear the asset.
+func (service *Users) wearableAssetTypeOf(ctx context.Context, accountID, version int64, endpoint string, assetID int64) (string, []AvatarWearLimit, error) {
 	rules, err := service.readAvatarRules(ctx, accountID, version, endpoint)
 	if err != nil {
-		return "", 0, err
+		return "", nil, err
 	}
 	var assetDetails struct {
 		AssetTypeID int64 `json:"AssetTypeId"`
 	}
 	if err := service.readAccountDetails(ctx, accountID, version, endpoint, "https://economy.roblox.com/v2/assets/"+strconv.FormatInt(assetID, 10)+"/details", &assetDetails); err != nil {
-		return "", 0, err
+		return "", nil, err
 	}
 	for _, wearableType := range rules.WearableAssetTypes {
 		if wearableType.ID == assetDetails.AssetTypeID && wearableType.MaxNumber > 0 {
-			return ruleTypeNameReplacer.Replace(wearableType.Name), wearableType.MaxNumber, nil
+			return ruleTypeNameReplacer.Replace(wearableType.Name), wearLimitsOf(rules), nil
 		}
 	}
-	return "", 0, &roblox.Error{Kind: roblox.KindProtocol, Endpoint: endpoint, Message: "Roblox doesn't let avatars wear this item."}
-}
-
-// assetIDsWearing lists the worn assets with the asset put on. When the avatar
-// already wears as many assets of the type as Roblox allows, the asset
-// replaces the ones that the avatar lists first.
-func assetIDsWearing(wornAssets []AvatarAsset, assetID int64, typeName string, maxWornCount int) []int64 {
-	sameTypeCount := 0
-	for _, asset := range wornAssets {
-		if asset.Item.TypeName == typeName && asset.Item.ItemID != assetID {
-			sameTypeCount++
-		}
-	}
-	replacedCount := max(sameTypeCount-maxWornCount+1, 0)
-	assetIDs := make([]int64, 0, len(wornAssets)+1)
-	for _, asset := range wornAssets {
-		isReplaced := asset.Item.TypeName == typeName && asset.Item.ItemID != assetID && replacedCount > 0
-		if isReplaced {
-			replacedCount--
-		}
-		if !isReplaced && asset.Item.ItemID != assetID {
-			assetIDs = append(assetIDs, asset.Item.ItemID)
-		}
-	}
-	return append(assetIDs, assetID)
+	return "", nil, &roblox.Error{Kind: roblox.KindProtocol, Endpoint: endpoint, Message: "Roblox does not allow this item on avatars."}
 }
 
 // SaveAvatar replaces the whole avatar of the account in one request, as the
@@ -497,7 +630,7 @@ func (service *Users) validateAccessoryAdjustments(ctx context.Context, accountI
 	for _, changed := range changedAdjustments {
 		limits, isAdjustable := limitsByTypeName[changed.typeName]
 		if !isAdjustable {
-			return invalidAvatarChange("Roblox doesn't let this account adjust one of the accessories. Reset it and try again.")
+			return invalidAvatarChange("Roblox does not let this account adjust one of the accessories. Reset it and try again.")
 		}
 		if !limits.contains(changed.adjustment) {
 			return invalidAvatarChange("An accessory adjustment is outside the range that Roblox allows. Refresh the avatar and try again.")
@@ -532,7 +665,7 @@ func (service *Users) avatarUpdateAssetsOf(ctx context.Context, accountID, versi
 			// even a reset to the default, so an accessory that is no longer
 			// worn was taken off since the page loaded the avatar.
 			if changeAsset.Adjustment != nil {
-				return nil, nil, &roblox.Error{Kind: roblox.KindProtocol, Endpoint: endpoint, Message: "An adjusted accessory was taken off in Roblox since the avatar loaded. Discard your changes and refresh the avatar to see what it wears now."}
+				return nil, nil, &roblox.Error{Kind: roblox.KindProtocol, Endpoint: endpoint, Message: "An adjusted accessory was taken off on Roblox since the avatar loaded. Discard your changes, then refresh the avatar to see what it wears now."}
 			}
 			assets[index] = avatarUpdateAsset{ID: changeAsset.AssetID}
 			continue
@@ -556,21 +689,11 @@ func (service *Users) avatarUpdateAssetsOf(ctx context.Context, accountID, versi
 	return assets, changedAdjustments, nil
 }
 
-// AvatarPreviewFormat is what the render API makes of an avatar, by its
-// thumbnail type.
-type AvatarPreviewFormat string
-
-const (
-	AvatarPreviewImage AvatarPreviewFormat = "2dWebp"
-	// AvatarPreviewModel is a 3D model, whose address names a manifest that
-	// RenderedModel downloads.
-	AvatarPreviewModel AvatarPreviewFormat = "3d"
-)
-
-// RenderAvatarPreview asks Roblox to render the change in the format without
-// saving it. It returns the address of the render, or an empty address while
-// Roblox renders it, until a later call with the same change finds it.
-func (service *Users) RenderAvatarPreview(ctx context.Context, accountID, version int64, change AvatarChange, format AvatarPreviewFormat) (string, error) {
+// RenderAvatarPreview asks Roblox to render the change as a full-body WebP
+// image without saving it. It returns the address of the image, or an empty
+// address while Roblox renders it, until a later call with the same change
+// finds it.
+func (service *Users) RenderAvatarPreview(ctx context.Context, accountID, version int64, change AvatarChange) (string, error) {
 	const endpoint = "avatar-preview"
 	if err := validateAvatarChange(change); err != nil {
 		return "", err
@@ -606,7 +729,7 @@ func (service *Users) RenderAvatarPreview(ctx context.Context, accountID, versio
 		ThumbnailConfig  thumbnailConfig  `json:"thumbnailConfig"`
 		AvatarDefinition renderDefinition `json:"avatarDefinition"`
 	}{
-		ThumbnailConfig: thumbnailConfig{ThumbnailID: 3, ThumbnailType: string(format), Size: LargeThumbnailSize},
+		ThumbnailConfig: thumbnailConfig{ThumbnailID: 3, ThumbnailType: "2dWebp", Size: LargeThumbnailSize},
 		AvatarDefinition: renderDefinition{
 			Assets: assets, BodyColors: v4BodyColorsOf(change.BodyColors),
 			Scales:           renderScales{AvatarScales: change.Scales, Depth: change.Scales.Width},
@@ -615,7 +738,7 @@ func (service *Users) RenderAvatarPreview(ctx context.Context, accountID, versio
 	}
 	response, err := service.writeAccount(ctx, accountID, version, endpoint, http.MethodPost, "https://avatar.roblox.com/v1/avatar/render", request)
 	if remote, ok := errors.AsType[*roblox.Error](err); ok && remote.Status == http.StatusBadRequest {
-		return "", &roblox.Error{Kind: remote.Kind, Endpoint: endpoint, Status: remote.Status, RobloxCode: remote.RobloxCode, Message: "Roblox couldn't render this preview.", Cause: err}
+		return "", &roblox.Error{Kind: remote.Kind, Endpoint: endpoint, Status: remote.Status, RobloxCode: remote.RobloxCode, Message: "Roblox could not render this preview.", Cause: err}
 	}
 	if err != nil {
 		return "", err
@@ -631,7 +754,7 @@ func (service *Users) RenderAvatarPreview(ctx context.Context, accountID, versio
 	case strings.EqualFold(payload.State, "Pending"):
 		return "", nil
 	case !strings.EqualFold(payload.State, "Completed") || !safeThumbnailURL(payload.ImageURL):
-		return "", &roblox.Error{Kind: roblox.KindProtocol, Endpoint: endpoint, Status: response.Status, Message: "Roblox couldn't render this preview."}
+		return "", &roblox.Error{Kind: roblox.KindProtocol, Endpoint: endpoint, Status: response.Status, Message: "Roblox could not render this preview."}
 	}
 	return payload.ImageURL, nil
 }
@@ -942,7 +1065,7 @@ func validOutfitName(name, endpoint string) (string, error) {
 
 func validateAvatarChange(change AvatarChange) error {
 	if !validAvatarType(change.AvatarType) {
-		return invalidAvatarChange("Choose R6 or R15.")
+		return invalidAvatarChange("Select R6 or R15.")
 	}
 	for _, scale := range []float64{change.Scales.Height, change.Scales.Width, change.Scales.Head, change.Scales.Proportion, change.Scales.BodyType} {
 		if math.IsNaN(scale) || scale < 0 || scale > 2 {

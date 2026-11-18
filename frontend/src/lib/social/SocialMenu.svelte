@@ -124,7 +124,7 @@
 				store.closeMenu()
 			}}
 			><Icon svg={magnifyingGlassIcon} size={16} aria-hidden="true" /><span
-				>Find place in Games</span
+				>Show in Games</span
 			></button>
 	{/if}
 	<button

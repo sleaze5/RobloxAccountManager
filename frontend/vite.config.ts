@@ -45,7 +45,12 @@ export default defineConfig({
 		}),
 	},
 	css: { transformer: "lightningcss" },
-	build: { target: "esnext", chunkSizeWarningLimit: 1024 },
+	build: {
+		target: "esnext",
+		// The live 3D viewer chunk is about 1.4 MB, because roavatar-renderer
+		// bundles its own copy of three.js. It loads only when a 3D view opens.
+		chunkSizeWarningLimit: 1500,
+	},
 	optimizeDeps: { exclude: ["svelte"] },
 	plugins: [
 		tailwindcss(),

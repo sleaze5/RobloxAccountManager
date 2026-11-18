@@ -49,7 +49,7 @@ export function tagNameError(value: string): string {
 		return "Use lowercase letters and numbers, with single hyphens between words."
 	}
 	if (reservedTagNames.has(value)) {
-		return "Choose a different name. This name is reserved."
+		return "Select a different name. This name is reserved."
 	}
 
 	return ""
