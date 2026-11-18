@@ -83,6 +83,10 @@ let rendererSetup: Promise<boolean> | undefined,
 	outfitRenderer: OutfitRenderer | undefined,
 	shownAccessory: { root: Instance; accessory: Instance } | undefined,
 	shownSubject: LiveModelSubject | undefined,
+	// Whether the scene finished building the shown subject, so that a view
+	// that opens on the same subject, such as an expanded view, shows it
+	// without waiting for a build that does not happen.
+	isShownSubjectBuilt = false,
 	accessoryLoadNumber = 0,
 	hostResizeObserver: ResizeObserver | undefined,
 	isFramePending = false,
@@ -311,9 +315,17 @@ function activateViewport(viewport: LiveModelViewport): void {
 // it already.
 function showSubject(viewport: LiveModelViewport): void {
 	const subject = viewport.subject
-	if (!subject || subject === shownSubject) return
+	if (!subject) return
+	if (subject === shownSubject) {
+		if (isShownSubjectBuilt && !viewport.hasShownSubject) {
+			viewport.hasShownSubject = true
+			if (subject.kind === "avatar") void poseAvatar(viewport)
+		}
+		return
+	}
 	const previousSubject = shownSubject
 	shownSubject = subject
+	isShownSubjectBuilt = false
 	setLiveModelAccount(viewport.accountId)
 	viewport.isFailed = false
 	if (subject.kind === "avatar") {
@@ -336,6 +348,7 @@ function showOutfit(outfit: Outfit): void {
 	const createdRenderer = new OutfitRenderer(authentication, outfit)
 	createdRenderer.onSuccess.Connect(() => {
 		const viewport = activeViewport()
+		isShownSubjectBuilt = true
 		if (!viewport) return
 		viewport.hasShownSubject = true
 		void poseAvatar(viewport)
@@ -475,6 +488,7 @@ async function showAccessory(
 	}
 	shownAccessory = { root, accessory }
 	RBXRenderer.addInstance(accessory, authentication)
+	isShownSubjectBuilt = true
 	viewport.hasShownSubject = true
 	if (!viewport.cameraView) frameSubject(viewport.subject)
 	requestFrame()
@@ -492,6 +506,7 @@ function clearScene(): void {
 	removeAccessory()
 	outfitRenderer?.destroy()
 	outfitRenderer = shownSubject = undefined
+	isShownSubjectBuilt = false
 }
 
 // frameSubject moves the camera to where it starts for the subject: in front
