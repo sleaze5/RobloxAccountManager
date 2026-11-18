@@ -423,14 +423,16 @@ func avatarItem(assetID int64, name, typeName string) InventoryItem {
 	}
 }
 
+type avatarRulesWearableType struct {
+	MaxNumber int    `json:"maxNumber"`
+	ID        int64  `json:"id"`
+	Name      string `json:"name"`
+}
+
 type avatarRulesPayload struct {
-	Scales             *AvatarScaleLimits `json:"scales"`
-	WearableAssetTypes []struct {
-		MaxNumber int    `json:"maxNumber"`
-		ID        int64  `json:"id"`
-		Name      string `json:"name"`
-	} `json:"wearableAssetTypes"`
-	BodyColorsPalette []struct {
+	Scales             *AvatarScaleLimits        `json:"scales"`
+	WearableAssetTypes []avatarRulesWearableType `json:"wearableAssetTypes"`
+	BodyColorsPalette  []struct {
 		BrickColorID int64  `json:"brickColorId"`
 		HexColor     string `json:"hexColor"`
 		Name         string `json:"name"`
@@ -445,10 +447,31 @@ type avatarRulesPayload struct {
 // Accessory", where the avatar and inventory APIs write TShirtAccessory.
 var ruleTypeNameReplacer = strings.NewReplacer(" ", "", "-", "")
 
+// The avatar rules leave out the classic Head and Face types, which an avatar
+// still wears one of each of, so that the 3D views and try-on would refuse a
+// classic face or head. Asset type IDs from the Roblox AssetType enum.
+var unlistedWearableAssetTypes = []struct {
+	ID   int64
+	Name string
+}{
+	{ID: 17, Name: "Head"},
+	{ID: 18, Name: "Face"},
+}
+
 func (service *Users) readAvatarRules(ctx context.Context, accountID, version int64, endpoint string) (avatarRulesPayload, error) {
 	var payload avatarRulesPayload
-	err := service.readAvatarDetails(ctx, accountID, version, endpoint, "https://avatar.roblox.com/v1/avatar-rules", &payload)
-	return payload, err
+	if err := service.readAvatarDetails(ctx, accountID, version, endpoint, "https://avatar.roblox.com/v1/avatar-rules", &payload); err != nil {
+		return payload, err
+	}
+	for _, unlistedType := range unlistedWearableAssetTypes {
+		isListed := slices.ContainsFunc(payload.WearableAssetTypes, func(wearableType avatarRulesWearableType) bool {
+			return wearableType.ID == unlistedType.ID
+		})
+		if !isListed {
+			payload.WearableAssetTypes = append(payload.WearableAssetTypes, avatarRulesWearableType{MaxNumber: 1, ID: unlistedType.ID, Name: unlistedType.Name})
+		}
+	}
+	return payload, nil
 }
 
 // AvatarRules reads what the account may change on its avatar.
