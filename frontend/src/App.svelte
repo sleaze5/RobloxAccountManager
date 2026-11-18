@@ -4,6 +4,7 @@
 	import AccountPlaceholder from "./lib/accounts/AccountPlaceholder.svelte"
 	import AccountProfile from "./lib/accounts/AccountProfile.svelte"
 	import AccountImageMenu from "./lib/accounts/AccountImageMenu.svelte"
+	import ExpandedImageDialog from "./lib/shared/ExpandedImageDialog.svelte"
 	import AccountContextMenu from "./lib/accounts/AccountContextMenu.svelte"
 	import AccountSidebar from "./lib/accounts/AccountSidebar.svelte"
 	import { AccountStore } from "./lib/accounts/account-store.svelte"
@@ -52,10 +53,13 @@
 	import PageNavigation from "./lib/layout/PageNavigation.svelte"
 	import StatusBar from "./lib/layout/StatusBar.svelte"
 	import WindowTitleBar from "./lib/layout/WindowTitleBar.svelte"
-	import { WorkspaceState } from "./lib/layout/workspace-state.svelte"
+	import { setWorkspace, WorkspaceState } from "./lib/layout/workspace-state.svelte"
 	import { unsavedChangesGuard } from "./lib/layout/unsaved-changes-guard"
 	import Notifications from "./lib/notifications/Notifications.svelte"
-	import { NotificationCenter } from "./lib/notifications/notification-center.svelte"
+	import {
+		NotificationCenter,
+		setNotificationCenter,
+	} from "./lib/notifications/notification-center.svelte"
 	import { appSettings } from "./lib/settings/settings-store.svelte"
 	import { errorMessage } from "./lib/shared/errors"
 	import Icon from "./lib/shared/Icon.svelte"
@@ -130,6 +134,8 @@
 			browserSessions: 0,
 		})
 	setGamesStore(games)
+	setWorkspace(workspace)
+	setNotificationCenter(notificationCenter)
 	const accountSubpage = $derived(
 		workspace.accountPage !== "profile" &&
 			store.selectedAccount.id !== 0 &&
@@ -577,7 +583,13 @@
 	} satisfies Record<(typeof pageOrder)[number], string>
 
 	function cyclePage(step: 1 | -1): void {
-		if (activeDialog !== null || activePage === "settings") return
+		if (
+			activeDialog !== null ||
+			workspace.viewedImage !== null ||
+			activePage === "settings"
+		) {
+			return
+		}
 		const index = pageOrder.indexOf(activePage)
 		workspace.closeAccountMenus()
 		showPage(pageOrder[(index + step + pageOrder.length) % pageOrder.length])
@@ -714,7 +726,6 @@
 					store={games}
 					accounts={store}
 					notifications={notificationCenter}
-					{workspace}
 					onFillLaunch={(placeId, jobId) =>
 						fillGameLaunchOptions(placeId, jobId)}
 					onFillLaunchLink={(link) => fillGameLaunchLink(link)}
@@ -826,6 +837,23 @@
 
 {#if workspace.imageContextMenu && store.vault.unlocked}
 	<AccountImageMenu {store} {workspace} menu={workspace.imageContextMenu} />
+{/if}
+
+{#if workspace.viewedImage && store.vault.unlocked}
+	{@const viewedImage = workspace.viewedImage}
+	<ExpandedImageDialog
+		label={viewedImage.label}
+		onClose={() => (workspace.viewedImage = null)}>
+		{#snippet frame()}
+			<img
+				class="size-full animate-pop object-contain"
+				src={viewedImage.imageUrl}
+				alt={viewedImage.label}
+				decoding="async"
+				draggable="false"
+				referrerpolicy="no-referrer" />
+		{/snippet}
+	</ExpandedImageDialog>
 {/if}
 
 {#if developmentWarning === "open" && build}

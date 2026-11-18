@@ -31,7 +31,7 @@
 	import Skeleton from "../shared/Skeleton.svelte"
 	import RefreshIcon from "../shared/RefreshIcon.svelte"
 	import { untrack } from "svelte"
-	import type { WorkspaceState } from "../layout/workspace-state.svelte"
+	import ImageMenuTarget from "../layout/ImageMenuTarget.svelte"
 	import Timestamp from "../shared/Timestamp.svelte"
 	import { relativeTime } from "../shared/timestamp"
 	import { creatorByline, type GamesStore } from "./games-store.svelte"
@@ -39,11 +39,9 @@
 
 	let {
 		store,
-		workspace,
 		onSearchUniverse,
 	}: {
 		store: GamesStore
-		workspace: WorkspaceState
 		onSearchUniverse: (universeId: number) => void
 	} = $props()
 	const numbers = new Intl.NumberFormat(),
@@ -316,26 +314,11 @@
 		<div class="flex flex-col gap-4 p-3 pb-4">
 			<div class="flex items-start gap-3 @max-xl:flex-col">
 				<div class="flex min-w-0 flex-1 items-start gap-4">
-					<button
-						type="button"
-						class="shrink-0 cursor-default rounded-md"
-						aria-label="Game icon"
-						aria-haspopup="menu"
-						aria-expanded={workspace.imageContextMenu?.imageUrl ===
-							place.iconUrl}
-						disabled={!place.iconUrl}
-						onkeydown={(event) => {
-							if (
-								event.key === "ContextMenu" ||
-								(event.shiftKey && event.key === "F10")
-							) {
-								workspace.openImageContextMenu(event, place.iconUrl)
-							}
-						}}
-						oncontextmenu={(event) =>
-							workspace.openImageContextMenu(event, place.iconUrl)}>
+					<ImageMenuTarget
+						imageUrl={place.iconUrl}
+						label={`${store.displayName(place)} icon`}>
 						<GameIcon url={place.iconUrl} size="xl" />
-					</button>
+					</ImageMenuTarget>
 					<div class="flex min-w-0 flex-col gap-1">
 						<div class="min-w-0 leading-6">
 							<h2

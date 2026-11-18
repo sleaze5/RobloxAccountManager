@@ -204,6 +204,12 @@ export class LiveModelViewport implements AnimationPlayback {
 		showSubject(this)
 	}
 
+	// captureShownFrame returns the frame that the view shows now as a PNG data
+	// URL.
+	captureShownFrame(): string {
+		return activeViewport() === this ? captureFrame() : this.coveredFrameUrl
+	}
+
 	// resetView returns the camera to where it starts for the subject.
 	resetView(): void {
 		if (activeViewport() !== this) return

@@ -3,6 +3,7 @@
 	import { untrack } from "svelte"
 	import FrameUnavailable from "../shared/FrameUnavailable.svelte"
 	import ModelLoadingPlaceholder from "./ModelLoadingPlaceholder.svelte"
+	import ModelSnapshotButton from "./ModelSnapshotButton.svelte"
 	import ModelViewerControls from "./ModelViewerControls.svelte"
 	import ModelViewerUnavailable from "./ModelViewerUnavailable.svelte"
 	import { orbitViewKeysDescription } from "./orbit-camera"
@@ -138,5 +139,8 @@
 			<ViewerReadout pose={viewport.cameraPose} />
 		{/if}
 		<ModelViewerControls onResetView={() => viewport?.resetView()} />
+		<ModelSnapshotButton
+			{label}
+			captureFrame={() => viewport?.captureShownFrame() ?? ""} />
 	{/if}
 {/if}

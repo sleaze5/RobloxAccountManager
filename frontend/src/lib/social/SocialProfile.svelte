@@ -28,6 +28,7 @@
 	import Skeleton from "../shared/Skeleton.svelte"
 	import Timestamp from "../shared/Timestamp.svelte"
 	import { relativeTime } from "../shared/timestamp"
+	import ImageMenuTarget from "../layout/ImageMenuTarget.svelte"
 	import FriendConnections from "./FriendConnections.svelte"
 	import SocialBadges from "./SocialBadges.svelte"
 	import SocialAvatar from "./SocialAvatar.svelte"
@@ -137,7 +138,11 @@
 <section class="flex flex-col gap-4 p-3 pb-4" aria-labelledby="social-name">
 	<div class="flex items-start gap-3 @max-xl:flex-col">
 		<div class="flex min-w-0 flex-1 items-center gap-4">
-			<SocialAvatar imageUrl={person.imageUrl} className="size-20" />
+			<ImageMenuTarget
+				imageUrl={person.imageUrl}
+				label={`@${person.username || person.userId}'s profile image`}>
+				<SocialAvatar imageUrl={person.imageUrl} className="size-20" />
+			</ImageMenuTarget>
 			<div class="flex min-w-0 flex-col gap-1">
 				<div class="min-w-0 leading-6">
 					<h2

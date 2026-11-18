@@ -74,42 +74,55 @@ func (service *Service) DefaultDownloadDirectory() string {
 	return appdata.DefaultDownloadDirectory()
 }
 
-// DownloadFileName names the file of an item after the item, without the
-// characters that a file system rejects. An item without a usable name is
-// named after its ID.
+// DownloadFileName names the file of an item after the item. An item without
+// a usable name is named after its ID.
 func (service *Service) DownloadFileName(itemName string, itemID int64, extension string) string {
+	return fileNameOf(itemName, fmt.Sprintf("Item %d", itemID), extension)
+}
+
+// fileNameOf names a file after a name, without the characters that a file
+// system rejects. A name with no usable characters gives the fallback name.
+func fileNameOf(name, fallbackName, extension string) string {
 	cleanedName := strings.Map(func(character rune) rune {
 		if unicode.IsControl(character) || strings.ContainsRune(`<>:"/\|?*`, character) {
 			return '_'
 		}
 		return character
-	}, itemName)
+	}, name)
 	cleanedName = strings.Trim(strings.TrimSpace(cleanedName), ".")
 	if utf8.RuneCountInString(cleanedName) > maxDownloadNameLength {
 		cleanedName = strings.TrimSpace(string([]rune(cleanedName)[:maxDownloadNameLength]))
 	}
 	if cleanedName == "" {
-		cleanedName = fmt.Sprintf("Item %d", itemID)
+		cleanedName = fallbackName
 	}
 	return cleanedName + "." + extension
 }
 
-// SaveDownloadedFile writes the file where the user chose, with the extension
-// added when the save dialog left it out. The save dialog confirmed replacing
-// only the path it returned, so a path with an added extension must not exist.
+// SaveDownloadedFile writes the file of an item where the user chose.
 func (service *Service) SaveDownloadedFile(path, extension string, contents []byte) (string, error) {
+	savedPath, err := service.saveChosenFile(path, extension, contents, "asset-download", "application.inventory")
+	if err == nil {
+		service.logs.Module("application.inventory").Info("item file saved", "operation", "asset-download", "extension", extension)
+	}
+	return savedPath, err
+}
+
+// saveChosenFile writes a file where the user chose, with the extension added
+// when the save dialog left it out. The save dialog confirmed replacing only
+// the path it returned, so a path with an added extension must not exist.
+func (service *Service) saveChosenFile(path, extension string, contents []byte, operation, logModule string) (string, error) {
 	fileFlags := os.O_WRONLY | os.O_CREATE | os.O_TRUNC
 	if !strings.EqualFold(filepath.Ext(path), "."+extension) {
 		path += "." + extension
 		fileFlags = os.O_WRONLY | os.O_CREATE | os.O_EXCL
 	}
 	if err := writeDownloadedFile(path, fileFlags, contents); errors.Is(err, fs.ErrExist) {
-		return "", &roblox.Error{Kind: roblox.KindProtocol, Endpoint: "asset-download", Message: fmt.Sprintf("%s already exists. Select another name, then try again.", filepath.Base(path)), Cause: err}
+		return "", &roblox.Error{Kind: roblox.KindProtocol, Endpoint: operation, Message: fmt.Sprintf("%s already exists. Select another name, then try again.", filepath.Base(path)), Cause: err}
 	} else if err != nil {
-		service.logs.Module("application.inventory").Warn("could not write the downloaded file", "operation", "asset-download", "error", err)
-		return "", &roblox.Error{Kind: roblox.KindProtocol, Endpoint: "asset-download", Message: "Could not save the file. Check that the folder is writable and has free space, then try again.", Cause: err}
+		service.logs.Module(logModule).Warn("could not write the chosen file", "operation", operation, "error", err)
+		return "", &roblox.Error{Kind: roblox.KindProtocol, Endpoint: operation, Message: "Could not save the file. Check that the folder is writable and has free space, then try again.", Cause: err}
 	}
-	service.logs.Module("application.inventory").Info("item file saved", "operation", "asset-download", "extension", extension)
 	return path, nil
 }
 

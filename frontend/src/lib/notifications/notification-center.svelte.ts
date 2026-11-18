@@ -1,3 +1,5 @@
+import { createContext } from "svelte"
+
 export interface NotificationAction {
 	label: string
 	emphasis?: boolean
@@ -86,3 +88,6 @@ export class NotificationCenter {
 		this.items = []
 	}
 }
+
+export const [getNotificationCenter, setNotificationCenter] =
+	createContext<NotificationCenter>()

@@ -1,3 +1,4 @@
+import { createContext } from "svelte"
 import { installPointerResize } from "../shared/pointer-resize"
 import { menuPointFor } from "../shared/presence"
 
@@ -9,9 +10,16 @@ export interface AccountContextMenu {
 }
 
 export interface ImageContextMenu {
-	imageUrl: string
+	image: ViewedImage
 	x: number
 	y: number
+}
+
+// ViewedImage is an image that the image viewer can show. label names it, such
+// as "@builderman's profile image".
+export interface ViewedImage {
+	imageUrl: string
+	label: string
 }
 
 type ActiveAccountMenu =
@@ -50,6 +58,7 @@ export class WorkspaceState {
 	activeAccountMenu = $state<ActiveAccountMenu>(null)
 	accountContextMenu = $state<AccountContextMenu | null>(null)
 	imageContextMenu = $state<ImageContextMenu | null>(null)
+	viewedImage = $state<ViewedImage | null>(null)
 
 	get launchOpen(): boolean {
 		return this.accountPage === "profile"
@@ -86,12 +95,12 @@ export class WorkspaceState {
 		}
 	}
 
-	openImageContextMenu(event: MouseEvent | KeyboardEvent, imageUrl: string): void {
+	openImageContextMenu(event: MouseEvent | KeyboardEvent, image: ViewedImage): void {
 		event.preventDefault()
 		event.stopPropagation()
 		this.closeAccountMenus()
-		if (!imageUrl) return
-		this.imageContextMenu = { imageUrl, ...menuPointFor(event, 0) }
+		if (!image.imageUrl) return
+		this.imageContextMenu = { image, ...menuPointFor(event, 0) }
 	}
 
 	handleWindowClick(event: MouseEvent): void {
@@ -133,3 +142,5 @@ export class WorkspaceState {
 		this.resizeLaunch(fitToContent ? height : this.launchHeight)
 	}
 }
+
+export const [getWorkspace, setWorkspace] = createContext<WorkspaceState>()

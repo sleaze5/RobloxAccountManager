@@ -47,10 +47,18 @@
 	let applyScene: ((sceneSettings: ModelViewerScene) => void) | undefined
 	// resetCameraView returns the camera of the built scene to where it starts.
 	let resetCameraView: (() => void) | undefined
+	// captureSceneFrame draws the built scene and reads it at once, because the
+	// canvas keeps its pixels only until the browser shows them.
+	let captureSceneFrame: (() => string) | undefined
 
 	// resetView returns the camera to where it starts, as Home does.
 	export function resetView(): void {
 		resetCameraView?.()
+	}
+
+	// captureFrame returns the frame shown now as a PNG data URL.
+	export function captureFrame(): string {
+		return captureSceneFrame?.() ?? ""
 	}
 
 	const controlsDescriptionId = $props.id(),
@@ -175,6 +183,11 @@
 			controls.target.copy(center)
 			controls.update()
 		}
+		const sceneCanvas = canvas
+		captureSceneFrame = () => {
+			render()
+			return sceneCanvas.toDataURL("image/png")
+		}
 		const handleKeydown = (event: KeyboardEvent): void => {
 			if (moveOrbitViewByKey(event, camera, controls, resetView)) {
 				event.preventDefault()
@@ -184,7 +197,7 @@
 
 		return () => {
 			isDisposed = true
-			applyScene = resetCameraView = undefined
+			applyScene = resetCameraView = captureSceneFrame = undefined
 			canvas?.removeEventListener("keydown", handleKeydown)
 			resizeObserver.disconnect()
 			controls.removeEventListener("change", render)

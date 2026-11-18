@@ -32,6 +32,7 @@
 	import type { NotificationCenter } from "../notifications/notification-center.svelte"
 	import { appSettings } from "../settings/settings-store.svelte"
 	import { floatMenu, menuIn, menuKeyboard, menuOut } from "../shared/presence"
+	import ImageMenuTarget from "../layout/ImageMenuTarget.svelte"
 	import AccountAvatar from "./AccountAvatar.svelte"
 	import AccountMembershipBadges from "./AccountMembershipBadges.svelte"
 	import AccountPresence from "./AccountPresence.svelte"
@@ -223,34 +224,13 @@
 	<section class="flex flex-col gap-4 p-3 pb-4" aria-labelledby="account-name">
 		<div class="flex items-start gap-3 @max-xl:flex-col">
 			<div class="flex min-w-0 flex-1 items-center gap-4">
-				<button
-					type="button"
-					class="shrink-0 cursor-default rounded-md"
-					aria-label="Profile image"
-					aria-haspopup="menu"
-					aria-expanded={workspace.imageContextMenu?.imageUrl ===
-						selectedAccount.avatarUrl}
-					disabled={!selectedAccount.avatarUrl}
-					onkeydown={(event) => {
-						if (
-							event.key === "ContextMenu" ||
-							(event.shiftKey && event.key === "F10")
-						) {
-							workspace.openImageContextMenu(
-								event,
-								selectedAccount.avatarUrl,
-							)
-						}
-					}}
-					oncontextmenu={(event) =>
-						workspace.openImageContextMenu(
-							event,
-							selectedAccount.avatarUrl,
-						)}>
+				<ImageMenuTarget
+					imageUrl={selectedAccount.avatarUrl}
+					label={`@${selectedAccount.username}'s profile image`}>
 					<AccountAvatar
 						account={selectedAccount}
 						className="size-20 text-lg" />
-				</button>
+				</ImageMenuTarget>
 				<div class="flex min-w-0 flex-col gap-1">
 					<h2
 						id="account-name"

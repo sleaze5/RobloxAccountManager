@@ -16,7 +16,6 @@
 	import type { AccountStore } from "../accounts/account-store.svelte"
 	import AccountSwitcher from "../layout/AccountSwitcher.svelte"
 	import WorkbenchSidebar from "../layout/WorkbenchSidebar.svelte"
-	import type { WorkspaceState } from "../layout/workspace-state.svelte"
 	import type { NotificationCenter } from "../notifications/notification-center.svelte"
 	import { loadMoreWhenVisible } from "../shared/load-more-when-visible"
 	import { isMoveShortcut, moveListFocus } from "../shared/move-shortcut"
@@ -34,7 +33,6 @@
 		store,
 		accounts,
 		notifications,
-		workspace,
 		onFillLaunch,
 		onFillLaunchLink,
 		onOpenInBrowser,
@@ -42,7 +40,6 @@
 		store: GamesStore
 		accounts: AccountStore
 		notifications: NotificationCenter
-		workspace: WorkspaceState
 		onFillLaunch: (placeId: number, jobId?: string) => void
 		onFillLaunchLink: (link: string) => void
 		onOpenInBrowser: (accountId: number, pageUrl: string) => void
@@ -429,7 +426,6 @@
 					{:else}
 						<GameDetails
 							{store}
-							{workspace}
 							onSearchUniverse={(universeId) =>
 								void searchUniverse(universeId)} />
 					{/if}

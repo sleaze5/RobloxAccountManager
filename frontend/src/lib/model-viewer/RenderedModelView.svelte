@@ -4,6 +4,7 @@
 	import FrameUnavailable from "../shared/FrameUnavailable.svelte"
 	import type { CameraPose } from "./model-subject"
 	import ModelLoadingPlaceholder from "./ModelLoadingPlaceholder.svelte"
+	import ModelSnapshotButton from "./ModelSnapshotButton.svelte"
 	import ModelViewerControls from "./ModelViewerControls.svelte"
 	import ModelViewerUnavailable from "./ModelViewerUnavailable.svelte"
 	import ViewerReadout from "./ViewerReadout.svelte"
@@ -24,7 +25,7 @@
 	} = $props()
 
 	let isWebGLUnavailable = $state(false),
-		viewer = $state<{ resetView: () => void }>(),
+		viewer = $state<{ resetView: () => void; captureFrame: () => string }>(),
 		cameraPose = $state.raw<CameraPose>()
 
 	// three.js is large, so the viewer loads only when a model is shown.
@@ -51,6 +52,9 @@
 			<ViewerReadout pose={cameraPose} />
 		{/if}
 		<ModelViewerControls onResetView={() => viewer?.resetView()} />
+		<ModelSnapshotButton
+			{label}
+			captureFrame={() => viewer?.captureFrame() ?? ""} />
 	{:catch}
 		<ModelViewerUnavailable isGraphicsAccelerationMissing={false} />
 	{/await}
