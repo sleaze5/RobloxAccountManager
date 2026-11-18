@@ -338,6 +338,11 @@ function showSubject(viewport: LiveModelViewport): void {
 		removeAccessory()
 		const isFirstAvatar = !outfitRenderer || previousSubject?.kind !== "avatar"
 		showOutfit(outfitOf(subject.look))
+		// The renderer centers the camera on the avatar each time it finishes
+		// building it, which would undo a pan after every change, such as a
+		// moved accessory. It centers only when a view first shows the avatar.
+		if (outfitRenderer)
+			outfitRenderer.doCameraUpdateOnLoad = !viewport.hasShownSubject
 		if (isFirstAvatar && !viewport.cameraView) frameSubject(subject)
 		return
 	}
