@@ -3,7 +3,11 @@
 	import xIcon from "@phosphor-icons/core/regular/x.svg?raw"
 	import { onMount } from "svelte"
 	import { AvatarThumbnailType } from "../backend/bridge"
-	import type { AvatarThumbnailChange } from "../backend/bridge"
+	import type {
+		AvatarThumbnailChange,
+		InventoryCategory,
+		InventoryItem,
+	} from "../backend/bridge"
 	import type {
 		AnimationLibrary,
 		ThumbnailFraming,
@@ -24,6 +28,7 @@
 		onSave,
 		onFramingChange,
 		onPreview,
+		onOpenPose,
 	}: {
 		avatar: AvatarState
 		thumbnails: AvatarThumbnailsState
@@ -34,6 +39,7 @@
 		// avatar, and onPreview the image that the user works on.
 		onFramingChange: (framing: ThumbnailFraming) => void
 		onPreview: (image: ThumbnailFraming["image"]) => void
+		onOpenPose: (emote: InventoryItem, category: InventoryCategory) => void
 	} = $props()
 
 	const customizations = $derived(thumbnails.thumbnails)
@@ -99,6 +105,7 @@
 			customization={customizations.closeup}
 			onFocus={() => onPreview("headshot")}
 			{onFramingChange}
+			{onOpenPose}
 			images={[{ label: "Headshot", url: customizations.headshotImageUrl }]}
 			{canEdit}
 			isSaving={thumbnails.savingType ===
@@ -112,6 +119,7 @@
 			customization={customizations.fullBody}
 			onFocus={() => onPreview("fullBody")}
 			{onFramingChange}
+			{onOpenPose}
 			images={[{ label: "Full body", url: avatar.avatar?.imageUrl ?? "" }]}
 			{canEdit}
 			isSaving={thumbnails.savingType ===

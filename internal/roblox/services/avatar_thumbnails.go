@@ -85,6 +85,10 @@ type AvatarThumbnailCustomization struct {
 	// Emote is the emote or animation that poses the avatar, or nil when the
 	// avatar stands in its idle pose.
 	Emote *InventoryItem `json:"emote"`
+	// EmoteCategory is the inventory category that lists the emote, such as
+	// animations for an animation pose, which reads its details. It is empty
+	// without an emote, or for a type that no category lists.
+	EmoteCategory InventoryCategory `json:"emoteCategory"`
 	// IsCameraCustomized is false while Roblox frames the image with its
 	// standard camera. Camera then holds the values that the customized
 	// camera starts from.
@@ -187,6 +191,7 @@ func thumbnailCustomizationOf(thumbnailType AvatarThumbnailType, listed []listed
 		// type when the customization uses an animation instead.
 		emote := avatarItem(entry.EmoteAssetID, "", "EmoteAnimation")
 		customization.Emote = &emote
+		customization.EmoteCategory = InventoryEmotes
 	}
 	customization.IsCameraCustomized = entry.Camera.DistanceScale >= 0
 	customization.Camera = AvatarThumbnailCamera{

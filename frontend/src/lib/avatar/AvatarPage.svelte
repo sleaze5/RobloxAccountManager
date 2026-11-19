@@ -492,7 +492,12 @@
 												[framing.image]: framing,
 											})}
 										onPreview={(image) =>
-											(previewedThumbnailImage = image)} />
+											(previewedThumbnailImage = image)}
+										onOpenPose={(emote, category) =>
+											openItem(
+												emote,
+												avatarItemCategory(category),
+											)} />
 								{:else if tab === "emotes"}
 									<AvatarEmotesPanel
 										{avatar}

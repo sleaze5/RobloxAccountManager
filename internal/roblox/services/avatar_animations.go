@@ -95,6 +95,7 @@ func (service *Users) AddThumbnailEmoteDetails(ctx context.Context, accountID, v
 			continue
 		}
 		*customization.Emote = emote
+		customization.EmoteCategory = inventoryCategoryOfAssetType(emote.TypeName)
 	}
 	return errors.Join(readErrors...)
 }

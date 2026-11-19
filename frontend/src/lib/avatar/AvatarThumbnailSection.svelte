@@ -4,6 +4,8 @@
 		AvatarThumbnailCamera,
 		AvatarThumbnailChange,
 		AvatarThumbnailCustomization,
+		InventoryCategory,
+		InventoryItem,
 	} from "../backend/bridge"
 	import { AvatarThumbnailType } from "../backend/bridge"
 	import { animationChoiceOfItem } from "../model-viewer/animation-choices"
@@ -11,7 +13,10 @@
 		AnimationLibrary,
 		ThumbnailFraming,
 	} from "../model-viewer/model-subject"
+	import caretRightIcon from "@phosphor-icons/core/regular/caret-right.svg?raw"
+	import Icon from "../shared/Icon.svelte"
 	import Select from "../shared/Select.svelte"
+	import AvatarAssetSummary from "./AvatarAssetSummary.svelte"
 	import AvatarThumbnailImage from "./AvatarThumbnailImage.svelte"
 	import { rangeShareOf, roundedToStep } from "./range-slider"
 
@@ -32,6 +37,7 @@
 		onSave,
 		onFramingChange,
 		onFocus,
+		onOpenPose,
 	}: {
 		title: string
 		description: string
@@ -45,6 +51,8 @@
 		onSave: (change: AvatarThumbnailChange) => void
 		onFramingChange: (framing: ThumbnailFraming) => void
 		onFocus: () => void
+		// onOpenPose shows the details of the saved pose.
+		onOpenPose: (emote: InventoryItem, category: InventoryCategory) => void
 	} = $props()
 
 	type CameraSetting = keyof AvatarThumbnailCamera
@@ -342,11 +350,33 @@
 		<dl class="facts">
 			<div>
 				<dt>Pose</dt>
-				<dd class="select-text">
-					{emoteLabel}{#if isSavedPoseHidden}<span class="text-fg-muted">
-							· Not shown with the standard camera</span
-						>{/if}
-				</dd>
+				{#if customization.emote}
+					{@const emote = customization.emote}
+					<dd class="flex min-w-0 flex-col items-start gap-1">
+						<button
+							class="group/row list-row flex h-12 w-full max-w-sm min-w-0 items-center gap-2 rounded-lg border border-line-subtle bg-surface px-3 text-left"
+							type="button"
+							aria-label={`${emoteLabel}. Show details`}
+							onclick={() =>
+								onOpenPose(emote, customization.emoteCategory)}>
+							<AvatarAssetSummary
+								item={emote}
+								category={customization.emoteCategory} />
+							<Icon
+								svg={caretRightIcon}
+								class="shrink-0 text-fg-muted"
+								data-nudge="right"
+								size={16}
+								aria-hidden="true" />
+						</button>
+						{#if isSavedPoseHidden}
+							<span class="text-xs text-fg-muted"
+								>Not shown with the standard camera</span>
+						{/if}
+					</dd>
+				{:else}
+					<dd>None</dd>
+				{/if}
 			</div>
 			<div>
 				<dt>Camera</dt>
