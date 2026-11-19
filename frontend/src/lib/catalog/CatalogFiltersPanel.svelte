@@ -25,7 +25,7 @@
 	const salesTypeOptions = [
 			{ value: CatalogSalesType.CatalogAnySalesType, label: "Any" },
 			{ value: CatalogSalesType.CatalogLimited, label: "Limited" },
-			{ value: CatalogSalesType.CatalogTimed, label: "Timed" },
+			{ value: CatalogSalesType.CatalogTimed, label: "Timed options" },
 		],
 		creatorTypeOptions = [
 			{ value: CatalogCreatorType.CatalogCreatorUser, label: "User" },

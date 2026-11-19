@@ -1,6 +1,20 @@
+<script lang="ts" module>
+	export interface ItemTileBadge {
+		// label names the mark in its tooltip and for screen readers.
+		label: string
+		icon: string
+		tone: "text-success" | "text-warning" | "text-fg" | "text-fg-muted"
+	}
+</script>
+
 <script lang="ts">
-	import { InventoryCategory } from "../backend/bridge"
+	import checkCircleFillIcon from "@phosphor-icons/core/fill/check-circle-fill.svg?raw"
+	import diamondIcon from "@phosphor-icons/core/regular/diamond.svg?raw"
+	import hourglassIcon from "@phosphor-icons/core/regular/hourglass.svg?raw"
+	import tShirtIcon from "@phosphor-icons/core/regular/t-shirt.svg?raw"
+	import timerIcon from "@phosphor-icons/core/regular/timer.svg?raw"
 	import type { InventoryItem } from "../backend/bridge"
+	import Icon from "../shared/Icon.svelte"
 	import ProfileImage from "../shared/ProfileImage.svelte"
 	import { inventoryTypeLabel } from "./inventory-categories"
 	import type { InventoryCategoryOption } from "./inventory-categories"
@@ -10,6 +24,8 @@
 		item,
 		category,
 		isWorn,
+		isOwned,
+		extraBadges = [],
 		isDisabled = false,
 		actionLabel,
 		onOpen,
@@ -17,6 +33,11 @@
 		item: InventoryItem
 		category: InventoryCategoryOption
 		isWorn: boolean
+		// Whether the account that the page acts for owns the item.
+		isOwned: boolean
+		// extraBadges are the marks that only one page knows, after the shared
+		// ones.
+		extraBadges?: ItemTileBadge[]
 		// isDisabled keeps the tile focusable, so that its tooltip can say why
 		// the action is unavailable.
 		isDisabled?: boolean
@@ -42,6 +63,39 @@
 						? `${percent.format(item.badge.pastDayWinFraction)} won`
 						: "",
 		),
+		// The marks of the item, in priority order. The last ones clip first
+		// when the tile is narrow.
+		shownBadges = $derived<ItemTileBadge[]>(
+			[
+				isOwned && {
+					label: "You own this",
+					icon: checkCircleFillIcon,
+					tone: "text-success" as const,
+				},
+				isWorn && {
+					label: "Worn",
+					icon: tShirtIcon,
+					tone: "text-success" as const,
+				},
+				item.market?.isLimited && {
+					label: "Limited",
+					icon: diamondIcon,
+					tone: "text-warning" as const,
+				},
+				item.market?.isForSale &&
+					item.market.offSaleDeadlineMs > 0 && {
+						label: "Leaves sale soon",
+						icon: timerIcon,
+						tone: "text-warning" as const,
+					},
+				item.market?.hasTimedOptions && {
+					label: "Timed options: can be rented",
+					icon: hourglassIcon,
+					tone: "text-fg-muted" as const,
+				},
+				...extraBadges,
+			].filter((badge): badge is ItemTileBadge => !!badge),
+		),
 		isUnpriced = $derived(
 			!!item.market &&
 				!item.market.isForSale &&
@@ -66,26 +120,30 @@
 			aria-hidden="true">
 			<ProfileImage url={item.imageUrl} fallbackIcon={category.icon} />
 		</span>
-		{#if item.serialNumber !== null || isWorn}
-			<span class="absolute inset-x-1 top-1 flex items-start gap-1">
-				{#if item.serialNumber !== null}
-					<span
-						class="min-w-0 truncate rounded-sm border border-line-strong bg-overlay px-1 font-mono text-2xs leading-4 font-medium text-fg"
-						><span class="sr-only"
-							>Serial number
-						</span>#{exactNumbers.format(item.serialNumber)}</span>
-				{/if}
-				{#if isWorn}
-					<span
-						class="ml-auto shrink-0 rounded-sm border border-line-strong bg-overlay px-1 text-2xs leading-4 font-medium text-success"
-						>Worn</span>
-				{/if}
-			</span>
-		{/if}
-		{#if item.market?.isLimited && category.id !== InventoryCategory.InventoryCollectibles}
+		{#if item.serialNumber !== null}
 			<span
-				class="absolute right-1 bottom-1 rounded-sm border border-line-strong bg-overlay px-1 text-2xs leading-4 font-medium text-warning"
-				>Limited</span>
+				class="absolute top-1 left-1 max-w-full truncate rounded-sm border border-line-strong bg-overlay px-1 font-mono text-2xs leading-4 font-medium text-fg"
+				><span class="sr-only">Serial number </span>#{exactNumbers.format(
+					item.serialNumber,
+				)}</span>
+		{/if}
+		{#if shownBadges.length > 0}
+			<!-- Reversed, so that the first badge sits at the right edge and the
+			     last ones clip first on a narrow tile. -->
+			<span
+				class="absolute inset-x-1 bottom-1 flex flex-row-reverse gap-0.5 overflow-hidden">
+				{#each shownBadges as badge (badge.label)}
+					<span
+						class={[
+							"grid size-5 shrink-0 animate-pop place-items-center rounded-sm border border-line-strong bg-overlay",
+							badge.tone,
+						]}
+						data-tooltip={badge.label}
+						><Icon svg={badge.icon} size={12} aria-hidden="true" /><span
+							class="sr-only">{badge.label}</span
+						></span>
+				{/each}
+			</span>
 		{/if}
 	</span>
 	<span class="flex min-w-0 flex-col px-1 pb-0.5">

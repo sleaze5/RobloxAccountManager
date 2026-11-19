@@ -8,7 +8,6 @@ import (
 	"fmt"
 	"net/http"
 	"strings"
-	"sync"
 	"time"
 
 	"github.com/sleaze5/RobloxAccountManager/internal/accounts"
@@ -373,26 +372,14 @@ func failedImportBatchItem(index int, status, message string) ImportBatchItem {
 
 func (service *Service) validateImportInputs(ctx context.Context, inputs []string) []importValidationOutcome {
 	outcomes := make([]importValidationOutcome, len(inputs))
-	jobs := make(chan int, len(inputs))
-	for index := range inputs {
-		jobs <- index
-	}
-	close(jobs)
-
-	var workers sync.WaitGroup
-	for range min(importValidationWorkers, len(inputs)) {
-		workers.Go(func() {
-			for index := range jobs {
-				cookie, err := accounts.NormalizeCookie(inputs[index])
-				if err != nil {
-					outcomes[index].err = &roblox.Error{Kind: roblox.KindInvalidCookieInput, Endpoint: "cookie-import", Message: err.Error()}
-					continue
-				}
-				outcomes[index].validation, outcomes[index].err = service.users.ValidateCookie(ctx, cookie, "")
-			}
-		})
-	}
-	workers.Wait()
+	forEachIndexConcurrently(len(inputs), importValidationWorkers, func(index int) {
+		cookie, err := accounts.NormalizeCookie(inputs[index])
+		if err != nil {
+			outcomes[index].err = &roblox.Error{Kind: roblox.KindInvalidCookieInput, Endpoint: "cookie-import", Message: err.Error()}
+			return
+		}
+		outcomes[index].validation, outcomes[index].err = service.users.ValidateCookie(ctx, cookie, "")
+	})
 	return outcomes
 }
 

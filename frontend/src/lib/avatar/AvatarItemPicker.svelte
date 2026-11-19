@@ -244,6 +244,7 @@
 										{item}
 										{category}
 										{isWorn}
+										isOwned={true}
 										isDisabled={emoteSlot === null &&
 											!isWorn &&
 											!canPutOn(item)}

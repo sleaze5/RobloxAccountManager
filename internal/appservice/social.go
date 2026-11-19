@@ -11,7 +11,6 @@ import (
 	"slices"
 	"strconv"
 	"strings"
-	"sync"
 	"unicode/utf8"
 
 	"github.com/sleaze5/RobloxAccountManager/internal/accounts"
@@ -633,7 +632,7 @@ func (service *Service) friendConnections(ctx context.Context, logger *slog.Logg
 		switch {
 		case view.RobloxUserID == userID:
 			savedID = view.ID
-		case view.ID != viewerID && view.State != accounts.StateReauthRequired && view.State != accounts.StateDisabled && view.State != accounts.StateModerated:
+		case view.ID != viewerID && canReadWithSession(view):
 			candidates = append(candidates, view)
 		}
 	}
@@ -664,21 +663,16 @@ func (service *Service) friendConnections(ctx context.Context, logger *slog.Logg
 func (service *Service) friendConnectionStates(ctx context.Context, views []accounts.AccountView, userID int64) ([]FriendConnection, []error) {
 	connections := make([]FriendConnection, len(views))
 	failures := make([]error, len(views))
-	jobs := make(chan int, len(views))
-	for index := range views {
-		jobs <- index
-	}
-	close(jobs)
-	var workers sync.WaitGroup
-	for range min(friendConnectionWorkers, len(views)) {
-		workers.Go(func() {
-			for index := range jobs {
-				connections[index], failures[index] = service.friendConnection(ctx, views[index], userID)
-			}
-		})
-	}
-	workers.Wait()
+	forEachIndexConcurrently(len(views), friendConnectionWorkers, func(index int) {
+		connections[index], failures[index] = service.friendConnection(ctx, views[index], userID)
+	})
 	return connections, failures
+}
+
+// canReadWithSession reports whether the session of a saved account can still
+// read from Roblox for another feature, such as the connections of a user.
+func canReadWithSession(view accounts.AccountView) bool {
+	return view.State != accounts.StateReauthRequired && view.State != accounts.StateDisabled && view.State != accounts.StateModerated
 }
 
 func (connection FriendConnection) isConnected() bool {

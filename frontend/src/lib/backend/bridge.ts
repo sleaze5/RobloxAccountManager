@@ -30,6 +30,8 @@ export type {
 	RobloxNotificationView,
 	RobuxTransaction,
 	RobuxTransactionPage,
+	SavedAccountItemOwner,
+	SavedAccountsItemOwnership,
 	RobloxCleanerState,
 	RobloxCleanReport,
 	RobloxPlayerPathCheck,

@@ -63,15 +63,17 @@
 	import Timestamp from "../shared/Timestamp.svelte"
 	import { relativeTime } from "../shared/timestamp"
 	import {
+		assetCategories,
 		inventoryCategoryOptionOf,
 		inventoryTypeLabel,
 	} from "./inventory-categories"
 	import type { InventoryCategoryOption } from "./inventory-categories"
-	import type { Account } from "../accounts/account-model"
+	import type { AccountStore } from "../accounts/account-store.svelte"
 	import InventoryItemTile from "./InventoryItemTile.svelte"
 	import { formatRobux, salePriceLabel } from "./inventory-prices"
 	import PurchaseAccountActions from "./PurchaseAccountActions.svelte"
 	import PurchaseItemSummary from "./PurchaseItemSummary.svelte"
+	import SavedAccountsOwnership from "./SavedAccountsOwnership.svelte"
 	import { categoryItemKey, inventoryItemKey } from "./inventory-state.svelte"
 	import type {
 		InventoryDownloadKind,
@@ -83,7 +85,7 @@
 		category: openedCategory,
 		inventory,
 		username,
-		account,
+		accounts,
 		isOwnInventory: isOpenedFromOwnInventory,
 		isWorn: isOpenedItemWorn,
 		onSearchPlace,
@@ -94,8 +96,8 @@
 		category: InventoryCategoryOption
 		inventory: InventoryState
 		username: string
-		// The account that buys and favorites items.
-		account: Account
+		// The selected account buys and favorites items.
+		accounts: AccountStore
 		isOwnInventory: boolean
 		isWorn: boolean
 		onSearchPlace: (placeId: number) => void
@@ -110,7 +112,11 @@
 		{ item: InventoryItem; category: InventoryCategoryOption }[]
 	>([])
 
-	const item = $derived(openedRelatedItems.at(-1)?.item ?? openedItem),
+	const account = $derived(accounts.selectedAccount),
+		otherAccounts = $derived(
+			accounts.accounts.filter((savedAccount) => savedAccount.id !== account.id),
+		),
+		item = $derived(openedRelatedItems.at(-1)?.item ?? openedItem),
 		category = $derived(openedRelatedItems.at(-1)?.category ?? openedCategory),
 		previousItemName = $derived(
 			(openedRelatedItems.at(-2)?.item ?? openedItem).name || "Unnamed item",
@@ -172,6 +178,8 @@
 		badge = $derived(item.badge),
 		isCatalogItem = $derived(!!item.catalogItemType),
 		isBundle = $derived(item.catalogItemType === CatalogItemType.CatalogBundle),
+		// Whether the item is an asset, whose ID the worn items can hold.
+		isAssetCategory = $derived(assetCategories.includes(category.id)),
 		// Roblox renders badges and game passes only as small icons.
 		isSmallIcon = $derived(
 			category.id === InventoryCategory.InventoryBadges ||
@@ -324,6 +332,24 @@
 			shownCategory = category.id
 		if (canHaveRelatedItems) {
 			untrack(() => void inventory.loadRelatedItems(shownItem, shownCategory))
+		}
+	})
+
+	$effect(() => {
+		const shownRelatedItems = relatedItems
+		if (shownRelatedItems?.length) {
+			untrack(() => void inventory.loadOwnership(shownRelatedItems))
+		}
+	})
+
+	$effect(() => {
+		const shownItem = item,
+			shownCategory = category.id
+		if (otherAccounts.length > 0) {
+			untrack(
+				() =>
+					void inventory.loadSavedAccountsOwnership(shownItem, shownCategory),
+			)
 		}
 	})
 
@@ -1143,6 +1169,17 @@
 				</div>
 			</div>
 
+			{#if otherAccounts.length > 0}
+				<SavedAccountsOwnership
+					{otherAccounts}
+					ownership={inventory.savedAccountsOwnershipByItemKey.get(
+						detailsKey,
+					)}
+					canBeWorn={isAssetCategory}
+					onRetry={() =>
+						void inventory.loadSavedAccountsOwnership(item, category.id)} />
+			{/if}
+
 			{#if canHaveRelatedItems}
 				<section
 					class="flex flex-col gap-3"
@@ -1197,6 +1234,12 @@
 										isWorn={inventory.wornAssetIds.has(
 											relatedItem.item.itemId,
 										)}
+										isOwned={inventory.isOwnedByItemKey.get(
+											categoryItemKey(
+												relatedItem.category,
+												relatedItem.item.itemId,
+											),
+										) === true}
 										actionLabel="Open details"
 										onOpen={() => openRelatedItem(relatedItem)} />
 								</li>

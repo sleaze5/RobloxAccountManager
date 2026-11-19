@@ -4,10 +4,18 @@
 	import { onMount, tick, untrack } from "svelte"
 	import AccountPageHeader from "../accounts/AccountPageHeader.svelte"
 	import type { AccountStore } from "../accounts/account-store.svelte"
-	import type { AvatarOutfit, InventoryItem } from "../backend/bridge"
+	import type {
+		AvatarAsset,
+		AvatarOutfit,
+		InventoryCategory,
+		InventoryItem,
+	} from "../backend/bridge"
 	import InventoryItemDialog from "../inventory/InventoryItemDialog.svelte"
 	import type { InventoryCategoryOption } from "../inventory/inventory-categories"
-	import { InventoryState } from "../inventory/inventory-state.svelte"
+	import {
+		categoryItemKey,
+		InventoryState,
+	} from "../inventory/inventory-state.svelte"
 	import type { NotificationCenter } from "../notifications/notification-center.svelte"
 	import Icon from "../shared/Icon.svelte"
 	import RefreshIcon from "../shared/RefreshIcon.svelte"
@@ -90,6 +98,7 @@
 	const draft = $derived(avatar.draft),
 		canEdit = $derived(avatar.isEditable && !!avatar.rules && !!draft),
 		isChanged = $derived(avatar.isChanged),
+		isOwnAvatar = $derived(Number(accounts.selectedAccount.userId) === userId),
 		savedAssetIds = $derived(
 			new Set((avatar.avatar?.assets ?? []).map((asset) => asset.item.itemId)),
 		),
@@ -103,6 +112,41 @@
 			adjustments: adjustedCount > 0 ? String(adjustedCount) : undefined,
 			emotes: draft ? `${draft.emotes.length}/${emoteSlotCount}` : undefined,
 		})
+
+	// isOwnedByAccount tells whether the selected account owns an item that
+	// the page shows. The account owns everything that its own avatar wears.
+	function isOwnedByAccount(category: InventoryCategory, itemId: number): boolean {
+		return (
+			isOwnAvatar ||
+			inventory.isOwnedByItemKey.get(categoryItemKey(category, itemId)) === true
+		)
+	}
+
+	function isAssetOwned(asset: AvatarAsset): boolean {
+		return isOwnedByAccount(
+			avatarItemCategory(asset.category).id,
+			asset.item.itemId,
+		)
+	}
+
+	// The tiles of another user's avatar show which items the account owns.
+	$effect(() => {
+		if (isOwnAvatar || !draft) return
+		const viewedOutfitAssets = viewedOutfit
+				? (avatar.outfitDetailsById.get(viewedOutfit.outfitId)?.assets ?? [])
+				: [],
+			categorizedItems = [
+				...[...draft.assets, ...viewedOutfitAssets].map((asset) => ({
+					category: avatarItemCategory(asset.category).id,
+					item: asset.item,
+				})),
+				...draft.emotes.map((emote) => ({
+					category: emoteCategory.id,
+					item: emote.item,
+				})),
+			]
+		untrack(() => void inventory.loadOwnership(categorizedItems))
+	})
 
 	function openItem(item: InventoryItem, category: InventoryCategoryOption): void {
 		inventory.clearItemActionError()
@@ -407,6 +451,7 @@
 										{avatar}
 										{canEdit}
 										{username}
+										isOwned={isAssetOwned}
 										onOpenItem={(asset) =>
 											openItem(
 												asset.item,
@@ -433,6 +478,11 @@
 									<AvatarEmotesPanel
 										{avatar}
 										{canEdit}
+										isOwned={(emote) =>
+											isOwnedByAccount(
+												emoteCategory.id,
+												emote.item.itemId,
+											)}
 										onOpenEmote={(emote) =>
 											openItem(emote.item, emoteCategory)}
 										onChooseEmote={(slot) =>
@@ -474,7 +524,7 @@
 		category={detailedItem.category}
 		{inventory}
 		{username}
-		account={accounts.selectedAccount}
+		{accounts}
 		isOwnInventory={false}
 		isWorn={savedAssetIds.has(detailedItem.item.itemId)}
 		onSearchPlace={(placeId) => {
@@ -490,6 +540,7 @@
 		{avatar}
 		outfit={viewedOutfit}
 		canWear={avatar.isEditable}
+		isOwned={isAssetOwned}
 		onOpenItem={(asset) => openItem(asset.item, avatarItemCategory(asset.category))}
 		onClose={() => (viewedOutfit = null)} />
 {/if}

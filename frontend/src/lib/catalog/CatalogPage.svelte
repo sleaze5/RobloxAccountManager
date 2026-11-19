@@ -7,7 +7,7 @@
 	import magnifyingGlassIcon from "@phosphor-icons/core/regular/magnifying-glass.svg?raw"
 	import storefrontIcon from "@phosphor-icons/core/regular/storefront.svg?raw"
 	import tagIcon from "@phosphor-icons/core/regular/tag.svg?raw"
-	import timerIcon from "@phosphor-icons/core/regular/timer.svg?raw"
+	import hourglassIcon from "@phosphor-icons/core/regular/hourglass.svg?raw"
 	import userIcon from "@phosphor-icons/core/regular/user.svg?raw"
 	import usersThreeIcon from "@phosphor-icons/core/regular/users-three.svg?raw"
 	import warningIcon from "@phosphor-icons/core/regular/warning.svg?raw"
@@ -27,6 +27,7 @@
 	import { inventoryCategoryOptionOf } from "../inventory/inventory-categories"
 	import { formatRobux } from "../inventory/inventory-prices"
 	import {
+		categoryItemKey,
 		InventoryState,
 		inventoryItemKey,
 	} from "../inventory/inventory-state.svelte"
@@ -142,6 +143,14 @@
 		)
 	}
 
+	function isOwned(categorizedItem: CategorizedInventoryItem): boolean {
+		return (
+			itemActions?.isOwnedByItemKey.get(
+				categoryItemKey(categorizedItem.category, categorizedItem.item.itemId),
+			) === true
+		)
+	}
+
 	function showCategory(categoryId: CatalogCategory): void {
 		if (categoryId === search.category) return
 		store.applySearch({ category: categoryId })
@@ -196,6 +205,14 @@
 		return () => {
 			accountItemActions.dispose()
 			if (itemActions === accountItemActions) itemActions = null
+		}
+	})
+
+	$effect(() => {
+		const accountItemActions = itemActions,
+			items = store.items
+		if (accountItemActions && items.length > 0) {
+			untrack(() => void accountItemActions.loadOwnership(items))
 		}
 	})
 
@@ -411,10 +428,10 @@
 							{@render filterChip(
 								search.salesType === CatalogSalesType.CatalogLimited
 									? diamondIcon
-									: timerIcon,
+									: hourglassIcon,
 								search.salesType === CatalogSalesType.CatalogLimited
 									? "Limited"
-									: "Timed",
+									: "Timed options",
 								"Clear sales type",
 								() =>
 									store.applySearch({
@@ -502,6 +519,7 @@
 											categorizedItem.category,
 										)}
 										isWorn={isWorn(categorizedItem)}
+										isOwned={isOwned(categorizedItem)}
 										isDisabled={!itemActions}
 										actionLabel="Show details"
 										onOpen={() => openItem(categorizedItem)} />
@@ -573,7 +591,7 @@
 		category={inventoryCategoryOptionOf(detailedItem.category)}
 		inventory={itemActions}
 		username={accounts.selectedAccount.username}
-		account={accounts.selectedAccount}
+		{accounts}
 		isOwnInventory={false}
 		isWorn={isWorn(detailedItem)}
 		onSearchPlace={(placeId) => {

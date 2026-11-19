@@ -29,7 +29,11 @@
 	import type { NotificationCenter } from "../notifications/notification-center.svelte"
 	import InventoryItemDialog from "./InventoryItemDialog.svelte"
 	import InventoryItemTile from "./InventoryItemTile.svelte"
-	import { InventoryState, ownedCopyKey } from "./inventory-state.svelte"
+	import {
+		categoryItemKey,
+		InventoryState,
+		ownedCopyKey,
+	} from "./inventory-state.svelte"
 
 	let {
 		accounts,
@@ -163,6 +167,14 @@
 		inventory.loadItemDetails(item, category.id, !isOwnInventory)
 		void inventory.checkFavorite(item)
 	}
+
+	// The tiles of another user's items show which ones the account owns too.
+	$effect(() => {
+		if (isOwnInventory || items.length === 0) return
+		const categoryId = category.id,
+			categorizedItems = items.map((item) => ({ category: categoryId, item }))
+		untrack(() => void inventory.loadOwnership(categorizedItems))
+	})
 
 	onMount(() => {
 		void inventory.refresh()
@@ -362,6 +374,13 @@
 										{item}
 										{category}
 										isWorn={wornAssetIds.has(item.itemId)}
+										isOwned={isOwnInventory ||
+											inventory.isOwnedByItemKey.get(
+												categoryItemKey(
+													category.id,
+													item.itemId,
+												),
+											) === true}
 										actionLabel={isPlaceCategory
 											? "Show in Games"
 											: "Show details"}
@@ -395,7 +414,7 @@
 		{category}
 		{inventory}
 		{username}
-		account={accounts.selectedAccount}
+		{accounts}
 		{isOwnInventory}
 		isWorn={wornAssetIds.has(detailedItem.itemId)}
 		onSearchPlace={(placeId) => {

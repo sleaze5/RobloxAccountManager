@@ -107,6 +107,9 @@ type InventoryItemMarket struct {
 	SaleLocation InventorySaleLocation `json:"saleLocation"`
 	// OffSaleDeadlineMs is when a timed item goes off sale, or 0.
 	OffSaleDeadlineMs int64 `json:"offSaleDeadlineMs"`
+	// HasTimedOptions is true for an item that Roblox also rents for a few
+	// days at a time, which the Marketplace calls Timed Options.
+	HasTimedOptions bool `json:"hasTimedOptions"`
 }
 
 // InventorySaleLocation is where Roblox sells a catalog item.
@@ -416,6 +419,9 @@ type catalogItemDetails struct {
 	UnitsAvailable          *int64          `json:"unitsAvailableForConsumption"`
 	SaleLocationType        string          `json:"saleLocationType"`
 	OffSaleDeadline         *string         `json:"offSaleDeadline"`
+	TimedOptions            []struct {
+		Days int64 `json:"days"`
+	} `json:"timedOptions"`
 }
 
 // AddCatalogDetails adds the description, creator, and price that the catalog
@@ -512,6 +518,7 @@ func addCatalogAvailability(market *InventoryItemMarket, listedItem catalogItemD
 		}
 	}
 	if market.IsForSale {
+		market.HasTimedOptions = len(listedItem.TimedOptions) > 0
 		market.SaleLocation = saleLocationOf(listedItem.SaleLocationType)
 		if listedItem.OffSaleDeadline != nil {
 			market.OffSaleDeadlineMs = robloxTimeMs(*listedItem.OffSaleDeadline)
