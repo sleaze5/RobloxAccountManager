@@ -15,6 +15,7 @@
 	import pencilSimpleIcon from "@phosphor-icons/core/regular/pencil-simple.svg?raw"
 	import sealCheckIcon from "@phosphor-icons/core/regular/seal-check.svg?raw"
 	import signpostIcon from "@phosphor-icons/core/regular/signpost.svg?raw"
+	import storefrontIcon from "@phosphor-icons/core/regular/storefront.svg?raw"
 	import usersThreeIcon from "@phosphor-icons/core/regular/users-three.svg?raw"
 	import Icon from "../shared/Icon.svelte"
 	import RefreshIcon from "../shared/RefreshIcon.svelte"
@@ -53,6 +54,7 @@
 		onEditNickname,
 		onRelationshipAction,
 		onOpenSubpage,
+		onShowCreations,
 	}: {
 		store: SocialStore
 		accounts: AccountStore
@@ -63,6 +65,7 @@
 		onEditNickname: (nickname: string) => void
 		onRelationshipAction: (person: SocialUser, action: RelationshipActionId) => void
 		onOpenSubpage: (subpage: SocialSubpage) => void
+		onShowCreations: (username: string) => void
 	} = $props()
 
 	const origins: Record<string, string> = {
@@ -253,6 +256,15 @@
 				disabled={!isSelf && !profile?.inventoryVisible}
 				onclick={() => onOpenSubpage("inventory")}>
 				<Icon svg={backpackIcon} size={16} aria-hidden="true" />
+			</button>
+			<button
+				class="button-icon"
+				type="button"
+				aria-label="Show creations in Marketplace"
+				data-tooltip="Show creations in Marketplace"
+				disabled={!person.username}
+				onclick={() => onShowCreations(person.username)}>
+				<Icon svg={storefrontIcon} size={16} aria-hidden="true" />
 			</button>
 			<button
 				class="button-icon"

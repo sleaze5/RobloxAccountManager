@@ -5,9 +5,12 @@
 	import gearIcon from "@phosphor-icons/core/regular/gear.svg?raw"
 	import handshakeIcon from "@phosphor-icons/core/regular/handshake.svg?raw"
 	import lockKeyIcon from "@phosphor-icons/core/regular/lock-key.svg?raw"
+	import storefrontIcon from "@phosphor-icons/core/regular/storefront.svg?raw"
 	import usersIcon from "@phosphor-icons/core/regular/users.svg?raw"
 	import Icon from "../shared/Icon.svelte"
 	import type { AccountStore } from "../accounts/account-store.svelte"
+
+	type NavigationPage = "accounts" | "social" | "games" | "catalog" | "logs-explorer"
 
 	let {
 		store,
@@ -17,8 +20,8 @@
 		onLock,
 	}: {
 		store: AccountStore
-		activePage: "accounts" | "social" | "games" | "logs-explorer"
-		onPage: (page: "accounts" | "social" | "games" | "logs-explorer") => void
+		activePage: NavigationPage
+		onPage: (page: NavigationPage) => void
 		onSettings: () => void
 		onLock: () => void
 	} = $props()
@@ -52,6 +55,14 @@
 			onclick={() => onPage("games")}>
 			<Icon svg={gameControllerIcon} size={16} aria-hidden="true" />
 			<span>Games</span>
+		</button>
+		<button
+			class="tab"
+			type="button"
+			aria-current={activePage === "catalog" ? "page" : undefined}
+			onclick={() => onPage("catalog")}>
+			<Icon svg={storefrontIcon} size={16} aria-hidden="true" />
+			<span>Marketplace</span>
 		</button>
 		<button
 			class="tab"

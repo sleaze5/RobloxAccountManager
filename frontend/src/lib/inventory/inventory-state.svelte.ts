@@ -5,7 +5,7 @@ import type {
 	InventoryItem,
 	InventoryItemDetails,
 	InventoryItemLook,
-	RelatedInventoryItem,
+	CategorizedInventoryItem,
 	RenderedModel,
 } from "../backend/bridge"
 import type { AccountStore } from "../accounts/account-store.svelte"
@@ -78,7 +78,9 @@ export class InventoryState {
 	isOwnedByItemKey = $state.raw(new Map<string, boolean | null>())
 	// The assets that each opened item includes or uses, by categoryItemKey.
 	// null means that the request failed.
-	relatedItemsByItemKey = $state.raw(new Map<string, RelatedInventoryItem[] | null>())
+	relatedItemsByItemKey = $state.raw(
+		new Map<string, CategorizedInventoryItem[] | null>(),
+	)
 	// How the 3D viewer shows the opened item, by the categoryItemKey of the
 	// item.
 	readonly itemLook: KeyedLoad<InventoryItemLook>
@@ -132,7 +134,7 @@ export class InventoryState {
 	}
 
 	async refresh(): Promise<void> {
-		void this.#loadWornAssets()
+		void this.loadWornAssets()
 		await this.#load("")
 	}
 
@@ -526,7 +528,7 @@ export class InventoryState {
 		this.#scope.dispose()
 	}
 
-	async #loadWornAssets(): Promise<void> {
+	async loadWornAssets(): Promise<void> {
 		try {
 			const assetIds = await this.#scope.track(
 				accountBackend.GetWornAssetIDs(this.#scope.accountId, this.userId),

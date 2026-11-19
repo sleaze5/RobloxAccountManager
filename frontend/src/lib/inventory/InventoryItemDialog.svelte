@@ -40,7 +40,7 @@
 	import type {
 		GamePlace,
 		InventoryItem,
-		RelatedInventoryItem,
+		CategorizedInventoryItem,
 	} from "../backend/bridge"
 	import Dialog from "../shared/Dialog.svelte"
 	import FrameUnavailable from "../shared/FrameUnavailable.svelte"
@@ -351,7 +351,7 @@
 		)?.focus()
 	}
 
-	function openRelatedItem(relatedItem: RelatedInventoryItem): void {
+	function openRelatedItem(relatedItem: CategorizedInventoryItem): void {
 		const relatedCategory = inventoryCategoryOptionOf(relatedItem.category)
 		inventory.loadItemDetails(relatedItem.item, relatedCategory.id, true)
 		void inventory.checkFavorite(relatedItem.item)

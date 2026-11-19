@@ -48,6 +48,7 @@
 	import { SocialStore } from "./lib/social/social-store.svelte"
 	import type { SocialListKind } from "./lib/social/social-store.svelte"
 	import { GamesStore, setGamesStore } from "./lib/games/games-store.svelte"
+	import { CatalogStore } from "./lib/catalog/catalog-store.svelte"
 	import { LogsExplorerStore } from "./lib/logs-explorer/logs-explorer-store.svelte"
 	import LaunchDrawer from "./lib/layout/LaunchDrawer.svelte"
 	import PageNavigation from "./lib/layout/PageNavigation.svelte"
@@ -82,7 +83,13 @@
 		| "nickname"
 		| "remove-connections"
 		| null
-	type ActivePage = "accounts" | "social" | "games" | "logs-explorer" | "settings"
+	type ActivePage =
+		| "accounts"
+		| "social"
+		| "games"
+		| "catalog"
+		| "logs-explorer"
+		| "settings"
 
 	// The pages other than Accounts load as separate files, so that the app
 	// starts faster. They begin to load once the app shows, so that opening a
@@ -90,6 +97,7 @@
 	const pageImports = {
 		social: () => import("./lib/social/SocialPage.svelte"),
 		games: () => import("./lib/games/GamesPage.svelte"),
+		catalog: () => import("./lib/catalog/CatalogPage.svelte"),
 		logsExplorer: () => import("./lib/logs-explorer/LogsExplorerPage.svelte"),
 		settings: () => import("./lib/settings/SettingsPage.svelte"),
 	}
@@ -98,6 +106,7 @@
 		store = new AccountStore(notificationCenter),
 		logsExplorer = new LogsExplorerStore(),
 		games = new GamesStore(notificationCenter),
+		catalog = new CatalogStore(store),
 		social = new SocialStore(notificationCenter),
 		workspace = new WorkspaceState(),
 		passwordReminderNotificationId = "password-test-reminder"
@@ -155,6 +164,7 @@
 			untrack(() => {
 				games.reset()
 				social.reset()
+				catalog.reset()
 			})
 		} else untrack(() => games.initialize())
 	})
@@ -217,6 +227,7 @@
 		return () => {
 			games.reset()
 			social.reset()
+			catalog.reset()
 			unmountAccounts()
 			unmountBrowser()
 			unmountUpdates()
@@ -353,6 +364,12 @@
 			void games.searchFor(text)
 			void focusAfterRender("[data-games-search]")
 		})
+	}
+
+	// showCreations opens the Marketplace on every item that the user created,
+	// including the items that it hides.
+	function showCreations(username: string): void {
+		showPage("catalog", () => catalog.showCreations(username))
 	}
 
 	function openRenewCookie(accountId: number): void {
@@ -578,11 +595,18 @@
 		notificationCenter.show({ message, title: "Accounts saved", tone: "success" })
 	}
 
-	const pageOrder = ["accounts", "social", "games", "logs-explorer"] as const
+	const pageOrder = [
+		"accounts",
+		"social",
+		"games",
+		"catalog",
+		"logs-explorer",
+	] as const
 	const pageLabels = {
 		"accounts": "Accounts",
 		"social": "Social",
 		"games": "Games",
+		"catalog": "Marketplace",
 		"logs-explorer": "Logs Explorer",
 	} satisfies Record<(typeof pageOrder)[number], string>
 
@@ -718,7 +742,8 @@
 					onEditNickname={openNickname}
 					onRemoveSelected={openRemoveConnections}
 					onOpenInBrowser={(accountId, pageUrl) =>
-						void openManagedBrowser(accountId, pageUrl)} />
+						void openManagedBrowser(accountId, pageUrl)}
+					onShowCreations={showCreations} />
 			{:catch}
 				{@render pageUnavailable()}
 			{/await}
@@ -735,6 +760,18 @@
 					onFillLaunchLink={(link) => fillGameLaunchLink(link)}
 					onOpenInBrowser={(accountId, pageUrl) =>
 						void openManagedBrowser(accountId, pageUrl)} />
+			{:catch}
+				{@render pageUnavailable()}
+			{/await}
+		{:else if activePage === "catalog"}
+			{#await pageImports.catalog()}
+				{@render pageLoading()}
+			{:then { default: CatalogPage }}
+				<CatalogPage
+					store={catalog}
+					accounts={store}
+					notifications={notificationCenter}
+					onSearchPlace={(placeId) => searchGames(`id:${placeId}`)} />
 			{:catch}
 				{@render pageUnavailable()}
 			{/await}
@@ -805,6 +842,7 @@
 										onReplaceCookie={openAddAccount}
 										onEditDescription={openDescriptionEditor}
 										onShowSocial={showSocial}
+										onShowCreations={showCreations}
 										onOpenBrowser={(accountId) =>
 											void openManagedBrowser(accountId)} />
 								</div>

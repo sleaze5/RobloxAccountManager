@@ -32,13 +32,19 @@ func (service *Service) addCatalogDetailsAndImages(ctx context.Context, accountI
 	if err := service.users.AddCatalogDetails(ctx, accountID, version, items); err != nil {
 		logger.WarnContext(ctx, "inventory catalog details unavailable", "error", err)
 	}
+	service.addItemImages(ctx, items, logger)
+}
+
+// addItemImages adds the small image of each item. A missing image leaves the
+// item without it.
+func (service *Service) addItemImages(ctx context.Context, items []robloxservices.InventoryItem, logger *slog.Logger) {
 	targets := make([]robloxservices.ThumbnailTarget, len(items))
 	for index, item := range items {
 		targets[index] = item.ThumbnailTarget()
 	}
 	images, err := service.thumbnails.Images(ctx, targets, robloxservices.SmallThumbnailSize)
 	if err != nil {
-		logger.WarnContext(ctx, "inventory images unavailable", "error", err)
+		logger.WarnContext(ctx, "item images unavailable", "error", err)
 	}
 	for index := range items {
 		items[index].ImageURL = images[targets[index]]
@@ -47,7 +53,7 @@ func (service *Service) addCatalogDetailsAndImages(ctx context.Context, accountI
 
 // GetInventoryRelatedItems lists the assets that the item includes or uses,
 // such as the parts of a bundle or the mesh and texture of an accessory.
-func (service *Service) GetInventoryRelatedItems(ctx context.Context, accountID int64, category robloxservices.InventoryCategory, itemID int64) ([]robloxservices.RelatedInventoryItem, error) {
+func (service *Service) GetInventoryRelatedItems(ctx context.Context, accountID int64, category robloxservices.InventoryCategory, itemID int64) ([]robloxservices.CategorizedInventoryItem, error) {
 	ctx, version, done, err := service.beginAccountSession(ctx, accountID, "inventory-related-items")
 	if err != nil {
 		return nil, err

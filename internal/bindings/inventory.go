@@ -50,7 +50,7 @@ func (service *Service) GetInventoryItemLook(ctx context.Context, accountID int6
 	return service.core.GetInventoryItemLook(ctx, accountID, category, itemID)
 }
 
-func (service *Service) GetInventoryRelatedItems(ctx context.Context, accountID int64, category robloxservices.InventoryCategory, itemID int64) ([]robloxservices.RelatedInventoryItem, error) {
+func (service *Service) GetInventoryRelatedItems(ctx context.Context, accountID int64, category robloxservices.InventoryCategory, itemID int64) ([]robloxservices.CategorizedInventoryItem, error) {
 	if err := validateAccountAndTargetIDs(accountID, itemID, "inventory-related-items"); err != nil {
 		return nil, err
 	}

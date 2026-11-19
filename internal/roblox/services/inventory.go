@@ -155,6 +155,16 @@ func (item InventoryItem) ThumbnailTarget() ThumbnailTarget {
 	return ThumbnailTarget{Type: item.thumbnailType, TargetID: item.ItemID}
 }
 
+// CategorizedInventoryItem is an item with the inventory category that lists
+// its kind, such as an asset that another item uses or a catalog search
+// result.
+type CategorizedInventoryItem struct {
+	// Category is InventoryOtherAssets for an asset type that no other
+	// category lists, such as a mesh or an image.
+	Category InventoryCategory `json:"category"`
+	Item     InventoryItem     `json:"item"`
+}
+
 type InventoryPage struct {
 	Items      []InventoryItem `json:"items"`
 	NextCursor string          `json:"nextCursor"`

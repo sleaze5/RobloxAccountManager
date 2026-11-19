@@ -61,6 +61,7 @@
 		onEditNickname,
 		onRemoveSelected,
 		onOpenInBrowser,
+		onShowCreations,
 	}: {
 		store: SocialStore
 		accounts: AccountStore
@@ -73,6 +74,7 @@
 		onEditNickname: (person: SocialUser, nickname: string) => void
 		onRemoveSelected: () => void
 		onOpenInBrowser: (accountId: number, pageUrl: string) => void
+		onShowCreations: (username: string) => void
 	} = $props()
 
 	const minimumSearchLength = 3,
@@ -690,7 +692,8 @@
 							onEditNickname={(nickname) =>
 								onEditNickname(selected, nickname)}
 							{onRelationshipAction}
-							onOpenSubpage={(subpage) => (store.subpage = subpage)} />
+							onOpenSubpage={(subpage) => (store.subpage = subpage)}
+							{onShowCreations} />
 					</div>
 				{/key}
 			{:else}
