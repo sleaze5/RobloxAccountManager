@@ -196,7 +196,7 @@
 						<div role="status" aria-busy="true">
 							<span class="sr-only">Loading {category.noun}…</span>
 							<ul
-								class="grid grid-cols-3 gap-2 @md:grid-cols-4 @xl:grid-cols-5"
+								class="grid grid-cols-3 gap-2 @xl:grid-cols-4"
 								aria-hidden="true">
 								{#each skeletonTileIndexes as index (index)}
 									<SkeletonTile />
@@ -232,7 +232,7 @@
 							</p>
 						{/if}
 						<ul
-							class="grid animate-enter grid-cols-3 gap-2 @md:grid-cols-4 @xl:grid-cols-5"
+							class="grid animate-enter grid-cols-3 gap-2 @xl:grid-cols-4"
 							aria-label={category.label}>
 							{#each items as item, index (`${item.itemId}:${index}`)}
 								{@const isWorn =

@@ -983,7 +983,7 @@
 								</li>
 							{/if}
 							{#if market?.isLimited}
-								<li class="tag-pill-warning">
+								<li class="tag-pill-success">
 									<Icon
 										svg={diamondIcon}
 										size={12}
@@ -1194,8 +1194,8 @@
 						{/if}
 					</h3>
 					{#if relatedItems === undefined}
-						<ul class="grid grid-cols-6 gap-2" aria-busy="true">
-							{#each Array.from({ length: 6 }, (_unused, index) => index) as index (index)}
+						<ul class="grid grid-cols-5 gap-2" aria-busy="true">
+							{#each Array.from({ length: 5 }, (_unused, index) => index) as index (index)}
 								<SkeletonTile />
 							{/each}
 						</ul>
@@ -1223,7 +1223,7 @@
 								: "This item uses no other assets that this account can see."}
 						</p>
 					{:else}
-						<ul class="grid animate-enter grid-cols-6 gap-2">
+						<ul class="grid animate-enter grid-cols-5 gap-2">
 							{#each relatedItems as relatedItem (relatedItem.item.itemId)}
 								<li class="min-w-0">
 									<InventoryItemTile

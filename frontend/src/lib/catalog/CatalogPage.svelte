@@ -25,6 +25,7 @@
 	import InventoryItemDialog from "../inventory/InventoryItemDialog.svelte"
 	import InventoryItemTile from "../inventory/InventoryItemTile.svelte"
 	import { inventoryCategoryOptionOf } from "../inventory/inventory-categories"
+	import { itemGridClass } from "../inventory/item-grid"
 	import { formatRobux } from "../inventory/inventory-prices"
 	import {
 		categoryItemKey,
@@ -89,9 +90,7 @@
 			{ value: CatalogSortPeriod.CatalogAllTime, label: "All time" },
 		],
 		skeletonTileIndexes = Array.from({ length: 18 }, (_unused, index) => index),
-		exactNumbers = new Intl.NumberFormat("en-US"),
-		gridClass =
-			"grid grid-cols-4 gap-2 @lg:grid-cols-5 @2xl:grid-cols-6 @3xl:grid-cols-7 @4xl:grid-cols-8 @6xl:grid-cols-10"
+		exactNumbers = new Intl.NumberFormat("en-US")
 
 	let searchInput = $state<HTMLInputElement | undefined>(undefined),
 		resultsElement = $state<HTMLElement | undefined>(undefined),
@@ -475,7 +474,7 @@
 				{:else if !store.hasResults}
 					<div class="p-3" role="status" aria-busy="true">
 						<span class="sr-only">Loading {category.noun}…</span>
-						<ul class={[gridClass, "animate-enter"]} aria-hidden="true">
+						<ul class={[itemGridClass, "animate-enter"]} aria-hidden="true">
 							{#each skeletonTileIndexes as index (index)}
 								<SkeletonTile />
 							{/each}
@@ -508,7 +507,7 @@
 				{:else}
 					{#key store.resultsVersion}
 						<ul
-							class={[gridClass, "animate-enter p-3"]}
+							class={[itemGridClass, "animate-enter p-3"]}
 							aria-label={category.label}
 							aria-busy={store.loading}>
 							{#each store.items as categorizedItem, index (`${inventoryItemKey(categorizedItem.item)}:${index}`)}

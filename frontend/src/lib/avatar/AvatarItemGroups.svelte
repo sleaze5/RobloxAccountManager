@@ -48,7 +48,7 @@
 			count={group.assets.length}
 			icon={group.category.icon} />
 		<ul
-			class="grid grid-cols-3 gap-2 @lg:grid-cols-4 @2xl:grid-cols-5 @4xl:grid-cols-6 @6xl:grid-cols-8">
+			class="grid grid-cols-3 gap-2 @2xl:grid-cols-4 @4xl:grid-cols-5 @6xl:grid-cols-7">
 			{#each group.assets as asset (asset.item.itemId)}
 				<li class="relative min-w-0 animate-enter">
 					<InventoryItemTile

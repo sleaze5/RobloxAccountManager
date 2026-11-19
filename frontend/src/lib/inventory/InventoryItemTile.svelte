@@ -9,7 +9,6 @@
 
 <script lang="ts">
 	import checkCircleFillIcon from "@phosphor-icons/core/fill/check-circle-fill.svg?raw"
-	import diamondIcon from "@phosphor-icons/core/regular/diamond.svg?raw"
 	import hourglassIcon from "@phosphor-icons/core/regular/hourglass.svg?raw"
 	import tShirtIcon from "@phosphor-icons/core/regular/t-shirt.svg?raw"
 	import timerIcon from "@phosphor-icons/core/regular/timer.svg?raw"
@@ -77,11 +76,6 @@
 					icon: tShirtIcon,
 					tone: "text-success" as const,
 				},
-				item.market?.isLimited && {
-					label: "Limited",
-					icon: diamondIcon,
-					tone: "text-warning" as const,
-				},
 				item.market?.isForSale &&
 					item.market.offSaleDeadlineMs > 0 && {
 						label: "Leaves sale soon",
@@ -127,22 +121,36 @@
 					item.serialNumber,
 				)}</span>
 		{/if}
-		{#if shownBadges.length > 0}
-			<!-- Reversed, so that the first badge sits at the right edge and the
-			     last ones clip first on a narrow tile. -->
-			<span
-				class="absolute inset-x-1 bottom-1 flex flex-row-reverse gap-0.5 overflow-hidden">
-				{#each shownBadges as badge (badge.label)}
+		{#if item.market?.isLimited || shownBadges.length > 0}
+			<span class="absolute inset-x-1 bottom-1 flex items-end gap-1">
+				{#if item.market?.isLimited}
+					<!-- Roblox marks a limited item with a green label in the
+					     bottom left corner of its image. -->
 					<span
-						class={[
-							"grid size-5 shrink-0 animate-pop place-items-center rounded-sm border border-line-strong bg-overlay",
-							badge.tone,
-						]}
-						data-tooltip={badge.label}
-						><Icon svg={badge.icon} size={12} aria-hidden="true" /><span
-							class="sr-only">{badge.label}</span
-						></span>
-				{/each}
+						class="shrink-0 rounded-sm bg-success px-1 text-2xs leading-4 font-semibold text-canvas"
+						>Limited</span>
+				{/if}
+				{#if shownBadges.length > 0}
+					<!-- Reversed, so that the first badge sits at the right edge
+					     and the last ones clip first on a narrow tile. -->
+					<span
+						class="flex min-w-0 flex-1 flex-row-reverse gap-0.5 overflow-hidden">
+						{#each shownBadges as badge (badge.label)}
+							<span
+								class={[
+									"grid size-5 shrink-0 animate-pop place-items-center rounded-sm border border-line-strong bg-overlay",
+									badge.tone,
+								]}
+								data-tooltip={badge.label}
+								><Icon
+									svg={badge.icon}
+									size={12}
+									aria-hidden="true" /><span class="sr-only"
+									>{badge.label}</span
+								></span>
+						{/each}
+					</span>
+				{/if}
 			</span>
 		{/if}
 	</span>

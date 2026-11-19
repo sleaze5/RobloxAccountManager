@@ -121,7 +121,7 @@
 		<div role="status" aria-busy="true">
 			<span class="sr-only">Loading outfits…</span>
 			<ul
-				class="grid grid-cols-3 gap-2 @lg:grid-cols-4 @2xl:grid-cols-5 @4xl:grid-cols-6"
+				class="grid grid-cols-3 gap-2 @2xl:grid-cols-4 @4xl:grid-cols-5"
 				aria-hidden="true">
 				{#each skeletonTileIndexes as index (index)}
 					<SkeletonTile hasDetailLine={false} />
@@ -143,7 +143,7 @@
 			<p class="notice-error" role="alert">{avatar.outfitsError}</p>
 		{/if}
 		<ul
-			class="grid animate-enter grid-cols-3 gap-2 @lg:grid-cols-4 @2xl:grid-cols-5 @4xl:grid-cols-6"
+			class="grid animate-enter grid-cols-3 gap-2 @2xl:grid-cols-4 @4xl:grid-cols-5"
 			aria-label="Outfits"
 			aria-busy={avatar.outfitsLoading}>
 			{#each outfits as outfit (outfit.outfitId)}
