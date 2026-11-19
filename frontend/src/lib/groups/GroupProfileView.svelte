@@ -590,8 +590,9 @@
 						<dd class="flex flex-col">
 							{#each profile.previousNames ?? [] as nameChange (`${nameChange.name}:${nameChange.changedAtMs}`)}
 								<span class="wrap-anywhere"
-									>{nameChange.name}{#if nameChange.changedAtMs}<small>
-											· until <Timestamp
+									>{nameChange.name}{#if nameChange.changedAtMs}<small
+											class="ml-1"
+											>· until <Timestamp
 												value={nameChange.changedAtMs} /></small
 										>{/if}</span>
 							{/each}
