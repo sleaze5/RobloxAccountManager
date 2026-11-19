@@ -18,13 +18,13 @@
 		accounts,
 		notifications,
 		onSearchPlace,
-		onShowItemsInMarketplace,
+		onShowCreations,
 	}: {
 		store: GroupsStore
 		accounts: AccountStore
 		notifications: NotificationCenter
 		onSearchPlace: (placeId: number) => void
-		onShowItemsInMarketplace: (groupName: string) => void
+		onShowCreations: (groupName: string) => void
 	} = $props()
 
 	const groupName = untrack(() => store.profile?.details.group.name ?? ""),
@@ -116,7 +116,7 @@
 		<button
 			class="ml-auto button"
 			type="button"
-			onclick={() => onShowItemsInMarketplace(groupName)}>
+			onclick={() => onShowCreations(groupName)}>
 			<Icon svg={arrowSquareOutIcon} size={16} aria-hidden="true" />Show in
 			Marketplace
 		</button>

@@ -163,16 +163,20 @@
 		store.accounts.find((account) => account.id === renewAccountId) ?? null,
 	)
 
+	// resetAccountPages forgets what the pages read for the accounts, such as
+	// after the vault locks.
+	function resetAccountPages(): void {
+		games.reset()
+		social.reset()
+		catalog.reset()
+		groups.reset()
+	}
+
 	$effect(() => {
 		if (!store.vault.unlocked) {
 			workspace.closeAccountMenus()
 			workspace.viewedImage = null
-			untrack(() => {
-				games.reset()
-				social.reset()
-				catalog.reset()
-				groups.reset()
-			})
+			untrack(resetAccountPages)
 		} else untrack(() => games.initialize())
 	})
 
@@ -232,10 +236,7 @@
 			unmountBrowser = browserStore.mount(notificationCenter),
 			unmountUpdates = updateStore.mount(notificationCenter)
 		return () => {
-			games.reset()
-			social.reset()
-			catalog.reset()
-			groups.reset()
+			resetAccountPages()
 			unmountAccounts()
 			unmountBrowser()
 			unmountUpdates()
@@ -374,10 +375,26 @@
 		})
 	}
 
-	// showCreations opens the Marketplace on every item that the user or the
-	// group created, including the items that it hides.
-	function showCreations(creatorName: string, creatorType: CatalogCreatorType): void {
-		showPage("catalog", () => catalog.showCreations(creatorName, creatorType))
+	function searchPlace(placeId: number): void {
+		searchGames(`id:${placeId}`)
+	}
+
+	function searchUniverse(universeId: number): void {
+		searchGames(`universe:${universeId}`)
+	}
+
+	// The creations of a user or a group open in the Marketplace with the items
+	// that the creator hides.
+	function showUserCreations(username: string): void {
+		showPage("catalog", () =>
+			catalog.showCreations(username, CatalogCreatorType.CatalogCreatorUser),
+		)
+	}
+
+	function showGroupCreations(groupName: string): void {
+		showPage("catalog", () =>
+			catalog.showCreations(groupName, CatalogCreatorType.CatalogCreatorGroup),
+		)
 	}
 
 	setCreatorNavigation({
@@ -754,20 +771,15 @@
 					notifications={notificationCenter}
 					onFillLaunch={(placeId, jobId) =>
 						fillGameLaunchOptions(placeId, jobId)}
-					onSearchPlace={(placeId) => searchGames(`id:${placeId}`)}
+					onSearchPlace={searchPlace}
 					{onShowGamePass}
-					onSearchUniverse={(universeId) =>
-						searchGames(`universe:${universeId}`)}
+					onSearchUniverse={searchUniverse}
 					onRelationshipAction={openRelationshipAction}
 					onEditNickname={openNickname}
 					onRemoveSelected={openRemoveConnections}
 					onOpenInBrowser={(accountId, pageUrl) =>
 						void openManagedBrowser(accountId, pageUrl)}
-					onShowCreations={(username) =>
-						showCreations(
-							username,
-							CatalogCreatorType.CatalogCreatorUser,
-						)} />
+					onShowCreations={showUserCreations} />
 			{:catch}
 				{@render pageUnavailable()}
 			{/await}
@@ -779,14 +791,10 @@
 					store={groups}
 					accounts={store}
 					notifications={notificationCenter}
-					onSearchPlace={(placeId) => searchGames(`id:${placeId}`)}
+					onSearchPlace={searchPlace}
 					onOpenInBrowser={(accountId, pageUrl) =>
 						void openManagedBrowser(accountId, pageUrl)}
-					onShowItemsInMarketplace={(groupName) =>
-						showCreations(
-							groupName,
-							CatalogCreatorType.CatalogCreatorGroup,
-						)} />
+					onShowCreations={showGroupCreations} />
 			{:catch}
 				{@render pageUnavailable()}
 			{/await}
@@ -814,7 +822,7 @@
 					store={catalog}
 					accounts={store}
 					notifications={notificationCenter}
-					onSearchPlace={(placeId) => searchGames(`id:${placeId}`)} />
+					onSearchPlace={searchPlace} />
 			{:catch}
 				{@render pageUnavailable()}
 			{/await}
@@ -826,7 +834,7 @@
 					store={logsExplorer}
 					accounts={store}
 					onFillLaunch={(visit) => fillLaunchOptions(visit)}
-					onSearchPlace={(placeId) => searchGames(`id:${placeId}`)} />
+					onSearchPlace={searchPlace} />
 			{:catch}
 				{@render pageUnavailable()}
 			{/await}
@@ -877,19 +885,13 @@
 											})}
 										onFollowUser={(user) =>
 											fillFollowUserLaunchOptions(user)}
-										onSearchPlace={(placeId) =>
-											searchGames(`id:${placeId}`)}
+										onSearchPlace={searchPlace}
 										{onShowGamePass}
-										onSearchUniverse={(universeId) =>
-											searchGames(`universe:${universeId}`)}
+										onSearchUniverse={searchUniverse}
 										onReplaceCookie={openAddAccount}
 										onEditDescription={openDescriptionEditor}
 										onShowSocial={showSocial}
-										onShowCreations={(username) =>
-											showCreations(
-												username,
-												CatalogCreatorType.CatalogCreatorUser,
-											)}
+										onShowCreations={showUserCreations}
 										onOpenBrowser={(accountId) =>
 											void openManagedBrowser(accountId)} />
 								</div>

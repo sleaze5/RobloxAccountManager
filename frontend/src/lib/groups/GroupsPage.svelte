@@ -34,14 +34,14 @@
 		notifications,
 		onSearchPlace,
 		onOpenInBrowser,
-		onShowItemsInMarketplace,
+		onShowCreations,
 	}: {
 		store: GroupsStore
 		accounts: AccountStore
 		notifications: NotificationCenter
 		onSearchPlace: (placeId: number) => void
 		onOpenInBrowser: (accountId: number, pageUrl: string) => void
-		onShowItemsInMarketplace: (groupName: string) => void
+		onShowCreations: (groupName: string) => void
 	} = $props()
 
 	const compactNumbers = new Intl.NumberFormat("en-US", {
@@ -365,7 +365,7 @@
 						{accounts}
 						{notifications}
 						{onSearchPlace}
-						{onShowItemsInMarketplace} />
+						{onShowCreations} />
 				{/key}
 			{:else if store.subpage === "joinRequests"}
 				{#key `${store.accountId}:${store.selectedGroupId}`}
