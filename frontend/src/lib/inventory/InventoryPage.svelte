@@ -361,8 +361,13 @@
 								Nothing loaded matches these filters. Clear them or load
 								more items.
 							</p>
-							<button class="button" type="button" onclick={clearFilters}
-								>Clear filters</button>
+							<button
+								class="button"
+								type="button"
+								onclick={() => {
+									clearFilters()
+									filterInput?.focus()
+								}}>Clear filters</button>
 						</div>
 					{:else}
 						<ul

@@ -2,6 +2,7 @@
 	import arrowSquareOutIcon from "@phosphor-icons/core/regular/arrow-square-out.svg?raw"
 	import checkCircleFillIcon from "@phosphor-icons/core/fill/check-circle-fill.svg?raw"
 	import clockIcon from "@phosphor-icons/core/regular/clock.svg?raw"
+	import clockCounterClockwiseIcon from "@phosphor-icons/core/regular/clock-counter-clockwise.svg?raw"
 	import coinsIcon from "@phosphor-icons/core/regular/coins.svg?raw"
 	import crownIcon from "@phosphor-icons/core/regular/crown.svg?raw"
 	import doorOpenIcon from "@phosphor-icons/core/regular/door-open.svg?raw"
@@ -582,7 +583,7 @@
 					<div>
 						<dt>
 							<Icon
-								svg={clockIcon}
+								svg={clockCounterClockwiseIcon}
 								size={16}
 								aria-hidden="true" />Previous names
 						</dt>
@@ -597,37 +598,37 @@
 						</dd>
 					</div>
 				{/if}
+				{#if (profile.socialLinks?.length ?? 0) > 0}
+					<div>
+						<dt>
+							<Icon svg={linkIcon} size={16} aria-hidden="true" />Social
+							links
+						</dt>
+						<dd>
+							{#each profile.socialLinks ?? [] as link (link.url)}
+								<button
+									class="button"
+									type="button"
+									aria-label={`Open ${link.title || link.type} (${link.url})`}
+									data-tooltip={link.url}
+									onclick={() => void openLink(link.url)}>
+									<Icon
+										svg={arrowSquareOutIcon}
+										size={16}
+										aria-hidden="true" />
+									{link.title || link.type}
+								</button>
+							{/each}
+							{#if linkError}<p
+									class="basis-full text-xs text-danger-muted"
+									role="alert">
+									{linkError}
+								</p>{/if}
+						</dd>
+					</div>
+				{/if}
 			</dl>
 		</section>
-
-		{#if (profile.socialLinks?.length ?? 0) > 0}
-			<section class="flex flex-col gap-2" aria-labelledby="group-links-heading">
-				<h3
-					id="group-links-heading"
-					class={["flex items-center gap-2", sectionHeadingClass]}>
-					<Icon svg={linkIcon} size={14} aria-hidden="true" />Social links
-				</h3>
-				<div class="flex flex-wrap items-center gap-1">
-					{#each profile.socialLinks ?? [] as link (link.url)}
-						<button
-							class="button"
-							type="button"
-							aria-label={`Open ${link.title || link.type} (${link.url})`}
-							data-tooltip={link.url}
-							onclick={() => void openLink(link.url)}>
-							<Icon
-								svg={arrowSquareOutIcon}
-								size={16}
-								aria-hidden="true" />
-							{link.title || link.type}
-						</button>
-					{/each}
-				</div>
-				{#if linkError}<p class="text-xs text-danger-muted" role="alert">
-						{linkError}
-					</p>{/if}
-			</section>
-		{/if}
 
 		{@render relatedGroups(
 			"Allies",

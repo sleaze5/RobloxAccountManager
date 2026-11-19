@@ -119,8 +119,8 @@ Content:
 Layout:
 
 - `tab`: a page tab, with `aria-current="page"` on the selected tab.
-- The workbench: the sidebar and detail pane layout of Accounts, Games, and Logs Explorer, with `lib/layout/SidebarResizer.svelte` as the resizer and `lib/layout/StatusBar.svelte` as the status strip of Accounts.
-- `lib/layout/AccountSwitcher.svelte`: the account switcher at the left of the status strip of Social, Games, and Logs Explorer.
+- The workbench: the sidebar and detail pane layout of Accounts, Social, Groups, Games, Marketplace, and Logs Explorer, with `lib/layout/SidebarResizer.svelte` as the resizer and `lib/layout/StatusBar.svelte` as the status strip of Accounts.
+- `lib/layout/AccountSwitcher.svelte`: the account switcher at the left of the status strip of Social, Groups, Games, Marketplace, and Logs Explorer.
 - `settings-page`, `settings-header`, `settings-layout`, `settings-sidebar`, `settings-nav` with `nav-item`, and `settings-content`: Settings, account settings, chats, and other sub-pages with a navigation sidebar.
 - `settings-section`, `settings-rows`, `settings-row`, and `settings-row-copy`: groups of settings.
 - `scrollbar-stable`: reserve the scrollbar gutter in a scrolling list.
@@ -149,7 +149,7 @@ The user must never see UI that looks or behaves like an exposed embedded browse
 - Keep the shell flat. The title bar and the page tabs are `h-9`, the status strip is `h-6`, and the default sidebar is `w-56`.
 - Show each value once per screen. For example, do not show the same count in a sidebar header and in the status strip.
 
-Accounts, Games, and Logs Explorer share one page anatomy:
+Accounts, Social, Groups, Games, Marketplace, and Logs Explorer share one page anatomy:
 
 1. The page tabs sit below the title bar.
 2. A resizable, collapsible sidebar on `bg-surface` holds a header row (title, count, and icon actions), a search row, and a list.
@@ -158,7 +158,7 @@ Accounts, Games, and Logs Explorer share one page anatomy:
 
 Social uses the same status strip. Every page works with one selected account:
 
-- Social, Games, and Logs Explorer show the selected account in the account switcher at the left of the status strip, with its 16px avatar, display name, and username. Switch the account there. Do not add another account picker to a page.
+- Social, Groups, Games, Marketplace, and Logs Explorer show the selected account in the account switcher at the left of the status strip, with its 16px avatar, display name, and username. Switch the account there. Do not add another account picker to a page.
 - Accounts selects in its list, so its status strip has no account switcher.
 - An account stays selected whenever the vault has one. The first account in the list is selected when nothing else is. When the Accounts page closes, a multiple selection keeps only the selected account that is highest in the list.
 
@@ -261,9 +261,9 @@ Color:
 ### Lists
 
 - Give list rows the `list-row` building block, `h-12` (`h-16` when its presence names a game or place), and a 1px `border-line-subtle` separator. Set `aria-selected="true"` or `data-selected` on the selected row and `data-open` while its menu is open. `list-row` draws the hover and selection treatment from [Controls and states](#controls-and-states).
-- Make a list one tab stop. Give the selected row `tabindex="0"`, or the first row when no row is selected, and every other row `tabindex="-1"`. Mark the rows with `data-list-item`, and move between them with `ArrowUp`, `ArrowDown`, `Home`, and `End` through `moveListFocus`.
+- Make a list one tab stop. Give the selected row `tabindex="0"`, or the first row when no row is selected, and every other row `tabindex="-1"`. Mark the list container with `data-list` and its rows with `data-list-item`, and move between them with `ArrowUp`, `ArrowDown`, `Home`, and `End` through `moveListFocus`.
 - When a list can be reordered, support dragging and `Ctrl+Shift+ArrowUp` and `Ctrl+Shift+ArrowDown`. Announce the new position through a polite live region.
-- Distinguish an empty list ("No accounts yet") from a list with no matches ("No matching accounts"). Tell the user how to change each state. Give the no-matches state a button that clears the filter.
+- Distinguish an empty list ("No accounts yet") from a list with no matches ("No matching accounts"). Tell the user how to change each state. Give the no-matches state a button that clears the filter and moves the focus to the search field or filter.
 - In a grid of item tiles, make every tile in a row the same height. Keep the badges on a tile in one row, so that they never overlap, and let the lower-priority badge truncate.
 - When the user switches a tab or category that replaces the content of a scrolling region, scroll the region back to the top.
 - Settings search reads its words from `lib/settings/settings-search.ts`. Give each new setting an entry with its label, its description, and other words people use for the same thing, and add the entry to its category. The account settings pages keep their search words next to each section.
@@ -338,7 +338,7 @@ Color:
 - Give a switch input `role="switch"`.
 - Give a resizer `role="slider"`, `tabindex="0"`, `aria-orientation`, `aria-valuenow`, `aria-valuemin`, and `aria-valuemax`. Resize it with the arrow keys. Do not use `role="separator"`, because the Svelte checker rejects a focusable separator.
 - Announce notifications through one polite live region. Use `role="alert"` for an error that blocks the current task.
-- Give each page one banner and one `main` landmark. The window title bar is the only top-level `header`. An account sub-page renders inside the `main` of Accounts, so it uses labeled `section` regions instead of another `main` or an `aside`. Give a container with an `aria-label` a role, such as `role="group"` on a list.
+- Give each page one banner and one `main` landmark, labeled with the page name, that holds the sidebar, the content, and the resizer between them. The window title bar is the only top-level `header`. An account sub-page renders inside the `main` of Accounts, so it uses labeled `section` regions instead of another `main` or an `aside`. Give a container with an `aria-label` a role, such as `role="group"` on a list.
 
 ## Writing
 
@@ -363,7 +363,7 @@ Color:
 Use sentence case by default. Capitalize only the first word and any word that is always capitalized.
 
 - Use sentence case for buttons, menu items, headings, labels, descriptions, tooltips, notifications, placeholders, segmented options, and sidebar navigation items, such as "Remove account", "Account info", and "Search favorites".
-- Use title case for page tab names: Accounts, Social, Games, and Logs Explorer. Settings is a page name too.
+- Use title case for page tab names: Accounts, Social, Groups, Games, Marketplace, and Logs Explorer. Settings is a page name too.
 - Keep proper nouns in their own capitalization wherever they appear: product, service, and brand names, such as Roblox, Roblox Account Manager, Roblox Studio, RoValra, Chrome for Testing, Sober, Windows, and Linux. A proper noun inside a sentence-case label keeps its capitals, as in "Close Roblox processes".
 - Write acronyms and initialisms in capitals, such as ID, PIN, URL, and API, as in "Place ID" and "User ID".
 - Write user-provided text, such as names, nicknames, tags, and descriptions, exactly as the user or Roblox stores it.

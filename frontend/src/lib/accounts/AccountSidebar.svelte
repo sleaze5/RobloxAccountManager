@@ -33,7 +33,8 @@
 		onBrowser: (accountId: number | null) => void
 		onImportFile: () => void
 	} = $props()
-	let filterTrigger = $state<HTMLButtonElement>()
+	let filterTrigger = $state<HTMLButtonElement>(),
+		searchInput = $state<HTMLInputElement>()
 
 	function constrainTagFilter(node: HTMLElement) {
 		const place = () => {
@@ -124,12 +125,17 @@
 						store.setQuery((event.currentTarget as HTMLInputElement).value)}
 					type="text"
 					placeholder="Search accounts"
-					aria-label="Search accounts" />
+					aria-label="Search accounts"
+					data-account-search
+					bind:this={searchInput} />
 				{#if store.query}
 					<button
 						type="button"
 						aria-label="Clear search"
-						onclick={() => store.setQuery("")}>
+						onclick={() => {
+							store.setQuery("")
+							searchInput?.focus()
+						}}>
 						<Icon svg={xIcon} size={14} aria-hidden="true" />
 					</button>
 				{/if}

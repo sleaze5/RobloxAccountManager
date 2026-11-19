@@ -218,6 +218,7 @@
 				class="min-h-0 flex-1 scrollbar-stable overflow-y-auto"
 				role="group"
 				aria-label={isSearchMode ? "Group search results" : "My groups"}
+				data-list
 				aria-busy={isListLoading}
 				data-load-more-root>
 				{#if isListLoading}
@@ -261,7 +262,10 @@
 							<button
 								class="button"
 								type="button"
-								onclick={() => (store.query = "")}>Clear filter</button>
+								onclick={() => {
+									store.query = ""
+									searchInput?.focus()
+								}}>Clear filter</button>
 						{:else}
 							<h2>No groups yet</h2>
 							<p>

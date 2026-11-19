@@ -48,6 +48,7 @@
 		// The items of the group search the Marketplace on their own, so that
 		// the Marketplace page keeps its own search.
 		groupCatalog = untrack(() => new CatalogStore(accounts))
+	let resultsElement = $state<HTMLElement | undefined>(undefined)
 	groupCatalog.search = {
 		...defaultCatalogSearch(),
 		creatorName: groupName,
@@ -60,6 +61,12 @@
 		itemCountLabel = $derived(
 			`${groupCatalog.items.length}${groupCatalog.nextCursor ? "+" : ""} ${groupCatalog.items.length === 1 && !groupCatalog.nextCursor ? "item" : "items"}`,
 		)
+
+	// A new sort replaces the items, so the grid starts at the top.
+	$effect(() => {
+		void groupCatalog.resultsVersion
+		untrack(() => resultsElement?.scrollTo({ top: 0 }))
+	})
 </script>
 
 <section class="settings-page min-w-0" aria-labelledby="group-items-title">
@@ -123,7 +130,8 @@
 	</div>
 	<div
 		class="@container min-h-0 flex-1 scrollbar-stable overflow-y-auto"
-		data-load-more-root>
+		data-load-more-root
+		bind:this={resultsElement}>
 		<CatalogResults
 			store={groupCatalog}
 			{accounts}

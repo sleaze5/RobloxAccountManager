@@ -440,6 +440,7 @@
 		} = $props(),
 		restoringScroll = $state(true),
 		contentElement = $state<HTMLElement | undefined>(undefined),
+		searchInput = $state<HTMLInputElement | undefined>(undefined),
 		settingsState = $state<AccountSettingsState | null>(null),
 		infoState = $state<AccountInfoState | null>(null),
 		blockedState = $state<BlockedUsersState | null>(null),
@@ -874,6 +875,7 @@
 				<Icon svg={magnifyingGlassIcon} size={16} aria-hidden="true" />
 				<input
 					bind:value={workspace.accountSettingsQuery}
+					bind:this={searchInput}
 					oninput={resetScroll}
 					type="search"
 					aria-label="Search settings"
@@ -885,6 +887,7 @@
 						onclick={() => {
 							resetScroll()
 							workspace.accountSettingsQuery = ""
+							searchInput?.focus()
 						}}>
 						<Icon svg={xIcon} size={14} aria-hidden="true" />
 					</button>

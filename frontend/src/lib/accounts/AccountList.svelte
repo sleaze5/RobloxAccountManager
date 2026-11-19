@@ -159,6 +159,7 @@
 
 <div
 	class={["min-h-0 scrollbar-stable overflow-y-auto"]}
+	data-list
 	aria-busy={store.loadingAccounts || store.loadingMore}
 	onscroll={loadNearEnd}>
 	{#if store.accountListError && store.accounts.length > 0}

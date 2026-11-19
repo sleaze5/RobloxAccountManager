@@ -53,7 +53,8 @@
 					"Could not load the games. Try again.",
 				),
 		)
-	let filter = $state<GameFilter>("all")
+	let filter = $state<GameFilter>("all"),
+		gameListElement = $state<HTMLElement | undefined>(undefined)
 
 	const privateCount = $derived(games.items.filter((game) => game.isPrivate).length),
 		shownGames = $derived(
@@ -65,6 +66,11 @@
 		)
 
 	onMount(() => void games.refresh())
+
+	function showFilter(nextFilter: GameFilter): void {
+		filter = nextFilter
+		gameListElement?.scrollTo({ top: 0 })
+	}
 </script>
 
 <section class="settings-page min-w-0" aria-labelledby="group-games-title">
@@ -95,7 +101,7 @@
 					type="button"
 					aria-pressed={filter === option.value}
 					disabled={!games.hasLoaded}
-					onclick={() => (filter = option.value)}>{option.label}</button>
+					onclick={() => showFilter(option.value)}>{option.label}</button>
 			{/each}
 		</div>
 		{#if games.hasLoaded}
@@ -104,7 +110,10 @@
 				private</span>
 		{/if}
 	</div>
-	<div class="min-h-0 flex-1 scrollbar-stable overflow-y-auto" data-load-more-root>
+	<div
+		class="min-h-0 flex-1 scrollbar-stable overflow-y-auto"
+		data-load-more-root
+		bind:this={gameListElement}>
 		{#if games.error && games.hasLoaded}
 			<p class="mx-3 mt-3 notice-error" role="alert">{games.error}</p>
 		{/if}
@@ -129,20 +138,21 @@
 				<p>
 					{games.items.length === 0
 						? `${group.name} has no games.`
-						: "No loaded game matches this filter. Select All to list every game."}
+						: "No loaded game matches this filter."}
 				</p>
 				{#if games.items.length > 0}
 					<button
 						class="button"
 						type="button"
-						onclick={() => (filter = "all")}>Show all games</button>
+						onclick={() => showFilter("all")}>Show all games</button>
 				{/if}
 			</div>
 		{:else}
 			<ul
 				class="animate-enter"
 				role="group"
-				aria-label={`Games by ${group.name}`}>
+				aria-label={`Games by ${group.name}`}
+				data-list>
 				{#each shownGames as game, index (game.place.universeId)}
 					<li>
 						<button

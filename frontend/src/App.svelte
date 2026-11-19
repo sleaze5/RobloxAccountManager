@@ -839,8 +839,9 @@
 				{@render pageUnavailable()}
 			{/await}
 		{:else}
-			<div
+			<main
 				class="flex min-h-0 flex-1"
+				aria-label="Accounts"
 				style={`--sidebar-width: ${workspace.sidebarCollapsed ? 44 : workspace.sidebarWidth}px; --launch-height: ${workspace.launchHeight}px;`}>
 				<AccountSidebar
 					{store}
@@ -850,7 +851,7 @@
 					onBrowser={(accountId) => void openManagedBrowser(accountId)}
 					onImportFile={() => void openImportFile()} />
 
-				<main class="flex min-w-0 flex-1 flex-col overflow-hidden bg-canvas">
+				<div class="flex min-w-0 flex-1 flex-col overflow-hidden bg-canvas">
 					<div
 						class={[
 							"@container min-h-0 flex-1",
@@ -902,8 +903,8 @@
 						{store}
 						{workspace}
 						notifications={notificationCenter} />
-				</main>
-			</div>
+				</div>
+			</main>
 		{/if}
 
 		{#if activePage === "accounts"}

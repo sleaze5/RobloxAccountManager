@@ -239,7 +239,7 @@
 					class="flex min-w-0 items-baseline gap-2 text-sm font-semibold text-fg">
 					<span class="truncate"
 						>{search.keyword
-							? `"${search.keyword}"`
+							? `“${search.keyword}”`
 							: category.label}</span>
 					{#if search.keyword}
 						<span class="shrink-0 text-xs font-normal text-fg-muted"

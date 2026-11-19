@@ -45,7 +45,8 @@
 		memberError = $state(""),
 		removedMember = $state<GroupMember | null>(null),
 		isRemoving = $state(false),
-		removeError = $state("")
+		removeError = $state(""),
+		memberListElement = $state<HTMLElement | undefined>(undefined)
 
 	const roleFilterOptions = $derived([
 			{ value: allRolesValue, label: "All roles" },
@@ -85,6 +86,7 @@
 	function showRole(roleId: number): void {
 		roleFilterId = roleId
 		members = membersOf(roles.find((role) => role.roleId === roleId) ?? null)
+		memberListElement?.scrollTo({ top: 0 })
 		void members.refresh()
 	}
 
@@ -212,7 +214,10 @@
 		<span class="text-2xs text-fg-muted"
 			>{exactNumbers.format(group.memberCount)} members in total</span>
 	</div>
-	<div class="min-h-0 flex-1 scrollbar-stable overflow-y-auto" data-load-more-root>
+	<div
+		class="min-h-0 flex-1 scrollbar-stable overflow-y-auto"
+		data-load-more-root
+		bind:this={memberListElement}>
 		{#if memberError}
 			<p class="mx-3 mt-3 notice-error" role="alert">{memberError}</p>
 		{/if}

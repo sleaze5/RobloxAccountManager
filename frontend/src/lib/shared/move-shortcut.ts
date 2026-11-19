@@ -2,8 +2,11 @@
 // stop, the selected row or the first row, so that Tab moves past the list.
 export function moveListFocus(event: KeyboardEvent): void {
 	if (event.ctrlKey || event.metaKey || event.shiftKey || event.altKey) return
-	const rows = Array.from(document.querySelectorAll<HTMLElement>("[data-list-item]")),
-		index = rows.indexOf(event.currentTarget as HTMLElement)
+	const row = event.currentTarget as HTMLElement,
+		list = row.closest("[data-list]")
+	if (!list) return
+	const rows = Array.from(list.querySelectorAll<HTMLElement>("[data-list-item]")),
+		index = rows.indexOf(row)
 	let nextRow: HTMLElement | undefined
 	if (event.key === "ArrowDown") nextRow = rows[index + 1]
 	else if (event.key === "ArrowUp") nextRow = rows[index - 1]

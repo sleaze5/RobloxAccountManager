@@ -50,6 +50,7 @@
 	function clearFilters(): void {
 		store.setQuery("")
 		store.clearSelectedTags()
+		document.querySelector<HTMLInputElement>("[data-account-search]")?.focus()
 	}
 </script>
 

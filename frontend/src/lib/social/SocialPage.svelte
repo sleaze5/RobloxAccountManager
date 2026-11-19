@@ -473,6 +473,7 @@
 					]}
 					role="group"
 					aria-label={current.label}
+					data-list
 					aria-busy={store.loading || store.loadingMore}>
 					{#if !store.page && store.loading}
 						<SkeletonList

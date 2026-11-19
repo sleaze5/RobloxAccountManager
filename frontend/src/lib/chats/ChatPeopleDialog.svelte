@@ -34,6 +34,7 @@
 		minimumLookupLength = 3
 
 	let query = $state(""),
+		searchInput = $state<HTMLInputElement | undefined>(undefined),
 		groupName = $state(""),
 		selected = $state<SocialUser[]>([]),
 		lookupStatus = $state<
@@ -252,6 +253,7 @@
 		<div class="search-field">
 			<Icon svg={magnifyingGlassIcon} size={16} aria-hidden="true" /><input
 				bind:value={query}
+				bind:this={searchInput}
 				aria-label="Search friends or enter a username"
 				placeholder="Search friends or enter a username"
 				autocomplete="off"
@@ -266,8 +268,10 @@
 				}} />{#if query}<button
 					type="button"
 					aria-label="Clear search"
-					onclick={() => (query = "")}
-					><Icon svg={xIcon} size={14} aria-hidden="true" /></button
+					onclick={() => {
+						query = ""
+						searchInput?.focus()
+					}}><Icon svg={xIcon} size={14} aria-hidden="true" /></button
 				>{/if}
 		</div>
 

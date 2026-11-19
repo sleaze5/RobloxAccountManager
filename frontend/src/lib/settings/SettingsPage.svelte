@@ -83,6 +83,7 @@
 		activeCategory = $state<Category>(categories[0]),
 		query = $state(""),
 		contentElement = $state<HTMLElement | undefined>(undefined),
+		searchInput = $state<HTMLInputElement | undefined>(undefined),
 		terms = $derived(searchTerms(query)),
 		visibleCategories = $derived(
 			categories.filter((category) => matchesCategory(terms, category.id)),
@@ -103,7 +104,7 @@
 	})
 </script>
 
-<div class="settings-page">
+<main class="settings-page" aria-label="Settings">
 	<div class="settings-header">
 		<button
 			class="button-ghost"
@@ -124,6 +125,7 @@
 				<Icon svg={magnifyingGlassIcon} size={16} aria-hidden="true" />
 				<input
 					bind:value={query}
+					bind:this={searchInput}
 					type="search"
 					aria-label="Search settings"
 					placeholder="Search settings" />
@@ -131,7 +133,10 @@
 					<button
 						type="button"
 						aria-label="Clear search"
-						onclick={() => (query = "")}>
+						onclick={() => {
+							query = ""
+							searchInput?.focus()
+						}}>
 						<Icon svg={xIcon} size={14} aria-hidden="true" />
 					</button>
 				{/if}
@@ -156,7 +161,7 @@
 		</aside>
 		<SidebarResizer bind:width={workspace.settingsSidebarWidth} name="settings" />
 
-		<main
+		<section
 			bind:this={contentElement}
 			class="settings-content"
 			aria-label="Settings content">
@@ -186,6 +191,6 @@
 					</p>
 				{/if}
 			{/key}
-		</main>
+		</section>
 	</div>
-</div>
+</main>

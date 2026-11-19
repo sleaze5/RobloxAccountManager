@@ -41,6 +41,13 @@
 			)?.fileName,
 		)
 
+	let searchInput = $state<HTMLInputElement | undefined>(undefined)
+
+	function clearSearch(): void {
+		store.query = ""
+		searchInput?.focus()
+	}
+
 	onMount(() => store.initialize())
 </script>
 
@@ -85,10 +92,11 @@
 							type="text"
 							placeholder="Search logs or IDs"
 							aria-label="Search logs, user IDs, place IDs, or job IDs"
+							bind:this={searchInput}
 							bind:value={store.query} />{#if store.query}<button
 								type="button"
 								aria-label="Clear search"
-								onclick={() => (store.query = "")}
+								onclick={clearSearch}
 								><Icon
 									svg={xIcon}
 									size={14}
@@ -99,7 +107,10 @@
 			{/snippet}
 			<div
 				class="min-h-0 flex-1 scrollbar-stable overflow-y-auto"
-				aria-busy={store.refreshing}>
+				role="group"
+				aria-label="Logs"
+				aria-busy={store.refreshing}
+				data-list>
 				{#each sessions as session (session.fileName)}
 					{@const visitCount = session.visits?.length ?? 0}
 					<button
@@ -219,6 +230,8 @@
 							aria-hidden="true" />
 						<h2>No matching sessions</h2>
 						<p>Try a different file name, user ID, or place ID.</p>
+						<button class="button" type="button" onclick={clearSearch}
+							>Clear search</button>
 					{:else}<Icon
 							svg={fileMagnifyingGlassIcon}
 							size={28}
