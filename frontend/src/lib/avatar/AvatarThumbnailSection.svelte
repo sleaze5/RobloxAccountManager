@@ -1,5 +1,4 @@
 <script lang="ts">
-	import imageIcon from "@phosphor-icons/core/regular/image.svg?raw"
 	import type {
 		AvatarScaleLimit,
 		AvatarThumbnailCamera,
@@ -7,8 +6,8 @@
 		AvatarThumbnailCustomization,
 	} from "../backend/bridge"
 	import type { AnimationLibrary } from "../model-viewer/model-subject"
-	import Icon from "../shared/Icon.svelte"
 	import Select from "../shared/Select.svelte"
+	import AvatarThumbnailImage from "./AvatarThumbnailImage.svelte"
 	import { rangeShareOf, roundedToStep } from "./range-slider"
 
 	// AvatarThumbnailSection shows how Roblox poses and frames one kind of
@@ -62,8 +61,7 @@
 			fieldOfViewDegrees: 0,
 			yRotationDegrees: 0,
 			distanceScale: 0,
-		}),
-		failedImageUrls = $state.raw(new Set<string>())
+		})
 
 	$effect.pre(() => {
 		emoteAssetId = customization.emote?.itemId ?? 0
@@ -148,6 +146,19 @@
 					)),
 		),
 		isDisabled = $derived(isSaving || isLocked),
+		isStandard = $derived(emoteAssetId === 0 && !isCameraCustomized),
+		// Whether the saved emote stays out of the image, because its camera is
+		// standard.
+		isSavedPoseHidden = $derived(
+			customization.isPoseShownOnlyWithCustomCamera &&
+				!customization.isCameraCustomized &&
+				!!customization.emote,
+		),
+		isPoseHidden = $derived(
+			customization.isPoseShownOnlyWithCustomCamera &&
+				!isCameraCustomized &&
+				emoteAssetId !== 0,
+		),
 		emoteLabel = $derived(
 			customization.emote
 				? customization.emote.name || `Emote ${customization.emote.itemId}`
@@ -156,6 +167,14 @@
 
 	function setCamera(setting: CameraSetting, value: number, step: number): void {
 		camera = { ...camera, [setting]: roundedToStep(value, step) }
+	}
+
+	// useStandard returns the image to how Roblox frames it without a
+	// customization. The API cannot delete a customization, so this is how
+	// Roblox removes one.
+	function useStandard(): void {
+		emoteAssetId = 0
+		isCameraCustomized = false
 	}
 
 	function discard(): void {
@@ -171,34 +190,7 @@
 
 	<div class="flex flex-wrap gap-2">
 		{#each images as image (image.label)}
-			<figure class="flex flex-col items-center gap-1">
-				<div
-					class="relative grid size-28 place-items-center overflow-hidden rounded-lg border border-line-subtle bg-canvas">
-					{#if image.url && !failedImageUrls.has(image.url)}
-						{#key image.url}
-							<img
-								class="size-full animate-pop object-contain"
-								src={image.url}
-								alt={image.label}
-								decoding="async"
-								draggable="false"
-								referrerpolicy="no-referrer"
-								onerror={() =>
-									(failedImageUrls = new Set([
-										...failedImageUrls,
-										image.url,
-									]))} />
-						{/key}
-					{:else}
-						<Icon
-							svg={imageIcon}
-							class="text-fg-faint"
-							size={28}
-							aria-label={`${image.label} unavailable`} />
-					{/if}
-				</div>
-				<figcaption class="text-2xs text-fg-muted">{image.label}</figcaption>
-			</figure>
+			<AvatarThumbnailImage label={image.label} url={image.url} />
 		{/each}
 	</div>
 
@@ -263,6 +255,11 @@
 				</div>
 			{/each}
 		</div>
+		{#if isPoseHidden}
+			<p class="animate-enter notice-note">
+				This image shows the pose only with a custom camera.
+			</p>
+		{/if}
 		{#if ownedError}
 			<p
 				class="flex flex-wrap items-center gap-x-2 text-xs text-fg-muted"
@@ -274,10 +271,16 @@
 					onclick={() => library.loadOwned()}>Try again</button>
 			</p>
 		{/if}
-		{#if isChanged}
-			<div class="flex animate-enter justify-end gap-2">
+		<div class="flex items-center justify-end gap-2">
+			<button
+				class="mr-auto button"
+				type="button"
+				data-tooltip="Remove the pose and the custom camera"
+				disabled={isDisabled || isStandard}
+				onclick={useStandard}>Use standard</button>
+			{#if isChanged}
 				<button
-					class="button"
+					class="button animate-enter"
 					type="button"
 					disabled={isDisabled}
 					onclick={discard}>Discard</button>
@@ -293,13 +296,17 @@
 							isCameraCustomized,
 							camera,
 						})}>{isSaving ? "Saving…" : "Save thumbnail"}</button>
-			</div>
-		{/if}
+			{/if}
+		</div>
 	{:else}
 		<dl class="facts">
 			<div>
 				<dt>Pose</dt>
-				<dd class="select-text">{emoteLabel}</dd>
+				<dd class="select-text">
+					{emoteLabel}{#if isSavedPoseHidden}<span class="text-fg-muted">
+							· Not shown with the standard camera</span
+						>{/if}
+				</dd>
 			</div>
 			<div>
 				<dt>Camera</dt>

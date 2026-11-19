@@ -140,9 +140,9 @@
 		// The panel lays out in the top layer on the next frame, before which
 		// its list cannot scroll.
 		requestAnimationFrame(() => {
-			list
-				?.querySelector("[role='option'][aria-selected='true']")
-				?.scrollIntoView({ block: "nearest" })
+			list?.querySelector(
+				"[role='option'][aria-selected='true']",
+			)?.scrollIntoView({ block: "nearest" })
 		})
 	}
 

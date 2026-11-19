@@ -11,8 +11,9 @@ import (
 )
 
 // AvatarThumbnailType is the avatar image that a thumbnail customization
-// frames. Closeup frames the headshot and the bust, and FullBody frames the
-// full-body image.
+// frames. Closeup frames the headshot, and FullBody frames the full-body
+// image. Roblox always frames the bust image itself. Verified against the API
+// on 2026-11-19.
 type AvatarThumbnailType string
 
 const (
@@ -21,7 +22,9 @@ const (
 )
 
 // robloxThumbnailTypeByType holds the numbers of the Roblox
-// AvatarThumbnailCustomizationType enum, which the avatar API writes.
+// AvatarThumbnailCustomizationType enum, which the avatar API writes. Roblox
+// saves any number above 2 into the FullBody customization, so only these two
+// are sent. Verified against the API on 2026-11-19.
 var robloxThumbnailTypeByType = map[AvatarThumbnailType]int{
 	AvatarThumbnailCloseup:  1,
 	AvatarThumbnailFullBody: 2,
@@ -42,9 +45,11 @@ type AvatarThumbnailCameraLimits struct {
 	DistanceScale      AvatarScaleLimit `json:"distanceScale"`
 }
 
-// The camera limits follow RoSeal, which mirrors the limits of the Roblox
-// avatar editor, and were not checked against a save. The avatar API lists no
-// limits. The full-body camera keeps its distance.
+// The camera limits are the ranges outside of which Roblox rejects a save with
+// the codes 5, 6, and 7. The avatar API lists no limits. The full-body camera
+// keeps its distance, and a distanceScale of exactly -1 turns a camera off.
+// RoSeal uses the same limits, while RoAvatar keeps the close-up distance
+// under 2.5. Verified against the API on 2026-11-19.
 var (
 	closeupCameraLimits = AvatarThumbnailCameraLimits{
 		FieldOfViewDegrees: AvatarScaleLimit{Min: 15, Max: 45, Increment: 1},
@@ -60,6 +65,11 @@ var (
 	// that was never customized, as RoAvatar resets it.
 	defaultThumbnailCamera = AvatarThumbnailCamera{FieldOfViewDegrees: 30, YRotationDegrees: 0, DistanceScale: 1}
 )
+
+// cameraRangeErrorCodes are the codes with which Roblox rejects the rotation,
+// the field of view, and the distance of a camera. It rejects an emote that
+// the account does not own with code 0.
+var cameraRangeErrorCodes = []int{5, 6, 7}
 
 func cameraLimitsOf(thumbnailType AvatarThumbnailType) AvatarThumbnailCameraLimits {
 	if thumbnailType == AvatarThumbnailFullBody {
@@ -81,11 +91,16 @@ type AvatarThumbnailCustomization struct {
 	IsCameraCustomized bool                        `json:"isCameraCustomized"`
 	Camera             AvatarThumbnailCamera       `json:"camera"`
 	CameraLimits       AvatarThumbnailCameraLimits `json:"cameraLimits"`
+	// IsPoseShownOnlyWithCustomCamera tells that the image ignores the emote
+	// while the standard camera frames it, as the headshot does. Roblox still
+	// stores the emote. Verified against the API on 2026-11-19.
+	IsPoseShownOnlyWithCustomCamera bool `json:"isPoseShownOnlyWithCustomCamera"`
 }
 
 // AvatarThumbnails are the customizations of the avatar images of a user,
-// with the headshot and the bust image that the close-up customization
-// frames. An image is empty while Roblox renders it.
+// with the headshot that the close-up customization frames and the bust
+// image, which has no customization. An image is empty while Roblox renders
+// it.
 type AvatarThumbnails struct {
 	Closeup          AvatarThumbnailCustomization `json:"closeup"`
 	FullBody         AvatarThumbnailCustomization `json:"fullBody"`
@@ -156,7 +171,10 @@ func (service *Users) AvatarThumbnailCustomizations(ctx context.Context, account
 // from them.
 func thumbnailCustomizationOf(thumbnailType AvatarThumbnailType, listed []listedThumbnailCustomization) AvatarThumbnailCustomization {
 	limits := cameraLimitsOf(thumbnailType)
-	customization := AvatarThumbnailCustomization{Type: thumbnailType, Camera: defaultThumbnailCamera, CameraLimits: limits}
+	customization := AvatarThumbnailCustomization{
+		Type: thumbnailType, Camera: defaultThumbnailCamera, CameraLimits: limits,
+		IsPoseShownOnlyWithCustomCamera: thumbnailType == AvatarThumbnailCloseup,
+	}
 	listedIndex := slices.IndexFunc(listed, func(entry listedThumbnailCustomization) bool {
 		return entry.ThumbnailType == robloxThumbnailTypeByType[thumbnailType]
 	})
@@ -191,8 +209,11 @@ func (limit AvatarScaleLimit) contains(scale float64) bool {
 }
 
 // SaveAvatarThumbnail replaces one customization of the account. Roblox
-// renders the changed images a few seconds later. Verified against RoSeal and
-// RoAvatar, which send the same request.
+// renders the changed image within about 10 seconds without a redraw. The API
+// has no request that deletes a customization, so an emote ID of 0 with the
+// camera off returns the image to its standard look, as RoAvatar resets it.
+// Roblox accepts only emotes and animations that the account owns. Verified
+// against the API on 2026-11-19.
 func (service *Users) SaveAvatarThumbnail(ctx context.Context, accountID, version int64, change AvatarThumbnailChange) error {
 	const endpoint = "avatar-thumbnail-save"
 	robloxThumbnailType, isKnownType := robloxThumbnailTypeByType[change.Type]
@@ -226,7 +247,11 @@ func (service *Users) SaveAvatarThumbnail(ctx context.Context, accountID, versio
 	}
 	_, err := service.writeAccount(ctx, accountID, version, endpoint, http.MethodPost, "https://avatar.roblox.com/v1/avatar/thumbnail-customization", request)
 	if remote, ok := errors.AsType[*roblox.Error](err); ok && remote.Status == http.StatusBadRequest {
-		return &roblox.Error{Kind: remote.Kind, Endpoint: endpoint, Status: remote.Status, RobloxCode: remote.RobloxCode, Message: "Roblox rejected the thumbnail settings. Check that the account owns the emote and try again.", Cause: err}
+		message := "Roblox rejected the pose. Select an emote or animation that the account owns."
+		if slices.Contains(cameraRangeErrorCodes, remote.RobloxCode) {
+			message = "A camera setting is outside the range that Roblox allows."
+		}
+		return &roblox.Error{Kind: remote.Kind, Endpoint: endpoint, Status: remote.Status, RobloxCode: remote.RobloxCode, Message: message, Cause: err}
 	}
 	return err
 }

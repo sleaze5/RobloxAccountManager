@@ -8,6 +8,7 @@
 	import Icon from "../shared/Icon.svelte"
 	import RefreshIcon from "../shared/RefreshIcon.svelte"
 	import SettingsRowsSkeleton from "../shared/SettingsRowsSkeleton.svelte"
+	import AvatarThumbnailImage from "./AvatarThumbnailImage.svelte"
 	import AvatarThumbnailSection from "./AvatarThumbnailSection.svelte"
 	import type { AvatarState } from "./avatar-state.svelte"
 	import type { AvatarThumbnailsState } from "./avatar-thumbnails-state.svelte"
@@ -84,13 +85,10 @@
 			<p class="notice-error" role="alert">{thumbnails.error}</p>
 		{/if}
 		<AvatarThumbnailSection
-			title="Headshot and bust"
-			description="The close-up images that profiles, friend lists, and chats show."
+			title="Headshot"
+			description="The close-up image that profiles, friend lists, and chats show."
 			customization={customizations.closeup}
-			images={[
-				{ label: "Headshot", url: customizations.headshotImageUrl },
-				{ label: "Bust", url: customizations.bustImageUrl },
-			]}
+			images={[{ label: "Headshot", url: customizations.headshotImageUrl }]}
 			{canEdit}
 			isSaving={thumbnails.savingType ===
 				AvatarThumbnailType.AvatarThumbnailCloseup}
@@ -108,5 +106,14 @@
 			isLocked={!!thumbnails.savingType}
 			{library}
 			{onSave} />
+		<section class="settings-section" aria-labelledby="avatar-bust-heading">
+			<h3 id="avatar-bust-heading">Bust</h3>
+			<p class="text-xs text-fg-muted">
+				Roblox always frames the bust itself. It has no pose or camera settings.
+			</p>
+			<div class="flex">
+				<AvatarThumbnailImage label="Bust" url={customizations.bustImageUrl} />
+			</div>
+		</section>
 	{/if}
 </div>
