@@ -29,7 +29,12 @@
 	import type { NotificationCenter } from "../notifications/notification-center.svelte"
 	import InventoryItemDialog from "./InventoryItemDialog.svelte"
 	import InventoryItemTile from "./InventoryItemTile.svelte"
-	import { InventoryState, ownedCopyKey } from "./inventory-state.svelte"
+	import { itemGridClass } from "./item-grid"
+	import {
+		categoryItemKey,
+		InventoryState,
+		ownedCopyKey,
+	} from "./inventory-state.svelte"
 
 	let {
 		accounts,
@@ -163,6 +168,14 @@
 		inventory.loadItemDetails(item, category.id, !isOwnInventory)
 		void inventory.checkFavorite(item)
 	}
+
+	// The tiles of another user's items show which ones the account owns too.
+	$effect(() => {
+		if (isOwnInventory || items.length === 0) return
+		const categoryId = category.id,
+			categorizedItems = items.map((item) => ({ category: categoryId, item }))
+		untrack(() => void inventory.loadOwnership(categorizedItems))
+	})
 
 	onMount(() => {
 		void inventory.refresh()
@@ -327,7 +340,7 @@
 						<div class="p-3" role="status" aria-busy="true">
 							<span class="sr-only">Loading {category.noun}…</span>
 							<ul
-								class="grid animate-enter grid-cols-4 gap-2 @lg:grid-cols-5 @2xl:grid-cols-6 @3xl:grid-cols-7 @4xl:grid-cols-8 @6xl:grid-cols-10"
+								class={[itemGridClass, "animate-enter"]}
 								aria-hidden="true">
 								{#each skeletonTileIndexes as index (index)}
 									<SkeletonTile hasDetailLine={!isPlaceCategory} />
@@ -348,12 +361,17 @@
 								Nothing loaded matches these filters. Clear them or load
 								more items.
 							</p>
-							<button class="button" type="button" onclick={clearFilters}
-								>Clear filters</button>
+							<button
+								class="button"
+								type="button"
+								onclick={() => {
+									clearFilters()
+									filterInput?.focus()
+								}}>Clear filters</button>
 						</div>
 					{:else}
 						<ul
-							class="grid animate-enter grid-cols-4 gap-2 p-3 @lg:grid-cols-5 @2xl:grid-cols-6 @3xl:grid-cols-7 @4xl:grid-cols-8 @6xl:grid-cols-10"
+							class={[itemGridClass, "animate-enter p-3"]}
 							aria-label={category.label}
 							aria-busy={inventory.loading}>
 							{#each shownItems as item, index (`${item.itemId}:${index}`)}
@@ -362,6 +380,13 @@
 										{item}
 										{category}
 										isWorn={wornAssetIds.has(item.itemId)}
+										isOwned={isOwnInventory ||
+											inventory.isOwnedByItemKey.get(
+												categoryItemKey(
+													category.id,
+													item.itemId,
+												),
+											) === true}
 										actionLabel={isPlaceCategory
 											? "Show in Games"
 											: "Show details"}
@@ -395,7 +420,7 @@
 		{category}
 		{inventory}
 		{username}
-		account={accounts.selectedAccount}
+		{accounts}
 		{isOwnInventory}
 		isWorn={wornAssetIds.has(detailedItem.itemId)}
 		onSearchPlace={(placeId) => {

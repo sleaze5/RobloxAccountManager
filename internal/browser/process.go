@@ -5,12 +5,12 @@ import (
 	"time"
 )
 
-type ProcessOptions struct {
+type browserProcessOptions struct {
 	Executable   string
 	UserDataPath string
 }
 
-type BrowserProcess interface {
+type browserProcess interface {
 	CDPPipes() (io.WriteCloser, io.ReadCloser)
 	AllWindowsClosed() <-chan struct{}
 	PagesClosed()

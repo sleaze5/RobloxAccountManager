@@ -1,29 +1,32 @@
 <script lang="ts">
 	import xIcon from "@phosphor-icons/core/regular/x.svg?raw"
-	import Dialog from "../shared/Dialog.svelte"
-	import Icon from "../shared/Icon.svelte"
+	import Dialog from "./Dialog.svelte"
+	import Icon from "./Icon.svelte"
 
 	let {
 		title,
 		description,
-		actionLabel,
+		confirmLabel,
 		progressLabel,
-		tone,
+		tone = "danger",
 		isWorking,
 		error,
 		onConfirm,
 		onCancel,
 	}: {
 		title: string
+		// description names the affected item and the consequence.
 		description: string
-		actionLabel: string
+		confirmLabel: string
 		progressLabel: string
-		tone: "danger" | "warning"
+		tone?: "danger" | "warning"
 		isWorking: boolean
 		error: string
 		onConfirm: () => void
 		onCancel: () => void
 	} = $props()
+
+	const dialogId = $props.id()
 
 	function cancel(): void {
 		if (!isWorking) onCancel()
@@ -39,15 +42,15 @@
 	}} />
 
 <Dialog
-	class="max-w-sm"
+	class="max-w-sm text-left"
 	role="alertdialog"
-	aria-labelledby="avatar-confirmation-title"
-	aria-describedby="avatar-confirmation-description"
+	aria-labelledby={`${dialogId}-title`}
+	aria-describedby={`${dialogId}-description`}
 	onBackdropClick={cancel}>
-	<div class="dialog-heading">
-		<div>
-			<h2 id="avatar-confirmation-title">{title}</h2>
-			<p id="avatar-confirmation-description">{description}</p>
+	<div class="dialog-heading mb-2">
+		<div class="min-w-0">
+			<h2 id={`${dialogId}-title`} class="wrap-anywhere">{title}</h2>
+			<p id={`${dialogId}-description`}>{description}</p>
 		</div>
 		<button
 			type="button"
@@ -58,7 +61,7 @@
 		</button>
 	</div>
 	{#if error}
-		<p class="notice-error" role="alert">{error}</p>
+		<div class="mt-3 notice-error" role="alert">{error}</div>
 	{/if}
 	<div class="dialog-actions">
 		<button class="button" type="button" disabled={isWorking} onclick={cancel}
@@ -68,6 +71,6 @@
 			type="button"
 			aria-busy={isWorking}
 			disabled={isWorking}
-			onclick={onConfirm}>{isWorking ? progressLabel : actionLabel}</button>
+			onclick={onConfirm}>{isWorking ? progressLabel : confirmLabel}</button>
 	</div>
 </Dialog>

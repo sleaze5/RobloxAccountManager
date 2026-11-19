@@ -20,12 +20,12 @@ import (
 
 const (
 	FormatVersion                          = 2
-	DefaultPasswordTestIntervalDays        = 30
-	DefaultTimestampFormat                 = "$MMM $D $YYYY, $h:$mm:$ss $A"
-	DefaultTimestampHoverFormat            = "$dddd, $MMMM $DD $YYYY, $hh:$mm:$ss $A ($relative)"
-	DefaultAccountsPresenceIntervalSeconds = 300
-	DefaultProfilePresenceIntervalSeconds  = 60
-	DefaultSocialPresenceIntervalSeconds   = 60
+	defaultPasswordTestIntervalDays        = 30
+	defaultTimestampFormat                 = "$MMM $D $YYYY, $h:$mm:$ss $A"
+	defaultTimestampHoverFormat            = "$dddd, $MMMM $DD $YYYY, $hh:$mm:$ss $A ($relative)"
+	defaultAccountsPresenceIntervalSeconds = 300
+	defaultProfilePresenceIntervalSeconds  = 60
+	defaultSocialPresenceIntervalSeconds   = 60
 )
 
 var loggingLevels = []string{"trace", "debug", "info", "warn", "error"}
@@ -360,17 +360,17 @@ func defaults() Settings {
 	return Settings{
 		Version: FormatVersion,
 		Presence: PresenceSettings{
-			Accounts: PresenceUpdateSettings{Enabled: true, IntervalSeconds: DefaultAccountsPresenceIntervalSeconds},
-			Profile:  PresenceUpdateSettings{Enabled: true, IntervalSeconds: DefaultProfilePresenceIntervalSeconds},
-			Social:   PresenceUpdateSettings{Enabled: true, IntervalSeconds: DefaultSocialPresenceIntervalSeconds},
+			Accounts: PresenceUpdateSettings{Enabled: true, IntervalSeconds: defaultAccountsPresenceIntervalSeconds},
+			Profile:  PresenceUpdateSettings{Enabled: true, IntervalSeconds: defaultProfilePresenceIntervalSeconds},
+			Social:   PresenceUpdateSettings{Enabled: true, IntervalSeconds: defaultSocialPresenceIntervalSeconds},
 		},
 		Roblox:       RobloxSettings{DeleteLogsWhenCleaning: true},
 		Integrations: IntegrationSettings{RoValra: true, RBXServers: true},
-		Vault:        VaultSettings{PasswordTestIntervalDays: DefaultPasswordTestIntervalDays},
+		Vault:        VaultSettings{PasswordTestIntervalDays: defaultPasswordTestIntervalDays},
 		Logging:      LoggingSettings{EnabledLevels: defaultEnabledLoggingLevels()},
 		UserInterface: UserInterfaceSettings{
-			TimestampFormat:      DefaultTimestampFormat,
-			TimestampHoverFormat: DefaultTimestampHoverFormat,
+			TimestampFormat:      defaultTimestampFormat,
+			TimestampHoverFormat: defaultTimestampHoverFormat,
 			Motion:               MotionSystem,
 		},
 	}

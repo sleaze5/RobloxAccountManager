@@ -28,6 +28,6 @@
 			class="button-primary"
 			type="button"
 			{@attach (button) => button.focus()}
-			onclick={onContinue}>Continue</button>
+			onclick={onContinue}>Use this build</button>
 	</div>
 </Dialog>

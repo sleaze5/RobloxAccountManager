@@ -11,11 +11,14 @@
 	let {
 		avatar,
 		canEdit,
+		isOwned,
 		onOpenEmote,
 		onChooseEmote,
 	}: {
 		avatar: AvatarState
 		canEdit: boolean
+		// Whether the account that the page acts for owns the emote.
+		isOwned: (emote: AvatarEmote) => boolean
 		onOpenEmote: (emote: AvatarEmote) => void
 		onChooseEmote: (slot: number) => void
 	} = $props()
@@ -44,6 +47,7 @@
 						item={emote.item}
 						category={emoteCategory}
 						isWorn={false}
+						isOwned={isOwned(emote)}
 						actionLabel={`Slot ${slot}. Show details`}
 						onOpen={() => onOpenEmote(emote)} />
 					{#if canEdit}

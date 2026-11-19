@@ -116,7 +116,7 @@ type AccountSource interface {
 
 type session struct {
 	state               SessionState
-	process             BrowserProcess
+	process             browserProcess
 	cdp                 *cdpClient
 	directory           string
 	targetID            string
@@ -301,7 +301,7 @@ func (coordinator *Coordinator) start(ctx context.Context, mode Mode, accountID 
 		coordinator.cleanup.enqueue(browserSessionID)
 		return SessionState{}, err
 	}
-	process, err := startBrowserProcess(ProcessOptions{Executable: executable, UserDataPath: directory})
+	process, err := startBrowserProcess(browserProcessOptions{Executable: executable, UserDataPath: directory})
 	if err != nil {
 		coordinator.cleanup.enqueue(browserSessionID)
 		return SessionState{}, err

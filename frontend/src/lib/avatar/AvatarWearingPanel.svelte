@@ -1,5 +1,6 @@
 <script lang="ts">
 	import plusIcon from "@phosphor-icons/core/regular/plus.svg?raw"
+	import asteriskIcon from "@phosphor-icons/core/regular/asterisk.svg?raw"
 	import slidersHorizontalIcon from "@phosphor-icons/core/regular/sliders-horizontal.svg?raw"
 	import tShirtIcon from "@phosphor-icons/core/regular/t-shirt.svg?raw"
 	import xIcon from "@phosphor-icons/core/regular/x.svg?raw"
@@ -12,6 +13,7 @@
 		avatar,
 		canEdit,
 		username,
+		isOwned,
 		onOpenItem,
 		onAddItems,
 		onAdjustItem,
@@ -19,6 +21,7 @@
 		avatar: AvatarState
 		canEdit: boolean
 		username: string
+		isOwned: (asset: AvatarAsset) => boolean
 		onOpenItem: (asset: AvatarAsset) => void
 		onAddItems: () => void
 		onAdjustItem: (assetId: number) => void
@@ -62,15 +65,18 @@
 		</div>
 	{/if}
 
-	<AvatarItemGroups {assets} headingIdPrefix="avatar-group" {onOpenItem}>
+	<AvatarItemGroups
+		{assets}
+		headingIdPrefix="avatar-group"
+		{isOwned}
+		badgesOf={(asset) =>
+			canEdit && !savedAssetIds.has(asset.item.itemId)
+				? [{ label: "New, not saved yet", icon: asteriskIcon, tone: "text-fg" }]
+				: []}
+		{onOpenItem}>
 		{#snippet itemControls(asset)}
-			{#if canEdit && !savedAssetIds.has(asset.item.itemId)}
-				<span
-					class="animate-pop rounded-sm border border-line-strong bg-overlay px-1 text-2xs leading-4 font-medium text-fg"
-					>New</span>
-			{/if}
 			{#if canEdit}
-				<span class="pointer-events-auto ml-auto flex gap-1">
+				<span class="pointer-events-auto flex gap-1">
 					{#if savedAssetIds.has(asset.item.itemId) && avatar.adjustmentLimitsOf(asset.item.typeName)}
 						<button
 							class="button-icon size-6 bg-overlay"

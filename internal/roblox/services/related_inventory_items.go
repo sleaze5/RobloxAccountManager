@@ -16,15 +16,6 @@ const (
 	relatedItemDetailEndpoint = "inventory-related-item"
 )
 
-// RelatedInventoryItem is an asset that another item includes or uses, such as
-// a part of a bundle or the mesh of an accessory.
-type RelatedInventoryItem struct {
-	// Category is InventoryOtherAssets for an asset type that no other
-	// category lists, such as a mesh or an image.
-	Category InventoryCategory `json:"category"`
-	Item     InventoryItem     `json:"item"`
-}
-
 // hasDependencies reports whether the assets of the category are model files
 // that name other assets, such as the mesh and the texture of an accessory.
 // Images, meshes, and decals are the assets that others use.
@@ -41,7 +32,7 @@ func hasDependencies(category InventoryCategory) bool {
 // RelatedInventoryItems lists the assets of a bundle, or the assets that an
 // asset uses, with their names, types, creators, and descriptions. Other kinds
 // of items relate to none.
-func (service *Users) RelatedInventoryItems(ctx context.Context, accountID, version int64, category InventoryCategory, itemID int64) ([]RelatedInventoryItem, error) {
+func (service *Users) RelatedInventoryItems(ctx context.Context, accountID, version int64, category InventoryCategory, itemID int64) ([]CategorizedInventoryItem, error) {
 	var (
 		assetIDs []int64
 		err      error
@@ -94,8 +85,8 @@ func (service *Users) assetDependencyIDs(ctx context.Context, accountID, version
 
 // relatedItemsOf reads the economy details of each asset at once. An asset
 // whose details fail is left out, unless every one fails.
-func (service *Users) relatedItemsOf(ctx context.Context, accountID, version int64, assetIDs []int64) ([]RelatedInventoryItem, error) {
-	relatedItems := make([]*RelatedInventoryItem, len(assetIDs))
+func (service *Users) relatedItemsOf(ctx context.Context, accountID, version int64, assetIDs []int64) ([]CategorizedInventoryItem, error) {
+	relatedItems := make([]*CategorizedInventoryItem, len(assetIDs))
 	failures := make([]error, len(assetIDs))
 	var group sync.WaitGroup
 	for index, assetID := range assetIDs {
@@ -104,7 +95,7 @@ func (service *Users) relatedItemsOf(ctx context.Context, accountID, version int
 		})
 	}
 	group.Wait()
-	readItems := make([]RelatedInventoryItem, 0, len(assetIDs))
+	readItems := make([]CategorizedInventoryItem, 0, len(assetIDs))
 	for _, relatedItem := range relatedItems {
 		if relatedItem != nil {
 			readItems = append(readItems, *relatedItem)
@@ -117,7 +108,7 @@ func (service *Users) relatedItemsOf(ctx context.Context, accountID, version int
 	return readItems, nil
 }
 
-func (service *Users) relatedItemOf(ctx context.Context, accountID, version, assetID int64) (*RelatedInventoryItem, error) {
+func (service *Users) relatedItemOf(ctx context.Context, accountID, version, assetID int64) (*CategorizedInventoryItem, error) {
 	var payload struct {
 		Name        string `json:"Name"`
 		Description string `json:"Description"`
@@ -132,10 +123,7 @@ func (service *Users) relatedItemOf(ctx context.Context, accountID, version, ass
 	if err := service.readAccountDetails(ctx, accountID, version, relatedItemDetailEndpoint, "https://economy.roblox.com/v2/assets/"+strconv.FormatInt(assetID, 10)+"/details", &payload); err != nil {
 		return nil, err
 	}
-	typeName, category := assetTypeNameByID[payload.AssetTypeID], InventoryOtherAssets
-	if listedCategory := inventoryCategoryOfAssetType(typeName); listedCategory != "" {
-		category = listedCategory
-	}
+	typeName := assetTypeNameByID[payload.AssetTypeID]
 	item := InventoryItem{
 		ItemID: assetID, Name: boundedText(payload.Name, maxInventoryItemNameLength), TypeName: typeName,
 		Description:             boundedText(payload.Description, maxInventoryDescriptionLength),
@@ -144,5 +132,5 @@ func (service *Users) relatedItemOf(ctx context.Context, accountID, version, ass
 		thumbnailType:           "Asset", CatalogItemType: CatalogAsset,
 	}
 	item.setCreator(payload.Creator.CreatorTargetID, payload.Creator.CreatorType)
-	return &RelatedInventoryItem{Category: category, Item: item}, nil
+	return &CategorizedInventoryItem{Category: inventoryCategoryOfAssetTypeOrOtherAssets(typeName), Item: item}, nil
 }

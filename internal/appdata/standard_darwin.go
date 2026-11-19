@@ -12,7 +12,7 @@ import (
 
 const portableSupported = false
 
-func StandardRoot() (string, error) {
+func standardRoot() (string, error) {
 	home, err := os.UserHomeDir()
 	if err != nil || !filepath.IsAbs(home) {
 		return "", errors.New("home folder is unavailable")

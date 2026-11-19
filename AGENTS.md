@@ -71,6 +71,7 @@ Names exist so that a reader understands what the code does without reading its 
 - Name the outcome of a database statement after the statement: `insertion`, `update`, or `deletion`.
 - Put computed qualifiers at the end, and include units where a value has one: `retryDelay`, `accountCount`, `lockTimeout`, `maxResponseSizeBytes`, `intervalSeconds`.
 - Use matched opposites consistently: `begin`/`end`, `open`/`close`, `add`/`remove`, `source`/`destination`, `previous`/`next`.
+- Use one verb per concept across the codebase, such as `get`, `read`, or `load`, and keep it consistent.
 - Give each variable one purpose. Do not reuse a variable for a second meaning, and do not encode special meanings in values, such as `-1` for an error.
 - Do not use generic type names such as `Manager`, `Helper`, `Util`, or `Data` for something new. Name it after its one capability.
 - Do not add temporal or implementation words: `newAccountStore`, `accountStoreV2`, `accountsMap`, unless two variants exist in the same scope.

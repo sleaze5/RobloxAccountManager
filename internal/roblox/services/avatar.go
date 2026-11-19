@@ -410,6 +410,16 @@ func inventoryCategoryOfAssetType(typeName string) InventoryCategory {
 	return ""
 }
 
+// inventoryCategoryOfAssetTypeOrOtherAssets finds the inventory category that lists
+// the asset type, or InventoryOtherAssets for a type that no category lists,
+// such as Mesh.
+func inventoryCategoryOfAssetTypeOrOtherAssets(typeName string) InventoryCategory {
+	if category := inventoryCategoryOfAssetType(typeName); category != "" {
+		return category
+	}
+	return InventoryOtherAssets
+}
+
 // AddAvatarCatalogDetails adds the catalog details of each worn asset.
 func (service *Users) AddAvatarCatalogDetails(ctx context.Context, accountID, version int64, avatar *Avatar) error {
 	items := make([]InventoryItem, len(avatar.Assets))

@@ -1,6 +1,11 @@
 package services
 
-import "github.com/sleaze5/RobloxAccountManager/internal/roblox"
+import (
+	"net/url"
+	"strconv"
+
+	"github.com/sleaze5/RobloxAccountManager/internal/roblox"
+)
 
 const maxCursorLength = 4096
 
@@ -26,4 +31,23 @@ func readCursorPages(endpoint string, maxPages int, tooManyPagesMessage string, 
 		cursor = nextCursor
 	}
 	return &roblox.Error{Kind: roblox.KindProtocol, Endpoint: endpoint, Message: tooManyPagesMessage}
+}
+
+// newestFirstPageQuery asks for one page of pageSize entries, newest first,
+// after cursor.
+func newestFirstPageQuery(pageSize int, cursor string) url.Values {
+	query := url.Values{"limit": {strconv.Itoa(pageSize)}, "sortOrder": {"Desc"}}
+	if cursor != "" {
+		query.Set("cursor", cursor)
+	}
+	return query
+}
+
+// nextCursorOf returns the cursor of the next page, or false when Roblox
+// returned a cursor too long to send back.
+func nextCursorOf(nextPageCursor *string) (string, bool) {
+	if nextPageCursor == nil {
+		return "", true
+	}
+	return *nextPageCursor, len(*nextPageCursor) <= maxCursorLength
 }

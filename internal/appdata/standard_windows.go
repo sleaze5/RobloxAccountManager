@@ -14,7 +14,7 @@ import (
 
 const portableSupported = true
 
-func StandardRoot() (string, error) {
+func standardRoot() (string, error) {
 	localAppData := os.Getenv("LOCALAPPDATA")
 	if localAppData == "" || !filepath.IsAbs(localAppData) {
 		folder, err := windows.KnownFolderPath(windows.FOLDERID_LocalAppData, 0)

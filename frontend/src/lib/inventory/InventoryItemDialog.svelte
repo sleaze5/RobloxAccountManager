@@ -19,7 +19,6 @@
 	import magnifyingGlassIcon from "@phosphor-icons/core/regular/magnifying-glass.svg?raw"
 	import mapPinIcon from "@phosphor-icons/core/regular/map-pin.svg?raw"
 	import packageIcon from "@phosphor-icons/core/regular/package.svg?raw"
-	import sealCheckIcon from "@phosphor-icons/core/regular/seal-check.svg?raw"
 	import shoppingCartIcon from "@phosphor-icons/core/regular/shopping-cart.svg?raw"
 	import shapesIcon from "@phosphor-icons/core/regular/shapes.svg?raw"
 	import storefrontIcon from "@phosphor-icons/core/regular/storefront.svg?raw"
@@ -40,8 +39,9 @@
 	import type {
 		GamePlace,
 		InventoryItem,
-		RelatedInventoryItem,
+		CategorizedInventoryItem,
 	} from "../backend/bridge"
+	import CreatorCard from "../shared/CreatorCard.svelte"
 	import Dialog from "../shared/Dialog.svelte"
 	import FrameUnavailable from "../shared/FrameUnavailable.svelte"
 	import AnchoredActionMenu from "../shared/AnchoredActionMenu.svelte"
@@ -63,15 +63,17 @@
 	import Timestamp from "../shared/Timestamp.svelte"
 	import { relativeTime } from "../shared/timestamp"
 	import {
+		assetCategories,
 		inventoryCategoryOptionOf,
 		inventoryTypeLabel,
 	} from "./inventory-categories"
 	import type { InventoryCategoryOption } from "./inventory-categories"
-	import type { Account } from "../accounts/account-model"
+	import type { AccountStore } from "../accounts/account-store.svelte"
 	import InventoryItemTile from "./InventoryItemTile.svelte"
 	import { formatRobux, salePriceLabel } from "./inventory-prices"
 	import PurchaseAccountActions from "./PurchaseAccountActions.svelte"
 	import PurchaseItemSummary from "./PurchaseItemSummary.svelte"
+	import SavedAccountsOwnership from "./SavedAccountsOwnership.svelte"
 	import { categoryItemKey, inventoryItemKey } from "./inventory-state.svelte"
 	import type {
 		InventoryDownloadKind,
@@ -83,7 +85,7 @@
 		category: openedCategory,
 		inventory,
 		username,
-		account,
+		accounts,
 		isOwnInventory: isOpenedFromOwnInventory,
 		isWorn: isOpenedItemWorn,
 		onSearchPlace,
@@ -94,8 +96,8 @@
 		category: InventoryCategoryOption
 		inventory: InventoryState
 		username: string
-		// The account that buys and favorites items.
-		account: Account
+		// The selected account buys and favorites items.
+		accounts: AccountStore
 		isOwnInventory: boolean
 		isWorn: boolean
 		onSearchPlace: (placeId: number) => void
@@ -110,7 +112,11 @@
 		{ item: InventoryItem; category: InventoryCategoryOption }[]
 	>([])
 
-	const item = $derived(openedRelatedItems.at(-1)?.item ?? openedItem),
+	const account = $derived(accounts.selectedAccount),
+		otherAccounts = $derived(
+			accounts.accounts.filter((savedAccount) => savedAccount.id !== account.id),
+		),
+		item = $derived(openedRelatedItems.at(-1)?.item ?? openedItem),
 		category = $derived(openedRelatedItems.at(-1)?.category ?? openedCategory),
 		previousItemName = $derived(
 			(openedRelatedItems.at(-2)?.item ?? openedItem).name || "Unnamed item",
@@ -172,6 +178,8 @@
 		badge = $derived(item.badge),
 		isCatalogItem = $derived(!!item.catalogItemType),
 		isBundle = $derived(item.catalogItemType === CatalogItemType.CatalogBundle),
+		// Whether the item is an asset, whose ID the worn items can hold.
+		isAssetCategory = $derived(assetCategories.includes(category.id)),
 		// Roblox renders badges and game passes only as small icons.
 		isSmallIcon = $derived(
 			category.id === InventoryCategory.InventoryBadges ||
@@ -327,6 +335,24 @@
 		}
 	})
 
+	$effect(() => {
+		const shownRelatedItems = relatedItems
+		if (shownRelatedItems?.length) {
+			untrack(() => void inventory.loadOwnership(shownRelatedItems))
+		}
+	})
+
+	$effect(() => {
+		const shownItem = item,
+			shownCategory = category.id
+		if (otherAccounts.length > 0) {
+			untrack(
+				() =>
+					void inventory.loadSavedAccountsOwnership(shownItem, shownCategory),
+			)
+		}
+	})
+
 	// showOpenedRelatedItems shows the last of the opened related items, or the
 	// item that the dialog opened with, from its top.
 	async function showOpenedRelatedItems(
@@ -351,7 +377,7 @@
 		)?.focus()
 	}
 
-	function openRelatedItem(relatedItem: RelatedInventoryItem): void {
+	function openRelatedItem(relatedItem: CategorizedInventoryItem): void {
 		const relatedCategory = inventoryCategoryOptionOf(relatedItem.category)
 		inventory.loadItemDetails(relatedItem.item, relatedCategory.id, true)
 		void inventory.checkFavorite(relatedItem.item)
@@ -877,19 +903,18 @@
 							<span class="text-fg-faint" aria-hidden="true">·</span>
 							<span>{typeLabel}</span>
 						</div>
-						{#if item.creatorName}
+						{#if item.creatorId && (item.creatorType === "User" || item.creatorType === "Group")}
+							<div class="my-1 w-72 max-w-full">
+								<CreatorCard
+									kind={item.creatorType}
+									creatorId={item.creatorId}
+									name={item.creatorName}
+									hasVerifiedBadge={item.creatorHasVerifiedBadge}
+									role="Creator" />
+							</div>
+						{:else if item.creatorName}
 							<div class={metaClass}>
-								<span class="inline-flex items-center gap-1"
-									>by {item.creatorName}{#if item.creatorHasVerifiedBadge}<Icon
-											svg={sealCheckIcon}
-											size={14}
-											aria-label="Verified creator" />{/if}</span>
-								{#if item.creatorId}
-									<span class="text-fg-faint" aria-hidden="true"
-										>·</span>
-									<span class="select-text"
-										>{item.creatorType} ID: {item.creatorId}</span>
-								{/if}
+								<span>by {item.creatorName}</span>
 							</div>
 						{/if}
 						{#if market}
@@ -957,7 +982,7 @@
 								</li>
 							{/if}
 							{#if market?.isLimited}
-								<li class="tag-pill-warning">
+								<li class="tag-pill-success">
 									<Icon
 										svg={diamondIcon}
 										size={12}
@@ -1143,6 +1168,17 @@
 				</div>
 			</div>
 
+			{#if otherAccounts.length > 0}
+				<SavedAccountsOwnership
+					{otherAccounts}
+					ownership={inventory.savedAccountsOwnershipByItemKey.get(
+						detailsKey,
+					)}
+					canBeWorn={isAssetCategory}
+					onRetry={() =>
+						void inventory.loadSavedAccountsOwnership(item, category.id)} />
+			{/if}
+
 			{#if canHaveRelatedItems}
 				<section
 					class="flex flex-col gap-3"
@@ -1157,8 +1193,8 @@
 						{/if}
 					</h3>
 					{#if relatedItems === undefined}
-						<ul class="grid grid-cols-6 gap-2" aria-busy="true">
-							{#each Array.from({ length: 6 }, (_unused, index) => index) as index (index)}
+						<ul class="grid grid-cols-5 gap-2" aria-busy="true">
+							{#each Array.from({ length: 5 }, (_unused, index) => index) as index (index)}
 								<SkeletonTile />
 							{/each}
 						</ul>
@@ -1186,7 +1222,7 @@
 								: "This item uses no other assets that this account can see."}
 						</p>
 					{:else}
-						<ul class="grid animate-enter grid-cols-6 gap-2">
+						<ul class="grid animate-enter grid-cols-5 gap-2">
 							{#each relatedItems as relatedItem (relatedItem.item.itemId)}
 								<li class="min-w-0">
 									<InventoryItemTile
@@ -1197,6 +1233,12 @@
 										isWorn={inventory.wornAssetIds.has(
 											relatedItem.item.itemId,
 										)}
+										isOwned={inventory.isOwnedByItemKey.get(
+											categoryItemKey(
+												relatedItem.category,
+												relatedItem.item.itemId,
+											),
+										) === true}
 										actionLabel="Open details"
 										onOpen={() => openRelatedItem(relatedItem)} />
 								</li>

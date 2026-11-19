@@ -32,6 +32,7 @@
 	import VaultDialog from "./lib/dialogs/VaultDialog.svelte"
 	import {
 		accountBackend,
+		CatalogCreatorType,
 		FileState,
 		LaunchMethod,
 		RuntimeStatus,
@@ -48,6 +49,9 @@
 	import { SocialStore } from "./lib/social/social-store.svelte"
 	import type { SocialListKind } from "./lib/social/social-store.svelte"
 	import { GamesStore, setGamesStore } from "./lib/games/games-store.svelte"
+	import { CatalogStore } from "./lib/catalog/catalog-store.svelte"
+	import { GroupsStore } from "./lib/groups/groups-store.svelte"
+	import { setCreatorNavigation } from "./lib/shared/creator-navigation"
 	import { LogsExplorerStore } from "./lib/logs-explorer/logs-explorer-store.svelte"
 	import LaunchDrawer from "./lib/layout/LaunchDrawer.svelte"
 	import PageNavigation from "./lib/layout/PageNavigation.svelte"
@@ -82,14 +86,23 @@
 		| "nickname"
 		| "remove-connections"
 		| null
-	type ActivePage = "accounts" | "social" | "games" | "logs-explorer" | "settings"
+	type ActivePage =
+		| "accounts"
+		| "social"
+		| "groups"
+		| "games"
+		| "catalog"
+		| "logs-explorer"
+		| "settings"
 
 	// The pages other than Accounts load as separate files, so that the app
 	// starts faster. They begin to load once the app shows, so that opening a
 	// page rarely waits.
 	const pageImports = {
 		social: () => import("./lib/social/SocialPage.svelte"),
+		groups: () => import("./lib/groups/GroupsPage.svelte"),
 		games: () => import("./lib/games/GamesPage.svelte"),
+		catalog: () => import("./lib/catalog/CatalogPage.svelte"),
 		logsExplorer: () => import("./lib/logs-explorer/LogsExplorerPage.svelte"),
 		settings: () => import("./lib/settings/SettingsPage.svelte"),
 	}
@@ -98,6 +111,8 @@
 		store = new AccountStore(notificationCenter),
 		logsExplorer = new LogsExplorerStore(),
 		games = new GamesStore(notificationCenter),
+		catalog = new CatalogStore(store),
+		groups = new GroupsStore(store, notificationCenter),
 		social = new SocialStore(notificationCenter),
 		workspace = new WorkspaceState(),
 		passwordReminderNotificationId = "password-test-reminder"
@@ -148,14 +163,20 @@
 		store.accounts.find((account) => account.id === renewAccountId) ?? null,
 	)
 
+	// resetAccountPages forgets what the pages read for the accounts, such as
+	// after the vault locks.
+	function resetAccountPages(): void {
+		games.reset()
+		social.reset()
+		catalog.reset()
+		groups.reset()
+	}
+
 	$effect(() => {
 		if (!store.vault.unlocked) {
 			workspace.closeAccountMenus()
 			workspace.viewedImage = null
-			untrack(() => {
-				games.reset()
-				social.reset()
-			})
+			untrack(resetAccountPages)
 		} else untrack(() => games.initialize())
 	})
 
@@ -215,8 +236,7 @@
 			unmountBrowser = browserStore.mount(notificationCenter),
 			unmountUpdates = updateStore.mount(notificationCenter)
 		return () => {
-			games.reset()
-			social.reset()
+			resetAccountPages()
 			unmountAccounts()
 			unmountBrowser()
 			unmountUpdates()
@@ -354,6 +374,38 @@
 			void focusAfterRender("[data-games-search]")
 		})
 	}
+
+	function searchPlace(placeId: number): void {
+		searchGames(`id:${placeId}`)
+	}
+
+	function searchUniverse(universeId: number): void {
+		searchGames(`universe:${universeId}`)
+	}
+
+	// The creations of a user or a group open in the Marketplace with the items
+	// that the creator hides.
+	function showUserCreations(username: string): void {
+		showPage("catalog", () =>
+			catalog.showCreations(username, CatalogCreatorType.CatalogCreatorUser),
+		)
+	}
+
+	function showGroupCreations(groupName: string): void {
+		showPage("catalog", () =>
+			catalog.showCreations(groupName, CatalogCreatorType.CatalogCreatorGroup),
+		)
+	}
+
+	setCreatorNavigation({
+		showGroup: (groupId) => showPage("groups", () => groups.showGroup(groupId)),
+		showUser: (user) => {
+			const account = store.selectedAccount
+			showPage("social", () =>
+				social.showUser(account.id, Number(account.userId) || 0, user),
+			)
+		},
+	})
 
 	function openRenewCookie(accountId: number): void {
 		if (store.busy) return
@@ -578,11 +630,20 @@
 		notificationCenter.show({ message, title: "Accounts saved", tone: "success" })
 	}
 
-	const pageOrder = ["accounts", "social", "games", "logs-explorer"] as const
+	const pageOrder = [
+		"accounts",
+		"social",
+		"groups",
+		"games",
+		"catalog",
+		"logs-explorer",
+	] as const
 	const pageLabels = {
 		"accounts": "Accounts",
 		"social": "Social",
+		"groups": "Groups",
 		"games": "Games",
+		"catalog": "Marketplace",
 		"logs-explorer": "Logs Explorer",
 	} satisfies Record<(typeof pageOrder)[number], string>
 
@@ -710,15 +771,30 @@
 					notifications={notificationCenter}
 					onFillLaunch={(placeId, jobId) =>
 						fillGameLaunchOptions(placeId, jobId)}
-					onSearchPlace={(placeId) => searchGames(`id:${placeId}`)}
+					onSearchPlace={searchPlace}
 					{onShowGamePass}
-					onSearchUniverse={(universeId) =>
-						searchGames(`universe:${universeId}`)}
+					onSearchUniverse={searchUniverse}
 					onRelationshipAction={openRelationshipAction}
 					onEditNickname={openNickname}
 					onRemoveSelected={openRemoveConnections}
 					onOpenInBrowser={(accountId, pageUrl) =>
-						void openManagedBrowser(accountId, pageUrl)} />
+						void openManagedBrowser(accountId, pageUrl)}
+					onShowCreations={showUserCreations} />
+			{:catch}
+				{@render pageUnavailable()}
+			{/await}
+		{:else if activePage === "groups"}
+			{#await pageImports.groups()}
+				{@render pageLoading()}
+			{:then { default: GroupsPage }}
+				<GroupsPage
+					store={groups}
+					accounts={store}
+					notifications={notificationCenter}
+					onSearchPlace={searchPlace}
+					onOpenInBrowser={(accountId, pageUrl) =>
+						void openManagedBrowser(accountId, pageUrl)}
+					onShowCreations={showGroupCreations} />
 			{:catch}
 				{@render pageUnavailable()}
 			{/await}
@@ -738,6 +814,18 @@
 			{:catch}
 				{@render pageUnavailable()}
 			{/await}
+		{:else if activePage === "catalog"}
+			{#await pageImports.catalog()}
+				{@render pageLoading()}
+			{:then { default: CatalogPage }}
+				<CatalogPage
+					store={catalog}
+					accounts={store}
+					notifications={notificationCenter}
+					onSearchPlace={searchPlace} />
+			{:catch}
+				{@render pageUnavailable()}
+			{/await}
 		{:else if activePage === "logs-explorer"}
 			{#await pageImports.logsExplorer()}
 				{@render pageLoading()}
@@ -746,13 +834,14 @@
 					store={logsExplorer}
 					accounts={store}
 					onFillLaunch={(visit) => fillLaunchOptions(visit)}
-					onSearchPlace={(placeId) => searchGames(`id:${placeId}`)} />
+					onSearchPlace={searchPlace} />
 			{:catch}
 				{@render pageUnavailable()}
 			{/await}
 		{:else}
-			<div
+			<main
 				class="flex min-h-0 flex-1"
+				aria-label="Accounts"
 				style={`--sidebar-width: ${workspace.sidebarCollapsed ? 44 : workspace.sidebarWidth}px; --launch-height: ${workspace.launchHeight}px;`}>
 				<AccountSidebar
 					{store}
@@ -762,7 +851,7 @@
 					onBrowser={(accountId) => void openManagedBrowser(accountId)}
 					onImportFile={() => void openImportFile()} />
 
-				<main class="flex min-w-0 flex-1 flex-col overflow-hidden bg-canvas">
+				<div class="flex min-w-0 flex-1 flex-col overflow-hidden bg-canvas">
 					<div
 						class={[
 							"@container min-h-0 flex-1",
@@ -797,14 +886,13 @@
 											})}
 										onFollowUser={(user) =>
 											fillFollowUserLaunchOptions(user)}
-										onSearchPlace={(placeId) =>
-											searchGames(`id:${placeId}`)}
+										onSearchPlace={searchPlace}
 										{onShowGamePass}
-										onSearchUniverse={(universeId) =>
-											searchGames(`universe:${universeId}`)}
+										onSearchUniverse={searchUniverse}
 										onReplaceCookie={openAddAccount}
 										onEditDescription={openDescriptionEditor}
 										onShowSocial={showSocial}
+										onShowCreations={showUserCreations}
 										onOpenBrowser={(accountId) =>
 											void openManagedBrowser(accountId)} />
 								</div>
@@ -815,8 +903,8 @@
 						{store}
 						{workspace}
 						notifications={notificationCenter} />
-				</main>
-			</div>
+				</div>
+			</main>
 		{/if}
 
 		{#if activePage === "accounts"}

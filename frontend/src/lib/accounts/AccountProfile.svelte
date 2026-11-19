@@ -1,5 +1,6 @@
 <script lang="ts">
 	import backpackIcon from "@phosphor-icons/core/regular/backpack.svg?raw"
+	import storefrontIcon from "@phosphor-icons/core/regular/storefront.svg?raw"
 	import personArmsSpreadIcon from "@phosphor-icons/core/regular/person-arms-spread.svg?raw"
 	import bellIcon from "@phosphor-icons/core/regular/bell.svg?raw"
 	import chatsIcon from "@phosphor-icons/core/regular/chats.svg?raw"
@@ -56,6 +57,7 @@
 		onReplaceCookie,
 		onEditDescription,
 		onShowSocial,
+		onShowCreations,
 		onOpenBrowser,
 		notifications,
 	}: {
@@ -70,6 +72,7 @@
 		onReplaceCookie: () => void
 		onEditDescription: (description: string) => void
 		onShowSocial: (list: SocialListKind) => void
+		onShowCreations: (username: string) => void
 		onOpenBrowser: (accountId: number) => void
 		notifications: NotificationCenter
 	} = $props()
@@ -390,6 +393,17 @@
 					bind:this={inventoryButton}
 					onclick={() => openPage("inventory")}>
 					<Icon svg={backpackIcon} size={16} aria-hidden="true" />
+				</button>
+				<button
+					class="button-icon"
+					type="button"
+					aria-label="Show creations in Marketplace"
+					data-tooltip="Show creations in Marketplace"
+					disabled={!hasAccount ||
+						!store.vault.unlocked ||
+						!selectedAccount.username}
+					onclick={() => onShowCreations(selectedAccount.username)}>
+					<Icon svg={storefrontIcon} size={16} aria-hidden="true" />
 				</button>
 				<button
 					class="button-icon"

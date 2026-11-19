@@ -10,7 +10,7 @@ import (
 	"unicode/utf8"
 )
 
-const MaxLength = 256
+const maxSourceLength = 256
 
 type Kind string
 
@@ -73,8 +73,8 @@ func Parse(source string) (Format, error) {
 	if strings.TrimSpace(source) == "" {
 		return Format{}, &ParseError{Message: "Enter a format."}
 	}
-	if utf8.RuneCountInString(source) > MaxLength {
-		return Format{}, &ParseError{Message: fmt.Sprintf("Use %d characters or fewer.", MaxLength)}
+	if utf8.RuneCountInString(source) > maxSourceLength {
+		return Format{}, &ParseError{Message: fmt.Sprintf("Use %d characters or fewer.", maxSourceLength)}
 	}
 	segments := []Segment{}
 	var text strings.Builder

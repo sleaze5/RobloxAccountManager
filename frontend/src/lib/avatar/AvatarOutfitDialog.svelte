@@ -28,6 +28,7 @@
 		avatar,
 		outfit,
 		canWear,
+		isOwned,
 		onOpenItem,
 		onClose,
 	}: {
@@ -35,6 +36,8 @@
 		outfit: AvatarOutfit
 		// canWear is true when the outfit belongs to the account itself.
 		canWear: boolean
+		// Whether the account that the page acts for owns the asset.
+		isOwned: (asset: AvatarAsset) => boolean
 		onOpenItem: (asset: AvatarAsset) => void
 		onClose: () => void
 	} = $props()
@@ -187,9 +190,7 @@
 			<div class="flex flex-col gap-2" role="status" aria-busy="true">
 				<span class="sr-only">Loading outfit…</span>
 				<Skeleton className="w-24" label="Loading items…" />
-				<ul
-					class="grid grid-cols-3 gap-2 @lg:grid-cols-4 @2xl:grid-cols-5"
-					aria-hidden="true">
+				<ul class="grid grid-cols-3 gap-2 @2xl:grid-cols-4" aria-hidden="true">
 					{#each Array.from({ length: 5 }, (_unused, index) => index) as index (index)}
 						<SkeletonTile />
 					{/each}
@@ -211,6 +212,7 @@
 				<AvatarItemGroups
 					{assets}
 					headingIdPrefix="avatar-outfit-group"
+					{isOwned}
 					{onOpenItem} />
 			{/if}
 

@@ -269,7 +269,9 @@
 						"min-h-0 scrollbar-stable overflow-y-auto",
 						hasSearch && "pb-12",
 					]}
+					role="group"
 					aria-label={favoritesMode ? "Favorite places" : "Search results"}
+					data-list
 					data-load-more-root
 					aria-busy={favoritesMode
 						? store.loadingFavorites
@@ -456,6 +458,13 @@
 								aria-hidden="true" />
 							<h2>No matching favorites</h2>
 							<p>Try a different nickname, name, or creator.</p>
+							<button
+								class="button"
+								type="button"
+								onclick={() => {
+									store.favoritesQuery = ""
+									searchInput?.focus()
+								}}>Clear search</button>
 						{:else if !count}<Icon
 								svg={starIcon}
 								size={28}

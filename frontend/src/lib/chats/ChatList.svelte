@@ -4,11 +4,19 @@
 	import SkeletonMediaRow from "../shared/SkeletonMediaRow.svelte"
 	import SkeletonList from "../shared/SkeletonList.svelte"
 	import { loadMoreWhenVisible } from "../shared/load-more-when-visible"
+	import { moveListFocus } from "../shared/move-shortcut"
 	import ChatAvatar from "./ChatAvatar.svelte"
 	import type { ChatState } from "./chat-state.svelte"
 	import { chatListTime } from "./chat-time"
 
 	let { chat }: { chat: ChatState } = $props()
+	const tabStopConversationId = $derived(
+		(
+			chat.conversations.find(
+				(conversation) => conversation.id === chat.openId,
+			) ?? chat.conversations[0]
+		)?.id,
+	)
 
 	function loadMoreChats(): void {
 		if (!chat.loadMoreFailed) void chat.loadMore()
@@ -26,7 +34,7 @@
 		No chats yet. Start one with New chat.
 	</p>
 {:else}
-	<ul class="-mx-2 flex flex-col" aria-label="Chats">
+	<ul class="-mx-2 flex flex-col" aria-label="Chats" data-list>
 		{#each chat.conversations as conversation (conversation.id)}
 			<li>
 				<button
@@ -35,7 +43,10 @@
 					data-selected={chat.openId === conversation.id || undefined}
 					data-unread={conversation.unreadCount > 0 || undefined}
 					aria-current={chat.openId === conversation.id ? "true" : undefined}
-					onclick={() => void chat.open(conversation.id)}>
+					data-list-item
+					tabindex={conversation.id === tabStopConversationId ? 0 : -1}
+					onclick={() => void chat.open(conversation.id)}
+					onkeydown={moveListFocus}>
 					<ChatAvatar {conversation} selfUserId={chat.selfUserId} />
 					<span class="flex min-w-0 flex-1 flex-col">
 						<span class="flex min-w-0 items-center gap-2">

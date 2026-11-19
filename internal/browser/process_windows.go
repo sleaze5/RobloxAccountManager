@@ -50,7 +50,7 @@ type browserProcessPipes struct {
 	commandWrite windows.Handle
 }
 
-func startBrowserProcess(options ProcessOptions) (BrowserProcess, error) {
+func startBrowserProcess(options browserProcessOptions) (browserProcess, error) {
 	if options.Executable == "" || options.UserDataPath == "" {
 		return nil, errors.New("invalid browser process options")
 	}
@@ -94,7 +94,7 @@ func startBrowserProcess(options ProcessOptions) (BrowserProcess, error) {
 	return startBrowserWithPipes(options, launchToken, &pipes)
 }
 
-func startBrowserWithPipes(options ProcessOptions, launchToken windows.Token, pipes *browserProcessPipes) (BrowserProcess, error) {
+func startBrowserWithPipes(options browserProcessOptions, launchToken windows.Token, pipes *browserProcessPipes) (browserProcess, error) {
 	security := windows.SecurityAttributes{Length: uint32(unsafe.Sizeof(windows.SecurityAttributes{})), InheritHandle: 1}
 	standardInput, err := openInheritableNull(windows.GENERIC_READ, &security)
 	if err != nil {
@@ -195,7 +195,7 @@ func startBrowserWithPipes(options ProcessOptions, launchToken windows.Token, pi
 	return process, nil
 }
 
-func browserCommand(options ProcessOptions, launchToken windows.Token, pipes *browserProcessPipes) (*uint16, *uint16, *uint16, error) {
+func browserCommand(options browserProcessOptions, launchToken windows.Token, pipes *browserProcessPipes) (*uint16, *uint16, *uint16, error) {
 	arguments := []string{options.Executable,
 		"--user-data-dir=" + options.UserDataPath, "--remote-debugging-pipe",
 		"--remote-debugging-io-pipes=" + inheritedPipeHandles(pipes.commandRead, pipes.commandWrite),

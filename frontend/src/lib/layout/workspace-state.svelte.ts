@@ -17,7 +17,7 @@ export interface ImageContextMenu {
 
 // ViewedImage is an image that the image viewer can show. label names it, such
 // as "@builderman's profile image".
-export interface ViewedImage {
+interface ViewedImage {
 	imageUrl: string
 	label: string
 }

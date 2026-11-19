@@ -107,6 +107,9 @@ type InventoryItemMarket struct {
 	SaleLocation InventorySaleLocation `json:"saleLocation"`
 	// OffSaleDeadlineMs is when a timed item goes off sale, or 0.
 	OffSaleDeadlineMs int64 `json:"offSaleDeadlineMs"`
+	// HasTimedOptions is true for an item that Roblox also rents for a few
+	// days at a time, which the Marketplace calls Timed Options.
+	HasTimedOptions bool `json:"hasTimedOptions"`
 }
 
 // InventorySaleLocation is where Roblox sells a catalog item.
@@ -155,6 +158,16 @@ func (item InventoryItem) ThumbnailTarget() ThumbnailTarget {
 	return ThumbnailTarget{Type: item.thumbnailType, TargetID: item.ItemID}
 }
 
+// CategorizedInventoryItem is an item with the inventory category that lists
+// its kind, such as an asset that another item uses or a catalog search
+// result.
+type CategorizedInventoryItem struct {
+	// Category is InventoryOtherAssets for an asset type that no other
+	// category lists, such as a mesh or an image.
+	Category InventoryCategory `json:"category"`
+	Item     InventoryItem     `json:"item"`
+}
+
 type InventoryPage struct {
 	Items      []InventoryItem `json:"items"`
 	NextCursor string          `json:"nextCursor"`
@@ -197,7 +210,7 @@ func (service *Users) assetsPage(ctx context.Context, accountID, version int64, 
 			AssetType string `json:"assetType"`
 		} `json:"data"`
 	}
-	query := pagedInventoryQuery(cursor)
+	query := newestFirstPageQuery(inventoryPageSize, cursor)
 	query.Set("assetTypes", strings.Join(assetTypes, ","))
 	address := &url.URL{Scheme: "https", Host: "inventory.roblox.com", Path: "/v2/users/" + user + "/inventory", RawQuery: query.Encode()}
 	if err := service.readInventory(ctx, accountID, version, "inventory-assets", address, &payload); err != nil {
@@ -230,7 +243,7 @@ func (service *Users) collectiblesPage(ctx context.Context, accountID, version i
 			RecentAveragePrice *int64 `json:"recentAveragePrice"`
 		} `json:"data"`
 	}
-	address := &url.URL{Scheme: "https", Host: "inventory.roblox.com", Path: "/v1/users/" + user + "/assets/collectibles", RawQuery: pagedInventoryQuery(cursor).Encode()}
+	address := &url.URL{Scheme: "https", Host: "inventory.roblox.com", Path: "/v1/users/" + user + "/assets/collectibles", RawQuery: newestFirstPageQuery(inventoryPageSize, cursor).Encode()}
 	if err := service.readInventory(ctx, accountID, version, "inventory-collectibles", address, &payload); err != nil {
 		return InventoryPage{}, err
 	}
@@ -276,7 +289,7 @@ func (service *Users) badgesPage(ctx context.Context, accountID, version int64, 
 			} `json:"statistics"`
 		} `json:"data"`
 	}
-	address := &url.URL{Scheme: "https", Host: "badges.roblox.com", Path: "/v1/users/" + user + "/badges", RawQuery: pagedInventoryQuery(cursor).Encode()}
+	address := &url.URL{Scheme: "https", Host: "badges.roblox.com", Path: "/v1/users/" + user + "/badges", RawQuery: newestFirstPageQuery(inventoryPageSize, cursor).Encode()}
 	if err := service.readInventory(ctx, accountID, version, "inventory-badges", address, &payload); err != nil {
 		return InventoryPage{}, err
 	}
@@ -313,7 +326,7 @@ func (service *Users) bundlesPage(ctx context.Context, accountID, version int64,
 			BundleType string `json:"bundleType"`
 		} `json:"data"`
 	}
-	address := &url.URL{Scheme: "https", Host: "catalog.roblox.com", Path: "/v1/users/" + user + "/bundles", RawQuery: pagedInventoryQuery(cursor).Encode()}
+	address := &url.URL{Scheme: "https", Host: "catalog.roblox.com", Path: "/v1/users/" + user + "/bundles", RawQuery: newestFirstPageQuery(inventoryPageSize, cursor).Encode()}
 	if err := service.readInventory(ctx, accountID, version, "inventory-bundles", address, &payload); err != nil {
 		return InventoryPage{}, err
 	}
@@ -406,6 +419,9 @@ type catalogItemDetails struct {
 	UnitsAvailable          *int64          `json:"unitsAvailableForConsumption"`
 	SaleLocationType        string          `json:"saleLocationType"`
 	OffSaleDeadline         *string         `json:"offSaleDeadline"`
+	TimedOptions            []struct {
+		Days int64 `json:"days"`
+	} `json:"timedOptions"`
 }
 
 // AddCatalogDetails adds the description, creator, and price that the catalog
@@ -502,19 +518,12 @@ func addCatalogAvailability(market *InventoryItemMarket, listedItem catalogItemD
 		}
 	}
 	if market.IsForSale {
+		market.HasTimedOptions = len(listedItem.TimedOptions) > 0
 		market.SaleLocation = saleLocationOf(listedItem.SaleLocationType)
 		if listedItem.OffSaleDeadline != nil {
 			market.OffSaleDeadlineMs = robloxTimeMs(*listedItem.OffSaleDeadline)
 		}
 	}
-}
-
-func pagedInventoryQuery(cursor string) url.Values {
-	query := url.Values{"limit": {strconv.Itoa(inventoryPageSize)}, "sortOrder": {"Desc"}}
-	if cursor != "" {
-		query.Set("cursor", cursor)
-	}
-	return query
 }
 
 // inventoryPageOf drops entries without a valid ID and checks the page bounds.

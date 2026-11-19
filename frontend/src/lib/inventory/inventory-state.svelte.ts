@@ -1,11 +1,12 @@
 import { accountBackend, InventoryCategory } from "../backend/bridge"
 import type {
 	Avatar,
+	CategorizedInventoryItem,
+	SavedAccountsItemOwnership,
 	GamePlace,
 	InventoryItem,
 	InventoryItemDetails,
 	InventoryItemLook,
-	RelatedInventoryItem,
 	RenderedModel,
 } from "../backend/bridge"
 import type { AccountStore } from "../accounts/account-store.svelte"
@@ -43,6 +44,9 @@ export function categoryItemKey(category: InventoryCategory, itemId: number): st
 
 export type InventoryDownloadKind = "file" | "model"
 
+// ownershipCheckBatchSize is the most items that one ownership check takes.
+const ownershipCheckBatchSize = 100
+
 // InventoryState lists what one Roblox user owns, as the account sees it. Each
 // category keeps its pages while the inventory stays open, so that switching
 // back to a category shows it at once.
@@ -76,9 +80,16 @@ export class InventoryState {
 	// categoryItemKey. null means that the request failed.
 	detailsByItemKey = $state.raw(new Map<string, InventoryItemDetails | null>())
 	isOwnedByItemKey = $state.raw(new Map<string, boolean | null>())
+	// Which other saved accounts own each opened item, by categoryItemKey.
+	// null means that the request failed.
+	savedAccountsOwnershipByItemKey = $state.raw(
+		new Map<string, SavedAccountsItemOwnership | null>(),
+	)
 	// The assets that each opened item includes or uses, by categoryItemKey.
 	// null means that the request failed.
-	relatedItemsByItemKey = $state.raw(new Map<string, RelatedInventoryItem[] | null>())
+	relatedItemsByItemKey = $state.raw(
+		new Map<string, CategorizedInventoryItem[] | null>(),
+	)
 	// How the 3D viewer shows the opened item, by the categoryItemKey of the
 	// item.
 	readonly itemLook: KeyedLoad<InventoryItemLook>
@@ -95,6 +106,8 @@ export class InventoryState {
 	readonly #scope: AccountScope
 	#request: ReturnType<typeof accountBackend.GetInventoryPage> | null = null
 	readonly #loadingRelatedItemKeys = new Set<string>()
+	readonly #checkingOwnershipKeys = new Set<string>()
+	readonly #loadingSavedAccountsOwnershipKeys = new Set<string>()
 	readonly #notifications: NotificationCenter
 
 	constructor(
@@ -132,7 +145,7 @@ export class InventoryState {
 	}
 
 	async refresh(): Promise<void> {
-		void this.#loadWornAssets()
+		void this.loadWornAssets()
 		await this.#load("")
 	}
 
@@ -181,6 +194,101 @@ export class InventoryState {
 						isOwned,
 					)),
 			)
+		}
+	}
+
+	// loadOwnership checks which of the items the account owns, so that their
+	// tiles show it. An item whose check fails stays unknown, and its details
+	// check it again.
+	async loadOwnership(categorizedItems: CategorizedInventoryItem[]): Promise<void> {
+		const references = new Map<
+			string,
+			{ category: InventoryCategory; itemId: number }
+		>()
+		for (const { category, item } of categorizedItems) {
+			const key = categoryItemKey(category, item.itemId)
+			if (
+				!this.isOwnedByItemKey.has(key) &&
+				!this.#checkingOwnershipKeys.has(key)
+			) {
+				references.set(key, { category, itemId: item.itemId })
+			}
+		}
+		const keys = [...references.keys()]
+		for (const key of keys) this.#checkingOwnershipKeys.add(key)
+		try {
+			const batches = Array.from(
+					{ length: Math.ceil(keys.length / ownershipCheckBatchSize) },
+					(_unused, index) =>
+						keys.slice(
+							index * ownershipCheckBatchSize,
+							(index + 1) * ownershipCheckBatchSize,
+						),
+				),
+				ownershipsByBatch = await Promise.all(
+					batches.map((batchKeys) =>
+						this.#scope.track(
+							accountBackend.CheckInventoryItemsOwned(
+								this.#scope.accountId,
+								batchKeys.map((key) => references.get(key)!),
+							),
+						),
+					),
+				)
+			if (!this.#scope.isCurrent) return
+			const isOwnedByItemKey = new Map(this.isOwnedByItemKey)
+			for (const ownership of ownershipsByBatch.flatMap(
+				(ownerships) => ownerships ?? [],
+			)) {
+				isOwnedByItemKey.set(
+					categoryItemKey(ownership.category, ownership.itemId),
+					ownership.isOwned,
+				)
+			}
+			this.isOwnedByItemKey = isOwnedByItemKey
+		} catch {
+			// The tiles stay without the owned mark, and the backend logs the
+			// failure.
+		} finally {
+			for (const key of keys) this.#checkingOwnershipKeys.delete(key)
+		}
+	}
+
+	// loadSavedAccountsOwnership reads which other saved accounts own the item,
+	// unless every account answered before. A failed read loads again.
+	async loadSavedAccountsOwnership(
+		item: InventoryItem,
+		category: InventoryCategory,
+	): Promise<void> {
+		const key = categoryItemKey(category, item.itemId)
+		if (
+			this.savedAccountsOwnershipByItemKey.get(key)?.failedAccountCount === 0 ||
+			this.#loadingSavedAccountsOwnershipKeys.has(key)
+		) {
+			return
+		}
+		this.#loadingSavedAccountsOwnershipKeys.add(key)
+		if (this.savedAccountsOwnershipByItemKey.has(key)) {
+			const savedAccountsOwnershipByItemKey = new Map(
+				this.savedAccountsOwnershipByItemKey,
+			)
+			savedAccountsOwnershipByItemKey.delete(key)
+			this.savedAccountsOwnershipByItemKey = savedAccountsOwnershipByItemKey
+		}
+		try {
+			await this.#loadItemFact(
+				accountBackend.GetSavedAccountsItemOwnership(
+					this.#scope.accountId,
+					category,
+					item.itemId,
+				),
+				(ownership) =>
+					(this.savedAccountsOwnershipByItemKey = new Map(
+						this.savedAccountsOwnershipByItemKey,
+					).set(key, ownership)),
+			)
+		} finally {
+			this.#loadingSavedAccountsOwnershipKeys.delete(key)
 		}
 	}
 
@@ -526,7 +634,7 @@ export class InventoryState {
 		this.#scope.dispose()
 	}
 
-	async #loadWornAssets(): Promise<void> {
+	async loadWornAssets(): Promise<void> {
 		try {
 			const assetIds = await this.#scope.track(
 				accountBackend.GetWornAssetIDs(this.#scope.accountId, this.userId),

@@ -106,7 +106,7 @@ func Inspect(requested Mode) (Location, error) {
 }
 
 func candidateDirectories(executableDirectory string) (string, string, error) {
-	standard, err := StandardRoot()
+	standard, err := standardRoot()
 	if !portableSupported || err == nil && sameDirectory(executableDirectory, standard) {
 		return "", standard, err
 	}
@@ -272,7 +272,7 @@ func FallbackRoot() (string, error) {
 	if portableSupported {
 		return resolveExecutableDirectory()
 	}
-	return StandardRoot()
+	return standardRoot()
 }
 
 const (

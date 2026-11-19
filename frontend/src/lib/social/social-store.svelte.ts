@@ -451,6 +451,27 @@ export class SocialStore {
 		this.#open()
 	}
 
+	// showUser opens the profile of a user that another page names, such as
+	// the owner of a group, as a search by user ID.
+	showUser(
+		accountId: number,
+		selfUserId: number,
+		user: { userId: number; username: string; displayName: string },
+	): void {
+		if (accountId !== this.accountId) this.#switchAccount(accountId, selfUserId)
+		this.searchPlayers(`id:${user.userId}`)
+		this.select({
+			userId: user.userId,
+			username: user.username,
+			displayName: user.displayName,
+			nickname: "",
+			imageUrl: "",
+			presence: null,
+			request: null,
+			trusted: false,
+		})
+	}
+
 	showList(view: SocialView): void {
 		if (this.list === view) return
 		if (view === SocialList.SocialRequests || view === playersView) this.trail = []

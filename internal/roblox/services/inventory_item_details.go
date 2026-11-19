@@ -84,6 +84,13 @@ func inventoryItemTypeOf(category InventoryCategory) (inventoryItemType, bool) {
 	}
 }
 
+// IsAssetCategory reports whether the category lists assets, whose IDs the
+// worn asset list can hold, rather than bundles, badges, or game passes.
+func IsAssetCategory(category InventoryCategory) bool {
+	itemType, ok := inventoryItemTypeOf(category)
+	return ok && itemType == inventoryItemAsset
+}
+
 // LargeImageTarget names the large image of an asset or a bundle. Roblox
 // renders badges and game passes only small. Verified on 2026-11-14.
 func LargeImageTarget(category InventoryCategory, itemID int64) (ThumbnailTarget, bool) {

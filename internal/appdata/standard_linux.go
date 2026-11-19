@@ -12,7 +12,7 @@ import (
 
 const portableSupported = true
 
-func StandardRoot() (string, error) {
+func standardRoot() (string, error) {
 	if dataHome := os.Getenv("XDG_DATA_HOME"); dataHome != "" && filepath.IsAbs(dataHome) {
 		return filepath.Join(dataHome, appmeta.Name), nil
 	}
