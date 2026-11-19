@@ -102,10 +102,12 @@ const viewports: LiveModelViewport[] = []
 let rendererSetup: Promise<boolean> | undefined,
 	outfitRenderer: OutfitRenderer | undefined,
 	animationPose: { renderer: OutfitRenderer; completion: Promise<void> } | undefined,
-	// The animation that poses a framed thumbnail on the renderer. The
+	// The animation that the renderer plays, whichever view started it. The
 	// renderer refuses to start an emote again that it already plays, so a
-	// changed camera keeps it.
-	framedAnimation: { renderer: OutfitRenderer; animationId: string } | undefined,
+	// framed thumbnail keeps its animation while the renderer plays it, such
+	// as after its camera changed, and starts it again after another view,
+	// such as an item dialog, played a different one.
+	playedAnimation: { renderer: OutfitRenderer; animationId: string } | undefined,
 	shownAccessory: { root: Instance; accessory: Instance } | undefined,
 	shownSubject: LiveModelSubject | undefined,
 	shownAccountId = 0,
@@ -414,6 +416,11 @@ function activateViewport(viewport: LiveModelViewport): void {
 		requestFrame()
 	})
 	hostResizeObserver.observe(viewport.host)
+	// The playback of the view that showed the canvas before stops, so that it
+	// moves neither the rig nor the time of this view. This view plays its own
+	// animation once it poses.
+	cancelAnimationFrame(playbackFrameRequest)
+	playbackFrameRequest = 0
 	applyFramingMode(viewport)
 	// The loading state of a covered view stopped following the renderer.
 	viewport.isLoading = API.Misc.getCurrentlyLoading()
@@ -522,13 +529,10 @@ function poseAvatar(viewport: LiveModelViewport): void {
 		try {
 			const isPlaying =
 				!!framing &&
-				framedAnimation?.renderer === posedRenderer &&
-				framedAnimation.animationId === animationId
+				playedAnimation?.renderer === posedRenderer &&
+				playedAnimation.animationId === animationId
 			if (!isPlaying) await playMainAnimation(posedRenderer, animationId)
 			if (!isCurrent()) return
-			framedAnimation = framing
-				? { renderer: posedRenderer, animationId }
-				: undefined
 			const frame = await startFrame?.catch(() => undefined)
 			if (!isCurrent()) return
 			showPose(viewport, posedRenderer, framing, frame)
@@ -561,9 +565,11 @@ async function playMainAnimation(
 	renderer: OutfitRenderer,
 	animationId: string,
 ): Promise<void> {
+	playedAnimation = undefined
 	const isPlayed = await renderer.setMainAnimation(
 		await rendererAnimationNameOf(animationId),
 	)
+	playedAnimation = { renderer, animationId }
 	if (
 		!isPlayed &&
 		animationId !== restPoseAnimationId &&
