@@ -57,6 +57,7 @@
 		onShowGamePass: (place: GamePlace, gamePassId: number) => void
 		onBack: () => void
 	} = $props()
+	const elementIdPrefix = $props.id()
 
 	const inventory = untrack(
 			() => new InventoryState(accountId, userId, accounts, notifications),
@@ -183,8 +184,12 @@
 	})
 </script>
 
-<section class="settings-page" aria-labelledby="inventory-title">
-	<AccountPageHeader titleId="inventory-title" title="Inventory" {username} {onBack}>
+<section class="settings-page" aria-labelledby={`${elementIdPrefix}-inventory-title`}>
+	<AccountPageHeader
+		titleId={`${elementIdPrefix}-inventory-title`}
+		title="Inventory"
+		{username}
+		{onBack}>
 		<button
 			class="button-ghost"
 			type="button"
@@ -224,11 +229,11 @@
 
 		<section
 			class="@container flex min-h-0 min-w-0 flex-1 flex-col"
-			aria-labelledby="inventory-category-title">
+			aria-labelledby={`${elementIdPrefix}-inventory-category-title`}>
 			<div
 				class="flex h-11 shrink-0 items-center gap-3 border-b border-line-subtle px-3">
 				<h2
-					id="inventory-category-title"
+					id={`${elementIdPrefix}-inventory-category-title`}
 					class="flex min-w-0 items-baseline gap-2 text-sm font-semibold text-fg">
 					<span class="truncate">{category.label}</span>
 					{#if items.length > 0}

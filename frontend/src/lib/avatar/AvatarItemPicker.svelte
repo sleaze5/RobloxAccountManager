@@ -29,6 +29,7 @@
 		emoteSlot: number | null
 		onClose: () => void
 	} = $props()
+	const elementIdPrefix = $props.id()
 
 	const skeletonTileIndexes = Array.from({ length: 10 }, (_unused, index) => index),
 		exactNumbers = new Intl.NumberFormat("en-US")
@@ -115,17 +116,17 @@
 <Dialog
 	class="max-w-3xl text-left"
 	hasFlexibleBody
-	aria-labelledby="avatar-picker-title"
-	aria-describedby="avatar-picker-description"
+	aria-labelledby={`${elementIdPrefix}-avatar-picker-title`}
+	aria-describedby={`${elementIdPrefix}-avatar-picker-description`}
 	onBackdropClick={onClose}>
 	<div class="dialog-heading">
 		<div>
-			<h2 id="avatar-picker-title">
+			<h2 id={`${elementIdPrefix}-avatar-picker-title`}>
 				{emoteSlot === null
 					? "Add items"
 					: `Select an emote for slot ${emoteSlot}`}
 			</h2>
-			<p id="avatar-picker-description">
+			<p id={`${elementIdPrefix}-avatar-picker-description`}>
 				{emoteSlot === null
 					? "Select items to put on or take off. When the avatar has the most items of a type that Roblox allows, a new item replaces one."
 					: "Select an emote that the account owns."}

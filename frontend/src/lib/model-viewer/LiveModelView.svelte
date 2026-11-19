@@ -1,6 +1,7 @@
 <script lang="ts">
 	import cubeIcon from "@phosphor-icons/core/regular/cube.svg?raw"
 	import { untrack } from "svelte"
+	import { getPageVisibility } from "../layout/page-visibility"
 	import FrameUnavailable from "../shared/FrameUnavailable.svelte"
 	import ModelLoadingPlaceholder from "./ModelLoadingPlaceholder.svelte"
 	import ModelSnapshotButton from "./ModelSnapshotButton.svelte"
@@ -56,12 +57,15 @@
 		viewport = $state<LiveModelViewport>(),
 		isUnavailable = $state(false)
 
-	const controlsDescriptionId = $props.id()
+	const controlsDescriptionId = $props.id(),
+		pageVisibility = getPageVisibility()
 
+	// The newest view holds the shared canvas, so a view gives it back while its
+	// page is hidden, and attaches again when the page shows.
 	$effect(() => {
 		const viewHost = host,
 			startingAccountId = untrack(() => accountId)
-		if (!viewHost) return
+		if (!viewHost || !pageVisibility.isShown) return
 		let attachedViewport: LiveModelViewport | undefined,
 			isClosed = false
 		const attach = async (): Promise<void> => {
@@ -82,6 +86,7 @@
 		return () => {
 			isClosed = true
 			attachedViewport?.detach()
+			viewport = undefined
 		}
 	})
 

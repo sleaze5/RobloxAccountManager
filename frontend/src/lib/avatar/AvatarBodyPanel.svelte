@@ -13,6 +13,7 @@
 	import { rangeShareOf, roundedToStep } from "./range-slider"
 
 	let { avatar, canEdit }: { avatar: AvatarState; canEdit: boolean } = $props()
+	const elementIdPrefix = $props.id()
 
 	const percent = new Intl.NumberFormat("en-US", {
 			style: "percent",
@@ -179,8 +180,10 @@
 
 {#if draft}
 	<div class="flex flex-col gap-3 p-3">
-		<section class="settings-section" aria-labelledby="avatar-type-heading">
-			<h3 id="avatar-type-heading">Avatar type</h3>
+		<section
+			class="settings-section"
+			aria-labelledby={`${elementIdPrefix}-avatar-type-heading`}>
+			<h3 id={`${elementIdPrefix}-avatar-type-heading`}>Avatar type</h3>
 			<div class="settings-rows">
 				<div class="settings-row">
 					<div class="settings-row-copy">
@@ -209,8 +212,10 @@
 			</div>
 		</section>
 
-		<section class="settings-section" aria-labelledby="avatar-scale-heading">
-			<h3 id="avatar-scale-heading">Scale</h3>
+		<section
+			class="settings-section"
+			aria-labelledby={`${elementIdPrefix}-avatar-scale-heading`}>
+			<h3 id={`${elementIdPrefix}-avatar-scale-heading`}>Scale</h3>
 			{#if canEdit && !isR15}
 				<p class="notice-note">Switch to R15 to change the scales.</p>
 			{/if}
@@ -221,7 +226,8 @@
 					<div class="settings-row">
 						<span
 							class="w-24 shrink-0 text-xs text-fg-muted"
-							id={`avatar-scale-${row.scale}`}>{row.label}</span>
+							id={`${elementIdPrefix}-avatar-scale-${row.scale}`}
+							>{row.label}</span>
 						{#if canEdit && limit}
 							<input
 								class="range flex-1"
@@ -231,7 +237,7 @@
 								step={limit.increment > 0 ? limit.increment : 0.01}
 								{value}
 								style:--range-fill={fillOf(value, limit)}
-								aria-labelledby={`avatar-scale-${row.scale}`}
+								aria-labelledby={`${elementIdPrefix}-avatar-scale-${row.scale}`}
 								aria-valuetext={percent.format(value)}
 								disabled={!isR15 || avatar.isDraftLocked}
 								oninput={(event) =>
@@ -253,8 +259,10 @@
 			</div>
 		</section>
 
-		<section class="settings-section" aria-labelledby="avatar-colors-heading">
-			<h3 id="avatar-colors-heading">Body colors</h3>
+		<section
+			class="settings-section"
+			aria-labelledby={`${elementIdPrefix}-avatar-colors-heading`}>
+			<h3 id={`${elementIdPrefix}-avatar-colors-heading`}>Body colors</h3>
 			<div class="flex flex-wrap items-start gap-6 @max-md:flex-col">
 				<div class="flex flex-col gap-2">
 					<div class="rounded-lg border border-line-subtle bg-canvas p-4">
@@ -342,7 +350,7 @@
 											? ""
 											: "Mixed"}
 										aria-invalid={isHexTouched && !expandedHexColor}
-										aria-describedby="avatar-hex-error"
+										aria-describedby={`${elementIdPrefix}-avatar-hex-error`}
 										disabled={avatar.isDraftLocked ||
 											selectedParts.size === 0}
 										oninput={(event) =>
@@ -366,7 +374,7 @@
 								</span>
 								{#if isHexTouched && !expandedHexColor}
 									<span
-										id="avatar-hex-error"
+										id={`${elementIdPrefix}-avatar-hex-error`}
 										class="text-xs text-danger-muted"
 										>Enter 1, 3, or 6 hex digits, such as A3A2A5.</span>
 								{:else if selectedPaletteColor}

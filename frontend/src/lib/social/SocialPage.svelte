@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { onDestroy, tick, untrack } from "svelte"
+	import { tick, untrack } from "svelte"
 	import arrowRightIcon from "@phosphor-icons/core/regular/arrow-right.svg?raw"
 	import caretLeftIcon from "@phosphor-icons/core/regular/caret-left.svg?raw"
 	import caretRightIcon from "@phosphor-icons/core/regular/caret-right.svg?raw"
@@ -25,6 +25,7 @@
 	import type { AccountStore } from "../accounts/account-store.svelte"
 	import { presenceDetail, presenceLabel } from "../accounts/account-model"
 	import AccountSwitcher from "../layout/AccountSwitcher.svelte"
+	import { getPageVisibility } from "../layout/page-visibility"
 	import { unsavedChangesGuard } from "../layout/unsaved-changes-guard"
 	import WorkbenchSidebar from "../layout/WorkbenchSidebar.svelte"
 	import { appSettings } from "../settings/settings-store.svelte"
@@ -99,6 +100,7 @@
 			[playersView]: { label: "User search", noun: "users" },
 		}
 
+	const pageVisibility = getPageVisibility()
 	let searchInput = $state<HTMLInputElement | undefined>(undefined),
 		detailPane = $state<HTMLDivElement | undefined>(undefined),
 		searchError = $state("")
@@ -155,7 +157,7 @@
 	$effect(() => {
 		const accountId = account.id,
 			selfUserId = Number(account.userId) || 0
-		if (!accounts.vault.unlocked) return
+		if (!accounts.vault.unlocked || !pageVisibility.isShown) return
 		if (accountModerated) {
 			untrack(() => store.closeAccount())
 			return
@@ -165,7 +167,12 @@
 
 	$effect(() => {
 		const presence = appSettings.presence.social
-		if (!appSettings.initialized || !accounts.vault.unlocked || !presence.enabled) {
+		if (
+			!appSettings.initialized ||
+			!accounts.vault.unlocked ||
+			!pageVisibility.isShown ||
+			!presence.enabled
+		) {
 			return
 		}
 		const timer = window.setInterval(
@@ -175,7 +182,9 @@
 		return () => window.clearInterval(timer)
 	})
 
-	onDestroy(() => store.closeMenu())
+	$effect(() => {
+		if (pageVisibility.isShown) return () => store.closeMenu()
+	})
 
 	async function changeView(view: SocialView): Promise<void> {
 		store.showList(view)

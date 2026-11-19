@@ -41,6 +41,7 @@
 		onPreview: (image: ThumbnailFraming["image"]) => void
 		onOpenPose: (emote: InventoryItem, category: InventoryCategory) => void
 	} = $props()
+	const elementIdPrefix = $props.id()
 
 	const customizations = $derived(thumbnails.thumbnails)
 
@@ -127,8 +128,10 @@
 			isLocked={!!thumbnails.savingType}
 			{library}
 			{onSave} />
-		<section class="settings-section" aria-labelledby="avatar-bust-heading">
-			<h3 id="avatar-bust-heading">Bust</h3>
+		<section
+			class="settings-section"
+			aria-labelledby={`${elementIdPrefix}-avatar-bust-heading`}>
+			<h3 id={`${elementIdPrefix}-avatar-bust-heading`}>Bust</h3>
 			<p class="text-xs text-fg-muted">
 				Roblox always frames the bust itself. It has no pose or camera settings.
 			</p>

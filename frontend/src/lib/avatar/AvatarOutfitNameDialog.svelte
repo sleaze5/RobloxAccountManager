@@ -17,6 +17,7 @@
 		renamedOutfit: AvatarOutfit | null
 		onClose: () => void
 	} = $props()
+	const elementIdPrefix = $props.id()
 
 	const maxNameLength = 100
 
@@ -62,7 +63,7 @@
 
 <Dialog
 	class="max-w-sm"
-	aria-labelledby="avatar-outfit-name-title"
+	aria-labelledby={`${elementIdPrefix}-avatar-outfit-name-title`}
 	onBackdropClick={close}>
 	<form
 		novalidate
@@ -72,7 +73,7 @@
 		}}>
 		<div class="dialog-heading">
 			<div>
-				<h2 id="avatar-outfit-name-title">
+				<h2 id={`${elementIdPrefix}-avatar-outfit-name-title`}>
 					{renamedOutfit ? "Rename outfit" : "Save as outfit"}
 				</h2>
 				<p>
@@ -98,12 +99,14 @@
 				autocomplete="off"
 				maxlength={maxNameLength}
 				aria-invalid={isTouched && !!nameError}
-				aria-describedby="avatar-outfit-name-error"
+				aria-describedby={`${elementIdPrefix}-avatar-outfit-name-error`}
 				disabled={isWorking}
 				onblur={() => (isTouched = name !== (renamedOutfit?.name ?? ""))} />
 		</label>
 		{#if isTouched && nameError}
-			<p id="avatar-outfit-name-error" class="mt-1 text-xs text-danger-muted">
+			<p
+				id={`${elementIdPrefix}-avatar-outfit-name-error`}
+				class="mt-1 text-xs text-danger-muted">
 				{nameError}
 			</p>
 		{/if}

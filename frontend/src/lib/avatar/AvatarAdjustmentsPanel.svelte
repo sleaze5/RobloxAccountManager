@@ -28,6 +28,7 @@
 		// or 0. The panel focuses it once and then clears it.
 		focusedAssetId: number
 	} = $props()
+	const elementIdPrefix = $props.id()
 
 	const assets = $derived(avatar.draft?.assets ?? []),
 		savedAssetById = $derived(
@@ -62,7 +63,9 @@
 	// row that was only left open keeps the focus on the tab.
 	onMount(() => {
 		if (!focusedAssetId) return
-		const row = document.getElementById(`avatar-adjust-row-${focusedAssetId}`)
+		const row = document.getElementById(
+			`${elementIdPrefix}-avatar-adjust-row-${focusedAssetId}`,
+		)
 		focusedAssetId = 0
 		row?.scrollIntoView({ block: "nearest" })
 		row?.querySelector<HTMLButtonElement>("button[aria-expanded]")?.focus({
@@ -92,9 +95,9 @@
 		{#if adjustableAssets.length > 0}
 			<section
 				class="flex flex-col gap-2"
-				aria-labelledby="avatar-adjust-accessories">
+				aria-labelledby={`${elementIdPrefix}-avatar-adjust-accessories`}>
 				<AvatarCountedHeading
-					id="avatar-adjust-accessories"
+					id={`${elementIdPrefix}-avatar-adjust-accessories`}
 					label="Accessories"
 					count={adjustableAssets.length} />
 				<ul
@@ -105,8 +108,8 @@
 						{@const savedAsset = savedAssetById.get(assetId)}
 						<AvatarAdjustmentRow
 							{asset}
-							rowId={`avatar-adjust-row-${assetId}`}
-							controlsId={`avatar-adjust-${assetId}`}
+							rowId={`${elementIdPrefix}-avatar-adjust-row-${assetId}`}
+							controlsId={`${elementIdPrefix}-avatar-adjust-${assetId}`}
 							isExpanded={expandedAssetId === assetId}
 							isEdited={!!savedAsset &&
 								!isSameAdjustment(
@@ -131,8 +134,12 @@
 				</ul>
 			</section>
 		{/if}
-		<AvatarClothingLayers {assets} headingId="avatar-adjust-layers" />
+		<AvatarClothingLayers
+			{assets}
+			headingId={`${elementIdPrefix}-avatar-adjust-layers`} />
 	{:else}
-		<AvatarAdjustmentSummary {assets} headingIdPrefix="avatar-adjust" />
+		<AvatarAdjustmentSummary
+			{assets}
+			headingIdPrefix={`${elementIdPrefix}-avatar-adjust`} />
 	{/if}
 </div>

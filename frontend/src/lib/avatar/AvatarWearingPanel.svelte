@@ -26,6 +26,7 @@
 		onAddItems: () => void
 		onAdjustItem: (assetId: number) => void
 	} = $props()
+	const elementIdPrefix = $props.id()
 
 	const exactNumbers = new Intl.NumberFormat("en-US"),
 		assets = $derived(avatar.draft?.assets ?? []),
@@ -67,7 +68,7 @@
 
 	<AvatarItemGroups
 		{assets}
-		headingIdPrefix="avatar-group"
+		headingIdPrefix={`${elementIdPrefix}-avatar-group`}
 		{isOwned}
 		badgesOf={(asset) =>
 			canEdit && !savedAssetIds.has(asset.item.itemId)

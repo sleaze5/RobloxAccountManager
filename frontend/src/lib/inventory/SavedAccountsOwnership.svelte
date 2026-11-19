@@ -18,6 +18,7 @@
 		canBeWorn: boolean
 		onRetry: () => void
 	} = $props()
+	const elementIdPrefix = $props.id()
 
 	const owners = $derived(
 			(ownership?.owners ?? []).flatMap((owner) => {
@@ -45,9 +46,11 @@
 		)
 </script>
 
-<section class="flex flex-col gap-3" aria-labelledby="inventory-item-saved-accounts">
+<section
+	class="flex flex-col gap-3"
+	aria-labelledby={`${elementIdPrefix}-inventory-item-saved-accounts`}>
 	<h3
-		id="inventory-item-saved-accounts"
+		id={`${elementIdPrefix}-inventory-item-saved-accounts`}
 		class="flex items-center gap-2 text-xs font-semibold text-fg-muted">
 		Saved accounts
 		{#if owners.length > 0}

@@ -1,6 +1,7 @@
 <script lang="ts">
 	import warningIcon from "@phosphor-icons/core/regular/warning.svg?raw"
 	import { onMount, tick, untrack } from "svelte"
+	import { SvelteSet } from "svelte/reactivity"
 	import AccountPlaceholder from "./lib/accounts/AccountPlaceholder.svelte"
 	import AccountProfile from "./lib/accounts/AccountProfile.svelte"
 	import AccountImageMenu from "./lib/accounts/AccountImageMenu.svelte"
@@ -55,6 +56,7 @@
 	import { LogsExplorerStore } from "./lib/logs-explorer/logs-explorer-store.svelte"
 	import LaunchDrawer from "./lib/layout/LaunchDrawer.svelte"
 	import PageNavigation from "./lib/layout/PageNavigation.svelte"
+	import RetainedPage from "./lib/layout/RetainedPage.svelte"
 	import StatusBar from "./lib/layout/StatusBar.svelte"
 	import WindowTitleBar from "./lib/layout/WindowTitleBar.svelte"
 	import { setWorkspace, WorkspaceState } from "./lib/layout/workspace-state.svelte"
@@ -94,6 +96,7 @@
 		| "catalog"
 		| "logs-explorer"
 		| "settings"
+	type TabPage = Exclude<ActivePage, "settings">
 
 	// The pages other than Accounts load as separate files, so that the app
 	// starts faster. They begin to load once the app shows, so that opening a
@@ -115,12 +118,16 @@
 		groups = new GroupsStore(store, notificationCenter),
 		social = new SocialStore(notificationCenter),
 		workspace = new WorkspaceState(),
+		// The tab pages that the user opened since the vault unlocked. They stay
+		// mounted and hidden while another page shows, so that switching back
+		// keeps their state.
+		openedTabPages = new SvelteSet<TabPage>(),
 		passwordReminderNotificationId = "password-test-reminder"
 	let build = $state<AppBuild | null>(null),
 		developmentWarning = $state<"loading" | "open" | "closed">("loading"),
 		appLocation = $state<AppLocation | null>(null),
 		activePage = $state<ActivePage>("accounts"),
-		settingsReturnPage = $state<Exclude<ActivePage, "settings">>("accounts"),
+		settingsReturnPage = $state<TabPage>("accounts"),
 		activeDialog = $state<ActiveDialog>(null),
 		passwordReminderNotified = $state(false),
 		tagAccountId = $state<number | null>(null),
@@ -176,9 +183,23 @@
 		if (!store.vault.unlocked) {
 			workspace.closeAccountMenus()
 			workspace.viewedImage = null
-			untrack(resetAccountPages)
+			untrack(() => {
+				resetAccountPages()
+				openedTabPages.clear()
+			})
 		} else untrack(() => games.initialize())
 	})
+
+	$effect(() => {
+		const page = activePage
+		if (page !== "settings" && store.vault.unlocked) {
+			untrack(() => openedTabPages.add(page))
+		}
+	})
+
+	function isTabPageMounted(page: TabPage): boolean {
+		return activePage === page || openedTabPages.has(page)
+	}
 
 	function showLoadError(id: string, title: string, error: unknown): void {
 		notificationCenter.show({
@@ -756,89 +777,13 @@
 			}}
 			onSettings={openSettings}
 			onLock={requestLockVault} />
+	{/if}
 
-		{#if activePage === "accounts" && store.error && activeDialog === null && store.vault.unlocked}
-			<OperationError {store} />
-		{/if}
-
-		{#if activePage === "social"}
-			{#await pageImports.social()}
-				{@render pageLoading()}
-			{:then { default: SocialPage }}
-				<SocialPage
-					store={social}
-					accounts={store}
-					notifications={notificationCenter}
-					onFillLaunch={(placeId, jobId) =>
-						fillGameLaunchOptions(placeId, jobId)}
-					onSearchPlace={searchPlace}
-					{onShowGamePass}
-					onSearchUniverse={searchUniverse}
-					onRelationshipAction={openRelationshipAction}
-					onEditNickname={openNickname}
-					onRemoveSelected={openRemoveConnections}
-					onOpenInBrowser={(accountId, pageUrl) =>
-						void openManagedBrowser(accountId, pageUrl)}
-					onShowCreations={showUserCreations} />
-			{:catch}
-				{@render pageUnavailable()}
-			{/await}
-		{:else if activePage === "groups"}
-			{#await pageImports.groups()}
-				{@render pageLoading()}
-			{:then { default: GroupsPage }}
-				<GroupsPage
-					store={groups}
-					accounts={store}
-					notifications={notificationCenter}
-					onSearchPlace={searchPlace}
-					onOpenInBrowser={(accountId, pageUrl) =>
-						void openManagedBrowser(accountId, pageUrl)}
-					onShowCreations={showGroupCreations} />
-			{:catch}
-				{@render pageUnavailable()}
-			{/await}
-		{:else if activePage === "games"}
-			{#await pageImports.games()}
-				{@render pageLoading()}
-			{:then { default: GamesPage }}
-				<GamesPage
-					store={games}
-					accounts={store}
-					notifications={notificationCenter}
-					onFillLaunch={(placeId, jobId) =>
-						fillGameLaunchOptions(placeId, jobId)}
-					onFillLaunchLink={(link) => fillGameLaunchLink(link)}
-					onOpenInBrowser={(accountId, pageUrl) =>
-						void openManagedBrowser(accountId, pageUrl)} />
-			{:catch}
-				{@render pageUnavailable()}
-			{/await}
-		{:else if activePage === "catalog"}
-			{#await pageImports.catalog()}
-				{@render pageLoading()}
-			{:then { default: CatalogPage }}
-				<CatalogPage
-					store={catalog}
-					accounts={store}
-					notifications={notificationCenter}
-					onSearchPlace={searchPlace} />
-			{:catch}
-				{@render pageUnavailable()}
-			{/await}
-		{:else if activePage === "logs-explorer"}
-			{#await pageImports.logsExplorer()}
-				{@render pageLoading()}
-			{:then { default: LogsExplorerPage }}
-				<LogsExplorerPage
-					store={logsExplorer}
-					accounts={store}
-					onFillLaunch={(visit) => fillLaunchOptions(visit)}
-					onSearchPlace={searchPlace} />
-			{:catch}
-				{@render pageUnavailable()}
-			{/await}
-		{:else}
+	{#if isTabPageMounted("accounts")}
+		<RetainedPage isShown={activePage === "accounts"}>
+			{#if activePage === "accounts" && store.error && activeDialog === null && store.vault.unlocked}
+				<OperationError {store} />
+			{/if}
 			<main
 				class="flex min-h-0 flex-1"
 				aria-label="Accounts"
@@ -905,11 +850,100 @@
 						notifications={notificationCenter} />
 				</div>
 			</main>
-		{/if}
-
-		{#if activePage === "accounts"}
 			<StatusBar {store} />
-		{/if}
+		</RetainedPage>
+	{/if}
+	{#if isTabPageMounted("social")}
+		<RetainedPage isShown={activePage === "social"}>
+			{#await pageImports.social()}
+				{@render pageLoading()}
+			{:then { default: SocialPage }}
+				<SocialPage
+					store={social}
+					accounts={store}
+					notifications={notificationCenter}
+					onFillLaunch={(placeId, jobId) =>
+						fillGameLaunchOptions(placeId, jobId)}
+					onSearchPlace={searchPlace}
+					{onShowGamePass}
+					onSearchUniverse={searchUniverse}
+					onRelationshipAction={openRelationshipAction}
+					onEditNickname={openNickname}
+					onRemoveSelected={openRemoveConnections}
+					onOpenInBrowser={(accountId, pageUrl) =>
+						void openManagedBrowser(accountId, pageUrl)}
+					onShowCreations={showUserCreations} />
+			{:catch}
+				{@render pageUnavailable()}
+			{/await}
+		</RetainedPage>
+	{/if}
+	{#if isTabPageMounted("groups")}
+		<RetainedPage isShown={activePage === "groups"}>
+			{#await pageImports.groups()}
+				{@render pageLoading()}
+			{:then { default: GroupsPage }}
+				<GroupsPage
+					store={groups}
+					accounts={store}
+					notifications={notificationCenter}
+					onSearchPlace={searchPlace}
+					onOpenInBrowser={(accountId, pageUrl) =>
+						void openManagedBrowser(accountId, pageUrl)}
+					onShowCreations={showGroupCreations} />
+			{:catch}
+				{@render pageUnavailable()}
+			{/await}
+		</RetainedPage>
+	{/if}
+	{#if isTabPageMounted("games")}
+		<RetainedPage isShown={activePage === "games"}>
+			{#await pageImports.games()}
+				{@render pageLoading()}
+			{:then { default: GamesPage }}
+				<GamesPage
+					store={games}
+					accounts={store}
+					notifications={notificationCenter}
+					onFillLaunch={(placeId, jobId) =>
+						fillGameLaunchOptions(placeId, jobId)}
+					onFillLaunchLink={(link) => fillGameLaunchLink(link)}
+					onOpenInBrowser={(accountId, pageUrl) =>
+						void openManagedBrowser(accountId, pageUrl)} />
+			{:catch}
+				{@render pageUnavailable()}
+			{/await}
+		</RetainedPage>
+	{/if}
+	{#if isTabPageMounted("catalog")}
+		<RetainedPage isShown={activePage === "catalog"}>
+			{#await pageImports.catalog()}
+				{@render pageLoading()}
+			{:then { default: CatalogPage }}
+				<CatalogPage
+					store={catalog}
+					accounts={store}
+					notifications={notificationCenter}
+					onSearchPlace={searchPlace} />
+			{:catch}
+				{@render pageUnavailable()}
+			{/await}
+		</RetainedPage>
+	{/if}
+	{#if isTabPageMounted("logs-explorer")}
+		<RetainedPage isShown={activePage === "logs-explorer"}>
+			{#await pageImports.logsExplorer()}
+				{@render pageLoading()}
+			{:then { default: LogsExplorerPage }}
+				<LogsExplorerPage
+					store={logsExplorer}
+					accounts={store}
+					onFillLaunch={(visit) => fillLaunchOptions(visit)}
+					onSearchPlace={searchPlace} />
+			{:catch}
+				{@render pageUnavailable()}
+			{/await}
+		</RetainedPage>
 	{/if}
 	<Tooltip />
 </div>

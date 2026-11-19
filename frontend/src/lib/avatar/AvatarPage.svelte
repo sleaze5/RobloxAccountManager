@@ -21,6 +21,7 @@
 	import Icon from "../shared/Icon.svelte"
 	import RefreshIcon from "../shared/RefreshIcon.svelte"
 	import SkeletonTile from "../shared/SkeletonTile.svelte"
+	import { getPageVisibility } from "../layout/page-visibility"
 	import { unsavedChangesGuard } from "../layout/unsaved-changes-guard"
 	import AvatarAdjustmentsPanel from "./AvatarAdjustmentsPanel.svelte"
 	import AvatarBodyPanel from "./AvatarBodyPanel.svelte"
@@ -65,6 +66,8 @@
 		onSearchPlace: (placeId: number) => void
 		onBack: () => void
 	} = $props()
+	const elementIdPrefix = $props.id(),
+		pageVisibility = getPageVisibility()
 
 	const avatar = untrack(
 			() => new AvatarState(accountId, userId, accounts, notifications),
@@ -263,7 +266,7 @@
 		tab = nextTab
 		if (!shouldFocus) return
 		await tick()
-		document.getElementById(`avatar-tab-${nextTab}`)?.focus()
+		document.getElementById(`${elementIdPrefix}-avatar-tab-${nextTab}`)?.focus()
 	}
 
 	function handleTabKeydown(event: KeyboardEvent): void {
@@ -284,23 +287,32 @@
 	}
 
 	onMount(() => {
-		const releaseUnsavedChangesGuard = unsavedChangesGuard.hold(confirmLeaving)
 		void avatar.refresh()
 		void avatar.loadRules()
 		void thumbnails.refresh()
 		return () => {
-			releaseUnsavedChangesGuard()
 			avatar.dispose()
 			inventory.dispose()
 			thumbnails.dispose()
 			animationLibrary.dispose()
 		}
 	})
+
+	// Only the shown page can ask about its changes. Leaving a page asks
+	// first, so a hidden page has none.
+	$effect(() => {
+		if (pageVisibility.isShown) return unsavedChangesGuard.hold(confirmLeaving)
+	})
 </script>
 
 <svelte:window
 	onkeydown={(event) => {
-		if (!(event.ctrlKey || event.metaKey) || !canEdit || event.defaultPrevented) {
+		if (
+			!pageVisibility.isShown ||
+			!(event.ctrlKey || event.metaKey) ||
+			!canEdit ||
+			event.defaultPrevented
+		) {
 			return
 		}
 		const key = event.key.toLowerCase()
@@ -314,9 +326,9 @@
 		}
 	}} />
 
-<section class="settings-page" aria-labelledby="avatar-title">
+<section class="settings-page" aria-labelledby={`${elementIdPrefix}-avatar-title`}>
 	<AccountPageHeader
-		titleId="avatar-title"
+		titleId={`${elementIdPrefix}-avatar-title`}
 		title="Avatar"
 		{username}
 		onBack={requestBack}>
@@ -403,12 +415,12 @@
 					onkeydown={handleTabKeydown}>
 					{#each tabs as option (option.id)}
 						<button
-							id={`avatar-tab-${option.id}`}
+							id={`${elementIdPrefix}-avatar-tab-${option.id}`}
 							class="tab"
 							type="button"
 							role="tab"
 							aria-selected={tab === option.id}
-							aria-controls="avatar-tab-panel"
+							aria-controls={`${elementIdPrefix}-avatar-tab-panel`}
 							tabindex={tab === option.id ? 0 : -1}
 							onclick={() => void selectTab(option.id, false)}>
 							{option.label}
@@ -422,11 +434,11 @@
 				</div>
 
 				<div
-					id="avatar-tab-panel"
+					id={`${elementIdPrefix}-avatar-tab-panel`}
 					bind:this={tabPanel}
 					class="min-h-0 flex-1 scrollbar-stable overflow-y-auto"
 					role="tabpanel"
-					aria-labelledby={`avatar-tab-${tab}`}
+					aria-labelledby={`${elementIdPrefix}-avatar-tab-${tab}`}
 					aria-busy={avatar.loading}>
 					{#if avatar.isEditable && avatar.rules === null}
 						<div

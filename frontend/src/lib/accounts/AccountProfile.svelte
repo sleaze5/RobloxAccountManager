@@ -29,6 +29,7 @@
 	import RobloxNotificationsPage from "../roblox-notifications/RobloxNotificationsPage.svelte"
 	import FriendConnections from "../social/FriendConnections.svelte"
 	import SocialCounts from "../social/SocialCounts.svelte"
+	import { getPageVisibility } from "../layout/page-visibility"
 	import type { WorkspaceState } from "../layout/workspace-state.svelte"
 	import type { NotificationCenter } from "../notifications/notification-center.svelte"
 	import { appSettings } from "../settings/settings-store.svelte"
@@ -77,6 +78,7 @@
 		notifications: NotificationCenter
 	} = $props()
 
+	const pageVisibility = getPageVisibility()
 	const selectedAccount = $derived(store.selectedAccount),
 		selectedCustomTags = $derived(getCustomTags(selectedAccount)),
 		profileAccountId = $derived(selectedAccount.id),
@@ -146,14 +148,21 @@
 
 	$effect(() => {
 		const state = profileState
-		if (!state) return
+		if (!state || !pageVisibility.isShown) return
 		untrack(() => state.enter())
 	})
 
 	$effect(() => {
 		const presence = appSettings.presence.profile,
 			accountId = profileAccountId
-		if (!appSettings.initialized || !profileVisible || !presence.enabled) return
+		if (
+			!appSettings.initialized ||
+			!profileVisible ||
+			!pageVisibility.isShown ||
+			!presence.enabled
+		) {
+			return
+		}
 		untrack(() => void store.refreshPresences(accountId))
 		const timer = window.setInterval(
 			() => void store.refreshPresences(accountId),

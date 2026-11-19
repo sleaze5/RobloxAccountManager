@@ -41,6 +41,7 @@
 		onOpenItem: (asset: AvatarAsset) => void
 		onClose: () => void
 	} = $props()
+	const elementIdPrefix = $props.id()
 
 	const percent = new Intl.NumberFormat("en-US", {
 			style: "percent",
@@ -89,7 +90,7 @@
 
 <Dialog
 	class="max-w-4xl text-left"
-	aria-labelledby="avatar-outfit-title"
+	aria-labelledby={`${elementIdPrefix}-avatar-outfit-title`}
 	onBackdropClick={close}>
 	<div class="@container flex flex-col gap-4">
 		<div class="flex items-start gap-4">
@@ -127,7 +128,7 @@
 			<div class="flex min-w-0 flex-1 flex-col gap-1">
 				<div class="flex items-start gap-3">
 					<h2
-						id="avatar-outfit-title"
+						id={`${elementIdPrefix}-avatar-outfit-title`}
 						class="min-w-0 flex-1 leading-7 tracking-tight wrap-anywhere">
 						{name}
 					</h2>
@@ -211,15 +212,23 @@
 			{:else}
 				<AvatarItemGroups
 					{assets}
-					headingIdPrefix="avatar-outfit-group"
+					headingIdPrefix={`${elementIdPrefix}-avatar-outfit-group`}
 					{isOwned}
 					{onOpenItem} />
 			{/if}
 
-			<AvatarAdjustmentSummary {assets} headingIdPrefix="avatar-outfit-adjust" />
+			<AvatarAdjustmentSummary
+				{assets}
+				headingIdPrefix={`${elementIdPrefix}-avatar-outfit-adjust`} />
 
-			<section class="flex flex-col gap-3" aria-labelledby="avatar-outfit-body">
-				<h3 id="avatar-outfit-body" class={sectionHeadingClass}>Body</h3>
+			<section
+				class="flex flex-col gap-3"
+				aria-labelledby={`${elementIdPrefix}-avatar-outfit-body`}>
+				<h3
+					id={`${elementIdPrefix}-avatar-outfit-body`}
+					class={sectionHeadingClass}>
+					Body
+				</h3>
 				<div class="flex flex-wrap items-start gap-6 @max-md:flex-col">
 					<div class="rounded-lg border border-line-subtle bg-canvas p-4">
 						<AvatarBodyFigure bodyColors={details.bodyColors} />

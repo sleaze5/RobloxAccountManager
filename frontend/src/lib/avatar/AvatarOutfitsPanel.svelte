@@ -32,6 +32,7 @@
 		onRenameOutfit: (outfit: AvatarOutfit) => void
 		onDeleteOutfit: (outfit: AvatarOutfit) => void
 	} = $props()
+	const elementIdPrefix = $props.id()
 
 	const skeletonTileIndexes = Array.from({ length: 8 }, (_unused, index) => index)
 
@@ -225,7 +226,7 @@
 
 {#if menu && menuActions.length}
 	<AnchoredActionMenu
-		id="avatar-outfit-menu"
+		id={`${elementIdPrefix}-avatar-outfit-menu`}
 		label="Outfit actions"
 		anchor={menu.trigger}
 		actions={menuActions}

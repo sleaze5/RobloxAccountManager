@@ -105,6 +105,7 @@
 		onShowGamePass?: (place: GamePlace, gamePassId: number) => void
 		onClose: () => void
 	} = $props()
+	const elementIdPrefix = $props.id()
 
 	// The related items that the user opened inside the dialog, the latest
 	// last. Back returns to the one before.
@@ -367,7 +368,9 @@
 		inventory.cancelFindingGamePassPlace()
 		inventory.clearItemActionError()
 		await tick()
-		card?.querySelector<HTMLElement>("#inventory-item-title")?.scrollIntoView({
+		card?.querySelector<HTMLElement>(
+			`#${elementIdPrefix}-inventory-item-title`,
+		)?.scrollIntoView({
 			block: "nearest",
 		})
 		card?.querySelector<HTMLElement>(
@@ -628,9 +631,11 @@
 	class={confirmation ? "max-w-md text-left" : "max-w-4xl text-left"}
 	role={confirmation ? "alertdialog" : "dialog"}
 	aria-labelledby={confirmation
-		? "inventory-confirmation-title"
-		: "inventory-item-title"}
-	aria-describedby={confirmation ? "inventory-confirmation-description" : undefined}
+		? `${elementIdPrefix}-inventory-confirmation-title`
+		: `${elementIdPrefix}-inventory-item-title`}
+	aria-describedby={confirmation
+		? `${elementIdPrefix}-inventory-confirmation-description`
+		: undefined}
 	bind:card
 	onBackdropClick={close}>
 	{#if confirmation}
@@ -639,17 +644,25 @@
 		<div class="dialog-heading">
 			<div>
 				{#if confirmation === "deletion"}
-					<h2 id="inventory-confirmation-title">Delete item?</h2>
-					<p id="inventory-confirmation-description">
+					<h2 id={`${elementIdPrefix}-inventory-confirmation-title`}>
+						Delete item?
+					</h2>
+					<p id={`${elementIdPrefix}-inventory-confirmation-description`}>
 						{name} will be removed from @{username}'s inventory. Robux spent
 						on it is not refunded, and this cannot be undone.
 					</p>
 				{:else if price === 0}
-					<h2 id="inventory-confirmation-title">Get item?</h2>
-					<p id="inventory-confirmation-description">This item is free.</p>
+					<h2 id={`${elementIdPrefix}-inventory-confirmation-title`}>
+						Get item?
+					</h2>
+					<p id={`${elementIdPrefix}-inventory-confirmation-description`}>
+						This item is free.
+					</p>
 				{:else}
-					<h2 id="inventory-confirmation-title">Buy item?</h2>
-					<p id="inventory-confirmation-description">
+					<h2 id={`${elementIdPrefix}-inventory-confirmation-title`}>
+						Buy item?
+					</h2>
+					<p id={`${elementIdPrefix}-inventory-confirmation-description`}>
 						Roblox does not refund items.
 					</p>
 				{/if}
@@ -744,7 +757,7 @@
 								</button>
 							{/if}
 							<h2
-								id="inventory-item-title"
+								id={`${elementIdPrefix}-inventory-item-title`}
 								class="min-w-0 flex-1 leading-7 tracking-tight wrap-anywhere">
 								{name}
 							</h2>
@@ -849,7 +862,7 @@
 											? undefined
 											: isDownloadMenuOpen}
 										aria-controls={isDownloadMenuOpen
-											? "inventory-download-menu"
+											? `${elementIdPrefix}-inventory-download-menu`
 											: undefined}
 										aria-busy={inventory.isDownloadingItem}
 										data-open={isDownloadMenuOpen || undefined}
@@ -1015,8 +1028,10 @@
 					{#if hasMarketSection}
 						<section
 							class="flex flex-col gap-3"
-							aria-labelledby="inventory-item-market">
-							<h3 id="inventory-item-market" class={sectionHeadingClass}>
+							aria-labelledby={`${elementIdPrefix}-inventory-item-market`}>
+							<h3
+								id={`${elementIdPrefix}-inventory-item-market`}
+								class={sectionHeadingClass}>
 								Market
 							</h3>
 							<dl class="facts">
@@ -1092,8 +1107,10 @@
 
 					<section
 						class="flex flex-col gap-3"
-						aria-labelledby="inventory-item-details">
-						<h3 id="inventory-item-details" class={sectionHeadingClass}>
+						aria-labelledby={`${elementIdPrefix}-inventory-item-details`}>
+						<h3
+							id={`${elementIdPrefix}-inventory-item-details`}
+							class={sectionHeadingClass}>
 							Details
 						</h3>
 						<dl class="facts">
@@ -1152,9 +1169,9 @@
 					{#if item.description}
 						<section
 							class="flex flex-col gap-3"
-							aria-labelledby="inventory-item-description">
+							aria-labelledby={`${elementIdPrefix}-inventory-item-description`}>
 							<h3
-								id="inventory-item-description"
+								id={`${elementIdPrefix}-inventory-item-description`}
 								class={sectionHeadingClass}>
 								Description
 							</h3>
@@ -1182,9 +1199,9 @@
 			{#if canHaveRelatedItems}
 				<section
 					class="flex flex-col gap-3"
-					aria-labelledby="inventory-item-related">
+					aria-labelledby={`${elementIdPrefix}-inventory-item-related`}>
 					<h3
-						id="inventory-item-related"
+						id={`${elementIdPrefix}-inventory-item-related`}
 						class={["flex items-center gap-2", sectionHeadingClass]}>
 						{isBundle ? "Includes" : "Dependencies"}
 						{#if relatedItems?.length}
@@ -1257,7 +1274,7 @@
 
 {#if isDownloadMenuOpen && downloadButton && downloadActions.length > 1}
 	<AnchoredActionMenu
-		id="inventory-download-menu"
+		id={`${elementIdPrefix}-inventory-download-menu`}
 		label="Download actions"
 		anchor={downloadButton}
 		actions={downloadActions}

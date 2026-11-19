@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { onDestroy, onMount, tick } from "svelte"
+	import { tick, untrack } from "svelte"
 	import arrowRightIcon from "@phosphor-icons/core/regular/arrow-right.svg?raw"
 	import circleNotchIcon from "@phosphor-icons/core/regular/circle-notch.svg?raw"
 	import dotsSixVerticalIcon from "@phosphor-icons/core/regular/dots-six-vertical.svg?raw"
@@ -15,6 +15,7 @@
 	import SkeletonMediaRow from "../shared/SkeletonMediaRow.svelte"
 	import type { AccountStore } from "../accounts/account-store.svelte"
 	import AccountSwitcher from "../layout/AccountSwitcher.svelte"
+	import { getPageVisibility } from "../layout/page-visibility"
 	import WorkbenchSidebar from "../layout/WorkbenchSidebar.svelte"
 	import type { NotificationCenter } from "../notifications/notification-center.svelte"
 	import { loadMoreWhenVisible } from "../shared/load-more-when-visible"
@@ -57,6 +58,7 @@
 				) ?? store.places[0]
 			)?.placeId,
 		)
+	const pageVisibility = getPageVisibility()
 	let searchInput = $state<HTMLInputElement | undefined>(undefined),
 		grabbedPlaceId: number | null = null,
 		draggedPlaceId = $state<number | null>(null),
@@ -153,8 +155,11 @@
 		searchInput?.focus()
 	}
 
-	onMount(() => store.revalidate())
-	onDestroy(() => store.closeMenu())
+	$effect(() => {
+		if (!pageVisibility.isShown) return
+		untrack(() => store.revalidate())
+		return () => store.closeMenu()
+	})
 
 	function loadMoreResults(): void {
 		if (!store.searching && !store.loadMoreFailed) void store.search(true)
