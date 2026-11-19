@@ -5,14 +5,21 @@
 		AvatarThumbnailChange,
 		AvatarThumbnailCustomization,
 	} from "../backend/bridge"
-	import type { AnimationLibrary } from "../model-viewer/model-subject"
+	import { AvatarThumbnailType } from "../backend/bridge"
+	import { animationChoiceOfItem } from "../model-viewer/animation-choices"
+	import type {
+		AnimationLibrary,
+		ThumbnailFraming,
+	} from "../model-viewer/model-subject"
 	import Select from "../shared/Select.svelte"
 	import AvatarThumbnailImage from "./AvatarThumbnailImage.svelte"
 	import { rangeShareOf, roundedToStep } from "./range-slider"
 
 	// AvatarThumbnailSection shows how Roblox poses and frames one kind of
 	// avatar image, with the images that it frames. With canEdit, it edits
-	// the customization and saves it with onSave.
+	// the customization and saves it with onSave. It reports how the edited
+	// customization frames the avatar with onFramingChange, for the live
+	// preview, and onFocus when the user works in it.
 	let {
 		title,
 		description,
@@ -23,6 +30,8 @@
 		isLocked,
 		library,
 		onSave,
+		onFramingChange,
+		onFocus,
 	}: {
 		title: string
 		description: string
@@ -34,6 +43,8 @@
 		isLocked: boolean
 		library: AnimationLibrary
 		onSave: (change: AvatarThumbnailChange) => void
+		onFramingChange: (framing: ThumbnailFraming) => void
+		onFocus: () => void
 	} = $props()
 
 	type CameraSetting = keyof AvatarThumbnailCamera
@@ -147,6 +158,19 @@
 		),
 		isDisabled = $derived(isSaving || isLocked),
 		isStandard = $derived(emoteAssetId === 0 && !isCameraCustomized),
+		// The animation that poses the edited image, which an owned choice or
+		// the saved emote names.
+		poseAnimationId = $derived.by(() => {
+			if (emoteAssetId === 0) return undefined
+			const ownedChoice = ownedChoices.find(
+				(choice) => choice.assetId === emoteAssetId,
+			)
+			if (ownedChoice) return ownedChoice.id
+			const savedEmote = customization.emote
+			return savedEmote?.itemId === emoteAssetId
+				? animationChoiceOfItem(savedEmote, "emote")?.id
+				: undefined
+		}),
 		// Whether the saved emote stays out of the image, because its camera is
 		// standard.
 		isSavedPoseHidden = $derived(
@@ -164,6 +188,18 @@
 				? customization.emote.name || `Emote ${customization.emote.itemId}`
 				: "None",
 		)
+
+	// The live preview follows every edit.
+	$effect(() => {
+		onFramingChange({
+			image:
+				customization.type === AvatarThumbnailType.AvatarThumbnailCloseup
+					? "headshot"
+					: "fullBody",
+			poseAnimationId: isPoseHidden ? undefined : poseAnimationId,
+			camera: isCameraCustomized ? { ...camera } : undefined,
+		})
+	})
 
 	function setCamera(setting: CameraSetting, value: number, step: number): void {
 		camera = { ...camera, [setting]: roundedToStep(value, step) }
@@ -184,7 +220,11 @@
 	}
 </script>
 
-<section class="settings-section" aria-labelledby={`${sectionId}-heading`}>
+<section
+	class="settings-section"
+	aria-labelledby={`${sectionId}-heading`}
+	onfocusin={onFocus}
+	onpointerdown={onFocus}>
 	<h3 id={`${sectionId}-heading`}>{title}</h3>
 	<p class="text-xs text-fg-muted">{description}</p>
 

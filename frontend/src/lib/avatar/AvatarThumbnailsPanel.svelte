@@ -4,7 +4,10 @@
 	import { onMount } from "svelte"
 	import { AvatarThumbnailType } from "../backend/bridge"
 	import type { AvatarThumbnailChange } from "../backend/bridge"
-	import type { AnimationLibrary } from "../model-viewer/model-subject"
+	import type {
+		AnimationLibrary,
+		ThumbnailFraming,
+	} from "../model-viewer/model-subject"
 	import Icon from "../shared/Icon.svelte"
 	import RefreshIcon from "../shared/RefreshIcon.svelte"
 	import SettingsRowsSkeleton from "../shared/SettingsRowsSkeleton.svelte"
@@ -19,12 +22,18 @@
 		library,
 		canEdit,
 		onSave,
+		onFramingChange,
+		onPreview,
 	}: {
 		avatar: AvatarState
 		thumbnails: AvatarThumbnailsState
 		library: AnimationLibrary
 		canEdit: boolean
 		onSave: (change: AvatarThumbnailChange) => void
+		// onFramingChange reports how each edited customization frames the
+		// avatar, and onPreview the image that the user works on.
+		onFramingChange: (framing: ThumbnailFraming) => void
+		onPreview: (image: ThumbnailFraming["image"]) => void
 	} = $props()
 
 	const customizations = $derived(thumbnails.thumbnails)
@@ -88,6 +97,8 @@
 			title="Headshot"
 			description="The close-up image that profiles, friend lists, and chats show."
 			customization={customizations.closeup}
+			onFocus={() => onPreview("headshot")}
+			{onFramingChange}
 			images={[{ label: "Headshot", url: customizations.headshotImageUrl }]}
 			{canEdit}
 			isSaving={thumbnails.savingType ===
@@ -99,6 +110,8 @@
 			title="Full body"
 			description="The full-body image that profiles and the avatar page show."
 			customization={customizations.fullBody}
+			onFocus={() => onPreview("fullBody")}
+			{onFramingChange}
 			images={[{ label: "Full body", url: avatar.avatar?.imageUrl ?? "" }]}
 			{canEdit}
 			isSaving={thumbnails.savingType ===

@@ -47,6 +47,20 @@ export interface AdjustmentGuide {
 	axis?: AdjustmentAxis
 }
 
+// ThumbnailFraming shows a live avatar as Roblox frames one of its profile
+// images: the headshot or the full-body image, posed with the animation of
+// poseAnimationId at the frame that the image shows. camera is the customized
+// camera, or undefined for the standard framing of Roblox.
+export interface ThumbnailFraming {
+	image: "headshot" | "fullBody"
+	poseAnimationId?: string
+	camera?: {
+		fieldOfViewDegrees: number
+		yRotationDegrees: number
+		distanceScale: number
+	}
+}
+
 // AnimationChoiceGroup is the section of the animation picker that lists a
 // choice: the animation set that the avatar wears, the emotes of its emote
 // wheel and thumbnail, the emotes and animations that the user owns, and the

@@ -6,7 +6,11 @@ import {
 	Outfit,
 	OutfitRenderer,
 	RBXRenderer,
+	getCameraCFrameForAvatarCustomized,
+	getCameraCFrameForHeadshotCustomized,
+	getCameraCFrameForHeadshotNonCustomized,
 	getThumbnailCamera,
+	getThumbnailCameraCFrame,
 } from "roavatar-renderer"
 import type { CFrame, Instance, Vector3 as RobloxVector3 } from "roavatar-renderer"
 import { AvatarType } from "../backend/bridge"
@@ -39,6 +43,7 @@ import type {
 	AvatarLook,
 	CameraPose,
 	LiveModelSubject,
+	ThumbnailFraming,
 } from "./model-subject"
 
 // CameraView is where the camera of a view stood when another view took the
@@ -75,6 +80,14 @@ const robloxFieldOfViewDegrees = 70,
 	maxPlaybackStepSeconds = 0.1,
 	// The renderer poses a forced time of -1 in the middle of the animation.
 	middleAnimationTimeSeconds = -1,
+	// A thumbnail pose advances the animation this far before it shows its
+	// frame, so that the fade from the previous animation ends.
+	animationFadeSeconds = 0.3,
+	// The renderer stands the rig in its bind pose without an animation, as
+	// RoAvatar poses a headshot without an emote.
+	restPoseAnimationId = "",
+	// Roblox frames the standard full-body image at this field of view.
+	standardFullBodyFieldOfViewDegrees = 70,
 	thumbnailDetail = "Thumbnail"
 
 // The animation assets that the viewer read for the account, by asset ID. A
@@ -89,6 +102,10 @@ const viewports: LiveModelViewport[] = []
 let rendererSetup: Promise<boolean> | undefined,
 	outfitRenderer: OutfitRenderer | undefined,
 	animationPose: { renderer: OutfitRenderer; completion: Promise<void> } | undefined,
+	// The animation that poses a framed thumbnail on the renderer. The
+	// renderer refuses to start an emote again that it already plays, so a
+	// changed camera keeps it.
+	framedAnimation: { renderer: OutfitRenderer; animationId: string } | undefined,
 	shownAccessory: { root: Instance; accessory: Instance } | undefined,
 	shownSubject: LiveModelSubject | undefined,
 	shownAccountId = 0,
@@ -133,6 +150,12 @@ export class LiveModelViewport implements AnimationPlayback {
 	accountId = 0
 	subject: LiveModelSubject | undefined
 	adjustmentGuide: AdjustmentGuide | undefined
+	// The profile image that the view shows the avatar as, which locks the
+	// camera and the pose, or undefined for the free view.
+	thumbnailFraming: ThumbnailFraming | undefined
+	// Where the camera stood before the view framed a thumbnail, so that it
+	// returns there.
+	#freeCameraView: CameraView | undefined
 	cameraView: CameraView | undefined
 	// The first animation of the subject that chose the animation, so that a
 	// changed draft keeps the animation that the user chose.
@@ -192,6 +215,26 @@ export class LiveModelViewport implements AnimationPlayback {
 	showAdjustmentGuide(guide: AdjustmentGuide | undefined): void {
 		this.adjustmentGuide = guide
 		if (activeViewport() === this) requestFrame()
+	}
+
+	// showThumbnailFraming shows the avatar as Roblox frames the profile
+	// image, or returns to the free view without a framing.
+	showThumbnailFraming(framing: ThumbnailFraming | undefined): void {
+		if (isSameFraming(framing, this.thumbnailFraming)) return
+		const wasFramed = !!this.thumbnailFraming,
+			isActive = activeViewport() === this
+		if (framing && !wasFramed && isActive)
+			this.#freeCameraView = currentCameraView()
+		this.thumbnailFraming = framing
+		if (!isActive) return
+		applyFramingMode(this)
+		if (!framing && wasFramed && this.#freeCameraView) {
+			restoreCameraView(this.#freeCameraView)
+			this.#freeCameraView = undefined
+		}
+		if (this.subject?.kind === "avatar" && shownSubjectStatus === "shown") {
+			poseAvatar(this)
+		}
 	}
 
 	// chooseAnimation plays the choice, and keeps a choice from outside the
@@ -329,7 +372,11 @@ export function applyLiveModelSceneSettings(sceneSettings: ModelViewerScene): vo
 		camera = renderScene.camera,
 		controls = RBXRenderer.getRendererControls()
 	if (!controls) return
-	if (camera.fov !== sceneSettings.fieldOfViewDegrees) {
+	// A framed thumbnail keeps the field of view of its camera.
+	if (
+		!activeViewport()?.thumbnailFraming &&
+		camera.fov !== sceneSettings.fieldOfViewDegrees
+	) {
 		moveCameraForFieldOfView(camera.fov, sceneSettings.fieldOfViewDegrees)
 		camera.fov = sceneSettings.fieldOfViewDegrees
 		camera.updateProjectionMatrix()
@@ -367,6 +414,7 @@ function activateViewport(viewport: LiveModelViewport): void {
 		requestFrame()
 	})
 	hostResizeObserver.observe(viewport.host)
+	applyFramingMode(viewport)
 	// The loading state of a covered view stopped following the renderer.
 	viewport.isLoading = API.Misc.getCurrentlyLoading()
 	if (viewport.subject) showSubject(viewport)
@@ -450,7 +498,8 @@ function finishSubjectBuild(status: "shown" | "failed"): LiveModelViewport | und
 function poseAvatar(viewport: LiveModelViewport): void {
 	const posedRenderer = outfitRenderer
 	if (!posedRenderer) return
-	const animationId = viewport.animationId,
+	const framing = viewport.thumbnailFraming,
+		animationId = framing ? framedAnimationIdOf(framing) : viewport.animationId,
 		posedSubject = shownSubject,
 		previousPose =
 			animationPose?.renderer === posedRenderer
@@ -467,26 +516,22 @@ function poseAvatar(viewport: LiveModelViewport): void {
 	const applyPose = async (): Promise<void> => {
 		await previousPose
 		if (!isCurrent()) return
-		const startFrame = viewport.takeStartFrame(animationId)
+		const startFrame = framing
+			? thumbnailFrameOf(animationId)
+			: viewport.takeStartFrame(animationId)
 		try {
-			const isPlayed = await posedRenderer.setMainAnimation(
-				await rendererAnimationNameOf(animationId),
-			)
+			const isPlaying =
+				!!framing &&
+				framedAnimation?.renderer === posedRenderer &&
+				framedAnimation.animationId === animationId
+			if (!isPlaying) await playMainAnimation(posedRenderer, animationId)
 			if (!isCurrent()) return
-			// The renderer resolves false for an emote or animation that did
-			// not load. An animation of the set that the rig lacks stands in
-			// its bind pose instead.
-			if (!isPlayed && !isAnimationSetChoice(animationId)) {
-				throw new Error("The animation did not play.")
-			}
+			framedAnimation = framing
+				? { renderer: posedRenderer, animationId }
+				: undefined
 			const frame = await startFrame?.catch(() => undefined)
 			if (!isCurrent()) return
-			showAnimationFrame(
-				posedRenderer,
-				frame ?? { kind: "time", timeSeconds: viewport.timeSeconds },
-			)
-			readAnimationTime(viewport)
-			if (viewport.isPlaying) startPlayback()
+			showPose(viewport, posedRenderer, framing, frame)
 			requestFrame()
 		} catch {
 			if (isCurrent()) {
@@ -501,12 +546,134 @@ function poseAvatar(viewport: LiveModelViewport): void {
 	animationPose = requestedPose
 }
 
-function showAnimationFrame(renderer: OutfitRenderer, frame: AnimationFrame): void {
-	if (frame.kind === "keyframe")
-		renderer.animateOnce(0, undefined, frame.keyframeIndex)
-	else if (frame.kind === "middle")
-		renderer.animateOnce(0, middleAnimationTimeSeconds)
-	else renderer.animateOnce(0, frame.timeSeconds)
+function isSameFraming(
+	first: ThumbnailFraming | undefined,
+	second: ThumbnailFraming | undefined,
+): boolean {
+	return JSON.stringify(first) === JSON.stringify(second)
+}
+
+// playMainAnimation loads and plays the animation on the rig. The renderer
+// resolves false for an emote or animation that did not load, which fails.
+// An animation of the set that the rig lacks, and the bind pose, stand in
+// the bind pose instead.
+async function playMainAnimation(
+	renderer: OutfitRenderer,
+	animationId: string,
+): Promise<void> {
+	const isPlayed = await renderer.setMainAnimation(
+		await rendererAnimationNameOf(animationId),
+	)
+	if (
+		!isPlayed &&
+		animationId !== restPoseAnimationId &&
+		!isAnimationSetChoice(animationId)
+	) {
+		throw new Error("The animation did not play.")
+	}
+}
+
+// showPose shows the played animation at its frame. A framed thumbnail stands
+// still at the frame that the image shows, with the camera of the image. A
+// free view shows the time of the view and plays on when the view plays.
+function showPose(
+	viewport: LiveModelViewport,
+	renderer: OutfitRenderer,
+	framing: ThumbnailFraming | undefined,
+	frame: AnimationFrame | undefined,
+): void {
+	if (framing) {
+		showAnimationFrame(
+			renderer,
+			frame ?? { kind: "time", timeSeconds: 0 },
+			animationFadeSeconds,
+		)
+		placeThumbnailCamera(framing)
+		return
+	}
+	showAnimationFrame(
+		renderer,
+		frame ?? { kind: "time", timeSeconds: viewport.timeSeconds },
+	)
+	readAnimationTime(viewport)
+	if (viewport.isPlaying) startPlayback()
+}
+
+// showAnimationFrame shows the animation at the frame. The renderer advances
+// every track by elapsedSeconds first, which ends a fade between animations.
+function showAnimationFrame(
+	renderer: OutfitRenderer,
+	frame: AnimationFrame,
+	elapsedSeconds = 0,
+): void {
+	if (frame.kind === "keyframe") {
+		renderer.animateOnce(elapsedSeconds, undefined, frame.keyframeIndex)
+	} else if (frame.kind === "middle") {
+		renderer.animateOnce(elapsedSeconds, middleAnimationTimeSeconds)
+	} else renderer.animateOnce(elapsedSeconds, frame.timeSeconds)
+}
+
+// framedAnimationIdOf names the animation that poses a thumbnail. Without a
+// pose, Roblox stands a full-body image in the pose of the avatar editor, and
+// a headshot in the bind pose, as RoAvatar shows them.
+function framedAnimationIdOf(framing: ThumbnailFraming): string {
+	if (framing.poseAnimationId) return framing.poseAnimationId
+	return framing.image === "fullBody" ? idleAnimationId : restPoseAnimationId
+}
+
+// placeThumbnailCamera places the camera where Roblox places it for the
+// profile image, with the thumbnail camera functions of RoAvatar Renderer, as
+// RoAvatar previews thumbnails.
+function placeThumbnailCamera(framing: ThumbnailFraming): void {
+	const rig = outfitRenderer?.currentRig
+	if (!rig) return
+	const { camera } = framing
+	let cameraFrame: CFrame | undefined, fieldOfViewDegrees: number
+	if (framing.image === "headshot" && camera) {
+		cameraFrame = getCameraCFrameForHeadshotCustomized(
+			rig,
+			camera.fieldOfViewDegrees,
+			camera.yRotationDegrees,
+			camera.distanceScale,
+		)
+		fieldOfViewDegrees = camera.fieldOfViewDegrees
+	} else if (framing.image === "headshot") {
+		const standard = getCameraCFrameForHeadshotNonCustomized(rig)
+		cameraFrame = standard.cframe
+		fieldOfViewDegrees = standard.fov
+	} else if (camera) {
+		cameraFrame = getCameraCFrameForAvatarCustomized(
+			rig,
+			camera.fieldOfViewDegrees,
+			camera.yRotationDegrees,
+		)
+		fieldOfViewDegrees = camera.fieldOfViewDegrees
+	} else {
+		cameraFrame = getThumbnailCameraCFrame(rig, standardFullBodyFieldOfViewDegrees)
+		fieldOfViewDegrees = standardFullBodyFieldOfViewDegrees
+	}
+	if (!cameraFrame) return
+	RBXRenderer.setCameraCFrame(cameraFrame)
+	RBXRenderer.setCameraFov(fieldOfViewDegrees)
+}
+
+// applyFramingMode locks the camera and hides the ground while the view
+// frames a thumbnail, because a profile image shows neither, and restores
+// them for the free view.
+function applyFramingMode(viewport: LiveModelViewport): void {
+	const isFramed = !!viewport.thumbnailFraming,
+		renderScene = RBXRenderer.firstScene,
+		controls = RBXRenderer.getRendererControls()
+	if (controls) controls.enabled = !isFramed
+	RBXRenderer.getRendererDom()?.toggleAttribute("data-framed", isFramed)
+	for (const ground of [renderScene.plane, renderScene.shadowPlane]) {
+		if (ground) ground.visible = !isFramed
+	}
+	if (!isFramed && renderScene.camera.fov !== modelViewerScene.fieldOfViewDegrees) {
+		renderScene.camera.fov = modelViewerScene.fieldOfViewDegrees
+		renderScene.camera.updateProjectionMatrix()
+	}
+	requestFrame()
 }
 
 // rendererAnimationNameOf names the animation as the renderer plays it. The
@@ -920,6 +1087,8 @@ async function setUpRenderer(): Promise<boolean> {
 		controls.addEventListener("change", requestFrame)
 		canvas.addEventListener("keydown", (event) => {
 			const viewport = activeViewport()
+			// A framed thumbnail locks its camera and pose.
+			if (viewport?.thumbnailFraming) return
 			if (event.key === " " && viewport && viewport.animationChoices.length > 0) {
 				event.preventDefault()
 				if (viewport.isPlaying) viewport.pause()
@@ -934,7 +1103,7 @@ async function setUpRenderer(): Promise<boolean> {
 	}
 	canvas.tabIndex = 0
 	canvas.className =
-		"cursor-grab rounded-lg -outline-offset-2 focus-visible:outline-2 focus-visible:outline-focus active:cursor-grabbing"
+		"cursor-grab rounded-lg -outline-offset-2 focus-visible:outline-2 focus-visible:outline-focus active:cursor-grabbing data-framed:cursor-default"
 	renderScene.compiledRenderDesc.Connect(requestFrame)
 	API.Events.OnLoadingAssets.Connect(() => {
 		const viewport = activeViewport()

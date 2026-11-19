@@ -33,6 +33,7 @@
 	import { AvatarAnimationLibrary } from "./avatar-animation-library.svelte"
 	import { AvatarState } from "./avatar-state.svelte"
 	import { AvatarThumbnailsState } from "./avatar-thumbnails-state.svelte"
+	import type { ThumbnailFraming } from "../model-viewer/model-subject"
 
 	type AvatarTab =
 		| "wearing"
@@ -104,11 +105,20 @@
 		// focus, or 0.
 		focusedAdjustmentAssetId = $state(0),
 		isConfirmingDiscard = $state(false),
+		// The profile image that the stage previews on the Thumbnails tab, and
+		// how each edited customization frames the avatar.
+		previewedThumbnailImage = $state<ThumbnailFraming["image"]>("headshot"),
+		framingByImage = $state.raw<
+			Partial<Record<ThumbnailFraming["image"], ThumbnailFraming>>
+		>({}),
 		// The navigation that closes the page once the user confirms discarding
 		// changes, or null when the page stays open.
 		pendingLeave = $state<(() => void) | null>(null)
 
 	const draft = $derived(avatar.draft),
+		stageFraming = $derived(
+			tab === "thumbnails" ? framingByImage[previewedThumbnailImage] : undefined,
+		),
 		canEdit = $derived(avatar.isEditable && !!avatar.rules && !!draft),
 		isChanged = $derived(avatar.isChanged),
 		savedAssetIds = $derived(
@@ -339,8 +349,9 @@
 				{avatar}
 				{username}
 				library={animationLibrary}
-				thumbnailAnimation={thumbnails.thumbnails?.fullBody.emote ??
-					undefined} />
+				thumbnailAnimation={thumbnails.thumbnails?.fullBody.emote ?? undefined}
+				thumbnailFraming={stageFraming}
+				bind:previewedThumbnailImage />
 
 			<div class="@container flex min-w-0 flex-1 flex-col">
 				<div
@@ -474,8 +485,14 @@
 										{thumbnails}
 										library={animationLibrary}
 										canEdit={avatar.isEditable}
-										onSave={(change) =>
-											void saveThumbnail(change)} />
+										onSave={(change) => void saveThumbnail(change)}
+										onFramingChange={(framing) =>
+											(framingByImage = {
+												...framingByImage,
+												[framing.image]: framing,
+											})}
+										onPreview={(image) =>
+											(previewedThumbnailImage = image)} />
 								{:else if tab === "emotes"}
 									<AvatarEmotesPanel
 										{avatar}
