@@ -6,16 +6,29 @@ import {
 	Outfit,
 	OutfitRenderer,
 	RBXRenderer,
+	getCameraCFrameForAvatarCustomized,
+	getCameraCFrameForHeadshotCustomized,
+	getCameraCFrameForHeadshotNonCustomized,
 	getThumbnailCamera,
+	getThumbnailCameraCFrame,
 } from "roavatar-renderer"
 import type { CFrame, Instance, Vector3 as RobloxVector3 } from "roavatar-renderer"
 import { AvatarType } from "../backend/bridge"
-import type { InventoryItem } from "../backend/bridge"
 import { reducedMotion } from "../shared/motion"
 import { placeAdjustmentGuide, removeAdjustmentGuides } from "./adjustment-guides"
 import { cameraPoseOf, framingScaleOf, moveOrbitViewByKey } from "./orbit-camera"
 import { defaultModelViewerScene, modelViewerScene } from "./model-viewer-scene.svelte"
 import type { ModelViewerScene } from "./model-viewer-scene.svelte"
+import {
+	animationChoiceOfItem,
+	animationIdByAssetTypeName,
+	animationSetChoices,
+	assetAnimationPrefix,
+	emoteAnimationPrefix,
+	emoteChoiceOf,
+	idleAnimationId,
+	uploadedAnimationPrefix,
+} from "./animation-choices"
 import {
 	clearLiveModelCache,
 	fetchLiveModelFile,
@@ -30,6 +43,7 @@ import type {
 	AvatarLook,
 	CameraPose,
 	LiveModelSubject,
+	ThumbnailFraming,
 } from "./model-subject"
 
 // CameraView is where the camera of a view stood when another view took the
@@ -37,6 +51,21 @@ import type {
 interface CameraView {
 	pose: CameraPose
 	fieldOfViewDegrees: number
+}
+
+// AnimationFrame is where an animation starts: at a time, at a keyframe, or
+// in its middle, which is where Roblox poses a thumbnail whose emote names no
+// frame.
+type AnimationFrame =
+	| { kind: "time"; timeSeconds: number }
+	| { kind: "keyframe"; keyframeIndex: number }
+	| { kind: "middle" }
+
+// AnimationAsset is what the viewer reads from an emote or animation asset:
+// the animation that it plays, and the frame that a thumbnail shows.
+interface AnimationAsset {
+	animationId: number
+	thumbnailFrame: AnimationFrame
 }
 
 // The renderer places the camera of an avatar for this field of view, and
@@ -49,32 +78,21 @@ const robloxFieldOfViewDegrees = 70,
 	// A frame after a long pause, such as while the window was hidden, moves
 	// an animation at most this far.
 	maxPlaybackStepSeconds = 0.1,
-	idleAnimationId = "idle"
+	// The renderer poses a forced time of -1 in the middle of the animation.
+	middleAnimationTimeSeconds = -1,
+	// A thumbnail pose advances the animation this far before it shows its
+	// frame, so that the fade from the previous animation ends.
+	animationFadeSeconds = 0.3,
+	// The renderer stands the rig in its bind pose without an animation, as
+	// RoAvatar poses a headshot without an emote.
+	restPoseAnimationId = "",
+	// Roblox frames the standard full-body image at this field of view.
+	standardFullBodyFieldOfViewDegrees = 70,
+	thumbnailDetail = "Thumbnail"
 
-// The animations of an avatar animation set that the viewer offers, by the
-// name that the renderer gives them.
-const animationSetChoices: AnimationChoice[] = [
-	{ id: idleAnimationId, label: "Idle", isEmote: false },
-	{ id: "walk", label: "Walk", isEmote: false },
-	{ id: "run", label: "Run", isEmote: false },
-	{ id: "jump", label: "Jump", isEmote: false },
-	{ id: "fall", label: "Fall", isEmote: false },
-	{ id: "climb", label: "Climb", isEmote: false },
-	{ id: "swim", label: "Swim", isEmote: false },
-]
-
-// The animation of the set that shows an animation asset, by its asset type.
-// A mood plays on the face, which shows best while the avatar idles.
-const animationIdByAssetTypeName: Record<string, string> = {
-	IdleAnimation: idleAnimationId,
-	MoodAnimation: idleAnimationId,
-	WalkAnimation: "walk",
-	RunAnimation: "run",
-	JumpAnimation: "jump",
-	FallAnimation: "fall",
-	ClimbAnimation: "climb",
-	SwimAnimation: "swim",
-}
+// The animation assets that the viewer read for the account, by asset ID. A
+// failed read leaves the map, so that the next choice reads it again.
+const animationAssetById = new Map<number, Promise<AnimationAsset>>()
 
 // The renderer is one scene on one canvas for the whole application. Every
 // view of a 3D model shares it: the newest view shows the canvas, and a view
@@ -84,6 +102,12 @@ const viewports: LiveModelViewport[] = []
 let rendererSetup: Promise<boolean> | undefined,
 	outfitRenderer: OutfitRenderer | undefined,
 	animationPose: { renderer: OutfitRenderer; completion: Promise<void> } | undefined,
+	// The animation that the renderer plays, whichever view started it. The
+	// renderer refuses to start an emote again that it already plays, so a
+	// framed thumbnail keeps its animation while the renderer plays it, such
+	// as after its camera changed, and starts it again after another view,
+	// such as an item dialog, played a different one.
+	playedAnimation: { renderer: OutfitRenderer; animationId: string } | undefined,
 	shownAccessory: { root: Instance; accessory: Instance } | undefined,
 	shownSubject: LiveModelSubject | undefined,
 	shownAccountId = 0,
@@ -118,6 +142,7 @@ export class LiveModelViewport implements AnimationPlayback {
 	animationId = $state(idleAnimationId)
 	isPlaying = $state(false)
 	isAnimationLoading = $state(false)
+	isAnimationFailed = $state(false)
 	timeSeconds = $state(0)
 	lengthSeconds = $state(0)
 	speed = $state(1)
@@ -127,10 +152,24 @@ export class LiveModelViewport implements AnimationPlayback {
 	accountId = 0
 	subject: LiveModelSubject | undefined
 	adjustmentGuide: AdjustmentGuide | undefined
+	// The profile image that the view shows the avatar as, which locks the
+	// camera and the pose, or undefined for the free view.
+	thumbnailFraming: ThumbnailFraming | undefined
+	// Where the camera stood before the view framed a thumbnail, so that it
+	// returns there.
+	#freeCameraView: CameraView | undefined
 	cameraView: CameraView | undefined
-	// The animation start of the subject that chose the animation, so that a
+	// The first animation of the subject that chose the animation, so that a
 	// changed draft keeps the animation that the user chose.
-	#appliedAnimationStart: AnimationStart | undefined
+	#appliedFirstAnimationId = ""
+	// Whether the user chose an animation, which a thumbnail that loads later
+	// keeps.
+	#isAnimationChosen = false
+	// The choices that the user played from outside the subject, such as an
+	// owned emote, newest last.
+	#playedChoices: AnimationChoice[] = []
+	// The frame that the next pose starts the animation at, once.
+	#startFrame: { animationId: string; frame: Promise<AnimationFrame> } | undefined
 
 	constructor(host: HTMLElement, canvasLabel: string, descriptionId: string) {
 		this.host = host
@@ -145,21 +184,26 @@ export class LiveModelViewport implements AnimationPlayback {
 		this.accountId = accountId
 		this.subject = subject
 		if (subject.kind === "avatar") {
-			this.animationChoices = animationChoicesOf(
-				subject.look,
-				subject.startAnimation,
-			)
+			const firstAnimationId = firstAnimationIdOf(subject)
+			this.animationChoices = animationChoicesOf(subject, this.#playedChoices)
 			if (
-				!isSameAnimationStart(
-					subject.startAnimation,
-					this.#appliedAnimationStart,
-				)
+				firstAnimationId !== this.#appliedFirstAnimationId &&
+				(!this.#isAnimationChosen || !!subject.startAnimation)
 			) {
-				this.#appliedAnimationStart = subject.startAnimation
-				this.animationId = animationIdOf(subject.startAnimation)
-				this.timeSeconds = 0
-				// A preview plays what it shows, unless motion is reduced.
-				this.isPlaying = !!subject.startAnimation && !reducedMotion()
+				this.#appliedFirstAnimationId = firstAnimationId
+				this.#isAnimationChosen = false
+				this.#selectAnimation(firstAnimationId)
+				if (!subject.startAnimation && subject.thumbnailAnimation) {
+					this.#startFrame = {
+						animationId: firstAnimationId,
+						frame: thumbnailFrameOf(firstAnimationId),
+					}
+				}
+				// A preview plays what it shows, and an avatar its thumbnail
+				// animation, unless motion is reduced.
+				this.isPlaying =
+					(!!subject.startAnimation || !!subject.thumbnailAnimation) &&
+					!reducedMotion()
 			}
 		} else {
 			this.animationChoices = []
@@ -175,10 +219,55 @@ export class LiveModelViewport implements AnimationPlayback {
 		if (activeViewport() === this) requestFrame()
 	}
 
-	chooseAnimation(animationId: string): void {
+	// showThumbnailFraming shows the avatar as Roblox frames the profile
+	// image, or returns to the free view without a framing.
+	showThumbnailFraming(framing: ThumbnailFraming | undefined): void {
+		if (isSameFraming(framing, this.thumbnailFraming)) return
+		const wasFramed = !!this.thumbnailFraming,
+			isActive = activeViewport() === this
+		if (framing && !wasFramed && isActive)
+			this.#freeCameraView = currentCameraView()
+		this.thumbnailFraming = framing
+		if (!isActive) return
+		applyFramingMode(this)
+		if (!framing && wasFramed && this.#freeCameraView) {
+			restoreCameraView(this.#freeCameraView)
+			this.#freeCameraView = undefined
+		}
+		if (this.subject?.kind === "avatar" && shownSubjectStatus === "shown") {
+			poseAvatar(this)
+		}
+	}
+
+	// chooseAnimation plays the choice, and keeps a choice from outside the
+	// subject, such as a pasted emote, among the choices.
+	chooseAnimation(choice: AnimationChoice): void {
+		if (!this.animationChoices.some((shown) => shown.id === choice.id)) {
+			this.#playedChoices = [
+				...this.#playedChoices.filter((played) => played.id !== choice.id),
+				choice,
+			]
+			this.animationChoices = [...this.animationChoices, choice]
+		}
+		this.#isAnimationChosen = true
+		this.#selectAnimation(choice.id)
+		if (activeViewport() === this) poseAvatar(this)
+	}
+
+	// takeStartFrame returns the frame that the animation starts at once,
+	// such as the frame of a thumbnail, or undefined to start at the time of
+	// the view.
+	takeStartFrame(animationId: string): Promise<AnimationFrame> | undefined {
+		const startFrame = this.#startFrame
+		this.#startFrame = undefined
+		return startFrame?.animationId === animationId ? startFrame.frame : undefined
+	}
+
+	#selectAnimation(animationId: string): void {
 		this.animationId = animationId
 		this.timeSeconds = 0
-		if (activeViewport() === this) poseAvatar(this)
+		this.isAnimationFailed = false
+		this.#startFrame = undefined
 	}
 
 	play(): void {
@@ -285,7 +374,11 @@ export function applyLiveModelSceneSettings(sceneSettings: ModelViewerScene): vo
 		camera = renderScene.camera,
 		controls = RBXRenderer.getRendererControls()
 	if (!controls) return
-	if (camera.fov !== sceneSettings.fieldOfViewDegrees) {
+	// A framed thumbnail keeps the field of view of its camera.
+	if (
+		!activeViewport()?.thumbnailFraming &&
+		camera.fov !== sceneSettings.fieldOfViewDegrees
+	) {
 		moveCameraForFieldOfView(camera.fov, sceneSettings.fieldOfViewDegrees)
 		camera.fov = sceneSettings.fieldOfViewDegrees
 		camera.updateProjectionMatrix()
@@ -323,6 +416,12 @@ function activateViewport(viewport: LiveModelViewport): void {
 		requestFrame()
 	})
 	hostResizeObserver.observe(viewport.host)
+	// The playback of the view that showed the canvas before stops, so that it
+	// moves neither the rig nor the time of this view. This view plays its own
+	// animation once it poses.
+	cancelAnimationFrame(playbackFrameRequest)
+	playbackFrameRequest = 0
+	applyFramingMode(viewport)
 	// The loading state of a covered view stopped following the renderer.
 	viewport.isLoading = API.Misc.getCurrentlyLoading()
 	if (viewport.subject) showSubject(viewport)
@@ -406,7 +505,8 @@ function finishSubjectBuild(status: "shown" | "failed"): LiveModelViewport | und
 function poseAvatar(viewport: LiveModelViewport): void {
 	const posedRenderer = outfitRenderer
 	if (!posedRenderer) return
-	const animationId = viewport.animationId,
+	const framing = viewport.thumbnailFraming,
+		animationId = framing ? framedAnimationIdOf(framing) : viewport.animationId,
 		posedSubject = shownSubject,
 		previousPose =
 			animationPose?.renderer === posedRenderer
@@ -423,23 +523,248 @@ function poseAvatar(viewport: LiveModelViewport): void {
 	const applyPose = async (): Promise<void> => {
 		await previousPose
 		if (!isCurrent()) return
+		const startFrame = framing
+			? thumbnailFrameOf(animationId)
+			: viewport.takeStartFrame(animationId)
 		try {
-			await posedRenderer.setMainAnimation(
-				animationId === idleAnimationId ? `${idleAnimationId}:0` : animationId,
-			)
+			const isPlaying =
+				!!framing &&
+				playedAnimation?.renderer === posedRenderer &&
+				playedAnimation.animationId === animationId
+			if (!isPlaying) await playMainAnimation(posedRenderer, animationId)
 			if (!isCurrent()) return
-			posedRenderer.animateOnce(0, viewport.timeSeconds)
-			readAnimationTime(viewport)
-			if (viewport.isPlaying) startPlayback()
+			const frame = await startFrame?.catch(() => undefined)
+			if (!isCurrent()) return
+			showPose(viewport, posedRenderer, framing, frame)
 			requestFrame()
 		} catch {
-			if (isCurrent()) viewport.pause()
+			if (isCurrent()) {
+				viewport.pause()
+				viewport.isAnimationFailed = true
+			}
 		} finally {
 			if (isCurrent()) viewport.isAnimationLoading = false
 		}
 	}
 	const requestedPose = { renderer: posedRenderer, completion: applyPose() }
 	animationPose = requestedPose
+}
+
+function isSameFraming(
+	first: ThumbnailFraming | undefined,
+	second: ThumbnailFraming | undefined,
+): boolean {
+	return JSON.stringify(first) === JSON.stringify(second)
+}
+
+// playMainAnimation loads and plays the animation on the rig. The renderer
+// resolves false for an emote or animation that did not load, which fails.
+// An animation of the set that the rig lacks, and the bind pose, stand in
+// the bind pose instead.
+async function playMainAnimation(
+	renderer: OutfitRenderer,
+	animationId: string,
+): Promise<void> {
+	playedAnimation = undefined
+	const isPlayed = await renderer.setMainAnimation(
+		await rendererAnimationNameOf(animationId),
+	)
+	playedAnimation = { renderer, animationId }
+	if (
+		!isPlayed &&
+		animationId !== restPoseAnimationId &&
+		!isAnimationSetChoice(animationId)
+	) {
+		throw new Error("The animation did not play.")
+	}
+}
+
+// showPose shows the played animation at its frame. A framed thumbnail stands
+// still at the frame that the image shows, with the camera of the image. A
+// free view shows the time of the view and plays on when the view plays.
+function showPose(
+	viewport: LiveModelViewport,
+	renderer: OutfitRenderer,
+	framing: ThumbnailFraming | undefined,
+	frame: AnimationFrame | undefined,
+): void {
+	if (framing) {
+		showAnimationFrame(
+			renderer,
+			frame ?? { kind: "time", timeSeconds: 0 },
+			animationFadeSeconds,
+		)
+		placeThumbnailCamera(framing)
+		return
+	}
+	showAnimationFrame(
+		renderer,
+		frame ?? { kind: "time", timeSeconds: viewport.timeSeconds },
+	)
+	readAnimationTime(viewport)
+	if (viewport.isPlaying) startPlayback()
+}
+
+// showAnimationFrame shows the animation at the frame. The renderer advances
+// every track by elapsedSeconds first, which ends a fade between animations.
+function showAnimationFrame(
+	renderer: OutfitRenderer,
+	frame: AnimationFrame,
+	elapsedSeconds = 0,
+): void {
+	if (frame.kind === "keyframe") {
+		renderer.animateOnce(elapsedSeconds, undefined, frame.keyframeIndex)
+	} else if (frame.kind === "middle") {
+		renderer.animateOnce(elapsedSeconds, middleAnimationTimeSeconds)
+	} else renderer.animateOnce(elapsedSeconds, frame.timeSeconds)
+}
+
+// framedAnimationIdOf names the animation that poses a thumbnail. Without a
+// pose, Roblox stands a full-body image in the pose of the avatar editor, and
+// a headshot in the bind pose, as RoAvatar shows them.
+function framedAnimationIdOf(framing: ThumbnailFraming): string {
+	if (framing.poseAnimationId) return framing.poseAnimationId
+	return framing.image === "fullBody" ? idleAnimationId : restPoseAnimationId
+}
+
+// placeThumbnailCamera places the camera where Roblox places it for the
+// profile image, with the thumbnail camera functions of RoAvatar Renderer, as
+// RoAvatar previews thumbnails.
+function placeThumbnailCamera(framing: ThumbnailFraming): void {
+	const rig = outfitRenderer?.currentRig
+	if (!rig) return
+	const { camera } = framing
+	let cameraFrame: CFrame | undefined, fieldOfViewDegrees: number
+	if (framing.image === "headshot" && camera) {
+		cameraFrame = getCameraCFrameForHeadshotCustomized(
+			rig,
+			camera.fieldOfViewDegrees,
+			camera.yRotationDegrees,
+			camera.distanceScale,
+		)
+		fieldOfViewDegrees = camera.fieldOfViewDegrees
+	} else if (framing.image === "headshot") {
+		const standard = getCameraCFrameForHeadshotNonCustomized(rig)
+		cameraFrame = standard.cframe
+		fieldOfViewDegrees = standard.fov
+	} else if (camera) {
+		cameraFrame = getCameraCFrameForAvatarCustomized(
+			rig,
+			camera.fieldOfViewDegrees,
+			camera.yRotationDegrees,
+		)
+		fieldOfViewDegrees = camera.fieldOfViewDegrees
+	} else {
+		cameraFrame = getThumbnailCameraCFrame(rig, standardFullBodyFieldOfViewDegrees)
+		fieldOfViewDegrees = standardFullBodyFieldOfViewDegrees
+	}
+	if (!cameraFrame) return
+	RBXRenderer.setCameraCFrame(cameraFrame)
+	RBXRenderer.setCameraFov(fieldOfViewDegrees)
+}
+
+// applyFramingMode locks the camera and hides the ground while the view
+// frames a thumbnail, because a profile image shows neither, and restores
+// them for the free view.
+function applyFramingMode(viewport: LiveModelViewport): void {
+	const isFramed = !!viewport.thumbnailFraming,
+		renderScene = RBXRenderer.firstScene,
+		controls = RBXRenderer.getRendererControls()
+	if (controls) controls.enabled = !isFramed
+	RBXRenderer.getRendererDom()?.toggleAttribute("data-framed", isFramed)
+	for (const ground of [renderScene.plane, renderScene.shadowPlane]) {
+		if (ground) ground.visible = !isFramed
+	}
+	if (!isFramed && renderScene.camera.fov !== modelViewerScene.fieldOfViewDegrees) {
+		renderScene.camera.fov = modelViewerScene.fieldOfViewDegrees
+		renderScene.camera.updateProjectionMatrix()
+	}
+	requestFrame()
+}
+
+// rendererAnimationNameOf names the animation as the renderer plays it. The
+// first variant of the idle animation is the pose of the Roblox avatar
+// editor, and an asset of an animation set plays its first animation.
+async function rendererAnimationNameOf(animationId: string): Promise<string> {
+	if (animationId === idleAnimationId) return `${idleAnimationId}:0`
+	if (!animationId.startsWith(assetAnimationPrefix)) return animationId
+	const asset = await readAnimationAsset(assetIdOf(animationId))
+	return `${uploadedAnimationPrefix}${asset.animationId}`
+}
+
+function isAnimationSetChoice(animationId: string): boolean {
+	return animationSetChoices.some((choice) => choice.id === animationId)
+}
+
+function assetIdOf(animationId: string): number {
+	return Number(animationId.slice(animationId.indexOf(".") + 1))
+}
+
+// thumbnailFrameOf reads the frame of the animation that a thumbnail shows.
+// An emote or animation item names it with a ThumbnailKeyframe or a
+// ThumbnailTime value, as RoAvatar reads it. An uploaded animation names
+// none. Without a pose, Roblox shows the first frame of the idle animation,
+// where the avatar looks ahead. Compared against the standard full-body
+// image on 2026-11-19.
+async function thumbnailFrameOf(animationId: string): Promise<AnimationFrame> {
+	if (isAnimationSetChoice(animationId) || animationId === restPoseAnimationId) {
+		return { kind: "time", timeSeconds: 0 }
+	}
+	if (
+		!animationId.startsWith(emoteAnimationPrefix) &&
+		!animationId.startsWith(assetAnimationPrefix)
+	) {
+		return { kind: "middle" }
+	}
+	return (await readAnimationAsset(assetIdOf(animationId))).thumbnailFrame
+}
+
+function readAnimationAsset(assetId: number): Promise<AnimationAsset> {
+	const knownAsset = animationAssetById.get(assetId)
+	if (knownAsset) return knownAsset
+	const reading = downloadAnimationAsset(assetId)
+	animationAssetById.set(assetId, reading)
+	reading.catch(() => {
+		if (animationAssetById.get(assetId) === reading)
+			animationAssetById.delete(assetId)
+	})
+	return reading
+}
+
+// downloadAnimationAsset reads the first animation of the asset. An emote
+// holds one Animation, and an asset of an animation set holds a folder of
+// variants for each animation that it replaces.
+async function downloadAnimationAsset(assetId: number): Promise<AnimationAsset> {
+	const model = await API.Asset.GetRBX(`rbxassetid://${assetId}`)
+	if (model instanceof Response) throw new Error("The animation did not download.")
+	const root = model.generateTree()
+	try {
+		const animation = root
+			.GetDescendants()
+			.find(
+				(descendant) =>
+					descendant.className === "Animation" &&
+					String(descendant.PropOrDefault("AnimationId", "")).length > 0,
+			)
+		if (!animation) throw new Error("The asset holds no animation.")
+		const thumbnailKeyframe = animation
+				.FindFirstChild("ThumbnailKeyframe")
+				?.PropOrDefault("Value", undefined),
+			thumbnailTime = animation
+				.FindFirstChild("ThumbnailTime")
+				?.PropOrDefault("Value", undefined)
+		return {
+			animationId: API.Misc.idFromStr(String(animation.Prop("AnimationId"))),
+			thumbnailFrame:
+				typeof thumbnailKeyframe === "number"
+					? { kind: "keyframe", keyframeIndex: thumbnailKeyframe }
+					: typeof thumbnailTime === "number"
+						? { kind: "time", timeSeconds: thumbnailTime }
+						: { kind: "middle" },
+		}
+	} finally {
+		root.Destroy()
+	}
 }
 
 function discardOutfitRenderer(): void {
@@ -497,48 +822,75 @@ function readAnimationTime(viewport: LiveModelViewport): void {
 	viewport.lengthSeconds = track?.length ?? 0
 }
 
-// animationChoicesOf lists the animation set and the emotes of the look. A
-// preview of an animation or an emote offers only that one.
+// animationChoicesOf lists the animation set, the emotes of the look, the
+// thumbnail animation, and the choices that the user played. A preview of an
+// animation or an emote offers only that one.
 function animationChoicesOf(
-	look: AvatarLook,
-	startAnimation: AnimationStart | undefined,
+	subject: Extract<LiveModelSubject, { kind: "avatar" }>,
+	playedChoices: AnimationChoice[],
 ): AnimationChoice[] {
-	if (startAnimation?.kind === "emote") return [emoteChoiceOf(startAnimation.emote)]
+	const { startAnimation } = subject
+	if (startAnimation?.kind === "emote") {
+		return [emoteChoiceOf(startAnimation.emote, "emote")]
+	}
 	if (startAnimation?.kind === "animation") {
-		const animationId = animationIdOf(startAnimation)
+		const animationId = startAnimationIdOf(startAnimation)
 		return animationSetChoices.filter((choice) => choice.id === animationId)
 	}
-	return [
-		...animationSetChoices,
-		...[...(look.emotes ?? [])]
+	const thumbnailChoice = subject.thumbnailAnimation
+			? animationChoiceOfItem(subject.thumbnailAnimation, "emote")
+			: undefined,
+		emoteChoices = [...(subject.look.emotes ?? [])]
 			.sort((first, second) => first.slot - second.slot)
-			.map((emote) => emoteChoiceOf(emote.item)),
+			.map((emote) => {
+				const choice = emoteChoiceOf(emote.item, "emote")
+				choice.detail = `Slot ${emote.slot}`
+				choice.imageUrl = emote.item.imageUrl || undefined
+				return choice
+			}),
+		subjectChoices = [...animationSetChoices, ...emoteChoices]
+	if (thumbnailChoice) {
+		const slotIndex = subjectChoices.findIndex(
+			(choice) => choice.id === thumbnailChoice.id,
+		)
+		if (slotIndex < 0) {
+			subjectChoices.push({ ...thumbnailChoice, detail: thumbnailDetail })
+		} else {
+			const slotChoice = subjectChoices[slotIndex]
+			subjectChoices[slotIndex] = {
+				...slotChoice,
+				detail: `${slotChoice.detail} · ${thumbnailDetail}`,
+			}
+		}
+	}
+	return [
+		...subjectChoices,
+		...playedChoices.filter(
+			(played) => !subjectChoices.some((choice) => choice.id === played.id),
+		),
 	]
 }
 
-function emoteChoiceOf(emote: Pick<InventoryItem, "itemId" | "name">): AnimationChoice {
-	return {
-		id: `emote.${emote.itemId}`,
-		label: emote.name || `Emote ${emote.itemId}`,
-		isEmote: true,
-	}
-}
-
-function animationIdOf(startAnimation: AnimationStart | undefined): string {
-	if (startAnimation?.kind === "emote") return `emote.${startAnimation.emote.itemId}`
-	if (startAnimation?.kind === "animation") {
+// firstAnimationIdOf names the animation that the avatar starts with: the
+// animation that a preview shows, the thumbnail animation, or the idle pose.
+function firstAnimationIdOf(
+	subject: Extract<LiveModelSubject, { kind: "avatar" }>,
+): string {
+	if (subject.startAnimation) return startAnimationIdOf(subject.startAnimation)
+	if (subject.thumbnailAnimation) {
 		return (
-			animationIdByAssetTypeName[startAnimation.assetTypeName] ?? idleAnimationId
+			animationChoiceOfItem(subject.thumbnailAnimation, "emote")?.id ??
+			idleAnimationId
 		)
 	}
 	return idleAnimationId
 }
 
-function isSameAnimationStart(
-	first: AnimationStart | undefined,
-	second: AnimationStart | undefined,
-): boolean {
-	return animationIdOf(first) === animationIdOf(second) && !!first === !!second
+function startAnimationIdOf(startAnimation: AnimationStart): string {
+	if (startAnimation.kind === "emote") {
+		return `${emoteAnimationPrefix}${startAnimation.emote.itemId}`
+	}
+	return animationIdByAssetTypeName[startAnimation.assetTypeName] ?? idleAnimationId
 }
 
 // showAccessory downloads the accessory as a mesh part, the form in which an
@@ -579,6 +931,7 @@ function removeAccessory(): void {
 }
 
 function clearScene(): void {
+	animationAssetById.clear()
 	removeAccessory()
 	discardOutfitRenderer()
 	shownSubject = undefined
@@ -745,6 +1098,8 @@ async function setUpRenderer(): Promise<boolean> {
 		controls.addEventListener("change", requestFrame)
 		canvas.addEventListener("keydown", (event) => {
 			const viewport = activeViewport()
+			// A framed thumbnail locks its camera and pose.
+			if (viewport?.thumbnailFraming) return
 			if (event.key === " " && viewport && viewport.animationChoices.length > 0) {
 				event.preventDefault()
 				if (viewport.isPlaying) viewport.pause()
@@ -759,7 +1114,7 @@ async function setUpRenderer(): Promise<boolean> {
 	}
 	canvas.tabIndex = 0
 	canvas.className =
-		"cursor-grab rounded-lg -outline-offset-2 focus-visible:outline-2 focus-visible:outline-focus active:cursor-grabbing"
+		"cursor-grab rounded-lg -outline-offset-2 focus-visible:outline-2 focus-visible:outline-focus active:cursor-grabbing data-framed:cursor-default"
 	renderScene.compiledRenderDesc.Connect(requestFrame)
 	API.Events.OnLoadingAssets.Connect(() => {
 		const viewport = activeViewport()

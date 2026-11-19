@@ -51,7 +51,9 @@
 					     the accessory rows above, which end in a caret. -->
 					<li
 						class="flex h-12 min-w-0 items-center gap-2 border-line-subtle pr-9 pl-3 not-first:border-t">
-						<AvatarAssetSummary {asset} />
+						<AvatarAssetSummary
+							item={asset.item}
+							category={asset.category} />
 						<span class="flex shrink-0 flex-col items-end">
 							<span class="text-xs text-fg"
 								>Layer <span class="font-mono tabular-nums"

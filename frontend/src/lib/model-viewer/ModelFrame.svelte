@@ -3,6 +3,7 @@
 		AdjustmentGuide,
 		AnimationPlayback,
 		ModelSubject,
+		ThumbnailFraming,
 	} from "./model-subject"
 	import ModelLoadingPlaceholder from "./ModelLoadingPlaceholder.svelte"
 	import ModelViewerUnavailable from "./ModelViewerUnavailable.svelte"
@@ -17,7 +18,8 @@
 	// build the subject. playback plays the animations of a live avatar, for
 	// the AnimationControls that the caller places next to the frame.
 	// adjustmentGuide shows the guides of the accessory that the user adjusts
-	// on a live avatar.
+	// on a live avatar. thumbnailFraming shows a live avatar as Roblox frames
+	// one of its profile images.
 	let {
 		accountId,
 		subject,
@@ -25,6 +27,7 @@
 		isLoading = $bindable(false),
 		playback = $bindable(),
 		adjustmentGuide,
+		thumbnailFraming,
 		onLiveFailure,
 	}: {
 		accountId: number
@@ -33,6 +36,7 @@
 		isLoading?: boolean
 		playback?: AnimationPlayback
 		adjustmentGuide?: AdjustmentGuide
+		thumbnailFraming?: ThumbnailFraming
 		onLiveFailure?: () => void
 	} = $props()
 
@@ -62,6 +66,7 @@
 			bind:isLoading
 			bind:playback
 			{adjustmentGuide}
+			{thumbnailFraming}
 			onFailure={onLiveFailure} />
 	{:catch}
 		<ModelViewerUnavailable isGraphicsAccelerationMissing={false} />

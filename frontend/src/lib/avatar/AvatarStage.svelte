@@ -7,12 +7,43 @@
 	import Icon from "../shared/Icon.svelte"
 	import ImageViewToggle from "../shared/ImageViewToggle.svelte"
 	import type { ImageView } from "../shared/ImageViewToggle.svelte"
+	import { AvatarType } from "../backend/bridge"
+	import type { InventoryItem } from "../backend/bridge"
 	import type { AvatarState } from "./avatar-state.svelte"
 	import AnimationControls from "../model-viewer/AnimationControls.svelte"
 	import ModelFrame from "../model-viewer/ModelFrame.svelte"
-	import type { AnimationPlayback, ModelSubject } from "../model-viewer/model-subject"
+	import type {
+		AnimationLibrary,
+		AnimationPlayback,
+		ModelSubject,
+		ThumbnailFraming,
+	} from "../model-viewer/model-subject"
 
-	let { avatar, username }: { avatar: AvatarState; username: string } = $props()
+	// thumbnailAnimation is the pose of the full-body image, which the 3D view
+	// starts playing. While thumbnailFraming is set, such as on the Thumbnails
+	// tab, the 3D view previews the profile image of previewedThumbnailImage
+	// as Roblox frames it.
+	let {
+		avatar,
+		username,
+		library,
+		thumbnailAnimation,
+		thumbnailFraming,
+		previewedThumbnailImage = $bindable(),
+	}: {
+		avatar: AvatarState
+		username: string
+		library: AnimationLibrary
+		thumbnailAnimation: InventoryItem | undefined
+		thumbnailFraming: ThumbnailFraming | undefined
+		previewedThumbnailImage: ThumbnailFraming["image"]
+	} = $props()
+
+	const thumbnailImageOptions: { image: ThumbnailFraming["image"]; label: string }[] =
+		[
+			{ image: "headshot", label: "Headshot" },
+			{ image: "fullBody", label: "Full body" },
+		]
 
 	let failedImageUrl = $state(""),
 		view = $state<ImageView>("2D"),
@@ -37,16 +68,33 @@
 		),
 		savedType = $derived(avatar.avatar?.avatarType ?? ""),
 		draftType = $derived(avatar.draft?.avatarType ?? ""),
+		isPreviewingThumbnail = $derived(!!thumbnailFraming),
+		isThreeDimensional = $derived(view === "3D" || isPreviewingThumbnail),
+		// Roblox poses only an R15 avatar with an emote.
+		isPoseShown = $derived(avatar.draft?.avatarType === AvatarType.AvatarR15),
+		shownFraming = $derived<ThumbnailFraming | undefined>(
+			thumbnailFraming && !isPoseShown
+				? { ...thumbnailFraming, poseAnimationId: undefined }
+				: thumbnailFraming,
+		),
 		// The 3D view builds the draft itself, so it always shows the draft.
 		shownType = $derived(
-			view === "3D" || avatar.isPreviewCurrent ? draftType : savedType,
+			isThreeDimensional || avatar.isPreviewCurrent ? draftType : savedType,
 		),
 		// The 3D view builds the draft, so that every change shows at once.
 		draftSubject = $derived<ModelSubject | null>(
-			avatar.draft ? { kind: "avatar", look: avatar.draft } : null,
+			avatar.draft
+				? {
+						kind: "avatar",
+						look: avatar.draft,
+						thumbnailAnimation: isPoseShown
+							? thumbnailAnimation
+							: undefined,
+					}
+				: null,
 		),
 		busyLabel = $derived(
-			view === "3D"
+			isThreeDimensional
 				? isModelLoadingByView[isExpanded ? "expanded" : "page"]
 					? "Loading…"
 					: ""
@@ -78,12 +126,13 @@
 </script>
 
 {#snippet imageFrame(isExpandedView: boolean)}
-	{#if view === "3D"}
+	{#if view === "3D" || (isPreviewingThumbnail && !isExpandedView)}
 		<ModelFrame
 			accountId={avatar.accountId}
 			subject={draftSubject}
 			{label}
 			adjustmentGuide={avatar.adjustmentGuide}
+			thumbnailFraming={isExpandedView ? undefined : shownFraming}
 			bind:isLoading={isModelLoadingByView[isExpandedView ? "expanded" : "page"]}
 			bind:playback={playbackByView[isExpandedView ? "expanded" : "page"]} />
 	{:else if shownImageUrl && failedImageUrl !== shownImageUrl}
@@ -129,8 +178,23 @@
 {/snippet}
 
 {#snippet imageControls(isExpandedView: boolean)}
-	<ImageViewToggle bind:view />
-	{#if !isExpandedView}
+	{#if isPreviewingThumbnail && !isExpandedView}
+		<div
+			class="segmented w-44 shrink-0"
+			role="group"
+			aria-label="Previewed thumbnail">
+			{#each thumbnailImageOptions as option (option.image)}
+				<button
+					type="button"
+					aria-pressed={previewedThumbnailImage === option.image}
+					onclick={() => (previewedThumbnailImage = option.image)}
+					>{option.label}</button>
+			{/each}
+		</div>
+	{:else}
+		<ImageViewToggle bind:view />
+	{/if}
+	{#if !isExpandedView && !isPreviewingThumbnail}
 		<button
 			class="button-icon"
 			type="button"
@@ -155,7 +219,7 @@
 	{/if}
 	{#if isExpandedView && view === "3D"}
 		<div class="min-w-0 flex-1">
-			<AnimationControls playback={playbackByView.expanded} isWide />
+			<AnimationControls playback={playbackByView.expanded} {library} isWide />
 		</div>
 	{/if}
 {/snippet}
@@ -172,16 +236,22 @@
 		{@render imageControls(false)}
 	</div>
 
-	{#if view === "3D"}
+	{#if isPreviewingThumbnail}
+		<p class="animate-enter text-xs text-fg-muted" role="status">
+			{previewedThumbnailImage === "headshot"
+				? "This previews the headshot as Roblox frames it. Change its settings to see them at once."
+				: "This previews the full-body image as Roblox frames it. Change its settings to see them at once."}
+		</p>
+	{:else if view === "3D"}
 		<div class="animate-enter">
-			<AnimationControls playback={playbackByView.page} />
+			<AnimationControls playback={playbackByView.page} {library} />
 		</div>
 	{/if}
 
 	{#if avatar.isEditable && avatar.isChanged}
 		<div class="flex animate-enter flex-col gap-1 notice-note">
 			<p role="status">
-				{#if view === "3D" || avatar.isPreviewCurrent}
+				{#if isThreeDimensional || avatar.isPreviewCurrent}
 					This shows your changes. Save to keep them.
 				{:else if avatar.previewError}
 					The image shows the saved avatar. {avatar.previewError}
@@ -191,7 +261,7 @@
 			</p>
 			<!-- Roblox renders the 2D image of a draft only after the draft stops
 			changing, while the 3D view builds every change itself. -->
-			{#if view === "2D"}
+			{#if !isThreeDimensional}
 				<p class="flex flex-wrap items-center gap-x-2">
 					<span>The 3D view shows each change at once.</span>
 					<button

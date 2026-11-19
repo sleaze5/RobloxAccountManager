@@ -2,12 +2,9 @@ import type { AvatarAccessoryAdjustment, AvatarClothingLayer } from "../backend/
 import { isDefaultAdjustmentKind, isEvenScale } from "./avatar-draft"
 import type { AdjustmentKind } from "./avatar-draft"
 
-// The values read as the editor's fields write them, with a sign only when
-// negative.
-const studs = new Intl.NumberFormat("en-US", {
-		minimumFractionDigits: 2,
-		maximumFractionDigits: 2,
-	}),
+// The values show the precision of the editor's fields without padding
+// zeros, such as 0 and 0.25, with a sign only when negative.
+const studs = new Intl.NumberFormat("en-US", { maximumFractionDigits: 2 }),
 	degrees = new Intl.NumberFormat("en-US", { maximumFractionDigits: 1 }),
 	percent = new Intl.NumberFormat("en-US", {
 		style: "percent",
@@ -24,7 +21,8 @@ const formatterByKind: Record<AdjustmentKind, (value: number) => string> = {
 // formatAdjustmentValue writes a position in studs, a rotation in degrees,
 // and a scale as a percentage of the default size.
 export function formatAdjustmentValue(kind: AdjustmentKind, value: number): string {
-	return formatterByKind[kind](value)
+	// Adding 0 turns a negative zero, which reads as -0, into 0.
+	return formatterByKind[kind](value + 0)
 }
 
 // describeAdjustment says what an adjustment changes, such as "Moved and

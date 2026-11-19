@@ -654,6 +654,13 @@ export class AvatarState {
 		}
 	}
 
+	// showRenderedImage shows the full-body image once Roblox renders it again,
+	// such as after a thumbnail customization changed.
+	async showRenderedImage(): Promise<void> {
+		if (!this.isEditable) return
+		await this.#waitForImage(this.avatar?.imageUrl ?? "")
+	}
+
 	// #waitForImage keeps the previous image while Roblox renders the new one,
 	// then shows the new one in the avatar page and the account list.
 	async #waitForImage(previousImageUrl: string): Promise<void> {

@@ -19,6 +19,7 @@
 		AdjustmentGuide,
 		AnimationPlayback,
 		LiveModelSubject,
+		ThumbnailFraming,
 	} from "./model-subject"
 
 	// LiveModelView fills its container with the subject, which the
@@ -27,7 +28,8 @@
 	// while a part of the subject downloads or builds. playback plays the
 	// animations of an avatar, and is undefined for an accessory.
 	// adjustmentGuide shows the guides of the accessory that the user adjusts.
-	// When
+	// thumbnailFraming shows the avatar as Roblox frames one of its profile
+	// images, with the camera and the pose locked. When
 	// onFailure is set, a subject that cannot be built calls it instead of
 	// offering to try again.
 	let {
@@ -37,6 +39,7 @@
 		isLoading = $bindable(false),
 		playback = $bindable(),
 		adjustmentGuide,
+		thumbnailFraming,
 		onFailure,
 	}: {
 		accountId: number
@@ -45,6 +48,7 @@
 		isLoading?: boolean
 		playback?: AnimationPlayback
 		adjustmentGuide?: AdjustmentGuide
+		thumbnailFraming?: ThumbnailFraming
 		onFailure?: () => void
 	} = $props()
 
@@ -98,6 +102,14 @@
 		}
 	})
 
+	$effect(() => {
+		const shownFraming = thumbnailFraming,
+			shownViewport = viewport
+		if (shownViewport) {
+			untrack(() => shownViewport.showThumbnailFraming(shownFraming))
+		}
+	})
+
 	// The scene follows the camera and lighting controls without rebuilding.
 	$effect(() => {
 		const sceneSettings = { ...modelViewerScene }
@@ -110,7 +122,10 @@
 
 	$effect(() => {
 		playback =
-			viewport && subject.kind === "avatar" && viewport.hasShownSubject
+			viewport &&
+			subject.kind === "avatar" &&
+			viewport.hasShownSubject &&
+			!thumbnailFraming
 				? viewport
 				: undefined
 		return () => {
@@ -128,12 +143,18 @@
 {:else}
 	<div
 		bind:this={host}
-		class="relative size-full animate-pop overflow-hidden rounded-lg">
+		class={[
+			"relative size-full animate-pop overflow-hidden",
+			// A headshot shows in a circle wherever Roblox shows a profile picture.
+			thumbnailFraming?.image === "headshot"
+				? "rounded-full border border-line-strong"
+				: "rounded-lg",
+		]}>
 	</div>
 	<span id={controlsDescriptionId} class="sr-only"
-		>{orbitViewKeysDescription}{subject.kind === "avatar"
-			? " Space plays or pauses the animation."
-			: ""}</span>
+		>{thumbnailFraming
+			? "The camera and the pose follow the thumbnail settings."
+			: `${orbitViewKeysDescription}${subject.kind === "avatar" ? " Space plays or pauses the animation." : ""}`}</span>
 	{#if viewport?.coveredFrameUrl}
 		<img
 			class="absolute inset-0 size-full object-contain"
@@ -151,10 +172,12 @@
 	{:else if !viewport?.hasShownSubject}
 		<ModelLoadingPlaceholder />
 	{:else if viewport && !viewport.coveredFrameUrl}
-		{#if viewport.cameraPose}
+		{#if viewport.cameraPose && !thumbnailFraming}
 			<ViewerReadout pose={viewport.cameraPose} />
 		{/if}
-		<ModelViewerControls onResetView={() => viewport?.resetView()} />
+		{#if !thumbnailFraming}
+			<ModelViewerControls onResetView={() => viewport?.resetView()} />
+		{/if}
 		<ModelSnapshotButton
 			{label}
 			captureFrame={() => viewport?.captureShownFrame() ?? ""} />

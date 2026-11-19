@@ -79,6 +79,7 @@ export {
 	TagKind,
 } from "../../../bindings/github.com/sleaze5/RobloxAccountManager/internal/accounts/models.js"
 export {
+	AvatarThumbnailType,
 	AvatarType,
 	CatalogItemType,
 	FriendStatus,
@@ -118,6 +119,10 @@ export type {
 	AvatarRules,
 	AvatarScaleLimit,
 	AvatarScales,
+	AvatarThumbnailCamera,
+	AvatarThumbnailChange,
+	AvatarThumbnailCustomization,
+	AvatarThumbnails,
 	AvatarVector,
 	AvatarWearLimit,
 	InventoryItem,

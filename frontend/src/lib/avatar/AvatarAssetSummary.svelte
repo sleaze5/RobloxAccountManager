@@ -1,12 +1,16 @@
 <script lang="ts">
-	import type { AvatarAsset } from "../backend/bridge"
+	import type { InventoryCategory, InventoryItem } from "../backend/bridge"
 	import { inventoryTypeLabel } from "../inventory/inventory-categories"
 	import ProfileImage from "../shared/ProfileImage.svelte"
 	import { avatarItemCategory } from "./avatar-categories"
 
-	let { asset }: { asset: AvatarAsset } = $props()
+	// AvatarAssetSummary shows an avatar item with its image, name, and type,
+	// such as a worn accessory or the pose of a thumbnail. category picks the
+	// icon of an item without an image.
+	let { item, category }: { item: InventoryItem; category: InventoryCategory } =
+		$props()
 
-	const typeLabel = $derived(inventoryTypeLabel(asset.item.typeName))
+	const typeLabel = $derived(inventoryTypeLabel(item.typeName))
 </script>
 
 <span class="flex min-w-0 flex-1 items-center gap-2">
@@ -14,12 +18,12 @@
 		class="grid size-9 shrink-0 place-items-center overflow-hidden rounded-md bg-raised"
 		aria-hidden="true">
 		<ProfileImage
-			url={asset.item.imageUrl}
-			fallbackIcon={avatarItemCategory(asset.category).icon} />
+			url={item.imageUrl}
+			fallbackIcon={avatarItemCategory(category).icon} />
 	</span>
 	<span class="flex min-w-0 flex-col">
 		<span class="truncate text-sm font-medium text-fg"
-			>{asset.item.name || "Unnamed item"}</span>
+			>{item.name || "Unnamed item"}</span>
 		{#if typeLabel}
 			<span
 				class="truncate text-xs text-fg-faint group-hover/row:text-fg-muted group-data-open/row:text-fg-muted"

@@ -35,7 +35,7 @@
 </script>
 
 {#snippet rowContent()}
-	<AvatarAssetSummary {asset} />
+	<AvatarAssetSummary item={asset.item} category={asset.category} />
 	{#if isEdited}
 		<span
 			class="shrink-0 animate-pop rounded-sm border border-line-strong bg-overlay px-1 text-2xs leading-4 font-medium text-fg"
