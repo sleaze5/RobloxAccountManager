@@ -11,13 +11,13 @@ import type { NotificationCenter } from "../notifications/notification-center.sv
 import type { CancellableRequest } from "../shared/cancellable-request"
 import { errorMessage } from "../shared/errors"
 
-export type GroupsMode = "mine" | "search"
+type GroupsMode = "mine" | "search"
 
 // GroupSubpage is a page of the selected group that replaces its profile.
 export type GroupSubpage = "members" | "games" | "items" | "joinRequests"
 
 // GroupAction names the action that runs on the selected group.
-export type GroupAction =
+type GroupAction =
 	| "join"
 	| "leave"
 	| "primary"

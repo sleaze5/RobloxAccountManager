@@ -18,7 +18,7 @@
 	import Select from "../shared/Select.svelte"
 	import SkeletonList from "../shared/SkeletonList.svelte"
 	import SkeletonMediaRow from "../shared/SkeletonMediaRow.svelte"
-	import GroupConfirmDialog from "./GroupConfirmDialog.svelte"
+	import ConfirmationDialog from "../shared/ConfirmationDialog.svelte"
 	import GroupSubpageHeader from "./GroupSubpageHeader.svelte"
 	import type { GroupsStore } from "./groups-store.svelte"
 
@@ -350,7 +350,7 @@
 </section>
 
 {#if removedMember}
-	<GroupConfirmDialog
+	<ConfirmationDialog
 		title="Remove member?"
 		description={`@${removedMember.user.username} will be removed from ${group.name} and lose the ${removedMember.role.name} role. They can ask to join again.`}
 		confirmLabel="Remove member"

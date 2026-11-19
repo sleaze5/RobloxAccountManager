@@ -31,7 +31,7 @@
 	import RefreshIcon from "../shared/RefreshIcon.svelte"
 	import Timestamp from "../shared/Timestamp.svelte"
 	import { relativeTime } from "../shared/timestamp"
-	import GroupConfirmDialog from "./GroupConfirmDialog.svelte"
+	import ConfirmationDialog from "../shared/ConfirmationDialog.svelte"
 	import GroupIcon from "./GroupIcon.svelte"
 	import type { GroupsStore, GroupSubpage } from "./groups-store.svelte"
 
@@ -645,7 +645,7 @@
 {/if}
 
 {#if isConfirmingLeave && group}
-	<GroupConfirmDialog
+	<ConfirmationDialog
 		title="Leave group?"
 		description={`This account will leave ${group.name} and lose its role. Joining again may need approval.`}
 		confirmLabel="Leave group"

@@ -234,9 +234,8 @@ func (group listedGroup) details() GroupDetails {
 	return details
 }
 
-func groupsAddress(path string, query url.Values) string {
-	address := url.URL{Scheme: "https", Host: "groups.roblox.com", Path: path, RawQuery: query.Encode()}
-	return address.String()
+func groupsAddress(path string, query url.Values) *url.URL {
+	return &url.URL{Scheme: "https", Host: "groups.roblox.com", Path: path, RawQuery: query.Encode()}
 }
 
 func groupPath(groupID int64, suffix string) string {
@@ -249,17 +248,13 @@ func invalidGroupData(endpoint string) error {
 
 // readGroupData reads a group response, which can be larger than a profile
 // detail, such as a list of groups with their descriptions.
-func (service *Users) readGroupData(ctx context.Context, accountID, version int64, endpoint, address string, target any) error {
-	parsedAddress, err := url.Parse(address)
-	if err != nil {
-		return &roblox.Error{Kind: roblox.KindProtocol, Endpoint: endpoint, Message: "Could not create the group request.", Cause: err}
-	}
+func (service *Users) readGroupData(ctx context.Context, accountID, version int64, endpoint string, address *url.URL, target any) error {
 	ctx, cancel := context.WithTimeout(ctx, 30*time.Second)
 	defer cancel()
-	return service.readLargeAccountDetails(ctx, accountID, version, endpoint, parsedAddress, target, "Roblox returned invalid group data.")
+	return service.readLargeAccountDetails(ctx, accountID, version, endpoint, address, target, "Roblox returned invalid group data.")
 }
 
-func validCursor(cursor, endpoint string) error {
+func validateGroupCursor(cursor, endpoint string) error {
 	if len(cursor) > maxCursorLength {
 		return &roblox.Error{Kind: roblox.KindProtocol, Endpoint: endpoint, Message: "This page has expired. Refresh the group."}
 	}
@@ -300,7 +295,7 @@ func (service *Users) SearchGroups(ctx context.Context, accountID, version int64
 	if length := utf8.RuneCountInString(keyword); length < minGroupSearchKeywordLength || length > maxGroupSearchKeywordLength {
 		return GroupSearchPage{}, &roblox.Error{Kind: roblox.KindProtocol, Endpoint: endpoint, Message: "Enter 2 to 50 characters to search groups."}
 	}
-	if err := validCursor(cursor, endpoint); err != nil {
+	if err := validateGroupCursor(cursor, endpoint); err != nil {
 		return GroupSearchPage{}, err
 	}
 	query := url.Values{"keyword": {keyword}, "limit": {strconv.Itoa(groupSearchPageSize)}}
@@ -314,17 +309,15 @@ func (service *Users) SearchGroups(ctx context.Context, accountID, version int64
 	if err := service.readGroupData(ctx, accountID, version, endpoint, groupsAddress("/v1/groups/search", query), &payload); err != nil {
 		return GroupSearchPage{}, err
 	}
-	if payload.Data == nil || len(*payload.Data) > groupSearchPageSize {
+	nextCursor, isNextCursorValid := nextCursorOf(payload.NextPageCursor)
+	if payload.Data == nil || len(*payload.Data) > groupSearchPageSize || !isNextCursorValid {
 		return GroupSearchPage{}, invalidGroupData(endpoint)
 	}
-	page := GroupSearchPage{Groups: make([]GroupSummary, 0, len(*payload.Data))}
+	page := GroupSearchPage{Groups: make([]GroupSummary, 0, len(*payload.Data)), NextCursor: nextCursor}
 	for _, listedGroup := range *payload.Data {
 		if listedGroup.ID > 0 {
 			page.Groups = append(page.Groups, listedGroup.summary())
 		}
-	}
-	if payload.NextPageCursor != nil && len(*payload.NextPageCursor) <= maxCursorLength {
-		page.NextCursor = *payload.NextPageCursor
 	}
 	return page, nil
 }
@@ -414,13 +407,10 @@ func (service *Users) GroupRoles(ctx context.Context, accountID, version, groupI
 // members of the role when role is not nil.
 func (service *Users) GroupMembers(ctx context.Context, accountID, version, groupID int64, role *GroupRole, cursor string) (GroupMemberPage, error) {
 	const endpoint = "group-members"
-	if err := validCursor(cursor, endpoint); err != nil {
+	if err := validateGroupCursor(cursor, endpoint); err != nil {
 		return GroupMemberPage{}, err
 	}
-	query := url.Values{"limit": {strconv.Itoa(groupMemberPageSize)}, "sortOrder": {"Desc"}}
-	if cursor != "" {
-		query.Set("cursor", cursor)
-	}
+	query := newestFirstPageQuery(groupMemberPageSize, cursor)
 	var (
 		page GroupMemberPage
 		err  error
@@ -432,9 +422,6 @@ func (service *Users) GroupMembers(ctx context.Context, accountID, version, grou
 	}
 	if err != nil {
 		return GroupMemberPage{}, groupMemberListError(err, endpoint)
-	}
-	if len(page.NextCursor) > maxCursorLength {
-		page.NextCursor = ""
 	}
 	return page, nil
 }
@@ -451,17 +438,15 @@ func (service *Users) everyGroupMember(ctx context.Context, accountID, version, 
 	if err := service.readGroupData(ctx, accountID, version, endpoint, groupsAddress(groupPath(groupID, "/users"), query), &payload); err != nil {
 		return GroupMemberPage{}, err
 	}
-	if payload.Data == nil || len(*payload.Data) > groupMemberPageSize {
+	nextCursor, isNextCursorValid := nextCursorOf(payload.NextPageCursor)
+	if payload.Data == nil || len(*payload.Data) > groupMemberPageSize || !isNextCursorValid {
 		return GroupMemberPage{}, invalidGroupData(endpoint)
 	}
-	page := GroupMemberPage{Members: make([]GroupMember, 0, len(*payload.Data))}
+	page := GroupMemberPage{Members: make([]GroupMember, 0, len(*payload.Data)), NextCursor: nextCursor}
 	for _, listedMember := range *payload.Data {
 		if listedMember.User.UserID > 0 {
 			page.Members = append(page.Members, GroupMember{User: listedMember.User.user(), Role: listedMember.Role.role()})
 		}
-	}
-	if payload.NextPageCursor != nil {
-		page.NextCursor = *payload.NextPageCursor
 	}
 	return page, nil
 }
@@ -476,17 +461,15 @@ func (service *Users) groupRoleMembers(ctx context.Context, accountID, version, 
 	if err := service.readGroupData(ctx, accountID, version, endpoint, address, &payload); err != nil {
 		return GroupMemberPage{}, err
 	}
-	if payload.Data == nil || len(*payload.Data) > groupMemberPageSize {
+	nextCursor, isNextCursorValid := nextCursorOf(payload.NextPageCursor)
+	if payload.Data == nil || len(*payload.Data) > groupMemberPageSize || !isNextCursorValid {
 		return GroupMemberPage{}, invalidGroupData(endpoint)
 	}
-	page := GroupMemberPage{Members: make([]GroupMember, 0, len(*payload.Data))}
+	page := GroupMemberPage{Members: make([]GroupMember, 0, len(*payload.Data)), NextCursor: nextCursor}
 	for _, listedUser := range *payload.Data {
 		if listedUser.UserID > 0 {
 			page.Members = append(page.Members, GroupMember{User: listedUser.user(), Role: role})
 		}
-	}
-	if payload.NextPageCursor != nil {
-		page.NextCursor = *payload.NextPageCursor
 	}
 	return page, nil
 }
@@ -502,13 +485,10 @@ func groupMemberListError(err error, endpoint string) error {
 
 func (service *Users) GroupJoinRequests(ctx context.Context, accountID, version, groupID int64, cursor string) (GroupJoinRequestPage, error) {
 	const endpoint = "group-join-requests"
-	if err := validCursor(cursor, endpoint); err != nil {
+	if err := validateGroupCursor(cursor, endpoint); err != nil {
 		return GroupJoinRequestPage{}, err
 	}
-	query := url.Values{"limit": {strconv.Itoa(groupMemberPageSize)}, "sortOrder": {"Desc"}}
-	if cursor != "" {
-		query.Set("cursor", cursor)
-	}
+	query := newestFirstPageQuery(groupMemberPageSize, cursor)
 	var payload struct {
 		NextPageCursor *string `json:"nextPageCursor"`
 		Data           *[]struct {
@@ -519,17 +499,15 @@ func (service *Users) GroupJoinRequests(ctx context.Context, accountID, version,
 	if err := service.readGroupData(ctx, accountID, version, endpoint, groupsAddress(groupPath(groupID, "/join-requests"), query), &payload); err != nil {
 		return GroupJoinRequestPage{}, err
 	}
-	if payload.Data == nil || len(*payload.Data) > groupMemberPageSize {
+	nextCursor, isNextCursorValid := nextCursorOf(payload.NextPageCursor)
+	if payload.Data == nil || len(*payload.Data) > groupMemberPageSize || !isNextCursorValid {
 		return GroupJoinRequestPage{}, invalidGroupData(endpoint)
 	}
-	page := GroupJoinRequestPage{Requests: make([]GroupJoinRequest, 0, len(*payload.Data))}
+	page := GroupJoinRequestPage{Requests: make([]GroupJoinRequest, 0, len(*payload.Data)), NextCursor: nextCursor}
 	for _, listedRequest := range *payload.Data {
 		if listedRequest.Requester.UserID > 0 {
 			page.Requests = append(page.Requests, GroupJoinRequest{User: listedRequest.Requester.user(), RequestedAtMs: robloxTimeMs(listedRequest.Created)})
 		}
-	}
-	if payload.NextPageCursor != nil && len(*payload.NextPageCursor) <= maxCursorLength {
-		page.NextCursor = *payload.NextPageCursor
 	}
 	return page, nil
 }
@@ -593,7 +571,7 @@ func (service *Users) GroupNameHistory(ctx context.Context, accountID, version, 
 			Created string `json:"created"`
 		} `json:"data"`
 	}
-	query := url.Values{"limit": {strconv.Itoa(groupNameHistoryPageSize)}, "sortOrder": {"Desc"}}
+	query := newestFirstPageQuery(groupNameHistoryPageSize, "")
 	if err := service.readGroupData(ctx, accountID, version, endpoint, groupsAddress(groupPath(groupID, "/name-history"), query), &payload); err != nil {
 		return nil, err
 	}
@@ -616,7 +594,7 @@ func (service *Users) GroupFunds(ctx context.Context, accountID, version, groupI
 	var payload struct {
 		Robux *int64 `json:"robux"`
 	}
-	address := "https://economy.roblox.com/v1/groups/" + strconv.FormatInt(groupID, 10) + "/currency"
+	address := &url.URL{Scheme: "https", Host: "economy.roblox.com", Path: "/v1/groups/" + strconv.FormatInt(groupID, 10) + "/currency"}
 	if err := service.readGroupData(ctx, accountID, version, endpoint, address, &payload); err != nil {
 		return 0, err
 	}
@@ -632,13 +610,11 @@ func (service *Users) GroupFunds(ctx context.Context, accountID, version, groupI
 // private. Verified on 2026-11-19.
 func (service *Users) GroupGames(ctx context.Context, accountID, version, groupID int64, groupName, cursor string) (GroupGamePage, error) {
 	const endpoint = "group-games"
-	if err := validCursor(cursor, endpoint); err != nil {
+	if err := validateGroupCursor(cursor, endpoint); err != nil {
 		return GroupGamePage{}, err
 	}
-	query := url.Values{"accessFilter": {"All"}, "limit": {strconv.Itoa(groupGamePageSize)}, "sortOrder": {"Desc"}}
-	if cursor != "" {
-		query.Set("cursor", cursor)
-	}
+	query := newestFirstPageQuery(groupGamePageSize, cursor)
+	query.Set("accessFilter", "All")
 	var payload struct {
 		NextPageCursor *string `json:"nextPageCursor"`
 		Data           *[]struct {
@@ -651,14 +627,15 @@ func (service *Users) GroupGames(ctx context.Context, accountID, version, groupI
 			} `json:"rootPlace"`
 		} `json:"data"`
 	}
-	address := (&url.URL{Scheme: "https", Host: "games.roblox.com", Path: "/v2/groups/" + strconv.FormatInt(groupID, 10) + "/games", RawQuery: query.Encode()}).String()
+	address := &url.URL{Scheme: "https", Host: "games.roblox.com", Path: "/v2/groups/" + strconv.FormatInt(groupID, 10) + "/games", RawQuery: query.Encode()}
 	if err := service.readGroupData(ctx, accountID, version, endpoint, address, &payload); err != nil {
 		return GroupGamePage{}, err
 	}
-	if payload.Data == nil || len(*payload.Data) > groupGamePageSize {
+	nextCursor, isNextCursorValid := nextCursorOf(payload.NextPageCursor)
+	if payload.Data == nil || len(*payload.Data) > groupGamePageSize || !isNextCursorValid {
 		return GroupGamePage{}, invalidGroupData(endpoint)
 	}
-	page := GroupGamePage{Games: make([]GroupGame, 0, len(*payload.Data))}
+	page := GroupGamePage{Games: make([]GroupGame, 0, len(*payload.Data)), NextCursor: nextCursor}
 	universeIDs := make([]int64, 0, len(*payload.Data))
 	for _, listedGame := range *payload.Data {
 		if !games.ValidID(listedGame.ID) || !games.ValidID(listedGame.RootPlace.ID) {
@@ -680,9 +657,6 @@ func (service *Users) GroupGames(ctx context.Context, accountID, version, groupI
 	for index := range page.Games {
 		page.Games[index].IsPrivate = slices.Contains(privateUniverseIDs, page.Games[index].Place.UniverseID)
 	}
-	if payload.NextPageCursor != nil && len(*payload.NextPageCursor) <= maxCursorLength {
-		page.NextCursor = *payload.NextPageCursor
-	}
 	return page, nil
 }
 
@@ -702,7 +676,7 @@ func (service *Users) privateUniverseIDs(ctx context.Context, accountID, version
 			PrivacyType string `json:"privacyType"`
 		} `json:"data"`
 	}
-	address := (&url.URL{Scheme: "https", Host: "develop.roblox.com", Path: "/v1/universes/multiget", RawQuery: query.Encode()}).String()
+	address := &url.URL{Scheme: "https", Host: "develop.roblox.com", Path: "/v1/universes/multiget", RawQuery: query.Encode()}
 	if err := service.readGroupData(ctx, accountID, version, endpoint, address, &payload); err != nil {
 		return nil, err
 	}
@@ -721,40 +695,40 @@ func (service *Users) privateUniverseIDs(ctx context.Context, accountID, version
 // JoinGroup joins the group, or asks to join a group that accepts members by
 // request. The membership tells which one happened.
 func (service *Users) JoinGroup(ctx context.Context, accountID, version, groupID int64) error {
-	_, err := service.writeAccount(ctx, accountID, version, "group-join", http.MethodPost, groupsAddress(groupPath(groupID, "/users"), nil), map[string]any{})
+	_, err := service.writeAccount(ctx, accountID, version, "group-join", http.MethodPost, groupsAddress(groupPath(groupID, "/users"), nil).String(), map[string]any{})
 	return err
 }
 
 // RemoveGroupMember removes a user from the group. It leaves the group when
 // the user is the account itself.
 func (service *Users) RemoveGroupMember(ctx context.Context, accountID, version, groupID, userID int64) error {
-	_, err := service.writeAccount(ctx, accountID, version, "group-member-remove", http.MethodDelete, groupsAddress(groupPath(groupID, "/users/"+strconv.FormatInt(userID, 10)), nil), nil)
+	_, err := service.writeAccount(ctx, accountID, version, "group-member-remove", http.MethodDelete, groupsAddress(groupPath(groupID, "/users/"+strconv.FormatInt(userID, 10)), nil).String(), nil)
 	return err
 }
 
 func (service *Users) SetGroupMemberRole(ctx context.Context, accountID, version, groupID, userID, roleID int64) error {
-	_, err := service.writeAccount(ctx, accountID, version, "group-member-role", http.MethodPatch, groupsAddress(groupPath(groupID, "/users/"+strconv.FormatInt(userID, 10)), nil), map[string]int64{"roleId": roleID})
+	_, err := service.writeAccount(ctx, accountID, version, "group-member-role", http.MethodPatch, groupsAddress(groupPath(groupID, "/users/"+strconv.FormatInt(userID, 10)), nil).String(), map[string]int64{"roleId": roleID})
 	return err
 }
 
 func (service *Users) SetPrimaryGroup(ctx context.Context, accountID, version, groupID int64) error {
-	_, err := service.writeAccount(ctx, accountID, version, "group-primary", http.MethodPost, groupsAddress("/v1/user/groups/primary", nil), map[string]int64{"groupId": groupID})
+	_, err := service.writeAccount(ctx, accountID, version, "group-primary", http.MethodPost, groupsAddress("/v1/user/groups/primary", nil).String(), map[string]int64{"groupId": groupID})
 	return err
 }
 
 func (service *Users) RemovePrimaryGroup(ctx context.Context, accountID, version int64) error {
-	_, err := service.writeAccount(ctx, accountID, version, "group-primary-remove", http.MethodDelete, groupsAddress("/v1/user/groups/primary", nil), nil)
+	_, err := service.writeAccount(ctx, accountID, version, "group-primary-remove", http.MethodDelete, groupsAddress("/v1/user/groups/primary", nil).String(), nil)
 	return err
 }
 
 // PostGroupShout replaces the shout of the group. An empty message clears it.
 func (service *Users) PostGroupShout(ctx context.Context, accountID, version, groupID int64, message string) error {
-	_, err := service.writeAccount(ctx, accountID, version, "group-shout", http.MethodPatch, groupsAddress(groupPath(groupID, "/status"), nil), map[string]string{"message": message})
+	_, err := service.writeAccount(ctx, accountID, version, "group-shout", http.MethodPatch, groupsAddress(groupPath(groupID, "/status"), nil).String(), map[string]string{"message": message})
 	return err
 }
 
 func (service *Users) SetGroupDescription(ctx context.Context, accountID, version, groupID int64, description string) error {
-	_, err := service.writeAccount(ctx, accountID, version, "group-description", http.MethodPatch, groupsAddress(groupPath(groupID, "/description"), nil), map[string]string{"description": description})
+	_, err := service.writeAccount(ctx, accountID, version, "group-description", http.MethodPatch, groupsAddress(groupPath(groupID, "/description"), nil).String(), map[string]string{"description": description})
 	return err
 }
 
@@ -765,6 +739,6 @@ func (service *Users) AnswerGroupJoinRequest(ctx context.Context, accountID, ver
 	if isAccepted {
 		method = http.MethodPost
 	}
-	_, err := service.writeAccount(ctx, accountID, version, "group-join-request", method, groupsAddress(groupPath(groupID, "/join-requests/users/"+strconv.FormatInt(userID, 10)), nil), nil)
+	_, err := service.writeAccount(ctx, accountID, version, "group-join-request", method, groupsAddress(groupPath(groupID, "/join-requests/users/"+strconv.FormatInt(userID, 10)), nil).String(), nil)
 	return err
 }

@@ -110,7 +110,7 @@ export const settingsCategories = {
 	{ label: string; keys: readonly SettingSearchKey[] }
 >
 
-export type SettingsCategoryId = keyof typeof settingsCategories
+type SettingsCategoryId = keyof typeof settingsCategories
 
 const categoryLabelByKey = new Map<SettingSearchKey, string>(
 	Object.values(settingsCategories).flatMap((category) =>

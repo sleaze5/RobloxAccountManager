@@ -33,7 +33,7 @@ export interface CatalogCategoryOption {
 	icon: string
 }
 
-export interface CatalogCategoryGroup {
+interface CatalogCategoryGroup {
 	label: string
 	// parent lists every item of the group, and the other categories narrow it.
 	parent: CatalogCategoryOption

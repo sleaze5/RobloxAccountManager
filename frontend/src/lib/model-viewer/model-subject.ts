@@ -77,7 +77,7 @@ export interface CameraPose {
 // RenderedModelSubject is a model that Roblox renders, for items that the
 // application cannot build, such as models and gear. model is null while it
 // loads, and error tells why it failed.
-export interface RenderedModelSubject {
+interface RenderedModelSubject {
 	kind: "rendered"
 	model: RenderedModel | null
 	error: string

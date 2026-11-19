@@ -210,7 +210,7 @@ func (service *Users) assetsPage(ctx context.Context, accountID, version int64, 
 			AssetType string `json:"assetType"`
 		} `json:"data"`
 	}
-	query := pagedInventoryQuery(cursor)
+	query := newestFirstPageQuery(inventoryPageSize, cursor)
 	query.Set("assetTypes", strings.Join(assetTypes, ","))
 	address := &url.URL{Scheme: "https", Host: "inventory.roblox.com", Path: "/v2/users/" + user + "/inventory", RawQuery: query.Encode()}
 	if err := service.readInventory(ctx, accountID, version, "inventory-assets", address, &payload); err != nil {
@@ -243,7 +243,7 @@ func (service *Users) collectiblesPage(ctx context.Context, accountID, version i
 			RecentAveragePrice *int64 `json:"recentAveragePrice"`
 		} `json:"data"`
 	}
-	address := &url.URL{Scheme: "https", Host: "inventory.roblox.com", Path: "/v1/users/" + user + "/assets/collectibles", RawQuery: pagedInventoryQuery(cursor).Encode()}
+	address := &url.URL{Scheme: "https", Host: "inventory.roblox.com", Path: "/v1/users/" + user + "/assets/collectibles", RawQuery: newestFirstPageQuery(inventoryPageSize, cursor).Encode()}
 	if err := service.readInventory(ctx, accountID, version, "inventory-collectibles", address, &payload); err != nil {
 		return InventoryPage{}, err
 	}
@@ -289,7 +289,7 @@ func (service *Users) badgesPage(ctx context.Context, accountID, version int64, 
 			} `json:"statistics"`
 		} `json:"data"`
 	}
-	address := &url.URL{Scheme: "https", Host: "badges.roblox.com", Path: "/v1/users/" + user + "/badges", RawQuery: pagedInventoryQuery(cursor).Encode()}
+	address := &url.URL{Scheme: "https", Host: "badges.roblox.com", Path: "/v1/users/" + user + "/badges", RawQuery: newestFirstPageQuery(inventoryPageSize, cursor).Encode()}
 	if err := service.readInventory(ctx, accountID, version, "inventory-badges", address, &payload); err != nil {
 		return InventoryPage{}, err
 	}
@@ -326,7 +326,7 @@ func (service *Users) bundlesPage(ctx context.Context, accountID, version int64,
 			BundleType string `json:"bundleType"`
 		} `json:"data"`
 	}
-	address := &url.URL{Scheme: "https", Host: "catalog.roblox.com", Path: "/v1/users/" + user + "/bundles", RawQuery: pagedInventoryQuery(cursor).Encode()}
+	address := &url.URL{Scheme: "https", Host: "catalog.roblox.com", Path: "/v1/users/" + user + "/bundles", RawQuery: newestFirstPageQuery(inventoryPageSize, cursor).Encode()}
 	if err := service.readInventory(ctx, accountID, version, "inventory-bundles", address, &payload); err != nil {
 		return InventoryPage{}, err
 	}
@@ -524,14 +524,6 @@ func addCatalogAvailability(market *InventoryItemMarket, listedItem catalogItemD
 			market.OffSaleDeadlineMs = robloxTimeMs(*listedItem.OffSaleDeadline)
 		}
 	}
-}
-
-func pagedInventoryQuery(cursor string) url.Values {
-	query := url.Values{"limit": {strconv.Itoa(inventoryPageSize)}, "sortOrder": {"Desc"}}
-	if cursor != "" {
-		query.Set("cursor", cursor)
-	}
-	return query
 }
 
 // inventoryPageOf drops entries without a valid ID and checks the page bounds.

@@ -27,7 +27,7 @@ type unixBrowserProcess struct {
 	finished bool
 }
 
-func startBrowserProcess(options ProcessOptions) (BrowserProcess, error) {
+func startBrowserProcess(options browserProcessOptions) (browserProcess, error) {
 	if options.Executable == "" || options.UserDataPath == "" {
 		return nil, errors.New("invalid browser process options")
 	}

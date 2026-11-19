@@ -23,7 +23,7 @@
 	import { unsavedChangesGuard } from "../layout/unsaved-changes-guard"
 	import AvatarAdjustmentsPanel from "./AvatarAdjustmentsPanel.svelte"
 	import AvatarBodyPanel from "./AvatarBodyPanel.svelte"
-	import AvatarConfirmation from "./AvatarConfirmation.svelte"
+	import ConfirmationDialog from "../shared/ConfirmationDialog.svelte"
 	import AvatarEmotesPanel from "./AvatarEmotesPanel.svelte"
 	import AvatarItemPicker from "./AvatarItemPicker.svelte"
 	import AvatarOutfitDialog from "./AvatarOutfitDialog.svelte"
@@ -562,12 +562,11 @@
 
 {#if deletedOutfit}
 	{@const outfit = deletedOutfit}
-	<AvatarConfirmation
+	<ConfirmationDialog
 		title="Delete outfit?"
 		description={`${outfit.name || "This outfit"} will be deleted from @${username}'s outfits. This cannot be undone.`}
-		actionLabel="Delete outfit"
+		confirmLabel="Delete outfit"
 		progressLabel="Deleting…"
-		tone="danger"
 		isWorking={avatar.isChangingOutfit}
 		error={avatar.outfitActionError}
 		onConfirm={() => void deleteOutfit(outfit)}
@@ -575,10 +574,10 @@
 {/if}
 
 {#if isConfirmingDiscard}
-	<AvatarConfirmation
+	<ConfirmationDialog
 		title="Discard changes?"
 		description="The avatar goes back to how it was last saved. Your unsaved changes are lost."
-		actionLabel="Discard changes"
+		confirmLabel="Discard changes"
 		progressLabel="Saving…"
 		tone="warning"
 		isWorking={avatar.isSaving}
