@@ -32,6 +32,7 @@
 	import VaultDialog from "./lib/dialogs/VaultDialog.svelte"
 	import {
 		accountBackend,
+		CatalogCreatorType,
 		FileState,
 		LaunchMethod,
 		RuntimeStatus,
@@ -49,6 +50,8 @@
 	import type { SocialListKind } from "./lib/social/social-store.svelte"
 	import { GamesStore, setGamesStore } from "./lib/games/games-store.svelte"
 	import { CatalogStore } from "./lib/catalog/catalog-store.svelte"
+	import { GroupsStore } from "./lib/groups/groups-store.svelte"
+	import { setCreatorNavigation } from "./lib/shared/creator-navigation"
 	import { LogsExplorerStore } from "./lib/logs-explorer/logs-explorer-store.svelte"
 	import LaunchDrawer from "./lib/layout/LaunchDrawer.svelte"
 	import PageNavigation from "./lib/layout/PageNavigation.svelte"
@@ -86,6 +89,7 @@
 	type ActivePage =
 		| "accounts"
 		| "social"
+		| "groups"
 		| "games"
 		| "catalog"
 		| "logs-explorer"
@@ -96,6 +100,7 @@
 	// page rarely waits.
 	const pageImports = {
 		social: () => import("./lib/social/SocialPage.svelte"),
+		groups: () => import("./lib/groups/GroupsPage.svelte"),
 		games: () => import("./lib/games/GamesPage.svelte"),
 		catalog: () => import("./lib/catalog/CatalogPage.svelte"),
 		logsExplorer: () => import("./lib/logs-explorer/LogsExplorerPage.svelte"),
@@ -107,6 +112,7 @@
 		logsExplorer = new LogsExplorerStore(),
 		games = new GamesStore(notificationCenter),
 		catalog = new CatalogStore(store),
+		groups = new GroupsStore(store, notificationCenter),
 		social = new SocialStore(notificationCenter),
 		workspace = new WorkspaceState(),
 		passwordReminderNotificationId = "password-test-reminder"
@@ -165,6 +171,7 @@
 				games.reset()
 				social.reset()
 				catalog.reset()
+				groups.reset()
 			})
 		} else untrack(() => games.initialize())
 	})
@@ -228,6 +235,7 @@
 			games.reset()
 			social.reset()
 			catalog.reset()
+			groups.reset()
 			unmountAccounts()
 			unmountBrowser()
 			unmountUpdates()
@@ -366,11 +374,21 @@
 		})
 	}
 
-	// showCreations opens the Marketplace on every item that the user created,
-	// including the items that it hides.
-	function showCreations(username: string): void {
-		showPage("catalog", () => catalog.showCreations(username))
+	// showCreations opens the Marketplace on every item that the user or the
+	// group created, including the items that it hides.
+	function showCreations(creatorName: string, creatorType: CatalogCreatorType): void {
+		showPage("catalog", () => catalog.showCreations(creatorName, creatorType))
 	}
+
+	setCreatorNavigation({
+		showGroup: (groupId) => showPage("groups", () => groups.showGroup(groupId)),
+		showUser: (user) => {
+			const account = store.selectedAccount
+			showPage("social", () =>
+				social.showUser(account.id, Number(account.userId) || 0, user),
+			)
+		},
+	})
 
 	function openRenewCookie(accountId: number): void {
 		if (store.busy) return
@@ -598,6 +616,7 @@
 	const pageOrder = [
 		"accounts",
 		"social",
+		"groups",
 		"games",
 		"catalog",
 		"logs-explorer",
@@ -605,6 +624,7 @@
 	const pageLabels = {
 		"accounts": "Accounts",
 		"social": "Social",
+		"groups": "Groups",
 		"games": "Games",
 		"catalog": "Marketplace",
 		"logs-explorer": "Logs Explorer",
@@ -743,7 +763,30 @@
 					onRemoveSelected={openRemoveConnections}
 					onOpenInBrowser={(accountId, pageUrl) =>
 						void openManagedBrowser(accountId, pageUrl)}
-					onShowCreations={showCreations} />
+					onShowCreations={(username) =>
+						showCreations(
+							username,
+							CatalogCreatorType.CatalogCreatorUser,
+						)} />
+			{:catch}
+				{@render pageUnavailable()}
+			{/await}
+		{:else if activePage === "groups"}
+			{#await pageImports.groups()}
+				{@render pageLoading()}
+			{:then { default: GroupsPage }}
+				<GroupsPage
+					store={groups}
+					accounts={store}
+					notifications={notificationCenter}
+					onSearchPlace={(placeId) => searchGames(`id:${placeId}`)}
+					onOpenInBrowser={(accountId, pageUrl) =>
+						void openManagedBrowser(accountId, pageUrl)}
+					onShowItemsInMarketplace={(groupName) =>
+						showCreations(
+							groupName,
+							CatalogCreatorType.CatalogCreatorGroup,
+						)} />
 			{:catch}
 				{@render pageUnavailable()}
 			{/await}
@@ -842,7 +885,11 @@
 										onReplaceCookie={openAddAccount}
 										onEditDescription={openDescriptionEditor}
 										onShowSocial={showSocial}
-										onShowCreations={showCreations}
+										onShowCreations={(username) =>
+											showCreations(
+												username,
+												CatalogCreatorType.CatalogCreatorUser,
+											)}
 										onOpenBrowser={(accountId) =>
 											void openManagedBrowser(accountId)} />
 								</div>

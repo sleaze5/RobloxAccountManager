@@ -7,10 +7,17 @@
 	import lockKeyIcon from "@phosphor-icons/core/regular/lock-key.svg?raw"
 	import storefrontIcon from "@phosphor-icons/core/regular/storefront.svg?raw"
 	import usersIcon from "@phosphor-icons/core/regular/users.svg?raw"
+	import usersThreeIcon from "@phosphor-icons/core/regular/users-three.svg?raw"
 	import Icon from "../shared/Icon.svelte"
 	import type { AccountStore } from "../accounts/account-store.svelte"
 
-	type NavigationPage = "accounts" | "social" | "games" | "catalog" | "logs-explorer"
+	type NavigationPage =
+		| "accounts"
+		| "social"
+		| "groups"
+		| "games"
+		| "catalog"
+		| "logs-explorer"
 
 	let {
 		store,
@@ -47,6 +54,14 @@
 			onclick={() => onPage("social")}>
 			<Icon svg={handshakeIcon} size={16} aria-hidden="true" />
 			<span>Social</span>
+		</button>
+		<button
+			class="tab"
+			type="button"
+			aria-current={activePage === "groups" ? "page" : undefined}
+			onclick={() => onPage("groups")}>
+			<Icon svg={usersThreeIcon} size={16} aria-hidden="true" />
+			<span>Groups</span>
 		</button>
 		<button
 			class="tab"

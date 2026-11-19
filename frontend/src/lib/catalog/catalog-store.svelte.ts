@@ -89,14 +89,14 @@ export class CatalogStore {
 		void this.#load("", true)
 	}
 
-	// showCreations lists every item of a user, including the items that the
-	// Marketplace hides, newest first.
-	showCreations(username: string): void {
+	// showCreations lists every item of a user or a group, including the
+	// items that the Marketplace hides, newest first.
+	showCreations(creatorName: string, creatorType: CatalogCreatorType): void {
 		this.keywordInput = ""
 		this.search = {
 			...defaultCatalogSearch(),
-			creatorName: username,
-			creatorType: CatalogCreatorType.CatalogCreatorUser,
+			creatorName,
+			creatorType,
 			sortOrder: CatalogSortOrder.CatalogSortByRecentlyPublished,
 			shouldIncludeHiddenItems: true,
 		}
@@ -110,7 +110,7 @@ export class CatalogStore {
 	}
 
 	async loadMore(): Promise<void> {
-		if (!this.nextCursor || this.loading || this.loadingMore || this.error) return
+		if (!this.nextCursor || this.loading || this.loadingMore) return
 		await this.#load(this.nextCursor, false)
 	}
 

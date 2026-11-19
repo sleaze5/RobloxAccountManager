@@ -1,6 +1,4 @@
 <script lang="ts">
-	import arrowRightIcon from "@phosphor-icons/core/regular/arrow-right.svg?raw"
-	import circleNotchIcon from "@phosphor-icons/core/regular/circle-notch.svg?raw"
 	import diamondIcon from "@phosphor-icons/core/regular/diamond.svg?raw"
 	import eyeIcon from "@phosphor-icons/core/regular/eye.svg?raw"
 	import funnelIcon from "@phosphor-icons/core/regular/funnel.svg?raw"
@@ -10,36 +8,23 @@
 	import hourglassIcon from "@phosphor-icons/core/regular/hourglass.svg?raw"
 	import userIcon from "@phosphor-icons/core/regular/user.svg?raw"
 	import usersThreeIcon from "@phosphor-icons/core/regular/users-three.svg?raw"
-	import warningIcon from "@phosphor-icons/core/regular/warning.svg?raw"
 	import xIcon from "@phosphor-icons/core/regular/x.svg?raw"
 	import { onMount, tick, untrack } from "svelte"
 	import {
 		CatalogCreatorType,
-		CatalogItemType,
 		CatalogSalesType,
 		CatalogSortOrder,
 		CatalogSortPeriod,
 	} from "../backend/bridge"
-	import type { CatalogCategory, CategorizedInventoryItem } from "../backend/bridge"
+	import type { CatalogCategory } from "../backend/bridge"
 	import type { AccountStore } from "../accounts/account-store.svelte"
-	import InventoryItemDialog from "../inventory/InventoryItemDialog.svelte"
-	import InventoryItemTile from "../inventory/InventoryItemTile.svelte"
-	import { inventoryCategoryOptionOf } from "../inventory/inventory-categories"
-	import { itemGridClass } from "../inventory/item-grid"
 	import { formatRobux } from "../inventory/inventory-prices"
-	import {
-		categoryItemKey,
-		InventoryState,
-		inventoryItemKey,
-	} from "../inventory/inventory-state.svelte"
 	import AccountSwitcher from "../layout/AccountSwitcher.svelte"
 	import WorkbenchSidebar from "../layout/WorkbenchSidebar.svelte"
 	import type { NotificationCenter } from "../notifications/notification-center.svelte"
 	import Icon from "../shared/Icon.svelte"
 	import RefreshIcon from "../shared/RefreshIcon.svelte"
 	import Select from "../shared/Select.svelte"
-	import SkeletonTile from "../shared/SkeletonTile.svelte"
-	import { loadMoreWhenVisible } from "../shared/load-more-when-visible"
 	import {
 		allCatalogItemsCategory,
 		backgroundsCategory,
@@ -49,6 +34,7 @@
 	} from "./catalog-categories"
 	import type { CatalogCategoryOption } from "./catalog-categories"
 	import CatalogFiltersPanel from "./CatalogFiltersPanel.svelte"
+	import CatalogResults from "./CatalogResults.svelte"
 	import {
 		countActiveCatalogFilters,
 		defaultCatalogSearch,
@@ -89,17 +75,12 @@
 			{ value: CatalogSortPeriod.CatalogPastWeek, label: "Past week" },
 			{ value: CatalogSortPeriod.CatalogAllTime, label: "All time" },
 		],
-		skeletonTileIndexes = Array.from({ length: 18 }, (_unused, index) => index),
 		exactNumbers = new Intl.NumberFormat("en-US")
 
 	let searchInput = $state<HTMLInputElement | undefined>(undefined),
 		resultsElement = $state<HTMLElement | undefined>(undefined),
 		filtersButton = $state<HTMLButtonElement | undefined>(undefined),
-		isFiltersPanelOpen = $state(false),
-		detailedItemKey = $state(""),
-		// itemActions opens, buys, favorites, and tries on items for the
-		// selected account, as the inventory does.
-		itemActions = $state<InventoryState | null>(null)
+		isFiltersPanelOpen = $state(false)
 
 	const search = $derived(store.search),
 		category = $derived(catalogCategoryOptionOf(search.category)),
@@ -115,14 +96,6 @@
 		),
 		priceFilterLabel = $derived(
 			priceRangeLabel(search.minPriceInRobux, search.maxPriceInRobux),
-		),
-		detailedItem = $derived(
-			detailedItemKey
-				? store.items.find(
-						(categorizedItem) =>
-							inventoryItemKey(categorizedItem.item) === detailedItemKey,
-					)
-				: undefined,
 		)
 
 	function priceRangeLabel(min: number | null, max: number | null): string {
@@ -135,36 +108,9 @@
 		return ""
 	}
 
-	function isWorn(categorizedItem: CategorizedInventoryItem): boolean {
-		return (
-			categorizedItem.item.catalogItemType === CatalogItemType.CatalogAsset &&
-			!!itemActions?.wornAssetIds.has(categorizedItem.item.itemId)
-		)
-	}
-
-	function isOwned(categorizedItem: CategorizedInventoryItem): boolean {
-		return (
-			itemActions?.isOwnedByItemKey.get(
-				categoryItemKey(categorizedItem.category, categorizedItem.item.itemId),
-			) === true
-		)
-	}
-
 	function showCategory(categoryId: CatalogCategory): void {
 		if (categoryId === search.category) return
 		store.applySearch({ category: categoryId })
-	}
-
-	function openItem(categorizedItem: CategorizedInventoryItem): void {
-		if (!itemActions) return
-		itemActions.clearItemActionError()
-		detailedItemKey = inventoryItemKey(categorizedItem.item)
-		itemActions.loadItemDetails(
-			categorizedItem.item,
-			categorizedItem.category,
-			true,
-		)
-		void itemActions.checkFavorite(categorizedItem.item)
 	}
 
 	function clearKeyword(): void {
@@ -183,36 +129,6 @@
 	$effect(() => {
 		void store.resultsVersion
 		untrack(() => resultsElement?.scrollTo({ top: 0 }))
-	})
-
-	$effect(() => {
-		const account = accounts.selectedAccount
-		if (account.id === 0 || !accounts.vault.unlocked) return
-		const accountItemActions = untrack(
-			() =>
-				new InventoryState(
-					account.id,
-					Number(account.userId) || 0,
-					accounts,
-					notifications,
-				),
-		)
-		itemActions = accountItemActions
-		detailedItemKey = ""
-		void accountItemActions.loadWornAssets()
-		untrack(() => store.refreshWhenStale())
-		return () => {
-			accountItemActions.dispose()
-			if (itemActions === accountItemActions) itemActions = null
-		}
-	})
-
-	$effect(() => {
-		const accountItemActions = itemActions,
-			items = store.items
-		if (accountItemActions && items.length > 0) {
-			untrack(() => void accountItemActions.loadOwnership(items))
-		}
 	})
 
 	onMount(() => {
@@ -458,105 +374,39 @@
 				class="min-h-0 flex-1 scrollbar-stable overflow-y-auto"
 				data-load-more-root
 				bind:this={resultsElement}>
-				{#if store.error && store.hasResults}
-					<p class="mx-3 mt-3 notice-error" role="alert">{store.error}</p>
-				{/if}
-				{#if !store.hasResults && store.error}
-					<div class="empty-state h-full" role="alert">
-						<Icon svg={warningIcon} size={28} aria-hidden="true" />
-						<h2>Marketplace unavailable</h2>
-						<p>{store.error}</p>
-						<button
-							class="button"
-							type="button"
-							onclick={() => void store.refresh()}>Try again</button>
-					</div>
-				{:else if !store.hasResults}
-					<div class="p-3" role="status" aria-busy="true">
-						<span class="sr-only">Loading {category.noun}…</span>
-						<ul class={[itemGridClass, "animate-enter"]} aria-hidden="true">
-							{#each skeletonTileIndexes as index (index)}
-								<SkeletonTile />
-							{/each}
-						</ul>
-					</div>
-				{:else if store.items.length === 0}
-					<div class="empty-state h-full" role="status">
-						<Icon
-							svg={isNarrowed ? funnelIcon : category.icon}
-							size={28}
-							aria-hidden="true" />
-						<h2>No matching {category.noun}</h2>
-						{#if isNarrowed}
-							<p>
-								Nothing in {category.label} matches this search. Clear the
-								search and filters, or select another category.
-							</p>
-							<button
-								class="button"
-								type="button"
-								onclick={() => void clearAllFilters()}
-								>Clear filters</button>
-						{:else}
-							<p>
-								The Marketplace lists nothing here right now. Select
-								another category.
-							</p>
-						{/if}
-					</div>
-				{:else}
-					{#key store.resultsVersion}
-						<ul
-							class={[itemGridClass, "animate-enter p-3"]}
-							aria-label={category.label}
-							aria-busy={store.loading}>
-							{#each store.items as categorizedItem, index (`${inventoryItemKey(categorizedItem.item)}:${index}`)}
-								<li class="min-w-0">
-									<InventoryItemTile
-										item={categorizedItem.item}
-										category={inventoryCategoryOptionOf(
-											categorizedItem.category,
-										)}
-										isWorn={isWorn(categorizedItem)}
-										isOwned={isOwned(categorizedItem)}
-										isDisabled={!itemActions}
-										actionLabel="Show details"
-										onOpen={() => openItem(categorizedItem)} />
-								</li>
-							{/each}
-						</ul>
-					{/key}
-					{#if store.nextCursor}
-						<div
-							class="flex min-h-12 items-center justify-center pb-3"
-							use:loadMoreWhenVisible={{
-								pageKey: store.items.length,
-								loadMore: () => void store.loadMore(),
-							}}>
-							{#if store.loadingMore}
-								<span
-									class="flex items-center gap-2 text-xs text-fg-muted"
-									role="status"
-									><Icon
-										svg={circleNotchIcon}
-										class="spinner"
-										size={16}
-										aria-hidden="true" />Loading more items…</span>
-							{:else}
+				<CatalogResults
+					{store}
+					{accounts}
+					{notifications}
+					label={category.label}
+					noun={category.noun}
+					{onSearchPlace}>
+					{#snippet empty()}
+						<div class="empty-state h-full" role="status">
+							<Icon
+								svg={isNarrowed ? funnelIcon : category.icon}
+								size={28}
+								aria-hidden="true" />
+							<h2>No matching {category.noun}</h2>
+							{#if isNarrowed}
+								<p>
+									Nothing in {category.label} matches this search. Clear
+									the search and filters, or select another category.
+								</p>
 								<button
 									class="button"
 									type="button"
-									disabled={store.loading}
-									onclick={() => void store.loadMore()}
-									>{store.error ? "Try again" : "Load more"}<Icon
-										svg={arrowRightIcon}
-										data-nudge="right"
-										size={14}
-										aria-hidden="true" /></button>
+									onclick={() => void clearAllFilters()}
+									>Clear filters</button>
+							{:else}
+								<p>
+									The Marketplace lists nothing here right now. Select
+									another category.
+								</p>
 							{/if}
 						</div>
-					{/if}
-				{/if}
+					{/snippet}
+				</CatalogResults>
 			</div>
 		</section>
 	</div>
@@ -582,20 +432,4 @@
 			isFiltersPanelOpen = false
 			filtersButton?.focus()
 		}} />
-{/if}
-
-{#if detailedItem && itemActions}
-	<InventoryItemDialog
-		item={detailedItem.item}
-		category={inventoryCategoryOptionOf(detailedItem.category)}
-		inventory={itemActions}
-		username={accounts.selectedAccount.username}
-		{accounts}
-		isOwnInventory={false}
-		isWorn={isWorn(detailedItem)}
-		onSearchPlace={(placeId) => {
-			detailedItemKey = ""
-			onSearchPlace(placeId)
-		}}
-		onClose={() => (detailedItemKey = "")} />
 {/if}

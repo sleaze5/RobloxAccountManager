@@ -14,7 +14,6 @@
 	import personArmsSpreadIcon from "@phosphor-icons/core/regular/person-arms-spread.svg?raw"
 	import prohibitIcon from "@phosphor-icons/core/regular/prohibit.svg?raw"
 	import pulseIcon from "@phosphor-icons/core/regular/pulse.svg?raw"
-	import sealCheckIcon from "@phosphor-icons/core/regular/seal-check.svg?raw"
 	import shapesIcon from "@phosphor-icons/core/regular/shapes.svg?raw"
 	import shieldCheckIcon from "@phosphor-icons/core/regular/shield-check.svg?raw"
 	import starFillIcon from "@phosphor-icons/core/fill/star-fill.svg?raw"
@@ -38,6 +37,7 @@
 	import ImageMenuTarget from "../layout/ImageMenuTarget.svelte"
 	import Timestamp from "../shared/Timestamp.svelte"
 	import { relativeTime } from "../shared/timestamp"
+	import CreatorCard from "../shared/CreatorCard.svelte"
 	import { creatorByline, type GamesStore } from "./games-store.svelte"
 	import GameIcon from "./GameIcon.svelte"
 
@@ -464,17 +464,21 @@
 								<span>Root place ID: {rootPlace.placeId}</span>
 							{/if}
 						</div>
-						<div class={metaClass}>
-							<span class="inline-flex items-center gap-1 text-fg-muted"
-								>{creatorByline(place)}{#if place.creatorVerified}<Icon
-										svg={sealCheckIcon}
-										size={14}
-										aria-label="Verified creator" />{/if}</span>
-							{#if place.creatorId}
-								<span class="text-fg-faint" aria-hidden="true">·</span>
-								<span>{place.creatorType} ID: {place.creatorId}</span>
-							{/if}
-						</div>
+						{#if place.creatorId && (place.creatorType === "User" || place.creatorType === "Group")}
+							<div class="my-1 w-72 max-w-full">
+								<CreatorCard
+									kind={place.creatorType}
+									creatorId={place.creatorId}
+									name={place.creatorName}
+									hasVerifiedBadge={place.creatorVerified}
+									role="Creator" />
+							</div>
+						{:else}
+							<div class={metaClass}>
+								<span class="text-fg-muted"
+									>{creatorByline(place)}</span>
+							</div>
+						{/if}
 						{#if isWaitingForGame}
 							<p
 								class="inline-flex items-center gap-1 text-xs font-medium text-fg-faint">

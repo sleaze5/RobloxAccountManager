@@ -19,7 +19,6 @@
 	import magnifyingGlassIcon from "@phosphor-icons/core/regular/magnifying-glass.svg?raw"
 	import mapPinIcon from "@phosphor-icons/core/regular/map-pin.svg?raw"
 	import packageIcon from "@phosphor-icons/core/regular/package.svg?raw"
-	import sealCheckIcon from "@phosphor-icons/core/regular/seal-check.svg?raw"
 	import shoppingCartIcon from "@phosphor-icons/core/regular/shopping-cart.svg?raw"
 	import shapesIcon from "@phosphor-icons/core/regular/shapes.svg?raw"
 	import storefrontIcon from "@phosphor-icons/core/regular/storefront.svg?raw"
@@ -42,6 +41,7 @@
 		InventoryItem,
 		CategorizedInventoryItem,
 	} from "../backend/bridge"
+	import CreatorCard from "../shared/CreatorCard.svelte"
 	import Dialog from "../shared/Dialog.svelte"
 	import FrameUnavailable from "../shared/FrameUnavailable.svelte"
 	import AnchoredActionMenu from "../shared/AnchoredActionMenu.svelte"
@@ -903,19 +903,18 @@
 							<span class="text-fg-faint" aria-hidden="true">·</span>
 							<span>{typeLabel}</span>
 						</div>
-						{#if item.creatorName}
+						{#if item.creatorId && (item.creatorType === "User" || item.creatorType === "Group")}
+							<div class="my-1 w-72 max-w-full">
+								<CreatorCard
+									kind={item.creatorType}
+									creatorId={item.creatorId}
+									name={item.creatorName}
+									hasVerifiedBadge={item.creatorHasVerifiedBadge}
+									role="Creator" />
+							</div>
+						{:else if item.creatorName}
 							<div class={metaClass}>
-								<span class="inline-flex items-center gap-1"
-									>by {item.creatorName}{#if item.creatorHasVerifiedBadge}<Icon
-											svg={sealCheckIcon}
-											size={14}
-											aria-label="Verified creator" />{/if}</span>
-								{#if item.creatorId}
-									<span class="text-fg-faint" aria-hidden="true"
-										>·</span>
-									<span class="select-text"
-										>{item.creatorType} ID: {item.creatorId}</span>
-								{/if}
+								<span>by {item.creatorName}</span>
 							</div>
 						{/if}
 						{#if market}
