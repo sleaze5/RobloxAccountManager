@@ -697,8 +697,13 @@ function assetIdOf(animationId: string): number {
 // thumbnailFrameOf reads the frame of the animation that a thumbnail shows.
 // An emote or animation item names it with a ThumbnailKeyframe or a
 // ThumbnailTime value, as RoAvatar reads it. An uploaded animation names
-// none.
+// none. Without a pose, Roblox shows the first frame of the idle animation,
+// where the avatar looks ahead. Compared against the standard full-body
+// image on 2026-11-19.
 async function thumbnailFrameOf(animationId: string): Promise<AnimationFrame> {
+	if (isAnimationSetChoice(animationId) || animationId === restPoseAnimationId) {
+		return { kind: "time", timeSeconds: 0 }
+	}
 	if (
 		!animationId.startsWith(emoteAnimationPrefix) &&
 		!animationId.startsWith(assetAnimationPrefix)
