@@ -64,10 +64,10 @@ var attributeReaders = map[byte]func(reader *byteReader, name string) (Property,
 		return colorProperty(name, channels[0], channels[1], channels[2]), true
 	},
 	0x10: func(reader *byteReader, name string) (Property, bool) {
-		return structuredProperty(name, formatNumbers(reader.littleEndianFloats(2)...)), true
+		return vectorProperty(name, reader.littleEndianFloats(2)...), true
 	},
 	0x11: func(reader *byteReader, name string) (Property, bool) {
-		return structuredProperty(name, formatNumbers(reader.littleEndianFloats(3)...)), true
+		return vectorProperty(name, reader.littleEndianFloats(3)...), true
 	},
 	0x14: func(reader *byteReader, name string) (Property, bool) {
 		return readAttributeCFrame(reader, name), true
@@ -138,5 +138,5 @@ func readAttributeCFrame(reader *byteReader, name string) Property {
 	} else if special, isKnown := specialRotation(rotationID); isKnown {
 		rotation = special
 	}
-	return structuredProperty(name, cframeText(position, rotation))
+	return cframeProperty(name, position, rotation)
 }

@@ -205,7 +205,7 @@ var columnReaders = map[byte]func(column propertyColumn) []Property{
 	0x08: func(column propertyColumn) []Property {
 		return repeatValues(column.count, func() Property {
 			origin, direction := column.reader.littleEndianFloats(3), column.reader.littleEndianFloats(3)
-			return structuredProperty(column.name, "Origin: "+formatNumbers(origin...)+"\nDirection: "+formatNumbers(direction...))
+			return rayProperty(column.name, origin, direction)
 		})
 	},
 	0x09: func(column propertyColumn) []Property {
@@ -236,7 +236,7 @@ var columnReaders = map[byte]func(column propertyColumn) []Property{
 	0x14: func(column propertyColumn) []Property {
 		return repeatValues(column.count, func() Property {
 			x, y, z := int16(column.reader.uint16()), int16(column.reader.uint16()), int16(column.reader.uint16())
-			return structuredProperty(column.name, formatNumbers(float64(x), float64(y), float64(z)))
+			return vectorProperty(column.name, float64(x), float64(y), float64(z))
 		})
 	},
 	0x15: readNumberSequences,
@@ -359,7 +359,7 @@ func readVector2s(column propertyColumn) []Property {
 	xs, ys := column.reader.floats(column.count), column.reader.floats(column.count)
 	properties := make([]Property, min(len(xs), len(ys)))
 	for index := range properties {
-		properties[index] = structuredProperty(column.name, formatNumbers(xs[index], ys[index]))
+		properties[index] = vectorProperty(column.name, xs[index], ys[index])
 	}
 	return properties
 }
@@ -368,7 +368,7 @@ func readVector3s(column propertyColumn) []Property {
 	xs, ys, zs := column.reader.floats(column.count), column.reader.floats(column.count), column.reader.floats(column.count)
 	properties := make([]Property, min(len(xs), len(ys), len(zs)))
 	for index := range properties {
-		properties[index] = structuredProperty(column.name, formatNumbers(xs[index], ys[index], zs[index]))
+		properties[index] = vectorProperty(column.name, xs[index], ys[index], zs[index])
 	}
 	return properties
 }
@@ -457,7 +457,7 @@ func readCFrames(column propertyColumn) []Property {
 	xs, ys, zs := reader.floats(column.count), reader.floats(column.count), reader.floats(column.count)
 	properties := make([]Property, min(len(xs), len(ys), len(zs)))
 	for index := range properties {
-		properties[index] = structuredProperty(column.name, cframeText([3]float64{xs[index], ys[index], zs[index]}, rotations[index]))
+		properties[index] = cframeProperty(column.name, [3]float64{xs[index], ys[index], zs[index]}, rotations[index])
 	}
 	return properties
 }

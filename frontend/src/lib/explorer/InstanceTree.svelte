@@ -278,6 +278,12 @@
 							: undefined}
 						aria-selected={row.node.key === selectedKey}
 						data-tree-row={row.node.key}>
+						{#each Array.from({ length: row.depth }, (_unused, level) => level) as level (level)}
+							<span
+								class="tree-guide"
+								style:--tree-guide-level={level}
+								aria-hidden="true"></span>
+						{/each}
 						<span
 							class="grid size-4 shrink-0 place-items-center text-fg-faint transition-colors duration-100 hover:text-fg"
 							data-tree-caret>
@@ -304,17 +310,22 @@
 								isUnavailable ? "text-warning" : "text-fg-muted",
 							]}
 							aria-hidden="true" />
+						<!-- The name keeps the width it needs, and the class name takes
+						what is left, so a long name hides its class first. -->
 						<span
-							class={[
-								"min-w-0 truncate",
-								row.isMatch && "font-semibold text-fg-bright",
-								!instance && "font-medium",
-							]}>{name || "Unnamed asset"}</span>
-						{#if instance && instance.name !== instance.className}
+							class="flex min-w-0 flex-1 items-baseline gap-1.5 overflow-hidden">
 							<span
-								class="min-w-0 truncate font-mono text-2xs text-fg-faint"
-								>{instance.className}</span>
-						{/if}
+								class={[
+									"max-w-full shrink-0 truncate",
+									row.isMatch && "font-semibold text-fg-bright",
+									!instance && "font-medium",
+								]}>{name || "Unnamed asset"}</span>
+							{#if instance && instance.name !== instance.className}
+								<span
+									class="min-w-0 truncate font-mono text-2xs text-fg-faint"
+									>{instance.className}</span>
+							{/if}
+						</span>
 					</div>
 				{/each}
 			</div>

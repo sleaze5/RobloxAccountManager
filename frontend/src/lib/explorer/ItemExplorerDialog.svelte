@@ -232,6 +232,9 @@ source viewer closes before the explorer. -->
 							bind:propertyQuery
 							{collapsedGroups}
 							onToggleGroup={toggleGroup}
+							referencedClassNameOf={(instanceId) =>
+								tree?.nodeByKey.get(instanceNodeKey(instanceId))
+									?.instance?.className ?? ""}
 							onSelectInstance={(instanceId) =>
 								void selectInstance(instanceId)}
 							onOpenDocument={(property) =>

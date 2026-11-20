@@ -98,17 +98,46 @@ func formatNumber(value float64) string {
 }
 
 func formatNumbers(values ...float64) string {
+	return strings.Join(formatComponents(values), ", ")
+}
+
+func formatComponents(values []float64) []string {
 	texts := make([]string, len(values))
 	for index, value := range values {
 		texts[index] = formatNumber(value)
 	}
-	return strings.Join(texts, ", ")
+	return texts
 }
 
-// cframeText writes the position of a CFrame and, on the next line, its
-// orientation in degrees, which Roblox Studio derives from the rotation matrix
-// in Y, X, Z order. The matrix is in row-major order.
-func cframeText(position [3]float64, rotation [9]float64) string {
+// vectorProperty shows a Vector2 or a Vector3.
+func vectorProperty(name string, components ...float64) Property {
+	return vectorPartsProperty(name, VectorPart{Components: formatComponents(components)})
+}
+
+// vectorPartsProperty shows a value made of vectors, such as a CFrame. Its
+// text writes each vector on its own line.
+func vectorPartsProperty(name string, parts ...VectorPart) Property {
+	lines := make([]string, len(parts))
+	for index, part := range parts {
+		lines[index] = strings.Join(part.Components, ", ")
+		if part.Label != "" {
+			lines[index] = part.Label + ": " + lines[index]
+		}
+	}
+	return Property{Name: name, Kind: PropertyVector, Text: strings.Join(lines, "\n"), VectorParts: parts}
+}
+
+func rayProperty(name string, origin, direction []float64) Property {
+	return vectorPartsProperty(name,
+		VectorPart{Label: "Origin", Components: formatComponents(origin)},
+		VectorPart{Label: "Direction", Components: formatComponents(direction)},
+	)
+}
+
+// cframeProperty shows the position of a CFrame and its orientation in
+// degrees, which Roblox Studio derives from the rotation matrix in Y, X, Z
+// order. The matrix is in row-major order.
+func cframeProperty(name string, position [3]float64, rotation [9]float64) Property {
 	x := math.Asin(math.Max(-1, math.Min(1, -rotation[5])))
 	var y, z float64
 	if math.Abs(rotation[5]) < 0.99999 {
@@ -118,7 +147,10 @@ func cframeText(position [3]float64, rotation [9]float64) string {
 		y = math.Atan2(-rotation[6], rotation[0])
 	}
 	degrees := 180 / math.Pi
-	return fmt.Sprintf("Position: %s\nOrientation: %s", formatNumbers(position[:]...), formatNumbers(x*degrees, y*degrees, z*degrees))
+	return vectorPartsProperty(name,
+		VectorPart{Label: "Position", Components: formatComponents(position[:])},
+		VectorPart{Label: "Orientation", Components: formatComponents([]float64{x * degrees, y * degrees, z * degrees})},
+	)
 }
 
 // identityRotation is the rotation of a CFrame that a file stores without

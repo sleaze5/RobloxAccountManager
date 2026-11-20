@@ -23,6 +23,7 @@
 		propertyQuery = $bindable(),
 		collapsedGroups,
 		onToggleGroup,
+		referencedClassNameOf,
 		onSelectInstance,
 		onOpenDocument,
 	}: {
@@ -31,6 +32,8 @@
 		propertyQuery: string
 		collapsedGroups: ReadonlySet<string>
 		onToggleGroup: (group: string, isCollapsed: boolean) => void
+		// referencedClassNameOf returns the class of the instance with the ID.
+		referencedClassNameOf: (instanceId: number) => string
 		onSelectInstance: (instanceId: number) => void
 		onOpenDocument: (property: ModelProperty) => void
 	} = $props()
@@ -182,9 +185,11 @@
 	</header>
 
 	<div
-		class="min-h-0 flex-1 scrollbar-stable overflow-y-auto overscroll-contain px-3 pb-3">
+		class="min-h-0 flex-1 scrollbar-stable overflow-y-auto overscroll-contain pb-3">
 		{#if assetPreviews.length > 0 && terms.length === 0}
-			<ul class="flex gap-2 overflow-x-auto pt-3" aria-label="Referenced assets">
+			<ul
+				class="flex gap-2 overflow-x-auto px-3 py-3"
+				aria-label="Referenced assets">
 				{#each assetPreviews as property (`${property.group}:${property.name}`)}
 					<li class="w-20 shrink-0">
 						<figure class="flex flex-col gap-1">
@@ -207,7 +212,7 @@
 			</ul>
 		{/if}
 		{#if properties.length === 0}
-			<p class="py-3 text-xs text-fg-muted">This instance has no properties.</p>
+			<p class="p-3 text-xs text-fg-muted">This instance has no properties.</p>
 		{:else if groups.length === 0}
 			<div class="empty-state animate-enter py-6">
 				<Icon svg={funnelSimpleIcon} size={28} aria-hidden="true" />
@@ -226,11 +231,9 @@
 							terms.length === 0 && collapsedGroups.has(group)}
 						{@const groupId = `${elementIdPrefix}-group-${group.replaceAll(" ", "-")}`}
 						<section aria-labelledby={`${groupId}-heading`}>
-							<h4
-								id={`${groupId}-heading`}
-								class="sticky top-0 z-10 bg-canvas pt-2">
+							<h4 id={`${groupId}-heading`} class="sticky top-0 z-10">
 								<button
-									class="flex h-7 w-full items-center gap-1.5 rounded-md px-1 text-left text-xs font-semibold text-fg-muted transition-colors duration-100 hover:text-fg"
+									class="flex h-7 w-full items-center gap-2 border-b border-line-subtle bg-surface px-2 text-left text-xs font-semibold text-fg-muted transition-colors duration-100 hover:text-fg"
 									type="button"
 									aria-expanded={!isCollapsed}
 									aria-controls={groupId}
@@ -243,14 +246,14 @@
 											!isCollapsed && "rotate-90",
 										]}
 										aria-hidden="true" />
-									{group}
+									<span class="truncate">{group}</span>
 									<span
-										class="font-mono text-2xs font-normal text-fg-faint tabular-nums"
+										class="ml-auto font-mono text-2xs font-normal text-fg-faint tabular-nums"
 										>{groupProperties?.length ?? 0}</span>
 								</button>
 							</h4>
 							{#if !isCollapsed}
-								<dl id={groupId} class="facts max-w-none animate-enter">
+								<dl id={groupId} class="property-grid animate-enter">
 									{#each groupProperties ?? [] as property, index (`${property.name}:${index}`)}
 										<div>
 											<dt>
@@ -263,6 +266,9 @@
 													imageUrl={imageUrlByAssetId.get(
 														property.assetId,
 													) ?? ""}
+													referencedClassName={referencedClassNameOf(
+														property.referencedInstanceId,
+													)}
 													{onSelectInstance}
 													{onOpenDocument} />
 											</dd>

@@ -139,14 +139,12 @@ var xmlValueReaders = map[string]func(node xmlNode, name string) Property{
 	"vector3":      readXMLVector3,
 	"vector3int16": readXMLVector3,
 	"vector2": func(node xmlNode, name string) Property {
-		return structuredProperty(name, formatNumbers(node.childNumber("X"), node.childNumber("Y")))
+		return vectorProperty(name, node.childNumber("X"), node.childNumber("Y"))
 	},
-	"coordinateframe": func(node xmlNode, name string) Property {
-		return structuredProperty(name, xmlCFrameText(node))
-	},
+	"coordinateframe": xmlCFrameProperty,
 	"optionalcoordinateframe": func(node xmlNode, name string) Property {
 		if cframe, hasCFrame := node.child("CFrame"); hasCFrame {
-			return structuredProperty(name, xmlCFrameText(cframe))
+			return xmlCFrameProperty(cframe, name)
 		}
 		return structuredProperty(name, "None")
 	},
@@ -220,7 +218,7 @@ var xmlValueReaders = map[string]func(node xmlNode, name string) Property{
 	"ray": func(node xmlNode, name string) Property {
 		origin, _ := node.child("origin")
 		direction, _ := node.child("direction")
-		return structuredProperty(name, "Origin: "+formatNumbers(origin.childNumber("X"), origin.childNumber("Y"), origin.childNumber("Z"))+"\nDirection: "+formatNumbers(direction.childNumber("X"), direction.childNumber("Y"), direction.childNumber("Z")))
+		return rayProperty(name, []float64{origin.childNumber("X"), origin.childNumber("Y"), origin.childNumber("Z")}, []float64{direction.childNumber("X"), direction.childNumber("Y"), direction.childNumber("Z")})
 	},
 }
 
@@ -235,15 +233,15 @@ func readXMLNumber(node xmlNode, name string) Property {
 }
 
 func readXMLVector3(node xmlNode, name string) Property {
-	return structuredProperty(name, formatNumbers(node.childNumber("X"), node.childNumber("Y"), node.childNumber("Z")))
+	return vectorProperty(name, node.childNumber("X"), node.childNumber("Y"), node.childNumber("Z"))
 }
 
-func xmlCFrameText(node xmlNode) string {
+func xmlCFrameProperty(node xmlNode, name string) Property {
 	var rotation [9]float64
 	for index, componentName := range []string{"R00", "R01", "R02", "R10", "R11", "R12", "R20", "R21", "R22"} {
 		rotation[index] = node.childNumber(componentName)
 	}
-	return cframeText([3]float64{node.childNumber("X"), node.childNumber("Y"), node.childNumber("Z")}, rotation)
+	return cframeProperty(name, [3]float64{node.childNumber("X"), node.childNumber("Y"), node.childNumber("Z")}, rotation)
 }
 
 // packedColorProperty reads a color packed into one number as 0xAARRGGBB.

@@ -37,9 +37,11 @@ const (
 	PropertyAsset PropertyKind = "asset"
 	// PropertyBinary is data that only Roblox reads, such as physics data.
 	PropertyBinary PropertyKind = "binary"
-	// PropertyStructured is any other value, such as a vector or a CFrame. A
-	// value of several parts, such as the position and the orientation of a
-	// CFrame, writes each part on its own line.
+	// PropertyVector is a vector, or a value made of vectors such as a CFrame,
+	// whose VectorParts hold its components.
+	PropertyVector PropertyKind = "vector"
+	// PropertyStructured is any other value, such as a UDim2. A value of
+	// several parts writes each part on its own line.
 	PropertyStructured PropertyKind = "structured"
 )
 
@@ -59,11 +61,23 @@ type Property struct {
 	// ReferencedInstanceID is the instance that a reference points to, or 0
 	// when it points to none.
 	ReferencedInstanceID int `json:"referencedInstanceId"`
+	// VectorParts holds the components of a vector, or of each vector of a
+	// value made of several, such as the position and the orientation of a
+	// CFrame.
+	VectorParts []VectorPart `json:"vectorParts"`
 	// EnumValue is the number of an enum item.
 	EnumValue uint32 `json:"-"`
 	referent  string
 	// isRenamed marks a property that the file stores under an older name.
 	isRenamed bool
+}
+
+// VectorPart is one vector of a property value: its X, Y, and optional Z
+// components, written out. Label names the vector within a value made of
+// several, such as Position, and is empty for a plain vector.
+type VectorPart struct {
+	Label      string   `json:"label"`
+	Components []string `json:"components"`
 }
 
 // AttributesGroup is the group of the attributes of an instance.

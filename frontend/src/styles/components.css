@@ -274,6 +274,37 @@
 	}
 }
 
+/* tree-guide is the line that joins the rows inside an open row of a tree. It
+   runs through the caret of the open row at --tree-guide-level. */
+@utility tree-guide {
+	@apply pointer-events-none absolute inset-y-0 w-px bg-line-strong;
+	left: calc(--spacing(3) + var(--tree-guide-level, 0) * --spacing(4));
+}
+
+/* property-grid lists properties as an explorer does: one compact row per
+   property, with a name column and a value column split by a hairline. A row
+   grows when its value spans lines, such as the parts of a CFrame. */
+@utility property-grid {
+	@apply grid text-xs;
+	grid-template-columns: minmax(--spacing(28), --spacing(56)) minmax(0, 1fr);
+
+	& > div {
+		@apply col-span-2 grid grid-cols-subgrid border-b border-line-subtle transition-colors duration-100 hover:bg-hover;
+	}
+
+	& dt {
+		@apply flex min-w-0 items-start border-r border-line-subtle py-1.5 pr-2 pl-7 text-fg-muted transition-colors duration-100;
+	}
+
+	& > div:hover dt {
+		@apply text-fg;
+	}
+
+	& dd {
+		@apply flex min-w-0 items-start gap-2 px-2 py-1.5 text-fg;
+	}
+}
+
 @utility tab {
 	@apply relative flex shrink-0 items-center justify-center gap-2 border-r border-line-subtle px-4 text-xs font-medium whitespace-nowrap text-fg-muted transition-colors duration-100 hover:text-fg aria-selected:text-fg aria-[current=page]:text-fg;
 
