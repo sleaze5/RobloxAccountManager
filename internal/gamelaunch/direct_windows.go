@@ -17,15 +17,19 @@ func preparePlayerDirectly(ticket, browserTrackerID string, request Request) (pr
 	if err := validateTicket(ticket); err != nil {
 		return preparedLaunch{}, err
 	}
-	joinURL, err := buildPlaceLauncherURL(browserTrackerID, request)
-	if err != nil {
-		return preparedLaunch{}, err
+	arguments := []string{"--app", "-t", ticket}
+	if request.HasDestination() {
+		joinURL, err := buildPlaceLauncherURL(browserTrackerID, request)
+		if err != nil {
+			return preparedLaunch{}, err
+		}
+		arguments = append(arguments, "-j", joinURL)
 	}
 	executable, err := playerExecutable(request.PlayerPath)
 	if err != nil {
 		return preparedLaunch{}, err
 	}
-	return preparedLaunch{executable: executable, arguments: []string{"--app", "-t", ticket, "-j", joinURL}}, nil
+	return preparedLaunch{executable: executable, arguments: arguments}, nil
 }
 
 const playerExecutableName = "RobloxPlayerBeta.exe"

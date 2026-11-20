@@ -154,7 +154,6 @@
 		aria-activedescendant={shown && suggestions.length
 			? `${listID}-${activeIndex}`
 			: undefined}
-		required
 		disabled={store.launching}
 		oninput={showSuggestions}
 		onkeydown={handleKeydown} />
