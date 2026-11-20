@@ -15,7 +15,6 @@
 	import { classIcon } from "./instance-class-icons"
 	import PropertyColumnResizer from "./PropertyColumnResizer.svelte"
 	import PropertyValue from "./PropertyValue.svelte"
-	import VectorSummary from "./VectorSummary.svelte"
 
 	// InstanceDetails shows the properties of the selected instance in the
 	// groups that Roblox Studio shows, or the summary of an asset of a bundle.
@@ -26,8 +25,6 @@
 		collapsedGroups,
 		onToggleGroup,
 		propertyNameWidth = $bindable(),
-		expandedPropertyKeys,
-		onToggleProperty,
 		referencedClassNameOf,
 		onSelectInstance,
 		onOpenDocument,
@@ -38,11 +35,6 @@
 		collapsedGroups: ReadonlySet<string>
 		onToggleGroup: (group: string, isCollapsed: boolean) => void
 		propertyNameWidth: number
-		// The open properties and vectors, such as Size or the Position of a
-		// CFrame, by their group, name, and label, so that they stay open on
-		// the next instance, as in Roblox Studio.
-		expandedPropertyKeys: ReadonlySet<string>
-		onToggleProperty: (propertyKey: string, isExpanded: boolean) => void
 		// referencedClassNameOf returns the class of the instance with the ID.
 		referencedClassNameOf: (instanceId: number) => string
 		onSelectInstance: (instanceId: number) => void
@@ -100,32 +92,12 @@
 	}
 </script>
 
-{#snippet nameToggle(label: string, propertyKey: string, isExpanded: boolean)}
-	<button
-		class="property-toggle"
-		type="button"
-		aria-expanded={isExpanded}
-		onclick={() => onToggleProperty(propertyKey, !isExpanded)}>
-		<span class="grid size-4 shrink-0 place-items-center text-fg-faint">
-			<Icon
-				svg={caretRightIcon}
-				size={12}
-				class={[
-					"transition-transform duration-100 ease-out",
-					isExpanded && "rotate-90",
-				]}
-				aria-hidden="true" />
-		</span>
-		<span class="truncate">{label}</span>
-	</button>
-{/snippet}
-
 <!-- componentRows lists the X, Y, and Z of a vector as rows of their own.
 Screen readers hear the name of the vector before each axis. -->
 {#snippet componentRows(vectorName: string, components: string[], depth: number)}
 	{#each components as component, componentIndex (componentIndex)}
 		{@const axis = axes[componentIndex]}
-		<div class="animate-enter">
+		<div>
 			<dt style:--property-depth={depth}>
 				<span class="sr-only">{`${vectorName} `}</span>
 				<span class={["font-semibold", axis?.colorClass]}>{axis?.name}</span>
@@ -337,77 +309,53 @@ Screen readers hear the name of the vector before each axis. -->
 										id={groupId}
 										class="property-grid animate-enter">
 										{#each groupProperties ?? [] as property, index (`${property.name}:${index}`)}
-											{@const propertyKey = `${property.group}/${property.name}`}
-											{@const isVector =
-												property.kind ===
-												ModelPropertyKind.PropertyVector}
-											{@const isExpanded =
-												isVector &&
-												expandedPropertyKeys.has(propertyKey)}
+											<!-- A vector names its parts, such as the Position
+											of a CFrame, and their X, Y, and Z rows hold the
+											numbers, so each number shows once. -->
 											<div>
 												<dt>
-													{#if isVector}
-														{@render nameToggle(
-															property.name,
-															propertyKey,
-															isExpanded,
-														)}
-													{:else}
-														<span class="truncate"
-															>{property.name}</span>
-													{/if}
+													<span class="truncate"
+														>{property.name}</span>
 												</dt>
 												<dd>
-													<PropertyValue
-														{property}
-														imageUrl={imageUrlByAssetId.get(
-															property.assetId,
-														) ?? ""}
-														referencedClassName={referencedClassNameOf(
-															property.referencedInstanceId,
-														)}
-														{onSelectInstance}
-														{onOpenDocument} />
+													{#if property.kind !== ModelPropertyKind.PropertyVector}
+														<PropertyValue
+															{property}
+															imageUrl={imageUrlByAssetId.get(
+																property.assetId,
+															) ?? ""}
+															referencedClassName={referencedClassNameOf(
+																property.referencedInstanceId,
+															)}
+															{onSelectInstance}
+															{onOpenDocument} />
+													{/if}
 												</dd>
 											</div>
-											{#if isExpanded}
-												{#each property.vectorParts ?? [] as part, partIndex (partIndex)}
-													{#if part.label}
-														{@const partKey = `${propertyKey}/${part.label}`}
-														{@const isPartExpanded =
-															expandedPropertyKeys.has(
-																partKey,
-															)}
-														<div class="animate-enter">
-															<dt
-																style:--property-depth={1}>
-																{@render nameToggle(
-																	part.label,
-																	partKey,
-																	isPartExpanded,
-																)}
-															</dt>
-															<dd>
-																<VectorSummary
-																	parts={[part]} />
-															</dd>
-														</div>
-														{#if isPartExpanded}
-															{@render componentRows(
-																`${property.name} ${part.label}`,
-																part.components ?? [],
-																2,
-															)}
-														{/if}
-													{:else}
-														{@render componentRows(
-															property.name,
-															part.components ?? [],
-															1,
-														)}
-													{/if}
-												{/each}
-											{/if}
+											{#each property.vectorParts ?? [] as part, partIndex (partIndex)}
+												{#if part.label}
+													<div>
+														<dt style:--property-depth={1}>
+															<span class="sr-only"
+																>{`${property.name} `}</span>
+															<span class="truncate"
+																>{part.label}</span>
+														</dt>
+														<dd></dd>
+													</div>
+													{@render componentRows(
+														`${property.name} ${part.label}`,
+														part.components ?? [],
+														2,
+													)}
+												{:else}
+													{@render componentRows(
+														property.name,
+														part.components ?? [],
+														1,
+													)}
+												{/if}
+											{/each}
 										{/each}
 									</dl>
 								{/if}

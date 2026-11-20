@@ -308,13 +308,6 @@
 	}
 }
 
-/* property-toggle is the name of a property that opens its parts, such as
-   the X, Y, and Z of a Vector3. Its caret hangs left of the name, so that the
-   name lines up with the names of other rows. */
-@utility property-toggle {
-	@apply -ml-5 flex min-w-0 items-center gap-1 rounded-sm text-left text-inherit;
-}
-
 @utility tab {
 	@apply relative flex shrink-0 items-center justify-center gap-2 border-r border-line-subtle px-4 text-xs font-medium whitespace-nowrap text-fg-muted transition-colors duration-100 hover:text-fg aria-selected:text-fg aria-[current=page]:text-fg;
 

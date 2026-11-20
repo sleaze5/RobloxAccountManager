@@ -6,12 +6,11 @@
 	import CheckboxMark from "../shared/CheckboxMark.svelte"
 	import Icon from "../shared/Icon.svelte"
 	import { classIcon } from "./instance-class-icons"
-	import VectorSummary from "./VectorSummary.svelte"
 
 	// PropertyValue shows the value of one property as an explorer does: a
-	// check box for a boolean, a swatch for a color, the components of a
-	// vector on one line, and a link to the instance that a reference points
-	// to.
+	// check box for a boolean, a swatch for a color, and a link to the
+	// instance that a reference points to. The rows of a vector show its
+	// components themselves.
 	let {
 		property,
 		imageUrl,
@@ -34,7 +33,6 @@
 				? property.text.split("\n").length
 				: 0,
 		),
-		vectorParts = $derived(property.vectorParts ?? []),
 		// The asset ID inside a content value, such as rbxassetid://123, which
 		// shows brighter than the rest of the address.
 		assetIdText = $derived(String(property.assetId)),
@@ -76,8 +74,6 @@
 		aria-hidden="true"></span>
 	<span class="font-mono tabular-nums select-text">{property.text}</span>
 	<span class="font-mono text-fg-muted uppercase select-text">{property.color}</span>
-{:else if property.kind === ModelPropertyKind.PropertyVector}
-	<VectorSummary parts={vectorParts} />
 {:else if property.kind === ModelPropertyKind.PropertyReference}
 	{#if property.referencedInstanceId > 0}
 		<button

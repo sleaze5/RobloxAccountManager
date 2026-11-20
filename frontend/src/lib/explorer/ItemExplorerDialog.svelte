@@ -55,7 +55,6 @@
 		searchQuery = $state(""),
 		propertyQuery = $state(""),
 		collapsedGroups = $state.raw(new Set<string>()),
-		expandedPropertyKeys = $state.raw(new Set<string>()),
 		// The width of the name column of the properties, as Roblox Studio
 		// starts it.
 		propertyNameWidth = $state(176),
@@ -136,13 +135,6 @@
 		if (isCollapsed) nextCollapsedGroups.add(group)
 		else nextCollapsedGroups.delete(group)
 		collapsedGroups = nextCollapsedGroups
-	}
-
-	function toggleProperty(propertyKey: string, isExpanded: boolean): void {
-		const nextExpandedPropertyKeys = new Set(expandedPropertyKeys)
-		if (isExpanded) nextExpandedPropertyKeys.add(propertyKey)
-		else nextExpandedPropertyKeys.delete(propertyKey)
-		expandedPropertyKeys = nextExpandedPropertyKeys
 	}
 
 	async function openDocument(property: ModelProperty): Promise<void> {
@@ -244,8 +236,6 @@ source viewer closes before the explorer. -->
 							{collapsedGroups}
 							onToggleGroup={toggleGroup}
 							bind:propertyNameWidth
-							{expandedPropertyKeys}
-							onToggleProperty={toggleProperty}
 							referencedClassNameOf={(instanceId) =>
 								tree?.nodeByKey.get(instanceNodeKey(instanceId))
 									?.instance?.className ?? ""}
