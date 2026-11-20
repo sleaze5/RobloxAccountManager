@@ -274,14 +274,6 @@
 	}
 }
 
-/* tree-guide is the line that joins the rows inside an open row of a tree. It
-   runs through the caret of the open row at --tree-guide-level. data-active
-   traces the path to the selected row. */
-@utility tree-guide {
-	@apply pointer-events-none absolute inset-y-0 w-px bg-line-strong transition-colors duration-100 data-active:bg-accent/55;
-	left: calc(--spacing(3) + var(--tree-guide-level, 0) * --spacing(4));
-}
-
 /* property-grid lists properties as Roblox Studio does: one compact row per
    property, with a name column as wide as --property-name-width and a value
    column, split by a hairline. A sub-row, such as the X of a Vector3, indents

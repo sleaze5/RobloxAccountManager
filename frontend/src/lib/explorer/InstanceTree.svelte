@@ -7,7 +7,7 @@
 	import { tick, untrack } from "svelte"
 	import Icon from "../shared/Icon.svelte"
 	import { searchTerms } from "../shared/search"
-	import { activeGuideRanges, nodeName, visibleRows } from "./explorer-tree"
+	import { nodeName, visibleRows } from "./explorer-tree"
 	import type { ExplorerNode, ExplorerRow, ExplorerTree } from "./explorer-tree"
 	import { classIcon } from "./instance-class-icons"
 
@@ -48,7 +48,6 @@
 		rows = $derived(visibleRows(tree, expandedKeys, terms)),
 		matchCount = $derived(rows.filter((row) => row.isMatch).length),
 		selectedIndex = $derived(rows.findIndex((row) => row.node.key === selectedKey)),
-		guideRangeByLevel = $derived(activeGuideRanges(rows, selectedIndex)),
 		firstShownIndex = $derived(
 			Math.max(0, Math.floor(scrollTop / rowHeight) - overscanRowCount),
 		),
@@ -261,8 +260,7 @@
 			<div
 				class="absolute inset-x-0 top-0 translate-y-(--tree-offset)"
 				style:--tree-offset={`${firstShownIndex * rowHeight}px`}>
-				{#each shownRows as row, shownIndex (row.node.key)}
-					{@const rowIndex = firstShownIndex + shownIndex}
+				{#each shownRows as row (row.node.key)}
 					{@const instance = row.node.instance}
 					{@const hasChildren = row.node.children.length > 0}
 					{@const name = nodeName(row.node)}
@@ -281,19 +279,6 @@
 							: undefined}
 						aria-selected={row.node.key === selectedKey}
 						data-tree-row={row.node.key}>
-						<!-- An indent guide runs through the row at each level above
-						it. The guides that lead to the selected row are brighter. -->
-						{#each Array.from({ length: row.depth }, (_unused, level) => level) as level (level)}
-							{@const guideRange = guideRangeByLevel.get(level)}
-							<span
-								class="tree-guide"
-								style:--tree-guide-level={level}
-								data-active={(guideRange &&
-									rowIndex >= guideRange.firstIndex &&
-									rowIndex <= guideRange.lastIndex) ||
-									undefined}
-								aria-hidden="true"></span>
-						{/each}
 						<span
 							class="grid size-4 shrink-0 place-items-center text-fg-faint transition-colors duration-100 hover:text-fg"
 							data-tree-caret>

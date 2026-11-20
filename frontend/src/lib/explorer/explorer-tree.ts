@@ -31,14 +31,6 @@ export interface ExplorerRow {
 	setSize: number
 }
 
-// GuideRange is the rows whose line at one level leads to the selected row:
-// from the first child of the ancestor at that level to the row on the way
-// to the selected row.
-export interface GuideRange {
-	firstIndex: number
-	lastIndex: number
-}
-
 export function instanceNodeKey(instanceId: number): string {
 	return `instance:${instanceId}`
 }
@@ -163,30 +155,6 @@ export function visibleRows(
 	}
 	addRows(tree.roots, 0)
 	return rows
-}
-
-// activeGuideRanges finds, by level, the rows whose lines lead from the root
-// to the selected row, so that the tree can trace its path.
-export function activeGuideRanges(
-	rows: ExplorerRow[],
-	selectedIndex: number,
-): Map<number, GuideRange> {
-	const ranges = new Map<number, GuideRange>()
-	const indexByNode = new Map(rows.map((row, index) => [row.node, index]))
-	for (
-		let pathNode = rows[selectedIndex]?.node;
-		pathNode?.parent;
-		pathNode = pathNode.parent
-	) {
-		const parentIndex = indexByNode.get(pathNode.parent),
-			pathIndex = indexByNode.get(pathNode)
-		if (parentIndex === undefined || pathIndex === undefined) break
-		ranges.set(rows[pathIndex].depth - 1, {
-			firstIndex: parentIndex + 1,
-			lastIndex: pathIndex,
-		})
-	}
-	return ranges
 }
 
 // ancestorKeys lists the keys of the nodes that contain the node, so that
