@@ -26,6 +26,7 @@
 	import tagIcon from "@phosphor-icons/core/regular/tag.svg?raw"
 	import timerIcon from "@phosphor-icons/core/regular/timer.svg?raw"
 	import trashIcon from "@phosphor-icons/core/regular/trash.svg?raw"
+	import treeStructureIcon from "@phosphor-icons/core/regular/tree-structure.svg?raw"
 	import trendUpIcon from "@phosphor-icons/core/regular/trend-up.svg?raw"
 	import trophyIcon from "@phosphor-icons/core/regular/trophy.svg?raw"
 	import xIcon from "@phosphor-icons/core/regular/x.svg?raw"
@@ -47,6 +48,7 @@
 	import AnchoredActionMenu from "../shared/AnchoredActionMenu.svelte"
 	import type { MenuAction } from "../shared/AnchoredActionMenu.svelte"
 	import ExpandedImageDialog from "../shared/ExpandedImageDialog.svelte"
+	import ItemExplorerDialog from "../explorer/ItemExplorerDialog.svelte"
 	import Icon from "../shared/Icon.svelte"
 	import ImageViewToggle from "../shared/ImageViewToggle.svelte"
 	import type { ImageView } from "../shared/ImageViewToggle.svelte"
@@ -136,6 +138,7 @@
 		card = $state<HTMLDivElement | undefined>(undefined),
 		view = $state<ImageView>("2D"),
 		isExpanded = $state(false),
+		isExplorerOpen = $state(false),
 		isTryingOn = $state(false),
 		// Whether an animation or an emote plays on the plain R15 rig instead
 		// of the saved avatar. The choice stays for the next item.
@@ -196,6 +199,7 @@
 		canTryOn = $derived(!!details?.canTryOn),
 		canHaveRelatedItems = $derived(!!details?.canHaveRelatedItems),
 		canDownload = $derived(!!details?.canDownload),
+		canExplore = $derived(!!details?.canExplore),
 		// Whether Roblox moderated or deleted the item.
 		isRemoved = $derived(
 			details?.availability === ItemAvailability.ItemModerated ||
@@ -364,7 +368,7 @@
 	): Promise<void> {
 		openedRelatedItems = nextOpenedRelatedItems
 		view = "2D"
-		isTryingOn = isExpanded = false
+		isTryingOn = isExpanded = isExplorerOpen = false
 		inventory.cancelFindingGamePassPlace()
 		inventory.clearItemActionError()
 		await tick()
@@ -844,6 +848,21 @@
 											aria-hidden="true" />
 									</button>
 								{/if}
+								{#if canExplore}
+									<button
+										class="button-icon"
+										type="button"
+										aria-label="Open explorer"
+										aria-haspopup="dialog"
+										data-tooltip="Explore the instances in the file"
+										data-open={isExplorerOpen || undefined}
+										onclick={() => (isExplorerOpen = true)}>
+										<Icon
+											svg={treeStructureIcon}
+											size={16}
+											aria-hidden="true" />
+									</button>
+								{/if}
 								{#if downloadActions.length > 0}
 									{@const onlyDownloadAction =
 										downloadActions.length === 1
@@ -1279,6 +1298,14 @@
 		anchor={downloadButton}
 		actions={downloadActions}
 		onClose={() => (isDownloadMenuOpen = false)} />
+{/if}
+
+{#if isExplorerOpen && !confirmation}
+	<ItemExplorerDialog
+		{item}
+		{category}
+		{inventory}
+		onClose={() => (isExplorerOpen = false)} />
 {/if}
 
 {#if isExpanded && !confirmation}

@@ -7,6 +7,7 @@ import (
 	"sync"
 
 	"github.com/sleaze5/RobloxAccountManager/internal/roblox"
+	"github.com/sleaze5/RobloxAccountManager/internal/roblox/modelfile"
 )
 
 const (
@@ -76,7 +77,7 @@ func (service *Users) assetDependencyIDs(ctx context.Context, accountID, version
 	if err != nil {
 		return nil, err
 	}
-	assetIDs, err := assetIDsReferencedByModelFile(modelFile)
+	assetIDs, err := modelfile.ReferencedAssetIDs(modelFile)
 	if err != nil {
 		return nil, &roblox.Error{Kind: roblox.KindProtocol, Endpoint: relatedItemsEndpoint, Message: "Roblox returned a file that the app cannot read.", Cause: err}
 	}

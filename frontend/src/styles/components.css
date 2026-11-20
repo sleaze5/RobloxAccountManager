@@ -262,6 +262,44 @@
 	}
 }
 
+/* tree-row is a row of a tree, indented by --tree-depth levels. It draws the
+   hover and selection of list-row. While the tree has keyboard focus, its
+   active row draws the focus ring, because the tree keeps focus itself. */
+@utility tree-row {
+	@apply list-row flex h-7 cursor-default items-center gap-1.5 pr-2 text-xs text-fg-muted select-none aria-selected:text-fg;
+	padding-left: calc(--spacing(1) + var(--tree-depth, 0) * --spacing(4));
+
+	:where([role="tree"]:focus-visible) &[aria-selected="true"] {
+		@apply outline-1 -outline-offset-1 outline-focus;
+	}
+}
+
+/* property-grid lists properties as Roblox Studio does: one compact row per
+   property, with a name column as wide as --property-name-width and a value
+   column, split by a hairline. A sub-row, such as the X of a Vector3, indents
+   its name by --property-depth levels. */
+@utility property-grid {
+	@apply grid text-xs;
+	grid-template-columns: var(--property-name-width, --spacing(44)) minmax(0, 1fr);
+
+	& > div {
+		@apply col-span-2 grid grid-cols-subgrid border-b border-line-subtle transition-colors duration-100 hover:bg-hover;
+	}
+
+	& dt {
+		@apply flex min-w-0 items-center border-r border-line-subtle py-1 pr-2 text-fg-muted transition-colors duration-100;
+		padding-left: calc(--spacing(6) + var(--property-depth, 0) * --spacing(4));
+	}
+
+	& > div:hover dt {
+		@apply text-fg;
+	}
+
+	& dd {
+		@apply flex min-w-0 items-center gap-2 px-2 py-1 text-fg;
+	}
+}
+
 @utility tab {
 	@apply relative flex shrink-0 items-center justify-center gap-2 border-r border-line-subtle px-4 text-xs font-medium whitespace-nowrap text-fg-muted transition-colors duration-100 hover:text-fg aria-selected:text-fg aria-[current=page]:text-fg;
 
@@ -438,6 +476,13 @@
 	&[data-variant="prose"] {
 		@apply font-sans text-sm leading-normal;
 	}
+}
+
+/* code-view shows source code exactly as stored. Ligatures would merge
+   characters, such as the two hyphens that start a Luau comment. */
+@utility code-view {
+	@apply font-mono text-2xs leading-5;
+	font-variant-ligatures: none;
 }
 
 @utility spinner {
