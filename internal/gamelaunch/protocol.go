@@ -16,13 +16,18 @@ func buildProtocolURL(ticket, browserTrackerID string, request Request, now time
 	if browserTrackerID == "" || strings.IndexFunc(browserTrackerID, func(value rune) bool { return value < '0' || value > '9' }) >= 0 {
 		return "", errors.New("browser tracker ID is invalid")
 	}
-	launcher, err := buildPlaceLauncherURL(browserTrackerID, request)
-	if err != nil {
-		return "", err
+	// Without a place launcher URL, Roblox signs in and opens its home page.
+	placeLauncherParameter := ""
+	if request.HasDestination() {
+		launcher, err := buildPlaceLauncherURL(browserTrackerID, request)
+		if err != nil {
+			return "", err
+		}
+		placeLauncherParameter = "+placelauncherurl:" + url.QueryEscape(launcher)
 	}
 	return fmt.Sprintf(
-		"roblox-player:1+launchmode:play+gameinfo:%s+launchtime:%d+placelauncherurl:%s+browsertrackerid:%s+robloxLocale:en_us+gameLocale:en_us+channel:+LaunchExp:InApp",
-		ticket, now.UnixMilli(), url.QueryEscape(launcher), browserTrackerID,
+		"roblox-player:1+launchmode:play+gameinfo:%s+launchtime:%d%s+browsertrackerid:%s+robloxLocale:en_us+gameLocale:en_us+channel:+LaunchExp:InApp",
+		ticket, now.UnixMilli(), placeLauncherParameter, browserTrackerID,
 	), nil
 }
 

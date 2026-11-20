@@ -204,7 +204,7 @@ func (service *Service) runLaunchOperation(ctx context.Context, accountID int64,
 	if err != nil {
 		return launchPreparationError(err)
 	}
-	logger = logger.With("method", input.Method, "share_type", target.ShareType)
+	logger = logger.With("method", input.Method, "share_type", target.ShareType, "has_destination", target.HasDestination())
 	stage = "account-session"
 	session, err := service.sessions.Snapshot(accountID)
 	if err != nil {
@@ -221,7 +221,7 @@ func (service *Service) runLaunchOperation(ctx context.Context, accountID int64,
 		cancel()
 	}
 	logger.DebugContext(ctx, "preparing Roblox launch")
-	if input.Method == gamelaunch.MethodUser {
+	if input.Method == gamelaunch.MethodUser && target.HasDestination() {
 		stage = "resolve-user"
 		target, err = service.resolveLaunchUser(ctx, accountID, target, input.ResolveCurrentGame)
 	} else {
@@ -235,6 +235,9 @@ func (service *Service) runLaunchOperation(ctx context.Context, accountID int64,
 	target.DirectLaunch = input.DirectLaunch
 	target.PlayerPath = input.PlayerPath
 	if launchData := strings.TrimSpace(input.LaunchData); launchData != "" {
+		if !target.HasDestination() {
+			return launchError(roblox.KindProtocol, "Enter a game to join to use custom launch data.")
+		}
 		target.LaunchData = launchData
 	}
 	var ticketValue string
