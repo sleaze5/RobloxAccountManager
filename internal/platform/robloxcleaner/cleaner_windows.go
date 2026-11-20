@@ -4,12 +4,12 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"log/slog"
 	"os"
 	"path/filepath"
 	"slices"
 	"strings"
 	"syscall"
+	"time"
 	"unsafe"
 
 	"golang.org/x/sys/windows"
@@ -28,8 +28,11 @@ var procRegDeleteTree = windows.NewLazySystemDLL("advapi32.dll").NewProc("RegDel
 
 var (
 	robloxApplications = []string{"Roblox", "Roblox Studio"}
-	protocols          = []string{"roblox", "roblox-player", "roblox-studio", "roblox-studio-auth"}
-	fileExtensions     = []string{".rbxl", ".rbxlx", ".rbxm", ".rbxmx"}
+	// The Roblox installers name their shortcuts "Roblox Player" and
+	// "Roblox Studio". Older installers named the player shortcut "Roblox".
+	robloxShortcutNames = []string{"Roblox", "Roblox Player", "Roblox Studio"}
+	protocols           = []string{"roblox", "roblox-player", "roblox-studio", "roblox-studio-auth"}
+	fileExtensions      = []string{".rbxl", ".rbxlx", ".rbxm", ".rbxmx"}
 )
 
 // environmentPath is a path below a folder that an environment variable
@@ -75,6 +78,7 @@ var (
 	}
 	// Folders that hold Roblox logs, deleted unless the user keeps logs.
 	logFolders = []environmentPath{
+		{"LOCALAPPDATA", `Roblox\logs`},
 		{"APPDATA", `Roblox\logs`},
 		{"TEMP", "RobloxLogs"},
 		{"SystemRoot", `Temp\RobloxLogs`},
@@ -90,13 +94,17 @@ var (
 		{"ProgramData", ""},
 		{"ProgramFiles", ""},
 		{"ProgramFiles(x86)", ""},
-		{"APPDATA", startMenuPrograms},
-		{"ProgramData", startMenuPrograms},
 	}
+	// Start menus hold a folder of shortcuts for each Roblox application.
 	foldersWithApplicationShortcuts = []environmentPath{
 		{"APPDATA", startMenuPrograms},
 		{"ProgramData", startMenuPrograms},
+	}
+	foldersWithShortcutFiles = []environmentPath{
+		{"APPDATA", startMenuPrograms},
+		{"ProgramData", startMenuPrograms},
 		{"USERPROFILE", "Desktop"},
+		{"PUBLIC", "Desktop"},
 	}
 	userContentFolders = []environmentPath{
 		{"USERPROFILE", `Documents\ROBLOX`},
@@ -106,17 +114,15 @@ var (
 )
 
 // isKeptLocalEntry reports whether an entry of %LOCALAPPDATA%\Roblox survives
-// data cleaning. Everything not listed is deleted, so files that new Roblox
+// cache cleaning. Everything not listed is deleted, so files that new Roblox
 // versions add are cleaned too. The list keeps the installed versions, the
-// Roblox settings files, the fast flag settings, Roblox Studio plugins, and
-// the logs when the user keeps them.
-func isKeptLocalEntry(name string, shouldDeleteLogs bool) bool {
+// Roblox settings files, the fast flag settings, and Roblox Studio plugins.
+// It also keeps the logs, which the log phase deletes when the user wants it.
+func isKeptLocalEntry(name string) bool {
 	lowercaseName := strings.ToLower(name)
 	switch {
-	case slices.Contains([]string{"versions", "clientsettings", "plugins"}, lowercaseName):
+	case slices.Contains([]string{"versions", "clientsettings", "plugins", "logs"}, lowercaseName):
 		return true
-	case lowercaseName == "logs":
-		return !shouldDeleteLogs
 	default:
 		return strings.HasSuffix(lowercaseName, ".xml") &&
 			(strings.HasPrefix(lowercaseName, "globalbasicsettings_") || strings.HasPrefix(lowercaseName, "globalsettings_"))
@@ -150,6 +156,7 @@ func uninstallRegistryKeys() []registryKey {
 		{`Software\Microsoft\Windows\Shell\Associations\UrlAssociations`, protocols},
 		{`Software\Microsoft\Windows\CurrentVersion\Explorer\FileExts`, fileExtensions},
 		{`Software\Microsoft\RADAR\HeapLeakDetection\DiagnosedApplications`, []string{"RobloxPlayerBeta.exe", "RobloxStudioBeta.exe"}},
+		{classes + `\Applications`, []string{"RobloxPlayerBeta.exe", "RobloxPlayerLauncher.exe", "RobloxStudioBeta.exe", "RobloxStudioLauncherBeta.exe"}},
 		{uninstallEntries, protocols},
 		{"Software", []string{"ROBLOX Corporation", "Roblox"}},
 		{`Software\WOW6432Node`, []string{"ROBLOX Corporation", "Roblox"}},
@@ -176,83 +183,186 @@ func uninstallRegistryValues() []registryValue {
 	return values
 }
 
-type cleanup struct {
-	ctx          context.Context
-	logger       *slog.Logger
-	deletedCount int
-	skippedCount int
+// cleanupTarget is one file, folder, registry key, or registry value to
+// delete. Its label goes into logs, and its display name, which can contain
+// the Windows user name, is shown to the user. delete reports whether the
+// target existed.
+type cleanupTarget struct {
+	label       string
+	displayName string
+	delete      func() (bool, error)
 }
 
-// cleanupStep is one file, folder, registry key, or registry value to delete.
-type cleanupStep struct {
-	stage  Stage
-	delete func()
+func listPhaseTargets(phase Phase) []cleanupTarget {
+	switch phase {
+	case PhaseRemovingApplications:
+		return pathTargets(append(applicationPaths(), shortcutPaths()...))
+	case PhaseRemovingRegistryEntries:
+		return append(registryKeyTargets(uninstallRegistryKeys()), registryValueTargets(uninstallRegistryValues())...)
+	case PhaseDeletingUserContent:
+		return pathTargets(userContentFolders)
+	case PhaseDeletingCaches:
+		targets := append(pathTargets(dataFolders), localRobloxEntryTargets()...)
+		targets = append(targets, registryKeyTargets(dataRegistryKeys)...)
+		return append(targets, looseRobloxFileTargets()...)
+	case PhaseDeletingLogs:
+		return pathTargets(logFolders)
+	case PhaseClosingProcesses:
+		return nil
+	}
+	return nil
 }
 
-func clean(ctx context.Context, scope Scope, shouldDeleteLogs bool, reportProgress func(Progress), logger *slog.Logger) (Outcome, error) {
-	logger = logger.With("scope", scope, "should_delete_logs", shouldDeleteLogs)
-	run := &cleanup{ctx: ctx, logger: logger}
-	steps := run.plan(scope, shouldDeleteLogs)
-	for index, step := range steps {
+// retryDelays are the pauses before targets that were in use are deleted
+// again. A closed process can hold its files for a moment after it exits, and
+// antivirus and search indexing open new files briefly.
+var retryDelays = []time.Duration{250 * time.Millisecond, time.Second}
+
+func deleteTargets(ctx context.Context, targets []cleanupTarget, tracker *progressTracker) {
+	var inUseTargets []cleanupTarget
+	failures := map[string]error{}
+	for _, target := range targets {
 		if ctx.Err() != nil {
+			return
+		}
+		wasDeleted, err := target.delete()
+		switch {
+		case isInUseError(err):
+			inUseTargets = append(inUseTargets, target)
+			failures[target.label] = err
+		case err != nil:
+			tracker.completeItem(itemSkipped, target.label, target.displayName, err)
+		case wasDeleted:
+			tracker.completeItem(itemDeleted, target.label, target.displayName, nil)
+		default:
+			tracker.completeItem(itemMissing, target.label, target.displayName, nil)
+		}
+	}
+	for _, retryDelay := range retryDelays {
+		if len(inUseTargets) == 0 || !waitForRetry(ctx, retryDelay) {
 			break
 		}
-		reportProgress(Progress{Stage: step.stage, CompletedCount: index, TotalCount: len(steps)})
-		step.delete()
+		var stillInUseTargets []cleanupTarget
+		for _, target := range inUseTargets {
+			// A retry can find the target gone, because the first attempt deleted
+			// everything except the files that were in use.
+			if _, err := target.delete(); isInUseError(err) {
+				stillInUseTargets = append(stillInUseTargets, target)
+				failures[target.label] = err
+			} else if err != nil {
+				tracker.completeItem(itemSkipped, target.label, target.displayName, err)
+			} else {
+				tracker.completeItem(itemDeleted, target.label, target.displayName, nil)
+			}
+		}
+		inUseTargets = stillInUseTargets
 	}
-	if err := ctx.Err(); err != nil {
-		return Outcome{}, fmt.Errorf("clean Roblox: %w", err)
+	for _, target := range inUseTargets {
+		tracker.completeItem(itemSkipped, target.label, target.displayName, failures[target.label])
 	}
-	logger.Info("Roblox cleaned", "deleted_count", run.deletedCount, "skipped_count", run.skippedCount)
-	return Outcome{DeletedCount: run.deletedCount, SkippedCount: run.skippedCount}, nil
 }
 
-// plan lists every deletion first, so that progress can show the total.
-func (run *cleanup) plan(scope Scope, shouldDeleteLogs bool) []cleanupStep {
-	var paths []environmentPath
-	var keys []registryKey
-	var values []registryValue
-	if shouldDeleteLogs {
-		paths = append(paths, logFolders...)
+func waitForRetry(ctx context.Context, retryDelay time.Duration) bool {
+	timer := time.NewTimer(retryDelay)
+	defer timer.Stop()
+	select {
+	case <-ctx.Done():
+		return false
+	case <-timer.C:
+		return true
 	}
-	switch scope {
-	case ScopeData:
-		paths = append(paths, run.localRobloxEntriesToDelete(shouldDeleteLogs)...)
-		keys = dataRegistryKeys
-	case ScopeUninstall:
-		paths = append(paths, uninstallPaths()...)
-		keys = uninstallRegistryKeys()
-		values = uninstallRegistryValues()
+}
+
+// isInUseError reports whether a deletion failed because another process
+// holds a file open. A folder whose files are pending deletion is not empty
+// until their last handle closes.
+func isInUseError(err error) bool {
+	return errors.Is(err, windows.ERROR_SHARING_VIOLATION) ||
+		errors.Is(err, windows.ERROR_LOCK_VIOLATION) ||
+		errors.Is(err, windows.ERROR_DIR_NOT_EMPTY)
+}
+
+// skipReasonOf names why a target or process was skipped for the user.
+func skipReasonOf(err error) SkipReason {
+	switch {
+	case isInUseError(err):
+		return SkipReasonInUse
+	case errors.Is(err, windows.ERROR_ACCESS_DENIED), errors.Is(err, windows.ERROR_PRIVILEGE_NOT_HELD):
+		return SkipReasonNeedsAdministratorRights
+	case errors.Is(err, errReparsePoint):
+		return SkipReasonLink
+	default:
+		return SkipReasonFailed
 	}
-	paths = append(paths, dataFolders...)
-	paths = append(paths, run.looseRobloxFiles()...)
-	steps := make([]cleanupStep, 0, len(paths)+len(keys)+len(values))
+}
+
+// displayName returns the resolved path, or the label when the environment
+// variable is not set.
+func (path environmentPath) displayName() string {
+	if resolved, ok := path.resolve(); ok {
+		return resolved
+	}
+	return path.label()
+}
+
+func pathTargets(paths []environmentPath) []cleanupTarget {
+	targets := make([]cleanupTarget, 0, len(paths))
 	for _, path := range paths {
-		steps = append(steps, cleanupStep{StageDeletingFiles, func() { run.removePath(path) }})
+		targets = append(targets, cleanupTarget{path.label(), path.displayName(), func() (bool, error) { return removePath(path) }})
 	}
-	for _, key := range keys {
-		steps = append(steps, cleanupStep{StageDeletingRegistryEntries, func() { run.deleteRegistryKeyIfPresent(key) }})
-	}
-	for _, value := range values {
-		steps = append(steps, cleanupStep{StageDeletingRegistryEntries, func() { run.deleteRegistryValueIfPresent(value) }})
-	}
-	return steps
+	return targets
 }
 
-func uninstallPaths() []environmentPath {
+func registryKeyTargets(keys []registryKey) []cleanupTarget {
+	targets := make([]cleanupTarget, 0, len(keys))
+	for _, key := range keys {
+		label := registryLabel(key)
+		targets = append(targets, cleanupTarget{label, label, func() (bool, error) { return deleteRegistryKeyIfPresent(key) }})
+	}
+	return targets
+}
+
+func registryValueTargets(values []registryValue) []cleanupTarget {
+	targets := make([]cleanupTarget, 0, len(values))
+	for _, value := range values {
+		label := registryLabel(value.key) + ` (value ` + value.name + `)`
+		targets = append(targets, cleanupTarget{label, label, func() (bool, error) { return deleteRegistryValueIfPresent(value) }})
+	}
+	return targets
+}
+
+// failedListingTarget stands for a folder that could not be listed, so that
+// the folder counts as skipped.
+func failedListingTarget(folder environmentPath, err error) cleanupTarget {
+	return cleanupTarget{folder.label(), folder.displayName(), func() (bool, error) { return false, err }}
+}
+
+func applicationPaths() []environmentPath {
 	var paths []environmentPath
 	for _, application := range robloxApplications {
 		for _, folder := range foldersWithApplicationFolders {
 			paths = append(paths, folder.join(application))
 		}
-		for _, folder := range foldersWithApplicationShortcuts {
-			paths = append(paths, folder.join(application+".lnk"))
-		}
 	}
-	return append(paths, userContentFolders...)
+	return paths
 }
 
-func (run *cleanup) localRobloxEntriesToDelete(shouldDeleteLogs bool) []environmentPath {
+func shortcutPaths() []environmentPath {
+	var paths []environmentPath
+	for _, folder := range foldersWithApplicationShortcuts {
+		for _, application := range robloxApplications {
+			paths = append(paths, folder.join(application))
+		}
+	}
+	for _, folder := range foldersWithShortcutFiles {
+		for _, shortcutName := range robloxShortcutNames {
+			paths = append(paths, folder.join(shortcutName+".lnk"))
+		}
+	}
+	return paths
+}
+
+func localRobloxEntryTargets() []cleanupTarget {
 	base, ok := localRobloxFolder.base()
 	if !ok {
 		return nil
@@ -262,61 +372,55 @@ func (run *cleanup) localRobloxEntriesToDelete(shouldDeleteLogs bool) []environm
 		return nil
 	}
 	if err != nil {
-		run.skip(localRobloxFolder.label(), err)
-		return nil
+		return []cleanupTarget{failedListingTarget(localRobloxFolder, err)}
 	}
 	defer release()
 	entries, err := os.ReadDir(filepath.Join(base, localRobloxFolder.relative))
 	if err != nil {
-		run.skip(localRobloxFolder.label(), err)
-		return nil
+		return []cleanupTarget{failedListingTarget(localRobloxFolder, err)}
 	}
 	var paths []environmentPath
 	for _, entry := range entries {
-		if !isKeptLocalEntry(entry.Name(), shouldDeleteLogs) {
+		if !isKeptLocalEntry(entry.Name()) {
 			paths = append(paths, localRobloxFolder.join(entry.Name()))
 		}
 	}
-	return paths
+	return pathTargets(paths)
 }
 
-func (run *cleanup) removePath(path environmentPath) {
-	if run.ctx.Err() != nil {
-		return
-	}
+// removePath deletes a file or folder with everything in it. It reports
+// whether the path existed.
+func removePath(path environmentPath) (bool, error) {
 	base, ok := path.base()
 	if !ok {
-		return
+		return false, nil
 	}
 	release, err := lockFolders(base, filepath.Dir(path.relative))
 	if errors.Is(err, os.ErrNotExist) {
-		return
+		return false, nil
 	}
 	if err != nil {
-		run.skip(path.label(), err)
-		return
+		return false, err
 	}
 	defer release()
 	resolved := filepath.Join(base, path.relative)
 	targetStatus, err := os.Lstat(resolved)
 	if errors.Is(err, os.ErrNotExist) {
-		return
+		return false, nil
 	}
 	if err != nil {
-		run.skip(path.label(), err)
-		return
+		return false, fmt.Errorf("read path attributes: %w", err)
 	}
 	if isReparsePoint(targetStatus) {
-		run.skip(path.label(), errReparsePoint)
-		return
+		return false, errReparsePoint
 	}
 	// RemoveAll deletes relative to open folder handles and removes links
-	// inside the target without following them.
+	// inside the target without following them. It deletes everything it
+	// can before it returns the first error, so a retry only finds the rest.
 	if err := os.RemoveAll(resolved); err != nil {
-		run.skip(path.label(), err)
-		return
+		return false, fmt.Errorf("remove path: %w", err)
 	}
-	run.deletedCount++
+	return true, nil
 }
 
 var errReparsePoint = errors.New("the path is a link or junction")
@@ -389,8 +493,8 @@ func isReparsePoint(status os.FileInfo) bool {
 	return ok && attributes.FileAttributes&windows.FILE_ATTRIBUTE_REPARSE_POINT != 0
 }
 
-func (run *cleanup) looseRobloxFiles() []environmentPath {
-	var paths []environmentPath
+func looseRobloxFileTargets() []cleanupTarget {
+	var targets []cleanupTarget
 	for _, folder := range foldersWithLooseRobloxFiles {
 		resolved, ok := folder.resolve()
 		if !ok {
@@ -400,34 +504,36 @@ func (run *cleanup) looseRobloxFiles() []environmentPath {
 		if err != nil {
 			// Listing Windows\Prefetch needs administrator rights.
 			if !errors.Is(err, os.ErrNotExist) {
-				run.skip(folder.label(), err)
+				targets = append(targets, failedListingTarget(folder, err))
 			}
 			continue
 		}
+		var paths []environmentPath
 		for _, entry := range entries {
 			if entry.Type().IsRegular() && strings.HasPrefix(strings.ToLower(entry.Name()), "roblox") {
 				paths = append(paths, folder.join(entry.Name()))
 			}
 		}
+		targets = append(targets, pathTargets(paths)...)
 	}
-	return paths
+	return targets
 }
 
-func (run *cleanup) deleteRegistryKeyIfPresent(key registryKey) {
+// deleteRegistryKeyIfPresent deletes a key with everything in it. It reports
+// whether the key existed.
+func deleteRegistryKeyIfPresent(key registryKey) (bool, error) {
 	existing, err := registry.OpenKey(key.root, key.path, registry.QUERY_VALUE)
 	if errors.Is(err, registry.ErrNotExist) {
-		return
+		return false, nil
 	}
 	if err != nil {
-		run.skip(registryLabel(key), err)
-		return
+		return false, fmt.Errorf("open registry key: %w", err)
 	}
 	_ = existing.Close()
 	if err := deleteRegistryTree(key); err != nil {
-		run.skip(registryLabel(key), err)
-		return
+		return false, err
 	}
-	run.deletedCount++
+	return true, nil
 }
 
 // deleteRegistryTree deletes a key with all of its subkeys and values.
@@ -447,26 +553,24 @@ func deleteRegistryTree(key registryKey) error {
 	return nil
 }
 
-func (run *cleanup) deleteRegistryValueIfPresent(value registryValue) {
-	label := registryLabel(value.key) + `\` + value.name
+// deleteRegistryValueIfPresent reports whether the value existed.
+func deleteRegistryValueIfPresent(value registryValue) (bool, error) {
 	reader, err := registry.OpenKey(value.key.root, value.key.path, registry.QUERY_VALUE)
 	if errors.Is(err, registry.ErrNotExist) {
-		return
+		return false, nil
 	}
 	if err != nil {
-		run.skip(label, err)
-		return
+		return false, fmt.Errorf("open registry key: %w", err)
 	}
 	_, _, readError := reader.GetValue(value.name, nil)
 	_ = reader.Close()
 	if errors.Is(readError, registry.ErrNotExist) {
-		return
+		return false, nil
 	}
 	if err := deleteRegistryValue(value); err != nil {
-		run.skip(label, err)
-		return
+		return false, err
 	}
-	run.deletedCount++
+	return true, nil
 }
 
 func deleteRegistryValue(value registryValue) error {
@@ -492,9 +596,4 @@ func registryLabel(key registryKey) string {
 		return `HKLM\` + key.path
 	}
 	return `HKCU\` + key.path
-}
-
-func (run *cleanup) skip(label string, err error) {
-	run.skippedCount++
-	run.logger.Debug("Roblox item skipped", "item", label, "error", err)
 }
