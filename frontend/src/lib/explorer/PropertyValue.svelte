@@ -6,10 +6,12 @@
 	import CheckboxMark from "../shared/CheckboxMark.svelte"
 	import Icon from "../shared/Icon.svelte"
 	import { classIcon } from "./instance-class-icons"
+	import VectorSummary from "./VectorSummary.svelte"
 
 	// PropertyValue shows the value of one property as an explorer does: a
-	// check box for a boolean, a swatch for a color, axis-labeled components
-	// for a vector, and a link to the instance that a reference points to.
+	// check box for a boolean, a swatch for a color, the components of a
+	// vector on one line, and a link to the instance that a reference points
+	// to.
 	let {
 		property,
 		imageUrl,
@@ -26,14 +28,6 @@
 		onSelectInstance: (instanceId: number) => void
 		onOpenDocument: (property: ModelProperty) => void
 	} = $props()
-
-	// The X, Y, and Z components of a vector, colored as the axes of the 3D
-	// viewers.
-	const axes = [
-		{ name: "X", colorClass: "text-axis-x" },
-		{ name: "Y", colorClass: "text-axis-y" },
-		{ name: "Z", colorClass: "text-axis-z" },
-	] as const
 
 	const lineCount = $derived(
 			property.kind === ModelPropertyKind.PropertyDocument
@@ -83,32 +77,7 @@
 	<span class="font-mono tabular-nums select-text">{property.text}</span>
 	<span class="font-mono text-fg-muted uppercase select-text">{property.color}</span>
 {:else if property.kind === ModelPropertyKind.PropertyVector}
-	<!-- Each component takes its own line. The vectors of a value made of
-	several, such as the position and the orientation of a CFrame, stand
-	side by side under their labels. -->
-	<span class="flex min-w-0 flex-1 flex-wrap gap-x-6 gap-y-2">
-		{#each vectorParts as part, partIndex (partIndex)}
-			<span class="flex w-32 min-w-0 flex-col gap-0.5">
-				{#if part.label}
-					<span class="truncate text-2xs text-fg-muted">{part.label}</span>
-				{/if}
-				{#each part.components ?? [] as component, componentIndex (componentIndex)}
-					{@const axis = axes[componentIndex]}
-					<span class="flex min-w-0 items-baseline gap-2">
-						{#if axis}
-							<span
-								class={[
-									"w-2 shrink-0 text-2xs font-semibold",
-									axis.colorClass,
-								]}>{axis.name}</span>
-						{/if}
-						<span class="truncate font-mono tabular-nums select-text"
-							>{component}</span>
-					</span>
-				{/each}
-			</span>
-		{/each}
-	</span>
+	<VectorSummary parts={vectorParts} />
 {:else if property.kind === ModelPropertyKind.PropertyReference}
 	{#if property.referencedInstanceId > 0}
 		<button

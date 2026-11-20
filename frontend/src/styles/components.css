@@ -290,19 +290,21 @@
 	left: calc(--spacing(3) + var(--tree-guide-level, 0) * --spacing(4));
 }
 
-/* property-grid lists properties as an explorer does: one compact row per
-   property, with a name column and a value column split by a hairline. A row
-   grows when its value spans lines, such as the parts of a CFrame. */
+/* property-grid lists properties as Roblox Studio does: one compact row per
+   property, with a name column as wide as --property-name-width and a value
+   column, split by a hairline. A sub-row, such as the X of a Vector3, indents
+   its name by --property-depth levels. */
 @utility property-grid {
 	@apply grid text-xs;
-	grid-template-columns: minmax(--spacing(28), --spacing(56)) minmax(0, 1fr);
+	grid-template-columns: var(--property-name-width, --spacing(44)) minmax(0, 1fr);
 
 	& > div {
 		@apply col-span-2 grid grid-cols-subgrid border-b border-line-subtle transition-colors duration-100 hover:bg-hover;
 	}
 
 	& dt {
-		@apply flex min-w-0 items-start border-r border-line-subtle py-1.5 pr-2 pl-7 text-fg-muted transition-colors duration-100;
+		@apply flex min-w-0 items-center border-r border-line-subtle py-1 pr-2 text-fg-muted transition-colors duration-100;
+		padding-left: calc(--spacing(6) + var(--property-depth, 0) * --spacing(4));
 	}
 
 	& > div:hover dt {
@@ -310,8 +312,15 @@
 	}
 
 	& dd {
-		@apply flex min-w-0 items-start gap-2 px-2 py-1.5 text-fg;
+		@apply flex min-w-0 items-center gap-2 px-2 py-1 text-fg;
 	}
+}
+
+/* property-toggle is the name of a property that opens its parts, such as
+   the X, Y, and Z of a Vector3. Its caret hangs left of the name, so that the
+   name lines up with the names of other rows. */
+@utility property-toggle {
+	@apply -ml-5 flex min-w-0 items-center gap-1 rounded-sm text-left text-inherit;
 }
 
 @utility tab {

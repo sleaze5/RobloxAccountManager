@@ -13,7 +13,9 @@
 	import { instancePath, nodeName } from "./explorer-tree"
 	import type { ExplorerNode } from "./explorer-tree"
 	import { classIcon } from "./instance-class-icons"
+	import PropertyColumnResizer from "./PropertyColumnResizer.svelte"
 	import PropertyValue from "./PropertyValue.svelte"
+	import VectorSummary from "./VectorSummary.svelte"
 
 	// InstanceDetails shows the properties of the selected instance in the
 	// groups that Roblox Studio shows, or the summary of an asset of a bundle.
@@ -23,6 +25,9 @@
 		propertyQuery = $bindable(),
 		collapsedGroups,
 		onToggleGroup,
+		propertyNameWidth = $bindable(),
+		expandedPropertyKeys,
+		onToggleProperty,
 		referencedClassNameOf,
 		onSelectInstance,
 		onOpenDocument,
@@ -32,6 +37,12 @@
 		propertyQuery: string
 		collapsedGroups: ReadonlySet<string>
 		onToggleGroup: (group: string, isCollapsed: boolean) => void
+		propertyNameWidth: number
+		// The open properties and vectors, such as Size or the Position of a
+		// CFrame, by their group, name, and label, so that they stay open on
+		// the next instance, as in Roblox Studio.
+		expandedPropertyKeys: ReadonlySet<string>
+		onToggleProperty: (propertyKey: string, isExpanded: boolean) => void
 		// referencedClassNameOf returns the class of the instance with the ID.
 		referencedClassNameOf: (instanceId: number) => string
 		onSelectInstance: (instanceId: number) => void
@@ -40,8 +51,20 @@
 
 	const elementIdPrefix = $props.id()
 	const exactNumbers = new Intl.NumberFormat("en-US")
+	// The X, Y, and Z components of a vector, colored as the axes of the 3D
+	// viewers.
+	const axes = [
+		{ name: "X", colorClass: "text-axis-x" },
+		{ name: "Y", colorClass: "text-axis-y" },
+		{ name: "Z", colorClass: "text-axis-z" },
+	] as const
+	// The narrowest name column, and the narrowest value column that a wider
+	// name column leaves.
+	const minimumNameWidth = 96,
+		minimumValueWidth = 160
 
-	let searchInput = $state<HTMLInputElement>()
+	let searchInput = $state<HTMLInputElement>(),
+		propertiesWidth = $state(0)
 
 	const instance = $derived(node.instance),
 		properties = $derived(instance?.properties ?? []),
@@ -76,6 +99,44 @@
 		searchInput?.focus()
 	}
 </script>
+
+{#snippet nameToggle(label: string, propertyKey: string, isExpanded: boolean)}
+	<button
+		class="property-toggle"
+		type="button"
+		aria-expanded={isExpanded}
+		onclick={() => onToggleProperty(propertyKey, !isExpanded)}>
+		<span class="grid size-4 shrink-0 place-items-center text-fg-faint">
+			<Icon
+				svg={caretRightIcon}
+				size={12}
+				class={[
+					"transition-transform duration-100 ease-out",
+					isExpanded && "rotate-90",
+				]}
+				aria-hidden="true" />
+		</span>
+		<span class="truncate">{label}</span>
+	</button>
+{/snippet}
+
+<!-- componentRows lists the X, Y, and Z of a vector as rows of their own.
+Screen readers hear the name of the vector before each axis. -->
+{#snippet componentRows(vectorName: string, components: string[], depth: number)}
+	{#each components as component, componentIndex (componentIndex)}
+		{@const axis = axes[componentIndex]}
+		<div class="animate-enter">
+			<dt style:--property-depth={depth}>
+				<span class="sr-only">{`${vectorName} `}</span>
+				<span class={["font-semibold", axis?.colorClass]}>{axis?.name}</span>
+			</dt>
+			<dd>
+				<span class="min-w-0 truncate font-mono tabular-nums select-text"
+					>{component}</span>
+			</dd>
+		</div>
+	{/each}
+{/snippet}
 
 {#if !instance}
 	{@const model = node.model}
@@ -185,101 +246,176 @@
 	</header>
 
 	<div
-		class="min-h-0 flex-1 scrollbar-stable overflow-y-auto overscroll-contain pb-3">
-		{#if assetPreviews.length > 0 && terms.length === 0}
-			<ul
-				class="flex gap-2 overflow-x-auto px-3 py-3"
-				aria-label="Referenced assets">
-				{#each assetPreviews as property (`${property.group}:${property.name}`)}
-					<li class="w-20 shrink-0">
-						<figure class="flex flex-col gap-1">
-							<span
-								class="grid size-20 place-items-center overflow-hidden rounded-lg border border-line-subtle bg-raised">
-								<img
-									class="size-full animate-pop object-contain"
-									src={imageUrlByAssetId.get(property.assetId)}
-									alt={`${property.name} preview`}
-									decoding="async"
-									draggable="false"
-									referrerpolicy="no-referrer" />
-							</span>
-							<figcaption class="truncate text-2xs text-fg-muted">
-								{property.name}
-							</figcaption>
-						</figure>
-					</li>
-				{/each}
-			</ul>
+		class="relative flex min-h-0 flex-1 flex-col"
+		style:--property-name-width={`${propertyNameWidth}px`}
+		bind:clientWidth={propertiesWidth}>
+		{#if groups.length > 0}
+			<PropertyColumnResizer
+				bind:width={propertyNameWidth}
+				minimumWidth={minimumNameWidth}
+				maximumWidth={Math.max(
+					minimumNameWidth,
+					propertiesWidth - minimumValueWidth,
+				)} />
 		{/if}
-		{#if properties.length === 0}
-			<p class="p-3 text-xs text-fg-muted">This instance has no properties.</p>
-		{:else if groups.length === 0}
-			<div class="empty-state animate-enter py-6">
-				<Icon svg={funnelSimpleIcon} size={28} aria-hidden="true" />
-				<h2>No matching properties</h2>
-				<p>Filter by the name or the value of a property.</p>
-				<button
-					class="button"
-					type="button"
-					onclick={() => void clearPropertyQuery()}>Clear filter</button>
-			</div>
-		{:else}
-			{#key node.key}
-				<div class="animate-enter">
-					{#each groups as [group, groupProperties] (group)}
-						{@const isCollapsed =
-							terms.length === 0 && collapsedGroups.has(group)}
-						{@const groupId = `${elementIdPrefix}-group-${group.replaceAll(" ", "-")}`}
-						<section aria-labelledby={`${groupId}-heading`}>
-							<h4 id={`${groupId}-heading`} class="sticky top-0 z-10">
-								<button
-									class="flex h-7 w-full items-center gap-2 border-b border-line-subtle bg-surface px-2 text-left text-xs font-semibold text-fg-muted transition-colors duration-100 hover:text-fg"
-									type="button"
-									aria-expanded={!isCollapsed}
-									aria-controls={groupId}
-									onclick={() => onToggleGroup(group, !isCollapsed)}>
-									<Icon
-										svg={caretRightIcon}
-										size={12}
-										class={[
-											"shrink-0 text-fg-faint transition-transform duration-100 ease-out",
-											!isCollapsed && "rotate-90",
-										]}
-										aria-hidden="true" />
-									<span class="truncate">{group}</span>
-									<span
-										class="ml-auto font-mono text-2xs font-normal text-fg-faint tabular-nums"
-										>{groupProperties?.length ?? 0}</span>
-								</button>
-							</h4>
-							{#if !isCollapsed}
-								<dl id={groupId} class="property-grid animate-enter">
-									{#each groupProperties ?? [] as property, index (`${property.name}:${index}`)}
-										<div>
-											<dt>
-												<span class="truncate"
-													>{property.name}</span>
-											</dt>
-											<dd>
-												<PropertyValue
-													{property}
-													imageUrl={imageUrlByAssetId.get(
-														property.assetId,
-													) ?? ""}
-													referencedClassName={referencedClassNameOf(
-														property.referencedInstanceId,
-													)}
-													{onSelectInstance}
-													{onOpenDocument} />
-											</dd>
-										</div>
-									{/each}
-								</dl>
-							{/if}
-						</section>
+		<div
+			class="min-h-0 flex-1 scrollbar-stable overflow-y-auto overscroll-contain pb-3">
+			{#if assetPreviews.length > 0 && terms.length === 0}
+				<ul
+					class="flex gap-2 overflow-x-auto px-3 py-3"
+					aria-label="Referenced assets">
+					{#each assetPreviews as property (`${property.group}:${property.name}`)}
+						<li class="w-20 shrink-0">
+							<figure class="flex flex-col gap-1">
+								<span
+									class="grid size-20 place-items-center overflow-hidden rounded-lg border border-line-subtle bg-raised">
+									<img
+										class="size-full animate-pop object-contain"
+										src={imageUrlByAssetId.get(property.assetId)}
+										alt={`${property.name} preview`}
+										decoding="async"
+										draggable="false"
+										referrerpolicy="no-referrer" />
+								</span>
+								<figcaption class="truncate text-2xs text-fg-muted">
+									{property.name}
+								</figcaption>
+							</figure>
+						</li>
 					{/each}
+				</ul>
+			{/if}
+			{#if properties.length === 0}
+				<p class="p-3 text-xs text-fg-muted">
+					This instance has no properties.
+				</p>
+			{:else if groups.length === 0}
+				<div class="empty-state animate-enter py-6">
+					<Icon svg={funnelSimpleIcon} size={28} aria-hidden="true" />
+					<h2>No matching properties</h2>
+					<p>Filter by the name or the value of a property.</p>
+					<button
+						class="button"
+						type="button"
+						onclick={() => void clearPropertyQuery()}>Clear filter</button>
 				</div>
-			{/key}
-		{/if}
+			{:else}
+				{#key node.key}
+					<div class="animate-enter">
+						{#each groups as [group, groupProperties] (group)}
+							{@const isCollapsed =
+								terms.length === 0 && collapsedGroups.has(group)}
+							{@const groupId = `${elementIdPrefix}-group-${group.replaceAll(" ", "-")}`}
+							<section aria-labelledby={`${groupId}-heading`}>
+								<h4 id={`${groupId}-heading`} class="sticky top-0 z-10">
+									<button
+										class="flex h-7 w-full items-center gap-1 border-b border-line-subtle bg-surface pr-3 pl-1 text-left text-xs font-semibold text-fg-muted transition-colors duration-100 hover:text-fg"
+										type="button"
+										aria-expanded={!isCollapsed}
+										aria-controls={groupId}
+										onclick={() =>
+											onToggleGroup(group, !isCollapsed)}>
+										<span
+											class="grid size-4 shrink-0 place-items-center">
+											<Icon
+												svg={caretRightIcon}
+												size={12}
+												class={[
+													"text-fg-faint transition-transform duration-100 ease-out",
+													!isCollapsed && "rotate-90",
+												]}
+												aria-hidden="true" />
+										</span>
+										<span class="truncate">{group}</span>
+										<span
+											class="ml-auto font-mono text-2xs font-normal text-fg-faint tabular-nums"
+											>{groupProperties?.length ?? 0}</span>
+									</button>
+								</h4>
+								{#if !isCollapsed}
+									<dl
+										id={groupId}
+										class="property-grid animate-enter">
+										{#each groupProperties ?? [] as property, index (`${property.name}:${index}`)}
+											{@const propertyKey = `${property.group}/${property.name}`}
+											{@const isVector =
+												property.kind ===
+												ModelPropertyKind.PropertyVector}
+											{@const isExpanded =
+												isVector &&
+												expandedPropertyKeys.has(propertyKey)}
+											<div>
+												<dt>
+													{#if isVector}
+														{@render nameToggle(
+															property.name,
+															propertyKey,
+															isExpanded,
+														)}
+													{:else}
+														<span class="truncate"
+															>{property.name}</span>
+													{/if}
+												</dt>
+												<dd>
+													<PropertyValue
+														{property}
+														imageUrl={imageUrlByAssetId.get(
+															property.assetId,
+														) ?? ""}
+														referencedClassName={referencedClassNameOf(
+															property.referencedInstanceId,
+														)}
+														{onSelectInstance}
+														{onOpenDocument} />
+												</dd>
+											</div>
+											{#if isExpanded}
+												{#each property.vectorParts ?? [] as part, partIndex (partIndex)}
+													{#if part.label}
+														{@const partKey = `${propertyKey}/${part.label}`}
+														{@const isPartExpanded =
+															expandedPropertyKeys.has(
+																partKey,
+															)}
+														<div class="animate-enter">
+															<dt
+																style:--property-depth={1}>
+																{@render nameToggle(
+																	part.label,
+																	partKey,
+																	isPartExpanded,
+																)}
+															</dt>
+															<dd>
+																<VectorSummary
+																	parts={[part]} />
+															</dd>
+														</div>
+														{#if isPartExpanded}
+															{@render componentRows(
+																`${property.name} ${part.label}`,
+																part.components ?? [],
+																2,
+															)}
+														{/if}
+													{:else}
+														{@render componentRows(
+															property.name,
+															part.components ?? [],
+															1,
+														)}
+													{/if}
+												{/each}
+											{/if}
+										{/each}
+									</dl>
+								{/if}
+							</section>
+						{/each}
+					</div>
+				{/key}
+			{/if}
+		</div>
 	</div>
 {/if}
