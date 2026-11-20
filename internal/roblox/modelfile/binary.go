@@ -215,7 +215,7 @@ var columnReaders = map[byte]func(column propertyColumn) []Property{
 		return mapValues(column.reader.bytes(column.count), func(value byte) Property { return structuredProperty(column.name, flagNames(value, axisNames)) })
 	},
 	0x0b: func(column propertyColumn) []Property {
-		return mapValues(column.reader.uint32s(column.count), func(value uint32) Property { return integerProperty(column.name, int64(value)) })
+		return mapValues(column.reader.uint32s(column.count), func(value uint32) Property { return brickColorProperty(column.name, int64(value)) })
 	},
 	0x0c: readColor3s,
 	0x0d: readVector2s,

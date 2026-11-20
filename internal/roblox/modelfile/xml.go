@@ -126,9 +126,12 @@ var xmlValueReaders = map[string]func(node xmlNode, name string) Property{
 	"bool": func(node xmlNode, name string) Property {
 		return booleanProperty(name, node.trimmedText() == "true")
 	},
-	"int":                  readXMLInteger,
-	"int64":                readXMLInteger,
-	"brickcolor":           readXMLInteger,
+	"int":   readXMLInteger,
+	"int64": readXMLInteger,
+	"brickcolor": func(node xmlNode, name string) Property {
+		number, _ := strconv.ParseInt(node.trimmedText(), 10, 64)
+		return brickColorProperty(name, number)
+	},
 	"securitycapabilities": readXMLInteger,
 	"float":                readXMLNumber,
 	"double":               readXMLNumber,

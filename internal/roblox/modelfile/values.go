@@ -77,6 +77,34 @@ func color8Property(name string, red, green, blue uint8) Property {
 	}
 }
 
+// brickColorProperty shows a BrickColor as its name and color. A number
+// outside the palette shows as is.
+func brickColorProperty(name string, number int64) Property {
+	color, isKnown := brickColorByNumber[number]
+	if !isKnown {
+		return integerProperty(name, number)
+	}
+	property := color8Property(name, color.red, color.green, color.blue)
+	property.Text = color.name
+	return property
+}
+
+// ShowAsBrickColor shows a number as the BrickColor that it names. Older
+// files store BrickColor properties, such as the BrickColor of a part, as
+// plain numbers, so only a class index can tell them apart.
+func (property *Property) ShowAsBrickColor() {
+	if property.Kind != PropertyNumber {
+		return
+	}
+	number, err := strconv.ParseInt(property.Text, 10, 64)
+	if err != nil {
+		return
+	}
+	group := property.Group
+	*property = brickColorProperty(property.Name, number)
+	property.Group = group
+}
+
 func colorChannelByte(channel float64) uint8 {
 	if math.IsNaN(channel) {
 		return 0

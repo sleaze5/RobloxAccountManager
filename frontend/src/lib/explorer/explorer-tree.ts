@@ -29,6 +29,18 @@ export interface ExplorerRow {
 	isMatch: boolean
 	positionInSet: number
 	setSize: number
+	// continuingLevels tells, for the node at each depth on the way to this
+	// row, from the root to the row itself, whether a sibling follows it. The
+	// tree draws the line of a level only while one does.
+	continuingLevels: boolean[]
+}
+
+// GuideRange is the rows whose line at one level leads to the selected row:
+// from the first child of the ancestor at that level to the row on the way
+// to the selected row.
+export interface GuideRange {
+	firstIndex: number
+	lastIndex: number
 }
 
 export function instanceNodeKey(instanceId: number): string {
@@ -132,11 +144,19 @@ export function visibleRows(
 		}
 		for (const root of tree.roots) markMatches(root)
 	}
-	const addRows = (nodes: ExplorerNode[], depth: number): void => {
+	const addRows = (
+		nodes: ExplorerNode[],
+		depth: number,
+		ancestorContinuingLevels: boolean[],
+	): void => {
 		const shownNodes = isSearching
 			? nodes.filter((node) => containsMatch.has(node))
 			: nodes
 		shownNodes.forEach((node, index) => {
+			const continuingLevels = [
+				...ancestorContinuingLevels,
+				index < shownNodes.length - 1,
+			]
 			const isExpanded =
 				node.children.length > 0 &&
 				(isSearching
@@ -149,12 +169,37 @@ export function visibleRows(
 				isMatch: isSearching && nodeMatches(node, terms),
 				positionInSet: index + 1,
 				setSize: shownNodes.length,
+				continuingLevels,
 			})
-			if (isExpanded) addRows(node.children, depth + 1)
+			if (isExpanded) addRows(node.children, depth + 1, continuingLevels)
 		})
 	}
-	addRows(tree.roots, 0)
+	addRows(tree.roots, 0, [])
 	return rows
+}
+
+// activeGuideRanges finds, by level, the rows whose lines lead from the root
+// to the selected row, so that the tree can trace its path.
+export function activeGuideRanges(
+	rows: ExplorerRow[],
+	selectedIndex: number,
+): Map<number, GuideRange> {
+	const ranges = new Map<number, GuideRange>()
+	const indexByNode = new Map(rows.map((row, index) => [row.node, index]))
+	for (
+		let pathNode = rows[selectedIndex]?.node;
+		pathNode?.parent;
+		pathNode = pathNode.parent
+	) {
+		const parentIndex = indexByNode.get(pathNode.parent),
+			pathIndex = indexByNode.get(pathNode)
+		if (parentIndex === undefined || pathIndex === undefined) break
+		ranges.set(rows[pathIndex].depth - 1, {
+			firstIndex: parentIndex + 1,
+			lastIndex: pathIndex,
+		})
+	}
+	return ranges
 }
 
 // ancestorKeys lists the keys of the nodes that contain the node, so that

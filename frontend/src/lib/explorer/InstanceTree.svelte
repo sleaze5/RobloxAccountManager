@@ -7,7 +7,7 @@
 	import { tick, untrack } from "svelte"
 	import Icon from "../shared/Icon.svelte"
 	import { searchTerms } from "../shared/search"
-	import { nodeName, visibleRows } from "./explorer-tree"
+	import { activeGuideRanges, nodeName, visibleRows } from "./explorer-tree"
 	import type { ExplorerNode, ExplorerRow, ExplorerTree } from "./explorer-tree"
 	import { classIcon } from "./instance-class-icons"
 
@@ -48,6 +48,7 @@
 		rows = $derived(visibleRows(tree, expandedKeys, terms)),
 		matchCount = $derived(rows.filter((row) => row.isMatch).length),
 		selectedIndex = $derived(rows.findIndex((row) => row.node.key === selectedKey)),
+		guideRangeByLevel = $derived(activeGuideRanges(rows, selectedIndex)),
 		firstShownIndex = $derived(
 			Math.max(0, Math.floor(scrollTop / rowHeight) - overscanRowCount),
 		),
@@ -260,14 +261,16 @@
 			<div
 				class="absolute inset-x-0 top-0 translate-y-(--tree-offset)"
 				style:--tree-offset={`${firstShownIndex * rowHeight}px`}>
-				{#each shownRows as row (row.node.key)}
+				{#each shownRows as row, shownIndex (row.node.key)}
+					{@const rowIndex = firstShownIndex + shownIndex}
 					{@const instance = row.node.instance}
+					{@const hasChildren = row.node.children.length > 0}
 					{@const name = nodeName(row.node)}
 					{@const isUnavailable =
 						!instance && row.node.model.unavailableMessage !== ""}
 					<div
 						id={rowId(row.node)}
-						class="tree-row"
+						class="group tree-row"
 						style:--tree-depth={row.depth}
 						role="treeitem"
 						aria-level={row.depth + 1}
@@ -278,16 +281,35 @@
 							: undefined}
 						aria-selected={row.node.key === selectedKey}
 						data-tree-row={row.node.key}>
+						<!-- A line continues through the row at each level where a
+						sibling follows, and the row joins its parent with an
+						elbow. -->
 						{#each Array.from({ length: row.depth }, (_unused, level) => level) as level (level)}
-							<span
-								class="tree-guide"
-								style:--tree-guide-level={level}
-								aria-hidden="true"></span>
+							{@const guideRange = guideRangeByLevel.get(level)}
+							{#if row.continuingLevels[level + 1]}
+								<span
+									class="tree-guide"
+									style:--tree-guide-level={level}
+									data-active={(guideRange &&
+										rowIndex >= guideRange.firstIndex &&
+										rowIndex < guideRange.lastIndex) ||
+										undefined}
+									aria-hidden="true"></span>
+							{/if}
 						{/each}
+						{#if row.depth > 0}
+							<span
+								class="tree-branch"
+								style:--tree-guide-level={row.depth - 1}
+								data-leaf={!hasChildren || undefined}
+								data-active={guideRangeByLevel.get(row.depth - 1)
+									?.lastIndex === rowIndex || undefined}
+								aria-hidden="true"></span>
+						{/if}
 						<span
 							class="grid size-4 shrink-0 place-items-center text-fg-faint transition-colors duration-100 hover:text-fg"
 							data-tree-caret>
-							{#if row.node.children.length > 0}
+							{#if hasChildren}
 								<Icon
 									svg={caretRightIcon}
 									size={12}
@@ -322,10 +344,15 @@
 								]}>{name || "Unnamed asset"}</span>
 							{#if instance && instance.name !== instance.className}
 								<span
-									class="min-w-0 truncate font-mono text-2xs text-fg-faint"
+									class="min-w-0 truncate font-mono text-2xs text-fg-faint group-hover:text-fg-muted group-aria-selected:text-fg-muted"
 									>{instance.className}</span>
 							{/if}
 						</span>
+						{#if hasChildren && !row.isExpanded}
+							<span
+								class="shrink-0 font-mono text-2xs text-fg-faint tabular-nums group-hover:text-fg-muted group-aria-selected:text-fg-muted"
+								aria-hidden="true">{row.node.children.length}</span>
+						{/if}
 					</div>
 				{/each}
 			</div>

@@ -57,7 +57,7 @@ var attributeReaders = map[byte]func(reader *byteReader, name string) (Property,
 		return structuredProperty(name, udim2Text(scaleX, int64(offsetX), scaleY, int64(offsetY))), true
 	},
 	0x0e: func(reader *byteReader, name string) (Property, bool) {
-		return integerProperty(name, int64(reader.uint32())), true
+		return brickColorProperty(name, int64(reader.uint32())), true
 	},
 	0x0f: func(reader *byteReader, name string) (Property, bool) {
 		channels := reader.littleEndianFloats(3)

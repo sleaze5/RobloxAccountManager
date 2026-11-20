@@ -39,10 +39,11 @@ var studioVersionPattern = regexp.MustCompile(`^version-[0-9a-f]{16}$`)
 var studioPropertyGroupOrder = []string{"Appearance", "Data", "Text", "Image", "Transform", "Pivot", "Behavior", "Collision", "Part"}
 
 // classProperty is what Roblox Studio knows about one property: its group,
-// and the enum of its value, if it has one.
+// the enum of its value, if it has one, and whether it holds a BrickColor.
 type classProperty struct {
-	group    string
-	enumName string
+	group        string
+	enumName     string
+	isBrickColor bool
 }
 
 // classIndex is the part of the Roblox API dump that the explorer reads.
@@ -116,6 +117,9 @@ func groupInstanceProperties(index *classIndex, instances []modelfile.Instance) 
 				continue
 			}
 			property.Group = cmp.Or(studioProperty.group, "Data")
+			if studioProperty.isBrickColor {
+				property.ShowAsBrickColor()
+			}
 			if property.Kind == modelfile.PropertyEnum {
 				if itemName, isNamed := index.enumItemNamesByEnum[studioProperty.enumName][property.EnumValue]; isNamed {
 					property.Text = itemName
@@ -242,8 +246,11 @@ func decodeAPIDump(dump []byte) (*classIndex, error) {
 				continue
 			}
 			property := classProperty{group: member.Category}
-			if member.ValueType.Category == "Enum" {
+			switch {
+			case member.ValueType.Category == "Enum":
 				property.enumName = member.ValueType.Name
+			case member.ValueType.Category == "DataType" && member.ValueType.Name == "BrickColor":
+				property.isBrickColor = true
 			}
 			properties[member.Name] = property
 		}

@@ -275,9 +275,18 @@
 }
 
 /* tree-guide is the line that joins the rows inside an open row of a tree. It
-   runs through the caret of the open row at --tree-guide-level. */
+   runs through the caret of the open row at --tree-guide-level. data-active
+   traces the path to the selected row. */
 @utility tree-guide {
-	@apply pointer-events-none absolute inset-y-0 w-px bg-line-strong;
+	@apply pointer-events-none absolute inset-y-0 w-px bg-line-strong transition-colors duration-100 data-active:bg-accent/55;
+	left: calc(--spacing(3) + var(--tree-guide-level, 0) * --spacing(4));
+}
+
+/* tree-branch joins a row to the line of its parent row with a rounded elbow.
+   A row without a caret, set with data-leaf, extends it through the empty
+   caret space toward its icon. */
+@utility tree-branch {
+	@apply pointer-events-none absolute top-0 h-1/2 w-1.5 rounded-bl-md border-b border-l border-line-strong transition-colors duration-100 data-active:border-accent/55 data-leaf:w-6;
 	left: calc(--spacing(3) + var(--tree-guide-level, 0) * --spacing(4));
 }
 

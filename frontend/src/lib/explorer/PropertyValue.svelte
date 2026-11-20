@@ -41,7 +41,6 @@
 				: 0,
 		),
 		vectorParts = $derived(property.vectorParts ?? []),
-		hasVectorLabels = $derived(vectorParts.some((part) => part.label !== "")),
 		// The asset ID inside a content value, such as rbxassetid://123, which
 		// shows brighter than the rest of the address.
 		assetIdText = $derived(String(property.assetId)),
@@ -84,21 +83,22 @@
 	<span class="font-mono tabular-nums select-text">{property.text}</span>
 	<span class="font-mono text-fg-muted uppercase select-text">{property.color}</span>
 {:else if property.kind === ModelPropertyKind.PropertyVector}
-	<span class="flex min-w-0 flex-1 flex-col gap-1">
+	<!-- Each component takes its own line. The vectors of a value made of
+	several, such as the position and the orientation of a CFrame, stand
+	side by side under their labels. -->
+	<span class="flex min-w-0 flex-1 flex-wrap gap-x-6 gap-y-2">
 		{#each vectorParts as part, partIndex (partIndex)}
-			<span class="flex min-w-0 items-baseline gap-3">
-				{#if hasVectorLabels}
-					<span class="w-20 shrink-0 truncate text-fg-muted"
-						>{part.label}</span>
+			<span class="flex w-32 min-w-0 flex-col gap-0.5">
+				{#if part.label}
+					<span class="truncate text-2xs text-fg-muted">{part.label}</span>
 				{/if}
 				{#each part.components ?? [] as component, componentIndex (componentIndex)}
 					{@const axis = axes[componentIndex]}
-					<span
-						class="flex max-w-32 min-w-0 flex-1 basis-0 items-baseline gap-1">
+					<span class="flex min-w-0 items-baseline gap-2">
 						{#if axis}
 							<span
 								class={[
-									"shrink-0 text-2xs font-semibold",
+									"w-2 shrink-0 text-2xs font-semibold",
 									axis.colorClass,
 								]}>{axis.name}</span>
 						{/if}
