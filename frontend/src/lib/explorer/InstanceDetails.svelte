@@ -1,0 +1,279 @@
+<script lang="ts">
+	import caretRightIcon from "@phosphor-icons/core/regular/caret-right.svg?raw"
+	import funnelSimpleIcon from "@phosphor-icons/core/regular/funnel-simple.svg?raw"
+	import packageIcon from "@phosphor-icons/core/regular/package.svg?raw"
+	import tagIcon from "@phosphor-icons/core/regular/tag.svg?raw"
+	import warningCircleIcon from "@phosphor-icons/core/regular/warning-circle.svg?raw"
+	import xIcon from "@phosphor-icons/core/regular/x.svg?raw"
+	import { tick } from "svelte"
+	import { ModelPropertyKind } from "../backend/bridge"
+	import type { ModelProperty } from "../backend/bridge"
+	import Icon from "../shared/Icon.svelte"
+	import { matchesSearch, searchTerms } from "../shared/search"
+	import { instancePath, nodeName } from "./explorer-tree"
+	import type { ExplorerNode } from "./explorer-tree"
+	import { classIcon } from "./instance-class-icons"
+	import PropertyValue from "./PropertyValue.svelte"
+
+	// InstanceDetails shows the properties of the selected instance in the
+	// groups that Roblox Studio shows, or the summary of an asset of a bundle.
+	let {
+		node,
+		imageUrlByAssetId,
+		propertyQuery = $bindable(),
+		collapsedGroups,
+		onToggleGroup,
+		onSelectInstance,
+		onOpenDocument,
+	}: {
+		node: ExplorerNode
+		imageUrlByAssetId: ReadonlyMap<number, string>
+		propertyQuery: string
+		collapsedGroups: ReadonlySet<string>
+		onToggleGroup: (group: string, isCollapsed: boolean) => void
+		onSelectInstance: (instanceId: number) => void
+		onOpenDocument: (property: ModelProperty) => void
+	} = $props()
+
+	const elementIdPrefix = $props.id()
+	const exactNumbers = new Intl.NumberFormat("en-US")
+
+	let searchInput = $state<HTMLInputElement>()
+
+	const instance = $derived(node.instance),
+		properties = $derived(instance?.properties ?? []),
+		terms = $derived(searchTerms(propertyQuery)),
+		shownProperties = $derived(
+			terms.length > 0
+				? properties.filter((property) =>
+						matchesSearch(terms, `${property.name} ${property.text}`),
+					)
+				: properties,
+		),
+		// The groups keep the order of the properties, which the backend sorts
+		// by group as Roblox Studio orders them.
+		groups = $derived(
+			Object.entries(
+				Object.groupBy(shownProperties, (property) => property.group),
+			),
+		),
+		// The images of the assets that the instance names, such as the mesh
+		// and the texture of a SpecialMesh.
+		assetPreviews = $derived(
+			properties.filter(
+				(property) =>
+					property.kind === ModelPropertyKind.PropertyAsset &&
+					imageUrlByAssetId.has(property.assetId),
+			),
+		)
+
+	async function clearPropertyQuery(): Promise<void> {
+		propertyQuery = ""
+		await tick()
+		searchInput?.focus()
+	}
+</script>
+
+{#if !instance}
+	{@const model = node.model}
+	<div class="flex min-h-0 flex-1 animate-enter flex-col gap-4 overflow-y-auto p-4">
+		<header class="flex items-center gap-3">
+			<span
+				class="grid size-9 shrink-0 place-items-center rounded-md border border-line bg-raised text-fg-muted">
+				<Icon svg={packageIcon} size={16} aria-hidden="true" />
+			</span>
+			<div class="min-w-0">
+				<h3 class="truncate text-sm font-semibold text-fg">
+					{nodeName(node) || "Unnamed asset"}
+				</h3>
+				<p class="font-mono text-2xs text-fg-muted select-text">
+					ID: {model.assetId}
+				</p>
+			</div>
+		</header>
+		{#if model.unavailableMessage}
+			<p class="flex items-center gap-2 notice-warning" role="alert">
+				<Icon
+					svg={warningCircleIcon}
+					size={14}
+					class="shrink-0"
+					aria-hidden="true" />
+				{model.unavailableMessage}
+			</p>
+		{:else}
+			<dl class="facts">
+				<div>
+					<dt>Instances</dt>
+					<dd>
+						<span class="font-mono tabular-nums"
+							>{exactNumbers.format(model.model.instanceCount)}</span>
+					</dd>
+				</div>
+				<div>
+					<dt>File format</dt>
+					<dd><span class="font-mono">{model.model.format}</span></dd>
+				</div>
+			</dl>
+		{/if}
+	</div>
+{:else}
+	<header class="flex shrink-0 flex-col gap-2 border-b border-line-subtle p-3">
+		<div class="flex items-center gap-3">
+			<span
+				class="grid size-9 shrink-0 place-items-center rounded-md border border-line bg-raised text-fg">
+				{#key instance.className}
+					<Icon
+						svg={classIcon(instance.className)}
+						size={16}
+						class="animate-pop"
+						aria-hidden="true" />
+				{/key}
+			</span>
+			<div class="min-w-0 flex-1">
+				<h3 class="truncate text-sm font-semibold text-fg select-text">
+					{instance.name}
+				</h3>
+				<p
+					class="flex min-w-0 items-center gap-1 font-mono text-2xs text-fg-muted">
+					<span class="shrink-0">{instance.className}</span>
+					<span class="text-fg-faint" aria-hidden="true">·</span>
+					<span class="truncate text-fg-faint select-text"
+						>{instancePath(node)}</span>
+				</p>
+			</div>
+			<div
+				class="search-field h-7 w-44 flex-none lg:w-56"
+				data-closes-on-escape={propertyQuery ? "" : undefined}>
+				<Icon svg={funnelSimpleIcon} size={14} aria-hidden="true" />
+				<input
+					bind:this={searchInput}
+					type="search"
+					placeholder="Filter properties"
+					aria-label="Filter properties by name or value"
+					autocomplete="off"
+					spellcheck="false"
+					bind:value={propertyQuery}
+					onkeydown={(event) => {
+						if (event.key === "Escape" && propertyQuery) {
+							event.preventDefault()
+							propertyQuery = ""
+						}
+					}} />
+				{#if propertyQuery}
+					<button
+						type="button"
+						aria-label="Clear filter"
+						onclick={() => void clearPropertyQuery()}>
+						<Icon svg={xIcon} size={14} aria-hidden="true" />
+					</button>
+				{/if}
+			</div>
+		</div>
+		{#if (instance.tags ?? []).length > 0}
+			<ul class="flex flex-wrap gap-1" aria-label="Tags">
+				{#each instance.tags ?? [] as tag (tag)}
+					<li class="tag-pill">
+						<Icon svg={tagIcon} size={12} aria-hidden="true" />
+						<span>{tag}</span>
+					</li>
+				{/each}
+			</ul>
+		{/if}
+	</header>
+
+	<div
+		class="min-h-0 flex-1 scrollbar-stable overflow-y-auto overscroll-contain px-3 pb-3">
+		{#if assetPreviews.length > 0 && terms.length === 0}
+			<ul class="flex gap-2 overflow-x-auto pt-3" aria-label="Referenced assets">
+				{#each assetPreviews as property (`${property.group}:${property.name}`)}
+					<li class="w-20 shrink-0">
+						<figure class="flex flex-col gap-1">
+							<span
+								class="grid size-20 place-items-center overflow-hidden rounded-lg border border-line-subtle bg-raised">
+								<img
+									class="size-full animate-pop object-contain"
+									src={imageUrlByAssetId.get(property.assetId)}
+									alt={`${property.name} preview`}
+									decoding="async"
+									draggable="false"
+									referrerpolicy="no-referrer" />
+							</span>
+							<figcaption class="truncate text-2xs text-fg-muted">
+								{property.name}
+							</figcaption>
+						</figure>
+					</li>
+				{/each}
+			</ul>
+		{/if}
+		{#if properties.length === 0}
+			<p class="py-3 text-xs text-fg-muted">This instance has no properties.</p>
+		{:else if groups.length === 0}
+			<div class="empty-state animate-enter py-6">
+				<Icon svg={funnelSimpleIcon} size={28} aria-hidden="true" />
+				<h2>No matching properties</h2>
+				<p>Filter by the name or the value of a property.</p>
+				<button
+					class="button"
+					type="button"
+					onclick={() => void clearPropertyQuery()}>Clear filter</button>
+			</div>
+		{:else}
+			{#key node.key}
+				<div class="animate-enter">
+					{#each groups as [group, groupProperties] (group)}
+						{@const isCollapsed =
+							terms.length === 0 && collapsedGroups.has(group)}
+						{@const groupId = `${elementIdPrefix}-group-${group.replaceAll(" ", "-")}`}
+						<section aria-labelledby={`${groupId}-heading`}>
+							<h4
+								id={`${groupId}-heading`}
+								class="sticky top-0 z-10 bg-canvas pt-2">
+								<button
+									class="flex h-7 w-full items-center gap-1.5 rounded-md px-1 text-left text-xs font-semibold text-fg-muted transition-colors duration-100 hover:text-fg"
+									type="button"
+									aria-expanded={!isCollapsed}
+									aria-controls={groupId}
+									onclick={() => onToggleGroup(group, !isCollapsed)}>
+									<Icon
+										svg={caretRightIcon}
+										size={12}
+										class={[
+											"shrink-0 text-fg-faint transition-transform duration-100 ease-out",
+											!isCollapsed && "rotate-90",
+										]}
+										aria-hidden="true" />
+									{group}
+									<span
+										class="font-mono text-2xs font-normal text-fg-faint tabular-nums"
+										>{groupProperties?.length ?? 0}</span>
+								</button>
+							</h4>
+							{#if !isCollapsed}
+								<dl id={groupId} class="facts max-w-none animate-enter">
+									{#each groupProperties ?? [] as property, index (`${property.name}:${index}`)}
+										<div>
+											<dt>
+												<span class="truncate"
+													>{property.name}</span>
+											</dt>
+											<dd>
+												<PropertyValue
+													{property}
+													imageUrl={imageUrlByAssetId.get(
+														property.assetId,
+													) ?? ""}
+													{onSelectInstance}
+													{onOpenDocument} />
+											</dd>
+										</div>
+									{/each}
+								</dl>
+							{/if}
+						</section>
+					{/each}
+				</div>
+			{/key}
+		{/if}
+	</div>
+{/if}

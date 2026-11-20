@@ -139,6 +139,7 @@ export type {
 	CatalogPage,
 	CatalogSearch,
 	CategorizedInventoryItem,
+	ExploredModel,
 	GroupDetails,
 	GroupGame,
 	GroupGamePage,
@@ -158,6 +159,7 @@ export type {
 	InventoryItemDetails,
 	InventoryItemLook,
 	InventoryItemMarket,
+	ItemInstanceTree,
 	RenderedModel,
 	RobloxBadge,
 	TextFilter,
@@ -165,6 +167,11 @@ export type {
 	UserPrimaryGroup,
 	UserSocialLink,
 } from "../../../bindings/github.com/sleaze5/RobloxAccountManager/internal/roblox/services/models.js"
+export type {
+	Instance as ModelInstance,
+	Property as ModelProperty,
+} from "../../../bindings/github.com/sleaze5/RobloxAccountManager/internal/roblox/modelfile/models.js"
+export { PropertyKind as ModelPropertyKind } from "../../../bindings/github.com/sleaze5/RobloxAccountManager/internal/roblox/modelfile/models.js"
 export type {
 	CandidateState,
 	RuntimeState,

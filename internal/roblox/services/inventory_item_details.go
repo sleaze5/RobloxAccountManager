@@ -31,6 +31,9 @@ type InventoryItemDetails struct {
 	CanHaveRelatedItems bool `json:"canHaveRelatedItems"`
 	// CanDownload reports whether the account can save the file of the item.
 	CanDownload bool `json:"canDownload"`
+	// CanExplore reports whether the file of the item, or of each asset of a
+	// bundle, holds instances that the explorer shows.
+	CanExplore bool `json:"canExplore"`
 	// Availability tells whether Roblox moderated or deleted the item.
 	Availability ItemAvailability `json:"availability"`
 }
@@ -56,6 +59,7 @@ func (details *InventoryItemDetails) MarkUnavailable(availability ItemAvailabili
 	details.CanTryOn = false
 	details.CanHaveRelatedItems = false
 	details.CanDownload = false
+	details.CanExplore = false
 }
 
 // inventoryItemType is the item type that the inventory ownership API takes.
@@ -153,6 +157,7 @@ func (service *Users) InventoryItemDetails(ctx context.Context, accountID, versi
 	details.CanTryOn = canTryOn(category)
 	details.CanHaveRelatedItems = category == InventoryBundles || hasDependencies(category)
 	details.CanDownload = canDownload(category)
+	details.CanExplore = canExplore(category)
 	if details.Availability != ItemAvailable {
 		details.MarkUnavailable(details.Availability)
 	}
@@ -274,6 +279,7 @@ type bundleDetailsPayload struct {
 	CollectibleItemID string `json:"collectibleItemId"`
 	BundledItems      []struct {
 		ID   int64  `json:"id"`
+		Name string `json:"name"`
 		Type string `json:"type"`
 	} `json:"bundledItems"`
 }

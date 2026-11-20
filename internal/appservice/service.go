@@ -34,6 +34,7 @@ type Service struct {
 	notificationStream *robloxservices.NotificationStream
 	authentication     *robloxservices.Authentication
 	thumbnails         *robloxservices.Thumbnails
+	classReflection    *robloxservices.ClassReflection
 	presence           *robloxservices.Presence
 	gameLinks          *robloxservices.GameLinks
 	games              *robloxservices.Games
@@ -89,6 +90,7 @@ func New(
 	notificationStream *robloxservices.NotificationStream,
 	authentication *robloxservices.Authentication,
 	thumbnails *robloxservices.Thumbnails,
+	classReflection *robloxservices.ClassReflection,
 	presence *robloxservices.Presence,
 	gameLinks *robloxservices.GameLinks,
 	games *robloxservices.Games,
@@ -119,6 +121,7 @@ func New(
 		notificationStream:   notificationStream,
 		authentication:       authentication,
 		thumbnails:           thumbnails,
+		classReflection:      classReflection,
 		presence:             presence,
 		gameLinks:            gameLinks,
 		games:                games,
