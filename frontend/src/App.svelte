@@ -419,7 +419,10 @@
 	}
 
 	setCreatorNavigation({
-		showGroup: (groupId) => showPage("groups", () => groups.showGroup(groupId)),
+		showGroup: (groupId) =>
+			showPage("groups", () =>
+				groups.showGroupAsIDSearch(store.selectedAccount.id, groupId),
+			),
 		showUser: (user) => {
 			const account = store.selectedAccount
 			showPage("social", () =>

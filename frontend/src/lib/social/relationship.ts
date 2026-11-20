@@ -13,6 +13,7 @@ import userMinusIcon from "@phosphor-icons/core/regular/user-minus.svg?raw"
 import userPlusIcon from "@phosphor-icons/core/regular/user-plus.svg?raw"
 import { FriendStatus, TrustedStatus } from "../backend/bridge"
 import type { SocialRelationship, SocialUser } from "../backend/bridge"
+import type { LabeledBadge } from "../shared/labeled-badge"
 
 // The parts of a relationship that both a profile and a saved account
 // connection report.
@@ -51,13 +52,6 @@ interface RelationshipAction {
 	done: string
 	result: (name: string) => string
 	failure: string
-}
-
-export interface RelationshipBadge {
-	label: string
-	icon: string
-	tooltip: string
-	isStrong: boolean
 }
 
 export const relationshipActionsById: Record<RelationshipActionId, RelationshipAction> =
@@ -318,10 +312,8 @@ export function relationshipMenuItemClass(tone: RelationshipTone): string {
 // relationshipBadges describes a relationship. A trusted friendship replaces
 // the friend badge, because a trusted friend is always a friend. Mutuals is
 // inferred from following and being followed, and replaces both follow badges.
-export function relationshipBadges(
-	relationship: RelationshipState,
-): RelationshipBadge[] {
-	const badges: RelationshipBadge[] = []
+export function relationshipBadges(relationship: RelationshipState): LabeledBadge[] {
+	const badges: LabeledBadge[] = []
 	if (relationship.trusted === TrustedStatus.TrustedStatusTrusted) {
 		badges.push({
 			label: "Trusted friends",

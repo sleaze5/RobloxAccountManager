@@ -28,8 +28,10 @@ const (
 )
 
 var (
-	playerIDSearch = regexp.MustCompile(`^(?i)id:\s*(\d{1,18})$`)
-	playerUsername = regexp.MustCompile(`^[A-Za-z0-9_]{3,20}$`)
+	// idSearchKeyword is a search keyword that names a user or a group by its
+	// ID, such as id:1234.
+	idSearchKeyword = regexp.MustCompile(`^(?i)id:\s*(\d{1,18})$`)
+	playerUsername  = regexp.MustCompile(`^[A-Za-z0-9_]{3,20}$`)
 )
 
 type SocialList string
@@ -186,7 +188,7 @@ func (service *Service) GetSocialPage(ctx context.Context, accountID, userID int
 // as the account sees it.
 func (service *Service) SearchPlayers(ctx context.Context, accountID int64, keyword, cursor string) (SocialPage, error) {
 	keyword = strings.TrimSpace(keyword)
-	match := playerIDSearch.FindStringSubmatch(keyword)
+	match := idSearchKeyword.FindStringSubmatch(keyword)
 	if length := utf8.RuneCountInString(keyword); match == nil && (length < minPlayerSearchLength || length > maxPlayerSearchLength) {
 		return SocialPage{}, socialInputError(fmt.Sprintf("Enter %d to %d characters, or id: and a user ID, to search for users.", minPlayerSearchLength, maxPlayerSearchLength))
 	}

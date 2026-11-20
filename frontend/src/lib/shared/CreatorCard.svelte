@@ -1,12 +1,19 @@
+<script lang="ts" module>
+	// CreatorRole names what the creator is to the item, the game, or the
+	// group that the page shows.
+	export type CreatorRole = "Creator" | "Owner" | "Ally" | "Enemy"
+</script>
+
 <script lang="ts">
-	import caretRightIcon from "@phosphor-icons/core/regular/caret-right.svg?raw"
-	import sealCheckIcon from "@phosphor-icons/core/regular/seal-check.svg?raw"
-	import usersThreeIcon from "@phosphor-icons/core/regular/users-three.svg?raw"
+	import crownIcon from "@phosphor-icons/core/regular/crown.svg?raw"
+	import handshakeIcon from "@phosphor-icons/core/regular/handshake.svg?raw"
+	import paintBrushIcon from "@phosphor-icons/core/regular/paint-brush.svg?raw"
+	import swordIcon from "@phosphor-icons/core/regular/sword.svg?raw"
 	import { getCreatorNavigation } from "./creator-navigation"
 	import { loadCreatorImage } from "./creator-images"
 	import type { CreatorKind } from "./creator-images"
-	import Icon from "./Icon.svelte"
-	import ProfileImage from "./ProfileImage.svelte"
+	import type { LabeledBadge } from "./labeled-badge"
+	import ProfileCard from "./ProfileCard.svelte"
 
 	let {
 		kind,
@@ -15,6 +22,7 @@
 		displayName = "",
 		hasVerifiedBadge,
 		role,
+		memberCount = null,
 	}: {
 		kind: CreatorKind
 		creatorId: number
@@ -23,16 +31,33 @@
 		// displayName is the display name of a user, when the page knows it.
 		displayName?: string
 		hasVerifiedBadge: boolean
-		// role names what the creator is to the item, such as Creator or Owner.
-		role: string
+		role: CreatorRole
+		// memberCount is the member count of a group, when the page knows it.
+		memberCount?: number | null
 	} = $props()
 
-	const navigation = getCreatorNavigation()
+	const navigation = getCreatorNavigation(),
+		compactNumbers = new Intl.NumberFormat("en-US", {
+			notation: "compact",
+			maximumFractionDigits: 1,
+		}),
+		roleBadges: Record<CreatorRole, LabeledBadge> = {
+			Creator: { label: "Creator", icon: paintBrushIcon, isStrong: false },
+			Owner: { label: "Owner", icon: crownIcon, isStrong: true },
+			Ally: { label: "Ally", icon: handshakeIcon, isStrong: false },
+			Enemy: { label: "Enemy", icon: swordIcon, isStrong: false },
+		}
 	let imageUrl = $state("")
 
 	const isGroup = $derived(kind === "Group"),
 		title = $derived(isGroup ? name : displayName || name),
-		actionLabel = $derived(isGroup ? "Show in Groups" : "Show in Social")
+		subtitle = $derived(
+			!isGroup
+				? `@${name}`
+				: memberCount === null
+					? "Group"
+					: `${compactNumbers.format(memberCount)} ${memberCount === 1 ? "member" : "members"}`,
+		)
 
 	$effect(() => {
 		const requestedKind = kind,
@@ -59,39 +84,11 @@
 	}
 </script>
 
-<button
-	class="group/creator flex w-full max-w-sm min-w-0 items-center gap-2 rounded-lg border border-line bg-surface p-2 text-left transition-colors duration-100 hover:border-line-strong hover:bg-hover"
-	type="button"
-	data-tooltip={actionLabel}
-	data-tooltip-strong={title}
-	onclick={open}>
-	<span
-		class="grid size-8 shrink-0 place-items-center overflow-hidden rounded-md border border-line-strong bg-raised"
-		aria-hidden="true">
-		{#if isGroup}
-			<ProfileImage url={imageUrl} fallbackIcon={usersThreeIcon} />
-		{:else}
-			<ProfileImage url={imageUrl} />
-		{/if}
-	</span>
-	<span class="flex min-w-0 flex-1 flex-col leading-snug">
-		<span class="flex min-w-0 items-center gap-1">
-			<strong class="truncate text-xs font-semibold text-fg">{title}</strong>
-			{#if hasVerifiedBadge}<Icon
-					svg={sealCheckIcon}
-					class="shrink-0 text-fg-muted"
-					size={12}
-					aria-label={isGroup ? "Verified group" : "Verified user"} />{/if}
-		</span>
-		<small class="truncate text-2xs text-fg-muted"
-			>{role} · {isGroup ? "Group" : `@${name}`} ·
-			<span class="font-mono">ID {creatorId}</span></small>
-	</span>
-	<Icon
-		svg={caretRightIcon}
-		class="shrink-0 text-fg-faint"
-		data-nudge="right"
-		size={14}
-		aria-hidden="true" />
-	<span class="sr-only">{actionLabel}</span>
-</button>
+<ProfileCard
+	{kind}
+	{imageUrl}
+	{title}
+	{subtitle}
+	{hasVerifiedBadge}
+	badges={[roleBadges[role]]}
+	action={{ label: isGroup ? "Show in Groups" : "Show in Social", open }} />

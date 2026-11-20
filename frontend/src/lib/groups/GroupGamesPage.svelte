@@ -6,15 +6,13 @@
 	import { onMount, untrack } from "svelte"
 	import { accountBackend } from "../backend/bridge"
 	import type { GroupGame, GroupGamePage } from "../backend/bridge"
-	import GameIcon from "../games/GameIcon.svelte"
 	import { CursorPagedList } from "../shared/cursor-paged-list.svelte"
 	import Icon from "../shared/Icon.svelte"
 	import { loadMoreWhenVisible } from "../shared/load-more-when-visible"
-	import { moveListFocus } from "../shared/move-shortcut"
+	import ProfileImage from "../shared/ProfileImage.svelte"
 	import RefreshIcon from "../shared/RefreshIcon.svelte"
-	import SkeletonList from "../shared/SkeletonList.svelte"
-	import SkeletonMediaRow from "../shared/SkeletonMediaRow.svelte"
-	import Timestamp from "../shared/Timestamp.svelte"
+	import SkeletonTile from "../shared/SkeletonTile.svelte"
+	import { relativeTime } from "../shared/timestamp"
 	import GroupSubpageHeader from "./GroupSubpageHeader.svelte"
 	import type { GroupsStore } from "./groups-store.svelte"
 
@@ -33,6 +31,11 @@
 			notation: "compact",
 			maximumFractionDigits: 1,
 		}),
+		// A game tile shows a long name and its visits, so the grid has fewer
+		// and wider columns than the item grid of the Marketplace.
+		gameGridClass =
+			"grid grid-cols-2 gap-2 @md:grid-cols-3 @2xl:grid-cols-4 @4xl:grid-cols-5 @6xl:grid-cols-6",
+		skeletonTileIndexes = Array.from({ length: 8 }, (_unused, index) => index),
 		filterOptions: { value: GameFilter; label: string }[] = [
 			{ value: "all", label: "All" },
 			{ value: "public", label: "Public" },
@@ -128,9 +131,14 @@
 					onclick={() => void games.refresh()}>Try again</button>
 			</div>
 		{:else if !games.hasLoaded}
-			<SkeletonList label="Loading games…">
-				{#snippet row(index)}<SkeletonMediaRow {index} />{/snippet}
-			</SkeletonList>
+			<div class="p-3" role="status" aria-busy="true">
+				<span class="sr-only">Loading games…</span>
+				<ul class={[gameGridClass, "animate-enter"]} aria-hidden="true">
+					{#each skeletonTileIndexes as index (index)}
+						<SkeletonTile />
+					{/each}
+				</ul>
+			</div>
 		{:else if shownGames.length === 0}
 			<div class="empty-state h-full" role="status">
 				<Icon svg={gameControllerIcon} size={28} aria-hidden="true" />
@@ -149,47 +157,49 @@
 			</div>
 		{:else}
 			<ul
-				class="animate-enter"
-				role="group"
-				aria-label={`Games by ${group.name}`}
-				data-list>
-				{#each shownGames as game, index (game.place.universeId)}
-					<li>
+				class={[gameGridClass, "animate-enter p-3"]}
+				aria-label={`Games by ${group.name}`}>
+				{#each shownGames as game (game.place.universeId)}
+					{@const name = game.place.name || "Unnamed game"}
+					<li class="min-w-0">
 						<button
-							class="list-row relative flex h-12 w-full items-center gap-2 border-b border-line-subtle px-3 text-left"
+							class="group/tile flex h-full w-full min-w-0 flex-col gap-1 rounded-lg border border-line-subtle bg-surface p-1 text-left transition-colors duration-100 hover:border-line hover:bg-hover"
 							type="button"
-							data-list-item
-							tabindex={index === 0 ? 0 : -1}
 							data-tooltip="Show in Games"
-							data-tooltip-strong={game.place.name}
-							onclick={() => onSearchPlace(game.place.placeId)}
-							onkeydown={moveListFocus}>
-							<GameIcon url={game.place.iconUrl} />
-							<span class="flex min-w-0 flex-1 flex-col leading-snug">
-								<strong
-									class="inline-flex min-w-0 items-center gap-1 text-xs font-semibold text-fg"
-									><span class="truncate"
-										>{game.place.name || "Unnamed game"}</span
-									></strong>
-								<span class="truncate font-mono text-2xs text-fg-muted"
-									>Place ID {game.place.placeId} · Universe ID {game
-										.place.universeId}</span>
-							</span>
-							{#if game.isPrivate}
-								<span class="tag-pill-warning shrink-0">
-									<Icon svg={lockIcon} size={12} aria-hidden="true" />
-									<span>Private</span>
-								</span>
-							{/if}
+							data-tooltip-strong={name}
+							onclick={() => onSearchPlace(game.place.placeId)}>
 							<span
-								class="flex w-28 shrink-0 flex-col items-end text-2xs text-fg-muted @max-lg:hidden">
-								<span class="font-mono text-fg"
-									>{compactNumbers.format(game.visits)} visits</span>
-								{#if game.updatedAtMs}
+								class="relative grid aspect-square w-full place-items-center overflow-hidden rounded-sm bg-raised">
+								<span
+									class="grid size-full place-items-center transition-transform duration-150 ease-out motion-safe:group-hover/tile:scale-105"
+									aria-hidden="true">
+									<ProfileImage
+										url={game.place.iconUrl}
+										fallbackIcon={gameControllerIcon} />
+								</span>
+								{#if game.isPrivate}
 									<span
-										>Updated <Timestamp
-											value={game.updatedAtMs} /></span>
+										class="absolute bottom-1 left-1 inline-flex h-5 items-center gap-1 rounded-sm border border-line-strong bg-overlay px-1 text-2xs font-medium text-fg"
+										><Icon
+											svg={lockIcon}
+											class="text-warning"
+											size={12}
+											aria-hidden="true" />Private</span>
 								{/if}
+							</span>
+							<span class="flex min-w-0 flex-col px-1 pb-0.5">
+								<span class="truncate text-xs font-medium text-fg"
+									>{name}</span>
+								<span
+									class="flex min-w-0 items-baseline justify-between gap-2 text-2xs">
+									<span class="shrink-0 font-mono text-fg"
+										>{compactNumbers.format(game.visits)}
+										{game.visits === 1 ? "visit" : "visits"}</span>
+									{#if game.updatedAtMs}
+										<span class="truncate text-fg-muted"
+											>{relativeTime(game.updatedAtMs)}</span>
+									{/if}
+								</span>
 							</span>
 						</button>
 					</li>

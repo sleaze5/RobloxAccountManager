@@ -334,6 +334,19 @@ func (service *Users) GroupDetails(ctx context.Context, accountID, version, grou
 	return payload.details(), nil
 }
 
+// GroupSummaryByID reads a group by its ID. It reports false when no group
+// has the ID, which Roblox reports as a bad request.
+func (service *Users) GroupSummaryByID(ctx context.Context, accountID, version, groupID int64) (GroupSummary, bool, error) {
+	details, err := service.GroupDetails(ctx, accountID, version, groupID)
+	if remote, isRemote := errors.AsType[*roblox.Error](err); isRemote && (remote.Status == http.StatusBadRequest || remote.Status == http.StatusNotFound) {
+		return GroupSummary{}, false, nil
+	}
+	if err != nil {
+		return GroupSummary{}, false, err
+	}
+	return details.Group, true, nil
+}
+
 func (service *Users) GroupMembership(ctx context.Context, accountID, version, groupID int64) (GroupMembership, error) {
 	const endpoint = "group-membership"
 	var payload struct {

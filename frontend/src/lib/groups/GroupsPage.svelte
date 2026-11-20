@@ -153,7 +153,7 @@
 								? "Search Roblox groups"
 								: "Filter my groups"}
 							aria-label={isSearchMode
-								? "Search Roblox groups by name"
+								? "Search Roblox groups by name, or by group ID with id:"
 								: "Filter my groups by name or role"}
 							maxlength={50}
 							autocomplete="off"
@@ -253,8 +253,8 @@
 							</h2>
 							<p>
 								{store.searchedText
-									? "No group matches this name. Try another name."
-									: "Enter at least 2 characters of a group name."}
+									? "No group matches this search. Try another name or ID."
+									: "Enter at least 2 characters of a group name, or a group ID like id:1234."}
 							</p>
 						{:else if terms.length > 0}
 							<h2>No matching groups</h2>
@@ -351,7 +351,8 @@
 					<Icon svg={usersThreeIcon} size={28} aria-hidden="true" />
 					<h2>Select a group</h2>
 					<p>
-						Select a group from the list, or search Roblox groups by name.
+						Select a group from the list, or search Roblox groups by name or
+						ID.
 					</p>
 				</div>
 			{:else if store.subpage === "members"}

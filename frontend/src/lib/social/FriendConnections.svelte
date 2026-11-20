@@ -1,8 +1,8 @@
 <script lang="ts">
 	import type { FriendConnection } from "../backend/bridge"
+	import type { Account } from "../accounts/account-model"
 	import type { AccountStore } from "../accounts/account-store.svelte"
-	import ProfileImage from "../shared/ProfileImage.svelte"
-	import RelationshipBadges from "./RelationshipBadges.svelte"
+	import ProfileCard from "../shared/ProfileCard.svelte"
 	import { relationshipBadges } from "./relationship"
 
 	let {
@@ -10,11 +10,8 @@
 		accounts,
 	}: { connections: FriendConnection[]; accounts: AccountStore } = $props()
 
-	function avatar(accountId: number): string {
-		return (
-			accounts.accounts.find((account) => account.id === accountId)?.avatarUrl ??
-			""
-		)
+	function findSavedAccount(accountId: number): Account | undefined {
+		return accounts.accounts.find((account) => account.id === accountId)
 	}
 </script>
 
@@ -31,26 +28,15 @@
 			class="grid max-w-2xl grid-cols-1 gap-2 @md:grid-cols-2 @3xl:grid-cols-3"
 			aria-label="Saved accounts">
 			{#each connections as connection (connection.accountId)}
-				<li
-					class="flex min-w-0 animate-enter flex-col gap-2 rounded-lg border border-line p-2">
-					<div class="flex min-w-0 items-center gap-2">
-						<span
-							class="relative grid size-8 shrink-0 place-items-center overflow-hidden rounded-md border border-line-strong bg-raised"
-							aria-hidden="true">
-							<ProfileImage url={avatar(connection.accountId)} />
-						</span>
-						<span class="flex min-w-0 flex-1 flex-col leading-snug">
-							<strong class="truncate text-xs font-semibold text-fg"
-								>{connection.displayName}</strong>
-							<small class="truncate text-2xs text-fg-muted"
-								>@{connection.username}</small>
-						</span>
-					</div>
-					<div
-						class="flex flex-wrap items-center gap-1"
-						aria-label={`Relationship with @${connection.username}`}>
-						<RelationshipBadges badges={relationshipBadges(connection)} />
-					</div>
+				{@const account = findSavedAccount(connection.accountId)}
+				<li class="min-w-0 animate-enter">
+					<ProfileCard
+						kind="User"
+						imageUrl={account?.avatarUrl ?? ""}
+						title={connection.displayName}
+						subtitle={`@${connection.username}`}
+						isFavorite={account?.favorite ?? false}
+						badges={relationshipBadges(connection)} />
 				</li>
 			{/each}
 		</ul>

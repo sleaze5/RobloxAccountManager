@@ -1,9 +1,9 @@
 <script lang="ts">
 	import tShirtIcon from "@phosphor-icons/core/regular/t-shirt.svg?raw"
-	import AccountAvatar from "../accounts/AccountAvatar.svelte"
 	import type { Account } from "../accounts/account-model"
 	import type { SavedAccountsItemOwnership } from "../backend/bridge"
-	import Icon from "../shared/Icon.svelte"
+	import type { LabeledBadge } from "../shared/labeled-badge"
+	import ProfileCard from "../shared/ProfileCard.svelte"
 
 	let {
 		otherAccounts,
@@ -18,7 +18,13 @@
 		canBeWorn: boolean
 		onRetry: () => void
 	} = $props()
-	const elementIdPrefix = $props.id()
+	const elementIdPrefix = $props.id(),
+		wornBadge: LabeledBadge = {
+			label: "Wearing",
+			icon: tShirtIcon,
+			tooltip: "Wears this item now",
+			isStrong: true,
+		}
 
 	const owners = $derived(
 			(ownership?.owners ?? []).flatMap((owner) => {
@@ -90,26 +96,14 @@
 				class="grid animate-enter grid-cols-3 gap-2"
 				aria-label="Saved accounts that own this item">
 				{#each owners as owner (owner.account.id)}
-					<li
-						class="flex min-w-0 animate-enter items-center gap-2 rounded-lg border border-line p-2">
-						<AccountAvatar account={owner.account} className="size-8" />
-						<span class="flex min-w-0 flex-1 flex-col leading-snug">
-							<strong class="truncate text-xs font-semibold text-fg"
-								>{owner.account.displayName}</strong>
-							<small class="truncate text-2xs text-fg-muted"
-								>@{owner.account.username}</small>
-						</span>
-						{#if canBeWorn && owner.isWorn}
-							<span
-								class="grid size-5 shrink-0 animate-pop place-items-center rounded-sm border border-line-strong bg-overlay text-success"
-								data-tooltip="Wears this item now"
-								><Icon
-									svg={tShirtIcon}
-									size={12}
-									aria-hidden="true" /><span class="sr-only"
-									>Wears this item now</span
-								></span>
-						{/if}
+					<li class="min-w-0 animate-enter">
+						<ProfileCard
+							kind="User"
+							imageUrl={owner.account.avatarUrl}
+							title={owner.account.displayName}
+							subtitle={`@${owner.account.username}`}
+							isFavorite={owner.account.favorite}
+							badges={canBeWorn && owner.isWorn ? [wornBadge] : []} />
 					</li>
 				{/each}
 			</ul>

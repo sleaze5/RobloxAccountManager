@@ -1,7 +1,8 @@
 <script lang="ts">
-	import starFillIcon from "@phosphor-icons/core/fill/star-fill.svg?raw"
-	import Icon from "../shared/Icon.svelte"
-	import ProfileImage from "../shared/ProfileImage.svelte"
+	import vaultIcon from "@phosphor-icons/core/regular/vault.svg?raw"
+	import { getCreatorNavigation } from "../shared/creator-navigation"
+	import type { LabeledBadge } from "../shared/labeled-badge"
+	import ProfileCard from "../shared/ProfileCard.svelte"
 	import Skeleton from "../shared/Skeleton.svelte"
 	import { accountBackend, TagKind } from "../backend/bridge"
 
@@ -13,6 +14,13 @@
 	}
 
 	let { userId }: { userId: string } = $props()
+
+	const navigation = getCreatorNavigation(),
+		notInVaultBadge: LabeledBadge = {
+			label: "Not in your vault",
+			icon: vaultIcon,
+			isStrong: false,
+		}
 
 	let user = $state<LogUser | null>(null),
 		isUserUnavailable = $state(false),
@@ -79,35 +87,40 @@
 	}
 </script>
 
-<div class="flex min-w-0 items-center gap-3" aria-busy={!user && !isUserUnavailable}>
-	<span
-		class="grid size-10 shrink-0 place-items-center overflow-hidden rounded-md border border-line-strong bg-raised text-fg-faint"
-		aria-hidden="true">
-		<ProfileImage url={avatarUrl} />
-	</span>
-	<div class="flex min-w-0 flex-col leading-snug">
-		{#if user}
-			<strong
-				class="inline-flex min-w-0 items-center gap-1 text-sm font-semibold text-fg"
-				><span class="truncate">{user.displayName || user.username}</span
-				>{#if user.favorite}<Icon
-						svg={starFillIcon}
-						class="shrink-0 animate-pop text-accent-strong"
-						size={12}
-						aria-label="Favorite" />{/if}</strong>
-			<span class="truncate text-xs text-fg-muted"
-				>@{user.username}{user.inVault === false
-					? " - Not in your vault"
-					: ""}</span>
-		{:else if isUserUnavailable}
-			<span class="text-sm text-fg-muted">Unavailable</span>
-			<span class="truncate font-mono text-xs text-fg-muted"
-				>User ID {userId}</span>
-		{:else}
-			<span class="text-sm"
-				><Skeleton className="w-28" label="Loading user…" /></span>
-			<span class="text-xs"
-				><Skeleton className="w-20" label="Loading username…" /></span>
-		{/if}
-	</div>
+<div class="w-72 max-w-full" aria-busy={!user && !isUserUnavailable}>
+	{#if user}
+		{@const shownUser = user}
+		<ProfileCard
+			kind="User"
+			imageUrl={avatarUrl}
+			title={shownUser.displayName || shownUser.username}
+			subtitle={`@${shownUser.username}`}
+			isFavorite={shownUser.favorite}
+			badges={shownUser.inVault === false ? [notInVaultBadge] : []}
+			action={{
+				label: "Show in Social",
+				open: () =>
+					navigation.showUser({
+						userId: Number(userId),
+						username: shownUser.username,
+						displayName: shownUser.displayName || shownUser.username,
+					}),
+			}} />
+	{:else if isUserUnavailable}
+		<ProfileCard
+			kind="User"
+			imageUrl={avatarUrl}
+			title="Unavailable"
+			subtitle={`User ID ${userId}`} />
+	{:else}
+		<div class="flex min-w-0 items-center gap-2 rounded-lg border border-line p-2">
+			<span class="size-8 shrink-0 skeleton rounded-md"></span>
+			<span class="flex min-w-0 flex-1 flex-col leading-snug">
+				<span class="text-xs"
+					><Skeleton className="w-28" label="Loading user…" /></span>
+				<span class="text-2xs"
+					><Skeleton className="w-20" label="Loading username…" /></span>
+			</span>
+		</div>
+	{/if}
 </div>

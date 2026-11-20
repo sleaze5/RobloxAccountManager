@@ -185,6 +185,17 @@ export class GroupsStore {
 		void this.refreshProfile()
 	}
 
+	// showGroupAsIDSearch opens a group that another page names, such as the
+	// creator of a game, as a search by group ID. The account binds first,
+	// because Groups may not have opened yet.
+	showGroupAsIDSearch(accountId: number, groupId: number): void {
+		this.bindAccount(accountId)
+		this.sidebarCollapsed = false
+		this.query = `id:${groupId}`
+		void this.search()
+		this.showGroup(groupId)
+	}
+
 	closeGroup(): void {
 		void this.#profileRequest?.cancel()
 		this.#profileRequest = null

@@ -4,9 +4,9 @@
 	import Icon from "../shared/Icon.svelte"
 	import type { SocialProfileSnapshot, SocialRelationship } from "../backend/bridge"
 	import AccountMembershipBadges from "../accounts/AccountMembershipBadges.svelte"
-	import RelationshipBadges from "./RelationshipBadges.svelte"
+	import LabeledBadges from "../shared/LabeledBadges.svelte"
+	import type { LabeledBadge } from "../shared/labeled-badge"
 	import { relationshipBadges } from "./relationship"
-	import type { RelationshipBadge } from "./relationship"
 
 	let {
 		profile,
@@ -14,7 +14,7 @@
 	}: { profile: SocialProfileSnapshot; relationship: SocialRelationship | null } =
 		$props()
 
-	const badges = $derived.by((): RelationshipBadge[] => {
+	const badges = $derived.by((): LabeledBadge[] => {
 		if (!relationship) return []
 		if (relationship.self) {
 			return [
@@ -26,7 +26,7 @@
 				},
 			]
 		}
-		const saved: RelationshipBadge[] =
+		const saved: LabeledBadge[] =
 			profile.savedAccountId > 0
 				? [
 						{
@@ -43,7 +43,7 @@
 
 {#if badges.length || profile.premium || profile.banned}
 	<div class="flex flex-wrap items-center gap-1" aria-label="Relationship">
-		<RelationshipBadges {badges} />
+		<LabeledBadges {badges} />
 		<AccountMembershipBadges snapshot={{ premium: profile.premium, plus: null }} />
 		{#if profile.banned}
 			<span

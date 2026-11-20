@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log/slog"
 	"slices"
+	"strconv"
 	"strings"
 	"unicode/utf8"
 
@@ -97,7 +98,7 @@ func (service *Service) SearchGroups(ctx context.Context, accountID int64, keywo
 	}
 	defer done()
 	logger := service.groupLogger(operation, accountID)
-	page, err := service.users.SearchGroups(ctx, accountID, version, keyword, cursor)
+	page, err := service.searchGroupsByKeywordOrID(ctx, accountID, version, keyword, cursor)
 	if err != nil {
 		logger.WarnContext(ctx, "group search failed", "error", err)
 		return robloxservices.GroupSearchPage{}, err
@@ -107,6 +108,31 @@ func (service *Service) SearchGroups(ctx context.Context, accountID int64, keywo
 		summaries[index] = &page.Groups[index]
 	}
 	service.addGroupIcons(ctx, summaries, logger)
+	return page, nil
+}
+
+// searchGroupsByKeywordOrID finds groups by name, or the one group that a
+// keyword such as id:1234 names, which has no further pages.
+func (service *Service) searchGroupsByKeywordOrID(ctx context.Context, accountID, version int64, keyword, cursor string) (robloxservices.GroupSearchPage, error) {
+	match := idSearchKeyword.FindStringSubmatch(strings.TrimSpace(keyword))
+	if match == nil {
+		return service.users.SearchGroups(ctx, accountID, version, keyword, cursor)
+	}
+	page := robloxservices.GroupSearchPage{Groups: []robloxservices.GroupSummary{}}
+	groupID, err := strconv.ParseInt(match[1], 10, 64)
+	if err != nil {
+		return robloxservices.GroupSearchPage{}, fmt.Errorf("parse group id: %w", err)
+	}
+	if groupID <= 0 {
+		return page, nil
+	}
+	summary, isFound, err := service.users.GroupSummaryByID(ctx, accountID, version, groupID)
+	if err != nil {
+		return robloxservices.GroupSearchPage{}, err
+	}
+	if isFound {
+		page.Groups = append(page.Groups, summary)
+	}
 	return page, nil
 }
 

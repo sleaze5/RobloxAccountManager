@@ -27,6 +27,7 @@
 	import { GroupSource } from "../backend/bridge"
 	import type { GroupSummary } from "../backend/bridge"
 	import CreatorCard from "../shared/CreatorCard.svelte"
+	import type { CreatorRole } from "../shared/CreatorCard.svelte"
 	import { errorMessage } from "../shared/errors"
 	import Icon from "../shared/Icon.svelte"
 	import RefreshIcon from "../shared/RefreshIcon.svelte"
@@ -45,10 +46,6 @@
 	} = $props()
 
 	const exactNumbers = new Intl.NumberFormat("en-US"),
-		compactNumbers = new Intl.NumberFormat("en-US", {
-			notation: "compact",
-			maximumFractionDigits: 1,
-		}),
 		sectionHeadingClass = "text-xs font-semibold text-fg-muted",
 		metaClass =
 			"flex min-w-0 flex-wrap items-center gap-1 font-mono text-2xs wrap-anywhere text-fg-muted",
@@ -136,7 +133,7 @@
 
 {#snippet relatedGroups(
 	title: string,
-	relatedRole: string,
+	relatedRole: CreatorRole,
 	summaries: GroupSummary[],
 	source: GroupSource,
 )}
@@ -160,7 +157,8 @@
 								creatorId={summary.groupId}
 								name={summary.name}
 								hasVerifiedBadge={summary.hasVerifiedBadge}
-								role={`${relatedRole} · ${compactNumbers.format(summary.memberCount)} members`} />
+								role={relatedRole}
+								memberCount={summary.memberCount} />
 						</li>
 					{/each}
 				</ul>
