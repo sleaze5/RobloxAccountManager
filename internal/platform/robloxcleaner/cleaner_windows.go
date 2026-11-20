@@ -184,31 +184,29 @@ func uninstallRegistryValues() []registryValue {
 }
 
 // cleanupTarget is one file, folder, registry key, or registry value to
-// delete. delete reports whether the target existed.
+// delete. Its label goes into logs, and its display name, which can contain
+// the Windows user name, is shown to the user. delete reports whether the
+// target existed.
 type cleanupTarget struct {
-	label  string
-	delete func() (bool, error)
+	label       string
+	displayName string
+	delete      func() (bool, error)
 }
 
-// listPhaseTargets lists the targets of a phase when the phase starts, so that
-// it sees what earlier phases left.
 func listPhaseTargets(phase Phase) []cleanupTarget {
 	switch phase {
 	case PhaseRemovingApplications:
-		return pathTargets(applicationPaths())
-	case PhaseRemovingShortcuts:
-		return pathTargets(shortcutPaths())
+		return pathTargets(append(applicationPaths(), shortcutPaths()...))
 	case PhaseRemovingRegistryEntries:
 		return append(registryKeyTargets(uninstallRegistryKeys()), registryValueTargets(uninstallRegistryValues())...)
 	case PhaseDeletingUserContent:
 		return pathTargets(userContentFolders)
 	case PhaseDeletingCaches:
 		targets := append(pathTargets(dataFolders), localRobloxEntryTargets()...)
-		return append(targets, registryKeyTargets(dataRegistryKeys)...)
+		targets = append(targets, registryKeyTargets(dataRegistryKeys)...)
+		return append(targets, looseRobloxFileTargets()...)
 	case PhaseDeletingLogs:
 		return pathTargets(logFolders)
-	case PhaseDeletingTemporaryFiles:
-		return looseRobloxFileTargets()
 	case PhaseClosingProcesses:
 		return nil
 	}
@@ -233,11 +231,11 @@ func deleteTargets(ctx context.Context, targets []cleanupTarget, tracker *progre
 			inUseTargets = append(inUseTargets, target)
 			failures[target.label] = err
 		case err != nil:
-			tracker.completeItem(itemSkipped, target.label, err)
+			tracker.completeItem(itemSkipped, target.label, target.displayName, err)
 		case wasDeleted:
-			tracker.completeItem(itemDeleted, target.label, nil)
+			tracker.completeItem(itemDeleted, target.label, target.displayName, nil)
 		default:
-			tracker.completeItem(itemMissing, target.label, nil)
+			tracker.completeItem(itemMissing, target.label, target.displayName, nil)
 		}
 	}
 	for _, retryDelay := range retryDelays {
@@ -252,15 +250,15 @@ func deleteTargets(ctx context.Context, targets []cleanupTarget, tracker *progre
 				stillInUseTargets = append(stillInUseTargets, target)
 				failures[target.label] = err
 			} else if err != nil {
-				tracker.completeItem(itemSkipped, target.label, err)
+				tracker.completeItem(itemSkipped, target.label, target.displayName, err)
 			} else {
-				tracker.completeItem(itemDeleted, target.label, nil)
+				tracker.completeItem(itemDeleted, target.label, target.displayName, nil)
 			}
 		}
 		inUseTargets = stillInUseTargets
 	}
 	for _, target := range inUseTargets {
-		tracker.completeItem(itemSkipped, target.label, failures[target.label])
+		tracker.completeItem(itemSkipped, target.label, target.displayName, failures[target.label])
 	}
 }
 
@@ -284,10 +282,33 @@ func isInUseError(err error) bool {
 		errors.Is(err, windows.ERROR_DIR_NOT_EMPTY)
 }
 
+// skipReasonOf names why a target or process was skipped for the user.
+func skipReasonOf(err error) SkipReason {
+	switch {
+	case isInUseError(err):
+		return SkipReasonInUse
+	case errors.Is(err, windows.ERROR_ACCESS_DENIED), errors.Is(err, windows.ERROR_PRIVILEGE_NOT_HELD):
+		return SkipReasonNeedsAdministratorRights
+	case errors.Is(err, errReparsePoint):
+		return SkipReasonLink
+	default:
+		return SkipReasonFailed
+	}
+}
+
+// displayName returns the resolved path, or the label when the environment
+// variable is not set.
+func (path environmentPath) displayName() string {
+	if resolved, ok := path.resolve(); ok {
+		return resolved
+	}
+	return path.label()
+}
+
 func pathTargets(paths []environmentPath) []cleanupTarget {
 	targets := make([]cleanupTarget, 0, len(paths))
 	for _, path := range paths {
-		targets = append(targets, cleanupTarget{path.label(), func() (bool, error) { return removePath(path) }})
+		targets = append(targets, cleanupTarget{path.label(), path.displayName(), func() (bool, error) { return removePath(path) }})
 	}
 	return targets
 }
@@ -295,7 +316,8 @@ func pathTargets(paths []environmentPath) []cleanupTarget {
 func registryKeyTargets(keys []registryKey) []cleanupTarget {
 	targets := make([]cleanupTarget, 0, len(keys))
 	for _, key := range keys {
-		targets = append(targets, cleanupTarget{registryLabel(key), func() (bool, error) { return deleteRegistryKeyIfPresent(key) }})
+		label := registryLabel(key)
+		targets = append(targets, cleanupTarget{label, label, func() (bool, error) { return deleteRegistryKeyIfPresent(key) }})
 	}
 	return targets
 }
@@ -303,7 +325,8 @@ func registryKeyTargets(keys []registryKey) []cleanupTarget {
 func registryValueTargets(values []registryValue) []cleanupTarget {
 	targets := make([]cleanupTarget, 0, len(values))
 	for _, value := range values {
-		targets = append(targets, cleanupTarget{registryLabel(value.key) + `\` + value.name, func() (bool, error) { return deleteRegistryValueIfPresent(value) }})
+		label := registryLabel(value.key) + ` (value ` + value.name + `)`
+		targets = append(targets, cleanupTarget{label, label, func() (bool, error) { return deleteRegistryValueIfPresent(value) }})
 	}
 	return targets
 }
@@ -311,7 +334,7 @@ func registryValueTargets(values []registryValue) []cleanupTarget {
 // failedListingTarget stands for a folder that could not be listed, so that
 // the folder counts as skipped.
 func failedListingTarget(folder environmentPath, err error) cleanupTarget {
-	return cleanupTarget{folder.label(), func() (bool, error) { return false, err }}
+	return cleanupTarget{folder.label(), folder.displayName(), func() (bool, error) { return false, err }}
 }
 
 func applicationPaths() []environmentPath {

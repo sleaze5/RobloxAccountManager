@@ -1,6 +1,7 @@
 <script lang="ts">
 	import broomIcon from "@phosphor-icons/core/regular/broom.svg?raw"
 	import trashIcon from "@phosphor-icons/core/regular/trash.svg?raw"
+	import ConfirmationDialog from "../shared/ConfirmationDialog.svelte"
 	import Icon from "../shared/Icon.svelte"
 	import { onMount } from "svelte"
 	import {
@@ -8,11 +9,12 @@
 		RobloxCleanScope,
 		type RobloxClientState,
 	} from "../backend/bridge"
-	import RobloxCleanDialog from "../dialogs/RobloxCleanDialog.svelte"
 	import type { NotificationCenter } from "../notifications/notification-center.svelte"
 	import Select from "../shared/Select.svelte"
 	import { linuxClientOptions } from "./linux-clients"
 	import { robloxClientOptions as options } from "./roblox-client-options.svelte"
+	import { robloxCleaning } from "./roblox-cleaning.svelte"
+	import RobloxCleanRun from "./RobloxCleanRun.svelte"
 	import SettingsStatus from "./SettingsStatus.svelte"
 	import SettingSwitch from "./SettingSwitch.svelte"
 	import { errorMessage } from "../shared/errors"
@@ -22,7 +24,7 @@
 		clientsLoading = $state(true),
 		clientsSaving = $state(false),
 		clientsError = $state(""),
-		cleanScope = $state<RobloxCleanScope | null>(null)
+		confirmingCleanScope = $state<RobloxCleanScope | null>(null)
 	const snapshot = $derived(options.multiInstance),
 		cleaner = $derived(options.cleaner),
 		clientOptions = $derived(clients ? linuxClientOptions(clients) : []),
@@ -61,10 +63,24 @@
 		}
 	}
 
+	function confirmClean(scope: RobloxCleanScope): void {
+		confirmingCleanScope = null
+		void robloxCleaning.start(scope, notifications)
+	}
+
+	function isCleaning(scope: RobloxCleanScope): boolean {
+		return robloxCleaning.isRunning && robloxCleaning.scope === scope
+	}
+
 	onMount(() => {
 		void options.load()
 		void loadClients()
-		return options.pollMultiInstanceWhileEnabled()
+		const stopPolling = options.pollMultiInstanceWhileEnabled(),
+			endCleaningView = robloxCleaning.view()
+		return () => {
+			stopPolling()
+			endCleaningView()
+		}
 	})
 </script>
 
@@ -192,11 +208,16 @@
 					type="button"
 					aria-haspopup="dialog"
 					aria-describedby="clean-now-description"
-					onclick={() => (cleanScope = RobloxCleanScope.ScopeData)}>
+					aria-busy={isCleaning(RobloxCleanScope.ScopeData)}
+					disabled={robloxCleaning.isRunning}
+					onclick={() => (confirmingCleanScope = RobloxCleanScope.ScopeData)}>
 					<Icon svg={broomIcon} size={14} aria-hidden="true" />
-					Clean now
+					{isCleaning(RobloxCleanScope.ScopeData) ? "Cleaning…" : "Clean now"}
 				</button>
 			</div>
+			<RobloxCleanRun
+				scope={RobloxCleanScope.ScopeData}
+				label="Cleaning Roblox data" />
 			<div class="settings-row">
 				<div class="settings-row-copy">
 					<strong id="uninstall-title">Uninstall Roblox</strong>
@@ -209,11 +230,19 @@
 					type="button"
 					aria-haspopup="dialog"
 					aria-describedby="uninstall-description"
-					onclick={() => (cleanScope = RobloxCleanScope.ScopeUninstall)}>
+					aria-busy={isCleaning(RobloxCleanScope.ScopeUninstall)}
+					disabled={robloxCleaning.isRunning}
+					onclick={() =>
+						(confirmingCleanScope = RobloxCleanScope.ScopeUninstall)}>
 					<Icon svg={trashIcon} size={14} aria-hidden="true" />
-					Uninstall
+					{isCleaning(RobloxCleanScope.ScopeUninstall)
+						? "Uninstalling…"
+						: "Uninstall"}
 				</button>
 			</div>
+			<RobloxCleanRun
+				scope={RobloxCleanScope.ScopeUninstall}
+				label="Uninstalling Roblox" />
 		</div>
 		{#if options.cleanerError}
 			<div class="notice-error" role="alert">{options.cleanerError}</div>
@@ -223,11 +252,29 @@
 	<div class="notice-error" role="alert">{options.cleanerError}</div>
 {/if}
 
-{#if cleanScope}
-	<RobloxCleanDialog
-		scope={cleanScope}
-		{notifications}
-		onClose={() => (cleanScope = null)} />
+{#if confirmingCleanScope === RobloxCleanScope.ScopeData}
+	<ConfirmationDialog
+		title="Clean Roblox data?"
+		description={cleaner?.deleteLogsWhenCleaning
+			? "Closes Roblox and deletes its caches, sign-in data, and logs. Roblox and its settings stay."
+			: "Closes Roblox and deletes its caches and sign-in data. Roblox and its settings stay."}
+		confirmLabel="Clean Roblox data"
+		progressLabel="Cleaning…"
+		tone="warning"
+		isWorking={false}
+		error=""
+		onConfirm={() => confirmClean(RobloxCleanScope.ScopeData)}
+		onCancel={() => (confirmingCleanScope = null)} />
+{:else if confirmingCleanScope === RobloxCleanScope.ScopeUninstall}
+	<ConfirmationDialog
+		title="Uninstall Roblox?"
+		description="Closes Roblox and removes Roblox, Studio, and their files, including saved places, screenshots, and videos. This cannot be undone."
+		confirmLabel="Uninstall Roblox"
+		progressLabel="Uninstalling…"
+		isWorking={false}
+		error=""
+		onConfirm={() => confirmClean(RobloxCleanScope.ScopeUninstall)}
+		onCancel={() => (confirmingCleanScope = null)} />
 {/if}
 
 {#if clients?.choiceSupported}

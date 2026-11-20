@@ -7,7 +7,7 @@
 	import Icon from "../shared/Icon.svelte"
 	import type { AccountStore } from "../accounts/account-store.svelte"
 	import type { NotificationCenter } from "../notifications/notification-center.svelte"
-	import { LaunchMethod, RobloxCleanScope } from "../backend/bridge"
+	import { LaunchMethod } from "../backend/bridge"
 	import RobloxCleanDialog from "../dialogs/RobloxCleanDialog.svelte"
 	import RobloxProcessesDialog from "../dialogs/RobloxProcessesDialog.svelte"
 	import { appSettings } from "../settings/settings-store.svelte"
@@ -291,9 +291,6 @@
 			}} />
 	{/if}
 	{#if cleanOpen}
-		<RobloxCleanDialog
-			scope={RobloxCleanScope.ScopeData}
-			{notifications}
-			onClose={() => (cleanOpen = false)} />
+		<RobloxCleanDialog {notifications} onClose={() => (cleanOpen = false)} />
 	{/if}
 </section>

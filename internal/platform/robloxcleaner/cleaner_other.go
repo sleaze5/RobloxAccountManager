@@ -11,3 +11,5 @@ type cleanupTarget struct{}
 func listPhaseTargets(Phase) []cleanupTarget { return nil }
 
 func deleteTargets(context.Context, []cleanupTarget, *progressTracker) {}
+
+func skipReasonOf(error) SkipReason { return SkipReasonFailed }

@@ -28,14 +28,15 @@ const CleanTaskName = "clean-roblox"
 type Phase string
 
 const (
-	PhaseClosingProcesses        Phase = "closing-processes"
+	PhaseClosingProcesses Phase = "closing-processes"
+	// PhaseRemovingApplications removes the install folders and shortcuts.
 	PhaseRemovingApplications    Phase = "removing-applications"
-	PhaseRemovingShortcuts       Phase = "removing-shortcuts"
 	PhaseRemovingRegistryEntries Phase = "removing-registry-entries"
 	PhaseDeletingUserContent     Phase = "deleting-user-content"
-	PhaseDeletingCaches          Phase = "deleting-caches"
-	PhaseDeletingLogs            Phase = "deleting-logs"
-	PhaseDeletingTemporaryFiles  Phase = "deleting-temporary-files"
+	// PhaseDeletingCaches deletes caches, cookies, the Roblox Studio sign-in,
+	// and temporary files.
+	PhaseDeletingCaches Phase = "deleting-caches"
+	PhaseDeletingLogs   Phase = "deleting-logs"
 )
 
 type PhaseState string
@@ -46,9 +47,9 @@ const (
 	PhaseStateDone    PhaseState = "done"
 )
 
-// PhaseProgress counts the items of one phase. The total is 0 until the
-// phase starts, and it can grow while Roblox processes close, because closing
-// one can start another, such as the crash handler.
+// PhaseProgress counts the items of one phase. The totals are known when
+// cleaning starts, except that the total of closing processes grows while they
+// close, because closing one can start another, such as the crash handler.
 type PhaseProgress struct {
 	Phase          Phase      `json:"phase"`
 	State          PhaseState `json:"state"`
@@ -57,9 +58,37 @@ type PhaseProgress struct {
 	SkippedCount   int        `json:"skippedCount"`
 }
 
-// Progress lists every phase of a cleaning in the order they run.
+type ActivityAction string
+
+const (
+	ActivityActionClosed  ActivityAction = "closed"
+	ActivityActionDeleted ActivityAction = "deleted"
+	ActivityActionSkipped ActivityAction = "skipped"
+)
+
+type SkipReason string
+
+const (
+	SkipReasonInUse                    SkipReason = "in-use"
+	SkipReasonNeedsAdministratorRights SkipReason = "needs-administrator-rights"
+	SkipReasonLink                     SkipReason = "link"
+	SkipReasonFailed                   SkipReason = "failed"
+)
+
+// Activity is one process that was closed, or one item that was deleted or
+// skipped. Items that did not exist are not reported. Item is the full path,
+// registry key, or process name, which the user sees but logs never contain.
+type Activity struct {
+	Action     ActivityAction `json:"action"`
+	Item       string         `json:"item"`
+	SkipReason SkipReason     `json:"skipReason,omitempty"`
+}
+
+// Progress lists every phase of a cleaning in the order they run. Activity is
+// set when the report was caused by a closed, deleted, or skipped item.
 type Progress struct {
-	Phases []PhaseProgress `json:"phases"`
+	Phases   []PhaseProgress `json:"phases"`
+	Activity *Activity       `json:"activity,omitempty"`
 }
 
 // Outcome counts what cleaning deleted and what it skipped because it was in
@@ -96,13 +125,13 @@ func (request CleanRequest) shouldDeleteLogs() bool {
 func (request CleanRequest) deletionPhases() []Phase {
 	var phases []Phase
 	if request.Scope == ScopeUninstall {
-		phases = append(phases, PhaseRemovingApplications, PhaseRemovingShortcuts, PhaseRemovingRegistryEntries, PhaseDeletingUserContent)
+		phases = append(phases, PhaseRemovingApplications, PhaseRemovingRegistryEntries, PhaseDeletingUserContent)
 	}
 	phases = append(phases, PhaseDeletingCaches)
 	if request.shouldDeleteLogs() {
 		phases = append(phases, PhaseDeletingLogs)
 	}
-	return append(phases, PhaseDeletingTemporaryFiles)
+	return phases
 }
 
 func (request CleanRequest) phases() []Phase {
@@ -156,17 +185,25 @@ func Clean(ctx context.Context, request CleanRequest, reportProgress func(Progre
 	}
 	logger = logger.With("scope", request.Scope, "should_delete_logs", request.shouldDeleteLogs())
 	tracker := &progressTracker{progress: InitialProgress(request), reportProgress: reportProgress, logger: logger}
+	// Every target is listed first, so that the totals are known from the
+	// start. A target that an earlier phase deleted counts as done.
+	deletionPhases := request.deletionPhases()
+	targetsByPhase := make(map[Phase][]cleanupTarget, len(deletionPhases))
+	for _, phase := range deletionPhases {
+		targetsByPhase[phase] = listPhaseTargets(phase)
+		tracker.setTotal(phase, len(targetsByPhase[phase]))
+	}
+	tracker.report(nil)
 	if request.ShouldCloseProcesses {
-		tracker.beginPhase(PhaseClosingProcesses, 0)
+		tracker.beginPhase(PhaseClosingProcesses)
 		if err := closeProcesses(ctx, tracker, logger); err != nil {
 			return Outcome{}, err
 		}
 		tracker.endPhase()
 	}
-	for _, phase := range request.deletionPhases() {
-		targets := listPhaseTargets(phase)
-		tracker.beginPhase(phase, len(targets))
-		deleteTargets(ctx, targets, tracker)
+	for _, phase := range deletionPhases {
+		tracker.beginPhase(phase)
+		deleteTargets(ctx, targetsByPhase[phase], tracker)
 		// A cancelled phase stays running in the last report, so that it does
 		// not look finished.
 		if err := ctx.Err(); err != nil {
@@ -206,11 +243,12 @@ func closeProcesses(ctx context.Context, tracker *progressTracker, logger *slog.
 				return fmt.Errorf("close Roblox processes before cleaning: %w", err)
 			}
 			attemptedProcesses[process.PID] = process.StartTime
+			displayName := fmt.Sprintf("%s (process %d)", process.Name, process.PID)
 			if err := robloxmulti.KillProcesses(ctx, []robloxmulti.Process{process}, logger); err != nil {
-				tracker.completeItem(itemSkipped, process.Name, err)
+				tracker.completeItem(itemSkipped, process.Name, displayName, err)
 				continue
 			}
-			tracker.completeItem(itemDeleted, process.Name, nil)
+			tracker.completeItem(itemClosed, process.Name, displayName, nil)
 		}
 	}
 	return nil
@@ -219,7 +257,8 @@ func closeProcesses(ctx context.Context, tracker *progressTracker, logger *slog.
 type itemOutcome int
 
 const (
-	itemDeleted itemOutcome = iota
+	itemClosed itemOutcome = iota
+	itemDeleted
 	itemMissing
 	itemSkipped
 )
@@ -234,50 +273,63 @@ type progressTracker struct {
 	deletedCount   int
 }
 
+func (tracker *progressTracker) indexOf(phase Phase) int {
+	return slices.IndexFunc(tracker.progress.Phases, func(phaseProgress PhaseProgress) bool {
+		return phaseProgress.Phase == phase
+	})
+}
+
 func (tracker *progressTracker) currentPhase() *PhaseProgress {
 	return &tracker.progress.Phases[tracker.phaseIndex]
 }
 
-func (tracker *progressTracker) beginPhase(phase Phase, totalCount int) {
-	tracker.phaseIndex = slices.IndexFunc(tracker.progress.Phases, func(phaseProgress PhaseProgress) bool {
-		return phaseProgress.Phase == phase
-	})
-	current := tracker.currentPhase()
-	current.State = PhaseStateRunning
-	current.TotalCount = totalCount
-	tracker.report()
+func (tracker *progressTracker) setTotal(phase Phase, totalCount int) {
+	tracker.progress.Phases[tracker.indexOf(phase)].TotalCount = totalCount
+}
+
+func (tracker *progressTracker) beginPhase(phase Phase) {
+	tracker.phaseIndex = tracker.indexOf(phase)
+	tracker.currentPhase().State = PhaseStateRunning
+	tracker.report(nil)
 }
 
 func (tracker *progressTracker) addToTotal(count int) {
 	tracker.currentPhase().TotalCount += count
-	tracker.report()
+	tracker.report(nil)
 }
 
-func (tracker *progressTracker) completeItem(outcome itemOutcome, label string, err error) {
+// completeItem counts an item of the current phase. The label goes into logs
+// and contains no user name. The display name is what the user sees.
+func (tracker *progressTracker) completeItem(outcome itemOutcome, label, displayName string, err error) {
 	current := tracker.currentPhase()
 	current.CompletedCount++
+	var activity *Activity
 	switch outcome {
+	case itemClosed:
+		activity = &Activity{Action: ActivityActionClosed, Item: displayName}
 	case itemDeleted:
 		tracker.deletedCount++
+		activity = &Activity{Action: ActivityActionDeleted, Item: displayName}
 	case itemSkipped:
 		current.SkippedCount++
+		activity = &Activity{Action: ActivityActionSkipped, Item: displayName, SkipReason: skipReasonOf(err)}
 		tracker.logger.Debug("Roblox item skipped", "phase", current.Phase, "item", label, "error", err)
 	case itemMissing:
 	}
-	tracker.report()
+	tracker.report(activity)
 }
 
 func (tracker *progressTracker) endPhase() {
 	current := tracker.currentPhase()
 	current.State = PhaseStateDone
 	current.CompletedCount = current.TotalCount
-	tracker.report()
+	tracker.report(nil)
 }
 
 // report sends a copy, because the listener can encode it after the tracker
 // changed again.
-func (tracker *progressTracker) report() {
-	tracker.reportProgress(Progress{Phases: slices.Clone(tracker.progress.Phases)})
+func (tracker *progressTracker) report(activity *Activity) {
+	tracker.reportProgress(Progress{Phases: slices.Clone(tracker.progress.Phases), Activity: activity})
 }
 
 func (tracker *progressTracker) outcome() Outcome {
