@@ -4,7 +4,7 @@
 	import warningCircleIcon from "@phosphor-icons/core/regular/warning-circle.svg?raw"
 	import xCircleIcon from "@phosphor-icons/core/regular/x-circle.svg?raw"
 	import Icon from "../shared/Icon.svelte"
-	import type { CleanPhaseProgress } from "./roblox-cleaning.svelte"
+	import type { CleanPhaseProgress } from "./roblox-cleaning"
 
 	// hasFailed marks the running phase of a run that stopped with an error.
 	let {

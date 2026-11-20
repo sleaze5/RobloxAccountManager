@@ -2,6 +2,7 @@ import {
 	accountBackend,
 	type MultiInstanceSnapshot,
 	type RobloxCleanerState,
+	type RobloxCleanReport,
 } from "../backend/bridge"
 import { errorMessage } from "../shared/errors"
 
@@ -17,6 +18,13 @@ const multiInstancePollIntervalMilliseconds = 500
 
 // Client options are shared by the Client options menu in the launch panel
 // and Settings > Roblox, so a change in one place shows in the other.
+export function cleanReportSummary(report: RobloxCleanReport): string {
+	const deleted = `Deleted ${report.deletedCount} ${report.deletedCount === 1 ? "item" : "items"}.`
+	return report.skippedCount > 0
+		? `${deleted} ${report.skippedCount} skipped.`
+		: deleted
+}
+
 class RobloxClientOptions {
 	multiInstance = $state<MultiInstanceSnapshot | null>(null)
 	cleaner = $state<RobloxCleanerState | null>(null)
