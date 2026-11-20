@@ -133,6 +133,7 @@ func (service *Service) cleanBeforeLaunch(ctx context.Context) error {
 }
 
 func (service *Service) runRobloxCleaning(ctx context.Context, request robloxcleaner.CleanRequest, reportProgress func(robloxcleaner.Progress)) (robloxcleaner.Outcome, error) {
+	reportProgress(robloxcleaner.InitialProgress(request))
 	if !service.shouldUseElevatedHelper() {
 		return robloxcleaner.Clean(ctx, request, reportProgress, service.logger)
 	}

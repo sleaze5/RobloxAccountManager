@@ -1,4 +1,7 @@
 <script lang="ts">
+	import checkIcon from "@phosphor-icons/core/regular/check.svg?raw"
+	import circleNotchIcon from "@phosphor-icons/core/regular/circle-notch.svg?raw"
+	import warningIcon from "@phosphor-icons/core/regular/warning.svg?raw"
 	import xIcon from "@phosphor-icons/core/regular/x.svg?raw"
 	import Icon from "../shared/Icon.svelte"
 	import Dialog from "../shared/Dialog.svelte"
@@ -16,16 +19,35 @@
 	} from "../settings/roblox-client-options.svelte"
 	import { errorMessage } from "../shared/errors"
 
-	type CleanProgress = {
-		stage: "closing-processes" | "deleting-files" | "deleting-registry-entries"
+	type CleanPhase =
+		| "closing-processes"
+		| "removing-applications"
+		| "removing-shortcuts"
+		| "removing-registry-entries"
+		| "deleting-user-content"
+		| "deleting-caches"
+		| "deleting-logs"
+		| "deleting-temporary-files"
+
+	type CleanPhaseProgress = {
+		phase: CleanPhase
+		state: "waiting" | "running" | "done"
 		completedCount: number
 		totalCount: number
+		skippedCount: number
 	}
 
-	const stageLabels: Record<CleanProgress["stage"], string> = {
-		"closing-processes": "Closing Roblox…",
-		"deleting-files": "Deleting files…",
-		"deleting-registry-entries": "Removing registry entries…",
+	type CleanProgress = { phases: CleanPhaseProgress[] }
+
+	const phaseLabels: Record<CleanPhase, string> = {
+		"closing-processes": "Close Roblox",
+		"removing-applications": "Remove Roblox and Studio",
+		"removing-shortcuts": "Remove shortcuts",
+		"removing-registry-entries": "Remove registry entries",
+		"deleting-user-content": "Delete saved places, screenshots, and videos",
+		"deleting-caches": "Delete caches and sign-in data",
+		"deleting-logs": "Delete logs",
+		"deleting-temporary-files": "Delete temporary files",
 	}
 
 	let {
@@ -54,10 +76,28 @@
 					"Clears Logs Explorer history.",
 			].filter((note) => typeof note === "string"),
 		),
-		progressPercent = $derived(
-			progress && progress.totalCount > 0
-				? (progress.completedCount / progress.totalCount) * 100
-				: 0,
+		runningPhase = $derived(
+			progress?.phases.find((phaseProgress) => phaseProgress.state === "running"),
+		),
+		isWaitingForAdministratorRights = $derived(
+			isCleaning &&
+				Boolean(
+					progress?.phases.every(
+						(phaseProgress) => phaseProgress.state === "waiting",
+					),
+				) &&
+				Boolean(
+					cleaner?.elevationSupported &&
+					cleaner.useAdministratorRights &&
+					!cleaner.isElevated,
+				),
+		),
+		statusText = $derived(
+			isWaitingForAdministratorRights
+				? "Waiting for administrator rights…"
+				: runningPhase
+					? phaseLabels[runningPhase.phase]
+					: "",
 		),
 		doneTitle = $derived(isUninstall ? "Roblox uninstalled" : "Roblox data cleaned")
 
@@ -156,24 +196,75 @@
 			<Icon svg={xIcon} size={14} aria-hidden="true" />
 		</button>
 	</div>
-	{#if isCleaning}
-		<div class="transfer animate-enter" role="status">
-			<strong>{progress ? stageLabels[progress.stage] : "Starting…"}</strong>
-			<span
-				>{progress && progress.totalCount > 0
-					? `${progress.completedCount}/${progress.totalCount}`
-					: "--"}</span>
-			<div
-				class="progress-bar"
-				role="progressbar"
-				aria-label={isUninstall ? "Uninstall progress" : "Cleaning progress"}
-				aria-valuemin={0}
-				aria-valuemax={100}
-				aria-valuenow={Math.round(progressPercent)}>
-				<div style:transform="scaleX({progressPercent / 100})"></div>
-			</div>
-		</div>
-	{:else if !report && notes.length > 0}
+	{#if progress && (isCleaning || report || error)}
+		<p class="sr-only" role="status">{statusText}</p>
+		{#if isWaitingForAdministratorRights}
+			<p class="mb-2 animate-enter text-xs text-fg-muted" aria-hidden="true">
+				{statusText}
+			</p>
+		{/if}
+		<ol
+			class="flex animate-enter flex-col gap-1.5"
+			aria-label={isUninstall ? "Uninstall steps" : "Cleaning steps"}
+			aria-busy={isCleaning}>
+			{#each progress.phases as phaseProgress (phaseProgress.phase)}
+				{@const hasFailed = phaseProgress.state === "running" && error !== ""}
+				<li
+					class={[
+						"flex min-w-0 items-center gap-2 text-xs",
+						phaseProgress.state === "waiting" ? "text-fg-muted" : "text-fg",
+					]}>
+					{#if hasFailed}
+						<Icon
+							svg={xIcon}
+							size={14}
+							class="shrink-0 animate-pop text-danger"
+							aria-hidden="true" />
+						<span class="sr-only">Failed:</span>
+					{:else if phaseProgress.state === "running"}
+						<Icon
+							svg={circleNotchIcon}
+							size={14}
+							class="shrink-0 spinner"
+							aria-hidden="true" />
+						<span class="sr-only">In progress:</span>
+					{:else if phaseProgress.state === "waiting"}
+						<Icon
+							svg={circleNotchIcon}
+							size={14}
+							class="shrink-0"
+							aria-hidden="true" />
+						<span class="sr-only">Waiting:</span>
+					{:else if phaseProgress.skippedCount > 0}
+						<Icon
+							svg={warningIcon}
+							size={14}
+							class="shrink-0 animate-pop text-warning"
+							aria-hidden="true" />
+						<span class="sr-only">Done with skipped items:</span>
+					{:else}
+						<Icon
+							svg={checkIcon}
+							size={14}
+							class="shrink-0 animate-bloom text-success"
+							aria-hidden="true" />
+						<span class="sr-only">Done:</span>
+					{/if}
+					<span class="min-w-0 truncate"
+						>{phaseLabels[phaseProgress.phase]}</span>
+					{#if phaseProgress.state === "running" && phaseProgress.totalCount > 0}
+						<span
+							class="ml-auto shrink-0 font-mono text-2xs text-fg-muted tabular-nums"
+							>{phaseProgress.completedCount}/{phaseProgress.totalCount}</span>
+					{:else if phaseProgress.skippedCount > 0}
+						<span
+							class="ml-auto shrink-0 font-mono text-2xs text-warning tabular-nums"
+							>{phaseProgress.skippedCount} skipped</span>
+					{/if}
+				</li>
+			{/each}
+		</ol>
+	{:else if !isCleaning && !report && notes.length > 0}
 		<div class="notice-note">{notes.join(" ")}</div>
 	{/if}
 	{#if error}<div class="mt-3 notice-error" role="alert">{error}</div>{/if}

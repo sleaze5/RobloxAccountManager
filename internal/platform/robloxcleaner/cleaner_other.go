@@ -2,14 +2,12 @@
 
 package robloxcleaner
 
-import (
-	"context"
-	"errors"
-	"log/slog"
-)
+import "context"
 
 const Supported = false
 
-func clean(context.Context, Scope, bool, func(Progress), *slog.Logger) (Outcome, error) {
-	return Outcome{}, errors.New("cleaning Roblox is only available on Windows")
-}
+type cleanupTarget struct{}
+
+func listPhaseTargets(Phase) []cleanupTarget { return nil }
+
+func deleteTargets(context.Context, []cleanupTarget, *progressTracker) {}
