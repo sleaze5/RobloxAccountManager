@@ -252,7 +252,7 @@
 					{/if}
 					<span class="min-w-0 truncate"
 						>{phaseLabels[phaseProgress.phase]}</span>
-					{#if phaseProgress.state === "running" && phaseProgress.totalCount > 0}
+					{#if !hasFailed && phaseProgress.state === "running" && phaseProgress.totalCount > 0}
 						<span
 							class="ml-auto shrink-0 font-mono text-2xs text-fg-muted tabular-nums"
 							>{phaseProgress.completedCount}/{phaseProgress.totalCount}</span>
