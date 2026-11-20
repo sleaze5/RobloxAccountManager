@@ -282,14 +282,6 @@
 	left: calc(--spacing(3) + var(--tree-guide-level, 0) * --spacing(4));
 }
 
-/* tree-branch joins a row to the line of its parent row with a rounded elbow.
-   A row without a caret, set with data-leaf, extends it through the empty
-   caret space toward its icon. */
-@utility tree-branch {
-	@apply pointer-events-none absolute top-0 h-1/2 w-1.5 rounded-bl-md border-b border-l border-line-strong transition-colors duration-100 data-active:border-accent/55 data-leaf:w-6;
-	left: calc(--spacing(3) + var(--tree-guide-level, 0) * --spacing(4));
-}
-
 /* property-grid lists properties as Roblox Studio does: one compact row per
    property, with a name column as wide as --property-name-width and a value
    column, split by a hairline. A sub-row, such as the X of a Vector3, indents

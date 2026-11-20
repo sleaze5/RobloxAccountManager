@@ -29,10 +29,6 @@ export interface ExplorerRow {
 	isMatch: boolean
 	positionInSet: number
 	setSize: number
-	// continuingLevels tells, for the node at each depth on the way to this
-	// row, from the root to the row itself, whether a sibling follows it. The
-	// tree draws the line of a level only while one does.
-	continuingLevels: boolean[]
 }
 
 // GuideRange is the rows whose line at one level leads to the selected row:
@@ -144,19 +140,11 @@ export function visibleRows(
 		}
 		for (const root of tree.roots) markMatches(root)
 	}
-	const addRows = (
-		nodes: ExplorerNode[],
-		depth: number,
-		ancestorContinuingLevels: boolean[],
-	): void => {
+	const addRows = (nodes: ExplorerNode[], depth: number): void => {
 		const shownNodes = isSearching
 			? nodes.filter((node) => containsMatch.has(node))
 			: nodes
 		shownNodes.forEach((node, index) => {
-			const continuingLevels = [
-				...ancestorContinuingLevels,
-				index < shownNodes.length - 1,
-			]
 			const isExpanded =
 				node.children.length > 0 &&
 				(isSearching
@@ -169,12 +157,11 @@ export function visibleRows(
 				isMatch: isSearching && nodeMatches(node, terms),
 				positionInSet: index + 1,
 				setSize: shownNodes.length,
-				continuingLevels,
 			})
-			if (isExpanded) addRows(node.children, depth + 1, continuingLevels)
+			if (isExpanded) addRows(node.children, depth + 1)
 		})
 	}
-	addRows(tree.roots, 0, [])
+	addRows(tree.roots, 0)
 	return rows
 }
 

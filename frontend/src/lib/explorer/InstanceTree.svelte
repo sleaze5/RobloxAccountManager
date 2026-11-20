@@ -281,31 +281,19 @@
 							: undefined}
 						aria-selected={row.node.key === selectedKey}
 						data-tree-row={row.node.key}>
-						<!-- A line continues through the row at each level where a
-						sibling follows, and the row joins its parent with an
-						elbow. -->
+						<!-- An indent guide runs through the row at each level above
+						it. The guides that lead to the selected row are brighter. -->
 						{#each Array.from({ length: row.depth }, (_unused, level) => level) as level (level)}
 							{@const guideRange = guideRangeByLevel.get(level)}
-							{#if row.continuingLevels[level + 1]}
-								<span
-									class="tree-guide"
-									style:--tree-guide-level={level}
-									data-active={(guideRange &&
-										rowIndex >= guideRange.firstIndex &&
-										rowIndex < guideRange.lastIndex) ||
-										undefined}
-									aria-hidden="true"></span>
-							{/if}
-						{/each}
-						{#if row.depth > 0}
 							<span
-								class="tree-branch"
-								style:--tree-guide-level={row.depth - 1}
-								data-leaf={!hasChildren || undefined}
-								data-active={guideRangeByLevel.get(row.depth - 1)
-									?.lastIndex === rowIndex || undefined}
+								class="tree-guide"
+								style:--tree-guide-level={level}
+								data-active={(guideRange &&
+									rowIndex >= guideRange.firstIndex &&
+									rowIndex <= guideRange.lastIndex) ||
+									undefined}
 								aria-hidden="true"></span>
-						{/if}
+						{/each}
 						<span
 							class="grid size-4 shrink-0 place-items-center text-fg-faint transition-colors duration-100 hover:text-fg"
 							data-tree-caret>
