@@ -29,7 +29,7 @@
 			{#snippet row(index)}<SkeletonMediaRow {index} />{/snippet}
 		</SkeletonList>
 	</div>
-{:else if chat.conversations.length === 0 && !chat.error}
+{:else if chat.conversations.length === 0 && !chat.listError}
 	<p class="flex items-center gap-2 p-2 text-xs text-fg-faint">
 		No chats yet. Start one with New chat.
 	</p>

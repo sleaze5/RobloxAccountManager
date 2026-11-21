@@ -39,6 +39,7 @@ export class ChatState {
 	loadingMore = $state(false)
 	loadMoreFailed = $state(false)
 	error = $state("")
+	listError = $state("")
 	openId = $state("")
 	messages = $state<ChatMessageView[]>([])
 	messagesCursor = $state("")
@@ -94,6 +95,7 @@ export class ChatState {
 		const generation = ++this.#listGeneration
 		this.loading = true
 		this.error = ""
+		this.listError = ""
 		this.loadMoreFailed = false
 		try {
 			const page = await this.#scope.track(
@@ -115,7 +117,7 @@ export class ChatState {
 			this.#fetchedAt = Date.now()
 		} catch (error) {
 			if (this.#scope.isCurrent && generation === this.#listGeneration) {
-				this.error = errorMessage(error, "Could not load chats. Try again.")
+				this.listError = errorMessage(error, "Could not load chats. Try again.")
 			}
 		} finally {
 			if (generation === this.#listGeneration) this.loading = false
