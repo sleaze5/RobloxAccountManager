@@ -446,9 +446,10 @@
 							{/if}
 						</div>
 						<div class={metaClass}>
-							<span>ID: {place.placeId}</span>
+							<span class="select-text">ID: {place.placeId}</span>
 							<span class="text-fg-faint" aria-hidden="true">·</span>
-							<span>Universe ID: {place.universeId}</span>
+							<span class="select-text"
+								>Universe ID: {place.universeId}</span>
 							<button
 								class="-my-1 -ms-1 button-ghost size-5"
 								type="button"
@@ -461,7 +462,8 @@
 									aria-hidden="true" /></button>
 							{#if rootPlace}
 								<span class="text-fg-faint" aria-hidden="true">·</span>
-								<span>Root place ID: {rootPlace.placeId}</span>
+								<span class="select-text"
+									>Root place ID: {rootPlace.placeId}</span>
 							{/if}
 						</div>
 						{#if place.creatorId && (place.creatorType === "User" || place.creatorType === "Group")}

@@ -190,9 +190,10 @@
 				</div>
 				<div
 					class="flex min-w-0 flex-wrap items-center gap-1 font-mono text-2xs wrap-anywhere text-fg-muted">
-					{#if person.username}<span>@{person.username}</span>
+					{#if person.username}<span class="select-text"
+							>@{person.username}</span>
 						<span class="text-fg-faint" aria-hidden="true">·</span>{/if}
-					<span>ID: {person.userId}</span>
+					<span class="select-text">ID: {person.userId}</span>
 				</div>
 				{#if person.presence}
 					<AccountPresence

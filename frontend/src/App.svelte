@@ -698,10 +698,38 @@
 		"import-vault",
 	])
 
+	// The WebView selects every text node in the window on Ctrl+A. Like a
+	// desktop app, select all only inside the focused text field or read-only
+	// textbox, such as the document viewer.
+	function restrictSelectAllToFocusedText(event: KeyboardEvent): boolean {
+		if (!(event.ctrlKey || event.metaKey) || event.key.toLowerCase() !== "a") {
+			return false
+		}
+		const target = event.target
+		if (
+			target instanceof HTMLInputElement ||
+			target instanceof HTMLTextAreaElement ||
+			(target instanceof HTMLElement && target.isContentEditable)
+		) {
+			return false
+		}
+		event.preventDefault()
+		if (
+			target instanceof HTMLElement &&
+			target.getAttribute("role") === "textbox"
+		) {
+			window.getSelection()?.selectAllChildren(target)
+		}
+		return true
+	}
+
 	function handleWindowKeydown(event: KeyboardEvent): void {
 		if (event.ctrlKey && !event.altKey && event.key === "Tab") {
 			event.preventDefault()
 			cyclePage(event.shiftKey ? -1 : 1)
+			return
+		}
+		if (restrictSelectAllToFocusedText(event)) {
 			return
 		}
 		if (event.key !== "Escape") {

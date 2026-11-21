@@ -13,7 +13,8 @@
 		aria-live="assertive"
 		in:toastIn
 		out:toastOut>
-		<span class="max-h-48 overflow-y-auto whitespace-pre-line">{store.error}</span>
+		<span class="max-h-48 overflow-y-auto whitespace-pre-line select-text"
+			>{store.error}</span>
 		<button
 			class="button-close"
 			type="button"
