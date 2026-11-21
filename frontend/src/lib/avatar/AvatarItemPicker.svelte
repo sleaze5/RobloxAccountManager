@@ -169,7 +169,7 @@
 				{#if filterText}
 					<button
 						type="button"
-						aria-label="Clear filter"
+						aria-label="Clear search"
 						onclick={() => {
 							filterText = ""
 							filterInput?.focus()
@@ -225,7 +225,7 @@
 								onclick={() => {
 									filterText = ""
 									filterInput?.focus()
-								}}>Clear filter</button>
+								}}>Clear search</button>
 						</div>
 					{:else}
 						{#if inventory.error}

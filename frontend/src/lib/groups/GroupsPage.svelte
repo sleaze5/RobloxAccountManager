@@ -258,14 +258,14 @@
 							</p>
 						{:else if terms.length > 0}
 							<h2>No matching groups</h2>
-							<p>No group matches this filter.</p>
+							<p>Change the search to find a group.</p>
 							<button
 								class="button"
 								type="button"
 								onclick={() => {
 									store.query = ""
 									searchInput?.focus()
-								}}>Clear filter</button>
+								}}>Clear search</button>
 						{:else}
 							<h2>No groups yet</h2>
 							<p>

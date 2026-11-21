@@ -256,7 +256,7 @@
 						{#if filterText}
 							<button
 								type="button"
-								aria-label="Clear filter"
+								aria-label="Clear search"
 								onclick={() => {
 									filterText = ""
 									filterInput?.focus()
