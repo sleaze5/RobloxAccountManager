@@ -415,7 +415,7 @@ a press outside the panel and its trigger closes it. -->
 						bind:value={reference}
 						oninput={() => library?.clearFindError()} />
 					<button
-						class="button shrink-0"
+						class="button h-8 shrink-0"
 						type="submit"
 						aria-busy={library.isFinding}
 						disabled={!reference.trim() || library.isFinding}
