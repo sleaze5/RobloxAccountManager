@@ -1,5 +1,5 @@
 <script lang="ts">
-	import imagesIcon from "@phosphor-icons/core/regular/images.svg?raw"
+	import warningIcon from "@phosphor-icons/core/regular/warning.svg?raw"
 	import xIcon from "@phosphor-icons/core/regular/x.svg?raw"
 	import { onMount } from "svelte"
 	import { AvatarThumbnailType } from "../backend/bridge"
@@ -86,7 +86,7 @@
 
 	{#if !customizations && thumbnails.error}
 		<div class="empty-state" role="alert">
-			<Icon svg={imagesIcon} size={28} aria-hidden="true" />
+			<Icon svg={warningIcon} size={28} aria-hidden="true" />
 			<h2>Thumbnails unavailable</h2>
 			<p>{thumbnails.error}</p>
 			<button

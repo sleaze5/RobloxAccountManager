@@ -1,4 +1,5 @@
 <script lang="ts">
+	import warningIcon from "@phosphor-icons/core/regular/warning.svg?raw"
 	import circleNotchIcon from "@phosphor-icons/core/regular/circle-notch.svg?raw"
 	import coatHangerIcon from "@phosphor-icons/core/regular/coat-hanger.svg?raw"
 	import dotsThreeIcon from "@phosphor-icons/core/regular/dots-three.svg?raw"
@@ -110,7 +111,7 @@
 
 	{#if outfits === null && avatar.outfitsError}
 		<div class="empty-state py-10" role="alert">
-			<Icon svg={coatHangerIcon} size={28} aria-hidden="true" />
+			<Icon svg={warningIcon} size={28} aria-hidden="true" />
 			<h2>Outfits unavailable</h2>
 			<p>{avatar.outfitsError}</p>
 			<button

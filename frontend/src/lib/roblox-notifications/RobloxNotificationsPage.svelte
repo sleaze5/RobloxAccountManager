@@ -1,4 +1,5 @@
 <script lang="ts">
+	import warningIcon from "@phosphor-icons/core/regular/warning.svg?raw"
 	import bellIcon from "@phosphor-icons/core/regular/bell.svg?raw"
 	import broomIcon from "@phosphor-icons/core/regular/broom.svg?raw"
 	import circleNotchIcon from "@phosphor-icons/core/regular/circle-notch.svg?raw"
@@ -163,7 +164,7 @@
 			</div>
 		{:else if stream.notifications.length === 0 && stream.error}
 			<div class="empty-state h-full">
-				<Icon svg={bellIcon} size={28} aria-hidden="true" />
+				<Icon svg={warningIcon} size={28} aria-hidden="true" />
 				<h2>Notifications unavailable</h2>
 				<p role="alert">{stream.error}</p>
 				<button

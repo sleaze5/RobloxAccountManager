@@ -1,4 +1,5 @@
 <script lang="ts">
+	import warningIcon from "@phosphor-icons/core/regular/warning.svg?raw"
 	import warningCircleIcon from "@phosphor-icons/core/regular/warning-circle.svg?raw"
 	import xIcon from "@phosphor-icons/core/regular/x.svg?raw"
 	import { tick, untrack } from "svelte"
@@ -278,7 +279,7 @@ source viewer closes before the explorer. -->
 			</footer>
 		{:else if loadError}
 			<div class="empty-state min-h-0 flex-1 animate-enter">
-				<Icon svg={warningCircleIcon} size={28} aria-hidden="true" />
+				<Icon svg={warningIcon} size={28} aria-hidden="true" />
 				<h2>Instances unavailable</h2>
 				<p role="alert">{loadError}</p>
 				<button

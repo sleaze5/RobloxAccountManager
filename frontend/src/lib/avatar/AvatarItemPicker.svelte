@@ -1,4 +1,5 @@
 <script lang="ts">
+	import warningIcon from "@phosphor-icons/core/regular/warning.svg?raw"
 	import funnelIcon from "@phosphor-icons/core/regular/funnel.svg?raw"
 	import magnifyingGlassIcon from "@phosphor-icons/core/regular/magnifying-glass.svg?raw"
 	import xIcon from "@phosphor-icons/core/regular/x.svg?raw"
@@ -184,7 +185,7 @@
 				{#key category.id}
 					{#if !page && inventory.error}
 						<div class="empty-state h-full" role="alert">
-							<Icon svg={category.icon} size={28} aria-hidden="true" />
+							<Icon svg={warningIcon} size={28} aria-hidden="true" />
 							<h2>{category.label} are unavailable</h2>
 							<p>{inventory.error}</p>
 							<button
