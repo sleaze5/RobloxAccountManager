@@ -792,10 +792,6 @@
 		@apply mb-1 flex items-center justify-between text-xs font-medium text-fg-muted;
 	}
 
-	:where(&) > span b {
-		@apply text-2xs font-semibold text-warning;
-	}
-
 	:where(&) input:not([type="checkbox"], [type="radio"]) {
 		@apply field;
 	}
