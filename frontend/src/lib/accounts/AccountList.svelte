@@ -163,7 +163,7 @@
 </script>
 
 <div
-	class={["min-h-0 scrollbar-stable overflow-y-auto"]}
+	class="relative min-h-0 scrollbar-stable overflow-y-auto"
 	data-list
 	aria-busy={store.loadingAccounts || store.loadingMore}
 	onscroll={loadNearEnd}>
