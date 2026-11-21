@@ -43,7 +43,7 @@
 	import AccountProfileDetails from "./AccountProfileDetails.svelte"
 	import AccountSettingsPage from "./AccountSettingsPage.svelte"
 	import type { AccountStore } from "./account-store.svelte"
-	import { getCustomTags } from "./account-model"
+	import { getCustomTags, sessionAttentionLabel } from "./account-model"
 	import TagPicker from "./TagPicker.svelte"
 
 	let {
@@ -84,6 +84,7 @@
 		profileAccountId = $derived(selectedAccount.id),
 		hasAccount = $derived(profileAccountId !== 0),
 		moderated = $derived(selectedAccount.state === SessionState.StateModerated),
+		sessionAttention = $derived(sessionAttentionLabel(selectedAccount.state)),
 		profileVisible = $derived(
 			store.vault.unlocked &&
 				hasAccount &&
@@ -266,17 +267,13 @@
 							<span class="text-fg-faint" aria-hidden="true">·</span>
 							<span>ID: {selectedAccount.userId}</span>
 						</div>
-						{#if selectedAccount.state === SessionState.StateReauthRequired || selectedAccount.state === SessionState.StateChallenged}
+						{#if sessionAttention}
 							<div class="flex items-center gap-2 text-xs text-warning">
 								<Icon
 									svg={warningCircleIcon}
 									size={14}
 									aria-hidden="true" />
-								<span
-									>{selectedAccount.state ===
-									SessionState.StateReauthRequired
-										? "Sign-in required"
-										: "Security challenge"}</span>
+								<span>{sessionAttention}</span>
 								<button
 									class="button"
 									type="button"

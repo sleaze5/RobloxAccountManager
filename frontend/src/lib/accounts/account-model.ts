@@ -170,6 +170,19 @@ export function presenceTooltip(presence: UserPresence): string {
 	return detail ? `${label}: ${detail}` : label
 }
 
+// sessionAttentionLabel names a session state that the user must fix before
+// the account works again, or returns "" when the session needs nothing.
+export function sessionAttentionLabel(state: SessionState): string {
+	switch (state) {
+		case SessionState.StateReauthRequired:
+			return "Sign-in required"
+		case SessionState.StateChallenged:
+			return "Security challenge"
+		default:
+			return ""
+	}
+}
+
 export function hasTag(account: Account, tagId: number): boolean {
 	return account.tags.some((tag) => tag.id === tagId)
 }
