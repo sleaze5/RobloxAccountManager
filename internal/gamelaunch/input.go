@@ -39,6 +39,9 @@ var (
 )
 
 func Parse(input Input) (Request, error) {
+	if hasEmptyJoinFields(input) {
+		return Request{}, nil
+	}
 	switch input.Method {
 	case MethodPlace:
 		return placeRequest(input.PlaceID, input.JobID)
@@ -48,6 +51,20 @@ func Parse(input Input) (Request, error) {
 		return parseUser(input.User)
 	default:
 		return Request{}, errors.New("select a join method")
+	}
+}
+
+// Empty join fields open Roblox to its home page instead of joining a game.
+func hasEmptyJoinFields(input Input) bool {
+	switch input.Method {
+	case MethodPlace:
+		return strings.TrimSpace(input.PlaceID) == "" && strings.TrimSpace(input.JobID) == ""
+	case MethodLink:
+		return strings.TrimSpace(input.Link) == ""
+	case MethodUser:
+		return strings.TrimSpace(input.User) == ""
+	default:
+		return false
 	}
 }
 
