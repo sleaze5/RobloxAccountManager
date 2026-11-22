@@ -15,6 +15,7 @@ import (
 	"strconv"
 
 	"github.com/sleaze5/RobloxAccountManager/internal/roblox"
+	"github.com/sleaze5/RobloxAccountManager/internal/roblox/modelfile"
 )
 
 const (
@@ -231,9 +232,9 @@ func assetFileFormatOf(contents []byte) (AssetFileFormat, error) {
 		return AssetFilePNG, nil
 	case bytes.HasPrefix(contents, []byte{0xff, 0xd8, 0xff}):
 		return AssetFileJPEG, nil
-	case bytes.HasPrefix(contents, binaryModelFileSignature):
+	case modelfile.IsBinary(contents):
 		return AssetFileRBXM, nil
-	case bytes.HasPrefix(contents, xmlModelFileSignature):
+	case modelfile.IsXML(contents):
 		return AssetFileRBXMX, nil
 	case bytes.HasPrefix(contents, []byte("OggS")):
 		return AssetFileOGG, nil

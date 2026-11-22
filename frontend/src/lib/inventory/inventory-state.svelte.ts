@@ -7,6 +7,7 @@ import type {
 	InventoryItem,
 	InventoryItemDetails,
 	InventoryItemLook,
+	ItemInstanceTree,
 	RenderedModel,
 } from "../backend/bridge"
 import type { AccountStore } from "../accounts/account-store.svelte"
@@ -14,6 +15,7 @@ import { AccountScope } from "../accounts/account-scope"
 import { readRobuxBalance } from "../accounts/robux-balance"
 import type { NotificationCenter } from "../notifications/notification-center.svelte"
 import type { CancellableRequest } from "../shared/cancellable-request"
+import { copyFailureMessage, copyText } from "../shared/clipboard"
 import { errorMessage } from "../shared/errors"
 import { isFresh } from "../shared/freshness"
 import { KeyedLoad } from "../shared/keyed-load.svelte"
@@ -102,6 +104,11 @@ export class InventoryState {
 	// The saved avatar of the account wearing the opened item, which the 3D
 	// viewer builds, by the categoryItemKey of the item.
 	readonly tryOnAvatar: KeyedLoad<Avatar>
+	// The instances of the file of the opened item, or of each asset of a
+	// bundle, which the explorer shows, by the categoryItemKey of the item.
+	readonly instanceTree: KeyedLoad<ItemInstanceTree>
+	// Why the explorer could not copy a value, shown in the explorer.
+	explorerCopyError = $state("")
 	readonly userId: number
 	readonly #scope: AccountScope
 	#request: ReturnType<typeof accountBackend.GetInventoryPage> | null = null
@@ -122,6 +129,7 @@ export class InventoryState {
 		this.itemModel = new KeyedLoad(this.#scope)
 		this.tryOnImage = new KeyedLoad(this.#scope)
 		this.tryOnAvatar = new KeyedLoad(this.#scope)
+		this.instanceTree = new KeyedLoad(this.#scope)
 		this.userId = userId
 	}
 
@@ -306,6 +314,35 @@ export class InventoryState {
 				),
 			"Could not load the 3D model. Try again.",
 		)
+	}
+
+	async loadInstanceTree(
+		item: InventoryItem,
+		category: InventoryCategory,
+	): Promise<void> {
+		await this.instanceTree.load(
+			categoryItemKey(category, item.itemId),
+			() =>
+				accountBackend.GetItemInstanceTree(
+					this.#scope.accountId,
+					category,
+					item.itemId,
+				),
+			"Could not load the instances. Try again.",
+		)
+	}
+
+	// copyExplorerText copies a value that the explorer shows, such as the
+	// source of a script. label names it in sentence case, such as "Source".
+	async copyExplorerText(text: string, label: string): Promise<boolean> {
+		this.explorerCopyError = ""
+		const isCopied = await copyText(
+			this.#notifications,
+			text,
+			`${label} copied to clipboard.`,
+		)
+		if (!isCopied) this.explorerCopyError = copyFailureMessage(label)
+		return isCopied
 	}
 
 	async loadItemModel(
