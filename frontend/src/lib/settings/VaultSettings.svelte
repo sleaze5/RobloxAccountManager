@@ -11,7 +11,10 @@
 	import Timestamp from "../shared/Timestamp.svelte"
 	import Select from "../shared/Select.svelte"
 	import SettingsStatus from "./SettingsStatus.svelte"
-	import { automaticUnlockDescription } from "../shared/automatic-unlock"
+	import {
+		automaticUnlockDescription,
+		automaticUnlockSummary,
+	} from "../shared/automatic-unlock"
 
 	type ActiveDialog = "test" | "change" | null
 	const reminderOptions = [
@@ -92,8 +95,7 @@
 				<div class="settings-row-copy">
 					<strong id="automatic-unlock-title">Automatic unlock</strong>
 					<span id="automatic-unlock-description"
-						>Unlock the vault without the master password when the app
-						starts. Locking the vault turns it off.</span>
+						>{automaticUnlockSummary}</span>
 				</div>
 				<label class="switch" data-tooltip={automaticUnlockDescription}>
 					<input

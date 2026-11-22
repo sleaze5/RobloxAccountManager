@@ -7,6 +7,7 @@
 	import userCircleIcon from "@phosphor-icons/core/regular/user-circle.svg?raw"
 	import xIcon from "@phosphor-icons/core/regular/x.svg?raw"
 	import Icon from "../shared/Icon.svelte"
+	import NoMatchingSettings from "../shared/NoMatchingSettings.svelte"
 	import AccountPageHeader from "./AccountPageHeader.svelte"
 	import RefreshIcon from "../shared/RefreshIcon.svelte"
 	import { onMount, tick, untrack } from "svelte"
@@ -685,6 +686,12 @@
 		workspace.accountSettingsScrollAnchor = null
 	}
 
+	function clearSearch(): void {
+		resetScroll()
+		workspace.accountSettingsQuery = ""
+		searchInput?.focus()
+	}
+
 	function rememberScroll(): void {
 		if (restoringScroll || !contentElement) return
 		workspace.accountSettingsScrollTop = contentElement.scrollTop
@@ -884,11 +891,7 @@
 					<button
 						type="button"
 						aria-label="Clear search"
-						onclick={() => {
-							resetScroll()
-							workspace.accountSettingsQuery = ""
-							searchInput?.focus()
-						}}>
+						onclick={clearSearch}>
 						<Icon svg={xIcon} size={14} aria-hidden="true" />
 					</button>
 				{/if}
@@ -932,9 +935,6 @@
 					{/if}
 				{/each}
 			</nav>
-			{#if visiblePages.length === 0}
-				<p class="px-3 text-xs text-fg-faint">No settings found.</p>
-			{/if}
 		</div>
 		<SidebarResizer
 			bind:width={workspace.accountSettingsSidebarWidth}
@@ -948,9 +948,7 @@
 			aria-label="Account settings content">
 			{#key `${activePage?.id}:${activeSubpage?.id}:${normalizedQuery}`}
 				{#if !activePage}
-					<p class="m-auto text-xs text-fg-faint">
-						No settings match “{workspace.accountSettingsQuery}”.
-					</p>
+					<NoMatchingSettings onClearSearch={clearSearch} />
 				{:else if activePage.id === "info"}
 					<h2>Account info</h2>
 					{#if infoState}

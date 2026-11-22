@@ -191,7 +191,7 @@
 				bind:value={maxPriceText}
 				oninput={recheckPrices} />
 			<button
-				class="button shrink-0"
+				class="button h-8 shrink-0"
 				type="button"
 				aria-pressed={minPriceText === "0" && maxPriceText === "0"}
 				onclick={() => {

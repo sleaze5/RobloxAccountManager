@@ -122,7 +122,8 @@ Layout:
 - The workbench: the sidebar and detail pane layout of Accounts, Social, Groups, Games, Marketplace, and Logs Explorer, with `lib/layout/SidebarResizer.svelte` as the resizer and `lib/layout/StatusBar.svelte` as the status strip of Accounts.
 - `lib/layout/AccountSwitcher.svelte`: the account switcher at the left of the status strip of Social, Groups, Games, Marketplace, and Logs Explorer.
 - `settings-page`, `settings-header`, `settings-layout`, `settings-sidebar`, `settings-nav` with `nav-item`, and `settings-content`: Settings, account settings, chats, and other sub-pages with a navigation sidebar.
-- `settings-section`, `settings-rows`, `settings-row`, and `settings-row-copy`: groups of settings.
+- `settings-section`, `settings-rows`, `settings-row`, and `settings-row-copy`: groups of settings. Put a setting that refines the setting before it, such as an update interval under its switch, in `settings-suboptions`.
+- `lib/shared/NoMatchingSettings.svelte`: the no-matches state of a settings search, with a Clear search button.
 - `scrollbar-stable`: reserve the scrollbar gutter in a scrolling list.
 
 Scripts find elements through data attributes, never through class names, because utility classes change with the design.
@@ -137,6 +138,7 @@ The user must never see UI that looks or behaves like an exposed embedded browse
 - Add `novalidate` to every `<form>`. Show validation errors in the application UI, not in browser validation popups.
 - The default context menu is disabled for the whole application. Show a context menu only where a custom one is implemented, such as the account list.
 - Standard HTML controls are allowed only when they are styled to match the design. Replace a control that cannot be fully restyled.
+- Interface text is not selectable, because `base.css` sets `user-select: none` on `body`. Add `select-text` to content that people copy, such as names, IDs, values, descriptions, and messages. `facts`, `detail-grid`, `text-block`, notices, and `empty-state` messages already allow it. Ctrl+A selects only inside the focused text field or read-only textbox.
 - If no suitable building block exists, create one that follows this file.
 
 ## Layout and surfaces
@@ -148,6 +150,7 @@ The user must never see UI that looks or behaves like an exposed embedded browse
 - Separate regions with a background step plus a 1px border, not with large shadows. Use `border-line` by default, `border-line-subtle` between rows and shell regions, and `border-line-strong` for selected controls and floating surfaces that need extra separation. Avoid bright outlines.
 - Keep the shell flat. The title bar and the page tabs are `h-9`, the status strip is `h-6`, and the default sidebar is `w-56`.
 - Show each value once per screen. For example, do not show the same count in a sidebar header and in the status strip.
+- Only the content regions scroll, never the window. An absolutely positioned element, such as an `sr-only` live region, takes its position from the nearest positioned ancestor. Inside a scroll container, make the container `relative`, so that the element cannot overflow the window and let focus scroll the whole shell.
 
 Accounts, Social, Groups, Games, Marketplace, and Logs Explorer share one page anatomy:
 
@@ -263,6 +266,7 @@ Color:
 - Give list rows the `list-row` building block, `h-12` (`h-16` when its presence names a game or place), and a 1px `border-line-subtle` separator. Set `aria-selected="true"` or `data-selected` on the selected row and `data-open` while its menu is open. `list-row` draws the hover and selection treatment from [Controls and states](#controls-and-states).
 - Make a list one tab stop. Give the selected row `tabindex="0"`, or the first row when no row is selected, and every other row `tabindex="-1"`. Mark the list container with `data-list` and its rows with `data-list-item`, and move between them with `ArrowUp`, `ArrowDown`, `Home`, and `End` through `moveListFocus`.
 - When a list can be reordered, support dragging and `Ctrl+Shift+ArrowUp` and `Ctrl+Shift+ArrowDown`. Announce the new position through a polite live region.
+- When an account needs the user's attention, its row adds a third line in the warning or danger tone, such as "Sign-in required", "Security challenge", or a moderation status, in place of its online status.
 - Distinguish an empty list ("No accounts yet") from a list with no matches ("No matching accounts"). Tell the user how to change each state. Give the no-matches state a button that clears the filter and moves the focus to the search field or filter.
 - In a grid of item tiles, make every tile in a row the same height. Keep the badges on a tile in one row, so that they never overlap, and let the lower-priority badge truncate.
 - When the user switches a tab or category that replaces the content of a scrolling region, scroll the region back to the top.
@@ -312,7 +316,7 @@ Color:
 - When content refreshes, keep the existing content visible and replace the refresh icon with the spinner.
 - Build an `empty-state` from a 28px icon, a title that says what is missing, one sentence that says how to fill it, and an action button when one exists.
 - Show an error next to the thing that failed, in a `role="alert"` element. Use `OperationError` when the failure has no specific place. Use a notification for the result of background work.
-- When content fails to load, never show its empty state, such as "No accounts yet". Show an `empty-state` with a warning icon, a title such as "Accounts unavailable", the error message, and a Try again button. When earlier content is still shown, keep it and show the error in a `role="alert"` line above it.
+- When content fails to load, never show its empty state, such as "No accounts yet". Show an `empty-state` with the regular `warning` icon, never the page's own icon, a title such as "Accounts unavailable", the error message, and a Try again button. When earlier content is still shown, keep it and show the error in a `role="alert"` line above it.
 
 ### Tooltips
 

@@ -3,6 +3,7 @@
 	import circleNotchIcon from "@phosphor-icons/core/regular/circle-notch.svg?raw"
 	import chatsCircleIcon from "@phosphor-icons/core/regular/chats-circle.svg?raw"
 	import notePencilIcon from "@phosphor-icons/core/regular/note-pencil.svg?raw"
+	import warningIcon from "@phosphor-icons/core/regular/warning.svg?raw"
 	import Icon from "../shared/Icon.svelte"
 	import AccountPageHeader from "../accounts/AccountPageHeader.svelte"
 	import RefreshIcon from "../shared/RefreshIcon.svelte"
@@ -97,6 +98,11 @@
 		class="settings-layout"
 		style={`--sidebar-width: ${workspace.accountSettingsSidebarWidth}px;`}>
 		<div class="flex settings-sidebar flex-col gap-2 p-2" data-load-more-root>
+			{#if chat.listError && chat.conversations.length > 0}
+				<p class="notice-error" role="alert">
+					{chat.listError}
+				</p>
+			{/if}
 			{#if chat.error}
 				<p class="notice-error" role="alert">
 					{chat.error}
@@ -120,6 +126,17 @@
 						{selfUserId}
 						onAddMembers={() => openPeopleDialog("add")} />
 				{/key}
+			{:else if chat.listError && chat.conversations.length === 0}
+				<div class="empty-state h-full">
+					<Icon svg={warningIcon} size={28} aria-hidden="true" />
+					<h2>Chats unavailable</h2>
+					<p role="alert">{chat.listError}</p>
+					<button
+						class="button"
+						type="button"
+						disabled={chat.loading}
+						onclick={() => void chat.refresh()}>Try again</button>
+				</div>
 			{:else}
 				<div class="empty-state h-full">
 					<Icon svg={chatsCircleIcon} size={28} aria-hidden="true" />

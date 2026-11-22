@@ -258,7 +258,7 @@
 			</div>
 		{/if}
 		<label class="dialog-field">
-			<span>.ROBLOSECURITY cookies <b>Required</b></span>
+			<span>.ROBLOSECURITY cookies</span>
 			<textarea
 				value={cookieInput}
 				autocomplete="off"

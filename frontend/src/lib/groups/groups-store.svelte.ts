@@ -32,7 +32,7 @@ export const minGroupSearchLength = 2
 // account that was selected when it started.
 export class GroupsStore {
 	sidebarCollapsed = $state(false)
-	sidebarWidth = $state(240)
+	sidebarWidth = $state(220)
 	mode = $state<GroupsMode>("mine")
 	query = $state("")
 	searchedText = $state("")

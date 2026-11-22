@@ -433,7 +433,7 @@
 			}}>
 			<textarea
 				bind:value={draft}
-				class="field-sizing-content max-h-24 min-h-8 min-w-0 flex-1 resize-none rounded-md border border-line bg-transparent px-3 py-2 text-sm leading-snug text-fg transition-colors duration-100 placeholder:text-fg-faint focus-visible:border-line-strong focus-visible:outline-0"
+				class="field-sizing-content max-h-24 min-h-8 min-w-0 flex-1 resize-none rounded-md border border-line bg-transparent px-3 py-2 text-sm leading-snug text-fg transition-colors duration-100 placeholder:text-fg-faint focus:border-line-focus focus-visible:outline-0"
 				rows="1"
 				aria-label={`Message ${conversation.title}`}
 				placeholder="Write a message"

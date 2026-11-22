@@ -1,6 +1,6 @@
 <script lang="ts">
+	import warningIcon from "@phosphor-icons/core/regular/warning.svg?raw"
 	import arrowUUpLeftIcon from "@phosphor-icons/core/regular/arrow-u-up-left.svg?raw"
-	import personArmsSpreadIcon from "@phosphor-icons/core/regular/person-arms-spread.svg?raw"
 	import { onMount, tick, untrack } from "svelte"
 	import AccountPageHeader from "../accounts/AccountPageHeader.svelte"
 	import type { AccountStore } from "../accounts/account-store.svelte"
@@ -390,7 +390,7 @@
 
 	{#if !avatar.avatar && avatar.error}
 		<div class="empty-state flex-1" role="alert">
-			<Icon svg={personArmsSpreadIcon} size={28} aria-hidden="true" />
+			<Icon svg={warningIcon} size={28} aria-hidden="true" />
 			<h2>Avatar unavailable</h2>
 			<p>{avatar.error}</p>
 			<button class="button" type="button" onclick={() => void avatar.refresh()}

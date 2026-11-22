@@ -108,29 +108,34 @@
 						<span aria-hidden="true"></span>
 					</label>
 				</div>
-				<div class="settings-row">
-					<div class="settings-row-copy">
-						<strong>Update interval</strong>
-						<span>Seconds</span>
+				<div
+					class="settings-suboptions"
+					role="group"
+					aria-label={`${scope.name} update options`}>
+					<div class="settings-row">
+						<div class="settings-row-copy">
+							<strong>Update interval</strong>
+							<span>Seconds between updates.</span>
+						</div>
+						<NumberStepper
+							label={`${scope.name} update interval in seconds`}
+							value={settings.intervalSeconds}
+							min={30}
+							max={900}
+							step={5}
+							defaultValue={scope.id === PresenceScope.PresenceAccounts
+								? 300
+								: 60}
+							disabled={!store.initialized ||
+								store.busyPresence ||
+								!settings.enabled}
+							onChange={(seconds) =>
+								store.setPresenceUpdates(
+									scope.id,
+									settings.enabled,
+									seconds,
+								)} />
 					</div>
-					<NumberStepper
-						label={`${scope.name} update interval in seconds`}
-						value={settings.intervalSeconds}
-						min={30}
-						max={900}
-						step={5}
-						defaultValue={scope.id === PresenceScope.PresenceAccounts
-							? 300
-							: 60}
-						disabled={!store.initialized ||
-							store.busyPresence ||
-							!settings.enabled}
-						onChange={(seconds) =>
-							store.setPresenceUpdates(
-								scope.id,
-								settings.enabled,
-								seconds,
-							)} />
 				</div>
 			</div>
 		{/each}

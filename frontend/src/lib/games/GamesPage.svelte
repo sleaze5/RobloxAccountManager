@@ -271,7 +271,7 @@
 			<div class="relative grid min-h-0 flex-1 grid-rows-1">
 				<div
 					class={[
-						"min-h-0 scrollbar-stable overflow-y-auto",
+						"relative min-h-0 scrollbar-stable overflow-y-auto",
 						hasSearch && "pb-12",
 					]}
 					role="group"

@@ -11,6 +11,7 @@
 	import slidersHorizontalIcon from "@phosphor-icons/core/regular/sliders-horizontal.svg?raw"
 	import xIcon from "@phosphor-icons/core/regular/x.svg?raw"
 	import Icon from "../shared/Icon.svelte"
+	import NoMatchingSettings from "../shared/NoMatchingSettings.svelte"
 	import type { AccountStore } from "../accounts/account-store.svelte"
 	import type { BrowserStore } from "../browser/browser-store.svelte"
 	import type { NotificationCenter } from "../notifications/notification-center.svelte"
@@ -89,6 +90,11 @@
 			categories.filter((category) => matchesCategory(terms, category.id)),
 		)
 
+	function clearSearch(): void {
+		query = ""
+		searchInput?.focus()
+	}
+
 	$effect(() => {
 		if (
 			visibleCategories.length > 0 &&
@@ -133,10 +139,7 @@
 					<button
 						type="button"
 						aria-label="Clear search"
-						onclick={() => {
-							query = ""
-							searchInput?.focus()
-						}}>
+						onclick={clearSearch}>
 						<Icon svg={xIcon} size={14} aria-hidden="true" />
 					</button>
 				{/if}
@@ -155,9 +158,6 @@
 					</button>
 				{/each}
 			</nav>
-			{#if visibleCategories.length === 0}<p class="px-3 text-xs text-fg-faint">
-					No settings found.
-				</p>{/if}
 		</aside>
 		<SidebarResizer bind:width={workspace.settingsSidebarWidth} name="settings" />
 
@@ -186,9 +186,7 @@
 						<GeneralSettings store={appSettings} {query} />
 					{/if}
 				{:else}
-					<p class="m-auto text-xs text-fg-faint">
-						No settings match “{query}”.
-					</p>
+					<NoMatchingSettings onClearSearch={clearSearch} />
 				{/if}
 			{/key}
 		</section>

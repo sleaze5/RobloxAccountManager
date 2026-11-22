@@ -388,7 +388,7 @@
 }
 
 @utility notice {
-	@apply rounded-md border p-2 text-left text-xs;
+	@apply rounded-md border p-2 text-left text-xs select-text;
 }
 
 @utility notice-note {
@@ -415,7 +415,7 @@
 	}
 
 	& p {
-		@apply max-w-sm text-xs;
+		@apply max-w-sm text-xs select-text;
 	}
 }
 
@@ -526,7 +526,7 @@
 	}
 
 	& dd {
-		@apply flex min-w-0 flex-wrap items-baseline gap-x-3 gap-y-1 wrap-anywhere text-fg;
+		@apply flex min-w-0 flex-wrap items-baseline gap-x-3 gap-y-1 wrap-anywhere text-fg select-text;
 	}
 
 	& dd > * {
@@ -764,7 +764,7 @@
 	}
 
 	:where(&) dd {
-		@apply text-xs leading-5 wrap-anywhere text-fg;
+		@apply text-xs leading-5 wrap-anywhere text-fg select-text;
 	}
 }
 
@@ -790,10 +790,6 @@
 
 	:where(&) > span {
 		@apply mb-1 flex items-center justify-between text-xs font-medium text-fg-muted;
-	}
-
-	:where(&) > span b {
-		@apply text-2xs font-semibold text-warning;
 	}
 
 	:where(&) input:not([type="checkbox"], [type="radio"]) {

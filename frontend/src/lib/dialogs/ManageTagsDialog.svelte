@@ -145,9 +145,11 @@
 				maxlength={maxTagNameLength}
 				disabled={store.busy}
 				aria-invalid={invalid}
-				aria-describedby={invalid ? "managed-tag-validation" : undefined} />
+				aria-describedby={invalid
+					? "managed-tag-validation"
+					: "managed-tag-help"} />
 			<button
-				class="button-primary"
+				class="button-primary h-8"
 				type="submit"
 				disabled={store.busy || !isValidTagName(nameInput.value)}>
 				{creating ? "Creating…" : "Create tag"}
@@ -161,7 +163,9 @@
 			{validationMessage}
 		</p>
 	{:else}
-		<p class="mt-1">Use letters and numbers. Spaces become hyphens.</p>
+		<p class="mt-1 text-xs leading-snug" id="managed-tag-help">
+			Use letters and numbers. Spaces become hyphens.
+		</p>
 	{/if}
 	<div class="mt-4 flex items-center justify-between pb-2 text-xs text-fg-muted">
 		<strong class="font-semibold">Tags</strong>

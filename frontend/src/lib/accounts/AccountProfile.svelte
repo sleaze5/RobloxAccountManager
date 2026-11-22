@@ -43,7 +43,7 @@
 	import AccountProfileDetails from "./AccountProfileDetails.svelte"
 	import AccountSettingsPage from "./AccountSettingsPage.svelte"
 	import type { AccountStore } from "./account-store.svelte"
-	import { getCustomTags } from "./account-model"
+	import { getCustomTags, sessionAttentionLabel } from "./account-model"
 	import TagPicker from "./TagPicker.svelte"
 
 	let {
@@ -84,6 +84,7 @@
 		profileAccountId = $derived(selectedAccount.id),
 		hasAccount = $derived(profileAccountId !== 0),
 		moderated = $derived(selectedAccount.state === SessionState.StateModerated),
+		sessionAttention = $derived(sessionAttentionLabel(selectedAccount.state)),
 		profileVisible = $derived(
 			store.vault.unlocked &&
 				hasAccount &&
@@ -247,7 +248,8 @@
 					<h2
 						id="account-name"
 						class="flex min-w-0 items-center gap-1 text-lg leading-tight font-semibold tracking-tight text-fg">
-						<span class="truncate">{selectedAccount.displayName}</span>
+						<span class="truncate select-text"
+							>{selectedAccount.displayName}</span>
 						{#if selectedAccount.favorite}<Icon
 								svg={starFillIcon}
 								class="shrink-0 animate-pop text-accent-strong"
@@ -262,21 +264,18 @@
 					{#if hasAccount}
 						<div
 							class="flex min-w-0 flex-wrap items-center gap-1 font-mono text-2xs wrap-anywhere text-fg-muted">
-							<span>@{selectedAccount.username}</span>
+							<span class="select-text">@{selectedAccount.username}</span>
 							<span class="text-fg-faint" aria-hidden="true">·</span>
-							<span>ID: {selectedAccount.userId}</span>
+							<span class="select-text"
+								>ID: {selectedAccount.userId}</span>
 						</div>
-						{#if selectedAccount.state === SessionState.StateReauthRequired || selectedAccount.state === SessionState.StateChallenged}
+						{#if sessionAttention}
 							<div class="flex items-center gap-2 text-xs text-warning">
 								<Icon
 									svg={warningCircleIcon}
 									size={14}
 									aria-hidden="true" />
-								<span
-									>{selectedAccount.state ===
-									SessionState.StateReauthRequired
-										? "Sign-in required"
-										: "Security challenge"}</span>
+								<span>{sessionAttention}</span>
 								<button
 									class="button"
 									type="button"

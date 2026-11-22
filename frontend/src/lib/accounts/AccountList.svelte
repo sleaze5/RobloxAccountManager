@@ -2,6 +2,7 @@
 	import CheckboxMark from "../shared/CheckboxMark.svelte"
 	import dotsSixVerticalIcon from "@phosphor-icons/core/regular/dots-six-vertical.svg?raw"
 	import starFillIcon from "@phosphor-icons/core/fill/star-fill.svg?raw"
+	import warningCircleIcon from "@phosphor-icons/core/regular/warning-circle.svg?raw"
 	import Icon from "../shared/Icon.svelte"
 	import SkeletonMediaRow from "../shared/SkeletonMediaRow.svelte"
 	import SkeletonList from "../shared/SkeletonList.svelte"
@@ -12,7 +13,11 @@
 	import AccountAvatar from "./AccountAvatar.svelte"
 	import type { AccountStore } from "./account-store.svelte"
 	import { SessionState } from "../backend/bridge"
-	import { presenceDetail, presenceLabel } from "./account-model"
+	import {
+		presenceDetail,
+		presenceLabel,
+		sessionAttentionLabel,
+	} from "./account-model"
 	import ModerationLine from "./ModerationLine.svelte"
 	import { moderationLabel } from "./moderation.svelte"
 	import PresenceLine from "./PresenceLine.svelte"
@@ -158,7 +163,7 @@
 </script>
 
 <div
-	class={["min-h-0 scrollbar-stable overflow-y-auto"]}
+	class="relative min-h-0 scrollbar-stable overflow-y-auto"
 	data-list
 	aria-busy={store.loadingAccounts || store.loadingMore}
 	onscroll={loadNearEnd}>
@@ -169,8 +174,9 @@
 	{/if}
 	{#each store.accounts as account (account.id)}
 		{@const moderated = account.state === SessionState.StateModerated}
-		{@const detail = moderated ? "" : presenceDetail(account.presence)}
-		{@const tall = moderated || !!detail}
+		{@const attention = moderated ? "" : sessionAttentionLabel(account.state)}
+		{@const detail = moderated || attention ? "" : presenceDetail(account.presence)}
+		{@const tall = moderated || !!attention || !!detail}
 		<div
 			class={[
 				"group/row list-row relative flex w-full items-center gap-2 border-b border-line-subtle text-left",
@@ -225,7 +231,7 @@
 				type="button"
 				aria-pressed={store.selectedAccountIds.includes(account.id)}
 				aria-keyshortcuts="Control+Shift+ArrowUp Control+Shift+ArrowDown"
-				aria-label={`${account.displayName} (@${account.username}), ${moderated ? moderationLabel(account.moderation) : presenceLabel(account.presence)}${account.favorite ? ", favorite" : ""}${account.voiceSuspension ? ", voice chat suspended" : ""}`}
+				aria-label={`${account.displayName} (@${account.username}), ${moderated ? moderationLabel(account.moderation) : presenceLabel(account.presence)}${attention ? `, ${attention}` : ""}${account.favorite ? ", favorite" : ""}${account.voiceSuspension ? ", voice chat suspended" : ""}`}
 				onclick={(event) =>
 					selectAccount(account.id, event.ctrlKey || event.metaKey)}
 				onkeydown={(event) => {
@@ -268,7 +274,16 @@
 							class="block truncate text-2xs text-fg-faint group-hover/row:text-fg-muted group-data-selected/row:text-fg-muted"
 							>@{account.username}</small>
 						{#if moderated}<ModerationLine
-								moderation={account.moderation} />{:else if detail}<PresenceLine
+								moderation={account.moderation} />{:else if attention}<small
+								class="flex w-full min-w-0 items-center gap-1 text-2xs font-medium text-warning"
+								><Icon
+									svg={warningCircleIcon}
+									class="shrink-0 animate-pop"
+									size={12}
+									aria-hidden="true" /><span class="truncate"
+									>{attention}</span
+								></small
+							>{:else if detail}<PresenceLine
 								presence={account.presence} />{/if}
 					</span>
 				</span>

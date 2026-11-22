@@ -33,7 +33,7 @@
 	import MissingFactValue from "../shared/MissingFactValue.svelte"
 	import Timestamp from "../shared/Timestamp.svelte"
 	import { relativeTime } from "../shared/timestamp"
-	import { ageVerificationLabels } from "./account-model"
+	import { ageVerificationLabels, sessionAttentionLabel } from "./account-model"
 	import type { Account } from "./account-model"
 	import AccountVoiceChat from "./AccountVoiceChat.svelte"
 	import RobloxBadgeList from "./RobloxBadgeList.svelte"
@@ -130,13 +130,13 @@
 				case SessionState.StateReauthRequired:
 					return {
 						tone: "warning",
-						label: "Sign-in required",
+						label: sessionAttentionLabel(account.state),
 						detail: account.stateReason || "Update the cookie.",
 					}
 				case SessionState.StateChallenged:
 					return {
 						tone: "warning",
-						label: "Security challenge",
+						label: sessionAttentionLabel(account.state),
 						detail:
 							account.stateReason ||
 							"Roblox asked for extra verification.",

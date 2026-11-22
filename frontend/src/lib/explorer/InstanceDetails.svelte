@@ -198,7 +198,7 @@ Screen readers hear the name of the vector before each axis. -->
 				{#if propertyQuery}
 					<button
 						type="button"
-						aria-label="Clear filter"
+						aria-label="Clear search"
 						onclick={() => void clearPropertyQuery()}>
 						<Icon svg={xIcon} size={14} aria-hidden="true" />
 					</button>
@@ -269,7 +269,7 @@ Screen readers hear the name of the vector before each axis. -->
 					<button
 						class="button"
 						type="button"
-						onclick={() => void clearPropertyQuery()}>Clear filter</button>
+						onclick={() => void clearPropertyQuery()}>Clear search</button>
 				</div>
 			{:else}
 				{#key node.key}
