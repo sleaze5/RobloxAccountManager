@@ -4,7 +4,7 @@ import {
 	GameServerRecordOrder,
 } from "../backend/bridge"
 import type {
-	FriendServer,
+	FriendsInGame,
 	GameServer,
 	GameServerPage,
 	GameServerRecord,
@@ -477,18 +477,18 @@ export class SavedServers {
 	}
 }
 
-// FriendServers lists the place's servers that the shown account's friends
-// are in.
-export class FriendServers {
-	servers = $state<FriendServer[] | null>(null)
+// FriendsInGameLoader lists the shown account's friends who play any place of
+// the universe, by server.
+export class FriendsInGameLoader {
+	friends = $state<FriendsInGame | null>(null)
 	loading = $state(false)
 	error = $state("")
 	#accountId: number
 	#fetchedAt = 0
-	#request: ReturnType<typeof accountBackend.ListFriendServers> | null = null
+	#request: ReturnType<typeof accountBackend.ListFriendsInGame> | null = null
 
 	constructor(
-		readonly placeId: number,
+		readonly universeId: number,
 		accountId: number,
 	) {
 		this.#accountId = accountId
@@ -499,37 +499,40 @@ export class FriendServers {
 		if (accountId === this.#accountId) return
 		this.#accountId = accountId
 		this.dispose()
-		this.servers = null
+		this.friends = null
 		this.loading = false
 		this.error = ""
 		this.#fetchedAt = 0
 		if (isVisible) void this.load()
 	}
 
-	// load shows kept servers and refetches stale ones.
+	// load shows kept friends and refetches stale ones.
 	async load(): Promise<void> {
 		if (this.#request) return
-		if (this.servers && Date.now() - this.#fetchedAt < serverPageFreshMs) return
+		if (this.friends && Date.now() - this.#fetchedAt < serverPageFreshMs) return
 		await this.refresh()
 	}
 
 	async refresh(): Promise<void> {
 		if (!this.#accountId) return
 		void this.#request?.cancel()
-		const request = accountBackend.ListFriendServers(this.#accountId, this.placeId)
+		const request = accountBackend.ListFriendsInGame(
+			this.#accountId,
+			this.universeId,
+		)
 		this.#request = request
 		this.loading = true
 		this.error = ""
 		try {
-			const servers = await request
+			const friends = await request
 			if (this.#request !== request) return
-			this.servers = servers ?? []
+			this.friends = friends
 			this.#fetchedAt = Date.now()
 		} catch (error) {
 			if (this.#request === request) {
 				this.error = errorMessage(
 					error,
-					"Could not load friends' servers. Try again.",
+					"Could not load friends in this game. Try again.",
 				)
 			}
 		} finally {
@@ -592,7 +595,7 @@ export class ServerStatsLoader {
 // source, options, and pages.
 export class PlaceServers {
 	readonly roblox: GameServers
-	readonly friends: FriendServers
+	readonly friendsInGame: FriendsInGameLoader
 	readonly recorded: RecordedServers
 	readonly private: PrivateServers
 	readonly listed: ListedServers
@@ -601,6 +604,7 @@ export class PlaceServers {
 
 	constructor(
 		readonly placeId: number,
+		universeId: number,
 		accountId: number,
 		caches: {
 			serverPages: ServerPageCache<GameServerPage>
@@ -614,7 +618,7 @@ export class PlaceServers {
 			caches.serverPages,
 			() => appSettings.roValraEnabled,
 		)
-		this.friends = new FriendServers(placeId, accountId)
+		this.friendsInGame = new FriendsInGameLoader(universeId, accountId)
 		this.recorded = new RecordedServers(placeId, caches.recordPages)
 		this.private = new PrivateServers(placeId, caches.privatePages, accountId)
 		this.listed = new ListedServers(placeId, caches.listedPages)
@@ -624,7 +628,7 @@ export class PlaceServers {
 
 	dispose(): void {
 		this.roblox.dispose()
-		this.friends.dispose()
+		this.friendsInGame.dispose()
 		this.recorded.dispose()
 		this.private.dispose()
 		this.listed.dispose()

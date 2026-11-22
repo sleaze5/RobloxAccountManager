@@ -19,8 +19,9 @@ import (
 )
 
 const (
-	gameBatchSize         = 50
-	maxUniversePlacePages = 10
+	gameBatchSize             = 50
+	maxUniversePlacePages     = 10
+	maxGameLanguageNameLength = 100
 )
 
 type Games struct {
@@ -327,6 +328,64 @@ func (service *Games) ReadPlayability(ctx context.Context, accountID, universeID
 		}, nil
 	}
 	return nil, nil
+}
+
+// maxGameLanguages bounds the languages of a game. Roblox supports fewer.
+const maxGameLanguages = 100
+
+// languages reads the languages that the game supports, which Roblox lists
+// without a signed-in request. Verified on 2026-11-22.
+func (service *Games) languages(ctx context.Context, game *games.Game) error {
+	var payload struct {
+		Data *[]struct {
+			Name string `json:"name"`
+		} `json:"data"`
+	}
+	path := "/v1/supported-languages/games/" + strconv.FormatInt(game.Place.UniverseID, 10)
+	if err := service.get(ctx, "game-languages", "gameinternationalization.roblox.com", path, nil, &payload); err != nil {
+		return err
+	}
+	if payload.Data == nil || len(*payload.Data) > maxGameLanguages {
+		return gameDataError("Roblox returned invalid language data.")
+	}
+	game.Languages = []string{}
+	for _, language := range *payload.Data {
+		if name := boundedText(language.Name, maxGameLanguageNameLength); name != "" {
+			game.Languages = append(game.Languages, name)
+		}
+	}
+	return nil
+}
+
+// GameSocialLinks are the links that a game lists on its page, as one account
+// sees them.
+type GameSocialLinks struct {
+	Links []SocialLink `json:"links"`
+	// IsHiddenByAge reports that Roblox shows the links only to accounts that
+	// it knows are over 12, and refused them to this account.
+	IsHiddenByAge bool `json:"isHiddenByAge"`
+}
+
+// SocialLinks reads the links that the game shows the account. Roblox refuses
+// them with 403 and code 3 to an account that it does not know is over 12.
+// Shape from the games API, as RoSeal reads it. The refusal verified on
+// 2026-11-22.
+func (service *Games) SocialLinks(ctx context.Context, accountID, universeID int64) (GameSocialLinks, error) {
+	var payload struct {
+		Data *[]listedSocialLink `json:"data"`
+	}
+	endpoint := &url.URL{Scheme: "https", Host: "games.roblox.com", Path: "/v1/games/" + strconv.FormatInt(universeID, 10) + "/social-links/list"}
+	err := service.account(ctx, "game-social-links", accountID, http.MethodGet, endpoint, nil, &payload)
+	if remote, ok := errors.AsType[*roblox.Error](err); ok && remote.Status == http.StatusForbidden && remote.RobloxCode == 3 {
+		return GameSocialLinks{Links: []SocialLink{}, IsHiddenByAge: true}, nil
+	}
+	if err != nil {
+		return GameSocialLinks{}, err
+	}
+	if payload.Data == nil {
+		return GameSocialLinks{}, gameDataError("Roblox returned invalid social link data.")
+	}
+	return GameSocialLinks{Links: socialLinksFromListed(*payload.Data)}, nil
 }
 
 func (service *Games) communication(ctx context.Context, accountID int64, game *games.Game) error {
@@ -713,6 +772,8 @@ func (service *Games) Section(ctx context.Context, universeID, placeID, accountI
 		err = service.maturity(ctx, &game)
 	case games.GameSectionAvatarRules:
 		err = service.avatarRules(ctx, &game)
+	case games.GameSectionLanguages:
+		err = service.languages(ctx, &game)
 	case games.GameSectionCommunication:
 		if accountID > 0 {
 			err = service.communication(ctx, accountID, &game)

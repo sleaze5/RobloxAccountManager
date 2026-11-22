@@ -14,6 +14,7 @@ import (
 	"github.com/sleaze5/RobloxAccountManager/internal/integration/rovalra"
 	"github.com/sleaze5/RobloxAccountManager/internal/logging"
 	"github.com/sleaze5/RobloxAccountManager/internal/roblox"
+	robloxservices "github.com/sleaze5/RobloxAccountManager/internal/roblox/services"
 	gamestore "github.com/sleaze5/RobloxAccountManager/internal/storage/games"
 	"github.com/sleaze5/RobloxAccountManager/internal/storage/vault"
 )
@@ -139,6 +140,22 @@ func (service *Service) GetGamePlayability(ctx context.Context, accountID, unive
 	defer done()
 	playability, err := service.games.ReadPlayability(ctx, accountID, universeID)
 	return playability, service.gamesError(ctx, operation, err)
+}
+
+// GetGameSocialLinks reads the links that the game shows the account, which
+// depend on the account's age.
+func (service *Service) GetGameSocialLinks(ctx context.Context, accountID, universeID int64) (robloxservices.GameSocialLinks, error) {
+	const operation = "game-social-links"
+	if err := validGameID(universeID); err != nil {
+		return robloxservices.GameSocialLinks{}, err
+	}
+	ctx, _, done, err := service.beginAccountSession(ctx, accountID, operation)
+	if err != nil {
+		return robloxservices.GameSocialLinks{}, err
+	}
+	defer done()
+	links, err := service.games.SocialLinks(ctx, accountID, universeID)
+	return links, service.gamesError(ctx, operation, err)
 }
 
 func (service *Service) ListGameServers(ctx context.Context, query games.ServerQuery) (games.ServerPage, error) {

@@ -140,6 +140,7 @@ export type {
 	CatalogSearch,
 	CategorizedInventoryItem,
 	ExploredModel,
+	GameSocialLinks,
 	GroupDetails,
 	GroupGame,
 	GroupGamePage,
@@ -151,7 +152,6 @@ export type {
 	GroupNameChange,
 	GroupRole,
 	GroupSearchPage,
-	GroupSocialLink,
 	GroupSummary,
 	GroupUser,
 	UserGroup,
@@ -190,7 +190,10 @@ export const accountBackend = Service
 
 export type {
 	Badge as GameBadge,
+	DeveloperProduct,
+	FriendInServer,
 	FriendServer,
+	FriendsInGame,
 	Game,
 	GamePass,
 	ListedPrivateServerPage,

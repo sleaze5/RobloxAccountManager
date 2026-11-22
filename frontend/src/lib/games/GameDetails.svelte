@@ -1,4 +1,5 @@
 <script lang="ts">
+	import arrowSquareOutIcon from "@phosphor-icons/core/regular/arrow-square-out.svg?raw"
 	import calendarDotsIcon from "@phosphor-icons/core/regular/calendar-dots.svg?raw"
 	import clockCounterClockwiseIcon from "@phosphor-icons/core/regular/clock-counter-clockwise.svg?raw"
 	import copyIcon from "@phosphor-icons/core/regular/copy.svg?raw"
@@ -7,6 +8,7 @@
 	import footprintsIcon from "@phosphor-icons/core/regular/footprints.svg?raw"
 	import gitCommitIcon from "@phosphor-icons/core/regular/git-commit.svg?raw"
 	import hardDrivesIcon from "@phosphor-icons/core/regular/hard-drives.svg?raw"
+	import linkIcon from "@phosphor-icons/core/regular/link.svg?raw"
 	import magnifyingGlassIcon from "@phosphor-icons/core/regular/magnifying-glass.svg?raw"
 	import medalIcon from "@phosphor-icons/core/regular/medal.svg?raw"
 	import microphoneIcon from "@phosphor-icons/core/regular/microphone.svg?raw"
@@ -19,6 +21,7 @@
 	import starFillIcon from "@phosphor-icons/core/fill/star-fill.svg?raw"
 	import starIcon from "@phosphor-icons/core/regular/star.svg?raw"
 	import tShirtIcon from "@phosphor-icons/core/regular/t-shirt.svg?raw"
+	import translateIcon from "@phosphor-icons/core/regular/translate.svg?raw"
 	import thumbsUpIcon from "@phosphor-icons/core/regular/thumbs-up.svg?raw"
 	import ticketIcon from "@phosphor-icons/core/regular/ticket.svg?raw"
 	import treeStructureIcon from "@phosphor-icons/core/regular/tree-structure.svg?raw"
@@ -27,7 +30,7 @@
 	import videoCameraIcon from "@phosphor-icons/core/regular/video-camera.svg?raw"
 	import warningIcon from "@phosphor-icons/core/regular/warning.svg?raw"
 	import { accountBackend, GameSection } from "../backend/bridge"
-	import type { Playability } from "../backend/bridge"
+	import type { GameSocialLinks, Playability } from "../backend/bridge"
 	import { AccountScope } from "../accounts/account-scope"
 	import type { AccountStore } from "../accounts/account-store.svelte"
 	import Icon from "../shared/Icon.svelte"
@@ -58,16 +61,28 @@
 		graphemes = new Intl.Segmenter(undefined, { granularity: "grapheme" })
 
 	let playability = $state.raw<Playability | null>(null),
-		playabilityRefreshCount = $state(0)
+		socialLinks = $state.raw<GameSocialLinks | null>(null),
+		socialLinksFailed = $state(false),
+		detailsRefreshCount = $state(0)
 
+	// The store replaces the selected place and the account list replaces its
+	// accounts when they refresh, so the effect tracks the IDs alone and runs
+	// again only when another universe or account is selected.
+	const selectedUniverseId = $derived(store.selected?.universeId),
+		selectedAccountId = $derived(accounts.selectedAccount.id)
+
+	// Roblox answers these for the selected account, so they load beside the
+	// details instead of with them.
 	$effect(() => {
-		const scope = new AccountScope(accounts.selectedAccount.id, accounts),
-			universeId = store.selected?.universeId
-		playability = null
+		const scope = new AccountScope(selectedAccountId, accounts),
+			universeId = selectedUniverseId
+		playability = socialLinks = null
+		socialLinksFailed = false
 		if (!universeId || !scope.isCurrent || scope.accountId <= 0) return
-		// A details refresh also updates the status for the selected account.
-		void playabilityRefreshCount
+		// A details refresh also reads them again for the selected account.
+		void detailsRefreshCount
 		void loadPlayability(scope, universeId)
+		void loadSocialLinks(scope, universeId)
 		return () => scope.dispose()
 	})
 
@@ -85,8 +100,23 @@
 		}
 	}
 
+	async function loadSocialLinks(
+		scope: AccountScope,
+		universeId: number,
+	): Promise<void> {
+		try {
+			const links = await scope.track(
+				accountBackend.GetGameSocialLinks(scope.accountId, universeId),
+			)
+			if (scope.isCurrent) socialLinks = links
+		} catch {
+			// The backend logs the failure, and the row shows that it is unavailable.
+			if (scope.isCurrent) socialLinksFailed = true
+		}
+	}
+
 	function refreshGameDetails(): void {
-		playabilityRefreshCount++
+		detailsRefreshCount++
 		void store.refreshDetails()
 	}
 
@@ -154,6 +184,9 @@
 				([listedGame.genre, listedGame.subgenre].filter(Boolean).join("; ") ||
 					"None"),
 		),
+		languages = $derived(game?.languages ?? null),
+		// A short list fits in the row. A longer one shows its count, then the names.
+		maxInlineLanguages = 3,
 		contentRating = $derived(
 			game &&
 				!store.isGameSectionPending(GameSection.GameSectionMaturity) &&
@@ -200,6 +233,22 @@
 				icon: shieldCheckIcon,
 				value: contentRating || undefined,
 				isLoading: store.isGameSectionPending(GameSection.GameSectionMaturity),
+			},
+			{
+				label: "Languages",
+				icon: translateIcon,
+				value: !languages
+					? undefined
+					: languages.length === 0
+						? "None"
+						: languages.length <= maxInlineLanguages
+							? languages.join(", ")
+							: count(languages.length, "language", "languages"),
+				detail:
+					languages && languages.length > maxInlineLanguages
+						? languages.join(", ")
+						: "",
+				isLoading: store.isGameSectionPending(GameSection.GameSectionLanguages),
 			},
 			...(rootPlace ? [] : universeStats),
 		]),
@@ -560,8 +609,8 @@
 						<button
 							class="button-icon"
 							type="button"
-							aria-label="Game passes"
-							data-tooltip="Game passes"
+							aria-label="Game passes and developer products"
+							data-tooltip="Game passes and developer products"
 							data-game-passes
 							disabled={!game}
 							onclick={() => {
@@ -637,6 +686,49 @@
 				<h3 id="game-information" class={sectionHeadingClass}>Details</h3>
 				<dl class="facts">
 					{#each details as fact (fact.label)}{@render row(fact)}{/each}
+					{#if accounts.selectedAccount.id > 0}
+						<div>
+							<dt>
+								<Icon
+									svg={linkIcon}
+									size={16}
+									aria-hidden="true" />Social links
+							</dt>
+							<dd>
+								{#if socialLinks?.links?.length}
+									{#each socialLinks.links as link (link.url)}
+										<button
+											class="button"
+											type="button"
+											aria-label={`Open ${link.title || link.type} (${link.url})`}
+											data-tooltip={link.url}
+											onclick={() =>
+												void store.openLink(link.url)}>
+											<Icon
+												svg={arrowSquareOutIcon}
+												size={16}
+												aria-hidden="true" />
+											{link.title || link.type}
+										</button>
+									{/each}
+								{:else if socialLinks?.isHiddenByAge}
+									<span class="text-fg-muted"
+										>Not shared by Roblox</span>
+									<small
+										>Roblox shows them only to accounts that it
+										knows are over 12</small>
+								{:else if socialLinks}
+									<span class="text-fg-muted">None</span>
+								{:else if socialLinksFailed}
+									<span class="text-fg-faint">Unavailable</span>
+								{:else}
+									<Skeleton
+										className="w-28"
+										label="Loading social links…" />
+								{/if}
+							</dd>
+						</div>
+					{/if}
 					{#if !rootPlace}
 						{#each dates as fact (fact.label)}{@render dateRow(fact)}{/each}
 					{/if}

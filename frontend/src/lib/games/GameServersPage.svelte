@@ -20,13 +20,14 @@
 	import AnchoredActionMenu, {
 		type MenuAction,
 	} from "../shared/AnchoredActionMenu.svelte"
-	import FriendServerList from "./FriendServerList.svelte"
+	import FriendsInGameList from "./FriendsInGameList.svelte"
 	import PrivateServerList from "./PrivateServerList.svelte"
 	import RBXServersList from "./RBXServersList.svelte"
 	import RecordedServerList from "./RecordedServerList.svelte"
 	import RobloxServerList from "./RobloxServerList.svelte"
 	import type { ServerSource } from "./game-servers-state.svelte"
 	import type { GamesStore } from "./games-store.svelte"
+	import { friendServerKey } from "./server-row-menu"
 
 	let {
 		store,
@@ -69,10 +70,10 @@
 
 	const place = untrack(() => store.selected!),
 		placeServers = untrack(() =>
-			store.serversFor(place.placeId, accounts.selectedAccount.id),
+			store.serversFor(place, accounts.selectedAccount.id),
 		),
 		robloxServers = placeServers.roblox,
-		friendServers = placeServers.friends,
+		friendsInGame = placeServers.friendsInGame,
 		recordedServers = placeServers.recorded,
 		privateServers = placeServers.private,
 		listedServers = placeServers.listed,
@@ -129,7 +130,7 @@
 		const accountId = accounts.selectedAccount.id
 		untrack(() => {
 			privateServers.showAccount(accountId, active === privateServers)
-			friendServers.showAccount(accountId, active === robloxServers)
+			friendsInGame.showAccount(accountId, active === robloxServers)
 		})
 	})
 
@@ -139,7 +140,7 @@
 			if (current === privateServers && !savedServers.servers) {
 				void savedServers.load()
 			}
-			if (current === robloxServers) void friendServers.load()
+			if (current === robloxServers) void friendsInGame.load()
 			if (current === privateServers && accounts.selectedAccount.id === 0) return
 			void current.load()
 		})
@@ -296,14 +297,22 @@
 					: []),
 			]
 		}
-		// Friend rows prefix their keys, so a server in both lists opens its menu
-		// only in the clicked row.
-		const jobId = key.startsWith("friend-") ? key.slice("friend-".length) : key
+		return robloxServerActions(key)
+	}
+
+	// A friend may play another place of the universe, so its row joins the
+	// place of its own server.
+	function robloxServerActions(key: string): MenuAction[] {
+		const friendServer = friendsInGame.friends?.servers?.find(
+				(server) => friendServerKey(server) === key,
+			),
+			placeId = friendServer?.placeId ?? place.placeId,
+			jobId = friendServer?.jobId ?? key
 		return [
 			{
 				label: "Fill launch options",
 				icon: listPlusIcon,
-				onSelect: select(() => onFillLaunch(place.placeId, jobId)),
+				onSelect: select(() => onFillLaunch(placeId, jobId)),
 			},
 			{
 				label: "Copy job ID",
@@ -315,7 +324,7 @@
 
 	function refresh(): void {
 		if (active === privateServers) void savedServers.load()
-		if (active === robloxServers) void friendServers.refresh()
+		if (active === robloxServers) void friendsInGame.refresh()
 		if (active === privateServers && !accounts.selectedAccount.id) return
 		active.refresh()
 		if (appSettings.roValraEnabled) void stats.load()
@@ -385,8 +394,9 @@
 			onMenu={openMenu} />
 	{:else}
 		{#if accounts.selectedAccount.id !== 0}
-			<FriendServerList
-				{friendServers}
+			<FriendsInGameList
+				{friendsInGame}
+				placeId={place.placeId}
 				activeKey={openKey}
 				{menuID}
 				onMenu={openMenu} />

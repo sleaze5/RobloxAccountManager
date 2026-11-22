@@ -34,6 +34,7 @@ const (
 	GameSectionAvatarRules   GameSection = "avatarRules"
 	GameSectionCommunication GameSection = "communication"
 	GameSectionVersions      GameSection = "versions"
+	GameSectionLanguages     GameSection = "languages"
 )
 
 type PlaceSummary struct {
@@ -60,6 +61,7 @@ type Game struct {
 	AvatarRules         *AvatarRules   `json:"avatarRules"`
 	Communication       *Communication `json:"communication"`
 	Versions            *PlaceVersions `json:"versions"`
+	Languages           []string       `json:"languages"`
 	// IsUnlisted reports that the games API no longer lists the game, such
 	// as one that Roblox banned or put under review. Its details come from
 	// the develop API, which lists no player, visit, or favorite counts.
@@ -335,9 +337,31 @@ type GamePass struct {
 	UpdatedAtMs int64 `json:"updatedAtMs"`
 }
 
-// FriendServer is a server that friends of the account are in.
+// DeveloperProduct belongs to a universe and is bought inside the game, as
+// many times as the game allows, so no account owns it.
+type DeveloperProduct struct {
+	DeveloperProductID int64  `json:"developerProductId"`
+	Name               string `json:"name"`
+	Description        string `json:"description"`
+	IconURL            string `json:"iconUrl"`
+	IsForSale          bool   `json:"isForSale"`
+	PriceInRobux       int64  `json:"priceInRobux"`
+}
+
+// FriendsInGame are the account's friends who play a universe, as far
+// as their privacy settings show it to the account.
+type FriendsInGame struct {
+	Servers []FriendServer `json:"servers"`
+	// FriendsInHiddenServers play the universe, but their privacy settings
+	// hide their server from the account, so the account cannot join them.
+	FriendsInHiddenServers []FriendInServer `json:"friendsInHiddenServers"`
+}
+
+// FriendServer is a server that friends of the account are in. PlaceID is
+// the place that the server runs, which can be any place of the universe.
 type FriendServer struct {
 	JobID   string           `json:"jobId"`
+	PlaceID int64            `json:"placeId"`
 	Friends []FriendInServer `json:"friends"`
 }
 

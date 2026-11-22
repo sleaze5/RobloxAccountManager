@@ -38,7 +38,7 @@ type GroupProfile struct {
 	Details       robloxservices.GroupDetails      `json:"details"`
 	Membership    robloxservices.GroupMembership   `json:"membership"`
 	Roles         []robloxservices.GroupRole       `json:"roles"`
-	SocialLinks   []robloxservices.GroupSocialLink `json:"socialLinks"`
+	SocialLinks   []robloxservices.SocialLink      `json:"socialLinks"`
 	Allies        []robloxservices.GroupSummary    `json:"allies"`
 	Enemies       []robloxservices.GroupSummary    `json:"enemies"`
 	PreviousNames []robloxservices.GroupNameChange `json:"previousNames"`
@@ -149,7 +149,7 @@ func (service *Service) GetGroupProfile(ctx context.Context, accountID, groupID 
 	defer done()
 	logger := service.groupLogger(operation, accountID).With("group_id", groupID)
 	users := service.users
-	profile := GroupProfile{Roles: []robloxservices.GroupRole{}, SocialLinks: []robloxservices.GroupSocialLink{}, Allies: []robloxservices.GroupSummary{}, Enemies: []robloxservices.GroupSummary{}, PreviousNames: []robloxservices.GroupNameChange{}}
+	profile := GroupProfile{Roles: []robloxservices.GroupRole{}, SocialLinks: []robloxservices.SocialLink{}, Allies: []robloxservices.GroupSummary{}, Enemies: []robloxservices.GroupSummary{}, PreviousNames: []robloxservices.GroupNameChange{}}
 	reads := []accountRead{
 		applyRead("details", func() (robloxservices.GroupDetails, error) {
 			return users.GroupDetails(ctx, accountID, version, groupID)
@@ -158,9 +158,9 @@ func (service *Service) GetGroupProfile(ctx context.Context, accountID, groupID 
 			return users.GroupMembership(ctx, accountID, version, groupID)
 		}, func(membership robloxservices.GroupMembership) { profile.Membership = membership }),
 		applyRead(string(GroupSourceRoles), func() ([]robloxservices.GroupRole, error) { return users.GroupRoles(ctx, accountID, version, groupID) }, func(roles []robloxservices.GroupRole) { profile.Roles = roles }),
-		applyRead(string(GroupSourceSocialLinks), func() ([]robloxservices.GroupSocialLink, error) {
+		applyRead(string(GroupSourceSocialLinks), func() ([]robloxservices.SocialLink, error) {
 			return users.GroupSocialLinks(ctx, accountID, version, groupID)
-		}, func(links []robloxservices.GroupSocialLink) { profile.SocialLinks = links }),
+		}, func(links []robloxservices.SocialLink) { profile.SocialLinks = links }),
 		applyRead(string(GroupSourceAllies), func() ([]robloxservices.GroupSummary, error) {
 			return users.RelatedGroups(ctx, accountID, version, groupID, robloxservices.GroupAllies)
 		}, func(allies []robloxservices.GroupSummary) { profile.Allies = allies }),
