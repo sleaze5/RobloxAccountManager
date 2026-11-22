@@ -42,6 +42,10 @@ type Request struct {
 	LaunchData   string
 }
 
+func (request Request) HasDestination() bool {
+	return request.PlaceID != 0 || request.UserID != 0 || request.Username != "" || request.ShareCode != ""
+}
+
 type Launcher interface {
 	Launch(context.Context, string, string, Request) error
 	LaunchProtocol(context.Context, string) error

@@ -35,18 +35,20 @@
 		{
 			value: LaunchMethod.MethodPlace,
 			label: "Place ID",
-			description: "Join a game by place ID and an optional job ID (UUID).",
+			description:
+				"Join a game by place ID and an optional job ID (UUID). Leave both empty to open Roblox without joining a game.",
 		},
 		{
 			value: LaunchMethod.MethodLink,
 			label: "Link",
 			description:
-				"Join with a game link, private server link, game invite, or 32-character server share code.",
+				"Join with a game link, private server link, game invite, or 32-character server share code. Leave it empty to open Roblox without joining a game.",
 		},
 		{
 			value: LaunchMethod.MethodUser,
 			label: "User",
-			description: "Join the game that a user is playing.",
+			description:
+				"Join the game that a user is playing. Leave it empty to open Roblox without joining a game.",
 		},
 	]
 
@@ -215,7 +217,6 @@
 								placeholder="Paste link here"
 								spellcheck="false"
 								autocomplete="off"
-								required
 								disabled={store.launching} />
 						</label>
 					{:else}
@@ -228,7 +229,6 @@
 								bind:value={store.launchInput.user}
 								type="text"
 								placeholder="Username or id:123"
-								required
 								disabled={store.launching} />
 						</label>
 						<label class="check-option h-8 items-center whitespace-nowrap">
