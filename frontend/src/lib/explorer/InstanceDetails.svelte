@@ -28,6 +28,8 @@
 		referencedClassNameOf,
 		onSelectInstance,
 		onOpenDocument,
+		openingAssetId,
+		onOpenAsset,
 	}: {
 		node: ExplorerNode
 		imageUrlByAssetId: ReadonlyMap<number, string>
@@ -39,6 +41,9 @@
 		referencedClassNameOf: (instanceId: number) => string
 		onSelectInstance: (instanceId: number) => void
 		onOpenDocument: (property: ModelProperty) => void
+		// openingAssetId is the asset whose details load before they open, or 0.
+		openingAssetId: number
+		onOpenAsset: (assetId: number) => void
 	} = $props()
 
 	const elementIdPrefix = $props.id()
@@ -328,7 +333,9 @@ Screen readers hear the name of the vector before each axis. -->
 																property.referencedInstanceId,
 															)}
 															{onSelectInstance}
-															{onOpenDocument} />
+															{onOpenDocument}
+															{openingAssetId}
+															{onOpenAsset} />
 													{/if}
 												</dd>
 											</div>

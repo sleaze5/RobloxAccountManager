@@ -109,6 +109,7 @@ export class InventoryState {
 	readonly instanceTree: KeyedLoad<ItemInstanceTree>
 	// Why the explorer could not copy a value, shown in the explorer.
 	explorerCopyError = $state("")
+	explorerAssetError = $state("")
 	readonly userId: number
 	readonly #scope: AccountScope
 	#request: ReturnType<typeof accountBackend.GetInventoryPage> | null = null
@@ -343,6 +344,27 @@ export class InventoryState {
 		)
 		if (!isCopied) this.explorerCopyError = copyFailureMessage(label)
 		return isCopied
+	}
+
+	// readAssetItem reads one asset that the explorer shows, such as a mesh, as
+	// an item. It returns null when it fails or the account changed.
+	async readAssetItem(assetId: number): Promise<CategorizedInventoryItem | null> {
+		const scope = this.#scope
+		this.explorerAssetError = ""
+		try {
+			const assetItem = await scope.track(
+				accountBackend.GetInventoryAssetItem(scope.accountId, assetId),
+			)
+			return scope.isCurrent ? assetItem : null
+		} catch (error) {
+			if (scope.isCurrent) {
+				this.explorerAssetError = errorMessage(
+					error,
+					"Could not open the asset. Try again.",
+				)
+			}
+			return null
+		}
 	}
 
 	async loadItemModel(

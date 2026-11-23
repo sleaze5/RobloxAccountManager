@@ -76,6 +76,26 @@ func (service *Service) GetInventoryRelatedItems(ctx context.Context, accountID 
 	return relatedItems, nil
 }
 
+// GetInventoryAssetItem reads one asset as an item, such as a mesh that the
+// explorer shows, so that its details can open.
+func (service *Service) GetInventoryAssetItem(ctx context.Context, accountID, assetID int64) (robloxservices.CategorizedInventoryItem, error) {
+	ctx, version, done, err := service.beginAccountSession(ctx, accountID, "inventory-asset-item")
+	if err != nil {
+		return robloxservices.CategorizedInventoryItem{}, err
+	}
+	defer done()
+	logger := service.logs.Module("application.inventory").With("operation", "inventory-asset-item", "account_id", accountID, "asset_id", assetID)
+	assetItem, err := service.users.AssetItem(ctx, accountID, version, assetID)
+	if err != nil {
+		logger.WarnContext(ctx, "asset item unavailable", "error", err)
+		return robloxservices.CategorizedInventoryItem{}, err
+	}
+	items := []robloxservices.InventoryItem{assetItem.Item}
+	service.addCatalogDetailsAndImages(ctx, accountID, version, items, logger)
+	assetItem.Item = items[0]
+	return *assetItem, nil
+}
+
 // GetInventoryItemModel reads the 3D model of the item, as the account sees
 // it.
 func (service *Service) GetInventoryItemModel(ctx context.Context, accountID int64, category robloxservices.InventoryCategory, itemID int64) (robloxservices.RenderedModel, error) {

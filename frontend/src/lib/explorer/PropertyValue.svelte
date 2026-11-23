@@ -1,5 +1,7 @@
 <script lang="ts">
+	import circleNotchIcon from "@phosphor-icons/core/regular/circle-notch.svg?raw"
 	import fileTextIcon from "@phosphor-icons/core/regular/file-text.svg?raw"
+	import infoIcon from "@phosphor-icons/core/regular/info.svg?raw"
 	import { ModelPropertyKind } from "../backend/bridge"
 	import type { ModelProperty } from "../backend/bridge"
 	import { formatCompactBytes } from "../shared/bytes"
@@ -9,7 +11,8 @@
 
 	// PropertyValue shows the value of one property as an explorer does: a
 	// check box for a boolean, a swatch for a color, and a link to the
-	// instance that a reference points to. The rows of a vector show its
+	// instance that a reference points to, and a button that opens the details
+	// of the asset that a content value names. The rows of a vector show its
 	// components themselves.
 	let {
 		property,
@@ -17,6 +20,8 @@
 		referencedClassName,
 		onSelectInstance,
 		onOpenDocument,
+		openingAssetId,
+		onOpenAsset,
 	}: {
 		property: ModelProperty
 		// imageUrl is the image of the asset that the property names.
@@ -26,6 +31,9 @@
 		referencedClassName: string
 		onSelectInstance: (instanceId: number) => void
 		onOpenDocument: (property: ModelProperty) => void
+		// openingAssetId is the asset whose details load before they open, or 0.
+		openingAssetId: number
+		onOpenAsset: (assetId: number) => void
 	} = $props()
 
 	const lineCount = $derived(
@@ -94,6 +102,7 @@
 		<span class="text-fg-muted">None</span>
 	{/if}
 {:else if property.kind === ModelPropertyKind.PropertyAsset}
+	{@const isOpening = openingAssetId === property.assetId}
 	{#if imageUrl}
 		<img
 			class="size-4 shrink-0 rounded-sm border border-line-subtle bg-raised object-contain"
@@ -112,6 +121,22 @@
 	{:else}
 		<span class="min-w-0 truncate font-mono select-text">{property.text}</span>
 	{/if}
+	<button
+		class="button-ghost-sm size-5 shrink-0"
+		type="button"
+		aria-label={isOpening
+			? `Opening asset ${assetIdText}…`
+			: `Show details of asset ${assetIdText}`}
+		aria-busy={isOpening}
+		data-tooltip="Show asset details"
+		disabled={openingAssetId !== 0}
+		onclick={() => onOpenAsset(property.assetId)}>
+		<Icon
+			svg={isOpening ? circleNotchIcon : infoIcon}
+			class={isOpening ? "spinner" : undefined}
+			size={14}
+			aria-hidden="true" />
+	</button>
 {:else if property.kind === ModelPropertyKind.PropertyBinary}
 	<span class="text-fg-muted">Binary data</span>
 	<span class="font-mono text-fg-muted tabular-nums"
