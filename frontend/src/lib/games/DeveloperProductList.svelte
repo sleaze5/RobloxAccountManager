@@ -5,18 +5,22 @@
 	import warningIcon from "@phosphor-icons/core/regular/warning.svg?raw"
 	import xIcon from "@phosphor-icons/core/regular/x.svg?raw"
 	import { tick } from "svelte"
+	import type { DeveloperProduct } from "../backend/bridge"
 	import { salePriceLabel } from "../inventory/inventory-prices"
+	import { itemGridClass } from "../inventory/item-grid"
 	import Icon from "../shared/Icon.svelte"
-	import ProfileImage from "../shared/ProfileImage.svelte"
+	import ItemTile from "../shared/ItemTile.svelte"
 	import { matchesSearch, searchTerms } from "../shared/search"
-	import SkeletonList from "../shared/SkeletonList.svelte"
-	import SkeletonMediaRow from "../shared/SkeletonMediaRow.svelte"
+	import SkeletonTile from "../shared/SkeletonTile.svelte"
+	import DeveloperProductDialog from "./DeveloperProductDialog.svelte"
 	import type { UniverseDeveloperProducts } from "./developer-products-state.svelte"
 
 	let {
 		universeDeveloperProducts,
+		gameName,
 	}: {
 		universeDeveloperProducts: UniverseDeveloperProducts
+		gameName: string
 	} = $props()
 
 	type DeveloperProductFilter = "all" | "forSale"
@@ -26,10 +30,13 @@
 		filterOptions: { id: DeveloperProductFilter; label: string }[] = [
 			{ id: "all", label: "All" },
 			{ id: "forSale", label: "For sale" },
-		]
+		],
+		skeletonTileIndexes = Array.from({ length: 12 }, (_, index) => index)
 	let filter = $state<DeveloperProductFilter>("all"),
 		query = $state(""),
-		searchInput = $state<HTMLInputElement | undefined>(undefined)
+		searchInput = $state<HTMLInputElement | undefined>(undefined),
+		grid = $state<HTMLUListElement | undefined>(undefined),
+		shown = $state<DeveloperProduct | null>(null)
 	const developerProducts = $derived(
 			universeDeveloperProducts.developerProducts ?? [],
 		),
@@ -48,6 +55,14 @@
 					),
 			),
 		)
+
+	async function closeDeveloperProduct(developerProductId: number): Promise<void> {
+		shown = null
+		await tick()
+		grid?.querySelector<HTMLButtonElement>(
+			`[data-developer-product="${developerProductId}"] button`,
+		)?.focus()
+	}
 
 	async function clearFilters(): Promise<void> {
 		filter = "all"
@@ -115,7 +130,7 @@
 	{/if}
 </div>
 
-<div class="min-h-0 flex-1 overflow-auto">
+<div class="@container min-h-0 flex-1 overflow-auto">
 	{#if universeDeveloperProducts.error && !universeDeveloperProducts.developerProducts}
 		<div class="empty-state h-full" role="alert">
 			<Icon svg={warningIcon} size={28} aria-hidden="true" />
@@ -128,9 +143,14 @@
 				>Try again</button>
 		</div>
 	{:else if !universeDeveloperProducts.developerProducts}
-		<SkeletonList label="Loading developer products…">
-			{#snippet row(index)}<SkeletonMediaRow {index} className="h-16" />{/snippet}
-		</SkeletonList>
+		<div class="p-3" role="status" aria-busy="true">
+			<span class="sr-only">Loading developer products…</span>
+			<ul class={itemGridClass} aria-hidden="true">
+				{#each skeletonTileIndexes as index (index)}
+					<SkeletonTile />
+				{/each}
+			</ul>
+		</div>
 	{:else if developerProducts.length === 0}
 		<div class="empty-state h-full" role="status">
 			<Icon svg={shoppingBagIcon} size={28} aria-hidden="true" />
@@ -161,38 +181,33 @@
 			<Icon svg={shoppingBagIcon} size={14} aria-hidden="true" />
 			Players buy developer products inside the game.
 		</p>
-		<ol
+		<ul
+			class={[itemGridClass, "p-3"]}
 			aria-label="Developer products"
-			aria-busy={universeDeveloperProducts.loading}>
+			aria-busy={universeDeveloperProducts.loading}
+			bind:this={grid}>
 			{#each shownDeveloperProducts as developerProduct (developerProduct.developerProductId)}
 				<li
-					class="flex min-h-16 items-center gap-3 border-b border-line-subtle px-3 py-2">
-					<span
-						class={[
-							"grid size-9 shrink-0 place-items-center overflow-hidden rounded-md border border-line-strong bg-raised",
-							!developerProduct.isForSale && "opacity-45",
-						]}
-						aria-hidden="true">
-						<ProfileImage
-							url={developerProduct.iconUrl}
-							fallbackIcon={shoppingBagIcon} />
-					</span>
-					<span class="flex min-w-0 flex-1 flex-col gap-0.5">
-						<strong class="truncate text-xs font-semibold text-fg"
-							>{developerProduct.name ||
-								"Unnamed developer product"}</strong>
-						{#if developerProduct.description}
-							<span class="truncate text-xs text-fg-muted"
-								>{developerProduct.description}</span>
-						{/if}
-						<span class="font-mono text-2xs text-fg-faint"
-							>{salePriceLabel(developerProduct, false)} ·
-							<span class="select-text"
-								>ID: {developerProduct.developerProductId}</span
-							></span>
-					</span>
+					class="min-w-0"
+					data-developer-product={developerProduct.developerProductId}>
+					<ItemTile
+						name={developerProduct.name || "Unnamed developer product"}
+						imageUrl={developerProduct.iconUrl}
+						fallbackIcon={shoppingBagIcon}
+						priceLabel={salePriceLabel(developerProduct, true)}
+						isPriceMuted={!developerProduct.isForSale}
+						actionLabel="Show details"
+						onOpen={() => (shown = developerProduct)} />
 				</li>
 			{/each}
-		</ol>
+		</ul>
 	{/if}
 </div>
+
+{#if shown}
+	{@const developerProductId = shown.developerProductId}
+	<DeveloperProductDialog
+		developerProduct={shown}
+		{gameName}
+		onClose={() => void closeDeveloperProduct(developerProductId)} />
+{/if}

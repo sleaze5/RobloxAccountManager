@@ -1,21 +1,22 @@
 <script lang="ts">
 	import caretLeftIcon from "@phosphor-icons/core/regular/caret-left.svg?raw"
-	import checkCircleIcon from "@phosphor-icons/core/regular/check-circle.svg?raw"
+	import checkCircleFillIcon from "@phosphor-icons/core/fill/check-circle-fill.svg?raw"
 	import clockIcon from "@phosphor-icons/core/regular/clock.svg?raw"
 	import funnelIcon from "@phosphor-icons/core/regular/funnel.svg?raw"
-	import shoppingCartIcon from "@phosphor-icons/core/regular/shopping-cart.svg?raw"
+	import prohibitIcon from "@phosphor-icons/core/regular/prohibit.svg?raw"
 	import ticketIcon from "@phosphor-icons/core/regular/ticket.svg?raw"
 	import userPlusIcon from "@phosphor-icons/core/regular/user-plus.svg?raw"
 	import warningIcon from "@phosphor-icons/core/regular/warning.svg?raw"
 	import { onMount, tick, untrack } from "svelte"
 	import type { AccountStore } from "../accounts/account-store.svelte"
 	import type { GamePass } from "../backend/bridge"
-	import { formatRobux, salePriceLabel } from "../inventory/inventory-prices"
+	import { salePriceLabel } from "../inventory/inventory-prices"
+	import { itemGridClass } from "../inventory/item-grid"
 	import Icon from "../shared/Icon.svelte"
-	import ProfileImage from "../shared/ProfileImage.svelte"
+	import ItemTile from "../shared/ItemTile.svelte"
+	import type { ItemTileBadge } from "../shared/ItemTile.svelte"
 	import RefreshIcon from "../shared/RefreshIcon.svelte"
-	import SkeletonList from "../shared/SkeletonList.svelte"
-	import SkeletonMediaRow from "../shared/SkeletonMediaRow.svelte"
+	import SkeletonTile from "../shared/SkeletonTile.svelte"
 	import DeveloperProductList from "./DeveloperProductList.svelte"
 	import GamePassDialog from "./GamePassDialog.svelte"
 	import type { GamesStore, StoreView } from "./games-store.svelte"
@@ -52,14 +53,12 @@
 				tooltip: "Items that players buy inside the game",
 			},
 		],
-		numbers = new Intl.NumberFormat()
+		numbers = new Intl.NumberFormat(),
+		skeletonTileIndexes = Array.from({ length: 12 }, (_, index) => index)
 	let heading = $state<HTMLHeadingElement | undefined>(undefined),
-		list = $state<HTMLOListElement | undefined>(undefined),
+		list = $state<HTMLUListElement | undefined>(undefined),
 		filter = $state<GamePassFilter>("all"),
-		shown = $state<{
-			gamePass: GamePass
-			openedView: "details" | "purchase"
-		} | null>(null)
+		shown = $state<GamePass | null>(null)
 	const view = $derived(store.storeView),
 		isRefreshing = $derived(
 			view === "gamePasses"
@@ -134,14 +133,44 @@
 		})
 	})
 
-	// A purchase can remove the Buy button, so focus the details button.
+	// The marks of a pass's tile, in priority order.
+	function gamePassBadges(gamePass: GamePass): ItemTileBadge[] {
+		const badges: ItemTileBadge[] = []
+		if (hasOwnership) {
+			if (
+				universeGamePasses.pendingPurchaseGamePassIds.has(gamePass.gamePassId)
+			) {
+				badges.push({
+					label: "Still being delivered",
+					icon: clockIcon,
+					tone: "text-fg-muted",
+				})
+			} else if (gamePass.isOwned) {
+				badges.push({
+					label: "You own this",
+					icon: checkCircleFillIcon,
+					tone: "text-success",
+				})
+			}
+		}
+		if (gamePass.isModerated) {
+			badges.push({
+				label: "Deleted by Roblox",
+				icon: prohibitIcon,
+				tone: "text-warning",
+			})
+		}
+		return badges
+	}
+
+	// A refresh can drop the pass, so focus falls back to the heading.
 	async function closeGamePass(gamePassId: number): Promise<void> {
 		shown = null
 		await tick()
-		const detailsButton = list?.querySelector<HTMLButtonElement>(
-			`[data-game-pass="${gamePassId}"] [data-show-game-pass]`,
+		const tile = list?.querySelector<HTMLButtonElement>(
+			`[data-game-pass="${gamePassId}"] button`,
 		)
-		if (detailsButton) detailsButton.focus()
+		if (tile) tile.focus()
 		else heading?.focus({ preventScroll: true })
 	}
 </script>
@@ -196,7 +225,9 @@
 	</header>
 
 	{#if view === "developerProducts"}
-		<DeveloperProductList {universeDeveloperProducts} />
+		<DeveloperProductList
+			{universeDeveloperProducts}
+			gameName={store.displayName(place)} />
 	{:else if account.id !== 0}
 		<div
 			class="flex flex-wrap items-end gap-x-3 gap-y-2 border-b border-line-subtle p-3"
@@ -233,7 +264,7 @@
 	{/if}
 
 	{#if view === "gamePasses"}
-		<div class="min-h-0 flex-1 overflow-auto">
+		<div class="@container min-h-0 flex-1 overflow-auto">
 			{#if universeGamePasses.error && !universeGamePasses.gamePasses}
 				<div class="empty-state h-full" role="alert">
 					<Icon svg={warningIcon} size={28} aria-hidden="true" />
@@ -246,11 +277,14 @@
 						>Try again</button>
 				</div>
 			{:else if !universeGamePasses.gamePasses}
-				<SkeletonList label="Loading game passes…">
-					{#snippet row(index)}<SkeletonMediaRow
-							{index}
-							className="h-16" />{/snippet}
-				</SkeletonList>
+				<div class="p-3" role="status" aria-busy="true">
+					<span class="sr-only">Loading game passes…</span>
+					<ul class={itemGridClass} aria-hidden="true">
+						{#each skeletonTileIndexes as index (index)}
+							<SkeletonTile />
+						{/each}
+					</ul>
+				</div>
 			{:else if gamePasses.length === 0}
 				<div class="empty-state h-full" role="status">
 					<Icon svg={ticketIcon} size={28} aria-hidden="true" />
@@ -289,118 +323,38 @@
 						Add an account to buy game passes.
 					</p>
 				{/if}
-				<ol
+				<ul
+					class={[itemGridClass, "p-3"]}
 					aria-label="Game passes"
 					aria-busy={universeGamePasses.loading}
 					bind:this={list}>
 					{#each shownGamePasses as gamePass (gamePass.gamePassId)}
-						{@const name = gamePass.name || "Unnamed game pass"}
-						{@const isPending =
-							universeGamePasses.pendingPurchaseGamePassIds.has(
-								gamePass.gamePassId,
-							)}
-						<li
-							class="list-row flex min-h-16 items-center border-b border-line-subtle"
-							data-game-pass={gamePass.gamePassId}
-							data-selected={store.highlightedGamePassId ===
-								gamePass.gamePassId || undefined}
-							data-open={shown?.gamePass.gamePassId ===
-								gamePass.gamePassId || undefined}>
-							<button
-								class="flex min-w-0 flex-1 items-center gap-3 self-stretch px-3 py-2 text-left"
-								type="button"
-								aria-label={`${name} details`}
-								data-show-game-pass
-								onclick={() =>
-									(shown = { gamePass, openedView: "details" })}>
-								<span
-									class={[
-										"grid size-9 shrink-0 place-items-center overflow-hidden rounded-md border border-line-strong bg-raised",
-										!gamePass.isForSale &&
-											!gamePass.isOwned &&
-											"opacity-45",
-									]}
-									aria-hidden="true">
-									<ProfileImage
-										url={gamePass.iconUrl}
-										fallbackIcon={ticketIcon} />
-								</span>
-								<span class="flex min-w-0 flex-1 flex-col gap-0.5">
-									<strong
-										class="flex min-w-0 items-center gap-1.5 text-xs font-semibold text-fg">
-										<span class="truncate">{name}</span>
-									</strong>
-									{#if gamePass.description}
-										<span class="truncate text-xs text-fg-muted"
-											>{gamePass.description}</span>
-									{/if}
-									<span class="font-mono text-2xs text-fg-faint"
-										>{salePriceLabel(gamePass, false)}</span>
-								</span>
-							</button>
-							{#if hasOwnership}
-								<div class="flex shrink-0 items-center pr-3 text-xs">
-									{#if isPending}
-										<span
-											class="inline-flex items-center gap-1 font-medium text-fg-muted"
-											data-tooltip="Still being delivered"
-											data-tooltip-side="bottom-end">
-											<Icon
-												svg={clockIcon}
-												size={14}
-												aria-hidden="true" />
-											Pending
-										</span>
-									{:else if gamePass.isOwned}
-										<span
-											class="inline-flex animate-pop items-center gap-1 font-medium text-success">
-											<Icon
-												svg={checkCircleIcon}
-												size={14}
-												aria-hidden="true" />
-											Owned
-										</span>
-									{:else if gamePass.isForSale}
-										<button
-											class="button"
-											type="button"
-											aria-label={gamePass.priceInRobux === 0
-												? `Get ${name}`
-												: `Buy ${name} for ${formatRobux(gamePass.priceInRobux, false)}`}
-											disabled={universeGamePasses.isBuying}
-											onclick={() =>
-												(shown = {
-													gamePass,
-													openedView: "purchase",
-												})}>
-											<Icon
-												svg={shoppingCartIcon}
-												size={16}
-												aria-hidden="true" />
-											{gamePass.priceInRobux === 0
-												? "Get"
-												: "Buy"}
-										</button>
-									{:else}
-										<span class="text-fg-muted">Not owned</span>
-									{/if}
-								</div>
-							{/if}
+						<li class="min-w-0" data-game-pass={gamePass.gamePassId}>
+							<ItemTile
+								name={gamePass.name || "Unnamed game pass"}
+								imageUrl={gamePass.iconUrl}
+								fallbackIcon={ticketIcon}
+								badges={gamePassBadges(gamePass)}
+								priceLabel={salePriceLabel(gamePass, true)}
+								isPriceMuted={!gamePass.isForSale}
+								isSelected={store.highlightedGamePassId ===
+									gamePass.gamePassId}
+								actionLabel="Show details"
+								onOpen={() => (shown = gamePass)} />
 						</li>
 					{/each}
-				</ol>
+				</ul>
 			{/if}
 		</div>
 	{/if}
 </section>
 
 {#if shown}
-	{@const gamePassId = shown.gamePass.gamePassId}
+	{@const gamePassId = shown.gamePassId}
 	<GamePassDialog
 		{universeGamePasses}
-		gamePass={shown.gamePass}
+		gamePass={shown}
 		gameName={store.displayName(place)}
 		{account}
-		openedView={shown.openedView}
 		onClose={() => void closeGamePass(gamePassId)} />
 {/if}

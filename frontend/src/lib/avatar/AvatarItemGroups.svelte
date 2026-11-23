@@ -3,7 +3,7 @@
 	import type { Snippet } from "svelte"
 	import type { AvatarAsset } from "../backend/bridge"
 	import InventoryItemTile from "../inventory/InventoryItemTile.svelte"
-	import type { ItemTileBadge } from "../inventory/InventoryItemTile.svelte"
+	import type { ItemTileBadge } from "../shared/ItemTile.svelte"
 	import AvatarCountedHeading from "./AvatarCountedHeading.svelte"
 	import { groupWornAssets } from "./avatar-categories"
 	import { isDefaultAdjustment } from "./avatar-draft"

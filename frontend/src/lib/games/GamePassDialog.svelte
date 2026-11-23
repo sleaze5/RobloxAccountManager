@@ -27,15 +27,12 @@
 		gamePass: openedGamePass,
 		gameName,
 		account,
-		openedView,
 		onClose,
 	}: {
 		universeGamePasses: UniverseGamePasses
 		gamePass: GamePass
 		gameName: string
 		account: Account
-		// purchase when opened from a row's Buy, which closes the dialog after.
-		openedView: GamePassView
 		onClose: () => void
 	} = $props()
 
@@ -76,7 +73,7 @@
 		priceLabel = $derived(salePriceLabel(gamePass, false))
 
 	onMount(() => {
-		void showView(openedView)
+		void showView("details")
 	})
 
 	$effect(() => {
@@ -140,7 +137,7 @@
 
 	function close(): void {
 		if (universeGamePasses.isBuying) return
-		if (view === "purchase" && openedView === "details") void showView("details")
+		if (view === "purchase") void showView("details")
 		else {
 			universeGamePasses.clearPurchaseError()
 			onClose()
@@ -151,8 +148,7 @@
 		if (!confirmation || endStaleConfirmation()) return
 		const { gamePass: confirmedGamePass, accountId } = confirmation
 		if (!(await universeGamePasses.buy(confirmedGamePass, accountId))) return
-		if (openedView === "purchase") onClose()
-		else await showView("details")
+		await showView("details")
 	}
 </script>
 
