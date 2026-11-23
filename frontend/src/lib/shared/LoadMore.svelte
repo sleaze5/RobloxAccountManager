@@ -46,6 +46,9 @@
 				size={16}
 				aria-hidden="true" />{loadingLabel}</span>
 	{:else}
+		{#if hasFailed}
+			<span class="text-xs text-fg-muted">Next page unavailable</span>
+		{/if}
 		<button class="button" type="button" disabled={isDisabled} onclick={onLoadMore}
 			>{label}</button>
 	{/if}
