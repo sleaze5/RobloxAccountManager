@@ -1,4 +1,6 @@
 <script lang="ts">
+	import { notifyErrors } from "../notifications/error-notifications.svelte"
+	import LoadMore from "../shared/LoadMore.svelte"
 	import circleNotchIcon from "@phosphor-icons/core/regular/circle-notch.svg?raw"
 	import eyeIcon from "@phosphor-icons/core/regular/eye.svg?raw"
 	import paperPlaneRightIcon from "@phosphor-icons/core/regular/paper-plane-right.svg?raw"
@@ -181,6 +183,15 @@
 	const noteClass = "flex flex-wrap items-center justify-end gap-2 px-1 text-2xs",
 		linkButtonClass =
 			"rounded-sm text-2xs font-medium text-fg underline underline-offset-2"
+
+	notifyErrors("Chat not renamed", () => chat.renameError)
+	notifyErrors("Messages not loaded", () => chat.messagesError)
+	notifyErrors("Chat action not completed", () => chat.actionError)
+
+	notifyErrors(
+		"Message not sent",
+		() => chat.pending.findLast((message) => message.failed)?.error ?? "",
+	)
 </script>
 
 <div class="flex min-h-0 min-w-0">
@@ -281,42 +292,19 @@
 				{/if}
 			{/if}
 		</header>
-		{#if chat.renameError && renamingOpen}
-			<p class="mx-3 mt-2 notice-error" role="alert">{chat.renameError}</p>
-		{/if}
 
 		<div
 			class="flex min-h-0 flex-1 flex-col gap-2 overflow-y-auto p-3"
+			data-load-more-root
 			bind:this={scroller}>
 			{#if chat.messagesCursor && !chat.messagesLoading}
-				<button
-					type="button"
-					class="button self-center"
-					disabled={chat.olderLoading}
-					aria-busy={chat.olderLoading}
-					onclick={() => void loadOlder()}>
-					{#if chat.olderLoading}
-						<Icon
-							svg={circleNotchIcon}
-							class="spinner"
-							size={16}
-							aria-hidden="true" />
-					{/if}
-					Load older messages
-				</button>
-			{/if}
-			{#if chat.messagesError}
-				<p
-					class="flex items-center justify-between gap-2 notice-error"
-					role="alert">
-					{chat.messagesError}
-					<button
-						class={linkButtonClass}
-						type="button"
-						onclick={() => void chat.reloadMessages()}>
-						Try again
-					</button>
-				</p>
+				<LoadMore
+					pageKey={chat.messagesCursor}
+					label="Load older messages"
+					loadingLabel="Loading older messages…"
+					isLoadingMore={chat.olderLoading}
+					hasFailed={!!chat.messagesError}
+					onLoadMore={() => void loadOlder()} />
 			{/if}
 			{#if chat.messagesLoading && chat.messages.length === 0}
 				<p
@@ -391,10 +379,8 @@
 									</span>
 								{:else if entry.pending?.failed}
 									{@const pending = entry.pending}
-									<span
-										class={[noteClass, "text-danger-muted"]}
-										role="alert">
-										{pending.error}
+									<span class={[noteClass, "text-danger-muted"]}>
+										Not sent.
 										<button
 											class={linkButtonClass}
 											type="button"
@@ -419,11 +405,6 @@
 			</ol>
 		</div>
 
-		{#if chat.actionError}
-			<p class="mx-3 mb-2 notice-error" role="alert">
-				{chat.actionError}
-			</p>
-		{/if}
 		<form
 			novalidate
 			class="flex shrink-0 items-end gap-1 border-t border-line-subtle bg-surface px-3 py-2"

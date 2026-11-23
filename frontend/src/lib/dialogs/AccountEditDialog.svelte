@@ -3,6 +3,7 @@
 </script>
 
 <script lang="ts">
+	import { notifyErrors } from "../notifications/error-notifications.svelte"
 	import eyeIcon from "@phosphor-icons/core/regular/eye.svg?raw"
 	import eyeSlashIcon from "@phosphor-icons/core/regular/eye-slash.svg?raw"
 	import xIcon from "@phosphor-icons/core/regular/x.svg?raw"
@@ -114,6 +115,8 @@
 			replayValidationNudge(card)
 		}
 	}
+
+	notifyErrors("Account not changed", () => error)
 </script>
 
 <svelte:window
@@ -244,10 +247,6 @@
 							aria-hidden="true" /> Show passwords{/if}
 				</button>
 			{/if}
-		{/if}
-
-		{#if error}
-			<div class="mt-3 notice-error" role="alert">{error}</div>
 		{/if}
 
 		<div class="dialog-actions">

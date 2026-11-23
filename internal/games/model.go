@@ -34,6 +34,15 @@ const (
 	GameSectionAvatarRules   GameSection = "avatarRules"
 	GameSectionCommunication GameSection = "communication"
 	GameSectionVersions      GameSection = "versions"
+	GameSectionLanguages     GameSection = "languages"
+)
+
+// UserGameList names a list of games on a user's profile.
+type UserGameList string
+
+const (
+	UserGameListFavorites UserGameList = "favorites"
+	UserGameListCreated   UserGameList = "created"
 )
 
 type PlaceSummary struct {
@@ -60,6 +69,7 @@ type Game struct {
 	AvatarRules         *AvatarRules   `json:"avatarRules"`
 	Communication       *Communication `json:"communication"`
 	Versions            *PlaceVersions `json:"versions"`
+	Languages           []string       `json:"languages"`
 	// IsUnlisted reports that the games API no longer lists the game, such
 	// as one that Roblox banned or put under review. Its details come from
 	// the develop API, which lists no player, visit, or favorite counts.
@@ -335,7 +345,40 @@ type GamePass struct {
 	UpdatedAtMs int64 `json:"updatedAtMs"`
 }
 
-// FriendServer is a server that friends of the account are in.
+// DeveloperProduct belongs to a universe and is bought inside the game, as
+// many times as the game allows, so no account owns it.
+type DeveloperProduct struct {
+	DeveloperProductID int64  `json:"developerProductId"`
+	Name               string `json:"name"`
+	Description        string `json:"description"`
+	IconURL            string `json:"iconUrl"`
+	IsForSale          bool   `json:"isForSale"`
+	PriceInRobux       int64  `json:"priceInRobux"`
+}
+
+// FriendsInGame are the account's friends who play a universe, as far as
+// their privacy settings show it to the account.
+type FriendsInGame struct {
+	// Places lists the root place first, then the subplaces that friends play,
+	// most friends first.
+	Places []FriendPlace `json:"places"`
+	// FriendsInHiddenPlaces play the universe, but their privacy settings hide
+	// which place and server they are in.
+	FriendsInHiddenPlaces []FriendInServer `json:"friendsInHiddenPlaces"`
+}
+
+// FriendPlace is a place of the universe that friends of the account play.
+type FriendPlace struct {
+	PlaceID     int64          `json:"placeId"`
+	Name        string         `json:"name"`
+	IsRootPlace bool           `json:"isRootPlace"`
+	Servers     []FriendServer `json:"servers"`
+	// FriendsInHiddenServers play the place, but their privacy settings hide
+	// their server from the account, so the account cannot join them.
+	FriendsInHiddenServers []FriendInServer `json:"friendsInHiddenServers"`
+}
+
+// FriendServer is a server of a place that friends of the account are in.
 type FriendServer struct {
 	JobID   string           `json:"jobId"`
 	Friends []FriendInServer `json:"friends"`

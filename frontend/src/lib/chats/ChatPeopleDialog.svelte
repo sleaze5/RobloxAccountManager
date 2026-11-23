@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { notifyErrors } from "../notifications/error-notifications.svelte"
 	import circleNotchIcon from "@phosphor-icons/core/regular/circle-notch.svg?raw"
 	import magnifyingGlassIcon from "@phosphor-icons/core/regular/magnifying-glass.svg?raw"
 	import userCirclePlusIcon from "@phosphor-icons/core/regular/user-circle-plus.svg?raw"
@@ -151,6 +152,10 @@
 		window.clearTimeout(lookupTimer)
 		lookupRequest++
 	})
+
+	notifyErrors("Chat not created", () => chat.createError)
+
+	notifyErrors("Friends not loaded", () => chat.friendsError)
 </script>
 
 <svelte:window
@@ -314,9 +319,8 @@
 					</p>
 				{:else if chat.friendsError}
 					<p
-						class="flex h-12 items-center justify-between gap-2 px-3 text-xs text-danger-muted"
-						role="alert">
-						{chat.friendsError}
+						class="flex h-12 items-center justify-between gap-2 px-3 text-xs text-fg-muted">
+						Friends unavailable
 						<button
 							class="button"
 							type="button"
@@ -354,10 +358,6 @@
 					autocomplete="off"
 					disabled={submitting} />
 			</label>
-		{/if}
-
-		{#if chat.createError}
-			<div class="notice-error" role="alert">{chat.createError}</div>
 		{/if}
 
 		<div class="dialog-actions mt-0">

@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { notifyErrors } from "../notifications/error-notifications.svelte"
 	import broomIcon from "@phosphor-icons/core/regular/broom.svg?raw"
 	import trashIcon from "@phosphor-icons/core/regular/trash.svg?raw"
 	import Icon from "../shared/Icon.svelte"
@@ -66,6 +67,13 @@
 		void loadClients()
 		return options.pollMultiInstanceWhileEnabled()
 	})
+
+	notifyErrors("Roblox Cleaner not run", () => options.cleanerError)
+	notifyErrors(
+		"Multiple instances not changed",
+		() => options.multiInstanceError || options.multiInstanceStatusError,
+	)
+	notifyErrors("Roblox clients not loaded", () => clientsError)
 </script>
 
 <section class="settings-section" aria-labelledby="multi-instance-title">
@@ -94,20 +102,14 @@
 				onToggle={(enabled) => void options.setMultiInstanceEnabled(enabled)} />
 		</div>
 	</div>
-	{#if options.multiInstanceError || options.multiInstanceStatusError}
-		<div class="notice-error" role="alert">
-			{options.multiInstanceError || options.multiInstanceStatusError}
+	{#if options.multiInstanceStatusError && !snapshot}
+		<div class="flex justify-end gap-2">
+			<button
+				class="button"
+				type="button"
+				disabled={options.isLoadingMultiInstance}
+				onclick={() => void options.refreshMultiInstance()}>Try again</button>
 		</div>
-		{#if !snapshot}
-			<div class="flex justify-end gap-2">
-				<button
-					class="button"
-					type="button"
-					disabled={options.isLoadingMultiInstance}
-					onclick={() => void options.refreshMultiInstance()}
-					>Try again</button>
-			</div>
-		{/if}
 	{/if}
 </section>
 
@@ -215,12 +217,7 @@
 				</button>
 			</div>
 		</div>
-		{#if options.cleanerError}
-			<div class="notice-error" role="alert">{options.cleanerError}</div>
-		{/if}
 	</section>
-{:else if options.cleanerError}
-	<div class="notice-error" role="alert">{options.cleanerError}</div>
 {/if}
 
 {#if cleanScope}
@@ -251,12 +248,8 @@
 					onChange={(client) => void setClient(client)} />
 			</div>
 		</div>
-		{#if clientsError}
-			<div class="notice-error" role="alert">{clientsError}</div>
-		{/if}
 	</section>
 {:else if clientsError}
-	<div class="notice-error" role="alert">{clientsError}</div>
 	<div class="flex justify-end gap-2 px-1 pt-2">
 		<button
 			class="button"

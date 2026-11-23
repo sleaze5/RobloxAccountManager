@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { notifyErrors } from "../notifications/error-notifications.svelte"
 	import arrowsOutIcon from "@phosphor-icons/core/regular/arrows-out.svg?raw"
 	import circleNotchIcon from "@phosphor-icons/core/regular/circle-notch.svg?raw"
 	import paintBrushIcon from "@phosphor-icons/core/regular/paint-brush.svg?raw"
@@ -123,6 +124,8 @@
 		)
 		return () => clearTimeout(previewTimer)
 	})
+
+	notifyErrors("Preview not loaded", () => avatar.previewError)
 </script>
 
 {#snippet imageFrame(isExpandedView: boolean)}
@@ -254,7 +257,7 @@
 				{#if isThreeDimensional || avatar.isPreviewCurrent}
 					This shows your changes. Save to keep them.
 				{:else if avatar.previewError}
-					The image shows the saved avatar. {avatar.previewError}
+					The image shows the saved avatar.
 				{:else}
 					Previewing…
 				{/if}

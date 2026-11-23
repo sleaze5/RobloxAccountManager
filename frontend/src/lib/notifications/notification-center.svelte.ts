@@ -35,7 +35,8 @@ export class NotificationCenter {
 
 	show(input: NotificationInput): string {
 		const id = input.id ?? `notification-${++this.#nextId}`,
-			durationMs = input.durationMs ?? 5000,
+			// An error takes longer to read and act on than a result.
+			durationMs = input.durationMs ?? (input.tone === "error" ? 8000 : 5000),
 			notification: AppNotification = {
 				actions: input.actions ?? [],
 				dismissible: input.dismissible ?? true,

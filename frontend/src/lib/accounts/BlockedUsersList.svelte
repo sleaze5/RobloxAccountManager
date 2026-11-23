@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { notifyErrors } from "../notifications/error-notifications.svelte"
 	import circleNotchIcon from "@phosphor-icons/core/regular/circle-notch.svg?raw"
 	import Icon from "../shared/Icon.svelte"
 	import SettingsRowsSkeleton from "../shared/SettingsRowsSkeleton.svelte"
@@ -11,11 +12,9 @@
 	function name(user: BlockedUser): string {
 		return user.displayName || user.username || `User ${user.userId}`
 	}
-</script>
 
-{#if blocked.error}
-	<div class="notice-error" role="alert">{blocked.error}</div>
-{/if}
+	notifyErrors("Blocked users not loaded", () => blocked.error)
+</script>
 
 {#if !blocked.users}
 	{#if blocked.loading}

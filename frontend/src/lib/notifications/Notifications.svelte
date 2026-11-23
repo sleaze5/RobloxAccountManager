@@ -72,7 +72,7 @@
 </script>
 
 <section
-	class="pointer-events-none fixed inset-x-0 bottom-9 z-30 flex flex-col items-center gap-2 px-4"
+	class="pointer-events-none fixed inset-x-0 bottom-9 z-50 flex flex-col items-center gap-2 px-4"
 	aria-label="Notifications"
 	aria-live="polite">
 	{#if hiddenNotificationCount > 0}

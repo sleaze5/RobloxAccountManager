@@ -1,4 +1,6 @@
 <script lang="ts">
+	import { notifyErrors } from "../notifications/error-notifications.svelte"
+	import LoadMore from "../shared/LoadMore.svelte"
 	import circleNotchIcon from "@phosphor-icons/core/regular/circle-notch.svg?raw"
 	import sealCheckIcon from "@phosphor-icons/core/regular/seal-check.svg?raw"
 	import userMinusIcon from "@phosphor-icons/core/regular/user-minus.svg?raw"
@@ -12,7 +14,6 @@
 	import { CursorPagedList } from "../shared/cursor-paged-list.svelte"
 	import { errorMessage } from "../shared/errors"
 	import Icon from "../shared/Icon.svelte"
-	import { loadMoreWhenVisible } from "../shared/load-more-when-visible"
 	import ProfileImage from "../shared/ProfileImage.svelte"
 	import RefreshIcon from "../shared/RefreshIcon.svelte"
 	import Select from "../shared/Select.svelte"
@@ -180,6 +181,11 @@
 	})
 
 	onMount(() => void members.refresh())
+
+	notifyErrors("Members not loaded", () => members.error)
+	notifyErrors("Member not changed", () => memberError)
+
+	notifyErrors("Member not removed", () => removeError)
 </script>
 
 <section class="settings-page min-w-0" aria-labelledby="group-members-title">
@@ -218,17 +224,10 @@
 		class="min-h-0 flex-1 scrollbar-stable overflow-y-auto"
 		data-load-more-root
 		bind:this={memberListElement}>
-		{#if memberError}
-			<p class="mx-3 mt-3 notice-error" role="alert">{memberError}</p>
-		{/if}
-		{#if members.error && members.hasLoaded}
-			<p class="mx-3 mt-3 notice-error" role="alert">{members.error}</p>
-		{/if}
 		{#if !members.hasLoaded && members.error}
-			<div class="empty-state h-full" role="alert">
+			<div class="empty-state h-full">
 				<Icon svg={warningIcon} size={28} aria-hidden="true" />
 				<h2>Members unavailable</h2>
-				<p>{members.error}</p>
 				<button
 					class="button"
 					type="button"
@@ -327,28 +326,13 @@
 				{/each}
 			</ul>
 			{#if members.nextCursor}
-				<div
-					class="flex min-h-12 items-center justify-center text-fg-faint"
-					use:loadMoreWhenVisible={{
-						pageKey: members.items.length,
-						loadMore: () => {
-							if (!members.error) void members.loadMore()
-						},
-					}}>
-					{#if members.error}
-						<button
-							class="button"
-							type="button"
-							onclick={() => void members.loadMore()}
-							>Load more members</button>
-					{:else}
-						<Icon
-							svg={circleNotchIcon}
-							class="spinner"
-							size={16}
-							aria-label="Loading more members…" />
-					{/if}
-				</div>
+				<LoadMore
+					pageKey={members.items.length}
+					label="Load more members"
+					loadingLabel="Loading more members…"
+					isLoadingMore={members.isLoadingMore}
+					hasFailed={!!members.error}
+					onLoadMore={() => void members.loadMore()} />
 			{/if}
 		{/if}
 	</div>
@@ -361,7 +345,6 @@
 		confirmLabel="Remove member"
 		progressLabel="Removing…"
 		isWorking={isRemoving}
-		error={removeError}
 		onConfirm={() => void removeMember()}
 		onCancel={() => (removedMember = null)} />
 {/if}

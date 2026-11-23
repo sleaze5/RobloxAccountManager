@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { notifyErrors } from "../notifications/error-notifications.svelte"
 	import type {
 		AvatarScaleLimit,
 		AvatarThumbnailCamera,
@@ -226,6 +227,8 @@
 		isCameraCustomized = customization.isCameraCustomized
 		camera = { ...customization.camera }
 	}
+
+	notifyErrors("Owned animations not loaded", () => ownedError)
 </script>
 
 <section
@@ -309,10 +312,8 @@
 			</p>
 		{/if}
 		{#if ownedError}
-			<p
-				class="flex flex-wrap items-center gap-x-2 text-xs text-fg-muted"
-				role="alert">
-				<span>{ownedError}</span>
+			<p class="flex flex-wrap items-center gap-x-2 text-xs text-fg-muted">
+				<span>Owned animations unavailable</span>
 				<button
 					class="button-text"
 					type="button"

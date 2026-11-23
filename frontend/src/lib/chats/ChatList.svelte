@@ -1,9 +1,8 @@
 <script lang="ts">
-	import circleNotchIcon from "@phosphor-icons/core/regular/circle-notch.svg?raw"
+	import LoadMore from "../shared/LoadMore.svelte"
 	import Icon from "../shared/Icon.svelte"
 	import SkeletonMediaRow from "../shared/SkeletonMediaRow.svelte"
 	import SkeletonList from "../shared/SkeletonList.svelte"
-	import { loadMoreWhenVisible } from "../shared/load-more-when-visible"
 	import { moveListFocus } from "../shared/move-shortcut"
 	import ChatAvatar from "./ChatAvatar.svelte"
 	import type { ChatState } from "./chat-state.svelte"
@@ -17,10 +16,6 @@
 			) ?? chat.conversations[0]
 		)?.id,
 	)
-
-	function loadMoreChats(): void {
-		if (!chat.loadMoreFailed) void chat.loadMore()
-	}
 </script>
 
 {#if chat.loading && chat.conversations.length === 0}
@@ -78,26 +73,12 @@
 		{/each}
 	</ul>
 	{#if chat.conversationsCursor}
-		<div
-			class="flex min-h-7 items-center justify-center text-fg-faint"
-			use:loadMoreWhenVisible={{
-				pageKey: chat.conversationsCursor,
-				loadMore: loadMoreChats,
-			}}>
-			{#if chat.loadMoreFailed}
-				<button
-					type="button"
-					class="button self-center"
-					onclick={() => void chat.loadMore()}>
-					Load more chats
-				</button>
-			{:else}
-				<Icon
-					svg={circleNotchIcon}
-					class="spinner"
-					size={16}
-					aria-label="Loading more chats…" />
-			{/if}
-		</div>
+		<LoadMore
+			pageKey={chat.conversationsCursor}
+			label="Load more chats"
+			loadingLabel="Loading more chats…"
+			isLoadingMore={chat.loadingMore}
+			hasFailed={chat.loadMoreFailed}
+			onLoadMore={() => void chat.loadMore()} />
 	{/if}
 {/if}

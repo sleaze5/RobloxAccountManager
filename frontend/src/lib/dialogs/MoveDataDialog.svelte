@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { notifyErrors } from "../notifications/error-notifications.svelte"
 	import xIcon from "@phosphor-icons/core/regular/x.svg?raw"
 	import Icon from "../shared/Icon.svelte"
 	import { accountBackend } from "../backend/bridge"
@@ -29,6 +30,8 @@
 	function handleKeydown(event: KeyboardEvent): void {
 		if (event.key === "Escape" && !busy) onClose()
 	}
+
+	notifyErrors("Data not moved", () => error)
 </script>
 
 <svelte:window onkeydown={handleKeydown} />
@@ -61,7 +64,6 @@
 		<li>Every file is verified before the old copy is deleted.</li>
 		<li>Open browser sessions close. The browser downloads again if needed.</li>
 	</ul>
-	{#if error}<div class="mt-3 notice-error" role="alert">{error}</div>{/if}
 	<div class="dialog-actions">
 		<button class="button" type="button" disabled={busy} onclick={onClose}
 			>Cancel</button

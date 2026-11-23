@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { notifyErrors } from "../notifications/error-notifications.svelte"
 	import caretDownIcon from "@phosphor-icons/core/regular/caret-down.svg?raw"
 	import checkIcon from "@phosphor-icons/core/regular/check.svg?raw"
 	import circleNotchIcon from "@phosphor-icons/core/regular/circle-notch.svg?raw"
@@ -42,7 +43,6 @@
 	const panelId = $props.id(),
 		headingId = `${panelId}-heading`,
 		referenceId = `${panelId}-reference`,
-		referenceErrorId = `${panelId}-reference-error`,
 		headingByGroup: Record<AnimationChoiceGroup, string> = {
 			animationSet: "Animations",
 			emote: "Emotes",
@@ -176,6 +176,8 @@
 	function handleListKeydown(event: KeyboardEvent): void {
 		focusMenuItemForKey(event, options())
 	}
+
+	notifyErrors("Animation not found", () => library?.findError ?? "")
 </script>
 
 <!-- Escape closes the panel before it reaches a dialog around the viewer, and
@@ -357,9 +359,8 @@ a press outside the panel and its trigger closes it. -->
 							</p>
 						{:else if owned.error}
 							<div
-								class="flex flex-wrap items-center gap-x-2 px-2 py-1 text-xs text-fg-muted"
-								role="alert">
-								<span class="min-w-0">{owned.error}</span>
+								class="flex flex-wrap items-center gap-x-2 px-2 py-1 text-xs text-fg-muted">
+								<span class="min-w-0">Unavailable</span>
 								<button
 									class="button-text"
 									type="button"
@@ -408,9 +409,6 @@ a press outside the panel and its trigger closes it. -->
 						spellcheck="false"
 						placeholder="Emote or animation ID"
 						aria-invalid={!!library.findError || undefined}
-						aria-describedby={library.findError
-							? referenceErrorId
-							: undefined}
 						disabled={library.isFinding}
 						bind:value={reference}
 						oninput={() => library?.clearFindError()} />
@@ -421,14 +419,6 @@ a press outside the panel and its trigger closes it. -->
 						disabled={!reference.trim() || library.isFinding}
 						>{library.isFinding ? "Finding…" : "Play"}</button>
 				</div>
-				{#if library.findError}
-					<p
-						id={referenceErrorId}
-						class="text-xs text-danger-muted"
-						role="alert">
-						{library.findError}
-					</p>
-				{/if}
 			</form>
 		{/if}
 	</div>

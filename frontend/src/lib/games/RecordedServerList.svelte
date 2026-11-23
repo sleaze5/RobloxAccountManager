@@ -1,4 +1,6 @@
 <script lang="ts">
+	import { notifyErrors } from "../notifications/error-notifications.svelte"
+	import LoadMore from "../shared/LoadMore.svelte"
 	import hardDrivesIcon from "@phosphor-icons/core/regular/hard-drives.svg?raw"
 	import warningIcon from "@phosphor-icons/core/regular/warning.svg?raw"
 	import Icon from "../shared/Icon.svelte"
@@ -9,7 +11,6 @@
 	import ServerActionsButton from "./ServerActionsButton.svelte"
 	import { openServerMenuFromRow } from "./server-row-menu"
 	import type { ServerMenuOpener } from "./server-row-menu"
-	import ServerPagerNav from "./ServerPagerNav.svelte"
 	import ServerUptime from "./ServerUptime.svelte"
 	import ServerVersion from "./ServerVersion.svelte"
 	import {
@@ -55,9 +56,14 @@
 		])
 
 	$effect(() => {
-		void servers.page
+		void servers.listVersion
 		untrack(() => list?.scrollTo({ top: 0 }))
 	})
+
+	notifyErrors(
+		"RoValra servers not loaded",
+		() => servers.error || servers.loadMoreError,
+	)
 </script>
 
 <div class="flex min-h-0 flex-1 flex-col">
@@ -108,14 +114,12 @@
 				}))}
 				onChange={(value) => servers.setOptions({ limit: value })} />
 		</div>
-		<ServerPagerNav pager={servers} />
 	</div>
 
 	{#if servers.error}
-		<div class="empty-state" role="alert">
+		<div class="empty-state">
 			<Icon svg={warningIcon} size={28} aria-hidden="true" />
 			<h2>RoValra servers unavailable</h2>
-			<p>{servers.error}</p>
 			<button class="button" type="button" onclick={() => void servers.load()}
 				>Try again</button>
 		</div>
@@ -124,12 +128,7 @@
 	{:else if !shown.length}
 		<div class="empty-state" role="status">
 			<Icon svg={hardDrivesIcon} size={28} aria-hidden="true" />
-			{#if servers.pageNumber > 1}
-				<h2>No more servers</h2>
-				<p>RoValra has no more servers for this list.</p>
-				<button class="button" type="button" onclick={() => servers.first()}
-					>Go to first page</button>
-			{:else if servers.region}
+			{#if servers.region}
 				<h2>No servers in this region</h2>
 				<p>RoValra has not seen a server of this place in this region.</p>
 				<button
@@ -144,10 +143,8 @@
 		</div>
 	{:else}
 		<p class="flex gap-1 px-3 pt-2 font-mono text-2xs text-fg-faint" role="status">
-			<span>Page {servers.pageNumber}</span>
-			<span aria-hidden="true">·</span>
 			<span
-				>{numbers.format(shown.length)}
+				>{numbers.format(shown.length)}{servers.hasNext ? "+" : ""}
 				{shown.length === 1 ? "server" : "servers"}</span>
 			{#if stats.stats?.totalServers}
 				<span aria-hidden="true">·</span>
@@ -160,6 +157,7 @@
 			class="server-table"
 			data-variant="recorded"
 			data-loading={servers.loading || undefined}
+			data-load-more-root
 			bind:this={list}>
 			<div class="server-columns" aria-hidden="true">
 				<span>Region</span>
@@ -209,6 +207,15 @@
 					</li>
 				{/each}
 			</ol>
+			{#if servers.hasNext}
+				<LoadMore
+					pageKey={servers.page?.servers?.length}
+					label="Load more servers"
+					loadingLabel="Loading more servers…"
+					isLoadingMore={servers.loadingMore}
+					hasFailed={!!servers.loadMoreError}
+					onLoadMore={() => void servers.loadMore()} />
+			{/if}
 		</div>
 	{/if}
 </div>

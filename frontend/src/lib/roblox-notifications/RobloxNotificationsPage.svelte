@@ -1,8 +1,9 @@
 <script lang="ts">
+	import { notifyErrors } from "../notifications/error-notifications.svelte"
+	import LoadMore from "../shared/LoadMore.svelte"
 	import warningIcon from "@phosphor-icons/core/regular/warning.svg?raw"
 	import bellIcon from "@phosphor-icons/core/regular/bell.svg?raw"
 	import broomIcon from "@phosphor-icons/core/regular/broom.svg?raw"
-	import circleNotchIcon from "@phosphor-icons/core/regular/circle-notch.svg?raw"
 	import funnelIcon from "@phosphor-icons/core/regular/funnel.svg?raw"
 	import { Browser } from "@wailsio/runtime"
 	import Icon from "../shared/Icon.svelte"
@@ -15,7 +16,6 @@
 	import { RobloxNotificationCategory } from "../backend/bridge"
 	import type { RobloxNotificationUser } from "../backend/bridge"
 	import { errorMessage } from "../shared/errors"
-	import { loadMoreWhenVisible } from "../shared/load-more-when-visible"
 	import DismissAllRobloxNotificationsDialog from "./DismissAllRobloxNotificationsDialog.svelte"
 	import RobloxNotificationCard from "./RobloxNotificationCard.svelte"
 	import { RobloxNotificationState } from "./roblox-notification-state.svelte"
@@ -87,14 +87,12 @@
 		}
 	}
 
-	function loadMoreNotifications(): void {
-		if (!stream.loadMoreFailed) void stream.loadMore()
-	}
-
 	onMount(() => {
 		if (!stream.isFresh) void stream.refresh()
 		return () => stream.dispose()
 	})
+
+	notifyErrors("Notifications not loaded", () => stream.error)
 </script>
 
 <section class="settings-page" aria-labelledby="roblox-notifications-title">
@@ -166,7 +164,6 @@
 			<div class="empty-state h-full">
 				<Icon svg={warningIcon} size={28} aria-hidden="true" />
 				<h2>Notifications unavailable</h2>
-				<p role="alert">{stream.error}</p>
 				<button
 					class="button-primary"
 					type="button"
@@ -183,9 +180,6 @@
 			</div>
 		{:else}
 			<div class="flex max-w-2xl flex-col gap-2 p-3">
-				{#if stream.error}
-					<p class="notice-error" role="alert">{stream.error}</p>
-				{/if}
 				{#if stream.visibleNotifications.length === 0 && !stream.nextStartIndex}
 					<div class="empty-state py-10">
 						<Icon svg={funnelIcon} size={28} aria-hidden="true" />
@@ -216,27 +210,13 @@
 					</ul>
 				{/if}
 				{#if stream.nextStartIndex}
-					<div
-						class="flex min-h-7 items-center justify-center text-fg-faint"
-						use:loadMoreWhenVisible={{
-							pageKey: stream.nextStartIndex,
-							loadMore: loadMoreNotifications,
-						}}>
-						{#if stream.loadMoreFailed}
-							<button
-								type="button"
-								class="button"
-								onclick={() => void stream.loadMore()}>
-								Load more notifications
-							</button>
-						{:else}
-							<Icon
-								svg={circleNotchIcon}
-								class="spinner"
-								size={16}
-								aria-label="Loading more notifications…" />
-						{/if}
-					</div>
+					<LoadMore
+						pageKey={stream.nextStartIndex}
+						label="Load more notifications"
+						loadingLabel="Loading more notifications…"
+						isLoadingMore={stream.loadingMore}
+						hasFailed={stream.loadMoreFailed}
+						onLoadMore={() => void stream.loadMore()} />
 				{/if}
 			</div>
 		{/if}

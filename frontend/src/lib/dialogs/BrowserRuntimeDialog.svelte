@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { notifyErrors } from "../notifications/error-notifications.svelte"
 	import downloadSimpleIcon from "@phosphor-icons/core/regular/download-simple.svg?raw"
 	import xIcon from "@phosphor-icons/core/regular/x.svg?raw"
 	import Icon from "../shared/Icon.svelte"
@@ -18,6 +19,11 @@
 		damaged = $derived(runtime.status === RuntimeStatus.RuntimeDamaged)
 
 	$effect(() => browser.trackRuntimeView())
+
+	notifyErrors(
+		"Browser action not completed",
+		() => browser.error || runtime.error || "",
+	)
 </script>
 
 <Dialog class="max-w-md" aria-labelledby="runtime-title">
@@ -44,9 +50,6 @@
 				? formatCompactBytes(runtime.approximateBytes)
 				: "Unknown"}</code>
 	</div>
-	{#if browser.error || runtime.error}<div class="mt-3 notice-error" role="alert">
-			{browser.error || runtime.error}
-		</div>{/if}
 	{#if active}<div class="mt-3"><BrowserRuntimeActivity {runtime} /></div>{/if}
 	<div class="dialog-actions">
 		<button class="button" type="button" onclick={onDismiss}

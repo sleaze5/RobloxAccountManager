@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { notifyErrors } from "../notifications/error-notifications.svelte"
 	import ConfirmationDialog from "../shared/ConfirmationDialog.svelte"
 	import type { Account } from "../accounts/account-model"
 	import type { AccountSessionsState } from "../accounts/account-sessions-state.svelte"
@@ -21,6 +22,8 @@
 	async function signOut(): Promise<void> {
 		if (await sessions.signOutOthers()) onClose()
 	}
+
+	notifyErrors("Sessions not signed out", () => sessions.signOutError)
 </script>
 
 <ConfirmationDialog
@@ -29,6 +32,5 @@
 	confirmLabel="Sign out other sessions"
 	progressLabel="Signing out…"
 	isWorking={sessions.signingOut}
-	error={sessions.signOutError}
 	onConfirm={() => void signOut()}
 	onCancel={close} />

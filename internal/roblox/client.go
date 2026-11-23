@@ -419,7 +419,7 @@ func (client *Client) rateLimitedResponse(ctx context.Context, execution *reques
 		}
 		return nil, true, nil
 	}
-	return nil, false, rateLimitedError(request.Endpoint)
+	return nil, false, rateLimitedError(request.Endpoint, response.Header)
 }
 
 func (client *Client) acquireAfterCooldown(ctx context.Context, contract Request, host string) (func(), error) {
@@ -427,7 +427,7 @@ func (client *Client) acquireAfterCooldown(ctx context.Context, contract Request
 	for {
 		if cooldown := client.limits.remainingCooldown(limitKey); cooldown > 0 {
 			if !contract.Retry.RetryRateLimit || !canWaitBeforeDeadline(ctx, cooldown) {
-				return nil, rateLimitedError(contract.Endpoint)
+				return nil, rateLimitedError(contract.Endpoint, nil)
 			}
 			if err := waitForRetry(ctx, cooldown); err != nil {
 				return nil, err
@@ -451,8 +451,39 @@ func canWaitBeforeDeadline(ctx context.Context, delay time.Duration) bool {
 	return !hasDeadline || time.Until(deadline) > delay
 }
 
-func rateLimitedError(endpoint string) *Error {
-	return &Error{Kind: KindRateLimited, Endpoint: endpoint, Status: http.StatusTooManyRequests, Message: "Roblox is limiting requests. Wait, then try again."}
+// rateLimitedError names the wait only from the Retry-After header of the
+// response. A cooldown left by an earlier response has no header.
+func rateLimitedError(endpoint string, responseHeaders http.Header) *Error {
+	return &Error{Kind: KindRateLimited, Endpoint: endpoint, Status: http.StatusTooManyRequests, Message: "Roblox is limiting requests. " + retryAfterInstruction(responseHeaders)}
+}
+
+// retryAfterInstruction tells the user when to try again. It names a wait
+// only when Roblox sent one, because a computed backoff is not a promise.
+func retryAfterInstruction(responseHeaders http.Header) string {
+	delay, hasDelay := retryAfterHeaderDelay(responseHeaders)
+	if !hasDelay {
+		return "Try again later."
+	}
+	return "Try again in " + formatWaitDuration(delay) + "."
+}
+
+func formatWaitDuration(delay time.Duration) string {
+	seconds := int64(math.Ceil(delay.Seconds()))
+	switch {
+	case seconds < 60:
+		return pluralUnit(max(seconds, 1), "second")
+	case seconds < 3600:
+		return pluralUnit((seconds+59)/60, "minute")
+	default:
+		return pluralUnit((seconds+3599)/3600, "hour")
+	}
+}
+
+func pluralUnit(count int64, unit string) string {
+	if count == 1 {
+		return "1 " + unit
+	}
+	return strconv.FormatInt(count, 10) + " " + unit + "s"
 }
 
 func (client *Client) sendAttempt(ctx context.Context, contract Request, snapshot SessionSnapshot, csrfToken string) (*Response, error) {
@@ -671,15 +702,24 @@ func isRetryableStatus(status int) bool {
 }
 
 func retryDelay(headers http.Header, attempt int) time.Duration {
-	if raw := strings.TrimSpace(headers.Get("Retry-After")); raw != "" {
-		if seconds, err := strconv.ParseInt(raw, 10, 64); err == nil && seconds >= 0 && seconds <= math.MaxInt64/int64(time.Second) {
-			return time.Duration(seconds) * time.Second
-		}
-		if when, err := http.ParseTime(raw); err == nil {
-			return max(time.Until(when), 0)
-		}
+	if delay, hasDelay := retryAfterHeaderDelay(headers); hasDelay {
+		return delay
 	}
 	return backoff(attempt, secureSample())
+}
+
+func retryAfterHeaderDelay(headers http.Header) (time.Duration, bool) {
+	raw := strings.TrimSpace(headers.Get("Retry-After"))
+	if raw == "" {
+		return 0, false
+	}
+	if seconds, err := strconv.ParseInt(raw, 10, 64); err == nil && seconds >= 0 && seconds <= math.MaxInt64/int64(time.Second) {
+		return time.Duration(seconds) * time.Second, true
+	}
+	if when, err := http.ParseTime(raw); err == nil {
+		return max(time.Until(when), 0), true
+	}
+	return 0, false
 }
 
 func backoff(attempt, sample int) time.Duration {

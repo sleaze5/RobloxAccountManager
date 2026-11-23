@@ -1,4 +1,6 @@
 <script lang="ts">
+	import { notifyErrors } from "../notifications/error-notifications.svelte"
+	import LoadMore from "../shared/LoadMore.svelte"
 	import arrowRightIcon from "@phosphor-icons/core/regular/arrow-right.svg?raw"
 	import circleNotchIcon from "@phosphor-icons/core/regular/circle-notch.svg?raw"
 	import magnifyingGlassIcon from "@phosphor-icons/core/regular/magnifying-glass.svg?raw"
@@ -13,7 +15,6 @@
 	import WorkbenchSidebar from "../layout/WorkbenchSidebar.svelte"
 	import type { NotificationCenter } from "../notifications/notification-center.svelte"
 	import Icon from "../shared/Icon.svelte"
-	import { loadMoreWhenVisible } from "../shared/load-more-when-visible"
 	import { moveListFocus } from "../shared/move-shortcut"
 	import RefreshIcon from "../shared/RefreshIcon.svelte"
 	import { matchesSearch, searchTerms } from "../shared/search"
@@ -102,6 +103,8 @@
 		if (store.query.trim().length >= minGroupSearchLength) void store.search()
 		else searchInput?.focus()
 	}
+
+	notifyErrors("Groups not loaded", () => listError)
 </script>
 
 <main class="flex min-h-0 flex-1 flex-col bg-canvas" aria-label="Groups">
@@ -227,10 +230,9 @@
 						{#snippet row(index)}<SkeletonMediaRow {index} />{/snippet}
 					</SkeletonList>
 				{:else if listError && rows.length === 0}
-					<div class="empty-state px-3 py-8" role="alert">
+					<div class="empty-state px-3 py-8">
 						<Icon svg={warningIcon} size={28} aria-hidden="true" />
 						<h2>Groups unavailable</h2>
-						<p>{listError}</p>
 						<button
 							class="button"
 							type="button"
@@ -313,29 +315,13 @@
 						</button>
 					{/each}
 					{#if isSearchMode && store.searchCursor}
-						<div
-							class="flex min-h-12 items-center justify-center text-fg-faint"
-							use:loadMoreWhenVisible={{
-								pageKey: store.searchResults.length,
-								loadMore: () => {
-									if (!store.searchError)
-										void store.loadMoreSearchResults()
-								},
-							}}>
-							{#if store.searchError}
-								<button
-									class="button"
-									type="button"
-									onclick={() => void store.loadMoreSearchResults()}
-									>Load more results</button>
-							{:else}
-								<Icon
-									svg={circleNotchIcon}
-									class="spinner"
-									size={16}
-									aria-label="Loading more results…" />
-							{/if}
-						</div>
+						<LoadMore
+							pageKey={store.searchResults.length}
+							label="Load more results"
+							loadingLabel="Loading more results…"
+							isLoadingMore={store.isSearching}
+							hasFailed={!!store.searchError}
+							onLoadMore={() => void store.loadMoreSearchResults()} />
 					{/if}
 				{/if}
 			</div>

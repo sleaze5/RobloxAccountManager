@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { notifyErrors } from "../notifications/error-notifications.svelte"
 	import eyeIcon from "@phosphor-icons/core/regular/eye.svg?raw"
 	import eyeSlashIcon from "@phosphor-icons/core/regular/eye-slash.svg?raw"
 	import shieldCheckIcon from "@phosphor-icons/core/regular/shield-check.svg?raw"
@@ -20,6 +21,8 @@
 			replayValidationNudge(card)
 		}
 	}
+
+	notifyErrors("Password not checked", () => store.error)
 </script>
 
 <Dialog
@@ -46,9 +49,6 @@
 		</div>
 		<h2 id="test-password-title">Test master password</h2>
 		<p>Confirm that you still know the portable vault password.</p>
-		{#if store.error}<div class="mt-3 notice-error" role="alert">
-				{store.error}
-			</div>{/if}
 
 		<label class="dialog-field">
 			<span>Master password</span>

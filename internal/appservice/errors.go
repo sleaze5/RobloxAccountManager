@@ -51,7 +51,11 @@ func mapRepositoryError(err error) error {
 	}
 }
 
-const legacyVaultMessage = "This vault was created by an older version and cannot be opened. Update to this version from version 0.9.2 to move your data."
+// keyringUnavailableMessage explains a failed automatic unlock setup. The
+// operating system keyring protects the automatic unlock key.
+const keyringUnavailableMessage = "The system keyring is not available, so automatic unlock cannot work."
+
+const legacyVaultMessage = "An older version made this vault, and this version cannot open it. Open it in version 0.9.2, then update to this version."
 
 func safeVaultError(err error) error {
 	if errors.Is(err, vault.ErrInvalidPassword) {

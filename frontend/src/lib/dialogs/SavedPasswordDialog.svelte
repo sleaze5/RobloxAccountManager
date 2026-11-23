@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { notifyErrors } from "../notifications/error-notifications.svelte"
 	import checkCircleIcon from "@phosphor-icons/core/regular/check-circle.svg?raw"
 	import circleNotchIcon from "@phosphor-icons/core/regular/circle-notch.svg?raw"
 	import eyeIcon from "@phosphor-icons/core/regular/eye.svg?raw"
@@ -135,6 +136,8 @@
 		saved = ""
 		password = ""
 	})
+
+	notifyErrors("Password not saved", () => error)
 </script>
 
 <svelte:window
@@ -231,8 +234,6 @@
 				</button>
 			{/if}
 		</div>
-
-		{#if error}<div class="mt-3 notice-error" role="alert">{error}</div>{/if}
 
 		<div class="dialog-actions">
 			<button

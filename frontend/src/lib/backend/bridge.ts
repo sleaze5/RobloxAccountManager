@@ -140,6 +140,7 @@ export type {
 	CatalogSearch,
 	CategorizedInventoryItem,
 	ExploredModel,
+	GameSocialLinks,
 	GroupDetails,
 	GroupGame,
 	GroupGamePage,
@@ -151,7 +152,6 @@ export type {
 	GroupNameChange,
 	GroupRole,
 	GroupSearchPage,
-	GroupSocialLink,
 	GroupSummary,
 	GroupUser,
 	UserGroup,
@@ -190,15 +190,20 @@ export const accountBackend = Service
 
 export type {
 	Badge as GameBadge,
-	FriendServer,
+	DeveloperProduct,
+	FriendInServer,
+	FriendPlace,
+	FriendsInGame,
 	Game,
 	GamePass,
+	ListedPrivateServer,
 	ListedPrivateServerPage,
 	NearbyRegion as NearbyServerRegion,
 	OwnedPrivateServer,
 	Place as GamePlace,
 	PlaceSummary as GamePlaceSummary,
 	Playability,
+	PrivateServer,
 	PrivateServerPage,
 	PrivateServerSettings,
 	PrivateServerUser,
@@ -216,6 +221,7 @@ export {
 	PrivateServerOption,
 	RecordOrder as GameServerRecordOrder,
 	ServerOrder as GameServerOrder,
+	UserGameList,
 } from "../../../bindings/github.com/sleaze5/RobloxAccountManager/internal/games/models.js"
 
 export type {

@@ -1,4 +1,6 @@
 <script lang="ts">
+	import { notifyErrors } from "../notifications/error-notifications.svelte"
+	import LoadMore from "../shared/LoadMore.svelte"
 	import CheckboxMark from "../shared/CheckboxMark.svelte"
 	import dotsSixVerticalIcon from "@phosphor-icons/core/regular/dots-six-vertical.svg?raw"
 	import starFillIcon from "@phosphor-icons/core/fill/star-fill.svg?raw"
@@ -154,24 +156,14 @@
 		)?.id,
 	)
 
-	function loadNearEnd(event: Event): void {
-		const list = event.currentTarget as HTMLElement
-		if (list.scrollHeight - list.scrollTop - list.clientHeight < 120) {
-			void store.loadMore()
-		}
-	}
+	notifyErrors("Accounts not loaded", () => store.accountListError)
 </script>
 
 <div
 	class="relative min-h-0 scrollbar-stable overflow-y-auto"
 	data-list
 	aria-busy={store.loadingAccounts || store.loadingMore}
-	onscroll={loadNearEnd}>
-	{#if store.accountListError && store.accounts.length > 0}
-		<p class="px-3 py-2 text-xs text-danger-muted" role="alert">
-			{store.accountListError}
-		</p>
-	{/if}
+	data-load-more-root>
 	{#each store.accounts as account (account.id)}
 		{@const moderated = account.state === SessionState.StateModerated}
 		{@const attention = moderated ? "" : sessionAttentionLabel(account.state)}
@@ -306,10 +298,15 @@
 			</div>
 		{/if}
 	{/each}
-	{#if store.loadingMore}
-		<div class="flex h-24 items-center justify-center text-xs text-fg-faint">
-			<span>Loading more accounts…</span>
-		</div>
+	{#if store.nextCursor}
+		<LoadMore
+			pageKey={store.accounts.length}
+			label="Load more accounts"
+			loadingLabel="Loading more accounts…"
+			isLoadingMore={store.loadingMore}
+			hasFailed={!!store.error}
+			isDisabled={store.loadingAccounts}
+			onLoadMore={() => void store.loadMore()} />
 	{/if}
 	<span class="sr-only" aria-live="polite">{moveAnnouncement}</span>
 </div>

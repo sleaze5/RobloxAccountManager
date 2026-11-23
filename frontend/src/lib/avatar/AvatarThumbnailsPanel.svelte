@@ -1,6 +1,6 @@
 <script lang="ts">
+	import { notifyErrors } from "../notifications/error-notifications.svelte"
 	import warningIcon from "@phosphor-icons/core/regular/warning.svg?raw"
-	import xIcon from "@phosphor-icons/core/regular/x.svg?raw"
 	import { onMount } from "svelte"
 	import { AvatarThumbnailType } from "../backend/bridge"
 	import type {
@@ -48,6 +48,9 @@
 	onMount(() => {
 		if (canEdit) library.loadOwned()
 	})
+
+	notifyErrors("Thumbnails not loaded", () => thumbnails.error)
+	notifyErrors("Thumbnail not saved", () => thumbnails.saveError)
 </script>
 
 <div class="flex flex-col gap-4 p-3">
@@ -71,24 +74,10 @@
 		</button>
 	</div>
 
-	{#if thumbnails.saveError}
-		<div class="flex items-start gap-2 notice-error" role="alert">
-			<span class="min-w-0 flex-1">{thumbnails.saveError}</span>
-			<button
-				class="button-close"
-				type="button"
-				aria-label="Dismiss error"
-				onclick={() => thumbnails.clearSaveError()}>
-				<Icon svg={xIcon} size={14} aria-hidden="true" />
-			</button>
-		</div>
-	{/if}
-
 	{#if !customizations && thumbnails.error}
-		<div class="empty-state" role="alert">
+		<div class="empty-state">
 			<Icon svg={warningIcon} size={28} aria-hidden="true" />
 			<h2>Thumbnails unavailable</h2>
-			<p>{thumbnails.error}</p>
 			<button
 				class="button"
 				type="button"
@@ -97,9 +86,6 @@
 	{:else if !customizations}
 		<SettingsRowsSkeleton label="Loading thumbnails…" hasIcon={false} />
 	{:else}
-		{#if thumbnails.error}
-			<p class="notice-error" role="alert">{thumbnails.error}</p>
-		{/if}
 		<AvatarThumbnailSection
 			title="Headshot"
 			description="The close-up image that profiles, friend lists, and chats show."

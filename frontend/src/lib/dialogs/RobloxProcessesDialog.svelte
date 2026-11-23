@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { notifyErrors } from "../notifications/error-notifications.svelte"
 	import CheckboxMark from "../shared/CheckboxMark.svelte"
 	import broomIcon from "@phosphor-icons/core/regular/broom.svg?raw"
 	import xIcon from "@phosphor-icons/core/regular/x.svg?raw"
@@ -101,6 +102,9 @@
 			disposed = true
 		}
 	})
+
+	notifyErrors("Roblox processes not loaded", () => loadError)
+	notifyErrors("Roblox processes not closed", () => error)
 </script>
 
 <Dialog
@@ -201,9 +205,6 @@
 			</table>
 		</div>
 	</div>
-	{#if error || loadError}<div class="mt-3 notice-error" role="alert">
-			{error || loadError}
-		</div>{/if}
 	<div class="dialog-actions">
 		{#if robloxClientOptions.cleaner?.supported}
 			<button

@@ -75,7 +75,7 @@ func (service *Service) ValidateAccountPassword(ctx context.Context, accountID i
 		case roblox.KindChallengeRequired:
 			message = "Could not check the password. Roblox requires extra verification. Check it on the Roblox website."
 		case roblox.KindRateLimited:
-			message = "Could not check the password. Roblox is limiting requests. Wait, then try again."
+			message = "Could not check the password. " + remote.Message
 		case roblox.KindReauthRequired, roblox.KindInvalidSession:
 			message = "Could not check the password. The Roblox session expired. Sign in again first."
 		case roblox.KindVaultLocked:

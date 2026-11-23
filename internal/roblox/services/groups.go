@@ -127,12 +127,6 @@ type GroupJoinRequestPage struct {
 	NextCursor string             `json:"nextCursor"`
 }
 
-type GroupSocialLink struct {
-	Type  string `json:"type"`
-	URL   string `json:"url"`
-	Title string `json:"title"`
-}
-
 type GroupNameChange struct {
 	Name        string `json:"name"`
 	ChangedAtMs int64  `json:"changedAtMs"`
@@ -525,14 +519,10 @@ func (service *Users) GroupJoinRequests(ctx context.Context, accountID, version,
 	return page, nil
 }
 
-func (service *Users) GroupSocialLinks(ctx context.Context, accountID, version, groupID int64) ([]GroupSocialLink, error) {
+func (service *Users) GroupSocialLinks(ctx context.Context, accountID, version, groupID int64) ([]SocialLink, error) {
 	const endpoint = "group-social-links"
 	var payload struct {
-		Data *[]struct {
-			Type  string `json:"type"`
-			URL   string `json:"url"`
-			Title string `json:"title"`
-		} `json:"data"`
+		Data *[]listedSocialLink `json:"data"`
 	}
 	if err := service.readGroupData(ctx, accountID, version, endpoint, groupsAddress(groupPath(groupID, "/social-links"), nil), &payload); err != nil {
 		return nil, err
@@ -540,14 +530,7 @@ func (service *Users) GroupSocialLinks(ctx context.Context, accountID, version, 
 	if payload.Data == nil {
 		return nil, invalidGroupData(endpoint)
 	}
-	links := make([]GroupSocialLink, 0, len(*payload.Data))
-	for _, listedLink := range *payload.Data {
-		// Only web links open, so that a link never starts another program.
-		if parsedLink, err := url.Parse(listedLink.URL); err == nil && parsedLink.Scheme == "https" && parsedLink.Host != "" {
-			links = append(links, GroupSocialLink{Type: boundedText(listedLink.Type, maxGroupNameLength), URL: parsedLink.String(), Title: boundedText(listedLink.Title, maxGroupNameLength)})
-		}
-	}
-	return links, nil
+	return socialLinksFromListed(*payload.Data), nil
 }
 
 // RelatedGroups lists the first allies or enemies of the group.

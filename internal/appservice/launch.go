@@ -282,7 +282,7 @@ func (service *Service) resolveLaunchUser(ctx context.Context, accountID int64, 
 	}
 	presence := presences[0]
 	if presence.UserPresenceType != robloxservices.PresenceTypeInGame || presence.PlaceID == nil || *presence.PlaceID <= 0 || presence.GameID == "" {
-		return gamelaunch.Request{}, launchError(roblox.KindProtocol, "This user has no visible, joinable server. They may be offline or their privacy settings may hide it.")
+		return gamelaunch.Request{}, launchError(roblox.KindProtocol, "This user has no server that you can see and join. The user can be offline, or privacy settings can hide the server.")
 	}
 	resolved, err := gamelaunch.Parse(gamelaunch.Input{Method: gamelaunch.MethodPlace, PlaceID: strconv.FormatInt(*presence.PlaceID, 10), JobID: presence.GameID})
 	if err != nil {

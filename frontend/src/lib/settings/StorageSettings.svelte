@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { notifyErrors } from "../notifications/error-notifications.svelte"
 	import { searchTerms } from "../shared/search"
 	import { matchesSetting } from "./settings-search"
 	import { copyText } from "../shared/clipboard"
@@ -66,12 +67,13 @@
 			error = "Could not copy the data folder path. Try again."
 		}
 	}
+
+	notifyErrors("Storage action not completed", () => error)
 </script>
 
 {#if (location || error) && (matchesSetting(terms, "storageLocation") || (other && matchesSetting(terms, "moveStorage")))}
 	<section class="settings-section" aria-labelledby="vault-storage-title">
 		<h3 id="vault-storage-title">Storage</h3>
-		{#if error}<div class="notice-error" role="alert">{error}</div>{/if}
 		{#if location}<div class="settings-rows">
 				{#if matchesSetting(terms, "storageLocation")}
 					<div class="settings-row">

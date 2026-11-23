@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { notifyErrors } from "../notifications/error-notifications.svelte"
 	import desktopIcon from "@phosphor-icons/core/regular/desktop.svg?raw"
 	import deviceMobileIcon from "@phosphor-icons/core/regular/device-mobile.svg?raw"
 	import devicesIcon from "@phosphor-icons/core/regular/devices.svg?raw"
@@ -42,11 +43,9 @@
 		if (["iOS", "Android"].includes(session.os)) return deviceMobileIcon
 		return session.agent || session.os ? desktopIcon : devicesIcon
 	}
-</script>
 
-{#if sessions.error}
-	<div class="notice-error" role="alert">{sessions.error}</div>
-{/if}
+	notifyErrors("Sessions not loaded", () => sessions.error)
+</script>
 
 {#if !sessions.sessions}
 	{#if sessions.loading}

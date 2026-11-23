@@ -675,7 +675,7 @@ func (service *Users) avatarUpdateAssetsOf(ctx context.Context, accountID, versi
 			// even a reset to the default, so an accessory that is no longer
 			// worn was taken off since the page loaded the avatar.
 			if changeAsset.Adjustment != nil {
-				return nil, nil, &roblox.Error{Kind: roblox.KindProtocol, Endpoint: endpoint, Message: "An adjusted accessory was taken off on Roblox since the avatar loaded. Discard your changes, then refresh the avatar to see what it wears now."}
+				return nil, nil, &roblox.Error{Kind: roblox.KindProtocol, Endpoint: endpoint, Message: "An adjusted accessory is no longer worn on Roblox. Discard your changes, then refresh the avatar."}
 			}
 			assets[index] = avatarUpdateAsset{ID: changeAsset.AssetID}
 			continue

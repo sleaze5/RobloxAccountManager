@@ -54,10 +54,6 @@ export class LogsExplorerStore {
 		void this.refreshAll()
 	}
 
-	clearError(): void {
-		this.error = ""
-	}
-
 	async refreshAll(): Promise<void> {
 		if (this.refreshing) return
 		const request = ++this.#request

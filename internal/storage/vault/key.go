@@ -342,8 +342,11 @@ func decodeKeyFileFields(encoded []byte) (keyFile, error) {
 }
 
 func encodeAutoUnlock(protector protection.Protector, vaultID [vaultIDBytes]byte, vaultKey []byte) ([]byte, error) {
-	if protector == nil || len(vaultKey) != vaultKeyBytes {
-		return nil, errors.New("automatic unlock is unavailable")
+	if protector == nil {
+		return nil, ErrAutomaticUnlockUnavailable
+	}
+	if len(vaultKey) != vaultKeyBytes {
+		return nil, errors.New("vault key has an invalid length")
 	}
 	plain := append([]byte(nil), autoPlainMagic[:]...)
 	plain = binary.BigEndian.AppendUint16(plain, autoFormatVersion)
@@ -352,7 +355,7 @@ func encodeAutoUnlock(protector protection.Protector, vaultID [vaultIDBytes]byte
 	ciphertext, err := protector.Protect(plain)
 	wipe(plain)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("%w: %w", ErrAutomaticUnlockUnavailable, err)
 	}
 	defer wipe(ciphertext)
 	if len(ciphertext) == 0 || len(ciphertext) > autoFileLimit-autoHeaderBytes {

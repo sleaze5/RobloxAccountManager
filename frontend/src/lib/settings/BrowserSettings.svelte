@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { notifyErrors } from "../notifications/error-notifications.svelte"
 	import arrowCounterClockwiseIcon from "@phosphor-icons/core/regular/arrow-counter-clockwise.svg?raw"
 	import downloadSimpleIcon from "@phosphor-icons/core/regular/download-simple.svg?raw"
 	import trashIcon from "@phosphor-icons/core/regular/trash.svg?raw"
@@ -88,6 +89,11 @@
 		if (action === "redownload") await browser.download(true)
 		else await browser.removeRuntime()
 	}
+
+	notifyErrors(
+		"Browser action not completed",
+		() => browser.error || runtime.error || "",
+	)
 </script>
 
 {#if visible}
@@ -98,9 +104,6 @@
 				label="Open Chrome for Testing website"
 				url="https://googlechromelabs.github.io/chrome-for-testing/" />
 		</h3>
-		{#if browser.error || runtime.error}<div class="notice-error" role="alert">
-				{browser.error || runtime.error}
-			</div>{/if}
 		<div class="settings-rows">
 			<div class="settings-row">
 				<div class="settings-row-copy">

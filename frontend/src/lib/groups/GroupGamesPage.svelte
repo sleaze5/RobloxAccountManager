@@ -1,5 +1,6 @@
 <script lang="ts">
-	import circleNotchIcon from "@phosphor-icons/core/regular/circle-notch.svg?raw"
+	import { notifyErrors } from "../notifications/error-notifications.svelte"
+	import LoadMore from "../shared/LoadMore.svelte"
 	import gameControllerIcon from "@phosphor-icons/core/regular/game-controller.svg?raw"
 	import lockIcon from "@phosphor-icons/core/regular/lock.svg?raw"
 	import warningIcon from "@phosphor-icons/core/regular/warning.svg?raw"
@@ -8,7 +9,6 @@
 	import type { GroupGame, GroupGamePage } from "../backend/bridge"
 	import { CursorPagedList } from "../shared/cursor-paged-list.svelte"
 	import Icon from "../shared/Icon.svelte"
-	import { loadMoreWhenVisible } from "../shared/load-more-when-visible"
 	import ProfileImage from "../shared/ProfileImage.svelte"
 	import RefreshIcon from "../shared/RefreshIcon.svelte"
 	import SkeletonTile from "../shared/SkeletonTile.svelte"
@@ -74,6 +74,8 @@
 		filter = nextFilter
 		gameListElement?.scrollTo({ top: 0 })
 	}
+
+	notifyErrors("Games not loaded", () => games.error)
 </script>
 
 <section class="settings-page min-w-0" aria-labelledby="group-games-title">
@@ -117,14 +119,10 @@
 		class="min-h-0 flex-1 scrollbar-stable overflow-y-auto"
 		data-load-more-root
 		bind:this={gameListElement}>
-		{#if games.error && games.hasLoaded}
-			<p class="mx-3 mt-3 notice-error" role="alert">{games.error}</p>
-		{/if}
 		{#if !games.hasLoaded && games.error}
-			<div class="empty-state h-full" role="alert">
+			<div class="empty-state h-full">
 				<Icon svg={warningIcon} size={28} aria-hidden="true" />
 				<h2>Games unavailable</h2>
-				<p>{games.error}</p>
 				<button
 					class="button"
 					type="button"
@@ -206,28 +204,13 @@
 				{/each}
 			</ul>
 			{#if games.nextCursor}
-				<div
-					class="flex min-h-12 items-center justify-center text-fg-faint"
-					use:loadMoreWhenVisible={{
-						pageKey: games.items.length,
-						loadMore: () => {
-							if (!games.error) void games.loadMore()
-						},
-					}}>
-					{#if games.error}
-						<button
-							class="button"
-							type="button"
-							onclick={() => void games.loadMore()}
-							>Load more games</button>
-					{:else}
-						<Icon
-							svg={circleNotchIcon}
-							class="spinner"
-							size={16}
-							aria-label="Loading more games…" />
-					{/if}
-				</div>
+				<LoadMore
+					pageKey={games.items.length}
+					label="Load more games"
+					loadingLabel="Loading more games…"
+					isLoadingMore={games.isLoadingMore}
+					hasFailed={!!games.error}
+					onLoadMore={() => void games.loadMore()} />
 			{/if}
 		{/if}
 	</div>

@@ -1,7 +1,7 @@
 <script lang="ts">
 	import medalIcon from "@phosphor-icons/core/regular/medal.svg?raw"
 	import type { RobloxBadge } from "../backend/bridge"
-	import ProfileImage from "../shared/ProfileImage.svelte"
+	import Icon from "../shared/Icon.svelte"
 
 	let { badges }: { badges: RobloxBadge[] } = $props()
 </script>
@@ -18,9 +18,9 @@
 				data-tooltip={badge.description || undefined}
 				data-tooltip-side="top">
 				<span
-					class="grid size-5 shrink-0 place-items-center overflow-hidden rounded-sm"
+					class="grid size-5 shrink-0 place-items-center"
 					aria-hidden="true">
-					<ProfileImage url={badge.imageUrl} fallbackIcon={medalIcon} />
+					<Icon svg={medalIcon} size={14} />
 				</span>
 				{badge.name}
 			</button>

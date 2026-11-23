@@ -399,10 +399,6 @@
 	@apply notice border-warning/30 bg-warning/5 text-warning;
 }
 
-@utility notice-error {
-	@apply notice border-danger/40 bg-danger/5 text-danger-muted;
-}
-
 @utility empty-state {
 	@apply flex min-w-0 flex-col items-center justify-center gap-2 p-4 text-center text-fg-muted;
 

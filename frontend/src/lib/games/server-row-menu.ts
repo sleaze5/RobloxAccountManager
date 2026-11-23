@@ -16,3 +16,9 @@ export function openServerMenuFromRow(
 	event.preventDefault()
 	onMenu(key, trigger, true)
 }
+
+// friendServerKey keys a friend server row. Rows in the Roblox list key by job
+// ID alone, so the prefix keeps a server that is in both lists apart.
+export function friendServerKey(placeId: number, jobId: string): string {
+	return `friend-${placeId}-${jobId}`
+}

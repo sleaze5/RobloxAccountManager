@@ -23,15 +23,22 @@ func (service *Service) GetGamePlayability(ctx context.Context, accountID, unive
 	return service.core.GetGamePlayability(ctx, accountID, universeID)
 }
 
+func (service *Service) GetGameSocialLinks(ctx context.Context, accountID, universeID int64) (robloxservices.GameSocialLinks, error) {
+	if err := positiveID(accountID, "game-social-links"); err != nil {
+		return robloxservices.GameSocialLinks{}, err
+	}
+	return service.core.GetGameSocialLinks(ctx, accountID, universeID)
+}
+
 func (service *Service) ListGameServers(ctx context.Context, query games.ServerQuery) (games.ServerPage, error) {
 	return service.core.ListGameServers(ctx, query)
 }
 
-func (service *Service) ListFriendServers(ctx context.Context, accountID, placeID int64) ([]games.FriendServer, error) {
-	if err := positiveID(accountID, "friend-servers"); err != nil {
-		return nil, err
+func (service *Service) ListFriendsInGame(ctx context.Context, accountID, universeID int64) (games.FriendsInGame, error) {
+	if err := positiveID(accountID, "friends-in-game"); err != nil {
+		return games.FriendsInGame{}, err
 	}
-	return service.core.ListFriendServers(ctx, accountID, placeID)
+	return service.core.ListFriendsInGame(ctx, accountID, universeID)
 }
 
 func (service *Service) ListRecordedGameServers(ctx context.Context, query games.RecordQuery) (games.RecordPage, error) {

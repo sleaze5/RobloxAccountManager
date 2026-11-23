@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { notifyErrors } from "../notifications/error-notifications.svelte"
 	import xIcon from "@phosphor-icons/core/regular/x.svg?raw"
 	import Icon from "../shared/Icon.svelte"
 	import Dialog from "../shared/Dialog.svelte"
@@ -37,6 +38,8 @@
 	async function remove(): Promise<void> {
 		if (await store.removeSelected()) onClose()
 	}
+
+	notifyErrors("Connections not removed", () => store.removeSelectedError)
 </script>
 
 {#if copy}
@@ -87,11 +90,6 @@
 				</li>
 			{/if}
 		</ul>
-		{#if store.removeSelectedError}
-			<div class="mt-3 notice-error" role="alert">
-				{store.removeSelectedError}
-			</div>
-		{/if}
 		<div class="dialog-actions">
 			<button
 				class="button"

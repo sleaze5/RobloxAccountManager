@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { notifyErrors } from "../notifications/error-notifications.svelte"
 	import calendarDotsIcon from "@phosphor-icons/core/regular/calendar-dots.svg?raw"
 	import checkCircleFillIcon from "@phosphor-icons/core/fill/check-circle-fill.svg?raw"
 	import prohibitIcon from "@phosphor-icons/core/regular/prohibit.svg?raw"
@@ -27,15 +28,12 @@
 		gamePass: openedGamePass,
 		gameName,
 		account,
-		openedView,
 		onClose,
 	}: {
 		universeGamePasses: UniverseGamePasses
 		gamePass: GamePass
 		gameName: string
 		account: Account
-		// purchase when opened from a row's Buy, which closes the dialog after.
-		openedView: GamePassView
 		onClose: () => void
 	} = $props()
 
@@ -76,7 +74,7 @@
 		priceLabel = $derived(salePriceLabel(gamePass, false))
 
 	onMount(() => {
-		void showView(openedView)
+		void showView("details")
 	})
 
 	$effect(() => {
@@ -110,11 +108,6 @@
 		return true
 	}
 
-	function reloadGamePasses(): void {
-		universeGamePasses.clearPurchaseError()
-		void universeGamePasses.refresh()
-	}
-
 	// Focus moves to the control that replaced the pressed one. Robux is reread
 	// each time, since it can change outside the app.
 	async function showView(shownView: GamePassView): Promise<void> {
@@ -140,7 +133,7 @@
 
 	function close(): void {
 		if (universeGamePasses.isBuying) return
-		if (view === "purchase" && openedView === "details") void showView("details")
+		if (view === "purchase") void showView("details")
 		else {
 			universeGamePasses.clearPurchaseError()
 			onClose()
@@ -151,9 +144,10 @@
 		if (!confirmation || endStaleConfirmation()) return
 		const { gamePass: confirmedGamePass, accountId } = confirmation
 		if (!(await universeGamePasses.buy(confirmedGamePass, accountId))) return
-		if (openedView === "purchase") onClose()
-		else await showView("details")
+		await showView("details")
 	}
+
+	notifyErrors("Game pass not bought", () => universeGamePasses.purchaseError)
 </script>
 
 <svelte:window
@@ -213,16 +207,6 @@
 			imageUrl={shownGamePass.iconUrl}
 			fallbackIcon={ticketIcon}
 			priceInRobux={price} />
-		{#if universeGamePasses.purchaseError}
-			<div class="mt-3 flex items-center gap-3 notice-error" role="alert">
-				<span class="flex-1">{universeGamePasses.purchaseError}</span>
-				<button
-					class="button"
-					type="button"
-					disabled={universeGamePasses.loading}
-					onclick={reloadGamePasses}>Refresh</button>
-			</div>
-		{/if}
 		<PurchaseAccountActions
 			{account}
 			priceInRobux={price}

@@ -1,5 +1,6 @@
 <script lang="ts">
-	import circleNotchIcon from "@phosphor-icons/core/regular/circle-notch.svg?raw"
+	import { notifyErrors } from "../notifications/error-notifications.svelte"
+	import LoadMore from "../shared/LoadMore.svelte"
 	import Icon from "../shared/Icon.svelte"
 	import SettingsRowsSkeleton from "../shared/SettingsRowsSkeleton.svelte"
 	import type { OwnedPrivateServer } from "../backend/bridge"
@@ -31,11 +32,9 @@
 			? `Renews ${date} for ${numbers.format(server.price)} Robux`
 			: `Renews ${date}`
 	}
-</script>
 
-{#if owned.error}
-	<div class="notice-error" role="alert">{owned.error}</div>
-{/if}
+	notifyErrors("Private servers not loaded", () => owned.error)
+</script>
 
 {#if !owned.servers}
 	{#if owned.loading}
@@ -86,21 +85,12 @@
 		</ul>
 	</div>
 	{#if owned.nextCursor}
-		<button
-			class="button self-start"
-			type="button"
-			disabled={owned.loading}
-			onclick={() => void owned.loadMore()}>
-			{#if owned.loading}
-				<Icon
-					svg={circleNotchIcon}
-					class="spinner"
-					size={14}
-					aria-hidden="true" />
-				Loading…
-			{:else}
-				Load more
-			{/if}
-		</button>
+		<LoadMore
+			pageKey={owned.servers?.length}
+			label="Load more private servers"
+			loadingLabel="Loading more private servers…"
+			isLoadingMore={owned.loading}
+			hasFailed={!!owned.error}
+			onLoadMore={() => void owned.loadMore()} />
 	{/if}
 {/if}

@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { notifyErrors } from "../notifications/error-notifications.svelte"
 	import checkCircleIcon from "@phosphor-icons/core/regular/check-circle.svg?raw"
 	import circleNotchIcon from "@phosphor-icons/core/regular/circle-notch.svg?raw"
 	import warningCircleIcon from "@phosphor-icons/core/regular/warning-circle.svg?raw"
@@ -154,6 +155,8 @@
 	}
 
 	onMount(() => void load())
+
+	notifyErrors("Roblox Player path not saved", () => error)
 </script>
 
 <svelte:window
@@ -327,9 +330,6 @@
 				{/if}
 			</div>
 		</div>
-		{#if error}
-			<div class="mt-3 notice-error" role="alert">{error}</div>
-		{/if}
 		<div class="dialog-actions">
 			<button class="button" type="button" disabled={busy} onclick={onClose}
 				>Cancel</button>

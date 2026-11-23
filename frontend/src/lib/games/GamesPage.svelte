@@ -1,4 +1,5 @@
 <script lang="ts">
+	import LoadMore from "../shared/LoadMore.svelte"
 	import { tick, untrack } from "svelte"
 	import arrowRightIcon from "@phosphor-icons/core/regular/arrow-right.svg?raw"
 	import circleNotchIcon from "@phosphor-icons/core/regular/circle-notch.svg?raw"
@@ -18,9 +19,8 @@
 	import { getPageVisibility } from "../layout/page-visibility"
 	import WorkbenchSidebar from "../layout/WorkbenchSidebar.svelte"
 	import type { NotificationCenter } from "../notifications/notification-center.svelte"
-	import { loadMoreWhenVisible } from "../shared/load-more-when-visible"
 	import { isMoveShortcut, moveListFocus } from "../shared/move-shortcut"
-	import OperationError from "../shared/OperationError.svelte"
+	import { notifyErrors } from "../notifications/error-notifications.svelte"
 	import { menuIn, menuOut } from "../shared/presence"
 	import GameContextMenu from "./GameContextMenu.svelte"
 	import GameBadgesPage from "./GameBadgesPage.svelte"
@@ -161,13 +161,11 @@
 		return () => store.closeMenu()
 	})
 
-	function loadMoreResults(): void {
-		if (!store.searching && !store.loadMoreFailed) void store.search(true)
-	}
+	notifyErrors("Action not completed", () => store.error)
+	notifyErrors("Search not completed", () => store.searchError)
 </script>
 
 <main class="flex min-h-0 flex-1 flex-col bg-canvas" aria-label="Games">
-	<OperationError {store} />
 	<div
 		class="flex min-h-0 flex-1"
 		style={`--sidebar-width: ${store.sidebarCollapsed ? 44 : store.sidebarWidth}px;`}>
@@ -367,26 +365,13 @@
 						</button>
 					{/each}
 					{#if hasMore}
-						<div
-							class="flex min-h-12 items-center justify-center text-fg-faint"
-							use:loadMoreWhenVisible={{
-								pageKey: store.nextPageToken,
-								loadMore: loadMoreResults,
-							}}>
-							{#if store.loadMoreFailed}
-								<button
-									class="button"
-									type="button"
-									onclick={() => void store.search(true)}
-									>Load more results</button>
-							{:else}
-								<Icon
-									svg={circleNotchIcon}
-									class="spinner"
-									size={16}
-									aria-label="Loading more results…" />
-							{/if}
-						</div>
+						<LoadMore
+							pageKey={store.nextPageToken}
+							label="Load more results"
+							loadingLabel="Loading more results…"
+							isLoadingMore={store.searching}
+							hasFailed={store.loadMoreFailed}
+							onLoadMore={() => void store.search(true)} />
 					{/if}
 					<span class="sr-only" aria-live="polite">{moveAnnouncement}</span>
 				</div>
@@ -498,7 +483,6 @@
 							size={28}
 							aria-hidden="true" />
 						<h2>Search unavailable</h2>
-						<p>{store.searchError}</p>
 					{:else if store.searchedText && !count}<Icon
 							svg={magnifyingGlassIcon}
 							size={28}

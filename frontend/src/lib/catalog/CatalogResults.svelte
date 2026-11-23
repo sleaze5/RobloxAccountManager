@@ -1,6 +1,6 @@
 <script lang="ts">
-	import arrowRightIcon from "@phosphor-icons/core/regular/arrow-right.svg?raw"
-	import circleNotchIcon from "@phosphor-icons/core/regular/circle-notch.svg?raw"
+	import { notifyErrors } from "../notifications/error-notifications.svelte"
+	import LoadMore from "../shared/LoadMore.svelte"
 	import warningIcon from "@phosphor-icons/core/regular/warning.svg?raw"
 	import type { Snippet } from "svelte"
 	import { untrack } from "svelte"
@@ -18,7 +18,6 @@
 	} from "../inventory/inventory-state.svelte"
 	import type { NotificationCenter } from "../notifications/notification-center.svelte"
 	import Icon from "../shared/Icon.svelte"
-	import { loadMoreWhenVisible } from "../shared/load-more-when-visible"
 	import SkeletonTile from "../shared/SkeletonTile.svelte"
 	import type { CatalogStore } from "./catalog-store.svelte"
 
@@ -113,16 +112,14 @@
 			untrack(() => void accountItemActions.loadOwnership(items))
 		}
 	})
+
+	notifyErrors("Marketplace not loaded", () => store.error)
 </script>
 
-{#if store.error && store.hasResults}
-	<p class="mx-3 mt-3 notice-error" role="alert">{store.error}</p>
-{/if}
 {#if !store.hasResults && store.error}
-	<div class="empty-state h-full" role="alert">
+	<div class="empty-state h-full">
 		<Icon svg={warningIcon} size={28} aria-hidden="true" />
 		<h2>Marketplace unavailable</h2>
-		<p>{store.error}</p>
 		<button class="button" type="button" onclick={() => void store.refresh()}
 			>Try again</button>
 	</div>
@@ -158,38 +155,14 @@
 		</ul>
 	{/key}
 	{#if store.nextCursor}
-		<div
-			class="flex min-h-12 items-center justify-center pb-3"
-			use:loadMoreWhenVisible={{
-				pageKey: store.items.length,
-				loadMore: () => {
-					// A failed page waits for the Try again button, so that it does
-					// not retry while it stays in view.
-					if (!store.error) void store.loadMore()
-				},
-			}}>
-			{#if store.loadingMore}
-				<span
-					class="flex items-center gap-2 text-xs text-fg-muted"
-					role="status"
-					><Icon
-						svg={circleNotchIcon}
-						class="spinner"
-						size={16}
-						aria-hidden="true" />Loading more items…</span>
-			{:else}
-				<button
-					class="button"
-					type="button"
-					disabled={store.loading}
-					onclick={() => void store.loadMore()}
-					>{store.error ? "Try again" : "Load more"}<Icon
-						svg={arrowRightIcon}
-						data-nudge="right"
-						size={14}
-						aria-hidden="true" /></button>
-			{/if}
-		</div>
+		<LoadMore
+			pageKey={store.items.length}
+			label="Load more items"
+			loadingLabel="Loading more items…"
+			isLoadingMore={store.loadingMore}
+			hasFailed={!!store.error}
+			isDisabled={store.loading}
+			onLoadMore={() => void store.loadMore()} />
 	{/if}
 {/if}
 

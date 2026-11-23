@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { notifyErrors } from "../notifications/error-notifications.svelte"
 	import coatHangerIcon from "@phosphor-icons/core/regular/coat-hanger.svg?raw"
 	import cubeIcon from "@phosphor-icons/core/regular/cube.svg?raw"
 	import personArmsSpreadIcon from "@phosphor-icons/core/regular/person-arms-spread.svg?raw"
@@ -78,6 +79,8 @@
 		avatar.clearOutfitActionError()
 		void avatar.loadOutfitDetails(outfit)
 	})
+
+	notifyErrors("Outfit action not completed", () => avatar.outfitActionError)
 </script>
 
 <svelte:window
@@ -100,7 +103,7 @@
 					{#if view === "3D" && details === null}
 						<FrameUnavailable
 							icon={cubeIcon}
-							message="The 3D view needs the outfit details, which could not load." />
+							message="3D view unavailable" />
 					{:else if view === "3D"}
 						<ModelFrame
 							accountId={avatar.accountId}
@@ -179,11 +182,6 @@
 						are.
 					</p>
 				{/if}
-				{#if avatar.outfitActionError}
-					<p class="mt-2 notice-error" role="alert">
-						{avatar.outfitActionError}
-					</p>
-				{/if}
 			</div>
 		</div>
 
@@ -198,8 +196,8 @@
 				</ul>
 			</div>
 		{:else if details === null}
-			<div class="flex items-center gap-2 notice-error" role="alert">
-				<span class="min-w-0 flex-1">Could not load the outfit details.</span>
+			<div class="flex items-center gap-2 text-xs text-fg-muted">
+				<span class="min-w-0 flex-1">Outfit details unavailable</span>
 				<button
 					class="button"
 					type="button"

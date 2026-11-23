@@ -1,6 +1,7 @@
 <script lang="ts">
+	import { notifyErrors } from "../notifications/error-notifications.svelte"
+	import ProfileShowcase from "./ProfileShowcase.svelte"
 	import backpackIcon from "@phosphor-icons/core/regular/backpack.svg?raw"
-	import storefrontIcon from "@phosphor-icons/core/regular/storefront.svg?raw"
 	import personArmsSpreadIcon from "@phosphor-icons/core/regular/person-arms-spread.svg?raw"
 	import bellIcon from "@phosphor-icons/core/regular/bell.svg?raw"
 	import chatsIcon from "@phosphor-icons/core/regular/chats.svg?raw"
@@ -79,10 +80,12 @@
 	} = $props()
 
 	const pageVisibility = getPageVisibility()
+	let showcaseRefreshCount = $state(0)
 	const selectedAccount = $derived(store.selectedAccount),
 		selectedCustomTags = $derived(getCustomTags(selectedAccount)),
 		profileAccountId = $derived(selectedAccount.id),
 		hasAccount = $derived(profileAccountId !== 0),
+		robloxUserId = $derived(Number(selectedAccount.userId)),
 		moderated = $derived(selectedAccount.state === SessionState.StateModerated),
 		sessionAttention = $derived(sessionAttentionLabel(selectedAccount.state)),
 		profileVisible = $derived(
@@ -193,6 +196,10 @@
 		opener?.closest("[data-workspace-scroll]")?.scrollTo({ top: 0 })
 		opener?.focus({ preventScroll: true })
 	}
+
+	notifyErrors("Profile not loaded", () =>
+		profileVisible ? (profileState?.error ?? "") : "",
+	)
 </script>
 
 {#if workspace.accountPage === "settings" && hasAccount && store.vault.unlocked}
@@ -345,10 +352,14 @@
 							: "Refresh account data"}
 					aria-busy={refreshing}
 					disabled={!hasAccount || !store.vault.unlocked || refreshing}
-					onclick={() =>
-						moderated
-							? void store.refreshModeration(selectedAccount.id)
-							: void profileState?.refresh(true)}>
+					onclick={() => {
+						if (moderated) {
+							void store.refreshModeration(selectedAccount.id)
+							return
+						}
+						showcaseRefreshCount++
+						void profileState?.refresh(true)
+					}}>
 					<RefreshIcon isRefreshing={refreshing} />
 				</button>
 				<button
@@ -401,17 +412,6 @@
 					bind:this={inventoryButton}
 					onclick={() => openPage("inventory")}>
 					<Icon svg={backpackIcon} size={16} aria-hidden="true" />
-				</button>
-				<button
-					class="button-icon"
-					type="button"
-					aria-label="Show creations in Marketplace"
-					data-tooltip="Show creations in Marketplace"
-					disabled={!hasAccount ||
-						!store.vault.unlocked ||
-						!selectedAccount.username}
-					onclick={() => onShowCreations(selectedAccount.username)}>
-					<Icon svg={storefrontIcon} size={16} aria-hidden="true" />
 				</button>
 				<button
 					class="button-icon"
@@ -560,14 +560,15 @@
 					connections={profile.connections ?? []}
 					accounts={store} />
 			{/if}
-			{#if profileVisible && profileState?.error}
-				<p class="text-xs text-danger-muted" role="alert">
-					{profileState.error}
-				</p>
-			{:else if profileVisible && (profileState?.sections.failedSections.length ?? 0) > 0}
-				<p class="text-xs text-danger-muted" role="alert">
-					Could not refresh some profile details. Refresh to try again.
-				</p>
+			{#if profileVisible && hasAccount && Number.isSafeInteger(robloxUserId) && store.vault.unlocked}
+				<ProfileShowcase
+					accounts={store}
+					accountId={selectedAccount.id}
+					userId={robloxUserId}
+					username={selectedAccount.username}
+					refreshCount={showcaseRefreshCount}
+					{onSearchPlace}
+					{onShowCreations} />
 			{/if}
 		{/if}
 	</section>

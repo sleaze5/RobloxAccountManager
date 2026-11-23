@@ -52,6 +52,7 @@
 </script>
 
 <script lang="ts">
+	import { notifyErrors } from "../notifications/error-notifications.svelte"
 	import atIcon from "@phosphor-icons/core/regular/at.svg?raw"
 	import cakeIcon from "@phosphor-icons/core/regular/cake.svg?raw"
 	import fingerprintIcon from "@phosphor-icons/core/regular/fingerprint.svg?raw"
@@ -154,6 +155,8 @@
 	function any(...ids: AccountInfoFieldId[]): boolean {
 		return ids.some((id) => visible.has(id))
 	}
+
+	notifyErrors("Account info not loaded", () => info.error)
 </script>
 
 {#snippet edit(kind: AccountEditKind, label: string)}
@@ -197,14 +200,6 @@
 		</dd>
 	</div>
 {/snippet}
-
-{#if info.error}
-	<div class="notice-error" role="alert">{info.error}</div>
-{:else if info.sections.failedSections.length > 0}
-	<div class="notice-error" role="alert">
-		Could not load some details. Refresh to try again.
-	</div>
-{/if}
 
 {#if any("displayName", "username", "password", "pin", "gender", "ageGroup", "birthday", "firstAccount")}
 	<section class="settings-section" aria-labelledby="account-info-account">

@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { notifyErrors } from "../notifications/error-notifications.svelte"
 	import wrenchIcon from "@phosphor-icons/core/regular/wrench.svg?raw"
 	import type { AccountStore } from "../accounts/account-store.svelte"
 	import { robloxClientOptions as options } from "../settings/roblox-client-options.svelte"
@@ -25,6 +26,14 @@
 				? "Off while multi-instance is on."
 				: "Clear caches and sign-in data before each launch.",
 		)
+
+	notifyErrors(
+		"Roblox option not changed",
+		() =>
+			options.multiInstanceError ||
+			options.multiInstanceStatusError ||
+			options.cleanerError,
+	)
 </script>
 
 {#snippet optionSwitch(
@@ -93,13 +102,6 @@
 						cleaner.isBlockedByMultiInstance,
 					(enabled) => void options.setCleanBeforeLaunch(enabled),
 				)}
-			{/if}
-			{#if options.multiInstanceError || options.multiInstanceStatusError || options.cleanerError}
-				<div class="notice-error" role="alert">
-					{options.multiInstanceError ||
-						options.multiInstanceStatusError ||
-						options.cleanerError}
-				</div>
 			{/if}
 		</div>
 	{/snippet}

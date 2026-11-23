@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { notifyErrors } from "../notifications/error-notifications.svelte"
 	import xIcon from "@phosphor-icons/core/regular/x.svg?raw"
 	import Icon from "../shared/Icon.svelte"
 	import CandidateList from "../accounts/CandidateList.svelte"
@@ -36,9 +37,7 @@
 			duplicateText: previewItem.sameAccountAsIndex
 				? `Same account as cookie #${previewItem.sameAccountAsIndex}`
 				: undefined,
-			error: previewItem.authenticated
-				? undefined
-				: `failed to authenticate - ${previewItem.errorStatus}: ${previewItem.errorMessage}`,
+			error: previewItem.authenticated ? undefined : previewItem.errorMessage,
 			id: String(previewItem.index),
 			indexLabel: `${previewItem.index}.`,
 			robloxUserId: previewItem.robloxUserId,
@@ -227,6 +226,8 @@
 		}
 		selectedIndexes = allReadySelected ? [] : defaultSelectedIndexes(preview)
 	}
+
+	notifyErrors("Account not added", () => store.error)
 </script>
 
 <Dialog class="max-w-xl" aria-labelledby="add-account-title" bind:card>
@@ -252,11 +253,6 @@
 				<Icon svg={xIcon} size={14} aria-hidden="true" />
 			</button>
 		</div>
-		{#if store.error}
-			<div class="mt-3 notice-error" role="alert">
-				{store.error}
-			</div>
-		{/if}
 		<label class="dialog-field">
 			<span>.ROBLOSECURITY cookies</span>
 			<textarea

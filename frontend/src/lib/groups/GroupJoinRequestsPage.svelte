@@ -1,4 +1,6 @@
 <script lang="ts">
+	import { notifyErrors } from "../notifications/error-notifications.svelte"
+	import LoadMore from "../shared/LoadMore.svelte"
 	import checkIcon from "@phosphor-icons/core/regular/check.svg?raw"
 	import circleNotchIcon from "@phosphor-icons/core/regular/circle-notch.svg?raw"
 	import userPlusIcon from "@phosphor-icons/core/regular/user-plus.svg?raw"
@@ -12,7 +14,6 @@
 	import { CursorPagedList } from "../shared/cursor-paged-list.svelte"
 	import { errorMessage } from "../shared/errors"
 	import Icon from "../shared/Icon.svelte"
-	import { loadMoreWhenVisible } from "../shared/load-more-when-visible"
 	import RefreshIcon from "../shared/RefreshIcon.svelte"
 	import SkeletonList from "../shared/SkeletonList.svelte"
 	import SkeletonMediaRow from "../shared/SkeletonMediaRow.svelte"
@@ -90,6 +91,9 @@
 	}
 
 	onMount(() => void requests.refresh())
+
+	notifyErrors("Join requests not loaded", () => requests.error)
+	notifyErrors("Join request not answered", () => answerError)
 </script>
 
 <section class="settings-page min-w-0" aria-labelledby="group-requests-title">
@@ -113,17 +117,10 @@
 		</button>
 	</GroupSubpageHeader>
 	<div class="min-h-0 flex-1 scrollbar-stable overflow-y-auto" data-load-more-root>
-		{#if answerError}
-			<p class="mx-3 mt-3 notice-error" role="alert">{answerError}</p>
-		{/if}
-		{#if requests.error && requests.hasLoaded}
-			<p class="mx-3 mt-3 notice-error" role="alert">{requests.error}</p>
-		{/if}
 		{#if !requests.hasLoaded && requests.error}
-			<div class="empty-state h-full" role="alert">
+			<div class="empty-state h-full">
 				<Icon svg={warningIcon} size={28} aria-hidden="true" />
 				<h2>Join requests unavailable</h2>
-				<p>{requests.error}</p>
 				<button
 					class="button"
 					type="button"
@@ -186,28 +183,13 @@
 				{/each}
 			</ul>
 			{#if requests.nextCursor}
-				<div
-					class="flex min-h-12 items-center justify-center text-fg-faint"
-					use:loadMoreWhenVisible={{
-						pageKey: requests.items.length,
-						loadMore: () => {
-							if (!requests.error) void requests.loadMore()
-						},
-					}}>
-					{#if requests.error}
-						<button
-							class="button"
-							type="button"
-							onclick={() => void requests.loadMore()}
-							>Load more requests</button>
-					{:else}
-						<Icon
-							svg={circleNotchIcon}
-							class="spinner"
-							size={16}
-							aria-label="Loading more requests…" />
-					{/if}
-				</div>
+				<LoadMore
+					pageKey={requests.items.length}
+					label="Load more requests"
+					loadingLabel="Loading more requests…"
+					isLoadingMore={requests.isLoadingMore}
+					hasFailed={!!requests.error}
+					onLoadMore={() => void requests.loadMore()} />
 			{/if}
 		{/if}
 	</div>

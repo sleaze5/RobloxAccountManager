@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { notifyErrors } from "../notifications/error-notifications.svelte"
 	import arrowsClockwiseIcon from "@phosphor-icons/core/regular/arrows-clockwise.svg?raw"
 	import Icon from "../shared/Icon.svelte"
 	import ConnectionHosts from "./ConnectionHosts.svelte"
@@ -45,13 +46,11 @@
 			untrack(() => void store.loadServerRegions())
 		}
 	})
+
+	notifyErrors("Setting not saved", () => store.error)
 </script>
 
 {#if visible}
-	{#if store.error}<div class="notice-error" role="alert">
-			{store.error}
-		</div>{/if}
-
 	<section class="settings-section" aria-labelledby="rovalra-title">
 		<h3 class="flex items-center justify-between gap-2">
 			<span id="rovalra-title">RoValra API</span>

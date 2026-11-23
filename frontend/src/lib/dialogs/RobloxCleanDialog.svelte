@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { notifyErrors } from "../notifications/error-notifications.svelte"
 	import checkCircleIcon from "@phosphor-icons/core/regular/check-circle.svg?raw"
 	import warningCircleIcon from "@phosphor-icons/core/regular/warning-circle.svg?raw"
 	import xIcon from "@phosphor-icons/core/regular/x.svg?raw"
@@ -175,6 +176,8 @@
 			removeProgressListener()
 		}
 	})
+
+	notifyErrors("Roblox not cleaned", () => error)
 </script>
 
 <Dialog
@@ -340,7 +343,6 @@
 	{:else if !hasStarted && notes.length > 0}
 		<div class="notice-note">{notes.join(" ")}</div>
 	{/if}
-	{#if error}<div class="mt-3 notice-error" role="alert">{error}</div>{/if}
 	<div class="dialog-actions">
 		{#if report}
 			<button class="button-primary" type="button" onclick={onClose}

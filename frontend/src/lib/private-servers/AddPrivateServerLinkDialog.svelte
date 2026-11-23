@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { notifyErrors } from "../notifications/error-notifications.svelte"
 	import xIcon from "@phosphor-icons/core/regular/x.svg?raw"
 	import Icon from "../shared/Icon.svelte"
 	import type { SavedServers } from "../games/game-servers-state.svelte"
@@ -38,6 +39,8 @@
 		if (await saved.save(accountId, name, link)) onClose()
 		else replayValidationNudge(card)
 	}
+
+	notifyErrors("Private server not saved", () => saved.actionError)
 </script>
 
 <svelte:window
@@ -101,9 +104,6 @@
 				disabled={saved.saving}
 				bind:value={name} />
 		</div>
-		{#if saved.actionError}
-			<div class="mt-3 notice-error" role="alert">{saved.actionError}</div>
-		{/if}
 		<div class="dialog-actions">
 			<button class="button" type="button" disabled={saved.saving} onclick={close}
 				>Cancel</button>

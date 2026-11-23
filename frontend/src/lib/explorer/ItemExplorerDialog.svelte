@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { notifyErrors } from "../notifications/error-notifications.svelte"
 	import warningIcon from "@phosphor-icons/core/regular/warning.svg?raw"
 	import warningCircleIcon from "@phosphor-icons/core/regular/warning-circle.svg?raw"
 	import xIcon from "@phosphor-icons/core/regular/x.svg?raw"
@@ -161,6 +162,10 @@
 		inventory.explorerCopyError = ""
 		onClose()
 	}
+
+	notifyErrors("Not copied", () => inventory.explorerCopyError)
+
+	notifyErrors("Instances not loaded", () => loadError)
 </script>
 
 <!-- The explorer opens above the item details, so it handles Escape before
@@ -198,10 +203,6 @@ source viewer closes before the explorer. -->
 			<Icon svg={xIcon} size={14} aria-hidden="true" />
 		</button>
 	</div>
-
-	{#if inventory.explorerCopyError}
-		<p class="mb-3 notice-error" role="alert">{inventory.explorerCopyError}</p>
-	{/if}
 
 	<div
 		class="flex min-h-0 flex-1 flex-col overflow-hidden rounded-lg border border-line bg-canvas">
@@ -281,7 +282,6 @@ source viewer closes before the explorer. -->
 			<div class="empty-state min-h-0 flex-1 animate-enter">
 				<Icon svg={warningIcon} size={28} aria-hidden="true" />
 				<h2>Instances unavailable</h2>
-				<p role="alert">{loadError}</p>
 				<button
 					class="button"
 					type="button"

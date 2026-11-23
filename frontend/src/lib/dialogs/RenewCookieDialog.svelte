@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { notifyErrors } from "../notifications/error-notifications.svelte"
 	import checkIcon from "@phosphor-icons/core/regular/check.svg?raw"
 	import circleNotchIcon from "@phosphor-icons/core/regular/circle-notch.svg?raw"
 	import xIcon from "@phosphor-icons/core/regular/x.svg?raw"
@@ -40,6 +41,8 @@
 			if (store.vault.unlocked) void store.refreshAccounts()
 		}
 	}
+
+	notifyErrors("Cookie not updated", () => error)
 </script>
 
 <Dialog
@@ -83,7 +86,7 @@
 					aria-hidden="true" />
 				<span>Renewing the cookie and saving it…</span>
 			{:else if error}
-				<span>Could not confirm the renewal.</span>
+				<span>Renewal not confirmed</span>
 			{:else}
 				<Icon
 					svg={checkIcon}
@@ -93,9 +96,6 @@
 				<span>The renewed cookie is saved.</span>
 			{/if}
 		</div>
-	{/if}
-	{#if error}
-		<div class="mt-3 notice-error" role="alert">{error}</div>
 	{/if}
 	{#if warning}
 		<p class="text-warning" role="status">{warning}</p>

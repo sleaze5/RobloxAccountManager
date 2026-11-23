@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { notifyErrors } from "../notifications/error-notifications.svelte"
 	import { matchesSearch, searchTerms } from "../shared/search"
 	import devicesIcon from "@phosphor-icons/core/regular/devices.svg?raw"
 	import hardDrivesIcon from "@phosphor-icons/core/regular/hard-drives.svg?raw"
@@ -510,7 +511,6 @@
 				null,
 		),
 		blockedUsersOpen = $derived(activeSubpage?.id === blockedUsersPage.id),
-		sectionErrors = $derived(settingsState?.snapshot?.sectionErrors ?? []),
 		busy = $derived(
 			!settingsState || settingsState.loading || settingsState.saving !== null,
 		),
@@ -855,6 +855,12 @@
 			robux.dispose()
 		}
 	})
+
+	notifyErrors("Settings not loaded", () => settingsState?.error ?? "")
+	notifyErrors(
+		"Some settings not loaded",
+		() => settingsState?.snapshot?.sectionErrors?.[0]?.message ?? "",
+	)
 </script>
 
 <section class="settings-page" aria-labelledby="account-settings-title">
@@ -945,6 +951,7 @@
 			bind:this={contentElement}
 			onscroll={rememberScroll}
 			class="settings-content"
+			data-load-more-root
 			aria-label="Account settings content">
 			{#key `${activePage?.id}:${activeSubpage?.id}:${normalizedQuery}`}
 				{#if !activePage}
@@ -980,18 +987,6 @@
 					{/if}
 				{:else}
 					<h2>{activeSubpage?.label}</h2>
-					{#if !blockedUsersOpen}
-						{#if settingsState?.error}
-							<div class="notice-error" role="alert">
-								{settingsState.error}
-							</div>
-						{/if}
-						{#each sectionErrors as error}
-							<div class="notice-error" role="alert">
-								{error.message}
-							</div>
-						{/each}
-					{/if}
 					{#if !activeCategory}
 						{#if blockedState}
 							<BlockedUsersList blocked={blockedState} />

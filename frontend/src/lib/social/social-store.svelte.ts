@@ -426,10 +426,6 @@ export class SocialStore {
 		)
 	}
 
-	clearError(): void {
-		this.error = ""
-	}
-
 	show(accountId: number, selfUserId: number): void {
 		if (accountId !== this.accountId) {
 			const person = this.selectedPerson
@@ -936,6 +932,7 @@ export class SocialStore {
 
 	async copy(text: string | number, label: string): Promise<void> {
 		this.closeMenu()
+		this.error = ""
 		if (
 			!(await copyText(
 				this.notifications,
@@ -949,6 +946,7 @@ export class SocialStore {
 
 	async openLink(url: string): Promise<void> {
 		this.closeMenu()
+		this.error = ""
 		try {
 			await Browser.OpenURL(url)
 		} catch (error) {
