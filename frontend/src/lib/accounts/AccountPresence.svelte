@@ -1,9 +1,10 @@
 <script lang="ts">
 	import magnifyingGlassIcon from "@phosphor-icons/core/regular/magnifying-glass.svg?raw"
+	import prohibitIcon from "@phosphor-icons/core/regular/prohibit.svg?raw"
 	import signInIcon from "@phosphor-icons/core/regular/sign-in.svg?raw"
 	import starFillIcon from "@phosphor-icons/core/fill/star-fill.svg?raw"
 	import Icon from "../shared/Icon.svelte"
-	import { PresenceType } from "../backend/bridge"
+	import { PresenceType, UserJoinability } from "../backend/bridge"
 	import type { UserPresence } from "../backend/bridge"
 	import { getGamesStore } from "../games/games-store.svelte"
 	import {
@@ -17,12 +18,20 @@
 
 	let {
 		presence,
+		joinability = UserJoinability.UserJoinabilityUnknown,
 		onJoin,
+		onJoinUser,
 		onSearchPlace,
 		onSearchUniverse,
 	}: {
 		presence: UserPresence
+		// joinability is whether the user's profile offers to join them, for a
+		// user who is not one of the saved accounts.
+		joinability?: UserJoinability
 		onJoin: (placeId: number, jobId: string) => void
+		// onJoinUser fills the launch options to follow the user, for a server
+		// that the presence does not show.
+		onJoinUser?: () => void
 		onSearchPlace: (placeId: number) => void
 		onSearchUniverse: (universeId: number) => void
 	} = $props()
@@ -40,10 +49,15 @@
 	const place = $derived(presencePlace.place),
 		inExperience = $derived(isInExperience(presence)),
 		joinPlaceId = $derived(presence.placeId ?? 0),
-		joinable = $derived(
+		hasVisibleServer = $derived(
 			presence.userPresenceType === PresenceType.PresenceTypeInGame &&
 				joinPlaceId > 0 &&
 				!!presence.gameId,
+		),
+		canFollowUser = $derived(
+			!hasVisibleServer &&
+				!!onJoinUser &&
+				joinability === UserJoinability.UserJoinable,
 		),
 		label = $derived(presenceLabel(presence)),
 		detail = $derived(
@@ -136,7 +150,7 @@
 				id={cardId}
 				anchor={trigger}
 				{presence}
-				isJoinable={joinable}
+				isJoinable={hasVisibleServer}
 				onPointerEnter={() => scheduleCardHover("hover", 0)}
 				onPointerLeave={() => scheduleCardHover(null, cardHoverCloseDelayMs)}
 				onFillLaunch={fillLaunch}
@@ -150,13 +164,31 @@
 			aria-label={tooltip}
 			data-tooltip={tooltip}>{@render status()}</button>
 	{/if}
-	{#if joinable}
+	{#if joinability === UserJoinability.UserNotJoinable && inExperience}
+		<span class="tag-pill-warning shrink-0">
+			<Icon svg={prohibitIcon} size={12} aria-hidden="true" />
+			<span>Not joinable</span>
+		</span>
+	{/if}
+	{#if hasVisibleServer}
 		<button
 			class="button-ghost-sm"
 			type="button"
 			aria-label="Fill launch options"
 			data-tooltip="Fill launch options with this place and server"
 			onclick={fillLaunch}>
+			<Icon svg={signInIcon} size={14} aria-hidden="true" />
+		</button>
+	{:else if canFollowUser}
+		<button
+			class="button-ghost-sm"
+			type="button"
+			aria-label="Fill launch options to join this user"
+			data-tooltip="Fill launch options to join this user. Their server is hidden, but Roblox lets this account join them."
+			onclick={() => {
+				closeCard()
+				onJoinUser?.()
+			}}>
 			<Icon svg={signInIcon} size={14} aria-hidden="true" />
 		</button>
 	{/if}

@@ -90,14 +90,47 @@ type Communication struct {
 	Camera    bool `json:"camera"`
 }
 
-// Playability tells whether the account can join the game. Roblox puts a game
-// that it moderated under review, as RoSeal reads it. Message is the reason
-// that Roblox gives for a game that the account cannot join.
+// Playability tells whether the account can join the game. Label names the
+// reason for a game that the account cannot join in a few words, and Message
+// explains it in a sentence.
 type Playability struct {
-	IsPlayable    bool   `json:"isPlayable"`
-	IsUnderReview bool   `json:"isUnderReview"`
-	Message       string `json:"message"`
+	IsPlayable bool   `json:"isPlayable"`
+	Label      string `json:"label"`
+	Message    string `json:"message"`
 }
+
+// JoinOutcome is how Roblox's join service expects a join to end for an
+// account. It is only a prediction: the app never stops a launch because of it.
+type JoinOutcome string
+
+const (
+	JoinOutcomeJoinable JoinOutcome = "joinable"
+	// JoinOutcomeWaiting is a full server, a queue, or a server that Roblox is
+	// still starting, where a join can succeed a moment later.
+	JoinOutcomeWaiting JoinOutcome = "waiting"
+	// JoinOutcomeRestricted is a join that Roblox refuses for the account,
+	// such as a creator ban, a private server, or parental controls.
+	JoinOutcomeRestricted JoinOutcome = "restricted"
+	JoinOutcomeUnknown    JoinOutcome = "unknown"
+)
+
+// JoinCheck is Roblox's answer to a join before the client connects. Bans and
+// kicks that a game's own scripts apply cannot show here. Message explains the
+// outcome in a sentence, and is empty when there is nothing to warn about.
+type JoinCheck struct {
+	Outcome JoinOutcome `json:"outcome"`
+	Message string      `json:"message"`
+}
+
+// UserJoinability is whether a user's profile offers to join them, as the
+// Roblox website shows it to the account.
+type UserJoinability string
+
+const (
+	UserJoinable           UserJoinability = "joinable"
+	UserNotJoinable        UserJoinability = "notJoinable"
+	UserJoinabilityUnknown UserJoinability = "unknown"
+)
 
 type PlaceVersions struct {
 	Saved     int64 `json:"saved"`

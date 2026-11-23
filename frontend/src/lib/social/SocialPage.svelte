@@ -57,6 +57,7 @@
 		accounts,
 		notifications,
 		onFillLaunch,
+		onFillLaunchUser,
 		onSearchPlace,
 		onShowGamePass,
 		onSearchUniverse,
@@ -70,6 +71,7 @@
 		accounts: AccountStore
 		notifications: NotificationCenter
 		onFillLaunch: (placeId: number, jobId: string) => void
+		onFillLaunchUser: (user: SocialUser) => void
 		onSearchPlace: (placeId: number) => void
 		onShowGamePass: (place: GamePlace, gamePassId: number) => void
 		onSearchUniverse: (universeId: number) => void
@@ -693,6 +695,7 @@
 							{accounts}
 							person={selected}
 							{onFillLaunch}
+							{onFillLaunchUser}
 							{onSearchPlace}
 							{onSearchUniverse}
 							onEditNickname={(nickname) =>

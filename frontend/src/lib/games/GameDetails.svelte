@@ -150,26 +150,16 @@
 		rootPlace = $derived(game?.rootPlace ?? null),
 		// The develop API lists an unlisted game without its counts and genre.
 		listedGame = $derived(game?.isUnlisted ? undefined : game),
-		isUnplayable = $derived(!!playability && !playability.isPlayable),
 		playabilityWarning = $derived(
-			playability?.isUnderReview
-				? {
-						label: "Under review",
-						message:
-							"Roblox put this game under review, so no one can join it.",
-					}
-				: isUnplayable
+			playability && !playability.isPlayable
+				? { label: playability.label, message: playability.message }
+				: game?.isUnlisted
 					? {
-							label: "Unplayable",
-							message: "This account cannot join this game.",
+							label: "Unavailable",
+							message:
+								"Roblox no longer lists this game, so its player counts are unavailable.",
 						}
-					: game?.isUnlisted
-						? {
-								label: "Unavailable",
-								message:
-									"Roblox no longer lists this game, so its player counts are unavailable.",
-							}
-						: null,
+					: null,
 		),
 		// Badges and game passes belong to the universe, so subplaces hide them.
 		// Disabled until details load, so the header doesn't shift.
@@ -562,9 +552,7 @@
 										aria-hidden="true" />
 									<span>{playabilityWarning.label}</span>
 								</span>
-								<span
-									>{playability?.message ||
-										playabilityWarning.message}</span>
+								<span>{playabilityWarning.message}</span>
 							</p>
 						{/if}
 					</div>

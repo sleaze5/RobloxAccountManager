@@ -42,7 +42,6 @@
 		AppBuild,
 		AppLocation,
 		GamePlace,
-		RobloxNotificationUser,
 		ShutdownEffects,
 		SocialUser,
 	} from "./lib/backend/bridge"
@@ -383,8 +382,12 @@
 		fillLaunchOptions({ placeId: String(placeId), jobId })
 	}
 
-	// Joining the user who sent an invite follows them into their server.
-	function fillFollowUserLaunchOptions(user: RobloxNotificationUser): void {
+	// Joining a user follows them into their server, such as the user who sent
+	// an invite or a friend whose server their privacy settings hide.
+	function fillFollowUserLaunchOptions(user: {
+		userId: number
+		username: string
+	}): void {
 		store.launchInput.method = LaunchMethod.MethodUser
 		store.launchInput.user = user.username || `id:${user.userId}`
 		store.launchInput.resolveCurrentGame = false
@@ -905,6 +908,7 @@
 					notifications={notificationCenter}
 					onFillLaunch={(placeId, jobId) =>
 						fillGameLaunchOptions(placeId, jobId)}
+					onFillLaunchUser={fillFollowUserLaunchOptions}
 					onSearchPlace={searchPlace}
 					{onShowGamePass}
 					onSearchUniverse={searchUniverse}

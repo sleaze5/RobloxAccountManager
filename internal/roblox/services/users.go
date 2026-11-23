@@ -9,6 +9,7 @@ import (
 	"net/url"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/sleaze5/RobloxAccountManager/internal/accounts"
@@ -30,12 +31,19 @@ type Users struct {
 	authenticated *url.URL
 	profiles      *url.URL
 	cache         *caches.Store
+	// keptJoinabilityByAccountUser holds the recent answers of
+	// UserJoinability. joinabilityMutex guards it.
+	joinabilityMutex             sync.Mutex
+	keptJoinabilityByAccountUser map[accountUser]keptUserJoinability
 }
 
 func NewUsers(client *roblox.Client, cache *caches.Store) *Users {
 	authenticated, _ := url.Parse(roblox.AuthenticatedUserURL)
 	profiles, _ := url.Parse("https://users.roblox.com/v1/users/")
-	return &Users{client: client, authenticated: authenticated, profiles: profiles, cache: cache}
+	return &Users{
+		client: client, authenticated: authenticated, profiles: profiles, cache: cache,
+		keptJoinabilityByAccountUser: map[accountUser]keptUserJoinability{},
+	}
 }
 
 func (service *Users) ValidateCookie(ctx context.Context, cookie, browserID string) (roblox.CookieValidation, error) {

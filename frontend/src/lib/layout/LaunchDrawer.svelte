@@ -4,6 +4,7 @@
 	import eraserIcon from "@phosphor-icons/core/regular/eraser.svg?raw"
 	import gameControllerIcon from "@phosphor-icons/core/regular/game-controller.svg?raw"
 	import prohibitIcon from "@phosphor-icons/core/regular/prohibit.svg?raw"
+	import { untrack } from "svelte"
 	import Icon from "../shared/Icon.svelte"
 	import type { AccountStore } from "../accounts/account-store.svelte"
 	import type { NotificationCenter } from "../notifications/notification-center.svelte"
@@ -14,6 +15,8 @@
 	import ClientOptions from "./ClientOptions.svelte"
 	import LaunchArguments from "./LaunchArguments.svelte"
 	import LaunchButton from "./LaunchButton.svelte"
+	import { LaunchJoinCheck } from "./launch-join-check.svelte"
+	import LaunchJoinWarnings from "./LaunchJoinWarnings.svelte"
 	import NearestServerButton from "./NearestServerButton.svelte"
 	import PlaceIdInput from "./PlaceIdInput.svelte"
 	import type { WorkspaceState } from "./workspace-state.svelte"
@@ -82,6 +85,25 @@
 			cleanOpen = false
 		}
 	})
+
+	const joinCheck = new LaunchJoinCheck()
+
+	// The check reruns when the join target or the selected accounts change,
+	// and not for launch options such as Teleport, which do not change it.
+	$effect(() => {
+		const { method, placeId, jobId, link, user, resolveCurrentGame } =
+				store.launchInput,
+			accountIds = [...store.selectedAccountIds],
+			isChecked = workspace.launchOpen && store.vault.unlocked
+		void [method, placeId, jobId, link, user, resolveCurrentGame]
+		untrack(() => {
+			if (isChecked)
+				joinCheck.schedule(accountIds, $state.snapshot(store.launchInput))
+			else joinCheck.cancel()
+		})
+	})
+
+	$effect(() => () => joinCheck.cancel())
 </script>
 
 <svelte:window bind:innerHeight={workspace.viewportHeight} />
@@ -243,6 +265,7 @@
 						</label>
 					{/if}
 				</div>
+				<LaunchJoinWarnings {joinCheck} {store} />
 			</div>
 			<div
 				class="flex h-10 shrink-0 items-center justify-end gap-2 border-t border-line-subtle px-3 py-1">

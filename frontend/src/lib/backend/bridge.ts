@@ -2,6 +2,7 @@ import * as Service from "../../../bindings/github.com/sleaze5/RobloxAccountMana
 
 export type {
 	AccountInfoSnapshot,
+	AccountJoinCheck,
 	AccountProfileSnapshot,
 	AccountSession,
 	AccountSettingChange,
@@ -218,10 +219,12 @@ export type {
 } from "../../../bindings/github.com/sleaze5/RobloxAccountManager/internal/games/models.js"
 export {
 	GameSection,
+	JoinOutcome,
 	PrivateServerOption,
 	RecordOrder as GameServerRecordOrder,
 	ServerOrder as GameServerOrder,
 	UserGameList,
+	UserJoinability,
 } from "../../../bindings/github.com/sleaze5/RobloxAccountManager/internal/games/models.js"
 
 export type {

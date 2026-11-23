@@ -86,24 +86,6 @@ func (service *Games) Servers(ctx context.Context, query games.ServerQuery, acco
 	return page, nil
 }
 
-func (service *Games) Joinable(ctx context.Context, accountID, placeID int64, jobID string) (bool, error) {
-	body, err := json.Marshal(struct {
-		PlaceID int64  `json:"placeId"`
-		GameID  string `json:"gameId"`
-	}{placeID, jobID})
-	if err != nil {
-		return false, fmt.Errorf("encode join request: %w", err)
-	}
-	var payload struct {
-		JoinScript *struct{} `json:"joinScript"`
-	}
-	endpoint := &url.URL{Scheme: "https", Host: "gamejoin.roblox.com", Path: "/v1/join-game-instance"}
-	if err := service.account(ctx, "game-server-join-check", accountID, http.MethodPost, endpoint, body, &payload); err != nil {
-		return false, err
-	}
-	return payload.JoinScript != nil, nil
-}
-
 func (service *Games) playerImages(ctx context.Context, servers [][]string) (map[string]string, error) {
 	type thumbnailRequest struct {
 		RequestID string `json:"requestId"`

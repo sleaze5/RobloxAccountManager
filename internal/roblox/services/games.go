@@ -1,6 +1,7 @@
 package services
 
 import (
+	"cmp"
 	"context"
 	"crypto/rand"
 	"encoding/json"
@@ -305,14 +306,28 @@ func (service *Games) avatarRules(ctx context.Context, game *games.Game) error {
 // Roblox shows the reason for an unplayable game in one short sentence.
 const maxPlayabilityMessageLength = 300
 
+// playabilityStatusNames names the playability statuses by their numbers,
+// which Roblox can send instead of the names. Verified against RoValra's
+// playabilityStatus.js on 2026-11-23.
+var playabilityStatusNames = []string{
+	"UnplayableOtherReason", "Playable", "GuestProhibited", "GameUnapproved", "IncorrectConfiguration",
+	"UniverseRootPlaceIsPrivate", "InsufficientPermissionFriendsOnly", "InsufficientPermissionGroupOnly",
+	"DeviceRestricted", "UnderReview", "PurchaseRequired", "AccountRestricted", "TemporarilyUnavailable",
+	"PlaceHasNoPublishedVersion", "ComplianceBlocked", "ContextualPlayabilityRegionalAvailability",
+	"ContextualPlayabilityRegionalCompliance", "ContextualPlayabilityAgeRecommendationParentalControls",
+	"ContextualPlayabilityExperienceBlockedParentalControls", "ContextualPlayabilityAgeGated",
+	"ContextualPlayabilityUnverifiedSeventeenPlusUser", "FiatPurchaseRequired", "FiatPurchaseDeviceRestricted",
+	"ContextualPlayabilityUnrated", "ContextualPlayabilityAgeGatedByDescriptor", "ContextualPlayabilityGeneral",
+}
+
 // ReadPlayability reads whether the account can join the game. Roblox can
 // omit a universe from the response, in which case its status is unknown.
 func (service *Games) ReadPlayability(ctx context.Context, accountID, universeID int64) (*games.Playability, error) {
 	var payload []struct {
-		UniverseID        int64  `json:"universeId"`
-		IsPlayable        bool   `json:"isPlayable"`
-		PlayabilityStatus string `json:"playabilityStatus"`
-		UnplayableText    string `json:"unplayableDisplayText"`
+		UniverseID        int64           `json:"universeId"`
+		IsPlayable        bool            `json:"isPlayable"`
+		PlayabilityStatus json.RawMessage `json:"playabilityStatus"`
+		UnplayableText    string          `json:"unplayableDisplayText"`
 	}
 	endpoint := &url.URL{Scheme: "https", Host: "games.roblox.com", Path: "/v1/games/multiget-playability-status", RawQuery: url.Values{"universeIds": {strconv.FormatInt(universeID, 10)}}.Encode()}
 	if err := service.account(ctx, "game-playability", accountID, http.MethodGet, endpoint, nil, &payload); err != nil {
@@ -322,13 +337,76 @@ func (service *Games) ReadPlayability(ctx context.Context, accountID, universeID
 		if status.UniverseID != universeID {
 			continue
 		}
-		return &games.Playability{
-			IsPlayable:    status.IsPlayable,
-			IsUnderReview: status.PlayabilityStatus == "UnderReview",
-			Message:       boundedText(strings.TrimSpace(status.UnplayableText), maxPlayabilityMessageLength),
-		}, nil
+		playability := &games.Playability{IsPlayable: status.IsPlayable}
+		if !status.IsPlayable {
+			label, message := unplayableReason(playabilityStatusName(status.PlayabilityStatus))
+			playability.Label = label
+			playability.Message = cmp.Or(boundedText(strings.TrimSpace(status.UnplayableText), maxPlayabilityMessageLength), message)
+		}
+		return playability, nil
 	}
 	return nil, nil
+}
+
+// playabilityStatusName reads a status that Roblox sends as its name or as its
+// number.
+func playabilityStatusName(rawStatus json.RawMessage) string {
+	var name string
+	if json.Unmarshal(rawStatus, &name) == nil {
+		if number, err := strconv.Atoi(name); err == nil {
+			return playabilityStatusNameOf(number)
+		}
+		return name
+	}
+	var number int
+	if json.Unmarshal(rawStatus, &number) == nil {
+		return playabilityStatusNameOf(number)
+	}
+	return ""
+}
+
+func playabilityStatusNameOf(number int) string {
+	if number < 0 || number >= len(playabilityStatusNames) {
+		return ""
+	}
+	return playabilityStatusNames[number]
+}
+
+// unplayableReason names why the account cannot join, for when Roblox gives no
+// text of its own.
+func unplayableReason(statusName string) (label, message string) {
+	switch statusName {
+	case "UnderReview", "GameUnapproved":
+		return "Under review", "Roblox is reviewing this game, so no one can join it."
+	case "UniverseRootPlaceIsPrivate":
+		return "Private", "This game is private."
+	case "InsufficientPermissionFriendsOnly":
+		return "Friends only", "Only friends of the creator can join this game."
+	case "InsufficientPermissionGroupOnly":
+		return "Group only", "Only members of the creator's group can join this game."
+	case "DeviceRestricted", "FiatPurchaseDeviceRestricted":
+		return "Device restricted", "This game does not support this device."
+	case "PurchaseRequired", "FiatPurchaseRequired":
+		return "Paid access", "This account must buy access to this game first."
+	case "AccountRestricted":
+		// Roblox also reports a moderated or restricted account this way, so
+		// it does not prove a ban from this game.
+		return "Account restricted", "Roblox restricts this account from joining. A game ban is one possible reason."
+	case "TemporarilyUnavailable":
+		return "Unavailable", "This game is temporarily unavailable."
+	case "PlaceHasNoPublishedVersion":
+		return "Not published", "This game is not published."
+	case "ComplianceBlocked", "ContextualPlayabilityRegionalAvailability", "ContextualPlayabilityRegionalCompliance":
+		return "Region blocked", "This game is unavailable in this account's region."
+	case "ContextualPlayabilityAgeRecommendationParentalControls", "ContextualPlayabilityExperienceBlockedParentalControls":
+		return "Parental controls", "Parental controls block this game for this account."
+	case "ContextualPlayabilityAgeGated", "ContextualPlayabilityAgeGatedByDescriptor", "ContextualPlayabilityUnverifiedSeventeenPlusUser":
+		return "Age restricted", "This account's age or age verification does not allow this game."
+	case "ContextualPlayabilityUnrated":
+		return "Unrated", "This game is unrated, so this account cannot join it."
+	default:
+		return "Unplayable", "This account cannot join this game."
+	}
 }
 
 // maxGameLanguages bounds the languages of a game. Roblox supports fewer.
