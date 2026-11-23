@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { notifyErrors } from "../notifications/error-notifications.svelte"
 	import { Events } from "@wailsio/runtime"
 	import { onMount } from "svelte"
 	import { accountBackend, type LaunchConfirmation } from "../backend/bridge"
@@ -52,6 +53,8 @@
 			remove()
 		}
 	})
+
+	notifyErrors("Roblox not launched", () => error)
 </script>
 
 {#if pending}
@@ -104,7 +107,6 @@
 				</p>
 			</div>
 		</div>
-		{#if error}<div class="mt-3 notice-error" role="alert">{error}</div>{/if}
 		<div class="dialog-actions">
 			<button
 				class="button"

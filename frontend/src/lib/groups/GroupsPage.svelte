@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { notifyErrors } from "../notifications/error-notifications.svelte"
 	import LoadMore from "../shared/LoadMore.svelte"
 	import arrowRightIcon from "@phosphor-icons/core/regular/arrow-right.svg?raw"
 	import circleNotchIcon from "@phosphor-icons/core/regular/circle-notch.svg?raw"
@@ -102,6 +103,8 @@
 		if (store.query.trim().length >= minGroupSearchLength) void store.search()
 		else searchInput?.focus()
 	}
+
+	notifyErrors("Groups not loaded", () => listError)
 </script>
 
 <main class="flex min-h-0 flex-1 flex-col bg-canvas" aria-label="Groups">
@@ -227,10 +230,9 @@
 						{#snippet row(index)}<SkeletonMediaRow {index} />{/snippet}
 					</SkeletonList>
 				{:else if listError && rows.length === 0}
-					<div class="empty-state px-3 py-8" role="alert">
+					<div class="empty-state px-3 py-8">
 						<Icon svg={warningIcon} size={28} aria-hidden="true" />
 						<h2>Groups unavailable</h2>
-						<p>{listError}</p>
 						<button
 							class="button"
 							type="button"

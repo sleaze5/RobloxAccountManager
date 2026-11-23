@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { notifyErrors } from "../notifications/error-notifications.svelte"
 	import arrowCounterClockwiseIcon from "@phosphor-icons/core/regular/arrow-counter-clockwise.svg?raw"
 	import arrowSquareOutIcon from "@phosphor-icons/core/regular/arrow-square-out.svg?raw"
 	import arrowsClockwiseIcon from "@phosphor-icons/core/regular/arrows-clockwise.svg?raw"
@@ -44,11 +45,12 @@
 				return "Updates have not been checked yet."
 		}
 	})
+
+	notifyErrors("Update action not completed", () => error)
 </script>
 
 <section class="settings-section" aria-labelledby="about-updates-title">
 	<h3 id="about-updates-title">Updates</h3>
-	{#if error}<div class="notice-error" role="alert">{error}</div>{/if}
 	<div class="settings-rows">
 		<div class="settings-row">
 			<div class="settings-row-copy">

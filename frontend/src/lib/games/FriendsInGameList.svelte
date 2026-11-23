@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { notifyErrors } from "../notifications/error-notifications.svelte"
 	import eyeSlashIcon from "@phosphor-icons/core/regular/eye-slash.svg?raw"
 	import usersIcon from "@phosphor-icons/core/regular/users.svg?raw"
 	import type { FriendInServer, FriendPlace } from "../backend/bridge"
@@ -47,6 +48,8 @@
 	function friendCountLabel(count: number): string {
 		return `${count} ${count === 1 ? "friend" : "friends"}`
 	}
+
+	notifyErrors("Friends not loaded", () => friendsInGame.error)
 </script>
 
 {#snippet avatars(shownFriends: FriendInServer[])}
@@ -118,15 +121,6 @@
 				>({friendCountLabel(friendCount)})</span>
 		{/if}
 	</h2>
-	{#if friendsInGame.error}
-		<div class="mx-3 mb-2 flex items-center gap-3 notice-error" role="alert">
-			<span class="flex-1">{friendsInGame.error}</span>
-			<button
-				class="button"
-				type="button"
-				onclick={() => void friendsInGame.refresh()}>Try again</button>
-		</div>
-	{/if}
 	{#if !friends}
 		{#if !friendsInGame.error}
 			<p class="px-3 pb-2 text-xs">

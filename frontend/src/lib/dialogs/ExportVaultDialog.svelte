@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { notifyErrors } from "../notifications/error-notifications.svelte"
 	import checkCircleIcon from "@phosphor-icons/core/regular/check-circle.svg?raw"
 	import checkIcon from "@phosphor-icons/core/regular/check.svg?raw"
 	import copyIcon from "@phosphor-icons/core/regular/copy.svg?raw"
@@ -58,6 +59,8 @@
 			exporting = false
 		}
 	}
+
+	notifyErrors("Vault not exported", () => error)
 </script>
 
 <svelte:window
@@ -200,9 +203,6 @@
 				<p class="mt-1 text-2xs text-fg-muted">
 					Anyone with the file can read the hint.
 				</p>
-			{/if}
-			{#if error}
-				<div class="mt-3 notice-error" role="alert">{error}</div>
 			{/if}
 			<div class="dialog-actions">
 				<button

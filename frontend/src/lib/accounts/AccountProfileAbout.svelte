@@ -59,9 +59,7 @@
 		</button>
 	</div>
 	{#if isDescriptionUnavailable}
-		<p class="text-xs text-danger-muted" role="alert">
-			Could not load the description. Refresh to try again.
-		</p>
+		<p class="text-xs text-fg-muted">Unavailable</p>
 	{:else}
 		<p class="text-block" data-variant="prose">
 			{snapshot.description || "No description yet."}

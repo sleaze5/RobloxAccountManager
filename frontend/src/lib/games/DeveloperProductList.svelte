@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { notifyErrors } from "../notifications/error-notifications.svelte"
 	import funnelIcon from "@phosphor-icons/core/regular/funnel.svg?raw"
 	import magnifyingGlassIcon from "@phosphor-icons/core/regular/magnifying-glass.svg?raw"
 	import shoppingBagIcon from "@phosphor-icons/core/regular/shopping-bag.svg?raw"
@@ -70,6 +71,8 @@
 		await tick()
 		searchInput?.focus()
 	}
+
+	notifyErrors("Developer products not loaded", () => universeDeveloperProducts.error)
 </script>
 
 <div
@@ -132,10 +135,9 @@
 
 <div class="@container min-h-0 flex-1 overflow-auto">
 	{#if universeDeveloperProducts.error && !universeDeveloperProducts.developerProducts}
-		<div class="empty-state h-full" role="alert">
+		<div class="empty-state h-full">
 			<Icon svg={warningIcon} size={28} aria-hidden="true" />
 			<h2>Developer products unavailable</h2>
-			<p>{universeDeveloperProducts.error}</p>
 			<button
 				class="button"
 				type="button"
@@ -166,16 +168,6 @@
 				>Clear filters</button>
 		</div>
 	{:else}
-		{#if universeDeveloperProducts.error}
-			<div class="mx-3 mt-3 flex items-center gap-3 notice-error" role="alert">
-				<span class="flex-1">{universeDeveloperProducts.error}</span>
-				<button
-					class="button"
-					type="button"
-					onclick={() => void universeDeveloperProducts.refresh()}
-					>Try again</button>
-			</div>
-		{/if}
 		<p
 			class="flex items-center gap-2 border-b border-line-subtle px-3 py-2 text-xs text-fg-muted">
 			<Icon svg={shoppingBagIcon} size={14} aria-hidden="true" />

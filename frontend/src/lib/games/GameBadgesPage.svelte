@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { notifyErrors } from "../notifications/error-notifications.svelte"
 	import caretLeftIcon from "@phosphor-icons/core/regular/caret-left.svg?raw"
 	import checkCircleIcon from "@phosphor-icons/core/regular/check-circle.svg?raw"
 	import funnelIcon from "@phosphor-icons/core/regular/funnel.svg?raw"
@@ -79,6 +80,9 @@
 		heading?.focus({ preventScroll: true })
 		void universeBadges.load()
 	})
+
+	notifyErrors("Badges not loaded", () => universeBadges.error)
+	notifyErrors("Badge progress not loaded", () => universeBadges.awardsError)
 </script>
 
 <section class="settings-page min-w-0" aria-labelledby="game-badges-title">
@@ -167,22 +171,11 @@
 		{/if}
 	</div>
 
-	{#if universeBadges.awardsError && universeBadges.badges}
-		<div class="mx-3 mt-3 flex items-center gap-3 notice-error" role="alert">
-			<span class="flex-1">{universeBadges.awardsError}</span>
-			<button
-				class="button"
-				type="button"
-				onclick={() => universeBadges.reloadAwards()}>Try again</button>
-		</div>
-	{/if}
-
 	<div class="min-h-0 flex-1 overflow-auto">
 		{#if universeBadges.error && !universeBadges.badges}
-			<div class="empty-state h-full" role="alert">
+			<div class="empty-state h-full">
 				<Icon svg={warningIcon} size={28} aria-hidden="true" />
 				<h2>Badges unavailable</h2>
-				<p>{universeBadges.error}</p>
 				<button
 					class="button"
 					type="button"

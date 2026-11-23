@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { notifyErrors } from "../notifications/error-notifications.svelte"
 	import LoadMore from "../shared/LoadMore.svelte"
 	import warningIcon from "@phosphor-icons/core/regular/warning.svg?raw"
 	import circleNotchIcon from "@phosphor-icons/core/regular/circle-notch.svg?raw"
@@ -81,6 +82,9 @@
 	onMount(() => {
 		if (!avatar.outfits) void avatar.loadOutfits()
 	})
+
+	notifyErrors("Outfits not loaded", () => avatar.outfitsError)
+	notifyErrors("Outfit action not completed", () => avatar.outfitActionError)
 </script>
 
 <div class="flex flex-col gap-4 p-3">
@@ -106,15 +110,10 @@
 		{/if}
 	</div>
 
-	{#if avatar.outfitActionError}
-		<p class="notice-error" role="alert">{avatar.outfitActionError}</p>
-	{/if}
-
 	{#if outfits === null && avatar.outfitsError}
-		<div class="empty-state py-10" role="alert">
+		<div class="empty-state py-10">
 			<Icon svg={warningIcon} size={28} aria-hidden="true" />
 			<h2>Outfits unavailable</h2>
-			<p>{avatar.outfitsError}</p>
 			<button
 				class="button"
 				type="button"
@@ -142,9 +141,6 @@
 			</p>
 		</div>
 	{:else}
-		{#if avatar.outfitsError}
-			<p class="notice-error" role="alert">{avatar.outfitsError}</p>
-		{/if}
 		<ul
 			class="grid animate-enter grid-cols-3 gap-2 @2xl:grid-cols-4 @4xl:grid-cols-5"
 			aria-label="Outfits"

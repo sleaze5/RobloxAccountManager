@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { notifyErrors } from "../notifications/error-notifications.svelte"
 	import xIcon from "@phosphor-icons/core/regular/x.svg?raw"
 	import Icon from "../shared/Icon.svelte"
 	import Dialog from "../shared/Dialog.svelte"
@@ -39,6 +40,8 @@
 	async function confirm(): Promise<void> {
 		if (await store.runRelationshipAction(person, actionId)) onClose()
 	}
+
+	notifyErrors("Relationship not changed", () => store.relationshipError)
 </script>
 
 <Dialog
@@ -74,9 +77,6 @@
 		</span>
 		<span class="shrink-0 text-2xs text-fg-muted">as @{account.username}</span>
 	</div>
-	{#if store.relationshipError}
-		<div class="mt-3 notice-error" role="alert">{store.relationshipError}</div>
-	{/if}
 	<div class="dialog-actions">
 		<button class="button" type="button" disabled={pending} onclick={close}
 			>{action.tone === "warning" ? "Keep request" : "Cancel"}</button>

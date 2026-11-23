@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { notifyErrors } from "../notifications/error-notifications.svelte"
 	import dotsThreeIcon from "@phosphor-icons/core/regular/dots-three.svg?raw"
 	import magnifyingGlassIcon from "@phosphor-icons/core/regular/magnifying-glass.svg?raw"
 	import plusIcon from "@phosphor-icons/core/regular/plus.svg?raw"
@@ -52,6 +53,8 @@
 		store.clearSelectedTags()
 		document.querySelector<HTMLInputElement>("[data-account-search]")?.focus()
 	}
+
+	notifyErrors("Accounts not loaded", () => store.accountListError)
 </script>
 
 {#if store.multipleSelected}
@@ -90,7 +93,6 @@
 		{#if store.accountListError && store.accounts.length === 0}
 			<Icon svg={warningIcon} size={28} aria-hidden="true" />
 			<h2>Accounts unavailable</h2>
-			<p role="alert">{store.accountListError}</p>
 			<button
 				class="button"
 				type="button"

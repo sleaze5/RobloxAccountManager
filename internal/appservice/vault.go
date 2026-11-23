@@ -52,7 +52,12 @@ func (service *Service) CreateVault(ctx context.Context, password, confirmation,
 		return errors.New("master passwords do not match")
 	}
 	if err := service.vault.Create(ctx, password, hint, automaticUnlock); err != nil {
-		return safeVaultError(err)
+		service.logger.Error("could not create the vault", "operation", "vault-create", "error", err)
+		message := vaultFailureMessage(err, "Could not create the vault. Try again.")
+		if errors.Is(err, vault.ErrAutomaticUnlockUnavailable) {
+			message = keyringUnavailableMessage + " Turn off automatic unlock, then create the vault."
+		}
+		return &roblox.Error{Kind: roblox.KindProtocol, Endpoint: "vault-create", Message: message, Cause: err}
 	}
 	if err := service.settings.RecordPasswordTested(time.Now()); err != nil {
 		service.logger.Error("could not record the master password setup", "error", err)
@@ -187,11 +192,15 @@ func (service *Service) SetPasswordTestIntervalDays(days int) error {
 
 func (service *Service) SetAutomaticUnlock(enabled bool) error {
 	if err := service.vault.SetAutomaticUnlock(enabled); err != nil {
-		service.logger.Error("could not update automatic unlock", "enabled", enabled, "error", err)
-		if enabled {
-			return errors.New("automatic unlock could not be turned on")
+		service.logger.Error("could not update automatic unlock", "operation", "automatic-unlock", "enabled", enabled, "error", err)
+		message := "Could not turn off automatic unlock. Try again."
+		switch {
+		case enabled && errors.Is(err, vault.ErrAutomaticUnlockUnavailable):
+			message = keyringUnavailableMessage
+		case enabled:
+			message = "Could not turn on automatic unlock. Try again."
 		}
-		return errors.New("automatic unlock could not be turned off")
+		return &roblox.Error{Kind: roblox.KindProtocol, Endpoint: "automatic-unlock", Message: message, Cause: err}
 	}
 	service.logger.Info("automatic unlock updated", "enabled", enabled)
 	return nil
@@ -248,7 +257,7 @@ func (service *Service) MigrateLegacyVault(ctx context.Context, password string)
 	}
 	if _, err := service.transfers.Replace(ctx, payload, pendingSettings(&pendingTransfer{payload: payload}, appsettings.Sections)); err != nil {
 		service.logger.Error("could not import the moved data", "operation", "vault-migration", "error", err)
-		return transferError("The new vault was created, but your data was not imported. The old vault is in the recovery folder in storage/vault.", err)
+		return transferError("The app created the new vault but did not import your data. The old vault is in the recovery folder in storage/vault.", err)
 	}
 	if err := service.settings.RecordPasswordTested(time.Now()); err != nil {
 		service.logger.Error("could not record the master password after the move", "error", err)

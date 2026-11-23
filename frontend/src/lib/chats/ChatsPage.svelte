@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { notifyErrors } from "../notifications/error-notifications.svelte"
 	import checksIcon from "@phosphor-icons/core/regular/checks.svg?raw"
 	import circleNotchIcon from "@phosphor-icons/core/regular/circle-notch.svg?raw"
 	import chatsCircleIcon from "@phosphor-icons/core/regular/chats-circle.svg?raw"
@@ -47,6 +48,9 @@
 		workspace.chatUserIdToOpen = 0
 		return () => chat.dispose()
 	})
+
+	notifyErrors("Chats not loaded", () => chat.listError)
+	notifyErrors("Chat action not completed", () => chat.error)
 </script>
 
 <section class="settings-page" aria-labelledby="chats-title">
@@ -98,16 +102,6 @@
 		class="settings-layout"
 		style={`--sidebar-width: ${workspace.accountSettingsSidebarWidth}px;`}>
 		<div class="flex settings-sidebar flex-col gap-2 p-2" data-load-more-root>
-			{#if chat.listError && chat.conversations.length > 0}
-				<p class="notice-error" role="alert">
-					{chat.listError}
-				</p>
-			{/if}
-			{#if chat.error}
-				<p class="notice-error" role="alert">
-					{chat.error}
-				</p>
-			{/if}
 			<ChatList {chat} />
 		</div>
 		<SidebarResizer
@@ -130,7 +124,6 @@
 				<div class="empty-state h-full">
 					<Icon svg={warningIcon} size={28} aria-hidden="true" />
 					<h2>Chats unavailable</h2>
-					<p role="alert">{chat.listError}</p>
 					<button
 						class="button"
 						type="button"

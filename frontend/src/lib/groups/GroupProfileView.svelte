@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { notifyErrors } from "../notifications/error-notifications.svelte"
 	import arrowSquareOutIcon from "@phosphor-icons/core/regular/arrow-square-out.svg?raw"
 	import checkCircleFillIcon from "@phosphor-icons/core/fill/check-circle-fill.svg?raw"
 	import clockIcon from "@phosphor-icons/core/regular/clock.svg?raw"
@@ -129,6 +130,11 @@
 			linkError = errorMessage(error, "Could not open the link. Try again.")
 		}
 	}
+
+	notifyErrors("Group not loaded", () => store.profileError)
+	notifyErrors("Group action not completed", () => store.actionError)
+
+	notifyErrors("Link not opened", () => linkError)
 </script>
 
 {#snippet relatedGroups(
@@ -168,10 +174,9 @@
 {/snippet}
 
 {#if !profile && store.profileError}
-	<div class="empty-state h-full py-16" role="alert">
+	<div class="empty-state h-full py-16">
 		<Icon svg={warningIcon} size={28} aria-hidden="true" />
 		<h2>Group unavailable</h2>
-		<p>{store.profileError}</p>
 		<button class="button" type="button" onclick={() => void store.refreshProfile()}
 			>Try again</button>
 	</div>
@@ -369,10 +374,6 @@
 				{/if}
 			</div>
 		</div>
-
-		{#if store.actionError && !isConfirmingLeave}
-			<p class="notice-error" role="alert">{store.actionError}</p>
-		{/if}
 
 		<section class="flex flex-col gap-2" aria-labelledby="group-shout-heading">
 			<div class="flex min-h-6 items-center gap-2">
@@ -618,11 +619,6 @@
 									{link.title || link.type}
 								</button>
 							{/each}
-							{#if linkError}<p
-									class="basis-full text-xs text-danger-muted"
-									role="alert">
-									{linkError}
-								</p>{/if}
 						</dd>
 					</div>
 				{/if}
@@ -651,7 +647,6 @@
 		confirmLabel="Leave group"
 		progressLabel="Leaving…"
 		isWorking={store.pendingAction === "leave"}
-		error={store.actionError}
 		onConfirm={() => void leave()}
 		onCancel={() => {
 			store.clearActionError()

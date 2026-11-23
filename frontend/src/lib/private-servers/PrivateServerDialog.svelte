@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { notifyErrors } from "../notifications/error-notifications.svelte"
 	import arrowsCounterClockwiseIcon from "@phosphor-icons/core/regular/arrows-counter-clockwise.svg?raw"
 	import caretDownIcon from "@phosphor-icons/core/regular/caret-down.svg?raw"
 	import pencilSimpleIcon from "@phosphor-icons/core/regular/pencil-simple.svg?raw"
@@ -139,6 +140,16 @@
 	function userName(user: { displayName: string; username: string; userId: number }) {
 		return user.displayName || user.username || `User ${user.userId}`
 	}
+
+	notifyErrors("Private server not loaded", () => server.errorFor("load"))
+	// The rename dialog reports its own failure.
+	notifyErrors("Private server not changed", () =>
+		server.error &&
+		server.error.action !== "load" &&
+		server.error.action !== "rename"
+			? server.error.message
+			: "",
+	)
 </script>
 
 <svelte:window
@@ -217,10 +228,9 @@
 						<h2>Loading private server…</h2>
 					</div>
 				{:else}
-					<div class="empty-state" role="alert">
+					<div class="empty-state">
 						<Icon svg={warningIcon} size={28} aria-hidden="true" />
 						<h2>Private server unavailable</h2>
-						<p>{server.errorFor("load")}</p>
 						<button class="button" type="button" onclick={() => void load()}
 							>Try again</button>
 					</div>
@@ -253,10 +263,6 @@
 										>{toggle.label}</strong>
 									<span id={`${id}-${toggle.option}-description`}
 										>{toggle.description}</span>
-									{#if server.errorFor(toggle.option)}
-										<span class="text-danger-muted" role="alert"
-											>{server.errorFor(toggle.option)}</span>
-									{/if}
 								</div>
 								{#if server.pending === toggle.option}
 									<Icon
@@ -296,10 +302,6 @@
 								{:else}
 									<span
 										>No join link. Reset the link to create one.</span>
-								{/if}
-								{#if server.errorFor("link")}
-									<span class="text-danger-muted" role="alert"
-										>{server.errorFor("link")}</span>
 								{/if}
 							</div>
 							<div class="flex shrink-0 items-center gap-1.5">
@@ -384,15 +386,6 @@
 										{/each}
 									</ul>
 								{/if}
-								{#each users as user (user.userId)}
-									{#if server.errorFor(`remove-${user.userId}`)}
-										<div
-											class="mx-3 mt-2.5 notice-error"
-											role="alert">
-											{server.errorFor(`remove-${user.userId}`)}
-										</div>
-									{/if}
-								{/each}
 								<form
 									novalidate
 									class={[
@@ -429,17 +422,10 @@
 												: "Add user"}
 										</button>
 									</div>
-									{#if server.errorFor("add-user")}
-										<small
-											id={`${id}-user-help`}
-											class="text-xs text-danger-muted"
-											>{server.errorFor("add-user")}</small>
-									{:else}
-										<small
-											id={`${id}-user-help`}
-											class="text-xs text-fg-muted"
-											>Enter a username, or id: and a user ID.</small>
-									{/if}
+									<small
+										id={`${id}-user-help`}
+										class="text-xs text-fg-muted"
+										>Enter a username, or id: and a user ID.</small>
 								</form>
 							</div>
 						</details>

@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { notifyErrors } from "../notifications/error-notifications.svelte"
 	import { untrack } from "svelte"
 	import xIcon from "@phosphor-icons/core/regular/x.svg?raw"
 	import Icon from "../shared/Icon.svelte"
@@ -34,6 +35,8 @@
 	async function save(): Promise<void> {
 		if (await store.setNickname(person, text)) onClose()
 	}
+
+	notifyErrors("Nickname not saved", () => store.nicknameError)
 </script>
 
 <Dialog
@@ -85,9 +88,6 @@
 					>{Array.from(value).length}/{maximumLength}</span>
 			</small>
 		</div>
-		{#if store.nicknameError}
-			<div class="mt-3 notice-error" role="alert">{store.nicknameError}</div>
-		{/if}
 		<div class="dialog-actions">
 			<button class="button" type="button" disabled={saving} onclick={close}
 				>Cancel</button>

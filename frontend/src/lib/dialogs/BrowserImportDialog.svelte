@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { notifyErrors } from "../notifications/error-notifications.svelte"
 	import browserIcon from "@phosphor-icons/core/regular/browser.svg?raw"
 	import checkIcon from "@phosphor-icons/core/regular/check.svg?raw"
 	import circleNotchIcon from "@phosphor-icons/core/regular/circle-notch.svg?raw"
@@ -230,6 +231,13 @@
 		}
 		return `Updated ${updated} saved account ${updated === 1 ? "cookie" : "cookies"}.`
 	}
+
+	notifyErrors("Accounts not imported", () => browser.error)
+
+	notifyErrors(
+		"Browser sign-in not completed",
+		() => sessions.findLast((session) => session.error)?.error ?? "",
+	)
 </script>
 
 <svelte:window
@@ -251,9 +259,6 @@
 			<Icon svg={xIcon} size={14} aria-hidden="true" />
 		</button>
 	</div>
-	{#if browser.error}<div class="mb-3 notice-error" role="alert">
-			{browser.error}
-		</div>{/if}
 	{#if sessions.length === 0 && candidates.length === 0}
 		<div
 			class="empty-state rounded-md border border-dashed border-line-strong py-8"
@@ -299,11 +304,6 @@
 						{#if session.checkpointWarning}<p
 								class="mt-0.5 text-2xs text-warning">
 								{session.checkpointWarning}
-							</p>{/if}
-						{#if session.error}<p
-								class="mt-0.5 text-2xs text-danger-muted"
-								role="alert">
-								{session.error}
 							</p>{/if}
 					</div>
 					<button

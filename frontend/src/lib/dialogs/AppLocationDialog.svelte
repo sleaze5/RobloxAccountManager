@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { notifyErrors } from "../notifications/error-notifications.svelte"
 	import checkBoldIcon from "@phosphor-icons/core/bold/check-bold.svg?raw"
 	import Icon from "../shared/Icon.svelte"
 	import Dialog from "../shared/Dialog.svelte"
@@ -88,6 +89,8 @@
 			busy = restarting
 		}
 	}
+
+	notifyErrors("Data folder not changed", () => error)
 </script>
 
 <Dialog
@@ -161,10 +164,6 @@
 				{/if}
 			</ul>
 		</div>
-	{/if}
-
-	{#if error}
-		<div class="mt-3 notice-error" role="alert">{error}</div>
 	{/if}
 
 	<div class="dialog-actions">

@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { notifyErrors } from "../notifications/error-notifications.svelte"
 	import starFillIcon from "@phosphor-icons/core/fill/star-fill.svg?raw"
 	import xIcon from "@phosphor-icons/core/regular/x.svg?raw"
 	import Icon from "../shared/Icon.svelte"
@@ -26,6 +27,8 @@
 			onClose()
 		}
 	}
+
+	notifyErrors("Account not removed", () => store.error)
 </script>
 
 <Dialog
@@ -58,11 +61,6 @@
 			<Icon svg={xIcon} size={14} aria-hidden="true" />
 		</button>
 	</div>
-	{#if store.error}
-		<div class="mt-3 notice-error" role="alert">
-			{store.error}
-		</div>
-	{/if}
 	<div class="dialog-actions">
 		<button class="button" type="button" disabled={store.busy} onclick={close}
 			>Cancel</button>

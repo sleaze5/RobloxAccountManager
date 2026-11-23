@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { notifyErrors } from "../notifications/error-notifications.svelte"
 	import LoadMore from "../shared/LoadMore.svelte"
 	import circleNotchIcon from "@phosphor-icons/core/regular/circle-notch.svg?raw"
 	import lockKeyIcon from "@phosphor-icons/core/regular/lock-key.svg?raw"
@@ -42,6 +43,12 @@
 		void servers.listVersion
 		untrack(() => list?.scrollTo({ top: 0 }))
 	})
+
+	notifyErrors(
+		"Private servers not loaded",
+		() => servers.error || servers.loadMoreError,
+	)
+	notifyErrors("Saved servers not loaded", () => saved.error)
 </script>
 
 <div class="flex min-h-0 flex-1 flex-col">
@@ -53,10 +60,9 @@
 				<p>Add an account on the Accounts page to see its private servers.</p>
 			</div>
 		{:else if servers.error}
-			<div class="empty-state" role="alert">
+			<div class="empty-state">
 				<Icon svg={warningIcon} size={28} aria-hidden="true" />
 				<h2>Private servers unavailable</h2>
-				<p>{servers.error}</p>
 				<button class="button" type="button" onclick={() => void servers.load()}
 					>Try again</button>
 			</div>
@@ -158,7 +164,6 @@
 					loadingLabel="Loading more private servers…"
 					isLoadingMore={servers.loadingMore}
 					hasFailed={!!servers.loadMoreError}
-					failureMessage={servers.loadMoreError}
 					onLoadMore={() => void servers.loadMore()} />
 			{/if}
 		{/if}
@@ -185,11 +190,9 @@
 					Add link
 				</button>
 			</div>
-			{#if saved.error}
-				<div
-					class="mx-3 mb-3 flex items-center gap-3 notice-error"
-					role="alert">
-					<span class="flex-1">{saved.error}</span>
+			{#if saved.error && !saved.servers}
+				<div class="mx-3 mb-3 flex items-center gap-3 text-xs text-fg-muted">
+					<span class="flex-1">Saved servers unavailable</span>
 					<button
 						class="button"
 						type="button"

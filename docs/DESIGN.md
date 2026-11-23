@@ -89,9 +89,9 @@ Surfaces and feedback:
 
 - `menu`, `menu-item`, `menu-item-danger`, `menu-item-warning`, `menu-heading`, and `menu-separator`: menus and context menus. `submenu` opens beside a menu item on hover or focus.
 - `dialog-backdrop`, `dialog-card`, `dialog-heading`, `dialog-field`, and `dialog-actions`: dialogs. See [Dialogs](#dialogs).
-- `notice-warning`, `notice-error`, and `notice-note`: inline notices.
-- `lib/shared/OperationError.svelte`: a failed operation that has no specific place on the page.
+- `notice-warning` and `notice-note`: inline notices. Never show an error in a notice. See [Errors](#errors).
 - `lib/notifications/notification-center.svelte.ts`: notifications.
+- `lib/notifications/error-notifications.svelte.ts`: `notifyErrors`, which shows each error message of a component as an error notification.
 - `lib/shared/Tooltip.svelte`: tooltips, through the `data-tooltip` attribute.
 - `transfer` and `progress-bar`: download and install progress.
 - `spinner`: the busy spinner on an icon. `lib/shared/RefreshIcon.svelte` shows the refresh icon, or the spinner while `isRefreshing` is true.
@@ -171,10 +171,9 @@ Settings replaces the page tabs with a header that has a back button.
 Stack floating layers in this order, from lowest to highest:
 
 1. Page content: `z-0` to `z-10` for sticky headers and overlapping parts of one component
-2. Operation errors: `z-20`
-3. Notifications: `z-30`
-4. Dialogs: `z-40`
-5. The vault lock screen: `z-50`
+2. Dialogs: `z-40`
+3. The vault lock screen: `z-50`
+4. Notifications: `z-50`, after the lock screen in the document, so that a failure shows above every dialog
 
 Menus, context menus, dropdowns, and tooltips open in the browser's top layer, above every layer in this list, so that a scroll area or the launch panel never cuts them off. Position a menu with `placeMenuAtAnchor`, `placeMenuAtPoint`, or the `floatMenu` action from `presence.ts`, which lift it automatically. Use `liftToTopLayer` for a floating surface that positions itself. Do not use `fixed` alone for a menu inside a scroll area, because `container-type` on an ancestor clips it.
 
@@ -268,7 +267,7 @@ Color:
 - Make a list one tab stop. Give the selected row `tabindex="0"`, or the first row when no row is selected, and every other row `tabindex="-1"`. Mark the list container with `data-list` and its rows with `data-list-item`, and move between them with `ArrowUp`, `ArrowDown`, `Home`, and `End` through `moveListFocus`.
 - When a list can be reordered, support dragging and `Ctrl+Shift+ArrowUp` and `Ctrl+Shift+ArrowDown`. Announce the new position through a polite live region.
 - When an account needs the user's attention, its row adds a third line in the warning or danger tone, such as "Sign-in required", "Security challenge", or a moderation status, in place of its online status.
-- Load a list that comes in pages as one growing list, never as pages to step through. End it with `LoadMore`, inside its scrolling container marked with `data-load-more-root`. `LoadMore` loads the next page when the end of the list comes within 160px of view, and always shows a "Load more" button with the noun, such as "Load more members", in case the automatic load does not run. While a page loads, it shows the spinner and the progress label, such as "Loading more members…". After a failed page, it stops loading on its own until the user presses the button, and shows the failure next to the button unless the list shows it elsewhere. Show the count of loaded items with "+" while more pages remain, and keep the items that are already loaded when a later page fails.
+- Load a list that comes in pages as one growing list, never as pages to step through. End it with `LoadMore`, inside its scrolling container marked with `data-load-more-root`. `LoadMore` loads the next page when the end of the list comes within 160px of view, and always shows a "Load more" button with the noun, such as "Load more members", in case the automatic load does not run. While a page loads, it shows the spinner and the progress label, such as "Loading more members…". After a failed page, it stops loading on its own until the user presses the button. The list reports the failure as an error notification. Show the count of loaded items with "+" while more pages remain, and keep the items that are already loaded when a later page fails.
 - Distinguish an empty list ("No accounts yet") from a list with no matches ("No matching accounts"). Tell the user how to change each state. Give the no-matches state a button that clears the filter and moves the focus to the search field or filter.
 - In a grid of item tiles, make every tile in a row the same height. Keep the badges on a tile in one row, so that they never overlap, and let the lower-priority badge truncate.
 - When the user switches a tab or category that replaces the content of a scrolling region, scroll the region back to the top.
@@ -288,7 +287,7 @@ Color:
 2. Use `role="dialog"`. Use `role="alertdialog"` for a confirmation.
 3. Put the title and an optional one-sentence description at the top.
 4. Put a `button-close` in the top-right corner. Omit the close button only when the user must complete the dialog, such as the vault lock screen.
-5. Show errors inside the dialog with `notice-error`, above the actions.
+5. Report a failed action as an error notification, and keep the dialog open so that the user can try again. Do not show the error inside the dialog.
 6. Put the actions at the bottom right: Cancel first, then the main action.
 7. Name the main action with a verb and an object, such as "Remove account". Do not use "OK" or "Yes".
 8. While an action runs, disable the dialog's controls and show the progress form of the label, such as "Removing…".
@@ -305,7 +304,7 @@ Color:
 
 - Put a label above each field in `text-xs text-fg-muted`. Add "(optional)" to the label of an optional field.
 - Validate a field after it loses focus or when the user submits the form. Do not show errors for a field the user has not changed.
-- Show a field error below the field in `text-danger-muted`. Set `aria-invalid="true"` on the field. `field` then draws a `border-danger/40` border.
+- Show a field error below the field in `text-danger-muted` only for a check that the frontend runs on the input, such as a price range or a date format. Set `aria-invalid="true"` on the field. `field` then draws a `border-danger/40` border. Report a failure that the backend returns as an error notification.
 - Show the items of a requirement checklist in `text-fg-muted` until the user types. After that, mark each requirement as met or unmet with an icon and color.
 
 ### Loading, empty, and error states
@@ -317,8 +316,17 @@ Color:
 - Use the spinner for actions in progress: a pressed button, a refresh, a list that loads more rows below its existing rows, and a pane that waits for another region to load.
 - When content refreshes, keep the existing content visible and replace the refresh icon with the spinner.
 - Build an `empty-state` from a 28px icon, a title that says what is missing, one sentence that says how to fill it, and an action button when one exists.
-- Show an error next to the thing that failed, in a `role="alert"` element. Use `OperationError` when the failure has no specific place. Use a notification for the result of background work.
-- When content fails to load, never show its empty state, such as "No accounts yet". Show an `empty-state` with the regular `warning` icon, never the page's own icon, a title such as "Accounts unavailable", the error message, and a Try again button. When earlier content is still shown, keep it and show the error in a `role="alert"` line above it.
+- When content fails to load, never show its empty state, such as "No accounts yet". Show an `empty-state` with the regular `warning` icon, never the page's own icon, a title such as "Accounts unavailable", and a Try again button. Do not show the error message there. Report it as described in [Errors](#errors). When earlier content is still shown, keep it.
+- When a smaller region fails, such as the details of an outfit, show a short `text-fg-muted` label, such as "Outfit details unavailable", and a Try again button when one helps.
+
+### Errors
+
+Never show error text in the page: no error notices, error lines below content, or error messages in empty states and dialogs. Each failure either shows an error notification or fails silently.
+
+- Show an error notification when the user must know about the failure: a failed action, a failed load of a page, list, or dialog, a failed page of a list, and a failed search. Call `notifyErrors` with the notification title and a function that reads the error message, such as `notifyErrors("Badges not loaded", () => badges.error)`.
+- Fail silently when the page already shows that the content is missing and the user loses nothing: a section whose facts show "Unavailable", secondary details in a dialog, a background refresh, and an image that does not load. The backend logs the failure.
+- `notifyErrors` uses the message as the notification ID. When two components report the same failure, one notification shows. Clear an error before the action runs again, so that a repeated failure shows again.
+- A rate-limit message names the wait only when the Roblox response sends one, such as "Roblox is limiting requests. Try again in 30 seconds." It never counts down.
 
 ### Tooltips
 
@@ -332,7 +340,7 @@ Color:
 - Show notifications only through the notification center.
 - Notifications appear as snackbars at the bottom center, above the status strip. When more than 3 are open, the older ones collapse behind a "Show N more" button.
 - Give each notification a short title and one sentence. Use a past-tense title for a result, such as "Accounts saved".
-- Give an error notification an action that helps the user recover when one exists.
+- Give an error notification an action that helps the user recover when one exists. An error notification without an action stays for 8 seconds, and pauses while the pointer or focus is on it.
 
 ## Accessibility
 
@@ -343,7 +351,7 @@ Color:
 - Make every action available from the keyboard. Keep a visible focus indicator, and keep the focus order the same as the visual order.
 - Give a switch input `role="switch"`.
 - Give a resizer `role="slider"`, `tabindex="0"`, `aria-orientation`, `aria-valuenow`, `aria-valuemin`, and `aria-valuemax`. Resize it with the arrow keys. Do not use `role="separator"`, because the Svelte checker rejects a focusable separator.
-- Announce notifications through one polite live region. Use `role="alert"` for an error that blocks the current task.
+- Announce notifications, including errors, through one polite live region. Use `role="alert"` only for a field error that blocks the form.
 - Give each page one banner and one `main` landmark, labeled with the page name, that holds the sidebar, the content, and the resizer between them. The window title bar is the only top-level `header`. An account sub-page renders inside the `main` of Accounts, so it uses labeled `section` regions instead of another `main` or an `aside`. Give a container with an `aria-label` a role, such as `role="group"` on a list.
 
 ## Writing
@@ -352,6 +360,7 @@ Color:
 - Start a button label or menu item with a verb. Name the object when the context does not make it clear.
 - Use the same verb for an action in every place: the button, the progress label, and the result. For example, use "Remove account", "Removing…", and "Account removed".
 - Write an error as what happened, then what the user can do. Do not apologize or blame the user.
+- Write errors in plain, concise language inspired by ASD-STE100 Simplified Technical English: short sentences, the active voice, one instruction in each sentence, and common words. Name the exact problem so that a technical user understands it, such as the Roblox limit, the missing file, or the rejected cookie. Do not show endpoints, HTTP status text, or internal error text.
 - Use the ellipsis character "…" only at the end of a progress label, such as "Saving…" or "Loading accounts…", and never three periods. Do not use it in any other text: not in button labels or menu items, even when they open a dialog, and not in placeholders, examples, or truncation markers.
 - Use digits for numbers. Do not use exclamation marks.
 - Keep labels to a few words and descriptions to one sentence.

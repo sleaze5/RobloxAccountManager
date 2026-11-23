@@ -30,7 +30,7 @@
 	import { unsavedChangesGuard } from "../layout/unsaved-changes-guard"
 	import WorkbenchSidebar from "../layout/WorkbenchSidebar.svelte"
 	import { appSettings } from "../settings/settings-store.svelte"
-	import OperationError from "../shared/OperationError.svelte"
+	import { notifyErrors } from "../notifications/error-notifications.svelte"
 	import ProfileImage from "../shared/ProfileImage.svelte"
 	import PresenceLine from "../accounts/PresenceLine.svelte"
 	import Select from "../shared/Select.svelte"
@@ -263,6 +263,9 @@
 			store.list === SocialList.SocialFriends ? `, ${onlineCount} online` : ""
 		return `${total}${more} ${current.noun}${online}`
 	}
+
+	notifyErrors("Action not completed", () => store.error)
+	notifyErrors("List not loaded", () => store.loadError)
 </script>
 
 {#snippet personSummary(person: SocialUser, detail: string)}
@@ -292,7 +295,6 @@
 {/snippet}
 
 <main class="flex min-h-0 flex-1 flex-col bg-canvas" aria-label="Social">
-	<OperationError {store} />
 	<div
 		class="flex min-h-0 flex-1"
 		style={`--sidebar-width: ${store.sidebarCollapsed ? 44 : store.sidebarWidth}px;`}>
@@ -462,19 +464,6 @@
 					{/if}
 				</form>
 			{/snippet}
-			{#if store.loadError && store.page}
-				<p class="px-3 pb-2 text-xs text-danger-muted" role="alert">
-					{store.loadError}
-				</p>
-			{:else if store.page?.unavailable?.includes("presence")}
-				<p class="px-3 pb-2 text-xs text-danger-muted" role="alert">
-					Could not load the online status. Refresh to try again.
-				</p>
-			{:else if store.page?.unavailable?.includes("trusted")}
-				<p class="px-3 pb-2 text-xs text-danger-muted" role="alert">
-					Could not load the trusted friends. Refresh to try again.
-				</p>
-			{/if}
 			<div class="relative grid min-h-0 flex-1 grid-rows-1">
 				<div
 					class={[
@@ -757,7 +746,6 @@
 						<h2>
 							{players ? "User search unavailable" : "List unavailable"}
 						</h2>
-						<p>{store.loadError}</p>
 						<button
 							class="button"
 							type="button"

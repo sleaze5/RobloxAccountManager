@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { notifyErrors } from "../notifications/error-notifications.svelte"
 	import xIcon from "@phosphor-icons/core/regular/x.svg?raw"
 	import Icon from "../shared/Icon.svelte"
 	import { untrack } from "svelte"
@@ -48,6 +49,8 @@
 			saving = false
 		}
 	}
+
+	notifyErrors("Client not changed", () => error)
 </script>
 
 <svelte:window
@@ -110,9 +113,6 @@
 		</div>
 		{#if !installed}
 			<div class="mt-3 notice-note">Install Sober or Mocktail to join games.</div>
-		{/if}
-		{#if error}
-			<div class="mt-3 notice-error" role="alert">{error}</div>
 		{/if}
 		<div class="dialog-actions">
 			<button class="button" type="button" disabled={saving} onclick={onClose}

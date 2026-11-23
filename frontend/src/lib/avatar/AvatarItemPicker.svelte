@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { notifyErrors } from "../notifications/error-notifications.svelte"
 	import LoadMore from "../shared/LoadMore.svelte"
 	import warningIcon from "@phosphor-icons/core/regular/warning.svg?raw"
 	import funnelIcon from "@phosphor-icons/core/regular/funnel.svg?raw"
@@ -105,6 +106,8 @@
 			void inventory.refresh()
 		}
 	})
+
+	notifyErrors("Items not loaded", () => inventory.error)
 </script>
 
 <svelte:window
@@ -186,10 +189,9 @@
 				bind:this={itemsElement}>
 				{#key category.id}
 					{#if !page && inventory.error}
-						<div class="empty-state h-full" role="alert">
+						<div class="empty-state h-full">
 							<Icon svg={warningIcon} size={28} aria-hidden="true" />
 							<h2>{category.label} are unavailable</h2>
-							<p>{inventory.error}</p>
 							<button
 								class="button"
 								type="button"
@@ -230,11 +232,6 @@
 								}}>Clear search</button>
 						</div>
 					{:else}
-						{#if inventory.error}
-							<p class="mb-2 notice-error" role="alert">
-								{inventory.error}
-							</p>
-						{/if}
 						<ul
 							class="grid animate-enter grid-cols-3 gap-2 @xl:grid-cols-4"
 							aria-label={category.label}>

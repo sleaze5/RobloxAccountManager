@@ -182,10 +182,6 @@ export class GamesStore {
 		if (!this.favoritesLoaded) void this.loadFavorites()
 	}
 
-	clearError(): void {
-		this.error = ""
-	}
-
 	show(mode: "search" | "favorites"): void {
 		if (this.mode === mode) return
 		this.mode = mode
@@ -204,6 +200,7 @@ export class GamesStore {
 
 	async copy(text: string | number, label: string): Promise<void> {
 		this.closeMenu()
+		this.error = ""
 		if (
 			!(await copyText(
 				this.notifications,
@@ -217,6 +214,7 @@ export class GamesStore {
 
 	async openLink(url: string): Promise<void> {
 		this.closeMenu()
+		this.error = ""
 		try {
 			await Browser.OpenURL(url)
 		} catch (error) {

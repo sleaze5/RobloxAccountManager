@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { notifyErrors } from "../notifications/error-notifications.svelte"
 	import arrowSquareOutIcon from "@phosphor-icons/core/regular/arrow-square-out.svg?raw"
 	import calendarDotsIcon from "@phosphor-icons/core/regular/calendar-dots.svg?raw"
 	import clockCounterClockwiseIcon from "@phosphor-icons/core/regular/clock-counter-clockwise.svg?raw"
@@ -28,7 +29,6 @@
 	import uploadSimpleIcon from "@phosphor-icons/core/regular/upload-simple.svg?raw"
 	import usersThreeIcon from "@phosphor-icons/core/regular/users-three.svg?raw"
 	import videoCameraIcon from "@phosphor-icons/core/regular/video-camera.svg?raw"
-	import warningIcon from "@phosphor-icons/core/regular/warning.svg?raw"
 	import { accountBackend, GameSection } from "../backend/bridge"
 	import type { GameSocialLinks, Playability } from "../backend/bridge"
 	import { AccountScope } from "../accounts/account-scope"
@@ -383,6 +383,8 @@
 	const metaClass =
 			"flex min-w-0 flex-wrap items-center gap-1 font-mono text-2xs wrap-anywhere text-fg-muted",
 		sectionHeadingClass = "text-xs font-semibold text-fg-muted"
+
+	notifyErrors("Game details not loaded", () => store.detailsError)
 </script>
 
 {#snippet row(fact: Fact, mono = false)}
@@ -664,19 +666,6 @@
 							onclick={() => store.select(rootPlace)}
 							>{store.displayName(rootPlace)}</button
 						></span>
-				</p>
-			{/if}
-
-			{#if store.detailsError}
-				<p
-					class="flex items-start gap-2 text-xs text-danger-muted"
-					role="alert">
-					<Icon
-						svg={warningIcon}
-						class="mt-0.5 shrink-0"
-						size={16}
-						aria-hidden="true" />
-					<span>{store.detailsError}</span>
 				</p>
 			{/if}
 

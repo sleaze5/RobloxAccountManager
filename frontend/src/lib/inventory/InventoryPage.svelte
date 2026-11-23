@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { notifyErrors } from "../notifications/error-notifications.svelte"
 	import LoadMore from "../shared/LoadMore.svelte"
 	import warningIcon from "@phosphor-icons/core/regular/warning.svg?raw"
 	import funnelIcon from "@phosphor-icons/core/regular/funnel.svg?raw"
@@ -184,6 +185,8 @@
 		void inventory.refresh()
 		return () => inventory.dispose()
 	})
+
+	notifyErrors("Inventory not loaded", () => inventory.error)
 </script>
 
 <section class="settings-page" aria-labelledby={`${elementIdPrefix}-inventory-title`}>
@@ -328,16 +331,10 @@
 				data-load-more-root
 				bind:this={contentElement}>
 				{#key inventory.category}
-					{#if inventory.error && items.length > 0}
-						<p class="mx-3 mt-3 notice-error" role="alert">
-							{inventory.error}
-						</p>
-					{/if}
 					{#if !page && inventory.error}
-						<div class="empty-state h-full" role="alert">
+						<div class="empty-state h-full">
 							<Icon svg={warningIcon} size={28} aria-hidden="true" />
 							<h2>Inventory unavailable</h2>
-							<p>{inventory.error}</p>
 							<button
 								class="button"
 								type="button"

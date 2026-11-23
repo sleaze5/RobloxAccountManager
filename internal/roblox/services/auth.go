@@ -47,7 +47,7 @@ func (service *Authentication) RefreshCookie(ctx context.Context, accountID, ver
 	if err != nil {
 		return err
 	}
-	return &roblox.Error{Kind: roblox.KindProtocol, Endpoint: "session-refresh", Message: "Roblox did not return a renewed cookie. The saved cookie was not replaced by this response."}
+	return &roblox.Error{Kind: roblox.KindProtocol, Endpoint: "session-refresh", Message: "Roblox did not return a renewed cookie. The saved cookie did not change."}
 }
 
 type authenticationTicketBody struct {

@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { notifyErrors } from "../notifications/error-notifications.svelte"
 	import calendarDotsIcon from "@phosphor-icons/core/regular/calendar-dots.svg?raw"
 	import checkCircleFillIcon from "@phosphor-icons/core/fill/check-circle-fill.svg?raw"
 	import prohibitIcon from "@phosphor-icons/core/regular/prohibit.svg?raw"
@@ -107,11 +108,6 @@
 		return true
 	}
 
-	function reloadGamePasses(): void {
-		universeGamePasses.clearPurchaseError()
-		void universeGamePasses.refresh()
-	}
-
 	// Focus moves to the control that replaced the pressed one. Robux is reread
 	// each time, since it can change outside the app.
 	async function showView(shownView: GamePassView): Promise<void> {
@@ -150,6 +146,8 @@
 		if (!(await universeGamePasses.buy(confirmedGamePass, accountId))) return
 		await showView("details")
 	}
+
+	notifyErrors("Game pass not bought", () => universeGamePasses.purchaseError)
 </script>
 
 <svelte:window
@@ -209,16 +207,6 @@
 			imageUrl={shownGamePass.iconUrl}
 			fallbackIcon={ticketIcon}
 			priceInRobux={price} />
-		{#if universeGamePasses.purchaseError}
-			<div class="mt-3 flex items-center gap-3 notice-error" role="alert">
-				<span class="flex-1">{universeGamePasses.purchaseError}</span>
-				<button
-					class="button"
-					type="button"
-					disabled={universeGamePasses.loading}
-					onclick={reloadGamePasses}>Refresh</button>
-			</div>
-		{/if}
 		<PurchaseAccountActions
 			{account}
 			priceInRobux={price}

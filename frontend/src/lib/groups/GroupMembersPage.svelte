@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { notifyErrors } from "../notifications/error-notifications.svelte"
 	import LoadMore from "../shared/LoadMore.svelte"
 	import circleNotchIcon from "@phosphor-icons/core/regular/circle-notch.svg?raw"
 	import sealCheckIcon from "@phosphor-icons/core/regular/seal-check.svg?raw"
@@ -180,6 +181,11 @@
 	})
 
 	onMount(() => void members.refresh())
+
+	notifyErrors("Members not loaded", () => members.error)
+	notifyErrors("Member not changed", () => memberError)
+
+	notifyErrors("Member not removed", () => removeError)
 </script>
 
 <section class="settings-page min-w-0" aria-labelledby="group-members-title">
@@ -218,17 +224,10 @@
 		class="min-h-0 flex-1 scrollbar-stable overflow-y-auto"
 		data-load-more-root
 		bind:this={memberListElement}>
-		{#if memberError}
-			<p class="mx-3 mt-3 notice-error" role="alert">{memberError}</p>
-		{/if}
-		{#if members.error && members.hasLoaded}
-			<p class="mx-3 mt-3 notice-error" role="alert">{members.error}</p>
-		{/if}
 		{#if !members.hasLoaded && members.error}
-			<div class="empty-state h-full" role="alert">
+			<div class="empty-state h-full">
 				<Icon svg={warningIcon} size={28} aria-hidden="true" />
 				<h2>Members unavailable</h2>
-				<p>{members.error}</p>
 				<button
 					class="button"
 					type="button"
@@ -346,7 +345,6 @@
 		confirmLabel="Remove member"
 		progressLabel="Removing…"
 		isWorking={isRemoving}
-		error={removeError}
 		onConfirm={() => void removeMember()}
 		onCancel={() => (removedMember = null)} />
 {/if}

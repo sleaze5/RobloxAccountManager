@@ -11,8 +11,7 @@
 </script>
 
 <div
-	class="relative flex animate-enter flex-col items-center gap-2 p-3 text-center text-xs text-fg-muted"
-	role="alert">
+	class="relative flex animate-enter flex-col items-center gap-2 p-3 text-center text-xs text-fg-muted">
 	<Icon svg={icon} size={28} class="animate-bloom" aria-hidden="true" />
 	<p>{message}</p>
 	{#if onRetry}

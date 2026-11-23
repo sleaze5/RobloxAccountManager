@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { notifyErrors } from "../notifications/error-notifications.svelte"
 	import lockKeyIcon from "@phosphor-icons/core/regular/lock-key.svg?raw"
 	import warningIcon from "@phosphor-icons/core/regular/warning.svg?raw"
 	import Icon from "../shared/Icon.svelte"
@@ -22,14 +23,15 @@
 
 	const numbers = new Intl.NumberFormat(),
 		shown = $derived(servers.page?.servers ?? [])
+
+	notifyErrors("RBXServers servers not loaded", () => servers.error)
 </script>
 
 <div class="flex min-h-0 flex-1 flex-col">
 	{#if servers.error}
-		<div class="empty-state" role="alert">
+		<div class="empty-state">
 			<Icon svg={warningIcon} size={28} aria-hidden="true" />
 			<h2>RBXServers servers unavailable</h2>
-			<p>{servers.error}</p>
 			<button class="button" type="button" onclick={() => void servers.load()}
 				>Try again</button>
 		</div>

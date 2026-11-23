@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { notifyErrors } from "../notifications/error-notifications.svelte"
 	import AutomaticUnlockCheckbox from "./AutomaticUnlockCheckbox.svelte"
 	import checkIcon from "@phosphor-icons/core/regular/check.svg?raw"
 	import eyeIcon from "@phosphor-icons/core/regular/eye.svg?raw"
@@ -35,6 +36,8 @@
 			replayValidationNudge(card)
 		}
 	}
+
+	notifyErrors("Password not changed", () => store.error)
 </script>
 
 <Dialog
@@ -64,9 +67,6 @@
 			This changes the vault encryption key and deletes backups that hold old
 			secrets.
 		</p>
-		{#if store.error}<div class="mt-3 notice-error" role="alert">
-				{store.error}
-			</div>{/if}
 
 		{#if store.vault.validAutomaticUnlock}
 			<div class="mt-3 notice-note">

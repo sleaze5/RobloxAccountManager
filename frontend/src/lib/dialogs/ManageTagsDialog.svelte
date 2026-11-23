@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { notifyErrors } from "../notifications/error-notifications.svelte"
 	import hashIcon from "@phosphor-icons/core/regular/hash.svg?raw"
 	import trashIcon from "@phosphor-icons/core/regular/trash.svg?raw"
 	import xIcon from "@phosphor-icons/core/regular/x.svg?raw"
@@ -96,6 +97,8 @@
 			creating = false
 		}
 	}
+
+	notifyErrors("Tags not changed", () => store.error)
 </script>
 
 <Dialog class="max-w-sm" aria-labelledby="manage-tags-title">
@@ -116,9 +119,6 @@
 			<Icon svg={xIcon} size={14} aria-hidden="true" />
 		</button>
 	</div>
-	{#if store.error}
-		<div class="mt-3 notice-error" role="alert">{store.error}</div>
-	{/if}
 	<form
 		novalidate
 		class="tag-manager-create"

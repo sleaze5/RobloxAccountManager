@@ -16,7 +16,7 @@
 	import type { AccountStore } from "../accounts/account-store.svelte"
 	import AccountSwitcher from "../layout/AccountSwitcher.svelte"
 	import WorkbenchSidebar from "../layout/WorkbenchSidebar.svelte"
-	import OperationError from "../shared/OperationError.svelte"
+	import { notifyErrors } from "../notifications/error-notifications.svelte"
 	import { formatTimestamp } from "../shared/timestamp"
 	import LogsExplorerSession from "./LogsExplorerSession.svelte"
 	import type { LogsExplorerStore } from "./logs-explorer-store.svelte"
@@ -49,10 +49,11 @@
 	}
 
 	onMount(() => store.initialize())
+
+	notifyErrors("Action not completed", () => store.error)
 </script>
 
 <main class="flex min-h-0 flex-1 flex-col bg-canvas" aria-label="Logs Explorer">
-	<OperationError {store} />
 	<div
 		class="flex min-h-0 flex-1"
 		style={`--sidebar-width: ${store.sidebarCollapsed ? 44 : store.sidebarWidth}px;`}>

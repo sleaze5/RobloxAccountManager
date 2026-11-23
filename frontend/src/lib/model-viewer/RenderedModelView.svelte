@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { notifyErrors } from "../notifications/error-notifications.svelte"
 	import cubeIcon from "@phosphor-icons/core/regular/cube.svg?raw"
 	import type { RenderedModel } from "../backend/bridge"
 	import FrameUnavailable from "../shared/FrameUnavailable.svelte"
@@ -34,6 +35,8 @@
 			? import("./RenderedModelViewer.svelte")
 			: undefined,
 	)
+
+	notifyErrors("3D model not loaded", () => error)
 </script>
 
 {#if isWebGLUnavailable}
@@ -59,7 +62,7 @@
 		<ModelViewerUnavailable isGraphicsAccelerationMissing={false} />
 	{/await}
 {:else if error}
-	<FrameUnavailable icon={cubeIcon} message={error} {onRetry} />
+	<FrameUnavailable icon={cubeIcon} message="3D model unavailable" {onRetry} />
 {:else}
 	<ModelLoadingPlaceholder />
 {/if}

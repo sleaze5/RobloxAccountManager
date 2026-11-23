@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { notifyErrors } from "../notifications/error-notifications.svelte"
 	import ProfileShowcase from "./ProfileShowcase.svelte"
 	import backpackIcon from "@phosphor-icons/core/regular/backpack.svg?raw"
 	import personArmsSpreadIcon from "@phosphor-icons/core/regular/person-arms-spread.svg?raw"
@@ -195,6 +196,10 @@
 		opener?.closest("[data-workspace-scroll]")?.scrollTo({ top: 0 })
 		opener?.focus({ preventScroll: true })
 	}
+
+	notifyErrors("Profile not loaded", () =>
+		profileVisible ? (profileState?.error ?? "") : "",
+	)
 </script>
 
 {#if workspace.accountPage === "settings" && hasAccount && store.vault.unlocked}
@@ -564,15 +569,6 @@
 					refreshCount={showcaseRefreshCount}
 					{onSearchPlace}
 					{onShowCreations} />
-			{/if}
-			{#if profileVisible && profileState?.error}
-				<p class="text-xs text-danger-muted" role="alert">
-					{profileState.error}
-				</p>
-			{:else if profileVisible && (profileState?.sections.failedSections.length ?? 0) > 0}
-				<p class="text-xs text-danger-muted" role="alert">
-					Could not refresh some profile details. Refresh to try again.
-				</p>
 			{/if}
 		{/if}
 	</section>

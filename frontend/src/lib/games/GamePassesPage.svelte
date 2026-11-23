@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { notifyErrors } from "../notifications/error-notifications.svelte"
 	import caretLeftIcon from "@phosphor-icons/core/regular/caret-left.svg?raw"
 	import checkCircleFillIcon from "@phosphor-icons/core/fill/check-circle-fill.svg?raw"
 	import clockIcon from "@phosphor-icons/core/regular/clock.svg?raw"
@@ -173,6 +174,8 @@
 		if (tile) tile.focus()
 		else heading?.focus({ preventScroll: true })
 	}
+
+	notifyErrors("Game passes not loaded", () => universeGamePasses.error)
 </script>
 
 <section class="settings-page min-w-0" aria-labelledby="game-passes-title">
@@ -266,10 +269,9 @@
 	{#if view === "gamePasses"}
 		<div class="@container min-h-0 flex-1 overflow-auto">
 			{#if universeGamePasses.error && !universeGamePasses.gamePasses}
-				<div class="empty-state h-full" role="alert">
+				<div class="empty-state h-full">
 					<Icon svg={warningIcon} size={28} aria-hidden="true" />
 					<h2>Game passes unavailable</h2>
-					<p>{universeGamePasses.error}</p>
 					<button
 						class="button"
 						type="button"
@@ -304,18 +306,6 @@
 						onclick={() => (filter = "all")}>Show all</button>
 				</div>
 			{:else}
-				{#if universeGamePasses.error}
-					<div
-						class="mx-3 mt-3 flex items-center gap-3 notice-error"
-						role="alert">
-						<span class="flex-1">{universeGamePasses.error}</span>
-						<button
-							class="button"
-							type="button"
-							onclick={() => void universeGamePasses.refresh()}
-							>Try again</button>
-					</div>
-				{/if}
 				{#if account.id === 0}
 					<p
 						class="flex items-center gap-2 border-b border-line-subtle px-3 py-2 text-xs text-fg-muted">

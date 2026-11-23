@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { notifyErrors } from "../notifications/error-notifications.svelte"
 	import AutomaticUnlockCheckbox from "./AutomaticUnlockCheckbox.svelte"
 	import { onMount } from "svelte"
 	import checkIcon from "@phosphor-icons/core/regular/check.svg?raw"
@@ -94,6 +95,9 @@
 		backups = await store.listBackups()
 		selectedBackup = backups[0]?.name ?? ""
 	}
+
+	notifyErrors("Vault not created", () => (creating ? store.error : ""))
+	notifyErrors("Vault not unlocked", () => (creating ? "" : store.error))
 </script>
 
 <Dialog
@@ -128,23 +132,12 @@
 
 		{#if store.vault.startupError}
 			<div class="mt-3 notice-warning">{store.vault.startupError}</div>
-			{#if !creating && !recoveryMode}
-				<button
-					class="mt-2 button-text *:animate-pop"
-					type="button"
-					onclick={() => void showRecovery()}>Recovery options</button>
-			{/if}
 		{/if}
-		{#if store.error}
-			<div class="mt-3 notice-error" role="alert">
-				{store.error}
-			</div>
-			{#if !recoveryMode && !creating}
-				<button
-					class="mt-2 button-text *:animate-pop"
-					type="button"
-					onclick={() => void showRecovery()}>Recovery options</button>
-			{/if}
+		{#if (store.vault.startupError || store.error) && !creating && !recoveryMode}
+			<button
+				class="mt-2 button-text *:animate-pop"
+				type="button"
+				onclick={() => void showRecovery()}>Recovery options</button>
 		{/if}
 
 		{#if recoveryMode && !store.vault.unlocked}

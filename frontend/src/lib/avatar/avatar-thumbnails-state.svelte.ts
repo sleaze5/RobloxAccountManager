@@ -95,10 +95,6 @@ export class AvatarThumbnailsState {
 		}
 	}
 
-	clearSaveError(): void {
-		this.saveError = ""
-	}
-
 	dispose(): void {
 		this.#scope.dispose()
 	}

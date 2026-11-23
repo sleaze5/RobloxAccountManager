@@ -212,6 +212,7 @@
 		serverId: string,
 		use: (link: string) => void | Promise<void>,
 	): Promise<void> {
+		store.error = ""
 		try {
 			const link = await listedServers.launchLink(serverId)
 			if (link) await use(link)

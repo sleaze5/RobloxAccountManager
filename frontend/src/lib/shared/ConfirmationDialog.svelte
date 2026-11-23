@@ -10,7 +10,6 @@
 		progressLabel,
 		tone = "danger",
 		isWorking,
-		error,
 		onConfirm,
 		onCancel,
 	}: {
@@ -21,7 +20,6 @@
 		progressLabel: string
 		tone?: "danger" | "warning"
 		isWorking: boolean
-		error: string
 		onConfirm: () => void
 		onCancel: () => void
 	} = $props()
@@ -60,9 +58,6 @@
 			<Icon svg={xIcon} size={14} aria-hidden="true" />
 		</button>
 	</div>
-	{#if error}
-		<div class="mt-3 notice-error" role="alert">{error}</div>
-	{/if}
 	<div class="dialog-actions">
 		<button class="button" type="button" disabled={isWorking} onclick={cancel}
 			>Cancel</button>

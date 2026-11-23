@@ -17,7 +17,7 @@ func (service *Service) refreshCredentialBackup(ctx context.Context, logger *slo
 	defer cancel()
 	if err := service.vault.CreateBackup(backupContext); err != nil {
 		logger.WarnContext(ctx, "cookie saved, but could not create a new backup", "error", err)
-		return "The cookie change is saved, but a new backup was not created. Check free disk space and the logs."
+		return "The cookie change is saved, but the app did not create a backup. Check free disk space and the logs."
 	}
 	return ""
 }

@@ -38,7 +38,6 @@ type ImportPreviewItem struct {
 	DisplayName        string               `json:"displayName,omitempty"`
 	AvatarURL          string               `json:"avatarUrl,omitempty"`
 	Moderation         *accounts.Moderation `json:"moderation,omitempty"`
-	ErrorStatus        string               `json:"errorStatus,omitempty"`
 	ErrorMessage       string               `json:"errorMessage,omitempty"`
 }
 
@@ -104,7 +103,7 @@ func (service *Service) ValidateCookies(ctx context.Context, input string) (Impo
 	for index, outcome := range outcomes {
 		previewItem := ImportPreviewItem{Index: index + 1}
 		if outcome.err != nil {
-			previewItem.ErrorStatus, previewItem.ErrorMessage = importErrorDetails(outcome.err)
+			_, previewItem.ErrorMessage = importErrorDetails(outcome.err)
 			preview.Items[index] = previewItem
 			continue
 		}

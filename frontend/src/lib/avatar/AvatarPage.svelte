@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { notifyErrors } from "../notifications/error-notifications.svelte"
 	import warningIcon from "@phosphor-icons/core/regular/warning.svg?raw"
 	import arrowUUpLeftIcon from "@phosphor-icons/core/regular/arrow-u-up-left.svg?raw"
 	import { onMount, tick, untrack } from "svelte"
@@ -303,6 +304,16 @@
 	$effect(() => {
 		if (pageVisibility.isShown) return unsavedChangesGuard.hold(confirmLeaving)
 	})
+
+	notifyErrors("Avatar not loaded", () => avatar.error)
+	notifyErrors("Avatar not saved", () => avatar.saveError)
+	notifyErrors("Avatar limits not loaded", () =>
+		avatar.isEditable && avatar.rules === null
+			? "Could not load the avatar limits. You cannot edit the avatar. Refresh to try again."
+			: "",
+	)
+
+	notifyErrors("Outfit not deleted", () => avatar.outfitActionError)
 </script>
 
 <svelte:window
@@ -389,10 +400,9 @@
 	</AccountPageHeader>
 
 	{#if !avatar.avatar && avatar.error}
-		<div class="empty-state flex-1" role="alert">
+		<div class="empty-state flex-1">
 			<Icon svg={warningIcon} size={28} aria-hidden="true" />
 			<h2>Avatar unavailable</h2>
-			<p>{avatar.error}</p>
 			<button class="button" type="button" onclick={() => void avatar.refresh()}
 				>Try again</button>
 		</div>
@@ -441,20 +451,6 @@
 					role="tabpanel"
 					aria-labelledby={`${elementIdPrefix}-avatar-tab-${tab}`}
 					aria-busy={avatar.loading}>
-					{#if avatar.isEditable && avatar.rules === null}
-						<div
-							class="mx-3 mt-3 flex items-center gap-2 notice-error"
-							role="alert">
-							<span class="min-w-0 flex-1"
-								>Could not load the avatar limits, so you cannot edit
-								the avatar.</span>
-							<button
-								class="button"
-								type="button"
-								onclick={() => void avatar.loadRules()}
-								>Try again</button>
-						</div>
-					{/if}
 					{#if avatar.isAvatarOutdated}
 						<div
 							class="mx-3 mt-3 flex items-center gap-2 notice-warning"
@@ -470,16 +466,6 @@
 								onclick={() => void avatar.refresh()}
 								>{avatar.loading ? "Refreshing…" : "Refresh"}</button>
 						</div>
-					{/if}
-					{#if avatar.saveError}
-						<p class="mx-3 mt-3 notice-error" role="alert">
-							{avatar.saveError}
-						</p>
-					{/if}
-					{#if avatar.error && avatar.avatar}
-						<p class="mx-3 mt-3 notice-error" role="alert">
-							{avatar.error}
-						</p>
 					{/if}
 					{#if !draft}
 						<div
@@ -647,7 +633,6 @@
 		confirmLabel="Delete outfit"
 		progressLabel="Deleting…"
 		isWorking={avatar.isChangingOutfit}
-		error={avatar.outfitActionError}
 		onConfirm={() => void deleteOutfit(outfit)}
 		onCancel={() => (deletedOutfit = null)} />
 {/if}
@@ -660,7 +645,6 @@
 		progressLabel="Saving…"
 		tone="warning"
 		isWorking={avatar.isSaving}
-		error={avatar.saveError}
 		onConfirm={confirmDiscard}
 		onCancel={cancelDiscard} />
 {/if}

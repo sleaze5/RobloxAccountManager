@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { notifyErrors } from "../notifications/error-notifications.svelte"
 	import { onMount } from "svelte"
 	import { accountBackend, StorageMode } from "../backend/bridge"
 	import type { AppLocation, LaunchReport } from "../backend/bridge"
@@ -50,10 +51,12 @@
 		cellClass = "p-1",
 		numberClass = "text-right whitespace-nowrap",
 		labelClass = "font-sans font-normal text-fg-muted"
+
+	notifyErrors("Build details not loaded", () => error)
 </script>
 
 {#if error}
-	<div class="notice-error" role="alert">{error}</div>
+	<p class="px-1 text-xs text-fg-muted">Build details unavailable</p>
 {:else if !report || !build}
 	<p class="px-1 text-xs text-fg-faint" role="status">Loading…</p>
 {:else}

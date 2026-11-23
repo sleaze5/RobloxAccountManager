@@ -20,7 +20,7 @@
 	import WorkbenchSidebar from "../layout/WorkbenchSidebar.svelte"
 	import type { NotificationCenter } from "../notifications/notification-center.svelte"
 	import { isMoveShortcut, moveListFocus } from "../shared/move-shortcut"
-	import OperationError from "../shared/OperationError.svelte"
+	import { notifyErrors } from "../notifications/error-notifications.svelte"
 	import { menuIn, menuOut } from "../shared/presence"
 	import GameContextMenu from "./GameContextMenu.svelte"
 	import GameBadgesPage from "./GameBadgesPage.svelte"
@@ -160,10 +160,12 @@
 		untrack(() => store.revalidate())
 		return () => store.closeMenu()
 	})
+
+	notifyErrors("Action not completed", () => store.error)
+	notifyErrors("Search not completed", () => store.searchError)
 </script>
 
 <main class="flex min-h-0 flex-1 flex-col bg-canvas" aria-label="Games">
-	<OperationError {store} />
 	<div
 		class="flex min-h-0 flex-1"
 		style={`--sidebar-width: ${store.sidebarCollapsed ? 44 : store.sidebarWidth}px;`}>
@@ -481,7 +483,6 @@
 							size={28}
 							aria-hidden="true" />
 						<h2>Search unavailable</h2>
-						<p>{store.searchError}</p>
 					{:else if store.searchedText && !count}<Icon
 							svg={magnifyingGlassIcon}
 							size={28}

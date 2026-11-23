@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { notifyErrors } from "../notifications/error-notifications.svelte"
 	import LoadMore from "../shared/LoadMore.svelte"
 	import warningIcon from "@phosphor-icons/core/regular/warning.svg?raw"
 	import type { Snippet } from "svelte"
@@ -111,16 +112,14 @@
 			untrack(() => void accountItemActions.loadOwnership(items))
 		}
 	})
+
+	notifyErrors("Marketplace not loaded", () => store.error)
 </script>
 
-{#if store.error && store.hasResults}
-	<p class="mx-3 mt-3 notice-error" role="alert">{store.error}</p>
-{/if}
 {#if !store.hasResults && store.error}
-	<div class="empty-state h-full" role="alert">
+	<div class="empty-state h-full">
 		<Icon svg={warningIcon} size={28} aria-hidden="true" />
 		<h2>Marketplace unavailable</h2>
-		<p>{store.error}</p>
 		<button class="button" type="button" onclick={() => void store.refresh()}
 			>Try again</button>
 	</div>

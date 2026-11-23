@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { notifyErrors } from "../notifications/error-notifications.svelte"
 	import arrowCounterClockwiseIcon from "@phosphor-icons/core/regular/arrow-counter-clockwise.svg?raw"
 	import circleNotchIcon from "@phosphor-icons/core/regular/circle-notch.svg?raw"
 	import pauseIcon from "@phosphor-icons/core/regular/pause.svg?raw"
@@ -110,6 +111,10 @@
 	$effect(() => {
 		if (!playback) isSpeedPanelOpen = false
 	})
+
+	notifyErrors("Animation not played", () =>
+		isAnimationFailed ? "Could not play this animation. Select another one." : "",
+	)
 </script>
 
 <!-- Escape closes the speed panel before it reaches a dialog around the bar,
@@ -254,8 +259,3 @@ and a press outside it closes it. -->
 		</div>
 	{/if}
 </div>
-{#if isAnimationFailed}
-	<p class="mt-2 animate-enter text-xs text-danger-muted" role="alert">
-		Could not play this animation. Select another one.
-	</p>
-{/if}

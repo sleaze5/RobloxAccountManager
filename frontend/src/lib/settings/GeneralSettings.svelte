@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { notifyErrors } from "../notifications/error-notifications.svelte"
 	import { matchesSearch, searchTerms } from "../shared/search"
 	import { matchesSetting, settingWords } from "./settings-search"
 	import { PresenceScope } from "../backend/bridge"
@@ -70,11 +71,9 @@
 			),
 		),
 		showAllLevels = $derived(matchesSetting(terms, "allLogLevels"))
-</script>
 
-{#if store.error}<div class="notice-error" role="alert">
-		{store.error}
-	</div>{/if}
+	notifyErrors("Setting not saved", () => store.error)
+</script>
 
 {#if visiblePresenceScopes.length > 0}
 	<section class="settings-section" aria-labelledby="presence-updates-title">

@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { notifyErrors } from "../notifications/error-notifications.svelte"
 	import LoadMore from "../shared/LoadMore.svelte"
 	import checkIcon from "@phosphor-icons/core/regular/check.svg?raw"
 	import circleNotchIcon from "@phosphor-icons/core/regular/circle-notch.svg?raw"
@@ -90,6 +91,9 @@
 	}
 
 	onMount(() => void requests.refresh())
+
+	notifyErrors("Join requests not loaded", () => requests.error)
+	notifyErrors("Join request not answered", () => answerError)
 </script>
 
 <section class="settings-page min-w-0" aria-labelledby="group-requests-title">
@@ -113,17 +117,10 @@
 		</button>
 	</GroupSubpageHeader>
 	<div class="min-h-0 flex-1 scrollbar-stable overflow-y-auto" data-load-more-root>
-		{#if answerError}
-			<p class="mx-3 mt-3 notice-error" role="alert">{answerError}</p>
-		{/if}
-		{#if requests.error && requests.hasLoaded}
-			<p class="mx-3 mt-3 notice-error" role="alert">{requests.error}</p>
-		{/if}
 		{#if !requests.hasLoaded && requests.error}
-			<div class="empty-state h-full" role="alert">
+			<div class="empty-state h-full">
 				<Icon svg={warningIcon} size={28} aria-hidden="true" />
 				<h2>Join requests unavailable</h2>
-				<p>{requests.error}</p>
 				<button
 					class="button"
 					type="button"

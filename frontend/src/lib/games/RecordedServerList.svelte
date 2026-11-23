@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { notifyErrors } from "../notifications/error-notifications.svelte"
 	import LoadMore from "../shared/LoadMore.svelte"
 	import hardDrivesIcon from "@phosphor-icons/core/regular/hard-drives.svg?raw"
 	import warningIcon from "@phosphor-icons/core/regular/warning.svg?raw"
@@ -58,6 +59,11 @@
 		void servers.listVersion
 		untrack(() => list?.scrollTo({ top: 0 }))
 	})
+
+	notifyErrors(
+		"RoValra servers not loaded",
+		() => servers.error || servers.loadMoreError,
+	)
 </script>
 
 <div class="flex min-h-0 flex-1 flex-col">
@@ -111,10 +117,9 @@
 	</div>
 
 	{#if servers.error}
-		<div class="empty-state" role="alert">
+		<div class="empty-state">
 			<Icon svg={warningIcon} size={28} aria-hidden="true" />
 			<h2>RoValra servers unavailable</h2>
-			<p>{servers.error}</p>
 			<button class="button" type="button" onclick={() => void servers.load()}
 				>Try again</button>
 		</div>
@@ -209,7 +214,6 @@
 					loadingLabel="Loading more servers…"
 					isLoadingMore={servers.loadingMore}
 					hasFailed={!!servers.loadMoreError}
-					failureMessage={servers.loadMoreError}
 					onLoadMore={() => void servers.loadMore()} />
 			{/if}
 		</div>

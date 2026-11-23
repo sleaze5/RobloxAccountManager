@@ -80,8 +80,8 @@
 		</ul>
 		<span class="sr-only" role="status">Checking your other accounts…</span>
 	{:else if ownership === null}
-		<div class="flex items-center gap-2 notice-error" role="alert">
-			<span class="min-w-0 flex-1">Could not check your other accounts.</span>
+		<div class="flex items-center gap-2 text-xs text-fg-muted">
+			<span class="min-w-0 flex-1">Other accounts unavailable</span>
 			<button class="button" type="button" onclick={onRetry}>Try again</button>
 		</div>
 	{:else}
@@ -117,9 +117,8 @@
 		{/if}
 		{#if ownership.failedAccountCount > 0}
 			<p class="text-2xs text-fg-muted" role="status">
-				Could not check {ownership.failedAccountCount}
-				{ownership.failedAccountCount === 1 ? "account" : "accounts"}. Open the
-				item again to try again.
+				{ownership.failedAccountCount}
+				{ownership.failedAccountCount === 1 ? "account" : "accounts"} not checked.
 			</p>
 		{/if}
 	{/if}

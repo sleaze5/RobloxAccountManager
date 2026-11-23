@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { notifyErrors } from "../notifications/error-notifications.svelte"
 	import { tick, untrack } from "svelte"
 	import xIcon from "@phosphor-icons/core/regular/x.svg?raw"
 	import Icon from "../shared/Icon.svelte"
@@ -94,6 +95,8 @@
 			await save()
 		}
 	}
+
+	notifyErrors("Description not saved", () => error)
 </script>
 
 <svelte:window
@@ -144,10 +147,6 @@
 				<TextFilterStatus {check} noun="text" />
 			{/if}
 		</div>
-
-		{#if error}
-			<div class="mt-3 notice-error" role="alert">{error}</div>
-		{/if}
 
 		<div class="dialog-actions">
 			<button

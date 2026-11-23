@@ -212,7 +212,7 @@
 				</p>
 			{:else if store.menuRelationshipFailed}
 				<p class="px-2 py-1 text-2xs text-fg-muted" role="status">
-					Could not check this user. Reopen the menu to retry.
+					Connection unavailable
 				</p>
 			{/if}
 		</div>

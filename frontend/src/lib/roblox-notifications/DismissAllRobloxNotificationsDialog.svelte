@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { notifyErrors } from "../notifications/error-notifications.svelte"
 	import ConfirmationDialog from "../shared/ConfirmationDialog.svelte"
 	import type { RobloxNotificationState } from "./roblox-notification-state.svelte"
 
@@ -22,6 +23,8 @@
 	async function dismissAll(): Promise<void> {
 		if (await notifications.dismissAll()) onClose()
 	}
+
+	notifyErrors("Notifications not dismissed", () => notifications.dismissAllError)
 </script>
 
 <ConfirmationDialog
@@ -30,6 +33,5 @@
 	confirmLabel="Dismiss all"
 	progressLabel="Dismissing…"
 	isWorking={notifications.dismissingAll}
-	error={notifications.dismissAllError}
 	onConfirm={() => void dismissAll()}
 	onCancel={close} />

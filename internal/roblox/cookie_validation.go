@@ -132,7 +132,7 @@ func (client *Client) cookieValidationResponse(ctx context.Context, response *Re
 		if shouldRetry, err := waitForCookieValidationRetry(ctx, response, attempt); shouldRetry || err != nil {
 			return CookieValidation{}, shouldRetry, err
 		}
-		return CookieValidation{}, false, &Error{Kind: KindRateLimited, Endpoint: "cookie-import", Status: response.Status, Message: "Roblox is limiting cookie checks. Wait, then try again."}
+		return CookieValidation{}, false, &Error{Kind: KindRateLimited, Endpoint: "cookie-import", Status: response.Status, Message: "Roblox is limiting cookie checks. " + retryAfterInstruction(response.Header)}
 	case response.Status >= 500:
 		if shouldRetry, err := waitForCookieValidationRetry(ctx, response, attempt); shouldRetry || err != nil {
 			return CookieValidation{}, shouldRetry, err

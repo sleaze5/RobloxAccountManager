@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { notifyErrors } from "../notifications/error-notifications.svelte"
 	import LoadMore from "../shared/LoadMore.svelte"
 	import Icon from "../shared/Icon.svelte"
 	import SettingsRowsSkeleton from "../shared/SettingsRowsSkeleton.svelte"
@@ -31,11 +32,9 @@
 			? `Renews ${date} for ${numbers.format(server.price)} Robux`
 			: `Renews ${date}`
 	}
-</script>
 
-{#if owned.error}
-	<div class="notice-error" role="alert">{owned.error}</div>
-{/if}
+	notifyErrors("Private servers not loaded", () => owned.error)
+</script>
 
 {#if !owned.servers}
 	{#if owned.loading}

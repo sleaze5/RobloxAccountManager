@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { notifyErrors } from "../notifications/error-notifications.svelte"
 	import arrowsLeftRightIcon from "@phosphor-icons/core/regular/arrows-left-right.svg?raw"
 	import arrowsOutIcon from "@phosphor-icons/core/regular/arrows-out.svg?raw"
 	import barcodeIcon from "@phosphor-icons/core/regular/barcode.svg?raw"
@@ -468,6 +469,12 @@
 		if (confirmation) void showConfirmation(null)
 		else onClose()
 	}
+
+	notifyErrors("Item action not completed", () => inventory.itemActionError)
+
+	notifyErrors("Avatar not loaded", () => tryOnAvatarError)
+	notifyErrors("Item not tried on", () => tryOnError)
+	notifyErrors("Preview not loaded", () => itemLookError)
 </script>
 
 <svelte:window
@@ -483,7 +490,7 @@
 		{#if tryOnAvatarError}
 			<FrameUnavailable
 				icon={category.icon}
-				message={tryOnAvatarError}
+				message="Avatar unavailable"
 				onRetry={() => void inventory.loadTryOnAvatar(item, category.id)} />
 		{:else}
 			<ModelFrame
@@ -508,7 +515,7 @@
 		{:else if tryOnError}
 			<FrameUnavailable
 				icon={category.icon}
-				message={tryOnError}
+				message="Preview unavailable"
 				onRetry={() => void inventory.tryOnItem(item, category.id)} />
 		{:else}
 			<span class="absolute inset-3 skeleton rounded-md" role="status">
@@ -519,7 +526,7 @@
 		{#if itemLookError && !hasRenderedModel}
 			<FrameUnavailable
 				icon={category.icon}
-				message={itemLookError}
+				message="Preview unavailable"
 				onRetry={() => void inventory.loadItemLook(item, category.id)} />
 		{:else}
 			<ModelFrame
@@ -686,9 +693,6 @@
 				{imageUrl}
 				fallbackIcon={category.icon}
 				priceInRobux={price} />
-		{/if}
-		{#if inventory.itemActionError}
-			<p class="mt-3 notice-error" role="alert">{inventory.itemActionError}</p>
 		{/if}
 		{#if confirmation === "purchase"}
 			<PurchaseAccountActions
@@ -1239,11 +1243,9 @@
 								? "bundle items"
 								: "dependencies"}…</span>
 					{:else if relatedItems === null}
-						<div class="flex items-center gap-2 notice-error" role="alert">
+						<div class="flex items-center gap-2 text-xs text-fg-muted">
 							<span class="min-w-0 flex-1"
-								>Could not load the {isBundle
-									? "bundle items"
-									: "dependencies"}.</span>
+								>{isBundle ? "Bundle items" : "Dependencies"} unavailable</span>
 							<button
 								class="button"
 								type="button"
@@ -1284,10 +1286,6 @@
 				</section>
 			{/if}
 		</div>
-
-		{#if inventory.itemActionError}
-			<p class="mt-3 notice-error" role="alert">{inventory.itemActionError}</p>
-		{/if}
 	{/if}
 </Dialog>
 

@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { notifyErrors } from "../notifications/error-notifications.svelte"
 	import { searchTerms } from "../shared/search"
 	import { matchesSetting } from "./settings-search"
 	import arrowCounterClockwiseIcon from "@phosphor-icons/core/regular/arrow-counter-clockwise.svg?raw"
@@ -146,16 +147,13 @@
 		void store.setTimestampFormats(timestampFormat, timestampHoverFormat)
 	}
 	const codeClass = "rounded-sm bg-fill px-0.5 font-mono text-2xs text-fg-muted"
+
+	notifyErrors("Setting not saved", () => store.error)
 </script>
 
 {#if showMotion}
 	<section class="settings-section" aria-labelledby="motion-title">
 		<h3 id="motion-title">Motion</h3>
-		{#if store.error}
-			<div class="notice-error" role="alert">
-				{store.error}
-			</div>
-		{/if}
 		<div class="settings-rows">
 			<div class="settings-row">
 				<div class="settings-row-copy">
@@ -211,15 +209,8 @@
 				{/each}
 			</dl>
 		</details>
-		{#if store.error && !showMotion}
-			<div class="notice-error" role="alert">
-				{store.error}
-			</div>
-		{/if}
 		{#each validationErrors as error (error)}
-			<div class="notice-error" role="alert">
-				{error}
-			</div>
+			<p class="text-xs text-danger-muted">{error}</p>
 		{/each}
 		<form
 			novalidate

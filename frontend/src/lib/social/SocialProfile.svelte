@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { notifyErrors } from "../notifications/error-notifications.svelte"
 	import ProfileShowcase from "../accounts/ProfileShowcase.svelte"
 	import arrowSquareOutIcon from "@phosphor-icons/core/regular/arrow-square-out.svg?raw"
 	import backpackIcon from "@phosphor-icons/core/regular/backpack.svg?raw"
@@ -138,6 +139,8 @@
 						? "Checking inventory access…"
 						: "Inventory unavailable",
 		)
+
+	notifyErrors("Profile not loaded", () => store.profileError)
 </script>
 
 <section class="flex flex-col gap-4 p-3 pb-4" aria-labelledby="social-name">
@@ -605,13 +608,5 @@
 			refreshCount={showcaseRefreshCount}
 			{onSearchPlace}
 			{onShowCreations} />
-	{/if}
-
-	{#if store.profileError}
-		<p class="text-xs text-danger-muted" role="alert">{store.profileError}</p>
-	{:else if (store.profileLoad?.failedSections.length ?? 0) > 0 || (profileRelationship?.unavailable?.length ?? 0) > 0}
-		<p class="text-xs text-danger-muted" role="alert">
-			Could not load some profile details. Refresh to try again.
-		</p>
 	{/if}
 </section>

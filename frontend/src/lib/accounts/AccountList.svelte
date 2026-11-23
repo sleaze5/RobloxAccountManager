@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { notifyErrors } from "../notifications/error-notifications.svelte"
 	import LoadMore from "../shared/LoadMore.svelte"
 	import CheckboxMark from "../shared/CheckboxMark.svelte"
 	import dotsSixVerticalIcon from "@phosphor-icons/core/regular/dots-six-vertical.svg?raw"
@@ -154,6 +155,8 @@
 			) ?? store.accounts[0]
 		)?.id,
 	)
+
+	notifyErrors("Accounts not loaded", () => store.accountListError)
 </script>
 
 <div
@@ -161,11 +164,6 @@
 	data-list
 	aria-busy={store.loadingAccounts || store.loadingMore}
 	data-load-more-root>
-	{#if store.accountListError && store.accounts.length > 0}
-		<p class="px-3 py-2 text-xs text-danger-muted" role="alert">
-			{store.accountListError}
-		</p>
-	{/if}
 	{#each store.accounts as account (account.id)}
 		{@const moderated = account.state === SessionState.StateModerated}
 		{@const attention = moderated ? "" : sessionAttentionLabel(account.state)}

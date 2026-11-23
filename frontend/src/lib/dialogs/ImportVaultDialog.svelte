@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { notifyErrors } from "../notifications/error-notifications.svelte"
 	import CheckboxMark from "../shared/CheckboxMark.svelte"
 	import checkCircleIcon from "@phosphor-icons/core/regular/check-circle.svg?raw"
 	import eyeIcon from "@phosphor-icons/core/regular/eye.svg?raw"
@@ -240,6 +241,13 @@
 		preview = null
 		error = confirmation = ""
 	}
+
+	notifyErrors("Vault not imported", () => error)
+	notifyErrors("Export not supported", () =>
+		details && !details.supported
+			? "A newer version of the app made this export. Update the app to import it."
+			: "",
+	)
 </script>
 
 <svelte:window
@@ -438,9 +446,6 @@
 				</div>
 			{/if}
 
-			{#if error}
-				<div class="mt-3 notice-error" role="alert">{error}</div>
-			{/if}
 			<div class="dialog-actions">
 				<button class="button" type="button" disabled={busy} onclick={back}
 					>Back</button>
@@ -516,12 +521,6 @@
 						</dd>
 					</div>
 				</dl>
-				{#if !details.supported}
-					<div class="mt-3 notice-error" role="alert">
-						This export was made by a newer version of the app. Update the
-						app to import it.
-					</div>
-				{/if}
 			{/if}
 			<label class="dialog-field">
 				<span>Export password</span>
@@ -544,9 +543,6 @@
 			</button>
 			{#if details?.hint}
 				<div class="mt-3 notice-note">Hint: {details.hint}</div>
-			{/if}
-			{#if error}
-				<div class="mt-3 notice-error" role="alert">{error}</div>
 			{/if}
 			<div class="dialog-actions">
 				<button class="button" type="button" disabled={busy} onclick={close}

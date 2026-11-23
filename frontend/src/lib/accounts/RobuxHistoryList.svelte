@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { notifyErrors } from "../notifications/error-notifications.svelte"
 	import LoadMore from "../shared/LoadMore.svelte"
 	import coinsIcon from "@phosphor-icons/core/regular/coins.svg?raw"
 	import Icon from "../shared/Icon.svelte"
@@ -44,11 +45,9 @@
 			.filter(Boolean)
 			.join(" · ")
 	}
-</script>
 
-{#if history.error}
-	<div class="notice-error" role="alert">{history.error}</div>
-{/if}
+	notifyErrors("Robux history not loaded", () => history.error)
+</script>
 
 <section class="settings-section" aria-labelledby="robux-history-title">
 	<h3 class="flex items-center justify-between gap-2">

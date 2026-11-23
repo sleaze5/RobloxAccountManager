@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { notifyErrors } from "../notifications/error-notifications.svelte"
 	import arrowSquareOutIcon from "@phosphor-icons/core/regular/arrow-square-out.svg?raw"
 	import xIcon from "@phosphor-icons/core/regular/x.svg?raw"
 	import { Browser } from "@wailsio/runtime"
@@ -38,6 +39,16 @@
 		if (search.phase !== "found") return
 		void tick().then(() => useServerButton?.focus())
 	})
+
+	notifyErrors("Server not found", () =>
+		search.phase === "failed"
+			? search.error
+			: search.phase !== "exhausted"
+				? ""
+				: search.regionChecks.length === 0
+					? "RoValra has no servers of this place now. Try again later."
+					: `No open server in ${search.regionChecks.length} ${search.regionChecks.length === 1 ? "region" : "regions"}. Try again later.`,
+	)
 </script>
 
 <Dialog
@@ -63,16 +74,6 @@
 	<NearestServerRoute {search} />
 
 	<span class="sr-only" role="status">{announcement}</span>
-
-	{#if search.phase === "exhausted"}
-		<div class="mt-3 notice-error" role="alert">
-			{search.regionChecks.length === 0
-				? "RoValra has no servers of this place right now. Try again later."
-				: `No open server was found in ${search.regionChecks.length} ${search.regionChecks.length === 1 ? "region" : "regions"}. Try again later.`}
-		</div>
-	{:else if search.phase === "failed"}
-		<div class="mt-3 notice-error" role="alert">{search.error}</div>
-	{/if}
 
 	<div class="dialog-actions items-center">
 		<p class="mr-auto flex items-center gap-1 text-xs text-fg-muted">

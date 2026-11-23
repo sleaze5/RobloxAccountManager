@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { notifyErrors } from "../notifications/error-notifications.svelte"
 	import LoadMore from "../shared/LoadMore.svelte"
 	import gameControllerIcon from "@phosphor-icons/core/regular/game-controller.svg?raw"
 	import lockIcon from "@phosphor-icons/core/regular/lock.svg?raw"
@@ -73,6 +74,8 @@
 		filter = nextFilter
 		gameListElement?.scrollTo({ top: 0 })
 	}
+
+	notifyErrors("Games not loaded", () => games.error)
 </script>
 
 <section class="settings-page min-w-0" aria-labelledby="group-games-title">
@@ -116,14 +119,10 @@
 		class="min-h-0 flex-1 scrollbar-stable overflow-y-auto"
 		data-load-more-root
 		bind:this={gameListElement}>
-		{#if games.error && games.hasLoaded}
-			<p class="mx-3 mt-3 notice-error" role="alert">{games.error}</p>
-		{/if}
 		{#if !games.hasLoaded && games.error}
-			<div class="empty-state h-full" role="alert">
+			<div class="empty-state h-full">
 				<Icon svg={warningIcon} size={28} aria-hidden="true" />
 				<h2>Games unavailable</h2>
-				<p>{games.error}</p>
 				<button
 					class="button"
 					type="button"

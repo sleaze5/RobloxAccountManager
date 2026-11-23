@@ -61,6 +61,7 @@
 	import WindowTitleBar from "./lib/layout/WindowTitleBar.svelte"
 	import { setWorkspace, WorkspaceState } from "./lib/layout/workspace-state.svelte"
 	import { unsavedChangesGuard } from "./lib/layout/unsaved-changes-guard"
+	import { notifyErrors } from "./lib/notifications/error-notifications.svelte"
 	import Notifications from "./lib/notifications/Notifications.svelte"
 	import {
 		NotificationCenter,
@@ -69,7 +70,6 @@
 	import { appSettings } from "./lib/settings/settings-store.svelte"
 	import { errorMessage } from "./lib/shared/errors"
 	import Icon from "./lib/shared/Icon.svelte"
-	import OperationError from "./lib/shared/OperationError.svelte"
 	import Tooltip from "./lib/shared/Tooltip.svelte"
 	import { updateStore } from "./lib/updates/update-store.svelte"
 
@@ -158,6 +158,19 @@
 	setGamesStore(games)
 	setWorkspace(workspace)
 	setNotificationCenter(notificationCenter)
+	// A dialog reports its own failure, so the page reports only the errors
+	// of actions that ran while no dialog was open.
+	notifyErrors("Action not completed", () => {
+		const message = store.error
+		return untrack(
+			() =>
+				activePage === "accounts" &&
+				activeDialog === null &&
+				store.vault.unlocked,
+		)
+			? message
+			: ""
+	})
 	const accountSubpage = $derived(
 		workspace.accountPage !== "profile" &&
 			store.selectedAccount.id !== 0 &&
@@ -761,10 +774,10 @@
 {/snippet}
 
 {#snippet pageUnavailable()}
-	<div class="empty-state min-h-0 flex-1" role="alert">
+	<div class="empty-state min-h-0 flex-1">
 		<Icon svg={warningIcon} size={28} aria-hidden="true" />
 		<h2>Page unavailable</h2>
-		<p>Could not load the page. Restart the app.</p>
+		<p>Restart the app.</p>
 	</div>
 {/snippet}
 
@@ -812,9 +825,6 @@
 
 	{#if isTabPageMounted("accounts")}
 		<RetainedPage isShown={activePage === "accounts"}>
-			{#if activePage === "accounts" && store.error && activeDialog === null && store.vault.unlocked}
-				<OperationError {store} />
-			{/if}
 			<main
 				class="flex min-h-0 flex-1"
 				aria-label="Accounts"
@@ -979,8 +989,6 @@
 	<Tooltip />
 </div>
 
-<Notifications center={notificationCenter} />
-
 {#if workspace.accountContextMenu && store.selectedAccountIds.includes(workspace.accountContextMenu.accountId) && store.vault.unlocked}
 	<AccountContextMenu
 		{store}
@@ -1115,3 +1123,7 @@
 {/if}
 
 <RobloxLaunchDialog />
+
+<!-- Notifications come last, so that they stack above the lock screen, which
+shares their z-index. -->
+<Notifications center={notificationCenter} />

@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { notifyErrors } from "../notifications/error-notifications.svelte"
 	import arrowSquareOutIcon from "@phosphor-icons/core/regular/arrow-square-out.svg?raw"
 	import eyeIcon from "@phosphor-icons/core/regular/eye.svg?raw"
 	import eyeSlashIcon from "@phosphor-icons/core/regular/eye-slash.svg?raw"
@@ -27,6 +28,8 @@
 	async function setAside(): Promise<void> {
 		if (await store.setAsideLegacyVault(confirmation)) confirmation = ""
 	}
+
+	notifyErrors("Vault not moved", () => store.error)
 </script>
 
 <Dialog
@@ -46,9 +49,6 @@
 			Version 0.9.2 saved your data before the update. Enter your master password
 			to move it into a new vault.
 		</p>
-		{#if store.error}
-			<div class="mt-3 notice-error" role="alert">{store.error}</div>
-		{/if}
 		<form
 			novalidate
 			onsubmit={(event) => {
@@ -112,9 +112,6 @@
 			<Icon svg={arrowSquareOutIcon} size={16} aria-hidden="true" />
 			Download version 0.9.2
 		</button>
-		{#if store.error}
-			<div class="mt-3 notice-error" role="alert">{store.error}</div>
-		{/if}
 		<div class="mt-3 notice-warning">
 			Set the old vault aside only if you have an export file. It moves to the
 			recovery folder in storage/vault and is not deleted.

@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { notifyErrors } from "../notifications/error-notifications.svelte"
 	import circleNotchIcon from "@phosphor-icons/core/regular/circle-notch.svg?raw"
 	import Icon from "../shared/Icon.svelte"
 	import type { AccountSettingView } from "../backend/bridge"
@@ -79,6 +80,8 @@
 					].filter(Boolean),
 		),
 		controlDisabled = $derived(disabled || saving || !view?.editable)
+
+	notifyErrors("Setting not saved", () => error)
 </script>
 
 {#snippet details()}
@@ -101,7 +104,6 @@
 				size={14}
 				aria-hidden="true" />Saving…</span>
 	{/if}
-	{#if error}<div class="notice-error" role="alert">{error}</div>{/if}
 {/snippet}
 
 {#if type === "toggle"}

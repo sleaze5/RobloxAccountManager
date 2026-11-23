@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { notifyErrors } from "../notifications/error-notifications.svelte"
 	import { searchTerms } from "../shared/search"
 	import { matchesSetting } from "./settings-search"
 	import keyIcon from "@phosphor-icons/core/regular/key.svg?raw"
@@ -45,15 +46,14 @@
 			activeDialog = null
 		}
 	}
+
+	notifyErrors("Setting not saved", () => store.error)
 </script>
 
 <svelte:window onkeydown={handleKeydown} />
 
 <section class="settings-section" aria-labelledby="vault-security-title">
 	<h3 id="vault-security-title">Security</h3>
-	{#if store.error && activeDialog === null}<div class="notice-error" role="alert">
-			{store.error}
-		</div>{/if}
 	<div class="settings-rows">
 		{#if matchesSetting(terms, "vaultStatus")}
 			<div class="settings-row">

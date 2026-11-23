@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { notifyErrors } from "../notifications/error-notifications.svelte"
 	import { tick, untrack } from "svelte"
 	import xIcon from "@phosphor-icons/core/regular/x.svg?raw"
 	import Icon from "../shared/Icon.svelte"
@@ -90,6 +91,8 @@
 			await rename()
 		}
 	}
+
+	notifyErrors("Private server not renamed", () => error)
 </script>
 
 <svelte:window
@@ -149,9 +152,6 @@
 		<div aria-live="polite">
 			<TextFilterStatus {check} noun="name" />
 		</div>
-		{#if error}
-			<div class="mt-3 notice-error" role="alert">{error}</div>
-		{/if}
 		<div class="dialog-actions">
 			<button class="button" type="button" disabled={busy} onclick={close}
 				>Cancel</button>

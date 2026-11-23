@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { notifyErrors } from "../notifications/error-notifications.svelte"
 	import circleNotchIcon from "@phosphor-icons/core/regular/circle-notch.svg?raw"
 	import eyeIcon from "@phosphor-icons/core/regular/eye.svg?raw"
 	import eyeSlashIcon from "@phosphor-icons/core/regular/eye-slash.svg?raw"
@@ -43,6 +44,8 @@
 	}
 
 	onDestroy(conceal)
+
+	notifyErrors("Password not shown", () => error)
 </script>
 
 <span>{password || "••••••••••"}</span>
@@ -64,4 +67,3 @@
 		<Icon svg={eyeIcon} size={14} aria-hidden="true" />
 	{/if}
 </button>
-{#if error}<small role="alert">{error}</small>{/if}

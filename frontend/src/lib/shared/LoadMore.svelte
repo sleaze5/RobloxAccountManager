@@ -14,7 +14,6 @@
 		loadingLabel,
 		isLoadingMore,
 		hasFailed,
-		failureMessage = "",
 		isDisabled = false,
 		onLoadMore,
 	}: {
@@ -25,9 +24,6 @@
 		loadingLabel: string
 		isLoadingMore: boolean
 		hasFailed: boolean
-		// failureMessage explains a failed page for a list that shows the
-		// failure nowhere else.
-		failureMessage?: string
 		// isDisabled holds the next page while the whole list loads.
 		isDisabled?: boolean
 		onLoadMore: () => void
@@ -42,9 +38,6 @@
 			if (!hasFailed && !isLoadingMore && !isDisabled) onLoadMore()
 		},
 	}}>
-	{#if hasFailed && failureMessage && !isLoadingMore}
-		<p class="text-xs text-danger-muted" role="alert">{failureMessage}</p>
-	{/if}
 	{#if isLoadingMore}
 		<span class="flex items-center gap-2 text-xs text-fg-muted" role="status"
 			><Icon

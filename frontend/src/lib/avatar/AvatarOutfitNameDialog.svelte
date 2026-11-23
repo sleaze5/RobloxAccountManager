@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { notifyErrors } from "../notifications/error-notifications.svelte"
 	import xIcon from "@phosphor-icons/core/regular/x.svg?raw"
 	import type { AvatarOutfit } from "../backend/bridge"
 	import { untrack } from "svelte"
@@ -51,6 +52,8 @@
 	function close(): void {
 		if (!isWorking) onClose()
 	}
+
+	notifyErrors("Outfit action not completed", () => avatar.outfitActionError)
 </script>
 
 <svelte:window
@@ -109,9 +112,6 @@
 				class="mt-1 text-xs text-danger-muted">
 				{nameError}
 			</p>
-		{/if}
-		{#if avatar.outfitActionError}
-			<p class="mt-3 notice-error" role="alert">{avatar.outfitActionError}</p>
 		{/if}
 		<div class="dialog-actions">
 			<button class="button" type="button" disabled={isWorking} onclick={close}
