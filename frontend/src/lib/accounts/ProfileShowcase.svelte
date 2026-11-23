@@ -8,11 +8,11 @@
 	import type { GamePlace } from "../backend/bridge"
 	import { inventoryCategoryOptionOf } from "../inventory/inventory-categories"
 	import InventoryItemTile from "../inventory/InventoryItemTile.svelte"
-	import { itemGridClass } from "../inventory/item-grid"
 	import { getCreatorNavigation } from "../shared/creator-navigation"
 	import Icon from "../shared/Icon.svelte"
 	import ItemTile from "../shared/ItemTile.svelte"
 	import SkeletonTile from "../shared/SkeletonTile.svelte"
+	import TileCarousel from "../shared/TileCarousel.svelte"
 	import type { AccountStore } from "./account-store.svelte"
 	import { profileShowcaseFor } from "./profile-showcase-state.svelte"
 	import type {
@@ -41,13 +41,10 @@
 		onShowCreations: (username: string) => void
 	} = $props()
 
-	// A collapsed part shows two rows of the widest grid.
-	const collapsedTileCount = 12,
-		skeletonTileIndexes = Array.from({ length: 6 }, (_, index) => index),
+	const skeletonTileIndexes = Array.from({ length: 6 }, (_, index) => index),
 		creatorNavigation = getCreatorNavigation(),
 		headingID = $props.id()
-	let showcase = $state.raw<ProfileShowcase | null>(null),
-		expandedParts = $state<ProfileShowcasePart[]>([])
+	let showcase = $state.raw<ProfileShowcase | null>(null)
 
 	// The effect tracks the IDs and the username alone, because the account
 	// scope reads the account list, which refreshes often.
@@ -56,7 +53,6 @@
 			shownUserId = userId,
 			shownUsername = username
 		untrack(() => {
-			expandedParts = []
 			showcase =
 				shownAccountId > 0 && shownUserId > 0
 					? profileShowcaseFor(
@@ -72,18 +68,10 @@
 	$effect(() => {
 		if (refreshCount > 0) untrack(() => showcase?.load())
 	})
-
-	function shownOf<Item>(part: ProfileShowcasePart, items: Item[]): Item[] {
-		return expandedParts.includes(part) ? items : items.slice(0, collapsedTileCount)
-	}
-
-	function toggle(part: ProfileShowcasePart): void {
-		expandedParts = expandedParts.includes(part)
-			? expandedParts.filter((expandedPart) => expandedPart !== part)
-			: [...expandedParts, part]
-	}
 </script>
 
+<!-- A part shows its tiles in a carousel. Until they load, or when there are
+     none, it shows its heading over the state instead. -->
 {#snippet part(
 	id: ProfileShowcasePart,
 	title: string,
@@ -91,62 +79,49 @@
 	count: number | null,
 	tiles: Snippet,
 )}
-	<section class="flex flex-col gap-2" aria-labelledby={`${headingID}-${id}`}>
-		<h3
-			id={`${headingID}-${id}`}
-			class="flex h-6 items-center gap-1.5 text-xs font-semibold text-fg-muted">
-			{title}
-			{#if count}<span class="font-mono text-2xs font-normal text-fg-faint"
-					>({count})</span
-				>{/if}
-			{#if count && count > collapsedTileCount}
-				<button
-					class="ml-auto button-text"
-					type="button"
-					aria-expanded={expandedParts.includes(id)}
-					onclick={() => toggle(id)}
-					>{expandedParts.includes(id)
-						? "Show fewer"
-						: `Show all ${noun}`}</button>
-			{/if}
-		</h3>
-		{#if showcase?.failedParts.includes(id) && count === null}
-			<p class="text-xs text-fg-muted">Unavailable</p>
-		{:else if count === null}
-			<ul class={itemGridClass} aria-hidden="true">
-				{#each skeletonTileIndexes as index (index)}
-					<SkeletonTile />
-				{/each}
-			</ul>
-			<span class="sr-only" role="status">Loading {noun}…</span>
-		{:else if count === 0}
-			<p class="text-xs text-fg-muted">None</p>
-		{:else}
+	{#if count}
+		<TileCarousel id={`${headingID}-${id}`} label={title}>
+			{#snippet heading()}
+				{title}<span class="font-mono text-2xs font-normal text-fg-faint"
+					>({count})</span>
+			{/snippet}
 			{@render tiles()}
-		{/if}
-	</section>
+		</TileCarousel>
+	{:else}
+		<section class="flex flex-col gap-2" aria-labelledby={`${headingID}-${id}`}>
+			<h3
+				id={`${headingID}-${id}`}
+				class="flex h-6 items-center text-xs font-semibold text-fg-muted">
+				{title}
+			</h3>
+			{#if count === 0}
+				<p class="text-xs text-fg-muted">None</p>
+			{:else if showcase?.failedParts.includes(id)}
+				<p class="text-xs text-fg-muted">Unavailable</p>
+			{:else}
+				<ul class="flex gap-2 overflow-x-hidden" aria-hidden="true">
+					{#each skeletonTileIndexes as index (index)}
+						<li class="w-36 shrink-0"><SkeletonTile /></li>
+					{/each}
+				</ul>
+				<span class="sr-only" role="status">Loading {noun}…</span>
+			{/if}
+		</section>
+	{/if}
 {/snippet}
 
-{#snippet gameTiles(
-	id: ProfileShowcasePart,
-	places: GamePlace[],
-	showsCreator: boolean,
-)}
-	<ul
-		class={itemGridClass}
-		aria-label={id === "favoriteGames" ? "Favorite games" : "Games"}>
-		{#each shownOf(id, places) as place (place.placeId)}
-			<li class="min-w-0">
-				<ItemTile
-					name={place.name}
-					imageUrl={place.iconUrl}
-					fallbackIcon={gameControllerIcon}
-					detail={showsCreator ? place.creatorName : ""}
-					actionLabel="Show in Games"
-					onOpen={() => onSearchPlace(place.placeId)} />
-			</li>
-		{/each}
-	</ul>
+{#snippet gameTiles(places: GamePlace[], showsCreator: boolean)}
+	{#each places as place (place.placeId)}
+		<li class="w-36 shrink-0">
+			<ItemTile
+				name={place.name}
+				imageUrl={place.iconUrl}
+				fallbackIcon={gameControllerIcon}
+				detail={showsCreator ? place.creatorName : ""}
+				actionLabel="Show in Games"
+				onOpen={() => onSearchPlace(place.placeId)} />
+		</li>
+	{/each}
 {/snippet}
 
 {#if showcase}
@@ -154,39 +129,35 @@
 	{@const favoriteGames = showcase.favoriteGames}
 	{@const createdGames = showcase.createdGames}
 	{@const creations = showcase.creations}
-	<div class="@container flex flex-col gap-4">
+	<div class="flex min-w-0 flex-col gap-4">
 		{#snippet groupTiles()}
-			<ul class={itemGridClass} aria-label="Groups">
-				{#each shownOf("groups", groups ?? []) as userGroup (userGroup.group.groupId)}
-					<li class="min-w-0">
-						<ItemTile
-							name={userGroup.group.name}
-							imageUrl={userGroup.group.iconUrl}
-							fallbackIcon={usersThreeIcon}
-							badges={userGroup.group.groupId === showcase?.primaryGroupId
-								? [
-										{
-											label: "Primary group",
-											icon: starFillIcon,
-											tone: "text-fg",
-										},
-									]
-								: []}
-							detail={userGroup.role.name}
-							actionLabel="Show in Groups"
-							onOpen={() =>
-								creatorNavigation.showGroup(userGroup.group.groupId)} />
-					</li>
-				{/each}
-			</ul>
+			{#each groups ?? [] as userGroup (userGroup.group.groupId)}
+				<li class="w-36 shrink-0">
+					<ItemTile
+						name={userGroup.group.name}
+						imageUrl={userGroup.group.iconUrl}
+						fallbackIcon={usersThreeIcon}
+						badges={userGroup.group.groupId === showcase?.primaryGroupId
+							? [
+									{
+										label: "Primary group",
+										icon: starFillIcon,
+										tone: "text-fg",
+									},
+								]
+							: []}
+						detail={userGroup.role.name}
+						actionLabel="Show in Groups"
+						onOpen={() =>
+							creatorNavigation.showGroup(userGroup.group.groupId)} />
+				</li>
+			{/each}
 		{/snippet}
 		{#snippet favoriteGameTiles()}{@render gameTiles(
-				"favoriteGames",
 				favoriteGames ?? [],
 				true,
 			)}{/snippet}
 		{#snippet createdGameTiles()}{@render gameTiles(
-				"createdGames",
 				createdGames ?? [],
 				false,
 			)}{/snippet}
@@ -206,41 +177,37 @@
 			createdGameTiles,
 		)}
 		{#if creations?.length}
-			<section
-				class="flex flex-col gap-2"
-				aria-labelledby={`${headingID}-creations`}>
-				<h3
-					id={`${headingID}-creations`}
-					class="flex h-6 items-center gap-1.5 text-xs font-semibold text-fg-muted">
-					Marketplace creations
-					<span class="font-mono text-2xs font-normal text-fg-faint"
-						>({creations.length}{showcase.hasMoreCreations
+			<TileCarousel id={`${headingID}-creations`} label="Marketplace creations">
+				{#snippet heading()}
+					Marketplace creations<span
+						class="font-mono text-2xs font-normal text-fg-faint"
+						>({creations.length}{showcase?.hasMoreCreations
 							? "+"
 							: ""})</span>
+				{/snippet}
+				{#snippet actions()}
 					<button
-						class="ml-auto button"
+						class="button"
 						type="button"
 						onclick={() => onShowCreations(username)}>
 						<Icon svg={storefrontIcon} size={16} aria-hidden="true" />
 						Show in Marketplace
 					</button>
-				</h3>
-				<ul class={itemGridClass} aria-label="Marketplace creations">
-					{#each creations.slice(0, collapsedTileCount) as categorizedItem, index (`${categorizedItem.item.itemId}:${index}`)}
-						<li class="min-w-0">
-							<InventoryItemTile
-								item={categorizedItem.item}
-								category={inventoryCategoryOptionOf(
-									categorizedItem.category,
-								)}
-								isWorn={false}
-								isOwned={false}
-								actionLabel="Show in Marketplace"
-								onOpen={() => onShowCreations(username)} />
-						</li>
-					{/each}
-				</ul>
-			</section>
+				{/snippet}
+				{#each creations as categorizedItem, index (`${categorizedItem.item.itemId}:${index}`)}
+					<li class="w-36 shrink-0">
+						<InventoryItemTile
+							item={categorizedItem.item}
+							category={inventoryCategoryOptionOf(
+								categorizedItem.category,
+							)}
+							isWorn={false}
+							isOwned={false}
+							actionLabel="Show in Marketplace"
+							onOpen={() => onShowCreations(username)} />
+					</li>
+				{/each}
+			</TileCarousel>
 		{/if}
 	</div>
 {/if}
