@@ -1,4 +1,5 @@
 <script lang="ts">
+	import LoadMore from "../shared/LoadMore.svelte"
 	import coinsIcon from "@phosphor-icons/core/regular/coins.svg?raw"
 	import Icon from "../shared/Icon.svelte"
 	import SettingsRowsSkeleton from "../shared/SettingsRowsSkeleton.svelte"
@@ -98,14 +99,14 @@
 			{/each}
 		</ul>
 		{#if history.nextCursor}
-			<button
-				class="button self-start"
-				type="button"
-				aria-busy={history.loadingMore}
-				disabled={history.loadingMore || history.loading}
-				onclick={() => void history.loadMore()}>
-				{history.loadingMore ? "Loading…" : "Load more"}
-			</button>
+			<LoadMore
+				pageKey={history.transactions?.length}
+				label="Load more transactions"
+				loadingLabel="Loading more transactions…"
+				isLoadingMore={history.loadingMore}
+				hasFailed={!!history.error}
+				isDisabled={history.loading}
+				onLoadMore={() => void history.loadMore()} />
 		{/if}
 	{/if}
 </section>

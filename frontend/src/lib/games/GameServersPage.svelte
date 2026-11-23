@@ -147,7 +147,7 @@
 	})
 
 	$effect(() => {
-		void active.page
+		void active.listVersion
 		untrack(closeMenu)
 	})
 

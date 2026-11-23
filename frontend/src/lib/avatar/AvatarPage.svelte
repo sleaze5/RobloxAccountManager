@@ -437,6 +437,7 @@
 					id={`${elementIdPrefix}-avatar-tab-panel`}
 					bind:this={tabPanel}
 					class="min-h-0 flex-1 scrollbar-stable overflow-y-auto"
+					data-load-more-root
 					role="tabpanel"
 					aria-labelledby={`${elementIdPrefix}-avatar-tab-${tab}`}
 					aria-busy={avatar.loading}>

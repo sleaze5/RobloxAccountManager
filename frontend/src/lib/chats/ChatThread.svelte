@@ -1,4 +1,5 @@
 <script lang="ts">
+	import LoadMore from "../shared/LoadMore.svelte"
 	import circleNotchIcon from "@phosphor-icons/core/regular/circle-notch.svg?raw"
 	import eyeIcon from "@phosphor-icons/core/regular/eye.svg?raw"
 	import paperPlaneRightIcon from "@phosphor-icons/core/regular/paper-plane-right.svg?raw"
@@ -287,23 +288,16 @@
 
 		<div
 			class="flex min-h-0 flex-1 flex-col gap-2 overflow-y-auto p-3"
+			data-load-more-root
 			bind:this={scroller}>
 			{#if chat.messagesCursor && !chat.messagesLoading}
-				<button
-					type="button"
-					class="button self-center"
-					disabled={chat.olderLoading}
-					aria-busy={chat.olderLoading}
-					onclick={() => void loadOlder()}>
-					{#if chat.olderLoading}
-						<Icon
-							svg={circleNotchIcon}
-							class="spinner"
-							size={16}
-							aria-hidden="true" />
-					{/if}
-					Load older messages
-				</button>
+				<LoadMore
+					pageKey={chat.messagesCursor}
+					label="Load older messages"
+					loadingLabel="Loading older messages…"
+					isLoadingMore={chat.olderLoading}
+					hasFailed={!!chat.messagesError}
+					onLoadMore={() => void loadOlder()} />
 			{/if}
 			{#if chat.messagesError}
 				<p

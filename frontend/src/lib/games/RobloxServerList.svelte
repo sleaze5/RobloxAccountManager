@@ -1,4 +1,5 @@
 <script lang="ts">
+	import LoadMore from "../shared/LoadMore.svelte"
 	import hardDrivesIcon from "@phosphor-icons/core/regular/hard-drives.svg?raw"
 	import warningIcon from "@phosphor-icons/core/regular/warning.svg?raw"
 	import Icon from "../shared/Icon.svelte"
@@ -10,7 +11,6 @@
 	import ServerActionsButton from "./ServerActionsButton.svelte"
 	import { openServerMenuFromRow } from "./server-row-menu"
 	import type { ServerMenuOpener } from "./server-row-menu"
-	import ServerPagerNav from "./ServerPagerNav.svelte"
 	import ServerUptime from "./ServerUptime.svelte"
 	import ServerVersion from "./ServerVersion.svelte"
 	import {
@@ -44,7 +44,7 @@
 		players = $derived(shown.reduce((total, server) => total + server.playing, 0))
 
 	$effect(() => {
-		void servers.page
+		void servers.listVersion
 		untrack(() => list?.scrollTo({ top: 0 }))
 	})
 </script>
@@ -116,7 +116,6 @@
 				<span></span>
 			</label>
 		</div>
-		<ServerPagerNav pager={servers} />
 	</div>
 
 	{#if servers.error}
@@ -132,12 +131,7 @@
 	{:else if !loaded.length}
 		<div class="empty-state" role="status">
 			<Icon svg={hardDrivesIcon} size={28} aria-hidden="true" />
-			{#if servers.pageNumber > 1}
-				<h2>No more servers</h2>
-				<p>The servers on this page closed. Go back to the first page.</p>
-				<button class="button" type="button" onclick={() => servers.first()}
-					>Go to first page</button>
-			{:else if servers.excludeFull}
+			{#if servers.excludeFull}
 				<h2>No servers have open slots</h2>
 				<p>Every running server is full. Show full servers to see them.</p>
 			{:else}
@@ -147,12 +141,12 @@
 		</div>
 	{:else}
 		<p class="flex gap-1 px-3 pt-2 font-mono text-2xs text-fg-faint" role="status">
-			<span>Page {servers.pageNumber}</span>
-			<span aria-hidden="true">·</span>
 			<span
 				>{shown.length === loaded.length
 					? numbers.format(loaded.length)
-					: `${numbers.format(shown.length)} of ${numbers.format(loaded.length)}`}
+					: `${numbers.format(shown.length)} of ${numbers.format(loaded.length)}`}{servers.hasNext
+					? "+"
+					: ""}
 				{loaded.length === 1 ? "server" : "servers"}</span>
 			<span aria-hidden="true">·</span>
 			<span
@@ -164,6 +158,7 @@
 				class="server-table"
 				data-variant={records ? "records" : undefined}
 				data-loading={servers.loading || undefined}
+				data-load-more-root
 				bind:this={list}>
 				<div class="server-columns" aria-hidden="true">
 					<span class="justify-self-end text-right">Players</span>
@@ -292,19 +287,39 @@
 						</li>
 					{/each}
 				</ol>
+				{#if servers.hasNext}
+					<LoadMore
+						pageKey={servers.page?.servers?.length}
+						label="Load more servers"
+						loadingLabel="Loading more servers…"
+						isLoadingMore={servers.loadingMore}
+						hasFailed={!!servers.loadMoreError}
+						failureMessage={servers.loadMoreError}
+						onLoadMore={() => void servers.loadMore()} />
+				{/if}
 			</div>
 		{:else}
 			<div class="empty-state" role="status">
 				<Icon svg={hardDrivesIcon} size={28} aria-hidden="true" />
-				<h2>No servers on this page match</h2>
+				<h2>No loaded servers match</h2>
 				<p>
-					No server on this page reports a ping of {servers.maxPing} ms or less.
+					No loaded server reports a ping of {servers.maxPing} ms or less.
 				</p>
 				<button
 					class="button"
 					type="button"
 					onclick={() => (servers.maxPing = 0)}>Show any ping</button>
 			</div>
+			{#if servers.hasNext}
+				<LoadMore
+					pageKey={servers.page?.servers?.length}
+					label="Load more servers"
+					loadingLabel="Loading more servers…"
+					isLoadingMore={servers.loadingMore}
+					hasFailed={!!servers.loadMoreError}
+					failureMessage={servers.loadMoreError}
+					onLoadMore={() => void servers.loadMore()} />
+			{/if}
 		{/if}
 	{/if}
 </div>

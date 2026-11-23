@@ -1,4 +1,5 @@
 <script lang="ts">
+	import LoadMore from "../shared/LoadMore.svelte"
 	import { tick, untrack } from "svelte"
 	import arrowRightIcon from "@phosphor-icons/core/regular/arrow-right.svg?raw"
 	import caretLeftIcon from "@phosphor-icons/core/regular/caret-left.svg?raw"
@@ -480,6 +481,7 @@
 						"min-h-0 scrollbar-stable overflow-y-auto",
 						((players && store.playerQuery) || store.selecting) && "pb-12",
 					]}
+					data-load-more-root
 					role="group"
 					aria-label={current.label}
 					data-list
@@ -586,15 +588,14 @@
 						</button>
 					{/if}
 					{#if store.page?.nextCursor && (players || !store.query)}
-						<div class="flex min-h-12 items-center justify-center">
-							<button
-								class="button"
-								type="button"
-								aria-busy={store.loadingMore}
-								disabled={store.loadingMore}
-								onclick={() => void store.load(true)}
-								>{store.loadingMore ? "Loading…" : "Load more"}</button>
-						</div>
+						<LoadMore
+							pageKey={store.page?.nextCursor}
+							label={`Load more ${current.noun}`}
+							loadingLabel={`Loading more ${current.noun}…`}
+							isLoadingMore={store.loadingMore}
+							hasFailed={!!store.loadError}
+							isDisabled={store.loading}
+							onLoadMore={() => void store.load(true)} />
 					{/if}
 				</div>
 				{#if store.selecting && bulkCopy}

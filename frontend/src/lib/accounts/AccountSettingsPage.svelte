@@ -945,6 +945,7 @@
 			bind:this={contentElement}
 			onscroll={rememberScroll}
 			class="settings-content"
+			data-load-more-root
 			aria-label="Account settings content">
 			{#key `${activePage?.id}:${activeSubpage?.id}:${normalizedQuery}`}
 				{#if !activePage}

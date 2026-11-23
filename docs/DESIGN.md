@@ -99,6 +99,7 @@ Surfaces and feedback:
 - `lib/shared/Skeleton.svelte`: one `skeleton-line` with a screen reader label. Pass its width with `className`.
 - `lib/shared/SkeletonList.svelte`: placeholder rows for a list, in a `role="status"` region. `lib/shared/SkeletonMediaRow.svelte` is a row with an image and two lines, and `lib/shared/SettingsRowsSkeleton.svelte` is a set of `settings-row` placeholders.
 - `lib/shared/SkeletonTile.svelte`: a placeholder item tile in a grid. Set `hasDetailLine={false}` when the real tiles show only a name.
+- `lib/shared/LoadMore.svelte`: the end of a list that loads in pages. See [Lists](#lists).
 - `lib/shared/MissingFactValue.svelte`: the value of a fact whose section has no value yet. It shows a skeleton while the section loads, "Unavailable" when it failed, and "N/A" or another empty label when the value does not apply.
 
 Content:
@@ -267,6 +268,7 @@ Color:
 - Make a list one tab stop. Give the selected row `tabindex="0"`, or the first row when no row is selected, and every other row `tabindex="-1"`. Mark the list container with `data-list` and its rows with `data-list-item`, and move between them with `ArrowUp`, `ArrowDown`, `Home`, and `End` through `moveListFocus`.
 - When a list can be reordered, support dragging and `Ctrl+Shift+ArrowUp` and `Ctrl+Shift+ArrowDown`. Announce the new position through a polite live region.
 - When an account needs the user's attention, its row adds a third line in the warning or danger tone, such as "Sign-in required", "Security challenge", or a moderation status, in place of its online status.
+- Load a list that comes in pages as one growing list, never as pages to step through. End it with `LoadMore`, inside its scrolling container marked with `data-load-more-root`. `LoadMore` loads the next page when the end of the list comes within 160px of view, and always shows a "Load more" button with the noun, such as "Load more members", in case the automatic load does not run. While a page loads, it shows the spinner and the progress label, such as "Loading more members…". After a failed page, it stops loading on its own until the user presses the button, and shows the failure next to the button unless the list shows it elsewhere. Show the count of loaded items with "+" while more pages remain, and keep the items that are already loaded when a later page fails.
 - Distinguish an empty list ("No accounts yet") from a list with no matches ("No matching accounts"). Tell the user how to change each state. Give the no-matches state a button that clears the filter and moves the focus to the search field or filter.
 - In a grid of item tiles, make every tile in a row the same height. Keep the badges on a tile in one row, so that they never overlap, and let the lower-priority badge truncate.
 - When the user switches a tab or category that replaces the content of a scrolling region, scroll the region back to the top.

@@ -1,4 +1,5 @@
 <script lang="ts">
+	import LoadMore from "../shared/LoadMore.svelte"
 	import warningIcon from "@phosphor-icons/core/regular/warning.svg?raw"
 	import circleNotchIcon from "@phosphor-icons/core/regular/circle-notch.svg?raw"
 	import coatHangerIcon from "@phosphor-icons/core/regular/coat-hanger.svg?raw"
@@ -212,15 +213,14 @@
 			{/each}
 		</ul>
 		{#if avatar.outfitsNextCursor}
-			<div class="flex min-h-12 items-center justify-center">
-				<button
-					class="button"
-					type="button"
-					aria-busy={avatar.outfitsLoadingMore}
-					disabled={avatar.outfitsLoading || avatar.outfitsLoadingMore}
-					onclick={() => void avatar.loadMoreOutfits()}
-					>{avatar.outfitsLoadingMore ? "Loading…" : "Load more"}</button>
-			</div>
+			<LoadMore
+				pageKey={avatar.outfitsNextCursor}
+				label="Load more outfits"
+				loadingLabel="Loading more outfits…"
+				isLoadingMore={avatar.outfitsLoadingMore}
+				hasFailed={!!avatar.outfitsError}
+				isDisabled={avatar.outfitsLoading}
+				onLoadMore={() => void avatar.loadMoreOutfits()} />
 		{/if}
 	{/if}
 </div>

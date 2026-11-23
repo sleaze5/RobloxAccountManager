@@ -11,7 +11,9 @@ import type {
 	GameServerRecordPage,
 	GameServerRegion,
 	GameServerStats,
+	ListedPrivateServer,
 	ListedPrivateServerPage,
+	PrivateServer,
 	PrivateServerPage,
 	SavedPrivateServer,
 } from "../backend/bridge"
@@ -75,50 +77,46 @@ export class ServerPageCache<Page> {
 	}
 }
 
-abstract class ServerPager<Cursor extends string | number, Page> {
+// ServerPager lists servers that load in pages. Each page that loads after the
+// first adds its servers to page, without the servers that an earlier page
+// already listed, because a server can move between pages while they load.
+abstract class ServerPager<
+	Cursor extends string | number,
+	Server,
+	Page extends { servers: Server[] | null },
+> {
+	// page holds the first page and the servers of every page after it.
 	page = $state<Page | null>(null)
 	loading = $state(false)
+	loadingMore = $state(false)
 	error = $state("")
-	#cursors: Cursor[]
-	#pageNumber = $state(1)
+	loadMoreError = $state("")
+	// listVersion changes when the first page replaces the list, but not when
+	// a later page adds to it.
+	listVersion = $state(0)
+	#nextCursor = $state<Cursor | null>(null)
 	#request: CancellableRequest<Page> | null = null
 	#requestKeyId = ""
+	#shownKeyId = ""
 
 	constructor(
 		readonly placeId: number,
 		private readonly firstCursor: Cursor,
 		private readonly cache: ServerPageCache<Page>,
-	) {
-		this.#cursors = [firstCursor]
-	}
+	) {}
 
 	protected abstract key(cursor: Cursor): PageKey
 	protected abstract fetch(key: PageKey): CancellableRequest<Page>
 	protected abstract nextCursor(page: Page): Cursor | null
-
-	get pageNumber(): number {
-		return this.#pageNumber
-	}
+	protected abstract serverKey(server: Server): string | number
 
 	get hasNext(): boolean {
-		return this.page !== null && this.nextCursor(this.page) !== null
+		return this.page !== null && this.#nextCursor !== null
 	}
 
-	next(): void {
-		const cursor = this.page && this.nextCursor(this.page)
-		if (cursor === null || this.loading) return
-		this.#cursors.push(cursor)
-		void this.load()
-	}
-
-	previous(): void {
-		if (this.#cursors.length < 2 || this.loading) return
-		this.#cursors.pop()
-		void this.load()
-	}
-
+	// first lists the servers again from the first page, such as after the
+	// options changed.
 	first(): void {
-		this.#cursors = [this.firstCursor]
 		void this.load()
 	}
 
@@ -127,30 +125,31 @@ abstract class ServerPager<Cursor extends string | number, Page> {
 		void this.load()
 	}
 
-	// clear forgets the shown page and goes back to the first page without
-	// loading it.
+	// clear forgets the listed servers without loading them again.
 	protected clear(): void {
 		void this.#request?.cancel()
 		this.#request = null
-		this.#cursors = [this.firstCursor]
-		this.#pageNumber = 1
+		this.#shownKeyId = ""
+		this.#nextCursor = null
 		this.page = null
-		this.loading = false
-		this.error = ""
+		this.loading = this.loadingMore = false
+		this.error = this.loadMoreError = ""
 	}
 
-	// load shows the cached page at once. It requests the page when the cache
-	// has no fresh copy, unless that request is already running.
+	// load keeps the listed servers while their first page is fresh, so that
+	// the list reopens where it was. Otherwise it shows the cached first page
+	// at once and requests it when the cache has no fresh copy.
 	async load(): Promise<void> {
-		this.#pageNumber = this.#cursors.length
-		const key = this.key(this.#cursors.at(-1) ?? this.firstCursor),
+		const key = this.key(this.firstCursor),
 			keyId = JSON.stringify(key),
 			cached = this.cache.get(key)
 		if (this.#request && this.#requestKeyId === keyId) return
+		if (this.page && this.#shownKeyId === keyId && cached?.isFresh) return
 		void this.#request?.cancel()
 		this.#request = null
-		this.error = ""
-		if (cached) this.page = cached.page
+		this.loadingMore = false
+		this.error = this.loadMoreError = ""
+		if (cached) this.#showFirstPage(keyId, cached.page)
 		if (cached?.isFresh) {
 			this.loading = false
 			return
@@ -163,7 +162,7 @@ abstract class ServerPager<Cursor extends string | number, Page> {
 			const page = await request
 			if (this.#request !== request) return
 			this.cache.set(key, page)
-			this.page = page
+			this.#showFirstPage(keyId, page)
 		} catch (error) {
 			if (this.#request === request) {
 				this.error = errorMessage(
@@ -179,13 +178,68 @@ abstract class ServerPager<Cursor extends string | number, Page> {
 		}
 	}
 
+	async loadMore(): Promise<void> {
+		const cursor = this.#nextCursor
+		if (cursor === null || !this.page || this.loading || this.loadingMore) return
+		const key = this.key(cursor),
+			keyId = JSON.stringify(key),
+			cached = this.cache.get(key)
+		this.loadMoreError = ""
+		if (cached?.isFresh) {
+			this.#addPage(cached.page)
+			return
+		}
+		this.loadingMore = true
+		const request = this.fetch(key)
+		this.#request = request
+		this.#requestKeyId = keyId
+		try {
+			const page = await request
+			if (this.#request !== request) return
+			this.cache.set(key, page)
+			this.#addPage(page)
+		} catch (error) {
+			if (this.#request === request) {
+				this.loadMoreError = errorMessage(
+					error,
+					"Could not load more servers. Try again.",
+				)
+			}
+		} finally {
+			if (this.#request === request) {
+				this.#request = null
+				this.loadingMore = false
+			}
+		}
+	}
+
+	#showFirstPage(keyId: string, page: Page): void {
+		this.#shownKeyId = keyId
+		this.page = page
+		this.#nextCursor = this.nextCursor(page)
+		this.listVersion++
+	}
+
+	#addPage(page: Page): void {
+		const listed = this.page?.servers ?? [],
+			listedKeys = new Set(listed.map((server) => this.serverKey(server))),
+			servers = [
+				...listed,
+				...(page.servers ?? []).filter(
+					(server) => !listedKeys.has(this.serverKey(server)),
+				),
+			]
+		this.page = Object.assign({}, page, { servers })
+		this.#nextCursor = this.nextCursor(page)
+	}
+
 	dispose(): void {
 		void this.#request?.cancel()
 		this.#request = null
 	}
 }
 
-export class GameServers extends ServerPager<string, GameServerPage> {
+export class GameServers extends ServerPager<string, GameServer, GameServerPage> {
 	order = $state(GameServerOrder.ServerOrderRecommended)
 	excludeFull = $state(false)
 	limit = $state<ServerPageSize>(50)
@@ -243,9 +297,17 @@ export class GameServers extends ServerPager<string, GameServerPage> {
 	protected nextCursor(page: GameServerPage): string | null {
 		return page.nextCursor || null
 	}
+
+	protected serverKey(server: GameServer): string {
+		return server.jobId
+	}
 }
 
-export class RecordedServers extends ServerPager<number, GameServerRecordPage> {
+export class RecordedServers extends ServerPager<
+	number,
+	GameServerRecord,
+	GameServerRecordPage
+> {
 	order = $state(GameServerRecordOrder.RecordOrderNewest)
 	region = $state("")
 	limit = $state<RecordPageSize>(50)
@@ -290,9 +352,17 @@ export class RecordedServers extends ServerPager<number, GameServerRecordPage> {
 	protected nextCursor(page: GameServerRecordPage): number | null {
 		return page.nextCursor || null
 	}
+
+	protected serverKey(server: GameServerRecord): string {
+		return server.jobId
+	}
 }
 
-export class PrivateServers extends ServerPager<string, PrivateServerPage> {
+export class PrivateServers extends ServerPager<
+	string,
+	PrivateServer,
+	PrivateServerPage
+> {
 	#accountId: number
 
 	constructor(
@@ -328,9 +398,17 @@ export class PrivateServers extends ServerPager<string, PrivateServerPage> {
 	protected nextCursor(page: PrivateServerPage): string | null {
 		return page.nextCursor || null
 	}
+
+	protected serverKey(server: PrivateServer): number {
+		return server.serverId
+	}
 }
 
-export class ListedServers extends ServerPager<number, ListedPrivateServerPage> {
+export class ListedServers extends ServerPager<
+	number,
+	ListedPrivateServer,
+	ListedPrivateServerPage
+> {
 	resolving = $state("")
 	readonly #links = new Map<string, string>()
 	#linkRequest: CancellableRequest<string> | null = null
@@ -377,6 +455,10 @@ export class ListedServers extends ServerPager<number, ListedPrivateServerPage> 
 
 	protected nextCursor(): null {
 		return null
+	}
+
+	protected serverKey(server: ListedPrivateServer): string {
+		return server.id
 	}
 }
 

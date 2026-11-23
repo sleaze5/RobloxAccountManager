@@ -1,4 +1,5 @@
 <script lang="ts">
+	import LoadMore from "../shared/LoadMore.svelte"
 	import warningIcon from "@phosphor-icons/core/regular/warning.svg?raw"
 	import funnelIcon from "@phosphor-icons/core/regular/funnel.svg?raw"
 	import magnifyingGlassIcon from "@phosphor-icons/core/regular/magnifying-glass.svg?raw"
@@ -324,6 +325,7 @@
 
 			<div
 				class="min-h-0 flex-1 scrollbar-stable overflow-y-auto"
+				data-load-more-root
 				bind:this={contentElement}>
 				{#key inventory.category}
 					{#if inventory.error && items.length > 0}
@@ -402,17 +404,14 @@
 						</ul>
 					{/if}
 					{#if page?.nextCursor && items.length > 0}
-						<div class="flex min-h-12 items-center justify-center pb-3">
-							<button
-								class="button"
-								type="button"
-								aria-busy={inventory.loadingMore}
-								disabled={inventory.loading || inventory.loadingMore}
-								onclick={() => void inventory.loadMore()}
-								>{inventory.loadingMore
-									? "Loading…"
-									: "Load more"}</button>
-						</div>
+						<LoadMore
+							pageKey={items.length}
+							label="Load more items"
+							loadingLabel="Loading more items…"
+							isLoadingMore={inventory.loadingMore}
+							hasFailed={!!inventory.error}
+							isDisabled={inventory.loading}
+							onLoadMore={() => void inventory.loadMore()} />
 					{/if}
 				{/key}
 			</div>

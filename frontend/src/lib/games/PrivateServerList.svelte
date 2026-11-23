@@ -1,4 +1,5 @@
 <script lang="ts">
+	import LoadMore from "../shared/LoadMore.svelte"
 	import circleNotchIcon from "@phosphor-icons/core/regular/circle-notch.svg?raw"
 	import lockKeyIcon from "@phosphor-icons/core/regular/lock-key.svg?raw"
 	import plusIcon from "@phosphor-icons/core/regular/plus.svg?raw"
@@ -11,7 +12,6 @@
 	import ServerActionsButton from "./ServerActionsButton.svelte"
 	import { openServerMenuFromRow } from "./server-row-menu"
 	import type { ServerMenuOpener } from "./server-row-menu"
-	import ServerPagerNav from "./ServerPagerNav.svelte"
 	import type { PrivateServers, SavedServers } from "./game-servers-state.svelte"
 
 	let {
@@ -39,20 +39,13 @@
 		savedShown = $derived(saved.servers ?? [])
 
 	$effect(() => {
-		void servers.page
+		void servers.listVersion
 		untrack(() => list?.scrollTo({ top: 0 }))
 	})
 </script>
 
 <div class="flex min-h-0 flex-1 flex-col">
-	<div
-		class="flex flex-wrap items-end gap-x-3 gap-y-2 border-b border-line-subtle p-3"
-		role="group"
-		aria-label="Server filters">
-		<ServerPagerNav pager={servers} />
-	</div>
-
-	<div class="min-h-0 flex-1 overflow-auto" bind:this={list}>
+	<div class="min-h-0 flex-1 overflow-auto" data-load-more-root bind:this={list}>
 		{#if account.id === 0}
 			<div class="empty-state" role="status">
 				<Icon svg={userPlusIcon} size={28} aria-hidden="true" />
@@ -72,27 +65,18 @@
 		{:else if !shown.length}
 			<div class="empty-state" role="status">
 				<Icon svg={lockKeyIcon} size={28} aria-hidden="true" />
-				{#if servers.pageNumber > 1}
-					<h2>No more private servers</h2>
-					<p>The servers on this page changed. Go back to the first page.</p>
-					<button class="button" type="button" onclick={() => servers.first()}
-						>Go to first page</button>
-				{:else}
-					<h2>No private servers</h2>
-					<p>
-						@{account.username} does not own or have access to a private server
-						in this place.
-					</p>
-				{/if}
+				<h2>No private servers</h2>
+				<p>
+					@{account.username} does not own or have access to a private server in
+					this place.
+				</p>
 			</div>
 		{:else}
 			<p
 				class="flex gap-1 px-3 pt-2 font-mono text-2xs text-fg-faint"
 				role="status">
-				<span>Page {servers.pageNumber}</span>
-				<span aria-hidden="true">·</span>
 				<span
-					>{numbers.format(shown.length)}
+					>{numbers.format(shown.length)}{servers.hasNext ? "+" : ""}
 					{shown.length === 1 ? "server" : "servers"}</span>
 				<span aria-hidden="true">·</span>
 				<span>Owned by or shared with @{account.username}</span>
@@ -167,6 +151,16 @@
 					{/each}
 				</ol>
 			</div>
+			{#if servers.hasNext}
+				<LoadMore
+					pageKey={servers.page?.servers?.length}
+					label="Load more private servers"
+					loadingLabel="Loading more private servers…"
+					isLoadingMore={servers.loadingMore}
+					hasFailed={!!servers.loadMoreError}
+					failureMessage={servers.loadMoreError}
+					onLoadMore={() => void servers.loadMore()} />
+			{/if}
 		{/if}
 
 		<section
