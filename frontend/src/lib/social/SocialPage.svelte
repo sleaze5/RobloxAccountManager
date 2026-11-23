@@ -13,6 +13,7 @@
 	import xIcon from "@phosphor-icons/core/regular/x.svg?raw"
 	import listChecksIcon from "@phosphor-icons/core/regular/list-checks.svg?raw"
 	import prohibitIcon from "@phosphor-icons/core/regular/prohibit.svg?raw"
+	import sealCheckIcon from "@phosphor-icons/core/regular/seal-check.svg?raw"
 	import shieldCheckFillIcon from "@phosphor-icons/core/fill/shield-check-fill.svg?raw"
 	import shieldCheckIcon from "@phosphor-icons/core/regular/shield-check.svg?raw"
 	import Icon from "../shared/Icon.svelte"
@@ -224,7 +225,7 @@
 	}
 
 	function rowLabel(person: SocialUser): string {
-		const name = `${personName(person)}${person.username ? ` (@${person.username})` : ""}${person.trusted ? ", trusted friend" : ""}`
+		const name = `${personName(person)}${person.hasVerifiedBadge ? ", verified" : ""}${person.username ? ` (@${person.username})` : ""}${person.trusted ? ", trusted friend" : ""}`
 		if (person.request) return `${name}, friend request incoming`
 		if (!person.presence) return name
 		const detail = presenceDetail(person.presence)
@@ -279,6 +280,11 @@
 			<strong
 				class="flex min-w-0 items-center gap-1 text-sm font-semibold text-fg">
 				<span class="truncate">{personName(person)}</span>
+				{#if person.hasVerifiedBadge}<Icon
+						svg={sealCheckIcon}
+						class="shrink-0 text-fg-muted"
+						size={12}
+						aria-label="Verified" />{/if}
 				{#if person.trusted}<Icon
 						svg={shieldCheckFillIcon}
 						class="shrink-0 animate-pop text-accent-strong"

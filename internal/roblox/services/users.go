@@ -19,9 +19,10 @@ import (
 var ErrUsernameNotFound = errors.New("username not found")
 
 type UserView struct {
-	UserID      int64  `json:"userId"`
-	Username    string `json:"username"`
-	DisplayName string `json:"displayName"`
+	UserID           int64  `json:"userId"`
+	Username         string `json:"username"`
+	DisplayName      string `json:"displayName"`
+	HasVerifiedBadge bool   `json:"hasVerifiedBadge"`
 }
 
 type Users struct {

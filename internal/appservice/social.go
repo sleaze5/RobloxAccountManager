@@ -57,6 +57,8 @@ type SocialUser struct {
 	ImageURL    string                       `json:"imageUrl"`
 	Presence    *robloxservices.UserPresence `json:"presence"`
 	Request     *FriendRequestView           `json:"request"`
+	// HasVerifiedBadge reports whether Roblox shows the user's verified badge.
+	HasVerifiedBadge bool `json:"hasVerifiedBadge"`
 	// Trusted reports whether the user is a trusted friend of the browsing account.
 	Trusted bool `json:"trusted"`
 }
@@ -351,7 +353,7 @@ func socialPeople(users []robloxservices.UserView, requests []robloxservices.Fri
 	presenceByUser := indexPresences(presences)
 	people := make([]SocialUser, 0, len(users))
 	for index, user := range users {
-		person := SocialUser{UserID: user.UserID, Username: user.Username, DisplayName: cmp.Or(user.DisplayName, user.Username)}
+		person := SocialUser{UserID: user.UserID, Username: user.Username, DisplayName: cmp.Or(user.DisplayName, user.Username), HasVerifiedBadge: user.HasVerifiedBadge}
 		if withPresence {
 			presence := presenceOrOffline(presenceByUser, user.UserID)
 			person.Presence = &presence
@@ -863,7 +865,7 @@ func (service *Service) FindPlayerByUsername(ctx context.Context, username strin
 	if len(users) == 0 || users[0].Username == "" {
 		return nil, nil
 	}
-	person := SocialUser{UserID: userID, Username: users[0].Username, DisplayName: cmp.Or(users[0].DisplayName, users[0].Username)}
+	person := SocialUser{UserID: userID, Username: users[0].Username, DisplayName: cmp.Or(users[0].DisplayName, users[0].Username), HasVerifiedBadge: users[0].HasVerifiedBadge}
 	if images, err := service.headshotImages(ctx, []int64{userID}); err == nil {
 		person.ImageURL = images[userID]
 	}

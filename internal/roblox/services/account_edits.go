@@ -212,9 +212,10 @@ func (service *Users) Names(ctx context.Context, userIDs []int64) ([]UserView, e
 		}
 		var payload struct {
 			Data []struct {
-				ID          int64  `json:"id"`
-				Name        string `json:"name"`
-				DisplayName string `json:"displayName"`
+				ID               int64  `json:"id"`
+				Name             string `json:"name"`
+				DisplayName      string `json:"displayName"`
+				HasVerifiedBadge bool   `json:"hasVerifiedBadge"`
 			} `json:"data"`
 		}
 		if err := json.Unmarshal(response.Body, &payload); err != nil {
@@ -222,7 +223,7 @@ func (service *Users) Names(ctx context.Context, userIDs []int64) ([]UserView, e
 		}
 		found := make(map[int64]UserView, len(payload.Data))
 		for _, user := range payload.Data {
-			found[user.ID] = UserView{UserID: user.ID, Username: user.Name, DisplayName: user.DisplayName}
+			found[user.ID] = UserView{UserID: user.ID, Username: user.Name, DisplayName: user.DisplayName, HasVerifiedBadge: user.HasVerifiedBadge}
 		}
 		for _, userID := range batch {
 			user, exists := found[userID]
