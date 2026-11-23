@@ -37,6 +37,14 @@ const (
 	GameSectionLanguages     GameSection = "languages"
 )
 
+// UserGameList names a list of games on a user's profile.
+type UserGameList string
+
+const (
+	UserGameListFavorites UserGameList = "favorites"
+	UserGameListCreated   UserGameList = "created"
+)
+
 type PlaceSummary struct {
 	Place     Place  `json:"place"`
 	RootPlace *Place `json:"rootPlace"`

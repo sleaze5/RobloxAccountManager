@@ -70,10 +70,11 @@ func (service *Games) Search(ctx context.Context, query games.SearchQuery) (game
 	if len(universeIDs) > 200 || len(payload.NextPageToken) > 2048 {
 		return games.SearchPage{}, gameDataError("Roblox returned too many search results.")
 	}
-	page := games.SearchPage{Places: []games.Place{}, SessionID: query.SessionID, NextPageToken: payload.NextPageToken}
-	if err := service.loadSearchPlaces(ctx, universeIDs, &page); err != nil {
+	places, err := service.placesInOrder(ctx, universeIDs)
+	if err != nil {
 		return games.SearchPage{}, err
 	}
+	page := games.SearchPage{Places: places, SessionID: query.SessionID, NextPageToken: payload.NextPageToken}
 	if page.NextPageToken == query.PageToken {
 		page.NextPageToken = ""
 	}
@@ -744,20 +745,23 @@ func gameDataError(message string) error {
 	return &roblox.Error{Kind: roblox.KindProtocol, Endpoint: "games", Message: message}
 }
 
-func (service *Games) loadSearchPlaces(ctx context.Context, universeIDs []int64, page *games.SearchPage) error {
+// placesInOrder reads the root places of the universes in their order, and
+// leaves out the universes that Roblox does not list.
+func (service *Games) placesInOrder(ctx context.Context, universeIDs []int64) ([]games.Place, error) {
+	places := []games.Place{}
 	for start := 0; start < len(universeIDs); start += gameBatchSize {
 		batch := universeIDs[start:min(start+gameBatchSize, len(universeIDs))]
 		details, err := service.details(ctx, batch)
 		if err != nil {
-			return err
+			return nil, err
 		}
 		for _, universeID := range batch {
 			if game, exists := details[universeID]; exists {
-				page.Places = append(page.Places, game.Place)
+				places = append(places, game.Place)
 			}
 		}
 	}
-	return nil
+	return places, nil
 }
 
 // Section reads one part of the game details for the universe. The sections

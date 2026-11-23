@@ -221,6 +221,7 @@ export {
 	PrivateServerOption,
 	RecordOrder as GameServerRecordOrder,
 	ServerOrder as GameServerOrder,
+	UserGameList,
 } from "../../../bindings/github.com/sleaze5/RobloxAccountManager/internal/games/models.js"
 
 export type {

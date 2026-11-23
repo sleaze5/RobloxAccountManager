@@ -1,4 +1,5 @@
 <script lang="ts">
+	import ProfileShowcase from "../accounts/ProfileShowcase.svelte"
 	import arrowSquareOutIcon from "@phosphor-icons/core/regular/arrow-square-out.svg?raw"
 	import backpackIcon from "@phosphor-icons/core/regular/backpack.svg?raw"
 	import personArmsSpreadIcon from "@phosphor-icons/core/regular/person-arms-spread.svg?raw"
@@ -15,7 +16,6 @@
 	import pencilSimpleIcon from "@phosphor-icons/core/regular/pencil-simple.svg?raw"
 	import sealCheckIcon from "@phosphor-icons/core/regular/seal-check.svg?raw"
 	import signpostIcon from "@phosphor-icons/core/regular/signpost.svg?raw"
-	import storefrontIcon from "@phosphor-icons/core/regular/storefront.svg?raw"
 	import usersThreeIcon from "@phosphor-icons/core/regular/users-three.svg?raw"
 	import Icon from "../shared/Icon.svelte"
 	import RefreshIcon from "../shared/RefreshIcon.svelte"
@@ -88,6 +88,8 @@
 			notation: "compact",
 			maximumFractionDigits: 1,
 		})
+
+	let showcaseRefreshCount = $state(0)
 
 	// The profile rows stay in place while their sections load, so that the
 	// pane does not move when a value arrives.
@@ -236,7 +238,10 @@
 					: "Refresh profile"}
 				aria-busy={store.loadingProfile}
 				disabled={store.loadingProfile}
-				onclick={() => void store.loadProfile(person.userId, true)}>
+				onclick={() => {
+					showcaseRefreshCount++
+					void store.loadProfile(person.userId, true)
+				}}>
 				<RefreshIcon isRefreshing={store.loadingProfile} />
 			</button>
 			<button
@@ -257,15 +262,6 @@
 				disabled={!isSelf && !profile?.inventoryVisible}
 				onclick={() => onOpenSubpage("inventory")}>
 				<Icon svg={backpackIcon} size={16} aria-hidden="true" />
-			</button>
-			<button
-				class="button-icon"
-				type="button"
-				aria-label="Show creations in Marketplace"
-				data-tooltip="Show creations in Marketplace"
-				disabled={!person.username}
-				onclick={() => onShowCreations(person.username)}>
-				<Icon svg={storefrontIcon} size={16} aria-hidden="true" />
 			</button>
 			<button
 				class="button-icon"
@@ -598,6 +594,17 @@
 				{/if}
 			</dl>
 		</section>
+	{/if}
+
+	{#if person.username}
+		<ProfileShowcase
+			{accounts}
+			accountId={store.accountId}
+			userId={person.userId}
+			username={person.username}
+			refreshCount={showcaseRefreshCount}
+			{onSearchPlace}
+			{onShowCreations} />
 	{/if}
 
 	{#if store.profileError}
