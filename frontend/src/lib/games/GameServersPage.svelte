@@ -303,9 +303,16 @@
 	// A friend may play another place of the universe, so its row joins the
 	// place of its own server.
 	function robloxServerActions(key: string): MenuAction[] {
-		const friendServer = friendsInGame.friends?.servers?.find(
-				(server) => friendServerKey(server) === key,
-			),
+		const friendServer = (friendsInGame.friends?.places ?? [])
+				.flatMap((friendPlace) =>
+					(friendPlace.servers ?? []).map((server) => ({
+						placeId: friendPlace.placeId,
+						jobId: server.jobId,
+					})),
+				)
+				.find(
+					(server) => friendServerKey(server.placeId, server.jobId) === key,
+				),
 			placeId = friendServer?.placeId ?? place.placeId,
 			jobId = friendServer?.jobId ?? key
 		return [

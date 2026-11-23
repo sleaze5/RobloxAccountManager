@@ -192,7 +192,7 @@ export type {
 	Badge as GameBadge,
 	DeveloperProduct,
 	FriendInServer,
-	FriendServer,
+	FriendPlace,
 	FriendsInGame,
 	Game,
 	GamePass,

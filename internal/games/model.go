@@ -348,20 +348,31 @@ type DeveloperProduct struct {
 	PriceInRobux       int64  `json:"priceInRobux"`
 }
 
-// FriendsInGame are the account's friends who play a universe, as far
-// as their privacy settings show it to the account.
+// FriendsInGame are the account's friends who play a universe, as far as
+// their privacy settings show it to the account.
 type FriendsInGame struct {
-	Servers []FriendServer `json:"servers"`
-	// FriendsInHiddenServers play the universe, but their privacy settings
-	// hide their server from the account, so the account cannot join them.
+	// Places lists the root place first, then the subplaces that friends play,
+	// most friends first.
+	Places []FriendPlace `json:"places"`
+	// FriendsInHiddenPlaces play the universe, but their privacy settings hide
+	// which place and server they are in.
+	FriendsInHiddenPlaces []FriendInServer `json:"friendsInHiddenPlaces"`
+}
+
+// FriendPlace is a place of the universe that friends of the account play.
+type FriendPlace struct {
+	PlaceID     int64          `json:"placeId"`
+	Name        string         `json:"name"`
+	IsRootPlace bool           `json:"isRootPlace"`
+	Servers     []FriendServer `json:"servers"`
+	// FriendsInHiddenServers play the place, but their privacy settings hide
+	// their server from the account, so the account cannot join them.
 	FriendsInHiddenServers []FriendInServer `json:"friendsInHiddenServers"`
 }
 
-// FriendServer is a server that friends of the account are in. PlaceID is
-// the place that the server runs, which can be any place of the universe.
+// FriendServer is a server of a place that friends of the account are in.
 type FriendServer struct {
 	JobID   string           `json:"jobId"`
-	PlaceID int64            `json:"placeId"`
 	Friends []FriendInServer `json:"friends"`
 }
 
