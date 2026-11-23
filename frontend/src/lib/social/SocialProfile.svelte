@@ -461,13 +461,15 @@
 						</dd>
 					</div>
 				{/if}
-				{#if profile?.robloxBadges?.length}
+				{#if profile?.robloxBadges?.badges?.length}
 					<div>
 						<dt>
 							<Icon svg={medalIcon} size={16} aria-hidden="true" />Roblox
 							badges
 						</dt>
-						<dd><RobloxBadgeList badges={profile.robloxBadges} /></dd>
+						<dd>
+							<RobloxBadgeList badges={profile.robloxBadges.badges} />
+						</dd>
 					</div>
 				{:else if sections}
 					<div>
@@ -479,7 +481,9 @@
 							<MissingFactValue
 								{sections}
 								section={SocialProfileSection.SocialSectionRobloxBadges}
-								emptyLabel="None" />
+								emptyLabel={profile?.robloxBadges?.isHiddenByRoblox
+									? "Not shared by Roblox"
+									: "None"} />
 						</dd>
 					</div>
 				{/if}

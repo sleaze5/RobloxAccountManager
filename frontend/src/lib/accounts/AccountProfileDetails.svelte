@@ -357,12 +357,12 @@
 				</dd>
 			</div>
 		{/if}
-		{#if snapshot?.robloxBadges?.length && isLoaded(AccountProfileSection.ProfileSectionRobloxBadges)}
+		{#if snapshot?.robloxBadges?.badges?.length && isLoaded(AccountProfileSection.ProfileSectionRobloxBadges)}
 			<div>
 				<dt>
 					<Icon svg={medalIcon} size={16} aria-hidden="true" />Roblox badges
 				</dt>
-				<dd><RobloxBadgeList badges={snapshot.robloxBadges} /></dd>
+				<dd><RobloxBadgeList badges={snapshot.robloxBadges.badges} /></dd>
 			</div>
 		{:else if sections}
 			<div>
@@ -372,7 +372,9 @@
 				<dd>
 					{@render missing(
 						AccountProfileSection.ProfileSectionRobloxBadges,
-						"None",
+						snapshot?.robloxBadges?.isHiddenByRoblox
+							? "Not shared by Roblox"
+							: "None",
 					)}
 				</dd>
 			</div>

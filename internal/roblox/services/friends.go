@@ -271,35 +271,60 @@ func (service *Users) FriendStatus(ctx context.Context, accountID, version, self
 type RobloxBadge struct {
 	Name        string `json:"name"`
 	Description string `json:"description"`
-	ImageURL    string `json:"imageUrl"`
 }
 
-func (service *Users) RobloxBadges(ctx context.Context, accountID, version, userID int64) ([]RobloxBadge, error) {
-	var payload *[]struct {
-		Name        string `json:"name"`
-		Description string `json:"description"`
-		ImageURL    string `json:"imageUrl"`
+// RobloxBadges are the Roblox badges of a user's profile.
+type RobloxBadges struct {
+	Badges []RobloxBadge `json:"badges"`
+	// IsHiddenByRoblox reports that Roblox left the badges out of the profile.
+	IsHiddenByRoblox bool `json:"isHiddenByRoblox"`
+}
+
+const profileComponentsURL = "https://apis.roblox.com/profile-platform-api/v1/profiles/get"
+
+// RobloxBadges reads the Roblox badges from the profile platform API, which the
+// Roblox profile page reads, as RoSeal and RoValra read them. Roblox disabled
+// the accountinformation endpoint for them, and on 2026-11-22 it left the
+// RobloxBadges component out of every profile, so the shape of a badge comes
+// from RoSeal. The API answers without components unless the request comes
+// from the Roblox website origin, which the client sends with a CSRF request.
+func (service *Users) RobloxBadges(ctx context.Context, accountID, version, userID int64) (RobloxBadges, error) {
+	const endpoint = "profile-roblox-badges"
+	profileID := strconv.FormatInt(userID, 10)
+	request := map[string]any{
+		"profileType": "User",
+		"profileId":   profileID,
+		"components":  []map[string]string{{"component": "RobloxBadges"}},
 	}
-	address := "https://accountinformation.roblox.com/v1/users/" + strconv.FormatInt(userID, 10) + "/roblox-badges"
-	if err := service.readAccountDetails(ctx, accountID, version, "friend-roblox-badges", address, &payload); err != nil {
-		return nil, err
+	var payload struct {
+		ProfileID  string `json:"profileId"`
+		Components *struct {
+			RobloxBadges *struct {
+				RobloxBadgeList []struct {
+					Type struct {
+						Value       string `json:"value"`
+						Description string `json:"description"`
+					} `json:"type"`
+				} `json:"robloxBadgeList"`
+			} `json:"RobloxBadges"`
+		} `json:"components"`
 	}
-	if payload == nil {
-		return nil, invalidProfileDetails("friend-roblox-badges")
+	if err := service.postRead(ctx, accountID, version, endpoint, profileComponentsURL, request, &payload); err != nil {
+		return RobloxBadges{}, err
 	}
-	badges := make([]RobloxBadge, 0, len(*payload))
-	for _, listedBadge := range *payload {
-		name := boundedText(listedBadge.Name, maxBadgeNameLength)
-		if name == "" {
-			continue
+	if payload.Components == nil || payload.ProfileID != profileID {
+		return RobloxBadges{}, invalidProfileDetails(endpoint)
+	}
+	if payload.Components.RobloxBadges == nil {
+		return RobloxBadges{Badges: []RobloxBadge{}, IsHiddenByRoblox: true}, nil
+	}
+	badges := make([]RobloxBadge, 0, len(payload.Components.RobloxBadges.RobloxBadgeList))
+	for _, listedBadge := range payload.Components.RobloxBadges.RobloxBadgeList {
+		if name := boundedText(listedBadge.Type.Value, maxBadgeNameLength); name != "" {
+			badges = append(badges, RobloxBadge{Name: name, Description: boundedText(listedBadge.Type.Description, maxBadgeDescriptionLength)})
 		}
-		badge := RobloxBadge{Name: name, Description: boundedText(listedBadge.Description, maxBadgeDescriptionLength)}
-		if safeThumbnailURL(listedBadge.ImageURL) {
-			badge.ImageURL = listedBadge.ImageURL
-		}
-		badges = append(badges, badge)
 	}
-	return badges, nil
+	return RobloxBadges{Badges: badges}, nil
 }
 
 func (service *Users) Premium(ctx context.Context, accountID, version, userID int64) (*bool, error) {
