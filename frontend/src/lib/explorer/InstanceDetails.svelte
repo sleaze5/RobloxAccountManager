@@ -1,5 +1,6 @@
 <script lang="ts">
 	import caretRightIcon from "@phosphor-icons/core/regular/caret-right.svg?raw"
+	import circleNotchIcon from "@phosphor-icons/core/regular/circle-notch.svg?raw"
 	import funnelSimpleIcon from "@phosphor-icons/core/regular/funnel-simple.svg?raw"
 	import packageIcon from "@phosphor-icons/core/regular/package.svg?raw"
 	import tagIcon from "@phosphor-icons/core/regular/tag.svg?raw"
@@ -242,22 +243,43 @@ Screen readers hear the name of the vector before each axis. -->
 					class="flex gap-2 overflow-x-auto px-3 py-3"
 					aria-label="Referenced assets">
 					{#each assetPreviews as property (`${property.group}:${property.name}`)}
+						{@const isOpening = openingAssetId === property.assetId}
 						<li class="w-20 shrink-0">
-							<figure class="flex flex-col gap-1">
+							<button
+								class="group flex w-full flex-col gap-1 rounded-lg text-left"
+								type="button"
+								aria-label={isOpening
+									? `Opening ${property.name}…`
+									: `Show details of ${property.name}`}
+								aria-busy={isOpening}
+								data-tooltip="Show asset details"
+								disabled={openingAssetId !== 0}
+								onclick={() => onOpenAsset(property.assetId)}>
 								<span
-									class="grid size-20 place-items-center overflow-hidden rounded-lg border border-line-subtle bg-raised">
+									class="relative grid size-20 place-items-center overflow-hidden rounded-lg border border-line-subtle bg-raised transition-colors duration-100 group-enabled:group-hover:border-line-strong">
 									<img
 										class="size-full animate-pop object-contain"
 										src={imageUrlByAssetId.get(property.assetId)}
-										alt={`${property.name} preview`}
+										alt=""
 										decoding="async"
 										draggable="false"
 										referrerpolicy="no-referrer" />
+									{#if isOpening}
+										<span
+											class="absolute inset-0 grid place-items-center bg-scrim text-fg">
+											<Icon
+												svg={circleNotchIcon}
+												class="spinner"
+												size={20}
+												aria-hidden="true" />
+										</span>
+									{/if}
 								</span>
-								<figcaption class="truncate text-2xs text-fg-muted">
+								<span
+									class="truncate text-2xs text-fg-muted transition-colors duration-100 group-enabled:group-hover:text-fg">
 									{property.name}
-								</figcaption>
-							</figure>
+								</span>
+							</button>
 						</li>
 					{/each}
 				</ul>
@@ -333,9 +355,7 @@ Screen readers hear the name of the vector before each axis. -->
 																property.referencedInstanceId,
 															)}
 															{onSelectInstance}
-															{onOpenDocument}
-															{openingAssetId}
-															{onOpenAsset} />
+															{onOpenDocument} />
 													{/if}
 												</dd>
 											</div>
