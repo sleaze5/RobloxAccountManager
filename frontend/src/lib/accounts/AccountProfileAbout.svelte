@@ -43,7 +43,9 @@
 	}
 </script>
 
-<section class="flex flex-col gap-2" aria-labelledby="profile-about-heading">
+<section
+	class="flex flex-col gap-2 @4xl:col-span-2"
+	aria-labelledby="profile-about-heading">
 	<div class="flex items-center gap-1">
 		<h3 id="profile-about-heading" class="text-xs font-semibold text-fg-muted">
 			About

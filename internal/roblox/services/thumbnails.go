@@ -108,7 +108,8 @@ type ThumbnailTarget struct {
 
 // The image sizes that the thumbnails batch endpoint renders. Roblox renders
 // LargeThumbnailSize only for some types, such as Asset and BundleThumbnail,
-// and the 16:9 WideThumbnailSize only for wide images, such as GameThumbnail.
+// and the 16:9 WideThumbnailSize only for wide images, such as GameThumbnail
+// and AvatarBackground.
 const (
 	SmallThumbnailSize = "150x150"
 	LargeThumbnailSize = "420x420"

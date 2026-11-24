@@ -3,7 +3,6 @@
 	import ProfileShowcase from "../accounts/ProfileShowcase.svelte"
 	import arrowSquareOutIcon from "@phosphor-icons/core/regular/arrow-square-out.svg?raw"
 	import backpackIcon from "@phosphor-icons/core/regular/backpack.svg?raw"
-	import personArmsSpreadIcon from "@phosphor-icons/core/regular/person-arms-spread.svg?raw"
 	import calendarDotsIcon from "@phosphor-icons/core/regular/calendar-dots.svg?raw"
 	import circleNotchIcon from "@phosphor-icons/core/regular/circle-notch.svg?raw"
 	import clockCounterClockwiseIcon from "@phosphor-icons/core/regular/clock-counter-clockwise.svg?raw"
@@ -38,10 +37,12 @@
 	import Skeleton from "../shared/Skeleton.svelte"
 	import Timestamp from "../shared/Timestamp.svelte"
 	import { relativeTime } from "../shared/timestamp"
-	import ImageMenuTarget from "../layout/ImageMenuTarget.svelte"
+	import AvatarBackgroundFact from "../avatar/AvatarBackgroundFact.svelte"
+	import AvatarPortraitFrame from "../avatar/AvatarPortraitFrame.svelte"
+	import { AvatarPortraitLoad } from "../avatar/avatar-portrait.svelte"
+	import ProfileTabs from "../shared/ProfileTabs.svelte"
 	import FriendConnections from "./FriendConnections.svelte"
 	import SocialBadges from "./SocialBadges.svelte"
-	import SocialAvatar from "./SocialAvatar.svelte"
 	import ProfileStats from "../shared/ProfileStats.svelte"
 	import { relationshipStats } from "./relationship-stats"
 	import {
@@ -104,6 +105,14 @@
 	let showcaseRefreshCount = $state(0),
 		joinability = $state(UserJoinability.UserJoinabilityUnknown)
 
+	const avatarPortrait = new AvatarPortraitLoad()
+
+	// A profile refresh also reads the portrait again.
+	$effect(() => {
+		void showcaseRefreshCount
+		return avatarPortrait.load(store.accountId, person.userId)
+	})
+
 	const isInGame = $derived(
 		person.presence?.userPresenceType === PresenceType.PresenceTypeInGame,
 	)
@@ -165,6 +174,10 @@
 		),
 		// Roblox always shows an account its own inventory.
 		isSelf = $derived(person.userId === store.selfUserId),
+		canOpenInventory = $derived(isSelf || !!profile?.inventoryVisible),
+		displayName = $derived(
+			person.displayName || person.username || `User ${person.userId}`,
+		),
 		inventoryLabel = $derived(
 			isSelf || profile?.inventoryVisible
 				? "Inventory"
@@ -181,78 +194,91 @@
 	notifyErrors("Profile not loaded", () => store.profileError)
 </script>
 
-<section class="flex flex-col gap-4 p-3 pb-4" aria-labelledby="social-name">
-	<div class="flex items-start gap-3 @max-xl:flex-col">
-		<div class="flex min-w-0 flex-1 items-center gap-4">
-			<ImageMenuTarget
-				imageUrl={person.imageUrl}
-				label={`@${person.username || person.userId}'s profile image`}>
-				<SocialAvatar imageUrl={person.imageUrl} className="size-20" />
-			</ImageMenuTarget>
-			<div class="flex min-w-0 flex-col gap-1">
-				<div class="min-w-0 leading-6">
-					<h2
-						id="social-name"
-						class="mr-1 inline text-lg font-semibold tracking-tight wrap-anywhere text-fg">
-						{person.displayName ||
-							person.username ||
-							`User ${person.userId}`}{#if profile?.verified}<Icon
-								svg={sealCheckIcon}
-								class="relative top-px ml-1 inline-block text-accent-strong"
-								size={16}
-								aria-label="Verified" />{/if}
-					</h2>
-					{#if nickname || canNickname}
-						<span
-							class="inline-flex max-w-full min-w-0 items-center gap-0.5 align-top text-sm text-fg-muted">
-							{#if nickname}<span aria-hidden="true">(</span><span
-									class="truncate"
-									><span class="sr-only"
-										>Nickname:
-									</span>{nickname}</span
-								>{/if}
-							{#if canNickname}<button
-									class="button-ghost-sm"
-									type="button"
-									aria-label={nickname
-										? "Edit nickname"
-										: "Add a nickname"}
-									data-tooltip={nickname
-										? "Edit nickname on Roblox"
-										: "Add a nickname on Roblox"}
-									disabled={store.savingNickname}
-									onclick={() => onEditNickname(nickname)}
-									><Icon
-										svg={pencilSimpleIcon}
-										size={14}
-										aria-hidden="true" /></button
-								>{/if}
-							{#if nickname}<span aria-hidden="true">)</span>{/if}
-						</span>
-					{/if}
-				</div>
-				<div
-					class="flex min-w-0 flex-wrap items-center gap-1 font-mono text-2xs wrap-anywhere text-fg-muted">
-					{#if person.username}<span class="select-text"
-							>@{person.username}</span>
-						<span class="text-fg-faint" aria-hidden="true">·</span>{/if}
-					<span class="select-text">ID: {person.userId}</span>
-				</div>
-				{#if person.presence}
-					<AccountPresence
-						presence={person.presence}
-						{joinability}
-						onJoin={onFillLaunch}
-						onJoinUser={() => onFillLaunchUser(person)}
-						{onSearchPlace}
-						{onSearchUniverse} />
+<section class="flex flex-col gap-5 p-4 pb-5" aria-labelledby="social-name">
+	<div class="flex items-start gap-4">
+		<AvatarPortraitFrame
+			portraitLoad={avatarPortrait}
+			headshotUrl={person.imageUrl}
+			label={`@${person.username || person.userId}'s avatar`}
+			onOpenAvatar={() => onOpenSubpage("avatar")} />
+		<div class="flex min-w-0 flex-1 flex-col gap-1 pt-1">
+			<div class="min-w-0 leading-6">
+				<h2
+					id="social-name"
+					class="mr-1 inline text-lg font-semibold tracking-tight wrap-anywhere text-fg">
+					{displayName}{#if profile?.verified}<Icon
+							svg={sealCheckIcon}
+							class="relative top-px ml-1 inline-block text-accent-strong"
+							size={16}
+							aria-label="Verified" />{/if}
+				</h2>
+				{#if nickname || canNickname}
+					<span
+						class="inline-flex max-w-full min-w-0 items-center gap-0.5 align-top text-sm text-fg-muted">
+						{#if nickname}<span aria-hidden="true">(</span><span
+								class="truncate"
+								><span class="sr-only">Nickname: </span>{nickname}</span
+							>{/if}
+						{#if canNickname}<button
+								class="button-ghost-sm"
+								type="button"
+								aria-label={nickname
+									? "Edit nickname"
+									: "Add a nickname"}
+								data-tooltip={nickname
+									? "Edit nickname on Roblox"
+									: "Add a nickname on Roblox"}
+								disabled={store.savingNickname}
+								onclick={() => onEditNickname(nickname)}
+								><Icon
+									svg={pencilSimpleIcon}
+									size={14}
+									aria-hidden="true" /></button
+							>{/if}
+						{#if nickname}<span aria-hidden="true">)</span>{/if}
+					</span>
 				{/if}
-				{#if profile}<SocialBadges
-						{profile}
-						relationship={profileRelationship?.relationship ?? null} />{/if}
 			</div>
+			<div
+				class="flex min-w-0 flex-wrap items-center gap-1 font-mono text-2xs wrap-anywhere text-fg-muted">
+				{#if person.username}<span class="select-text">@{person.username}</span>
+					<span class="text-fg-faint" aria-hidden="true">·</span>{/if}
+				<span class="select-text">ID: {person.userId}</span>
+			</div>
+			{#if person.presence}
+				<AccountPresence
+					presence={person.presence}
+					{joinability}
+					onJoin={onFillLaunch}
+					onJoinUser={() => onFillLaunchUser(person)}
+					{onSearchPlace}
+					{onSearchUniverse} />
+			{/if}
+			{#if sections}
+				<ProfileStats
+					label="Relationship counts"
+					stats={relationshipStats(
+						{
+							friends: profile?.friendCount ?? null,
+							followers: profile?.followerCount ?? null,
+							following: profile?.followingCount ?? null,
+						},
+						(list) =>
+							sections.isSectionPending(
+								list === SocialList.SocialFollowers
+									? SocialProfileSection.SocialSectionFollowers
+									: list === SocialList.SocialFollowing
+										? SocialProfileSection.SocialSectionFollowing
+										: SocialProfileSection.SocialSectionFriends,
+							),
+						(list) => store.explore(person, list),
+					)} />
+			{/if}
+			{#if profile}<SocialBadges
+					{profile}
+					relationship={profileRelationship?.relationship ?? null} />{/if}
 		</div>
-		<div class="flex flex-wrap items-center justify-end gap-1 @max-xl:self-end">
+		<div class="flex shrink-0 flex-wrap items-center justify-end gap-1">
 			{#each actions as action (action.id)}
 				{@const pending = store.isActionPending(person.userId, action.id)}
 				<button
@@ -272,6 +298,10 @@
 					{pending ? action.progress : action.label}
 				</button>
 			{/each}
+			{#if actions.length}<span
+					class="mx-1 h-4 w-px bg-line-strong"
+					aria-hidden="true"></span
+				>{/if}
 			<button
 				class="button-icon"
 				type="button"
@@ -286,25 +316,6 @@
 					void store.loadProfile(person.userId, true)
 				}}>
 				<RefreshIcon isRefreshing={store.loadingProfile} />
-			</button>
-			<button
-				class="button-icon"
-				type="button"
-				aria-label="Avatar"
-				data-tooltip="Avatar"
-				data-subpage-button="avatar"
-				onclick={() => onOpenSubpage("avatar")}>
-				<Icon svg={personArmsSpreadIcon} size={16} aria-hidden="true" />
-			</button>
-			<button
-				class="button-icon"
-				type="button"
-				aria-label={inventoryLabel}
-				data-tooltip={inventoryLabel}
-				data-subpage-button="inventory"
-				disabled={!isSelf && !profile?.inventoryVisible}
-				onclick={() => onOpenSubpage("inventory")}>
-				<Icon svg={backpackIcon} size={16} aria-hidden="true" />
 			</button>
 			<button
 				class="button-icon"
@@ -325,323 +336,376 @@
 		</div>
 	</div>
 
-	{#if sections}
-		<ProfileStats
-			label="Relationship counts"
-			stats={relationshipStats(
-				{
-					friends: profile?.friendCount ?? null,
-					followers: profile?.followerCount ?? null,
-					following: profile?.followingCount ?? null,
-				},
-				(list) =>
-					sections.isSectionPending(
-						list === SocialList.SocialFollowers
-							? SocialProfileSection.SocialSectionFollowers
-							: list === SocialList.SocialFollowing
-								? SocialProfileSection.SocialSectionFollowing
-								: SocialProfileSection.SocialSectionFriends,
-					),
-				(list) => store.explore(person, list),
-			)} />
-	{/if}
+	<ProfileTabs
+		label={`${displayName} pages`}
+		tabs={[
+			{ id: "avatar", label: "Avatar" },
+			{
+				id: "inventory",
+				label: "Inventory",
+				unavailableReason: canOpenInventory ? "" : inventoryLabel,
+			},
+		]}
+		onOpen={onOpenSubpage} />
 
-	{#if profile && store.profileLoad?.hasSection(SocialProfileSection.SocialSectionAbout)}
-		<section class="flex flex-col gap-2" aria-labelledby="social-about-heading">
-			<h3 id="social-about-heading" class="text-xs font-semibold text-fg-muted">
-				About
-			</h3>
-			<p class="text-block" data-variant="prose">
-				{profile.description || "No description."}
-			</p>
-			{#if profile.socialLinks?.length}
-				<div class="flex flex-wrap items-center gap-1">
-					<Icon
-						svg={linkIcon}
-						class="mr-1 text-fg-faint"
-						size={16}
-						aria-label="Social links" />
-					{#each profile.socialLinks as link (link.name)}
-						<button
-							class="button"
-							type="button"
-							aria-label={`Open ${link.name} (${link.url})`}
-							data-tooltip={link.url}
-							onclick={() => void store.openLink(link.url)}>
+	<div
+		class={[
+			"grid min-w-0 items-start gap-5 @4xl:gap-6",
+			request ? "@4xl:grid-cols-3" : "@4xl:grid-cols-2",
+		]}>
+		<div
+			class={[
+				"flex min-w-0 flex-col gap-5",
+				request ? "@4xl:col-span-2" : "contents",
+			]}>
+			{#if profile && store.profileLoad?.hasSection(SocialProfileSection.SocialSectionAbout)}
+				<section
+					class="flex flex-col gap-2"
+					aria-labelledby="social-about-heading">
+					<h3
+						id="social-about-heading"
+						class="text-xs font-semibold text-fg-muted">
+						About
+					</h3>
+					<p class="text-block" data-variant="prose">
+						{profile.description || "No description."}
+					</p>
+					{#if profile.socialLinks?.length}
+						<div class="flex flex-wrap items-center gap-1">
 							<Icon
-								svg={arrowSquareOutIcon}
+								svg={linkIcon}
+								class="mr-1 text-fg-faint"
 								size={16}
-								aria-hidden="true" />
-							{link.name}
-						</button>
-					{/each}
-				</div>
+								aria-label="Social links" />
+							{#each profile.socialLinks as link (link.name)}
+								<button
+									class="button"
+									type="button"
+									aria-label={`Open ${link.name} (${link.url})`}
+									data-tooltip={link.url}
+									onclick={() => void store.openLink(link.url)}>
+									<Icon
+										svg={arrowSquareOutIcon}
+										size={16}
+										aria-hidden="true" />
+									{link.name}
+								</button>
+							{/each}
+						</div>
+					{/if}
+				</section>
+			{:else if sections?.isSectionPending(SocialProfileSection.SocialSectionAbout)}
+				<section class="flex flex-col gap-2" aria-busy="true">
+					<h3 class="text-xs font-semibold text-fg-muted">About</h3>
+					<p class="text-block" data-variant="prose">
+						<Skeleton className="w-72" label="Loading description…" />
+					</p>
+				</section>
 			{/if}
-		</section>
-	{:else if sections?.isSectionPending(SocialProfileSection.SocialSectionAbout)}
-		<section class="flex flex-col gap-2" aria-busy="true">
-			<h3 class="text-xs font-semibold text-fg-muted">About</h3>
-			<p class="text-block" data-variant="prose">
-				<Skeleton className="w-72" label="Loading description…" />
-			</p>
-		</section>
-	{/if}
+
+			{#if sections}
+				<section
+					class="flex flex-col gap-2"
+					aria-labelledby="social-details-heading">
+					<h3
+						id="social-details-heading"
+						class="text-xs font-semibold text-fg-muted">
+						Details
+					</h3>
+					<dl class="facts">
+						{#if profile?.createdAtMs}
+							<div>
+								<dt>
+									<Icon
+										svg={calendarDotsIcon}
+										size={16}
+										aria-hidden="true" />Joined
+								</dt>
+								<dd>
+									<Timestamp value={profile.createdAtMs} />
+									<small
+										>{relativeTime(
+											profile.createdAtMs,
+											Date.now(),
+											false,
+										)} old</small>
+								</dd>
+							</div>
+						{:else if sections}
+							<div>
+								<dt>
+									<Icon
+										svg={calendarDotsIcon}
+										size={16}
+										aria-hidden="true" />Joined
+								</dt>
+								<dd>
+									<MissingFactValue
+										{sections}
+										section={SocialProfileSection.SocialSectionAbout} />
+								</dd>
+							</div>
+						{/if}
+						{#if profile?.previousNames?.length}
+							<div>
+								<dt>
+									<Icon
+										svg={clockCounterClockwiseIcon}
+										size={16}
+										aria-hidden="true" />Previous names
+								</dt>
+								<dd><span>{profile.previousNames.join(", ")}</span></dd>
+							</div>
+						{:else if sections}
+							<div>
+								<dt>
+									<Icon
+										svg={clockCounterClockwiseIcon}
+										size={16}
+										aria-hidden="true" />Previous names
+								</dt>
+								<dd>
+									<MissingFactValue
+										{sections}
+										section={SocialProfileSection.SocialSectionPreviousNames}
+										emptyLabel="None" />
+								</dd>
+							</div>
+						{/if}
+						{#if profile?.primaryGroup}
+							<PrimaryGroupFact group={profile.primaryGroup} />
+						{:else if sections}
+							<div>
+								<dt>
+									<Icon
+										svg={usersThreeIcon}
+										size={16}
+										aria-hidden="true" />Primary group
+								</dt>
+								<dd>
+									<MissingFactValue
+										{sections}
+										section={SocialProfileSection.SocialSectionPrimaryGroup}
+										emptyLabel="None" />
+								</dd>
+							</div>
+						{/if}
+						{#if profile?.robloxBadges?.badges?.length}
+							<div>
+								<dt>
+									<Icon
+										svg={medalIcon}
+										size={16}
+										aria-hidden="true" />Roblox badges
+								</dt>
+								<dd>
+									<RobloxBadgeList
+										badges={profile.robloxBadges.badges} />
+								</dd>
+							</div>
+						{:else if sections}
+							<div>
+								<dt>
+									<Icon
+										svg={medalIcon}
+										size={16}
+										aria-hidden="true" />Roblox badges
+								</dt>
+								<dd>
+									<MissingFactValue
+										{sections}
+										section={SocialProfileSection.SocialSectionRobloxBadges}
+										emptyLabel={profile?.robloxBadges
+											?.isHiddenByRoblox
+											? "Not shared by Roblox"
+											: "None"} />
+								</dd>
+							</div>
+						{/if}
+						{#if profile?.tradeEligibility}
+							{@const trading = profile.tradeEligibility}
+							<div data-tone={trading.canTrade ? undefined : "warning"}>
+								<dt>
+									<Icon
+										svg={swapIcon}
+										size={16}
+										aria-hidden="true" />Trading
+								</dt>
+								<dd>
+									<span
+										>{trading.canTrade
+											? "Can trade"
+											: (tradeEligibilityLabels[
+													trading.eligibility
+												] ?? "Cannot trade")}</span>
+								</dd>
+							</div>
+						{/if}
+						{#if profile && profile.communityCount !== null}
+							<div>
+								<dt>
+									<Icon
+										svg={usersFourIcon}
+										size={16}
+										aria-hidden="true" />Communities
+								</dt>
+								<dd>
+									<span
+										>{exactNumbers.format(
+											profile.communityCount,
+										)}</span>
+								</dd>
+							</div>
+						{:else if sections}
+							<div>
+								<dt>
+									<Icon
+										svg={usersFourIcon}
+										size={16}
+										aria-hidden="true" />Communities
+								</dt>
+								<dd>
+									<MissingFactValue
+										{sections}
+										section={SocialProfileSection.SocialSectionCommunities} />
+								</dd>
+							</div>
+						{/if}
+						{#if profile && profile.collectibleCount !== null}
+							<div>
+								<dt>
+									<Icon
+										svg={diamondIcon}
+										size={16}
+										aria-hidden="true" />Collectibles
+								</dt>
+								<dd>
+									<span
+										>{exactNumbers.format(profile.collectibleCount)}
+										{profile.collectibleCount === 1
+											? "item"
+											: "items"}</span>
+									{#if profile.collectibleCount > 0 && profile.collectibleRecentAveragePriceTotal !== null}<small
+											class="font-mono"
+											>RAP R$ {exactNumbers.format(
+												profile.collectibleRecentAveragePriceTotal,
+											)}</small
+										>{/if}
+								</dd>
+							</div>
+						{:else if sections}
+							<div>
+								<dt>
+									<Icon
+										svg={diamondIcon}
+										size={16}
+										aria-hidden="true" />Collectibles
+								</dt>
+								<dd>
+									<MissingFactValue
+										{sections}
+										section={SocialProfileSection.SocialSectionCollectibles} />
+								</dd>
+							</div>
+						{/if}
+						{#if profile && profile.inventoryVisible !== null}
+							<div
+								data-tone={profile.inventoryVisible
+									? undefined
+									: "muted"}>
+								<dt>
+									<Icon
+										svg={backpackIcon}
+										size={16}
+										aria-hidden="true" />Inventory
+								</dt>
+								<dd>
+									<span
+										>{profile.inventoryVisible
+											? "Public"
+											: "Private"}</span>
+								</dd>
+							</div>
+						{:else if sections}
+							<div>
+								<dt>
+									<Icon
+										svg={backpackIcon}
+										size={16}
+										aria-hidden="true" />Inventory
+								</dt>
+								<dd>
+									<MissingFactValue
+										{sections}
+										section={SocialProfileSection.SocialSectionInventory} />
+								</dd>
+							</div>
+						{/if}
+						<AvatarBackgroundFact portraitLoad={avatarPortrait} />
+					</dl>
+				</section>
+			{/if}
+		</div>
+		{#if request}
+			<section
+				class="flex min-w-0 flex-col gap-2"
+				aria-labelledby="social-request-heading">
+				<h3
+					id="social-request-heading"
+					class="text-xs font-semibold text-fg-muted">
+					Request
+				</h3>
+				<dl class="facts">
+					{#if request?.sentAtMs}
+						<div>
+							<dt>
+								<Icon
+									svg={clockIcon}
+									size={16}
+									aria-hidden="true" />Sent
+							</dt>
+							<dd>
+								<Timestamp value={request.sentAtMs} />
+								<small>{relativeTime(request.sentAtMs)}</small>
+							</dd>
+						</div>
+					{/if}
+					{#if origin}
+						<div>
+							<dt>
+								<Icon
+									svg={signpostIcon}
+									size={16}
+									aria-hidden="true" />Sent from
+							</dt>
+							<dd><span>{origin}</span></dd>
+						</div>
+					{/if}
+					{#if request}
+						<div
+							data-tone={request.mutualFriends?.length
+								? undefined
+								: "muted"}>
+							<dt>
+								<Icon
+									svg={usersThreeIcon}
+									size={16}
+									aria-hidden="true" />Mutual friends
+							</dt>
+							<dd>
+								<span
+									>{request.mutualFriends?.join(", ") ||
+										"None"}</span>
+							</dd>
+						</div>
+					{/if}
+				</dl>
+			</section>
+		{/if}
+	</div>
 
 	{#if profile && store.profileLoad?.hasSection(SocialProfileSection.SocialSectionConnections) && accounts.accountTotal > 1}
 		<FriendConnections connections={profile.connections ?? []} {accounts} />
-	{/if}
-
-	{#if request || sections}
-		<section class="flex flex-col gap-2" aria-labelledby="social-details-heading">
-			<h3 id="social-details-heading" class="text-xs font-semibold text-fg-muted">
-				Details
-			</h3>
-			<dl class="facts">
-				{#if profile?.createdAtMs}
-					<div>
-						<dt>
-							<Icon
-								svg={calendarDotsIcon}
-								size={16}
-								aria-hidden="true" />Joined
-						</dt>
-						<dd>
-							<Timestamp value={profile.createdAtMs} />
-							<small
-								>{relativeTime(profile.createdAtMs, Date.now(), false)} old</small>
-						</dd>
-					</div>
-				{:else if sections}
-					<div>
-						<dt>
-							<Icon
-								svg={calendarDotsIcon}
-								size={16}
-								aria-hidden="true" />Joined
-						</dt>
-						<dd>
-							<MissingFactValue
-								{sections}
-								section={SocialProfileSection.SocialSectionAbout} />
-						</dd>
-					</div>
-				{/if}
-				{#if request?.sentAtMs}
-					<div>
-						<dt>
-							<Icon svg={clockIcon} size={16} aria-hidden="true" />Request
-							sent
-						</dt>
-						<dd>
-							<Timestamp value={request.sentAtMs} />
-							<small>{relativeTime(request.sentAtMs)}</small>
-						</dd>
-					</div>
-				{/if}
-				{#if origin}
-					<div>
-						<dt>
-							<Icon svg={signpostIcon} size={16} aria-hidden="true" />Sent
-							from
-						</dt>
-						<dd><span>{origin}</span></dd>
-					</div>
-				{/if}
-				{#if request}
-					<div
-						data-tone={request.mutualFriends?.length ? undefined : "muted"}>
-						<dt>
-							<Icon
-								svg={usersThreeIcon}
-								size={16}
-								aria-hidden="true" />Mutual friends
-						</dt>
-						<dd>
-							<span>{request.mutualFriends?.join(", ") || "None"}</span>
-						</dd>
-					</div>
-				{/if}
-				{#if profile?.previousNames?.length}
-					<div>
-						<dt>
-							<Icon
-								svg={clockCounterClockwiseIcon}
-								size={16}
-								aria-hidden="true" />Previous names
-						</dt>
-						<dd><span>{profile.previousNames.join(", ")}</span></dd>
-					</div>
-				{:else if sections}
-					<div>
-						<dt>
-							<Icon
-								svg={clockCounterClockwiseIcon}
-								size={16}
-								aria-hidden="true" />Previous names
-						</dt>
-						<dd>
-							<MissingFactValue
-								{sections}
-								section={SocialProfileSection.SocialSectionPreviousNames}
-								emptyLabel="None" />
-						</dd>
-					</div>
-				{/if}
-				{#if profile?.primaryGroup}
-					<PrimaryGroupFact group={profile.primaryGroup} />
-				{:else if sections}
-					<div>
-						<dt>
-							<Icon
-								svg={usersThreeIcon}
-								size={16}
-								aria-hidden="true" />Primary group
-						</dt>
-						<dd>
-							<MissingFactValue
-								{sections}
-								section={SocialProfileSection.SocialSectionPrimaryGroup}
-								emptyLabel="None" />
-						</dd>
-					</div>
-				{/if}
-				{#if profile?.robloxBadges?.badges?.length}
-					<div>
-						<dt>
-							<Icon svg={medalIcon} size={16} aria-hidden="true" />Roblox
-							badges
-						</dt>
-						<dd>
-							<RobloxBadgeList badges={profile.robloxBadges.badges} />
-						</dd>
-					</div>
-				{:else if sections}
-					<div>
-						<dt>
-							<Icon svg={medalIcon} size={16} aria-hidden="true" />Roblox
-							badges
-						</dt>
-						<dd>
-							<MissingFactValue
-								{sections}
-								section={SocialProfileSection.SocialSectionRobloxBadges}
-								emptyLabel={profile?.robloxBadges?.isHiddenByRoblox
-									? "Not shared by Roblox"
-									: "None"} />
-						</dd>
-					</div>
-				{/if}
-				{#if profile?.tradeEligibility}
-					{@const trading = profile.tradeEligibility}
-					<div data-tone={trading.canTrade ? undefined : "warning"}>
-						<dt>
-							<Icon svg={swapIcon} size={16} aria-hidden="true" />Trading
-						</dt>
-						<dd>
-							<span
-								>{trading.canTrade
-									? "Can trade"
-									: (tradeEligibilityLabels[trading.eligibility] ??
-										"Cannot trade")}</span>
-						</dd>
-					</div>
-				{/if}
-				{#if profile && profile.communityCount !== null}
-					<div>
-						<dt>
-							<Icon
-								svg={usersFourIcon}
-								size={16}
-								aria-hidden="true" />Communities
-						</dt>
-						<dd>
-							<span>{exactNumbers.format(profile.communityCount)}</span>
-						</dd>
-					</div>
-				{:else if sections}
-					<div>
-						<dt>
-							<Icon
-								svg={usersFourIcon}
-								size={16}
-								aria-hidden="true" />Communities
-						</dt>
-						<dd>
-							<MissingFactValue
-								{sections}
-								section={SocialProfileSection.SocialSectionCommunities} />
-						</dd>
-					</div>
-				{/if}
-				{#if profile && profile.collectibleCount !== null}
-					<div>
-						<dt>
-							<Icon
-								svg={diamondIcon}
-								size={16}
-								aria-hidden="true" />Collectibles
-						</dt>
-						<dd>
-							<span
-								>{exactNumbers.format(profile.collectibleCount)}
-								{profile.collectibleCount === 1
-									? "item"
-									: "items"}</span>
-							{#if profile.collectibleCount > 0 && profile.collectibleRecentAveragePriceTotal !== null}<small
-									class="font-mono"
-									>RAP R$ {exactNumbers.format(
-										profile.collectibleRecentAveragePriceTotal,
-									)}</small
-								>{/if}
-						</dd>
-					</div>
-				{:else if sections}
-					<div>
-						<dt>
-							<Icon
-								svg={diamondIcon}
-								size={16}
-								aria-hidden="true" />Collectibles
-						</dt>
-						<dd>
-							<MissingFactValue
-								{sections}
-								section={SocialProfileSection.SocialSectionCollectibles} />
-						</dd>
-					</div>
-				{/if}
-				{#if profile && profile.inventoryVisible !== null}
-					<div data-tone={profile.inventoryVisible ? undefined : "muted"}>
-						<dt>
-							<Icon
-								svg={backpackIcon}
-								size={16}
-								aria-hidden="true" />Inventory
-						</dt>
-						<dd>
-							<span
-								>{profile.inventoryVisible
-									? "Public"
-									: "Private"}</span>
-						</dd>
-					</div>
-				{:else if sections}
-					<div>
-						<dt>
-							<Icon
-								svg={backpackIcon}
-								size={16}
-								aria-hidden="true" />Inventory
-						</dt>
-						<dd>
-							<MissingFactValue
-								{sections}
-								section={SocialProfileSection.SocialSectionInventory} />
-						</dd>
-					</div>
-				{/if}
-			</dl>
-		</section>
 	{/if}
 
 	{#if person.username}

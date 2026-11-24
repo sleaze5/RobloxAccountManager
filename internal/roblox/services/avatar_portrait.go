@@ -20,6 +20,16 @@ type AvatarBackground struct {
 	ImageURL string `json:"imageUrl"`
 }
 
+// AvatarPortrait is how a profile shows a user: the full-body avatar image in
+// front of the background that the user equipped. FullBodyImageURL is empty
+// when Roblox has not rendered it. Background is nil when the user equipped
+// none, or when IsBackgroundUnavailable reports that it could not be read.
+type AvatarPortrait struct {
+	FullBodyImageURL        string            `json:"fullBodyImageUrl"`
+	Background              *AvatarBackground `json:"background"`
+	IsBackgroundUnavailable bool              `json:"isBackgroundUnavailable"`
+}
+
 // ThumbnailTarget names the image of the background.
 func (background AvatarBackground) ThumbnailTarget() ThumbnailTarget {
 	return ThumbnailTarget{Type: "AvatarBackground", TargetID: background.AssetID}

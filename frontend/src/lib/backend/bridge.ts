@@ -121,6 +121,7 @@ export type {
 	AvatarAccessoryAdjustment,
 	AvatarAccessoryAdjustmentLimits,
 	AvatarAsset,
+	AvatarPortrait,
 	AvatarBodyColors,
 	AvatarChange,
 	AvatarClothingLayer,
