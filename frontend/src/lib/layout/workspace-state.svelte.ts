@@ -70,6 +70,14 @@ export class WorkspaceState {
 		else this.#subpageLaunchOpen = open
 	}
 
+	get hasOpenAccountMenu(): boolean {
+		return (
+			this.activeAccountMenu !== null ||
+			this.accountContextMenu !== null ||
+			this.imageContextMenu !== null
+		)
+	}
+
 	closeAccountMenus(): void {
 		this.activeAccountMenu = null
 		this.accountContextMenu = null
