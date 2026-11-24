@@ -36,7 +36,6 @@ export class UniverseGamePasses {
 		)
 	}
 
-	// hasOwnershipFor reports whether isOwned is loaded for the account.
 	hasOwnershipFor(accountId: number): boolean {
 		return (
 			accountId !== 0 &&

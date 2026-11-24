@@ -513,7 +513,7 @@
 			!settingsState || settingsState.loading || settingsState.saving !== null,
 		),
 		activePageLoad = $derived.by((): PageLoadState | null => {
-			const info = infoState,
+			const accountInfo = infoState,
 				owned = ownedState,
 				sessions = sessionsState,
 				robux = robuxState,
@@ -522,12 +522,12 @@
 			switch (activePage?.id) {
 				case "info":
 					return (
-						info &&
+						accountInfo &&
 						createPageLoadState(
-							info.loading,
-							!!info.snapshot,
-							info.isFresh,
-							() => info.refresh(),
+							accountInfo.loading,
+							!!accountInfo.snapshot,
+							accountInfo.isFresh,
+							() => accountInfo.refresh(),
 						)
 					)
 				case "servers":
@@ -761,8 +761,8 @@
 		if (view?.boolValue != null) {
 			return view.options?.find((option) => option.boolValue === checked)
 		}
-		const value = checked ? getToggleOnString(key) : getToggleOffString(key)
-		return view?.options?.find((option) => option.stringValue === value)
+		const toggleString = checked ? getToggleOnString(key) : getToggleOffString(key)
+		return view?.options?.find((option) => option.stringValue === toggleString)
 	}
 	function getToggleOnString(key: Key): string {
 		switch (key) {
@@ -829,7 +829,7 @@
 			store,
 			notifications,
 		)
-		const info = new AccountInfoState(store.selectedAccount.id, store),
+		const accountInfo = new AccountInfoState(store.selectedAccount.id, store),
 			blocked = new BlockedUsersState(store.selectedAccount.id, store),
 			owned = new OwnedPrivateServersState(store.selectedAccount.id, store),
 			sessions = new AccountSessionsState(
@@ -838,7 +838,7 @@
 				notifications,
 			)
 		settingsState = settings
-		infoState = info
+		infoState = accountInfo
 		blockedState = blocked
 		ownedState = owned
 		sessionsState = sessions
@@ -846,7 +846,7 @@
 		robuxState = robux
 		return () => {
 			settings.dispose()
-			info.dispose()
+			accountInfo.dispose()
 			blocked.dispose()
 			owned.dispose()
 			sessions.dispose()

@@ -113,26 +113,6 @@ export function tooltipOut(node: Element): TransitionConfig {
 	})
 }
 
-export function toastIn(node: Element): TransitionConfig {
-	const distance = tokenNumber(node, "--motion-distance", 2)
-	return motion({
-		duration: tokenNumber(node, "--duration-enter", 150),
-		easing: sharp,
-		scale: tokenNumber(node, "--motion-scale", 0.99),
-		y: -distance,
-	})
-}
-
-export function toastOut(node: Element): TransitionConfig {
-	const distance = tokenNumber(node, "--motion-distance", 2)
-	return motion({
-		duration: tokenNumber(node, "--duration-exit", 75),
-		easing: standard,
-		scale: tokenNumber(node, "--motion-scale", 0.99),
-		y: -distance / 2,
-	})
-}
-
 export function snackbarIn(node: Element): TransitionConfig {
 	return motion({
 		duration: tokenNumber(node, "--duration-enter", 150),
@@ -381,8 +361,10 @@ function setMenuPosition(
 }
 
 function tokenNumber(node: Element, token: string, fallback: number): number {
-	const value = Number.parseFloat(getComputedStyle(node).getPropertyValue(token))
-	return Number.isFinite(value) ? value : fallback
+	const parsedToken = Number.parseFloat(
+		getComputedStyle(node).getPropertyValue(token),
+	)
+	return Number.isFinite(parsedToken) ? parsedToken : fallback
 }
 
 export function modalFocus(node: HTMLElement): { destroy: () => void } {

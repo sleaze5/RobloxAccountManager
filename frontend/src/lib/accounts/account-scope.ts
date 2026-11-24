@@ -48,7 +48,6 @@ export class AccountScope {
 		) as KeptPageData<Value> | null
 	}
 
-	// keep stores what the named page shows when it closes.
 	keep<Value>(pageName: string, kept: KeptPageData<Value>): void {
 		this.#store.keepPageData(
 			this.accountId,
@@ -58,8 +57,6 @@ export class AccountScope {
 		)
 	}
 
-	// forgetKept removes what the named page kept, so that the next visit loads
-	// it again.
 	forgetKept(pageName: string): void {
 		this.#store.forgetPageData(this.accountId, pageName)
 	}

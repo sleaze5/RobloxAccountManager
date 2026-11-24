@@ -144,7 +144,6 @@ func (service *Service) exportData(ctx context.Context, operation string) ([]byt
 	return payloadJSON, nil
 }
 
-// ExportDetails returns the format version and password hint of an export file.
 func (service *Service) ExportDetails(path string) (vault.ExportDetails, error) {
 	details, err := service.vault.ReadExportDetails(path)
 	if err != nil {

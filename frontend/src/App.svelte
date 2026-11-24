@@ -187,8 +187,6 @@
 		store.accounts.find((account) => account.id === renewAccountId) ?? null,
 	)
 
-	// resetAccountPages forgets what the pages read for the accounts, such as
-	// after the vault locks.
 	function resetAccountPages(): void {
 		games.reset()
 		social.reset()
@@ -794,8 +792,6 @@
 		return true
 	}
 
-	// goThroughPageHistoryOnKey handles Alt+Left and Alt+Right, and returns
-	// whether the event was one of them.
 	function goThroughPageHistoryOnKey(event: KeyboardEvent): boolean {
 		const isHistoryKey =
 			event.altKey &&

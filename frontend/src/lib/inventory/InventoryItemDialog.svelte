@@ -93,11 +93,9 @@
 		category: InventoryCategoryOption
 		inventory: InventoryState
 		username: string
-		// The selected account buys and favorites items.
 		accounts: AccountStore
 		isOwnInventory: boolean
 		isWorn: boolean
-		// Opens the pass in Games. Pages without game passes omit it.
 		onClose: () => void
 	} = $props()
 	const previews = getProfilePreviews()

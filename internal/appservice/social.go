@@ -50,15 +50,14 @@ type FriendRequestView struct {
 }
 
 type SocialUser struct {
-	UserID      int64                        `json:"userId"`
-	Username    string                       `json:"username"`
-	DisplayName string                       `json:"displayName"`
-	Nickname    string                       `json:"nickname"`
-	ImageURL    string                       `json:"imageUrl"`
-	Presence    *robloxservices.UserPresence `json:"presence"`
-	Request     *FriendRequestView           `json:"request"`
-	// HasVerifiedBadge reports whether Roblox shows the user's verified badge.
-	HasVerifiedBadge bool `json:"hasVerifiedBadge"`
+	UserID           int64                        `json:"userId"`
+	Username         string                       `json:"username"`
+	DisplayName      string                       `json:"displayName"`
+	Nickname         string                       `json:"nickname"`
+	ImageURL         string                       `json:"imageUrl"`
+	Presence         *robloxservices.UserPresence `json:"presence"`
+	Request          *FriendRequestView           `json:"request"`
+	HasVerifiedBadge bool                         `json:"hasVerifiedBadge"`
 	// Trusted reports whether the user is a trusted friend of the browsing account.
 	Trusted bool `json:"trusted"`
 }
@@ -141,8 +140,7 @@ type SocialProfile struct {
 	Connections      []FriendConnection               `json:"connections"`
 	Relationship     SocialRelationship               `json:"relationship"`
 	CommunityCount   *int64                           `json:"communityCount"`
-	// TradeEligibility says whether the account can trade with the user.
-	TradeEligibility *TradeEligibility `json:"tradeEligibility"`
+	TradeEligibility *TradeEligibility                `json:"tradeEligibility"`
 	// The collectible fields stay nil when the user's inventory is private.
 	CollectibleCount                   *int64 `json:"collectibleCount"`
 	CollectibleRecentAveragePriceTotal *int64 `json:"collectibleRecentAveragePriceTotal"`

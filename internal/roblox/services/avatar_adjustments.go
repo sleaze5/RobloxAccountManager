@@ -67,7 +67,6 @@ type AvatarClothingLayer struct {
 	Puffiness *float64 `json:"puffiness"`
 }
 
-// AvatarAxisLimits is the range of each axis of one adjustment.
 type AvatarAxisLimits struct {
 	Min AvatarVector `json:"min"`
 	Max AvatarVector `json:"max"`

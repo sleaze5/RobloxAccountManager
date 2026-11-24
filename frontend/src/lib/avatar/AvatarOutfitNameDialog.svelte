@@ -22,7 +22,6 @@
 
 	const maxNameLength = 100
 
-	// The field starts with the current name and then holds what the user types.
 	let name = $state(untrack(() => renamedOutfit?.name ?? "")),
 		nameInput = $state<HTMLInputElement | undefined>(undefined),
 		isTouched = $state(false)

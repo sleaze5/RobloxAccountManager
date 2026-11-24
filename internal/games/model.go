@@ -37,7 +37,6 @@ const (
 	GameSectionLanguages     GameSection = "languages"
 )
 
-// UserGameList names a list of games on a user's profile.
 type UserGameList string
 
 const (
@@ -99,7 +98,6 @@ type Playability struct {
 	Message    string `json:"message"`
 }
 
-// MediaKind names what a media entry of a game shows.
 type MediaKind string
 
 const (
@@ -426,7 +424,6 @@ type FriendsInGame struct {
 	FriendsInHiddenPlaces []FriendInServer `json:"friendsInHiddenPlaces"`
 }
 
-// FriendPlace is a place of the universe that friends of the account play.
 type FriendPlace struct {
 	PlaceID     int64          `json:"placeId"`
 	Name        string         `json:"name"`
@@ -437,7 +434,6 @@ type FriendPlace struct {
 	FriendsInHiddenServers []FriendInServer `json:"friendsInHiddenServers"`
 }
 
-// FriendServer is a server of a place that friends of the account are in.
 type FriendServer struct {
 	JobID   string           `json:"jobId"`
 	Friends []FriendInServer `json:"friends"`

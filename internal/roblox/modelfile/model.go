@@ -7,7 +7,6 @@ import (
 	"strings"
 )
 
-// Format is the format of a model file.
 type Format string
 
 const (
@@ -65,9 +64,8 @@ type Property struct {
 	// value made of several, such as the position and the orientation of a
 	// CFrame.
 	VectorParts []VectorPart `json:"vectorParts"`
-	// EnumValue is the number of an enum item.
-	EnumValue uint32 `json:"-"`
-	referent  string
+	EnumValue   uint32       `json:"-"`
+	referent    string
 	// isRenamed marks a property that the file stores under an older name.
 	isRenamed bool
 }
@@ -80,7 +78,6 @@ type VectorPart struct {
 	Components []string `json:"components"`
 }
 
-// AttributesGroup is the group of the attributes of an instance.
 const AttributesGroup = "Attributes"
 
 // Instance is one instance of a model file. IDs are unique within one
@@ -94,7 +91,6 @@ type Instance struct {
 	Children   []Instance `json:"children"`
 }
 
-// Model is the instance tree of one model file.
 type Model struct {
 	Format    Format     `json:"format"`
 	Instances []Instance `json:"instances"`

@@ -26,7 +26,6 @@ const (
 	GroupSourceFunds         GroupSource = "funds"
 )
 
-// UserGroupList is every group of a user, with the user's primary group.
 type UserGroupList struct {
 	Groups []robloxservices.UserGroup `json:"groups"`
 	// PrimaryGroupID is 0 when the user has no primary group.
@@ -203,7 +202,6 @@ func (service *Service) GetGroupProfile(ctx context.Context, accountID, groupID 
 	return profile, nil
 }
 
-// GroupIconView is the icon of one group.
 type GroupIconView struct {
 	GroupID  int64  `json:"groupId"`
 	ImageURL string `json:"imageUrl"`
@@ -378,8 +376,6 @@ func (service *Service) RemoveGroupMember(ctx context.Context, accountID, groupI
 	})
 }
 
-// AnswerGroupJoinRequest accepts or declines the request of a user to join
-// the group.
 func (service *Service) AnswerGroupJoinRequest(ctx context.Context, accountID, groupID, userID int64, isAccepted bool) error {
 	return service.editAccount(ctx, accountID, "group-join-request", "This role cannot answer join requests.", func(ctx context.Context, version int64) error {
 		return service.users.AnswerGroupJoinRequest(ctx, accountID, version, groupID, userID, isAccepted)

@@ -69,7 +69,6 @@ func (service *Service) readAssetFile(ctx context.Context, accountID int64, cate
 	return assetFile, nil
 }
 
-// DefaultDownloadDirectory is where the save dialog for a download opens.
 func (service *Service) DefaultDownloadDirectory() string {
 	return appdata.DefaultDownloadDirectory()
 }
@@ -99,7 +98,6 @@ func fileNameOf(name, fallbackName, extension string) string {
 	return cleanedName + "." + extension
 }
 
-// SaveDownloadedFile writes the file of an item where the user chose.
 func (service *Service) SaveDownloadedFile(path, operation string, file DownloadableFile) (string, error) {
 	savedPath, err := service.saveChosenFile(path, file.Extension, file.Contents, operation, "application.inventory")
 	if err == nil {

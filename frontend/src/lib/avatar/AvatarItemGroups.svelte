@@ -20,7 +20,6 @@
 		// headingIdPrefix keeps the heading IDs unique while the avatar page
 		// and an outfit dialog both show groups.
 		headingIdPrefix: string
-		// Whether the account that the page acts for owns the asset.
 		isOwned: (asset: AvatarAsset) => boolean
 		// badgesOf adds the marks that only the caller knows to each tile.
 		badgesOf?: (asset: AvatarAsset) => ItemTileBadge[]

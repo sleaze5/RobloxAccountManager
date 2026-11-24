@@ -399,7 +399,6 @@ export class InventoryState {
 		)
 	}
 
-	// tryOnItem renders the avatar of the account wearing the item.
 	async tryOnItem(item: InventoryItem, category: InventoryCategory): Promise<void> {
 		await this.tryOnImage.load(
 			categoryItemKey(category, item.itemId),

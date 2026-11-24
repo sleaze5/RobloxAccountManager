@@ -29,7 +29,6 @@
 		onShowCreations,
 	}: {
 		accounts: AccountStore
-		// accountId is the account that reads the profile.
 		accountId: number
 		userId: number
 		username: string

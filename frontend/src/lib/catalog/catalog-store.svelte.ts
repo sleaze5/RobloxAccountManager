@@ -48,7 +48,6 @@ export class CatalogStore {
 	search = $state.raw<CatalogSearch>(defaultCatalogSearch())
 	items = $state.raw<CategorizedInventoryItem[]>([])
 	nextCursor = $state("")
-	// Whether items holds the results of the current search.
 	hasResults = $state(false)
 	loading = $state(false)
 	loadingMore = $state(false)

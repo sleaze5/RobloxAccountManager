@@ -19,18 +19,16 @@ type InventoryItemDetails struct {
 	UpdatedAtMs          int64  `json:"updatedAtMs"`
 	CollectibleItemID    string `json:"collectibleItemId"`
 	CollectibleProductID string `json:"collectibleProductId"`
-	// AwardingGameName names the game that awards a badge.
-	AwardingGameName string `json:"awardingGameName"`
-	HasModelView     bool   `json:"hasModelView"`
-	HasRenderedModel bool   `json:"hasRenderedModel"`
+	AwardingGameName     string `json:"awardingGameName"`
+	HasModelView         bool   `json:"hasModelView"`
+	HasRenderedModel     bool   `json:"hasRenderedModel"`
 	// CanTryOn reports whether an avatar can wear the item, so that a preview
 	// can show it on the avatar of the account.
 	CanTryOn bool `json:"canTryOn"`
 	// CanHaveRelatedItems reports whether the item can include or use other
 	// assets, as a bundle or a model file does.
 	CanHaveRelatedItems bool `json:"canHaveRelatedItems"`
-	// CanDownload reports whether the account can save the file of the item.
-	CanDownload bool `json:"canDownload"`
+	CanDownload         bool `json:"canDownload"`
 	// CanExplore reports whether the file of the item, or of each asset of a
 	// bundle, holds instances that the explorer shows.
 	CanExplore bool `json:"canExplore"`
@@ -38,7 +36,6 @@ type InventoryItemDetails struct {
 	Availability ItemAvailability `json:"availability"`
 }
 
-// ItemAvailability tells whether Roblox still has an item.
 type ItemAvailability string
 
 const (

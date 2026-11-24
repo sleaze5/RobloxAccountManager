@@ -136,7 +136,7 @@ export type SocialView = SocialListKind | typeof playersView
 // SocialLocation is what Social shows: the list, the people that the trail
 // explored, the player search, and the person and page that it opened. Its
 // history goes back to it.
-export interface SocialLocation {
+interface SocialLocation {
 	list: SocialView
 	trail: SocialSubject[]
 	playerQuery: string

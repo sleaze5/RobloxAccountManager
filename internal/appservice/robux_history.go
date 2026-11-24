@@ -6,7 +6,6 @@ import (
 	"github.com/sleaze5/RobloxAccountManager/internal/roblox"
 )
 
-// RobuxTransactionType names a kind of Robux transaction that the history lists.
 type RobuxTransactionType string
 
 const (
@@ -42,7 +41,6 @@ type RobuxTransactionPage struct {
 	NextCursor   string             `json:"nextCursor"`
 }
 
-// GetRobuxTransactions reads one page of the account's Robux history.
 func (service *Service) GetRobuxTransactions(ctx context.Context, accountID int64, transactionType RobuxTransactionType, cursor string) (RobuxTransactionPage, error) {
 	robloxType, ok := robloxTransactionTypes[transactionType]
 	if !ok {

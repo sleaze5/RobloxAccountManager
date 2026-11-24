@@ -9,8 +9,6 @@ import (
 	"strings"
 )
 
-// xmlNode is one element of an XML model file with its attributes, text, and
-// child elements.
 type xmlNode struct {
 	XMLName  xml.Name   `xml:""`
 	Attrs    []xml.Attr `xml:",any,attr"`

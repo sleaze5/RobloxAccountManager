@@ -96,15 +96,12 @@ func (service *Service) GetInventoryAssetItem(ctx context.Context, accountID, as
 	return *assetItem, nil
 }
 
-// GetInventoryItemModel reads the 3D model of the item, as the account sees
-// it.
 func (service *Service) GetInventoryItemModel(ctx context.Context, accountID int64, category robloxservices.InventoryCategory, itemID int64) (robloxservices.RenderedModel, error) {
 	return service.readRenderedModel(ctx, accountID, "inventory-item-model", func(ctx context.Context, version int64) (string, error) {
 		return service.users.InventoryItemModelManifestURL(ctx, accountID, version, category, itemID)
 	})
 }
 
-// GetInventoryItemLook reads how the 3D viewer shows the item.
 func (service *Service) GetInventoryItemLook(ctx context.Context, accountID int64, category robloxservices.InventoryCategory, itemID int64) (robloxservices.InventoryItemLook, error) {
 	ctx, version, done, err := service.beginAccountSession(ctx, accountID, "inventory-item-look")
 	if err != nil {
@@ -179,7 +176,6 @@ func (service *Service) IsInventoryItemOwned(ctx context.Context, accountID int6
 	return isOwned, nil
 }
 
-// IsInventoryItemFavorite reads whether the account favorited the catalog item.
 func (service *Service) IsInventoryItemFavorite(ctx context.Context, accountID int64, itemType robloxservices.CatalogItemType, itemID int64) (bool, error) {
 	if !robloxservices.ValidCatalogItemType(itemType) {
 		return false, accountEditError("item-favorite", "Only catalog items can be favorites.")

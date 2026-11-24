@@ -83,7 +83,6 @@ type UserGroup struct {
 	Role  GroupRole    `json:"role"`
 }
 
-// GroupPermissions are the actions that the account may take in a group.
 type GroupPermissions struct {
 	CanViewShout          bool `json:"canViewShout"`
 	CanPostShout          bool `json:"canPostShout"`
@@ -656,7 +655,6 @@ func (service *Users) GroupGames(ctx context.Context, accountID, version, groupI
 	return page, nil
 }
 
-// privateUniverseIDs lists the universes whose privacy type is Private.
 func (service *Users) privateUniverseIDs(ctx context.Context, accountID, version int64, universeIDs []int64) ([]int64, error) {
 	const endpoint = "group-games-privacy"
 	if len(universeIDs) == 0 {
@@ -728,8 +726,6 @@ func (service *Users) SetGroupDescription(ctx context.Context, accountID, versio
 	return err
 }
 
-// AnswerGroupJoinRequest accepts or declines the request of the user to join
-// the group.
 func (service *Users) AnswerGroupJoinRequest(ctx context.Context, accountID, version, groupID, userID int64, isAccepted bool) error {
 	method := http.MethodDelete
 	if isAccepted {

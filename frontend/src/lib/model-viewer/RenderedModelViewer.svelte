@@ -43,9 +43,7 @@
 	} = $props()
 
 	let canvas = $state<HTMLCanvasElement>()
-	// applyScene changes the camera and the lights of the built scene.
 	let applyScene: ((sceneSettings: ModelViewerScene) => void) | undefined
-	// resetCameraView returns the camera of the built scene to where it starts.
 	let resetCameraView: (() => void) | undefined
 	// captureSceneFrame draws the built scene and reads it at once, because the
 	// canvas keeps its pixels only until the browser shows them.

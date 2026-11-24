@@ -38,7 +38,6 @@
 		collapsedGroups: ReadonlySet<string>
 		onToggleGroup: (group: string, isCollapsed: boolean) => void
 		propertyNameWidth: number
-		// referencedClassNameOf returns the class of the instance with the ID.
 		referencedClassNameOf: (instanceId: number) => string
 		onSelectInstance: (instanceId: number) => void
 		onOpenDocument: (property: ModelProperty) => void

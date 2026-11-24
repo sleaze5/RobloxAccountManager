@@ -37,7 +37,6 @@
 		outfit: AvatarOutfit
 		// canWear is true when the outfit belongs to the account itself.
 		canWear: boolean
-		// Whether the account that the page acts for owns the asset.
 		isOwned: (asset: AvatarAsset) => boolean
 		onOpenItem: (asset: AvatarAsset) => void
 		onClose: () => void

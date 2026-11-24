@@ -99,7 +99,6 @@
 		onClose()
 	}} />
 
-<!-- The panel scrolls when the viewer is too short for it. -->
 <div
 	class="pointer-events-none absolute inset-x-2 top-11 bottom-2 z-10 flex items-start justify-end">
 	<div
@@ -116,12 +115,12 @@
 				aria-label={group.label}>
 				<div class="menu-heading mx-0" aria-hidden="true">{group.label}</div>
 				{#each group.sliders as slider (slider.setting)}
-					{@const value = modelViewerScene[slider.setting]}
+					{@const settingValue = modelViewerScene[slider.setting]}
 					<label class="flex flex-col gap-0.5 text-xs">
 						<span class="flex items-center justify-between gap-2">
 							<span class="text-fg-muted">{slider.label}</span>
 							<span class="font-mono text-2xs text-fg"
-								>{slider.format(value)}</span>
+								>{slider.format(settingValue)}</span>
 						</span>
 						<input
 							class="range"
@@ -129,9 +128,9 @@
 							min={slider.min}
 							max={slider.max}
 							step={slider.step}
-							{value}
-							style:--range-fill={`${((value - slider.min) / (slider.max - slider.min)) * 100}%`}
-							aria-valuetext={slider.format(value)}
+							value={settingValue}
+							style:--range-fill={`${((settingValue - slider.min) / (slider.max - slider.min)) * 100}%`}
+							aria-valuetext={slider.format(settingValue)}
 							oninput={(event) =>
 								setSetting(
 									slider,

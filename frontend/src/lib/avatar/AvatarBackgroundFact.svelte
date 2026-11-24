@@ -4,8 +4,6 @@
 	import Skeleton from "../shared/Skeleton.svelte"
 	import type { AvatarPortraitLoad } from "./avatar-portrait.svelte"
 
-	// AvatarBackgroundFact names the Marketplace background that the user
-	// equipped, as a row of a facts list.
 	let { portraitLoad }: { portraitLoad: AvatarPortraitLoad } = $props()
 
 	const background = $derived(portraitLoad.portrait?.background ?? null),

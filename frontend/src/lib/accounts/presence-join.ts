@@ -3,8 +3,7 @@ import type { UserPresence } from "../backend/bridge"
 
 // PresenceJoin tells how the launch options can follow a user from their
 // online status.
-export interface PresenceJoin {
-	// hasVisibleServer reports that the status names the place and server.
+interface PresenceJoin {
 	hasVisibleServer: boolean
 	placeId: number
 	jobId: string

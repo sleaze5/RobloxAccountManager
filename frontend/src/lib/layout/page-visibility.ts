@@ -4,7 +4,7 @@ import { createContext } from "svelte"
 // that the user leaves stays mounted and hidden, so that it keeps its state,
 // and its components pause what only a shown page needs, such as shortcuts
 // and refresh timers.
-export interface PageVisibility {
+interface PageVisibility {
 	readonly isShown: boolean
 }
 

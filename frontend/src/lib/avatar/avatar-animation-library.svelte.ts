@@ -127,10 +127,10 @@ export class AvatarAnimationLibrary implements AnimationLibrary {
 		this.isFinding = true
 		this.findError = ""
 		try {
-			const item = await this.#scope.track(request)
+			const foundItem = await this.#scope.track(request)
 			if (request !== this.#findRequest || !this.#scope.isCurrent)
 				return undefined
-			const choice = animationChoiceOfItem(item, "added")
+			const choice = animationChoiceOfItem(foundItem, "added")
 			if (!choice) this.findError = "This item is not an emote or an animation."
 			return choice
 		} catch (error) {

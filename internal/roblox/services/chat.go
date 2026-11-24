@@ -126,7 +126,6 @@ func (service *Chat) create(ctx context.Context, accountID, version int64, conve
 	return firstChatConversation("chat-create", payload.Conversations, "Roblox did not return the new chat.")
 }
 
-// Conversation reads one conversation by ID, with its participants.
 func (service *Chat) Conversation(ctx context.Context, accountID, version int64, conversationID string) (ChatConversation, error) {
 	var payload struct {
 		Conversations []ChatConversation `json:"conversations"`

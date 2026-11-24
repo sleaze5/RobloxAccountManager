@@ -28,11 +28,9 @@
 		creatorId: number
 		// name is the username of a user or the name of a group.
 		name: string
-		// displayName is the display name of a user, when the page knows it.
 		displayName?: string
 		hasVerifiedBadge: boolean
 		role: CreatorRole
-		// memberCount is the member count of a group, when the page knows it.
 		memberCount?: number | null
 	} = $props()
 

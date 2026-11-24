@@ -23,8 +23,8 @@
 
 	const maximumLength = 20,
 		displayName = $derived(person.displayName || person.username)
-	let value = $state(untrack(() => nickname))
-	const text = $derived(value.trim()),
+	let typedNickname = $state(untrack(() => nickname))
+	const text = $derived(typedNickname.trim()),
 		saving = $derived(store.savingNickname),
 		removing = $derived(!!nickname && !text)
 
@@ -79,13 +79,13 @@
 				maxlength={maximumLength}
 				aria-describedby="nickname-help"
 				disabled={saving}
-				bind:value />
+				bind:value={typedNickname} />
 			<small
 				id="nickname-help"
 				class="flex justify-between gap-2 text-xs text-fg-muted">
 				<span>Leave it empty to show their display name.</span>
 				<span class="font-mono text-2xs tabular-nums"
-					>{Array.from(value).length}/{maximumLength}</span>
+					>{Array.from(typedNickname).length}/{maximumLength}</span>
 			</small>
 		</div>
 		<div class="dialog-actions">

@@ -9,7 +9,7 @@ import { PageHistory } from "./page-history"
 import type { WorkspaceState } from "./workspace-state.svelte"
 
 // HistoryPage names a page that remembers where it went.
-export type HistoryPage = "accounts" | "social" | "groups" | "games" | "logs-explorer"
+type HistoryPage = "accounts" | "social" | "groups" | "games" | "logs-explorer"
 
 interface PageHistoryNavigation {
 	back: () => Promise<void>

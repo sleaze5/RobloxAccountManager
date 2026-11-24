@@ -111,8 +111,6 @@ func (service *Service) readGameVideo(ctx context.Context, videoAssetID int64) (
 	return contents, nil
 }
 
-// ReadGameImageFile downloads the original of a game media image as the
-// account sees it.
 func (service *Service) ReadGameImageFile(ctx context.Context, accountID, imageAssetID int64) (DownloadableFile, error) {
 	const operation = "game-image"
 	if err := validGameID(imageAssetID); err != nil {

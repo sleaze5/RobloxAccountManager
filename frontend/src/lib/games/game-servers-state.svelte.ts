@@ -125,7 +125,6 @@ abstract class ServerPager<
 		void this.load()
 	}
 
-	// clear forgets the listed servers without loading them again.
 	protected clear(): void {
 		void this.#request?.cancel()
 		this.#request = null

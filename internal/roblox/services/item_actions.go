@@ -11,7 +11,6 @@ import (
 	"github.com/sleaze5/RobloxAccountManager/internal/roblox"
 )
 
-// CatalogItemType is the kind of item that the catalog sells.
 type CatalogItemType string
 
 const (
@@ -19,7 +18,6 @@ const (
 	CatalogBundle CatalogItemType = "Bundle"
 )
 
-// ValidCatalogItemType reports whether the catalog sells this kind of item.
 func ValidCatalogItemType(itemType CatalogItemType) bool {
 	return itemType == CatalogAsset || itemType == CatalogBundle
 }

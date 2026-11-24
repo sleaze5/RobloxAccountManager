@@ -87,7 +87,6 @@ func (representation AssetRepresentation) normalize() (AssetRepresentation, bool
 	return representation, true
 }
 
-// AssetFileFormat is the format of the file of an asset.
 type AssetFileFormat string
 
 const (

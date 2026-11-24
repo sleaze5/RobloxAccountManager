@@ -79,7 +79,7 @@ export type GameDetailsPage = "servers" | "badges" | "gamePasses"
 
 // GamesLocation is what Games shows: the list, the search, and the place and
 // page that it opened. Its history goes back to it.
-export interface GamesLocation {
+interface GamesLocation {
 	mode: "search" | "favorites"
 	searchedText: string
 	place: GamePlace | null

@@ -93,7 +93,6 @@ export interface AnimationPlayback {
 	readonly animationChoices: AnimationChoice[]
 	readonly animationId: string
 	readonly isPlaying: boolean
-	// Whether the chosen animation downloads.
 	readonly isAnimationLoading: boolean
 	// Whether the chosen animation could not download or play.
 	readonly isAnimationFailed: boolean
@@ -126,7 +125,6 @@ interface RenderedModelSubject {
 	onRetry: () => void
 }
 
-// ModelSubject is what a 3D viewer shows.
 export type ModelSubject = LiveModelSubject | RenderedModelSubject
 
 // OwnedAnimations are the emotes or animations of one kind that the user

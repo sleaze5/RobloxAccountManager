@@ -35,7 +35,6 @@
 		// label names the grid for screen readers, such as the category.
 		label: string
 		noun: string
-		// empty renders the empty state when the search finds nothing.
 		empty: Snippet
 	} = $props()
 

@@ -17,7 +17,6 @@ type GroupsMode = "mine" | "search"
 // GroupSubpage is a page of the selected group that replaces its profile.
 export type GroupSubpage = "members" | "games" | "items" | "joinRequests"
 
-// GroupAction names the action that runs on the selected group.
 type GroupAction =
 	| "join"
 	| "leave"
@@ -30,7 +29,7 @@ export const minGroupSearchLength = 2
 
 // GroupsLocation is what Groups shows: the list, the search, and the group
 // and page that it opened. Its history goes back to it.
-export interface GroupsLocation {
+interface GroupsLocation {
 	mode: GroupsMode
 	searchedText: string
 	groupId: number
@@ -218,7 +217,6 @@ export class GroupsStore {
 		} else this.closeGroup()
 	}
 
-	// showGroup opens a group, such as one that another page links to.
 	showGroup(groupId: number): void {
 		this.subpage = null
 		if (groupId === this.selectedGroupId && this.profile) return

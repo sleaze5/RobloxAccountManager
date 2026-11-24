@@ -14,7 +14,6 @@
 		onCancel,
 		onBuy,
 	}: {
-		// The paying account.
 		account: Account
 		priceInRobux: number
 		// undefined while loading, null if unavailable.
