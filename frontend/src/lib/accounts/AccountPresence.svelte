@@ -14,6 +14,7 @@
 	} from "./account-model"
 	import PresenceCard from "./PresenceCard.svelte"
 	import { isInExperience, PresencePlace } from "./presence-place.svelte"
+	import { notJoinableMessage } from "./user-joinability"
 
 	let {
 		presence,
@@ -53,6 +54,7 @@
 				joinPlaceId > 0 &&
 				!!presence.gameId,
 		),
+		isNotJoinable = $derived(joinability === UserJoinability.UserNotJoinable),
 		canFollowUser = $derived(
 			!hasVisibleServer &&
 				!!onJoinUser &&
@@ -172,10 +174,14 @@
 	{/if}
 	{#if hasVisibleServer}
 		<button
-			class="button-ghost-sm"
+			class={["button-ghost-sm", isNotJoinable && "text-danger-muted"]}
 			type="button"
-			aria-label="Fill launch options"
-			data-tooltip="Fill launch options with this place and server"
+			aria-label={isNotJoinable
+				? `Fill launch options. ${notJoinableMessage}`
+				: "Fill launch options"}
+			data-tooltip={isNotJoinable
+				? notJoinableMessage
+				: "Fill launch options with this place and server"}
 			onclick={fillLaunch}>
 			<Icon svg={signInIcon} size={14} aria-hidden="true" />
 		</button>

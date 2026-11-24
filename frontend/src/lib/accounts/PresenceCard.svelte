@@ -1,7 +1,5 @@
 <script lang="ts">
-	import checkCircleIcon from "@phosphor-icons/core/regular/check-circle.svg?raw"
 	import magnifyingGlassIcon from "@phosphor-icons/core/regular/magnifying-glass.svg?raw"
-	import prohibitIcon from "@phosphor-icons/core/regular/prohibit.svg?raw"
 	import signInIcon from "@phosphor-icons/core/regular/sign-in.svg?raw"
 	import Icon from "../shared/Icon.svelte"
 	import { PresenceType, UserJoinability } from "../backend/bridge"
@@ -9,6 +7,7 @@
 	import PlaceHeader from "../games/PlaceHeader.svelte"
 	import { floatMenu, menuIn, menuOut } from "../shared/presence"
 	import { presenceIcon, presenceLabel, presenceTextClass } from "./account-model"
+	import { notJoinableMessage } from "./user-joinability"
 
 	let {
 		id,
@@ -39,7 +38,8 @@
 		onSearchUniverse: (universeId: number) => void
 	} = $props()
 
-	const headingId = $derived(`${id}-heading`)
+	const headingId = $derived(`${id}-heading`),
+		isNotJoinable = $derived(joinability === UserJoinability.UserNotJoinable)
 	const universeId = $derived(presence.universeId ?? 0),
 		placeId = $derived(presence.placeId ?? 0),
 		rootPlaceId = $derived(presence.rootPlaceId ?? 0)
@@ -67,25 +67,6 @@
 			size={14}
 			aria-hidden="true" />{presenceLabel(presence)}
 	</h2>
-	{#if joinability === UserJoinability.UserNotJoinable}
-		<p class="flex items-start gap-1.5 notice-warning">
-			<Icon
-				svg={prohibitIcon}
-				size={14}
-				class="mt-px shrink-0"
-				aria-hidden="true" />
-			Roblox does not let this account join this user right now. You can still try.
-		</p>
-	{:else if joinability === UserJoinability.UserJoinable}
-		<p class="flex items-center gap-1.5 text-xs text-fg-muted">
-			<Icon
-				svg={checkCircleIcon}
-				size={14}
-				class="shrink-0 text-success"
-				aria-hidden="true" />
-			Roblox lets this account join this user.
-		</p>
-	{/if}
 	{#if universeId > 0 && placeId > 0}<PlaceHeader {universeId} {placeId} />{/if}
 	<dl class="detail-grid" aria-label="Game identifiers">
 		{#if placeId > 0}<div>
@@ -116,7 +97,11 @@
 			</div>{/if}
 	</dl>
 	{#if isJoinable}
-		<button class="button-primary" type="button" onclick={onFillLaunch}>
+		<button
+			class={isNotJoinable ? "button-danger" : "button-primary"}
+			type="button"
+			aria-describedby={isNotJoinable ? `${id}-not-joinable` : undefined}
+			onclick={onFillLaunch}>
 			<Icon svg={signInIcon} size={16} aria-hidden="true" />
 			Fill launch options
 		</button>
@@ -125,6 +110,11 @@
 			<Icon svg={signInIcon} size={16} aria-hidden="true" />
 			Fill launch options to follow
 		</button>
+	{/if}
+	{#if isNotJoinable}
+		<p class="-mt-1 text-xs text-danger-muted" id={`${id}-not-joinable`}>
+			{notJoinableMessage}
+		</p>
 	{/if}
 </div>
 

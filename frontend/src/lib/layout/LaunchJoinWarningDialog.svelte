@@ -63,13 +63,13 @@
 			<Icon svg={xIcon} size={14} aria-hidden="true" />
 		</button>
 	</div>
-	<ul class="mb-3 flex flex-col gap-1.5 notice-warning">
+	<ul class="mb-3 flex flex-col gap-1.5 text-xs text-fg select-text">
 		{#each restrictions as accountCheck (accountCheck.accountId)}
 			<li class="flex items-start gap-1.5">
 				<Icon
 					svg={prohibitIcon}
 					size={14}
-					class="mt-px shrink-0"
+					class="mt-px shrink-0 text-warning"
 					aria-hidden="true" />
 				<span
 					>{#if isSeveral}<strong class="font-semibold"
