@@ -39,6 +39,16 @@ const gameSectionFields: { section: GameSection; fields: (keyof Game)[] }[] = [
 	{ section: GameSection.GameSectionLanguages, fields: ["languages"] },
 ]
 
+const allGameSections = gameSectionFields.map(({ section }) => section)
+
+// A subplace shows only its own versions. Its other sections belong to its
+// universe, which its root place shows.
+const subplaceGameSections = [GameSection.GameSectionVersions]
+
+function gameSectionsFor(game: Game | null): GameSection[] {
+	return game?.rootPlace ? subplaceGameSections : allGameSections
+}
+
 function pickSectionFields(game: Game, sections: GameSection[]): Partial<Game> {
 	return Object.fromEntries(
 		gameSectionFields
@@ -441,9 +451,16 @@ export class GamesStore {
 		this.detailsError = ""
 		const request = accountBackend.GetGame(place.universeId, place.placeId)
 		this.#detailsRequest = request
-		const sectionLoad = place.universeId
-			? this.#loadGameSections(place.universeId, place.placeId)
-			: null
+		// The sections load beside the details, so a place that was opened
+		// before uses what it was then, and a new subplace learns it later.
+		const knownGame = this.game?.place.placeId === place.placeId ? this.game : null,
+			sectionLoad = place.universeId
+				? this.#loadGameSections(
+						place.universeId,
+						place.placeId,
+						gameSectionsFor(knownGame),
+					)
+				: null
 		try {
 			const game = await request
 			if (this.#detailsRequest !== request) return
@@ -465,7 +482,11 @@ export class GamesStore {
 			}
 			this.updateMetadata(game.place)
 			if (!sectionLoad) {
-				void this.#loadGameSections(game.place.universeId, game.place.placeId)
+				void this.#loadGameSections(
+					game.place.universeId,
+					game.place.placeId,
+					gameSectionsFor(game),
+				)
 			}
 		} catch (error) {
 			if (this.#detailsRequest === request) {
@@ -485,15 +506,19 @@ export class GamesStore {
 
 	// A failed section keeps its last values. The details show it as unavailable
 	// when it never loaded, and the backend logs why.
-	async #loadGameSections(universeId: number, placeId: number): Promise<void> {
+	async #loadGameSections(
+		universeId: number,
+		placeId: number,
+		sections: GameSection[],
+	): Promise<void> {
 		this.#cancelGameSections()
 		const loadCount = this.#sectionLoadCount,
 			isCurrentLoad = () =>
 				loadCount === this.#sectionLoadCount &&
 				this.selected?.placeId === placeId
-		this.loadingGameSections = gameSectionFields.map(({ section }) => section)
+		this.loadingGameSections = [...sections]
 		await Promise.allSettled(
-			gameSectionFields.map(async ({ section }) => {
+			sections.map(async (section) => {
 				const request = accountBackend.GetGameSection(
 					universeId,
 					placeId,
