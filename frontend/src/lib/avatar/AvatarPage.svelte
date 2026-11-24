@@ -3,7 +3,7 @@
 	import warningIcon from "@phosphor-icons/core/regular/warning.svg?raw"
 	import arrowUUpLeftIcon from "@phosphor-icons/core/regular/arrow-u-up-left.svg?raw"
 	import { onMount, tick, untrack } from "svelte"
-	import AccountPageHeader from "../accounts/AccountPageHeader.svelte"
+	import ProfilePageHeader from "../shared/ProfilePageHeader.svelte"
 	import type { AccountStore } from "../accounts/account-store.svelte"
 	import type {
 		AvatarAsset,
@@ -336,10 +336,10 @@
 	}} />
 
 <section class="settings-page" aria-labelledby={`${elementIdPrefix}-avatar-title`}>
-	<AccountPageHeader
+	<ProfilePageHeader
 		titleId={`${elementIdPrefix}-avatar-title`}
 		title="Avatar"
-		{username}
+		subtitle={`@${username}`}
 		onLeave={leaveIfConfirmed}>
 		{#if avatar.isEditable && isChanged}
 			<span class="animate-enter text-2xs text-fg-muted" aria-live="polite"
@@ -395,7 +395,7 @@
 			}}>
 			<RefreshIcon isRefreshing={avatar.loading} />
 		</button>
-	</AccountPageHeader>
+	</ProfilePageHeader>
 
 	{#if !avatar.avatar && avatar.error}
 		<div class="empty-state flex-1">

@@ -9,7 +9,7 @@
 	import xIcon from "@phosphor-icons/core/regular/x.svg?raw"
 	import Icon from "../shared/Icon.svelte"
 	import NoMatchingSettings from "../shared/NoMatchingSettings.svelte"
-	import AccountPageHeader from "./AccountPageHeader.svelte"
+	import ProfilePageHeader from "../shared/ProfilePageHeader.svelte"
 	import RefreshIcon from "../shared/RefreshIcon.svelte"
 	import { onMount, tick, untrack } from "svelte"
 	import SidebarResizer from "../layout/SidebarResizer.svelte"
@@ -862,10 +862,10 @@
 </script>
 
 <section class="settings-page" aria-labelledby="account-settings-title">
-	<AccountPageHeader
+	<ProfilePageHeader
 		titleId="account-settings-title"
 		title="Account settings"
-		username={store.selectedAccount.username}>
+		subtitle={`@${store.selectedAccount.username}`}>
 		<button
 			class="button-ghost"
 			type="button"
@@ -875,7 +875,7 @@
 			onclick={refresh}>
 			<RefreshIcon isRefreshing={refreshing} />
 		</button>
-	</AccountPageHeader>
+	</ProfilePageHeader>
 
 	<div
 		class="settings-layout"

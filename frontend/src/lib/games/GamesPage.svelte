@@ -28,7 +28,12 @@
 	import GamePassesPage from "./GamePassesPage.svelte"
 	import GameServersPage from "./GameServersPage.svelte"
 	import GameIcon from "./GameIcon.svelte"
-	import { creatorByline, type GamesStore } from "./games-store.svelte"
+	import {
+		creatorByline,
+		type GameDetailsPage,
+		type GamesStore,
+	} from "./games-store.svelte"
+	import { setProfilePages } from "../shared/profile-pages"
 
 	let {
 		store,
@@ -137,10 +142,54 @@
 		}
 	}
 
-	async function returnToDetails(triggerSelector: string): Promise<void> {
+	const gamePages: GameDetailsPage[] = ["servers", "badges", "gamePasses"]
+
+	// Badges and game passes belong to the universe, so a subplace has only
+	// its servers. They wait for the details, which tell whether the place
+	// is a subplace.
+	setProfilePages({
+		get label() {
+			return `${store.selected ? store.displayName(store.selected) : "Game"} pages`
+		},
+		get tabs() {
+			const universeUnavailableReason = store.game ? "" : "Loading game details…"
+			return [
+				{ id: "servers", label: "Servers" },
+				...(store.game?.rootPlace
+					? []
+					: [
+							{
+								id: "badges",
+								label: "Badges",
+								unavailableReason: universeUnavailableReason,
+							},
+							{
+								id: "gamePasses",
+								label: "Passes and products",
+								unavailableReason: universeUnavailableReason,
+							},
+						]),
+			]
+		},
+		get currentPage() {
+			return store.detailsPage === "details" ? "" : store.detailsPage
+		},
+		openPage: (page) => {
+			const gamePage = gamePages.find((knownPage) => knownPage === page)
+			if (!gamePage) return
+			store.closeMenu()
+			store.detailsPage = gamePage
+		},
+		openOverview: () => void returnToDetails(),
+	})
+
+	async function returnToDetails(): Promise<void> {
+		const closedPage = store.detailsPage
 		store.detailsPage = "details"
 		await tick()
-		document.querySelector<HTMLButtonElement>(triggerSelector)?.focus()
+		document
+			.querySelector<HTMLButtonElement>(`[data-subpage-button="${closedPage}"]`)
+			?.focus()
 	}
 
 	async function searchUniverse(universeId: number): Promise<void> {
@@ -402,19 +451,12 @@
 							{store}
 							{accounts}
 							{notifications}
-							onBack={() => void returnToDetails("[data-game-servers]")}
 							{onFillLaunch}
 							{onFillLaunchLink} />
 					{:else if store.detailsPage === "badges"}
-						<GameBadgesPage
-							{store}
-							{accounts}
-							onBack={() => void returnToDetails("[data-game-badges]")} />
+						<GameBadgesPage {store} {accounts} />
 					{:else if store.detailsPage === "gamePasses"}
-						<GamePassesPage
-							{store}
-							{accounts}
-							onBack={() => void returnToDetails("[data-game-passes]")} />
+						<GamePassesPage {store} {accounts} />
 					{:else}
 						<GameDetails
 							{store}

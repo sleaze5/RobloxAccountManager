@@ -19,7 +19,7 @@
 	import SkeletonMediaRow from "../shared/SkeletonMediaRow.svelte"
 	import Timestamp from "../shared/Timestamp.svelte"
 	import { relativeTime } from "../shared/timestamp"
-	import GroupSubpageHeader from "./GroupSubpageHeader.svelte"
+	import ProfilePageHeader from "../shared/ProfilePageHeader.svelte"
 	import type { GroupsStore } from "./groups-store.svelte"
 
 	let {
@@ -97,11 +97,10 @@
 </script>
 
 <section class="settings-page min-w-0" aria-labelledby="group-requests-title">
-	<GroupSubpageHeader
+	<ProfilePageHeader
 		titleId="group-requests-title"
 		title="Join requests"
-		groupName={group.name}
-		onBack={() => (store.subpage = null)}>
+		subtitle={group.name}>
 		<button
 			class="button-ghost"
 			type="button"
@@ -115,7 +114,7 @@
 			onclick={() => void requests.refresh()}>
 			<RefreshIcon isRefreshing={requests.isLoading && requests.hasLoaded} />
 		</button>
-	</GroupSubpageHeader>
+	</ProfilePageHeader>
 	<div class="min-h-0 flex-1 scrollbar-stable overflow-y-auto" data-load-more-root>
 		{#if !requests.hasLoaded && requests.error}
 			<div class="empty-state h-full">

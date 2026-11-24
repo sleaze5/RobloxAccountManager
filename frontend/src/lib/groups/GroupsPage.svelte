@@ -27,7 +27,9 @@
 	import GroupMembersPage from "./GroupMembersPage.svelte"
 	import GroupProfileView from "./GroupProfileView.svelte"
 	import { minGroupSearchLength } from "./groups-store.svelte"
-	import type { GroupsStore } from "./groups-store.svelte"
+	import type { GroupsStore, GroupSubpage } from "./groups-store.svelte"
+	import { setProfilePages } from "../shared/profile-pages"
+	import { tick } from "svelte"
 
 	let {
 		store,
@@ -98,6 +100,43 @@
 		void store.subpage
 		detailPane?.scrollTo({ top: 0 })
 	})
+
+	const groupSubpages: GroupSubpage[] = ["members", "games", "items", "joinRequests"]
+
+	setProfilePages({
+		get label() {
+			return `${store.profile?.details.group.name ?? "Group"} pages`
+		},
+		get tabs() {
+			return [
+				{ id: "members", label: "Members" },
+				{ id: "games", label: "Games" },
+				{ id: "items", label: "Items" },
+				...(store.profile?.membership.permissions.canAcceptJoinRequests
+					? [{ id: "joinRequests", label: "Join requests" }]
+					: []),
+			]
+		},
+		get currentPage() {
+			return store.subpage ?? ""
+		},
+		openPage: (page) => {
+			const subpage = groupSubpages.find((knownSubpage) => knownSubpage === page)
+			if (subpage) store.subpage = subpage
+		},
+		openOverview: () => void closeSubpage(),
+	})
+
+	async function closeSubpage(): Promise<void> {
+		const closedSubpage = store.subpage
+		store.subpage = null
+		await tick()
+		detailPane
+			?.querySelector<HTMLButtonElement>(
+				`[data-subpage-button="${closedSubpage}"]`,
+			)
+			?.focus({ preventScroll: true })
+	}
 
 	function submitSearch(): void {
 		if (store.query.trim().length >= minGroupSearchLength) void store.search()

@@ -1,6 +1,6 @@
 <script lang="ts">
+	import ProfilePageHeader from "../shared/ProfilePageHeader.svelte"
 	import { notifyErrors } from "../notifications/error-notifications.svelte"
-	import caretLeftIcon from "@phosphor-icons/core/regular/caret-left.svg?raw"
 	import checkCircleFillIcon from "@phosphor-icons/core/fill/check-circle-fill.svg?raw"
 	import clockIcon from "@phosphor-icons/core/regular/clock.svg?raw"
 	import funnelIcon from "@phosphor-icons/core/regular/funnel.svg?raw"
@@ -8,7 +8,7 @@
 	import ticketIcon from "@phosphor-icons/core/regular/ticket.svg?raw"
 	import userPlusIcon from "@phosphor-icons/core/regular/user-plus.svg?raw"
 	import warningIcon from "@phosphor-icons/core/regular/warning.svg?raw"
-	import { onMount, tick, untrack } from "svelte"
+	import { tick, untrack } from "svelte"
 	import type { AccountStore } from "../accounts/account-store.svelte"
 	import type { GamePass } from "../backend/bridge"
 	import { salePriceLabel } from "../inventory/inventory-prices"
@@ -25,11 +25,9 @@
 	let {
 		store,
 		accounts,
-		onBack,
 	}: {
 		store: GamesStore
 		accounts: AccountStore
-		onBack: () => void
 	} = $props()
 
 	type GamePassFilter = "all" | "owned" | "unowned"
@@ -56,8 +54,7 @@
 		],
 		numbers = new Intl.NumberFormat(),
 		skeletonTileIndexes = Array.from({ length: 12 }, (_, index) => index)
-	let heading = $state<HTMLHeadingElement | undefined>(undefined),
-		list = $state<HTMLUListElement | undefined>(undefined),
+	let list = $state<HTMLUListElement | undefined>(undefined),
 		filter = $state<GamePassFilter>("all"),
 		shown = $state<GamePass | null>(null)
 	const view = $derived(store.storeView),
@@ -93,10 +90,6 @@
 			filter = "all"
 			universeGamePasses.showAccount(shownAccountId)
 		})
-	})
-
-	onMount(() => {
-		heading?.focus({ preventScroll: true })
 	})
 
 	$effect(() => {
@@ -172,27 +165,18 @@
 			`[data-game-pass="${gamePassId}"] button`,
 		)
 		if (tile) tile.focus()
-		else heading?.focus({ preventScroll: true })
+		else
+			document.getElementById("game-passes-title")?.focus({ preventScroll: true })
 	}
 
 	notifyErrors("Game passes not loaded", () => universeGamePasses.error)
 </script>
 
 <section class="settings-page min-w-0" aria-labelledby="game-passes-title">
-	<header class="settings-header">
-		<button
-			class="button-ghost"
-			type="button"
-			aria-label="Back to game details"
-			data-tooltip="Back to game details"
-			onclick={onBack}>
-			<Icon svg={caretLeftIcon} data-nudge="left" size={16} aria-hidden="true" />
-		</button>
-		<h1 id="game-passes-title" tabindex="-1" bind:this={heading}>
-			{view === "gamePasses" ? "Game passes" : "Developer products"}
-		</h1>
-		<span class="mr-auto min-w-0 text-xs wrap-anywhere text-fg-muted"
-			>{store.displayName(place)}</span>
+	<ProfilePageHeader
+		titleId="game-passes-title"
+		title={view === "gamePasses" ? "Game passes" : "Developer products"}
+		subtitle={store.displayName(place)}>
 		<div class="segmented" role="radiogroup" aria-label="Store list">
 			{#each views as option (option.id)}
 				<label data-tooltip={option.tooltip} data-tooltip-side="bottom-end">
@@ -225,7 +209,7 @@
 			onclick={refresh}>
 			<RefreshIcon {isRefreshing} />
 		</button>
-	</header>
+	</ProfilePageHeader>
 
 	{#if view === "developerProducts"}
 		<DeveloperProductList

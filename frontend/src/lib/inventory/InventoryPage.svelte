@@ -6,7 +6,7 @@
 	import magnifyingGlassIcon from "@phosphor-icons/core/regular/magnifying-glass.svg?raw"
 	import xIcon from "@phosphor-icons/core/regular/x.svg?raw"
 	import { onMount, untrack } from "svelte"
-	import AccountPageHeader from "../accounts/AccountPageHeader.svelte"
+	import ProfilePageHeader from "../shared/ProfilePageHeader.svelte"
 	import type { AccountStore } from "../accounts/account-store.svelte"
 	import { InventoryCategory } from "../backend/bridge"
 	import type { GamePlace, InventoryItem } from "../backend/bridge"
@@ -188,10 +188,10 @@
 </script>
 
 <section class="settings-page" aria-labelledby={`${elementIdPrefix}-inventory-title`}>
-	<AccountPageHeader
+	<ProfilePageHeader
 		titleId={`${elementIdPrefix}-inventory-title`}
 		title="Inventory"
-		{username}>
+		subtitle={`@${username}`}>
 		<button
 			class="button-ghost"
 			type="button"
@@ -205,7 +205,7 @@
 			onclick={() => void inventory.refresh()}>
 			<RefreshIcon isRefreshing={inventory.loading} />
 		</button>
-	</AccountPageHeader>
+	</ProfilePageHeader>
 
 	<div class="settings-layout" style={`--sidebar-width: ${sidebarWidth}px;`}>
 		<div class="settings-sidebar pt-1">

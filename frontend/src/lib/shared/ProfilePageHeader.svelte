@@ -1,23 +1,24 @@
 <script lang="ts">
 	import { onMount } from "svelte"
 	import type { Snippet } from "svelte"
-	import ProfileTabs from "../shared/ProfileTabs.svelte"
+	import ProfileTabs from "./ProfileTabs.svelte"
 
-	// AccountPageHeader heads a page of a profile, such as its avatar, with the
-	// tabs of the profile in place of a Back button. The title stays for
-	// screen readers, because the selected tab already shows it.
+	// ProfilePageHeader heads a page of a profile, such as its avatar or the
+	// members of a group, with the tabs of the profile in place of a Back
+	// button. The title stays for screen readers, because the selected tab
+	// already shows it. subtitle names the profile, such as "@builderman".
 	let {
 		titleId,
 		title,
-		username,
+		subtitle,
 		onLeave,
 		children,
 	}: {
 		titleId: string
 		title: string
-		username: string
+		subtitle: string
 		onLeave?: (navigate: () => void) => void
-		children: Snippet
+		children?: Snippet
 	} = $props()
 
 	let heading = $state<HTMLHeadingElement>()
@@ -30,9 +31,9 @@
 
 <header class="settings-header">
 	<h1 id={titleId} class="sr-only" tabindex="-1" bind:this={heading}>
-		{title} of @{username}
+		{title} of {subtitle}
 	</h1>
 	<ProfileTabs {onLeave} />
-	<span class="mr-auto min-w-0 truncate text-xs text-fg-muted">@{username}</span>
-	{@render children()}
+	<span class="mr-auto min-w-0 truncate text-xs text-fg-muted">{subtitle}</span>
+	{@render children?.()}
 </header>

@@ -10,12 +10,10 @@
 	import hardDrivesIcon from "@phosphor-icons/core/regular/hard-drives.svg?raw"
 	import linkIcon from "@phosphor-icons/core/regular/link.svg?raw"
 	import magnifyingGlassIcon from "@phosphor-icons/core/regular/magnifying-glass.svg?raw"
-	import medalIcon from "@phosphor-icons/core/regular/medal.svg?raw"
 	import microphoneIcon from "@phosphor-icons/core/regular/microphone.svg?raw"
 	import pencilIcon from "@phosphor-icons/core/regular/pencil.svg?raw"
 	import personArmsSpreadIcon from "@phosphor-icons/core/regular/person-arms-spread.svg?raw"
 	import prohibitIcon from "@phosphor-icons/core/regular/prohibit.svg?raw"
-	import sealCheckIcon from "@phosphor-icons/core/regular/seal-check.svg?raw"
 	import shapesIcon from "@phosphor-icons/core/regular/shapes.svg?raw"
 	import shieldCheckIcon from "@phosphor-icons/core/regular/shield-check.svg?raw"
 	import starFillIcon from "@phosphor-icons/core/fill/star-fill.svg?raw"
@@ -37,8 +35,9 @@
 	import ImageMenuTarget from "../layout/ImageMenuTarget.svelte"
 	import Timestamp from "../shared/Timestamp.svelte"
 	import { relativeTime } from "../shared/timestamp"
-	import { getCreatorNavigation } from "../shared/creator-navigation"
+	import CreatorByline from "../shared/CreatorByline.svelte"
 	import ProfileStats from "../shared/ProfileStats.svelte"
+	import ProfileTabs from "../shared/ProfileTabs.svelte"
 	import type { ProfileStat } from "../shared/ProfileStats.svelte"
 	import GameMedia from "./GameMedia.svelte"
 	import { creatorByline, type GamesStore } from "./games-store.svelte"
@@ -62,7 +61,6 @@
 			style: "percent",
 			maximumFractionDigits: 1,
 		}),
-		creatorNavigation = getCreatorNavigation(),
 		graphemes = new Intl.Segmenter(undefined, { granularity: "grapheme" })
 
 	let playability = $state.raw<Playability | null>(null),
@@ -166,9 +164,6 @@
 						}
 					: null,
 		),
-		// Badges and game passes belong to the universe, so subplaces hide them.
-		// Disabled until details load, so the header doesn't shift.
-		hasUniverseButtons = $derived(!rootPlace),
 		hasVotes = $derived(
 			store.loadedGameSections.includes(GameSection.GameSectionVotes),
 		),
@@ -549,37 +544,15 @@
 							</span>
 						{/if}
 					</div>
-					<p
-						class="flex min-w-0 flex-wrap items-center gap-1 text-xs text-fg-muted">
-						{#if place.creatorId && (place.creatorType === "User" || place.creatorType === "Group")}
-							By
-							<button
-								class="rounded-sm font-medium text-fg hover:underline hover:underline-offset-2 focus-visible:outline-offset-2"
-								type="button"
-								data-tooltip={place.creatorType === "Group"
-									? "Show in Groups"
-									: "Show in Social"}
-								onclick={() => {
-									if (place.creatorType === "Group")
-										creatorNavigation.showGroup(place.creatorId)
-									else
-										creatorNavigation.showUser({
-											userId: place.creatorId,
-											username: place.creatorName,
-											displayName: place.creatorName,
-										})
-								}}>{place.creatorName}</button>
-							{#if place.creatorVerified}<Icon
-									svg={sealCheckIcon}
-									class="text-accent-strong"
-									size={14}
-									aria-label="Verified creator" />{/if}
-							<span class="text-fg-faint" aria-hidden="true">·</span>
-							<span>{place.creatorType}</span>
-						{:else}
-							<span>{creatorByline(place)}</span>
-						{/if}
-					</p>
+					{#if place.creatorId && (place.creatorType === "User" || place.creatorType === "Group")}
+						<CreatorByline
+							kind={place.creatorType}
+							creatorId={place.creatorId}
+							name={place.creatorName}
+							hasVerifiedBadge={place.creatorVerified} />
+					{:else}
+						<p class="text-xs text-fg-muted">{creatorByline(place)}</p>
+					{/if}
 					<div class={metaClass}>
 						<span class="select-text">Place ID: {place.placeId}</span>
 						<span class="text-fg-faint" aria-hidden="true">·</span>
@@ -610,45 +583,9 @@
 							<span>{playabilityWarning.message}</span>
 						</p>
 					{/if}
-					<div class="mt-1 flex flex-wrap items-center gap-1">
-						<button
-							class="button"
-							type="button"
-							data-game-servers
-							onclick={() => {
-								store.closeMenu()
-								store.detailsPage = "servers"
-							}}>
-							<Icon svg={hardDrivesIcon} size={16} aria-hidden="true" />
-							Servers
-						</button>
-						{#if hasUniverseButtons}
-							<button
-								class="button"
-								type="button"
-								data-game-badges
-								disabled={!game}
-								onclick={() => {
-									store.closeMenu()
-									store.detailsPage = "badges"
-								}}>
-								<Icon svg={medalIcon} size={16} aria-hidden="true" />
-								Badges
-							</button>
-							<button
-								class="button"
-								type="button"
-								data-game-passes
-								disabled={!game}
-								onclick={() => {
-									store.closeMenu()
-									store.detailsPage = "gamePasses"
-								}}>
-								<Icon svg={ticketIcon} size={16} aria-hidden="true" />
-								Passes and products
-							</button>
-						{/if}
-					</div>
+					{#if !rootPlace}
+						<ProfileStats label="Game numbers" stats={headlineStats} />
+					{/if}
 				</div>
 				<div class="relative flex shrink-0 items-center gap-1">
 					<button
@@ -682,9 +619,9 @@
 				</div>
 			</div>
 
-			{#if !rootPlace}
-				<ProfileStats label="Game numbers" stats={headlineStats} />
-			{/if}
+			<div class="-mx-4 h-8 border-b border-line-subtle">
+				<ProfileTabs />
+			</div>
 
 			{#if rootPlace}
 				<p

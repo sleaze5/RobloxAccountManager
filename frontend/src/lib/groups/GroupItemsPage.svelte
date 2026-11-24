@@ -10,7 +10,7 @@
 	import Icon from "../shared/Icon.svelte"
 	import RefreshIcon from "../shared/RefreshIcon.svelte"
 	import Select from "../shared/Select.svelte"
-	import GroupSubpageHeader from "./GroupSubpageHeader.svelte"
+	import ProfilePageHeader from "../shared/ProfilePageHeader.svelte"
 	import type { GroupsStore } from "./groups-store.svelte"
 
 	let {
@@ -70,11 +70,7 @@
 </script>
 
 <section class="settings-page min-w-0" aria-labelledby="group-items-title">
-	<GroupSubpageHeader
-		titleId="group-items-title"
-		title="Items"
-		{groupName}
-		onBack={() => (store.subpage = null)}>
+	<ProfilePageHeader titleId="group-items-title" title="Items" subtitle={groupName}>
 		<button
 			class="button-ghost"
 			type="button"
@@ -87,7 +83,7 @@
 			<RefreshIcon
 				isRefreshing={groupCatalog.loading && groupCatalog.hasResults} />
 		</button>
-	</GroupSubpageHeader>
+	</ProfilePageHeader>
 	<div
 		class="flex min-h-10 shrink-0 flex-wrap items-center gap-2 border-b border-line-subtle px-3 py-1.5"
 		role="toolbar"

@@ -24,12 +24,9 @@
 	import shapesIcon from "@phosphor-icons/core/regular/shapes.svg?raw"
 	import storefrontIcon from "@phosphor-icons/core/regular/storefront.svg?raw"
 	import tShirtIcon from "@phosphor-icons/core/regular/t-shirt.svg?raw"
-	import tagIcon from "@phosphor-icons/core/regular/tag.svg?raw"
 	import timerIcon from "@phosphor-icons/core/regular/timer.svg?raw"
 	import trashIcon from "@phosphor-icons/core/regular/trash.svg?raw"
 	import treeStructureIcon from "@phosphor-icons/core/regular/tree-structure.svg?raw"
-	import trendUpIcon from "@phosphor-icons/core/regular/trend-up.svg?raw"
-	import trophyIcon from "@phosphor-icons/core/regular/trophy.svg?raw"
 	import xIcon from "@phosphor-icons/core/regular/x.svg?raw"
 	import { onDestroy, tick, untrack } from "svelte"
 	import {
@@ -43,7 +40,9 @@
 		InventoryItem,
 		CategorizedInventoryItem,
 	} from "../backend/bridge"
-	import CreatorCard from "../shared/CreatorCard.svelte"
+	import CreatorByline from "../shared/CreatorByline.svelte"
+	import ProfileStats from "../shared/ProfileStats.svelte"
+	import type { ProfileStat } from "../shared/ProfileStats.svelte"
 	import Dialog from "../shared/Dialog.svelte"
 	import FrameUnavailable from "../shared/FrameUnavailable.svelte"
 	import AnchoredActionMenu from "../shared/AnchoredActionMenu.svelte"
@@ -154,6 +153,10 @@
 		>({ dialog: undefined, expanded: undefined })
 
 	const exactNumbers = new Intl.NumberFormat("en-US"),
+		compactNumbers = new Intl.NumberFormat("en-US", {
+			notation: "compact",
+			maximumFractionDigits: 1,
+		}),
 		percent = new Intl.NumberFormat("en-US", {
 			style: "percent",
 			maximumFractionDigits: 1,
@@ -330,8 +333,63 @@
 			market ? saleLocationLabels[market.saleLocation] : "",
 		),
 		hasMarketSection = $derived(
-			!!market || item.recentAveragePrice !== null || item.serialNumber !== null,
-		)
+			item.serialNumber !== null ||
+				!!stockLabel ||
+				(isCatalogItem && !!market) ||
+				!!saleLocationLabel ||
+				(!!market && market.offSaleDeadlineMs > 0),
+		),
+		// The headline numbers come first, and the sections below never
+		// repeat them.
+		itemStats = $derived<ProfileStat[]>([
+			...(market?.favoriteCount == null
+				? []
+				: [
+						{
+							id: "favorites",
+							value: compactNumbers.format(market.favoriteCount),
+							label:
+								market.favoriteCount === 1 ? "favorite" : "favorites",
+							description: `${exactNumbers.format(market.favoriteCount)} ${market.favoriteCount === 1 ? "favorite" : "favorites"}`,
+						},
+					]),
+			...(item.recentAveragePrice === null
+				? []
+				: [
+						{
+							id: "recentAveragePrice",
+							value: formatRobux(item.recentAveragePrice, true),
+							label: "average price",
+							description: `${formatRobux(item.recentAveragePrice, false)} recent average price`,
+						},
+					]),
+			...(market?.lowestResalePriceInRobux == null
+				? []
+				: [
+						{
+							id: "lowestResale",
+							value: formatRobux(market.lowestResalePriceInRobux, true),
+							label: "lowest resale",
+							description: `${formatRobux(market.lowestResalePriceInRobux, false)} lowest resale price`,
+						},
+					]),
+			...(badge
+				? [
+						{
+							id: "wonYesterday",
+							value: percent.format(badge.pastDayWinFraction),
+							label: "won yesterday",
+							description: `Won by ${percent.format(badge.pastDayWinFraction)} of players yesterday`,
+						},
+						{
+							id: "awarded",
+							value: compactNumbers.format(badge.awardedCount),
+							label: "awarded",
+							description: `Awarded ${exactNumbers.format(badge.awardedCount)} times`,
+						},
+					]
+				: []),
+		])
 
 	$effect(() => {
 		const shownItem = item,
@@ -940,14 +998,11 @@
 							<span>{typeLabel}</span>
 						</div>
 						{#if item.creatorId && (item.creatorType === "User" || item.creatorType === "Group")}
-							<div class="my-1 w-72 max-w-full">
-								<CreatorCard
-									kind={item.creatorType}
-									creatorId={item.creatorId}
-									name={item.creatorName}
-									hasVerifiedBadge={item.creatorHasVerifiedBadge}
-									role="Creator" />
-							</div>
+							<CreatorByline
+								kind={item.creatorType}
+								creatorId={item.creatorId}
+								name={item.creatorName}
+								hasVerifiedBadge={item.creatorHasVerifiedBadge} />
 						{:else if item.creatorName}
 							<div class={metaClass}>
 								<span>by {item.creatorName}</span>
@@ -965,14 +1020,8 @@
 									aria-hidden="true" />
 								{priceLabel}
 							</p>
-						{:else if badge}
-							<p
-								class="inline-flex items-center gap-1 text-xs font-medium text-fg tabular-nums">
-								<Icon svg={trophyIcon} size={14} aria-hidden="true" />
-								Won by {percent.format(badge.pastDayWinFraction)} of players
-								yesterday
-							</p>
 						{/if}
+						<ProfileStats label="Item numbers" stats={itemStats} />
 
 						<ul
 							class="mt-2 flex min-h-6 flex-wrap gap-1"
@@ -1048,6 +1097,22 @@
 						{/if}
 					</div>
 
+					{#if item.description}
+						<section
+							class="flex flex-col gap-3"
+							aria-labelledby={`${elementIdPrefix}-inventory-item-description`}>
+							<h3
+								id={`${elementIdPrefix}-inventory-item-description`}
+								class={sectionHeadingClass}>
+								Description
+							</h3>
+							<p
+								class="max-h-40 text-block overflow-y-auto"
+								data-variant="prose">
+								{item.description}
+							</p>
+						</section>
+					{/if}
 					{#if hasMarketSection}
 						<section
 							class="flex flex-col gap-3"
@@ -1058,23 +1123,6 @@
 								Market
 							</h3>
 							<dl class="facts">
-								{#if market?.lowestResalePriceInRobux != null}
-									{@render fact(
-										tagIcon,
-										"Lowest resale",
-										formatRobux(
-											market.lowestResalePriceInRobux,
-											false,
-										),
-									)}
-								{/if}
-								{#if item.recentAveragePrice !== null}
-									{@render fact(
-										trendUpIcon,
-										"Recent average price",
-										formatRobux(item.recentAveragePrice, false),
-									)}
-								{/if}
 								{#if item.serialNumber !== null}
 									{@render fact(
 										barcodeIcon,
@@ -1117,13 +1165,6 @@
 										</dd>
 									</div>
 								{/if}
-								{#if market?.favoriteCount != null}
-									{@render fact(
-										heartIcon,
-										"Favorites",
-										exactNumbers.format(market.favoriteCount),
-									)}
-								{/if}
 							</dl>
 						</section>
 					{/if}
@@ -1139,11 +1180,6 @@
 						<dl class="facts">
 							{@render fact(shapesIcon, "Type", typeLabel)}
 							{#if badge}
-								{@render fact(
-									trophyIcon,
-									"Awarded",
-									exactNumbers.format(badge.awardedCount),
-								)}
 								<div>
 									<dt>
 										<Icon
@@ -1188,23 +1224,6 @@
 							{/if}
 						</dl>
 					</section>
-
-					{#if item.description}
-						<section
-							class="flex flex-col gap-3"
-							aria-labelledby={`${elementIdPrefix}-inventory-item-description`}>
-							<h3
-								id={`${elementIdPrefix}-inventory-item-description`}
-								class={sectionHeadingClass}>
-								Description
-							</h3>
-							<p
-								class="max-h-40 text-block overflow-y-auto"
-								data-variant="prose">
-								{item.description}
-							</p>
-						</section>
-					{/if}
 				</div>
 			</div>
 

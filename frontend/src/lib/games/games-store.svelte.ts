@@ -73,6 +73,9 @@ export function creatorByline(place: GamePlace): string {
 	return creator ? `by ${creator}` : "Unknown creator"
 }
 
+// GameDetailsPage names a page that opens in place of the game details.
+export type GameDetailsPage = "servers" | "badges" | "gamePasses"
+
 export const [getGamesStore, setGamesStore] = createContext<GamesStore>()
 
 // StoreView names the list that the Game passes page shows.
@@ -89,7 +92,7 @@ export class GamesStore {
 	favorites = $state<GamePlace[]>([])
 	selected = $state<GamePlace | null>(null)
 	game = $state<Game | null>(null)
-	detailsPage = $state<"details" | "servers" | "badges" | "gamePasses">("details")
+	detailsPage = $state<"details" | GameDetailsPage>("details")
 	// The game pass opened from another page.
 	highlightedGamePassId = $state<number | null>(null)
 	storeView = $state<StoreView>("gamePasses")

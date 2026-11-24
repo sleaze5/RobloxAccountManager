@@ -1,6 +1,6 @@
 <script lang="ts">
+	import ProfilePageHeader from "../shared/ProfilePageHeader.svelte"
 	import arrowSquareOutIcon from "@phosphor-icons/core/regular/arrow-square-out.svg?raw"
-	import caretLeftIcon from "@phosphor-icons/core/regular/caret-left.svg?raw"
 	import hashIcon from "@phosphor-icons/core/regular/hash.svg?raw"
 	import linkIcon from "@phosphor-icons/core/regular/link.svg?raw"
 	import listPlusIcon from "@phosphor-icons/core/regular/list-plus.svg?raw"
@@ -8,7 +8,7 @@
 	import trashIcon from "@phosphor-icons/core/regular/trash.svg?raw"
 	import Icon from "../shared/Icon.svelte"
 	import RefreshIcon from "../shared/RefreshIcon.svelte"
-	import { onMount, untrack } from "svelte"
+	import { untrack } from "svelte"
 	import type { AccountStore } from "../accounts/account-store.svelte"
 	import type { NotificationCenter } from "../notifications/notification-center.svelte"
 	import type { SavedPrivateServer } from "../backend/bridge"
@@ -33,14 +33,12 @@
 		store,
 		accounts,
 		notifications,
-		onBack,
 		onFillLaunch,
 		onFillLaunchLink,
 	}: {
 		store: GamesStore
 		accounts: AccountStore
 		notifications: NotificationCenter
-		onBack: () => void
 		onFillLaunch: (placeId: number, jobId: string) => void
 		onFillLaunchLink: (link: string) => void
 	} = $props()
@@ -80,8 +78,7 @@
 		savedServers = placeServers.saved,
 		stats = placeServers.stats,
 		menuID = $props.id()
-	let heading = $state<HTMLHeadingElement | undefined>(undefined),
-		activeMenu = $state<{
+	let activeMenu = $state<{
 			key: string
 			trigger: HTMLElement
 			open: boolean
@@ -120,10 +117,6 @@
 	// The store keeps the server lists after the page closes, so that it
 	// reopens on the same source, options, and page. Opening a list shows its
 	// kept page and requests it again only when that page is no longer fresh.
-	onMount(() => {
-		heading?.focus({ preventScroll: true })
-	})
-
 	// The account effect runs first, so that the private list never loads the
 	// servers of the account that was selected when the page last closed.
 	$effect(() => {
@@ -340,18 +333,10 @@
 </script>
 
 <section class="settings-page min-w-0" aria-labelledby="game-servers-title">
-	<header class="settings-header">
-		<button
-			class="button-ghost"
-			type="button"
-			aria-label="Back to game details"
-			data-tooltip="Back to game details"
-			onclick={onBack}>
-			<Icon svg={caretLeftIcon} data-nudge="left" size={16} aria-hidden="true" />
-		</button>
-		<h1 id="game-servers-title" tabindex="-1" bind:this={heading}>Servers</h1>
-		<span class="mr-auto min-w-0 text-xs wrap-anywhere text-fg-muted"
-			>{store.displayName(place)}</span>
+	<ProfilePageHeader
+		titleId="game-servers-title"
+		title="Servers"
+		subtitle={store.displayName(place)}>
 		<div class="segmented" role="radiogroup" aria-label="Server list">
 			{#each sources as option (option.id)}
 				<label data-tooltip={option.tooltip} data-tooltip-side="bottom-end">
@@ -376,7 +361,7 @@
 			onclick={refresh}>
 			<RefreshIcon isRefreshing={active.loading} />
 		</button>
-	</header>
+	</ProfilePageHeader>
 
 	{#if source === "rovalra"}
 		<RecordedServerList
