@@ -56,7 +56,7 @@
 			<p id={`${dialogId}-description`}>
 				Roblox's join check expects {restrictions.length === 1
 					? "this join"
-					: "these joins"} to fail. You can still launch and try.
+					: "these joins"} to fail.
 			</p>
 		</div>
 		<button type="button" aria-label="Close dialog" onclick={onCancel}>
