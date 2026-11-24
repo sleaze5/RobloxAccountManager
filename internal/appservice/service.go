@@ -38,6 +38,7 @@ type Service struct {
 	presence           *robloxservices.Presence
 	gameLinks          *robloxservices.GameLinks
 	games              *robloxservices.Games
+	shownGameVideo     shownGameVideo
 	privateServers     *robloxservices.PrivateServers
 	badges             *robloxservices.Badges
 	rovalra            *rovalra.Client

@@ -348,10 +348,9 @@
 			request ? "@4xl:grid-cols-3" : "@4xl:grid-cols-2",
 		]}>
 		<div
-			class={[
-				"flex min-w-0 flex-col gap-5",
-				request ? "@4xl:col-span-2" : "contents",
-			]}>
+			class={request
+				? "flex min-w-0 flex-col gap-5 @4xl:col-span-2"
+				: "contents"}>
 			{#if profile && store.profileLoad?.hasSection(SocialProfileSection.SocialSectionAbout)}
 				<section
 					class="flex flex-col gap-2"

@@ -30,9 +30,11 @@ type AvatarPortrait struct {
 	IsBackgroundUnavailable bool              `json:"isBackgroundUnavailable"`
 }
 
-// ThumbnailTarget names the image of the background.
+// ThumbnailTarget names the image of the background. The batch endpoint
+// renders a background as an Asset, and refuses the AvatarBackground type.
+// Verified on 2026-11-24.
 func (background AvatarBackground) ThumbnailTarget() ThumbnailTarget {
-	return ThumbnailTarget{Type: "AvatarBackground", TargetID: background.AssetID}
+	return ThumbnailTarget{Type: "Asset", TargetID: background.AssetID}
 }
 
 // EquippedAvatarBackground reads the background that the user equipped, or nil

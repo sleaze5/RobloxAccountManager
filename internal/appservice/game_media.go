@@ -1,7 +1,13 @@
 package appservice
 
 import (
+	"bytes"
 	"context"
+	"fmt"
+	"net/http"
+	"strconv"
+	"sync"
+	"time"
 
 	"github.com/sleaze5/RobloxAccountManager/internal/games"
 	robloxservices "github.com/sleaze5/RobloxAccountManager/internal/roblox/services"
@@ -48,18 +54,59 @@ func (service *Service) ListGameMedia(ctx context.Context, universeID int64) ([]
 	return media, nil
 }
 
-// GetGameVideoURL reads the signed address from which the frontend plays a
-// game preview video.
-func (service *Service) GetGameVideoURL(ctx context.Context, videoAssetID int64) (string, error) {
+// GameVideoPath is the address from which the frontend plays a game preview
+// video, by its asset ID.
+const GameVideoPath = "/game-videos/{videoAssetID}"
+
+// shownGameVideo keeps the file of the last video that the player opened, so
+// that each byte range that it seeks to comes from memory. The player shows
+// one video at a time.
+type shownGameVideo struct {
+	mutex        sync.Mutex
+	videoAssetID int64
+	contents     []byte
+}
+
+// ServeGameVideo serves a game preview video to the player from the app's
+// own address, with the byte ranges that the player seeks to.
+func (service *Service) ServeGameVideo(writer http.ResponseWriter, request *http.Request) {
 	const operation = "game-video"
-	if err := validGameID(videoAssetID); err != nil {
-		return "", err
+	videoAssetID, err := strconv.ParseInt(request.PathValue("videoAssetID"), 10, 64)
+	if err != nil || validGameID(videoAssetID) != nil {
+		http.Error(writer, "The video ID is invalid.", http.StatusBadRequest)
+		return
 	}
-	ctx, done, err := service.beginGames(ctx)
+	ctx, done, err := service.beginGames(request.Context())
 	if err != nil {
-		return "", err
+		http.Error(writer, "Unlock the vault first.", http.StatusForbidden)
+		return
 	}
 	defer done()
-	videoURL, err := service.games.VideoURL(ctx, videoAssetID)
-	return videoURL, service.gamesError(ctx, operation, err)
+	contents, err := service.readGameVideo(ctx, videoAssetID)
+	if err != nil {
+		service.logs.Module("application.games").WarnContext(ctx, "game video unavailable", "operation", operation, "video_asset_id", videoAssetID, "error", err)
+		http.Error(writer, "Roblox has no playable file for this video.", http.StatusBadGateway)
+		return
+	}
+	// Roblox serves game preview videos as WebM, and names them only as
+	// binary data.
+	writer.Header().Set("Content-Type", "video/webm")
+	http.ServeContent(writer, request, "", time.Time{}, bytes.NewReader(contents))
+}
+
+// readGameVideo returns the file of the video, which it downloads unless the
+// player opened the same video last.
+func (service *Service) readGameVideo(ctx context.Context, videoAssetID int64) ([]byte, error) {
+	shown := &service.shownGameVideo
+	shown.mutex.Lock()
+	defer shown.mutex.Unlock()
+	if shown.videoAssetID == videoAssetID {
+		return shown.contents, nil
+	}
+	contents, err := service.games.VideoFile(ctx, videoAssetID)
+	if err != nil {
+		return nil, fmt.Errorf("download game video: %w", err)
+	}
+	shown.videoAssetID, shown.contents = videoAssetID, contents
+	return contents, nil
 }

@@ -6,8 +6,9 @@
 	import pauseIcon from "@phosphor-icons/core/regular/pause.svg?raw"
 	import playIcon from "@phosphor-icons/core/regular/play.svg?raw"
 	import speakerHighIcon from "@phosphor-icons/core/regular/speaker-high.svg?raw"
+	import speakerLowIcon from "@phosphor-icons/core/regular/speaker-low.svg?raw"
 	import speakerSlashIcon from "@phosphor-icons/core/regular/speaker-slash.svg?raw"
-	import { accountBackend, GameMediaKind } from "../backend/bridge"
+	import { GameMediaKind } from "../backend/bridge"
 	import type { GameMedia } from "../backend/bridge"
 	import { formatClock } from "../shared/duration"
 	import ExpandedImageDialog from "../shared/ExpandedImageDialog.svelte"
@@ -30,11 +31,12 @@
 
 	let index = $state(0),
 		video = $state<HTMLVideoElement>(),
-		videoUrl = $state(""),
 		hasVideoFailed = $state(false),
+		isVideoLoaded = $state(false),
 		videoLoadCount = $state(0),
 		isPaused = $state(true),
 		isMuted = $state(false),
+		volume = $state(1),
 		isWaitingForVideo = $state(false),
 		currentTimeSeconds = $state(0),
 		durationSeconds = $state(0)
@@ -46,39 +48,37 @@
 	const current = $derived(media[index]),
 		isVideo = $derived(current?.kind === GameMediaKind.MediaKindVideo),
 		noun = $derived(isVideo ? "Video" : "Image"),
-		canSeek = $derived(!!videoUrl && durationSeconds > 0),
+		// The app serves each video from its own address, so that the player
+		// can seek in it. Roblox keeps the file gzipped and cannot serve parts
+		// of it.
+		videoUrl = $derived(isVideo ? `/game-videos/${current.videoAssetId}` : ""),
+		areVideoControlsDisabled = $derived(!isVideoLoaded || hasVideoFailed),
+		canSeek = $derived(isVideoLoaded && durationSeconds > 0),
 		playLabel = $derived(isPaused ? "Play video" : "Pause video"),
-		muteLabel = $derived(isMuted ? "Turn on sound" : "Turn off sound"),
+		// Sound is off when the video is muted or its volume is at zero, and the
+		// speaker shows the level the user hears.
+		isSilent = $derived(isMuted || volume === 0),
+		heardVolume = $derived(isSilent ? 0 : volume),
+		speakerIcon = $derived(
+			isSilent
+				? speakerSlashIcon
+				: volume < 0.5
+					? speakerLowIcon
+					: speakerHighIcon,
+		),
+		muteLabel = $derived(isSilent ? "Turn on sound" : "Turn off sound"),
 		timeLabel = $derived(
 			`${formatClock(currentTimeSeconds)} / ${formatClock(durationSeconds)}`,
 		)
 
-	// The video address is signed and expires, so each opened video reads its
-	// own. Opening a video is the request to play it, so it starts at once.
+	// Opening a video is the request to play it, so it starts as soon as it
+	// loads. Another video, or Try again, starts over.
 	$effect(() => {
-		const requestedVideoAssetId = isVideo ? current.videoAssetId : 0
+		void index
 		void videoLoadCount
-		videoUrl = ""
-		hasVideoFailed = false
+		hasVideoFailed = isVideoLoaded = false
 		currentTimeSeconds = durationSeconds = 0
 		isPaused = true
-		if (!requestedVideoAssetId) return
-		let isCurrent = true
-		const request = accountBackend.GetGameVideoURL(requestedVideoAssetId)
-		void (async () => {
-			try {
-				const resolvedUrl = await request
-				if (isCurrent) videoUrl = resolvedUrl
-			} catch {
-				// The backend logs the failure, and the frame says that the video
-				// is unavailable.
-				if (isCurrent) hasVideoFailed = true
-			}
-		})()
-		return () => {
-			isCurrent = false
-			void request.cancel()
-		}
 	})
 
 	function step(direction: -1 | 1): void {
@@ -88,6 +88,15 @@
 	function togglePlay(): void {
 		if (video?.paused) startPlayback()
 		else video?.pause()
+	}
+
+	// Turning on sound at zero volume would stay silent, so it also raises
+	// the volume to half.
+	function toggleSound(): void {
+		if (isSilent) {
+			isMuted = false
+			if (volume === 0) volume = 0.5
+		} else isMuted = true
 	}
 
 	function startPlayback(): void {
@@ -111,25 +120,7 @@ uses them to seek. -->
 	{#snippet frame()}
 		{#key index}
 			{#if isVideo}
-				{#if videoUrl && !hasVideoFailed}
-					<!-- svelte-ignore a11y_media_has_caption: Roblox serves game videos without captions. -->
-					<video
-						bind:this={video}
-						class="size-full animate-enter bg-deep object-contain"
-						src={videoUrl}
-						poster={current.imageUrl || undefined}
-						preload="auto"
-						aria-label={`${gameName} video`}
-						bind:paused={isPaused}
-						bind:muted={isMuted}
-						bind:currentTime={currentTimeSeconds}
-						bind:duration={durationSeconds}
-						onloadeddata={startPlayback}
-						onwaiting={() => (isWaitingForVideo = true)}
-						onplaying={() => (isWaitingForVideo = false)}
-						onerror={() => (hasVideoFailed = true)}
-						onclick={togglePlay}></video>
-				{:else if hasVideoFailed}
+				{#if hasVideoFailed}
 					<div class="empty-state">
 						<p>Video unavailable</p>
 						<button
@@ -140,21 +131,46 @@ uses them to seek. -->
 						</button>
 					</div>
 				{:else}
-					{#if current.imageUrl}
-						<img
-							class="size-full object-contain opacity-45"
-							src={current.imageUrl}
-							alt=""
-							draggable="false"
-							referrerpolicy="no-referrer" />
+					{#key videoLoadCount}
+						<!-- svelte-ignore a11y_media_has_caption: Roblox serves game videos without captions. -->
+						<video
+							bind:this={video}
+							class="size-full animate-enter bg-deep object-contain"
+							src={videoUrl}
+							poster={current.imageUrl || undefined}
+							preload="auto"
+							aria-label={`${gameName} video`}
+							bind:paused={isPaused}
+							bind:muted={isMuted}
+							bind:volume
+							bind:currentTime={currentTimeSeconds}
+							bind:duration={durationSeconds}
+							onloadeddata={() => {
+								isVideoLoaded = true
+								startPlayback()
+							}}
+							onwaiting={() => (isWaitingForVideo = true)}
+							onplaying={() => (isWaitingForVideo = false)}
+							onerror={() => (hasVideoFailed = true)}
+							onclick={togglePlay}></video>
+					{/key}
+					{#if !isVideoLoaded}
+						{#if current.imageUrl}
+							<img
+								class="absolute inset-0 size-full bg-deep object-contain opacity-45"
+								src={current.imageUrl}
+								alt=""
+								draggable="false"
+								referrerpolicy="no-referrer" />
+						{/if}
+						<span class="absolute inset-0 m-auto size-fit" role="status">
+							<Icon
+								svg={circleNotchIcon}
+								class="spinner text-fg-bright"
+								size={28}
+								aria-label="Loading video…" />
+						</span>
 					{/if}
-					<span class="absolute inset-0 m-auto size-fit" role="status">
-						<Icon
-							svg={circleNotchIcon}
-							class="spinner text-fg-bright"
-							size={28}
-							aria-label="Loading video…" />
-					</span>
 				{/if}
 			{:else if current.imageUrl}
 				<img
@@ -206,7 +222,7 @@ uses them to seek. -->
 				aria-label={playLabel}
 				aria-busy={isWaitingForVideo && !isPaused}
 				data-tooltip={playLabel}
-				disabled={!videoUrl || hasVideoFailed}
+				disabled={areVideoControlsDisabled}
 				onclick={togglePlay}>
 				{#if isWaitingForVideo && !isPaused}
 					<Icon
@@ -246,15 +262,35 @@ uses them to seek. -->
 				class="button-icon"
 				type="button"
 				aria-label={muteLabel}
-				aria-pressed={isMuted}
+				aria-pressed={isSilent}
 				data-tooltip={muteLabel}
-				disabled={!videoUrl || hasVideoFailed}
-				onclick={() => (isMuted = !isMuted)}>
-				<Icon
-					svg={isMuted ? speakerSlashIcon : speakerHighIcon}
-					size={16}
-					aria-hidden="true" />
+				disabled={areVideoControlsDisabled}
+				onclick={toggleSound}>
+				{#key speakerIcon}
+					<Icon
+						svg={speakerIcon}
+						class="animate-pop"
+						size={16}
+						aria-hidden="true" />
+				{/key}
 			</button>
+			<label class="flex w-20 shrink-0 items-center">
+				<span class="sr-only">Volume</span>
+				<input
+					class="range"
+					type="range"
+					min="0"
+					max="1"
+					step="0.05"
+					value={heardVolume}
+					disabled={areVideoControlsDisabled}
+					style:--range-fill={`${heardVolume * 100}%`}
+					aria-valuetext={`${Math.round(heardVolume * 100)}%`}
+					oninput={(event) => {
+						volume = event.currentTarget.valueAsNumber
+						isMuted = volume === 0
+					}} />
+			</label>
 		{/if}
 	{/snippet}
 </ExpandedImageDialog>

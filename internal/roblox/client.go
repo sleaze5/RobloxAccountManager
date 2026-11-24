@@ -141,7 +141,7 @@ func (client *Client) prepareRequest(request *Request) error {
 	if request.MaxResponseSize <= 0 {
 		request.MaxResponseSize = defaultResponseLimit
 	}
-	if request.MaxResponseSize > 16<<20 {
+	if request.MaxResponseSize > maxResponseLimit {
 		return &Error{Kind: KindProtocol, Endpoint: request.Endpoint, Message: "The response limit is too large."}
 	}
 	if request.RequiresCSRF && !requiresCSRF(request.Method) {

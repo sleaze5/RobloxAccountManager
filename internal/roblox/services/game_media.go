@@ -103,11 +103,15 @@ type listedAssetLocation struct {
 	Location string `json:"location"`
 }
 
-// VideoURL reads the address from which the app plays a game preview video.
-// The address is signed and expires, so the frontend reads it each time a
-// video opens. Roblox gives a public video without a signed-in request.
-// Verified on 2026-11-24.
-func (service *Games) VideoURL(ctx context.Context, videoAssetID int64) (string, error) {
+// maxGameVideoBytes bounds the file of a game preview video. Roblox allows
+// smaller videos.
+const maxGameVideoBytes = 64 << 20
+
+// VideoFile downloads the file of a game preview video. Roblox gives a public
+// video without a signed-in request. Its content delivery host ignores byte
+// ranges when it unpacks a file, so the app reads the whole file and serves
+// the ranges that the player seeks to itself. Verified on 2026-11-24.
+func (service *Games) VideoFile(ctx context.Context, videoAssetID int64) ([]byte, error) {
 	const operation = "game-video"
 	var payload struct {
 		AssetTypeID int64                 `json:"assetTypeId"`
@@ -115,15 +119,23 @@ func (service *Games) VideoURL(ctx context.Context, videoAssetID int64) (string,
 	}
 	parameters := url.Values{"id": {strconv.FormatInt(videoAssetID, 10)}}
 	if err := service.get(ctx, operation, "assetdelivery.roblox.com", "/v2/asset/", parameters, &payload); err != nil {
-		return "", err
+		return nil, err
 	}
 	if payload.AssetTypeID != gameMediaVideoAssetTypeID || len(payload.Locations) == 0 || !isRobloxCDNURL(payload.Locations[0].Location) {
-		return "", &roblox.Error{
+		return nil, &roblox.Error{
 			Kind: roblox.KindProtocol, Endpoint: operation, Status: http.StatusNotFound, Message: "Roblox has no playable file for this video.",
 			Cause: fmt.Errorf("asset type %d with %d locations, first on host %q", payload.AssetTypeID, len(payload.Locations), locationHost(payload.Locations)),
 		}
 	}
-	return payload.Locations[0].Location, nil
+	contents, err := downloadCDNFile(ctx, service.client, payload.Locations[0].Location, maxGameVideoBytes)
+	if err != nil {
+		return nil, err
+	}
+	contents, err = unpackGzip(contents)
+	if err != nil {
+		return nil, &roblox.Error{Kind: roblox.KindProtocol, Endpoint: operation, Message: "Roblox returned a video file that the app cannot read.", Cause: err}
+	}
+	return contents, nil
 }
 
 // locationHost names the host of the first location, for the log of a

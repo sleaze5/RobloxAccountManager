@@ -192,7 +192,7 @@ func (service *Users) downloadAssetFile(ctx context.Context, accountID, version 
 	if len(payload.Locations) == 0 {
 		return nil, 0, &roblox.Error{Kind: roblox.KindProtocol, Endpoint: endpoint, Status: http.StatusNotFound, Message: "Roblox has no file for this item."}
 	}
-	contents, err := service.downloadCDNFile(ctx, payload.Locations[0].Location, maxResponseSizeBytes)
+	contents, err := downloadCDNFile(ctx, service.client, payload.Locations[0].Location, maxResponseSizeBytes)
 	if err != nil {
 		return nil, 0, err
 	}
