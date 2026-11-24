@@ -3,7 +3,7 @@
 	import signInIcon from "@phosphor-icons/core/regular/sign-in.svg?raw"
 	import starFillIcon from "@phosphor-icons/core/fill/star-fill.svg?raw"
 	import Icon from "../shared/Icon.svelte"
-	import { PresenceType } from "../backend/bridge"
+	import { PresenceType, UserJoinability } from "../backend/bridge"
 	import type { UserPresence } from "../backend/bridge"
 	import { getGamesStore } from "../games/games-store.svelte"
 	import {
@@ -14,15 +14,24 @@
 	} from "./account-model"
 	import PresenceCard from "./PresenceCard.svelte"
 	import { isInExperience, PresencePlace } from "./presence-place.svelte"
+	import { notJoinableMessage } from "./user-joinability"
 
 	let {
 		presence,
+		joinability = UserJoinability.UserJoinabilityUnknown,
 		onJoin,
+		onJoinUser,
 		onSearchPlace,
 		onSearchUniverse,
 	}: {
 		presence: UserPresence
+		// joinability is whether the user's profile offers to join them, for a
+		// user who is not one of the saved accounts.
+		joinability?: UserJoinability
 		onJoin: (placeId: number, jobId: string) => void
+		// onJoinUser fills the launch options to follow the user, for a server
+		// that the presence does not show.
+		onJoinUser?: () => void
 		onSearchPlace: (placeId: number) => void
 		onSearchUniverse: (universeId: number) => void
 	} = $props()
@@ -40,10 +49,16 @@
 	const place = $derived(presencePlace.place),
 		inExperience = $derived(isInExperience(presence)),
 		joinPlaceId = $derived(presence.placeId ?? 0),
-		joinable = $derived(
+		hasVisibleServer = $derived(
 			presence.userPresenceType === PresenceType.PresenceTypeInGame &&
 				joinPlaceId > 0 &&
 				!!presence.gameId,
+		),
+		isNotJoinable = $derived(joinability === UserJoinability.UserNotJoinable),
+		canFollowUser = $derived(
+			!hasVisibleServer &&
+				!!onJoinUser &&
+				joinability === UserJoinability.UserJoinable,
 		),
 		label = $derived(presenceLabel(presence)),
 		detail = $derived(
@@ -94,6 +109,11 @@
 		closeCard()
 		onJoin(joinPlaceId, presence.gameId ?? "")
 	}
+
+	function followUser(): void {
+		closeCard()
+		onJoinUser?.()
+	}
 </script>
 
 <svelte:window
@@ -136,7 +156,9 @@
 				id={cardId}
 				anchor={trigger}
 				{presence}
-				isJoinable={joinable}
+				isJoinable={hasVisibleServer}
+				{joinability}
+				onFollowUser={canFollowUser ? followUser : undefined}
 				onPointerEnter={() => scheduleCardHover("hover", 0)}
 				onPointerLeave={() => scheduleCardHover(null, cardHoverCloseDelayMs)}
 				onFillLaunch={fillLaunch}
@@ -150,13 +172,26 @@
 			aria-label={tooltip}
 			data-tooltip={tooltip}>{@render status()}</button>
 	{/if}
-	{#if joinable}
+	{#if hasVisibleServer}
+		<button
+			class={["button-ghost-sm", isNotJoinable && "text-danger-muted"]}
+			type="button"
+			aria-label={isNotJoinable
+				? `Fill launch options. ${notJoinableMessage}`
+				: "Fill launch options"}
+			data-tooltip={isNotJoinable
+				? notJoinableMessage
+				: "Fill launch options with this place and server"}
+			onclick={fillLaunch}>
+			<Icon svg={signInIcon} size={14} aria-hidden="true" />
+		</button>
+	{:else if canFollowUser}
 		<button
 			class="button-ghost-sm"
 			type="button"
-			aria-label="Fill launch options"
-			data-tooltip="Fill launch options with this place and server"
-			onclick={fillLaunch}>
+			aria-label="Fill launch options to follow this user"
+			data-tooltip="Fill launch options to follow this user. Their server is hidden."
+			onclick={followUser}>
 			<Icon svg={signInIcon} size={14} aria-hidden="true" />
 		</button>
 	{/if}

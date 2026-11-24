@@ -5,7 +5,11 @@
 	import xIcon from "@phosphor-icons/core/regular/x.svg?raw"
 	import { tick, untrack } from "svelte"
 	import { ModelPropertyKind } from "../backend/bridge"
-	import type { InventoryItem, ModelProperty } from "../backend/bridge"
+	import type {
+		CategorizedInventoryItem,
+		InventoryItem,
+		ModelProperty,
+	} from "../backend/bridge"
 	import type { InventoryCategoryOption } from "../inventory/inventory-categories"
 	import { categoryItemKey } from "../inventory/inventory-state.svelte"
 	import type { InventoryState } from "../inventory/inventory-state.svelte"
@@ -29,11 +33,14 @@
 		item,
 		category,
 		inventory,
+		onOpenAssetItem,
 		onClose,
 	}: {
 		item: InventoryItem
 		category: InventoryCategoryOption
 		inventory: InventoryState
+		// onOpenAssetItem shows the details of an asset that a property names.
+		onOpenAssetItem: (assetItem: CategorizedInventoryItem) => void
 		onClose: () => void
 	} = $props()
 
@@ -62,7 +69,9 @@
 		propertyNameWidth = $state(176),
 		// The name of the long string property that the viewer shows, on the
 		// selected instance.
-		openedDocumentName = $state("")
+		openedDocumentName = $state(""),
+		// The asset whose details load before they open, or 0.
+		openingAssetId = $state(0)
 
 	const itemKey = $derived(categoryItemKey(category.id, item.itemId)),
 		loadedTree = $derived(inventory.instanceTree.loadedFor(itemKey)),
@@ -158,12 +167,25 @@
 		)?.focus()
 	}
 
+	async function openAsset(assetId: number): Promise<void> {
+		if (openingAssetId) return
+		openingAssetId = assetId
+		try {
+			const assetItem = await inventory.readAssetItem(assetId)
+			if (assetItem) onOpenAssetItem(assetItem)
+		} finally {
+			openingAssetId = 0
+		}
+	}
+
 	function close(): void {
-		inventory.explorerCopyError = ""
+		inventory.explorerCopyError = inventory.explorerAssetError = ""
 		onClose()
 	}
 
 	notifyErrors("Not copied", () => inventory.explorerCopyError)
+
+	notifyErrors("Asset details not loaded", () => inventory.explorerAssetError)
 
 	notifyErrors("Instances not loaded", () => loadError)
 </script>
@@ -243,8 +265,9 @@ source viewer closes before the explorer. -->
 									?.instance?.className ?? ""}
 							onSelectInstance={(instanceId) =>
 								void selectInstance(instanceId)}
-							onOpenDocument={(property) =>
-								void openDocument(property)} />
+							onOpenDocument={(property) => void openDocument(property)}
+							{openingAssetId}
+							onOpenAsset={(assetId) => void openAsset(assetId)} />
 					{:else}
 						<div class="empty-state min-h-0 flex-1">
 							<h2>No instance selected</h2>

@@ -353,13 +353,13 @@
 											class="shrink-0 animate-pop text-accent-strong"
 											size={12}
 											aria-label="Favorite" />{/if}</strong>
-								<span class="truncate text-2xs text-fg-muted"
-									>{creatorByline(
-										place,
-									)}{#if place.creatorVerified}<Icon
+								<span
+									class="flex min-w-0 items-center gap-1 text-2xs text-fg-muted"
+									><span class="truncate">{creatorByline(place)}</span
+									>{#if place.creatorVerified}<Icon
 											svg={sealCheckIcon}
-											class="relative top-0.5 ml-1 inline-block"
-											size={14}
+											class="shrink-0"
+											size={12}
 											aria-label="Verified creator" />{/if}</span>
 							</span>
 						</button>

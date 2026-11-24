@@ -4,16 +4,20 @@
 	import eraserIcon from "@phosphor-icons/core/regular/eraser.svg?raw"
 	import gameControllerIcon from "@phosphor-icons/core/regular/game-controller.svg?raw"
 	import prohibitIcon from "@phosphor-icons/core/regular/prohibit.svg?raw"
+	import { untrack } from "svelte"
 	import Icon from "../shared/Icon.svelte"
 	import type { AccountStore } from "../accounts/account-store.svelte"
 	import type { NotificationCenter } from "../notifications/notification-center.svelte"
 	import { LaunchMethod, RobloxCleanScope } from "../backend/bridge"
+	import type { AccountJoinCheck } from "../backend/bridge"
 	import RobloxCleanDialog from "../dialogs/RobloxCleanDialog.svelte"
 	import RobloxProcessesDialog from "../dialogs/RobloxProcessesDialog.svelte"
 	import { appSettings } from "../settings/settings-store.svelte"
 	import ClientOptions from "./ClientOptions.svelte"
 	import LaunchArguments from "./LaunchArguments.svelte"
 	import LaunchButton from "./LaunchButton.svelte"
+	import { LaunchJoinCheck } from "./launch-join-check.svelte"
+	import LaunchJoinWarningDialog from "./LaunchJoinWarningDialog.svelte"
 	import NearestServerButton from "./NearestServerButton.svelte"
 	import PlaceIdInput from "./PlaceIdInput.svelte"
 	import type { WorkspaceState } from "./workspace-state.svelte"
@@ -82,6 +86,46 @@
 			cleanOpen = false
 		}
 	})
+
+	const joinCheck = new LaunchJoinCheck()
+
+	// The check reruns when the join target or the selected accounts change,
+	// and not for launch options such as Teleport, which do not change it.
+	$effect(() => {
+		const { method, placeId, jobId, link, user, resolveCurrentGame } =
+				store.launchInput,
+			accountIds = [...store.selectedAccountIds],
+			isChecked = workspace.launchOpen && store.vault.unlocked
+		void [method, placeId, jobId, link, user, resolveCurrentGame]
+		untrack(() => {
+			if (isChecked)
+				joinCheck.schedule(accountIds, $state.snapshot(store.launchInput))
+			else joinCheck.cancel()
+		})
+	})
+
+	$effect(() => () => joinCheck.cancel())
+
+	let isCheckingJoin = $state(false),
+		joinRestrictions = $state.raw<AccountJoinCheck[]>([])
+
+	// Launch asks before it starts a join that Roblox would likely refuse. The
+	// user can still launch.
+	async function launchAfterJoinCheck(): Promise<void> {
+		if (isCheckingJoin || store.launching) return
+		isCheckingJoin = true
+		try {
+			joinRestrictions = await joinCheck.readRestrictions()
+		} finally {
+			isCheckingJoin = false
+		}
+		if (joinRestrictions.length === 0) void store.launchSelectedAccounts()
+	}
+
+	function launchAnyway(): void {
+		joinRestrictions = []
+		void store.launchSelectedAccounts()
+	}
 </script>
 
 <svelte:window bind:innerHeight={workspace.viewportHeight} />
@@ -173,7 +217,7 @@
 			aria-busy={store.launching}
 			onsubmit={(event) => {
 				event.preventDefault()
-				void store.launchSelectedAccounts()
+				void launchAfterJoinCheck()
 			}}>
 			<div
 				class="flex min-h-0 flex-1 flex-col gap-2 overflow-auto p-3 *:shrink-0"
@@ -278,9 +322,16 @@
 					</button>
 				</div>
 				<LaunchArguments {store} />
-				<LaunchButton {store} {workspace} />
+				<LaunchButton {store} {workspace} {isCheckingJoin} />
 			</div>
 		</form>
+	{/if}
+	{#if joinRestrictions.length > 0}
+		<LaunchJoinWarningDialog
+			restrictions={joinRestrictions}
+			{store}
+			onLaunchAnyway={launchAnyway}
+			onCancel={() => (joinRestrictions = [])} />
 	{/if}
 	{#if processesOpen}
 		<RobloxProcessesDialog

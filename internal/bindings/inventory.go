@@ -57,6 +57,13 @@ func (service *Service) GetInventoryRelatedItems(ctx context.Context, accountID 
 	return service.core.GetInventoryRelatedItems(ctx, accountID, category, itemID)
 }
 
+func (service *Service) GetInventoryAssetItem(ctx context.Context, accountID, assetID int64) (robloxservices.CategorizedInventoryItem, error) {
+	if err := validateAccountAndTargetIDs(accountID, assetID, "inventory-asset-item"); err != nil {
+		return robloxservices.CategorizedInventoryItem{}, err
+	}
+	return service.core.GetInventoryAssetItem(ctx, accountID, assetID)
+}
+
 // DownloadInventoryItem downloads the file of the item, then asks where to save
 // it. An empty path without an error means the user cancelled the dialog.
 func (service *Service) DownloadInventoryItem(ctx context.Context, accountID int64, category robloxservices.InventoryCategory, itemID int64, itemName string) (string, error) {

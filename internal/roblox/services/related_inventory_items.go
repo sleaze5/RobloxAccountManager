@@ -11,10 +11,10 @@ import (
 )
 
 const (
-	maxRelatedItemCount       = 50
-	maxDependencyFileBytes    = 8 << 20
-	relatedItemsEndpoint      = "inventory-related-items"
-	relatedItemDetailEndpoint = "inventory-related-item"
+	maxRelatedItemCount    = 50
+	maxDependencyFileBytes = 8 << 20
+	relatedItemsEndpoint   = "inventory-related-items"
+	assetItemEndpoint      = "inventory-asset-item"
 )
 
 // hasDependencies reports whether the assets of the category are model files
@@ -92,7 +92,7 @@ func (service *Users) relatedItemsOf(ctx context.Context, accountID, version int
 	var group sync.WaitGroup
 	for index, assetID := range assetIDs {
 		group.Go(func() {
-			relatedItems[index], failures[index] = service.relatedItemOf(ctx, accountID, version, assetID)
+			relatedItems[index], failures[index] = service.AssetItem(ctx, accountID, version, assetID)
 		})
 	}
 	group.Wait()
@@ -109,7 +109,9 @@ func (service *Users) relatedItemsOf(ctx context.Context, accountID, version int
 	return readItems, nil
 }
 
-func (service *Users) relatedItemOf(ctx context.Context, accountID, version, assetID int64) (*CategorizedInventoryItem, error) {
+// AssetItem reads the economy details of one asset as an item, such as a mesh
+// that a model file names.
+func (service *Users) AssetItem(ctx context.Context, accountID, version, assetID int64) (*CategorizedInventoryItem, error) {
 	var payload struct {
 		Name        string `json:"Name"`
 		Description string `json:"Description"`
@@ -121,7 +123,7 @@ func (service *Users) relatedItemOf(ctx context.Context, accountID, version, ass
 			HasVerifiedBadge bool   `json:"HasVerifiedBadge"`
 		} `json:"Creator"`
 	}
-	if err := service.readAccountDetails(ctx, accountID, version, relatedItemDetailEndpoint, "https://economy.roblox.com/v2/assets/"+strconv.FormatInt(assetID, 10)+"/details", &payload); err != nil {
+	if err := service.readAccountDetails(ctx, accountID, version, assetItemEndpoint, "https://economy.roblox.com/v2/assets/"+strconv.FormatInt(assetID, 10)+"/details", &payload); err != nil {
 		return nil, err
 	}
 	typeName := assetTypeNameByID[payload.AssetTypeID]

@@ -2,20 +2,23 @@
 	import magnifyingGlassIcon from "@phosphor-icons/core/regular/magnifying-glass.svg?raw"
 	import signInIcon from "@phosphor-icons/core/regular/sign-in.svg?raw"
 	import Icon from "../shared/Icon.svelte"
-	import { PresenceType } from "../backend/bridge"
+	import { PresenceType, UserJoinability } from "../backend/bridge"
 	import type { UserPresence } from "../backend/bridge"
 	import PlaceHeader from "../games/PlaceHeader.svelte"
 	import { floatMenu, menuIn, menuOut } from "../shared/presence"
 	import { presenceIcon, presenceLabel, presenceTextClass } from "./account-model"
+	import { notJoinableMessage } from "./user-joinability"
 
 	let {
 		id,
 		anchor,
 		presence,
 		isJoinable,
+		joinability,
 		onPointerEnter,
 		onPointerLeave,
 		onFillLaunch,
+		onFollowUser,
 		onSearchPlace,
 		onSearchUniverse,
 	}: {
@@ -23,14 +26,20 @@
 		anchor: HTMLElement
 		presence: UserPresence
 		isJoinable: boolean
+		// joinability is whether the user's profile offers to join them.
+		joinability: UserJoinability
 		onPointerEnter: () => void
 		onPointerLeave: () => void
 		onFillLaunch: () => void
+		// onFollowUser fills the launch options to follow a user whose server
+		// the presence hides.
+		onFollowUser?: () => void
 		onSearchPlace: (placeId: number) => void
 		onSearchUniverse: (universeId: number) => void
 	} = $props()
 
-	const headingId = $derived(`${id}-heading`)
+	const headingId = $derived(`${id}-heading`),
+		isNotJoinable = $derived(joinability === UserJoinability.UserNotJoinable)
 	const universeId = $derived(presence.universeId ?? 0),
 		placeId = $derived(presence.placeId ?? 0),
 		rootPlaceId = $derived(presence.rootPlaceId ?? 0)
@@ -88,10 +97,24 @@
 			</div>{/if}
 	</dl>
 	{#if isJoinable}
-		<button class="button-primary" type="button" onclick={onFillLaunch}>
+		<button
+			class={isNotJoinable ? "button-danger" : "button-primary"}
+			type="button"
+			aria-describedby={isNotJoinable ? `${id}-not-joinable` : undefined}
+			onclick={onFillLaunch}>
 			<Icon svg={signInIcon} size={16} aria-hidden="true" />
 			Fill launch options
 		</button>
+	{:else if onFollowUser}
+		<button class="button-primary" type="button" onclick={onFollowUser}>
+			<Icon svg={signInIcon} size={16} aria-hidden="true" />
+			Fill launch options to follow
+		</button>
+	{/if}
+	{#if isNotJoinable}
+		<p class="-mt-1 text-xs text-danger-muted" id={`${id}-not-joinable`}>
+			{notJoinableMessage}
+		</p>
 	{/if}
 </div>
 

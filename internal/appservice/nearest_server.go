@@ -6,6 +6,7 @@ import (
 	"math"
 	"slices"
 
+	"github.com/sleaze5/RobloxAccountManager/internal/gamelaunch"
 	"github.com/sleaze5/RobloxAccountManager/internal/games"
 	"github.com/sleaze5/RobloxAccountManager/internal/integration/rovalra"
 	"github.com/sleaze5/RobloxAccountManager/internal/logging"
@@ -133,11 +134,11 @@ func (service *Service) CheckGameServerJoinable(ctx context.Context, placeID, ac
 		return false, err
 	}
 	defer done()
-	joinable, err := service.games.Joinable(ctx, accountID, placeID, jobID)
+	check, err := service.games.CheckJoin(ctx, accountID, 0, gamelaunch.Request{PlaceID: placeID, JobID: jobID})
 	if err != nil {
 		return false, service.gamesError(ctx, "game-server-join-check", err)
 	}
-	return joinable, nil
+	return check.Outcome == games.JoinOutcomeJoinable, nil
 }
 
 // nearbyRegions lists the regions that have servers of the place, with the

@@ -1,5 +1,6 @@
 <script lang="ts">
 	import caretRightIcon from "@phosphor-icons/core/regular/caret-right.svg?raw"
+	import circleNotchIcon from "@phosphor-icons/core/regular/circle-notch.svg?raw"
 	import funnelSimpleIcon from "@phosphor-icons/core/regular/funnel-simple.svg?raw"
 	import packageIcon from "@phosphor-icons/core/regular/package.svg?raw"
 	import tagIcon from "@phosphor-icons/core/regular/tag.svg?raw"
@@ -28,6 +29,8 @@
 		referencedClassNameOf,
 		onSelectInstance,
 		onOpenDocument,
+		openingAssetId,
+		onOpenAsset,
 	}: {
 		node: ExplorerNode
 		imageUrlByAssetId: ReadonlyMap<number, string>
@@ -39,6 +42,9 @@
 		referencedClassNameOf: (instanceId: number) => string
 		onSelectInstance: (instanceId: number) => void
 		onOpenDocument: (property: ModelProperty) => void
+		// openingAssetId is the asset whose details load before they open, or 0.
+		openingAssetId: number
+		onOpenAsset: (assetId: number) => void
 	} = $props()
 
 	const elementIdPrefix = $props.id()
@@ -237,22 +243,43 @@ Screen readers hear the name of the vector before each axis. -->
 					class="flex gap-2 overflow-x-auto px-3 py-3"
 					aria-label="Referenced assets">
 					{#each assetPreviews as property (`${property.group}:${property.name}`)}
+						{@const isOpening = openingAssetId === property.assetId}
 						<li class="w-20 shrink-0">
-							<figure class="flex flex-col gap-1">
+							<button
+								class="group flex w-full flex-col gap-1 rounded-lg text-left"
+								type="button"
+								aria-label={isOpening
+									? `Loading ${property.name} details…`
+									: `Show ${property.name} details`}
+								aria-busy={isOpening}
+								data-tooltip="Show asset details"
+								disabled={openingAssetId !== 0}
+								onclick={() => onOpenAsset(property.assetId)}>
 								<span
-									class="grid size-20 place-items-center overflow-hidden rounded-lg border border-line-subtle bg-raised">
+									class="relative grid size-20 place-items-center overflow-hidden rounded-lg border border-line-subtle bg-raised transition-colors duration-100 group-enabled:group-hover:border-line-strong">
 									<img
 										class="size-full animate-pop object-contain"
 										src={imageUrlByAssetId.get(property.assetId)}
-										alt={`${property.name} preview`}
+										alt=""
 										decoding="async"
 										draggable="false"
 										referrerpolicy="no-referrer" />
+									{#if isOpening}
+										<span
+											class="absolute inset-0 grid place-items-center bg-scrim text-fg">
+											<Icon
+												svg={circleNotchIcon}
+												class="spinner"
+												size={20}
+												aria-hidden="true" />
+										</span>
+									{/if}
 								</span>
-								<figcaption class="truncate text-2xs text-fg-muted">
+								<span
+									class="truncate text-2xs text-fg-muted transition-colors duration-100 group-enabled:group-hover:text-fg">
 									{property.name}
-								</figcaption>
-							</figure>
+								</span>
+							</button>
 						</li>
 					{/each}
 				</ul>

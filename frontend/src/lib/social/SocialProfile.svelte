@@ -20,10 +20,18 @@
 	import usersThreeIcon from "@phosphor-icons/core/regular/users-three.svg?raw"
 	import Icon from "../shared/Icon.svelte"
 	import RefreshIcon from "../shared/RefreshIcon.svelte"
-	import { FriendStatus, SocialList, SocialProfileSection } from "../backend/bridge"
+	import {
+		accountBackend,
+		FriendStatus,
+		PresenceType,
+		SocialList,
+		SocialProfileSection,
+		UserJoinability,
+	} from "../backend/bridge"
 	import type { SocialUser } from "../backend/bridge"
 	import type { AccountStore } from "../accounts/account-store.svelte"
 	import AccountPresence from "../accounts/AccountPresence.svelte"
+	import { AccountScope } from "../accounts/account-scope"
 	import RobloxBadgeList from "../accounts/RobloxBadgeList.svelte"
 	import MissingFactValue from "../shared/MissingFactValue.svelte"
 	import PrimaryGroupFact from "../shared/PrimaryGroupFact.svelte"
@@ -50,6 +58,7 @@
 		accounts,
 		person,
 		onFillLaunch,
+		onFillLaunchUser,
 		onSearchPlace,
 		onSearchUniverse,
 		onEditNickname,
@@ -61,6 +70,7 @@
 		accounts: AccountStore
 		person: SocialUser
 		onFillLaunch: (placeId: number, jobId: string) => void
+		onFillLaunchUser: (user: SocialUser) => void
 		onSearchPlace: (placeId: number) => void
 		onSearchUniverse: (universeId: number) => void
 		onEditNickname: (nickname: string) => void
@@ -90,7 +100,34 @@
 			maximumFractionDigits: 1,
 		})
 
-	let showcaseRefreshCount = $state(0)
+	let showcaseRefreshCount = $state(0),
+		joinability = $state(UserJoinability.UserJoinabilityUnknown)
+
+	const isInGame = $derived(
+		person.presence?.userPresenceType === PresenceType.PresenceTypeInGame,
+	)
+
+	// The profile tells whether the account can join the user, which the
+	// presence cannot show when the user's privacy hides their server.
+	$effect(() => {
+		const scope = new AccountScope(store.accountId, accounts),
+			userId = person.userId
+		joinability = UserJoinability.UserJoinabilityUnknown
+		if (!isInGame || !scope.isCurrent) return
+		void loadJoinability(scope, userId)
+		return () => scope.dispose()
+	})
+
+	async function loadJoinability(scope: AccountScope, userId: number): Promise<void> {
+		try {
+			const userJoinability = await scope.track(
+				accountBackend.GetUserJoinability(scope.accountId, userId),
+			)
+			if (scope.isCurrent) joinability = userJoinability
+		} catch {
+			// The backend logs the failure. A failed check cannot say the user is unjoinable.
+		}
+	}
 
 	// The profile rows stay in place while their sections load, so that the
 	// pane does not move when a value arrives.
@@ -203,7 +240,9 @@
 				{#if person.presence}
 					<AccountPresence
 						presence={person.presence}
+						{joinability}
 						onJoin={onFillLaunch}
+						onJoinUser={() => onFillLaunchUser(person)}
 						{onSearchPlace}
 						{onSearchUniverse} />
 				{/if}

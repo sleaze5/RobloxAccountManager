@@ -1303,6 +1303,7 @@
 		{item}
 		{category}
 		{inventory}
+		onOpenAssetItem={openRelatedItem}
 		onClose={() => (isExplorerOpen = false)} />
 {/if}
 

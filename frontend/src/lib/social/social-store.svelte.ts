@@ -465,6 +465,7 @@ export class SocialStore {
 			presence: null,
 			request: null,
 			trusted: false,
+			hasVerifiedBadge: false,
 		})
 	}
 

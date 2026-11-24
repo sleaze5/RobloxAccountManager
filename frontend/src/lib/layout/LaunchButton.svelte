@@ -8,8 +8,16 @@
 	import { menuIn, menuOut, placeMenuAtPoint } from "../shared/presence"
 	import type { WorkspaceState } from "./workspace-state.svelte"
 
-	let { store, workspace }: { store: AccountStore; workspace: WorkspaceState } =
-		$props()
+	let {
+		store,
+		workspace,
+		isCheckingJoin,
+	}: {
+		store: AccountStore
+		workspace: WorkspaceState
+		// isCheckingJoin waits for the join check before the launch starts.
+		isCheckingJoin: boolean
+	} = $props()
 	let root = $state<HTMLDivElement>(),
 		trigger = $state<HTMLButtonElement>(),
 		menu = $state<HTMLDivElement>(),
@@ -17,7 +25,10 @@
 		copied = $state(false)
 	let copiedTimer = 0
 	const disabled = $derived(
-		store.selectedAccount.id === 0 || store.launching || !store.vault.unlocked,
+		store.selectedAccount.id === 0 ||
+			store.launching ||
+			isCheckingJoin ||
+			!store.vault.unlocked,
 	)
 
 	$effect(() => {
@@ -91,7 +102,7 @@
 				void showMenu(bounds.left, bounds.bottom)
 			}
 		}}>
-		{#if store.launching}<Icon
+		{#if store.launching || isCheckingJoin}<Icon
 				svg={circleNotchIcon}
 				class="spinner"
 				size={16}
@@ -104,13 +115,15 @@
 		{:else}<Icon svg={playFillIcon} size={16} aria-hidden="true" />{/if}
 		{store.copyingLaunchOptions
 			? "Copying"
-			: store.launching
-				? "Launching"
-				: copied
-					? "Copied"
-					: store.multipleSelected
-						? `Launch (${store.selectedAccountIds.length})`
-						: "Launch"}
+			: isCheckingJoin
+				? "Checking"
+				: store.launching
+					? "Launching"
+					: copied
+						? "Copied"
+						: store.multipleSelected
+							? `Launch (${store.selectedAccountIds.length})`
+							: "Launch"}
 	</button>
 	{#if point}
 		<div
