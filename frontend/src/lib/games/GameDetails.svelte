@@ -198,7 +198,7 @@
 						{
 							id: "playing",
 							value: listedGame ? numbers.format(listedGame.playing) : "",
-							label: rootPlace ? "playing in this universe" : "playing",
+							label: "playing",
 							description: listedGame
 								? count(
 										listedGame.playing,
@@ -253,17 +253,9 @@
 						},
 					],
 		),
-		universeStats = $derived<Fact[]>([
-			{
-				label: "Server capacity",
-				icon: usersThreeIcon,
-				value:
-					listedGame?.maxPlayers === undefined
-						? undefined
-						: count(listedGame.maxPlayers, "player", "players"),
-			},
-		]),
-		details = $derived<Fact[]>([
+		// A subplace shows only its own description and versions. Its other
+		// details belong to the universe, which its root place shows.
+		universeDetails = $derived<Fact[]>([
 			{ label: "Genre", icon: shapesIcon, value: genre || undefined },
 			{
 				label: "Content rating",
@@ -287,7 +279,14 @@
 						: "",
 				isLoading: store.isGameSectionPending(GameSection.GameSectionLanguages),
 			},
-			...(rootPlace ? [] : universeStats),
+			{
+				label: "Server capacity",
+				icon: usersThreeIcon,
+				value:
+					listedGame?.maxPlayers === undefined
+						? undefined
+						: count(listedGame.maxPlayers, "player", "players"),
+			},
 		]),
 		dates = $derived([
 			{
@@ -377,19 +376,15 @@
 						: "Not allowed"
 					: undefined,
 			},
-			...(rootPlace
-				? []
-				: [
-						{
-							label: "Copying",
-							icon: copyIcon,
-							value: game
-								? game.copyingAllowed
-									? "Allowed"
-									: "Not allowed"
-								: undefined,
-						},
-					]),
+			{
+				label: "Copying",
+				icon: copyIcon,
+				value: game
+					? game.copyingAllowed
+						? "Allowed"
+						: "Not allowed"
+					: undefined,
+			},
 		])
 	let draft = $state(""),
 		editing = $state(false),
@@ -687,7 +682,9 @@
 				</div>
 			</div>
 
-			<ProfileStats label="Game numbers" stats={headlineStats} />
+			{#if !rootPlace}
+				<ProfileStats label="Game numbers" stats={headlineStats} />
+			{/if}
 
 			{#if rootPlace}
 				<p
@@ -708,15 +705,25 @@
 				</p>
 			{/if}
 
-			<GameMedia
-				universeId={place.universeId}
-				gameName={store.displayName(place)}
-				accountId={accounts.selectedAccount.id}
-				refreshCount={detailsRefreshCount}
-				onOpenLink={(url) => void store.openLink(url)} />
+			{#if !rootPlace}
+				<GameMedia
+					universeId={place.universeId}
+					gameName={store.displayName(place)}
+					accountId={accounts.selectedAccount.id}
+					refreshCount={detailsRefreshCount}
+					onOpenLink={(url) => void store.openLink(url)} />
+			{/if}
 
-			<div class="grid min-w-0 items-start gap-5 @4xl:grid-cols-3 @4xl:gap-6">
-				<div class="flex min-w-0 flex-col gap-5 @4xl:col-span-2">
+			<div
+				class={[
+					"grid min-w-0 items-start gap-5 @4xl:gap-6",
+					!rootPlace && "@4xl:grid-cols-3",
+				]}>
+				<div
+					class={[
+						"flex min-w-0 flex-col gap-5",
+						!rootPlace && "@4xl:col-span-2",
+					]}>
 					{#if game}
 						<section
 							class="flex flex-col gap-2"
@@ -771,10 +778,12 @@
 							Details
 						</h3>
 						<dl class="facts">
-							{#each details as fact (fact.label)}{@render row(
-									fact,
-								)}{/each}
-							{#if accounts.selectedAccount.id > 0}
+							{#if !rootPlace}
+								{#each universeDetails as fact (fact.label)}{@render row(
+										fact,
+									)}{/each}
+							{/if}
+							{#if !rootPlace && accounts.selectedAccount.id > 0}
 								<div>
 									<dt>
 										<Icon
@@ -829,27 +838,9 @@
 								)}{/each}
 						</dl>
 					</section>
-
-					{#if rootPlace}
-						<section
-							class="flex flex-col gap-2"
-							aria-labelledby="game-universe">
-							<h3 id="game-universe" class={sectionHeadingClass}>
-								Universe
-							</h3>
-							<dl class="facts">
-								{#each universeStats as fact (fact.label)}{@render row(
-										fact,
-									)}{/each}
-								{#each dates as fact (fact.label)}{@render dateRow(
-										fact,
-									)}{/each}
-							</dl>
-						</section>
-					{/if}
 				</div>
 
-				{#if game || isWaitingForGame}
+				{#if !rootPlace && (game || isWaitingForGame)}
 					<section
 						class="flex min-w-0 flex-col gap-2"
 						aria-labelledby="game-features">
