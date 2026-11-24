@@ -405,7 +405,7 @@
 
 {#if place}
 	<section
-		class="min-h-0 min-w-0 animate-enter overflow-y-auto"
+		class="@container min-h-0 min-w-0 animate-enter overflow-y-auto"
 		aria-label={store.displayName(place)}
 		aria-busy={store.loadingDetails}>
 		<div class="flex flex-col gap-5 p-4 pb-5">

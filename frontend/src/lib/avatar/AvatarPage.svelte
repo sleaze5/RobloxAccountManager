@@ -447,6 +447,9 @@
 					role="tabpanel"
 					aria-labelledby={`${elementIdPrefix}-avatar-tab-${tab}`}
 					aria-busy={avatar.loading}>
+					<h2 class="sr-only">
+						{tabs.find((editorTab) => editorTab.id === tab)?.label}
+					</h2>
 					{#if avatar.isAvatarOutdated}
 						<div
 							class="mx-3 mt-3 flex items-center gap-2 notice-warning"

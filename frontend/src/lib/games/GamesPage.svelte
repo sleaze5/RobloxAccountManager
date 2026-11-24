@@ -566,14 +566,6 @@
 						].filter(Boolean)
 					: []} />
 		</div>
-		{#if store.selected}
-			<div class="flex shrink-0 items-center gap-4 pr-3">
-				<span
-					>Universe ID: <span class="font-mono"
-						>{store.selected.universeId}</span
-					></span>
-			</div>
-		{/if}
 	</footer>
 </main>
 
