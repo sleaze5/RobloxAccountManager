@@ -335,151 +335,159 @@
 			<ProfileTabs />
 		</div>
 
-		<section class="flex flex-col gap-2" aria-labelledby="group-shout-heading">
-			<div class="flex min-h-6 items-center gap-2">
-				<h3 id="group-shout-heading" class={sectionHeadingClass}>Shout</h3>
-				{#if permissions.canPostShout && !isEditingShout}
-					<button
-						class="ml-auto button-ghost-sm"
-						type="button"
-						aria-label="Post shout"
-						data-tooltip="Post shout"
-						onclick={startShout}>
-						<Icon svg={pencilSimpleIcon} size={14} aria-hidden="true" />
-					</button>
-				{/if}
-			</div>
-			{#if isEditingShout}
-				<form
-					novalidate
-					class="flex animate-enter flex-col gap-2"
-					onsubmit={(event) => {
-						event.preventDefault()
-						void postShout(shoutDraft)
-					}}>
-					<label class="sr-only" for="group-shout-input">Shout</label>
-					<textarea
-						id="group-shout-input"
-						class="field h-20 resize-none py-1.5"
-						maxlength={maxShoutLength}
-						placeholder="Write a shout for every member"
-						disabled={store.pendingAction === "shout"}
-						bind:value={shoutDraft}></textarea>
-					<div class="flex items-center gap-2">
-						<span class="font-mono text-2xs text-fg-muted"
-							>{shoutDraft.length}/{maxShoutLength}</span>
-						{#if details.shout}
+		<!-- A section with nothing to show is left out, unless the account can
+		fill it. -->
+		{#if details.shout || permissions.canPostShout}
+			<section class="flex flex-col gap-2" aria-labelledby="group-shout-heading">
+				<div class="flex min-h-6 items-center gap-2">
+					<h3 id="group-shout-heading" class={sectionHeadingClass}>Shout</h3>
+					{#if permissions.canPostShout && !isEditingShout}
+						<button
+							class="ml-auto button-ghost-sm"
+							type="button"
+							aria-label="Post shout"
+							data-tooltip="Post shout"
+							onclick={startShout}>
+							<Icon svg={pencilSimpleIcon} size={14} aria-hidden="true" />
+						</button>
+					{/if}
+				</div>
+				{#if isEditingShout}
+					<form
+						novalidate
+						class="flex animate-enter flex-col gap-2"
+						onsubmit={(event) => {
+							event.preventDefault()
+							void postShout(shoutDraft)
+						}}>
+						<label class="sr-only" for="group-shout-input">Shout</label>
+						<textarea
+							id="group-shout-input"
+							class="field h-20 resize-none py-1.5"
+							maxlength={maxShoutLength}
+							placeholder="Write a shout for every member"
+							disabled={store.pendingAction === "shout"}
+							bind:value={shoutDraft}></textarea>
+						<div class="flex items-center gap-2">
+							<span class="font-mono text-2xs text-fg-muted"
+								>{shoutDraft.length}/{maxShoutLength}</span>
+							{#if details.shout}
+								<button
+									class="button-text"
+									type="button"
+									disabled={store.pendingAction === "shout"}
+									onclick={() => void postShout("")}
+									>Clear shout</button>
+							{/if}
 							<button
-								class="button-text"
+								class="ml-auto button"
 								type="button"
 								disabled={store.pendingAction === "shout"}
-								onclick={() => void postShout("")}>Clear shout</button>
-						{/if}
-						<button
-							class="ml-auto button"
-							type="button"
-							disabled={store.pendingAction === "shout"}
-							onclick={() => (isEditingShout = false)}>Cancel</button>
-						<button
-							class="button-primary"
-							type="submit"
-							aria-busy={store.pendingAction === "shout"}
-							disabled={store.pendingAction === "shout" ||
-								!shoutDraft.trim()}
-							>{store.pendingAction === "shout"
-								? "Posting…"
-								: "Post shout"}</button>
+								onclick={() => (isEditingShout = false)}>Cancel</button>
+							<button
+								class="button-primary"
+								type="submit"
+								aria-busy={store.pendingAction === "shout"}
+								disabled={store.pendingAction === "shout" ||
+									!shoutDraft.trim()}
+								>{store.pendingAction === "shout"
+									? "Posting…"
+									: "Post shout"}</button>
+						</div>
+					</form>
+				{:else if details.shout}
+					<div
+						class="flex flex-col gap-2 rounded-lg border border-line bg-surface p-3">
+						<div
+							class="flex min-w-0 items-center gap-2 text-2xs text-fg-muted">
+							<Icon
+								svg={megaphoneIcon}
+								class="shrink-0"
+								size={14}
+								aria-hidden="true" />
+							<span class="truncate font-medium text-fg"
+								>{details.shout.poster.displayName ||
+									details.shout.poster.username}</span>
+							{#if details.shout.poster.username}<span class="truncate"
+									>@{details.shout.poster.username}</span
+								>{/if}
+							{#if details.shout.updatedAtMs}
+								<span class="ml-auto shrink-0"
+									><Timestamp value={details.shout.updatedAtMs} /> · {relativeTime(
+										details.shout.updatedAtMs,
+									)}</span>
+							{/if}
+						</div>
+						<p
+							class="text-sm wrap-anywhere whitespace-pre-line text-fg select-text">
+							{details.shout.body}
+						</p>
 					</div>
-				</form>
-			{:else if details.shout}
-				<div
-					class="flex flex-col gap-2 rounded-lg border border-line bg-surface p-3">
-					<div class="flex min-w-0 items-center gap-2 text-2xs text-fg-muted">
-						<Icon
-							svg={megaphoneIcon}
-							class="shrink-0"
-							size={14}
-							aria-hidden="true" />
-						<span class="truncate font-medium text-fg"
-							>{details.shout.poster.displayName ||
-								details.shout.poster.username}</span>
-						{#if details.shout.poster.username}<span class="truncate"
-								>@{details.shout.poster.username}</span
-							>{/if}
-						{#if details.shout.updatedAtMs}
-							<span class="ml-auto shrink-0"
-								><Timestamp value={details.shout.updatedAtMs} /> · {relativeTime(
-									details.shout.updatedAtMs,
-								)}</span>
-						{/if}
-					</div>
-					<p
-						class="text-sm wrap-anywhere whitespace-pre-line text-fg select-text">
-						{details.shout.body}
-					</p>
-				</div>
-			{:else}
-				<p class="text-xs text-fg-muted">No shout.</p>
-			{/if}
-		</section>
-
-		<section class="flex flex-col gap-2" aria-labelledby="group-about-heading">
-			<div class="flex min-h-6 items-center gap-2">
-				<h3 id="group-about-heading" class={sectionHeadingClass}>About</h3>
-				{#if permissions.canConfigure && !isEditingDescription}
-					<button
-						class="ml-auto button-ghost-sm"
-						type="button"
-						aria-label="Edit description"
-						data-tooltip="Edit description"
-						onclick={startDescription}>
-						<Icon svg={pencilSimpleIcon} size={14} aria-hidden="true" />
-					</button>
+				{:else}
+					<p class="text-xs text-fg-muted">No shout.</p>
 				{/if}
-			</div>
-			{#if isEditingDescription}
-				<form
-					novalidate
-					class="flex animate-enter flex-col gap-2"
-					onsubmit={(event) => {
-						event.preventDefault()
-						void saveDescription()
-					}}>
-					<label class="sr-only" for="group-description-input"
-						>Description</label>
-					<textarea
-						id="group-description-input"
-						class="field h-36 resize-none py-1.5"
-						maxlength={maxDescriptionLength}
-						disabled={store.pendingAction === "description"}
-						bind:value={descriptionDraft}></textarea>
-					<div class="flex items-center gap-2">
-						<span class="font-mono text-2xs text-fg-muted"
-							>{descriptionDraft.length}/{maxDescriptionLength}</span>
+			</section>
+		{/if}
+
+		{#if group.description || permissions.canConfigure}
+			<section class="flex flex-col gap-2" aria-labelledby="group-about-heading">
+				<div class="flex min-h-6 items-center gap-2">
+					<h3 id="group-about-heading" class={sectionHeadingClass}>About</h3>
+					{#if permissions.canConfigure && !isEditingDescription}
 						<button
-							class="ml-auto button"
+							class="ml-auto button-ghost-sm"
 							type="button"
+							aria-label="Edit description"
+							data-tooltip="Edit description"
+							onclick={startDescription}>
+							<Icon svg={pencilSimpleIcon} size={14} aria-hidden="true" />
+						</button>
+					{/if}
+				</div>
+				{#if isEditingDescription}
+					<form
+						novalidate
+						class="flex animate-enter flex-col gap-2"
+						onsubmit={(event) => {
+							event.preventDefault()
+							void saveDescription()
+						}}>
+						<label class="sr-only" for="group-description-input"
+							>Description</label>
+						<textarea
+							id="group-description-input"
+							class="field h-36 resize-none py-1.5"
+							maxlength={maxDescriptionLength}
 							disabled={store.pendingAction === "description"}
-							onclick={() => (isEditingDescription = false)}
-							>Cancel</button>
-						<button
-							class="button-primary"
-							type="submit"
-							aria-busy={store.pendingAction === "description"}
-							disabled={store.pendingAction === "description"}
-							>{store.pendingAction === "description"
-								? "Saving…"
-								: "Save description"}</button>
-					</div>
-				</form>
-			{:else}
-				<p
-					class="max-h-60 text-block overflow-y-auto select-text"
-					data-variant="prose">
-					{group.description || "No description."}
-				</p>
-			{/if}
-		</section>
+							bind:value={descriptionDraft}></textarea>
+						<div class="flex items-center gap-2">
+							<span class="font-mono text-2xs text-fg-muted"
+								>{descriptionDraft.length}/{maxDescriptionLength}</span>
+							<button
+								class="ml-auto button"
+								type="button"
+								disabled={store.pendingAction === "description"}
+								onclick={() => (isEditingDescription = false)}
+								>Cancel</button>
+							<button
+								class="button-primary"
+								type="submit"
+								aria-busy={store.pendingAction === "description"}
+								disabled={store.pendingAction === "description"}
+								>{store.pendingAction === "description"
+									? "Saving…"
+									: "Save description"}</button>
+						</div>
+					</form>
+				{:else}
+					<p
+						class="max-h-60 text-block overflow-y-auto select-text"
+						data-variant="prose">
+						{group.description || "No description."}
+					</p>
+				{/if}
+			</section>
+		{/if}
 
 		<section
 			class="flex flex-col gap-3"

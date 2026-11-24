@@ -28,7 +28,9 @@
 	import GroupProfileView from "./GroupProfileView.svelte"
 	import { minGroupSearchLength } from "./groups-store.svelte"
 	import type { GroupsStore, GroupSubpage } from "./groups-store.svelte"
-	import { setProfilePages } from "../shared/profile-pages"
+	import { openPageLabel, setProfilePages } from "../shared/profile-pages"
+	import type { ProfilePages } from "../shared/profile-pages"
+	import StatusTrail from "../layout/StatusTrail.svelte"
 	import { tick } from "svelte"
 
 	let {
@@ -103,7 +105,7 @@
 
 	const groupSubpages: GroupSubpage[] = ["members", "games", "items", "joinRequests"]
 
-	setProfilePages({
+	const profilePages: ProfilePages = {
 		get label() {
 			return `${store.profile?.details.group.name ?? "Group"} pages`
 		},
@@ -125,7 +127,8 @@
 			if (subpage) store.subpage = subpage
 		},
 		openOverview: () => void closeSubpage(),
-	})
+	}
+	setProfilePages(profilePages)
 
 	async function closeSubpage(): Promise<void> {
 		const closedSubpage = store.subpage
@@ -413,8 +416,15 @@
 	<footer
 		class="flex h-6 shrink-0 items-center justify-between border-t border-line-subtle bg-surface pl-3 text-2xs text-fg-faint"
 		aria-label="Group list">
-		<div class="flex min-w-0 items-center gap-4">
+		<div class="flex min-w-0 items-center gap-1">
 			<AccountSwitcher store={accounts} />
+			<StatusTrail
+				parts={store.selectedGroupId && store.profile
+					? [
+							store.profile.details.group.name,
+							openPageLabel(profilePages),
+						].filter(Boolean)
+					: []} />
 		</div>
 		{#if store.selectedGroupId}
 			<span class="shrink-0 pr-3"

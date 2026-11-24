@@ -351,7 +351,7 @@
 			class={request
 				? "flex min-w-0 flex-col gap-5 @4xl:col-span-2"
 				: "contents"}>
-			{#if profile && store.profileLoad?.hasSection(SocialProfileSection.SocialSectionAbout)}
+			{#if profile && store.profileLoad?.hasSection(SocialProfileSection.SocialSectionAbout) && (profile.description || profile.socialLinks?.length)}
 				<section
 					class="flex flex-col gap-2"
 					aria-labelledby="social-about-heading">
@@ -360,9 +360,11 @@
 						class="text-xs font-semibold text-fg-muted">
 						About
 					</h3>
-					<p class="text-block" data-variant="prose">
-						{profile.description || "No description."}
-					</p>
+					{#if profile.description}
+						<p class="text-block" data-variant="prose">
+							{profile.description}
+						</p>
+					{/if}
 					{#if profile.socialLinks?.length}
 						<div class="flex flex-wrap items-center gap-1">
 							<Icon

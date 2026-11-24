@@ -646,6 +646,7 @@
 				<GameMedia
 					universeId={place.universeId}
 					gameName={store.displayName(place)}
+					accountId={accounts.selectedAccount.id}
 					refreshCount={detailsRefreshCount}
 					onOpenLink={(url) => void store.openLink(url)} />
 			{/if}
@@ -660,40 +661,34 @@
 						"flex min-w-0 flex-col gap-5",
 						!rootPlace && "@4xl:col-span-2",
 					]}>
-					{#if game}
+					{#if game && game.description.trim()}
 						<section
 							class="flex flex-col gap-2"
 							aria-labelledby="game-description">
 							<h3 id="game-description" class={sectionHeadingClass}>
 								Description
 							</h3>
-							{#if game.description.trim()}
-								<p
-									bind:this={descriptionElement}
-									class={[
-										"text-block",
-										!isDescriptionExpanded && "line-clamp-6",
-									]}
-									data-variant="prose">
-									{game.description.trim()}
-								</p>
-								{#if isDescriptionClamped || isDescriptionExpanded}
-									<button
-										class="button-text self-start"
-										type="button"
-										aria-expanded={isDescriptionExpanded}
-										onclick={() =>
-											(isDescriptionExpanded =
-												!isDescriptionExpanded)}>
-										{isDescriptionExpanded
-											? "Show less"
-											: "Show full description"}
-									</button>
-								{/if}
-							{:else}
-								<p class="text-xs text-fg-muted">
-									No description provided.
-								</p>
+							<p
+								bind:this={descriptionElement}
+								class={[
+									"text-block",
+									!isDescriptionExpanded && "line-clamp-6",
+								]}
+								data-variant="prose">
+								{game.description.trim()}
+							</p>
+							{#if isDescriptionClamped || isDescriptionExpanded}
+								<button
+									class="button-text self-start"
+									type="button"
+									aria-expanded={isDescriptionExpanded}
+									onclick={() =>
+										(isDescriptionExpanded =
+											!isDescriptionExpanded)}>
+									{isDescriptionExpanded
+										? "Show less"
+										: "Show full description"}
+								</button>
 							{/if}
 						</section>
 					{:else if isWaitingForGame}

@@ -33,7 +33,9 @@
 		type GameDetailsPage,
 		type GamesStore,
 	} from "./games-store.svelte"
-	import { setProfilePages } from "../shared/profile-pages"
+	import { openPageLabel, setProfilePages } from "../shared/profile-pages"
+	import type { ProfilePages } from "../shared/profile-pages"
+	import StatusTrail from "../layout/StatusTrail.svelte"
 
 	let {
 		store,
@@ -147,7 +149,7 @@
 	// Badges and game passes belong to the universe, so a subplace has only
 	// its servers. They wait for the details, which tell whether the place
 	// is a subplace.
-	setProfilePages({
+	const profilePages: ProfilePages = {
 		get label() {
 			return `${store.selected ? store.displayName(store.selected) : "Game"} pages`
 		},
@@ -181,7 +183,8 @@
 			store.detailsPage = gamePage
 		},
 		openOverview: () => void returnToDetails(),
-	})
+	}
+	setProfilePages(profilePages)
 
 	async function returnToDetails(): Promise<void> {
 		const closedPage = store.detailsPage
@@ -553,13 +556,15 @@
 	<footer
 		class="flex h-6 shrink-0 items-center justify-between border-t border-line-subtle bg-surface pl-3 text-2xs text-fg-faint"
 		aria-label="Game list">
-		<div class="flex min-w-0 items-center gap-4">
+		<div class="flex min-w-0 items-center gap-1">
 			<AccountSwitcher store={accounts} />
-			{#if store.selected}
-				<span class="shrink-0"
-					>Place ID: <span class="font-mono">{store.selected.placeId}</span
-					></span>
-			{/if}
+			<StatusTrail
+				parts={store.selected
+					? [
+							store.displayName(store.selected),
+							openPageLabel(profilePages),
+						].filter(Boolean)
+					: []} />
 		</div>
 		{#if store.selected}
 			<div class="flex shrink-0 items-center gap-4 pr-3">

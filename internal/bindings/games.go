@@ -30,10 +30,6 @@ func (service *Service) GetGameSocialLinks(ctx context.Context, accountID, unive
 	return service.core.GetGameSocialLinks(ctx, accountID, universeID)
 }
 
-func (service *Service) ListGameMedia(ctx context.Context, universeID int64) ([]games.Media, error) {
-	return service.core.ListGameMedia(ctx, universeID)
-}
-
 func (service *Service) ListGameServers(ctx context.Context, query games.ServerQuery) (games.ServerPage, error) {
 	return service.core.ListGameServers(ctx, query)
 }

@@ -8,7 +8,11 @@
 	import speakerHighIcon from "@phosphor-icons/core/regular/speaker-high.svg?raw"
 	import speakerLowIcon from "@phosphor-icons/core/regular/speaker-low.svg?raw"
 	import speakerSlashIcon from "@phosphor-icons/core/regular/speaker-slash.svg?raw"
-	import { GameMediaKind } from "../backend/bridge"
+	import downloadSimpleIcon from "@phosphor-icons/core/regular/download-simple.svg?raw"
+	import { accountBackend, GameMediaKind } from "../backend/bridge"
+	import { notifyErrors } from "../notifications/error-notifications.svelte"
+	import { getNotificationCenter } from "../notifications/notification-center.svelte"
+	import { errorMessage } from "../shared/errors"
 	import type { GameMedia } from "../backend/bridge"
 	import { formatClock } from "../shared/duration"
 	import ExpandedImageDialog from "../shared/ExpandedImageDialog.svelte"
@@ -19,11 +23,15 @@
 	// controls below the frame.
 	let {
 		gameName,
+		accountId,
 		media,
 		initialIndex,
 		onClose,
 	}: {
 		gameName: string
+		// accountId is the account that downloads the original of an image,
+		// which Roblox gives only to a signed-in account.
+		accountId: number
 		media: GameMedia[]
 		initialIndex: number
 		onClose: () => void
@@ -32,6 +40,8 @@
 	let index = $state(0),
 		video = $state<HTMLVideoElement>(),
 		hasVideoFailed = $state(false),
+		isDownloading = $state(false),
+		downloadError = $state(""),
 		isVideoLoaded = $state(false),
 		videoLoadCount = $state(0),
 		isPaused = $state(true),
@@ -67,6 +77,10 @@
 					: speakerHighIcon,
 		),
 		muteLabel = $derived(isSilent ? "Turn on sound" : "Turn off sound"),
+		downloadLabel = $derived(isVideo ? "Download video" : "Download image"),
+		downloadUnavailableReason = $derived(
+			!isVideo && accountId <= 0 ? "Select an account to download images" : "",
+		),
 		timeLabel = $derived(
 			`${formatClock(currentTimeSeconds)} / ${formatClock(durationSeconds)}`,
 		)
@@ -98,6 +112,42 @@
 			if (volume === 0) volume = 0.5
 		} else isMuted = true
 	}
+
+	const notifications = getNotificationCenter()
+
+	async function downloadShownMedia(): Promise<void> {
+		if (isDownloading || downloadUnavailableReason) return
+		const entry = current,
+			isEntryVideo = isVideo,
+			fileName = `${gameName} ${isEntryVideo ? "video" : "image"} ${index + 1}`
+		isDownloading = true
+		downloadError = ""
+		try {
+			const savedPath = isEntryVideo
+				? await accountBackend.DownloadGameVideo(entry.videoAssetId, fileName)
+				: await accountBackend.DownloadGameImage(
+						accountId,
+						entry.imageAssetId,
+						fileName,
+					)
+			if (!savedPath) return
+			notifications.show({
+				id: "game-media-download",
+				tone: "success",
+				title: isEntryVideo ? "Video downloaded" : "Image downloaded",
+				message: savedPath,
+			})
+		} catch (error) {
+			downloadError = errorMessage(
+				error,
+				"Could not download the media. Try again.",
+			)
+		} finally {
+			isDownloading = false
+		}
+	}
+
+	notifyErrors("Media not downloaded", () => downloadError)
 
 	function startPlayback(): void {
 		video?.play().catch(() => {
@@ -292,5 +342,31 @@ uses them to seek. -->
 					}} />
 			</label>
 		{/if}
+		{#if isVideo}<span
+				class="mx-1 h-4 w-px shrink-0 bg-line-strong"
+				aria-hidden="true"></span
+			>{/if}
+		<button
+			class={[
+				"button-icon aria-disabled:cursor-not-allowed aria-disabled:opacity-45",
+				!isVideo && "ml-auto",
+			]}
+			type="button"
+			aria-label={downloadUnavailableReason
+				? `${downloadLabel}: ${downloadUnavailableReason}`
+				: isDownloading
+					? "Downloading…"
+					: downloadLabel}
+			aria-busy={isDownloading}
+			aria-disabled={downloadUnavailableReason ? true : undefined}
+			data-tooltip={downloadUnavailableReason || downloadLabel}
+			disabled={isDownloading}
+			onclick={() => void downloadShownMedia()}>
+			<Icon
+				svg={isDownloading ? circleNotchIcon : downloadSimpleIcon}
+				class={isDownloading ? "spinner" : undefined}
+				size={16}
+				aria-hidden="true" />
+		</button>
 	{/snippet}
 </ExpandedImageDialog>

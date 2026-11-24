@@ -43,6 +43,8 @@
 	import PresenceJoinButton from "./PresenceJoinButton.svelte"
 	import { presenceJoinFor } from "./presence-join"
 	import { setProfilePages } from "../shared/profile-pages"
+	import { accountPageLabels, accountPages } from "./account-pages"
+	import type { AccountPage } from "./account-pages"
 	import cookieIcon from "@phosphor-icons/core/regular/cookie.svg?raw"
 	import AccountAvatar from "./AccountAvatar.svelte"
 	import AccountMembershipBadges from "./AccountMembershipBadges.svelte"
@@ -206,15 +208,7 @@
 		return () => window.clearInterval(timer)
 	})
 
-	const accountPages = [
-		"avatar",
-		"inventory",
-		"chats",
-		"notifications",
-		"settings",
-	] as const
-
-	function openPage(page: (typeof accountPages)[number]): void {
+	function openPage(page: AccountPage): void {
 		workspace.closeAccountMenus()
 		workspace.accountPage = page
 	}
@@ -224,34 +218,12 @@
 			return `${selectedAccount.displayName} pages`
 		},
 		get tabs() {
-			return [
-				{
-					id: "avatar",
-					label: "Avatar",
-					unavailableReason: pageUnavailableReason,
-				},
-				{
-					id: "inventory",
-					label: "Inventory",
-					unavailableReason: pageUnavailableReason,
-				},
-				{
-					id: "chats",
-					label: "Chats",
-					unavailableReason: pageUnavailableReason,
-				},
-				{
-					id: "notifications",
-					label: "Notifications",
-					unreadCount: unreadNotifications,
-					unavailableReason: pageUnavailableReason,
-				},
-				{
-					id: "settings",
-					label: "Settings",
-					unavailableReason: pageUnavailableReason,
-				},
-			]
+			return accountPages.map((page) => ({
+				id: page,
+				label: accountPageLabels[page],
+				unreadCount: page === "notifications" ? unreadNotifications : 0,
+				unavailableReason: pageUnavailableReason,
+			}))
 		},
 		get currentPage() {
 			return workspace.accountPage === "profile" ? "" : workspace.accountPage

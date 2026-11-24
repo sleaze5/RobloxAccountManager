@@ -13,3 +13,9 @@ export interface ProfilePages {
 }
 
 export const [getProfilePages, setProfilePages] = createContext<ProfilePages>()
+
+// openPageLabel names the open page of a profile, or returns "" while the
+// overview is open.
+export function openPageLabel(pages: ProfilePages): string {
+	return pages.tabs.find((tab) => tab.id === pages.currentPage)?.label ?? ""
+}

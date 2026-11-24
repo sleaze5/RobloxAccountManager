@@ -71,7 +71,7 @@ func (service *Games) Media(ctx context.Context, universeID int64) ([]ListedGame
 		}
 		switch listedMedia.AssetTypeID {
 		case gameMediaImageAssetTypeID:
-			entry.Kind = games.MediaKindImage
+			entry.Kind, entry.ImageAssetID = games.MediaKindImage, listedMedia.ImageID
 		case gameMediaVideoAssetTypeID:
 			videoAssetID, err := strconv.ParseInt(listedMedia.VideoID, 10, 64)
 			if err != nil || videoAssetID <= 0 {
@@ -149,4 +149,22 @@ func locationHost(locations []listedAssetLocation) string {
 		return ""
 	}
 	return parsed.Host
+}
+
+// maxGameImageBytes bounds the original of a game media image.
+const maxGameImageBytes = 16 << 20
+
+// ImageFile downloads the original of a game media image, which Roblox gives
+// only to a signed-in account. Verified on 2026-11-24.
+func (service *Users) ImageFile(ctx context.Context, accountID, version, imageAssetID int64) ([]byte, AssetFileFormat, error) {
+	const endpoint = "game-image"
+	contents, assetTypeID, err := service.downloadAssetFile(ctx, accountID, version, endpoint, imageAssetID, AssetRepresentation{}, maxGameImageBytes)
+	if err != nil {
+		return nil, "", err
+	}
+	format, err := assetFileFormatOf(contents)
+	if assetTypeID != gameMediaImageAssetTypeID || err != nil || (format != AssetFilePNG && format != AssetFileJPEG) {
+		return nil, "", &roblox.Error{Kind: roblox.KindProtocol, Endpoint: endpoint, Message: "Roblox returned an image file that the app cannot read.", Cause: err}
+	}
+	return contents, format, nil
 }

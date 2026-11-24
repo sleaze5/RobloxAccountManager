@@ -14,11 +14,14 @@
 	let {
 		universeId,
 		gameName,
+		accountId,
 		refreshCount,
 		onOpenLink,
 	}: {
 		universeId: number
 		gameName: string
+		// accountId is the account that downloads the originals of images.
+		accountId: number
 		// refreshCount changes when the game details refresh, which reads the
 		// media again.
 		refreshCount: number
@@ -131,16 +134,14 @@
 			</li>
 		{/each}
 	</TileCarousel>
-{:else}
+{:else if !media}
 	<section class="flex flex-col gap-2" aria-labelledby={headingId}>
 		<h3
 			id={headingId}
 			class="flex h-6 items-center text-xs font-semibold text-fg-muted">
 			Media
 		</h3>
-		{#if media}
-			<p class="text-xs text-fg-muted">None</p>
-		{:else if hasFailed}
+		{#if hasFailed}
 			<p class="text-xs text-fg-muted">Unavailable</p>
 		{:else}
 			<ul class="flex gap-2 overflow-x-hidden" aria-hidden="true">
@@ -159,6 +160,7 @@
 {#if openedIndex !== null && viewableMedia.length}
 	<GameMediaDialog
 		{gameName}
+		{accountId}
 		media={viewableMedia}
 		initialIndex={openedIndex}
 		onClose={() => (openedIndex = null)} />

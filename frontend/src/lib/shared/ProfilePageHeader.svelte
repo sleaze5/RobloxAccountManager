@@ -6,7 +6,8 @@
 	// ProfilePageHeader heads a page of a profile, such as its avatar or the
 	// members of a group, with the tabs of the profile in place of a Back
 	// button. The title stays for screen readers, because the selected tab
-	// already shows it. subtitle names the profile, such as "@builderman".
+	// already shows it, and the status strip names the profile. subtitle names
+	// the profile for screen readers, such as "@builderman".
 	let {
 		titleId,
 		title,
@@ -34,6 +35,6 @@
 		{title} of {subtitle}
 	</h1>
 	<ProfileTabs {onLeave} />
-	<span class="mr-auto min-w-0 truncate text-xs text-fg-muted">{subtitle}</span>
+	<span class="mr-auto"></span>
 	{@render children?.()}
 </header>

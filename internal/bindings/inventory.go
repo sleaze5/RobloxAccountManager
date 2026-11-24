@@ -75,7 +75,7 @@ func (service *Service) DownloadInventoryItem(ctx context.Context, accountID int
 	if err != nil {
 		return "", err
 	}
-	return service.saveInventoryDownload(ctx, operation, itemID, itemName, file)
+	return service.saveDownload(ctx, operation, itemID, itemName, file)
 }
 
 // DownloadInventoryItemModel packs the 3D model of the item with its
@@ -90,19 +90,19 @@ func (service *Service) DownloadInventoryItemModel(ctx context.Context, accountI
 	if err != nil {
 		return "", err
 	}
-	return service.saveInventoryDownload(ctx, operation, itemID, itemName, file)
+	return service.saveDownload(ctx, operation, itemID, itemName, file)
 }
 
-func (service *Service) saveInventoryDownload(ctx context.Context, operation string, itemID int64, itemName string, file appservice.DownloadableFile) (string, error) {
+func (service *Service) saveDownload(ctx context.Context, operation string, itemID int64, itemName string, file appservice.DownloadableFile) (string, error) {
 	if err := ctx.Err(); err != nil {
-		return "", inventoryDownloadCanceled(operation, err)
+		return "", downloadCanceled(operation, err)
 	}
 	path, err := chooseSaveFile(service.core.DefaultDownloadDirectory(), service.core.DownloadFileName(itemName, itemID, file.Extension), file.FormatName, "*."+file.Extension)
 	if err != nil {
 		return "", &roblox.Error{Kind: roblox.KindProtocol, Endpoint: operation, Message: "Could not open the save dialog.", Cause: err}
 	}
 	if err := ctx.Err(); err != nil {
-		return "", inventoryDownloadCanceled(operation, err)
+		return "", downloadCanceled(operation, err)
 	}
 	if path == "" {
 		return "", nil
@@ -110,7 +110,7 @@ func (service *Service) saveInventoryDownload(ctx context.Context, operation str
 	return service.core.SaveDownloadedFile(path, operation, file)
 }
 
-func inventoryDownloadCanceled(operation string, cause error) error {
+func downloadCanceled(operation string, cause error) error {
 	return &roblox.Error{Kind: roblox.KindCancelled, Endpoint: operation, Message: "The download was canceled.", Cause: cause}
 }
 

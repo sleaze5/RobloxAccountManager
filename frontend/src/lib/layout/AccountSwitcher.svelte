@@ -8,10 +8,10 @@
 
 	const account = $derived(store.selectedAccount),
 		accountOptions = $derived(
-			store.accounts.map((savedAccount) => ({
+			store.accounts.map((savedAccount, index) => ({
 				value: savedAccount.id,
 				label: savedAccount.displayName,
-				description: `@${savedAccount.username}`,
+				description: `@${savedAccount.username} · #${index + 1}`,
 				image: savedAccount.avatarUrl,
 			})),
 		),

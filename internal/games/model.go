@@ -112,11 +112,13 @@ const (
 
 // Media is one image or video that a game shows on its page, in the order
 // that its creator set. ImageURL is a 16:9 preview, and is empty when Roblox
-// has not rendered it. VideoAssetID names a video that Roblox hosts, and
-// VideoPageURL the page of a YouTube video.
+// has not rendered it. ImageAssetID names the original of an image,
+// VideoAssetID a video that Roblox hosts, and VideoPageURL the page of a
+// YouTube video.
 type Media struct {
 	Kind         MediaKind `json:"kind"`
 	ImageURL     string    `json:"imageUrl"`
+	ImageAssetID int64     `json:"imageAssetId"`
 	AltText      string    `json:"altText"`
 	VideoAssetID int64     `json:"videoAssetId"`
 	VideoTitle   string    `json:"videoTitle"`

@@ -110,3 +110,41 @@ func (service *Service) readGameVideo(ctx context.Context, videoAssetID int64) (
 	shown.videoAssetID, shown.contents = videoAssetID, contents
 	return contents, nil
 }
+
+// ReadGameImageFile downloads the original of a game media image as the
+// account sees it.
+func (service *Service) ReadGameImageFile(ctx context.Context, accountID, imageAssetID int64) (DownloadableFile, error) {
+	const operation = "game-image"
+	if err := validGameID(imageAssetID); err != nil {
+		return DownloadableFile{}, err
+	}
+	ctx, version, done, err := service.beginAccountSession(ctx, accountID, operation)
+	if err != nil {
+		return DownloadableFile{}, err
+	}
+	defer done()
+	contents, format, err := service.users.ImageFile(ctx, accountID, version, imageAssetID)
+	if err != nil {
+		return DownloadableFile{}, service.gamesError(ctx, operation, err)
+	}
+	return DownloadableFile{Contents: contents, Extension: string(format), FormatName: formatNameByAssetFileFormat[format]}, nil
+}
+
+// ReadGameVideoFile downloads the file of a game preview video, which the
+// player may already hold.
+func (service *Service) ReadGameVideoFile(ctx context.Context, videoAssetID int64) (DownloadableFile, error) {
+	const operation = "game-video"
+	if err := validGameID(videoAssetID); err != nil {
+		return DownloadableFile{}, err
+	}
+	ctx, done, err := service.beginGames(ctx)
+	if err != nil {
+		return DownloadableFile{}, err
+	}
+	defer done()
+	contents, err := service.readGameVideo(ctx, videoAssetID)
+	if err != nil {
+		return DownloadableFile{}, service.gamesError(ctx, operation, err)
+	}
+	return DownloadableFile{Contents: contents, Extension: "webm", FormatName: "WebM video"}, nil
+}

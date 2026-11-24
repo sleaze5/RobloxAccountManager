@@ -70,8 +70,9 @@
 	})
 </script>
 
-<!-- A part shows its tiles in a carousel. Until they load, or when there are
-     none, it shows its heading over the state instead. -->
+<!-- A part shows its tiles in a carousel. Until they load, or when they are
+     unavailable, it shows its heading over the state instead. A part with no
+     tiles is left out. -->
 {#snippet part(
 	id: ProfileShowcasePart,
 	title: string,
@@ -87,16 +88,14 @@
 			{/snippet}
 			{@render tiles()}
 		</TileCarousel>
-	{:else}
+	{:else if count !== 0}
 		<section class="flex flex-col gap-2" aria-labelledby={`${headingID}-${id}`}>
 			<h3
 				id={`${headingID}-${id}`}
 				class="flex h-6 items-center text-xs font-semibold text-fg-muted">
 				{title}
 			</h3>
-			{#if count === 0}
-				<p class="text-xs text-fg-muted">None</p>
-			{:else if showcase?.failedParts.includes(id)}
+			{#if showcase?.failedParts.includes(id)}
 				<p class="text-xs text-fg-muted">Unavailable</p>
 			{:else}
 				<ul class="flex gap-2 overflow-x-hidden" aria-hidden="true">

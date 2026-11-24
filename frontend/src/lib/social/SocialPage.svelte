@@ -55,7 +55,9 @@
 		SocialSubpage,
 		SocialView,
 	} from "./social-store.svelte"
-	import { setProfilePages } from "../shared/profile-pages"
+	import { openPageLabel, setProfilePages } from "../shared/profile-pages"
+	import type { ProfilePages } from "../shared/profile-pages"
+	import StatusTrail from "../layout/StatusTrail.svelte"
 	import type { RelationshipActionId } from "./relationship"
 
 	let {
@@ -218,7 +220,7 @@
 
 	const socialSubpages: SocialSubpage[] = ["avatar", "inventory"]
 
-	setProfilePages({
+	const profilePages: ProfilePages = {
 		get label() {
 			return selected ? `${personName(selected)} pages` : "Profile pages"
 		},
@@ -242,7 +244,8 @@
 			if (subpage) store.subpage = subpage
 		},
 		openOverview: () => void closeSubpage(),
-	})
+	}
+	setProfilePages(profilePages)
 
 	async function closeSubpage(): Promise<void> {
 		const closedSubpage = store.subpage
@@ -829,7 +832,15 @@
 	<footer
 		class="flex h-6 shrink-0 items-center justify-between border-t border-line-subtle bg-surface pl-3 text-2xs text-fg-faint"
 		aria-label="Social status">
-		<AccountSwitcher store={accounts} />
+		<div class="flex min-w-0 items-center gap-1">
+			<AccountSwitcher store={accounts} />
+			<StatusTrail
+				parts={selected
+					? [personName(selected), openPageLabel(profilePages)].filter(
+							Boolean,
+						)
+					: []} />
+		</div>
 		{#if store.page}
 			<span class="ml-auto truncate pr-3" aria-live="polite"
 				>{statusSummary()}</span>
