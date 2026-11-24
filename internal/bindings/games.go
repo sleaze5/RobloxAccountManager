@@ -34,11 +34,8 @@ func (service *Service) ListGameMedia(ctx context.Context, universeID int64) ([]
 	return service.core.ListGameMedia(ctx, universeID)
 }
 
-func (service *Service) GetGameVideoURL(ctx context.Context, accountID, videoAssetID int64) (string, error) {
-	if err := positiveID(accountID, "game-video"); err != nil {
-		return "", err
-	}
-	return service.core.GetGameVideoURL(ctx, accountID, videoAssetID)
+func (service *Service) GetGameVideoURL(ctx context.Context, videoAssetID int64) (string, error) {
+	return service.core.GetGameVideoURL(ctx, videoAssetID)
 }
 
 func (service *Service) ListGameServers(ctx context.Context, query games.ServerQuery) (games.ServerPage, error) {

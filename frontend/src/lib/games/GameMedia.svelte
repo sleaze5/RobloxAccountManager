@@ -14,14 +14,11 @@
 	let {
 		universeId,
 		gameName,
-		accountId,
 		refreshCount,
 		onOpenLink,
 	}: {
 		universeId: number
 		gameName: string
-		// accountId is the account that plays Roblox videos.
-		accountId: number
 		// refreshCount changes when the game details refresh, which reads the
 		// media again.
 		refreshCount: number
@@ -162,7 +159,6 @@
 {#if openedIndex !== null && viewableMedia.length}
 	<GameMediaDialog
 		{gameName}
-		{accountId}
 		media={viewableMedia}
 		initialIndex={openedIndex}
 		onClose={() => (openedIndex = null)} />

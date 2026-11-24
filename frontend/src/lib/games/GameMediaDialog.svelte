@@ -18,13 +18,11 @@
 	// controls below the frame.
 	let {
 		gameName,
-		accountId,
 		media,
 		initialIndex,
 		onClose,
 	}: {
 		gameName: string
-		accountId: number
 		media: GameMedia[]
 		initialIndex: number
 		onClose: () => void
@@ -65,12 +63,8 @@
 		currentTimeSeconds = durationSeconds = 0
 		isPaused = true
 		if (!requestedVideoAssetId) return
-		if (accountId <= 0) {
-			hasVideoFailed = true
-			return
-		}
 		let isCurrent = true
-		const request = accountBackend.GetGameVideoURL(accountId, requestedVideoAssetId)
+		const request = accountBackend.GetGameVideoURL(requestedVideoAssetId)
 		void (async () => {
 			try {
 				const resolvedUrl = await request

@@ -49,17 +49,17 @@ func (service *Service) ListGameMedia(ctx context.Context, universeID int64) ([]
 }
 
 // GetGameVideoURL reads the signed address from which the frontend plays a
-// game preview video. Roblox serves the file to a signed-in account.
-func (service *Service) GetGameVideoURL(ctx context.Context, accountID, videoAssetID int64) (string, error) {
+// game preview video.
+func (service *Service) GetGameVideoURL(ctx context.Context, videoAssetID int64) (string, error) {
 	const operation = "game-video"
 	if err := validGameID(videoAssetID); err != nil {
 		return "", err
 	}
-	ctx, _, done, err := service.beginAccountSession(ctx, accountID, operation)
+	ctx, done, err := service.beginGames(ctx)
 	if err != nil {
 		return "", err
 	}
 	defer done()
-	videoURL, err := service.games.VideoURL(ctx, accountID, videoAssetID)
+	videoURL, err := service.games.VideoURL(ctx, videoAssetID)
 	return videoURL, service.gamesError(ctx, operation, err)
 }

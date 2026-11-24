@@ -2,6 +2,7 @@ package services
 
 import (
 	"context"
+	"fmt"
 	"net/http"
 	"net/url"
 	"regexp"
@@ -96,23 +97,44 @@ func (service *Games) Media(ctx context.Context, universeID int64) ([]ListedGame
 	return media, nil
 }
 
+// listedAssetLocation is an address from which the asset delivery API serves
+// the file of an asset.
+type listedAssetLocation struct {
+	Location string `json:"location"`
+}
+
 // VideoURL reads the address from which the app plays a game preview video.
 // The address is signed and expires, so the frontend reads it each time a
-// video opens.
-func (service *Games) VideoURL(ctx context.Context, accountID, videoAssetID int64) (string, error) {
+// video opens. Roblox gives a public video without a signed-in request.
+// Verified on 2026-11-24.
+func (service *Games) VideoURL(ctx context.Context, videoAssetID int64) (string, error) {
 	const operation = "game-video"
 	var payload struct {
-		AssetTypeID int64 `json:"assetTypeId"`
-		Locations   []struct {
-			Location string `json:"location"`
-		} `json:"locations"`
+		AssetTypeID int64                 `json:"assetTypeId"`
+		Locations   []listedAssetLocation `json:"locations"`
 	}
-	endpoint := &url.URL{Scheme: "https", Host: "assetdelivery.roblox.com", Path: "/v2/asset/", RawQuery: url.Values{"id": {strconv.FormatInt(videoAssetID, 10)}}.Encode()}
-	if err := service.account(ctx, operation, accountID, http.MethodGet, endpoint, nil, &payload); err != nil {
+	parameters := url.Values{"id": {strconv.FormatInt(videoAssetID, 10)}}
+	if err := service.get(ctx, operation, "assetdelivery.roblox.com", "/v2/asset/", parameters, &payload); err != nil {
 		return "", err
 	}
 	if payload.AssetTypeID != gameMediaVideoAssetTypeID || len(payload.Locations) == 0 || !isRobloxCDNURL(payload.Locations[0].Location) {
-		return "", &roblox.Error{Kind: roblox.KindProtocol, Endpoint: operation, Status: http.StatusNotFound, Message: "Roblox has no playable file for this video."}
+		return "", &roblox.Error{
+			Kind: roblox.KindProtocol, Endpoint: operation, Status: http.StatusNotFound, Message: "Roblox has no playable file for this video.",
+			Cause: fmt.Errorf("asset type %d with %d locations, first on host %q", payload.AssetTypeID, len(payload.Locations), locationHost(payload.Locations)),
+		}
 	}
 	return payload.Locations[0].Location, nil
+}
+
+// locationHost names the host of the first location, for the log of a
+// rejected video. The signed query of the address stays out of the log.
+func locationHost(locations []listedAssetLocation) string {
+	if len(locations) == 0 {
+		return ""
+	}
+	parsed, err := url.Parse(locations[0].Location)
+	if err != nil {
+		return ""
+	}
+	return parsed.Host
 }

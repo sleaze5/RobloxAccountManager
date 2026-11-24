@@ -89,10 +89,11 @@ Escape handles that Escape itself. -->
 	bind:card
 	onBackdropClick={onClose}>
 	<!-- The heading and the controls take the width of the frame, so that a
-	long name wraps instead of widening the dialog. -->
+	long name never widens the dialog. The name stays on one line, because the
+	frame takes its size from the height that the heading leaves. -->
 	<div class="dialog-heading w-0 min-w-full">
-		<div>
-			<h2 id={titleId} class="wrap-anywhere">{label}</h2>
+		<div class="min-w-0">
+			<h2 id={titleId} class="truncate" data-tooltip={label}>{label}</h2>
 		</div>
 		<button type="button" aria-label="Close dialog" onclick={onClose}>
 			<Icon svg={xIcon} size={14} aria-hidden="true" />

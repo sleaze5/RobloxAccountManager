@@ -709,7 +709,6 @@
 				<GameMedia
 					universeId={place.universeId}
 					gameName={store.displayName(place)}
-					accountId={accounts.selectedAccount.id}
 					refreshCount={detailsRefreshCount}
 					onOpenLink={(url) => void store.openLink(url)} />
 			{/if}
