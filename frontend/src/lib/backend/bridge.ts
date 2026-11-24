@@ -121,6 +121,7 @@ export type {
 	AvatarAccessoryAdjustment,
 	AvatarAccessoryAdjustmentLimits,
 	AvatarAsset,
+	AvatarBackground,
 	AvatarBodyColors,
 	AvatarChange,
 	AvatarClothingLayer,
@@ -199,6 +200,7 @@ export type {
 	GamePass,
 	ListedPrivateServer,
 	ListedPrivateServerPage,
+	Media as GameMedia,
 	NearbyRegion as NearbyServerRegion,
 	OwnedPrivateServer,
 	Place as GamePlace,
@@ -220,6 +222,7 @@ export type {
 export {
 	GameSection,
 	JoinOutcome,
+	MediaKind as GameMediaKind,
 	PrivateServerOption,
 	RecordOrder as GameServerRecordOrder,
 	ServerOrder as GameServerOrder,

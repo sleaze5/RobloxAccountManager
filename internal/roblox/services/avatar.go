@@ -763,7 +763,7 @@ func (service *Users) RenderAvatarPreview(ctx context.Context, accountID, versio
 	switch {
 	case strings.EqualFold(payload.State, "Pending"):
 		return "", nil
-	case !strings.EqualFold(payload.State, "Completed") || !safeThumbnailURL(payload.ImageURL):
+	case !strings.EqualFold(payload.State, "Completed") || !isRobloxCDNURL(payload.ImageURL):
 		return "", &roblox.Error{Kind: roblox.KindProtocol, Endpoint: endpoint, Status: response.Status, Message: "Roblox could not render this preview."}
 	}
 	return payload.ImageURL, nil

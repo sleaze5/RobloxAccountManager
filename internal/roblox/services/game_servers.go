@@ -120,7 +120,7 @@ func (service *Games) playerImages(ctx context.Context, servers [][]string) (map
 			return headshotURLsByToken, err
 		}
 		for _, image := range payload.Data {
-			if image.State == "Completed" && safeThumbnailURL(image.ImageURL) {
+			if image.State == "Completed" && isRobloxCDNURL(image.ImageURL) {
 				headshotURLsByToken[image.RequestID] = image.ImageURL
 			}
 		}

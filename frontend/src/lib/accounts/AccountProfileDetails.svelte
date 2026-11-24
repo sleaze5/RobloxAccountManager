@@ -19,6 +19,8 @@
 	import microphoneSlashIcon from "@phosphor-icons/core/regular/microphone-slash.svg?raw"
 	import usersThreeIcon from "@phosphor-icons/core/regular/users-three.svg?raw"
 	import warningCircleIcon from "@phosphor-icons/core/regular/warning-circle.svg?raw"
+	import AvatarBackgroundFact from "../avatar/AvatarBackgroundFact.svelte"
+	import type { EquippedAvatarBackground } from "../avatar/equipped-avatar-background.svelte"
 	import Icon from "../shared/Icon.svelte"
 	import {
 		AccountProfileSection,
@@ -45,10 +47,12 @@
 		account,
 		snapshot,
 		sections,
+		avatarBackground,
 	}: {
 		account: Account
 		snapshot: AccountProfileSnapshot | null
 		sections: SectionLoad<AccountProfileSnapshot, AccountProfileSection> | null
+		avatarBackground: EquippedAvatarBackground
 	} = $props()
 
 	function isLoaded(section: AccountProfileSection): boolean {
@@ -405,6 +409,9 @@
 					{@render missing(AccountProfileSection.ProfileSectionCollectibles)}
 				</dd>
 			</div>
+		{/if}
+		{#if sections}
+			<AvatarBackgroundFact equipped={avatarBackground} />
 		{/if}
 	</dl>
 </section>

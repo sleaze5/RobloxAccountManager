@@ -99,6 +99,30 @@ type Playability struct {
 	Message    string `json:"message"`
 }
 
+// MediaKind names what a media entry of a game shows.
+type MediaKind string
+
+const (
+	MediaKindImage MediaKind = "image"
+	// MediaKindVideo is a video that Roblox hosts, which plays in the app.
+	MediaKindVideo MediaKind = "video"
+	// MediaKindYouTubeVideo is a YouTube video, which opens in the browser.
+	MediaKindYouTubeVideo MediaKind = "youTubeVideo"
+)
+
+// Media is one image or video that a game shows on its page, in the order
+// that its creator set. ImageURL is a 16:9 preview, and is empty when Roblox
+// has not rendered it. VideoAssetID names a video that Roblox hosts, and
+// VideoPageURL the page of a YouTube video.
+type Media struct {
+	Kind         MediaKind `json:"kind"`
+	ImageURL     string    `json:"imageUrl"`
+	AltText      string    `json:"altText"`
+	VideoAssetID int64     `json:"videoAssetId"`
+	VideoTitle   string    `json:"videoTitle"`
+	VideoPageURL string    `json:"videoPageUrl"`
+}
+
 // JoinOutcome is how Roblox's join service expects a join to end for an
 // account. It is only a prediction: the app never stops a launch because of it.
 type JoinOutcome string

@@ -70,7 +70,7 @@ func (service *Users) renderedModelManifestURL(ctx context.Context, accountID, v
 		return "", nil
 	case !strings.EqualFold(payload.State, "Completed"):
 		return "", &roblox.Error{Kind: roblox.KindProtocol, Endpoint: endpoint, Message: "Roblox cannot show this in 3D."}
-	case !safeThumbnailURL(payload.ImageURL):
+	case !isRobloxCDNURL(payload.ImageURL):
 		return "", invalidRenderedModel()
 	}
 	return payload.ImageURL, nil
@@ -203,7 +203,7 @@ func (model RenderedModel) hasFiniteGeometry() bool {
 // of which serve files without credentials.
 func (service *Users) downloadCDNFile(ctx context.Context, address string, maxResponseSizeBytes int64) ([]byte, error) {
 	fileURL, err := url.Parse(address)
-	if err != nil || (!safeThumbnailURL(address) && !roblox.IsRobloxURL(fileURL)) {
+	if err != nil || (!isRobloxCDNURL(address) && !roblox.IsRobloxURL(fileURL)) {
 		return nil, &roblox.Error{Kind: roblox.KindProtocol, Endpoint: "cdn-file", Message: "Roblox returned an invalid download address."}
 	}
 	response, err := service.client.Do(ctx, roblox.Request{

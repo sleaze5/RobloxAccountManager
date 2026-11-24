@@ -7,28 +7,31 @@
 	// ExpandedImageDialog shows what an image frame shows, such as an image or
 	// a 3D model, as large as the window allows, with the controls of the
 	// frame below it, if it has any. label names what it shows, such as
-	// "@builderman's avatar".
+	// "@builderman's avatar". aspectRatio is the width of the frame divided by
+	// its height, such as 16 / 9 for game media.
 	let {
 		label,
 		frame,
 		controls,
+		aspectRatio = 1,
 		onClose,
 	}: {
 		label: string
 		frame: Snippet
 		controls?: Snippet
+		aspectRatio?: number
 		onClose: () => void
 	} = $props()
 
 	let card = $state<HTMLDivElement>(),
 		frameElement = $state<HTMLDivElement>(),
-		frameSize = $state(0)
+		frameWidth = $state(0)
 
 	const titleId = $props.id()
 
-	// The frame is the largest square that fits the window together with the
-	// rest of the dialog, so that the whole image or model shows whichever side
-	// of the window is shorter.
+	// The frame is the largest frame of its aspect ratio that fits the window
+	// together with the rest of the dialog, so that the whole image or model
+	// shows whichever side of the window is shorter.
 	$effect(() => {
 		const backdrop = card?.parentElement
 		if (!card || !frameElement || !backdrop) return
@@ -46,12 +49,12 @@
 					Number.parseFloat(backdropStyle.paddingBottom),
 				surroundingWidth = fittedCard.offsetWidth - fittedFrame.offsetWidth,
 				surroundingHeight = fittedCard.offsetHeight - fittedFrame.offsetHeight
-			frameSize = Math.max(
+			frameWidth = Math.max(
 				0,
 				Math.floor(
 					Math.min(
 						availableWidth - surroundingWidth,
-						availableHeight - surroundingHeight,
+						(availableHeight - surroundingHeight) * aspectRatio,
 					),
 				),
 			)
@@ -97,8 +100,9 @@ Escape handles that Escape itself. -->
 	</div>
 	<div
 		bind:this={frameElement}
-		class="relative grid size-(--expanded-frame-size) place-items-center overflow-hidden rounded-lg border border-line-subtle bg-canvas"
-		style:--expanded-frame-size={`${frameSize}px`}>
+		class="relative grid h-(--expanded-frame-height) w-(--expanded-frame-width) place-items-center overflow-hidden rounded-lg border border-line-subtle bg-canvas"
+		style:--expanded-frame-width={`${frameWidth}px`}
+		style:--expanded-frame-height={`${Math.floor(frameWidth / aspectRatio)}px`}>
 		{@render frame()}
 	</div>
 	{#if controls}

@@ -5,16 +5,22 @@
 
 	let {
 		imageUrl,
+		backgroundUrl = "",
 		presence,
 		className,
-	}: { imageUrl: string; presence?: UserPresence; className: string } = $props()
+	}: {
+		imageUrl: string
+		backgroundUrl?: string
+		presence?: UserPresence
+		className: string
+	} = $props()
 </script>
 
 <span class={["relative block shrink-0", className]}>
 	<span
 		class="relative grid size-full place-items-center overflow-hidden rounded-md border border-line-strong bg-raised"
 		aria-hidden="true">
-		<ProfileImage url={imageUrl} />
+		<ProfileImage url={imageUrl} {backgroundUrl} />
 	</span>
 	{#if presence}
 		<PresenceBadge {presence} />

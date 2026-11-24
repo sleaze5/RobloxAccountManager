@@ -2,14 +2,34 @@
 	import userIcon from "@phosphor-icons/core/regular/user.svg?raw"
 	import Icon from "./Icon.svelte"
 
-	let { url, fallbackIcon = userIcon }: { url: string; fallbackIcon?: string } =
-		$props()
-	let failed = $state("")
+	// backgroundUrl is the avatar background that the user equipped, which
+	// shows behind the transparent avatar image, as on the Roblox profile.
+	let {
+		url,
+		fallbackIcon = userIcon,
+		backgroundUrl = "",
+	}: { url: string; fallbackIcon?: string; backgroundUrl?: string } = $props()
+	let failed = $state(""),
+		failedBackground = $state("")
+
+	const hasBackground = $derived(
+		!!backgroundUrl && failedBackground !== backgroundUrl,
+	)
 </script>
 
+{#if hasBackground}
+	<img
+		class="absolute inset-0 size-full animate-enter object-cover"
+		src={backgroundUrl}
+		alt=""
+		decoding="async"
+		draggable="false"
+		referrerpolicy="no-referrer"
+		onerror={() => (failedBackground = backgroundUrl)} />
+{/if}
 {#if url && failed !== url}
 	<img
-		class="block size-full bg-raised object-cover"
+		class={["relative block size-full object-cover", !hasBackground && "bg-raised"]}
 		src={url}
 		alt=""
 		loading="lazy"
@@ -18,5 +38,8 @@
 		referrerpolicy="no-referrer"
 		onerror={() => (failed = url)} />
 {:else}
-	<Icon svg={fallbackIcon} class="size-1/2 text-fg-faint" aria-hidden="true" />
+	<Icon
+		svg={fallbackIcon}
+		class="relative size-1/2 text-fg-faint"
+		aria-hidden="true" />
 {/if}
