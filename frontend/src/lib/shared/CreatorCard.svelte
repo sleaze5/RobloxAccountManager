@@ -9,7 +9,7 @@
 	import handshakeIcon from "@phosphor-icons/core/regular/handshake.svg?raw"
 	import paintBrushIcon from "@phosphor-icons/core/regular/paint-brush.svg?raw"
 	import swordIcon from "@phosphor-icons/core/regular/sword.svg?raw"
-	import { getCreatorNavigation } from "./creator-navigation"
+	import { getProfilePreviews } from "./profile-preview"
 	import { loadCreatorImage } from "./creator-images"
 	import type { CreatorKind } from "./creator-images"
 	import type { LabeledBadge } from "./labeled-badge"
@@ -36,7 +36,7 @@
 		memberCount?: number | null
 	} = $props()
 
-	const navigation = getCreatorNavigation(),
+	const previews = getProfilePreviews(),
 		compactNumbers = new Intl.NumberFormat("en-US", {
 			notation: "compact",
 			maximumFractionDigits: 1,
@@ -74,9 +74,10 @@
 	})
 
 	function open(): void {
-		if (isGroup) navigation.showGroup(creatorId)
+		if (isGroup) previews.show({ kind: "Group", groupId: creatorId })
 		else
-			navigation.showUser({
+			previews.show({
+				kind: "User",
 				userId: creatorId,
 				username: name,
 				displayName: displayName || name,
@@ -91,4 +92,4 @@
 	{subtitle}
 	{hasVerifiedBadge}
 	badges={[roleBadges[role]]}
-	action={{ label: isGroup ? "Show in Groups" : "Show in Social", open }} />
+	action={{ label: isGroup ? "Show group" : "Show profile", open }} />

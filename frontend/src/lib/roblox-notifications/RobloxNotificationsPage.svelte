@@ -24,12 +24,10 @@
 		store,
 		onOpenChat,
 		onFollowUser,
-		onSearchPlace,
 	}: {
 		store: AccountStore
 		onOpenChat: (userId: number) => void
 		onFollowUser: (user: RobloxNotificationUser) => void
-		onSearchPlace: (placeId: number) => void
 	} = $props()
 
 	const account = untrack(() => store.selectedAccount),
@@ -201,8 +199,7 @@
 								onDismiss={() => void stream.dismiss(notification)}
 								{onOpenChat}
 								onOpenLink={(url) => void openLink(url)}
-								{onFollowUser}
-								{onSearchPlace} />
+								{onFollowUser} />
 						{/each}
 					</ul>
 				{/if}

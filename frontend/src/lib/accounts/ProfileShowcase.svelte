@@ -8,7 +8,7 @@
 	import type { GamePlace } from "../backend/bridge"
 	import { inventoryCategoryOptionOf } from "../inventory/inventory-categories"
 	import InventoryItemTile from "../inventory/InventoryItemTile.svelte"
-	import { getCreatorNavigation } from "../shared/creator-navigation"
+	import { getProfilePreviews } from "../shared/profile-preview"
 	import Icon from "../shared/Icon.svelte"
 	import ItemTile from "../shared/ItemTile.svelte"
 	import SkeletonTile from "../shared/SkeletonTile.svelte"
@@ -26,7 +26,6 @@
 		userId,
 		username,
 		refreshCount,
-		onSearchPlace,
 		onShowCreations,
 	}: {
 		accounts: AccountStore
@@ -37,12 +36,11 @@
 		// refreshCount changes when the profile refreshes, which reads the
 		// showcase again.
 		refreshCount: number
-		onSearchPlace: (placeId: number) => void
 		onShowCreations: (username: string) => void
 	} = $props()
 
 	const skeletonTileIndexes = Array.from({ length: 6 }, (_, index) => index),
-		creatorNavigation = getCreatorNavigation(),
+		previews = getProfilePreviews(),
 		headingID = $props.id()
 	let showcase = $state.raw<ProfileShowcase | null>(null)
 
@@ -117,8 +115,9 @@
 				imageUrl={place.iconUrl}
 				fallbackIcon={gameControllerIcon}
 				detail={showsCreator ? place.creatorName : ""}
-				actionLabel="Show in Games"
-				onOpen={() => onSearchPlace(place.placeId)} />
+				actionLabel="Show game"
+				onOpen={() =>
+					previews.show({ kind: "Place", placeId: place.placeId })} />
 		</li>
 	{/each}
 {/snippet}
@@ -146,9 +145,12 @@
 								]
 							: []}
 						detail={userGroup.role.name}
-						actionLabel="Show in Groups"
+						actionLabel="Show group"
 						onOpen={() =>
-							creatorNavigation.showGroup(userGroup.group.groupId)} />
+							previews.show({
+								kind: "Group",
+								groupId: userGroup.group.groupId,
+							})} />
 				</li>
 			{/each}
 		{/snippet}

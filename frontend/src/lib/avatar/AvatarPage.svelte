@@ -56,14 +56,12 @@
 		accountId,
 		userId,
 		username,
-		onSearchPlace,
 	}: {
 		accounts: AccountStore
 		notifications: NotificationCenter
 		accountId: number
 		userId: number
 		username: string
-		onSearchPlace: (placeId: number) => void
 	} = $props()
 	const elementIdPrefix = $props.id(),
 		pageVisibility = getPageVisibility()
@@ -590,11 +588,6 @@
 		{accounts}
 		isOwnInventory={false}
 		isWorn={savedAssetIds.has(detailedItem.item.itemId)}
-		onSearchPlace={(placeId) => {
-			detailedItem = null
-			viewedOutfit = null
-			onSearchPlace(placeId)
-		}}
 		onClose={() => (detailedItem = null)} />
 {/if}
 

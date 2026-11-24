@@ -1,12 +1,11 @@
 <script lang="ts">
 	import sealCheckIcon from "@phosphor-icons/core/regular/seal-check.svg?raw"
-	import { getCreatorNavigation } from "./creator-navigation"
+	import { getProfilePreviews } from "./profile-preview"
 	import type { CreatorKind } from "./creator-images"
 	import Icon from "./Icon.svelte"
 
 	// CreatorByline names the creator or the owner of a game, an item, or a
-	// group in one line, with a link that opens them: a group in Groups, and a
-	// user in Social. A creator can be a user or a group, so its line names
+	// group in one line, with a link that opens their preview. A creator can be a user or a group, so its line names
 	// the kind. An owner is always a user.
 	let {
 		kind,
@@ -23,13 +22,14 @@
 		role?: "Creator" | "Owner"
 	} = $props()
 
-	const navigation = getCreatorNavigation(),
-		openLabel = $derived(kind === "Group" ? "Show in Groups" : "Show in Social")
+	const previews = getProfilePreviews(),
+		openLabel = $derived(kind === "Group" ? "Show group" : "Show profile")
 
 	function openCreator(): void {
-		if (kind === "Group") navigation.showGroup(creatorId)
+		if (kind === "Group") previews.show({ kind: "Group", groupId: creatorId })
 		else
-			navigation.showUser({
+			previews.show({
+				kind: "User",
 				userId: creatorId,
 				username: name,
 				displayName: name,

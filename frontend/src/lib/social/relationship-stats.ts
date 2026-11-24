@@ -1,4 +1,4 @@
-import { SocialList } from "../backend/bridge"
+import { SocialList, SocialProfileSection } from "../backend/bridge"
 import type { ProfileStat } from "../shared/ProfileStats.svelte"
 import type { SocialListKind } from "./social-store.svelte"
 
@@ -18,7 +18,7 @@ export function relationshipStats(
 		following: number | null
 	},
 	isCountPending: (list: SocialListKind) => boolean,
-	onShow: (list: SocialListKind) => void,
+	onShow?: (list: SocialListKind) => void,
 ): ProfileStat[] {
 	const entries: {
 		list: SocialListKind
@@ -65,8 +65,18 @@ export function relationshipStats(
 				value: compactNumbers.format(entry.count),
 				label: entry.label,
 				description: `${exactNumbers.format(entry.count)} ${entry.noun}`,
-				onShow: () => onShow(entry.list),
+				onShow: onShow && (() => onShow(entry.list)),
 			},
 		]
 	})
+}
+
+// relationshipCountSection names the profile section that reads the count of
+// a relationship list.
+export function relationshipCountSection(list: SocialListKind): SocialProfileSection {
+	if (list === SocialList.SocialFollowers)
+		return SocialProfileSection.SocialSectionFollowers
+	if (list === SocialList.SocialFollowing)
+		return SocialProfileSection.SocialSectionFollowing
+	return SocialProfileSection.SocialSectionFriends
 }

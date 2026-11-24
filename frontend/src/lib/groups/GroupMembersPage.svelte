@@ -10,7 +10,7 @@
 	import { accountBackend } from "../backend/bridge"
 	import type { GroupMember, GroupMemberPage, GroupRole } from "../backend/bridge"
 	import type { NotificationCenter } from "../notifications/notification-center.svelte"
-	import { getCreatorNavigation } from "../shared/creator-navigation"
+	import { getProfilePreviews } from "../shared/profile-preview"
 	import { CursorPagedList } from "../shared/cursor-paged-list.svelte"
 	import { errorMessage } from "../shared/errors"
 	import Icon from "../shared/Icon.svelte"
@@ -35,7 +35,7 @@
 		group = profile.details.group,
 		membership = profile.membership,
 		roles = profile.roles ?? [],
-		navigation = getCreatorNavigation(),
+		previews = getProfilePreviews(),
 		exactNumbers = new Intl.NumberFormat("en-US"),
 		allRolesValue = 0
 
@@ -255,10 +255,11 @@
 						<button
 							class="flex min-w-0 flex-1 items-center gap-2 rounded-md text-left"
 							type="button"
-							data-tooltip="Show in Social"
+							data-tooltip="Show profile"
 							data-tooltip-strong={member.user.displayName ||
 								member.user.username}
-							onclick={() => navigation.showUser(member.user)}>
+							onclick={() =>
+								previews.show({ kind: "User", ...member.user })}>
 							<span
 								class="grid size-9 shrink-0 place-items-center overflow-hidden rounded-md border border-line-strong bg-raised"
 								aria-hidden="true">

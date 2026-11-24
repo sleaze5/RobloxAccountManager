@@ -23,7 +23,6 @@
 		accountBackend,
 		FriendStatus,
 		PresenceType,
-		SocialList,
 		SocialProfileSection,
 		UserJoinability,
 	} from "../backend/bridge"
@@ -46,7 +45,7 @@
 	import FriendConnections from "./FriendConnections.svelte"
 	import SocialBadges from "./SocialBadges.svelte"
 	import ProfileStats from "../shared/ProfileStats.svelte"
-	import { relationshipStats } from "./relationship-stats"
+	import { relationshipCountSection, relationshipStats } from "./relationship-stats"
 	import {
 		pendingRequestActionIds,
 		relationshipActions,
@@ -63,8 +62,6 @@
 		person,
 		onFillLaunch,
 		onFillLaunchUser,
-		onSearchPlace,
-		onSearchUniverse,
 		onEditNickname,
 		onRelationshipAction,
 		onOpenSubpage,
@@ -75,8 +72,6 @@
 		person: SocialUser
 		onFillLaunch: (placeId: number, jobId: string) => void
 		onFillLaunchUser: (user: SocialUser) => void
-		onSearchPlace: (placeId: number) => void
-		onSearchUniverse: (universeId: number) => void
 		onEditNickname: (nickname: string) => void
 		onRelationshipAction: (person: SocialUser, action: RelationshipActionId) => void
 		onOpenSubpage: (subpage: SocialSubpage) => void
@@ -245,9 +240,7 @@
 					presence={person.presence}
 					{joinability}
 					onJoin={onFillLaunch}
-					onJoinUser={() => onFillLaunchUser(person)}
-					{onSearchPlace}
-					{onSearchUniverse} />
+					onJoinUser={() => onFillLaunchUser(person)} />
 			{/if}
 			{#if sections}
 				<ProfileStats
@@ -259,13 +252,7 @@
 							following: profile?.followingCount ?? null,
 						},
 						(list) =>
-							sections.isSectionPending(
-								list === SocialList.SocialFollowers
-									? SocialProfileSection.SocialSectionFollowers
-									: list === SocialList.SocialFollowing
-										? SocialProfileSection.SocialSectionFollowing
-										: SocialProfileSection.SocialSectionFriends,
-							),
+							sections.isSectionPending(relationshipCountSection(list)),
 						(list) => store.explore(person, list),
 					)} />
 			{/if}
@@ -710,7 +697,6 @@
 			userId={person.userId}
 			username={person.username}
 			refreshCount={showcaseRefreshCount}
-			{onSearchPlace}
 			{onShowCreations} />
 	{/if}
 </section>

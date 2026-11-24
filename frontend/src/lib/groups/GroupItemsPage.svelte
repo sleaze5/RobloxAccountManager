@@ -17,13 +17,11 @@
 		store,
 		accounts,
 		notifications,
-		onSearchPlace,
 		onShowCreations,
 	}: {
 		store: GroupsStore
 		accounts: AccountStore
 		notifications: NotificationCenter
-		onSearchPlace: (placeId: number) => void
 		onShowCreations: (groupName: string) => void
 	} = $props()
 
@@ -133,8 +131,7 @@
 			{accounts}
 			{notifications}
 			label={`Items by ${groupName}`}
-			noun="items"
-			{onSearchPlace}>
+			noun="items">
 			{#snippet empty()}
 				<div class="empty-state h-full" role="status">
 					<Icon svg={storefrontIcon} size={28} aria-hidden="true" />

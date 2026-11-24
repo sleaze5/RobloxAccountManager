@@ -1,11 +1,10 @@
 <script lang="ts">
+	import { getProfilePreviews } from "../shared/profile-preview"
 	import type { LogsExplorerVisit } from "../backend/bridge"
 	import PlaceHeader from "../games/PlaceHeader.svelte"
 
-	let {
-		visit,
-		onSearchPlace,
-	}: { visit: LogsExplorerVisit; onSearchPlace: (placeId: number) => void } = $props()
+	let { visit }: { visit: LogsExplorerVisit } = $props()
+	const previews = getProfilePreviews()
 
 	const universeId = $derived(Number(visit.universeId)),
 		placeId = $derived(Number(visit.placeId))
@@ -16,7 +15,7 @@
 	{#if validId(universeId) && validId(placeId)}<PlaceHeader
 			{universeId}
 			{placeId}
-			onSearch={() => onSearchPlace(placeId)} />{/if}
+			onShowGame={() => previews.show({ kind: "Place", placeId })} />{/if}
 	<dl class="detail-grid" aria-label="Game identifiers">
 		<div>
 			<dt>Place ID</dt>

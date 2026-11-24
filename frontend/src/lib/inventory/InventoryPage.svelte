@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { getProfilePreviews } from "../shared/profile-preview"
 	import { notifyErrors } from "../notifications/error-notifications.svelte"
 	import LoadMore from "../shared/LoadMore.svelte"
 	import warningIcon from "@phosphor-icons/core/regular/warning.svg?raw"
@@ -46,8 +47,6 @@
 		username,
 		notifications,
 		sidebarWidth = $bindable(),
-		onSearchPlace,
-		onShowGamePass,
 	}: {
 		accounts: AccountStore
 		notifications: NotificationCenter
@@ -55,9 +54,8 @@
 		userId: number
 		username: string
 		sidebarWidth: number
-		onSearchPlace: (placeId: number) => void
-		onShowGamePass: (place: GamePlace, gamePassId: number) => void
 	} = $props()
+	const previews = getProfilePreviews()
 	const elementIdPrefix = $props.id()
 
 	const inventory = untrack(
@@ -162,7 +160,7 @@
 
 	function openItem(item: InventoryItem): void {
 		if (isPlaceCategory) {
-			onSearchPlace(item.itemId)
+			previews.show({ kind: "Place", placeId: item.itemId })
 			return
 		}
 		inventory.clearItemActionError()
@@ -390,7 +388,7 @@
 												),
 											) === true}
 										actionLabel={isPlaceCategory
-											? "Show in Games"
+											? "Show game"
 											: "Show details"}
 										onOpen={openItem} />
 								</li>
@@ -422,13 +420,5 @@
 		{accounts}
 		{isOwnInventory}
 		isWorn={wornAssetIds.has(detailedItem.itemId)}
-		onSearchPlace={(placeId) => {
-			detailedCopyKey = ""
-			onSearchPlace(placeId)
-		}}
-		onShowGamePass={(place, gamePassId) => {
-			detailedCopyKey = ""
-			onShowGamePass(place, gamePassId)
-		}}
 		onClose={() => (detailedCopyKey = "")} />
 {/if}

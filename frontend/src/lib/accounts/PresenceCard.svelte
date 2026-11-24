@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { getProfilePreviews } from "../shared/profile-preview"
 	import magnifyingGlassIcon from "@phosphor-icons/core/regular/magnifying-glass.svg?raw"
 	import signInIcon from "@phosphor-icons/core/regular/sign-in.svg?raw"
 	import Icon from "../shared/Icon.svelte"
@@ -19,8 +20,6 @@
 		onPointerLeave,
 		onFillLaunch,
 		onFollowUser,
-		onSearchPlace,
-		onSearchUniverse,
 	}: {
 		id: string
 		anchor: HTMLElement
@@ -34,9 +33,8 @@
 		// onFollowUser fills the launch options to follow a user whose server
 		// the presence hides.
 		onFollowUser?: () => void
-		onSearchPlace: (placeId: number) => void
-		onSearchUniverse: (universeId: number) => void
 	} = $props()
+	const previews = getProfilePreviews()
 
 	const headingId = $derived(`${id}-heading`),
 		isNotJoinable = $derived(joinability === UserJoinability.UserNotJoinable)
@@ -71,20 +69,27 @@
 	<dl class="detail-grid" aria-label="Game identifiers">
 		{#if placeId > 0}<div>
 				<dt>Place ID</dt>
-				{@render searchableId(placeId, "Show in Games", () =>
-					onSearchPlace(placeId),
+				{@render searchableId(placeId, "Show game", () =>
+					previews.show({ kind: "Place", placeId }),
 				)}
 			</div>{/if}
 		{#if universeId > 0}<div>
 				<dt>Universe ID</dt>
-				{@render searchableId(universeId, "Find places in this universe", () =>
-					onSearchUniverse(universeId),
+				{@render searchableId(
+					universeId,
+					"Show the places of this universe",
+					() =>
+						previews.show({
+							kind: "Place",
+							placeId: rootPlaceId || placeId,
+							universeId,
+						}),
 				)}
 			</div>{/if}
 		{#if rootPlaceId > 0 && rootPlaceId !== placeId}<div>
 				<dt>Root place ID</dt>
-				{@render searchableId(rootPlaceId, "Show root place in Games", () =>
-					onSearchPlace(rootPlaceId),
+				{@render searchableId(rootPlaceId, "Show root place", () =>
+					previews.show({ kind: "Place", placeId: rootPlaceId }),
 				)}
 			</div>{/if}
 		{#if presence.userPresenceType === PresenceType.PresenceTypeInGame}<div

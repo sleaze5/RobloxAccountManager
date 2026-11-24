@@ -37,14 +37,12 @@
 		store,
 		accounts,
 		notifications,
-		onSearchPlace,
 		onOpenInBrowser,
 		onShowCreations,
 	}: {
 		store: GroupsStore
 		accounts: AccountStore
 		notifications: NotificationCenter
-		onSearchPlace: (placeId: number) => void
 		onOpenInBrowser: (accountId: number, pageUrl: string) => void
 		onShowCreations: (groupName: string) => void
 	} = $props()
@@ -389,7 +387,7 @@
 				{/key}
 			{:else if store.subpage === "games"}
 				{#key `${store.accountId}:${store.selectedGroupId}`}
-					<GroupGamesPage {store} {onSearchPlace} />
+					<GroupGamesPage {store} />
 				{/key}
 			{:else if store.subpage === "items"}
 				{#key `${store.accountId}:${store.selectedGroupId}`}
@@ -397,7 +395,6 @@
 						{store}
 						{accounts}
 						{notifications}
-						{onSearchPlace}
 						{onShowCreations} />
 				{/key}
 			{:else if store.subpage === "joinRequests"}

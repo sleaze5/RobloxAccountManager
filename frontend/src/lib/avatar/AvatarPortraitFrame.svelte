@@ -16,7 +16,7 @@
 		headshotUrl: string
 		// label names the image, such as "@builderman's avatar".
 		label: string
-		onOpenAvatar: () => void
+		onOpenAvatar?: () => void
 	} = $props()
 
 	const fullBodyImageUrl = $derived(portraitLoad.portrait?.fullBodyImageUrl ?? ""),
@@ -26,7 +26,7 @@
 <ImageMenuTarget
 	imageUrl={fullBodyImageUrl || headshotUrl}
 	{label}
-	openLabel="Show avatar"
+	openLabel={onOpenAvatar ? "Show avatar" : ""}
 	onOpen={onOpenAvatar}>
 	<span
 		class="relative grid size-36 place-items-center overflow-hidden rounded-md border border-line-strong bg-raised"

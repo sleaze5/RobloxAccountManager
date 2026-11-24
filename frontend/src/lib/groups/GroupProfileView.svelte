@@ -27,7 +27,6 @@
 	import CreatorCard from "../shared/CreatorCard.svelte"
 	import CreatorByline from "../shared/CreatorByline.svelte"
 	import ProfileStats from "../shared/ProfileStats.svelte"
-	import type { ProfileStat } from "../shared/ProfileStats.svelte"
 	import ProfileTabs from "../shared/ProfileTabs.svelte"
 	import type { CreatorRole } from "../shared/CreatorCard.svelte"
 	import { errorMessage } from "../shared/errors"
@@ -37,6 +36,7 @@
 	import { relativeTime } from "../shared/timestamp"
 	import ConfirmationDialog from "../shared/ConfirmationDialog.svelte"
 	import GroupIcon from "./GroupIcon.svelte"
+	import { groupStats } from "./group-stats"
 	import type { GroupsStore, GroupSubpage } from "./groups-store.svelte"
 
 	let {
@@ -48,10 +48,6 @@
 	} = $props()
 
 	const exactNumbers = new Intl.NumberFormat("en-US"),
-		compactNumbers = new Intl.NumberFormat("en-US", {
-			notation: "compact",
-			maximumFractionDigits: 1,
-		}),
 		sectionHeadingClass = "text-xs font-semibold text-fg-muted",
 		metaClass =
 			"flex min-w-0 flex-wrap items-center gap-1 font-mono text-2xs wrap-anywhere text-fg-muted",
@@ -79,18 +75,7 @@
 				? !membership?.isOwner
 				: !membership?.isPendingJoin && !details?.isLocked,
 		),
-		groupStats = $derived<ProfileStat[]>(
-			group
-				? [
-						{
-							id: "members",
-							value: compactNumbers.format(group.memberCount),
-							label: group.memberCount === 1 ? "member" : "members",
-							description: `${exactNumbers.format(group.memberCount)} ${group.memberCount === 1 ? "member" : "members"}`,
-						},
-					]
-				: [],
-		)
+		headlineStats = $derived(group ? groupStats(group) : [])
 
 	function startShout(): void {
 		store.clearActionError()
@@ -216,7 +201,7 @@
 				{:else}
 					<p class="text-xs text-fg-muted">Nobody owns this group.</p>
 				{/if}
-				<ProfileStats label="Group numbers" stats={groupStats} />
+				<ProfileStats label="Group numbers" stats={headlineStats} />
 				<ul class="mt-1 flex min-h-6 flex-wrap gap-1" aria-label="Status">
 					{#if isMember}
 						<li class="tag-pill-success">

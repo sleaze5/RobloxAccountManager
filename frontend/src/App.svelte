@@ -41,7 +41,6 @@
 	import type {
 		AppBuild,
 		AppLocation,
-		GamePlace,
 		ShutdownEffects,
 		SocialUser,
 	} from "./lib/backend/bridge"
@@ -51,7 +50,13 @@
 	import { GamesStore, setGamesStore } from "./lib/games/games-store.svelte"
 	import { CatalogStore } from "./lib/catalog/catalog-store.svelte"
 	import { GroupsStore } from "./lib/groups/groups-store.svelte"
-	import { setCreatorNavigation } from "./lib/shared/creator-navigation"
+	import {
+		isSameProfilePreviewSubject,
+		setProfilePreviews,
+		type ProfilePreviewSubject,
+	} from "./lib/shared/profile-preview"
+	import ProfilePreviewDialog from "./lib/layout/ProfilePreviewDialog.svelte"
+	import { trackPageHistories } from "./lib/layout/page-histories.svelte"
 	import { LogsExplorerStore } from "./lib/logs-explorer/logs-explorer-store.svelte"
 	import LaunchDrawer from "./lib/layout/LaunchDrawer.svelte"
 	import PageNavigation from "./lib/layout/PageNavigation.svelte"
@@ -401,23 +406,84 @@
 		showLaunchDrawer("[data-launch-link]")
 	}
 
-	function onShowGamePass(place: GamePlace, gamePassId: number): void {
-		showPage("games", () => games.showGamePass(place, gamePassId))
+	// A link to a user, a group, or a game opens its preview above the page,
+	// so that the page stays. The full profile opens on its own page, as a
+	// search by its ID with the profile opened.
+	let previewSubjects = $state<ProfilePreviewSubject[]>([])
+
+	setProfilePreviews({
+		show: (subject) => {
+			const shownSubject = previewSubjects.at(-1)
+			if (shownSubject && isSameProfilePreviewSubject(shownSubject, subject))
+				return
+			previewSubjects = [...previewSubjects, subject]
+		},
+	})
+
+	function openFullProfile(subject: ProfilePreviewSubject): void {
+		previewSubjects = []
+		const account = store.selectedAccount
+		if (subject.kind === "User")
+			showPage("social", () =>
+				social.showUser(account.id, Number(account.userId) || 0, subject),
+			)
+		else if (subject.kind === "Group")
+			showPage("groups", () =>
+				groups.showGroupAsIDSearch(account.id, subject.groupId),
+			)
+		else
+			showPage("games", () => {
+				void games.showPlaceAsIDSearch(subject)
+				void focusAfterRender("[data-games-search]")
+			})
 	}
 
-	function searchGames(text: string): void {
-		showPage("games", () => {
-			void games.searchFor(text)
-			void focusAfterRender("[data-games-search]")
+	// A preview runs a relationship action through Social, so that Social
+	// shows the new relationship too. Social works for the selected account.
+	async function runPreviewRelationshipAction(
+		person: SocialUser,
+		actionId: RelationshipActionId,
+	): Promise<boolean> {
+		const account = store.selectedAccount
+		if (social.accountId !== account.id)
+			social.show(account.id, Number(account.userId) || 0)
+		const isDone = await social.runRelationshipAction(person, actionId)
+		if (!isDone && social.relationshipError)
+			notificationCenter.show({
+				id: `error:${social.relationshipError}`,
+				title: "Relationship not changed",
+				tone: "error",
+				message: social.relationshipError,
+			})
+		return isDone
+	}
+
+	// A group that a preview joined or left shows the new membership in
+	// Groups too.
+	function refreshChangedGroup(groupId: number): void {
+		void groups.refreshMyGroups()
+		if (groups.selectedGroupId === groupId) void groups.refreshProfile()
+	}
+
+	const pageHistories = trackPageHistories({
+		accounts: store,
+		workspace,
+		social,
+		groups,
+		games,
+		logsExplorer,
+	})
+
+	// Alt+Left and Alt+Right, and the back and forward buttons of a mouse, go
+	// back and forward through what the page showed, while no dialog is open.
+	function goThroughPageHistory(step: -1 | 1): void {
+		if (activePage === "catalog" || activePage === "settings") return
+		if (document.querySelector('[aria-modal="true"]')) return
+		const history = pageHistories[activePage]
+		workspace.closeAccountMenus()
+		unsavedChangesGuard.leave(() => {
+			void (step < 0 ? history.back() : history.forward())
 		})
-	}
-
-	function searchPlace(placeId: number): void {
-		searchGames(`id:${placeId}`)
-	}
-
-	function searchUniverse(universeId: number): void {
-		searchGames(`universe:${universeId}`)
 	}
 
 	// The creations of a user or a group open in the Marketplace with the items
@@ -433,19 +499,6 @@
 			catalog.showCreations(groupName, CatalogCreatorType.CatalogCreatorGroup),
 		)
 	}
-
-	setCreatorNavigation({
-		showGroup: (groupId) =>
-			showPage("groups", () =>
-				groups.showGroupAsIDSearch(store.selectedAccount.id, groupId),
-			),
-		showUser: (user) => {
-			const account = store.selectedAccount
-			showPage("social", () =>
-				social.showUser(account.id, Number(account.userId) || 0, user),
-			)
-		},
-	})
 
 	function openRenewCookie(accountId: number): void {
 		if (store.busy) return
@@ -714,6 +767,14 @@
 		"import-vault",
 	])
 
+	function isTextField(target: EventTarget | null): boolean {
+		return (
+			target instanceof HTMLInputElement ||
+			target instanceof HTMLTextAreaElement ||
+			(target instanceof HTMLElement && target.isContentEditable)
+		)
+	}
+
 	// The WebView selects every text node in the window on Ctrl+A. Like a
 	// desktop app, select all only inside the focused text field or read-only
 	// textbox, such as the document viewer.
@@ -722,13 +783,7 @@
 			return false
 		}
 		const target = event.target
-		if (
-			target instanceof HTMLInputElement ||
-			target instanceof HTMLTextAreaElement ||
-			(target instanceof HTMLElement && target.isContentEditable)
-		) {
-			return false
-		}
+		if (isTextField(target)) return false
 		event.preventDefault()
 		if (
 			target instanceof HTMLElement &&
@@ -736,6 +791,22 @@
 		) {
 			window.getSelection()?.selectAllChildren(target)
 		}
+		return true
+	}
+
+	// goThroughPageHistoryOnKey handles Alt+Left and Alt+Right, and returns
+	// whether the event was one of them.
+	function goThroughPageHistoryOnKey(event: KeyboardEvent): boolean {
+		const isHistoryKey =
+			event.altKey &&
+			!event.ctrlKey &&
+			!event.metaKey &&
+			!event.shiftKey &&
+			(event.key === "ArrowLeft" || event.key === "ArrowRight")
+		// In a text field, the keys move the caret by words on macOS.
+		if (!isHistoryKey || isTextField(event.target)) return isHistoryKey
+		event.preventDefault()
+		goThroughPageHistory(event.key === "ArrowLeft" ? -1 : 1)
 		return true
 	}
 
@@ -791,7 +862,14 @@
 <svelte:window
 	onclick={(event) => workspace.handleWindowClick(event)}
 	oncontextmenu={(event) => event.preventDefault()}
-	onkeydown={handleWindowKeydown} />
+	onkeydown={(event) => {
+		if (!goThroughPageHistoryOnKey(event)) handleWindowKeydown(event)
+	}}
+	onmouseup={(event) => {
+		if (event.button !== 3 && event.button !== 4) return
+		event.preventDefault()
+		goThroughPageHistory(event.button === 3 ? -1 : 1)
+	}} />
 
 <div class="flex h-screen flex-col bg-canvas">
 	<WindowTitleBar
@@ -875,9 +953,6 @@
 											})}
 										onFollowUser={(user) =>
 											fillFollowUserLaunchOptions(user)}
-										onSearchPlace={searchPlace}
-										{onShowGamePass}
-										onSearchUniverse={searchUniverse}
 										onReplaceCookie={openAddAccount}
 										onEditDescription={openDescriptionEditor}
 										onShowSocial={showSocial}
@@ -909,9 +984,6 @@
 					onFillLaunch={(placeId, jobId) =>
 						fillGameLaunchOptions(placeId, jobId)}
 					onFillLaunchUser={fillFollowUserLaunchOptions}
-					onSearchPlace={searchPlace}
-					{onShowGamePass}
-					onSearchUniverse={searchUniverse}
 					onRelationshipAction={openRelationshipAction}
 					onEditNickname={openNickname}
 					onRemoveSelected={openRemoveConnections}
@@ -932,7 +1004,6 @@
 					store={groups}
 					accounts={store}
 					notifications={notificationCenter}
-					onSearchPlace={searchPlace}
 					onOpenInBrowser={(accountId, pageUrl) =>
 						void openManagedBrowser(accountId, pageUrl)}
 					onShowCreations={showGroupCreations} />
@@ -968,8 +1039,7 @@
 				<CatalogPage
 					store={catalog}
 					accounts={store}
-					notifications={notificationCenter}
-					onSearchPlace={searchPlace} />
+					notifications={notificationCenter} />
 			{:catch}
 				{@render pageUnavailable()}
 			{/await}
@@ -983,8 +1053,7 @@
 				<LogsExplorerPage
 					store={logsExplorer}
 					accounts={store}
-					onFillLaunch={(visit) => fillLaunchOptions(visit)}
-					onSearchPlace={searchPlace} />
+					onFillLaunch={(visit) => fillLaunchOptions(visit)} />
 			{:catch}
 				{@render pageUnavailable()}
 			{/await}
@@ -992,6 +1061,15 @@
 	{/if}
 	<Tooltip />
 </div>
+
+<ProfilePreviewDialog
+	subjects={previewSubjects}
+	accountId={store.selectedAccount.id}
+	onBack={() => (previewSubjects = previewSubjects.slice(0, -1))}
+	onClose={() => (previewSubjects = [])}
+	onOpenFull={openFullProfile}
+	onRelationshipAction={runPreviewRelationshipAction}
+	onMembershipChanged={refreshChangedGroup} />
 
 {#if workspace.accountContextMenu && store.selectedAccountIds.includes(workspace.accountContextMenu.accountId) && store.vault.unlocked}
 	<AccountContextMenu

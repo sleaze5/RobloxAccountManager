@@ -26,12 +26,10 @@
 		store,
 		accounts,
 		onFillLaunch,
-		onSearchPlace,
 	}: {
 		store: LogsExplorerStore
 		accounts: AccountStore
 		onFillLaunch: (visit: LogsExplorerVisit) => void
-		onSearchPlace: (placeId: number) => void
 	} = $props()
 	const sessions = $derived(store.filteredSessions),
 		selected = $derived(store.selectedSession),
@@ -184,7 +182,6 @@
 						bind:newestFirst={store.timelineNewestFirst}
 						refreshing={store.refreshingFiles.has(selected.fileName)}
 						{onFillLaunch}
-						{onSearchPlace}
 						onRefresh={() =>
 							void store.refreshSession(selected.fileName)} />
 				{/key}

@@ -10,7 +10,7 @@
 	import { accountBackend } from "../backend/bridge"
 	import type { GroupJoinRequest, GroupJoinRequestPage } from "../backend/bridge"
 	import type { NotificationCenter } from "../notifications/notification-center.svelte"
-	import { getCreatorNavigation } from "../shared/creator-navigation"
+	import { getProfilePreviews } from "../shared/profile-preview"
 	import { CursorPagedList } from "../shared/cursor-paged-list.svelte"
 	import { errorMessage } from "../shared/errors"
 	import Icon from "../shared/Icon.svelte"
@@ -31,7 +31,7 @@
 	} = $props()
 
 	const group = untrack(() => store.profile!.details.group),
-		navigation = getCreatorNavigation(),
+		previews = getProfilePreviews(),
 		requests = untrack(
 			() =>
 				new CursorPagedList<GroupJoinRequestPage, GroupJoinRequest>(
@@ -144,10 +144,11 @@
 						<button
 							class="flex min-w-0 flex-1 flex-col rounded-md text-left leading-snug"
 							type="button"
-							data-tooltip="Show in Social"
+							data-tooltip="Show profile"
 							data-tooltip-strong={request.user.displayName ||
 								request.user.username}
-							onclick={() => navigation.showUser(request.user)}>
+							onclick={() =>
+								previews.show({ kind: "User", ...request.user })}>
 							<strong class="truncate text-xs font-semibold text-fg"
 								>{request.user.displayName ||
 									request.user.username}</strong>

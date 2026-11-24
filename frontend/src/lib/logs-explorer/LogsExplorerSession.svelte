@@ -13,14 +13,12 @@
 		refreshing,
 		onRefresh,
 		onFillLaunch,
-		onSearchPlace,
 	}: {
 		session: LogsExplorerSession
 		newestFirst: boolean
 		refreshing: boolean
 		onRefresh: () => void
 		onFillLaunch: (visit: LogsExplorerVisit) => void
-		onSearchPlace: (placeId: number) => void
 	} = $props()
 	const visits = $derived(session.visits ?? [])
 </script>
@@ -64,8 +62,7 @@
 					{visits}
 					logStartedAtMs={session.startedAtMs}
 					{newestFirst}
-					{onFillLaunch}
-					{onSearchPlace} />
+					{onFillLaunch} />
 			{:else}
 				<p class="text-xs text-fg-muted">No game joins recorded.</p>
 			{/if}

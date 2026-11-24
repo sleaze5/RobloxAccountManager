@@ -66,9 +66,6 @@
 		notifications,
 		onFillLaunch,
 		onFillLaunchUser,
-		onSearchPlace,
-		onShowGamePass,
-		onSearchUniverse,
 		onRelationshipAction,
 		onEditNickname,
 		onRemoveSelected,
@@ -80,9 +77,6 @@
 		notifications: NotificationCenter
 		onFillLaunch: (placeId: number, jobId: string) => void
 		onFillLaunchUser: (user: SocialUser) => void
-		onSearchPlace: (placeId: number) => void
-		onShowGamePass: (place: GamePlace, gamePassId: number) => void
-		onSearchUniverse: (universeId: number) => void
 		onRelationshipAction: (person: SocialUser, action: RelationshipActionId) => void
 		onEditNickname: (person: SocialUser, nickname: string) => void
 		onRemoveSelected: () => void
@@ -707,8 +701,7 @@
 						{notifications}
 						accountId={account.id}
 						userId={selected.userId}
-						username={selected.username || String(selected.userId)}
-						{onSearchPlace} />
+						username={selected.username || String(selected.userId)} />
 				{/key}
 			{:else if selected && store.subpage === "inventory"}
 				{#key `${account.id}:${selected.userId}`}
@@ -718,9 +711,7 @@
 						accountId={account.id}
 						userId={selected.userId}
 						username={selected.username || String(selected.userId)}
-						bind:sidebarWidth={store.inventorySidebarWidth}
-						{onSearchPlace}
-						{onShowGamePass} />
+						bind:sidebarWidth={store.inventorySidebarWidth} />
 				{/key}
 			{:else if selected}
 				{#key selected.userId}
@@ -731,8 +722,6 @@
 							person={selected}
 							{onFillLaunch}
 							{onFillLaunchUser}
-							{onSearchPlace}
-							{onSearchUniverse}
 							onEditNickname={(nickname) =>
 								onEditNickname(selected, nickname)}
 							{onRelationshipAction}
@@ -853,7 +842,6 @@
 		{store}
 		menu={store.menu}
 		{onFillLaunch}
-		{onSearchPlace}
 		{onRelationshipAction}
 		onOpenInBrowser={(pageUrl) => onOpenInBrowser(store.accountId, pageUrl)} />
 {/if}

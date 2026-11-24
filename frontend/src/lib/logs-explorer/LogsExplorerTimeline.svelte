@@ -15,13 +15,11 @@
 		logStartedAtMs,
 		newestFirst,
 		onFillLaunch,
-		onSearchPlace,
 	}: {
 		visits: LogsExplorerVisit[]
 		logStartedAtMs: number
 		newestFirst: boolean
 		onFillLaunch: (visit: LogsExplorerVisit) => void
-		onSearchPlace: (placeId: number) => void
 	} = $props()
 	let activeMenu = $state<{
 		visit: LogsExplorerVisit
@@ -119,7 +117,7 @@
 						<Icon svg={dotsThreeIcon} size={14} aria-hidden="true" />
 					</button>
 				</div>
-				<LogsExplorerVisitDetails {visit} {onSearchPlace} />
+				<LogsExplorerVisitDetails {visit} />
 				<div class="flex justify-end text-2xs">
 					{#if visit.startedAtMs}<Timestamp
 							value={visit.startedAtMs} />{:else}Time unavailable{/if}

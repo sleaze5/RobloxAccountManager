@@ -2,12 +2,12 @@
 	import sealCheckIcon from "@phosphor-icons/core/regular/seal-check.svg?raw"
 	import usersThreeIcon from "@phosphor-icons/core/regular/users-three.svg?raw"
 	import type { UserPrimaryGroup } from "../backend/bridge"
-	import { getCreatorNavigation } from "./creator-navigation"
+	import { getProfilePreviews } from "./profile-preview"
 	import Icon from "./Icon.svelte"
 
 	let { group }: { group: UserPrimaryGroup } = $props()
 
-	const navigation = getCreatorNavigation()
+	const previews = getProfilePreviews()
 	const memberCounts = new Intl.NumberFormat("en-US", {
 		notation: "compact",
 		maximumFractionDigits: 1,
@@ -22,8 +22,8 @@
 		<button
 			class="inline-flex min-w-0 items-center gap-1 rounded-sm text-left underline-offset-2 hover:underline"
 			type="button"
-			data-tooltip="Show in Groups"
-			onclick={() => navigation.showGroup(group.id)}
+			data-tooltip="Show group"
+			onclick={() => previews.show({ kind: "Group", groupId: group.id })}
 			>{group.name}{#if group.verified}<Icon
 					svg={sealCheckIcon}
 					class="shrink-0 text-fg-muted"

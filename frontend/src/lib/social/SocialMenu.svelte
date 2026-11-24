@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { getProfilePreviews } from "../shared/profile-preview"
 	import atIcon from "@phosphor-icons/core/regular/at.svg?raw"
 	import globeIcon from "@phosphor-icons/core/regular/globe.svg?raw"
 	import hashIcon from "@phosphor-icons/core/regular/hash.svg?raw"
@@ -25,17 +26,16 @@
 		store,
 		menu,
 		onFillLaunch,
-		onSearchPlace,
 		onRelationshipAction,
 		onOpenInBrowser,
 	}: {
 		store: SocialStore
 		menu: SocialMenu
 		onFillLaunch: (placeId: number, jobId: string) => void
-		onSearchPlace: (placeId: number) => void
 		onRelationshipAction: (person: SocialUser, action: RelationshipActionId) => void
 		onOpenInBrowser: (pageUrl: string) => void
 	} = $props()
+	const previews = getProfilePreviews()
 	const person = $derived(menu.person),
 		profileUrl = $derived(`https://www.roblox.com/users/${person.userId}/profile`),
 		presence = $derived(person.presence),
@@ -120,11 +120,11 @@
 			type="button"
 			role="menuitem"
 			onclick={() => {
-				onSearchPlace(placeId)
+				previews.show({ kind: "Place", placeId })
 				store.closeMenu()
 			}}
 			><Icon svg={magnifyingGlassIcon} size={16} aria-hidden="true" /><span
-				>Show in Games</span
+				>Show game</span
 			></button>
 	{/if}
 	<button

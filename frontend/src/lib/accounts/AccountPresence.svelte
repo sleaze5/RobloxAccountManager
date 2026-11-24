@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { getProfilePreviews } from "../shared/profile-preview"
 	import magnifyingGlassIcon from "@phosphor-icons/core/regular/magnifying-glass.svg?raw"
 	import starFillIcon from "@phosphor-icons/core/fill/star-fill.svg?raw"
 	import Icon from "../shared/Icon.svelte"
@@ -20,8 +21,6 @@
 		joinability = UserJoinability.UserJoinabilityUnknown,
 		onJoin,
 		onJoinUser,
-		onSearchPlace,
-		onSearchUniverse,
 	}: {
 		presence: UserPresence
 		// joinability is whether the user's profile offers to join them, for a
@@ -31,9 +30,8 @@
 		// onJoinUser fills the launch options to follow the user, for a server
 		// that the presence does not show.
 		onJoinUser?: () => void
-		onSearchPlace: (placeId: number) => void
-		onSearchUniverse: (universeId: number) => void
 	} = $props()
+	const previews = getProfilePreviews()
 
 	const cardHoverOpenDelayMs = 400,
 		cardHoverCloseDelayMs = 150
@@ -152,9 +150,7 @@
 				onFollowUser={canFollowUser ? followUser : undefined}
 				onPointerEnter={() => scheduleCardHover("hover", 0)}
 				onPointerLeave={() => scheduleCardHover(null, cardHoverCloseDelayMs)}
-				onFillLaunch={fillLaunch}
-				{onSearchPlace}
-				{onSearchUniverse} />
+				onFillLaunch={fillLaunch} />
 		{/if}
 	{:else}
 		<button
@@ -167,9 +163,9 @@
 		<button
 			class="button-ghost-sm"
 			type="button"
-			aria-label="Show in Games"
-			data-tooltip="Show in Games"
-			onclick={() => onSearchPlace(joinPlaceId)}>
+			aria-label="Show game"
+			data-tooltip="Show game"
+			onclick={() => previews.show({ kind: "Place", placeId: joinPlaceId })}>
 			<Icon svg={magnifyingGlassIcon} size={14} aria-hidden="true" />
 		</button>
 	{/if}

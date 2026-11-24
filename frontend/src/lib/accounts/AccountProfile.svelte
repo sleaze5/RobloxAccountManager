@@ -63,9 +63,6 @@
 		onManageTags,
 		onJoinServer,
 		onFollowUser,
-		onSearchPlace,
-		onShowGamePass,
-		onSearchUniverse,
 		onReplaceCookie,
 		onEditDescription,
 		onShowSocial,
@@ -78,9 +75,6 @@
 		onManageTags: (accountId: number) => void
 		onJoinServer: (placeId: number, jobId: string) => void
 		onFollowUser: (user: RobloxNotificationUser) => void
-		onSearchPlace: (placeId: number) => void
-		onShowGamePass: (place: GamePlace, gamePassId: number) => void
-		onSearchUniverse: (universeId: number) => void
 		onReplaceCookie: () => void
 		onEditDescription: (description: string) => void
 		onShowSocial: (list: SocialListKind) => void
@@ -261,8 +255,7 @@
 		{notifications}
 		accountId={selectedAccount.id}
 		userId={Number(selectedAccount.userId)}
-		username={selectedAccount.username}
-		{onSearchPlace} />
+		username={selectedAccount.username} />
 {:else if workspace.accountPage === "inventory" && hasAccount && store.vault.unlocked}
 	<InventoryPage
 		accounts={store}
@@ -270,9 +263,7 @@
 		accountId={selectedAccount.id}
 		userId={Number(selectedAccount.userId)}
 		username={selectedAccount.username}
-		bind:sidebarWidth={workspace.accountSettingsSidebarWidth}
-		{onSearchPlace}
-		{onShowGamePass} />
+		bind:sidebarWidth={workspace.accountSettingsSidebarWidth} />
 {:else if workspace.accountPage === "notifications" && hasAccount && store.vault.unlocked}
 	<RobloxNotificationsPage
 		{store}
@@ -280,8 +271,7 @@
 			workspace.chatUserIdToOpen = userId
 			openPage("chats")
 		}}
-		{onFollowUser}
-		{onSearchPlace} />
+		{onFollowUser} />
 {:else}
 	<section
 		bind:this={profileSection}
@@ -341,9 +331,7 @@
 					{#if store.vault.unlocked && !moderated}
 						<AccountPresence
 							presence={selectedAccount.presence}
-							onJoin={onJoinServer}
-							{onSearchPlace}
-							{onSearchUniverse} />
+							onJoin={onJoinServer} />
 					{/if}
 					{#if profileState}
 						{@const sections = profileState.sections}
@@ -568,7 +556,6 @@
 					userId={robloxUserId}
 					username={selectedAccount.username}
 					refreshCount={showcaseRefreshCount}
-					{onSearchPlace}
 					{onShowCreations} />
 			{/if}
 		{/if}

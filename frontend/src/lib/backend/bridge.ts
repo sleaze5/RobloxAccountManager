@@ -167,6 +167,7 @@ export type {
 	TextFilter,
 	UserPresence,
 	UserPrimaryGroup,
+	UserView,
 	UserSocialLink,
 } from "../../../bindings/github.com/sleaze5/RobloxAccountManager/internal/roblox/services/models.js"
 export type {

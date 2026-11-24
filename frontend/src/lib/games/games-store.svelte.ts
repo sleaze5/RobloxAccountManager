@@ -24,6 +24,7 @@ import { UniverseBadges } from "./game-badges-state.svelte"
 import { UniverseDeveloperProducts } from "./developer-products-state.svelte"
 import { UniverseGamePasses } from "./game-passes-state.svelte"
 import { menuPointFor } from "../shared/presence"
+import type { PageLocationKeys } from "../layout/page-history"
 
 // Roblox serves these parts of the game details from their own endpoints, so
 // they load beside the main details and fill in as they arrive.
@@ -75,6 +76,24 @@ export function creatorByline(place: GamePlace): string {
 
 // GameDetailsPage names a page that opens in place of the game details.
 export type GameDetailsPage = "servers" | "badges" | "gamePasses"
+
+// GamesLocation is what Games shows: the list, the search, and the place and
+// page that it opened. Its history goes back to it.
+export interface GamesLocation {
+	mode: "search" | "favorites"
+	searchedText: string
+	place: GamePlace | null
+	detailsPage: "details" | GameDetailsPage
+}
+
+export function gamesLocationKeys(location: GamesLocation): PageLocationKeys {
+	return {
+		context: `${location.mode}:${location.searchedText}`,
+		selection: location.place
+			? `${location.place.placeId}:${location.detailsPage}`
+			: "",
+	}
+}
 
 export const [getGamesStore, setGamesStore] = createContext<GamesStore>()
 
@@ -425,13 +444,50 @@ export class GamesStore {
 		this.revalidate()
 	}
 
-	// showGamePass opens the place's Game passes page with the pass highlighted.
-	showGamePass(place: GamePlace, gamePassId: number): void {
+	get location(): GamesLocation {
+		return {
+			mode: this.mode,
+			searchedText: this.mode === "search" ? this.searchedText : "",
+			place: $state.snapshot(this.selected),
+			detailsPage: this.detailsPage,
+		}
+	}
+
+	async restoreLocation(location: GamesLocation): Promise<void> {
 		this.closeMenu()
+		if (location.mode === "search" && location.searchedText !== this.searchedText)
+			await this.searchFor(location.searchedText)
+		else {
+			if (location.mode === "search") this.query = location.searchedText
+			this.show(location.mode)
+		}
+		if (location.place?.placeId !== this.selected?.placeId)
+			this.select(location.place)
+		this.detailsPage = location.detailsPage
+	}
+
+	// showPlaceAsIDSearch opens a place that another page names as a search by
+	// its ID, or by its universe's ID to list every place of the universe, and
+	// opens the place when the search finds it. A game pass opens the place's
+	// Game passes page with the pass highlighted.
+	async showPlaceAsIDSearch(subject: {
+		placeId: number
+		universeId?: number
+		gamePassId?: number
+	}): Promise<void> {
+		this.closeMenu()
+		const text = subject.universeId
+			? `universe:${subject.universeId}`
+			: `id:${subject.placeId}`
+		await this.searchFor(text)
+		const place = this.results.find((result) => result.placeId === subject.placeId)
+		// The user may have opened another result or search meanwhile.
+		if (!place || this.selected || this.searchedText !== text) return
 		this.select(place)
+		if (!subject.gamePassId) return
 		this.detailsPage = "gamePasses"
 		this.storeView = "gamePasses"
-		this.highlightedGamePassId = gamePassId
+		this.highlightedGamePassId = subject.gamePassId
 	}
 
 	revalidate(): void {

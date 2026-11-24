@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { getProfilePreviews } from "../shared/profile-preview"
 	import { notifyErrors } from "../notifications/error-notifications.svelte"
 	import arrowsLeftRightIcon from "@phosphor-icons/core/regular/arrows-left-right.svg?raw"
 	import arrowsOutIcon from "@phosphor-icons/core/regular/arrows-out.svg?raw"
@@ -35,11 +36,7 @@
 		InventorySaleLocation,
 		ItemAvailability,
 	} from "../backend/bridge"
-	import type {
-		GamePlace,
-		InventoryItem,
-		CategorizedInventoryItem,
-	} from "../backend/bridge"
+	import type { InventoryItem, CategorizedInventoryItem } from "../backend/bridge"
 	import CreatorByline from "../shared/CreatorByline.svelte"
 	import ProfileStats from "../shared/ProfileStats.svelte"
 	import type { ProfileStat } from "../shared/ProfileStats.svelte"
@@ -90,8 +87,6 @@
 		accounts,
 		isOwnInventory: isOpenedFromOwnInventory,
 		isWorn: isOpenedItemWorn,
-		onSearchPlace,
-		onShowGamePass,
 		onClose,
 	}: {
 		item: InventoryItem
@@ -102,11 +97,10 @@
 		accounts: AccountStore
 		isOwnInventory: boolean
 		isWorn: boolean
-		onSearchPlace: (placeId: number) => void
 		// Opens the pass in Games. Pages without game passes omit it.
-		onShowGamePass?: (place: GamePlace, gamePassId: number) => void
 		onClose: () => void
 	} = $props()
+	const previews = getProfilePreviews()
 	const elementIdPrefix = $props.id()
 
 	// The related items that the user opened inside the dialog, the latest
@@ -508,13 +502,12 @@
 	// A lookup that ends after the dialog closes must not navigate.
 	onDestroy(() => inventory.cancelFindingGamePassPlace())
 
-	async function showGamePass(
-		show: (place: GamePlace, gamePassId: number) => void,
-	): Promise<void> {
+	async function showGamePass(): Promise<void> {
 		const gamePassId = item.itemId,
 			gamePassKey = detailsKey,
 			place = await inventory.findGamePassPlace(gamePassId)
-		if (place && detailsKey === gamePassKey) show(place, gamePassId)
+		if (place && detailsKey === gamePassKey)
+			previews.show({ kind: "Place", placeId: place.placeId, gamePassId })
 	}
 
 	function download(downloadKind: InventoryDownloadKind): void {
@@ -879,26 +872,28 @@
 									<button
 										class="button-icon"
 										type="button"
-										aria-label="Show in Games"
-										data-tooltip="Show in Games"
+										aria-label="Show game"
+										data-tooltip="Show game"
 										onclick={() =>
-											onSearchPlace(badge.awardingPlaceId)}>
+											previews.show({
+												kind: "Place",
+												placeId: badge.awardingPlaceId,
+											})}>
 										<Icon
 											svg={magnifyingGlassIcon}
 											size={16}
 											aria-hidden="true" />
 									</button>
 								{/if}
-								{#if onShowGamePass && category.id === InventoryCategory.InventoryGamePasses}
+								{#if category.id === InventoryCategory.InventoryGamePasses}
 									<button
 										class="button-icon"
 										type="button"
-										aria-label="Show in Games"
+										aria-label="Show game"
 										aria-busy={inventory.isFindingGamePassPlace}
-										data-tooltip="Show in Games"
+										data-tooltip="Show game"
 										disabled={inventory.isFindingGamePassPlace}
-										onclick={() =>
-											void showGamePass(onShowGamePass)}>
+										onclick={() => void showGamePass()}>
 										<Icon
 											svg={inventory.isFindingGamePassPlace
 												? circleNotchIcon

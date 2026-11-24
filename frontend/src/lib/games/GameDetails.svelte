@@ -38,10 +38,10 @@
 	import CreatorByline from "../shared/CreatorByline.svelte"
 	import ProfileStats from "../shared/ProfileStats.svelte"
 	import ProfileTabs from "../shared/ProfileTabs.svelte"
-	import type { ProfileStat } from "../shared/ProfileStats.svelte"
 	import GameMedia from "./GameMedia.svelte"
 	import { creatorByline, type GamesStore } from "./games-store.svelte"
 	import GameIcon from "./GameIcon.svelte"
+	import { gameHeadlineStats } from "./game-stats"
 
 	let {
 		store,
@@ -53,14 +53,6 @@
 		onSearchUniverse: (universeId: number) => void
 	} = $props()
 	const numbers = new Intl.NumberFormat(),
-		compactNumbers = new Intl.NumberFormat(undefined, {
-			notation: "compact",
-			maximumFractionDigits: 1,
-		}),
-		percent = new Intl.NumberFormat(undefined, {
-			style: "percent",
-			maximumFractionDigits: 1,
-		}),
 		graphemes = new Intl.Segmenter(undefined, { granularity: "grapheme" })
 
 	let playability = $state.raw<Playability | null>(null),
@@ -164,11 +156,6 @@
 						}
 					: null,
 		),
-		hasVotes = $derived(
-			store.loadedGameSections.includes(GameSection.GameSectionVotes),
-		),
-		votes = $derived(game ? game.upVotes + game.downVotes : 0),
-		likeShare = $derived(game && votes ? game.upVotes / votes : 0),
 		genre = $derived(
 			listedGame &&
 				([listedGame.genre, listedGame.subgenre].filter(Boolean).join("; ") ||
@@ -184,69 +171,14 @@
 					"; ",
 				),
 		),
-		// Roblox reports these per universe, so a subplace shows its universe's
-		// values. An unlisted game has no counts, which its warning explains.
-		headlineStats = $derived<ProfileStat[]>(
-			!isWaitingForGame && !listedGame
-				? []
-				: [
-						{
-							id: "playing",
-							value: listedGame ? numbers.format(listedGame.playing) : "",
-							label: "playing",
-							description: listedGame
-								? count(
-										listedGame.playing,
-										"player in the game now",
-										"players in the game now",
-									)
-								: "",
-							isLoading: isWaitingForGame,
-							isLive: !!listedGame && listedGame.playing > 0,
-						},
-						{
-							id: "rating",
-							value:
-								game && hasVotes
-									? votes
-										? percent.format(likeShare)
-										: "0"
-									: "",
-							label: game && hasVotes && !votes ? "votes" : "liked",
-							description:
-								game && hasVotes && votes
-									? `${count(game.upVotes, "like", "likes")} and ${count(game.downVotes, "dislike", "dislikes")}`
-									: "No votes",
-							isLoading:
-								isWaitingForGame ||
-								store.isGameSectionPending(
-									GameSection.GameSectionVotes,
-								),
-						},
-						{
-							id: "visits",
-							value: listedGame
-								? compactNumbers.format(listedGame.visits)
-								: "",
-							label: listedGame?.visits === 1 ? "visit" : "visits",
-							description: listedGame
-								? count(listedGame.visits, "visit", "visits")
-								: "",
-							isLoading: isWaitingForGame,
-						},
-						{
-							id: "favorites",
-							value: listedGame
-								? compactNumbers.format(listedGame.favorites)
-								: "",
-							label:
-								listedGame?.favorites === 1 ? "favorite" : "favorites",
-							description: listedGame
-								? count(listedGame.favorites, "favorite", "favorites")
-								: "",
-							isLoading: isWaitingForGame,
-						},
-					],
+		// An unlisted game has no counts, which its warning explains.
+		headlineStats = $derived(
+			gameHeadlineStats(game, isWaitingForGame, {
+				isLoaded: store.loadedGameSections.includes(
+					GameSection.GameSectionVotes,
+				),
+				isPending: store.isGameSectionPending(GameSection.GameSectionVotes),
+			}),
 		),
 		// A subplace shows only its own description and versions. Its other
 		// details belong to the universe, which its root place shows.
