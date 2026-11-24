@@ -89,6 +89,7 @@ Check each applicable item before you finish a change. The change does only what
 4. The UI stays consistent and accessible.
     - The UI follows `docs/DESIGN.md` and is usable without instructions.
     - Every element has a purpose, and each screen reads as one system. Give a role the pattern it already has elsewhere, such as the profile header with its actions at the top right, `ProfileStats` for headline numbers, `ProfileTabs` for the pages of a profile, `CreatorByline` for a creator or owner, and `facts` for details. Do not box information into cards, tiles, or grids of cells only to group it.
+    - A link to a user, a group, or a game opens its preview through `getProfilePreviews().show`, not another page. The preview opens the full profile on its own page on request.
     - The UI works from the keyboard, with visible focus, sufficient contrast, labels, and accessible tooltips.
     - The UI handles loading, empty, success, disabled, and error states where they apply.
     - User-facing text is clear and short.
