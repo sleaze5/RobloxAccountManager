@@ -37,7 +37,6 @@
 	import { appSettings } from "../settings/settings-store.svelte"
 	import { floatMenu, menuIn, menuKeyboard, menuOut } from "../shared/presence"
 	import ImageMenuTarget from "../layout/ImageMenuTarget.svelte"
-	import { EquippedAvatarBackground } from "../avatar/equipped-avatar-background.svelte"
 	import AccountAvatar from "./AccountAvatar.svelte"
 	import AccountMembershipBadges from "./AccountMembershipBadges.svelte"
 	import AccountPresence from "./AccountPresence.svelte"
@@ -83,7 +82,6 @@
 
 	const pageVisibility = getPageVisibility()
 	let showcaseRefreshCount = $state(0)
-	const avatarBackground = new EquippedAvatarBackground()
 	const selectedAccount = $derived(store.selectedAccount),
 		selectedCustomTags = $derived(getCustomTags(selectedAccount)),
 		profileAccountId = $derived(selectedAccount.id),
@@ -113,15 +111,6 @@
 		avatarButton = $state<HTMLButtonElement | undefined>(undefined),
 		inventoryButton = $state<HTMLButtonElement | undefined>(undefined),
 		tagsButton = $state<HTMLButtonElement | undefined>(undefined)
-	// A refresh of the account data also reads the background again.
-	$effect(() => {
-		void showcaseRefreshCount
-		return avatarBackground.load(
-			profileVisible ? profileAccountId : 0,
-			robloxUserId,
-		)
-	})
-
 	const profileState = $derived(
 			profileVisible ? store.getAccountProfile(profileAccountId) : null,
 		),
@@ -254,154 +243,74 @@
 		{onSearchPlace} />
 {:else}
 	<section class="flex flex-col gap-4 p-3 pb-4" aria-labelledby="account-name">
-		<div class="flex items-start gap-4">
-			<ImageMenuTarget
-				imageUrl={selectedAccount.avatarUrl}
-				label={`@${selectedAccount.username}'s profile image`}>
-				<AccountAvatar
-					account={selectedAccount}
-					backgroundUrl={avatarBackground.background?.imageUrl ?? ""}
-					className="size-24 text-lg" />
-			</ImageMenuTarget>
-			<div class="flex min-w-0 flex-1 flex-col gap-1">
-				<h2
-					id="account-name"
-					class="flex min-w-0 items-center gap-1 text-lg leading-tight font-semibold tracking-tight text-fg">
-					<span class="truncate select-text"
-						>{selectedAccount.displayName}</span>
-					{#if selectedAccount.favorite}<Icon
-							svg={starFillIcon}
-							class="shrink-0 animate-pop text-accent-strong"
-							size={16}
-							aria-hidden="true" />{/if}
-					{#if profile?.verifiedBadge}<Icon
-							svg={sealCheckIcon}
-							class="shrink-0 text-accent-strong"
-							size={16}
-							aria-label="Verified" />{/if}
-				</h2>
-				{#if hasAccount}
-					<div
-						class="flex min-w-0 flex-wrap items-center gap-1 font-mono text-2xs wrap-anywhere text-fg-muted">
-						<span class="select-text">@{selectedAccount.username}</span>
-						<span class="text-fg-faint" aria-hidden="true">·</span>
-						<span class="select-text">ID: {selectedAccount.userId}</span>
-					</div>
-					{#if sessionAttention}
-						<div class="flex items-center gap-2 text-xs text-warning">
-							<Icon
-								svg={warningCircleIcon}
-								size={14}
-								aria-hidden="true" />
-							<span>{sessionAttention}</span>
-							<button
-								class="button"
-								type="button"
-								disabled={store.busy}
-								onclick={onReplaceCookie}>
-								Update cookie
-							</button>
+		<div class="flex items-start gap-3 @max-xl:flex-col">
+			<div class="flex min-w-0 flex-1 items-center gap-4">
+				<ImageMenuTarget
+					imageUrl={selectedAccount.avatarUrl}
+					label={`@${selectedAccount.username}'s profile image`}>
+					<AccountAvatar
+						account={selectedAccount}
+						className="size-20 text-lg" />
+				</ImageMenuTarget>
+				<div class="flex min-w-0 flex-col gap-1">
+					<h2
+						id="account-name"
+						class="flex min-w-0 items-center gap-1 text-lg leading-tight font-semibold tracking-tight text-fg">
+						<span class="truncate select-text"
+							>{selectedAccount.displayName}</span>
+						{#if selectedAccount.favorite}<Icon
+								svg={starFillIcon}
+								class="shrink-0 animate-pop text-accent-strong"
+								size={16}
+								aria-hidden="true" />{/if}
+						{#if profile?.verifiedBadge}<Icon
+								svg={sealCheckIcon}
+								class="shrink-0 text-accent-strong"
+								size={16}
+								aria-label="Verified" />{/if}
+					</h2>
+					{#if hasAccount}
+						<div
+							class="flex min-w-0 flex-wrap items-center gap-1 font-mono text-2xs wrap-anywhere text-fg-muted">
+							<span class="select-text">@{selectedAccount.username}</span>
+							<span class="text-fg-faint" aria-hidden="true">·</span>
+							<span class="select-text"
+								>ID: {selectedAccount.userId}</span>
 						</div>
+						{#if sessionAttention}
+							<div class="flex items-center gap-2 text-xs text-warning">
+								<Icon
+									svg={warningCircleIcon}
+									size={14}
+									aria-hidden="true" />
+								<span>{sessionAttention}</span>
+								<button
+									class="button"
+									type="button"
+									disabled={store.busy}
+									onclick={onReplaceCookie}>
+									Update cookie
+								</button>
+							</div>
+						{/if}
+						{#if store.vault.unlocked && !moderated}
+							<AccountPresence
+								presence={selectedAccount.presence}
+								onJoin={onJoinServer}
+								{onSearchPlace}
+								{onSearchUniverse} />
+							<div class="flex min-h-5 flex-wrap items-center gap-2">
+								<AccountProfileBalance
+									snapshot={profile}
+									loading={isBalanceLoading} />
+								{#if profile}<AccountMembershipBadges
+										snapshot={profile} />{/if}
+							</div>
+						{/if}
 					{/if}
-					{#if store.vault.unlocked && !moderated}
-						<AccountPresence
-							presence={selectedAccount.presence}
-							onJoin={onJoinServer}
-							{onSearchPlace}
-							{onSearchUniverse} />
-						<div class="flex min-h-5 flex-wrap items-center gap-2">
-							<AccountProfileBalance
-								snapshot={profile}
-								loading={isBalanceLoading} />
-							{#if profile}<AccountMembershipBadges
-									snapshot={profile} />{/if}
-						</div>
-					{/if}
-				{/if}
-				<div class="mt-1 flex flex-wrap items-center gap-1">
-					<button
-						class="button"
-						type="button"
-						aria-label={moderated
-							? "Avatar unavailable while moderated"
-							: "Avatar"}
-						data-tooltip={moderated
-							? "Avatar unavailable while moderated"
-							: "Avatar"}
-						disabled={!hasAccount || !store.vault.unlocked || moderated}
-						bind:this={avatarButton}
-						onclick={() => openPage("avatar")}>
-						<Icon svg={personArmsSpreadIcon} size={16} aria-hidden="true" />
-						Avatar
-					</button>
-					<button
-						class="button"
-						type="button"
-						aria-label={moderated
-							? "Inventory unavailable while moderated"
-							: "Inventory"}
-						data-tooltip={moderated
-							? "Inventory unavailable while moderated"
-							: "Inventory"}
-						disabled={!hasAccount || !store.vault.unlocked || moderated}
-						bind:this={inventoryButton}
-						onclick={() => openPage("inventory")}>
-						<Icon svg={backpackIcon} size={16} aria-hidden="true" />
-						Inventory
-					</button>
-					<button
-						class="button"
-						type="button"
-						aria-label="Chats"
-						data-tooltip={moderated
-							? "Chats unavailable while moderated"
-							: "Chats"}
-						disabled={!hasAccount || !store.vault.unlocked || moderated}
-						bind:this={chatsButton}
-						onclick={() => openPage("chats")}>
-						<Icon svg={chatsIcon} size={16} aria-hidden="true" />
-						Chats
-					</button>
-					<button
-						class="relative button"
-						type="button"
-						aria-label={unreadNotifications
-							? `Notifications, ${unreadNotifications} unread`
-							: "Notifications"}
-						data-tooltip={moderated
-							? "Notifications unavailable while moderated"
-							: unreadNotifications
-								? `Notifications (${unreadNotifications} unread)`
-								: "Notifications"}
-						disabled={!hasAccount || !store.vault.unlocked || moderated}
-						bind:this={notificationsButton}
-						onclick={() => openPage("notifications")}>
-						<Icon svg={bellIcon} size={16} aria-hidden="true" />
-						{#if unreadNotifications}<span
-								class="absolute -top-1.5 -right-1.5 min-w-4 animate-bloom rounded-sm bg-solid px-0.5 text-center text-2xs leading-4 font-bold text-on-solid"
-								aria-hidden="true"
-								>{unreadNotifications > 99
-									? "99+"
-									: unreadNotifications}</span
-							>{/if}
-						Notifications
-					</button>
-					<button
-						class="button"
-						type="button"
-						aria-label="Account settings"
-						data-tooltip={moderated
-							? "Settings unavailable while moderated"
-							: "Account settings"}
-						disabled={!hasAccount || !store.vault.unlocked || moderated}
-						bind:this={settingsButton}
-						onclick={() => openPage("settings")}>
-						<Icon svg={gearIcon} size={16} aria-hidden="true" />
-						Settings
-					</button>
 				</div>
 			</div>
-			<div class="relative flex shrink-0 items-center gap-1">
+			<div class="relative flex items-center gap-1 @max-xl:self-end">
 				{#if canBeReactivated && store.vault.unlocked}
 					<button
 						class="button-primary animate-enter"
@@ -453,6 +362,81 @@
 						void profileState?.refresh(true)
 					}}>
 					<RefreshIcon isRefreshing={refreshing} />
+				</button>
+				<button
+					class="relative button-icon"
+					type="button"
+					aria-label={unreadNotifications
+						? `Notifications, ${unreadNotifications} unread`
+						: "Notifications"}
+					data-tooltip={moderated
+						? "Notifications unavailable while moderated"
+						: unreadNotifications
+							? `Notifications (${unreadNotifications} unread)`
+							: "Notifications"}
+					disabled={!hasAccount || !store.vault.unlocked || moderated}
+					bind:this={notificationsButton}
+					onclick={() => openPage("notifications")}>
+					<Icon svg={bellIcon} size={16} aria-hidden="true" />
+					{#if unreadNotifications}<span
+							class="absolute -top-1.5 -right-1.5 min-w-4 animate-bloom rounded-sm bg-solid px-0.5 text-center text-2xs leading-4 font-bold text-on-solid"
+							aria-hidden="true"
+							>{unreadNotifications > 99
+								? "99+"
+								: unreadNotifications}</span
+						>{/if}
+				</button>
+				<button
+					class="button-icon"
+					type="button"
+					aria-label={moderated
+						? "Avatar unavailable while moderated"
+						: "Avatar"}
+					data-tooltip={moderated
+						? "Avatar unavailable while moderated"
+						: "Avatar"}
+					disabled={!hasAccount || !store.vault.unlocked || moderated}
+					bind:this={avatarButton}
+					onclick={() => openPage("avatar")}>
+					<Icon svg={personArmsSpreadIcon} size={16} aria-hidden="true" />
+				</button>
+				<button
+					class="button-icon"
+					type="button"
+					aria-label={moderated
+						? "Inventory unavailable while moderated"
+						: "Inventory"}
+					data-tooltip={moderated
+						? "Inventory unavailable while moderated"
+						: "Inventory"}
+					disabled={!hasAccount || !store.vault.unlocked || moderated}
+					bind:this={inventoryButton}
+					onclick={() => openPage("inventory")}>
+					<Icon svg={backpackIcon} size={16} aria-hidden="true" />
+				</button>
+				<button
+					class="button-icon"
+					type="button"
+					aria-label="Chats"
+					data-tooltip={moderated
+						? "Chats unavailable while moderated"
+						: "Chats"}
+					disabled={!hasAccount || !store.vault.unlocked || moderated}
+					bind:this={chatsButton}
+					onclick={() => openPage("chats")}>
+					<Icon svg={chatsIcon} size={16} aria-hidden="true" />
+				</button>
+				<button
+					class="button-icon"
+					type="button"
+					aria-label="Account settings"
+					data-tooltip={moderated
+						? "Settings unavailable while moderated"
+						: "Account settings"}
+					disabled={!hasAccount || !store.vault.unlocked || moderated}
+					bind:this={settingsButton}
+					onclick={() => openPage("settings")}>
+					<Icon svg={gearIcon} size={16} aria-hidden="true" />
 				</button>
 				<button
 					class="button-icon"
@@ -576,8 +560,7 @@
 			<AccountProfileDetails
 				account={selectedAccount}
 				snapshot={profile}
-				sections={profileState?.sections ?? null}
-				{avatarBackground} />
+				sections={profileState?.sections ?? null} />
 			{#if profile && profileState?.sections.hasSection(AccountProfileSection.ProfileSectionConnections) && store.accountTotal > 1}
 				<FriendConnections
 					connections={profile.connections ?? []}
