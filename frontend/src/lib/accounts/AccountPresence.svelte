@@ -1,6 +1,5 @@
 <script lang="ts">
 	import magnifyingGlassIcon from "@phosphor-icons/core/regular/magnifying-glass.svg?raw"
-	import prohibitIcon from "@phosphor-icons/core/regular/prohibit.svg?raw"
 	import signInIcon from "@phosphor-icons/core/regular/sign-in.svg?raw"
 	import starFillIcon from "@phosphor-icons/core/fill/star-fill.svg?raw"
 	import Icon from "../shared/Icon.svelte"
@@ -108,6 +107,11 @@
 		closeCard()
 		onJoin(joinPlaceId, presence.gameId ?? "")
 	}
+
+	function followUser(): void {
+		closeCard()
+		onJoinUser?.()
+	}
 </script>
 
 <svelte:window
@@ -151,6 +155,8 @@
 				anchor={trigger}
 				{presence}
 				isJoinable={hasVisibleServer}
+				{joinability}
+				onFollowUser={canFollowUser ? followUser : undefined}
 				onPointerEnter={() => scheduleCardHover("hover", 0)}
 				onPointerLeave={() => scheduleCardHover(null, cardHoverCloseDelayMs)}
 				onFillLaunch={fillLaunch}
@@ -163,12 +169,6 @@
 			class="flex min-w-0 cursor-help items-center gap-1 rounded-md text-left focus-visible:outline-offset-2"
 			aria-label={tooltip}
 			data-tooltip={tooltip}>{@render status()}</button>
-	{/if}
-	{#if joinability === UserJoinability.UserNotJoinable && inExperience}
-		<span class="tag-pill-warning shrink-0">
-			<Icon svg={prohibitIcon} size={12} aria-hidden="true" />
-			<span>Not joinable</span>
-		</span>
 	{/if}
 	{#if hasVisibleServer}
 		<button
@@ -185,10 +185,7 @@
 			type="button"
 			aria-label="Fill launch options to join this user"
 			data-tooltip="Fill launch options to join this user. Their server is hidden, but Roblox lets this account join them."
-			onclick={() => {
-				closeCard()
-				onJoinUser?.()
-			}}>
+			onclick={followUser}>
 			<Icon svg={signInIcon} size={14} aria-hidden="true" />
 		</button>
 	{/if}

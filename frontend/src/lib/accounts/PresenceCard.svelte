@@ -1,8 +1,10 @@
 <script lang="ts">
+	import checkCircleIcon from "@phosphor-icons/core/regular/check-circle.svg?raw"
 	import magnifyingGlassIcon from "@phosphor-icons/core/regular/magnifying-glass.svg?raw"
+	import prohibitIcon from "@phosphor-icons/core/regular/prohibit.svg?raw"
 	import signInIcon from "@phosphor-icons/core/regular/sign-in.svg?raw"
 	import Icon from "../shared/Icon.svelte"
-	import { PresenceType } from "../backend/bridge"
+	import { PresenceType, UserJoinability } from "../backend/bridge"
 	import type { UserPresence } from "../backend/bridge"
 	import PlaceHeader from "../games/PlaceHeader.svelte"
 	import { floatMenu, menuIn, menuOut } from "../shared/presence"
@@ -13,9 +15,11 @@
 		anchor,
 		presence,
 		isJoinable,
+		joinability,
 		onPointerEnter,
 		onPointerLeave,
 		onFillLaunch,
+		onFollowUser,
 		onSearchPlace,
 		onSearchUniverse,
 	}: {
@@ -23,9 +27,14 @@
 		anchor: HTMLElement
 		presence: UserPresence
 		isJoinable: boolean
+		// joinability is whether the user's profile offers to join them.
+		joinability: UserJoinability
 		onPointerEnter: () => void
 		onPointerLeave: () => void
 		onFillLaunch: () => void
+		// onFollowUser fills the launch options to follow a user whose server
+		// the presence hides.
+		onFollowUser?: () => void
 		onSearchPlace: (placeId: number) => void
 		onSearchUniverse: (universeId: number) => void
 	} = $props()
@@ -58,6 +67,25 @@
 			size={14}
 			aria-hidden="true" />{presenceLabel(presence)}
 	</h2>
+	{#if joinability === UserJoinability.UserNotJoinable}
+		<p class="flex items-start gap-1.5 notice-warning">
+			<Icon
+				svg={prohibitIcon}
+				size={14}
+				class="mt-px shrink-0"
+				aria-hidden="true" />
+			Roblox does not let this account join this user right now. You can still try.
+		</p>
+	{:else if joinability === UserJoinability.UserJoinable}
+		<p class="flex items-center gap-1.5 text-xs text-fg-muted">
+			<Icon
+				svg={checkCircleIcon}
+				size={14}
+				class="shrink-0 text-success"
+				aria-hidden="true" />
+			Roblox lets this account join this user.
+		</p>
+	{/if}
 	{#if universeId > 0 && placeId > 0}<PlaceHeader {universeId} {placeId} />{/if}
 	<dl class="detail-grid" aria-label="Game identifiers">
 		{#if placeId > 0}<div>
@@ -91,6 +119,11 @@
 		<button class="button-primary" type="button" onclick={onFillLaunch}>
 			<Icon svg={signInIcon} size={16} aria-hidden="true" />
 			Fill launch options
+		</button>
+	{:else if onFollowUser}
+		<button class="button-primary" type="button" onclick={onFollowUser}>
+			<Icon svg={signInIcon} size={16} aria-hidden="true" />
+			Fill launch options to follow
 		</button>
 	{/if}
 </div>
