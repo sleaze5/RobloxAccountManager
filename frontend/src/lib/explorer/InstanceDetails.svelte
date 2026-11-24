@@ -249,8 +249,8 @@ Screen readers hear the name of the vector before each axis. -->
 								class="group flex w-full flex-col gap-1 rounded-lg text-left"
 								type="button"
 								aria-label={isOpening
-									? `Opening ${property.name}…`
-									: `Show details of ${property.name}`}
+									? `Loading ${property.name} details…`
+									: `Show ${property.name} details`}
 								aria-busy={isOpening}
 								data-tooltip="Show asset details"
 								disabled={openingAssetId !== 0}

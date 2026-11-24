@@ -377,7 +377,7 @@ func playabilityStatusNameOf(number int) string {
 func unplayableReason(statusName string) (label, message string) {
 	switch statusName {
 	case "UnderReview", "GameUnapproved":
-		return "Under review", "Roblox is reviewing this game, so no one can join it."
+		return "Under review", "Roblox is reviewing this game."
 	case "UniverseRootPlaceIsPrivate":
 		return "Private", "This game is private."
 	case "InsufficientPermissionFriendsOnly":
@@ -385,13 +385,13 @@ func unplayableReason(statusName string) (label, message string) {
 	case "InsufficientPermissionGroupOnly":
 		return "Group only", "Only members of the creator's group can join this game."
 	case "DeviceRestricted", "FiatPurchaseDeviceRestricted":
-		return "Device restricted", "This game does not support this device."
+		return "Device restricted", "This game does not support computers."
 	case "PurchaseRequired", "FiatPurchaseRequired":
 		return "Paid access", "This account must buy access to this game first."
 	case "AccountRestricted":
 		// Roblox also reports a moderated or restricted account this way, so
 		// it does not prove a ban from this game.
-		return "Account restricted", "Roblox restricts this account from joining. A game ban is one possible reason."
+		return "Account restricted", "Roblox does not let this account join. A game ban is one possible reason."
 	case "TemporarilyUnavailable":
 		return "Unavailable", "This game is temporarily unavailable."
 	case "PlaceHasNoPublishedVersion":
@@ -401,9 +401,9 @@ func unplayableReason(statusName string) (label, message string) {
 	case "ContextualPlayabilityAgeRecommendationParentalControls", "ContextualPlayabilityExperienceBlockedParentalControls":
 		return "Parental controls", "Parental controls block this game for this account."
 	case "ContextualPlayabilityAgeGated", "ContextualPlayabilityAgeGatedByDescriptor", "ContextualPlayabilityUnverifiedSeventeenPlusUser":
-		return "Age restricted", "This account's age or age verification does not allow this game."
+		return "Age restricted", "This game has an age limit that this account does not meet."
 	case "ContextualPlayabilityUnrated":
-		return "Unrated", "This game is unrated, so this account cannot join it."
+		return "Unrated", "This game is unrated."
 	default:
 		return "Unplayable", "This account cannot join this game."
 	}

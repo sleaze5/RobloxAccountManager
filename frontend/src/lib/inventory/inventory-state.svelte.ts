@@ -360,7 +360,7 @@ export class InventoryState {
 			if (scope.isCurrent) {
 				this.explorerAssetError = errorMessage(
 					error,
-					"Could not open the asset. Try again.",
+					"Could not load the asset details. Try again.",
 				)
 			}
 			return null

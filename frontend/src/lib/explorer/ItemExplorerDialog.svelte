@@ -185,7 +185,7 @@
 
 	notifyErrors("Not copied", () => inventory.explorerCopyError)
 
-	notifyErrors("Asset not opened", () => inventory.explorerAssetError)
+	notifyErrors("Asset details not loaded", () => inventory.explorerAssetError)
 
 	notifyErrors("Instances not loaded", () => loadError)
 </script>

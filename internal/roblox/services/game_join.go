@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"net/http"
 	"net/url"
+	"slices"
 	"strconv"
 	"strings"
 	"time"
@@ -177,7 +178,7 @@ func (service *Games) CheckJoin(ctx context.Context, accountID, version int64, t
 	}
 	var payload joinResponse
 	if err := json.Unmarshal(response.Body, &payload); err != nil {
-		return games.JoinCheck{}, &roblox.Error{Kind: roblox.KindProtocol, Endpoint: gameJoinCheckEndpoint, Status: response.Status, Message: "Roblox returned an invalid join answer.", Cause: err}
+		return games.JoinCheck{}, &roblox.Error{Kind: roblox.KindProtocol, Endpoint: gameJoinCheckEndpoint, Status: response.Status, Message: "Roblox returned invalid join details.", Cause: err}
 	}
 	return classifyJoin(payload, target, time.Now()), nil
 }
@@ -230,24 +231,20 @@ func classifyJoin(payload joinResponse, target gamelaunch.Request, now time.Time
 	}
 }
 
-// waitingMessageByJoinStatus describes the statuses of a join that can work a
-// moment later.
-var waitingMessageByJoinStatus = map[int]string{
-	joinStatusRetry:                         "Roblox is still finding a server. Joining usually works.",
-	joinStatusServerFound:                   "Roblox is still finding a server. Joining usually works.",
-	joinStatusServerDataLoaded:              "Roblox is still finding a server. Joining usually works.",
-	joinStatusServerBusy:                    "Roblox is still finding a server. Joining usually works.",
-	joinStatusServerFull:                    "The server is full right now.",
-	joinStatusServerUnavailableUnexpectedly: "Roblox could not reach the server right now.",
+// waitingJoinStatuses are the statuses of a join that can work a moment later,
+// such as a full server or a server that Roblox is still starting.
+var waitingJoinStatuses = []int{
+	joinStatusRetry, joinStatusServerFound, joinStatusServerDataLoaded, joinStatusServerBusy,
+	joinStatusServerFull, joinStatusServerUnavailableUnexpectedly, joinStatusInQueue,
 }
 
 // restrictedMessageByJoinStatus describes the statuses of a join that fails
 // whatever the message says.
 var restrictedMessageByJoinStatus = map[int]string{
 	joinStatusServerUnavailable:      "This server is no longer available.",
-	joinStatusFollowedUserLeft:       "This user is not in a game that this account can join.",
-	joinStatusChannelMismatch:        "This server runs a Roblox test build that this account cannot join.",
-	joinStatusSetChannelInternalOnly: "This server runs a Roblox test build that this account cannot join.",
+	joinStatusFollowedUserLeft:       "This user is not in a game.",
+	joinStatusChannelMismatch:        "This server runs a Roblox test build.",
+	joinStatusSetChannelInternalOnly: "This server runs a Roblox test build.",
 	joinStatusPartyTooLarge:          "The party is too large for this server.",
 }
 
@@ -255,25 +252,22 @@ var restrictedMessageByJoinStatus = map[int]string{
 // message that names no known reason.
 var refusingJoinStatusMessages = map[int]string{
 	joinStatusExperienceDisabled:          "This game is unavailable.",
-	joinStatusExperienceRestricted:        "Roblox restricts this game for this account.",
+	joinStatusExperienceRestricted:        "Roblox does not let this account join this game.",
 	joinStatusNoPermission:                "This account does not have permission to join.",
 	joinStatusUnauthorizedPrivacySettings: "Privacy settings do not allow this join.",
 }
 
 func classifyJoinStatus(payload joinResponse, refusal joinRefusal, isFollowingUser bool) games.JoinCheck {
-	if payload.Status == joinStatusInQueue || payload.QueuePosition > 0 {
-		if payload.QueuePosition > 0 {
-			return waiting(fmt.Sprintf("The server is full. This account would wait in a queue at position %d.", payload.QueuePosition))
-		}
-		return waiting("The server is full. This account would wait in a queue.")
+	if payload.QueuePosition > 0 {
+		return games.JoinCheck{Outcome: games.JoinOutcomeWaiting}
 	}
 	// A known reason decides over the status, because Roblox answers a server
 	// that no longer exists with the status of an unexpected failure.
 	if message, found := refusalMessages[refusal]; found {
 		return restricted(refusalMessage(refusal, isFollowingUser, message))
 	}
-	if message, found := waitingMessageByJoinStatus[payload.Status]; found {
-		return waiting(message)
+	if slices.Contains(waitingJoinStatuses, payload.Status) {
+		return games.JoinCheck{Outcome: games.JoinOutcomeWaiting}
 	}
 	if message, found := restrictedMessageByJoinStatus[payload.Status]; found {
 		return restricted(message)
@@ -290,12 +284,10 @@ func classifyJoinStatus(payload joinResponse, refusal joinRefusal, isFollowingUs
 func classifyJoinScript(gameID, sessionJoinType string, target gamelaunch.Request) games.JoinCheck {
 	isFollowingUser := target.UserID > 0
 	switch {
-	case isFollowingUser && sessionJoinType == "Specific_PrivateGame":
-		return games.JoinCheck{Outcome: games.JoinOutcomeJoinable, Message: "This user is in a private server that this account can join."}
 	case isFollowingUser && sessionJoinType == "MatchMade":
-		return restricted("This user is in a restricted server, so Roblox would put this account in another server.")
+		return restricted("This user is in a restricted server. Roblox would send this account to a different server.")
 	case target.JobID != "" && gameID != "" && !strings.EqualFold(gameID, target.JobID):
-		return restricted("Roblox would put this account in another server, because this server is restricted or full.")
+		return restricted("Roblox would send this account to a different server.")
 	default:
 		return games.JoinCheck{Outcome: games.JoinOutcomeJoinable}
 	}
@@ -317,24 +309,24 @@ func joinType(sessionID string) string {
 // when the account follows a user into their server.
 var followedUserRefusalMessages = map[joinRefusal]string{
 	joinRefusalPrivateServer:  "This user is in a private server that this account cannot join.",
-	joinRefusalReservedServer: "This user is in a reserved server, such as a match, that this account cannot join.",
+	joinRefusalReservedServer: "This user is in a reserved server, such as a match.",
 }
 
 var refusalMessages = map[joinRefusal]string{
 	joinRefusalBlockedByParent:         "Parental controls block this game for this account.",
 	joinRefusalPrivateServer:           "This account cannot join this private server.",
-	joinRefusalReservedServer:          "This account cannot join this reserved server.",
+	joinRefusalReservedServer:          "This account cannot join this reserved server, such as a match.",
 	joinRefusalDeviceNotSupported:      "This game does not support computers.",
 	joinRefusalRegionCompliance:        "This game is unavailable in this account's region.",
 	joinRefusalExperiencePrivate:       "This game is private.",
-	joinRefusalUnverifiedSeventeenPlus: "This game is rated 17+, and this account has not verified its age.",
+	joinRefusalUnverifiedSeventeenPlus: "This game is 17+, and this account has not verified its age.",
 	joinRefusalContentMaturity:         "This account's content maturity setting does not allow this game.",
-	joinRefusalUnrated:                 "This game is unrated, so this account cannot join it.",
+	joinRefusalUnrated:                 "This game is unrated.",
 	joinRefusalSocialHangout:           "This account's settings do not allow social hangout games.",
-	joinRefusalInvalidPlace:            "This place cannot be joined.",
+	joinRefusalInvalidPlace:            "This place does not exist, or it is not part of a game.",
 	joinRefusalInvalidServer:           "This server is no longer available.",
 	joinRefusalInvalidAccessCode:       "The private server link is invalid or expired.",
-	joinRefusalUnderReview:             "Roblox is reviewing this game, so no one can join it.",
+	joinRefusalUnderReview:             "Roblox is reviewing this game.",
 	joinRefusalFriendsOnly:             "Only friends of the creator can join this game.",
 	joinRefusalGroupOnly:               "Only members of the creator's group can join this game.",
 	joinRefusalCannotFollowUser:        "This user's privacy settings do not let this account join them.",
@@ -393,10 +385,6 @@ func countedUnit(count int64, unit string) string {
 		return "1 " + unit
 	}
 	return strconv.FormatInt(count, 10) + " " + unit + "s"
-}
-
-func waiting(message string) games.JoinCheck {
-	return games.JoinCheck{Outcome: games.JoinOutcomeWaiting, Message: message}
 }
 
 func restricted(message string) games.JoinCheck {

@@ -115,8 +115,8 @@ const (
 )
 
 // JoinCheck is Roblox's answer to a join before the client connects. Bans and
-// kicks that a game's own scripts apply cannot show here. Message explains the
-// outcome in a sentence, and is empty when there is nothing to warn about.
+// kicks that a game's own scripts apply cannot show here. Message explains a
+// restricted outcome in a sentence, and is empty for the other outcomes.
 type JoinCheck struct {
 	Outcome JoinOutcome `json:"outcome"`
 	Message string      `json:"message"`

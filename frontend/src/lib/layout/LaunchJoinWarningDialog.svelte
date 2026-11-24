@@ -24,8 +24,8 @@
 		isSeveral = $derived(store.selectedAccountIds.length > 1),
 		title = $derived(
 			isSeveral
-				? `${restrictions.length === 1 ? "1 account" : `${restrictions.length} accounts`} will likely not get in`
-				: "This account will likely not get in",
+				? `${restrictions.length === 1 ? "1 account" : `${restrictions.length} accounts`} likely cannot join`
+				: "This account likely cannot join",
 		)
 
 	function accountLabel(accountId: number): string {
@@ -48,22 +48,19 @@
 	class="max-w-md text-left"
 	role="alertdialog"
 	aria-labelledby={`${dialogId}-title`}
-	aria-describedby={`${dialogId}-description`}
+	aria-describedby={`${dialogId}-reasons`}
 	onBackdropClick={onCancel}>
 	<div class="dialog-heading mb-2">
 		<div class="min-w-0">
 			<h2 id={`${dialogId}-title`}>{title}</h2>
-			<p id={`${dialogId}-description`}>
-				Roblox's join check expects {restrictions.length === 1
-					? "this join"
-					: "these joins"} to fail.
-			</p>
 		</div>
 		<button type="button" aria-label="Close dialog" onclick={onCancel}>
 			<Icon svg={xIcon} size={14} aria-hidden="true" />
 		</button>
 	</div>
-	<ul class="mb-3 flex flex-col gap-1.5 text-xs text-fg select-text">
+	<ul
+		id={`${dialogId}-reasons`}
+		class="mb-3 flex flex-col gap-1.5 text-xs text-fg select-text">
 		{#each restrictions as accountCheck (accountCheck.accountId)}
 			<li class="flex items-start gap-1.5">
 				<Icon

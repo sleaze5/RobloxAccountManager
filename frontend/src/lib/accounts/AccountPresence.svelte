@@ -189,8 +189,8 @@
 		<button
 			class="button-ghost-sm"
 			type="button"
-			aria-label="Fill launch options to join this user"
-			data-tooltip="Fill launch options to join this user. Their server is hidden, but Roblox lets this account join them."
+			aria-label="Fill launch options to follow this user"
+			data-tooltip="Fill launch options to follow this user. Their server is hidden."
 			onclick={followUser}>
 			<Icon svg={signInIcon} size={14} aria-hidden="true" />
 		</button>
