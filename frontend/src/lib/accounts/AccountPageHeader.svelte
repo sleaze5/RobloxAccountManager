@@ -1,20 +1,22 @@
 <script lang="ts">
-	import caretLeftIcon from "@phosphor-icons/core/regular/caret-left.svg?raw"
 	import { onMount } from "svelte"
 	import type { Snippet } from "svelte"
-	import Icon from "../shared/Icon.svelte"
+	import ProfileTabs from "../shared/ProfileTabs.svelte"
 
+	// AccountPageHeader heads a page of a profile, such as its avatar, with the
+	// tabs of the profile in place of a Back button. The title stays for
+	// screen readers, because the selected tab already shows it.
 	let {
 		titleId,
 		title,
 		username,
-		onBack,
+		onLeave,
 		children,
 	}: {
 		titleId: string
 		title: string
 		username: string
-		onBack: () => void
+		onLeave?: (navigate: () => void) => void
 		children: Snippet
 	} = $props()
 
@@ -27,15 +29,10 @@
 </script>
 
 <header class="settings-header">
-	<button
-		class="button-ghost"
-		type="button"
-		aria-label="Back to profile"
-		data-tooltip="Back to profile"
-		onclick={onBack}>
-		<Icon svg={caretLeftIcon} data-nudge="left" size={16} aria-hidden="true" />
-	</button>
-	<h1 id={titleId} tabindex="-1" bind:this={heading}>{title}</h1>
-	<span class="mr-auto min-w-0 text-xs wrap-anywhere text-fg-muted">@{username}</span>
+	<h1 id={titleId} class="sr-only" tabindex="-1" bind:this={heading}>
+		{title} of @{username}
+	</h1>
+	<ProfileTabs {onLeave} />
+	<span class="mr-auto min-w-0 truncate text-xs text-fg-muted">@{username}</span>
 	{@render children()}
 </header>

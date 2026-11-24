@@ -17,11 +17,8 @@
 	import ChatThread from "./ChatThread.svelte"
 	import { ChatState } from "./chat-state.svelte"
 
-	let {
-		store,
-		workspace,
-		onBack,
-	}: { store: AccountStore; workspace: WorkspaceState; onBack: () => void } = $props()
+	let { store, workspace }: { store: AccountStore; workspace: WorkspaceState } =
+		$props()
 
 	const account = untrack(() => store.selectedAccount),
 		selfUserId = Number(account.userId),
@@ -54,11 +51,7 @@
 </script>
 
 <section class="settings-page" aria-labelledby="chats-title">
-	<AccountPageHeader
-		titleId="chats-title"
-		title="Chats"
-		username={account.username}
-		{onBack}>
+	<AccountPageHeader titleId="chats-title" title="Chats" username={account.username}>
 		<button
 			class="button-ghost"
 			type="button"

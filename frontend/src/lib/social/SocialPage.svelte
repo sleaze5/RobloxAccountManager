@@ -49,7 +49,13 @@
 		personName,
 		playersView,
 	} from "./social-store.svelte"
-	import type { SocialListKind, SocialStore, SocialView } from "./social-store.svelte"
+	import type {
+		SocialListKind,
+		SocialStore,
+		SocialSubpage,
+		SocialView,
+	} from "./social-store.svelte"
+	import { setProfilePages } from "../shared/profile-pages"
 	import type { RelationshipActionId } from "./relationship"
 
 	let {
@@ -209,6 +215,34 @@
 		const text = filterText
 		unsavedChangesGuard.leave(() => store.searchPlayers(text))
 	}
+
+	const socialSubpages: SocialSubpage[] = ["avatar", "inventory"]
+
+	setProfilePages({
+		get label() {
+			return selected ? `${personName(selected)} pages` : "Profile pages"
+		},
+		get tabs() {
+			return [
+				{ id: "avatar", label: "Avatar" },
+				{
+					id: "inventory",
+					label: "Inventory",
+					unavailableReason: selected
+						? store.inventoryUnavailableReason(selected.userId)
+						: "",
+				},
+			]
+		},
+		get currentPage() {
+			return store.subpage ?? ""
+		},
+		openPage: (page) => {
+			const subpage = socialSubpages.find((knownSubpage) => knownSubpage === page)
+			if (subpage) store.subpage = subpage
+		},
+		openOverview: () => void closeSubpage(),
+	})
 
 	async function closeSubpage(): Promise<void> {
 		const closedSubpage = store.subpage
@@ -671,8 +705,7 @@
 						accountId={account.id}
 						userId={selected.userId}
 						username={selected.username || String(selected.userId)}
-						{onSearchPlace}
-						onBack={() => void closeSubpage()} />
+						{onSearchPlace} />
 				{/key}
 			{:else if selected && store.subpage === "inventory"}
 				{#key `${account.id}:${selected.userId}`}
@@ -684,8 +717,7 @@
 						username={selected.username || String(selected.userId)}
 						bind:sidebarWidth={store.inventorySidebarWidth}
 						{onSearchPlace}
-						{onShowGamePass}
-						onBack={() => void closeSubpage()} />
+						{onShowGamePass} />
 				{/key}
 			{:else if selected}
 				{#key selected.userId}

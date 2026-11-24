@@ -412,6 +412,22 @@ export class SocialStore {
 		}
 	}
 
+	// inventoryUnavailableReason tells why the inventory of the user cannot
+	// open, or returns "" when it can. Roblox always shows an account its own
+	// inventory.
+	inventoryUnavailableReason(userId: number): string {
+		if (userId === this.selfUserId) return ""
+		const load =
+				this.profileLoad?.snapshot.userId === userId ? this.profileLoad : null,
+			profile = load?.hasAnySection ? load.snapshot : null
+		if (profile?.inventoryVisible) return ""
+		if (profile?.inventoryVisible === false) return "Inventory is private"
+		return !load ||
+			load.isSectionPending(SocialProfileSection.SocialSectionInventory)
+			? "Checking inventory access…"
+			: "Inventory unavailable"
+	}
+
 	get selectedUserId(): number | null {
 		return this.selectedPerson?.userId ?? null
 	}

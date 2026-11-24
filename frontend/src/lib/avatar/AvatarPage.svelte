@@ -57,7 +57,6 @@
 		userId,
 		username,
 		onSearchPlace,
-		onBack,
 	}: {
 		accounts: AccountStore
 		notifications: NotificationCenter
@@ -65,7 +64,6 @@
 		userId: number
 		username: string
 		onSearchPlace: (placeId: number) => void
-		onBack: () => void
 	} = $props()
 	const elementIdPrefix = $props.id(),
 		pageVisibility = getPageVisibility()
@@ -227,8 +225,8 @@
 		if (avatar.draftHistory.length === 0) void selectTab(tab, true)
 	}
 
-	function requestBack(): void {
-		if (!confirmLeaving(onBack)) onBack()
+	function leaveIfConfirmed(navigate: () => void): void {
+		if (!confirmLeaving(navigate)) navigate()
 	}
 
 	function confirmDiscard(): void {
@@ -342,7 +340,7 @@
 		titleId={`${elementIdPrefix}-avatar-title`}
 		title="Avatar"
 		{username}
-		onBack={requestBack}>
+		onLeave={leaveIfConfirmed}>
 		{#if avatar.isEditable && isChanged}
 			<span class="animate-enter text-2xs text-fg-muted" aria-live="polite"
 				>Unsaved changes</span>

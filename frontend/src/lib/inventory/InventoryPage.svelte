@@ -48,7 +48,6 @@
 		sidebarWidth = $bindable(),
 		onSearchPlace,
 		onShowGamePass,
-		onBack,
 	}: {
 		accounts: AccountStore
 		notifications: NotificationCenter
@@ -58,7 +57,6 @@
 		sidebarWidth: number
 		onSearchPlace: (placeId: number) => void
 		onShowGamePass: (place: GamePlace, gamePassId: number) => void
-		onBack: () => void
 	} = $props()
 	const elementIdPrefix = $props.id()
 
@@ -193,8 +191,7 @@
 	<AccountPageHeader
 		titleId={`${elementIdPrefix}-inventory-title`}
 		title="Inventory"
-		{username}
-		{onBack}>
+		{username}>
 		<button
 			class="button-ghost"
 			type="button"

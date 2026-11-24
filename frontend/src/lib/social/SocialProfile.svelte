@@ -30,6 +30,8 @@
 	import type { SocialUser } from "../backend/bridge"
 	import type { AccountStore } from "../accounts/account-store.svelte"
 	import AccountPresence from "../accounts/AccountPresence.svelte"
+	import PresenceJoinButton from "../accounts/PresenceJoinButton.svelte"
+	import { presenceJoinFor } from "../accounts/presence-join"
 	import { AccountScope } from "../accounts/account-scope"
 	import RobloxBadgeList from "../accounts/RobloxBadgeList.svelte"
 	import MissingFactValue from "../shared/MissingFactValue.svelte"
@@ -172,23 +174,16 @@
 			profileRelationship?.relationship.friend ===
 				FriendStatus.FriendStatusFriends,
 		),
-		// Roblox always shows an account its own inventory.
-		isSelf = $derived(person.userId === store.selfUserId),
-		canOpenInventory = $derived(isSelf || !!profile?.inventoryVisible),
+		join = $derived(
+			person.presence
+				? presenceJoinFor(person.presence, joinability, true)
+				: null,
+		),
+		hasJoinAction = $derived(
+			!!join && (join.hasVisibleServer || join.canFollowUser),
+		),
 		displayName = $derived(
 			person.displayName || person.username || `User ${person.userId}`,
-		),
-		inventoryLabel = $derived(
-			isSelf || profile?.inventoryVisible
-				? "Inventory"
-				: profile?.inventoryVisible === false
-					? "Inventory is private"
-					: !sections ||
-						  sections.isSectionPending(
-								SocialProfileSection.SocialSectionInventory,
-						  )
-						? "Checking inventory access…"
-						: "Inventory unavailable",
 		)
 
 	notifyErrors("Profile not loaded", () => store.profileError)
@@ -298,7 +293,14 @@
 					{pending ? action.progress : action.label}
 				</button>
 			{/each}
-			{#if actions.length}<span
+			{#if person.presence}
+				<PresenceJoinButton
+					presence={person.presence}
+					{joinability}
+					onJoin={onFillLaunch}
+					onJoinUser={() => onFillLaunchUser(person)} />
+			{/if}
+			{#if actions.length || hasJoinAction}<span
 					class="mx-1 h-4 w-px bg-line-strong"
 					aria-hidden="true"></span
 				>{/if}
@@ -336,17 +338,9 @@
 		</div>
 	</div>
 
-	<ProfileTabs
-		label={`${displayName} pages`}
-		tabs={[
-			{ id: "avatar", label: "Avatar" },
-			{
-				id: "inventory",
-				label: "Inventory",
-				unavailableReason: canOpenInventory ? "" : inventoryLabel,
-			},
-		]}
-		onOpen={onOpenSubpage} />
+	<div class="-mx-4 h-8 border-b border-line-subtle">
+		<ProfileTabs />
+	</div>
 
 	<div
 		class={[

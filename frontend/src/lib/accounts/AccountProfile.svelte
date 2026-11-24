@@ -13,7 +13,12 @@
 	import { tick, untrack } from "svelte"
 	import arrowCounterClockwiseIcon from "@phosphor-icons/core/regular/arrow-counter-clockwise.svg?raw"
 	import circleNotchIcon from "@phosphor-icons/core/regular/circle-notch.svg?raw"
-	import { AccountProfileSection, SessionState, SocialList } from "../backend/bridge"
+	import {
+		AccountProfileSection,
+		SessionState,
+		SocialList,
+		UserJoinability,
+	} from "../backend/bridge"
 	import type { GamePlace, RobloxNotificationUser } from "../backend/bridge"
 	import AccountModerationPanel from "./AccountModerationPanel.svelte"
 	import { banEndsAtMs, canReactivate, hasReactivation } from "./moderation.svelte"
@@ -35,6 +40,9 @@
 	import AvatarPortraitFrame from "../avatar/AvatarPortraitFrame.svelte"
 	import { AvatarPortraitLoad } from "../avatar/avatar-portrait.svelte"
 	import ProfileTabs from "../shared/ProfileTabs.svelte"
+	import PresenceJoinButton from "./PresenceJoinButton.svelte"
+	import { presenceJoinFor } from "./presence-join"
+	import { setProfilePages } from "../shared/profile-pages"
 	import cookieIcon from "@phosphor-icons/core/regular/cookie.svg?raw"
 	import AccountAvatar from "./AccountAvatar.svelte"
 	import AccountMembershipBadges from "./AccountMembershipBadges.svelte"
@@ -105,6 +113,19 @@
 		),
 		reactivating = $derived(store.reactivatingAccountId === selectedAccount.id),
 		checkingModeration = $derived(store.checkingAccountId === selectedAccount.id),
+		// Join is the main action only when nothing about the account needs
+		// attention first.
+		canJoinFromHeader = $derived(
+			hasAccount && store.vault.unlocked && !moderated && !sessionAttention,
+		),
+		hasJoinAction = $derived(
+			canJoinFromHeader &&
+				presenceJoinFor(
+					selectedAccount.presence,
+					UserJoinability.UserJoinabilityUnknown,
+					false,
+				).hasVisibleServer,
+		),
 		pageUnavailableReason = $derived(
 			!store.vault.unlocked
 				? "Unlock the vault first"
@@ -185,12 +206,62 @@
 		return () => window.clearInterval(timer)
 	})
 
-	function openPage(
-		page: "settings" | "chats" | "notifications" | "avatar" | "inventory",
-	): void {
+	const accountPages = [
+		"avatar",
+		"inventory",
+		"chats",
+		"notifications",
+		"settings",
+	] as const
+
+	function openPage(page: (typeof accountPages)[number]): void {
 		workspace.closeAccountMenus()
 		workspace.accountPage = page
 	}
+
+	setProfilePages({
+		get label() {
+			return `${selectedAccount.displayName} pages`
+		},
+		get tabs() {
+			return [
+				{
+					id: "avatar",
+					label: "Avatar",
+					unavailableReason: pageUnavailableReason,
+				},
+				{
+					id: "inventory",
+					label: "Inventory",
+					unavailableReason: pageUnavailableReason,
+				},
+				{
+					id: "chats",
+					label: "Chats",
+					unavailableReason: pageUnavailableReason,
+				},
+				{
+					id: "notifications",
+					label: "Notifications",
+					unreadCount: unreadNotifications,
+					unavailableReason: pageUnavailableReason,
+				},
+				{
+					id: "settings",
+					label: "Settings",
+					unavailableReason: pageUnavailableReason,
+				},
+			]
+		},
+		get currentPage() {
+			return workspace.accountPage === "profile" ? "" : workspace.accountPage
+		},
+		openPage: (page) => {
+			const accountPage = accountPages.find((knownPage) => knownPage === page)
+			if (accountPage) openPage(accountPage)
+		},
+		openOverview: () => void backToProfile(),
+	})
 
 	async function backToProfile(): Promise<void> {
 		const closedPage = workspace.accountPage
@@ -209,13 +280,9 @@
 </script>
 
 {#if workspace.accountPage === "settings" && hasAccount && store.vault.unlocked}
-	<AccountSettingsPage
-		{store}
-		{workspace}
-		{notifications}
-		onBack={() => void backToProfile()} />
+	<AccountSettingsPage {store} {workspace} {notifications} />
 {:else if workspace.accountPage === "chats" && hasAccount && store.vault.unlocked}
-	<ChatsPage {store} {workspace} onBack={() => void backToProfile()} />
+	<ChatsPage {store} {workspace} />
 {:else if workspace.accountPage === "avatar" && hasAccount && store.vault.unlocked}
 	<AvatarPage
 		accounts={store}
@@ -223,8 +290,7 @@
 		accountId={selectedAccount.id}
 		userId={Number(selectedAccount.userId)}
 		username={selectedAccount.username}
-		{onSearchPlace}
-		onBack={() => void backToProfile()} />
+		{onSearchPlace} />
 {:else if workspace.accountPage === "inventory" && hasAccount && store.vault.unlocked}
 	<InventoryPage
 		accounts={store}
@@ -234,12 +300,10 @@
 		username={selectedAccount.username}
 		bind:sidebarWidth={workspace.accountSettingsSidebarWidth}
 		{onSearchPlace}
-		{onShowGamePass}
-		onBack={() => void backToProfile()} />
+		{onShowGamePass} />
 {:else if workspace.accountPage === "notifications" && hasAccount && store.vault.unlocked}
 	<RobloxNotificationsPage
 		{store}
-		onBack={() => void backToProfile()}
 		onOpenChat={(userId) => {
 			workspace.chatUserIdToOpen = userId
 			openPage("chats")
@@ -422,7 +486,12 @@
 						{/if}
 					</button>
 				{/if}
-				{#if (hasAccount && sessionAttention && !moderated) || (canBeReactivated && store.vault.unlocked)}<span
+				{#if canJoinFromHeader}
+					<PresenceJoinButton
+						presence={selectedAccount.presence}
+						onJoin={onJoinServer} />
+				{/if}
+				{#if (hasAccount && sessionAttention && !moderated) || (canBeReactivated && store.vault.unlocked) || hasJoinAction}<span
 						class="mx-1 h-4 w-px bg-line-strong"
 						aria-hidden="true"></span
 					>{/if}
@@ -477,37 +546,9 @@
 		{/if}
 
 		{#if hasAccount}
-			<ProfileTabs
-				label={`${selectedAccount.displayName} pages`}
-				tabs={[
-					{
-						id: "avatar",
-						label: "Avatar",
-						unavailableReason: pageUnavailableReason,
-					},
-					{
-						id: "inventory",
-						label: "Inventory",
-						unavailableReason: pageUnavailableReason,
-					},
-					{
-						id: "chats",
-						label: "Chats",
-						unavailableReason: pageUnavailableReason,
-					},
-					{
-						id: "notifications",
-						label: "Notifications",
-						unreadCount: unreadNotifications,
-						unavailableReason: pageUnavailableReason,
-					},
-					{
-						id: "settings",
-						label: "Settings",
-						unavailableReason: pageUnavailableReason,
-					},
-				]}
-				onOpen={openPage} />
+			<div class="-mx-4 h-8 border-b border-line-subtle">
+				<ProfileTabs />
+			</div>
 
 			<div class="grid min-w-0 items-start gap-5 @4xl:grid-cols-3 @4xl:gap-x-6">
 				{#if profileState && hasAbout}

@@ -22,13 +22,11 @@
 
 	let {
 		store,
-		onBack,
 		onOpenChat,
 		onFollowUser,
 		onSearchPlace,
 	}: {
 		store: AccountStore
-		onBack: () => void
 		onOpenChat: (userId: number) => void
 		onFollowUser: (user: RobloxNotificationUser) => void
 		onSearchPlace: (placeId: number) => void
@@ -99,8 +97,7 @@
 	<AccountPageHeader
 		titleId="roblox-notifications-title"
 		title="Notifications"
-		username={account.username}
-		{onBack}>
+		username={account.username}>
 		<Select
 			className="w-36"
 			label="Notification type"

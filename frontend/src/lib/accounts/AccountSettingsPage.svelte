@@ -433,12 +433,10 @@
 			store,
 			workspace,
 			notifications,
-			onBack,
 		}: {
 			store: AccountStore
 			workspace: WorkspaceState
 			notifications: NotificationCenter
-			onBack: () => void
 		} = $props(),
 		restoringScroll = $state(true),
 		contentElement = $state<HTMLElement | undefined>(undefined),
@@ -867,8 +865,7 @@
 	<AccountPageHeader
 		titleId="account-settings-title"
 		title="Account settings"
-		username={store.selectedAccount.username}
-		{onBack}>
+		username={store.selectedAccount.username}>
 		<button
 			class="button-ghost"
 			type="button"
