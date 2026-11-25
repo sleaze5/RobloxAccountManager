@@ -93,7 +93,7 @@
 		</button>
 	{/if}
 	{#each visibleNotifications as notification (notification.id)}
-		<article
+		<div
 			class="pointer-events-auto flex w-fit max-w-lg min-w-72 items-center gap-2.5 rounded-xl border border-line-strong bg-overlay py-1.5 pr-1.5 pl-3 shadow-float"
 			role="status"
 			in:snackbarIn
@@ -159,6 +159,6 @@
 					<Icon svg={xIcon} size={14} aria-hidden="true" />
 				</button>
 			{/if}
-		</article>
+		</div>
 	{/each}
 </section>

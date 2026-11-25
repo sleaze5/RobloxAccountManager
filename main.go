@@ -221,10 +221,10 @@ func run() (runError error) {
 	launch.Begin("window-configuration")
 	window := app.Window.NewWithOptions(application.WebviewWindowOptions{
 		Title:                      appmeta.DisplayName,
-		Width:                      900,
-		Height:                     500,
-		MinWidth:                   900,
-		MinHeight:                  500,
+		Width:                      1080,
+		Height:                     600,
+		MinWidth:                   1080,
+		MinHeight:                  600,
 		Frameless:                  true,
 		DefaultContextMenuDisabled: true,
 		BackgroundColour:           application.NewRGB(0, 0, 0),

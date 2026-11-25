@@ -144,8 +144,8 @@ The user must never see UI that looks or behaves like an exposed embedded browse
 
 ## Layout and surfaces
 
-- Design for a 900px by 500px window at 100% display scaling. This is also the minimum window size. Check every layout change at this size with the launch panel open at its default height.
-- At the minimum size, the detail pane next to a default-width sidebar is about 650px wide. Make tables and fixed-column grids fit that width. Hide or truncate lower-priority columns before you add horizontal scrolling.
+- Design for a 1080px by 600px window at 100% display scaling. This is the default and the minimum window size. Check every layout change at this size with the launch panel open at its default height.
+- At the minimum size, the detail pane next to a default-width sidebar is about 830px wide, so a profile shows one column there and adds its right-hand column from `@4xl`. Make tables and fixed-column grids fit that width. Hide or truncate lower-priority columns before you add horizontal scrolling.
 - Use `bg-surface` for persistent chrome (the title bar, page tabs, sidebars, tool rails, and status strip) and `bg-canvas` for the main content plane. The content is one small step darker than the chrome. Keep that step small and separate regions mainly with borders.
 - Use `bg-overlay` for dialogs, menus, popovers, and other floating surfaces, which sit one step above the content. Use `bg-raised` for compact opaque controls. Inputs have no fill of their own.
 - Separate regions with a background step plus a 1px border, not with large shadows. Use `border-line` by default, `border-line-subtle` between rows and shell regions, and `border-line-strong` for selected controls and floating surfaces that need extra separation. Avoid bright outlines.
@@ -465,7 +465,7 @@ The Animations setting in Settings > User Interface chooses System (the default)
 
 ## Design review checklist
 
-Review the full screen, then each component in each state. Use a 900px by 500px window at 100% scaling, then a 2× screenshot.
+Review the full screen, then each component in each state. Use a 1080px by 600px window at 100% scaling, then a 2× screenshot.
 
 - [ ] **Tokens:** All values come from tokens or stock scales.
 - [ ] **Patterns:** The change reuses building blocks. A new pattern has a name and a reason.
