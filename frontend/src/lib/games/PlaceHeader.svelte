@@ -12,8 +12,8 @@
 	let {
 		universeId,
 		placeId,
-		onSearch,
-	}: { universeId: number; placeId: number; onSearch?: () => void } = $props()
+		onShowGame,
+	}: { universeId: number; placeId: number; onShowGame?: () => void } = $props()
 	const games = getGamesStore()
 
 	let summary = $state<GamePlaceSummary | null>(null),
@@ -69,12 +69,12 @@
 				<span class="text-xs"><Skeleton className="w-24" label="" /></span>
 			{/if}
 		</div>
-		{#if place && onSearch}<button
+		{#if place && onShowGame}<button
 				class="-ms-2 button-ghost-sm shrink-0 self-start"
 				type="button"
-				aria-label="Show in Games"
-				data-tooltip="Show in Games"
-				onclick={onSearch}
+				aria-label="Show game"
+				data-tooltip="Show game"
+				onclick={onShowGame}
 				><Icon svg={magnifyingGlassIcon} size={14} aria-hidden="true" /></button
 			>{/if}
 	</div>

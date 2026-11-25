@@ -3,7 +3,7 @@
 	import warningIcon from "@phosphor-icons/core/regular/warning.svg?raw"
 	import arrowUUpLeftIcon from "@phosphor-icons/core/regular/arrow-u-up-left.svg?raw"
 	import { onMount, tick, untrack } from "svelte"
-	import AccountPageHeader from "../accounts/AccountPageHeader.svelte"
+	import ProfilePageHeader from "../shared/ProfilePageHeader.svelte"
 	import type { AccountStore } from "../accounts/account-store.svelte"
 	import type {
 		AvatarAsset,
@@ -56,16 +56,12 @@
 		accountId,
 		userId,
 		username,
-		onSearchPlace,
-		onBack,
 	}: {
 		accounts: AccountStore
 		notifications: NotificationCenter
 		accountId: number
 		userId: number
 		username: string
-		onSearchPlace: (placeId: number) => void
-		onBack: () => void
 	} = $props()
 	const elementIdPrefix = $props.id(),
 		pageVisibility = getPageVisibility()
@@ -227,8 +223,8 @@
 		if (avatar.draftHistory.length === 0) void selectTab(tab, true)
 	}
 
-	function requestBack(): void {
-		if (!confirmLeaving(onBack)) onBack()
+	function leaveIfConfirmed(navigate: () => void): void {
+		if (!confirmLeaving(navigate)) navigate()
 	}
 
 	function confirmDiscard(): void {
@@ -338,11 +334,11 @@
 	}} />
 
 <section class="settings-page" aria-labelledby={`${elementIdPrefix}-avatar-title`}>
-	<AccountPageHeader
+	<ProfilePageHeader
 		titleId={`${elementIdPrefix}-avatar-title`}
 		title="Avatar"
-		{username}
-		onBack={requestBack}>
+		subtitle={`@${username}`}
+		onLeave={leaveIfConfirmed}>
 		{#if avatar.isEditable && isChanged}
 			<span class="animate-enter text-2xs text-fg-muted" aria-live="polite"
 				>Unsaved changes</span>
@@ -397,7 +393,7 @@
 			}}>
 			<RefreshIcon isRefreshing={avatar.loading} />
 		</button>
-	</AccountPageHeader>
+	</ProfilePageHeader>
 
 	{#if !avatar.avatar && avatar.error}
 		<div class="empty-state flex-1">
@@ -451,6 +447,9 @@
 					role="tabpanel"
 					aria-labelledby={`${elementIdPrefix}-avatar-tab-${tab}`}
 					aria-busy={avatar.loading}>
+					<h2 class="sr-only">
+						{tabs.find((editorTab) => editorTab.id === tab)?.label}
+					</h2>
 					{#if avatar.isAvatarOutdated}
 						<div
 							class="mx-3 mt-3 flex items-center gap-2 notice-warning"
@@ -592,11 +591,6 @@
 		{accounts}
 		isOwnInventory={false}
 		isWorn={savedAssetIds.has(detailedItem.item.itemId)}
-		onSearchPlace={(placeId) => {
-			detailedItem = null
-			viewedOutfit = null
-			onSearchPlace(placeId)
-		}}
 		onClose={() => (detailedItem = null)} />
 {/if}
 

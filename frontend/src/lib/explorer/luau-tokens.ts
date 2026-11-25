@@ -2,7 +2,7 @@
 // is plain code.
 export type LuauTokenKind = "code" | "comment" | "string" | "keyword" | "number"
 
-export interface LuauToken {
+interface LuauToken {
 	kind: LuauTokenKind
 	text: string
 }

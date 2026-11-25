@@ -27,12 +27,12 @@
 		onClose: () => void
 	} = $props()
 
-	let value = $state(untrack(() => description)),
+	let typedDescription = $state(untrack(() => description)),
 		pending = $state<"validate" | "submit" | "save" | null>(null),
 		error = $state(""),
 		card = $state<HTMLDivElement>(),
 		field = $state<HTMLTextAreaElement>()
-	const text = $derived(value.trim()),
+	const text = $derived(typedDescription.trim()),
 		changed = $derived(text !== description.trim()),
 		check = new TextFilterCheck(() => text)
 
@@ -128,8 +128,10 @@
 		<label class="dialog-field">
 			<span>Description</span>
 			{#if check.filteredPreview === undefined}
-				<textarea bind:this={field} bind:value disabled={pending !== null}
-				></textarea>
+				<textarea
+					bind:this={field}
+					bind:value={typedDescription}
+					disabled={pending !== null}></textarea>
 			{:else}
 				<textarea
 					value={check.filteredPreview}

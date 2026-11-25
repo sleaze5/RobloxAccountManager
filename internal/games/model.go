@@ -37,7 +37,6 @@ const (
 	GameSectionLanguages     GameSection = "languages"
 )
 
-// UserGameList names a list of games on a user's profile.
 type UserGameList string
 
 const (
@@ -97,6 +96,31 @@ type Playability struct {
 	IsPlayable bool   `json:"isPlayable"`
 	Label      string `json:"label"`
 	Message    string `json:"message"`
+}
+
+type MediaKind string
+
+const (
+	MediaKindImage MediaKind = "image"
+	// MediaKindVideo is a video that Roblox hosts, which plays in the app.
+	MediaKindVideo MediaKind = "video"
+	// MediaKindYouTubeVideo is a YouTube video, which opens in the browser.
+	MediaKindYouTubeVideo MediaKind = "youTubeVideo"
+)
+
+// Media is one image or video that a game shows on its page, in the order
+// that its creator set. ImageURL is a 16:9 preview, and is empty when Roblox
+// has not rendered it. ImageAssetID names the original of an image,
+// VideoAssetID a video that Roblox hosts, and VideoPageURL the page of a
+// YouTube video.
+type Media struct {
+	Kind         MediaKind `json:"kind"`
+	ImageURL     string    `json:"imageUrl"`
+	ImageAssetID int64     `json:"imageAssetId"`
+	AltText      string    `json:"altText"`
+	VideoAssetID int64     `json:"videoAssetId"`
+	VideoTitle   string    `json:"videoTitle"`
+	VideoPageURL string    `json:"videoPageUrl"`
 }
 
 // JoinOutcome is how Roblox's join service expects a join to end for an
@@ -400,7 +424,6 @@ type FriendsInGame struct {
 	FriendsInHiddenPlaces []FriendInServer `json:"friendsInHiddenPlaces"`
 }
 
-// FriendPlace is a place of the universe that friends of the account play.
 type FriendPlace struct {
 	PlaceID     int64          `json:"placeId"`
 	Name        string         `json:"name"`
@@ -411,7 +434,6 @@ type FriendPlace struct {
 	FriendsInHiddenServers []FriendInServer `json:"friendsInHiddenServers"`
 }
 
-// FriendServer is a server of a place that friends of the account are in.
 type FriendServer struct {
 	JobID   string           `json:"jobId"`
 	Friends []FriendInServer `json:"friends"`

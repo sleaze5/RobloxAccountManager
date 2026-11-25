@@ -1,5 +1,5 @@
 // The progress that the backend sends with the "roblox:clean-progress" event.
-export type CleanPhase =
+type CleanPhase =
 	| "closing-processes"
 	| "removing-applications"
 	| "removing-registry-entries"

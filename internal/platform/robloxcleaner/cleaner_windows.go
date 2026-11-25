@@ -282,7 +282,6 @@ func isInUseError(err error) bool {
 		errors.Is(err, windows.ERROR_DIR_NOT_EMPTY)
 }
 
-// skipReasonOf names why a target or process was skipped for the user.
 func skipReasonOf(err error) SkipReason {
 	switch {
 	case isInUseError(err):
@@ -553,7 +552,6 @@ func deleteRegistryTree(key registryKey) error {
 	return nil
 }
 
-// deleteRegistryValueIfPresent reports whether the value existed.
 func deleteRegistryValueIfPresent(value registryValue) (bool, error) {
 	reader, err := registry.OpenKey(value.key.root, value.key.path, registry.QUERY_VALUE)
 	if errors.Is(err, registry.ErrNotExist) {

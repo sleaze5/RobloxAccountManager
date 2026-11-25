@@ -27,20 +27,22 @@
 	import GroupMembersPage from "./GroupMembersPage.svelte"
 	import GroupProfileView from "./GroupProfileView.svelte"
 	import { minGroupSearchLength } from "./groups-store.svelte"
-	import type { GroupsStore } from "./groups-store.svelte"
+	import type { GroupsStore, GroupSubpage } from "./groups-store.svelte"
+	import { openPageLabel, setProfilePages } from "../shared/profile-pages"
+	import type { ProfilePages } from "../shared/profile-pages"
+	import StatusTrail from "../layout/StatusTrail.svelte"
+	import { tick } from "svelte"
 
 	let {
 		store,
 		accounts,
 		notifications,
-		onSearchPlace,
 		onOpenInBrowser,
 		onShowCreations,
 	}: {
 		store: GroupsStore
 		accounts: AccountStore
 		notifications: NotificationCenter
-		onSearchPlace: (placeId: number) => void
 		onOpenInBrowser: (accountId: number, pageUrl: string) => void
 		onShowCreations: (groupName: string) => void
 	} = $props()
@@ -98,6 +100,44 @@
 		void store.subpage
 		detailPane?.scrollTo({ top: 0 })
 	})
+
+	const groupSubpages: GroupSubpage[] = ["members", "games", "items", "joinRequests"]
+
+	const profilePages: ProfilePages = {
+		get label() {
+			return `${store.profile?.details.group.name ?? "Group"} pages`
+		},
+		get tabs() {
+			return [
+				{ id: "members", label: "Members" },
+				{ id: "games", label: "Games" },
+				{ id: "items", label: "Items" },
+				...(store.profile?.membership.permissions.canAcceptJoinRequests
+					? [{ id: "joinRequests", label: "Join requests" }]
+					: []),
+			]
+		},
+		get currentPage() {
+			return store.subpage ?? ""
+		},
+		openPage: (page) => {
+			const subpage = groupSubpages.find((knownSubpage) => knownSubpage === page)
+			if (subpage) store.subpage = subpage
+		},
+		openOverview: () => void closeSubpage(),
+	}
+	setProfilePages(profilePages)
+
+	async function closeSubpage(): Promise<void> {
+		const closedSubpage = store.subpage
+		store.subpage = null
+		await tick()
+		detailPane
+			?.querySelector<HTMLButtonElement>(
+				`[data-subpage-button="${closedSubpage}"]`,
+			)
+			?.focus({ preventScroll: true })
+	}
 
 	function submitSearch(): void {
 		if (store.query.trim().length >= minGroupSearchLength) void store.search()
@@ -347,7 +387,7 @@
 				{/key}
 			{:else if store.subpage === "games"}
 				{#key `${store.accountId}:${store.selectedGroupId}`}
-					<GroupGamesPage {store} {onSearchPlace} />
+					<GroupGamesPage {store} />
 				{/key}
 			{:else if store.subpage === "items"}
 				{#key `${store.accountId}:${store.selectedGroupId}`}
@@ -355,7 +395,6 @@
 						{store}
 						{accounts}
 						{notifications}
-						{onSearchPlace}
 						{onShowCreations} />
 				{/key}
 			{:else if store.subpage === "joinRequests"}
@@ -374,8 +413,15 @@
 	<footer
 		class="flex h-6 shrink-0 items-center justify-between border-t border-line-subtle bg-surface pl-3 text-2xs text-fg-faint"
 		aria-label="Group list">
-		<div class="flex min-w-0 items-center gap-4">
+		<div class="flex min-w-0 items-center gap-1">
 			<AccountSwitcher store={accounts} />
+			<StatusTrail
+				parts={store.selectedGroupId && store.profile
+					? [
+							store.profile.details.group.name,
+							openPageLabel(profilePages),
+						].filter(Boolean)
+					: []} />
 		</div>
 		{#if store.selectedGroupId}
 			<span class="shrink-0 pr-3"

@@ -261,7 +261,6 @@ func premiumSubscription(subscription *robloxservices.UserPremiumSubscription) *
 	return premium
 }
 
-// applyRead runs read and passes its value to apply only when it succeeds.
 func applyRead[Fetched any](source string, read func() (Fetched, error), apply func(Fetched)) accountRead {
 	return accountRead{source, func() error {
 		fetched, err := read()

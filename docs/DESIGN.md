@@ -151,6 +151,7 @@ The user must never see UI that looks or behaves like an exposed embedded browse
 - Separate regions with a background step plus a 1px border, not with large shadows. Use `border-line` by default, `border-line-subtle` between rows and shell regions, and `border-line-strong` for selected controls and floating surfaces that need extra separation. Avoid bright outlines.
 - Keep the shell flat. The title bar and the page tabs are `h-9`, the status strip is `h-6`, and the default sidebar is `w-56`.
 - Show each value once per screen. For example, do not show the same count in a sidebar header and in the status strip.
+- A pane that changes its layout with container variants, such as `@4xl:grid-cols-3`, sits inside an element with `@container`, usually its scroll region. Without one, the wide layout never applies. On a wide pane, a profile puts its main sections in the left two thirds and its secondary facts, such as the Vault of an account or the access and features of a game, in the right third.
 - Only the content regions scroll, never the window. An absolutely positioned element, such as an `sr-only` live region, takes its position from the nearest positioned ancestor. Inside a scroll container, make the container `relative`, so that the element cannot overflow the window and let focus scroll the whole shell.
 
 Accounts, Social, Groups, Games, Marketplace, and Logs Explorer share one page anatomy:
@@ -352,6 +353,7 @@ Never show error text in the page: no error notices, error lines below content, 
 - Give a switch input `role="switch"`.
 - Give a resizer `role="slider"`, `tabindex="0"`, `aria-orientation`, `aria-valuenow`, `aria-valuemin`, and `aria-valuemax`. Resize it with the arrow keys. Do not use `role="separator"`, because the Svelte checker rejects a focusable separator.
 - Announce notifications, including errors, through one polite live region. Use `role="alert"` only for a field error that blocks the form.
+- Do not skip heading levels. The page or profile title is the `h1`, visually hidden when the tabs already name the page. Each tab panel or pane starts at `h2`, and its groups use `h3`. When the selected tab names a panel, give the panel a visually hidden `h2` with the tab label.
 - Give each page one banner and one `main` landmark, labeled with the page name, that holds the sidebar, the content, and the resizer between them. The window title bar is the only top-level `header`. An account sub-page renders inside the `main` of Accounts, so it uses labeled `section` regions instead of another `main` or an `aside`. Give a container with an `aria-label` a role, such as `role="group"` on a list.
 
 ## Writing

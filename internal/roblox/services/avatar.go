@@ -53,7 +53,6 @@ type AvatarBodyColors struct {
 	RightLeg string `json:"rightLeg"`
 }
 
-// AvatarAsset is an asset that an avatar wears.
 type AvatarAsset struct {
 	// Category is empty for an asset type that no inventory category lists.
 	Category InventoryCategory `json:"category"`
@@ -110,13 +109,11 @@ func AvatarImageTarget(userID int64) ThumbnailTarget {
 	return ThumbnailTarget{Type: "Avatar", TargetID: userID}
 }
 
-// AvatarEmoteSlot puts an emote in a slot of the emote wheel.
 type AvatarEmoteSlot struct {
 	AssetID int64 `json:"assetId"`
 	Slot    int   `json:"slot"`
 }
 
-// AvatarChangeAsset is an asset that a changed avatar wears.
 type AvatarChangeAsset struct {
 	AssetID int64 `json:"assetId"`
 	// Adjustment is the placement of a rigid accessory, or nil to keep the
@@ -277,19 +274,16 @@ func assetsWearing(wornAssets []AvatarAsset, putOnAsset AvatarAsset, limits []Av
 	return append(assets, putOnAsset), nil
 }
 
-// wearLimitError says which limit keeps an asset off the avatar.
 func wearLimitError(endpoint string, limit *AvatarWearLimit) error {
 	return &roblox.Error{Kind: roblox.KindProtocol, Endpoint: endpoint, Message: fmt.Sprintf("The avatar already wears %d %s, the most that Roblox allows. Take one off on the Avatar page to try this item on.", limit.MaxWornCount, limit.Label)}
 }
 
-// AvatarOutfit is an outfit that a user saved.
 type AvatarOutfit struct {
 	OutfitID int64  `json:"outfitId"`
 	Name     string `json:"name"`
 	ImageURL string `json:"imageUrl"`
 }
 
-// ThumbnailTarget names the image of the outfit.
 func (outfit AvatarOutfit) ThumbnailTarget() ThumbnailTarget {
 	return AvatarOutfitImageTarget(outfit.OutfitID)
 }
@@ -420,7 +414,6 @@ func inventoryCategoryOfAssetTypeOrOtherAssets(typeName string) InventoryCategor
 	return InventoryOtherAssets
 }
 
-// AddAvatarCatalogDetails adds the catalog details of each worn asset.
 func (service *Users) AddAvatarCatalogDetails(ctx context.Context, accountID, version int64, avatar *Avatar) error {
 	items := make([]InventoryItem, len(avatar.Assets))
 	for index, asset := range avatar.Assets {
@@ -491,7 +484,6 @@ func (service *Users) readAvatarRules(ctx context.Context, accountID, version in
 	return payload, nil
 }
 
-// AvatarRules reads what the account may change on its avatar.
 func (service *Users) AvatarRules(ctx context.Context, accountID, version int64) (AvatarRules, error) {
 	payload, err := service.readAvatarRules(ctx, accountID, version, "avatar-rules")
 	if err != nil {
@@ -763,7 +755,7 @@ func (service *Users) RenderAvatarPreview(ctx context.Context, accountID, versio
 	switch {
 	case strings.EqualFold(payload.State, "Pending"):
 		return "", nil
-	case !strings.EqualFold(payload.State, "Completed") || !safeThumbnailURL(payload.ImageURL):
+	case !strings.EqualFold(payload.State, "Completed") || !isRobloxCDNURL(payload.ImageURL):
 		return "", &roblox.Error{Kind: roblox.KindProtocol, Endpoint: endpoint, Status: response.Status, Message: "Roblox could not render this preview."}
 	}
 	return payload.ImageURL, nil
@@ -984,7 +976,6 @@ func (service *Users) AvatarOutfits(ctx context.Context, accountID, version, use
 	return page, nil
 }
 
-// CreateAvatarOutfit saves the current avatar of the account as an outfit.
 func (service *Users) CreateAvatarOutfit(ctx context.Context, accountID, version int64, name string) error {
 	name, err := validOutfitName(name, "avatar-outfit-create")
 	if err != nil {

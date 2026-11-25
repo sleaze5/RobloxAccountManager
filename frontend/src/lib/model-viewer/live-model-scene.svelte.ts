@@ -295,7 +295,6 @@ export class LiveModelViewport implements AnimationPlayback {
 		this.speed = speed
 	}
 
-	// retry builds the subject again after it failed.
 	retry(): void {
 		if (activeViewport() !== this) return
 		clearLiveModelCache()
@@ -310,7 +309,6 @@ export class LiveModelViewport implements AnimationPlayback {
 		return activeViewport() === this ? captureFrame(true) : this.coveredFrameUrl
 	}
 
-	// resetView returns the camera to where it starts for the subject.
 	resetView(): void {
 		if (activeViewport() !== this) return
 		frameSubject(this.subject)

@@ -52,7 +52,6 @@
 		onSave: (change: AvatarThumbnailChange) => void
 		onFramingChange: (framing: ThumbnailFraming) => void
 		onFocus: () => void
-		// onOpenPose shows the details of the saved pose.
 		onOpenPose: (emote: InventoryItem, category: InventoryCategory) => void
 	} = $props()
 
@@ -198,7 +197,6 @@
 				: "None",
 		)
 
-	// The live preview follows every edit.
 	$effect(() => {
 		onFramingChange({
 			image:
@@ -278,7 +276,7 @@
 				</label>
 			</div>
 			{#each cameraRows as row (row.setting)}
-				{@const value = camera[row.setting]}
+				{@const cameraSettingValue = camera[row.setting]}
 				<div class="settings-row">
 					<span
 						class="w-24 shrink-0 text-xs text-fg-muted"
@@ -289,10 +287,10 @@
 						min={row.limit.min}
 						max={row.limit.max}
 						step={row.limit.increment}
-						{value}
-						style:--range-fill={`${rangeShareOf(value, row.limit.min, row.limit.max) * 100}%`}
+						value={cameraSettingValue}
+						style:--range-fill={`${rangeShareOf(cameraSettingValue, row.limit.min, row.limit.max) * 100}%`}
 						aria-labelledby={`${sectionId}-${row.setting}`}
-						aria-valuetext={row.format(value)}
+						aria-valuetext={row.format(cameraSettingValue)}
 						disabled={!isCameraCustomized || isDisabled}
 						oninput={(event) =>
 							setCamera(
@@ -302,7 +300,7 @@
 							)} />
 					<span
 						class="w-12 shrink-0 text-right font-mono text-xs text-fg tabular-nums"
-						>{row.format(value)}</span>
+						>{row.format(cameraSettingValue)}</span>
 				</div>
 			{/each}
 		</div>

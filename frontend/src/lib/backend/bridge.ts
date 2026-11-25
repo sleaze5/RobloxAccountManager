@@ -121,6 +121,7 @@ export type {
 	AvatarAccessoryAdjustment,
 	AvatarAccessoryAdjustmentLimits,
 	AvatarAsset,
+	AvatarPortrait,
 	AvatarBodyColors,
 	AvatarChange,
 	AvatarClothingLayer,
@@ -166,6 +167,7 @@ export type {
 	TextFilter,
 	UserPresence,
 	UserPrimaryGroup,
+	UserView,
 	UserSocialLink,
 } from "../../../bindings/github.com/sleaze5/RobloxAccountManager/internal/roblox/services/models.js"
 export type {
@@ -199,6 +201,7 @@ export type {
 	GamePass,
 	ListedPrivateServer,
 	ListedPrivateServerPage,
+	Media as GameMedia,
 	NearbyRegion as NearbyServerRegion,
 	OwnedPrivateServer,
 	Place as GamePlace,
@@ -220,6 +223,7 @@ export type {
 export {
 	GameSection,
 	JoinOutcome,
+	MediaKind as GameMediaKind,
 	PrivateServerOption,
 	RecordOrder as GameServerRecordOrder,
 	ServerOrder as GameServerOrder,

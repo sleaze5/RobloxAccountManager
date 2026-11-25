@@ -111,7 +111,6 @@ const iconByClassNameSuffix: [string, string][] = [
 	["Location", cubeIcon],
 ]
 
-// classIcon returns the icon of an instance class, such as a cube for a Part.
 export function classIcon(className: string): string {
 	const icon = iconByClassName[className]
 	if (icon) return icon

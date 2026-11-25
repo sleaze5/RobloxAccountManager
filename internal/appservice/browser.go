@@ -44,7 +44,6 @@ func (service *Service) StartLoginBrowser(ctx context.Context) (browser.SessionS
 	return service.browser.StartLogin(ctx)
 }
 
-// OpenAccountBrowser shows the Roblox page in the browser of the account.
 func (service *Service) OpenAccountBrowser(ctx context.Context, accountID int64, pageURL string) (browser.SessionState, error) {
 	if !service.vault.Unlocked() {
 		return browser.SessionState{}, mapRepositoryError(vault.ErrLocked)

@@ -126,9 +126,9 @@
 		step: number,
 		range: AxisRange,
 	): void {
-		const value = steppedValueInRange(rawValue, step, range),
+		const steppedValue = steppedValueInRange(rawValue, step, range),
 			vector = { ...adjustment[kind] }
-		for (const axis of axes) vector[axis] = value
+		for (const axis of axes) vector[axis] = steppedValue
 		avatar.adjust(
 			assetId,
 			{ ...adjustment, [kind]: vector },
@@ -247,8 +247,8 @@
 	fieldFactor: number,
 	range: AxisRange,
 )}
-	{@const value = adjustment[kind][axes[0]]}
-	{@const fill = fillOf(value, defaultAdjustment[kind][axes[0]], range)}
+	{@const axisValue = adjustment[kind][axes[0]]}
+	{@const fill = fillOf(axisValue, defaultAdjustment[kind][axes[0]], range)}
 	{@const accessibleLabel = `${kindLabel} ${axisLabel.toLowerCase()}`}
 	{@const target = axisTargetOf(kind, axes)}
 	<div
@@ -276,11 +276,11 @@
 			min={range.min}
 			max={range.max}
 			{step}
-			{value}
+			value={axisValue}
 			style:--range-fill-start={fill.start}
 			style:--range-fill={fill.end}
 			aria-label={accessibleLabel}
-			aria-valuetext={formatAdjustmentValue(kind, value)}
+			aria-valuetext={formatAdjustmentValue(kind, axisValue)}
 			aria-keyshortcuts="Shift+ArrowLeft Shift+ArrowRight"
 			disabled={avatar.isDraftLocked}
 			oninput={(event) =>
@@ -298,7 +298,7 @@
 			min={fieldValueOf(range.min, fieldFactor)}
 			max={fieldValueOf(range.max, fieldFactor)}
 			step={fieldValueOf(step, fieldFactor)}
-			value={fieldValueOf(value, fieldFactor)}
+			value={fieldValueOf(axisValue, fieldFactor)}
 			aria-label={`${accessibleLabel} value`}
 			disabled={avatar.isDraftLocked}
 			onchange={(event) =>
@@ -319,7 +319,7 @@
 					event.key.toLowerCase() === "z" &&
 					!event.shiftKey
 				) {
-					revertPendingField(event, fieldValueOf(value, fieldFactor))
+					revertPendingField(event, fieldValueOf(axisValue, fieldFactor))
 				}
 			}} />
 	</div>

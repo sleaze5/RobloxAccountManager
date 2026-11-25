@@ -24,7 +24,6 @@ type InventoryItemLook struct {
 	RigAvatar        *Avatar `json:"rigAvatar"`
 }
 
-// InventoryItemLook reads how the 3D viewer shows the item.
 func (service *Users) InventoryItemLook(ctx context.Context, accountID, version int64, category InventoryCategory, itemID int64) (InventoryItemLook, error) {
 	const endpoint = "inventory-item-look"
 	if category == InventoryBundles {

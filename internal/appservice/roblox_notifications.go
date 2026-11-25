@@ -173,7 +173,6 @@ func (service *Service) DismissAllRobloxNotifications(ctx context.Context, accou
 	return len(dismissals), nil
 }
 
-// MarkRobloxNotificationsSeen clears the unread notification count on Roblox.
 func (service *Service) MarkRobloxNotificationsSeen(ctx context.Context, accountID int64) error {
 	ctx, version, logger, done, err := service.beginFeatureOperation(ctx, accountID, "roblox-notifications", "mark-seen")
 	if err != nil {

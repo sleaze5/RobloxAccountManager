@@ -71,7 +71,6 @@ export function placeAdjustmentGuide(
 	}
 }
 
-// removeAdjustmentGuides frees the guides with the scene.
 export function removeAdjustmentGuides(): void {
 	if (!guideGroup) return
 	guideGroup.removeFromParent()

@@ -1,7 +1,6 @@
 import { AccountProfileSection, accountBackend } from "../backend/bridge"
 import type { CancellableRequest } from "../shared/cancellable-request"
 
-// readRobuxBalance returns the account's Robux, or null when unavailable.
 export async function readRobuxBalance(
 	accountId: number,
 	track: <T>(request: CancellableRequest<T>) => Promise<T>,

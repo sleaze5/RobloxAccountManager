@@ -273,7 +273,6 @@ type RobloxBadge struct {
 	Description string `json:"description"`
 }
 
-// RobloxBadges are the Roblox badges of a user's profile.
 type RobloxBadges struct {
 	Badges []RobloxBadge `json:"badges"`
 	// IsHiddenByRoblox reports that Roblox left the badges out of the profile.

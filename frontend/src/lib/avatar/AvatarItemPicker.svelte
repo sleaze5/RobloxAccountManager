@@ -25,7 +25,6 @@
 		onClose,
 	}: {
 		avatar: AvatarState
-		// inventory lists what the account owns.
 		inventory: InventoryState
 		// emoteSlot is the slot that the picked emote goes in, or null when the
 		// picker adds items to the avatar.

@@ -21,7 +21,6 @@ const (
 	maxInventoryResponseBytes     = 2 << 20
 )
 
-// InventoryCategory names one group of things that a user owns.
 type InventoryCategory string
 
 const (
@@ -65,7 +64,6 @@ var inventoryAssetTypesByCategory = map[InventoryCategory][]string{
 	InventoryAudio:           {"Audio"},
 }
 
-// InventoryItem is one thing that a user owns.
 type InventoryItem struct {
 	ItemID int64  `json:"itemId"`
 	Name   string `json:"name"`
@@ -112,7 +110,6 @@ type InventoryItemMarket struct {
 	HasTimedOptions bool `json:"hasTimedOptions"`
 }
 
-// InventorySaleLocation is where Roblox sells a catalog item.
 type InventorySaleLocation string
 
 const (

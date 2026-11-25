@@ -7,7 +7,6 @@
 	import coinsIcon from "@phosphor-icons/core/regular/coins.svg?raw"
 	import crownIcon from "@phosphor-icons/core/regular/crown.svg?raw"
 	import doorOpenIcon from "@phosphor-icons/core/regular/door-open.svg?raw"
-	import gameControllerIcon from "@phosphor-icons/core/regular/game-controller.svg?raw"
 	import globeIcon from "@phosphor-icons/core/regular/globe-hemisphere-west.svg?raw"
 	import identificationBadgeIcon from "@phosphor-icons/core/regular/identification-badge.svg?raw"
 	import linkIcon from "@phosphor-icons/core/regular/link.svg?raw"
@@ -18,9 +17,7 @@
 	import signOutIcon from "@phosphor-icons/core/regular/sign-out.svg?raw"
 	import starFillIcon from "@phosphor-icons/core/fill/star-fill.svg?raw"
 	import starIcon from "@phosphor-icons/core/regular/star.svg?raw"
-	import storefrontIcon from "@phosphor-icons/core/regular/storefront.svg?raw"
 	import tagIcon from "@phosphor-icons/core/regular/tag.svg?raw"
-	import userPlusIcon from "@phosphor-icons/core/regular/user-plus.svg?raw"
 	import usersThreeIcon from "@phosphor-icons/core/regular/users-three.svg?raw"
 	import warningIcon from "@phosphor-icons/core/regular/warning.svg?raw"
 	import sealCheckIcon from "@phosphor-icons/core/regular/seal-check.svg?raw"
@@ -28,6 +25,9 @@
 	import { GroupSource } from "../backend/bridge"
 	import type { GroupSummary } from "../backend/bridge"
 	import CreatorCard from "../shared/CreatorCard.svelte"
+	import CreatorByline from "../shared/CreatorByline.svelte"
+	import ProfileStats from "../shared/ProfileStats.svelte"
+	import ProfileTabs from "../shared/ProfileTabs.svelte"
 	import type { CreatorRole } from "../shared/CreatorCard.svelte"
 	import { errorMessage } from "../shared/errors"
 	import Icon from "../shared/Icon.svelte"
@@ -36,6 +36,7 @@
 	import { relativeTime } from "../shared/timestamp"
 	import ConfirmationDialog from "../shared/ConfirmationDialog.svelte"
 	import GroupIcon from "./GroupIcon.svelte"
+	import { groupStats } from "./group-stats"
 	import type { GroupsStore, GroupSubpage } from "./groups-store.svelte"
 
 	let {
@@ -69,34 +70,12 @@
 		isPrimary = $derived(!!membership?.isPrimary),
 		unavailable = $derived(new Set(profile?.unavailable ?? [])),
 		roles = $derived(profile?.roles ?? []),
-		subpageButtons = $derived<
-			{ subpage: GroupSubpage; label: string; icon: string; isShown: boolean }[]
-		>([
-			{
-				subpage: "members",
-				label: "Members",
-				icon: usersThreeIcon,
-				isShown: true,
-			},
-			{
-				subpage: "games",
-				label: "Games",
-				icon: gameControllerIcon,
-				isShown: true,
-			},
-			{
-				subpage: "items",
-				label: "Items",
-				icon: storefrontIcon,
-				isShown: true,
-			},
-			{
-				subpage: "joinRequests",
-				label: "Join requests",
-				icon: userPlusIcon,
-				isShown: !!permissions?.canAcceptJoinRequests,
-			},
-		])
+		hasMembershipAction = $derived(
+			isMember
+				? !membership?.isOwner
+				: !membership?.isPendingJoin && !details?.isLocked,
+		),
+		headlineStats = $derived(group ? groupStats(group) : [])
 
 	function startShout(): void {
 		store.clearActionError()
@@ -181,170 +160,97 @@
 			>Try again</button>
 	</div>
 {:else if !profile || !details || !group || !membership || !permissions}
-	<div class="flex flex-col gap-4 p-3" role="status" aria-busy="true">
+	<div class="flex flex-col gap-5 p-4" role="status" aria-busy="true">
 		<span class="sr-only">Loading group…</span>
-		<div class="flex items-start gap-3">
+		<div class="flex items-start gap-4">
 			<span class="size-24 shrink-0 skeleton rounded-md"></span>
-			<div class="flex min-w-0 flex-1 flex-col gap-2 pt-1">
+			<div class="flex min-w-0 flex-1 flex-col gap-1 pt-1">
 				<span class="text-lg"><span class="skeleton-line w-48"></span></span>
-				<span class="text-2xs"><span class="skeleton-line w-40"></span></span>
-				<span class="h-12 w-72 skeleton rounded-lg"></span>
+				<span class="text-2xs"><span class="skeleton-line w-24"></span></span>
+				<span class="text-xs"><span class="skeleton-line w-40"></span></span>
+				<span class="text-sm"><span class="skeleton-line w-28"></span></span>
 			</div>
 		</div>
 		<span class="h-20 w-full skeleton rounded-lg"></span>
 	</div>
 {:else}
-	<section class="flex flex-col gap-4 p-3 pb-4" aria-labelledby="group-name">
-		<div class="flex items-start gap-3 @max-xl:flex-col">
-			<div class="flex min-w-0 flex-1 items-start gap-3">
-				<GroupIcon url={group.iconUrl} size="xl" />
-				<div class="flex min-w-0 flex-col gap-1">
-					<h2
-						id="group-name"
-						class="inline-flex min-w-0 items-center gap-1 text-lg font-semibold text-fg">
-						<span class="wrap-anywhere select-text">{group.name}</span>
-						{#if group.hasVerifiedBadge}<Icon
-								svg={sealCheckIcon}
-								class="shrink-0 text-fg-muted"
-								size={16}
-								aria-label="Verified group" />{/if}
-					</h2>
-					<div class={metaClass}>
-						<span class="select-text">ID: {group.groupId}</span>
-						<span class="text-fg-faint" aria-hidden="true">·</span>
-						<span
-							>{exactNumbers.format(group.memberCount)}
-							{group.memberCount === 1 ? "member" : "members"}</span>
-					</div>
-					<ul class="mt-1 flex min-h-6 flex-wrap gap-1" aria-label="Status">
-						{#if isMember}
-							<li class="tag-pill-success">
-								<Icon
-									svg={checkCircleFillIcon}
-									size={12}
-									aria-hidden="true" />
-								<span>{membership.role.name}</span>
-							</li>
-						{/if}
-						{#if membership.isOwner}
-							<li class="tag-pill-favorite">
-								<Icon svg={crownIcon} size={12} aria-hidden="true" />
-								<span>Owner</span>
-							</li>
-						{/if}
-						{#if isPrimary}
-							<li class="tag-pill-favorite">
-								<Icon svg={starFillIcon} size={12} aria-hidden="true" />
-								<span>Primary group</span>
-							</li>
-						{/if}
-						{#if membership.isPendingJoin}
-							<li class="tag-pill-warning">
-								<Icon svg={clockIcon} size={12} aria-hidden="true" />
-								<span>Join request sent</span>
-							</li>
-						{/if}
-						{#if details.isLocked}
-							<li class="tag-pill-warning">
-								<Icon svg={lockIcon} size={12} aria-hidden="true" />
-								<span>Locked by Roblox</span>
-							</li>
-						{/if}
-						<li class="tag-pill">
+	<section class="flex flex-col gap-5 p-4 pb-5" aria-labelledby="group-name">
+		<div class="flex items-start gap-4">
+			<GroupIcon url={group.iconUrl} size="xl" />
+			<div class="flex min-w-0 flex-1 flex-col gap-1 pt-1">
+				<h2
+					id="group-name"
+					class="inline-flex min-w-0 items-center gap-1 text-lg font-semibold text-fg">
+					<span class="wrap-anywhere select-text">{group.name}</span>
+					{#if group.hasVerifiedBadge}<Icon
+							svg={sealCheckIcon}
+							class="shrink-0 text-fg-muted"
+							size={16}
+							aria-label="Verified group" />{/if}
+				</h2>
+				<div class={metaClass}>
+					<span class="select-text">ID: {group.groupId}</span>
+				</div>
+				{#if details.owner}
+					<CreatorByline
+						kind="User"
+						creatorId={details.owner.userId}
+						name={details.owner.username}
+						hasVerifiedBadge={details.owner.hasVerifiedBadge}
+						role="Owner" />
+				{:else}
+					<p class="text-xs text-fg-muted">Nobody owns this group.</p>
+				{/if}
+				<ProfileStats label="Group numbers" stats={headlineStats} />
+				<ul class="mt-1 flex min-h-6 flex-wrap gap-1" aria-label="Status">
+					{#if isMember}
+						<li class="tag-pill-success">
 							<Icon
-								svg={group.isPublicEntryAllowed
-									? doorOpenIcon
-									: identificationBadgeIcon}
+								svg={checkCircleFillIcon}
 								size={12}
 								aria-hidden="true" />
-							<span
-								>{group.isPublicEntryAllowed
-									? "Anyone can join"
-									: "Join by request"}</span>
+							<span>{membership.role.name}</span>
 						</li>
-					</ul>
-					{#if details.owner}
-						<div class="mt-1 w-72 max-w-full">
-							<CreatorCard
-								kind="User"
-								creatorId={details.owner.userId}
-								name={details.owner.username}
-								displayName={details.owner.displayName}
-								hasVerifiedBadge={details.owner.hasVerifiedBadge}
-								role="Owner" />
-						</div>
-					{:else}
-						<p class="text-xs text-fg-muted">Nobody owns this group.</p>
 					{/if}
-				</div>
+					{#if membership.isOwner}
+						<li class="tag-pill-favorite">
+							<Icon svg={crownIcon} size={12} aria-hidden="true" />
+							<span>Owner</span>
+						</li>
+					{/if}
+					{#if isPrimary}
+						<li class="tag-pill-favorite">
+							<Icon svg={starFillIcon} size={12} aria-hidden="true" />
+							<span>Primary group</span>
+						</li>
+					{/if}
+					{#if membership.isPendingJoin}
+						<li class="tag-pill-warning">
+							<Icon svg={clockIcon} size={12} aria-hidden="true" />
+							<span>Join request sent</span>
+						</li>
+					{/if}
+					{#if details.isLocked}
+						<li class="tag-pill-warning">
+							<Icon svg={lockIcon} size={12} aria-hidden="true" />
+							<span>Locked by Roblox</span>
+						</li>
+					{/if}
+					<li class="tag-pill">
+						<Icon
+							svg={group.isPublicEntryAllowed
+								? doorOpenIcon
+								: identificationBadgeIcon}
+							size={12}
+							aria-hidden="true" />
+						<span
+							>{group.isPublicEntryAllowed
+								? "Anyone can join"
+								: "Join by request"}</span>
+					</li>
+				</ul>
 			</div>
-			<div
-				class="flex flex-col items-end gap-2 @max-xl:items-start @max-xl:self-stretch">
-				<div class="flex flex-wrap items-center justify-end gap-1">
-					<button
-						class="button-icon"
-						type="button"
-						aria-label={store.isLoadingProfile
-							? "Refreshing group…"
-							: "Refresh group"}
-						data-tooltip="Refresh group"
-						aria-busy={store.isLoadingProfile}
-						disabled={store.isLoadingProfile}
-						onclick={() => void store.refreshProfile()}>
-						<RefreshIcon isRefreshing={store.isLoadingProfile} />
-					</button>
-					{#each subpageButtons.filter((button) => button.isShown) as button (button.subpage)}
-						<button
-							class="button-icon"
-							type="button"
-							aria-label={button.label}
-							data-tooltip={button.label}
-							data-group-subpage={button.subpage}
-							onclick={() => (store.subpage = button.subpage)}>
-							<Icon svg={button.icon} size={16} aria-hidden="true" />
-						</button>
-					{/each}
-					{#if isMember}
-						<button
-							class="button-icon"
-							type="button"
-							aria-label={isPrimary
-								? "Remove primary group"
-								: "Make primary group"}
-							aria-pressed={isPrimary}
-							data-tooltip={isPrimary
-								? "Remove primary group"
-								: "Make primary group"}
-							aria-busy={store.pendingAction === "primary" ||
-								store.pendingAction === "removePrimary"}
-							disabled={store.pendingAction !== null}
-							onclick={() =>
-								void (isPrimary
-									? store.removePrimary()
-									: store.makePrimary())}>
-							<Icon
-								svg={isPrimary ? starFillIcon : starIcon}
-								class={isPrimary
-									? "animate-pop text-accent-strong"
-									: ""}
-								size={16}
-								aria-hidden="true" />
-						</button>
-					{/if}
-					<button
-						class="button-icon"
-						type="button"
-						aria-label="Open group in browser"
-						data-tooltip="Open group in browser"
-						data-tooltip-side="bottom-end"
-						onclick={() =>
-							onOpenInBrowser(
-								store.accountId,
-								`https://www.roblox.com/communities/${group.groupId}`,
-							)}>
-						<Icon svg={globeIcon} size={16} aria-hidden="true" />
-					</button>
-				</div>
+			<div class="flex shrink-0 flex-wrap items-center justify-end gap-1">
 				{#if isMember && !membership.isOwner}
 					<button
 						class="button"
@@ -372,154 +278,201 @@
 								: "Request to join"}
 					</button>
 				{/if}
+				{#if hasMembershipAction}<span
+						class="mx-1 h-4 w-px bg-line-strong"
+						aria-hidden="true"></span
+					>{/if}
+				<button
+					class="button-icon"
+					type="button"
+					aria-label={store.isLoadingProfile
+						? "Refreshing group…"
+						: "Refresh group"}
+					data-tooltip="Refresh group"
+					aria-busy={store.isLoadingProfile}
+					disabled={store.isLoadingProfile}
+					onclick={() => void store.refreshProfile()}>
+					<RefreshIcon isRefreshing={store.isLoadingProfile} />
+				</button>
+				{#if isMember}
+					<li class="tag-pill-success">
+						<Icon svg={checkCircleFillIcon} size={12} aria-hidden="true" />
+						<span>{membership.role.name}</span>
+					</li>
+				{/if}
+				<button
+					class="button-icon"
+					type="button"
+					aria-label="Open group in browser"
+					data-tooltip="Open group in browser"
+					data-tooltip-side="bottom-end"
+					onclick={() =>
+						onOpenInBrowser(
+							store.accountId,
+							`https://www.roblox.com/communities/${group.groupId}`,
+						)}>
+					<Icon svg={globeIcon} size={16} aria-hidden="true" />
+				</button>
 			</div>
 		</div>
 
-		<section class="flex flex-col gap-2" aria-labelledby="group-shout-heading">
-			<div class="flex min-h-6 items-center gap-2">
-				<h3 id="group-shout-heading" class={sectionHeadingClass}>Shout</h3>
-				{#if permissions.canPostShout && !isEditingShout}
-					<button
-						class="ml-auto button-ghost-sm"
-						type="button"
-						aria-label="Post shout"
-						data-tooltip="Post shout"
-						onclick={startShout}>
-						<Icon svg={pencilSimpleIcon} size={14} aria-hidden="true" />
-					</button>
-				{/if}
-			</div>
-			{#if isEditingShout}
-				<form
-					novalidate
-					class="flex animate-enter flex-col gap-2"
-					onsubmit={(event) => {
-						event.preventDefault()
-						void postShout(shoutDraft)
-					}}>
-					<label class="sr-only" for="group-shout-input">Shout</label>
-					<textarea
-						id="group-shout-input"
-						class="field h-20 resize-none py-1.5"
-						maxlength={maxShoutLength}
-						placeholder="Write a shout for every member"
-						disabled={store.pendingAction === "shout"}
-						bind:value={shoutDraft}></textarea>
-					<div class="flex items-center gap-2">
-						<span class="font-mono text-2xs text-fg-muted"
-							>{shoutDraft.length}/{maxShoutLength}</span>
-						{#if details.shout}
+		<div class="-mx-4 h-8 border-b border-line-subtle">
+			<ProfileTabs />
+		</div>
+
+		<!-- A section with nothing to show is left out, unless the account can
+		fill it. -->
+		{#if details.shout || permissions.canPostShout}
+			<section class="flex flex-col gap-2" aria-labelledby="group-shout-heading">
+				<div class="flex min-h-6 items-center gap-2">
+					<h3 id="group-shout-heading" class={sectionHeadingClass}>Shout</h3>
+					{#if permissions.canPostShout && !isEditingShout}
+						<button
+							class="ml-auto button-ghost-sm"
+							type="button"
+							aria-label="Post shout"
+							data-tooltip="Post shout"
+							onclick={startShout}>
+							<Icon svg={pencilSimpleIcon} size={14} aria-hidden="true" />
+						</button>
+					{/if}
+				</div>
+				{#if isEditingShout}
+					<form
+						novalidate
+						class="flex animate-enter flex-col gap-2"
+						onsubmit={(event) => {
+							event.preventDefault()
+							void postShout(shoutDraft)
+						}}>
+						<label class="sr-only" for="group-shout-input">Shout</label>
+						<textarea
+							id="group-shout-input"
+							class="field h-20 resize-none py-1.5"
+							maxlength={maxShoutLength}
+							placeholder="Write a shout for every member"
+							disabled={store.pendingAction === "shout"}
+							bind:value={shoutDraft}></textarea>
+						<div class="flex items-center gap-2">
+							<span class="font-mono text-2xs text-fg-muted"
+								>{shoutDraft.length}/{maxShoutLength}</span>
+							{#if details.shout}
+								<button
+									class="button-text"
+									type="button"
+									disabled={store.pendingAction === "shout"}
+									onclick={() => void postShout("")}
+									>Clear shout</button>
+							{/if}
 							<button
-								class="button-text"
+								class="ml-auto button"
 								type="button"
 								disabled={store.pendingAction === "shout"}
-								onclick={() => void postShout("")}>Clear shout</button>
-						{/if}
-						<button
-							class="ml-auto button"
-							type="button"
-							disabled={store.pendingAction === "shout"}
-							onclick={() => (isEditingShout = false)}>Cancel</button>
-						<button
-							class="button-primary"
-							type="submit"
-							aria-busy={store.pendingAction === "shout"}
-							disabled={store.pendingAction === "shout" ||
-								!shoutDraft.trim()}
-							>{store.pendingAction === "shout"
-								? "Posting…"
-								: "Post shout"}</button>
+								onclick={() => (isEditingShout = false)}>Cancel</button>
+							<button
+								class="button-primary"
+								type="submit"
+								aria-busy={store.pendingAction === "shout"}
+								disabled={store.pendingAction === "shout" ||
+									!shoutDraft.trim()}
+								>{store.pendingAction === "shout"
+									? "Posting…"
+									: "Post shout"}</button>
+						</div>
+					</form>
+				{:else if details.shout}
+					<div
+						class="flex flex-col gap-2 rounded-lg border border-line bg-surface p-3">
+						<div
+							class="flex min-w-0 items-center gap-2 text-2xs text-fg-muted">
+							<Icon
+								svg={megaphoneIcon}
+								class="shrink-0"
+								size={14}
+								aria-hidden="true" />
+							<span class="truncate font-medium text-fg"
+								>{details.shout.poster.displayName ||
+									details.shout.poster.username}</span>
+							{#if details.shout.poster.username}<span class="truncate"
+									>@{details.shout.poster.username}</span
+								>{/if}
+							{#if details.shout.updatedAtMs}
+								<span class="ml-auto shrink-0"
+									><Timestamp value={details.shout.updatedAtMs} /> · {relativeTime(
+										details.shout.updatedAtMs,
+									)}</span>
+							{/if}
+						</div>
+						<p
+							class="text-sm wrap-anywhere whitespace-pre-line text-fg select-text">
+							{details.shout.body}
+						</p>
 					</div>
-				</form>
-			{:else if details.shout}
-				<div
-					class="flex flex-col gap-2 rounded-lg border border-line bg-surface p-3">
-					<div class="flex min-w-0 items-center gap-2 text-2xs text-fg-muted">
-						<Icon
-							svg={megaphoneIcon}
-							class="shrink-0"
-							size={14}
-							aria-hidden="true" />
-						<span class="truncate font-medium text-fg"
-							>{details.shout.poster.displayName ||
-								details.shout.poster.username}</span>
-						{#if details.shout.poster.username}<span class="truncate"
-								>@{details.shout.poster.username}</span
-							>{/if}
-						{#if details.shout.updatedAtMs}
-							<span class="ml-auto shrink-0"
-								><Timestamp value={details.shout.updatedAtMs} /> · {relativeTime(
-									details.shout.updatedAtMs,
-								)}</span>
-						{/if}
-					</div>
-					<p
-						class="text-sm wrap-anywhere whitespace-pre-line text-fg select-text">
-						{details.shout.body}
-					</p>
-				</div>
-			{:else}
-				<p class="text-xs text-fg-muted">No shout.</p>
-			{/if}
-		</section>
-
-		<section class="flex flex-col gap-2" aria-labelledby="group-about-heading">
-			<div class="flex min-h-6 items-center gap-2">
-				<h3 id="group-about-heading" class={sectionHeadingClass}>About</h3>
-				{#if permissions.canConfigure && !isEditingDescription}
-					<button
-						class="ml-auto button-ghost-sm"
-						type="button"
-						aria-label="Edit description"
-						data-tooltip="Edit description"
-						onclick={startDescription}>
-						<Icon svg={pencilSimpleIcon} size={14} aria-hidden="true" />
-					</button>
+				{:else}
+					<p class="text-xs text-fg-muted">No shout.</p>
 				{/if}
-			</div>
-			{#if isEditingDescription}
-				<form
-					novalidate
-					class="flex animate-enter flex-col gap-2"
-					onsubmit={(event) => {
-						event.preventDefault()
-						void saveDescription()
-					}}>
-					<label class="sr-only" for="group-description-input"
-						>Description</label>
-					<textarea
-						id="group-description-input"
-						class="field h-36 resize-none py-1.5"
-						maxlength={maxDescriptionLength}
-						disabled={store.pendingAction === "description"}
-						bind:value={descriptionDraft}></textarea>
-					<div class="flex items-center gap-2">
-						<span class="font-mono text-2xs text-fg-muted"
-							>{descriptionDraft.length}/{maxDescriptionLength}</span>
+			</section>
+		{/if}
+
+		{#if group.description || permissions.canConfigure}
+			<section class="flex flex-col gap-2" aria-labelledby="group-about-heading">
+				<div class="flex min-h-6 items-center gap-2">
+					<h3 id="group-about-heading" class={sectionHeadingClass}>About</h3>
+					{#if permissions.canConfigure && !isEditingDescription}
 						<button
-							class="ml-auto button"
+							class="ml-auto button-ghost-sm"
 							type="button"
+							aria-label="Edit description"
+							data-tooltip="Edit description"
+							onclick={startDescription}>
+							<Icon svg={pencilSimpleIcon} size={14} aria-hidden="true" />
+						</button>
+					{/if}
+				</div>
+				{#if isEditingDescription}
+					<form
+						novalidate
+						class="flex animate-enter flex-col gap-2"
+						onsubmit={(event) => {
+							event.preventDefault()
+							void saveDescription()
+						}}>
+						<label class="sr-only" for="group-description-input"
+							>Description</label>
+						<textarea
+							id="group-description-input"
+							class="field h-36 resize-none py-1.5"
+							maxlength={maxDescriptionLength}
 							disabled={store.pendingAction === "description"}
-							onclick={() => (isEditingDescription = false)}
-							>Cancel</button>
-						<button
-							class="button-primary"
-							type="submit"
-							aria-busy={store.pendingAction === "description"}
-							disabled={store.pendingAction === "description"}
-							>{store.pendingAction === "description"
-								? "Saving…"
-								: "Save description"}</button>
-					</div>
-				</form>
-			{:else}
-				<p
-					class="max-h-60 text-block overflow-y-auto select-text"
-					data-variant="prose">
-					{group.description || "No description."}
-				</p>
-			{/if}
-		</section>
+							bind:value={descriptionDraft}></textarea>
+						<div class="flex items-center gap-2">
+							<span class="font-mono text-2xs text-fg-muted"
+								>{descriptionDraft.length}/{maxDescriptionLength}</span>
+							<button
+								class="ml-auto button"
+								type="button"
+								disabled={store.pendingAction === "description"}
+								onclick={() => (isEditingDescription = false)}
+								>Cancel</button>
+							<button
+								class="button-primary"
+								type="submit"
+								aria-busy={store.pendingAction === "description"}
+								disabled={store.pendingAction === "description"}
+								>{store.pendingAction === "description"
+									? "Saving…"
+									: "Save description"}</button>
+						</div>
+					</form>
+				{:else}
+					<p
+						class="max-h-60 text-block overflow-y-auto select-text"
+						data-variant="prose">
+						{group.description || "No description."}
+					</p>
+				{/if}
+			</section>
+		{/if}
 
 		<section
 			class="flex flex-col gap-3"

@@ -10,13 +10,13 @@ import type { AccountStore } from "../accounts/account-store.svelte"
 import type { NotificationCenter } from "../notifications/notification-center.svelte"
 import type { CancellableRequest } from "../shared/cancellable-request"
 import { errorMessage } from "../shared/errors"
+import type { PageLocationKeys } from "../layout/page-history"
 
 type GroupsMode = "mine" | "search"
 
 // GroupSubpage is a page of the selected group that replaces its profile.
 export type GroupSubpage = "members" | "games" | "items" | "joinRequests"
 
-// GroupAction names the action that runs on the selected group.
 type GroupAction =
 	| "join"
 	| "leave"
@@ -26,6 +26,24 @@ type GroupAction =
 	| "description"
 
 export const minGroupSearchLength = 2
+
+// GroupsLocation is what Groups shows: the list, the search, and the group
+// and page that it opened. Its history goes back to it.
+interface GroupsLocation {
+	mode: GroupsMode
+	searchedText: string
+	groupId: number
+	subpage: GroupSubpage | null
+}
+
+export function groupsLocationKeys(location: GroupsLocation): PageLocationKeys {
+	return {
+		context: `${location.mode}:${location.searchedText}`,
+		selection: location.groupId
+			? `${location.groupId}:${location.subpage ?? ""}`
+			: "",
+	}
+}
 
 // GroupsStore lists the groups of the selected account, searches Roblox
 // groups, and shows one group at a time. Every request belongs to the
@@ -176,7 +194,29 @@ export class GroupsStore {
 		this.isSearching = false
 	}
 
-	// showGroup opens a group, such as one that another page links to.
+	get location(): GroupsLocation {
+		return {
+			mode: this.mode,
+			searchedText: this.mode === "search" ? this.searchedText : "",
+			groupId: this.selectedGroupId,
+			subpage: this.subpage,
+		}
+	}
+
+	async restoreLocation(location: GroupsLocation): Promise<void> {
+		if (location.mode === "search" && location.searchedText !== this.searchedText) {
+			this.query = location.searchedText
+			await this.search()
+		} else {
+			if (location.mode === "search") this.query = location.searchedText
+			this.show(location.mode)
+		}
+		if (location.groupId) {
+			this.showGroup(location.groupId)
+			this.subpage = location.subpage
+		} else this.closeGroup()
+	}
+
 	showGroup(groupId: number): void {
 		this.subpage = null
 		if (groupId === this.selectedGroupId && this.profile) return

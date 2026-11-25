@@ -10,7 +10,7 @@
 	import { accountBackend } from "../backend/bridge"
 	import type { GroupMember, GroupMemberPage, GroupRole } from "../backend/bridge"
 	import type { NotificationCenter } from "../notifications/notification-center.svelte"
-	import { getCreatorNavigation } from "../shared/creator-navigation"
+	import { getProfilePreviews } from "../shared/profile-preview"
 	import { CursorPagedList } from "../shared/cursor-paged-list.svelte"
 	import { errorMessage } from "../shared/errors"
 	import Icon from "../shared/Icon.svelte"
@@ -20,7 +20,7 @@
 	import SkeletonList from "../shared/SkeletonList.svelte"
 	import SkeletonMediaRow from "../shared/SkeletonMediaRow.svelte"
 	import ConfirmationDialog from "../shared/ConfirmationDialog.svelte"
-	import GroupSubpageHeader from "./GroupSubpageHeader.svelte"
+	import ProfilePageHeader from "../shared/ProfilePageHeader.svelte"
 	import type { GroupsStore } from "./groups-store.svelte"
 
 	let {
@@ -35,7 +35,7 @@
 		group = profile.details.group,
 		membership = profile.membership,
 		roles = profile.roles ?? [],
-		navigation = getCreatorNavigation(),
+		previews = getProfilePreviews(),
 		exactNumbers = new Intl.NumberFormat("en-US"),
 		allRolesValue = 0
 
@@ -189,11 +189,10 @@
 </script>
 
 <section class="settings-page min-w-0" aria-labelledby="group-members-title">
-	<GroupSubpageHeader
+	<ProfilePageHeader
 		titleId="group-members-title"
 		title="Members"
-		groupName={group.name}
-		onBack={() => (store.subpage = null)}>
+		subtitle={group.name}>
 		<button
 			class="button-ghost"
 			type="button"
@@ -205,7 +204,7 @@
 			onclick={() => void members.refresh()}>
 			<RefreshIcon isRefreshing={members.isLoading && members.hasLoaded} />
 		</button>
-	</GroupSubpageHeader>
+	</ProfilePageHeader>
 	<div
 		class="flex min-h-10 shrink-0 items-center gap-2 border-b border-line-subtle px-3 py-1.5"
 		role="toolbar"
@@ -256,10 +255,11 @@
 						<button
 							class="flex min-w-0 flex-1 items-center gap-2 rounded-md text-left"
 							type="button"
-							data-tooltip="Show in Social"
+							data-tooltip="Show profile"
 							data-tooltip-strong={member.user.displayName ||
 								member.user.username}
-							onclick={() => navigation.showUser(member.user)}>
+							onclick={() =>
+								previews.show({ kind: "User", ...member.user })}>
 							<span
 								class="grid size-9 shrink-0 place-items-center overflow-hidden rounded-md border border-line-strong bg-raised"
 								aria-hidden="true">

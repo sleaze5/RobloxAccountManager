@@ -1,6 +1,6 @@
 <script lang="ts">
+	import ProfilePageHeader from "../shared/ProfilePageHeader.svelte"
 	import { notifyErrors } from "../notifications/error-notifications.svelte"
-	import caretLeftIcon from "@phosphor-icons/core/regular/caret-left.svg?raw"
 	import checkCircleIcon from "@phosphor-icons/core/regular/check-circle.svg?raw"
 	import funnelIcon from "@phosphor-icons/core/regular/funnel.svg?raw"
 	import medalIcon from "@phosphor-icons/core/regular/medal.svg?raw"
@@ -21,11 +21,9 @@
 	let {
 		store,
 		accounts,
-		onBack,
 	}: {
 		store: GamesStore
 		accounts: AccountStore
-		onBack: () => void
 	} = $props()
 
 	type BadgeFilter = "all" | "earned" | "unearned"
@@ -38,8 +36,7 @@
 			style: "percent",
 			maximumFractionDigits: 1,
 		})
-	let heading = $state<HTMLHeadingElement | undefined>(undefined),
-		filter = $state<BadgeFilter>("all")
+	let filter = $state<BadgeFilter>("all")
 	const account = $derived(accounts.selectedAccount),
 		badges = $derived(universeBadges.badges ?? []),
 		awards = $derived(universeBadges.awardedAtByBadgeId),
@@ -77,7 +74,6 @@
 	})
 
 	onMount(() => {
-		heading?.focus({ preventScroll: true })
 		void universeBadges.load()
 	})
 
@@ -86,18 +82,10 @@
 </script>
 
 <section class="settings-page min-w-0" aria-labelledby="game-badges-title">
-	<header class="settings-header">
-		<button
-			class="button-ghost"
-			type="button"
-			aria-label="Back to game details"
-			data-tooltip="Back to game details"
-			onclick={onBack}>
-			<Icon svg={caretLeftIcon} data-nudge="left" size={16} aria-hidden="true" />
-		</button>
-		<h1 id="game-badges-title" tabindex="-1" bind:this={heading}>Badges</h1>
-		<span class="mr-auto min-w-0 text-xs wrap-anywhere text-fg-muted"
-			>{store.displayName(place)}</span>
+	<ProfilePageHeader
+		titleId="game-badges-title"
+		title="Badges"
+		subtitle={store.displayName(place)}>
 		<button
 			class="button-ghost"
 			type="button"
@@ -112,7 +100,7 @@
 			<RefreshIcon
 				isRefreshing={universeBadges.loading || universeBadges.loadingAwards} />
 		</button>
-	</header>
+	</ProfilePageHeader>
 
 	<div
 		class="flex flex-wrap items-end gap-x-3 gap-y-2 border-b border-line-subtle p-3"

@@ -1,6 +1,6 @@
 <script lang="ts">
+	import { getProfilePreviews } from "../shared/profile-preview"
 	import magnifyingGlassIcon from "@phosphor-icons/core/regular/magnifying-glass.svg?raw"
-	import signInIcon from "@phosphor-icons/core/regular/sign-in.svg?raw"
 	import starFillIcon from "@phosphor-icons/core/fill/star-fill.svg?raw"
 	import Icon from "../shared/Icon.svelte"
 	import { PresenceType, UserJoinability } from "../backend/bridge"
@@ -14,15 +14,13 @@
 	} from "./account-model"
 	import PresenceCard from "./PresenceCard.svelte"
 	import { isInExperience, PresencePlace } from "./presence-place.svelte"
-	import { notJoinableMessage } from "./user-joinability"
+	import { presenceJoinFor } from "./presence-join"
 
 	let {
 		presence,
 		joinability = UserJoinability.UserJoinabilityUnknown,
 		onJoin,
 		onJoinUser,
-		onSearchPlace,
-		onSearchUniverse,
 	}: {
 		presence: UserPresence
 		// joinability is whether the user's profile offers to join them, for a
@@ -32,9 +30,8 @@
 		// onJoinUser fills the launch options to follow the user, for a server
 		// that the presence does not show.
 		onJoinUser?: () => void
-		onSearchPlace: (placeId: number) => void
-		onSearchUniverse: (universeId: number) => void
 	} = $props()
+	const previews = getProfilePreviews()
 
 	const cardHoverOpenDelayMs = 400,
 		cardHoverCloseDelayMs = 150
@@ -48,18 +45,10 @@
 
 	const place = $derived(presencePlace.place),
 		inExperience = $derived(isInExperience(presence)),
-		joinPlaceId = $derived(presence.placeId ?? 0),
-		hasVisibleServer = $derived(
-			presence.userPresenceType === PresenceType.PresenceTypeInGame &&
-				joinPlaceId > 0 &&
-				!!presence.gameId,
-		),
-		isNotJoinable = $derived(joinability === UserJoinability.UserNotJoinable),
-		canFollowUser = $derived(
-			!hasVisibleServer &&
-				!!onJoinUser &&
-				joinability === UserJoinability.UserJoinable,
-		),
+		join = $derived(presenceJoinFor(presence, joinability, !!onJoinUser)),
+		joinPlaceId = $derived(join.placeId),
+		hasVisibleServer = $derived(join.hasVisibleServer),
+		canFollowUser = $derived(join.canFollowUser),
 		label = $derived(presenceLabel(presence)),
 		detail = $derived(
 			presenceDetail(presence, place ? games.displayName(place) : ""),
@@ -161,9 +150,7 @@
 				onFollowUser={canFollowUser ? followUser : undefined}
 				onPointerEnter={() => scheduleCardHover("hover", 0)}
 				onPointerLeave={() => scheduleCardHover(null, cardHoverCloseDelayMs)}
-				onFillLaunch={fillLaunch}
-				{onSearchPlace}
-				{onSearchUniverse} />
+				onFillLaunch={fillLaunch} />
 		{/if}
 	{:else}
 		<button
@@ -172,36 +159,13 @@
 			aria-label={tooltip}
 			data-tooltip={tooltip}>{@render status()}</button>
 	{/if}
-	{#if hasVisibleServer}
-		<button
-			class={["button-ghost-sm", isNotJoinable && "text-danger-muted"]}
-			type="button"
-			aria-label={isNotJoinable
-				? `Fill launch options. ${notJoinableMessage}`
-				: "Fill launch options"}
-			data-tooltip={isNotJoinable
-				? notJoinableMessage
-				: "Fill launch options with this place and server"}
-			onclick={fillLaunch}>
-			<Icon svg={signInIcon} size={14} aria-hidden="true" />
-		</button>
-	{:else if canFollowUser}
-		<button
-			class="button-ghost-sm"
-			type="button"
-			aria-label="Fill launch options to follow this user"
-			data-tooltip="Fill launch options to follow this user. Their server is hidden."
-			onclick={followUser}>
-			<Icon svg={signInIcon} size={14} aria-hidden="true" />
-		</button>
-	{/if}
 	{#if inExperience && joinPlaceId > 0}
 		<button
 			class="button-ghost-sm"
 			type="button"
-			aria-label="Show in Games"
-			data-tooltip="Show in Games"
-			onclick={() => onSearchPlace(joinPlaceId)}>
+			aria-label="Show game"
+			data-tooltip="Show game"
+			onclick={() => previews.show({ kind: "Place", placeId: joinPlaceId })}>
 			<Icon svg={magnifyingGlassIcon} size={14} aria-hidden="true" />
 		</button>
 	{/if}

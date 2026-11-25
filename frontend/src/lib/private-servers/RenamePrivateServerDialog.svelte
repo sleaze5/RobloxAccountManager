@@ -28,12 +28,12 @@
 	const id = $props.id(),
 		maximumLength = 50,
 		current = untrack(() => server.settings?.name ?? "")
-	let value = $state(current),
+	let typedName = $state(current),
 		validating = $state<"validate" | "submit" | null>(null),
 		error = $state(""),
 		card = $state<HTMLDivElement>(),
 		field = $state<HTMLInputElement>()
-	const text = $derived(value.trim()),
+	const text = $derived(typedName.trim()),
 		changed = $derived(text !== "" && text !== current),
 		renaming = $derived(server.pending === "rename"),
 		busy = $derived(validating !== null || renaming),
@@ -133,7 +133,7 @@
 					aria-describedby={`${id}-count`}
 					disabled={busy}
 					bind:this={field}
-					bind:value />
+					bind:value={typedName} />
 			{:else}
 				<input
 					id={`${id}-name`}
@@ -147,7 +147,7 @@
 			<small
 				id={`${id}-count`}
 				class="flex justify-end font-mono text-2xs text-fg-muted tabular-nums"
-				>{Array.from(value).length}/{maximumLength}</small>
+				>{Array.from(typedName).length}/{maximumLength}</small>
 		</div>
 		<div aria-live="polite">
 			<TextFilterStatus {check} noun="name" />

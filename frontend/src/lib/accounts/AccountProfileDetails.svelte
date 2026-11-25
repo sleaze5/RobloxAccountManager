@@ -19,6 +19,8 @@
 	import microphoneSlashIcon from "@phosphor-icons/core/regular/microphone-slash.svg?raw"
 	import usersThreeIcon from "@phosphor-icons/core/regular/users-three.svg?raw"
 	import warningCircleIcon from "@phosphor-icons/core/regular/warning-circle.svg?raw"
+	import AvatarBackgroundFact from "../avatar/AvatarBackgroundFact.svelte"
+	import type { AvatarPortraitLoad } from "../avatar/avatar-portrait.svelte"
 	import Icon from "../shared/Icon.svelte"
 	import {
 		AccountProfileSection,
@@ -41,14 +43,18 @@
 	// The profile rows stay in place while their sections load, so that the
 	// page does not move when a value arrives. Without sections, such as for a
 	// moderated account, only the saved account details show.
+	// The Account section takes the first two columns of the profile, and the
+	// Vault section the third, beside it.
 	let {
 		account,
 		snapshot,
 		sections,
+		portraitLoad,
 	}: {
 		account: Account
 		snapshot: AccountProfileSnapshot | null
 		sections: SectionLoad<AccountProfileSnapshot, AccountProfileSection> | null
+		portraitLoad: AvatarPortraitLoad
 	} = $props()
 
 	function isLoaded(section: AccountProfileSection): boolean {
@@ -172,7 +178,9 @@
 	{#if sections}<MissingFactValue {sections} {section} {emptyLabel} />{/if}
 {/snippet}
 
-<section class="flex flex-col gap-2" aria-labelledby="profile-account-heading">
+<section
+	class="flex flex-col gap-2 @4xl:col-span-2"
+	aria-labelledby="profile-account-heading">
 	<h3 id="profile-account-heading" class="text-xs font-semibold text-fg-muted">
 		Account
 	</h3>
@@ -406,10 +414,15 @@
 				</dd>
 			</div>
 		{/if}
+		{#if sections}
+			<AvatarBackgroundFact {portraitLoad} />
+		{/if}
 	</dl>
 </section>
 
-<section class="flex flex-col gap-2" aria-labelledby="profile-vault-heading">
+<section
+	class="flex flex-col gap-2 @4xl:col-start-3 @4xl:row-span-2 @4xl:row-start-1"
+	aria-labelledby="profile-vault-heading">
 	<h3 id="profile-vault-heading" class="text-xs font-semibold text-fg-muted">
 		Vault
 	</h3>

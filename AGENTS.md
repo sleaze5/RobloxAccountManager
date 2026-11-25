@@ -88,24 +88,27 @@ Check each applicable item before you finish a change. The change does only what
 3. The application stays portable and self-contained.
 4. The UI stays consistent and accessible.
     - The UI follows `docs/DESIGN.md` and is usable without instructions.
+    - Every element has a purpose, and each screen reads as one system. Give a role the pattern it already has elsewhere, such as the profile header with its actions at the top right, `ProfileStats` for headline numbers, `ProfileTabs` for the pages of a profile, `CreatorByline` for a creator or owner, and `facts` for details. Do not box information into cards, tiles, or grids of cells only to group it.
+    - A link to a user, a group, or a game opens its preview through `getProfilePreviews().show`, not another page. The preview opens the full profile on its own page on request.
     - The UI works from the keyboard, with visible focus, sufficient contrast, labels, and accessible tooltips.
     - The UI handles loading, empty, success, disabled, and error states where they apply.
     - User-facing text is clear and short.
     - User notifications go through the notification service and are timely, actionable, and deduplicated.
 5. Code stays in the correct layer, as described in `docs/ARCHITECTURE.md` and `docs/PLATFORM.md`.
-    - Platform-specific code stays isolated so that support for other operating systems can be added later.
+    - Platform-specific code stays isolated so that support for other operating systems can be added later. Code that is the same on several operating systems lives once, in a file with a build constraint, not in each `_<os>.go` file.
+    - Code that changes together lives together. A feature keeps its components, state, and helpers in its own folder, and `frontend/src/lib/shared/` holds only what several features use.
     - The frontend calls the backend through the Wails bridge. It does not duplicate backend logic.
     - Public interfaces and data models are minimal, typed, and consistent with existing code. Export only what another module uses.
     - Each feature's Wails bindings go in their own file in `internal/bindings`, such as `inventory.go`.
 6. Code stays simple, readable, and statically checked.
     - The project has no tests. Do not add tests. Correctness relies on strict static checks and linters.
     - Do not suppress lint or type errors.
-    - Handle every error. Wrap Go errors with context.
+    - Handle every error. Wrap Go errors with context. A catch or a discarded error that does nothing says in a comment why the state stays valid, such as "The backend logs the failure."
     - Do not add abstractions, options, or parameters for hypothetical future needs. Add a parameter only when two callers pass different values.
     - Do not choose behavior by comparing a string such as an endpoint name. Pass the difference as a parameter.
     - Search for an existing helper before you write one, and reuse or extend it. Never leave two implementations of the same behavior. Define a type or value that several modules need once, in `frontend/src/lib/shared/` or the Go package that owns it.
     - Name everything as described in [Naming](#naming).
-    - Prefer self-documenting code. Write a comment only for a fact the code cannot show, such as an operating system or Roblox behavior, a format layout, or the reason for an ordering. Do not write comments that restate the code.
+    - Prefer self-documenting code. Write a comment only for a fact the code cannot show, such as an operating system or Roblox behavior, a format layout, or the reason for an ordering. Do not write comments that restate the code, including a doc comment that only repeats the name and signature of a function, type, field, or prop.
     - Remove dead code, commented-out code, and debug output. When a change makes a function, field, binding, event, or parameter unused, remove it in the same change.
     - Follow the style of the surrounding code.
 7. The change is verified.

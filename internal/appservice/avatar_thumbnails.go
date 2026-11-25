@@ -59,7 +59,6 @@ func (service *Service) GetAvatarThumbnails(ctx context.Context, accountID, user
 	return thumbnails, nil
 }
 
-// SaveAvatarThumbnail replaces one thumbnail customization of the account.
 func (service *Service) SaveAvatarThumbnail(ctx context.Context, accountID int64, change robloxservices.AvatarThumbnailChange) error {
 	return service.editAccount(ctx, accountID, "avatar-thumbnail-save", "", func(ctx context.Context, version int64) error {
 		return service.users.SaveAvatarThumbnail(ctx, accountID, version, change)

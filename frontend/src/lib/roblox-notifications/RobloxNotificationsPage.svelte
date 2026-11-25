@@ -8,7 +8,7 @@
 	import { Browser } from "@wailsio/runtime"
 	import Icon from "../shared/Icon.svelte"
 	import SkeletonList from "../shared/SkeletonList.svelte"
-	import AccountPageHeader from "../accounts/AccountPageHeader.svelte"
+	import ProfilePageHeader from "../shared/ProfilePageHeader.svelte"
 	import RefreshIcon from "../shared/RefreshIcon.svelte"
 	import Select from "../shared/Select.svelte"
 	import { onMount, untrack } from "svelte"
@@ -22,16 +22,12 @@
 
 	let {
 		store,
-		onBack,
 		onOpenChat,
 		onFollowUser,
-		onSearchPlace,
 	}: {
 		store: AccountStore
-		onBack: () => void
 		onOpenChat: (userId: number) => void
 		onFollowUser: (user: RobloxNotificationUser) => void
-		onSearchPlace: (placeId: number) => void
 	} = $props()
 
 	const account = untrack(() => store.selectedAccount),
@@ -96,11 +92,10 @@
 </script>
 
 <section class="settings-page" aria-labelledby="roblox-notifications-title">
-	<AccountPageHeader
+	<ProfilePageHeader
 		titleId="roblox-notifications-title"
 		title="Notifications"
-		username={account.username}
-		{onBack}>
+		subtitle={`@${account.username}`}>
 		<Select
 			className="w-36"
 			label="Notification type"
@@ -128,7 +123,7 @@
 			onclick={() => void stream.refresh()}>
 			<RefreshIcon isRefreshing={stream.loading} />
 		</button>
-	</AccountPageHeader>
+	</ProfilePageHeader>
 
 	<div
 		class="min-h-0 flex-1 overflow-y-auto"
@@ -204,8 +199,7 @@
 								onDismiss={() => void stream.dismiss(notification)}
 								{onOpenChat}
 								onOpenLink={(url) => void openLink(url)}
-								{onFollowUser}
-								{onSearchPlace} />
+								{onFollowUser} />
 						{/each}
 					</ul>
 				{/if}

@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { getProfilePreviews } from "../shared/profile-preview"
 	import { notifyErrors } from "../notifications/error-notifications.svelte"
 	import LoadMore from "../shared/LoadMore.svelte"
 	import warningIcon from "@phosphor-icons/core/regular/warning.svg?raw"
@@ -6,7 +7,7 @@
 	import magnifyingGlassIcon from "@phosphor-icons/core/regular/magnifying-glass.svg?raw"
 	import xIcon from "@phosphor-icons/core/regular/x.svg?raw"
 	import { onMount, untrack } from "svelte"
-	import AccountPageHeader from "../accounts/AccountPageHeader.svelte"
+	import ProfilePageHeader from "../shared/ProfilePageHeader.svelte"
 	import type { AccountStore } from "../accounts/account-store.svelte"
 	import { InventoryCategory } from "../backend/bridge"
 	import type { GamePlace, InventoryItem } from "../backend/bridge"
@@ -46,9 +47,6 @@
 		username,
 		notifications,
 		sidebarWidth = $bindable(),
-		onSearchPlace,
-		onShowGamePass,
-		onBack,
 	}: {
 		accounts: AccountStore
 		notifications: NotificationCenter
@@ -56,10 +54,8 @@
 		userId: number
 		username: string
 		sidebarWidth: number
-		onSearchPlace: (placeId: number) => void
-		onShowGamePass: (place: GamePlace, gamePassId: number) => void
-		onBack: () => void
 	} = $props()
+	const previews = getProfilePreviews()
 	const elementIdPrefix = $props.id()
 
 	const inventory = untrack(
@@ -164,7 +160,7 @@
 
 	function openItem(item: InventoryItem): void {
 		if (isPlaceCategory) {
-			onSearchPlace(item.itemId)
+			previews.show({ kind: "Place", placeId: item.itemId })
 			return
 		}
 		inventory.clearItemActionError()
@@ -190,11 +186,10 @@
 </script>
 
 <section class="settings-page" aria-labelledby={`${elementIdPrefix}-inventory-title`}>
-	<AccountPageHeader
+	<ProfilePageHeader
 		titleId={`${elementIdPrefix}-inventory-title`}
 		title="Inventory"
-		{username}
-		{onBack}>
+		subtitle={`@${username}`}>
 		<button
 			class="button-ghost"
 			type="button"
@@ -208,7 +203,7 @@
 			onclick={() => void inventory.refresh()}>
 			<RefreshIcon isRefreshing={inventory.loading} />
 		</button>
-	</AccountPageHeader>
+	</ProfilePageHeader>
 
 	<div class="settings-layout" style={`--sidebar-width: ${sidebarWidth}px;`}>
 		<div class="settings-sidebar pt-1">
@@ -393,7 +388,7 @@
 												),
 											) === true}
 										actionLabel={isPlaceCategory
-											? "Show in Games"
+											? "Show game"
 											: "Show details"}
 										onOpen={openItem} />
 								</li>
@@ -425,13 +420,5 @@
 		{accounts}
 		{isOwnInventory}
 		isWorn={wornAssetIds.has(detailedItem.itemId)}
-		onSearchPlace={(placeId) => {
-			detailedCopyKey = ""
-			onSearchPlace(placeId)
-		}}
-		onShowGamePass={(place, gamePassId) => {
-			detailedCopyKey = ""
-			onShowGamePass(place, gamePassId)
-		}}
 		onClose={() => (detailedCopyKey = "")} />
 {/if}

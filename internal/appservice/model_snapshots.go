@@ -13,8 +13,6 @@ const (
 	maxModelSnapshotSizeBytes = 64 << 20
 )
 
-// ModelSnapshotFileName names the snapshot of a 3D view after the subject that
-// it shows.
 func (service *Service) ModelSnapshotFileName(subjectName string) string {
 	return fileNameOf(subjectName, "3D view", modelSnapshotExtension)
 }
@@ -31,7 +29,6 @@ func (service *Service) ValidateModelSnapshotPNG(snapshotPNG []byte) error {
 	return nil
 }
 
-// SaveModelSnapshot writes the snapshot of a 3D view where the user chose.
 func (service *Service) SaveModelSnapshot(path string, snapshotPNG []byte) (string, error) {
 	savedPath, err := service.saveChosenFile(path, modelSnapshotExtension, snapshotPNG, "model-snapshot", "application.model-viewer")
 	if err == nil {

@@ -1,6 +1,6 @@
 <script lang="ts">
 	import vaultIcon from "@phosphor-icons/core/regular/vault.svg?raw"
-	import { getCreatorNavigation } from "../shared/creator-navigation"
+	import { getProfilePreviews } from "../shared/profile-preview"
 	import type { LabeledBadge } from "../shared/labeled-badge"
 	import ProfileCard from "../shared/ProfileCard.svelte"
 	import Skeleton from "../shared/Skeleton.svelte"
@@ -15,7 +15,7 @@
 
 	let { userId }: { userId: string } = $props()
 
-	const navigation = getCreatorNavigation(),
+	const previews = getProfilePreviews(),
 		notInVaultBadge: LabeledBadge = {
 			label: "Not in your vault",
 			icon: vaultIcon,
@@ -98,9 +98,10 @@
 			isFavorite={shownUser.favorite}
 			badges={shownUser.inVault === false ? [notInVaultBadge] : []}
 			action={{
-				label: "Show in Social",
+				label: "Show profile",
 				open: () =>
-					navigation.showUser({
+					previews.show({
+						kind: "User",
 						userId: Number(userId),
 						username: shownUser.username,
 						displayName: shownUser.displayName || shownUser.username,

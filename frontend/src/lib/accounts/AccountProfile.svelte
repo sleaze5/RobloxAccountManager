@@ -1,12 +1,7 @@
 <script lang="ts">
 	import { notifyErrors } from "../notifications/error-notifications.svelte"
 	import ProfileShowcase from "./ProfileShowcase.svelte"
-	import backpackIcon from "@phosphor-icons/core/regular/backpack.svg?raw"
-	import personArmsSpreadIcon from "@phosphor-icons/core/regular/person-arms-spread.svg?raw"
-	import bellIcon from "@phosphor-icons/core/regular/bell.svg?raw"
-	import chatsIcon from "@phosphor-icons/core/regular/chats.svg?raw"
 	import dotsThreeIcon from "@phosphor-icons/core/regular/dots-three.svg?raw"
-	import gearIcon from "@phosphor-icons/core/regular/gear.svg?raw"
 	import hashIcon from "@phosphor-icons/core/regular/hash.svg?raw"
 	import sealCheckIcon from "@phosphor-icons/core/regular/seal-check.svg?raw"
 	import starFillIcon from "@phosphor-icons/core/fill/star-fill.svg?raw"
@@ -18,7 +13,12 @@
 	import { tick, untrack } from "svelte"
 	import arrowCounterClockwiseIcon from "@phosphor-icons/core/regular/arrow-counter-clockwise.svg?raw"
 	import circleNotchIcon from "@phosphor-icons/core/regular/circle-notch.svg?raw"
-	import { AccountProfileSection, SessionState, SocialList } from "../backend/bridge"
+	import {
+		AccountProfileSection,
+		SessionState,
+		SocialList,
+		UserJoinability,
+	} from "../backend/bridge"
 	import type { GamePlace, RobloxNotificationUser } from "../backend/bridge"
 	import AccountModerationPanel from "./AccountModerationPanel.svelte"
 	import { banEndsAtMs, canReactivate, hasReactivation } from "./moderation.svelte"
@@ -29,13 +29,23 @@
 	import InventoryPage from "../inventory/InventoryPage.svelte"
 	import RobloxNotificationsPage from "../roblox-notifications/RobloxNotificationsPage.svelte"
 	import FriendConnections from "../social/FriendConnections.svelte"
-	import SocialCounts from "../social/SocialCounts.svelte"
+	import { relationshipStats } from "../social/relationship-stats"
+	import ProfileStats from "../shared/ProfileStats.svelte"
 	import { getPageVisibility } from "../layout/page-visibility"
 	import type { WorkspaceState } from "../layout/workspace-state.svelte"
 	import type { NotificationCenter } from "../notifications/notification-center.svelte"
 	import { appSettings } from "../settings/settings-store.svelte"
 	import { floatMenu, menuIn, menuKeyboard, menuOut } from "../shared/presence"
 	import ImageMenuTarget from "../layout/ImageMenuTarget.svelte"
+	import AvatarPortraitFrame from "../avatar/AvatarPortraitFrame.svelte"
+	import { AvatarPortraitLoad } from "../avatar/avatar-portrait.svelte"
+	import ProfileTabs from "../shared/ProfileTabs.svelte"
+	import PresenceJoinButton from "./PresenceJoinButton.svelte"
+	import { presenceJoinFor } from "./presence-join"
+	import { setProfilePages } from "../shared/profile-pages"
+	import { accountPageLabels, accountPages } from "./account-pages"
+	import type { AccountPage } from "./account-pages"
+	import cookieIcon from "@phosphor-icons/core/regular/cookie.svg?raw"
 	import AccountAvatar from "./AccountAvatar.svelte"
 	import AccountMembershipBadges from "./AccountMembershipBadges.svelte"
 	import AccountPresence from "./AccountPresence.svelte"
@@ -53,9 +63,6 @@
 		onManageTags,
 		onJoinServer,
 		onFollowUser,
-		onSearchPlace,
-		onShowGamePass,
-		onSearchUniverse,
 		onReplaceCookie,
 		onEditDescription,
 		onShowSocial,
@@ -68,9 +75,6 @@
 		onManageTags: (accountId: number) => void
 		onJoinServer: (placeId: number, jobId: string) => void
 		onFollowUser: (user: RobloxNotificationUser) => void
-		onSearchPlace: (placeId: number) => void
-		onShowGamePass: (place: GamePlace, gamePassId: number) => void
-		onSearchUniverse: (universeId: number) => void
 		onReplaceCookie: () => void
 		onEditDescription: (description: string) => void
 		onShowSocial: (list: SocialListKind) => void
@@ -80,7 +84,9 @@
 	} = $props()
 
 	const pageVisibility = getPageVisibility()
-	let showcaseRefreshCount = $state(0)
+	let showcaseRefreshCount = $state(0),
+		profileSection = $state<HTMLElement>()
+	const avatarPortrait = new AvatarPortraitLoad()
 	const selectedAccount = $derived(store.selectedAccount),
 		selectedCustomTags = $derived(getCustomTags(selectedAccount)),
 		profileAccountId = $derived(selectedAccount.id),
@@ -102,14 +108,35 @@
 			canReactivate(selectedAccount.moderation, moderationClock.nowMs),
 		),
 		reactivating = $derived(store.reactivatingAccountId === selectedAccount.id),
-		checkingModeration = $derived(store.checkingAccountId === selectedAccount.id)
+		checkingModeration = $derived(store.checkingAccountId === selectedAccount.id),
+		// Join is the main action only when nothing about the account needs
+		// attention first.
+		canJoinFromHeader = $derived(
+			hasAccount && store.vault.unlocked && !moderated && !sessionAttention,
+		),
+		hasJoinAction = $derived(
+			canJoinFromHeader &&
+				presenceJoinFor(
+					selectedAccount.presence,
+					UserJoinability.UserJoinabilityUnknown,
+					false,
+				).hasVisibleServer,
+		),
+		pageUnavailableReason = $derived(
+			!store.vault.unlocked
+				? "Unlock the vault first"
+				: moderated
+					? "Unavailable while moderated"
+					: "",
+		)
 
-	let settingsButton = $state<HTMLButtonElement | undefined>(undefined),
-		chatsButton = $state<HTMLButtonElement | undefined>(undefined),
-		notificationsButton = $state<HTMLButtonElement | undefined>(undefined),
-		avatarButton = $state<HTMLButtonElement | undefined>(undefined),
-		inventoryButton = $state<HTMLButtonElement | undefined>(undefined),
-		tagsButton = $state<HTMLButtonElement | undefined>(undefined)
+	let tagsButton = $state<HTMLButtonElement | undefined>(undefined)
+
+	// A refresh of the account data also reads the portrait again.
+	$effect(() => {
+		void showcaseRefreshCount
+		return avatarPortrait.load(profileVisible ? profileAccountId : 0, robloxUserId)
+	})
 	const profileState = $derived(
 			profileVisible ? store.getAccountProfile(profileAccountId) : null,
 		),
@@ -175,24 +202,40 @@
 		return () => window.clearInterval(timer)
 	})
 
-	function openPage(
-		page: "settings" | "chats" | "notifications" | "avatar" | "inventory",
-	): void {
+	function openPage(page: AccountPage): void {
 		workspace.closeAccountMenus()
 		workspace.accountPage = page
 	}
 
+	setProfilePages({
+		get label() {
+			return `${selectedAccount.displayName} pages`
+		},
+		get tabs() {
+			return accountPages.map((page) => ({
+				id: page,
+				label: accountPageLabels[page],
+				unreadCount: page === "notifications" ? unreadNotifications : 0,
+				unavailableReason: pageUnavailableReason,
+			}))
+		},
+		get currentPage() {
+			return workspace.accountPage === "profile" ? "" : workspace.accountPage
+		},
+		openPage: (page) => {
+			const accountPage = accountPages.find((knownPage) => knownPage === page)
+			if (accountPage) openPage(accountPage)
+		},
+		openOverview: () => void backToProfile(),
+	})
+
 	async function backToProfile(): Promise<void> {
-		const opener = {
-			profile: settingsButton,
-			settings: settingsButton,
-			chats: chatsButton,
-			notifications: notificationsButton,
-			avatar: avatarButton,
-			inventory: inventoryButton,
-		}[workspace.accountPage]
+		const closedPage = workspace.accountPage
 		workspace.accountPage = "profile"
 		await tick()
+		const opener = profileSection?.querySelector<HTMLButtonElement>(
+			`[data-subpage-button="${closedPage}"]`,
+		)
 		opener?.closest("[data-workspace-scroll]")?.scrollTo({ top: 0 })
 		opener?.focus({ preventScroll: true })
 	}
@@ -203,22 +246,16 @@
 </script>
 
 {#if workspace.accountPage === "settings" && hasAccount && store.vault.unlocked}
-	<AccountSettingsPage
-		{store}
-		{workspace}
-		{notifications}
-		onBack={() => void backToProfile()} />
+	<AccountSettingsPage {store} {workspace} {notifications} />
 {:else if workspace.accountPage === "chats" && hasAccount && store.vault.unlocked}
-	<ChatsPage {store} {workspace} onBack={() => void backToProfile()} />
+	<ChatsPage {store} {workspace} />
 {:else if workspace.accountPage === "avatar" && hasAccount && store.vault.unlocked}
 	<AvatarPage
 		accounts={store}
 		{notifications}
 		accountId={selectedAccount.id}
 		userId={Number(selectedAccount.userId)}
-		username={selectedAccount.username}
-		{onSearchPlace}
-		onBack={() => void backToProfile()} />
+		username={selectedAccount.username} />
 {:else if workspace.accountPage === "inventory" && hasAccount && store.vault.unlocked}
 	<InventoryPage
 		accounts={store}
@@ -226,24 +263,30 @@
 		accountId={selectedAccount.id}
 		userId={Number(selectedAccount.userId)}
 		username={selectedAccount.username}
-		bind:sidebarWidth={workspace.accountSettingsSidebarWidth}
-		{onSearchPlace}
-		{onShowGamePass}
-		onBack={() => void backToProfile()} />
+		bind:sidebarWidth={workspace.accountSettingsSidebarWidth} />
 {:else if workspace.accountPage === "notifications" && hasAccount && store.vault.unlocked}
 	<RobloxNotificationsPage
 		{store}
-		onBack={() => void backToProfile()}
 		onOpenChat={(userId) => {
 			workspace.chatUserIdToOpen = userId
 			openPage("chats")
 		}}
-		{onFollowUser}
-		{onSearchPlace} />
+		{onFollowUser} />
 {:else}
-	<section class="flex flex-col gap-4 p-3 pb-4" aria-labelledby="account-name">
-		<div class="flex items-start gap-3 @max-xl:flex-col">
-			<div class="flex min-w-0 flex-1 items-center gap-4">
+	<section
+		bind:this={profileSection}
+		class="flex flex-col gap-5 p-4 pb-5"
+		aria-labelledby="account-name">
+		<div class="flex items-start gap-4">
+			{#if hasAccount}
+				<AvatarPortraitFrame
+					portraitLoad={avatarPortrait}
+					headshotUrl={selectedAccount.avatarUrl}
+					label={`@${selectedAccount.username}'s avatar`}
+					onOpenAvatar={() => {
+						if (!pageUnavailableReason) openPage("avatar")
+					}} />
+			{:else}
 				<ImageMenuTarget
 					imageUrl={selectedAccount.avatarUrl}
 					label={`@${selectedAccount.username}'s profile image`}>
@@ -251,65 +294,129 @@
 						account={selectedAccount}
 						className="size-20 text-lg" />
 				</ImageMenuTarget>
-				<div class="flex min-w-0 flex-col gap-1">
-					<h2
-						id="account-name"
-						class="flex min-w-0 items-center gap-1 text-lg leading-tight font-semibold tracking-tight text-fg">
-						<span class="truncate select-text"
-							>{selectedAccount.displayName}</span>
-						{#if selectedAccount.favorite}<Icon
-								svg={starFillIcon}
-								class="shrink-0 animate-pop text-accent-strong"
-								size={16}
-								aria-hidden="true" />{/if}
-						{#if profile?.verifiedBadge}<Icon
-								svg={sealCheckIcon}
-								class="shrink-0 text-accent-strong"
-								size={16}
-								aria-label="Verified" />{/if}
-					</h2>
-					{#if hasAccount}
-						<div
-							class="flex min-w-0 flex-wrap items-center gap-1 font-mono text-2xs wrap-anywhere text-fg-muted">
-							<span class="select-text">@{selectedAccount.username}</span>
-							<span class="text-fg-faint" aria-hidden="true">·</span>
-							<span class="select-text"
-								>ID: {selectedAccount.userId}</span>
+			{/if}
+			<div class="flex min-w-0 flex-1 flex-col gap-1 pt-1">
+				<h2
+					id="account-name"
+					class="flex min-w-0 items-center gap-1 text-lg leading-tight font-semibold tracking-tight text-fg">
+					<span class="truncate select-text"
+						>{selectedAccount.displayName}</span>
+					{#if selectedAccount.favorite}<Icon
+							svg={starFillIcon}
+							class="shrink-0 animate-pop text-accent-strong"
+							size={16}
+							aria-hidden="true" />{/if}
+					{#if profile?.verifiedBadge}<Icon
+							svg={sealCheckIcon}
+							class="shrink-0 text-accent-strong"
+							size={16}
+							aria-label="Verified" />{/if}
+				</h2>
+				{#if hasAccount}
+					<div
+						class="flex min-w-0 flex-wrap items-center gap-1 font-mono text-2xs wrap-anywhere text-fg-muted">
+						<span class="select-text">@{selectedAccount.username}</span>
+						<span class="text-fg-faint" aria-hidden="true">·</span>
+						<span class="select-text">ID: {selectedAccount.userId}</span>
+					</div>
+					{#if sessionAttention}
+						<div class="flex items-center gap-2 text-xs text-warning">
+							<Icon
+								svg={warningCircleIcon}
+								size={14}
+								aria-hidden="true" />
+							<span>{sessionAttention}</span>
 						</div>
-						{#if sessionAttention}
-							<div class="flex items-center gap-2 text-xs text-warning">
-								<Icon
-									svg={warningCircleIcon}
-									size={14}
-									aria-hidden="true" />
-								<span>{sessionAttention}</span>
-								<button
-									class="button"
-									type="button"
-									disabled={store.busy}
-									onclick={onReplaceCookie}>
-									Update cookie
-								</button>
-							</div>
-						{/if}
-						{#if store.vault.unlocked && !moderated}
-							<AccountPresence
-								presence={selectedAccount.presence}
-								onJoin={onJoinServer}
-								{onSearchPlace}
-								{onSearchUniverse} />
-							<div class="flex min-h-5 flex-wrap items-center gap-2">
-								<AccountProfileBalance
-									snapshot={profile}
-									loading={isBalanceLoading} />
-								{#if profile}<AccountMembershipBadges
-										snapshot={profile} />{/if}
-							</div>
-						{/if}
 					{/if}
-				</div>
+					{#if store.vault.unlocked && !moderated}
+						<AccountPresence
+							presence={selectedAccount.presence}
+							onJoin={onJoinServer} />
+					{/if}
+					{#if profileState}
+						{@const sections = profileState.sections}
+						<ProfileStats
+							label="Relationship counts"
+							stats={relationshipStats(
+								{
+									friends: profile?.friendCount ?? null,
+									followers: profile?.followerCount ?? null,
+									following: profile?.followingCount ?? null,
+								},
+								(list) =>
+									sections.isSectionPending(
+										list === SocialList.SocialFollowers
+											? AccountProfileSection.ProfileSectionFollowers
+											: list === SocialList.SocialFollowing
+												? AccountProfileSection.ProfileSectionFollowing
+												: AccountProfileSection.ProfileSectionFriends,
+									),
+								onShowSocial,
+							)} />
+					{/if}
+					<div class="mt-1 flex min-h-6 flex-wrap items-center gap-2">
+						{#if store.vault.unlocked && !moderated}
+							<AccountProfileBalance
+								snapshot={profile}
+								loading={isBalanceLoading} />
+							{#if profile}<AccountMembershipBadges
+									snapshot={profile} />{/if}
+						{/if}
+						{#each selectedCustomTags as tag (tag.id)}
+							<span class="tag-pill">
+								<Icon svg={hashIcon} size={12} aria-hidden="true" />
+								<span>{tag.name}</span>
+							</span>
+						{/each}
+						<div class="relative inline-flex" data-account-menu>
+							<button
+								bind:this={tagsButton}
+								class="button-icon size-6"
+								type="button"
+								aria-label="Edit tags"
+								aria-expanded={workspace.activeAccountMenu ===
+									"profile-tags"}
+								data-open={workspace.activeAccountMenu ===
+									"profile-tags" || undefined}
+								data-tooltip="Edit tags"
+								disabled={store.busy}
+								onclick={() =>
+									workspace.toggleAccountMenu("profile-tags")}>
+								<Icon svg={tagIcon} size={14} aria-hidden="true" />
+							</button>
+							{#if workspace.activeAccountMenu === "profile-tags"}
+								<div
+									class="menu"
+									data-account-menu
+									use:floatMenu={{
+										anchor: tagsButton,
+										align: "start",
+									}}
+									use:menuKeyboard
+									in:menuIn
+									out:menuOut>
+									<TagPicker
+										{store}
+										accounts={[selectedAccount]}
+										onManageTags={() =>
+											onManageTags(selectedAccount.id)} />
+								</div>
+							{/if}
+						</div>
+					</div>
+				{/if}
 			</div>
-			<div class="relative flex items-center gap-1 @max-xl:self-end">
+			<div class="relative flex shrink-0 items-center gap-1">
+				{#if hasAccount && sessionAttention && !moderated}
+					<button
+						class="button-primary animate-enter"
+						type="button"
+						disabled={store.busy}
+						onclick={onReplaceCookie}>
+						<Icon svg={cookieIcon} size={14} aria-hidden="true" />
+						Update cookie
+					</button>
+				{/if}
 				{#if canBeReactivated && store.vault.unlocked}
 					<button
 						class="button-primary animate-enter"
@@ -339,6 +446,15 @@
 						{/if}
 					</button>
 				{/if}
+				{#if canJoinFromHeader}
+					<PresenceJoinButton
+						presence={selectedAccount.presence}
+						onJoin={onJoinServer} />
+				{/if}
+				{#if (hasAccount && sessionAttention && !moderated) || (canBeReactivated && store.vault.unlocked) || hasJoinAction}<span
+						class="mx-1 h-4 w-px bg-line-strong"
+						aria-hidden="true"></span
+					>{/if}
 				<button
 					class="button-icon"
 					type="button"
@@ -361,81 +477,6 @@
 						void profileState?.refresh(true)
 					}}>
 					<RefreshIcon isRefreshing={refreshing} />
-				</button>
-				<button
-					class="relative button-icon"
-					type="button"
-					aria-label={unreadNotifications
-						? `Notifications, ${unreadNotifications} unread`
-						: "Notifications"}
-					data-tooltip={moderated
-						? "Notifications unavailable while moderated"
-						: unreadNotifications
-							? `Notifications (${unreadNotifications} unread)`
-							: "Notifications"}
-					disabled={!hasAccount || !store.vault.unlocked || moderated}
-					bind:this={notificationsButton}
-					onclick={() => openPage("notifications")}>
-					<Icon svg={bellIcon} size={16} aria-hidden="true" />
-					{#if unreadNotifications}<span
-							class="absolute -top-1.5 -right-1.5 min-w-4 animate-bloom rounded-sm bg-solid px-0.5 text-center text-2xs leading-4 font-bold text-on-solid"
-							aria-hidden="true"
-							>{unreadNotifications > 99
-								? "99+"
-								: unreadNotifications}</span
-						>{/if}
-				</button>
-				<button
-					class="button-icon"
-					type="button"
-					aria-label={moderated
-						? "Avatar unavailable while moderated"
-						: "Avatar"}
-					data-tooltip={moderated
-						? "Avatar unavailable while moderated"
-						: "Avatar"}
-					disabled={!hasAccount || !store.vault.unlocked || moderated}
-					bind:this={avatarButton}
-					onclick={() => openPage("avatar")}>
-					<Icon svg={personArmsSpreadIcon} size={16} aria-hidden="true" />
-				</button>
-				<button
-					class="button-icon"
-					type="button"
-					aria-label={moderated
-						? "Inventory unavailable while moderated"
-						: "Inventory"}
-					data-tooltip={moderated
-						? "Inventory unavailable while moderated"
-						: "Inventory"}
-					disabled={!hasAccount || !store.vault.unlocked || moderated}
-					bind:this={inventoryButton}
-					onclick={() => openPage("inventory")}>
-					<Icon svg={backpackIcon} size={16} aria-hidden="true" />
-				</button>
-				<button
-					class="button-icon"
-					type="button"
-					aria-label="Chats"
-					data-tooltip={moderated
-						? "Chats unavailable while moderated"
-						: "Chats"}
-					disabled={!hasAccount || !store.vault.unlocked || moderated}
-					bind:this={chatsButton}
-					onclick={() => openPage("chats")}>
-					<Icon svg={chatsIcon} size={16} aria-hidden="true" />
-				</button>
-				<button
-					class="button-icon"
-					type="button"
-					aria-label="Account settings"
-					data-tooltip={moderated
-						? "Settings unavailable while moderated"
-						: "Account settings"}
-					disabled={!hasAccount || !store.vault.unlocked || moderated}
-					bind:this={settingsButton}
-					onclick={() => openPage("settings")}>
-					<Icon svg={gearIcon} size={16} aria-hidden="true" />
 				</button>
 				<button
 					class="button-icon"
@@ -465,96 +506,44 @@
 		{/if}
 
 		{#if hasAccount}
-			<div class="flex flex-wrap items-center gap-1">
-				{#if selectedAccount.favorite}
-					<span class="tag-pill-favorite">
-						<Icon svg={starFillIcon} size={12} aria-hidden="true" />
-						<span>Favorite</span>
-					</span>
-				{/if}
-				{#each selectedCustomTags as tag (tag.id)}
-					<span class="tag-pill">
-						<Icon svg={hashIcon} size={12} aria-hidden="true" />
-						<span>{tag.name}</span>
-					</span>
-				{/each}
-				<div class="relative inline-flex" data-account-menu>
-					<button
-						bind:this={tagsButton}
-						class="button-icon size-6"
-						type="button"
-						aria-label="Edit tags"
-						aria-expanded={workspace.activeAccountMenu === "profile-tags"}
-						data-open={workspace.activeAccountMenu === "profile-tags" ||
-							undefined}
-						data-tooltip="Edit tags"
-						disabled={store.busy}
-						onclick={() => workspace.toggleAccountMenu("profile-tags")}>
-						<Icon svg={tagIcon} size={14} aria-hidden="true" />
-					</button>
-					{#if workspace.activeAccountMenu === "profile-tags"}
-						<div
-							class="menu"
-							data-account-menu
-							use:floatMenu={{ anchor: tagsButton, align: "start" }}
-							use:menuKeyboard
-							in:menuIn
-							out:menuOut>
-							<TagPicker
-								{store}
-								accounts={[selectedAccount]}
-								onManageTags={() => onManageTags(selectedAccount.id)} />
-						</div>
-					{/if}
-				</div>
+			<div class="-mx-4 h-8 border-b border-line-subtle">
+				<ProfileTabs />
 			</div>
 
-			{#if profileState}
-				{@const sections = profileState.sections}
-				<SocialCounts
-					friends={profile?.friendCount ?? null}
-					followers={profile?.followerCount ?? null}
-					following={profile?.followingCount ?? null}
-					isCountPending={(list) =>
-						sections.isSectionPending(
-							list === SocialList.SocialFollowers
-								? AccountProfileSection.ProfileSectionFollowers
-								: list === SocialList.SocialFollowing
-									? AccountProfileSection.ProfileSectionFollowing
-									: AccountProfileSection.ProfileSectionFriends,
-						)}
-					onShow={onShowSocial} />
-			{/if}
-
-			{#if profileState && hasAbout}
-				<AccountProfileAbout
-					snapshot={profileState.snapshot}
-					isDescriptionUnavailable={!profileState.sections.hasSection(
-						AccountProfileSection.ProfileSectionAbout,
-					)}
-					disabled={store.busy ||
-						profileState.sections.loadingSections.includes(
+			<div class="grid min-w-0 items-start gap-5 @4xl:grid-cols-3 @4xl:gap-x-6">
+				{#if profileState && hasAbout}
+					<AccountProfileAbout
+						snapshot={profileState.snapshot}
+						isDescriptionUnavailable={!profileState.sections.hasSection(
 							AccountProfileSection.ProfileSectionAbout,
-						) ||
-						!store.vault.unlocked}
-					{notifications}
-					{onEditDescription} />
-			{:else if profileVisible && profileState?.sections.isSectionPending(AccountProfileSection.ProfileSectionAbout)}
-				<section class="flex flex-col gap-2" aria-busy="true">
-					<h3
-						class="flex h-6 items-center text-xs font-semibold text-fg-muted">
-						About
-					</h3>
-					<p class="text-block" data-variant="prose">
-						<Skeleton className="w-72" label="Loading description…" />
-					</p>
-				</section>
-			{/if}
+						)}
+						disabled={store.busy ||
+							profileState.sections.loadingSections.includes(
+								AccountProfileSection.ProfileSectionAbout,
+							) ||
+							!store.vault.unlocked}
+						{notifications}
+						{onEditDescription} />
+				{:else if profileVisible && profileState?.sections.isSectionPending(AccountProfileSection.ProfileSectionAbout)}
+					<section
+						class="flex flex-col gap-2 @4xl:col-span-2"
+						aria-busy="true">
+						<h3
+							class="flex h-6 items-center text-xs font-semibold text-fg-muted">
+							About
+						</h3>
+						<p class="text-block" data-variant="prose">
+							<Skeleton className="w-72" label="Loading description…" />
+						</p>
+					</section>
+				{/if}
 
-			<AccountProfileDetails
-				account={selectedAccount}
-				snapshot={profile}
-				sections={profileState?.sections ?? null} />
+				<AccountProfileDetails
+					account={selectedAccount}
+					snapshot={profile}
+					sections={profileState?.sections ?? null}
+					portraitLoad={avatarPortrait} />
+			</div>
 			{#if profile && profileState?.sections.hasSection(AccountProfileSection.ProfileSectionConnections) && store.accountTotal > 1}
 				<FriendConnections
 					connections={profile.connections ?? []}
@@ -567,7 +556,6 @@
 					userId={robloxUserId}
 					username={selectedAccount.username}
 					refreshCount={showcaseRefreshCount}
-					{onSearchPlace}
 					{onShowCreations} />
 			{/if}
 		{/if}

@@ -10,7 +10,10 @@ import (
 
 const (
 	defaultResponseLimit int64 = 2 << 20
-	maximumRequestBody         = 4 << 20
+	// maxResponseLimit bounds the limit that a request can ask for. The
+	// largest file that the app reads whole is a game preview video.
+	maxResponseLimit   int64 = 64 << 20
+	maximumRequestBody       = 4 << 20
 )
 
 type RetryPolicy struct {

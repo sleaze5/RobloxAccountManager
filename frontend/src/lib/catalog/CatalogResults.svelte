@@ -27,7 +27,6 @@
 		notifications,
 		label,
 		noun,
-		onSearchPlace,
 		empty,
 	}: {
 		store: CatalogStore
@@ -36,8 +35,6 @@
 		// label names the grid for screen readers, such as the category.
 		label: string
 		noun: string
-		onSearchPlace: (placeId: number) => void
-		// empty renders the empty state when the search finds nothing.
 		empty: Snippet
 	} = $props()
 
@@ -175,9 +172,5 @@
 		{accounts}
 		isOwnInventory={false}
 		isWorn={isWorn(detailedItem)}
-		onSearchPlace={(placeId) => {
-			detailedItemKey = ""
-			onSearchPlace(placeId)
-		}}
 		onClose={() => (detailedItemKey = "")} />
 {/if}

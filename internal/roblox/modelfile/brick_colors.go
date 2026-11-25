@@ -1,6 +1,5 @@
 package modelfile
 
-// brickColor is one color of the BrickColor palette of Roblox.
 type brickColor struct {
 	name             string
 	red, green, blue uint8

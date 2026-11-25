@@ -7,7 +7,6 @@ import (
 	robloxservices "github.com/sleaze5/RobloxAccountManager/internal/roblox/services"
 )
 
-// ListDeveloperProducts lists a universe's developer products with icons.
 func (service *Service) ListDeveloperProducts(ctx context.Context, universeID int64) ([]games.DeveloperProduct, error) {
 	const operation = "developer-products"
 	if err := validGameID(universeID); err != nil {

@@ -199,7 +199,6 @@ func (service *Service) CreateChatConversation(ctx context.Context, accountID in
 	return service.chatConversationViews(ctx, logger, selfID, []robloxservices.ChatConversation{conversation})[0], nil
 }
 
-// AddChatMembers adds users to a group chat and returns the updated chat.
 func (service *Service) AddChatMembers(ctx context.Context, accountID int64, conversationID string, userIDs []int64) (ChatConversationView, error) {
 	if err := validateChatConversationID(conversationID); err != nil {
 		return ChatConversationView{}, err
@@ -275,7 +274,6 @@ func (service *Service) RenameChatConversation(ctx context.Context, accountID in
 	return service.chatConversationViews(ctx, logger, selfID, []robloxservices.ChatConversation{conversation})[0], nil
 }
 
-// chatMembersInput checks the users and the optional group name of a chat.
 func chatMembersInput(userIDs []int64, name string, maxUsers int) ([]int64, string, error) {
 	userIDs = slices.Compact(slices.Sorted(slices.Values(userIDs)))
 	if len(userIDs) == 0 || len(userIDs) > maxUsers || slices.ContainsFunc(userIDs, func(userID int64) bool { return userID <= 0 }) {

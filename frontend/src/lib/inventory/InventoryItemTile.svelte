@@ -23,7 +23,6 @@
 		item: InventoryItem
 		category: InventoryCategoryOption
 		isWorn: boolean
-		// Whether the account that the page acts for owns the item.
 		isOwned: boolean
 		// extraBadges are the marks that only one page knows, after the shared
 		// ones.

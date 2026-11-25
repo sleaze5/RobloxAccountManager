@@ -20,13 +20,14 @@ import { errorMessage } from "../shared/errors"
 import { matchesSearch, searchTerms } from "../shared/search"
 import { detailsKeepMs, isFresh } from "../shared/freshness"
 import { menuPointFor } from "../shared/presence"
+import type { PageLocationKeys } from "../layout/page-history"
 import { SectionLoad } from "../shared/section-load.svelte"
 import type { SectionFields } from "../shared/section-load.svelte"
 import { relationshipActionsById } from "./relationship"
 import type { RelationshipActionId } from "./relationship"
 
 // Sections load in this order, so that the header and the actions fill first.
-const socialProfileSections: SectionFields<
+export const socialProfileSections: SectionFields<
 	SocialProfileSnapshot,
 	SocialProfileSection
 >[] = [
@@ -76,7 +77,7 @@ const socialProfileSections: SectionFields<
 	},
 ]
 
-function emptySocialProfile(userId: number): SocialProfileSnapshot {
+export function emptySocialProfile(userId: number): SocialProfileSnapshot {
 	return {
 		userId,
 		section: SocialProfileSection.$zero,
@@ -131,6 +132,33 @@ export const playersView = "players" as const
 export type SocialListKind = Exclude<SocialList, SocialList.$zero>
 
 export type SocialView = SocialListKind | typeof playersView
+
+// SocialLocation is what Social shows: the list, the people that the trail
+// explored, the player search, and the person and page that it opened. Its
+// history goes back to it.
+interface SocialLocation {
+	list: SocialView
+	trail: SocialSubject[]
+	playerQuery: string
+	person: SocialUser | null
+	subpage: SocialSubpage | null
+}
+
+function socialContextKey(
+	location: Pick<SocialLocation, "list" | "trail" | "playerQuery">,
+): string {
+	const trailKey = location.trail.map((trailEntry) => trailEntry.userId).join(",")
+	return `${location.list}:${trailKey}:${location.playerQuery}`
+}
+
+export function socialLocationKeys(location: SocialLocation): PageLocationKeys {
+	return {
+		context: socialContextKey(location),
+		selection: location.person
+			? `${location.person.userId}:${location.subpage ?? ""}`
+			: "",
+	}
+}
 
 export function personName(person: SocialSubject): string {
 	return (
@@ -412,6 +440,22 @@ export class SocialStore {
 		}
 	}
 
+	// inventoryUnavailableReason tells why the inventory of the user cannot
+	// open, or returns "" when it can. Roblox always shows an account its own
+	// inventory.
+	inventoryUnavailableReason(userId: number): string {
+		if (userId === this.selfUserId) return ""
+		const load =
+				this.profileLoad?.snapshot.userId === userId ? this.profileLoad : null,
+			profile = load?.hasAnySection ? load.snapshot : null
+		if (profile?.inventoryVisible) return ""
+		if (profile?.inventoryVisible === false) return "Inventory is private"
+		return !load ||
+			load.isSectionPending(SocialProfileSection.SocialSectionInventory)
+			? "Checking inventory access…"
+			: "Inventory unavailable"
+	}
+
 	get selectedUserId(): number | null {
 		return this.selectedPerson?.userId ?? null
 	}
@@ -445,6 +489,27 @@ export class SocialStore {
 		this.trail = []
 		this.list = list
 		this.#open()
+	}
+
+	get location(): SocialLocation {
+		return {
+			list: this.list,
+			trail: $state.snapshot(this.trail),
+			playerQuery: this.list === playersView ? this.playerQuery : "",
+			person: $state.snapshot(this.selectedPerson),
+			subpage: this.subpage,
+		}
+	}
+
+	restoreLocation(location: SocialLocation): void {
+		if (socialContextKey(location) !== socialContextKey(this.location)) {
+			this.trail = location.trail
+			this.list = location.list
+			this.query = this.playerQuery = location.playerQuery
+			this.#open()
+		}
+		this.select(location.person)
+		this.subpage = location.subpage
 	}
 
 	// showUser opens the profile of a user that another page names, such as

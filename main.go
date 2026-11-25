@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"log/slog"
+	"net/http"
 	"os"
 	"os/exec"
 	"time"
@@ -198,7 +199,8 @@ func run() (runError error) {
 			os.Exit(2)
 		},
 		Assets: application.AssetOptions{
-			Handler: application.AssetFileServerFS(assets),
+			Handler:    application.AssetFileServerFS(assets),
+			Middleware: gameVideoMiddleware(coreService),
 		},
 		Services: []application.Service{
 			application.NewService(bindingService),
@@ -299,6 +301,17 @@ func relaunch(arguments []string, quit func()) error {
 	_ = command.Process.Release()
 	go quit()
 	return nil
+}
+
+// gameVideoMiddleware serves game preview videos from the app's own address,
+// and every other request from the frontend assets.
+func gameVideoMiddleware(coreService *appservice.Service) application.Middleware {
+	return func(next http.Handler) http.Handler {
+		routes := http.NewServeMux()
+		routes.HandleFunc("GET "+appservice.GameVideoPath, coreService.ServeGameVideo)
+		routes.Handle("/", next)
+		return routes
+	}
 }
 
 func runtimeErrorHandler(launch *logging.Launch) func(error) {

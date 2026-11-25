@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { getProfilePreviews } from "../shared/profile-preview"
 	import arrowSquareOutIcon from "@phosphor-icons/core/regular/arrow-square-out.svg?raw"
 	import bellIcon from "@phosphor-icons/core/regular/bell.svg?raw"
 	import chatsIcon from "@phosphor-icons/core/regular/chats.svg?raw"
@@ -26,7 +27,6 @@
 		onOpenChat,
 		onOpenLink,
 		onFollowUser,
-		onSearchPlace,
 	}: {
 		notification: RobloxNotificationView
 		isDismissing: boolean
@@ -35,8 +35,8 @@
 		onOpenChat: (userId: number) => void
 		onOpenLink: (url: string) => void
 		onFollowUser: (user: RobloxNotificationUser) => void
-		onSearchPlace: (placeId: number) => void
 	} = $props()
+	const previews = getProfilePreviews()
 
 	const games = getGamesStore(),
 		fallbackIcons: Record<RobloxNotificationImageKind, string> = {
@@ -115,9 +115,9 @@
 			<button
 				class="flex max-w-full min-w-0 animate-enter items-center gap-2 self-start rounded-lg border border-line-subtle p-1.5 pr-3 text-left transition-colors duration-100 ease-in-out hover:bg-hover"
 				type="button"
-				aria-label={`Show ${games.displayName(place)} in Games`}
-				data-tooltip="Show in Games"
-				onclick={() => onSearchPlace(placeId)}>
+				aria-label={`Show ${games.displayName(place)}`}
+				data-tooltip="Show game"
+				onclick={() => previews.show({ kind: "Place", placeId })}>
 				<span
 					class="relative grid size-10 shrink-0 place-items-center overflow-hidden rounded-md border border-line-strong bg-raised"
 					aria-hidden="true">

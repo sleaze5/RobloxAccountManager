@@ -1,3 +1,4 @@
+import type { AccountPage } from "../accounts/account-pages"
 import { createContext } from "svelte"
 import { installPointerResize } from "../shared/pointer-resize"
 import { menuPointFor } from "../shared/presence"
@@ -30,9 +31,7 @@ type ActiveAccountMenu =
 	| null
 
 export class WorkspaceState {
-	accountPage = $state<
-		"profile" | "settings" | "chats" | "notifications" | "avatar" | "inventory"
-	>("profile")
+	accountPage = $state<"profile" | AccountPage>("profile")
 	// The Chat button of a notification opens Chats with a direct chat to this
 	// user. ChatsPage reads it once when it opens.
 	chatUserIdToOpen = 0
@@ -69,6 +68,14 @@ export class WorkspaceState {
 	set launchOpen(open: boolean) {
 		if (this.accountPage === "profile") this.#profileLaunchOpen = open
 		else this.#subpageLaunchOpen = open
+	}
+
+	get hasOpenAccountMenu(): boolean {
+		return (
+			this.activeAccountMenu !== null ||
+			this.accountContextMenu !== null ||
+			this.imageContextMenu !== null
+		)
 	}
 
 	closeAccountMenus(): void {

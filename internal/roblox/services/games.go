@@ -710,7 +710,7 @@ func (service *Games) icons(ctx context.Context, path string, parameters url.Val
 	}
 	imageURLByTargetID := make(map[int64]string, len(payload.Data))
 	for _, thumbnail := range payload.Data {
-		if thumbnail.State == "Completed" && safeThumbnailURL(thumbnail.ImageURL) {
+		if thumbnail.State == "Completed" && isRobloxCDNURL(thumbnail.ImageURL) {
 			imageURLByTargetID[thumbnail.TargetID] = thumbnail.ImageURL
 		}
 	}

@@ -21,13 +21,10 @@ export class KeyedLoad<Loaded> {
 		this.#scope = scope
 	}
 
-	// loadedFor returns what is loaded for key, or null while it holds
-	// nothing for key.
 	loadedFor(key: string): Loaded | null {
 		return this.loadedKey === key ? this.loaded : null
 	}
 
-	// errorFor returns why the last load of key failed, or an empty string.
 	errorFor(key: string): string {
 		return this.requestedKey === key ? this.error : ""
 	}

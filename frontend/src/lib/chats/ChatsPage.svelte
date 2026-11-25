@@ -6,7 +6,7 @@
 	import notePencilIcon from "@phosphor-icons/core/regular/note-pencil.svg?raw"
 	import warningIcon from "@phosphor-icons/core/regular/warning.svg?raw"
 	import Icon from "../shared/Icon.svelte"
-	import AccountPageHeader from "../accounts/AccountPageHeader.svelte"
+	import ProfilePageHeader from "../shared/ProfilePageHeader.svelte"
 	import RefreshIcon from "../shared/RefreshIcon.svelte"
 	import { onMount, untrack } from "svelte"
 	import type { AccountStore } from "../accounts/account-store.svelte"
@@ -17,11 +17,8 @@
 	import ChatThread from "./ChatThread.svelte"
 	import { ChatState } from "./chat-state.svelte"
 
-	let {
-		store,
-		workspace,
-		onBack,
-	}: { store: AccountStore; workspace: WorkspaceState; onBack: () => void } = $props()
+	let { store, workspace }: { store: AccountStore; workspace: WorkspaceState } =
+		$props()
 
 	const account = untrack(() => store.selectedAccount),
 		selfUserId = Number(account.userId),
@@ -54,11 +51,10 @@
 </script>
 
 <section class="settings-page" aria-labelledby="chats-title">
-	<AccountPageHeader
+	<ProfilePageHeader
 		titleId="chats-title"
 		title="Chats"
-		username={account.username}
-		{onBack}>
+		subtitle={`@${account.username}`}>
 		<button
 			class="button-ghost"
 			type="button"
@@ -96,7 +92,7 @@
 			onclick={() => void chat.refresh()}>
 			<RefreshIcon isRefreshing={chat.loading} />
 		</button>
-	</AccountPageHeader>
+	</ProfilePageHeader>
 
 	<div
 		class="settings-layout"

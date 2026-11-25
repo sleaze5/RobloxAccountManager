@@ -45,12 +45,10 @@
 		store,
 		accounts,
 		notifications,
-		onSearchPlace,
 	}: {
 		store: CatalogStore
 		accounts: AccountStore
 		notifications: NotificationCenter
-		onSearchPlace: (placeId: number) => void
 	} = $props()
 
 	const sortOrderOptions = [
@@ -379,8 +377,7 @@
 					{accounts}
 					{notifications}
 					label={category.label}
-					noun={category.noun}
-					{onSearchPlace}>
+					noun={category.noun}>
 					{#snippet empty()}
 						<div class="empty-state h-full" role="status">
 							<Icon

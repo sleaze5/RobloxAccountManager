@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { getProfilePreviews } from "../shared/profile-preview"
 	import { notifyErrors } from "../notifications/error-notifications.svelte"
 	import LoadMore from "../shared/LoadMore.svelte"
 	import gameControllerIcon from "@phosphor-icons/core/regular/game-controller.svg?raw"
@@ -13,16 +14,15 @@
 	import RefreshIcon from "../shared/RefreshIcon.svelte"
 	import SkeletonTile from "../shared/SkeletonTile.svelte"
 	import { relativeTime } from "../shared/timestamp"
-	import GroupSubpageHeader from "./GroupSubpageHeader.svelte"
+	import ProfilePageHeader from "../shared/ProfilePageHeader.svelte"
 	import type { GroupsStore } from "./groups-store.svelte"
 
 	let {
 		store,
-		onSearchPlace,
 	}: {
 		store: GroupsStore
-		onSearchPlace: (placeId: number) => void
 	} = $props()
+	const previews = getProfilePreviews()
 
 	type GameFilter = "all" | "public" | "private"
 
@@ -79,11 +79,7 @@
 </script>
 
 <section class="settings-page min-w-0" aria-labelledby="group-games-title">
-	<GroupSubpageHeader
-		titleId="group-games-title"
-		title="Games"
-		groupName={group.name}
-		onBack={() => (store.subpage = null)}>
+	<ProfilePageHeader titleId="group-games-title" title="Games" subtitle={group.name}>
 		<button
 			class="button-ghost"
 			type="button"
@@ -95,7 +91,7 @@
 			onclick={() => void games.refresh()}>
 			<RefreshIcon isRefreshing={games.isLoading && games.hasLoaded} />
 		</button>
-	</GroupSubpageHeader>
+	</ProfilePageHeader>
 	<div
 		class="flex min-h-10 shrink-0 items-center gap-2 border-b border-line-subtle px-3 py-1.5"
 		role="toolbar"
@@ -163,9 +159,13 @@
 						<button
 							class="group/tile flex h-full w-full min-w-0 flex-col gap-1 rounded-lg border border-line-subtle bg-surface p-1 text-left transition-colors duration-100 hover:border-line hover:bg-hover"
 							type="button"
-							data-tooltip="Show in Games"
+							data-tooltip="Show game"
 							data-tooltip-strong={name}
-							onclick={() => onSearchPlace(game.place.placeId)}>
+							onclick={() =>
+								previews.show({
+									kind: "Place",
+									placeId: game.place.placeId,
+								})}>
 							<span
 								class="relative grid aspect-square w-full place-items-center overflow-hidden rounded-sm bg-raised">
 								<span

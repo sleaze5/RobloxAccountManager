@@ -5,25 +5,20 @@
 	import clockCounterClockwiseIcon from "@phosphor-icons/core/regular/clock-counter-clockwise.svg?raw"
 	import copyIcon from "@phosphor-icons/core/regular/copy.svg?raw"
 	import dotsThreeIcon from "@phosphor-icons/core/regular/dots-three.svg?raw"
-	import eyeIcon from "@phosphor-icons/core/regular/eye.svg?raw"
 	import footprintsIcon from "@phosphor-icons/core/regular/footprints.svg?raw"
 	import gitCommitIcon from "@phosphor-icons/core/regular/git-commit.svg?raw"
 	import hardDrivesIcon from "@phosphor-icons/core/regular/hard-drives.svg?raw"
 	import linkIcon from "@phosphor-icons/core/regular/link.svg?raw"
 	import magnifyingGlassIcon from "@phosphor-icons/core/regular/magnifying-glass.svg?raw"
-	import medalIcon from "@phosphor-icons/core/regular/medal.svg?raw"
 	import microphoneIcon from "@phosphor-icons/core/regular/microphone.svg?raw"
 	import pencilIcon from "@phosphor-icons/core/regular/pencil.svg?raw"
 	import personArmsSpreadIcon from "@phosphor-icons/core/regular/person-arms-spread.svg?raw"
 	import prohibitIcon from "@phosphor-icons/core/regular/prohibit.svg?raw"
-	import pulseIcon from "@phosphor-icons/core/regular/pulse.svg?raw"
 	import shapesIcon from "@phosphor-icons/core/regular/shapes.svg?raw"
 	import shieldCheckIcon from "@phosphor-icons/core/regular/shield-check.svg?raw"
 	import starFillIcon from "@phosphor-icons/core/fill/star-fill.svg?raw"
-	import starIcon from "@phosphor-icons/core/regular/star.svg?raw"
 	import tShirtIcon from "@phosphor-icons/core/regular/t-shirt.svg?raw"
 	import translateIcon from "@phosphor-icons/core/regular/translate.svg?raw"
-	import thumbsUpIcon from "@phosphor-icons/core/regular/thumbs-up.svg?raw"
 	import ticketIcon from "@phosphor-icons/core/regular/ticket.svg?raw"
 	import treeStructureIcon from "@phosphor-icons/core/regular/tree-structure.svg?raw"
 	import uploadSimpleIcon from "@phosphor-icons/core/regular/upload-simple.svg?raw"
@@ -40,9 +35,13 @@
 	import ImageMenuTarget from "../layout/ImageMenuTarget.svelte"
 	import Timestamp from "../shared/Timestamp.svelte"
 	import { relativeTime } from "../shared/timestamp"
-	import CreatorCard from "../shared/CreatorCard.svelte"
+	import CreatorByline from "../shared/CreatorByline.svelte"
+	import ProfileStats from "../shared/ProfileStats.svelte"
+	import ProfileTabs from "../shared/ProfileTabs.svelte"
+	import GameMedia from "./GameMedia.svelte"
 	import { creatorByline, type GamesStore } from "./games-store.svelte"
 	import GameIcon from "./GameIcon.svelte"
+	import { gameHeadlineStats } from "./game-stats"
 
 	let {
 		store,
@@ -54,10 +53,6 @@
 		onSearchUniverse: (universeId: number) => void
 	} = $props()
 	const numbers = new Intl.NumberFormat(),
-		percent = new Intl.NumberFormat(undefined, {
-			style: "percent",
-			maximumFractionDigits: 1,
-		}),
 		graphemes = new Intl.Segmenter(undefined, { granularity: "grapheme" })
 
 	let playability = $state.raw<Playability | null>(null),
@@ -161,14 +156,6 @@
 						}
 					: null,
 		),
-		// Badges and game passes belong to the universe, so subplaces hide them.
-		// Disabled until details load, so the header doesn't shift.
-		hasUniverseButtons = $derived(!rootPlace),
-		hasVotes = $derived(
-			store.loadedGameSections.includes(GameSection.GameSectionVotes),
-		),
-		votes = $derived(game ? game.upVotes + game.downVotes : 0),
-		likeShare = $derived(game && votes ? game.upVotes / votes : 0),
 		genre = $derived(
 			listedGame &&
 				([listedGame.genre, listedGame.subgenre].filter(Boolean).join("; ") ||
@@ -184,39 +171,18 @@
 					"; ",
 				),
 		),
-		// Roblox reports these per universe, so a subplace shows its universe's values.
-		universeStats = $derived<Fact[]>([
-			{
-				label: "Rating",
-				icon: thumbsUpIcon,
-				isLoading: store.isGameSectionPending(GameSection.GameSectionVotes),
-				value:
-					game && hasVotes
-						? votes
-							? `${percent.format(likeShare)} liked`
-							: "No votes"
-						: undefined,
-				detail:
-					game && hasVotes && votes
-						? `${count(game.upVotes, "like", "likes")} · ${count(game.downVotes, "dislike", "dislikes")}`
-						: "",
-			},
-			{ label: "Visits", icon: eyeIcon, value: exact(listedGame?.visits) },
-			{
-				label: "Favorites",
-				icon: starIcon,
-				value: exact(listedGame?.favorites),
-			},
-			{
-				label: "Server capacity",
-				icon: usersThreeIcon,
-				value:
-					listedGame?.maxPlayers === undefined
-						? undefined
-						: count(listedGame.maxPlayers, "player", "players"),
-			},
-		]),
-		details = $derived<Fact[]>([
+		// An unlisted game has no counts, which its warning explains.
+		headlineStats = $derived(
+			gameHeadlineStats(game, isWaitingForGame, {
+				isLoaded: store.loadedGameSections.includes(
+					GameSection.GameSectionVotes,
+				),
+				isPending: store.isGameSectionPending(GameSection.GameSectionVotes),
+			}),
+		),
+		// A subplace shows only its own description and versions. Its other
+		// details belong to the universe, which its root place shows.
+		universeDetails = $derived<Fact[]>([
 			{ label: "Genre", icon: shapesIcon, value: genre || undefined },
 			{
 				label: "Content rating",
@@ -240,7 +206,14 @@
 						: "",
 				isLoading: store.isGameSectionPending(GameSection.GameSectionLanguages),
 			},
-			...(rootPlace ? [] : universeStats),
+			{
+				label: "Server capacity",
+				icon: usersThreeIcon,
+				value:
+					listedGame?.maxPlayers === undefined
+						? undefined
+						: count(listedGame.maxPlayers, "player", "players"),
+			},
 		]),
 		dates = $derived([
 			{
@@ -330,22 +303,41 @@
 						: "Not allowed"
 					: undefined,
 			},
-			...(rootPlace
-				? []
-				: [
-						{
-							label: "Copying",
-							icon: copyIcon,
-							value: game
-								? game.copyingAllowed
-									? "Allowed"
-									: "Not allowed"
-								: undefined,
-						},
-					]),
+			{
+				label: "Copying",
+				icon: copyIcon,
+				value: game
+					? game.copyingAllowed
+						? "Allowed"
+						: "Not allowed"
+					: undefined,
+			},
 		])
 	let draft = $state(""),
-		editing = $state(false)
+		editing = $state(false),
+		descriptionElement = $state<HTMLParagraphElement>(),
+		isDescriptionExpanded = $state(false),
+		isDescriptionClamped = $state(false)
+
+	// A long description shows its first lines, with a button that shows the
+	// rest. Another game starts collapsed again.
+	$effect(() => {
+		void selectedUniverseId
+		isDescriptionExpanded = false
+	})
+
+	$effect(() => {
+		const element = descriptionElement
+		if (!element) return
+		const measure = (): void => {
+			if (!isDescriptionExpanded)
+				isDescriptionClamped = element.scrollHeight > element.clientHeight
+		}
+		const resizeObserver = new ResizeObserver(measure)
+		resizeObserver.observe(element)
+		measure()
+		return () => resizeObserver.disconnect()
+	})
 
 	$effect(() => {
 		if (store.nicknameRequest !== place?.placeId) return
@@ -413,151 +405,121 @@
 
 {#if place}
 	<section
-		class="min-h-0 min-w-0 animate-enter overflow-y-auto"
+		class="@container min-h-0 min-w-0 animate-enter overflow-y-auto"
 		aria-label={store.displayName(place)}
 		aria-busy={store.loadingDetails}>
-		<div class="flex flex-col gap-4 p-3 pb-4">
-			<div class="flex items-start gap-3 @max-xl:flex-col">
-				<div class="flex min-w-0 flex-1 items-start gap-4">
-					<ImageMenuTarget
-						imageUrl={place.iconUrl}
-						label={`${store.displayName(place)} icon`}>
-						<GameIcon url={place.iconUrl} size="xl" />
-					</ImageMenuTarget>
-					<div class="flex min-w-0 flex-col gap-1">
-						<div class="min-w-0 leading-6">
-							<h2
-								class="mr-1 inline text-lg font-semibold tracking-tight wrap-anywhere text-fg">
-								{nameStart}<span class="whitespace-nowrap"
-									>{nameEnd}{#if favorite}<Icon
-											svg={starFillIcon}
-											class="relative top-px ml-1 inline-block animate-pop text-accent-strong"
-											size={16}
-											aria-label="Favorite" />{/if}</span>
-							</h2>
-							{#if favorite}
-								<span
-									class="inline-flex max-w-full min-w-0 items-center gap-0.5 align-top text-sm text-fg-muted">
-									{#if nickname || editing}<span aria-hidden="true"
-											>(</span
+		<div class="flex flex-col gap-5 p-4 pb-5">
+			<div class="flex items-start gap-4">
+				<ImageMenuTarget
+					imageUrl={place.iconUrl}
+					label={`${store.displayName(place)} icon`}>
+					<GameIcon url={place.iconUrl} size="xl" />
+				</ImageMenuTarget>
+				<div class="flex min-w-0 flex-1 flex-col gap-1">
+					<div class="min-w-0 leading-6">
+						<h2
+							class="mr-1 inline text-lg font-semibold tracking-tight wrap-anywhere text-fg">
+							{nameStart}<span class="whitespace-nowrap"
+								>{nameEnd}{#if favorite}<Icon
+										svg={starFillIcon}
+										class="relative top-px ml-1 inline-block animate-pop text-accent-strong"
+										size={16}
+										aria-label="Favorite" />{/if}</span>
+						</h2>
+						{#if favorite}
+							<span
+								class="inline-flex max-w-full min-w-0 items-center gap-0.5 align-top text-sm text-fg-muted">
+								{#if nickname || editing}<span aria-hidden="true"
+										>(</span
+									>{/if}
+								{#if editing}
+									<input
+										class="h-6 w-44 min-w-0 rounded-md border border-line-strong bg-transparent px-1.5 text-sm text-fg placeholder:text-fg-faint"
+										type="text"
+										autocomplete="off"
+										placeholder="Nickname"
+										aria-label="Nickname"
+										maxlength={50}
+										bind:value={draft}
+										use:focusInput
+										onblur={saveNickname}
+										onkeydown={(event) => {
+											if (event.key === "Enter") saveNickname()
+											else if (event.key === "Escape") {
+												event.stopPropagation()
+												editing = false
+											}
+										}} />
+								{:else}
+									{#if nickname}<span class="truncate"
+											>{nickname}</span
 										>{/if}
-									{#if editing}
-										<input
-											class="h-6 w-44 min-w-0 rounded-md border border-line-strong bg-transparent px-1.5 text-sm text-fg placeholder:text-fg-faint"
-											type="text"
-											autocomplete="off"
-											placeholder="Nickname"
-											aria-label="Nickname"
-											maxlength={50}
-											bind:value={draft}
-											use:focusInput
-											onblur={saveNickname}
-											onkeydown={(event) => {
-												if (event.key === "Enter")
-													saveNickname()
-												else if (event.key === "Escape") {
-													event.stopPropagation()
-													editing = false
-												}
-											}} />
-									{:else}
-										{#if nickname}<span class="truncate"
-												>{nickname}</span
-											>{/if}
-										<button
-											class="button-ghost-sm"
-											type="button"
-											aria-label={nickname
-												? "Edit nickname"
-												: "Add nickname"}
-											data-tooltip={nickname
-												? "Edit nickname"
-												: "Add nickname"}
-											disabled={store.savingNickname}
-											onclick={startEditing}
-											><Icon
-												svg={pencilIcon}
-												size={14}
-												aria-hidden="true" /></button>
-									{/if}
-									{#if nickname || editing}<span aria-hidden="true"
-											>)</span
-										>{/if}
-								</span>
-							{/if}
-						</div>
-						<div class={metaClass}>
-							<span class="select-text">ID: {place.placeId}</span>
-							<span class="text-fg-faint" aria-hidden="true">·</span>
-							<span class="select-text"
-								>Universe ID: {place.universeId}</span>
-							<button
-								class="-my-1 -ms-1 button-ghost size-5"
-								type="button"
-								aria-label="Search places in this universe"
-								data-tooltip="Search places in this universe"
-								onclick={() => onSearchUniverse(place.universeId)}
-								><Icon
-									svg={magnifyingGlassIcon}
-									size={14}
-									aria-hidden="true" /></button>
-							{#if rootPlace}
-								<span class="text-fg-faint" aria-hidden="true">·</span>
-								<span class="select-text"
-									>Root place ID: {rootPlace.placeId}</span>
-							{/if}
-						</div>
-						{#if place.creatorId && (place.creatorType === "User" || place.creatorType === "Group")}
-							<div class="my-1 w-72 max-w-full">
-								<CreatorCard
-									kind={place.creatorType}
-									creatorId={place.creatorId}
-									name={place.creatorName}
-									hasVerifiedBadge={place.creatorVerified}
-									role="Creator" />
-							</div>
-						{:else}
-							<div class={metaClass}>
-								<span class="text-fg-muted"
-									>{creatorByline(place)}</span>
-							</div>
-						{/if}
-						{#if isWaitingForGame}
-							<p
-								class="inline-flex items-center gap-1 text-xs font-medium text-fg-faint">
-								<Icon svg={pulseIcon} size={14} aria-hidden="true" />
-								<Skeleton className="w-20" label="Loading players…" />
-							</p>
-						{:else if listedGame}
-							<p
-								class={[
-									"inline-flex items-center gap-1 text-xs font-medium tabular-nums",
-									listedGame.playing > 0
-										? "text-presence-game"
-										: "text-fg-muted",
-								]}>
-								<Icon svg={pulseIcon} size={14} aria-hidden="true" />
-								{numbers.format(listedGame.playing)} playing{rootPlace
-									? " in this universe"
-									: ""}
-							</p>
-						{/if}
-						{#if game && playabilityWarning}
-							<p
-								class="flex animate-enter flex-wrap items-center gap-x-2 gap-y-1 text-xs text-fg-muted">
-								<span class="tag-pill-warning">
-									<Icon
-										svg={prohibitIcon}
-										size={12}
-										aria-hidden="true" />
-									<span>{playabilityWarning.label}</span>
-								</span>
-								<span>{playabilityWarning.message}</span>
-							</p>
+									<button
+										class="button-ghost-sm"
+										type="button"
+										aria-label={nickname
+											? "Edit nickname"
+											: "Add nickname"}
+										data-tooltip={nickname
+											? "Edit nickname"
+											: "Add nickname"}
+										disabled={store.savingNickname}
+										onclick={startEditing}
+										><Icon
+											svg={pencilIcon}
+											size={14}
+											aria-hidden="true" /></button>
+								{/if}
+								{#if nickname || editing}<span aria-hidden="true"
+										>)</span
+									>{/if}
+							</span>
 						{/if}
 					</div>
+					{#if place.creatorId && (place.creatorType === "User" || place.creatorType === "Group")}
+						<CreatorByline
+							kind={place.creatorType}
+							creatorId={place.creatorId}
+							name={place.creatorName}
+							hasVerifiedBadge={place.creatorVerified} />
+					{:else}
+						<p class="text-xs text-fg-muted">{creatorByline(place)}</p>
+					{/if}
+					<div class={metaClass}>
+						<span class="select-text">Place ID: {place.placeId}</span>
+						<span class="text-fg-faint" aria-hidden="true">·</span>
+						<span class="select-text">Universe ID: {place.universeId}</span>
+						<button
+							class="-my-1 -ms-1 button-ghost size-5"
+							type="button"
+							aria-label="Search places in this universe"
+							data-tooltip="Search places in this universe"
+							onclick={() => onSearchUniverse(place.universeId)}
+							><Icon
+								svg={magnifyingGlassIcon}
+								size={14}
+								aria-hidden="true" /></button>
+						{#if rootPlace}
+							<span class="text-fg-faint" aria-hidden="true">·</span>
+							<span class="select-text"
+								>Root place ID: {rootPlace.placeId}</span>
+						{/if}
+					</div>
+					{#if game && playabilityWarning}
+						<p
+							class="flex animate-enter flex-wrap items-center gap-x-2 gap-y-1 text-xs text-fg-muted">
+							<span class="tag-pill-warning">
+								<Icon svg={prohibitIcon} size={12} aria-hidden="true" />
+								<span>{playabilityWarning.label}</span>
+							</span>
+							<span>{playabilityWarning.message}</span>
+						</p>
+					{/if}
+					{#if !rootPlace}
+						<ProfileStats label="Game numbers" stats={headlineStats} />
+					{/if}
 				</div>
-				<div class="relative flex items-center gap-1 @max-xl:self-end">
+				<div class="relative flex shrink-0 items-center gap-1">
 					<button
 						class="button-icon"
 						type="button"
@@ -570,46 +532,6 @@
 						onclick={refreshGameDetails}>
 						<RefreshIcon isRefreshing={store.loadingDetails} />
 					</button>
-					<button
-						class="button-icon"
-						type="button"
-						aria-label="Servers"
-						data-tooltip="Servers"
-						data-game-servers
-						onclick={() => {
-							store.closeMenu()
-							store.detailsPage = "servers"
-						}}>
-						<Icon svg={hardDrivesIcon} size={16} aria-hidden="true" />
-					</button>
-					{#if hasUniverseButtons}
-						<button
-							class="button-icon"
-							type="button"
-							aria-label="Badges"
-							data-tooltip="Badges"
-							data-game-badges
-							disabled={!game}
-							onclick={() => {
-								store.closeMenu()
-								store.detailsPage = "badges"
-							}}>
-							<Icon svg={medalIcon} size={16} aria-hidden="true" />
-						</button>
-						<button
-							class="button-icon"
-							type="button"
-							aria-label="Game passes and developer products"
-							data-tooltip="Game passes and developer products"
-							data-game-passes
-							disabled={!game}
-							onclick={() => {
-								store.closeMenu()
-								store.detailsPage = "gamePasses"
-							}}>
-							<Icon svg={ticketIcon} size={16} aria-hidden="true" />
-						</button>
-					{/if}
 					<button
 						class="button-icon"
 						type="button"
@@ -629,14 +551,9 @@
 				</div>
 			</div>
 
-			{#if favorite}
-				<div class="flex flex-wrap items-center gap-1">
-					<span class="tag-pill-favorite">
-						<Icon svg={starFillIcon} size={12} aria-hidden="true" />
-						<span>Favorite</span>
-					</span>
-				</div>
-			{/if}
+			<div class="-mx-4 h-8 border-b border-line-subtle">
+				<ProfileTabs />
+			</div>
 
 			{#if rootPlace}
 				<p
@@ -657,115 +574,150 @@
 				</p>
 			{/if}
 
-			<section
-				class="flex flex-col gap-3 pt-3"
-				aria-labelledby="game-information">
-				<h3 id="game-information" class={sectionHeadingClass}>Details</h3>
-				<dl class="facts">
-					{#each details as fact (fact.label)}{@render row(fact)}{/each}
-					{#if accounts.selectedAccount.id > 0}
-						<div>
-							<dt>
-								<Icon
-									svg={linkIcon}
-									size={16}
-									aria-hidden="true" />Social links
-							</dt>
-							<dd>
-								{#if socialLinks?.links?.length}
-									{#each socialLinks.links as link (link.url)}
-										<button
-											class="button"
-											type="button"
-											aria-label={`Open ${link.title || link.type} (${link.url})`}
-											data-tooltip={link.url}
-											onclick={() =>
-												void store.openLink(link.url)}>
-											<Icon
-												svg={arrowSquareOutIcon}
-												size={16}
-												aria-hidden="true" />
-											{link.title || link.type}
-										</button>
-									{/each}
-								{:else if socialLinks?.isHiddenByAge}
-									<span class="text-fg-muted"
-										>Not shared by Roblox</span>
-									<small
-										>Roblox shows them only to accounts that it
-										knows are over 12</small>
-								{:else if socialLinks}
-									<span class="text-fg-muted">None</span>
-								{:else if socialLinksFailed}
-									<span class="text-fg-faint">Unavailable</span>
-								{:else}
-									<Skeleton
-										className="w-28"
-										label="Loading social links…" />
-								{/if}
-							</dd>
-						</div>
-					{/if}
-					{#if !rootPlace}
-						{#each dates as fact (fact.label)}{@render dateRow(fact)}{/each}
-					{/if}
-					{#each versions as fact (fact.label)}{@render row(
-							fact,
-							true,
-						)}{/each}
-				</dl>
-			</section>
-
-			{#if rootPlace}
-				<section
-					class="flex flex-col gap-3 pt-3"
-					aria-labelledby="game-universe">
-					<h3 id="game-universe" class={sectionHeadingClass}>Universe</h3>
-					<dl class="facts">
-						{#each universeStats as fact (fact.label)}{@render row(
-								fact,
-							)}{/each}
-						{#each dates as fact (fact.label)}{@render dateRow(fact)}{/each}
-					</dl>
-				</section>
+			{#if !rootPlace}
+				<GameMedia
+					universeId={place.universeId}
+					gameName={store.displayName(place)}
+					accountId={accounts.selectedAccount.id}
+					refreshCount={detailsRefreshCount}
+					onOpenLink={(url) => void store.openLink(url)} />
 			{/if}
 
-			{#if game || isWaitingForGame}
-				<section
-					class="flex flex-col gap-3 pt-3"
-					aria-labelledby="game-features">
-					<h3 id="game-features" class={sectionHeadingClass}>
-						Access &amp; features
-					</h3>
-					<dl class="facts">
-						{#each features as fact (fact.label)}{@render row(fact)}{/each}
-					</dl>
-				</section>
-			{/if}
-
-			{#if game}
-				<section
-					class="flex flex-col gap-3 pt-3"
-					aria-labelledby="game-description">
-					<h3 id="game-description" class={sectionHeadingClass}>
-						Description
-					</h3>
-					{#if game.description.trim()}
-						<p class="text-block" data-variant="prose">
-							{game.description.trim()}
-						</p>
-					{:else}
-						<p class="text-xs text-fg-muted">No description provided.</p>
+			<div
+				class={[
+					"grid min-w-0 items-start gap-5 @4xl:gap-6",
+					!rootPlace && "@4xl:grid-cols-3",
+				]}>
+				<div
+					class={[
+						"flex min-w-0 flex-col gap-5",
+						!rootPlace && "@4xl:col-span-2",
+					]}>
+					{#if game && game.description.trim()}
+						<section
+							class="flex flex-col gap-2"
+							aria-labelledby="game-description">
+							<h3 id="game-description" class={sectionHeadingClass}>
+								Description
+							</h3>
+							<p
+								bind:this={descriptionElement}
+								class={[
+									"text-block",
+									!isDescriptionExpanded && "line-clamp-6",
+								]}
+								data-variant="prose">
+								{game.description.trim()}
+							</p>
+							{#if isDescriptionClamped || isDescriptionExpanded}
+								<button
+									class="button-text self-start"
+									type="button"
+									aria-expanded={isDescriptionExpanded}
+									onclick={() =>
+										(isDescriptionExpanded =
+											!isDescriptionExpanded)}>
+									{isDescriptionExpanded
+										? "Show less"
+										: "Show full description"}
+								</button>
+							{/if}
+						</section>
+					{:else if isWaitingForGame}
+						<section class="flex flex-col gap-2" aria-busy="true">
+							<h3 class={sectionHeadingClass}>Description</h3>
+							<p class="text-block" data-variant="prose">
+								<Skeleton
+									className="w-72"
+									label="Loading description…" />
+							</p>
+						</section>
 					{/if}
-				</section>
-			{:else if isWaitingForGame}
-				<section class="flex flex-col gap-3 pt-3" aria-busy="true">
-					<h3 class={sectionHeadingClass}>Description</h3>
-					<p class="text-block" data-variant="prose">
-						<Skeleton className="w-72" label="Loading description…" />
-					</p>
-				</section>
-			{/if}
+
+					<section
+						class="flex flex-col gap-2"
+						aria-labelledby="game-information">
+						<h3 id="game-information" class={sectionHeadingClass}>
+							Details
+						</h3>
+						<dl class="facts">
+							{#if !rootPlace}
+								{#each universeDetails as fact (fact.label)}{@render row(
+										fact,
+									)}{/each}
+							{/if}
+							{#if !rootPlace && accounts.selectedAccount.id > 0}
+								<div>
+									<dt>
+										<Icon
+											svg={linkIcon}
+											size={16}
+											aria-hidden="true" />Social links
+									</dt>
+									<dd>
+										{#if socialLinks?.links?.length}
+											{#each socialLinks.links as link (link.url)}
+												<button
+													class="button"
+													type="button"
+													aria-label={`Open ${link.title || link.type} (${link.url})`}
+													data-tooltip={link.url}
+													onclick={() =>
+														void store.openLink(link.url)}>
+													<Icon
+														svg={arrowSquareOutIcon}
+														size={16}
+														aria-hidden="true" />
+													{link.title || link.type}
+												</button>
+											{/each}
+										{:else if socialLinks?.isHiddenByAge}
+											<span class="text-fg-muted"
+												>Not shared by Roblox</span>
+											<small
+												>Roblox shows them only to accounts that
+												it knows are over 12</small>
+										{:else if socialLinks}
+											<span class="text-fg-muted">None</span>
+										{:else if socialLinksFailed}
+											<span class="text-fg-faint"
+												>Unavailable</span>
+										{:else}
+											<Skeleton
+												className="w-28"
+												label="Loading social links…" />
+										{/if}
+									</dd>
+								</div>
+							{/if}
+							{#if !rootPlace}
+								{#each dates as fact (fact.label)}{@render dateRow(
+										fact,
+									)}{/each}
+							{/if}
+							{#each versions as fact (fact.label)}{@render row(
+									fact,
+									true,
+								)}{/each}
+						</dl>
+					</section>
+				</div>
+
+				{#if !rootPlace && (game || isWaitingForGame)}
+					<section
+						class="flex min-w-0 flex-col gap-2"
+						aria-labelledby="game-features">
+						<h3 id="game-features" class={sectionHeadingClass}>
+							Access and features
+						</h3>
+						<dl class="facts">
+							{#each features as fact (fact.label)}{@render row(
+									fact,
+								)}{/each}
+						</dl>
+					</section>
+				{/if}
+			</div>
 		</div>
 	</section>
 {/if}

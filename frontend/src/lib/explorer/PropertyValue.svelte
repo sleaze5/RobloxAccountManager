@@ -19,10 +19,7 @@
 		onOpenDocument,
 	}: {
 		property: ModelProperty
-		// imageUrl is the image of the asset that the property names.
 		imageUrl: string
-		// referencedClassName is the class of the instance that a reference
-		// points to.
 		referencedClassName: string
 		onSelectInstance: (instanceId: number) => void
 		onOpenDocument: (property: ModelProperty) => void

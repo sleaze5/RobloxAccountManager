@@ -25,13 +25,10 @@ var (
 	errInvalidFile  = errors.New("invalid Roblox model file")
 )
 
-// IsBinary reports whether the file starts like a model file in the binary
-// format.
 func IsBinary(file []byte) bool {
 	return bytes.HasPrefix(file, binarySignature)
 }
 
-// IsXML reports whether the file starts like a model file in the XML format.
 func IsXML(file []byte) bool {
 	return bytes.HasPrefix(file, xmlSignature)
 }

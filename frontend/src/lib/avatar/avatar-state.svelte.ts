@@ -73,7 +73,6 @@ export class AvatarState {
 	// draft stays locked until a refresh reads the changed avatar, because a
 	// save from it would undo the change.
 	isAvatarOutdated = $state(false)
-	// Whether Roblox still renders the full-body image after a change.
 	isRenderingImage = $state(false)
 	isRedrawingImage = $state(false)
 	// The full-body image of the draft, which Roblox renders without saving
@@ -135,7 +134,6 @@ export class AvatarState {
 		)
 	}
 
-	// Whether previewImageUrl shows the current draft.
 	get isPreviewCurrent(): boolean {
 		return (
 			this.isChanged &&

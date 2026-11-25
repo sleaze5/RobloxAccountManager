@@ -221,7 +221,7 @@
 			{/if}
 			<div class="settings-rows">
 				{#each shownScaleRows as row (row.scale)}
-					{@const value = draft.scales[row.scale]}
+					{@const scaleFactor = draft.scales[row.scale]}
 					{@const limit = limitOf(row.scale)}
 					<div class="settings-row">
 						<span
@@ -235,10 +235,10 @@
 								min={limit.min}
 								max={limit.max}
 								step={limit.increment > 0 ? limit.increment : 0.01}
-								{value}
-								style:--range-fill={fillOf(value, limit)}
+								value={scaleFactor}
+								style:--range-fill={fillOf(scaleFactor, limit)}
 								aria-labelledby={`${elementIdPrefix}-avatar-scale-${row.scale}`}
-								aria-valuetext={percent.format(value)}
+								aria-valuetext={percent.format(scaleFactor)}
 								disabled={!isR15 || avatar.isDraftLocked}
 								oninput={(event) =>
 									setScale(
@@ -253,7 +253,7 @@
 						{/if}
 						<span
 							class="w-12 shrink-0 text-right font-mono text-xs text-fg tabular-nums"
-							>{percent.format(value)}</span>
+							>{percent.format(scaleFactor)}</span>
 					</div>
 				{/each}
 			</div>

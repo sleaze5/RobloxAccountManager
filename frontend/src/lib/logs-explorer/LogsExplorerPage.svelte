@@ -15,6 +15,7 @@
 	import type { LogsExplorerVisit } from "../backend/bridge"
 	import type { AccountStore } from "../accounts/account-store.svelte"
 	import AccountSwitcher from "../layout/AccountSwitcher.svelte"
+	import StatusTrail from "../layout/StatusTrail.svelte"
 	import WorkbenchSidebar from "../layout/WorkbenchSidebar.svelte"
 	import { notifyErrors } from "../notifications/error-notifications.svelte"
 	import { formatTimestamp } from "../shared/timestamp"
@@ -25,12 +26,10 @@
 		store,
 		accounts,
 		onFillLaunch,
-		onSearchPlace,
 	}: {
 		store: LogsExplorerStore
 		accounts: AccountStore
 		onFillLaunch: (visit: LogsExplorerVisit) => void
-		onSearchPlace: (placeId: number) => void
 	} = $props()
 	const sessions = $derived(store.filteredSessions),
 		selected = $derived(store.selectedSession),
@@ -183,7 +182,6 @@
 						bind:newestFirst={store.timelineNewestFirst}
 						refreshing={store.refreshingFiles.has(selected.fileName)}
 						{onFillLaunch}
-						{onSearchPlace}
 						onRefresh={() =>
 							void store.refreshSession(selected.fileName)} />
 				{/key}
@@ -246,10 +244,11 @@
 	<footer
 		class="flex h-6 shrink-0 items-center justify-between border-t border-line-subtle bg-surface pl-3 text-2xs text-fg-faint"
 		aria-label="Log details">
-		<div class="flex min-w-0 items-center gap-4">
+		<div class="flex min-w-0 items-center gap-1">
 			<AccountSwitcher store={accounts} />
+			<StatusTrail parts={selected ? [selected.fileName] : []} />
 			{#if selected}
-				<span class="shrink-0"
+				<span class="ml-3 shrink-0"
 					>User ID: <span class="font-mono"
 						>{selected.userId || "Not recorded"}</span
 					></span>

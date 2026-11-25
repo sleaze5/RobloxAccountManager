@@ -156,7 +156,6 @@
 		event.preventDefault()
 	}
 
-	// rowOf finds the row that a pointer event happened on.
 	function rowOf(event: MouseEvent): ExplorerRow | undefined {
 		const rowElement =
 			event.target instanceof Element

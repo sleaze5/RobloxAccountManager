@@ -82,7 +82,6 @@ export function moveOrbitViewByKey(
 	}
 }
 
-// cameraPoseOf reads where the camera stands and looks.
 export function cameraPoseOf(
 	camera: PerspectiveCamera,
 	controls: OrbitControls,

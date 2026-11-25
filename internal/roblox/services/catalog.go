@@ -20,7 +20,6 @@ const (
 	catalogSearchEndpoint       = "catalog-search"
 )
 
-// CatalogCategory names one group of items that the Marketplace sells.
 type CatalogCategory string
 
 const (
@@ -95,7 +94,6 @@ var catalogTaxonomyByCategory = map[CatalogCategory]string{
 	CatalogBackgrounds:         "ijFKKMZq6jV4gkJQC4v7L1",
 }
 
-// CatalogSortOrder is the order of the search results.
 type CatalogSortOrder string
 
 const (
@@ -164,7 +162,6 @@ var catalogCreatorTypeFilterByCreatorType = map[CatalogCreatorType]string{
 	CatalogCreatorGroup: "2",
 }
 
-// CatalogSearch is what to search the Marketplace for.
 type CatalogSearch struct {
 	Keyword  string          `json:"keyword"`
 	Category CatalogCategory `json:"category"`

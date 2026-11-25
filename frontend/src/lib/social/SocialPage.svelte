@@ -49,7 +49,15 @@
 		personName,
 		playersView,
 	} from "./social-store.svelte"
-	import type { SocialListKind, SocialStore, SocialView } from "./social-store.svelte"
+	import type {
+		SocialListKind,
+		SocialStore,
+		SocialSubpage,
+		SocialView,
+	} from "./social-store.svelte"
+	import { openPageLabel, setProfilePages } from "../shared/profile-pages"
+	import type { ProfilePages } from "../shared/profile-pages"
+	import StatusTrail from "../layout/StatusTrail.svelte"
 	import type { RelationshipActionId } from "./relationship"
 
 	let {
@@ -58,9 +66,6 @@
 		notifications,
 		onFillLaunch,
 		onFillLaunchUser,
-		onSearchPlace,
-		onShowGamePass,
-		onSearchUniverse,
 		onRelationshipAction,
 		onEditNickname,
 		onRemoveSelected,
@@ -72,9 +77,6 @@
 		notifications: NotificationCenter
 		onFillLaunch: (placeId: number, jobId: string) => void
 		onFillLaunchUser: (user: SocialUser) => void
-		onSearchPlace: (placeId: number) => void
-		onShowGamePass: (place: GamePlace, gamePassId: number) => void
-		onSearchUniverse: (universeId: number) => void
 		onRelationshipAction: (person: SocialUser, action: RelationshipActionId) => void
 		onEditNickname: (person: SocialUser, nickname: string) => void
 		onRemoveSelected: () => void
@@ -209,6 +211,35 @@
 		const text = filterText
 		unsavedChangesGuard.leave(() => store.searchPlayers(text))
 	}
+
+	const socialSubpages: SocialSubpage[] = ["avatar", "inventory"]
+
+	const profilePages: ProfilePages = {
+		get label() {
+			return selected ? `${personName(selected)} pages` : "Profile pages"
+		},
+		get tabs() {
+			return [
+				{ id: "avatar", label: "Avatar" },
+				{
+					id: "inventory",
+					label: "Inventory",
+					unavailableReason: selected
+						? store.inventoryUnavailableReason(selected.userId)
+						: "",
+				},
+			]
+		},
+		get currentPage() {
+			return store.subpage ?? ""
+		},
+		openPage: (page) => {
+			const subpage = socialSubpages.find((knownSubpage) => knownSubpage === page)
+			if (subpage) store.subpage = subpage
+		},
+		openOverview: () => void closeSubpage(),
+	}
+	setProfilePages(profilePages)
 
 	async function closeSubpage(): Promise<void> {
 		const closedSubpage = store.subpage
@@ -670,9 +701,7 @@
 						{notifications}
 						accountId={account.id}
 						userId={selected.userId}
-						username={selected.username || String(selected.userId)}
-						{onSearchPlace}
-						onBack={() => void closeSubpage()} />
+						username={selected.username || String(selected.userId)} />
 				{/key}
 			{:else if selected && store.subpage === "inventory"}
 				{#key `${account.id}:${selected.userId}`}
@@ -682,10 +711,7 @@
 						accountId={account.id}
 						userId={selected.userId}
 						username={selected.username || String(selected.userId)}
-						bind:sidebarWidth={store.inventorySidebarWidth}
-						{onSearchPlace}
-						{onShowGamePass}
-						onBack={() => void closeSubpage()} />
+						bind:sidebarWidth={store.inventorySidebarWidth} />
 				{/key}
 			{:else if selected}
 				{#key selected.userId}
@@ -696,8 +722,6 @@
 							person={selected}
 							{onFillLaunch}
 							{onFillLaunchUser}
-							{onSearchPlace}
-							{onSearchUniverse}
 							onEditNickname={(nickname) =>
 								onEditNickname(selected, nickname)}
 							{onRelationshipAction}
@@ -797,7 +821,15 @@
 	<footer
 		class="flex h-6 shrink-0 items-center justify-between border-t border-line-subtle bg-surface pl-3 text-2xs text-fg-faint"
 		aria-label="Social status">
-		<AccountSwitcher store={accounts} />
+		<div class="flex min-w-0 items-center gap-1">
+			<AccountSwitcher store={accounts} />
+			<StatusTrail
+				parts={selected
+					? [personName(selected), openPageLabel(profilePages)].filter(
+							Boolean,
+						)
+					: []} />
+		</div>
 		{#if store.page}
 			<span class="ml-auto truncate pr-3" aria-live="polite"
 				>{statusSummary()}</span>
@@ -810,7 +842,6 @@
 		{store}
 		menu={store.menu}
 		{onFillLaunch}
-		{onSearchPlace}
 		{onRelationshipAction}
 		onOpenInBrowser={(pageUrl) => onOpenInBrowser(store.accountId, pageUrl)} />
 {/if}

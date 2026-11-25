@@ -15,7 +15,6 @@ export class AvatarThumbnailsState {
 	thumbnails = $state.raw<AvatarThumbnails | null>(null)
 	isLoading = $state(false)
 	error = $state("")
-	// The customization that saves, or undefined.
 	savingType = $state<AvatarThumbnailType | undefined>(undefined)
 	saveError = $state("")
 	readonly userId: number

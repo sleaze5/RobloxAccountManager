@@ -90,7 +90,6 @@ func (service *Service) addAvatarDetails(ctx context.Context, accountID, version
 	avatar.ImageURL = avatarImages[imageTarget]
 }
 
-// GetAvatarRules reads what the account may change on its avatar.
 func (service *Service) GetAvatarRules(ctx context.Context, accountID int64) (robloxservices.AvatarRules, error) {
 	ctx, version, done, err := service.beginAccountSession(ctx, accountID, "avatar-rules")
 	if err != nil {
@@ -195,8 +194,6 @@ func (service *Service) RenderAvatarPreview(ctx context.Context, accountID int64
 	return service.renderAvatarPreview(ctx, accountID, version, "avatar-preview", change)
 }
 
-// TryOnInventoryItem renders the avatar of the account wearing the item,
-// without saving it.
 func (service *Service) TryOnInventoryItem(ctx context.Context, accountID int64, category robloxservices.InventoryCategory, itemID int64) (string, error) {
 	ctx, version, done, err := service.beginAccountSession(ctx, accountID, "avatar-try-on")
 	if err != nil {

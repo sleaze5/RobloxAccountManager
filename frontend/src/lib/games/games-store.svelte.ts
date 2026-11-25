@@ -24,6 +24,7 @@ import { UniverseBadges } from "./game-badges-state.svelte"
 import { UniverseDeveloperProducts } from "./developer-products-state.svelte"
 import { UniverseGamePasses } from "./game-passes-state.svelte"
 import { menuPointFor } from "../shared/presence"
+import type { PageLocationKeys } from "../layout/page-history"
 
 // Roblox serves these parts of the game details from their own endpoints, so
 // they load beside the main details and fill in as they arrive.
@@ -38,6 +39,16 @@ const gameSectionFields: { section: GameSection; fields: (keyof Game)[] }[] = [
 	{ section: GameSection.GameSectionVersions, fields: ["versions"] },
 	{ section: GameSection.GameSectionLanguages, fields: ["languages"] },
 ]
+
+const allGameSections = gameSectionFields.map(({ section }) => section)
+
+// A subplace shows only its own versions. Its other sections belong to its
+// universe, which its root place shows.
+const subplaceGameSections = [GameSection.GameSectionVersions]
+
+function gameSectionsFor(game: Game | null): GameSection[] {
+	return game?.rootPlace ? subplaceGameSections : allGameSections
+}
 
 function pickSectionFields(game: Game, sections: GameSection[]): Partial<Game> {
 	return Object.fromEntries(
@@ -63,6 +74,27 @@ export function creatorByline(place: GamePlace): string {
 	return creator ? `by ${creator}` : "Unknown creator"
 }
 
+// GameDetailsPage names a page that opens in place of the game details.
+export type GameDetailsPage = "servers" | "badges" | "gamePasses"
+
+// GamesLocation is what Games shows: the list, the search, and the place and
+// page that it opened. Its history goes back to it.
+interface GamesLocation {
+	mode: "search" | "favorites"
+	searchedText: string
+	place: GamePlace | null
+	detailsPage: "details" | GameDetailsPage
+}
+
+export function gamesLocationKeys(location: GamesLocation): PageLocationKeys {
+	return {
+		context: `${location.mode}:${location.searchedText}`,
+		selection: location.place
+			? `${location.place.placeId}:${location.detailsPage}`
+			: "",
+	}
+}
+
 export const [getGamesStore, setGamesStore] = createContext<GamesStore>()
 
 // StoreView names the list that the Game passes page shows.
@@ -79,7 +111,7 @@ export class GamesStore {
 	favorites = $state<GamePlace[]>([])
 	selected = $state<GamePlace | null>(null)
 	game = $state<Game | null>(null)
-	detailsPage = $state<"details" | "servers" | "badges" | "gamePasses">("details")
+	detailsPage = $state<"details" | GameDetailsPage>("details")
 	// The game pass opened from another page.
 	highlightedGamePassId = $state<number | null>(null)
 	storeView = $state<StoreView>("gamePasses")
@@ -412,13 +444,50 @@ export class GamesStore {
 		this.revalidate()
 	}
 
-	// showGamePass opens the place's Game passes page with the pass highlighted.
-	showGamePass(place: GamePlace, gamePassId: number): void {
+	get location(): GamesLocation {
+		return {
+			mode: this.mode,
+			searchedText: this.mode === "search" ? this.searchedText : "",
+			place: $state.snapshot(this.selected),
+			detailsPage: this.detailsPage,
+		}
+	}
+
+	async restoreLocation(location: GamesLocation): Promise<void> {
 		this.closeMenu()
+		if (location.mode === "search" && location.searchedText !== this.searchedText)
+			await this.searchFor(location.searchedText)
+		else {
+			if (location.mode === "search") this.query = location.searchedText
+			this.show(location.mode)
+		}
+		if (location.place?.placeId !== this.selected?.placeId)
+			this.select(location.place)
+		this.detailsPage = location.detailsPage
+	}
+
+	// showPlaceAsIDSearch opens a place that another page names as a search by
+	// its ID, or by its universe's ID to list every place of the universe, and
+	// opens the place when the search finds it. A game pass opens the place's
+	// Game passes page with the pass highlighted.
+	async showPlaceAsIDSearch(subject: {
+		placeId: number
+		universeId?: number
+		gamePassId?: number
+	}): Promise<void> {
+		this.closeMenu()
+		const text = subject.universeId
+			? `universe:${subject.universeId}`
+			: `id:${subject.placeId}`
+		await this.searchFor(text)
+		const place = this.results.find((result) => result.placeId === subject.placeId)
+		// The user may have opened another result or search meanwhile.
+		if (!place || this.selected || this.searchedText !== text) return
 		this.select(place)
+		if (!subject.gamePassId) return
 		this.detailsPage = "gamePasses"
 		this.storeView = "gamePasses"
-		this.highlightedGamePassId = gamePassId
+		this.highlightedGamePassId = subject.gamePassId
 	}
 
 	revalidate(): void {
@@ -441,9 +510,16 @@ export class GamesStore {
 		this.detailsError = ""
 		const request = accountBackend.GetGame(place.universeId, place.placeId)
 		this.#detailsRequest = request
-		const sectionLoad = place.universeId
-			? this.#loadGameSections(place.universeId, place.placeId)
-			: null
+		// The sections load beside the details, so a place that was opened
+		// before uses what it was then, and a new subplace learns it later.
+		const knownGame = this.game?.place.placeId === place.placeId ? this.game : null,
+			sectionLoad = place.universeId
+				? this.#loadGameSections(
+						place.universeId,
+						place.placeId,
+						gameSectionsFor(knownGame),
+					)
+				: null
 		try {
 			const game = await request
 			if (this.#detailsRequest !== request) return
@@ -465,7 +541,11 @@ export class GamesStore {
 			}
 			this.updateMetadata(game.place)
 			if (!sectionLoad) {
-				void this.#loadGameSections(game.place.universeId, game.place.placeId)
+				void this.#loadGameSections(
+					game.place.universeId,
+					game.place.placeId,
+					gameSectionsFor(game),
+				)
 			}
 		} catch (error) {
 			if (this.#detailsRequest === request) {
@@ -485,15 +565,19 @@ export class GamesStore {
 
 	// A failed section keeps its last values. The details show it as unavailable
 	// when it never loaded, and the backend logs why.
-	async #loadGameSections(universeId: number, placeId: number): Promise<void> {
+	async #loadGameSections(
+		universeId: number,
+		placeId: number,
+		sections: GameSection[],
+	): Promise<void> {
 		this.#cancelGameSections()
 		const loadCount = this.#sectionLoadCount,
 			isCurrentLoad = () =>
 				loadCount === this.#sectionLoadCount &&
 				this.selected?.placeId === placeId
-		this.loadingGameSections = gameSectionFields.map(({ section }) => section)
+		this.loadingGameSections = [...sections]
 		await Promise.allSettled(
-			gameSectionFields.map(async ({ section }) => {
+			sections.map(async (section) => {
 				const request = accountBackend.GetGameSection(
 					universeId,
 					placeId,

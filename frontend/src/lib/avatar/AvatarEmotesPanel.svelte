@@ -17,7 +17,6 @@
 	}: {
 		avatar: AvatarState
 		canEdit: boolean
-		// Whether the account that the page acts for owns the emote.
 		isOwned: (emote: AvatarEmote) => boolean
 		onOpenEmote: (emote: AvatarEmote) => void
 		onChooseEmote: (slot: number) => void
