@@ -23,6 +23,7 @@ import { matchesSearch, searchTerms } from "../shared/search"
 import { UniverseBadges } from "./game-badges-state.svelte"
 import { UniverseDeveloperProducts } from "./developer-products-state.svelte"
 import { UniverseGamePasses } from "./game-passes-state.svelte"
+import { MultiSelection } from "../shared/multi-selection.svelte"
 import { menuPointFor } from "../shared/presence"
 import type { PageLocationKeys } from "../layout/page-history"
 
@@ -60,6 +61,8 @@ function pickSectionFields(game: Game, sections: GameSection[]): Partial<Game> {
 
 export interface GameMenu {
 	place: GamePlace
+	// places holds every marked place when the menu opened on one of them.
+	places: GamePlace[]
 	x: number
 	y: number
 }
@@ -102,7 +105,7 @@ export type StoreView = "gamePasses" | "developerProducts"
 
 export class GamesStore {
 	sidebarCollapsed = $state(false)
-	sidebarWidth = $state(220)
+	sidebarWidth = $state(248)
 	mode = $state<"search" | "favorites">("favorites")
 	query = $state("")
 	favoritesQuery = $state("")
@@ -117,6 +120,7 @@ export class GamesStore {
 	storeView = $state<StoreView>("gamePasses")
 	serverSource = $state<ServerSource>("roblox")
 	menu = $state<GameMenu | null>(null)
+	readonly marked = new MultiSelection<number>()
 	searching = $state(false)
 	loadMoreFailed = $state(false)
 	loadingDetails = $state(false)
@@ -216,14 +220,31 @@ export class GamesStore {
 
 	show(mode: "search" | "favorites"): void {
 		if (this.mode === mode) return
+		this.marked.clear()
 		this.mode = mode
 		this.error = ""
 	}
 
-	openMenu(event: MouseEvent | KeyboardEvent, place: GamePlace): void {
+	// openMenu opens the menu of the place. In a list, given as listedPlaces, a
+	// menu on a marked place acts on every marked place.
+	openMenu(
+		event: MouseEvent | KeyboardEvent,
+		place: GamePlace,
+		listedPlaces?: GamePlace[],
+	): void {
 		event.preventDefault()
 		event.stopPropagation()
-		this.menu = { place, ...menuPointFor(event, 2) }
+		const placeIds = listedPlaces
+				? this.marked.keysForMenu(place.placeId)
+				: [place.placeId],
+			places = (listedPlaces ?? []).filter((listedPlace) =>
+				placeIds.includes(listedPlace.placeId),
+			)
+		this.menu = {
+			place,
+			places: places.length > 1 ? places : [place],
+			...menuPointFor(event, 2),
+		}
 	}
 
 	closeMenu(): void {
@@ -655,45 +676,69 @@ export class GamesStore {
 	}
 
 	async toggleFavorite(place: GamePlace): Promise<void> {
+		await this.changeFavorites([place], !this.isFavorite(place.placeId))
+	}
+
+	// changeFavorites adds the places to the favorites, or removes them. The
+	// favorites list shows only the changes that the vault saved.
+	async changeFavorites(places: GamePlace[], isFavorite: boolean): Promise<void> {
 		const epoch = this.#epoch
 		this.closeMenu()
 		if (this.savingFavorite || this.savingNickname || !this.favoritesLoaded) return
-		const removing = this.isFavorite(place.placeId)
+		const changedPlaceIds = places
+			.filter((place) => this.isFavorite(place.placeId) !== isFavorite)
+			.map((place) => place.placeId)
 		this.savingFavorite = true
 		this.error = ""
 		try {
-			if (removing) {
-				this.#saveRequest = accountBackend.RemoveFavoritePlace(place.placeId)
-				await this.#saveRequest
-				if (this.#epoch !== epoch) return
-				this.favorites = this.favorites.filter(
-					(favorite) => favorite.placeId !== place.placeId,
+			if (isFavorite) {
+				const saves = await Promise.allSettled(
+					changedPlaceIds.map((placeId) =>
+						accountBackend.AddFavoritePlace(placeId),
+					),
 				)
-			} else {
-				const request = accountBackend.AddFavoritePlace(place.placeId)
-				this.#saveRequest = request
-				const saved = await request
 				if (this.#epoch !== epoch) return
+				const saved = saves.flatMap((save) =>
+					save.status === "fulfilled" ? [save.value] : [],
+				)
 				this.favorites = [
-					saved,
+					...saved,
 					...this.favorites.filter(
-						(favorite) => favorite.placeId !== saved.placeId,
+						(favorite) =>
+							!saved.some(
+								(savedPlace) => savedPlace.placeId === favorite.placeId,
+							),
 					),
 				]
-			}
-		} catch (error) {
-			if (this.#epoch === epoch) {
-				this.error = errorMessage(
-					error,
-					"Could not update the favorites. Try again.",
+				this.#reportFirstFailure(saves)
+			} else {
+				const removals = await Promise.allSettled(
+					changedPlaceIds.map((placeId) =>
+						accountBackend.RemoveFavoritePlace(placeId),
+					),
 				)
+				if (this.#epoch !== epoch) return
+				const removedPlaceIds = changedPlaceIds.filter(
+					(_placeId, index) => removals[index].status === "fulfilled",
+				)
+				this.favorites = this.favorites.filter(
+					(favorite) => !removedPlaceIds.includes(favorite.placeId),
+				)
+				this.#reportFirstFailure(removals)
 			}
+			if (!this.error) this.marked.clear()
 		} finally {
-			if (this.#epoch === epoch) {
-				this.#saveRequest = null
-				this.savingFavorite = false
-			}
+			if (this.#epoch === epoch) this.savingFavorite = false
 		}
+	}
+
+	#reportFirstFailure(results: PromiseSettledResult<unknown>[]): void {
+		const failure = results.find((result) => result.status === "rejected")
+		if (failure)
+			this.error = errorMessage(
+				failure.reason,
+				"Could not update the favorites. Try again.",
+			)
 	}
 
 	async moveFavorite(

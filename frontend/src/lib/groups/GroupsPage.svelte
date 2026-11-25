@@ -11,6 +11,9 @@
 	import xIcon from "@phosphor-icons/core/regular/x.svg?raw"
 	import type { GroupSummary } from "../backend/bridge"
 	import type { AccountStore } from "../accounts/account-store.svelte"
+	import ConfirmationDialog from "../shared/ConfirmationDialog.svelte"
+	import { isMultiSelectGesture } from "../shared/multi-selection.svelte"
+	import GroupContextMenu from "./GroupContextMenu.svelte"
 	import AccountSwitcher from "../layout/AccountSwitcher.svelte"
 	import WorkbenchSidebar from "../layout/WorkbenchSidebar.svelte"
 	import type { NotificationCenter } from "../notifications/notification-center.svelte"
@@ -137,6 +140,33 @@
 				`[data-subpage-button="${closedSubpage}"]`,
 			)
 			?.focus({ preventScroll: true })
+	}
+
+	let leavingGroupIds = $state<number[] | null>(null)
+
+	// selectGroup opens the group, or marks it with Ctrl+click, as the account
+	// list does.
+	function selectGroup(event: MouseEvent | KeyboardEvent, groupId: number): void {
+		if (isMultiSelectGesture(event)) {
+			store.marked.toggle(groupId, store.selectedGroupId || undefined)
+			return
+		}
+		store.marked.clear()
+		store.showGroup(groupId)
+	}
+
+	async function leaveGroups(groupIds: number[]): Promise<void> {
+		await store.leaveGroups(groupIds)
+		leavingGroupIds = null
+	}
+
+	function leaveDescription(groupIds: number[]): string {
+		if (groupIds.length > 1)
+			return `This account will leave ${groupIds.length} groups and lose its roles in them. Joining again may need approval.`
+		const name = myGroups.find(
+			(userGroup) => userGroup.group.groupId === groupIds[0],
+		)?.group.name
+		return `This account will leave ${name ?? "the group"} and lose its role. Joining again may need approval.`
 	}
 
 	function submitSearch(): void {
@@ -329,12 +359,42 @@
 						<button
 							class="list-row relative flex h-12 w-full items-center gap-2 border-b border-line-subtle px-3 text-left"
 							type="button"
-							data-selected={isSelected || undefined}
+							data-selected={isSelected ||
+								store.marked.has(row.group.groupId) ||
+								undefined}
+							data-open={store.menu?.groups.some(
+								(group) => group.groupId === row.group.groupId,
+							) || undefined}
 							aria-current={isSelected ? "true" : undefined}
+							aria-haspopup="menu"
 							data-list-item
 							tabindex={row.group.groupId === tabStopGroupId ? 0 : -1}
-							onclick={() => store.showGroup(row.group.groupId)}
-							onkeydown={moveListFocus}>
+							onclick={(event) => selectGroup(event, row.group.groupId)}
+							oncontextmenu={(event) =>
+								store.openMenu(
+									event,
+									row.group,
+									rows.map((listedRow) => listedRow.group),
+								)}
+							onkeydown={(event) => {
+								if (
+									event.key === "ContextMenu" ||
+									(event.shiftKey && event.key === "F10")
+								)
+									store.openMenu(
+										event,
+										row.group,
+										rows.map((listedRow) => listedRow.group),
+									)
+								if (
+									(event.key === " " || event.key === "Enter") &&
+									isMultiSelectGesture(event)
+								) {
+									event.preventDefault()
+									selectGroup(event, row.group.groupId)
+								}
+								moveListFocus(event)
+							}}>
 							<GroupIcon url={row.group.iconUrl} />
 							<span class="flex min-w-0 flex-col leading-snug">
 								<strong
@@ -429,3 +489,27 @@
 		{/if}
 	</footer>
 </main>
+
+{#if store.menu}
+	<GroupContextMenu
+		{store}
+		menu={store.menu}
+		onOpenInBrowser={(pageUrl) => onOpenInBrowser(account.id, pageUrl)}
+		onLeave={(groupIds) => (leavingGroupIds = groupIds)} />
+{/if}
+
+{#if leavingGroupIds}
+	{@const groupIds = leavingGroupIds}
+	<ConfirmationDialog
+		title={groupIds.length > 1
+			? `Leave ${groupIds.length} groups?`
+			: "Leave group?"}
+		description={leaveDescription(groupIds)}
+		confirmLabel={groupIds.length > 1
+			? `Leave ${groupIds.length} groups`
+			: "Leave group"}
+		progressLabel="Leaving…"
+		isWorking={store.isLeavingGroups}
+		onConfirm={() => void leaveGroups(groupIds)}
+		onCancel={() => (leavingGroupIds = null)} />
+{/if}

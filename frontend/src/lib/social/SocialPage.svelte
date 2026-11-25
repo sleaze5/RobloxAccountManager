@@ -36,6 +36,7 @@
 	import PresenceLine from "../accounts/PresenceLine.svelte"
 	import Select from "../shared/Select.svelte"
 	import { moveListFocus } from "../shared/move-shortcut"
+	import { isMultiSelectGesture } from "../shared/multi-selection.svelte"
 	import { menuIn, menuOut } from "../shared/presence"
 	import SocialAvatar from "./SocialAvatar.svelte"
 	import SocialMenu from "./SocialMenu.svelte"
@@ -573,7 +574,17 @@
 								data-list-item
 								tabindex={person.userId === tabStopUserId ? 0 : -1}
 								aria-label={rowLabel(person)}
-								onclick={() => {
+								onclick={(event) => {
+									if (
+										isMultiSelectGesture(event) &&
+										store.canRemoveInBulk
+									) {
+										store.startSelectingWith([
+											store.selectedUserId,
+											person.userId,
+										])
+										return
+									}
 									if (person.userId !== store.selectedUserId) {
 										unsavedChangesGuard.leave(() =>
 											store.select(person),

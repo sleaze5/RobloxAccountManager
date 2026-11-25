@@ -20,6 +20,8 @@
 	import WorkbenchSidebar from "../layout/WorkbenchSidebar.svelte"
 	import type { NotificationCenter } from "../notifications/notification-center.svelte"
 	import { isMoveShortcut, moveListFocus } from "../shared/move-shortcut"
+	import { isMultiSelectGesture } from "../shared/multi-selection.svelte"
+	import type { GamePlace } from "../backend/bridge"
 	import { notifyErrors } from "../notifications/error-notifications.svelte"
 	import { menuIn, menuOut } from "../shared/presence"
 	import GameContextMenu from "./GameContextMenu.svelte"
@@ -93,6 +95,17 @@
 		if (position > 0) {
 			moveAnnouncement = `Moved to position ${position} of ${store.favorites.length}`
 		}
+	}
+
+	// selectPlace shows the place, or marks it with Ctrl+click, as the account
+	// list does.
+	function selectPlace(event: MouseEvent | KeyboardEvent, place: GamePlace): void {
+		if (isMultiSelectGesture(event)) {
+			store.marked.toggle(place.placeId, store.selected?.placeId)
+			return
+		}
+		store.marked.clear()
+		store.select(place)
 	}
 
 	function grab(event: PointerEvent, placeId: number): void {
@@ -351,9 +364,12 @@
 										? "shadow-drop-after"
 										: "shadow-drop-before"),
 							]}
-							data-selected={active || undefined}
-							data-open={store.menu?.place.placeId === place.placeId ||
+							data-selected={active ||
+								store.marked.has(place.placeId) ||
 								undefined}
+							data-open={store.menu?.places.some(
+								(menuPlace) => menuPlace.placeId === place.placeId,
+							) || undefined}
 							draggable={favoritesMode && store.canReorder}
 							onpointerdown={(event) => grab(event, place.placeId)}
 							ondragstart={(event) => startDrag(event, place.placeId)}
@@ -369,14 +385,22 @@
 							aria-keyshortcuts={favoritesMode
 								? "Control+Shift+ArrowUp Control+Shift+ArrowDown"
 								: undefined}
-							onclick={() => store.select(place)}
-							oncontextmenu={(event) => store.openMenu(event, place)}
+							onclick={(event) => selectPlace(event, place)}
+							oncontextmenu={(event) =>
+								store.openMenu(event, place, store.places)}
 							onkeydown={(event) => {
 								if (
 									event.key === "ContextMenu" ||
 									(event.shiftKey && event.key === "F10")
 								)
-									store.openMenu(event, place)
+									store.openMenu(event, place, store.places)
+								if (
+									(event.key === " " || event.key === "Enter") &&
+									isMultiSelectGesture(event)
+								) {
+									event.preventDefault()
+									selectPlace(event, place)
+								}
 								void moveWithKeyboard(event, place.placeId)
 								moveListFocus(event)
 							}}>

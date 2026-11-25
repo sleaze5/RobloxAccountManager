@@ -31,6 +31,13 @@
 		favorite = $derived(store.isFavorite(place.placeId)),
 		group = $derived(place.creatorType === "Group"),
 		owner = $derived(group ? "Group" : "Creator"),
+		places = $derived(menu.places),
+		hasUnfavoritedPlace = $derived(
+			places.some((listedPlace) => !store.isFavorite(listedPlace.placeId)),
+		),
+		hasFavoritePlace = $derived(
+			places.some((listedPlace) => store.isFavorite(listedPlace.placeId)),
+		),
 		favoriteBusy = $derived(
 			store.savingFavorite || store.savingNickname || !store.favoritesLoaded,
 		)
@@ -55,121 +62,183 @@
 <div
 	class="fixed menu"
 	role="group"
-	aria-label={`${store.displayName(place)} actions`}
+	aria-label={places.length > 1
+		? `${places.length} games actions`
+		: `${store.displayName(place)} actions`}
 	tabindex="-1"
 	data-game-menu
 	use:floatMenuAtPoint={menu}
 	use:menuKeyboard
 	in:menuIn
 	out:menuOut>
-	<button
-		class="menu-item"
-		type="button"
-		onclick={() => {
-			const { placeId } = place
-			store.closeMenu()
-			onFillLaunch(placeId)
-		}}
-		><Icon svg={listPlusIcon} size={16} aria-hidden="true" /><span
-			>Fill launch options</span
-		></button>
-	{#if favorite}
-		<button
-			class="menu-item"
-			type="button"
-			onclick={() => store.editNickname(place)}
-			><Icon svg={pencilLineIcon} size={16} aria-hidden="true" /><span
-				>{store.nicknameFor(place.placeId)
-					? "Edit nickname"
-					: "Add nickname"}</span
-			></button>
+	{#if places.length > 1}
+		{#if hasUnfavoritedPlace}
+			<button
+				class="menu-item"
+				type="button"
+				disabled={favoriteBusy}
+				onclick={() => void store.changeFavorites(places, true)}
+				><Icon svg={starIcon} size={16} aria-hidden="true" /><span
+					>Add {places.length} games to favorites</span
+				></button>
+		{/if}
+		<div role="group" aria-label="Copy game details">
+			<div class="menu-heading" aria-hidden="true">Copy</div>
+			<button
+				class="menu-item"
+				type="button"
+				aria-label="Copy place IDs"
+				onclick={() =>
+					void store.copy(
+						places.map((listedPlace) => listedPlace.placeId).join("\n"),
+						"Place IDs",
+					)}
+				><Icon svg={hashIcon} size={16} aria-hidden="true" /><span
+					>Place IDs</span
+				></button>
+			<button
+				class="menu-item"
+				type="button"
+				aria-label="Copy game links"
+				onclick={() =>
+					void store.copy(
+						places
+							.map(
+								(listedPlace) =>
+									`https://www.roblox.com/games/${listedPlace.placeId}`,
+							)
+							.join("\n"),
+						"Game links",
+					)}
+				><Icon svg={linkIcon} size={16} aria-hidden="true" /><span
+					>Game links</span
+				></button>
+		</div>
+		{#if hasFavoritePlace}
+			<div class="menu-separator"></div>
+			<button
+				class="menu-item-danger"
+				type="button"
+				disabled={favoriteBusy}
+				onclick={() => void store.changeFavorites(places, false)}
+				><Icon svg={starFillIcon} size={16} aria-hidden="true" /><span
+					>Remove {places.length} games from favorites</span
+				></button>
+		{/if}
 	{:else}
 		<button
 			class="menu-item"
 			type="button"
-			disabled={favoriteBusy}
-			onclick={() => void store.toggleFavorite(place)}
-			><Icon svg={starIcon} size={16} aria-hidden="true" /><span
-				>Add to favorites</span
+			onclick={() => {
+				const { placeId } = place
+				store.closeMenu()
+				onFillLaunch(placeId)
+			}}
+			><Icon svg={listPlusIcon} size={16} aria-hidden="true" /><span
+				>Fill launch options</span
 			></button>
-	{/if}
-	<button
-		class="menu-item"
-		type="button"
-		disabled={!canOpenInBrowser}
-		onclick={() => {
-			const pageUrl = gameUrl
-			store.closeMenu()
-			onOpenInBrowser(pageUrl)
-		}}
-		><Icon svg={globeIcon} size={16} aria-hidden="true" /><span
-			>Open in browser</span
-		></button>
+		{#if favorite}
+			<button
+				class="menu-item"
+				type="button"
+				onclick={() => store.editNickname(place)}
+				><Icon svg={pencilLineIcon} size={16} aria-hidden="true" /><span
+					>{store.nicknameFor(place.placeId)
+						? "Edit nickname"
+						: "Add nickname"}</span
+				></button>
+		{:else}
+			<button
+				class="menu-item"
+				type="button"
+				disabled={favoriteBusy}
+				onclick={() => void store.toggleFavorite(place)}
+				><Icon svg={starIcon} size={16} aria-hidden="true" /><span
+					>Add to favorites</span
+				></button>
+		{/if}
+		<button
+			class="menu-item"
+			type="button"
+			disabled={!canOpenInBrowser}
+			onclick={() => {
+				const pageUrl = gameUrl
+				store.closeMenu()
+				onOpenInBrowser(pageUrl)
+			}}
+			><Icon svg={globeIcon} size={16} aria-hidden="true" /><span
+				>Open in browser</span
+			></button>
 
-	<div role="group" aria-label="Copy game details">
-		<div class="menu-heading" aria-hidden="true">Copy</div>
-		<button
-			class="menu-item"
-			type="button"
-			aria-label="Copy game name"
-			onclick={() => void store.copy(place.name, "Game name")}
-			><Icon svg={textTIcon} size={16} aria-hidden="true" /><span>Name</span
-			></button>
-		<button
-			class="menu-item"
-			type="button"
-			aria-label="Copy place ID"
-			onclick={() => void store.copy(place.placeId, "Place ID")}
-			><Icon svg={hashIcon} size={16} aria-hidden="true" /><span>Place ID</span
-			></button>
-		<button
-			class="menu-item"
-			type="button"
-			aria-label="Copy game link"
-			onclick={() => void store.copy(gameUrl, "Game link")}
-			><Icon svg={linkIcon} size={16} aria-hidden="true" /><span>Game link</span
-			></button>
-		<button
-			class="menu-item"
-			type="button"
-			aria-label="Copy universe ID"
-			disabled={!place.universeId}
-			onclick={() => void store.copy(place.universeId, "Universe ID")}
-			><Icon svg={hashIcon} size={16} aria-hidden="true" /><span>Universe ID</span
-			></button>
-		<button
-			class="menu-item"
-			type="button"
-			aria-label={`Copy ${owner.toLowerCase()} name`}
-			disabled={!place.creatorName}
-			onclick={() => void store.copy(place.creatorName, `${owner} name`)}>
-			{#if group}<Icon
-					svg={usersThreeIcon}
-					size={16}
-					aria-hidden="true" />{:else}<Icon
-					svg={userCircleIcon}
-					size={16}
-					aria-hidden="true" />{/if}
-			<span>{owner} name</span>
-		</button>
-		<button
-			class="menu-item"
-			type="button"
-			aria-label={`Copy ${owner.toLowerCase()} ID`}
-			disabled={!place.creatorId}
-			onclick={() => void store.copy(place.creatorId, `${owner} ID`)}
-			><Icon svg={hashIcon} size={16} aria-hidden="true" /><span>{owner} ID</span
-			></button>
-	</div>
-	{#if favorite}
-		<div class="menu-separator"></div>
-		<button
-			class="menu-item-danger"
-			type="button"
-			disabled={favoriteBusy}
-			onclick={() => void store.toggleFavorite(place)}
-			><Icon svg={starFillIcon} size={16} aria-hidden="true" /><span
-				>Remove from favorites</span
-			></button>
+		<div role="group" aria-label="Copy game details">
+			<div class="menu-heading" aria-hidden="true">Copy</div>
+			<button
+				class="menu-item"
+				type="button"
+				aria-label="Copy game name"
+				onclick={() => void store.copy(place.name, "Game name")}
+				><Icon svg={textTIcon} size={16} aria-hidden="true" /><span>Name</span
+				></button>
+			<button
+				class="menu-item"
+				type="button"
+				aria-label="Copy place ID"
+				onclick={() => void store.copy(place.placeId, "Place ID")}
+				><Icon svg={hashIcon} size={16} aria-hidden="true" /><span
+					>Place ID</span
+				></button>
+			<button
+				class="menu-item"
+				type="button"
+				aria-label="Copy game link"
+				onclick={() => void store.copy(gameUrl, "Game link")}
+				><Icon svg={linkIcon} size={16} aria-hidden="true" /><span
+					>Game link</span
+				></button>
+			<button
+				class="menu-item"
+				type="button"
+				aria-label="Copy universe ID"
+				disabled={!place.universeId}
+				onclick={() => void store.copy(place.universeId, "Universe ID")}
+				><Icon svg={hashIcon} size={16} aria-hidden="true" /><span
+					>Universe ID</span
+				></button>
+			<button
+				class="menu-item"
+				type="button"
+				aria-label={`Copy ${owner.toLowerCase()} name`}
+				disabled={!place.creatorName}
+				onclick={() => void store.copy(place.creatorName, `${owner} name`)}>
+				{#if group}<Icon
+						svg={usersThreeIcon}
+						size={16}
+						aria-hidden="true" />{:else}<Icon
+						svg={userCircleIcon}
+						size={16}
+						aria-hidden="true" />{/if}
+				<span>{owner} name</span>
+			</button>
+			<button
+				class="menu-item"
+				type="button"
+				aria-label={`Copy ${owner.toLowerCase()} ID`}
+				disabled={!place.creatorId}
+				onclick={() => void store.copy(place.creatorId, `${owner} ID`)}
+				><Icon svg={hashIcon} size={16} aria-hidden="true" /><span
+					>{owner} ID</span
+				></button>
+		</div>
+		{#if favorite}
+			<div class="menu-separator"></div>
+			<button
+				class="menu-item-danger"
+				type="button"
+				disabled={favoriteBusy}
+				onclick={() => void store.toggleFavorite(place)}
+				><Icon svg={starFillIcon} size={16} aria-hidden="true" /><span
+					>Remove from favorites</span
+				></button>
+		{/if}
 	{/if}
 </div>

@@ -145,11 +145,11 @@ The user must never see UI that looks or behaves like an exposed embedded browse
 ## Layout and surfaces
 
 - Design for a 900px by 500px window at 100% display scaling. This is also the minimum window size. Check every layout change at this size with the launch panel open at its default height.
-- At the minimum size, the detail pane next to a default-width sidebar is about 680px wide. Make tables and fixed-column grids fit that width. Hide or truncate lower-priority columns before you add horizontal scrolling.
+- At the minimum size, the detail pane next to a default-width sidebar is about 650px wide. Make tables and fixed-column grids fit that width. Hide or truncate lower-priority columns before you add horizontal scrolling.
 - Use `bg-surface` for persistent chrome (the title bar, page tabs, sidebars, tool rails, and status strip) and `bg-canvas` for the main content plane. The content is one small step darker than the chrome. Keep that step small and separate regions mainly with borders.
 - Use `bg-overlay` for dialogs, menus, popovers, and other floating surfaces, which sit one step above the content. Use `bg-raised` for compact opaque controls. Inputs have no fill of their own.
 - Separate regions with a background step plus a 1px border, not with large shadows. Use `border-line` by default, `border-line-subtle` between rows and shell regions, and `border-line-strong` for selected controls and floating surfaces that need extra separation. Avoid bright outlines.
-- Keep the shell flat. The title bar and the page tabs are `h-9`, the status strip is `h-6`, and the default sidebar is `w-56`.
+- Keep the shell flat. The title bar and the page tabs are `h-9`, the status strip is `h-6`, and a page sidebar is 248px wide by default, so that its title fits a three-digit count beside four icon actions.
 - Show each value once per screen. For example, do not show the same count in a sidebar header and in the status strip.
 - A pane that changes its layout with container variants, such as `@4xl:grid-cols-3`, sits inside an element with `@container`, usually its scroll region. Without one, the wide layout never applies. On a wide pane, a profile puts its main sections in the left two thirds and its secondary facts, such as the Vault of an account or the access and features of a game, in the right third.
 - Only the content regions scroll, never the window. An absolutely positioned element, such as an `sr-only` live region, takes its position from the nearest positioned ancestor. Inside a scroll container, make the container `relative`, so that the element cannot overflow the window and let focus scroll the whole shell.

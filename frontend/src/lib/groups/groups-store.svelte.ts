@@ -9,7 +9,10 @@ import { AccountScope } from "../accounts/account-scope"
 import type { AccountStore } from "../accounts/account-store.svelte"
 import type { NotificationCenter } from "../notifications/notification-center.svelte"
 import type { CancellableRequest } from "../shared/cancellable-request"
+import { copyFailureMessage, copyText } from "../shared/clipboard"
 import { errorMessage } from "../shared/errors"
+import { MultiSelection } from "../shared/multi-selection.svelte"
+import { menuPointFor } from "../shared/presence"
 import type { PageLocationKeys } from "../layout/page-history"
 
 type GroupsMode = "mine" | "search"
@@ -26,6 +29,14 @@ type GroupAction =
 	| "description"
 
 export const minGroupSearchLength = 2
+
+// GroupMenu holds the groups that a menu of the list acts on: the group that
+// it opened on, or every marked group when it opened on one of them.
+export interface GroupMenu {
+	groups: GroupSummary[]
+	x: number
+	y: number
+}
 
 // GroupsLocation is what Groups shows: the list, the search, and the group
 // and page that it opened. Its history goes back to it.
@@ -50,7 +61,7 @@ export function groupsLocationKeys(location: GroupsLocation): PageLocationKeys {
 // account that was selected when it started.
 export class GroupsStore {
 	sidebarCollapsed = $state(false)
-	sidebarWidth = $state(220)
+	sidebarWidth = $state(248)
 	mode = $state<GroupsMode>("mine")
 	query = $state("")
 	searchedText = $state("")
@@ -58,6 +69,9 @@ export class GroupsStore {
 	isLoadingMyGroups = $state(false)
 	myGroupsError = $state("")
 	searchResults = $state.raw<GroupSummary[]>([])
+	menu = $state<GroupMenu | null>(null)
+	readonly marked = new MultiSelection<number>()
+	isLeavingGroups = $state(false)
 	searchCursor = $state("")
 	isSearching = $state(false)
 	searchError = $state("")
@@ -106,11 +120,14 @@ export class GroupsStore {
 		this.searchResults = []
 		this.searchCursor = this.searchError = ""
 		this.searchedText = ""
+		this.marked.clear()
+		this.closeMenu()
 		this.closeGroup()
 		void this.refreshMyGroups()
 	}
 
 	show(mode: GroupsMode): void {
+		if (this.mode !== mode) this.marked.clear()
 		this.mode = mode
 		if (
 			mode === "search" &&
@@ -337,6 +354,91 @@ export class GroupsStore {
 		this.closeGroup()
 		this.mode = "mine"
 		this.pendingAction = null
+	}
+
+	openMenu(
+		event: MouseEvent | KeyboardEvent,
+		group: GroupSummary,
+		listedGroups: GroupSummary[],
+	): void {
+		event.preventDefault()
+		event.stopPropagation()
+		const groupIds = this.marked.keysForMenu(group.groupId),
+			groups = listedGroups.filter((listedGroup) =>
+				groupIds.includes(listedGroup.groupId),
+			)
+		this.menu = {
+			groups: groups.length > 0 ? groups : [group],
+			...menuPointFor(event, 2),
+		}
+	}
+
+	closeMenu(): void {
+		this.menu = null
+	}
+
+	async copy(text: string, label: string): Promise<void> {
+		this.closeMenu()
+		if (
+			!(await copyText(
+				this.#notifications,
+				text,
+				`${label} copied to clipboard.`,
+			))
+		) {
+			this.#notifications.show({
+				title: "Not copied",
+				tone: "error",
+				message: copyFailureMessage(label),
+			})
+		}
+	}
+
+	// canLeave tells whether the account is a member that can leave the group.
+	// Roblox does not let the owner leave, and ranks the owner 255.
+	canLeave(groupId: number): boolean {
+		const membership = this.membershipOf(groupId)
+		return !!membership && membership.role.rank < 255
+	}
+
+	// leaveGroups leaves the groups, then reads the group list again, and
+	// reports whether every group was left.
+	async leaveGroups(groupIds: number[]): Promise<boolean> {
+		const scope = this.#scope
+		if (!scope?.isCurrent || this.isLeavingGroups || this.pendingAction)
+			return false
+		this.isLeavingGroups = true
+		try {
+			const departures = await Promise.allSettled(
+				groupIds.map((groupId) =>
+					scope.track(accountBackend.LeaveGroup(scope.accountId, groupId)),
+				),
+			)
+			if (!scope.isCurrent) return false
+			const failure = departures.find(
+				(departure) => departure.status === "rejected",
+			)
+			if (failure) {
+				this.#notifications.show({
+					title: "Groups not left",
+					tone: "error",
+					message: errorMessage(
+						failure.reason,
+						"Could not leave the groups. Try again.",
+					),
+				})
+				return false
+			}
+			this.marked.clear()
+			return true
+		} finally {
+			if (scope.isCurrent) {
+				await this.refreshMyGroups()
+				if (this.selectedGroupId && groupIds.includes(this.selectedGroupId))
+					await this.refreshProfile()
+			}
+			this.isLeavingGroups = false
+		}
 	}
 
 	// #runAction changes the open group for the account, then reads the

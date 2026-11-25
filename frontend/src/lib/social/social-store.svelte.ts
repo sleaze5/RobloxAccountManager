@@ -255,7 +255,7 @@ export type SocialSubpage = "avatar" | "inventory"
 
 export class SocialStore {
 	sidebarCollapsed = $state(false)
-	sidebarWidth = $state(220)
+	sidebarWidth = $state(248)
 	list = $state<SocialView>(SocialList.SocialFriends)
 	query = $state("")
 	playerQuery = $state("")
@@ -344,6 +344,16 @@ export class SocialStore {
 		this.selectedUserIds = []
 		this.removeSelectedError = ""
 		if (this.selecting) this.closeMenu()
+	}
+
+	// startSelectingWith turns on the selection with the users already selected,
+	// such as after Ctrl+click on a row, as the account list does.
+	startSelectingWith(userIds: (number | null)[]): void {
+		this.setSelecting(true)
+		if (this.selecting)
+			this.selectedUserIds = [
+				...new Set(userIds.filter((userId): userId is number => !!userId)),
+			]
 	}
 
 	toggleSelected(userId: number): void {

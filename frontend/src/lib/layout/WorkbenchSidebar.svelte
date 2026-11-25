@@ -56,7 +56,7 @@
 	{:else}
 		<div class="flex shrink-0 flex-col gap-1 px-3 pt-1 pb-2">
 			<div class="relative flex h-7 items-center">
-				<h1>{@render title()}</h1>
+				<h1 class="min-w-0 truncate">{@render title()}</h1>
 				<div class="ml-auto flex items-center gap-px">
 					{@render actions?.()}
 					<button

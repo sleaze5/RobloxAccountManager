@@ -9,7 +9,7 @@ export class LogsExplorerStore {
 	selectedFile = $state("")
 	query = $state("")
 	sidebarCollapsed = $state(false)
-	sidebarWidth = $state(220)
+	sidebarWidth = $state(248)
 	timelineNewestFirst = $state(true)
 	initialized = $state(false)
 	refreshing = $state(false)

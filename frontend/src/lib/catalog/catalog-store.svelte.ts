@@ -42,7 +42,7 @@ export function countActiveCatalogFilters(search: CatalogSearch): number {
 // user left it.
 export class CatalogStore {
 	sidebarCollapsed = $state(false)
-	sidebarWidth = $state(208)
+	sidebarWidth = $state(248)
 	// keywordInput is the text in the search field, which applies on submit.
 	keywordInput = $state("")
 	search = $state.raw<CatalogSearch>(defaultCatalogSearch())
