@@ -1226,9 +1226,7 @@
 					ownership={inventory.savedAccountsOwnershipByItemKey.get(
 						detailsKey,
 					)}
-					canBeWorn={isAssetCategory}
-					onRetry={() =>
-						void inventory.loadSavedAccountsOwnership(item, category.id)} />
+					canBeWorn={isAssetCategory} />
 			{/if}
 
 			{#if canHaveRelatedItems}
