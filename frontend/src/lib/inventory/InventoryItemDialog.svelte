@@ -946,8 +946,14 @@
 								{#if (canBuy && market) || canFavorite || canDelete}
 									<RobloxActionStrip {username}>
 										{#if canBuy && market}
+											{@const purchaseLabel =
+												market.priceInRobux === 0
+													? "Get item"
+													: `Buy for ${formatRobux(market.priceInRobux, false)}`}
 											<button
 												type="button"
+												aria-label={purchaseLabel}
+												data-tooltip={purchaseLabel}
 												data-begin-purchase
 												disabled={isBusy ||
 													isOwnedByAccount === undefined}
@@ -957,9 +963,6 @@
 													svg={shoppingCartIcon}
 													size={14}
 													aria-hidden="true" />
-												{market.priceInRobux === 0
-													? "Get"
-													: "Buy"}
 											</button>
 										{/if}
 										{#if canFavorite}

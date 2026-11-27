@@ -229,7 +229,7 @@
 	@apply flex h-7 shrink-0 items-center gap-px rounded-md border border-line p-px;
 
 	& > :where(button) {
-		@apply inline-flex h-6 min-w-6 shrink-0 items-center justify-center gap-1 rounded-sm px-1.5 text-xs font-medium whitespace-nowrap text-fg-muted transition-colors duration-100 enabled:hover:bg-hover enabled:hover:text-fg aria-pressed:bg-raised aria-pressed:text-fg data-[tone=danger]:text-danger-muted data-[tone=warning]:text-warning;
+		@apply inline-flex size-6 shrink-0 items-center justify-center rounded-sm text-fg-muted transition-colors duration-100 enabled:hover:bg-hover enabled:hover:text-fg aria-pressed:bg-raised aria-pressed:text-fg data-[tone=danger]:text-danger-muted data-[tone=warning]:text-warning;
 	}
 }
 

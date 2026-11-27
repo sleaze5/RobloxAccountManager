@@ -1,4 +1,5 @@
 <script lang="ts">
+	import circleNotchIcon from "@phosphor-icons/core/regular/circle-notch.svg?raw"
 	import { notifyErrors } from "../notifications/error-notifications.svelte"
 	import arrowSquareOutIcon from "@phosphor-icons/core/regular/arrow-square-out.svg?raw"
 	import clockCounterClockwiseIcon from "@phosphor-icons/core/regular/clock-counter-clockwise.svg?raw"
@@ -229,28 +230,32 @@
 						{#if isMember && !membership.isOwner}
 							<button
 								type="button"
+								aria-label="Leave group"
+								data-tooltip="Leave group"
 								disabled={store.pendingAction !== null}
 								onclick={() => {
 									store.clearActionError()
 									isConfirmingLeave = true
 								}}>
-								<Icon
-									svg={signOutIcon}
-									size={14}
-									aria-hidden="true" />Leave group
+								<Icon svg={signOutIcon} size={14} aria-hidden="true" />
 							</button>
 						{:else if !isMember && !membership.isPendingJoin && !details.isLocked}
+							{@const joinLabel = group.isPublicEntryAllowed
+								? "Join group"
+								: "Request to join"}
+							{@const isJoining = store.pendingAction === "join"}
 							<button
 								type="button"
-								aria-busy={store.pendingAction === "join"}
+								aria-label={isJoining ? "Joining…" : joinLabel}
+								aria-busy={isJoining}
+								data-tooltip={joinLabel}
 								disabled={store.pendingAction !== null}
 								onclick={() => requestChange("join")}>
-								<Icon svg={signInIcon} size={14} aria-hidden="true" />
-								{store.pendingAction === "join"
-									? "Joining…"
-									: group.isPublicEntryAllowed
-										? "Join group"
-										: "Request to join"}
+								<Icon
+									svg={isJoining ? circleNotchIcon : signInIcon}
+									class={isJoining ? "spinner" : undefined}
+									size={14}
+									aria-hidden="true" />
 							</button>
 						{/if}
 						{#if isMember}
