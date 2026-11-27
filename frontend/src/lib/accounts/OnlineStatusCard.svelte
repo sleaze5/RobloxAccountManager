@@ -6,7 +6,7 @@
 	import { OnlineStatusType, UserJoinability } from "../backend/bridge"
 	import type { OnlineStatus } from "../backend/bridge"
 	import PlaceHeader from "../games/PlaceHeader.svelte"
-	import { floatMenu, menuIn, menuOut } from "../shared/presence"
+	import { floatMenu, menuIn, menuOut } from "../shared/transitions"
 	import {
 		onlineStatusIcon,
 		onlineStatusLabel,

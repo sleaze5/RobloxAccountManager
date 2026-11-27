@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { onDestroy } from "svelte"
-	import { liftToTopLayer, tooltipIn, tooltipOut } from "./presence"
+	import { liftToTopLayer, tooltipIn, tooltipOut } from "./transitions"
 
 	const gap = 6,
 		margin = 8,

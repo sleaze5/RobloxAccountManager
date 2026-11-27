@@ -7,7 +7,12 @@
 	import imageIcon from "@phosphor-icons/core/regular/image.svg?raw"
 	import linkIcon from "@phosphor-icons/core/regular/link.svg?raw"
 	import MenuItem from "../shared/MenuItem.svelte"
-	import { floatMenuAtPoint, menuIn, menuKeyboard, menuOut } from "../shared/presence"
+	import {
+		floatMenuAtPoint,
+		menuIn,
+		menuKeyboard,
+		menuOut,
+	} from "../shared/transitions"
 	import type { AccountStore } from "./account-store.svelte"
 
 	let {

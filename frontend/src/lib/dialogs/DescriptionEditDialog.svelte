@@ -6,7 +6,7 @@
 	import type { Account } from "../accounts/account-model"
 	import { accountBackend } from "../backend/bridge"
 	import type { NotificationCenter } from "../notifications/notification-center.svelte"
-	import { replayValidationNudge } from "../shared/presence"
+	import { replayValidationNudge } from "../shared/transitions"
 	import { errorMessage } from "../shared/errors"
 	import { TextFilterCheck } from "../shared/text-filter-check.svelte"
 	import TextFilterStatus from "../shared/TextFilterStatus.svelte"

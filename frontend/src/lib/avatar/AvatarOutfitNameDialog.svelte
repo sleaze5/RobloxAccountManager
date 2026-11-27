@@ -5,7 +5,7 @@
 	import { untrack } from "svelte"
 	import Dialog from "../shared/Dialog.svelte"
 	import Icon from "../shared/Icon.svelte"
-	import { replayValidationNudge } from "../shared/presence"
+	import { replayValidationNudge } from "../shared/transitions"
 	import type { AvatarState } from "./avatar-state.svelte"
 
 	let {

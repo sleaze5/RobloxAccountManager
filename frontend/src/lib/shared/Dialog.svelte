@@ -7,7 +7,7 @@
 		modalCardIn,
 		modalCardOut,
 		modalFocus,
-	} from "./presence"
+	} from "./transitions"
 
 	let {
 		card = $bindable(),

@@ -7,7 +7,7 @@
 	import { Browser } from "@wailsio/runtime"
 	import Icon from "../shared/Icon.svelte"
 	import type { AccountStore } from "../accounts/account-store.svelte"
-	import { replayValidationNudge } from "../shared/presence"
+	import { replayValidationNudge } from "../shared/transitions"
 	import Dialog from "../shared/Dialog.svelte"
 	import { repository } from "../../../package.json"
 

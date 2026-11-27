@@ -8,7 +8,7 @@
 	import xIcon from "@phosphor-icons/core/regular/x.svg?raw"
 	import Icon from "../shared/Icon.svelte"
 	import { accountBackend, type ExportFile } from "../backend/bridge"
-	import { replayValidationNudge } from "../shared/presence"
+	import { replayValidationNudge } from "../shared/transitions"
 	import { errorMessage } from "../shared/errors"
 	import Dialog from "../shared/Dialog.svelte"
 	import type { NotificationCenter } from "../notifications/notification-center.svelte"

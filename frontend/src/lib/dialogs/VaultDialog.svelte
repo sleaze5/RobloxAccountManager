@@ -12,7 +12,7 @@
 	import type { Backup } from "../backend/bridge"
 	import type { AccountStore } from "../accounts/account-store.svelte"
 	import Select from "../shared/Select.svelte"
-	import { replayValidationNudge } from "../shared/presence"
+	import { replayValidationNudge } from "../shared/transitions"
 	import Dialog from "../shared/Dialog.svelte"
 	import { passwordRequirements, passwordValid } from "./password-rules"
 

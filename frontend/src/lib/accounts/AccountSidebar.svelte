@@ -17,7 +17,7 @@
 	import { unsavedChangesGuard } from "../layout/unsaved-changes-guard"
 	import type { WorkspaceState } from "../layout/workspace-state.svelte"
 	import WorkbenchSidebar from "../layout/WorkbenchSidebar.svelte"
-	import { menuIn, menuKeyboard, menuOut } from "../shared/presence"
+	import { menuIn, menuKeyboard, menuOut } from "../shared/transitions"
 	import AccountList from "./AccountList.svelte"
 	import AddAccountMenu from "./AddAccountMenu.svelte"
 	import type { AccountStore } from "./account-store.svelte"

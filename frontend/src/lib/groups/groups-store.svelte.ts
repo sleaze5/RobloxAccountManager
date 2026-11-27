@@ -12,7 +12,7 @@ import type { CancellableRequest } from "../shared/cancellable-request"
 import { copyLines, copyValue, notifyCopyFailure } from "../shared/clipboard"
 import { errorMessage } from "../shared/errors"
 import { ListSelection } from "../shared/list-selection.svelte"
-import { menuPointFor } from "../shared/presence"
+import { menuPointFor } from "../shared/transitions"
 import { robloxGroupUrl } from "../shared/roblox-pages"
 import type { PageLocationKeys } from "../layout/page-history"
 

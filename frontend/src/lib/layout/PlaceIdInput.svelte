@@ -5,7 +5,7 @@
 	import GameIcon from "../games/GameIcon.svelte"
 	import { getGamesStore } from "../games/games-store.svelte"
 	import { indexPlaces, matchPlaces } from "../games/place-match"
-	import { menuIn, menuOut } from "../shared/presence"
+	import { menuIn, menuOut } from "../shared/transitions"
 
 	const maxMenuHeight = 238
 

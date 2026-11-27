@@ -29,7 +29,7 @@ import { UniverseBadges } from "./game-badges-state.svelte"
 import { UniverseDeveloperProducts } from "./developer-products-state.svelte"
 import { UniverseGamePasses } from "./game-passes-state.svelte"
 import { ListSelection } from "../shared/list-selection.svelte"
-import { menuPointFor } from "../shared/presence"
+import { menuPointFor } from "../shared/transitions"
 import { robloxGameUrl } from "../shared/roblox-pages"
 import type { PageLocationKeys } from "../layout/page-history"
 

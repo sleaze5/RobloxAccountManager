@@ -27,12 +27,12 @@ This app is built primarily for Windows but also works on Linux and macOS. Some 
     - Change Roblox privacy and account settings.
     - Read and send Roblox chats.
     - Renew cookies and open signed-in browsers.
-- **Game launching:** Join by Place ID, Job ID, user, or Roblox link with one or more accounts.
-    - Join private servers, share links, and experience invites.
-    - Run multiple Roblox clients at once on Windows.
+- **Game launching:** Join by Place ID, Server ID, user, or Roblox link with one or more accounts.
+    - Join private servers, share links, and game invites.
+    - Run several Roblox clients at once on Windows with Multi-client.
 - **Games and servers:** Search games, save favorite places, and browse servers by ping and player count.
     - Find the nearest joinable server with [RoValra](https://www.rovalra.com).
-- **Logs Explorer:** Browse Roblox logs by session and game visit, and rejoin past servers.
+- **Logs Explorer:** Browse Roblox logs by launch session and game visit, and rejoin past servers.
 - **Portable storage:** Run without an installer, with the vault next to the executable or in your user data folder.
 
 RoValra features are on by default. Turn them off in Settings > Integrations.
@@ -43,12 +43,12 @@ Select a screenshot to view it at full size.
 
 <table>
 <tr>
-<td width="50%"><a href="assets/showcase/01-accounts.png"><img src="assets/showcase/01-accounts.png" alt="Account profile with presence, Robux balance, tags, and launch options" width="100%"></a><br><sub><b>Accounts:</b> profiles, presence, and launch options</sub></td>
+<td width="50%"><a href="assets/showcase/01-accounts.png"><img src="assets/showcase/01-accounts.png" alt="Account profile with online status, Robux balance, tags, and launch options" width="100%"></a><br><sub><b>Accounts:</b> profiles, online status, and launch options</sub></td>
 <td width="50%"><a href="assets/showcase/02-multi-launch.png"><img src="assets/showcase/02-multi-launch.png" alt="Several selected accounts with additional launch options open" width="100%"></a><br><sub><b>Multi-account launch:</b> join with several accounts at once</sub></td>
 </tr>
 <tr>
 <td width="50%"><a href="assets/showcase/03-processes.png"><img src="assets/showcase/03-processes.png" alt="Dialog that lists running Roblox processes to close" width="100%"></a><br><sub><b>Process control:</b> close running Roblox clients</sub></td>
-<td width="50%"><a href="assets/showcase/04-add-account.png"><img src="assets/showcase/04-add-account.png" alt="Paste cookies dialog with a validated preview of three accounts" width="100%"></a><br><sub><b>Account import:</b> validate cookies before saving</sub></td>
+<td width="50%"><a href="assets/showcase/04-add-account.png"><img src="assets/showcase/04-add-account.png" alt="Paste cookies dialog with a checked preview of three accounts" width="100%"></a><br><sub><b>Account import:</b> validate cookies before saving</sub></td>
 </tr>
 <tr>
 <td width="50%"><a href="assets/showcase/05-account-settings.png"><img src="assets/showcase/05-account-settings.png" alt="Account communication and privacy settings" width="100%"></a><br><sub><b>Account settings:</b> Roblox privacy and communication</sub></td>
@@ -75,7 +75,7 @@ Download for your system using the buttons above or the [latest release](https:/
 1. Download `RobloxAccountManager.exe` for x64 or `RobloxAccountManager-arm64.exe` for ARM64.
 2. Put the executable in its own folder. Portable storage creates `storage/` and `logs/` next to it.
 3. Run the executable.
-4. Choose portable or standard storage.
+4. Select portable or standard storage.
 5. Create a master password.
 
 ### Linux
@@ -89,7 +89,7 @@ Download for your system using the buttons above or the [latest release](https:/
 
 3. Install Sober or Mocktail to join games.
 4. Run `./RobloxAccountManager`.
-5. Choose portable or standard storage.
+5. Select portable or standard storage.
 6. Create a master password.
 
 The application needs the GTK 4 and WebKitGTK 6 libraries. Automatic unlock needs a Secret Service provider, such as GNOME Keyring or KWallet. The managed browser needs the system libraries of Chrome and unprivileged user namespaces for the Chrome sandbox.
@@ -116,9 +116,9 @@ Windows is the primary platform. The minimum supported versions are:
 
 Feature differences:
 
-- **Windows:** Every feature is available, including multi-instance, Roblox process control, and direct launch of `RobloxPlayerBeta.exe`. Automatic unlock uses DPAPI. On ARM64, the managed browser runs x64 Chrome through Windows 11 emulation, because Chrome for Testing has no ARM64 build for Windows.
-- **Linux:** Joins games through Sober or Mocktail. Settings > Roblox chooses the client. Its Automatic option uses the installed client, or the desktop default when both are installed. Automatic unlock uses the Secret Service. Multi-instance and Roblox process control are unavailable.
-- **macOS:** Only standard storage is available, because a portable vault would sit inside the app bundle. Automatic unlock uses the login Keychain. Roblox process control is available. Multi-instance is unavailable.
+- **Windows:** Every feature is available, including Multi-client, Roblox process control, and direct launch of `RobloxPlayerBeta.exe`. Automatic unlock uses DPAPI. On ARM64, the managed browser runs x64 Chrome through Windows 11 emulation, because Chrome for Testing has no ARM64 build for Windows.
+- **Linux:** Joins games through Sober or Mocktail. Select the client in Settings > Roblox. Its Automatic option uses the installed client, or the desktop default when both are installed. Automatic unlock uses the Secret Service. Multi-client and Roblox process control are unavailable.
+- **macOS:** Only standard storage is available, because a portable vault would sit inside the app bundle. Automatic unlock uses the login Keychain. Roblox process control is available. Multi-client is unavailable.
 
 ## Data and privacy
 

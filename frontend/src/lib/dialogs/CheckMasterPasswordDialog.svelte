@@ -6,7 +6,7 @@
 	import xIcon from "@phosphor-icons/core/regular/x.svg?raw"
 	import Icon from "../shared/Icon.svelte"
 	import type { AccountStore } from "../accounts/account-store.svelte"
-	import { replayValidationNudge } from "../shared/presence"
+	import { replayValidationNudge } from "../shared/transitions"
 	import Dialog from "../shared/Dialog.svelte"
 
 	let { store, onClose }: { store: AccountStore; onClose: () => void } = $props(),

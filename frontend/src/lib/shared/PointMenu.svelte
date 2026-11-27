@@ -1,6 +1,6 @@
 <script lang="ts">
 	import type { Snippet } from "svelte"
-	import { floatMenuAtPoint, menuIn, menuKeyboard, menuOut } from "./presence"
+	import { floatMenuAtPoint, menuIn, menuKeyboard, menuOut } from "./transitions"
 
 	// PointMenu is a context menu that opens at a point: at the pointer for a
 	// right click, or under the trigger for a keyboard or button press. owner

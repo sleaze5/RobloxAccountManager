@@ -32,7 +32,7 @@
 	import { isMoveShortcut, moveListFocus } from "../shared/move-shortcut"
 	import { isMultiSelectGesture } from "../shared/list-selection.svelte"
 	import { notifyErrors } from "../notifications/error-notifications.svelte"
-	import { menuIn, menuOut } from "../shared/presence"
+	import { menuIn, menuOut } from "../shared/transitions"
 	import GameContextMenu from "./GameContextMenu.svelte"
 	import GameBadgesPage from "./GameBadgesPage.svelte"
 	import GameDetails from "./GameDetails.svelte"

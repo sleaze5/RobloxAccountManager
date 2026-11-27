@@ -35,7 +35,7 @@
 	import type { WorkspaceState } from "../layout/workspace-state.svelte"
 	import type { NotificationCenter } from "../notifications/notification-center.svelte"
 	import { appSettings } from "../settings/settings-store.svelte"
-	import { floatMenu, menuIn, menuKeyboard, menuOut } from "../shared/presence"
+	import { floatMenu, menuIn, menuKeyboard, menuOut } from "../shared/transitions"
 	import ImageMenuTarget from "../layout/ImageMenuTarget.svelte"
 	import AvatarPortraitFrame from "../avatar/AvatarPortraitFrame.svelte"
 	import { AvatarPortraitLoad } from "../avatar/avatar-portrait.svelte"

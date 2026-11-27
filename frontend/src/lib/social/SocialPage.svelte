@@ -45,7 +45,7 @@
 	import Select from "../shared/Select.svelte"
 	import { moveListFocus } from "../shared/move-shortcut"
 	import { isMultiSelectGesture } from "../shared/list-selection.svelte"
-	import { menuIn, menuOut } from "../shared/presence"
+	import { menuIn, menuOut } from "../shared/transitions"
 	import SocialAvatar from "./SocialAvatar.svelte"
 	import SocialMenu from "./SocialMenu.svelte"
 	import SocialProfile from "./SocialProfile.svelte"

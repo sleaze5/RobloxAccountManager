@@ -3,7 +3,7 @@
 	import fileArrowDownIcon from "@phosphor-icons/core/regular/file-arrow-down.svg?raw"
 	import globeHemisphereWestIcon from "@phosphor-icons/core/regular/globe-hemisphere-west.svg?raw"
 	import MenuItem from "../shared/MenuItem.svelte"
-	import { floatMenu, menuIn, menuOut } from "../shared/presence"
+	import { floatMenu, menuIn, menuOut } from "../shared/transitions"
 
 	let {
 		disabled,

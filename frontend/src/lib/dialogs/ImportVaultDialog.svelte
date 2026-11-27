@@ -22,7 +22,7 @@
 		type TransferPreview,
 		type TransferResult,
 	} from "../backend/bridge"
-	import { replayValidationNudge } from "../shared/presence"
+	import { replayValidationNudge } from "../shared/transitions"
 	import { errorMessage } from "../shared/errors"
 	import Dialog from "../shared/Dialog.svelte"
 	import type { AccountStore } from "../accounts/account-store.svelte"

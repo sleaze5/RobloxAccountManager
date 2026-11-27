@@ -12,7 +12,7 @@
 		maxTagNameLength,
 		tagNameError,
 	} from "../accounts/tag-name"
-	import { replayValidationNudge } from "../shared/presence"
+	import { replayValidationNudge } from "../shared/transitions"
 	import Dialog from "../shared/Dialog.svelte"
 
 	let {

@@ -120,11 +120,11 @@ export function onlineStatusLabel(onlineStatus: OnlineStatus): string {
 export function onlineStatusDotClass(onlineStatus: OnlineStatus): string {
 	switch (onlineStatus.statusType) {
 		case OnlineStatusType.OnlineStatusTypeOnline:
-			return "bg-presence-online"
+			return "bg-online-status-online"
 		case OnlineStatusType.OnlineStatusTypeInGame:
-			return "bg-presence-game"
+			return "bg-online-status-game"
 		case OnlineStatusType.OnlineStatusTypeInStudio:
-			return "bg-presence-studio"
+			return "bg-online-status-studio"
 		default:
 			return "bg-fg-faint"
 	}
@@ -133,11 +133,11 @@ export function onlineStatusDotClass(onlineStatus: OnlineStatus): string {
 export function onlineStatusTextClass(onlineStatus: OnlineStatus): string {
 	switch (onlineStatus.statusType) {
 		case OnlineStatusType.OnlineStatusTypeOnline:
-			return "text-presence-online"
+			return "text-online-status-online"
 		case OnlineStatusType.OnlineStatusTypeInGame:
-			return "text-presence-game"
+			return "text-online-status-game"
 		case OnlineStatusType.OnlineStatusTypeInStudio:
-			return "text-presence-studio"
+			return "text-online-status-studio"
 		default:
 			return "text-fg-muted"
 	}

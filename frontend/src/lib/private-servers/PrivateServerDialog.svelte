@@ -13,7 +13,7 @@
 	import type { PrivateServerSettings } from "../backend/bridge"
 	import type { NotificationCenter } from "../notifications/notification-center.svelte"
 	import ProfileImage from "../shared/ProfileImage.svelte"
-	import { replayValidationNudge } from "../shared/presence"
+	import { replayValidationNudge } from "../shared/transitions"
 	import Dialog from "../shared/Dialog.svelte"
 	import { PrivateServerState } from "./private-server-state.svelte"
 	import RenamePrivateServerDialog from "./RenamePrivateServerDialog.svelte"

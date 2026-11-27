@@ -31,7 +31,7 @@ The frontend is styled with Tailwind CSS 4. Markup carries utility classes. Styl
 - `frontend/src/styles/app.css` is the entry stylesheet. It imports Tailwind, the theme, the base styles, and the building blocks.
 - `frontend/scripts/check-styles.ts` enforces this file's styling rules. It runs with the lint task. Do not work around it.
 - When TypeScript needs a token value, read it from the computed style. Do not repeat token values in TypeScript.
-- `frontend/src/lib/shared/presence.ts` defines the enter and exit transitions for menus, dialogs, tooltips, and notifications that mount and unmount with `{#if}`. Reuse them.
+- `frontend/src/lib/shared/transitions.ts` defines the enter and exit transitions for menus, dialogs, tooltips, and notifications that mount and unmount with `{#if}`. Reuse them.
 - [`assets/icon.svg`](../assets/icon.svg) is the editable source of the application icon.
 
 ## Writing styles
@@ -176,7 +176,7 @@ Stack floating layers in this order, from lowest to highest:
 3. The vault lock screen: `z-50`
 4. Notifications: `z-50`, after the lock screen in the document, so that a failure shows above every dialog
 
-Menus, context menus, dropdowns, and tooltips open in the browser's top layer, above every layer in this list, so that a scroll area or the launch panel never cuts them off. Position a menu with `placeMenuAtAnchor`, `placeMenuAtPoint`, or the `floatMenu` action from `presence.ts`, which lift it automatically. Use `liftToTopLayer` for a floating surface that positions itself. Do not use `fixed` alone for a menu inside a scroll area, because `container-type` on an ancestor clips it.
+Menus, context menus, dropdowns, and tooltips open in the browser's top layer, above every layer in this list, so that a scroll area or the launch panel never cuts them off. Position a menu with `placeMenuAtAnchor`, `placeMenuAtPoint`, or the `floatMenu` action from `transitions.ts`, which lift it automatically. Use `liftToTopLayer` for a floating surface that positions itself. Do not use `fixed` alone for a menu inside a scroll area, because `container-type` on an ancestor clips it.
 
 ## Typography
 
@@ -211,7 +211,7 @@ Text colors:
 - Use the 4px spacing scale. Use `1` (4px) for tight internal spacing, `2` (8px) for compact controls, `3` (12px) for row and group gaps, and `4` (16px) for larger internal padding. Keep page and surface padding between `3` and `5`, and use `4` to `6` between major content groups.
 - Prefer `gap` over margins for rows and columns.
 - Use `size-6` (24px) controls for compact icon actions, `h-7` (28px) controls for ordinary buttons and menu rows, and `h-8` (32px) controls for text fields and dominant actions.
-- Make list rows `h-12`, with `size-9` thumbnails. A row that also shows a game or place in its presence is `h-16`, with three lines: name, username, and presence.
+- Make list rows `h-12`, with `size-9` thumbnails. A row that also shows a game or place in its online status is `h-16`, with three lines: name, username, and online status.
 - Keep nested curves concentric: child radius = outer radius - inset. A menu is `rounded-xl` with `p-1.5`, so its items are `rounded-md`.
 
 Use the radius scale:
@@ -256,7 +256,7 @@ Disabled and other states:
 Color:
 
 - Keep the normal interface grayscale. Use `accent` and `accent-strong` only for indicators and badges, such as the selection bar, the tab bar, and filter counts.
-- Use the success, warning, danger, and presence colors only to communicate meaning. Avoid large decorative status fills. Tint a surface or border with an opacity modifier, such as `border-danger/40` and `bg-danger/10`.
+- Use the success, warning, danger, and online status colors only to communicate meaning. Avoid large decorative status fills. Tint a surface or border with an opacity modifier, such as `border-danger/40` and `bg-danger/10`.
 - Do not color an action by what it does, such as green for Join. Use semantic color on an action only when the action is destructive or needs a warning.
 - Style inline code with the monospace font and the neutral `bg-fill` background. Do not color inline code like a link.
 
@@ -264,7 +264,7 @@ Color:
 
 ### Lists
 
-- Give list rows the `list-row` building block, `h-12` (`h-16` when its presence names a game or place), and a 1px `border-line-subtle` separator. Set `aria-selected="true"` or `data-selected` on the selected row and `data-open` while its menu is open. `list-row` draws the hover and selection treatment from [Controls and states](#controls-and-states).
+- Give list rows the `list-row` building block, `h-12` (`h-16` when its online status names a game or place), and a 1px `border-line-subtle` separator. Set `aria-selected="true"` or `data-selected` on the selected row and `data-open` while its menu is open. `list-row` draws the hover and selection treatment from [Controls and states](#controls-and-states).
 - Make a list one tab stop. Give the selected row `tabindex="0"`, or the first row when no row is selected, and every other row `tabindex="-1"`. Mark the list container with `data-list` and its rows with `data-list-item`, and move between them with `ArrowUp`, `ArrowDown`, `Home`, and `End` through `moveListFocus`.
 - When a list can be reordered, support dragging and `Ctrl+Shift+ArrowUp` and `Ctrl+Shift+ArrowDown`. Announce the new position through a polite live region.
 - When an account needs the user's attention, its row adds a third line in the warning or danger tone, such as "Sign-in required", "Security challenge", or a moderation status, in place of its online status.
@@ -284,7 +284,7 @@ Color:
 
 ### Dialogs
 
-1. Render the dialog as a `dialog-card` inside a `dialog-backdrop`. Set its width with a `max-w-*` container size. Put the title and description in a `dialog-heading`, fields in `dialog-field`, and actions in `dialog-actions`. Use `modalFocus` and the dialog transitions from `presence.ts`. `modalFocus` moves focus to the first text field, or to the first control when the dialog has no text field. When a region inside the dialog scrolls, such as an item grid, set `hasFlexibleBody` on `lib/shared/Dialog.svelte` and give the region `min-h-0`, so that the heading and the actions stay in view.
+1. Render the dialog as a `dialog-card` inside a `dialog-backdrop`. Set its width with a `max-w-*` container size. Put the title and description in a `dialog-heading`, fields in `dialog-field`, and actions in `dialog-actions`. Use `modalFocus` and the dialog transitions from `transitions.ts`. `modalFocus` moves focus to the first text field, or to the first control when the dialog has no text field. When a region inside the dialog scrolls, such as an item grid, set `hasFlexibleBody` on `lib/shared/Dialog.svelte` and give the region `min-h-0`, so that the heading and the actions stay in view.
 2. Use `role="dialog"`. Use `role="alertdialog"` for a confirmation.
 3. Put the title and an optional one-sentence description at the top.
 4. Put a `button-close` in the top-right corner. Omit the close button only when the user must complete the dialog, such as the vault lock screen.
@@ -382,7 +382,7 @@ These rules add UI rules to [WRITING.md](./WRITING.md), which applies to all tex
 
 Use sentence case by default. Capitalize only the first word and any word that is always capitalized.
 
-- Use sentence case for buttons, menu items, headings, labels, descriptions, tooltips, notifications, placeholders, segmented options, and sidebar navigation items, such as "Remove account", "Account info", and "Search favorites".
+- Use sentence case for buttons, menu items, headings, labels, descriptions, tooltips, notifications, placeholders, segmented options, and sidebar navigation items, such as "Remove account", "Account details", and "Search favorites".
 - Use title case for page tab names: Accounts, Social, Groups, Games, Marketplace, and Logs Explorer. Settings is a page name too.
 - Keep proper nouns in their own capitalization wherever they appear: product, service, and brand names, such as Roblox, Roblox Account Manager, Roblox Studio, RoValra, Chrome for Testing, Sober, Windows, and Linux. A proper noun inside a sentence-case label keeps its capitals, as in "Close Roblox processes".
 - Write acronyms and initialisms in capitals, such as ID, PIN, URL, and API, as in "Place ID" and "User ID".
@@ -404,13 +404,13 @@ Use these durations and easings:
 - Small panel enter: `duration-150` maximum, `ease-out`
 - Notification reflow: `duration-150`, `ease-in-out`
 
-`ease-out` is the sharp entrance curve from the theme. `presence.ts` reads the same durations from the `--duration-*` variables in `theme.css`.
+`ease-out` is the sharp entrance curve from the theme. `transitions.ts` reads the same durations from the `--duration-*` variables in `theme.css`.
 
 ### Patterns
 
 These are examples, not a complete list.
 
-- Surfaces: Animate a `popover` or `<dialog>` element with CSS: `starting:` for the entry state, `transition-discrete` for `display` and `overlay`, and `open:` for the open state. Use the `presence.ts` transitions for a surface that mounts and unmounts with `{#if}`.
+- Surfaces: Animate a `popover` or `<dialog>` element with CSS: `starting:` for the entry state, `transition-discrete` for `display` and `overlay`, and `open:` for the open state. Use the `transitions.ts` transitions for a surface that mounts and unmounts with `{#if}`.
 - Exits: Keep menus, dialogs, tooltips, notifications, and operation errors mounted during their exit transition. Reopening a closing surface reverses or cancels the exit and does not queue another animation. Restore focus only after a dialog finishes closing.
 - Changed content: When the selected account, settings category, or filtered settings result changes, use `animate-enter` on the new content. Do not animate the outgoing content.
 - Added items: Use `animate-enter` on an item added to a list, such as a browser session or a tag.
@@ -420,7 +420,7 @@ These are examples, not a complete list.
 - Disclosure: Rotate the caret 180 degrees with `transition-transform`, and use `animate-enter` on the revealed content.
 - Press: An icon-only button may scale to `scale-95` while pressed.
 - Progress: Grow a progress bar with `scale-x`, as `progress-bar` does.
-- Notifications: Slide notifications to their new positions with `toastMove` from `presence.ts` when another notification enters or leaves.
+- Notifications: Slide notifications to their new positions with `toastMove` from `transitions.ts` when another notification enters or leaves.
 - Validation: Replay one horizontal nudge of at most 2px for 150ms with `replayValidationNudge`. Cancel the previous nudge before replaying it. Do not hide or delay the error text.
 
 ### Limits
@@ -438,7 +438,7 @@ These are examples, not a complete list.
 
 The Animations setting in Settings > User Interface chooses System (the default), Reduced, or Full. System follows the operating system's `prefers-reduced-motion` preference.
 
-`lib/shared/motion.ts` resolves the setting and sets the `data-reduced-motion` attribute on the root element. `base.css` defines the reduced-motion guard for that attribute and redefines Tailwind's `motion-safe` and `motion-reduce` variants to follow it, and `presence.ts` reads it through `reducedMotion()`. Define the guard only once, and do not query `prefers-reduced-motion` anywhere else. Under reduced motion:
+`lib/shared/motion.ts` resolves the setting and sets the `data-reduced-motion` attribute on the root element. `base.css` defines the reduced-motion guard for that attribute and redefines Tailwind's `motion-safe` and `motion-reduce` variants to follow it, and `transitions.ts` reads it through `reducedMotion()`. Define the guard only once, and do not query `prefers-reduced-motion` anywhere else. Under reduced motion:
 
 - Keep opacity and color transitions at their normal durations, so that state changes still fade instead of snapping.
 - Remove all movement: transforms, scale, slides, hover nudges, and press feedback apply instantly or not at all.

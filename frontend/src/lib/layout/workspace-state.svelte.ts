@@ -1,7 +1,7 @@
 import type { AccountPage } from "../accounts/account-pages"
 import { createContext } from "svelte"
 import { installPointerResize } from "../shared/pointer-resize"
-import { menuPointFor } from "../shared/presence"
+import { menuPointFor } from "../shared/transitions"
 
 // AccountContextMenu opens at a point, or beside its anchor, such as the
 // Actions button of the selection, so that it never covers the button.

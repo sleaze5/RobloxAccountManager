@@ -1,7 +1,7 @@
 <script lang="ts">
 	import type { Snippet } from "svelte"
 	import Icon from "../shared/Icon.svelte"
-	import { menuIn, menuOut } from "../shared/presence"
+	import { menuIn, menuOut } from "../shared/transitions"
 
 	let {
 		title,

@@ -55,9 +55,9 @@
 	--color-danger: #c95c54;
 	--color-danger-muted: #dfaaa6;
 
-	--color-presence-online: #7d9fb5;
-	--color-presence-game: #70a981;
-	--color-presence-studio: #b99a69;
+	--color-online-status-online: #7d9fb5;
+	--color-online-status-game: #70a981;
+	--color-online-status-studio: #b99a69;
 
 	/* The axes of the 3D viewers, colored as in 3D tools: X red, Y green, and
 	   Z blue. */

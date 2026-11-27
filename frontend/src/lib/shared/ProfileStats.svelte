@@ -32,10 +32,10 @@
 	<span
 		class={[
 			"flex items-center gap-1.5 text-sm font-semibold tabular-nums",
-			stat.isLive ? "text-presence-game" : "text-fg",
+			stat.isLive ? "text-online-status-game" : "text-fg",
 		]}>
 		{#if stat.isLive}<span
-				class="size-2 shrink-0 animate-pop rounded-full bg-presence-game"
+				class="size-2 shrink-0 animate-pop rounded-full bg-online-status-game"
 				aria-hidden="true"></span
 			>{/if}
 		{stat.value}

@@ -6,7 +6,7 @@
 	import type { CandidateListItem } from "../accounts/candidate-model"
 	import type { AccountStore } from "../accounts/account-store.svelte"
 	import type { ImportPreview, ImportPreviewItem } from "../backend/bridge"
-	import { replayValidationNudge } from "../shared/presence"
+	import { replayValidationNudge } from "../shared/transitions"
 	import Dialog from "../shared/Dialog.svelte"
 
 	let { store, onClose }: { store: AccountStore; onClose: () => void } = $props(),
