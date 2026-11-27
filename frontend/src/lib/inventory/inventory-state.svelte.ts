@@ -2,7 +2,7 @@ import { accountBackend, InventoryCategory } from "../backend/bridge"
 import type {
 	Avatar,
 	CategorizedInventoryItem,
-	SavedAccountsItemOwnership,
+	SavedAccountsItemRelations,
 	GamePlace,
 	InventoryItem,
 	InventoryItemDetails,
@@ -84,8 +84,8 @@ export class InventoryState {
 	isOwnedByItemKey = $state.raw(new Map<string, boolean | null>())
 	// Which other saved accounts own each opened item, by categoryItemKey.
 	// null means that the request failed.
-	savedAccountsOwnershipByItemKey = $state.raw(
-		new Map<string, SavedAccountsItemOwnership | null>(),
+	savedAccountsItemRelationsByItemKey = $state.raw(
+		new Map<string, SavedAccountsItemRelations | null>(),
 	)
 	// The assets that each opened item includes or uses, by categoryItemKey.
 	// null means that the request failed.
@@ -115,7 +115,7 @@ export class InventoryState {
 	#request: ReturnType<typeof accountBackend.GetInventoryPage> | null = null
 	readonly #loadingRelatedItemKeys = new Set<string>()
 	readonly #checkingOwnershipKeys = new Set<string>()
-	readonly #loadingSavedAccountsOwnershipKeys = new Set<string>()
+	readonly #loadingSavedAccountsItemRelationsKeys = new Set<string>()
 	readonly #notifications: NotificationCenter
 
 	constructor(
@@ -263,41 +263,45 @@ export class InventoryState {
 		}
 	}
 
-	// loadSavedAccountsOwnership reads which other saved accounts own the item,
-	// unless every account answered before. A failed read loads again.
-	async loadSavedAccountsOwnership(
+	// loadSavedAccountsItemRelations reads which other saved accounts own, wear,
+	// or marked the item as a favorite, unless every account answered before.
+	// A failed read loads again.
+	async loadSavedAccountsItemRelations(
 		item: InventoryItem,
 		category: InventoryCategory,
 	): Promise<void> {
 		const key = categoryItemKey(category, item.itemId)
 		if (
-			this.savedAccountsOwnershipByItemKey.get(key)?.failedAccountCount === 0 ||
-			this.#loadingSavedAccountsOwnershipKeys.has(key)
+			this.savedAccountsItemRelationsByItemKey.get(key)?.failedAccountCount ===
+				0 ||
+			this.#loadingSavedAccountsItemRelationsKeys.has(key)
 		) {
 			return
 		}
-		this.#loadingSavedAccountsOwnershipKeys.add(key)
-		if (this.savedAccountsOwnershipByItemKey.has(key)) {
-			const savedAccountsOwnershipByItemKey = new Map(
-				this.savedAccountsOwnershipByItemKey,
+		this.#loadingSavedAccountsItemRelationsKeys.add(key)
+		if (this.savedAccountsItemRelationsByItemKey.has(key)) {
+			const savedAccountsItemRelationsByItemKey = new Map(
+				this.savedAccountsItemRelationsByItemKey,
 			)
-			savedAccountsOwnershipByItemKey.delete(key)
-			this.savedAccountsOwnershipByItemKey = savedAccountsOwnershipByItemKey
+			savedAccountsItemRelationsByItemKey.delete(key)
+			this.savedAccountsItemRelationsByItemKey =
+				savedAccountsItemRelationsByItemKey
 		}
 		try {
 			await this.#loadItemFact(
-				accountBackend.GetSavedAccountsItemOwnership(
+				accountBackend.GetSavedAccountsItemRelations(
 					this.#scope.accountId,
 					category,
+					item.catalogItemType,
 					item.itemId,
 				),
-				(ownership) =>
-					(this.savedAccountsOwnershipByItemKey = new Map(
-						this.savedAccountsOwnershipByItemKey,
-					).set(key, ownership)),
+				(itemRelations) =>
+					(this.savedAccountsItemRelationsByItemKey = new Map(
+						this.savedAccountsItemRelationsByItemKey,
+					).set(key, itemRelations)),
 			)
 		} finally {
-			this.#loadingSavedAccountsOwnershipKeys.delete(key)
+			this.#loadingSavedAccountsItemRelationsKeys.delete(key)
 		}
 	}
 

@@ -4,6 +4,7 @@
 	import type { Snippet } from "svelte"
 	import Icon from "../shared/Icon.svelte"
 	import SidebarResizer from "./SidebarResizer.svelte"
+	import { pageSidebarMinimumWidth } from "./sidebar-widths"
 
 	let {
 		label,
@@ -80,4 +81,4 @@
 	{/if}
 </aside>
 
-<SidebarResizer bind:width {collapsed} {name} />
+<SidebarResizer bind:width {collapsed} {name} minimumWidth={pageSidebarMinimumWidth} />

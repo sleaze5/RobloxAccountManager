@@ -3,6 +3,7 @@ package bindings
 import (
 	"context"
 
+	"github.com/sleaze5/RobloxAccountManager/internal/appservice"
 	"github.com/sleaze5/RobloxAccountManager/internal/games"
 	robloxservices "github.com/sleaze5/RobloxAccountManager/internal/roblox/services"
 )
@@ -17,6 +18,10 @@ func (service *Service) GetGame(ctx context.Context, universeID, placeID int64) 
 
 func (service *Service) GetGameSection(ctx context.Context, universeID, placeID int64, section games.GameSection) (games.Game, error) {
 	return service.core.GetGameSection(ctx, universeID, placeID, section)
+}
+
+func (service *Service) ListGameSubplaces(ctx context.Context, universeID int64) ([]games.Place, error) {
+	return service.core.ListGameSubplaces(ctx, universeID)
 }
 
 func (service *Service) GetGamePlayability(ctx context.Context, accountID, universeID int64) (*games.Playability, error) {
@@ -39,6 +44,13 @@ func (service *Service) ListFriendsInGame(ctx context.Context, accountID, univer
 		return games.FriendsInGame{}, err
 	}
 	return service.core.ListFriendsInGame(ctx, accountID, universeID)
+}
+
+func (service *Service) GetSavedAccountsGameFavorites(ctx context.Context, accountID, universeID int64) (appservice.SavedAccountsGameFavorites, error) {
+	if err := validateAccountAndTargetIDs(accountID, universeID, "saved-accounts-game-favorites"); err != nil {
+		return appservice.SavedAccountsGameFavorites{}, err
+	}
+	return service.core.GetSavedAccountsGameFavorites(ctx, accountID, universeID)
 }
 
 func (service *Service) ListRecordedGameServers(ctx context.Context, query games.RecordQuery) (games.RecordPage, error) {

@@ -5,7 +5,7 @@
 	import hashIcon from "@phosphor-icons/core/regular/hash.svg?raw"
 	import linkIcon from "@phosphor-icons/core/regular/link.svg?raw"
 	import listPlusIcon from "@phosphor-icons/core/regular/list-plus.svg?raw"
-	import magnifyingGlassIcon from "@phosphor-icons/core/regular/magnifying-glass.svg?raw"
+	import arrowsOutSimpleIcon from "@phosphor-icons/core/regular/arrows-out-simple.svg?raw"
 	import textTIcon from "@phosphor-icons/core/regular/text-t.svg?raw"
 	import userListIcon from "@phosphor-icons/core/regular/user-list.svg?raw"
 	import { unsavedChangesGuard } from "../layout/unsaved-changes-guard"
@@ -92,7 +92,7 @@
 	{#if isInGame && placeId > 0}
 		<MenuItem
 			label="Show game"
-			icon={magnifyingGlassIcon}
+			icon={arrowsOutSimpleIcon}
 			onSelect={() => {
 				previews.show({ kind: "Place", placeId })
 				store.closeMenu()

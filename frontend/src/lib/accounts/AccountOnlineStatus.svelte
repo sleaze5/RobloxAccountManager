@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { getProfilePreviews } from "../shared/profile-preview"
-	import magnifyingGlassIcon from "@phosphor-icons/core/regular/magnifying-glass.svg?raw"
+	import arrowsOutSimpleIcon from "@phosphor-icons/core/regular/arrows-out-simple.svg?raw"
 	import starFillIcon from "@phosphor-icons/core/fill/star-fill.svg?raw"
 	import Icon from "../shared/Icon.svelte"
 	import { OnlineStatusType, UserJoinability } from "../backend/bridge"
@@ -167,7 +167,7 @@
 			aria-label="Show game"
 			data-tooltip="Show game"
 			onclick={() => previews.show({ kind: "Place", placeId: joinPlaceId })}>
-			<Icon svg={magnifyingGlassIcon} size={14} aria-hidden="true" />
+			<Icon svg={arrowsOutSimpleIcon} size={14} aria-hidden="true" />
 		</button>
 	{/if}
 </div>

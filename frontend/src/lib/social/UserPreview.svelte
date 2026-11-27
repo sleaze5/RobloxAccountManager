@@ -1,6 +1,5 @@
 <script lang="ts">
 	import calendarDotsIcon from "@phosphor-icons/core/regular/calendar-dots.svg?raw"
-	import prohibitIcon from "@phosphor-icons/core/regular/prohibit.svg?raw"
 	import sealCheckIcon from "@phosphor-icons/core/regular/seal-check.svg?raw"
 	import { accountBackend, SocialProfileSection } from "../backend/bridge"
 	import type { SocialProfileSnapshot, SocialUser, UserView } from "../backend/bridge"
@@ -17,6 +16,7 @@
 	import Timestamp from "../shared/Timestamp.svelte"
 	import { relativeTime } from "../shared/timestamp"
 	import { relationshipCountSection, relationshipStats } from "./relationship-stats"
+	import SocialBadges from "./SocialBadges.svelte"
 	import {
 		relationshipActions,
 		relationshipButtonClass,
@@ -49,6 +49,7 @@
 			SocialProfileSection.SocialSectionFriends,
 			SocialProfileSection.SocialSectionFollowers,
 			SocialProfileSection.SocialSectionFollowing,
+			SocialProfileSection.SocialSectionPremium,
 			SocialProfileSection.SocialSectionPrimaryGroup,
 		],
 		sectionClass = "text-xs font-semibold text-fg-muted",
@@ -227,14 +228,13 @@
 				},
 				(list) => sections.isSectionPending(relationshipCountSection(list)),
 			)} />
-		{#if profile.banned}
-			<ul class="mt-1 flex flex-wrap gap-1" aria-label="Status">
-				<li class="tag-pill-warning">
-					<Icon svg={prohibitIcon} size={12} aria-hidden="true" />
-					<span>Banned</span>
-				</li>
-			</ul>
-		{/if}
+		<SocialBadges
+			{profile}
+			relationship={sections.hasSection(
+				SocialProfileSection.SocialSectionRelationship,
+			)
+				? profile.relationship
+				: null} />
 	{/snippet}
 
 	{#if profile.description}
@@ -275,6 +275,6 @@
 		<span class="h-16 w-full skeleton rounded-lg" role="status"
 			><span class="sr-only">Loading profile…</span></span>
 	{:else if sections.error}
-		<p class="text-xs text-fg-muted">{sections.error}</p>
+		<p class="text-xs text-fg-muted">Details unavailable</p>
 	{/if}
 </ProfilePreviewLayout>

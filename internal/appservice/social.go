@@ -87,13 +87,11 @@ type SocialPage struct {
 }
 
 type FriendConnection struct {
-	AccountID   int64                        `json:"accountId"`
-	Username    string                       `json:"username"`
-	DisplayName string                       `json:"displayName"`
-	Friend      robloxservices.FriendStatus  `json:"friend"`
-	Trusted     robloxservices.TrustedStatus `json:"trusted"`
-	Following   bool                         `json:"following"`
-	FollowedBy  bool                         `json:"followedBy"`
+	AccountID  int64                        `json:"accountId"`
+	Friend     robloxservices.FriendStatus  `json:"friend"`
+	Trusted    robloxservices.TrustedStatus `json:"trusted"`
+	Following  bool                         `json:"following"`
+	FollowedBy bool                         `json:"followedBy"`
 }
 
 // SocialProfileSection names one part of a social profile. The frontend reads
@@ -682,7 +680,7 @@ func (connection FriendConnection) isConnected() bool {
 }
 
 func (service *Service) friendConnection(ctx context.Context, view accounts.AccountView, userID int64) (FriendConnection, error) {
-	connection := FriendConnection{AccountID: view.ID, Username: view.Username, DisplayName: cmp.Or(view.DisplayName, view.Username)}
+	connection := FriendConnection{AccountID: view.ID}
 	var err error
 	if connection.Friend, err = service.users.FriendStatus(ctx, view.ID, 0, view.RobloxUserID, userID); err != nil {
 		return FriendConnection{}, err

@@ -27,6 +27,7 @@
 	import UserInterfaceSettings from "./UserInterfaceSettings.svelte"
 	import VaultSettings from "./VaultSettings.svelte"
 	import SidebarResizer from "../layout/SidebarResizer.svelte"
+	import { settingsSidebarMinimumWidth } from "../layout/sidebar-widths"
 	import type { WorkspaceState } from "../layout/workspace-state.svelte"
 
 	const categories = [
@@ -159,7 +160,10 @@
 				{/each}
 			</nav>
 		</aside>
-		<SidebarResizer bind:width={workspace.settingsSidebarWidth} name="settings" />
+		<SidebarResizer
+			bind:width={workspace.settingsSidebarWidth}
+			name="settings"
+			minimumWidth={settingsSidebarMinimumWidth} />
 
 		<section
 			bind:this={contentElement}

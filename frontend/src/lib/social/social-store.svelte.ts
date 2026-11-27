@@ -32,6 +32,10 @@ import { SectionLoad } from "../shared/section-load.svelte"
 import type { SectionFields } from "../shared/section-load.svelte"
 import { relationshipActionsById } from "./relationship"
 import type { RelationshipActionId } from "./relationship"
+import {
+	pageSidebarMinimumWidth,
+	inventorySidebarMinimumWidth,
+} from "../layout/sidebar-widths"
 
 // Sections load in this order, so that the header and the actions fill first.
 export const socialProfileSections: SectionFields<
@@ -285,7 +289,7 @@ export type SocialSubpage = "avatar" | "inventory"
 
 export class SocialStore {
 	sidebarCollapsed = $state(false)
-	sidebarWidth = $state(248)
+	sidebarWidth = $state(pageSidebarMinimumWidth)
 	list = $state<SocialView>(SocialList.SocialFriends)
 	query = $state("")
 	playerQuery = $state("")
@@ -300,7 +304,7 @@ export class SocialStore {
 	selectedPerson = $state<SocialUser | null>(null)
 	// The page that replaces the profile of the selected person, or null.
 	subpage = $state<SocialSubpage | null>(null)
-	inventorySidebarWidth = $state(192)
+	inventorySidebarWidth = $state(inventorySidebarMinimumWidth)
 	profileLoad = $state<SocialProfileLoad | null>(null)
 	savingNickname = $state(false)
 	relationshipError = $state("")

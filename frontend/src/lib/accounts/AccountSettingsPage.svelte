@@ -13,6 +13,7 @@
 	import RefreshIcon from "../shared/RefreshIcon.svelte"
 	import { onMount, tick, untrack } from "svelte"
 	import SidebarResizer from "../layout/SidebarResizer.svelte"
+	import { accountSubpageSidebarMinimumWidth } from "../layout/sidebar-widths"
 	import type { WorkspaceState } from "../layout/workspace-state.svelte"
 	import { AccountSettingKey as Key } from "../backend/bridge"
 	import type { AccountSettingOption, AccountSettingView } from "../backend/bridge"
@@ -944,7 +945,7 @@
 		<SidebarResizer
 			bind:width={workspace.accountSettingsSidebarWidth}
 			name="account settings"
-			minimumWidth={192} />
+			minimumWidth={accountSubpageSidebarMinimumWidth} />
 
 		<section
 			bind:this={contentElement}

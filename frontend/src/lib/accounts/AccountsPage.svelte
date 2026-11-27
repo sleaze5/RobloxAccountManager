@@ -39,7 +39,7 @@
 <main
 	class="flex min-h-0 flex-1"
 	aria-label="Accounts"
-	style={`--sidebar-width: ${workspace.sidebarCollapsed ? 44 : workspace.sidebarWidth}px; --launch-height: ${workspace.launchHeight}px;`}>
+	style={`--sidebar-width: ${workspace.sidebarCollapsed ? 44 : workspace.sidebarWidth}px;`}>
 	<AccountSidebar
 		{store}
 		{workspace}

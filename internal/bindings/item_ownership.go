@@ -20,9 +20,9 @@ func (service *Service) CheckInventoryItemsOwned(ctx context.Context, accountID 
 	return service.core.CheckInventoryItemsOwned(ctx, accountID, references)
 }
 
-func (service *Service) GetSavedAccountsItemOwnership(ctx context.Context, accountID int64, category robloxservices.InventoryCategory, itemID int64) (appservice.SavedAccountsItemOwnership, error) {
-	if err := validateAccountAndTargetIDs(accountID, itemID, "saved-accounts-item-ownership"); err != nil {
-		return appservice.SavedAccountsItemOwnership{}, err
+func (service *Service) GetSavedAccountsItemRelations(ctx context.Context, accountID int64, category robloxservices.InventoryCategory, catalogItemType robloxservices.CatalogItemType, itemID int64) (appservice.SavedAccountsItemRelations, error) {
+	if err := validateAccountAndTargetIDs(accountID, itemID, "saved-accounts-item-relations"); err != nil {
+		return appservice.SavedAccountsItemRelations{}, err
 	}
-	return service.core.GetSavedAccountsItemOwnership(ctx, accountID, category, itemID)
+	return service.core.GetSavedAccountsItemRelations(ctx, accountID, category, catalogItemType, itemID)
 }

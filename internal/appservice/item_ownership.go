@@ -12,9 +12,8 @@ import (
 const (
 	// maxOwnershipCheckItemCount is one inventory page, the most items that a
 	// page asks about at once.
-	maxOwnershipCheckItemCount   = 100
-	itemOwnershipWorkers         = 6
-	savedAccountOwnershipWorkers = 4
+	maxOwnershipCheckItemCount = 100
+	itemOwnershipWorkers       = 6
 )
 
 // InventoryItemReference names one item by the inventory category that lists
@@ -72,81 +71,63 @@ func (service *Service) CheckInventoryItemsOwned(ctx context.Context, accountID 
 	return checkedOwnerships, nil
 }
 
-type SavedAccountItemOwner struct {
-	AccountID int64 `json:"accountId"`
-	IsWorn    bool  `json:"isWorn"`
+// SavedAccountItemRelation is how another saved account relates to an item.
+// Roblox has favorites only for catalog items.
+type SavedAccountItemRelation struct {
+	AccountID  int64 `json:"accountId"`
+	IsOwned    bool  `json:"isOwned"`
+	IsWorn     bool  `json:"isWorn"`
+	IsFavorite bool  `json:"isFavorite"`
 }
 
-// SavedAccountsItemOwnership lists the other saved accounts that own an item.
-type SavedAccountsItemOwnership struct {
-	Owners []SavedAccountItemOwner `json:"owners"`
-	// CheckedAccountCount counts the accounts that answered, owners included.
-	CheckedAccountCount int `json:"checkedAccountCount"`
-	FailedAccountCount  int `json:"failedAccountCount"`
+func (relation SavedAccountItemRelation) isRelated() bool {
+	return relation.IsOwned || relation.IsFavorite
 }
 
-// GetSavedAccountsItemOwnership reads which of the other saved accounts own
-// the item, and whether they wear it. Each read uses that account's own
-// session, because Roblox shows a private inventory only to its owner.
-func (service *Service) GetSavedAccountsItemOwnership(ctx context.Context, viewerAccountID int64, category robloxservices.InventoryCategory, itemID int64) (SavedAccountsItemOwnership, error) {
-	const operation = "saved-accounts-item-ownership"
-	ctx, _, done, err := service.beginAccountSession(ctx, viewerAccountID, operation)
+// SavedAccountsItemRelations lists the other saved accounts that own the item
+// or marked it as a favorite.
+type SavedAccountsItemRelations struct {
+	Relations []SavedAccountItemRelation `json:"relations"`
+	// FailedAccountCount counts the accounts with a check that failed. Their
+	// relations show what the other checks found.
+	FailedAccountCount int `json:"failedAccountCount"`
+}
+
+// GetSavedAccountsItemRelations reads which of the other saved accounts own
+// the item, wear it, or marked it as a favorite. An empty catalog item type
+// skips the favorite check, because Roblox has favorites only for catalog
+// items.
+func (service *Service) GetSavedAccountsItemRelations(ctx context.Context, viewerAccountID int64, category robloxservices.InventoryCategory, catalogItemType robloxservices.CatalogItemType, itemID int64) (SavedAccountsItemRelations, error) {
+	relations, failedAccountCount, err := otherSavedAccountRelations(ctx, service, viewerAccountID, "saved-accounts-item-relations",
+		func(ctx context.Context, view accounts.AccountView) (SavedAccountItemRelation, error) {
+			return service.savedAccountItemRelation(ctx, view, category, catalogItemType, itemID)
+		}, SavedAccountItemRelation.isRelated)
 	if err != nil {
-		return SavedAccountsItemOwnership{}, err
+		return SavedAccountsItemRelations{}, err
 	}
-	defer done()
-	views, err := service.savedAccounts(ctx)
-	if err != nil {
-		return SavedAccountsItemOwnership{}, err
-	}
-	candidates := slices.DeleteFunc(views, func(view accounts.AccountView) bool {
-		return view.ID == viewerAccountID || !canReadWithSession(view)
-	})
-	owners := make([]*SavedAccountItemOwner, len(candidates))
-	failures := make([]error, len(candidates))
-	forEachIndexConcurrently(len(candidates), savedAccountOwnershipWorkers, func(index int) {
-		owners[index], failures[index] = service.savedAccountItemOwner(ctx, candidates[index], category, itemID)
-	})
-	ownership := SavedAccountsItemOwnership{Owners: []SavedAccountItemOwner{}}
-	var firstFailure error
-	for index, failure := range failures {
-		switch {
-		case failure != nil:
-			ownership.FailedAccountCount++
-			if firstFailure == nil {
-				firstFailure = failure
-			}
-		case owners[index] != nil:
-			ownership.Owners = append(ownership.Owners, *owners[index])
-			ownership.CheckedAccountCount++
-		default:
-			ownership.CheckedAccountCount++
+	return SavedAccountsItemRelations{Relations: relations, FailedAccountCount: failedAccountCount}, nil
+}
+
+// savedAccountItemRelation reads how the account relates to the item. It
+// returns what the checks found before a check failed. A version of 0
+// accepts the account's current session.
+func (service *Service) savedAccountItemRelation(ctx context.Context, view accounts.AccountView, category robloxservices.InventoryCategory, catalogItemType robloxservices.CatalogItemType, itemID int64) (SavedAccountItemRelation, error) {
+	relation := SavedAccountItemRelation{AccountID: view.ID}
+	var err error
+	if robloxservices.ValidCatalogItemType(catalogItemType) {
+		if relation.IsFavorite, err = service.users.IsItemFavorite(ctx, view.ID, 0, view.RobloxUserID, catalogItemType, itemID); err != nil {
+			return relation, err
 		}
 	}
-	if firstFailure != nil {
-		service.logs.Module("application.inventory").WarnContext(ctx, "saved account item ownership incomplete", "operation", operation, "account_id", viewerAccountID, "category", category, "accounts", len(candidates), "failed", ownership.FailedAccountCount, "error", firstFailure)
-		if ownership.CheckedAccountCount == 0 {
-			return SavedAccountsItemOwnership{}, &roblox.Error{Kind: roblox.KindProtocol, Endpoint: operation, Message: "Could not check your other accounts.", Cause: firstFailure}
-		}
+	if relation.IsOwned, err = service.users.IsInventoryItemOwned(ctx, view.ID, 0, view.RobloxUserID, category, itemID); err != nil || !relation.IsOwned {
+		return relation, err
 	}
-	return ownership, nil
-}
-
-// savedAccountItemOwner returns the account as an owner of the item, or nil
-// when it does not own the item. A version of 0 accepts the account's current
-// session.
-func (service *Service) savedAccountItemOwner(ctx context.Context, view accounts.AccountView, category robloxservices.InventoryCategory, itemID int64) (*SavedAccountItemOwner, error) {
-	isOwned, err := service.users.IsInventoryItemOwned(ctx, view.ID, 0, view.RobloxUserID, category, itemID)
-	if err != nil || !isOwned {
-		return nil, err
-	}
-	owner := &SavedAccountItemOwner{AccountID: view.ID}
 	if robloxservices.IsAssetCategory(category) {
 		wornAssetIDs, err := service.users.WornAssetIDs(ctx, view.ID, 0, view.RobloxUserID)
 		if err != nil {
-			return nil, err
+			return relation, err
 		}
-		owner.IsWorn = slices.Contains(wornAssetIDs, itemID)
+		relation.IsWorn = slices.Contains(wornAssetIDs, itemID)
 	}
-	return owner, nil
+	return relation, nil
 }

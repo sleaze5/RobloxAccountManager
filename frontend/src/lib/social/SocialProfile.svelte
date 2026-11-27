@@ -345,7 +345,7 @@
 					<h3
 						id="social-about-heading"
 						class="text-xs font-semibold text-fg-muted">
-						About
+						Description
 					</h3>
 					{#if profile.description}
 						<p class="text-block" data-variant="prose">

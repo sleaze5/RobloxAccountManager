@@ -10,6 +10,7 @@ import type { CatalogSearch, CategorizedInventoryItem } from "../backend/bridge"
 import type { AccountStore } from "../accounts/account-store.svelte"
 import { errorMessage } from "../shared/errors"
 import { isFresh } from "../shared/freshness"
+import { pageSidebarMinimumWidth } from "../layout/sidebar-widths"
 
 export function defaultCatalogSearch(): CatalogSearch {
 	return {
@@ -42,7 +43,7 @@ export function countActiveCatalogFilters(search: CatalogSearch): number {
 // user left it.
 export class CatalogStore {
 	sidebarCollapsed = $state(false)
-	sidebarWidth = $state(248)
+	sidebarWidth = $state(pageSidebarMinimumWidth)
 	// keywordInput is the text in the search field, which applies on submit.
 	keywordInput = $state("")
 	search = $state.raw<CatalogSearch>(defaultCatalogSearch())

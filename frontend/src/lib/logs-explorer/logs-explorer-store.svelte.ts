@@ -3,13 +3,14 @@ import { accountBackend } from "../backend/bridge"
 import type { LogsExplorerSession } from "../backend/bridge"
 import { errorMessage } from "../shared/errors"
 import { matchesSearch, searchTerms } from "../shared/search"
+import { pageSidebarMinimumWidth } from "../layout/sidebar-widths"
 
 export class LogsExplorerStore {
 	sessions = $state<LogsExplorerSession[]>([])
 	selectedFile = $state("")
 	query = $state("")
 	sidebarCollapsed = $state(false)
-	sidebarWidth = $state(248)
+	sidebarWidth = $state(pageSidebarMinimumWidth)
 	timelineNewestFirst = $state(true)
 	initialized = $state(false)
 	refreshing = $state(false)

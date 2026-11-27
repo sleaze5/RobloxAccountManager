@@ -12,6 +12,7 @@
 	import { InventoryCategory } from "../backend/bridge"
 	import type { GamePlace, InventoryItem } from "../backend/bridge"
 	import SidebarResizer from "../layout/SidebarResizer.svelte"
+	import { inventorySidebarMinimumWidth } from "../layout/sidebar-widths"
 	import Icon from "../shared/Icon.svelte"
 	import RefreshIcon from "../shared/RefreshIcon.svelte"
 	import Select from "../shared/Select.svelte"
@@ -225,7 +226,10 @@
 				{/each}
 			</nav>
 		</div>
-		<SidebarResizer bind:width={sidebarWidth} name="inventory" minimumWidth={176} />
+		<SidebarResizer
+			bind:width={sidebarWidth}
+			name="inventory"
+			minimumWidth={inventorySidebarMinimumWidth} />
 
 		<section
 			class="@container flex min-h-0 min-w-0 flex-1 flex-col"

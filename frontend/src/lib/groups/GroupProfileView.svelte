@@ -1,24 +1,15 @@
 <script lang="ts">
 	import { notifyErrors } from "../notifications/error-notifications.svelte"
 	import arrowSquareOutIcon from "@phosphor-icons/core/regular/arrow-square-out.svg?raw"
-	import checkCircleFillIcon from "@phosphor-icons/core/fill/check-circle-fill.svg?raw"
-	import clockIcon from "@phosphor-icons/core/regular/clock.svg?raw"
 	import clockCounterClockwiseIcon from "@phosphor-icons/core/regular/clock-counter-clockwise.svg?raw"
 	import coinsIcon from "@phosphor-icons/core/regular/coins.svg?raw"
-	import crownIcon from "@phosphor-icons/core/regular/crown.svg?raw"
-	import doorOpenIcon from "@phosphor-icons/core/regular/door-open.svg?raw"
 	import dotsThreeIcon from "@phosphor-icons/core/regular/dots-three.svg?raw"
-	import identificationBadgeIcon from "@phosphor-icons/core/regular/identification-badge.svg?raw"
 	import linkIcon from "@phosphor-icons/core/regular/link.svg?raw"
-	import lockIcon from "@phosphor-icons/core/regular/lock.svg?raw"
 	import megaphoneIcon from "@phosphor-icons/core/regular/megaphone.svg?raw"
 	import pencilSimpleIcon from "@phosphor-icons/core/regular/pencil-simple.svg?raw"
 	import signInIcon from "@phosphor-icons/core/regular/sign-in.svg?raw"
 	import signOutIcon from "@phosphor-icons/core/regular/sign-out.svg?raw"
-	import starFillIcon from "@phosphor-icons/core/fill/star-fill.svg?raw"
-	import starIcon from "@phosphor-icons/core/regular/star.svg?raw"
 	import tagIcon from "@phosphor-icons/core/regular/tag.svg?raw"
-	import usersThreeIcon from "@phosphor-icons/core/regular/users-three.svg?raw"
 	import warningIcon from "@phosphor-icons/core/regular/warning.svg?raw"
 	import sealCheckIcon from "@phosphor-icons/core/regular/seal-check.svg?raw"
 	import { Browser } from "@wailsio/runtime"
@@ -36,6 +27,8 @@
 	import { relativeTime } from "../shared/timestamp"
 	import ConfirmationDialog from "../shared/ConfirmationDialog.svelte"
 	import GroupIcon from "./GroupIcon.svelte"
+	import GroupMembershipFacts from "./GroupMembershipFacts.svelte"
+	import GroupStatusBadges from "./GroupStatusBadges.svelte"
 	import { groupStats } from "./group-stats"
 	import type { GroupsStore, GroupSubpage } from "./groups-store.svelte"
 
@@ -61,7 +54,6 @@
 		membership = $derived(profile?.membership),
 		permissions = $derived(membership?.permissions),
 		isMember = $derived(!!membership && membership.role.rank > 0),
-		isPrimary = $derived(!!membership?.isPrimary),
 		unavailable = $derived(new Set(profile?.unavailable ?? [])),
 		roles = $derived(profile?.roles ?? []),
 		hasMembershipAction = $derived(
@@ -178,7 +170,7 @@
 					<span class="wrap-anywhere select-text">{group.name}</span>
 					{#if group.hasVerifiedBadge}<Icon
 							svg={sealCheckIcon}
-							class="shrink-0 text-fg-muted"
+							class="shrink-0 text-accent-strong"
 							size={16}
 							aria-label="Verified group" />{/if}
 				</h2>
@@ -196,53 +188,10 @@
 					<p class="text-xs text-fg-muted">Nobody owns this group.</p>
 				{/if}
 				<ProfileStats label="Group numbers" stats={headlineStats} />
-				<ul class="mt-1 flex min-h-6 flex-wrap gap-1" aria-label="Status">
-					{#if isMember}
-						<li class="tag-pill-success">
-							<Icon
-								svg={checkCircleFillIcon}
-								size={12}
-								aria-hidden="true" />
-							<span>{membership.role.name}</span>
-						</li>
-					{/if}
-					{#if membership.isOwner}
-						<li class="tag-pill-favorite">
-							<Icon svg={crownIcon} size={12} aria-hidden="true" />
-							<span>Owner</span>
-						</li>
-					{/if}
-					{#if isPrimary}
-						<li class="tag-pill-favorite">
-							<Icon svg={starFillIcon} size={12} aria-hidden="true" />
-							<span>Primary group</span>
-						</li>
-					{/if}
-					{#if membership.isPendingJoin}
-						<li class="tag-pill-warning">
-							<Icon svg={clockIcon} size={12} aria-hidden="true" />
-							<span>Join request sent</span>
-						</li>
-					{/if}
-					{#if details.isLocked}
-						<li class="tag-pill-warning">
-							<Icon svg={lockIcon} size={12} aria-hidden="true" />
-							<span>Locked by Roblox</span>
-						</li>
-					{/if}
-					<li class="tag-pill">
-						<Icon
-							svg={group.isPublicEntryAllowed
-								? doorOpenIcon
-								: identificationBadgeIcon}
-							size={12}
-							aria-hidden="true" />
-						<span
-							>{group.isPublicEntryAllowed
-								? "Anyone can join"
-								: "Join by request"}</span>
-					</li>
-				</ul>
+				<GroupStatusBadges
+					isPrimary={membership.isPrimary}
+					isPendingJoin={membership.isPendingJoin}
+					isLocked={details.isLocked} />
 			</div>
 			<div class="flex shrink-0 flex-wrap items-center justify-end gap-1">
 				{#if isMember && !membership.isOwner}
@@ -288,12 +237,6 @@
 					onclick={() => void store.refreshProfile()}>
 					<RefreshIcon isRefreshing={store.isLoadingProfile} />
 				</button>
-				{#if isMember}
-					<li class="tag-pill-success">
-						<Icon svg={checkCircleFillIcon} size={12} aria-hidden="true" />
-						<span>{membership.role.name}</span>
-					</li>
-				{/if}
 				<button
 					class="button-icon"
 					type="button"
@@ -482,15 +425,9 @@
 				Information
 			</h3>
 			<dl class="facts">
-				<div>
-					<dt>
-						<Icon
-							svg={usersThreeIcon}
-							size={16}
-							aria-hidden="true" />Members
-					</dt>
-					<dd>{exactNumbers.format(group.memberCount)}</dd>
-				</div>
+				<GroupMembershipFacts
+					{membership}
+					isPublicEntryAllowed={group.isPublicEntryAllowed} />
 				<div
 					data-tone={unavailable.has(GroupSource.GroupSourceRoles)
 						? "muted"
@@ -505,18 +442,6 @@
 									.map((role) => role.name)
 									.join(" · ")}</small
 							>{/if}
-					</dd>
-				</div>
-				<div data-tone={isMember ? undefined : "muted"}>
-					<dt>
-						<Icon
-							svg={identificationBadgeIcon}
-							size={16}
-							aria-hidden="true" />Your role
-					</dt>
-					<dd>
-						{isMember ? membership.role.name : "Not a member"}
-						{#if isMember}<small>Rank {membership.role.rank}</small>{/if}
 					</dd>
 				</div>
 				{#if permissions.canSpendFunds}

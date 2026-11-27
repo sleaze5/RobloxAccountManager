@@ -1,7 +1,12 @@
 import type { AccountPage } from "../accounts/account-pages"
 import { createContext } from "svelte"
-import { installPointerResize } from "../shared/pointer-resize"
 import { menuPointFor } from "../shared/transitions"
+import {
+	accountSubpageSidebarMinimumWidth,
+	inventorySidebarMinimumWidth,
+	pageSidebarMinimumWidth,
+	settingsSidebarMinimumWidth,
+} from "./sidebar-widths"
 
 // AccountContextMenu opens at a point, or beside its anchor, such as the
 // Actions button of the selection, so that it never covers the button.
@@ -46,17 +51,12 @@ export class WorkspaceState {
 	accountSettingsScrollTop = 0
 	accountSettingsScrollAnchor: { key: string; offset: number } | null = null
 	sidebarCollapsed = $state(false)
-	sidebarWidth = $state(248)
-	settingsSidebarWidth = $state(240)
-	accountSettingsSidebarWidth = $state(224)
+	sidebarWidth = $state(pageSidebarMinimumWidth)
+	settingsSidebarWidth = $state(settingsSidebarMinimumWidth)
+	accountSettingsSidebarWidth = $state(accountSubpageSidebarMinimumWidth)
+	inventorySidebarWidth = $state(inventorySidebarMinimumWidth)
 	#profileLaunchOpen = $state(true)
 	#subpageLaunchOpen = $state(false)
-	launchHeight = $state(180)
-	launchMinimumHeight = $state(0)
-	viewportHeight = $state(window.innerHeight)
-	launchMaximumHeight = $derived(
-		Math.max(this.launchMinimumHeight, this.viewportHeight - 180),
-	)
 	activeAccountMenu = $state<ActiveAccountMenu>(null)
 	accountContextMenu = $state<AccountContextMenu | null>(null)
 	imageContextMenu = $state<ImageContextMenu | null>(null)
@@ -134,36 +134,6 @@ export class WorkspaceState {
 		}
 
 		this.closeAccountMenus()
-	}
-
-	startLaunchResize(event: PointerEvent): void {
-		if (!this.launchOpen || !(event.currentTarget instanceof HTMLElement)) {
-			return
-		}
-
-		const handle = event.currentTarget,
-			{ pointerId } = event,
-			startY = event.clientY,
-			startHeight = this.launchHeight
-		handle.setPointerCapture(pointerId)
-
-		const resize = (moveEvent: PointerEvent) => {
-			this.resizeLaunch(startHeight + startY - moveEvent.clientY)
-		}
-
-		installPointerResize(handle, pointerId, resize)
-	}
-
-	resizeLaunch(height: number): void {
-		this.launchHeight = Math.min(
-			this.launchMaximumHeight,
-			Math.max(this.launchMinimumHeight, height),
-		)
-	}
-
-	setLaunchMinimumHeight(height: number, fitToContent: boolean): void {
-		this.launchMinimumHeight = height
-		this.resizeLaunch(fitToContent ? height : this.launchHeight)
 	}
 }
 

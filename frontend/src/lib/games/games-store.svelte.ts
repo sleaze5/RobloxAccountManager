@@ -32,6 +32,7 @@ import { ListSelection } from "../shared/list-selection.svelte"
 import { menuPointFor } from "../shared/transitions"
 import { robloxGameUrl } from "../shared/roblox-pages"
 import type { PageLocationKeys } from "../layout/page-history"
+import { pageSidebarMinimumWidth } from "../layout/sidebar-widths"
 
 // Roblox serves these parts of the game details from their own endpoints, so
 // they load beside the main details and fill in as they arrive.
@@ -130,7 +131,7 @@ export type StoreView = "gamePasses" | "developerProducts"
 
 export class GamesStore {
 	sidebarCollapsed = $state(false)
-	sidebarWidth = $state(248)
+	sidebarWidth = $state(pageSidebarMinimumWidth)
 	mode = $state<"search" | "favorites">("favorites")
 	query = $state("")
 	favoritesQuery = $state("")
