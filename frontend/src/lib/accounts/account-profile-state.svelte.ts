@@ -65,8 +65,8 @@ const profileSections: SectionFields<AccountProfileSnapshot, AccountProfileSecti
 			fields: ["primaryGroup"],
 		},
 		{
-			section: AccountProfileSection.ProfileSectionCommunities,
-			fields: ["communityCount"],
+			section: AccountProfileSection.ProfileSectionGroups,
+			fields: ["groupCount"],
 		},
 		{
 			section: AccountProfileSection.ProfileSectionSocialLinks,
@@ -124,7 +124,7 @@ function emptyProfile(accountId: number): AccountProfileSnapshot {
 		followerCount: null,
 		followingCount: null,
 		primaryGroup: null,
-		communityCount: null,
+		groupCount: null,
 		robloxBadges: null,
 		collectibleCount: null,
 		collectibleRecentAveragePriceTotal: null,

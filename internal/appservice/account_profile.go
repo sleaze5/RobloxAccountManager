@@ -30,7 +30,7 @@ const (
 	ProfileSectionFollowers     AccountProfileSection = "followers"
 	ProfileSectionFollowing     AccountProfileSection = "following"
 	ProfileSectionPrimaryGroup  AccountProfileSection = "primaryGroup"
-	ProfileSectionCommunities   AccountProfileSection = "communities"
+	ProfileSectionGroups   AccountProfileSection = "groups"
 	ProfileSectionRobloxBadges  AccountProfileSection = "robloxBadges"
 	ProfileSectionCollectibles  AccountProfileSection = "collectibles"
 	ProfileSectionActivity      AccountProfileSection = "activity"
@@ -78,7 +78,7 @@ type AccountProfileSnapshot struct {
 	FollowerCount                      *int64                           `json:"followerCount"`
 	FollowingCount                     *int64                           `json:"followingCount"`
 	PrimaryGroup                       *robloxservices.UserPrimaryGroup `json:"primaryGroup"`
-	CommunityCount                     *int64                           `json:"communityCount"`
+	GroupCount                     *int64                           `json:"groupCount"`
 	RobloxBadges                       *robloxservices.RobloxBadges     `json:"robloxBadges"`
 	CollectibleCount                   *int64                           `json:"collectibleCount"`
 	CollectibleRecentAveragePriceTotal *int64                           `json:"collectibleRecentAveragePriceTotal"`
@@ -192,9 +192,9 @@ func (service *Service) profileSectionReads(ctx context.Context, accountID, vers
 				profile.PrimaryGroup = group
 			})}
 		},
-		ProfileSectionCommunities: func() []accountRead {
-			return []accountRead{applyRead("communities", func() (int64, error) { return users.CommunityCount(ctx, accountID, version, userID) }, func(count int64) {
-				profile.CommunityCount = &count
+		ProfileSectionGroups: func() []accountRead {
+			return []accountRead{applyRead("groups", func() (int64, error) { return users.GroupCount(ctx, accountID, version, userID) }, func(count int64) {
+				profile.GroupCount = &count
 			})}
 		},
 		ProfileSectionRobloxBadges: func() []accountRead {

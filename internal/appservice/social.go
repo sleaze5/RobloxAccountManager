@@ -113,7 +113,7 @@ const (
 	SocialSectionInventory     SocialProfileSection = "inventory"
 	SocialSectionConnections   SocialProfileSection = "connections"
 	SocialSectionPreviousNames SocialProfileSection = "previousNames"
-	SocialSectionCommunities   SocialProfileSection = "communities"
+	SocialSectionGroups   SocialProfileSection = "groups"
 	SocialSectionCollectibles  SocialProfileSection = "collectibles"
 	SocialSectionTrading       SocialProfileSection = "trading"
 )
@@ -139,7 +139,7 @@ type SocialProfile struct {
 	SavedAccountID   int64                            `json:"savedAccountId"`
 	Connections      []FriendConnection               `json:"connections"`
 	Relationship     SocialRelationship               `json:"relationship"`
-	CommunityCount   *int64                           `json:"communityCount"`
+	GroupCount   *int64                           `json:"groupCount"`
 	TradeEligibility *TradeEligibility                `json:"tradeEligibility"`
 	// The collectible fields stay nil when the user's inventory is private.
 	CollectibleCount                   *int64 `json:"collectibleCount"`
@@ -500,9 +500,9 @@ func (service *Service) socialProfileSectionReads(ctx context.Context, logger *s
 				return visible, ignoreTerminatedUser(err)
 			}, func(visible *bool) { profile.InventoryVisible = visible })}
 		},
-		SocialSectionCommunities: func() []accountRead {
-			return []accountRead{applyRead("communities", func() (int64, error) { return users.CommunityCount(ctx, accountID, version, userID) }, func(count int64) {
-				profile.CommunityCount = &count
+		SocialSectionGroups: func() []accountRead {
+			return []accountRead{applyRead("groups", func() (int64, error) { return users.GroupCount(ctx, accountID, version, userID) }, func(count int64) {
+				profile.GroupCount = &count
 			})}
 		},
 		SocialSectionCollectibles: func() []accountRead {

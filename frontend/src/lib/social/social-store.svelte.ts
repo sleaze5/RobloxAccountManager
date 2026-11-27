@@ -71,8 +71,8 @@ export const socialProfileSections: SectionFields<
 		fields: ["savedAccountId", "connections"],
 	},
 	{
-		section: SocialProfileSection.SocialSectionCommunities,
-		fields: ["communityCount"],
+		section: SocialProfileSection.SocialSectionGroups,
+		fields: ["groupCount"],
 	},
 	{
 		section: SocialProfileSection.SocialSectionPreviousNames,
@@ -112,7 +112,7 @@ export function emptySocialProfile(userId: number): SocialProfileSnapshot {
 			followedBy: false,
 			nickname: "",
 		},
-		communityCount: null,
+		groupCount: null,
 		tradeEligibility: null,
 		collectibleCount: null,
 		collectibleRecentAveragePriceTotal: null,

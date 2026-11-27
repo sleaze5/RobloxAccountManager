@@ -5,7 +5,7 @@ Use these terms in all text, as [WRITING.md](./WRITING.md) describes. Each term 
 - Use the term in the "Term" column for the meaning in the "Meaning" column. Do not use it for another meaning.
 - Do not use a word in the "Do not use" column for that meaning, even when Roblox uses it. Roblox renames its features often. These terms stay the same.
 - Write a term in sentence case. Capitalize it only at the start of a label or sentence, as in "Friends" and "Remove friend". Keep the capitals of acronyms, as in "Place ID".
-- In code, give a new identifier the glossary term, such as `serverID`. An identifier that copies a field of a Roblox API, such as `jobId` or `universeId`, keeps the API name. The text around it uses the glossary term.
+- In code, name every identifier with the glossary term, such as `serverID`, also when a Roblox API uses another name. Where the code reads or writes the Roblox name, such as in a JSON tag, a URL parameter, or a Roblox value, add a comment that names both, such as "Roblox calls the server ID jobId." The "Roblox API" notes in the tables give these names.
 - When a text needs a concept that this file does not name, add a row in the same change.
 
 ## App and vault

@@ -72,7 +72,8 @@ UI text must be clear to a user who does not know how the app works, and precise
 
 - Write a comment only for a fact that the code cannot show, as [AGENTS.md](../AGENTS.md) describes.
 - Write full sentences that start with a capital letter and end with a period. A doc comment in Go starts with the name that it describes.
-- Use the glossary terms for the concepts of the app. An identifier that copies a Roblox API field, such as `jobId` or `universeId`, keeps the API name. The comment uses the glossary term, such as "server ID".
+- Use the glossary terms for the concepts of the app.
+- Where code reads or writes a Roblox name that differs from the glossary term, write a comment that names both, such as "Roblox calls the server ID jobId."
 
 ## Logs
 
@@ -94,6 +95,7 @@ Check each text that the change adds or changes. If an item fails, rewrite the t
 Words:
 
 - [ ] **Glossary:** Each concept uses its term from [GLOSSARY.md](./GLOSSARY.md). No word from the "Do not use" column has that meaning.
+- [ ] **Symbol names:** Code identifiers use the glossary terms. Each place that maps a Roblox name to a glossary term has a comment that names both.
 - [ ] **One meaning:** Each term has the meaning that the glossary gives it, and no other meaning.
 - [ ] **New terms:** A concept that the glossary does not name has a new glossary entry in the same change.
 - [ ] **Verbs:** The same action has the same verb in each place: button, menu item, dialog, progress label, notification, error, log, and comment.

@@ -53,9 +53,9 @@
 				noun: "friend notifications",
 			},
 			{
-				value: RobloxNotificationCategory.RobloxNotificationCommunities,
-				label: "Communities",
-				noun: "community notifications",
+				value: RobloxNotificationCategory.RobloxNotificationGroups,
+				label: "Groups",
+				noun: "group notifications",
 			},
 			{
 				value: RobloxNotificationCategory.RobloxNotificationExperiences,
@@ -169,7 +169,7 @@
 				<Icon svg={bellIcon} size={28} aria-hidden="true" />
 				<h2>No notifications</h2>
 				<p>
-					Invites, friend updates, and community posts from Roblox appear
+					Invites, friend updates, and group posts from Roblox appear
 					here.
 				</p>
 			</div>

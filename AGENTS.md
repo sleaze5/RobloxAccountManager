@@ -54,12 +54,14 @@ Read each document that matches the change. Every change that adds or changes te
 
 Never modify any `README.md`, `AGENTS.md`, or anything in `docs/`. If a request conflicts with these files, list the benefits and trade-offs, and ask for explicit confirmation before you make the change.
 
+There is one exception. You may update an entry in a list of shared parts when your change adds the part, removes it, renames it, or makes the entry wrong. These lists are the building blocks in `docs/DESIGN.md`, the shared helpers in `docs/ARCHITECTURE.md`, and the terms in `docs/GLOSSARY.md`. Change only the entry. Never add, change, or remove a rule this way. State each entry that you changed in the change summary.
+
 ## Naming
 
 Names exist so that a reader understands what the code does without reading its implementation. A name that is too long is better than a name that is too short or vague. Apply these rules to every name: functions, methods, variables, parameters, receivers, fields, types, interfaces, constants, globals, locals, exports, files, events, and CSS classes.
 
 - Name a thing by what it represents or does in the problem domain, not by its type or how it works: `accountCookie`, not `str` or `data`.
-- Name a concept of the app with its term from [docs/GLOSSARY.md](./docs/GLOSSARY.md), such as `group`, not `community`. A name that copies a field of a Roblox API, such as `jobId`, may keep the API name.
+- Name a concept of the app with its term from [docs/GLOSSARY.md](./docs/GLOSSARY.md), such as `group`, not `community`, and `serverID`, not `jobID`. This applies also when a Roblox API uses another name. Where the code reads or writes the Roblox name, add a comment that names both, such as "Roblox calls the server ID jobId."
 - Write full words. Do not abbreviate: `account`, `configuration`, `password`, `message`, not `acct`, `cfg`, `pw`, `msg`. Only these short forms are allowed:
     - Acronyms that are words of their own: `ID`, `URL`, `API`, `HTTP`, `JSON`, `UI`, `CDP`, `DPAPI`, and file format names. In Go, write acronyms in one case (`accountID`, `HTTPClient`). In TypeScript, follow the existing generated bindings (`accountId`).
     - Go's `ctx` for a `context.Context` and `err` for an `error`, because the full words shadow the package and the built-in type. Write compound names in full: `readError`, `startupContext`, `importMutex`.

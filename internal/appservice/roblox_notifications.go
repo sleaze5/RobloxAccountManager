@@ -36,7 +36,7 @@ type RobloxNotificationCategory string
 const (
 	RobloxNotificationInvites     RobloxNotificationCategory = "invites"
 	RobloxNotificationFriends     RobloxNotificationCategory = "friends"
-	RobloxNotificationCommunities RobloxNotificationCategory = "communities"
+	RobloxNotificationGroups RobloxNotificationCategory = "groups"
 	RobloxNotificationExperiences RobloxNotificationCategory = "experiences"
 	RobloxNotificationOther       RobloxNotificationCategory = "other"
 )
@@ -132,7 +132,7 @@ func (service *Service) DismissRobloxNotification(ctx context.Context, accountID
 // It returns how many it dismissed.
 func (service *Service) DismissAllRobloxNotifications(ctx context.Context, accountID int64, category RobloxNotificationCategory) (int, error) {
 	switch category {
-	case "", RobloxNotificationInvites, RobloxNotificationFriends, RobloxNotificationCommunities, RobloxNotificationExperiences, RobloxNotificationOther:
+	case "", RobloxNotificationInvites, RobloxNotificationFriends, RobloxNotificationGroups, RobloxNotificationExperiences, RobloxNotificationOther:
 	default:
 		return 0, robloxNotificationInputError("Select a notification type to dismiss.")
 	}
@@ -289,7 +289,7 @@ func robloxNotificationCategory(notificationType string) RobloxNotificationCateg
 	case contains("friend", "connection", "follow"):
 		return RobloxNotificationFriends
 	case contains("group", "community", "shout"):
-		return RobloxNotificationCommunities
+		return RobloxNotificationGroups
 	case contains("game", "experience", "universe", "place", "badge", "event"):
 		return RobloxNotificationExperiences
 	default:

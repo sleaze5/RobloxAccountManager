@@ -33,6 +33,7 @@ The Svelte frontend is a presentation layer. The Go backend owns application log
 - `main.go` wires every dependency of a service. Do not check those dependencies for `nil`, and do not add a fallback for a dependency that is always present.
 - Give each behavior one implementation. Code that two packages or two operating systems need goes into one shared function or one `_unix.go` or `_other.go` file, as [PLATFORM.md](./PLATFORM.md) describes.
 - Add an interface only when it has two implementations or crosses a package boundary that must not import the other package.
+- Name types, fields, and values with the terms in [GLOSSARY.md](./GLOSSARY.md), also when a Roblox API uses another name. Where the code maps a Roblox name to a glossary term, such as in a JSON tag or a switch over Roblox values, add a comment that names both, such as "Roblox calls the server ID jobId."
 
 ## Errors
 

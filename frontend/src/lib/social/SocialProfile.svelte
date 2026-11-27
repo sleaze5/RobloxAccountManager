@@ -523,18 +523,18 @@
 								</dd>
 							</div>
 						{/if}
-						{#if profile && profile.communityCount !== null}
+						{#if profile && profile.groupCount !== null}
 							<div>
 								<dt>
 									<Icon
 										svg={usersFourIcon}
 										size={16}
-										aria-hidden="true" />Communities
+										aria-hidden="true" />Groups
 								</dt>
 								<dd>
 									<span
 										>{exactNumbers.format(
-											profile.communityCount,
+											profile.groupCount,
 										)}</span>
 								</dd>
 							</div>
@@ -544,12 +544,12 @@
 									<Icon
 										svg={usersFourIcon}
 										size={16}
-										aria-hidden="true" />Communities
+										aria-hidden="true" />Groups
 								</dt>
 								<dd>
 									<MissingFactValue
 										{sections}
-										section={SocialProfileSection.SocialSectionCommunities} />
+										section={SocialProfileSection.SocialSectionGroups} />
 								</dd>
 							</div>
 						{/if}
