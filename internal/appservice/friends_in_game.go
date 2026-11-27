@@ -95,7 +95,7 @@ func (service *Service) friendPlaceNames(ctx context.Context, logger *slog.Logge
 }
 
 type friendsPlayingPlace struct {
-	friendIDsByJobID      map[string][]int64
+	friendIDsByServerID   map[string][]int64
 	hiddenServerFriendIDs []int64
 }
 
@@ -130,11 +130,11 @@ func groupFriendsInGame(presences []robloxservices.UserPresence, universeID int6
 		}
 		place := playing.placeByID[*presence.PlaceID]
 		if place == nil {
-			place = &friendsPlayingPlace{friendIDsByJobID: map[string][]int64{}}
+			place = &friendsPlayingPlace{friendIDsByServerID: map[string][]int64{}}
 			playing.placeByID[*presence.PlaceID] = place
 		}
-		if games.ValidJobID(presence.GameID) {
-			place.friendIDsByJobID[presence.GameID] = append(place.friendIDsByJobID[presence.GameID], presence.UserID)
+		if games.ValidServerID(presence.ServerID) {
+			place.friendIDsByServerID[presence.ServerID] = append(place.friendIDsByServerID[presence.ServerID], presence.UserID)
 		} else {
 			place.hiddenServerFriendIDs = append(place.hiddenServerFriendIDs, presence.UserID)
 		}
@@ -150,7 +150,7 @@ func friendPlaces(playing friendsPlayingGame, namesByPlaceID map[int64]string, f
 	for placeID, playingPlace := range playing.placeByID {
 		place := games.FriendPlace{
 			PlaceID: placeID, Name: namesByPlaceID[placeID], IsRootPlace: placeID == playing.rootPlaceID,
-			Servers:                friendServers(playingPlace.friendIDsByJobID, friendByUserID),
+			Servers:                friendServers(playingPlace.friendIDsByServerID, friendByUserID),
 			FriendsInHiddenServers: namedFriends(playingPlace.hiddenServerFriendIDs, friendByUserID),
 		}
 		friendCount := len(place.FriendsInHiddenServers)
@@ -175,16 +175,16 @@ func friendPlaces(playing friendsPlayingGame, namesByPlaceID map[int64]string, f
 }
 
 // friendServers sorts servers by friend count and drops unnamed friends.
-func friendServers(friendIDsByJobID map[string][]int64, friendByUserID map[int64]games.FriendInServer) []games.FriendServer {
-	servers := make([]games.FriendServer, 0, len(friendIDsByJobID))
-	for jobID, userIDs := range friendIDsByJobID {
-		server := games.FriendServer{JobID: jobID, Friends: namedFriends(userIDs, friendByUserID)}
+func friendServers(friendIDsByServerID map[string][]int64, friendByUserID map[int64]games.FriendInServer) []games.FriendServer {
+	servers := make([]games.FriendServer, 0, len(friendIDsByServerID))
+	for serverID, userIDs := range friendIDsByServerID {
+		server := games.FriendServer{ServerID: serverID, Friends: namedFriends(userIDs, friendByUserID)}
 		if len(server.Friends) > 0 {
 			servers = append(servers, server)
 		}
 	}
 	slices.SortFunc(servers, func(left, right games.FriendServer) int {
-		return cmp.Or(cmp.Compare(len(right.Friends), len(left.Friends)), strings.Compare(left.JobID, right.JobID))
+		return cmp.Or(cmp.Compare(len(right.Friends), len(left.Friends)), strings.Compare(left.ServerID, right.ServerID))
 	})
 	return servers
 }

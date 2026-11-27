@@ -194,18 +194,18 @@ func (service *Service) addServerRecords(ctx context.Context, placeID int64, ser
 	if !service.settings.Integrations().RoValra || len(servers) == 0 {
 		return
 	}
-	jobIDs := make([]string, len(servers))
+	serverIDs := make([]string, len(servers))
 	for index, server := range servers {
-		jobIDs[index] = server.JobID
+		serverIDs[index] = server.ServerID
 	}
 	recordsContext, cancel := context.WithTimeout(ctx, 5*time.Second)
 	defer cancel()
-	records, err := service.rovalra.Records(recordsContext, placeID, jobIDs)
+	records, err := service.rovalra.Records(recordsContext, placeID, serverIDs)
 	if err != nil && ctx.Err() == nil {
 		service.logs.Module("integration.rovalra").WarnContext(ctx, "server records unavailable", "operation", "game-server-records", "place_id", placeID, "error", err)
 	}
 	for index := range servers {
-		if record, ok := records[servers[index].JobID]; ok {
+		if record, ok := records[servers[index].ServerID]; ok {
 			servers[index].Record = &record
 		}
 	}

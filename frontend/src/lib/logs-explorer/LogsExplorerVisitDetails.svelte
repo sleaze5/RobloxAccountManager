@@ -22,8 +22,8 @@
 			<dd class="font-mono">{visit.placeId}</dd>
 		</div>
 		<div>
-			<dt>Job ID</dt>
-			<dd class="font-mono">{visit.jobId}</dd>
+			<dt>Server ID</dt>
+			<dd class="font-mono">{visit.serverId}</dd>
 		</div>
 		{#if visit.universeId}<div class="col-span-full">
 				<dt>Universe ID</dt>

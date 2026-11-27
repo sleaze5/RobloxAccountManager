@@ -83,7 +83,7 @@
 		store: SocialStore
 		accounts: AccountStore
 		notifications: NotificationCenter
-		onFillLaunch: (placeId: number, jobId: string) => void
+		onFillLaunch: (placeId: number, serverId: string) => void
 		onFillLaunchUser: (user: SocialUser) => void
 		onRelationshipAction: (person: SocialUser, action: RelationshipActionId) => void
 		onEditNickname: (person: SocialUser, nickname: string) => void

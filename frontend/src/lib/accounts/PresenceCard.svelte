@@ -94,9 +94,9 @@
 			</div>{/if}
 		{#if presence.userPresenceType === PresenceType.PresenceTypeInGame}<div
 				class="col-span-full">
-				<dt>Job ID</dt>
-				{#if presence.gameId}<dd class="font-mono select-text">
-						{presence.gameId}
+				<dt>Server ID</dt>
+				{#if presence.serverId}<dd class="font-mono select-text">
+						{presence.serverId}
 					</dd>
 				{:else}<dd class="text-fg-muted">Not shared by Roblox</dd>{/if}
 			</div>{/if}

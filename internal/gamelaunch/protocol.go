@@ -87,12 +87,13 @@ func placeLaunchParameters(request Request, query url.Values) (url.Values, error
 		if request.AccessCode != "" {
 			query.Set("accessCode", request.AccessCode)
 		}
-	case request.JobID != "":
-		if !jobIDPattern.MatchString(request.JobID) {
-			return nil, errors.New("job ID must be a UUID")
+	case request.ServerID != "":
+		if !serverIDPattern.MatchString(request.ServerID) {
+			return nil, errors.New("server ID must be a UUID")
 		}
+		// Roblox calls the server ID gameId in this protocol.
 		query.Set("request", "RequestGameJob")
-		query.Set("gameId", request.JobID)
+		query.Set("gameId", request.ServerID)
 		query.Set("isPlayTogetherGame", "false")
 	default:
 		query.Set("request", "RequestGame")
@@ -102,7 +103,7 @@ func placeLaunchParameters(request Request, query url.Values) (url.Values, error
 }
 
 func followUserParameters(request Request, query url.Values) (url.Values, error) {
-	if request.UserID < 0 || request.PlaceID != 0 || request.JobID != "" || request.LinkCode != "" || request.AccessCode != "" {
+	if request.UserID < 0 || request.PlaceID != 0 || request.ServerID != "" || request.LinkCode != "" || request.AccessCode != "" {
 		return nil, errors.New("user target is invalid")
 	}
 	query.Set("request", "RequestFollowUser")

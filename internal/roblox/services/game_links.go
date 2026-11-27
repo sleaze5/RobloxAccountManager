@@ -30,10 +30,11 @@ type privateServerInvite struct {
 	LinkCode   string `json:"linkCode"`
 }
 
-type experienceInvite struct {
-	Status     string `json:"status"`
-	PlaceID    int64  `json:"placeId"`
-	InstanceID string `json:"instanceId"`
+type gameInvite struct {
+	Status  string `json:"status"`
+	PlaceID int64  `json:"placeId"`
+	// Roblox calls the server ID instanceId.
+	ServerID   string `json:"instanceId"`
 	LaunchData string `json:"launchData"`
 }
 
@@ -87,7 +88,7 @@ func (service *GameLinks) ResolveShare(ctx context.Context, accountID, version i
 }
 
 func (service *GameLinks) resolveShare(ctx context.Context, accountID, version int64, code string, shareType gamelaunch.ShareType) (gamelaunch.Request, error) {
-	if shareType != gamelaunch.ShareServer && shareType != gamelaunch.ShareExperienceInvite {
+	if shareType != gamelaunch.ShareServer && shareType != gamelaunch.ShareGameInvite {
 		return gamelaunch.Request{}, gameLinkError("share-link", 0, "This share-link type cannot be used to join a game.")
 	}
 	body, err := json.Marshal(struct {
@@ -111,13 +112,14 @@ func (service *GameLinks) resolveShare(ctx context.Context, accountID, version i
 	var payload struct {
 		PrivateServerInviteData *privateServerInvite `json:"privateServerInviteData"`
 		ServerData              *privateServerInvite `json:"serverData"`
-		ExperienceInviteData    *experienceInvite    `json:"experienceInviteData"`
+		// Roblox calls a game invite an experience invite.
+		GameInviteData *gameInvite `json:"experienceInviteData"`
 	}
 	if err := json.Unmarshal(response.Body, &payload); err != nil {
 		return gamelaunch.Request{}, gameLinkError("share-link", response.Status, "Roblox returned invalid share-link details.")
 	}
-	if shareType == gamelaunch.ShareExperienceInvite {
-		return experienceInviteRequest(payload.ExperienceInviteData, response.Status)
+	if shareType == gamelaunch.ShareGameInvite {
+		return gameInviteRequest(payload.GameInviteData, response.Status)
 	}
 	invite := payload.PrivateServerInviteData
 	if invite == nil {
@@ -149,25 +151,25 @@ func (service *GameLinks) resolvePrivateInvite(ctx context.Context, invite *priv
 	return target, nil
 }
 
-func experienceInviteRequest(invite *experienceInvite, status int) (gamelaunch.Request, error) {
+func gameInviteRequest(invite *gameInvite, status int) (gamelaunch.Request, error) {
 	if invite == nil {
-		return gamelaunch.Request{}, gameLinkError("experience-invite", status, "This experience invite is invalid or unavailable to this account.")
+		return gamelaunch.Request{}, gameLinkError("game-invite", status, "This game invite is invalid or unavailable to this account.")
 	}
 	switch strings.ToLower(strings.TrimSpace(invite.Status)) {
 	case "valid":
 	case "expired":
-		return gamelaunch.Request{}, gameLinkError("experience-invite", status, "This experience invite has expired. Request a new link.")
+		return gamelaunch.Request{}, gameLinkError("game-invite", status, "This game invite has expired. Request a new link.")
 	case "inviternotinexperience":
-		return gamelaunch.Request{}, gameLinkError("experience-invite", status, "The person who sent this invite is no longer in the experience. Request a new link.")
+		return gamelaunch.Request{}, gameLinkError("game-invite", status, "The user who sent this invite is no longer in the game. Request a new link.")
 	default:
-		return gamelaunch.Request{}, gameLinkError("experience-invite", status, "This experience invite is no longer valid. Request a new link.")
+		return gamelaunch.Request{}, gameLinkError("game-invite", status, "This game invite is no longer valid. Request a new link.")
 	}
-	if strings.TrimSpace(invite.InstanceID) == "" {
-		return gamelaunch.Request{}, gameLinkError("experience-invite", status, "This experience invite has no joinable server. Request a new link.")
+	if strings.TrimSpace(invite.ServerID) == "" {
+		return gamelaunch.Request{}, gameLinkError("game-invite", status, "This game invite has no joinable server. Request a new link.")
 	}
-	target, err := gamelaunch.Parse(gamelaunch.Input{Method: gamelaunch.MethodPlace, PlaceID: strconv.FormatInt(invite.PlaceID, 10), JobID: invite.InstanceID})
+	target, err := gamelaunch.Parse(gamelaunch.Input{Method: gamelaunch.MethodPlace, PlaceID: strconv.FormatInt(invite.PlaceID, 10), ServerID: invite.ServerID})
 	if err != nil {
-		return gamelaunch.Request{}, gameLinkError("experience-invite", status, "Roblox returned an invalid server for this experience invite.")
+		return gamelaunch.Request{}, gameLinkError("game-invite", status, "Roblox returned an invalid server for this game invite.")
 	}
 	target.LaunchData = invite.LaunchData
 	return target, nil

@@ -32,7 +32,8 @@ func (service *Games) Servers(ctx context.Context, query games.ServerQuery, acco
 		PreviousPageCursor string `json:"previousPageCursor"`
 		NextPageCursor     string `json:"nextPageCursor"`
 		Data               []struct {
-			ID                 string   `json:"id"`
+			// Roblox calls the server ID id.
+			ServerID           string   `json:"id"`
 			MaxPlayers         int64    `json:"maxPlayers"`
 			Playing            int64    `json:"playing"`
 			PlayerTokens       []string `json:"playerTokens"`
@@ -63,7 +64,7 @@ func (service *Games) Servers(ctx context.Context, query games.ServerQuery, acco
 	page := games.ServerPage{Servers: make([]games.Server, 0, len(payload.Data)), NextCursor: payload.NextPageCursor, PreviousCursor: payload.PreviousPageCursor}
 	tokens := make([][]string, 0, len(payload.Data))
 	for _, server := range payload.Data {
-		if !games.ValidJobID(server.ID) {
+		if !games.ValidServerID(server.ServerID) {
 			continue
 		}
 		framesPerSecond := server.FPS
@@ -71,7 +72,7 @@ func (service *Games) Servers(ctx context.Context, query games.ServerQuery, acco
 			framesPerSecond = 0
 		}
 		page.Servers = append(page.Servers, games.Server{
-			JobID: server.ID, Playing: max(server.Playing, 0), MaxPlayers: max(server.MaxPlayers, 0),
+			ServerID: server.ServerID, Playing: max(server.Playing, 0), MaxPlayers: max(server.MaxPlayers, 0),
 			FPS: max(framesPerSecond, 0), PingMs: nonNegative(server.Ping), PlayerImages: []string{},
 			LanguageMatches: nonNegative(server.LanguageMatchCount),
 		})

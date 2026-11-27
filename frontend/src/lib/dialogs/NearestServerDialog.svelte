@@ -15,7 +15,7 @@
 		onClose,
 	}: {
 		search: NearestServerSearch
-		onUseServer: (jobId: string) => void
+		onUseServer: (serverId: string) => void
 		onClose: () => void
 	} = $props()
 
@@ -32,7 +32,7 @@
 
 	function useServer(): void {
 		if (search.phase !== "found") return
-		onUseServer(search.foundJobId)
+		onUseServer(search.foundServerId)
 	}
 
 	$effect(() => {

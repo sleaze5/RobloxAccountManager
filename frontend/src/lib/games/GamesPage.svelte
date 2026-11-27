@@ -58,7 +58,7 @@
 		store: GamesStore
 		accounts: AccountStore
 		notifications: NotificationCenter
-		onFillLaunch: (placeId: number, jobId?: string) => void
+		onFillLaunch: (placeId: number, serverId?: string) => void
 		onFillLaunchLink: (link: string) => void
 	} = $props()
 	const favoritesMode = $derived(store.mode === "favorites"),

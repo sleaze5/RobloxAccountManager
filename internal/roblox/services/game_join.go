@@ -148,7 +148,8 @@ type joinResponse struct {
 		CreatorExperienceBan *creatorExperienceBan `json:"creatorExperienceBan"`
 	} `json:"statusData"`
 	JoinScript *struct {
-		GameID string `json:"GameId"`
+		// Roblox calls the server ID GameId in the join script.
+		ServerID string `json:"GameId"`
 		// SessionID is a JSON object in a string, whose JoinType tells how
 		// Roblox chose the server.
 		SessionID string `json:"SessionId"`
@@ -197,8 +198,9 @@ func joinCheckRequest(target gamelaunch.Request) (string, map[string]any) {
 			body["linkCode"] = target.LinkCode
 		}
 		return "/v1/join-private-game", body
-	case target.JobID != "":
-		body["placeId"], body["gameId"] = target.PlaceID, target.JobID
+	case target.ServerID != "":
+		// Roblox calls the server ID gameId in this request.
+		body["placeId"], body["gameId"] = target.PlaceID, target.ServerID
 		return "/v1/join-game-instance", body
 	default:
 		body["placeId"] = target.PlaceID
@@ -222,7 +224,7 @@ func classifyJoin(payload joinResponse, target gamelaunch.Request, now time.Time
 	case payload.Status == joinStatusUserBanned || ban != nil || refusal == joinRefusalCreatorBan:
 		return restricted(creatorBanMessage(ban, now))
 	case payload.JoinScript != nil:
-		return classifyJoinScript(payload.JoinScript.GameID, joinType(payload.JoinScript.SessionID), target)
+		return classifyJoinScript(payload.JoinScript.ServerID, joinType(payload.JoinScript.SessionID), target)
 	case refusal == joinRefusalRequestDenied || refusal == joinRefusalInternalError:
 		// Roblox gives no reason, so the join can still work.
 		return games.JoinCheck{Outcome: games.JoinOutcomeUnknown}
@@ -281,12 +283,12 @@ func classifyJoinStatus(payload joinResponse, refusal joinRefusal, isFollowingUs
 // classifyJoinScript reads a join that Roblox accepted. Roblox can accept a
 // join into another server than the requested one, such as when the followed
 // user's server is restricted.
-func classifyJoinScript(gameID, sessionJoinType string, target gamelaunch.Request) games.JoinCheck {
+func classifyJoinScript(joinedServerID, sessionJoinType string, target gamelaunch.Request) games.JoinCheck {
 	isFollowingUser := target.UserID > 0
 	switch {
 	case isFollowingUser && sessionJoinType == "MatchMade":
 		return restricted("This user is in a restricted server. Roblox would send this account to a different server.")
-	case target.JobID != "" && gameID != "" && !strings.EqualFold(gameID, target.JobID):
+	case target.ServerID != "" && joinedServerID != "" && !strings.EqualFold(joinedServerID, target.ServerID):
 		return restricted("Roblox would send this account to a different server.")
 	default:
 		return games.JoinCheck{Outcome: games.JoinOutcomeJoinable}

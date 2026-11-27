@@ -147,10 +147,10 @@
 							: `Place ID: ${friendPlace.placeId}`,
 					)}
 					<ol aria-label={`Servers in ${friendPlace.name}`}>
-						{#each friendPlace.servers ?? [] as server (server.jobId)}
+						{#each friendPlace.servers ?? [] as server (server.serverId)}
 							{@const key = friendServerKey(
 								friendPlace.placeId,
-								server.jobId,
+								server.serverId,
 							)}
 							{@const serverFriends = server.friends ?? []}
 							<li
@@ -163,7 +163,7 @@
 									{@render names(serverFriends)}
 									<span
 										class="truncate font-mono text-2xs text-fg-faint select-text"
-										>{server.jobId}</span>
+										>{server.serverId}</span>
 								</div>
 								<ServerActionsButton
 									open={activeKey === key}

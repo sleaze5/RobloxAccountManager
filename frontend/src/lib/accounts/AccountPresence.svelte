@@ -26,7 +26,7 @@
 		// joinability is whether the user's profile offers to join them, for a
 		// user who is not one of the saved accounts.
 		joinability?: UserJoinability
-		onJoin: (placeId: number, jobId: string) => void
+		onJoin: (placeId: number, serverId: string) => void
 		// onJoinUser fills the launch options to follow the user, for a server
 		// that the presence does not show.
 		onJoinUser?: () => void
@@ -96,7 +96,7 @@
 
 	function fillLaunch(): void {
 		closeCard()
-		onJoin(joinPlaceId, presence.gameId ?? "")
+		onJoin(joinPlaceId, presence.serverId ?? "")
 	}
 
 	function followUser(): void {

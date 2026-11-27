@@ -33,7 +33,7 @@ type UserPresence struct {
 	LastLocation     string       `json:"lastLocation,omitempty"`
 	PlaceID          *int64       `json:"placeId,omitempty"`
 	RootPlaceID      *int64       `json:"rootPlaceId,omitempty"`
-	GameID           string       `json:"gameId,omitempty"`
+	ServerID         string       `json:"serverId,omitempty"`
 	UniverseID       *int64       `json:"universeId,omitempty"`
 }
 
@@ -183,8 +183,9 @@ func (service *Presence) request(ctx context.Context, accountID, version int64, 
 			LastLocation string `json:"lastLocation"`
 			PlaceID      *int64 `json:"placeId"`
 			RootPlaceID  *int64 `json:"rootPlaceId"`
-			GameID       string `json:"gameId"`
-			UniverseID   *int64 `json:"universeId"`
+			// Roblox calls the server ID gameId.
+			ServerID   string `json:"gameId"`
+			UniverseID *int64 `json:"universeId"`
 		} `json:"userPresences"`
 	}
 	if err := json.Unmarshal(response.Body, &payload); err != nil {
@@ -198,7 +199,7 @@ func (service *Presence) request(ctx context.Context, accountID, version int64, 
 			LastLocation:     strings.TrimSpace(userPresence.LastLocation),
 			PlaceID:          userPresence.PlaceID,
 			RootPlaceID:      userPresence.RootPlaceID,
-			GameID:           strings.TrimSpace(userPresence.GameID),
+			ServerID:         strings.TrimSpace(userPresence.ServerID),
 			UniverseID:       userPresence.UniverseID,
 		})
 	}

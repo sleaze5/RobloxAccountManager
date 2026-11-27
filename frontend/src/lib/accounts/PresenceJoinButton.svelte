@@ -17,7 +17,7 @@
 	}: {
 		presence: UserPresence
 		joinability?: UserJoinability
-		onJoin: (placeId: number, jobId: string) => void
+		onJoin: (placeId: number, serverId: string) => void
 		onJoinUser?: () => void
 	} = $props()
 
@@ -38,7 +38,7 @@
 		aria-label={`Join. ${tooltip}`}
 		data-tooltip={tooltip}
 		onclick={() => {
-			if (join.hasVisibleServer) onJoin(join.placeId, join.jobId)
+			if (join.hasVisibleServer) onJoin(join.placeId, join.serverId)
 			else onJoinUser?.()
 		}}>
 		<Icon svg={signInIcon} size={14} aria-hidden="true" />

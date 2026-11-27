@@ -20,16 +20,18 @@ func (err *ClientError) Error() string {
 	return err.Message
 }
 
+// ShareType values are the type parameter of a Roblox share link. Roblox calls
+// a game invite ExperienceInvite.
 type ShareType string
 
 const (
-	ShareServer           ShareType = "Server"
-	ShareExperienceInvite ShareType = "ExperienceInvite"
+	ShareServer     ShareType = "Server"
+	ShareGameInvite ShareType = "ExperienceInvite"
 )
 
 type Request struct {
 	PlaceID      int64
-	JobID        string
+	ServerID     string
 	UserID       int64
 	Username     string
 	ShareCode    string

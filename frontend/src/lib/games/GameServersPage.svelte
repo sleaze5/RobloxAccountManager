@@ -39,7 +39,7 @@
 		store: GamesStore
 		accounts: AccountStore
 		notifications: NotificationCenter
-		onFillLaunch: (placeId: number, jobId: string) => void
+		onFillLaunch: (placeId: number, serverId: string) => void
 		onFillLaunchLink: (link: string) => void
 	} = $props()
 
@@ -314,26 +314,27 @@
 				.flatMap((friendPlace) =>
 					(friendPlace.servers ?? []).map((server) => ({
 						placeId: friendPlace.placeId,
-						jobId: server.jobId,
+						serverId: server.serverId,
 					})),
 				)
 				.find(
-					(server) => friendServerKey(server.placeId, server.jobId) === key,
+					(server) =>
+						friendServerKey(server.placeId, server.serverId) === key,
 				),
 			placeId = friendServer?.placeId ?? place.placeId,
-			jobId = friendServer?.jobId ?? key
+			serverId = friendServer?.serverId ?? key
 		return [
 			{
 				label: "Fill launch options",
 				icon: listPlusIcon,
-				onSelect: select(() => onFillLaunch(placeId, jobId)),
+				onSelect: select(() => onFillLaunch(placeId, serverId)),
 			},
 			{
-				label: "Job ID",
+				label: "Server ID",
 				icon: hashIcon,
 				section: "Copy",
-				accessibleLabel: "Copy job ID",
-				onSelect: select(() => void store.copy(jobId, "Job ID")),
+				accessibleLabel: "Copy server ID",
+				onSelect: select(() => void store.copy(serverId, "Server ID")),
 			},
 		]
 	}
@@ -382,7 +383,7 @@
 		<RecordedServerList
 			servers={recordedServers}
 			{stats}
-			activeJobId={openKey}
+			activeServerId={openKey}
 			{menuID}
 			onMenu={openMenu} />
 	{:else if source === "private"}
@@ -413,7 +414,7 @@
 			servers={robloxServers}
 			records={appSettings.roValraEnabled}
 			newestVersion={stats.stats?.newestVersion ?? 0}
-			activeJobId={openKey}
+			activeServerId={openKey}
 			{menuID}
 			onMenu={openMenu} />
 	{/if}

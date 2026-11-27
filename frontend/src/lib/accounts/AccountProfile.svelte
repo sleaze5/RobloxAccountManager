@@ -73,7 +73,7 @@
 		store: AccountStore
 		workspace: WorkspaceState
 		onManageTags: (accountId: number) => void
-		onJoinServer: (placeId: number, jobId: string) => void
+		onJoinServer: (placeId: number, serverId: string) => void
 		onFollowUser: (user: RobloxNotificationUser) => void
 		onReplaceCookie: () => void
 		onEditDescription: (description: string) => void

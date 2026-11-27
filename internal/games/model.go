@@ -197,7 +197,7 @@ type ServerPage struct {
 }
 
 type Server struct {
-	JobID           string        `json:"jobId"`
+	ServerID        string        `json:"serverId"`
 	Playing         int64         `json:"playing"`
 	MaxPlayers      int64         `json:"maxPlayers"`
 	FPS             float64       `json:"fps"`
@@ -209,7 +209,7 @@ type Server struct {
 }
 
 type ServerRecord struct {
-	JobID        string `json:"jobId"`
+	ServerID     string `json:"serverId"`
 	PlaceVersion int64  `json:"placeVersion"`
 	FirstSeenMs  int64  `json:"firstSeenMs"`
 	City         string `json:"city"`
@@ -266,9 +266,9 @@ type NearbyRegion struct {
 }
 
 type RegionServerQuery struct {
-	PlaceID        int64    `json:"placeId"`
-	Region         string   `json:"region"`
-	ExcludedJobIDs []string `json:"excludedJobIds"`
+	PlaceID           int64    `json:"placeId"`
+	Region            string   `json:"region"`
+	ExcludedServerIDs []string `json:"excludedServerIds"`
 }
 
 type PrivateServerQuery struct {
@@ -435,8 +435,8 @@ type FriendPlace struct {
 }
 
 type FriendServer struct {
-	JobID   string           `json:"jobId"`
-	Friends []FriendInServer `json:"friends"`
+	ServerID string           `json:"serverId"`
+	Friends  []FriendInServer `json:"friends"`
 }
 
 type FriendInServer struct {
@@ -461,12 +461,12 @@ func ValidID(id int64) bool {
 	return id > 0 && id <= javaScriptMaxSafeInteger
 }
 
-func ValidJobID(jobID string) bool {
+func ValidServerID(serverID string) bool {
 	// Canonical UUID: 36 characters with dashes at 8, 13, 18, and 23.
-	if len(jobID) != 36 {
+	if len(serverID) != 36 {
 		return false
 	}
-	for index, character := range jobID {
+	for index, character := range serverID {
 		if index == 8 || index == 13 || index == 18 || index == 23 {
 			if character != '-' {
 				return false

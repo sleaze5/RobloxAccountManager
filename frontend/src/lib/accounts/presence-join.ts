@@ -6,7 +6,7 @@ import type { UserPresence } from "../backend/bridge"
 interface PresenceJoin {
 	hasVisibleServer: boolean
 	placeId: number
-	jobId: string
+	serverId: string
 	// canFollowUser reports that the profile offers to join a user whose
 	// server the status hides.
 	canFollowUser: boolean
@@ -25,11 +25,11 @@ export function presenceJoinFor(
 		hasVisibleServer =
 			presence.userPresenceType === PresenceType.PresenceTypeInGame &&
 			placeId > 0 &&
-			!!presence.gameId
+			!!presence.serverId
 	return {
 		hasVisibleServer,
 		placeId,
-		jobId: presence.gameId ?? "",
+		serverId: presence.serverId ?? "",
 		canFollowUser:
 			!hasVisibleServer &&
 			isFollowAvailable &&

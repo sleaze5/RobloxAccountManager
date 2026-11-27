@@ -298,7 +298,7 @@ export class GameServers extends ServerPager<string, GameServer, GameServerPage>
 	}
 
 	protected serverKey(server: GameServer): string {
-		return server.jobId
+		return server.serverId
 	}
 }
 
@@ -353,7 +353,7 @@ export class RecordedServers extends ServerPager<
 	}
 
 	protected serverKey(server: GameServerRecord): string {
-		return server.jobId
+		return server.serverId
 	}
 }
 

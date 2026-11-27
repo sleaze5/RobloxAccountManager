@@ -36,7 +36,7 @@
 	}: {
 		store: SocialStore
 		menu: SocialMenu
-		onFillLaunch: (placeId: number, jobId: string) => void
+		onFillLaunch: (placeId: number, serverId: string) => void
 		onRelationshipAction: (person: SocialUser, action: RelationshipActionId) => void
 	} = $props()
 	const previews = getProfilePreviews(),
@@ -52,7 +52,7 @@
 		joinable = $derived(
 			presence?.userPresenceType === PresenceType.PresenceTypeInGame &&
 				placeId > 0 &&
-				!!presence.gameId,
+				!!presence.serverId,
 		),
 		relationship = $derived(
 			store.menuRelationship?.relationship ?? requestRelationship(person),
@@ -84,8 +84,8 @@
 			label="Fill launch options"
 			icon={listPlusIcon}
 			onSelect={() => {
-				const jobId = presence?.gameId ?? ""
-				onFillLaunch(placeId, jobId)
+				const serverId = presence?.serverId ?? ""
+				onFillLaunch(placeId, serverId)
 				store.closeMenu()
 			}} />
 	{/if}

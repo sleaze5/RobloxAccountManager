@@ -77,7 +77,7 @@
 			})
 			return
 		}
-		store.launchInput.jobId = nearestSearch.foundJobId
+		store.launchInput.serverId = nearestSearch.foundServerId
 		const foundRegion =
 			nearestSearch.regionChecks[nearestSearch.activeRegionIndex]?.nearbyRegion
 				.region
@@ -131,8 +131,8 @@
 	{#key search}
 		<NearestServerDialog
 			{search}
-			onUseServer={(jobId) => {
-				store.launchInput.jobId = jobId
+			onUseServer={(serverId) => {
+				store.launchInput.serverId = serverId
 				closeSearch()
 			}}
 			onClose={closeSearch} />

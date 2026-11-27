@@ -24,7 +24,7 @@ export function notifyCopied(notifications: NotificationCenter, message: string)
 }
 
 // copyFailureMessage names what failed to copy. label is a sentence-case name,
-// such as "Job ID", and starts lowercase inside the sentence.
+// such as "Server ID", and starts lowercase inside the sentence.
 export function copyFailureMessage(label: string): string {
 	return `Could not copy the ${label.charAt(0).toLowerCase()}${label.slice(1)}. Try again.`
 }
@@ -48,7 +48,7 @@ export async function copyLines(
 }
 
 // copyValue copies one value that label names in sentence case, such as
-// "Job ID", and reports a failure as an error notification.
+// "Server ID", and reports a failure as an error notification.
 export async function copyValue(
 	notifications: NotificationCenter,
 	value: string,

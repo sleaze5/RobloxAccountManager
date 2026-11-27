@@ -33,7 +33,7 @@ export class LogsExplorerStore {
 					session.channel,
 					...(session.visits ?? []).flatMap((visit) => [
 						visit.placeId,
-						visit.jobId,
+						visit.serverId,
 						visit.universeId,
 						visit.datacenterId,
 					]),

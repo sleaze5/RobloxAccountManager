@@ -372,7 +372,7 @@ export class AccountStore {
 		Object.assign(this.launchInput, {
 			method: LaunchMethod.MethodPlace,
 			placeId: "",
-			jobId: "",
+			serverId: "",
 			link: "",
 			user: "",
 			resolveCurrentGame: false,
@@ -1264,7 +1264,7 @@ function emptyLaunchInput(): LaunchInput {
 	return {
 		method: LaunchMethod.MethodPlace,
 		placeId: "",
-		jobId: "",
+		serverId: "",
 		link: "",
 		user: "",
 		resolveCurrentGame: false,

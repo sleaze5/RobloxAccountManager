@@ -93,7 +93,7 @@
 			...store.launchInput,
 			method: LaunchMethod.MethodPlace,
 			placeId: String(placeId),
-			jobId: presence.gameId ?? "",
+			serverId: presence.serverId ?? "",
 			link: "",
 			user: "",
 			resolveCurrentGame: false,

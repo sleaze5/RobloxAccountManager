@@ -91,7 +91,7 @@
 							aria-hidden="true" /><input
 							type="text"
 							placeholder="Search logs or IDs"
-							aria-label="Search logs, user IDs, place IDs, or job IDs"
+							aria-label="Search logs, user IDs, place IDs, or server IDs"
 							bind:this={searchInput}
 							bind:value={store.query} />{#if store.query}<button
 								type="button"

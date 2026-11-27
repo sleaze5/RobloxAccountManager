@@ -123,9 +123,9 @@ func (service *PrivateServers) ForPlace(ctx context.Context, accountID, version,
 			PrivateServerID: listedServer.PrivateServerID, Name: boundedText(listedServer.Name, maxPrivateServerTextLength),
 			OwnerID: max(listedServer.Owner.ID, 0), OwnerName: boundedText(listedServer.Owner.Name, maxPrivateServerTextLength), OwnerDisplayName: boundedText(listedServer.Owner.DisplayName, maxPrivateServerTextLength),
 			Owned: ownerID > 0 && listedServer.Owner.ID == ownerID, Playing: max(listedServer.Playing, 0), MaxPlayers: max(listedServer.MaxPlayers, 0),
-			Running: games.ValidJobID(listedServer.ServerID),
+			Running: games.ValidServerID(listedServer.ServerID),
 		}
-		if games.ValidJobID(listedServer.AccessCode) {
+		if games.ValidServerID(listedServer.AccessCode) {
 			server.LaunchLink = games.PrivateServerLaunchLink(query.PlaceID, listedServer.AccessCode, "")
 		}
 		page.Servers = append(page.Servers, server)

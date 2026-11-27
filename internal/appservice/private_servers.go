@@ -175,7 +175,7 @@ func (service *Service) ResolveRBXServersLink(ctx context.Context, placeID int64
 	if err := validGameID(placeID); err != nil {
 		return "", err
 	}
-	if !games.ValidJobID(serverID) {
+	if !games.ValidServerID(serverID) {
 		return "", gamesInputError("The server is invalid. Refresh the servers.")
 	}
 	if !service.settings.Integrations().RBXServers {

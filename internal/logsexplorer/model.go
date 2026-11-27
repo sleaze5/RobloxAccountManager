@@ -48,7 +48,7 @@ type Visit struct {
 	DisconnectCode   string    `json:"disconnectCode"`
 	DisconnectReason string    `json:"disconnectReason"`
 	PlaceID          string    `json:"placeId"`
-	JobID            string    `json:"jobId"`
+	ServerID         string    `json:"serverId"`
 	UniverseID       string    `json:"universeId"`
 	ServerAddress    string    `json:"serverAddress"`
 	DatacenterID     string    `json:"datacenterId"`

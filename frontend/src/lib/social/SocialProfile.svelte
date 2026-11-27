@@ -70,7 +70,7 @@
 		store: SocialStore
 		accounts: AccountStore
 		person: SocialUser
-		onFillLaunch: (placeId: number, jobId: string) => void
+		onFillLaunch: (placeId: number, serverId: string) => void
 		onFillLaunchUser: (user: SocialUser) => void
 		onEditNickname: (nickname: string) => void
 		onRelationshipAction: (person: SocialUser, action: RelationshipActionId) => void

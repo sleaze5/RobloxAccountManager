@@ -281,10 +281,10 @@ func (service *Service) resolveLaunchUser(ctx context.Context, accountID int64, 
 		return gamelaunch.Request{}, launchError(roblox.KindProtocol, "Roblox did not return this user's current server.")
 	}
 	presence := presences[0]
-	if presence.UserPresenceType != robloxservices.PresenceTypeInGame || presence.PlaceID == nil || *presence.PlaceID <= 0 || presence.GameID == "" {
+	if presence.UserPresenceType != robloxservices.PresenceTypeInGame || presence.PlaceID == nil || *presence.PlaceID <= 0 || presence.ServerID == "" {
 		return gamelaunch.Request{}, launchError(roblox.KindProtocol, "This user has no server that you can see and join. The user can be offline, or privacy settings can hide the server.")
 	}
-	resolved, err := gamelaunch.Parse(gamelaunch.Input{Method: gamelaunch.MethodPlace, PlaceID: strconv.FormatInt(*presence.PlaceID, 10), JobID: presence.GameID})
+	resolved, err := gamelaunch.Parse(gamelaunch.Input{Method: gamelaunch.MethodPlace, PlaceID: strconv.FormatInt(*presence.PlaceID, 10), ServerID: presence.ServerID})
 	if err != nil {
 		return gamelaunch.Request{}, launchError(roblox.KindProtocol, "Roblox returned an invalid server for this user. Try again.")
 	}

@@ -318,8 +318,8 @@
 					store={social}
 					accounts={store}
 					notifications={notificationCenter}
-					onFillLaunch={(placeId, jobId) =>
-						launchOptions.fillGame(placeId, jobId)}
+					onFillLaunch={(placeId, serverId) =>
+						launchOptions.fillGame(placeId, serverId)}
 					onFillLaunchUser={(user) => launchOptions.fillFollowUser(user)}
 					onRelationshipAction={(person, actionId) =>
 						dialogs.openRelationshipAction(person, actionId)}
@@ -364,8 +364,8 @@
 					store={games}
 					accounts={store}
 					notifications={notificationCenter}
-					onFillLaunch={(placeId, jobId) =>
-						launchOptions.fillGame(placeId, jobId)}
+					onFillLaunch={(placeId, serverId) =>
+						launchOptions.fillGame(placeId, serverId)}
 					onFillLaunchLink={(link) => launchOptions.fillLink(link)} />
 			{:catch}
 				{@render pageUnavailable()}
