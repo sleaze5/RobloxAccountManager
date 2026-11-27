@@ -42,13 +42,15 @@ Do not add or remove tasks unless the request requires it. If it does, state the
 
 ## Documentation
 
-Read each document that matches the change:
+Read each document that matches the change. Every change that adds or changes text must follow [docs/WRITING.md](./docs/WRITING.md) and [docs/GLOSSARY.md](./docs/GLOSSARY.md).
 
 - [docs/ARCHITECTURE.md](./docs/ARCHITECTURE.md): frontend and backend boundaries, persisted formats, and logging
 - [docs/DESIGN.md](./docs/DESIGN.md): frontend UI, styling, interaction, and motion
 - [docs/GIT.md](./docs/GIT.md): Git authorship, commits, pull requests, and merging
 - [docs/PLATFORM.md](./docs/PLATFORM.md): supported platforms, build targets, OS-specific code, and data storage
 - [docs/RELEASE.md](./docs/RELEASE.md): versioning, release and build workflows, CI checks, update signing, and in-place updates
+- [docs/WRITING.md](./docs/WRITING.md): all text, such as UI text, errors, logs, comments, commits, and pull requests, and the writing checklist
+- [docs/GLOSSARY.md](./docs/GLOSSARY.md): the one term for each concept and the one verb for each action
 
 Never modify any `README.md`, `AGENTS.md`, or anything in `docs/`. If a request conflicts with these files, list the benefits and trade-offs, and ask for explicit confirmation before you make the change.
 
@@ -57,6 +59,7 @@ Never modify any `README.md`, `AGENTS.md`, or anything in `docs/`. If a request 
 Names exist so that a reader understands what the code does without reading its implementation. A name that is too long is better than a name that is too short or vague. Apply these rules to every name: functions, methods, variables, parameters, receivers, fields, types, interfaces, constants, globals, locals, exports, files, events, and CSS classes.
 
 - Name a thing by what it represents or does in the problem domain, not by its type or how it works: `accountCookie`, not `str` or `data`.
+- Name a concept of the app with its term from [docs/GLOSSARY.md](./docs/GLOSSARY.md), such as `group`, not `community`. A name that copies a field of a Roblox API, such as `jobId`, may keep the API name.
 - Write full words. Do not abbreviate: `account`, `configuration`, `password`, `message`, not `acct`, `cfg`, `pw`, `msg`. Only these short forms are allowed:
     - Acronyms that are words of their own: `ID`, `URL`, `API`, `HTTP`, `JSON`, `UI`, `CDP`, `DPAPI`, and file format names. In Go, write acronyms in one case (`accountID`, `HTTPClient`). In TypeScript, follow the existing generated bindings (`accountId`).
     - Go's `ctx` for a `context.Context` and `err` for an `error`, because the full words shadow the package and the built-in type. Write compound names in full: `readError`, `startupContext`, `importMutex`.
@@ -92,7 +95,7 @@ Check each applicable item before you finish a change. The change does only what
     - A link to a user, a group, or a game opens its preview through `getProfilePreviews().show`, not another page. The preview opens the full profile on its own page on request.
     - The UI works from the keyboard, with visible focus, sufficient contrast, labels, and accessible tooltips.
     - The UI handles loading, empty, success, disabled, and error states where they apply.
-    - User-facing text is clear and short.
+    - User-facing text follows `docs/WRITING.md`: it is short, clear to a new user, and precise for a power user.
     - User notifications go through the notification service and are timely, actionable, and deduplicated.
 5. Code stays in the correct layer, as described in `docs/ARCHITECTURE.md` and `docs/PLATFORM.md`.
     - Platform-specific code stays isolated so that support for other operating systems can be added later. Code that is the same on several operating systems lives once, in a file with a build constraint, not in each `_<os>.go` file.
@@ -108,6 +111,7 @@ Check each applicable item before you finish a change. The change does only what
     - Do not choose behavior by comparing a string such as an endpoint name. Pass the difference as a parameter.
     - Search for an existing helper before you write one, and reuse or extend it. Never leave two implementations of the same behavior. Define a type or value that several modules need once, in `frontend/src/lib/shared/` or the Go package that owns it.
     - Name everything as described in [Naming](#naming).
+    - All text, including comments, logs, errors, commits, and pull requests, follows `docs/WRITING.md` and uses the terms in `docs/GLOSSARY.md`. Complete the writing checklist in `docs/WRITING.md`.
     - Prefer self-documenting code. Write a comment only for a fact the code cannot show, such as an operating system or Roblox behavior, a format layout, or the reason for an ordering. Do not write comments that restate the code, including a doc comment that only repeats the name and signature of a function, type, field, or prop.
     - Remove dead code, commented-out code, and debug output. When a change makes a function, field, binding, event, or parameter unused, remove it in the same change.
     - Follow the style of the surrounding code.

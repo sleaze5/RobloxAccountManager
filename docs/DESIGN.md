@@ -358,7 +358,10 @@ Never show error text in the page: no error notices, error lines below content, 
 
 ## Writing
 
+These rules add UI rules to [WRITING.md](./WRITING.md), which applies to all text.
+
 - Follow [Capitalization](#capitalization).
+- Use the terms and action verbs in [GLOSSARY.md](./GLOSSARY.md).
 - Start a button label or menu item with a verb. Name the object when the context does not make it clear.
 - Use the same verb for an action in every place: the button, the progress label, and the result. For example, use "Remove account", "Removing…", and "Account removed".
 - Write an error as what happened, then what the user can do. Do not apologize or blame the user.
@@ -385,27 +388,6 @@ Use sentence case by default. Capitalize only the first word and any word that i
 - Write acronyms and initialisms in capitals, such as ID, PIN, URL, and API, as in "Place ID" and "User ID".
 - Write user-provided text, such as names, nicknames, tags, and descriptions, exactly as the user or Roblox stores it.
 - Write tokens, codes, and technical values in their exact case, such as `.ROBLOSECURITY`, `$YYYY`, and file names.
-
-Use these terms consistently:
-
-- **Remove**: take an account, browser, or other item out of the application.
-- **Delete**: permanently erase data, such as a tag or a file.
-- **Close**: end Roblox processes or close a window. Do not use "kill".
-- **Clear**: empty a field, search, filter, or selection.
-- **Lock** and **Unlock**: change the vault state.
-- **Launch**: start Roblox with one or more accounts.
-- **Select**: mark an option, item, or person. Do not use "choose" or "pick".
-- **Check**: test something, such as a cookie with Roblox or a name against the Roblox text filter. Do not use "validate". "Verified" names only a status that Roblox gives, such as a verified email.
-- **Show** and **Hide**: make something visible or not visible. Do not use "reveal".
-- **Refresh**: load data again. Do not use "reload".
-- **Turn on** and **Turn off**: change a switch, whose states are "On" and "Off". Do not use "enable" or "disable". "Disabled" names only a state that Roblox sets.
-- **Dismiss**: hide a notification or a message.
-- **Put on** and **Take off**: change what the avatar wears. "Worn" names the state.
-- **Update cookie**: give a saved account a new cookie.
-- **game**: a Roblox experience. Do not use "experience".
-- **user**: a Roblox account outside a server. **player**: a person in a game server.
-- **app**: Roblox Account Manager. Do not use "application".
-- **online status**: whether a user is online, in a game, or in Studio. Do not use "presence".
 
 ## Motion
 
