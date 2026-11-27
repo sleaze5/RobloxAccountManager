@@ -19,8 +19,8 @@ import (
 )
 
 const (
-	FormatVersion                          = 2
-	defaultPasswordTestIntervalDays        = 30
+	FormatVersion                          = 3
+	defaultPasswordCheckIntervalDays       = 30
 	defaultTimestampFormat                 = "$MMM $D $YYYY, $h:$mm:$ss $A"
 	defaultTimestampHoverFormat            = "$dddd, $MMMM $DD $YYYY, $hh:$mm:$ss $A ($relative)"
 	defaultAccountsPresenceIntervalSeconds = 300
@@ -32,7 +32,7 @@ var loggingLevels = []string{"trace", "debug", "info", "warn", "error"}
 
 type object = map[string]json.RawMessage
 
-var migrations = [...]func(object) (object, error){resetTimestampFormats}
+var migrations = [...]func(object) (object, error){resetTimestampFormats, renameMultiClientAndPasswordCheckFields}
 
 var _ = [1]struct{}{}[len(migrations)-(FormatVersion-1)]
 
@@ -54,11 +54,40 @@ func resetTimestampFormats(document object) (object, error) {
 	return document, nil
 }
 
+// renameMultiClientAndPasswordCheckFields moves the version 2 fields to the
+// names of the glossary: multiInstance becomes multiClient, and the password
+// test fields become password check fields.
+func renameMultiClientAndPasswordCheckFields(document object) (object, error) {
+	document["version"] = json.RawMessage("3")
+	renamedFieldsBySection := map[string]map[string]string{
+		"roblox": {"multiInstance": "multiClient"},
+		"vault":  {"passwordTestIntervalDays": "passwordCheckIntervalDays", "lastPasswordTestedAtMs": "lastPasswordCheckedAtMs"},
+	}
+	for section, nextNameByPreviousName := range renamedFieldsBySection {
+		fields := (&fieldDecoder{}).object(document, section)
+		if fields == nil {
+			continue
+		}
+		for previousName, nextName := range nextNameByPreviousName {
+			if value, ok := fields[previousName]; ok {
+				fields[nextName] = value
+				delete(fields, previousName)
+			}
+		}
+		encoded, err := json.Marshal(fields)
+		if err != nil {
+			return nil, fmt.Errorf("encode %s settings: %w", section, err)
+		}
+		document[section] = encoded
+	}
+	return document, nil
+}
+
 type VaultSettings struct {
-	PasswordTestIntervalDays      int    `json:"passwordTestIntervalDays"`
-	LastPasswordTestedAtMs        int64  `json:"lastPasswordTestedAtMs,omitempty"`
+	PasswordCheckIntervalDays     int    `json:"passwordCheckIntervalDays"`
+	LastPasswordCheckedAtMs       int64  `json:"lastPasswordCheckedAtMs,omitempty"`
 	PasswordReminderDismissedAtMs int64  `json:"passwordReminderDismissedAtMs,omitempty"`
-	LastPasswordTestedAt          string `json:"-"`
+	LastPasswordCheckedAt         string `json:"-"`
 }
 
 type Settings struct {
@@ -91,8 +120,7 @@ type PresenceUpdateSettings struct {
 }
 
 type RobloxSettings struct {
-	// settings.json stores Multi-client as multiInstance, its earlier name.
-	MultiClient            bool   `json:"multiInstance"`
+	MultiClient            bool   `json:"multiClient"`
 	CleanBeforeLaunch      bool   `json:"cleanBeforeLaunch"`
 	DeleteLogsWhenCleaning bool   `json:"deleteLogsWhenCleaning"`
 	UseAdministratorRights bool   `json:"useAdministratorRights"`
@@ -249,7 +277,7 @@ func (store *Store) Export() ([]byte, error) {
 	settings.Logging.EnabledLevels = cloneLoggingLevels(settings.Logging.EnabledLevels)
 	store.mutex.Unlock()
 	settings.Roblox.PlayerPath = ""
-	settings.Vault = VaultSettings{PasswordTestIntervalDays: settings.Vault.PasswordTestIntervalDays}
+	settings.Vault = VaultSettings{PasswordCheckIntervalDays: settings.Vault.PasswordCheckIntervalDays}
 	settingsJSON, err := json.Marshal(settings)
 	if err != nil {
 		return nil, fmt.Errorf("encode exported settings: %w", err)
@@ -276,7 +304,7 @@ func (store *Store) Import(imported Settings, sections []Section) error {
 			case SectionLogging:
 				settings.Logging.EnabledLevels = cloneLoggingLevels(imported.Logging.EnabledLevels)
 			case SectionVault:
-				settings.Vault.PasswordTestIntervalDays = imported.Vault.PasswordTestIntervalDays
+				settings.Vault.PasswordCheckIntervalDays = imported.Vault.PasswordCheckIntervalDays
 			default:
 				return fmt.Errorf("unknown settings section %q", section)
 			}
@@ -293,7 +321,7 @@ func decodeCurrent(document object) (Settings, []string) {
 	fields.presence(fields.object(presence, "presence.profile"), "presence.profile", &settings.Presence.Profile)
 	fields.presence(fields.object(presence, "presence.social"), "presence.social", &settings.Presence.Social)
 	roblox := fields.object(document, "roblox")
-	decodeField(fields, roblox, "roblox.multiInstance", &settings.Roblox.MultiClient, nil)
+	decodeField(fields, roblox, "roblox.multiClient", &settings.Roblox.MultiClient, nil)
 	decodeField(fields, roblox, "roblox.cleanBeforeLaunch", &settings.Roblox.CleanBeforeLaunch, nil)
 	decodeField(fields, roblox, "roblox.deleteLogsWhenCleaning", &settings.Roblox.DeleteLogsWhenCleaning, nil)
 	decodeField(fields, roblox, "roblox.useAdministratorRights", &settings.Roblox.UseAdministratorRights, nil)
@@ -304,8 +332,8 @@ func decodeCurrent(document object) (Settings, []string) {
 	decodeField(fields, integrations, "integrations.rovalraRegion", &settings.Integrations.RoValraRegion, nil)
 	decodeField(fields, integrations, "integrations.rbxservers", &settings.Integrations.RBXServers, nil)
 	vault := fields.object(document, "vault")
-	decodeField(fields, vault, "vault.passwordTestIntervalDays", &settings.Vault.PasswordTestIntervalDays, validPasswordTestInterval)
-	decodeField(fields, vault, "vault.lastPasswordTestedAtMs", &settings.Vault.LastPasswordTestedAtMs, validTimestamp)
+	decodeField(fields, vault, "vault.passwordCheckIntervalDays", &settings.Vault.PasswordCheckIntervalDays, validPasswordCheckInterval)
+	decodeField(fields, vault, "vault.lastPasswordCheckedAtMs", &settings.Vault.LastPasswordCheckedAtMs, validTimestamp)
 	decodeField(fields, vault, "vault.passwordReminderDismissedAtMs", &settings.Vault.PasswordReminderDismissedAtMs, validTimestamp)
 	levels := fields.object(fields.object(document, "logging"), "logging.enabledLevels")
 	for _, level := range loggingLevels {
@@ -367,7 +395,7 @@ func defaults() Settings {
 		},
 		Roblox:       RobloxSettings{DeleteLogsWhenCleaning: true},
 		Integrations: IntegrationSettings{RoValra: true, RBXServers: true},
-		Vault:        VaultSettings{PasswordTestIntervalDays: defaultPasswordTestIntervalDays},
+		Vault:        VaultSettings{PasswordCheckIntervalDays: defaultPasswordCheckIntervalDays},
 		Logging:      LoggingSettings{EnabledLevels: defaultEnabledLoggingLevels()},
 		UserInterface: UserInterfaceSettings{
 			TimestampFormat:      defaultTimestampFormat,
@@ -381,8 +409,8 @@ func (store *Store) Vault() VaultSettings {
 	store.mutex.Lock()
 	defer store.mutex.Unlock()
 	settings := store.settings.Vault
-	if settings.LastPasswordTestedAtMs != 0 {
-		settings.LastPasswordTestedAt = time.UnixMilli(settings.LastPasswordTestedAtMs).UTC().Format(time.RFC3339Nano)
+	if settings.LastPasswordCheckedAtMs != 0 {
+		settings.LastPasswordCheckedAt = time.UnixMilli(settings.LastPasswordCheckedAtMs).UTC().Format(time.RFC3339Nano)
 	}
 	return settings
 }
@@ -523,16 +551,16 @@ func (store *Store) SetMotion(motion MotionPreference) error {
 	return store.set(func(settings *Settings) { settings.UserInterface.Motion = motion })
 }
 
-func (store *Store) SetPasswordTestIntervalDays(days int) error {
-	if !validPasswordTestInterval(days) {
-		return errors.New("password test interval must be 0, 7, 30, or 90 days")
+func (store *Store) SetPasswordCheckIntervalDays(days int) error {
+	if !validPasswordCheckInterval(days) {
+		return errors.New("password check interval must be 0, 7, 30, or 90 days")
 	}
-	return store.set(func(settings *Settings) { settings.Vault.PasswordTestIntervalDays = days })
+	return store.set(func(settings *Settings) { settings.Vault.PasswordCheckIntervalDays = days })
 }
 
-func (store *Store) RecordPasswordTested(at time.Time) error {
+func (store *Store) RecordPasswordChecked(at time.Time) error {
 	return store.set(func(settings *Settings) {
-		settings.Vault.LastPasswordTestedAtMs = at.UTC().UnixMilli()
+		settings.Vault.LastPasswordCheckedAtMs = at.UTC().UnixMilli()
 		settings.Vault.PasswordReminderDismissedAtMs = 0
 	})
 }
@@ -568,11 +596,11 @@ func (store *Store) update(change func(*Settings) error) error {
 
 func (store *Store) PasswordReminderDue(at time.Time) bool {
 	settings := store.Vault()
-	if settings.PasswordTestIntervalDays == 0 {
+	if settings.PasswordCheckIntervalDays == 0 {
 		return false
 	}
-	latest := latestTime(settings.LastPasswordTestedAtMs, settings.PasswordReminderDismissedAtMs)
-	return latest.IsZero() || !at.Before(latest.Add(time.Duration(settings.PasswordTestIntervalDays)*24*time.Hour))
+	latest := latestTime(settings.LastPasswordCheckedAtMs, settings.PasswordReminderDismissedAtMs)
+	return latest.IsZero() || !at.Before(latest.Add(time.Duration(settings.PasswordCheckIntervalDays)*24*time.Hour))
 }
 
 func preserveUnreadableSettings(path string) error {
@@ -697,7 +725,7 @@ func validMotion(motion MotionPreference) bool {
 	return motion == MotionSystem || motion == MotionReduced || motion == MotionFull
 }
 
-func validPasswordTestInterval(days int) bool {
+func validPasswordCheckInterval(days int) bool {
 	// 0 turns the reminder off.
 	return days == 0 || days == 7 || days == 30 || days == 90
 }
