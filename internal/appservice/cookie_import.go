@@ -75,7 +75,7 @@ type importValidationOutcome struct {
 	err        error
 }
 
-func (service *Service) ValidateCookies(ctx context.Context, input string) (ImportPreview, error) {
+func (service *Service) CheckCookies(ctx context.Context, input string) (ImportPreview, error) {
 	ctx, finishValidation := service.beginValidation(ctx)
 	defer finishValidation()
 	inputs := accounts.SplitCookieInputs(input)

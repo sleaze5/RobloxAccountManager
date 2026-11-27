@@ -17,7 +17,7 @@ import type {
 	SocialProfileSnapshot,
 	SocialRelationship,
 	SocialUser,
-	UserPresence,
+	OnlineStatus,
 	SocialRelationshipSnapshot,
 } from "../backend/bridge"
 import type { NotificationCenter } from "../notifications/notification-center.svelte"
@@ -25,7 +25,7 @@ import { errorMessage } from "../shared/errors"
 import { matchesSearch, searchTerms } from "../shared/search"
 import { detailsKeepMs, isFresh } from "../shared/freshness"
 import { ListSelection } from "../shared/list-selection.svelte"
-import { menuPointFor } from "../shared/presence"
+import { menuPointFor } from "../shared/transitions"
 import { robloxUserProfileUrl } from "../shared/roblox-pages"
 import type { PageLocationKeys } from "../layout/page-history"
 import { SectionLoad } from "../shared/section-load.svelte"
@@ -71,8 +71,8 @@ export const socialProfileSections: SectionFields<
 		fields: ["savedAccountId", "connections"],
 	},
 	{
-		section: SocialProfileSection.SocialSectionCommunities,
-		fields: ["communityCount"],
+		section: SocialProfileSection.SocialSectionGroups,
+		fields: ["groupCount"],
 	},
 	{
 		section: SocialProfileSection.SocialSectionPreviousNames,
@@ -112,7 +112,7 @@ export function emptySocialProfile(userId: number): SocialProfileSnapshot {
 			followedBy: false,
 			nickname: "",
 		},
-		communityCount: null,
+		groupCount: null,
 		tradeEligibility: null,
 		collectibleCount: null,
 		collectibleRecentAveragePriceTotal: null,
@@ -176,7 +176,7 @@ export function personName(person: SocialSubject): string {
 	)
 }
 
-const presenceRefreshError = "Could not refresh online status."
+const onlineStatusRefreshError = "Could not refresh online status."
 
 type BulkRemovalList =
 	| SocialList.SocialFriends
@@ -216,6 +216,8 @@ export const bulkRemovalCopy: Record<
 	BulkRemovalList,
 	{
 		action: string
+		singularNoun: string
+		pluralNoun: string
 		progress: string
 		done: string
 		consequence: string
@@ -223,16 +225,18 @@ export const bulkRemovalCopy: Record<
 	}
 > = {
 	[SocialList.SocialFriends]: {
-		action: "Unfriend",
-		progress: "Unfriending…",
-		done: "Unfriended",
-		consequence:
-			"This ends each Roblox friendship. To be friends again, one of you must send a new request.",
-		result: (count) =>
-			`${counted(count, "friend was", "friends were")} unfriended.`,
+		action: "Remove",
+		singularNoun: "friend",
+		pluralNoun: "friends",
+		progress: "Removing…",
+		done: "Friends removed",
+		consequence: "To be friends again, one of you must send a new friend request.",
+		result: (count) => `${counted(count, "friend was", "friends were")} removed.`,
 	},
 	[SocialList.SocialFollowing]: {
 		action: "Unfollow",
+		singularNoun: "user",
+		pluralNoun: "users",
 		progress: "Unfollowing…",
 		done: "Unfollowed",
 		consequence: "You can follow them again at any time.",
@@ -240,9 +244,11 @@ export const bulkRemovalCopy: Record<
 	},
 	[SocialList.SocialRequests]: {
 		action: "Decline",
+		singularNoun: "friend request",
+		pluralNoun: "friend requests",
 		progress: "Declining…",
 		done: "Friend requests declined",
-		consequence: "They can send a new request later.",
+		consequence: "They can send a new friend request later.",
 		result: (count) =>
 			`${counted(count, "request was", "requests were")} declined.`,
 	},
@@ -315,7 +321,9 @@ export class SocialStore {
 	#relationshipRequest: ReturnType<
 		typeof accountBackend.GetSocialRelationship
 	> | null = null
-	#presenceRequest: ReturnType<typeof accountBackend.GetSocialPresences> | null = null
+	#onlineStatusRequest: ReturnType<
+		typeof accountBackend.GetSocialOnlineStatuses
+	> | null = null
 	readonly #cacheByUserId = new Map<number, SocialAccountCache>()
 	#cache = emptySocialAccountCache()
 	#pages = this.#cache.pages
@@ -559,7 +567,7 @@ export class SocialStore {
 			displayName: user.displayName,
 			nickname: "",
 			imageUrl: "",
-			presence: null,
+			onlineStatus: null,
 			request: null,
 			trusted: false,
 			hasVerifiedBadge: false,
@@ -644,41 +652,44 @@ export class SocialStore {
 		}
 	}
 
-	async refreshPresences(): Promise<void> {
+	async refreshOnlineStatuses(): Promise<void> {
 		const page = this.page,
-			userIds = this.#presenceUserIds()
-		if (!page || userIds.length === 0 || this.#presenceRequest) return
+			userIds = this.#onlineStatusUserIds()
+		if (!page || userIds.length === 0 || this.#onlineStatusRequest) return
 		const epoch = this.#epoch,
-			request = accountBackend.GetSocialPresences(this.accountId, userIds)
-		this.#presenceRequest = request
+			request = accountBackend.GetSocialOnlineStatuses(this.accountId, userIds)
+		this.#onlineStatusRequest = request
 		try {
-			const presences = (await request) ?? []
-			if (request !== this.#presenceRequest || epoch !== this.#epoch) return
-			if (this.page === page) this.#installPresences(page, presences)
-			if (this.error === presenceRefreshError) this.error = ""
+			const onlineStatuses = (await request) ?? []
+			if (request !== this.#onlineStatusRequest || epoch !== this.#epoch) return
+			if (this.page === page) this.#installOnlineStatuses(page, onlineStatuses)
+			if (this.error === onlineStatusRefreshError) this.error = ""
 		} catch {
-			if (request !== this.#presenceRequest || epoch !== this.#epoch) return
-			this.error = presenceRefreshError
+			if (request !== this.#onlineStatusRequest || epoch !== this.#epoch) return
+			this.error = onlineStatusRefreshError
 		} finally {
-			if (request === this.#presenceRequest) this.#presenceRequest = null
+			if (request === this.#onlineStatusRequest) this.#onlineStatusRequest = null
 		}
 	}
 
-	#presenceUserIds(): number[] {
+	#onlineStatusUserIds(): number[] {
 		if (this.loading || this.loadingMore) return []
 		return (this.page?.people ?? [])
-			.filter((person) => person.presence)
+			.filter((person) => person.onlineStatus)
 			.map((person) => person.userId)
 	}
 
-	#installPresences(page: SocialListPage, presences: UserPresence[]): void {
+	#installOnlineStatuses(page: SocialListPage, onlineStatuses: OnlineStatus[]): void {
 		const byUser = new Map(
-				presences.map((presence) => [presence.userId, presence]),
+				onlineStatuses.map((onlineStatus) => [
+					onlineStatus.userId,
+					onlineStatus,
+				]),
 			),
 			people: SocialUser[] = []
 		for (const person of page.people ?? []) {
-			const presence = person.presence && byUser.get(person.userId)
-			people.push(presence ? { ...person, presence } : person)
+			const onlineStatus = person.onlineStatus && byUser.get(person.userId)
+			people.push(onlineStatus ? { ...person, onlineStatus } : person)
 		}
 		const next = { ...page, people },
 			key = this.#key(),
@@ -803,8 +814,9 @@ export class SocialStore {
 		}
 	}
 
-	// Roblox cancels a sent friend request with the unfriend request, and a sent
-	// trusted friend request with the remove trusted friend request.
+	// Roblox cancels an outgoing friend request with the remove friend request,
+	// and an outgoing trusted friend request with the remove trusted friend
+	// request.
 	#relationshipOperation(
 		userId: number,
 		actionId: RelationshipActionId,
@@ -828,7 +840,7 @@ export class SocialStore {
 				}
 			case "cancel-friend":
 				return {
-					send: () => accountBackend.Unfriend(accountId, userId),
+					send: () => accountBackend.RemoveFriend(accountId, userId),
 					change: { friend: FriendStatus.FriendStatusNone },
 				}
 			case "accept-friend":
@@ -843,9 +855,9 @@ export class SocialStore {
 					change: { friend: FriendStatus.FriendStatusNone },
 					after: answerRequest(false),
 				}
-			case "unfriend":
+			case "remove-friend":
 				return {
-					send: () => accountBackend.Unfriend(accountId, userId),
+					send: () => accountBackend.RemoveFriend(accountId, userId),
 					change: {
 						friend: FriendStatus.FriendStatusNone,
 						trusted: TrustedStatus.TrustedStatusNone,
@@ -1078,8 +1090,8 @@ export class SocialStore {
 	#open(): void {
 		void this.#listRequest?.cancel()
 		this.#listRequest = null
-		void this.#presenceRequest?.cancel()
-		this.#presenceRequest = null
+		void this.#onlineStatusRequest?.cancel()
+		this.#onlineStatusRequest = null
 		this.loading = this.loadingMore = false
 		this.loadError = ""
 		this.closeMenu()
@@ -1113,9 +1125,9 @@ export class SocialStore {
 	#switchAccount(accountId: number, selfUserId: number): void {
 		this.#epoch++
 		void this.#listRequest?.cancel()
-		void this.#presenceRequest?.cancel()
+		void this.#onlineStatusRequest?.cancel()
 		void this.#relationshipRequest?.cancel()
-		this.#listRequest = this.#presenceRequest = null
+		this.#listRequest = this.#onlineStatusRequest = null
 		this.#relationshipRequest = null
 		for (const entry of this.#profiles.values()) entry.load.cancel()
 		const now = Date.now()

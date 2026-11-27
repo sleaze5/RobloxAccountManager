@@ -41,18 +41,18 @@ func (service *Service) RefreshLogsExplorerLog(ctx context.Context, fileName str
 	return session, nil
 }
 
-func (service *Service) FindGameServerVisit(ctx context.Context, placeID int64, jobID string) (logsexplorer.ServerVisit, error) {
+func (service *Service) FindGameServerVisit(ctx context.Context, placeID int64, serverID string) (logsexplorer.ServerVisit, error) {
 	if !service.vault.Unlocked() {
 		return logsexplorer.ServerVisit{}, mapRepositoryError(vault.ErrLocked)
 	}
-	if err := validGameID(placeID); err != nil {
+	if err := validRobloxID(placeID); err != nil {
 		return logsexplorer.ServerVisit{}, err
 	}
-	if !games.ValidJobID(jobID) {
+	if !games.ValidServerID(serverID) {
 		return logsexplorer.ServerVisit{}, gamesInputError("The server is invalid. Search again.")
 	}
 	ctx = logging.StartOperation(ctx, "logs-explorer")
-	visit, err := service.logsExplorer.FindServerVisit(ctx, strconv.FormatInt(placeID, 10), jobID)
+	visit, err := service.logsExplorer.FindServerVisit(ctx, strconv.FormatInt(placeID, 10), serverID)
 	if err != nil {
 		return logsexplorer.ServerVisit{}, &roblox.Error{
 			Kind: roblox.KindProtocol, Endpoint: "logs-explorer", Cause: err,

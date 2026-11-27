@@ -1,7 +1,7 @@
 import type { AccountPage } from "../accounts/account-pages"
 import { createContext } from "svelte"
 import { installPointerResize } from "../shared/pointer-resize"
-import { menuPointFor } from "../shared/presence"
+import { menuPointFor } from "../shared/transitions"
 
 // AccountContextMenu opens at a point, or beside its anchor, such as the
 // Actions button of the selection, so that it never covers the button.
@@ -38,9 +38,9 @@ export class WorkspaceState {
 	// The Chat button of a notification opens Chats with a direct chat to this
 	// user. ChatsPage reads it once when it opens.
 	chatUserIdToOpen = 0
-	accountSettingsPage = $state<"info" | "privacy" | "servers" | "sessions" | "robux">(
-		"info",
-	)
+	accountSettingsPage = $state<
+		"details" | "privacy" | "servers" | "sessions" | "robux"
+	>("details")
 	accountSettingsCategory = $state<string | null>(null)
 	accountSettingsQuery = $state("")
 	accountSettingsScrollTop = 0

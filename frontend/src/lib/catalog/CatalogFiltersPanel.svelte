@@ -7,7 +7,7 @@
 		menuIn,
 		menuOut,
 		replayValidationNudge,
-	} from "../shared/presence"
+	} from "../shared/transitions"
 	import { defaultCatalogSearch } from "./catalog-store.svelte"
 
 	let {

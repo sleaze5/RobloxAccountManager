@@ -7,7 +7,7 @@
 	import warningIcon from "@phosphor-icons/core/regular/warning.svg?raw"
 	import xIcon from "@phosphor-icons/core/regular/x.svg?raw"
 	import Icon from "../shared/Icon.svelte"
-	import { snackbarIn, snackbarOut, toastMove } from "../shared/presence"
+	import { snackbarIn, snackbarOut, toastMove } from "../shared/transitions"
 	import type {
 		AppNotification,
 		NotificationAction,

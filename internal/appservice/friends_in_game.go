@@ -17,7 +17,7 @@ import (
 // privacy hides joining them, and sometimes the place too.
 func (service *Service) ListFriendsInGame(ctx context.Context, accountID, universeID int64) (games.FriendsInGame, error) {
 	const operation = "friends-in-game"
-	if err := validGameID(universeID); err != nil {
+	if err := validRobloxID(universeID); err != nil {
 		return games.FriendsInGame{}, err
 	}
 	ctx, version, logger, done, err := service.beginFeatureOperation(ctx, accountID, "games", operation)
@@ -33,11 +33,11 @@ func (service *Service) ListFriendsInGame(ctx context.Context, accountID, univer
 	if err != nil {
 		return games.FriendsInGame{}, service.gamesError(ctx, operation, err)
 	}
-	presences, err := service.presence.UserPresences(ctx, accountID, version, friendIDs)
+	onlineStatuses, err := service.onlineStatuses.UserOnlineStatuses(ctx, accountID, version, friendIDs)
 	if err != nil {
 		return games.FriendsInGame{}, service.gamesError(ctx, operation, err)
 	}
-	playing := groupFriendsInGame(presences, universeID)
+	playing := groupFriendsInGame(onlineStatuses, universeID)
 	if len(playing.playingFriendIDs) == 0 {
 		return games.FriendsInGame{Places: []games.FriendPlace{}, FriendsInHiddenPlaces: []games.FriendInServer{}}, nil
 	}
@@ -95,7 +95,7 @@ func (service *Service) friendPlaceNames(ctx context.Context, logger *slog.Logge
 }
 
 type friendsPlayingPlace struct {
-	friendIDsByJobID      map[string][]int64
+	friendIDsByServerID   map[string][]int64
 	hiddenServerFriendIDs []int64
 }
 
@@ -114,29 +114,29 @@ func (playing friendsPlayingGame) placeIDs() []int64 {
 	return placeIDs
 }
 
-func groupFriendsInGame(presences []robloxservices.UserPresence, universeID int64) friendsPlayingGame {
+func groupFriendsInGame(onlineStatuses []robloxservices.OnlineStatus, universeID int64) friendsPlayingGame {
 	playing := friendsPlayingGame{placeByID: map[int64]*friendsPlayingPlace{}, hiddenPlaceFriendIDs: []int64{}, playingFriendIDs: []int64{}}
-	for _, presence := range presences {
-		if presence.UserPresenceType != robloxservices.PresenceTypeInGame || presence.UniverseID == nil || *presence.UniverseID != universeID {
+	for _, onlineStatus := range onlineStatuses {
+		if onlineStatus.StatusType != robloxservices.OnlineStatusTypeInGame || onlineStatus.UniverseID == nil || *onlineStatus.UniverseID != universeID {
 			continue
 		}
-		playing.playingFriendIDs = append(playing.playingFriendIDs, presence.UserID)
-		if presence.RootPlaceID != nil && games.ValidID(*presence.RootPlaceID) {
-			playing.rootPlaceID = *presence.RootPlaceID
+		playing.playingFriendIDs = append(playing.playingFriendIDs, onlineStatus.UserID)
+		if onlineStatus.RootPlaceID != nil && games.ValidID(*onlineStatus.RootPlaceID) {
+			playing.rootPlaceID = *onlineStatus.RootPlaceID
 		}
-		if presence.PlaceID == nil || !games.ValidID(*presence.PlaceID) {
-			playing.hiddenPlaceFriendIDs = append(playing.hiddenPlaceFriendIDs, presence.UserID)
+		if onlineStatus.PlaceID == nil || !games.ValidID(*onlineStatus.PlaceID) {
+			playing.hiddenPlaceFriendIDs = append(playing.hiddenPlaceFriendIDs, onlineStatus.UserID)
 			continue
 		}
-		place := playing.placeByID[*presence.PlaceID]
+		place := playing.placeByID[*onlineStatus.PlaceID]
 		if place == nil {
-			place = &friendsPlayingPlace{friendIDsByJobID: map[string][]int64{}}
-			playing.placeByID[*presence.PlaceID] = place
+			place = &friendsPlayingPlace{friendIDsByServerID: map[string][]int64{}}
+			playing.placeByID[*onlineStatus.PlaceID] = place
 		}
-		if games.ValidJobID(presence.GameID) {
-			place.friendIDsByJobID[presence.GameID] = append(place.friendIDsByJobID[presence.GameID], presence.UserID)
+		if games.ValidServerID(onlineStatus.ServerID) {
+			place.friendIDsByServerID[onlineStatus.ServerID] = append(place.friendIDsByServerID[onlineStatus.ServerID], onlineStatus.UserID)
 		} else {
-			place.hiddenServerFriendIDs = append(place.hiddenServerFriendIDs, presence.UserID)
+			place.hiddenServerFriendIDs = append(place.hiddenServerFriendIDs, onlineStatus.UserID)
 		}
 	}
 	return playing
@@ -150,7 +150,7 @@ func friendPlaces(playing friendsPlayingGame, namesByPlaceID map[int64]string, f
 	for placeID, playingPlace := range playing.placeByID {
 		place := games.FriendPlace{
 			PlaceID: placeID, Name: namesByPlaceID[placeID], IsRootPlace: placeID == playing.rootPlaceID,
-			Servers:                friendServers(playingPlace.friendIDsByJobID, friendByUserID),
+			Servers:                friendServers(playingPlace.friendIDsByServerID, friendByUserID),
 			FriendsInHiddenServers: namedFriends(playingPlace.hiddenServerFriendIDs, friendByUserID),
 		}
 		friendCount := len(place.FriendsInHiddenServers)
@@ -175,16 +175,16 @@ func friendPlaces(playing friendsPlayingGame, namesByPlaceID map[int64]string, f
 }
 
 // friendServers sorts servers by friend count and drops unnamed friends.
-func friendServers(friendIDsByJobID map[string][]int64, friendByUserID map[int64]games.FriendInServer) []games.FriendServer {
-	servers := make([]games.FriendServer, 0, len(friendIDsByJobID))
-	for jobID, userIDs := range friendIDsByJobID {
-		server := games.FriendServer{JobID: jobID, Friends: namedFriends(userIDs, friendByUserID)}
+func friendServers(friendIDsByServerID map[string][]int64, friendByUserID map[int64]games.FriendInServer) []games.FriendServer {
+	servers := make([]games.FriendServer, 0, len(friendIDsByServerID))
+	for serverID, userIDs := range friendIDsByServerID {
+		server := games.FriendServer{ServerID: serverID, Friends: namedFriends(userIDs, friendByUserID)}
 		if len(server.Friends) > 0 {
 			servers = append(servers, server)
 		}
 	}
 	slices.SortFunc(servers, func(left, right games.FriendServer) int {
-		return cmp.Or(cmp.Compare(len(right.Friends), len(left.Friends)), strings.Compare(left.JobID, right.JobID))
+		return cmp.Or(cmp.Compare(len(right.Friends), len(left.Friends)), strings.Compare(left.ServerID, right.ServerID))
 	})
 	return servers
 }

@@ -101,8 +101,8 @@
 					</span>
 					<span
 						><strong>Launch binary directly</strong><small
-							>Find RobloxPlayerBeta.exe and start it directly, without
-							the registered Roblox launcher.</small
+							>Start RobloxPlayerBeta.exe directly, without the Roblox
+							launcher.</small
 						></span>
 				</label>
 				{@render dialogLink(

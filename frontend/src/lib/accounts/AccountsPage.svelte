@@ -77,10 +77,10 @@
 							{notifications}
 							onManageTags={(accountId) =>
 								dialogs.openManageTags(accountId)}
-							onJoinServer={(placeId, jobId) =>
+							onJoinServer={(placeId, serverId) =>
 								launchOptions.fillServer({
 									placeId: String(placeId),
-									jobId,
+									serverId,
 								})}
 							onFollowUser={(user) => launchOptions.fillFollowUser(user)}
 							onReplaceCookie={() => dialogs.openAddAccount()}

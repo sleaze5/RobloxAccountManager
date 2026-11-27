@@ -140,7 +140,7 @@
 				<div class="settings-row-copy">
 					<strong id="rbxservers-enabled">Shared private servers</strong>
 					<span id="rbxservers-description"
-						>List private servers that people share on RBXServers. Opening
+						>List private servers that users share on RBXServers. Opening
 						the list sends the place ID. Getting a launch link sends the
 						server ID.</span>
 				</div>

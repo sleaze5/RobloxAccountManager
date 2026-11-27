@@ -144,7 +144,7 @@ func (service *Service) replaceValidatedCookie(ctx context.Context, accountID in
 	}
 	logger := service.logger.With("operation", "cookie-replacement", "account_id", accountID)
 	if err := service.sessions.ApplyRotation(session); err != nil {
-		logger.Warn("cookie saved, but the session changed before it could be applied", "error", err)
+		logger.Warn("cookie saved, but the account changed before the app applied it", "error", err)
 	}
 	service.events.send("account:updated", view)
 	service.browser.DetachAccount(accountID, "The saved cookie changed. This browser no longer syncs with it.")
@@ -245,24 +245,24 @@ func (service *Service) GetAvatarHeadshots(ctx context.Context, userIDs []int64)
 	return service.thumbnails.AvatarHeadshots(ctx, userIDs)
 }
 
-func (service *Service) GetAccountPresences(ctx context.Context, accountID *int64) ([]robloxservices.UserPresence, error) {
-	targets, err := service.presenceTargets(ctx, accountID)
+func (service *Service) GetAccountOnlineStatuses(ctx context.Context, accountID *int64) ([]robloxservices.OnlineStatus, error) {
+	targets, err := service.onlineStatusTargets(ctx, accountID)
 	if err != nil {
 		return nil, err
 	}
-	presences, err := service.presence.AccountPresences(ctx, targets)
-	service.refreshOnlineVoiceSuspensions(ctx, targets, presences)
+	onlineStatuses, err := service.onlineStatuses.AccountOnlineStatuses(ctx, targets)
+	service.refreshOnlineVoiceSuspensions(ctx, targets, onlineStatuses)
 	if err != nil {
-		service.logger.Warn("could not update account online status", "operation", "presence-read", "accounts", len(targets), "error", err)
-	} else if len(presences) != len(targets) {
-		service.logger.Warn("account online status update incomplete", "operation", "presence-read", "accounts", len(targets), "updated", len(presences))
+		service.logger.Warn("could not update account online status", "operation", "online-status-read", "accounts", len(targets), "error", err)
+	} else if len(onlineStatuses) != len(targets) {
+		service.logger.Warn("account online status update incomplete", "operation", "online-status-read", "accounts", len(targets), "updated", len(onlineStatuses))
 	}
-	return presences, err
+	return onlineStatuses, err
 }
 
-// presenceTargets leaves out moderated accounts, because Roblox rejects their
-// presence requests and shows them offline.
-func (service *Service) presenceTargets(ctx context.Context, accountID *int64) ([]robloxservices.PresenceTarget, error) {
+// onlineStatusTargets leaves out moderated accounts, because Roblox rejects their
+// online status requests and shows them offline.
+func (service *Service) onlineStatusTargets(ctx context.Context, accountID *int64) ([]robloxservices.OnlineStatusTarget, error) {
 	var views []accounts.AccountView
 	if accountID != nil {
 		view, err := service.accountRepository.GetView(ctx, *accountID)
@@ -276,10 +276,10 @@ func (service *Service) presenceTargets(ctx context.Context, accountID *int64) (
 			return nil, err
 		}
 	}
-	targets := make([]robloxservices.PresenceTarget, 0, len(views))
+	targets := make([]robloxservices.OnlineStatusTarget, 0, len(views))
 	for _, view := range views {
 		if view.State != accounts.StateModerated {
-			targets = append(targets, robloxservices.PresenceTarget{AccountID: view.ID, RobloxUserID: view.RobloxUserID})
+			targets = append(targets, robloxservices.OnlineStatusTarget{AccountID: view.ID, RobloxUserID: view.RobloxUserID})
 		}
 	}
 	return targets, nil
@@ -301,7 +301,7 @@ func (service *Service) savedAccounts(ctx context.Context) ([]accounts.AccountVi
 	}
 }
 
-func (service *Service) ValidateAccount(ctx context.Context, accountID int64) (accounts.AccountView, error) {
+func (service *Service) CheckAccount(ctx context.Context, accountID int64) (accounts.AccountView, error) {
 	current, err := service.accountRepository.GetView(ctx, accountID)
 	if err != nil {
 		return accounts.AccountView{}, mapRepositoryError(err)
@@ -354,10 +354,10 @@ func (service *Service) ReactivateAccount(ctx context.Context, accountID int64) 
 	defer timer.Stop()
 	select {
 	case <-ctx.Done():
-		return accounts.AccountView{}, &roblox.Error{Kind: roblox.KindCancelled, Endpoint: "account-reactivate", Message: "The account was reactivated. Refresh to see its status.", Cause: ctx.Err()}
+		return accounts.AccountView{}, &roblox.Error{Kind: roblox.KindCancelled, Endpoint: "account-reactivate", Message: "Roblox reactivated the account. Refresh to see its status.", Cause: ctx.Err()}
 	case <-timer.C:
 	}
-	view, err := service.ValidateAccount(ctx, accountID)
+	view, err := service.CheckAccount(ctx, accountID)
 	if err != nil {
 		return accounts.AccountView{}, err
 	}

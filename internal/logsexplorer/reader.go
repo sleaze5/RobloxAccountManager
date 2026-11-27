@@ -58,7 +58,7 @@ func (reader *Reader) ReadAll(ctx context.Context) (Snapshot, error) {
 	return snapshot, nil
 }
 
-func (reader *Reader) FindServerVisit(ctx context.Context, placeID, jobID string) (ServerVisit, error) {
+func (reader *Reader) FindServerVisit(ctx context.Context, placeID, serverID string) (ServerVisit, error) {
 	sessions, err := reader.readSessions(ctx, reader.logger.With("operation", "server-visit"))
 	if err != nil {
 		return ServerVisit{}, err
@@ -66,7 +66,7 @@ func (reader *Reader) FindServerVisit(ctx context.Context, placeID, jobID string
 	var visit ServerVisit
 	for _, session := range sessions {
 		for _, recordedVisit := range session.Visits {
-			if recordedVisit.PlaceID == placeID && strings.EqualFold(recordedVisit.JobID, jobID) {
+			if recordedVisit.PlaceID == placeID && strings.EqualFold(recordedVisit.ServerID, serverID) {
 				visit.HasVisited = true
 				visit.LastVisitedAtMs = max(visit.LastVisitedAtMs, recordedVisit.StartedAtMs)
 			}

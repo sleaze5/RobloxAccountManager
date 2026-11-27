@@ -202,7 +202,7 @@ export class RobloxNotificationState {
 		} finally {
 			this.dismissingAll = false
 		}
-		// Dismiss all can stop partway, so reload what Roblox still lists.
+		// Dismiss all can stop partway, so refresh what Roblox still lists.
 		await this.refresh()
 		return isDismissed
 	}

@@ -8,7 +8,7 @@
 	import xIcon from "@phosphor-icons/core/regular/x.svg?raw"
 	import Icon from "../shared/Icon.svelte"
 	import type { AccountStore } from "../accounts/account-store.svelte"
-	import { replayValidationNudge } from "../shared/presence"
+	import { replayValidationNudge } from "../shared/transitions"
 	import Dialog from "../shared/Dialog.svelte"
 	import { passwordRequirements, passwordValid } from "./password-rules"
 
@@ -138,7 +138,7 @@
 				maxlength="480"
 				autocomplete="off" /></label>
 		<div class="mt-3 notice-warning">
-			The hint is saved as plain text. Do not include sensitive information.
+			The app saves the hint as plain text. Do not put secrets in it.
 		</div>
 		<AutomaticUnlockCheckbox bind:checked={automaticUnlock} />
 		<div class="dialog-actions">

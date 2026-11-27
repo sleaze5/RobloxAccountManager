@@ -147,7 +147,7 @@
 				</span>
 			{/each}
 		{:else}
-			{#each currentCheck.servers as server, serverIndex (server.jobId)}
+			{#each currentCheck.servers as server, serverIndex (server.serverId)}
 				<span
 					class={[
 						"min-w-3 flex-1 border-t",
@@ -212,7 +212,7 @@
 			role="status">
 			<span class="text-xs font-medium text-success">Found</span>
 			<span class="truncate font-mono text-2xs text-fg-muted"
-				>{search.foundJobId}</span>
+				>{search.foundServerId}</span>
 			{#if visitLabel}
 				<span
 					class="grid size-5 shrink-0 animate-pop place-items-center rounded-sm text-warning"

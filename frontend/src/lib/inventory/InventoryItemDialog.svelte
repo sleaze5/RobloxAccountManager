@@ -174,11 +174,11 @@
 		saleLocationLabels: Record<InventorySaleLocation, string> = {
 			[InventorySaleLocation.$zero]: "",
 			[InventorySaleLocation.SaleInMarketplace]: "Marketplace only",
-			[InventorySaleLocation.SaleInMarketplaceAndAllExperiences]:
+			[InventorySaleLocation.SaleInMarketplaceAndAllGames]:
 				"Marketplace and games",
-			[InventorySaleLocation.SaleInMarketplaceAndSomeExperiences]:
+			[InventorySaleLocation.SaleInMarketplaceAndSomeGames]:
 				"Marketplace and some games",
-			[InventorySaleLocation.SaleInExperiences]: "Games only",
+			[InventorySaleLocation.SaleInGames]: "Games only",
 		},
 		metaClass =
 			"flex min-w-0 flex-wrap items-center gap-1 font-mono text-2xs wrap-anywhere text-fg-muted",
@@ -388,7 +388,7 @@
 				!!market?.isForSale &&
 				(isCatalogItem ||
 					category.id === InventoryCategory.InventoryGamePasses) &&
-				market.saleLocation !== InventorySaleLocation.SaleInExperiences,
+				market.saleLocation !== InventorySaleLocation.SaleInGames,
 		),
 		isPurchasePending = $derived(inventory.pendingPurchaseKeys.has(detailsKey)),
 		priceLabel = $derived(market ? salePriceLabel(market, false) : ""),
@@ -786,8 +786,8 @@
 						Delete item?
 					</h2>
 					<p id={`${elementIdPrefix}-inventory-confirmation-description`}>
-						{name} will be removed from @{username}'s inventory. Robux spent
-						on it is not refunded, and this cannot be undone.
+						This deletes {name} from @{username}'s inventory. Roblox does
+						not refund the Robux. This cannot be undone.
 					</p>
 				{:else if price === 0}
 					<h2 id={`${elementIdPrefix}-inventory-confirmation-title`}>
@@ -1170,8 +1170,8 @@
 
 						{#if details?.availability === ItemAvailability.ItemModerated}
 							<p class="text-xs text-fg-muted">
-								Roblox moderated this item and deleted its content, so
-								its image, file, and 3D model are gone.
+								Roblox moderated this item and deleted its image, file,
+								and 3D model.
 							</p>
 						{:else if details?.availability === ItemAvailability.ItemDeleted}
 							<p class="text-xs text-fg-muted">
@@ -1182,8 +1182,7 @@
 
 						{#if isPurchasePending}
 							<p class="text-xs text-fg-muted" role="status">
-								Bought. It can take a minute to show up in the
-								inventory.
+								Bought. It can take a minute to appear in the inventory.
 							</p>
 						{/if}
 					</div>
@@ -1385,7 +1384,7 @@
 												relatedItem.item.itemId,
 											),
 										) === true}
-										actionLabel="Open details"
+										actionLabel="Show details"
 										onOpen={() => openRelatedItem(relatedItem)} />
 								</li>
 							{/each}

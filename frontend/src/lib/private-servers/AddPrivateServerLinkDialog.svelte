@@ -3,7 +3,7 @@
 	import xIcon from "@phosphor-icons/core/regular/x.svg?raw"
 	import Icon from "../shared/Icon.svelte"
 	import type { SavedServers } from "../games/game-servers-state.svelte"
-	import { replayValidationNudge } from "../shared/presence"
+	import { replayValidationNudge } from "../shared/transitions"
 	import Dialog from "../shared/Dialog.svelte"
 
 	let {
@@ -90,7 +90,7 @@
 			<small id={`${id}-link-help`} class="text-xs text-fg-muted"
 				>{accountId
 					? `The app reads share links and access codes from Roblox as @${username}. An access code becomes a link code only if @${username} owns the server.`
-					: "Share links need an account. Access codes are saved as they are."}</small>
+					: "Share links need an account. The app saves access codes as they are."}</small>
 		</div>
 		<div class="dialog-field">
 			<label for={`${id}-name`}>Name (optional)</label>

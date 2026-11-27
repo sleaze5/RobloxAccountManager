@@ -48,7 +48,7 @@ func (service *Service) GetAccountPassword(ctx context.Context, accountID int64)
 	return password, nil
 }
 
-func (service *Service) ValidateAccountPassword(ctx context.Context, accountID int64, password string) (bool, error) {
+func (service *Service) CheckAccountPassword(ctx context.Context, accountID int64, password string) (bool, error) {
 	if err := validateSavedPassword(password); err != nil {
 		return false, err
 	}

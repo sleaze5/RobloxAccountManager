@@ -43,7 +43,7 @@ func (service *Service) CopyAccountFields(ctx context.Context, accountIDs []int6
 	}
 	for _, session := range sessions {
 		if session.Context.Err() != nil || !service.sessions.VersionCurrent(session.AccountID, session.SecretVersion) {
-			return clipboardError("An account session changed. Try again.")
+			return clipboardError("An account changed. Try again.")
 		}
 	}
 	if !copyText(strings.Join(fieldValues, "\n")) {

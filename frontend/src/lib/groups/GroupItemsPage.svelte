@@ -139,7 +139,7 @@
 					<p>
 						{search.shouldIncludeHiddenItems
 							? `${groupName} has no items in the Marketplace.`
-							: `${groupName} sells no items now. Show hidden items to list the ones that are off sale.`}
+							: `${groupName} sells no items. Show hidden items to see off-sale ones.`}
 					</p>
 				</div>
 			{/snippet}

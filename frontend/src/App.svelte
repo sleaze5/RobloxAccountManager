@@ -5,7 +5,7 @@
 	import AccountContextMenu from "./lib/accounts/AccountContextMenu.svelte"
 	import AccountsPage from "./lib/accounts/AccountsPage.svelte"
 	import { AccountStore } from "./lib/accounts/account-store.svelte"
-	import { refreshPresencesWhileShown } from "./lib/accounts/presence-refresh.svelte"
+	import { refreshOnlineStatusesWhileShown } from "./lib/accounts/online-status-refresh.svelte"
 	import { CatalogCreatorType } from "./lib/backend/bridge"
 	import { browserStore } from "./lib/browser/browser-store.svelte"
 	import { CatalogStore } from "./lib/catalog/catalog-store.svelte"
@@ -100,7 +100,7 @@
 		open: (pageUrl) =>
 			void dialogs.openManagedBrowser(store.selectedAccount.id, pageUrl),
 	})
-	refreshPresencesWhileShown(store, () => navigation.activePage === "accounts")
+	refreshOnlineStatusesWhileShown(store, () => navigation.activePage === "accounts")
 	// A dialog reports its own failure, so the page reports only the errors
 	// of actions that ran while no dialog was open.
 	notifyErrors("Action not completed", () => {
@@ -318,8 +318,8 @@
 					store={social}
 					accounts={store}
 					notifications={notificationCenter}
-					onFillLaunch={(placeId, jobId) =>
-						launchOptions.fillGame(placeId, jobId)}
+					onFillLaunch={(placeId, serverId) =>
+						launchOptions.fillGame(placeId, serverId)}
 					onFillLaunchUser={(user) => launchOptions.fillFollowUser(user)}
 					onRelationshipAction={(person, actionId) =>
 						dialogs.openRelationshipAction(person, actionId)}
@@ -364,8 +364,8 @@
 					store={games}
 					accounts={store}
 					notifications={notificationCenter}
-					onFillLaunch={(placeId, jobId) =>
-						launchOptions.fillGame(placeId, jobId)}
+					onFillLaunch={(placeId, serverId) =>
+						launchOptions.fillGame(placeId, serverId)}
 					onFillLaunchLink={(link) => launchOptions.fillLink(link)} />
 			{:catch}
 				{@render pageUnavailable()}

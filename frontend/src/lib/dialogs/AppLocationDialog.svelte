@@ -84,7 +84,7 @@
 			if (!restarting) onConfirm()
 		} catch (cause) {
 			const reason = cause instanceof Error ? `: ${cause.message}` : ""
-			error = `Setup failed${reason}. Check the folder permissions.`
+			error = `Could not prepare the folder${reason}. Check its permissions.`
 		} finally {
 			busy = restarting
 		}
@@ -151,8 +151,7 @@
 
 	{#if otherItemCount > 0}
 		<div class="mt-3 notice-warning">
-			This folder already contains other items. Use an empty folder that holds
-			only the app.
+			This folder has other files. Use a folder that holds only the app.
 			<ul
 				class="mt-2 grid gap-0.5 pl-4 font-mono text-2xs wrap-anywhere"
 				aria-label="Items in this folder">

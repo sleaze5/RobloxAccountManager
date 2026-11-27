@@ -19,20 +19,20 @@ import (
 )
 
 const (
-	FormatVersion                          = 2
-	defaultPasswordTestIntervalDays        = 30
-	defaultTimestampFormat                 = "$MMM $D $YYYY, $h:$mm:$ss $A"
-	defaultTimestampHoverFormat            = "$dddd, $MMMM $DD $YYYY, $hh:$mm:$ss $A ($relative)"
-	defaultAccountsPresenceIntervalSeconds = 300
-	defaultProfilePresenceIntervalSeconds  = 60
-	defaultSocialPresenceIntervalSeconds   = 60
+	FormatVersion                              = 3
+	defaultPasswordCheckIntervalDays           = 30
+	defaultTimestampFormat                     = "$MMM $D $YYYY, $h:$mm:$ss $A"
+	defaultTimestampHoverFormat                = "$dddd, $MMMM $DD $YYYY, $hh:$mm:$ss $A ($relative)"
+	defaultAccountsOnlineStatusIntervalSeconds = 300
+	defaultProfileOnlineStatusIntervalSeconds  = 60
+	defaultSocialOnlineStatusIntervalSeconds   = 60
 )
 
 var loggingLevels = []string{"trace", "debug", "info", "warn", "error"}
 
 type object = map[string]json.RawMessage
 
-var migrations = [...]func(object) (object, error){resetTimestampFormats}
+var migrations = [...]func(object) (object, error){resetTimestampFormats, renameFieldsToGlossaryTerms}
 
 var _ = [1]struct{}{}[len(migrations)-(FormatVersion-1)]
 
@@ -54,16 +54,49 @@ func resetTimestampFormats(document object) (object, error) {
 	return document, nil
 }
 
+// renameFieldsToGlossaryTerms moves the version 2 fields to the names of the
+// glossary: presence becomes onlineStatus, multiInstance becomes multiClient,
+// and the password test fields become password check fields.
+func renameFieldsToGlossaryTerms(document object) (object, error) {
+	document["version"] = json.RawMessage("3")
+	if onlineStatus, ok := document["presence"]; ok {
+		document["onlineStatus"] = onlineStatus
+		delete(document, "presence")
+	}
+	renamedFieldsBySection := map[string]map[string]string{
+		"roblox": {"multiInstance": "multiClient"},
+		"vault":  {"passwordTestIntervalDays": "passwordCheckIntervalDays", "lastPasswordTestedAtMs": "lastPasswordCheckedAtMs"},
+	}
+	for section, nextNameByPreviousName := range renamedFieldsBySection {
+		fields := (&fieldDecoder{}).object(document, section)
+		if fields == nil {
+			continue
+		}
+		for previousName, nextName := range nextNameByPreviousName {
+			if value, ok := fields[previousName]; ok {
+				fields[nextName] = value
+				delete(fields, previousName)
+			}
+		}
+		encoded, err := json.Marshal(fields)
+		if err != nil {
+			return nil, fmt.Errorf("encode %s settings: %w", section, err)
+		}
+		document[section] = encoded
+	}
+	return document, nil
+}
+
 type VaultSettings struct {
-	PasswordTestIntervalDays      int    `json:"passwordTestIntervalDays"`
-	LastPasswordTestedAtMs        int64  `json:"lastPasswordTestedAtMs,omitempty"`
+	PasswordCheckIntervalDays     int    `json:"passwordCheckIntervalDays"`
+	LastPasswordCheckedAtMs       int64  `json:"lastPasswordCheckedAtMs,omitempty"`
 	PasswordReminderDismissedAtMs int64  `json:"passwordReminderDismissedAtMs,omitempty"`
-	LastPasswordTestedAt          string `json:"-"`
+	LastPasswordCheckedAt         string `json:"-"`
 }
 
 type Settings struct {
 	Version       int                   `json:"version"`
-	Presence      PresenceSettings      `json:"presence"`
+	OnlineStatus  OnlineStatusSettings  `json:"onlineStatus"`
 	Roblox        RobloxSettings        `json:"roblox"`
 	Integrations  IntegrationSettings   `json:"integrations"`
 	Vault         VaultSettings         `json:"vault"`
@@ -71,27 +104,27 @@ type Settings struct {
 	UserInterface UserInterfaceSettings `json:"userInterface"`
 }
 
-type PresenceScope string
+type OnlineStatusScope string
 
 const (
-	PresenceAccounts PresenceScope = "accounts"
-	PresenceProfile  PresenceScope = "profile"
-	PresenceSocial   PresenceScope = "social"
+	OnlineStatusAccounts OnlineStatusScope = "accounts"
+	OnlineStatusProfile  OnlineStatusScope = "profile"
+	OnlineStatusSocial   OnlineStatusScope = "social"
 )
 
-type PresenceSettings struct {
-	Accounts PresenceUpdateSettings `json:"accounts"`
-	Profile  PresenceUpdateSettings `json:"profile"`
-	Social   PresenceUpdateSettings `json:"social"`
+type OnlineStatusSettings struct {
+	Accounts OnlineStatusUpdateSettings `json:"accounts"`
+	Profile  OnlineStatusUpdateSettings `json:"profile"`
+	Social   OnlineStatusUpdateSettings `json:"social"`
 }
 
-type PresenceUpdateSettings struct {
+type OnlineStatusUpdateSettings struct {
 	Enabled         bool `json:"enabled"`
 	IntervalSeconds int  `json:"intervalSeconds"`
 }
 
 type RobloxSettings struct {
-	MultiInstance          bool   `json:"multiInstance"`
+	MultiClient            bool   `json:"multiClient"`
 	CleanBeforeLaunch      bool   `json:"cleanBeforeLaunch"`
 	DeleteLogsWhenCleaning bool   `json:"deleteLogsWhenCleaning"`
 	UseAdministratorRights bool   `json:"useAdministratorRights"`
@@ -112,7 +145,7 @@ type LoggingSettings struct {
 type Section string
 
 const (
-	SectionPresence      Section = "presence"
+	SectionOnlineStatus  Section = "onlineStatus"
 	SectionRoblox        Section = "roblox"
 	SectionIntegrations  Section = "integrations"
 	SectionUserInterface Section = "userInterface"
@@ -120,7 +153,7 @@ const (
 	SectionVault         Section = "vault"
 )
 
-var Sections = []Section{SectionPresence, SectionRoblox, SectionIntegrations, SectionUserInterface, SectionLogging, SectionVault}
+var Sections = []Section{SectionOnlineStatus, SectionRoblox, SectionIntegrations, SectionUserInterface, SectionLogging, SectionVault}
 
 type MotionPreference string
 
@@ -248,7 +281,7 @@ func (store *Store) Export() ([]byte, error) {
 	settings.Logging.EnabledLevels = cloneLoggingLevels(settings.Logging.EnabledLevels)
 	store.mutex.Unlock()
 	settings.Roblox.PlayerPath = ""
-	settings.Vault = VaultSettings{PasswordTestIntervalDays: settings.Vault.PasswordTestIntervalDays}
+	settings.Vault = VaultSettings{PasswordCheckIntervalDays: settings.Vault.PasswordCheckIntervalDays}
 	settingsJSON, err := json.Marshal(settings)
 	if err != nil {
 		return nil, fmt.Errorf("encode exported settings: %w", err)
@@ -260,10 +293,10 @@ func (store *Store) Import(imported Settings, sections []Section) error {
 	return store.update(func(settings *Settings) error {
 		for _, section := range sections {
 			switch section {
-			case SectionPresence:
-				settings.Presence = imported.Presence
+			case SectionOnlineStatus:
+				settings.OnlineStatus = imported.OnlineStatus
 			case SectionRoblox:
-				settings.Roblox.MultiInstance = imported.Roblox.MultiInstance
+				settings.Roblox.MultiClient = imported.Roblox.MultiClient
 				settings.Roblox.CleanBeforeLaunch = imported.Roblox.CleanBeforeLaunch
 				settings.Roblox.DeleteLogsWhenCleaning = imported.Roblox.DeleteLogsWhenCleaning
 				settings.Roblox.UseAdministratorRights = imported.Roblox.UseAdministratorRights
@@ -275,7 +308,7 @@ func (store *Store) Import(imported Settings, sections []Section) error {
 			case SectionLogging:
 				settings.Logging.EnabledLevels = cloneLoggingLevels(imported.Logging.EnabledLevels)
 			case SectionVault:
-				settings.Vault.PasswordTestIntervalDays = imported.Vault.PasswordTestIntervalDays
+				settings.Vault.PasswordCheckIntervalDays = imported.Vault.PasswordCheckIntervalDays
 			default:
 				return fmt.Errorf("unknown settings section %q", section)
 			}
@@ -287,12 +320,12 @@ func (store *Store) Import(imported Settings, sections []Section) error {
 func decodeCurrent(document object) (Settings, []string) {
 	fields := &fieldDecoder{}
 	settings := defaults()
-	presence := fields.object(document, "presence")
-	fields.presence(fields.object(presence, "presence.accounts"), "presence.accounts", &settings.Presence.Accounts)
-	fields.presence(fields.object(presence, "presence.profile"), "presence.profile", &settings.Presence.Profile)
-	fields.presence(fields.object(presence, "presence.social"), "presence.social", &settings.Presence.Social)
+	onlineStatus := fields.object(document, "onlineStatus")
+	fields.onlineStatus(fields.object(onlineStatus, "onlineStatus.accounts"), "onlineStatus.accounts", &settings.OnlineStatus.Accounts)
+	fields.onlineStatus(fields.object(onlineStatus, "onlineStatus.profile"), "onlineStatus.profile", &settings.OnlineStatus.Profile)
+	fields.onlineStatus(fields.object(onlineStatus, "onlineStatus.social"), "onlineStatus.social", &settings.OnlineStatus.Social)
 	roblox := fields.object(document, "roblox")
-	decodeField(fields, roblox, "roblox.multiInstance", &settings.Roblox.MultiInstance, nil)
+	decodeField(fields, roblox, "roblox.multiClient", &settings.Roblox.MultiClient, nil)
 	decodeField(fields, roblox, "roblox.cleanBeforeLaunch", &settings.Roblox.CleanBeforeLaunch, nil)
 	decodeField(fields, roblox, "roblox.deleteLogsWhenCleaning", &settings.Roblox.DeleteLogsWhenCleaning, nil)
 	decodeField(fields, roblox, "roblox.useAdministratorRights", &settings.Roblox.UseAdministratorRights, nil)
@@ -303,8 +336,8 @@ func decodeCurrent(document object) (Settings, []string) {
 	decodeField(fields, integrations, "integrations.rovalraRegion", &settings.Integrations.RoValraRegion, nil)
 	decodeField(fields, integrations, "integrations.rbxservers", &settings.Integrations.RBXServers, nil)
 	vault := fields.object(document, "vault")
-	decodeField(fields, vault, "vault.passwordTestIntervalDays", &settings.Vault.PasswordTestIntervalDays, validPasswordTestInterval)
-	decodeField(fields, vault, "vault.lastPasswordTestedAtMs", &settings.Vault.LastPasswordTestedAtMs, validTimestamp)
+	decodeField(fields, vault, "vault.passwordCheckIntervalDays", &settings.Vault.PasswordCheckIntervalDays, validPasswordCheckInterval)
+	decodeField(fields, vault, "vault.lastPasswordCheckedAtMs", &settings.Vault.LastPasswordCheckedAtMs, validTimestamp)
 	decodeField(fields, vault, "vault.passwordReminderDismissedAtMs", &settings.Vault.PasswordReminderDismissedAtMs, validTimestamp)
 	levels := fields.object(fields.object(document, "logging"), "logging.enabledLevels")
 	for _, level := range loggingLevels {
@@ -336,9 +369,9 @@ func (fields *fieldDecoder) object(document object, path string) object {
 	return nested
 }
 
-func (fields *fieldDecoder) presence(document object, path string, target *PresenceUpdateSettings) {
+func (fields *fieldDecoder) onlineStatus(document object, path string, target *OnlineStatusUpdateSettings) {
 	decodeField(fields, document, path+".enabled", &target.Enabled, nil)
-	decodeField(fields, document, path+".intervalSeconds", &target.IntervalSeconds, validPresenceInterval)
+	decodeField(fields, document, path+".intervalSeconds", &target.IntervalSeconds, validOnlineStatusInterval)
 }
 
 func decodeField[FieldValue any](fields *fieldDecoder, document object, path string, target *FieldValue, valid func(FieldValue) bool) {
@@ -359,14 +392,14 @@ func fieldName(path string) string { return path[strings.LastIndex(path, ".")+1:
 func defaults() Settings {
 	return Settings{
 		Version: FormatVersion,
-		Presence: PresenceSettings{
-			Accounts: PresenceUpdateSettings{Enabled: true, IntervalSeconds: defaultAccountsPresenceIntervalSeconds},
-			Profile:  PresenceUpdateSettings{Enabled: true, IntervalSeconds: defaultProfilePresenceIntervalSeconds},
-			Social:   PresenceUpdateSettings{Enabled: true, IntervalSeconds: defaultSocialPresenceIntervalSeconds},
+		OnlineStatus: OnlineStatusSettings{
+			Accounts: OnlineStatusUpdateSettings{Enabled: true, IntervalSeconds: defaultAccountsOnlineStatusIntervalSeconds},
+			Profile:  OnlineStatusUpdateSettings{Enabled: true, IntervalSeconds: defaultProfileOnlineStatusIntervalSeconds},
+			Social:   OnlineStatusUpdateSettings{Enabled: true, IntervalSeconds: defaultSocialOnlineStatusIntervalSeconds},
 		},
 		Roblox:       RobloxSettings{DeleteLogsWhenCleaning: true},
 		Integrations: IntegrationSettings{RoValra: true, RBXServers: true},
-		Vault:        VaultSettings{PasswordTestIntervalDays: defaultPasswordTestIntervalDays},
+		Vault:        VaultSettings{PasswordCheckIntervalDays: defaultPasswordCheckIntervalDays},
 		Logging:      LoggingSettings{EnabledLevels: defaultEnabledLoggingLevels()},
 		UserInterface: UserInterfaceSettings{
 			TimestampFormat:      defaultTimestampFormat,
@@ -380,8 +413,8 @@ func (store *Store) Vault() VaultSettings {
 	store.mutex.Lock()
 	defer store.mutex.Unlock()
 	settings := store.settings.Vault
-	if settings.LastPasswordTestedAtMs != 0 {
-		settings.LastPasswordTestedAt = time.UnixMilli(settings.LastPasswordTestedAtMs).UTC().Format(time.RFC3339Nano)
+	if settings.LastPasswordCheckedAtMs != 0 {
+		settings.LastPasswordCheckedAt = time.UnixMilli(settings.LastPasswordCheckedAtMs).UTC().Format(time.RFC3339Nano)
 	}
 	return settings
 }
@@ -422,34 +455,34 @@ func (store *Store) Integrations() IntegrationSettings {
 	return store.settings.Integrations
 }
 
-func (store *Store) Presence() PresenceSettings {
+func (store *Store) OnlineStatus() OnlineStatusSettings {
 	store.mutex.Lock()
 	defer store.mutex.Unlock()
-	return store.settings.Presence
+	return store.settings.OnlineStatus
 }
 
-func (store *Store) SetPresenceUpdates(scope PresenceScope, enabled bool, intervalSeconds int) error {
-	presence := PresenceUpdateSettings{Enabled: enabled, IntervalSeconds: intervalSeconds}
-	if err := validatePresenceSettings(presence); err != nil {
+func (store *Store) SetOnlineStatusUpdates(scope OnlineStatusScope, enabled bool, intervalSeconds int) error {
+	onlineStatus := OnlineStatusUpdateSettings{Enabled: enabled, IntervalSeconds: intervalSeconds}
+	if err := validateOnlineStatusSettings(onlineStatus); err != nil {
 		return err
 	}
 	return store.update(func(settings *Settings) error {
 		switch scope {
-		case PresenceAccounts:
-			settings.Presence.Accounts = presence
-		case PresenceProfile:
-			settings.Presence.Profile = presence
-		case PresenceSocial:
-			settings.Presence.Social = presence
+		case OnlineStatusAccounts:
+			settings.OnlineStatus.Accounts = onlineStatus
+		case OnlineStatusProfile:
+			settings.OnlineStatus.Profile = onlineStatus
+		case OnlineStatusSocial:
+			settings.OnlineStatus.Social = onlineStatus
 		default:
-			return fmt.Errorf("unknown presence update scope %q", scope)
+			return fmt.Errorf("unknown online status update scope %q", scope)
 		}
 		return nil
 	})
 }
 
-func (store *Store) SetMultiInstance(enabled bool) error {
-	return store.set(func(settings *Settings) { settings.Roblox.MultiInstance = enabled })
+func (store *Store) SetMultiClient(enabled bool) error {
+	return store.set(func(settings *Settings) { settings.Roblox.MultiClient = enabled })
 }
 
 func (store *Store) SetCleanBeforeLaunch(enabled bool) error {
@@ -522,16 +555,16 @@ func (store *Store) SetMotion(motion MotionPreference) error {
 	return store.set(func(settings *Settings) { settings.UserInterface.Motion = motion })
 }
 
-func (store *Store) SetPasswordTestIntervalDays(days int) error {
-	if !validPasswordTestInterval(days) {
-		return errors.New("password test interval must be 0, 7, 30, or 90 days")
+func (store *Store) SetPasswordCheckIntervalDays(days int) error {
+	if !validPasswordCheckInterval(days) {
+		return errors.New("password check interval must be 0, 7, 30, or 90 days")
 	}
-	return store.set(func(settings *Settings) { settings.Vault.PasswordTestIntervalDays = days })
+	return store.set(func(settings *Settings) { settings.Vault.PasswordCheckIntervalDays = days })
 }
 
-func (store *Store) RecordPasswordTested(at time.Time) error {
+func (store *Store) RecordPasswordChecked(at time.Time) error {
 	return store.set(func(settings *Settings) {
-		settings.Vault.LastPasswordTestedAtMs = at.UTC().UnixMilli()
+		settings.Vault.LastPasswordCheckedAtMs = at.UTC().UnixMilli()
 		settings.Vault.PasswordReminderDismissedAtMs = 0
 	})
 }
@@ -567,11 +600,11 @@ func (store *Store) update(change func(*Settings) error) error {
 
 func (store *Store) PasswordReminderDue(at time.Time) bool {
 	settings := store.Vault()
-	if settings.PasswordTestIntervalDays == 0 {
+	if settings.PasswordCheckIntervalDays == 0 {
 		return false
 	}
-	latest := latestTime(settings.LastPasswordTestedAtMs, settings.PasswordReminderDismissedAtMs)
-	return latest.IsZero() || !at.Before(latest.Add(time.Duration(settings.PasswordTestIntervalDays)*24*time.Hour))
+	latest := latestTime(settings.LastPasswordCheckedAtMs, settings.PasswordReminderDismissedAtMs)
+	return latest.IsZero() || !at.Before(latest.Add(time.Duration(settings.PasswordCheckIntervalDays)*24*time.Hour))
 }
 
 func preserveUnreadableSettings(path string) error {
@@ -651,14 +684,14 @@ func (store *Store) RecoveryError() error { return store.recoveryError }
 
 func (store *Store) Origin() string { return store.origin }
 
-func validatePresenceSettings(settings PresenceUpdateSettings) error {
-	if !validPresenceInterval(settings.IntervalSeconds) {
-		return errors.New("presence update interval must be between 30 and 900 seconds in steps of 5")
+func validateOnlineStatusSettings(settings OnlineStatusUpdateSettings) error {
+	if !validOnlineStatusInterval(settings.IntervalSeconds) {
+		return errors.New("the online status update interval must be between 30 and 900 seconds, in steps of 5")
 	}
 	return nil
 }
 
-func validPresenceInterval(seconds int) bool {
+func validOnlineStatusInterval(seconds int) bool {
 	return seconds >= 30 && seconds <= 900 && seconds%5 == 0
 }
 
@@ -696,7 +729,7 @@ func validMotion(motion MotionPreference) bool {
 	return motion == MotionSystem || motion == MotionReduced || motion == MotionFull
 }
 
-func validPasswordTestInterval(days int) bool {
+func validPasswordCheckInterval(days int) bool {
 	// 0 turns the reminder off.
 	return days == 0 || days == 7 || days == 30 || days == 90
 }

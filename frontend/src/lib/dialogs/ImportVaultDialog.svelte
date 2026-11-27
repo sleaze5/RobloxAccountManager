@@ -22,7 +22,7 @@
 		type TransferPreview,
 		type TransferResult,
 	} from "../backend/bridge"
-	import { replayValidationNudge } from "../shared/presence"
+	import { replayValidationNudge } from "../shared/transitions"
 	import { errorMessage } from "../shared/errors"
 	import Dialog from "../shared/Dialog.svelte"
 	import type { AccountStore } from "../accounts/account-store.svelte"
@@ -45,15 +45,18 @@
 	const games = getGamesStore()
 
 	const settingsSections = [
-			{ value: SettingsSection.SectionPresence, label: "Online status updates" },
+			{
+				value: SettingsSection.SectionOnlineStatus,
+				label: "Online status updates",
+			},
 			{
 				value: SettingsSection.SectionRoblox,
-				label: "Roblox multi-instance and Linux client",
+				label: "Roblox: Multi-client and Linux client",
 			},
 			{ value: SettingsSection.SectionIntegrations, label: "Integrations" },
 			{ value: SettingsSection.SectionUserInterface, label: "User interface" },
 			{ value: SettingsSection.SectionLogging, label: "Logging" },
-			{ value: SettingsSection.SectionVault, label: "Password test reminder" },
+			{ value: SettingsSection.SectionVault, label: "Password check reminder" },
 		],
 		settingsLabels: Record<TransferSettingsStatus, { text: string; tone: string }> =
 			{
@@ -275,7 +278,7 @@
 				{:else if preview}
 					Exported <Timestamp value={preview.exportedAtMs} />.
 				{:else}
-					Enter the password that was set when this file was exported.
+					Enter the export password of this file.
 				{/if}
 			</p>
 		</div>

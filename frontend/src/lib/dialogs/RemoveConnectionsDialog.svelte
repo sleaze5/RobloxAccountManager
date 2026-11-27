@@ -49,10 +49,11 @@
 				<h2 id="remove-connections-title">
 					{copy.action}
 					{count}
-					{count === 1 ? "person" : "people"}?
+					{count === 1 ? copy.singularNoun : copy.pluralNoun}?
 				</h2>
 				<p id="remove-connections-description">
-					@{account.username} will {copy.action.toLowerCase()} the people below.
+					@{account.username} will {copy.action.toLowerCase()} the {copy.pluralNoun}
+					below.
 					{copy.consequence}
 				</p>
 			</div>

@@ -79,7 +79,7 @@ func (service *Service) serializeLaunch(ctx context.Context, action func() error
 }
 
 func (service *Service) executeLaunch(ctx context.Context, shouldClean bool, confirm func(context.Context, int, bool) (bool, error), action func() error) error {
-	if err := service.multiInstance.PrepareForLaunch(ctx, confirm); err != nil {
+	if err := service.multiClient.PrepareForLaunch(ctx, confirm); err != nil {
 		if errors.Is(err, robloxmulti.ErrLaunchCancelled) {
 			return err
 		}
@@ -102,7 +102,7 @@ func (service *Service) executeLaunch(ctx context.Context, shouldClean bool, con
 	if err := action(); err != nil {
 		return err
 	}
-	service.multiInstance.AfterLaunch()
+	service.multiClient.AfterLaunch()
 	return nil
 }
 
@@ -112,19 +112,19 @@ func (service *Service) confirmBatchLaunch(ctx context.Context, count int, shoul
 	if shouldClean {
 		return service.confirmLaunch(ctx, LaunchConfirmation{AccountCount: count, IsCleaningBeforeLaunch: true})
 	}
-	state := service.multiInstance.Snapshot()
+	state := service.multiClient.Snapshot()
 	if state.Enabled && state.Ready {
 		return true, nil
 	}
 	return service.confirmLaunch(ctx, LaunchConfirmation{
-		AccountCount: count, MultiInstanceEnabled: state.Enabled, MultiInstanceMessage: state.Message,
+		AccountCount: count, MultiClientEnabled: state.Enabled, MultiClientMessage: state.Message,
 	})
 }
 
 func (service *Service) launchAccount(ctx context.Context, accountID int64, input gamelaunch.Input, shouldClean bool) error {
 	return service.runLaunchOperation(ctx, accountID, input, "game-launch", func(ctx context.Context, ticket func() (string, error), browserID string, target gamelaunch.Request) error {
-		confirm := func(ctx context.Context, count int, multiInstance bool) (bool, error) {
-			approved, err := service.replacementConfirmation(shouldClean)(ctx, count, multiInstance)
+		confirm := func(ctx context.Context, count int, multiClient bool) (bool, error) {
+			approved, err := service.replacementConfirmation(shouldClean)(ctx, count, multiClient)
 			if err != nil || !approved {
 				return approved, err
 			}
@@ -164,7 +164,7 @@ func (service *Service) CopyLaunchOptions(ctx context.Context, accountIDs []int6
 			return err
 		}
 		if session.Context.Err() != nil || !service.sessions.VersionCurrent(session.AccountID, session.SecretVersion) {
-			return clipboardError("An account session changed. Try again.")
+			return clipboardError("An account changed. Try again.")
 		}
 	}
 	if !copyText(strings.Join(commands, "\n")) {
@@ -273,18 +273,18 @@ func (service *Service) resolveLaunchUser(ctx context.Context, accountID int64, 
 	if !resolveCurrentGame {
 		return gamelaunch.Request{UserID: userID}, nil
 	}
-	presences, err := service.presence.AccountPresences(ctx, []robloxservices.PresenceTarget{{AccountID: accountID, RobloxUserID: userID}})
+	onlineStatuses, err := service.onlineStatuses.AccountOnlineStatuses(ctx, []robloxservices.OnlineStatusTarget{{AccountID: accountID, RobloxUserID: userID}})
 	if err != nil {
 		return gamelaunch.Request{}, err
 	}
-	if len(presences) != 1 {
+	if len(onlineStatuses) != 1 {
 		return gamelaunch.Request{}, launchError(roblox.KindProtocol, "Roblox did not return this user's current server.")
 	}
-	presence := presences[0]
-	if presence.UserPresenceType != robloxservices.PresenceTypeInGame || presence.PlaceID == nil || *presence.PlaceID <= 0 || presence.GameID == "" {
+	onlineStatus := onlineStatuses[0]
+	if onlineStatus.StatusType != robloxservices.OnlineStatusTypeInGame || onlineStatus.PlaceID == nil || *onlineStatus.PlaceID <= 0 || onlineStatus.ServerID == "" {
 		return gamelaunch.Request{}, launchError(roblox.KindProtocol, "This user has no server that you can see and join. The user can be offline, or privacy settings can hide the server.")
 	}
-	resolved, err := gamelaunch.Parse(gamelaunch.Input{Method: gamelaunch.MethodPlace, PlaceID: strconv.FormatInt(*presence.PlaceID, 10), JobID: presence.GameID})
+	resolved, err := gamelaunch.Parse(gamelaunch.Input{Method: gamelaunch.MethodPlace, PlaceID: strconv.FormatInt(*onlineStatus.PlaceID, 10), ServerID: onlineStatus.ServerID})
 	if err != nil {
 		return gamelaunch.Request{}, launchError(roblox.KindProtocol, "Roblox returned an invalid server for this user. Try again.")
 	}
@@ -309,7 +309,7 @@ func launchError(kind roblox.ErrorKind, message string) error {
 
 func launchPreparationError(err error) *roblox.Error {
 	if errors.Is(err, context.Canceled) || errors.Is(err, context.DeadlineExceeded) {
-		return &roblox.Error{Kind: roblox.KindCancelled, Endpoint: "game-launch", Message: "The launch was canceled or timed out. Try joining again."}
+		return &roblox.Error{Kind: roblox.KindCancelled, Endpoint: "game-launch", Message: "The launch was canceled or timed out. Try again."}
 	}
 	message := err.Error()
 	return &roblox.Error{Kind: roblox.KindProtocol, Endpoint: "game-launch", Message: strings.ToUpper(message[:1]) + message[1:] + "."}

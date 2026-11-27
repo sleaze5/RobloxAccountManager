@@ -77,7 +77,7 @@ func (service *PrivateServers) Owned(ctx context.Context, accountID, version int
 			continue
 		}
 		server := games.OwnedPrivateServer{
-			ServerID: listedServer.PrivateServerID, Name: boundedText(listedServer.Name, maxPrivateServerTextLength), Active: listedServer.Active,
+			PrivateServerID: listedServer.PrivateServerID, Name: boundedText(listedServer.Name, maxPrivateServerTextLength), Active: listedServer.Active,
 			GameName: boundedText(listedServer.UniverseName, maxPrivateServerTextLength), Renews: listedServer.WillRenew, ExpiresAtMs: robloxTimeMs(listedServer.ExpirationDate),
 		}
 		if games.ValidID(listedServer.UniverseID) {
@@ -97,13 +97,15 @@ func (service *PrivateServers) Owned(ctx context.Context, accountID, version int
 type placePrivateServerPage struct {
 	NextPageCursor string `json:"nextPageCursor"`
 	Data           []struct {
-		VipServerID int64             `json:"vipServerId"`
-		ID          string            `json:"id"`
-		Name        string            `json:"name"`
-		AccessCode  string            `json:"accessCode"`
-		Playing     int64             `json:"playing"`
-		MaxPlayers  int64             `json:"maxPlayers"`
-		Owner       privateServerUser `json:"owner"`
+		// Roblox calls the private server ID vipServerId, and the server ID of
+		// the running server id.
+		PrivateServerID int64             `json:"vipServerId"`
+		ServerID        string            `json:"id"`
+		Name            string            `json:"name"`
+		AccessCode      string            `json:"accessCode"`
+		Playing         int64             `json:"playing"`
+		MaxPlayers      int64             `json:"maxPlayers"`
+		Owner           privateServerUser `json:"owner"`
 	} `json:"data"`
 }
 
@@ -114,16 +116,16 @@ func (service *PrivateServers) ForPlace(ctx context.Context, accountID, version,
 	}
 	page := games.PrivateServerPage{Servers: make([]games.PrivateServer, 0, len(payload.Data)), NextCursor: payload.NextPageCursor}
 	for _, listedServer := range payload.Data {
-		if !games.ValidID(listedServer.VipServerID) {
+		if !games.ValidID(listedServer.PrivateServerID) {
 			continue
 		}
 		server := games.PrivateServer{
-			ServerID: listedServer.VipServerID, Name: boundedText(listedServer.Name, maxPrivateServerTextLength),
+			PrivateServerID: listedServer.PrivateServerID, Name: boundedText(listedServer.Name, maxPrivateServerTextLength),
 			OwnerID: max(listedServer.Owner.ID, 0), OwnerName: boundedText(listedServer.Owner.Name, maxPrivateServerTextLength), OwnerDisplayName: boundedText(listedServer.Owner.DisplayName, maxPrivateServerTextLength),
 			Owned: ownerID > 0 && listedServer.Owner.ID == ownerID, Playing: max(listedServer.Playing, 0), MaxPlayers: max(listedServer.MaxPlayers, 0),
-			Running: games.ValidJobID(listedServer.ID),
+			Running: games.ValidServerID(listedServer.ServerID),
 		}
-		if games.ValidJobID(listedServer.AccessCode) {
+		if games.ValidServerID(listedServer.AccessCode) {
 			server.LaunchLink = games.PrivateServerLaunchLink(query.PlaceID, listedServer.AccessCode, "")
 		}
 		page.Servers = append(page.Servers, server)
@@ -143,10 +145,10 @@ func (service *PrivateServers) LinkCode(ctx context.Context, accountID, version,
 			if !strings.EqualFold(server.AccessCode, accessCode) {
 				continue
 			}
-			if ownerID <= 0 || server.Owner.ID != ownerID || !games.ValidID(server.VipServerID) {
+			if ownerID <= 0 || server.Owner.ID != ownerID || !games.ValidID(server.PrivateServerID) {
 				return "", nil
 			}
-			settings, err := service.Settings(ctx, accountID, version, server.VipServerID)
+			settings, err := service.Settings(ctx, accountID, version, server.PrivateServerID)
 			if err != nil || settings.JoinLink == "" {
 				return "", err
 			}
@@ -180,7 +182,7 @@ func (service *PrivateServers) placePage(ctx context.Context, accountID, version
 	return payload, nil
 }
 
-func (service *PrivateServers) Settings(ctx context.Context, accountID, version, serverID int64) (games.PrivateServerSettings, error) {
+func (service *PrivateServers) Settings(ctx context.Context, accountID, version, privateServerID int64) (games.PrivateServerSettings, error) {
 	var payload struct {
 		ID     int64  `json:"id"`
 		Name   string `json:"name"`
@@ -200,13 +202,13 @@ func (service *PrivateServers) Settings(ctx context.Context, accountID, version,
 			Users          []privateServerUser `json:"users"`
 		} `json:"permissions"`
 	}
-	if err := service.read(ctx, accountID, version, "private-server", privateServerPath(serverID, ""), nil, &payload); err != nil {
+	if err := service.read(ctx, accountID, version, "private-server", privateServerPath(privateServerID, ""), nil, &payload); err != nil {
 		return games.PrivateServerSettings{}, err
 	}
-	if payload.ID != serverID {
+	if payload.ID != privateServerID {
 		return games.PrivateServerSettings{}, privateServerDataError("private-server")
 	}
-	settings := games.PrivateServerSettings{ServerID: serverID, Name: boundedText(payload.Name, maxPrivateServerTextLength), Active: payload.Active, Users: []games.PrivateServerUser{}}
+	settings := games.PrivateServerSettings{PrivateServerID: privateServerID, Name: boundedText(payload.Name, maxPrivateServerTextLength), Active: payload.Active, Users: []games.PrivateServerUser{}}
 	if payload.Game != nil {
 		settings.GameName = boundedText(payload.Game.Name, maxPrivateServerTextLength)
 	}
@@ -231,7 +233,7 @@ func (service *PrivateServers) Settings(ctx context.Context, accountID, version,
 	return settings, nil
 }
 
-func (service *PrivateServers) Update(ctx context.Context, accountID, version, serverID int64, update PrivateServerUpdate) error {
+func (service *PrivateServers) Update(ctx context.Context, accountID, version, privateServerID int64, update PrivateServerUpdate) error {
 	var path string
 	var body any
 	switch {
@@ -260,7 +262,7 @@ func (service *PrivateServers) Update(ctx context.Context, accountID, version, s
 	if err != nil {
 		return &roblox.Error{Kind: roblox.KindProtocol, Endpoint: "private-server-update", Message: "Could not encode the request.", Cause: err}
 	}
-	endpoint := &url.URL{Scheme: "https", Host: "games.roblox.com", Path: privateServerPath(serverID, path)}
+	endpoint := &url.URL{Scheme: "https", Host: "games.roblox.com", Path: privateServerPath(privateServerID, path)}
 	_, err = service.client.Do(ctx, roblox.Request{
 		Endpoint: "private-server-update", AccountID: accountID, ExpectedSecretVersion: version,
 		Authenticated: true, Method: http.MethodPatch, URL: endpoint, Body: encoded,
@@ -285,8 +287,8 @@ func (service *PrivateServers) read(ctx context.Context, accountID, version int6
 	return nil
 }
 
-func privateServerPath(serverID int64, suffix string) string {
-	path := "/v1/vip-servers/" + strconv.FormatInt(serverID, 10)
+func privateServerPath(privateServerID int64, suffix string) string {
+	path := "/v1/vip-servers/" + strconv.FormatInt(privateServerID, 10)
 	if suffix != "" {
 		path += "/" + suffix
 	}

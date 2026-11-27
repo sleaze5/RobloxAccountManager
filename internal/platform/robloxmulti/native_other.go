@@ -17,7 +17,7 @@ type mutexHolder struct {
 }
 
 func newMutexHolder(*slog.Logger) (*mutexHolder, error) {
-	return nil, errors.New("multi-instance is only available on Windows")
+	return nil, errors.New("multi-client is only available on Windows")
 }
 
 func (*mutexHolder) close() {}

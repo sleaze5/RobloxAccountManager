@@ -21,16 +21,16 @@ func (service *Service) SearchPlayers(ctx context.Context, accountID int64, keyw
 	return service.core.SearchPlayers(ctx, accountID, keyword, cursor)
 }
 
-func (service *Service) GetSocialPresences(ctx context.Context, accountID int64, userIDs []int64) ([]robloxservices.UserPresence, error) {
-	if err := positiveID(accountID, "social-presence"); err != nil {
+func (service *Service) GetSocialOnlineStatuses(ctx context.Context, accountID int64, userIDs []int64) ([]robloxservices.OnlineStatus, error) {
+	if err := positiveID(accountID, "social-online-status"); err != nil {
 		return nil, err
 	}
 	for _, userID := range userIDs {
-		if err := positiveID(userID, "social-presence"); err != nil {
+		if err := positiveID(userID, "social-online-status"); err != nil {
 			return nil, err
 		}
 	}
-	return service.core.GetSocialPresences(ctx, accountID, userIDs)
+	return service.core.GetSocialOnlineStatuses(ctx, accountID, userIDs)
 }
 
 func (service *Service) GetSocialProfile(ctx context.Context, accountID, userID int64, section appservice.SocialProfileSection) (appservice.SocialProfile, error) {
@@ -96,11 +96,11 @@ func (service *Service) DeclineFriendRequest(ctx context.Context, accountID, use
 	return service.core.DeclineFriendRequest(ctx, accountID, userID)
 }
 
-func (service *Service) Unfriend(ctx context.Context, accountID, userID int64) error {
-	if err := validateAccountAndTargetIDs(accountID, userID, "unfriend"); err != nil {
+func (service *Service) RemoveFriend(ctx context.Context, accountID, userID int64) error {
+	if err := validateAccountAndTargetIDs(accountID, userID, "friend-remove"); err != nil {
 		return err
 	}
-	return service.core.Unfriend(ctx, accountID, userID)
+	return service.core.RemoveFriend(ctx, accountID, userID)
 }
 
 func (service *Service) Follow(ctx context.Context, accountID, userID int64) error {

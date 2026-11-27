@@ -113,19 +113,19 @@
 						},
 					]
 				: []),
-			...(visit.jobId
+			...(visit.serverId
 				? [
 						{
-							label: "Job ID",
+							label: "Server ID",
 							icon: hashIcon,
 							section: "Copy",
-							accessibleLabel: "Copy job ID",
+							accessibleLabel: "Copy server ID",
 							onSelect: select(
 								() =>
 									void copyValue(
 										notifications,
-										visit.jobId,
-										"Job ID",
+										visit.serverId,
+										"Server ID",
 									),
 							),
 						},

@@ -5,7 +5,7 @@
 	import Icon from "./Icon.svelte"
 	import ProfileImage from "./ProfileImage.svelte"
 	import { tick } from "svelte"
-	import { focusMenuItemForKey, liftToTopLayer, menuIn, menuOut } from "./presence"
+	import { focusMenuItemForKey, liftToTopLayer, menuIn, menuOut } from "./transitions"
 
 	let {
 		label,

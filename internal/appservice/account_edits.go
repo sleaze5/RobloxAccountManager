@@ -66,7 +66,7 @@ func (service *Service) ChangeDisplayName(ctx context.Context, accountID int64, 
 	if err != nil {
 		return err
 	}
-	if _, err := service.ValidateAccount(ctx, accountID); err != nil {
+	if _, err := service.CheckAccount(ctx, accountID); err != nil {
 		service.logger.Warn("could not refresh the display name after the change", "operation", "display-name-update", "account_id", accountID, "error", err)
 	}
 	return nil
@@ -85,7 +85,7 @@ func (service *Service) ChangeAccountEmail(ctx context.Context, accountID int64,
 	})
 }
 
-func (service *Service) ValidateAccountDescription(ctx context.Context, accountID int64, description string) (robloxservices.TextFilter, error) {
+func (service *Service) CheckAccountDescription(ctx context.Context, accountID int64, description string) (robloxservices.TextFilter, error) {
 	description, err := normalizeDescription("description-validate", description)
 	if err != nil {
 		return robloxservices.TextFilter{}, err
@@ -144,7 +144,7 @@ func (service *Service) ChangeAccountPassword(ctx context.Context, accountID int
 		saveContext, cancel := context.WithTimeout(context.WithoutCancel(ctx), 5*time.Second)
 		defer cancel()
 		if err := service.storeAccountPassword(saveContext, accountID, newPassword); err != nil {
-			return &roblox.Error{Kind: roblox.KindProtocol, Endpoint: "password-change", Message: "Roblox changed the password, but the vault copy was not updated. Save the new password in the vault.", Cause: err}
+			return &roblox.Error{Kind: roblox.KindProtocol, Endpoint: "password-change", Message: "Roblox changed the password, but the app could not update the saved password. Save the new password again.", Cause: err}
 		}
 		return nil
 	})
@@ -217,7 +217,7 @@ func (service *Service) editAccount(ctx context.Context, accountID int64, operat
 	logger.WarnContext(ctx, "account edit failed", "error_kind", remote.Kind, "status", remote.Status, "roblox_code", remote.RobloxCode)
 	switch {
 	case remote.Kind == roblox.KindChallengeRequired:
-		return &roblox.Error{Kind: remote.Kind, Endpoint: operation, Status: remote.Status, Message: "Roblox requires extra verification for this change. Make it on the Roblox website.", Cause: err}
+		return &roblox.Error{Kind: remote.Kind, Endpoint: operation, Status: remote.Status, Message: "Roblox needs a security check for this change. Make it on the Roblox website.", Cause: err}
 	case remote.Kind == roblox.KindForbidden && remote.Status == http.StatusForbidden && rejected != "":
 		return &roblox.Error{Kind: remote.Kind, Endpoint: operation, Status: remote.Status, Message: rejected, Cause: err}
 	}

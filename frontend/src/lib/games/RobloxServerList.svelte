@@ -25,14 +25,14 @@
 		servers,
 		records,
 		newestVersion,
-		activeJobId,
+		activeServerId,
 		menuID,
 		onMenu,
 	}: {
 		servers: GameServers
 		records: boolean
 		newestVersion: number
-		activeJobId: string | undefined
+		activeServerId: string | undefined
 		menuID: string
 		onMenu: ServerMenuOpener
 	} = $props()
@@ -138,7 +138,7 @@
 				<p>Every running server is full. Show full servers to see them.</p>
 			{:else}
 				<h2>No servers are running</h2>
-				<p>Nobody is playing this place right now.</p>
+				<p>Nobody is playing this place.</p>
 			{/if}
 		</div>
 	{:else}
@@ -174,10 +174,10 @@
 						<span class="justify-self-end text-right">Version</span>
 						<span class="justify-self-end text-right">Uptime</span>
 					{/if}
-					<span>Job ID</span>
+					<span>Server ID</span>
 				</div>
 				<ol aria-label="Servers" aria-busy={servers.loading}>
-					{#each shown as server (server.jobId)}
+					{#each shown as server (server.serverId)}
 						{@const full = server.playing >= server.maxPlayers}
 						{@const fill = server.maxPlayers
 							? Math.min(server.playing / server.maxPlayers, 1)
@@ -186,9 +186,9 @@
 						{@const hidden = server.playing - images.length}
 						<li
 							class="server-row"
-							data-open={activeJobId === server.jobId || undefined}
+							data-open={activeServerId === server.serverId || undefined}
 							oncontextmenu={(event) =>
-								openServerMenuFromRow(event, server.jobId, onMenu)}>
+								openServerMenuFromRow(event, server.serverId, onMenu)}>
 							<div
 								class="flex flex-col gap-1"
 								aria-label={`${server.playing} of ${server.maxPlayers} players${full ? ", full" : ""}`}>
@@ -280,12 +280,12 @@
 							{/if}
 							<span
 								class="truncate font-mono text-2xs text-fg-faint select-text"
-								data-tooltip={server.jobId}>{server.jobId}</span>
+								data-tooltip={server.serverId}>{server.serverId}</span>
 							<ServerActionsButton
-								open={activeJobId === server.jobId}
+								open={activeServerId === server.serverId}
 								{menuID}
 								onMenu={(trigger, toggle) =>
-									onMenu(server.jobId, trigger, toggle)} />
+									onMenu(server.serverId, trigger, toggle)} />
 						</li>
 					{/each}
 				</ol>

@@ -17,12 +17,12 @@ type RobloxCleanerState struct {
 	// DeleteLogsWhenCleaning deletes Roblox logs, which Logs Explorer reads,
 	// together with the other Roblox data.
 	DeleteLogsWhenCleaning bool `json:"deleteLogsWhenCleaning"`
-	// IsBlockedByMultiInstance is true while multi-instance is on. The saved
+	// IsBlockedByMultiClient is true while Multi-client is on. The saved
 	// choice stays, but Roblox is not cleaned before a launch.
-	IsBlockedByMultiInstance bool `json:"isBlockedByMultiInstance"`
-	ElevationSupported       bool `json:"elevationSupported"`
-	UseAdministratorRights   bool `json:"useAdministratorRights"`
-	IsElevated               bool `json:"isElevated"`
+	IsBlockedByMultiClient bool `json:"isBlockedByMultiClient"`
+	ElevationSupported     bool `json:"elevationSupported"`
+	UseAdministratorRights bool `json:"useAdministratorRights"`
+	IsElevated             bool `json:"isElevated"`
 }
 
 type RobloxCleanReport struct {
@@ -33,13 +33,13 @@ type RobloxCleanReport struct {
 func (service *Service) GetRobloxCleanerState() RobloxCleanerState {
 	settings := service.settings.Roblox()
 	return RobloxCleanerState{
-		Supported:                robloxcleaner.Supported,
-		CleanBeforeLaunch:        settings.CleanBeforeLaunch,
-		DeleteLogsWhenCleaning:   settings.DeleteLogsWhenCleaning,
-		IsBlockedByMultiInstance: service.multiInstance.Snapshot().Enabled,
-		ElevationSupported:       elevation.Supported,
-		UseAdministratorRights:   settings.UseAdministratorRights,
-		IsElevated:               elevation.IsElevated(),
+		Supported:              robloxcleaner.Supported,
+		CleanBeforeLaunch:      settings.CleanBeforeLaunch,
+		DeleteLogsWhenCleaning: settings.DeleteLogsWhenCleaning,
+		IsBlockedByMultiClient: service.multiClient.Snapshot().Enabled,
+		ElevationSupported:     elevation.Supported,
+		UseAdministratorRights: settings.UseAdministratorRights,
+		IsElevated:             elevation.IsElevated(),
 	}
 }
 
@@ -50,8 +50,8 @@ func (service *Service) SetCleanBeforeLaunch(enabled bool) (RobloxCleanerState, 
 	if !state.Supported {
 		return state, robloxClientError("clean-before-launch", "Cleaning Roblox is only available on Windows.", nil)
 	}
-	if state.IsBlockedByMultiInstance {
-		return state, robloxClientError("clean-before-launch", "Turn off multi-instance first.", nil)
+	if state.IsBlockedByMultiClient {
+		return state, robloxClientError("clean-before-launch", "Turn off Multi-client first.", nil)
 	}
 	if err := service.settings.SetCleanBeforeLaunch(enabled); err != nil {
 		service.logger.Warn("could not save Roblox settings", "operation", "clean-before-launch", "error", err)
@@ -112,7 +112,7 @@ func (service *Service) CleanRoblox(ctx context.Context, scope robloxcleaner.Sco
 }
 
 func (service *Service) shouldCleanBeforeLaunch() bool {
-	return robloxcleaner.Supported && service.settings.Roblox().CleanBeforeLaunch && !service.multiInstance.Snapshot().Enabled
+	return robloxcleaner.Supported && service.settings.Roblox().CleanBeforeLaunch && !service.multiClient.Snapshot().Enabled
 }
 
 func (service *Service) cleanBeforeLaunch(ctx context.Context) error {

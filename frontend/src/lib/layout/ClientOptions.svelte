@@ -12,7 +12,7 @@
 		cleaner = $derived(options.cleaner),
 		activeOptions = $derived(
 			[
-				options.multiInstance?.enabled && "Multi-instance",
+				options.multiClient?.enabled && "Multi-client",
 				options.isCleanBeforeLaunchActive && "Clean before launch",
 			].filter((option) => typeof option === "string"),
 		),
@@ -22,16 +22,16 @@
 				: "Client options",
 		),
 		cleanBeforeLaunchNote = $derived(
-			cleaner?.isBlockedByMultiInstance
-				? "Off while multi-instance is on."
+			cleaner?.isBlockedByMultiClient
+				? "Off while Multi-client is on."
 				: "Clear caches and sign-in data before each launch.",
 		)
 
 	notifyErrors(
 		"Roblox option not changed",
 		() =>
-			options.multiInstanceError ||
-			options.multiInstanceStatusError ||
+			options.multiClientError ||
+			options.multiClientStatusError ||
 			options.cleanerError,
 	)
 </script>
@@ -80,17 +80,17 @@
 	{#snippet children()}
 		<div
 			class="flex flex-col gap-3"
-			{@attach () => options.pollMultiInstanceWhileEnabled()}>
+			{@attach () => options.pollMultiClientWhileEnabled()}>
 			{@render optionSwitch(
-				`${optionIDPrefix}-multi-instance`,
-				"Multi-instance",
+				`${optionIDPrefix}-multi-client`,
+				"Multi-client",
 				"Launch several games at once.",
-				options.multiInstance?.enabled ?? false,
-				options.isLoadingMultiInstance ||
-					options.isSavingMultiInstance ||
-					!options.multiInstance?.supported,
-				(enabled) => void options.setMultiInstanceEnabled(enabled),
-				options.multiInstanceStatus,
+				options.multiClient?.enabled ?? false,
+				options.isLoadingMultiClient ||
+					options.isSavingMultiClient ||
+					!options.multiClient?.supported,
+				(enabled) => void options.setMultiClientEnabled(enabled),
+				options.multiClientStatus,
 			)}
 			{#if cleaner?.supported}
 				{@render optionSwitch(
@@ -98,8 +98,7 @@
 					"Clean before launch",
 					cleanBeforeLaunchNote,
 					cleaner.cleanBeforeLaunch,
-					options.isSavingCleanBeforeLaunch ||
-						cleaner.isBlockedByMultiInstance,
+					options.isSavingCleanBeforeLaunch || cleaner.isBlockedByMultiClient,
 					(enabled) => void options.setCleanBeforeLaunch(enabled),
 				)}
 			{/if}

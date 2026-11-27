@@ -197,7 +197,7 @@ type ServerPage struct {
 }
 
 type Server struct {
-	JobID           string        `json:"jobId"`
+	ServerID        string        `json:"serverId"`
 	Playing         int64         `json:"playing"`
 	MaxPlayers      int64         `json:"maxPlayers"`
 	FPS             float64       `json:"fps"`
@@ -209,7 +209,7 @@ type Server struct {
 }
 
 type ServerRecord struct {
-	JobID        string `json:"jobId"`
+	ServerID     string `json:"serverId"`
 	PlaceVersion int64  `json:"placeVersion"`
 	FirstSeenMs  int64  `json:"firstSeenMs"`
 	City         string `json:"city"`
@@ -266,9 +266,9 @@ type NearbyRegion struct {
 }
 
 type RegionServerQuery struct {
-	PlaceID        int64    `json:"placeId"`
-	Region         string   `json:"region"`
-	ExcludedJobIDs []string `json:"excludedJobIds"`
+	PlaceID           int64    `json:"placeId"`
+	Region            string   `json:"region"`
+	ExcludedServerIDs []string `json:"excludedServerIds"`
 }
 
 type PrivateServerQuery struct {
@@ -283,7 +283,7 @@ type PrivateServerPage struct {
 }
 
 type PrivateServer struct {
-	ServerID         int64  `json:"serverId"`
+	PrivateServerID  int64  `json:"privateServerId"`
 	Name             string `json:"name"`
 	OwnerID          int64  `json:"ownerId"`
 	OwnerName        string `json:"ownerName"`
@@ -301,29 +301,29 @@ type OwnedPrivateServerPage struct {
 }
 
 type OwnedPrivateServer struct {
-	ServerID    int64  `json:"serverId"`
-	Name        string `json:"name"`
-	Active      bool   `json:"active"`
-	UniverseID  int64  `json:"universeId"`
-	PlaceID     int64  `json:"placeId"`
-	GameName    string `json:"gameName"`
-	Price       int64  `json:"price"`
-	Renews      bool   `json:"renews"`
-	ExpiresAtMs int64  `json:"expiresAtMs"`
+	PrivateServerID int64  `json:"privateServerId"`
+	Name            string `json:"name"`
+	Active          bool   `json:"active"`
+	UniverseID      int64  `json:"universeId"`
+	PlaceID         int64  `json:"placeId"`
+	GameName        string `json:"gameName"`
+	Price           int64  `json:"price"`
+	Renews          bool   `json:"renews"`
+	ExpiresAtMs     int64  `json:"expiresAtMs"`
 }
 
 type PrivateServerSettings struct {
-	ServerID       int64               `json:"serverId"`
-	Name           string              `json:"name"`
-	GameName       string              `json:"gameName"`
-	Active         bool                `json:"active"`
-	FriendsAllowed bool                `json:"friendsAllowed"`
-	Renews         bool                `json:"renews"`
-	Expired        bool                `json:"expired"`
-	ExpiresAtMs    int64               `json:"expiresAtMs"`
-	Price          int64               `json:"price"`
-	JoinLink       string              `json:"joinLink"`
-	Users          []PrivateServerUser `json:"users"`
+	PrivateServerID int64               `json:"privateServerId"`
+	Name            string              `json:"name"`
+	GameName        string              `json:"gameName"`
+	Active          bool                `json:"active"`
+	FriendsAllowed  bool                `json:"friendsAllowed"`
+	Renews          bool                `json:"renews"`
+	Expired         bool                `json:"expired"`
+	ExpiresAtMs     int64               `json:"expiresAtMs"`
+	Price           int64               `json:"price"`
+	JoinLink        string              `json:"joinLink"`
+	Users           []PrivateServerUser `json:"users"`
 }
 
 type PrivateServerUser struct {
@@ -435,8 +435,8 @@ type FriendPlace struct {
 }
 
 type FriendServer struct {
-	JobID   string           `json:"jobId"`
-	Friends []FriendInServer `json:"friends"`
+	ServerID string           `json:"serverId"`
+	Friends  []FriendInServer `json:"friends"`
 }
 
 type FriendInServer struct {
@@ -461,12 +461,12 @@ func ValidID(id int64) bool {
 	return id > 0 && id <= javaScriptMaxSafeInteger
 }
 
-func ValidJobID(jobID string) bool {
+func ValidServerID(serverID string) bool {
 	// Canonical UUID: 36 characters with dashes at 8, 13, 18, and 23.
-	if len(jobID) != 36 {
+	if len(serverID) != 36 {
 		return false
 	}
-	for index, character := range jobID {
+	for index, character := range serverID {
 		if index == 8 || index == 13 || index == 18 || index == 23 {
 			if character != '-' {
 				return false

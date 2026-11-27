@@ -24,14 +24,16 @@
 	import PrivateServerDialog from "../private-servers/PrivateServerDialog.svelte"
 	import type { OwnedPrivateServer } from "../backend/bridge"
 	import type { AccountStore } from "./account-store.svelte"
-	import AccountInfoPanel, { accountInfoFields } from "./AccountInfoPanel.svelte"
+	import AccountDetailsPanel, {
+		accountDetailsFields,
+	} from "./AccountDetailsPanel.svelte"
 	import AccountSessionsList from "./AccountSessionsList.svelte"
 	import RobuxHistoryList from "./RobuxHistoryList.svelte"
 	import { RobuxHistoryState } from "./robux-history-state.svelte"
 	import coinsIcon from "@phosphor-icons/core/regular/coins.svg?raw"
 	import { AccountSessionsState } from "./account-sessions-state.svelte"
-	import type { AccountInfoFieldId } from "./AccountInfoPanel.svelte"
-	import { AccountInfoState } from "./account-info-state.svelte"
+	import type { AccountDetailsFieldId } from "./AccountDetailsPanel.svelte"
+	import { AccountDetailsState } from "./account-details-state.svelte"
 	import AccountSettingRow from "./AccountSettingRow.svelte"
 	import type { SettingRadioOption } from "./AccountSettingRow.svelte"
 	import { AccountSettingsState } from "./account-settings-state.svelte"
@@ -63,10 +65,10 @@
 	const privacyPlaceholders: SettingRadioOption[] = [
 			{ label: "Everyone", value: "AllUsers" },
 			{
-				label: "Friends, followers, and people I follow",
+				label: "Friends, followers, and following",
 				value: "FriendsFollowingAndFollowers",
 			},
-			{ label: "Friends and people I follow", value: "FriendsAndFollowing" },
+			{ label: "Friends and following", value: "FriendsAndFollowing" },
 			{ label: "Friends", value: "Friends" },
 			{ label: "No one", value: "NoOne" },
 		],
@@ -95,7 +97,7 @@
 				return friendsPlaceholders
 			case Key.SettingOnlineStatus:
 				return visibilityPlaceholders
-			case Key.SettingExperienceJoins:
+			case Key.SettingGameJoins:
 				return visibilityPlaceholders.map((option) => ({
 					label: option.label,
 					value:
@@ -151,17 +153,17 @@
 			search: "communication chat messages messaging game chat direct chat party voice microphone mic data product improvements camera face tracking input gameplay coordination quick words quick chat",
 			sections: [
 				{
-					id: "experience-chat-section",
+					id: "game-chat-section",
 					title: "Game chat",
 					fields: [
 						{
-							key: Key.SettingExperienceChat,
+							key: Key.SettingGameChat,
 							label: "Game chat",
 							description: "Allow text chat in games.",
 							type: "toggle",
 						},
 						{
-							key: Key.SettingDirectExperienceChat,
+							key: Key.SettingDirectGameChat,
 							label: "Direct chat",
 							description:
 								"Allow direct messages with other players in games.",
@@ -256,7 +258,7 @@
 							type: "radio",
 						},
 						{
-							key: Key.SettingExperienceJoins,
+							key: Key.SettingGameJoins,
 							label: "Show current game",
 							description:
 								"Select who can see the game you are playing and join you.",
@@ -299,7 +301,7 @@
 							key: Key.SettingFriendSuggestions,
 							label: "Friend suggestions",
 							description:
-								"Receive friend suggestions based on mutual connections.",
+								"Receive friend suggestions based on friends in common.",
 							type: "toggle",
 						},
 						{
@@ -313,7 +315,7 @@
 							key: Key.SettingPhoneDiscovery,
 							label: "Phone number discovery",
 							description:
-								"Let people with your phone number find your account.",
+								"Let users with your phone number find your account.",
 							type: "toggle",
 						},
 					],
@@ -389,10 +391,10 @@
 		privacyLabel = "Privacy and content restrictions",
 		pages = [
 			{
-				id: "info",
-				label: "Account info",
+				id: "details",
+				label: "Account details",
 				icon: userCircleIcon,
-				search: "account info details profile",
+				search: "account details info profile",
 			},
 			{
 				id: "privacy",
@@ -442,7 +444,7 @@
 		contentElement = $state<HTMLElement | undefined>(undefined),
 		searchInput = $state<HTMLInputElement | undefined>(undefined),
 		settingsState = $state<AccountSettingsState | null>(null),
-		infoState = $state<AccountInfoState | null>(null),
+		accountDetailsState = $state<AccountDetailsState | null>(null),
 		blockedState = $state<BlockedUsersState | null>(null),
 		ownedState = $state<OwnedPrivateServersState | null>(null),
 		sessionsState = $state<AccountSessionsState | null>(null),
@@ -460,9 +462,9 @@
 				),
 			),
 		),
-		visibleInfoFields = $derived(
-			new Set<AccountInfoFieldId>(
-				accountInfoFields
+		visibleAccountDetailsFields = $derived(
+			new Set<AccountDetailsFieldId>(
+				accountDetailsFields
 					.filter(
 						(field) =>
 							terms.length === 0 ||
@@ -486,8 +488,8 @@
 		]),
 		visiblePages = $derived(
 			pages.filter((page) =>
-				page.id === "info"
-					? visibleInfoFields.size > 0
+				page.id === "details"
+					? visibleAccountDetailsFields.size > 0
 					: page.id === "privacy"
 						? visibleSubpages.length > 0
 						: terms.length === 0 || matches(`${page.label} ${page.search}`),
@@ -513,21 +515,21 @@
 			!settingsState || settingsState.loading || settingsState.saving !== null,
 		),
 		activePageLoad = $derived.by((): PageLoadState | null => {
-			const accountInfo = infoState,
+			const accountDetails = accountDetailsState,
 				owned = ownedState,
 				sessions = sessionsState,
 				robux = robuxState,
 				blocked = blockedState,
 				settings = settingsState
 			switch (activePage?.id) {
-				case "info":
+				case "details":
 					return (
-						accountInfo &&
+						accountDetails &&
 						createPageLoadState(
-							accountInfo.loading,
-							!!accountInfo.snapshot,
-							accountInfo.isFresh,
-							() => accountInfo.refresh(),
+							accountDetails.loading,
+							!!accountDetails.snapshot,
+							accountDetails.isFresh,
+							() => accountDetails.refresh(),
 						)
 					)
 				case "servers":
@@ -766,8 +768,8 @@
 	}
 	function getToggleOnString(key: Key): string {
 		switch (key) {
-			case Key.SettingExperienceChat:
-			case Key.SettingDirectExperienceChat:
+			case Key.SettingGameChat:
+			case Key.SettingDirectGameChat:
 				return "AllUsers"
 			case Key.SettingParty:
 				return "AllConnections"
@@ -782,8 +784,8 @@
 
 	function getToggleOffString(key: Key): string {
 		switch (key) {
-			case Key.SettingExperienceChat:
-			case Key.SettingDirectExperienceChat:
+			case Key.SettingGameChat:
+			case Key.SettingDirectGameChat:
 			case Key.SettingParty:
 				return "NoOne"
 			case Key.SettingActivityUpdates:
@@ -829,7 +831,7 @@
 			store,
 			notifications,
 		)
-		const accountInfo = new AccountInfoState(store.selectedAccount.id, store),
+		const accountDetails = new AccountDetailsState(store.selectedAccount.id, store),
 			blocked = new BlockedUsersState(store.selectedAccount.id, store),
 			owned = new OwnedPrivateServersState(store.selectedAccount.id, store),
 			sessions = new AccountSessionsState(
@@ -838,7 +840,7 @@
 				notifications,
 			)
 		settingsState = settings
-		infoState = accountInfo
+		accountDetailsState = accountDetails
 		blockedState = blocked
 		ownedState = owned
 		sessionsState = sessions
@@ -846,7 +848,7 @@
 		robuxState = robux
 		return () => {
 			settings.dispose()
-			accountInfo.dispose()
+			accountDetails.dispose()
 			blocked.dispose()
 			owned.dispose()
 			sessions.dispose()
@@ -953,13 +955,13 @@
 			{#key `${activePage?.id}:${activeSubpage?.id}:${normalizedQuery}`}
 				{#if !activePage}
 					<NoMatchingSettings onClearSearch={clearSearch} />
-				{:else if activePage.id === "info"}
-					<h2>Account info</h2>
-					{#if infoState}
-						<AccountInfoPanel
-							info={infoState}
+				{:else if activePage.id === "details"}
+					<h2>Account details</h2>
+					{#if accountDetailsState}
+						<AccountDetailsPanel
+							details={accountDetailsState}
 							account={store.selectedAccount}
-							visible={visibleInfoFields}
+							visible={visibleAccountDetailsFields}
 							onSavedPassword={() => (savedPasswordOpen = true)}
 							onEdit={(kind) => (editing = kind)} />
 					{/if}
@@ -1059,7 +1061,7 @@
 		account={store.selectedAccount}
 		kind={editing}
 		{notifications}
-		onSaved={() => void infoState?.refresh()}
+		onSaved={() => void accountDetailsState?.refresh()}
 		onClose={() => (editing = null)} />
 {/if}
 
@@ -1067,7 +1069,7 @@
 	<PrivateServerDialog
 		accountId={store.selectedAccount.id}
 		username={store.selectedAccount.username}
-		serverId={managingServer.serverId}
+		privateServerId={managingServer.privateServerId}
 		name={managingServer.name}
 		gameName={managingServer.gameName}
 		{notifications}

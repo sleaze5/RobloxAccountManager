@@ -21,7 +21,7 @@
 	import {
 		AccountCopyField,
 		LaunchMethod,
-		PresenceType,
+		OnlineStatusType,
 		SessionState,
 	} from "../backend/bridge"
 	import { canReactivate, hasReactivation } from "./moderation.svelte"
@@ -49,9 +49,9 @@
 	const sessionId = $derived(browserStore.accountSessionId(account.id)),
 		browserOpen = $derived(!!sessionId),
 		reactivatable = $derived(canReactivate(account.moderation, Date.now())),
-		placeId = $derived(account.presence.placeId ?? 0),
+		placeId = $derived(account.onlineStatus.placeId ?? 0),
 		inGame = $derived(
-			account.presence.userPresenceType === PresenceType.PresenceTypeInGame,
+			account.onlineStatus.statusType === OnlineStatusType.OnlineStatusTypeInGame,
 		)
 	const copyFields = $derived([
 		{
@@ -87,13 +87,13 @@
 	}
 
 	function fillJoinOptions(): void {
-		const presence = account.presence
+		const onlineStatus = account.onlineStatus
 		if (store.launching || placeId <= 0) return
 		store.launchInput = {
 			...store.launchInput,
 			method: LaunchMethod.MethodPlace,
 			placeId: String(placeId),
-			jobId: presence.gameId ?? "",
+			serverId: onlineStatus.serverId ?? "",
 			link: "",
 			user: "",
 			resolveCurrentGame: false,
@@ -156,7 +156,7 @@
 		onSelect={() => void copyProfileLink()} />
 </MenuSection>
 
-<MenuSection heading="Session">
+<MenuSection heading="Cookie">
 	{#if account.state === SessionState.StateModerated && hasReactivation(account.moderation)}
 		<MenuItem
 			label="Reactivate account"

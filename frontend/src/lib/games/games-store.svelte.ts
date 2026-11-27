@@ -29,7 +29,7 @@ import { UniverseBadges } from "./game-badges-state.svelte"
 import { UniverseDeveloperProducts } from "./developer-products-state.svelte"
 import { UniverseGamePasses } from "./game-passes-state.svelte"
 import { ListSelection } from "../shared/list-selection.svelte"
-import { menuPointFor } from "../shared/presence"
+import { menuPointFor } from "../shared/transitions"
 import { robloxGameUrl } from "../shared/roblox-pages"
 import type { PageLocationKeys } from "../layout/page-history"
 
@@ -98,8 +98,8 @@ function gameCopyValue(place: GamePlace, field: GameCopyField): string {
 	return robloxGameUrl(place.placeId)
 }
 
-function countedGames(count: number): string {
-	return `${count} ${count === 1 ? "game" : "games"}`
+function countedPlaces(count: number): string {
+	return `${count} ${count === 1 ? "place" : "places"}`
 }
 
 // GameDetailsPage names a page that opens in place of the game details.
@@ -798,7 +798,7 @@ export class GamesStore {
 				id: "games-bulk-favorites",
 				title: isFavorite ? "Favorites added" : "Favorites removed",
 				tone: "success",
-				message: `${countedGames(savedCount)} ${isFavorite ? "added to" : "removed from"} favorites.`,
+				message: `${countedPlaces(savedCount)} ${isFavorite ? "added to" : "removed from"} favorites.`,
 			})
 			await this.loadFavorites()
 		}

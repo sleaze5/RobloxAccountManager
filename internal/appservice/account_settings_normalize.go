@@ -96,8 +96,8 @@ func settingValueView(definition accountSettingDefinition, raw json.RawMessage) 
 
 var accountSettingLabels = map[string]string{
 	"NoOne": "No one", "Friends": "Friends", "AllUsers": "Everyone", "All": "Everyone",
-	"Following": "Following", "Followers": "Followers", "FriendsAndFollowing": "Friends and people I follow",
-	"FriendsFollowingAndFollowers": "Friends, followers, and people I follow",
+	"Following": "Following", "Followers": "Followers", "FriendsAndFollowing": "Friends and following",
+	"FriendsFollowingAndFollowers": "Friends, followers, and following",
 	"TrustedFriends":               "Trusted friends", "AllConnections": "All friends", "TrustedConnectionsOnly": "Trusted friends",
 	"AllAuthenticatedUsers": "All signed-in users",
 	"AllAges":               "Minimal", "NinePlus": "Mild", "ThirteenPlus": "Moderate", "SeventeenPlus": "Restricted", "EighteenPlus": "Restricted",
@@ -110,18 +110,18 @@ func settingValueLabel(key AccountSettingKey, token string) (string, bool) {
 	if !supportedSettingToken(key, token) {
 		return token + " (unrecognized value)", false
 	}
-	if key == SettingExperienceChat || key == SettingDirectExperienceChat || key == SettingParty {
+	if key == SettingGameChat || key == SettingDirectGameChat || key == SettingParty {
 		if token == "NoOne" {
 			return "Off", true
 		}
 		return "On", true
 	}
-	if key == SettingExperienceJoins || key == SettingTradeAudience {
+	if key == SettingGameJoins || key == SettingTradeAudience {
 		if token == "Followers" {
-			return "Friends, followers, and people I follow", true
+			return "Friends, followers, and following", true
 		}
 		if token == "Following" {
-			return "Friends and people I follow", true
+			return "Friends and following", true
 		}
 	}
 	label, known := accountSettingLabels[token]
@@ -140,7 +140,7 @@ func supportedSettingToken(key AccountSettingKey, token string) bool {
 		tokens = []string{"AllConnections", "NoOne"}
 	case SettingPartyChat, SettingPartyVoice:
 		tokens = []string{"AllConnections", "TrustedConnectionsOnly", "NoOne"}
-	case SettingExperienceChat, SettingDirectExperienceChat:
+	case SettingGameChat, SettingDirectGameChat:
 		tokens = []string{"NoOne", "AllUsers"}
 	case SettingTradeQuality:
 		tokens = []string{"None", "Low", "Medium", "High"}
@@ -150,7 +150,7 @@ func supportedSettingToken(key AccountSettingKey, token string) bool {
 		tokens = []string{"Enabled", "Disabled"}
 	case SettingActivityUpdates:
 		tokens = []string{"Yes", "No"}
-	case SettingExperienceJoins:
+	case SettingGameJoins:
 		tokens = []string{"All", "Friends", "NoOne", "Following", "Followers", "FriendsAndFollowing", "FriendsFollowingAndFollowers", "TrustedFriends"}
 	case SettingTradeAudience:
 		tokens = []string{"All", "Friends", "NoOne", "Following", "Followers", "FriendsAndFollowing", "FriendsFollowingAndFollowers", "AllUsers"}
@@ -246,16 +246,16 @@ func settingRequiredActionsReason(definition accountSettingDefinition, value Acc
 
 func inheritedSettingReason(key AccountSettingKey) string {
 	switch key {
-	case SettingExperienceJoins:
+	case SettingGameJoins:
 		return "Select a broader Online status audience first."
 	case SettingActivityUpdates:
 		return "Show current game must include Friends before sharing activity updates."
-	case SettingDirectExperienceChat:
+	case SettingDirectGameChat:
 		return "Turn on Game chat before you change Direct chat."
 	case SettingPartyChat:
 		return "Turn on Chat and party with friends first."
 	case SettingPartyVoice:
-		return "Voice chat with friends cannot include more people than Friends chat."
+		return "Voice chat with friends cannot include more users than Friends chat."
 	default:
 		return "This setting is inherited and cannot be changed here."
 	}
@@ -276,7 +276,7 @@ func settingValuesConflict(definition accountSettingDefinition, plain, options j
 		return false
 	}
 	left, right := settingValueView(definition, plain), settingValueView(definition, options)
-	if definition.key == SettingTradeAudience || definition.key == SettingExperienceJoins {
+	if definition.key == SettingTradeAudience || definition.key == SettingGameJoins {
 		if rank := settingAudienceRank(left.StringValue); rank >= 0 && rank == settingAudienceRank(right.StringValue) {
 			return false
 		}

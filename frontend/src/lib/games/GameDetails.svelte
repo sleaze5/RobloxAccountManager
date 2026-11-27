@@ -492,8 +492,8 @@
 						<button
 							class="-my-1 -ms-1 button-ghost size-5"
 							type="button"
-							aria-label="Search places in this universe"
-							data-tooltip="Search places in this universe"
+							aria-label="Search places in this game"
+							data-tooltip="Search places in this game"
 							onclick={() => onSearchUniverse(place.universeId)}
 							><Icon
 								svg={magnifyingGlassIcon}

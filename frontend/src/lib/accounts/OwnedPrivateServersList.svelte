@@ -52,7 +52,7 @@
 			class="settings-rows"
 			aria-label="Private servers"
 			aria-busy={owned.loading}>
-			{#each owned.servers as server (server.serverId)}
+			{#each owned.servers as server (server.privateServerId)}
 				{@const name = server.name || "Unnamed server"}
 				<li class="settings-row animate-enter justify-start gap-3">
 					{#await loadGamePlace(server.universeId, server.placeId)}

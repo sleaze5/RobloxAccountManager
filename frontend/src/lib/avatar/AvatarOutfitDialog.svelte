@@ -177,8 +177,7 @@
 					</p>
 				{:else if canWear}
 					<p class="mt-2 text-xs text-fg-muted">
-						Putting on the outfit replaces the avatar. Emotes stay as they
-						are.
+						The outfit replaces the current avatar. Emotes do not change.
 					</p>
 				{/if}
 			</div>

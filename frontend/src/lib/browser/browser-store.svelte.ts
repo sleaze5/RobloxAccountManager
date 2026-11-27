@@ -134,7 +134,7 @@ export class BrowserStore {
 		if (next.runtime.status === RuntimeStatus.RuntimeReady && !next.runtime.error) {
 			this.#notifications?.show({
 				id: "browser-runtime-download",
-				message: "Chrome for Testing is installed and ready to use.",
+				message: "Chrome for Testing is ready.",
 				title: "Browser ready",
 				tone: "success",
 			})
@@ -196,7 +196,7 @@ export class BrowserStore {
 			this.#notifications?.show({
 				actions: [{ label: "Redownload", onClick: () => this.download(true) }],
 				id: "browser-runtime-damaged",
-				message: "The installed browser is invalid and must be redownloaded.",
+				message: "The installed browser is damaged. Redownload it.",
 				title: "Browser needs repair",
 				tone: "warning",
 			})

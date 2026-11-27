@@ -1,51 +1,60 @@
 import {
-	AccountInfoSection,
+	AccountDetailsSection,
 	AgeVerification,
 	PinState,
 	accountBackend,
 } from "../backend/bridge"
-import type { AccountInfoSnapshot } from "../backend/bridge"
+import type { AccountDetailsSnapshot } from "../backend/bridge"
 import { isFresh } from "../shared/freshness"
 import { SectionLoad } from "../shared/section-load.svelte"
 import type { SectionFields } from "../shared/section-load.svelte"
 import type { AccountStore } from "./account-store.svelte"
 import { AccountScope } from "./account-scope"
 
-const infoSections: SectionFields<AccountInfoSnapshot, AccountInfoSection>[] = [
+const accountDetailsSections: SectionFields<
+	AccountDetailsSnapshot,
+	AccountDetailsSection
+>[] = [
 	{
-		section: AccountInfoSection.InfoSectionEmail,
+		section: AccountDetailsSection.DetailsSectionEmail,
 		fields: ["email", "emailVerified"],
 	},
 	{
-		section: AccountInfoSection.InfoSectionPhone,
+		section: AccountDetailsSection.DetailsSectionPhone,
 		fields: ["phone", "phoneVerified"],
 	},
-	{ section: AccountInfoSection.InfoSectionPin, fields: ["pin"] },
-	{ section: AccountInfoSection.InfoSectionGender, fields: ["gender"] },
+	{ section: AccountDetailsSection.DetailsSectionPin, fields: ["pin"] },
+	{ section: AccountDetailsSection.DetailsSectionGender, fields: ["gender"] },
 	{
-		section: AccountInfoSection.InfoSectionAge,
+		section: AccountDetailsSection.DetailsSectionAge,
 		fields: ["ageGroup", "ageVerification"],
 	},
-	{ section: AccountInfoSection.InfoSectionBirthdate, fields: ["birthdate"] },
-	{ section: AccountInfoSection.InfoSectionFirstAccount, fields: ["firstAccount"] },
+	{ section: AccountDetailsSection.DetailsSectionBirthdate, fields: ["birthdate"] },
 	{
-		section: AccountInfoSection.InfoSectionLocale,
+		section: AccountDetailsSection.DetailsSectionFirstAccount,
+		fields: ["firstAccount"],
+	},
+	{
+		section: AccountDetailsSection.DetailsSectionLocale,
 		fields: ["language", "autoTranslations"],
 	},
-	{ section: AccountInfoSection.InfoSectionLocation, fields: ["location"] },
-	{ section: AccountInfoSection.InfoSectionVoiceChat, fields: ["voiceChat"] },
-	{ section: AccountInfoSection.InfoSectionTwoStep, fields: ["twoStepMethods"] },
+	{ section: AccountDetailsSection.DetailsSectionLocation, fields: ["location"] },
+	{ section: AccountDetailsSection.DetailsSectionVoiceChat, fields: ["voiceChat"] },
 	{
-		section: AccountInfoSection.InfoSectionRecoveryCodes,
+		section: AccountDetailsSection.DetailsSectionTwoStep,
+		fields: ["twoStepMethods"],
+	},
+	{
+		section: AccountDetailsSection.DetailsSectionRecoveryCodes,
 		fields: ["recoveryCodeCount", "recoveryCodesCreatedAtMs"],
 	},
-	{ section: AccountInfoSection.InfoSectionPasskeys, fields: ["passkeyNames"] },
+	{ section: AccountDetailsSection.DetailsSectionPasskeys, fields: ["passkeyNames"] },
 ]
 
-function emptyInfo(accountId: number): AccountInfoSnapshot {
+function emptyInfo(accountId: number): AccountDetailsSnapshot {
 	return {
 		accountId,
-		section: AccountInfoSection.$zero,
+		section: AccountDetailsSection.$zero,
 		isComplete: false,
 		email: "",
 		emailVerified: null,
@@ -68,24 +77,24 @@ function emptyInfo(accountId: number): AccountInfoSnapshot {
 	}
 }
 
-const keptPageName = "account-info"
+const keptPageName = "account-details"
 
-export class AccountInfoState {
-	readonly sections: SectionLoad<AccountInfoSnapshot, AccountInfoSection>
+export class AccountDetailsState {
+	readonly sections: SectionLoad<AccountDetailsSnapshot, AccountDetailsSection>
 	#fetchedAt = 0
 	readonly #scope: AccountScope
 
 	constructor(accountId: number, store: AccountStore) {
 		this.#scope = new AccountScope(accountId, store)
 		const kept =
-			this.#scope.readKept<SectionLoad<AccountInfoSnapshot, AccountInfoSection>>(
-				keptPageName,
-			)
+			this.#scope.readKept<
+				SectionLoad<AccountDetailsSnapshot, AccountDetailsSection>
+			>(keptPageName)
 		this.#fetchedAt = kept?.fetchedAt ?? 0
 		this.sections =
 			kept?.value ??
 			new SectionLoad(
-				infoSections,
+				accountDetailsSections,
 				() => emptyInfo(accountId),
 				"Could not load account info. Refresh to try again.",
 			)
@@ -95,7 +104,7 @@ export class AccountInfoState {
 		return isFresh(this.#fetchedAt)
 	}
 
-	get snapshot(): AccountInfoSnapshot | null {
+	get snapshot(): AccountDetailsSnapshot | null {
 		return this.sections.hasAnySection ? this.sections.snapshot : null
 	}
 

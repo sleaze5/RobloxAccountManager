@@ -26,7 +26,7 @@ type AppDialog =
 	| { kind: "manage-tags"; accountId: number | null }
 	| { kind: "remove-account"; accountId: number }
 	| { kind: "renew-cookie"; accountId: number }
-	| { kind: "test-password" }
+	| { kind: "check-password" }
 	| { kind: "relationship"; person: SocialUser; actionId: RelationshipActionId }
 	| { kind: "nickname"; person: SocialUser; nickname: string }
 	| { kind: "remove-connections" }
@@ -40,7 +40,7 @@ const dialogsWithOwnEscape = new Set<AppDialog["kind"]>([
 	"import-vault",
 ])
 
-const passwordReminderNotificationId = "password-test-reminder"
+const passwordReminderNotificationId = "password-check-reminder"
 
 // AppDialogs opens and closes the dialogs that the app shows over every page.
 // One shows at a time, and every one closes when the vault locks.
@@ -162,13 +162,13 @@ export class AppDialogs {
 		unsavedChangesGuard.leave(() => void this.#openLockVault())
 	}
 
-	openPasswordTest(): void {
+	openPasswordCheck(): void {
 		this.#store.clearError()
 		this.#notifications.dismiss(passwordReminderNotificationId)
-		this.open = { kind: "test-password" }
+		this.open = { kind: "check-password" }
 	}
 
-	closePasswordTest(): void {
+	closePasswordCheck(): void {
 		if (this.#store.busy) return
 		this.open = null
 		this.#isPasswordReminderShown = false
@@ -213,7 +213,7 @@ export class AppDialogs {
 		if (kind === "relationship") this.closeRelationshipAction()
 		else if (kind === "remove-connections") this.closeRemoveConnections()
 		else if (kind === "nickname") this.closeNickname()
-		else if (kind === "test-password") this.closePasswordTest()
+		else if (kind === "check-password") this.closePasswordCheck()
 		else if (!this.#store.busy) this.open = null
 	}
 
@@ -282,17 +282,17 @@ export class AppDialogs {
 				actions: [
 					{
 						emphasis: true,
-						label: "Test",
-						onClick: () => this.openPasswordTest(),
+						label: "Check",
+						onClick: () => this.openPasswordCheck(),
 					},
 					{
-						label: "Ignore",
-						onClick: () => void this.#ignorePasswordReminder(),
+						label: "Dismiss",
+						onClick: () => void this.#dismissPasswordReminder(),
 					},
 				],
 				dismissible: false,
 				id: passwordReminderNotificationId,
-				message: "Confirm that you still know your portable vault password.",
+				message: "Confirm that you still know your master password.",
 				title: "Master password check",
 			})
 		} else if (!isReminderDue) {
@@ -301,7 +301,7 @@ export class AppDialogs {
 		}
 	}
 
-	async #ignorePasswordReminder(): Promise<void> {
+	async #dismissPasswordReminder(): Promise<void> {
 		if (await this.#store.dismissPasswordReminder()) {
 			this.#notifications.dismiss(passwordReminderNotificationId)
 		}

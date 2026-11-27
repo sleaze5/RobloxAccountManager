@@ -7,7 +7,7 @@
 	import { Browser } from "@wailsio/runtime"
 	import Icon from "../shared/Icon.svelte"
 	import type { AccountStore } from "../accounts/account-store.svelte"
-	import { replayValidationNudge } from "../shared/presence"
+	import { replayValidationNudge } from "../shared/transitions"
 	import Dialog from "../shared/Dialog.svelte"
 	import { repository } from "../../../package.json"
 
@@ -113,8 +113,8 @@
 			Download version 0.9.2
 		</button>
 		<div class="mt-3 notice-warning">
-			Set the old vault aside only if you have an export file. It moves to the
-			recovery folder in storage/vault and is not deleted.
+			Set the old vault aside only if you have an export file. The app moves it to
+			the recovery folder in storage/vault and does not delete it.
 		</div>
 		<form
 			novalidate

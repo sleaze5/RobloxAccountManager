@@ -157,7 +157,8 @@ func (service *Users) FirstAccount(ctx context.Context, accountID, version, user
 
 func (service *Users) Locale(ctx context.Context, accountID, version int64) (UserLocale, error) {
 	var payload struct {
-		GeneralExperience *struct {
+		// Roblox calls the language of its website and apps generalExperience.
+		Language *struct {
 			Name string `json:"name"`
 		} `json:"generalExperience"`
 		ShowRobloxTranslations *bool `json:"showRobloxTranslations"`
@@ -166,8 +167,8 @@ func (service *Users) Locale(ctx context.Context, accountID, version int64) (Use
 		return UserLocale{}, err
 	}
 	locale := UserLocale{AutoTranslations: payload.ShowRobloxTranslations}
-	if payload.GeneralExperience != nil {
-		locale.Language = strings.TrimSpace(payload.GeneralExperience.Name)
+	if payload.Language != nil {
+		locale.Language = strings.TrimSpace(payload.Language.Name)
 	}
 	if len(locale.Language) > 128 {
 		return UserLocale{}, invalidProfileDetails("account-info-locale")

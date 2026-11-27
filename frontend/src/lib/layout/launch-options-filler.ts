@@ -22,17 +22,17 @@ export class LaunchOptionsFiller {
 		this.#navigation = navigation
 	}
 
-	fillServer(server: { placeId: string; jobId: string }): void {
+	fillServer(server: { placeId: string; serverId: string }): void {
 		const input = this.#store.launchInput
 		input.method = LaunchMethod.MethodPlace
 		input.placeId = server.placeId
-		input.jobId = server.jobId
+		input.serverId = server.serverId
 		this.#showLaunchDrawer("[data-place-input]")
 	}
 
-	fillGame(placeId: number, jobId = ""): void {
+	fillGame(placeId: number, serverId = ""): void {
 		this.#store.launchInput.launchData = ""
-		this.fillServer({ placeId: String(placeId), jobId })
+		this.fillServer({ placeId: String(placeId), serverId })
 	}
 
 	// fillFollowUser follows the user into their server, such as the user who

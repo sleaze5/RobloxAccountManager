@@ -49,22 +49,22 @@ func (service *Service) readVoiceChat(ctx context.Context, accountID, version, u
 // refreshOnlineVoiceSuspensions reads the voice chat status of each online
 // account in the background. A suspension that has not ended yet is read again
 // only when the user opens the account's details.
-func (service *Service) refreshOnlineVoiceSuspensions(ctx context.Context, targets []robloxservices.PresenceTarget, presences []robloxservices.UserPresence) {
+func (service *Service) refreshOnlineVoiceSuspensions(ctx context.Context, targets []robloxservices.OnlineStatusTarget, onlineStatuses []robloxservices.OnlineStatus) {
 	accountIDByRobloxUserID := make(map[int64]int64, len(targets))
 	for _, target := range targets {
 		accountIDByRobloxUserID[target.RobloxUserID] = target.AccountID
 	}
 	nowMs := time.Now().UnixMilli()
-	for _, presence := range presences {
-		accountID, found := accountIDByRobloxUserID[presence.UserID]
-		if !found || presence.UserPresenceType == robloxservices.PresenceTypeOffline {
+	for _, onlineStatus := range onlineStatuses {
+		accountID, found := accountIDByRobloxUserID[onlineStatus.UserID]
+		if !found || onlineStatus.StatusType == robloxservices.OnlineStatusTypeOffline {
 			continue
 		}
-		suspension := service.users.CachedVoiceSuspension(ctx, presence.UserID)
+		suspension := service.users.CachedVoiceSuspension(ctx, onlineStatus.UserID)
 		if suspension != nil && (suspension.EndsAtMs == nil || *suspension.EndsAtMs > nowMs) {
 			continue
 		}
-		service.refreshAccountVoiceSuspension(accountID, presence.UserID)
+		service.refreshAccountVoiceSuspension(accountID, onlineStatus.UserID)
 	}
 }
 

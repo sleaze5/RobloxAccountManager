@@ -1,7 +1,7 @@
 import * as Service from "../../../bindings/github.com/sleaze5/RobloxAccountManager/internal/bindings/service.js"
 
 export type {
-	AccountInfoSnapshot,
+	AccountDetailsSnapshot,
 	AccountJoinCheck,
 	AccountProfileSnapshot,
 	AccountSession,
@@ -58,13 +58,13 @@ export type { State as UpdateState } from "../../../bindings/github.com/sleaze5/
 export { Status as UpdateStatus } from "../../../bindings/github.com/sleaze5/RobloxAccountManager/internal/appupdate/models.js"
 export {
 	MotionPreference,
-	PresenceScope,
+	OnlineStatusScope,
 	Section as SettingsSection,
 } from "../../../bindings/github.com/sleaze5/RobloxAccountManager/internal/appsettings/models.js"
-export type { PresenceSettings } from "../../../bindings/github.com/sleaze5/RobloxAccountManager/internal/appsettings/models.js"
+export type { OnlineStatusSettings } from "../../../bindings/github.com/sleaze5/RobloxAccountManager/internal/appsettings/models.js"
 export {
 	AccountCopyField,
-	AccountInfoSection,
+	AccountDetailsSection,
 	AccountProfileSection,
 	AccountSettingKey,
 	AgeVerification,
@@ -98,7 +98,7 @@ export {
 	InventoryCategory,
 	InventorySaleLocation,
 	ItemAvailability,
-	PresenceType,
+	OnlineStatusType,
 	TextModeration,
 	TrustedStatus,
 } from "../../../bindings/github.com/sleaze5/RobloxAccountManager/internal/roblox/services/models.js"
@@ -165,7 +165,7 @@ export type {
 	RenderedModel,
 	RobloxBadge,
 	TextFilter,
-	UserPresence,
+	OnlineStatus,
 	UserPrimaryGroup,
 	UserView,
 	UserSocialLink,
@@ -234,7 +234,7 @@ export {
 export type {
 	Process as RobloxProcess,
 	ProcessSnapshot as RobloxProcessSnapshot,
-	Snapshot as MultiInstanceSnapshot,
+	Snapshot as MultiClientSnapshot,
 } from "../../../bindings/github.com/sleaze5/RobloxAccountManager/internal/platform/robloxmulti/models.js"
 export { Scope as RobloxCleanScope } from "../../../bindings/github.com/sleaze5/RobloxAccountManager/internal/platform/robloxcleaner/models.js"
 

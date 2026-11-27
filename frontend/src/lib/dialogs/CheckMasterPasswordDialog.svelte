@@ -6,7 +6,7 @@
 	import xIcon from "@phosphor-icons/core/regular/x.svg?raw"
 	import Icon from "../shared/Icon.svelte"
 	import type { AccountStore } from "../accounts/account-store.svelte"
-	import { replayValidationNudge } from "../shared/presence"
+	import { replayValidationNudge } from "../shared/transitions"
 	import Dialog from "../shared/Dialog.svelte"
 
 	let { store, onClose }: { store: AccountStore; onClose: () => void } = $props(),
@@ -14,8 +14,8 @@
 		visible = $state(false),
 		card = $state<HTMLDivElement>()
 
-	async function testPassword(): Promise<void> {
-		if (await store.testVaultPassword(password)) {
+	async function checkPassword(): Promise<void> {
+		if (await store.checkVaultPassword(password)) {
 			onClose()
 		} else {
 			replayValidationNudge(card)
@@ -27,7 +27,7 @@
 
 <Dialog
 	class="relative max-w-sm text-center"
-	aria-labelledby="test-password-title"
+	aria-labelledby="check-password-title"
 	bind:card>
 	<button
 		class="absolute top-3 right-3 button-close"
@@ -41,14 +41,14 @@
 		novalidate
 		onsubmit={(event) => {
 			event.preventDefault()
-			void testPassword()
+			void checkPassword()
 		}}>
 		<div
 			class="mx-auto mb-3 grid size-8 place-items-center rounded-md border border-line-strong bg-raised text-fg">
 			<Icon svg={shieldCheckIcon} size={16} aria-hidden="true" />
 		</div>
-		<h2 id="test-password-title">Test master password</h2>
-		<p>Confirm that you still know the portable vault password.</p>
+		<h2 id="check-password-title">Check master password</h2>
+		<p>Confirm that you still know the master password.</p>
 
 		<label class="dialog-field">
 			<span>Master password</span>
@@ -76,7 +76,7 @@
 			<button
 				class="button-primary"
 				type="submit"
-				disabled={!password || store.busy}>Test password</button>
+				disabled={!password || store.busy}>Check password</button>
 		</div>
 	</form>
 </Dialog>

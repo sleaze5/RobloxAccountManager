@@ -42,7 +42,7 @@ export class OwnedPrivateServersState {
 
 	update(settings: PrivateServerSettings): void {
 		const server = this.servers?.find(
-			(ownedServer) => ownedServer.serverId === settings.serverId,
+			(ownedServer) => ownedServer.privateServerId === settings.privateServerId,
 		)
 		if (!server) return
 		server.name = settings.name
@@ -61,10 +61,12 @@ export class OwnedPrivateServersState {
 			)
 			if (!this.#scope.isCurrent) return
 			const loaded = cursor ? (this.servers ?? []) : [],
-				known = new Set(loaded.map((server) => server.serverId))
+				known = new Set(loaded.map((server) => server.privateServerId))
 			this.servers = [
 				...loaded,
-				...(page.servers ?? []).filter((server) => !known.has(server.serverId)),
+				...(page.servers ?? []).filter(
+					(server) => !known.has(server.privateServerId),
+				),
 			]
 			this.nextCursor = page.nextCursor
 			if (!cursor) this.#fetchedAt = Date.now()

@@ -18,9 +18,9 @@
 	} = $props()
 	const elementIdPrefix = $props.id(),
 		wornBadge: LabeledBadge = {
-			label: "Wearing",
+			label: "Worn",
 			icon: tShirtIcon,
-			tooltip: "Wears this item now",
+			tooltip: "This account wears this item now",
 			isStrong: true,
 		}
 

@@ -75,7 +75,7 @@ func (holder *mutexHolder) run(ready chan<- error, logger *slog.Logger) {
 	logger.Info("holding Roblox singleton mutex")
 	if _, err := windows.WaitForSingleObject(holder.stop, windows.INFINITE); err != nil {
 		holder.failed.Store(true)
-		logger.Warn("could not wait for multi-instance to stop", "error", err)
+		logger.Warn("could not wait for multi-client to turn off", "error", err)
 	}
 	holder.owned.Store(false)
 	if err := windows.ReleaseMutex(mutex); err != nil {

@@ -11,7 +11,7 @@
 	import Dialog from "../shared/Dialog.svelte"
 	import ProfileImage from "../shared/ProfileImage.svelte"
 	import type { SocialUser } from "../backend/bridge"
-	import { presenceLabel } from "../accounts/account-model"
+	import { onlineStatusLabel } from "../accounts/account-model"
 	import SocialAvatar from "../social/SocialAvatar.svelte"
 	import { errorMessage } from "../shared/errors"
 	import { matchesSearch, searchTerms } from "../shared/search"
@@ -81,7 +81,7 @@
 					: "Add member"
 			}
 			if (submitting) return isGroup ? "Creating…" : "Starting…"
-			return isGroup ? "Create group" : "Start chat"
+			return isGroup ? "Create group chat" : "Start chat"
 		})
 
 	$effect(() => {
@@ -185,7 +185,7 @@
 		</span>
 		<SocialAvatar
 			imageUrl={person.imageUrl}
-			presence={person.presence ?? undefined}
+			onlineStatus={person.onlineStatus ?? undefined}
 			className="size-8" />
 		<span class="flex min-w-0 flex-1 flex-col leading-snug">
 			<span class="truncate text-sm font-medium text-fg"
@@ -208,10 +208,10 @@
 			<h2 id="chat-people-title">{title}</h2>
 			<p id="chat-people-description">
 				{mode === "create"
-					? `Select one friend for a direct chat, or up to ${selectionLimit} for a group.`
+					? `Select one friend for a direct chat, or up to ${selectionLimit} for a group chat.`
 					: selectionLimit > 0
-						? `This group has room for ${selectionLimit} more ${selectionLimit === 1 ? "user" : "users"}.`
-						: "This group is full."}
+						? `This group chat has room for ${selectionLimit} more ${selectionLimit === 1 ? "user" : "users"}.`
+						: "This group chat is full."}
 			</p>
 		</div>
 		<button
@@ -339,7 +339,9 @@
 						{#each matches as friend (friend.userId)}
 							{@render personRow(
 								friend,
-								friend.presence ? presenceLabel(friend.presence) : "",
+								friend.onlineStatus
+									? onlineStatusLabel(friend.onlineStatus)
+									: "",
 							)}
 						{/each}
 					</div>
@@ -349,7 +351,7 @@
 
 		{#if mode === "create" && isGroup}
 			<label class="dialog-field mt-0 animate-enter">
-				<span>Group name (optional)</span>
+				<span>Group chat name (optional)</span>
 				<input
 					class="field"
 					bind:value={groupName}

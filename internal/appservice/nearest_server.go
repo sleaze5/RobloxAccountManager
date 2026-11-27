@@ -64,7 +64,7 @@ func (service *Service) serverRegions(ctx context.Context, refresh bool) ([]rova
 }
 
 func (service *Service) ListNearbyServerRegions(ctx context.Context, placeID int64) ([]games.NearbyRegion, error) {
-	if err := validGameID(placeID); err != nil {
+	if err := validRobloxID(placeID); err != nil {
 		return nil, err
 	}
 	ctx, done, err := service.beginRoValra(ctx)
@@ -89,7 +89,7 @@ func (service *Service) ListNearbyServerRegions(ctx context.Context, placeID int
 }
 
 func (service *Service) ListRegionServers(ctx context.Context, query games.RegionServerQuery) ([]string, error) {
-	if err := validGameID(query.PlaceID); err != nil {
+	if err := validRobloxID(query.PlaceID); err != nil {
 		return nil, err
 	}
 	ctx, done, err := service.beginRoValra(ctx)
@@ -110,23 +110,23 @@ func (service *Service) ListRegionServers(ctx context.Context, query games.Regio
 	if err != nil {
 		return nil, service.rovalraError(ctx, "rovalra-region-servers", query.PlaceID, err)
 	}
-	jobIDs := make([]string, 0, regionServerBatchSize)
+	serverIDs := make([]string, 0, regionServerBatchSize)
 	for _, server := range page.Servers {
-		if len(jobIDs) == regionServerBatchSize {
+		if len(serverIDs) == regionServerBatchSize {
 			break
 		}
-		if !slices.Contains(query.ExcludedJobIDs, server.JobID) {
-			jobIDs = append(jobIDs, server.JobID)
+		if !slices.Contains(query.ExcludedServerIDs, server.ServerID) {
+			serverIDs = append(serverIDs, server.ServerID)
 		}
 	}
-	return jobIDs, nil
+	return serverIDs, nil
 }
 
-func (service *Service) CheckGameServerJoinable(ctx context.Context, placeID, accountID int64, jobID string) (bool, error) {
-	if err := validGameID(placeID); err != nil {
+func (service *Service) CheckGameServerJoinable(ctx context.Context, placeID, accountID int64, serverID string) (bool, error) {
+	if err := validRobloxID(placeID); err != nil {
 		return false, err
 	}
-	if !games.ValidJobID(jobID) {
+	if !games.ValidServerID(serverID) {
 		return false, gamesInputError("The server is invalid. Search again.")
 	}
 	ctx, done, err := service.beginGames(ctx)
@@ -134,7 +134,7 @@ func (service *Service) CheckGameServerJoinable(ctx context.Context, placeID, ac
 		return false, err
 	}
 	defer done()
-	check, err := service.games.CheckJoin(ctx, accountID, 0, gamelaunch.Request{PlaceID: placeID, JobID: jobID})
+	check, err := service.games.CheckJoin(ctx, accountID, 0, gamelaunch.Request{PlaceID: placeID, ServerID: serverID})
 	if err != nil {
 		return false, service.gamesError(ctx, "game-server-join-check", err)
 	}

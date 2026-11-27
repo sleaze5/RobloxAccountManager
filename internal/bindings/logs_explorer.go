@@ -14,6 +14,6 @@ func (service *Service) RefreshLogsExplorerLog(ctx context.Context, fileName str
 	return service.core.RefreshLogsExplorerLog(ctx, fileName)
 }
 
-func (service *Service) FindGameServerVisit(ctx context.Context, placeID int64, jobID string) (logsexplorer.ServerVisit, error) {
-	return service.core.FindGameServerVisit(ctx, placeID, jobID)
+func (service *Service) FindGameServerVisit(ctx context.Context, placeID int64, serverID string) (logsexplorer.ServerVisit, error) {
+	return service.core.FindGameServerVisit(ctx, placeID, serverID)
 }

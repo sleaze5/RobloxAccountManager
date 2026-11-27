@@ -97,8 +97,8 @@ func (service *Users) buyCollectibleItem(ctx context.Context, accountID, version
 	if sale.UnitsAvailable != nil && *sale.UnitsAvailable == 0 && sale.AssetStock != nil && *sale.AssetStock > 0 {
 		return false, purchaseRefusal("This item is sold out.")
 	}
-	if saleLocationOf(sale.SaleLocationType) == SaleInExperiences {
-		return false, purchaseRefusal("This item is only sold inside experiences.")
+	if saleLocationOf(sale.SaleLocationType) == SaleInGames {
+		return false, purchaseRefusal("This item is only sold inside games.")
 	}
 	if err := checkPurchasePrice(sale.Price, expectedPriceInRobux); err != nil {
 		return false, err

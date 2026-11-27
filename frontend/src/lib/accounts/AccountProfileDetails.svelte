@@ -168,7 +168,7 @@
 					return {
 						tone: "muted",
 						label: "Not checked yet",
-						detail: "Refresh to check the session.",
+						detail: "Refresh to check the cookie.",
 					}
 			}
 		})
@@ -348,20 +348,20 @@
 				<dd>{@render missing(AccountProfileSection.ProfileSectionTrading)}</dd>
 			</div>
 		{/if}
-		{#if snapshot && snapshot.communityCount !== null && isLoaded(AccountProfileSection.ProfileSectionCommunities)}
+		{#if snapshot && snapshot.groupCount !== null && isLoaded(AccountProfileSection.ProfileSectionGroups)}
 			<div>
 				<dt>
-					<Icon svg={usersFourIcon} size={16} aria-hidden="true" />Communities
+					<Icon svg={usersFourIcon} size={16} aria-hidden="true" />Groups
 				</dt>
-				<dd><span>{exactNumbers.format(snapshot.communityCount)}</span></dd>
+				<dd><span>{exactNumbers.format(snapshot.groupCount)}</span></dd>
 			</div>
 		{:else if sections}
 			<div>
 				<dt>
-					<Icon svg={usersFourIcon} size={16} aria-hidden="true" />Communities
+					<Icon svg={usersFourIcon} size={16} aria-hidden="true" />Groups
 				</dt>
 				<dd>
-					{@render missing(AccountProfileSection.ProfileSectionCommunities)}
+					{@render missing(AccountProfileSection.ProfileSectionGroups)}
 				</dd>
 			</div>
 		{/if}

@@ -9,7 +9,12 @@
 	import { tick } from "svelte"
 	import Icon from "../shared/Icon.svelte"
 	import ProfileImage from "../shared/ProfileImage.svelte"
-	import { floatMenu, focusMenuItemForKey, menuIn, menuOut } from "../shared/presence"
+	import {
+		floatMenu,
+		focusMenuItemForKey,
+		menuIn,
+		menuOut,
+	} from "../shared/transitions"
 	import { matchesSearch, searchTerms } from "../shared/search"
 	import type {
 		AnimationChoice,

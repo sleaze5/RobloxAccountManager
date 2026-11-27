@@ -9,7 +9,7 @@
 		menuIn,
 		menuOut,
 		placeMenuAtAnchor,
-	} from "../shared/presence"
+	} from "../shared/transitions"
 
 	let {
 		hasSavedPassword,

@@ -82,7 +82,7 @@ export class AccountSessionsState {
 				title: "Other sessions signed out",
 				message:
 					signOutResult.warning ||
-					"Every other browser, device, and app was signed out. This app stays signed in.",
+					"Signed out of every other browser, device, and app. This app stays signed in.",
 			})
 			return true
 		} catch (error) {

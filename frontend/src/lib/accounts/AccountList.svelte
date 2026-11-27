@@ -16,13 +16,13 @@
 	import type { AccountStore } from "./account-store.svelte"
 	import { SessionState } from "../backend/bridge"
 	import {
-		presenceDetail,
-		presenceLabel,
+		onlineStatusDetail,
+		onlineStatusLabel,
 		sessionAttentionLabel,
 	} from "./account-model"
 	import ModerationLine from "./ModerationLine.svelte"
 	import { moderationLabel } from "./moderation.svelte"
-	import PresenceLine from "./PresenceLine.svelte"
+	import OnlineStatusLine from "./OnlineStatusLine.svelte"
 	import VoiceSuspensionIcon from "./VoiceSuspensionIcon.svelte"
 
 	interface DropTarget {
@@ -170,7 +170,8 @@
 	{#each store.accounts as account (account.id)}
 		{@const moderated = account.state === SessionState.StateModerated}
 		{@const attention = moderated ? "" : sessionAttentionLabel(account.state)}
-		{@const detail = moderated || attention ? "" : presenceDetail(account.presence)}
+		{@const detail =
+			moderated || attention ? "" : onlineStatusDetail(account.onlineStatus)}
 		{@const tall = moderated || !!attention || !!detail}
 		<div
 			class={[
@@ -230,7 +231,7 @@
 				type="button"
 				aria-pressed={store.selectedAccountIds.includes(account.id)}
 				aria-keyshortcuts="Control+Shift+ArrowUp Control+Shift+ArrowDown"
-				aria-label={`${account.displayName} (@${account.username}), ${moderated ? moderationLabel(account.moderation) : presenceLabel(account.presence)}${attention ? `, ${attention}` : ""}${account.favorite ? ", favorite" : ""}${account.voiceSuspension ? ", voice chat suspended" : ""}`}
+				aria-label={`${account.displayName} (@${account.username}), ${moderated ? moderationLabel(account.moderation) : onlineStatusLabel(account.onlineStatus)}${attention ? `, ${attention}` : ""}${account.favorite ? ", favorite" : ""}${account.voiceSuspension ? ", voice chat suspended" : ""}`}
 				onclick={(event) =>
 					selectAccount(
 						account.id,
@@ -257,7 +258,7 @@
 					<AccountAvatar
 						{account}
 						className="size-9 text-xs"
-						showPresence={!moderated} />
+						showOnlineStatus={!moderated} />
 					<span class="block min-w-0 flex-1">
 						<strong
 							class="mb-0.5 flex min-w-0 items-center gap-1 text-sm font-semibold text-fg">
@@ -285,8 +286,8 @@
 									aria-hidden="true" /><span class="truncate"
 									>{attention}</span
 								></small
-							>{:else if detail}<PresenceLine
-								presence={account.presence} />{/if}
+							>{:else if detail}<OnlineStatusLine
+								onlineStatus={account.onlineStatus} />{/if}
 					</span>
 				</span>
 			</button>

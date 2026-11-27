@@ -15,8 +15,8 @@ func (service *Service) GetAccountProfile(ctx context.Context, accountID int64, 
 	return service.core.GetAccountProfile(ctx, accountID, section)
 }
 
-func (service *Service) ValidateCookies(ctx context.Context, input string) (appservice.ImportPreview, error) {
-	return service.core.ValidateCookies(ctx, input)
+func (service *Service) CheckCookies(ctx context.Context, input string) (appservice.ImportPreview, error) {
+	return service.core.CheckCookies(ctx, input)
 }
 
 func (service *Service) SaveValidatedCookies(ctx context.Context, batchID string, selectedIndexes []int) (appservice.ImportBatchResult, error) {
@@ -93,13 +93,13 @@ func (service *Service) GetAvatarHeadshots(ctx context.Context, userIDs []int64)
 	return service.core.GetAvatarHeadshots(ctx, userIDs)
 }
 
-func (service *Service) GetAccountPresences(ctx context.Context, accountID *int64) ([]robloxservices.UserPresence, error) {
+func (service *Service) GetAccountOnlineStatuses(ctx context.Context, accountID *int64) ([]robloxservices.OnlineStatus, error) {
 	if accountID != nil {
-		if err := positiveID(*accountID, "user-presences"); err != nil {
+		if err := positiveID(*accountID, "user-online-statuses"); err != nil {
 			return nil, err
 		}
 	}
-	return service.core.GetAccountPresences(ctx, accountID)
+	return service.core.GetAccountOnlineStatuses(ctx, accountID)
 }
 
 func (service *Service) FindAccountByRobloxUserID(ctx context.Context, robloxUserID int64) (*accounts.AccountView, error) {
@@ -116,9 +116,9 @@ func (service *Service) GetRobloxUser(ctx context.Context, robloxUserID int64) (
 	return service.core.GetRobloxUser(ctx, robloxUserID)
 }
 
-func (service *Service) ValidateAccount(ctx context.Context, accountID int64) (accounts.AccountView, error) {
+func (service *Service) CheckAccount(ctx context.Context, accountID int64) (accounts.AccountView, error) {
 	if err := positiveID(accountID, "account-validation"); err != nil {
 		return accounts.AccountView{}, err
 	}
-	return service.core.ValidateAccount(ctx, accountID)
+	return service.core.CheckAccount(ctx, accountID)
 }

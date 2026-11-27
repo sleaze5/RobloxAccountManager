@@ -35,7 +35,7 @@ type UserVerificationMethod struct {
 	Enabled   *bool  `json:"enabled"`
 }
 
-func (service *Users) AccountInfo(ctx context.Context, accountID, version, userID int64) (UserAccountDetails, error) {
+func (service *Users) AccountDetails(ctx context.Context, accountID, version, userID int64) (UserAccountDetails, error) {
 	var accountDetails UserAccountDetails
 	err := service.readAccountDetails(ctx, accountID, version, "profile-account", "https://users.roblox.com/v1/users/authenticated/app-launch-info", &accountDetails)
 	if err == nil && accountDetails.ID <= 0 {
@@ -344,18 +344,18 @@ func (service *Users) PrimaryGroup(ctx context.Context, accountID, version, user
 	}, nil
 }
 
-// CommunityCount counts the communities a user belongs to. The v2 list leaves
-// out descriptions and shouts, so it stays small for users in many communities.
-func (service *Users) CommunityCount(ctx context.Context, accountID, version, userID int64) (int64, error) {
+// GroupCount counts the groups that a user is in. The v2 list leaves
+// out descriptions and shouts, so it stays small for users in many groups.
+func (service *Users) GroupCount(ctx context.Context, accountID, version, userID int64) (int64, error) {
 	var payload struct {
 		Data *[]json.RawMessage `json:"data"`
 	}
 	address := "https://groups.roblox.com/v2/users/" + strconv.FormatInt(userID, 10) + "/groups/roles"
-	if err := service.readAccountDetails(ctx, accountID, version, "profile-communities", address, &payload); err != nil {
+	if err := service.readAccountDetails(ctx, accountID, version, "profile-groups", address, &payload); err != nil {
 		return 0, err
 	}
 	if payload.Data == nil {
-		return 0, invalidProfileDetails("profile-communities")
+		return 0, invalidProfileDetails("profile-groups")
 	}
 	return int64(len(*payload.Data)), nil
 }

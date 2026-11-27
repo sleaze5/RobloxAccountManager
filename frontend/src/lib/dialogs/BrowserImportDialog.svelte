@@ -56,7 +56,7 @@
 				avatarUrl: candidate.avatarUrl,
 				displayName: candidate.displayName || candidate.username,
 				duplicateText: candidate.sameAccountAsId
-					? "Same account as another browser session"
+					? "Same account as another browser"
 					: undefined,
 				id: candidate.id,
 				indexLabel: `${index + 1}.`,
@@ -205,7 +205,7 @@
 			savedUpdated += updated
 		}
 		if (failed > 0) {
-			browser.error = `${failed} ${failed === 1 ? "account" : "accounts"} could not be saved.`
+			browser.error = `Could not save ${failed} ${failed === 1 ? "account" : "accounts"}.`
 		}
 	}
 

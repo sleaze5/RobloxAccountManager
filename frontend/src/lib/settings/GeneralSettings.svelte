@@ -2,24 +2,24 @@
 	import { notifyErrors } from "../notifications/error-notifications.svelte"
 	import { matchesSearch, searchTerms } from "../shared/search"
 	import { matchesSetting, settingWords } from "./settings-search"
-	import { PresenceScope } from "../backend/bridge"
+	import { OnlineStatusScope } from "../backend/bridge"
 	import NumberStepper from "../shared/NumberStepper.svelte"
 	import type { LoggingLevel, SettingsStore } from "./settings-store.svelte"
 
-	const presenceScopes = [
+	const onlineStatusScopes = [
 		{
-			id: PresenceScope.PresenceAccounts,
+			id: OnlineStatusScope.OnlineStatusAccounts,
 			name: "Account list",
 			description: "Update online status for all saved accounts.",
 		},
 		{
-			id: PresenceScope.PresenceProfile,
+			id: OnlineStatusScope.OnlineStatusProfile,
 			name: "Active profile",
 			description:
 				"Update online status for the selected account while its profile is open.",
 		},
 		{
-			id: PresenceScope.PresenceSocial,
+			id: OnlineStatusScope.OnlineStatusSocial,
 			name: "Social",
 			description: "Update online status for listed users while Social is open.",
 		},
@@ -62,8 +62,8 @@
 				),
 			),
 		),
-		visiblePresenceScopes = $derived(
-			presenceScopes.filter((scope) =>
+		visibleOnlineStatusScopes = $derived(
+			onlineStatusScopes.filter((scope) =>
 				matchesSearch(
 					terms,
 					`${settingWords("onlineStatusUpdates")} ${scope.name} ${scope.description}`,
@@ -75,30 +75,31 @@
 	notifyErrors("Setting not saved", () => store.error)
 </script>
 
-{#if visiblePresenceScopes.length > 0}
-	<section class="settings-section" aria-labelledby="presence-updates-title">
-		<h3 id="presence-updates-title">Online status updates</h3>
-		{#each visiblePresenceScopes as scope (scope.id)}
-			{@const settings = store.presence[scope.id]}
+{#if visibleOnlineStatusScopes.length > 0}
+	<section class="settings-section" aria-labelledby="online-status-updates-title">
+		<h3 id="online-status-updates-title">Online status updates</h3>
+		{#each visibleOnlineStatusScopes as scope (scope.id)}
+			{@const settings = store.onlineStatus[scope.id]}
 			<div class="settings-rows">
 				<div class="settings-row">
 					<div class="settings-row-copy">
-						<strong id={`presence-${scope.id}-title`}>{scope.name}</strong>
-						<span id={`presence-${scope.id}-description`}
+						<strong id={`onlineStatus-${scope.id}-title`}
+							>{scope.name}</strong>
+						<span id={`onlineStatus-${scope.id}-description`}
 							>{scope.description}</span>
 					</div>
 					<label class="switch">
 						<input
 							type="checkbox"
 							role="switch"
-							aria-labelledby={`presence-${scope.id}-title`}
-							aria-describedby={`presence-${scope.id}-description`}
+							aria-labelledby={`onlineStatus-${scope.id}-title`}
+							aria-describedby={`onlineStatus-${scope.id}-description`}
 							checked={settings.enabled}
-							disabled={!store.initialized || store.busyPresence}
+							disabled={!store.initialized || store.busyOnlineStatus}
 							onchange={(event) => {
 								const enabled = event.currentTarget.checked
 								event.currentTarget.checked = settings.enabled
-								void store.setPresenceUpdates(
+								void store.setOnlineStatusUpdates(
 									scope.id,
 									enabled,
 									settings.intervalSeconds,
@@ -122,14 +123,15 @@
 							min={30}
 							max={900}
 							step={5}
-							defaultValue={scope.id === PresenceScope.PresenceAccounts
+							defaultValue={scope.id ===
+							OnlineStatusScope.OnlineStatusAccounts
 								? 300
 								: 60}
 							disabled={!store.initialized ||
-								store.busyPresence ||
+								store.busyOnlineStatus ||
 								!settings.enabled}
 							onChange={(seconds) =>
-								store.setPresenceUpdates(
+								store.setOnlineStatusUpdates(
 									scope.id,
 									settings.enabled,
 									seconds,

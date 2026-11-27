@@ -9,7 +9,7 @@
 		menuOut,
 		placeMenuAtAnchor,
 		placeMenuAtPoint,
-	} from "../shared/presence"
+	} from "../shared/transitions"
 	import AccountActionsMenu from "./AccountActionsMenu.svelte"
 	import MultiAccountActionsMenu from "./MultiAccountActionsMenu.svelte"
 	import type { AccountStore } from "./account-store.svelte"

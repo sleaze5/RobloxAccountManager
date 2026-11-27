@@ -73,11 +73,11 @@
 				message:
 					nearestSearch.phase === "failed"
 						? nearestSearch.error
-						: "No open server of this place was found. Try again later.",
+						: "No open server found for this place. Try again later.",
 			})
 			return
 		}
-		store.launchInput.jobId = nearestSearch.foundJobId
+		store.launchInput.serverId = nearestSearch.foundServerId
 		const foundRegion =
 			nearestSearch.regionChecks[nearestSearch.activeRegionIndex]?.nearbyRegion
 				.region
@@ -85,7 +85,7 @@
 			notifications.show({
 				id: "nearest-server",
 				title: "Nearest server filled",
-				message: `No open server was found in ${appSettings.preferredRegionLabel}, so a server in ${foundRegion.name} was filled.`,
+				message: `No open server in ${appSettings.preferredRegionLabel}. Filled a server in ${foundRegion.name}.`,
 			})
 		}
 	}
@@ -131,8 +131,8 @@
 	{#key search}
 		<NearestServerDialog
 			{search}
-			onUseServer={(jobId) => {
-				store.launchInput.jobId = jobId
+			onUseServer={(serverId) => {
+				store.launchInput.serverId = serverId
 				closeSearch()
 			}}
 			onClose={closeSearch} />

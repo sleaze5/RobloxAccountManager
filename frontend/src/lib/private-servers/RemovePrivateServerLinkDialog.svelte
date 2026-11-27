@@ -28,7 +28,7 @@
 
 <ConfirmationDialog
 	title={`Remove ${server.name || "Saved server"}?`}
-	description="The link is removed from the vault. This cannot be undone. The private server does not change."
+	description="This removes the link from the vault. The private server does not change. This cannot be undone."
 	confirmLabel="Remove link"
 	progressLabel="Removing…"
 	isWorking={saved.removing === server.id}

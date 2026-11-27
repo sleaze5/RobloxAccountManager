@@ -4,7 +4,7 @@
 	import type { AvatarScaleLimit, AvatarScales } from "../backend/bridge"
 	import Icon from "../shared/Icon.svelte"
 	import Skeleton from "../shared/Skeleton.svelte"
-	import { replayValidationNudge } from "../shared/presence"
+	import { replayValidationNudge } from "../shared/transitions"
 	import AvatarBodyColorFacts from "./AvatarBodyColorFacts.svelte"
 	import AvatarBodyFigure from "./AvatarBodyFigure.svelte"
 	import { bodyParts, bodyScales } from "./avatar-draft"

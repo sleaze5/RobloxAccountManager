@@ -3,17 +3,21 @@
 	import magnifyingGlassIcon from "@phosphor-icons/core/regular/magnifying-glass.svg?raw"
 	import signInIcon from "@phosphor-icons/core/regular/sign-in.svg?raw"
 	import Icon from "../shared/Icon.svelte"
-	import { PresenceType, UserJoinability } from "../backend/bridge"
-	import type { UserPresence } from "../backend/bridge"
+	import { OnlineStatusType, UserJoinability } from "../backend/bridge"
+	import type { OnlineStatus } from "../backend/bridge"
 	import PlaceHeader from "../games/PlaceHeader.svelte"
-	import { floatMenu, menuIn, menuOut } from "../shared/presence"
-	import { presenceIcon, presenceLabel, presenceTextClass } from "./account-model"
+	import { floatMenu, menuIn, menuOut } from "../shared/transitions"
+	import {
+		onlineStatusIcon,
+		onlineStatusLabel,
+		onlineStatusTextClass,
+	} from "./account-model"
 	import { notJoinableMessage } from "./user-joinability"
 
 	let {
 		id,
 		anchor,
-		presence,
+		onlineStatus,
 		isJoinable,
 		joinability,
 		onPointerEnter,
@@ -23,7 +27,7 @@
 	}: {
 		id: string
 		anchor: HTMLElement
-		presence: UserPresence
+		onlineStatus: OnlineStatus
 		isJoinable: boolean
 		// joinability is whether the user's profile offers to join them.
 		joinability: UserJoinability
@@ -31,16 +35,16 @@
 		onPointerLeave: () => void
 		onFillLaunch: () => void
 		// onFollowUser fills the launch options to follow a user whose server
-		// the presence hides.
+		// the online status hides.
 		onFollowUser?: () => void
 	} = $props()
 	const previews = getProfilePreviews()
 
 	const headingId = $derived(`${id}-heading`),
 		isNotJoinable = $derived(joinability === UserJoinability.UserNotJoinable)
-	const universeId = $derived(presence.universeId ?? 0),
-		placeId = $derived(presence.placeId ?? 0),
-		rootPlaceId = $derived(presence.rootPlaceId ?? 0)
+	const universeId = $derived(onlineStatus.universeId ?? 0),
+		placeId = $derived(onlineStatus.placeId ?? 0),
+		rootPlaceId = $derived(onlineStatus.rootPlaceId ?? 0)
 </script>
 
 <div
@@ -57,16 +61,16 @@
 	<h2
 		class={[
 			"inline-flex items-center gap-1 text-xs font-semibold",
-			presenceTextClass(presence),
+			onlineStatusTextClass(onlineStatus),
 		]}
 		id={headingId}>
 		<Icon
-			svg={presenceIcon(presence)}
+			svg={onlineStatusIcon(onlineStatus)}
 			size={14}
-			aria-hidden="true" />{presenceLabel(presence)}
+			aria-hidden="true" />{onlineStatusLabel(onlineStatus)}
 	</h2>
 	{#if universeId > 0 && placeId > 0}<PlaceHeader {universeId} {placeId} />{/if}
-	<dl class="detail-grid" aria-label="Game identifiers">
+	<dl class="detail-grid" aria-label="Game IDs">
 		{#if placeId > 0}<div>
 				<dt>Place ID</dt>
 				{@render searchableId(placeId, "Show game", () =>
@@ -75,15 +79,12 @@
 			</div>{/if}
 		{#if universeId > 0}<div>
 				<dt>Universe ID</dt>
-				{@render searchableId(
-					universeId,
-					"Show the places of this universe",
-					() =>
-						previews.show({
-							kind: "Place",
-							placeId: rootPlaceId || placeId,
-							universeId,
-						}),
+				{@render searchableId(universeId, "Show the places of this game", () =>
+					previews.show({
+						kind: "Place",
+						placeId: rootPlaceId || placeId,
+						universeId,
+					}),
 				)}
 			</div>{/if}
 		{#if rootPlaceId > 0 && rootPlaceId !== placeId}<div>
@@ -92,11 +93,11 @@
 					previews.show({ kind: "Place", placeId: rootPlaceId }),
 				)}
 			</div>{/if}
-		{#if presence.userPresenceType === PresenceType.PresenceTypeInGame}<div
+		{#if onlineStatus.statusType === OnlineStatusType.OnlineStatusTypeInGame}<div
 				class="col-span-full">
-				<dt>Job ID</dt>
-				{#if presence.gameId}<dd class="font-mono select-text">
-						{presence.gameId}
+				<dt>Server ID</dt>
+				{#if onlineStatus.serverId}<dd class="font-mono select-text">
+						{onlineStatus.serverId}
 					</dd>
 				{:else}<dd class="text-fg-muted">Not shared by Roblox</dd>{/if}
 			</div>{/if}

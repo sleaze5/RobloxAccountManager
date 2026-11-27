@@ -13,7 +13,7 @@
 	import type { PrivateServerSettings } from "../backend/bridge"
 	import type { NotificationCenter } from "../notifications/notification-center.svelte"
 	import ProfileImage from "../shared/ProfileImage.svelte"
-	import { replayValidationNudge } from "../shared/presence"
+	import { replayValidationNudge } from "../shared/transitions"
 	import Dialog from "../shared/Dialog.svelte"
 	import { PrivateServerState } from "./private-server-state.svelte"
 	import RenamePrivateServerDialog from "./RenamePrivateServerDialog.svelte"
@@ -21,7 +21,7 @@
 	let {
 		accountId,
 		username,
-		serverId,
+		privateServerId,
 		name,
 		gameName,
 		notifications,
@@ -30,7 +30,7 @@
 	}: {
 		accountId: number
 		username: string
-		serverId: number
+		privateServerId: number
 		name: string
 		gameName: string
 		notifications: NotificationCenter
@@ -39,7 +39,13 @@
 	} = $props()
 
 	const server = untrack(
-			() => new PrivateServerState(accountId, serverId, notifications, onChanged),
+			() =>
+				new PrivateServerState(
+					accountId,
+					privateServerId,
+					notifications,
+					onChanged,
+				),
 		),
 		id = $props.id(),
 		dates = new Intl.DateTimeFormat(undefined, { dateStyle: "medium" }),
@@ -58,7 +64,7 @@
 			{
 				option: PrivateServerOption.PrivateServerActive,
 				label: "Active",
-				description: "Let people join this server.",
+				description: "Let users join this server.",
 				checked: settings?.active ?? false,
 			},
 			{
@@ -335,7 +341,7 @@
 									<strong>Allowed users</strong>
 									<span
 										>{users.length
-											? `${users.length} ${users.length === 1 ? "person" : "people"} can join without the link.`
+											? `${users.length} ${users.length === 1 ? "user" : "users"} can join without the link.`
 											: "No one else is allowed yet."}</span>
 								</div>
 								<Icon

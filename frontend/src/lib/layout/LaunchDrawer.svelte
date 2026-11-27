@@ -40,7 +40,7 @@
 			value: LaunchMethod.MethodPlace,
 			label: "Place ID",
 			description:
-				"Join a game by place ID and an optional job ID (UUID). Leave both empty to open Roblox without joining a game.",
+				"Join a game by place ID and an optional server ID (UUID). Leave both empty to open Roblox without joining a game.",
 		},
 		{
 			value: LaunchMethod.MethodLink,
@@ -92,11 +92,11 @@
 	// The check reruns when the join target or the selected accounts change,
 	// and not for launch options such as Teleport, which do not change it.
 	$effect(() => {
-		const { method, placeId, jobId, link, user, resolveCurrentGame } =
+		const { method, placeId, serverId, link, user, resolveCurrentGame } =
 				store.launchInput,
 			accountIds = [...store.selectedAccountIds],
 			isChecked = workspace.launchOpen && store.vault.unlocked
-		void [method, placeId, jobId, link, user, resolveCurrentGame]
+		void [method, placeId, serverId, link, user, resolveCurrentGame]
 		untrack(() => {
 			if (isChecked)
 				joinCheck.schedule(accountIds, $state.snapshot(store.launchInput))
@@ -235,14 +235,14 @@
 						<div class="flex min-w-0 flex-1 items-end gap-1">
 							<label class="min-w-0 flex-1"
 								><span class="mb-1 block text-xs text-fg-muted"
-									>Job ID <small class="text-xs text-fg-faint"
+									>Server ID <small class="text-xs text-fg-faint"
 										>(optional)</small
 									></span>
 								<input
 									class="field font-mono text-2xs"
-									bind:value={store.launchInput.jobId}
+									bind:value={store.launchInput.serverId}
 									type="text"
-									placeholder="Server UUID"
+									placeholder="Server ID"
 									disabled={store.launching} />
 							</label>
 							{#if appSettings.roValraEnabled}

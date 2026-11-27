@@ -77,30 +77,31 @@
 					{#if isAskingToSkipCleaning}
 						Launch without cleaning?
 					{:else if pending.accountCount > 1}
-						Launch without multi-instance?
+						Launch without Multi-client?
 					{:else}
 						Close Roblox and join?
 					{/if}
 				</h2>
 				<p id="replace-roblox-description">
 					{#if isAskingToSkipCleaning}
-						Clean before launch allows one account at a time. Multi-instance
-						is off, so the {pending.accountCount} accounts may replace each other.
+						Clean before launch allows one account at a time. Multiple
+						clients is off, so the {pending.accountCount} accounts may replace
+						each other.
 					{:else if pending.accountCount > 1}
-						{pending.multiInstanceEnabled
-							? "Multi-instance is not ready."
-							: "Multi-instance is off."}
+						{pending.multiClientEnabled
+							? "Multi-client is not ready."
+							: "Multi-client is off."}
 						The {pending.accountCount} selected accounts may replace each other
 						instead of staying open together.
-						{#if pending.multiInstanceMessage}To get ready: {pending.multiInstanceMessage}.{/if}
-						You will still be asked before running Roblox games are closed.
+						{#if pending.multiClientMessage}To get ready: {pending.multiClientMessage}.{/if}
+						The app asks you before it closes running Roblox clients.
 					{:else}
-						{pending.multiInstanceEnabled
-							? "Roblox must restart before multi-instance can work."
-							: "Multi-instance is off."}
+						{pending.multiClientEnabled
+							? "Roblox must restart before Multi-client can work."
+							: "Multi-client is off."}
 						This will close {pending.processCount === 1
-							? "the running Roblox game"
-							: `all ${pending.processCount} running Roblox games`} and join
+							? "the running Roblox client"
+							: `all ${pending.processCount} running Roblox clients`} and join
 						the new game. Unsaved progress may be lost.
 						{#if pending.isCleaningBeforeLaunch}Roblox is cleaned first.{/if}
 					{/if}

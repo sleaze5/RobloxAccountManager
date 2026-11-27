@@ -2,7 +2,7 @@ import { Events } from "@wailsio/runtime"
 import {
 	accountBackend,
 	AccountCopyField,
-	AccountInfoSection,
+	AccountDetailsSection,
 	FileState,
 	ImportStatus,
 	LaunchMethod,
@@ -17,10 +17,10 @@ import type {
 	LaunchInput,
 	LaunchResult,
 	TagView,
-	UserPresence,
+	OnlineStatus,
 	VaultState,
 } from "../backend/bridge"
-import { accountFromView, accountWithPresence, emptyAccount } from "./account-model"
+import { accountFromView, accountWithOnlineStatus, emptyAccount } from "./account-model"
 import type { Account } from "./account-model"
 import { AccountProfileState } from "./account-profile-state.svelte"
 import type { KeptPageData } from "./account-scope"
@@ -33,7 +33,7 @@ import { detailsKeepMs } from "../shared/freshness"
 import { robloxUserProfileUrl } from "../shared/roblox-pages"
 
 const operationError = "The operation failed.",
-	presenceRefreshError = "Could not refresh online status."
+	onlineStatusRefreshError = "Could not refresh online status."
 
 export class AccountStore {
 	accounts = $state<Account[]>([])
@@ -50,10 +50,10 @@ export class AccountStore {
 		automaticUnlockRecovery: false,
 		fileState: FileState.$zero,
 		initialized: false,
-		lastPasswordTestedAt: "",
+		lastPasswordCheckedAt: "",
 		migrationAvailable: false,
 		passwordReminderDue: false,
-		passwordTestIntervalDays: 30,
+		passwordCheckIntervalDays: 30,
 		unlocked: false,
 		validAutomaticUnlock: false,
 	})
@@ -66,7 +66,7 @@ export class AccountStore {
 	reactivatingAccountId = $state<number | null>(null)
 	checkingAccountId = $state<number | null>(null)
 	refreshing = $state(false)
-	presencesRefreshedAt = 0
+	onlineStatusesRefreshedAt = 0
 	error = $state("")
 	accountListError = $state("")
 	nextCursor = $state<AccountCursor | null>(null)
@@ -75,11 +75,11 @@ export class AccountStore {
 	loadingMore = $state(false)
 
 	readonly #avatarUrls = new Map<number, string>()
-	readonly #presences = new Map<number, UserPresence>()
-	readonly #presenceVersions = new Map<number, number>()
-	readonly #presenceRequests = new Map<
+	readonly #onlineStatuses = new Map<number, OnlineStatus>()
+	readonly #onlineStatusVersions = new Map<number, number>()
+	readonly #onlineStatusRequests = new Map<
 		number,
-		ReturnType<typeof accountBackend.GetAccountPresences>
+		ReturnType<typeof accountBackend.GetAccountOnlineStatuses>
 	>()
 	readonly #avatarRequests = new Map<
 		number,
@@ -94,7 +94,7 @@ export class AccountStore {
 		number,
 		Map<string, { kept: KeptPageData<unknown>; expiryTimer: number }>
 	>()
-	#presenceRequest = 0
+	#onlineStatusRequest = 0
 	#filterTimer = 0
 	#importSummary: { created: number; updated: number } | null = null
 
@@ -372,7 +372,7 @@ export class AccountStore {
 		Object.assign(this.launchInput, {
 			method: LaunchMethod.MethodPlace,
 			placeId: "",
-			jobId: "",
+			serverId: "",
 			link: "",
 			user: "",
 			resolveCurrentGame: false,
@@ -501,12 +501,12 @@ export class AccountStore {
 		})
 	}
 
-	async testVaultPassword(password: string): Promise<boolean> {
+	async checkVaultPassword(password: string): Promise<boolean> {
 		if (!password) {
 			return false
 		}
 		return this.#runBusy(async () => {
-			await accountBackend.TestVaultPassword(password)
+			await accountBackend.CheckVaultPassword(password)
 			this.vault = await accountBackend.GetVaultState()
 		})
 	}
@@ -518,9 +518,9 @@ export class AccountStore {
 		})
 	}
 
-	async setPasswordTestIntervalDays(days: number): Promise<void> {
+	async setPasswordCheckIntervalDays(days: number): Promise<void> {
 		await this.#runBusy(async () => {
-			await accountBackend.SetPasswordTestIntervalDays(days)
+			await accountBackend.SetPasswordCheckIntervalDays(days)
 			this.vault = await accountBackend.GetVaultState()
 		})
 	}
@@ -600,7 +600,7 @@ export class AccountStore {
 		this.refreshing = true
 		try {
 			await this.refreshAccounts()
-			await this.refreshPresences()
+			await this.refreshOnlineStatuses()
 		} finally {
 			this.refreshing = false
 		}
@@ -773,7 +773,7 @@ export class AccountStore {
 		this.busy = true
 		this.error = ""
 		try {
-			const preview = await accountBackend.ValidateCookies(cookieInput),
+			const preview = await accountBackend.CheckCookies(cookieInput),
 				items = preview.items ?? []
 			preview.items = items
 			return preview
@@ -823,9 +823,9 @@ export class AccountStore {
 				return true
 			}
 			if (failed.length > 0) {
-				this.error = `${failed.length} ${failed.length === 1 ? "account" : "accounts"} could not be saved. Check the cookies again.`
+				this.error = `Could not save ${failed.length} ${failed.length === 1 ? "account" : "accounts"}. Check the cookies again.`
 			} else if (duplicates.length > 0) {
-				this.error = `${duplicates.length} ${duplicates.length === 1 ? "account is" : "accounts are"} already in the vault. Their cookies were not changed.`
+				this.error = `${duplicates.length} ${duplicates.length === 1 ? "account is" : "accounts are"} already in the vault. Their cookies did not change.`
 			}
 			return false
 		} catch (error) {
@@ -928,7 +928,7 @@ export class AccountStore {
 		this.checkingAccountId = accountId
 		this.error = ""
 		try {
-			await accountBackend.ValidateAccount(accountId)
+			await accountBackend.CheckAccount(accountId)
 			if (version === this.#remoteDataVersion) await this.refreshAccounts()
 		} catch (error) {
 			if (version === this.#remoteDataVersion) {
@@ -1067,52 +1067,58 @@ export class AccountStore {
 		return accountFromView(
 			record,
 			this.#avatarUrls.get(record.robloxUserId) ?? "",
-			this.#presences.get(record.robloxUserId),
+			this.#onlineStatuses.get(record.robloxUserId),
 		)
 	}
 
-	async refreshPresences(accountId: number | null = null): Promise<void> {
+	async refreshOnlineStatuses(accountId: number | null = null): Promise<void> {
 		if (!this.vault.unlocked) return
 		const key = accountId ?? 0,
-			pending = this.#presenceRequests.get(key)
+			pending = this.#onlineStatusRequests.get(key)
 		if (pending) {
 			// The call that started the request reports its failure.
 			await pending.catch(() => undefined)
 			return
 		}
 		const version = this.#remoteDataVersion,
-			sequence = ++this.#presenceRequest,
-			request = accountBackend.GetAccountPresences(accountId)
-		this.#presenceRequests.set(key, request)
+			sequence = ++this.#onlineStatusRequest,
+			request = accountBackend.GetAccountOnlineStatuses(accountId)
+		this.#onlineStatusRequests.set(key, request)
 		try {
-			const presences = (await request) ?? []
+			const onlineStatuses = (await request) ?? []
 			if (version !== this.#remoteDataVersion || !this.vault.unlocked) return
-			this.installPresences(presences, sequence)
-			this.#presenceRefreshed(accountId)
+			this.installOnlineStatuses(onlineStatuses, sequence)
+			this.#onlineStatusRefreshed(accountId)
 		} catch {
 			if (version !== this.#remoteDataVersion || !this.vault.unlocked) return
-			this.error = presenceRefreshError
+			this.error = onlineStatusRefreshError
 		} finally {
-			if (this.#presenceRequests.get(key) === request) {
-				this.#presenceRequests.delete(key)
+			if (this.#onlineStatusRequests.get(key) === request) {
+				this.#onlineStatusRequests.delete(key)
 			}
 		}
 	}
 
-	#presenceRefreshed(accountId: number | null): void {
-		if (accountId === null) this.presencesRefreshedAt = Date.now()
-		if (this.error === presenceRefreshError) this.error = ""
+	#onlineStatusRefreshed(accountId: number | null): void {
+		if (accountId === null) this.onlineStatusesRefreshedAt = Date.now()
+		if (this.error === onlineStatusRefreshError) this.error = ""
 	}
 
-	private installPresences(presences: UserPresence[], sequence: number): void {
-		for (const presence of presences) {
-			if ((this.#presenceVersions.get(presence.userId) ?? 0) > sequence) continue
-			this.#presences.set(presence.userId, presence)
-			this.#presenceVersions.set(presence.userId, sequence)
+	private installOnlineStatuses(
+		onlineStatuses: OnlineStatus[],
+		sequence: number,
+	): void {
+		for (const onlineStatus of onlineStatuses) {
+			if ((this.#onlineStatusVersions.get(onlineStatus.userId) ?? 0) > sequence)
+				continue
+			this.#onlineStatuses.set(onlineStatus.userId, onlineStatus)
+			this.#onlineStatusVersions.set(onlineStatus.userId, sequence)
 		}
 		this.accounts = this.accounts.map((account) => {
-			const presence = this.#presences.get(Number(account.userId))
-			return presence ? accountWithPresence(account, presence) : account
+			const onlineStatus = this.#onlineStatuses.get(Number(account.userId))
+			return onlineStatus
+				? accountWithOnlineStatus(account, onlineStatus)
+				: account
 		})
 	}
 
@@ -1124,7 +1130,7 @@ export class AccountStore {
 		try {
 			const snapshot = await accountBackend.GetAccountInfo(
 				accountId,
-				AccountInfoSection.InfoSectionVoiceChat,
+				AccountDetailsSection.DetailsSectionVoiceChat,
 			)
 			return snapshot.isComplete
 		} catch {
@@ -1230,15 +1236,15 @@ export class AccountStore {
 		this.accountTotal = 0
 		this.accountListError = ""
 		this.#avatarUrls.clear()
-		this.#presences.clear()
-		this.#presenceVersions.clear()
+		this.#onlineStatuses.clear()
+		this.#onlineStatusVersions.clear()
 		for (const request of new Set(this.#avatarRequests.values())) {
 			void request.cancel()
 		}
 		this.#avatarRequests.clear()
-		for (const request of this.#presenceRequests.values()) void request.cancel()
-		this.#presenceRequests.clear()
-		this.presencesRefreshedAt = 0
+		for (const request of this.#onlineStatusRequests.values()) void request.cancel()
+		this.#onlineStatusRequests.clear()
+		this.onlineStatusesRefreshedAt = 0
 	}
 
 	forgetAccountProfile(accountId: number): void {
@@ -1264,7 +1270,7 @@ function emptyLaunchInput(): LaunchInput {
 	return {
 		method: LaunchMethod.MethodPlace,
 		placeId: "",
-		jobId: "",
+		serverId: "",
 		link: "",
 		user: "",
 		resolveCurrentGame: false,

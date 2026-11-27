@@ -32,7 +32,7 @@
 	import { isMoveShortcut, moveListFocus } from "../shared/move-shortcut"
 	import { isMultiSelectGesture } from "../shared/list-selection.svelte"
 	import { notifyErrors } from "../notifications/error-notifications.svelte"
-	import { menuIn, menuOut } from "../shared/presence"
+	import { menuIn, menuOut } from "../shared/transitions"
 	import GameContextMenu from "./GameContextMenu.svelte"
 	import GameBadgesPage from "./GameBadgesPage.svelte"
 	import GameDetails from "./GameDetails.svelte"
@@ -58,7 +58,7 @@
 		store: GamesStore
 		accounts: AccountStore
 		notifications: NotificationCenter
-		onFillLaunch: (placeId: number, jobId?: string) => void
+		onFillLaunch: (placeId: number, serverId?: string) => void
 		onFillLaunchLink: (link: string) => void
 	} = $props()
 	const favoritesMode = $derived(store.mode === "favorites"),
@@ -91,7 +91,7 @@
 					isFavoriteBusy || selectedFavoriteCount === selectedPlaces.length,
 				tooltip:
 					selectedFavoriteCount === selectedPlaces.length
-						? "Every selected game is a favorite"
+						? "Every selected place is a favorite"
 						: undefined,
 				onSelect: () => void store.setSelectedFavorites(true),
 			},
@@ -645,7 +645,9 @@
 								size={28}
 								aria-hidden="true" />
 							<h2>No favorite places yet</h2>
-							<p>Search for a game, then add it to your favorites.</p>
+							<p>
+								Search for a game, then add a place to your favorites.
+							</p>
 							<button
 								class="button"
 								type="button"
@@ -716,7 +718,7 @@
 {#if isConfirmingFavoriteRemoval}
 	<ConfirmationDialog
 		title="Remove from favorites"
-		description={`${selectedFavoriteCount} selected ${selectedFavoriteCount === 1 ? "game leaves" : "games leave"} your favorites, with ${selectedFavoriteCount === 1 ? "its nickname" : "their nicknames"}. This cannot be undone.`}
+		description={`${selectedFavoriteCount} selected ${selectedFavoriteCount === 1 ? "place leaves" : "places leave"} your favorites, with ${selectedFavoriteCount === 1 ? "its nickname" : "their nicknames"}. This cannot be undone.`}
 		confirmLabel="Remove from favorites"
 		progressLabel="Removing…"
 		isWorking={store.savingFavorite}

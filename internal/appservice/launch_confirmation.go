@@ -6,11 +6,11 @@ import (
 )
 
 type LaunchConfirmation struct {
-	ID                   string `json:"id"`
-	ProcessCount         int    `json:"processCount"`
-	MultiInstanceEnabled bool   `json:"multiInstanceEnabled"`
-	AccountCount         int    `json:"accountCount"`
-	MultiInstanceMessage string `json:"multiInstanceMessage"`
+	ID                 string `json:"id"`
+	ProcessCount       int    `json:"processCount"`
+	MultiClientEnabled bool   `json:"multiClientEnabled"`
+	AccountCount       int    `json:"accountCount"`
+	MultiClientMessage string `json:"multiClientMessage"`
 	// IsCleaningBeforeLaunch asks a launch of several accounts to skip
 	// cleaning, and tells a single launch that Roblox is cleaned first.
 	IsCleaningBeforeLaunch bool `json:"isCleaningBeforeLaunch"`
@@ -47,10 +47,10 @@ func (service *Service) cancelLaunchConfirmation() {
 	service.ResolveLaunchConfirmation(service.GetLaunchConfirmation().ID, false)
 }
 
-// replacementConfirmation asks before running Roblox games close for a launch.
+// replacementConfirmation asks before running Roblox clients close for a launch.
 func (service *Service) replacementConfirmation(shouldClean bool) func(context.Context, int, bool) (bool, error) {
-	return func(ctx context.Context, count int, multiInstance bool) (bool, error) {
-		return service.confirmLaunch(ctx, LaunchConfirmation{ProcessCount: count, MultiInstanceEnabled: multiInstance, IsCleaningBeforeLaunch: shouldClean})
+	return func(ctx context.Context, count int, multiClient bool) (bool, error) {
+		return service.confirmLaunch(ctx, LaunchConfirmation{ProcessCount: count, MultiClientEnabled: multiClient, IsCleaningBeforeLaunch: shouldClean})
 	}
 }
 

@@ -7,7 +7,7 @@
 	import MenuItem from "../shared/MenuItem.svelte"
 	import { onDestroy, tick } from "svelte"
 	import type { AccountStore } from "../accounts/account-store.svelte"
-	import { menuIn, menuOut, placeMenuAtPoint } from "../shared/presence"
+	import { menuIn, menuOut, placeMenuAtPoint } from "../shared/transitions"
 	import type { WorkspaceState } from "./workspace-state.svelte"
 
 	let {

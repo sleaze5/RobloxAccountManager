@@ -14,7 +14,7 @@ type CookieRenewalResult struct {
 
 func (service *Service) RenewCookie(ctx context.Context, accountID int64) (CookieRenewalResult, error) {
 	if !service.vault.Unlocked() {
-		return CookieRenewalResult{}, &roblox.Error{Kind: roblox.KindVaultLocked, Endpoint: "cookie-renewal", Message: "Unlock the vault before renewing a cookie."}
+		return CookieRenewalResult{}, &roblox.Error{Kind: roblox.KindVaultLocked, Endpoint: "cookie-renewal", Message: "Unlock the vault first."}
 	}
 	if _, running := service.cookieRenewals.LoadOrStore(accountID, struct{}{}); running {
 		return CookieRenewalResult{}, &roblox.Error{Kind: roblox.KindForbidden, Endpoint: "cookie-renewal", Message: "This account's cookie is already being renewed."}
@@ -36,7 +36,7 @@ func (service *Service) RenewCookie(ctx context.Context, accountID int64) (Cooki
 		}
 		logger.WarnContext(ctx, "could not renew the cookie", "error_kind", kind, "status", status)
 		if kind == roblox.KindTransport || kind == roblox.KindTimeout || kind == roblox.KindServer {
-			return CookieRenewalResult{}, &roblox.Error{Kind: kind, Endpoint: "cookie-renewal", Status: status, Message: "Could not confirm the renewal. If the saved session stops working, sign in again.", Cause: err}
+			return CookieRenewalResult{}, &roblox.Error{Kind: kind, Endpoint: "cookie-renewal", Status: status, Message: "Could not confirm the renewal. If the saved cookie stops working, sign in again.", Cause: err}
 		}
 		return CookieRenewalResult{}, err
 	}

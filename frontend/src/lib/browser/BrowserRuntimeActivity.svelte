@@ -34,7 +34,7 @@
 		{installing ? "Installing browser" : "Downloading browser"}
 	</strong>
 	{#if installing}
-		<span>Preparing Chrome for Testing for use.</span>
+		<span>Preparing Chrome for Testing.</span>
 	{:else}
 		<div
 			class="flex flex-wrap gap-x-2 gap-y-1 font-mono text-2xs *:whitespace-nowrap">

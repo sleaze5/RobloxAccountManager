@@ -56,26 +56,26 @@ type record struct {
 	IPAddress    string `json:"ip_address"`
 }
 
-func (client *Client) Records(ctx context.Context, placeID int64, jobIDs []string) (map[string]games.ServerRecord, error) {
-	serversByJobID := make(map[string]games.ServerRecord, len(jobIDs))
-	for start := 0; start < len(jobIDs); start += detailsBatchSize {
+func (client *Client) Records(ctx context.Context, placeID int64, serverIDs []string) (map[string]games.ServerRecord, error) {
+	recordsByServerID := make(map[string]games.ServerRecord, len(serverIDs))
+	for start := 0; start < len(serverIDs); start += detailsBatchSize {
 		parameters := url.Values{
 			"place_id":   {strconv.FormatInt(placeID, 10)},
-			"server_ids": {strings.Join(jobIDs[start:min(start+detailsBatchSize, len(jobIDs))], ",")},
+			"server_ids": {strings.Join(serverIDs[start:min(start+detailsBatchSize, len(serverIDs))], ",")},
 		}
 		var payload struct {
 			Servers []record `json:"servers"`
 		}
 		if err := client.get(ctx, "/v1/servers/details", parameters, &payload); err != nil {
-			return serversByJobID, err
+			return recordsByServerID, err
 		}
 		for _, server := range payload.Servers {
 			if converted, ok := server.convert(); ok {
-				serversByJobID[converted.JobID] = converted
+				recordsByServerID[converted.ServerID] = converted
 			}
 		}
 	}
-	return serversByJobID, nil
+	return recordsByServerID, nil
 }
 
 func (client *Client) Servers(ctx context.Context, query games.RecordQuery) (games.RecordPage, error) {
@@ -197,11 +197,11 @@ func (client *Client) fetch(ctx context.Context, path string, parameters url.Val
 }
 
 func (listedRecord record) convert() (games.ServerRecord, bool) {
-	if !games.ValidJobID(listedRecord.ServerID) {
+	if !games.ValidServerID(listedRecord.ServerID) {
 		return games.ServerRecord{}, false
 	}
 	converted := games.ServerRecord{
-		JobID: listedRecord.ServerID, PlaceVersion: max(listedRecord.PlaceVersion, 0),
+		ServerID: listedRecord.ServerID, PlaceVersion: max(listedRecord.PlaceVersion, 0),
 		City: text(listedRecord.City), Region: text(listedRecord.Region), Country: text(listedRecord.Country),
 		DatacenterID: max(listedRecord.DatacenterID, 0),
 	}

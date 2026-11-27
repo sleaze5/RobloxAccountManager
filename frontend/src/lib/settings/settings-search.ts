@@ -5,13 +5,13 @@ import { matchesSearch } from "../shared/search"
 // the same thing.
 const settingSearchWords = {
 	vaultStatus:
-		"vault status locked unlocked lock security test master password last tested",
+		"vault status locked unlocked lock security check test master password last checked tested",
 	automaticUnlock:
 		"automatic unlock auto unlock autounlock remember password skip password startup start login sign in operating system user account windows hello keychain on off",
 	changeMasterPassword:
 		"change master password new password reset password rotate encryption key security",
-	passwordTestReminder:
-		"password test reminder interval how often remind confirm master password check memory forget",
+	passwordCheckReminder:
+		"password check reminder interval how often remind confirm master password check memory forget",
 	storageLocation:
 		"storage location data folder directory path where saved files portable standard appdata copy path",
 	moveStorage:
@@ -40,8 +40,8 @@ const settingSearchWords = {
 		"rovalra server data regions server age nearest server preferred region country location ping launch join integration api hosts privacy data sent apis.rovalra.com",
 	sharedPrivateServers:
 		"rbxservers shared private servers vip free private servers integration api hosts privacy data sent rbxservers.xyz api.rbxservers.xyz",
-	multiInstance:
-		"multi-instance multi instance multiple roblox several games alt accounts at once same time windows",
+	multiClient:
+		"multi-client multi client multiple clients multi-instance multi instance multiple roblox several games alt accounts at once same time windows",
 	linuxClient: "linux client sober mocktail flatpak wine join games",
 	cleanBeforeLaunch:
 		"clean before launch clear cache caches cookies sign-in data traces fresh logout",
@@ -63,7 +63,7 @@ export const settingsCategories = {
 			"vaultStatus",
 			"automaticUnlock",
 			"changeMasterPassword",
-			"passwordTestReminder",
+			"passwordCheckReminder",
 			"storageLocation",
 			"moveStorage",
 			"exportData",
@@ -93,7 +93,7 @@ export const settingsCategories = {
 	"roblox": {
 		label: "Roblox",
 		keys: [
-			"multiInstance",
+			"multiClient",
 			"linuxClient",
 			"cleanBeforeLaunch",
 			"cleanRoblox",

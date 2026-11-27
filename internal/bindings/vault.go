@@ -20,16 +20,16 @@ func (service *Service) UnlockVault(ctx context.Context, password string) error 
 
 func (service *Service) LockVault() error { return service.core.LockVault() }
 
-func (service *Service) TestVaultPassword(ctx context.Context, password string) error {
-	return service.core.TestVaultPassword(ctx, password)
+func (service *Service) CheckVaultPassword(ctx context.Context, password string) error {
+	return service.core.CheckVaultPassword(ctx, password)
 }
 
 func (service *Service) DismissPasswordReminder() error {
 	return service.core.DismissPasswordReminder()
 }
 
-func (service *Service) SetPasswordTestIntervalDays(days int) error {
-	return service.core.SetPasswordTestIntervalDays(days)
+func (service *Service) SetPasswordCheckIntervalDays(days int) error {
+	return service.core.SetPasswordCheckIntervalDays(days)
 }
 
 func (service *Service) ChangeVaultPassword(ctx context.Context, currentPassword, newPassword, confirmation, hint string, automaticUnlock bool) error {

@@ -49,8 +49,8 @@
 				<span class="min-w-0">(@{account.username})?</span>
 			</h2>
 			<p>
-				The Roblox account is not deleted. Its saved session and older backups
-				are deleted. This cannot be undone.
+				This does not delete the Roblox account. It deletes the saved cookie and
+				older backups. This cannot be undone.
 			</p>
 		</div>
 		<button

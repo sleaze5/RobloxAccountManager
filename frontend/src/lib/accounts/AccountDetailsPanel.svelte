@@ -1,5 +1,5 @@
 <script lang="ts" module>
-	export const accountInfoFields = [
+	export const accountDetailsFields = [
 		{
 			id: "email",
 			search: "email e-mail address contact verified verify change edit",
@@ -48,7 +48,7 @@
 		},
 	] as const
 
-	export type AccountInfoFieldId = (typeof accountInfoFields)[number]["id"]
+	export type AccountDetailsFieldId = (typeof accountDetailsFields)[number]["id"]
 </script>
 
 <script lang="ts">
@@ -79,13 +79,13 @@
 	import Timestamp from "../shared/Timestamp.svelte"
 	import SensitiveValue from "../shared/SensitiveValue.svelte"
 	import {
-		AccountInfoSection,
+		AccountDetailsSection,
 		AgeVerification,
 		PinState,
 		VoiceChatState,
 	} from "../backend/bridge"
 	import type { AccountEditKind } from "../dialogs/AccountEditDialog.svelte"
-	import type { AccountInfoState } from "./account-info-state.svelte"
+	import type { AccountDetailsState } from "./account-details-state.svelte"
 	import { ageVerificationLabels } from "./account-model"
 	import type { Account } from "./account-model"
 	import AccountPasswordMenu from "./AccountPasswordMenu.svelte"
@@ -93,15 +93,15 @@
 	import SavedPasswordValue from "./SavedPasswordValue.svelte"
 
 	let {
-		info,
+		details,
 		account,
 		visible,
 		onEdit,
 		onSavedPassword,
 	}: {
-		info: AccountInfoState
+		details: AccountDetailsState
 		account: Account
-		visible: ReadonlySet<AccountInfoFieldId>
+		visible: ReadonlySet<AccountDetailsFieldId>
 		onEdit: (kind: AccountEditKind) => void
 		onSavedPassword: () => void
 	} = $props()
@@ -130,7 +130,7 @@
 
 	// The rows show from the start, with a placeholder for each section that is
 	// still loading, so that the page does not move when the sections arrive.
-	const snapshot = $derived(info.sections.snapshot),
+	const snapshot = $derived(details.sections.snapshot),
 		birthday = $derived(formatBirthday(snapshot?.birthdate ?? ""))
 
 	function formatBirthday(birthdate: string): string {
@@ -148,15 +148,15 @@
 		return `${birthdayFormat.format(date)} (${age}y)`
 	}
 
-	function missing(section: AccountInfoSection): boolean {
-		return !info.sections.hasSection(section)
+	function missing(section: AccountDetailsSection): boolean {
+		return !details.sections.hasSection(section)
 	}
 
-	function any(...ids: AccountInfoFieldId[]): boolean {
+	function any(...ids: AccountDetailsFieldId[]): boolean {
 		return ids.some((id) => visible.has(id))
 	}
 
-	notifyErrors("Account info not loaded", () => info.error)
+	notifyErrors("Account details not loaded", () => details.error)
 </script>
 
 {#snippet edit(kind: AccountEditKind, label: string)}
@@ -170,8 +170,8 @@
 	</button>
 {/snippet}
 
-{#snippet unavailableValue(section: AccountInfoSection)}
-	{#if info.sections.isSectionPending(section)}<Skeleton
+{#snippet unavailableValue(section: AccountDetailsSection)}
+	{#if details.sections.isSectionPending(section)}<Skeleton
 			className="w-28" />{:else}<span class="text-fg-faint">Unavailable</span
 		>{/if}
 {/snippet}
@@ -202,8 +202,8 @@
 {/snippet}
 
 {#if any("displayName", "username", "password", "pin", "gender", "ageGroup", "birthday", "firstAccount")}
-	<section class="settings-section" aria-labelledby="account-info-account">
-		<h3 id="account-info-account">Account</h3>
+	<section class="settings-section" aria-labelledby="account-details-account">
+		<h3 id="account-details-account">Account</h3>
 		<dl class="facts">
 			{#if visible.has("displayName")}
 				<div>
@@ -237,9 +237,9 @@
 						PIN
 					</dt>
 					<dd>
-						{#if missing(AccountInfoSection.InfoSectionPin) || !pinLabels[snapshot.pin]}
+						{#if missing(AccountDetailsSection.DetailsSectionPin) || !pinLabels[snapshot.pin]}
 							{@render unavailableValue(
-								AccountInfoSection.InfoSectionPin,
+								AccountDetailsSection.DetailsSectionPin,
 							)}
 						{:else}
 							<span>{pinLabels[snapshot.pin]}</span>
@@ -259,9 +259,9 @@
 						<Icon svg={userCircleIcon} size={16} aria-hidden="true" />Gender
 					</dt>
 					<dd>
-						{#if missing(AccountInfoSection.InfoSectionGender)}
+						{#if missing(AccountDetailsSection.DetailsSectionGender)}
 							{@render unavailableValue(
-								AccountInfoSection.InfoSectionGender,
+								AccountDetailsSection.DetailsSectionGender,
 							)}
 						{:else if genders[snapshot.gender]}
 							<span>{genders[snapshot.gender]}</span>
@@ -287,7 +287,7 @@
 								>{/if}
 						{:else}
 							{@render unavailableValue(
-								AccountInfoSection.InfoSectionAge,
+								AccountDetailsSection.DetailsSectionAge,
 							)}
 						{/if}
 					</dd>
@@ -308,7 +308,7 @@
 								>{/if}
 						{:else}
 							{@render unavailableValue(
-								AccountInfoSection.InfoSectionBirthdate,
+								AccountDetailsSection.DetailsSectionBirthdate,
 							)}
 						{/if}
 					</dd>
@@ -323,7 +323,7 @@
 					<dd>
 						{#if snapshot.firstAccount == null}
 							{@render unavailableValue(
-								AccountInfoSection.InfoSectionFirstAccount,
+								AccountDetailsSection.DetailsSectionFirstAccount,
 							)}
 						{:else}
 							<button
@@ -341,8 +341,8 @@
 {/if}
 
 {#if any("email", "phone")}
-	<section class="settings-section" aria-labelledby="account-info-contact">
-		<h3 id="account-info-contact">Contact</h3>
+	<section class="settings-section" aria-labelledby="account-details-contact">
+		<h3 id="account-details-contact">Contact</h3>
 		<dl class="facts">
 			{#if visible.has("email")}
 				<div>
@@ -350,9 +350,9 @@
 						<Icon svg={envelopeIcon} size={16} aria-hidden="true" />Email
 					</dt>
 					<dd>
-						{#if missing(AccountInfoSection.InfoSectionEmail)}
+						{#if missing(AccountDetailsSection.DetailsSectionEmail)}
 							{@render unavailableValue(
-								AccountInfoSection.InfoSectionEmail,
+								AccountDetailsSection.DetailsSectionEmail,
 							)}
 						{:else if snapshot.email}
 							<SensitiveValue label="Email"
@@ -364,7 +364,7 @@
 						{:else}
 							<span class="text-fg-faint">None</span>
 						{/if}
-						{#if !missing(AccountInfoSection.InfoSectionEmail)}
+						{#if !missing(AccountDetailsSection.DetailsSectionEmail)}
 							{@render edit("email", "Change email")}
 						{/if}
 					</dd>
@@ -377,9 +377,9 @@
 						number
 					</dt>
 					<dd>
-						{#if missing(AccountInfoSection.InfoSectionPhone)}
+						{#if missing(AccountDetailsSection.DetailsSectionPhone)}
 							{@render unavailableValue(
-								AccountInfoSection.InfoSectionPhone,
+								AccountDetailsSection.DetailsSectionPhone,
 							)}
 						{:else if snapshot.phone}
 							<SensitiveValue label="Phone number"
@@ -399,8 +399,8 @@
 {/if}
 
 {#if any("language", "translations", "location")}
-	<section class="settings-section" aria-labelledby="account-info-region">
-		<h3 id="account-info-region">Language and region</h3>
+	<section class="settings-section" aria-labelledby="account-details-region">
+		<h3 id="account-details-region">Language and region</h3>
 		<dl class="facts">
 			{#if visible.has("language")}
 				<div>
@@ -415,7 +415,7 @@
 							<span>{snapshot.language}</span>
 						{:else}
 							{@render unavailableValue(
-								AccountInfoSection.InfoSectionLocale,
+								AccountDetailsSection.DetailsSectionLocale,
 							)}
 						{/if}
 					</dd>
@@ -432,7 +432,7 @@
 					<dd>
 						{#if snapshot.autoTranslations == null}
 							{@render unavailableValue(
-								AccountInfoSection.InfoSectionLocale,
+								AccountDetailsSection.DetailsSectionLocale,
 							)}
 						{:else}
 							<span>{snapshot.autoTranslations ? "On" : "Off"}</span>
@@ -447,9 +447,9 @@
 						location
 					</dt>
 					<dd>
-						{#if missing(AccountInfoSection.InfoSectionLocation)}
+						{#if missing(AccountDetailsSection.DetailsSectionLocation)}
 							{@render unavailableValue(
-								AccountInfoSection.InfoSectionLocation,
+								AccountDetailsSection.DetailsSectionLocation,
 							)}
 						{:else if snapshot.location}
 							<SensitiveValue label="Account location"
@@ -466,8 +466,8 @@
 
 {#if any("voiceChat", "voiceOptIn", "voiceVerification")}
 	{@const voice = snapshot.voiceChat}
-	<section class="settings-section" aria-labelledby="account-info-voice">
-		<h3 id="account-info-voice">Voice chat</h3>
+	<section class="settings-section" aria-labelledby="account-details-voice">
+		<h3 id="account-details-voice">Voice chat</h3>
 		<dl class="facts">
 			{#if visible.has("voiceChat")}
 				<AccountVoiceChat voiceChat={voice} label="Status" />
@@ -497,7 +497,7 @@
 								>{/if}
 						{:else}
 							{@render unavailableValue(
-								AccountInfoSection.InfoSectionVoiceChat,
+								AccountDetailsSection.DetailsSectionVoiceChat,
 							)}
 						{/if}
 					</dd>
@@ -517,7 +517,7 @@
 								>{/if}
 						{:else}
 							{@render unavailableValue(
-								AccountInfoSection.InfoSectionVoiceChat,
+								AccountDetailsSection.DetailsSectionVoiceChat,
 							)}
 						{/if}
 					</dd>
@@ -527,8 +527,8 @@
 	</section>
 {/if}
 {#if any("twoStep", "recoveryCodes", "passkeys")}
-	<section class="settings-section" aria-labelledby="account-info-security">
-		<h3 id="account-info-security">Security</h3>
+	<section class="settings-section" aria-labelledby="account-details-security">
+		<h3 id="account-details-security">Security</h3>
 		<dl class="facts">
 			{#if visible.has("twoStep")}
 				<div
@@ -547,7 +547,7 @@
 					<dd>
 						{#if snapshot.twoStepMethods === null}
 							{@render unavailableValue(
-								AccountInfoSection.InfoSectionTwoStep,
+								AccountDetailsSection.DetailsSectionTwoStep,
 							)}
 						{:else if snapshot.twoStepMethods.length}
 							<span>On</span>
@@ -573,7 +573,7 @@
 					<dd>
 						{#if snapshot.recoveryCodeCount === null}
 							{@render unavailableValue(
-								AccountInfoSection.InfoSectionRecoveryCodes,
+								AccountDetailsSection.DetailsSectionRecoveryCodes,
 							)}
 						{:else if snapshot.recoveryCodeCount > 0}
 							<span
@@ -605,7 +605,7 @@
 					<dd>
 						{#if snapshot.passkeyNames === null}
 							{@render unavailableValue(
-								AccountInfoSection.InfoSectionPasskeys,
+								AccountDetailsSection.DetailsSectionPasskeys,
 							)}
 						{:else if snapshot.passkeyNames.length}
 							<span>{snapshot.passkeyNames.length}</span>

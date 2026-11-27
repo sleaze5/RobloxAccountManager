@@ -65,11 +65,11 @@ func (service *Service) ListRegionServers(ctx context.Context, query games.Regio
 	return service.core.ListRegionServers(ctx, query)
 }
 
-func (service *Service) CheckGameServerJoinable(ctx context.Context, placeID, accountID int64, jobID string) (bool, error) {
+func (service *Service) CheckGameServerJoinable(ctx context.Context, placeID, accountID int64, serverID string) (bool, error) {
 	if err := positiveID(accountID, "game-server-join-check"); err != nil {
 		return false, err
 	}
-	return service.core.CheckGameServerJoinable(ctx, placeID, accountID, jobID)
+	return service.core.CheckGameServerJoinable(ctx, placeID, accountID, serverID)
 }
 
 func (service *Service) GetGamePlace(ctx context.Context, universeID, placeID int64) (games.PlaceSummary, error) {
@@ -110,53 +110,53 @@ func (service *Service) ListPlacePrivateServers(ctx context.Context, query games
 	return service.core.ListPlacePrivateServers(ctx, query)
 }
 
-func (service *Service) GetPrivateServer(ctx context.Context, accountID, serverID int64) (games.PrivateServerSettings, error) {
+func (service *Service) GetPrivateServer(ctx context.Context, accountID, privateServerID int64) (games.PrivateServerSettings, error) {
 	if err := positiveID(accountID, "private-server"); err != nil {
 		return games.PrivateServerSettings{}, err
 	}
-	return service.core.GetPrivateServer(ctx, accountID, serverID)
+	return service.core.GetPrivateServer(ctx, accountID, privateServerID)
 }
 
-func (service *Service) ValidatePrivateServerName(ctx context.Context, accountID int64, name string) (robloxservices.TextFilter, error) {
+func (service *Service) CheckPrivateServerName(ctx context.Context, accountID int64, name string) (robloxservices.TextFilter, error) {
 	if err := positiveID(accountID, "private-server-name-validate"); err != nil {
 		return robloxservices.TextFilter{}, err
 	}
-	return service.core.ValidatePrivateServerName(ctx, accountID, name)
+	return service.core.CheckPrivateServerName(ctx, accountID, name)
 }
 
-func (service *Service) RenamePrivateServer(ctx context.Context, accountID, serverID int64, name string) (games.PrivateServerSettings, error) {
+func (service *Service) RenamePrivateServer(ctx context.Context, accountID, privateServerID int64, name string) (games.PrivateServerSettings, error) {
 	if err := positiveID(accountID, "private-server-rename"); err != nil {
 		return games.PrivateServerSettings{}, err
 	}
-	return service.core.RenamePrivateServer(ctx, accountID, serverID, name)
+	return service.core.RenamePrivateServer(ctx, accountID, privateServerID, name)
 }
 
-func (service *Service) SetPrivateServerOption(ctx context.Context, accountID, serverID int64, option games.PrivateServerOption, enabled bool) (games.PrivateServerSettings, error) {
+func (service *Service) SetPrivateServerOption(ctx context.Context, accountID, privateServerID int64, option games.PrivateServerOption, enabled bool) (games.PrivateServerSettings, error) {
 	if err := positiveID(accountID, "private-server-option"); err != nil {
 		return games.PrivateServerSettings{}, err
 	}
-	return service.core.SetPrivateServerOption(ctx, accountID, serverID, option, enabled)
+	return service.core.SetPrivateServerOption(ctx, accountID, privateServerID, option, enabled)
 }
 
-func (service *Service) ResetPrivateServerLink(ctx context.Context, accountID, serverID int64) (games.PrivateServerSettings, error) {
+func (service *Service) ResetPrivateServerLink(ctx context.Context, accountID, privateServerID int64) (games.PrivateServerSettings, error) {
 	if err := positiveID(accountID, "private-server-link-reset"); err != nil {
 		return games.PrivateServerSettings{}, err
 	}
-	return service.core.ResetPrivateServerLink(ctx, accountID, serverID)
+	return service.core.ResetPrivateServerLink(ctx, accountID, privateServerID)
 }
 
-func (service *Service) AddPrivateServerUser(ctx context.Context, accountID, serverID int64, user string) (games.PrivateServerSettings, error) {
+func (service *Service) AddPrivateServerUser(ctx context.Context, accountID, privateServerID int64, user string) (games.PrivateServerSettings, error) {
 	if err := positiveID(accountID, "private-server-user-add"); err != nil {
 		return games.PrivateServerSettings{}, err
 	}
-	return service.core.AddPrivateServerUser(ctx, accountID, serverID, user)
+	return service.core.AddPrivateServerUser(ctx, accountID, privateServerID, user)
 }
 
-func (service *Service) RemovePrivateServerUser(ctx context.Context, accountID, serverID, userID int64) (games.PrivateServerSettings, error) {
+func (service *Service) RemovePrivateServerUser(ctx context.Context, accountID, privateServerID, userID int64) (games.PrivateServerSettings, error) {
 	if err := positiveID(accountID, "private-server-user-remove"); err != nil {
 		return games.PrivateServerSettings{}, err
 	}
-	return service.core.RemovePrivateServerUser(ctx, accountID, serverID, userID)
+	return service.core.RemovePrivateServerUser(ctx, accountID, privateServerID, userID)
 }
 
 func (service *Service) ListRBXServersPrivateServers(ctx context.Context, placeID int64) (games.ListedPrivateServerPage, error) {

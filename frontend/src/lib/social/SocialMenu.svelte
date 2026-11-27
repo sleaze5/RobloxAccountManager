@@ -9,7 +9,7 @@
 	import textTIcon from "@phosphor-icons/core/regular/text-t.svg?raw"
 	import userListIcon from "@phosphor-icons/core/regular/user-list.svg?raw"
 	import { unsavedChangesGuard } from "../layout/unsaved-changes-guard"
-	import { PresenceType, SocialList } from "../backend/bridge"
+	import { OnlineStatusType, SocialList } from "../backend/bridge"
 	import type { SocialUser } from "../backend/bridge"
 	import MenuItem from "../shared/MenuItem.svelte"
 	import MenuSection from "../shared/MenuSection.svelte"
@@ -36,23 +36,23 @@
 	}: {
 		store: SocialStore
 		menu: SocialMenu
-		onFillLaunch: (placeId: number, jobId: string) => void
+		onFillLaunch: (placeId: number, serverId: string) => void
 		onRelationshipAction: (person: SocialUser, action: RelationshipActionId) => void
 	} = $props()
 	const previews = getProfilePreviews(),
 		robloxPages = getRobloxPageOpener()
 	const person = $derived(menu.person),
 		profileUrl = $derived(robloxUserProfileUrl(person.userId)),
-		presence = $derived(person.presence),
-		placeId = $derived(presence?.placeId ?? 0),
-		inExperience = $derived(
-			presence?.userPresenceType === PresenceType.PresenceTypeInGame ||
-				presence?.userPresenceType === PresenceType.PresenceTypeInStudio,
+		onlineStatus = $derived(person.onlineStatus),
+		placeId = $derived(onlineStatus?.placeId ?? 0),
+		isInGame = $derived(
+			onlineStatus?.statusType === OnlineStatusType.OnlineStatusTypeInGame ||
+				onlineStatus?.statusType === OnlineStatusType.OnlineStatusTypeInStudio,
 		),
 		joinable = $derived(
-			presence?.userPresenceType === PresenceType.PresenceTypeInGame &&
+			onlineStatus?.statusType === OnlineStatusType.OnlineStatusTypeInGame &&
 				placeId > 0 &&
-				!!presence.gameId,
+				!!onlineStatus.serverId,
 		),
 		relationship = $derived(
 			store.menuRelationship?.relationship ?? requestRelationship(person),
@@ -84,12 +84,12 @@
 			label="Fill launch options"
 			icon={listPlusIcon}
 			onSelect={() => {
-				const jobId = presence?.gameId ?? ""
-				onFillLaunch(placeId, jobId)
+				const serverId = onlineStatus?.serverId ?? ""
+				onFillLaunch(placeId, serverId)
 				store.closeMenu()
 			}} />
 	{/if}
-	{#if inExperience && placeId > 0}
+	{#if isInGame && placeId > 0}
 		<MenuItem
 			label="Show game"
 			icon={magnifyingGlassIcon}
@@ -99,7 +99,7 @@
 			}} />
 	{/if}
 	<MenuItem
-		label="View friends"
+		label="Show friends"
 		icon={userListIcon}
 		onSelect={() => {
 			const exploredPerson = person

@@ -341,7 +341,7 @@
 {#if removedMember}
 	<ConfirmationDialog
 		title="Remove member?"
-		description={`@${removedMember.user.username} will be removed from ${group.name} and lose the ${removedMember.role.name} role. They can ask to join again.`}
+		description={`This removes @${removedMember.user.username} and their ${removedMember.role.name} role from ${group.name}. They can ask to join again.`}
 		confirmLabel="Remove member"
 		progressLabel="Removing…"
 		isWorking={isRemoving}

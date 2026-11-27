@@ -25,7 +25,7 @@ export class PrivateServerState {
 
 	constructor(
 		readonly accountId: number,
-		readonly serverId: number,
+		readonly privateServerId: number,
 		private readonly notifications: NotificationCenter,
 		private readonly onChanged: (settings: PrivateServerSettings) => void,
 	) {}
@@ -39,14 +39,18 @@ export class PrivateServerState {
 	load(): Promise<boolean> {
 		return this.#run(
 			"load",
-			() => accountBackend.GetPrivateServer(this.accountId, this.serverId),
+			() => accountBackend.GetPrivateServer(this.accountId, this.privateServerId),
 			"Could not load the private server. Try again.",
 		)
 	}
 
 	rename(name: string): Promise<boolean> {
 		return this.#run("rename", () =>
-			accountBackend.RenamePrivateServer(this.accountId, this.serverId, name),
+			accountBackend.RenamePrivateServer(
+				this.accountId,
+				this.privateServerId,
+				name,
+			),
 		)
 	}
 
@@ -54,7 +58,7 @@ export class PrivateServerState {
 		return this.#run(option, () =>
 			accountBackend.SetPrivateServerOption(
 				this.accountId,
-				this.serverId,
+				this.privateServerId,
 				option,
 				enabled,
 			),
@@ -63,13 +67,17 @@ export class PrivateServerState {
 
 	resetLink(): Promise<boolean> {
 		return this.#run("link", () =>
-			accountBackend.ResetPrivateServerLink(this.accountId, this.serverId),
+			accountBackend.ResetPrivateServerLink(this.accountId, this.privateServerId),
 		)
 	}
 
 	addUser(user: string): Promise<boolean> {
 		return this.#run("add-user", () =>
-			accountBackend.AddPrivateServerUser(this.accountId, this.serverId, user),
+			accountBackend.AddPrivateServerUser(
+				this.accountId,
+				this.privateServerId,
+				user,
+			),
 		)
 	}
 
@@ -77,7 +85,7 @@ export class PrivateServerState {
 		return this.#run(`remove-${user.userId}`, () =>
 			accountBackend.RemovePrivateServerUser(
 				this.accountId,
-				this.serverId,
+				this.privateServerId,
 				user.userId,
 			),
 		)

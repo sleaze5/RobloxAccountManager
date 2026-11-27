@@ -325,7 +325,7 @@
 					{/if}
 					{#if isPending}
 						<p class="text-xs text-fg-muted" role="status">
-							Bought. It may take a minute to show up.
+							Bought. It can take a minute to appear.
 						</p>
 					{/if}
 				</div>

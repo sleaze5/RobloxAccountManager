@@ -33,7 +33,7 @@ export class LogsExplorerStore {
 					session.channel,
 					...(session.visits ?? []).flatMap((visit) => [
 						visit.placeId,
-						visit.jobId,
+						visit.serverId,
 						visit.universeId,
 						visit.datacenterId,
 					]),
@@ -100,7 +100,7 @@ export class LogsExplorerStore {
 		} catch (error) {
 			this.error = errorMessage(
 				error,
-				"Could not refresh this session. Refresh all logs to try again.",
+				"Could not refresh this launch session. Refresh all logs to try again.",
 			)
 		} finally {
 			this.refreshingFiles.delete(fileName)

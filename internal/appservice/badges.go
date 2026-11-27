@@ -10,7 +10,7 @@ import (
 // ListGameBadges lists the badges of a universe with their icons. A missing
 // icon leaves the badge without one.
 func (service *Service) ListGameBadges(ctx context.Context, universeID int64) ([]games.Badge, error) {
-	if err := validGameID(universeID); err != nil {
+	if err := validRobloxID(universeID); err != nil {
 		return nil, err
 	}
 	ctx, done, err := service.beginGames(ctx)
@@ -41,7 +41,7 @@ func (service *Service) ListGameBadges(ctx context.Context, universeID int64) ([
 
 func (service *Service) ListBadgeAwards(ctx context.Context, query games.BadgeAwardQuery) ([]games.BadgeAward, error) {
 	if len(query.BadgeIDs) > robloxservices.MaxUniverseBadges {
-		return nil, gamesInputError("Too many badges were requested. Refresh the badges.")
+		return nil, gamesInputError("Too many badges requested. Refresh the badges.")
 	}
 	for _, badgeID := range query.BadgeIDs {
 		if !games.ValidID(badgeID) {

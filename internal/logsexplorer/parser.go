@@ -58,7 +58,7 @@ func parse(ctx context.Context, input io.Reader, session *Session) error {
 		line, err := reader.ReadSlice('\n')
 		if errors.Is(err, bufio.ErrBufferFull) {
 			skipping = true
-			session.Issue = "Some log lines were too long and were skipped. Session details may be incomplete."
+			session.Issue = "Some log lines were too long, so the app skipped them. Details may be incomplete."
 			continue
 		}
 		if !skipping {
@@ -111,7 +111,7 @@ func (state *parseState) parseLine(line string, session *Session) {
 	}
 }
 
-func (state *parseState) appendVisit(session *Session, jobID, placeID string) {
+func (state *parseState) appendVisit(session *Session, serverID, placeID string) {
 	kind := VisitJoin
 	if len(session.Visits) > 0 {
 		previous := &session.Visits[len(session.Visits)-1]
@@ -123,7 +123,7 @@ func (state *parseState) appendVisit(session *Session, jobID, placeID string) {
 		}
 		state.ending.finish(previous, state.timestamp, placeID)
 	}
-	visit := Visit{Kind: kind, StartedAtMs: state.timestamp, JobID: jobID, PlaceID: placeID}
+	visit := Visit{Kind: kind, StartedAtMs: state.timestamp, ServerID: serverID, PlaceID: placeID}
 	state.pending.apply(&visit)
 	state.pending = joinMetadata{}
 	state.ending = visitEndState{}

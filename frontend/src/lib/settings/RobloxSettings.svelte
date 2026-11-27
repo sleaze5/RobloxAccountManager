@@ -24,7 +24,7 @@
 		clientsSaving = $state(false),
 		clientsError = $state(""),
 		cleanScope = $state<RobloxCleanScope | null>(null)
-	const snapshot = $derived(options.multiInstance),
+	const snapshot = $derived(options.multiClient),
 		cleaner = $derived(options.cleaner),
 		clientOptions = $derived(clients ? linuxClientOptions(clients) : []),
 		installedClients = $derived(
@@ -65,50 +65,49 @@
 	onMount(() => {
 		void options.load()
 		void loadClients()
-		return options.pollMultiInstanceWhileEnabled()
+		return options.pollMultiClientWhileEnabled()
 	})
 
 	notifyErrors("Roblox Cleaner not run", () => options.cleanerError)
 	notifyErrors(
-		"Multiple instances not changed",
-		() => options.multiInstanceError || options.multiInstanceStatusError,
+		"Multi-client not changed",
+		() => options.multiClientError || options.multiClientStatusError,
 	)
 	notifyErrors("Roblox clients not loaded", () => clientsError)
 </script>
 
-<section class="settings-section" aria-labelledby="multi-instance-title">
+<section class="settings-section" aria-labelledby="multi-client-title">
 	<div class="settings-rows">
 		<div class="settings-row">
 			<div class="settings-row-copy">
 				<strong
-					id="multi-instance-title"
+					id="multi-client-title"
 					class={[snapshot?.supported === false && "text-fg-faint"]}
-					>Multi-instance</strong>
-				<span id="multi-instance-description"
-					>Launch several games at once. Works only while Roblox Account
-					Manager is open.</span>
+					>Multi-client</strong>
+				<span id="multi-client-description"
+					>Launch several games at once. Works only while the app is open.</span>
 				<SettingsStatus
-					id="multi-instance-status"
-					value={options.multiInstanceStatus.text}
-					tone={options.multiInstanceStatus.tone} />
+					id="multi-client-status"
+					value={options.multiClientStatus.text}
+					tone={options.multiClientStatus.tone} />
 			</div>
 			<SettingSwitch
-				labelledBy="multi-instance-title"
-				describedBy="multi-instance-description multi-instance-status"
+				labelledBy="multi-client-title"
+				describedBy="multi-client-description multi-client-status"
 				isChecked={snapshot?.enabled ?? false}
-				isDisabled={options.isLoadingMultiInstance ||
-					options.isSavingMultiInstance ||
+				isDisabled={options.isLoadingMultiClient ||
+					options.isSavingMultiClient ||
 					!snapshot?.supported}
-				onToggle={(enabled) => void options.setMultiInstanceEnabled(enabled)} />
+				onToggle={(enabled) => void options.setMultiClientEnabled(enabled)} />
 		</div>
 	</div>
-	{#if options.multiInstanceStatusError && !snapshot}
+	{#if options.multiClientStatusError && !snapshot}
 		<div class="flex justify-end gap-2">
 			<button
 				class="button"
 				type="button"
-				disabled={options.isLoadingMultiInstance}
-				onclick={() => void options.refreshMultiInstance()}>Try again</button>
+				disabled={options.isLoadingMultiClient}
+				onclick={() => void options.refreshMultiClient()}>Try again</button>
 		</div>
 	{/if}
 </section>
@@ -123,20 +122,20 @@
 					<span id="clean-before-launch-description"
 						>Clear caches and sign-in data before each launch. Launches one
 						account at a time.</span>
-					{#if cleaner.isBlockedByMultiInstance}
+					{#if cleaner.isBlockedByMultiClient}
 						<SettingsStatus
 							id="clean-before-launch-status"
-							value="Paused while multi-instance is on" />
+							value="Paused while Multi-client is on" />
 					{/if}
 				</div>
 				<SettingSwitch
 					labelledBy="clean-before-launch-title"
-					describedBy={cleaner.isBlockedByMultiInstance
+					describedBy={cleaner.isBlockedByMultiClient
 						? "clean-before-launch-description clean-before-launch-status"
 						: "clean-before-launch-description"}
 					isChecked={cleaner.cleanBeforeLaunch}
 					isDisabled={options.isSavingCleanBeforeLaunch ||
-						cleaner.isBlockedByMultiInstance}
+						cleaner.isBlockedByMultiClient}
 					onToggle={(enabled) =>
 						void options.setCleanBeforeLaunch(enabled)} />
 			</div>
@@ -162,8 +161,8 @@
 							<strong id="administrator-rights-title"
 								>Use administrator rights</strong>
 							<span id="administrator-rights-description"
-								>Ask Windows once per session, to also clean shared
-								files and processes.</span>
+								>Ask for administrator rights once per app start, to
+								also clean shared files and processes.</span>
 							{#if cleaner.isElevated}
 								<SettingsStatus
 									id="administrator-rights-status"

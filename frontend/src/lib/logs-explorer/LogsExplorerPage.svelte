@@ -91,7 +91,7 @@
 							aria-hidden="true" /><input
 							type="text"
 							placeholder="Search logs or IDs"
-							aria-label="Search logs, user IDs, place IDs, or job IDs"
+							aria-label="Search logs, user IDs, place IDs, or server IDs"
 							bind:this={searchInput}
 							bind:value={store.query} />{#if store.query}<button
 								type="button"
@@ -152,7 +152,7 @@
 					</button>
 				{:else}
 					{#if store.refreshing}
-						<SkeletonList label="Loading sessions…">
+						<SkeletonList label="Loading launch sessions…">
 							{#snippet row(index)}
 								<div
 									class="flex h-12 flex-col justify-center gap-1 border-b border-line-subtle px-3">
@@ -169,7 +169,9 @@
 							{/snippet}
 						</SkeletonList>
 					{:else if store.query}
-						<p class="p-3 text-2xs text-fg-muted">No matching sessions.</p>
+						<p class="p-3 text-2xs text-fg-muted">
+							No matching launch sessions.
+						</p>
 					{/if}
 				{/each}
 			</div>
@@ -198,7 +200,7 @@
 							size={28}
 							aria-hidden="true" />
 						<h2>Logs unavailable</h2>
-						<p>Refresh the logs to try reading them again.</p>
+						<p>Refresh to try again.</p>
 						<button
 							class="button"
 							type="button"
@@ -212,7 +214,7 @@
 							svg={fileMagnifyingGlassIcon}
 							size={28}
 							aria-hidden="true" />
-						<h2>No Roblox sessions yet</h2>
+						<h2>No launch sessions yet</h2>
 						<p>Launch Roblox once, then refresh to read its logs.</p>
 						<button
 							class="button"
@@ -227,7 +229,7 @@
 							svg={magnifyingGlassIcon}
 							size={28}
 							aria-hidden="true" />
-						<h2>No matching sessions</h2>
+						<h2>No matching launch sessions</h2>
 						<p>Try a different file name, user ID, or place ID.</p>
 						<button class="button" type="button" onclick={clearSearch}
 							>Clear search</button>

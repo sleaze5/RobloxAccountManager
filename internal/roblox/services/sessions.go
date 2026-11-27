@@ -104,7 +104,7 @@ func (service *Authentication) SignOutOtherSessions(ctx context.Context, account
 	if err != nil {
 		return err
 	}
-	return &roblox.Error{Kind: roblox.KindProtocol, Endpoint: "sessions-sign-out", Message: "Roblox did not return a new cookie. Refresh to check if other sessions were signed out."}
+	return &roblox.Error{Kind: roblox.KindProtocol, Endpoint: "sessions-sign-out", Message: "Roblox did not return a new cookie. Refresh to check the sessions."}
 }
 
 // Roblox writes "Unknown" when it cannot identify a value.

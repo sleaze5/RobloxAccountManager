@@ -354,7 +354,7 @@ func (manager *Manager) close(manual bool) error {
 	return nil
 }
 
-func (manager *Manager) TestPassword(ctx context.Context, password string) error {
+func (manager *Manager) CheckPassword(ctx context.Context, password string) error {
 	key, err := readKeyFile(manager.paths.VaultKey)
 	if err != nil {
 		return err

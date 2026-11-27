@@ -25,13 +25,13 @@
 	let {
 		servers,
 		stats,
-		activeJobId,
+		activeServerId,
 		menuID,
 		onMenu,
 	}: {
 		servers: RecordedServers
 		stats: ServerStatsLoader
-		activeJobId: string | undefined
+		activeServerId: string | undefined
 		menuID: string
 		onMenu: ServerMenuOpener
 	} = $props()
@@ -165,15 +165,15 @@
 				<span>IP address</span>
 				<span class="justify-self-end text-right">Version</span>
 				<span class="justify-self-end text-right">Uptime</span>
-				<span>Job ID</span>
+				<span>Server ID</span>
 			</div>
 			<ol aria-label="Servers" aria-busy={servers.loading}>
-				{#each shown as server (server.jobId)}
+				{#each shown as server (server.serverId)}
 					<li
 						class="server-row"
-						data-open={activeJobId === server.jobId || undefined}
+						data-open={activeServerId === server.serverId || undefined}
 						oncontextmenu={(event) =>
-							openServerMenuFromRow(event, server.jobId, onMenu)}>
+							openServerMenuFromRow(event, server.serverId, onMenu)}>
 						<span
 							class="truncate text-xs text-fg"
 							data-tooltip={recordLocation(server) || undefined}
@@ -198,12 +198,12 @@
 						<ServerUptime firstSeenMs={server.firstSeenMs} />
 						<span
 							class="truncate font-mono text-2xs text-fg-faint select-text"
-							data-tooltip={server.jobId}>{server.jobId}</span>
+							data-tooltip={server.serverId}>{server.serverId}</span>
 						<ServerActionsButton
-							open={activeJobId === server.jobId}
+							open={activeServerId === server.serverId}
 							{menuID}
 							onMenu={(trigger, toggle) =>
-								onMenu(server.jobId, trigger, toggle)} />
+								onMenu(server.serverId, trigger, toggle)} />
 					</li>
 				{/each}
 			</ol>

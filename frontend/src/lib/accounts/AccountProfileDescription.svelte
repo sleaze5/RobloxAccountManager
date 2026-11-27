@@ -45,10 +45,12 @@
 
 <section
 	class="flex flex-col gap-2 @4xl:col-span-2"
-	aria-labelledby="profile-about-heading">
+	aria-labelledby="profile-description-heading">
 	<div class="flex items-center gap-1">
-		<h3 id="profile-about-heading" class="text-xs font-semibold text-fg-muted">
-			About
+		<h3
+			id="profile-description-heading"
+			class="text-xs font-semibold text-fg-muted">
+			Description
 		</h3>
 		<button
 			class="button-ghost-sm"

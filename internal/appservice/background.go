@@ -82,7 +82,7 @@ func (service *Service) validateBackgroundJobs(ctx context.Context, jobs <-chan 
 			if !ok {
 				return
 			}
-			if _, err := service.ValidateAccount(ctx, accountID); err != nil && ctx.Err() == nil {
+			if _, err := service.CheckAccount(ctx, accountID); err != nil && ctx.Err() == nil {
 				service.logger.Warn("could not check accounts in the background", "account_id", accountID, "error", err)
 			}
 		}

@@ -86,7 +86,7 @@ func (service *Service) refreshAccountMetadata(accountID, userID int64) {
 // missing from the cache, which reads and caches the punishment again.
 func (service *Service) refreshAccountModeration(accountID, userID int64) {
 	service.refreshMetadata(fmt.Sprintf("moderation-%d", userID), func(ctx context.Context) {
-		if _, err := service.ValidateAccount(ctx, accountID); err != nil && ctx.Err() == nil {
+		if _, err := service.CheckAccount(ctx, accountID); err != nil && ctx.Err() == nil {
 			service.logger.WarnContext(ctx, "could not refresh account moderation; the account list tries again later", "operation", "account-moderation-refresh", "account_id", accountID, "error", err)
 		}
 	})

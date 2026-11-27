@@ -21,7 +21,7 @@ const (
 type Input struct {
 	Method             Method `json:"method"`
 	PlaceID            string `json:"placeId"`
-	JobID              string `json:"jobId"`
+	ServerID           string `json:"serverId"`
 	Link               string `json:"link"`
 	User               string `json:"user"`
 	ResolveCurrentGame bool   `json:"resolveCurrentGame"`
@@ -32,7 +32,7 @@ type Input struct {
 }
 
 var (
-	jobIDPattern     = regexp.MustCompile(`^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$`)
+	serverIDPattern  = regexp.MustCompile(`^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$`)
 	usernamePattern  = regexp.MustCompile(`^[a-zA-Z0-9_]{1,20}$`)
 	codePattern      = regexp.MustCompile(`^[a-zA-Z0-9_-]{1,512}$`)
 	shareCodePattern = regexp.MustCompile(`^[0-9a-fA-F]{32}$`)
@@ -44,7 +44,7 @@ func Parse(input Input) (Request, error) {
 	}
 	switch input.Method {
 	case MethodPlace:
-		return placeRequest(input.PlaceID, input.JobID)
+		return placeRequest(input.PlaceID, input.ServerID)
 	case MethodLink:
 		return parseLink(input.Link)
 	case MethodUser:
@@ -58,7 +58,7 @@ func Parse(input Input) (Request, error) {
 func hasEmptyJoinFields(input Input) bool {
 	switch input.Method {
 	case MethodPlace:
-		return strings.TrimSpace(input.PlaceID) == "" && strings.TrimSpace(input.JobID) == ""
+		return strings.TrimSpace(input.PlaceID) == "" && strings.TrimSpace(input.ServerID) == ""
 	case MethodLink:
 		return strings.TrimSpace(input.Link) == ""
 	case MethodUser:
@@ -80,16 +80,16 @@ func positiveID(text, label string) (int64, error) {
 	return id, nil
 }
 
-func placeRequest(place, job string) (Request, error) {
+func placeRequest(place, serverID string) (Request, error) {
 	placeID, err := positiveID(place, "place ID")
 	if err != nil {
 		return Request{}, err
 	}
-	job = strings.TrimSpace(job)
-	if job != "" && !jobIDPattern.MatchString(job) {
-		return Request{}, errors.New("enter a valid job ID (UUID), or leave it empty to join a public server")
+	serverID = strings.TrimSpace(serverID)
+	if serverID != "" && !serverIDPattern.MatchString(serverID) {
+		return Request{}, errors.New("enter a valid server ID (UUID), or leave it empty to join a public server")
 	}
-	return Request{PlaceID: placeID, JobID: job}, nil
+	return Request{PlaceID: placeID, ServerID: serverID}, nil
 }
 
 func parseUser(user string) (Request, error) {
@@ -203,8 +203,8 @@ func shareRequest(query url.Values) (Request, error) {
 	switch {
 	case strings.EqualFold(query.Get("type"), string(ShareServer)):
 		shareType = ShareServer
-	case strings.EqualFold(query.Get("type"), string(ShareExperienceInvite)):
-		shareType = ShareExperienceInvite
+	case strings.EqualFold(query.Get("type"), string(ShareGameInvite)):
+		shareType = ShareGameInvite
 	default:
 		return Request{}, errors.New("use a share link with type=Server or type=ExperienceInvite")
 	}
@@ -246,8 +246,8 @@ func validatePrivateCodes(request Request) error {
 			return errors.New("the private server link has an invalid code")
 		}
 	}
-	if request.JobID != "" && (request.LinkCode != "" || request.AccessCode != "") {
-		return errors.New("a link cannot have both a job ID and a private server")
+	if request.ServerID != "" && (request.LinkCode != "" || request.AccessCode != "") {
+		return errors.New("a link cannot have both a server ID and a private server")
 	}
 	return nil
 }

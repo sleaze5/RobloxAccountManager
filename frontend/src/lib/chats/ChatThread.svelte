@@ -213,7 +213,7 @@
 						bind:this={renameInput}
 						bind:value={groupName}
 						class="field h-7 min-w-0 flex-1"
-						aria-label="Group name"
+						aria-label="Group chat name"
 						aria-invalid={chat.renameError ? "true" : undefined}
 						maxlength={chat.groupNameMaxLength || undefined}
 						disabled={chat.renaming}
@@ -261,8 +261,8 @@
 					<button
 						class="button-ghost"
 						type="button"
-						aria-label="Rename group"
-						data-tooltip="Rename group"
+						aria-label="Rename group chat"
+						data-tooltip="Rename group chat"
 						onclick={() => void startRename()}>
 						<Icon svg={pencilSimpleIcon} size={16} aria-hidden="true" />
 					</button>
@@ -273,7 +273,7 @@
 						aria-haspopup="dialog"
 						data-tooltip={memberSlots > 0
 							? "Add members"
-							: "This group is full"}
+							: "This group chat is full"}
 						disabled={memberSlots === 0}
 						onclick={onAddMembers}>
 						<Icon svg={userPlusIcon} size={16} aria-hidden="true" />
@@ -319,7 +319,7 @@
 				</p>
 			{:else if timeline.length === 0 && !chat.messagesError}
 				<p class="flex items-center gap-2 p-2 text-xs text-fg-faint">
-					No messages yet. Say hello.
+					No messages yet.
 				</p>
 			{/if}
 			<ol class="flex flex-col gap-0.5" aria-label="Messages">
@@ -482,7 +482,9 @@
 			</ul>
 			<div class="flex shrink-0 flex-col gap-1.5 border-t border-line-subtle p-2">
 				{#if memberSlots === 0}
-					<p class="text-center text-2xs text-fg-muted">The group is full.</p>
+					<p class="text-center text-2xs text-fg-muted">
+						The group chat is full.
+					</p>
 				{/if}
 				<button
 					class="button w-full"

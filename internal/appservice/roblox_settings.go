@@ -8,22 +8,22 @@ import (
 	"github.com/sleaze5/RobloxAccountManager/internal/roblox"
 )
 
-func (service *Service) GetMultiInstanceState() robloxmulti.Snapshot {
-	return service.multiInstance.Snapshot()
+func (service *Service) GetMultiClientState() robloxmulti.Snapshot {
+	return service.multiClient.Snapshot()
 }
 
-func (service *Service) SetMultiInstanceEnabled(enabled bool) (robloxmulti.Snapshot, error) {
+func (service *Service) SetMultiClientEnabled(enabled bool) (robloxmulti.Snapshot, error) {
 	service.launchMutex.Lock()
 	defer service.launchMutex.Unlock()
-	if state := service.multiInstance.Snapshot(); !state.Supported {
-		return state, &roblox.Error{Kind: roblox.KindProtocol, Endpoint: "multi-instance", Message: "Multi-instance is only available on Windows."}
+	if state := service.multiClient.Snapshot(); !state.Supported {
+		return state, &roblox.Error{Kind: roblox.KindProtocol, Endpoint: "multi-client", Message: "Multi-client is only available on Windows."}
 	}
-	if err := service.settings.SetMultiInstance(enabled); err != nil {
-		service.logger.Warn("could not save Roblox settings", "operation", "multi-instance", "error", err)
-		return service.multiInstance.Snapshot(), &roblox.Error{Kind: roblox.KindProtocol, Endpoint: "multi-instance", Message: "Could not save the multi-instance setting. Try again."}
+	if err := service.settings.SetMultiClient(enabled); err != nil {
+		service.logger.Warn("could not save Roblox settings", "operation", "multi-client", "error", err)
+		return service.multiClient.Snapshot(), &roblox.Error{Kind: roblox.KindProtocol, Endpoint: "multi-client", Message: "Could not save the Multi-client setting. Try again."}
 	}
-	service.multiInstance.SetEnabled(enabled)
-	return service.multiInstance.Snapshot(), nil
+	service.multiClient.SetEnabled(enabled)
+	return service.multiClient.Snapshot(), nil
 }
 
 type RobloxPlayers struct {
@@ -70,7 +70,7 @@ func (service *Service) GetRobloxClients() gamelaunch.ClientState {
 func (service *Service) SetLinuxClient(client string) (gamelaunch.ClientState, error) {
 	state := service.GetRobloxClients()
 	if !state.ChoiceSupported {
-		return state, &roblox.Error{Kind: roblox.KindProtocol, Endpoint: "linux-client", Message: "Selecting a Linux Roblox client is only available on Linux."}
+		return state, &roblox.Error{Kind: roblox.KindProtocol, Endpoint: "linux-client", Message: "Linux clients are only available on Linux."}
 	}
 	if err := service.settings.SetLinuxClient(client); err != nil {
 		service.logger.Warn("could not save Roblox client", "operation", "linux-client", "error", err)

@@ -6,14 +6,14 @@
 	import type { CandidateListItem } from "../accounts/candidate-model"
 	import type { AccountStore } from "../accounts/account-store.svelte"
 	import type { ImportPreview, ImportPreviewItem } from "../backend/bridge"
-	import { replayValidationNudge } from "../shared/presence"
+	import { replayValidationNudge } from "../shared/transitions"
 	import Dialog from "../shared/Dialog.svelte"
 
 	let { store, onClose }: { store: AccountStore; onClose: () => void } = $props(),
 		cookieInput = $state(""),
 		preview = $state<ImportPreview | null>(null),
 		selectedIndexes = $state<number[]>([]),
-		operation = $state<"validate" | "save" | null>(null),
+		operation = $state<"check" | "save" | null>(null),
 		card = $state<HTMLDivElement>(),
 		selectedCount = $derived(selectedIndexes.length),
 		selectedUpdateCount = $derived(
@@ -82,14 +82,14 @@
 		cookieInput = value
 	}
 
-	async function validate(): Promise<void> {
+	async function checkCookie(): Promise<void> {
 		if (store.busy) {
 			return
 		}
 
 		const oldBatchId = preview?.batchId
 		preview = null
-		operation = "validate"
+		operation = "check"
 		try {
 			if (oldBatchId) {
 				await store.discardValidatedCookies(oldBatchId)
@@ -235,7 +235,7 @@
 		novalidate
 		onsubmit={(event) => {
 			event.preventDefault()
-			void validate()
+			void checkCookie()
 		}}>
 		<div class="dialog-heading">
 			<div>
@@ -278,7 +278,7 @@
 				>Cancel</button>
 			{#if preview?.batchId && preview.readyCount > 0}
 				<button class="button" type="submit" disabled={store.busy}>
-					{operation === "validate" ? "Checking…" : "Check"}
+					{operation === "check" ? "Checking…" : "Check"}
 				</button>
 				<button
 					class="button-primary"
@@ -292,7 +292,7 @@
 					class="button-primary"
 					type="submit"
 					disabled={store.busy || !cookieInput.trim()}>
-					{operation === "validate" ? "Checking…" : "Check"}
+					{operation === "check" ? "Checking…" : "Check"}
 				</button>
 			{/if}
 		</div>

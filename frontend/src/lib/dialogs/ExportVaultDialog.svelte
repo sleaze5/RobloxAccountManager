@@ -8,7 +8,7 @@
 	import xIcon from "@phosphor-icons/core/regular/x.svg?raw"
 	import Icon from "../shared/Icon.svelte"
 	import { accountBackend, type ExportFile } from "../backend/bridge"
-	import { replayValidationNudge } from "../shared/presence"
+	import { replayValidationNudge } from "../shared/transitions"
 	import { errorMessage } from "../shared/errors"
 	import Dialog from "../shared/Dialog.svelte"
 	import type { NotificationCenter } from "../notifications/notification-center.svelte"
@@ -141,7 +141,7 @@
 			}}>
 			<div class="notice-warning">
 				Anyone with this file and its export password can sign in to your
-				accounts. The export password cannot be recovered.
+				accounts. Nobody can recover a lost export password.
 			</div>
 			<div class="grid grid-cols-2 gap-3">
 				<label class="dialog-field">
