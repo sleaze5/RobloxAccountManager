@@ -9,7 +9,7 @@
 	import { errorMessage } from "../shared/errors"
 	import { TextFilterCheck } from "../shared/text-filter-check.svelte"
 	import TextFilterStatus from "../shared/TextFilterStatus.svelte"
-	import TextFilterValidateButton from "../shared/TextFilterValidateButton.svelte"
+	import TextFilterCheckButton from "../shared/TextFilterCheckButton.svelte"
 	import Dialog from "../shared/Dialog.svelte"
 	import type { PrivateServerState } from "./private-server-state.svelte"
 
@@ -29,36 +29,33 @@
 		maximumLength = 50,
 		current = untrack(() => server.settings?.name ?? "")
 	let typedName = $state(current),
-		validating = $state<"validate" | "submit" | null>(null),
+		checkingMode = $state<"check" | "submit" | null>(null),
 		error = $state(""),
 		card = $state<HTMLDivElement>(),
 		field = $state<HTMLInputElement>()
 	const text = $derived(typedName.trim()),
 		changed = $derived(text !== "" && text !== current),
 		renaming = $derived(server.pending === "rename"),
-		busy = $derived(validating !== null || renaming),
+		busy = $derived(checkingMode !== null || renaming),
 		check = new TextFilterCheck(() => text)
 
 	function close(): void {
 		if (!busy) onClose()
 	}
 
-	async function validate(mode: "validate" | "submit"): Promise<boolean> {
+	async function checkName(mode: "check" | "submit"): Promise<boolean> {
 		const validatedText = text
-		validating = mode
+		checkingMode = mode
 		error = ""
 		try {
 			return await check.run(validatedText, () =>
-				accountBackend.ValidatePrivateServerName(
-					server.accountId,
-					validatedText,
-				),
+				accountBackend.CheckPrivateServerName(server.accountId, validatedText),
 			)
 		} catch (cause) {
 			error = errorMessage(cause, "Could not check the name. Try again.")
 			return false
 		} finally {
-			validating = null
+			checkingMode = null
 		}
 	}
 
@@ -87,7 +84,7 @@
 	async function submit(): Promise<void> {
 		if (!changed || busy) {
 			replayValidationNudge(card)
-		} else if (check.current || (await validate("submit"))) {
+		} else if (check.current || (await checkName("submit"))) {
 			await rename()
 		}
 	}
@@ -155,19 +152,19 @@
 		<div class="dialog-actions">
 			<button class="button" type="button" disabled={busy} onclick={close}
 				>Cancel</button>
-			<TextFilterValidateButton
+			<TextFilterCheckButton
 				{check}
 				{text}
-				isValidating={validating === "validate"}
+				isChecking={checkingMode === "check"}
 				disabled={busy}
-				onValidate={() => void validate("validate")}
+				onCheck={() => void checkName("check")}
 				onEdit={() => void edit()} />
 			<button
 				class={check.isTagged ? "button-warning" : "button-primary"}
 				type="submit"
-				aria-busy={validating === "submit" || renaming}
+				aria-busy={checkingMode === "submit" || renaming}
 				disabled={!changed || busy}>
-				{#if validating === "submit"}
+				{#if checkingMode === "submit"}
 					Checking…
 				{:else if renaming}
 					Renaming…

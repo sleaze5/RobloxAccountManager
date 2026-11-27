@@ -654,7 +654,7 @@ func (store *Store) Origin() string { return store.origin }
 
 func validatePresenceSettings(settings PresenceUpdateSettings) error {
 	if !validPresenceInterval(settings.IntervalSeconds) {
-		return errors.New("presence update interval must be between 30 and 900 seconds in steps of 5")
+		return errors.New("the online status update interval must be between 30 and 900 seconds, in steps of 5")
 	}
 	return nil
 }

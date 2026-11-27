@@ -62,9 +62,9 @@ func (service *Service) GetPrivateServer(ctx context.Context, accountID, private
 	return service.privateServerSettings(ctx, accountID, version, privateServerID)
 }
 
-// ValidatePrivateServerName runs the name through the Roblox text filter, as
-// ValidateAccountDescription does, so the user sees what Roblox would censor.
-func (service *Service) ValidatePrivateServerName(ctx context.Context, accountID int64, name string) (robloxservices.TextFilter, error) {
+// CheckPrivateServerName runs the name through the Roblox text filter, as
+// CheckAccountDescription does, so the user sees what Roblox would censor.
+func (service *Service) CheckPrivateServerName(ctx context.Context, accountID int64, name string) (robloxservices.TextFilter, error) {
 	name, err := privateServerName(name)
 	if err != nil {
 		return robloxservices.TextFilter{}, err

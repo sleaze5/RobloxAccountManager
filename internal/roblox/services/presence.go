@@ -105,7 +105,7 @@ func normalizePresenceTargets(targets []PresenceTarget) ([]PresenceTarget, error
 			return nil, &roblox.Error{
 				Kind:     roblox.KindProtocol,
 				Endpoint: "user-presences",
-				Message:  "An invalid account presence was requested.",
+				Message:  "The online status request is invalid.",
 			}
 		}
 		if _, exists := seen[target.RobloxUserID]; exists {
@@ -151,7 +151,7 @@ func (service *Presence) request(ctx context.Context, accountID, version int64, 
 		return nil, &roblox.Error{
 			Kind:     roblox.KindProtocol,
 			Endpoint: "user-presences",
-			Message:  "Could not create the presence request.",
+			Message:  "Could not create the online status request.",
 			Cause:    err,
 		}
 	}
@@ -211,7 +211,7 @@ func invalidPresence(status int, cause error) error {
 		Kind:     roblox.KindProtocol,
 		Endpoint: "user-presences",
 		Status:   status,
-		Message:  "Roblox returned invalid presence data.",
+		Message:  "Roblox returned an invalid online status.",
 		Cause:    cause,
 	}
 }

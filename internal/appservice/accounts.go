@@ -301,7 +301,7 @@ func (service *Service) savedAccounts(ctx context.Context) ([]accounts.AccountVi
 	}
 }
 
-func (service *Service) ValidateAccount(ctx context.Context, accountID int64) (accounts.AccountView, error) {
+func (service *Service) CheckAccount(ctx context.Context, accountID int64) (accounts.AccountView, error) {
 	current, err := service.accountRepository.GetView(ctx, accountID)
 	if err != nil {
 		return accounts.AccountView{}, mapRepositoryError(err)
@@ -357,7 +357,7 @@ func (service *Service) ReactivateAccount(ctx context.Context, accountID int64) 
 		return accounts.AccountView{}, &roblox.Error{Kind: roblox.KindCancelled, Endpoint: "account-reactivate", Message: "The account was reactivated. Refresh to see its status.", Cause: ctx.Err()}
 	case <-timer.C:
 	}
-	view, err := service.ValidateAccount(ctx, accountID)
+	view, err := service.CheckAccount(ctx, accountID)
 	if err != nil {
 		return accounts.AccountView{}, err
 	}

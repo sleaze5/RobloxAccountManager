@@ -117,11 +117,11 @@ func (service *Service) GetPrivateServer(ctx context.Context, accountID, private
 	return service.core.GetPrivateServer(ctx, accountID, privateServerID)
 }
 
-func (service *Service) ValidatePrivateServerName(ctx context.Context, accountID int64, name string) (robloxservices.TextFilter, error) {
+func (service *Service) CheckPrivateServerName(ctx context.Context, accountID int64, name string) (robloxservices.TextFilter, error) {
 	if err := positiveID(accountID, "private-server-name-validate"); err != nil {
 		return robloxservices.TextFilter{}, err
 	}
-	return service.core.ValidatePrivateServerName(ctx, accountID, name)
+	return service.core.CheckPrivateServerName(ctx, accountID, name)
 }
 
 func (service *Service) RenamePrivateServer(ctx context.Context, accountID, privateServerID int64, name string) (games.PrivateServerSettings, error) {

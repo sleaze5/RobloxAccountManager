@@ -36,15 +36,15 @@
 		password = $state(""),
 		visible = $state(false),
 		loading = $state(replacing),
-		pending = $state<"validate" | "save" | null>(null),
-		validation = $state<"unchecked" | "valid" | "invalid">("unchecked"),
+		pending = $state<"check" | "save" | null>(null),
+		passwordCheckResult = $state<"unchecked" | "valid" | "invalid">("unchecked"),
 		error = $state(""),
 		card = $state<HTMLDivElement>(),
 		input = $state<HTMLInputElement>()
 	let active = true,
 		request:
 			| ReturnType<typeof accountBackend.GetAccountPassword>
-			| ReturnType<typeof accountBackend.ValidateAccountPassword>
+			| ReturnType<typeof accountBackend.CheckAccountPassword>
 			| ReturnType<typeof accountBackend.SaveAccountPassword>
 			| null = null
 	const busy = $derived(loading || pending !== null)
@@ -75,15 +75,15 @@
 		onClose()
 	}
 
-	async function validate(): Promise<void> {
+	async function checkPassword(): Promise<void> {
 		if (busy || !password) return
-		pending = "validate"
+		pending = "check"
 		error = ""
 		try {
-			request = accountBackend.ValidateAccountPassword(accountId, password)
+			request = accountBackend.CheckAccountPassword(accountId, password)
 			const valid = await request
 			if (!active) return
-			validation = valid ? "valid" : "invalid"
+			passwordCheckResult = valid ? "valid" : "invalid"
 			if (!valid) replayValidationNudge(card)
 		} catch (cause) {
 			if (!active) return
@@ -179,7 +179,7 @@
 					spellcheck="false"
 					disabled={busy}
 					oninput={() => {
-						validation = "unchecked"
+						passwordCheckResult = "unchecked"
 						error = ""
 					}} />
 			</label>
@@ -200,11 +200,11 @@
 		</div>
 
 		<div class="mt-2 flex min-h-6 items-center gap-1 text-xs text-fg">
-			{#if validation === "valid"}
+			{#if passwordCheckResult === "valid"}
 				<span class="flex items-center gap-1 text-success" role="status"
 					><Icon svg={checkCircleIcon} size={16} aria-hidden="true" />Password
 					is correct</span>
-			{:else if validation === "invalid"}
+			{:else if passwordCheckResult === "invalid"}
 				<span class="flex items-center gap-1 text-warning" role="status"
 					><Icon
 						svg={warningCircleIcon}
@@ -215,8 +215,8 @@
 					class="button-text *:animate-pop"
 					type="button"
 					disabled={busy || !password}
-					onclick={() => void validate()}>
-					{#if pending === "validate"}<Icon
+					onclick={() => void checkPassword()}>
+					{#if pending === "check"}<Icon
 							svg={circleNotchIcon}
 							class="spinner"
 							size={16}

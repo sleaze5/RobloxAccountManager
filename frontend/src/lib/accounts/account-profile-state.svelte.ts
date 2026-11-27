@@ -143,12 +143,12 @@ const expiryRecheckMs = 60_000
 // revisit shows the last values at once while they refresh.
 export class AccountProfileState {
 	readonly sections: SectionLoad<AccountProfileSnapshot, AccountProfileSection>
-	isValidating = $state(false)
+	isCheckingIdentity = $state(false)
 	identityError = $state("")
 	#active = true
 	#fetchedAt = 0
 	#expiryTimer = 0
-	#validationRequest: ReturnType<typeof accountBackend.ValidateAccount> | null = null
+	#identityCheckRequest: ReturnType<typeof accountBackend.CheckAccount> | null = null
 	readonly #accountId: number
 	readonly #store: AccountStore
 
@@ -167,7 +167,7 @@ export class AccountProfileState {
 	}
 
 	get loading(): boolean {
-		return this.sections.isLoading || this.isValidating
+		return this.sections.isLoading || this.isCheckingIdentity
 	}
 
 	get error(): string {
@@ -183,20 +183,20 @@ export class AccountProfileState {
 		void this.refresh()
 	}
 
-	async refresh(validateIdentity = false): Promise<void> {
+	async refresh(shouldCheckIdentity = false): Promise<void> {
 		if (!this.#current() || this.loading) return
 		this.identityError = ""
-		this.isValidating = validateIdentity
+		this.isCheckingIdentity = shouldCheckIdentity
 		const [identity, sectionLoad] = await Promise.allSettled([
-			validateIdentity ? this.#refreshIdentity() : null,
+			shouldCheckIdentity ? this.#refreshIdentity() : null,
 			this.sections.load(
 				(section) => accountBackend.GetAccountProfile(this.#accountId, section),
 				() => this.#current(),
 			),
 		])
 		if (!this.#current()) return
-		this.isValidating = false
-		this.#validationRequest = null
+		this.isCheckingIdentity = false
+		this.#identityCheckRequest = null
 		this.#scheduleExpiry(detailsKeepMs)
 		if (identity.status === "rejected") {
 			this.identityError = errorMessage(
@@ -210,9 +210,9 @@ export class AccountProfileState {
 	}
 
 	async #refreshIdentity(): Promise<void> {
-		this.#validationRequest = accountBackend.ValidateAccount(this.#accountId)
+		this.#identityCheckRequest = accountBackend.CheckAccount(this.#accountId)
 		const results = await Promise.allSettled([
-			this.#validationRequest,
+			this.#identityCheckRequest,
 			this.#store.refreshAccountAvatar(this.#accountId),
 			this.#store.refreshPresences(this.#accountId),
 		])
@@ -242,9 +242,9 @@ export class AccountProfileState {
 		this.#active = false
 		window.clearTimeout(this.#expiryTimer)
 		this.sections.reset()
-		void this.#validationRequest?.cancel()
-		this.#validationRequest = null
-		this.isValidating = false
+		void this.#identityCheckRequest?.cancel()
+		this.#identityCheckRequest = null
+		this.isCheckingIdentity = false
 		this.identityError = ""
 	}
 }

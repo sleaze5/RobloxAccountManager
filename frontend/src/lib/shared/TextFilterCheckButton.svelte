@@ -6,16 +6,16 @@
 	let {
 		check,
 		text,
-		isValidating,
+		isChecking,
 		disabled,
-		onValidate,
+		onCheck,
 		onEdit,
 	}: {
 		check: TextFilterCheck
 		text: string
-		isValidating: boolean
+		isChecking: boolean
 		disabled: boolean
-		onValidate: () => void
+		onCheck: () => void
 		onEdit: () => void
 	} = $props()
 </script>
@@ -23,12 +23,12 @@
 <button
 	class="button"
 	type="button"
-	aria-busy={isValidating}
+	aria-busy={isChecking}
 	disabled={disabled ||
 		(check.filteredPreview === undefined &&
 			(text === "" || check.current !== null))}
-	onclick={() => (check.filteredPreview === undefined ? onValidate() : onEdit())}>
-	{#if isValidating}
+	onclick={() => (check.filteredPreview === undefined ? onCheck() : onEdit())}>
+	{#if isChecking}
 		Checking…
 	{:else if check.filteredPreview !== undefined}
 		Edit

@@ -34,15 +34,15 @@
 		savedCustomPath = "",
 		loading = $state(false),
 		saving = $state(false),
-		validating = $state(false),
-		validated = $state(false),
+		isCheckingAndSavingPath = $state(false),
+		wasPathSaved = $state(false),
 		check = $state<{ text: string; result: RobloxPlayerPathCheck } | null>(null),
 		checkSequence = 0,
 		error = $state("")
 
 	const newest = $derived(versions?.[0]),
 		choices = $derived(versions && versions.length > 1 ? versions : []),
-		busy = $derived(saving || validating),
+		busy = $derived(saving || isCheckingAndSavingPath),
 		checked = $derived(check?.text === customPath ? check.result : null),
 		parses = $derived(customPath.trim() === "" || checked?.problem === "")
 
@@ -101,10 +101,10 @@
 		}
 	}
 
-	async function validate(): Promise<void> {
+	async function checkAndSavePath(): Promise<void> {
 		const text = customPath
 		checkSequence++
-		validating = true
+		isCheckingAndSavingPath = true
 		error = ""
 		try {
 			const pathCheck = await accountBackend.CheckRobloxPlayerPath(text)
@@ -117,14 +117,14 @@
 			savedCustomPath = pathCheck.path
 			selection = custom
 			check = { text: pathCheck.path, result: pathCheck }
-			validated = true
+			wasPathSaved = true
 		} catch (cause) {
 			error = errorMessage(
 				cause,
 				"Could not save the custom Roblox Player path. Try again.",
 			)
 		} finally {
-			validating = false
+			isCheckingAndSavingPath = false
 		}
 	}
 
@@ -275,15 +275,15 @@
 					disabled={busy}
 					oninput={() => {
 						selection = custom
-						validated = false
+						wasPathSaved = false
 						void checkPath()
 					}} />
 				<button
 					class="button h-8 px-3 font-semibold"
 					type="button"
 					disabled={busy || customPath.trim() === ""}
-					onclick={() => void validate()}>
-					{#if validating}<Icon
+					onclick={() => void checkAndSavePath()}>
+					{#if isCheckingAndSavingPath}<Icon
 							svg={circleNotchIcon}
 							class="spinner"
 							size={14}
@@ -299,7 +299,7 @@
 					onclick={() => {
 						customPath = ""
 						check = null
-						validated = false
+						wasPathSaved = false
 						checkSequence++
 						if (selection === custom) selection = automatic
 					}}>
@@ -315,13 +315,13 @@
 							svg={warningCircleIcon}
 							size={14}
 							aria-hidden="true" />{checked.problem}</span>
-				{:else if validated && checked?.found}
+				{:else if wasPathSaved && checked?.found}
 					<span class="text-success"
 						><Icon
 							svg={checkCircleIcon}
 							size={14}
 							aria-hidden="true" />Found. Custom path saved.</span>
-				{:else if validated && checked}
+				{:else if wasPathSaved && checked}
 					<span class="text-warning"
 						><Icon
 							svg={warningCircleIcon}

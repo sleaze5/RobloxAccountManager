@@ -10,7 +10,7 @@
 	import { errorMessage } from "../shared/errors"
 	import { TextFilterCheck } from "../shared/text-filter-check.svelte"
 	import TextFilterStatus from "../shared/TextFilterStatus.svelte"
-	import TextFilterValidateButton from "../shared/TextFilterValidateButton.svelte"
+	import TextFilterCheckButton from "../shared/TextFilterCheckButton.svelte"
 	import Dialog from "../shared/Dialog.svelte"
 
 	let {
@@ -28,7 +28,7 @@
 	} = $props()
 
 	let typedDescription = $state(untrack(() => description)),
-		pending = $state<"validate" | "submit" | "save" | null>(null),
+		pending = $state<"check" | "submit" | "save" | null>(null),
 		error = $state(""),
 		card = $state<HTMLDivElement>(),
 		field = $state<HTMLTextAreaElement>()
@@ -40,13 +40,13 @@
 		if (!pending) onClose()
 	}
 
-	async function validate(mode: "validate" | "submit"): Promise<boolean> {
+	async function checkDescription(mode: "check" | "submit"): Promise<boolean> {
 		const validatedText = text
 		pending = mode
 		error = ""
 		try {
 			return await check.run(validatedText, () =>
-				accountBackend.ValidateAccountDescription(account.id, validatedText),
+				accountBackend.CheckAccountDescription(account.id, validatedText),
 			)
 		} catch (cause) {
 			error = errorMessage(cause, "Could not check the description. Try again.")
@@ -91,7 +91,7 @@
 	async function submit(): Promise<void> {
 		if (!changed || pending) {
 			replayValidationNudge(card)
-		} else if (text === "" || check.current || (await validate("submit"))) {
+		} else if (text === "" || check.current || (await checkDescription("submit"))) {
 			await save()
 		}
 	}
@@ -156,12 +156,12 @@
 				type="button"
 				disabled={pending !== null}
 				onclick={close}>Cancel</button>
-			<TextFilterValidateButton
+			<TextFilterCheckButton
 				{check}
 				{text}
-				isValidating={pending === "validate"}
+				isChecking={pending === "check"}
 				disabled={pending !== null}
-				onValidate={() => void validate("validate")}
+				onCheck={() => void checkDescription("check")}
 				onEdit={() => void edit()} />
 			<button
 				class={check.isTagged ? "button-warning" : "button-primary"}

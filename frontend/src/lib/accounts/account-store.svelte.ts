@@ -773,7 +773,7 @@ export class AccountStore {
 		this.busy = true
 		this.error = ""
 		try {
-			const preview = await accountBackend.ValidateCookies(cookieInput),
+			const preview = await accountBackend.CheckCookies(cookieInput),
 				items = preview.items ?? []
 			preview.items = items
 			return preview
@@ -928,7 +928,7 @@ export class AccountStore {
 		this.checkingAccountId = accountId
 		this.error = ""
 		try {
-			await accountBackend.ValidateAccount(accountId)
+			await accountBackend.CheckAccount(accountId)
 			if (version === this.#remoteDataVersion) await this.refreshAccounts()
 		} catch (error) {
 			if (version === this.#remoteDataVersion) {

@@ -42,11 +42,11 @@ func (service *Service) ChangeDisplayName(ctx context.Context, accountID int64, 
 	return service.core.ChangeDisplayName(ctx, accountID, displayName)
 }
 
-func (service *Service) ValidateAccountDescription(ctx context.Context, accountID int64, description string) (robloxservices.TextFilter, error) {
+func (service *Service) CheckAccountDescription(ctx context.Context, accountID int64, description string) (robloxservices.TextFilter, error) {
 	if err := positiveID(accountID, "description-validate"); err != nil {
 		return robloxservices.TextFilter{}, err
 	}
-	return service.core.ValidateAccountDescription(ctx, accountID, description)
+	return service.core.CheckAccountDescription(ctx, accountID, description)
 }
 
 func (service *Service) ChangeAccountDescription(ctx context.Context, accountID int64, description string) (string, error) {
@@ -84,11 +84,11 @@ func (service *Service) GetAccountPassword(ctx context.Context, accountID int64)
 	return service.core.GetAccountPassword(ctx, accountID)
 }
 
-func (service *Service) ValidateAccountPassword(ctx context.Context, accountID int64, password string) (bool, error) {
+func (service *Service) CheckAccountPassword(ctx context.Context, accountID int64, password string) (bool, error) {
 	if err := positiveID(accountID, "password-validate"); err != nil {
 		return false, err
 	}
-	return service.core.ValidateAccountPassword(ctx, accountID, password)
+	return service.core.CheckAccountPassword(ctx, accountID, password)
 }
 
 func (service *Service) UnlockAccountPin(ctx context.Context, accountID int64, pin string) error {
