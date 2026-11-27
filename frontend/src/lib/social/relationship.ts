@@ -40,9 +40,9 @@ export type RelationshipActionId =
 
 // neutral adds or accepts a connection, warning withdraws a request the
 // account sent, and danger ends or refuses a connection.
-type RelationshipTone = "neutral" | "warning" | "danger"
+export type RelationshipTone = "neutral" | "warning" | "danger"
 
-interface RelationshipAction {
+export interface RelationshipAction {
 	id: RelationshipActionId
 	tone: RelationshipTone
 	label: string

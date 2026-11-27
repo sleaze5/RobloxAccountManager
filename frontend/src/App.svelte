@@ -405,7 +405,7 @@
 
 <ProfilePreviewDialog
 	subjects={profilePreviews.subjects}
-	accountId={store.selectedAccount.id}
+	accounts={store}
 	onBack={() => profilePreviews.back()}
 	onClose={() => profilePreviews.close()}
 	onOpenFull={(subject) => profilePreviews.openFullProfile(subject)}

@@ -4,6 +4,7 @@
 	import Icon from "../shared/Icon.svelte"
 	import Dialog from "../shared/Dialog.svelte"
 	import ProfileImage from "../shared/ProfileImage.svelte"
+	import RobloxAccountLine from "../shared/RobloxAccountLine.svelte"
 	import type { Account } from "../accounts/account-model"
 	import type { SocialUser } from "../backend/bridge"
 	import {
@@ -75,8 +76,8 @@
 					>@{person.username}</span
 				>{/if}
 		</span>
-		<span class="shrink-0 text-2xs text-fg-muted">as @{account.username}</span>
 	</div>
+	<div class="mt-2"><RobloxAccountLine {account} /></div>
 	<div class="dialog-actions">
 		<button class="button" type="button" disabled={pending} onclick={close}
 			>{action.tone === "warning" ? "Keep request" : "Cancel"}</button>

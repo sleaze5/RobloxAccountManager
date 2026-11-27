@@ -5,6 +5,8 @@
 	import coinsIcon from "@phosphor-icons/core/regular/coins.svg?raw"
 	import dotsThreeIcon from "@phosphor-icons/core/regular/dots-three.svg?raw"
 	import gearSixIcon from "@phosphor-icons/core/regular/gear-six.svg?raw"
+	import starFillIcon from "@phosphor-icons/core/fill/star-fill.svg?raw"
+	import starIcon from "@phosphor-icons/core/regular/star.svg?raw"
 	import linkIcon from "@phosphor-icons/core/regular/link.svg?raw"
 	import megaphoneIcon from "@phosphor-icons/core/regular/megaphone.svg?raw"
 	import pencilSimpleIcon from "@phosphor-icons/core/regular/pencil-simple.svg?raw"
@@ -27,6 +29,7 @@
 	import Timestamp from "../shared/Timestamp.svelte"
 	import { relativeTime } from "../shared/timestamp"
 	import ConfirmationDialog from "../shared/ConfirmationDialog.svelte"
+	import RobloxActionStrip from "../shared/RobloxActionStrip.svelte"
 	import GroupIcon from "./GroupIcon.svelte"
 	import GroupMembershipFacts from "./GroupMembershipFacts.svelte"
 	import GroupSettingsDialog from "./GroupSettingsDialog.svelte"
@@ -45,7 +48,13 @@
 
 	// GroupRobloxChange names a change to the group on Roblox that the user
 	// confirms first.
-	type GroupRobloxChange = "join" | "shout" | "clearShout" | "description"
+	type GroupRobloxChange =
+		| "join"
+		| "primary"
+		| "removePrimary"
+		| "shout"
+		| "clearShout"
+		| "description"
 
 	let isConfirmingLeave = $state(false),
 		pendingChange = $state<GroupRobloxChange | null>(null),
@@ -80,6 +89,10 @@
 	async function confirmChange(change: GroupRobloxChange): Promise<void> {
 		let isSaved = false
 		if (change === "join") isSaved = await store.join()
+		else if (change === "primary")
+			isSaved = await store.makePrimary(store.selectedGroupId)
+		else if (change === "removePrimary")
+			isSaved = await store.removePrimary(store.selectedGroupId)
 		else if (change === "description")
 			isSaved = await store.saveDescription(descriptionDraft)
 		else isSaved = await store.postShout(change === "shout" ? shoutDraft : "")
@@ -211,51 +224,77 @@
 					isLocked={details.isLocked} />
 			</div>
 			<div class="flex shrink-0 flex-wrap items-center justify-end gap-1">
-				{#if isMember && !membership.isOwner}
-					<button
-						class="button"
-						type="button"
-						disabled={store.pendingAction !== null}
-						onclick={() => {
-							store.clearActionError()
-							isConfirmingLeave = true
-						}}>
-						<Icon svg={signOutIcon} size={16} aria-hidden="true" />Leave
-						group
-					</button>
-				{:else if !isMember && !membership.isPendingJoin && !details.isLocked}
-					<button
-						class="button-primary"
-						type="button"
-						aria-busy={store.pendingAction === "join"}
-						disabled={store.pendingAction !== null}
-						onclick={() => requestChange("join")}>
-						<Icon svg={signInIcon} size={16} aria-hidden="true" />
-						{store.pendingAction === "join"
-							? "Joining…"
-							: group.isPublicEntryAllowed
-								? "Join group"
-								: "Request to join"}
-					</button>
+				{#if hasMembershipAction || isMember || permissions.canConfigure}
+					<RobloxActionStrip username={store.account.username}>
+						{#if isMember && !membership.isOwner}
+							<button
+								type="button"
+								disabled={store.pendingAction !== null}
+								onclick={() => {
+									store.clearActionError()
+									isConfirmingLeave = true
+								}}>
+								<Icon
+									svg={signOutIcon}
+									size={14}
+									aria-hidden="true" />Leave group
+							</button>
+						{:else if !isMember && !membership.isPendingJoin && !details.isLocked}
+							<button
+								type="button"
+								aria-busy={store.pendingAction === "join"}
+								disabled={store.pendingAction !== null}
+								onclick={() => requestChange("join")}>
+								<Icon svg={signInIcon} size={14} aria-hidden="true" />
+								{store.pendingAction === "join"
+									? "Joining…"
+									: group.isPublicEntryAllowed
+										? "Join group"
+										: "Request to join"}
+							</button>
+						{/if}
+						{#if isMember}
+							{@const primaryLabel = membership.isPrimary
+								? "Remove primary group"
+								: "Make primary group"}
+							<button
+								type="button"
+								aria-label={primaryLabel}
+								aria-pressed={membership.isPrimary}
+								data-tooltip={primaryLabel}
+								disabled={store.pendingAction !== null}
+								onclick={() =>
+									requestChange(
+										membership.isPrimary
+											? "removePrimary"
+											: "primary",
+									)}>
+								<Icon
+									svg={membership.isPrimary ? starFillIcon : starIcon}
+									class={[
+										membership.isPrimary && "text-accent-strong",
+									]}
+									size={14}
+									aria-hidden="true" />
+							</button>
+						{/if}
+						{#if permissions.canConfigure}
+							<button
+								type="button"
+								aria-label="Manage group"
+								data-tooltip="Manage group"
+								disabled={store.pendingAction !== null}
+								onclick={() => {
+									store.clearActionError()
+									isManaging = true
+								}}>
+								<Icon svg={gearSixIcon} size={14} aria-hidden="true" />
+							</button>
+						{/if}
+					</RobloxActionStrip>
+					<span class="mx-1 h-4 w-px bg-line-strong" aria-hidden="true"
+					></span>
 				{/if}
-				{#if permissions.canConfigure}
-					<button
-						class="button-icon"
-						type="button"
-						aria-label="Manage group"
-						data-tooltip="Manage group"
-						disabled={store.pendingAction !== null}
-						onclick={() => {
-							store.clearActionError()
-							isManaging = true
-						}}>
-						<Icon svg={gearSixIcon} size={16} aria-hidden="true" />
-					</button>
-				{/if}
-				{#if hasMembershipAction}<span
-						class="mx-1 h-4 w-px bg-line-strong"
-						aria-hidden="true"></span
-					>{/if}
 				<button
 					class="button-icon"
 					type="button"
@@ -556,6 +595,7 @@
 		description={`This account will leave ${group.name} and lose its role. Joining again may need approval.`}
 		confirmLabel="Leave group"
 		progressLabel="Leaving…"
+		account={store.account}
 		isWorking={store.pendingAction === "leave"}
 		onConfirm={() => void leave()}
 		onCancel={() => {
@@ -575,6 +615,18 @@
 				: `${group.name} reviews the request before this account becomes a member.`,
 			confirmLabel: group.isPublicEntryAllowed ? "Join group" : "Request to join",
 			progressLabel: "Joining…",
+		},
+		primary: {
+			title: "Make primary group on Roblox?",
+			description: `${group.name} shows on the profile of this account. It replaces the current primary group.`,
+			confirmLabel: "Make primary group",
+			progressLabel: "Saving…",
+		},
+		removePrimary: {
+			title: "Remove primary group on Roblox?",
+			description: `${group.name} no longer shows on the profile of this account. The account stays a member.`,
+			confirmLabel: "Remove primary group",
+			progressLabel: "Removing…",
 		},
 		shout: {
 			title: "Post shout on Roblox?",

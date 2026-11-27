@@ -9,6 +9,7 @@
 	import CreatorByline from "../shared/CreatorByline.svelte"
 	import { errorMessage } from "../shared/errors"
 	import { notifyErrors } from "../notifications/error-notifications.svelte"
+	import RobloxActionStrip from "../shared/RobloxActionStrip.svelte"
 	import Icon from "../shared/Icon.svelte"
 	import ProfilePreviewLayout from "../shared/ProfilePreviewLayout.svelte"
 	import type { ProfilePreviewFrame } from "../shared/ProfilePreviewLayout.svelte"
@@ -23,11 +24,14 @@
 	// its owner, members, description, and roles, and joins or leaves it.
 	let {
 		accountId,
+		accountUsername,
 		groupId,
 		frame,
 		onMembershipChanged,
 	}: {
 		accountId: number
+		// accountUsername names the account that acts on Roblox.
+		accountUsername: string
 		groupId: number
 		frame: ProfilePreviewFrame
 		onMembershipChanged: (groupId: number) => void
@@ -107,6 +111,22 @@
 		}
 	}
 
+	function confirmJoin(): void {
+		if (!group) return
+		frame.confirm({
+			title: group.isPublicEntryAllowed
+				? "Join group on Roblox?"
+				: "Request to join on Roblox?",
+			description: group.isPublicEntryAllowed
+				? `This account becomes a member of ${group.name}.`
+				: `${group.name} reviews the request before this account becomes a member.`,
+			confirmLabel: group.isPublicEntryAllowed ? "Join group" : "Request to join",
+			progressLabel: "Joining…",
+			tone: "primary",
+			run: () => changeMembership("join"),
+		})
+	}
+
 	function confirmLeave(): void {
 		if (!group) return
 		frame.confirm({
@@ -123,28 +143,30 @@
 </script>
 
 {#snippet quickActions()}
-	{#if canLeave}
-		<button
-			class="button"
-			type="button"
-			disabled={pendingAction !== null}
-			onclick={confirmLeave}>
-			<Icon svg={signOutIcon} size={16} aria-hidden="true" />Leave group
-		</button>
-	{:else if canJoin}
-		<button
-			class="button-primary"
-			type="button"
-			aria-busy={pendingAction === "join"}
-			disabled={pendingAction !== null}
-			onclick={() => void changeMembership("join")}>
-			<Icon svg={signInIcon} size={16} aria-hidden="true" />
-			{pendingAction === "join"
-				? "Joining…"
-				: group?.isPublicEntryAllowed
-					? "Join group"
-					: "Request to join"}
-		</button>
+	{#if canLeave || canJoin}
+		<RobloxActionStrip username={accountUsername}>
+			{#if canLeave}
+				<button
+					type="button"
+					disabled={pendingAction !== null}
+					onclick={confirmLeave}>
+					<Icon svg={signOutIcon} size={14} aria-hidden="true" />Leave group
+				</button>
+			{:else}
+				<button
+					type="button"
+					aria-busy={pendingAction === "join"}
+					disabled={pendingAction !== null}
+					onclick={confirmJoin}>
+					<Icon svg={signInIcon} size={14} aria-hidden="true" />
+					{pendingAction === "join"
+						? "Joining…"
+						: group?.isPublicEntryAllowed
+							? "Join group"
+							: "Request to join"}
+				</button>
+			{/if}
+		</RobloxActionStrip>
 	{/if}
 {/snippet}
 

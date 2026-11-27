@@ -9,9 +9,9 @@
 	import thumbsUpIcon from "@phosphor-icons/core/regular/thumbs-up.svg?raw"
 	import { GameVote } from "../backend/bridge"
 	import type { Account } from "../accounts/account-model"
-	import AccountAvatar from "../accounts/AccountAvatar.svelte"
 	import ConfirmationDialog from "../shared/ConfirmationDialog.svelte"
 	import Icon from "../shared/Icon.svelte"
+	import RobloxActionStrip from "../shared/RobloxActionStrip.svelte"
 	import type {
 		GameRobloxActions,
 		GameRobloxChange,
@@ -21,15 +21,14 @@
 		actions,
 		account,
 		gameName,
-		canManage,
 		onManage,
 	}: {
 		actions: GameRobloxActions
 		account: Account
 		gameName: string
-		// canManage shows Manage game, for a game that the account may change.
-		canManage: boolean
-		onManage: () => void
+		// onManage opens Manage game. It is null when the account may not
+		// change the game.
+		onManage: (() => void) | null
 	} = $props()
 
 	let pendingChange = $state<GameRobloxChange | null>(null)
@@ -42,9 +41,6 @@
 		isVoteUnavailable = $derived(actions.isUnavailable("vote")),
 		voteRefusal = $derived(
 			status && !status.vote.canVote ? status.vote.voteRefusal : "",
-		),
-		accountLabel = $derived(
-			`On Roblox as ${account.displayName} @${account.username}`,
 		),
 		favoriteLabel = $derived(
 			isFavoriteUnavailable
@@ -122,22 +118,11 @@
 		if (await actions.save(pendingChange, gameName)) pendingChange = null
 	}
 
-	const actionClass =
-		"button-ghost-sm rounded-sm aria-pressed:bg-raised aria-pressed:text-fg"
-
 	notifyErrors("Roblox change not saved", () => actions.saveError)
 </script>
 
-<div
-	class="flex h-7 items-center gap-px rounded-md border border-line p-px"
-	role="group"
-	aria-label={accountLabel}
-	aria-busy={actions.isLoading}>
-	<span class="px-0.5" data-tooltip={accountLabel}>
-		<AccountAvatar {account} className="size-5 text-2xs" />
-	</span>
+<RobloxActionStrip username={account.username}>
 	<button
-		class={actionClass}
 		type="button"
 		aria-label={favoriteLabel}
 		aria-pressed={isFavorite}
@@ -158,7 +143,6 @@
 		{@const isCurrent = vote === target}
 		{@const label = voteLabel(target)}
 		<button
-			class={actionClass}
 			type="button"
 			aria-label={label}
 			aria-pressed={isCurrent}
@@ -183,9 +167,8 @@
 			{/if}
 		</button>
 	{/each}
-	{#if canManage}
+	{#if onManage}
 		<button
-			class={actionClass}
 			type="button"
 			aria-label="Manage game"
 			data-tooltip="Manage game"
@@ -194,7 +177,7 @@
 			<Icon svg={gearSixIcon} size={14} aria-hidden="true" />
 		</button>
 	{/if}
-</div>
+</RobloxActionStrip>
 
 {#if pendingChange && confirmation}
 	<ConfirmationDialog

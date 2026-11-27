@@ -232,6 +232,18 @@
 	}
 
 	notifyErrors("Groups not loaded", () => listError)
+
+	let primaryChange = $state<{ group: GroupSummary; isPrimary: boolean } | null>(null)
+
+	async function changePrimaryGroup(
+		groupId: number,
+		isPrimary: boolean,
+	): Promise<void> {
+		const isSaved = await (isPrimary
+			? store.removePrimary(groupId)
+			: store.makePrimary(groupId))
+		if (isSaved) primaryChange = null
+	}
 </script>
 
 {#snippet groupSummary(group: GroupSummary, detail: string)}
@@ -602,7 +614,27 @@
 	<GroupContextMenu
 		{store}
 		menu={store.menu}
-		onLeave={(groupIds) => (leavingGroupIds = groupIds)} />
+		onLeave={(groupIds) => (leavingGroupIds = groupIds)}
+		onChangePrimary={(group, isPrimary) =>
+			(primaryChange = { group, isPrimary })} />
+{/if}
+
+{#if primaryChange}
+	{@const { group, isPrimary } = primaryChange}
+	<ConfirmationDialog
+		title={isPrimary
+			? "Remove primary group on Roblox?"
+			: "Make primary group on Roblox?"}
+		description={isPrimary
+			? `${group.name} no longer shows on the profile of this account. The account stays a member.`
+			: `${group.name} shows on the profile of this account. It replaces the current primary group.`}
+		confirmLabel={isPrimary ? "Remove primary group" : "Make primary group"}
+		progressLabel={isPrimary ? "Removing…" : "Saving…"}
+		tone="primary"
+		account={store.account}
+		isWorking={store.pendingAction !== null}
+		onConfirm={() => void changePrimaryGroup(group.groupId, isPrimary)}
+		onCancel={() => (primaryChange = null)} />
 {/if}
 
 {#if leavingGroupIds}
@@ -616,6 +648,7 @@
 			? `Leave ${groupIds.length} groups`
 			: "Leave group"}
 		progressLabel="Leaving…"
+		account={store.account}
 		isWorking={store.isLeavingGroups}
 		onConfirm={() => void leaveGroups(groupIds)}
 		onCancel={() => (leavingGroupIds = null)} />

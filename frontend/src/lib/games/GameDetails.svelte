@@ -564,10 +564,11 @@
 							actions={robloxActions}
 							account={accounts.selectedAccount}
 							gameName={store.displayName(place)}
-							canManage={!rootPlace &&
-								!!game &&
-								!!robloxActions.status?.canManage}
-							onManage={() => (isManaging = true)} />
+							onManage={!rootPlace &&
+							game &&
+							robloxActions.status?.canManage
+								? () => (isManaging = true)
+								: null} />
 					{/if}
 					<span class="mx-1 h-4 w-px bg-line-strong" aria-hidden="true"
 					></span>

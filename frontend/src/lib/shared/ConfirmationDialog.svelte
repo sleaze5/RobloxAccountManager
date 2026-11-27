@@ -2,9 +2,9 @@
 	import xIcon from "@phosphor-icons/core/regular/x.svg?raw"
 	import type { Snippet } from "svelte"
 	import type { Account } from "../accounts/account-model"
-	import AccountAvatar from "../accounts/AccountAvatar.svelte"
 	import Dialog from "./Dialog.svelte"
 	import Icon from "./Icon.svelte"
+	import RobloxAccountLine from "./RobloxAccountLine.svelte"
 
 	let {
 		title,
@@ -78,16 +78,7 @@
 			<Icon svg={xIcon} size={14} aria-hidden="true" />
 		</button>
 	</div>
-	{#if account}
-		<p
-			class="flex min-w-0 items-center gap-2 rounded-md border border-line bg-raised px-2 py-1.5 text-xs text-fg-muted">
-			<AccountAvatar {account} className="size-5 text-2xs" />
-			<span class="min-w-0 truncate"
-				>On Roblox as <span class="font-medium text-fg"
-					>{account.displayName}</span>
-				@{account.username}</span>
-		</p>
-	{/if}
+	{#if account}<RobloxAccountLine {account} />{/if}
 	{#if children}{@render children()}{/if}
 	<div class="dialog-actions">
 		<button class="button" type="button" disabled={isWorking} onclick={cancel}

@@ -18,7 +18,12 @@
 	import Skeleton from "../shared/Skeleton.svelte"
 	import Timestamp from "../shared/Timestamp.svelte"
 	import { relativeTime } from "../shared/timestamp"
+	import { AccountScope } from "../accounts/account-scope"
+	import type { AccountStore } from "../accounts/account-store.svelte"
+	import { getNotificationCenter } from "../notifications/notification-center.svelte"
 	import GameIcon from "./GameIcon.svelte"
+	import GameRobloxActions from "./GameRobloxActions.svelte"
+	import { GameRobloxActions as GameRobloxActionsState } from "./game-roblox-actions.svelte"
 	import { gameHeadlineStats } from "./game-stats"
 	import { getGamesStore } from "./games-store.svelte"
 	import GameSubplaces from "./GameSubplaces.svelte"
@@ -27,9 +32,15 @@
 	// GamePreview shows the information of a place: its numbers, description,
 	// and main details. A subplace shows only its own details, because the
 	// others belong to its universe.
-	let { placeId, frame }: { placeId: number; frame: ProfilePreviewFrame } = $props()
+	let {
+		placeId,
+		accounts,
+		frame,
+	}: { placeId: number; accounts: AccountStore; frame: ProfilePreviewFrame } =
+		$props()
 
 	const games = getGamesStore(),
+		notifications = getNotificationCenter(),
 		numbers = new Intl.NumberFormat(),
 		sectionHeadingClass = "text-xs font-semibold text-fg-muted"
 
@@ -37,7 +48,8 @@
 		loadError = $state(""),
 		isLoadingVotes = $state(true),
 		hasVotes = $state(false),
-		loadCount = $state(0)
+		loadCount = $state(0),
+		robloxActions = $state.raw<GameRobloxActionsState | null>(null)
 
 	// Bookmarks load with Games, which may not have opened yet.
 	$effect(() => {
@@ -90,6 +102,34 @@
 		}
 	})
 
+	const loadedUniverseId = $derived(game?.place.universeId ?? 0),
+		selectedAccountId = $derived(accounts.selectedAccount.id)
+
+	// Roblox answers the favorite and the vote for the selected account.
+	$effect(() => {
+		const scope = new AccountScope(selectedAccountId, accounts),
+			universeId = loadedUniverseId
+		robloxActions = null
+		if (!universeId || !scope.isCurrent || scope.accountId <= 0) return
+		const actions = new GameRobloxActionsState(
+			scope,
+			universeId,
+			notifications,
+			(change) => {
+				if (game?.place.universeId !== universeId) return
+				game = {
+					...game,
+					favorites: Math.max(game.favorites + change.favorites, 0),
+					upVotes: Math.max(game.upVotes + change.upVotes, 0),
+					downVotes: Math.max(game.downVotes + change.downVotes, 0),
+				}
+			},
+		)
+		robloxActions = actions
+		void actions.load()
+		return () => scope.dispose()
+	})
+
 	const place = $derived(game?.place ?? null),
 		rootPlace = $derived(game?.rootPlace ?? null),
 		listedGame = $derived(game?.isUnlisted ? undefined : game),
@@ -114,10 +154,10 @@
 		<button
 			class="button-icon"
 			type="button"
-			aria-label="Bookmarked"
+			aria-label={isBookmarked ? "Remove bookmark" : "Bookmark"}
 			aria-pressed={isBookmarked}
 			aria-busy={games.savingBookmark}
-			data-tooltip={isBookmarked ? "Remove bookmark" : "Bookmark"}
+			data-tooltip={isBookmarked ? "Remove bookmark" : "Bookmark in the app"}
 			disabled={games.savingBookmark || !games.bookmarksLoaded}
 			onclick={() => void games.toggleBookmark(bookmarkPlace)}>
 			{#if isBookmarked}
@@ -130,6 +170,13 @@
 				<Icon svg={bookmarkIcon} size={16} aria-hidden="true" />
 			{/if}
 		</button>
+		{#if robloxActions}
+			<GameRobloxActions
+				actions={robloxActions}
+				account={accounts.selectedAccount}
+				gameName={place.name}
+				onManage={null} />
+		{/if}
 	{/if}
 {/snippet}
 

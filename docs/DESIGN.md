@@ -82,6 +82,7 @@ Inputs:
 - `checkbox`: a checkbox. `check-option` is a checkbox with a label and an optional description. Render the check mark with `lib/shared/CheckboxMark.svelte`, and set `isIndeterminate` for a partial selection.
 - `switch`: a switch. Its input has `role="switch"`.
 - `radio` inside `radio-option`: a radio button with its label.
+- `action-strip` with `lib/shared/RobloxActionStrip.svelte`: the bordered strip that holds every action that changes Roblox for the selected account. Set `aria-pressed` on a toggled action and `data-tone` on a destructive one.
 - `segmented`: two to four mutually exclusive options that stay visible, as buttons with `aria-pressed` or as labels around radio inputs.
 - `checklist`: requirements that turn valid or invalid as the user types, with `data-touched` and `data-valid`.
 
@@ -107,6 +108,7 @@ Content:
 - `empty-state`: empty, loading, and unavailable states for a page or pane.
 - `lib/shared/MoreActionsMenu.svelte`: the More actions button at the top right of a profile or a details dialog, with its menu.
 - `lib/shared/SavedAccountRelations.svelte`: the Saved accounts section of a user, a game, or an item, with badges that name how each other saved account relates to it.
+- `lib/shared/RobloxAccountLine.svelte`: the line in a confirmation that names the account that makes the change on Roblox.
 - `lib/shared/SettingChangeList.svelte`: the list of changed settings, each with its value before and after, that a confirmation shows before it saves.
 - `tag-pill` and `tag-pill-favorite`: tags. `tag-pill-success` and `tag-pill-warning` are status pills that color only their icon.
 - `list-row`: a row in a selectable list, with `data-selected` and `data-open`. Show a drop position while dragging with `shadow-drop-before` or `shadow-drop-after`.

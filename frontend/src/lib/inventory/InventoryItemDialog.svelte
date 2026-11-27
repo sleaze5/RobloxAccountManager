@@ -22,8 +22,8 @@
 	import fileArrowDownIcon from "@phosphor-icons/core/regular/file-arrow-down.svg?raw"
 	import fingerprintIcon from "@phosphor-icons/core/regular/fingerprint.svg?raw"
 	import gameControllerIcon from "@phosphor-icons/core/regular/game-controller.svg?raw"
-	import heartFillIcon from "@phosphor-icons/core/fill/heart-fill.svg?raw"
-	import heartIcon from "@phosphor-icons/core/regular/heart.svg?raw"
+	import starFillIcon from "@phosphor-icons/core/fill/star-fill.svg?raw"
+	import starIcon from "@phosphor-icons/core/regular/star.svg?raw"
 	import arrowsOutSimpleIcon from "@phosphor-icons/core/regular/arrows-out-simple.svg?raw"
 	import mapPinIcon from "@phosphor-icons/core/regular/map-pin.svg?raw"
 	import packageIcon from "@phosphor-icons/core/regular/package.svg?raw"
@@ -53,6 +53,8 @@
 	import MoreActionsMenu from "../shared/MoreActionsMenu.svelte"
 	import ExpandedImageDialog from "../shared/ExpandedImageDialog.svelte"
 	import ItemExplorerDialog from "../explorer/ItemExplorerDialog.svelte"
+	import RobloxAccountLine from "../shared/RobloxAccountLine.svelte"
+	import RobloxActionStrip from "../shared/RobloxActionStrip.svelte"
 	import Icon from "../shared/Icon.svelte"
 	import ImageViewToggle from "../shared/ImageViewToggle.svelte"
 	import type { ImageView } from "../shared/ImageViewToggle.svelte"
@@ -141,7 +143,11 @@
 				: inventory.wornAssetIds.has(item.itemId),
 		)
 
-	let confirmation = $state<"deletion" | "purchase" | null>(null),
+	// ItemConfirmation names a change on Roblox that the dialog asks about in
+	// place of the details.
+	type ItemConfirmation = "deletion" | "purchase" | "favorite"
+
+	let confirmation = $state<ItemConfirmation | null>(null),
 		card = $state<HTMLDivElement | undefined>(undefined),
 		view = $state<ImageView>("2D"),
 		isExpanded = $state(false),
@@ -549,7 +555,7 @@
 	// deletion confirmation, so focus moves to the control that replaced the
 	// one the user pressed.
 	async function showConfirmation(
-		shownConfirmation: "deletion" | "purchase" | null,
+		shownConfirmation: ItemConfirmation | null,
 	): Promise<void> {
 		const previousConfirmation = confirmation
 		inventory.clearItemActionError()
@@ -589,8 +595,17 @@
 		void inventory.downloadItem(item, category.id, downloadKind)
 	}
 
+	async function saveFavorite(): Promise<void> {
+		if (await inventory.setFavorite(item, !isFavorite)) await showConfirmation(null)
+	}
+
 	function close(): void {
-		if (inventory.isDeletingItem || inventory.isBuyingItem) return
+		if (
+			inventory.isDeletingItem ||
+			inventory.isBuyingItem ||
+			inventory.isSavingFavorite
+		)
+			return
 		if (confirmation) void showConfirmation(null)
 		else onClose()
 	}
@@ -775,11 +790,25 @@
 	bind:card
 	onBackdropClick={close}>
 	{#if confirmation}
-		{@const isWorking = inventory.isDeletingItem || inventory.isBuyingItem}
+		{@const isWorking =
+			inventory.isDeletingItem ||
+			inventory.isBuyingItem ||
+			inventory.isSavingFavorite}
 		{@const price = market?.priceInRobux ?? 0}
 		<div class="dialog-heading">
 			<div>
-				{#if confirmation === "deletion"}
+				{#if confirmation === "favorite"}
+					<h2 id={`${elementIdPrefix}-inventory-confirmation-title`}>
+						{isFavorite
+							? "Remove from favorites on Roblox?"
+							: "Add to favorites on Roblox?"}
+					</h2>
+					<p id={`${elementIdPrefix}-inventory-confirmation-description`}>
+						{isFavorite
+							? `${name} leaves the favorites of @${username}.`
+							: `${name} shows in the favorites of @${username}, which other users can see.`}
+					</p>
+				{:else if confirmation === "deletion"}
 					<h2 id={`${elementIdPrefix}-inventory-confirmation-title`}>
 						Delete item?
 					</h2>
@@ -828,6 +857,7 @@
 				onCancel={close}
 				onBuy={() => void buy()} />
 		{:else}
+			<div class="mt-3"><RobloxAccountLine {account} /></div>
 			<div class="dialog-actions">
 				<button
 					class="button"
@@ -835,13 +865,31 @@
 					data-cancel-confirmation
 					disabled={isWorking}
 					onclick={close}>Cancel</button>
-				<button
-					class="button-danger"
-					type="button"
-					aria-busy={inventory.isDeletingItem}
-					disabled={isWorking}
-					onclick={() => void inventory.deleteItem(item)}
-					>{inventory.isDeletingItem ? "Deleting…" : "Delete item"}</button>
+				{#if confirmation === "favorite"}
+					<button
+						class="button-primary"
+						type="button"
+						aria-busy={inventory.isSavingFavorite}
+						disabled={isWorking}
+						onclick={() => void saveFavorite()}
+						>{inventory.isSavingFavorite
+							? isFavorite
+								? "Removing…"
+								: "Adding…"
+							: isFavorite
+								? "Remove from favorites"
+								: "Add to favorites"}</button>
+				{:else}
+					<button
+						class="button-danger"
+						type="button"
+						aria-busy={inventory.isDeletingItem}
+						disabled={isWorking}
+						onclick={() => void inventory.deleteItem(item)}
+						>{inventory.isDeletingItem
+							? "Deleting…"
+							: "Delete item"}</button>
+				{/if}
 			</div>
 		{/if}
 	{:else}
@@ -895,52 +943,72 @@
 								{name}
 							</h2>
 							<div class="flex shrink-0 items-center gap-1">
-								{#if canBuy && market}
-									<button
-										class="button-primary"
-										type="button"
-										data-begin-purchase
-										disabled={isBusy ||
-											isOwnedByAccount === undefined}
-										onclick={() =>
-											void showConfirmation("purchase")}>
-										<Icon
-											svg={shoppingCartIcon}
-											size={16}
-											aria-hidden="true" />
-										{market.priceInRobux === 0 ? "Get" : "Buy"}
-									</button>
-								{/if}
-								{#if canFavorite}
-									<button
-										class="button-icon"
-										type="button"
-										aria-label="Favorite"
-										aria-pressed={isFavorite ?? false}
-										aria-busy={isCheckingFavorite ||
-											inventory.isSavingFavorite}
-										data-tooltip={isFavorite
-											? "Remove from favorites"
-											: "Add to favorites"}
-										disabled={isBusy || isFavorite === undefined}
-										onclick={() =>
-											void inventory.setFavorite(
-												item,
-												!isFavorite,
-											)}>
-										{#if isFavorite}
-											<Icon
-												svg={heartFillIcon}
-												class="animate-pop text-accent-strong"
-												size={16}
-												aria-hidden="true" />
-										{:else}
-											<Icon
-												svg={heartIcon}
-												size={16}
-												aria-hidden="true" />
+								{#if (canBuy && market) || canFavorite || canDelete}
+									<RobloxActionStrip {username}>
+										{#if canBuy && market}
+											<button
+												type="button"
+												data-begin-purchase
+												disabled={isBusy ||
+													isOwnedByAccount === undefined}
+												onclick={() =>
+													void showConfirmation("purchase")}>
+												<Icon
+													svg={shoppingCartIcon}
+													size={14}
+													aria-hidden="true" />
+												{market.priceInRobux === 0
+													? "Get"
+													: "Buy"}
+											</button>
 										{/if}
-									</button>
+										{#if canFavorite}
+											{@const favoriteLabel = isFavorite
+												? "Remove from favorites"
+												: "Add to favorites"}
+											<button
+												type="button"
+												aria-label={favoriteLabel}
+												aria-pressed={isFavorite ?? false}
+												aria-busy={isCheckingFavorite ||
+													inventory.isSavingFavorite}
+												data-tooltip={favoriteLabel}
+												data-begin-favorite
+												disabled={isBusy ||
+													isFavorite === undefined}
+												onclick={() =>
+													void showConfirmation("favorite")}>
+												{#if isFavorite}
+													<Icon
+														svg={starFillIcon}
+														class="animate-pop text-accent-strong"
+														size={14}
+														aria-hidden="true" />
+												{:else}
+													<Icon
+														svg={starIcon}
+														size={14}
+														aria-hidden="true" />
+												{/if}
+											</button>
+										{/if}
+										{#if canDelete}
+											<button
+												type="button"
+												aria-label="Delete item"
+												data-tooltip="Delete item"
+												data-tone="danger"
+												data-begin-deletion
+												disabled={isBusy}
+												onclick={() =>
+													void showConfirmation("deletion")}>
+												<Icon
+													svg={trashIcon}
+													size={14}
+													aria-hidden="true" />
+											</button>
+										{/if}
+									</RobloxActionStrip>
 								{/if}
 								{#if badge && badge.awardingPlaceId > 0}
 									<button
@@ -1034,21 +1102,6 @@
 												: undefined}
 											size={16}
 											aria-hidden="true" />
-									</button>
-								{/if}
-								{#if canDelete}
-									<button
-										class="button"
-										type="button"
-										data-begin-deletion
-										disabled={isBusy}
-										onclick={() =>
-											void showConfirmation("deletion")}>
-										<Icon
-											svg={trashIcon}
-											size={16}
-											aria-hidden="true" />
-										Delete
 									</button>
 								{/if}
 								<MoreActionsMenu

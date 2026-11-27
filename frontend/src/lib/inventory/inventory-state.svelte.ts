@@ -564,10 +564,12 @@ export class InventoryState {
 		}
 	}
 
-	async setFavorite(item: InventoryItem, isFavorite: boolean): Promise<void> {
+	// setFavorite adds the item to the favorites of the account on Roblox, or
+	// removes it, and reports whether Roblox saved the change.
+	async setFavorite(item: InventoryItem, isFavorite: boolean): Promise<boolean> {
 		const key = inventoryItemKey(item),
 			itemType = item.catalogItemType
-		if (!itemType || this.isSavingFavorite) return
+		if (!itemType || this.isSavingFavorite) return false
 		this.isSavingFavorite = true
 		this.itemActionError = ""
 		try {
@@ -579,7 +581,7 @@ export class InventoryState {
 					isFavorite,
 				),
 			)
-			if (!this.#scope.isCurrent) return
+			if (!this.#scope.isCurrent) return false
 			this.favoriteByItemKey = new Map(this.favoriteByItemKey).set(
 				key,
 				isFavorite,
@@ -602,6 +604,7 @@ export class InventoryState {
 						: listedItem,
 				),
 			)
+			return true
 		} catch (error) {
 			if (this.#scope.isCurrent) {
 				this.itemActionError = errorMessage(
@@ -611,6 +614,7 @@ export class InventoryState {
 						: "Could not remove the item from favorites. Try again.",
 				)
 			}
+			return false
 		} finally {
 			this.isSavingFavorite = false
 		}
