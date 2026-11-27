@@ -369,7 +369,7 @@ func (service *Service) RemoveSavedPrivateServer(ctx context.Context, savedPriva
 	}
 	defer done()
 	if err := service.favoritePlaces.RemovePrivateServer(ctx, savedPrivateServerID); errors.Is(err, gamestore.ErrPrivateServerNotSaved) {
-		return privateServerInputError("This link was already removed. Refresh the private servers.")
+		return privateServerInputError("This link is already gone. Refresh the private servers.")
 	} else if err != nil {
 		return service.gamesError(ctx, "private-server-link-remove", err)
 	}

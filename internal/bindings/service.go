@@ -97,7 +97,7 @@ func accountSelection(accountIDs []int64, endpoint string) error {
 			return err
 		}
 		if seen[accountID] {
-			return &roblox.Error{Kind: roblox.KindProtocol, Endpoint: endpoint, Message: "The account selection contains duplicates."}
+			return &roblox.Error{Kind: roblox.KindProtocol, Endpoint: endpoint, Message: "The selection has an account more than once."}
 		}
 		seen[accountID] = true
 	}
@@ -108,7 +108,7 @@ func positiveID(id int64, endpoint string) error {
 	if id > 0 {
 		return nil
 	}
-	return &roblox.Error{Kind: roblox.KindProtocol, Endpoint: endpoint, Message: "The requested identifier is invalid."}
+	return &roblox.Error{Kind: roblox.KindProtocol, Endpoint: endpoint, Message: "The ID is invalid."}
 }
 
 // validateAccountAndTargetIDs checks the account that sends a request and the

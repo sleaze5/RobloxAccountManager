@@ -144,7 +144,7 @@ func (service *Service) ChangeAccountPassword(ctx context.Context, accountID int
 		saveContext, cancel := context.WithTimeout(context.WithoutCancel(ctx), 5*time.Second)
 		defer cancel()
 		if err := service.storeAccountPassword(saveContext, accountID, newPassword); err != nil {
-			return &roblox.Error{Kind: roblox.KindProtocol, Endpoint: "password-change", Message: "Roblox changed the password, but the vault copy was not updated. Save the new password in the vault.", Cause: err}
+			return &roblox.Error{Kind: roblox.KindProtocol, Endpoint: "password-change", Message: "Roblox changed the password, but the app could not update the saved password. Save the new password again.", Cause: err}
 		}
 		return nil
 	})
@@ -217,7 +217,7 @@ func (service *Service) editAccount(ctx context.Context, accountID int64, operat
 	logger.WarnContext(ctx, "account edit failed", "error_kind", remote.Kind, "status", remote.Status, "roblox_code", remote.RobloxCode)
 	switch {
 	case remote.Kind == roblox.KindChallengeRequired:
-		return &roblox.Error{Kind: remote.Kind, Endpoint: operation, Status: remote.Status, Message: "Roblox requires extra verification for this change. Make it on the Roblox website.", Cause: err}
+		return &roblox.Error{Kind: remote.Kind, Endpoint: operation, Status: remote.Status, Message: "Roblox needs a security check for this change. Make it on the Roblox website.", Cause: err}
 	case remote.Kind == roblox.KindForbidden && remote.Status == http.StatusForbidden && rejected != "":
 		return &roblox.Error{Kind: remote.Kind, Endpoint: operation, Status: remote.Status, Message: rejected, Cause: err}
 	}

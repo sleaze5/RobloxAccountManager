@@ -168,7 +168,7 @@
 					return {
 						tone: "muted",
 						label: "Not checked yet",
-						detail: "Refresh to check the session.",
+						detail: "Refresh to check the cookie.",
 					}
 			}
 		})

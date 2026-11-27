@@ -15,7 +15,7 @@ func mapRepositoryError(err error) error {
 	case errors.Is(err, vault.ErrLocked):
 		return &roblox.Error{Kind: roblox.KindVaultLocked, Message: "The account vault is locked."}
 	case errors.Is(err, accounts.ErrNotFound):
-		return &roblox.Error{Kind: roblox.KindAccountNotFound, Message: "The account was not found."}
+		return &roblox.Error{Kind: roblox.KindAccountNotFound, Message: "Could not find the account."}
 	case errors.Is(err, accounts.ErrDuplicateAccount):
 		return &roblox.Error{
 			Kind:     roblox.KindProtocol,
@@ -26,7 +26,7 @@ func mapRepositoryError(err error) error {
 		return &roblox.Error{
 			Kind:     roblox.KindProtocol,
 			Endpoint: "account-tag",
-			Message:  "The account tag was not found.",
+			Message:  "Could not find the tag.",
 		}
 	case errors.Is(err, accounts.ErrDuplicateTag):
 		return &roblox.Error{

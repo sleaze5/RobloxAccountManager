@@ -54,7 +54,7 @@ func (service *Users) SetItemFavorite(ctx context.Context, accountID, version, u
 func (service *Users) DeleteInventoryAsset(ctx context.Context, accountID, version, assetID int64) error {
 	_, err := service.writeAccount(ctx, accountID, version, "inventory-asset-delete", http.MethodDelete, "https://inventory.roblox.com/v2/inventory/asset/"+strconv.FormatInt(assetID, 10), nil)
 	if remote, ok := errors.AsType[*roblox.Error](err); ok && remote.Status == http.StatusBadRequest {
-		return &roblox.Error{Kind: remote.Kind, Endpoint: remote.Endpoint, Status: remote.Status, RobloxCode: remote.RobloxCode, Message: "Roblox does not allow deleting this item.", Cause: err}
+		return &roblox.Error{Kind: remote.Kind, Endpoint: remote.Endpoint, Status: remote.Status, RobloxCode: remote.RobloxCode, Message: "Roblox does not let you delete this item.", Cause: err}
 	}
 	return err
 }

@@ -144,7 +144,7 @@ func (service *Service) replaceValidatedCookie(ctx context.Context, accountID in
 	}
 	logger := service.logger.With("operation", "cookie-replacement", "account_id", accountID)
 	if err := service.sessions.ApplyRotation(session); err != nil {
-		logger.Warn("cookie saved, but the session changed before it could be applied", "error", err)
+		logger.Warn("cookie saved, but the account changed before the app applied it", "error", err)
 	}
 	service.events.send("account:updated", view)
 	service.browser.DetachAccount(accountID, "The saved cookie changed. This browser no longer syncs with it.")
@@ -354,7 +354,7 @@ func (service *Service) ReactivateAccount(ctx context.Context, accountID int64) 
 	defer timer.Stop()
 	select {
 	case <-ctx.Done():
-		return accounts.AccountView{}, &roblox.Error{Kind: roblox.KindCancelled, Endpoint: "account-reactivate", Message: "The account was reactivated. Refresh to see its status.", Cause: ctx.Err()}
+		return accounts.AccountView{}, &roblox.Error{Kind: roblox.KindCancelled, Endpoint: "account-reactivate", Message: "Roblox reactivated the account. Refresh to see its status.", Cause: ctx.Err()}
 	case <-timer.C:
 	}
 	view, err := service.CheckAccount(ctx, accountID)

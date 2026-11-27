@@ -152,7 +152,7 @@ func (service *Users) UserIDFromUsername(ctx context.Context, username string, i
 		return 0, &roblox.Error{Kind: roblox.KindProtocol, Endpoint: "username-lookup", Message: "Roblox returned invalid username details.", Cause: err}
 	}
 	if len(payload.Data) != 1 || payload.Data[0].ID <= 0 || !strings.EqualFold(payload.Data[0].RequestedUsername, username) {
-		return 0, &roblox.Error{Kind: roblox.KindProtocol, Endpoint: "username-lookup", Message: "That username was not found or is unavailable. Enter a username, not a display name.", Cause: ErrUsernameNotFound}
+		return 0, &roblox.Error{Kind: roblox.KindProtocol, Endpoint: "username-lookup", Message: "No user has this username. Enter a username, not a display name.", Cause: ErrUsernameNotFound}
 	}
 	return payload.Data[0].ID, nil
 }

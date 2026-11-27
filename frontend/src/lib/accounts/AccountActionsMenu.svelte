@@ -156,7 +156,7 @@
 		onSelect={() => void copyProfileLink()} />
 </MenuSection>
 
-<MenuSection heading="Session">
+<MenuSection heading="Cookie">
 	{#if account.state === SessionState.StateModerated && hasReactivation(account.moderation)}
 		<MenuItem
 			label="Reactivate account"

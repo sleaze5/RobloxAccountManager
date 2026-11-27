@@ -114,7 +114,7 @@ func (manager *SessionManager) Snapshot(accountID int64) (SessionSnapshot, error
 	}
 	record, err := loader(context.Background(), accountID)
 	if err != nil {
-		return SessionSnapshot{}, &Error{Kind: KindAccountNotFound, Message: "The account was not found.", Cause: err}
+		return SessionSnapshot{}, &Error{Kind: KindAccountNotFound, Message: "Could not find the account.", Cause: err}
 	}
 	session, err := manager.runtime(accountID, record)
 	if err != nil {
@@ -177,7 +177,7 @@ func (manager *SessionManager) Validate(ctx context.Context, accountID int64, va
 	}
 	session := manager.get(accountID)
 	if session == nil {
-		return nil, &Error{Kind: KindAccountNotFound, Message: "The account was not found."}
+		return nil, &Error{Kind: KindAccountNotFound, Message: "Could not find the account."}
 	}
 	value, err, _ := session.validationGroup.Do("validation", func() (any, error) {
 		return validate(ctx, snapshot)

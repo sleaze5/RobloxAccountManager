@@ -164,7 +164,7 @@ func (service *Service) CopyLaunchOptions(ctx context.Context, accountIDs []int6
 			return err
 		}
 		if session.Context.Err() != nil || !service.sessions.VersionCurrent(session.AccountID, session.SecretVersion) {
-			return clipboardError("An account session changed. Try again.")
+			return clipboardError("An account changed. Try again.")
 		}
 	}
 	if !copyText(strings.Join(commands, "\n")) {
@@ -309,7 +309,7 @@ func launchError(kind roblox.ErrorKind, message string) error {
 
 func launchPreparationError(err error) *roblox.Error {
 	if errors.Is(err, context.Canceled) || errors.Is(err, context.DeadlineExceeded) {
-		return &roblox.Error{Kind: roblox.KindCancelled, Endpoint: "game-launch", Message: "The launch was canceled or timed out. Try joining again."}
+		return &roblox.Error{Kind: roblox.KindCancelled, Endpoint: "game-launch", Message: "The launch was canceled or timed out. Try again."}
 	}
 	message := err.Error()
 	return &roblox.Error{Kind: roblox.KindProtocol, Endpoint: "game-launch", Message: strings.ToUpper(message[:1]) + message[1:] + "."}

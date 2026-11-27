@@ -394,7 +394,7 @@ func compareFriends(left, right SocialUser) int {
 // it, with one entry per user so users Roblox omits read as offline.
 func (service *Service) GetSocialPresences(ctx context.Context, accountID int64, userIDs []int64) ([]robloxservices.UserPresence, error) {
 	if len(userIDs) > maxSocialPresenceUsers {
-		return nil, socialInputError("Too many users were requested. Refresh the list.")
+		return nil, socialInputError("Too many users requested. Refresh the list.")
 	}
 	ctx, version, logger, done, err := service.beginFeatureOperation(ctx, accountID, "social", "presence")
 	if err != nil {

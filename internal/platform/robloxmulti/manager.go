@@ -194,7 +194,7 @@ func (manager *Manager) snapshotLocked() Snapshot {
 		return state
 	}
 	if !manager.holder.owned.Load() {
-		state.Message = "you must close all Roblox processes first"
+		state.Message = "close all Roblox processes first"
 		return state
 	}
 	state.Ready = true

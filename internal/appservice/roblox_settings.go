@@ -70,7 +70,7 @@ func (service *Service) GetRobloxClients() gamelaunch.ClientState {
 func (service *Service) SetLinuxClient(client string) (gamelaunch.ClientState, error) {
 	state := service.GetRobloxClients()
 	if !state.ChoiceSupported {
-		return state, &roblox.Error{Kind: roblox.KindProtocol, Endpoint: "linux-client", Message: "Selecting a Linux Roblox client is only available on Linux."}
+		return state, &roblox.Error{Kind: roblox.KindProtocol, Endpoint: "linux-client", Message: "Linux clients are only available on Linux."}
 	}
 	if err := service.settings.SetLinuxClient(client); err != nil {
 		service.logger.Warn("could not save Roblox client", "operation", "linux-client", "error", err)

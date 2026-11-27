@@ -368,7 +368,7 @@ func (service *Service) ReorderFavoritePlaces(ctx context.Context, placeIDs []in
 	}
 	defer done()
 	if err := service.favoritePlaces.Reorder(ctx, placeIDs); errors.Is(err, gamestore.ErrNotFavorite) {
-		return gamesInputError("Favorites changed while they were being reordered. Try again.")
+		return gamesInputError("The favorites changed during the reorder. Try again.")
 	} else if err != nil {
 		return service.gamesError(ctx, "favorite-places-reorder", err)
 	}

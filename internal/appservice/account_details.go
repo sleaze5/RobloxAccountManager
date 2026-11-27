@@ -74,7 +74,7 @@ func (service *Service) GetAccountInfo(ctx context.Context, accountID int64, sec
 	var age accountAge
 	reads := service.accountDetailsSectionReads(ctx, accountID, version, account.RobloxUserID, section, &snapshot, &age)
 	if len(reads) == 0 {
-		return AccountDetailsSnapshot{}, &roblox.Error{Kind: roblox.KindProtocol, Endpoint: "account-info", Message: "This account info section does not exist."}
+		return AccountDetailsSnapshot{}, &roblox.Error{Kind: roblox.KindProtocol, Endpoint: "account-info", Message: "This account details section does not exist."}
 	}
 	unavailable, err := service.runAccountReads(ctx, accountID, version, "account-info", logger, reads)
 	if err != nil {
@@ -84,7 +84,7 @@ func (service *Service) GetAccountInfo(ctx context.Context, accountID int64, sec
 	if section == InfoSectionAge {
 		snapshot.AgeGroup, snapshot.AgeVerification = age.group, age.verification()
 	}
-	logger.DebugContext(ctx, "account info section read finished", "duration_ms", time.Since(started).Milliseconds(), "failed_reads", len(unavailable))
+	logger.DebugContext(ctx, "account details section read finished", "duration_ms", time.Since(started).Milliseconds(), "failed_reads", len(unavailable))
 	return snapshot, nil
 }
 

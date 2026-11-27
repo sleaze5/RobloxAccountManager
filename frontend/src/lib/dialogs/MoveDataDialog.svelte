@@ -62,7 +62,7 @@
 	</div>
 	<ul class="mt-3 flex list-disc flex-col gap-1 pl-5 text-xs text-warning">
 		<li>The app checks every file before it deletes the old copy.</li>
-		<li>Open browser sessions close. The browser downloads again if needed.</li>
+		<li>Open browsers close. The browser downloads again if needed.</li>
 	</ul>
 	<div class="dialog-actions">
 		<button class="button" type="button" disabled={busy} onclick={onClose}

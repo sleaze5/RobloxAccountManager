@@ -102,7 +102,7 @@ func applyValidationCookies(response *Response, validation *CookieValidation) er
 	case replacement.deleted:
 		return &Error{Kind: KindInvalidSession, Endpoint: "cookie-import", Status: response.Status, Message: "Roblox rejected this cookie."}
 	case replacement.expired:
-		return &Error{Kind: KindInvalidSession, Endpoint: "cookie-import", Status: response.Status, Message: "Roblox returned an expired session cookie."}
+		return &Error{Kind: KindInvalidSession, Endpoint: "cookie-import", Status: response.Status, Message: "Roblox returned an expired cookie."}
 	}
 	validation.Cookie = replacement.value
 	if replacement.expires != nil {

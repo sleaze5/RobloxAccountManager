@@ -41,7 +41,7 @@ func (service *Service) ListGameBadges(ctx context.Context, universeID int64) ([
 
 func (service *Service) ListBadgeAwards(ctx context.Context, query games.BadgeAwardQuery) ([]games.BadgeAward, error) {
 	if len(query.BadgeIDs) > robloxservices.MaxUniverseBadges {
-		return nil, gamesInputError("Too many badges were requested. Refresh the badges.")
+		return nil, gamesInputError("Too many badges requested. Refresh the badges.")
 	}
 	for _, badgeID := range query.BadgeIDs {
 		if !games.ValidID(badgeID) {

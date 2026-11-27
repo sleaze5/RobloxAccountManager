@@ -323,7 +323,7 @@ func (coordinator *Coordinator) start(ctx context.Context, mode Mode, accountID 
 	coordinator.pendingStarts--
 	coordinator.bumpLocked()
 	coordinator.mutex.Unlock()
-	coordinator.logger.InfoContext(ctx, "managed browser session starting", "operation", "browser-session-start", "session_id", browserSessionID, "session_mode", mode, "account_id", accountID)
+	coordinator.logger.InfoContext(ctx, "managed browser starting", "operation", "browser-session-start", "session_id", browserSessionID, "session_mode", mode, "account_id", accountID)
 	if mode == ModeLogin {
 		go coordinator.initializeLogin(currentContext, current, pageURL)
 		return state, nil
@@ -362,7 +362,7 @@ func (coordinator *Coordinator) initializeLogin(ctx context.Context, current *se
 	go coordinator.observe(ctx, current)
 	go coordinator.watchProcess(current)
 	_ = coordinator.Focus(current.state.ID)
-	coordinator.logger.InfoContext(ctx, "managed browser session started", "operation", "browser-session-start", "session_id", current.state.ID, "session_mode", current.state.Mode, "account_id", current.state.AccountID)
+	coordinator.logger.InfoContext(ctx, "managed browser started", "operation", "browser-session-start", "session_id", current.state.ID, "session_mode", current.state.Mode, "account_id", current.state.AccountID)
 }
 
 func (coordinator *Coordinator) initializeCDP(ctx context.Context, current *session) error {
@@ -421,7 +421,7 @@ func (coordinator *Coordinator) abortStartup(current *session, cause error) {
 	}
 	current.state.Attached = false
 	current.state.Lifecycle = LifecycleFailed
-	current.state.Error = "Could not start the browser session."
+	current.state.Error = "Could not start the browser."
 	coordinator.bumpLocked()
 	coordinator.mutex.Unlock()
 
@@ -770,7 +770,7 @@ func (coordinator *Coordinator) Close(browserSessionID string) error {
 		delete(coordinator.sessions, browserSessionID)
 		coordinator.bumpLocked()
 		coordinator.mutex.Unlock()
-		coordinator.logger.Info("failed browser session dismissed", "operation", "browser-session-close", "session_id", browserSessionID, "session_mode", current.state.Mode, "account_id", current.state.AccountID)
+		coordinator.logger.Info("failed browser dismissed", "operation", "browser-session-close", "session_id", browserSessionID, "session_mode", current.state.Mode, "account_id", current.state.AccountID)
 		return nil
 	}
 	if current.state.Lifecycle == LifecycleClosing || current.state.Lifecycle == LifecycleValidating || current.state.Lifecycle == LifecycleClosed {
@@ -781,7 +781,7 @@ func (coordinator *Coordinator) Close(browserSessionID string) error {
 	current.cancel()
 	coordinator.bumpLocked()
 	coordinator.mutex.Unlock()
-	coordinator.logger.Info("managed browser session closing", "operation", "browser-session-close", "session_id", browserSessionID, "session_mode", current.state.Mode, "account_id", current.state.AccountID)
+	coordinator.logger.Info("managed browser closing", "operation", "browser-session-close", "session_id", browserSessionID, "session_mode", current.state.Mode, "account_id", current.state.AccountID)
 	go coordinator.closeGracefully(current)
 	return nil
 }
@@ -902,9 +902,9 @@ func (coordinator *Coordinator) failSession(browserSessionID string, cause error
 		return
 	}
 	if cause == nil {
-		coordinator.logger.Warn("browser session exited unexpectedly", "operation", "browser-session-failure", "session_id", current.state.ID, "session_mode", current.state.Mode, "account_id", current.state.AccountID)
+		coordinator.logger.Warn("browser exited unexpectedly", "operation", "browser-session-failure", "session_id", current.state.ID, "session_mode", current.state.Mode, "account_id", current.state.AccountID)
 	} else {
-		coordinator.logger.Warn("browser session stopped with an error", "operation", "browser-session-failure", "session_id", current.state.ID, "session_mode", current.state.Mode, "account_id", current.state.AccountID, "error", cause)
+		coordinator.logger.Warn("browser stopped with an error", "operation", "browser-session-failure", "session_id", current.state.ID, "session_mode", current.state.Mode, "account_id", current.state.AccountID, "error", cause)
 	}
 }
 
@@ -938,7 +938,7 @@ func (coordinator *Coordinator) finishSession(current *session, failed bool, war
 		coordinator.mutex.Unlock()
 		coordinator.cleanup.enqueue(current.state.ID)
 		if !failed {
-			coordinator.logger.Info("managed browser session closed", "operation", "browser-session-close", "session_id", current.state.ID, "session_mode", current.state.Mode, "account_id", current.state.AccountID)
+			coordinator.logger.Info("managed browser closed", "operation", "browser-session-close", "session_id", current.state.ID, "session_mode", current.state.Mode, "account_id", current.state.AccountID)
 		}
 	})
 	return finished
@@ -1197,7 +1197,7 @@ func (queue *cleanupQueue) createDirectory(browserSessionID string) (string, err
 	}
 	directory := filepath.Join(queue.root, browserSessionID)
 	if err := os.Mkdir(directory, 0o700); err != nil {
-		return "", fmt.Errorf("create browser session directory: %w", err)
+		return "", fmt.Errorf("create browser profile directory: %w", err)
 	}
 	return directory, nil
 }
@@ -1322,7 +1322,7 @@ func (coordinator *Coordinator) initializeSavedSession(ctx context.Context, curr
 	go coordinator.observe(current.ctx, current)
 	go coordinator.watchProcess(current)
 	_ = coordinator.Focus(browserSessionID)
-	coordinator.logger.InfoContext(ctx, "managed browser session started", "operation", "browser-session-start", "session_id", browserSessionID, "session_mode", mode, "account_id", accountID)
+	coordinator.logger.InfoContext(ctx, "managed browser started", "operation", "browser-session-start", "session_id", browserSessionID, "session_mode", mode, "account_id", accountID)
 	return state, nil
 }
 

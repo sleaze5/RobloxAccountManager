@@ -274,12 +274,12 @@ func (service *Service) overwriteVaultData(ctx context.Context, pending *pending
 	logger := service.logger.With("operation", "vault-import", "mode", TransferOverwrite)
 	if err := service.vault.CreateBackup(ctx); err != nil {
 		logger.Error("could not back up the vault before replacing it", "error", err)
-		return TransferResult{}, transferError("Could not back up the current vault, so nothing was imported. Check free disk space and try again.", err)
+		return TransferResult{}, transferError("Could not back up the current vault, so the app imported nothing. Check free disk space and try again.", err)
 	}
 	removed, err := service.transfers.Replace(ctx, pending.payload, pendingSettings(pending, appsettings.Sections))
 	if err != nil {
 		logger.Error("could not replace the vault data", "error", err)
-		return TransferResult{}, transferError("Could not import the export. Nothing was changed.", err)
+		return TransferResult{}, transferError("Could not import the export. Nothing changed.", err)
 	}
 	service.clearPendingImports()
 	for _, accountID := range removed {
@@ -317,11 +317,11 @@ func (service *Service) mergeVaultData(ctx context.Context, pending *pendingTran
 	merged, err := service.transfers.Merge(ctx, input)
 	if err != nil {
 		logger.Error("could not merge the vault data", "error", err)
-		return TransferResult{}, transferError("Could not import the export. Nothing was changed.", err)
+		return TransferResult{}, transferError("Could not import the export. Nothing changed.", err)
 	}
 	for _, record := range merged.Replaced {
 		if err := service.sessions.ApplyRotation(record); err != nil {
-			logger.Warn("imported cookie saved, but the session changed before it could be applied", "account_id", record.AccountID, "error", err)
+			logger.Warn("imported cookie saved, but the account changed before the app applied it", "account_id", record.AccountID, "error", err)
 		}
 		service.browser.DetachAccount(record.AccountID, "The saved cookie changed. This browser no longer syncs with it.")
 	}

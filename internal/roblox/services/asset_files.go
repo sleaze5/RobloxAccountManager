@@ -152,7 +152,7 @@ func (service *Users) AssetFile(ctx context.Context, accountID, version int64, c
 func (service *Users) AvatarRenderFile(ctx context.Context, accountID, version, assetID int64, representation AssetRepresentation) ([]byte, error) {
 	normalizedRepresentation, isValid := representation.normalize()
 	if !isValid {
-		return nil, &roblox.Error{Kind: roblox.KindProtocol, Endpoint: avatarRenderFileEndpoint, Message: "The 3D avatar asked for an asset in an unknown form."}
+		return nil, &roblox.Error{Kind: roblox.KindProtocol, Endpoint: avatarRenderFileEndpoint, Message: "The 3D avatar needs an asset in a format the app cannot read."}
 	}
 	contents, _, err := service.downloadAssetFile(ctx, accountID, version, avatarRenderFileEndpoint, assetID, normalizedRepresentation, maxAssetFileBytes)
 	return contents, err
