@@ -168,10 +168,7 @@
 			<div class="empty-state h-full">
 				<Icon svg={bellIcon} size={28} aria-hidden="true" />
 				<h2>No notifications</h2>
-				<p>
-					Invites, friend updates, and group posts from Roblox appear
-					here.
-				</p>
+				<p>Invites, friend updates, and group posts from Roblox appear here.</p>
 			</div>
 		{:else}
 			<div class="flex max-w-2xl flex-col gap-2 p-3">

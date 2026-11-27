@@ -30,7 +30,7 @@ const (
 	ProfileSectionFollowers     AccountProfileSection = "followers"
 	ProfileSectionFollowing     AccountProfileSection = "following"
 	ProfileSectionPrimaryGroup  AccountProfileSection = "primaryGroup"
-	ProfileSectionGroups   AccountProfileSection = "groups"
+	ProfileSectionGroups        AccountProfileSection = "groups"
 	ProfileSectionRobloxBadges  AccountProfileSection = "robloxBadges"
 	ProfileSectionCollectibles  AccountProfileSection = "collectibles"
 	ProfileSectionActivity      AccountProfileSection = "activity"
@@ -78,7 +78,7 @@ type AccountProfileSnapshot struct {
 	FollowerCount                      *int64                           `json:"followerCount"`
 	FollowingCount                     *int64                           `json:"followingCount"`
 	PrimaryGroup                       *robloxservices.UserPrimaryGroup `json:"primaryGroup"`
-	GroupCount                     *int64                           `json:"groupCount"`
+	GroupCount                         *int64                           `json:"groupCount"`
 	RobloxBadges                       *robloxservices.RobloxBadges     `json:"robloxBadges"`
 	CollectibleCount                   *int64                           `json:"collectibleCount"`
 	CollectibleRecentAveragePriceTotal *int64                           `json:"collectibleRecentAveragePriceTotal"`

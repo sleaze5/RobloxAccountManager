@@ -36,7 +36,7 @@ type RobloxNotificationCategory string
 const (
 	RobloxNotificationInvites     RobloxNotificationCategory = "invites"
 	RobloxNotificationFriends     RobloxNotificationCategory = "friends"
-	RobloxNotificationGroups RobloxNotificationCategory = "groups"
+	RobloxNotificationGroups      RobloxNotificationCategory = "groups"
 	RobloxNotificationExperiences RobloxNotificationCategory = "experiences"
 	RobloxNotificationOther       RobloxNotificationCategory = "other"
 )

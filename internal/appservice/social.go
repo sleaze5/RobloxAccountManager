@@ -113,7 +113,7 @@ const (
 	SocialSectionInventory     SocialProfileSection = "inventory"
 	SocialSectionConnections   SocialProfileSection = "connections"
 	SocialSectionPreviousNames SocialProfileSection = "previousNames"
-	SocialSectionGroups   SocialProfileSection = "groups"
+	SocialSectionGroups        SocialProfileSection = "groups"
 	SocialSectionCollectibles  SocialProfileSection = "collectibles"
 	SocialSectionTrading       SocialProfileSection = "trading"
 )
@@ -139,7 +139,7 @@ type SocialProfile struct {
 	SavedAccountID   int64                            `json:"savedAccountId"`
 	Connections      []FriendConnection               `json:"connections"`
 	Relationship     SocialRelationship               `json:"relationship"`
-	GroupCount   *int64                           `json:"groupCount"`
+	GroupCount       *int64                           `json:"groupCount"`
 	TradeEligibility *TradeEligibility                `json:"tradeEligibility"`
 	// The collectible fields stay nil when the user's inventory is private.
 	CollectibleCount                   *int64 `json:"collectibleCount"`
