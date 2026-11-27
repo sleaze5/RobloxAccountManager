@@ -397,8 +397,8 @@ func (service *Service) GetGroupSettings(ctx context.Context, accountID, groupID
 	return settings, nil
 }
 
-func (service *Service) SaveGroupSettings(ctx context.Context, accountID, groupID int64, settings robloxservices.GroupSettings) error {
+func (service *Service) SaveGroupSettings(ctx context.Context, accountID, groupID int64, change robloxservices.GroupSettingsChange) error {
 	return service.editAccount(ctx, accountID, "group-settings-update", "This role cannot change the group settings.", func(ctx context.Context, version int64) error {
-		return service.users.UpdateGroupSettings(ctx, accountID, version, groupID, settings)
+		return service.users.UpdateGroupSettings(ctx, accountID, version, groupID, change)
 	})
 }

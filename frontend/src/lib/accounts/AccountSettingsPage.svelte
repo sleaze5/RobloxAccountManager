@@ -36,7 +36,7 @@
 	import type { AccountDetailsFieldId } from "./AccountDetailsPanel.svelte"
 	import { AccountDetailsState } from "./account-details-state.svelte"
 	import AccountSettingRow from "./AccountSettingRow.svelte"
-	import type { SettingRadioOption } from "./AccountSettingRow.svelte"
+	import type { SettingRadioOption } from "../shared/SettingRow.svelte"
 	import { AccountSettingsState } from "./account-settings-state.svelte"
 	import BlockedUsersList from "./BlockedUsersList.svelte"
 	import { BlockedUsersState } from "./blocked-users-state.svelte"
@@ -633,11 +633,8 @@
 			element.scrollTop = scrollTop
 			const row =
 				anchor &&
-				[
-					...element.querySelectorAll<HTMLElement>("[data-account-setting]"),
-				].find(
-					(settingElement) =>
-						settingElement.dataset.accountSetting === anchor.key,
+				[...element.querySelectorAll<HTMLElement>("[data-setting]")].find(
+					(settingElement) => settingElement.dataset.setting === anchor.key,
 				)
 			if (row && anchor) {
 				element.scrollTop +=
@@ -698,16 +695,14 @@
 		workspace.accountSettingsScrollTop = contentElement.scrollTop
 		const top = contentElement.getBoundingClientRect().top,
 			row = [
-				...contentElement.querySelectorAll<HTMLElement>(
-					"[data-account-setting]",
-				),
+				...contentElement.querySelectorAll<HTMLElement>("[data-setting]"),
 			].find(
 				(settingElement) => settingElement.getBoundingClientRect().bottom > top,
 			)
 		workspace.accountSettingsScrollAnchor =
-			row?.dataset.accountSetting && contentElement.scrollTop > 0
+			row?.dataset.setting && contentElement.scrollTop > 0
 				? {
-						key: row.dataset.accountSetting,
+						key: row.dataset.setting,
 						offset: row.getBoundingClientRect().top - top,
 					}
 				: null

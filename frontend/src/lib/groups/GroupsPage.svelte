@@ -38,6 +38,7 @@
 	import GroupJoinRequestsPage from "./GroupJoinRequestsPage.svelte"
 	import GroupMembersPage from "./GroupMembersPage.svelte"
 	import GroupProfileView from "./GroupProfileView.svelte"
+	import GroupSettingsPage from "./GroupSettingsPage.svelte"
 	import { minGroupSearchLength } from "./groups-store.svelte"
 	import type { GroupsStore, GroupSubpage } from "./groups-store.svelte"
 	import { openPageLabel, setProfilePages } from "../shared/profile-pages"
@@ -159,7 +160,13 @@
 		detailPane?.scrollTo({ top: 0 })
 	})
 
-	const groupSubpages: GroupSubpage[] = ["members", "games", "items", "joinRequests"]
+	const groupSubpages: GroupSubpage[] = [
+		"members",
+		"games",
+		"items",
+		"joinRequests",
+		"settings",
+	]
 
 	const profilePages: ProfilePages = {
 		get label() {
@@ -172,6 +179,9 @@
 				{ id: "items", label: "Items" },
 				...(store.profile?.membership.permissions.canAcceptJoinRequests
 					? [{ id: "joinRequests", label: "Join requests" }]
+					: []),
+				...(store.profile?.membership.permissions.canConfigure
+					? [{ id: "settings", label: "Settings" }]
 					: []),
 			]
 		},
@@ -580,6 +590,10 @@
 			{:else if store.subpage === "joinRequests"}
 				{#key `${store.accountId}:${store.selectedGroupId}`}
 					<GroupJoinRequestsPage {store} {notifications} />
+				{/key}
+			{:else if store.subpage === "settings"}
+				{#key `${store.accountId}:${store.selectedGroupId}`}
+					<GroupSettingsPage {store} />
 				{/key}
 			{:else}
 				{#key store.selectedGroupId}

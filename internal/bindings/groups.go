@@ -153,9 +153,9 @@ func (service *Service) GetGroupSettings(ctx context.Context, accountID, groupID
 	return service.core.GetGroupSettings(ctx, accountID, groupID)
 }
 
-func (service *Service) SaveGroupSettings(ctx context.Context, accountID, groupID int64, settings robloxservices.GroupSettings) error {
+func (service *Service) SaveGroupSettings(ctx context.Context, accountID, groupID int64, change robloxservices.GroupSettingsChange) error {
 	if err := validateAccountAndTargetIDs(accountID, groupID, "group-settings-update"); err != nil {
 		return err
 	}
-	return service.core.SaveGroupSettings(ctx, accountID, groupID, settings)
+	return service.core.SaveGroupSettings(ctx, accountID, groupID, change)
 }

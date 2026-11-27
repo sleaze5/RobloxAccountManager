@@ -129,6 +129,7 @@ Layout:
 - `lib/layout/AccountSwitcher.svelte`: the account switcher at the left of the status strip of Social, Groups, Games, Marketplace, and Logs Explorer.
 - `settings-page`, `settings-header`, `settings-layout`, `settings-sidebar`, `settings-nav` with `nav-item`, and `settings-content`: Settings, account settings, chats, and other sub-pages with a navigation sidebar.
 - `settings-section`, `settings-rows`, `settings-row`, and `settings-row-copy`: groups of settings. Put a setting that refines the setting before it, such as an update interval under its switch, in `settings-suboptions`.
+- `lib/shared/SettingRow.svelte`: one setting in `settings-rows`, as a switch or a list of options, that shows the saved value until the change saves.
 - `lib/shared/NoMatchingSettings.svelte`: the no-matches state of a settings search, with a Clear search button.
 - `scrollbar-stable`: reserve the scrollbar gutter in a scrolling list.
 

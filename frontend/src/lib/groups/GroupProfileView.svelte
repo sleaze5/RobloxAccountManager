@@ -32,7 +32,6 @@
 	import RobloxActionStrip from "../shared/RobloxActionStrip.svelte"
 	import GroupIcon from "./GroupIcon.svelte"
 	import GroupMembershipFacts from "./GroupMembershipFacts.svelte"
-	import GroupSettingsDialog from "./GroupSettingsDialog.svelte"
 	import GroupStatusBadges from "./GroupStatusBadges.svelte"
 	import { groupStats } from "./group-stats"
 	import type { GroupsStore, GroupSubpage } from "./groups-store.svelte"
@@ -58,7 +57,6 @@
 
 	let isConfirmingLeave = $state(false),
 		pendingChange = $state<GroupRobloxChange | null>(null),
-		isManaging = $state(false),
 		isEditingShout = $state(false),
 		shoutDraft = $state(""),
 		isEditingDescription = $state(false),
@@ -284,10 +282,7 @@
 								aria-label="Manage group"
 								data-tooltip="Manage group"
 								disabled={store.pendingAction !== null}
-								onclick={() => {
-									store.clearActionError()
-									isManaging = true
-								}}>
+								onclick={() => (store.subpage = "settings")}>
 								<Icon svg={gearSixIcon} size={14} aria-hidden="true" />
 							</button>
 						{/if}
@@ -657,12 +652,4 @@
 			store.clearActionError()
 			pendingChange = null
 		}} />
-{/if}
-
-{#if isManaging && group}
-	<GroupSettingsDialog
-		{store}
-		groupId={group.groupId}
-		groupName={group.name}
-		onClose={() => (isManaging = false)} />
 {/if}

@@ -1,7 +1,7 @@
 import { accountBackend } from "../backend/bridge"
 import type {
 	GroupProfile,
-	GroupSettings,
+	GroupSettingsChange,
 	GroupSummary,
 	UserGroup,
 	UserGroupList,
@@ -22,7 +22,7 @@ import { pageSidebarMinimumWidth } from "../layout/sidebar-widths"
 type GroupsMode = "mine" | "search"
 
 // GroupSubpage is a page of the selected group that replaces its profile.
-export type GroupSubpage = "members" | "games" | "items" | "joinRequests"
+export type GroupSubpage = "members" | "games" | "items" | "joinRequests" | "settings"
 
 type GroupAction =
 	| "join"
@@ -371,12 +371,12 @@ export class GroupsStore {
 		)
 	}
 
-	async saveSettings(settings: GroupSettings): Promise<boolean> {
+	async saveSettings(change: GroupSettingsChange): Promise<boolean> {
 		return await this.#runAction(
 			"settings",
 			this.selectedGroupId,
 			(accountId, groupId) =>
-				accountBackend.SaveGroupSettings(accountId, groupId, settings),
+				accountBackend.SaveGroupSettings(accountId, groupId, change),
 			"Could not save the group settings. Try again.",
 		)
 	}
