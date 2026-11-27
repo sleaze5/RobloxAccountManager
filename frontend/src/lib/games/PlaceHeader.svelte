@@ -1,5 +1,5 @@
 <script lang="ts">
-	import magnifyingGlassIcon from "@phosphor-icons/core/regular/magnifying-glass.svg?raw"
+	import arrowsOutSimpleIcon from "@phosphor-icons/core/regular/arrows-out-simple.svg?raw"
 	import sealCheckIcon from "@phosphor-icons/core/regular/seal-check.svg?raw"
 	import starFillIcon from "@phosphor-icons/core/fill/star-fill.svg?raw"
 	import Icon from "../shared/Icon.svelte"
@@ -75,7 +75,7 @@
 				aria-label="Show game"
 				data-tooltip="Show game"
 				onclick={onShowGame}
-				><Icon svg={magnifyingGlassIcon} size={14} aria-hidden="true" /></button
+				><Icon svg={arrowsOutSimpleIcon} size={14} aria-hidden="true" /></button
 			>{/if}
 	</div>
 {/if}

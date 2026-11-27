@@ -263,7 +263,7 @@
 		accountId={selectedAccount.id}
 		userId={Number(selectedAccount.userId)}
 		username={selectedAccount.username}
-		bind:sidebarWidth={workspace.accountSettingsSidebarWidth} />
+		bind:sidebarWidth={workspace.inventorySidebarWidth} />
 {:else if workspace.accountPage === "notifications" && hasAccount && store.vault.unlocked}
 	<RobloxNotificationsPage
 		{store}

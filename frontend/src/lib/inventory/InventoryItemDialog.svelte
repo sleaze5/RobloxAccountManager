@@ -10,7 +10,6 @@
 	import clockCounterClockwiseIcon from "@phosphor-icons/core/regular/clock-counter-clockwise.svg?raw"
 	import circleNotchIcon from "@phosphor-icons/core/regular/circle-notch.svg?raw"
 	import diamondIcon from "@phosphor-icons/core/regular/diamond.svg?raw"
-	import dotsThreeIcon from "@phosphor-icons/core/regular/dots-three.svg?raw"
 	import globeHemisphereWestIcon from "@phosphor-icons/core/regular/globe-hemisphere-west.svg?raw"
 	import hashIcon from "@phosphor-icons/core/regular/hash.svg?raw"
 	import linkIcon from "@phosphor-icons/core/regular/link.svg?raw"
@@ -25,7 +24,7 @@
 	import gameControllerIcon from "@phosphor-icons/core/regular/game-controller.svg?raw"
 	import heartFillIcon from "@phosphor-icons/core/fill/heart-fill.svg?raw"
 	import heartIcon from "@phosphor-icons/core/regular/heart.svg?raw"
-	import magnifyingGlassIcon from "@phosphor-icons/core/regular/magnifying-glass.svg?raw"
+	import arrowsOutSimpleIcon from "@phosphor-icons/core/regular/arrows-out-simple.svg?raw"
 	import mapPinIcon from "@phosphor-icons/core/regular/map-pin.svg?raw"
 	import packageIcon from "@phosphor-icons/core/regular/package.svg?raw"
 	import shoppingCartIcon from "@phosphor-icons/core/regular/shopping-cart.svg?raw"
@@ -51,6 +50,7 @@
 	import FrameUnavailable from "../shared/FrameUnavailable.svelte"
 	import AnchoredActionMenu from "../shared/AnchoredActionMenu.svelte"
 	import type { MenuAction } from "../shared/AnchoredActionMenu.svelte"
+	import MoreActionsMenu from "../shared/MoreActionsMenu.svelte"
 	import ExpandedImageDialog from "../shared/ExpandedImageDialog.svelte"
 	import ItemExplorerDialog from "../explorer/ItemExplorerDialog.svelte"
 	import Icon from "../shared/Icon.svelte"
@@ -69,7 +69,6 @@
 	import Timestamp from "../shared/Timestamp.svelte"
 	import { relativeTime } from "../shared/timestamp"
 	import {
-		assetCategories,
 		inventoryCategoryOptionOf,
 		inventoryItemPage,
 		inventoryTypeLabel,
@@ -86,7 +85,7 @@
 	import { formatRobux, salePriceLabel } from "./inventory-prices"
 	import PurchaseAccountActions from "./PurchaseAccountActions.svelte"
 	import PurchaseItemSummary from "./PurchaseItemSummary.svelte"
-	import SavedAccountsOwnership from "./SavedAccountsOwnership.svelte"
+	import ItemSavedAccounts from "./ItemSavedAccounts.svelte"
 	import { categoryItemKey, inventoryItemKey } from "./inventory-state.svelte"
 	import type {
 		InventoryDownloadKind,
@@ -153,8 +152,6 @@
 		isRigShown = $state(false),
 		downloadButton = $state<HTMLButtonElement>(),
 		isDownloadMenuOpen = $state(false),
-		moreActionsButton = $state<HTMLButtonElement>(),
-		isMoreActionsMenuOpen = $state(false),
 		// The item whose model the 3D viewer could not build, which shows the
 		// model that Roblox renders instead.
 		failedLiveItemKey = $state(""),
@@ -196,8 +193,6 @@
 		badge = $derived(item.badge),
 		isCatalogItem = $derived(!!item.catalogItemType),
 		isBundle = $derived(item.catalogItemType === CatalogItemType.CatalogBundle),
-		// Whether the item is an asset, whose ID the worn items can hold.
-		isAssetCategory = $derived(assetCategories.includes(category.id)),
 		// Roblox renders badges and game passes only as small icons.
 		isSmallIcon = $derived(
 			category.id === InventoryCategory.InventoryBadges ||
@@ -482,7 +477,10 @@
 		if (otherAccounts.length > 0) {
 			untrack(
 				() =>
-					void inventory.loadSavedAccountsOwnership(shownItem, shownCategory),
+					void inventory.loadSavedAccountsItemRelations(
+						shownItem,
+						shownCategory,
+					),
 			)
 		}
 	})
@@ -956,7 +954,7 @@
 												placeId: badge.awardingPlaceId,
 											})}>
 										<Icon
-											svg={magnifyingGlassIcon}
+											svg={arrowsOutSimpleIcon}
 											size={16}
 											aria-hidden="true" />
 									</button>
@@ -973,7 +971,7 @@
 										<Icon
 											svg={inventory.isFindingGamePassPlace
 												? circleNotchIcon
-												: magnifyingGlassIcon}
+												: arrowsOutSimpleIcon}
 											class={inventory.isFindingGamePassPlace
 												? "spinner"
 												: undefined}
@@ -1053,26 +1051,9 @@
 										Delete
 									</button>
 								{/if}
-								<button
-									bind:this={moreActionsButton}
-									class="button-icon"
-									type="button"
-									aria-label="More actions"
-									aria-haspopup="menu"
-									aria-expanded={isMoreActionsMenuOpen}
-									aria-controls={isMoreActionsMenuOpen
-										? `${elementIdPrefix}-inventory-more-actions-menu`
-										: undefined}
-									data-open={isMoreActionsMenuOpen || undefined}
-									data-tooltip="More actions"
-									onclick={() =>
-										(isMoreActionsMenuOpen =
-											!isMoreActionsMenuOpen)}>
-									<Icon
-										svg={dotsThreeIcon}
-										size={16}
-										aria-hidden="true" />
-								</button>
+								<MoreActionsMenu
+									label={`${name} actions`}
+									actions={moreActions} />
 								<button
 									class="ml-1 button-close"
 									type="button"
@@ -1158,7 +1139,7 @@
 								</li>
 							{/if}
 							{#if market?.isLimited}
-								<li class="tag-pill-success">
+								<li class="tag-pill">
 									<Icon
 										svg={diamondIcon}
 										size={12}
@@ -1318,12 +1299,11 @@
 			</div>
 
 			{#if otherAccounts.length > 0}
-				<SavedAccountsOwnership
+				<ItemSavedAccounts
 					{otherAccounts}
-					ownership={inventory.savedAccountsOwnershipByItemKey.get(
+					itemRelations={inventory.savedAccountsItemRelationsByItemKey.get(
 						detailsKey,
-					)}
-					canBeWorn={isAssetCategory} />
+					)} />
 			{/if}
 
 			{#if canHaveRelatedItems}
@@ -1403,21 +1383,6 @@
 		anchor={downloadButton}
 		actions={downloadActions}
 		onClose={() => (isDownloadMenuOpen = false)} />
-{/if}
-
-{#if isMoreActionsMenuOpen && moreActionsButton}
-	<AnchoredActionMenu
-		id={`${elementIdPrefix}-inventory-more-actions-menu`}
-		label={`${name} actions`}
-		anchor={moreActionsButton}
-		actions={moreActions.map((action) => ({
-			...action,
-			onSelect: () => {
-				isMoreActionsMenuOpen = false
-				action.onSelect()
-			},
-		}))}
-		onClose={() => (isMoreActionsMenuOpen = false)} />
 {/if}
 
 {#if isExplorerOpen && !confirmation}

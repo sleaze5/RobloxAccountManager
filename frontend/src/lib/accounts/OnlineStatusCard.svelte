@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { getProfilePreviews } from "../shared/profile-preview"
-	import magnifyingGlassIcon from "@phosphor-icons/core/regular/magnifying-glass.svg?raw"
+	import arrowsOutSimpleIcon from "@phosphor-icons/core/regular/arrows-out-simple.svg?raw"
 	import signInIcon from "@phosphor-icons/core/regular/sign-in.svg?raw"
 	import Icon from "../shared/Icon.svelte"
 	import { OnlineStatusType, UserJoinability } from "../backend/bridge"
@@ -73,13 +73,13 @@
 	<dl class="detail-grid" aria-label="Game IDs">
 		{#if placeId > 0}<div>
 				<dt>Place ID</dt>
-				{@render searchableId(placeId, "Show game", () =>
+				{@render previewableId(placeId, "Show game", () =>
 					previews.show({ kind: "Place", placeId }),
 				)}
 			</div>{/if}
 		{#if universeId > 0}<div>
 				<dt>Universe ID</dt>
-				{@render searchableId(universeId, "Show the places of this game", () =>
+				{@render previewableId(universeId, "Show the places of this game", () =>
 					previews.show({
 						kind: "Place",
 						placeId: rootPlaceId || placeId,
@@ -89,7 +89,7 @@
 			</div>{/if}
 		{#if rootPlaceId > 0 && rootPlaceId !== placeId}<div>
 				<dt>Root place ID</dt>
-				{@render searchableId(rootPlaceId, "Show root place", () =>
+				{@render previewableId(rootPlaceId, "Show root place", () =>
 					previews.show({ kind: "Place", placeId: rootPlaceId }),
 				)}
 			</div>{/if}
@@ -124,20 +124,20 @@
 	{/if}
 </div>
 
-{#snippet searchableId(
+{#snippet previewableId(
 	placeOrUniverseId: number,
-	searchLabel: string,
-	onSearch: () => void,
+	previewLabel: string,
+	onPreview: () => void,
 )}
 	<dd class="flex min-w-0 items-center gap-1">
 		<span class="truncate font-mono select-text">{placeOrUniverseId}</span>
 		<button
 			class="button-ghost-sm"
 			type="button"
-			aria-label={searchLabel}
-			data-tooltip={searchLabel}
-			onclick={onSearch}>
-			<Icon svg={magnifyingGlassIcon} size={14} aria-hidden="true" />
+			aria-label={previewLabel}
+			data-tooltip={previewLabel}
+			onclick={onPreview}>
+			<Icon svg={arrowsOutSimpleIcon} size={14} aria-hidden="true" />
 		</button>
 	</dd>
 {/snippet}

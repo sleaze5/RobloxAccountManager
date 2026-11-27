@@ -15,6 +15,7 @@ import { ListSelection } from "../shared/list-selection.svelte"
 import { menuPointFor } from "../shared/transitions"
 import { robloxGroupUrl } from "../shared/roblox-pages"
 import type { PageLocationKeys } from "../layout/page-history"
+import { pageSidebarMinimumWidth } from "../layout/sidebar-widths"
 
 type GroupsMode = "mine" | "search"
 
@@ -76,7 +77,7 @@ export function groupsLocationKeys(location: GroupsLocation): PageLocationKeys {
 // account that was selected when it started.
 export class GroupsStore {
 	sidebarCollapsed = $state(false)
-	sidebarWidth = $state(248)
+	sidebarWidth = $state(pageSidebarMinimumWidth)
 	mode = $state<GroupsMode>("mine")
 	query = $state("")
 	searchedText = $state("")

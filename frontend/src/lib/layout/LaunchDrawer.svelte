@@ -31,10 +31,8 @@
 		workspace: WorkspaceState
 		notifications: NotificationCenter
 	} = $props()
-	let drawer = $state<HTMLElement>()
 	let processesOpen = $state(false),
 		cleanOpen = $state(false)
-	let measuredMethod: LaunchMethod | undefined
 	const methods = [
 		{
 			value: LaunchMethod.MethodPlace,
@@ -55,30 +53,6 @@
 				"Join the game that a user is playing. Leave it empty to open Roblox without joining a game.",
 		},
 	]
-
-	$effect(() => {
-		if (!workspace.launchOpen || !drawer) return
-		const method = store.launchInput.method,
-			panel = drawer,
-			body = panel.querySelector<HTMLElement>("[data-launch-body]"),
-			content = panel.querySelector<HTMLElement>("[data-launch-fields]")
-		if (!body || !content) return
-		const observer = new ResizeObserver(() => {
-			const style = getComputedStyle(body),
-				minimumHeight =
-					panel.offsetHeight -
-					body.offsetHeight +
-					content.offsetHeight +
-					Number.parseFloat(style.paddingTop) +
-					Number.parseFloat(style.paddingBottom)
-			const shouldFit = measuredMethod !== method
-			measuredMethod = method
-			workspace.setLaunchMinimumHeight(Math.ceil(minimumHeight), shouldFit)
-		})
-		observer.observe(panel)
-		observer.observe(content)
-		return () => observer.disconnect()
-	})
 
 	$effect(() => {
 		if (!store.vault.unlocked) {
@@ -128,38 +102,12 @@
 	}
 </script>
 
-<svelte:window bind:innerHeight={workspace.viewportHeight} />
-
 <section
-	bind:this={drawer}
 	class={[
 		"shrink-0 border-t border-line-subtle bg-surface",
-		workspace.launchOpen ? "flex h-(--launch-height) flex-col" : "h-9",
+		workspace.launchOpen ? "flex flex-col" : "h-9",
 	]}
 	aria-labelledby="launch-title">
-	{#if workspace.launchOpen}
-		<div
-			class="relative z-10 h-0.5 w-full shrink-0 cursor-row-resize touch-none bg-surface before:absolute before:inset-x-0 before:-top-1.5 before:bottom-0"
-			role="slider"
-			tabindex="0"
-			aria-label="Resize launch panel"
-			aria-orientation="horizontal"
-			aria-valuenow={workspace.launchHeight}
-			aria-valuemin={workspace.launchMinimumHeight}
-			aria-valuemax={workspace.launchMaximumHeight}
-			data-tooltip="Drag to resize the launch panel"
-			data-tooltip-side="top"
-			onkeydown={(event) => {
-				if (event.key === "ArrowUp" || event.key === "ArrowDown") {
-					event.preventDefault()
-					workspace.resizeLaunch(
-						workspace.launchHeight + (event.key === "ArrowUp" ? 16 : -16),
-					)
-				}
-			}}
-			onpointerdown={(event) => workspace.startLaunchResize(event)}>
-		</div>
-	{/if}
 	<div
 		class={[
 			"flex h-9 w-full shrink-0 items-center justify-between px-3 text-fg-muted select-none",
@@ -212,18 +160,15 @@
 	</div>
 	{#if workspace.launchOpen}
 		<form
-			class="flex min-h-0 flex-1 flex-col"
+			class="flex flex-col"
 			novalidate
 			aria-busy={store.launching}
 			onsubmit={(event) => {
 				event.preventDefault()
 				void launchAfterJoinCheck()
 			}}>
-			<div
-				class="flex min-h-0 flex-1 flex-col gap-2 overflow-auto p-3 *:shrink-0"
-				data-launch-body>
+			<div class="p-3">
 				<div
-					data-launch-fields
 					class={[
 						"flex w-full min-w-0",
 						store.launchInput.method === LaunchMethod.MethodLink

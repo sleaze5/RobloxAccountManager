@@ -1,12 +1,8 @@
 <script lang="ts">
-	import checkCircleFillIcon from "@phosphor-icons/core/fill/check-circle-fill.svg?raw"
-	import clockIcon from "@phosphor-icons/core/regular/clock.svg?raw"
-	import lockIcon from "@phosphor-icons/core/regular/lock.svg?raw"
 	import signInIcon from "@phosphor-icons/core/regular/sign-in.svg?raw"
 	import signOutIcon from "@phosphor-icons/core/regular/sign-out.svg?raw"
 	import sealCheckIcon from "@phosphor-icons/core/regular/seal-check.svg?raw"
 	import tagIcon from "@phosphor-icons/core/regular/tag.svg?raw"
-	import usersThreeIcon from "@phosphor-icons/core/regular/users-three.svg?raw"
 	import warningIcon from "@phosphor-icons/core/regular/warning.svg?raw"
 	import { accountBackend, GroupSource } from "../backend/bridge"
 	import type { GroupProfile } from "../backend/bridge"
@@ -19,6 +15,8 @@
 	import ProfileStats from "../shared/ProfileStats.svelte"
 	import Skeleton from "../shared/Skeleton.svelte"
 	import GroupIcon from "./GroupIcon.svelte"
+	import GroupMembershipFacts from "./GroupMembershipFacts.svelte"
+	import GroupStatusBadges from "./GroupStatusBadges.svelte"
 	import { groupStats } from "./group-stats"
 
 	// GroupPreview shows the information of a group as the account sees it:
@@ -35,8 +33,7 @@
 		onMembershipChanged: (groupId: number) => void
 	} = $props()
 
-	const exactNumbers = new Intl.NumberFormat("en-US"),
-		metaClass =
+	const metaClass =
 			"flex min-w-0 flex-wrap items-center gap-1 font-mono text-2xs wrap-anywhere text-fg-muted",
 		sectionHeadingClass = "text-xs font-semibold text-fg-muted"
 
@@ -132,7 +129,7 @@
 			type="button"
 			disabled={pendingAction !== null}
 			onclick={confirmLeave}>
-			<Icon svg={signOutIcon} size={16} aria-hidden="true" />Leave
+			<Icon svg={signOutIcon} size={16} aria-hidden="true" />Leave group
 		</button>
 	{:else if canJoin}
 		<button
@@ -145,7 +142,7 @@
 			{pendingAction === "join"
 				? "Joining…"
 				: group?.isPublicEntryAllowed
-					? "Join"
+					? "Join group"
 					: "Request to join"}
 		</button>
 	{/if}
@@ -161,7 +158,7 @@
 		{#if group}<span class="select-text">{group.name}</span
 			>{#if group.hasVerifiedBadge}<Icon
 					svg={sealCheckIcon}
-					class="relative top-px ml-1 inline-block text-fg-muted"
+					class="relative top-px ml-1 inline-block text-accent-strong"
 					size={16}
 					aria-label="Verified group" />{/if}{:else if loadError}Group
 			unavailable{:else}<Skeleton className="w-48" label="Loading group…" />{/if}
@@ -183,28 +180,10 @@
 			<span class="text-xs"><Skeleton className="w-32" label="" /></span>
 		{/if}
 		{#if group}<ProfileStats label="Group numbers" stats={groupStats(group)} />{/if}
-		{#if isMember || membership?.isPendingJoin || profile?.details.isLocked}
-			<ul class="mt-1 flex flex-wrap gap-1" aria-label="Status">
-				{#if isMember && membership}
-					<li class="tag-pill-success">
-						<Icon svg={checkCircleFillIcon} size={12} aria-hidden="true" />
-						<span>{membership.role.name}</span>
-					</li>
-				{/if}
-				{#if membership?.isPendingJoin}
-					<li class="tag-pill">
-						<Icon svg={clockIcon} size={12} aria-hidden="true" />
-						<span>Join requested</span>
-					</li>
-				{/if}
-				{#if profile?.details.isLocked}
-					<li class="tag-pill-warning">
-						<Icon svg={lockIcon} size={12} aria-hidden="true" />
-						<span>Locked</span>
-					</li>
-				{/if}
-			</ul>
-		{/if}
+		{#if profile}<GroupStatusBadges
+				isPrimary={profile.membership.isPrimary}
+				isPendingJoin={profile.membership.isPendingJoin}
+				isLocked={profile.details.isLocked} />{/if}
 	{/snippet}
 
 	{#if loadError}
@@ -228,15 +207,9 @@
 		<section class="flex flex-col gap-3" aria-label="Details">
 			<h3 class={sectionHeadingClass}>Details</h3>
 			<dl class="facts">
-				<div>
-					<dt>
-						<Icon
-							svg={usersThreeIcon}
-							size={16}
-							aria-hidden="true" />Members
-					</dt>
-					<dd>{exactNumbers.format(group.memberCount)}</dd>
-				</div>
+				{#if membership}<GroupMembershipFacts
+						{membership}
+						isPublicEntryAllowed={group.isPublicEntryAllowed} />{/if}
 				<div data-tone={isRolesUnavailable ? "muted" : undefined}>
 					<dt><Icon svg={tagIcon} size={16} aria-hidden="true" />Roles</dt>
 					<dd>

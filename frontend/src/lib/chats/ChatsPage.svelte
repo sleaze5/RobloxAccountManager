@@ -11,6 +11,7 @@
 	import { onMount, untrack } from "svelte"
 	import type { AccountStore } from "../accounts/account-store.svelte"
 	import SidebarResizer from "../layout/SidebarResizer.svelte"
+	import { accountSubpageSidebarMinimumWidth } from "../layout/sidebar-widths"
 	import type { WorkspaceState } from "../layout/workspace-state.svelte"
 	import ChatList from "./ChatList.svelte"
 	import ChatPeopleDialog from "./ChatPeopleDialog.svelte"
@@ -103,7 +104,7 @@
 		<SidebarResizer
 			bind:width={workspace.accountSettingsSidebarWidth}
 			name="chats"
-			minimumWidth={192} />
+			minimumWidth={accountSubpageSidebarMinimumWidth} />
 
 		<section
 			class="grid h-full min-h-0 min-w-0 flex-1 grid-rows-1"

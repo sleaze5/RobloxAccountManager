@@ -3,6 +3,7 @@ package bindings
 import (
 	"context"
 
+	"github.com/sleaze5/RobloxAccountManager/internal/appservice"
 	"github.com/sleaze5/RobloxAccountManager/internal/games"
 	robloxservices "github.com/sleaze5/RobloxAccountManager/internal/roblox/services"
 )
@@ -39,6 +40,13 @@ func (service *Service) ListFriendsInGame(ctx context.Context, accountID, univer
 		return games.FriendsInGame{}, err
 	}
 	return service.core.ListFriendsInGame(ctx, accountID, universeID)
+}
+
+func (service *Service) GetSavedAccountsGameFavorites(ctx context.Context, accountID, universeID int64) (appservice.SavedAccountsGameFavorites, error) {
+	if err := validateAccountAndTargetIDs(accountID, universeID, "saved-accounts-game-favorites"); err != nil {
+		return appservice.SavedAccountsGameFavorites{}, err
+	}
+	return service.core.GetSavedAccountsGameFavorites(ctx, accountID, universeID)
 }
 
 func (service *Service) ListRecordedGameServers(ctx context.Context, query games.RecordQuery) (games.RecordPage, error) {

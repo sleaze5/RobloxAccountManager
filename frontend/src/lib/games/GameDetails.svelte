@@ -39,6 +39,7 @@
 	import ProfileStats from "../shared/ProfileStats.svelte"
 	import ProfileTabs from "../shared/ProfileTabs.svelte"
 	import GameMedia from "./GameMedia.svelte"
+	import GameSavedAccounts from "./GameSavedAccounts.svelte"
 	import { creatorByline, type GamesStore } from "./games-store.svelte"
 	import GameIcon from "./GameIcon.svelte"
 	import { gameHeadlineStats } from "./game-stats"
@@ -476,15 +477,6 @@
 							</span>
 						{/if}
 					</div>
-					{#if place.creatorId && (place.creatorType === "User" || place.creatorType === "Group")}
-						<CreatorByline
-							kind={place.creatorType}
-							creatorId={place.creatorId}
-							name={place.creatorName}
-							hasVerifiedBadge={place.creatorVerified} />
-					{:else}
-						<p class="text-xs text-fg-muted">{creatorByline(place)}</p>
-					{/if}
 					<div class={metaClass}>
 						<span class="select-text">Place ID: {place.placeId}</span>
 						<span class="text-fg-faint" aria-hidden="true">·</span>
@@ -505,6 +497,15 @@
 								>Root place ID: {rootPlace.placeId}</span>
 						{/if}
 					</div>
+					{#if place.creatorId && (place.creatorType === "User" || place.creatorType === "Group")}
+						<CreatorByline
+							kind={place.creatorType}
+							creatorId={place.creatorId}
+							name={place.creatorName}
+							hasVerifiedBadge={place.creatorVerified} />
+					{:else}
+						<p class="text-xs text-fg-muted">{creatorByline(place)}</p>
+					{/if}
 					{#if game && playabilityWarning}
 						<p
 							class="flex animate-enter flex-wrap items-center gap-x-2 gap-y-1 text-xs text-fg-muted">
@@ -718,6 +719,8 @@
 					</section>
 				{/if}
 			</div>
+
+			<GameSavedAccounts {accounts} {place} refreshCount={detailsRefreshCount} />
 		</div>
 	</section>
 {/if}

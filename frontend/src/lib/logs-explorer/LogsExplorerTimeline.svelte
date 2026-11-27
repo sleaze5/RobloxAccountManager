@@ -3,7 +3,7 @@
 	import globeHemisphereWestIcon from "@phosphor-icons/core/regular/globe-hemisphere-west.svg?raw"
 	import hashIcon from "@phosphor-icons/core/regular/hash.svg?raw"
 	import listPlusIcon from "@phosphor-icons/core/regular/list-plus.svg?raw"
-	import magnifyingGlassIcon from "@phosphor-icons/core/regular/magnifying-glass.svg?raw"
+	import arrowsOutSimpleIcon from "@phosphor-icons/core/regular/arrows-out-simple.svg?raw"
 	import Icon from "../shared/Icon.svelte"
 	import { untrack } from "svelte"
 	import { VisitKind } from "../backend/bridge"
@@ -80,7 +80,7 @@
 				? [
 						{
 							label: "Show game",
-							icon: magnifyingGlassIcon,
+							icon: arrowsOutSimpleIcon,
 							onSelect: select(() =>
 								previews.show({ kind: "Place", placeId }),
 							),

@@ -6,12 +6,12 @@
 		width = $bindable(),
 		collapsed = false,
 		name,
-		minimumWidth = 220,
+		minimumWidth,
 	}: {
 		width: number
 		collapsed?: boolean
 		name: string
-		minimumWidth?: number
+		minimumWidth: number
 	} = $props()
 	let stopResize: (() => void) | undefined,
 		resizer = $state<HTMLDivElement>(),

@@ -5,8 +5,11 @@
 	import prohibitIcon from "@phosphor-icons/core/regular/prohibit.svg?raw"
 	import clockCounterClockwiseIcon from "@phosphor-icons/core/regular/clock-counter-clockwise.svg?raw"
 	import globeHemisphereWestIcon from "@phosphor-icons/core/regular/globe-hemisphere-west.svg?raw"
+	import hashIcon from "@phosphor-icons/core/regular/hash.svg?raw"
+	import linkIcon from "@phosphor-icons/core/regular/link.svg?raw"
 	import shoppingCartIcon from "@phosphor-icons/core/regular/shopping-cart.svg?raw"
 	import storefrontIcon from "@phosphor-icons/core/regular/storefront.svg?raw"
+	import textTIcon from "@phosphor-icons/core/regular/text-t.svg?raw"
 	import ticketIcon from "@phosphor-icons/core/regular/ticket.svg?raw"
 	import xIcon from "@phosphor-icons/core/regular/x.svg?raw"
 	import { onMount, tick, untrack } from "svelte"
@@ -15,8 +18,12 @@
 	import { salePriceLabel } from "../inventory/inventory-prices"
 	import PurchaseAccountActions from "../inventory/PurchaseAccountActions.svelte"
 	import PurchaseItemSummary from "../inventory/PurchaseItemSummary.svelte"
+	import { getNotificationCenter } from "../notifications/notification-center.svelte"
+	import type { MenuAction } from "../shared/AnchoredActionMenu.svelte"
+	import { copyValue } from "../shared/clipboard"
 	import Dialog from "../shared/Dialog.svelte"
 	import Icon from "../shared/Icon.svelte"
+	import MoreActionsMenu from "../shared/MoreActionsMenu.svelte"
 	import ProfileImage from "../shared/ProfileImage.svelte"
 	import {
 		getRobloxPageOpener,
@@ -47,7 +54,8 @@
 		metaClass =
 			"flex min-w-0 flex-wrap items-center gap-1 font-mono text-2xs wrap-anywhere text-fg-muted",
 		sectionHeadingClass = "text-xs font-semibold text-fg-muted"
-	const robloxPages = getRobloxPageOpener()
+	const robloxPages = getRobloxPageOpener(),
+		notifications = getNotificationCenter()
 	let view = $state<GamePassView>("details"),
 		card = $state<HTMLDivElement | undefined>(undefined),
 		// What the open confirmation buys, fixed while it is open.
@@ -78,7 +86,47 @@
 				!listedGamePass.isOwned &&
 				listedGamePass.isForSale,
 		),
-		priceLabel = $derived(salePriceLabel(gamePass, false))
+		priceLabel = $derived(salePriceLabel(gamePass, false)),
+		gamePassUrl = $derived(robloxGamePassUrl(gamePass.gamePassId)),
+		moreActions = $derived<MenuAction[]>([
+			{
+				label: "Open in browser",
+				icon: globeHemisphereWestIcon,
+				disabled: !robloxPages.canOpen,
+				tooltip: robloxPages.canOpen
+					? undefined
+					: openInBrowserUnavailableReason,
+				onSelect: () => robloxPages.open(gamePassUrl),
+			},
+			{
+				label: "Name",
+				icon: textTIcon,
+				section: "Copy",
+				accessibleLabel: "Copy game pass name",
+				onSelect: () => void copyValue(notifications, name, "Game pass name"),
+			},
+			{
+				label: "Game pass ID",
+				icon: hashIcon,
+				section: "Copy",
+				detail: String(gamePass.gamePassId),
+				accessibleLabel: "Copy game pass ID",
+				onSelect: () =>
+					void copyValue(
+						notifications,
+						String(gamePass.gamePassId),
+						"Game pass ID",
+					),
+			},
+			{
+				label: "Game pass link",
+				icon: linkIcon,
+				section: "Copy",
+				accessibleLabel: "Copy game pass link",
+				onSelect: () =>
+					void copyValue(notifications, gamePassUrl, "Game pass link"),
+			},
+		])
 
 	onMount(() => {
 		void showView("details")
@@ -250,23 +298,9 @@
 									{price === 0 ? "Get" : "Buy"}
 								</button>
 							{/if}
-							<button
-								class="button-icon"
-								type="button"
-								aria-label="Open in browser"
-								data-tooltip={robloxPages.canOpen
-									? "Open in browser"
-									: openInBrowserUnavailableReason}
-								disabled={!robloxPages.canOpen}
-								onclick={() =>
-									robloxPages.open(
-										robloxGamePassUrl(gamePass.gamePassId),
-									)}>
-								<Icon
-									svg={globeHemisphereWestIcon}
-									size={16}
-									aria-hidden="true" />
-							</button>
+							<MoreActionsMenu
+								label={`${name} actions`}
+								actions={moreActions} />
 							<button
 								class="ml-1 button-close"
 								type="button"
