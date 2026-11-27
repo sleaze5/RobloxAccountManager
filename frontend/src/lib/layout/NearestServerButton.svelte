@@ -73,7 +73,7 @@
 				message:
 					nearestSearch.phase === "failed"
 						? nearestSearch.error
-						: "No open server of this place was found. Try again later.",
+						: "No open server found for this place. Try again later.",
 			})
 			return
 		}
@@ -85,7 +85,7 @@
 			notifications.show({
 				id: "nearest-server",
 				title: "Nearest server filled",
-				message: `No open server was found in ${appSettings.preferredRegionLabel}, so a server in ${foundRegion.name} was filled.`,
+				message: `No open server in ${appSettings.preferredRegionLabel}. Filled a server in ${foundRegion.name}.`,
 			})
 		}
 	}

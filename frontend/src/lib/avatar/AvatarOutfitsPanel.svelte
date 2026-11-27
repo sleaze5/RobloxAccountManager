@@ -93,7 +93,7 @@
 			{#if canEdit && isChanged}
 				Save or discard your changes to put on an outfit or save a new one.
 			{:else if canEdit}
-				Outfits save a look to put on later. Putting one on replaces the avatar.
+				An outfit saves a look to put on later. It replaces the current avatar.
 			{:else}
 				The outfits that @{username} saved.
 			{/if}

@@ -623,7 +623,7 @@
 	{@const outfit = deletedOutfit}
 	<ConfirmationDialog
 		title="Delete outfit?"
-		description={`${outfit.name || "This outfit"} will be deleted from @${username}'s outfits. This cannot be undone.`}
+		description={`This deletes ${outfit.name || "this outfit"} from @${username}'s outfits. This cannot be undone.`}
 		confirmLabel="Delete outfit"
 		progressLabel="Deleting…"
 		isWorking={avatar.isChangingOutfit}

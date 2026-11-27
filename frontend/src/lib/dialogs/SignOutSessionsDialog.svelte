@@ -28,7 +28,7 @@
 
 <ConfirmationDialog
 	title="Sign out other sessions?"
-	description={`Every other browser, device, and app signed in as @${account.username} will be signed out. This app stays signed in with a new cookie. This cannot be undone.`}
+	description={`This signs @${account.username} out of every other browser, device, and app. This app stays signed in with a new cookie. This cannot be undone.`}
 	confirmLabel="Sign out other sessions"
 	progressLabel="Signing out…"
 	isWorking={sessions.signingOut}

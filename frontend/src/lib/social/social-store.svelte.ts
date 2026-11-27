@@ -230,8 +230,7 @@ export const bulkRemovalCopy: Record<
 		pluralNoun: "friends",
 		progress: "Removing…",
 		done: "Friends removed",
-		consequence:
-			"They are no longer your friends. To be friends again, one of you must send a new friend request.",
+		consequence: "To be friends again, one of you must send a new friend request.",
 		result: (count) => `${counted(count, "friend was", "friends were")} removed.`,
 	},
 	[SocialList.SocialFollowing]: {

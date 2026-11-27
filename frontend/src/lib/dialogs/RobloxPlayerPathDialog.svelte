@@ -226,7 +226,7 @@
 					{:else if newest}
 						{newest.name}
 					{:else}
-						No Roblox versions were found
+						No Roblox versions found
 					{/if}
 				</small>
 			</label>
@@ -326,7 +326,8 @@
 						><Icon
 							svg={warningCircleIcon}
 							size={14}
-							aria-hidden="true" />Saved, but the binary was not found.</span>
+							aria-hidden="true" />Saved, but RobloxPlayerBeta.exe is not
+						there.</span>
 				{/if}
 			</div>
 		</div>

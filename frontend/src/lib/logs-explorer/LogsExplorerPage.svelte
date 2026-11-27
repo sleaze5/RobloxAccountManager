@@ -200,7 +200,7 @@
 							size={28}
 							aria-hidden="true" />
 						<h2>Logs unavailable</h2>
-						<p>Refresh the logs to try reading them again.</p>
+						<p>Refresh to try again.</p>
 						<button
 							class="button"
 							type="button"

@@ -182,7 +182,7 @@
 						aria-labelledby="delete-tag-prompt">
 						<p id="delete-tag-prompt">
 							Delete the <strong class="font-semibold">{tag.name}</strong> tag?
-							It is removed from every account and cannot be undone.
+							This removes it from every account and cannot be undone.
 						</p>
 						<div class="flex justify-end gap-2">
 							<button

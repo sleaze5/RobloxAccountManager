@@ -137,7 +137,7 @@
 						<span class="font-mono tabular-nums"
 							><strong class="font-semibold text-fg"
 								>{percent.format(completion)}</strong>
-							- {numbers.format(earnedCount)} of {numbers.format(
+							· {numbers.format(earnedCount)} of {numbers.format(
 								enabledBadges.length,
 							)}</span>
 					{:else if universeBadges.awardsError}

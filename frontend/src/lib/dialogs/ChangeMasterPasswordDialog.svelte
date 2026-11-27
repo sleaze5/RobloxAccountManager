@@ -138,7 +138,7 @@
 				maxlength="480"
 				autocomplete="off" /></label>
 		<div class="mt-3 notice-warning">
-			The hint is saved as plain text. Do not include sensitive information.
+			The app saves the hint as plain text. Do not put secrets in it.
 		</div>
 		<AutomaticUnlockCheckbox bind:checked={automaticUnlock} />
 		<div class="dialog-actions">

@@ -91,7 +91,7 @@
 					isFavoriteBusy || selectedFavoriteCount === selectedPlaces.length,
 				tooltip:
 					selectedFavoriteCount === selectedPlaces.length
-						? "Every selected game is a favorite"
+						? "Every selected place is a favorite"
 						: undefined,
 				onSelect: () => void store.setSelectedFavorites(true),
 			},
@@ -645,7 +645,9 @@
 								size={28}
 								aria-hidden="true" />
 							<h2>No favorite places yet</h2>
-							<p>Search for a game, then add it to your favorites.</p>
+							<p>
+								Search for a game, then add a place to your favorites.
+							</p>
 							<button
 								class="button"
 								type="button"
@@ -716,7 +718,7 @@
 {#if isConfirmingFavoriteRemoval}
 	<ConfirmationDialog
 		title="Remove from favorites"
-		description={`${selectedFavoriteCount} selected ${selectedFavoriteCount === 1 ? "game leaves" : "games leave"} your favorites, with ${selectedFavoriteCount === 1 ? "its nickname" : "their nicknames"}. This cannot be undone.`}
+		description={`${selectedFavoriteCount} selected ${selectedFavoriteCount === 1 ? "place leaves" : "places leave"} your favorites, with ${selectedFavoriteCount === 1 ? "its nickname" : "their nicknames"}. This cannot be undone.`}
 		confirmLabel="Remove from favorites"
 		progressLabel="Removing…"
 		isWorking={store.savingFavorite}

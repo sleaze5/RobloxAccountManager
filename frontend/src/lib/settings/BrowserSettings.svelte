@@ -35,7 +35,7 @@
 		if (runtime.status === RuntimeStatus.RuntimeDamaged) {
 			return runtime.installedVersion
 				? `Version ${runtime.installedVersion} is invalid.`
-				: "The installed browser is invalid."
+				: "The installed browser is damaged."
 		}
 		if (runtime.status === RuntimeStatus.RuntimeMissing) {
 			return `Version ${runtime.requiredVersion} is not installed.`
@@ -173,7 +173,7 @@
 						? "Remove browser?"
 						: "Redownload browser?"}
 				</h2>
-				<p>This will stop browser work that is currently active.</p>
+				<p>This stops any browser task in progress.</p>
 			</div>
 			<button
 				type="button"
@@ -193,9 +193,7 @@
 						: "sessions"}.
 				</li>
 				<li>Browser downloads may stop.</li>{/if}
-			{#if effects.browserDownloads}<li>
-					Stop the browser runtime download.
-				</li>{/if}
+			{#if effects.browserDownloads}<li>Stop the browser download.</li>{/if}
 			{#if effects.accountCandidates}<li>
 					Discard {effects.accountCandidates} Add-account {effects.accountCandidates ===
 					1

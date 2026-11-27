@@ -823,9 +823,9 @@ export class AccountStore {
 				return true
 			}
 			if (failed.length > 0) {
-				this.error = `${failed.length} ${failed.length === 1 ? "account" : "accounts"} could not be saved. Check the cookies again.`
+				this.error = `Could not save ${failed.length} ${failed.length === 1 ? "account" : "accounts"}. Check the cookies again.`
 			} else if (duplicates.length > 0) {
-				this.error = `${duplicates.length} ${duplicates.length === 1 ? "account is" : "accounts are"} already in the vault. Their cookies were not changed.`
+				this.error = `${duplicates.length} ${duplicates.length === 1 ? "account is" : "accounts are"} already in the vault. Their cookies did not change.`
 			}
 			return false
 		} catch (error) {

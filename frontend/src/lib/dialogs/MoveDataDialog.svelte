@@ -61,7 +61,7 @@
 		{target.directory}
 	</div>
 	<ul class="mt-3 flex list-disc flex-col gap-1 pl-5 text-xs text-warning">
-		<li>Every file is verified before the old copy is deleted.</li>
+		<li>The app checks every file before it deletes the old copy.</li>
 		<li>Open browser sessions close. The browser downloads again if needed.</li>
 	</ul>
 	<div class="dialog-actions">

@@ -208,9 +208,9 @@
 			<h2 id="chat-people-title">{title}</h2>
 			<p id="chat-people-description">
 				{mode === "create"
-					? `Select one friend for a direct chat, or up to ${selectionLimit} for a group.`
+					? `Select one friend for a direct chat, or up to ${selectionLimit} for a group chat.`
 					: selectionLimit > 0
-						? `This group has room for ${selectionLimit} more ${selectionLimit === 1 ? "user" : "users"}.`
+						? `This group chat has room for ${selectionLimit} more ${selectionLimit === 1 ? "user" : "users"}.`
 						: "This group chat is full."}
 			</p>
 		</div>

@@ -33,7 +33,7 @@ type NearestServerSearchPhase =
 	| "exhausted"
 	| "failed"
 
-const searchError = "The server search failed. Try again."
+const searchError = "Could not search for a server. Try again."
 
 export class NearestServerSearch {
 	regionChecks = $state<RegionCheck[]>([])

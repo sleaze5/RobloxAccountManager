@@ -48,7 +48,7 @@
 			<Icon svg={shieldCheckIcon} size={16} aria-hidden="true" />
 		</div>
 		<h2 id="check-password-title">Check master password</h2>
-		<p>Confirm that you still know the portable vault password.</p>
+		<p>Confirm that you still know the master password.</p>
 
 		<label class="dialog-field">
 			<span>Master password</span>

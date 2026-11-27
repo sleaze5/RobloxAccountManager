@@ -138,7 +138,7 @@
 				<p>Every running server is full. Show full servers to see them.</p>
 			{:else}
 				<h2>No servers are running</h2>
-				<p>Nobody is playing this place right now.</p>
+				<p>Nobody is playing this place.</p>
 			{/if}
 		</div>
 	{:else}

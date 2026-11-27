@@ -319,7 +319,7 @@
 				</p>
 			{:else if timeline.length === 0 && !chat.messagesError}
 				<p class="flex items-center gap-2 p-2 text-xs text-fg-faint">
-					No messages yet. Say hello.
+					No messages yet.
 				</p>
 			{/if}
 			<ol class="flex flex-col gap-0.5" aria-label="Messages">

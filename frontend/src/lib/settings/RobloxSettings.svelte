@@ -85,8 +85,7 @@
 					class={[snapshot?.supported === false && "text-fg-faint"]}
 					>Multi-client</strong>
 				<span id="multi-client-description"
-					>Launch several games at once. Works only while Roblox Account
-					Manager is open.</span>
+					>Launch several games at once. Works only while the app is open.</span>
 				<SettingsStatus
 					id="multi-client-status"
 					value={options.multiClientStatus.text}
@@ -162,8 +161,8 @@
 							<strong id="administrator-rights-title"
 								>Use administrator rights</strong>
 							<span id="administrator-rights-description"
-								>Ask Windows once per session, to also clean shared
-								files and processes.</span>
+								>Ask for administrator rights once per app start, to
+								also clean shared files and processes.</span>
 							{#if cleaner.isElevated}
 								<SettingsStatus
 									id="administrator-rights-status"

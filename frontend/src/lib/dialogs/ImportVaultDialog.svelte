@@ -275,7 +275,7 @@
 				{:else if preview}
 					Exported <Timestamp value={preview.exportedAtMs} />.
 				{:else}
-					Enter the password that was set when this file was exported.
+					Enter the export password of this file.
 				{/if}
 			</p>
 		</div>

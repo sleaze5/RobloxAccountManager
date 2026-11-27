@@ -36,8 +36,8 @@
 				label="Layered clothing"
 				count={layeredAssets.length} />
 			<p class="text-xs text-fg-muted">
-				Outer layers are listed first.{hasPuffiness
-					? " Puffiness comes from older avatar editors and stays as it is."
+				Outer layers come first.{hasPuffiness
+					? " Puffiness comes from older avatar editors and does not change."
 					: ""}
 			</p>
 		</div>

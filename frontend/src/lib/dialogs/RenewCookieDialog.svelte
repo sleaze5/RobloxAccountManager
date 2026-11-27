@@ -84,7 +84,7 @@
 					size={16}
 					class="spinner"
 					aria-hidden="true" />
-				<span>Renewing the cookie and saving it…</span>
+				<span>Renewing the cookie…</span>
 			{:else if error}
 				<span>Renewal not confirmed</span>
 			{:else}
@@ -93,7 +93,7 @@
 					size={16}
 					class="text-success"
 					aria-hidden="true" />
-				<span>The renewed cookie is saved.</span>
+				<span>Cookie renewed.</span>
 			{/if}
 		</div>
 	{/if}

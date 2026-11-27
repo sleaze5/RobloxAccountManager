@@ -90,7 +90,7 @@
 			<small id={`${id}-link-help`} class="text-xs text-fg-muted"
 				>{accountId
 					? `The app reads share links and access codes from Roblox as @${username}. An access code becomes a link code only if @${username} owns the server.`
-					: "Share links need an account. Access codes are saved as they are."}</small>
+					: "Share links need an account. The app saves access codes as they are."}</small>
 		</div>
 		<div class="dialog-field">
 			<label for={`${id}-name`}>Name (optional)</label>

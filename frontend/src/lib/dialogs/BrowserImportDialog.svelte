@@ -205,7 +205,7 @@
 			savedUpdated += updated
 		}
 		if (failed > 0) {
-			browser.error = `${failed} ${failed === 1 ? "account" : "accounts"} could not be saved.`
+			browser.error = `Could not save ${failed} ${failed === 1 ? "account" : "accounts"}.`
 		}
 	}
 

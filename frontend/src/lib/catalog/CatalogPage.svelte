@@ -396,10 +396,7 @@
 									onclick={() => void clearAllFilters()}
 									>Clear filters</button>
 							{:else}
-								<p>
-									The Marketplace lists nothing here right now. Select
-									another category.
-								</p>
+								<p>No items here. Select another category.</p>
 							{/if}
 						</div>
 					{/snippet}

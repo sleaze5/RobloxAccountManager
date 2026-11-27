@@ -175,8 +175,8 @@
 				</button>
 			{/if}
 			<div class="mt-3 notice-warning">
-				Reset deletes vault.db, vault.key, and autounlock.key. Saved accounts
-				cannot be recovered without a valid backup.
+				Reset deletes vault.db, vault.key, and autounlock.key. Without a valid
+				backup, you cannot recover the saved accounts.
 			</div>
 			<label class="dialog-field">
 				<span>Type RESET to confirm</span>
@@ -260,8 +260,7 @@
 					<input bind:value={hint} maxlength="480" autocomplete="off" />
 				</label>
 				<div class="mt-3 notice-warning">
-					The hint is saved as plain text. Do not include sensitive
-					information.
+					The app saves the hint as plain text. Do not put secrets in it.
 				</div>
 			{/if}
 			<AutomaticUnlockCheckbox bind:checked={automaticUnlock} />

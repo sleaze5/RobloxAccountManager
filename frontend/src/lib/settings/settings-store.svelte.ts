@@ -67,7 +67,7 @@ export class SettingsStore {
 					title: "Settings reset",
 					tone: "warning",
 					message:
-						"Could not read settings.json, so a new file with default values was created. The old file is saved as storage/settings.json.bak.",
+						"Could not read settings.json. The app reset the settings to defaults and kept the old file as storage/settings.json.bak.",
 					durationMs: 0,
 				})
 			}

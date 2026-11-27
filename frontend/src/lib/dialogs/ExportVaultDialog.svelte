@@ -141,7 +141,7 @@
 			}}>
 			<div class="notice-warning">
 				Anyone with this file and its export password can sign in to your
-				accounts. The export password cannot be recovered.
+				accounts. Nobody can recover a lost export password.
 			</div>
 			<div class="grid grid-cols-2 gap-3">
 				<label class="dialog-field">
