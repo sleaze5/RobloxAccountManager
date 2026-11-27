@@ -76,8 +76,9 @@ Use these terms in all text, as [WRITING.md](./WRITING.md) describes. Each term 
 | Term             | Meaning                                                                                     | Do not use                                     |
 | ---------------- | ------------------------------------------------------------------------------------------- | ---------------------------------------------- |
 | Roblox           | The Roblox Player, or the company and its service. The context makes the meaning clear.     | the game client, RobloxPlayerBeta (in UI text) |
-| client           | One running Roblox Player process.                                                          | instance, window                               |
-| multiple clients | Two or more clients that run at the same time.                                              | multi-instance, multiple instances             |
+| client           | One running copy of the Roblox Player that an account uses.                                 | instance, process (for a client), window       |
+| Multi-client     | The setting that lets two or more clients run at the same time.                             | multi-instance, multiple clients               |
+| process          | An operating system process, such as a Roblox Player process. Use it only for the OS level. | client (for an OS process), task               |
 | Roblox Studio    | The Roblox editor. Write "Studio" after the first use, as in the online status "In Studio". | the editor                                     |
 | instance         | A Roblox engine object in a place or a model file, such as a `Part`, as Explorer shows it.  | object, node (for an engine object)            |
 
