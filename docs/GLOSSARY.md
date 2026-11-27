@@ -91,42 +91,51 @@ Use these terms in all text, as [WRITING.md](./WRITING.md) describes. Each term 
 | Multi-client  | The setting that lets two or more clients run at the same time.                             | multi-instance, multiple clients               |
 | process       | An operating system process, such as a Roblox Player process. Use it only for the OS level. | client (for an OS process), task               |
 | Roblox Studio | The Roblox editor. Write "Studio" after the first use, as in the online status "In Studio". | the editor                                     |
+| update        | A newer version of the app.                                                                 | upgrade, patch                                 |
 | instance      | A Roblox engine object in a place or a model file, such as a `Part`, as Explorer shows it.  | object, node (for an engine object)            |
 
 ## Actions
 
 Use one verb for each action. Use it on the button, the menu item, the dialog, the progress label, the notification, the error, the log, and the comment.
 
-| Verb                 | Meaning                                                                                                                            | Do not use                            |
-| -------------------- | ---------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------- |
-| Add                  | Put an existing item into the app or a list, such as an account, a link, or a favorite.                                            | insert                                |
-| Create               | Make a new thing that did not exist before, such as a vault, a tag, or a group chat.                                               | new (as a verb), make                 |
-| Add friend           | Send a friend request to a user.                                                                                                   | send request, connect                 |
-| Add trusted friend   | Send a trusted friend request to a friend.                                                                                         | trust                                 |
-| Accept and Decline   | Answer an incoming request.                                                                                                        | approve, deny, reject, ignore         |
-| Cancel               | Stop an action before it completes, or withdraw an outgoing request.                                                               | abort, revoke, withdraw               |
-| Remove               | Take an account, a browser, or another item out of the app, or end a friendship.                                                   | unfriend, delete (for an account)     |
-| Delete               | Permanently erase data, such as a tag or a file.                                                                                   | erase, destroy, remove (for data)     |
-| Follow and Unfollow  | Start or stop following a user.                                                                                                    | subscribe, unsubscribe                |
-| Block and Unblock    | Start or stop blocking a user on Roblox.                                                                                           | ignore, mute                          |
-| Launch               | Start Roblox with one or more accounts.                                                                                            | start, run, open (for Roblox)         |
-| Join                 | Become a player in a server, or a member of a group.                                                                               | enter, connect                        |
-| Close                | End Roblox processes, or close a window or dialog.                                                                                 | kill, terminate, exit                 |
-| Clear                | Empty a field, a search, a filter, or a selection.                                                                                 | reset (for input), delete (for input) |
-| Lock and Unlock      | Change the vault state.                                                                                                            | open (for the vault), sign out        |
-| Select               | Mark an option, an item, or a user.                                                                                                | choose, pick                          |
-| Check                | Test something with Roblox or with a rule that the user sees, such as a cookie, a password, or a name with the Roblox text filter. | validate, verify                      |
-| validate             | In code only: test input from the UI or a file against format rules before use. Never use it in UI text.                           | check (for input rules in code)       |
-| Show and Hide        | Make something visible or not visible.                                                                                             | reveal, display, toggle               |
-| Refresh              | Load data again.                                                                                                                   | reload, sync, update (for data)       |
-| Turn on and Turn off | Change a switch. The states are "On" and "Off".                                                                                    | enable, disable, toggle               |
-| Dismiss              | Hide a notification or a message.                                                                                                  | close (for a notification)            |
-| Put on and Take off  | Change what the avatar wears. "Worn" names the state.                                                                              | equip, unequip, wear                  |
-| Update cookie        | Give a saved account a new cookie that the user enters.                                                                            | replace cookie                        |
-| Renew cookie         | Get a new cookie for an account from Roblox. It replaces the saved cookie.                                                         | refresh cookie                        |
-| Expand               | Show an image or a panel at a larger size.                                                                                         | view (for an image), enlarge          |
-| Copy                 | Put a value on the clipboard.                                                                                                      | clone (for the clipboard)             |
-| Open in browser      | Open the page of a user, a game, a group, or an item on the Roblox website.                                                        | view on Roblox, visit                 |
+| Verb                 | Meaning                                                                                                                            | Do not use                                      |
+| -------------------- | ---------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------- |
+| Add                  | Put an existing item into the app or a list, such as an account, a link, or a favorite.                                            | insert                                          |
+| Create               | Make a new thing that did not exist before, such as a vault, a tag, or a group chat.                                               | new (as a verb), make                           |
+| Add friend           | Send a friend request to a user.                                                                                                   | send request, connect                           |
+| Add trusted friend   | Send a trusted friend request to a friend.                                                                                         | trust                                           |
+| Accept and Decline   | Answer an incoming request.                                                                                                        | approve, deny, reject, ignore                   |
+| Cancel               | Stop an action before it completes, or withdraw an outgoing request.                                                               | abort, revoke, withdraw                         |
+| Remove               | Take an account, a browser, or another item out of the app, or end a friendship.                                                   | unfriend, delete (for an account)               |
+| Delete               | Permanently erase data, such as a tag or a file.                                                                                   | erase, destroy, remove (for data)               |
+| Edit                 | Change text in place, such as a description, a nickname, or the tags of an account.                                                | modify                                          |
+| Change               | Replace a password, an email, or a display name. Roblox or the vault checks the new value.                                         | edit (for a credential), reset (for a password) |
+| Rename               | Give an item a new name, such as an outfit, a private server, or a group chat.                                                     | change name, edit name                          |
+| Manage               | Open the controls that add, change, or delete many items of one kind, such as tags.                                                | administer, configure                           |
+| Save                 | Keep data or a change in the vault, on Roblox, or in a file that the app makes.                                                    | store, persist (in UI text)                     |
+| Download             | Copy a file from Roblox or another service to the computer.                                                                        | save (for a remote file), fetch                 |
+| Open                 | Show a dialog, a page, a file, or a website.                                                                                       | view, launch (for a dialog or page)             |
+| Quit                 | Stop the app.                                                                                                                      | exit, close (for the app)                       |
+| Follow and Unfollow  | Start or stop following a user.                                                                                                    | subscribe, unsubscribe                          |
+| Block and Unblock    | Start or stop blocking a user on Roblox.                                                                                           | ignore, mute                                    |
+| Launch               | Start Roblox with one or more accounts.                                                                                            | start, run, open (for Roblox)                   |
+| Join                 | Become a player in a server, or a member of a group.                                                                               | enter, connect                                  |
+| Close                | End Roblox processes, or close a window or dialog.                                                                                 | kill, terminate, exit                           |
+| Clear                | Empty a field, a search, a filter, or a selection.                                                                                 | reset (for input), delete (for input)           |
+| Lock and Unlock      | Change the vault state.                                                                                                            | open (for the vault), sign out                  |
+| Select               | Mark an option, an item, or a user.                                                                                                | choose, pick                                    |
+| Check                | Test something with Roblox or with a rule that the user sees, such as a cookie, a password, or a name with the Roblox text filter. | validate, verify                                |
+| validate             | In code only: test input from the UI or a file against format rules before use. Never use it in UI text.                           | check (for input rules in code)                 |
+| Show and Hide        | Make something visible or not visible.                                                                                             | reveal, display, toggle                         |
+| Refresh              | Load data again.                                                                                                                   | reload, sync, update (for data)                 |
+| Turn on and Turn off | Change a switch. The states are "On" and "Off".                                                                                    | enable, disable, toggle                         |
+| Dismiss              | Hide a notification or a message.                                                                                                  | close (for a notification)                      |
+| Put on and Take off  | Change what the avatar wears. "Worn" names the state.                                                                              | equip, unequip, wear                            |
+| Update cookie        | Give a saved account a new cookie that the user enters.                                                                            | replace cookie                                  |
+| Renew cookie         | Get a new cookie for an account from Roblox. It replaces the saved cookie.                                                         | refresh cookie                                  |
+| Expand               | Show an image or a panel at a larger size.                                                                                         | view (for an image), enlarge                    |
+| Copy                 | Put a value on the clipboard.                                                                                                      | clone (for the clipboard)                       |
+| Open in browser      | Open the page of a user, a game, a group, or an item on the Roblox website.                                                        | view on Roblox, visit                           |
 
 Some words name a state that Roblox sets. They do not name an action of the app:
 
