@@ -25,6 +25,7 @@ Use these terms in all text, as [WRITING.md](./WRITING.md) describes. Each term 
 | Overview        | The first tab of a profile, which shows its main sections.                                                     | home, summary                           |
 | session         | A device or a browser where an account is signed in to Roblox, as Account settings lists it.                   | login, device (for a session)           |
 | launch session  | One run of a client from start to end, as its log file records it. Logs Explorer lists them.                   | session (for a client run), run         |
+| browser         | A Chrome for Testing window that the app opens for one account, with its own profile.                          | browser session                         |
 | favorite place  | A place that the user saved in the favorites of the app, on the Games page.                                    | favorite game (for a saved place)       |
 | favorite game   | A game that a user marked as a favorite on Roblox.                                                             | favorite place (for a Roblox favorite)  |
 
