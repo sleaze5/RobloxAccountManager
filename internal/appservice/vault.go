@@ -13,18 +13,18 @@ import (
 )
 
 type VaultState struct {
-	Initialized              bool            `json:"initialized"`
-	Unlocked                 bool            `json:"unlocked"`
-	FileState                vault.FileState `json:"fileState"`
-	MigrationAvailable       bool            `json:"migrationAvailable"`
-	PasswordHint             string          `json:"passwordHint,omitempty"`
-	PasswordReminderDue      bool            `json:"passwordReminderDue"`
-	PasswordTestIntervalDays int             `json:"passwordTestIntervalDays"`
-	LastPasswordTestedAt     string          `json:"lastPasswordTestedAt,omitempty"`
-	AutomaticUnlockRecovery  bool            `json:"automaticUnlockRecovery"`
-	AutomaticUnlock          bool            `json:"automaticUnlock"`
-	ValidAutomaticUnlock     bool            `json:"validAutomaticUnlock"`
-	StartupError             string          `json:"startupError,omitempty"`
+	Initialized               bool            `json:"initialized"`
+	Unlocked                  bool            `json:"unlocked"`
+	FileState                 vault.FileState `json:"fileState"`
+	MigrationAvailable        bool            `json:"migrationAvailable"`
+	PasswordHint              string          `json:"passwordHint,omitempty"`
+	PasswordReminderDue       bool            `json:"passwordReminderDue"`
+	PasswordCheckIntervalDays int             `json:"passwordCheckIntervalDays"`
+	LastPasswordCheckedAt     string          `json:"lastPasswordCheckedAt,omitempty"`
+	AutomaticUnlockRecovery   bool            `json:"automaticUnlockRecovery"`
+	AutomaticUnlock           bool            `json:"automaticUnlock"`
+	ValidAutomaticUnlock      bool            `json:"validAutomaticUnlock"`
+	StartupError              string          `json:"startupError,omitempty"`
 }
 
 func (service *Service) GetVaultState() VaultState {
@@ -32,18 +32,18 @@ func (service *Service) GetVaultState() VaultState {
 	defer service.mutex.Unlock()
 	settings := service.settings.Vault()
 	return VaultState{
-		Initialized:              service.vault.Initialized(),
-		Unlocked:                 service.vault.Unlocked(),
-		FileState:                service.vault.FileState(),
-		MigrationAvailable:       service.vault.MigrationAvailable(),
-		PasswordHint:             service.vault.PasswordHint(),
-		PasswordReminderDue:      service.reminderDue,
-		PasswordTestIntervalDays: settings.PasswordTestIntervalDays,
-		LastPasswordTestedAt:     settings.LastPasswordTestedAt,
-		AutomaticUnlockRecovery:  service.vault.UnlockedAutomatically(),
-		AutomaticUnlock:          service.vault.AutomaticUnlockEnabled(),
-		ValidAutomaticUnlock:     service.vault.ValidAutomaticUnlock(),
-		StartupError:             service.startupError,
+		Initialized:               service.vault.Initialized(),
+		Unlocked:                  service.vault.Unlocked(),
+		FileState:                 service.vault.FileState(),
+		MigrationAvailable:        service.vault.MigrationAvailable(),
+		PasswordHint:              service.vault.PasswordHint(),
+		PasswordReminderDue:       service.reminderDue,
+		PasswordCheckIntervalDays: settings.PasswordCheckIntervalDays,
+		LastPasswordCheckedAt:     settings.LastPasswordCheckedAt,
+		AutomaticUnlockRecovery:   service.vault.UnlockedAutomatically(),
+		AutomaticUnlock:           service.vault.AutomaticUnlockEnabled(),
+		ValidAutomaticUnlock:      service.vault.ValidAutomaticUnlock(),
+		StartupError:              service.startupError,
 	}
 }
 
@@ -59,7 +59,7 @@ func (service *Service) CreateVault(ctx context.Context, password, confirmation,
 		}
 		return &roblox.Error{Kind: roblox.KindProtocol, Endpoint: "vault-create", Message: message, Cause: err}
 	}
-	if err := service.settings.RecordPasswordTested(time.Now()); err != nil {
+	if err := service.settings.RecordPasswordChecked(time.Now()); err != nil {
 		service.logger.Error("could not record the master password setup", "error", err)
 	}
 	service.finishUnlock(false)
@@ -73,8 +73,8 @@ func (service *Service) UnlockVault(ctx context.Context, password string) error 
 	if err := service.vault.Unlock(ctx, password); err != nil {
 		return safeVaultError(err)
 	}
-	if err := service.settings.RecordPasswordTested(time.Now()); err != nil {
-		service.logger.Error("could not record the master password test", "error", err)
+	if err := service.settings.RecordPasswordChecked(time.Now()); err != nil {
+		service.logger.Error("could not record the master password check", "error", err)
 	}
 	service.finishUnlock(false)
 	return nil
@@ -146,12 +146,12 @@ func (service *Service) finishLocked() {
 	service.events.send("vault:locked", struct{}{})
 }
 
-func (service *Service) TestVaultPassword(ctx context.Context, password string) error {
-	if err := service.vault.TestPassword(ctx, password); err != nil {
+func (service *Service) CheckVaultPassword(ctx context.Context, password string) error {
+	if err := service.vault.CheckPassword(ctx, password); err != nil {
 		return safeVaultError(err)
 	}
-	if err := service.settings.RecordPasswordTested(time.Now()); err != nil {
-		return fmt.Errorf("save password test time: %w", err)
+	if err := service.settings.RecordPasswordChecked(time.Now()); err != nil {
+		return fmt.Errorf("save password check time: %w", err)
 	}
 	service.mutex.Lock()
 	service.reminderDue = false
@@ -174,7 +174,7 @@ func (service *Service) ChangeVaultPassword(ctx context.Context, currentPassword
 	if err := service.vault.ChangePassword(ctx, currentPassword, newPassword, confirmation, hint, automaticUnlock); err != nil {
 		return err
 	}
-	if err := service.settings.RecordPasswordTested(time.Now()); err != nil {
+	if err := service.settings.RecordPasswordChecked(time.Now()); err != nil {
 		service.logger.Error("could not record the changed master password", "error", err)
 	}
 	service.mutex.Lock()
@@ -186,8 +186,8 @@ func (service *Service) ChangeVaultPassword(ctx context.Context, currentPassword
 	return nil
 }
 
-func (service *Service) SetPasswordTestIntervalDays(days int) error {
-	return service.settings.SetPasswordTestIntervalDays(days)
+func (service *Service) SetPasswordCheckIntervalDays(days int) error {
+	return service.settings.SetPasswordCheckIntervalDays(days)
 }
 
 func (service *Service) SetAutomaticUnlock(enabled bool) error {
@@ -259,7 +259,7 @@ func (service *Service) MigrateLegacyVault(ctx context.Context, password string)
 		service.logger.Error("could not import the moved data", "operation", "vault-migration", "error", err)
 		return transferError("The app created the new vault but did not import your data. The old vault is in the recovery folder in storage/vault.", err)
 	}
-	if err := service.settings.RecordPasswordTested(time.Now()); err != nil {
+	if err := service.settings.RecordPasswordChecked(time.Now()); err != nil {
 		service.logger.Error("could not record the master password after the move", "error", err)
 	}
 	service.finishUnlock(false)

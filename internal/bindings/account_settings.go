@@ -14,9 +14,9 @@ func (service *Service) GetRobuxTransactions(ctx context.Context, accountID int6
 	return service.core.GetRobuxTransactions(ctx, accountID, transactionType, cursor)
 }
 
-func (service *Service) GetAccountInfo(ctx context.Context, accountID int64, section appservice.AccountInfoSection) (appservice.AccountInfoSnapshot, error) {
+func (service *Service) GetAccountInfo(ctx context.Context, accountID int64, section appservice.AccountDetailsSection) (appservice.AccountDetailsSnapshot, error) {
 	if err := positiveID(accountID, "account-info"); err != nil {
-		return appservice.AccountInfoSnapshot{}, err
+		return appservice.AccountDetailsSnapshot{}, err
 	}
 	return service.core.GetAccountInfo(ctx, accountID, section)
 }

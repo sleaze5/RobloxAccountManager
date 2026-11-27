@@ -29,7 +29,7 @@
 		copyingImage = false
 	}
 
-	function viewImage(): void {
+	function expandImage(): void {
 		const { image } = menu
 		workspace.closeAccountMenus()
 		workspace.viewedImage = image
@@ -46,7 +46,7 @@
 	use:menuKeyboard
 	in:menuIn
 	out:menuOut>
-	<MenuItem label="View image" icon={imageIcon} onSelect={viewImage} />
+	<MenuItem label="Expand image" icon={imageIcon} onSelect={expandImage} />
 	<MenuItem
 		label={copyingImage ? "Copying image…" : "Copy image"}
 		icon={copyIcon}

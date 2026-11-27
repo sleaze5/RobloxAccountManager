@@ -20,7 +20,7 @@ func (manager *Manager) ChangePassword(ctx context.Context, currentPassword, new
 		return err
 	}
 	if currentPassword != "" {
-		if err := manager.TestPassword(ctx, currentPassword); err != nil {
+		if err := manager.CheckPassword(ctx, currentPassword); err != nil {
 			return err
 		}
 	} else if !manager.ValidAutomaticUnlock() {

@@ -8,7 +8,7 @@
 	import Icon from "../shared/Icon.svelte"
 	import type { AccountStore } from "../accounts/account-store.svelte"
 	import ChangeMasterPasswordDialog from "../dialogs/ChangeMasterPasswordDialog.svelte"
-	import TestMasterPasswordDialog from "../dialogs/TestMasterPasswordDialog.svelte"
+	import CheckMasterPasswordDialog from "../dialogs/CheckMasterPasswordDialog.svelte"
 	import Timestamp from "../shared/Timestamp.svelte"
 	import Select from "../shared/Select.svelte"
 	import SettingsStatus from "./SettingsStatus.svelte"
@@ -17,7 +17,7 @@
 		automaticUnlockSummary,
 	} from "../shared/automatic-unlock"
 
-	type ActiveDialog = "test" | "change" | null
+	type ActiveDialog = "check" | "change" | null
 	const reminderOptions = [
 		{ value: 7, label: "Every 7 days" },
 		{ value: 30, label: "Every 30 days" },
@@ -60,11 +60,11 @@
 				<div class="settings-row-copy">
 					<strong>Vault status</strong>
 					<span>
-						{#if store.vault.lastPasswordTestedAt}
-							Master password last tested <Timestamp
-								value={Date.parse(store.vault.lastPasswordTestedAt)} />
+						{#if store.vault.lastPasswordCheckedAt}
+							Master password last checked <Timestamp
+								value={Date.parse(store.vault.lastPasswordCheckedAt)} />
 						{:else}
-							The master password has not been tested yet.
+							The master password has not been checked yet.
 						{/if}
 					</span>
 					<SettingsStatus value="Unlocked" tone="success" />
@@ -74,9 +74,9 @@
 						class="button"
 						type="button"
 						disabled={store.busy}
-						onclick={() => openDialog("test")}>
+						onclick={() => openDialog("check")}>
 						<Icon svg={shieldCheckIcon} size={16} aria-hidden="true" />
-						Test password
+						Check password
 					</button>
 					<button
 						class="button"
@@ -133,27 +133,28 @@
 			</div>
 		{/if}
 
-		{#if matchesSetting(terms, "passwordTestReminder")}
+		{#if matchesSetting(terms, "passwordCheckReminder")}
 			<div class="settings-row">
 				<div class="settings-row-copy">
-					<strong>Password test reminder</strong>
+					<strong>Password check reminder</strong>
 					<span
 						>Select how often automatic unlock asks you to confirm the
 						master password.</span>
 				</div>
 				<Select
-					label="Password test reminder interval"
-					value={store.vault.passwordTestIntervalDays}
+					label="Password check reminder interval"
+					value={store.vault.passwordCheckIntervalDays}
 					options={reminderOptions}
 					disabled={store.busy}
-					onChange={(days) => void store.setPasswordTestIntervalDays(days)} />
+					onChange={(days) =>
+						void store.setPasswordCheckIntervalDays(days)} />
 			</div>
 		{/if}
 	</div>
 </section>
 
-{#if activeDialog === "test"}
-	<TestMasterPasswordDialog {store} onClose={() => (activeDialog = null)} />
+{#if activeDialog === "check"}
+	<CheckMasterPasswordDialog {store} onClose={() => (activeDialog = null)} />
 {/if}
 
 {#if activeDialog === "change"}

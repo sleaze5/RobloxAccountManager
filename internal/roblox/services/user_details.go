@@ -35,7 +35,7 @@ type UserVerificationMethod struct {
 	Enabled   *bool  `json:"enabled"`
 }
 
-func (service *Users) AccountInfo(ctx context.Context, accountID, version, userID int64) (UserAccountDetails, error) {
+func (service *Users) AccountDetails(ctx context.Context, accountID, version, userID int64) (UserAccountDetails, error) {
 	var accountDetails UserAccountDetails
 	err := service.readAccountDetails(ctx, accountID, version, "profile-account", "https://users.roblox.com/v1/users/authenticated/app-launch-info", &accountDetails)
 	if err == nil && accountDetails.ID <= 0 {

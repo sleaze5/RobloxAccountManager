@@ -50,7 +50,7 @@
 	import AccountMembershipBadges from "./AccountMembershipBadges.svelte"
 	import AccountPresence from "./AccountPresence.svelte"
 	import AccountProfileBalance from "./AccountProfileBalance.svelte"
-	import AccountProfileAbout from "./AccountProfileAbout.svelte"
+	import AccountProfileDescription from "./AccountProfileDescription.svelte"
 	import AccountProfileDetails from "./AccountProfileDetails.svelte"
 	import AccountSettingsPage from "./AccountSettingsPage.svelte"
 	import type { AccountStore } from "./account-store.svelte"
@@ -512,7 +512,7 @@
 
 			<div class="grid min-w-0 items-start gap-5 @4xl:grid-cols-3 @4xl:gap-x-6">
 				{#if profileState && hasAbout}
-					<AccountProfileAbout
+					<AccountProfileDescription
 						snapshot={profileState.snapshot}
 						isDescriptionUnavailable={!profileState.sections.hasSection(
 							AccountProfileSection.ProfileSectionAbout,

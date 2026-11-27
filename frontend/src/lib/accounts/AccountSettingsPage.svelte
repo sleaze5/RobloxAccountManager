@@ -24,14 +24,16 @@
 	import PrivateServerDialog from "../private-servers/PrivateServerDialog.svelte"
 	import type { OwnedPrivateServer } from "../backend/bridge"
 	import type { AccountStore } from "./account-store.svelte"
-	import AccountInfoPanel, { accountInfoFields } from "./AccountInfoPanel.svelte"
+	import AccountDetailsPanel, {
+		accountDetailsFields,
+	} from "./AccountDetailsPanel.svelte"
 	import AccountSessionsList from "./AccountSessionsList.svelte"
 	import RobuxHistoryList from "./RobuxHistoryList.svelte"
 	import { RobuxHistoryState } from "./robux-history-state.svelte"
 	import coinsIcon from "@phosphor-icons/core/regular/coins.svg?raw"
 	import { AccountSessionsState } from "./account-sessions-state.svelte"
-	import type { AccountInfoFieldId } from "./AccountInfoPanel.svelte"
-	import { AccountInfoState } from "./account-info-state.svelte"
+	import type { AccountDetailsFieldId } from "./AccountDetailsPanel.svelte"
+	import { AccountDetailsState } from "./account-details-state.svelte"
 	import AccountSettingRow from "./AccountSettingRow.svelte"
 	import type { SettingRadioOption } from "./AccountSettingRow.svelte"
 	import { AccountSettingsState } from "./account-settings-state.svelte"
@@ -389,10 +391,10 @@
 		privacyLabel = "Privacy and content restrictions",
 		pages = [
 			{
-				id: "info",
-				label: "Account info",
+				id: "details",
+				label: "Account details",
 				icon: userCircleIcon,
-				search: "account info details profile",
+				search: "account details info profile",
 			},
 			{
 				id: "privacy",
@@ -442,7 +444,7 @@
 		contentElement = $state<HTMLElement | undefined>(undefined),
 		searchInput = $state<HTMLInputElement | undefined>(undefined),
 		settingsState = $state<AccountSettingsState | null>(null),
-		infoState = $state<AccountInfoState | null>(null),
+		accountDetailsState = $state<AccountDetailsState | null>(null),
 		blockedState = $state<BlockedUsersState | null>(null),
 		ownedState = $state<OwnedPrivateServersState | null>(null),
 		sessionsState = $state<AccountSessionsState | null>(null),
@@ -461,8 +463,8 @@
 			),
 		),
 		visibleInfoFields = $derived(
-			new Set<AccountInfoFieldId>(
-				accountInfoFields
+			new Set<AccountDetailsFieldId>(
+				accountDetailsFields
 					.filter(
 						(field) =>
 							terms.length === 0 ||
@@ -486,7 +488,7 @@
 		]),
 		visiblePages = $derived(
 			pages.filter((page) =>
-				page.id === "info"
+				page.id === "details"
 					? visibleInfoFields.size > 0
 					: page.id === "privacy"
 						? visibleSubpages.length > 0
@@ -513,21 +515,21 @@
 			!settingsState || settingsState.loading || settingsState.saving !== null,
 		),
 		activePageLoad = $derived.by((): PageLoadState | null => {
-			const accountInfo = infoState,
+			const accountDetails = accountDetailsState,
 				owned = ownedState,
 				sessions = sessionsState,
 				robux = robuxState,
 				blocked = blockedState,
 				settings = settingsState
 			switch (activePage?.id) {
-				case "info":
+				case "details":
 					return (
-						accountInfo &&
+						accountDetails &&
 						createPageLoadState(
-							accountInfo.loading,
-							!!accountInfo.snapshot,
-							accountInfo.isFresh,
-							() => accountInfo.refresh(),
+							accountDetails.loading,
+							!!accountDetails.snapshot,
+							accountDetails.isFresh,
+							() => accountDetails.refresh(),
 						)
 					)
 				case "servers":
@@ -829,7 +831,7 @@
 			store,
 			notifications,
 		)
-		const accountInfo = new AccountInfoState(store.selectedAccount.id, store),
+		const accountDetails = new AccountDetailsState(store.selectedAccount.id, store),
 			blocked = new BlockedUsersState(store.selectedAccount.id, store),
 			owned = new OwnedPrivateServersState(store.selectedAccount.id, store),
 			sessions = new AccountSessionsState(
@@ -838,7 +840,7 @@
 				notifications,
 			)
 		settingsState = settings
-		infoState = accountInfo
+		accountDetailsState = accountDetails
 		blockedState = blocked
 		ownedState = owned
 		sessionsState = sessions
@@ -846,7 +848,7 @@
 		robuxState = robux
 		return () => {
 			settings.dispose()
-			accountInfo.dispose()
+			accountDetails.dispose()
 			blocked.dispose()
 			owned.dispose()
 			sessions.dispose()
@@ -953,11 +955,11 @@
 			{#key `${activePage?.id}:${activeSubpage?.id}:${normalizedQuery}`}
 				{#if !activePage}
 					<NoMatchingSettings onClearSearch={clearSearch} />
-				{:else if activePage.id === "info"}
-					<h2>Account info</h2>
-					{#if infoState}
-						<AccountInfoPanel
-							info={infoState}
+				{:else if activePage.id === "details"}
+					<h2>Account details</h2>
+					{#if accountDetailsState}
+						<AccountDetailsPanel
+							details={accountDetailsState}
 							account={store.selectedAccount}
 							visible={visibleInfoFields}
 							onSavedPassword={() => (savedPasswordOpen = true)}
@@ -1059,7 +1061,7 @@
 		account={store.selectedAccount}
 		kind={editing}
 		{notifications}
-		onSaved={() => void infoState?.refresh()}
+		onSaved={() => void accountDetailsState?.refresh()}
 		onClose={() => (editing = null)} />
 {/if}
 

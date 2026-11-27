@@ -2,7 +2,7 @@ import { Events } from "@wailsio/runtime"
 import {
 	accountBackend,
 	AccountCopyField,
-	AccountInfoSection,
+	AccountDetailsSection,
 	FileState,
 	ImportStatus,
 	LaunchMethod,
@@ -50,10 +50,10 @@ export class AccountStore {
 		automaticUnlockRecovery: false,
 		fileState: FileState.$zero,
 		initialized: false,
-		lastPasswordTestedAt: "",
+		lastPasswordCheckedAt: "",
 		migrationAvailable: false,
 		passwordReminderDue: false,
-		passwordTestIntervalDays: 30,
+		passwordCheckIntervalDays: 30,
 		unlocked: false,
 		validAutomaticUnlock: false,
 	})
@@ -501,12 +501,12 @@ export class AccountStore {
 		})
 	}
 
-	async testVaultPassword(password: string): Promise<boolean> {
+	async checkVaultPassword(password: string): Promise<boolean> {
 		if (!password) {
 			return false
 		}
 		return this.#runBusy(async () => {
-			await accountBackend.TestVaultPassword(password)
+			await accountBackend.CheckVaultPassword(password)
 			this.vault = await accountBackend.GetVaultState()
 		})
 	}
@@ -518,9 +518,9 @@ export class AccountStore {
 		})
 	}
 
-	async setPasswordTestIntervalDays(days: number): Promise<void> {
+	async setPasswordCheckIntervalDays(days: number): Promise<void> {
 		await this.#runBusy(async () => {
-			await accountBackend.SetPasswordTestIntervalDays(days)
+			await accountBackend.SetPasswordCheckIntervalDays(days)
 			this.vault = await accountBackend.GetVaultState()
 		})
 	}
@@ -1124,7 +1124,7 @@ export class AccountStore {
 		try {
 			const snapshot = await accountBackend.GetAccountInfo(
 				accountId,
-				AccountInfoSection.InfoSectionVoiceChat,
+				AccountDetailsSection.InfoSectionVoiceChat,
 			)
 			return snapshot.isComplete
 		} catch {

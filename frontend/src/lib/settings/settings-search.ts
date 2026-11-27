@@ -5,13 +5,13 @@ import { matchesSearch } from "../shared/search"
 // the same thing.
 const settingSearchWords = {
 	vaultStatus:
-		"vault status locked unlocked lock security test master password last tested",
+		"vault status locked unlocked lock security check test master password last checked tested",
 	automaticUnlock:
 		"automatic unlock auto unlock autounlock remember password skip password startup start login sign in operating system user account windows hello keychain on off",
 	changeMasterPassword:
 		"change master password new password reset password rotate encryption key security",
-	passwordTestReminder:
-		"password test reminder interval how often remind confirm master password check memory forget",
+	passwordCheckReminder:
+		"password check reminder interval how often remind confirm master password check memory forget",
 	storageLocation:
 		"storage location data folder directory path where saved files portable standard appdata copy path",
 	moveStorage:
@@ -63,7 +63,7 @@ export const settingsCategories = {
 			"vaultStatus",
 			"automaticUnlock",
 			"changeMasterPassword",
-			"passwordTestReminder",
+			"passwordCheckReminder",
 			"storageLocation",
 			"moveStorage",
 			"exportData",

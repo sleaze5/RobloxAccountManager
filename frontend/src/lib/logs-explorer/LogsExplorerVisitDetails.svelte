@@ -16,7 +16,7 @@
 			{universeId}
 			{placeId}
 			onShowGame={() => previews.show({ kind: "Place", placeId })} />{/if}
-	<dl class="detail-grid" aria-label="Game identifiers">
+	<dl class="detail-grid" aria-label="Game IDs">
 		<div>
 			<dt>Place ID</dt>
 			<dd class="font-mono">{visit.placeId}</dd>
@@ -42,7 +42,7 @@
 				</div>{/if}
 		</dl>
 	{/if}
-	<dl class="detail-grid" aria-label="Session details">
+	<dl class="detail-grid" aria-label="Launch session details">
 		<div class="col-span-full">
 			<dt>End reason</dt>
 			<dd class="font-mono">

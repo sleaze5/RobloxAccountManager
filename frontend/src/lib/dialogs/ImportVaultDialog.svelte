@@ -53,7 +53,7 @@
 			{ value: SettingsSection.SectionIntegrations, label: "Integrations" },
 			{ value: SettingsSection.SectionUserInterface, label: "User interface" },
 			{ value: SettingsSection.SectionLogging, label: "Logging" },
-			{ value: SettingsSection.SectionVault, label: "Password test reminder" },
+			{ value: SettingsSection.SectionVault, label: "Password check reminder" },
 		],
 		settingsLabels: Record<TransferSettingsStatus, { text: string; tone: string }> =
 			{

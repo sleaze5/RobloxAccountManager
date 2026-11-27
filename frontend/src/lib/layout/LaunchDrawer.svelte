@@ -242,7 +242,7 @@
 									class="field font-mono text-2xs"
 									bind:value={store.launchInput.serverId}
 									type="text"
-									placeholder="Server UUID"
+									placeholder="Server ID"
 									disabled={store.launching} />
 							</label>
 							{#if appSettings.roValraEnabled}

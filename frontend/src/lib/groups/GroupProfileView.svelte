@@ -412,9 +412,13 @@
 		{/if}
 
 		{#if group.description || permissions.canConfigure}
-			<section class="flex flex-col gap-2" aria-labelledby="group-about-heading">
+			<section
+				class="flex flex-col gap-2"
+				aria-labelledby="group-description-heading">
 				<div class="flex min-h-6 items-center gap-2">
-					<h3 id="group-about-heading" class={sectionHeadingClass}>About</h3>
+					<h3 id="group-description-heading" class={sectionHeadingClass}>
+						Description
+					</h3>
 					{#if permissions.canConfigure && !isEditingDescription}
 						<button
 							class="ml-auto button-ghost-sm"

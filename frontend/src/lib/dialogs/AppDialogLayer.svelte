@@ -16,7 +16,7 @@
 	import RemoveAccountDialog from "./RemoveAccountDialog.svelte"
 	import RemoveConnectionsDialog from "./RemoveConnectionsDialog.svelte"
 	import RenewCookieDialog from "./RenewCookieDialog.svelte"
-	import TestMasterPasswordDialog from "./TestMasterPasswordDialog.svelte"
+	import CheckMasterPasswordDialog from "./CheckMasterPasswordDialog.svelte"
 
 	let {
 		dialogs,
@@ -85,8 +85,8 @@
 		store={social}
 		account={store.selectedAccount}
 		onClose={() => dialogs.closeRemoveConnections()} />
-{:else if dialog?.kind === "test-password"}
-	<TestMasterPasswordDialog {store} onClose={() => dialogs.closePasswordTest()} />
+{:else if dialog?.kind === "check-password"}
+	<CheckMasterPasswordDialog {store} onClose={() => dialogs.closePasswordCheck()} />
 {:else if dialog?.kind === "browser-import"}
 	<BrowserImportDialog
 		browser={browserStore}

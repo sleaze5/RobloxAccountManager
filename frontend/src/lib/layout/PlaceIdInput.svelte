@@ -143,7 +143,7 @@
 		bind:value={store.launchInput.placeId}
 		data-place-input
 		type="text"
-		placeholder="ID or favorited game"
+		placeholder="ID or favorite place"
 		role="combobox"
 		autocomplete="off"
 		spellcheck="false"
@@ -163,7 +163,7 @@
 		class="fixed z-10 flex max-h-(--place-menu-space) flex-col overflow-hidden rounded-xl border border-line-strong bg-overlay shadow-menu"
 		id={listID}
 		role="listbox"
-		aria-label="Favorite games"
+		aria-label="Favorite places"
 		style={listStyle}
 		in:menuIn
 		out:menuOut>
@@ -194,10 +194,10 @@
 			{:else}
 				<div class="p-2 text-xs text-fg-muted" role="status">
 					{games.loadingFavorites
-						? "Loading favorite games…"
+						? "Loading favorite places…"
 						: games.favoritesLoaded
-							? "No favorite games yet"
-							: "Favorite games unavailable"}
+							? "No favorite places yet"
+							: "Favorite places unavailable"}
 				</div>
 			{/each}
 		</div>

@@ -216,8 +216,8 @@
 		</div>
 	{:else if group}
 		{#if group.description}
-			<section class="flex flex-col gap-3" aria-label="About">
-				<h3 class={sectionHeadingClass}>About</h3>
+			<section class="flex flex-col gap-3" aria-label="Description">
+				<h3 class={sectionHeadingClass}>Description</h3>
 				<p
 					class="max-h-40 text-block overflow-y-auto select-text"
 					data-variant="prose">
@@ -225,8 +225,8 @@
 				</p>
 			</section>
 		{/if}
-		<section class="flex flex-col gap-3" aria-label="Information">
-			<h3 class={sectionHeadingClass}>Information</h3>
+		<section class="flex flex-col gap-3" aria-label="Details">
+			<h3 class={sectionHeadingClass}>Details</h3>
 			<dl class="facts">
 				<div>
 					<dt>

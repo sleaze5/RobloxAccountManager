@@ -238,8 +238,8 @@
 	{/snippet}
 
 	{#if profile.description}
-		<section class="flex flex-col gap-3" aria-label="About">
-			<h3 class={sectionClass}>About</h3>
+		<section class="flex flex-col gap-3" aria-label="Description">
+			<h3 class={sectionClass}>Description</h3>
 			<p
 				class="max-h-40 text-block overflow-y-auto select-text"
 				data-variant="prose">

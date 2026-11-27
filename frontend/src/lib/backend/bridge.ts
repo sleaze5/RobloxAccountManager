@@ -1,7 +1,7 @@
 import * as Service from "../../../bindings/github.com/sleaze5/RobloxAccountManager/internal/bindings/service.js"
 
 export type {
-	AccountInfoSnapshot,
+	AccountDetailsSnapshot,
 	AccountJoinCheck,
 	AccountProfileSnapshot,
 	AccountSession,
@@ -64,7 +64,7 @@ export {
 export type { PresenceSettings } from "../../../bindings/github.com/sleaze5/RobloxAccountManager/internal/appsettings/models.js"
 export {
 	AccountCopyField,
-	AccountInfoSection,
+	AccountDetailsSection,
 	AccountProfileSection,
 	AccountSettingKey,
 	AgeVerification,

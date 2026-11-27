@@ -378,7 +378,7 @@
 				</section>
 			{:else if sections?.isSectionPending(SocialProfileSection.SocialSectionAbout)}
 				<section class="flex flex-col gap-2" aria-busy="true">
-					<h3 class="text-xs font-semibold text-fg-muted">About</h3>
+					<h3 class="text-xs font-semibold text-fg-muted">Description</h3>
 					<p class="text-block" data-variant="prose">
 						<Skeleton className="w-72" label="Loading description…" />
 					</p>

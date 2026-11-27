@@ -815,9 +815,7 @@
 							size={28}
 							aria-hidden="true" />
 						<h2>
-							{requestsOpen
-								? "Select a friend request"
-								: "Select someone"}
+							{requestsOpen ? "Select a friend request" : "Select a user"}
 						</h2>
 						<p>
 							{requestsOpen

@@ -292,7 +292,7 @@ func profileError(kind roblox.ErrorKind, message string) error {
 }
 
 func (service *Service) readProfileAccount(ctx context.Context, accountID, version, userID int64, profile *AccountProfileSnapshot) error {
-	accountDetails, err := service.users.AccountInfo(ctx, accountID, version, userID)
+	accountDetails, err := service.users.AccountDetails(ctx, accountID, version, userID)
 	if err == nil {
 		profile.Premium, profile.Plus = accountDetails.IsPremium, accountDetails.HasRobloxSubscription
 		if accountDetails.AgeBracket != nil && (*accountDetails.AgeBracket == 0 || *accountDetails.AgeBracket == 1) {

@@ -34,7 +34,7 @@ export interface Account {
 }
 
 export const ageVerificationLabels: Partial<Record<AgeVerification, string>> = {
-	[AgeVerification.AgeUnverified]: "Unverified",
+	[AgeVerification.AgeUnverified]: "Not verified",
 	[AgeVerification.AgeVerifiedFaceScan]: "Verified (facial scan)",
 	[AgeVerification.AgeVerifiedID]: "Verified (ID)",
 }

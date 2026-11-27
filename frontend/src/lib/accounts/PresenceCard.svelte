@@ -66,7 +66,7 @@
 			aria-hidden="true" />{presenceLabel(presence)}
 	</h2>
 	{#if universeId > 0 && placeId > 0}<PlaceHeader {universeId} {placeId} />{/if}
-	<dl class="detail-grid" aria-label="Game identifiers">
+	<dl class="detail-grid" aria-label="Game IDs">
 		{#if placeId > 0}<div>
 				<dt>Place ID</dt>
 				{@render searchableId(placeId, "Show game", () =>

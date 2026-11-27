@@ -99,7 +99,7 @@
 			}} />
 	{/if}
 	<MenuItem
-		label="View friends"
+		label="Show friends"
 		icon={userListIcon}
 		onSelect={() => {
 			const exploredPerson = person
