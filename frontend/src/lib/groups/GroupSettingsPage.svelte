@@ -1,21 +1,14 @@
 <script lang="ts">
 	import { notifyErrors } from "../notifications/error-notifications.svelte"
-	import crownIcon from "@phosphor-icons/core/regular/crown.svg?raw"
 	import eyeIcon from "@phosphor-icons/core/regular/eye.svg?raw"
-	import hashIcon from "@phosphor-icons/core/regular/hash.svg?raw"
-	import infoIcon from "@phosphor-icons/core/regular/info.svg?raw"
 	import magnifyingGlassIcon from "@phosphor-icons/core/regular/magnifying-glass.svg?raw"
-	import medalIcon from "@phosphor-icons/core/regular/medal.svg?raw"
-	import pencilSimpleIcon from "@phosphor-icons/core/regular/pencil-simple.svg?raw"
 	import signInIcon from "@phosphor-icons/core/regular/sign-in.svg?raw"
-	import tagIcon from "@phosphor-icons/core/regular/tag.svg?raw"
-	import userPlusIcon from "@phosphor-icons/core/regular/user-plus.svg?raw"
 	import usersThreeIcon from "@phosphor-icons/core/regular/users-three.svg?raw"
+	import warningIcon from "@phosphor-icons/core/regular/warning.svg?raw"
 	import xIcon from "@phosphor-icons/core/regular/x.svg?raw"
-	import { onMount } from "svelte"
 	import {
-		accountBackend,
 		GroupSlowMode,
+		GroupSource,
 		GroupVerificationLevel,
 	} from "../backend/bridge"
 	import type { GroupSettings, GroupSettingsChange } from "../backend/bridge"
@@ -23,9 +16,7 @@
 	import { accountSubpageSidebarMinimumWidth } from "../layout/sidebar-widths"
 	import { getNotificationCenter } from "../notifications/notification-center.svelte"
 	import ConfirmationDialog from "../shared/ConfirmationDialog.svelte"
-	import { errorMessage } from "../shared/errors"
 	import Icon from "../shared/Icon.svelte"
-	import Skeleton from "../shared/Skeleton.svelte"
 	import NoMatchingSettings from "../shared/NoMatchingSettings.svelte"
 	import ProfilePageHeader from "../shared/ProfilePageHeader.svelte"
 	import RefreshIcon from "../shared/RefreshIcon.svelte"
@@ -33,7 +24,6 @@
 	import SettingChangeList from "../shared/SettingChangeList.svelte"
 	import SettingRow from "../shared/SettingRow.svelte"
 	import type { SettingRadioOption } from "../shared/SettingRow.svelte"
-	import { relativeTime } from "../shared/timestamp"
 	import type { GroupsStore } from "./groups-store.svelte"
 
 	let { store }: { store: GroupsStore } = $props()
@@ -99,13 +89,6 @@
 				label: "Slowest: 1 post every 10 minutes, 1 comment every 2 minutes",
 			},
 		],
-		detailsPage: PageDef = {
-			id: "details",
-			label: "Details",
-			icon: infoIcon,
-			search: "id owner members roles name change role on join community tier",
-			fields: [],
-		},
 		pages: PageDef[] = [
 			{
 				id: "join",
@@ -207,13 +190,9 @@
 		slowMode: null,
 	}
 
-	const notifications = getNotificationCenter(),
-		numbers = new Intl.NumberFormat()
+	const notifications = getNotificationCenter()
 
-	let settings = $state.raw<GroupSettings | null>(null),
-		isLoading = $state(false),
-		loadError = $state(""),
-		query = $state(""),
+	let query = $state(""),
 		selectedPageId = $state("join"),
 		sidebarWidth = $state(accountSubpageSidebarMinimumWidth),
 		pendingChange = $state<PendingChange | null>(null),
@@ -222,9 +201,13 @@
 
 	const profile = $derived(store.profile),
 		group = $derived(profile?.details.group),
+		settings = $derived<GroupSettings | null>(profile?.settings ?? null),
+		areSettingsUnavailable = $derived(
+			profile?.unavailable?.includes(GroupSource.GroupSourceSettings) ?? false,
+		),
 		terms = $derived(searchTerms(query)),
 		visiblePages = $derived(
-			[...pages, detailsPage].filter(
+			pages.filter(
 				(page) =>
 					terms.length === 0 ||
 					matchingFields(page).length > 0 ||
@@ -242,30 +225,6 @@
 		return page.fields.filter((field) =>
 			matchesSearch(terms, `${field.label} ${field.description}`),
 		)
-	}
-
-	onMount(() => void load())
-
-	async function load(): Promise<void> {
-		const scope = store.scope,
-			groupId = store.selectedGroupId
-		if (!scope?.isCurrent || !groupId || isLoading) return
-		isLoading = true
-		loadError = ""
-		try {
-			const loaded = await scope.track(
-				accountBackend.GetGroupSettings(scope.accountId, groupId),
-			)
-			if (scope.isCurrent && groupId === store.selectedGroupId) settings = loaded
-		} catch (error) {
-			if (scope.isCurrent)
-				loadError = errorMessage(
-					error,
-					"Could not load the group settings. Try again.",
-				)
-		} finally {
-			isLoading = false
-		}
 	}
 
 	function radioValue(field: FieldDef): string {
@@ -314,7 +273,6 @@
 			tone: "success",
 			message: `${pending.label}: ${pending.next}`,
 		})
-		await load()
 	}
 
 	function selectPage(pageId: string): void {
@@ -326,26 +284,7 @@
 		query = ""
 		searchInput?.focus()
 	}
-
-	notifyErrors("Group settings not loaded", () => loadError)
 </script>
-
-{#snippet fact(label: string, icon: string, value: string | null, detail = "")}
-	<div>
-		<dt><Icon svg={icon} size={16} aria-hidden="true" />{label}</dt>
-		<dd>
-			{#if value !== null}
-				<span class="select-text">{value}</span>
-				{#if detail}<small>{detail}</small>{/if}
-			{:else}
-				{#if !settings && isLoading}<Skeleton className="w-28" />{:else}<span
-						class="text-fg-muted"
-						>{settings ? "Not shared by Roblox" : "Unavailable"}</span
-					>{/if}
-			{/if}
-		</dd>
-	</div>
-{/snippet}
 
 {#if group && profile}
 	<section class="settings-page min-w-0" aria-labelledby="group-settings-title">
@@ -356,13 +295,15 @@
 			<button
 				class="button-ghost"
 				type="button"
-				aria-label={isLoading ? "Refreshing settings…" : "Refresh settings"}
+				aria-label={store.isLoadingProfile
+					? "Refreshing settings…"
+					: "Refresh settings"}
 				data-tooltip="Refresh settings"
 				data-tooltip-side="bottom-end"
-				aria-busy={isLoading}
-				disabled={isLoading}
-				onclick={() => void load()}>
-				<RefreshIcon isRefreshing={isLoading} />
+				aria-busy={store.isLoadingProfile}
+				disabled={store.isLoadingProfile}
+				onclick={() => void store.refreshProfile()}>
+				<RefreshIcon isRefreshing={store.isLoadingProfile} />
 			</button>
 		</ProfilePageHeader>
 
@@ -412,61 +353,19 @@
 				class="settings-content"
 				aria-label="Group settings content">
 				{#key `${activePage?.id}:${query}`}
-					{#if !activePage}
+					{#if !settings && areSettingsUnavailable}
+						<div class="empty-state h-full">
+							<Icon svg={warningIcon} size={28} aria-hidden="true" />
+							<h2>Group settings unavailable</h2>
+							<button
+								class="button"
+								type="button"
+								disabled={store.isLoadingProfile}
+								onclick={() => void store.refreshProfile()}
+								>Try again</button>
+						</div>
+					{:else if !activePage}
 						<NoMatchingSettings onClearSearch={clearSearch} />
-					{:else if activePage.id === detailsPage.id}
-						<h2>Details</h2>
-						<dl class="facts">
-							{@render fact("Group ID", hashIcon, String(group.groupId))}
-							{@render fact(
-								"Owner",
-								crownIcon,
-								profile.details.owner
-									? `@${profile.details.owner.username}`
-									: "Nobody",
-							)}
-							{@render fact(
-								"Members",
-								usersThreeIcon,
-								numbers.format(group.memberCount),
-							)}
-							{@render fact(
-								"Roles",
-								tagIcon,
-								String(profile.roles?.length ?? 0),
-							)}
-							{@render fact(
-								"Name changes",
-								pencilSimpleIcon,
-								settings
-									? settings.isNameChangeEnabled
-										? "Allowed"
-										: "Not allowed"
-									: null,
-								settings
-									? "Roblox charges Robux to rename a group"
-									: "",
-							)}
-							{@render fact(
-								"Role on join",
-								userPlusIcon,
-								settings?.isRoleAssignedOnJoin == null
-									? null
-									: settings.isRoleAssignedOnJoin
-										? "Lowest role"
-										: "No role until a member gives one",
-							)}
-							{@render fact(
-								"Community tier",
-								medalIcon,
-								settings?.communityTier == null
-									? null
-									: `Tier ${settings.communityTier}`,
-								settings?.communityTierUpdatedMs
-									? `Updated ${relativeTime(settings.communityTierUpdatedMs)}`
-									: "",
-							)}
-						</dl>
 					{:else}
 						<h2>{activePage.label}</h2>
 						<section class="settings-section" aria-label={activePage.label}>
@@ -495,7 +394,7 @@
 										disabled={!settings ||
 											isUnavailable ||
 											isSaving}
-										isLoading={isLoading && !settings}
+										isLoading={!settings}
 										saving={isSaving &&
 											pendingChange?.label === field.label}
 										onToggle={(isOn) => requestToggle(field, isOn)}

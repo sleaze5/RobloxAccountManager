@@ -8,11 +8,13 @@
 	import starFillIcon from "@phosphor-icons/core/fill/star-fill.svg?raw"
 	import starIcon from "@phosphor-icons/core/regular/star.svg?raw"
 	import linkIcon from "@phosphor-icons/core/regular/link.svg?raw"
+	import medalIcon from "@phosphor-icons/core/regular/medal.svg?raw"
 	import megaphoneIcon from "@phosphor-icons/core/regular/megaphone.svg?raw"
 	import pencilSimpleIcon from "@phosphor-icons/core/regular/pencil-simple.svg?raw"
 	import signInIcon from "@phosphor-icons/core/regular/sign-in.svg?raw"
 	import signOutIcon from "@phosphor-icons/core/regular/sign-out.svg?raw"
 	import tagIcon from "@phosphor-icons/core/regular/tag.svg?raw"
+	import userPlusIcon from "@phosphor-icons/core/regular/user-plus.svg?raw"
 	import warningIcon from "@phosphor-icons/core/regular/warning.svg?raw"
 	import sealCheckIcon from "@phosphor-icons/core/regular/seal-check.svg?raw"
 	import { Browser } from "@wailsio/runtime"
@@ -509,6 +511,58 @@
 							>{/if}
 					</dd>
 				</div>
+				{#if profile.settings}
+					{@const settings = profile.settings}
+					<div>
+						<dt>
+							<Icon
+								svg={pencilSimpleIcon}
+								size={16}
+								aria-hidden="true" />Name changes
+						</dt>
+						<dd>
+							{settings.isNameChangeEnabled ? "Allowed" : "Not allowed"}
+							<small>Roblox charges Robux to rename a group</small>
+						</dd>
+					</div>
+					<div
+						data-tone={settings.isRoleAssignedOnJoin == null
+							? "muted"
+							: undefined}>
+						<dt>
+							<Icon svg={userPlusIcon} size={16} aria-hidden="true" />Role
+							on join
+						</dt>
+						<dd>
+							{settings.isRoleAssignedOnJoin == null
+								? "Not shared by Roblox"
+								: settings.isRoleAssignedOnJoin
+									? "Lowest role"
+									: "No role until a member gives one"}
+						</dd>
+					</div>
+					<div
+						data-tone={settings.communityTier == null
+							? "muted"
+							: undefined}>
+						<dt>
+							<Icon
+								svg={medalIcon}
+								size={16}
+								aria-hidden="true" />Community tier
+						</dt>
+						<dd>
+							{settings.communityTier == null
+								? "Not shared by Roblox"
+								: `Tier ${settings.communityTier}`}
+							{#if settings.communityTier != null && settings.communityTierUpdatedMs}<small
+									>Updated {relativeTime(
+										settings.communityTierUpdatedMs,
+									)}</small
+								>{/if}
+						</dd>
+					</div>
+				{/if}
 				{#if permissions.canSpendFunds}
 					<div
 						data-tone={profile.fundsInRobux === null ? "muted" : undefined}>

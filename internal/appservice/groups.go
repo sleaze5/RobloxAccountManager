@@ -24,6 +24,7 @@ const (
 	GroupSourceEnemies       GroupSource = "enemies"
 	GroupSourcePreviousNames GroupSource = "previousNames"
 	GroupSourceFunds         GroupSource = "funds"
+	GroupSourceSettings      GroupSource = "settings"
 )
 
 type UserGroupList struct {
@@ -43,6 +44,8 @@ type GroupProfile struct {
 	PreviousNames []robloxservices.GroupNameChange `json:"previousNames"`
 	// FundsInRobux is nil when the account may not see the funds.
 	FundsInRobux *int64 `json:"fundsInRobux"`
+	// Settings is nil when the account may not configure the group.
+	Settings *robloxservices.GroupSettings `json:"settings"`
 	// Unavailable lists the parts whose read failed.
 	Unavailable []GroupSource `json:"unavailable"`
 }
@@ -189,6 +192,16 @@ func (service *Service) GetGroupProfile(ctx context.Context, accountID, groupID 
 			profile.Unavailable = append(profile.Unavailable, GroupSourceFunds)
 		} else {
 			profile.FundsInRobux = &funds
+		}
+	}
+	// Roblox shows the settings only to members who may configure the group.
+	if profile.Membership.Permissions.CanConfigure {
+		settings, err := users.GroupSettings(ctx, accountID, version, groupID)
+		if err != nil {
+			logger.WarnContext(ctx, "group settings unavailable", "error", err)
+			profile.Unavailable = append(profile.Unavailable, GroupSourceSettings)
+		} else {
+			profile.Settings = &settings
 		}
 	}
 	summaries := []*robloxservices.GroupSummary{&profile.Details.Group}
@@ -380,21 +393,6 @@ func (service *Service) AnswerGroupJoinRequest(ctx context.Context, accountID, g
 	return service.editAccount(ctx, accountID, "group-join-request", "This role cannot answer join requests.", func(ctx context.Context, version int64) error {
 		return service.users.AnswerGroupJoinRequest(ctx, accountID, version, groupID, userID, isAccepted)
 	})
-}
-
-func (service *Service) GetGroupSettings(ctx context.Context, accountID, groupID int64) (robloxservices.GroupSettings, error) {
-	const operation = "group-settings"
-	ctx, version, done, err := service.beginAccountSession(ctx, accountID, operation)
-	if err != nil {
-		return robloxservices.GroupSettings{}, err
-	}
-	defer done()
-	settings, err := service.users.GroupSettings(ctx, accountID, version, groupID)
-	if err != nil {
-		service.groupLogger(operation, accountID).WarnContext(ctx, "group settings unavailable", "group_id", groupID, "error", err)
-		return robloxservices.GroupSettings{}, err
-	}
-	return settings, nil
 }
 
 func (service *Service) SaveGroupSettings(ctx context.Context, accountID, groupID int64, change robloxservices.GroupSettingsChange) error {
