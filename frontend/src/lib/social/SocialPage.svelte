@@ -177,7 +177,7 @@
 			...(store.canRemoveInBulk && bulkCopy
 				? [
 						{
-							label: bulkCopy.action,
+							label: `${bulkCopy.action} ${bulkCopy.pluralNoun}`,
 							icon: userMinusIcon,
 							tone: "danger" as const,
 							onSelect: onRemoveSelected,
@@ -381,7 +381,7 @@
 		class="flex min-h-0 flex-1"
 		style={`--sidebar-width: ${store.sidebarCollapsed ? 44 : store.sidebarWidth}px;`}>
 		<WorkbenchSidebar
-			label="People"
+			label="Users"
 			name="social"
 			icon={handshakeIcon}
 			bind:collapsed={store.sidebarCollapsed}
@@ -487,7 +487,7 @@
 								store.page.unavailable?.includes("trusted")}
 							onclick={() => store.setTrustedOnly(true)}>
 							<Icon svg={shieldCheckIcon} size={14} aria-hidden="true" />
-							Trusted <span>{store.trustedCount}</span>
+							Trusted friends <span>{store.trustedCount}</span>
 						</button>
 					</div>
 				{/if}

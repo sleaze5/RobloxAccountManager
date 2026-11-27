@@ -26,7 +26,7 @@ type FriendRequest struct {
 	UserID           int64
 	SentAt           time.Time
 	OriginSourceType string
-	MutualFriends    []string
+	FriendsInCommon  []string
 }
 
 // Shape verified against signed-in responses on 2026-11-01. The older
@@ -98,7 +98,8 @@ func (service *Users) FriendRequests(ctx context.Context, accountID, version int
 				SentAt           string `json:"sentAt"`
 				OriginSourceType string `json:"originSourceType"`
 			} `json:"friendRequest"`
-			MutualFriendsList []string `json:"mutualFriendsList"`
+			// Roblox calls friends in common mutual friends.
+			FriendsInCommonList []string `json:"mutualFriendsList"`
 		} `json:"data"`
 		NextPageCursor *string `json:"nextPageCursor"`
 	}
@@ -117,13 +118,13 @@ func (service *Users) FriendRequests(ctx context.Context, accountID, version int
 		if requester.ID <= 0 {
 			return nil, "", invalidProfileDetails("friend-requests")
 		}
-		request := FriendRequest{UserID: requester.ID, OriginSourceType: strings.TrimSpace(requester.FriendRequest.OriginSourceType), MutualFriends: []string{}}
+		request := FriendRequest{UserID: requester.ID, OriginSourceType: strings.TrimSpace(requester.FriendRequest.OriginSourceType), FriendsInCommon: []string{}}
 		if sentAt, err := time.Parse(time.RFC3339, strings.TrimSpace(requester.FriendRequest.SentAt)); err == nil {
 			request.SentAt = sentAt.UTC()
 		}
-		for _, name := range requester.MutualFriendsList {
+		for _, name := range requester.FriendsInCommonList {
 			if name = strings.TrimSpace(name); name != "" && len(name) <= 64 {
-				request.MutualFriends = append(request.MutualFriends, name)
+				request.FriendsInCommon = append(request.FriendsInCommon, name)
 			}
 		}
 		requests = append(requests, request)
@@ -143,10 +144,11 @@ func (service *Users) DeclineFriendRequest(ctx context.Context, accountID, versi
 	return service.friendAction(ctx, accountID, version, userID, "friend-request-decline", "decline-friend-request", false)
 }
 
-// Unfriend ends a friendship, or cancels a friend request that the account
-// sent. Roblox uses the same request for both, as RoSeal does.
-func (service *Users) Unfriend(ctx context.Context, accountID, version, userID int64) error {
-	return service.friendAction(ctx, accountID, version, userID, "unfriend", "unfriend", false)
+// RemoveFriend removes a friend, or cancels an outgoing friend request.
+// Roblox uses the same request for both, as RoSeal does. Roblox calls this
+// request unfriend.
+func (service *Users) RemoveFriend(ctx context.Context, accountID, version, userID int64) error {
+	return service.friendAction(ctx, accountID, version, userID, "friend-remove", "unfriend", false)
 }
 
 func (service *Users) SendFriendRequest(ctx context.Context, accountID, version, userID int64) error {

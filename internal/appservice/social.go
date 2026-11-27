@@ -44,9 +44,9 @@ const (
 )
 
 type FriendRequestView struct {
-	SentAtMs      int64    `json:"sentAtMs"`
-	Origin        string   `json:"origin"`
-	MutualFriends []string `json:"mutualFriends"`
+	SentAtMs        int64    `json:"sentAtMs"`
+	Origin          string   `json:"origin"`
+	FriendsInCommon []string `json:"friendsInCommon"`
 }
 
 type SocialUser struct {
@@ -358,7 +358,7 @@ func socialPeople(users []robloxservices.UserView, requests []robloxservices.Fri
 		}
 		if index < len(requests) {
 			request := requests[index]
-			person.Request = &FriendRequestView{Origin: request.OriginSourceType, MutualFriends: request.MutualFriends}
+			person.Request = &FriendRequestView{Origin: request.OriginSourceType, FriendsInCommon: request.FriendsInCommon}
 			if !request.SentAt.IsZero() {
 				person.Request.SentAtMs = request.SentAt.UnixMilli()
 			}
@@ -710,9 +710,9 @@ func (service *Service) DeclineFriendRequest(ctx context.Context, accountID, use
 	})
 }
 
-func (service *Service) Unfriend(ctx context.Context, accountID, userID int64) error {
-	return service.editAccount(ctx, accountID, "unfriend", "", func(ctx context.Context, version int64) error {
-		return service.users.Unfriend(ctx, accountID, version, userID)
+func (service *Service) RemoveFriend(ctx context.Context, accountID, userID int64) error {
+	return service.editAccount(ctx, accountID, "friend-remove", "", func(ctx context.Context, version int64) error {
+		return service.users.RemoveFriend(ctx, accountID, version, userID)
 	})
 }
 
@@ -804,7 +804,7 @@ type SocialRemoval struct {
 	FailureMessage string  `json:"failureMessage"`
 }
 
-// RemoveSocialConnections unfriends, unfollows, or declines the requests of
+// RemoveSocialConnections removes friends, unfollows users, or declines the requests of
 // several users of the account's own list, one at a time.
 func (service *Service) RemoveSocialConnections(ctx context.Context, accountID int64, list SocialList, userIDs []int64) (SocialRemoval, error) {
 	if len(userIDs) == 0 || len(userIDs) > maxSocialRemovalUsers {
@@ -813,7 +813,7 @@ func (service *Service) RemoveSocialConnections(ctx context.Context, accountID i
 	var remove func(context.Context, int64) error
 	switch list {
 	case SocialFriends:
-		remove = func(ctx context.Context, userID int64) error { return service.Unfriend(ctx, accountID, userID) }
+		remove = func(ctx context.Context, userID int64) error { return service.RemoveFriend(ctx, accountID, userID) }
 	case SocialFollowing:
 		remove = func(ctx context.Context, userID int64) error { return service.Unfollow(ctx, accountID, userID) }
 	case SocialRequests:

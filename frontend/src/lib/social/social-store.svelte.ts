@@ -216,6 +216,8 @@ export const bulkRemovalCopy: Record<
 	BulkRemovalList,
 	{
 		action: string
+		singularNoun: string
+		pluralNoun: string
 		progress: string
 		done: string
 		consequence: string
@@ -223,16 +225,19 @@ export const bulkRemovalCopy: Record<
 	}
 > = {
 	[SocialList.SocialFriends]: {
-		action: "Unfriend",
-		progress: "Unfriending…",
-		done: "Unfriended",
+		action: "Remove",
+		singularNoun: "friend",
+		pluralNoun: "friends",
+		progress: "Removing…",
+		done: "Friends removed",
 		consequence:
-			"This ends each Roblox friendship. To be friends again, one of you must send a new request.",
-		result: (count) =>
-			`${counted(count, "friend was", "friends were")} unfriended.`,
+			"They are no longer your friends. To be friends again, one of you must send a new friend request.",
+		result: (count) => `${counted(count, "friend was", "friends were")} removed.`,
 	},
 	[SocialList.SocialFollowing]: {
 		action: "Unfollow",
+		singularNoun: "user",
+		pluralNoun: "users",
 		progress: "Unfollowing…",
 		done: "Unfollowed",
 		consequence: "You can follow them again at any time.",
@@ -240,9 +245,11 @@ export const bulkRemovalCopy: Record<
 	},
 	[SocialList.SocialRequests]: {
 		action: "Decline",
+		singularNoun: "friend request",
+		pluralNoun: "friend requests",
 		progress: "Declining…",
 		done: "Friend requests declined",
-		consequence: "They can send a new request later.",
+		consequence: "They can send a new friend request later.",
 		result: (count) =>
 			`${counted(count, "request was", "requests were")} declined.`,
 	},
@@ -803,8 +810,9 @@ export class SocialStore {
 		}
 	}
 
-	// Roblox cancels a sent friend request with the unfriend request, and a sent
-	// trusted friend request with the remove trusted friend request.
+	// Roblox cancels an outgoing friend request with the remove friend request,
+	// and an outgoing trusted friend request with the remove trusted friend
+	// request.
 	#relationshipOperation(
 		userId: number,
 		actionId: RelationshipActionId,
@@ -828,7 +836,7 @@ export class SocialStore {
 				}
 			case "cancel-friend":
 				return {
-					send: () => accountBackend.Unfriend(accountId, userId),
+					send: () => accountBackend.RemoveFriend(accountId, userId),
 					change: { friend: FriendStatus.FriendStatusNone },
 				}
 			case "accept-friend":
@@ -843,9 +851,9 @@ export class SocialStore {
 					change: { friend: FriendStatus.FriendStatusNone },
 					after: answerRequest(false),
 				}
-			case "unfriend":
+			case "remove-friend":
 				return {
-					send: () => accountBackend.Unfriend(accountId, userId),
+					send: () => accountBackend.RemoveFriend(accountId, userId),
 					change: {
 						friend: FriendStatus.FriendStatusNone,
 						trusted: TrustedStatus.TrustedStatusNone,

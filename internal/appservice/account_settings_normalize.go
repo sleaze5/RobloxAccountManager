@@ -96,8 +96,8 @@ func settingValueView(definition accountSettingDefinition, raw json.RawMessage) 
 
 var accountSettingLabels = map[string]string{
 	"NoOne": "No one", "Friends": "Friends", "AllUsers": "Everyone", "All": "Everyone",
-	"Following": "Following", "Followers": "Followers", "FriendsAndFollowing": "Friends and people I follow",
-	"FriendsFollowingAndFollowers": "Friends, followers, and people I follow",
+	"Following": "Following", "Followers": "Followers", "FriendsAndFollowing": "Friends and following",
+	"FriendsFollowingAndFollowers": "Friends, followers, and following",
 	"TrustedFriends":               "Trusted friends", "AllConnections": "All friends", "TrustedConnectionsOnly": "Trusted friends",
 	"AllAuthenticatedUsers": "All signed-in users",
 	"AllAges":               "Minimal", "NinePlus": "Mild", "ThirteenPlus": "Moderate", "SeventeenPlus": "Restricted", "EighteenPlus": "Restricted",
@@ -118,10 +118,10 @@ func settingValueLabel(key AccountSettingKey, token string) (string, bool) {
 	}
 	if key == SettingGameJoins || key == SettingTradeAudience {
 		if token == "Followers" {
-			return "Friends, followers, and people I follow", true
+			return "Friends, followers, and following", true
 		}
 		if token == "Following" {
-			return "Friends and people I follow", true
+			return "Friends and following", true
 		}
 	}
 	label, known := accountSettingLabels[token]
@@ -255,7 +255,7 @@ func inheritedSettingReason(key AccountSettingKey) string {
 	case SettingPartyChat:
 		return "Turn on Chat and party with friends first."
 	case SettingPartyVoice:
-		return "Voice chat with friends cannot include more people than Friends chat."
+		return "Voice chat with friends cannot include more users than Friends chat."
 	default:
 		return "This setting is inherited and cannot be changed here."
 	}

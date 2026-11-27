@@ -665,18 +665,18 @@
 					{/if}
 					{#if request}
 						<div
-							data-tone={request.mutualFriends?.length
+							data-tone={request.friendsInCommon?.length
 								? undefined
 								: "muted"}>
 							<dt>
 								<Icon
 									svg={usersThreeIcon}
 									size={16}
-									aria-hidden="true" />Mutual friends
+									aria-hidden="true" />Friends in common
 							</dt>
 							<dd>
 								<span
-									>{request.mutualFriends?.join(", ") ||
+									>{request.friendsInCommon?.join(", ") ||
 										"None"}</span>
 							</dd>
 						</div>

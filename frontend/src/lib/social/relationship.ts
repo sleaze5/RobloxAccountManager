@@ -28,7 +28,7 @@ export type RelationshipActionId =
 	| "cancel-friend"
 	| "accept-friend"
 	| "decline-friend"
-	| "unfriend"
+	| "remove-friend"
 	| "add-trusted"
 	| "cancel-trusted"
 	| "accept-trusted"
@@ -106,18 +106,18 @@ export const relationshipActionsById: Record<RelationshipActionId, RelationshipA
 			result: (name) => `The request from ${name} was declined.`,
 			failure: "Could not decline the friend request. Try again.",
 		},
-		"unfriend": {
-			id: "unfriend",
+		"remove-friend": {
+			id: "remove-friend",
 			tone: "danger",
-			label: "Unfriend",
-			progress: "Unfriending…",
+			label: "Remove friend",
+			progress: "Removing…",
 			icon: userMinusIcon,
-			question: (name) => `Unfriend ${name}?`,
+			question: (name) => `Remove ${name} as a friend?`,
 			consequence:
-				"This ends the friendship and any trusted friendship. To be friends again, one of you must send a new request.",
-			done: "Unfriended",
+				"They are no longer your friend or trusted friend. To be friends again, one of you must send a new friend request.",
+			done: "Friend removed",
 			result: (name) => `${name} is no longer a friend.`,
-			failure: "Could not unfriend this user. Try again.",
+			failure: "Could not remove this friend. Try again.",
 		},
 		"add-trusted": {
 			id: "add-trusted",
@@ -138,7 +138,8 @@ export const relationshipActionsById: Record<RelationshipActionId, RelationshipA
 			progress: "Canceling…",
 			icon: shieldSlashIcon,
 			question: (name) => `Cancel your trusted friend request to ${name}?`,
-			consequence: "You stay friends. You can send a new trusted request later.",
+			consequence:
+				"You stay friends. You can send a new trusted friend request later.",
 			done: "Trusted friend request canceled",
 			result: (name) =>
 				`${name} can no longer accept the trusted friend request.`,
@@ -163,7 +164,8 @@ export const relationshipActionsById: Record<RelationshipActionId, RelationshipA
 			progress: "Declining…",
 			icon: shieldWarningIcon,
 			question: (name) => `Decline the trusted friend request from ${name}?`,
-			consequence: "You stay friends. They can send a new trusted request later.",
+			consequence:
+				"You stay friends. They can send a new trusted friend request later.",
 			done: "Trusted friend request declined",
 			result: (name) => `The trusted friend request from ${name} was declined.`,
 			failure: "Could not decline the trusted friend request. Try again.",
@@ -235,7 +237,7 @@ export function requestRelationship(person: SocialUser): SocialRelationship | nu
 function friendActionIds(relationship: SocialRelationship): RelationshipActionId[] {
 	switch (relationship.friend) {
 		case FriendStatus.FriendStatusFriends:
-			return ["unfriend"]
+			return ["remove-friend"]
 		case FriendStatus.FriendStatusRequestSent:
 			return ["cancel-friend"]
 		case FriendStatus.FriendStatusRequestReceived:

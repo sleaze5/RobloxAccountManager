@@ -64,7 +64,7 @@
 			{
 				option: PrivateServerOption.PrivateServerActive,
 				label: "Active",
-				description: "Let people join this server.",
+				description: "Let users join this server.",
 				checked: settings?.active ?? false,
 			},
 			{
@@ -341,7 +341,7 @@
 									<strong>Allowed users</strong>
 									<span
 										>{users.length
-											? `${users.length} ${users.length === 1 ? "person" : "people"} can join without the link.`
+											? `${users.length} ${users.length === 1 ? "user" : "users"} can join without the link.`
 											: "No one else is allowed yet."}</span>
 								</div>
 								<Icon

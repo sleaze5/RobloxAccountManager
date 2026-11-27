@@ -81,7 +81,7 @@
 					: "Add member"
 			}
 			if (submitting) return isGroup ? "Creating…" : "Starting…"
-			return isGroup ? "Create group" : "Start chat"
+			return isGroup ? "Create group chat" : "Start chat"
 		})
 
 	$effect(() => {
@@ -211,7 +211,7 @@
 					? `Select one friend for a direct chat, or up to ${selectionLimit} for a group.`
 					: selectionLimit > 0
 						? `This group has room for ${selectionLimit} more ${selectionLimit === 1 ? "user" : "users"}.`
-						: "This group is full."}
+						: "This group chat is full."}
 			</p>
 		</div>
 		<button
@@ -349,7 +349,7 @@
 
 		{#if mode === "create" && isGroup}
 			<label class="dialog-field mt-0 animate-enter">
-				<span>Group name (optional)</span>
+				<span>Group chat name (optional)</span>
 				<input
 					class="field"
 					bind:value={groupName}

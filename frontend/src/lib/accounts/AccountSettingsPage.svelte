@@ -63,10 +63,10 @@
 	const privacyPlaceholders: SettingRadioOption[] = [
 			{ label: "Everyone", value: "AllUsers" },
 			{
-				label: "Friends, followers, and people I follow",
+				label: "Friends, followers, and following",
 				value: "FriendsFollowingAndFollowers",
 			},
-			{ label: "Friends and people I follow", value: "FriendsAndFollowing" },
+			{ label: "Friends and following", value: "FriendsAndFollowing" },
 			{ label: "Friends", value: "Friends" },
 			{ label: "No one", value: "NoOne" },
 		],
@@ -299,7 +299,7 @@
 							key: Key.SettingFriendSuggestions,
 							label: "Friend suggestions",
 							description:
-								"Receive friend suggestions based on mutual connections.",
+								"Receive friend suggestions based on friends in common.",
 							type: "toggle",
 						},
 						{
@@ -313,7 +313,7 @@
 							key: Key.SettingPhoneDiscovery,
 							label: "Phone number discovery",
 							description:
-								"Let people with your phone number find your account.",
+								"Let users with your phone number find your account.",
 							type: "toggle",
 						},
 					],

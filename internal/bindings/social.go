@@ -96,11 +96,11 @@ func (service *Service) DeclineFriendRequest(ctx context.Context, accountID, use
 	return service.core.DeclineFriendRequest(ctx, accountID, userID)
 }
 
-func (service *Service) Unfriend(ctx context.Context, accountID, userID int64) error {
-	if err := validateAccountAndTargetIDs(accountID, userID, "unfriend"); err != nil {
+func (service *Service) RemoveFriend(ctx context.Context, accountID, userID int64) error {
+	if err := validateAccountAndTargetIDs(accountID, userID, "friend-remove"); err != nil {
 		return err
 	}
-	return service.core.Unfriend(ctx, accountID, userID)
+	return service.core.RemoveFriend(ctx, accountID, userID)
 }
 
 func (service *Service) Follow(ctx context.Context, accountID, userID int64) error {

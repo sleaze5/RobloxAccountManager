@@ -12,7 +12,7 @@ func applyAccountSettingDependencies(snapshot *AccountSettingsSnapshot) {
 		case SettingPartyChat, SettingPartyVoice:
 			requireAccountSetting(snapshot, view, SettingParty, "AllConnections", "Turn on Chat and party with friends first.")
 			if view.Key == SettingPartyVoice {
-				capAccountSettingAudience(snapshot, view, SettingPartyChat, "Voice chat with friends cannot include more people than Friends chat.")
+				capAccountSettingAudience(snapshot, view, SettingPartyChat, "Voice chat with friends cannot include more users than Friends chat.")
 			}
 		case SettingGameJoins:
 			capAccountSettingAudience(snapshot, view, SettingOnlineStatus, "Select a broader Online status audience first.")

@@ -60,7 +60,7 @@
 			type="button"
 			aria-label="New chat"
 			aria-haspopup="dialog"
-			data-tooltip="New chat or group"
+			data-tooltip="New chat or group chat"
 			onclick={() => openPeopleDialog("create")}>
 			<Icon svg={notePencilIcon} size={16} aria-hidden="true" />
 		</button>

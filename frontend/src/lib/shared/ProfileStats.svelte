@@ -11,7 +11,7 @@
 		// tooltip and the name of a button give.
 		description: string
 		isLoading?: boolean
-		// isLive marks a count of people who are in the game now.
+		// isLive marks a count of players who are in the game now.
 		isLive?: boolean
 		// onShow makes the stat a button that shows its list, such as the
 		// friends of a user.
