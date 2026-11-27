@@ -94,12 +94,20 @@ func (service *Users) GameVoteStatus(ctx context.Context, accountID, version, un
 		}
 	}
 	if !status.CanVote {
-		status.VoteRefusal = "Roblox does not let this account vote on this game."
-		if payload.ReasonForNotVoteable == "PlayGame" {
-			status.VoteRefusal = "Play the game with this account to vote."
+		status.VoteRefusal = voteRefusalsByReason[payload.ReasonForNotVoteable]
+		if status.VoteRefusal == "" {
+			status.VoteRefusal = "Roblox does not let this account vote on this game."
 		}
 	}
 	return status, nil
+}
+
+// voteRefusalsByReason explains the reasons that Roblox gives when an account
+// cannot vote. EmailOrPhoneIsVerified was seen on 2026-11-27 for an account
+// without a verified email or phone.
+var voteRefusalsByReason = map[string]string{
+	"PlayGame":               "Play the game with this account to vote.",
+	"EmailOrPhoneIsVerified": "Verify the email or phone of this account on Roblox to vote.",
 }
 
 func (service *Users) SetGameVote(ctx context.Context, accountID, version, universeID int64, vote GameVote) error {

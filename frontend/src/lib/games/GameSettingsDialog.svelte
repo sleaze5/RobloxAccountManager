@@ -69,7 +69,10 @@
 		changes = $derived.by<SettingChange[]>(() => {
 			if (!settings) return []
 			const listed: SettingChange[] = [],
-				textOrNone = (text: string) => text || "None"
+				characterCount = (text: string) =>
+					text
+						? `${text.length} ${text.length === 1 ? "character" : "characters"}`
+						: "None"
 			if (change.name !== null)
 				listed.push({
 					label: "Name",
@@ -79,8 +82,8 @@
 			if (change.description !== null)
 				listed.push({
 					label: "Description",
-					previous: textOrNone(description.trim()),
-					next: textOrNone(change.description),
+					previous: characterCount(description.trim()),
+					next: characterCount(change.description),
 				})
 			if (change.isPublic !== null)
 				listed.push({

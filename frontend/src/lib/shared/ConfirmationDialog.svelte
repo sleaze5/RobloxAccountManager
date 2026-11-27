@@ -60,7 +60,7 @@
 	}} />
 
 <Dialog
-	class="max-w-sm text-left"
+	class={[children ? "max-w-md" : "max-w-sm", "text-left"]}
 	role="alertdialog"
 	aria-labelledby={`${dialogId}-title`}
 	aria-describedby={`${dialogId}-description`}

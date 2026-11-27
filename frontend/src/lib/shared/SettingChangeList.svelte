@@ -20,7 +20,7 @@
 	aria-label="Changes">
 	{#each changes as change (change.label)}
 		<li class="flex min-w-0 items-center gap-2 px-3 py-2">
-			<span class="w-28 shrink-0 text-fg-muted">{change.label}</span>
+			<span class="w-36 shrink-0 text-fg-muted">{change.label}</span>
 			<span class="min-w-0 truncate text-fg-muted line-through"
 				>{change.previous}</span>
 			<Icon
