@@ -105,7 +105,8 @@ Use one verb for each action. Use it on the button, the menu item, the dialog, t
 | Clear                | Empty a field, a search, a filter, or a selection.                                   | reset (for input), delete (for input) |
 | Lock and Unlock      | Change the vault state.                                                              | open (for the vault), sign out        |
 | Select               | Mark an option, an item, or a user.                                                  | choose, pick                          |
-| Check                | Test something, such as a cookie with Roblox, or a name with the Roblox text filter. | validate, verify                      |
+| Check                | Test something with Roblox or with a rule that the user sees, such as a cookie, a password, or a name with the Roblox text filter. | validate, verify                      |
+| validate             | In code only: test input from the UI or a file against format rules before use. Never use it in UI text. | check (for input rules in code)       |
 | Show and Hide        | Make something visible or not visible.                                               | reveal, display, toggle               |
 | Refresh              | Load data again.                                                                     | reload, sync, update (for data)       |
 | Turn on and Turn off | Change a switch. The states are "On" and "Off".                                      | enable, disable, toggle               |
