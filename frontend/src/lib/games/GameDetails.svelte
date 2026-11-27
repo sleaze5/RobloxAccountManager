@@ -40,6 +40,8 @@
 	import ProfileTabs from "../shared/ProfileTabs.svelte"
 	import GameMedia from "./GameMedia.svelte"
 	import GameSavedAccounts from "./GameSavedAccounts.svelte"
+	import GameSubplaces from "./GameSubplaces.svelte"
+	import PlaceIDs from "./PlaceIDs.svelte"
 	import { creatorByline, type GamesStore } from "./games-store.svelte"
 	import GameIcon from "./GameIcon.svelte"
 	import { gameHeadlineStats } from "./game-stats"
@@ -363,9 +365,7 @@
 		node.focus()
 		node.select()
 	}
-	const metaClass =
-			"flex min-w-0 flex-wrap items-center gap-1 font-mono text-2xs wrap-anywhere text-fg-muted",
-		sectionHeadingClass = "text-xs font-semibold text-fg-muted"
+	const sectionHeadingClass = "text-xs font-semibold text-fg-muted"
 
 	notifyErrors("Game details not loaded", () => store.detailsError)
 </script>
@@ -477,26 +477,23 @@
 							</span>
 						{/if}
 					</div>
-					<div class={metaClass}>
-						<span class="select-text">Place ID: {place.placeId}</span>
-						<span class="text-fg-faint" aria-hidden="true">·</span>
-						<span class="select-text">Universe ID: {place.universeId}</span>
-						<button
-							class="-my-1 -ms-1 button-ghost size-5"
-							type="button"
-							aria-label="Search places in this game"
-							data-tooltip="Search places in this game"
-							onclick={() => onSearchUniverse(place.universeId)}
-							><Icon
-								svg={magnifyingGlassIcon}
-								size={14}
-								aria-hidden="true" /></button>
-						{#if rootPlace}
-							<span class="text-fg-faint" aria-hidden="true">·</span>
-							<span class="select-text"
-								>Root place ID: {rootPlace.placeId}</span>
-						{/if}
-					</div>
+					<PlaceIDs
+						placeId={place.placeId}
+						universeId={place.universeId}
+						rootPlaceId={rootPlace?.placeId ?? 0}>
+						{#snippet universeAction()}
+							<button
+								class="-my-1 -ms-1 button-ghost size-5"
+								type="button"
+								aria-label="Search places in this game"
+								data-tooltip="Search places in this game"
+								onclick={() => onSearchUniverse(place.universeId)}
+								><Icon
+									svg={magnifyingGlassIcon}
+									size={14}
+									aria-hidden="true" /></button>
+						{/snippet}
+					</PlaceIDs>
 					{#if place.creatorId && (place.creatorType === "User" || place.creatorType === "Group")}
 						<CreatorByline
 							kind={place.creatorType}
@@ -719,6 +716,8 @@
 					</section>
 				{/if}
 			</div>
+
+			{#if !rootPlace}<GameSubplaces universeId={place.universeId} />{/if}
 
 			<GameSavedAccounts {accounts} {place} refreshCount={detailsRefreshCount} />
 		</div>

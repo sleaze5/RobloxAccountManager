@@ -57,6 +57,27 @@ func (service *Service) SearchGames(ctx context.Context, query games.SearchQuery
 	return page, service.gamesError(ctx, "game-search", err)
 }
 
+// ListGameSubplaces reads the places of the game other than its root place.
+// UniversePlaces lists the root place first.
+func (service *Service) ListGameSubplaces(ctx context.Context, universeID int64) ([]games.Place, error) {
+	if err := validRobloxID(universeID); err != nil {
+		return nil, err
+	}
+	ctx, done, err := service.beginGames(ctx)
+	if err != nil {
+		return nil, err
+	}
+	defer done()
+	places, _, err := service.games.UniversePlaces(ctx, universeID)
+	if err != nil {
+		return nil, service.gamesError(ctx, "game-subplaces", err)
+	}
+	if len(places) <= 1 {
+		return []games.Place{}, nil
+	}
+	return places[1:], nil
+}
+
 func prefixedIDQuery(text, prefix, invalid string) (int64, bool, error) {
 	if len(text) < len(prefix) || !strings.EqualFold(text[:len(prefix)], prefix) {
 		return 0, false, nil

@@ -21,6 +21,8 @@
 	import GameIcon from "./GameIcon.svelte"
 	import { gameHeadlineStats } from "./game-stats"
 	import { getGamesStore } from "./games-store.svelte"
+	import GameSubplaces from "./GameSubplaces.svelte"
+	import PlaceIDs from "./PlaceIDs.svelte"
 
 	// GamePreview shows the information of a place: its numbers, description,
 	// and main details. A subplace shows only its own details, because the
@@ -29,8 +31,6 @@
 
 	const games = getGamesStore(),
 		numbers = new Intl.NumberFormat(),
-		metaClass =
-			"flex min-w-0 flex-wrap items-center gap-1 font-mono text-2xs wrap-anywhere text-fg-muted",
 		sectionHeadingClass = "text-xs font-semibold text-fg-muted"
 
 	let game = $state.raw<Game | null>(null),
@@ -153,13 +153,10 @@
 				label="Loading game…" />{/if}
 	{/snippet}
 	{#snippet summary()}
-		<div class={metaClass}>
-			<span class="select-text">Place ID: {placeId}</span>
-			{#if place?.universeId}
-				<span class="text-fg-faint" aria-hidden="true">·</span>
-				<span class="select-text">Universe ID: {place.universeId}</span>
-			{/if}
-		</div>
+		<PlaceIDs
+			{placeId}
+			universeId={place?.universeId ?? 0}
+			rootPlaceId={rootPlace?.placeId ?? 0} />
 		{#if rootPlace}
 			<p class="text-xs text-fg-muted">
 				Subplace of <span class="font-medium text-fg"
@@ -233,6 +230,7 @@
 					)}{/if}
 			</dl>
 		</section>
+		{#if !rootPlace}<GameSubplaces universeId={game.place.universeId} />{/if}
 	{:else}
 		<span class="h-24 w-full skeleton rounded-lg" role="status"
 			><span class="sr-only">Loading game…</span></span>

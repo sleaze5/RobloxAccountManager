@@ -20,6 +20,10 @@ func (service *Service) GetGameSection(ctx context.Context, universeID, placeID 
 	return service.core.GetGameSection(ctx, universeID, placeID, section)
 }
 
+func (service *Service) ListGameSubplaces(ctx context.Context, universeID int64) ([]games.Place, error) {
+	return service.core.ListGameSubplaces(ctx, universeID)
+}
+
 func (service *Service) GetGamePlayability(ctx context.Context, accountID, universeID int64) (*games.Playability, error) {
 	return service.core.GetGamePlayability(ctx, accountID, universeID)
 }
