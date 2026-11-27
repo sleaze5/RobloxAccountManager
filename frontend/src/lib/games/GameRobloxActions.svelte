@@ -126,16 +126,18 @@
 	{#each [GameVote.GameVoteLike, GameVote.GameVoteDislike] as target (target)}
 		{@const isCurrent = vote === target}
 		{@const label = voteLabel(target)}
+		<!-- A refused vote stays focusable, so that the keyboard reaches the
+		tooltip that tells how to vote. -->
 		<button
 			type="button"
 			aria-label={label}
 			aria-pressed={isCurrent}
+			aria-disabled={voteRefusal ? true : undefined}
 			data-tooltip={label}
-			disabled={isWaiting ||
-				isVoteUnavailable ||
-				!!voteRefusal ||
-				actions.isSaving}
-			onclick={() => requestVote(target)}>
+			disabled={isWaiting || isVoteUnavailable || actions.isSaving}
+			onclick={() => {
+				if (!voteRefusal) requestVote(target)
+			}}>
 			{#if target === GameVote.GameVoteLike}
 				<Icon
 					svg={isCurrent ? thumbsUpFillIcon : thumbsUpIcon}

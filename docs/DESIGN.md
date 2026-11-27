@@ -82,7 +82,7 @@ Inputs:
 - `checkbox`: a checkbox. `check-option` is a checkbox with a label and an optional description. Render the check mark with `lib/shared/CheckboxMark.svelte`, and set `isIndeterminate` for a partial selection.
 - `switch`: a switch. Its input has `role="switch"`.
 - `radio` inside `radio-option`: a radio button with its label.
-- `action-strip` with `lib/shared/RobloxActionStrip.svelte`: the bordered strip that holds every action that changes Roblox for the selected account, as icon-only buttons with a tooltip that names the action. Set `aria-pressed` on a toggled action and `data-tone` on a destructive one.
+- `action-strip` with `lib/shared/RobloxActionStrip.svelte`: the bordered strip that holds every action that changes Roblox for the selected account, as icon-only buttons with a tooltip that names the action. Set `aria-pressed` on a toggled action and `data-tone` on a destructive one. Set `aria-disabled` instead of `disabled` on an action that Roblox refuses, and name the reason in its label, so that the keyboard reaches the reason.
 - `segmented`: two to four mutually exclusive options that stay visible, as buttons with `aria-pressed` or as labels around radio inputs.
 - `checklist`: requirements that turn valid or invalid as the user types, with `data-touched` and `data-valid`.
 

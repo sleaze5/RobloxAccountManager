@@ -229,7 +229,23 @@
 	@apply flex h-7 shrink-0 items-center gap-px rounded-md border border-line p-px;
 
 	& > :where(button) {
-		@apply inline-flex size-6 shrink-0 items-center justify-center rounded-sm text-fg-muted transition-colors duration-100 enabled:hover:bg-hover enabled:hover:text-fg aria-pressed:bg-raised aria-pressed:text-fg data-[tone=danger]:text-danger-muted data-[tone=warning]:text-warning;
+		@apply inline-flex size-6 shrink-0 items-center justify-center rounded-sm text-fg-muted aria-disabled:cursor-not-allowed aria-disabled:opacity-45 aria-pressed:bg-raised aria-pressed:text-fg data-[tone=danger]:text-danger-muted data-[tone=warning]:text-warning;
+		transition-property: color, background-color, scale;
+		transition-duration:
+			var(--duration-fast), var(--duration-fast), var(--duration-instant);
+		transition-timing-function: var(--ease-in-out);
+	}
+
+	& > button:hover:where(:not(:disabled, [aria-disabled="true"])) {
+		@apply bg-hover;
+	}
+
+	& > button:hover:where(:not(:disabled, [aria-disabled="true"], [data-tone])) {
+		@apply text-fg;
+	}
+
+	& > button:active:where(:not(:disabled, [aria-disabled="true"])) {
+		@apply scale-95;
 	}
 }
 
@@ -801,7 +817,7 @@
 	}
 
 	:where(&) textarea {
-		@apply field h-24 resize-none overflow-x-hidden p-2 font-mono text-2xs leading-normal wrap-anywhere;
+		@apply block field h-24 resize-none overflow-x-hidden p-2 font-mono text-2xs leading-normal wrap-anywhere;
 	}
 }
 

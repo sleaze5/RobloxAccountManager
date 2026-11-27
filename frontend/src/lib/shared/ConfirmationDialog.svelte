@@ -78,8 +78,12 @@
 			<Icon svg={xIcon} size={14} aria-hidden="true" />
 		</button>
 	</div>
-	{#if account}<RobloxAccountLine {account} />{/if}
-	{#if children}{@render children()}{/if}
+	{#if account || children}
+		<div class="mt-3 flex flex-col gap-2">
+			{#if account}<RobloxAccountLine {account} />{/if}
+			{#if children}{@render children()}{/if}
+		</div>
+	{/if}
 	<div class="dialog-actions">
 		<button class="button" type="button" disabled={isWorking} onclick={cancel}
 			>Cancel</button>

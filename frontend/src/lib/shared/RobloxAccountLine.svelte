@@ -8,7 +8,7 @@
 </script>
 
 <p
-	class="flex min-w-0 items-center gap-2 rounded-md border border-line bg-raised px-2 py-1.5 text-xs text-fg-muted">
+	class="flex min-w-0 items-center gap-2 rounded-lg border border-line px-3 py-2 text-xs text-fg-muted">
 	<AccountAvatar {account} className="size-5 text-2xs" />
 	<span class="min-w-0 truncate"
 		>On Roblox as <span class="font-medium text-fg">{account.displayName}</span>

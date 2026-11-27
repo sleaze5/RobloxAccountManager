@@ -14,7 +14,7 @@
 	import Icon from "../shared/Icon.svelte"
 	import SettingChangeList from "../shared/SettingChangeList.svelte"
 	import type { SettingChange } from "../shared/SettingChangeList.svelte"
-	import SettingsRowsSkeleton from "../shared/SettingsRowsSkeleton.svelte"
+	import SettingRow from "../shared/SettingRow.svelte"
 	import { replayValidationNudge } from "../shared/transitions"
 
 	let {
@@ -49,6 +49,8 @@
 		typedDescription = $state(""),
 		isPublic = $state(false),
 		arePrivateServersAllowed = $state(false),
+		isNameTouched = $state(false),
+		nameInput = $state<HTMLInputElement>(),
 		card = $state<HTMLDivElement>()
 	let request: CancellableRequest<GameSettings> | null = null
 
@@ -99,7 +101,8 @@
 				})
 			return listed
 		}),
-		isNameValid = $derived(name.trim().length > 0)
+		isNameValid = $derived(name.trim().length > 0),
+		isNameErrorShown = $derived(isNameTouched && !isNameValid)
 
 	onMount(() => {
 		void load()
@@ -136,8 +139,10 @@
 	}
 
 	function review(): void {
+		isNameTouched = true
 		if (changes.length === 0 || !isNameValid) {
 			replayValidationNudge(card)
+			if (!isNameValid) nameInput?.focus()
 			return
 		}
 		saveError = ""
@@ -210,12 +215,7 @@
 				</button>
 			</div>
 
-			{#if isLoading && !settings}
-				<SettingsRowsSkeleton
-					rowCount={4}
-					hasIcon={false}
-					label="Loading game settings…" />
-			{:else if !settings}
+			{#if !settings && !isLoading}
 				<div class="empty-state py-8">
 					<Icon svg={warningIcon} size={28} aria-hidden="true" />
 					<h2>Game settings unavailable</h2>
@@ -223,66 +223,64 @@
 						>Try again</button>
 				</div>
 			{:else}
-				<label class="dialog-field">
-					<span>Name</span>
-					<input
-						class="field"
-						type="text"
-						autocomplete="off"
-						maxlength={maxNameLength}
-						aria-invalid={!isNameValid || undefined}
-						bind:value={name} />
-				</label>
-				{#if !isNameValid}
-					<p class="mt-1 text-xs text-danger-muted" role="alert">
-						Enter a name.
-					</p>
+				{#if !settings}<span class="sr-only" role="status"
+						>Loading game settings…</span
+					>{/if}
+				{#if settings}
+					<label class="dialog-field">
+						<span>Name</span>
+						<input
+							class="field"
+							type="text"
+							autocomplete="off"
+							maxlength={maxNameLength}
+							aria-invalid={isNameErrorShown || undefined}
+							onblur={() => (isNameTouched = true)}
+							bind:this={nameInput}
+							bind:value={name} />
+					</label>
+					{#if isNameErrorShown}
+						<p class="mt-1 text-xs text-danger-muted" role="alert">
+							Enter a name.
+						</p>
+					{/if}
+					<label class="dialog-field">
+						<span class="flex items-center justify-between gap-2"
+							>Description<span class="font-mono text-2xs"
+								>{typedDescription.length}/{maxDescriptionLength}</span
+							></span>
+						<textarea
+							class="h-28 py-1.5 font-sans text-sm"
+							maxlength={maxDescriptionLength}
+							bind:value={typedDescription}></textarea>
+					</label>
+				{:else}
+					<div class="dialog-field" aria-hidden="true">
+						<span>Name</span>
+						<span class="block h-8 skeleton rounded-md"></span>
+					</div>
+					<div class="dialog-field" aria-hidden="true">
+						<span>Description</span>
+						<span class="block h-28 skeleton rounded-md"></span>
+					</div>
 				{/if}
-				<label class="dialog-field">
-					<span class="flex items-center justify-between gap-2"
-						>Description<span class="font-mono text-2xs"
-							>{typedDescription.length}/{maxDescriptionLength}</span
-						></span>
-					<textarea
-						class="h-28 resize-none"
-						maxlength={maxDescriptionLength}
-						bind:value={typedDescription}></textarea>
-				</label>
 				<div class="mt-3 settings-rows rounded-lg border border-line">
-					<div class="settings-row">
-						<div class="settings-row-copy">
-							<strong id={`${dialogId}-public`}>Public</strong>
-							<span id={`${dialogId}-public-description`}
-								>Anyone can find and play the game.</span>
-						</div>
-						<label class="switch">
-							<input
-								type="checkbox"
-								role="switch"
-								aria-labelledby={`${dialogId}-public`}
-								aria-describedby={`${dialogId}-public-description`}
-								bind:checked={isPublic} />
-							<span aria-hidden="true"></span>
-						</label>
-					</div>
-					<div class="settings-row">
-						<div class="settings-row-copy">
-							<strong id={`${dialogId}-private-servers`}
-								>Private servers</strong>
-							<span id={`${dialogId}-private-servers-description`}
-								>Players can buy private servers at the price set on
-								Roblox.</span>
-						</div>
-						<label class="switch">
-							<input
-								type="checkbox"
-								role="switch"
-								aria-labelledby={`${dialogId}-private-servers`}
-								aria-describedby={`${dialogId}-private-servers-description`}
-								bind:checked={arePrivateServersAllowed} />
-							<span aria-hidden="true"></span>
-						</label>
-					</div>
+					<SettingRow
+						id={`${dialogId}-public`}
+						label="Public"
+						description="Anyone can find and play the game."
+						type="toggle"
+						isChecked={isPublic}
+						isLoading={!settings}
+						onToggle={(isOn) => (isPublic = isOn)} />
+					<SettingRow
+						id={`${dialogId}-private-servers`}
+						label="Private servers"
+						description="Players can buy private servers at the price set on Roblox."
+						type="toggle"
+						isChecked={arePrivateServersAllowed}
+						isLoading={!settings}
+						onToggle={(isOn) => (arePrivateServersAllowed = isOn)} />
 				</div>
 			{/if}
 
@@ -291,8 +289,7 @@
 				<button
 					class="button-primary"
 					type="submit"
-					disabled={!settings || changes.length === 0 || !isNameValid}
-					>Review changes</button>
+					disabled={!settings || changes.length === 0}>Review changes</button>
 			</div>
 		</form>
 	</Dialog>

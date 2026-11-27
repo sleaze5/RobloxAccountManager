@@ -5,7 +5,6 @@
 	import clockCounterClockwiseIcon from "@phosphor-icons/core/regular/clock-counter-clockwise.svg?raw"
 	import coinsIcon from "@phosphor-icons/core/regular/coins.svg?raw"
 	import dotsThreeIcon from "@phosphor-icons/core/regular/dots-three.svg?raw"
-	import gearSixIcon from "@phosphor-icons/core/regular/gear-six.svg?raw"
 	import starFillIcon from "@phosphor-icons/core/fill/star-fill.svg?raw"
 	import starIcon from "@phosphor-icons/core/regular/star.svg?raw"
 	import linkIcon from "@phosphor-icons/core/regular/link.svg?raw"
@@ -259,7 +258,7 @@
 					isLocked={details.isLocked} />
 			</div>
 			<div class="flex shrink-0 flex-wrap items-center justify-end gap-1">
-				{#if isMember || hasMembershipAction || permissions.canConfigure}
+				{#if isMember || hasMembershipAction}
 					<RobloxActionStrip username={store.account.username}>
 						{#if isMember && !membership.isOwner}
 							<button
@@ -315,16 +314,6 @@
 									]}
 									size={14}
 									aria-hidden="true" />
-							</button>
-						{/if}
-						{#if permissions.canConfigure}
-							<button
-								type="button"
-								aria-label="Manage group"
-								data-tooltip="Manage group"
-								disabled={store.pendingAction !== null}
-								onclick={() => (store.subpage = "settings")}>
-								<Icon svg={gearSixIcon} size={14} aria-hidden="true" />
 							</button>
 						{/if}
 					</RobloxActionStrip>
