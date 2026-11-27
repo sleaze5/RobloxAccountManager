@@ -38,6 +38,6 @@ func (service *Service) SetMotion(motion appsettings.MotionPreference) error {
 	return service.core.SetMotion(motion)
 }
 
-func (service *Service) SetPresenceUpdates(scope appsettings.PresenceScope, enabled bool, intervalSeconds int) error {
-	return service.core.SetPresenceUpdates(scope, enabled, intervalSeconds)
+func (service *Service) SetOnlineStatusUpdates(scope appsettings.OnlineStatusScope, enabled bool, intervalSeconds int) error {
+	return service.core.SetOnlineStatusUpdates(scope, enabled, intervalSeconds)
 }

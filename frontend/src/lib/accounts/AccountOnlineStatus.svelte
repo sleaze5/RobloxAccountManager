@@ -3,32 +3,32 @@
 	import magnifyingGlassIcon from "@phosphor-icons/core/regular/magnifying-glass.svg?raw"
 	import starFillIcon from "@phosphor-icons/core/fill/star-fill.svg?raw"
 	import Icon from "../shared/Icon.svelte"
-	import { PresenceType, UserJoinability } from "../backend/bridge"
-	import type { UserPresence } from "../backend/bridge"
+	import { OnlineStatusType, UserJoinability } from "../backend/bridge"
+	import type { OnlineStatus } from "../backend/bridge"
 	import { getGamesStore } from "../games/games-store.svelte"
 	import {
-		presenceTextClass,
-		presenceDetail,
-		presenceIcon,
-		presenceLabel,
+		onlineStatusTextClass,
+		onlineStatusDetail,
+		onlineStatusIcon,
+		onlineStatusLabel,
 	} from "./account-model"
-	import PresenceCard from "./PresenceCard.svelte"
-	import { isInGame, PresencePlace } from "./presence-place.svelte"
-	import { presenceJoinFor } from "./presence-join"
+	import OnlineStatusCard from "./OnlineStatusCard.svelte"
+	import { isInGame, OnlineStatusPlace } from "./online-status-place.svelte"
+	import { onlineStatusJoinFor } from "./online-status-join"
 
 	let {
-		presence,
+		onlineStatus,
 		joinability = UserJoinability.UserJoinabilityUnknown,
 		onJoin,
 		onJoinUser,
 	}: {
-		presence: UserPresence
+		onlineStatus: OnlineStatus
 		// joinability is whether the user's profile offers to join them, for a
 		// user who is not one of the saved accounts.
 		joinability?: UserJoinability
 		onJoin: (placeId: number, serverId: string) => void
 		// onJoinUser fills the launch options to follow the user, for a server
-		// that the presence does not show.
+		// that the online status does not show.
 		onJoinUser?: () => void
 	} = $props()
 	const previews = getProfilePreviews()
@@ -37,31 +37,32 @@
 		cardHoverCloseDelayMs = 150
 
 	const games = getGamesStore(),
-		presencePlace = new PresencePlace(() => presence),
+		onlineStatusPlace = new OnlineStatusPlace(() => onlineStatus),
 		cardId = $props.id()
 	let trigger = $state<HTMLButtonElement>(),
 		cardOpenedBy = $state<"hover" | "click" | null>(null),
 		cardHoverTimer = 0
 
-	const place = $derived(presencePlace.place),
-		isPresenceInGame = $derived(isInGame(presence)),
-		join = $derived(presenceJoinFor(presence, joinability, !!onJoinUser)),
+	const place = $derived(onlineStatusPlace.place),
+		isOnlineStatusInGame = $derived(isInGame(onlineStatus)),
+		join = $derived(onlineStatusJoinFor(onlineStatus, joinability, !!onJoinUser)),
 		joinPlaceId = $derived(join.placeId),
 		hasVisibleServer = $derived(join.hasVisibleServer),
 		canFollowUser = $derived(join.canFollowUser),
-		label = $derived(presenceLabel(presence)),
+		label = $derived(onlineStatusLabel(onlineStatus)),
 		detail = $derived(
-			presenceDetail(presence, place ? games.displayName(place) : ""),
+			onlineStatusDetail(onlineStatus, place ? games.displayName(place) : ""),
 		),
 		summary = $derived(detail ? `${label}: ${detail}` : label),
 		tooltip = $derived(
-			presence.userPresenceType === PresenceType.PresenceTypeOnline && !detail
+			onlineStatus.statusType === OnlineStatusType.OnlineStatusTypeOnline &&
+				!detail
 				? `${summary}\nOn the website or app`
 				: summary,
 		)
 
 	$effect(() => {
-		if (!isPresenceInGame) closeCard()
+		if (!isOnlineStatusInGame) closeCard()
 	})
 
 	$effect(() => () => {
@@ -96,7 +97,7 @@
 
 	function fillLaunch(): void {
 		closeCard()
-		onJoin(joinPlaceId, presence.serverId ?? "")
+		onJoin(joinPlaceId, onlineStatus.serverId ?? "")
 	}
 
 	function followUser(): void {
@@ -126,7 +127,7 @@
 	onfocusout={(event) => {
 		if (cardOpenedBy && !isInsideCard(event.relatedTarget)) closeCard()
 	}}>
-	{#if isPresenceInGame}
+	{#if isOnlineStatusInGame}
 		<button
 			bind:this={trigger}
 			type="button"
@@ -141,10 +142,10 @@
 			{@render status()}
 		</button>
 		{#if cardOpenedBy && trigger}
-			<PresenceCard
+			<OnlineStatusCard
 				id={cardId}
 				anchor={trigger}
-				{presence}
+				{onlineStatus}
 				isJoinable={hasVisibleServer}
 				{joinability}
 				onFollowUser={canFollowUser ? followUser : undefined}
@@ -159,7 +160,7 @@
 			aria-label={tooltip}
 			data-tooltip={tooltip}>{@render status()}</button>
 	{/if}
-	{#if isPresenceInGame && joinPlaceId > 0}
+	{#if isOnlineStatusInGame && joinPlaceId > 0}
 		<button
 			class="button-ghost-sm"
 			type="button"
@@ -175,10 +176,10 @@
 	<span
 		class={[
 			"inline-flex shrink-0 items-center gap-1 font-medium",
-			presenceTextClass(presence),
+			onlineStatusTextClass(onlineStatus),
 		]}
 		><Icon
-			svg={presenceIcon(presence)}
+			svg={onlineStatusIcon(onlineStatus)}
 			size={14}
 			aria-hidden="true" />{label}{detail ? ":" : ""}</span>
 	{#if detail}

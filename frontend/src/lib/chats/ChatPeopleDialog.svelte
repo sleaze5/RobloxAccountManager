@@ -11,7 +11,7 @@
 	import Dialog from "../shared/Dialog.svelte"
 	import ProfileImage from "../shared/ProfileImage.svelte"
 	import type { SocialUser } from "../backend/bridge"
-	import { presenceLabel } from "../accounts/account-model"
+	import { onlineStatusLabel } from "../accounts/account-model"
 	import SocialAvatar from "../social/SocialAvatar.svelte"
 	import { errorMessage } from "../shared/errors"
 	import { matchesSearch, searchTerms } from "../shared/search"
@@ -185,7 +185,7 @@
 		</span>
 		<SocialAvatar
 			imageUrl={person.imageUrl}
-			presence={person.presence ?? undefined}
+			onlineStatus={person.onlineStatus ?? undefined}
 			className="size-8" />
 		<span class="flex min-w-0 flex-1 flex-col leading-snug">
 			<span class="truncate text-sm font-medium text-fg"
@@ -339,7 +339,9 @@
 						{#each matches as friend (friend.userId)}
 							{@render personRow(
 								friend,
-								friend.presence ? presenceLabel(friend.presence) : "",
+								friend.onlineStatus
+									? onlineStatusLabel(friend.onlineStatus)
+									: "",
 							)}
 						{/each}
 					</div>

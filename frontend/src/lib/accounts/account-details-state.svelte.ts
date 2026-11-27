@@ -11,38 +11,44 @@ import type { SectionFields } from "../shared/section-load.svelte"
 import type { AccountStore } from "./account-store.svelte"
 import { AccountScope } from "./account-scope"
 
-const infoSections: SectionFields<AccountDetailsSnapshot, AccountDetailsSection>[] = [
+const accountDetailsSections: SectionFields<
+	AccountDetailsSnapshot,
+	AccountDetailsSection
+>[] = [
 	{
-		section: AccountDetailsSection.InfoSectionEmail,
+		section: AccountDetailsSection.DetailsSectionEmail,
 		fields: ["email", "emailVerified"],
 	},
 	{
-		section: AccountDetailsSection.InfoSectionPhone,
+		section: AccountDetailsSection.DetailsSectionPhone,
 		fields: ["phone", "phoneVerified"],
 	},
-	{ section: AccountDetailsSection.InfoSectionPin, fields: ["pin"] },
-	{ section: AccountDetailsSection.InfoSectionGender, fields: ["gender"] },
+	{ section: AccountDetailsSection.DetailsSectionPin, fields: ["pin"] },
+	{ section: AccountDetailsSection.DetailsSectionGender, fields: ["gender"] },
 	{
-		section: AccountDetailsSection.InfoSectionAge,
+		section: AccountDetailsSection.DetailsSectionAge,
 		fields: ["ageGroup", "ageVerification"],
 	},
-	{ section: AccountDetailsSection.InfoSectionBirthdate, fields: ["birthdate"] },
+	{ section: AccountDetailsSection.DetailsSectionBirthdate, fields: ["birthdate"] },
 	{
-		section: AccountDetailsSection.InfoSectionFirstAccount,
+		section: AccountDetailsSection.DetailsSectionFirstAccount,
 		fields: ["firstAccount"],
 	},
 	{
-		section: AccountDetailsSection.InfoSectionLocale,
+		section: AccountDetailsSection.DetailsSectionLocale,
 		fields: ["language", "autoTranslations"],
 	},
-	{ section: AccountDetailsSection.InfoSectionLocation, fields: ["location"] },
-	{ section: AccountDetailsSection.InfoSectionVoiceChat, fields: ["voiceChat"] },
-	{ section: AccountDetailsSection.InfoSectionTwoStep, fields: ["twoStepMethods"] },
+	{ section: AccountDetailsSection.DetailsSectionLocation, fields: ["location"] },
+	{ section: AccountDetailsSection.DetailsSectionVoiceChat, fields: ["voiceChat"] },
 	{
-		section: AccountDetailsSection.InfoSectionRecoveryCodes,
+		section: AccountDetailsSection.DetailsSectionTwoStep,
+		fields: ["twoStepMethods"],
+	},
+	{
+		section: AccountDetailsSection.DetailsSectionRecoveryCodes,
 		fields: ["recoveryCodeCount", "recoveryCodesCreatedAtMs"],
 	},
-	{ section: AccountDetailsSection.InfoSectionPasskeys, fields: ["passkeyNames"] },
+	{ section: AccountDetailsSection.DetailsSectionPasskeys, fields: ["passkeyNames"] },
 ]
 
 function emptyInfo(accountId: number): AccountDetailsSnapshot {
@@ -88,7 +94,7 @@ export class AccountDetailsState {
 		this.sections =
 			kept?.value ??
 			new SectionLoad(
-				infoSections,
+				accountDetailsSections,
 				() => emptyInfo(accountId),
 				"Could not load account info. Refresh to try again.",
 			)

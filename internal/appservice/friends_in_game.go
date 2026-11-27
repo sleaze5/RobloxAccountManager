@@ -33,11 +33,11 @@ func (service *Service) ListFriendsInGame(ctx context.Context, accountID, univer
 	if err != nil {
 		return games.FriendsInGame{}, service.gamesError(ctx, operation, err)
 	}
-	presences, err := service.presence.UserPresences(ctx, accountID, version, friendIDs)
+	onlineStatuses, err := service.onlineStatuses.UserOnlineStatuses(ctx, accountID, version, friendIDs)
 	if err != nil {
 		return games.FriendsInGame{}, service.gamesError(ctx, operation, err)
 	}
-	playing := groupFriendsInGame(presences, universeID)
+	playing := groupFriendsInGame(onlineStatuses, universeID)
 	if len(playing.playingFriendIDs) == 0 {
 		return games.FriendsInGame{Places: []games.FriendPlace{}, FriendsInHiddenPlaces: []games.FriendInServer{}}, nil
 	}
@@ -114,29 +114,29 @@ func (playing friendsPlayingGame) placeIDs() []int64 {
 	return placeIDs
 }
 
-func groupFriendsInGame(presences []robloxservices.UserPresence, universeID int64) friendsPlayingGame {
+func groupFriendsInGame(onlineStatuses []robloxservices.OnlineStatus, universeID int64) friendsPlayingGame {
 	playing := friendsPlayingGame{placeByID: map[int64]*friendsPlayingPlace{}, hiddenPlaceFriendIDs: []int64{}, playingFriendIDs: []int64{}}
-	for _, presence := range presences {
-		if presence.UserPresenceType != robloxservices.PresenceTypeInGame || presence.UniverseID == nil || *presence.UniverseID != universeID {
+	for _, onlineStatus := range onlineStatuses {
+		if onlineStatus.StatusType != robloxservices.OnlineStatusTypeInGame || onlineStatus.UniverseID == nil || *onlineStatus.UniverseID != universeID {
 			continue
 		}
-		playing.playingFriendIDs = append(playing.playingFriendIDs, presence.UserID)
-		if presence.RootPlaceID != nil && games.ValidID(*presence.RootPlaceID) {
-			playing.rootPlaceID = *presence.RootPlaceID
+		playing.playingFriendIDs = append(playing.playingFriendIDs, onlineStatus.UserID)
+		if onlineStatus.RootPlaceID != nil && games.ValidID(*onlineStatus.RootPlaceID) {
+			playing.rootPlaceID = *onlineStatus.RootPlaceID
 		}
-		if presence.PlaceID == nil || !games.ValidID(*presence.PlaceID) {
-			playing.hiddenPlaceFriendIDs = append(playing.hiddenPlaceFriendIDs, presence.UserID)
+		if onlineStatus.PlaceID == nil || !games.ValidID(*onlineStatus.PlaceID) {
+			playing.hiddenPlaceFriendIDs = append(playing.hiddenPlaceFriendIDs, onlineStatus.UserID)
 			continue
 		}
-		place := playing.placeByID[*presence.PlaceID]
+		place := playing.placeByID[*onlineStatus.PlaceID]
 		if place == nil {
 			place = &friendsPlayingPlace{friendIDsByServerID: map[string][]int64{}}
-			playing.placeByID[*presence.PlaceID] = place
+			playing.placeByID[*onlineStatus.PlaceID] = place
 		}
-		if games.ValidServerID(presence.ServerID) {
-			place.friendIDsByServerID[presence.ServerID] = append(place.friendIDsByServerID[presence.ServerID], presence.UserID)
+		if games.ValidServerID(onlineStatus.ServerID) {
+			place.friendIDsByServerID[onlineStatus.ServerID] = append(place.friendIDsByServerID[onlineStatus.ServerID], onlineStatus.UserID)
 		} else {
-			place.hiddenServerFriendIDs = append(place.hiddenServerFriendIDs, presence.UserID)
+			place.hiddenServerFriendIDs = append(place.hiddenServerFriendIDs, onlineStatus.UserID)
 		}
 	}
 	return playing

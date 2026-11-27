@@ -22,15 +22,15 @@
 	import {
 		accountBackend,
 		FriendStatus,
-		PresenceType,
+		OnlineStatusType,
 		SocialProfileSection,
 		UserJoinability,
 	} from "../backend/bridge"
 	import type { SocialUser } from "../backend/bridge"
 	import type { AccountStore } from "../accounts/account-store.svelte"
-	import AccountPresence from "../accounts/AccountPresence.svelte"
-	import PresenceJoinButton from "../accounts/PresenceJoinButton.svelte"
-	import { presenceJoinFor } from "../accounts/presence-join"
+	import AccountOnlineStatus from "../accounts/AccountOnlineStatus.svelte"
+	import OnlineStatusJoinButton from "../accounts/OnlineStatusJoinButton.svelte"
+	import { onlineStatusJoinFor } from "../accounts/online-status-join"
 	import { AccountScope } from "../accounts/account-scope"
 	import RobloxBadgeList from "../accounts/RobloxBadgeList.svelte"
 	import MissingFactValue from "../shared/MissingFactValue.svelte"
@@ -111,11 +111,11 @@
 	})
 
 	const isInGame = $derived(
-		person.presence?.userPresenceType === PresenceType.PresenceTypeInGame,
+		person.onlineStatus?.statusType === OnlineStatusType.OnlineStatusTypeInGame,
 	)
 
 	// The profile tells whether the account can join the user, which the
-	// presence cannot show when the user's privacy hides their server.
+	// online status cannot show when the user's privacy hides their server.
 	$effect(() => {
 		const scope = new AccountScope(store.accountId, accounts),
 			userId = person.userId
@@ -170,8 +170,8 @@
 				FriendStatus.FriendStatusFriends,
 		),
 		join = $derived(
-			person.presence
-				? presenceJoinFor(person.presence, joinability, true)
+			person.onlineStatus
+				? onlineStatusJoinFor(person.onlineStatus, joinability, true)
 				: null,
 		),
 		hasJoinAction = $derived(
@@ -235,9 +235,9 @@
 					<span class="text-fg-faint" aria-hidden="true">·</span>{/if}
 				<span class="select-text">ID: {person.userId}</span>
 			</div>
-			{#if person.presence}
-				<AccountPresence
-					presence={person.presence}
+			{#if person.onlineStatus}
+				<AccountOnlineStatus
+					onlineStatus={person.onlineStatus}
 					{joinability}
 					onJoin={onFillLaunch}
 					onJoinUser={() => onFillLaunchUser(person)} />
@@ -280,9 +280,9 @@
 					{pending ? action.progress : action.label}
 				</button>
 			{/each}
-			{#if person.presence}
-				<PresenceJoinButton
-					presence={person.presence}
+			{#if person.onlineStatus}
+				<OnlineStatusJoinButton
+					onlineStatus={person.onlineStatus}
 					{joinability}
 					onJoin={onFillLaunch}
 					onJoinUser={() => onFillLaunchUser(person)} />

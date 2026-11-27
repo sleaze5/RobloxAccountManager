@@ -273,18 +273,18 @@ func (service *Service) resolveLaunchUser(ctx context.Context, accountID int64, 
 	if !resolveCurrentGame {
 		return gamelaunch.Request{UserID: userID}, nil
 	}
-	presences, err := service.presence.AccountPresences(ctx, []robloxservices.PresenceTarget{{AccountID: accountID, RobloxUserID: userID}})
+	onlineStatuses, err := service.onlineStatuses.AccountOnlineStatuses(ctx, []robloxservices.OnlineStatusTarget{{AccountID: accountID, RobloxUserID: userID}})
 	if err != nil {
 		return gamelaunch.Request{}, err
 	}
-	if len(presences) != 1 {
+	if len(onlineStatuses) != 1 {
 		return gamelaunch.Request{}, launchError(roblox.KindProtocol, "Roblox did not return this user's current server.")
 	}
-	presence := presences[0]
-	if presence.UserPresenceType != robloxservices.PresenceTypeInGame || presence.PlaceID == nil || *presence.PlaceID <= 0 || presence.ServerID == "" {
+	onlineStatus := onlineStatuses[0]
+	if onlineStatus.StatusType != robloxservices.OnlineStatusTypeInGame || onlineStatus.PlaceID == nil || *onlineStatus.PlaceID <= 0 || onlineStatus.ServerID == "" {
 		return gamelaunch.Request{}, launchError(roblox.KindProtocol, "This user has no server that you can see and join. The user can be offline, or privacy settings can hide the server.")
 	}
-	resolved, err := gamelaunch.Parse(gamelaunch.Input{Method: gamelaunch.MethodPlace, PlaceID: strconv.FormatInt(*presence.PlaceID, 10), ServerID: presence.ServerID})
+	resolved, err := gamelaunch.Parse(gamelaunch.Input{Method: gamelaunch.MethodPlace, PlaceID: strconv.FormatInt(*onlineStatus.PlaceID, 10), ServerID: onlineStatus.ServerID})
 	if err != nil {
 		return gamelaunch.Request{}, launchError(roblox.KindProtocol, "Roblox returned an invalid server for this user. Try again.")
 	}

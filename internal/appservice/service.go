@@ -35,7 +35,7 @@ type Service struct {
 	authentication     *robloxservices.Authentication
 	thumbnails         *robloxservices.Thumbnails
 	classReflection    *robloxservices.ClassReflection
-	presence           *robloxservices.Presence
+	onlineStatuses     *robloxservices.OnlineStatuses
 	gameLinks          *robloxservices.GameLinks
 	games              *robloxservices.Games
 	shownGameVideo     shownGameVideo
@@ -92,7 +92,7 @@ func New(
 	authentication *robloxservices.Authentication,
 	thumbnails *robloxservices.Thumbnails,
 	classReflection *robloxservices.ClassReflection,
-	presence *robloxservices.Presence,
+	onlineStatuses *robloxservices.OnlineStatuses,
 	gameLinks *robloxservices.GameLinks,
 	games *robloxservices.Games,
 	privateServers *robloxservices.PrivateServers,
@@ -123,7 +123,7 @@ func New(
 		authentication:       authentication,
 		thumbnails:           thumbnails,
 		classReflection:      classReflection,
-		presence:             presence,
+		onlineStatuses:       onlineStatuses,
 		gameLinks:            gameLinks,
 		games:                games,
 		privateServers:       privateServers,

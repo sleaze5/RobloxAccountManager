@@ -462,7 +462,7 @@
 				),
 			),
 		),
-		visibleInfoFields = $derived(
+		visibleAccountDetailsFields = $derived(
 			new Set<AccountDetailsFieldId>(
 				accountDetailsFields
 					.filter(
@@ -489,7 +489,7 @@
 		visiblePages = $derived(
 			pages.filter((page) =>
 				page.id === "details"
-					? visibleInfoFields.size > 0
+					? visibleAccountDetailsFields.size > 0
 					: page.id === "privacy"
 						? visibleSubpages.length > 0
 						: terms.length === 0 || matches(`${page.label} ${page.search}`),
@@ -961,7 +961,7 @@
 						<AccountDetailsPanel
 							details={accountDetailsState}
 							account={store.selectedAccount}
-							visible={visibleInfoFields}
+							visible={visibleAccountDetailsFields}
 							onSavedPassword={() => (savedPasswordOpen = true)}
 							onEdit={(kind) => (editing = kind)} />
 					{/if}

@@ -17,7 +17,7 @@ import type {
 	SocialProfileSnapshot,
 	SocialRelationship,
 	SocialUser,
-	UserPresence,
+	OnlineStatus,
 	SocialRelationshipSnapshot,
 } from "../backend/bridge"
 import type { NotificationCenter } from "../notifications/notification-center.svelte"
@@ -176,7 +176,7 @@ export function personName(person: SocialSubject): string {
 	)
 }
 
-const presenceRefreshError = "Could not refresh online status."
+const onlineStatusRefreshError = "Could not refresh online status."
 
 type BulkRemovalList =
 	| SocialList.SocialFriends
@@ -321,7 +321,9 @@ export class SocialStore {
 	#relationshipRequest: ReturnType<
 		typeof accountBackend.GetSocialRelationship
 	> | null = null
-	#presenceRequest: ReturnType<typeof accountBackend.GetSocialPresences> | null = null
+	#onlineStatusRequest: ReturnType<
+		typeof accountBackend.GetSocialOnlineStatuses
+	> | null = null
 	readonly #cacheByUserId = new Map<number, SocialAccountCache>()
 	#cache = emptySocialAccountCache()
 	#pages = this.#cache.pages
@@ -565,7 +567,7 @@ export class SocialStore {
 			displayName: user.displayName,
 			nickname: "",
 			imageUrl: "",
-			presence: null,
+			onlineStatus: null,
 			request: null,
 			trusted: false,
 			hasVerifiedBadge: false,
@@ -650,41 +652,44 @@ export class SocialStore {
 		}
 	}
 
-	async refreshPresences(): Promise<void> {
+	async refreshOnlineStatuses(): Promise<void> {
 		const page = this.page,
-			userIds = this.#presenceUserIds()
-		if (!page || userIds.length === 0 || this.#presenceRequest) return
+			userIds = this.#onlineStatusUserIds()
+		if (!page || userIds.length === 0 || this.#onlineStatusRequest) return
 		const epoch = this.#epoch,
-			request = accountBackend.GetSocialPresences(this.accountId, userIds)
-		this.#presenceRequest = request
+			request = accountBackend.GetSocialOnlineStatuses(this.accountId, userIds)
+		this.#onlineStatusRequest = request
 		try {
-			const presences = (await request) ?? []
-			if (request !== this.#presenceRequest || epoch !== this.#epoch) return
-			if (this.page === page) this.#installPresences(page, presences)
-			if (this.error === presenceRefreshError) this.error = ""
+			const onlineStatuses = (await request) ?? []
+			if (request !== this.#onlineStatusRequest || epoch !== this.#epoch) return
+			if (this.page === page) this.#installOnlineStatuses(page, onlineStatuses)
+			if (this.error === onlineStatusRefreshError) this.error = ""
 		} catch {
-			if (request !== this.#presenceRequest || epoch !== this.#epoch) return
-			this.error = presenceRefreshError
+			if (request !== this.#onlineStatusRequest || epoch !== this.#epoch) return
+			this.error = onlineStatusRefreshError
 		} finally {
-			if (request === this.#presenceRequest) this.#presenceRequest = null
+			if (request === this.#onlineStatusRequest) this.#onlineStatusRequest = null
 		}
 	}
 
-	#presenceUserIds(): number[] {
+	#onlineStatusUserIds(): number[] {
 		if (this.loading || this.loadingMore) return []
 		return (this.page?.people ?? [])
-			.filter((person) => person.presence)
+			.filter((person) => person.onlineStatus)
 			.map((person) => person.userId)
 	}
 
-	#installPresences(page: SocialListPage, presences: UserPresence[]): void {
+	#installOnlineStatuses(page: SocialListPage, onlineStatuses: OnlineStatus[]): void {
 		const byUser = new Map(
-				presences.map((presence) => [presence.userId, presence]),
+				onlineStatuses.map((onlineStatus) => [
+					onlineStatus.userId,
+					onlineStatus,
+				]),
 			),
 			people: SocialUser[] = []
 		for (const person of page.people ?? []) {
-			const presence = person.presence && byUser.get(person.userId)
-			people.push(presence ? { ...person, presence } : person)
+			const onlineStatus = person.onlineStatus && byUser.get(person.userId)
+			people.push(onlineStatus ? { ...person, onlineStatus } : person)
 		}
 		const next = { ...page, people },
 			key = this.#key(),
@@ -1085,8 +1090,8 @@ export class SocialStore {
 	#open(): void {
 		void this.#listRequest?.cancel()
 		this.#listRequest = null
-		void this.#presenceRequest?.cancel()
-		this.#presenceRequest = null
+		void this.#onlineStatusRequest?.cancel()
+		this.#onlineStatusRequest = null
 		this.loading = this.loadingMore = false
 		this.loadError = ""
 		this.closeMenu()
@@ -1120,9 +1125,9 @@ export class SocialStore {
 	#switchAccount(accountId: number, selfUserId: number): void {
 		this.#epoch++
 		void this.#listRequest?.cancel()
-		void this.#presenceRequest?.cancel()
+		void this.#onlineStatusRequest?.cancel()
 		void this.#relationshipRequest?.cancel()
-		this.#listRequest = this.#presenceRequest = null
+		this.#listRequest = this.#onlineStatusRequest = null
 		this.#relationshipRequest = null
 		for (const entry of this.#profiles.values()) entry.load.cancel()
 		const now = Date.now()

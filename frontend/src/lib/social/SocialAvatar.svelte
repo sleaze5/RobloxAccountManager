@@ -1,13 +1,13 @@
 <script lang="ts">
-	import type { UserPresence } from "../backend/bridge"
-	import PresenceBadge from "../accounts/PresenceBadge.svelte"
+	import type { OnlineStatus } from "../backend/bridge"
+	import OnlineStatusBadge from "../accounts/OnlineStatusBadge.svelte"
 	import ProfileImage from "../shared/ProfileImage.svelte"
 
 	let {
 		imageUrl,
-		presence,
+		onlineStatus,
 		className,
-	}: { imageUrl: string; presence?: UserPresence; className: string } = $props()
+	}: { imageUrl: string; onlineStatus?: OnlineStatus; className: string } = $props()
 </script>
 
 <span class={["relative block shrink-0", className]}>
@@ -16,7 +16,7 @@
 		aria-hidden="true">
 		<ProfileImage url={imageUrl} />
 	</span>
-	{#if presence}
-		<PresenceBadge {presence} />
+	{#if onlineStatus}
+		<OnlineStatusBadge {onlineStatus} />
 	{/if}
 </span>

@@ -9,7 +9,7 @@
 	import textTIcon from "@phosphor-icons/core/regular/text-t.svg?raw"
 	import userListIcon from "@phosphor-icons/core/regular/user-list.svg?raw"
 	import { unsavedChangesGuard } from "../layout/unsaved-changes-guard"
-	import { PresenceType, SocialList } from "../backend/bridge"
+	import { OnlineStatusType, SocialList } from "../backend/bridge"
 	import type { SocialUser } from "../backend/bridge"
 	import MenuItem from "../shared/MenuItem.svelte"
 	import MenuSection from "../shared/MenuSection.svelte"
@@ -43,16 +43,16 @@
 		robloxPages = getRobloxPageOpener()
 	const person = $derived(menu.person),
 		profileUrl = $derived(robloxUserProfileUrl(person.userId)),
-		presence = $derived(person.presence),
-		placeId = $derived(presence?.placeId ?? 0),
+		onlineStatus = $derived(person.onlineStatus),
+		placeId = $derived(onlineStatus?.placeId ?? 0),
 		isInGame = $derived(
-			presence?.userPresenceType === PresenceType.PresenceTypeInGame ||
-				presence?.userPresenceType === PresenceType.PresenceTypeInStudio,
+			onlineStatus?.statusType === OnlineStatusType.OnlineStatusTypeInGame ||
+				onlineStatus?.statusType === OnlineStatusType.OnlineStatusTypeInStudio,
 		),
 		joinable = $derived(
-			presence?.userPresenceType === PresenceType.PresenceTypeInGame &&
+			onlineStatus?.statusType === OnlineStatusType.OnlineStatusTypeInGame &&
 				placeId > 0 &&
-				!!presence.serverId,
+				!!onlineStatus.serverId,
 		),
 		relationship = $derived(
 			store.menuRelationship?.relationship ?? requestRelationship(person),
@@ -84,7 +84,7 @@
 			label="Fill launch options"
 			icon={listPlusIcon}
 			onSelect={() => {
-				const serverId = presence?.serverId ?? ""
+				const serverId = onlineStatus?.serverId ?? ""
 				onFillLaunch(placeId, serverId)
 				store.closeMenu()
 			}} />

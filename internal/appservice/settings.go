@@ -9,14 +9,14 @@ import (
 )
 
 type AppSettingsState struct {
-	Presence             appsettings.PresenceSettings `json:"presence"`
-	EnabledLoggingLevels map[string]bool              `json:"enabledLoggingLevels"`
-	TimestampFormats     TimestampFormats             `json:"timestampFormats"`
-	Motion               appsettings.MotionPreference `json:"motion"`
-	RoValraEnabled       bool                         `json:"roValraEnabled"`
-	RoValraRegion        string                       `json:"roValraRegion"`
-	RBXServersEnabled    bool                         `json:"rbxServersEnabled"`
-	SettingsRecovered    bool                         `json:"settingsRecovered"`
+	OnlineStatus         appsettings.OnlineStatusSettings `json:"onlineStatus"`
+	EnabledLoggingLevels map[string]bool                  `json:"enabledLoggingLevels"`
+	TimestampFormats     TimestampFormats                 `json:"timestampFormats"`
+	Motion               appsettings.MotionPreference     `json:"motion"`
+	RoValraEnabled       bool                             `json:"roValraEnabled"`
+	RoValraRegion        string                           `json:"roValraRegion"`
+	RBXServersEnabled    bool                             `json:"rbxServersEnabled"`
+	SettingsRecovered    bool                             `json:"settingsRecovered"`
 }
 
 type TimestampFormats struct {
@@ -27,13 +27,13 @@ type TimestampFormats struct {
 func (service *Service) GetAppSettings() (AppSettingsState, error) {
 	loggingSettings := service.settings.Logging()
 	userInterfaceSettings := service.settings.UserInterface()
-	presenceSettings := service.settings.Presence()
+	onlineStatusSettings := service.settings.OnlineStatus()
 	timestampFormats, err := parseTimestampFormats(userInterfaceSettings.TimestampFormat, userInterfaceSettings.TimestampHoverFormat)
 	if err != nil {
 		return AppSettingsState{}, err
 	}
 	return AppSettingsState{
-		Presence:             presenceSettings,
+		OnlineStatus:         onlineStatusSettings,
 		EnabledLoggingLevels: loggingSettings.EnabledLevels,
 		TimestampFormats:     timestampFormats,
 		Motion:               userInterfaceSettings.Motion,
@@ -44,12 +44,12 @@ func (service *Service) GetAppSettings() (AppSettingsState, error) {
 	}, nil
 }
 
-func (service *Service) SetPresenceUpdates(scope appsettings.PresenceScope, enabled bool, intervalSeconds int) error {
-	if err := service.settings.SetPresenceUpdates(scope, enabled, intervalSeconds); err != nil {
-		service.logger.Warn("could not save online status settings", "operation", "presence-settings", "error", err)
+func (service *Service) SetOnlineStatusUpdates(scope appsettings.OnlineStatusScope, enabled bool, intervalSeconds int) error {
+	if err := service.settings.SetOnlineStatusUpdates(scope, enabled, intervalSeconds); err != nil {
+		service.logger.Warn("could not save online status settings", "operation", "online-status-settings", "error", err)
 		return err
 	}
-	service.logger.Debug("online status settings saved", "operation", "presence-settings", "scope", scope, "enabled", enabled, "interval_seconds", intervalSeconds)
+	service.logger.Debug("online status settings saved", "operation", "online-status-settings", "scope", scope, "enabled", enabled, "interval_seconds", intervalSeconds)
 	return nil
 }
 

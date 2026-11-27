@@ -214,7 +214,7 @@ export class AccountProfileState {
 		const results = await Promise.allSettled([
 			this.#identityCheckRequest,
 			this.#store.refreshAccountAvatar(this.#accountId),
-			this.#store.refreshPresences(this.#accountId),
+			this.#store.refreshOnlineStatuses(this.#accountId),
 		])
 		for (const settled of results) {
 			if (settled.status === "rejected") throw settled.reason

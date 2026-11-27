@@ -15,19 +15,19 @@ import (
 type AccountDetailsSection string
 
 const (
-	InfoSectionEmail         AccountDetailsSection = "email"
-	InfoSectionPhone         AccountDetailsSection = "phone"
-	InfoSectionGender        AccountDetailsSection = "gender"
-	InfoSectionBirthdate     AccountDetailsSection = "birthdate"
-	InfoSectionAge           AccountDetailsSection = "age"
-	InfoSectionFirstAccount  AccountDetailsSection = "firstAccount"
-	InfoSectionLocale        AccountDetailsSection = "locale"
-	InfoSectionLocation      AccountDetailsSection = "location"
-	InfoSectionPin           AccountDetailsSection = "pin"
-	InfoSectionVoiceChat     AccountDetailsSection = "voiceChat"
-	InfoSectionTwoStep       AccountDetailsSection = "twoStep"
-	InfoSectionRecoveryCodes AccountDetailsSection = "recoveryCodes"
-	InfoSectionPasskeys      AccountDetailsSection = "passkeys"
+	DetailsSectionEmail         AccountDetailsSection = "email"
+	DetailsSectionPhone         AccountDetailsSection = "phone"
+	DetailsSectionGender        AccountDetailsSection = "gender"
+	DetailsSectionBirthdate     AccountDetailsSection = "birthdate"
+	DetailsSectionAge           AccountDetailsSection = "age"
+	DetailsSectionFirstAccount  AccountDetailsSection = "firstAccount"
+	DetailsSectionLocale        AccountDetailsSection = "locale"
+	DetailsSectionLocation      AccountDetailsSection = "location"
+	DetailsSectionPin           AccountDetailsSection = "pin"
+	DetailsSectionVoiceChat     AccountDetailsSection = "voiceChat"
+	DetailsSectionTwoStep       AccountDetailsSection = "twoStep"
+	DetailsSectionRecoveryCodes AccountDetailsSection = "recoveryCodes"
+	DetailsSectionPasskeys      AccountDetailsSection = "passkeys"
 )
 
 // AccountDetailsSnapshot holds the fields of the one section that was read. It
@@ -81,7 +81,7 @@ func (service *Service) GetAccountInfo(ctx context.Context, accountID int64, sec
 		return AccountDetailsSnapshot{}, err
 	}
 	snapshot.IsComplete = len(unavailable) == 0
-	if section == InfoSectionAge {
+	if section == DetailsSectionAge {
 		snapshot.AgeGroup, snapshot.AgeVerification = age.group, age.verification()
 	}
 	logger.DebugContext(ctx, "account details section read finished", "duration_ms", time.Since(started).Milliseconds(), "failed_reads", len(unavailable))
@@ -91,50 +91,50 @@ func (service *Service) GetAccountInfo(ctx context.Context, accountID int64, sec
 func (service *Service) accountDetailsSectionReads(ctx context.Context, accountID, version, userID int64, section AccountDetailsSection, snapshot *AccountDetailsSnapshot, age *accountAge) []accountRead {
 	users := service.users
 	readsBySection := map[AccountDetailsSection]func() []accountRead{
-		InfoSectionEmail: func() []accountRead {
+		DetailsSectionEmail: func() []accountRead {
 			return []accountRead{applyRead("email", func() (robloxservices.UserEmail, error) { return users.Email(ctx, accountID, version) }, func(email robloxservices.UserEmail) {
 				snapshot.Email, snapshot.EmailVerified = email.Address, &email.Verified
 			})}
 		},
-		InfoSectionPhone: func() []accountRead {
+		DetailsSectionPhone: func() []accountRead {
 			return []accountRead{applyRead("phone", func() (robloxservices.UserPhone, error) { return users.Phone(ctx, accountID, version) }, func(phone robloxservices.UserPhone) {
 				snapshot.Phone, snapshot.PhoneVerified = phone.Number, &phone.Verified
 			})}
 		},
-		InfoSectionGender: func() []accountRead {
+		DetailsSectionGender: func() []accountRead {
 			return []accountRead{applyRead("gender", func() (string, error) { return users.Gender(ctx, accountID, version) }, func(gender string) { snapshot.Gender = gender })}
 		},
-		InfoSectionBirthdate: func() []accountRead {
+		DetailsSectionBirthdate: func() []accountRead {
 			return []accountRead{applyRead("birthdate", func() (robloxservices.UserBirthdate, error) { return users.Birthdate(ctx, accountID, version) }, func(date robloxservices.UserBirthdate) {
 				snapshot.Birthdate = fmt.Sprintf("%04d-%02d-%02d", date.Year, date.Month, date.Day)
 			})}
 		},
-		InfoSectionAge: func() []accountRead { return service.ageReads(ctx, accountID, version, age) },
-		InfoSectionFirstAccount: func() []accountRead {
+		DetailsSectionAge: func() []accountRead { return service.ageReads(ctx, accountID, version, age) },
+		DetailsSectionFirstAccount: func() []accountRead {
 			return []accountRead{applyRead("firstAccount", func() (bool, error) { return users.FirstAccount(ctx, accountID, version, userID) }, func(first bool) { snapshot.FirstAccount = &first })}
 		},
-		InfoSectionLocale: func() []accountRead {
+		DetailsSectionLocale: func() []accountRead {
 			return []accountRead{applyRead("locale", func() (robloxservices.UserLocale, error) { return users.Locale(ctx, accountID, version) }, func(locale robloxservices.UserLocale) {
 				snapshot.Language, snapshot.AutoTranslations = locale.Language, locale.AutoTranslations
 			})}
 		},
-		InfoSectionLocation: func() []accountRead {
+		DetailsSectionLocation: func() []accountRead {
 			return []accountRead{applyRead("location", func() (string, error) { return users.AccountLocation(ctx, accountID, version) }, func(location string) { snapshot.Location = location })}
 		},
-		InfoSectionPin: func() []accountRead {
+		DetailsSectionPin: func() []accountRead {
 			return []accountRead{applyRead("pin", func() (robloxservices.AccountPin, error) { return users.Pin(ctx, accountID, version) }, func(pin robloxservices.AccountPin) { snapshot.Pin = pinState(pin) })}
 		},
-		InfoSectionVoiceChat: func() []accountRead {
+		DetailsSectionVoiceChat: func() []accountRead {
 			return []accountRead{service.voiceChatRead(ctx, accountID, version, userID, &snapshot.VoiceChat)}
 		},
-		InfoSectionTwoStep: func() []accountRead {
+		DetailsSectionTwoStep: func() []accountRead {
 			return []accountRead{applyRead("twoStep", func() ([]robloxservices.UserVerificationMethod, error) {
 				return users.TwoStepVerification(ctx, accountID, version, userID)
 			}, func(methods []robloxservices.UserVerificationMethod) {
 				snapshot.TwoStepMethods = enabledVerificationMethods(methods)
 			})}
 		},
-		InfoSectionRecoveryCodes: func() []accountRead {
+		DetailsSectionRecoveryCodes: func() []accountRead {
 			return []accountRead{applyRead("recoveryCodes", func() (robloxservices.UserRecoveryCodes, error) {
 				return users.RecoveryCodes(ctx, accountID, version, userID)
 			}, func(codes robloxservices.UserRecoveryCodes) {
@@ -144,7 +144,7 @@ func (service *Service) accountDetailsSectionReads(ctx context.Context, accountI
 				}
 			})}
 		},
-		InfoSectionPasskeys: func() []accountRead {
+		DetailsSectionPasskeys: func() []accountRead {
 			return []accountRead{applyRead("passkeys", func() ([]string, error) { return users.Passkeys(ctx, accountID, version) }, func(names []string) { snapshot.PasskeyNames = names })}
 		},
 	}

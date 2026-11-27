@@ -21,16 +21,16 @@ func (service *Service) SearchPlayers(ctx context.Context, accountID int64, keyw
 	return service.core.SearchPlayers(ctx, accountID, keyword, cursor)
 }
 
-func (service *Service) GetSocialPresences(ctx context.Context, accountID int64, userIDs []int64) ([]robloxservices.UserPresence, error) {
-	if err := positiveID(accountID, "social-presence"); err != nil {
+func (service *Service) GetSocialOnlineStatuses(ctx context.Context, accountID int64, userIDs []int64) ([]robloxservices.OnlineStatus, error) {
+	if err := positiveID(accountID, "social-online-status"); err != nil {
 		return nil, err
 	}
 	for _, userID := range userIDs {
-		if err := positiveID(userID, "social-presence"); err != nil {
+		if err := positiveID(userID, "social-online-status"); err != nil {
 			return nil, err
 		}
 	}
-	return service.core.GetSocialPresences(ctx, accountID, userIDs)
+	return service.core.GetSocialOnlineStatuses(ctx, accountID, userIDs)
 }
 
 func (service *Service) GetSocialProfile(ctx context.Context, accountID, userID int64, section appservice.SocialProfileSection) (appservice.SocialProfile, error) {

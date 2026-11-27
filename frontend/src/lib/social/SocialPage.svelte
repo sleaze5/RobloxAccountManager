@@ -29,11 +29,11 @@
 	import SkeletonMediaRow from "../shared/SkeletonMediaRow.svelte"
 	import CheckboxMark from "../shared/CheckboxMark.svelte"
 	import RefreshIcon from "../shared/RefreshIcon.svelte"
-	import { PresenceType, SessionState, SocialList } from "../backend/bridge"
+	import { OnlineStatusType, SessionState, SocialList } from "../backend/bridge"
 	import { moderationLabel } from "../accounts/moderation.svelte"
 	import type { GamePlace, SocialUser } from "../backend/bridge"
 	import type { AccountStore } from "../accounts/account-store.svelte"
-	import { presenceDetail, presenceLabel } from "../accounts/account-model"
+	import { onlineStatusDetail, onlineStatusLabel } from "../accounts/account-model"
 	import AccountSwitcher from "../layout/AccountSwitcher.svelte"
 	import { getPageVisibility } from "../layout/page-visibility"
 	import { unsavedChangesGuard } from "../layout/unsaved-changes-guard"
@@ -41,7 +41,7 @@
 	import { appSettings } from "../settings/settings-store.svelte"
 	import { notifyErrors } from "../notifications/error-notifications.svelte"
 	import ProfileImage from "../shared/ProfileImage.svelte"
-	import PresenceLine from "../accounts/PresenceLine.svelte"
+	import OnlineStatusLine from "../accounts/OnlineStatusLine.svelte"
 	import Select from "../shared/Select.svelte"
 	import { moveListFocus } from "../shared/move-shortcut"
 	import { isMultiSelectGesture } from "../shared/list-selection.svelte"
@@ -144,12 +144,12 @@
 		onlineCount = $derived(
 			(store.page?.people ?? []).filter(
 				(person) =>
-					person.presence?.userPresenceType ===
-						PresenceType.PresenceTypeOnline ||
-					person.presence?.userPresenceType ===
-						PresenceType.PresenceTypeInGame ||
-					person.presence?.userPresenceType ===
-						PresenceType.PresenceTypeInStudio,
+					person.onlineStatus?.statusType ===
+						OnlineStatusType.OnlineStatusTypeOnline ||
+					person.onlineStatus?.statusType ===
+						OnlineStatusType.OnlineStatusTypeInGame ||
+					person.onlineStatus?.statusType ===
+						OnlineStatusType.OnlineStatusTypeInStudio,
 			).length,
 		),
 		selected = $derived(store.selected),
@@ -200,18 +200,18 @@
 	})
 
 	$effect(() => {
-		const presence = appSettings.presence.social
+		const onlineStatus = appSettings.onlineStatus.social
 		if (
 			!appSettings.initialized ||
 			!accounts.vault.unlocked ||
 			!pageVisibility.isShown ||
-			!presence.enabled
+			!onlineStatus.enabled
 		) {
 			return
 		}
 		const timer = window.setInterval(
-			() => void store.refreshPresences(),
-			presence.intervalSeconds * 1000,
+			() => void store.refreshOnlineStatuses(),
+			onlineStatus.intervalSeconds * 1000,
 		)
 		return () => window.clearInterval(timer)
 	})
@@ -303,9 +303,9 @@
 	function rowLabel(person: SocialUser): string {
 		const name = `${personName(person)}${person.hasVerifiedBadge ? ", verified" : ""}${person.username ? ` (@${person.username})` : ""}${person.trusted ? ", trusted friend" : ""}`
 		if (person.request) return `${name}, friend request incoming`
-		if (!person.presence) return name
-		const detail = presenceDetail(person.presence)
-		return `${name}, ${presenceLabel(person.presence)}${detail ? `: ${detail}` : ""}`
+		if (!person.onlineStatus) return name
+		const detail = onlineStatusDetail(person.onlineStatus)
+		return `${name}, ${onlineStatusLabel(person.onlineStatus)}${detail ? `: ${detail}` : ""}`
 	}
 
 	function emptyCopy(): { title: string; text: string } {
@@ -350,7 +350,7 @@
 		class={["flex w-full min-w-0 gap-2", detail ? "items-start" : "items-center"]}>
 		<SocialAvatar
 			imageUrl={person.imageUrl}
-			presence={person.presence ?? undefined}
+			onlineStatus={person.onlineStatus ?? undefined}
 			className="size-9" />
 		<span class="flex min-w-0 flex-col leading-snug">
 			<strong
@@ -370,8 +370,8 @@
 			<small
 				class="truncate text-2xs text-fg-faint group-hover/row:text-fg-muted group-data-selected/row:text-fg-muted"
 				>{subtitle(person)}</small>
-			{#if detail && person.presence}<PresenceLine
-					presence={person.presence} />{/if}
+			{#if detail && person.onlineStatus}<OnlineStatusLine
+					onlineStatus={person.onlineStatus} />{/if}
 		</span>
 	</span>
 {/snippet}
@@ -559,8 +559,8 @@
 					{/if}
 					{#each store.people as person (person.userId)}
 						{@const active = store.selectedUserId === person.userId}
-						{@const detail = person.presence
-							? presenceDetail(person.presence)
+						{@const detail = person.onlineStatus
+							? onlineStatusDetail(person.onlineStatus)
 							: ""}
 						{#if selection.isSelecting}
 							{@const checked = selection.has(person.userId)}

@@ -1,8 +1,8 @@
 import { accountBackend, MotionPreference } from "../backend/bridge"
 import type {
 	GameRegion,
-	PresenceScope,
-	PresenceSettings,
+	OnlineStatusScope,
+	OnlineStatusSettings,
 	TimestampFormat,
 } from "../backend/bridge"
 import { setMotionPreference } from "../shared/motion"
@@ -12,12 +12,12 @@ import { errorMessage } from "../shared/errors"
 export type LoggingLevel = "trace" | "debug" | "info" | "warn" | "error"
 
 export class SettingsStore {
-	presence = $state<PresenceSettings>({
+	onlineStatus = $state<OnlineStatusSettings>({
 		accounts: { enabled: true, intervalSeconds: 300 },
 		profile: { enabled: true, intervalSeconds: 60 },
 		social: { enabled: true, intervalSeconds: 60 },
 	})
-	busyPresence = $state(false)
+	busyOnlineStatus = $state(false)
 	enabledLoggingLevels = $state<Record<LoggingLevel, boolean>>({
 		debug: false,
 		error: true,
@@ -49,7 +49,7 @@ export class SettingsStore {
 		this.error = ""
 		try {
 			const settings = await accountBackend.GetAppSettings()
-			this.presence = settings.presence
+			this.onlineStatus = settings.onlineStatus
 			this.enabledLoggingLevels = { ...settings.enabledLoggingLevels } as Record<
 				LoggingLevel,
 				boolean
@@ -127,24 +127,27 @@ export class SettingsStore {
 		}
 	}
 
-	async setPresenceUpdates(
-		scope: PresenceScope,
+	async setOnlineStatusUpdates(
+		scope: OnlineStatusScope,
 		enabled: boolean,
 		intervalSeconds: number,
 	): Promise<void> {
-		if (this.busyPresence) return
-		this.busyPresence = true
+		if (this.busyOnlineStatus) return
+		this.busyOnlineStatus = true
 		this.error = ""
 		try {
-			await accountBackend.SetPresenceUpdates(scope, enabled, intervalSeconds)
-			this.presence = { ...this.presence, [scope]: { enabled, intervalSeconds } }
+			await accountBackend.SetOnlineStatusUpdates(scope, enabled, intervalSeconds)
+			this.onlineStatus = {
+				...this.onlineStatus,
+				[scope]: { enabled, intervalSeconds },
+			}
 		} catch (error) {
 			this.error = errorMessage(
 				error,
 				"Could not save the online status settings.",
 			)
 		} finally {
-			this.busyPresence = false
+			this.busyOnlineStatus = false
 		}
 	}
 

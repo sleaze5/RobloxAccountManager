@@ -45,7 +45,10 @@
 	const games = getGamesStore()
 
 	const settingsSections = [
-			{ value: SettingsSection.SectionPresence, label: "Online status updates" },
+			{
+				value: SettingsSection.SectionOnlineStatus,
+				label: "Online status updates",
+			},
 			{
 				value: SettingsSection.SectionRoblox,
 				label: "Roblox: Multi-client and Linux client",

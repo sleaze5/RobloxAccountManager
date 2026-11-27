@@ -139,7 +139,7 @@
 			displayName,
 			nickname: profile.relationship.nickname,
 			imageUrl: headshotUrl,
-			presence: null,
+			onlineStatus: null,
 			request: null,
 			hasVerifiedBadge: isVerified,
 			trusted: false,

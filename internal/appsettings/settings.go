@@ -19,20 +19,20 @@ import (
 )
 
 const (
-	FormatVersion                          = 3
-	defaultPasswordCheckIntervalDays       = 30
-	defaultTimestampFormat                 = "$MMM $D $YYYY, $h:$mm:$ss $A"
-	defaultTimestampHoverFormat            = "$dddd, $MMMM $DD $YYYY, $hh:$mm:$ss $A ($relative)"
-	defaultAccountsPresenceIntervalSeconds = 300
-	defaultProfilePresenceIntervalSeconds  = 60
-	defaultSocialPresenceIntervalSeconds   = 60
+	FormatVersion                              = 3
+	defaultPasswordCheckIntervalDays           = 30
+	defaultTimestampFormat                     = "$MMM $D $YYYY, $h:$mm:$ss $A"
+	defaultTimestampHoverFormat                = "$dddd, $MMMM $DD $YYYY, $hh:$mm:$ss $A ($relative)"
+	defaultAccountsOnlineStatusIntervalSeconds = 300
+	defaultProfileOnlineStatusIntervalSeconds  = 60
+	defaultSocialOnlineStatusIntervalSeconds   = 60
 )
 
 var loggingLevels = []string{"trace", "debug", "info", "warn", "error"}
 
 type object = map[string]json.RawMessage
 
-var migrations = [...]func(object) (object, error){resetTimestampFormats, renameMultiClientAndPasswordCheckFields}
+var migrations = [...]func(object) (object, error){resetTimestampFormats, renameFieldsToGlossaryTerms}
 
 var _ = [1]struct{}{}[len(migrations)-(FormatVersion-1)]
 
@@ -54,11 +54,15 @@ func resetTimestampFormats(document object) (object, error) {
 	return document, nil
 }
 
-// renameMultiClientAndPasswordCheckFields moves the version 2 fields to the
-// names of the glossary: multiInstance becomes multiClient, and the password
-// test fields become password check fields.
-func renameMultiClientAndPasswordCheckFields(document object) (object, error) {
+// renameFieldsToGlossaryTerms moves the version 2 fields to the names of the
+// glossary: presence becomes onlineStatus, multiInstance becomes multiClient,
+// and the password test fields become password check fields.
+func renameFieldsToGlossaryTerms(document object) (object, error) {
 	document["version"] = json.RawMessage("3")
+	if onlineStatus, ok := document["presence"]; ok {
+		document["onlineStatus"] = onlineStatus
+		delete(document, "presence")
+	}
 	renamedFieldsBySection := map[string]map[string]string{
 		"roblox": {"multiInstance": "multiClient"},
 		"vault":  {"passwordTestIntervalDays": "passwordCheckIntervalDays", "lastPasswordTestedAtMs": "lastPasswordCheckedAtMs"},
@@ -92,7 +96,7 @@ type VaultSettings struct {
 
 type Settings struct {
 	Version       int                   `json:"version"`
-	Presence      PresenceSettings      `json:"presence"`
+	OnlineStatus  OnlineStatusSettings  `json:"onlineStatus"`
 	Roblox        RobloxSettings        `json:"roblox"`
 	Integrations  IntegrationSettings   `json:"integrations"`
 	Vault         VaultSettings         `json:"vault"`
@@ -100,21 +104,21 @@ type Settings struct {
 	UserInterface UserInterfaceSettings `json:"userInterface"`
 }
 
-type PresenceScope string
+type OnlineStatusScope string
 
 const (
-	PresenceAccounts PresenceScope = "accounts"
-	PresenceProfile  PresenceScope = "profile"
-	PresenceSocial   PresenceScope = "social"
+	OnlineStatusAccounts OnlineStatusScope = "accounts"
+	OnlineStatusProfile  OnlineStatusScope = "profile"
+	OnlineStatusSocial   OnlineStatusScope = "social"
 )
 
-type PresenceSettings struct {
-	Accounts PresenceUpdateSettings `json:"accounts"`
-	Profile  PresenceUpdateSettings `json:"profile"`
-	Social   PresenceUpdateSettings `json:"social"`
+type OnlineStatusSettings struct {
+	Accounts OnlineStatusUpdateSettings `json:"accounts"`
+	Profile  OnlineStatusUpdateSettings `json:"profile"`
+	Social   OnlineStatusUpdateSettings `json:"social"`
 }
 
-type PresenceUpdateSettings struct {
+type OnlineStatusUpdateSettings struct {
 	Enabled         bool `json:"enabled"`
 	IntervalSeconds int  `json:"intervalSeconds"`
 }
@@ -141,7 +145,7 @@ type LoggingSettings struct {
 type Section string
 
 const (
-	SectionPresence      Section = "presence"
+	SectionOnlineStatus  Section = "onlineStatus"
 	SectionRoblox        Section = "roblox"
 	SectionIntegrations  Section = "integrations"
 	SectionUserInterface Section = "userInterface"
@@ -149,7 +153,7 @@ const (
 	SectionVault         Section = "vault"
 )
 
-var Sections = []Section{SectionPresence, SectionRoblox, SectionIntegrations, SectionUserInterface, SectionLogging, SectionVault}
+var Sections = []Section{SectionOnlineStatus, SectionRoblox, SectionIntegrations, SectionUserInterface, SectionLogging, SectionVault}
 
 type MotionPreference string
 
@@ -289,8 +293,8 @@ func (store *Store) Import(imported Settings, sections []Section) error {
 	return store.update(func(settings *Settings) error {
 		for _, section := range sections {
 			switch section {
-			case SectionPresence:
-				settings.Presence = imported.Presence
+			case SectionOnlineStatus:
+				settings.OnlineStatus = imported.OnlineStatus
 			case SectionRoblox:
 				settings.Roblox.MultiClient = imported.Roblox.MultiClient
 				settings.Roblox.CleanBeforeLaunch = imported.Roblox.CleanBeforeLaunch
@@ -316,10 +320,10 @@ func (store *Store) Import(imported Settings, sections []Section) error {
 func decodeCurrent(document object) (Settings, []string) {
 	fields := &fieldDecoder{}
 	settings := defaults()
-	presence := fields.object(document, "presence")
-	fields.presence(fields.object(presence, "presence.accounts"), "presence.accounts", &settings.Presence.Accounts)
-	fields.presence(fields.object(presence, "presence.profile"), "presence.profile", &settings.Presence.Profile)
-	fields.presence(fields.object(presence, "presence.social"), "presence.social", &settings.Presence.Social)
+	onlineStatus := fields.object(document, "onlineStatus")
+	fields.onlineStatus(fields.object(onlineStatus, "onlineStatus.accounts"), "onlineStatus.accounts", &settings.OnlineStatus.Accounts)
+	fields.onlineStatus(fields.object(onlineStatus, "onlineStatus.profile"), "onlineStatus.profile", &settings.OnlineStatus.Profile)
+	fields.onlineStatus(fields.object(onlineStatus, "onlineStatus.social"), "onlineStatus.social", &settings.OnlineStatus.Social)
 	roblox := fields.object(document, "roblox")
 	decodeField(fields, roblox, "roblox.multiClient", &settings.Roblox.MultiClient, nil)
 	decodeField(fields, roblox, "roblox.cleanBeforeLaunch", &settings.Roblox.CleanBeforeLaunch, nil)
@@ -365,9 +369,9 @@ func (fields *fieldDecoder) object(document object, path string) object {
 	return nested
 }
 
-func (fields *fieldDecoder) presence(document object, path string, target *PresenceUpdateSettings) {
+func (fields *fieldDecoder) onlineStatus(document object, path string, target *OnlineStatusUpdateSettings) {
 	decodeField(fields, document, path+".enabled", &target.Enabled, nil)
-	decodeField(fields, document, path+".intervalSeconds", &target.IntervalSeconds, validPresenceInterval)
+	decodeField(fields, document, path+".intervalSeconds", &target.IntervalSeconds, validOnlineStatusInterval)
 }
 
 func decodeField[FieldValue any](fields *fieldDecoder, document object, path string, target *FieldValue, valid func(FieldValue) bool) {
@@ -388,10 +392,10 @@ func fieldName(path string) string { return path[strings.LastIndex(path, ".")+1:
 func defaults() Settings {
 	return Settings{
 		Version: FormatVersion,
-		Presence: PresenceSettings{
-			Accounts: PresenceUpdateSettings{Enabled: true, IntervalSeconds: defaultAccountsPresenceIntervalSeconds},
-			Profile:  PresenceUpdateSettings{Enabled: true, IntervalSeconds: defaultProfilePresenceIntervalSeconds},
-			Social:   PresenceUpdateSettings{Enabled: true, IntervalSeconds: defaultSocialPresenceIntervalSeconds},
+		OnlineStatus: OnlineStatusSettings{
+			Accounts: OnlineStatusUpdateSettings{Enabled: true, IntervalSeconds: defaultAccountsOnlineStatusIntervalSeconds},
+			Profile:  OnlineStatusUpdateSettings{Enabled: true, IntervalSeconds: defaultProfileOnlineStatusIntervalSeconds},
+			Social:   OnlineStatusUpdateSettings{Enabled: true, IntervalSeconds: defaultSocialOnlineStatusIntervalSeconds},
 		},
 		Roblox:       RobloxSettings{DeleteLogsWhenCleaning: true},
 		Integrations: IntegrationSettings{RoValra: true, RBXServers: true},
@@ -451,27 +455,27 @@ func (store *Store) Integrations() IntegrationSettings {
 	return store.settings.Integrations
 }
 
-func (store *Store) Presence() PresenceSettings {
+func (store *Store) OnlineStatus() OnlineStatusSettings {
 	store.mutex.Lock()
 	defer store.mutex.Unlock()
-	return store.settings.Presence
+	return store.settings.OnlineStatus
 }
 
-func (store *Store) SetPresenceUpdates(scope PresenceScope, enabled bool, intervalSeconds int) error {
-	presence := PresenceUpdateSettings{Enabled: enabled, IntervalSeconds: intervalSeconds}
-	if err := validatePresenceSettings(presence); err != nil {
+func (store *Store) SetOnlineStatusUpdates(scope OnlineStatusScope, enabled bool, intervalSeconds int) error {
+	onlineStatus := OnlineStatusUpdateSettings{Enabled: enabled, IntervalSeconds: intervalSeconds}
+	if err := validateOnlineStatusSettings(onlineStatus); err != nil {
 		return err
 	}
 	return store.update(func(settings *Settings) error {
 		switch scope {
-		case PresenceAccounts:
-			settings.Presence.Accounts = presence
-		case PresenceProfile:
-			settings.Presence.Profile = presence
-		case PresenceSocial:
-			settings.Presence.Social = presence
+		case OnlineStatusAccounts:
+			settings.OnlineStatus.Accounts = onlineStatus
+		case OnlineStatusProfile:
+			settings.OnlineStatus.Profile = onlineStatus
+		case OnlineStatusSocial:
+			settings.OnlineStatus.Social = onlineStatus
 		default:
-			return fmt.Errorf("unknown presence update scope %q", scope)
+			return fmt.Errorf("unknown online status update scope %q", scope)
 		}
 		return nil
 	})
@@ -680,14 +684,14 @@ func (store *Store) RecoveryError() error { return store.recoveryError }
 
 func (store *Store) Origin() string { return store.origin }
 
-func validatePresenceSettings(settings PresenceUpdateSettings) error {
-	if !validPresenceInterval(settings.IntervalSeconds) {
+func validateOnlineStatusSettings(settings OnlineStatusUpdateSettings) error {
+	if !validOnlineStatusInterval(settings.IntervalSeconds) {
 		return errors.New("the online status update interval must be between 30 and 900 seconds, in steps of 5")
 	}
 	return nil
 }
 
-func validPresenceInterval(seconds int) bool {
+func validOnlineStatusInterval(seconds int) bool {
 	return seconds >= 30 && seconds <= 900 && seconds%5 == 0
 }
 

@@ -237,9 +237,9 @@
 						PIN
 					</dt>
 					<dd>
-						{#if missing(AccountDetailsSection.InfoSectionPin) || !pinLabels[snapshot.pin]}
+						{#if missing(AccountDetailsSection.DetailsSectionPin) || !pinLabels[snapshot.pin]}
 							{@render unavailableValue(
-								AccountDetailsSection.InfoSectionPin,
+								AccountDetailsSection.DetailsSectionPin,
 							)}
 						{:else}
 							<span>{pinLabels[snapshot.pin]}</span>
@@ -259,9 +259,9 @@
 						<Icon svg={userCircleIcon} size={16} aria-hidden="true" />Gender
 					</dt>
 					<dd>
-						{#if missing(AccountDetailsSection.InfoSectionGender)}
+						{#if missing(AccountDetailsSection.DetailsSectionGender)}
 							{@render unavailableValue(
-								AccountDetailsSection.InfoSectionGender,
+								AccountDetailsSection.DetailsSectionGender,
 							)}
 						{:else if genders[snapshot.gender]}
 							<span>{genders[snapshot.gender]}</span>
@@ -287,7 +287,7 @@
 								>{/if}
 						{:else}
 							{@render unavailableValue(
-								AccountDetailsSection.InfoSectionAge,
+								AccountDetailsSection.DetailsSectionAge,
 							)}
 						{/if}
 					</dd>
@@ -308,7 +308,7 @@
 								>{/if}
 						{:else}
 							{@render unavailableValue(
-								AccountDetailsSection.InfoSectionBirthdate,
+								AccountDetailsSection.DetailsSectionBirthdate,
 							)}
 						{/if}
 					</dd>
@@ -323,7 +323,7 @@
 					<dd>
 						{#if snapshot.firstAccount == null}
 							{@render unavailableValue(
-								AccountDetailsSection.InfoSectionFirstAccount,
+								AccountDetailsSection.DetailsSectionFirstAccount,
 							)}
 						{:else}
 							<button
@@ -350,9 +350,9 @@
 						<Icon svg={envelopeIcon} size={16} aria-hidden="true" />Email
 					</dt>
 					<dd>
-						{#if missing(AccountDetailsSection.InfoSectionEmail)}
+						{#if missing(AccountDetailsSection.DetailsSectionEmail)}
 							{@render unavailableValue(
-								AccountDetailsSection.InfoSectionEmail,
+								AccountDetailsSection.DetailsSectionEmail,
 							)}
 						{:else if snapshot.email}
 							<SensitiveValue label="Email"
@@ -364,7 +364,7 @@
 						{:else}
 							<span class="text-fg-faint">None</span>
 						{/if}
-						{#if !missing(AccountDetailsSection.InfoSectionEmail)}
+						{#if !missing(AccountDetailsSection.DetailsSectionEmail)}
 							{@render edit("email", "Change email")}
 						{/if}
 					</dd>
@@ -377,9 +377,9 @@
 						number
 					</dt>
 					<dd>
-						{#if missing(AccountDetailsSection.InfoSectionPhone)}
+						{#if missing(AccountDetailsSection.DetailsSectionPhone)}
 							{@render unavailableValue(
-								AccountDetailsSection.InfoSectionPhone,
+								AccountDetailsSection.DetailsSectionPhone,
 							)}
 						{:else if snapshot.phone}
 							<SensitiveValue label="Phone number"
@@ -415,7 +415,7 @@
 							<span>{snapshot.language}</span>
 						{:else}
 							{@render unavailableValue(
-								AccountDetailsSection.InfoSectionLocale,
+								AccountDetailsSection.DetailsSectionLocale,
 							)}
 						{/if}
 					</dd>
@@ -432,7 +432,7 @@
 					<dd>
 						{#if snapshot.autoTranslations == null}
 							{@render unavailableValue(
-								AccountDetailsSection.InfoSectionLocale,
+								AccountDetailsSection.DetailsSectionLocale,
 							)}
 						{:else}
 							<span>{snapshot.autoTranslations ? "On" : "Off"}</span>
@@ -447,9 +447,9 @@
 						location
 					</dt>
 					<dd>
-						{#if missing(AccountDetailsSection.InfoSectionLocation)}
+						{#if missing(AccountDetailsSection.DetailsSectionLocation)}
 							{@render unavailableValue(
-								AccountDetailsSection.InfoSectionLocation,
+								AccountDetailsSection.DetailsSectionLocation,
 							)}
 						{:else if snapshot.location}
 							<SensitiveValue label="Account location"
@@ -497,7 +497,7 @@
 								>{/if}
 						{:else}
 							{@render unavailableValue(
-								AccountDetailsSection.InfoSectionVoiceChat,
+								AccountDetailsSection.DetailsSectionVoiceChat,
 							)}
 						{/if}
 					</dd>
@@ -517,7 +517,7 @@
 								>{/if}
 						{:else}
 							{@render unavailableValue(
-								AccountDetailsSection.InfoSectionVoiceChat,
+								AccountDetailsSection.DetailsSectionVoiceChat,
 							)}
 						{/if}
 					</dd>
@@ -547,7 +547,7 @@
 					<dd>
 						{#if snapshot.twoStepMethods === null}
 							{@render unavailableValue(
-								AccountDetailsSection.InfoSectionTwoStep,
+								AccountDetailsSection.DetailsSectionTwoStep,
 							)}
 						{:else if snapshot.twoStepMethods.length}
 							<span>On</span>
@@ -573,7 +573,7 @@
 					<dd>
 						{#if snapshot.recoveryCodeCount === null}
 							{@render unavailableValue(
-								AccountDetailsSection.InfoSectionRecoveryCodes,
+								AccountDetailsSection.DetailsSectionRecoveryCodes,
 							)}
 						{:else if snapshot.recoveryCodeCount > 0}
 							<span
@@ -605,7 +605,7 @@
 					<dd>
 						{#if snapshot.passkeyNames === null}
 							{@render unavailableValue(
-								AccountDetailsSection.InfoSectionPasskeys,
+								AccountDetailsSection.DetailsSectionPasskeys,
 							)}
 						{:else if snapshot.passkeyNames.length}
 							<span>{snapshot.passkeyNames.length}</span>

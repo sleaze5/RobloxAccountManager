@@ -40,15 +40,15 @@
 	import AvatarPortraitFrame from "../avatar/AvatarPortraitFrame.svelte"
 	import { AvatarPortraitLoad } from "../avatar/avatar-portrait.svelte"
 	import ProfileTabs from "../shared/ProfileTabs.svelte"
-	import PresenceJoinButton from "./PresenceJoinButton.svelte"
-	import { presenceJoinFor } from "./presence-join"
+	import OnlineStatusJoinButton from "./OnlineStatusJoinButton.svelte"
+	import { onlineStatusJoinFor } from "./online-status-join"
 	import { setProfilePages } from "../shared/profile-pages"
 	import { accountPageLabels, accountPages } from "./account-pages"
 	import type { AccountPage } from "./account-pages"
 	import cookieIcon from "@phosphor-icons/core/regular/cookie.svg?raw"
 	import AccountAvatar from "./AccountAvatar.svelte"
 	import AccountMembershipBadges from "./AccountMembershipBadges.svelte"
-	import AccountPresence from "./AccountPresence.svelte"
+	import AccountOnlineStatus from "./AccountOnlineStatus.svelte"
 	import AccountProfileBalance from "./AccountProfileBalance.svelte"
 	import AccountProfileDescription from "./AccountProfileDescription.svelte"
 	import AccountProfileDetails from "./AccountProfileDetails.svelte"
@@ -116,8 +116,8 @@
 		),
 		hasJoinAction = $derived(
 			canJoinFromHeader &&
-				presenceJoinFor(
-					selectedAccount.presence,
+				onlineStatusJoinFor(
+					selectedAccount.onlineStatus,
 					UserJoinability.UserJoinabilityUnknown,
 					false,
 				).hasVisibleServer,
@@ -184,20 +184,20 @@
 	})
 
 	$effect(() => {
-		const presence = appSettings.presence.profile,
+		const onlineStatus = appSettings.onlineStatus.profile,
 			accountId = profileAccountId
 		if (
 			!appSettings.initialized ||
 			!profileVisible ||
 			!pageVisibility.isShown ||
-			!presence.enabled
+			!onlineStatus.enabled
 		) {
 			return
 		}
-		untrack(() => void store.refreshPresences(accountId))
+		untrack(() => void store.refreshOnlineStatuses(accountId))
 		const timer = window.setInterval(
-			() => void store.refreshPresences(accountId),
-			presence.intervalSeconds * 1000,
+			() => void store.refreshOnlineStatuses(accountId),
+			onlineStatus.intervalSeconds * 1000,
 		)
 		return () => window.clearInterval(timer)
 	})
@@ -329,8 +329,8 @@
 						</div>
 					{/if}
 					{#if store.vault.unlocked && !moderated}
-						<AccountPresence
-							presence={selectedAccount.presence}
+						<AccountOnlineStatus
+							onlineStatus={selectedAccount.onlineStatus}
 							onJoin={onJoinServer} />
 					{/if}
 					{#if profileState}
@@ -447,8 +447,8 @@
 					</button>
 				{/if}
 				{#if canJoinFromHeader}
-					<PresenceJoinButton
-						presence={selectedAccount.presence}
+					<OnlineStatusJoinButton
+						onlineStatus={selectedAccount.onlineStatus}
 						onJoin={onJoinServer} />
 				{/if}
 				{#if (hasAccount && sessionAttention && !moderated) || (canBeReactivated && store.vault.unlocked) || hasJoinAction}<span

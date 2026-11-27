@@ -19,12 +19,12 @@ import (
 )
 
 const (
-	maxSocialCursorLength   = 4096
-	minPlayerSearchLength   = 3
-	maxPlayerSearchLength   = 50
-	maxSocialPresenceUsers  = 1000
-	maxNicknameLength       = 20
-	friendConnectionWorkers = 4
+	maxSocialCursorLength      = 4096
+	minPlayerSearchLength      = 3
+	maxPlayerSearchLength      = 50
+	maxSocialOnlineStatusUsers = 1000
+	maxNicknameLength          = 20
+	friendConnectionWorkers    = 4
 )
 
 var (
@@ -55,7 +55,7 @@ type SocialUser struct {
 	DisplayName      string                       `json:"displayName"`
 	Nickname         string                       `json:"nickname"`
 	ImageURL         string                       `json:"imageUrl"`
-	Presence         *robloxservices.UserPresence `json:"presence"`
+	OnlineStatus     *robloxservices.OnlineStatus `json:"onlineStatus"`
 	Request          *FriendRequestView           `json:"request"`
 	HasVerifiedBadge bool                         `json:"hasVerifiedBadge"`
 	// Trusted reports whether the user is a trusted friend of the browsing account.
@@ -156,7 +156,7 @@ type socialEntries struct {
 }
 
 // GetSocialPage lists one page of a user's friends, followers, or followings,
-// or the account's own friend requests, with presence as the account sees it.
+// or the account's own friend requests, with online status as the account sees it.
 // Friends come as one page because Roblox caps them.
 func (service *Service) GetSocialPage(ctx context.Context, accountID, userID int64, list SocialList, cursor string) (SocialPage, error) {
 	if len(cursor) > maxSocialCursorLength {
@@ -176,7 +176,7 @@ func (service *Service) GetSocialPage(ctx context.Context, accountID, userID int
 	if err != nil {
 		return SocialPage{}, socialFailure(logger, err)
 	}
-	optional := socialPageReads{presence: list != SocialRequests, requestCount: own && (list == SocialFriends || list == SocialRequests), selfUserID: account.RobloxUserID}
+	optional := socialPageReads{onlineStatus: list != SocialRequests, requestCount: own && (list == SocialFriends || list == SocialRequests), selfUserID: account.RobloxUserID}
 	page, err := service.socialPage(ctx, accountID, version, logger, entries, optional)
 	if err == nil && list == SocialFriends {
 		slices.SortStableFunc(page.People, compareFriends)
@@ -184,7 +184,7 @@ func (service *Service) GetSocialPage(ctx context.Context, accountID, userID int
 	return page, err
 }
 
-// SearchPlayers finds Roblox users by username or display name, with presence
+// SearchPlayers finds Roblox users by username or display name, with online status
 // as the account sees it.
 func (service *Service) SearchPlayers(ctx context.Context, accountID int64, keyword, cursor string) (SocialPage, error) {
 	keyword = strings.TrimSpace(keyword)
@@ -216,7 +216,7 @@ func (service *Service) SearchPlayers(ctx context.Context, accountID int64, keyw
 	if err != nil {
 		return SocialPage{}, mapRepositoryError(err)
 	}
-	return service.socialPage(ctx, accountID, version, logger, entries, socialPageReads{presence: true, selfUserID: account.RobloxUserID})
+	return service.socialPage(ctx, accountID, version, logger, entries, socialPageReads{onlineStatus: true, selfUserID: account.RobloxUserID})
 }
 
 // withExactUsernameFirst puts the user whose username is the keyword first,
@@ -267,7 +267,7 @@ func (service *Service) playerByID(ctx context.Context, userIDText string) ([]in
 // socialPageReads chooses the optional parts of a social list. selfUserID is
 // the browsing account, whose trusted friends are marked in every list.
 type socialPageReads struct {
-	presence     bool
+	onlineStatus bool
 	requestCount bool
 	selfUserID   int64
 }
@@ -278,7 +278,7 @@ func (service *Service) socialPage(ctx context.Context, accountID, version int64
 		return SocialPage{}, socialFailure(logger, err)
 	}
 	page := SocialPage{NextCursor: entries.nextCursor}
-	var presences []robloxservices.UserPresence
+	var onlineStatuses []robloxservices.OnlineStatus
 	var images, nicknames map[int64]string
 	reads := []accountRead{{"avatars", func() error {
 		var readError error
@@ -289,10 +289,10 @@ func (service *Service) socialPage(ctx context.Context, accountID, version int64
 		nicknames, readError = service.users.Nicknames(ctx, accountID, version, entries.userIDs)
 		return readError
 	}}}
-	if optional.presence {
-		reads = append(reads, accountRead{"presence", func() error {
+	if optional.onlineStatus {
+		reads = append(reads, accountRead{"onlineStatus", func() error {
 			var readError error
-			presences, readError = service.presence.UserPresences(ctx, accountID, version, entries.userIDs)
+			onlineStatuses, readError = service.onlineStatuses.UserOnlineStatuses(ctx, accountID, version, entries.userIDs)
 			return readError
 		}})
 	}
@@ -314,7 +314,7 @@ func (service *Service) socialPage(ctx context.Context, accountID, version int64
 	if page.Unavailable, err = service.runAccountReads(ctx, accountID, version, "social", logger, reads); err != nil {
 		return SocialPage{}, err
 	}
-	page.People = socialPeople(users, entries.requests, presences, optional.presence)
+	page.People = socialPeople(users, entries.requests, onlineStatuses, optional.onlineStatus)
 	for index := range page.People {
 		person := &page.People[index]
 		person.ImageURL, person.Nickname, person.Trusted = images[person.UserID], nicknames[person.UserID], trustedUsers[person.UserID]
@@ -347,14 +347,14 @@ func (service *Service) socialEntries(ctx context.Context, accountID, version, u
 	return entries, err
 }
 
-func socialPeople(users []robloxservices.UserView, requests []robloxservices.FriendRequest, presences []robloxservices.UserPresence, withPresence bool) []SocialUser {
-	presenceByUser := indexPresences(presences)
+func socialPeople(users []robloxservices.UserView, requests []robloxservices.FriendRequest, onlineStatuses []robloxservices.OnlineStatus, withOnlineStatus bool) []SocialUser {
+	onlineStatusByUser := indexOnlineStatuses(onlineStatuses)
 	people := make([]SocialUser, 0, len(users))
 	for index, user := range users {
 		person := SocialUser{UserID: user.UserID, Username: user.Username, DisplayName: cmp.Or(user.DisplayName, user.Username), HasVerifiedBadge: user.HasVerifiedBadge}
-		if withPresence {
-			presence := presenceOrOffline(presenceByUser, user.UserID)
-			person.Presence = &presence
+		if withOnlineStatus {
+			onlineStatus := onlineStatusOrOffline(onlineStatusByUser, user.UserID)
+			person.OnlineStatus = &onlineStatus
 		}
 		if index < len(requests) {
 			request := requests[index]
@@ -368,47 +368,47 @@ func socialPeople(users []robloxservices.UserView, requests []robloxservices.Fri
 	return people
 }
 
-func indexPresences(presences []robloxservices.UserPresence) map[int64]robloxservices.UserPresence {
-	byUser := make(map[int64]robloxservices.UserPresence, len(presences))
-	for _, presence := range presences {
-		byUser[presence.UserID] = presence
+func indexOnlineStatuses(onlineStatuses []robloxservices.OnlineStatus) map[int64]robloxservices.OnlineStatus {
+	byUser := make(map[int64]robloxservices.OnlineStatus, len(onlineStatuses))
+	for _, onlineStatus := range onlineStatuses {
+		byUser[onlineStatus.UserID] = onlineStatus
 	}
 	return byUser
 }
 
-func presenceOrOffline(byUser map[int64]robloxservices.UserPresence, userID int64) robloxservices.UserPresence {
-	if presence, found := byUser[userID]; found {
-		return presence
+func onlineStatusOrOffline(byUser map[int64]robloxservices.OnlineStatus, userID int64) robloxservices.OnlineStatus {
+	if onlineStatus, found := byUser[userID]; found {
+		return onlineStatus
 	}
-	return robloxservices.UserPresence{UserID: userID, UserPresenceType: robloxservices.PresenceTypeOffline}
+	return robloxservices.OnlineStatus{UserID: userID, StatusType: robloxservices.OnlineStatusTypeOffline}
 }
 
 func compareFriends(left, right SocialUser) int {
 	return cmp.Or(
-		cmp.Compare(friendPresenceRank(left.Presence), friendPresenceRank(right.Presence)),
+		cmp.Compare(friendOnlineStatusRank(left.OnlineStatus), friendOnlineStatusRank(right.OnlineStatus)),
 		strings.Compare(strings.ToLower(left.DisplayName), strings.ToLower(right.DisplayName)),
 	)
 }
 
-// GetSocialPresences reads the presence of listed users as the account sees
+// GetSocialOnlineStatuses reads the online status of listed users as the account sees
 // it, with one entry per user so users Roblox omits read as offline.
-func (service *Service) GetSocialPresences(ctx context.Context, accountID int64, userIDs []int64) ([]robloxservices.UserPresence, error) {
-	if len(userIDs) > maxSocialPresenceUsers {
+func (service *Service) GetSocialOnlineStatuses(ctx context.Context, accountID int64, userIDs []int64) ([]robloxservices.OnlineStatus, error) {
+	if len(userIDs) > maxSocialOnlineStatusUsers {
 		return nil, socialInputError("Too many users requested. Refresh the list.")
 	}
-	ctx, version, logger, done, err := service.beginFeatureOperation(ctx, accountID, "social", "presence")
+	ctx, version, logger, done, err := service.beginFeatureOperation(ctx, accountID, "social", "onlineStatus")
 	if err != nil {
 		return nil, err
 	}
 	defer done()
-	presences, err := service.presence.UserPresences(ctx, accountID, version, userIDs)
+	onlineStatuses, err := service.onlineStatuses.UserOnlineStatuses(ctx, accountID, version, userIDs)
 	if err != nil {
 		return nil, socialFailure(logger, err)
 	}
-	byUser := indexPresences(presences)
-	complete := make([]robloxservices.UserPresence, 0, len(userIDs))
+	byUser := indexOnlineStatuses(onlineStatuses)
+	complete := make([]robloxservices.OnlineStatus, 0, len(userIDs))
 	for _, userID := range userIDs {
-		complete = append(complete, presenceOrOffline(byUser, userID))
+		complete = append(complete, onlineStatusOrOffline(byUser, userID))
 	}
 	logger.DebugContext(ctx, "social online status read", "count", len(complete))
 	return complete, nil
@@ -760,16 +760,16 @@ func (service *Service) headshotImages(ctx context.Context, userIDs []int64) (ma
 	return images, nil
 }
 
-func friendPresenceRank(presence *robloxservices.UserPresence) int {
-	if presence == nil {
+func friendOnlineStatusRank(onlineStatus *robloxservices.OnlineStatus) int {
+	if onlineStatus == nil {
 		return 3
 	}
-	switch presence.UserPresenceType {
-	case robloxservices.PresenceTypeInGame:
+	switch onlineStatus.StatusType {
+	case robloxservices.OnlineStatusTypeInGame:
 		return 0
-	case robloxservices.PresenceTypeInStudio:
+	case robloxservices.OnlineStatusTypeInStudio:
 		return 1
-	case robloxservices.PresenceTypeOnline:
+	case robloxservices.OnlineStatusTypeOnline:
 		return 2
 	default:
 		return 3

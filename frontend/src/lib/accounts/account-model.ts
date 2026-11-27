@@ -3,12 +3,17 @@ import eyeSlashIcon from "@phosphor-icons/core/regular/eye-slash.svg?raw"
 import gameControllerIcon from "@phosphor-icons/core/regular/game-controller.svg?raw"
 import globeIcon from "@phosphor-icons/core/regular/globe.svg?raw"
 import globeXIcon from "@phosphor-icons/core/regular/globe-x.svg?raw"
-import { AgeVerification, PresenceType, SessionState, TagKind } from "../backend/bridge"
+import {
+	AgeVerification,
+	OnlineStatusType,
+	SessionState,
+	TagKind,
+} from "../backend/bridge"
 import type {
 	AccountView,
 	Moderation,
 	TagView,
-	UserPresence,
+	OnlineStatus,
 	VoiceSuspension,
 } from "../backend/bridge"
 
@@ -18,7 +23,7 @@ export interface Account {
 	displayName: string
 	hasSavedPassword: boolean
 	avatarUrl: string
-	presence: UserPresence
+	onlineStatus: OnlineStatus
 	userId: string
 	tags: TagView[]
 	createdAtMs: number
@@ -49,7 +54,7 @@ export const emptyAccount: Account = {
 	id: 0,
 	importedAtMs: 0,
 	lastValidatedAtMs: null,
-	presence: offlinePresence(0),
+	onlineStatus: offlineOnlineStatus(0),
 	rotatedAtMs: null,
 	state: SessionState.StateUnknown,
 	stateReason: "",
@@ -63,7 +68,7 @@ export const emptyAccount: Account = {
 export function accountFromView(
 	record: AccountView,
 	avatarUrl: string,
-	presence?: UserPresence,
+	onlineStatus?: OnlineStatus,
 ): Account {
 	const displayName = record.displayName || record.username,
 		tags = record.tags ?? []
@@ -78,7 +83,7 @@ export function accountFromView(
 		id: record.id,
 		importedAtMs: record.importedAtMs,
 		lastValidatedAtMs: record.lastValidatedAtMs ?? null,
-		presence: presence ?? offlinePresence(record.robloxUserId),
+		onlineStatus: onlineStatus ?? offlineOnlineStatus(record.robloxUserId),
 		rotatedAtMs: record.rotatedAtMs ?? null,
 		state: record.state,
 		stateReason: record.stateReason ?? "",
@@ -90,83 +95,86 @@ export function accountFromView(
 	}
 }
 
-export function accountWithPresence(account: Account, presence: UserPresence): Account {
-	return { ...account, presence }
+export function accountWithOnlineStatus(
+	account: Account,
+	onlineStatus: OnlineStatus,
+): Account {
+	return { ...account, onlineStatus }
 }
 
-export function presenceLabel(presence: UserPresence): string {
-	switch (presence.userPresenceType) {
-		case PresenceType.PresenceTypeOnline:
+export function onlineStatusLabel(onlineStatus: OnlineStatus): string {
+	switch (onlineStatus.statusType) {
+		case OnlineStatusType.OnlineStatusTypeOnline:
 			return "Online"
-		case PresenceType.PresenceTypeInGame:
+		case OnlineStatusType.OnlineStatusTypeInGame:
 			return "In game"
-		case PresenceType.PresenceTypeInStudio:
+		case OnlineStatusType.OnlineStatusTypeInStudio:
 			return "In Studio"
-		case PresenceType.PresenceTypeInvisible:
+		case OnlineStatusType.OnlineStatusTypeInvisible:
 			return "Invisible"
 		default:
 			return "Offline"
 	}
 }
 
-export function presenceDotClass(presence: UserPresence): string {
-	switch (presence.userPresenceType) {
-		case PresenceType.PresenceTypeOnline:
+export function onlineStatusDotClass(onlineStatus: OnlineStatus): string {
+	switch (onlineStatus.statusType) {
+		case OnlineStatusType.OnlineStatusTypeOnline:
 			return "bg-presence-online"
-		case PresenceType.PresenceTypeInGame:
+		case OnlineStatusType.OnlineStatusTypeInGame:
 			return "bg-presence-game"
-		case PresenceType.PresenceTypeInStudio:
+		case OnlineStatusType.OnlineStatusTypeInStudio:
 			return "bg-presence-studio"
 		default:
 			return "bg-fg-faint"
 	}
 }
 
-export function presenceTextClass(presence: UserPresence): string {
-	switch (presence.userPresenceType) {
-		case PresenceType.PresenceTypeOnline:
+export function onlineStatusTextClass(onlineStatus: OnlineStatus): string {
+	switch (onlineStatus.statusType) {
+		case OnlineStatusType.OnlineStatusTypeOnline:
 			return "text-presence-online"
-		case PresenceType.PresenceTypeInGame:
+		case OnlineStatusType.OnlineStatusTypeInGame:
 			return "text-presence-game"
-		case PresenceType.PresenceTypeInStudio:
+		case OnlineStatusType.OnlineStatusTypeInStudio:
 			return "text-presence-studio"
 		default:
 			return "text-fg-muted"
 	}
 }
 
-export function presenceIcon(presence: UserPresence): string {
-	switch (presence.userPresenceType) {
-		case PresenceType.PresenceTypeOnline:
+export function onlineStatusIcon(onlineStatus: OnlineStatus): string {
+	switch (onlineStatus.statusType) {
+		case OnlineStatusType.OnlineStatusTypeOnline:
 			return globeIcon
-		case PresenceType.PresenceTypeInGame:
+		case OnlineStatusType.OnlineStatusTypeInGame:
 			return gameControllerIcon
-		case PresenceType.PresenceTypeInStudio:
+		case OnlineStatusType.OnlineStatusTypeInStudio:
 			return codeIcon
-		case PresenceType.PresenceTypeInvisible:
+		case OnlineStatusType.OnlineStatusTypeInvisible:
 			return eyeSlashIcon
 		default:
 			return globeXIcon
 	}
 }
 
-export function presenceDetail(presence: UserPresence, gameName = ""): string {
-	const location = presence.lastLocation?.trim() ?? ""
-	switch (presence.userPresenceType) {
-		case PresenceType.PresenceTypeInGame:
+export function onlineStatusDetail(onlineStatus: OnlineStatus, gameName = ""): string {
+	const location = onlineStatus.lastLocation?.trim() ?? ""
+	switch (onlineStatus.statusType) {
+		case OnlineStatusType.OnlineStatusTypeInGame:
 			return gameName || location
-		case PresenceType.PresenceTypeInStudio:
+		case OnlineStatusType.OnlineStatusTypeInStudio:
 			return gameName || (location.toLowerCase() === "studio" ? "" : location)
-		case PresenceType.PresenceTypeOnline:
+		case OnlineStatusType.OnlineStatusTypeOnline:
 			return location.toLowerCase() === "website" ? "" : location
 		default:
 			return ""
 	}
 }
 
-export function presenceTooltip(presence: UserPresence): string {
-	const label = presenceLabel(presence),
-		detail = presenceDetail(presence)
+export function onlineStatusTooltip(onlineStatus: OnlineStatus): string {
+	const label = onlineStatusLabel(onlineStatus),
+		detail = onlineStatusDetail(onlineStatus)
 	return detail ? `${label}: ${detail}` : label
 }
 
@@ -191,6 +199,6 @@ export function getCustomTags(account: Account): TagView[] {
 	return account.tags.filter((tag) => tag.kind === TagKind.TagKindCustom)
 }
 
-function offlinePresence(userId: number): UserPresence {
-	return { userId, userPresenceType: PresenceType.PresenceTypeOffline }
+function offlineOnlineStatus(userId: number): OnlineStatus {
+	return { userId, statusType: OnlineStatusType.OnlineStatusTypeOffline }
 }

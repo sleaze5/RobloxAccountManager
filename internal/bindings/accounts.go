@@ -93,13 +93,13 @@ func (service *Service) GetAvatarHeadshots(ctx context.Context, userIDs []int64)
 	return service.core.GetAvatarHeadshots(ctx, userIDs)
 }
 
-func (service *Service) GetAccountPresences(ctx context.Context, accountID *int64) ([]robloxservices.UserPresence, error) {
+func (service *Service) GetAccountOnlineStatuses(ctx context.Context, accountID *int64) ([]robloxservices.OnlineStatus, error) {
 	if accountID != nil {
-		if err := positiveID(*accountID, "user-presences"); err != nil {
+		if err := positiveID(*accountID, "user-online-statuses"); err != nil {
 			return nil, err
 		}
 	}
-	return service.core.GetAccountPresences(ctx, accountID)
+	return service.core.GetAccountOnlineStatuses(ctx, accountID)
 }
 
 func (service *Service) FindAccountByRobloxUserID(ctx context.Context, robloxUserID int64) (*accounts.AccountView, error) {

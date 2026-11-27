@@ -378,6 +378,11 @@ func (service *Service) applyPendingSettings(ctx context.Context) error {
 	sections := make([]appsettings.Section, len(pending.Sections))
 	for index, section := range pending.Sections {
 		sections[index] = appsettings.Section(section)
+		// An import saved before settings version 3 names the online status
+		// section presence.
+		if section == "presence" {
+			sections[index] = appsettings.SectionOnlineStatus
+		}
 	}
 	if err := service.settings.Import(settings, sections); err != nil {
 		return fmt.Errorf("save imported settings: %w", err)
