@@ -33,6 +33,7 @@ import { menuPointFor } from "../shared/transitions"
 import { robloxGameUrl } from "../shared/roblox-pages"
 import type { PageLocationKeys } from "../layout/page-history"
 import { pageSidebarMinimumWidth } from "../layout/sidebar-widths"
+import { withGameCountChange } from "./game-roblox-actions.svelte"
 import type { GameCountChange } from "./game-roblox-actions.svelte"
 
 // Roblox serves these parts of the game details from their own endpoints, so
@@ -673,19 +674,10 @@ export class GamesStore {
 		if (this.menu) this.menu = { ...this.menu, place: replace(this.menu.place) }
 	}
 
-	// changeGameCounts applies a change that the account made on Roblox to the
-	// counts of the shown game, so that they match before the next refresh.
 	changeGameCounts(universeId: number, change: GameCountChange): void {
 		const game = this.game
 		if (!game || game.place.universeId !== universeId) return
-		const changed = (count: number, difference: number) =>
-			Math.max(count + difference, 0)
-		this.game = {
-			...game,
-			favorites: changed(game.favorites, change.favorites),
-			upVotes: changed(game.upVotes, change.upVotes),
-			downVotes: changed(game.downVotes, change.downVotes),
-		}
+		this.game = withGameCountChange(game, change)
 		this.#remember(this.game)
 	}
 

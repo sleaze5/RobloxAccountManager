@@ -1,5 +1,5 @@
 import { accountBackend, GameVote } from "../backend/bridge"
-import type { GameAccountStatus } from "../backend/bridge"
+import type { Game, GameAccountStatus } from "../backend/bridge"
 import type { AccountScope } from "../accounts/account-scope"
 import type { NotificationCenter } from "../notifications/notification-center.svelte"
 import { errorMessage } from "../shared/errors"
@@ -18,6 +18,19 @@ export type GameRobloxChange =
 	| { kind: "favorite"; isFavorite: boolean }
 	| { kind: "vote"; vote: GameVote }
 
+// withGameCountChange applies a change that the account made on Roblox to
+// the counts of a game, so that they match before the next refresh.
+export function withGameCountChange(game: Game, change: GameCountChange): Game {
+	const changed = (count: number, difference: number) =>
+		Math.max(count + difference, 0)
+	return {
+		...game,
+		favorites: changed(game.favorites, change.favorites),
+		upVotes: changed(game.upVotes, change.upVotes),
+		downVotes: changed(game.downVotes, change.downVotes),
+	}
+}
+
 function voteCount(vote: GameVote, counted: GameVote): number {
 	return vote === counted ? 1 : 0
 }
@@ -26,11 +39,10 @@ function voteCount(vote: GameVote, counted: GameVote): number {
 // Roblox and changes it: its favorite and its vote.
 export class GameRobloxActions {
 	status = $state.raw<GameAccountStatus | null>(null)
-	isLoading = $state(false)
 	hasFailed = $state(false)
 	isSaving = $state(false)
 	saveError = $state("")
-	readonly universeId: number
+	readonly #universeId: number
 	readonly #scope: AccountScope
 	readonly #notifications: NotificationCenter
 	readonly #onCountChange: (change: GameCountChange) => void
@@ -42,7 +54,7 @@ export class GameRobloxActions {
 		onCountChange: (change: GameCountChange) => void,
 	) {
 		this.#scope = scope
-		this.universeId = universeId
+		this.#universeId = universeId
 		this.#notifications = notifications
 		this.#onCountChange = onCountChange
 	}
@@ -52,12 +64,11 @@ export class GameRobloxActions {
 	}
 
 	async load(): Promise<void> {
-		this.isLoading = true
 		try {
 			const status = await this.#scope.track(
 				accountBackend.GetGameAccountStatus(
 					this.#scope.accountId,
-					this.universeId,
+					this.#universeId,
 				),
 			)
 			if (!this.#scope.isCurrent) return
@@ -66,8 +77,6 @@ export class GameRobloxActions {
 		} catch {
 			// The backend logs the failure, and the actions show that they are unavailable.
 			if (this.#scope.isCurrent) this.hasFailed = true
-		} finally {
-			if (this.#scope.isCurrent) this.isLoading = false
 		}
 	}
 
@@ -82,7 +91,7 @@ export class GameRobloxActions {
 				await this.#scope.track(
 					accountBackend.SetGameFavorite(
 						this.#scope.accountId,
-						this.universeId,
+						this.#universeId,
 						change.isFavorite,
 					),
 				)
@@ -90,7 +99,7 @@ export class GameRobloxActions {
 				await this.#scope.track(
 					accountBackend.SetGameVote(
 						this.#scope.accountId,
-						this.universeId,
+						this.#universeId,
 						change.vote,
 					),
 				)
@@ -124,7 +133,7 @@ export class GameRobloxActions {
 				downVotes: 0,
 			})
 			this.#notifications.show({
-				id: `game-favorite-${this.universeId}`,
+				id: `game-favorite-${this.#universeId}`,
 				title: change.isFavorite
 					? "Added to favorites"
 					: "Removed from favorites",
@@ -145,7 +154,7 @@ export class GameRobloxActions {
 				voteCount(previousVote, GameVote.GameVoteDislike),
 		})
 		this.#notifications.show({
-			id: `game-vote-${this.universeId}`,
+			id: `game-vote-${this.#universeId}`,
 			title:
 				change.vote === GameVote.GameVoteLike
 					? "Game liked"

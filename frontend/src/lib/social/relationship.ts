@@ -40,7 +40,7 @@ export type RelationshipActionId =
 
 // neutral adds or accepts a connection, warning withdraws a request the
 // account sent, and danger ends or refuses a connection.
-export type RelationshipTone = "neutral" | "warning" | "danger"
+type RelationshipTone = "neutral" | "warning" | "danger"
 
 export interface RelationshipAction {
 	id: RelationshipActionId
@@ -267,17 +267,6 @@ function followActionIds(relationship: SocialRelationship): RelationshipActionId
 	if (relationship.following) return ["unfollow"]
 	return relationship.followedBy ? ["follow-back"] : ["follow"]
 }
-
-// pendingRequestActionIds answer or withdraw a friend or trusted friend request
-// that is still pending, in either direction.
-export const pendingRequestActionIds: ReadonlySet<RelationshipActionId> = new Set([
-	"accept-friend",
-	"decline-friend",
-	"cancel-friend",
-	"accept-trusted",
-	"decline-trusted",
-	"cancel-trusted",
-])
 
 // relationshipActions lists what the browsing account can do with a user,
 // leaving out the parts of the relationship that could not be read.

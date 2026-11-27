@@ -12,6 +12,8 @@
 	import ConfirmationDialog from "../shared/ConfirmationDialog.svelte"
 	import Icon from "../shared/Icon.svelte"
 	import RobloxActionStrip from "../shared/RobloxActionStrip.svelte"
+	import { favoriteConfirmation } from "../shared/roblox-confirmations"
+	import type { ConfirmationText } from "../shared/roblox-confirmations"
 	import type {
 		GameRobloxActions,
 		GameRobloxChange,
@@ -60,27 +62,9 @@
 		return target === GameVote.GameVoteLike ? "Like game" : "Dislike game"
 	}
 
-	function confirmationFor(change: GameRobloxChange): {
-		title: string
-		description: string
-		confirmLabel: string
-		progressLabel: string
-	} {
-		if (change.kind === "favorite") {
-			return change.isFavorite
-				? {
-						title: "Add to favorites on Roblox?",
-						description: `${gameName} shows in the favorites of @${account.username}, which other users can see.`,
-						confirmLabel: "Add to favorites",
-						progressLabel: "Adding…",
-					}
-				: {
-						title: "Remove from favorites on Roblox?",
-						description: `${gameName} leaves the favorites of @${account.username}.`,
-						confirmLabel: "Remove from favorites",
-						progressLabel: "Removing…",
-					}
-		}
+	function confirmationFor(change: GameRobloxChange): ConfirmationText {
+		if (change.kind === "favorite")
+			return favoriteConfirmation(gameName, account.username, change.isFavorite)
 		if (change.vote === GameVote.GameVoteLike) {
 			return {
 				title: "Like this game on Roblox?",

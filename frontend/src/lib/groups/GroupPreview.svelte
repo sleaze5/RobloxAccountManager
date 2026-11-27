@@ -11,6 +11,7 @@
 	import { errorMessage } from "../shared/errors"
 	import { notifyErrors } from "../notifications/error-notifications.svelte"
 	import RobloxActionStrip from "../shared/RobloxActionStrip.svelte"
+	import { joinConfirmation } from "./group-confirmations"
 	import Icon from "../shared/Icon.svelte"
 	import ProfilePreviewLayout from "../shared/ProfilePreviewLayout.svelte"
 	import type { ProfilePreviewFrame } from "../shared/ProfilePreviewLayout.svelte"
@@ -115,14 +116,7 @@
 	function confirmJoin(): void {
 		if (!group) return
 		frame.confirm({
-			title: group.isPublicEntryAllowed
-				? "Join group on Roblox?"
-				: "Request to join on Roblox?",
-			description: group.isPublicEntryAllowed
-				? `This account becomes a member of ${group.name}.`
-				: `${group.name} reviews the request before this account becomes a member.`,
-			confirmLabel: group.isPublicEntryAllowed ? "Join group" : "Request to join",
-			progressLabel: "Joining…",
+			...joinConfirmation(group),
 			tone: "primary",
 			run: () => changeMembership("join"),
 		})

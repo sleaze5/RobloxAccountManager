@@ -55,6 +55,7 @@
 	import ItemExplorerDialog from "../explorer/ItemExplorerDialog.svelte"
 	import RobloxAccountLine from "../shared/RobloxAccountLine.svelte"
 	import RobloxActionStrip from "../shared/RobloxActionStrip.svelte"
+	import { favoriteConfirmation } from "../shared/roblox-confirmations"
 	import Icon from "../shared/Icon.svelte"
 	import ImageViewToggle from "../shared/ImageViewToggle.svelte"
 	import type { ImageView } from "../shared/ImageViewToggle.svelte"
@@ -795,18 +796,15 @@
 			inventory.isBuyingItem ||
 			inventory.isSavingFavorite}
 		{@const price = market?.priceInRobux ?? 0}
+		{@const favoriteText = favoriteConfirmation(name, username, !isFavorite)}
 		<div class="dialog-heading">
 			<div>
 				{#if confirmation === "favorite"}
 					<h2 id={`${elementIdPrefix}-inventory-confirmation-title`}>
-						{isFavorite
-							? "Remove from favorites on Roblox?"
-							: "Add to favorites on Roblox?"}
+						{favoriteText.title}
 					</h2>
 					<p id={`${elementIdPrefix}-inventory-confirmation-description`}>
-						{isFavorite
-							? `${name} leaves the favorites of @${username}.`
-							: `${name} shows in the favorites of @${username}, which other users can see.`}
+						{favoriteText.description}
 					</p>
 				{:else if confirmation === "deletion"}
 					<h2 id={`${elementIdPrefix}-inventory-confirmation-title`}>
@@ -873,12 +871,8 @@
 						disabled={isWorking}
 						onclick={() => void saveFavorite()}
 						>{inventory.isSavingFavorite
-							? isFavorite
-								? "Removing…"
-								: "Adding…"
-							: isFavorite
-								? "Remove from favorites"
-								: "Add to favorites"}</button>
+							? favoriteText.progressLabel
+							: favoriteText.confirmLabel}</button>
 				{:else}
 					<button
 						class="button-danger"

@@ -33,6 +33,8 @@
 	import { relativeTime } from "../shared/timestamp"
 	import ConfirmationDialog from "../shared/ConfirmationDialog.svelte"
 	import RobloxActionStrip from "../shared/RobloxActionStrip.svelte"
+	import type { ConfirmationText } from "../shared/roblox-confirmations"
+	import { joinConfirmation, primaryGroupConfirmation } from "./group-confirmations"
 	import GroupIcon from "./GroupIcon.svelte"
 	import GroupMembershipFacts from "./GroupMembershipFacts.svelte"
 	import GroupStatusBadges from "./GroupStatusBadges.svelte"
@@ -101,6 +103,38 @@
 		if (change === "description") isEditingDescription = false
 		if (change === "shout" || change === "clearShout") isEditingShout = false
 		pendingChange = null
+	}
+
+	function confirmationFor(
+		change: GroupRobloxChange,
+		changedGroup: GroupSummary,
+	): ConfirmationText {
+		if (change === "join") return joinConfirmation(changedGroup)
+		if (change === "primary" || change === "removePrimary")
+			return primaryGroupConfirmation(
+				changedGroup.name,
+				change === "removePrimary",
+			)
+		if (change === "shout")
+			return {
+				title: "Post shout on Roblox?",
+				description: `Every member of ${changedGroup.name} sees the shout. It replaces the current shout.`,
+				confirmLabel: "Post shout",
+				progressLabel: "Posting…",
+			}
+		if (change === "clearShout")
+			return {
+				title: "Clear shout on Roblox?",
+				description: `The shout leaves the page of ${changedGroup.name} for every member.`,
+				confirmLabel: "Clear shout",
+				progressLabel: "Clearing…",
+			}
+		return {
+			title: "Save description on Roblox?",
+			description: `Every visitor of ${changedGroup.name} sees the new description.`,
+			confirmLabel: "Save description",
+			progressLabel: "Saving…",
+		}
 	}
 
 	function requestChange(change: GroupRobloxChange): void {
@@ -225,7 +259,7 @@
 					isLocked={details.isLocked} />
 			</div>
 			<div class="flex shrink-0 flex-wrap items-center justify-end gap-1">
-				{#if hasMembershipAction || isMember || permissions.canConfigure}
+				{#if isMember || hasMembershipAction || permissions.canConfigure}
 					<RobloxActionStrip username={store.account.username}>
 						{#if isMember && !membership.isOwner}
 							<button
@@ -239,7 +273,7 @@
 								}}>
 								<Icon svg={signOutIcon} size={14} aria-hidden="true" />
 							</button>
-						{:else if !isMember && !membership.isPendingJoin && !details.isLocked}
+						{:else if !isMember && hasMembershipAction}
 							{@const joinLabel = group.isPublicEntryAllowed
 								? "Join group"
 								: "Request to join"}
@@ -659,48 +693,7 @@
 {/if}
 
 {#if pendingChange && group}
-	{@const confirmation = {
-		join: {
-			title: group.isPublicEntryAllowed
-				? "Join group on Roblox?"
-				: "Request to join on Roblox?",
-			description: group.isPublicEntryAllowed
-				? `This account becomes a member of ${group.name}.`
-				: `${group.name} reviews the request before this account becomes a member.`,
-			confirmLabel: group.isPublicEntryAllowed ? "Join group" : "Request to join",
-			progressLabel: "Joining…",
-		},
-		primary: {
-			title: "Make primary group on Roblox?",
-			description: `${group.name} shows on the profile of this account. It replaces the current primary group.`,
-			confirmLabel: "Make primary group",
-			progressLabel: "Saving…",
-		},
-		removePrimary: {
-			title: "Remove primary group on Roblox?",
-			description: `${group.name} no longer shows on the profile of this account. The account stays a member.`,
-			confirmLabel: "Remove primary group",
-			progressLabel: "Removing…",
-		},
-		shout: {
-			title: "Post shout on Roblox?",
-			description: `Every member of ${group.name} sees the shout. It replaces the current shout.`,
-			confirmLabel: "Post shout",
-			progressLabel: "Posting…",
-		},
-		clearShout: {
-			title: "Clear shout on Roblox?",
-			description: `The shout leaves the page of ${group.name} for every member.`,
-			confirmLabel: "Clear shout",
-			progressLabel: "Clearing…",
-		},
-		description: {
-			title: "Save description on Roblox?",
-			description: `Every visitor of ${group.name} sees the new description.`,
-			confirmLabel: "Save description",
-			progressLabel: "Saving…",
-		},
-	}[pendingChange]}
+	{@const confirmation = confirmationFor(pendingChange, group)}
 	<ConfirmationDialog
 		{...confirmation}
 		tone="primary"

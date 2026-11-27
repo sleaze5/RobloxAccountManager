@@ -766,14 +766,27 @@ const (
 	GroupSlowModeSlowest GroupSlowMode = "slowest"
 )
 
+// GroupMinimumAccountAge is how many days old an account must be to join the
+// group. Roblox offers only these ages.
+type GroupMinimumAccountAge int
+
+const (
+	GroupMinimumAccountAgeAny        GroupMinimumAccountAge = 0
+	GroupMinimumAccountAgeOneDay     GroupMinimumAccountAge = 1
+	GroupMinimumAccountAgeThreeDays  GroupMinimumAccountAge = 3
+	GroupMinimumAccountAgeSevenDays  GroupMinimumAccountAge = 7
+	GroupMinimumAccountAgeThirtyDays GroupMinimumAccountAge = 30
+	GroupMinimumAccountAgeNinetyDays GroupMinimumAccountAge = 90
+)
+
 // The settings API sends the verification level, the account age, and the
 // slow mode as positions in these lists. Roblox announced the options in this
 // order and the API accepts exactly as many values. Checked on 2026-11-27.
 var (
 	groupVerificationLevels = []GroupVerificationLevel{GroupVerificationNone, GroupVerificationLow, GroupVerificationMedium, GroupVerificationHigh}
-	// groupMinimumAccountAgeDays lists the accountTenureRequirement values.
-	groupMinimumAccountAgeDays = []int{0, 1, 3, 7, 30, 90}
-	groupSlowModes             = []GroupSlowMode{GroupSlowModeOff, GroupSlowModeSlow, GroupSlowModeSlower, GroupSlowModeSlowest}
+	// Roblox calls the minimum account age accountTenureRequirement.
+	groupMinimumAccountAges = []GroupMinimumAccountAge{GroupMinimumAccountAgeAny, GroupMinimumAccountAgeOneDay, GroupMinimumAccountAgeThreeDays, GroupMinimumAccountAgeSevenDays, GroupMinimumAccountAgeThirtyDays, GroupMinimumAccountAgeNinetyDays}
+	groupSlowModes          = []GroupSlowMode{GroupSlowModeOff, GroupSlowModeSlow, GroupSlowModeSlower, GroupSlowModeSlowest}
 )
 
 // GroupSettings is what the settings API tells a member with the configure
@@ -785,11 +798,9 @@ type GroupSettings struct {
 	AreGamesVisible     bool                    `json:"areGamesVisible"`
 	IsMemberListVisible *bool                   `json:"isMemberListVisible"`
 	VerificationLevel   *GroupVerificationLevel `json:"verificationLevel"`
-	// MinimumAccountAgeDays is how old an account must be to join. 0 means
-	// any age.
-	MinimumAccountAgeDays *int           `json:"minimumAccountAgeDays"`
-	SlowMode              *GroupSlowMode `json:"slowMode"`
-	IsNameChangeEnabled   bool           `json:"isNameChangeEnabled"`
+	MinimumAccountAge   *GroupMinimumAccountAge `json:"minimumAccountAge"`
+	SlowMode            *GroupSlowMode          `json:"slowMode"`
+	IsNameChangeEnabled bool                    `json:"isNameChangeEnabled"`
 	// IsRoleAssignedOnJoin tells whether a new member gets the lowest role at
 	// once. Roblox sends the opposite as isAutoAssignRoleDisabled.
 	IsRoleAssignedOnJoin *bool `json:"isRoleAssignedOnJoin"`
@@ -801,14 +812,14 @@ type GroupSettings struct {
 // GroupSettingsChange lists the group settings to change. A nil field keeps
 // its value.
 type GroupSettingsChange struct {
-	IsApprovalRequired    *bool                   `json:"isApprovalRequired"`
-	AreEnemiesAllowed     *bool                   `json:"areEnemiesAllowed"`
-	AreFundsVisible       *bool                   `json:"areFundsVisible"`
-	AreGamesVisible       *bool                   `json:"areGamesVisible"`
-	IsMemberListVisible   *bool                   `json:"isMemberListVisible"`
-	VerificationLevel     *GroupVerificationLevel `json:"verificationLevel"`
-	MinimumAccountAgeDays *int                    `json:"minimumAccountAgeDays"`
-	SlowMode              *GroupSlowMode          `json:"slowMode"`
+	IsApprovalRequired  *bool                   `json:"isApprovalRequired"`
+	AreEnemiesAllowed   *bool                   `json:"areEnemiesAllowed"`
+	AreFundsVisible     *bool                   `json:"areFundsVisible"`
+	AreGamesVisible     *bool                   `json:"areGamesVisible"`
+	IsMemberListVisible *bool                   `json:"isMemberListVisible"`
+	VerificationLevel   *GroupVerificationLevel `json:"verificationLevel"`
+	MinimumAccountAge   *GroupMinimumAccountAge `json:"minimumAccountAge"`
+	SlowMode            *GroupSlowMode          `json:"slowMode"`
 }
 
 // groupSettingsPayload maps the group settings to the names that Roblox
@@ -866,11 +877,11 @@ func (service *Users) GroupSettings(ctx context.Context, accountID, version, gro
 	settings := GroupSettings{
 		IsApprovalRequired: *payload.IsApprovalRequired, AreEnemiesAllowed: *payload.AreEnemiesAllowed,
 		AreFundsVisible: *payload.AreGroupFundsVisible, AreGamesVisible: *payload.AreGroupGamesVisible,
-		IsMemberListVisible:   payload.IsMemberListVisibleToPublic,
-		VerificationLevel:     listedOption(groupVerificationLevels, payload.VerificationLevel),
-		MinimumAccountAgeDays: listedOption(groupMinimumAccountAgeDays, payload.AccountTenureRequirement),
-		SlowMode:              listedOption(groupSlowModes, payload.Slowmode),
-		IsNameChangeEnabled:   payload.IsGroupNameChangeEnabled,
+		IsMemberListVisible: payload.IsMemberListVisibleToPublic,
+		VerificationLevel:   listedOption(groupVerificationLevels, payload.VerificationLevel),
+		MinimumAccountAge:   listedOption(groupMinimumAccountAges, payload.AccountTenureRequirement),
+		SlowMode:            listedOption(groupSlowModes, payload.Slowmode),
+		IsNameChangeEnabled: payload.IsGroupNameChangeEnabled,
 	}
 	if payload.IsAutoAssignRoleDisabled != nil {
 		isRoleAssignedOnJoin := !*payload.IsAutoAssignRoleDisabled
@@ -894,7 +905,7 @@ func (service *Users) UpdateGroupSettings(ctx context.Context, accountID, versio
 	}
 	var isVerificationValid, isAccountAgeValid, isSlowModeValid bool
 	payload.VerificationLevel, isVerificationValid = optionPosition(groupVerificationLevels, change.VerificationLevel)
-	payload.AccountTenureRequirement, isAccountAgeValid = optionPosition(groupMinimumAccountAgeDays, change.MinimumAccountAgeDays)
+	payload.AccountTenureRequirement, isAccountAgeValid = optionPosition(groupMinimumAccountAges, change.MinimumAccountAge)
 	payload.Slowmode, isSlowModeValid = optionPosition(groupSlowModes, change.SlowMode)
 	if !isVerificationValid || !isAccountAgeValid || !isSlowModeValid {
 		return &roblox.Error{Kind: roblox.KindProtocol, Endpoint: endpoint, Message: "Select one of the listed options."}

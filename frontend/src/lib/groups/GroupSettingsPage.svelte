@@ -7,6 +7,7 @@
 	import warningIcon from "@phosphor-icons/core/regular/warning.svg?raw"
 	import xIcon from "@phosphor-icons/core/regular/x.svg?raw"
 	import {
+		GroupMinimumAccountAge,
 		GroupSlowMode,
 		GroupSource,
 		GroupVerificationLevel,
@@ -34,62 +35,92 @@
 		| "areGamesVisible"
 		| "isMemberListVisible"
 		| "areEnemiesAllowed"
-	type RadioKey = "verificationLevel" | "minimumAccountAgeDays" | "slowMode"
+	type RadioKey = "verificationLevel" | "minimumAccountAge" | "slowMode"
 
-	type FieldDef =
+	// SettingOption is an option of a setting. A confirmation names it by its
+	// name alone, and the list shows its detail too.
+	type SettingOption = SettingRadioOption & { name: string }
+
+	type SettingField =
 		| { key: ToggleKey; type: "toggle"; label: string; description: string }
 		| {
 				key: RadioKey
 				type: "radio"
 				label: string
 				description: string
-				options: SettingRadioOption[]
+				options: SettingOption[]
 		  }
 
-	interface PageDef {
+	interface SettingCategory {
 		id: string
 		label: string
 		icon: string
 		search: string
-		fields: FieldDef[]
+		fields: SettingField[]
 	}
 
 	const onOff = (value: boolean) => (value ? "On" : "Off"),
-		verificationOptions: SettingRadioOption[] = [
-			{ value: GroupVerificationLevel.GroupVerificationNone, label: "None" },
-			{
-				value: GroupVerificationLevel.GroupVerificationLow,
-				label: "Low: a verified phone, email, or ID",
-			},
-			{
-				value: GroupVerificationLevel.GroupVerificationMedium,
-				label: "Medium: a verified ID, or a verified phone and email",
-			},
-			{
-				value: GroupVerificationLevel.GroupVerificationHigh,
-				label: "High: a verified ID",
-			},
+		settingOption = (
+			value: string | number,
+			name: string,
+			detail = "",
+		): SettingOption => ({
+			value: String(value),
+			name,
+			label: detail ? `${name}: ${detail}` : name,
+		}),
+		verificationOptions = [
+			settingOption(GroupVerificationLevel.GroupVerificationNone, "None"),
+			settingOption(
+				GroupVerificationLevel.GroupVerificationLow,
+				"Low",
+				"a verified phone, email, or ID",
+			),
+			settingOption(
+				GroupVerificationLevel.GroupVerificationMedium,
+				"Medium",
+				"a verified ID, or a verified phone and email",
+			),
+			settingOption(
+				GroupVerificationLevel.GroupVerificationHigh,
+				"High",
+				"a verified ID",
+			),
 		],
-		accountAgeOptions: SettingRadioOption[] = [0, 1, 3, 7, 30, 90].map((days) => ({
-			value: String(days),
-			label: days === 0 ? "Any age" : `${days} ${days === 1 ? "day" : "days"}`,
-		})),
-		slowModeOptions: SettingRadioOption[] = [
-			{ value: GroupSlowMode.GroupSlowModeOff, label: "Off" },
-			{
-				value: GroupSlowMode.GroupSlowModeSlow,
-				label: "Slow: 1 post every 2 minutes, 2 comments a minute",
-			},
-			{
-				value: GroupSlowMode.GroupSlowModeSlower,
-				label: "Slower: 1 post every 5 minutes, 1 comment a minute",
-			},
-			{
-				value: GroupSlowMode.GroupSlowModeSlowest,
-				label: "Slowest: 1 post every 10 minutes, 1 comment every 2 minutes",
-			},
+		accountAgeOptions = [
+			GroupMinimumAccountAge.GroupMinimumAccountAgeAny,
+			GroupMinimumAccountAge.GroupMinimumAccountAgeOneDay,
+			GroupMinimumAccountAge.GroupMinimumAccountAgeThreeDays,
+			GroupMinimumAccountAge.GroupMinimumAccountAgeSevenDays,
+			GroupMinimumAccountAge.GroupMinimumAccountAgeThirtyDays,
+			GroupMinimumAccountAge.GroupMinimumAccountAgeNinetyDays,
+		].map((days) =>
+			settingOption(
+				days,
+				days === GroupMinimumAccountAge.GroupMinimumAccountAgeAny
+					? "Any age"
+					: `${days} ${days === 1 ? "day" : "days"}`,
+			),
+		),
+		slowModeOptions = [
+			settingOption(GroupSlowMode.GroupSlowModeOff, "Off"),
+			settingOption(
+				GroupSlowMode.GroupSlowModeSlow,
+				"Slow",
+				"1 post every 2 minutes, 2 comments a minute",
+			),
+			settingOption(
+				GroupSlowMode.GroupSlowModeSlower,
+				"Slower",
+				"1 post every 5 minutes, 1 comment a minute",
+			),
+			settingOption(
+				GroupSlowMode.GroupSlowModeSlowest,
+				"Slowest",
+				"1 post every 10 minutes, 1 comment every 2 minutes",
+			),
 		],
-		pages: PageDef[] = [
+		categories: SettingCategory[] = [
 			{
 				id: "join",
 				label: "Join requirements",
@@ -112,7 +143,7 @@
 						options: verificationOptions,
 					},
 					{
-						key: "minimumAccountAgeDays",
+						key: "minimumAccountAge",
 						type: "radio",
 						label: "Minimum account age",
 						description:
@@ -173,6 +204,7 @@
 		]
 
 	interface PendingChange {
+		key: ToggleKey | RadioKey
 		label: string
 		previous: string
 		next: string
@@ -186,14 +218,14 @@
 		areGamesVisible: null,
 		isMemberListVisible: null,
 		verificationLevel: null,
-		minimumAccountAgeDays: null,
+		minimumAccountAge: null,
 		slowMode: null,
 	}
 
 	const notifications = getNotificationCenter()
 
 	let query = $state(""),
-		selectedPageId = $state("join"),
+		selectedCategoryId = $state("join"),
 		sidebarWidth = $state(accountSubpageSidebarMinimumWidth),
 		pendingChange = $state<PendingChange | null>(null),
 		searchInput = $state<HTMLInputElement>(),
@@ -206,44 +238,48 @@
 			profile?.unavailable?.includes(GroupSource.GroupSourceSettings) ?? false,
 		),
 		terms = $derived(searchTerms(query)),
-		visiblePages = $derived(
-			pages.filter(
-				(page) =>
+		visibleCategories = $derived(
+			categories.filter(
+				(category) =>
 					terms.length === 0 ||
-					matchingFields(page).length > 0 ||
-					matchesSearch(terms, `${page.label} ${page.search}`),
+					matchingFields(category).length > 0 ||
+					matchesSearch(terms, `${category.label} ${category.search}`),
 			),
 		),
-		activePage = $derived(
-			visiblePages.find((page) => page.id === selectedPageId) ?? visiblePages[0],
+		activeCategory = $derived(
+			visibleCategories.find((category) => category.id === selectedCategoryId) ??
+				visibleCategories[0],
 		),
 		isSaving = $derived(store.pendingAction === "settings")
 
-	function matchingFields(page: PageDef): FieldDef[] {
-		if (terms.length === 0 || matchesSearch(terms, `${page.label} ${page.search}`))
-			return page.fields
-		return page.fields.filter((field) =>
+	function matchingFields(category: SettingCategory): SettingField[] {
+		if (
+			terms.length === 0 ||
+			matchesSearch(terms, `${category.label} ${category.search}`)
+		)
+			return category.fields
+		return category.fields.filter((field) =>
 			matchesSearch(terms, `${field.label} ${field.description}`),
 		)
 	}
 
-	function radioValue(field: FieldDef): string {
+	function radioValue(field: SettingField): string {
 		if (!settings || field.type !== "radio") return ""
 		const value = settings[field.key]
 		return value === null || value === undefined ? "" : String(value)
 	}
 
-	function optionLabel(field: FieldDef, value: string): string {
+	function optionName(field: SettingField, value: string): string {
 		return field.type === "radio"
-			? (field.options
-					.find((option) => option.value === value)
-					?.label.split(":")[0] ?? "Unknown")
+			? (field.options.find((option) => option.value === value)?.name ??
+					"Unknown")
 			: value
 	}
 
-	function requestToggle(field: FieldDef, isOn: boolean): void {
+	function requestToggle(field: SettingField, isOn: boolean): void {
 		if (!settings || field.type !== "toggle") return
 		pendingChange = {
+			key: field.key,
 			label: field.label,
 			previous: onOff(!isOn),
 			next: onOff(isOn),
@@ -251,14 +287,14 @@
 		}
 	}
 
-	function requestRadio(field: FieldDef, value: string): void {
+	function requestRadio(field: SettingField, value: string): void {
 		if (!settings || field.type !== "radio") return
-		const changedValue =
-			field.key === "minimumAccountAgeDays" ? Number(value) : value
+		const changedValue = field.key === "minimumAccountAge" ? Number(value) : value
 		pendingChange = {
+			key: field.key,
 			label: field.label,
-			previous: optionLabel(field, radioValue(field)),
-			next: optionLabel(field, value),
+			previous: optionName(field, radioValue(field)),
+			next: optionName(field, value),
 			change: { ...emptyChange, [field.key]: changedValue },
 		}
 	}
@@ -275,8 +311,8 @@
 		})
 	}
 
-	function selectPage(pageId: string): void {
-		selectedPageId = pageId
+	function selectCategory(categoryId: string): void {
+		selectedCategoryId = categoryId
 		contentElement?.scrollTo({ top: 0 })
 	}
 
@@ -327,18 +363,18 @@
 					{/if}
 				</div>
 				<nav class="settings-nav" aria-label="Group settings pages">
-					{#each visiblePages as page (page.id)}
+					{#each visibleCategories as category (category.id)}
 						<button
 							class="nav-item"
 							type="button"
-							aria-current={activePage?.id === page.id
+							aria-current={activeCategory?.id === category.id
 								? "page"
 								: undefined}
-							data-tooltip={page.label}
+							data-tooltip={category.label}
 							data-tooltip-side="right"
-							onclick={() => selectPage(page.id)}>
-							<Icon svg={page.icon} size={16} aria-hidden="true" />
-							<span>{page.label}</span>
+							onclick={() => selectCategory(category.id)}>
+							<Icon svg={category.icon} size={16} aria-hidden="true" />
+							<span>{category.label}</span>
 						</button>
 					{/each}
 				</nav>
@@ -352,7 +388,7 @@
 				bind:this={contentElement}
 				class="settings-content"
 				aria-label="Group settings content">
-				{#key `${activePage?.id}:${query}`}
+				{#key `${activeCategory?.id}:${query}`}
 					{#if !settings && areSettingsUnavailable}
 						<div class="empty-state h-full">
 							<Icon svg={warningIcon} size={28} aria-hidden="true" />
@@ -364,13 +400,15 @@
 								onclick={() => void store.refreshProfile()}
 								>Try again</button>
 						</div>
-					{:else if !activePage}
+					{:else if !activeCategory}
 						<NoMatchingSettings onClearSearch={clearSearch} />
 					{:else}
-						<h2>{activePage.label}</h2>
-						<section class="settings-section" aria-label={activePage.label}>
+						<h2>{activeCategory.label}</h2>
+						<section
+							class="settings-section"
+							aria-label={activeCategory.label}>
 							<div class="settings-rows">
-								{#each matchingFields(activePage) as field (field.key)}
+								{#each matchingFields(activeCategory) as field (field.key)}
 									{@const isUnavailable =
 										!!settings &&
 										(settings[field.key] === null ||
@@ -396,7 +434,7 @@
 											isSaving}
 										isLoading={!settings}
 										saving={isSaving &&
-											pendingChange?.label === field.label}
+											pendingChange?.key === field.key}
 										onToggle={(isOn) => requestToggle(field, isOn)}
 										onRadioSelect={(value) =>
 											requestRadio(field, value)} />

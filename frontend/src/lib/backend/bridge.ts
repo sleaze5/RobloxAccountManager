@@ -99,6 +99,7 @@ export {
 	CatalogSortPeriod,
 	FriendStatus,
 	GameVote,
+	GroupMinimumAccountAge,
 	GroupSlowMode,
 	GroupVerificationLevel,
 	InventoryCategory,

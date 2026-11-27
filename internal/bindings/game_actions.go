@@ -35,9 +35,9 @@ func (service *Service) GetGameSettings(ctx context.Context, accountID, universe
 	return service.core.GetGameSettings(ctx, accountID, universeID)
 }
 
-func (service *Service) SaveGameSettings(ctx context.Context, accountID, universeID int64, change appservice.GameSettingsChange) (robloxservices.GameSettings, error) {
+func (service *Service) SaveGameSettings(ctx context.Context, accountID, universeID int64, change appservice.GameSettingsChange) error {
 	if err := validateAccountAndTargetIDs(accountID, universeID, "game-settings-update"); err != nil {
-		return robloxservices.GameSettings{}, err
+		return err
 	}
 	return service.core.SaveGameSettings(ctx, accountID, universeID, change)
 }

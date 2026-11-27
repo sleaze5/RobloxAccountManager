@@ -23,7 +23,10 @@
 	import { getNotificationCenter } from "../notifications/notification-center.svelte"
 	import GameIcon from "./GameIcon.svelte"
 	import GameRobloxActions from "./GameRobloxActions.svelte"
-	import { GameRobloxActions as GameRobloxActionsState } from "./game-roblox-actions.svelte"
+	import {
+		GameRobloxActions as GameRobloxActionsState,
+		withGameCountChange,
+	} from "./game-roblox-actions.svelte"
 	import { gameHeadlineStats } from "./game-stats"
 	import { getGamesStore } from "./games-store.svelte"
 	import GameSubplaces from "./GameSubplaces.svelte"
@@ -116,13 +119,8 @@
 			universeId,
 			notifications,
 			(change) => {
-				if (game?.place.universeId !== universeId) return
-				game = {
-					...game,
-					favorites: Math.max(game.favorites + change.favorites, 0),
-					upVotes: Math.max(game.upVotes + change.upVotes, 0),
-					downVotes: Math.max(game.downVotes + change.downVotes, 0),
-				}
+				if (game?.place.universeId === universeId)
+					game = withGameCountChange(game, change)
 			},
 		)
 		robloxActions = actions

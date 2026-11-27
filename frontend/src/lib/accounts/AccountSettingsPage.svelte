@@ -43,24 +43,24 @@
 	import OwnedPrivateServersList from "./OwnedPrivateServersList.svelte"
 	import { OwnedPrivateServersState } from "./owned-private-servers-state.svelte"
 
-	interface FieldDef {
+	interface SettingField {
 		key: Key
 		label: string
 		description: string
 		type: "toggle" | "radio"
 	}
 
-	interface SectionDef {
+	interface SettingSection {
 		id: string
 		title: string
-		fields: FieldDef[]
+		fields: SettingField[]
 	}
 
-	interface CategoryDef {
+	interface SettingCategory {
 		id: string
 		label: string
 		search: string
-		sections: SectionDef[]
+		sections: SettingSection[]
 	}
 
 	const privacyPlaceholders: SettingRadioOption[] = [
@@ -120,7 +120,7 @@
 		}
 	}
 
-	const categories: CategoryDef[] = [
+	const categories: SettingCategory[] = [
 		{
 			id: "content-maturity",
 			label: "Content maturity",
@@ -712,7 +712,7 @@
 		return settingsState?.snapshot?.settings?.find((setting) => setting.key === key)
 	}
 
-	function computeRadioOptions(field: FieldDef): SettingRadioOption[] {
+	function computeRadioOptions(field: SettingField): SettingRadioOption[] {
 		const view = getSettingView(field.key)
 		if (!view?.options?.length) {
 			return radioPlaceholders(field.key).map((option) => ({
@@ -738,7 +738,7 @@
 		)
 	}
 
-	function computeFieldDisabled(field: FieldDef): boolean {
+	function computeFieldDisabled(field: SettingField): boolean {
 		const view = getSettingView(field.key)
 		if (busy || settingsState?.refreshRequired || !view?.editable) return true
 		return (
@@ -809,7 +809,10 @@
 		await settingsState.save(view, option)
 	}
 
-	function filterFields(category: CategoryDef, section: SectionDef): FieldDef[] {
+	function filterFields(
+		category: SettingCategory,
+		section: SettingSection,
+	): SettingField[] {
 		if (
 			terms.length === 0 ||
 			matches(`${privacyLabel} ${category.label} ${category.search}`)

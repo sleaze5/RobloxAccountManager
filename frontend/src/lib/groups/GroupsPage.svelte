@@ -39,6 +39,7 @@
 	import GroupMembersPage from "./GroupMembersPage.svelte"
 	import GroupProfileView from "./GroupProfileView.svelte"
 	import GroupSettingsPage from "./GroupSettingsPage.svelte"
+	import { primaryGroupConfirmation } from "./group-confirmations"
 	import { minGroupSearchLength } from "./groups-store.svelte"
 	import type { GroupsStore, GroupSubpage } from "./groups-store.svelte"
 	import { openPageLabel, setProfilePages } from "../shared/profile-pages"
@@ -636,14 +637,7 @@
 {#if primaryChange}
 	{@const { group, isPrimary } = primaryChange}
 	<ConfirmationDialog
-		title={isPrimary
-			? "Remove primary group on Roblox?"
-			: "Make primary group on Roblox?"}
-		description={isPrimary
-			? `${group.name} no longer shows on the profile of this account. The account stays a member.`
-			: `${group.name} shows on the profile of this account. It replaces the current primary group.`}
-		confirmLabel={isPrimary ? "Remove primary group" : "Make primary group"}
-		progressLabel={isPrimary ? "Removing…" : "Saving…"}
+		{...primaryGroupConfirmation(group.name, isPrimary)}
 		tone="primary"
 		account={store.account}
 		isWorking={store.pendingAction !== null}

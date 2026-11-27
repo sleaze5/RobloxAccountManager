@@ -90,29 +90,21 @@ func (service *Service) GetGameSettings(ctx context.Context, accountID, universe
 	return settings, nil
 }
 
-// SaveGameSettings changes the settings of the game on Roblox and returns
-// them as Roblox saved them.
-func (service *Service) SaveGameSettings(ctx context.Context, accountID, universeID int64, change GameSettingsChange) (robloxservices.GameSettings, error) {
+func (service *Service) SaveGameSettings(ctx context.Context, accountID, universeID int64, change GameSettingsChange) error {
 	const operation = "game-settings-update"
 	configuration, err := validateGameNameAndDescription(change, operation)
 	if err != nil {
-		return robloxservices.GameSettings{}, err
+		return err
 	}
-	var settings robloxservices.GameSettings
-	err = service.editAccount(ctx, accountID, operation, "", func(ctx context.Context, version int64) error {
+	return service.editAccount(ctx, accountID, operation, "", func(ctx context.Context, version int64) error {
 		if err := service.users.UpdateGameSettings(ctx, accountID, version, universeID, configuration); err != nil {
 			return err
 		}
-		if change.IsPublic != nil {
-			if err := service.users.SetGamePublic(ctx, accountID, version, universeID, *change.IsPublic); err != nil {
-				return err
-			}
+		if change.IsPublic == nil {
+			return nil
 		}
-		var readError error
-		settings, readError = service.users.GameSettings(ctx, accountID, version, universeID)
-		return readError
+		return service.users.SetGamePublic(ctx, accountID, version, universeID, *change.IsPublic)
 	})
-	return settings, err
 }
 
 func validateGameNameAndDescription(change GameSettingsChange, operation string) (robloxservices.GameConfigurationChange, error) {
