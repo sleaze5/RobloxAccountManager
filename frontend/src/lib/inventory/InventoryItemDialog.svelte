@@ -1385,7 +1385,7 @@
 												relatedItem.item.itemId,
 											),
 										) === true}
-										actionLabel="Open details"
+										actionLabel="Show details"
 										onOpen={() => openRelatedItem(relatedItem)} />
 								</li>
 							{/each}
