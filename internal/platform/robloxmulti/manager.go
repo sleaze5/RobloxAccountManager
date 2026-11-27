@@ -42,15 +42,15 @@ func (manager *Manager) SetEnabled(enabled bool) {
 	manager.enabled = enabled
 	if !enabled {
 		manager.stopLocked()
-		manager.logger.Info("multi-instance turned off")
+		manager.logger.Info("multi-client turned off")
 		return
 	}
 	manager.holder, manager.startError = newMutexHolder(manager.logger)
 	if manager.startError != nil {
-		manager.logger.Warn("could not start multi-instance", "error", manager.startError)
+		manager.logger.Warn("could not turn on multi-client", "error", manager.startError)
 		return
 	}
-	manager.logger.Info("multi-instance turned on")
+	manager.logger.Info("multi-client turned on")
 	_, _ = manager.cleanupLocked()
 	manager.scheduleLocked()
 }
@@ -69,16 +69,16 @@ func (manager *Manager) PrepareForLaunch(ctx context.Context, confirm func(conte
 			return err
 		}
 		if manager.enabled && (manager.snapshotLocked().Ready || manager.holder == nil || manager.holder.failed.Load()) {
-			return manager.prepareMultiInstanceLocked(ctx)
+			return manager.prepareMultiClientLocked(ctx)
 		}
 		players, err := capturePlayers()
 		if err != nil {
 			manager.logger.Warn("could not inspect Roblox before launch", "error", err)
-			return errors.New("RAM could not access a running Roblox game. Close Roblox, then try joining again")
+			return errors.New("the app could not access a running Roblox client. Close Roblox, then try to join again")
 		}
 		if players.count() == 0 {
 			players.close()
-			return manager.prepareMultiInstanceLocked(ctx)
+			return manager.prepareMultiClientLocked(ctx)
 		}
 		if err := manager.replacePlayersLocked(ctx, players, confirm); err != nil {
 			return err
@@ -88,9 +88,9 @@ func (manager *Manager) PrepareForLaunch(ctx context.Context, confirm func(conte
 
 func (manager *Manager) replacePlayersLocked(ctx context.Context, players *playerProcesses, confirm func(context.Context, int, bool) (bool, error)) error {
 	defer players.close()
-	multiInstance := manager.enabled
+	multiClient := manager.enabled
 	manager.mutex.Unlock()
-	approved, err := confirm(ctx, players.count(), multiInstance)
+	approved, err := confirm(ctx, players.count(), multiClient)
 	manager.mutex.Lock()
 	if err != nil {
 		return err
@@ -106,7 +106,7 @@ func (manager *Manager) replacePlayersLocked(ctx context.Context, players *playe
 	}
 	if err := players.terminate(ctx, manager.logger); err != nil {
 		manager.logger.Warn("could not close confirmed Roblox processes", "error", err)
-		return errors.New("close Roblox manually, then try joining again")
+		return errors.New("close Roblox manually, then try to join again")
 	}
 	return nil
 }
@@ -116,12 +116,12 @@ func (manager *Manager) checkLaunchLocked(ctx context.Context) error {
 		return err
 	}
 	if manager.closed {
-		return errors.New("RAM is closing; reopen it before joining a game")
+		return errors.New("the app is closing. Open it again before you join a game")
 	}
 	return nil
 }
 
-func (manager *Manager) prepareMultiInstanceLocked(ctx context.Context) error {
+func (manager *Manager) prepareMultiClientLocked(ctx context.Context) error {
 	deadline := time.Now().Add(3 * time.Second)
 	for {
 		if err := manager.checkLaunchLocked(ctx); err != nil {
@@ -141,9 +141,9 @@ func (manager *Manager) prepareMultiInstanceLocked(ctx context.Context) error {
 		}
 		if time.Now().After(deadline) {
 			if !state.Ready {
-				return errors.New("close other Roblox launchers, then try joining again")
+				return errors.New("close other Roblox launchers, then try to join again")
 			}
-			return errors.New("could not prepare Roblox for another game. Try joining again")
+			return errors.New("could not prepare Roblox for another game. Try to join again")
 		}
 		manager.mutex.Unlock()
 		timer := time.NewTimer(100 * time.Millisecond)
@@ -190,7 +190,7 @@ func (manager *Manager) snapshotLocked() Snapshot {
 		return state
 	}
 	if manager.startError != nil || manager.holder == nil || manager.holder.failed.Load() {
-		state.Message = "turn multi-instance off and on to try again"
+		state.Message = "turn Multi-client off and on to try again"
 		return state
 	}
 	if !manager.holder.owned.Load() {

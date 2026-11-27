@@ -389,7 +389,7 @@ func (service *Service) applyPendingSettings(ctx context.Context) error {
 	}
 	if slices.Contains(sections, appsettings.SectionRoblox) {
 		service.launchMutex.Lock()
-		service.multiInstance.SetEnabled(service.settings.Roblox().MultiInstance)
+		service.multiClient.SetEnabled(service.settings.Roblox().MultiClient)
 		service.launchMutex.Unlock()
 	}
 	if err := service.transfers.ClearPendingSettings(ctx); err != nil {

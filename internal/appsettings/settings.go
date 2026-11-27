@@ -91,7 +91,8 @@ type PresenceUpdateSettings struct {
 }
 
 type RobloxSettings struct {
-	MultiInstance          bool   `json:"multiInstance"`
+	// settings.json stores Multi-client as multiInstance, its earlier name.
+	MultiClient            bool   `json:"multiInstance"`
 	CleanBeforeLaunch      bool   `json:"cleanBeforeLaunch"`
 	DeleteLogsWhenCleaning bool   `json:"deleteLogsWhenCleaning"`
 	UseAdministratorRights bool   `json:"useAdministratorRights"`
@@ -263,7 +264,7 @@ func (store *Store) Import(imported Settings, sections []Section) error {
 			case SectionPresence:
 				settings.Presence = imported.Presence
 			case SectionRoblox:
-				settings.Roblox.MultiInstance = imported.Roblox.MultiInstance
+				settings.Roblox.MultiClient = imported.Roblox.MultiClient
 				settings.Roblox.CleanBeforeLaunch = imported.Roblox.CleanBeforeLaunch
 				settings.Roblox.DeleteLogsWhenCleaning = imported.Roblox.DeleteLogsWhenCleaning
 				settings.Roblox.UseAdministratorRights = imported.Roblox.UseAdministratorRights
@@ -292,7 +293,7 @@ func decodeCurrent(document object) (Settings, []string) {
 	fields.presence(fields.object(presence, "presence.profile"), "presence.profile", &settings.Presence.Profile)
 	fields.presence(fields.object(presence, "presence.social"), "presence.social", &settings.Presence.Social)
 	roblox := fields.object(document, "roblox")
-	decodeField(fields, roblox, "roblox.multiInstance", &settings.Roblox.MultiInstance, nil)
+	decodeField(fields, roblox, "roblox.multiInstance", &settings.Roblox.MultiClient, nil)
 	decodeField(fields, roblox, "roblox.cleanBeforeLaunch", &settings.Roblox.CleanBeforeLaunch, nil)
 	decodeField(fields, roblox, "roblox.deleteLogsWhenCleaning", &settings.Roblox.DeleteLogsWhenCleaning, nil)
 	decodeField(fields, roblox, "roblox.useAdministratorRights", &settings.Roblox.UseAdministratorRights, nil)
@@ -448,8 +449,8 @@ func (store *Store) SetPresenceUpdates(scope PresenceScope, enabled bool, interv
 	})
 }
 
-func (store *Store) SetMultiInstance(enabled bool) error {
-	return store.set(func(settings *Settings) { settings.Roblox.MultiInstance = enabled })
+func (store *Store) SetMultiClient(enabled bool) error {
+	return store.set(func(settings *Settings) { settings.Roblox.MultiClient = enabled })
 }
 
 func (store *Store) SetCleanBeforeLaunch(enabled bool) error {

@@ -10,8 +10,8 @@ import (
 	"github.com/wailsapp/wails/v3/pkg/application"
 )
 
-func (service *Service) GetMultiInstanceState() robloxmulti.Snapshot {
-	return service.core.GetMultiInstanceState()
+func (service *Service) GetMultiClientState() robloxmulti.Snapshot {
+	return service.core.GetMultiClientState()
 }
 
 func (service *Service) GetRobloxProcesses() (robloxmulti.ProcessSnapshot, error) {
@@ -35,8 +35,8 @@ func (service *Service) ResolveLaunchConfirmation(confirmationID string, approve
 	service.core.ResolveLaunchConfirmation(confirmationID, approved)
 }
 
-func (service *Service) SetMultiInstanceEnabled(enabled bool) (robloxmulti.Snapshot, error) {
-	return service.core.SetMultiInstanceEnabled(enabled)
+func (service *Service) SetMultiClientEnabled(enabled bool) (robloxmulti.Snapshot, error) {
+	return service.core.SetMultiClientEnabled(enabled)
 }
 
 func (service *Service) GetRobloxPlayers() appservice.RobloxPlayers {

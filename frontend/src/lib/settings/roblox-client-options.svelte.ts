@@ -1,6 +1,6 @@
 import {
 	accountBackend,
-	type MultiInstanceSnapshot,
+	type MultiClientSnapshot,
 	type RobloxCleanerState,
 	type RobloxCleanReport,
 } from "../backend/bridge"
@@ -13,8 +13,8 @@ type CleanerSavingFlag =
 	| "isSavingDeleteLogs"
 	| "isSavingAdministratorRights"
 
-// The multi-instance status changes while Roblox processes start and stop.
-const multiInstancePollIntervalMilliseconds = 500
+// The status of Multi-client changes while Roblox processes start and stop.
+const multiClientPollIntervalMilliseconds = 500
 
 // Client options are shared by the Client options menu in the launch panel
 // and Settings > Roblox, so a change in one place shows in the other.
@@ -26,25 +26,25 @@ export function cleanReportSummary(report: RobloxCleanReport): string {
 }
 
 class RobloxClientOptions {
-	multiInstance = $state<MultiInstanceSnapshot | null>(null)
+	multiClient = $state<MultiClientSnapshot | null>(null)
 	cleaner = $state<RobloxCleanerState | null>(null)
-	isLoadingMultiInstance = $state(true)
-	isSavingMultiInstance = $state(false)
+	isLoadingMultiClient = $state(true)
+	isSavingMultiClient = $state(false)
 	isSavingCleanBeforeLaunch = $state(false)
 	isSavingDeleteLogs = $state(false)
 	isSavingAdministratorRights = $state(false)
-	multiInstanceError = $state("")
-	multiInstanceStatusError = $state("")
+	multiClientError = $state("")
+	multiClientStatusError = $state("")
 	cleanerError = $state("")
-	#isCheckingMultiInstance = false
-	#multiInstanceRevision = 0
+	#isCheckingMultiClient = false
+	#multiClientRevision = 0
 	#cleanerRevision = 0
 	#cleanerQueue: Promise<void> = Promise.resolve()
 
-	get multiInstanceStatus(): { text: string; tone: StatusTone } {
-		const snapshot = this.multiInstance
-		if (this.isLoadingMultiInstance) return { text: "Checking…", tone: "neutral" }
-		if (this.isSavingMultiInstance) return { text: "Saving…", tone: "neutral" }
+	get multiClientStatus(): { text: string; tone: StatusTone } {
+		const snapshot = this.multiClient
+		if (this.isLoadingMultiClient) return { text: "Checking…", tone: "neutral" }
+		if (this.isSavingMultiClient) return { text: "Saving…", tone: "neutral" }
 		if (!snapshot) return { text: "Not checked", tone: "neutral" }
 		if (!snapshot.supported) return { text: "Windows only", tone: "neutral" }
 		if (!snapshot.enabled) return { text: "Off", tone: "neutral" }
@@ -54,40 +54,40 @@ class RobloxClientOptions {
 
 	get isCleanBeforeLaunchActive(): boolean {
 		return Boolean(
-			this.cleaner?.cleanBeforeLaunch && !this.cleaner.isBlockedByMultiInstance,
+			this.cleaner?.cleanBeforeLaunch && !this.cleaner.isBlockedByMultiClient,
 		)
 	}
 
 	async load(): Promise<void> {
-		await Promise.all([this.refreshMultiInstance(), this.refreshCleaner()])
+		await Promise.all([this.refreshMultiClient(), this.refreshCleaner()])
 	}
 
 	// Returns the function that stops polling.
-	pollMultiInstanceWhileEnabled(): () => void {
+	pollMultiClientWhileEnabled(): () => void {
 		const interval = setInterval(() => {
-			if (this.multiInstance?.enabled) void this.refreshMultiInstance()
-		}, multiInstancePollIntervalMilliseconds)
+			if (this.multiClient?.enabled) void this.refreshMultiClient()
+		}, multiClientPollIntervalMilliseconds)
 		return () => clearInterval(interval)
 	}
 
-	async refreshMultiInstance(): Promise<void> {
-		if (this.#isCheckingMultiInstance || this.isSavingMultiInstance) return
-		this.#isCheckingMultiInstance = true
-		this.isLoadingMultiInstance = this.multiInstance === null
-		const requestRevision = this.#multiInstanceRevision
+	async refreshMultiClient(): Promise<void> {
+		if (this.#isCheckingMultiClient || this.isSavingMultiClient) return
+		this.#isCheckingMultiClient = true
+		this.isLoadingMultiClient = this.multiClient === null
+		const requestRevision = this.#multiClientRevision
 		try {
-			const state = await accountBackend.GetMultiInstanceState()
-			if (requestRevision !== this.#multiInstanceRevision) return
-			this.multiInstance = state
-			this.multiInstanceStatusError = ""
+			const state = await accountBackend.GetMultiClientState()
+			if (requestRevision !== this.#multiClientRevision) return
+			this.multiClient = state
+			this.multiClientStatusError = ""
 		} catch {
-			if (requestRevision !== this.#multiInstanceRevision) return
-			this.multiInstanceStatusError =
-				"Could not check the multi-instance status. Try again."
+			if (requestRevision !== this.#multiClientRevision) return
+			this.multiClientStatusError =
+				"Could not check the status of Multi-client. Try again."
 		} finally {
-			this.#isCheckingMultiInstance = false
-			if (requestRevision === this.#multiInstanceRevision) {
-				this.isLoadingMultiInstance = false
+			this.#isCheckingMultiClient = false
+			if (requestRevision === this.#multiClientRevision) {
+				this.isLoadingMultiClient = false
 			}
 		}
 	}
@@ -100,31 +100,31 @@ class RobloxClientOptions {
 		)
 	}
 
-	async setMultiInstanceEnabled(enabled: boolean): Promise<void> {
+	async setMultiClientEnabled(enabled: boolean): Promise<void> {
 		if (
-			this.isSavingMultiInstance ||
-			this.isLoadingMultiInstance ||
-			!this.multiInstance?.supported
+			this.isSavingMultiClient ||
+			this.isLoadingMultiClient ||
+			!this.multiClient?.supported
 		) {
 			return
 		}
-		const previous = this.multiInstance
-		this.#multiInstanceRevision++
-		this.isSavingMultiInstance = true
-		this.multiInstanceError = ""
+		const previous = this.multiClient
+		this.#multiClientRevision++
+		this.isSavingMultiClient = true
+		this.multiClientError = ""
 		try {
-			this.multiInstance = await accountBackend.SetMultiInstanceEnabled(enabled)
-			this.multiInstanceStatusError = ""
+			this.multiClient = await accountBackend.SetMultiClientEnabled(enabled)
+			this.multiClientStatusError = ""
 		} catch (error) {
-			this.multiInstance = previous
-			this.multiInstanceError = errorMessage(
+			this.multiClient = previous
+			this.multiClientError = errorMessage(
 				error,
-				"Could not save the multi-instance setting. Try again.",
+				"Could not save the Multi-client setting. Try again.",
 			)
 		} finally {
-			this.isSavingMultiInstance = false
+			this.isSavingMultiClient = false
 		}
-		// Multi-instance decides whether Roblox is cleaned before a launch.
+		// Multi-client decides whether Roblox is cleaned before a launch.
 		await this.refreshCleaner()
 	}
 

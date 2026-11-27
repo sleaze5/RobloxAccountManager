@@ -47,7 +47,7 @@ type Service struct {
 	transfers          *transferstore.Repository
 	logsExplorer       *logsexplorer.Reader
 	launcher           gamelaunch.Launcher
-	multiInstance      *robloxmulti.Manager
+	multiClient        *robloxmulti.Manager
 	elevatedHelper     *elevation.Helper
 	settings           *appsettings.Store
 	logs               *logging.System
@@ -103,7 +103,7 @@ func New(
 	transfers *transferstore.Repository,
 	logsExplorerReader *logsexplorer.Reader,
 	launcher gamelaunch.Launcher,
-	multiInstance *robloxmulti.Manager,
+	multiClient *robloxmulti.Manager,
 	elevatedHelper *elevation.Helper,
 	settings *appsettings.Store,
 	logs *logging.System,
@@ -134,7 +134,7 @@ func New(
 		transfers:            transfers,
 		logsExplorer:         logsExplorerReader,
 		launcher:             launcher,
-		multiInstance:        multiInstance,
+		multiClient:          multiClient,
 		elevatedHelper:       elevatedHelper,
 		settings:             settings,
 		logs:                 logs,
@@ -175,7 +175,7 @@ func (service *Service) Shutdown() error {
 	service.stopGames()
 	service.cancelLaunchConfirmation()
 	service.browser.Shutdown()
-	service.multiInstance.Close()
+	service.multiClient.Close()
 	service.cancelPendingValidations()
 	service.stopBackground()
 	service.clearPendingImports()

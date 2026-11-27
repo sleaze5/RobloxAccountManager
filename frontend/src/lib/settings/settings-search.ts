@@ -40,8 +40,8 @@ const settingSearchWords = {
 		"rovalra server data regions server age nearest server preferred region country location ping launch join integration api hosts privacy data sent apis.rovalra.com",
 	sharedPrivateServers:
 		"rbxservers shared private servers vip free private servers integration api hosts privacy data sent rbxservers.xyz api.rbxservers.xyz",
-	multiInstance:
-		"multi-instance multi instance multiple roblox several games alt accounts at once same time windows",
+	multiClient:
+		"multi-client multi client multiple clients multi-instance multi instance multiple roblox several games alt accounts at once same time windows",
 	linuxClient: "linux client sober mocktail flatpak wine join games",
 	cleanBeforeLaunch:
 		"clean before launch clear cache caches cookies sign-in data traces fresh logout",
@@ -93,7 +93,7 @@ export const settingsCategories = {
 	"roblox": {
 		label: "Roblox",
 		keys: [
-			"multiInstance",
+			"multiClient",
 			"linuxClient",
 			"cleanBeforeLaunch",
 			"cleanRoblox",

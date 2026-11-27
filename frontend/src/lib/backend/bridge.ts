@@ -234,7 +234,7 @@ export {
 export type {
 	Process as RobloxProcess,
 	ProcessSnapshot as RobloxProcessSnapshot,
-	Snapshot as MultiInstanceSnapshot,
+	Snapshot as MultiClientSnapshot,
 } from "../../../bindings/github.com/sleaze5/RobloxAccountManager/internal/platform/robloxmulti/models.js"
 export { Scope as RobloxCleanScope } from "../../../bindings/github.com/sleaze5/RobloxAccountManager/internal/platform/robloxcleaner/models.js"
 

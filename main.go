@@ -119,10 +119,10 @@ func run() (runError error) {
 		return err
 	}
 	logLocation(logSystem.Module("application.location"), location, requested, moveTarget, moveError)
-	launch.Begin("roblox-multi-instance")
-	multiInstance := robloxmulti.New(logSystem.Module("platform.roblox-multi-instance"))
-	defer multiInstance.Close()
-	multiInstance.SetEnabled(settingsStore.Roblox().MultiInstance)
+	launch.Begin("roblox-multi-client")
+	multiClient := robloxmulti.New(logSystem.Module("platform.roblox-multi-client"))
+	defer multiClient.Close()
+	multiClient.SetEnabled(settingsStore.Roblox().MultiClient)
 	elevatedHelper := elevation.NewHelper(logSystem.Module("platform.elevation"))
 	defer elevatedHelper.Close()
 
@@ -162,7 +162,7 @@ func run() (runError error) {
 		transferstore.NewRepository(vaultManager, logSystem.Module("storage.transfer")),
 		logsexplorer.NewReader(robloxlogs.Directories, logSystem.Module("logs-explorer")),
 		gamelaunch.New(func() string { return settingsStore.Roblox().LinuxClient }),
-		multiInstance,
+		multiClient,
 		elevatedHelper,
 		settingsStore,
 		logSystem,

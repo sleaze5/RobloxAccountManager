@@ -48,7 +48,7 @@
 			{ value: SettingsSection.SectionPresence, label: "Online status updates" },
 			{
 				value: SettingsSection.SectionRoblox,
-				label: "Roblox multi-instance and Linux client",
+				label: "Roblox: Multi-client and Linux client",
 			},
 			{ value: SettingsSection.SectionIntegrations, label: "Integrations" },
 			{ value: SettingsSection.SectionUserInterface, label: "User interface" },

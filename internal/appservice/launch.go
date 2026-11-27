@@ -79,7 +79,7 @@ func (service *Service) serializeLaunch(ctx context.Context, action func() error
 }
 
 func (service *Service) executeLaunch(ctx context.Context, shouldClean bool, confirm func(context.Context, int, bool) (bool, error), action func() error) error {
-	if err := service.multiInstance.PrepareForLaunch(ctx, confirm); err != nil {
+	if err := service.multiClient.PrepareForLaunch(ctx, confirm); err != nil {
 		if errors.Is(err, robloxmulti.ErrLaunchCancelled) {
 			return err
 		}
@@ -102,7 +102,7 @@ func (service *Service) executeLaunch(ctx context.Context, shouldClean bool, con
 	if err := action(); err != nil {
 		return err
 	}
-	service.multiInstance.AfterLaunch()
+	service.multiClient.AfterLaunch()
 	return nil
 }
 
@@ -112,19 +112,19 @@ func (service *Service) confirmBatchLaunch(ctx context.Context, count int, shoul
 	if shouldClean {
 		return service.confirmLaunch(ctx, LaunchConfirmation{AccountCount: count, IsCleaningBeforeLaunch: true})
 	}
-	state := service.multiInstance.Snapshot()
+	state := service.multiClient.Snapshot()
 	if state.Enabled && state.Ready {
 		return true, nil
 	}
 	return service.confirmLaunch(ctx, LaunchConfirmation{
-		AccountCount: count, MultiInstanceEnabled: state.Enabled, MultiInstanceMessage: state.Message,
+		AccountCount: count, MultiClientEnabled: state.Enabled, MultiClientMessage: state.Message,
 	})
 }
 
 func (service *Service) launchAccount(ctx context.Context, accountID int64, input gamelaunch.Input, shouldClean bool) error {
 	return service.runLaunchOperation(ctx, accountID, input, "game-launch", func(ctx context.Context, ticket func() (string, error), browserID string, target gamelaunch.Request) error {
-		confirm := func(ctx context.Context, count int, multiInstance bool) (bool, error) {
-			approved, err := service.replacementConfirmation(shouldClean)(ctx, count, multiInstance)
+		confirm := func(ctx context.Context, count int, multiClient bool) (bool, error) {
+			approved, err := service.replacementConfirmation(shouldClean)(ctx, count, multiClient)
 			if err != nil || !approved {
 				return approved, err
 			}
