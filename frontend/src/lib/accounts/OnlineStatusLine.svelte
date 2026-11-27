@@ -1,5 +1,5 @@
 <script lang="ts">
-	import starFillIcon from "@phosphor-icons/core/fill/star-fill.svg?raw"
+	import bookmarkFillIcon from "@phosphor-icons/core/fill/bookmark-simple-fill.svg?raw"
 	import Icon from "../shared/Icon.svelte"
 	import type { OnlineStatus } from "../backend/bridge"
 	import { getGamesStore } from "../games/games-store.svelte"
@@ -25,9 +25,9 @@
 			onlineStatus,
 			place ? games.displayName(place) : "",
 		)}</span>
-	{#if place && games.isFavorite(place.placeId)}<Icon
-			svg={starFillIcon}
+	{#if place && games.isBookmarked(place.placeId)}<Icon
+			svg={bookmarkFillIcon}
 			class="shrink-0 animate-pop text-accent-strong"
 			size={12}
-			aria-label="Favorite" />{/if}
+			aria-label="Bookmarked" />{/if}
 </small>

@@ -107,6 +107,7 @@ Content:
 - `empty-state`: empty, loading, and unavailable states for a page or pane.
 - `lib/shared/MoreActionsMenu.svelte`: the More actions button at the top right of a profile or a details dialog, with its menu.
 - `lib/shared/SavedAccountRelations.svelte`: the Saved accounts section of a user, a game, or an item, with badges that name how each other saved account relates to it.
+- `lib/shared/SettingChangeList.svelte`: the list of changed settings, each with its value before and after, that a confirmation shows before it saves.
 - `tag-pill` and `tag-pill-favorite`: tags. `tag-pill-success` and `tag-pill-warning` are status pills that color only their icon.
 - `list-row`: a row in a selectable list, with `data-selected` and `data-open`. Show a drop position while dragging with `shadow-drop-before` or `shadow-drop-after`.
 - `facts`: a list of labels and values, written as a `<dl>`. Set `data-tone` on a row for a success, warning, or muted value.

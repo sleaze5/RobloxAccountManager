@@ -85,7 +85,7 @@
 		preview = $state<TransferPreview | null>(null),
 		mode = $state(TransferMode.TransferOverwrite),
 		selectedAccounts = $state<number[]>([]),
-		favoritePlaces = $state(true),
+		bookmarks = $state(true),
 		savedPrivateServers = $state(true),
 		sections = $state<SettingsSection[]>([]),
 		confirmation = $state(""),
@@ -105,7 +105,7 @@
 		),
 		mergeEmpty = $derived(
 			selectedAccounts.length === 0 &&
-				!(favoritePlaces && (preview?.newFavoritePlaces ?? 0) > 0) &&
+				!(bookmarks && (preview?.newBookmarks ?? 0) > 0) &&
 				!(savedPrivateServers && (preview?.newSavedPrivateServers ?? 0) > 0) &&
 				sections.length === 0,
 		),
@@ -115,8 +115,8 @@
 						{ label: "Accounts added", count: importResult.added },
 						{ label: "Accounts updated", count: importResult.updated },
 						{
-							label: "Favorite places added",
-							count: importResult.favoritePlaces,
+							label: "Bookmarks added",
+							count: importResult.bookmarks,
 						},
 						{
 							label: "Private server links added",
@@ -180,7 +180,7 @@
 			selectedAccounts = (preview.accounts ?? []).map(
 				(account) => account.robloxUserId,
 			)
-			favoritePlaces = preview.newFavoritePlaces > 0
+			bookmarks = preview.newBookmarks > 0
 			savedPrivateServers = preview.newSavedPrivateServers > 0
 		} catch (cause) {
 			error = errorMessage(cause, "Could not open the export. Try again.")
@@ -201,7 +201,7 @@
 				{
 					mode,
 					robloxUserIds: overwrite ? [] : selectedAccounts,
-					favoritePlaces: !overwrite && favoritePlaces,
+					bookmarks: !overwrite && bookmarks,
 					savedPrivateServers: !overwrite && savedPrivateServers,
 					settingsSections: overwrite ? [] : sections,
 				},
@@ -378,15 +378,14 @@
 							<span class="checkbox">
 								<input
 									type="checkbox"
-									bind:checked={favoritePlaces}
-									disabled={busy ||
-										preview.newFavoritePlaces === 0} />
+									bind:checked={bookmarks}
+									disabled={busy || preview.newBookmarks === 0} />
 								<CheckboxMark />
 							</span>
 							<span>
-								<strong>Favorite places</strong>
+								<strong>Bookmarks</strong>
 								<small
-									>{preview.newFavoritePlaces} of {preview.favoritePlaces}
+									>{preview.newBookmarks} of {preview.bookmarks}
 									are new.</small>
 							</span>
 						</label>
@@ -431,7 +430,7 @@
 			{:else}
 				<div class="animate-enter">
 					<div class="mt-3 notice-warning">
-						Overwrite removes every account, tag, and favorite place in this
+						Overwrite removes every account, tag, and bookmark in this
 						vault, then imports everything from the file, including
 						settings. The app backs up the current vault first.
 					</div>

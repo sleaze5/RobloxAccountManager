@@ -381,3 +381,24 @@ func (service *Service) AnswerGroupJoinRequest(ctx context.Context, accountID, g
 		return service.users.AnswerGroupJoinRequest(ctx, accountID, version, groupID, userID, isAccepted)
 	})
 }
+
+func (service *Service) GetGroupSettings(ctx context.Context, accountID, groupID int64) (robloxservices.GroupSettings, error) {
+	const operation = "group-settings"
+	ctx, version, done, err := service.beginAccountSession(ctx, accountID, operation)
+	if err != nil {
+		return robloxservices.GroupSettings{}, err
+	}
+	defer done()
+	settings, err := service.users.GroupSettings(ctx, accountID, version, groupID)
+	if err != nil {
+		service.groupLogger(operation, accountID).WarnContext(ctx, "group settings unavailable", "group_id", groupID, "error", err)
+		return robloxservices.GroupSettings{}, err
+	}
+	return settings, nil
+}
+
+func (service *Service) SaveGroupSettings(ctx context.Context, accountID, groupID int64, settings robloxservices.GroupSettings) error {
+	return service.editAccount(ctx, accountID, "group-settings-update", "This role cannot change the group settings.", func(ctx context.Context, version int64) error {
+		return service.users.UpdateGroupSettings(ctx, accountID, version, groupID, settings)
+	})
+}

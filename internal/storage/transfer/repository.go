@@ -27,7 +27,7 @@ type Replacement struct {
 type MergeInput struct {
 	Accounts            []Account
 	Replacements        map[int64]Replacement
-	FavoritePlaces      []FavoritePlace
+	Bookmarks           []Bookmark
 	SavedPrivateServers []SavedPrivateServer
 	Settings            *PendingSettings
 }
@@ -41,7 +41,7 @@ type MergeResult struct {
 	Added               []int64
 	Updated             []int64
 	Replaced            []accountdomain.SessionRecord
-	FavoritePlaces      int
+	Bookmarks           int
 	SavedPrivateServers int
 }
 
@@ -67,7 +67,7 @@ func (repository *Repository) Read(ctx context.Context) (Payload, error) {
 	if payload.Tags, err = readCustomTags(ctx, transaction); err != nil {
 		return Payload{}, err
 	}
-	if payload.FavoritePlaces, err = readFavoritePlaces(ctx, transaction); err != nil {
+	if payload.Bookmarks, err = readBookmarks(ctx, transaction); err != nil {
 		return Payload{}, err
 	}
 	if payload.SavedPrivateServers, err = readSavedPrivateServers(ctx, transaction); err != nil {
@@ -157,22 +157,22 @@ func readCustomTags(ctx context.Context, transaction *sql.Tx) ([]string, error) 
 	return tags, nil
 }
 
-func readFavoritePlaces(ctx context.Context, transaction *sql.Tx) ([]FavoritePlace, error) {
+func readBookmarks(ctx context.Context, transaction *sql.Tx) ([]Bookmark, error) {
 	rows, err := transaction.QueryContext(ctx, `SELECT place_id, nickname FROM favorite_places ORDER BY display_order, place_id`)
 	if err != nil {
-		return nil, fmt.Errorf("list exported favorite places: %w", err)
+		return nil, fmt.Errorf("list exported bookmarks: %w", err)
 	}
 	defer rows.Close()
-	places := []FavoritePlace{}
+	places := []Bookmark{}
 	for rows.Next() {
-		var place FavoritePlace
+		var place Bookmark
 		if err := rows.Scan(&place.PlaceID, &place.Nickname); err != nil {
-			return nil, fmt.Errorf("read exported favorite place: %w", err)
+			return nil, fmt.Errorf("read exported bookmark: %w", err)
 		}
 		places = append(places, place)
 	}
 	if err := rows.Err(); err != nil {
-		return nil, fmt.Errorf("read exported favorite places: %w", err)
+		return nil, fmt.Errorf("read exported bookmarks: %w", err)
 	}
 	return places, nil
 }
@@ -232,7 +232,7 @@ func (repository *Repository) Replace(ctx context.Context, payload Payload, sett
 	if err != nil {
 		return nil, err
 	}
-	repository.logger.Info("vault data replaced", "operation", "vault-import", "removed_accounts", len(removed), "accounts", len(payload.Accounts), "favorite_places", len(payload.FavoritePlaces), "saved_private_servers", len(payload.SavedPrivateServers))
+	repository.logger.Info("vault data replaced", "operation", "vault-import", "removed_accounts", len(removed), "accounts", len(payload.Accounts), "bookmarks", len(payload.Bookmarks), "saved_private_servers", len(payload.SavedPrivateServers))
 	return removed, nil
 }
 
@@ -257,25 +257,25 @@ func insertPayload(ctx context.Context, transaction *sql.Tx, payload Payload, ne
 		}
 		nextAccountID++
 	}
-	for order, place := range payload.FavoritePlaces {
+	for order, place := range payload.Bookmarks {
 		if _, err := transaction.ExecContext(ctx, `INSERT INTO favorite_places(place_id, nickname, display_order, created_at_ms) VALUES(?, ?, ?, ?)`, place.PlaceID, place.Nickname, order, now); err != nil {
-			return fmt.Errorf("insert imported favorite place: %w", err)
+			return fmt.Errorf("insert imported bookmark: %w", err)
 		}
 	}
 	_, err = insertSavedPrivateServers(ctx, transaction, payload.SavedPrivateServers, now)
 	return err
 }
 
-func mergeFavoritePlaces(ctx context.Context, transaction *sql.Tx, places []FavoritePlace, now int64) (int, error) {
+func mergeBookmarks(ctx context.Context, transaction *sql.Tx, places []Bookmark, now int64) (int, error) {
 	added := 0
 	for _, place := range places {
 		inserted, err := transaction.ExecContext(ctx, `INSERT INTO favorite_places(place_id, nickname, display_order, created_at_ms) SELECT ?, ?, COALESCE(MAX(display_order) + 1, 0), ? FROM favorite_places WHERE true ON CONFLICT(place_id) DO NOTHING`, place.PlaceID, place.Nickname, now)
 		if err != nil {
-			return 0, fmt.Errorf("insert imported favorite place: %w", err)
+			return 0, fmt.Errorf("insert imported bookmark: %w", err)
 		}
 		changed, err := inserted.RowsAffected()
 		if err != nil {
-			return 0, fmt.Errorf("count imported favorite places: %w", err)
+			return 0, fmt.Errorf("count imported bookmarks: %w", err)
 		}
 		added += int(changed)
 	}
@@ -321,7 +321,7 @@ func (repository *Repository) Merge(ctx context.Context, input MergeInput) (Merg
 				return false, err
 			}
 		}
-		if mergeResult.FavoritePlaces, err = mergeFavoritePlaces(ctx, transaction, input.FavoritePlaces, now); err != nil {
+		if mergeResult.Bookmarks, err = mergeBookmarks(ctx, transaction, input.Bookmarks, now); err != nil {
 			return false, err
 		}
 		if mergeResult.SavedPrivateServers, err = insertSavedPrivateServers(ctx, transaction, input.SavedPrivateServers, now); err != nil {
@@ -335,7 +335,7 @@ func (repository *Repository) Merge(ctx context.Context, input MergeInput) (Merg
 	if err != nil {
 		return MergeResult{}, err
 	}
-	repository.logger.Info("vault data merged", "operation", "vault-import", "added_accounts", len(mergeResult.Added), "replaced_cookies", len(mergeResult.Replaced), "updated_accounts", len(mergeResult.Updated), "favorite_places", mergeResult.FavoritePlaces, "saved_private_servers", mergeResult.SavedPrivateServers)
+	repository.logger.Info("vault data merged", "operation", "vault-import", "added_accounts", len(mergeResult.Added), "replaced_cookies", len(mergeResult.Replaced), "updated_accounts", len(mergeResult.Updated), "favorite_places", mergeResult.Bookmarks, "saved_private_servers", mergeResult.SavedPrivateServers)
 	return mergeResult, nil
 }
 

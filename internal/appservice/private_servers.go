@@ -273,7 +273,7 @@ func (service *Service) ListSavedPrivateServers(ctx context.Context, placeID int
 		return nil, err
 	}
 	defer done()
-	servers, err := service.favoritePlaces.PrivateServers(ctx, placeID)
+	servers, err := service.placeRepository.PrivateServers(ctx, placeID)
 	return servers, service.gamesError(ctx, "private-server-links", err)
 }
 
@@ -297,7 +297,7 @@ func (service *Service) SavePrivateServerLink(ctx context.Context, placeID, acco
 		return games.SavedPrivateServer{}, err
 	}
 	defer done()
-	server, err := service.favoritePlaces.SavePrivateServer(ctx, games.SavedPrivateServer{PlaceID: placeID, Name: name, AccessCode: target.AccessCode, LinkCode: target.LinkCode})
+	server, err := service.placeRepository.SavePrivateServer(ctx, games.SavedPrivateServer{PlaceID: placeID, Name: name, AccessCode: target.AccessCode, LinkCode: target.LinkCode})
 	if errors.Is(err, gamestore.ErrPrivateServerSaved) {
 		return games.SavedPrivateServer{}, privateServerInputError("This private server is already saved for this game.")
 	}
@@ -368,7 +368,7 @@ func (service *Service) RemoveSavedPrivateServer(ctx context.Context, savedPriva
 		return err
 	}
 	defer done()
-	if err := service.favoritePlaces.RemovePrivateServer(ctx, savedPrivateServerID); errors.Is(err, gamestore.ErrPrivateServerNotSaved) {
+	if err := service.placeRepository.RemovePrivateServer(ctx, savedPrivateServerID); errors.Is(err, gamestore.ErrPrivateServerNotSaved) {
 		return privateServerInputError("This link is already gone. Refresh the private servers.")
 	} else if err != nil {
 		return service.gamesError(ctx, "private-server-link-remove", err)

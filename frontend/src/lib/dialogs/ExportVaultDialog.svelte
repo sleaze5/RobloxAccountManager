@@ -85,7 +85,7 @@
 			<p>
 				{exported
 					? "Keep the file and its export password in separate places."
-					: "Save accounts, saved passwords, tags, favorite places, and settings to an encrypted file."}
+					: "Save accounts, saved passwords, tags, bookmarks, and settings to an encrypted file."}
 			</p>
 		</div>
 		<button

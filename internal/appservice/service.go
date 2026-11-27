@@ -43,7 +43,7 @@ type Service struct {
 	badges             *robloxservices.Badges
 	rovalra            *rovalra.Client
 	rbxservers         *rbxservers.Client
-	favoritePlaces     *gamestore.Repository
+	placeRepository    *gamestore.Repository
 	transfers          *transferstore.Repository
 	logsExplorer       *logsexplorer.Reader
 	launcher           gamelaunch.Launcher
@@ -99,7 +99,7 @@ func New(
 	badges *robloxservices.Badges,
 	rovalraClient *rovalra.Client,
 	rbxserversClient *rbxservers.Client,
-	favoritePlaces *gamestore.Repository,
+	placeRepository *gamestore.Repository,
 	transfers *transferstore.Repository,
 	logsExplorerReader *logsexplorer.Reader,
 	launcher gamelaunch.Launcher,
@@ -130,7 +130,7 @@ func New(
 		badges:               badges,
 		rovalra:              rovalraClient,
 		rbxservers:           rbxserversClient,
-		favoritePlaces:       favoritePlaces,
+		placeRepository:      placeRepository,
 		transfers:            transfers,
 		logsExplorer:         logsExplorerReader,
 		launcher:             launcher,

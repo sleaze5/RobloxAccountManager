@@ -4,6 +4,7 @@
 	import clockCounterClockwiseIcon from "@phosphor-icons/core/regular/clock-counter-clockwise.svg?raw"
 	import coinsIcon from "@phosphor-icons/core/regular/coins.svg?raw"
 	import dotsThreeIcon from "@phosphor-icons/core/regular/dots-three.svg?raw"
+	import gearSixIcon from "@phosphor-icons/core/regular/gear-six.svg?raw"
 	import linkIcon from "@phosphor-icons/core/regular/link.svg?raw"
 	import megaphoneIcon from "@phosphor-icons/core/regular/megaphone.svg?raw"
 	import pencilSimpleIcon from "@phosphor-icons/core/regular/pencil-simple.svg?raw"
@@ -28,6 +29,7 @@
 	import ConfirmationDialog from "../shared/ConfirmationDialog.svelte"
 	import GroupIcon from "./GroupIcon.svelte"
 	import GroupMembershipFacts from "./GroupMembershipFacts.svelte"
+	import GroupSettingsDialog from "./GroupSettingsDialog.svelte"
 	import GroupStatusBadges from "./GroupStatusBadges.svelte"
 	import { groupStats } from "./group-stats"
 	import type { GroupsStore, GroupSubpage } from "./groups-store.svelte"
@@ -41,7 +43,13 @@
 		maxShoutLength = 255,
 		maxDescriptionLength = 1000
 
+	// GroupRobloxChange names a change to the group on Roblox that the user
+	// confirms first.
+	type GroupRobloxChange = "join" | "shout" | "clearShout" | "description"
+
 	let isConfirmingLeave = $state(false),
+		pendingChange = $state<GroupRobloxChange | null>(null),
+		isManaging = $state(false),
 		isEditingShout = $state(false),
 		shoutDraft = $state(""),
 		isEditingDescription = $state(false),
@@ -69,18 +77,27 @@
 		isEditingShout = true
 	}
 
-	async function postShout(message: string): Promise<void> {
-		if (await store.postShout(message)) isEditingShout = false
+	async function confirmChange(change: GroupRobloxChange): Promise<void> {
+		let isSaved = false
+		if (change === "join") isSaved = await store.join()
+		else if (change === "description")
+			isSaved = await store.saveDescription(descriptionDraft)
+		else isSaved = await store.postShout(change === "shout" ? shoutDraft : "")
+		if (!isSaved) return
+		if (change === "description") isEditingDescription = false
+		if (change === "shout" || change === "clearShout") isEditingShout = false
+		pendingChange = null
+	}
+
+	function requestChange(change: GroupRobloxChange): void {
+		store.clearActionError()
+		pendingChange = change
 	}
 
 	function startDescription(): void {
 		store.clearActionError()
 		descriptionDraft = group?.description ?? ""
 		isEditingDescription = true
-	}
-
-	async function saveDescription(): Promise<void> {
-		if (await store.saveDescription(descriptionDraft)) isEditingDescription = false
 	}
 
 	async function leave(): Promise<void> {
@@ -212,13 +229,27 @@
 						type="button"
 						aria-busy={store.pendingAction === "join"}
 						disabled={store.pendingAction !== null}
-						onclick={() => void store.join()}>
+						onclick={() => requestChange("join")}>
 						<Icon svg={signInIcon} size={16} aria-hidden="true" />
 						{store.pendingAction === "join"
 							? "Joining…"
 							: group.isPublicEntryAllowed
 								? "Join group"
 								: "Request to join"}
+					</button>
+				{/if}
+				{#if permissions.canConfigure}
+					<button
+						class="button-icon"
+						type="button"
+						aria-label="Manage group"
+						data-tooltip="Manage group"
+						disabled={store.pendingAction !== null}
+						onclick={() => {
+							store.clearActionError()
+							isManaging = true
+						}}>
+						<Icon svg={gearSixIcon} size={16} aria-hidden="true" />
 					</button>
 				{/if}
 				{#if hasMembershipAction}<span
@@ -283,7 +314,7 @@
 						class="flex animate-enter flex-col gap-2"
 						onsubmit={(event) => {
 							event.preventDefault()
-							void postShout(shoutDraft)
+							requestChange("shout")
 						}}>
 						<label class="sr-only" for="group-shout-input">Shout</label>
 						<textarea
@@ -301,7 +332,7 @@
 									class="button-text"
 									type="button"
 									disabled={store.pendingAction === "shout"}
-									onclick={() => void postShout("")}
+									onclick={() => requestChange("clearShout")}
 									>Clear shout</button>
 							{/if}
 							<button
@@ -379,7 +410,7 @@
 						class="flex animate-enter flex-col gap-2"
 						onsubmit={(event) => {
 							event.preventDefault()
-							void saveDescription()
+							requestChange("description")
 						}}>
 						<label class="sr-only" for="group-description-input"
 							>Description</label>
@@ -531,4 +562,55 @@
 			store.clearActionError()
 			isConfirmingLeave = false
 		}} />
+{/if}
+
+{#if pendingChange && group}
+	{@const confirmation = {
+		join: {
+			title: group.isPublicEntryAllowed
+				? "Join group on Roblox?"
+				: "Request to join on Roblox?",
+			description: group.isPublicEntryAllowed
+				? `This account becomes a member of ${group.name}.`
+				: `${group.name} reviews the request before this account becomes a member.`,
+			confirmLabel: group.isPublicEntryAllowed ? "Join group" : "Request to join",
+			progressLabel: "Joining…",
+		},
+		shout: {
+			title: "Post shout on Roblox?",
+			description: `Every member of ${group.name} sees the shout. It replaces the current shout.`,
+			confirmLabel: "Post shout",
+			progressLabel: "Posting…",
+		},
+		clearShout: {
+			title: "Clear shout on Roblox?",
+			description: `The shout leaves the page of ${group.name} for every member.`,
+			confirmLabel: "Clear shout",
+			progressLabel: "Clearing…",
+		},
+		description: {
+			title: "Save description on Roblox?",
+			description: `Every visitor of ${group.name} sees the new description.`,
+			confirmLabel: "Save description",
+			progressLabel: "Saving…",
+		},
+	}[pendingChange]}
+	<ConfirmationDialog
+		{...confirmation}
+		tone="primary"
+		account={store.account}
+		isWorking={store.pendingAction !== null}
+		onConfirm={() => pendingChange && void confirmChange(pendingChange)}
+		onCancel={() => {
+			store.clearActionError()
+			pendingChange = null
+		}} />
+{/if}
+
+{#if isManaging && group}
+	<GroupSettingsDialog
+		{store}
+		groupId={group.groupId}
+		groupName={group.name}
+		onClose={() => (isManaging = false)} />
 {/if}

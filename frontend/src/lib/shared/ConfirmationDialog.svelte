@@ -1,5 +1,8 @@
 <script lang="ts">
 	import xIcon from "@phosphor-icons/core/regular/x.svg?raw"
+	import type { Snippet } from "svelte"
+	import type { Account } from "../accounts/account-model"
+	import AccountAvatar from "../accounts/AccountAvatar.svelte"
 	import Dialog from "./Dialog.svelte"
 	import Icon from "./Icon.svelte"
 
@@ -9,20 +12,37 @@
 		confirmLabel,
 		progressLabel,
 		tone = "danger",
+		account,
 		isWorking,
 		onConfirm,
 		onCancel,
+		children,
 	}: {
 		title: string
 		// description names the affected item and the consequence.
 		description: string
 		confirmLabel: string
 		progressLabel: string
-		tone?: "danger" | "warning"
+		// tone is primary for a change that the user can reverse, such as a
+		// change on Roblox.
+		tone?: "danger" | "warning" | "primary"
+		// account names the saved account that makes the change on Roblox.
+		account?: Account
 		isWorking: boolean
 		onConfirm: () => void
 		onCancel: () => void
+		// children shows the details of the change, such as each changed
+		// setting.
+		children?: Snippet
 	} = $props()
+
+	const confirmClass = $derived(
+		tone === "danger"
+			? "button-danger"
+			: tone === "warning"
+				? "button-warning"
+				: "button-primary",
+	)
 
 	const dialogId = $props.id()
 
@@ -58,11 +78,22 @@
 			<Icon svg={xIcon} size={14} aria-hidden="true" />
 		</button>
 	</div>
+	{#if account}
+		<p
+			class="flex min-w-0 items-center gap-2 rounded-md border border-line bg-raised px-2 py-1.5 text-xs text-fg-muted">
+			<AccountAvatar {account} className="size-5 text-2xs" />
+			<span class="min-w-0 truncate"
+				>On Roblox as <span class="font-medium text-fg"
+					>{account.displayName}</span>
+				@{account.username}</span>
+		</p>
+	{/if}
+	{#if children}{@render children()}{/if}
 	<div class="dialog-actions">
 		<button class="button" type="button" disabled={isWorking} onclick={cancel}
 			>Cancel</button>
 		<button
-			class={tone === "danger" ? "button-danger" : "button-warning"}
+			class={confirmClass}
 			type="button"
 			aria-busy={isWorking}
 			disabled={isWorking}

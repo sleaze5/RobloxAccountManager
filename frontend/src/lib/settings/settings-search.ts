@@ -17,9 +17,9 @@ const settingSearchWords = {
 	moveStorage:
 		"move data storage relocate portable standard folder vault backups settings restart",
 	exportData:
-		"export data backup save file encrypted transfer move computer copy accounts cookies passwords tags favorite places settings password hint",
+		"export data backup save file encrypted transfer move computer copy accounts cookies passwords tags bookmarks settings password hint",
 	importData:
-		"import data restore load file transfer move computer merge overwrite replace accounts cookies passwords tags favorite places settings",
+		"import data restore load file transfer move computer merge overwrite replace accounts cookies passwords tags bookmarks settings",
 	onlineStatusUpdates:
 		"online status presence updates refresh interval seconds minutes polling in game offline friends",
 	onlineStatusScopes:

@@ -7,7 +7,7 @@ import (
 )
 
 const (
-	MaxFavoriteNicknameLength  = 50
+	MaxBookmarkNicknameLength  = 50
 	MaxPrivateServerNameLength = 50
 )
 

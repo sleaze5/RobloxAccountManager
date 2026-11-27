@@ -1,11 +1,13 @@
 import { accountBackend } from "../backend/bridge"
 import type {
 	GroupProfile,
+	GroupSettings,
 	GroupSummary,
 	UserGroup,
 	UserGroupList,
 } from "../backend/bridge"
 import { AccountScope } from "../accounts/account-scope"
+import type { Account } from "../accounts/account-model"
 import type { AccountStore } from "../accounts/account-store.svelte"
 import type { NotificationCenter } from "../notifications/notification-center.svelte"
 import type { CancellableRequest } from "../shared/cancellable-request"
@@ -29,6 +31,7 @@ type GroupAction =
 	| "removePrimary"
 	| "shout"
 	| "description"
+	| "settings"
 
 export const minGroupSearchLength = 2
 
@@ -115,6 +118,11 @@ export class GroupsStore {
 
 	get accountId(): number {
 		return this.#scope?.accountId ?? 0
+	}
+
+	// account is the saved account that the page acts for on Roblox.
+	get account(): Account {
+		return this.#accounts.selectedAccount
 	}
 
 	// membershipOf returns the role of the account in the group, for a group
@@ -360,6 +368,16 @@ export class GroupsStore {
 			(accountId, groupId) =>
 				accountBackend.SetGroupDescription(accountId, groupId, description),
 			"Could not save the description. Try again.",
+		)
+	}
+
+	async saveSettings(settings: GroupSettings): Promise<boolean> {
+		return await this.#runAction(
+			"settings",
+			this.selectedGroupId,
+			(accountId, groupId) =>
+				accountBackend.SaveGroupSettings(accountId, groupId, settings),
+			"Could not save the group settings. Try again.",
 		)
 	}
 

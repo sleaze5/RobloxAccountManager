@@ -16,7 +16,8 @@
 	import prohibitIcon from "@phosphor-icons/core/regular/prohibit.svg?raw"
 	import shapesIcon from "@phosphor-icons/core/regular/shapes.svg?raw"
 	import shieldCheckIcon from "@phosphor-icons/core/regular/shield-check.svg?raw"
-	import starFillIcon from "@phosphor-icons/core/fill/star-fill.svg?raw"
+	import bookmarkFillIcon from "@phosphor-icons/core/fill/bookmark-simple-fill.svg?raw"
+	import bookmarkIcon from "@phosphor-icons/core/regular/bookmark-simple.svg?raw"
 	import tShirtIcon from "@phosphor-icons/core/regular/t-shirt.svg?raw"
 	import translateIcon from "@phosphor-icons/core/regular/translate.svg?raw"
 	import ticketIcon from "@phosphor-icons/core/regular/ticket.svg?raw"
@@ -45,6 +46,10 @@
 	import { creatorByline, type GamesStore } from "./games-store.svelte"
 	import GameIcon from "./GameIcon.svelte"
 	import { gameHeadlineStats } from "./game-stats"
+	import GameRobloxActions from "./GameRobloxActions.svelte"
+	import GameSettingsDialog from "./GameSettingsDialog.svelte"
+	import { GameRobloxActions as GameRobloxActionsState } from "./game-roblox-actions.svelte"
+	import { getNotificationCenter } from "../notifications/notification-center.svelte"
 
 	let {
 		store,
@@ -58,7 +63,11 @@
 	const numbers = new Intl.NumberFormat(),
 		graphemes = new Intl.Segmenter(undefined, { granularity: "grapheme" })
 
+	const notifications = getNotificationCenter()
+
 	let playability = $state.raw<Playability | null>(null),
+		robloxActions = $state.raw<GameRobloxActionsState | null>(null),
+		isManaging = $state(false),
 		socialLinks = $state.raw<GameSocialLinks | null>(null),
 		socialLinksFailed = $state(false),
 		detailsRefreshCount = $state(0)
@@ -76,11 +85,20 @@
 			universeId = selectedUniverseId
 		playability = socialLinks = null
 		socialLinksFailed = false
+		robloxActions = null
 		if (!universeId || !scope.isCurrent || scope.accountId <= 0) return
 		// A details refresh also reads them again for the selected account.
 		void detailsRefreshCount
 		void loadPlayability(scope, universeId)
 		void loadSocialLinks(scope, universeId)
+		const actions = new GameRobloxActionsState(
+			scope,
+			universeId,
+			notifications,
+			(change) => store.changeGameCounts(universeId, change),
+		)
+		robloxActions = actions
+		void actions.load()
 		return () => scope.dispose()
 	})
 
@@ -135,7 +153,7 @@
 		// Until the details arrive, every row holds its place with a placeholder,
 		// so that the pane does not move when they fill in.
 		isWaitingForGame = $derived(!game && !store.detailsError),
-		favorite = $derived(place ? store.isFavorite(place.placeId) : false),
+		isBookmarked = $derived(place ? store.isBookmarked(place.placeId) : false),
 		nickname = $derived(place ? store.nicknameFor(place.placeId) : ""),
 		// Keep the final character and star together, even when a long word wraps.
 		nameSplit = $derived(
@@ -421,13 +439,13 @@
 						<h2
 							class="mr-1 inline text-lg font-semibold tracking-tight wrap-anywhere text-fg">
 							{nameStart}<span class="whitespace-nowrap"
-								>{nameEnd}{#if favorite}<Icon
-										svg={starFillIcon}
+								>{nameEnd}{#if isBookmarked}<Icon
+										svg={bookmarkFillIcon}
 										class="relative top-px ml-1 inline-block animate-pop text-accent-strong"
 										size={16}
-										aria-label="Favorite" />{/if}</span>
+										aria-label="Bookmarked" />{/if}</span>
 						</h2>
-						{#if favorite}
+						{#if isBookmarked}
 							<span
 								class="inline-flex max-w-full min-w-0 items-center gap-0.5 align-top text-sm text-fg-muted">
 								{#if nickname || editing}<span aria-hidden="true"
@@ -518,6 +536,41 @@
 					{/if}
 				</div>
 				<div class="relative flex shrink-0 items-center gap-1">
+					<button
+						class="button-icon aria-pressed:text-fg"
+						type="button"
+						aria-label={isBookmarked ? "Remove bookmark" : "Bookmark"}
+						aria-pressed={isBookmarked}
+						aria-busy={store.savingBookmark}
+						data-tooltip={isBookmarked
+							? "Remove bookmark"
+							: "Bookmark in the app"}
+						disabled={store.savingBookmark ||
+							store.savingNickname ||
+							!store.bookmarksLoaded}
+						onclick={() => void store.toggleBookmark(place)}>
+						{#if isBookmarked}
+							<Icon
+								svg={bookmarkFillIcon}
+								class="animate-pop text-accent-strong"
+								size={16}
+								aria-hidden="true" />
+						{:else}
+							<Icon svg={bookmarkIcon} size={16} aria-hidden="true" />
+						{/if}
+					</button>
+					{#if robloxActions}
+						<GameRobloxActions
+							actions={robloxActions}
+							account={accounts.selectedAccount}
+							gameName={store.displayName(place)}
+							canManage={!rootPlace &&
+								!!game &&
+								!!robloxActions.status?.canManage}
+							onManage={() => (isManaging = true)} />
+					{/if}
+					<span class="mx-1 h-4 w-px bg-line-strong" aria-hidden="true"
+					></span>
 					<button
 						class="button-icon"
 						type="button"
@@ -722,4 +775,14 @@
 			<GameSavedAccounts {accounts} {place} refreshCount={detailsRefreshCount} />
 		</div>
 	</section>
+{/if}
+
+{#if isManaging && place && game}
+	<GameSettingsDialog
+		account={accounts.selectedAccount}
+		universeId={place.universeId}
+		description={game.description}
+		{notifications}
+		onSaved={refreshGameDetails}
+		onClose={() => (isManaging = false)} />
 {/if}

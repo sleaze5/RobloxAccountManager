@@ -734,3 +734,50 @@ func (service *Users) AnswerGroupJoinRequest(ctx context.Context, accountID, ver
 	_, err := service.writeAccount(ctx, accountID, version, "group-join-request", method, groupsAddress(groupPath(groupID, "/join-requests/users/"+strconv.FormatInt(userID, 10)), nil).String(), nil)
 	return err
 }
+
+// GroupSettings is what the app lets a member with the configure permission
+// change about a group. IsMemberListVisible is nil when Roblox leaves it out.
+type GroupSettings struct {
+	IsApprovalRequired  bool  `json:"isApprovalRequired"`
+	AreEnemiesAllowed   bool  `json:"areEnemiesAllowed"`
+	AreFundsVisible     bool  `json:"areFundsVisible"`
+	AreGamesVisible     bool  `json:"areGamesVisible"`
+	IsMemberListVisible *bool `json:"isMemberListVisible"`
+}
+
+// groupSettingsPayload maps the group settings to the names that Roblox
+// uses: areGroupFundsVisible, areGroupGamesVisible, and
+// isMemberListVisibleToPublic.
+type groupSettingsPayload struct {
+	IsApprovalRequired          *bool `json:"isApprovalRequired"`
+	AreEnemiesAllowed           *bool `json:"areEnemiesAllowed"`
+	AreGroupFundsVisible        *bool `json:"areGroupFundsVisible"`
+	AreGroupGamesVisible        *bool `json:"areGroupGamesVisible"`
+	IsMemberListVisibleToPublic *bool `json:"isMemberListVisibleToPublic,omitempty"`
+}
+
+func (service *Users) GroupSettings(ctx context.Context, accountID, version, groupID int64) (GroupSettings, error) {
+	const endpoint = "group-settings"
+	var payload groupSettingsPayload
+	if err := service.readGroupData(ctx, accountID, version, endpoint, groupsAddress(groupPath(groupID, "/settings"), nil), &payload); err != nil {
+		return GroupSettings{}, err
+	}
+	if payload.IsApprovalRequired == nil || payload.AreEnemiesAllowed == nil || payload.AreGroupFundsVisible == nil || payload.AreGroupGamesVisible == nil {
+		return GroupSettings{}, invalidGroupData(endpoint)
+	}
+	return GroupSettings{
+		IsApprovalRequired: *payload.IsApprovalRequired, AreEnemiesAllowed: *payload.AreEnemiesAllowed,
+		AreFundsVisible: *payload.AreGroupFundsVisible, AreGamesVisible: *payload.AreGroupGamesVisible,
+		IsMemberListVisible: payload.IsMemberListVisibleToPublic,
+	}, nil
+}
+
+func (service *Users) UpdateGroupSettings(ctx context.Context, accountID, version, groupID int64, settings GroupSettings) error {
+	payload := groupSettingsPayload{
+		IsApprovalRequired: &settings.IsApprovalRequired, AreEnemiesAllowed: &settings.AreEnemiesAllowed,
+		AreGroupFundsVisible: &settings.AreFundsVisible, AreGroupGamesVisible: &settings.AreGamesVisible,
+		IsMemberListVisibleToPublic: settings.IsMemberListVisible,
+	}
+	_, err := service.writeAccount(ctx, accountID, version, "group-settings-update", http.MethodPatch, groupsAddress(groupPath(groupID, "/settings"), nil).String(), payload)
+	return err
+}

@@ -26,8 +26,8 @@ Use these terms in all text, as [WRITING.md](./WRITING.md) describes. Each term 
 | session         | A device or a browser where an account is signed in to Roblox, as Account settings lists it.                   | login, device (for a session)           |
 | launch session  | One run of a client from start to end, as its log file records it. Logs Explorer lists them.                   | session (for a client run), run         |
 | browser         | A Chrome for Testing window that the app opens for one account, with its own profile.                          | browser session                         |
-| favorite place  | A place that the user saved in the favorites of the app, on the Games page.                                    | favorite game (for a saved place)       |
-| favorite game   | A game that a user marked as a favorite on Roblox.                                                             | favorite place (for a Roblox favorite)  |
+| bookmark        | A place that the user saved in the app, on the Games page. It changes nothing on Roblox.                       | favorite place, favorite (saved place)  |
+| favorite game   | A game that a user marked as a favorite on Roblox.                                                             | bookmark (for a Roblox favorite)        |
 
 ## Users
 
@@ -67,6 +67,8 @@ Use these terms in all text, as [WRITING.md](./WRITING.md) describes. Each term 
 | universe       | The Roblox structure that holds the places of a game. Use it only in "Universe ID" and in comments about the Roblox API. In other text, write "game". | game (in comments about the API structure) |
 | server         | One running copy of a place that players join.                                                                                                        | instance, job, session                     |
 | private server | A server that only the users that its owner invites can join.                                                                                         | VIP server                                 |
+| public game    | A game that anyone can find and play. Roblox API: `activate` and `deactivate`.                                                                        | active game, published game                |
+| vote           | A like or dislike that an account gives a game on Roblox.                                                                                             | rating (for one vote)                      |
 | Place ID       | The unique number of a place. Roblox API: `placeId`.                                                                                                  | game ID                                    |
 | Server ID      | The unique ID of a server. Roblox API: `jobId` or `gameId`.                                                                                           | job ID, instance ID, game ID               |
 | Universe ID    | The unique number of the universe of a game. Roblox API: `universeId`.                                                                                | game ID, experience ID                     |
@@ -118,6 +120,8 @@ Use one verb for each action. Use it on the button, the menu item, the dialog, t
 | Open                 | Show a dialog, a page, a file, or a website.                                                                                       | view, launch (for a dialog or page)             |
 | Quit                 | Stop the app.                                                                                                                      | exit, close (for the app)                       |
 | Follow and Unfollow  | Start or stop following a user.                                                                                                    | subscribe, unsubscribe                          |
+| Like and Dislike     | Vote for or against a game on Roblox. "Remove like" and "Remove dislike" remove the vote.                                          | upvote, downvote, thumbs up                     |
+| Bookmark             | Save a place as a bookmark in the app. "Remove bookmark" removes it. It never changes Roblox.                                      | favorite (for a saved place), pin               |
 | Block and Unblock    | Start or stop blocking a user on Roblox.                                                                                           | ignore, mute                                    |
 | Launch               | Start Roblox with one or more accounts.                                                                                            | start, run, open (for Roblox)                   |
 | Join                 | Become a player in a server, or a member of a group.                                                                               | enter, connect                                  |
