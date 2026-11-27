@@ -10,15 +10,23 @@ Use these terms in all text, as [WRITING.md](./WRITING.md) describes. Each term 
 
 ## App and vault
 
-| Term            | Meaning                                                                 | Do not use                              |
-| --------------- | ----------------------------------------------------------------------- | --------------------------------------- |
-| app             | Roblox Account Manager.                                                 | application (in UI text), program, tool |
-| vault           | The encrypted, password-protected store of the accounts and their data. | database (in UI text), storage          |
-| master password | The password that unlocks the vault.                                    | vault password, passphrase              |
-| account         | A Roblox account that is saved in the vault.                            | alt, profile, login                     |
-| saved account   | An account, when the text must separate it from other users.            | stored account, managed account         |
-| cookie          | The `.ROBLOSECURITY` cookie that signs in an account.                   | token, session, auth cookie             |
-| tag             | A label that the user gives to accounts to sort and filter them.        | label, category                         |
+| Term            | Meaning                                                                                                        | Do not use                              |
+| --------------- | -------------------------------------------------------------------------------------------------------------- | --------------------------------------- |
+| app             | Roblox Account Manager.                                                                                        | application (in UI text), program, tool |
+| vault           | The encrypted, password-protected store of the accounts and their data.                                        | database (in UI text), storage          |
+| master password | The password that unlocks the vault.                                                                           | vault password, passphrase              |
+| account         | A Roblox account that is saved in the vault.                                                                   | alt, profile, login                     |
+| saved account   | An account, when the text must separate it from other users.                                                   | stored account, managed account         |
+| cookie          | The `.ROBLOSECURITY` cookie that signs in an account.                                                          | token, session, auth cookie             |
+| tag             | A label that the user gives to accounts to sort and filter them.                                               | label, category                         |
+| About           | The Settings page that shows the version, the build, and the licenses of the app. Use it for no other meaning. | about (for a description)               |
+| description     | The text that a user, a group owner, or a creator writes about a user, a group, a game, or an item.            | about, bio, summary                     |
+| details         | A list of facts about a user, a group, a game, an item, a server, or an account, such as "Account details".    | information, info                       |
+| Overview        | The first tab of a profile, which shows its main sections.                                                     | home, summary                           |
+| session         | A device or a browser where an account is signed in to Roblox, as Account settings lists it.                   | login, device (for a session)           |
+| launch session  | One run of a client from start to end, as its log file records it. Logs Explorer lists them.                   | session (for a client run), run         |
+| favorite place  | A place that the user saved in the favorites of the app, on the Games page.                                    | favorite game (for a saved place)       |
+| favorite game   | A game that a user marked as a favorite on Roblox.                                                             | favorite place (for a Roblox favorite)  |
 
 ## Users
 
@@ -64,14 +72,15 @@ Use these terms in all text, as [WRITING.md](./WRITING.md) describes. Each term 
 
 ## Groups
 
-| Term         | Meaning                                   | Do not use            |
-| ------------ | ----------------------------------------- | --------------------- |
-| group        | A Roblox group.                           | community             |
-| member       | A user in a group.                        | user (in a group)     |
-| role         | The rank of a member in a group.          | rank (in UI text)     |
-| owner        | The user who owns a group, game, or item. | creator (for a group) |
-| join request | A request from a user to join a group.    | membership request    |
-| group chat   | A Roblox chat with more than 2 users.     | group (for a chat)    |
+| Term         | Meaning                                            | Do not use                                       |
+| ------------ | -------------------------------------------------- | ------------------------------------------------ |
+| group        | A Roblox group.                                    | community                                        |
+| member       | A user in a group.                                 | user (in a group)                                |
+| role         | The rank of a member in a group.                   | rank (in UI text)                                |
+| owner        | The user who owns a group or a private server.     | creator (for a group)                            |
+| creator      | The user or the group that made a game or an item. | owner (for a game or an item), author, developer |
+| join request | A request from a user to join a group.             | membership request                               |
+| group chat   | A Roblox chat with more than 2 users.              | group (for a chat)                               |
 
 ## Roblox programs
 
@@ -90,7 +99,8 @@ Use one verb for each action. Use it on the button, the menu item, the dialog, t
 
 | Verb                 | Meaning                                                                                                                            | Do not use                            |
 | -------------------- | ---------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------- |
-| Add                  | Put an item into the app or a list, such as an account or a tag.                                                                   | create, insert, new                   |
+| Add                  | Put an existing item into the app or a list, such as an account, a link, or a favorite.                                            | insert                                |
+| Create               | Make a new thing that did not exist before, such as a vault, a tag, or a group chat.                                               | new (as a verb), make                 |
 | Add friend           | Send a friend request to a user.                                                                                                   | send request, connect                 |
 | Add trusted friend   | Send a trusted friend request to a friend.                                                                                         | trust                                 |
 | Accept and Decline   | Answer an incoming request.                                                                                                        | approve, deny, reject, ignore         |
@@ -112,7 +122,9 @@ Use one verb for each action. Use it on the button, the menu item, the dialog, t
 | Turn on and Turn off | Change a switch. The states are "On" and "Off".                                                                                    | enable, disable, toggle               |
 | Dismiss              | Hide a notification or a message.                                                                                                  | close (for a notification)            |
 | Put on and Take off  | Change what the avatar wears. "Worn" names the state.                                                                              | equip, unequip, wear                  |
-| Update cookie        | Give a saved account a new cookie.                                                                                                 | replace cookie, refresh cookie        |
+| Update cookie        | Give a saved account a new cookie that the user enters.                                                                            | replace cookie                        |
+| Renew cookie         | Get a new cookie for an account from Roblox. It replaces the saved cookie.                                                         | refresh cookie                        |
+| Expand               | Show an image or a panel at a larger size.                                                                                         | view (for an image), enlarge          |
 | Copy                 | Put a value on the clipboard.                                                                                                      | clone (for the clipboard)             |
 | Open in browser      | Open the page of a user, a game, a group, or an item on the Roblox website.                                                        | view on Roblox, visit                 |
 
