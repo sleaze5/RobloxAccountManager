@@ -32,7 +32,7 @@ func (service *Service) SearchGames(ctx context.Context, query games.SearchQuery
 		return games.SearchPage{}, err
 	}
 	defer done()
-	if universeID, ok, err := gameIDQuery(query.Text, "universe:", "Enter a universe ID after universe:, such as universe:13058."); ok {
+	if universeID, ok, err := prefixedIDQuery(query.Text, "universe:", "Enter a universe ID after universe:, such as universe:13058."); ok {
 		if err != nil {
 			return games.SearchPage{}, err
 		}
@@ -42,7 +42,7 @@ func (service *Service) SearchGames(ctx context.Context, query games.SearchQuery
 		}
 		return games.SearchPage{Places: places}, service.gamesError(ctx, "game-search-universe", err)
 	}
-	if placeID, ok, err := gameIDQuery(query.Text, "id:", "Enter a place ID after id:, such as id:1818."); ok {
+	if placeID, ok, err := prefixedIDQuery(query.Text, "id:", "Enter a place ID after id:, such as id:1818."); ok {
 		if err != nil {
 			return games.SearchPage{}, err
 		}
@@ -57,23 +57,23 @@ func (service *Service) SearchGames(ctx context.Context, query games.SearchQuery
 	return page, service.gamesError(ctx, "game-search", err)
 }
 
-func gameIDQuery(text, prefix, invalid string) (int64, bool, error) {
+func prefixedIDQuery(text, prefix, invalid string) (int64, bool, error) {
 	if len(text) < len(prefix) || !strings.EqualFold(text[:len(prefix)], prefix) {
 		return 0, false, nil
 	}
 	id, err := strconv.ParseInt(strings.TrimSpace(text[len(prefix):]), 10, 64)
-	if err != nil || validGameID(id) != nil {
+	if err != nil || validRobloxID(id) != nil {
 		return 0, true, gamesInputError(invalid)
 	}
 	return id, true, nil
 }
 
 func (service *Service) GetGame(ctx context.Context, universeID, placeID int64) (games.Game, error) {
-	if err := validGameID(placeID); err != nil {
+	if err := validRobloxID(placeID); err != nil {
 		return games.Game{}, err
 	}
 	if universeID != 0 {
-		if err := validGameID(universeID); err != nil {
+		if err := validRobloxID(universeID); err != nil {
 			return games.Game{}, err
 		}
 	}
@@ -106,10 +106,10 @@ func (service *Service) GetGame(ctx context.Context, universeID, placeID int64) 
 
 // GetGameSection reads one part of the game details that GetGame leaves out.
 func (service *Service) GetGameSection(ctx context.Context, universeID, placeID int64, section games.GameSection) (games.Game, error) {
-	if err := validGameID(placeID); err != nil {
+	if err := validRobloxID(placeID); err != nil {
 		return games.Game{}, err
 	}
-	if err := validGameID(universeID); err != nil {
+	if err := validRobloxID(universeID); err != nil {
 		return games.Game{}, err
 	}
 	ctx, done, err := service.beginGames(ctx)
@@ -130,7 +130,7 @@ func (service *Service) GetGameSection(ctx context.Context, universeID, placeID 
 
 func (service *Service) GetGamePlayability(ctx context.Context, accountID, universeID int64) (*games.Playability, error) {
 	const operation = "game-playability"
-	if err := validGameID(universeID); err != nil {
+	if err := validRobloxID(universeID); err != nil {
 		return nil, err
 	}
 	ctx, _, done, err := service.beginAccountSession(ctx, accountID, operation)
@@ -146,7 +146,7 @@ func (service *Service) GetGamePlayability(ctx context.Context, accountID, unive
 // depend on the account's age.
 func (service *Service) GetGameSocialLinks(ctx context.Context, accountID, universeID int64) (robloxservices.GameSocialLinks, error) {
 	const operation = "game-social-links"
-	if err := validGameID(universeID); err != nil {
+	if err := validRobloxID(universeID); err != nil {
 		return robloxservices.GameSocialLinks{}, err
 	}
 	ctx, _, done, err := service.beginAccountSession(ctx, accountID, operation)
@@ -159,7 +159,7 @@ func (service *Service) GetGameSocialLinks(ctx context.Context, accountID, unive
 }
 
 func (service *Service) ListGameServers(ctx context.Context, query games.ServerQuery) (games.ServerPage, error) {
-	if err := validGameID(query.PlaceID); err != nil {
+	if err := validRobloxID(query.PlaceID); err != nil {
 		return games.ServerPage{}, err
 	}
 	switch query.Order {
@@ -212,7 +212,7 @@ func (service *Service) addServerRecords(ctx context.Context, placeID int64, ser
 }
 
 func (service *Service) ListRecordedGameServers(ctx context.Context, query games.RecordQuery) (games.RecordPage, error) {
-	if err := validGameID(query.PlaceID); err != nil {
+	if err := validRobloxID(query.PlaceID); err != nil {
 		return games.RecordPage{}, err
 	}
 	if query.Order != games.RecordOrderNewest && query.Order != games.RecordOrderOldest {
@@ -237,7 +237,7 @@ func (service *Service) ListRecordedGameServers(ctx context.Context, query games
 }
 
 func (service *Service) GetGameServerStats(ctx context.Context, placeID int64) (games.ServerStats, error) {
-	if err := validGameID(placeID); err != nil {
+	if err := validRobloxID(placeID); err != nil {
 		return games.ServerStats{}, err
 	}
 	ctx, done, err := service.beginRoValra(ctx)
@@ -281,8 +281,8 @@ func (service *Service) gameAccount(ctx context.Context) (int64, error) {
 }
 
 func (service *Service) GetGamePlace(ctx context.Context, universeID, placeID int64) (games.PlaceSummary, error) {
-	for _, gameID := range []int64{universeID, placeID} {
-		if err := validGameID(gameID); err != nil {
+	for _, robloxID := range []int64{universeID, placeID} {
+		if err := validRobloxID(robloxID); err != nil {
 			return games.PlaceSummary{}, err
 		}
 	}
@@ -309,7 +309,7 @@ func (service *Service) ListFavoritePlaces(ctx context.Context) ([]games.Place, 
 }
 
 func (service *Service) AddFavoritePlace(ctx context.Context, placeID int64) (games.Place, error) {
-	if err := validGameID(placeID); err != nil {
+	if err := validRobloxID(placeID); err != nil {
 		return games.Place{}, err
 	}
 	ctx, done, err := service.beginGames(ctx)
@@ -331,7 +331,7 @@ func (service *Service) AddFavoritePlace(ctx context.Context, placeID int64) (ga
 }
 
 func (service *Service) SetFavoritePlaceNickname(ctx context.Context, placeID int64, nickname string) (string, error) {
-	if err := validGameID(placeID); err != nil {
+	if err := validRobloxID(placeID); err != nil {
 		return "", err
 	}
 	nickname = strings.TrimSpace(nickname)
@@ -354,7 +354,7 @@ func (service *Service) SetFavoritePlaceNickname(ctx context.Context, placeID in
 func (service *Service) ReorderFavoritePlaces(ctx context.Context, placeIDs []int64) error {
 	seen := make(map[int64]bool, len(placeIDs))
 	for _, placeID := range placeIDs {
-		if err := validGameID(placeID); err != nil {
+		if err := validRobloxID(placeID); err != nil {
 			return err
 		}
 		if seen[placeID] {
@@ -376,7 +376,7 @@ func (service *Service) ReorderFavoritePlaces(ctx context.Context, placeIDs []in
 }
 
 func (service *Service) RemoveFavoritePlace(ctx context.Context, placeID int64) error {
-	if err := validGameID(placeID); err != nil {
+	if err := validRobloxID(placeID); err != nil {
 		return err
 	}
 	ctx, done, err := service.beginGames(ctx)
@@ -430,9 +430,9 @@ func (service *Service) gamesError(ctx context.Context, operation string, err er
 	return &roblox.Error{Kind: roblox.KindProtocol, Endpoint: operation, Message: "Could not complete the game request. Try again.", Cause: err}
 }
 
-func validGameID(gameID int64) error {
-	if !games.ValidID(gameID) {
-		return gamesInputError("The game identifier is invalid.")
+func validRobloxID(robloxID int64) error {
+	if !games.ValidID(robloxID) {
+		return gamesInputError("The ID is invalid.")
 	}
 	return nil
 }

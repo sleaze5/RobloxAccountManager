@@ -13,7 +13,7 @@
 		presenceLabel,
 	} from "./account-model"
 	import PresenceCard from "./PresenceCard.svelte"
-	import { isInExperience, PresencePlace } from "./presence-place.svelte"
+	import { isInGame, PresencePlace } from "./presence-place.svelte"
 	import { presenceJoinFor } from "./presence-join"
 
 	let {
@@ -44,7 +44,7 @@
 		cardHoverTimer = 0
 
 	const place = $derived(presencePlace.place),
-		inExperience = $derived(isInExperience(presence)),
+		isPresenceInGame = $derived(isInGame(presence)),
 		join = $derived(presenceJoinFor(presence, joinability, !!onJoinUser)),
 		joinPlaceId = $derived(join.placeId),
 		hasVisibleServer = $derived(join.hasVisibleServer),
@@ -61,7 +61,7 @@
 		)
 
 	$effect(() => {
-		if (!inExperience) closeCard()
+		if (!isPresenceInGame) closeCard()
 	})
 
 	$effect(() => () => {
@@ -126,7 +126,7 @@
 	onfocusout={(event) => {
 		if (cardOpenedBy && !isInsideCard(event.relatedTarget)) closeCard()
 	}}>
-	{#if inExperience}
+	{#if isPresenceInGame}
 		<button
 			bind:this={trigger}
 			type="button"
@@ -159,7 +159,7 @@
 			aria-label={tooltip}
 			data-tooltip={tooltip}>{@render status()}</button>
 	{/if}
-	{#if inExperience && joinPlaceId > 0}
+	{#if isPresenceInGame && joinPlaceId > 0}
 		<button
 			class="button-ghost-sm"
 			type="button"

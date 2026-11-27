@@ -10,7 +10,7 @@ import (
 // ListGamePasses lists a universe's game passes with icons and ownership.
 // Without an account, none read as owned.
 func (service *Service) ListGamePasses(ctx context.Context, accountID, universeID int64) ([]games.GamePass, error) {
-	if err := validGameID(universeID); err != nil {
+	if err := validRobloxID(universeID); err != nil {
 		return nil, err
 	}
 	ctx, done, err := service.beginGames(ctx)
@@ -41,7 +41,7 @@ func (service *Service) ListGamePasses(ctx context.Context, accountID, universeI
 
 // FindGamePassPlace returns the root place of the game selling the pass.
 func (service *Service) FindGamePassPlace(ctx context.Context, gamePassID int64) (games.Place, error) {
-	if err := validGameID(gamePassID); err != nil {
+	if err := validRobloxID(gamePassID); err != nil {
 		return games.Place{}, err
 	}
 	ctx, done, err := service.beginGames(ctx)

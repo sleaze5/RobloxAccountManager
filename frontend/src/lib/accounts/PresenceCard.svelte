@@ -75,15 +75,12 @@
 			</div>{/if}
 		{#if universeId > 0}<div>
 				<dt>Universe ID</dt>
-				{@render searchableId(
-					universeId,
-					"Show the places of this universe",
-					() =>
-						previews.show({
-							kind: "Place",
-							placeId: rootPlaceId || placeId,
-							universeId,
-						}),
+				{@render searchableId(universeId, "Show the places of this game", () =>
+					previews.show({
+						kind: "Place",
+						placeId: rootPlaceId || placeId,
+						universeId,
+					}),
 				)}
 			</div>{/if}
 		{#if rootPlaceId > 0 && rootPlaceId !== placeId}<div>

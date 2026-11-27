@@ -113,26 +113,26 @@ type InventoryItemMarket struct {
 type InventorySaleLocation string
 
 const (
-	SaleInMarketplace                   InventorySaleLocation = "marketplace"
-	SaleInMarketplaceAndAllExperiences  InventorySaleLocation = "marketplaceAndAllExperiences"
-	SaleInMarketplaceAndSomeExperiences InventorySaleLocation = "marketplaceAndSomeExperiences"
-	SaleInExperiences                   InventorySaleLocation = "experiences"
+	SaleInMarketplace             InventorySaleLocation = "marketplace"
+	SaleInMarketplaceAndAllGames  InventorySaleLocation = "marketplaceAndAllGames"
+	SaleInMarketplaceAndSomeGames InventorySaleLocation = "marketplaceAndSomeGames"
+	SaleInGames                   InventorySaleLocation = "games"
 )
 
 // saleLocationOf reads the catalog saleLocationType, whose values RoSeal
 // lists as ShopOnly, MyExperiencesOnly, ShopAndMyExperiences,
 // ExperiencesById, ShopAndAllExperiences, ExperiencesDevApiOnly, and
-// ShopAndExperiencesById.
+// ShopAndExperiencesById. Roblox calls games experiences in these values.
 func saleLocationOf(saleLocationType string) InventorySaleLocation {
 	switch saleLocationType {
 	case "ShopOnly":
 		return SaleInMarketplace
 	case "ShopAndAllExperiences":
-		return SaleInMarketplaceAndAllExperiences
+		return SaleInMarketplaceAndAllGames
 	case "ShopAndMyExperiences", "ShopAndExperiencesById":
-		return SaleInMarketplaceAndSomeExperiences
+		return SaleInMarketplaceAndSomeGames
 	case "MyExperiencesOnly", "ExperiencesById", "ExperiencesDevApiOnly":
-		return SaleInExperiences
+		return SaleInGames
 	}
 	return ""
 }

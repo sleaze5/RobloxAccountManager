@@ -24,12 +24,12 @@ const (
 	joinStatusRetry                         = 0
 	joinStatusServerFound                   = 1
 	joinStatusServerDataLoaded              = 2
-	joinStatusExperienceDisabled            = 3
+	joinStatusGameDisabled                  = 3
 	joinStatusServerUnavailable             = 4
 	joinStatusServerUnavailableUnexpectedly = 5
 	joinStatusServerFull                    = 6
 	joinStatusFollowedUserLeft              = 10
-	joinStatusExperienceRestricted          = 11
+	joinStatusGameRestricted                = 11
 	joinStatusNoPermission                  = 12
 	joinStatusServerBusy                    = 13
 	joinStatusPartyTooLarge                 = 16
@@ -52,7 +52,7 @@ const (
 	joinRefusalReservedServer
 	joinRefusalDeviceNotSupported
 	joinRefusalRegionCompliance
-	joinRefusalExperiencePrivate
+	joinRefusalGamePrivate
 	joinRefusalUnverifiedSeventeenPlus
 	joinRefusalContentMaturity
 	joinRefusalInvalidPlace
@@ -84,7 +84,7 @@ var joinRefusalByMessage = map[string]joinRefusal{
 	"User lacks permissions to join private server":                       joinRefusalReservedServer,
 	"Your device is not supported to play this game.":                     joinRefusalDeviceNotSupported,
 	"This game is unavailable in your region to comply with regulations.": joinRefusalRegionCompliance,
-	"Game's root place is not active.":                                    joinRefusalExperiencePrivate,
+	"Game's root place is not active.":                                    joinRefusalGamePrivate,
 	"<This text is not reviewed by UX because it is not displayed to users. Each client provides their own translation> This experience is rated 17+ and user is 17 years or older but it is not verified.": joinRefusalUnverifiedSeventeenPlus,
 	"This game is unavailable due to your content controls setting.": joinRefusalContentMaturity,
 	"To join this experience, update your content maturity setting.": joinRefusalContentMaturity,
@@ -131,7 +131,7 @@ func parseJoinRefusal(message string) joinRefusal {
 	return joinRefusalUnknown
 }
 
-type creatorExperienceBan struct {
+type creatorGameBan struct {
 	StartTime string `json:"startTime"`
 	// DurationSeconds is null for a ban without an end.
 	DurationSeconds *int64 `json:"durationSeconds"`
@@ -145,7 +145,8 @@ type joinResponse struct {
 	Message       *string `json:"message"`
 	QueuePosition int     `json:"queuePosition"`
 	StatusData    *struct {
-		CreatorExperienceBan *creatorExperienceBan `json:"creatorExperienceBan"`
+		// Roblox calls a ban from a game creatorExperienceBan.
+		CreatorGameBan *creatorGameBan `json:"creatorExperienceBan"`
 	} `json:"statusData"`
 	JoinScript *struct {
 		// Roblox calls the server ID GameId in the join script.
@@ -216,9 +217,9 @@ func classifyJoin(payload joinResponse, target gamelaunch.Request, now time.Time
 	if payload.Message != nil {
 		refusal = parseJoinRefusal(*payload.Message)
 	}
-	var ban *creatorExperienceBan
+	var ban *creatorGameBan
 	if payload.StatusData != nil {
-		ban = payload.StatusData.CreatorExperienceBan
+		ban = payload.StatusData.CreatorGameBan
 	}
 	switch {
 	case payload.Status == joinStatusUserBanned || ban != nil || refusal == joinRefusalCreatorBan:
@@ -253,8 +254,8 @@ var restrictedMessageByJoinStatus = map[int]string{
 // refusingJoinStatusMessages describes the statuses that refuse access, for a
 // message that names no known reason.
 var refusingJoinStatusMessages = map[int]string{
-	joinStatusExperienceDisabled:          "This game is unavailable.",
-	joinStatusExperienceRestricted:        "Roblox does not let this account join this game.",
+	joinStatusGameDisabled:                "This game is unavailable.",
+	joinStatusGameRestricted:              "Roblox does not let this account join this game.",
 	joinStatusNoPermission:                "This account does not have permission to join.",
 	joinStatusUnauthorizedPrivacySettings: "Privacy settings do not allow this join.",
 }
@@ -320,7 +321,7 @@ var refusalMessages = map[joinRefusal]string{
 	joinRefusalReservedServer:          "This account cannot join this reserved server, such as a match.",
 	joinRefusalDeviceNotSupported:      "This game does not support computers.",
 	joinRefusalRegionCompliance:        "This game is unavailable in this account's region.",
-	joinRefusalExperiencePrivate:       "This game is private.",
+	joinRefusalGamePrivate:             "This game is private.",
 	joinRefusalUnverifiedSeventeenPlus: "This game is 17+, and this account has not verified its age.",
 	joinRefusalContentMaturity:         "This account's content maturity setting does not allow this game.",
 	joinRefusalUnrated:                 "This game is unrated.",
@@ -353,7 +354,7 @@ func refusalMessage(refusal joinRefusal, isFollowingUser bool, statusMessage str
 
 // creatorBanMessage describes a ban from the game's creator. A ban in a game's
 // own scripts is not visible before the client connects.
-func creatorBanMessage(ban *creatorExperienceBan, now time.Time) string {
+func creatorBanMessage(ban *creatorGameBan, now time.Time) string {
 	if ban == nil {
 		return "The game's creator banned this account."
 	}

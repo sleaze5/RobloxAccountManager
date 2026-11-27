@@ -58,7 +58,7 @@
 				noun: "group notifications",
 			},
 			{
-				value: RobloxNotificationCategory.RobloxNotificationExperiences,
+				value: RobloxNotificationCategory.RobloxNotificationGames,
 				label: "Games",
 				noun: "game notifications",
 			},

@@ -45,7 +45,7 @@ func (service *Service) FindGameServerVisit(ctx context.Context, placeID int64, 
 	if !service.vault.Unlocked() {
 		return logsexplorer.ServerVisit{}, mapRepositoryError(vault.ErrLocked)
 	}
-	if err := validGameID(placeID); err != nil {
+	if err := validRobloxID(placeID); err != nil {
 		return logsexplorer.ServerVisit{}, err
 	}
 	if !games.ValidServerID(serverID) {

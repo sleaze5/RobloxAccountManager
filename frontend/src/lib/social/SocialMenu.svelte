@@ -45,7 +45,7 @@
 		profileUrl = $derived(robloxUserProfileUrl(person.userId)),
 		presence = $derived(person.presence),
 		placeId = $derived(presence?.placeId ?? 0),
-		inExperience = $derived(
+		isInGame = $derived(
 			presence?.userPresenceType === PresenceType.PresenceTypeInGame ||
 				presence?.userPresenceType === PresenceType.PresenceTypeInStudio,
 		),
@@ -89,7 +89,7 @@
 				store.closeMenu()
 			}} />
 	{/if}
-	{#if inExperience && placeId > 0}
+	{#if isInGame && placeId > 0}
 		<MenuItem
 			label="Show game"
 			icon={magnifyingGlassIcon}

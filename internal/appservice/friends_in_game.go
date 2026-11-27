@@ -17,7 +17,7 @@ import (
 // privacy hides joining them, and sometimes the place too.
 func (service *Service) ListFriendsInGame(ctx context.Context, accountID, universeID int64) (games.FriendsInGame, error) {
 	const operation = "friends-in-game"
-	if err := validGameID(universeID); err != nil {
+	if err := validRobloxID(universeID); err != nil {
 		return games.FriendsInGame{}, err
 	}
 	ctx, version, logger, done, err := service.beginFeatureOperation(ctx, accountID, "games", operation)

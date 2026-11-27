@@ -1,12 +1,14 @@
 package appservice
 
+// AccountSettingKey values are the Roblox setting names. Roblox calls games
+// experiences in these names.
 type AccountSettingKey string
 
 const (
 	SettingContentMaturity         AccountSettingKey = "contentAgeRestriction"
 	SettingSensitiveIssues         AccountSettingKey = "allowSensitiveIssues"
-	SettingExperienceChat          AccountSettingKey = "whoCanChatWithMeInExperiences"
-	SettingDirectExperienceChat    AccountSettingKey = "whoCanWhisperChatWithMeInExperiences"
+	SettingGameChat                AccountSettingKey = "whoCanChatWithMeInExperiences"
+	SettingDirectGameChat          AccountSettingKey = "whoCanWhisperChatWithMeInExperiences"
 	SettingParty                   AccountSettingKey = "whoCanPartyWithMe"
 	SettingPartyChat               AccountSettingKey = "whoCanUsePartyChatWithMe"
 	SettingPartyVoice              AccountSettingKey = "whoCanUsePartyVoiceWithMe"
@@ -15,7 +17,7 @@ const (
 	SettingVoiceOptIn              AccountSettingKey = "isUserOptIn"
 	SettingVoiceDataUsage          AccountSettingKey = "allowVoiceDataUsage"
 	SettingOnlineStatus            AccountSettingKey = "whoCanSeeMyOnlineStatus"
-	SettingExperienceJoins         AccountSettingKey = "whoCanJoinMeInExperiences"
+	SettingGameJoins               AccountSettingKey = "whoCanJoinMeInExperiences"
 	SettingPrivateServerAdditions  AccountSettingKey = "privateServerPrivacy"
 	SettingPhoneDiscovery          AccountSettingKey = "phoneNumberDiscoverability"
 	SettingContactPermission       AccountSettingKey = "canUploadContacts"
@@ -83,8 +85,8 @@ type accountSettingDefinition struct {
 var accountSettingDefinitions = []accountSettingDefinition{
 	{key: SettingContentMaturity},
 	{key: SettingSensitiveIssues},
-	{key: SettingExperienceChat, optionsV2: true},
-	{key: SettingDirectExperienceChat, optionsV2: true},
+	{key: SettingGameChat, optionsV2: true},
+	{key: SettingDirectGameChat, optionsV2: true},
 	{key: SettingParty, optionsV2: true},
 	{key: SettingPartyChat, optionsV2: true},
 	{key: SettingPartyVoice, optionsV2: true},
@@ -93,7 +95,7 @@ var accountSettingDefinitions = []accountSettingDefinition{
 	{key: SettingVoiceOptIn, boolean: true},
 	{key: SettingVoiceDataUsage},
 	{key: SettingOnlineStatus},
-	{key: SettingExperienceJoins},
+	{key: SettingGameJoins},
 	{key: SettingPrivateServerAdditions},
 	{key: SettingPhoneDiscovery},
 	{key: SettingContactPermission, boolean: true},

@@ -2,7 +2,7 @@ import { PresenceType } from "../backend/bridge"
 import type { GamePlace, GamePlaceSummary, UserPresence } from "../backend/bridge"
 import { loadGamePlace } from "../games/game-place-cache"
 
-export function isInExperience(presence: UserPresence): boolean {
+export function isInGame(presence: UserPresence): boolean {
 	return (
 		presence.userPresenceType === PresenceType.PresenceTypeInGame ||
 		presence.userPresenceType === PresenceType.PresenceTypeInStudio
@@ -17,7 +17,7 @@ export class PresencePlace {
 	readonly #presence: () => UserPresence
 	readonly #universeId = $derived.by(() => {
 		const presence = this.#presence()
-		return isInExperience(presence) ? (presence.universeId ?? 0) : 0
+		return isInGame(presence) ? (presence.universeId ?? 0) : 0
 	})
 	readonly #placeId = $derived.by(() => this.#presence().placeId ?? 0)
 

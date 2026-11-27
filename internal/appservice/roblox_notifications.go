@@ -34,11 +34,11 @@ const (
 type RobloxNotificationCategory string
 
 const (
-	RobloxNotificationInvites     RobloxNotificationCategory = "invites"
-	RobloxNotificationFriends     RobloxNotificationCategory = "friends"
-	RobloxNotificationGroups      RobloxNotificationCategory = "groups"
-	RobloxNotificationExperiences RobloxNotificationCategory = "experiences"
-	RobloxNotificationOther       RobloxNotificationCategory = "other"
+	RobloxNotificationInvites RobloxNotificationCategory = "invites"
+	RobloxNotificationFriends RobloxNotificationCategory = "friends"
+	RobloxNotificationGroups  RobloxNotificationCategory = "groups"
+	RobloxNotificationGames   RobloxNotificationCategory = "games"
+	RobloxNotificationOther   RobloxNotificationCategory = "other"
 )
 
 // RobloxNotificationUser is the person a notification is about, such as the
@@ -50,7 +50,7 @@ type RobloxNotificationUser struct {
 	Nickname    string `json:"nickname"`
 }
 
-// RobloxNotificationJoin is the experience that an invite points to.
+// RobloxNotificationJoin is the game that an invite points to.
 // UniverseID is 0 when Roblox does not report it.
 type RobloxNotificationJoin struct {
 	PlaceID    int64 `json:"placeId"`
@@ -132,7 +132,7 @@ func (service *Service) DismissRobloxNotification(ctx context.Context, accountID
 // It returns how many it dismissed.
 func (service *Service) DismissAllRobloxNotifications(ctx context.Context, accountID int64, category RobloxNotificationCategory) (int, error) {
 	switch category {
-	case "", RobloxNotificationInvites, RobloxNotificationFriends, RobloxNotificationGroups, RobloxNotificationExperiences, RobloxNotificationOther:
+	case "", RobloxNotificationInvites, RobloxNotificationFriends, RobloxNotificationGroups, RobloxNotificationGames, RobloxNotificationOther:
 	default:
 		return 0, robloxNotificationInputError("Select a notification type to dismiss.")
 	}
@@ -291,14 +291,14 @@ func robloxNotificationCategory(notificationType string) RobloxNotificationCateg
 	case contains("group", "community", "shout"):
 		return RobloxNotificationGroups
 	case contains("game", "experience", "universe", "place", "badge", "event"):
-		return RobloxNotificationExperiences
+		return RobloxNotificationGames
 	default:
 		return RobloxNotificationOther
 	}
 }
 
 // robloxNotificationUniverseID reads universe_id from the analytics payload of
-// an experience invite. Roblox sends it as a string, as observed on 2026-11-09.
+// a game invite. Roblox sends it as a string, as observed on 2026-11-09.
 func robloxNotificationUniverseID(payload json.RawMessage) int64 {
 	var analytics struct {
 		UniverseID json.Number `json:"universe_id"`

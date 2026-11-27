@@ -32,7 +32,7 @@ type NotificationStreamContent struct {
 	CurrentState     string                             `json:"currentState"`
 	States           map[string]NotificationStreamState `json:"states"`
 	// ClientEventsPayload holds analytics IDs, such as universe_id on an
-	// experience invite. Its shape differs per notification type.
+	// game invite. Its shape differs per notification type.
 	ClientEventsPayload json.RawMessage `json:"clientEventsPayload"`
 }
 

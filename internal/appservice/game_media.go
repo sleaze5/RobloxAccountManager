@@ -17,7 +17,7 @@ import (
 // An entry whose preview image Roblox cannot render keeps an empty ImageURL.
 func (service *Service) ListGameMedia(ctx context.Context, universeID int64) ([]games.Media, error) {
 	const operation = "game-media"
-	if err := validGameID(universeID); err != nil {
+	if err := validRobloxID(universeID); err != nil {
 		return nil, err
 	}
 	ctx, done, err := service.beginGames(ctx)
@@ -72,7 +72,7 @@ type shownGameVideo struct {
 func (service *Service) ServeGameVideo(writer http.ResponseWriter, request *http.Request) {
 	const operation = "game-video"
 	videoAssetID, err := strconv.ParseInt(request.PathValue("videoAssetID"), 10, 64)
-	if err != nil || validGameID(videoAssetID) != nil {
+	if err != nil || validRobloxID(videoAssetID) != nil {
 		http.Error(writer, "The video ID is invalid.", http.StatusBadRequest)
 		return
 	}
@@ -113,7 +113,7 @@ func (service *Service) readGameVideo(ctx context.Context, videoAssetID int64) (
 
 func (service *Service) ReadGameImageFile(ctx context.Context, accountID, imageAssetID int64) (DownloadableFile, error) {
 	const operation = "game-image"
-	if err := validGameID(imageAssetID); err != nil {
+	if err := validRobloxID(imageAssetID); err != nil {
 		return DownloadableFile{}, err
 	}
 	ctx, version, done, err := service.beginAccountSession(ctx, accountID, operation)
@@ -132,7 +132,7 @@ func (service *Service) ReadGameImageFile(ctx context.Context, accountID, imageA
 // player may already hold.
 func (service *Service) ReadGameVideoFile(ctx context.Context, videoAssetID int64) (DownloadableFile, error) {
 	const operation = "game-video"
-	if err := validGameID(videoAssetID); err != nil {
+	if err := validRobloxID(videoAssetID); err != nil {
 		return DownloadableFile{}, err
 	}
 	ctx, done, err := service.beginGames(ctx)

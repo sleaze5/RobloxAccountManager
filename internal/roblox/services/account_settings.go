@@ -69,7 +69,7 @@ func (service *AccountSettings) read(ctx context.Context, accountID, version int
 // Verified against Roblox's signed-in UserSettings editor on 2026-09-09:
 // https://js.rbxcdn.com/3ac8cea8a8e2d8962708ae4664947dbaa7350737d3b6bab03f88c294e057a9df-UserSettings.js
 // updateUserSettingValue posts one string field to v1, including maturity.
-// Experience chat and quick words require v2 option requiredActions checks,
+// Game chat and quick words require v2 option requiredActions checks,
 // but still use this v1 POST. No response fields are used; require GET read-back.
 func (service *AccountSettings) Update(ctx context.Context, accountID, version int64, key, value string) error {
 	switch key {

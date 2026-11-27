@@ -95,7 +95,7 @@
 				return friendsPlaceholders
 			case Key.SettingOnlineStatus:
 				return visibilityPlaceholders
-			case Key.SettingExperienceJoins:
+			case Key.SettingGameJoins:
 				return visibilityPlaceholders.map((option) => ({
 					label: option.label,
 					value:
@@ -151,17 +151,17 @@
 			search: "communication chat messages messaging game chat direct chat party voice microphone mic data product improvements camera face tracking input gameplay coordination quick words quick chat",
 			sections: [
 				{
-					id: "experience-chat-section",
+					id: "game-chat-section",
 					title: "Game chat",
 					fields: [
 						{
-							key: Key.SettingExperienceChat,
+							key: Key.SettingGameChat,
 							label: "Game chat",
 							description: "Allow text chat in games.",
 							type: "toggle",
 						},
 						{
-							key: Key.SettingDirectExperienceChat,
+							key: Key.SettingDirectGameChat,
 							label: "Direct chat",
 							description:
 								"Allow direct messages with other players in games.",
@@ -256,7 +256,7 @@
 							type: "radio",
 						},
 						{
-							key: Key.SettingExperienceJoins,
+							key: Key.SettingGameJoins,
 							label: "Show current game",
 							description:
 								"Select who can see the game you are playing and join you.",
@@ -766,8 +766,8 @@
 	}
 	function getToggleOnString(key: Key): string {
 		switch (key) {
-			case Key.SettingExperienceChat:
-			case Key.SettingDirectExperienceChat:
+			case Key.SettingGameChat:
+			case Key.SettingDirectGameChat:
 				return "AllUsers"
 			case Key.SettingParty:
 				return "AllConnections"
@@ -782,8 +782,8 @@
 
 	function getToggleOffString(key: Key): string {
 		switch (key) {
-			case Key.SettingExperienceChat:
-			case Key.SettingDirectExperienceChat:
+			case Key.SettingGameChat:
+			case Key.SettingDirectGameChat:
 			case Key.SettingParty:
 				return "NoOne"
 			case Key.SettingActivityUpdates:

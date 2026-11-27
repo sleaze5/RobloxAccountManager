@@ -174,11 +174,11 @@
 		saleLocationLabels: Record<InventorySaleLocation, string> = {
 			[InventorySaleLocation.$zero]: "",
 			[InventorySaleLocation.SaleInMarketplace]: "Marketplace only",
-			[InventorySaleLocation.SaleInMarketplaceAndAllExperiences]:
+			[InventorySaleLocation.SaleInMarketplaceAndAllGames]:
 				"Marketplace and games",
-			[InventorySaleLocation.SaleInMarketplaceAndSomeExperiences]:
+			[InventorySaleLocation.SaleInMarketplaceAndSomeGames]:
 				"Marketplace and some games",
-			[InventorySaleLocation.SaleInExperiences]: "Games only",
+			[InventorySaleLocation.SaleInGames]: "Games only",
 		},
 		metaClass =
 			"flex min-w-0 flex-wrap items-center gap-1 font-mono text-2xs wrap-anywhere text-fg-muted",
@@ -388,7 +388,7 @@
 				!!market?.isForSale &&
 				(isCatalogItem ||
 					category.id === InventoryCategory.InventoryGamePasses) &&
-				market.saleLocation !== InventorySaleLocation.SaleInExperiences,
+				market.saleLocation !== InventorySaleLocation.SaleInGames,
 		),
 		isPurchasePending = $derived(inventory.pendingPurchaseKeys.has(detailsKey)),
 		priceLabel = $derived(market ? salePriceLabel(market, false) : ""),

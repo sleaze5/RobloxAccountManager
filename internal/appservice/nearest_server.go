@@ -64,7 +64,7 @@ func (service *Service) serverRegions(ctx context.Context, refresh bool) ([]rova
 }
 
 func (service *Service) ListNearbyServerRegions(ctx context.Context, placeID int64) ([]games.NearbyRegion, error) {
-	if err := validGameID(placeID); err != nil {
+	if err := validRobloxID(placeID); err != nil {
 		return nil, err
 	}
 	ctx, done, err := service.beginRoValra(ctx)
@@ -89,7 +89,7 @@ func (service *Service) ListNearbyServerRegions(ctx context.Context, placeID int
 }
 
 func (service *Service) ListRegionServers(ctx context.Context, query games.RegionServerQuery) ([]string, error) {
-	if err := validGameID(query.PlaceID); err != nil {
+	if err := validRobloxID(query.PlaceID); err != nil {
 		return nil, err
 	}
 	ctx, done, err := service.beginRoValra(ctx)
@@ -123,7 +123,7 @@ func (service *Service) ListRegionServers(ctx context.Context, query games.Regio
 }
 
 func (service *Service) CheckGameServerJoinable(ctx context.Context, placeID, accountID int64, serverID string) (bool, error) {
-	if err := validGameID(placeID); err != nil {
+	if err := validRobloxID(placeID); err != nil {
 		return false, err
 	}
 	if !games.ValidServerID(serverID) {

@@ -32,7 +32,7 @@ func (service *Service) ListOwnedPrivateServers(ctx context.Context, accountID i
 }
 
 func (service *Service) ListPlacePrivateServers(ctx context.Context, query games.PrivateServerQuery) (games.PrivateServerPage, error) {
-	if err := validGameID(query.PlaceID); err != nil {
+	if err := validRobloxID(query.PlaceID); err != nil {
 		return games.PrivateServerPage{}, err
 	}
 	if len(query.Cursor) > 2048 {
@@ -153,7 +153,7 @@ func (service *Service) RemovePrivateServerUser(ctx context.Context, accountID, 
 }
 
 func (service *Service) ListRBXServersPrivateServers(ctx context.Context, placeID int64) (games.ListedPrivateServerPage, error) {
-	if err := validGameID(placeID); err != nil {
+	if err := validRobloxID(placeID); err != nil {
 		return games.ListedPrivateServerPage{}, err
 	}
 	if !service.settings.Integrations().RBXServers {
@@ -172,7 +172,7 @@ func (service *Service) ListRBXServersPrivateServers(ctx context.Context, placeI
 }
 
 func (service *Service) ResolveRBXServersLink(ctx context.Context, placeID int64, serverID string) (string, error) {
-	if err := validGameID(placeID); err != nil {
+	if err := validRobloxID(placeID); err != nil {
 		return "", err
 	}
 	if !games.ValidServerID(serverID) {
@@ -265,7 +265,7 @@ func privateServerInputError(message string) error {
 }
 
 func (service *Service) ListSavedPrivateServers(ctx context.Context, placeID int64) ([]games.SavedPrivateServer, error) {
-	if err := validGameID(placeID); err != nil {
+	if err := validRobloxID(placeID); err != nil {
 		return nil, err
 	}
 	ctx, done, err := service.beginGames(ctx)
@@ -278,7 +278,7 @@ func (service *Service) ListSavedPrivateServers(ctx context.Context, placeID int
 }
 
 func (service *Service) SavePrivateServerLink(ctx context.Context, placeID, accountID int64, name, link string) (games.SavedPrivateServer, error) {
-	if err := validGameID(placeID); err != nil {
+	if err := validRobloxID(placeID); err != nil {
 		return games.SavedPrivateServer{}, err
 	}
 	name = strings.TrimSpace(name)

@@ -9,7 +9,7 @@ import (
 
 func (service *Service) ListDeveloperProducts(ctx context.Context, universeID int64) ([]games.DeveloperProduct, error) {
 	const operation = "developer-products"
-	if err := validGameID(universeID); err != nil {
+	if err := validRobloxID(universeID); err != nil {
 		return nil, err
 	}
 	ctx, done, err := service.beginGames(ctx)

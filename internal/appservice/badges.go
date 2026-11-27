@@ -10,7 +10,7 @@ import (
 // ListGameBadges lists the badges of a universe with their icons. A missing
 // icon leaves the badge without one.
 func (service *Service) ListGameBadges(ctx context.Context, universeID int64) ([]games.Badge, error) {
-	if err := validGameID(universeID); err != nil {
+	if err := validRobloxID(universeID); err != nil {
 		return nil, err
 	}
 	ctx, done, err := service.beginGames(ctx)

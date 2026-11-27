@@ -150,13 +150,13 @@ export function presenceIcon(presence: UserPresence): string {
 	}
 }
 
-export function presenceDetail(presence: UserPresence, experience = ""): string {
+export function presenceDetail(presence: UserPresence, gameName = ""): string {
 	const location = presence.lastLocation?.trim() ?? ""
 	switch (presence.userPresenceType) {
 		case PresenceType.PresenceTypeInGame:
-			return experience || location
+			return gameName || location
 		case PresenceType.PresenceTypeInStudio:
-			return experience || (location.toLowerCase() === "studio" ? "" : location)
+			return gameName || (location.toLowerCase() === "studio" ? "" : location)
 		case PresenceType.PresenceTypeOnline:
 			return location.toLowerCase() === "website" ? "" : location
 		default:

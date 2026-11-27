@@ -7,17 +7,17 @@ func applyAccountSettingDependencies(snapshot *AccountSettingsSnapshot) {
 			continue
 		}
 		switch view.Key {
-		case SettingDirectExperienceChat:
-			requireAccountSetting(snapshot, view, SettingExperienceChat, "AllUsers", "Turn on Game chat before you change Direct chat.")
+		case SettingDirectGameChat:
+			requireAccountSetting(snapshot, view, SettingGameChat, "AllUsers", "Turn on Game chat before you change Direct chat.")
 		case SettingPartyChat, SettingPartyVoice:
 			requireAccountSetting(snapshot, view, SettingParty, "AllConnections", "Turn on Chat and party with friends first.")
 			if view.Key == SettingPartyVoice {
 				capAccountSettingAudience(snapshot, view, SettingPartyChat, "Voice chat with friends cannot include more people than Friends chat.")
 			}
-		case SettingExperienceJoins:
+		case SettingGameJoins:
 			capAccountSettingAudience(snapshot, view, SettingOnlineStatus, "Select a broader Online status audience first.")
 		case SettingActivityUpdates:
-			parent := findAccountSetting(*snapshot, SettingExperienceJoins)
+			parent := findAccountSetting(*snapshot, SettingGameJoins)
 			if settingAudienceRank(parent.StringValue) < 2 || !settingKnownValue(parent) || parent.UnavailableReason == conflictingSettingReason {
 				view.UnavailableReason = "Show current game must include Friends before sharing activity updates."
 			}
