@@ -283,7 +283,7 @@ type PrivateServerPage struct {
 }
 
 type PrivateServer struct {
-	ServerID         int64  `json:"serverId"`
+	PrivateServerID  int64  `json:"privateServerId"`
 	Name             string `json:"name"`
 	OwnerID          int64  `json:"ownerId"`
 	OwnerName        string `json:"ownerName"`
@@ -301,29 +301,29 @@ type OwnedPrivateServerPage struct {
 }
 
 type OwnedPrivateServer struct {
-	ServerID    int64  `json:"serverId"`
-	Name        string `json:"name"`
-	Active      bool   `json:"active"`
-	UniverseID  int64  `json:"universeId"`
-	PlaceID     int64  `json:"placeId"`
-	GameName    string `json:"gameName"`
-	Price       int64  `json:"price"`
-	Renews      bool   `json:"renews"`
-	ExpiresAtMs int64  `json:"expiresAtMs"`
+	PrivateServerID int64  `json:"privateServerId"`
+	Name            string `json:"name"`
+	Active          bool   `json:"active"`
+	UniverseID      int64  `json:"universeId"`
+	PlaceID         int64  `json:"placeId"`
+	GameName        string `json:"gameName"`
+	Price           int64  `json:"price"`
+	Renews          bool   `json:"renews"`
+	ExpiresAtMs     int64  `json:"expiresAtMs"`
 }
 
 type PrivateServerSettings struct {
-	ServerID       int64               `json:"serverId"`
-	Name           string              `json:"name"`
-	GameName       string              `json:"gameName"`
-	Active         bool                `json:"active"`
-	FriendsAllowed bool                `json:"friendsAllowed"`
-	Renews         bool                `json:"renews"`
-	Expired        bool                `json:"expired"`
-	ExpiresAtMs    int64               `json:"expiresAtMs"`
-	Price          int64               `json:"price"`
-	JoinLink       string              `json:"joinLink"`
-	Users          []PrivateServerUser `json:"users"`
+	PrivateServerID int64               `json:"privateServerId"`
+	Name            string              `json:"name"`
+	GameName        string              `json:"gameName"`
+	Active          bool                `json:"active"`
+	FriendsAllowed  bool                `json:"friendsAllowed"`
+	Renews          bool                `json:"renews"`
+	Expired         bool                `json:"expired"`
+	ExpiresAtMs     int64               `json:"expiresAtMs"`
+	Price           int64               `json:"price"`
+	JoinLink        string              `json:"joinLink"`
+	Users           []PrivateServerUser `json:"users"`
 }
 
 type PrivateServerUser struct {

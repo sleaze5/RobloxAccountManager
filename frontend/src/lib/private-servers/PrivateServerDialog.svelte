@@ -21,7 +21,7 @@
 	let {
 		accountId,
 		username,
-		serverId,
+		privateServerId,
 		name,
 		gameName,
 		notifications,
@@ -30,7 +30,7 @@
 	}: {
 		accountId: number
 		username: string
-		serverId: number
+		privateServerId: number
 		name: string
 		gameName: string
 		notifications: NotificationCenter
@@ -39,7 +39,13 @@
 	} = $props()
 
 	const server = untrack(
-			() => new PrivateServerState(accountId, serverId, notifications, onChanged),
+			() =>
+				new PrivateServerState(
+					accountId,
+					privateServerId,
+					notifications,
+					onChanged,
+				),
 		),
 		id = $props.id(),
 		dates = new Intl.DateTimeFormat(undefined, { dateStyle: "medium" }),

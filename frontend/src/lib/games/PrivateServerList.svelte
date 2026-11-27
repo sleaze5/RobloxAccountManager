@@ -98,8 +98,8 @@
 					<span>Status</span>
 				</div>
 				<ol aria-label="Private servers" aria-busy={servers.loading}>
-					{#each shown as server (server.serverId)}
-						{@const key = String(server.serverId)}
+					{#each shown as server (server.privateServerId)}
+						{@const key = String(server.privateServerId)}
 						{@const owner = server.ownerDisplayName || server.ownerName}
 						<li
 							class="server-row"

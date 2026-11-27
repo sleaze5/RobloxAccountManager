@@ -72,7 +72,7 @@
 		error = ""
 		if (await server.rename(text)) {
 			notifications.show({
-				id: `private-server-rename-${server.serverId}`,
+				id: `private-server-rename-${server.privateServerId}`,
 				title: "Private server renamed",
 				tone: "success",
 				message: `@${username}`,

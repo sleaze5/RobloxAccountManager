@@ -399,7 +399,7 @@ export class PrivateServers extends ServerPager<
 	}
 
 	protected serverKey(server: PrivateServer): number {
-		return server.serverId
+		return server.privateServerId
 	}
 }
 

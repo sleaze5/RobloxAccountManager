@@ -86,7 +86,7 @@
 		managing = $state<{
 			accountId: number
 			username: string
-			serverId: number
+			privateServerId: number
 			name: string
 		} | null>(null),
 		addingLink = $state(false),
@@ -278,7 +278,7 @@
 		}
 		if (source === "private") {
 			const server = privateServers.page?.servers?.find(
-					(owned) => String(owned.serverId) === key,
+					(owned) => String(owned.privateServerId) === key,
 				),
 				account = accounts.selectedAccount
 			if (!server) return []
@@ -294,7 +294,7 @@
 										(managing = {
 											accountId: account.id,
 											username: account.username,
-											serverId: server.serverId,
+											privateServerId: server.privateServerId,
 											name: server.name,
 										}),
 								),
@@ -448,7 +448,7 @@
 	<PrivateServerDialog
 		accountId={managing.accountId}
 		username={managing.username}
-		serverId={managing.serverId}
+		privateServerId={managing.privateServerId}
 		name={managing.name}
 		gameName={store.displayName(place)}
 		{notifications}

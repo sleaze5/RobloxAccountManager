@@ -1067,7 +1067,7 @@
 	<PrivateServerDialog
 		accountId={store.selectedAccount.id}
 		username={store.selectedAccount.username}
-		serverId={managingServer.serverId}
+		privateServerId={managingServer.privateServerId}
 		name={managingServer.name}
 		gameName={managingServer.gameName}
 		{notifications}
