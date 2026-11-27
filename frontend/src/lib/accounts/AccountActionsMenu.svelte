@@ -1,22 +1,23 @@
 <script lang="ts">
+	import arrowCounterClockwiseIcon from "@phosphor-icons/core/regular/arrow-counter-clockwise.svg?raw"
 	import arrowsClockwiseIcon from "@phosphor-icons/core/regular/arrows-clockwise.svg?raw"
 	import atIcon from "@phosphor-icons/core/regular/at.svg?raw"
-	import caretRightIcon from "@phosphor-icons/core/regular/caret-right.svg?raw"
 	import cornersOutIcon from "@phosphor-icons/core/regular/corners-out.svg?raw"
-	import gameControllerIcon from "@phosphor-icons/core/regular/game-controller.svg?raw"
 	import globeHemisphereWestIcon from "@phosphor-icons/core/regular/globe-hemisphere-west.svg?raw"
 	import hashIcon from "@phosphor-icons/core/regular/hash.svg?raw"
 	import keyIcon from "@phosphor-icons/core/regular/key.svg?raw"
+	import linkIcon from "@phosphor-icons/core/regular/link.svg?raw"
+	import listPlusIcon from "@phosphor-icons/core/regular/list-plus.svg?raw"
 	import tagIcon from "@phosphor-icons/core/regular/tag.svg?raw"
+	import textTIcon from "@phosphor-icons/core/regular/text-t.svg?raw"
 	import trashIcon from "@phosphor-icons/core/regular/trash.svg?raw"
-	import userCircleIcon from "@phosphor-icons/core/regular/user-circle.svg?raw"
 	import xIcon from "@phosphor-icons/core/regular/x.svg?raw"
-	import Icon from "../shared/Icon.svelte"
+	import MenuItem from "../shared/MenuItem.svelte"
+	import MenuSection from "../shared/MenuSection.svelte"
 	import { browserStore } from "../browser/browser-store.svelte"
 	import type { AccountStore } from "./account-store.svelte"
 	import type { Account } from "./account-model"
 	import TagPicker from "./TagPicker.svelte"
-	import arrowCounterClockwiseIcon from "@phosphor-icons/core/regular/arrow-counter-clockwise.svg?raw"
 	import {
 		AccountCopyField,
 		LaunchMethod,
@@ -47,16 +48,31 @@
 	} = $props()
 	const sessionId = $derived(browserStore.accountSessionId(account.id)),
 		browserOpen = $derived(!!sessionId),
-		reactivatable = $derived(canReactivate(account.moderation, Date.now()))
-	const copyFields = [
+		reactivatable = $derived(canReactivate(account.moderation, Date.now())),
+		placeId = $derived(account.presence.placeId ?? 0),
+		inGame = $derived(
+			account.presence.userPresenceType === PresenceType.PresenceTypeInGame,
+		)
+	const copyFields = $derived([
 		{
 			field: AccountCopyField.CopyDisplayName,
 			label: "Display name",
-			icon: userCircleIcon,
+			icon: textTIcon,
+			detail: "",
 		},
-		{ field: AccountCopyField.CopyUsername, label: "Username", icon: atIcon },
-		{ field: AccountCopyField.CopyUserID, label: "User ID", icon: hashIcon },
-	]
+		{
+			field: AccountCopyField.CopyUsername,
+			label: "Username",
+			icon: atIcon,
+			detail: `@${account.username}`,
+		},
+		{
+			field: AccountCopyField.CopyUserID,
+			label: "User ID",
+			icon: hashIcon,
+			detail: account.userId,
+		},
+	])
 
 	async function copyField(field: AccountCopyField): Promise<void> {
 		if (await store.copyAccountFields([account.id], field)) {
@@ -64,13 +80,19 @@
 		}
 	}
 
+	async function copyProfileLink(): Promise<void> {
+		if (await store.copyAccountProfileLinks([account.id])) {
+			workspace.closeAccountMenus()
+		}
+	}
+
 	function fillJoinOptions(): void {
 		const presence = account.presence
-		if (store.launching || !presence.placeId || presence.placeId <= 0) return
+		if (store.launching || placeId <= 0) return
 		store.launchInput = {
 			...store.launchInput,
 			method: LaunchMethod.MethodPlace,
-			placeId: String(presence.placeId),
+			placeId: String(placeId),
 			jobId: presence.gameId ?? "",
 			link: "",
 			user: "",
@@ -81,17 +103,18 @@
 	}
 </script>
 
+{#if inGame}
+	<MenuItem
+		label="Fill launch options"
+		icon={listPlusIcon}
+		disabled={store.launching || placeId <= 0}
+		tooltip={placeId <= 0
+			? "Roblox has not shared this account's place"
+			: undefined}
+		onSelect={fillJoinOptions} />
+{/if}
 <div class="relative">
-	<button class="menu-item" type="button">
-		<Icon svg={tagIcon} size={16} aria-hidden="true" />
-		<span>Edit tags</span>
-		<Icon
-			svg={caretRightIcon}
-			data-nudge="right"
-			size={16}
-			class="ml-auto shrink-0"
-			aria-hidden="true" />
-	</button>
+	<MenuItem label="Edit tags" icon={tagIcon} hasSubmenu />
 	<div class="submenu" data-side={submenuLeft ? "left" : undefined} data-account-menu>
 		<TagPicker
 			{store}
@@ -99,100 +122,69 @@
 			onManageTags={() => onManageTags(account.id)} />
 	</div>
 </div>
-
 {#if browserOpen}
-	<button
-		class="menu-item-danger"
-		type="button"
-		onclick={() => void browserStore.close(sessionId)}
-		><Icon svg={xIcon} size={16} aria-hidden="true" /><span>Close browser</span
-		></button>
-	<button
-		class="menu-item"
-		type="button"
-		onclick={() => void browserStore.focus(sessionId)}
-		><Icon svg={cornersOutIcon} size={16} aria-hidden="true" /><span
-			>Focus browser</span
-		></button>
+	<MenuItem
+		label="Focus browser"
+		icon={cornersOutIcon}
+		onSelect={() => void browserStore.focus(sessionId)} />
+	<MenuItem
+		label="Close browser"
+		icon={xIcon}
+		onSelect={() => void browserStore.close(sessionId)} />
 {:else}
-	<button class="menu-item" type="button" onclick={() => onBrowser(account.id)}
-		><Icon svg={globeHemisphereWestIcon} size={16} aria-hidden="true" /><span
-			>Open in browser</span
-		></button>
+	<MenuItem
+		label="Open in browser"
+		icon={globeHemisphereWestIcon}
+		onSelect={() => onBrowser(account.id)} />
 {/if}
 
-<div role="group" aria-label="Copy account details">
-	<div class="menu-heading" aria-hidden="true">Copy</div>
+<MenuSection heading="Copy" accessibleLabel="Copy account details">
 	{#each copyFields as fieldOption (fieldOption.field)}
-		<button
-			class="menu-item"
-			type="button"
-			aria-label={`Copy ${fieldOption.label}`}
+		<MenuItem
+			label={fieldOption.label}
+			icon={fieldOption.icon}
+			detail={fieldOption.detail}
+			accessibleLabel={`Copy ${fieldOption.label.toLowerCase()}`}
 			disabled={store.copying}
-			onclick={() => void copyField(fieldOption.field)}>
-			<Icon svg={fieldOption.icon} size={16} aria-hidden="true" /><span
-				>{fieldOption.label}</span>
-		</button>
+			onSelect={() => void copyField(fieldOption.field)} />
 	{/each}
-</div>
+	<MenuItem
+		label="Profile link"
+		icon={linkIcon}
+		accessibleLabel="Copy profile link"
+		disabled={store.copying}
+		onSelect={() => void copyProfileLink()} />
+</MenuSection>
 
-{#if account.presence.userPresenceType === PresenceType.PresenceTypeInGame}
-	<div role="group" aria-label="Game">
-		<div class="menu-heading" aria-hidden="true">Game</div>
-		<button
-			class="menu-item"
-			type="button"
-			disabled={store.launching ||
-				!account.presence.placeId ||
-				account.presence.placeId <= 0}
-			data-tooltip={!account.presence.placeId || account.presence.placeId <= 0
-				? "Roblox has not shared this account's place"
-				: undefined}
-			onclick={fillJoinOptions}>
-			<Icon svg={gameControllerIcon} size={16} aria-hidden="true" /><span
-				>Fill launch options</span>
-		</button>
-	</div>
-{/if}
-
-<div role="group" aria-label="Session">
-	<div class="menu-heading" aria-hidden="true">Session</div>
+<MenuSection heading="Session">
 	{#if account.state === SessionState.StateModerated && hasReactivation(account.moderation)}
-		<button
-			class="menu-item"
-			type="button"
+		<MenuItem
+			label="Reactivate account"
+			icon={arrowCounterClockwiseIcon}
 			disabled={!reactivatable || store.reactivatingAccountId !== null}
-			data-tooltip={reactivatable ? undefined : "Available when the ban ends"}
-			onclick={() => {
+			tooltip={reactivatable ? undefined : "Available when the ban ends"}
+			onSelect={() => {
 				workspace.closeAccountMenus()
 				void store.reactivateAccount(account.id)
-			}}>
-			<Icon svg={arrowCounterClockwiseIcon} size={16} aria-hidden="true" /><span
-				>Reactivate account</span>
-		</button>
+			}} />
 	{/if}
-	<button
-		class="menu-item-warning"
-		type="button"
+	<MenuItem
+		label="Copy cookie"
+		icon={keyIcon}
+		tone="warning"
 		disabled={store.copying}
-		onclick={() => void copyField(AccountCopyField.CopyCookie)}>
-		<Icon svg={keyIcon} size={16} aria-hidden="true" /><span>Copy cookie</span>
-	</button>
-	<button
-		class="menu-item-warning"
-		type="button"
+		onSelect={() => void copyField(AccountCopyField.CopyCookie)} />
+	<MenuItem
+		label="Renew cookie"
+		icon={arrowsClockwiseIcon}
+		tone="warning"
 		disabled={store.busy}
-		onclick={() => onRenewCookie(account.id)}>
-		<Icon svg={arrowsClockwiseIcon} data-turn size={16} aria-hidden="true" /><span
-			>Renew cookie</span>
-	</button>
-</div>
+		onSelect={() => onRenewCookie(account.id)} />
+</MenuSection>
 <div class="menu-separator"></div>
-<button
-	class="menu-item-danger"
-	type="button"
+<MenuItem
+	label="Remove account"
+	icon={trashIcon}
+	tone="danger"
 	disabled={store.busy}
-	onclick={() => onRemove(account.id)}>
-	<Icon svg={trashIcon} size={16} aria-hidden="true" />
-	<span>Remove account</span>
-</button>
+	onSelect={() => onRemove(account.id)} />

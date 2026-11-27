@@ -11,7 +11,17 @@
 	import starIcon from "@phosphor-icons/core/regular/star.svg?raw"
 	import warningIcon from "@phosphor-icons/core/regular/warning.svg?raw"
 	import xIcon from "@phosphor-icons/core/regular/x.svg?raw"
+	import hashIcon from "@phosphor-icons/core/regular/hash.svg?raw"
+	import linkIcon from "@phosphor-icons/core/regular/link.svg?raw"
+	import textTIcon from "@phosphor-icons/core/regular/text-t.svg?raw"
+	import type { GamePlace } from "../backend/bridge"
+	import type { MenuAction } from "../shared/AnchoredActionMenu.svelte"
+	import CheckboxMark from "../shared/CheckboxMark.svelte"
+	import ConfirmationDialog from "../shared/ConfirmationDialog.svelte"
 	import Icon from "../shared/Icon.svelte"
+	import SelectionActionsMenu from "../shared/SelectionActionsMenu.svelte"
+	import SelectionModeButton from "../shared/SelectionModeButton.svelte"
+	import SelectionToolbar from "../shared/SelectionToolbar.svelte"
 	import SkeletonList from "../shared/SkeletonList.svelte"
 	import SkeletonMediaRow from "../shared/SkeletonMediaRow.svelte"
 	import type { AccountStore } from "../accounts/account-store.svelte"
@@ -20,8 +30,7 @@
 	import WorkbenchSidebar from "../layout/WorkbenchSidebar.svelte"
 	import type { NotificationCenter } from "../notifications/notification-center.svelte"
 	import { isMoveShortcut, moveListFocus } from "../shared/move-shortcut"
-	import { isMultiSelectGesture } from "../shared/multi-selection.svelte"
-	import type { GamePlace } from "../backend/bridge"
+	import { isMultiSelectGesture } from "../shared/list-selection.svelte"
 	import { notifyErrors } from "../notifications/error-notifications.svelte"
 	import { menuIn, menuOut } from "../shared/presence"
 	import GameContextMenu from "./GameContextMenu.svelte"
@@ -45,14 +54,12 @@
 		notifications,
 		onFillLaunch,
 		onFillLaunchLink,
-		onOpenInBrowser,
 	}: {
 		store: GamesStore
 		accounts: AccountStore
 		notifications: NotificationCenter
 		onFillLaunch: (placeId: number, jobId?: string) => void
 		onFillLaunchLink: (link: string) => void
-		onOpenInBrowser: (accountId: number, pageUrl: string) => void
 	} = $props()
 	const favoritesMode = $derived(store.mode === "favorites"),
 		count = $derived(store.places.length),
@@ -66,13 +73,75 @@
 					(place) => place.placeId === store.selected?.placeId,
 				) ?? store.places[0]
 			)?.placeId,
-		)
+		),
+		selection = $derived(store.selection),
+		shownPlaceIds = $derived(store.places.map((place) => place.placeId)),
+		selectedPlaces = $derived(store.selectedPlaces),
+		selectedFavoriteCount = $derived(
+			selectedPlaces.filter((place) => store.isFavorite(place.placeId)).length,
+		),
+		isFavoriteBusy = $derived(
+			store.savingFavorite || store.savingNickname || !store.favoritesLoaded,
+		),
+		selectionActions = $derived<MenuAction[]>([
+			{
+				label: "Add to favorites",
+				icon: starIcon,
+				disabled:
+					isFavoriteBusy || selectedFavoriteCount === selectedPlaces.length,
+				tooltip:
+					selectedFavoriteCount === selectedPlaces.length
+						? "Every selected game is a favorite"
+						: undefined,
+				onSelect: () => void store.setSelectedFavorites(true),
+			},
+			...(
+				[
+					{ field: "name", label: "Names", icon: textTIcon },
+					{ field: "placeId", label: "Place IDs", icon: hashIcon },
+					{ field: "universeId", label: "Universe IDs", icon: hashIcon },
+					{ field: "link", label: "Game links", icon: linkIcon },
+				] as const
+			).map((copyOption) => ({
+				label: copyOption.label,
+				icon: copyOption.icon,
+				section: "Copy, one per line",
+				accessibleLabel: `Copy ${copyOption.label.toLowerCase()}`,
+				onSelect: () => void store.copySelectedField(copyOption.field),
+			})),
+			...(selectedFavoriteCount > 0
+				? [
+						{
+							label: "Remove from favorites",
+							icon: starFillIcon,
+							tone: "danger" as const,
+							disabled: isFavoriteBusy,
+							onSelect: () => (isConfirmingFavoriteRemoval = true),
+						},
+					]
+				: []),
+		])
 	const pageVisibility = getPageVisibility()
 	let searchInput = $state<HTMLInputElement | undefined>(undefined),
 		grabbedPlaceId: number | null = null,
 		draggedPlaceId = $state<number | null>(null),
 		dropTarget = $state<{ placeId: number; after: boolean } | null>(null),
-		moveAnnouncement = $state("")
+		moveAnnouncement = $state(""),
+		isConfirmingFavoriteRemoval = $state(false)
+
+	// A selected place that the list no longer has, such as after a new
+	// search, leaves the selection.
+	$effect(() => {
+		const remainingPlaceIds = (favoritesMode ? store.favorites : store.results).map(
+			(place) => place.placeId,
+		)
+		untrack(() => selection.keepOnly(remainingPlaceIds))
+	})
+
+	async function removeSelectedFavorites(): Promise<void> {
+		await store.setSelectedFavorites(false)
+		isConfirmingFavoriteRemoval = false
+	}
 
 	async function moveWithKeyboard(
 		event: KeyboardEvent,
@@ -97,15 +166,18 @@
 		}
 	}
 
-	// selectPlace shows the place, or marks it with Ctrl+click, as the account
-	// list does.
 	function selectPlace(event: MouseEvent | KeyboardEvent, place: GamePlace): void {
-		if (isMultiSelectGesture(event)) {
-			store.marked.toggle(place.placeId, store.selected?.placeId)
+		if (!isMultiSelectGesture(event)) {
+			store.select(place)
 			return
 		}
-		store.marked.clear()
-		store.select(place)
+		const shownPlaceId = store.selected?.placeId
+		store.setSelecting(true)
+		selection.add(
+			shownPlaceId === undefined
+				? [place.placeId]
+				: [shownPlaceId, place.placeId],
+		)
 	}
 
 	function grab(event: PointerEvent, placeId: number): void {
@@ -230,6 +302,27 @@
 	notifyErrors("Search not completed", () => store.searchError)
 </script>
 
+{#snippet placeSummary(place: GamePlace)}
+	<GameIcon url={place.iconUrl} />
+	<span class="flex min-w-0 flex-col leading-snug">
+		<strong
+			class="inline-flex min-w-0 items-center gap-1 text-xs font-semibold text-fg"
+			><span class="truncate">{store.displayName(place)}</span
+			>{#if store.isFavorite(place.placeId)}<Icon
+					svg={starFillIcon}
+					class="shrink-0 animate-pop text-accent-strong"
+					size={12}
+					aria-label="Favorite" />{/if}</strong>
+		<span class="flex min-w-0 items-center gap-1 text-2xs text-fg-muted"
+			><span class="truncate">{creatorByline(place)}</span
+			>{#if place.creatorVerified}<Icon
+					svg={sealCheckIcon}
+					class="shrink-0"
+					size={12}
+					aria-label="Verified creator" />{/if}</span>
+	</span>
+{/snippet}
+
 <main class="flex min-h-0 flex-1 flex-col bg-canvas" aria-label="Games">
 	<div
 		class="flex min-h-0 flex-1"
@@ -246,6 +339,13 @@
 						class="font-mono text-2xs font-normal text-fg-faint"
 						>({store.favorites.length})</span
 					>{/if}{/snippet}
+			{#snippet actions()}
+				<SelectionModeButton
+					noun="games"
+					isSelecting={selection.isSelecting}
+					disabled={store.places.length === 0 && !selection.isSelecting}
+					onToggle={() => store.setSelecting(!selection.isSelecting)} />
+			{/snippet}
 			{#snippet tools()}
 				<form
 					novalidate
@@ -335,7 +435,7 @@
 				<div
 					class={[
 						"relative min-h-0 scrollbar-stable overflow-y-auto",
-						hasSearch && "pb-12",
+						(hasSearch || selection.isSelecting) && "pb-12",
 					]}
 					role="group"
 					aria-label={favoritesMode ? "Favorite places" : "Search results"}
@@ -354,91 +454,92 @@
 					{/if}
 					{#each store.places as place (place.placeId)}
 						{@const active = store.selected?.placeId === place.placeId}
-						<button
-							class={[
-								"list-row relative flex h-12 w-full items-center gap-2 border-b border-line-subtle text-left",
-								favoritesMode ? "pr-3 pl-2" : "px-3",
-								draggedPlaceId === place.placeId && "opacity-45",
-								dropTarget?.placeId === place.placeId &&
-									(dropTarget.after
-										? "shadow-drop-after"
-										: "shadow-drop-before"),
-							]}
-							data-selected={active ||
-								store.marked.has(place.placeId) ||
-								undefined}
-							data-open={store.menu?.places.some(
-								(menuPlace) => menuPlace.placeId === place.placeId,
-							) || undefined}
-							draggable={favoritesMode && store.canReorder}
-							onpointerdown={(event) => grab(event, place.placeId)}
-							ondragstart={(event) => startDrag(event, place.placeId)}
-							ondragend={finishDrag}
-							ondragover={(event) =>
-								updateDropTarget(event, place.placeId)}
-							ondrop={(event) => dropFavorite(event, place.placeId)}
-							type="button"
-							aria-current={active ? "true" : undefined}
-							aria-haspopup="menu"
-							data-list-item
-							tabindex={place.placeId === tabStopPlaceId ? 0 : -1}
-							aria-keyshortcuts={favoritesMode
-								? "Control+Shift+ArrowUp Control+Shift+ArrowDown"
-								: undefined}
-							onclick={(event) => selectPlace(event, place)}
-							oncontextmenu={(event) =>
-								store.openMenu(event, place, store.places)}
-							onkeydown={(event) => {
-								if (
-									event.key === "ContextMenu" ||
-									(event.shiftKey && event.key === "F10")
-								)
-									store.openMenu(event, place, store.places)
-								if (
-									(event.key === " " || event.key === "Enter") &&
-									isMultiSelectGesture(event)
-								) {
-									event.preventDefault()
-									selectPlace(event, place)
-								}
-								void moveWithKeyboard(event, place.placeId)
-								moveListFocus(event)
-							}}>
-							{#if favoritesMode}<span
-									class={[
-										"grid h-7 w-3 shrink-0 place-items-center text-fg-faint",
-										store.canReorder
-											? "cursor-grab active:cursor-grabbing"
-											: "cursor-default",
-									]}
-									data-drag-handle
-									aria-hidden="true"
-									><Icon
-										svg={dotsSixVerticalIcon}
-										size={14}
-										aria-hidden="true" /></span
-								>{/if}
-							<GameIcon url={place.iconUrl} />
-							<span class="flex min-w-0 flex-col leading-snug">
-								<strong
-									class="inline-flex min-w-0 items-center gap-1 text-xs font-semibold text-fg"
-									><span class="truncate"
-										>{store.displayName(place)}</span
-									>{#if store.isFavorite(place.placeId)}<Icon
-											svg={starFillIcon}
-											class="shrink-0 animate-pop text-accent-strong"
-											size={12}
-											aria-label="Favorite" />{/if}</strong>
-								<span
-									class="flex min-w-0 items-center gap-1 text-2xs text-fg-muted"
-									><span class="truncate">{creatorByline(place)}</span
-									>{#if place.creatorVerified}<Icon
-											svg={sealCheckIcon}
-											class="shrink-0"
-											size={12}
-											aria-label="Verified creator" />{/if}</span>
-							</span>
-						</button>
+						{#if selection.isSelecting}
+							{@const isChecked = selection.has(place.placeId)}
+							<label
+								class="list-row relative flex h-12 w-full cursor-pointer items-center gap-2 border-b border-line-subtle px-3"
+								data-selected={isChecked || undefined}>
+								<span class="checkbox shrink-0">
+									<input
+										type="checkbox"
+										data-list-item
+										tabindex={place.placeId === tabStopPlaceId
+											? 0
+											: -1}
+										aria-label={`Select ${store.displayName(place)}`}
+										checked={isChecked}
+										disabled={store.savingFavorite}
+										onkeydown={moveListFocus}
+										onchange={() =>
+											selection.toggle(place.placeId)} />
+									<CheckboxMark />
+								</span>
+								{@render placeSummary(place)}
+							</label>
+						{:else}
+							<button
+								class={[
+									"list-row relative flex h-12 w-full items-center gap-2 border-b border-line-subtle text-left",
+									favoritesMode ? "pr-3 pl-2" : "px-3",
+									draggedPlaceId === place.placeId && "opacity-45",
+									dropTarget?.placeId === place.placeId &&
+										(dropTarget.after
+											? "shadow-drop-after"
+											: "shadow-drop-before"),
+								]}
+								data-selected={active || undefined}
+								data-open={store.menu?.place.placeId ===
+									place.placeId || undefined}
+								draggable={favoritesMode && store.canReorder}
+								onpointerdown={(event) => grab(event, place.placeId)}
+								ondragstart={(event) => startDrag(event, place.placeId)}
+								ondragend={finishDrag}
+								ondragover={(event) =>
+									updateDropTarget(event, place.placeId)}
+								ondrop={(event) => dropFavorite(event, place.placeId)}
+								type="button"
+								aria-current={active ? "true" : undefined}
+								aria-haspopup="menu"
+								data-list-item
+								tabindex={place.placeId === tabStopPlaceId ? 0 : -1}
+								aria-keyshortcuts={favoritesMode
+									? "Control+Shift+ArrowUp Control+Shift+ArrowDown"
+									: undefined}
+								onclick={(event) => selectPlace(event, place)}
+								oncontextmenu={(event) => store.openMenu(event, place)}
+								onkeydown={(event) => {
+									if (
+										event.key === "ContextMenu" ||
+										(event.shiftKey && event.key === "F10")
+									)
+										store.openMenu(event, place)
+									if (
+										(event.key === " " || event.key === "Enter") &&
+										isMultiSelectGesture(event)
+									) {
+										event.preventDefault()
+										selectPlace(event, place)
+									}
+									void moveWithKeyboard(event, place.placeId)
+									moveListFocus(event)
+								}}>
+								{#if favoritesMode}<span
+										class={[
+											"grid h-7 w-3 shrink-0 place-items-center text-fg-faint",
+											store.canReorder
+												? "cursor-grab active:cursor-grabbing"
+												: "cursor-default",
+										]}
+										data-drag-handle
+										aria-hidden="true"
+										><Icon
+											svg={dotsSixVerticalIcon}
+											size={14}
+											aria-hidden="true" /></span
+									>{/if}
+								{@render placeSummary(place)}
+							</button>
+						{/if}
 					{/each}
 					{#if hasMore}
 						<LoadMore
@@ -451,7 +552,22 @@
 					{/if}
 					<span class="sr-only" aria-live="polite">{moveAnnouncement}</span>
 				</div>
-				{#if hasSearch}
+				{#if selection.isSelecting}
+					<SelectionToolbar
+						label="Selected games"
+						selectedCount={selection.selectedCount}
+						isAllShownSelected={selection.areAllSelected(shownPlaceIds)}
+						canSelectAll={shownPlaceIds.length > 0}
+						isBusy={store.savingFavorite}
+						onToggleAll={() => selection.toggleAll(shownPlaceIds)}
+						onStop={() => store.setSelecting(false)}>
+						<SelectionActionsMenu
+							noun="games"
+							selectedCount={selection.selectedCount}
+							actions={selectionActions}
+							isBusy={store.savingFavorite} />
+					</SelectionToolbar>
+				{:else if hasSearch}
 					<div
 						class="pointer-events-none absolute inset-x-0 bottom-2 flex justify-center">
 						<button
@@ -594,11 +710,16 @@
 </main>
 
 {#if store.menu}
-	<GameContextMenu
-		{store}
-		menu={store.menu}
-		canOpenInBrowser={accounts.selectedAccount.id !== 0}
-		{onFillLaunch}
-		onOpenInBrowser={(pageUrl) =>
-			onOpenInBrowser(accounts.selectedAccount.id, pageUrl)} />
+	<GameContextMenu {store} menu={store.menu} {onFillLaunch} />
+{/if}
+
+{#if isConfirmingFavoriteRemoval}
+	<ConfirmationDialog
+		title="Remove from favorites"
+		description={`${selectedFavoriteCount} selected ${selectedFavoriteCount === 1 ? "game leaves" : "games leave"} your favorites, with ${selectedFavoriteCount === 1 ? "its nickname" : "their nicknames"}. This cannot be undone.`}
+		confirmLabel="Remove from favorites"
+		progressLabel="Removing…"
+		isWorking={store.savingFavorite}
+		onConfirm={() => void removeSelectedFavorites()}
+		onCancel={() => (isConfirmingFavoriteRemoval = false)} />
 {/if}

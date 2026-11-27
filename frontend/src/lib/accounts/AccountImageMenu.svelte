@@ -3,6 +3,10 @@
 		ImageContextMenu,
 		WorkspaceState,
 	} from "../layout/workspace-state.svelte"
+	import copyIcon from "@phosphor-icons/core/regular/copy.svg?raw"
+	import imageIcon from "@phosphor-icons/core/regular/image.svg?raw"
+	import linkIcon from "@phosphor-icons/core/regular/link.svg?raw"
+	import MenuItem from "../shared/MenuItem.svelte"
 	import { floatMenuAtPoint, menuIn, menuKeyboard, menuOut } from "../shared/presence"
 	import type { AccountStore } from "./account-store.svelte"
 
@@ -42,23 +46,15 @@
 	use:menuKeyboard
 	in:menuIn
 	out:menuOut>
-	<button class="menu-item" type="button" role="menuitem" onclick={viewImage}>
-		<span>View image</span>
-	</button>
-	<button
-		class="menu-item"
-		type="button"
-		role="menuitem"
+	<MenuItem label="View image" icon={imageIcon} onSelect={viewImage} />
+	<MenuItem
+		label={copyingImage ? "Copying image…" : "Copy image"}
+		icon={copyIcon}
 		disabled={store.copying}
-		onclick={() => void copy(false)}>
-		<span>{copyingImage ? "Copying image…" : "Copy image"}</span>
-	</button>
-	<button
-		class="menu-item"
-		type="button"
-		role="menuitem"
+		onSelect={() => void copy(false)} />
+	<MenuItem
+		label="Copy image URL"
+		icon={linkIcon}
 		disabled={store.copying}
-		onclick={() => void copy(true)}>
-		<span>Copy image URL</span>
-	</button>
+		onSelect={() => void copy(true)} />
 </div>

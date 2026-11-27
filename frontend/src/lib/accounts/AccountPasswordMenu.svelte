@@ -3,6 +3,7 @@
 	import keyIcon from "@phosphor-icons/core/regular/key.svg?raw"
 	import pencilSimpleIcon from "@phosphor-icons/core/regular/pencil-simple.svg?raw"
 	import Icon from "../shared/Icon.svelte"
+	import MenuItem from "../shared/MenuItem.svelte"
 	import {
 		focusMenuItemForKey,
 		menuIn,
@@ -105,23 +106,13 @@
 		use:placeMenu
 		in:menuIn
 		out:menuOut>
-		<button
-			class="menu-item"
-			type="button"
-			role="menuitem"
-			tabindex="-1"
-			onclick={() => choose(onEditSaved)}>
-			<Icon svg={floppyDiskIcon} size={16} aria-hidden="true" />
-			<span>{hasSavedPassword ? "Update saved password" : "Save password"}</span>
-		</button>
-		<button
-			class="menu-item"
-			type="button"
-			role="menuitem"
-			tabindex="-1"
-			onclick={() => choose(onChange)}>
-			<Icon svg={keyIcon} size={16} aria-hidden="true" />
-			<span>Change Roblox password</span>
-		</button>
+		<MenuItem
+			label={hasSavedPassword ? "Update saved password" : "Save password"}
+			icon={floppyDiskIcon}
+			onSelect={() => choose(onEditSaved)} />
+		<MenuItem
+			label="Change Roblox password"
+			icon={keyIcon}
+			onSelect={() => choose(onChange)} />
 	</div>
 {/if}

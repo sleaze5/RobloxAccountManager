@@ -1,21 +1,27 @@
 <script lang="ts">
 	import { getProfilePreviews } from "../shared/profile-preview"
 	import atIcon from "@phosphor-icons/core/regular/at.svg?raw"
-	import globeIcon from "@phosphor-icons/core/regular/globe.svg?raw"
+	import globeHemisphereWestIcon from "@phosphor-icons/core/regular/globe-hemisphere-west.svg?raw"
 	import hashIcon from "@phosphor-icons/core/regular/hash.svg?raw"
 	import linkIcon from "@phosphor-icons/core/regular/link.svg?raw"
 	import listPlusIcon from "@phosphor-icons/core/regular/list-plus.svg?raw"
 	import magnifyingGlassIcon from "@phosphor-icons/core/regular/magnifying-glass.svg?raw"
 	import textTIcon from "@phosphor-icons/core/regular/text-t.svg?raw"
 	import userListIcon from "@phosphor-icons/core/regular/user-list.svg?raw"
-	import Icon from "../shared/Icon.svelte"
 	import { unsavedChangesGuard } from "../layout/unsaved-changes-guard"
 	import { PresenceType, SocialList } from "../backend/bridge"
 	import type { SocialUser } from "../backend/bridge"
-	import { floatMenuAtPoint, menuIn, menuKeyboard, menuOut } from "../shared/presence"
+	import MenuItem from "../shared/MenuItem.svelte"
+	import MenuSection from "../shared/MenuSection.svelte"
+	import PointMenu from "../shared/PointMenu.svelte"
+	import {
+		getRobloxPageOpener,
+		openInBrowserUnavailableReason,
+		robloxUserProfileUrl,
+	} from "../shared/roblox-pages"
 	import {
 		relationshipActions,
-		relationshipMenuItemClass,
+		relationshipMenuItemTone,
 		requestRelationship,
 	} from "./relationship"
 	import type { RelationshipActionId } from "./relationship"
@@ -27,17 +33,16 @@
 		menu,
 		onFillLaunch,
 		onRelationshipAction,
-		onOpenInBrowser,
 	}: {
 		store: SocialStore
 		menu: SocialMenu
 		onFillLaunch: (placeId: number, jobId: string) => void
 		onRelationshipAction: (person: SocialUser, action: RelationshipActionId) => void
-		onOpenInBrowser: (pageUrl: string) => void
 	} = $props()
-	const previews = getProfilePreviews()
+	const previews = getProfilePreviews(),
+		robloxPages = getRobloxPageOpener()
 	const person = $derived(menu.person),
-		profileUrl = $derived(`https://www.roblox.com/users/${person.userId}/profile`),
+		profileUrl = $derived(robloxUserProfileUrl(person.userId)),
 		presence = $derived(person.presence),
 		placeId = $derived(presence?.placeId ?? 0),
 		inExperience = $derived(
@@ -61,150 +66,93 @@
 				: [],
 		)
 
-	// Closing the menu clears the menu prop that person derives from, so the
-	// action must read person first.
+	// Closing the menu clears the menu prop that person derives from, so each
+	// action reads what it needs first.
 	function run(action: RelationshipActionId): void {
 		onRelationshipAction(person, action)
 		store.closeMenu()
 	}
-
-	function closeOnTab(event: KeyboardEvent): void {
-		if (event.key === "Tab") store.closeMenu()
-	}
-
-	function handleWindowClick(event: MouseEvent): void {
-		if (
-			event.target instanceof Element &&
-			event.target.closest("[data-social-menu]")
-		) {
-			return
-		}
-		store.closeMenu()
-	}
 </script>
 
-<svelte:window
-	onclick={handleWindowClick}
-	onkeydown={(event) => {
-		if (event.key === "Escape") store.closeMenu()
-	}} />
-
-<div
-	class="fixed menu"
-	role="menu"
-	aria-label={`${personName(person)} actions`}
-	tabindex="-1"
-	data-social-menu
-	onkeydown={closeOnTab}
-	use:floatMenuAtPoint={menu}
-	use:menuKeyboard
-	in:menuIn
-	out:menuOut>
+<PointMenu
+	label={`${personName(person)} actions`}
+	point={menu}
+	owner="data-social-menu"
+	onClose={() => store.closeMenu()}>
 	{#if joinable}
-		<button
-			class="menu-item"
-			type="button"
-			role="menuitem"
-			onclick={() => {
+		<MenuItem
+			label="Fill launch options"
+			icon={listPlusIcon}
+			onSelect={() => {
 				const jobId = presence?.gameId ?? ""
 				onFillLaunch(placeId, jobId)
 				store.closeMenu()
-			}}
-			><Icon svg={listPlusIcon} size={16} aria-hidden="true" /><span
-				>Fill launch options</span
-			></button>
+			}} />
 	{/if}
 	{#if inExperience && placeId > 0}
-		<button
-			class="menu-item"
-			type="button"
-			role="menuitem"
-			onclick={() => {
+		<MenuItem
+			label="Show game"
+			icon={magnifyingGlassIcon}
+			onSelect={() => {
 				previews.show({ kind: "Place", placeId })
 				store.closeMenu()
-			}}
-			><Icon svg={magnifyingGlassIcon} size={16} aria-hidden="true" /><span
-				>Show game</span
-			></button>
+			}} />
 	{/if}
-	<button
-		class="menu-item"
-		type="button"
-		role="menuitem"
-		onclick={() => {
+	<MenuItem
+		label="View friends"
+		icon={userListIcon}
+		onSelect={() => {
 			const exploredPerson = person
 			store.closeMenu()
 			unsavedChangesGuard.leave(() =>
 				store.explore(exploredPerson, SocialList.SocialFriends),
 			)
-		}}
-		><Icon svg={userListIcon} size={16} aria-hidden="true" /><span
-			>View friends</span
-		></button>
-	<button
-		class="menu-item"
-		type="button"
-		role="menuitem"
-		onclick={() => {
+		}} />
+	<MenuItem
+		label="Open in browser"
+		icon={globeHemisphereWestIcon}
+		disabled={!robloxPages.canOpen}
+		tooltip={robloxPages.canOpen ? undefined : openInBrowserUnavailableReason}
+		onSelect={() => {
 			const pageUrl = profileUrl
 			store.closeMenu()
-			onOpenInBrowser(pageUrl)
-		}}
-		><Icon svg={globeIcon} size={16} aria-hidden="true" /><span
-			>Open in browser</span
-		></button>
+			robloxPages.open(pageUrl)
+		}} />
 
-	<div role="group" aria-label="Copy user details">
-		<div class="menu-heading" aria-hidden="true">Copy</div>
-		<button
-			class="menu-item"
-			type="button"
-			role="menuitem"
-			aria-label="Copy display name"
-			onclick={() => void store.copy(personName(person), "Display name")}
-			><Icon svg={textTIcon} size={16} aria-hidden="true" /><span
-				>Display name</span
-			></button>
-		<button
-			class="menu-item"
-			type="button"
-			role="menuitem"
-			aria-label="Copy username"
+	<MenuSection heading="Copy" accessibleLabel="Copy user details">
+		<MenuItem
+			label="Display name"
+			icon={textTIcon}
+			accessibleLabel="Copy display name"
+			onSelect={() => void store.copy(personName(person), "Display name")} />
+		<MenuItem
+			label="Username"
+			icon={atIcon}
+			detail={person.username ? `@${person.username}` : ""}
+			accessibleLabel="Copy username"
 			disabled={!person.username}
-			onclick={() => void store.copy(person.username, "Username")}
-			><Icon svg={atIcon} size={16} aria-hidden="true" /><span>Username</span
-			></button>
-		<button
-			class="menu-item"
-			type="button"
-			role="menuitem"
-			aria-label="Copy user ID"
-			onclick={() => void store.copy(person.userId, "User ID")}
-			><Icon svg={hashIcon} size={16} aria-hidden="true" /><span>User ID</span
-			></button>
-		<button
-			class="menu-item"
-			type="button"
-			role="menuitem"
-			aria-label="Copy profile link"
-			onclick={() => void store.copy(profileUrl, "Profile link")}
-			><Icon svg={linkIcon} size={16} aria-hidden="true" /><span
-				>Profile link</span
-			></button>
-	</div>
+			onSelect={() => void store.copy(person.username, "Username")} />
+		<MenuItem
+			label="User ID"
+			icon={hashIcon}
+			detail={String(person.userId)}
+			accessibleLabel="Copy user ID"
+			onSelect={() => void store.copy(person.userId, "User ID")} />
+		<MenuItem
+			label="Profile link"
+			icon={linkIcon}
+			accessibleLabel="Copy profile link"
+			onSelect={() => void store.copy(profileUrl, "Profile link")} />
+	</MenuSection>
 	{#if !relationship?.self}
-		<div role="group" aria-label="Connection" aria-busy={relationship === null}>
-			<div class="menu-heading" aria-hidden="true">Connection</div>
+		<MenuSection heading="Connection" isBusy={relationship === null}>
 			{#each actions as action (action.id)}
-				<button
-					class={relationshipMenuItemClass(action.tone)}
-					type="button"
-					role="menuitem"
+				<MenuItem
+					label={action.label}
+					icon={action.icon}
+					tone={relationshipMenuItemTone(action.tone)}
 					disabled={store.pendingAction !== null}
-					onclick={() => run(action.id)}
-					><Icon svg={action.icon} size={16} aria-hidden="true" /><span
-						>{action.label}</span
-					></button>
+					onSelect={() => run(action.id)} />
 			{/each}
 			{#if relationship === null && !store.menuRelationshipFailed}
 				<p class="px-2 py-1 text-2xs text-fg-muted" role="status">
@@ -215,6 +163,6 @@
 					Connection unavailable
 				</p>
 			{/if}
-		</div>
+		</MenuSection>
 	{/if}
-</div>
+</PointMenu>

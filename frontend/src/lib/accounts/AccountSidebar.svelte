@@ -11,6 +11,10 @@
 	import xIcon from "@phosphor-icons/core/regular/x.svg?raw"
 	import Icon from "../shared/Icon.svelte"
 	import RefreshIcon from "../shared/RefreshIcon.svelte"
+	import SelectionActionsButton from "../shared/SelectionActionsButton.svelte"
+	import SelectionModeButton from "../shared/SelectionModeButton.svelte"
+	import SelectionToolbar from "../shared/SelectionToolbar.svelte"
+	import { unsavedChangesGuard } from "../layout/unsaved-changes-guard"
 	import type { WorkspaceState } from "../layout/workspace-state.svelte"
 	import WorkbenchSidebar from "../layout/WorkbenchSidebar.svelte"
 	import { menuIn, menuKeyboard, menuOut } from "../shared/presence"
@@ -35,6 +39,9 @@
 	} = $props()
 	let filterTrigger = $state<HTMLButtonElement>(),
 		searchInput = $state<HTMLInputElement>()
+	const isSelectionMenuOpen = $derived(
+		!!workspace.accountContextMenu?.anchor?.hasAttribute("data-selection-actions"),
+	)
 
 	function constrainTagFilter(node: HTMLElement) {
 		const place = () => {
@@ -94,6 +101,15 @@
 				<Icon svg={plusIcon} size={16} aria-hidden="true" />
 			</button>
 		</div>
+		<SelectionModeButton
+			noun="accounts"
+			isSelecting={store.isAccountSelectionShown}
+			disabled={!store.vault.unlocked || store.accounts.length < 2}
+			onToggle={() => {
+				workspace.closeAccountMenus()
+				if (store.isAccountSelectionShown) store.reduceSelectionToTopAccount()
+				else store.isSelectingAccounts = true
+			}} />
 		<button
 			class="button-ghost"
 			type="button"
@@ -257,5 +273,33 @@
 	{/snippet}
 	<div class="relative grid min-h-0 flex-1 grid-rows-1">
 		<AccountList {store} {workspace} />
+		{#if store.isAccountSelectionShown && store.vault.unlocked}
+			<SelectionToolbar
+				label="Selected accounts"
+				selectedCount={store.selectedAccountIds.length}
+				isAllShownSelected={store.areAllAccountsSelected}
+				canSelectAll={store.accounts.length > 1}
+				isBusy={store.busy}
+				onToggleAll={() =>
+					unsavedChangesGuard.leave(() => store.toggleAllAccounts())}
+				onStop={() => {
+					workspace.closeAccountMenus()
+					unsavedChangesGuard.leave(() => store.reduceSelectionToTopAccount())
+				}}>
+				<SelectionActionsButton
+					isOpen={isSelectionMenuOpen}
+					disabled={store.busy}
+					data-account-menu
+					data-selection-actions
+					onToggle={(trigger) => {
+						if (isSelectionMenuOpen) workspace.closeAccountMenus()
+						else
+							workspace.openAccountContextMenuAtAnchor(
+								trigger,
+								store.selectedAccount.id,
+							)
+					}} />
+			</SelectionToolbar>
+		{/if}
 	</div>
 </WorkbenchSidebar>

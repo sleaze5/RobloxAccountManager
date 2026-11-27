@@ -1,5 +1,6 @@
 <script lang="ts">
 	import arrowsOutSimpleIcon from "@phosphor-icons/core/regular/arrows-out-simple.svg?raw"
+	import globeHemisphereWestIcon from "@phosphor-icons/core/regular/globe-hemisphere-west.svg?raw"
 	import xIcon from "@phosphor-icons/core/regular/x.svg?raw"
 	import GamePreview from "../games/GamePreview.svelte"
 	import GroupPreview from "../groups/GroupPreview.svelte"
@@ -8,6 +9,14 @@
 	import Dialog from "../shared/Dialog.svelte"
 	import Icon from "../shared/Icon.svelte"
 	import type { ProfilePreviewSubject } from "../shared/profile-preview"
+	import {
+		getRobloxPageOpener,
+		openInBrowserUnavailableReason,
+		robloxGamePassUrl,
+		robloxGameUrl,
+		robloxGroupUrl,
+		robloxUserProfileUrl,
+	} from "../shared/roblox-pages"
 	import type {
 		ProfilePreviewConfirmation,
 		ProfilePreviewFrame,
@@ -61,6 +70,16 @@
 		}
 	}
 
+	const robloxPages = getRobloxPageOpener()
+
+	function robloxPageUrl(previewed: ProfilePreviewSubject): string {
+		if (previewed.kind === "User") return robloxUserProfileUrl(previewed.userId)
+		if (previewed.kind === "Group") return robloxGroupUrl(previewed.groupId)
+		return previewed.gamePassId
+			? robloxGamePassUrl(previewed.gamePassId)
+			: robloxGameUrl(previewed.placeId)
+	}
+
 	const previewId = $props.id()
 	const titleId = `${previewId}-title`,
 		pageNameByKind: Record<ProfilePreviewSubject["kind"], string> = {
@@ -95,6 +114,17 @@ as a confirmation, handles its own Escape. -->
 
 {#snippet actions()}
 	{#if subject}
+		<button
+			class="button-icon"
+			type="button"
+			aria-label="Open in browser"
+			data-tooltip={robloxPages.canOpen
+				? "Open in browser"
+				: openInBrowserUnavailableReason}
+			disabled={!robloxPages.canOpen}
+			onclick={() => robloxPages.open(robloxPageUrl(subject))}>
+			<Icon svg={globeHemisphereWestIcon} size={16} aria-hidden="true" />
+		</button>
 		<button
 			class="button"
 			type="button"

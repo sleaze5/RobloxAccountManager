@@ -70,7 +70,7 @@
 				{
 					label: "Delete outfit",
 					icon: trashIcon,
-					danger: true,
+					tone: "danger",
 					onSelect: () => {
 						menu = null
 						onDeleteOutfit(outfit)

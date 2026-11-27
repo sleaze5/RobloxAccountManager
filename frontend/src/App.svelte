@@ -43,6 +43,7 @@
 	import ExpandedImageDialog from "./lib/shared/ExpandedImageDialog.svelte"
 	import Icon from "./lib/shared/Icon.svelte"
 	import { setProfilePreviews } from "./lib/shared/profile-preview"
+	import { setRobloxPageOpener } from "./lib/shared/roblox-pages"
 	import Tooltip from "./lib/shared/Tooltip.svelte"
 	import { SocialStore } from "./lib/social/social-store.svelte"
 	import type { SocialListKind } from "./lib/social/social-store.svelte"
@@ -92,6 +93,13 @@
 	setWorkspace(workspace)
 	setNotificationCenter(notificationCenter)
 	setProfilePreviews(profilePreviews)
+	setRobloxPageOpener({
+		get canOpen() {
+			return store.selectedAccount.id !== 0
+		},
+		open: (pageUrl) =>
+			void dialogs.openManagedBrowser(store.selectedAccount.id, pageUrl),
+	})
 	refreshPresencesWhileShown(store, () => navigation.activePage === "accounts")
 	// A dialog reports its own failure, so the page reports only the errors
 	// of actions that ran while no dialog was open.
@@ -318,8 +326,6 @@
 					onEditNickname={(person, nickname) =>
 						dialogs.openNickname(person, nickname)}
 					onRemoveSelected={() => dialogs.openRemoveConnections()}
-					onOpenInBrowser={(accountId, pageUrl) =>
-						void dialogs.openManagedBrowser(accountId, pageUrl)}
 					onShowCreations={(username) =>
 						showCreations(
 							username,
@@ -339,8 +345,6 @@
 					store={groups}
 					accounts={store}
 					notifications={notificationCenter}
-					onOpenInBrowser={(accountId, pageUrl) =>
-						void dialogs.openManagedBrowser(accountId, pageUrl)}
 					onShowCreations={(groupName) =>
 						showCreations(
 							groupName,
@@ -362,9 +366,7 @@
 					notifications={notificationCenter}
 					onFillLaunch={(placeId, jobId) =>
 						launchOptions.fillGame(placeId, jobId)}
-					onFillLaunchLink={(link) => launchOptions.fillLink(link)}
-					onOpenInBrowser={(accountId, pageUrl) =>
-						void dialogs.openManagedBrowser(accountId, pageUrl)} />
+					onFillLaunchLink={(link) => launchOptions.fillLink(link)} />
 			{:catch}
 				{@render pageUnavailable()}
 			{/await}

@@ -4,6 +4,7 @@
 	import checkCircleFillIcon from "@phosphor-icons/core/fill/check-circle-fill.svg?raw"
 	import prohibitIcon from "@phosphor-icons/core/regular/prohibit.svg?raw"
 	import clockCounterClockwiseIcon from "@phosphor-icons/core/regular/clock-counter-clockwise.svg?raw"
+	import globeHemisphereWestIcon from "@phosphor-icons/core/regular/globe-hemisphere-west.svg?raw"
 	import shoppingCartIcon from "@phosphor-icons/core/regular/shopping-cart.svg?raw"
 	import storefrontIcon from "@phosphor-icons/core/regular/storefront.svg?raw"
 	import ticketIcon from "@phosphor-icons/core/regular/ticket.svg?raw"
@@ -17,6 +18,11 @@
 	import Dialog from "../shared/Dialog.svelte"
 	import Icon from "../shared/Icon.svelte"
 	import ProfileImage from "../shared/ProfileImage.svelte"
+	import {
+		getRobloxPageOpener,
+		openInBrowserUnavailableReason,
+		robloxGamePassUrl,
+	} from "../shared/roblox-pages"
 	import Timestamp from "../shared/Timestamp.svelte"
 	import { relativeTime } from "../shared/timestamp"
 	import type { UniverseGamePasses } from "./game-passes-state.svelte"
@@ -41,6 +47,7 @@
 		metaClass =
 			"flex min-w-0 flex-wrap items-center gap-1 font-mono text-2xs wrap-anywhere text-fg-muted",
 		sectionHeadingClass = "text-xs font-semibold text-fg-muted"
+	const robloxPages = getRobloxPageOpener()
 	let view = $state<GamePassView>("details"),
 		card = $state<HTMLDivElement | undefined>(undefined),
 		// What the open confirmation buys, fixed while it is open.
@@ -243,6 +250,23 @@
 									{price === 0 ? "Get" : "Buy"}
 								</button>
 							{/if}
+							<button
+								class="button-icon"
+								type="button"
+								aria-label="Open in browser"
+								data-tooltip={robloxPages.canOpen
+									? "Open in browser"
+									: openInBrowserUnavailableReason}
+								disabled={!robloxPages.canOpen}
+								onclick={() =>
+									robloxPages.open(
+										robloxGamePassUrl(gamePass.gamePassId),
+									)}>
+								<Icon
+									svg={globeHemisphereWestIcon}
+									size={16}
+									aria-hidden="true" />
+							</button>
 							<button
 								class="ml-1 button-close"
 								type="button"

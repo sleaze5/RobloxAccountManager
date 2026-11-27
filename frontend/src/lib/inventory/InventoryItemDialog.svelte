@@ -10,6 +10,13 @@
 	import clockCounterClockwiseIcon from "@phosphor-icons/core/regular/clock-counter-clockwise.svg?raw"
 	import circleNotchIcon from "@phosphor-icons/core/regular/circle-notch.svg?raw"
 	import diamondIcon from "@phosphor-icons/core/regular/diamond.svg?raw"
+	import dotsThreeIcon from "@phosphor-icons/core/regular/dots-three.svg?raw"
+	import globeHemisphereWestIcon from "@phosphor-icons/core/regular/globe-hemisphere-west.svg?raw"
+	import hashIcon from "@phosphor-icons/core/regular/hash.svg?raw"
+	import linkIcon from "@phosphor-icons/core/regular/link.svg?raw"
+	import textTIcon from "@phosphor-icons/core/regular/text-t.svg?raw"
+	import userCircleIcon from "@phosphor-icons/core/regular/user-circle.svg?raw"
+	import usersThreeIcon from "@phosphor-icons/core/regular/users-three.svg?raw"
 	import prohibitIcon from "@phosphor-icons/core/regular/prohibit.svg?raw"
 	import cubeIcon from "@phosphor-icons/core/regular/cube.svg?raw"
 	import downloadSimpleIcon from "@phosphor-icons/core/regular/download-simple.svg?raw"
@@ -64,8 +71,15 @@
 	import {
 		assetCategories,
 		inventoryCategoryOptionOf,
+		inventoryItemPage,
 		inventoryTypeLabel,
 	} from "./inventory-categories"
+	import { getNotificationCenter } from "../notifications/notification-center.svelte"
+	import { copyValue } from "../shared/clipboard"
+	import {
+		getRobloxPageOpener,
+		openInBrowserUnavailableReason,
+	} from "../shared/roblox-pages"
 	import type { InventoryCategoryOption } from "./inventory-categories"
 	import type { AccountStore } from "../accounts/account-store.svelte"
 	import InventoryItemTile from "./InventoryItemTile.svelte"
@@ -98,7 +112,9 @@
 		isWorn: boolean
 		onClose: () => void
 	} = $props()
-	const previews = getProfilePreviews()
+	const previews = getProfilePreviews(),
+		robloxPages = getRobloxPageOpener(),
+		notifications = getNotificationCenter()
 	const elementIdPrefix = $props.id()
 
 	// The related items that the user opened inside the dialog, the latest
@@ -137,6 +153,8 @@
 		isRigShown = $state(false),
 		downloadButton = $state<HTMLButtonElement>(),
 		isDownloadMenuOpen = $state(false),
+		moreActionsButton = $state<HTMLButtonElement>(),
+		isMoreActionsMenuOpen = $state(false),
 		// The item whose model the 3D viewer could not build, which shows the
 		// model that Roblox renders instead.
 		failedLiveItemKey = $state(""),
@@ -222,6 +240,66 @@
 						},
 					]
 				: []),
+		]),
+		itemPage = $derived(inventoryItemPage(category.id, item)),
+		creatorLabel = $derived(item.creatorType === "Group" ? "Group" : "Creator"),
+		moreActions = $derived<MenuAction[]>([
+			{
+				label: "Open in browser",
+				icon: globeHemisphereWestIcon,
+				disabled: !robloxPages.canOpen,
+				tooltip: robloxPages.canOpen
+					? undefined
+					: openInBrowserUnavailableReason,
+				onSelect: () => robloxPages.open(itemPage.pageUrl),
+			},
+			{
+				label: "Name",
+				icon: textTIcon,
+				section: "Copy",
+				accessibleLabel: "Copy item name",
+				onSelect: () => void copyValue(notifications, name, "Item name"),
+			},
+			{
+				label: itemPage.idLabel,
+				icon: hashIcon,
+				section: "Copy",
+				detail: String(item.itemId),
+				accessibleLabel: `Copy ${itemPage.idLabel.replace(" ID", "").toLowerCase()} ID`,
+				onSelect: () =>
+					void copyValue(
+						notifications,
+						String(item.itemId),
+						itemPage.idLabel,
+					),
+			},
+			...(item.creatorName
+				? [
+						{
+							label: `${creatorLabel} name`,
+							icon:
+								item.creatorType === "Group"
+									? usersThreeIcon
+									: userCircleIcon,
+							section: "Copy",
+							accessibleLabel: `Copy ${creatorLabel.toLowerCase()} name`,
+							onSelect: () =>
+								void copyValue(
+									notifications,
+									item.creatorName,
+									`${creatorLabel} name`,
+								),
+						},
+					]
+				: []),
+			{
+				label: "Item link",
+				icon: linkIcon,
+				section: "Copy",
+				accessibleLabel: "Copy item link",
+				onSelect: () =>
+					void copyValue(notifications, itemPage.pageUrl, "Item link"),
+			},
 		]),
 		// undefined while the related items load, and null when they failed.
 		relatedItems = $derived(inventory.relatedItemsByItemKey.get(detailsKey)),
@@ -976,6 +1054,26 @@
 									</button>
 								{/if}
 								<button
+									bind:this={moreActionsButton}
+									class="button-icon"
+									type="button"
+									aria-label="More actions"
+									aria-haspopup="menu"
+									aria-expanded={isMoreActionsMenuOpen}
+									aria-controls={isMoreActionsMenuOpen
+										? `${elementIdPrefix}-inventory-more-actions-menu`
+										: undefined}
+									data-open={isMoreActionsMenuOpen || undefined}
+									data-tooltip="More actions"
+									onclick={() =>
+										(isMoreActionsMenuOpen =
+											!isMoreActionsMenuOpen)}>
+									<Icon
+										svg={dotsThreeIcon}
+										size={16}
+										aria-hidden="true" />
+								</button>
+								<button
 									class="ml-1 button-close"
 									type="button"
 									data-close-item-details
@@ -1306,6 +1404,21 @@
 		anchor={downloadButton}
 		actions={downloadActions}
 		onClose={() => (isDownloadMenuOpen = false)} />
+{/if}
+
+{#if isMoreActionsMenuOpen && moreActionsButton}
+	<AnchoredActionMenu
+		id={`${elementIdPrefix}-inventory-more-actions-menu`}
+		label={`${name} actions`}
+		anchor={moreActionsButton}
+		actions={moreActions.map((action) => ({
+			...action,
+			onSelect: () => {
+				isMoreActionsMenuOpen = false
+				action.onSelect()
+			},
+		}))}
+		onClose={() => (isMoreActionsMenuOpen = false)} />
 {/if}
 
 {#if isExplorerOpen && !confirmation}

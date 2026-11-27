@@ -3,10 +3,13 @@ import { createContext } from "svelte"
 import { installPointerResize } from "../shared/pointer-resize"
 import { menuPointFor } from "../shared/presence"
 
+// AccountContextMenu opens at a point, or beside its anchor, such as the
+// Actions button of the selection, so that it never covers the button.
 export interface AccountContextMenu {
 	accountId: number
 	x: number
 	y: number
+	anchor: HTMLElement | null
 	submenuLeft: boolean
 }
 
@@ -97,8 +100,22 @@ export class WorkspaceState {
 		this.imageContextMenu = null
 		this.accountContextMenu = {
 			accountId,
+			anchor: null,
 			submenuLeft: false,
 			...menuPointFor(event, 0),
+		}
+	}
+
+	openAccountContextMenuAtAnchor(anchor: HTMLElement, accountId: number): void {
+		const bounds = anchor.getBoundingClientRect()
+		this.activeAccountMenu = null
+		this.imageContextMenu = null
+		this.accountContextMenu = {
+			accountId,
+			anchor,
+			submenuLeft: false,
+			x: bounds.left,
+			y: bounds.bottom,
 		}
 	}
 

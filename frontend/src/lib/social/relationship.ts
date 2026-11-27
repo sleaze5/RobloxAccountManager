@@ -14,6 +14,7 @@ import userPlusIcon from "@phosphor-icons/core/regular/user-plus.svg?raw"
 import { FriendStatus, TrustedStatus } from "../backend/bridge"
 import type { SocialRelationship, SocialUser } from "../backend/bridge"
 import type { LabeledBadge } from "../shared/labeled-badge"
+import type { MenuItemTone } from "../shared/menu-tone"
 
 // The parts of a relationship that both a profile and a saved account
 // connection report.
@@ -291,22 +292,19 @@ export function relationshipActions(
 }
 
 const buttonToneClasses: Record<RelationshipTone, string> = {
-		neutral: "button",
-		warning: "button-warning",
-		danger: "button-danger",
-	},
-	menuItemToneClasses: Record<RelationshipTone, string> = {
-		neutral: "menu-item",
-		warning: "menu-item-warning",
-		danger: "menu-item-danger",
-	}
+	neutral: "button",
+	warning: "button-warning",
+	danger: "button-danger",
+}
 
 export function relationshipButtonClass(tone: RelationshipTone): string {
 	return buttonToneClasses[tone]
 }
 
-export function relationshipMenuItemClass(tone: RelationshipTone): string {
-	return menuItemToneClasses[tone]
+export function relationshipMenuItemTone(
+	tone: RelationshipTone,
+): MenuItemTone | undefined {
+	return tone === "neutral" ? undefined : tone
 }
 
 // relationshipBadges describes a relationship. A trusted friendship replaces

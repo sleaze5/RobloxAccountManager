@@ -11,7 +11,15 @@
 	import usersIcon from "@phosphor-icons/core/regular/users.svg?raw"
 	import warningIcon from "@phosphor-icons/core/regular/warning.svg?raw"
 	import xIcon from "@phosphor-icons/core/regular/x.svg?raw"
-	import listChecksIcon from "@phosphor-icons/core/regular/list-checks.svg?raw"
+	import atIcon from "@phosphor-icons/core/regular/at.svg?raw"
+	import hashIcon from "@phosphor-icons/core/regular/hash.svg?raw"
+	import linkIcon from "@phosphor-icons/core/regular/link.svg?raw"
+	import textTIcon from "@phosphor-icons/core/regular/text-t.svg?raw"
+	import userMinusIcon from "@phosphor-icons/core/regular/user-minus.svg?raw"
+	import type { MenuAction } from "../shared/AnchoredActionMenu.svelte"
+	import SelectionActionsMenu from "../shared/SelectionActionsMenu.svelte"
+	import SelectionModeButton from "../shared/SelectionModeButton.svelte"
+	import SelectionToolbar from "../shared/SelectionToolbar.svelte"
 	import prohibitIcon from "@phosphor-icons/core/regular/prohibit.svg?raw"
 	import sealCheckIcon from "@phosphor-icons/core/regular/seal-check.svg?raw"
 	import shieldCheckFillIcon from "@phosphor-icons/core/fill/shield-check-fill.svg?raw"
@@ -36,7 +44,7 @@
 	import PresenceLine from "../accounts/PresenceLine.svelte"
 	import Select from "../shared/Select.svelte"
 	import { moveListFocus } from "../shared/move-shortcut"
-	import { isMultiSelectGesture } from "../shared/multi-selection.svelte"
+	import { isMultiSelectGesture } from "../shared/list-selection.svelte"
 	import { menuIn, menuOut } from "../shared/presence"
 	import SocialAvatar from "./SocialAvatar.svelte"
 	import SocialMenu from "./SocialMenu.svelte"
@@ -70,7 +78,6 @@
 		onRelationshipAction,
 		onEditNickname,
 		onRemoveSelected,
-		onOpenInBrowser,
 		onShowCreations,
 	}: {
 		store: SocialStore
@@ -81,7 +88,6 @@
 		onRelationshipAction: (person: SocialUser, action: RelationshipActionId) => void
 		onEditNickname: (person: SocialUser, nickname: string) => void
 		onRemoveSelected: () => void
-		onOpenInBrowser: (accountId: number, pageUrl: string) => void
 		onShowCreations: (username: string) => void
 	} = $props()
 
@@ -152,12 +158,33 @@
 			isBulkRemovalList(store.list) ? bulkRemovalCopy[store.list] : null,
 		),
 		visibleUserIds = $derived(store.people.map((person) => person.userId)),
-		allVisibleSelected = $derived(
-			visibleUserIds.length > 0 &&
-				visibleUserIds.every((userId) =>
-					store.selectedUserIds.includes(userId),
-				),
-		)
+		selection = $derived(store.selection),
+		selectionActions = $derived<MenuAction[]>([
+			...(
+				[
+					{ field: "displayName", label: "Display names", icon: textTIcon },
+					{ field: "username", label: "Usernames", icon: atIcon },
+					{ field: "userId", label: "User IDs", icon: hashIcon },
+					{ field: "profileLink", label: "Profile links", icon: linkIcon },
+				] as const
+			).map((copyOption) => ({
+				label: copyOption.label,
+				icon: copyOption.icon,
+				section: "Copy, one per line",
+				accessibleLabel: `Copy ${copyOption.label.toLowerCase()}`,
+				onSelect: () => void store.copySelectedField(copyOption.field),
+			})),
+			...(store.canRemoveInBulk && bulkCopy
+				? [
+						{
+							label: bulkCopy.action,
+							icon: userMinusIcon,
+							tone: "danger" as const,
+							onSelect: onRemoveSelected,
+						},
+					]
+				: []),
+		])
 
 	// Roblox rejects the social requests of a moderated account, so the page
 	// shows its status instead of loading lists that would fail.
@@ -254,6 +281,21 @@
 			?.focus({ preventScroll: true })
 	}
 
+	function selectPerson(event: MouseEvent | KeyboardEvent, person: SocialUser): void {
+		if (!isMultiSelectGesture(event)) {
+			if (person.userId !== store.selectedUserId)
+				unsavedChangesGuard.leave(() => store.select(person))
+			return
+		}
+		const shownUserId = store.selectedUserId
+		store.setSelecting(true)
+		selection.add(
+			shownUserId !== null && visibleUserIds.includes(shownUserId)
+				? [shownUserId, person.userId]
+				: [person.userId],
+		)
+	}
+
 	function subtitle(person: SocialUser): string {
 		return person.username ? `@${person.username}` : `ID ${person.userId}`
 	}
@@ -346,23 +388,14 @@
 			bind:width={store.sidebarWidth}>
 			{#snippet title()}Social{/snippet}
 			{#snippet actions()}
-				{#if store.canRemoveInBulk && !accountModerated}
-					<button
-						class="button-ghost"
-						type="button"
-						aria-label={`Select ${current.noun}`}
-						aria-pressed={store.selecting}
-						data-open={store.selecting || undefined}
-						data-tooltip={store.selecting
-							? "Stop selecting"
-							: `Select ${current.noun} to ${bulkCopy?.action.toLowerCase() ?? "remove"}`}
-						data-tooltip-side="bottom-end"
+				{#if !accountModerated}
+					<SelectionModeButton
+						noun={current.noun}
+						isSelecting={selection.isSelecting}
 						disabled={account.id === 0 ||
 							!store.page ||
 							store.removingSelected}
-						onclick={() => store.setSelecting(!store.selecting)}>
-						<Icon svg={listChecksIcon} size={16} aria-hidden="true" />
-					</button>
+						onToggle={() => store.setSelecting(!selection.isSelecting)} />
 				{/if}
 				<button
 					class="button-ghost"
@@ -508,7 +541,8 @@
 				<div
 					class={[
 						"min-h-0 scrollbar-stable overflow-y-auto",
-						((players && store.playerQuery) || store.selecting) && "pb-12",
+						((players && store.playerQuery) || selection.isSelecting) &&
+							"pb-12",
 					]}
 					data-load-more-root
 					role="group"
@@ -528,10 +562,8 @@
 						{@const detail = person.presence
 							? presenceDetail(person.presence)
 							: ""}
-						{#if store.selecting}
-							{@const checked = store.selectedUserIds.includes(
-								person.userId,
-							)}
+						{#if selection.isSelecting}
+							{@const checked = selection.has(person.userId)}
 							<label
 								class={[
 									"group/row list-row relative flex w-full cursor-pointer items-center gap-2 border-b border-line-subtle px-3",
@@ -554,7 +586,7 @@
 										disabled={store.removingSelected}
 										onkeydown={moveListFocus}
 										onchange={() =>
-											store.toggleSelected(person.userId)} />
+											selection.toggle(person.userId)} />
 									<CheckboxMark />
 								</span>
 								{@render personSummary(person, detail)}
@@ -574,23 +606,7 @@
 								data-list-item
 								tabindex={person.userId === tabStopUserId ? 0 : -1}
 								aria-label={rowLabel(person)}
-								onclick={(event) => {
-									if (
-										isMultiSelectGesture(event) &&
-										store.canRemoveInBulk
-									) {
-										store.startSelectingWith([
-											store.selectedUserId,
-											person.userId,
-										])
-										return
-									}
-									if (person.userId !== store.selectedUserId) {
-										unsavedChangesGuard.leave(() =>
-											store.select(person),
-										)
-									}
-								}}
+								onclick={(event) => selectPerson(event, person)}
 								oncontextmenu={(event) => store.openMenu(event, person)}
 								onkeydown={(event) => {
 									if (
@@ -598,6 +614,13 @@
 										(event.shiftKey && event.key === "F10")
 									)
 										store.openMenu(event, person)
+									if (
+										(event.key === " " || event.key === "Enter") &&
+										isMultiSelectGesture(event)
+									) {
+										event.preventDefault()
+										selectPerson(event, person)
+									}
 									moveListFocus(event)
 								}}>
 								{@render personSummary(person, detail)}
@@ -637,46 +660,23 @@
 							onLoadMore={() => void store.load(true)} />
 					{/if}
 				</div>
-				{#if store.selecting && bulkCopy}
-					{@const selectedCount = store.selectedUserIds.length}
-					<div
-						class="absolute inset-x-0 bottom-0 flex h-11 animate-enter items-center gap-2 border-t border-line bg-overlay px-3"
-						role="toolbar"
-						aria-label="Selected users">
-						<span class="checkbox shrink-0">
-							<input
-								type="checkbox"
-								aria-label={allVisibleSelected
-									? "Clear selection"
-									: "Select all shown"}
-								checked={allVisibleSelected}
-								indeterminate={selectedCount > 0 && !allVisibleSelected}
-								disabled={visibleUserIds.length === 0 ||
-									store.removingSelected}
-								onchange={() => store.toggleAllVisible()} />
-							<CheckboxMark
-								isIndeterminate={selectedCount > 0 &&
-									!allVisibleSelected} />
-						</span>
-						<span
-							class="min-w-0 flex-1 truncate text-xs text-fg-muted"
-							aria-live="polite"
-							><strong class="font-mono font-medium text-fg"
-								>{selectedCount}</strong>
-							selected</span>
-						<button
-							class="button"
-							type="button"
-							disabled={store.removingSelected}
-							onclick={() => store.setSelecting(false)}>Cancel</button>
-						<button
-							class="button-danger"
-							type="button"
-							disabled={selectedCount === 0 || store.removingSelected}
-							onclick={onRemoveSelected}>{bulkCopy.action}</button>
-					</div>
+				{#if selection.isSelecting}
+					<SelectionToolbar
+						label="Selected users"
+						selectedCount={selection.selectedCount}
+						isAllShownSelected={selection.areAllSelected(visibleUserIds)}
+						canSelectAll={visibleUserIds.length > 0}
+						isBusy={store.removingSelected}
+						onToggleAll={() => selection.toggleAll(visibleUserIds)}
+						onStop={() => store.setSelecting(false)}>
+						<SelectionActionsMenu
+							noun="users"
+							selectedCount={selection.selectedCount}
+							actions={selectionActions}
+							isBusy={store.removingSelected} />
+					</SelectionToolbar>
 				{/if}
-				{#if players && store.playerQuery}
+				{#if players && store.playerQuery && !selection.isSelecting}
 					<div
 						class="pointer-events-none absolute inset-x-0 bottom-2 flex justify-center">
 						<button
@@ -849,10 +849,5 @@
 </main>
 
 {#if store.menu}
-	<SocialMenu
-		{store}
-		menu={store.menu}
-		{onFillLaunch}
-		{onRelationshipAction}
-		onOpenInBrowser={(pageUrl) => onOpenInBrowser(store.accountId, pageUrl)} />
+	<SocialMenu {store} menu={store.menu} {onFillLaunch} {onRelationshipAction} />
 {/if}

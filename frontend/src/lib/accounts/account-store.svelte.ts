@@ -30,6 +30,7 @@ import { notifyCopied } from "../shared/clipboard"
 import { coalesce } from "../shared/coalesce"
 import { errorMessage } from "../shared/errors"
 import { detailsKeepMs } from "../shared/freshness"
+import { robloxUserProfileUrl } from "../shared/roblox-pages"
 
 const operationError = "The operation failed.",
 	presenceRefreshError = "Could not refresh online status."
@@ -38,6 +39,10 @@ export class AccountStore {
 	accounts = $state<Account[]>([])
 	tags = $state<TagView[]>([])
 	selectedAccountIds = $state<number[]>([])
+	// isSelectingAccounts shows the selection checkboxes while a single
+	// account is selected, so that a click adds an account instead of
+	// replacing the selection.
+	isSelectingAccounts = $state(false)
 	query = $state("")
 	selectedTagIds = $state<number[]>([])
 	vault = $state<VaultState>({
@@ -111,6 +116,18 @@ export class AccountStore {
 			accountIds.length > 1
 				? `${labels[field]} copied for ${accountIds.length} accounts, one per line.`
 				: `${labels[field]} copied to clipboard.`,
+		)
+	}
+
+	async copyAccountProfileLinks(accountIds: number[]): Promise<boolean> {
+		const profileLinks = this.accounts
+			.filter((account) => accountIds.includes(account.id))
+			.map((account) => robloxUserProfileUrl(account.userId))
+		return this.copyToClipboard(
+			() => navigator.clipboard.writeText(profileLinks.join("\n")),
+			profileLinks.length > 1
+				? `Profile link copied for ${profileLinks.length} accounts, one per line.`
+				: "Profile link copied to clipboard.",
 		)
 	}
 
@@ -366,7 +383,31 @@ export class AccountStore {
 		this.selectedAccountIds = accountId > 0 ? [accountId] : []
 	}
 
+	get isAccountSelectionShown(): boolean {
+		return this.isSelectingAccounts || this.multipleSelected
+	}
+
+	get areAllAccountsSelected(): boolean {
+		return (
+			this.accounts.length > 0 &&
+			this.accounts.every((account) =>
+				this.selectedAccountIds.includes(account.id),
+			)
+		)
+	}
+
+	// toggleAllAccounts selects every listed account, or keeps only the top
+	// selected account when every account is selected, because every page
+	// works with a selected account.
+	toggleAllAccounts(): void {
+		if (this.areAllAccountsSelected) {
+			const topAccount = this.accounts[0]
+			if (topAccount) this.selectedAccountIds = [topAccount.id]
+		} else this.selectedAccountIds = this.accounts.map((account) => account.id)
+	}
+
 	reduceSelectionToTopAccount(): void {
+		this.isSelectingAccounts = false
 		if (!this.multipleSelected) return
 		const topAccount = this.accounts.find((account) =>
 			this.selectedAccountIds.includes(account.id),
@@ -1184,6 +1225,7 @@ export class AccountStore {
 		this.tags = []
 		this.selectedTagIds = []
 		this.selectedAccountIds = []
+		this.isSelectingAccounts = false
 		this.nextCursor = null
 		this.accountTotal = 0
 		this.accountListError = ""

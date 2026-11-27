@@ -7,7 +7,7 @@
 	import coinsIcon from "@phosphor-icons/core/regular/coins.svg?raw"
 	import crownIcon from "@phosphor-icons/core/regular/crown.svg?raw"
 	import doorOpenIcon from "@phosphor-icons/core/regular/door-open.svg?raw"
-	import globeIcon from "@phosphor-icons/core/regular/globe-hemisphere-west.svg?raw"
+	import dotsThreeIcon from "@phosphor-icons/core/regular/dots-three.svg?raw"
 	import identificationBadgeIcon from "@phosphor-icons/core/regular/identification-badge.svg?raw"
 	import linkIcon from "@phosphor-icons/core/regular/link.svg?raw"
 	import lockIcon from "@phosphor-icons/core/regular/lock.svg?raw"
@@ -39,13 +39,7 @@
 	import { groupStats } from "./group-stats"
 	import type { GroupsStore, GroupSubpage } from "./groups-store.svelte"
 
-	let {
-		store,
-		onOpenInBrowser,
-	}: {
-		store: GroupsStore
-		onOpenInBrowser: (accountId: number, pageUrl: string) => void
-	} = $props()
+	let { store }: { store: GroupsStore } = $props()
 
 	const exactNumbers = new Intl.NumberFormat("en-US"),
 		sectionHeadingClass = "text-xs font-semibold text-fg-muted",
@@ -303,15 +297,18 @@
 				<button
 					class="button-icon"
 					type="button"
-					aria-label="Open group in browser"
-					data-tooltip="Open group in browser"
+					aria-label="More actions"
+					aria-haspopup="menu"
+					aria-expanded={store.menu?.group.groupId === group.groupId}
+					data-open={store.menu?.group.groupId === group.groupId || undefined}
+					data-tooltip="More actions"
 					data-tooltip-side="bottom-end"
-					onclick={() =>
-						onOpenInBrowser(
-							store.accountId,
-							`https://www.roblox.com/communities/${group.groupId}`,
-						)}>
-					<Icon svg={globeIcon} size={16} aria-hidden="true" />
+					data-group-menu
+					onclick={(event) => {
+						if (store.menu) store.closeMenu()
+						else store.openMenu(event, group)
+					}}>
+					<Icon svg={dotsThreeIcon} size={16} aria-hidden="true" />
 				</button>
 			</div>
 		</div>

@@ -1,12 +1,24 @@
 <script lang="ts">
 	import dotsThreeIcon from "@phosphor-icons/core/regular/dots-three.svg?raw"
+	import globeHemisphereWestIcon from "@phosphor-icons/core/regular/globe-hemisphere-west.svg?raw"
+	import hashIcon from "@phosphor-icons/core/regular/hash.svg?raw"
 	import listPlusIcon from "@phosphor-icons/core/regular/list-plus.svg?raw"
+	import magnifyingGlassIcon from "@phosphor-icons/core/regular/magnifying-glass.svg?raw"
 	import Icon from "../shared/Icon.svelte"
 	import { untrack } from "svelte"
 	import { VisitKind } from "../backend/bridge"
 	import type { LogsExplorerVisit } from "../backend/bridge"
 	import Timestamp from "../shared/Timestamp.svelte"
 	import AnchoredActionMenu from "../shared/AnchoredActionMenu.svelte"
+	import type { MenuAction } from "../shared/AnchoredActionMenu.svelte"
+	import { getNotificationCenter } from "../notifications/notification-center.svelte"
+	import { copyValue } from "../shared/clipboard"
+	import { getProfilePreviews } from "../shared/profile-preview"
+	import {
+		getRobloxPageOpener,
+		openInBrowserUnavailableReason,
+		robloxGameUrl,
+	} from "../shared/roblox-pages"
 	import LogsExplorerVisitDetails from "./LogsExplorerVisitDetails.svelte"
 	import { formatClock } from "../shared/duration"
 
@@ -26,7 +38,10 @@
 		trigger: HTMLElement
 		open: boolean
 	} | null>(null)
-	const menuID = $props.id()
+	const menuID = $props.id(),
+		notifications = getNotificationCenter(),
+		previews = getProfilePreviews(),
+		robloxPages = getRobloxPageOpener()
 	const orderedVisits = $derived(newestFirst ? visits.toReversed() : visits),
 		openVisit = $derived(activeMenu?.open ? activeMenu.visit : null)
 
@@ -44,6 +59,79 @@
 
 	function closeMenu(): void {
 		if (activeMenu) activeMenu = { ...activeMenu, open: false }
+	}
+
+	function select(action: () => void): () => void {
+		return () => {
+			closeMenu()
+			action()
+		}
+	}
+
+	function visitActions(visit: LogsExplorerVisit): MenuAction[] {
+		const placeId = Number(visit.placeId) || 0
+		return [
+			{
+				label: "Fill launch options",
+				icon: listPlusIcon,
+				onSelect: select(() => onFillLaunch(visit)),
+			},
+			...(placeId > 0
+				? [
+						{
+							label: "Show game",
+							icon: magnifyingGlassIcon,
+							onSelect: select(() =>
+								previews.show({ kind: "Place", placeId }),
+							),
+						},
+						{
+							label: "Open in browser",
+							icon: globeHemisphereWestIcon,
+							disabled: !robloxPages.canOpen,
+							tooltip: robloxPages.canOpen
+								? undefined
+								: openInBrowserUnavailableReason,
+							onSelect: select(() =>
+								robloxPages.open(robloxGameUrl(placeId)),
+							),
+						},
+						{
+							label: "Place ID",
+							icon: hashIcon,
+							section: "Copy",
+							detail: visit.placeId,
+							accessibleLabel: "Copy place ID",
+							onSelect: select(
+								() =>
+									void copyValue(
+										notifications,
+										visit.placeId,
+										"Place ID",
+									),
+							),
+						},
+					]
+				: []),
+			...(visit.jobId
+				? [
+						{
+							label: "Job ID",
+							icon: hashIcon,
+							section: "Copy",
+							accessibleLabel: "Copy job ID",
+							onSelect: select(
+								() =>
+									void copyValue(
+										notifications,
+										visit.jobId,
+										"Job ID",
+									),
+							),
+						},
+					]
+				: []),
+		]
 	}
 </script>
 
@@ -133,15 +221,6 @@
 		id={menuID}
 		label="Event actions"
 		anchor={activeMenu.trigger}
-		actions={[
-			{
-				label: "Fill launch options",
-				icon: listPlusIcon,
-				onSelect: () => {
-					closeMenu()
-					onFillLaunch(visit)
-				},
-			},
-		]}
+		actions={visitActions(visit)}
 		onClose={closeMenu} />
 {/if}

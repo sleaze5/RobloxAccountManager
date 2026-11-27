@@ -3,7 +3,13 @@
 		AccountContextMenu,
 		WorkspaceState,
 	} from "../layout/workspace-state.svelte"
-	import { menuIn, menuKeyboard, menuOut, placeMenuAtPoint } from "../shared/presence"
+	import {
+		menuIn,
+		menuKeyboard,
+		menuOut,
+		placeMenuAtAnchor,
+		placeMenuAtPoint,
+	} from "../shared/presence"
 	import AccountActionsMenu from "./AccountActionsMenu.svelte"
 	import MultiAccountActionsMenu from "./MultiAccountActionsMenu.svelte"
 	import type { AccountStore } from "./account-store.svelte"
@@ -29,7 +35,11 @@
 	function positionMenu(node: HTMLElement, position: AccountContextMenu) {
 		let current = position
 		const place = () => {
-			const { x } = placeMenuAtPoint(node, current)
+			let x: number
+			if (current.anchor?.isConnected) {
+				placeMenuAtAnchor(node, current.anchor, "start")
+				x = node.getBoundingClientRect().left
+			} else x = placeMenuAtPoint(node, current).x
 			current.submenuLeft = x + node.offsetWidth * 2 + 12 > window.innerWidth
 		}
 		place()
@@ -48,7 +58,7 @@
 
 <div
 	class="fixed menu"
-	role="group"
+	role="menu"
 	aria-label={store.multipleSelected ? "Selected account actions" : "Account actions"}
 	tabindex="-1"
 	data-account-menu

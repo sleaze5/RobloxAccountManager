@@ -9,10 +9,11 @@ import { AccountScope } from "../accounts/account-scope"
 import type { AccountStore } from "../accounts/account-store.svelte"
 import type { NotificationCenter } from "../notifications/notification-center.svelte"
 import type { CancellableRequest } from "../shared/cancellable-request"
-import { copyFailureMessage, copyText } from "../shared/clipboard"
+import { copyLines, copyValue, notifyCopyFailure } from "../shared/clipboard"
 import { errorMessage } from "../shared/errors"
-import { MultiSelection } from "../shared/multi-selection.svelte"
+import { ListSelection } from "../shared/list-selection.svelte"
 import { menuPointFor } from "../shared/presence"
+import { robloxGroupUrl } from "../shared/roblox-pages"
 import type { PageLocationKeys } from "../layout/page-history"
 
 type GroupsMode = "mine" | "search"
@@ -30,12 +31,26 @@ type GroupAction =
 
 export const minGroupSearchLength = 2
 
-// GroupMenu holds the groups that a menu of the list acts on: the group that
-// it opened on, or every marked group when it opened on one of them.
 export interface GroupMenu {
-	groups: GroupSummary[]
+	group: GroupSummary
 	x: number
 	y: number
+}
+
+// GroupCopyField names a detail of a group that its menu and the selection
+// copy.
+export type GroupCopyField = "name" | "groupId" | "link"
+
+const groupCopyLabels: Record<GroupCopyField, string> = {
+	name: "Group name",
+	groupId: "Group ID",
+	link: "Group link",
+}
+
+function groupCopyValue(group: GroupSummary, field: GroupCopyField): string {
+	if (field === "name") return group.name
+	if (field === "groupId") return String(group.groupId)
+	return robloxGroupUrl(group.groupId)
 }
 
 // GroupsLocation is what Groups shows: the list, the search, and the group
@@ -69,9 +84,6 @@ export class GroupsStore {
 	isLoadingMyGroups = $state(false)
 	myGroupsError = $state("")
 	searchResults = $state.raw<GroupSummary[]>([])
-	menu = $state<GroupMenu | null>(null)
-	readonly marked = new MultiSelection<number>()
-	isLeavingGroups = $state(false)
 	searchCursor = $state("")
 	isSearching = $state(false)
 	searchError = $state("")
@@ -82,6 +94,9 @@ export class GroupsStore {
 	subpage = $state<GroupSubpage | null>(null)
 	pendingAction = $state<GroupAction | null>(null)
 	actionError = $state("")
+	menu = $state<GroupMenu | null>(null)
+	readonly selection = new ListSelection<number>()
+	isLeavingGroups = $state(false)
 	readonly #accounts: AccountStore
 	readonly #notifications: NotificationCenter
 	#scope: AccountScope | null = null
@@ -120,14 +135,14 @@ export class GroupsStore {
 		this.searchResults = []
 		this.searchCursor = this.searchError = ""
 		this.searchedText = ""
-		this.marked.clear()
+		this.selection.setSelecting(false)
 		this.closeMenu()
 		this.closeGroup()
 		void this.refreshMyGroups()
 	}
 
 	show(mode: GroupsMode): void {
-		if (this.mode !== mode) this.marked.clear()
+		if (mode !== this.mode) this.selection.setSelecting(false)
 		this.mode = mode
 		if (
 			mode === "search" &&
@@ -294,6 +309,7 @@ export class GroupsStore {
 	async join(): Promise<boolean> {
 		return await this.#runAction(
 			"join",
+			this.selectedGroupId,
 			(accountId, groupId) => accountBackend.JoinGroup(accountId, groupId),
 			"Could not join the group. Try again.",
 		)
@@ -302,22 +318,25 @@ export class GroupsStore {
 	async leave(): Promise<boolean> {
 		return await this.#runAction(
 			"leave",
+			this.selectedGroupId,
 			(accountId, groupId) => accountBackend.LeaveGroup(accountId, groupId),
 			"Could not leave the group. Try again.",
 		)
 	}
 
-	async makePrimary(): Promise<boolean> {
+	async makePrimary(groupId: number): Promise<boolean> {
 		return await this.#runAction(
 			"primary",
-			(accountId, groupId) => accountBackend.SetPrimaryGroup(accountId, groupId),
+			groupId,
+			(accountId) => accountBackend.SetPrimaryGroup(accountId, groupId),
 			"Could not make the group primary. Try again.",
 		)
 	}
 
-	async removePrimary(): Promise<boolean> {
+	async removePrimary(groupId: number): Promise<boolean> {
 		return await this.#runAction(
 			"removePrimary",
+			groupId,
 			(accountId) => accountBackend.RemovePrimaryGroup(accountId),
 			"Could not remove the primary group. Try again.",
 		)
@@ -326,6 +345,7 @@ export class GroupsStore {
 	async postShout(message: string): Promise<boolean> {
 		return await this.#runAction(
 			"shout",
+			this.selectedGroupId,
 			(accountId, groupId) =>
 				accountBackend.PostGroupShout(accountId, groupId, message),
 			"Could not post the shout. Try again.",
@@ -335,62 +355,48 @@ export class GroupsStore {
 	async saveDescription(description: string): Promise<boolean> {
 		return await this.#runAction(
 			"description",
+			this.selectedGroupId,
 			(accountId, groupId) =>
 				accountBackend.SetGroupDescription(accountId, groupId, description),
 			"Could not save the description. Try again.",
 		)
 	}
 
-	clearActionError(): void {
-		this.actionError = ""
-	}
-
-	reset(): void {
-		this.#scope?.dispose()
-		this.#scope = null
-		this.myGroups = null
-		this.myGroupsError = ""
-		this.clearSearch()
-		this.closeGroup()
-		this.mode = "mine"
-		this.pendingAction = null
-	}
-
-	openMenu(
-		event: MouseEvent | KeyboardEvent,
-		group: GroupSummary,
-		listedGroups: GroupSummary[],
-	): void {
+	openMenu(event: MouseEvent | KeyboardEvent, group: GroupSummary): void {
 		event.preventDefault()
 		event.stopPropagation()
-		const groupIds = this.marked.keysForMenu(group.groupId),
-			groups = listedGroups.filter((listedGroup) =>
-				groupIds.includes(listedGroup.groupId),
-			)
-		this.menu = {
-			groups: groups.length > 0 ? groups : [group],
-			...menuPointFor(event, 2),
-		}
+		this.menu = { group, ...menuPointFor(event, 2) }
 	}
 
 	closeMenu(): void {
 		this.menu = null
 	}
 
-	async copy(text: string, label: string): Promise<void> {
+	async copyField(group: GroupSummary, field: GroupCopyField): Promise<void> {
 		this.closeMenu()
+		await copyValue(
+			this.#notifications,
+			groupCopyValue(group, field),
+			groupCopyLabels[field],
+		)
+	}
+
+	async copySelectedField(
+		groups: GroupSummary[],
+		field: GroupCopyField,
+	): Promise<void> {
+		const selected = groups.filter((group) => this.selection.has(group.groupId)),
+			label = groupCopyLabels[field]
+		if (selected.length === 0) return
 		if (
-			!(await copyText(
+			!(await copyLines(
 				this.#notifications,
-				text,
-				`${label} copied to clipboard.`,
+				selected.map((group) => groupCopyValue(group, field)),
+				label,
+				"groups",
 			))
 		) {
-			this.#notifications.show({
-				title: "Not copied",
-				tone: "error",
-				message: copyFailureMessage(label),
-			})
+			notifyCopyFailure(this.#notifications, label)
 		}
 	}
 
@@ -429,7 +435,7 @@ export class GroupsStore {
 				})
 				return false
 			}
-			this.marked.clear()
+			this.selection.setSelecting(false)
 			return true
 		} finally {
 			if (scope.isCurrent) {
@@ -441,15 +447,32 @@ export class GroupsStore {
 		}
 	}
 
+	clearActionError(): void {
+		this.actionError = ""
+	}
+
+	reset(): void {
+		this.#scope?.dispose()
+		this.#scope = null
+		this.myGroups = null
+		this.myGroupsError = ""
+		this.clearSearch()
+		this.closeGroup()
+		this.closeMenu()
+		this.selection.setSelecting(false)
+		this.mode = "mine"
+		this.pendingAction = null
+	}
+
 	// #runAction changes the open group for the account, then reads the
 	// group and the group list again, because the action changes both.
 	async #runAction(
 		action: GroupAction,
+		groupId: number,
 		run: (accountId: number, groupId: number) => CancellableRequest<unknown>,
 		fallbackError: string,
 	): Promise<boolean> {
-		const scope = this.#scope,
-			groupId = this.selectedGroupId
+		const scope = this.#scope
 		if (!scope?.isCurrent || !groupId || this.pendingAction) return false
 		this.pendingAction = action
 		this.actionError = ""

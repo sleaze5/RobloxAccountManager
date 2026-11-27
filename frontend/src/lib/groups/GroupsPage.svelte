@@ -8,21 +8,30 @@
 	import starFillIcon from "@phosphor-icons/core/fill/star-fill.svg?raw"
 	import usersThreeIcon from "@phosphor-icons/core/regular/users-three.svg?raw"
 	import warningIcon from "@phosphor-icons/core/regular/warning.svg?raw"
+	import signOutIcon from "@phosphor-icons/core/regular/sign-out.svg?raw"
 	import xIcon from "@phosphor-icons/core/regular/x.svg?raw"
 	import type { GroupSummary } from "../backend/bridge"
 	import type { AccountStore } from "../accounts/account-store.svelte"
-	import ConfirmationDialog from "../shared/ConfirmationDialog.svelte"
-	import { isMultiSelectGesture } from "../shared/multi-selection.svelte"
-	import GroupContextMenu from "./GroupContextMenu.svelte"
 	import AccountSwitcher from "../layout/AccountSwitcher.svelte"
 	import WorkbenchSidebar from "../layout/WorkbenchSidebar.svelte"
 	import type { NotificationCenter } from "../notifications/notification-center.svelte"
+	import hashIcon from "@phosphor-icons/core/regular/hash.svg?raw"
+	import linkIcon from "@phosphor-icons/core/regular/link.svg?raw"
+	import textTIcon from "@phosphor-icons/core/regular/text-t.svg?raw"
+	import type { MenuAction } from "../shared/AnchoredActionMenu.svelte"
+	import CheckboxMark from "../shared/CheckboxMark.svelte"
+	import ConfirmationDialog from "../shared/ConfirmationDialog.svelte"
 	import Icon from "../shared/Icon.svelte"
+	import { isMultiSelectGesture } from "../shared/list-selection.svelte"
 	import { moveListFocus } from "../shared/move-shortcut"
+	import SelectionActionsMenu from "../shared/SelectionActionsMenu.svelte"
+	import SelectionModeButton from "../shared/SelectionModeButton.svelte"
+	import SelectionToolbar from "../shared/SelectionToolbar.svelte"
 	import RefreshIcon from "../shared/RefreshIcon.svelte"
 	import { matchesSearch, searchTerms } from "../shared/search"
 	import SkeletonList from "../shared/SkeletonList.svelte"
 	import SkeletonMediaRow from "../shared/SkeletonMediaRow.svelte"
+	import GroupContextMenu from "./GroupContextMenu.svelte"
 	import GroupGamesPage from "./GroupGamesPage.svelte"
 	import GroupIcon from "./GroupIcon.svelte"
 	import GroupItemsPage from "./GroupItemsPage.svelte"
@@ -34,19 +43,17 @@
 	import { openPageLabel, setProfilePages } from "../shared/profile-pages"
 	import type { ProfilePages } from "../shared/profile-pages"
 	import StatusTrail from "../layout/StatusTrail.svelte"
-	import { tick } from "svelte"
+	import { tick, untrack } from "svelte"
 
 	let {
 		store,
 		accounts,
 		notifications,
-		onOpenInBrowser,
 		onShowCreations,
 	}: {
 		store: GroupsStore
 		accounts: AccountStore
 		notifications: NotificationCenter
-		onOpenInBrowser: (accountId: number, pageUrl: string) => void
 		onShowCreations: (groupName: string) => void
 	} = $props()
 
@@ -91,7 +98,55 @@
 		tabStopGroupId = $derived(
 			(rows.find((row) => row.group.groupId === store.selectedGroupId) ?? rows[0])
 				?.group.groupId,
-		)
+		),
+		shownGroupIds = $derived(rows.map((row) => row.group.groupId)),
+		selection = $derived(store.selection),
+		leavableSelectedGroupIds = $derived(
+			selection.selectedKeys.filter((groupId) => store.canLeave(groupId)),
+		),
+		selectionActions = $derived<MenuAction[]>([
+			...(
+				[
+					{ field: "name", label: "Names", icon: textTIcon },
+					{ field: "groupId", label: "Group IDs", icon: hashIcon },
+					{ field: "link", label: "Group links", icon: linkIcon },
+				] as const
+			).map((copyOption) => ({
+				label: copyOption.label,
+				icon: copyOption.icon,
+				section: "Copy, one per line",
+				accessibleLabel: `Copy ${copyOption.label.toLowerCase()}`,
+				onSelect: () =>
+					void store.copySelectedField(
+						rows.map((row) => row.group),
+						copyOption.field,
+					),
+			})),
+			...(leavableSelectedGroupIds.length > 0
+				? [
+						{
+							label:
+								leavableSelectedGroupIds.length > 1
+									? `Leave ${leavableSelectedGroupIds.length} groups`
+									: "Leave group",
+							icon: signOutIcon,
+							tone: "danger" as const,
+							disabled:
+								store.isLeavingGroups || store.pendingAction !== null,
+							onSelect: () =>
+								(leavingGroupIds = leavableSelectedGroupIds),
+						},
+					]
+				: []),
+		])
+	let leavingGroupIds = $state<number[] | null>(null)
+
+	// A selected group that the list no longer shows, such as after a new
+	// search, leaves the selection.
+	$effect(() => {
+		const remaining = shownGroupIds
+		untrack(() => selection.keepOnly(remaining))
+	})
 
 	$effect(() => {
 		if (accounts.vault.unlocked) store.bindAccount(account.id)
@@ -142,17 +197,19 @@
 			?.focus({ preventScroll: true })
 	}
 
-	let leavingGroupIds = $state<number[] | null>(null)
-
-	// selectGroup opens the group, or marks it with Ctrl+click, as the account
-	// list does.
 	function selectGroup(event: MouseEvent | KeyboardEvent, groupId: number): void {
-		if (isMultiSelectGesture(event)) {
-			store.marked.toggle(groupId, store.selectedGroupId || undefined)
+		if (!isMultiSelectGesture(event)) {
+			store.showGroup(groupId)
 			return
 		}
-		store.marked.clear()
-		store.showGroup(groupId)
+		const shownGroupId = store.selectedGroupId
+		store.closeMenu()
+		selection.setSelecting(true)
+		selection.add(
+			shownGroupId && shownGroupIds.includes(shownGroupId)
+				? [shownGroupId, groupId]
+				: [groupId],
+		)
 	}
 
 	async function leaveGroups(groupIds: number[]): Promise<void> {
@@ -177,6 +234,24 @@
 	notifyErrors("Groups not loaded", () => listError)
 </script>
 
+{#snippet groupSummary(group: GroupSummary, detail: string)}
+	<GroupIcon url={group.iconUrl} />
+	<span class="flex min-w-0 flex-col leading-snug">
+		<strong
+			class="inline-flex min-w-0 items-center gap-1 text-xs font-semibold text-fg"
+			><span class="truncate">{group.name}</span>{#if group.hasVerifiedBadge}<Icon
+					svg={sealCheckIcon}
+					class="shrink-0 text-fg-muted"
+					size={12}
+					aria-label="Verified group" />{/if}{#if store.myGroups?.primaryGroupId === group.groupId}<Icon
+					svg={starFillIcon}
+					class="shrink-0 animate-pop text-accent-strong"
+					size={12}
+					aria-label="Primary group" />{/if}</strong>
+		<span class="truncate text-2xs text-fg-muted">{detail}</span>
+	</span>
+{/snippet}
+
 <main class="flex min-h-0 flex-1 flex-col bg-canvas" aria-label="Groups">
 	<div
 		class="flex min-h-0 flex-1"
@@ -194,6 +269,14 @@
 						>({myGroups.length})</span
 					>{/if}{/snippet}
 			{#snippet actions()}
+				<SelectionModeButton
+					noun="groups"
+					isSelecting={selection.isSelecting}
+					disabled={rows.length === 0 && !selection.isSelecting}
+					onToggle={() => {
+						store.closeMenu()
+						selection.setSelecting(!selection.isSelecting)
+					}} />
 				<button
 					class="button-ghost"
 					type="button"
@@ -287,142 +370,167 @@
 					</button>
 				</div>
 			{/snippet}
-			<div
-				class="min-h-0 flex-1 scrollbar-stable overflow-y-auto"
-				role="group"
-				aria-label={isSearchMode ? "Group search results" : "My groups"}
-				data-list
-				aria-busy={isListLoading}
-				data-load-more-root>
-				{#if isListLoading}
-					<SkeletonList
-						label={isSearchMode ? "Searching groups…" : "Loading groups…"}>
-						{#snippet row(index)}<SkeletonMediaRow {index} />{/snippet}
-					</SkeletonList>
-				{:else if listError && rows.length === 0}
-					<div class="empty-state px-3 py-8">
-						<Icon svg={warningIcon} size={28} aria-hidden="true" />
-						<h2>Groups unavailable</h2>
-						<button
-							class="button"
-							type="button"
-							onclick={() =>
-								void (isSearchMode
-									? store.search()
-									: store.refreshMyGroups())}>Try again</button>
-					</div>
-				{:else if rows.length === 0}
-					<div class="empty-state px-3 py-8" role="status">
-						<Icon
-							svg={isSearchMode ? magnifyingGlassIcon : usersThreeIcon}
-							size={28}
-							aria-hidden="true" />
-						{#if isSearchMode}
-							<h2>
-								{store.searchedText
-									? "No matching groups"
-									: "Search Roblox groups"}
-							</h2>
-							<p>
-								{store.searchedText
-									? "No group matches this search. Try another name or ID."
-									: "Enter at least 2 characters of a group name, or a group ID like id:1234."}
-							</p>
-						{:else if terms.length > 0}
-							<h2>No matching groups</h2>
-							<p>Change the search to find a group.</p>
+			<div class="relative grid min-h-0 flex-1 grid-rows-1">
+				<div
+					class={[
+						"min-h-0 scrollbar-stable overflow-y-auto",
+						selection.isSelecting && "pb-12",
+					]}
+					role="group"
+					aria-label={isSearchMode ? "Group search results" : "My groups"}
+					data-list
+					aria-busy={isListLoading}
+					data-load-more-root>
+					{#if isListLoading}
+						<SkeletonList
+							label={isSearchMode
+								? "Searching groups…"
+								: "Loading groups…"}>
+							{#snippet row(index)}<SkeletonMediaRow {index} />{/snippet}
+						</SkeletonList>
+					{:else if listError && rows.length === 0}
+						<div class="empty-state px-3 py-8">
+							<Icon svg={warningIcon} size={28} aria-hidden="true" />
+							<h2>Groups unavailable</h2>
 							<button
 								class="button"
 								type="button"
-								onclick={() => {
-									store.query = ""
-									searchInput?.focus()
-								}}>Clear search</button>
-						{:else}
-							<h2>No groups yet</h2>
-							<p>
-								@{account.username} is not in any group. Search to find one.
-							</p>
-							<button
-								class="button"
-								type="button"
-								onclick={() => {
-									store.show("search")
-									searchInput?.focus()
-								}}>Search groups</button>
+								onclick={() =>
+									void (isSearchMode
+										? store.search()
+										: store.refreshMyGroups())}>Try again</button>
+						</div>
+					{:else if rows.length === 0}
+						<div class="empty-state px-3 py-8" role="status">
+							<Icon
+								svg={isSearchMode
+									? magnifyingGlassIcon
+									: usersThreeIcon}
+								size={28}
+								aria-hidden="true" />
+							{#if isSearchMode}
+								<h2>
+									{store.searchedText
+										? "No matching groups"
+										: "Search Roblox groups"}
+								</h2>
+								<p>
+									{store.searchedText
+										? "No group matches this search. Try another name or ID."
+										: "Enter at least 2 characters of a group name, or a group ID like id:1234."}
+								</p>
+							{:else if terms.length > 0}
+								<h2>No matching groups</h2>
+								<p>Change the search to find a group.</p>
+								<button
+									class="button"
+									type="button"
+									onclick={() => {
+										store.query = ""
+										searchInput?.focus()
+									}}>Clear search</button>
+							{:else}
+								<h2>No groups yet</h2>
+								<p>
+									@{account.username} is not in any group. Search to find
+									one.
+								</p>
+								<button
+									class="button"
+									type="button"
+									onclick={() => {
+										store.show("search")
+										searchInput?.focus()
+									}}>Search groups</button>
+							{/if}
+						</div>
+					{:else}
+						{#each rows as row (row.group.groupId)}
+							{@const isSelected =
+								store.selectedGroupId === row.group.groupId}
+							{#if selection.isSelecting}
+								{@const isChecked = selection.has(row.group.groupId)}
+								<label
+									class="list-row relative flex h-12 w-full cursor-pointer items-center gap-2 border-b border-line-subtle px-3"
+									data-selected={isChecked || undefined}>
+									<span class="checkbox shrink-0">
+										<input
+											type="checkbox"
+											data-list-item
+											tabindex={row.group.groupId ===
+											tabStopGroupId
+												? 0
+												: -1}
+											aria-label={`Select ${row.group.name}`}
+											checked={isChecked}
+											onkeydown={moveListFocus}
+											onchange={() =>
+												selection.toggle(row.group.groupId)} />
+										<CheckboxMark />
+									</span>
+									{@render groupSummary(row.group, row.detail)}
+								</label>
+							{:else}
+								<button
+									class="list-row relative flex h-12 w-full items-center gap-2 border-b border-line-subtle px-3 text-left"
+									type="button"
+									data-selected={isSelected || undefined}
+									data-open={store.menu?.group.groupId ===
+										row.group.groupId || undefined}
+									aria-current={isSelected ? "true" : undefined}
+									aria-haspopup="menu"
+									data-list-item
+									tabindex={row.group.groupId === tabStopGroupId
+										? 0
+										: -1}
+									onclick={(event) =>
+										selectGroup(event, row.group.groupId)}
+									oncontextmenu={(event) =>
+										store.openMenu(event, row.group)}
+									onkeydown={(event) => {
+										if (
+											event.key === "ContextMenu" ||
+											(event.shiftKey && event.key === "F10")
+										)
+											store.openMenu(event, row.group)
+										if (
+											(event.key === " " ||
+												event.key === "Enter") &&
+											isMultiSelectGesture(event)
+										) {
+											event.preventDefault()
+											selectGroup(event, row.group.groupId)
+										}
+										moveListFocus(event)
+									}}>
+									{@render groupSummary(row.group, row.detail)}
+								</button>
+							{/if}
+						{/each}
+						{#if isSearchMode && store.searchCursor}
+							<LoadMore
+								pageKey={store.searchResults.length}
+								label="Load more results"
+								loadingLabel="Loading more results…"
+								isLoadingMore={store.isSearching}
+								hasFailed={!!store.searchError}
+								onLoadMore={() => void store.loadMoreSearchResults()} />
 						{/if}
-					</div>
-				{:else}
-					{#each rows as row (row.group.groupId)}
-						{@const isSelected =
-							store.selectedGroupId === row.group.groupId}
-						<button
-							class="list-row relative flex h-12 w-full items-center gap-2 border-b border-line-subtle px-3 text-left"
-							type="button"
-							data-selected={isSelected ||
-								store.marked.has(row.group.groupId) ||
-								undefined}
-							data-open={store.menu?.groups.some(
-								(group) => group.groupId === row.group.groupId,
-							) || undefined}
-							aria-current={isSelected ? "true" : undefined}
-							aria-haspopup="menu"
-							data-list-item
-							tabindex={row.group.groupId === tabStopGroupId ? 0 : -1}
-							onclick={(event) => selectGroup(event, row.group.groupId)}
-							oncontextmenu={(event) =>
-								store.openMenu(
-									event,
-									row.group,
-									rows.map((listedRow) => listedRow.group),
-								)}
-							onkeydown={(event) => {
-								if (
-									event.key === "ContextMenu" ||
-									(event.shiftKey && event.key === "F10")
-								)
-									store.openMenu(
-										event,
-										row.group,
-										rows.map((listedRow) => listedRow.group),
-									)
-								if (
-									(event.key === " " || event.key === "Enter") &&
-									isMultiSelectGesture(event)
-								) {
-									event.preventDefault()
-									selectGroup(event, row.group.groupId)
-								}
-								moveListFocus(event)
-							}}>
-							<GroupIcon url={row.group.iconUrl} />
-							<span class="flex min-w-0 flex-col leading-snug">
-								<strong
-									class="inline-flex min-w-0 items-center gap-1 text-xs font-semibold text-fg"
-									><span class="truncate">{row.group.name}</span
-									>{#if row.group.hasVerifiedBadge}<Icon
-											svg={sealCheckIcon}
-											class="shrink-0 text-fg-muted"
-											size={12}
-											aria-label="Verified group" />{/if}{#if store.myGroups?.primaryGroupId === row.group.groupId}<Icon
-											svg={starFillIcon}
-											class="shrink-0 animate-pop text-accent-strong"
-											size={12}
-											aria-label="Primary group" />{/if}</strong>
-								<span class="truncate text-2xs text-fg-muted"
-									>{row.detail}</span>
-							</span>
-						</button>
-					{/each}
-					{#if isSearchMode && store.searchCursor}
-						<LoadMore
-							pageKey={store.searchResults.length}
-							label="Load more results"
-							loadingLabel="Loading more results…"
-							isLoadingMore={store.isSearching}
-							hasFailed={!!store.searchError}
-							onLoadMore={() => void store.loadMoreSearchResults()} />
 					{/if}
+				</div>
+				{#if selection.isSelecting}
+					<SelectionToolbar
+						label="Selected groups"
+						selectedCount={selection.selectedCount}
+						isAllShownSelected={selection.areAllSelected(shownGroupIds)}
+						canSelectAll={shownGroupIds.length > 0}
+						onToggleAll={() => selection.toggleAll(shownGroupIds)}
+						onStop={() => selection.setSelecting(false)}>
+						<SelectionActionsMenu
+							noun="groups"
+							selectedCount={selection.selectedCount}
+							actions={selectionActions} />
+					</SelectionToolbar>
 				{/if}
 			</div>
 		</WorkbenchSidebar>
@@ -464,7 +572,7 @@
 			{:else}
 				{#key store.selectedGroupId}
 					<div class="animate-enter">
-						<GroupProfileView {store} {onOpenInBrowser} />
+						<GroupProfileView {store} />
 					</div>
 				{/key}
 			{/if}
@@ -494,7 +602,6 @@
 	<GroupContextMenu
 		{store}
 		menu={store.menu}
-		onOpenInBrowser={(pageUrl) => onOpenInBrowser(account.id, pageUrl)}
 		onLeave={(groupIds) => (leavingGroupIds = groupIds)} />
 {/if}
 

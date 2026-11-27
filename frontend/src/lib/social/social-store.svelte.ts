@@ -1,5 +1,10 @@
 import { Browser } from "@wailsio/runtime"
-import { copyFailureMessage, copyText } from "../shared/clipboard"
+import {
+	copyFailureMessage,
+	copyLines,
+	copyText,
+	notifyCopyFailure,
+} from "../shared/clipboard"
 import {
 	accountBackend,
 	FriendStatus,
@@ -19,7 +24,9 @@ import type { NotificationCenter } from "../notifications/notification-center.sv
 import { errorMessage } from "../shared/errors"
 import { matchesSearch, searchTerms } from "../shared/search"
 import { detailsKeepMs, isFresh } from "../shared/freshness"
+import { ListSelection } from "../shared/list-selection.svelte"
 import { menuPointFor } from "../shared/presence"
+import { robloxUserProfileUrl } from "../shared/roblox-pages"
 import type { PageLocationKeys } from "../layout/page-history"
 import { SectionLoad } from "../shared/section-load.svelte"
 import type { SectionFields } from "../shared/section-load.svelte"
@@ -184,6 +191,23 @@ export function isBulkRemovalList(list: SocialView): list is BulkRemovalList {
 	)
 }
 
+// SocialCopyField names a detail of a user that the selection copies.
+export type SocialCopyField = "displayName" | "username" | "userId" | "profileLink"
+
+const socialCopyLabels: Record<SocialCopyField, string> = {
+	displayName: "Display name",
+	username: "Username",
+	userId: "User ID",
+	profileLink: "Profile link",
+}
+
+function socialCopyValue(person: SocialUser, field: SocialCopyField): string {
+	if (field === "displayName") return personName(person)
+	if (field === "username") return person.username
+	if (field === "userId") return String(person.userId)
+	return robloxUserProfileUrl(person.userId)
+}
+
 function counted(count: number, singular: string, plural: string): string {
 	return `${count} ${count === 1 ? singular : plural}`
 }
@@ -280,8 +304,7 @@ export class SocialStore {
 	menu = $state<SocialMenu | null>(null)
 	error = $state("")
 	trustedOnly = $state(false)
-	selecting = $state(false)
-	selectedUserIds = $state<number[]>([])
+	readonly selection = new ListSelection<number>()
 	removingSelected = $state(false)
 	removeSelectedError = $state("")
 	pendingAction = $state<{ userId: number; action: RelationshipActionId } | null>(
@@ -336,43 +359,40 @@ export class SocialStore {
 
 	setTrustedOnly(trustedOnly: boolean): void {
 		this.trustedOnly = trustedOnly
-		this.selectedUserIds = []
+		this.selection.clear()
 	}
 
-	setSelecting(selecting: boolean): void {
-		this.selecting = selecting && this.canRemoveInBulk
-		this.selectedUserIds = []
+	setSelecting(isSelecting: boolean): void {
+		this.selection.setSelecting(isSelecting)
 		this.removeSelectedError = ""
-		if (this.selecting) this.closeMenu()
+		if (isSelecting) this.closeMenu()
 	}
 
-	// startSelectingWith turns on the selection with the users already selected,
-	// such as after Ctrl+click on a row, as the account list does.
-	startSelectingWith(userIds: (number | null)[]): void {
-		this.setSelecting(true)
-		if (this.selecting)
-			this.selectedUserIds = [
-				...new Set(userIds.filter((userId): userId is number => !!userId)),
-			]
+	get selectedPeople(): SocialUser[] {
+		return (this.page?.people ?? []).filter((person) =>
+			this.selection.has(person.userId),
+		)
 	}
 
-	toggleSelected(userId: number): void {
-		this.selectedUserIds = this.selectedUserIds.includes(userId)
-			? this.selectedUserIds.filter((selectedId) => selectedId !== userId)
-			: [...this.selectedUserIds, userId]
-	}
-
-	toggleAllVisible(): void {
-		const visible = this.people.map((person) => person.userId),
-			allSelected =
-				visible.length > 0 &&
-				visible.every((userId) => this.selectedUserIds.includes(userId))
-		this.selectedUserIds = allSelected ? [] : visible
+	async copySelectedField(field: SocialCopyField): Promise<void> {
+		const people = this.selectedPeople,
+			label = socialCopyLabels[field]
+		if (people.length === 0) return
+		if (
+			!(await copyLines(
+				this.notifications,
+				people.map((person) => socialCopyValue(person, field)),
+				label,
+				"users",
+			))
+		) {
+			notifyCopyFailure(this.notifications, label)
+		}
 	}
 
 	async removeSelected(): Promise<boolean> {
 		const list = this.list,
-			userIds = [...this.selectedUserIds]
+			userIds = [...this.selection.selectedKeys]
 		if (
 			this.removingSelected ||
 			userIds.length === 0 ||
@@ -396,8 +416,10 @@ export class SocialStore {
 			if (list === SocialList.SocialRequests && this.requestCount !== null) {
 				this.requestCount = Math.max(0, this.requestCount - removed.length)
 			}
-			this.selectedUserIds = this.selectedUserIds.filter(
-				(userId) => !removed.includes(userId),
+			this.selection.keepOnly(
+				this.selection.selectedKeys.filter(
+					(userId) => !removed.includes(userId),
+				),
 			)
 			if (removed.length > 0) {
 				this.notifications.show({
@@ -411,7 +433,7 @@ export class SocialStore {
 				this.removeSelectedError = `${counted(removal.failedCount, "user was", "users were")} not changed. ${removal.failureMessage}`
 				return false
 			}
-			this.selecting = false
+			this.selection.setSelecting(false)
 			return true
 		} catch (error) {
 			if (epoch === this.#epoch) {
@@ -1062,8 +1084,7 @@ export class SocialStore {
 		this.loadError = ""
 		this.closeMenu()
 		this.select(null)
-		this.selecting = false
-		this.selectedUserIds = []
+		this.selection.setSelecting(false)
 		this.removeSelectedError = ""
 		const cached = this.#pages.get(this.#key())
 		this.page = cached?.page ?? null
@@ -1125,8 +1146,8 @@ export class SocialStore {
 		this.savingNickname = this.menuRelationshipFailed = false
 		this.loadError = this.error = this.relationshipError = ""
 		this.nicknameError = ""
-		this.trustedOnly = this.selecting = this.removingSelected = false
-		this.selectedUserIds = []
+		this.trustedOnly = this.removingSelected = false
+		this.selection.setSelecting(false)
 		this.removeSelectedError = ""
 	}
 }

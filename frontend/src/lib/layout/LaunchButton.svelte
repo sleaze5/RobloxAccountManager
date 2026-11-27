@@ -1,8 +1,10 @@
 <script lang="ts">
 	import checkIcon from "@phosphor-icons/core/regular/check.svg?raw"
 	import circleNotchIcon from "@phosphor-icons/core/regular/circle-notch.svg?raw"
+	import copyIcon from "@phosphor-icons/core/regular/copy.svg?raw"
 	import playFillIcon from "@phosphor-icons/core/fill/play-fill.svg?raw"
 	import Icon from "../shared/Icon.svelte"
+	import MenuItem from "../shared/MenuItem.svelte"
 	import { onDestroy, tick } from "svelte"
 	import type { AccountStore } from "../accounts/account-store.svelte"
 	import { menuIn, menuOut, placeMenuAtPoint } from "../shared/presence"
@@ -148,15 +150,11 @@
 			}}
 			in:menuIn
 			out:menuOut>
-			<button
-				class="menu-item"
-				type="button"
-				role="menuitem"
-				tabindex="-1"
+			<MenuItem
+				label="Copy launch options"
+				icon={copyIcon}
 				{disabled}
-				onclick={() => void copyOptions()}>
-				<span>Copy launch options</span>
-			</button>
+				onSelect={() => void copyOptions()} />
 		</div>
 	{/if}
 </div>

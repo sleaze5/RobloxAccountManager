@@ -21,12 +21,8 @@
 	const copy = $derived(
 			isBulkRemovalList(store.list) ? bulkRemovalCopy[store.list] : null,
 		),
-		people = $derived(
-			(store.page?.people ?? []).filter((person) =>
-				store.selectedUserIds.includes(person.userId),
-			),
-		),
-		count = $derived(store.selectedUserIds.length),
+		people = $derived(store.selectedPeople),
+		count = $derived(store.selection.selectedCount),
 		previewLimit = 5
 
 	function close(): void {

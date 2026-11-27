@@ -1,5 +1,5 @@
 <script lang="ts">
-	import globeIcon from "@phosphor-icons/core/regular/globe.svg?raw"
+	import globeHemisphereWestIcon from "@phosphor-icons/core/regular/globe-hemisphere-west.svg?raw"
 	import hashIcon from "@phosphor-icons/core/regular/hash.svg?raw"
 	import linkIcon from "@phosphor-icons/core/regular/link.svg?raw"
 	import listPlusIcon from "@phosphor-icons/core/regular/list-plus.svg?raw"
@@ -9,236 +9,117 @@
 	import textTIcon from "@phosphor-icons/core/regular/text-t.svg?raw"
 	import userCircleIcon from "@phosphor-icons/core/regular/user-circle.svg?raw"
 	import usersThreeIcon from "@phosphor-icons/core/regular/users-three.svg?raw"
-	import Icon from "../shared/Icon.svelte"
-	import { floatMenuAtPoint, menuIn, menuKeyboard, menuOut } from "../shared/presence"
+	import MenuItem from "../shared/MenuItem.svelte"
+	import MenuSection from "../shared/MenuSection.svelte"
+	import PointMenu from "../shared/PointMenu.svelte"
+	import {
+		getRobloxPageOpener,
+		openInBrowserUnavailableReason,
+		robloxGameUrl,
+	} from "../shared/roblox-pages"
 	import type { GameMenu, GamesStore } from "./games-store.svelte"
 
 	let {
 		store,
 		menu,
-		canOpenInBrowser,
 		onFillLaunch,
-		onOpenInBrowser,
 	}: {
 		store: GamesStore
 		menu: GameMenu
-		canOpenInBrowser: boolean
 		onFillLaunch: (placeId: number) => void
-		onOpenInBrowser: (pageUrl: string) => void
 	} = $props()
+	const robloxPages = getRobloxPageOpener()
 	const place = $derived(menu.place),
-		gameUrl = $derived(`https://www.roblox.com/games/${place.placeId}`),
+		gameUrl = $derived(robloxGameUrl(place.placeId)),
 		favorite = $derived(store.isFavorite(place.placeId)),
 		group = $derived(place.creatorType === "Group"),
 		owner = $derived(group ? "Group" : "Creator"),
-		places = $derived(menu.places),
-		hasUnfavoritedPlace = $derived(
-			places.some((listedPlace) => !store.isFavorite(listedPlace.placeId)),
-		),
-		hasFavoritePlace = $derived(
-			places.some((listedPlace) => store.isFavorite(listedPlace.placeId)),
-		),
 		favoriteBusy = $derived(
 			store.savingFavorite || store.savingNickname || !store.favoritesLoaded,
 		)
-
-	function handleWindowClick(event: MouseEvent): void {
-		if (
-			event.target instanceof Element &&
-			event.target.closest("[data-game-menu]")
-		) {
-			return
-		}
-		store.closeMenu()
-	}
 </script>
 
-<svelte:window
-	onclick={handleWindowClick}
-	onkeydown={(event) => {
-		if (event.key === "Escape") store.closeMenu()
-	}} />
-
-<div
-	class="fixed menu"
-	role="group"
-	aria-label={places.length > 1
-		? `${places.length} games actions`
-		: `${store.displayName(place)} actions`}
-	tabindex="-1"
-	data-game-menu
-	use:floatMenuAtPoint={menu}
-	use:menuKeyboard
-	in:menuIn
-	out:menuOut>
-	{#if places.length > 1}
-		{#if hasUnfavoritedPlace}
-			<button
-				class="menu-item"
-				type="button"
-				disabled={favoriteBusy}
-				onclick={() => void store.changeFavorites(places, true)}
-				><Icon svg={starIcon} size={16} aria-hidden="true" /><span
-					>Add {places.length} games to favorites</span
-				></button>
-		{/if}
-		<div role="group" aria-label="Copy game details">
-			<div class="menu-heading" aria-hidden="true">Copy</div>
-			<button
-				class="menu-item"
-				type="button"
-				aria-label="Copy place IDs"
-				onclick={() =>
-					void store.copy(
-						places.map((listedPlace) => listedPlace.placeId).join("\n"),
-						"Place IDs",
-					)}
-				><Icon svg={hashIcon} size={16} aria-hidden="true" /><span
-					>Place IDs</span
-				></button>
-			<button
-				class="menu-item"
-				type="button"
-				aria-label="Copy game links"
-				onclick={() =>
-					void store.copy(
-						places
-							.map(
-								(listedPlace) =>
-									`https://www.roblox.com/games/${listedPlace.placeId}`,
-							)
-							.join("\n"),
-						"Game links",
-					)}
-				><Icon svg={linkIcon} size={16} aria-hidden="true" /><span
-					>Game links</span
-				></button>
-		</div>
-		{#if hasFavoritePlace}
-			<div class="menu-separator"></div>
-			<button
-				class="menu-item-danger"
-				type="button"
-				disabled={favoriteBusy}
-				onclick={() => void store.changeFavorites(places, false)}
-				><Icon svg={starFillIcon} size={16} aria-hidden="true" /><span
-					>Remove {places.length} games from favorites</span
-				></button>
-		{/if}
+<PointMenu
+	label={`${store.displayName(place)} actions`}
+	point={menu}
+	owner="data-game-menu"
+	onClose={() => store.closeMenu()}>
+	<MenuItem
+		label="Fill launch options"
+		icon={listPlusIcon}
+		onSelect={() => {
+			const { placeId } = place
+			store.closeMenu()
+			onFillLaunch(placeId)
+		}} />
+	{#if favorite}
+		<MenuItem
+			label={store.nicknameFor(place.placeId) ? "Edit nickname" : "Add nickname"}
+			icon={pencilLineIcon}
+			onSelect={() => store.editNickname(place)} />
 	{:else}
-		<button
-			class="menu-item"
-			type="button"
-			onclick={() => {
-				const { placeId } = place
-				store.closeMenu()
-				onFillLaunch(placeId)
-			}}
-			><Icon svg={listPlusIcon} size={16} aria-hidden="true" /><span
-				>Fill launch options</span
-			></button>
-		{#if favorite}
-			<button
-				class="menu-item"
-				type="button"
-				onclick={() => store.editNickname(place)}
-				><Icon svg={pencilLineIcon} size={16} aria-hidden="true" /><span
-					>{store.nicknameFor(place.placeId)
-						? "Edit nickname"
-						: "Add nickname"}</span
-				></button>
-		{:else}
-			<button
-				class="menu-item"
-				type="button"
-				disabled={favoriteBusy}
-				onclick={() => void store.toggleFavorite(place)}
-				><Icon svg={starIcon} size={16} aria-hidden="true" /><span
-					>Add to favorites</span
-				></button>
-		{/if}
-		<button
-			class="menu-item"
-			type="button"
-			disabled={!canOpenInBrowser}
-			onclick={() => {
-				const pageUrl = gameUrl
-				store.closeMenu()
-				onOpenInBrowser(pageUrl)
-			}}
-			><Icon svg={globeIcon} size={16} aria-hidden="true" /><span
-				>Open in browser</span
-			></button>
-
-		<div role="group" aria-label="Copy game details">
-			<div class="menu-heading" aria-hidden="true">Copy</div>
-			<button
-				class="menu-item"
-				type="button"
-				aria-label="Copy game name"
-				onclick={() => void store.copy(place.name, "Game name")}
-				><Icon svg={textTIcon} size={16} aria-hidden="true" /><span>Name</span
-				></button>
-			<button
-				class="menu-item"
-				type="button"
-				aria-label="Copy place ID"
-				onclick={() => void store.copy(place.placeId, "Place ID")}
-				><Icon svg={hashIcon} size={16} aria-hidden="true" /><span
-					>Place ID</span
-				></button>
-			<button
-				class="menu-item"
-				type="button"
-				aria-label="Copy game link"
-				onclick={() => void store.copy(gameUrl, "Game link")}
-				><Icon svg={linkIcon} size={16} aria-hidden="true" /><span
-					>Game link</span
-				></button>
-			<button
-				class="menu-item"
-				type="button"
-				aria-label="Copy universe ID"
-				disabled={!place.universeId}
-				onclick={() => void store.copy(place.universeId, "Universe ID")}
-				><Icon svg={hashIcon} size={16} aria-hidden="true" /><span
-					>Universe ID</span
-				></button>
-			<button
-				class="menu-item"
-				type="button"
-				aria-label={`Copy ${owner.toLowerCase()} name`}
-				disabled={!place.creatorName}
-				onclick={() => void store.copy(place.creatorName, `${owner} name`)}>
-				{#if group}<Icon
-						svg={usersThreeIcon}
-						size={16}
-						aria-hidden="true" />{:else}<Icon
-						svg={userCircleIcon}
-						size={16}
-						aria-hidden="true" />{/if}
-				<span>{owner} name</span>
-			</button>
-			<button
-				class="menu-item"
-				type="button"
-				aria-label={`Copy ${owner.toLowerCase()} ID`}
-				disabled={!place.creatorId}
-				onclick={() => void store.copy(place.creatorId, `${owner} ID`)}
-				><Icon svg={hashIcon} size={16} aria-hidden="true" /><span
-					>{owner} ID</span
-				></button>
-		</div>
-		{#if favorite}
-			<div class="menu-separator"></div>
-			<button
-				class="menu-item-danger"
-				type="button"
-				disabled={favoriteBusy}
-				onclick={() => void store.toggleFavorite(place)}
-				><Icon svg={starFillIcon} size={16} aria-hidden="true" /><span
-					>Remove from favorites</span
-				></button>
-		{/if}
+		<MenuItem
+			label="Add to favorites"
+			icon={starIcon}
+			disabled={favoriteBusy}
+			onSelect={() => void store.toggleFavorite(place)} />
 	{/if}
-</div>
+	<MenuItem
+		label="Open in browser"
+		icon={globeHemisphereWestIcon}
+		disabled={!robloxPages.canOpen}
+		tooltip={robloxPages.canOpen ? undefined : openInBrowserUnavailableReason}
+		onSelect={() => {
+			const pageUrl = gameUrl
+			store.closeMenu()
+			robloxPages.open(pageUrl)
+		}} />
+
+	<MenuSection heading="Copy" accessibleLabel="Copy game details">
+		<MenuItem
+			label="Name"
+			icon={textTIcon}
+			accessibleLabel="Copy game name"
+			onSelect={() => void store.copy(place.name, "Game name")} />
+		<MenuItem
+			label="Place ID"
+			icon={hashIcon}
+			detail={String(place.placeId)}
+			accessibleLabel="Copy place ID"
+			onSelect={() => void store.copy(place.placeId, "Place ID")} />
+		<MenuItem
+			label="Universe ID"
+			icon={hashIcon}
+			detail={place.universeId ? String(place.universeId) : ""}
+			accessibleLabel="Copy universe ID"
+			disabled={!place.universeId}
+			onSelect={() => void store.copy(place.universeId, "Universe ID")} />
+		<MenuItem
+			label={`${owner} name`}
+			icon={group ? usersThreeIcon : userCircleIcon}
+			accessibleLabel={`Copy ${owner.toLowerCase()} name`}
+			disabled={!place.creatorName}
+			onSelect={() => void store.copy(place.creatorName, `${owner} name`)} />
+		<MenuItem
+			label={`${owner} ID`}
+			icon={hashIcon}
+			detail={place.creatorId ? String(place.creatorId) : ""}
+			accessibleLabel={`Copy ${owner.toLowerCase()} ID`}
+			disabled={!place.creatorId}
+			onSelect={() => void store.copy(place.creatorId, `${owner} ID`)} />
+		<MenuItem
+			label="Game link"
+			icon={linkIcon}
+			accessibleLabel="Copy game link"
+			onSelect={() => void store.copy(gameUrl, "Game link")} />
+	</MenuSection>
+	{#if favorite}
+		<div class="menu-separator"></div>
+		<MenuItem
+			label="Remove from favorites"
+			icon={starFillIcon}
+			tone="danger"
+			disabled={favoriteBusy}
+			onSelect={() => void store.toggleFavorite(place)} />
+	{/if}
+</PointMenu>

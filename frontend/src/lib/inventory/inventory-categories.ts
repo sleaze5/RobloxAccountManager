@@ -14,7 +14,15 @@ import smileyIcon from "@phosphor-icons/core/regular/smiley.svg?raw"
 import swordIcon from "@phosphor-icons/core/regular/sword.svg?raw"
 import tShirtIcon from "@phosphor-icons/core/regular/t-shirt.svg?raw"
 import ticketIcon from "@phosphor-icons/core/regular/ticket.svg?raw"
-import { InventoryCategory } from "../backend/bridge"
+import { CatalogItemType, InventoryCategory } from "../backend/bridge"
+import type { InventoryItem } from "../backend/bridge"
+import {
+	robloxBadgeUrl,
+	robloxBundleUrl,
+	robloxCatalogItemUrl,
+	robloxGamePassUrl,
+	robloxGameUrl,
+} from "../shared/roblox-pages"
 
 export interface InventoryCategoryOption {
 	id: InventoryCategory
@@ -285,4 +293,25 @@ const typeLabels: Record<string, string> = {
 
 export function inventoryTypeLabel(typeName: string): string {
 	return typeLabels[typeName] ?? ""
+}
+
+// inventoryItemPage names the ID of an item and the Roblox page that shows
+// it. An asset outside the catalog, such as a decal, opens its catalog page,
+// which Roblox sends to the page of its kind.
+export function inventoryItemPage(
+	categoryId: InventoryCategory,
+	item: InventoryItem,
+): { idLabel: string; pageUrl: string } {
+	if (categoryId === InventoryCategory.InventoryBadges)
+		return { idLabel: "Badge ID", pageUrl: robloxBadgeUrl(item.itemId) }
+	if (categoryId === InventoryCategory.InventoryGamePasses)
+		return { idLabel: "Game pass ID", pageUrl: robloxGamePassUrl(item.itemId) }
+	if (categoryId === InventoryCategory.InventoryPlaces)
+		return { idLabel: "Place ID", pageUrl: robloxGameUrl(item.itemId) }
+	if (
+		categoryId === InventoryCategory.InventoryBundles ||
+		item.catalogItemType === CatalogItemType.CatalogBundle
+	)
+		return { idLabel: "Bundle ID", pageUrl: robloxBundleUrl(item.itemId) }
+	return { idLabel: "Asset ID", pageUrl: robloxCatalogItemUrl(item.itemId) }
 }

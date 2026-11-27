@@ -160,7 +160,10 @@
 </script>
 
 <div
-	class="relative min-h-0 scrollbar-stable overflow-y-auto"
+	class={[
+		"relative min-h-0 scrollbar-stable overflow-y-auto",
+		store.isAccountSelectionShown && "pb-12",
+	]}
 	data-list
 	aria-busy={store.loadingAccounts || store.loadingMore}
 	data-load-more-root>
@@ -184,7 +187,7 @@
 			oncontextmenu={(event) => openContextMenu(event, account.id)}
 			ondragover={(event) => updateDropTarget(event, account.id)}
 			ondrop={(event) => dropAccount(event, account.id)}>
-			{#if store.multipleSelected}
+			{#if store.isAccountSelectionShown}
 				<span class={["checkbox ml-2", tall && "mt-4 self-start"]}>
 					<input
 						type="checkbox"
@@ -193,7 +196,11 @@
 						onkeydown={(event) => handleContextKey(event, account.id)}
 						onchange={(event) => {
 							selectAccount(account.id, true)
-							if (!store.multipleSelected) {
+							// The last selected account stays selected, so its
+							// box shows the selection again.
+							event.currentTarget.checked =
+								store.selectedAccountIds.includes(account.id)
+							if (!store.isAccountSelectionShown) {
 								event.currentTarget
 									.closest("[data-account-row]")
 									?.querySelector<HTMLButtonElement>("button")
@@ -225,7 +232,10 @@
 				aria-keyshortcuts="Control+Shift+ArrowUp Control+Shift+ArrowDown"
 				aria-label={`${account.displayName} (@${account.username}), ${moderated ? moderationLabel(account.moderation) : presenceLabel(account.presence)}${attention ? `, ${attention}` : ""}${account.favorite ? ", favorite" : ""}${account.voiceSuspension ? ", voice chat suspended" : ""}`}
 				onclick={(event) =>
-					selectAccount(account.id, event.ctrlKey || event.metaKey)}
+					selectAccount(
+						account.id,
+						event.ctrlKey || event.metaKey || store.isSelectingAccounts,
+					)}
 				onkeydown={(event) => {
 					handleContextKey(event, account.id)
 					void moveWithKeyboard(event, account.id)

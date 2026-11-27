@@ -484,7 +484,7 @@
 					type="button"
 					aria-label="More actions"
 					aria-expanded={workspace.accountContextMenu?.accountId ===
-						selectedAccount.id}
+						selectedAccount.id && !workspace.accountContextMenu.anchor}
 					data-tooltip="More actions"
 					data-tooltip-side="bottom-end"
 					disabled={!hasAccount}

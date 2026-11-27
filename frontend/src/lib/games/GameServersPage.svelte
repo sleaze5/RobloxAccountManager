@@ -184,7 +184,7 @@
 		}
 	}
 
-	function linkActions(link: string): MenuAction[] {
+	function fillLaunchLinkActions(link: string): MenuAction[] {
 		return link
 			? [
 					{
@@ -192,9 +192,18 @@
 						icon: listPlusIcon,
 						onSelect: select(() => onFillLaunchLink(link)),
 					},
+				]
+			: []
+	}
+
+	function copyLaunchLinkActions(link: string): MenuAction[] {
+		return link
+			? [
 					{
-						label: "Copy launch link",
+						label: "Launch link",
 						icon: linkIcon,
+						section: "Copy",
+						accessibleLabel: "Copy launch link",
 						onSelect: select(() => void store.copy(link, "Launch link")),
 					},
 				]
@@ -232,19 +241,21 @@
 							),
 						},
 						{
-							label: "Copy launch link",
+							label: "Open on RBXServers",
+							icon: arrowSquareOutIcon,
+							onSelect: select(() => void store.openLink(server.url)),
+						},
+						{
+							label: "Launch link",
 							icon: linkIcon,
+							section: "Copy",
+							accessibleLabel: "Copy launch link",
 							onSelect: select(
 								() =>
 									void withListedLink(server.id, (link) =>
 										store.copy(link, "Launch link"),
 									),
 							),
-						},
-						{
-							label: "Open on RBXServers",
-							icon: arrowSquareOutIcon,
-							onSelect: select(() => void store.openLink(server.url)),
 						},
 					]
 				: []
@@ -255,11 +266,12 @@
 			)
 			if (!server) return []
 			return [
-				...linkActions(server.launchLink),
+				...fillLaunchLinkActions(server.launchLink),
+				...copyLaunchLinkActions(server.launchLink),
 				{
 					label: "Remove link",
 					icon: trashIcon,
-					danger: true,
+					tone: "danger",
 					onSelect: select(() => (removingLink = server)),
 				},
 			]
@@ -271,7 +283,7 @@
 				account = accounts.selectedAccount
 			if (!server) return []
 			return [
-				...linkActions(server.launchLink),
+				...fillLaunchLinkActions(server.launchLink),
 				...(server.owned
 					? [
 							{
@@ -289,6 +301,7 @@
 							},
 						]
 					: []),
+				...copyLaunchLinkActions(server.launchLink),
 			]
 		}
 		return robloxServerActions(key)
@@ -316,8 +329,10 @@
 				onSelect: select(() => onFillLaunch(placeId, jobId)),
 			},
 			{
-				label: "Copy job ID",
+				label: "Job ID",
 				icon: hashIcon,
+				section: "Copy",
+				accessibleLabel: "Copy job ID",
 				onSelect: select(() => void store.copy(jobId, "Job ID")),
 			},
 		]
