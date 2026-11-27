@@ -4,6 +4,28 @@ These rules apply to all text in the project: UI text, notifications, errors, lo
 
 Write every text as simply and as shortly as possible. Remove words, not information. A short text that loses a fact that the reader needs is wrong.
 
+## Shorten every text
+
+Verbose text is a defect. After you write a text, read it again and ask: "Can I say this with fewer words?" If yes, rewrite it and ask again. Stop only when each word is necessary.
+
+- Remove words that repeat the label, the heading, or the context. Under the heading "Cookie", write "Expires in 3 days", not "The cookie expires in 3 days".
+- Remove filler: "please", "simply", "just", "currently", "successfully", "in order to", "at this time", "note that", "make sure to".
+- Remove a sentence that tells the reader what they already know or can see.
+- Use one sentence when one sentence is enough. Use a short label when a label is enough.
+- Prefer the shorter word with the same meaning: "use", not "make use of". "Can", not "is able to". "Now", not "at this point in time".
+
+Short text is not vague text. Do not remove the term, the number, or the cause that the reader needs.
+
+## Tone
+
+Write like a precise, friendly expert who respects the reader's time.
+
+- Be precise, not dumbed down. Name the exact problem with the correct term: "Roblox rejected the cookie", not "Something went wrong with your account".
+- Be simple. A new user must understand the text without help. Explain a term only when the user must act on it, and use as few words as possible.
+- Be friendly. Use a calm, direct voice. Say what happened and what to do. Do not blame, apologize, joke, or alarm.
+- Satisfy the advanced user. Keep the exact value, limit, code, or setting name that an advanced user needs. A new user can skip it, but must not need it to understand the text.
+- Write to the user as "you" only when the text tells the user to do something or is about their own data. Name the account when the text is about a saved account.
+
 Rules for one kind of text are in these files. They add to this file:
 
 - UI text: Writing and Capitalization in [DESIGN.md](./DESIGN.md#writing)
@@ -77,7 +99,10 @@ UI text must be clear to a user who does not know how the app works, and precise
 
 ## Logs
 
+Logs are for developers and advanced users. They can be more technical and more direct than UI text.
+
 - Write log messages in lowercase, as [ARCHITECTURE.md](./ARCHITECTURE.md#logging) describes.
+- Use technical terms, such as endpoint names, status codes, and Go error text, in attributes. Keep the message itself short.
 - Use the glossary terms. Write "could not join the server", not "could not join the instance".
 - Put details in attributes, not in the message.
 
@@ -113,8 +138,10 @@ Sentences:
 
 Content:
 
-- [ ] **Short:** No word can be removed without loss of a fact or of clarity.
+- [ ] **Shortened:** You read the text again and asked "Can I say this with fewer words?" No word, phrase, or sentence can be removed without loss of a fact or of clarity.
+- [ ] **No filler:** No "please", "simply", "just", "currently", "successfully", "in order to", or words that repeat the label or heading.
+- [ ] **Tone:** The text is precise, simple, and friendly. It names the exact problem with the correct term, and it does not blame, apologize, or alarm.
 - [ ] **Complete:** Each fact that the reader needs to act is still there, such as an ID, a limit, a code, or a recovery step.
-- [ ] **UI level:** UI text is clear to a new user and precise for a power user. It shows no internal terms.
+- [ ] **UI level:** UI text is clear to a new user and precise for an advanced user. It is not dumbed down, and it shows no internal terms.
 - [ ] **Purpose:** A comment states a fact that the code cannot show.
 - [ ] **Kind of text:** The text also follows the rules for its kind in [DESIGN.md](./DESIGN.md#writing), [ARCHITECTURE.md](./ARCHITECTURE.md), or [GIT.md](./GIT.md).
