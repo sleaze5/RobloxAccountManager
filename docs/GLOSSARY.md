@@ -41,6 +41,7 @@ Use these terms in all text, as [WRITING.md](./WRITING.md) describes. Each term 
 | follower               | A user who follows the account. The list is "Followers".                                                                                                     | fan, subscriber                                   |
 | following              | A user that the account follows. The list is "Following".                                                                                                    | followed user, followings                         |
 | mutual                 | A user who follows the account and whom the account follows. The app infers it from Followers and Following. The list and the badge are "Mutuals".           | mutual follower, mutual friend, mutual connection |
+| friends in common      | Friends that the account and a user both have.                                                                                                               | mutual friends                                    |
 | friend request         | A request to become friends.                                                                                                                                 | connection request, invite                        |
 | trusted friend request | A request from a friend to become trusted friends.                                                                                                           | trusted connection request, trusted request       |
 | incoming               | Sent by a user to the account, such as an incoming friend request.                                                                                           | received, inbound                                 |
@@ -70,6 +71,7 @@ Use these terms in all text, as [WRITING.md](./WRITING.md) describes. Each term 
 | role         | The rank of a member in a group.          | rank (in UI text)     |
 | owner        | The user who owns a group, game, or item. | creator (for a group) |
 | join request | A request from a user to join a group.    | membership request    |
+| group chat   | A Roblox chat with more than 2 users.     | group (for a chat)    |
 
 ## Roblox programs
 
