@@ -651,14 +651,11 @@ export type ServerDetailsState =
 export class ServerDetailsLoader {
 	readonly #states = new SvelteMap<string, ServerDetailsState>()
 	readonly #fetchedAt = new Map<string, number>()
-	readonly #queue: string[] = []
+	readonly #queue: { placeId: number; serverId: string }[] = []
 	readonly #requests = new Set<CancellableRequest<GameServerDetails>>()
 	#accountId: number
 
-	constructor(
-		readonly placeId: number,
-		accountId: number,
-	) {
+	constructor(accountId: number) {
 		this.#accountId = accountId
 	}
 
@@ -674,14 +671,16 @@ export class ServerDetailsLoader {
 		this.#fetchedAt.clear()
 	}
 
-	request(serverId: string): void {
+	// request asks about a server of the place. A friend's server can belong
+	// to another place of the universe.
+	request(placeId: number, serverId: string): void {
 		if (!this.#accountId) return
 		const state = this.#states.get(serverId),
 			fetchedAt = this.#fetchedAt.get(serverId) ?? 0
 		if (state?.status === "loading") return
 		if (state && Date.now() - fetchedAt < serverDetailsKeepMs) return
 		this.#states.set(serverId, { status: "loading" })
-		this.#queue.push(serverId)
+		this.#queue.push({ placeId, serverId })
 		this.#next()
 	}
 
@@ -697,13 +696,14 @@ export class ServerDetailsLoader {
 
 	#next(): void {
 		while (this.#requests.size < serverDetailsRequestLimit && this.#queue.length) {
-			void this.#load(this.#queue.shift()!)
+			const { placeId, serverId } = this.#queue.shift()!
+			void this.#load(placeId, serverId)
 		}
 	}
 
-	async #load(serverId: string): Promise<void> {
+	async #load(placeId: number, serverId: string): Promise<void> {
 		const request = accountBackend.GetGameServerDetails(
-			this.placeId,
+			placeId,
 			this.#accountId,
 			serverId,
 		)
@@ -730,7 +730,7 @@ export class ServerDetailsLoader {
 	dispose(): void {
 		for (const request of this.#requests) void request.cancel()
 		this.#requests.clear()
-		for (const serverId of this.#queue) this.#states.delete(serverId)
+		for (const { serverId } of this.#queue) this.#states.delete(serverId)
 		this.#queue.length = 0
 	}
 }
@@ -811,7 +811,7 @@ export class PlaceServers {
 		this.listed = new ListedServers(placeId, caches.listedPages)
 		this.saved = new SavedServers(placeId)
 		this.stats = new ServerStatsLoader(placeId)
-		this.details = new ServerDetailsLoader(placeId, accountId)
+		this.details = new ServerDetailsLoader(accountId)
 	}
 
 	dispose(): void {

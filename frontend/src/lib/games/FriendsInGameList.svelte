@@ -2,32 +2,42 @@
 	import { notifyErrors } from "../notifications/error-notifications.svelte"
 	import eyeSlashIcon from "@phosphor-icons/core/regular/eye-slash.svg?raw"
 	import usersIcon from "@phosphor-icons/core/regular/users.svg?raw"
-	import type { FriendInServer, FriendPlace } from "../backend/bridge"
+	import type { FriendInServer, FriendPlace, GameServer } from "../backend/bridge"
 	import Icon from "../shared/Icon.svelte"
-	import ProfileImage from "../shared/ProfileImage.svelte"
 	import Skeleton from "../shared/Skeleton.svelte"
-	import ServerActionsButton from "./ServerActionsButton.svelte"
-	import type { FriendsInGameLoader } from "./game-servers-state.svelte"
-	import { friendServerKey, openServerMenuFromRow } from "./server-row-menu"
+	import ServerFriend from "./ServerFriend.svelte"
+	import ServerTile from "./ServerTile.svelte"
+	import type {
+		FriendsInGameLoader,
+		ServerDetailsLoader,
+	} from "./game-servers-state.svelte"
+	import { friendServerKey } from "./server-row-menu"
 	import type { ServerMenuOpener } from "./server-row-menu"
 
+	// FriendsInGameList shows the servers of the shown account's friends as
+	// server tiles, by place. A server that the Roblox list also loaded shows
+	// its players, ping, and FPS.
 	let {
 		friendsInGame,
+		details,
 		placeId,
+		listedServerById,
+		newestVersion,
 		activeKey,
 		menuID,
 		onMenu,
 	}: {
 		friendsInGame: FriendsInGameLoader
+		details: ServerDetailsLoader
 		placeId: number
+		listedServerById: Map<string, GameServer>
+		newestVersion: number
 		activeKey: string | undefined
 		menuID: string
 		onMenu: ServerMenuOpener
 	} = $props()
 
-	// Four avatars and a count fit the fixed avatar column, so names line up.
-	const maxShownAvatars = 4,
-		headingID = $props.id(),
+	const headingID = $props.id(),
 		friends = $derived(friendsInGame.friends),
 		places = $derived(friends?.places ?? []),
 		friendsInHiddenPlaces = $derived(friends?.friendsInHiddenPlaces ?? []),
@@ -52,68 +62,39 @@
 	notifyErrors("Friends not loaded", () => friendsInGame.error)
 </script>
 
-{#snippet avatars(shownFriends: FriendInServer[])}
+{#snippet hiddenFriends(hidden: FriendInServer[], reason: string)}
 	<div
-		class="flex w-24 shrink-0 items-center"
-		aria-label={friendCountLabel(shownFriends.length)}>
-		{#each shownFriends.slice(0, maxShownAvatars) as friend (friend.userId)}
-			<span
-				class="grid size-6 shrink-0 place-items-center overflow-hidden rounded-full border border-canvas bg-raised text-fg-faint not-first:-ml-1.5"
-				><ProfileImage url={friend.imageUrl} /></span>
-		{/each}
-		{#if shownFriends.length > maxShownAvatars}
-			<span class="ml-1 font-mono text-2xs text-fg-muted"
-				>+{shownFriends.length - maxShownAvatars}</span>
-		{/if}
+		class="flex flex-col gap-2 rounded-lg border border-line-subtle bg-surface p-3">
+		<p class="flex items-center gap-1.5 text-2xs text-fg-muted">
+			<Icon svg={eyeSlashIcon} size={12} aria-hidden="true" />
+			{reason}
+		</p>
+		<ul
+			class="flex min-w-0 flex-wrap gap-1.5"
+			aria-label={friendCountLabel(hidden.length)}>
+			{#each hidden as friend (friend.userId)}
+				<li class="min-w-0"><ServerFriend {friend} /></li>
+			{/each}
+		</ul>
 	</div>
 {/snippet}
 
-{#snippet names(shownFriends: FriendInServer[])}
-	<span
-		class="truncate text-xs font-medium text-fg"
-		data-tooltip={shownFriends
-			.map((friend) => `${friend.displayName} (@${friend.username})`)
-			.join(", ")}
-		>{shownFriends.map((friend) => friend.displayName).join(", ")}</span>
-{/snippet}
-
-{#snippet hiddenRow(hiddenFriends: FriendInServer[], reason: string)}
-	<li class="flex h-11 items-center gap-3 border-t border-line-subtle bg-canvas px-3">
-		{@render avatars(hiddenFriends)}
-		<div class="flex min-w-0 flex-1 flex-col">
-			{@render names(hiddenFriends)}
-			<span class="flex items-center gap-1 truncate text-2xs text-fg-faint">
-				<Icon svg={eyeSlashIcon} size={12} aria-hidden="true" />
-				{reason}
-			</span>
-		</div>
-	</li>
-{/snippet}
-
-{#snippet groupHeading(
-	id: string,
-	name: string,
-	kind: string,
-	count: number,
-	detail: string,
-)}
-	<h3
-		{id}
-		class="flex h-7 items-center gap-2 border-t border-line-subtle bg-raised px-3 text-2xs text-fg-muted">
+{#snippet placeHeading(id: string, name: string, detail: string, count: number)}
+	<h3 {id} class="flex min-w-0 items-center gap-2 text-2xs text-fg-muted">
 		<span class="min-w-0 truncate font-semibold text-fg">{name}</span>
-		{#if kind}<span class="shrink-0">{kind}</span>{/if}
+		{#if detail}<span class="shrink-0">{detail}</span>{/if}
 		<span class="ml-auto shrink-0 font-mono text-fg-faint"
-			>{detail ? `${detail} · ` : ""}{friendCountLabel(count)}</span>
+			>{friendCountLabel(count)}</span>
 	</h3>
 {/snippet}
 
 <section
-	class="flex max-h-64 shrink-0 flex-col border-b border-line-subtle"
+	class="flex flex-col gap-2 border-b border-line-subtle p-3"
 	aria-labelledby={headingID}
 	aria-busy={friendsInGame.loading}>
 	<h2
 		id={headingID}
-		class="flex items-center gap-1.5 px-3 pt-2 pb-1.5 text-xs font-semibold text-fg-muted">
+		class="flex items-center gap-1.5 text-xs font-semibold text-fg-muted">
 		<Icon svg={usersIcon} size={14} aria-hidden="true" />
 		Friends in this game
 		{#if friendCount > 0}
@@ -123,86 +104,90 @@
 	</h2>
 	{#if !friends}
 		{#if !friendsInGame.error}
-			<p class="px-3 pb-2 text-xs">
+			<p class="text-xs">
 				<Skeleton className="w-48" label="Loading friends in this game…" />
 			</p>
 		{/if}
 	{:else if friendCount === 0}
-		<p class="px-3 pb-2 text-xs text-fg-muted" role="status">
+		<p class="text-xs text-fg-muted" role="status">
 			No friends are playing this game.
 		</p>
 	{:else}
-		<div class="min-h-0 scrollbar-stable overflow-y-auto">
-			{#each places as friendPlace (friendPlace.placeId)}
-				{@const groupID = `${headingID}-place-${friendPlace.placeId}`}
-				{@const hiddenFriends = friendPlace.friendsInHiddenServers ?? []}
-				<section aria-labelledby={groupID}>
-					{@render groupHeading(
-						groupID,
-						friendPlace.name,
-						friendPlace.isRootPlace ? "Root place" : "Subplace",
-						placeFriendCount(friendPlace),
-						friendPlace.placeId === placeId
-							? "This place"
-							: `Place ID: ${friendPlace.placeId}`,
-					)}
-					<ol aria-label={`Servers in ${friendPlace.name}`}>
-						{#each friendPlace.servers ?? [] as server (server.serverId)}
-							{@const key = friendServerKey(
-								friendPlace.placeId,
-								server.serverId,
-							)}
-							{@const serverFriends = server.friends ?? []}
-							<li
-								class="flex h-11 items-center gap-3 border-t border-line-subtle bg-canvas px-3 transition-colors duration-75 hover:bg-hover data-open:bg-hover"
-								data-open={activeKey === key || undefined}
-								oncontextmenu={(event) =>
-									openServerMenuFromRow(event, key, onMenu)}>
-								{@render avatars(serverFriends)}
-								<div class="flex min-w-0 flex-1 flex-col">
-									{@render names(serverFriends)}
-									<span
-										class="truncate font-mono text-2xs text-fg-faint select-text"
-										>{server.serverId}</span>
-								</div>
-								<ServerActionsButton
-									open={activeKey === key}
-									{menuID}
-									onMenu={(trigger, toggle) =>
-										onMenu(key, trigger, toggle)} />
-							</li>
+		{#each places as friendPlace (friendPlace.placeId)}
+			{@const groupID = `${headingID}-place-${friendPlace.placeId}`}
+			{@const hidden = friendPlace.friendsInHiddenServers ?? []}
+			<section class="flex flex-col gap-2" aria-labelledby={groupID}>
+				{@render placeHeading(
+					groupID,
+					friendPlace.name,
+					friendPlace.placeId === placeId
+						? "This place"
+						: friendPlace.isRootPlace
+							? "Root place"
+							: "Subplace",
+					placeFriendCount(friendPlace),
+				)}
+				{#if friendPlace.servers?.length}
+					<ol
+						class="flex flex-col gap-2"
+						aria-label={`Servers in ${friendPlace.name}`}>
+						{#each friendPlace.servers as server (server.serverId)}
+							{@const listed =
+								friendPlace.placeId === placeId
+									? listedServerById.get(server.serverId)
+									: undefined}
+							<ServerTile
+								serverId={server.serverId}
+								menuKey={friendServerKey(
+									friendPlace.placeId,
+									server.serverId,
+								)}
+								friends={server.friends ?? []}
+								server={listed}
+								record={listed?.record ?? null}
+								details={details.get(server.serverId)}
+								{newestVersion}
+								isMenuOpen={activeKey ===
+									friendServerKey(
+										friendPlace.placeId,
+										server.serverId,
+									)}
+								{menuID}
+								{onMenu}
+								onVisible={() =>
+									details.request(
+										friendPlace.placeId,
+										server.serverId,
+									)} />
 						{/each}
-						{#if hiddenFriends.length > 0}
-							{@render hiddenRow(
-								hiddenFriends,
-								hiddenFriends.length === 1
-									? "Their privacy settings hide their server"
-									: "Their privacy settings hide their servers",
-							)}
-						{/if}
 					</ol>
-				</section>
-			{/each}
-			{#if friendsInHiddenPlaces.length > 0}
-				{@const groupID = `${headingID}-hidden-places`}
-				<section aria-labelledby={groupID}>
-					{@render groupHeading(
-						groupID,
-						"Place not shared by Roblox",
-						"",
-						friendsInHiddenPlaces.length,
-						"",
+				{/if}
+				{#if hidden.length > 0}
+					{@render hiddenFriends(
+						hidden,
+						hidden.length === 1
+							? "Their privacy settings hide their server"
+							: "Their privacy settings hide their servers",
 					)}
-					<ol aria-label="Friends in places that Roblox does not share">
-						{@render hiddenRow(
-							friendsInHiddenPlaces,
-							friendsInHiddenPlaces.length === 1
-								? "Their privacy settings hide their place and server"
-								: "Their privacy settings hide their places and servers",
-						)}
-					</ol>
-				</section>
-			{/if}
-		</div>
+				{/if}
+			</section>
+		{/each}
+		{#if friendsInHiddenPlaces.length > 0}
+			{@const groupID = `${headingID}-hidden-places`}
+			<section class="flex flex-col gap-2" aria-labelledby={groupID}>
+				{@render placeHeading(
+					groupID,
+					"Place not shared by Roblox",
+					"",
+					friendsInHiddenPlaces.length,
+				)}
+				{@render hiddenFriends(
+					friendsInHiddenPlaces,
+					friendsInHiddenPlaces.length === 1
+						? "Their privacy settings hide their place and server"
+						: "Their privacy settings hide their places and servers",
+				)}
+			</section>
+		{/if}
 	{/if}
 </section>

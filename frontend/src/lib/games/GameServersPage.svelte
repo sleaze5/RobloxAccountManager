@@ -20,7 +20,6 @@
 	import AnchoredActionMenu, {
 		type MenuAction,
 	} from "../shared/AnchoredActionMenu.svelte"
-	import FriendsInGameList from "./FriendsInGameList.svelte"
 	import PrivateServerList from "./PrivateServerList.svelte"
 	import RBXServersList from "./RBXServersList.svelte"
 	import RecordedServerList from "./RecordedServerList.svelte"
@@ -407,17 +406,10 @@
 			{menuID}
 			onMenu={openMenu} />
 	{:else}
-		{#if accounts.selectedAccount.id !== 0}
-			<FriendsInGameList
-				{friendsInGame}
-				placeId={place.placeId}
-				activeKey={openKey}
-				{menuID}
-				onMenu={openMenu} />
-		{/if}
 		<RobloxServerList
 			servers={robloxServers}
 			details={serverDetails}
+			friendsInGame={accounts.selectedAccount.id !== 0 ? friendsInGame : null}
 			records={appSettings.roValraEnabled}
 			newestVersion={stats.stats?.newestVersion ?? 0}
 			activeServerId={openKey}

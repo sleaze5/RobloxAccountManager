@@ -116,7 +116,7 @@ Content:
 - `detail-grid`: compact label and value pairs in columns.
 - `timeline`: a two-column timeline of markers and cards.
 - `server-table`, `server-columns`, `server-row`, and `server-tag`: the game server tables. Set `data-tone` on a `server-tag` for a success, warning, or danger status.
-- `server-tiles`, `server-tile`, `server-stats`, and `server-health` with `lib/games/ServerTile.svelte`: the Roblox and RoValra server lists, one tile per server with its location, status tags, headline numbers, and expandable details. Set `data-density="compact"` on `server-stats` for the details, `data-tone` on a cell for a warning or danger value, and `data-font="sans"` on a value that is interface text.
+- `server-tiles`, `server-tile`, `server-stats`, and `server-health` with `lib/games/ServerTile.svelte`: the Roblox, RoValra, and friends' server lists, one tile per server with its location, status tags, friends, headline numbers, and expandable details. `lib/games/ServerFriend.svelte` is a friend in a server, as a button that opens their preview. Set `data-density="compact"` on `server-stats` for the details, `data-tone` on a cell for a warning or danger value, and `data-font="sans"` on a value that is interface text.
 - `text-block`: multi-line technical text.
 - `lib/shared/Timestamp.svelte`, `lib/shared/CompactNumber.svelte`, and `lib/shared/SensitiveValue.svelte`: formatted dates, compact numbers, and hidden secrets.
 - `lib/model-viewer/ModelFrame.svelte`: the one 3D viewer, with its toolbar for coordinates, reset view, and camera and lighting. Show every 3D model through it.

@@ -756,10 +756,10 @@
 
 /* The scrolling list of server tiles. */
 @utility server-tiles {
-	@apply @container relative min-h-0 flex-1 overflow-auto transition-opacity duration-100 data-loading:opacity-55;
+	@apply @container relative flex min-h-0 flex-1 flex-col overflow-auto;
 
 	& > ol {
-		@apply flex flex-col gap-2 p-3;
+		@apply flex flex-col gap-2 p-3 transition-opacity duration-100 data-loading:opacity-55;
 	}
 }
 

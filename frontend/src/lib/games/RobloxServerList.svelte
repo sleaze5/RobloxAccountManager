@@ -8,9 +8,11 @@
 	import { untrack } from "svelte"
 	import { GameServerOrder } from "../backend/bridge"
 	import Select from "../shared/Select.svelte"
+	import FriendsInGameList from "./FriendsInGameList.svelte"
 	import ServerTile from "./ServerTile.svelte"
 	import type { ServerMenuOpener } from "./server-row-menu"
 	import {
+		type FriendsInGameLoader,
 		type GameServers,
 		serverPlace,
 		serverPlaceVersion,
@@ -21,6 +23,7 @@
 	let {
 		servers,
 		details,
+		friendsInGame,
 		records,
 		newestVersion: newestRecordedVersion,
 		activeServerId,
@@ -29,6 +32,8 @@
 	}: {
 		servers: GameServers
 		details: ServerDetailsLoader
+		// friendsInGame is null when no account is shown.
+		friendsInGame: FriendsInGameLoader | null
 		records: boolean
 		newestVersion: number
 		activeServerId: string | undefined
@@ -41,6 +46,9 @@
 		decimals = new Intl.NumberFormat(undefined, { maximumFractionDigits: 1 })
 	let list = $state<HTMLElement | undefined>(undefined)
 	const loaded = $derived(servers.page?.servers ?? []),
+		listedServerById = $derived(
+			new Map(loaded.map((server) => [server.serverId, server])),
+		),
 		placeByServerId = $derived(
 			new Map(
 				loaded.map((server) => [
@@ -154,9 +162,20 @@
 	notifyErrors("Servers not loaded", () => servers.error || servers.loadMoreError)
 </script>
 
-<div class="flex min-h-0 flex-1 flex-col">
+<div class="server-tiles" data-load-more-root bind:this={list}>
+	{#if friendsInGame}
+		<FriendsInGameList
+			{friendsInGame}
+			{details}
+			placeId={servers.placeId}
+			{listedServerById}
+			{newestVersion}
+			activeKey={activeServerId}
+			{menuID}
+			{onMenu} />
+	{/if}
 	<div
-		class="flex flex-wrap items-end gap-x-3 gap-y-2 border-b border-line-subtle p-3"
+		class="sticky top-0 z-10 flex flex-wrap items-end gap-x-3 gap-y-2 border-b border-line-subtle bg-canvas p-3"
 		role="group"
 		aria-label="Server filters">
 		<div class="flex flex-col gap-1 text-2xs text-fg-muted">
@@ -250,7 +269,7 @@
 	</div>
 
 	{#if servers.error}
-		<div class="empty-state">
+		<div class="empty-state flex-1">
 			<Icon svg={warningIcon} size={28} aria-hidden="true" />
 			<h2>Servers unavailable</h2>
 			<button class="button" type="button" onclick={() => void servers.load()}
@@ -259,7 +278,7 @@
 	{:else if !servers.page}
 		<ServerTileSkeleton label="Loading servers…" />
 	{:else if !loaded.length}
-		<div class="empty-state" role="status">
+		<div class="empty-state flex-1" role="status">
 			<Icon svg={hardDrivesIcon} size={28} aria-hidden="true" />
 			{#if servers.excludeFull}
 				<h2>No servers have open slots</h2>
@@ -304,37 +323,36 @@
 			{/if}
 		</p>
 		{#if shown.length}
-			<div
-				class="server-tiles"
-				data-loading={servers.loading || undefined}
-				data-load-more-root
-				bind:this={list}>
-				<ol aria-label="Servers" aria-busy={servers.loading}>
-					{#each shown as server (server.serverId)}
-						<ServerTile
-							serverId={server.serverId}
-							{server}
-							record={server.record}
-							details={details.get(server.serverId)}
-							{newestVersion}
-							isMenuOpen={activeServerId === server.serverId}
-							{menuID}
-							{onMenu}
-							onVisible={() => details.request(server.serverId)} />
-					{/each}
-				</ol>
-				{#if servers.hasNext}
-					<LoadMore
-						pageKey={servers.page?.servers?.length}
-						label="Load more servers"
-						loadingLabel="Loading more servers…"
-						isLoadingMore={servers.loadingMore}
-						hasFailed={!!servers.loadMoreError}
-						onLoadMore={() => void servers.loadMore()} />
-				{/if}
-			</div>
+			<h2 class="sr-only">Servers</h2>
+			<ol
+				aria-label="Servers"
+				aria-busy={servers.loading}
+				data-loading={servers.loading || undefined}>
+				{#each shown as server (server.serverId)}
+					<ServerTile
+						serverId={server.serverId}
+						{server}
+						record={server.record}
+						details={details.get(server.serverId)}
+						{newestVersion}
+						isMenuOpen={activeServerId === server.serverId}
+						{menuID}
+						{onMenu}
+						onVisible={() =>
+							details.request(servers.placeId, server.serverId)} />
+				{/each}
+			</ol>
+			{#if servers.hasNext}
+				<LoadMore
+					pageKey={servers.page?.servers?.length}
+					label="Load more servers"
+					loadingLabel="Loading more servers…"
+					isLoadingMore={servers.loadingMore}
+					hasFailed={!!servers.loadMoreError}
+					onLoadMore={() => void servers.loadMore()} />
+			{/if}
 		{:else}
-			<div class="empty-state" role="status">
+			<div class="empty-state flex-1" role="status">
 				<Icon svg={hardDrivesIcon} size={28} aria-hidden="true" />
 				<h2>No loaded servers match</h2>
 				<p>No loaded server matches the region, ping, and FPS filters.</p>

@@ -5,11 +5,16 @@
 	import cellSignalMediumIcon from "@phosphor-icons/core/regular/cell-signal-medium.svg?raw"
 	import { untrack } from "svelte"
 	import { GameServerConnection, JoinOutcome, PingSignal } from "../backend/bridge"
-	import type { GameServer, GameServerRecord } from "../backend/bridge"
+	import type {
+		FriendInServer,
+		GameServer,
+		GameServerRecord,
+	} from "../backend/bridge"
 	import Icon from "../shared/Icon.svelte"
 	import ProfileImage from "../shared/ProfileImage.svelte"
 	import Timestamp from "../shared/Timestamp.svelte"
 	import ServerActionsButton from "./ServerActionsButton.svelte"
+	import ServerFriend from "./ServerFriend.svelte"
 	import ServerPlayersSparkline from "./ServerPlayersSparkline.svelte"
 	import { openServerMenuFromRow } from "./server-row-menu"
 	import type { ServerMenuOpener } from "./server-row-menu"
@@ -28,8 +33,14 @@
 	// ServerTile shows one server with everything that the app knows about it:
 	// the Roblox server list, RoValra's record, what Roblox's join service
 	// tells the shown account, and what this app observed while listing it.
+	// friends are the shown account's friends in the server. menuKey keys the
+	// server's menu, and is the server ID unless another list shows the same
+	// server.
 	let {
 		serverId,
+		menuKey = serverId,
+		headingLevel = 3,
+		friends = [],
 		server,
 		record,
 		details: detailsState,
@@ -40,6 +51,11 @@
 		onVisible,
 	}: {
 		serverId: string
+		menuKey?: string
+		// headingLevel is the level of the tile's title. Its details sections
+		// are one level below.
+		headingLevel?: 3 | 4
+		friends?: FriendInServer[]
 		server?: GameServer
 		record: GameServerRecord | null
 		details: ServerDetailsState | undefined
@@ -154,11 +170,12 @@
 	data-open={isMenuOpen || undefined}
 	aria-labelledby={`${tileID}-title`}
 	{@attach observeVisibility}
-	oncontextmenu={(event) => openServerMenuFromRow(event, serverId, onMenu)}>
+	oncontextmenu={(event) => openServerMenuFromRow(event, menuKey, onMenu)}>
 	<div class="flex min-w-0 items-center gap-3">
 		<div class="flex min-w-0 flex-1 items-center gap-3">
 			<div class="flex min-w-0 shrink-0 items-center gap-2">
-				<h2
+				<svelte:element
+					this={`h${headingLevel}`}
 					id={`${tileID}-title`}
 					class={[
 						"truncate text-sm font-semibold",
@@ -166,7 +183,7 @@
 					]}
 					data-tooltip={titleTooltip}>
 					{title}
-				</h2>
+				</svelte:element>
 				<div class="flex min-w-0 shrink items-center gap-1 overflow-hidden">
 					{#if isFull}<span class="server-tag">Full</span>{/if}
 					{#if isOutdated}
@@ -229,9 +246,19 @@
 			<ServerActionsButton
 				open={isMenuOpen}
 				{menuID}
-				onMenu={(trigger, toggle) => onMenu(serverId, trigger, toggle)} />
+				onMenu={(trigger, toggle) => onMenu(menuKey, trigger, toggle)} />
 		</div>
 	</div>
+
+	{#if friends.length}
+		<ul
+			class="flex min-w-0 flex-wrap gap-1.5"
+			aria-label={`${friends.length} ${friends.length === 1 ? "friend" : "friends"} in this server`}>
+			{#each friends as friend (friend.userId)}
+				<li class="min-w-0"><ServerFriend {friend} /></li>
+			{/each}
+		</ul>
+	{/if}
 
 	<dl class="server-stats">
 		{#if server}
@@ -354,16 +381,18 @@
 				</dd>
 			</div>
 		{:else}
-			<div class="col-span-2">
-				<dt>IP address</dt>
-				<dd>
-					{#if record?.address}
-						<span class="truncate select-text">{record.address}</span>
-					{:else}
-						<span class="text-fg-muted">Unknown</span>
-					{/if}
-				</dd>
-			</div>
+			{#if record}
+				<div class="col-span-2">
+					<dt>IP address</dt>
+					<dd>
+						{#if record.address}
+							<span class="truncate select-text">{record.address}</span>
+						{:else}
+							<span class="text-fg-muted">Unknown</span>
+						{/if}
+					</dd>
+				</div>
+			{/if}
 			<div class="col-span-3">
 				<dt>Server ID</dt>
 				<dd class="text-2xs text-fg-muted">
@@ -414,11 +443,12 @@
 			id={`${tileID}-details`}
 			class="flex flex-col gap-3 border-t border-line-subtle pt-3">
 			<section class="flex flex-col gap-1.5" aria-labelledby={`${tileID}-roblox`}>
-				<h3
+				<svelte:element
+					this={`h${headingLevel + 1}`}
 					id={`${tileID}-roblox`}
 					class="text-2xs font-semibold text-fg-muted">
 					From Roblox's join service
-				</h3>
+				</svelte:element>
 				{#if details?.hasJoinScript}
 					<dl class="server-stats" data-density="compact">
 						<div class="col-span-2">
@@ -497,11 +527,12 @@
 			<section
 				class="flex flex-col gap-1.5"
 				aria-labelledby={`${tileID}-rovalra`}>
-				<h3
+				<svelte:element
+					this={`h${headingLevel + 1}`}
 					id={`${tileID}-rovalra`}
 					class="text-2xs font-semibold text-fg-muted">
 					From RoValra
-				</h3>
+				</svelte:element>
 				{#if record}
 					<dl class="server-stats" data-density="compact">
 						<div class="col-span-2">
@@ -545,11 +576,12 @@
 				<section
 					class="flex flex-col gap-1.5"
 					aria-labelledby={`${tileID}-observed`}>
-					<h3
+					<svelte:element
+						this={`h${headingLevel + 1}`}
 						id={`${tileID}-observed`}
 						class="text-2xs font-semibold text-fg-muted">
 						Observed by this app and calculated
-					</h3>
+					</svelte:element>
 					<dl class="server-stats" data-density="compact">
 						<div>
 							<dt>Occupancy</dt>

@@ -151,12 +151,12 @@
 			<span aria-hidden="true">·</span>
 			<span>Some may have closed</span>
 		</p>
-		<div
-			class="server-tiles"
-			data-loading={servers.loading || undefined}
-			data-load-more-root
-			bind:this={list}>
-			<ol aria-label="Servers" aria-busy={servers.loading}>
+		<div class="server-tiles" data-load-more-root bind:this={list}>
+			<h2 class="sr-only">Servers</h2>
+			<ol
+				aria-label="Servers"
+				aria-busy={servers.loading}
+				data-loading={servers.loading || undefined}>
 				{#each shown as server (server.serverId)}
 					<ServerTile
 						serverId={server.serverId}
@@ -166,7 +166,8 @@
 						isMenuOpen={activeServerId === server.serverId}
 						{menuID}
 						{onMenu}
-						onVisible={() => details.request(server.serverId)} />
+						onVisible={() =>
+							details.request(servers.placeId, server.serverId)} />
 				{/each}
 			</ol>
 			{#if servers.hasNext}
