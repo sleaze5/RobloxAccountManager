@@ -427,7 +427,7 @@
 		class="@container min-h-0 min-w-0 animate-enter overflow-y-auto"
 		aria-label={store.displayName(place)}
 		aria-busy={store.loadingDetails}>
-		<div class="flex flex-col gap-5 p-4 pb-5">
+		<div class="flex flex-col gap-4 p-3">
 			<div class="flex items-start gap-4">
 				<ImageMenuTarget
 					imageUrl={place.iconUrl}
@@ -603,7 +603,7 @@
 				</div>
 			</div>
 
-			<div class="-mx-4 h-8 border-b border-line-subtle">
+			<div class="-mx-3 tab-bar">
 				<ProfileTabs />
 			</div>
 
@@ -637,12 +637,12 @@
 
 			<div
 				class={[
-					"grid min-w-0 items-start gap-5 @4xl:gap-6",
+					"grid min-w-0 items-start gap-4 @4xl:gap-x-6",
 					!rootPlace && "@4xl:grid-cols-3",
 				]}>
 				<div
 					class={[
-						"flex min-w-0 flex-col gap-5",
+						"flex min-w-0 flex-col gap-4",
 						!rootPlace && "@4xl:col-span-2",
 					]}>
 					{#if game && game.description.trim()}

@@ -33,7 +33,7 @@
 				>{relations.length}</span>
 		</h3>
 		<ul
-			class="grid max-w-2xl grid-cols-1 gap-2 @md:grid-cols-2 @3xl:grid-cols-3"
+			class="grid grid-cols-1 gap-2 @md:grid-cols-2 @3xl:grid-cols-3"
 			aria-label="Saved accounts">
 			{#each relations as relation (relation.account.id)}
 				<li class="min-w-0 animate-enter">

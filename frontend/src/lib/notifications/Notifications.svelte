@@ -94,7 +94,7 @@
 	{/if}
 	{#each visibleNotifications as notification (notification.id)}
 		<div
-			class="pointer-events-auto flex w-fit max-w-lg min-w-72 items-center gap-2.5 rounded-xl border border-line-strong bg-overlay py-1.5 pr-1.5 pl-3 shadow-float"
+			class="pointer-events-auto flex w-fit max-w-lg min-w-72 items-center gap-2.5 rounded-xl border border-line-strong bg-overlay py-1 pr-1 pl-3 shadow-float"
 			role="status"
 			in:snackbarIn
 			out:snackbarOut

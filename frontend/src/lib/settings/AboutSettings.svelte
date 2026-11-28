@@ -45,10 +45,10 @@
 		}
 	})
 	const gridClass =
-			"grid grid-cols-4 font-mono text-2xs *:flex *:min-w-0 *:items-center *:gap-2 *:border-t *:border-line-subtle *:p-1 *:wrap-anywhere *:first:border-t-0 *:nth-2:border-t-0",
+			"grid grid-cols-4 font-mono text-2xs *:flex *:min-w-0 *:items-center *:gap-2 *:border-t *:border-line-subtle *:py-1 *:pr-2 *:wrap-anywhere *:first:border-t-0 *:nth-2:border-t-0",
 		tableClass = "w-full border-collapse font-mono text-2xs",
 		rowClass = "not-first:*:border-t not-first:*:border-line-subtle",
-		cellClass = "p-1",
+		cellClass = "py-1",
 		numberClass = "text-right whitespace-nowrap",
 		labelClass = "font-sans font-normal text-fg-muted"
 
@@ -56,9 +56,9 @@
 </script>
 
 {#if error}
-	<p class="px-1 text-xs text-fg-muted">Build details unavailable</p>
+	<p class="text-xs text-fg-muted">Build details unavailable</p>
 {:else if !report || !build}
-	<p class="px-1 text-xs text-fg-faint" role="status">Loading…</p>
+	<p class="text-xs text-fg-faint" role="status">Loading…</p>
 {:else}
 	<section class="settings-section" aria-labelledby="about-build-title">
 		<h3 id="about-build-title">Build</h3>
@@ -161,7 +161,7 @@
 	<section class="settings-section" aria-labelledby="about-components-title">
 		<h3 id="about-components-title">Loaded components</h3>
 		{#if components.length === 0}
-			<p class="px-1 text-xs text-fg-faint">No component records yet.</p>
+			<p class="text-xs text-fg-faint">No component records yet.</p>
 		{:else}
 			<ul class="flex flex-col font-mono text-2xs">
 				{#each components as component (`${component.module}:${component.message}`)}

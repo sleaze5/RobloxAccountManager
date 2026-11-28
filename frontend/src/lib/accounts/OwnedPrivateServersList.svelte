@@ -1,4 +1,5 @@
 <script lang="ts">
+	import hardDrivesIcon from "@phosphor-icons/core/regular/hard-drives.svg?raw"
 	import { notifyErrors } from "../notifications/error-notifications.svelte"
 	import LoadMore from "../shared/LoadMore.svelte"
 	import Icon from "../shared/Icon.svelte"
@@ -43,9 +44,16 @@
 		</div>
 	{/if}
 {:else if owned.servers.length === 0}
-	<p class="text-xs text-fg-faint">
-		@{username} does not own any private servers. Buy one on a game's page on Roblox.
-	</p>
+	<div class="settings-section">
+		<div class="empty-state">
+			<Icon svg={hardDrivesIcon} size={28} aria-hidden="true" />
+			<h3>No private servers</h3>
+			<p>
+				@{username} does not own any private servers. Buy one on a game's page on
+				Roblox.
+			</p>
+		</div>
+	</div>
 {:else}
 	<div class="settings-section">
 		<ul

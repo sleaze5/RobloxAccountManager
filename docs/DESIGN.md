@@ -25,7 +25,7 @@ Nothing must look arbitrary or accidentally assembled. Each component must exten
 
 The frontend is styled with Tailwind CSS 4. Markup carries utility classes. Stylesheets hold only the theme, global element styles, and shared building blocks.
 
-- `frontend/src/styles/theme.css` defines the colors, fonts, text sizes, shadows, easings, and animations as Tailwind theme tokens. Spacing, sizes, radius, opacity, z-index, and durations use Tailwind's stock scales. See [Allowed values](#allowed-values).
+- `frontend/src/styles/theme.css` defines the colors, fonts, text sizes, radius scale, shadows, easings, and animations as Tailwind theme tokens. Spacing, sizes, opacity, z-index, and durations use Tailwind's stock scales. See [Allowed values](#allowed-values).
 - `frontend/src/styles/base.css` holds global element styles, the `motion-safe` and `motion-reduce` variants, and the reduced-motion guard.
 - `frontend/src/styles/components.css` defines the shared building blocks as `@utility` classes. See [Building blocks](#building-blocks).
 - `frontend/src/styles/app.css` is the entry stylesheet. It imports Tailwind, the theme, the base styles, and the building blocks.
@@ -51,7 +51,7 @@ The frontend is styled with Tailwind CSS 4. Markup carries utility classes. Styl
 - Spacing and sizes (padding, margin, gap, width, height, size, inset, translate, leading): Tailwind's classic steps `0`, `px`, `0.5`, `1`, `1.5`, `2`, `2.5`, `3`, `3.5`, `4`, `5`, `6`, `7`, `8`, `9`, `10`, `11`, `12`, `14`, `16`, `20`, `24`, `28`, `32`, `36`, `40`, `44`, `48`, `52`, `56`, `60`, `64`, `72`, `80`, `96`, the named sizes (`full`, `auto`, `min`, `max`, `fit`, `screen`, and the container sizes such as `max-w-sm`), and fractions of 2, 3, 4, 5, 6, or 12.
 - Opacity, and opacity modifiers on colors such as `bg-danger/10`: steps of 5.
 - Text sizes: `text-2xs`, `text-xs`, `text-sm`, `text-base`, and `text-lg`, without a line-height modifier.
-- Radius: `rounded-sm` (4px), `rounded-md` (6px), `rounded-lg` (8px), `rounded-xl` (12px), and `rounded-full`.
+- Radius: `rounded-sm` (2px), `rounded-md` (4px), `rounded-lg` (6px), `rounded-xl` (8px), and `rounded-full`.
 - Border, outline, and ring widths: `0`, `1`, `2`, `4`, and `8`, or the bare `border` (1px).
 - z-index: `z-0`, `z-10`, `z-20`, `z-30`, `z-40`, `z-50`, and `z-auto`.
 - Durations and delays: `75`, `100`, and `150`.
@@ -111,6 +111,7 @@ Content:
 - `lib/shared/AccountConfirmationActions.svelte`: the bottom row of a confirmation that changes Roblox or spends Robux, with the saved account that acts on the left and the actions on the right.
 - `lib/shared/SettingChangeList.svelte`: the list of changed settings, each with its value before and after, that a confirmation shows before it saves.
 - `tag-pill` and `tag-pill-favorite`: tags. `tag-pill-success` and `tag-pill-warning` are status pills that color only their icon.
+- `tile`, `tile-image`, and `tile-zoom` with `lib/shared/ItemTile.svelte`: item tiles in a grid. The button carries `group/tile` and `tile`, its image well `tile-image`, and the image inside the well `tile-zoom`.
 - `list-row`: a row in a selectable list, with `data-selected` and `data-open`. Show a drop position while dragging with `shadow-drop-before` or `shadow-drop-after`.
 - `facts`: a list of labels and values, written as a `<dl>`. Set `data-tone` on a row for a success, warning, or muted value.
 - `detail-grid`: compact label and value pairs in columns.
@@ -126,10 +127,12 @@ Content:
 Layout:
 
 - `tab`: a page tab, with `aria-current="page"` on the selected tab.
+- `tab-bar`: the 36px row that holds the page tabs, the tabs of a profile, or a row of `sub-tab` buttons.
+- `sub-tab`: a tab of a second level inside a pane, such as the sections of the avatar editor, with `aria-selected` on the selected tab.
 - The workbench: the sidebar and detail pane layout of Accounts, Social, Groups, Games, Marketplace, and Logs Explorer, with `lib/layout/SidebarResizer.svelte` as the resizer and `lib/layout/StatusBar.svelte` as the status strip of Accounts.
 - `lib/layout/AccountSwitcher.svelte`: the account switcher at the left of the status strip of Social, Groups, Games, Marketplace, and Logs Explorer.
 - `settings-page`, `settings-header`, `settings-layout`, `settings-sidebar`, `settings-nav` with `nav-item`, and `settings-content`: Settings, account settings, chats, and other sub-pages with a navigation sidebar.
-- `settings-section`, `settings-rows`, `settings-row`, and `settings-row-copy`: groups of settings. Put a setting that refines the setting before it, such as an update interval under its switch, in `settings-suboptions`.
+- `settings-section`, `settings-rows`, `settings-row`, and `settings-row-copy`: groups of settings. The `h3` of a `settings-section` shows above its bordered group. Put a setting that refines the setting before it, such as an update interval under its switch, in `settings-suboptions`.
 - `lib/shared/SettingRow.svelte`: one setting in `settings-rows`, as a switch or a list of options, that shows the saved value until the change saves.
 - `lib/shared/NoMatchingSettings.svelte`: the no-matches state of a settings search, with a Clear search button.
 - `scrollbar-stable`: reserve the scrollbar gutter in a scrolling list.
@@ -156,7 +159,7 @@ The user must never see UI that looks or behaves like an exposed embedded browse
 - Use `bg-surface` for persistent chrome (the title bar, page tabs, sidebars, tool rails, and status strip) and `bg-canvas` for the main content plane. The content is one small step darker than the chrome. Keep that step small and separate regions mainly with borders.
 - Use `bg-overlay` for dialogs, menus, popovers, and other floating surfaces, which sit one step above the content. Use `bg-raised` for compact opaque controls. Inputs have no fill of their own.
 - Separate regions with a background step plus a 1px border, not with large shadows. Use `border-line` by default, `border-line-subtle` between rows and shell regions, and `border-line-strong` for selected controls and floating surfaces that need extra separation. Avoid bright outlines.
-- Keep the shell flat. The title bar and the page tabs are `h-9`, the status strip is `h-6`, and a page sidebar is 248px wide by default, so that its title fits a three-digit count beside four icon actions.
+- Keep the shell flat. The title bar and every `tab-bar` are `h-9`, the status strip is `h-6`, and a page sidebar is 248px wide by default, so that its title fits a three-digit count beside four icon actions.
 - Show each value once per screen. For example, do not show the same count in a sidebar header and in the status strip.
 - Offer each destination and action once per screen. Do not add a button for a page that a tab already opens. A profile's More actions menu leaves out what the profile already shows as a button, a tab, or a link. A context menu on a list row keeps every action, because the row is where the pointer is.
 - A pane that changes its layout with container variants, such as `@4xl:grid-cols-3`, sits inside an element with `@container`, usually its scroll region. Without one, the wide layout never applies. On a wide pane, a profile puts its main sections in the left two thirds and its secondary facts, such as the Vault of an account or the access and features of a game, in the right third.
@@ -216,18 +219,18 @@ Text colors:
 
 ## Spacing and geometry
 
-- Use the 4px spacing scale. Use `1` (4px) for tight internal spacing, `2` (8px) for compact controls, `3` (12px) for row and group gaps, and `4` (16px) for larger internal padding. Keep page and surface padding between `3` and `5`, and use `4` to `6` between major content groups.
+- Use the 4px spacing scale. Use `1` (4px) for tight internal spacing, `2` (8px) for compact controls, `3` (12px) for row and group gaps, and `4` (16px) for larger internal padding. Inset the content of a page or pane by `3`, the same as a sidebar, so that neighboring regions share one left edge. Keep padding inside a surface between `3` and `5`, and use `4` to `6` between major content groups.
 - Prefer `gap` over margins for rows and columns.
 - Use `size-6` (24px) controls for compact icon actions, `h-7` (28px) controls for ordinary buttons and menu rows, and `h-8` (32px) controls for text fields and dominant actions.
 - Make list rows `h-12`, with `size-9` thumbnails. A row that also shows a game or place in its online status is `h-16`, with three lines: name, username, and online status.
-- Keep nested curves concentric: child radius = outer radius - inset. A menu is `rounded-xl` with `p-1.5`, so its items are `rounded-md`.
+- Keep nested curves concentric: child radius = outer radius - inset. A menu is `rounded-xl` with `p-1`, so its items are `rounded-md`.
 
 Use the radius scale:
 
-- `rounded-sm` (4px): chips, tags, badges, checkboxes, and segmented-control items
-- `rounded-md` (6px): buttons, inputs, menu items, inline notices, avatars, and tooltips
-- `rounded-lg` (8px): cards, panels, and text blocks
-- `rounded-xl` (12px): menus, popovers, dialogs, notifications, and large surfaces
+- `rounded-sm` (2px): chips, tags, badges, checkboxes, and segmented-control items
+- `rounded-md` (4px): buttons, inputs, menu items, sub-tabs, inline notices, avatars, and tooltips
+- `rounded-lg` (6px): item tiles, panels, setting groups, and text blocks
+- `rounded-xl` (8px): menus, popovers, dialogs, notifications, and large surfaces
 
 Use `rounded-full` for status dots, radio buttons, switch thumbs, and the switch track. Do not use other radius values, and do not turn other controls into pills.
 
@@ -251,7 +254,9 @@ Hover and selection:
 - Mark the selected row in a list with two cues: a 2px `accent` bar on the left edge that grows in, and a `bg-active` fill. The bar carries the selection. Keep the fill quieter than `bg-hover`, because a brighter fill makes the list heavy.
 - When the pointer is over a selected row, show the `bg-hover` fill and keep the bar.
 - Draw the selection bar the same way in every list, with `list-row`. The bar must not shift the row content.
-- Mark the selected page tab with a 2px `accent` bar on its bottom edge, drawn by the `tab` building block.
+- Mark the selected page tab with a 2px `accent` bar on its bottom edge, under its label, drawn by the `tab` building block. Do not separate tabs with borders.
+- Mark the selected `sub-tab` with a `bg-raised` fill. Use `tab` for the pages of a page or profile, and `sub-tab` for a second level of tabs inside a pane, so that the two levels never look alike.
+- Keep a tab row at the same position, height, and background on every page that it shows on, so that it does not move when the user switches tabs.
 - Mark the selected item in a sidebar navigation list with a `bg-active` fill, a `border-line` border, and `font-medium`.
 
 Disabled and other states:
@@ -279,6 +284,9 @@ Color:
 - Load a list that comes in pages as one growing list, never as pages to step through. End it with `LoadMore`, inside its scrolling container marked with `data-load-more-root`. `LoadMore` loads the next page when the end of the list comes within 160px of view, and always shows a "Load more" button with the noun, such as "Load more members", in case the automatic load does not run. While a page loads, it shows the spinner and the progress label, such as "Loading more members…". After a failed page, it stops loading on its own until the user presses the button, and shows "Next page unavailable" above the button. The list reports the cause as an error notification. Show the count of loaded items with "+" while more pages remain, and keep the items that are already loaded when a later page fails.
 - Distinguish an empty list ("No accounts yet") from a list with no matches ("No matching accounts"). Tell the user how to change each state. Give the no-matches state a button that clears the filter and moves the focus to the search field or filter.
 - In a grid of item tiles, make every tile in a row the same height. Keep the badges on a tile in one row, so that they never overlap, and let the lower-priority badge truncate.
+- Build an item tile from `tile`, `tile-image`, and `tile-zoom`, or use `lib/shared/ItemTile.svelte`. The image well is the tile: the name and details sit below it, and the tile has no card around it. Place controls and badges on the well 4px from its edges.
+- Show the empty, no-matches, and unavailable states of a sidebar list in the detail pane, not in the sidebar.
+- Dock a bar that acts on a sidebar list, such as the selection toolbar or Clear search, at the bottom of the list as an `h-11` `bg-overlay` strip with a top border.
 - When the user switches a tab or category that replaces the content of a scrolling region, scroll the region back to the top.
 - Settings search reads its words from `lib/settings/settings-search.ts`. Give each new setting an entry with its label, its description, and other words people use for the same thing, and add the entry to its category. The account settings pages keep their search words next to each section.
 

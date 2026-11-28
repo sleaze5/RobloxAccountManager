@@ -16,6 +16,7 @@
 
 @theme {
 	--color-*: initial;
+	--radius-*: initial;
 	--shadow-*: initial;
 	--text-*: initial;
 
@@ -64,6 +65,11 @@
 	--color-axis-x: #e5484d;
 	--color-axis-y: #46a758;
 	--color-axis-z: #3e8ae6;
+
+	--radius-sm: 2px;
+	--radius-md: 4px;
+	--radius-lg: 6px;
+	--radius-xl: 8px;
 
 	--font-sans: "Geist", sans-serif;
 	--font-mono: "Geist Mono", monospace;

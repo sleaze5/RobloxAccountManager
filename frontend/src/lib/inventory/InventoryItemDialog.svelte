@@ -1227,7 +1227,7 @@
 								Description
 							</h3>
 							<p
-								class="max-h-40 text-block overflow-y-auto"
+								class="max-h-40 overflow-y-auto text-block"
 								data-variant="prose">
 								{item.description}
 							</p>

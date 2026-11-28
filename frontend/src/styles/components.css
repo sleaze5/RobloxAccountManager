@@ -325,10 +325,10 @@
 }
 
 @utility tab {
-	@apply relative flex shrink-0 items-center justify-center gap-2 border-r border-line-subtle px-4 text-xs font-medium whitespace-nowrap text-fg-muted transition-colors duration-100 hover:text-fg aria-selected:text-fg aria-[current=page]:text-fg;
+	@apply relative flex shrink-0 items-center justify-center gap-2 px-3 text-xs font-medium whitespace-nowrap text-fg-muted transition-colors duration-100 hover:text-fg aria-selected:text-fg aria-[current=page]:text-fg;
 
 	&::after {
-		@apply pointer-events-none absolute inset-x-0 bottom-0 h-0.5 scale-x-0 bg-accent transition-transform duration-150 ease-out;
+		@apply pointer-events-none absolute inset-x-3 bottom-0 h-0.5 scale-x-0 bg-accent transition-transform duration-150 ease-out;
 		content: "";
 	}
 
@@ -337,8 +337,30 @@
 	}
 }
 
+/* An item tile: the image well is the tile, and the name sits below it. The
+   button that carries tile also carries group/tile. */
+@utility tile {
+	@apply flex h-full w-full min-w-0 flex-col gap-1.5 rounded-lg text-left aria-disabled:cursor-not-allowed aria-disabled:opacity-45;
+}
+
+@utility tile-image {
+	@apply relative grid aspect-square w-full place-items-center overflow-hidden rounded-lg border border-line-subtle bg-raised transition-colors duration-100 group-hover/tile:border-line group-hover/tile:bg-raised-hover group-aria-disabled/tile:border-line-subtle group-aria-disabled/tile:bg-raised group-data-selected/tile:border-accent;
+}
+
+@utility tile-zoom {
+	@apply grid size-full place-items-center transition-transform duration-150 ease-out motion-safe:group-hover/tile:scale-105;
+}
+
+@utility tab-bar {
+	@apply flex h-9 shrink-0 items-stretch border-b border-line-subtle;
+}
+
+@utility sub-tab {
+	@apply flex h-6 shrink-0 items-center gap-1.5 rounded-md px-2 text-xs font-medium whitespace-nowrap text-fg-muted transition-colors duration-100 hover:bg-hover hover:text-fg aria-selected:bg-raised aria-selected:text-fg;
+}
+
 @utility menu {
-	@apply w-48 overflow-visible rounded-xl border border-line-strong bg-overlay p-1.5 shadow-menu;
+	@apply w-48 overflow-visible rounded-xl border border-line-strong bg-overlay p-1 shadow-menu;
 }
 
 @utility menu-item {
@@ -366,7 +388,10 @@
 }
 
 @utility submenu {
-	@apply pointer-events-none invisible absolute -top-1.5 left-full z-10 ml-0.5 menu origin-top-left translate-y-0.5 opacity-0;
+	@apply pointer-events-none invisible absolute left-full z-10 ml-0.5 menu origin-top-left translate-y-0.5 opacity-0;
+	/* Moves the first item onto the item that opens the submenu: the inset
+	   and the border of the menu. */
+	top: calc(-1 * (--spacing(1) + 1px));
 	transition:
 		opacity var(--duration-exit) var(--ease-in-out),
 		translate var(--duration-exit) var(--ease-in-out),
@@ -430,7 +455,7 @@
 		@apply animate-bloom;
 	}
 
-	& h2 {
+	& :is(h2, h3, h4) {
 		@apply text-sm font-semibold text-fg;
 	}
 
@@ -491,7 +516,7 @@
 }
 
 @utility text-block {
-	@apply max-w-2xl rounded-lg border border-line bg-fill px-3 py-2 font-mono text-xs leading-5 wrap-anywhere whitespace-pre-wrap text-fg select-text;
+	@apply rounded-lg border border-line bg-fill px-3 py-2 font-mono text-xs leading-5 wrap-anywhere whitespace-pre-wrap text-fg select-text;
 
 	&[data-variant="prose"] {
 		@apply font-sans text-sm leading-normal;
@@ -526,7 +551,7 @@
 }
 
 @utility facts {
-	@apply max-w-2xl text-xs leading-normal;
+	@apply text-xs leading-normal;
 
 	& > div {
 		@apply grid min-w-0 items-start gap-4 py-2;
@@ -588,11 +613,19 @@
 	@apply flex min-h-7 cursor-pointer items-center gap-2 rounded-md px-2 text-xs text-fg transition-colors duration-100 hover:bg-hover data-disabled:cursor-not-allowed data-disabled:opacity-45 data-disabled:hover:bg-transparent;
 }
 
+/* The heading of a section sits above its bordered group, in a row the
+   section reserves for it, so that the heading stays first in the document
+   for screen readers. The row fits one line and controls up to h-8. */
 @utility settings-section {
-	@apply flex w-full shrink-0 animate-enter flex-col overflow-hidden rounded-lg border border-line bg-surface;
+	@apply relative flex w-full shrink-0 animate-enter flex-col rounded-lg border border-line bg-surface;
+
+	&:has(> h3) {
+		@apply mt-8;
+	}
 
 	:where(&) > h3 {
-		@apply border-b border-line-subtle px-3 py-2.5 text-sm font-semibold text-fg;
+		@apply absolute inset-x-0 flex h-8 items-center gap-2 text-xs font-semibold text-fg-muted;
+		bottom: calc(100% + 1px);
 	}
 
 	:where(&) > :not(h3, .settings-rows, form) {
@@ -683,7 +716,7 @@
 	}
 
 	:where(&) > h2 {
-		@apply px-1 text-base font-semibold;
+		@apply text-base font-semibold;
 	}
 }
 

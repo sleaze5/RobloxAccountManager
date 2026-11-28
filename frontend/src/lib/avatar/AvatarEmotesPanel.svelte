@@ -51,7 +51,7 @@
 						onOpen={() => onOpenEmote(emote)} />
 					{#if canEdit}
 						<button
-							class="absolute top-2 right-2 button-icon size-6 bg-overlay"
+							class="absolute top-1 right-1 button-icon size-6 bg-overlay"
 							type="button"
 							aria-label={`Clear slot ${slot}`}
 							data-tooltip="Clear slot"
@@ -62,7 +62,7 @@
 					{/if}
 				{:else if canEdit}
 					<button
-						class="flex aspect-square h-full w-full flex-col items-center justify-center gap-1 rounded-lg border border-dashed border-line-strong text-xs text-fg-muted transition-colors duration-100 hover:border-line-focus hover:bg-hover hover:text-fg"
+						class="flex aspect-square w-full flex-col items-center justify-center gap-1 rounded-lg border border-dashed border-line-strong text-xs text-fg-muted transition-colors duration-100 hover:border-line-focus hover:bg-hover hover:text-fg"
 						type="button"
 						aria-label={`Add an emote to slot ${slot}`}
 						disabled={avatar.isDraftLocked}
@@ -72,11 +72,11 @@
 					</button>
 				{:else}
 					<span
-						class="flex aspect-square h-full w-full items-center justify-center rounded-lg border border-dashed border-line text-xs text-fg-faint"
+						class="flex aspect-square w-full items-center justify-center rounded-lg border border-dashed border-line text-xs text-fg-faint"
 						>Empty</span>
 				{/if}
 				<span
-					class="pointer-events-none absolute top-2 left-2 rounded-sm border border-line-strong bg-overlay px-1 font-mono text-2xs leading-4 font-medium text-fg-muted"
+					class="pointer-events-none absolute top-1 left-1 rounded-sm border border-line-strong bg-overlay px-1 font-mono text-2xs leading-4 font-medium text-fg-muted"
 					aria-hidden="true">{slot}</span>
 			</li>
 		{/each}

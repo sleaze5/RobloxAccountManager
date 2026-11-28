@@ -53,7 +53,7 @@
 </script>
 
 <button
-	class="group/tile flex h-full w-full min-w-0 flex-col gap-1 rounded-lg border border-line-subtle bg-surface p-1 text-left transition-colors duration-100 hover:border-line hover:bg-hover aria-disabled:cursor-not-allowed aria-disabled:opacity-45 aria-disabled:hover:border-line-subtle aria-disabled:hover:bg-surface data-selected:border-accent"
+	class="group/tile tile"
 	type="button"
 	aria-disabled={isDisabled || undefined}
 	data-selected={isSelected || undefined}
@@ -62,11 +62,8 @@
 	onclick={() => {
 		if (!isDisabled) onOpen()
 	}}>
-	<span
-		class="relative grid aspect-square w-full place-items-center overflow-hidden rounded-sm bg-raised">
-		<span
-			class="grid size-full place-items-center transition-transform duration-150 ease-out motion-safe:group-hover/tile:scale-105"
-			aria-hidden="true">
+	<span class="tile-image">
+		<span class="tile-zoom" aria-hidden="true">
 			<ProfileImage url={imageUrl} {fallbackIcon} />
 		</span>
 		{#if cornerLabel}
@@ -105,7 +102,7 @@
 			</span>
 		{/if}
 	</span>
-	<span class="flex min-w-0 flex-col px-1 pb-0.5">
+	<span class="flex min-w-0 flex-col">
 		<span class="truncate text-xs font-medium text-fg">{name}</span>
 		{#if detail || priceLabel}
 			<span class="flex min-w-0 items-baseline justify-between gap-2 text-2xs">

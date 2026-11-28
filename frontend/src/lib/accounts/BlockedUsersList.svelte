@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { notifyErrors } from "../notifications/error-notifications.svelte"
 	import circleNotchIcon from "@phosphor-icons/core/regular/circle-notch.svg?raw"
+	import prohibitIcon from "@phosphor-icons/core/regular/prohibit.svg?raw"
 	import Icon from "../shared/Icon.svelte"
 	import SettingsRowsSkeleton from "../shared/SettingsRowsSkeleton.svelte"
 	import type { BlockedUser } from "../backend/bridge"
@@ -23,7 +24,13 @@
 		</div>
 	{/if}
 {:else if blocked.users.length === 0}
-	<p class="text-xs text-fg-faint">No blocked users.</p>
+	<div class="settings-section">
+		<div class="empty-state">
+			<Icon svg={prohibitIcon} size={28} aria-hidden="true" />
+			<h3>No blocked users</h3>
+			<p>Users that this account blocks on Roblox appear here.</p>
+		</div>
+	</div>
 {:else}
 	<ul class="settings-section settings-rows" aria-label="Blocked users">
 		{#each blocked.users as user (user.userId)}

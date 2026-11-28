@@ -4,9 +4,9 @@
 	let { hasDetailLine = true }: { hasDetailLine?: boolean } = $props()
 </script>
 
-<li class="flex flex-col gap-1 rounded-lg border border-line-subtle bg-surface p-1">
-	<span class="block aspect-square w-full skeleton rounded-sm"></span>
-	<span class="flex flex-col px-1 pb-0.5">
+<li class="flex flex-col gap-1.5">
+	<span class="block aspect-square w-full skeleton rounded-lg"></span>
+	<span class="flex flex-col">
 		<span class="text-xs"><span class="skeleton-line w-3/4"></span></span>
 		{#if hasDetailLine}
 			<span class="text-2xs"><span class="skeleton-line w-1/2"></span></span>

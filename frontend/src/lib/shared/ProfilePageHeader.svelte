@@ -30,7 +30,7 @@
 	})
 </script>
 
-<header class="settings-header">
+<header class="tab-bar items-center gap-2 pr-3">
 	<h1 id={titleId} class="sr-only" tabindex="-1" bind:this={heading}>
 		{title} of {subtitle}
 	</h1>

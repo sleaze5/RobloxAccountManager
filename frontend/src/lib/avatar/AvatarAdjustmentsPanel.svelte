@@ -74,7 +74,7 @@
 	})
 </script>
 
-<div class="flex flex-col gap-5 p-3">
+<div class="flex flex-col gap-4 p-3">
 	<p class="flex min-h-7 items-center text-xs text-fg-muted">
 		{canEdit
 			? "Move, turn, and resize accessories. The image previews your changes."

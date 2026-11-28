@@ -65,7 +65,7 @@
 						onOpen={() => onOpenItem(asset)} />
 					{#if itemControls}
 						<span
-							class="pointer-events-none absolute inset-x-2 top-2 flex h-6 items-center justify-end gap-1">
+							class="pointer-events-none absolute inset-x-1 top-1 flex h-6 items-center justify-end gap-1">
 							{@render itemControls(asset)}
 						</span>
 					{/if}

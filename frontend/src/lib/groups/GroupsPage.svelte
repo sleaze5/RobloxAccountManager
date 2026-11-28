@@ -411,63 +411,7 @@
 								: "Loading groups…"}>
 							{#snippet row(index)}<SkeletonMediaRow {index} />{/snippet}
 						</SkeletonList>
-					{:else if listError && rows.length === 0}
-						<div class="empty-state px-3 py-8">
-							<Icon svg={warningIcon} size={28} aria-hidden="true" />
-							<h2>Groups unavailable</h2>
-							<button
-								class="button"
-								type="button"
-								onclick={() =>
-									void (isSearchMode
-										? store.search()
-										: store.refreshMyGroups())}>Try again</button>
-						</div>
-					{:else if rows.length === 0}
-						<div class="empty-state px-3 py-8" role="status">
-							<Icon
-								svg={isSearchMode
-									? magnifyingGlassIcon
-									: usersThreeIcon}
-								size={28}
-								aria-hidden="true" />
-							{#if isSearchMode}
-								<h2>
-									{store.searchedText
-										? "No matching groups"
-										: "Search Roblox groups"}
-								</h2>
-								<p>
-									{store.searchedText
-										? "No group matches this search. Try another name or ID."
-										: "Enter at least 2 characters of a group name, or a group ID like id:1234."}
-								</p>
-							{:else if terms.length > 0}
-								<h2>No matching groups</h2>
-								<p>Change the search to find a group.</p>
-								<button
-									class="button"
-									type="button"
-									onclick={() => {
-										store.query = ""
-										searchInput?.focus()
-									}}>Clear search</button>
-							{:else}
-								<h2>No groups yet</h2>
-								<p>
-									@{account.username} is not in any group. Search to find
-									one.
-								</p>
-								<button
-									class="button"
-									type="button"
-									onclick={() => {
-										store.show("search")
-										searchInput?.focus()
-									}}>Search groups</button>
-							{/if}
-						</div>
-					{:else}
+					{:else if rows.length > 0}
 						{#each rows as row (row.group.groupId)}
 							{@const isSelected =
 								store.selectedGroupId === row.group.groupId}
@@ -563,7 +507,60 @@
 				store.subpage ? "overflow-hidden" : "overflow-x-hidden overflow-y-auto",
 			]}
 			bind:this={detailPane}>
-			{#if !store.selectedGroupId}
+			{#if !store.selectedGroupId && !isListLoading && listError && rows.length === 0}
+				<div class="empty-state h-full">
+					<Icon svg={warningIcon} size={28} aria-hidden="true" />
+					<h2>Groups unavailable</h2>
+					<button
+						class="button"
+						type="button"
+						onclick={() =>
+							void (isSearchMode
+								? store.search()
+								: store.refreshMyGroups())}>Try again</button>
+				</div>
+			{:else if !store.selectedGroupId && !isListLoading && rows.length === 0}
+				<div class="empty-state h-full" role="status">
+					<Icon
+						svg={isSearchMode ? magnifyingGlassIcon : usersThreeIcon}
+						size={28}
+						aria-hidden="true" />
+					{#if isSearchMode}
+						<h2>
+							{store.searchedText
+								? "No matching groups"
+								: "Search Roblox groups"}
+						</h2>
+						<p>
+							{store.searchedText
+								? "No group matches this search. Try another name or ID."
+								: "Enter at least 2 characters of a group name, or a group ID like id:1234."}
+						</p>
+					{:else if terms.length > 0}
+						<h2>No matching groups</h2>
+						<p>Change the search to find a group.</p>
+						<button
+							class="button"
+							type="button"
+							onclick={() => {
+								store.query = ""
+								searchInput?.focus()
+							}}>Clear search</button>
+					{:else}
+						<h2>No groups yet</h2>
+						<p>
+							@{account.username} is not in any group. Search to find one.
+						</p>
+						<button
+							class="button"
+							type="button"
+							onclick={() => {
+								store.show("search")
+								searchInput?.focus()
+							}}>Search groups</button>
+					{/if}
+				</div>
+			{:else if !store.selectedGroupId}
 				<div class="empty-state h-full" role="status">
 					<Icon svg={usersThreeIcon} size={28} aria-hidden="true" />
 					<h2>Select a group</h2>

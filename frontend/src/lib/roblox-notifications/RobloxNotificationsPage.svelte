@@ -130,7 +130,7 @@
 		data-load-more-root
 		aria-busy={stream.loading}>
 		{#if stream.loading && stream.notifications.length === 0}
-			<div class="max-w-2xl p-3">
+			<div class="p-3">
 				<SkeletonList label="Loading notifications…" rowCount={5}>
 					{#snippet row(index)}
 						<div class="mb-2 flex gap-3 rounded-lg border border-line p-3">
@@ -171,7 +171,7 @@
 				<p>Invites, friend updates, and group posts from Roblox appear here.</p>
 			</div>
 		{:else}
-			<div class="flex max-w-2xl flex-col gap-2 p-3">
+			<div class="flex flex-col gap-2 p-3">
 				{#if stream.visibleNotifications.length === 0 && !stream.nextStartIndex}
 					<div class="empty-state py-10">
 						<Icon svg={funnelIcon} size={28} aria-hidden="true" />

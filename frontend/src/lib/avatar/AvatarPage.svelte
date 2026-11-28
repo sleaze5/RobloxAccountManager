@@ -414,7 +414,7 @@
 
 			<div class="@container flex min-w-0 flex-1 flex-col">
 				<div
-					class="flex h-9 shrink-0 items-stretch overflow-x-auto border-b border-line-subtle bg-surface"
+					class="tab-bar items-center gap-0.5 overflow-x-auto px-1"
 					role="tablist"
 					aria-label="Avatar sections"
 					tabindex="-1"
@@ -422,7 +422,7 @@
 					{#each tabs as option (option.id)}
 						<button
 							id={`${elementIdPrefix}-avatar-tab-${option.id}`}
-							class="tab"
+							class="sub-tab"
 							type="button"
 							role="tab"
 							aria-selected={tab === option.id}

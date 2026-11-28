@@ -210,7 +210,7 @@
 			>Try again</button>
 	</div>
 {:else if !profile || !details || !group || !membership || !permissions}
-	<div class="flex flex-col gap-5 p-4" role="status" aria-busy="true">
+	<div class="flex flex-col gap-4 p-3" role="status" aria-busy="true">
 		<span class="sr-only">Loading group…</span>
 		<div class="flex items-start gap-4">
 			<span class="size-24 shrink-0 skeleton rounded-md"></span>
@@ -224,7 +224,7 @@
 		<span class="h-20 w-full skeleton rounded-lg"></span>
 	</div>
 {:else}
-	<section class="flex flex-col gap-5 p-4 pb-5" aria-labelledby="group-name">
+	<section class="flex flex-col gap-4 p-3" aria-labelledby="group-name">
 		<div class="flex items-start gap-4">
 			<GroupIcon url={group.iconUrl} size="xl" />
 			<div class="flex min-w-0 flex-1 flex-col gap-1 pt-1">
@@ -351,7 +351,7 @@
 			</div>
 		</div>
 
-		<div class="-mx-4 h-8 border-b border-line-subtle">
+		<div class="-mx-3 tab-bar">
 			<ProfileTabs />
 		</div>
 
@@ -505,7 +505,7 @@
 					</form>
 				{:else}
 					<p
-						class="max-h-60 text-block overflow-y-auto select-text"
+						class="max-h-60 overflow-y-auto text-block select-text"
 						data-variant="prose">
 						{group.description || "No description."}
 					</p>

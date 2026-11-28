@@ -32,7 +32,6 @@
 	import { isMoveShortcut, moveListFocus } from "../shared/move-shortcut"
 	import { isMultiSelectGesture } from "../shared/list-selection.svelte"
 	import { notifyErrors } from "../notifications/error-notifications.svelte"
-	import { menuIn, menuOut } from "../shared/transitions"
 	import GameContextMenu from "./GameContextMenu.svelte"
 	import GameBadgesPage from "./GameBadgesPage.svelte"
 	import GameDetails from "./GameDetails.svelte"
@@ -573,12 +572,14 @@
 					</SelectionToolbar>
 				{:else if hasSearch}
 					<div
-						class="pointer-events-none absolute inset-x-0 bottom-2 flex justify-center">
+						class="absolute inset-x-0 bottom-0 flex h-11 animate-enter items-center gap-2 border-t border-line bg-overlay pr-2 pl-3">
+						<span class="min-w-0 flex-1 truncate text-xs text-fg-muted"
+							><strong class="font-mono font-medium text-fg"
+								>{count}{hasMore ? "+" : ""}</strong>
+							{count === 1 && !hasMore ? "result" : "results"}</span>
 						<button
-							class="pointer-events-auto button bg-raised shadow-float hover:bg-raised-hover"
+							class="button"
 							type="button"
-							in:menuIn
-							out:menuOut
 							onclick={() => {
 								store.clearSearch()
 								searchInput?.focus()

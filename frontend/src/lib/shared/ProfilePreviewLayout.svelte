@@ -52,7 +52,7 @@
 	} = $props()
 </script>
 
-<div class="flex flex-col gap-5">
+<div class="flex flex-col gap-4">
 	<div class="flex items-start gap-4">
 		{@render image()}
 		<div class="flex min-w-0 flex-1 flex-col gap-1">

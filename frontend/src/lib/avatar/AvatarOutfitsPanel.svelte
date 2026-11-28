@@ -149,16 +149,13 @@
 				{@const isWearing = avatar.wearingOutfitId === outfit.outfitId}
 				<li class="relative min-w-0">
 					<button
-						class="group/tile flex w-full min-w-0 flex-col gap-1 rounded-lg border border-line-subtle bg-surface p-1 text-left transition-colors duration-100 hover:border-line hover:bg-hover"
+						class="group/tile tile"
 						type="button"
 						data-tooltip="Show outfit details"
 						data-tooltip-strong={outfit.name || "Unnamed outfit"}
 						onclick={() => onOpenOutfit(outfit)}>
-						<span
-							class="relative grid aspect-square w-full place-items-center overflow-hidden rounded-sm bg-raised"
-							aria-hidden="true">
-							<span
-								class="grid size-full place-items-center transition-transform duration-150 ease-out motion-safe:group-hover/tile:scale-105">
+						<span class="tile-image" aria-hidden="true">
+							<span class="tile-zoom">
 								<ProfileImage
 									url={outfit.imageUrl}
 									fallbackIcon={coatHangerIcon} />
@@ -175,13 +172,13 @@
 						</span>
 						<span
 							class={[
-								"block min-w-0 truncate px-1 pb-0.5 text-xs font-medium text-fg",
+								"block min-w-0 truncate text-xs font-medium text-fg",
 								canEdit && "pr-7",
 							]}>{outfit.name || "Unnamed outfit"}</span>
 					</button>
 					{#if canEdit}
 						<button
-							class="absolute right-1 bottom-0.5 button-ghost-sm"
+							class="absolute right-0 -bottom-1 button-ghost-sm"
 							type="button"
 							aria-label={`More actions for ${outfit.name || "outfit"}`}
 							aria-haspopup="menu"

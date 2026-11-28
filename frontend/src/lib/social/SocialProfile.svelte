@@ -179,7 +179,7 @@
 	notifyErrors("Profile not loaded", () => store.profileError)
 </script>
 
-<section class="flex flex-col gap-5 p-4 pb-5" aria-labelledby="social-name">
+<section class="flex flex-col gap-4 p-3" aria-labelledby="social-name">
 	<div class="flex items-start gap-4">
 		<AvatarPortraitFrame
 			portraitLoad={avatarPortrait}
@@ -311,18 +311,18 @@
 		</div>
 	</div>
 
-	<div class="-mx-4 h-8 border-b border-line-subtle">
+	<div class="-mx-3 tab-bar">
 		<ProfileTabs />
 	</div>
 
 	<div
 		class={[
-			"grid min-w-0 items-start gap-5 @4xl:gap-6",
+			"grid min-w-0 items-start gap-4 @4xl:gap-x-6",
 			request ? "@4xl:grid-cols-3" : "@4xl:grid-cols-2",
 		]}>
 		<div
 			class={request
-				? "flex min-w-0 flex-col gap-5 @4xl:col-span-2"
+				? "flex min-w-0 flex-col gap-4 @4xl:col-span-2"
 				: "contents"}>
 			{#if profile && store.profileLoad?.hasSection(SocialProfileSection.SocialSectionAbout) && (profile.description || profile.socialLinks?.length)}
 				<section

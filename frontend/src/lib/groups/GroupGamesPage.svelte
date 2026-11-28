@@ -157,7 +157,7 @@
 					{@const name = game.place.name || "Unnamed game"}
 					<li class="min-w-0">
 						<button
-							class="group/tile flex h-full w-full min-w-0 flex-col gap-1 rounded-lg border border-line-subtle bg-surface p-1 text-left transition-colors duration-100 hover:border-line hover:bg-hover"
+							class="group/tile tile"
 							type="button"
 							data-tooltip="Show game"
 							data-tooltip-strong={name}
@@ -166,11 +166,8 @@
 									kind: "Place",
 									placeId: game.place.placeId,
 								})}>
-							<span
-								class="relative grid aspect-square w-full place-items-center overflow-hidden rounded-sm bg-raised">
-								<span
-									class="grid size-full place-items-center transition-transform duration-150 ease-out motion-safe:group-hover/tile:scale-105"
-									aria-hidden="true">
+							<span class="tile-image">
+								<span class="tile-zoom" aria-hidden="true">
 									<ProfileImage
 										url={game.place.iconUrl}
 										fallbackIcon={gameControllerIcon} />
@@ -185,7 +182,7 @@
 											aria-hidden="true" />Private</span>
 								{/if}
 							</span>
-							<span class="flex min-w-0 flex-col px-1 pb-0.5">
+							<span class="flex min-w-0 flex-col">
 								<span class="truncate text-xs font-medium text-fg"
 									>{name}</span>
 								<span

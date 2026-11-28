@@ -275,7 +275,7 @@
 {:else}
 	<section
 		bind:this={profileSection}
-		class="flex flex-col gap-5 p-4 pb-5"
+		class="flex flex-col gap-4 p-3"
 		aria-labelledby="account-name">
 		<div class="flex items-start gap-4">
 			{#if hasAccount}
@@ -511,11 +511,11 @@
 		{/if}
 
 		{#if hasAccount}
-			<div class="-mx-4 h-8 border-b border-line-subtle">
+			<div class="-mx-3 tab-bar">
 				<ProfileTabs />
 			</div>
 
-			<div class="grid min-w-0 items-start gap-5 @4xl:grid-cols-3 @4xl:gap-x-6">
+			<div class="grid min-w-0 items-start gap-4 @4xl:grid-cols-3 @4xl:gap-x-6">
 				{#if profileState && hasAbout}
 					<AccountProfileDescription
 						snapshot={profileState.snapshot}

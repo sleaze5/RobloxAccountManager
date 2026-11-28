@@ -221,7 +221,7 @@
 			<section class="flex flex-col gap-3" aria-label="Description">
 				<h3 class={sectionHeadingClass}>Description</h3>
 				<p
-					class="max-h-40 text-block overflow-y-auto select-text"
+					class="max-h-40 overflow-y-auto text-block select-text"
 					data-variant="prose">
 					{group.description}
 				</p>

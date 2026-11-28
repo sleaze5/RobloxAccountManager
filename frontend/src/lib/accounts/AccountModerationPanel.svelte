@@ -75,7 +75,7 @@
 
 <section
 	class={[
-		"flex max-w-2xl animate-enter flex-col gap-3 rounded-lg border p-3",
+		"flex animate-enter flex-col gap-3 rounded-lg border p-3",
 		isWarning ? "border-warning/30 bg-warning/5" : "border-danger/40 bg-danger/5",
 	]}
 	aria-labelledby="account-moderation-title">

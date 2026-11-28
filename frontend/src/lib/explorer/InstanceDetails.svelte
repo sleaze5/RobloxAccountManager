@@ -117,7 +117,7 @@ Screen readers hear the name of the vector before each axis. -->
 
 {#if !instance}
 	{@const model = node.model}
-	<div class="flex min-h-0 flex-1 animate-enter flex-col gap-4 overflow-y-auto p-4">
+	<div class="flex min-h-0 flex-1 animate-enter flex-col gap-4 overflow-y-auto p-3">
 		<header class="flex items-center gap-3">
 			<span
 				class="grid size-9 shrink-0 place-items-center rounded-md border border-line bg-raised text-fg-muted">

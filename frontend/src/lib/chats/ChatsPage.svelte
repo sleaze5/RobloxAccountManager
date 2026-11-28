@@ -130,8 +130,13 @@
 			{:else}
 				<div class="empty-state h-full">
 					<Icon svg={chatsCircleIcon} size={28} aria-hidden="true" />
-					<h2>Select a chat</h2>
-					<p>Select a chat, or start a new one.</p>
+					{#if chat.conversations.length === 0 && !chat.loading}
+						<h2>No chats yet</h2>
+						<p>Start a chat with one or more friends.</p>
+					{:else}
+						<h2>Select a chat</h2>
+						<p>Select a chat, or start a new one.</p>
+					{/if}
 					<button
 						class="button-primary"
 						type="button"
