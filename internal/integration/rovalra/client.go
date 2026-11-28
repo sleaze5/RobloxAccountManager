@@ -32,6 +32,7 @@ type Client struct {
 
 	mutex            sync.Mutex
 	regions          []Region
+	datacenterByID   map[int64]games.Datacenter
 	regionsFetchedAt time.Time
 }
 

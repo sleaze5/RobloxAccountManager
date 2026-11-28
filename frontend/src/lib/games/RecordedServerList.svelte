@@ -4,33 +4,31 @@
 	import hardDrivesIcon from "@phosphor-icons/core/regular/hard-drives.svg?raw"
 	import warningIcon from "@phosphor-icons/core/regular/warning.svg?raw"
 	import Icon from "../shared/Icon.svelte"
-	import ServerListSkeleton from "./ServerListSkeleton.svelte"
+	import ServerTileSkeleton from "./ServerTileSkeleton.svelte"
 	import { untrack } from "svelte"
 	import { GameServerRecordOrder } from "../backend/bridge"
 	import Select from "../shared/Select.svelte"
-	import ServerActionsButton from "./ServerActionsButton.svelte"
-	import { openServerMenuFromRow } from "./server-row-menu"
+	import ServerTile from "./ServerTile.svelte"
 	import type { ServerMenuOpener } from "./server-row-menu"
-	import ServerUptime from "./ServerUptime.svelte"
-	import ServerVersion from "./ServerVersion.svelte"
 	import {
 		type RecordedServers,
-		recordLocation,
 		type RecordPageSize,
-		recordPlace,
 		regionLabel,
+		type ServerDetailsLoader,
 		type ServerStatsLoader,
 	} from "./game-servers-state.svelte"
 
 	let {
 		servers,
 		stats,
+		details,
 		activeServerId,
 		menuID,
 		onMenu,
 	}: {
 		servers: RecordedServers
 		stats: ServerStatsLoader
+		details: ServerDetailsLoader
 		activeServerId: string | undefined
 		menuID: string
 		onMenu: ServerMenuOpener
@@ -124,7 +122,7 @@
 				>Try again</button>
 		</div>
 	{:else if !servers.page}
-		<ServerListSkeleton label="Loading RoValra servers…" />
+		<ServerTileSkeleton label="Loading RoValra servers…" isRecorded />
 	{:else if !shown.length}
 		<div class="empty-state" role="status">
 			<Icon svg={hardDrivesIcon} size={28} aria-hidden="true" />
@@ -154,57 +152,21 @@
 			<span>Some may have closed</span>
 		</p>
 		<div
-			class="server-table"
-			data-variant="recorded"
+			class="server-tiles"
 			data-loading={servers.loading || undefined}
 			data-load-more-root
 			bind:this={list}>
-			<div class="server-columns" aria-hidden="true">
-				<span>Region</span>
-				<span class="justify-self-end text-right">Datacenter</span>
-				<span>IP address</span>
-				<span class="justify-self-end text-right">Version</span>
-				<span class="justify-self-end text-right">Uptime</span>
-				<span>Server ID</span>
-			</div>
 			<ol aria-label="Servers" aria-busy={servers.loading}>
 				{#each shown as server (server.serverId)}
-					<li
-						class="server-row"
-						data-open={activeServerId === server.serverId || undefined}
-						oncontextmenu={(event) =>
-							openServerMenuFromRow(event, server.serverId, onMenu)}>
-						<span
-							class="truncate text-xs text-fg"
-							data-tooltip={recordLocation(server) || undefined}
-							>{recordPlace(server) || "Unknown location"}</span>
-						{#if server.datacenterId}
-							<span class="server-number justify-self-end text-right"
-								>{server.datacenterId}</span>
-						{:else}
-							<span
-								class="justify-self-end text-right text-fg-faint"
-								aria-label="Unknown datacenter">-</span>
-						{/if}
-						{#if server.address}
-							<span
-								class="truncate font-mono text-2xs text-fg-faint select-text"
-								>{server.address}</span>
-						{:else}
-							<span class="text-fg-faint" aria-label="Unknown IP address"
-								>-</span>
-						{/if}
-						<ServerVersion version={server.placeVersion} {newestVersion} />
-						<ServerUptime firstSeenMs={server.firstSeenMs} />
-						<span
-							class="truncate font-mono text-2xs text-fg-faint select-text"
-							data-tooltip={server.serverId}>{server.serverId}</span>
-						<ServerActionsButton
-							open={activeServerId === server.serverId}
-							{menuID}
-							onMenu={(trigger, toggle) =>
-								onMenu(server.serverId, trigger, toggle)} />
-					</li>
+					<ServerTile
+						serverId={server.serverId}
+						record={server}
+						details={details.get(server.serverId)}
+						{newestVersion}
+						isMenuOpen={activeServerId === server.serverId}
+						{menuID}
+						{onMenu}
+						onVisible={() => details.request(server.serverId)} />
 				{/each}
 			</ol>
 			{#if servers.hasNext}

@@ -1,3 +1,4 @@
+import { SvelteMap } from "svelte/reactivity"
 import {
 	accountBackend,
 	GameServerOrder,
@@ -5,7 +6,9 @@ import {
 } from "../backend/bridge"
 import type {
 	FriendsInGame,
+	GameDatacenter,
 	GameServer,
+	GameServerDetails,
 	GameServerPage,
 	GameServerRecord,
 	GameServerRecordPage,
@@ -243,6 +246,9 @@ export class GameServers extends ServerPager<string, GameServer, GameServerPage>
 	excludeFull = $state(false)
 	limit = $state<ServerPageSize>(50)
 	maxPing = $state(0)
+	minFps = $state(0)
+	// region filters the loaded servers by the place that their tiles name.
+	region = $state("")
 
 	constructor(
 		placeId: number,
@@ -253,12 +259,12 @@ export class GameServers extends ServerPager<string, GameServer, GameServerPage>
 	}
 
 	get servers(): GameServer[] {
-		const servers = this.page?.servers ?? []
-		return this.maxPing
-			? servers.filter(
-					(server) => server.pingMs !== null && server.pingMs <= this.maxPing,
-				)
-			: servers
+		return (this.page?.servers ?? []).filter(
+			(server) =>
+				(!this.maxPing ||
+					(server.pingMs !== null && server.pingMs <= this.maxPing)) &&
+				server.fps >= this.minFps,
+		)
 	}
 
 	setOptions(options: {
@@ -630,6 +636,105 @@ export class FriendsInGameLoader {
 	}
 }
 
+const serverDetailsKeepMs = 5 * 60_000,
+	// Each server's details cost one Roblox join request, so only a few run
+	// at a time.
+	serverDetailsRequestLimit = 2
+
+export type ServerDetailsState =
+	| { status: "loading" }
+	| { status: "failed" }
+	| { status: "loaded"; details: GameServerDetails }
+
+// ServerDetailsLoader asks Roblox's join service about each server that comes
+// into view, as the shown account, and keeps the answers for a few minutes.
+export class ServerDetailsLoader {
+	readonly #states = new SvelteMap<string, ServerDetailsState>()
+	readonly #fetchedAt = new Map<string, number>()
+	readonly #queue: string[] = []
+	readonly #requests = new Set<CancellableRequest<GameServerDetails>>()
+	#accountId: number
+
+	constructor(
+		readonly placeId: number,
+		accountId: number,
+	) {
+		this.#accountId = accountId
+	}
+
+	get(serverId: string): ServerDetailsState | undefined {
+		return this.#states.get(serverId)
+	}
+
+	showAccount(accountId: number): void {
+		if (accountId === this.#accountId) return
+		this.#accountId = accountId
+		this.dispose()
+		this.#states.clear()
+		this.#fetchedAt.clear()
+	}
+
+	request(serverId: string): void {
+		if (!this.#accountId) return
+		const state = this.#states.get(serverId),
+			fetchedAt = this.#fetchedAt.get(serverId) ?? 0
+		if (state?.status === "loading") return
+		if (state && Date.now() - fetchedAt < serverDetailsKeepMs) return
+		this.#states.set(serverId, { status: "loading" })
+		this.#queue.push(serverId)
+		this.#next()
+	}
+
+	// refresh asks again about the servers that were asked about before.
+	refresh(): void {
+		this.#fetchedAt.clear()
+		for (const serverId of [...this.#states.keys()]) {
+			if (this.#states.get(serverId)?.status !== "loading") {
+				this.#states.delete(serverId)
+			}
+		}
+	}
+
+	#next(): void {
+		while (this.#requests.size < serverDetailsRequestLimit && this.#queue.length) {
+			void this.#load(this.#queue.shift()!)
+		}
+	}
+
+	async #load(serverId: string): Promise<void> {
+		const request = accountBackend.GetGameServerDetails(
+			this.placeId,
+			this.#accountId,
+			serverId,
+		)
+		this.#requests.add(request)
+		try {
+			const details = await request
+			if (this.#requests.has(request)) {
+				this.#states.set(serverId, { status: "loaded", details })
+			}
+		} catch {
+			// The tile shows the details as unavailable, and the backend logs
+			// the failure.
+			if (this.#requests.has(request)) {
+				this.#states.set(serverId, { status: "failed" })
+			}
+		} finally {
+			if (this.#requests.delete(request)) {
+				this.#fetchedAt.set(serverId, Date.now())
+				this.#next()
+			}
+		}
+	}
+
+	dispose(): void {
+		for (const request of this.#requests) void request.cancel()
+		this.#requests.clear()
+		for (const serverId of this.#queue) this.#states.delete(serverId)
+		this.#queue.length = 0
+	}
+}
+
 export class ServerStatsLoader {
 	stats = $state<GameServerStats | null>(null)
 	loading = $state(false)
@@ -682,6 +787,7 @@ export class PlaceServers {
 	readonly listed: ListedServers
 	readonly saved: SavedServers
 	readonly stats: ServerStatsLoader
+	readonly details: ServerDetailsLoader
 
 	constructor(
 		readonly placeId: number,
@@ -705,6 +811,7 @@ export class PlaceServers {
 		this.listed = new ListedServers(placeId, caches.listedPages)
 		this.saved = new SavedServers(placeId)
 		this.stats = new ServerStatsLoader(placeId)
+		this.details = new ServerDetailsLoader(placeId, accountId)
 	}
 
 	dispose(): void {
@@ -715,16 +822,75 @@ export class PlaceServers {
 		this.listed.dispose()
 		this.saved.dispose()
 		this.stats.dispose()
+		this.details.dispose()
 	}
 }
 
 export function formatUptime(startedMs: number): string {
-	const minutes = Math.max(0, Math.floor((Date.now() - startedMs) / 60_000)),
+	return formatDuration(Date.now() - startedMs)
+}
+
+export function formatDuration(durationMs: number): string {
+	if (durationMs < 60_000) return `${Math.max(0, Math.round(durationMs / 1000))}s`
+	const minutes = Math.max(0, Math.floor(durationMs / 60_000)),
 		days = Math.floor(minutes / 1440),
 		hours = Math.floor((minutes % 1440) / 60)
 	if (days) return `${days}d ${hours}h`
 	if (hours) return `${hours}h ${minutes % 60}m`
 	return `${minutes}m`
+}
+
+export type ServerHealth = {
+	label: string
+	tone: "success" | "warning" | "danger"
+}
+
+// serverHealth rates a server by its frame rate. Roblox servers aim for 60
+// frames per second.
+export function serverHealth(framesPerSecond: number): ServerHealth {
+	if (framesPerSecond >= 45) return { label: "Smooth", tone: "success" }
+	if (framesPerSecond >= 25) return { label: "Uneven", tone: "warning" }
+	return { label: "Laggy", tone: "danger" }
+}
+
+// serverPlace names where a server runs: where RoValra places the datacenter
+// that Roblox's join service names, or else where RoValra saw the server.
+export function serverPlace(
+	record: GameServerRecord | null | undefined,
+	details: ServerDetailsState | undefined,
+): string {
+	const datacenter = details?.status === "loaded" ? details.details.datacenter : null
+	if (datacenter) return datacenterPlace(datacenter)
+	return record ? recordPlace(record) : ""
+}
+
+// serverPlaceVersion prefers the version that Roblox's join service names
+// over RoValra's record.
+export function serverPlaceVersion(
+	record: GameServerRecord | null | undefined,
+	details: ServerDetailsState | undefined,
+): number {
+	return (
+		(details?.status === "loaded" ? details.details.placeVersion : 0) ||
+		record?.placeVersion ||
+		0
+	)
+}
+
+export function datacenterPlace(datacenter: GameDatacenter): string {
+	const area =
+		datacenter.countryCode === "US"
+			? datacenter.region || datacenter.country
+			: datacenter.country || countryName(datacenter.countryCode)
+	return [...new Set([datacenter.city, area].filter(Boolean))].join(", ")
+}
+
+export function datacenterLocation(datacenter: GameDatacenter): string {
+	return [
+		...new Set(
+			[datacenter.city, datacenter.region, datacenter.country].filter(Boolean),
+		),
+	].join(", ")
 }
 
 const countryNames = new Intl.DisplayNames(["en"], { type: "region" })
@@ -737,7 +903,7 @@ function countryName(code: string): string {
 	}
 }
 
-export function recordPlace(record: GameServerRecord): string {
+function recordPlace(record: GameServerRecord): string {
 	const place = record.city || record.region,
 		country = record.country || countryName(record.countryCode)
 	return [...new Set([place, country].filter(Boolean))].join(", ")
@@ -757,10 +923,4 @@ export function regionLabel(region: GameServerRegion): string {
 
 export function outdated(version: number, newestVersion: number): boolean {
 	return version > 0 && newestVersion > 0 && version < newestVersion
-}
-
-export function versionTooltip(version: number, newestVersion: number): string {
-	return outdated(version, newestVersion)
-		? `Place version ${version}. The newest running version is ${newestVersion}`
-		: `Place version ${version}`
 }

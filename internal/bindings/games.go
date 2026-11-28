@@ -84,6 +84,13 @@ func (service *Service) CheckGameServerJoinable(ctx context.Context, placeID, ac
 	return service.core.CheckGameServerJoinable(ctx, placeID, accountID, serverID)
 }
 
+func (service *Service) GetGameServerDetails(ctx context.Context, placeID, accountID int64, serverID string) (games.ServerDetails, error) {
+	if err := positiveID(accountID, "game-server-details"); err != nil {
+		return games.ServerDetails{}, err
+	}
+	return service.core.GetGameServerDetails(ctx, placeID, accountID, serverID)
+}
+
 func (service *Service) GetGamePlace(ctx context.Context, universeID, placeID int64) (games.PlaceSummary, error) {
 	return service.core.GetGamePlace(ctx, universeID, placeID)
 }

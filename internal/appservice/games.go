@@ -208,7 +208,39 @@ func (service *Service) ListGameServers(ctx context.Context, query games.ServerQ
 		return games.ServerPage{}, service.gamesError(ctx, "game-servers", err)
 	}
 	service.addServerRecords(ctx, query.PlaceID, page.Servers)
+	service.serverObservations.record(query.PlaceID, page.Servers, time.Now())
 	return page, nil
+}
+
+// GetGameServerDetails asks Roblox's join service about a server as the
+// account. With the RoValra integration on, it adds where RoValra places the
+// server's datacenter.
+func (service *Service) GetGameServerDetails(ctx context.Context, placeID, accountID int64, serverID string) (games.ServerDetails, error) {
+	if err := validRobloxID(placeID); err != nil {
+		return games.ServerDetails{}, err
+	}
+	if !games.ValidServerID(serverID) {
+		return games.ServerDetails{}, gamesInputError("The server is invalid. Refresh the server list.")
+	}
+	ctx, done, err := service.beginGames(ctx)
+	if err != nil {
+		return games.ServerDetails{}, err
+	}
+	defer done()
+	details, err := service.games.ServerDetails(ctx, accountID, placeID, serverID)
+	if err != nil {
+		return games.ServerDetails{}, service.gamesError(ctx, "game-server-details", err)
+	}
+	if details.DatacenterID > 0 && service.settings.Integrations().RoValra {
+		datacenter, found, err := service.rovalra.Datacenter(ctx, details.DatacenterID)
+		switch {
+		case err != nil && ctx.Err() == nil:
+			service.logs.Module("integration.rovalra").WarnContext(ctx, "datacenter location unavailable", "operation", "rovalra-datacenter", "datacenter_id", details.DatacenterID, "error", err)
+		case found:
+			details.Datacenter = &datacenter
+		}
+	}
+	return details, nil
 }
 
 func (service *Service) addServerRecords(ctx context.Context, placeID int64, servers []games.Server) {

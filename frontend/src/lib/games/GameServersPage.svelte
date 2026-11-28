@@ -77,6 +77,7 @@
 		listedServers = placeServers.listed,
 		savedServers = placeServers.saved,
 		stats = placeServers.stats,
+		serverDetails = placeServers.details,
 		menuID = $props.id()
 	let activeMenu = $state<{
 			key: string
@@ -124,6 +125,7 @@
 		untrack(() => {
 			privateServers.showAccount(accountId, active === privateServers)
 			friendsInGame.showAccount(accountId, active === robloxServers)
+			serverDetails.showAccount(accountId)
 		})
 	})
 
@@ -344,6 +346,8 @@
 		if (active === robloxServers) void friendsInGame.refresh()
 		if (active === privateServers && !accounts.selectedAccount.id) return
 		active.refresh()
+		if (active === robloxServers || active === recordedServers)
+			serverDetails.refresh()
 		if (appSettings.roValraEnabled) void stats.load()
 	}
 </script>
@@ -383,6 +387,7 @@
 		<RecordedServerList
 			servers={recordedServers}
 			{stats}
+			details={serverDetails}
 			activeServerId={openKey}
 			{menuID}
 			onMenu={openMenu} />
@@ -412,6 +417,7 @@
 		{/if}
 		<RobloxServerList
 			servers={robloxServers}
+			details={serverDetails}
 			records={appSettings.roValraEnabled}
 			newestVersion={stats.stats?.newestVersion ?? 0}
 			activeServerId={openKey}

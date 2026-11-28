@@ -42,6 +42,7 @@ type Service struct {
 	privateServers     *robloxservices.PrivateServers
 	badges             *robloxservices.Badges
 	rovalra            *rovalra.Client
+	serverObservations *serverObservations
 	rbxservers         *rbxservers.Client
 	placeRepository    *gamestore.Repository
 	transfers          *transferstore.Repository
@@ -129,6 +130,7 @@ func New(
 		privateServers:       privateServers,
 		badges:               badges,
 		rovalra:              rovalraClient,
+		serverObservations:   newServerObservations(),
 		rbxservers:           rbxserversClient,
 		placeRepository:      placeRepository,
 		transfers:            transfers,

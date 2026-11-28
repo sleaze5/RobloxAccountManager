@@ -717,42 +717,16 @@
 
 @utility server-table {
 	@apply min-h-0 flex-1 overflow-auto transition-opacity duration-100 data-loading:opacity-55;
-	--server-columns: --spacing(26) minmax(--spacing(30), 1fr) --spacing(14)
-		--spacing(8) --spacing(16) --spacing(13) minmax(--spacing(25), 1fr) --spacing(7);
-	--server-min-width: --spacing(160);
-
-	&[data-variant="records"] {
-		--server-columns: --spacing(26) --spacing(14) minmax(--spacing(30), 1fr)
-			--spacing(16) --spacing(18) minmax(--spacing(25), 1fr) --spacing(7);
-		--server-min-width: 0;
-	}
-
-	&[data-variant="records"]
-		:is(.server-columns, .server-row)
-		> :is(:nth-child(2), :nth-child(4), :nth-child(5), :nth-child(6)) {
-		@apply hidden;
-	}
-
-	&[data-variant="recorded"] {
-		--server-columns: minmax(--spacing(38), 1fr) --spacing(28) --spacing(16)
-			--spacing(18) minmax(--spacing(25), 1fr) --spacing(7);
-		--server-min-width: 0;
-	}
-
-	&[data-variant="recorded"] :is(.server-columns, .server-row) > :nth-child(2) {
-		@apply hidden;
-	}
+	--server-min-width: 0;
 
 	&[data-variant="private"] {
 		--server-columns: minmax(--spacing(36), 1fr) minmax(--spacing(28), 1fr)
 			--spacing(16) --spacing(20) --spacing(7);
-		--server-min-width: 0;
 	}
 
 	&[data-variant="listed"] {
 		--server-columns: minmax(--spacing(36), 1fr) minmax(--spacing(25), 1fr)
 			--spacing(7);
-		--server-min-width: 0;
 	}
 }
 
@@ -764,12 +738,88 @@
 	@apply grid h-11 min-w-(--server-min-width) grid-cols-(--server-columns) items-center gap-3 border-b border-line-subtle bg-canvas px-3 transition-colors duration-75 hover:bg-hover data-open:bg-hover;
 }
 
-@utility server-number {
-	@apply flex items-center gap-1 font-mono text-2xs whitespace-nowrap text-fg;
-}
-
 @utility server-tag {
 	@apply rounded-sm border border-line-strong px-1 font-sans text-2xs leading-3.5 font-medium text-fg-muted;
+
+	&[data-tone="success"] {
+		@apply border-success/40 text-success;
+	}
+
+	&[data-tone="warning"] {
+		@apply border-warning/40 text-warning;
+	}
+
+	&[data-tone="danger"] {
+		@apply border-danger/40 text-danger-muted;
+	}
+}
+
+/* The scrolling list of server tiles. */
+@utility server-tiles {
+	@apply @container relative min-h-0 flex-1 overflow-auto transition-opacity duration-100 data-loading:opacity-55;
+
+	& > ol {
+		@apply flex flex-col gap-2 p-3;
+	}
+}
+
+@utility server-tile {
+	@apply flex min-w-0 flex-col gap-2 rounded-lg border border-line-subtle bg-surface p-3 transition-colors duration-100 hover:border-line data-open:border-line-strong;
+}
+
+/* The headline numbers of a server tile, in as many columns as fit. */
+@utility server-stats {
+	@apply grid gap-x-4 gap-y-2;
+	grid-template-columns: repeat(auto-fill, minmax(--spacing(20), 1fr));
+
+	& > div {
+		@apply flex min-w-0 flex-col gap-0.5;
+	}
+
+	& dt {
+		@apply text-2xs text-fg-muted;
+	}
+
+	& dd {
+		@apply flex min-h-5 min-w-0 items-center gap-1.5 font-mono text-sm whitespace-nowrap text-fg select-text;
+	}
+
+	&[data-density="compact"] dd {
+		@apply text-xs;
+	}
+
+	& dd[data-font="sans"] {
+		@apply font-sans;
+	}
+
+	& > [data-tone="warning"] dd > span:first-child {
+		@apply text-warning;
+	}
+
+	& > [data-tone="danger"] dd > span:first-child {
+		@apply text-danger-muted;
+	}
+}
+
+/* How smoothly a server runs: a status dot and its label. */
+@utility server-health {
+	@apply flex h-6 shrink-0 items-center gap-1.5 text-xs font-medium text-fg;
+
+	&::before {
+		@apply size-2 rounded-full bg-fg-faint content-[""];
+	}
+
+	&[data-tone="success"]::before {
+		@apply bg-success;
+	}
+
+	&[data-tone="warning"]::before {
+		@apply bg-warning;
+	}
+
+	&[data-tone="danger"]::before {
+		@apply bg-danger;
+	}
 }
 
 @utility detail-grid {
