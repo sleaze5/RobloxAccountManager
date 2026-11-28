@@ -854,14 +854,16 @@ export function serverHealth(framesPerSecond: number): ServerHealth {
 }
 
 // serverPlace names where a server runs: where RoValra places the datacenter
-// that Roblox's join service names, or else where RoValra saw the server.
+// that Roblox's join service names, or else where RoValra saw the server,
+// from the list's record or the one that the details added.
 export function serverPlace(
 	record: GameServerRecord | null | undefined,
 	details: ServerDetailsState | undefined,
 ): string {
-	const datacenter = details?.status === "loaded" ? details.details.datacenter : null
-	if (datacenter) return datacenterPlace(datacenter)
-	return record ? recordPlace(record) : ""
+	const loaded = details?.status === "loaded" ? details.details : null
+	if (loaded?.datacenter) return datacenterPlace(loaded.datacenter)
+	const shownRecord = record ?? loaded?.record
+	return shownRecord ? recordPlace(shownRecord) : ""
 }
 
 // serverPlaceVersion prefers the version that Roblox's join service names
@@ -870,9 +872,11 @@ export function serverPlaceVersion(
 	record: GameServerRecord | null | undefined,
 	details: ServerDetailsState | undefined,
 ): number {
+	const loaded = details?.status === "loaded" ? details.details : null
 	return (
-		(details?.status === "loaded" ? details.details.placeVersion : 0) ||
+		loaded?.placeVersion ||
 		record?.placeVersion ||
+		loaded?.record?.placeVersion ||
 		0
 	)
 }

@@ -42,7 +42,7 @@
 		headingLevel = 3,
 		friends = [],
 		server,
-		record,
+		record: listedRecord,
 		details: detailsState,
 		newestVersion,
 		isMenuOpen,
@@ -83,6 +83,9 @@
 	const details = $derived(
 			detailsState?.status === "loaded" ? detailsState.details : null,
 		),
+		// record is the one that the list loaded, or the one that the join
+		// service details added for a server that it does not place.
+		record = $derived(listedRecord ?? details?.record ?? null),
 		isDetailsLoading = $derived(detailsState?.status === "loading"),
 		hasDetailsFailed = $derived(detailsState?.status === "failed"),
 		datacenter = $derived(details?.datacenter ?? null),

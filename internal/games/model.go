@@ -271,6 +271,9 @@ type ServerDetails struct {
 	Connection          ServerConnection `json:"connection"`
 	Address             string           `json:"address"`
 	PingIntervalSeconds int64            `json:"pingIntervalSeconds"`
+	// Record is RoValra's record of the server, added when the join service
+	// does not place it, such as for a full server.
+	Record *ServerRecord `json:"record"`
 }
 
 // Datacenter is where RoValra places a Roblox datacenter.

@@ -231,7 +231,10 @@ func (service *Service) GetGameServerDetails(ctx context.Context, placeID, accou
 	if err != nil {
 		return games.ServerDetails{}, service.gamesError(ctx, "game-server-details", err)
 	}
-	if details.DatacenterID > 0 && service.settings.Integrations().RoValra {
+	if !service.settings.Integrations().RoValra {
+		return details, nil
+	}
+	if details.DatacenterID > 0 {
 		datacenter, found, err := service.rovalra.Datacenter(ctx, details.DatacenterID)
 		switch {
 		case err != nil && ctx.Err() == nil:
@@ -240,7 +243,26 @@ func (service *Service) GetGameServerDetails(ctx context.Context, placeID, accou
 			details.Datacenter = &datacenter
 		}
 	}
+	if details.Datacenter == nil {
+		details.Record = service.serverRecord(ctx, placeID, serverID)
+	}
 	return details, nil
+}
+
+// serverRecord returns RoValra's record of one server, or nil when RoValra
+// has none or cannot be reached.
+func (service *Service) serverRecord(ctx context.Context, placeID int64, serverID string) *games.ServerRecord {
+	recordContext, cancel := context.WithTimeout(ctx, 5*time.Second)
+	defer cancel()
+	records, err := service.rovalra.Records(recordContext, placeID, []string{serverID})
+	if err != nil && ctx.Err() == nil {
+		service.logs.Module("integration.rovalra").WarnContext(ctx, "server record unavailable", "operation", "rovalra-server-record", "place_id", placeID, "error", err)
+	}
+	record, found := records[serverID]
+	if !found {
+		return nil
+	}
+	return &record
 }
 
 func (service *Service) addServerRecords(ctx context.Context, placeID int64, servers []games.Server) {
