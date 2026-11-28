@@ -12,14 +12,18 @@
 	import type { RelationshipActionId } from "../social/relationship"
 	import { personName } from "../social/social-store.svelte"
 	import type { SocialStore } from "../social/social-store.svelte"
+	import type { Account } from "../accounts/account-model"
+	import AccountConfirmationActions from "../shared/AccountConfirmationActions.svelte"
 
 	let {
 		store,
+		account,
 		person,
 		actionId,
 		onClose,
 	}: {
 		store: SocialStore
+		account: Account
 		person: SocialUser
 		actionId: RelationshipActionId
 		onClose: () => void
@@ -73,7 +77,7 @@
 				>{/if}
 		</span>
 	</div>
-	<div class="dialog-actions">
+	<AccountConfirmationActions {account}>
 		<button class="button" type="button" disabled={pending} onclick={close}
 			>{action.tone === "warning" ? "Keep request" : "Cancel"}</button>
 		<button
@@ -87,5 +91,5 @@
 			<Icon svg={action.icon} size={14} aria-hidden="true" />
 			{pending ? action.progress : action.label}
 		</button>
-	</div>
+	</AccountConfirmationActions>
 </Dialog>

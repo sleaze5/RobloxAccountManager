@@ -53,6 +53,7 @@
 	import MoreActionsMenu from "../shared/MoreActionsMenu.svelte"
 	import ExpandedImageDialog from "../shared/ExpandedImageDialog.svelte"
 	import ItemExplorerDialog from "../explorer/ItemExplorerDialog.svelte"
+	import AccountConfirmationActions from "../shared/AccountConfirmationActions.svelte"
 	import RobloxActionStrip from "../shared/RobloxActionStrip.svelte"
 	import { favoriteConfirmation } from "../shared/roblox-confirmations"
 	import Icon from "../shared/Icon.svelte"
@@ -854,7 +855,7 @@
 				onCancel={close}
 				onBuy={() => void buy()} />
 		{:else}
-			<div class="dialog-actions">
+			<AccountConfirmationActions {account}>
 				<button
 					class="button"
 					type="button"
@@ -882,7 +883,7 @@
 							? "Deleting…"
 							: "Delete item"}</button>
 				{/if}
-			</div>
+			</AccountConfirmationActions>
 		{/if}
 	{:else}
 		<div class="flex flex-col gap-4">

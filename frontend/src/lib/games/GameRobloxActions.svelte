@@ -172,6 +172,7 @@
 		confirmLabel={confirmation.confirmLabel}
 		progressLabel={confirmation.progressLabel}
 		tone="primary"
+		{account}
 		isWorking={actions.isSaving}
 		onConfirm={() => void confirm()}
 		onCancel={() => (pendingChange = null)} />

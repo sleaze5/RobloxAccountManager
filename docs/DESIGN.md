@@ -108,6 +108,7 @@ Content:
 - `empty-state`: empty, loading, and unavailable states for a page or pane.
 - `lib/shared/MoreActionsMenu.svelte`: the More actions button at the top right of a profile or a details dialog, with its menu.
 - `lib/shared/SavedAccountRelations.svelte`: the Saved accounts section of a user, a game, or an item, with badges that name how each other saved account relates to it.
+- `lib/shared/AccountConfirmationActions.svelte`: the bottom row of a confirmation that changes Roblox or spends Robux, with the saved account that acts on the left and the actions on the right.
 - `lib/shared/SettingChangeList.svelte`: the list of changed settings, each with its value before and after, that a confirmation shows before it saves.
 - `tag-pill` and `tag-pill-favorite`: tags. `tag-pill-success` and `tag-pill-warning` are status pills that color only their icon.
 - `list-row`: a row in a selectable list, with `data-selected` and `data-open`. Show a drop position while dragging with `shadow-drop-before` or `shadow-drop-after`.

@@ -76,6 +76,7 @@
 {:else if dialog?.kind === "relationship"}
 	<RelationshipActionDialog
 		store={social}
+		account={store.selectedAccount}
 		person={dialog.person}
 		actionId={dialog.actionId}
 		onClose={() => dialogs.closeRelationshipAction()} />

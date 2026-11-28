@@ -639,6 +639,7 @@
 	<ConfirmationDialog
 		{...primaryGroupConfirmation(group.name, isPrimary)}
 		tone="primary"
+		account={store.account}
 		isWorking={store.pendingAction !== null}
 		onConfirm={() => void changePrimaryGroup(group.groupId, isPrimary)}
 		onCancel={() => (primaryChange = null)} />
@@ -655,6 +656,7 @@
 			? `Leave ${groupIds.length} groups`
 			: "Leave group"}
 		progressLabel="Leaving…"
+		account={store.account}
 		isWorking={store.isLeavingGroups}
 		onConfirm={() => void leaveGroups(groupIds)}
 		onCancel={() => (leavingGroupIds = null)} />

@@ -672,6 +672,7 @@
 		description={`This account will leave ${group.name} and lose its role. Joining again may need approval.`}
 		confirmLabel="Leave group"
 		progressLabel="Leaving…"
+		account={store.account}
 		isWorking={store.pendingAction === "leave"}
 		onConfirm={() => void leave()}
 		onCancel={() => {
@@ -685,6 +686,7 @@
 	<ConfirmationDialog
 		{...confirmation}
 		tone="primary"
+		account={store.account}
 		isWorking={store.pendingAction !== null}
 		onConfirm={() => pendingChange && void confirmChange(pendingChange)}
 		onCancel={() => {

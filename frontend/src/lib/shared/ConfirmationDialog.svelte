@@ -1,6 +1,8 @@
 <script lang="ts">
 	import xIcon from "@phosphor-icons/core/regular/x.svg?raw"
 	import type { Snippet } from "svelte"
+	import type { Account } from "../accounts/account-model"
+	import AccountConfirmationActions from "./AccountConfirmationActions.svelte"
 	import Dialog from "./Dialog.svelte"
 	import Icon from "./Icon.svelte"
 
@@ -10,6 +12,7 @@
 		confirmLabel,
 		progressLabel,
 		tone = "danger",
+		account,
 		isWorking,
 		onConfirm,
 		onCancel,
@@ -23,6 +26,8 @@
 		// tone is primary for a change that the user can reverse, such as a
 		// change on Roblox.
 		tone?: "danger" | "warning" | "primary"
+		// account names the saved account that makes the change on Roblox.
+		account?: Account
 		isWorking: boolean
 		onConfirm: () => void
 		onCancel: () => void
@@ -55,7 +60,7 @@
 	}} />
 
 <Dialog
-	class={[children ? "max-w-md" : "max-w-sm", "text-left"]}
+	class={[children || account ? "max-w-md" : "max-w-sm", "text-left"]}
 	role="alertdialog"
 	aria-labelledby={`${dialogId}-title`}
 	aria-describedby={`${dialogId}-description`}
@@ -74,14 +79,21 @@
 		</button>
 	</div>
 	{#if children}<div class="mt-3">{@render children()}</div>{/if}
-	<div class="dialog-actions">
-		<button class="button" type="button" disabled={isWorking} onclick={cancel}
-			>Cancel</button>
-		<button
-			class={confirmClass}
-			type="button"
-			aria-busy={isWorking}
-			disabled={isWorking}
-			onclick={onConfirm}>{isWorking ? progressLabel : confirmLabel}</button>
-	</div>
+	{#if account}
+		<AccountConfirmationActions {account}
+			>{@render actions()}</AccountConfirmationActions>
+	{:else}
+		<div class="dialog-actions">{@render actions()}</div>
+	{/if}
 </Dialog>
+
+{#snippet actions()}
+	<button class="button" type="button" disabled={isWorking} onclick={cancel}
+		>Cancel</button>
+	<button
+		class={confirmClass}
+		type="button"
+		aria-busy={isWorking}
+		disabled={isWorking}
+		onclick={onConfirm}>{isWorking ? progressLabel : confirmLabel}</button>
+{/snippet}
