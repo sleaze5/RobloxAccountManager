@@ -52,7 +52,9 @@
 			store.closeMenu()
 			onFillLaunch(placeId)
 		}} />
-	{#if isBookmarked}
+	{#if menu.isFromProfile}
+		<!-- The game details show the bookmark and nickname controls. -->
+	{:else if isBookmarked}
 		<MenuItem
 			label={store.nicknameFor(place.placeId) ? "Edit nickname" : "Add nickname"}
 			icon={pencilLineIcon}
@@ -113,7 +115,7 @@
 			accessibleLabel="Copy game link"
 			onSelect={() => void store.copy(gameUrl, "Game link")} />
 	</MenuSection>
-	{#if isBookmarked}
+	{#if isBookmarked && !menu.isFromProfile}
 		<div class="menu-separator"></div>
 		<MenuItem
 			label="Remove bookmark"

@@ -607,13 +607,14 @@
 								tabindex={person.userId === tabStopUserId ? 0 : -1}
 								aria-label={rowLabel(person)}
 								onclick={(event) => selectPerson(event, person)}
-								oncontextmenu={(event) => store.openMenu(event, person)}
+								oncontextmenu={(event) =>
+									store.openMenu(event, person, false)}
 								onkeydown={(event) => {
 									if (
 										event.key === "ContextMenu" ||
 										(event.shiftKey && event.key === "F10")
 									)
-										store.openMenu(event, person)
+										store.openMenu(event, person, false)
 									if (
 										(event.key === " " || event.key === "Enter") &&
 										isMultiSelectGesture(event)

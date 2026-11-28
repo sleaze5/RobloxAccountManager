@@ -32,6 +32,7 @@
 		workspace,
 		account,
 		submenuLeft,
+		isFromProfile,
 		onManageTags,
 		onRemove,
 		onRenewCookie,
@@ -41,6 +42,9 @@
 		workspace: WorkspaceState
 		account: Account
 		submenuLeft: boolean
+		// isFromProfile leaves out what the profile shows as buttons: the
+		// reactivation, and the tags of an account that is not moderated.
+		isFromProfile: boolean
 		onManageTags: (accountId: number) => void
 		onRemove: (accountId: number) => void
 		onRenewCookie: (accountId: number) => void
@@ -113,15 +117,20 @@
 			: undefined}
 		onSelect={fillJoinOptions} />
 {/if}
-<div class="relative">
-	<MenuItem label="Edit tags" icon={tagIcon} hasSubmenu />
-	<div class="submenu" data-side={submenuLeft ? "left" : undefined} data-account-menu>
-		<TagPicker
-			{store}
-			accounts={[account]}
-			onManageTags={() => onManageTags(account.id)} />
+{#if !isFromProfile || account.state === SessionState.StateModerated}
+	<div class="relative">
+		<MenuItem label="Edit tags" icon={tagIcon} hasSubmenu />
+		<div
+			class="submenu"
+			data-side={submenuLeft ? "left" : undefined}
+			data-account-menu>
+			<TagPicker
+				{store}
+				accounts={[account]}
+				onManageTags={() => onManageTags(account.id)} />
+		</div>
 	</div>
-</div>
+{/if}
 {#if browserOpen}
 	<MenuItem
 		label="Focus browser"
@@ -157,7 +166,7 @@
 </MenuSection>
 
 <MenuSection heading="Cookie">
-	{#if account.state === SessionState.StateModerated && hasReactivation(account.moderation)}
+	{#if account.state === SessionState.StateModerated && hasReactivation(account.moderation) && !isFromProfile}
 		<MenuItem
 			label="Reactivate account"
 			icon={arrowCounterClockwiseIcon}

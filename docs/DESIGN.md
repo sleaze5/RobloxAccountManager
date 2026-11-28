@@ -108,7 +108,6 @@ Content:
 - `empty-state`: empty, loading, and unavailable states for a page or pane.
 - `lib/shared/MoreActionsMenu.svelte`: the More actions button at the top right of a profile or a details dialog, with its menu.
 - `lib/shared/SavedAccountRelations.svelte`: the Saved accounts section of a user, a game, or an item, with badges that name how each other saved account relates to it.
-- `lib/shared/RobloxAccountLine.svelte`: the line in a confirmation that names the account that makes the change on Roblox.
 - `lib/shared/SettingChangeList.svelte`: the list of changed settings, each with its value before and after, that a confirmation shows before it saves.
 - `tag-pill` and `tag-pill-favorite`: tags. `tag-pill-success` and `tag-pill-warning` are status pills that color only their icon.
 - `list-row`: a row in a selectable list, with `data-selected` and `data-open`. Show a drop position while dragging with `shadow-drop-before` or `shadow-drop-after`.
@@ -157,6 +156,7 @@ The user must never see UI that looks or behaves like an exposed embedded browse
 - Separate regions with a background step plus a 1px border, not with large shadows. Use `border-line` by default, `border-line-subtle` between rows and shell regions, and `border-line-strong` for selected controls and floating surfaces that need extra separation. Avoid bright outlines.
 - Keep the shell flat. The title bar and the page tabs are `h-9`, the status strip is `h-6`, and a page sidebar is 248px wide by default, so that its title fits a three-digit count beside four icon actions.
 - Show each value once per screen. For example, do not show the same count in a sidebar header and in the status strip.
+- Offer each destination and action once per screen. Do not add a button for a page that a tab already opens. A profile's More actions menu leaves out what the profile already shows as a button, a tab, or a link. A context menu on a list row keeps every action, because the row is where the pointer is.
 - A pane that changes its layout with container variants, such as `@4xl:grid-cols-3`, sits inside an element with `@container`, usually its scroll region. Without one, the wide layout never applies. On a wide pane, a profile puts its main sections in the left two thirds and its secondary facts, such as the Vault of an account or the access and features of a game, in the right third.
 - Only the content regions scroll, never the window. An absolutely positioned element, such as an `sr-only` live region, takes its position from the nearest positioned ancestor. Inside a scroll container, make the container `relative`, so that the element cannot overflow the window and let focus scroll the whole shell.
 
@@ -186,7 +186,7 @@ Menus, context menus, dropdowns, and tooltips open in the browser's top layer, a
 
 ## Typography
 
-- Use Geist (`font-sans`) for interface text and Geist Mono (`font-mono`) for technical text such as paths, values, IDs, and measurements.
+- Use Geist (`font-sans`) for interface text and for prose that people write, such as descriptions, shouts, and messages, also inside a text field. Use Geist Mono (`font-mono`) for technical text: IDs and other technical numbers, such as versions, coordinates, and character counts, and paths, codes, and measurements. Headline numbers in `ProfileStats` stay in Geist.
 - Bundle both fonts as local, normal-style WOFF2 variable fonts from Vercel's pinned release, with weights 100 through 900. Preload Geist in `frontend/index.html`. Do not fetch fonts at runtime. Keep the pinned upstream sources in `THIRD_PARTY_NOTICES.md` and the font license in `THIRD_PARTY_LICENSES.txt`.
 - Use the text scale: `text-2xs` (11px), `text-xs` (12px), `text-sm` (13px), `text-base` (15px), and `text-lg` (16px).
 - Use `text-sm` for body text and list-row titles, and `text-xs` for controls, compact labels, and helper text. Use `text-2xs` for status-strip text, tooltips, badges, and compact technical text. Use `text-2xs` or `text-xs` monospace for technical text.

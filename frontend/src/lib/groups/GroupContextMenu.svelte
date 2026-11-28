@@ -50,7 +50,8 @@
 	point={menu}
 	owner="data-group-menu"
 	onClose={() => store.closeMenu()}>
-	{#if membership}
+	<!-- The group profile shows the primary group and leave buttons. -->
+	{#if membership && !menu.isFromProfile}
 		<MenuItem
 			label={isPrimary ? "Remove primary group" : "Make primary group"}
 			icon={isPrimary ? starFillIcon : starIcon}
@@ -86,7 +87,7 @@
 			accessibleLabel="Copy group link"
 			onSelect={() => void store.copyField(group, "link")} />
 	</MenuSection>
-	{#if store.canLeave(group.groupId)}
+	{#if store.canLeave(group.groupId) && !menu.isFromProfile}
 		<div class="menu-separator"></div>
 		<MenuItem
 			label="Leave group"

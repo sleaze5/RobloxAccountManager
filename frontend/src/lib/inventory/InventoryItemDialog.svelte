@@ -53,7 +53,6 @@
 	import MoreActionsMenu from "../shared/MoreActionsMenu.svelte"
 	import ExpandedImageDialog from "../shared/ExpandedImageDialog.svelte"
 	import ItemExplorerDialog from "../explorer/ItemExplorerDialog.svelte"
-	import RobloxAccountLine from "../shared/RobloxAccountLine.svelte"
 	import RobloxActionStrip from "../shared/RobloxActionStrip.svelte"
 	import { favoriteConfirmation } from "../shared/roblox-confirmations"
 	import Icon from "../shared/Icon.svelte"
@@ -796,7 +795,7 @@
 			inventory.isBuyingItem ||
 			inventory.isSavingFavorite}
 		{@const price = market?.priceInRobux ?? 0}
-		{@const favoriteText = favoriteConfirmation(name, username, !isFavorite)}
+		{@const favoriteText = favoriteConfirmation(name, !isFavorite)}
 		<div class="dialog-heading">
 			<div>
 				{#if confirmation === "favorite"}
@@ -855,7 +854,6 @@
 				onCancel={close}
 				onBuy={() => void buy()} />
 		{:else}
-			<div class="mt-3"><RobloxAccountLine {account} /></div>
 			<div class="dialog-actions">
 				<button
 					class="button"

@@ -344,7 +344,6 @@
 		description={`This removes @${removedMember.user.username} and their ${removedMember.role.name} role from ${group.name}. They can ask to join again.`}
 		confirmLabel="Remove member"
 		progressLabel="Removing…"
-		account={store.account}
 		isWorking={isRemoving}
 		onConfirm={() => void removeMember()}
 		onCancel={() => (removedMember = null)} />

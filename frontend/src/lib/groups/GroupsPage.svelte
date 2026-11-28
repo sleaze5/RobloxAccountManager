@@ -509,13 +509,13 @@
 									onclick={(event) =>
 										selectGroup(event, row.group.groupId)}
 									oncontextmenu={(event) =>
-										store.openMenu(event, row.group)}
+										store.openMenu(event, row.group, false)}
 									onkeydown={(event) => {
 										if (
 											event.key === "ContextMenu" ||
 											(event.shiftKey && event.key === "F10")
 										)
-											store.openMenu(event, row.group)
+											store.openMenu(event, row.group, false)
 										if (
 											(event.key === " " ||
 												event.key === "Enter") &&
@@ -639,7 +639,6 @@
 	<ConfirmationDialog
 		{...primaryGroupConfirmation(group.name, isPrimary)}
 		tone="primary"
-		account={store.account}
 		isWorking={store.pendingAction !== null}
 		onConfirm={() => void changePrimaryGroup(group.groupId, isPrimary)}
 		onCancel={() => (primaryChange = null)} />
@@ -656,7 +655,6 @@
 			? `Leave ${groupIds.length} groups`
 			: "Leave group"}
 		progressLabel="Leaving…"
-		account={store.account}
 		isWorking={store.isLeavingGroups}
 		onConfirm={() => void leaveGroups(groupIds)}
 		onCancel={() => (leavingGroupIds = null)} />

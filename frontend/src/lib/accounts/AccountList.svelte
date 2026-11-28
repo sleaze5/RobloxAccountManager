@@ -62,7 +62,7 @@
 		// The menu opens only when the account is selected now, not after a
 		// confirmation to discard unsaved changes.
 		if (store.selectedAccountIds.includes(accountId)) {
-			workspace.openAccountContextMenu(event, accountId)
+			workspace.openAccountContextMenu(event, accountId, false)
 		}
 	}
 

@@ -39,6 +39,9 @@ export interface GroupMenu {
 	group: GroupSummary
 	x: number
 	y: number
+	// isFromProfile is true when the More actions button of the profile opens
+	// the menu. The menu then leaves out what the profile already shows.
+	isFromProfile: boolean
 }
 
 // GroupCopyField names a detail of a group that its menu and the selection
@@ -381,10 +384,14 @@ export class GroupsStore {
 		)
 	}
 
-	openMenu(event: MouseEvent | KeyboardEvent, group: GroupSummary): void {
+	openMenu(
+		event: MouseEvent | KeyboardEvent,
+		group: GroupSummary,
+		isFromProfile: boolean,
+	): void {
 		event.preventDefault()
 		event.stopPropagation()
-		this.menu = { group, ...menuPointFor(event, 2) }
+		this.menu = { group, ...menuPointFor(event, 2), isFromProfile }
 	}
 
 	closeMenu(): void {

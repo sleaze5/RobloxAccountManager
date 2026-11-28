@@ -78,6 +78,7 @@
 			{workspace}
 			account={store.selectedAccount}
 			submenuLeft={menu.submenuLeft}
+			isFromProfile={menu.isFromProfile}
 			{onManageTags}
 			{onRemove}
 			{onRenewCookie}

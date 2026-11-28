@@ -136,6 +136,9 @@ export interface SocialMenu {
 	person: SocialUser
 	x: number
 	y: number
+	// isFromProfile is true when the More actions button of the profile opens
+	// the menu. The menu then leaves out what the profile already shows.
+	isFromProfile: boolean
 }
 
 export const playersView = "players" as const
@@ -986,11 +989,15 @@ export class SocialStore {
 		return pages.flatMap((page) => page.people ?? [])
 	}
 
-	openMenu(event: MouseEvent | KeyboardEvent, person: SocialUser): void {
+	openMenu(
+		event: MouseEvent | KeyboardEvent,
+		person: SocialUser,
+		isFromProfile: boolean,
+	): void {
 		event.preventDefault()
 		event.stopPropagation()
-		this.menu = { person, ...menuPointFor(event, 2) }
-		void this.#loadMenuRelationship(person.userId)
+		this.menu = { person, ...menuPointFor(event, 2), isFromProfile }
+		if (!isFromProfile) void this.#loadMenuRelationship(person.userId)
 	}
 
 	closeMenu(): void {

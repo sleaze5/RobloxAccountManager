@@ -187,7 +187,6 @@
 		confirmLabel="Save on Roblox"
 		progressLabel="Saving…"
 		tone="primary"
-		{account}
 		isWorking={isSaving}
 		onConfirm={() => void save()}
 		onCancel={() => (isReviewing = false)}>

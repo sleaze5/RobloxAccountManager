@@ -72,6 +72,9 @@ export interface GameMenu {
 	place: GamePlace
 	x: number
 	y: number
+	// isFromProfile is true when the More actions button of the profile opens
+	// the menu. The menu then leaves out what the profile already shows.
+	isFromProfile: boolean
 }
 
 function creatorLabel(place: GamePlace): string {
@@ -252,10 +255,14 @@ export class GamesStore {
 		this.error = ""
 	}
 
-	openMenu(event: MouseEvent | KeyboardEvent, place: GamePlace): void {
+	openMenu(
+		event: MouseEvent | KeyboardEvent,
+		place: GamePlace,
+		isFromProfile: boolean,
+	): void {
 		event.preventDefault()
 		event.stopPropagation()
-		this.menu = { place, ...menuPointFor(event, 2) }
+		this.menu = { place, ...menuPointFor(event, 2), isFromProfile }
 	}
 
 	closeMenu(): void {

@@ -64,11 +64,11 @@
 
 	function confirmationFor(change: GameRobloxChange): ConfirmationText {
 		if (change.kind === "favorite")
-			return favoriteConfirmation(gameName, account.username, change.isFavorite)
+			return favoriteConfirmation(gameName, change.isFavorite)
 		if (change.vote === GameVote.GameVoteLike) {
 			return {
 				title: "Like this game on Roblox?",
-				description: `The like of @${account.username} counts in the rating of ${gameName}.`,
+				description: `The like of this account counts in the rating of ${gameName}.`,
 				confirmLabel: "Like game",
 				progressLabel: "Liking…",
 			}
@@ -76,7 +76,7 @@
 		if (change.vote === GameVote.GameVoteDislike) {
 			return {
 				title: "Dislike this game on Roblox?",
-				description: `The dislike of @${account.username} counts in the rating of ${gameName}.`,
+				description: `The dislike of this account counts in the rating of ${gameName}.`,
 				confirmLabel: "Dislike game",
 				progressLabel: "Disliking…",
 			}
@@ -84,7 +84,7 @@
 		const noun = vote === GameVote.GameVoteLike ? "like" : "dislike"
 		return {
 			title: `Remove ${noun} on Roblox?`,
-			description: `The ${noun} of @${account.username} no longer counts in the rating of ${gameName}.`,
+			description: `The ${noun} of this account no longer counts in the rating of ${gameName}.`,
 			confirmLabel: `Remove ${noun}`,
 			progressLabel: "Removing…",
 		}
@@ -172,7 +172,6 @@
 		confirmLabel={confirmation.confirmLabel}
 		progressLabel={confirmation.progressLabel}
 		tone="primary"
-		{account}
 		isWorking={actions.isSaving}
 		onConfirm={() => void confirm()}
 		onCancel={() => (pendingChange = null)} />

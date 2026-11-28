@@ -262,7 +262,6 @@ as a confirmation, and an open menu handle their own Escape. -->
 		confirmLabel={confirmation.confirmLabel}
 		progressLabel={confirmation.progressLabel}
 		tone={confirmation.tone}
-		{account}
 		isWorking={isConfirmationWorking}
 		onConfirm={() => void runConfirmation()}
 		onCancel={() => (confirmation = null)} />

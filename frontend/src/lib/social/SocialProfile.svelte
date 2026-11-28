@@ -304,7 +304,7 @@
 				data-tooltip-side="bottom-end"
 				onclick={(event) => {
 					if (store.menu) store.closeMenu()
-					else store.openMenu(event, person)
+					else store.openMenu(event, person, true)
 				}}>
 				<Icon svg={dotsThreeIcon} size={16} aria-hidden="true" />
 			</button>

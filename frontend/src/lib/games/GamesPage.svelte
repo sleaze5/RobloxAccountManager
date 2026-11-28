@@ -509,13 +509,14 @@
 									? "Control+Shift+ArrowUp Control+Shift+ArrowDown"
 									: undefined}
 								onclick={(event) => selectPlace(event, place)}
-								oncontextmenu={(event) => store.openMenu(event, place)}
+								oncontextmenu={(event) =>
+									store.openMenu(event, place, false)}
 								onkeydown={(event) => {
 									if (
 										event.key === "ContextMenu" ||
 										(event.shiftKey && event.key === "F10")
 									)
-										store.openMenu(event, place)
+										store.openMenu(event, place, false)
 									if (
 										(event.key === " " || event.key === "Enter") &&
 										isMultiSelectGesture(event)

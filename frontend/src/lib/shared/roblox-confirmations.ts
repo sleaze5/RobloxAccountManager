@@ -10,19 +10,18 @@ export interface ConfirmationText {
 // favorites on Roblox, or removes it.
 export function favoriteConfirmation(
 	name: string,
-	username: string,
 	isAddingFavorite: boolean,
 ): ConfirmationText {
 	return isAddingFavorite
 		? {
 				title: "Add to favorites on Roblox?",
-				description: `${name} shows in the favorites of @${username}, which other users can see.`,
+				description: `${name} shows in the favorites of this account, which other users can see.`,
 				confirmLabel: "Add to favorites",
 				progressLabel: "Adding…",
 			}
 		: {
 				title: "Remove from favorites on Roblox?",
-				description: `${name} leaves the favorites of @${username}.`,
+				description: `${name} leaves the favorites of this account.`,
 				confirmLabel: "Remove from favorites",
 				progressLabel: "Removing…",
 			}

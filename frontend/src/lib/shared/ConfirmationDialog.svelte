@@ -1,10 +1,8 @@
 <script lang="ts">
 	import xIcon from "@phosphor-icons/core/regular/x.svg?raw"
 	import type { Snippet } from "svelte"
-	import type { Account } from "../accounts/account-model"
 	import Dialog from "./Dialog.svelte"
 	import Icon from "./Icon.svelte"
-	import RobloxAccountLine from "./RobloxAccountLine.svelte"
 
 	let {
 		title,
@@ -12,7 +10,6 @@
 		confirmLabel,
 		progressLabel,
 		tone = "danger",
-		account,
 		isWorking,
 		onConfirm,
 		onCancel,
@@ -26,8 +23,6 @@
 		// tone is primary for a change that the user can reverse, such as a
 		// change on Roblox.
 		tone?: "danger" | "warning" | "primary"
-		// account names the saved account that makes the change on Roblox.
-		account?: Account
 		isWorking: boolean
 		onConfirm: () => void
 		onCancel: () => void
@@ -78,12 +73,7 @@
 			<Icon svg={xIcon} size={14} aria-hidden="true" />
 		</button>
 	</div>
-	{#if account || children}
-		<div class="mt-3 flex flex-col gap-2">
-			{#if account}<RobloxAccountLine {account} />{/if}
-			{#if children}{@render children()}{/if}
-		</div>
-	{/if}
+	{#if children}<div class="mt-3">{@render children()}</div>{/if}
 	<div class="dialog-actions">
 		<button class="button" type="button" disabled={isWorking} onclick={cancel}
 			>Cancel</button>

@@ -16,6 +16,9 @@ export interface AccountContextMenu {
 	y: number
 	anchor: HTMLElement | null
 	submenuLeft: boolean
+	// isFromProfile is true when the More actions button of the profile opens
+	// the menu. The menu then leaves out what the profile already shows.
+	isFromProfile: boolean
 }
 
 export interface ImageContextMenu {
@@ -93,7 +96,11 @@ export class WorkspaceState {
 		this.activeAccountMenu = this.activeAccountMenu === menu ? null : menu
 	}
 
-	openAccountContextMenu(event: MouseEvent | KeyboardEvent, accountId: number): void {
+	openAccountContextMenu(
+		event: MouseEvent | KeyboardEvent,
+		accountId: number,
+		isFromProfile: boolean,
+	): void {
 		event.preventDefault()
 		event.stopPropagation()
 		this.activeAccountMenu = null
@@ -103,6 +110,7 @@ export class WorkspaceState {
 			anchor: null,
 			submenuLeft: false,
 			...menuPointFor(event, 0),
+			isFromProfile,
 		}
 	}
 
@@ -116,6 +124,7 @@ export class WorkspaceState {
 			submenuLeft: false,
 			x: bounds.left,
 			y: bounds.bottom,
+			isFromProfile: false,
 		}
 	}
 

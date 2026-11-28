@@ -344,7 +344,7 @@
 					data-group-menu
 					onclick={(event) => {
 						if (store.menu) store.closeMenu()
-						else store.openMenu(event, group)
+						else store.openMenu(event, group, true)
 					}}>
 					<Icon svg={dotsThreeIcon} size={16} aria-hidden="true" />
 				</button>
@@ -672,7 +672,6 @@
 		description={`This account will leave ${group.name} and lose its role. Joining again may need approval.`}
 		confirmLabel="Leave group"
 		progressLabel="Leaving…"
-		account={store.account}
 		isWorking={store.pendingAction === "leave"}
 		onConfirm={() => void leave()}
 		onCancel={() => {
@@ -686,7 +685,6 @@
 	<ConfirmationDialog
 		{...confirmation}
 		tone="primary"
-		account={store.account}
 		isWorking={store.pendingAction !== null}
 		onConfirm={() => pendingChange && void confirmChange(pendingChange)}
 		onCancel={() => {

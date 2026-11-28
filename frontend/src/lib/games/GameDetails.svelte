@@ -596,7 +596,7 @@
 						data-game-menu
 						onclick={(event) => {
 							if (menuOpen) store.closeMenu()
-							else store.openMenu(event, place)
+							else store.openMenu(event, place, true)
 						}}>
 						<Icon svg={dotsThreeIcon} size={16} aria-hidden="true" />
 					</button>
