@@ -33,6 +33,8 @@ import { menuPointFor } from "../shared/transitions"
 import { robloxGameUrl } from "../shared/roblox-pages"
 import type { PageLocationKeys } from "../layout/page-history"
 import { pageSidebarMinimumWidth } from "../layout/sidebar-widths"
+import { withGameCountChange } from "./game-roblox-actions.svelte"
+import type { GameCountChange } from "./game-roblox-actions.svelte"
 
 // Roblox serves these parts of the game details from their own endpoints, so
 // they load beside the main details and fill in as they arrive.
@@ -70,6 +72,9 @@ export interface GameMenu {
 	place: GamePlace
 	x: number
 	y: number
+	// isFromProfile is true when the More actions button of the profile opens
+	// the menu. The menu then leaves out what the profile already shows.
+	isFromProfile: boolean
 }
 
 function creatorLabel(place: GamePlace): string {
@@ -109,7 +114,7 @@ export type GameDetailsPage = "servers" | "badges" | "gamePasses"
 // GamesLocation is what Games shows: the list, the search, and the place and
 // page that it opened. Its history goes back to it.
 interface GamesLocation {
-	mode: "search" | "favorites"
+	mode: "search" | "bookmarks"
 	searchedText: string
 	place: GamePlace | null
 	detailsPage: "details" | GameDetailsPage
@@ -132,12 +137,12 @@ export type StoreView = "gamePasses" | "developerProducts"
 export class GamesStore {
 	sidebarCollapsed = $state(false)
 	sidebarWidth = $state(pageSidebarMinimumWidth)
-	mode = $state<"search" | "favorites">("favorites")
+	mode = $state<"search" | "bookmarks">("bookmarks")
 	query = $state("")
-	favoritesQuery = $state("")
+	bookmarksQuery = $state("")
 	searchedText = $state("")
 	results = $state<GamePlace[]>([])
-	favorites = $state<GamePlace[]>([])
+	bookmarks = $state<GamePlace[]>([])
 	selected = $state<GamePlace | null>(null)
 	game = $state<Game | null>(null)
 	detailsPage = $state<"details" | GameDetailsPage>("details")
@@ -150,9 +155,9 @@ export class GamesStore {
 	searching = $state(false)
 	loadMoreFailed = $state(false)
 	loadingDetails = $state(false)
-	loadingFavorites = $state(false)
-	favoritesLoaded = $state(false)
-	savingFavorite = $state(false)
+	loadingBookmarks = $state(false)
+	bookmarksLoaded = $state(false)
+	savingBookmark = $state(false)
 	savingNickname = $state(false)
 	nicknameRequest = $state<number | null>(null)
 	nextPageToken = $state("")
@@ -184,16 +189,15 @@ export class GamesStore {
 	#universeBadges: UniverseBadges | null = null
 	#universeGamePasses: UniverseGamePasses | null = null
 	#universeDeveloperProducts: UniverseDeveloperProducts | null = null
-	#favoritesRequest: ReturnType<typeof accountBackend.ListFavoritePlaces> | null =
-		null
+	#bookmarksRequest: ReturnType<typeof accountBackend.ListBookmarks> | null = null
 	#saveRequest:
-		| ReturnType<typeof accountBackend.AddFavoritePlace>
-		| ReturnType<typeof accountBackend.RemoveFavoritePlace>
-		| ReturnType<typeof accountBackend.SetFavoritePlaceNickname>
+		| ReturnType<typeof accountBackend.AddBookmark>
+		| ReturnType<typeof accountBackend.RemoveBookmark>
+		| ReturnType<typeof accountBackend.SetBookmarkNickname>
 		| null = null
 	#nicknames = $derived(
 		new Map(
-			this.favorites
+			this.bookmarks
 				.filter((place) => place.nickname)
 				.map((place) => [place.placeId, place.nickname]),
 		),
@@ -202,10 +206,10 @@ export class GamesStore {
 	constructor(private readonly notifications: NotificationCenter) {}
 
 	get places(): GamePlace[] {
-		if (this.mode !== "favorites") return this.results
-		const terms = searchTerms(this.favoritesQuery)
-		if (terms.length === 0) return this.favorites
-		return this.favorites.filter((place) =>
+		if (this.mode !== "bookmarks") return this.results
+		const terms = searchTerms(this.bookmarksQuery)
+		if (terms.length === 0) return this.bookmarks
+		return this.bookmarks.filter((place) =>
 			matchesSearch(
 				terms,
 				`${place.nickname} ${place.name} ${place.creatorName}`,
@@ -223,17 +227,17 @@ export class GamesStore {
 
 	get canReorder(): boolean {
 		return (
-			this.mode === "favorites" &&
-			this.favoritesLoaded &&
-			this.favorites.length > 1 &&
-			!this.favoritesQuery.trim() &&
-			!this.savingFavorite &&
+			this.mode === "bookmarks" &&
+			this.bookmarksLoaded &&
+			this.bookmarks.length > 1 &&
+			!this.bookmarksQuery.trim() &&
+			!this.savingBookmark &&
 			!this.savingNickname
 		)
 	}
 
-	isFavorite(placeId: number): boolean {
-		return this.favorites.some((place) => place.placeId === placeId)
+	isBookmarked(placeId: number): boolean {
+		return this.bookmarks.some((place) => place.placeId === placeId)
 	}
 
 	initialize(): void {
@@ -241,20 +245,24 @@ export class GamesStore {
 			this.#removeMetadataListener = Events.On("game:metadata-changed", (event) =>
 				this.updateMetadata(event.data as GamePlace),
 			)
-		if (!this.favoritesLoaded) void this.loadFavorites()
+		if (!this.bookmarksLoaded) void this.loadBookmarks()
 	}
 
-	show(mode: "search" | "favorites"): void {
+	show(mode: "search" | "bookmarks"): void {
 		if (this.mode === mode) return
 		this.selection.setSelecting(false)
 		this.mode = mode
 		this.error = ""
 	}
 
-	openMenu(event: MouseEvent | KeyboardEvent, place: GamePlace): void {
+	openMenu(
+		event: MouseEvent | KeyboardEvent,
+		place: GamePlace,
+		isFromProfile: boolean,
+	): void {
 		event.preventDefault()
 		event.stopPropagation()
-		this.menu = { place, ...menuPointFor(event, 2) }
+		this.menu = { place, ...menuPointFor(event, 2), isFromProfile }
 	}
 
 	closeMenu(): void {
@@ -354,31 +362,31 @@ export class GamesStore {
 		return this.search()
 	}
 
-	async loadFavorites(): Promise<void> {
-		if (this.loadingFavorites || this.savingFavorite || this.savingNickname) return
-		this.loadingFavorites = true
+	async loadBookmarks(): Promise<void> {
+		if (this.loadingBookmarks || this.savingBookmark || this.savingNickname) return
+		this.loadingBookmarks = true
 		this.error = ""
-		const request = accountBackend.ListFavoritePlaces()
-		this.#favoritesRequest = request
+		const request = accountBackend.ListBookmarks()
+		this.#bookmarksRequest = request
 		try {
 			const places = await request
-			if (this.#favoritesRequest !== request) return
-			this.favorites = places ?? []
+			if (this.#bookmarksRequest !== request) return
+			this.bookmarks = places ?? []
 			for (const place of this.#pendingMetadata.values())
 				this.updateMetadata(place)
 			this.#pendingMetadata.clear()
-			this.favoritesLoaded = true
+			this.bookmarksLoaded = true
 		} catch (error) {
-			if (this.#favoritesRequest === request) {
+			if (this.#bookmarksRequest === request) {
 				this.error = errorMessage(
 					error,
-					"Could not load the favorites. Try again.",
+					"Could not load the bookmarks. Try again.",
 				)
 			}
 		} finally {
-			if (this.#favoritesRequest === request) {
-				this.#favoritesRequest = null
-				this.loadingFavorites = false
+			if (this.#bookmarksRequest === request) {
+				this.#bookmarksRequest = null
+				this.loadingBookmarks = false
 			}
 		}
 	}
@@ -658,7 +666,7 @@ export class GamesStore {
 	}
 
 	updateMetadata(place: GamePlace): void {
-		if (this.loadingFavorites) this.#pendingMetadata.set(place.placeId, place)
+		if (this.loadingBookmarks) this.#pendingMetadata.set(place.placeId, place)
 		const replace = (item: GamePlace): GamePlace =>
 			item.placeId === place.placeId
 				? { ...place, nickname: item.nickname }
@@ -666,11 +674,18 @@ export class GamesStore {
 		const cached = this.#details.get(place.placeId)
 		if (cached) cached.game = { ...cached.game, place: replace(cached.game.place) }
 		this.results = this.results.map(replace)
-		this.favorites = this.favorites.map(replace)
+		this.bookmarks = this.bookmarks.map(replace)
 		if (this.selected) this.selected = replace(this.selected)
 		if (this.game?.place.placeId === place.placeId)
 			this.game = { ...this.game, place: replace(this.game.place) }
 		if (this.menu) this.menu = { ...this.menu, place: replace(this.menu.place) }
+	}
+
+	changeGameCounts(universeId: number, change: GameCountChange): void {
+		const game = this.game
+		if (!game || game.place.universeId !== universeId) return
+		this.game = withGameCountChange(game, change)
+		this.#remember(this.game)
 	}
 
 	#remember(game: Game): void {
@@ -685,30 +700,30 @@ export class GamesStore {
 		})
 	}
 
-	async toggleFavorite(place: GamePlace): Promise<void> {
+	async toggleBookmark(place: GamePlace): Promise<void> {
 		const epoch = this.#epoch
 		this.closeMenu()
-		if (this.savingFavorite || this.savingNickname || !this.favoritesLoaded) return
-		const removing = this.isFavorite(place.placeId)
-		this.savingFavorite = true
+		if (this.savingBookmark || this.savingNickname || !this.bookmarksLoaded) return
+		const removing = this.isBookmarked(place.placeId)
+		this.savingBookmark = true
 		this.error = ""
 		try {
 			if (removing) {
-				this.#saveRequest = accountBackend.RemoveFavoritePlace(place.placeId)
+				this.#saveRequest = accountBackend.RemoveBookmark(place.placeId)
 				await this.#saveRequest
 				if (this.#epoch !== epoch) return
-				this.favorites = this.favorites.filter(
-					(favorite) => favorite.placeId !== place.placeId,
+				this.bookmarks = this.bookmarks.filter(
+					(bookmark) => bookmark.placeId !== place.placeId,
 				)
 			} else {
-				const request = accountBackend.AddFavoritePlace(place.placeId)
+				const request = accountBackend.AddBookmark(place.placeId)
 				this.#saveRequest = request
 				const saved = await request
 				if (this.#epoch !== epoch) return
-				this.favorites = [
+				this.bookmarks = [
 					saved,
-					...this.favorites.filter(
-						(favorite) => favorite.placeId !== saved.placeId,
+					...this.bookmarks.filter(
+						(bookmark) => bookmark.placeId !== saved.placeId,
 					),
 				]
 			}
@@ -716,13 +731,13 @@ export class GamesStore {
 			if (this.#epoch === epoch) {
 				this.error = errorMessage(
 					error,
-					"Could not update the favorites. Try again.",
+					"Could not update the bookmarks. Try again.",
 				)
 			}
 		} finally {
 			if (this.#epoch === epoch) {
 				this.#saveRequest = null
-				this.savingFavorite = false
+				this.savingBookmark = false
 			}
 		}
 	}
@@ -730,7 +745,7 @@ export class GamesStore {
 	// selectedPlaces are the selected places of the list that the page shows,
 	// including those that its search hides.
 	get selectedPlaces(): GamePlace[] {
-		return (this.mode === "favorites" ? this.favorites : this.results).filter(
+		return (this.mode === "bookmarks" ? this.bookmarks : this.results).filter(
 			(place) => this.selection.has(place.placeId),
 		)
 	}
@@ -758,61 +773,61 @@ export class GamesStore {
 		}
 	}
 
-	// setSelectedFavorites adds the selected places to the favorites, or
+	// setSelectedBookmarks adds the selected places to the bookmarks, or
 	// removes them. Each place saves on its own, so the places that saved
-	// before a failure stay saved, and the favorites load again to show the
+	// before a failure stay saved, and the bookmarks load again to show the
 	// stored order.
-	async setSelectedFavorites(isFavorite: boolean): Promise<boolean> {
+	async setSelectedBookmarks(isBookmarked: boolean): Promise<boolean> {
 		const epoch = this.#epoch,
 			placeIds = this.selectedPlaces
-				.filter((place) => this.isFavorite(place.placeId) !== isFavorite)
+				.filter((place) => this.isBookmarked(place.placeId) !== isBookmarked)
 				.map((place) => place.placeId)
 		if (
 			placeIds.length === 0 ||
-			this.savingFavorite ||
+			this.savingBookmark ||
 			this.savingNickname ||
-			!this.favoritesLoaded
+			!this.bookmarksLoaded
 		)
 			return false
 		this.closeMenu()
-		this.savingFavorite = true
+		this.savingBookmark = true
 		this.error = ""
 		const saves = await Promise.allSettled(
 			placeIds.map((placeId) =>
-				isFavorite
-					? accountBackend.AddFavoritePlace(placeId)
-					: accountBackend.RemoveFavoritePlace(placeId),
+				isBookmarked
+					? accountBackend.AddBookmark(placeId)
+					: accountBackend.RemoveBookmark(placeId),
 			),
 		)
 		if (this.#epoch !== epoch) return false
-		this.savingFavorite = false
+		this.savingBookmark = false
 		const failure = saves.find((save) => save.status === "rejected"),
 			savedCount = saves.filter((save) => save.status === "fulfilled").length
 		if (failure) {
 			this.error = errorMessage(
 				failure.reason,
-				"Could not update the favorites. Try again.",
+				"Could not update the bookmarks. Try again.",
 			)
 		}
 		if (savedCount > 0) {
 			this.notifications.show({
-				id: "games-bulk-favorites",
-				title: isFavorite ? "Favorites added" : "Favorites removed",
+				id: "games-bulk-bookmarks",
+				title: isBookmarked ? "Bookmarks added" : "Bookmarks removed",
 				tone: "success",
-				message: `${countedPlaces(savedCount)} ${isFavorite ? "added to" : "removed from"} favorites.`,
+				message: `${countedPlaces(savedCount)} ${isBookmarked ? "bookmarked" : "removed from bookmarks"}.`,
 			})
-			await this.loadFavorites()
+			await this.loadBookmarks()
 		}
 		return !failure
 	}
 
-	async moveFavorite(
+	async moveBookmark(
 		placeId: number,
 		targetId: number,
 		after: boolean,
 	): Promise<void> {
 		const epoch = this.#epoch,
-			previous = this.favorites,
+			previous = this.bookmarks,
 			moved = previous.find((place) => place.placeId === placeId),
 			next = previous.filter((place) => place.placeId !== placeId),
 			targetIndex = next.findIndex((place) => place.placeId === targetId)
@@ -822,27 +837,27 @@ export class GamesStore {
 			return
 		}
 		this.closeMenu()
-		this.favorites = next
-		this.savingFavorite = true
+		this.bookmarks = next
+		this.savingBookmark = true
 		this.error = ""
 		try {
-			const request = accountBackend.ReorderFavoritePlaces(
+			const request = accountBackend.ReorderBookmarks(
 				next.map((place) => place.placeId),
 			)
 			this.#saveRequest = request
 			await request
 		} catch (error) {
 			if (this.#epoch === epoch) {
-				this.favorites = previous
+				this.bookmarks = previous
 				this.error = errorMessage(
 					error,
-					"Could not reorder the favorites. Try again.",
+					"Could not reorder the bookmarks. Try again.",
 				)
 			}
 		} finally {
 			if (this.#epoch === epoch) {
 				this.#saveRequest = null
-				this.savingFavorite = false
+				this.savingBookmark = false
 			}
 		}
 	}
@@ -855,25 +870,25 @@ export class GamesStore {
 
 	async saveNickname(place: GamePlace, nickname: string): Promise<boolean> {
 		const epoch = this.#epoch,
-			current = this.favorites.find(
-				(favorite) => favorite.placeId === place.placeId,
+			current = this.bookmarks.find(
+				(bookmark) => bookmark.placeId === place.placeId,
 			)
-		if (!current || this.savingFavorite || this.savingNickname) return false
+		if (!current || this.savingBookmark || this.savingNickname) return false
 		if (current.nickname === nickname.trim()) return true
 		this.savingNickname = true
 		this.error = ""
 		try {
-			const request = accountBackend.SetFavoritePlaceNickname(
+			const request = accountBackend.SetBookmarkNickname(
 				current.placeId,
 				nickname,
 			)
 			this.#saveRequest = request
 			const saved = await request
 			if (this.#epoch !== epoch) return false
-			this.favorites = this.favorites.map((favorite) =>
-				favorite.placeId === current.placeId
-					? { ...favorite, nickname: saved }
-					: favorite,
+			this.bookmarks = this.bookmarks.map((bookmark) =>
+				bookmark.placeId === current.placeId
+					? { ...bookmark, nickname: saved }
+					: bookmark,
 			)
 			return true
 		} catch (error) {
@@ -901,7 +916,7 @@ export class GamesStore {
 		void this.#detailsRequest?.cancel()
 		this.#cancelGameSections()
 		this.loadedGameSections = []
-		void this.#favoritesRequest?.cancel()
+		void this.#bookmarksRequest?.cancel()
 		void this.#saveRequest?.cancel()
 		this.#searchRequest = null
 		this.#detailsRequest = null
@@ -914,23 +929,23 @@ export class GamesStore {
 		this.recordPages.clear()
 		this.privatePages.clear()
 		this.listedPages.clear()
-		this.#favoritesRequest = null
+		this.#bookmarksRequest = null
 		this.#saveRequest = null
 		this.searching =
 			this.loadMoreFailed =
 			this.loadingDetails =
-			this.loadingFavorites =
-			this.savingFavorite =
+			this.loadingBookmarks =
+			this.savingBookmark =
 			this.savingNickname =
 				false
-		this.favoritesLoaded = false
+		this.bookmarksLoaded = false
 		this.results = []
-		this.favorites = []
+		this.bookmarks = []
 		this.selected = this.game = this.menu = this.nicknameRequest = null
 		this.selection.setSelecting(false)
 		this.query = this.searchedText = this.nextPageToken = this.#sessionId = ""
-		this.favoritesQuery = ""
-		this.mode = "favorites"
+		this.bookmarksQuery = ""
+		this.mode = "bookmarks"
 		this.detailsPage = "details"
 		this.highlightedGamePassId = null
 		this.storeView = "gamePasses"

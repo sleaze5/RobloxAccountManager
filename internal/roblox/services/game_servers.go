@@ -41,6 +41,7 @@ func (service *Games) Servers(ctx context.Context, query games.ServerQuery, acco
 			Ping               *int64   `json:"ping"`
 			LanguageMatchCount *int64   `json:"languageMatchCount"`
 			FriendCount        *int64   `json:"friendCount"`
+			PingSignalLevel    string   `json:"pingSignalLevel"`
 		} `json:"data"`
 	}
 	request := roblox.Request{
@@ -78,6 +79,7 @@ func (service *Games) Servers(ctx context.Context, query games.ServerQuery, acco
 		})
 		if accountID > 0 {
 			page.Servers[len(page.Servers)-1].Friends = nonNegative(server.FriendCount)
+			page.Servers[len(page.Servers)-1].PingSignal = pingSignal(server.PingSignalLevel)
 		}
 		tokens = append(tokens, server.PlayerTokens[:min(len(server.PlayerTokens), maxServerPlayerImages)])
 	}
@@ -127,6 +129,15 @@ func (service *Games) playerImages(ctx context.Context, servers [][]string) (map
 		}
 	}
 	return headshotURLsByToken, nil
+}
+
+func pingSignal(level string) games.PingSignal {
+	switch signal := games.PingSignal(level); signal {
+	case games.PingSignalLow, games.PingSignalMedium, games.PingSignalHigh:
+		return signal
+	default:
+		return games.PingSignalUnknown
+	}
 }
 
 func nonNegative(value *int64) *int64 {

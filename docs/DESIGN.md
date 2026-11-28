@@ -82,6 +82,7 @@ Inputs:
 - `checkbox`: a checkbox. `check-option` is a checkbox with a label and an optional description. Render the check mark with `lib/shared/CheckboxMark.svelte`, and set `isIndeterminate` for a partial selection.
 - `switch`: a switch. Its input has `role="switch"`.
 - `radio` inside `radio-option`: a radio button with its label.
+- `action-strip` with `lib/shared/RobloxActionStrip.svelte`: the bordered strip that holds every action that changes Roblox for the selected account, as icon-only buttons with a tooltip that names the action. Set `aria-pressed` on a toggled action and `data-tone` on a destructive one. Set `aria-disabled` instead of `disabled` on an action that Roblox refuses, and name the reason in its label, so that the keyboard reaches the reason.
 - `segmented`: two to four mutually exclusive options that stay visible, as buttons with `aria-pressed` or as labels around radio inputs.
 - `checklist`: requirements that turn valid or invalid as the user types, with `data-touched` and `data-valid`.
 
@@ -107,12 +108,15 @@ Content:
 - `empty-state`: empty, loading, and unavailable states for a page or pane.
 - `lib/shared/MoreActionsMenu.svelte`: the More actions button at the top right of a profile or a details dialog, with its menu.
 - `lib/shared/SavedAccountRelations.svelte`: the Saved accounts section of a user, a game, or an item, with badges that name how each other saved account relates to it.
+- `lib/shared/AccountConfirmationActions.svelte`: the bottom row of a confirmation that changes Roblox or spends Robux, with the saved account that acts on the left and the actions on the right.
+- `lib/shared/SettingChangeList.svelte`: the list of changed settings, each with its value before and after, that a confirmation shows before it saves.
 - `tag-pill` and `tag-pill-favorite`: tags. `tag-pill-success` and `tag-pill-warning` are status pills that color only their icon.
 - `list-row`: a row in a selectable list, with `data-selected` and `data-open`. Show a drop position while dragging with `shadow-drop-before` or `shadow-drop-after`.
 - `facts`: a list of labels and values, written as a `<dl>`. Set `data-tone` on a row for a success, warning, or muted value.
 - `detail-grid`: compact label and value pairs in columns.
 - `timeline`: a two-column timeline of markers and cards.
-- `server-table`, `server-columns`, `server-row`, `server-number`, and `server-tag`: the game server tables.
+- `server-table`, `server-columns`, `server-row`, and `server-tag`: the game server tables. Set `data-tone` on a `server-tag` for a success, warning, or danger status.
+- `server-tiles`, `server-tile`, `server-stats`, and `server-health` with `lib/games/ServerTile.svelte`: the Roblox, RoValra, and friends' server lists, one tile per server with its location, status tags, friends, headline numbers, and expandable details. `lib/games/ServerFriend.svelte` is a friend in a server, as a button that opens their preview. Set `data-density="compact"` on `server-stats` for the details, `data-tone` on a cell for a warning or danger value, and `data-font="sans"` on a value that is interface text.
 - `text-block`: multi-line technical text.
 - `lib/shared/Timestamp.svelte`, `lib/shared/CompactNumber.svelte`, and `lib/shared/SensitiveValue.svelte`: formatted dates, compact numbers, and hidden secrets.
 - `lib/model-viewer/ModelFrame.svelte`: the one 3D viewer, with its toolbar for coordinates, reset view, and camera and lighting. Show every 3D model through it.
@@ -126,6 +130,7 @@ Layout:
 - `lib/layout/AccountSwitcher.svelte`: the account switcher at the left of the status strip of Social, Groups, Games, Marketplace, and Logs Explorer.
 - `settings-page`, `settings-header`, `settings-layout`, `settings-sidebar`, `settings-nav` with `nav-item`, and `settings-content`: Settings, account settings, chats, and other sub-pages with a navigation sidebar.
 - `settings-section`, `settings-rows`, `settings-row`, and `settings-row-copy`: groups of settings. Put a setting that refines the setting before it, such as an update interval under its switch, in `settings-suboptions`.
+- `lib/shared/SettingRow.svelte`: one setting in `settings-rows`, as a switch or a list of options, that shows the saved value until the change saves.
 - `lib/shared/NoMatchingSettings.svelte`: the no-matches state of a settings search, with a Clear search button.
 - `scrollbar-stable`: reserve the scrollbar gutter in a scrolling list.
 
@@ -153,6 +158,7 @@ The user must never see UI that looks or behaves like an exposed embedded browse
 - Separate regions with a background step plus a 1px border, not with large shadows. Use `border-line` by default, `border-line-subtle` between rows and shell regions, and `border-line-strong` for selected controls and floating surfaces that need extra separation. Avoid bright outlines.
 - Keep the shell flat. The title bar and the page tabs are `h-9`, the status strip is `h-6`, and a page sidebar is 248px wide by default, so that its title fits a three-digit count beside four icon actions.
 - Show each value once per screen. For example, do not show the same count in a sidebar header and in the status strip.
+- Offer each destination and action once per screen. Do not add a button for a page that a tab already opens. A profile's More actions menu leaves out what the profile already shows as a button, a tab, or a link. A context menu on a list row keeps every action, because the row is where the pointer is.
 - A pane that changes its layout with container variants, such as `@4xl:grid-cols-3`, sits inside an element with `@container`, usually its scroll region. Without one, the wide layout never applies. On a wide pane, a profile puts its main sections in the left two thirds and its secondary facts, such as the Vault of an account or the access and features of a game, in the right third.
 - Only the content regions scroll, never the window. An absolutely positioned element, such as an `sr-only` live region, takes its position from the nearest positioned ancestor. Inside a scroll container, make the container `relative`, so that the element cannot overflow the window and let focus scroll the whole shell.
 
@@ -182,7 +188,7 @@ Menus, context menus, dropdowns, and tooltips open in the browser's top layer, a
 
 ## Typography
 
-- Use Geist (`font-sans`) for interface text and Geist Mono (`font-mono`) for technical text such as paths, values, IDs, and measurements.
+- Use Geist (`font-sans`) for interface text and for prose that people write, such as descriptions, shouts, and messages, also inside a text field. Use Geist Mono (`font-mono`) for technical text: IDs and other technical numbers, such as versions, coordinates, and character counts, and paths, codes, and measurements. Headline numbers in `ProfileStats` stay in Geist.
 - Bundle both fonts as local, normal-style WOFF2 variable fonts from Vercel's pinned release, with weights 100 through 900. Preload Geist in `frontend/index.html`. Do not fetch fonts at runtime. Keep the pinned upstream sources in `THIRD_PARTY_NOTICES.md` and the font license in `THIRD_PARTY_LICENSES.txt`.
 - Use the text scale: `text-2xs` (11px), `text-xs` (12px), `text-sm` (13px), `text-base` (15px), and `text-lg` (16px).
 - Use `text-sm` for body text and list-row titles, and `text-xs` for controls, compact labels, and helper text. Use `text-2xs` for status-strip text, tooltips, badges, and compact technical text. Use `text-2xs` or `text-xs` monospace for technical text.

@@ -145,3 +145,10 @@ func (service *Service) GetGroupIcons(ctx context.Context, groupIDs []int64) ([]
 	}
 	return service.core.GetGroupIcons(ctx, groupIDs)
 }
+
+func (service *Service) SaveGroupSettings(ctx context.Context, accountID, groupID int64, change robloxservices.GroupSettingsChange) error {
+	if err := validateAccountAndTargetIDs(accountID, groupID, "group-settings-update"); err != nil {
+		return err
+	}
+	return service.core.SaveGroupSettings(ctx, accountID, groupID, change)
+}

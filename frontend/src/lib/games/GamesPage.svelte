@@ -7,8 +7,8 @@
 	import gameControllerIcon from "@phosphor-icons/core/regular/game-controller.svg?raw"
 	import magnifyingGlassIcon from "@phosphor-icons/core/regular/magnifying-glass.svg?raw"
 	import sealCheckIcon from "@phosphor-icons/core/regular/seal-check.svg?raw"
-	import starFillIcon from "@phosphor-icons/core/fill/star-fill.svg?raw"
-	import starIcon from "@phosphor-icons/core/regular/star.svg?raw"
+	import bookmarkFillIcon from "@phosphor-icons/core/fill/bookmark-simple-fill.svg?raw"
+	import bookmarkIcon from "@phosphor-icons/core/regular/bookmark-simple.svg?raw"
 	import warningIcon from "@phosphor-icons/core/regular/warning.svg?raw"
 	import xIcon from "@phosphor-icons/core/regular/x.svg?raw"
 	import hashIcon from "@phosphor-icons/core/regular/hash.svg?raw"
@@ -61,11 +61,11 @@
 		onFillLaunch: (placeId: number, serverId?: string) => void
 		onFillLaunchLink: (link: string) => void
 	} = $props()
-	const favoritesMode = $derived(store.mode === "favorites"),
+	const bookmarksMode = $derived(store.mode === "bookmarks"),
 		count = $derived(store.places.length),
-		hasSearch = $derived(!favoritesMode && !!store.searchedText),
+		hasSearch = $derived(!bookmarksMode && !!store.searchedText),
 		hasMore = $derived(
-			!favoritesMode && store.results.length > 0 && !!store.nextPageToken,
+			!bookmarksMode && store.results.length > 0 && !!store.nextPageToken,
 		),
 		tabStopPlaceId = $derived(
 			(
@@ -77,23 +77,23 @@
 		selection = $derived(store.selection),
 		shownPlaceIds = $derived(store.places.map((place) => place.placeId)),
 		selectedPlaces = $derived(store.selectedPlaces),
-		selectedFavoriteCount = $derived(
-			selectedPlaces.filter((place) => store.isFavorite(place.placeId)).length,
+		selectedBookmarkCount = $derived(
+			selectedPlaces.filter((place) => store.isBookmarked(place.placeId)).length,
 		),
-		isFavoriteBusy = $derived(
-			store.savingFavorite || store.savingNickname || !store.favoritesLoaded,
+		isBookmarkBusy = $derived(
+			store.savingBookmark || store.savingNickname || !store.bookmarksLoaded,
 		),
 		selectionActions = $derived<MenuAction[]>([
 			{
-				label: "Add to favorites",
-				icon: starIcon,
+				label: "Bookmark",
+				icon: bookmarkIcon,
 				disabled:
-					isFavoriteBusy || selectedFavoriteCount === selectedPlaces.length,
+					isBookmarkBusy || selectedBookmarkCount === selectedPlaces.length,
 				tooltip:
-					selectedFavoriteCount === selectedPlaces.length
-						? "Every selected place is a favorite"
+					selectedBookmarkCount === selectedPlaces.length
+						? "Every selected place is bookmarked"
 						: undefined,
-				onSelect: () => void store.setSelectedFavorites(true),
+				onSelect: () => void store.setSelectedBookmarks(true),
 			},
 			...(
 				[
@@ -109,14 +109,14 @@
 				accessibleLabel: `Copy ${copyOption.label.toLowerCase()}`,
 				onSelect: () => void store.copySelectedField(copyOption.field),
 			})),
-			...(selectedFavoriteCount > 0
+			...(selectedBookmarkCount > 0
 				? [
 						{
-							label: "Remove from favorites",
-							icon: starFillIcon,
+							label: "Remove bookmark",
+							icon: bookmarkFillIcon,
 							tone: "danger" as const,
-							disabled: isFavoriteBusy,
-							onSelect: () => (isConfirmingFavoriteRemoval = true),
+							disabled: isBookmarkBusy,
+							onSelect: () => (isConfirmingBookmarkRemoval = true),
 						},
 					]
 				: []),
@@ -127,42 +127,42 @@
 		draggedPlaceId = $state<number | null>(null),
 		dropTarget = $state<{ placeId: number; after: boolean } | null>(null),
 		moveAnnouncement = $state(""),
-		isConfirmingFavoriteRemoval = $state(false)
+		isConfirmingBookmarkRemoval = $state(false)
 
 	// A selected place that the list no longer has, such as after a new
 	// search, leaves the selection.
 	$effect(() => {
-		const remainingPlaceIds = (favoritesMode ? store.favorites : store.results).map(
+		const remainingPlaceIds = (bookmarksMode ? store.bookmarks : store.results).map(
 			(place) => place.placeId,
 		)
 		untrack(() => selection.keepOnly(remainingPlaceIds))
 	})
 
-	async function removeSelectedFavorites(): Promise<void> {
-		await store.setSelectedFavorites(false)
-		isConfirmingFavoriteRemoval = false
+	async function removeSelectedBookmarks(): Promise<void> {
+		await store.setSelectedBookmarks(false)
+		isConfirmingBookmarkRemoval = false
 	}
 
 	async function moveWithKeyboard(
 		event: KeyboardEvent,
 		placeId: number,
 	): Promise<void> {
-		if (!favoritesMode || !isMoveShortcut(event)) return
+		if (!bookmarksMode || !isMoveShortcut(event)) return
 		event.preventDefault()
 		if (!store.canReorder) return
 		const button = event.currentTarget as HTMLElement,
 			down = event.key === "ArrowDown",
-			index = store.favorites.findIndex((place) => place.placeId === placeId),
-			target = store.favorites[index + (down ? 1 : -1)]
+			index = store.bookmarks.findIndex((place) => place.placeId === placeId),
+			target = store.bookmarks[index + (down ? 1 : -1)]
 		if (!target) return
-		const moving = store.moveFavorite(placeId, target.placeId, down)
+		const moving = store.moveBookmark(placeId, target.placeId, down)
 		await tick()
 		button.focus()
 		await moving
 		const position =
-			store.favorites.findIndex((place) => place.placeId === placeId) + 1
+			store.bookmarks.findIndex((place) => place.placeId === placeId) + 1
 		if (position > 0) {
-			moveAnnouncement = `Moved to position ${position} of ${store.favorites.length}`
+			moveAnnouncement = `Moved to position ${position} of ${store.bookmarks.length}`
 		}
 	}
 
@@ -219,13 +219,13 @@
 		dropTarget = null
 	}
 
-	function dropFavorite(event: DragEvent, placeId: number): void {
+	function dropBookmark(event: DragEvent, placeId: number): void {
 		event.preventDefault()
 		const sourceId = draggedPlaceId,
 			after = dropTarget?.placeId === placeId && dropTarget.after
 		finishDrag()
 		if (sourceId !== null && sourceId !== placeId) {
-			void store.moveFavorite(sourceId, placeId, after)
+			void store.moveBookmark(sourceId, placeId, after)
 		}
 	}
 
@@ -308,11 +308,11 @@
 		<strong
 			class="inline-flex min-w-0 items-center gap-1 text-xs font-semibold text-fg"
 			><span class="truncate">{store.displayName(place)}</span
-			>{#if store.isFavorite(place.placeId)}<Icon
-					svg={starFillIcon}
+			>{#if store.isBookmarked(place.placeId)}<Icon
+					svg={bookmarkFillIcon}
 					class="shrink-0 animate-pop text-accent-strong"
 					size={12}
-					aria-label="Favorite" />{/if}</strong>
+					aria-label="Bookmarked" />{/if}</strong>
 		<span class="flex min-w-0 items-center gap-1 text-2xs text-fg-muted"
 			><span class="truncate">{creatorByline(place)}</span
 			>{#if place.creatorVerified}<Icon
@@ -331,13 +331,13 @@
 			label="Game browser"
 			name="games"
 			icon={gameControllerIcon}
-			count={favoritesMode ? store.favorites.length : undefined}
+			count={bookmarksMode ? store.bookmarks.length : undefined}
 			bind:collapsed={store.sidebarCollapsed}
 			bind:width={store.sidebarWidth}>
 			{#snippet title()}Games
-				{#if favoritesMode}<span
+				{#if bookmarksMode}<span
 						class="font-mono text-2xs font-normal text-fg-faint"
-						>({store.favorites.length})</span
+						>({store.bookmarks.length})</span
 					>{/if}{/snippet}
 			{#snippet actions()}
 				<SelectionModeButton
@@ -353,7 +353,7 @@
 					role="search"
 					onsubmit={(event) => {
 						event.preventDefault()
-						if (!favoritesMode && store.query.trim()) void store.search()
+						if (!bookmarksMode && store.query.trim()) void store.search()
 						else searchInput?.focus()
 					}}>
 					<div class="search-field">
@@ -362,27 +362,27 @@
 							size={16}
 							aria-hidden="true" /><input
 							type="text"
-							placeholder={favoritesMode
-								? "Search favorites"
+							placeholder={bookmarksMode
+								? "Search bookmarks"
 								: "Search Roblox"}
-							aria-label={favoritesMode
-								? "Filter favorite places by nickname, name, or creator"
+							aria-label={bookmarksMode
+								? "Filter bookmarks by nickname, name, or creator"
 								: "Search Roblox games by name, by place ID with id:, or by universe ID with universe:"}
 							maxlength={100}
 							bind:this={searchInput}
 							data-games-search
 							bind:value={
 								() =>
-									favoritesMode ? store.favoritesQuery : store.query,
+									bookmarksMode ? store.bookmarksQuery : store.query,
 								(value) => {
-									if (favoritesMode) store.favoritesQuery = value
+									if (bookmarksMode) store.bookmarksQuery = value
 									else store.query = value
 								}
-							} />{#if favoritesMode ? store.favoritesQuery : store.query}<button
+							} />{#if bookmarksMode ? store.bookmarksQuery : store.query}<button
 								type="button"
 								aria-label="Clear search"
 								onclick={() => {
-									if (favoritesMode) store.favoritesQuery = ""
+									if (bookmarksMode) store.bookmarksQuery = ""
 									else store.query = ""
 									searchInput?.focus()
 								}}
@@ -392,7 +392,7 @@
 									aria-hidden="true" /></button
 							>{/if}
 					</div>
-					{#if !favoritesMode}
+					{#if !bookmarksMode}
 						<div class="tag-filter-host">
 							<button
 								class="tag-filter-trigger"
@@ -416,13 +416,16 @@
 				<div class="segmented" role="group" aria-label="Show games">
 					<button
 						type="button"
-						aria-pressed={favoritesMode}
-						onclick={() => store.show("favorites")}>
-						<Icon svg={starIcon} size={14} aria-hidden="true" />Favorites
+						aria-pressed={bookmarksMode}
+						onclick={() => store.show("bookmarks")}>
+						<Icon
+							svg={bookmarkIcon}
+							size={14}
+							aria-hidden="true" />Bookmarks
 					</button>
 					<button
 						type="button"
-						aria-pressed={!favoritesMode}
+						aria-pressed={!bookmarksMode}
 						onclick={() => store.show("search")}>
 						<Icon
 							svg={magnifyingGlassIcon}
@@ -438,16 +441,16 @@
 						(hasSearch || selection.isSelecting) && "pb-12",
 					]}
 					role="group"
-					aria-label={favoritesMode ? "Favorite places" : "Search results"}
+					aria-label={bookmarksMode ? "Bookmarks" : "Search results"}
 					data-list
 					data-load-more-root
-					aria-busy={favoritesMode
-						? store.loadingFavorites
+					aria-busy={bookmarksMode
+						? store.loadingBookmarks
 						: store.searching}>
-					{#if store.places.length === 0 && (favoritesMode ? store.loadingFavorites : store.searching)}
+					{#if store.places.length === 0 && (bookmarksMode ? store.loadingBookmarks : store.searching)}
 						<SkeletonList
-							label={favoritesMode
-								? "Loading favorites…"
+							label={bookmarksMode
+								? "Loading bookmarks…"
 								: "Searching games"}>
 							{#snippet row(index)}<SkeletonMediaRow {index} />{/snippet}
 						</SkeletonList>
@@ -468,7 +471,7 @@
 											: -1}
 										aria-label={`Select ${store.displayName(place)}`}
 										checked={isChecked}
-										disabled={store.savingFavorite}
+										disabled={store.savingBookmark}
 										onkeydown={moveListFocus}
 										onchange={() =>
 											selection.toggle(place.placeId)} />
@@ -480,7 +483,7 @@
 							<button
 								class={[
 									"list-row relative flex h-12 w-full items-center gap-2 border-b border-line-subtle text-left",
-									favoritesMode ? "pr-3 pl-2" : "px-3",
+									bookmarksMode ? "pr-3 pl-2" : "px-3",
 									draggedPlaceId === place.placeId && "opacity-45",
 									dropTarget?.placeId === place.placeId &&
 										(dropTarget.after
@@ -490,29 +493,30 @@
 								data-selected={active || undefined}
 								data-open={store.menu?.place.placeId ===
 									place.placeId || undefined}
-								draggable={favoritesMode && store.canReorder}
+								draggable={bookmarksMode && store.canReorder}
 								onpointerdown={(event) => grab(event, place.placeId)}
 								ondragstart={(event) => startDrag(event, place.placeId)}
 								ondragend={finishDrag}
 								ondragover={(event) =>
 									updateDropTarget(event, place.placeId)}
-								ondrop={(event) => dropFavorite(event, place.placeId)}
+								ondrop={(event) => dropBookmark(event, place.placeId)}
 								type="button"
 								aria-current={active ? "true" : undefined}
 								aria-haspopup="menu"
 								data-list-item
 								tabindex={place.placeId === tabStopPlaceId ? 0 : -1}
-								aria-keyshortcuts={favoritesMode
+								aria-keyshortcuts={bookmarksMode
 									? "Control+Shift+ArrowUp Control+Shift+ArrowDown"
 									: undefined}
 								onclick={(event) => selectPlace(event, place)}
-								oncontextmenu={(event) => store.openMenu(event, place)}
+								oncontextmenu={(event) =>
+									store.openMenu(event, place, false)}
 								onkeydown={(event) => {
 									if (
 										event.key === "ContextMenu" ||
 										(event.shiftKey && event.key === "F10")
 									)
-										store.openMenu(event, place)
+										store.openMenu(event, place, false)
 									if (
 										(event.key === " " || event.key === "Enter") &&
 										isMultiSelectGesture(event)
@@ -523,7 +527,7 @@
 									void moveWithKeyboard(event, place.placeId)
 									moveListFocus(event)
 								}}>
-								{#if favoritesMode}<span
+								{#if bookmarksMode}<span
 										class={[
 											"grid h-7 w-3 shrink-0 place-items-center text-fg-faint",
 											store.canReorder
@@ -558,14 +562,14 @@
 						selectedCount={selection.selectedCount}
 						isAllShownSelected={selection.areAllSelected(shownPlaceIds)}
 						canSelectAll={shownPlaceIds.length > 0}
-						isBusy={store.savingFavorite}
+						isBusy={store.savingBookmark}
 						onToggleAll={() => selection.toggleAll(shownPlaceIds)}
 						onStop={() => store.setSelecting(false)}>
 						<SelectionActionsMenu
 							noun="games"
 							selectedCount={selection.selectedCount}
 							actions={selectionActions}
-							isBusy={store.savingFavorite} />
+							isBusy={store.savingBookmark} />
 					</SelectionToolbar>
 				{:else if hasSearch}
 					<div
@@ -610,44 +614,42 @@
 				{/key}
 			{:else}
 				<div class="empty-state" role="status">
-					{#if favoritesMode}
-						{#if store.loadingFavorites}<Icon
+					{#if bookmarksMode}
+						{#if store.loadingBookmarks}<Icon
 								svg={circleNotchIcon}
 								class="spinner"
 								size={28}
 								aria-hidden="true" />
-							<h2>Loading favorites…</h2>
-						{:else if !store.favoritesLoaded}<Icon
+							<h2>Loading bookmarks…</h2>
+						{:else if !store.bookmarksLoaded}<Icon
 								svg={warningIcon}
 								size={28}
 								aria-hidden="true" />
-							<h2>Favorites unavailable</h2>
+							<h2>Bookmarks unavailable</h2>
 							<button
 								class="button"
 								type="button"
-								onclick={() => void store.loadFavorites()}
+								onclick={() => void store.loadBookmarks()}
 								>Try again</button>
-						{:else if !count && store.favorites.length}<Icon
+						{:else if !count && store.bookmarks.length}<Icon
 								svg={magnifyingGlassIcon}
 								size={28}
 								aria-hidden="true" />
-							<h2>No matching favorites</h2>
+							<h2>No matching bookmarks</h2>
 							<p>Try a different nickname, name, or creator.</p>
 							<button
 								class="button"
 								type="button"
 								onclick={() => {
-									store.favoritesQuery = ""
+									store.bookmarksQuery = ""
 									searchInput?.focus()
 								}}>Clear search</button>
 						{:else if !count}<Icon
-								svg={starIcon}
+								svg={bookmarkIcon}
 								size={28}
 								aria-hidden="true" />
-							<h2>No favorite places yet</h2>
-							<p>
-								Search for a game, then add a place to your favorites.
-							</p>
+							<h2>No bookmarks yet</h2>
+							<p>Search for a game, then bookmark a place.</p>
 							<button
 								class="button"
 								type="button"
@@ -656,8 +658,8 @@
 									svg={magnifyingGlassIcon}
 									size={16}
 									aria-hidden="true" />Search games</button>
-						{:else}<Icon svg={starIcon} size={28} aria-hidden="true" />
-							<h2>Select a favorite place</h2>
+						{:else}<Icon svg={bookmarkIcon} size={28} aria-hidden="true" />
+							<h2>Select a bookmark</h2>
 							<p>Select a place to see its details.</p>{/if}
 					{:else if store.searching}<Icon
 							svg={circleNotchIcon}
@@ -715,13 +717,13 @@
 	<GameContextMenu {store} menu={store.menu} {onFillLaunch} />
 {/if}
 
-{#if isConfirmingFavoriteRemoval}
+{#if isConfirmingBookmarkRemoval}
 	<ConfirmationDialog
-		title="Remove from favorites"
-		description={`${selectedFavoriteCount} selected ${selectedFavoriteCount === 1 ? "place leaves" : "places leave"} your favorites, with ${selectedFavoriteCount === 1 ? "its nickname" : "their nicknames"}. This cannot be undone.`}
-		confirmLabel="Remove from favorites"
+		title="Remove bookmark"
+		description={`${selectedBookmarkCount} selected ${selectedBookmarkCount === 1 ? "place leaves" : "places leave"} your bookmarks, with ${selectedBookmarkCount === 1 ? "its nickname" : "their nicknames"}. This cannot be undone.`}
+		confirmLabel="Remove bookmark"
 		progressLabel="Removing…"
-		isWorking={store.savingFavorite}
-		onConfirm={() => void removeSelectedFavorites()}
-		onCancel={() => (isConfirmingFavoriteRemoval = false)} />
+		isWorking={store.savingBookmark}
+		onConfirm={() => void removeSelectedBookmarks()}
+		onCancel={() => (isConfirmingBookmarkRemoval = false)} />
 {/if}

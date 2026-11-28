@@ -40,8 +40,8 @@ func (service *Service) refreshMetadata(key string, refresh func(context.Context
 	}()
 }
 
-func (service *Service) refreshFavoriteMetadata(places []games.Place) {
-	service.refreshMetadata("favorites", func(ctx context.Context) {
+func (service *Service) refreshBookmarkMetadata(places []games.Place) {
+	service.refreshMetadata("bookmarks", func(ctx context.Context) {
 		for _, place := range places {
 			if ctx.Err() != nil {
 				return
@@ -52,7 +52,7 @@ func (service *Service) refreshFavoriteMetadata(places []games.Place) {
 			updated, found, err := service.games.PlaceByID(ctx, place.PlaceID)
 			if err != nil {
 				if ctx.Err() == nil {
-					service.logs.Module("application.games").WarnContext(ctx, "favorite metadata refresh unavailable; keeping cached details", "operation", "favorite-metadata-refresh", "place_id", place.PlaceID)
+					service.logs.Module("application.games").WarnContext(ctx, "bookmark metadata refresh unavailable; keeping cached details", "operation", "bookmark-metadata-refresh", "place_id", place.PlaceID)
 				}
 				continue
 			}

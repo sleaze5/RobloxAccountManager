@@ -4,7 +4,6 @@
 	import arrowSquareOutIcon from "@phosphor-icons/core/regular/arrow-square-out.svg?raw"
 	import backpackIcon from "@phosphor-icons/core/regular/backpack.svg?raw"
 	import calendarDotsIcon from "@phosphor-icons/core/regular/calendar-dots.svg?raw"
-	import circleNotchIcon from "@phosphor-icons/core/regular/circle-notch.svg?raw"
 	import clockCounterClockwiseIcon from "@phosphor-icons/core/regular/clock-counter-clockwise.svg?raw"
 	import clockIcon from "@phosphor-icons/core/regular/clock.svg?raw"
 	import dotsThreeIcon from "@phosphor-icons/core/regular/dots-three.svg?raw"
@@ -46,12 +45,8 @@
 	import SocialBadges from "./SocialBadges.svelte"
 	import ProfileStats from "../shared/ProfileStats.svelte"
 	import { relationshipCountSection, relationshipStats } from "./relationship-stats"
-	import {
-		pendingRequestActionIds,
-		relationshipActions,
-		relationshipButtonClass,
-		requestRelationship,
-	} from "./relationship"
+	import { relationshipActions, requestRelationship } from "./relationship"
+	import RelationshipActionStrip from "./RelationshipActionStrip.svelte"
 	import type { RelationshipActionId } from "./relationship"
 	import { personName } from "./social-store.svelte"
 	import type { SocialStore, SocialSubpage } from "./social-store.svelte"
@@ -156,7 +151,7 @@
 				? relationshipActions(
 						relationship,
 						profileRelationship?.unavailable ?? [],
-					).filter((action) => pendingRequestActionIds.has(action.id))
+					)
 				: [],
 		),
 		origin = $derived(request ? (origins[request.origin] ?? "") : ""),
@@ -261,25 +256,16 @@
 					relationship={profileRelationship?.relationship ?? null} />{/if}
 		</div>
 		<div class="flex shrink-0 flex-wrap items-center justify-end gap-1">
-			{#each actions as action (action.id)}
-				{@const pending = store.isActionPending(person.userId, action.id)}
-				<button
-					class={[relationshipButtonClass(action.tone), "animate-enter"]}
-					type="button"
-					aria-busy={pending}
-					disabled={store.pendingAction !== null}
-					onclick={() => onRelationshipAction(person, action.id)}>
-					{#if pending}<Icon
-							svg={circleNotchIcon}
-							class="spinner"
-							size={14}
-							aria-hidden="true" />{:else}<Icon
-							svg={action.icon}
-							size={14}
-							aria-hidden="true" />{/if}
-					{pending ? action.progress : action.label}
-				</button>
-			{/each}
+			{#if actions.length}
+				<RelationshipActionStrip
+					username={accounts.selectedAccount.username}
+					{actions}
+					pendingActionId={store.pendingAction?.userId === person.userId
+						? store.pendingAction.action
+						: null}
+					isDisabled={store.pendingAction !== null}
+					onAction={(actionId) => onRelationshipAction(person, actionId)} />
+			{/if}
 			{#if person.onlineStatus}
 				<OnlineStatusJoinButton
 					onlineStatus={person.onlineStatus}
@@ -318,7 +304,7 @@
 				data-tooltip-side="bottom-end"
 				onclick={(event) => {
 					if (store.menu) store.closeMenu()
-					else store.openMenu(event, person)
+					else store.openMenu(event, person, true)
 				}}>
 				<Icon svg={dotsThreeIcon} size={16} aria-hidden="true" />
 			</button>

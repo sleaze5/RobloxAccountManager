@@ -3,7 +3,6 @@
 	import sealCheckIcon from "@phosphor-icons/core/regular/seal-check.svg?raw"
 	import { accountBackend, SocialProfileSection } from "../backend/bridge"
 	import type { SocialProfileSnapshot, SocialUser, UserView } from "../backend/bridge"
-	import circleNotchIcon from "@phosphor-icons/core/regular/circle-notch.svg?raw"
 	import AvatarPortraitFrame from "../avatar/AvatarPortraitFrame.svelte"
 	import { AvatarPortraitLoad } from "../avatar/avatar-portrait.svelte"
 	import { loadCreatorImage } from "../shared/creator-images"
@@ -16,24 +15,24 @@
 	import Timestamp from "../shared/Timestamp.svelte"
 	import { relativeTime } from "../shared/timestamp"
 	import { relationshipCountSection, relationshipStats } from "./relationship-stats"
+	import RelationshipActionStrip from "./RelationshipActionStrip.svelte"
 	import SocialBadges from "./SocialBadges.svelte"
-	import {
-		relationshipActions,
-		relationshipButtonClass,
-		type RelationshipActionId,
-	} from "./relationship"
+	import { relationshipActions, type RelationshipActionId } from "./relationship"
 	import { emptySocialProfile, socialProfileSections } from "./social-store.svelte"
 
 	// UserPreview shows the information of a Roblox user as the account sees
 	// it: the avatar, the relationship counts, the description, and when the
-	// user joined. It sends, accepts, declines, and cancels friend requests.
+	// user joined. It changes the relationship of the account with the user.
 	let {
 		accountId,
+		accountUsername,
 		user,
 		frame,
 		onRelationshipAction,
 	}: {
 		accountId: number
+		// accountUsername names the account that acts on Roblox.
+		accountUsername: string
 		user: { userId: number; username: string; displayName: string }
 		frame: ProfilePreviewFrame
 		onRelationshipAction: (
@@ -52,15 +51,7 @@
 			SocialProfileSection.SocialSectionPremium,
 			SocialProfileSection.SocialSectionPrimaryGroup,
 		],
-		sectionClass = "text-xs font-semibold text-fg-muted",
-		// A preview answers or sends a friend request. Ending a friendship
-		// and the other connections stay on the full profile.
-		quickActionIds = new Set<RelationshipActionId>([
-			"add-friend",
-			"accept-friend",
-			"decline-friend",
-			"cancel-friend",
-		])
+		sectionClass = "text-xs font-semibold text-fg-muted"
 
 	const sections = new SectionLoad<SocialProfileSnapshot, SocialProfileSection>(
 			socialProfileSections.filter(({ section }) =>
@@ -128,10 +119,7 @@
 		isVerified = $derived(userView?.hasVerifiedBadge || profile.verified),
 		actions = $derived(
 			sections.hasSection(SocialProfileSection.SocialSectionRelationship)
-				? relationshipActions(
-						profile.relationship,
-						profile.unavailable ?? [],
-					).filter((action) => quickActionIds.has(action.id))
+				? relationshipActions(profile.relationship, profile.unavailable ?? [])
 				: [],
 		),
 		person = $derived<SocialUser>({
@@ -164,37 +152,24 @@
 	function startAction(actionId: RelationshipActionId): void {
 		const action = actions.find((listedAction) => listedAction.id === actionId)
 		if (!action) return
-		if (action.tone === "neutral") {
-			void runAction(actionId)
-			return
-		}
 		frame.confirm({
 			title: action.question(displayName),
 			description: action.consequence,
 			confirmLabel: action.label,
 			progressLabel: action.progress,
-			tone: action.tone,
+			tone: action.tone === "neutral" ? "primary" : action.tone,
 			run: () => runAction(actionId),
 		})
 	}
 </script>
 
 {#snippet quickActions()}
-	{#each actions as action (action.id)}
-		<button
-			class={[relationshipButtonClass(action.tone), "animate-enter"]}
-			type="button"
-			aria-busy={pendingActionId === action.id}
-			disabled={pendingActionId !== null}
-			onclick={() => startAction(action.id)}>
-			<Icon
-				svg={pendingActionId === action.id ? circleNotchIcon : action.icon}
-				class={pendingActionId === action.id ? "spinner" : undefined}
-				size={14}
-				aria-hidden="true" />
-			{pendingActionId === action.id ? action.progress : action.label}
-		</button>
-	{/each}
+	<RelationshipActionStrip
+		username={accountUsername}
+		{actions}
+		{pendingActionId}
+		isDisabled={pendingActionId !== null}
+		onAction={startAction} />
 {/snippet}
 
 <ProfilePreviewLayout {frame} quickActions={actions.length ? quickActions : undefined}>

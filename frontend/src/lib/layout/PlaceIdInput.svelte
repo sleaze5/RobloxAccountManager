@@ -18,8 +18,8 @@
 		active = $state(0),
 		navigated = $state(false),
 		listStyle = $state("")
-	const favorites = $derived(indexPlaces(games.favorites)),
-		suggestions = $derived(matchPlaces(favorites, store.launchInput.placeId)),
+	const bookmarks = $derived(indexPlaces(games.bookmarks)),
+		suggestions = $derived(matchPlaces(bookmarks, store.launchInput.placeId)),
 		shown = $derived(
 			open && (suggestions.length > 0 || !store.launchInput.placeId.trim()),
 		),
@@ -143,7 +143,7 @@
 		bind:value={store.launchInput.placeId}
 		data-place-input
 		type="text"
-		placeholder="ID or favorite place"
+		placeholder="ID or bookmark"
 		role="combobox"
 		autocomplete="off"
 		spellcheck="false"
@@ -163,7 +163,7 @@
 		class="fixed z-10 flex max-h-(--place-menu-space) flex-col overflow-hidden rounded-xl border border-line-strong bg-overlay shadow-menu"
 		id={listID}
 		role="listbox"
-		aria-label="Favorite places"
+		aria-label="Bookmarks"
 		style={listStyle}
 		in:menuIn
 		out:menuOut>
@@ -193,11 +193,11 @@
 				</div>
 			{:else}
 				<div class="p-2 text-xs text-fg-muted" role="status">
-					{games.loadingFavorites
-						? "Loading favorite places…"
-						: games.favoritesLoaded
-							? "No favorite places yet"
-							: "Favorite places unavailable"}
+					{games.loadingBookmarks
+						? "Loading bookmarks…"
+						: games.bookmarksLoaded
+							? "No bookmarks yet"
+							: "Bookmarks unavailable"}
 				</div>
 			{/each}
 		</div>

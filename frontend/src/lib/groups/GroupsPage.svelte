@@ -38,6 +38,8 @@
 	import GroupJoinRequestsPage from "./GroupJoinRequestsPage.svelte"
 	import GroupMembersPage from "./GroupMembersPage.svelte"
 	import GroupProfileView from "./GroupProfileView.svelte"
+	import GroupSettingsPage from "./GroupSettingsPage.svelte"
+	import { primaryGroupConfirmation } from "./group-confirmations"
 	import { minGroupSearchLength } from "./groups-store.svelte"
 	import type { GroupsStore, GroupSubpage } from "./groups-store.svelte"
 	import { openPageLabel, setProfilePages } from "../shared/profile-pages"
@@ -159,7 +161,13 @@
 		detailPane?.scrollTo({ top: 0 })
 	})
 
-	const groupSubpages: GroupSubpage[] = ["members", "games", "items", "joinRequests"]
+	const groupSubpages: GroupSubpage[] = [
+		"members",
+		"games",
+		"items",
+		"joinRequests",
+		"settings",
+	]
 
 	const profilePages: ProfilePages = {
 		get label() {
@@ -172,6 +180,9 @@
 				{ id: "items", label: "Items" },
 				...(store.profile?.membership.permissions.canAcceptJoinRequests
 					? [{ id: "joinRequests", label: "Join requests" }]
+					: []),
+				...(store.profile?.membership.permissions.canConfigure
+					? [{ id: "settings", label: "Settings" }]
 					: []),
 			]
 		},
@@ -232,6 +243,18 @@
 	}
 
 	notifyErrors("Groups not loaded", () => listError)
+
+	let primaryChange = $state<{ group: GroupSummary; isPrimary: boolean } | null>(null)
+
+	async function changePrimaryGroup(
+		groupId: number,
+		isPrimary: boolean,
+	): Promise<void> {
+		const isSaved = await (isPrimary
+			? store.removePrimary(groupId)
+			: store.makePrimary(groupId))
+		if (isSaved) primaryChange = null
+	}
 </script>
 
 {#snippet groupSummary(group: GroupSummary, detail: string)}
@@ -486,13 +509,13 @@
 									onclick={(event) =>
 										selectGroup(event, row.group.groupId)}
 									oncontextmenu={(event) =>
-										store.openMenu(event, row.group)}
+										store.openMenu(event, row.group, false)}
 									onkeydown={(event) => {
 										if (
 											event.key === "ContextMenu" ||
 											(event.shiftKey && event.key === "F10")
 										)
-											store.openMenu(event, row.group)
+											store.openMenu(event, row.group, false)
 										if (
 											(event.key === " " ||
 												event.key === "Enter") &&
@@ -569,6 +592,10 @@
 				{#key `${store.accountId}:${store.selectedGroupId}`}
 					<GroupJoinRequestsPage {store} {notifications} />
 				{/key}
+			{:else if store.subpage === "settings"}
+				{#key `${store.accountId}:${store.selectedGroupId}`}
+					<GroupSettingsPage {store} />
+				{/key}
 			{:else}
 				{#key store.selectedGroupId}
 					<div class="animate-enter">
@@ -602,7 +629,20 @@
 	<GroupContextMenu
 		{store}
 		menu={store.menu}
-		onLeave={(groupIds) => (leavingGroupIds = groupIds)} />
+		onLeave={(groupIds) => (leavingGroupIds = groupIds)}
+		onChangePrimary={(group, isPrimary) =>
+			(primaryChange = { group, isPrimary })} />
+{/if}
+
+{#if primaryChange}
+	{@const { group, isPrimary } = primaryChange}
+	<ConfirmationDialog
+		{...primaryGroupConfirmation(group.name, isPrimary)}
+		tone="primary"
+		account={store.account}
+		isWorking={store.pendingAction !== null}
+		onConfirm={() => void changePrimaryGroup(group.groupId, isPrimary)}
+		onCancel={() => (primaryChange = null)} />
 {/if}
 
 {#if leavingGroupIds}
@@ -616,6 +656,7 @@
 			? `Leave ${groupIds.length} groups`
 			: "Leave group"}
 		progressLabel="Leaving…"
+		account={store.account}
 		isWorking={store.isLeavingGroups}
 		onConfirm={() => void leaveGroups(groupIds)}
 		onCancel={() => (leavingGroupIds = null)} />

@@ -626,6 +626,7 @@
 		description={`This deletes ${outfit.name || "this outfit"} from @${username}'s outfits. This cannot be undone.`}
 		confirmLabel="Delete outfit"
 		progressLabel="Deleting…"
+		account={accounts.selectedAccount}
 		isWorking={avatar.isChangingOutfit}
 		onConfirm={() => void deleteOutfit(outfit)}
 		onCancel={() => (deletedOutfit = null)} />

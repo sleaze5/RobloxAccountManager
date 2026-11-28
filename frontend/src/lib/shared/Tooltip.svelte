@@ -171,8 +171,8 @@
 		cancelAnimationFrame(frame)
 		visible = false
 		anchor = null
-		text = ""
-		strong = ""
+		// The text stays until the next tooltip replaces it, so that the
+		// tooltip keeps it while it fades out.
 	}
 
 	function leave(event: PointerEvent): void {
@@ -209,18 +209,23 @@
 </script>
 
 {#if visible && text}
+	<!-- The outer element takes the position and the inner one the surface,
+	     so that the whole tooltip fades in and out. -->
 	<div
-		class={[
-			"pointer-events-none fixed top-0 left-0 rounded-md border border-line bg-raised px-2 py-1 text-2xs font-medium text-fg shadow-float",
-			isWrapping
-				? "max-w-xs leading-snug whitespace-pre-line"
-				: "leading-none whitespace-nowrap",
-		]}
+		class="pointer-events-none fixed top-0 left-0"
 		role="tooltip"
 		bind:this={tip}
 		use:liftToTopLayer
 		style="top: 0; left: 0; transform: translate({left}px, {top}px);">
-		<span class="block" in:tooltipIn={{ instant }} out:tooltipOut
+		<span
+			class={[
+				"block rounded-md border border-line bg-raised px-2 py-1 text-2xs font-medium text-fg shadow-float",
+				isWrapping
+					? "max-w-xs leading-snug whitespace-pre-line"
+					: "leading-none whitespace-nowrap",
+			]}
+			in:tooltipIn={{ instant }}
+			out:tooltipOut
 			>{#if strongAt < 0}{text}{:else}{text.slice(0, strongAt)}<strong
 					class="font-semibold">{strong}</strong
 				>{text.slice(strongAt + strong.length)}{/if}</span>

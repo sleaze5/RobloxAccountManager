@@ -79,7 +79,9 @@
 	point={menu}
 	owner="data-social-menu"
 	onClose={() => store.closeMenu()}>
-	{#if joinable}
+	<!-- The profile shows the join button, the game of the online status, the
+	friend count, and the relationship actions. -->
+	{#if joinable && !menu.isFromProfile}
 		<MenuItem
 			label="Fill launch options"
 			icon={listPlusIcon}
@@ -89,7 +91,7 @@
 				store.closeMenu()
 			}} />
 	{/if}
-	{#if isInGame && placeId > 0}
+	{#if isInGame && placeId > 0 && !menu.isFromProfile}
 		<MenuItem
 			label="Show game"
 			icon={arrowsOutSimpleIcon}
@@ -98,16 +100,18 @@
 				store.closeMenu()
 			}} />
 	{/if}
-	<MenuItem
-		label="Show friends"
-		icon={userListIcon}
-		onSelect={() => {
-			const exploredPerson = person
-			store.closeMenu()
-			unsavedChangesGuard.leave(() =>
-				store.explore(exploredPerson, SocialList.SocialFriends),
-			)
-		}} />
+	{#if !menu.isFromProfile}
+		<MenuItem
+			label="Show friends"
+			icon={userListIcon}
+			onSelect={() => {
+				const exploredPerson = person
+				store.closeMenu()
+				unsavedChangesGuard.leave(() =>
+					store.explore(exploredPerson, SocialList.SocialFriends),
+				)
+			}} />
+	{/if}
 	<MenuItem
 		label="Open in browser"
 		icon={globeHemisphereWestIcon}
@@ -144,7 +148,7 @@
 			accessibleLabel="Copy profile link"
 			onSelect={() => void store.copy(profileUrl, "Profile link")} />
 	</MenuSection>
-	{#if !relationship?.self}
+	{#if !relationship?.self && !menu.isFromProfile}
 		<MenuSection heading="Connection" isBusy={relationship === null}>
 			{#each actions as action (action.id)}
 				<MenuItem

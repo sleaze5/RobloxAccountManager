@@ -1,4 +1,5 @@
 <script lang="ts">
+	import circleNotchIcon from "@phosphor-icons/core/regular/circle-notch.svg?raw"
 	import signInIcon from "@phosphor-icons/core/regular/sign-in.svg?raw"
 	import signOutIcon from "@phosphor-icons/core/regular/sign-out.svg?raw"
 	import sealCheckIcon from "@phosphor-icons/core/regular/seal-check.svg?raw"
@@ -9,6 +10,8 @@
 	import CreatorByline from "../shared/CreatorByline.svelte"
 	import { errorMessage } from "../shared/errors"
 	import { notifyErrors } from "../notifications/error-notifications.svelte"
+	import RobloxActionStrip from "../shared/RobloxActionStrip.svelte"
+	import { joinConfirmation } from "./group-confirmations"
 	import Icon from "../shared/Icon.svelte"
 	import ProfilePreviewLayout from "../shared/ProfilePreviewLayout.svelte"
 	import type { ProfilePreviewFrame } from "../shared/ProfilePreviewLayout.svelte"
@@ -23,11 +26,14 @@
 	// its owner, members, description, and roles, and joins or leaves it.
 	let {
 		accountId,
+		accountUsername,
 		groupId,
 		frame,
 		onMembershipChanged,
 	}: {
 		accountId: number
+		// accountUsername names the account that acts on Roblox.
+		accountUsername: string
 		groupId: number
 		frame: ProfilePreviewFrame
 		onMembershipChanged: (groupId: number) => void
@@ -107,6 +113,15 @@
 		}
 	}
 
+	function confirmJoin(): void {
+		if (!group) return
+		frame.confirm({
+			...joinConfirmation(group),
+			tone: "primary",
+			run: () => changeMembership("join"),
+		})
+	}
+
 	function confirmLeave(): void {
 		if (!group) return
 		frame.confirm({
@@ -123,28 +138,36 @@
 </script>
 
 {#snippet quickActions()}
-	{#if canLeave}
-		<button
-			class="button"
-			type="button"
-			disabled={pendingAction !== null}
-			onclick={confirmLeave}>
-			<Icon svg={signOutIcon} size={16} aria-hidden="true" />Leave group
-		</button>
-	{:else if canJoin}
-		<button
-			class="button-primary"
-			type="button"
-			aria-busy={pendingAction === "join"}
-			disabled={pendingAction !== null}
-			onclick={() => void changeMembership("join")}>
-			<Icon svg={signInIcon} size={16} aria-hidden="true" />
-			{pendingAction === "join"
-				? "Joining…"
-				: group?.isPublicEntryAllowed
+	{#if canLeave || canJoin}
+		<RobloxActionStrip username={accountUsername}>
+			{#if canLeave}
+				<button
+					type="button"
+					aria-label="Leave group"
+					data-tooltip="Leave group"
+					disabled={pendingAction !== null}
+					onclick={confirmLeave}>
+					<Icon svg={signOutIcon} size={14} aria-hidden="true" />
+				</button>
+			{:else}
+				{@const joinLabel = group?.isPublicEntryAllowed
 					? "Join group"
 					: "Request to join"}
-		</button>
+				<button
+					type="button"
+					aria-label={pendingAction === "join" ? "Joining…" : joinLabel}
+					aria-busy={pendingAction === "join"}
+					data-tooltip={joinLabel}
+					disabled={pendingAction !== null}
+					onclick={confirmJoin}>
+					<Icon
+						svg={pendingAction === "join" ? circleNotchIcon : signInIcon}
+						class={pendingAction === "join" ? "spinner" : undefined}
+						size={14}
+						aria-hidden="true" />
+				</button>
+			{/if}
+		</RobloxActionStrip>
 	{/if}
 {/snippet}
 

@@ -734,3 +734,182 @@ func (service *Users) AnswerGroupJoinRequest(ctx context.Context, accountID, ver
 	_, err := service.writeAccount(ctx, accountID, version, "group-join-request", method, groupsAddress(groupPath(groupID, "/join-requests/users/"+strconv.FormatInt(userID, 10)), nil).String(), nil)
 	return err
 }
+
+// GroupVerificationLevel is the account verification that a user needs to
+// join the group. Roblox sends it as a number from 0 to 3 in this order.
+type GroupVerificationLevel string
+
+const (
+	// GroupVerificationNone needs no verification.
+	GroupVerificationNone GroupVerificationLevel = "none"
+	// GroupVerificationLow needs a verified phone, email, or ID.
+	GroupVerificationLow GroupVerificationLevel = "low"
+	// GroupVerificationMedium needs a verified ID, or both a verified phone and
+	// a verified email.
+	GroupVerificationMedium GroupVerificationLevel = "medium"
+	// GroupVerificationHigh needs a verified ID.
+	GroupVerificationHigh GroupVerificationLevel = "high"
+)
+
+// GroupSlowMode limits how often members post in the forums of the group.
+// Roblox sends it as a number from 0 to 3 in this order.
+type GroupSlowMode string
+
+const (
+	GroupSlowModeOff GroupSlowMode = "off"
+	// GroupSlowModeSlow allows 1 post every 2 minutes and 2 comments a minute.
+	GroupSlowModeSlow GroupSlowMode = "slow"
+	// GroupSlowModeSlower allows 1 post every 5 minutes and 1 comment a minute.
+	GroupSlowModeSlower GroupSlowMode = "slower"
+	// GroupSlowModeSlowest allows 1 post every 10 minutes and 1 comment every
+	// 2 minutes.
+	GroupSlowModeSlowest GroupSlowMode = "slowest"
+)
+
+// GroupMinimumAccountAge is how many days old an account must be to join the
+// group. Roblox offers only these ages.
+type GroupMinimumAccountAge int
+
+const (
+	GroupMinimumAccountAgeAny        GroupMinimumAccountAge = 0
+	GroupMinimumAccountAgeOneDay     GroupMinimumAccountAge = 1
+	GroupMinimumAccountAgeThreeDays  GroupMinimumAccountAge = 3
+	GroupMinimumAccountAgeSevenDays  GroupMinimumAccountAge = 7
+	GroupMinimumAccountAgeThirtyDays GroupMinimumAccountAge = 30
+	GroupMinimumAccountAgeNinetyDays GroupMinimumAccountAge = 90
+)
+
+// The settings API sends the verification level, the account age, and the
+// slow mode as positions in these lists. Roblox announced the options in this
+// order and the API accepts exactly as many values. Checked on 2026-11-27.
+var (
+	groupVerificationLevels = []GroupVerificationLevel{GroupVerificationNone, GroupVerificationLow, GroupVerificationMedium, GroupVerificationHigh}
+	// Roblox calls the minimum account age accountTenureRequirement.
+	groupMinimumAccountAges = []GroupMinimumAccountAge{GroupMinimumAccountAgeAny, GroupMinimumAccountAgeOneDay, GroupMinimumAccountAgeThreeDays, GroupMinimumAccountAgeSevenDays, GroupMinimumAccountAgeThirtyDays, GroupMinimumAccountAgeNinetyDays}
+	groupSlowModes          = []GroupSlowMode{GroupSlowModeOff, GroupSlowModeSlow, GroupSlowModeSlower, GroupSlowModeSlowest}
+)
+
+// GroupSettings is what the settings API tells a member with the configure
+// permission about a group. A nil field is one that Roblox left out.
+type GroupSettings struct {
+	IsApprovalRequired  bool                    `json:"isApprovalRequired"`
+	AreEnemiesAllowed   bool                    `json:"areEnemiesAllowed"`
+	AreFundsVisible     bool                    `json:"areFundsVisible"`
+	AreGamesVisible     bool                    `json:"areGamesVisible"`
+	IsMemberListVisible *bool                   `json:"isMemberListVisible"`
+	VerificationLevel   *GroupVerificationLevel `json:"verificationLevel"`
+	MinimumAccountAge   *GroupMinimumAccountAge `json:"minimumAccountAge"`
+	SlowMode            *GroupSlowMode          `json:"slowMode"`
+	IsNameChangeEnabled bool                    `json:"isNameChangeEnabled"`
+	// IsRoleAssignedOnJoin tells whether a new member gets the lowest role at
+	// once. Roblox sends the opposite as isAutoAssignRoleDisabled.
+	IsRoleAssignedOnJoin *bool `json:"isRoleAssignedOnJoin"`
+	// CommunityTier is the tier that Roblox gives the group, or nil.
+	CommunityTier          *int  `json:"communityTier"`
+	CommunityTierUpdatedMs int64 `json:"communityTierUpdatedMs"`
+}
+
+// GroupSettingsChange lists the group settings to change. A nil field keeps
+// its value.
+type GroupSettingsChange struct {
+	IsApprovalRequired  *bool                   `json:"isApprovalRequired"`
+	AreEnemiesAllowed   *bool                   `json:"areEnemiesAllowed"`
+	AreFundsVisible     *bool                   `json:"areFundsVisible"`
+	AreGamesVisible     *bool                   `json:"areGamesVisible"`
+	IsMemberListVisible *bool                   `json:"isMemberListVisible"`
+	VerificationLevel   *GroupVerificationLevel `json:"verificationLevel"`
+	MinimumAccountAge   *GroupMinimumAccountAge `json:"minimumAccountAge"`
+	SlowMode            *GroupSlowMode          `json:"slowMode"`
+}
+
+// groupSettingsPayload maps the group settings to the names that Roblox
+// uses: areGroupFundsVisible, areGroupGamesVisible,
+// isMemberListVisibleToPublic, and accountTenureRequirement for the account
+// age.
+type groupSettingsPayload struct {
+	IsApprovalRequired          *bool `json:"isApprovalRequired,omitempty"`
+	AreEnemiesAllowed           *bool `json:"areEnemiesAllowed,omitempty"`
+	AreGroupFundsVisible        *bool `json:"areGroupFundsVisible,omitempty"`
+	AreGroupGamesVisible        *bool `json:"areGroupGamesVisible,omitempty"`
+	IsMemberListVisibleToPublic *bool `json:"isMemberListVisibleToPublic,omitempty"`
+	VerificationLevel           *int  `json:"verificationLevel,omitempty"`
+	AccountTenureRequirement    *int  `json:"accountTenureRequirement,omitempty"`
+	Slowmode                    *int  `json:"slowmode,omitempty"`
+}
+
+// listedOption returns the option at the position that Roblox sent, or nil
+// for a missing or unknown position.
+func listedOption[Option any](options []Option, position *int) *Option {
+	if position == nil || *position < 0 || *position >= len(options) {
+		return nil
+	}
+	return &options[*position]
+}
+
+// optionPosition returns the position of the option that Roblox expects, or
+// false for an unknown option.
+func optionPosition[Option comparable](options []Option, option *Option) (*int, bool) {
+	if option == nil {
+		return nil, true
+	}
+	position := slices.Index(options, *option)
+	return &position, position >= 0
+}
+
+func (service *Users) GroupSettings(ctx context.Context, accountID, version, groupID int64) (GroupSettings, error) {
+	const endpoint = "group-settings"
+	var payload struct {
+		groupSettingsPayload
+
+		IsGroupNameChangeEnabled bool  `json:"isGroupNameChangeEnabled"`
+		IsAutoAssignRoleDisabled *bool `json:"isAutoAssignRoleDisabled"`
+		CommunityTier            *struct {
+			CurrentTier     *int   `json:"currentTier"`
+			TierUpdatedTime string `json:"tierUpdatedTime"`
+		} `json:"communityTier"`
+	}
+	if err := service.readGroupData(ctx, accountID, version, endpoint, groupsAddress(groupPath(groupID, "/settings"), nil), &payload); err != nil {
+		return GroupSettings{}, err
+	}
+	if payload.IsApprovalRequired == nil || payload.AreEnemiesAllowed == nil || payload.AreGroupFundsVisible == nil || payload.AreGroupGamesVisible == nil {
+		return GroupSettings{}, invalidGroupData(endpoint)
+	}
+	settings := GroupSettings{
+		IsApprovalRequired: *payload.IsApprovalRequired, AreEnemiesAllowed: *payload.AreEnemiesAllowed,
+		AreFundsVisible: *payload.AreGroupFundsVisible, AreGamesVisible: *payload.AreGroupGamesVisible,
+		IsMemberListVisible: payload.IsMemberListVisibleToPublic,
+		VerificationLevel:   listedOption(groupVerificationLevels, payload.VerificationLevel),
+		MinimumAccountAge:   listedOption(groupMinimumAccountAges, payload.AccountTenureRequirement),
+		SlowMode:            listedOption(groupSlowModes, payload.Slowmode),
+		IsNameChangeEnabled: payload.IsGroupNameChangeEnabled,
+	}
+	if payload.IsAutoAssignRoleDisabled != nil {
+		isRoleAssignedOnJoin := !*payload.IsAutoAssignRoleDisabled
+		settings.IsRoleAssignedOnJoin = &isRoleAssignedOnJoin
+	}
+	if payload.CommunityTier != nil && payload.CommunityTier.CurrentTier != nil {
+		settings.CommunityTier = payload.CommunityTier.CurrentTier
+		settings.CommunityTierUpdatedMs = robloxTimeMs(payload.CommunityTier.TierUpdatedTime)
+	}
+	return settings, nil
+}
+
+// UpdateGroupSettings changes the settings that the change names. Roblox
+// keeps a setting that the request leaves out.
+func (service *Users) UpdateGroupSettings(ctx context.Context, accountID, version, groupID int64, change GroupSettingsChange) error {
+	const endpoint = "group-settings-update"
+	payload := groupSettingsPayload{
+		IsApprovalRequired: change.IsApprovalRequired, AreEnemiesAllowed: change.AreEnemiesAllowed,
+		AreGroupFundsVisible: change.AreFundsVisible, AreGroupGamesVisible: change.AreGamesVisible,
+		IsMemberListVisibleToPublic: change.IsMemberListVisible,
+	}
+	var isVerificationValid, isAccountAgeValid, isSlowModeValid bool
+	payload.VerificationLevel, isVerificationValid = optionPosition(groupVerificationLevels, change.VerificationLevel)
+	payload.AccountTenureRequirement, isAccountAgeValid = optionPosition(groupMinimumAccountAges, change.MinimumAccountAge)
+	payload.Slowmode, isSlowModeValid = optionPosition(groupSlowModes, change.SlowMode)
+	if !isVerificationValid || !isAccountAgeValid || !isSlowModeValid {
+		return &roblox.Error{Kind: roblox.KindProtocol, Endpoint: endpoint, Message: "Select one of the listed options."}
+	}
+	_, err := service.writeAccount(ctx, accountID, version, endpoint, http.MethodPatch, groupsAddress(groupPath(groupID, "/settings"), nil).String(), payload)
+	return err
+}

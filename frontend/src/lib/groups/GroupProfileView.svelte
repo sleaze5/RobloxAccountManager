@@ -1,15 +1,20 @@
 <script lang="ts">
+	import circleNotchIcon from "@phosphor-icons/core/regular/circle-notch.svg?raw"
 	import { notifyErrors } from "../notifications/error-notifications.svelte"
 	import arrowSquareOutIcon from "@phosphor-icons/core/regular/arrow-square-out.svg?raw"
 	import clockCounterClockwiseIcon from "@phosphor-icons/core/regular/clock-counter-clockwise.svg?raw"
 	import coinsIcon from "@phosphor-icons/core/regular/coins.svg?raw"
 	import dotsThreeIcon from "@phosphor-icons/core/regular/dots-three.svg?raw"
+	import starFillIcon from "@phosphor-icons/core/fill/star-fill.svg?raw"
+	import starIcon from "@phosphor-icons/core/regular/star.svg?raw"
 	import linkIcon from "@phosphor-icons/core/regular/link.svg?raw"
+	import medalIcon from "@phosphor-icons/core/regular/medal.svg?raw"
 	import megaphoneIcon from "@phosphor-icons/core/regular/megaphone.svg?raw"
 	import pencilSimpleIcon from "@phosphor-icons/core/regular/pencil-simple.svg?raw"
 	import signInIcon from "@phosphor-icons/core/regular/sign-in.svg?raw"
 	import signOutIcon from "@phosphor-icons/core/regular/sign-out.svg?raw"
 	import tagIcon from "@phosphor-icons/core/regular/tag.svg?raw"
+	import userPlusIcon from "@phosphor-icons/core/regular/user-plus.svg?raw"
 	import warningIcon from "@phosphor-icons/core/regular/warning.svg?raw"
 	import sealCheckIcon from "@phosphor-icons/core/regular/seal-check.svg?raw"
 	import { Browser } from "@wailsio/runtime"
@@ -26,6 +31,9 @@
 	import Timestamp from "../shared/Timestamp.svelte"
 	import { relativeTime } from "../shared/timestamp"
 	import ConfirmationDialog from "../shared/ConfirmationDialog.svelte"
+	import RobloxActionStrip from "../shared/RobloxActionStrip.svelte"
+	import type { ConfirmationText } from "../shared/roblox-confirmations"
+	import { joinConfirmation, primaryGroupConfirmation } from "./group-confirmations"
 	import GroupIcon from "./GroupIcon.svelte"
 	import GroupMembershipFacts from "./GroupMembershipFacts.svelte"
 	import GroupStatusBadges from "./GroupStatusBadges.svelte"
@@ -41,7 +49,18 @@
 		maxShoutLength = 255,
 		maxDescriptionLength = 1000
 
+	// GroupRobloxChange names a change to the group on Roblox that the user
+	// confirms first.
+	type GroupRobloxChange =
+		| "join"
+		| "primary"
+		| "removePrimary"
+		| "shout"
+		| "clearShout"
+		| "description"
+
 	let isConfirmingLeave = $state(false),
+		pendingChange = $state<GroupRobloxChange | null>(null),
 		isEditingShout = $state(false),
 		shoutDraft = $state(""),
 		isEditingDescription = $state(false),
@@ -69,18 +88,63 @@
 		isEditingShout = true
 	}
 
-	async function postShout(message: string): Promise<void> {
-		if (await store.postShout(message)) isEditingShout = false
+	async function confirmChange(change: GroupRobloxChange): Promise<void> {
+		let isSaved = false
+		if (change === "join") isSaved = await store.join()
+		else if (change === "primary")
+			isSaved = await store.makePrimary(store.selectedGroupId)
+		else if (change === "removePrimary")
+			isSaved = await store.removePrimary(store.selectedGroupId)
+		else if (change === "description")
+			isSaved = await store.saveDescription(descriptionDraft)
+		else isSaved = await store.postShout(change === "shout" ? shoutDraft : "")
+		if (!isSaved) return
+		if (change === "description") isEditingDescription = false
+		if (change === "shout" || change === "clearShout") isEditingShout = false
+		pendingChange = null
+	}
+
+	function confirmationFor(
+		change: GroupRobloxChange,
+		changedGroup: GroupSummary,
+	): ConfirmationText {
+		if (change === "join") return joinConfirmation(changedGroup)
+		if (change === "primary" || change === "removePrimary")
+			return primaryGroupConfirmation(
+				changedGroup.name,
+				change === "removePrimary",
+			)
+		if (change === "shout")
+			return {
+				title: "Post shout on Roblox?",
+				description: `Every member of ${changedGroup.name} sees the shout. It replaces the current shout.`,
+				confirmLabel: "Post shout",
+				progressLabel: "Posting…",
+			}
+		if (change === "clearShout")
+			return {
+				title: "Clear shout on Roblox?",
+				description: `The shout leaves the page of ${changedGroup.name} for every member.`,
+				confirmLabel: "Clear shout",
+				progressLabel: "Clearing…",
+			}
+		return {
+			title: "Save description on Roblox?",
+			description: `Every visitor of ${changedGroup.name} sees the new description.`,
+			confirmLabel: "Save description",
+			progressLabel: "Saving…",
+		}
+	}
+
+	function requestChange(change: GroupRobloxChange): void {
+		store.clearActionError()
+		pendingChange = change
 	}
 
 	function startDescription(): void {
 		store.clearActionError()
 		descriptionDraft = group?.description ?? ""
 		isEditingDescription = true
-	}
-
-	async function saveDescription(): Promise<void> {
-		if (await store.saveDescription(descriptionDraft)) isEditingDescription = false
 	}
 
 	async function leave(): Promise<void> {
@@ -194,37 +258,68 @@
 					isLocked={details.isLocked} />
 			</div>
 			<div class="flex shrink-0 flex-wrap items-center justify-end gap-1">
-				{#if isMember && !membership.isOwner}
-					<button
-						class="button"
-						type="button"
-						disabled={store.pendingAction !== null}
-						onclick={() => {
-							store.clearActionError()
-							isConfirmingLeave = true
-						}}>
-						<Icon svg={signOutIcon} size={16} aria-hidden="true" />Leave
-						group
-					</button>
-				{:else if !isMember && !membership.isPendingJoin && !details.isLocked}
-					<button
-						class="button-primary"
-						type="button"
-						aria-busy={store.pendingAction === "join"}
-						disabled={store.pendingAction !== null}
-						onclick={() => void store.join()}>
-						<Icon svg={signInIcon} size={16} aria-hidden="true" />
-						{store.pendingAction === "join"
-							? "Joining…"
-							: group.isPublicEntryAllowed
+				{#if isMember || hasMembershipAction}
+					<RobloxActionStrip username={store.account.username}>
+						{#if isMember && !membership.isOwner}
+							<button
+								type="button"
+								aria-label="Leave group"
+								data-tooltip="Leave group"
+								disabled={store.pendingAction !== null}
+								onclick={() => {
+									store.clearActionError()
+									isConfirmingLeave = true
+								}}>
+								<Icon svg={signOutIcon} size={14} aria-hidden="true" />
+							</button>
+						{:else if !isMember && hasMembershipAction}
+							{@const joinLabel = group.isPublicEntryAllowed
 								? "Join group"
 								: "Request to join"}
-					</button>
+							{@const isJoining = store.pendingAction === "join"}
+							<button
+								type="button"
+								aria-label={isJoining ? "Joining…" : joinLabel}
+								aria-busy={isJoining}
+								data-tooltip={joinLabel}
+								disabled={store.pendingAction !== null}
+								onclick={() => requestChange("join")}>
+								<Icon
+									svg={isJoining ? circleNotchIcon : signInIcon}
+									class={isJoining ? "spinner" : undefined}
+									size={14}
+									aria-hidden="true" />
+							</button>
+						{/if}
+						{#if isMember}
+							{@const primaryLabel = membership.isPrimary
+								? "Remove primary group"
+								: "Make primary group"}
+							<button
+								type="button"
+								aria-label={primaryLabel}
+								aria-pressed={membership.isPrimary}
+								data-tooltip={primaryLabel}
+								disabled={store.pendingAction !== null}
+								onclick={() =>
+									requestChange(
+										membership.isPrimary
+											? "removePrimary"
+											: "primary",
+									)}>
+								<Icon
+									svg={membership.isPrimary ? starFillIcon : starIcon}
+									class={[
+										membership.isPrimary && "text-accent-strong",
+									]}
+									size={14}
+									aria-hidden="true" />
+							</button>
+						{/if}
+					</RobloxActionStrip>
+					<span class="mx-1 h-4 w-px bg-line-strong" aria-hidden="true"
+					></span>
 				{/if}
-				{#if hasMembershipAction}<span
-						class="mx-1 h-4 w-px bg-line-strong"
-						aria-hidden="true"></span
-					>{/if}
 				<button
 					class="button-icon"
 					type="button"
@@ -249,7 +344,7 @@
 					data-group-menu
 					onclick={(event) => {
 						if (store.menu) store.closeMenu()
-						else store.openMenu(event, group)
+						else store.openMenu(event, group, true)
 					}}>
 					<Icon svg={dotsThreeIcon} size={16} aria-hidden="true" />
 				</button>
@@ -283,7 +378,7 @@
 						class="flex animate-enter flex-col gap-2"
 						onsubmit={(event) => {
 							event.preventDefault()
-							void postShout(shoutDraft)
+							requestChange("shout")
 						}}>
 						<label class="sr-only" for="group-shout-input">Shout</label>
 						<textarea
@@ -301,7 +396,7 @@
 									class="button-text"
 									type="button"
 									disabled={store.pendingAction === "shout"}
-									onclick={() => void postShout("")}
+									onclick={() => requestChange("clearShout")}
 									>Clear shout</button>
 							{/if}
 							<button
@@ -379,7 +474,7 @@
 						class="flex animate-enter flex-col gap-2"
 						onsubmit={(event) => {
 							event.preventDefault()
-							void saveDescription()
+							requestChange("description")
 						}}>
 						<label class="sr-only" for="group-description-input"
 							>Description</label>
@@ -444,6 +539,58 @@
 							>{/if}
 					</dd>
 				</div>
+				{#if profile.settings}
+					{@const settings = profile.settings}
+					<div>
+						<dt>
+							<Icon
+								svg={pencilSimpleIcon}
+								size={16}
+								aria-hidden="true" />Name changes
+						</dt>
+						<dd>
+							{settings.isNameChangeEnabled ? "Allowed" : "Not allowed"}
+							<small>Roblox charges Robux to rename a group</small>
+						</dd>
+					</div>
+					<div
+						data-tone={settings.isRoleAssignedOnJoin == null
+							? "muted"
+							: undefined}>
+						<dt>
+							<Icon svg={userPlusIcon} size={16} aria-hidden="true" />Role
+							on join
+						</dt>
+						<dd>
+							{settings.isRoleAssignedOnJoin == null
+								? "Not shared by Roblox"
+								: settings.isRoleAssignedOnJoin
+									? "Lowest role"
+									: "No role until a member gives one"}
+						</dd>
+					</div>
+					<div
+						data-tone={settings.communityTier == null
+							? "muted"
+							: undefined}>
+						<dt>
+							<Icon
+								svg={medalIcon}
+								size={16}
+								aria-hidden="true" />Community tier
+						</dt>
+						<dd>
+							{settings.communityTier == null
+								? "Not shared by Roblox"
+								: `Tier ${settings.communityTier}`}
+							{#if settings.communityTier != null && settings.communityTierUpdatedMs}<small
+									>Updated {relativeTime(
+										settings.communityTierUpdatedMs,
+									)}</small
+								>{/if}
+						</dd>
+					</div>
+				{/if}
 				{#if permissions.canSpendFunds}
 					<div
 						data-tone={profile.fundsInRobux === null ? "muted" : undefined}>
@@ -525,10 +672,25 @@
 		description={`This account will leave ${group.name} and lose its role. Joining again may need approval.`}
 		confirmLabel="Leave group"
 		progressLabel="Leaving…"
+		account={store.account}
 		isWorking={store.pendingAction === "leave"}
 		onConfirm={() => void leave()}
 		onCancel={() => {
 			store.clearActionError()
 			isConfirmingLeave = false
+		}} />
+{/if}
+
+{#if pendingChange && group}
+	{@const confirmation = confirmationFor(pendingChange, group)}
+	<ConfirmationDialog
+		{...confirmation}
+		tone="primary"
+		account={store.account}
+		isWorking={store.pendingAction !== null}
+		onConfirm={() => pendingChange && void confirmChange(pendingChange)}
+		onCancel={() => {
+			store.clearActionError()
+			pendingChange = null
 		}} />
 {/if}

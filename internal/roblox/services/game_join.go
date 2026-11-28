@@ -162,10 +162,25 @@ type joinResponse struct {
 // The target joins a user, a private server, a server, or a place, in that
 // order of precedence.
 func (service *Games) CheckJoin(ctx context.Context, accountID, version int64, target gamelaunch.Request) (games.JoinCheck, error) {
+	body, status, err := service.requestJoin(ctx, accountID, version, target)
+	if err != nil {
+		return games.JoinCheck{}, err
+	}
+	var payload joinResponse
+	if err := json.Unmarshal(body, &payload); err != nil {
+		return games.JoinCheck{}, &roblox.Error{Kind: roblox.KindProtocol, Endpoint: gameJoinCheckEndpoint, Status: status, Message: "Roblox returned invalid join details.", Cause: err}
+	}
+	return classifyJoin(payload, target, time.Now()), nil
+}
+
+// requestJoin sends the join request of the target and returns the response
+// body, which holds the tickets and tokens of the join script. Decode only the
+// fields that are needed, and never log or return the body.
+func (service *Games) requestJoin(ctx context.Context, accountID, version int64, target gamelaunch.Request) ([]byte, int, error) {
 	path, body := joinCheckRequest(target)
 	encodedBody, err := json.Marshal(body)
 	if err != nil {
-		return games.JoinCheck{}, fmt.Errorf("encode join check request: %w", err)
+		return nil, 0, fmt.Errorf("encode join check request: %w", err)
 	}
 	response, err := service.client.Do(ctx, roblox.Request{
 		Endpoint: gameJoinCheckEndpoint, AccountID: accountID, ExpectedSecretVersion: version, Authenticated: true,
@@ -176,13 +191,9 @@ func (service *Games) CheckJoin(ctx context.Context, accountID, version int64, t
 		Retry:           roblox.RetryPolicy{MaxAttempts: 3, Idempotent: true, RetryServerErrors: true, RetryRateLimit: true},
 	})
 	if err != nil {
-		return games.JoinCheck{}, err
+		return nil, 0, err
 	}
-	var payload joinResponse
-	if err := json.Unmarshal(response.Body, &payload); err != nil {
-		return games.JoinCheck{}, &roblox.Error{Kind: roblox.KindProtocol, Endpoint: gameJoinCheckEndpoint, Status: response.Status, Message: "Roblox returned invalid join details.", Cause: err}
-	}
-	return classifyJoin(payload, target, time.Now()), nil
+	return response.Body, response.Status, nil
 }
 
 func joinCheckRequest(target gamelaunch.Request) (string, map[string]any) {

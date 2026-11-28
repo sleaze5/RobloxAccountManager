@@ -4,7 +4,6 @@
 	import Icon from "../shared/Icon.svelte"
 	import Dialog from "../shared/Dialog.svelte"
 	import ProfileImage from "../shared/ProfileImage.svelte"
-	import type { Account } from "../accounts/account-model"
 	import type { SocialUser } from "../backend/bridge"
 	import {
 		relationshipActionsById,
@@ -13,6 +12,8 @@
 	import type { RelationshipActionId } from "../social/relationship"
 	import { personName } from "../social/social-store.svelte"
 	import type { SocialStore } from "../social/social-store.svelte"
+	import type { Account } from "../accounts/account-model"
+	import AccountConfirmationActions from "../shared/AccountConfirmationActions.svelte"
 
 	let {
 		store,
@@ -75,9 +76,8 @@
 					>@{person.username}</span
 				>{/if}
 		</span>
-		<span class="shrink-0 text-2xs text-fg-muted">as @{account.username}</span>
 	</div>
-	<div class="dialog-actions">
+	<AccountConfirmationActions {account}>
 		<button class="button" type="button" disabled={pending} onclick={close}
 			>{action.tone === "warning" ? "Keep request" : "Cancel"}</button>
 		<button
@@ -91,5 +91,5 @@
 			<Icon svg={action.icon} size={14} aria-hidden="true" />
 			{pending ? action.progress : action.label}
 		</button>
-	</div>
+	</AccountConfirmationActions>
 </Dialog>

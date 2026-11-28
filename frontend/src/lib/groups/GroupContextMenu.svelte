@@ -1,4 +1,5 @@
 <script lang="ts">
+	import type { GroupSummary } from "../backend/bridge"
 	import globeHemisphereWestIcon from "@phosphor-icons/core/regular/globe-hemisphere-west.svg?raw"
 	import hashIcon from "@phosphor-icons/core/regular/hash.svg?raw"
 	import linkIcon from "@phosphor-icons/core/regular/link.svg?raw"
@@ -20,10 +21,14 @@
 		store,
 		menu,
 		onLeave,
+		onChangePrimary,
 	}: {
 		store: GroupsStore
 		menu: GroupMenu
 		onLeave: (groupIds: number[]) => void
+		// onChangePrimary asks to make the group primary, or to remove it as
+		// the primary group when isPrimary is true.
+		onChangePrimary: (group: GroupSummary, isPrimary: boolean) => void
 	} = $props()
 	const robloxPages = getRobloxPageOpener()
 	const group = $derived(menu.group),
@@ -33,9 +38,10 @@
 	// Closing the menu clears the menu prop that group derives from, so each
 	// action reads the group first.
 	function changePrimaryGroup(): void {
-		const { groupId } = group
+		const changedGroup = group,
+			wasPrimary = isPrimary
 		store.closeMenu()
-		void (isPrimary ? store.removePrimary(groupId) : store.makePrimary(groupId))
+		onChangePrimary(changedGroup, wasPrimary)
 	}
 </script>
 
@@ -44,7 +50,8 @@
 	point={menu}
 	owner="data-group-menu"
 	onClose={() => store.closeMenu()}>
-	{#if membership}
+	<!-- The group profile shows the primary group and leave buttons. -->
+	{#if membership && !menu.isFromProfile}
 		<MenuItem
 			label={isPrimary ? "Remove primary group" : "Make primary group"}
 			icon={isPrimary ? starFillIcon : starIcon}
@@ -80,7 +87,7 @@
 			accessibleLabel="Copy group link"
 			onSelect={() => void store.copyField(group, "link")} />
 	</MenuSection>
-	{#if store.canLeave(group.groupId)}
+	{#if store.canLeave(group.groupId) && !menu.isFromProfile}
 		<div class="menu-separator"></div>
 		<MenuItem
 			label="Leave group"

@@ -71,6 +71,7 @@
 					workspace.openAccountContextMenu(
 						event,
 						store.selectedAccountIds[0],
+						false,
 					)}>
 				<Icon svg={dotsThreeIcon} size={16} aria-hidden="true" />More actions
 			</button>

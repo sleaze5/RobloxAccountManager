@@ -7,7 +7,7 @@ import (
 )
 
 const (
-	MaxFavoriteNicknameLength  = 50
+	MaxBookmarkNicknameLength  = 50
 	MaxPrivateServerNameLength = 50
 )
 
@@ -196,16 +196,92 @@ type ServerPage struct {
 	PreviousCursor string   `json:"previousCursor"`
 }
 
+// PingSignal is Roblox's rating of a server's reported ping. Roblox calls it
+// pingSignalLevel and sends it only to a signed-in account.
+type PingSignal string
+
+const (
+	PingSignalLow     PingSignal = "Low"
+	PingSignalMedium  PingSignal = "Medium"
+	PingSignalHigh    PingSignal = "High"
+	PingSignalUnknown PingSignal = ""
+)
+
 type Server struct {
-	ServerID        string        `json:"serverId"`
-	Playing         int64         `json:"playing"`
-	MaxPlayers      int64         `json:"maxPlayers"`
-	FPS             float64       `json:"fps"`
-	PingMs          *int64        `json:"pingMs"`
-	LanguageMatches *int64        `json:"languageMatches"`
-	Friends         *int64        `json:"friends"`
-	PlayerImages    []string      `json:"playerImages"`
-	Record          *ServerRecord `json:"record"`
+	ServerID        string             `json:"serverId"`
+	Playing         int64              `json:"playing"`
+	MaxPlayers      int64              `json:"maxPlayers"`
+	FPS             float64            `json:"fps"`
+	PingMs          *int64             `json:"pingMs"`
+	PingSignal      PingSignal         `json:"pingSignal"`
+	LanguageMatches *int64             `json:"languageMatches"`
+	Friends         *int64             `json:"friends"`
+	PlayerImages    []string           `json:"playerImages"`
+	Record          *ServerRecord      `json:"record"`
+	Observation     *ServerObservation `json:"observation"`
+}
+
+// ServerObservation sums up the times that this app listed a server. The
+// player change is the net change between the first and the last listing, not
+// a count of joins and leaves.
+type ServerObservation struct {
+	FirstSeenMs    int64          `json:"firstSeenMs"`
+	LastSeenMs     int64          `json:"lastSeenMs"`
+	ListingCount   int            `json:"listingCount"`
+	PlayingChange  int64          `json:"playingChange"`
+	PlayingHistory []int64        `json:"playingHistory"`
+	FPS            ObservedRange  `json:"fps"`
+	PingMs         *ObservedRange `json:"pingMs"`
+}
+
+type ObservedRange struct {
+	Minimum           float64 `json:"minimum"`
+	Average           float64 `json:"average"`
+	Maximum           float64 `json:"maximum"`
+	StandardDeviation float64 `json:"standardDeviation"`
+}
+
+// ServerConnection is how the Roblox client reaches a server.
+type ServerConnection string
+
+const (
+	// ServerConnectionRelay goes through Roblox's UDP relays, which Roblox
+	// calls UDMUX.
+	ServerConnectionRelay   ServerConnection = "relay"
+	ServerConnectionDirect  ServerConnection = "direct"
+	ServerConnectionUnknown ServerConnection = ""
+)
+
+// ServerDetails is what Roblox's join service tells an account about a
+// server, without the tickets and tokens of the join script. A full or closed
+// server has no join script, so only the join check and the queue position
+// are known.
+type ServerDetails struct {
+	ServerID            string           `json:"serverId"`
+	Join                JoinCheck        `json:"join"`
+	QueuePosition       int64            `json:"queuePosition"`
+	HasJoinScript       bool             `json:"hasJoinScript"`
+	DatacenterID        int64            `json:"datacenterId"`
+	Datacenter          *Datacenter      `json:"datacenter"`
+	StartedMs           int64            `json:"startedMs"`
+	PlaceVersion        int64            `json:"placeVersion"`
+	EngineVersion       string           `json:"engineVersion"`
+	ReleaseChannel      string           `json:"releaseChannel"`
+	Locale              string           `json:"locale"`
+	Connection          ServerConnection `json:"connection"`
+	Address             string           `json:"address"`
+	PingIntervalSeconds int64            `json:"pingIntervalSeconds"`
+	// Record is RoValra's record of the server, added when the join service
+	// does not place it, such as for a full server.
+	Record *ServerRecord `json:"record"`
+}
+
+// Datacenter is where RoValra places a Roblox datacenter.
+type Datacenter struct {
+	City        string `json:"city"`
+	Region      string `json:"region"`
+	Country     string `json:"country"`
+	CountryCode string `json:"countryCode"`
 }
 
 type ServerRecord struct {

@@ -1,4 +1,5 @@
 <script lang="ts">
+	import type { AccountStore } from "../accounts/account-store.svelte"
 	import arrowsOutSimpleIcon from "@phosphor-icons/core/regular/arrows-out-simple.svg?raw"
 	import atIcon from "@phosphor-icons/core/regular/at.svg?raw"
 	import globeHemisphereWestIcon from "@phosphor-icons/core/regular/globe-hemisphere-west.svg?raw"
@@ -37,7 +38,7 @@
 	// preview goes back to it.
 	let {
 		subjects,
-		accountId,
+		accounts,
 		onBack,
 		onClose,
 		onOpenFull,
@@ -45,7 +46,7 @@
 		onMembershipChanged,
 	}: {
 		subjects: ProfilePreviewSubject[]
-		accountId: number
+		accounts: AccountStore
 		onBack: () => void
 		onClose: () => void
 		onOpenFull: (subject: ProfilePreviewSubject) => void
@@ -162,7 +163,9 @@
 		]
 	}
 
-	const previewId = $props.id()
+	const previewId = $props.id(),
+		account = $derived(accounts.selectedAccount),
+		accountId = $derived(account.id)
 	const titleId = `${previewId}-title`,
 		pageNameByKind: Record<ProfilePreviewSubject["kind"], string> = {
 			User: "Social",
@@ -234,17 +237,19 @@ as a confirmation, and an open menu handle their own Escape. -->
 			{#if subject.kind === "User"}
 				<UserPreview
 					{accountId}
+					accountUsername={account.username}
 					user={subject}
 					{frame}
 					{onRelationshipAction} />
 			{:else if subject.kind === "Group"}
 				<GroupPreview
 					{accountId}
+					accountUsername={account.username}
 					groupId={subject.groupId}
 					{frame}
 					{onMembershipChanged} />
 			{:else}
-				<GamePreview placeId={subject.placeId} {frame} />
+				<GamePreview placeId={subject.placeId} {accounts} {frame} />
 			{/if}
 		{/key}
 	</Dialog>
@@ -257,6 +262,7 @@ as a confirmation, and an open menu handle their own Escape. -->
 		confirmLabel={confirmation.confirmLabel}
 		progressLabel={confirmation.progressLabel}
 		tone={confirmation.tone}
+		{account}
 		isWorking={isConfirmationWorking}
 		onConfirm={() => void runConfirmation()}
 		onCancel={() => (confirmation = null)} />

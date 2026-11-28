@@ -84,28 +84,35 @@ func (service *Service) CheckGameServerJoinable(ctx context.Context, placeID, ac
 	return service.core.CheckGameServerJoinable(ctx, placeID, accountID, serverID)
 }
 
+func (service *Service) GetGameServerDetails(ctx context.Context, placeID, accountID int64, serverID string) (games.ServerDetails, error) {
+	if err := positiveID(accountID, "game-server-details"); err != nil {
+		return games.ServerDetails{}, err
+	}
+	return service.core.GetGameServerDetails(ctx, placeID, accountID, serverID)
+}
+
 func (service *Service) GetGamePlace(ctx context.Context, universeID, placeID int64) (games.PlaceSummary, error) {
 	return service.core.GetGamePlace(ctx, universeID, placeID)
 }
 
-func (service *Service) ListFavoritePlaces(ctx context.Context) ([]games.Place, error) {
-	return service.core.ListFavoritePlaces(ctx)
+func (service *Service) ListBookmarks(ctx context.Context) ([]games.Place, error) {
+	return service.core.ListBookmarks(ctx)
 }
 
-func (service *Service) AddFavoritePlace(ctx context.Context, placeID int64) (games.Place, error) {
-	return service.core.AddFavoritePlace(ctx, placeID)
+func (service *Service) AddBookmark(ctx context.Context, placeID int64) (games.Place, error) {
+	return service.core.AddBookmark(ctx, placeID)
 }
 
-func (service *Service) SetFavoritePlaceNickname(ctx context.Context, placeID int64, nickname string) (string, error) {
-	return service.core.SetFavoritePlaceNickname(ctx, placeID, nickname)
+func (service *Service) SetBookmarkNickname(ctx context.Context, placeID int64, nickname string) (string, error) {
+	return service.core.SetBookmarkNickname(ctx, placeID, nickname)
 }
 
-func (service *Service) ReorderFavoritePlaces(ctx context.Context, placeIDs []int64) error {
-	return service.core.ReorderFavoritePlaces(ctx, placeIDs)
+func (service *Service) ReorderBookmarks(ctx context.Context, placeIDs []int64) error {
+	return service.core.ReorderBookmarks(ctx, placeIDs)
 }
 
-func (service *Service) RemoveFavoritePlace(ctx context.Context, placeID int64) error {
-	return service.core.RemoveFavoritePlace(ctx, placeID)
+func (service *Service) RemoveBookmark(ctx context.Context, placeID int64) error {
+	return service.core.RemoveBookmark(ctx, placeID)
 }
 
 func (service *Service) ListOwnedPrivateServers(ctx context.Context, accountID int64, cursor string) (games.OwnedPrivateServerPage, error) {

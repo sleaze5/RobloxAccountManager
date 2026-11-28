@@ -1,15 +1,16 @@
 <script lang="ts" module>
 	import type { Snippet } from "svelte"
 
-	// ProfilePreviewConfirmation asks before a preview runs an action that
-	// ends something, such as leaving a group. run returns whether it
-	// succeeded, which closes the question.
+	// ProfilePreviewConfirmation asks before a preview changes Roblox, such as
+	// joining or leaving a group. Its tone is primary for a change that the
+	// user can reverse. run returns whether it succeeded, which closes the
+	// question.
 	export interface ProfilePreviewConfirmation {
 		title: string
 		description: string
 		confirmLabel: string
 		progressLabel: string
-		tone: "danger" | "warning"
+		tone: "danger" | "warning" | "primary"
 		run: () => Promise<boolean>
 	}
 

@@ -4,8 +4,8 @@
 	import linkIcon from "@phosphor-icons/core/regular/link.svg?raw"
 	import listPlusIcon from "@phosphor-icons/core/regular/list-plus.svg?raw"
 	import pencilLineIcon from "@phosphor-icons/core/regular/pencil-line.svg?raw"
-	import starFillIcon from "@phosphor-icons/core/fill/star-fill.svg?raw"
-	import starIcon from "@phosphor-icons/core/regular/star.svg?raw"
+	import bookmarkFillIcon from "@phosphor-icons/core/fill/bookmark-simple-fill.svg?raw"
+	import bookmarkIcon from "@phosphor-icons/core/regular/bookmark-simple.svg?raw"
 	import textTIcon from "@phosphor-icons/core/regular/text-t.svg?raw"
 	import userCircleIcon from "@phosphor-icons/core/regular/user-circle.svg?raw"
 	import usersThreeIcon from "@phosphor-icons/core/regular/users-three.svg?raw"
@@ -31,11 +31,11 @@
 	const robloxPages = getRobloxPageOpener()
 	const place = $derived(menu.place),
 		gameUrl = $derived(robloxGameUrl(place.placeId)),
-		favorite = $derived(store.isFavorite(place.placeId)),
+		isBookmarked = $derived(store.isBookmarked(place.placeId)),
 		group = $derived(place.creatorType === "Group"),
 		owner = $derived(group ? "Group" : "Creator"),
-		favoriteBusy = $derived(
-			store.savingFavorite || store.savingNickname || !store.favoritesLoaded,
+		bookmarkBusy = $derived(
+			store.savingBookmark || store.savingNickname || !store.bookmarksLoaded,
 		)
 </script>
 
@@ -52,17 +52,19 @@
 			store.closeMenu()
 			onFillLaunch(placeId)
 		}} />
-	{#if favorite}
+	{#if menu.isFromProfile}
+		<!-- The game details show the bookmark and nickname controls. -->
+	{:else if isBookmarked}
 		<MenuItem
 			label={store.nicknameFor(place.placeId) ? "Edit nickname" : "Add nickname"}
 			icon={pencilLineIcon}
 			onSelect={() => store.editNickname(place)} />
 	{:else}
 		<MenuItem
-			label="Add to favorites"
-			icon={starIcon}
-			disabled={favoriteBusy}
-			onSelect={() => void store.toggleFavorite(place)} />
+			label="Bookmark"
+			icon={bookmarkIcon}
+			disabled={bookmarkBusy}
+			onSelect={() => void store.toggleBookmark(place)} />
 	{/if}
 	<MenuItem
 		label="Open in browser"
@@ -113,13 +115,13 @@
 			accessibleLabel="Copy game link"
 			onSelect={() => void store.copy(gameUrl, "Game link")} />
 	</MenuSection>
-	{#if favorite}
+	{#if isBookmarked && !menu.isFromProfile}
 		<div class="menu-separator"></div>
 		<MenuItem
-			label="Remove from favorites"
-			icon={starFillIcon}
+			label="Remove bookmark"
+			icon={bookmarkFillIcon}
 			tone="danger"
-			disabled={favoriteBusy}
-			onSelect={() => void store.toggleFavorite(place)} />
+			disabled={bookmarkBusy}
+			onSelect={() => void store.toggleBookmark(place)} />
 	{/if}
 </PointMenu>

@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { getProfilePreviews } from "../shared/profile-preview"
 	import arrowsOutSimpleIcon from "@phosphor-icons/core/regular/arrows-out-simple.svg?raw"
-	import starFillIcon from "@phosphor-icons/core/fill/star-fill.svg?raw"
+	import bookmarkFillIcon from "@phosphor-icons/core/fill/bookmark-simple-fill.svg?raw"
 	import Icon from "../shared/Icon.svelte"
 	import { OnlineStatusType, UserJoinability } from "../backend/bridge"
 	import type { OnlineStatus } from "../backend/bridge"
@@ -185,12 +185,12 @@
 	{#if detail}
 		<span class="inline-flex min-w-0 items-center gap-1">
 			<span class="truncate">{detail}</span>
-			{#if place && games.isFavorite(place.placeId)}
+			{#if place && games.isBookmarked(place.placeId)}
 				<Icon
-					svg={starFillIcon}
+					svg={bookmarkFillIcon}
 					class="shrink-0 animate-pop text-accent-strong"
 					size={12}
-					aria-label="Favorite" />
+					aria-label="Bookmarked" />
 			{/if}
 		</span>
 	{/if}

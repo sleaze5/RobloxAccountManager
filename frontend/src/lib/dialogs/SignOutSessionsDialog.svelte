@@ -31,6 +31,7 @@
 	description={`This signs @${account.username} out of every other browser, device, and app. This app stays signed in with a new cookie. This cannot be undone.`}
 	confirmLabel="Sign out other sessions"
 	progressLabel="Signing out…"
+	{account}
 	isWorking={sessions.signingOut}
 	onConfirm={() => void signOut()}
 	onCancel={close} />

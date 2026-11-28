@@ -490,7 +490,12 @@
 					disabled={!hasAccount}
 					onclick={(event) => {
 						if (workspace.accountContextMenu) workspace.closeAccountMenus()
-						else workspace.openAccountContextMenu(event, selectedAccount.id)
+						else
+							workspace.openAccountContextMenu(
+								event,
+								selectedAccount.id,
+								true,
+							)
 					}}>
 					<Icon svg={dotsThreeIcon} size={16} aria-hidden="true" />
 				</button>

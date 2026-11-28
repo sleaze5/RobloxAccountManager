@@ -58,10 +58,12 @@ func saveOnePrivateServerCode(document object) (object, error) {
 var _ = [1]struct{}{}[len(migrations)-(FormatVersion-1)]
 
 type Payload struct {
-	Version             int                  `json:"version"`
-	Accounts            []Account            `json:"accounts"`
-	Tags                []string             `json:"tags"`
-	FavoritePlaces      []FavoritePlace      `json:"favoritePlaces"`
+	Version  int       `json:"version"`
+	Accounts []Account `json:"accounts"`
+	Tags     []string  `json:"tags"`
+	// Bookmarks keeps the key favoritePlaces, the name of bookmarks in earlier
+	// versions, so that every export file stays readable.
+	Bookmarks           []Bookmark           `json:"favoritePlaces"`
 	SavedPrivateServers []SavedPrivateServer `json:"savedPrivateServers"`
 	Settings            json.RawMessage      `json:"settings"`
 }
@@ -87,7 +89,7 @@ type Account struct {
 	Tags              []string `json:"tags"`
 }
 
-type FavoritePlace struct {
+type Bookmark struct {
 	PlaceID  int64  `json:"placeId"`
 	Nickname string `json:"nickname"`
 }
@@ -143,7 +145,7 @@ func (payload Payload) validate() error {
 	if err := validateAccounts(payload.Accounts, tags); err != nil {
 		return err
 	}
-	if err := validateFavoritePlaces(payload.FavoritePlaces); err != nil {
+	if err := validateBookmarks(payload.Bookmarks); err != nil {
 		return err
 	}
 	return validateSavedPrivateServers(payload.SavedPrivateServers)
@@ -208,14 +210,14 @@ func validateAccounts(accounts []Account, tags map[string]struct{}) error {
 	return nil
 }
 
-func validateFavoritePlaces(places []FavoritePlace) error {
-	seen := make(map[int64]struct{}, len(places))
-	for _, place := range places {
-		if place.PlaceID <= 0 || !utf8.ValidString(place.Nickname) || utf8.RuneCountInString(place.Nickname) > games.MaxFavoriteNicknameLength {
-			return errors.New("invalid favorite place")
+func validateBookmarks(bookmarks []Bookmark) error {
+	seen := make(map[int64]struct{}, len(bookmarks))
+	for _, place := range bookmarks {
+		if place.PlaceID <= 0 || !utf8.ValidString(place.Nickname) || utf8.RuneCountInString(place.Nickname) > games.MaxBookmarkNicknameLength {
+			return errors.New("invalid bookmark")
 		}
 		if _, duplicate := seen[place.PlaceID]; duplicate {
-			return fmt.Errorf("duplicate favorite place %d", place.PlaceID)
+			return fmt.Errorf("duplicate bookmark %d", place.PlaceID)
 		}
 		seen[place.PlaceID] = struct{}{}
 	}

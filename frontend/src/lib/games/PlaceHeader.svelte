@@ -1,7 +1,7 @@
 <script lang="ts">
 	import arrowsOutSimpleIcon from "@phosphor-icons/core/regular/arrows-out-simple.svg?raw"
 	import sealCheckIcon from "@phosphor-icons/core/regular/seal-check.svg?raw"
-	import starFillIcon from "@phosphor-icons/core/fill/star-fill.svg?raw"
+	import bookmarkFillIcon from "@phosphor-icons/core/fill/bookmark-simple-fill.svg?raw"
 	import Icon from "../shared/Icon.svelte"
 	import type { GamePlaceSummary } from "../backend/bridge"
 	import { loadGamePlace } from "./game-place-cache"
@@ -46,11 +46,11 @@
 				<strong
 					class="inline-flex min-w-0 items-center gap-1 text-sm font-semibold text-fg"
 					><span class="truncate">{games.displayName(place)}</span
-					>{#if games.isFavorite(place.placeId)}<Icon
-							svg={starFillIcon}
+					>{#if games.isBookmarked(place.placeId)}<Icon
+							svg={bookmarkFillIcon}
 							class="shrink-0 animate-pop text-accent-strong"
 							size={12}
-							aria-label="Favorite" />{/if}</strong>
+							aria-label="Bookmarked" />{/if}</strong>
 				{#if rootPlace}<span class="truncate text-xs text-fg-muted"
 						>Subplace of <span class="font-medium text-fg"
 							>{games.displayName(rootPlace)}</span

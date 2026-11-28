@@ -36,31 +36,31 @@
 	import type { AccountDetailsFieldId } from "./AccountDetailsPanel.svelte"
 	import { AccountDetailsState } from "./account-details-state.svelte"
 	import AccountSettingRow from "./AccountSettingRow.svelte"
-	import type { SettingRadioOption } from "./AccountSettingRow.svelte"
+	import type { SettingRadioOption } from "../shared/SettingRow.svelte"
 	import { AccountSettingsState } from "./account-settings-state.svelte"
 	import BlockedUsersList from "./BlockedUsersList.svelte"
 	import { BlockedUsersState } from "./blocked-users-state.svelte"
 	import OwnedPrivateServersList from "./OwnedPrivateServersList.svelte"
 	import { OwnedPrivateServersState } from "./owned-private-servers-state.svelte"
 
-	interface FieldDef {
+	interface SettingField {
 		key: Key
 		label: string
 		description: string
 		type: "toggle" | "radio"
 	}
 
-	interface SectionDef {
+	interface SettingSection {
 		id: string
 		title: string
-		fields: FieldDef[]
+		fields: SettingField[]
 	}
 
-	interface CategoryDef {
+	interface SettingCategory {
 		id: string
 		label: string
 		search: string
-		sections: SectionDef[]
+		sections: SettingSection[]
 	}
 
 	const privacyPlaceholders: SettingRadioOption[] = [
@@ -120,7 +120,7 @@
 		}
 	}
 
-	const categories: CategoryDef[] = [
+	const categories: SettingCategory[] = [
 		{
 			id: "content-maturity",
 			label: "Content maturity",
@@ -633,11 +633,8 @@
 			element.scrollTop = scrollTop
 			const row =
 				anchor &&
-				[
-					...element.querySelectorAll<HTMLElement>("[data-account-setting]"),
-				].find(
-					(settingElement) =>
-						settingElement.dataset.accountSetting === anchor.key,
+				[...element.querySelectorAll<HTMLElement>("[data-setting]")].find(
+					(settingElement) => settingElement.dataset.setting === anchor.key,
 				)
 			if (row && anchor) {
 				element.scrollTop +=
@@ -698,16 +695,14 @@
 		workspace.accountSettingsScrollTop = contentElement.scrollTop
 		const top = contentElement.getBoundingClientRect().top,
 			row = [
-				...contentElement.querySelectorAll<HTMLElement>(
-					"[data-account-setting]",
-				),
+				...contentElement.querySelectorAll<HTMLElement>("[data-setting]"),
 			].find(
 				(settingElement) => settingElement.getBoundingClientRect().bottom > top,
 			)
 		workspace.accountSettingsScrollAnchor =
-			row?.dataset.accountSetting && contentElement.scrollTop > 0
+			row?.dataset.setting && contentElement.scrollTop > 0
 				? {
-						key: row.dataset.accountSetting,
+						key: row.dataset.setting,
 						offset: row.getBoundingClientRect().top - top,
 					}
 				: null
@@ -717,7 +712,7 @@
 		return settingsState?.snapshot?.settings?.find((setting) => setting.key === key)
 	}
 
-	function computeRadioOptions(field: FieldDef): SettingRadioOption[] {
+	function computeRadioOptions(field: SettingField): SettingRadioOption[] {
 		const view = getSettingView(field.key)
 		if (!view?.options?.length) {
 			return radioPlaceholders(field.key).map((option) => ({
@@ -743,7 +738,7 @@
 		)
 	}
 
-	function computeFieldDisabled(field: FieldDef): boolean {
+	function computeFieldDisabled(field: SettingField): boolean {
 		const view = getSettingView(field.key)
 		if (busy || settingsState?.refreshRequired || !view?.editable) return true
 		return (
@@ -814,7 +809,10 @@
 		await settingsState.save(view, option)
 	}
 
-	function filterFields(category: CategoryDef, section: SectionDef): FieldDef[] {
+	function filterFields(
+		category: SettingCategory,
+		section: SettingSection,
+	): SettingField[] {
 		if (
 			terms.length === 0 ||
 			matches(`${privacyLabel} ${category.label} ${category.search}`)

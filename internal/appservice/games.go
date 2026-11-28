@@ -208,7 +208,61 @@ func (service *Service) ListGameServers(ctx context.Context, query games.ServerQ
 		return games.ServerPage{}, service.gamesError(ctx, "game-servers", err)
 	}
 	service.addServerRecords(ctx, query.PlaceID, page.Servers)
+	service.serverObservations.record(query.PlaceID, page.Servers, time.Now())
 	return page, nil
+}
+
+// GetGameServerDetails asks Roblox's join service about a server as the
+// account. With the RoValra integration on, it adds where RoValra places the
+// server's datacenter.
+func (service *Service) GetGameServerDetails(ctx context.Context, placeID, accountID int64, serverID string) (games.ServerDetails, error) {
+	if err := validRobloxID(placeID); err != nil {
+		return games.ServerDetails{}, err
+	}
+	if !games.ValidServerID(serverID) {
+		return games.ServerDetails{}, gamesInputError("The server is invalid. Refresh the server list.")
+	}
+	ctx, done, err := service.beginGames(ctx)
+	if err != nil {
+		return games.ServerDetails{}, err
+	}
+	defer done()
+	details, err := service.games.ServerDetails(ctx, accountID, placeID, serverID)
+	if err != nil {
+		return games.ServerDetails{}, service.gamesError(ctx, "game-server-details", err)
+	}
+	if !service.settings.Integrations().RoValra {
+		return details, nil
+	}
+	if details.DatacenterID > 0 {
+		datacenter, found, err := service.rovalra.Datacenter(ctx, details.DatacenterID)
+		switch {
+		case err != nil && ctx.Err() == nil:
+			service.logs.Module("integration.rovalra").WarnContext(ctx, "datacenter location unavailable", "operation", "rovalra-datacenter", "datacenter_id", details.DatacenterID, "error", err)
+		case found:
+			details.Datacenter = &datacenter
+		}
+	}
+	if details.Datacenter == nil {
+		details.Record = service.serverRecord(ctx, placeID, serverID)
+	}
+	return details, nil
+}
+
+// serverRecord returns RoValra's record of one server, or nil when RoValra
+// has none or cannot be reached.
+func (service *Service) serverRecord(ctx context.Context, placeID int64, serverID string) *games.ServerRecord {
+	recordContext, cancel := context.WithTimeout(ctx, 5*time.Second)
+	defer cancel()
+	records, err := service.rovalra.Records(recordContext, placeID, []string{serverID})
+	if err != nil && ctx.Err() == nil {
+		service.logs.Module("integration.rovalra").WarnContext(ctx, "server record unavailable", "operation", "rovalra-server-record", "place_id", placeID, "error", err)
+	}
+	record, found := records[serverID]
+	if !found {
+		return nil
+	}
+	return &record
 }
 
 func (service *Service) addServerRecords(ctx context.Context, placeID int64, servers []games.Server) {
@@ -316,20 +370,20 @@ func (service *Service) GetGamePlace(ctx context.Context, universeID, placeID in
 	return place, service.gamesError(ctx, "game-place", err)
 }
 
-func (service *Service) ListFavoritePlaces(ctx context.Context) ([]games.Place, error) {
+func (service *Service) ListBookmarks(ctx context.Context) ([]games.Place, error) {
 	ctx, done, err := service.beginGames(ctx)
 	if err != nil {
 		return nil, err
 	}
 	defer done()
-	places, err := service.favoritePlaces.List(ctx)
+	places, err := service.placeRepository.List(ctx)
 	if err == nil {
-		service.refreshFavoriteMetadata(places)
+		service.refreshBookmarkMetadata(places)
 	}
-	return places, service.gamesError(ctx, "favorite-places-list", err)
+	return places, service.gamesError(ctx, "bookmarks-list", err)
 }
 
-func (service *Service) AddFavoritePlace(ctx context.Context, placeID int64) (games.Place, error) {
+func (service *Service) AddBookmark(ctx context.Context, placeID int64) (games.Place, error) {
 	if err := validRobloxID(placeID); err != nil {
 		return games.Place{}, err
 	}
@@ -340,23 +394,23 @@ func (service *Service) AddFavoritePlace(ctx context.Context, placeID int64) (ga
 	defer done()
 	place, exists, err := service.games.PlaceByID(ctx, placeID)
 	if err != nil {
-		return games.Place{}, service.gamesError(ctx, "favorite-place-save", err)
+		return games.Place{}, service.gamesError(ctx, "bookmark-add", err)
 	}
 	if !exists {
 		return games.Place{}, gamesInputError("This place is private, deleted, or unavailable.")
 	}
-	if err := service.favoritePlaces.Save(ctx, place); err != nil {
-		return games.Place{}, service.gamesError(ctx, "favorite-place-save", err)
+	if err := service.placeRepository.Save(ctx, place); err != nil {
+		return games.Place{}, service.gamesError(ctx, "bookmark-add", err)
 	}
 	return place, nil
 }
 
-func (service *Service) SetFavoritePlaceNickname(ctx context.Context, placeID int64, nickname string) (string, error) {
+func (service *Service) SetBookmarkNickname(ctx context.Context, placeID int64, nickname string) (string, error) {
 	if err := validRobloxID(placeID); err != nil {
 		return "", err
 	}
 	nickname = strings.TrimSpace(nickname)
-	if utf8.RuneCountInString(nickname) > games.MaxFavoriteNicknameLength || strings.ContainsFunc(nickname, unicode.IsControl) {
+	if utf8.RuneCountInString(nickname) > games.MaxBookmarkNicknameLength || strings.ContainsFunc(nickname, unicode.IsControl) {
 		return "", gamesInputError("Enter a nickname of up to 50 characters.")
 	}
 	ctx, done, err := service.beginGames(ctx)
@@ -364,22 +418,22 @@ func (service *Service) SetFavoritePlaceNickname(ctx context.Context, placeID in
 		return "", err
 	}
 	defer done()
-	if err := service.favoritePlaces.SetNickname(ctx, placeID, nickname); errors.Is(err, gamestore.ErrNotFavorite) {
-		return "", gamesInputError("This place is no longer a favorite.")
+	if err := service.placeRepository.SetNickname(ctx, placeID, nickname); errors.Is(err, gamestore.ErrNotBookmarked) {
+		return "", gamesInputError("This place is no longer bookmarked.")
 	} else if err != nil {
-		return "", service.gamesError(ctx, "favorite-place-nickname", err)
+		return "", service.gamesError(ctx, "bookmark-nickname", err)
 	}
 	return nickname, nil
 }
 
-func (service *Service) ReorderFavoritePlaces(ctx context.Context, placeIDs []int64) error {
+func (service *Service) ReorderBookmarks(ctx context.Context, placeIDs []int64) error {
 	seen := make(map[int64]bool, len(placeIDs))
 	for _, placeID := range placeIDs {
 		if err := validRobloxID(placeID); err != nil {
 			return err
 		}
 		if seen[placeID] {
-			return gamesInputError("The favorite order is invalid.")
+			return gamesInputError("The bookmark order is invalid.")
 		}
 		seen[placeID] = true
 	}
@@ -388,15 +442,15 @@ func (service *Service) ReorderFavoritePlaces(ctx context.Context, placeIDs []in
 		return err
 	}
 	defer done()
-	if err := service.favoritePlaces.Reorder(ctx, placeIDs); errors.Is(err, gamestore.ErrNotFavorite) {
-		return gamesInputError("The favorites changed during the reorder. Try again.")
+	if err := service.placeRepository.Reorder(ctx, placeIDs); errors.Is(err, gamestore.ErrNotBookmarked) {
+		return gamesInputError("The bookmarks changed during the reorder. Try again.")
 	} else if err != nil {
-		return service.gamesError(ctx, "favorite-places-reorder", err)
+		return service.gamesError(ctx, "bookmarks-reorder", err)
 	}
 	return nil
 }
 
-func (service *Service) RemoveFavoritePlace(ctx context.Context, placeID int64) error {
+func (service *Service) RemoveBookmark(ctx context.Context, placeID int64) error {
 	if err := validRobloxID(placeID); err != nil {
 		return err
 	}
@@ -405,7 +459,7 @@ func (service *Service) RemoveFavoritePlace(ctx context.Context, placeID int64) 
 		return err
 	}
 	defer done()
-	return service.gamesError(ctx, "favorite-place-remove", service.favoritePlaces.Remove(ctx, placeID))
+	return service.gamesError(ctx, "bookmark-remove", service.placeRepository.Remove(ctx, placeID))
 }
 
 func (service *Service) beginGames(parent context.Context) (context.Context, func(), error) {

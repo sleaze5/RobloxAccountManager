@@ -129,11 +129,13 @@
 			<span>Description</span>
 			{#if check.filteredPreview === undefined}
 				<textarea
+					class="py-1.5 font-sans text-sm"
 					bind:this={field}
 					bind:value={typedDescription}
 					disabled={pending !== null}></textarea>
 			{:else}
 				<textarea
+					class="py-1.5 font-sans text-sm"
 					value={check.filteredPreview}
 					readonly
 					disabled={pending !== null}></textarea>

@@ -5,9 +5,17 @@
 	import usersThreeIcon from "@phosphor-icons/core/regular/users-three.svg?raw"
 	import { untrack } from "svelte"
 	import type { Snippet } from "svelte"
-	import type { GamePlace } from "../backend/bridge"
+	import { CatalogItemType } from "../backend/bridge"
+	import type { CategorizedInventoryItem, GamePlace } from "../backend/bridge"
 	import { inventoryCategoryOptionOf } from "../inventory/inventory-categories"
+	import InventoryItemDialog from "../inventory/InventoryItemDialog.svelte"
 	import InventoryItemTile from "../inventory/InventoryItemTile.svelte"
+	import {
+		categoryItemKey,
+		InventoryState,
+		inventoryItemKey,
+	} from "../inventory/inventory-state.svelte"
+	import { getNotificationCenter } from "../notifications/notification-center.svelte"
 	import { getProfilePreviews } from "../shared/profile-preview"
 	import Icon from "../shared/Icon.svelte"
 	import ItemTile from "../shared/ItemTile.svelte"
@@ -40,8 +48,78 @@
 
 	const skeletonTileIndexes = Array.from({ length: 6 }, (_, index) => index),
 		previews = getProfilePreviews(),
+		notifications = getNotificationCenter(),
 		headingID = $props.id()
-	let showcase = $state.raw<ProfileShowcase | null>(null)
+	let showcase = $state.raw<ProfileShowcase | null>(null),
+		detailedItemKey = $state(""),
+		// itemActions opens, buys, favorites, and tries on a creation for the
+		// selected account, as the Marketplace does.
+		itemActions = $state<InventoryState | null>(null)
+
+	const detailedItem = $derived(
+		detailedItemKey
+			? showcase?.creations?.find(
+					(categorizedItem) =>
+						inventoryItemKey(categorizedItem.item) === detailedItemKey,
+				)
+			: undefined,
+	)
+
+	function isWorn(categorizedItem: CategorizedInventoryItem): boolean {
+		return (
+			categorizedItem.item.catalogItemType === CatalogItemType.CatalogAsset &&
+			!!itemActions?.wornAssetIds.has(categorizedItem.item.itemId)
+		)
+	}
+
+	function isOwned(categorizedItem: CategorizedInventoryItem): boolean {
+		return (
+			itemActions?.isOwnedByItemKey.get(
+				categoryItemKey(categorizedItem.category, categorizedItem.item.itemId),
+			) === true
+		)
+	}
+
+	function openCreation(categorizedItem: CategorizedInventoryItem): void {
+		if (!itemActions) return
+		itemActions.clearItemActionError()
+		detailedItemKey = inventoryItemKey(categorizedItem.item)
+		itemActions.loadItemDetails(
+			categorizedItem.item,
+			categorizedItem.category,
+			true,
+		)
+		void itemActions.checkFavorite(categorizedItem.item)
+	}
+
+	$effect(() => {
+		const account = accounts.selectedAccount
+		if (account.id === 0 || !accounts.vault.unlocked) return
+		const accountItemActions = untrack(
+			() =>
+				new InventoryState(
+					account.id,
+					Number(account.userId) || 0,
+					accounts,
+					notifications,
+				),
+		)
+		itemActions = accountItemActions
+		detailedItemKey = ""
+		void accountItemActions.loadWornAssets()
+		return () => {
+			accountItemActions.dispose()
+			if (itemActions === accountItemActions) itemActions = null
+		}
+	})
+
+	$effect(() => {
+		const accountItemActions = itemActions,
+			creations = showcase?.creations
+		if (accountItemActions && creations?.length) {
+			untrack(() => void accountItemActions.loadOwnership(creations))
+		}
+	})
 
 	// The effect tracks the IDs and the username alone, because the account
 	// scope reads the account list, which refreshes often.
@@ -201,13 +279,26 @@
 							category={inventoryCategoryOptionOf(
 								categorizedItem.category,
 							)}
-							isWorn={false}
-							isOwned={false}
-							actionLabel="Show in Marketplace"
-							onOpen={() => onShowCreations(username)} />
+							isWorn={isWorn(categorizedItem)}
+							isOwned={isOwned(categorizedItem)}
+							isDisabled={!itemActions}
+							actionLabel="Show details"
+							onOpen={() => openCreation(categorizedItem)} />
 					</li>
 				{/each}
 			</TileCarousel>
 		{/if}
 	</div>
+{/if}
+
+{#if detailedItem && itemActions}
+	<InventoryItemDialog
+		item={detailedItem.item}
+		category={inventoryCategoryOptionOf(detailedItem.category)}
+		inventory={itemActions}
+		username={accounts.selectedAccount.username}
+		{accounts}
+		isOwnInventory={false}
+		isWorn={isWorn(detailedItem)}
+		onClose={() => (detailedItemKey = "")} />
 {/if}

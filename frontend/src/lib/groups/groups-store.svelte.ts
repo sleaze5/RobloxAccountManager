@@ -1,11 +1,13 @@
 import { accountBackend } from "../backend/bridge"
 import type {
 	GroupProfile,
+	GroupSettingsChange,
 	GroupSummary,
 	UserGroup,
 	UserGroupList,
 } from "../backend/bridge"
 import { AccountScope } from "../accounts/account-scope"
+import type { Account } from "../accounts/account-model"
 import type { AccountStore } from "../accounts/account-store.svelte"
 import type { NotificationCenter } from "../notifications/notification-center.svelte"
 import type { CancellableRequest } from "../shared/cancellable-request"
@@ -20,7 +22,7 @@ import { pageSidebarMinimumWidth } from "../layout/sidebar-widths"
 type GroupsMode = "mine" | "search"
 
 // GroupSubpage is a page of the selected group that replaces its profile.
-export type GroupSubpage = "members" | "games" | "items" | "joinRequests"
+export type GroupSubpage = "members" | "games" | "items" | "joinRequests" | "settings"
 
 type GroupAction =
 	| "join"
@@ -29,6 +31,7 @@ type GroupAction =
 	| "removePrimary"
 	| "shout"
 	| "description"
+	| "settings"
 
 export const minGroupSearchLength = 2
 
@@ -36,6 +39,9 @@ export interface GroupMenu {
 	group: GroupSummary
 	x: number
 	y: number
+	// isFromProfile is true when the More actions button of the profile opens
+	// the menu. The menu then leaves out what the profile already shows.
+	isFromProfile: boolean
 }
 
 // GroupCopyField names a detail of a group that its menu and the selection
@@ -115,6 +121,11 @@ export class GroupsStore {
 
 	get accountId(): number {
 		return this.#scope?.accountId ?? 0
+	}
+
+	// account is the saved account that the page acts for on Roblox.
+	get account(): Account {
+		return this.#accounts.selectedAccount
 	}
 
 	// membershipOf returns the role of the account in the group, for a group
@@ -363,10 +374,24 @@ export class GroupsStore {
 		)
 	}
 
-	openMenu(event: MouseEvent | KeyboardEvent, group: GroupSummary): void {
+	async saveSettings(change: GroupSettingsChange): Promise<boolean> {
+		return await this.#runAction(
+			"settings",
+			this.selectedGroupId,
+			(accountId, groupId) =>
+				accountBackend.SaveGroupSettings(accountId, groupId, change),
+			"Could not save the group settings. Try again.",
+		)
+	}
+
+	openMenu(
+		event: MouseEvent | KeyboardEvent,
+		group: GroupSummary,
+		isFromProfile: boolean,
+	): void {
 		event.preventDefault()
 		event.stopPropagation()
-		this.menu = { group, ...menuPointFor(event, 2) }
+		this.menu = { group, ...menuPointFor(event, 2), isFromProfile }
 	}
 
 	closeMenu(): void {
